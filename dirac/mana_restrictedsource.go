@@ -630,7 +630,7 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 		case rkExt:
 			t.addUnits(s.srcMaskAt(v, sl), v.manaN)
 			if v.manaOne {
-				s.addOneColour(&t, v.manaN) // all of it is one colour (Shang-Chi)
+				s.addOneColourMask(&t, s.srcMaskAt(v, sl), v.manaN) // all of it is one colour (Shang-Chi)
 			}
 			t.addXv(v)
 		case rkDyn:
