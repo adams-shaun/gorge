@@ -935,6 +935,44 @@ func bindTriggerObjectLKI(ctx *effects.Ctx, held triggerObjectLKI, ok bool) {
 	}
 }
 
+// triggeredCostXSupply is the total mana the payment's floating pool and
+// sources can produce with each source tapped at most once, at its largest
+// single production in the planner's payment-window census (units). Every
+// alternative is filtered through admits -- the payment's own RestrictValid$
+// (and OnlyTag) predicate potentialRestrictionAdmits, the same one the walk
+// uses -- so a source the walk excludes cannot be added back here. It
+// corrects potentialManaFor's per-ability over-bound, where a source's two
+// one-mana abilities (Quirion Elves) count separately although one tap makes
+// one mana; every source's best admitted alternative still counts.
+func triggeredCostXSupply(pool int32, units []pay.WindowUnit, admits func(id state.ObjID, ma *cards.SA) bool) int32 {
+	supply := pool
+	for _, u := range units {
+		best := int32(0)
+		for _, a := range u.Alts {
+			if a.Ma != nil && !admits(u.ID, a.Ma) {
+				continue
+			}
+			best = max(best, windowManaAltTotal(a))
+		}
+		supply += best
+	}
+	return supply
+}
+
+// windowManaAltTotal is one payment-window alternative's mana count: an
+// any-colour unit makes Amt mana of the one colour it chooses, never its
+// whole mask; a fixed face makes Amt of each colour its mask names.
+func windowManaAltTotal(a windowManaAlt) int32 {
+	if a.Any {
+		return a.Amt
+	}
+	n := int32(0)
+	for _, c := range a.Counts {
+		n += c
+	}
+	return n * a.Amt
+}
+
 // triggeredCostXAsk is the X arm of the payment ask: a cost carrying an
 // unfolded {X}, PayLife<X> or CollectEvidence<X> part needs its X announced
 // BEFORE the mana activations that cover it (CR 601.2b's
@@ -1013,6 +1051,27 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 		bound = pot.Total()
 		if bound > xFoldBoundCap {
 			bound = xFoldBoundCap
+		}
+		// potentialManaFor is a per-ABILITY over-bound: it folds every fixed
+		// face of a source so no colour is lost, so a permanent with two
+		// one-mana abilities (Quirion Elves' "{T}: Add {G}" and "{T}: Add one
+		// mana of the chosen colour") counts twice even though only one tap is
+		// available. Cap the announcement at the per-source one-tap supply --
+		// each source at its largest single production, with every alternative
+		// filtered through this payment's own restriction, so an excluded source
+		// cannot add back the per-ability over-count. At the cap the correction
+		// is skipped: the walk prices production open there (an any-colour or
+		// storage-counter source), which no fixed per-source census can bound
+		// without dropping a value the payment can really pay.
+		if bound < xFoldBoundCap {
+			admits := func(id state.ObjID, ma *cards.SA) bool {
+				return potentialRestrictionAdmits(e, tc.player, id, ma, &desc)
+			}
+			pool := pay.AvailableFor(asPayer(e), tc.player, desc).Pool.Total()
+			units := pay.PaymentPlanQueryUnits(asPayer(e), tc.player)
+			if supply := triggeredCostXSupply(pool, units, admits); supply < bound {
+				bound = supply
+			}
 		}
 	}
 	for _, part := range tc.amount.LifeX {

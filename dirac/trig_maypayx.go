@@ -45,7 +45,7 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	// not an open source (CR 106.1a, 601.2b). A trigger's own cost is no spell's,
 	// an ability's or a cast's, and has no source slot.
 	other := payDesc{class: pdOther, src: NoSlot}
-	s.availPotentialFor(k, p, &av, &other, false)
+	open := s.availPotentialFor(k, p, &av, &other, false)
 	cap = min(cap, trigXCap)
 	mx := 0
 	for x := 1; x <= cap; x++ {
@@ -54,6 +54,22 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 			break
 		}
 		mx = x
+	}
+	// The potential walk folds every face of a multi-ability source (Quirion
+	// Elves' {G} and chosen-colour taps) so no colour is lost, which
+	// overstates what one tap can pay. When the bound sits below the
+	// walk's cap (the defensive cap, or a lower XMax$), cap it by
+	// availForCapped's per-source census (each source once, at its largest
+	// production, including a source the planner defers or a ColorIdentity
+	// source its units omit), as gorge's triggeredCostXSupply caps the
+	// payment-aware bound. At the walk's cap the correction is skipped: the
+	// census is narrower than the walk (a storage land's counters, an open or
+	// granted source), so narrowing there could drop a value the payment can
+	// really pay.
+	if !open && mx < cap {
+		var one avail
+		s.availForCapped(k, p, &one)
+		mx = min(mx, one.total)
 	}
 	s.g.pickF = skip
 	s.g.pickZ = kop.PayManaX
