@@ -1,0 +1,13 @@
+# Count$Adamant read at a spell's own resolution and at the card's own ETB
+# replacement (dirac/oracle/adamantsites_lockstep_test.go
+# TestAdamantSitesLockstep; kgen lower_evoke.go adamantValue): the spells
+# read the resolving entry's spend, the Paladins the entering spell's, and
+# Cauldron's Gift returns a Paladin that was not cast (it reads 0)
+Cauldron's Gift
+Foreboding Fruit
+Ardenvale Paladin
+Garenbrig Paladin
+Grizzly Bears
+Plains
+Swamp
+Forest

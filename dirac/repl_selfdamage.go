@@ -56,9 +56,16 @@ func (s *State) selfDamage(k *prep, sl Slot, combat bool, n int) int {
 		s.healMarked(sl)
 	}
 	if b&rbPrevCtrSelf != 0 {
-		if prevRemovesOne(k, s.cardAt(sl)) {
-			s.selfDamageRemoveOne(sl)
-		} else {
+		bits := prevCtrBits(k, s.cardAt(sl))
+		if bits&kop.ReplPrevSelfIfCounter != 0 && s.perms[sl].ctrN(s, int(kop.CtrP1P1)) == 0 {
+			return n // ValidTarget$ Card.Self+counters_GE1_P1P1: no counter, no replacement
+		}
+		switch {
+		case bits&kop.ReplPrevSelfRemoveOne != 0:
+			s.selfDamageRemoveOne(sl, 1)
+		case bits&kop.ReplPrevSelfRemoveDmg != 0:
+			s.selfDamageRemoveOne(sl, n)
+		default:
 			s.selfDamageCounters(k, sl, n)
 		}
 		if !s.noPrev(k, combat) {
@@ -72,27 +79,30 @@ func (s *State) selfDamage(k *prep, sl Slot, combat bool, n int) int {
 // pool reaches the replacement).
 var SelfDamageStats struct{ RemoveOne atomic.Int64 }
 
-// prevRemovesOne: the card's ReplPreventDamageCounters is the Phantom body
-// (ReplPrevSelfRemoveOne), not Anti-Venom's counters. Both share rbPrevCtrSelf.
-func prevRemovesOne(k *prep, c CardID) bool {
+// prevCtrBits is the card's ReplPreventDamageCounters Repl.C: 0 for
+// Anti-Venom's counters, ReplPrevSelfRemoveOne for the Phantom body,
+// ReplPrevSelfRemoveDmg for the remove-that-many body, either beside the
+// ReplPrevSelfIfCounter gate. Every body shares rbPrevCtrSelf.
+func prevCtrBits(k *prep, c CardID) int16 {
 	cd := &k.t.Cards[c]
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplPreventDamageCounters {
-			return a.Repl.C == kop.ReplPrevSelfRemoveOne
+			return a.Repl.C
 		}
 	}
-	return false
+	return 0
 }
 
-// selfDamageRemoveOne is the Phantom body: remove one +1/+1 counter from sl
-// (gorge DB$ RemoveCounter | Defined$ Self | CounterNum$ 1, as OpRemoveCounter
-// does it: a kind removed to none is listed at 0).
-func (s *State) selfDamageRemoveOne(sl Slot) {
+// selfDamageRemoveOne is the Phantom body: remove n +1/+1 counters from sl,
+// one, or the damage's amount for the ReplPrevSelfRemoveDmg body (gorge DB$
+// RemoveCounter | CounterType$ P1P1, as OpRemoveCounter does it: a kind
+// removed to none is listed at 0).
+func (s *State) selfDamageRemoveOne(sl Slot, n int) {
 	SelfDamageStats.RemoveOne.Add(1)
 	s.touchSl(sl)
 	s.perms[sl].seeCtr(s)
-	s.perms[sl].subCtrN(s, int(kop.CtrP1P1), 1)
+	s.perms[sl].subCtrN(s, int(kop.CtrP1P1), n)
 }
 
 // selfDamageHost: the permanent at sl carries a self-damage replacement

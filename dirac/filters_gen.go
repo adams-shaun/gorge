@@ -857,7 +857,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			return s.typesAllCMCCard(k, fl, c, o, fd) // filter_typesall.go
 		}
 		if fl.Pred == kop.PredSameNameT0 {
-			return s.sameNameT0Card(c, o, fd) // filter_samename.go
+			return s.sameNameT0Card(fl.PredN, c, o, fd) // filter_samename.go
 		}
 		if fl.Pred == kop.PredNamedCard {
 			return s.namedCardCard(c, fd, ctx) // repl_namecard.go

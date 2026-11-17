@@ -42,3 +42,10 @@ func init() { extOpNames[ExtChoosePlayerMid] = "ChoosePlayerMid" }
 // the player its source chose as it entered (gorge ValidPlayer$
 // Player.Chosen). Read with the listener's slot; elsewhere it fails closed.
 const WhoseChosen Whose = 201
+
+// WhoseEnchanted restricts a printed battlefield trigger to the player its
+// source Aura enchants (gorge ValidPlayer$ / ValidTarget$ Player.EnchantedBy,
+// playerSpecQualifierEnchantedBy): a Phase line to that player's turn, a
+// DamageDone line to damage dealt to that player. Read with the listener's
+// slot (defEnchanted); elsewhere it fails closed.
+const WhoseEnchanted Whose = 202

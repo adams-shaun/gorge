@@ -33,6 +33,13 @@ const whoChosen uint8 = 201
 
 var _ = [1]struct{}{}[int(whoChosen)-int(kop.WhoseChosen)]
 
+// whoEnchanted is the trigger Whose of Player.EnchantedBy (a Phase line's
+// ValidPlayer$, a DamageDone line's ValidTarget$): the player the source
+// Aura enchants. It must equal kop.WhoseEnchanted (build_ab.go casts it).
+const whoEnchanted uint8 = 202
+
+var _ = [1]struct{}{}[int(whoEnchanted)-int(kop.WhoseEnchanted)]
+
 // entersChoosingPlayer reports whether face f chooses an opponent as it
 // enters (the one-node ETB ChoosePlayer body etbChoosePlayer lowers).
 func entersChoosingPlayer(f *cards.Face) bool {

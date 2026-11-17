@@ -1,0 +1,10 @@
+# ControlledBy TriggeredDefendingPlayer / DefenderCtrl in a becomes-blocked or
+# unblocked trigger's target filter (dirac/oracle/defenderctrl_lockstep_test.go
+# TestControlledByDefendingPlayerLockstep; kgen lower.go defenderTrigBody)
+Goblin Vandal
+Orcish Squatters
+Rust Scarab
+Ornithopter
+Grizzly Bears
+Mountain
+Forest
