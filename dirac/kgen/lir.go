@@ -1128,10 +1128,13 @@ type lStatic struct {
 	ProtExc    *lFilter
 	// Landwalk: a Continuous grant's landwalk land filter (kop.Static.Landwalk)
 	Landwalk *lFilter
-	Grant    []int    // latent abilities the affected objects gain
-	Flags    []string // kind-specific flags
-	Note     string
-	Ward     int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
+	// GainsOf: GainsAbilitiesOf$, the permanents whose activated abilities
+	// the source has (kop.Static.GainsOf; lower_gainsof.go)
+	GainsOf *lFilter
+	Grant   []int    // latent abilities the affected objects gain
+	Flags   []string // kind-specific flags
+	Note    string
+	Ward    int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
 	// WardLife: a Continuous grant's "Ward:PayLife<N>" (kop.Static.WardLife)
 	WardLife int
 

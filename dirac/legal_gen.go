@@ -169,6 +169,8 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			}
 		})
 	}
+	// gained activated abilities (GainsAbilitiesOf$, static_gainsof.go)
+	s.gainedAbilities(k, d, p, sorc, &av)
 }
 
 // offerPlay offers playing card object o through a permission.
@@ -499,7 +501,16 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 func (s *State) activateGen(k *prep, a Action) bool {
 	o := Obj(a.Source())
 	ob := &s.objs[o]
-	if a.Mode()&0x80 != 0 {
+	if isGainedMode(a.Mode()) {
+		// a gained ability (static_gainsof.go): the foreign card's body,
+		// activated as the recipient's own ability (no granting host)
+		host := Obj(a.Target())
+		hc := s.objs[host].card
+		if s.objs[host].zone == kop.ZoneBattlefield {
+			hc = s.cardAt(s.objs[host].slot)
+		}
+		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: hc, ab: a.Mode() &^ gainedMode, ctrl: s.prio, trigObj: NoObj}}
+	} else if a.Mode()&0x80 != 0 {
 		host := Obj(a.Target())
 		hc := s.objs[host].card
 		if s.objs[host].zone == kop.ZoneBattlefield {
@@ -514,7 +525,7 @@ func (s *State) activateGen(k *prep, a Action) bool {
 	s.bld().e.tgt = noTargets
 	s.bld().stage = stageFirst[seAbility]
 	s.ctl = ctlBuild
-	if a.Mode()&0x80 == 0 {
+	if !isGainedMode(a.Mode()) && a.Mode()&0x80 == 0 {
 		s.lowerHybridOnly(k, a.Mode()) // a hand or graveyard ability (cycling {U/B}): the same witness lowering as a battlefield one
 	}
 	return true
@@ -999,7 +1010,7 @@ func (s *State) priorityGenReadsAv(k *prep, p uint8) bool {
 	return s.g.nmay != 0 || g.anyMayPlay || g.anyGraveAct || g.anyHandAct || g.blgOn || len(g.varPC) != 0 ||
 		k.manaOne || g.anyTapExtra || g.anyContGrant || len(g.grantPC) != 0 || g.anyTapsDefer ||
 		k.availExt || k.painMana || s.g.availX&3 != 0 ||
-		g.anyGrant && s.ctrlM[p].any() && s.grantsLive(k)
+		g.anyGrant && s.ctrlM[p].any() && s.grantsLive(k) || g.uses.has(useGainsOf)
 }
 
 // tgtSource is the spell or ability the current targeting is for (the entry

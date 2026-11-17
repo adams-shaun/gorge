@@ -2222,6 +2222,9 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 	need = s.playNeed(k, a)
 	switch a.Kind() {
 	case AkActivate:
+		if isGainedMode(a.Mode()) {
+			return cost, ex, need, false // a gained ability (static_gainsof.go): unpriced, as a granted one
+		}
 		if a.Mode()&0x80 != 0 {
 			return cost, ex, need, false
 		}
@@ -2334,7 +2337,7 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
 	switch a.Kind() {
 	case AkActivate:
-		if a.Mode()&0x80 == 0 {
+		if !isGainedMode(a.Mode()) && a.Mode()&0x80 == 0 { // a gained or granted ability names no own index
 			need = s.abilityNeed(k, Obj(a.Source()), a.Mode())
 		}
 	case AkCast:

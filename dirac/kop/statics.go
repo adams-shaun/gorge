@@ -109,6 +109,13 @@ type Static struct {
 	// Landwalk:<land spec>, Goblin King's mountainwalk). 0 = none. Armed by
 	// genPrep.anyLandwalk; read by State.landwalkGranted (kw_evasion.go).
 	Landwalk FilterID
+	// GainsOf: a StatContinuous static's GainsAbilitiesOf$ (CR 613.1f):
+	// the static's own source may activate each activated ability of every
+	// battlefield permanent this filter matches (read with the source as its
+	// source and the static's controller as "you"; Zone ZoneNone = the
+	// battlefield). Armed by the useGainsOf genPrep.uses flag; the offer walk is
+	// dirac/static_gainsof.go (AkActivate mode 0xC0|ability index). 0 = none.
+	GainsOf FilterID
 	// WardLife: a StatContinuous grant's "ward—pay N life" amount
 	// (AddKeyword$ Ward:PayLife<N>; Kw holds KwWard; CR 702.21a). Like Ward,
 	// each such static is its own ward instance; 0 = no life ward.

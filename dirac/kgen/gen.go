@@ -543,9 +543,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 		if s.ProtExc != nil {
 			fmt.Fprintf(w, " protexc=%s", s.ProtExc)
 		}
-		if s.Landwalk != nil {
-			fmt.Fprintf(w, " landwalk=%s", s.Landwalk)
-		}
+		dumpStaticFilters(w, &s) // landwalk=, gainsof= (lower_gainsof.go)
 		if s.Evasion != 0 {
 			fmt.Fprintf(w, " evasion=%d", s.Evasion)
 		}

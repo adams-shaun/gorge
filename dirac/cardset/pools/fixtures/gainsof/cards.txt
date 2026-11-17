@@ -1,0 +1,10 @@
+# GainsAbilitiesOf$ on the battlefield (Robaran Mercenaries: all activated
+# abilities of the legendary creatures you control), beside two legendaries
+# with non-mana activated abilities: Prava of the Steel Legion's token maker
+# and Jeska, Warrior Adept's {T} ping, plus basics
+# (dirac/oracle/gainsabilitiesof_lockstep_test.go)
+Jeska, Warrior Adept
+Mountain
+Plains
+Prava of the Steel Legion
+Robaran Mercenaries
