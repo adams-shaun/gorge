@@ -17,7 +17,12 @@ import (
 // hold the picks (a seventeenth stalls, StallProlif) and res.left the
 // picks still allowed.
 
-// supportOK: the creature at sl may be supported by instruction in.
+// supportOK: the creature at sl may be supported by instruction in. The
+// "other" excludes the resolving source only while it is still the object
+// the ability came from: a source that left the battlefield and returned
+// since (Nephalia Smuggler flickering a Saddleback Lagac copy under its own
+// support trigger) is a new object (CR 400.7), so it may be supported --
+// gorge's Other with SourceReturned, and objRef's RefSelf version guard.
 func (s *State) supportOK(k *prep, in *kop.Instr, sl Slot) bool {
 	if !s.isCreature(k, sl) {
 		return false
