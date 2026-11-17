@@ -1988,14 +1988,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 		}
 		ep := p
 		if z == kop.ZoneBattlefield {
-			// the pick's origin zone reads the current instruction, as
-			// handGraveArm does: moveFound driven outside a program (kernel
-			// tests) has none, and keeps the flag-only entry player
-			from := kop.ZoneNone
-			if pr := s.prog(k); s.res.active && int(s.res.pc) < len(pr) {
-				from = s.searchZone(k)
-			}
-			ep = s.pickEntryPlayer(o, p, from) // zone_hiddenpick.go
+			ep = s.pickEntryPlayer(o, p, s.pickOrigin(k)) // zone_hiddenpick.go
 			if attach {
 				// AttachedTo$ on a search (kop.SrSearchAttach): the named
 				// bearer replaces the plain CR 303.4f enchant ask -- the Aura

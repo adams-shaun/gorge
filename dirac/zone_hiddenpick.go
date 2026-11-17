@@ -107,6 +107,16 @@ func (s *State) anyCand(k *prep) bool {
 	return d.N > 0
 }
 
+// pickOrigin is the zone the pick in progress comes from, read from the current
+// instruction as handGraveArm does: a moveFound driven outside a program
+// (kernel tests) has none, and gets ZoneNone, the flag-only entry player.
+func (s *State) pickOrigin(k *prep) kop.Zone {
+	if pr := s.prog(k); s.res.active && int(s.res.pc) < len(pr) {
+		return s.searchZone(k)
+	}
+	return kop.ZoneNone
+}
+
 // pickEntryPlayer is who a picked card o enters the battlefield under, p the
 // fetch player, from the pick's origin zone: a pick from a public zone spanning
 // every seat -- the game-wide exile pool (from=Exile, zone_exiledwithpick.go)
