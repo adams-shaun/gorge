@@ -358,12 +358,20 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 // (a static permitted the play). The cast path and playLandNow share it.
 func (s *State) spendMayRecord(k *prep, o Obj, p uint8) bool {
 	for i := 0; i < int(s.g.nmay); i++ {
-		if s.mayAt(i).obj == o && s.mayAt(i).ctrl == p && s.mayAt(i).ver == s.objs[o].ver &&
-			!ownWalkerRecord(*s.mayAt(i)) && !s.mayLimitSpent(*s.mayAt(i)) && !(k.gen.anyMayWhileSrc && s.maySrcDead(*s.mayAt(i))) {
-			s.stampMayExile(k, i) // repl_stackexile.go
-			s.removeMay(i)
+		r := *s.mayAt(i)
+		if r.obj != o || r.ctrl != p || r.ver != s.objs[o].ver || ownWalkerRecord(r) ||
+			s.mayLimitSpent(r) || k.gen.anyMayWhileSrc && s.maySrcDead(r) {
+			continue
+		}
+		s.stampMayExile(k, i) // repl_stackexile.go
+		if r.dur() == kop.DurWhileGrave && r.kind&kop.MayPlayLimitMask == 0 {
+			// An Effect-delivered graveyard grant stays live after the card
+			// leaves; mayPersistMoved re-arms it when the card returns
+			// (gorge re-reads the effect's static, CR 611.2a).
 			return true
 		}
+		s.removeMay(i)
+		return true
 	}
 	return false
 }
