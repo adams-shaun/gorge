@@ -452,8 +452,10 @@ func readXLedger(file string) (*xledgerIndex, error) {
 		if set := rec["set"]; set != "" {
 			idx.sets[card] = append(idx.sets[card], set)
 		}
-		if b := strings.TrimSpace(rec["bucket"]); b != "" && bucketRank(b) > bucketRank(idx.bucket[card]) {
-			idx.bucket[card] = b
+		if b := strings.ToUpper(strings.TrimSpace(rec["bucket"])); b != "" {
+			if cur, ok := idx.bucket[card]; !ok || bucketRank(b) > bucketRank(cur) {
+				idx.bucket[card] = b
+			}
 		}
 		if d := strings.TrimSpace(rec["diff_primary"]); d != "" && d != "-" && d != "0" &&
 			!strings.EqualFold(d, "none") && !strings.EqualFold(d, "false") {
@@ -937,9 +939,7 @@ func readTSV(b []byte) ([]map[string]string, error) {
 		}
 		out = append(out, m)
 	}
-	if header == nil {
-		return nil, io.EOF
-	}
+	// A file with no header line (empty, or comments only) has no records.
 	return out, nil
 }
 
@@ -952,6 +952,9 @@ func readCSV(b []byte) ([]map[string]string, error) {
 	r.LazyQuotes = true
 	r.Comment = '#'
 	header, err := r.Read()
+	if errors.Is(err, io.EOF) {
+		return []map[string]string{}, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -1061,6 +1064,20 @@ func (c *summaryCounts) add(r row) {
 	}
 }
 
+// otherBuckets counts the cards whose x_bucket is a value the ledger wrote
+// that the three named columns do not cover, so none vanishes from the summary.
+func (c *summaryCounts) otherBuckets() int {
+	n := 0
+	for k, v := range c.buckets {
+		switch k {
+		case "HAS-DIFFERENCES", "NO-CROSS-ENGINE", "AGREEING":
+		default:
+			n += v
+		}
+	}
+	return n
+}
+
 func ratio(s string) (int, int) {
 	hit, total, ok := strings.Cut(s, "/")
 	if !ok {
@@ -1093,10 +1110,10 @@ func writeSummary(w io.Writer, rows []row) error {
 		}
 	}
 	bw := bufio.NewWriter(w)
-	if _, err := fmt.Fprintln(bw, "| group | cards | claimed | evidenced | stale | lost | legacy | keys | branches | covered | HAS-DIFFERENCES | NO-CROSS-ENGINE | AGREEING |"); err != nil {
+	if _, err := fmt.Fprintln(bw, "| group | cards | claimed | evidenced | stale | lost | legacy | keys | branches | covered | HAS-DIFFERENCES | NO-CROSS-ENGINE | AGREEING | other |"); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintln(bw, "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"); err != nil {
+	if _, err := fmt.Fprintln(bw, "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"); err != nil {
 		return err
 	}
 	for _, g := range sortedKeys(lists) {
@@ -1125,10 +1142,10 @@ func sortedKeys(m map[string]*summaryCounts) []string {
 }
 
 func summaryLine(w io.Writer, group string, c *summaryCounts) error {
-	_, err := fmt.Fprintf(w, "| %s | %d | %d | %d | %d | %d | %d | %d/%d | %d/%d | %d | %d | %d | %d |\n",
+	_, err := fmt.Fprintf(w, "| %s | %d | %d | %d | %d | %d | %d | %d/%d | %d/%d | %d | %d | %d | %d | %d |\n",
 		group, c.cards, c.claimed, c.evidenced, c.stale, c.lost, c.legacy, c.keyHit, c.keyTotal,
 		c.branchHit, c.branchTotal, c.covered, c.buckets["HAS-DIFFERENCES"],
-		c.buckets["NO-CROSS-ENGINE"], c.buckets["AGREEING"])
+		c.buckets["NO-CROSS-ENGINE"], c.buckets["AGREEING"], c.otherBuckets())
 	return err
 }
 

@@ -194,7 +194,7 @@ func TestSummaryCounts(t *testing.T) {
 			t.Errorf("summary lacks %q:\n%s", want, s)
 		}
 	}
-	if !strings.Contains(s, "| ALL | 2 | 1 | 2 | 0 | 0 | 0 | 4/5 | 2/3 | 0 | 1 | 0 | 1 |") {
+	if !strings.Contains(s, "| ALL | 2 | 1 | 2 | 0 | 0 | 0 | 4/5 | 2/3 | 0 | 1 | 0 | 1 | 0 |") {
 		t.Errorf("ALL row counts are wrong:\n%s", s)
 	}
 }

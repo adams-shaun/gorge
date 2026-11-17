@@ -124,6 +124,8 @@ func statusOf(c *lCard, s *supportLists) (cardset.Status, string) {
 // CardSupport is one card's support as the support page computes it: statusOf
 // after lowering and building, whether the lowering is two-seat only
 // (kop.CardDef.TwoSeat), and LIRKeysFor's key for the same lowering.
+// twoSeat-at-caller: SupportFor only reports the flag; cardaudit's run reads
+// TwoSeat to rank 4-seat cards first.
 type CardSupport struct {
 	Status  cardset.Status
 	TwoSeat bool
