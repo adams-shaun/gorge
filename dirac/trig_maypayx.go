@@ -40,8 +40,12 @@ const trigXCap = 64
 //go:noinline
 func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	var av avail
-	d := payDesc{class: pdOther} // a trigger's own cost is no spell's, an ability's or a cast's
-	s.availPotentialFor(k, p, &av, &d, false)
+	// a payment's potential, as gorge's potentialManaFor(desc): a Chosen-colour
+	// source makes its chosen colour (a gate land's "{U} or the chosen colour"),
+	// not an open source (CR 106.1a, 601.2b). A trigger's own cost is no spell's,
+	// an ability's or a cast's, and has no source slot.
+	other := payDesc{class: pdOther, src: NoSlot}
+	s.availPotentialFor(k, p, &av, &other, false)
 	cap = min(cap, trigXCap)
 	mx := 0
 	for x := 1; x <= cap; x++ {
