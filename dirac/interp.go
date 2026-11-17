@@ -794,6 +794,10 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 		}
 		s.placeFromK(k, o, z, bottom, kop.ZoneStack, false)
 	case kop.ZoneNone:
+	case kop.ZonePhased, kop.ZonePhasedInd:
+		// CR 702.26b: a phased-out permanent can't be affected, so a move
+		// aimed at it does nothing (gorge changeZoneMoveSkip); it keeps its
+		// hidden slot (kw_phasing.go), which a detach would corrupt.
 	default:
 		if r == kop.RefSelf && (s.res.e.kind == seAbility || s.res.e.kind == seTrigger) && ob.ver != s.res.e.srcVer {
 			return // the ability's source left its zone: a new object (CR 400.7; Foul Familiar destroyed in response, Encroaching Dragonstorm destroyed with its return trigger on the stack)
