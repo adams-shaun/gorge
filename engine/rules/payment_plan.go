@@ -1036,6 +1036,7 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 	produced := state.Mana{}
 	var pain int64
 	lastResort := false
+	gapStep := false
 	seen := make(map[state.ObjID]bool, len(plan.Activations))
 	for _, pa := range plan.Activations {
 		if seen[pa.Source] {
@@ -1051,6 +1052,7 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 		}
 		pain += pay.ConsequencePain(step.Consequence)
 		lastResort = lastResort || step.Tier == pay.TierLastResort
+		gapStep = gapStep || step.Tier == pay.TierDeferred
 		produced = pay.ManaAdd(produced, step.Mana)
 	}
 	// The lethal guard and the phase rule (spec 5): a witness never kills its
@@ -1061,6 +1063,12 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 	}
 	if lastResort && !pay.PlanUsesLastResort(*got.Plan) {
 		return fmt.Errorf("payment plan uses a last-resort source while a normal plan exists")
+	}
+	// The gap steps' twin of the phase rule: a witness uses a Taps-deferred
+	// source only when the planner's own best plan does -- exactly when its
+	// first passes proved no plan without one (pay/plandeferred.go).
+	if gapStep && !pay.PlanUsesGapStep(asPayer(e), units, *got.Plan) {
+		return fmt.Errorf("payment plan uses a deferred source while a plan without one exists")
 	}
 	// The settle price is the planner's: for a may-play origin the free grant
 	// empties the mana part, the permission's RaiseCost$ surcharge is added

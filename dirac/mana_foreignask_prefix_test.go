@@ -27,6 +27,11 @@ import (
 // priority with the trigger still on the stack (the election is the
 // opponent's to answer later, CR 603.5, 117.1a). The payer's own optional
 // trigger (my Judge, the Core's tap queues it) blocks neither.
+//
+// The Core is a plain Taps-deferred gap, which gorge's planner funds in its
+// second pass (engine/rules/pay plandeferred.go): the plain walk lists the
+// instant-speed play and the own-election play (availTapsDeferIn), so their
+// payment needs no prefix and the subtests below pin that.
 func TestForeignOptionalPrefixGate(t *testing.T) {
 	deck := []cardset.Entry{
 		{Name: "Judge of Currents", Count: 2},
@@ -79,16 +84,22 @@ func TestForeignOptionalPrefixGate(t *testing.T) {
 	// path, legal.go's flush) without answering the opponent's election.
 	t.Run("a foreign election does not block an instant-speed play", func(t *testing.T) {
 		sc, co, _, wo := board(t, slip)
+		// gorge's planner funds the Core's {B} in its second pass (engine/rules/pay
+		// plandeferred.go), so the plain walk lists the play and the payment needs no
+		// prefix: the offer holds at the payer's priority with the trigger pending,
+		// and the Core stays untapped for the planner to tap at the cast.
+		var d Decision
+		sc.s.plainOptions(sc.k, &d, 0)
+		if !hasOption(&d, MakeAction(AkCast, TCode(wo), 0, 0)) {
+			t.Fatal("the instant-speed play is not offered at the payer's priority beside the foreign election")
+		}
 		sc.s.scriptPrefix(sc.k, MakeAction(AkCast, TCode(wo), 0, 0), 0)
-		if !sc.tapped(co) || sc.s.pl[0].pool[kop.B] != 1 {
-			t.Fatalf("the Core tapped %v, pool %v: the search refused the play gorge's visit offers at the payer's priority",
+		if sc.tapped(co) || sc.s.pl[0].pool[kop.B] != 0 {
+			t.Fatalf("the Core tapped %v, pool %v: the prefix tapped a gap the planner's second pass pays",
 				sc.tapped(co), sc.s.pl[0].pool)
 		}
-		if sc.s.npend != 0 {
-			t.Fatalf("a trigger left in the queue (npend %d): the flush must place both below the play", sc.s.npend)
-		}
-		if sc.s.sp != 2 {
-			t.Fatalf("the stack holds %d entries, want the two placed triggers", sc.s.sp)
+		if sc.s.npend != 1 {
+			t.Fatalf("the foreign trigger left the queue (npend %d): the prefix placed it", sc.s.npend)
 		}
 	})
 
@@ -106,8 +117,9 @@ func TestForeignOptionalPrefixGate(t *testing.T) {
 		}
 	})
 
-	// my own election: the search answers it (resolvePrefixStack, the
-	// sorcery-speed play's resolution), the script plays.
+	// my own election: the Core is a plain gap gorge's planner funds in its second
+	// pass, so the plain walk lists the Lions and the payment needs no prefix; the
+	// election is posed when the Judge's trigger resolves after the cast.
 	t.Run("the payer's own election does not block", func(t *testing.T) {
 		sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
 		sc.perm(judge, 0)
@@ -116,9 +128,14 @@ func TestForeignOptionalPrefixGate(t *testing.T) {
 			t.Fatal("precondition: the Core is not a Taps-deferred source under my Judge")
 		}
 		wo := sc.hand(lions, 0)
+		var d Decision
+		sc.s.plainOptions(sc.k, &d, 0)
+		if !hasOption(&d, MakeAction(AkCast, TCode(wo), 0, 0)) {
+			t.Fatal("the sorcery-speed play is not offered beside my own election")
+		}
 		sc.s.scriptPrefix(sc.k, MakeAction(AkCast, TCode(wo), 0, 0), 0)
-		if !sc.tapped(co) || sc.s.pl[0].pool[kop.W] != 1 {
-			t.Fatalf("the Core tapped %v, pool %v: my own election must not end the line", sc.tapped(co), sc.s.pl[0].pool)
+		if sc.tapped(co) {
+			t.Fatal("the prefix tapped a gap the planner's second pass pays")
 		}
 	})
 }
