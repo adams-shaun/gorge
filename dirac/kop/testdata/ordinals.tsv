@@ -1187,6 +1187,9 @@ ReplEntersTapped	ReplKind	1
 ReplEntersWithCounters	ReplKind	2
 ReplExileOnLeave	ReplKind	19
 ReplGraveToLibrary	ReplKind	14
+ReplLibBattlefield	int16	4
+ReplLibBottom	int16	1
+ReplLibShuffle	int16	2
 ReplLifeDouble	ReplKind	17
 ReplLifeLossDouble	ReplKind	24
 ReplLifePlus	ReplKind	18

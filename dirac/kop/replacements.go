@@ -110,6 +110,15 @@ type Repl struct {
 // an empty library and "loses the game" effects to take their course.
 const CantLoseLife = 1
 
+// Repl.C of ReplGraveToLibrary: the library insert and the moves it applies
+// to. No flags is a top insert with no shuffle from any zone, the plain form
+// the position cards extend.
+const (
+	ReplLibBottom      int16 = 1 << iota // put it on the bottom, not the top (LibraryPosition$ -1; Nissa's Chosen)
+	ReplLibShuffle                       // shuffle its owner's library after the top insert (Shuffle$ True; Progenitus, Saiba Syphoner)
+	ReplLibBattlefield                   // only a move from the battlefield (Origin$ Battlefield; Gravebane Zombie, Nissa's Chosen)
+)
+
 // Repl.C of ReplDoubleCountersOn / ReplAddCountersOn is a counter kind, or one
 // of these wildcards: the replacement names no
 // ValidCounterType$ and applies to every kind placed (Loading Zone, Doc
