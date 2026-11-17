@@ -18,6 +18,15 @@ queue_rules:
 merge_queue:
   max_parallel_checks: 2
 
+# A fix for a red main jumps the queue: label it `hotfix` and it is batched first, interrupting a running batch
+# (https://docs.mergify.com/merge-queue/priority/).
+priority_rules:
+  - name: hotfix first
+    conditions:
+      - label=hotfix
+    priority: high
+    allow_checks_interruption: true
+
 pull_request_rules:
   # Mergify recommends the queue over the merge action (batching, the combined-result check), so every PR to main is
   # queued, not merged directly.
