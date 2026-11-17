@@ -66,6 +66,11 @@ func (s *State) ProjectChars(p *Projection) {
 		c.Types = s.typesAt(k, sl) &^ kop.TToken
 		c.Colors = s.colorsAt(k, sl) &^ kop.ColC
 		c.Kw = s.kw(k, sl)
+		// Printed protection is CardDef.ProtColors, not a keyword bit; the
+		// oracle drops gorge's printed "Protection from <colour>" spellings
+		// (oracle/projchars.go), so a grant of that same colour must not add
+		// the bit back here.
+		c.Kw &^= protColourKw(k.t.Cards[s.cardAt(sl)].ProtColors)
 		if k.gen != nil && k.gen.anyColGrant {
 			c.Kw |= s.colProtKw(k, sl) // static_colourprot.go
 		}
@@ -83,4 +88,18 @@ func (s *State) ProjectChars(p *Projection) {
 			c.Subs = k.t.Cards[s.cardAt(sl)].Subtypes
 		}
 	}
+}
+
+// protColourKw is the keyword bits of protection from the colours in c: only
+// black and red have KwMask bits (the kernel's printed protection is
+// CardDef.ProtColors, read through the target, block and damage paths).
+func protColourKw(c kop.ColorMask) kop.KwMask {
+	var m kop.KwMask
+	if c&kop.ColB != 0 {
+		m |= kop.KwProtBlack
+	}
+	if c&kop.ColR != 0 {
+		m |= kop.KwProtRed
+	}
+	return m
 }
