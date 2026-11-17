@@ -40,6 +40,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/dirac/oracle"
 	"github.com/adams-shaun/gorge/dirac/vanilla"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -107,11 +108,14 @@ func addMiniDecks(c *oracle.Corpus, pool []oracle.PoolDeck, n int) error {
 var runKernel string
 
 // synthFaceDownPolicy wraps pol with the face-down overlay for a synthetic
-// pool that holds both a Morph-family carrier and an ETB mana source. The
+// pool that holds both a Morph-family carrier and a triggered mana source. The
 // face-down cast and the turn-up are priced from the floating pool alone, so
 // only a floater can offer them; a pool without one keeps the base policy.
-func synthFaceDownPolicy(synth string, set cardset.Set, pol func(uint64) oracle.Policy) func(uint64) oracle.Policy {
-	if synth == "" || !oracle.FaceDownSweepEligible(set) {
+// Eligibility reads the same compiled faces the runtime policy reads, so the
+// pool selection and the steering policy cannot disagree about what a floater
+// is.
+func synthFaceDownPolicy(synth string, reg *cards.Registry, set cardset.Set, pol func(uint64) oracle.Policy) func(uint64) oracle.Policy {
+	if synth == "" || !oracle.FaceDownSweepEligible(reg, set) {
 		return pol
 	}
 	base := pol
@@ -511,7 +515,7 @@ func run() int {
 		fmt.Fprintf(os.Stderr, "kfuzz: -policy %q: want random, heuristic, explore or first\n", *policy)
 		return 2
 	}
-	pol = synthFaceDownPolicy(*synth, set, pol)
+	pol = synthFaceDownPolicy(*synth, c.Reg, set, pol)
 	var mk oracle.SideFactory
 	switch *kernel {
 	case "gorge":
