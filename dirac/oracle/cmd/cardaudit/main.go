@@ -71,9 +71,9 @@ type row struct {
 	sets     []string
 }
 
-// audit is the Repro's entry point. It is pure and sorted by card name.
-// auditRows is the same function with the read errors main reports; audit
-// keeps the brief's signature and is what tests call.
+// audit is the tests' entry point. It is pure and sorted by card name.
+// auditRows is the same function with the read errors main reports; audit is
+// the wrapper that keeps the tests' call shape.
 func audit(fsys fs.FS, reg *cards.Registry, lir func([]string) map[string]string, o opts) []row {
 	rows, err := auditRows(fsys, reg, lir, o)
 	if err != nil {
