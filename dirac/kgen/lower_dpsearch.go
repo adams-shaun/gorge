@@ -35,7 +35,7 @@ func (lc *lowerCtx) definedPlayer(v string) (lRef, error) {
 			return lRef{}, refuse("ChangeZone DefinedPlayer$ %s with no target slot", v)
 		}
 		return lRef{Kind: rTargetController, N: t}, nil
-	case "TriggeredCardController", "TriggeredActivator", "TriggeredPlayer", "TriggeredTarget":
+	case "TriggeredCardController", "TriggeredActivator", "TriggeredPlayer", "TriggeredTarget", "TriggeredSourceController", "TriggeredAttackingPlayer":
 		// The trigger/controller spellings share the one Defined grammar and
 		// its guards (definedSpecTriggeredPlayer's event gate,
 		// definedSpecTriggeredTarget's damage-to-player guard): never a

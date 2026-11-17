@@ -231,8 +231,8 @@ func (ic *instrCtx) opGainControl() error {
 		switch {
 		case f == "Untap":
 			rid |= kop.GcUntap
-		case f == "kw=Haste" && fl["dur"] == "EOT":
-			rid |= kop.GcHasteEOT
+		case f == "kw=Haste":
+			rid |= kop.GcHasteEOT // until end of turn on DurEOT, else while the control record lives (opGainControl)
 		case f == "Remember":
 			rid |= kop.GcRemember
 		case strings.HasPrefix(f, "dur="):
@@ -260,7 +260,7 @@ func (ic *instrCtx) opGainControl() error {
 		if err != nil {
 			return err
 		}
-		if _, isTgt := tgtSlotOfRef(r); r != kop.RefOpponent && r != kop.RefEachOpponent && !isTgt {
+		if _, isTgt := tgtSlotOfRef(r); r != kop.RefOpponent && r != kop.RefEachOpponent && r != kop.RefTriggerPlayer && r != kop.RefTriggerTgtCtrl && !isTgt {
 			return fmt.Errorf("gain control new controller ref %d", r)
 		}
 		ki.C = int16(r)

@@ -1,0 +1,14 @@
+# the GainControl variants pool: NewController$ a triggered player
+# (Clambassadors: the damaged player; Contested War Zone: the damage source's
+# controller; Drooling Ogre: the caster) and a LoseControl$ duration with
+# AddKWs$ Haste for as long as the steal lasts (Slave of Bolas), for the oracle's constructed lockstep
+# (dirac/oracle/gaincontrolvariants_lockstep_test.go)
+Clambassadors
+Contested War Zone
+Drooling Ogre
+Hill Giant
+Island
+Mind Stone
+Mountain
+Swamp
+Slave of Bolas

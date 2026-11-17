@@ -3544,11 +3544,20 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 		if nc == "You" {
 			ncYou = true // gorge controlPlayerSimpleYou: the resolving controller
 		} else {
-			r, err := lc.defined(nc)
+			// a triggered player resolves through definedPlayer (the one
+			// Triggered* player grammar and its guards); the rest through
+			// Defined$
+			var r lRef
+			var err error
+			if strings.HasPrefix(nc, "Triggered") {
+				r, err = lc.definedPlayer(nc)
+			} else {
+				r, err = lc.defined(nc)
+			}
 			if err != nil {
 				return err
 			}
-			if r.Kind != rTarget && r.Kind != rEachOpp {
+			if r.Kind != rTarget && r.Kind != rEachOpp && r.Kind != rTriggeredPlayer && r.Kind != rTriggeredTgtCtrl {
 				return refuse("GainControl NewController %q", nc)
 			}
 			if r.Kind == rTarget {
@@ -3626,9 +3635,10 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 		if err != nil {
 			return err
 		}
-		if dur != "EOT" || len(ks) != 1 || ks[0] != "Haste" {
+		if len(ks) != 1 || ks[0] != "Haste" {
 			// gorge grants AddKWs$ for as long as the control effect lasts;
-			// the kernel has the until-end-of-turn haste only
+			// the kernel has haste only: until end of turn (GcHasteEOT) or
+			// for as long as the control record lives (GcHasteEOT on a longer duration)
 			return refuse("GainControl AddKWs %q with LoseControl %q", k, lcv)
 		}
 		flags = append(flags, "kw="+strings.Join(ks, "&"))
