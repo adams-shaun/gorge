@@ -54,6 +54,9 @@ func (g *genPrep) prepFiltFirst(c CardID, j int, a *kop.Ability) {
 	g.smallFor(c).filt = int8(j)
 	g.setFlag(c, gfFilt)
 	g.anyFilt, g.anyFiltFirst = true, true
+	if a.AFlags&kop.AfManaDynamic != 0 {
+		g.anyDynFilt = true // the amount may resolve to zero: scriptFilt drops it then
+	}
 	if _, pip := pipFilt(a); pip {
 		g.anyFiltPip = true
 	}

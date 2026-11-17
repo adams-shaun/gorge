@@ -502,6 +502,16 @@ type genPrep struct {
 	// anyFiltRepeat: some card's first-ability filter is a fee-only one,
 	// repeatable (mana_filterrepeat.go)
 	anyFiltRepeat bool
+	// anyDynGap: some card's gapOther mana ability (gfGapOther) has a dynamic
+	// amount (AfManaDynamic): one that resolves to zero yields nothing, and
+	// gorge's census does not miss it (manaAbilityYieldsNothing), so
+	// gapOthers drops the source (mana_filter.go)
+	anyDynGap bool
+	// anyDynFilt: some card's filter (gfFilt) has a dynamic amount
+	// (AfManaDynamic): one that resolves to zero yields nothing, and gorge's
+	// census lists no ability of it (manaAbilityYieldsNothing), so scriptFilt
+	// drops the source (mana_filter.go)
+	anyDynFilt bool
 	// gapOther: card i has another mana ability gorge's census misses
 	// (a restricted, each-colour or paid one that is not filt: Lupinflower
 	// Village's creature-only {W}); beside one the filter stays unmodelled
@@ -1418,16 +1428,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyAnyR = true
 					g.anyMultiR = g.anyMultiR || restrWideAnyMana(a) // (Hermitic Herbalist: mana_restrictedcombo.go)
 				} else if filterTapMana(&t.Cards[i], a) && g.filt(CardID(i)) < 0 {
-					g.smallFor(CardID(i)).filt = int8(j)
-					g.setFlag(CardID(i), gfFilt)
-					g.anyFilt = true
-					if _, pip := fixedPipFilt(a); pip {
-						g.anyFiltPip = true
-					}
+					g.prepTapFilt(CardID(i), j, a)
 				}
 				if int(g.filt(CardID(i))) != j && registersGapOther(&t.Cards[i], a, j) && g.gapOther(CardID(i)) < 0 {
-					g.smallFor(CardID(i)).gapOther = int8(j)
-					g.setFlag(CardID(i), gfGapOther)
+					g.prepCensusGap(CardID(i), j, a)
 				}
 				if a.AFlags&kop.AfLatent != 0 {
 					var gp pcard
