@@ -48,13 +48,18 @@ func printedDelveSet(t *testing.T, cards [2][]string) cardset.Set {
 }
 
 // reproSet is the set a repro plays: its synthetic pool, or the table built
-// from its own decks for a card no synthetic pool holds.
+// from its own decks for a card no synthetic pool holds. A custom table plays
+// every lowered card, refused ones included (cardset.Raw): a recording replays
+// the game it recorded, so a card refused after the recording (11-16: Maze of
+// Ith, dealt in unless_offer_counts_restricted_mana's decks) cannot fail an
+// unrelated repro. Whether a refused card still diverges is its own refusal
+// repro's question (checkRefusedRepro).
 func reproSet(t *testing.T, pool string, r *Repro) cardset.Set {
 	t.Helper()
 	if pool != "custom" {
 		return cardsettest.Synth(t, pool)
 	}
-	return printedDelveSet(t, r.Cards)
+	return cardset.Raw(printedDelveSet(t, r.Cards))
 }
 
 // TestPrintedDelveReprosLockstep replays the two printed-delve repros on the
