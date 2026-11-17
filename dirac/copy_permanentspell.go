@@ -66,9 +66,17 @@ func (s *State) permCopyBlocked(k *prep, ce *stackEntry) bool {
 	if k.cards[ce.card].types&(kop.TInstant|kop.TSorcery) != 0 {
 		return false
 	}
-	switch k.t.Cards[ce.card].FaceMode {
+	switch cd := &k.t.Cards[ce.card]; cd.FaceMode {
 	case kop.FaceNone, kop.FaceOmen, kop.FacePrototype:
 		return false
+	case kop.FaceTransform:
+		// A transforming card cast front face up: the copy is the same card
+		// and face (gorge's StackCopy keeps Card and FaceIdx), so its token
+		// is an ordinary double-faced permanent that transforms as the card
+		// does (CR 707.10g). Only a back-face-up spell stays unmodelled.
+		if cd.Face == 0 {
+			return false
+		}
 	}
 	s.stall(StallCopyFace)
 	return true
