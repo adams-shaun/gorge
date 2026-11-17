@@ -1,0 +1,10 @@
+# Player.EnchantedBy on a Phase trigger's ValidPlayer$ and a DamageDone
+# trigger's ValidTarget$ (dirac/oracle/enchantedplayer_lockstep_test.go
+# TestFilterHeadPlayerLockstep; kgen lower_trigger.go, kop.WhoseEnchanted)
+Curse of Stalked Prey
+Cruel Reality
+Curse of Obsession
+Grizzly Bears
+Swamp
+Mountain
+Forest

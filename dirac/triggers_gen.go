@@ -534,7 +534,7 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 // command-zone triggers, then emblems.
 func (s *State) firePhaseGen(k *prep, st kop.Step) {
 	f := func(l trigListener, a *kop.Ability) {
-		if a.Trig.Step != st || !whoseOK(a.Trig.Whose, l.ctrl, s.active) && !(a.Trig.Whose == kop.WhoseEnchCtrl && s.enchCtrlIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseChosen && s.chosenIs(l.sl, s.active)) || !s.trigOK(k, l, a) {
+		if a.Trig.Step != st || !whoseOK(a.Trig.Whose, l.ctrl, s.active) && !(a.Trig.Whose == kop.WhoseEnchCtrl && s.enchCtrlIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseChosen && s.chosenIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseEnchanted && s.defEnchanted(k, l, s.active)) || !s.trigOK(k, l, a) {
 			return
 		}
 		s.queueTrig(k, l, a, NoObj, s.active, 0)
@@ -707,6 +707,9 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			}
 			if t.Flags5&kop.Tf5DmgNoContract != 0 && (!toPlayer || s.contracts(dpl) != 0) {
 				return // ctr_contract.go
+			}
+			if t.Whose == kop.WhoseEnchanted && (!toPlayer || !s.defEnchanted(k, l, dpl)) {
+				return // ValidTarget$ Player.EnchantedBy (trig_defendingplayer.go)
 			}
 			once := t.Event == kop.TrigDamageDealtOnce && latch != nil
 			if once && latch.has(l, seen) {

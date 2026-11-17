@@ -604,6 +604,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// the opponent the source chose as it entered (lower_chooseplayerenter.go)
 			w, ok = whoChosen, true
 		}
+		if tp.str("ValidPlayer") == "Player.EnchantedBy" && lc.granted == 0 && (tr.Zone == zNone || tr.Zone == zBattlefield) {
+			// gorge playerSpecQualifierEnchantedBy: the player this Aura
+			// enchants (Accursed Witch's back face); the kernel reads the
+			// listener's attachment (defEnchanted)
+			w, ok = whoEnchanted, true
+		}
 		if tp.str("ValidPlayer") == "You.descended" {
 			// gorge playerSpecQualifierDescended (CR 700.11): a permanent
 			// card entered your graveyard this turn, read as the trigger
@@ -818,6 +824,16 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			if err := atkYouLastTurn(tp, tr, t); err != nil { // lower_atklastturn.go
 				return err
 			}
+		} else if tp.str("ValidTarget") == "Player.EnchantedBy" {
+			// gorge playerSpecQualifierEnchantedBy: the damaged player is
+			// the one this Aura enchants (Curse of Stalked Prey); the
+			// kernel's damage fire reads the listener's attachment
+			// (defEnchanted)
+			if lc.granted != 0 || tr.Zone != zNone && tr.Zone != zBattlefield {
+				return refuse("ValidTarget$ Player.EnchantedBy off a printed battlefield trigger")
+			}
+			tr.F2 = &lFilter{Players: plBoth}
+			tr.Whose = whoEnchanted
 		} else if tp.str("ValidTarget") == noContractSpec {
 			if err := noContract(tp, tr, t); err != nil { // lower_contract.go
 				return err
