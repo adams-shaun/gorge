@@ -430,7 +430,7 @@ func (sr *scriptSearch) targetsGone(c *Engine) bool {
 		return false
 	}
 	switch {
-	case sr.play.Kind == "ability":
+	case sr.play.Kind == optAbility:
 		pa, ok := o.PileAbilityAt(sr.play.Ability)
 		return ok && pa.SA != nil && !c.abilityTargetsAvailable(sr.p, sr.play.Obj, pa.SA)
 	case sr.play.Kind == "cast" && sr.play.Mode == "":
