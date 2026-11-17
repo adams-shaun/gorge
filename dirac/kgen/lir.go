@@ -955,6 +955,14 @@ type lTrigger struct {
 	// filter when it names a type (kop.TrigNSrcSpell, Filter2).
 	SrcSpell bool
 	SrcF     *lFilter
+	// SrcAbility: BecomesTarget watcher whose ValidSource$ is Ability[.YouCtrl|
+	// .OppCtrl], so the targeting stack entry must be an ability
+	// (kop.TrigNSrcAbility).
+	SrcAbility bool
+	// PlayerAlt: F carries a player alternative (You / Player / Opponent).
+	// The builder emits it as an FPlayer chain entry (filterPlayerAlt) and
+	// the kernel's player walk matches it with castTargetsPlayer.
+	PlayerAlt bool
 	// ByCreature: AttackerBlocked lowered from Mode$ AttackerBlockedByCreature,
 	// once per (attacker, blocker) pair; F reads the attacker, F2 the
 	// blocker, exactly one of them Card.Self; the trigger object is the

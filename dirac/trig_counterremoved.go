@@ -24,12 +24,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // batched removal per kind, gorge removeCounterAnyCarrier), the OpSupport
 // remove pick (ctr_removechoices.go rmctrTake), the SubCounter cost (the
 // announced X, the fixed pick, the any-kind pick, the choice of a counted
-// creature's counter) and a loyalty ability's cost. A removal by damage, +1/+1
-// / -1/-1 annihilation, a mana ability's cost or a stun/shield counter fires
-// nothing (kgen refuses +1/+1 and -1/-1 lines for it; gorge folds a walker's
-// damage loyalty loss into the Damage event, never a CounterChange). A
-// suspended card's upkeep time counter fires from exile (suspendTick,
-// fireCtrRemovedExile).
+// creature's counter), a loyalty ability's cost, a mana ability's counter cost
+// (ctrGapDo, ctrDeadGap, storeGap and riderGap) and the stun counter the untap
+// replacement spends instead of untapping (turn.go, repl_untapstep.go,
+// untapSlot, untapAll, untapCost, untapOthers, gainControlOne and
+// OpGainControlEOT). A removal by damage, +1/+1 / -1/-1 annihilation or a
+// shield counter fires nothing (kgen refuses +1/+1 and -1/-1 lines for it;
+// gorge folds a walker's damage loyalty loss into the Damage event, never a
+// CounterChange). A suspended card's upkeep time counter fires from exile
+// (suspendTick, fireCtrRemovedExile).
 
 // useCounterRemoved is the table's genPrep.uses bit for a CounterRemoved or
 // CounterRemovedOnce trigger (genneed.go).

@@ -223,6 +223,10 @@ func cov3BranchHolds(h Host, c *Ctx, pred string, depth int) (holds, ok bool) {
 			return valid && provider.CommittedCrimeThisTurn(you), true
 		}
 		return false, false
+	case cov3BranchHoldsFreerunning:
+		// CR 702.173a: the resolving source's cast paid its K:Freerunning
+		// cost (altCostKeywordPaid) -- Monastery Raid's Count$Freerunning.X.2.
+		return altCostKeywordPaid(g.Obj(c.Source), "Freerunning"), true
 	case cov3BranchHoldsLandfall:
 		// A land entered the battlefield under your control this turn
 		// (Groundswell, Tomb Hex): a battlefield entry of a land whose
@@ -921,6 +925,7 @@ const (
 	cov3BranchHoldsCommittedCrimeThisTurn
 	cov3BranchHoldsLandfall
 	cov3BranchHoldsVoid
+	cov3BranchHoldsFreerunning
 )
 
 var cov3BranchHoldsCodes = state.NewStrCodes(
@@ -932,6 +937,7 @@ var cov3BranchHoldsCodes = state.NewStrCodes(
 	state.StrEntry[cov3BranchHoldsCode]{Key: "CommittedCrimeThisTurn", Val: cov3BranchHoldsCommittedCrimeThisTurn},
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Landfall", Val: cov3BranchHoldsLandfall},
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Void", Val: cov3BranchHoldsVoid},
+	state.StrEntry[cov3BranchHoldsCode]{Key: "Freerunning", Val: cov3BranchHoldsFreerunning},
 )
 
 type playerScalarPropertyCode uint16

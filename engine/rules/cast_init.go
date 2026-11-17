@@ -17,6 +17,10 @@ func init() {
 		// (the mandatory either-or additional cost choice).
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
+		// kw:Prowl (CR 702.76a) and kw:Freerunning (CR 702.173a): the
+		// hand/command-zone alternative casts gated on a combat hit on a
+		// player this turn (altProwl, altFreerunning; combatHitThisTurn).
+		"kw:Prowl", "kw:Freerunning",
 		// kw:Mayhem (the Doom Prevails keyword): the graveyard recast and
 		// the bare parameterless land-play form are read directly off the
 		// K: line (engine/rules/legal.go's offers, engine/rules/cast.go's charge,

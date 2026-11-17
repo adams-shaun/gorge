@@ -20,11 +20,13 @@ import (
 var DebugBtSelfOff bool
 
 // BtStats, when DebugBtStats is non-nil, counts the object-targeted
-// BecomesTarget triggers the games queued: the btWatchers walk's queues and
-// the plain self walk's (becameTarget's fireObjGen branch). The lockstep
-// tests read it to prove the games reached the walk; nothing else reads it.
+// BecomesTarget triggers the games queued (Queues), the player half's
+// (PlayerQueues) and those whose ValidSource$ is an ability
+// (SrcAbilityQueues). The plain self walk's queues also count in Queues.
+// The lockstep tests read them to prove the games reached the walks; nothing
+// else reads them.
 type BtStats struct {
-	Queues int
+	Queues, PlayerQueues, SrcAbilityQueues int
 }
 
 // DebugBtStats is the lockstep hook of the BecomesTarget walk. Never set in
@@ -75,20 +77,114 @@ func (s *State) btWatchers(k *prep, sl Slot, o Obj, e *stackEntry) {
 		if btSelfOff(a) {
 			return // DebugBtSelfOff: the mutation must drop the self form
 		}
-		if a.Trig.Whose == kop.WhoseOpp && e.ctrl == l.ctrl {
+		if !s.btSrcOK(k, l, a, e) {
 			return
 		}
-		tpl := ctrl
-		if a.Trig.N == kop.TrigNSrcSpell {
-			if !s.btSpellSrcOK(k, l, a, e) {
-				return
+		n := s.npend
+		s.objTrigGen(k, kop.TrigBecomesTarget, l, a, sl, o, s.btTriggerPlayer(l, a, e, ctrl), 0)
+		if s.npend > n && a.Trig.N == kop.TrigNSrcAbility {
+			if st := DebugBtStats; st != nil {
+				st.SrcAbilityQueues++
 			}
-			tpl = e.ctrl // the trigger player is the spell's controller (TriggeredSourceController)
 		}
-		s.objTrigGen(k, kop.TrigBecomesTarget, l, a, sl, o, tpl, 0)
 	})
+	s.stampBtSA(e, n0)
 	if st := DebugBtStats; st != nil && s.npend > n0 {
 		st.Queues++
+	}
+}
+
+// btSrcOK is a BecomesTarget line's ValidSource$ gate: the targeting stack
+// entry's controller against the line's Whose, then the source form. A
+// TrigNSrcSpell line also reads its card filter (btSpellSrcOK); a
+// TrigNSrcAbility line requires an ability on the stack, not a spell
+// (Loki, God of Mischief's Ability.YouCtrl).
+func (s *State) btSrcOK(k *prep, l trigListener, a *kop.Ability, e *stackEntry) bool {
+	if !whoseOK(a.Trig.Whose, l.ctrl, e.ctrl) {
+		return false
+	}
+	switch a.Trig.N {
+	case kop.TrigNSrcSpell:
+		return s.btSpellSrcOK(k, l, a, e)
+	case kop.TrigNSrcAbility:
+		return e.kind != seSpell
+	}
+	return true
+}
+
+// btTriggerPlayer is the trigger player of a BecomesTarget line: the
+// targeting spell or ability's controller for a source form (gorge's
+// TriggeredSourceController / TriggeredSourceSAController), else the
+// listener's controller.
+func (s *State) btTriggerPlayer(l trigListener, a *kop.Ability, e *stackEntry, ctrl uint8) uint8 {
+	if a.Trig.N == kop.TrigNSrcSpell || a.Trig.N == kop.TrigNSrcAbility {
+		return e.ctrl
+	}
+	return ctrl
+}
+
+// stampBtSA records the targeting stack entry on every trigger the walk
+// just queued (gorge TriggerStack, the Defined$ TriggeredSourceSA referent).
+// The pending trigger's trigSA is the object + 1 so the zero value means
+// none, and trigObj keeps the targeted object (TriggerTarget). An ability's
+// stack identity rides the pending trigger's wardSid: its source permanent
+// can be the source of a trigger too (Kira's counter trigger is on the
+// creature the ability targeted), so the object alone does not name the
+// entry a counter removes. Panharmonicon echoes are copies of the same
+// triggering, so they carry it too.
+func (s *State) stampBtSA(e *stackEntry, n0 uint8) {
+	if e.obj == NoObj {
+		return
+	}
+	sid := uint8(0)
+	if e.kind != seSpell {
+		sid = e.sid
+	}
+	for i := n0; i < s.npend; i++ {
+		s.pend[i].trigSA = uint8(e.obj + 1) // code-ok: the +1 is a sentinel, not a code
+		s.pend[i].wardSid = sid
+	}
+}
+
+// becameTargetPlayer fires the BecomesTarget watchers for a player target t
+// of stack entry e (gorge becomesTargetMatches' player half: ValidTarget$
+// You / Player / Opponent, such as Rayne, Loki and Dormant Gomazoa). The
+// filter's FPlayer alternative is matched by castTargetsPlayer relative to
+// the listener's controller; the queued trigger carries the targeted seat in
+// btPl (gorge TriggerTarget{Player}) and the targeting entry in trigSA
+// (TriggerStack), while trigObj stays empty for the player half.
+//
+//go:noinline
+func (s *State) becameTargetPlayer(k *prep, t TCode, e *stackEntry) {
+	p := CodeSeat(t)
+	n0 := s.npend
+	s.eachTrigger(k, kop.TrigBecomesTarget, func(l trigListener, a *kop.Ability) {
+		if a.Trig.N == kop.TrigNValiant {
+			return
+		}
+		if a.Trig.Flags&kop.TfSelf != 0 || btSelfOff(a) {
+			return // the self forms name an object, the target itself
+		}
+		if a.Trig.Filter == 0 || !s.castTargetsPlayer(k, a.Trig.Filter, p, l.ctrl) {
+			return
+		}
+		if !s.btSrcOK(k, l, a, e) || !s.trigOK(k, l, a) {
+			return
+		}
+		n := s.npend
+		s.queueTrig(k, l, a, NoObj, s.btTriggerPlayer(l, a, e, l.ctrl), 0)
+		for i := n; i < s.npend; i++ {
+			s.pend[i].defSeat = p + 1
+		}
+		if s.npend > n && a.Trig.N == kop.TrigNSrcAbility {
+			if st := DebugBtStats; st != nil {
+				st.SrcAbilityQueues++
+			}
+		}
+	})
+	s.stampBtSA(e, n0)
+	if st := DebugBtStats; st != nil && s.npend > n0 {
+		st.PlayerQueues++
 	}
 }
 
@@ -117,7 +213,9 @@ func (s *State) btSpellTarget(k *prep, o Obj, e *stackEntry) {
 		if a.Trig.Flags2&kop.Tf2SpellToo == 0 || l.ctrl != sp.ctrl || e.ctrl == l.ctrl || !s.trigOK(k, l, a) {
 			return
 		}
+		n := s.npend
 		s.queueTrig(k, l, a, o, sp.ctrl, 0)
+		s.stampBtSA(e, n)
 	})
 }
 

@@ -293,7 +293,17 @@ func (x *Execution) StepOn(d *decision.Decision, s Surface) (decision.Intent, St
 	case d.Kind == decision.KPriority:
 		return x.priority(d, s)
 	case d.Kind == decision.KChoose && x.cur >= 0 && manaAsk(d, x.steps[x.cur].Source):
-		return x.manaAsk(d)
+		return x.manaAsk(x.cur, d)
+	case d.Kind == decision.KChoose && x.cur < 0 && x.next > 0 && manaAsk(d, x.steps[x.next-1].Source):
+		// A decision the last activation stacked (its trigger, its
+		// sacrifice's replacement) yielded the execution between the
+		// activation and its follow-up ask: the ask is still that
+		// activation's, so the plan still answers it. Answering it by the
+		// plan keeps the pool the plan predicts, which the priority check
+		// below verifies; the caller's clamp would answer it by option
+		// order and mis-colour the witness's mana (an any-colour unit the
+		// plan put in one colour the clamp puts in another).
+		return x.manaAsk(x.next-1, d)
 	}
 	// Not the lowering's decision: a trigger its activation put on the
 	// stack (to order, to target), an optional trigger. The caller answers;
@@ -345,10 +355,10 @@ func (x *Execution) priority(d *decision.Decision, s Surface) (decision.Intent, 
 }
 
 // manaAsk answers a stage-1 "choose a mana ability" wheel or a stage-2
-// colour ask for the current source with the option(s) producing exactly
+// colour ask for the activation at i with the option(s) producing exactly
 // the witness's Produces.
-func (x *Execution) manaAsk(d *decision.Decision) (decision.Intent, Status) {
-	act := x.steps[x.cur]
+func (x *Execution) manaAsk(i int, d *decision.Decision) (decision.Intent, Status) {
+	act := x.steps[i]
 	choices, ok := matchManaProved(d, act, x.Prove)
 	if !ok {
 		x.abort(ReasonManaUnmatched, fmt.Sprintf("source %d wants %v: %s", act.Source, act.Produces, d.Prompt))

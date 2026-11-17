@@ -178,6 +178,15 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{}, refuse("Defined$ %q outside a dies trigger's own exile-and-evidence cost", v)
 		}
 		return lRef{Kind: rTriggeredNew}, nil
+	case "TriggeredSourceSA":
+		// gorge's targeting stack object (TriggerStack) on a BecomesTarget
+		// trigger: the source of the event, not the targeted permanent. The
+		// kernel records it in the queue's trigSA slot (trig_becomestarget.go)
+		// and RefTriggerSource reads it before the trigger object.
+		if tr := lc.ab.Trigger; tr != nil && tr.Event == "BecomesTarget" {
+			return lRef{Kind: rTriggeredSource}, nil
+		}
+		return lRef{}, refuse("Defined$ %q outside a BecomesTarget trigger", v)
 	case "TriggeredSource", "TriggeredSources", "TriggeredSourceLKICopy":
 		// gorge definedSpecTriggeredSource. On a capturing emblem's
 		// recipient-captured DamageDone line the kernel emblem hook queues

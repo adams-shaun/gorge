@@ -40,6 +40,8 @@ const (
 	phMayFlashCost            = printedHeads(scriptfacts.MayFlashCost)
 	phAlternateAdditionalCost = printedHeads(scriptfacts.AlternateAdditionalCost)
 	phImpending               = printedHeads(scriptfacts.Impending)
+	phProwl                   = printedHeads(scriptfacts.Prowl)
+	phFreerunning             = printedHeads(scriptfacts.Freerunning)
 	phAll                     = printedHeads(scriptfacts.All)
 )
 
