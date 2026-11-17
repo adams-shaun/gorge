@@ -1500,22 +1500,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					choice = rk[i] == rkExt || DebugRestrictedSource == 3 && rk[i] == rkWiden // a widened unit keeps its census position
 				}
 				if k.painMana && pc.painCol != 0 && phase > 0 {
-					// gorge's census lists a source with a deterministic,
-					// free-cost production in the shared census, at its
-					// battlefield position, and appends the rest after: a
-					// choice-shaped ability, a tap-and-sacrifice one, an
-					// ability that pays life (payment_plan.go
-					// paymentPlanManaUnitsOnlyCompute). The paired pain unit
-					// sits on the pass the source's census group is; a
-					// pain-only source's shape is its own ability's, so a
-					// cost-of-life one (Blightsoil Druid's {T}, Pay 1 life:
-					// pay.ManaFreeCost rejects PayLife) joins the appended
-					// group, while a damage rider (Elves of Deep Shadow's
-					// Add {B}. deals 1) is a free-cost unit in place
-					want := 0
-					if choice || pc.painOnly && pc.painLife {
-						want = 1
-					}
+					want := painCensusPass(choice, pc)
 					if s.painUnit(k, sl, pc, pass, pk, i, want) {
 						continue
 					}
