@@ -181,6 +181,10 @@ var expandedHeads = []string{
 	// creature the defending player controls and binding it to block
 	// (engine/cards/kw_provoke.go). Added after the split.
 	"Provoke",
+	// Amplify (CR 702.38a): an enters replacement revealing hand cards that
+	// share a creature type and putting N +1/+1 counters per card
+	// (engine/cards/kw_amplify.go). Added after the split.
+	"Amplify",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

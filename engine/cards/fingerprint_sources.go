@@ -46,6 +46,7 @@ import "embed"
 //go:embed kw_affinity.go
 //go:embed kw_afflict.go
 //go:embed kw_afterlife.go
+//go:embed kw_amplify.go
 //go:embed kw_annihilator.go
 //go:embed kw_backup.go
 //go:embed kw_battle_cry.go

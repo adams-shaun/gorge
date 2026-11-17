@@ -37,5 +37,8 @@ func init() {
 		// CR 702.39 Provoke: engine/cards/kw_provoke.go's Attacks trigger
 		// untaps its target and binds it to block (TestProvokeForcesBlock).
 		"kw:Provoke",
+		// CR 702.38 Amplify: engine/cards/kw_amplify.go's enters replacement
+		// reveals and counts (TestAmplifyEntersWithCounters).
+		"kw:Amplify",
 	)
 }

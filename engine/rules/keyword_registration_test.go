@@ -18,6 +18,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Flash":          "TestFlashCreatureIsCastableOffTurn",
 		"kw:Ingest":         "TestIngestExilesTopCard",
 		"kw:Provoke":        "TestProvokeForcesBlock",
+		"kw:Amplify":        "TestAmplifyEntersWithCounters",
 		"kw:Foretell":       "TestForetellActionOfferedOnYourTurnAtTwoGeneric",
 		"kw:Indestructible": "TestIndestructibleSurvivesLethalDamageAndDestroy",
 		"kw:Devoid":         "TestDevoidCreatureIsColourless",
