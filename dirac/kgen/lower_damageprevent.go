@@ -138,7 +138,9 @@ func (lc *lowerCtx) effectPreventScope(ps *params) (bool, error) {
 	}
 	rp := newParams(r.Params)
 	rp.consume("Event")
-	if !rp.is("Prevent", "True") || !rp.is("ActiveZones", "Command") && !rp.is("ActiveZones", "Battlefield") {
+	// an absent ActiveZones$ is the Command zone: gorge registers an Effect's
+	// line there either way (Take the Bait)
+	if az, has := rp.get("ActiveZones"); !rp.is("Prevent", "True") || has && strings.TrimSpace(az) != "Command" && strings.TrimSpace(az) != "Battlefield" {
 		return false, nil
 	}
 	bits := 0
