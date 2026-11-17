@@ -216,7 +216,8 @@ func offerPayment(id state.ObjID, ability bool, scope costScope) paymentDescript
 	if ability {
 		class = paymentActivated
 	}
-	return paymentDescriptor{ID: id, Class: class, OnlyTag: scope.OnlyTag}
+	return paymentDescriptor{ID: id, Class: class, OnlyTag: scope.OnlyTag,
+		Bestowed: !ability && scope.Kind == "Spell" && scope.Mode == altMode(altBestow)}
 }
 
 func (pe *payer) Game() *state.Game                 { return pe.G }

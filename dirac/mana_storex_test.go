@@ -42,10 +42,11 @@ func storeProbeMatchup(t *testing.T) storeProbe {
 
 // TestStoreManaGap: Bottomless Vault's single-colour storage-battery mana
 // ability is a counter gap: scriptCtr reaches it, the potential walk folds
-// its indeterminate Amount$ open (gorge potentialAmount: an announced
-// Count$xPaid production is potentialUnbounded in every colour, whatever the
-// live counters), and activating it removes every counter and makes that
-// many mana. The lowering itself is dirac/kgen's storageland_test.go.
+// its indeterminate Amount$ unbounded in the colour it names (gorge
+// potentialAmount: an announced Count$xPaid production is unbounded in the
+// produced faces, whatever the live counters), and activating it removes
+// every counter and makes that many mana. The lowering itself is
+// dirac/kgen's storageland_test.go.
 func TestStoreManaGap(t *testing.T) {
 	p := storeProbeMatchup(t)
 	sc := newScenTableLib(t, p.tbl, p.storage, Config{NoElide: true})
