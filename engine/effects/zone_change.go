@@ -277,6 +277,19 @@ func sourceReturnedSincePush(h Host, c *Ctx, o *state.Object) bool {
 	return o.Zone == ro.PushSourceZone && o.ZoneGen != ro.PushSourceZoneGen
 }
 
+// changeZoneSourceGone reports that a ChangeZone mover's object o cannot be
+// moved because it is a new object the resolving ability's source reference
+// cannot find (CR 400.7): the ability went on the stack with its source on
+// the battlefield and that source has since left it or returned as a later
+// incarnation (sourceLeftSincePush -- Wydwen, the Biting Gale bounced and
+// recast between her two bounce activations), or an off-battlefield source
+// has crossed a zone since (sourceReturnedSincePush). The kernel's RefSelf
+// move (dirac/interp.go moveRef) no-ops the same way on the source's
+// changed version.
+func changeZoneSourceGone(h Host, c *Ctx, o *state.Object) bool {
+	return sourceReturnedSincePush(h, c, o) || sourceLeftSincePush(h, c, o)
+}
+
 // SourceIsNewObject reports that ro, an ability on the stack, has a source on the
 // battlefield that left and returned since ro went on the stack: a new object the
 // ability has no relation to (CR 400.7), not "this creature", and "another creature"
@@ -984,7 +997,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 		// Origin$ precondition and CantExile guard, shared with the
 		// departure-batch pre-pass above: see changeZoneMoveSkip.
-		if changeZoneMoveSkip(h, cz, o, to, originAll) || sourceReturnedSincePush(h, c, o) {
+		if changeZoneMoveSkip(h, cz, o, to, originAll) || changeZoneSourceGone(h, c, o) {
 			continue
 		}
 		// Inlined rather than routed through settleChangeZoneMove: this loop
