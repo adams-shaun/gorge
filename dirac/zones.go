@@ -557,6 +557,9 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 		// counter notice follows the zone change event, but its triggers
 		// are queued before the enters triggers (Exemplar of Light before
 		// Dazzling Angel, the pair 13397)
+		// No batch marker: gorge's entry-counter notices are per-grant
+		// CounterChange events with no action bracket, so each kind's notice
+		// is its own CounterAddedAll event (trig_counteraddedall.go).
 		var held ctrHeld
 		for _, c := range held[:p.heldKinds(s, &held)] {
 			if n := p.ctrN(s, int(c)); n > 0 && s.occ.has(sl) && kop.IsCounterKind(int(c)) {
@@ -878,8 +881,19 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 func (s *State) fireObj(k *prep, ev kop.TrigEvent, evSl Slot, evObj Obj, evCtrl uint8, amt int16) {
 	if k.gen != nil {
 		s.fireObjGen(k, ev, evSl, evObj, evCtrl, amt)
-		return
+	} else {
+		s.fireObjPlain(k, ev, evSl, evObj, evCtrl, amt)
 	}
+	if ev == kop.TrigCounterAddedOnce {
+		// Mode$ CounterAddedAll is the batch watcher over the same
+		// placement (trig_counteraddedall.go): every counter site fires
+		// TrigCounterAddedOnce, so one hook here reaches them all.
+		s.ctrAllNote(k, evSl, evObj, evCtrl, amt)
+	}
+}
+
+// fireObjPlain is fireObj's hand-built-table walk (no generated table).
+func (s *State) fireObjPlain(k *prep, ev kop.TrigEvent, evSl Slot, evObj Obj, evCtrl uint8, amt int16) {
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(s.subs[ev].and(s.occ), &ord)
 	for _, ls := range ord[:n] {

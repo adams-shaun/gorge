@@ -1176,7 +1176,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"LifeGained": kop.TrigLifeGained, "LifeLost": kop.TrigLifeLost, "DamageDone": kop.TrigDamageDone,
 	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence, "Exploited": kop.TrigExploited,
 	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover, "ManifestDread": kop.TrigManifestDread,
-	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "Untaps": kop.TrigUntaps,
+	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "CounterAddedAll": kop.TrigCounterAddedAll, "Untaps": kop.TrigUntaps,
 	"CounterRemoved": kop.TrigCounterRemoved, "CounterRemovedOnce": kop.TrigCounterRemovedOnce, // the card's own (lower_counterremoved.go; dirac/trig_counterremoved.go)
 	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "BecomeMonarch": kop.TrigBecomeMonarch, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
 	"BecomesTarget":    kop.TrigBecomesTarget,    // the Valiant, watcher and self shapes (lower_trigger.go)
@@ -1244,7 +1244,7 @@ func counterTriggerN(t *lTrigger) (int16, bool, error) {
 		if t.Step == "*" {
 			return kop.TrigNAnyCounter, true, nil
 		}
-	case "CounterRemoved", "CounterRemovedOnce":
+	case "CounterAddedAll", "CounterRemoved", "CounterRemovedOnce":
 	default:
 		return 0, false, nil
 	}
