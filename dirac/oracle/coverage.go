@@ -10,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/testkit/cardcov"
 )
 
 // Coverage is which deck cards and own abilities a set of lockstep games
@@ -38,6 +39,12 @@ type CardCoverage struct {
 	Land int            // times played as a land
 	Used map[string]int // ability key -> uses
 	Keys []string       // the card's full key list (CoverageKeys)
+	// Branch counts the choice branches the games took on the card (X, an
+	// alternative cost, an optional trigger, a response ...: testkit/cardcov's
+	// Branches), and BranchKeys are the ones the card owes. Reporting only:
+	// Evidence, Unused, Totals and WriteTSV never read them.
+	Branch     map[string]int
+	BranchKeys []string
 }
 
 // NewCoverage is an empty Coverage.
@@ -191,6 +198,18 @@ func CoverageOf(g *GorgeSide, m *Matchup) *Coverage {
 		}
 	}
 	evs := e.L.Events
+	binv := map[string]cardcov.BranchInv{}
+	for s := range m.Decks {
+		for _, cd := range m.Decks[s] {
+			if n := coverageName(cd); n != "" {
+				if _, ok := binv[n]; !ok {
+					bi := cardcov.BranchInventory(cd)
+					binv[n] = bi
+					c.Cards[n].BranchKeys = bi.Branches
+				}
+			}
+		}
+	}
 	for i, ev := range evs {
 		switch ev.Kind {
 		case events.PutOnStack:
@@ -228,6 +247,15 @@ func CoverageOf(g *GorgeSide, m *Matchup) *Coverage {
 		if n := ownCardName(e, u.src); n != "" {
 			credit(n, u.sa)
 		}
+	}
+	owner := func(id state.ObjID) string {
+		if n := ownCardName(e, id); c.Cards[n] != nil {
+			return n
+		}
+		return ""
+	}
+	for n, bs := range cardcov.Branches(evs, e.L.Intents, len(e.G.Players), owner, func(n string) cardcov.BranchInv { return binv[n] }) {
+		c.Cards[n].Branch = bs
 	}
 	return c
 }
@@ -320,6 +348,15 @@ func (c *Coverage) Merge(o *Coverage) {
 		}
 		cc.Cast += oc.Cast
 		cc.Land += oc.Land
+		if len(cc.BranchKeys) == 0 {
+			cc.BranchKeys = append([]string(nil), oc.BranchKeys...)
+		}
+		for k, v := range oc.Branch {
+			if cc.Branch == nil {
+				cc.Branch = map[string]int{}
+			}
+			cc.Branch[k] += v
+		}
 		for k, v := range oc.Used {
 			cc.Used[k] += v
 		}
@@ -392,6 +429,40 @@ func (c *Coverage) WriteTSV(w io.Writer) error {
 		un := cc.Unused()
 		if _, err := fmt.Fprintf(w, "%s\t%d\t%d\t%d\t%d\t%s\n", n, cc.Cast, cc.Land, len(cc.Keys)-len(un), len(cc.Keys), strings.Join(un, ",")); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+// WriteBranchTSV writes one row per (card, branch key), sorted by card then
+// key: card, key, uses, owed (1 for a key the card owes, else 0). A key is a
+// row when the card owes it or a game took it. It is a file of its own, so the
+// six-column WriteTSV stays byte for byte what its readers unpack.
+func (c *Coverage) WriteBranchTSV(w io.Writer) error {
+	if _, err := fmt.Fprintln(w, "card\tkey\tuses\towed"); err != nil {
+		return err
+	}
+	for _, n := range c.names() {
+		cc := c.Cards[n]
+		owed := map[string]bool{}
+		keys := append([]string(nil), cc.BranchKeys...)
+		for _, k := range cc.BranchKeys {
+			owed[k] = true
+		}
+		for k := range cc.Branch {
+			if !owed[k] {
+				keys = append(keys, k)
+			}
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			o := 0
+			if owed[k] {
+				o = 1
+			}
+			if _, err := fmt.Fprintf(w, "%s\t%s\t%d\t%d\n", n, k, cc.Branch[k], o); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
