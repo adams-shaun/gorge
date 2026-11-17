@@ -131,7 +131,7 @@ func (s *State) availGrantSacOnly(k *prep, sl Slot, a *avail) {
 	if a.xdOn {
 		ng = s.grantsAdmitted(k, sl, &gi, ng, &a.xd)
 	}
-	var mask, n uint8
+	var mask, n, oneN uint8
 	for i := 0; i < ng; i++ {
 		gv := s.grantView(k.gen, gi[i], sl)
 		if !s.grantSacLive(sl, gv) {
@@ -139,13 +139,24 @@ func (s *State) availGrantSacOnly(k *prep, sl Slot, a *avail) {
 		}
 		if s.g.availX&availWalk != 0 {
 			s.addGrantUnits(a, s.srcMaskAt(gv, sl), gv.manaN)
+			if gv.manaOne && s.g.availX&availHyp == 0 {
+				s.addOneColour(a, gv.manaN) // a grant's "two mana of any one color" is one colour, whichever is chosen
+			}
 			continue
 		}
 		mask |= s.srcMaskAt(gv, sl)
-		n = max(n, gv.manaN)
+		if gv.manaN > n {
+			n = gv.manaN
+		}
+		if gv.manaOne {
+			oneN = max(oneN, gv.manaN)
+		}
 	}
 	if mask != 0 {
 		s.addGrantUnits(a, mask, n)
+		if oneN == n && n > 1 && mask == uint8(kop.ColAny) {
+			s.addOneColour(a, n) // the joined units are one colour, whichever is chosen
+		}
 	}
 }
 
