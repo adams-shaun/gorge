@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -87,11 +88,28 @@ func replayDecodedScript(t *testing.T, reg *cards.Registry, set cardset.Set, r *
 	return Lockstep(m, r.Seed, k, pol, rc)
 }
 
+// reproSkipFailure names a replay's skip failure: a recorded game must be
+// served whole, so a drifted recording fails instead of passing as a
+// different game (#832: a glob replay skipped 322 recorded actions and stayed
+// green while the drift surfaced later, as a divergence). Empty when the
+// replay served every action.
+func reproSkipFailure(r *Repro, pol *ScriptPolicy) string {
+	if pol.Skipped == 0 {
+		return ""
+	}
+	return fmt.Sprintf("replay skipped %d of %d recorded actions (first at decision %d): its game path has drifted", pol.Skipped, len(r.Actions), pol.firstSkipAt)
+}
+
 // replayReproValue fails on the replay's divergence: a recorded game must
-// replay clean.
+// replay clean. It also fails when the replay skipped any recorded action, so
+// a drifted recording does not pass as a different game.
 func replayReproValue(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro) Result {
 	t.Helper()
-	res := replayDecodedRes(t, reg, set, r)
+	pol := &ScriptPolicy{Actions: r.Actions}
+	res := replayDecodedScript(t, reg, set, r, pol)
+	if msg := reproSkipFailure(r, pol); msg != "" {
+		t.Fatal(msg)
+	}
 	if res.Div != nil {
 		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
 	}
