@@ -267,7 +267,8 @@ jobs:
           DIRAC_PIN_STRICT: "1"
         run: |
           # The nightly run takes every package, experimental ones included.
-          if [ "${{ github.event_name }}" = schedule ]; then export CI_FULL=1; fi
+          # The nightly also holds dirac/docs/support.md byte for byte; a PR or queue batch fails only on a fall.
+          if [ "${{ github.event_name }}" = schedule ]; then export CI_FULL=1 DIRAC_SUPPORT_STRICT=1; fi
           pkgs=$(bash scripts/ci_shard.sh ${{ matrix.shard }} "$SHARDS")
           echo "$pkgs" | wc -l | xargs echo "packages:"
           count= tags=

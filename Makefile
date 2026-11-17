@@ -256,8 +256,8 @@ fresh-clone-check:
 #   test-targeted  the packages the diff vs BASE touches plus every package whose tests import them
 #   test-smart     the precheck, fail-fast, on a committed tree: the affected packages plus the test groups;
 #                  GORGE_TEST_SMART_GATES=1 runs the landing gate's affected and dirac gates instead; precheck is an alias
-# BASE is the branch the change lands on.
-BASE ?= land
+# BASE is the ref the change merges into (origin/main: PRs merge through the Mergify queue; land is retired).
+BASE ?= origin/main
 export BASE
 .PHONY: test-one test-targeted test-smart precheck
 # $(value …) passes RUN/SKIP/TESTENV verbatim; $(RUN) re-expands and eats $| as a make automatic variable.

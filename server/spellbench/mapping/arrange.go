@@ -669,7 +669,10 @@ func newLibraryPlacement(env *Env, d *decision.Decision) (Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	t := &arrangeTx{env: env, d: d, purpose: "arrangement", src: src, restOnly: map[string]bool{}}
+	// arrange_card.purpose has no "arrangement" (that word is order_pick's):
+	// the partition picks name no keyword action, so they carry "other". The
+	// ordering substep switches to "arrangement" in Pose.
+	t := &arrangeTx{env: env, d: d, purpose: "other", src: src, restOnly: map[string]bool{}}
 	for _, o := range d.Options {
 		if o.Kind != "library_placement" || o.Player != d.Player {
 			return nil, fmt.Errorf("%w:library_placement_shape", ErrUnmapped)
