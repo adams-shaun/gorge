@@ -37,10 +37,14 @@ func reproName(path string) string {
 // synthetic.
 func globSet(t *testing.T, pool string, r *Repro) cardset.Set {
 	t.Helper()
+	// Every lowered card plays, refused ones included (cardset.Raw): a recording replays the game it
+	// recorded, so a card refused after it was recorded (11-17: Relic of Sauron, dealt in
+	// phased_out_planeswalker_not_attackable) cannot fail an unrelated repro. Whether a refused card
+	// still diverges is its own refusal repro's question (checkRefusedRepro).
 	if pool == "standard-meta" {
-		return cardsettest.Set(t, pool)
+		return cardset.Raw(cardsettest.Set(t, pool))
 	}
-	return reproSet(t, pool, r)
+	return cardset.Raw(reproSet(t, pool, r))
 }
 
 // replayDecodedRes is replayReproValue over an already-decoded repro, on the
