@@ -124,7 +124,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	if k.gen != nil && k.gen.anyConvoke && mode&3 == 0 && s.tapPays(k, p, c, o, ob.zone == kop.ZoneHand) {
 		if _, planned := s.plannedCastCostOf(k, p, o, mode, false, false); planned {
 			if s.improviseLifted(k, p, c, o, ob.zone == kop.ZoneHand) {
-				s.bld().impPlan = true // (bflTargetPaid shares its bit with bflDefeatCast)
+				s.bld().impPlan = true // (bflTargetPaid once shared its bit with the retired bflDefeatCast)
 			} else {
 				s.bld().bfl |= bflTargetPaid
 			}
@@ -310,6 +310,9 @@ func (s *State) pushBuild(k *prep) {
 		s.touch(e.obj)
 		if s.g.on {
 			s.stashClr(k, e.obj) // it leaves exile: gorge's stash counter goes with the move
+			if k.gen != nil && k.gen.exileOnLeave != nil {
+				s.clearExileCounter(e.obj) // it leaves exile: the counter does not follow (CR 400.7, repl_exilectr.go)
+			}
 		}
 		ob.zone = kop.ZoneStack
 		ob.ver++
@@ -1752,18 +1755,6 @@ func (s *State) finishBuild(k *prep) {
 		s.conspireTrigger(k, &e)
 		s.casualtyTrigger(k, &e)
 		s.passes = 0
-		if s.bld().bfl&bflDefeatCast != 0 {
-			if s.bld().e.flags&sfDefeatPass != 0 {
-				// CR 310.11: the owner cast while the other player held
-				// priority (the owner had already passed), so that holder's
-				// next pass resolves. When the owner held priority, the cast
-				// resets the count and both must pass again.
-				s.passes = 1
-			}
-			s.bld().bfl &^= bflDefeatCast
-			s.bld().e.flags &^= sfDefeatPass
-			s.prio = s.g.holdPrio
-		}
 		s.ctl = ctlPriority
 	case seAbility:
 		// gorge composes the mana cost before any cost is paid: a sacrificed
@@ -1814,20 +1805,8 @@ func (s *State) finishBuild(k *prep) {
 		s.syncBuild()
 		s.ctl = ctlPlaceTriggers
 	}
-	s.wakeDefeatAfterBuild(k, e.kind)
 	if s.parkedWaiting() {
 		s.ctl = ctlExileOrder // a cost's parked move (repl_exilemark.go)
-	}
-}
-
-// wakeDefeatAfterBuild wakes a battle defeated earlier this step after a
-// finished build: gorge's step() head runs startDefeatedCast after any cast or
-// activation, so that ask comes first. A trigger's push is not one: gorge's
-// drainTriggers pushes it and grants priority inside the same step(), so a
-// combat defeat's ask stays deferred (CR 310.11; face_battle.go).
-func (s *State) wakeDefeatAfterBuild(k *prep, kind uint8) {
-	if k.gen != nil && k.gen.anyBattle && s.g.nmay > 0 && kind != seTrigger {
-		s.wakeDefeat()
 	}
 }
 
@@ -2091,8 +2070,9 @@ const abWard uint8 = 253
 // abCascade marks a kernel-native cascade trigger (CR 702.85a; no CardDef
 // ability): its source is the cascade spell, trigAmt its mana value. Every
 // ab at or above it is kernel-native (no Abilities entry to index). It was
-// 249 until abMiracle (kw_miracle.go) took that value to stay above it.
-const abCascade uint8 = 248
+// 249 until abMiracle (kw_miracle.go) took that value to stay above it, and
+// 248 until abSiegeDefeat (face_battle.go) did.
+const abCascade uint8 = 247
 
 // abStorm marks a kernel-native storm trigger (CR 702.40a; no CardDef
 // ability): its source is the spell, trigObj the same spell, trigAmt the

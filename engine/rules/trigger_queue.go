@@ -229,7 +229,7 @@ func triggerOrdersDuplicates(t cards.Trigger) bool {
 // OrderDuplicates$, and reading face.Triggers[Idx] for one would hand back a
 // different line entirely.
 func (pt pendingTrigger) printed() bool {
-	return !pt.Delayed && !pt.Granted && pt.Merged == 0 && !pt.Miracle && !pt.Madness &&
+	return !pt.Delayed && !pt.Granted && pt.Merged == 0 && !pt.Miracle && !pt.Madness && !pt.Siege &&
 		!pt.Evoke && !pt.Gift && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Casualty && !pt.Cascade &&
 		!pt.Exploit && !pt.Offspring && !pt.Mentor && pt.RingEmblem == 0 && pt.Cipher == 0 && !pt.SpeedIncrease &&
 		!pt.InitiativeVenture && !pt.MonarchDraw && !pt.MonarchSteal
@@ -492,12 +492,12 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// genuine stack objects. Madness's cast-or-graveyard choice is made when
 	// that object resolves, not here, so either one may be responded to or
 	// countered before doing anything.
-	if pt.Madness {
+	if counter, text, ok := pt.resolveTimeKeywordPush(); ok {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
 		}
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
-			Obj: pt.Source, Counter: "__kwMadnessCast", Text: "madness cast"})
+			Obj: pt.Source, Counter: counter, Text: text})
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
@@ -1543,7 +1543,7 @@ func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optiona
 	if pt.RingEmblem > 0 {
 		return 0, false, false
 	}
-	if pt.Evoke || pt.Gift || pt.Madness {
+	if pt.Evoke || pt.Gift || pt.Madness || pt.Siege {
 		return 0, false, false
 	}
 	t, ok := e.triggerOf(pt)
@@ -1795,6 +1795,13 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 			}
 		}
 		return name + ": storm copy trigger"
+	}
+	if pt.Siege {
+		name := "it"
+		if o := e.G.Obj(pt.Source); o != nil && o.Face() != nil && o.Face().Name != "" {
+			name = o.Face().Name
+		}
+		return name + ": exile it, then cast it transformed"
 	}
 	if pt.Gift {
 		name := "it"

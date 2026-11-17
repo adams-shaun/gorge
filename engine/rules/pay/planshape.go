@@ -424,6 +424,65 @@ func PaymentPlanTapDamageHits(ref params.Ref, carrierCtrl, activator, tappedCtrl
 	}
 }
 
+// PaymentPlanTapDestroySelfTrigger is the destroy-self trigger row: a
+// `Mode$ Taps` trigger on any ValidCard$ whose effect is exactly
+// `DB$ Destroy | Defined$ TriggeredCardLKICopy` (Brink of Disaster's "when
+// enchanted permanent becomes tapped, destroy it"). The trigger resolves
+// after the payment that caused it (CR 405.6c/603.2) and its only effect is
+// to destroy the permanent whose tap already produced its mana (CR 605.4a),
+// so it touches no payment resource and the tapped source stays an ordinary
+// unit. A trigger whose shape the planner cannot vet (another selector, a
+// compound one, a sub-chain, extra body keys) is not known and its source
+// stays deferred. f owns the trigger's Execute$ table.
+func PaymentPlanTapDestroySelfTrigger(f *cards.Face, t cards.Trigger) bool {
+	if t.ModeKind() != cards.TriggerTaps || !paymentPlanTriggerZoneOK(t) {
+		return false
+	}
+	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
+		switch paymentPlanTapDamageTriggerCodes.Code(string(k)) {
+		case paymentPlanTapDamageTriggerKnown:
+		default:
+			return false
+		}
+	}
+	body := paymentPlanTriggerBody(f, t)
+	if body == nil || body.APIKind() != cards.APIDestroy || !paymentPlanSubFree(body) {
+		return false
+	}
+	ref := params.DefinedRefOf(body)
+	if ref.Flags&params.RefCompound != 0 || !slices.Contains(paymentPlanDestroySelfRefs, ref.Text) {
+		return false
+	}
+	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
+		if !paymentPlanDestroySelfBodyKey(k) {
+			return false
+		}
+	}
+	return true
+}
+
+// paymentPlanDestroySelfRefs are the Defined$ selectors that name the tapped
+// permanent itself: the LKI copy and the plain card. Anything else (another
+// referent, a compound selector) is not the destroy-self shape.
+var paymentPlanDestroySelfRefs = []string{"TriggeredCardLKICopy", "TriggeredCard"}
+
+// paymentPlanAPIKey is the dispatch key some constructed abilities keep in
+// Params beside SA.API. It has no ParamKey constant because the parser pulls
+// the DB$/SP$ head into SA.API.
+const paymentPlanAPIKey = "API"
+
+// paymentPlanDestroySelfBodyKey reports whether key is part of the closed
+// destroy-self body: the dispatch key and the two descriptive captions. The
+// vocabulary constants keep the check in the ParamKey spelling rather than a
+// literal comparison chain.
+func paymentPlanDestroySelfBodyKey(key string) bool {
+	switch key {
+	case paymentPlanAPIKey, cards.PKDefined.String(), cards.PKSpellDescription.String(), cards.PKStackDescription.String():
+		return true
+	}
+	return false
+}
+
 // paymentPlanPlayerDamageBody is paymentPlanDamageBody over a player
 // referent: the same literal-amount DealDamage body whose Defined$ names a
 // player the payment cannot move (the payer, an opponent, the tapped
@@ -747,6 +806,10 @@ const (
 	paymentPlanTapDamageTriggerKnown paymentPlanTapDamageTriggerCode = iota + 1
 )
 
+// paymentPlanTapDamageTriggerCodes is the closed key set of the Taps-watcher
+// trigger rows the planner vets (the tap-damage row and, sharing it, the
+// destroy-self row: both watchers carry Mode$, ValidCard$, Execute$,
+// TriggerZones$ and TriggerDescription$ and nothing else).
 var paymentPlanTapDamageTriggerCodes = state.NewStrCodes(
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "Mode", Val: paymentPlanTapDamageTriggerKnown},
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "ValidCard", Val: paymentPlanTapDamageTriggerKnown},

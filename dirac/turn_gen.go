@@ -658,6 +658,7 @@ func (s *State) newTurnGen() {
 		s.dropTurnLeave() // trig_leavereturn.go: "this turn" leave records end
 	}
 	clear(s.g.prevCol[:])
+	clear(s.g.prevX[:])
 	clear(s.g.redir[:])
 	if s.g.ctrAdd.pl|s.g.ctrAdd.n != 0 {
 		s.ctrAddedReset() // ctr_addedthisturn.go
@@ -1033,9 +1034,6 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 		s.untapAskOptions(d)
 		return true
 	}
-	if k.gen.anyBattle && s.g.nmay > 0 && s.defeatPosedOptions(d) {
-		return true
-	}
 	if k.gen.anySuspend && s.g.nmay > 0 && s.suspendPosedOptions(d) {
 		return true
 	}
@@ -1132,9 +1130,6 @@ func (s *State) applyGen(k *prep, a Action) {
 	}
 	if s.g.untapOn && s.g.untapAns == 0 {
 		s.untapAnswer(a)
-		return
-	}
-	if k.gen.anyBattle && s.g.nmay > 0 && s.applyDefeat(k, a) {
 		return
 	}
 	if k.gen.anySuspend && s.g.nmay > 0 && s.applySuspendAnswer(k, a) {

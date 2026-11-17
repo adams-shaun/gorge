@@ -564,12 +564,12 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 // or discard beside the mana (pay.PlanNonManaAdmissible), so any other part of
 // the spell's own Cost$ (Fumarole's PayLife<3>, Fear of Exposure's tapXType,
 // Abhorrent Oculus's exile) is "shape:additional_cost", offered by the pool only.
+// A variable-count part declines too: an announced Discard<X/Spec>
+// (Nostalgic Dreams) or Sac<X/Spec> is not "cost:discard"/"cost:sacrifice"
+// admissible (PlanNonManaAdmissible's Announced and N<=0 arms).
 func planDeclinesAddCost(k *prep, c CardID) bool {
 	ac := spellAddCost(k, c)
-	// an announced Discard<X/Spec> (Turbulent Dreams beside no printed {X}) is
-	// "cost:discard" too: PlanNonManaAdmissible declines part.Announced the way
-	// it declines an announced Sac<X/Spec> (cost_sacx.go, cost_discardfiltered.go)
-	return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0 || ac.ExileBf || sacXCost(ac) || discardXCost(ac) || ac.DiscardHand && ac.N == 0 && ac.Flags&kop.CostDiscard == 0 // an Exile<N/Spec> part is "cost:exile" (cost_exilebf.go); an announced Sac<X/Spec> is not "cost:sacrifice" admissible (PlanNonManaAdmissible; cost_sacx.go)
+	return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0 || ac.ExileBf || sacXCost(ac) || discardXCost(ac) // an Exile<N/Spec> part is "cost:exile" (cost_exilebf.go); an announced Sac<X/Spec> is not "cost:sacrifice" admissible, nor an announced Discard<X/Spec> "cost:discard" (PlanNonManaAdmissible; cost_sacx.go, cost_discardfiltered.go)
 }
 
 // plannedCastCost is the cost gorge's cast planner prices for p's cast of
@@ -715,10 +715,12 @@ func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 	}
 	if modal {
 		// gorge's PlanTargetPaidManaHalf funds the mana without life and energy;
-		// the parts it keeps still run PlanNonManaAdmissible, so an announced
-		// Discard<X/Spec> or whole-hand 0-count discard declines there too
+		// the announced Discard<X/Spec> still declines (paymentPlanCastShapeDetailAltAdd
+		// reports the spell's "shape:additional_cost" before the target-paid shape
+		// is ever consulted, and planCastPaymentChecked's targetPaid arm re-runs
+		// PlanNonManaAdmissible on the target-paid cost, whose discard parts remain)
 		ac := spellAddCost(k, c)
-		return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered|kop.CostPayLife|kop.CostPayEnergy) != 0 || ac.ExileBf || sacXCost(ac) || discardXCost(ac) || ac.DiscardHand && ac.N == 0 && ac.Flags&kop.CostDiscard == 0
+		return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered|kop.CostPayLife|kop.CostPayEnergy) != 0 || ac.ExileBf || sacXCost(ac) || discardXCost(ac)
 	}
 	if planDeclinesAddCost(k, c) {
 		// The spell's own Cost$ is separate from an AlternateAdditionalCost

@@ -1506,8 +1506,10 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 		return kop.ZoneExile
 	}
 	exileN := 0
+	var ctr kop.CounterKind
+	var ctrN uint8
 	if k.gen != nil && k.gen.anyRepl&rbExileOnLeave != 0 {
-		exileN = s.exileOnLeaveN(k, sl)
+		exileN, ctr, ctrN = s.exileOnLeaveN(k, sl)
 	}
 	// a mark lasts whatever the object is by then: a planeswalker with no
 	// loyalty dies too (CR 700.4; gorge registerReplaceDying matches any object)
@@ -1533,16 +1535,28 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 		n++
 	}
 	if len(s.cold.parked) != 0 && s.takeAnswered(s.perms[sl].obj) {
+		if ctr != 0 {
+			o := s.perms[sl].obj
+			s.stampExileCounter(o, ctr, int(ctrN))
+		}
 		return kop.ZoneExile // settled by the ask, even with a source gone since
 	}
 	if n > 1 {
 		s.capFull(StallReplLeave)
 		if exileN > 0 || exileEx || scopeN > 0 {
+			if ctr != 0 {
+				o := s.perms[sl].obj
+				s.stampExileCounter(o, ctr, int(ctrN))
+			}
 			return kop.ZoneExile
 		}
 		return s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard, kop.ZoneBattlefield)
 	}
 	if exileN > 0 || exileEx || scopeN > 0 {
+		if ctr != 0 {
+			o := s.perms[sl].obj
+			s.stampExileCounter(o, ctr, int(ctrN))
+		}
 		return kop.ZoneExile
 	}
 	return kop.ZoneGraveyard

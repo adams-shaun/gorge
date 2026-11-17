@@ -376,6 +376,13 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 	if sp.is("MayPlayIgnoreType", "True") {
 		st.Flags = append(st.Flags, "AnyManaType")
 	}
+	if _, ok := sp.get("MayPlaySnowIgnoreColor"); ok {
+		// Draugr Necromancer's "spend mana from snow sources as though it
+		// were any colour": gorge ignores the rider (engine/effects/
+		// staticline.go reads MayPlayIgnoreColor, not the snow variant), so
+		// the grant is the plain may-play in both engines.
+		sp.consume("MayPlaySnowIgnoreColor")
+	}
 	if sp.is("MayPlayWithoutManaCost", "True") {
 		st.Flags = append(st.Flags, "WithoutManaCost")
 	}

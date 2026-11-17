@@ -2035,6 +2035,13 @@ func (e *Engine) paymentSourceUseful(pc *pendingCast, p state.PlayerID, id state
 		if manaAbilityAddsNothing(ma) || e.manaAbilityYieldsNothing(p, id, f, ma) {
 			continue
 		}
+		if !pc.mayPlayIgnore && !pc.mayPlayIgnoreType && repeatableFeeOnlyMana(e, p, id, ma) {
+			// A fee-only conversion that cannot fill an owed pip is no option (feeOnlyConversionStalls).
+			comp := e.manaToPay(pc)
+			if feeOnlyConversionStalls(e, p, id, ma, comp, pay.AvailableFor(asPayer(e), p, paymentForCast(pc, comp)).Pool) {
+				continue
+			}
+		}
 		cols := pay.AnnouncedAbilityColours(asPayer(e), p, id, ma, chosen)
 		if len(cols) == 0 {
 			cols = fixedProductionColours(ma)

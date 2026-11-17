@@ -192,6 +192,12 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	s.touch(o)
 	ob := &s.objs[o]
 	ob.ver++
+	if k != nil && k.gen != nil && k.gen.exileOnLeave != nil && z != kop.ZoneExile {
+		// a new object: an exile counter does not follow the card out of
+		// exile (CR 400.7; repl_exilectr.go). A move that exileAnyDest below
+		// turns into exile clears here and stamps afterwards.
+		s.clearExileCounter(o)
+	}
 	ob.slot = NoSlot // off a face-down spell's stack mark (slotFaceDownSpell)
 	s.g.zoneTurn.set(o)
 	if k != nil {
@@ -486,6 +492,13 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 		s.impEnter(o) // zone_imprint.go: gorge clears the kept Imprinted list at the next entry
 	}
 	s.g.dmgTurn.clr(o) // entering is a new object (CR 400.7); gorge clears WasDealtDamageThisTurn here, phases keep it (kw_phasing.go phaseIn)
+	if k.gen != nil && from != kop.ZoneStack && k.t.Cards[ob.card].Face == 0 {
+		// CR 400.7: a new object forgets what its former existence remembered
+		// (gorge's entry fold clears o.Remembered; a spell's own cast-time
+		// writes and a back face's transformed entry keep theirs): Ghost
+		// Council's second activation after a return finds nothing remembered
+		s.mObjClr(k, mechRem, o)
+	}
 	if k.anyRoom {
 		s.roomEnter(k, o, from) // a Room's doors as it enters (face_rooms.go)
 	}

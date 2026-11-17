@@ -527,7 +527,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			}
 			return o, true
 		}
-		if k.gen != nil && k.gen.anyFiltFirst && s.windowFiltFirstUsable(k, p, o) && (!decided || s.windowFiltUseful(k, p, o, want)) {
+		if k.gen != nil && k.gen.anyFiltFirst && s.windowFiltFirstUsable(k, p, o) && (!decided || s.windowFiltUseful(k, p, o, want)) && !s.windowFeeStalls(k, p, o, useful, anyColor) {
 			return o, true
 		}
 		if k.gen != nil && k.gen.anyMultiR && (!decided || want != 0) && s.windowWide(k, p, o) {
@@ -1921,6 +1921,12 @@ func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, an
 	}
 	if tapsDef.has(sl) && s.riderPlainFirst(k, sl) {
 		s.riderPlainGap(k, p, a, sl, c) // the plain first ability and the rider's colours are one ask (mana_rider.go)
+		return true
+	}
+	if tapsDef.has(sl) && s.restrCensusTapsGapShape(k, sl) {
+		// the census float and the restricted colours are one ask
+		// (mana_tapsdefer.go)
+		s.restrCensusDeferGap(k, p, a, sl, c)
 		return true
 	}
 	s.tapGapChoice(k, p, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c), spill)
