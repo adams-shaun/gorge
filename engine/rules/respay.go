@@ -69,7 +69,7 @@ func (e *Engine) resPayNeedsMana(player state.PlayerID, source state.ObjID, amou
 		return false
 	}
 	rider := asEval(e).MayPlayRider(player, source)
-	desc := paymentDescriptor{ID: source, Class: class, Cost: &amount}
+	desc := paymentDescriptor{ID: source, Class: class, Cost: &amount, SubCounterBound: true}
 	if pay.CostPayableClassLife(asPayer(e), player, desc, rider, amount, false) {
 		return false
 	}
