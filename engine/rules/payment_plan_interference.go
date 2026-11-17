@@ -280,6 +280,17 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 					}
 					continue
 				}
+				// A trigger whose only effect is to destroy the tapped
+				// permanent itself (Brink of Disaster's "when enchanted
+				// permanent becomes tapped, destroy it") is a post-payment
+				// consequence, not interference: the mana was produced at the
+				// tap (CR 605.4a) and the trigger resolves after the payment
+				// that caused it (CR 405.6c/603.2), so the tap stays an
+				// ordinary unit and the trigger fires on its own at the tap,
+				// on both engines.
+				if pay.PaymentPlanTapDestroySelfTrigger(fc.face, t) {
+					continue
+				}
 				if deferBy(oid) {
 					return 0, state.Mana{}, by, false
 				}

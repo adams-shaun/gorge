@@ -424,6 +424,46 @@ func PaymentPlanTapDamageHits(ref params.Ref, carrierCtrl, activator, tappedCtrl
 	}
 }
 
+// PaymentPlanTapDestroySelfTrigger is the destroy-self trigger row: a
+// `Mode$ Taps` trigger on any ValidCard$ whose effect is exactly
+// `DB$ Destroy | Defined$ TriggeredCardLKICopy` (Brink of Disaster's "when
+// enchanted permanent becomes tapped, destroy it"). The trigger resolves
+// after the payment that caused it (CR 405.6c/603.2) and its only effect is
+// to destroy the permanent whose tap already produced its mana (CR 605.4a),
+// so it touches no payment resource and the tapped source stays an ordinary
+// unit. A trigger whose shape the planner cannot vet (another selector, a
+// compound one, a sub-chain, extra body keys) is not known and its source
+// stays deferred. f owns the trigger's Execute$ table.
+func PaymentPlanTapDestroySelfTrigger(f *cards.Face, t cards.Trigger) bool {
+	if t.Mode != "Taps" || !paymentPlanTriggerZoneOK(t) {
+		return false
+	}
+	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
+		switch paymentPlanTapDamageTriggerCodes.Code(string(k)) {
+		case paymentPlanTapDamageTriggerKnown:
+		default:
+			return false
+		}
+	}
+	body := paymentPlanTriggerBody(f, t)
+	if body == nil || body.API != "Destroy" || !paymentPlanSubFree(body) {
+		return false
+	}
+	ref := params.DefinedRefOf(body)
+	if ref.Flags&params.RefCompound != 0 {
+		return false
+	}
+	if txt := ref.Text; txt != "TriggeredCardLKICopy" && txt != "TriggeredCard" {
+		return false
+	}
+	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
+		if k != "API" && k != "Defined" && k != "SpellDescription" && k != "StackDescription" {
+			return false
+		}
+	}
+	return true
+}
+
 // paymentPlanPlayerDamageBody is paymentPlanDamageBody over a player
 // referent: the same literal-amount DealDamage body whose Defined$ names a
 // player the payment cannot move (the payer, an opponent, the tapped
@@ -747,6 +787,10 @@ const (
 	paymentPlanTapDamageTriggerKnown paymentPlanTapDamageTriggerCode = iota + 1
 )
 
+// paymentPlanTapDamageTriggerCodes is the closed key set of the Taps-watcher
+// trigger rows the planner vets (the tap-damage row and, sharing it, the
+// destroy-self row: both watchers carry Mode$, ValidCard$, Execute$,
+// TriggerZones$ and TriggerDescription$ and nothing else).
 var paymentPlanTapDamageTriggerCodes = state.NewStrCodes(
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "Mode", Val: paymentPlanTapDamageTriggerKnown},
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "ValidCard", Val: paymentPlanTapDamageTriggerKnown},
