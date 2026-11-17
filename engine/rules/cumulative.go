@@ -1003,7 +1003,11 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	}
 	// Payer-chooses (SVar:X is Count$xPaid): "you may pay {X}" is the
 	// payer's announcement (CR 601.2b's announce-then-activate ordering).
-	pot := e.PotentialMana(tc.player)
+	// The payment-aware bound (potentialManaFor): a Chosen-colour source makes
+	// exactly its chosen colour, where the plain over-bound prices it
+	// unbounded and offered X up to xFoldBoundCap (CR 106.1a).
+	desc := paymentDescriptor{ID: tc.source, Class: paymentOther, Cost: &tc.amount}
+	pot := e.potentialManaFor(tc.player, &desc)
 	bound := int32(-1)
 	if tc.amount.X > 0 {
 		bound = pot.Total()
