@@ -19,8 +19,9 @@ import (
 //   - ValidCard$ over any controller's permanents by type alone (a Land), not
 //     the source itself (a self line classes its own printed mana ability,
 //     prepSelfTapsPain);
-//   - Activator$ Player.NonActive, the tapping player is not the active
-//     player (effects.MatchesPlayerSpec over trigmatch.TapActor);
+//   - no Activator$ (any player's tap, Manabarbs), or Activator$
+//     Player.NonActive, the tapping player is not the active player
+//     (effects.MatchesPlayerSpec over trigmatch.TapActor);
 //   - a body gorge's planner defers (tapsPlanClass == TapPlanDefer: it is no
 //     vetted payer damage), so a land the line matches is a tap the planner
 //     never makes (pay.PaymentPlanAbilityTier -> TierDeferred) and the
@@ -29,10 +30,17 @@ import (
 // Anything else keeps the generic refusal.
 func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, readF func(string) (*lFilter, error)) error {
 	const generic = "trigger mode TapsForMana"
-	if v := strings.TrimSpace(tp.str("Activator")); v != "Player.NonActive" {
+	// no Activator$: any player's tap (Manabarbs); Player.NonActive: only a
+	// tap by a player other than the active one (Price of Glory)
+	nonActive := false
+	switch v := strings.TrimSpace(tp.str("Activator")); v {
+	case "":
+	case "Player.NonActive":
+		nonActive = true
+		tp.consume("Activator")
+	default:
 		return refuse("%s", generic)
 	}
-	tp.consume("Activator")
 	vc := strings.TrimSpace(tp.str("ValidCard"))
 	if vc == "" || strings.Contains(vc, "Self") {
 		return refuse("%s", generic)
@@ -52,7 +60,7 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 	if class, _ := tapsPlanClass(t.Effect); class != kop.TapPlanDefer {
 		return refuse("TapsForMana body that is vetted payer damage: gorge prices the source as a last-resort unit")
 	}
-	tr.Event, tr.TapsForMana, tr.TapperNonActive = "Taps", true, true
+	tr.Event, tr.TapsForMana, tr.TapperNonActive = "Taps", true, nonActive
 	tr.TapPlan = uint8(kop.TapPlanDefer)
 	return nil
 }
