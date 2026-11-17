@@ -34,6 +34,7 @@ type genPrep struct {
 	leyline   bool // some card is a Leyline
 	anyUmbra  bool // some card is an umbra Aura (CardDef.UmbraArmor; kw_umbraarmor.go)
 	anySrcMem bool // some card keeps its Imprinted or Remembered on the source (CardDef.ImpPersist/SrcMem; zone_srcmem.go)
+	anySnow   bool // some card's printed or ability cost asks {S} or reads the snow spent (kop.ManaCost.Snow, CardDef.SpentSnow): the cold region holds the snow tally (mana_snow.go)
 	// mana abilities a card only grants (Imprisoned in the Moon's "{T}: Add
 	// {C}"): grantPC[i] is the mana source the permanent it is granted to
 	// becomes for the autopay planner (manaPCGen)
@@ -685,6 +686,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		replBits:    make([]uint32, len(t.Cards)),
 		uses:        tableUses(t), // genneed.go
 	}
+	g.anySnow = tableAnySnow(t) // the pool's snow tally (mana_snow.go)
 	for i := range t.Cards {
 		// the printed K:Prevent facts (dirac/kgen/lower_preventkw.go)
 		c := &t.Cards[i]

@@ -64,6 +64,12 @@ type ManaCost struct {
 	// pip ask offers Hybrid[i].A first, so the lowering records it. 0 = the
 	// mask's low colour is first.
 	HybOrd uint8
+	// Snow is the number of {S} pips the cost prints (CR 107.4h): snow mana,
+	// which only mana from a snow source may pay (CR 106.3a). It fills the
+	// byte between HybOrd and Tb, so ManaCost keeps its 18 bytes. It is a
+	// table byte only: kgen does not set it yet (the kernel pays {S} beside
+	// its snow tally, dirac/mana_snow.go).
+	Snow uint8
 	// Tb holds up to five monocoloured hybrid pips ({2/W}, CR 107.4e), three
 	// bits each from bit 0 in printed order: colour+1 (W=1 .. G=5), 0 = no
 	// pip. Hyb[0] is HybTwobrid while Tb != 0 (and Hyb[1] is 0), so every
