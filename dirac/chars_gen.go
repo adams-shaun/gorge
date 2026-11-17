@@ -28,6 +28,9 @@ type statSrc struct {
 	ctrl uint8
 	obj  Obj
 	emb  uint8
+	// gr: a static granted to sl by gsrc's Continuous static (static_granted.go)
+	gr   bool
+	gsrc Slot
 }
 
 // eachStatic calls f for every static ability in force (battlefield

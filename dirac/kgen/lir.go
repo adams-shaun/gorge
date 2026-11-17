@@ -1134,7 +1134,10 @@ type lStatic struct {
 	// GainsOf: GainsAbilitiesOf$, the permanents whose activated abilities
 	// the source has (kop.Static.GainsOf; lower_gainsof.go)
 	GainsOf *lFilter
-	Grant   []int    // latent abilities the affected objects gain
+	Grant   []int // latent abilities the affected objects gain
+	// GrantSt: 1 + the index in lCard.GrantedStatics of the static the
+	// affected objects gain (0 = none; lower_grantedstatic.go)
+	GrantSt int
 	Flags   []string // kind-specific flags
 	Note    string
 	Ward    int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
@@ -1385,6 +1388,9 @@ type lCard struct {
 	Nightbound     bool     // K:Nightbound (CR 702.145e-g)
 	Abilities      []*lAbility
 	Statics        []lStatic
+	// GrantedStatics: the statics a Continuous static's AddStaticAbility$
+	// grants its recipients (lStatic.GrantSt indexes it; lower_grantedstatic.go)
+	GrantedStatics []lStatic
 	// EquipGrants: the OvGate-gated equip cost reductions a copy exception of
 	// this card grants its token (CopyPermanent AddStaticAbilities$, Firion);
 	// lowerPool adds each to every pool card with an Equip ability

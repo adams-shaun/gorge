@@ -46,12 +46,23 @@ func (cb *cardBuilder) abilities() error {
 	for i, s := range c.Statics {
 		cb.node = fmt.Sprintf("static[%d] %s", i, s.Kind)
 		ka, add, err := cb.static(s)
+		if err == nil {
+			err = cb.grantStatic(&ka, s) // lower_grantedstatic.go
+		}
 		if err != nil {
 			return bfail(cb.node, "%v", err)
 		}
 		d.Abilities = append(d.Abilities, ka)
 		cb.out.stAddSub = append(cb.out.stAddSub, add)
 		cb.out.origins = append(cb.out.origins, 0xFF)
+	}
+	for i, s := range c.GrantedStatics {
+		cb.node = fmt.Sprintf("granted static[%d] %s", i, s.Kind)
+		ka, _, err := cb.static(s)
+		if err != nil {
+			return bfail(cb.node, "%v", err)
+		}
+		d.Granted = append(d.Granted, ka)
 	}
 	for i, r := range c.Repls {
 		cb.node = fmt.Sprintf("repl[%d] %s", i, r.Kind)
