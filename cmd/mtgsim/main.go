@@ -616,6 +616,12 @@ func matchSeats(e *rules.Engine, reg *cards.Registry, seed uint64, names []strin
 			seatsOut[i] = heuristic.NewBot(seed)
 			continue
 		}
+		if policy == explorePolicy {
+			b := heuristic.NewExploreBot(seed + uint64(i))
+			b.EnableAutoPayMana()
+			seatsOut[i] = b
+			continue
+		}
 		s, err := bots.New(policy, bots.Options{Seed: seed + uint64(i), AutoPayMana: true, Deps: bots.Deps{Cards: reg}})
 		if err != nil {
 			return nil, err
