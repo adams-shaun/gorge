@@ -151,6 +151,15 @@ func (s *State) detach(o Obj) kop.Zone {
 	return from
 }
 
+// leaveExileHook fires the leave-exile trigger for a card placed out of
+// exile (placeFromK): the card is detached, so its event-time zone is named
+// by the trigger's matcher. No-op without the table's use.
+func (s *State) leaveExileHook(k *prep, o Obj, from kop.Zone) {
+	if from == kop.ZoneExile && k != nil {
+		s.fireLeaveExile(k, o)
+	}
+}
+
 // place puts o (not in any zone) into a non-battlefield zone of its owner.
 func (s *State) place(o Obj, z kop.Zone, bottom bool) {
 	s.placeFrom(o, z, bottom, kop.ZoneNone, false)
@@ -226,6 +235,7 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 		s.capFull(StallZone)
 		return
 	}
+	s.leaveExileHook(k, o, from) // trig_leaveexile.go
 	ob.zone = z
 	switch z {
 	case kop.ZoneLibrary:
