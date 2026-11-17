@@ -154,6 +154,8 @@ func (e *Engine) askKeywordCast(o *state.Object) (handled, asked bool) {
 		return true, e.askMadnessCast(o)
 	case "MiracleCast":
 		return true, e.askMiracleCast(o)
+	case siegeDefeatAPI:
+		return true, e.askSiegeDefeat(o)
 	}
 	return false, false
 }
