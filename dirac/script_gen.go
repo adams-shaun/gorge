@@ -314,7 +314,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			continue
 		}
 		searched++
-		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && s.cfg&cfgGorgeAutopay != 0 {
+		if s.autopayDropsPlainCast(a) {
 			continue // a plain cast: dropped by the autopay surface
 		}
 		if dh {
@@ -375,6 +375,15 @@ func (s *State) tapXScriptOffered(k *prep, a Action, p uint8) bool {
 	}
 	return s.grantBesideTapXGaps(k, a, p) ||
 		s.sacXBesideGrant(k, p) && s.grantActScript(k, a, p)
+}
+
+// autopayDropsPlainCast reports a plain cast the autopay surface leaves out of
+// a potential play's list: gorge's planner prices it or the floating pool pays
+// it, else the oracle drops it (gorge.go, "a plain cast the planner does not
+// price"), whatever prefix a storage battery's or a grant's activation makes
+// of it.
+func (s *State) autopayDropsPlainCast(a Action) bool {
+	return s.cfg&cfgGorgeAutopay != 0 && a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0
 }
 
 // walkKey orders insufficient play a (the kernel walk's option i) as
