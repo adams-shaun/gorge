@@ -192,7 +192,7 @@ var DebugRem2Always bool
 func (s *State) destroyRemember(k *prep, sl Slot, c int16) {
 	o := s.perms[sl].obj
 	if c&1 != 0 { // seat-ok: the NoRegen flag bit
-		s.destroyNoRegen(k, sl)
+		s.destroyNoRegenNow(k, sl)
 	} else {
 		s.destroy(k, sl)
 	}
