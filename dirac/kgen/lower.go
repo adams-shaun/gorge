@@ -3091,8 +3091,8 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			// ZoneStack)
 			return nil, refuse("filter %q: a Spell head outside a ReduceCost ValidTarget$", expr)
 		}
-		if (c.Ctrl == whoDefending || c.Owner == whoDefending) && !lc.atkPresent && !lc.spawnAtk && (!lc.trigBody || lc.ab == nil || lc.ab.Trigger == nil || lc.ab.Trigger.Event != "Attacks") {
-			return nil, refuse("ControlledBy TriggeredDefendingPlayer outside an Attacks trigger's battlefield filter")
+		if (c.Ctrl == whoDefending || c.Owner == whoDefending) && !lc.atkPresent && !lc.spawnAtk && !lc.defenderTrigBody() {
+			return nil, refuse("ControlledBy TriggeredDefendingPlayer outside an Attacks or becomes-(un)blocked trigger's battlefield filter")
 		}
 		if c.CmpX != "" && (c.CmpV == nil || c.CmpV.Kind != vChosenNumber) {
 			if _, ok := lc.face.SVars[c.CmpX]; !ok {
@@ -4080,4 +4080,23 @@ func (lc *lowerCtx) probeBody(sa *cards.SA, entered int, fab *lAbility, activate
 		lc.refuseNode(lc.guardNode, "%s", err.Error())
 	}
 	lc.guardNode = saved
+}
+
+// defenderTrigBody reports whether the filter being lowered is in the body of
+// a trigger whose context binds the defending player: an Attacks trigger, or
+// a becomes-blocked / unblocked one (AttackerBlocked, the lowered
+// AttackerUnblocked), whose gorge context binds DefendingPlayer to the
+// attacker's defender (rules/trigger_blocks.go attackerBlockedCtx,
+// checkAttackerUnblockedTriggers), the kernel's F2DefendingCtrl read. A
+// combat-damage trigger does not: gorge binds it only while the damage
+// source is attacking, and an activated ability binds none.
+func (lc *lowerCtx) defenderTrigBody() bool {
+	if !lc.trigBody || lc.ab == nil || lc.ab.Trigger == nil {
+		return false
+	}
+	switch lc.ab.Trigger.Event {
+	case "Attacks", "AttackerBlocked":
+		return true
+	}
+	return false
 }
