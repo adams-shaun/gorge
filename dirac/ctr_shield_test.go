@@ -124,7 +124,7 @@ func TestYouHexproofWhileShielded(t *testing.T) {
 	if !sc.s.playerHexproof(sc.k, 1) || sc.s.playerHexproof(sc.k, 0) {
 		t.Fatal("want player 1 (Captain America's controller) hexproof, player 0 not")
 	}
-	sc.s.spendShield(sc.slot(ca))
+	sc.s.spendShield(sc.k, sc.slot(ca))
 	if sc.s.playerHexproof(sc.k, 1) {
 		t.Fatal("player 1 hexproof with no shield counter left")
 	}
