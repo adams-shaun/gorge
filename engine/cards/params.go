@@ -1994,6 +1994,14 @@ func (s Static) ParamCode(k ParamKey) (uint16, bool) { return paramCode(s.ps, s.
 // HasParam reports whether key k is present.
 func (s Static) HasParam(k ParamKey) bool { _, ok := paramGet(s.ps, s.Params, k); return ok }
 
+// CharacteristicDefining reports whether the static carries Forge's
+// CharacteristicDefining$ True marker (CR 604.3). The param-value spelling
+// lives here, beside the key that owns it, so rules' CDA predicates read the
+// flag through one home.
+func (s Static) CharacteristicDefining() bool {
+	return s.ParamStr(PKCharacteristicDefining) == "True"
+}
+
 // MayHaveAnyParam is false only when the static provably holds no key of mask.
 func (s Static) MayHaveAnyParam(mask ParamMask) bool { return paramMayHaveAny(s.ps, s.Params, mask) }
 
