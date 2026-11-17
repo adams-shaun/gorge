@@ -76,7 +76,28 @@ func (lc *lowerCtx) damageDoneOnce(tp *params, tr *lTrigger, t cards.Trigger) er
 		}
 		tr.DmgGate = kop.DmgGate(cmp, lit)
 	}
-	tr.Event, tr.Batch, tr.PerRef = "DamageDone", true, true
+	tr.Event = "DamageDone"
+	if lc.ddoEvent {
+		// an end-of-turn Effect's line: gorge's delayed-trigger path queues
+		// one trigger per Damage event and never latches the batch
+		// (trigger_delayed.go EffectRepeat arm), so this is the plain
+		// per-event line the emblem hook fires (fireEmblemsDmg). Its body
+		// reads still gate: the plain line's trigger object is the damage
+		// source and its trigger player the damaged seat, so a read the
+		// per-referent queue would carry (ddoReadOK) is not available here,
+		// and an unconditional plain read (TriggeredCardController lowers to
+		// the trigger player) would name the damaged seat where gorge reads
+		// the source's controller. ddoEmblemReads admits exactly what the
+		// plain lowering lowers exactly for this line.
+		if tr.DmgGate != 0 {
+			return refuse("Effect DamageDoneOnce trigger with DamageAmount")
+		}
+		if r := lc.ddoEmblemReads(t.Effect); r != "" {
+			return refuse("Effect DamageDoneOnce body reads %s", r)
+		}
+		return nil
+	}
+	tr.Batch, tr.PerRef = true, true
 	if r := lc.ddoReads(t.Effect); r != "" {
 		return refuse("DamageDoneOnce body reads %s", r)
 	}
@@ -210,6 +231,40 @@ func (lc *lowerCtx) ddoReads(sa *cards.SA) string {
 		if !ddoReadOK(r, lc.ab.Trigger) {
 			return r
 		}
+	}
+	return ""
+}
+
+// ddoEmblemReads names the first trigger-context read of an end-of-turn
+// Effect's DamageDoneOnce body that the per-event emblem line
+// (fireEmblemsDmg) does not carry exactly. The line is a plain DamageDone
+// trigger: its trigger object is the damage source and its trigger player
+// the damaged seat, and its ValidTarget$ is players only
+// (eotCombatEmblemRefuse), so the carried reads are the batch amount
+// (TriggerCount$DamageAmount, stripped by ddoBodyReads) and the damaged
+// player, which the plain lowering lowers exactly only where the kernel's
+// trigger player is that player (damagedPlayerIsTriggerPlayer) — the
+// plain TriggeredTarget (Defined$ TriggeredTarget) and the LifeTotal
+// property (TriggeredTarget$LifeTotal/HalfUp, the X of Aphelia's
+// LoseLife). Everything else refuses: TriggeredCardController lowers to
+// the trigger player — the damaged seat — where gorge reads the damage
+// source's controller.
+func (lc *lowerCtx) ddoEmblemReads(sa *cards.SA) string {
+	dpt := lc.damagedPlayerIsTriggerPlayer()
+	for _, r := range lc.ddoBodyReads(sa) {
+		if dpt {
+			switch r {
+			case "TriggeredTarget", "TriggeredTargetLKICopy":
+				continue
+			}
+			if p, ok := strings.CutPrefix(r, "TriggeredTarget$"); ok && p == "LifeTotal" {
+				continue
+			}
+			if p, ok := strings.CutPrefix(r, "TriggeredTargetLKICopy$"); ok && p == "LifeTotal" {
+				continue
+			}
+		}
+		return r
 	}
 	return ""
 }
