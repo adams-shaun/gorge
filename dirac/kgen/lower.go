@@ -395,6 +395,12 @@ func (lc *lowerCtx) lowerFace() {
 			lc.out.SpendRead = true
 		}
 	}
+	if lc.face.Mentions("Count$Adamant") {
+		// gorge pay.FaceReadsManaSpent: any Adamant read (a spell's own,
+		// an etbCounter Adamant$ gate's, a trigger's CastSA>Count$) makes
+		// the planner decline the face ("shape:mana_spent_reader")
+		lc.out.SpendRead = true
+	}
 	if lc.face.Mentions("ConditionManaSpent$") || lc.face.Mentions("ConditionManaNotSpent$") ||
 		lc.face.MentionsParam("ConditionManaSpent") || lc.face.MentionsParam("ConditionManaNotSpent") {
 		// gorge pay.FaceReadsManaSpent: the planner declines the face
