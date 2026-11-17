@@ -63,6 +63,7 @@ Celestial Force
 Cephalid Illusionist
 Chain Lightning
 Chameleon Colossus
+Chandra, Bold Pyromancer
 Chaplain's Blessing
 Chariot of the Sun
 Chasm Drake
@@ -159,6 +160,7 @@ Frostveil Ambush
 Funeral March
 Fungal Plots
 Furtive Analyst
+Galazeth Prismari
 Garruk's Horde
 Geist-Honored Monk
 Gem of Becoming
@@ -176,6 +178,7 @@ God-Eternal Bontu
 Goliath Beetle
 Gouged Zealot
 Grapeshot
+Grave-Shell Scarab
 Gravetiller Wurm
 Great Goblin, Foul-Hearted
 Great Hart
