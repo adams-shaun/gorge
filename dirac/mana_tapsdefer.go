@@ -197,7 +197,7 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		}
 		pc := s.manaPCGen(k, sl)
 		if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || !tapsDeferColour(kop.ColorMask(s.srcMaskAt(pc, sl))) ||
-			pc.manaFixedChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
+			pc.manaFixedChosen || pc.manaOne || pc.manaDyn {
 			continue
 		}
 		if s.landSetGap(k, sl) {
