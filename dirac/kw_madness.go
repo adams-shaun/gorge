@@ -62,9 +62,12 @@ func (s *State) resolveMadness(k *prep) {
 
 // madnessCastable: the owner can cast exiled card o for its madness cost
 // (gorge offerCastable): the cost payable and every target slot feasible.
+// A card with Convoke or Improvise taps for part of the madness cost too (CR
+// 702.51a, 702.126a: the keyword applies to the spell whichever cost it is
+// cast for), so the tap-paid credit is taken first, as the hand offer does.
 func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 	c := s.objs[o].card
-	cost := s.adjustCost(k, p, c, o, k.t.Cards[c].MadnessCost)
+	cost := s.adjustCost(k, p, c, o, s.convokeCredit(k, p, c, o, k.t.Cards[c].MadnessCost))
 	return (s.affordsFor(k, p, &cost) || s.windowAffords(k, p, &cost) || s.ctrWindowAffords(k, p, &cost)) && s.spellTargetsFeasible(k, c, p)
 }
 
@@ -109,4 +112,18 @@ func (s *State) madnessReversed(o Obj) {
 		from := s.detach(o)
 		s.placeFrom(o, kop.ZoneGraveyard, false, from, false)
 	}
+}
+
+// madnessPlainPay: e is a madness cast paid through the plain mana window; one
+// whose cost is part tap-paid (madnessConvokes) goes through payConvoke instead.
+func (s *State) madnessPlainPay(k *prep, e *stackEntry) bool {
+	return e.trigPl == trigPlMadness && !s.madnessConvokes(k, e)
+}
+
+// madnessConvokes: the madness cast of e pays part of its cost by tapping
+// creatures or artifacts (Convoke, Improvise; CR 702.51a), so its payment
+// goes through payConvoke, which applies the announced picks, not the plain
+// window.
+func (s *State) madnessConvokes(k *prep, e *stackEntry) bool {
+	return k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, e)
 }
