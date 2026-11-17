@@ -11,6 +11,7 @@ var effectReplacementForms = []formCase{
 	{card: "Indestructible Aura", form: "prevent all damage to the remembered target this turn", lir: "PreventNext"},
 	{card: "Shielded Passage", form: "prevent all damage to the remembered target this turn", lir: "PreventNext"},
 	{card: "Djeru's Resolve", form: "prevent all damage to the remembered target this turn", lir: "PreventNext"},
+	{card: "Take the Bait", form: "scoped prevention with no ActiveZones$ (the spell's own OpponentTurn$/ActivationPhases$ cast window still refuses)", refused: "unread params [ActivationPhases OpponentTurn]"},
 	{card: "Kurbis, Harvest Celebrant", form: "no ExileOnMoved", refused: "Effect replacement shape"},
 }
 
