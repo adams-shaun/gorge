@@ -2965,6 +2965,9 @@ func isManaSym(t string) bool {
 
 // filter parses a Valid expression against the pool's subtypes.
 func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
+	if expr == sameNameOtherSpec {
+		return lc.sameNameT0OtherFilter() // lower_filterreferents.go
+	}
 	expr = lc.triggeredTargetCtrl(expr)
 	expr, err0 := lc.spawnerTargetCtrl(expr) // lower_filterwords.go
 	if err0 != nil {

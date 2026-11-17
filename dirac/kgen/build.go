@@ -1860,7 +1860,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	case cmpMonoColor:
 		kf.Pred = kop.PredMonoColor
 	case cmpSameNameT0:
-		kf.Pred = kop.PredSameNameT0
+		kf.Pred, kf.PredN = kop.PredSameNameT0, int16(c.CmpN) // PredN 1: the target itself excluded
 	case cmpSameNameRem:
 		kf.Pred = kop.PredSameNameRem
 	case cmpAdventureCard:

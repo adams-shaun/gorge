@@ -7,8 +7,9 @@ import (
 // sameNameT0 is PredSameNameT0 for the permanent at sl: the resolving
 // ability's target 0 itself, or another permanent with its name (gorge
 // Maelstrom Pulse's TargetedCard.Self or sharesNameWith Targeted; a
-// face-down permanent has no name, CR 708.2).
-func (s *State) sameNameT0(sl Slot) bool {
+// face-down permanent has no name, CR 708.2). other excludes the target
+// itself (PredN 1: Targeted.sameName+Other, Echoing Decay).
+func (s *State) sameNameT0(sl Slot, other bool) bool {
 	if !s.res.active {
 		return false
 	}
@@ -22,7 +23,7 @@ func (s *State) sameNameT0(sl Slot) bool {
 		return false
 	}
 	if ob.slot == sl {
-		return true
+		return !other
 	}
 	n := s.nameCardAt(ob.slot)
 	return n != NoCard && n == s.nameCardAt(sl)
