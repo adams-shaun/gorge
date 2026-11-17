@@ -80,8 +80,17 @@ func TestResolutionCostTokens(t *testing.T) {
 	if in.Op != kop.OpUnlessPaid || in.C&0xF != kop.PayDraw || in.B.N != kop.PayBSubDamage {
 		t.Errorf("DamageYou<X>: op %v C %#x B %d, want OpUnlessPaid over PayDraw with the damage sentinel", in.Op, in.C, in.B.N)
 	}
-	// a literal amount and a kind other than the face's X stay refused by name
-	for _, bad := range []string{"DamageYou<2>", "DamageYou<X/You>"} {
+	// a literal amount now lowers through costHand (the ticket's Vexing
+	// Devil arm); a kind other than the face's X stays refused by name
+	d, rs = resTokBuild(t, "Damage Probe", strings.Replace(dmg, "%s", "DamageYou<2>", 1))
+	if len(rs) != 0 {
+		t.Fatalf("DamageYou<2> refused: %v", rs)
+	}
+	in = resTokPay(t, d)
+	if in.C&0xF != kop.PayDraw || in.B.N != kop.PayBSubDamage || in.A.N != 2 {
+		t.Errorf("DamageYou<2>: C %#x B %d A %d, want PayDraw/damage sentinel/2", in.C, in.B.N, in.A.N)
+	}
+	for _, bad := range []string{"DamageYou<X/You>"} {
 		_, rs := resTokBuild(t, "Damage Probe", strings.Replace(dmg, "%s", bad, 1))
 		if all := strings.Join(rs, " | "); !strings.Contains(all, "cost token") {
 			t.Errorf("UnlessCost$ %s: refusals %q, want a cost token refusal", bad, all)
@@ -103,7 +112,16 @@ func TestResolutionCostTokens(t *testing.T) {
 	if in.Op != kop.OpUnlessSwitched || in.C&0xF != kop.PayDraw || in.B.N != 0 {
 		t.Errorf("Draw<X/You>: op %v C %#x B %d, want OpUnlessSwitched over a plain PayDraw", in.Op, in.C, in.B.N)
 	}
-	for _, bad := range []string{"Draw<X/Opponent>", "Draw<2/You>"} {
+	// a literal amount now lowers through costHand
+	d, rs = resTokBuild(t, "Draw Probe", strings.Replace(draw, "%s", "Draw<2/You>", 1))
+	if len(rs) != 0 {
+		t.Fatalf("Draw<2/You> refused: %v", rs)
+	}
+	in = resTokPay(t, d)
+	if in.Op != kop.OpUnlessSwitched || in.C&0xF != kop.PayDraw || in.A.N != 2 {
+		t.Errorf("Draw<2/You>: op %v C %#x A %d, want OpUnlessSwitched over PayDraw/2", in.Op, in.C, in.A.N)
+	}
+	for _, bad := range []string{"Draw<X/Opponent>"} {
 		_, rs := resTokBuild(t, "Draw Probe", strings.Replace(draw, "%s", bad, 1))
 		if all := strings.Join(rs, " | "); !strings.Contains(all, "cost token") && !strings.Contains(all, "draw cost") {
 			t.Errorf("UnlessCost$ %s: refusals %q, want a draw or cost token refusal", bad, all)

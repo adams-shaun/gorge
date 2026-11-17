@@ -1182,15 +1182,9 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		in.CS = "ExileStackSelf"
 		c.ExileStackSelf = false
 	}
-	if c.DrawN > 0 {
-		// gorge's triggered-cost window: a Draw-bearing cost of a printed
-		// trigger's own body (cumulative.go: offered when its counts
-		// resolve; paying draws). Only alone and only there.
-		if !lc.trigOwnCost {
-			return in, refuse("resolution draw cost outside a trigger's own cost")
-		}
-		n++
-		in.CS, in.A = "Draw", cst(c.DrawN)
+	var err error
+	if n, err = lc.resTokenInstr(c, &in, n); err != nil { // lower_costtokenforms.go
+		return in, err
 	}
 	if !c.Mana.None {
 		n++

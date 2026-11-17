@@ -831,12 +831,15 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if e.kind == seAbility && k.gen != nil && k.gen.anyLoyaltyX && s.loyaltyXOptions(k, d) {
 					return true // a planeswalker's [-X] (cost_loyaltyx.go)
 				}
-				if (k.gen == nil || !k.gen.anyLifeX || !s.lifeXBuilding(k)) && (k.gen == nil || !k.gen.anySacX || !s.sacXBuilding(k)) {
+				if (k.gen == nil || !k.gen.anyLifeX || !s.lifeXBuilding(k)) &&
+					(k.gen == nil || !k.gen.anySacX || !s.sacXBuilding(k)) &&
+					(k.gen == nil || !k.gen.uses.has(useDiscardX) || !s.discardXBuilding(k)) {
 					s.nextStage(k)
 					continue
 				}
-				// an announced PayLife<X> or Sac<X/Spec> with no {X} mana
-				// asks X below (cost_paylifex.go, cost_sacx.go)
+				// an announced PayLife<X>, Sac<X/Spec> or Discard<X/Spec> with
+				// no {X} mana asks X below (cost_paylifex.go, cost_sacx.go,
+				// cost_discardfiltered.go)
 			}
 			// X is announced (CR 601.2b) before the payment window opens, so it is
 			// bounded by what that window can pay (CR 601.2g; gorge xAsk).
@@ -879,20 +882,10 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				// the ask's ceiling needs: the same largest X is offered.
 				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[SeatIx(e.ctrl)].graveN)+s.convokeXCredit(k)+1+int(cost.XRed))
 			}
-			if k.gen != nil && k.gen.anyLifeX {
-				mx = s.lifeXClamp(k, &cost, mx) // PayLife<X> bounds the ask by life
-			}
-			if k.gen != nil && k.gen.anySacX {
-				mx = s.sacXClamp(k, &cost, mx) // Sac<X/Spec> bounds the ask by the sacrifice candidates
-			}
-			if k.gen != nil && k.gen.anyExileX {
-				mx = s.exileXClamp(k, mx) // ExileFromGrave<X/Spec> bounds the ask by the graveyard candidates
-			}
+			mx = s.xPartClamps(k, &cost, mx) // announcing parts cap the ask (cast_xclamp.go)
 			d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
 			hi := s.xReducedCeiling(k, e, &cost, &av, mx)
-			if k.gen != nil && k.gen.anyExileX {
-				hi = s.exileXClamp(k, hi)
-			}
+			hi = s.xPartClampsHi(k, &cost, hi)
 			if np := s.convokeXCredit(k); np > 0 {
 				hi = convokeXHi(mx, hi, np, &av) // each announced pick pays one generic (a harmonize pick its power) of the X total
 			}
@@ -2238,6 +2231,9 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 			}
 			s.bld().pickK = rest & -rest
 			s.bld().pickLeft = pc.N
+			if s.bld().pickK == pkDiscard && pc.DiscardX {
+				s.bld().pickLeft = uint8(e.x) // Discard<X/Spec>: the announced X (0 asks nothing)
+			}
 			if s.bld().pickK == pkDiscard {
 				s.bld().pickLeft += pc.Discard2N // the second discard part's picks follow (cost_discardfiltered.go)
 			}
