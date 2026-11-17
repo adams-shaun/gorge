@@ -183,7 +183,10 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 }
 
 // plainOptions is p's priority walk without the script hook, under
-// availFor mode m.
+// availFor mode m. The availPlain mark is the probe's: the walks that model
+// gorge's planner (the Phyrexian offer gate's storage-battery read,
+// mana_phyrexian.go phyActAffords) read without the batteries' counters,
+// which the planner reaches only through the script route (pair 149).
 func (s *State) plainOptions(k *prep, d *Decision, m uint8) {
 	d.N = 0
 	s.g.availX = availPlain | m
