@@ -102,7 +102,7 @@ func (s *State) windowGapListed(k *prep, p uint8, o Slot) bool {
 // colour (addPotentialMana prices Produced$ AnyDifferent open), though the
 // kernel's walk reads its empty colour mask as nothing.
 func (s *State) availPotentialPay(k *prep, p uint8, a *avail, d *payDesc) {
-	s.availPotentialFor(k, p, a, d)
+	s.availPotentialFor(k, p, a, d, false)
 	if s.anyDifferentOpen(k, p) {
 		a.total, a.n = 0, 0
 		for c := 0; c < kop.NumManaKinds; c++ {

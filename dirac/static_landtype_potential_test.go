@@ -16,7 +16,7 @@ func TestBasicLandGrantPotential(t *testing.T) {
 	sc, _ := blgScen(t, "Leyline of the Guildpact", "Plains")
 	var av avail
 	other := payDesc{class: pdOther}
-	sc.s.availPotentialFor(sc.k, 0, &av, &other)
+	sc.s.availPotentialFor(sc.k, 0, &av, &other, false)
 	if av.total != 5 {
 		t.Fatalf("potential units %d, want 5: a Plains under Leyline counts each granted colour", av.total)
 	}
@@ -27,7 +27,7 @@ func TestBasicLandGrantPotential(t *testing.T) {
 
 	sc, _ = blgScen(t, "Plains")
 	av = avail{}
-	sc.s.availPotentialFor(sc.k, 0, &av, &other)
+	sc.s.availPotentialFor(sc.k, 0, &av, &other, false)
 	if av.total != 1 {
 		t.Fatalf("potential units %d, want 1 for a Plains without the grant", av.total)
 	}

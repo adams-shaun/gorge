@@ -38,7 +38,7 @@ func TestGatePairPotentialSums(t *testing.T) {
 			sc.s.perms[sc.slot(b)].flags |= pfTapped // the gate, not a mana source
 		}
 		other := payDesc{class: pdOther}
-		sc.s.availPotentialFor(sc.k, 0, &pot, &other)
+		sc.s.availPotentialFor(sc.k, 0, &pot, &other, false)
 		sc.s.availFor(sc.k, 0, &plan)
 		return
 	}
