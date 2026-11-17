@@ -283,7 +283,7 @@ func run() int {
 	// harness check of a game of more than two seats.
 	synthGorge := *synth != "" && *seats > 2 && explicit["kernel"] && *kernel == "gorge"
 	if *seats > 2 {
-		for _, name := range []string{"repro", "replay", "v2", "pairs-file", "coverage"} {
+		for _, name := range []string{"repro", "replay", "v2", "pairs-file", "coverage", "branches"} {
 			if explicit[name] {
 				fmt.Fprintf(os.Stderr, "kfuzz: -seats %d cannot be used with -%s\n", *seats, name)
 				return 2
@@ -620,7 +620,7 @@ func run() int {
 	n := 0
 	t0 := time.Now()
 	sum := oracle.Fuzz(c, ps, mk, oracle.FuzzConfig{Run: rc, Mulligans: *mulligans, Policy: pol, StopAtFirst: !*keepGoing,
-		Shrink: *shrink, Workers: *workers, Coverage: coveragePath != "", GameTimeout: *gameLimit, StopOnHang: *gameLimit > 0}, func(i int, p oracle.Pairing, r *oracle.Result) {
+		Shrink: *shrink, Workers: *workers, Coverage: collectsCoverage(), GameTimeout: *gameLimit, StopOnHang: *gameLimit > 0}, func(i int, p oracle.Pairing, r *oracle.Result) {
 		n++
 		if r.Div != nil {
 			fmt.Fprintf(os.Stderr, "pair %d (%s, seed %d): %v\n", p.Index, strings.Join(p.Decks(), " vs "), p.Seed, r.Div)
@@ -652,7 +652,7 @@ func run() int {
 		printUnpriced(sum.Stats.UnpricedPlays)
 	}
 	if sum.Coverage != nil {
-		if err := writeCoverage(coveragePath, sum.Coverage); err != nil {
+		if err := writeCoverageFiles(sum.Coverage); err != nil {
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
 			return 1
 		}
@@ -844,9 +844,16 @@ func printEventTail(n int) func(*oracle.GorgeSide) {
 	}
 }
 
-// coveragePath is -coverage and evidencePath -evidence: with both "" no coverage
-// is collected.
-var coveragePath, evidencePath string
+// coveragePath is -coverage, evidencePath -evidence and branchesPath -branches:
+// with all "" no coverage is collected.
+var coveragePath, evidencePath, branchesPath string
+
+// collectsCoverage reports whether -coverage or -branches asks for coverage.
+func collectsCoverage() bool { return coveragePath != "" || branchesPath != "" }
+
+func init() {
+	flag.StringVar(&branchesPath, "branches", "", "write the run's per-card choice-branch TSV (oracle.Coverage.WriteBranchTSV: card, key, uses, owed) here; reporting only, the -coverage file is unchanged")
+}
 
 // recentSourcesShown is how many of a game's latest sourced actions a bad-game line names.
 const recentSourcesShown = 8
@@ -917,6 +924,33 @@ func writeCoverage(path string, cov *oracle.Coverage) error {
 	fmt.Printf("coverage: cards cast-or-played %d/%d, fully covered %d/%d, ability keys used %d/%d, policy fallbacks %d (of %d decisions in %d games)\n",
 		t.Played, t.Cards, t.Full, t.Cards, t.KeysUsed, t.Keys, cov.Fallbacks, cov.Decisions, cov.Games)
 	return nil
+}
+
+// writeCoverageFiles writes the -coverage TSV and the -branches TSV, each only
+// when its flag is set.
+func writeCoverageFiles(cov *oracle.Coverage) error {
+	if coveragePath != "" {
+		if err := writeCoverage(coveragePath, cov); err != nil {
+			return err
+		}
+	}
+	return writeBranches(branchesPath, cov)
+}
+
+// writeBranches writes cov's branch TSV to path; "" (no -branches) writes nothing.
+func writeBranches(path string, cov *oracle.Coverage) error {
+	if path == "" || cov == nil {
+		return nil
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	if err := cov.WriteBranchTSV(f); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 // runVanilla plays package kernel against gorge on dirac/vanilla's decks
@@ -1236,7 +1270,7 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 		ks.install()
 		defer ks.print(set.Name())
 	}
-	collect := coveragePath != "" || evidencePath != "" || o.reach != nil
+	collect := coveragePath != "" || evidencePath != "" || branchesPath != "" || o.reach != nil
 	if evidencePath != "" {
 		o.refused = map[string]bool{}
 		for i, n := range set.Names()[:set.NumCards()] {
@@ -1507,7 +1541,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 	var st oracle.Stats
 	var searched [oracle.MaxSeats]int
 	var cov *oracle.Coverage
-	if coveragePath != "" || evidencePath != "" || o.reach != nil {
+	if coveragePath != "" || evidencePath != "" || branchesPath != "" || o.reach != nil {
 		cov = oracle.NewCoverage()
 	}
 	first := -1 // index in ps of the first divergence, pair order
@@ -1665,11 +1699,9 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 	if feat != nil {
 		fmt.Printf("features: %d decisions and %d options compared byte-for-byte\n", feat.Decisions, feat.Options)
 	}
-	if coveragePath != "" {
-		if err := writeCoverage(coveragePath, cov); err != nil {
-			fmt.Fprintln(os.Stderr, "kfuzz:", err)
-			return 1
-		}
+	if err := writeCoverageFiles(cov); err != nil {
+		fmt.Fprintln(os.Stderr, "kfuzz:", err)
+		return 1
 	}
 	if evidencePath != "" {
 		if err := writeEvidence(evidencePath, o.refused, cov); err != nil {
