@@ -824,7 +824,7 @@ func (e *Engine) expireUntilUntaps(host state.ObjID) {
 }
 
 // expireAsLongAsControl drops every Duration$ AsLongAsControl registration
-// whose source is src and whose controller no longer controls it (CR 611.2b).
+// whose rule has ended by src's controller change or phase-out (CR 611.2b).
 // The effect has ended for good: it does not start again if the controller
 // regains control, so continuousLive's controller check alone (a filter
 // re-evaluated per build) is not enough. Called after a ControlChange of src.
@@ -834,7 +834,15 @@ func (e *Engine) expireUntilUntaps(host state.ObjID) {
 // Called after a PhaseOut too: a host-anchored (DurationSource) grant ends when
 // its host has phased out and does not return when it phases back in (Forge
 // ends "for as long as you control CARDNAME" on the host's phase-out; Aegis
-// Angel's pump). Other registrations keep their controller-only rule.
+// Angel's pump). The fold emits the ONE PhaseOut event for src and derives the
+// rest (CR 702.26g: src's attachments phase out with it, indirectly), so a
+// grant anchored on a phased-out attachment of src ends here as well -- no
+// PhaseOut event ever names that host, and without this arm the grant would
+// lie dormant through the phase-out and revive when src phased back in.
+// Non-anchored grants (Source is their own subject, the untap-lock shape) keep
+// their controller-only rule, and the pumped object's own control change or
+// phase-out leaves every anchored grant alone: its host is the anchor, and
+// what the pumped object does with itself is not the host's rule to end by.
 func (e *Engine) expireAsLongAsControl(src state.ObjID) {
 	o := e.G.Obj(src)
 	if o == nil {
@@ -843,8 +851,49 @@ func (e *Engine) expireAsLongAsControl(src state.ObjID) {
 	kept := e.continuous[:0]
 	changed := false
 	for _, ce := range e.continuous {
-		hostGone := ce.Controller != o.Controller || ce.DurationSource == src && o.PhasedOut
-		if (ce.Source == src || ce.DurationSource == src) && hostGone && effects.IsAsLongAsControlDuration(ce.Duration) {
+		expired := false
+		if effects.IsAsLongAsControlDuration(ce.Duration) {
+			if ce.DurationSource != 0 {
+				// Host-anchored grant: its Source is the pumped object,
+				// whose controller and phase state are its own business
+				// (continuousLive reads the host for both). It ends only on
+				// an event about the host: this one stole it or phased it
+				// out, or phased out the bearer the host is attached to.
+				if src == ce.DurationSource {
+					expired = ce.Controller != o.Controller || o.PhasedOut
+				} else if o.PhasedOut {
+					// CR 702.26g: src's phase-out phased out its attachments
+					// too, indirectly, but the fold emitted the ONE PhaseOut
+					// event for src -- no event ever names the attached host,
+					// so its grant ends only here, and does not revive when
+					// src phases back in (CR 611.2b). The host must be one of
+					// those indirectly phased-out attachments: directly
+					// phased-out hosts had their own event and their grants
+					// are already gone. The walk follows the bearer chain (an
+					// Aura on an Aura on src phases out with src too); the
+					// chain cannot be longer than the arena, and running past
+					// that bound means corrupt state, not a match.
+					if a := e.G.Obj(ce.DurationSource); a != nil && a.Zone == state.ZBattlefield &&
+						a.PhasedOut && a.PhasedOutIndirect {
+						bearer := a.AttachedTo
+						for hop := 0; !expired && bearer != 0 && hop < len(e.G.Objs); hop++ {
+							if bearer == src {
+								expired = true
+							} else if b := e.G.Obj(bearer); b != nil && b.Zone == state.ZBattlefield {
+								bearer = b.AttachedTo
+							} else {
+								bearer = 0
+							}
+						}
+					}
+				}
+			} else if src == ce.Source && ce.Controller != o.Controller {
+				// Non-anchored grant (Source is the subject itself): the
+				// affected object changing hands ends it.
+				expired = true
+			}
+		}
+		if expired {
 			changed = true
 			continue
 		}
@@ -1241,6 +1290,10 @@ func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
 			return false
 		}
 		if effects.IsAsLongAsControlDuration(ce.Duration) {
+			// The PhasedOut read is the belt: expireAsLongAsControl ends the
+			// grant for good on the host's phase-out (direct, or indirect
+			// with its bearer, CR 702.26g), so a registered grant with a
+			// phased-out host is one that expired while unbuildable.
 			return durationSource.Controller == ce.Controller && !durationSource.PhasedOut
 		}
 		return true

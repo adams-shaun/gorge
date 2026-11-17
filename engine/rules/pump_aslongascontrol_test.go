@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -22,7 +23,9 @@ func aegisGrant(t *testing.T) (e *Engine, angel, bear state.ObjID) {
 	}
 	cfg := seatZeroStart(Config{Seed: 4243, Names: []string{"a", "b"},
 		Decks: [][]*cards.Card{
-			append([]*cards.Card{aa}, mountainDeck(t, 39)...),
+			// The second bear sits in seat 0's library so the indirect
+			// phase-out subtest can move it in as the Angel's bearer.
+			append([]*cards.Card{aa, card(t, udBear)}, mountainDeck(t, 39)...),
 			append([]*cards.Card{card(t, udBear)}, mountainDeck(t, 39)...),
 		},
 		Tokens: map[string]*cards.Card{},
@@ -114,6 +117,74 @@ func TestPumpAsLongAsControlOutlivesCleanup(t *testing.T) {
 		e.emit(events.Event{Kind: events.PhaseOut, Obj: angel, Amount: -1})
 		if e.HasKeyword(bear, "Indestructible") {
 			t.Fatalf("the grant restarted when Aegis Angel phased back in")
+		}
+	})
+	t.Run("persists when the pumped creature changes controller", func(t *testing.T) {
+		t.Parallel()
+		e, angel, bear := aegisGrant(t)
+		e.emit(events.Event{Kind: events.ControlChange, Obj: bear, Player: 1})
+		if got := e.G.Obj(bear).Controller; got != 1 {
+			t.Fatalf("precondition: Bear controller = %d, want 1", got)
+		}
+		if got := e.G.Obj(angel).Controller; got != 0 {
+			t.Fatalf("precondition: Angel controller = %d, want 0", got)
+		}
+		if !e.HasKeyword(bear, "Indestructible") {
+			t.Fatalf("the grant ended when the PUMPED creature changed controller while Aegis Angel stayed controlled")
+		}
+		e.emit(events.Event{Kind: events.ControlChange, Obj: angel, Player: 1})
+		if e.HasKeyword(bear, "Indestructible") {
+			t.Fatalf("the grant outlived Aegis Angel changing controller after the pumped creature had")
+		}
+	})
+	t.Run("persists when the pumped creature phases out", func(t *testing.T) {
+		t.Parallel()
+		e, _, bear := aegisGrant(t)
+		e.emit(events.Event{Kind: events.PhaseOut, Obj: bear, Amount: 1})
+		if !e.G.Obj(bear).PhasedOut {
+			t.Fatalf("precondition: Bear did not phase out")
+		}
+		// CR 702.25b: a phased-out permanent does not exist, so the grant
+		// applies to nothing while the Bear is out -- what must hold is that
+		// the grant survives the pumped object's phase-out (its phase state
+		// is not the host's rule to end by) and applies again on phase-in.
+		alive := false
+		for _, ce := range e.continuous {
+			if ce.Source == bear && ce.DurationSource != 0 && effects.IsAsLongAsControlDuration(ce.Duration) {
+				alive = true
+			}
+		}
+		if !alive {
+			t.Fatalf("the grant ended when the PUMPED creature phased out while Aegis Angel stayed on the battlefield")
+		}
+		e.emit(events.Event{Kind: events.PhaseOut, Obj: bear, Amount: -1})
+		if e.G.Obj(bear).PhasedOut {
+			t.Fatalf("precondition: Bear still phased out")
+		}
+		if !e.HasKeyword(bear, "Indestructible") {
+			t.Fatalf("the grant did not apply again when the pumped creature phased back in")
+		}
+	})
+	t.Run("ends when the host phases out indirectly with its bearer", func(t *testing.T) {
+		t.Parallel()
+		e, angel, bear := aegisGrant(t)
+		bearer := moveByName(t, e, 0, "Ud Bear", state.ZBattlefield)
+		// The direct-attach setup attach_test.go uses: the Angel here plays
+		// the attached permanent, whose bearer's phase-out phases it out
+		// indirectly (CR 702.26g) without a PhaseOut event of its own.
+		e.G.Obj(angel).AttachedTo = bearer
+		e.emit(events.Event{Kind: events.PhaseOut, Obj: bearer, Amount: 1})
+		a := e.G.Obj(angel)
+		if !a.PhasedOut || !a.PhasedOutIndirect || a.AttachedTo != bearer {
+			t.Fatalf("precondition: Angel PhasedOut=%v indirect=%v attachedTo=%d, want out/indirect/%d",
+				a.PhasedOut, a.PhasedOutIndirect, a.AttachedTo, bearer)
+		}
+		if e.HasKeyword(bear, "Indestructible") {
+			t.Fatalf("the grant outlived Aegis Angel phasing out indirectly with its bearer")
+		}
+		e.emit(events.Event{Kind: events.PhaseOut, Obj: bearer, Amount: -1})
+		if e.HasKeyword(bear, "Indestructible") {
+			t.Fatalf("the grant restarted when Aegis Angel phased back in with its bearer")
 		}
 	})
 }
