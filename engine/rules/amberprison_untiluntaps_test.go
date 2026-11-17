@@ -12,9 +12,9 @@ import (
 // Untap replacement with Duration$ UntilUntaps: "for as long as Amber Prison
 // remains tapped" (CR 611.2b). Inline copy of the printed script.
 const amberPrisonSrc = "Name:Amber Prison\nManaCost:4\nTypes:Artifact\n" +
-	"A:AB$ Tap | Cost$ 4 T | ValidTgts$ Artifact,Creature,Land | SubAbility$ DBEffect | SpellDescription$ Tap target.\n" +
-	"SVar:DBEffect:DB$ Effect | IsCurse$ True | ReplacementEffects$ DontUntap | Duration$ UntilUntaps | RememberObjects$ Targeted | ExileOnMoved$ Battlefield\n" +
-	"SVar:DontUntap:Event$ Untap | ValidCard$ Card.IsRemembered | ValidStepTurnToController$ You | Layer$ CantHappen | Description$ x\n" +
+	"A:AB$ Tap | Cost$ 4 T | ValidTgts$ Creature,Artifact | SubAbility$ DBLock | SpellDescription$ Tap target.\n" +
+	"SVar:DBLock:DB$ Effect | Duration$ UntilUntaps | RememberObjects$ Targeted | ReplacementEffects$ NoUntap\n" +
+	"SVar:NoUntap:Event$ Untap | Layer$ CantHappen | ValidCard$ Card.IsRemembered | ValidStepTurnToController$ You | Description$ x\n" +
 	"Oracle:x\n"
 
 // amberPrisonBoard puts Amber Prison (seat 0) and an opposing Bear (seat 1) on
