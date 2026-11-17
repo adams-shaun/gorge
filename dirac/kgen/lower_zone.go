@@ -2056,15 +2056,15 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 	}
 	ps.consume("DefinedDesc", "IfDesc")
-	// the exile-granted ability's copy is cast paying its mana cost (gorge
-	// beginPlay: the printed cost, mana window and all; lower_exilegrant.go)
-	paid := lc.grantExile && copyCard && ps.m["Valid"] == "Card.Self" && ps.m["WithoutManaCost"] == ""
-	if !paid && !ps.is("WithoutManaCost", "True") {
-		return refuse("Play without WithoutManaCost")
-	}
-	if !ps.is("Optional", "True") {
-		return refuse("Play without Optional")
-	}
+	// WithoutManaCost$ absent, or present and not True, is a PAID play: gorge's
+	// beginPlay begins the ordinary cast paying its printed cost (CR 601.2,
+	// alternative timing) -- mid-resolution it pays through the manual CR
+	// 601.2g window and an unpayable cost reverses the cast (CR 733.1, the
+	// kernel's freeQ drain, turn_gen.go). Only the literal True is the free
+	// cast (the exile-granted ability's copy rides the same bit,
+	// lower_exilegrant.go).
+	paid := !ps.is("WithoutManaCost", "True")
+	mandatory := !ps.is("Optional", "True") // gorge's ask has Min 1 (lower_playshapes.go)
 	if c, ok := ps.get("Controller"); ok && c != "You" {
 		return refuse("Play Controller %q", c)
 	}
@@ -2087,6 +2087,9 @@ func (lc *lowerCtx) play(ps *params) error {
 			return refuse("Play Amount %q", amount)
 		}
 		upTo = true
+	}
+	if err := playMandatoryOK(mandatory, hideDef, copyCard, repeat, upTo); err != nil {
+		return err
 	}
 	forget := false
 	if v, ok := ps.get("ForgetPlayed"); ok {
@@ -2124,7 +2127,8 @@ func (lc *lowerCtx) play(ps *params) error {
 	var err error
 	if !playCommandZone(ps) {
 		// (the command-zone Play reads its absent ValidSA$: lower_playcommand.go)
-		saExpr, err = lc.playSAExpr(ps.str("ValidSA"))
+		sa, _ := playDefaultValidSA(ps)
+		saExpr, err = lc.playSAExpr(sa)
 	}
 	lc.bluffPlay = false
 	if err != nil {
@@ -2137,7 +2141,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		return refuse("Play on a multi-face card")
 	}
 	_, hasVT := ps.m["ValidTgts"]
-	cs := "Optional"
+	cs := playBaseCS(mandatory)
 	if amount == "All" {
 		cs += "|AnyNumber"
 	}
