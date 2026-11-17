@@ -13,6 +13,11 @@ changed=$(git diff --name-only "$base"...HEAD)
 if ! "${cap[@]}" go test -timeout 3m -run '^TestComplexFunctionsOnlyShrink$|^TestLongFunctionsOnlyShrink$|^TestFuncCeilingsLowerOnly$' ./internal/codeshape >"$log" 2>&1; then
   cat "$log"; fail "codeshape: $(grep -o -E '[^ ]+ \([^)]*\) grew to [a-z]+ [0-9]+, above its ceiling of [0-9]+' "$log" | head -1)"
 fi
+# The public boundary scans every tracked file, so no affected-package rule selects it: a test fixture holding a
+# Forge script line verbatim passed the seat's checks and failed fast's TestNoVerbatimForgeLines (#613, 11-17).
+if ! "${cap[@]}" go test -timeout 3m -run '^TestPublicBoundary$|^TestNoVerbatimForgeLines$' ./internal/archtest >"$log" 2>&1; then
+  cat "$log"; fail "public boundary: $(grep -m1 -E 'holds a line of|private|verbatim' "$log" | sed 's/^[[:space:]]*//' | cut -c1-200)"
+fi
 if grep -q '^dirac/' <<<"$changed"; then
   # The support ledger's own checks (dirac/kgen/support_test.go): a refusal against evidence main credited since the
   # branch cut fails TestEvidenceAndRefusedAreDisjoint though the PR touches neither test (#503, 11-17).
