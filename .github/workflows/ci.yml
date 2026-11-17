@@ -56,10 +56,7 @@ concurrency:
 
 env:
   SHARDS: 6
-  # -trimpath, as the Makefile sets it: without it the build and test-result cache keys include the checkout's absolute
-  # path, so each runner directory (/opt/actions-runner-N/_work) kept its own cache and PR fast ran 0 of 21 packages
-  # cached (11-17, run 44022951699); with it every runner on a box shares one cache.
-  GOFLAGS: -p=4 -trimpath
+  GOFLAGS: -p=4
 
 # Runner priority (operator 11-16: "the mergify queue checks run w/ higher prio"): GitHub Actions has no job
 # priority, so a pull request's own checks (fast, lint) run only on the 4 runners labelled gorge-pr. The other 8
