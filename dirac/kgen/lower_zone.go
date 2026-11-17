@@ -2834,8 +2834,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if eot && t.Mode == "TapsForMana" {
 		return effectTapExtraRefuse() // lower_tapextra.go
 	}
-	if (eot || next) && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" && !(t.Mode == "DamageDealtOnce" && lc.pairCap != nil) &&
-		t.Mode != "AttackersDeclared" && t.Mode != "AttackersDeclaredOneTarget" && t.Mode != "Attacks" && t.Mode != "AttackerBlocked" {
+	if (eot || next) && !emblemTimedMode(t.Mode, eot, lc.pairCap != nil) {
 		// an until-end-of-turn Effect's trigger (gorge: the effect leaves
 		// the command zone at cleanup) is the kernel's EOT emblem, and an
 		// until-your-next-turn one its next-turn emblem; both fire only for
@@ -2870,10 +2869,11 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	saved := len(lc.out.Abilities)
 	lc.capRem = hasCap && t.Mode == "DamageDealtOnce"
+	lc.ddoEvent = eot && t.Mode == "DamageDoneOnce"
 	lc.effCount = mem.kind == memCount
 	lc.emblemBlocked = hasCap && t.Mode == "AttackerBlocked"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.capRem, lc.effCount, lc.emblemBlocked = false, false, false
+	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked = false, false, false, false
 	if err != nil {
 		return err
 	}
@@ -2917,6 +2917,23 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	ce.C = len(lc.out.Emblems) - 1
 	lc.emit(ce)
 	return nil
+}
+
+// emblemTimedMode reports whether an until-end-of-turn or until-your-next-turn
+// Effect's trigger Mode$ is one the kernel's timed emblem listens to. An
+// end-of-turn DamageDoneOnce line is the per-event DamageDone one (Aphelia,
+// lower_damagedoneonce.go); a DamageDealtOnce one needs the pair capture.
+func emblemTimedMode(mode string, eot, paired bool) bool {
+	switch mode {
+	case "SpellCast", "ChangesZone", "Sacrificed", "DamageDone",
+		"AttackersDeclared", "AttackersDeclaredOneTarget", "Attacks", "AttackerBlocked":
+		return true
+	case "DamageDoneOnce":
+		return eot
+	case "DamageDealtOnce":
+		return paired
+	}
+	return false
 }
 
 // emblemUnimplementedMayPlay consumes an Effect's StaticAbilities$ list
