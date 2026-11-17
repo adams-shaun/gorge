@@ -1226,7 +1226,7 @@ func (g *grantSrch) visit(t *State) bool {
 			return false
 		}
 	}
-	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.witnessEats(t, &cost) && !g.waitsForStack(t) {
+	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && g.witnessKeeps(t, &cost) {
 		g.cheaper = cheap
 		return true
 	}

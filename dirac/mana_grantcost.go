@@ -302,6 +302,13 @@ func (g *grantSrch) witnessEats(t *State, cost *kop.ManaCost) bool {
 	return t.xWitnessEats(g.k, g.p, t.objs[o].card, cost, 0, o, 0)
 }
 
+// witnessKeeps: the node's printed plan neither sacrifices the play's only
+// target (witnessEats) nor waits on the stack, so the play is still offered
+// after it and the node may price it (CR 601.2c: a target must remain legal).
+func (g *grantSrch) witnessKeeps(t *State, cost *kop.ManaCost) bool {
+	return !g.witnessEats(t, cost) && !g.waitsForStack(t)
+}
+
 // grantCostLife is the life a granted view's activation pays (0: none).
 func grantCostLife(pc *pcard) uint8 {
 	if pc.painLife && pc.painCol == 0 {
