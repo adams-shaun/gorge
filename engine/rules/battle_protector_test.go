@@ -72,6 +72,89 @@ func answerBattleProtector(t *testing.T, e *Engine, choice int) state.PlayerID {
 	return player
 }
 
+// siegeCastGame builds a four-player game whose seat 0 deck holds the given
+// Battle card, so the spell can be CAST for real (battleProtectorDeck's
+// logged MoveZone entry is not a cast). Four seats matter: the CR 310.10
+// protector ask is only posed with two or more living opponents (1v1
+// auto-records the one legal opponent), which is why the ask-free
+// predicate's 1v1 census never saw this miss.
+func siegeCastGame(t *testing.T, battle *cards.Card) (*Engine, Config) {
+	t.Helper()
+	deck := append([]*cards.Card{battle}, mountainDeck(t, 40-1)...)
+	cfg := Config{Seed: 31, Names: []string{"a", "b", "c", "d"},
+		Decks: [][]*cards.Card{
+			deck,
+			mountainDeck(t, 40),
+			mountainDeck(t, 40),
+			mountainDeck(t, 40),
+		},
+	}
+	cfg = seatZeroStart(cfg)
+	e := New(cfg)
+	e.Advance()
+	return e, cfg
+}
+
+// TestSiegeBattleSpellResolutionAsksProtector: a cast Battle spell resolves
+// onto the battlefield through applySiegeProtector's CR 310.10 protector
+// choice -- an engine construct rule no card script carries (the Oracle line
+// is reminder text), so the ask-free predicate's text half cannot see it. In
+// a four-seat game two opponents are legal, so the ask is real, and an
+// exempted resolution has no checkpoint to pose it from: Engine.ask panics
+// with "the ask-free predicate missed an ask: choose/" (hunt pod4, mtgsim
+// seed 904, Invasion of Arcavios). The predicate must checkpoint the
+// resolution while the spell is on the stack.
+func TestSiegeBattleSpellResolutionAsksProtector(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	battle := mustCorpusCard(t, reg, "Invasion of Arcavios")
+	e, cfg := siegeCastGame(t, battle)
+	id := moveSeededCard(t, e, 0, battle, state.ZHand)
+	addMana(t, e, 0, "UUUUUU")
+	castSpellOption(t, e, "Invasion of Arcavios")
+	top := e.G.Obj(e.G.Stack[len(e.G.Stack)-1])
+	if len(e.G.Stack) == 0 || top == nil || top.Face() == nil || !top.Face().IsBattle() {
+		t.Fatalf("precondition: the Battle spell is not the stack top after the cast: stack=%v", e.G.Stack)
+	}
+	if !tapeMayAsk(e) {
+		t.Fatal("the ask-free predicate exempted a resolving Battle spell: applySiegeProtector's CR 310.10 protector ask has no checkpoint to pose from")
+	}
+	protectorAsks := 0
+	for i := 0; i < 120; i++ {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no decision while resolving")
+		}
+		if d.Kind == decision.KPriority && len(e.G.Stack) == 0 {
+			break
+		}
+		pick := 0
+		switch d.Kind {
+		case decision.KPriority:
+			passPriorityOnce(t, e)
+			continue
+		case decision.KChoose:
+			if len(d.Options) > 0 && d.Options[0].Kind == "protector" {
+				protectorAsks++
+			}
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pick}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if protectorAsks != 1 {
+		t.Fatalf("protector asks = %d, want 1 (two legal opponents make the CR 310.10 choice real)", protectorAsks)
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil || !o.Face().IsBattle() {
+		t.Fatalf("the battle did not resolve onto the battlefield: %+v", o)
+	}
+	if !o.ProtectorValid {
+		t.Fatalf("the battle entered with no protector recorded: %+v", o)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestSiegeBattleProtectorIsRechosenWhenProtectorLeaves pins the CR 310.10
 // re-derive: a Battle whose recorded protector leaves the game gets a fresh
 // living opponent, recorded through the same Choose "protector" event the
