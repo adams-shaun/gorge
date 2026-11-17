@@ -1509,26 +1509,24 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		tr.Event, tr.Batch = "Taps", true
 	case "Always":
-		// CR 603.8 state trigger, the counter-threshold shape (Mazemind
-		// Tome: TriggerZones$ Battlefield, IsPresent$
-		// Card.Self+counters_GE<N>_<KIND>, N a literal 1..127:
-		// kop.PredCountersGE packs the threshold in the high byte of an
-		// int16 (PredN), so 128 would wrap negative). gorge
-		// matches every event -- the Always matcher is vacuously true
-		// (trigmatch/registry.go) -- and gates on the condition, which only
-		// a counter put can newly satisfy: counters change only through
-		// counter-put events, and a zone move only empties the count. The
-		// kernel rides the counter-put event of ANY kind on the source
-		// itself (the kind and the threshold ride the condition, not the
-		// event), checked as the event happens and again when an instance
-		// leaves the stack (dirac trig_statectr.go). gorge holds one
-		// instance at a time (stateTriggerOutstanding, trigger_condition.go):
-		// Outstanding marks the latch; noResolvingCheck exempts Mode$ Always
-		// from the resolution recheck (trigger_condition.go), the kernel's
-		// AfCheckOnTrigger. Every other Always shape keeps the refusal: its
-		// condition can newly hold on events the kernel's re-check sites
-		// never see (a life total, a hand size, another object's counters,
-		// a PresentCompare$ or an X threshold).
+		// CR 603.8 state trigger over a board condition: IsPresent$ with
+		// PresentCompare$/PresentZone$, lowered by the generic IsPresent$
+		// path below to the same Present(filter, op, n) condition a static
+		// Condition$ uses (the counter threshold, Mazemind Tome:
+		// Card.Self+counters_GE<N>_<KIND>, is one such filter). gorge matches
+		// every event -- the Always matcher is vacuously true
+		// (trigmatch/registry.go) -- and gates on the condition. The kernel
+		// checks it at the counter-put event of ANY kind on the source itself,
+		// as the state-based actions finish a clean pass (turn.go sba ->
+		// sbaClean), and when an instance leaves the stack (dirac
+		// trig_statectr.go), the points a battlefield or counter change
+		// settles at. gorge holds one instance at a time
+		// (stateTriggerOutstanding, trigger_condition.go): Outstanding marks
+		// the latch; noResolvingCheck exempts Mode$ Always from the
+		// resolution recheck (trigger_condition.go), the kernel's
+		// AfCheckOnTrigger. A condition that is not an IsPresent$ stays
+		// refused (a life total, a hand size or an X threshold has no
+		// re-check site here).
 		if zone != "" {
 			return refuse("Always trigger on an Effect")
 		}
@@ -1536,29 +1534,21 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("Always TriggerZones %q", tp.str("TriggerZones"))
 		}
 		ip := strings.TrimSpace(tp.str("IsPresent"))
-		rest, ok := strings.CutPrefix(ip, "Card.Self+counters_GE")
-		if !ok {
-			return refuse("Always IsPresent$ %q", ip)
+		if ip == "" {
+			return refuse("Always without IsPresent$")
 		}
-		thr, kind, ok := strings.Cut(rest, "_")
-		if !ok {
-			return refuse("Always IsPresent$ %q", ip)
-		}
-		n, err := strconv.Atoi(thr)
-		if err != nil || n < 1 || n > 127 {
-			return refuse("Always IsPresent$ %q (threshold %q)", ip, thr)
-		}
-		if _, err := counterKind(kind); err != nil {
-			return refuse("Always IsPresent$ %q (%v)", ip, err)
+		if err := alwaysCounterThreshold(ip); err != nil {
+			return err
 		}
 		for _, k := range sortedParamKeys(t.Params) {
 			switch k {
-			case "Mode", "Execute", "TriggerZones", "IsPresent", "TriggerDescription":
+			case "Mode", "Execute", "TriggerZones", "IsPresent", "PresentCompare", "PresentZone", "TriggerDescription":
 			default:
 				return refuse("Always %s$", k)
 			}
 		}
 		tr.Event, tr.Step = "CounterAdded", "*"
+		var err error
 		if tr.F, err = lc.filter("Card.Self"); err != nil {
 			return err
 		}
@@ -1948,4 +1938,27 @@ func spentGateOf(v string, allowX bool) (int16, bool) {
 		return 0, false
 	}
 	return kop.DmgGate(cmp, n), true
+}
+
+// alwaysCounterThreshold bounds the Always counter-threshold shape
+// (Card.Self+counters_GE<N>_<KIND>): kop.PredCountersGE packs the threshold in
+// the high byte of an int16, so N is a literal 1..127, and the kind must
+// exist. Any other IsPresent$ filter passes through to the generic path.
+func alwaysCounterThreshold(ip string) error {
+	rest, ok := strings.CutPrefix(ip, "Card.Self+counters_GE")
+	if !ok {
+		return nil
+	}
+	thr, kind, ok := strings.Cut(rest, "_")
+	if !ok {
+		return refuse("Always IsPresent$ %q", ip)
+	}
+	n, err := strconv.Atoi(thr)
+	if err != nil || n < 1 || n > 127 {
+		return refuse("Always IsPresent$ %q (threshold %q)", ip, thr)
+	}
+	if _, err := counterKind(kind); err != nil {
+		return refuse("Always IsPresent$ %q (%v)", ip, err)
+	}
+	return nil
 }
