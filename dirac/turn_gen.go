@@ -658,6 +658,7 @@ func (s *State) newTurnGen() {
 		s.dropTurnLeave() // trig_leavereturn.go: "this turn" leave records end
 	}
 	clear(s.g.prevCol[:])
+	clear(s.g.prevX[:])
 	clear(s.g.redir[:])
 	if s.g.ctrAdd.pl|s.g.ctrAdd.n != 0 {
 		s.ctrAddedReset() // ctr_addedthisturn.go
