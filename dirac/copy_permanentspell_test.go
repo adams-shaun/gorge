@@ -9,7 +9,7 @@ import (
 
 // permcopyTable is vanilla's table with a Copier (a {1} creature whose own
 // cast trigger copies it, OpCopySpell C&2), a Face Copier (the same with a
-// transforming layout), an Omen Copier (the same with an omen layout, face
+// modal layout), an Omen Copier (the same with an omen layout, face
 // 1 an unaffordable instant) and a Watcher (gains 1 life whenever a token
 // enters under its controller's control).
 func permcopyTable() (t *kop.Table, copier, faced, watcher, omen CardID) {
@@ -26,7 +26,7 @@ func permcopyTable() (t *kop.Table, copier, faced, watcher, omen CardID) {
 	copier, faced = CardID(len(tb.Cards)), CardID(len(tb.Cards)+1)
 	omen, omenFace := CardID(len(tb.Cards)+2), CardID(len(tb.Cards)+3)
 	watcher = CardID(len(tb.Cards) + 4)
-	tb.Cards = append(tb.Cards, cp("Test Copier", kop.FaceNone), cp("Test Face Copier", kop.FaceTransform),
+	tb.Cards = append(tb.Cards, cp("Test Copier", kop.FaceNone), cp("Test Face Copier", kop.FaceModal),
 		cp("Test Omen Copier", kop.FaceOmen),
 		kop.CardDef{Name: "Test Omen Copier's Omen", Cost: kop.ManaCost{Generic: 99}, Types: kop.TInstant,
 			Face: 1, FaceMode: kop.FaceOmen})
@@ -198,7 +198,7 @@ func TestPermcopyOmenCopyCeases(t *testing.T) {
 	}
 }
 
-// TestPermcopyFaceStall: a permanent-spell copy of a two-faced card stalls
+// TestPermcopyFaceStall: a permanent-spell copy of a modal two-faced card stalls
 // loud (CR 707.10g is not modelled).
 func TestPermcopyFaceStall(t *testing.T) {
 	sc, _, _, _ := permcopyCast(t, true)
