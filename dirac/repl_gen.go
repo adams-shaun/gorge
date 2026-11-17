@@ -73,6 +73,7 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 			return m
 		}
 	}
+	s.prevRiderApply(k, srcCtrl, srcSl, srcCard, code, rcp, sl, combat, n) // repl_prevx.go
 	if g.anyRepl&rbPrevCol != 0 && s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) {
 		if s.statRdrStall(k, srcCtrl, srcSl, srcCard, code, combat) {
 			return 0 // a static redirect beside the prevention: gorge asks the order (repl_staticredirect.go)
@@ -291,6 +292,7 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 				continue
 			}
 		}
+		s.prevRiderApply(k, src.ctrl, ev.src, s.cardAt(ev.src), code, s.recipientCtl(ev.dst, code), ev.dst, true, int(ev.n)) // repl_prevx.go
 		if k.gen.anyRepl&rbPrevCol != 0 && s.prevColHit(k, ev.src, s.cardAt(ev.src), prevTgt{s.recipientCtl(ev.dst, code), ev.dst}, true) {
 			if k.gen.anyRedir && s.redirBeside(code, s.recipientCtl(ev.dst, code)) {
 				return // a redirect is a candidate too: gorge asks the order (repl_dmgredirect.go)
@@ -599,6 +601,9 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	}
 	if g.anyDmgMark && s.dmgMarkCompetesEv(rcp, sc, n) {
 		return 0 // repl_dmgmark.go
+	}
+	if s.prevRiderStall(k, n, fsl, fe.card, prevTgt{rcp, fe.dst}, true) {
+		return 0
 	}
 	if barePrevOnly(n, ro.prev, ro.shld, ro.pnx, ro.plus) {
 		return 1 // no order ask (repl_bareprev.go): replCombatGen prevented it
@@ -1347,6 +1352,9 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 		return false // repl_dmgmark.go
 	}
 	if c < 2 {
+		return false
+	}
+	if s.prevRiderStall(k, c, srcSl, srcCard, prevTgt{rcp, sl}, false) {
 		return false
 	}
 	if !parked && barePrevOnly(c, prev, shld, pnx, plus) {
