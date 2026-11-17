@@ -306,6 +306,9 @@ func checkFullerSearch(t *testing.T, name string, d *decision.Decision, bot deci
 // completes, the kind is counted, the answer is legal, and the result is
 // deterministic. The engine is never written.
 func TestSearchFullerKindsEndToEnd(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	net := hashNet()
 	const sims = 48
 	for _, f := range kindFixtures {
@@ -340,6 +343,9 @@ func TestSearchFullerKindsEndToEnd(t *testing.T) {
 // it on (the stored states carry the opponents' auto-pay bot streams, and a
 // stored point recounts ExtraPoints and OppPayPoints).
 func TestFullerWalkAndOpponentPayment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	roots := autoPayRoots(t, 3)
 	var total Stats
 	for i, r := range roots {

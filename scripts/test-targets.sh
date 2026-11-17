@@ -2,6 +2,7 @@
 # test-targets.sh <one|targeted|smart|list>: the make targets that replace a raw `go test`.
 #
 #   make test-one PKG=./p RUN='^TestX$'   one package, named tests: debugging, regeneration, scratch probes
+#   [SHORT=1] adds -short: slow self-play/search tests skip (the Mergify batch's full suite still runs them)
 #   make test-targeted [BASE=origin/main]        packages the diff touches, plus every package whose tests import them
 #   make test-smart [BASE=origin/main]           the steps a seat can act on, fail-fast, on a committed tree
 #   make precheck                         an alias for test-smart
@@ -170,6 +171,7 @@ if [ "$mode" = one ]; then
 	pkg=${PKG:-}
 	[[ $pkg =~ ^\./[A-Za-z0-9_./-]+$ && $pkg != *...* ]] || usage "PKG=./path/to/one/package is required (got '$pkg'); no ./... and no wildcards"
 	[ -n "${RUN:-}" ] || usage "RUN=<test regexp> is required"
+	case ${SHORT:-} in '' | 1) ;; *) usage "SHORT is 1 or empty (got '$SHORT')" ;; esac
 	case $pkg in ./engine/rules | ./dirac/oracle)
 		# An exact name (or a |-alternation of them), so a broad pattern cannot run the whole package.
 		[[ $RUN =~ ^\^[A-Za-z0-9_|^$]*[A-Za-z0-9_]\$$ ]] ||
@@ -197,6 +199,7 @@ if [ "$mode" = one ]; then
 	[ -z "${SKIP:-}" ] || args+=(-skip "$SKIP")
 	[ -z "${TAGS:-}" ] || args+=(-tags "$TAGS")
 	[ -z "${V:-}" ] || args+=(-v)
+	case ${SHORT:-} in 1) args+=(-short) ;; esac
 	args+=("$pkg")
 	[ -z "${UPDATE:-}" ] || args+=(-args -update)
 	env ${envs[@]+"${envs[@]}"} go test -json -failfast -timeout "$to" "${args[@]}" >>"$json" 2>&1
