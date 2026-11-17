@@ -572,22 +572,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 			e.fuseTargets[copyID] = cp
 		}
-		// A copy of a spliced spell carries the spliced text and its targets
-		// (CR 707.10).
-		if ids, ok := e.spliceFor[ev.Obj]; ok && len(ev.IDs) == 0 {
-			if e.spliceFor == nil {
-				e.spliceFor = make(map[state.ObjID][]state.ObjID)
-			}
-			e.spliceFor[copyID] = append([]state.ObjID(nil), ids...)
-			cp := make([][]state.Target, len(e.spliceTargets[ev.Obj]))
-			for i, targets := range e.spliceTargets[ev.Obj] {
-				cp[i] = append([]state.Target(nil), targets...)
-			}
-			if e.spliceTargets == nil {
-				e.spliceTargets = make(map[state.ObjID][][]state.Target)
-			}
-			e.spliceTargets[copyID] = cp
-		}
+		inheritSplice(e.spliceFor, e.spliceTargets, ev.Obj, copyID)
 		// A charm's per-mode target groups are the same split: each mode of the
 		// copy acts on its own group (CR 707.10 copies modes and targets).
 		if groups, ok := e.charmTargets[ev.Obj]; ok && len(ev.IDs) == 0 {

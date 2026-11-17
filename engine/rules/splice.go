@@ -23,6 +23,9 @@ import (
 //   - Resolution (702.47b/c): resolveTop runs the spell's own text, then
 //     runSplicedSegments runs each spliced text in chosen order against the
 //     targets chosen for it (Engine.spliceFor / spliceTargets).
+//   - Copies (CR 707.10): a StackCopy of a spliced spell takes the same entry
+//     (emit.go), so the copy resolves the spliced texts against the same
+//     targets; a copy of a copy inherits the same way.
 //
 // Out of scope: splicing onto a fused spell, spliced modal text, a targeting
 // SubAbility$ on spliced text (none of the 30 corpus carriers has one), other
@@ -296,4 +299,22 @@ func (e *Engine) spliceMainTargets(o *state.Object, flat []state.Target) []state
 		return flat
 	}
 	return flat[:len(flat)-n]
+}
+
+// inheritSplice gives the StackCopy copyID of the spliced spell orig its
+// own splice entry: the same spliced cards and a copy of each spliced text's
+// targets (CR 707.10). A new-target override (ev.IDs, Zada's per-creature
+// copies) replaces only the spell's own first target, so the spliced texts'
+// targets are copied unchanged. A copy of a copy inherits the same way.
+func inheritSplice(spliceFor map[state.ObjID][]state.ObjID, spliceTargets map[state.ObjID][][]state.Target, orig, copyID state.ObjID) {
+	ids, ok := spliceFor[orig]
+	if !ok {
+		return
+	}
+	spliceFor[copyID] = append([]state.ObjID(nil), ids...)
+	cp := make([][]state.Target, len(spliceTargets[orig]))
+	for i, targets := range spliceTargets[orig] {
+		cp[i] = append([]state.Target(nil), targets...)
+	}
+	spliceTargets[copyID] = cp
 }
