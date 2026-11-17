@@ -8,10 +8,12 @@ Akki Underling
 Alesha, Who Smiles at Death
 Ambuscade Shaman
 Ancestral Memories
+Ancient Stone Idol
 Angelfire Crusader
 Angelic Skirmisher
 Anoint
 Anurid Brushhopper
+Ao, the Dawn Sky
 Apprentice Wizard
 Archweaver
 Artificer's Epiphany
@@ -23,6 +25,7 @@ Auramancer
 Axebane Stag
 Balduvian Barbarians
 Balduvian Hydra
+Barbed Spike
 Barren Moor
 Basri's Acolyte
 Bassara Tower Archer
@@ -37,6 +40,7 @@ Bitter Revelation
 Black Scarab
 Blight
 Blightwidow
+Blood Host
 Blot Out the Sky
 Boarded Window
 Bojuka Bog
@@ -90,11 +94,13 @@ Drowsing Tyrannodon
 Duelist of Deep Faith
 Dungeoneer's Pack
 Echoing Ruin
+Electrozoa
 Elvish Champion
 Elvish Hydromancer
 Embodiment of Insight
 Empyreal Voyager
 Errand-Rider of Gondor
+Escape from Orthanc
 Essence of Orthodoxy
 Expanded Anatomy
 Exterminatus
@@ -111,6 +117,7 @@ Folk Medicine
 Forest
 Frazzle
 Frontline Devastator
+Gallia of the Endless Dance
 General Kreat, the Boltbringer
 Geralf, Visionary Stitcher
 Gerrard's Wisdom
@@ -119,6 +126,7 @@ Giant Warthog
 Gibbering Fiend
 Gideon's Lawkeeper
 Gift of Orzhova
+Gilt-Leaf Winnower
 Glyph Elemental
 Goblin Morningstar
 Goblin Trenches
@@ -141,6 +149,7 @@ Hooded Hydra
 Hope and Glory
 Howl of the Horde
 Hulk, Brutal Brawler
+Hypnotic Specter
 Indomitable Archangel
 Instill Furor
 Intimidation
@@ -184,6 +193,7 @@ Mind Sludge
 Mindcrank
 Minotaur Warrior
 Mogg Salvage
+Moonfolk Puzzlemaker
 Moriok Reaver
 Moriok Rigger
 Mountain
@@ -203,6 +213,7 @@ Nuisance Engine
 Nurgle's Rot
 Oakgnarl Warrior
 Oni of Wild Places
+Oracle's Vault
 Origin of Black Widow
 Paladin's Shield
 Pattern of Rebirth
@@ -234,7 +245,9 @@ Ring of Immortals
 Rites of Reaping
 Rockcaster Platoon
 Ronin Warclub
+Ruination Wurm
 Run Afoul
+Ruric Thar, the Unbowed
 Rush the Room
 Rusted Sentinel
 Safe Haven
@@ -313,6 +326,7 @@ Tolsimir Wolfblood
 Toph, Earthbending Master
 Touch of the Eternal
 Trapped in the Tower
+Traumatic Revelation
 Treasury Thrull
 Treetop Recluse
 Tuskguard Captain

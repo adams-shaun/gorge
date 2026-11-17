@@ -14,6 +14,7 @@ Augury Owl
 Avatar of Will
 Aven Brigadier
 Aven Eternal
+Basri's Aegis
 Bayou Dragonfly
 Bedeck
 Black Widow, Agile Avenger
@@ -78,6 +79,7 @@ Falkenrath Marauders
 Fanatical Fever
 Fanged Flames
 Fated Conflagration
+Fell Specter
 Femeref Scouts
 Festival of the Guildpact
 Filigree Sages
@@ -121,6 +123,7 @@ Hope Against Hope
 Horror of Horrors
 Human Frailty
 Ill-Tempered Cyclops
+Imoti, Celebrant of Bounty
 Infuse
 Inner Calm, Outer Strength
 Innocuous Researcher
@@ -135,6 +138,7 @@ Kami of Whispered Hopes
 Kazuul's Fury
 Kederekt Parasite
 Kenrith's Transformation
+Kitchen Finks
 Knight Watch
 Kor Duelist
 Kraken Hatchling
@@ -143,6 +147,7 @@ Lady Caleria
 Leinore, Autumn Sovereign
 Leshrac's Sigil
 Leyline of Punishment
+Lifespring Druid
 Lightning Blast
 Lose Calm
 Lychguard
@@ -183,6 +188,7 @@ Nissa's Triumph
 Novellamental
 Nyxborn Marauder
 Obelisk of Esper
+Oji, the Exquisite Blade
 Otherworld Atlas
 Oxidize
 Ozox, the Clattering King
@@ -211,17 +217,21 @@ Regisaur Alpha
 Release to Memory
 Relic of Progenitus
 Retreat to Hagra
+Ring of Evos Isle
 Rise Again
 Rolling Hamsphere
 Romana II
+Sacred Nectar
 Sand Golem
 Sanguine Glorifier
 Saprazzan Heir
 Saprazzan Outrigger
 Scion of Glaciers
+Scuttling Sentinel
 Seal of Fire
 Seer's Vision
 Selesnya Evangel
+Seraph of New Capenna
 Serene Steward
 Shared Trauma
 Shimmerscale Drake
@@ -236,8 +246,10 @@ Skullslither Worm
 Skyfisher Spider
 Skyshroud Ranger
 Slagwurm Armor
+Sludge Monster
 Slum Reaper
 Smitten Swordmaster
+Song of Eärendil
 Soratami Seer
 Sorcerer's Wand
 Soulblade Corrupter
@@ -251,6 +263,7 @@ Steady Aim
 Steal Strength
 Stealth Mission
 Steeple Roc
+Stolen by the Fae
 Stone Calendar
 Stormwatch Eagle
 Stupefying Touch
@@ -280,6 +293,7 @@ Undercity Uprising
 Urza's Science Fair Project
 Valeron Outlander
 Vertigo Spawn
+Vine Trellis
 Volcanic Spray
 Vulshok Splitter
 Wake the Reflections
@@ -288,6 +302,7 @@ Warhorn Blast
 Waterknot
 Whipflare
 Whirlermaker
+Wintermoor Commander
 Woeleecher
 Wound Reflection
 Wrack with Madness

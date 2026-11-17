@@ -7,6 +7,7 @@ Aetherstorm Roc
 Akki Blizzard-Herder
 Akroma's Vengeance
 Akroma, Angel of Fury
+Alena, Kessig Trapper
 Angel of Glory's Rise
 Armory Guard
 Attended Knight
@@ -50,9 +51,11 @@ Ellivere of the Wild Court
 Essence Infusion
 Everbark Shaman
 Evie Frye
+Extract from Darkness
 Extremis Elite
 Falkenrath Torturer
 Fallaji Archaeologist
+Final Flourish
 Final Strike
 Flailing Soldier
 Flamekin Village
@@ -88,9 +91,11 @@ Iona's Judgment
 Island
 Izzet Keyrune
 Kazuul Warlord
+Keeper of Secrets
 Keldon Mantle
 Kogla, the Titan Ape
 Kraken Hatchling
+Kraum, Ludevic's Opus
 Kuldotha Ringleader
 Last Kiss
 Lead by Example
@@ -98,6 +103,7 @@ Lightning Javelin
 Lizard Warrior
 Loamcrafter Faun
 Longbow Archer
+Maraleaf Pixie
 Marble Titan
 Melira's Keepers
 Mental Misstep
@@ -114,11 +120,13 @@ Orzhov Signet
 Pang Tong, "Young Phoenix"
 Pearl Medallion
 Phyrexian Colossus
+Phyrexian Delver
 Pick Up the Pace
 Pincer Spider
 Pinnacle of Rage
 Plains
 Predator's Rapport
+Rampant Rejuvenator
 Ransom Note
 Razormane Masticore
 Renegade Warlord
@@ -132,6 +140,7 @@ Sanctum Custodian
 School of Piranha
 Scrap Trawler
 Sea Sprite
+Self-Inflicted Wound
 Sell-Sword Brute
 Sepulcher Ghoul
 Shatterskull Charger
@@ -157,6 +166,7 @@ Stromkirk Occultist
 Sultai Banner
 Svyelunite Priest
 Swamp
+Talrand's Invocation
 Tanglebloom
 The Destined Black Mage
 Theros Charm
@@ -183,10 +193,12 @@ Warlock Class
 Where We're Going . . .
 Whetwheel
 Wind Dancer
+Winterflame
 Wirewood Herald
 You Hear Something on Watch
 You're Ambushed on the Road
 Zephyr Net
 Zhao Zilong, Tiger General
 Zhuge Jin, Wu Strategist
+Zimone, Quandrix Prodigy
 Zurgo Bellstriker

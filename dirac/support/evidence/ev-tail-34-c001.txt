@@ -7,6 +7,7 @@ Angel's Mercy
 Angelic Wall
 Arbor Elf
 Arcane Flight
+Archon of Redemption
 Arm-Mounted Anchor
 Aven Trailblazer
 Avenging Arrow
@@ -109,6 +110,7 @@ Ivory Cup
 Kazandu Refuge
 Keeper of the Accord
 Kitesail Apprentice
+Kitsune Dawnblade
 Knotvine Paladin
 Kolaghan Skirmisher
 Kronch Wrangler
@@ -153,6 +155,7 @@ Raise the Alarm
 Ramosian Sergeant
 Reduce
 Repulsor Rays
+Resurrection Orb
 Retreat to Coralhelm
 Revenge of the Hunted
 Rile

@@ -7,6 +7,7 @@ Aerie Worshippers
 Aeronaut Cavalry
 Aether Sting
 Agent of Acquisitions
+Aggressive Urge
 Air Bladder
 Akki Raider
 Aladdin's Ring
@@ -28,6 +29,7 @@ Avalanche Riders
 Avatar of the Resolute
 Aven Reedstalker
 Avenging Angel
+Back to Nature
 Barricade Breaker
 Beast Whisperer
 Benalish Heralds
@@ -50,6 +52,7 @@ Centaur's Herald
 Chain of Plasma
 Champion's Drake
 Chapel Geist
+Cho-Arrim Legate
 Chrome Host Seedshark
 Citizen V, Helmut Zemo
 Clairvoyance
@@ -70,6 +73,7 @@ Deadbridge Shaman
 Deal Broker
 Deathbringer Regent
 Decompose
+Deer-Dog
 Delightful Discovery
 Demon of Wailing Agonies
 Deploy the Gatewatch
@@ -146,6 +150,7 @@ Intrepid Provisioner
 Invading Manticore
 Island
 Isolation Cell
+Jhessian Lookout
 Jungle Delver
 Juzám Djinn
 Kabira Takedown
@@ -192,6 +197,7 @@ Navigation Orb
 Nearheath Chaplain
 Niambi, Faithful Healer
 Nishoba Brawler
+Norika Yamazaki, the Poet
 Noxious Dragon
 Off Balance
 Organ Hoarder
@@ -202,6 +208,7 @@ Phyrexian Etchings
 Phyrexian Missionary
 Pierce the Sky
 Plains
+Possessed Nomad
 Pradesh Gypsies
 Prakhata Club Security
 Presence of Gond
@@ -226,6 +233,7 @@ Rejuvenation Chamber
 Rekindled Flame
 Rhox Oracle
 Riptide
+Rising Populace
 Roar of Reclamation
 Robot Chicken
 Rootwater Commando
@@ -264,6 +272,7 @@ Steel Overseer
 Stinging Scorpion
 Subira, Tulzidi Caravanner
 Suleiman's Legacy
+Sun-Collared Raptor
 Sunstrike Legionnaire
 Supply Runners
 Swamp

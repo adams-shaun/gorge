@@ -30,6 +30,7 @@ Battering Krasis
 Beacon of Creation
 Beckon Apparition
 Beyeen Veil
+Big Mother Mouser
 Black Sun's Zenith
 Blessed Hippogriff
 Blighted Cataract
@@ -95,6 +96,7 @@ Emergent Growth
 Emmessi Tome
 Enchantmentize
 Entrapment Maneuver
+Ethereal Ambush
 Exclude
 Exotic Curse
 Expedition Lookout
@@ -102,6 +104,7 @@ Expendable Lackey
 Explosive Apparatus
 Fabled Hero
 Faith Unbroken
+Falthis, Shadowcat Familiar
 Fangblade Brigand
 Farfinder
 Fearsome Awakening
@@ -243,6 +246,7 @@ Pardic Lancer
 Pearled Unicorn
 Pensive Minotaur
 Perish
+Petals of Insight
 Pippin's Bravery
 Plains
 Plated Crusher

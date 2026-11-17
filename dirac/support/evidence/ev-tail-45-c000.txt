@@ -214,6 +214,7 @@ Keldon Necropolis
 Keldon Vandals
 Kiku, Night's Flower
 King Harald's Revenge
+Koll, the Forgemaster
 Kraul Raider
 Lantern Kami
 Laser Screwdriver
@@ -372,6 +373,7 @@ Syr Konrad, the Grim
 Séance
 Tattered Mummy
 Tectonic Fiend
+Tegwyll, Duke of Splendor
 Tempestra, Dame of Games
 Tempted by the Oriq
 Territorial Roc

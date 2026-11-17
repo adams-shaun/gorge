@@ -11,6 +11,7 @@ Argivian Phalanx
 Artifact Blast
 Avacyn, Angel of Hope
 Aven Fleetwing
+Battle Rampart
 Birthing Ritual
 Boil
 Boltwing Marauder
@@ -104,6 +105,7 @@ Precognitive Perception
 Ravenous Baloth
 Regal Unicorn
 Relic Golem
+Render Inert
 Revolutionary Rebuff
 Righteous Blow
 Rites of Spring
@@ -115,11 +117,14 @@ Sedge Troll
 See Red
 Seer's Vision
 Seismic Assault
+Shivan Zombie
 Show of Valor
 Silhana Wayfinder
+Sol'kanar the Swamp King
 Soratami Mirror-Mage
 Spitting Dilophosaurus
 Staff of Domination
+Staggershock
 Stand Firm
 Starlit Angel
 Steal Enchantment

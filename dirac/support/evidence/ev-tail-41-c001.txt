@@ -27,6 +27,7 @@ Brotherhood Outcast
 Butterbur, Bree Innkeeper
 Call the Cavalry
 Canoptek Spyder
+Canyon Wildcat
 Cathar's Companion
 Caustic Crawler
 Celestial Regulator
@@ -165,6 +166,7 @@ Mossbeard Ancient
 Mountain
 Mountain Bandit
 Mu Yanling, Sky Dancer
+Mudbutton Torchrunner
 Multani's Acolyte
 Multiversal Recruitment
 Myojin of Blooming Dawn

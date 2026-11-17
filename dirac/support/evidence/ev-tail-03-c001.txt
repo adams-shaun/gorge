@@ -11,6 +11,7 @@ Animating Faerie
 Applied Biomancy
 Arbalest Elite
 Arbor Armament
+Arboreal Alliance
 Arcade Cabinet
 Arcane Encyclopedia
 Archivist of Oghma
@@ -37,6 +38,7 @@ Bloodpyre Elemental
 Bloody Betrayal
 Bog Gnarr
 Bonebreaker Giant
+Boneyard Scourge
 Bontu's Monument
 Borderland Minotaur
 Borderland Ranger
@@ -92,6 +94,7 @@ Deadly Visit
 Death Grasp
 Deathmark Prelate
 Defend the Campus
+Defenders of Humanity
 Dega Disciple
 Demonic Appetite
 Devils' Playground
@@ -137,6 +140,7 @@ Forked Lightning
 Frenetic Ogre
 Fruit of Tizerus
 Fruitcake Elemental
+Fumarole
 Funeral Longboat
 Furor of the Bitten
 Furyblade Vampire
@@ -145,6 +149,7 @@ Gather the Pack
 Gaze of Adamaro
 Geology Enthusiast
 Githzerai Monk
+Glaring Fleshraker
 Glissa Sunslayer
 Glyph Elemental
 Gnarlwood Dryad
@@ -229,6 +234,7 @@ Makindi Sliderunner
 Mantle of Webs
 March from the Black Gate
 Martial Glory
+Martyrs of Korlis
 Maulfist Squad
 Mavren Fein, Dusk Apostle
 Merciless Eviction
@@ -400,6 +406,7 @@ Tome Shredder
 Torbran, Thane of Red Fell
 Trailblazer
 Transgress the Mind
+Trynn, Champion of Freedom
 Twisted Justice
 Tyvar Kell
 Ulgrotha Charm
@@ -433,6 +440,7 @@ Wizard Class
 Woebearer
 Wolfcaller's Howl
 Word of Binding
+Yawgmoth's Vile Offering
 You Happen On a Glade
 Yuki-Onna
 Zephyr Spirit

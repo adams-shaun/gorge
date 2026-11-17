@@ -1,4 +1,5 @@
 A-Case the Joint
+A-Nael, Avizoa Aeronaut
 A-Psionic Snoop
 A-Thran Spider
 Aardvark Sloth
@@ -70,17 +71,21 @@ Dhund Operative
 Dimir Charm
 Dimir Cutpurse
 Diregraf Colossus
+Disturbed Burial
 Dive Bomber
 Diversionary Tactics
 Diviner's Lockbox
+Doomskar Oracle
 Dreadhorde Invasion
 Drove of Elves
 Drown in Dreams
 Dutiful Return
+Earth Tremor
 Emissary of Hope
 Enthrall
 Evil Eye of Orms-by-Gore
 Evolving Adaptive
+Expendable Lackey
 Extinguish All Hope
 Eye Spy
 Faerie Duelist
@@ -99,6 +104,7 @@ Forest
 Foundry Hornet
 Fountain Watch
 Fretwork Colony
+Gaea's Skyfolk
 Ghost Warden
 Ghoulcaller's Bell
 Ghoulcaller's Harvest
@@ -125,6 +131,7 @@ Hound of Urabrask
 Hunted Dragon
 Hypnotic Specter
 Hypnotic Sprite
+Iceman and Firestar
 Illusory Ambusher
 Immolating Glare
 Impending Flux
@@ -132,6 +139,7 @@ Index
 Inexorable Blob
 Inner-Flame Igniter
 Insist
+Invasion of Innistrad
 Iron-Barb Hellion
 Island
 Izzet Cluestone
@@ -192,6 +200,7 @@ Phyrexian Negator
 Phyrexian Vault
 Plague Wight
 Plains
+Poppet Stitcher
 Predatory Sliver
 Prey's Vengeance
 Pull Under
@@ -264,6 +273,7 @@ Tome Shredder
 Trained Jackal
 Tribute to Urborg
 Tribute to the World Tree
+Tzaangor Shaman
 Uncage the Menagerie
 Value Town
 Vedalken Plotter
@@ -282,6 +292,8 @@ Wanda's Vision
 Warmonger
 Weathered Wayfarer
 Welkin Tern
+Wight of Precinct Six
+Wind-Kin Raiders
 Woebringer Demon
 Wolfir Avenger
 Words of Wisdom

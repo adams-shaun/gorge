@@ -1,118 +1,195 @@
+A-Blood Artist
 A-Manticore
 Aang, Airbending Master
 Academy Rector
+Adverse Conditions
+Ajani Fells the Godsire
 Akki Scrapchomper
 Apocalypse Demon
+Apprentice Necromancer
 Arbor Colossus
 Asmira, Holy Avenger
 Assert Authority
+Aven Sunstriker
 Backwoods Survivalists
+Balustrade Spy
 Battle Hymn
+Birthing Boughs
+Birthing Ritual
+Bloodsworn Steward
 Bog Glider
 Bold Impaler
+Brainstone
+Briarberry Cohort
+Briarblade Adept
 Brood of Cockroaches
 Butch DeLoria, Tunnel Snake
 Call to Serve
+Catalyst Elemental
 Champion of Arashin
 Char
+Charismatic Vanguard
 Chittering Rats
 Chocobo Knights
 Cinderbones
+Compulsion
 Containment Protocol
 Count Nefaria
 Dawnglare Invoker
+Deathknell Berserker
+Deepwater Hypnotist
 Disentomb
 Dragonspark Reactor
+Druid's Call
 Duskmantle Prowler
 E. Honda, Sumo Champion
 Eagle of the Watch
 Enduring Scalelord
+Enforcer Griffin
+Enlistment Officer
+Excavation Technique
 Farsight Adept
+Fire Imp
+Flesh to Dust
 Flower
+Fog on the Barrow-Downs
+Force of Despair
 Foresight
 Forest
 Funeral Longboat
 Garrison Griffin
 Geralf's Masterpiece
+Geralf, Visionary Stitcher
 Geyserfield Stalker
+Glacial Stalker
+Gliding Licid
 Gloomwidow's Feast
+Gnarled Mass
 Go for the Throat
+Goblin Marshal
 Goblin Tutor
+Golden-Scale Aeronaut
 Goldmane Griffin
+Golem Artisan
 Ground Assault
 Growing Ranks
 Guardian Gladewalker
+Gustcloak Savior
 Hand of Death
 Heliod's Emissary
+Hickory Woodlot
+Hobgoblin Captain
 Holy Armor
+Hopeful Initiate
 Hornbash Mentor
+Hurloon Battle Hymn
+Illusionist's Stratagem
 Impending Flux
 Increasing Devotion
+Ingenious Skaab
 Inspired Charge
+Into the Void
+Iron Man, Armored Avenger
 Irradiate
+Irreverent Revelers
 Island
+Jasmine Seer
+Kaya's Ghostform
 Khenra Eternal
 Kinjalli's Sunwing
 Kjeldoran War Cry
 Landroval, Horizon Witness
+Legion Loyalist
 Legion's Landing
 Legions to Ashes
 Leonin Armorguard
 Lich's Caress
+Loyal Fire Sage
+MACH-1, Swooping Scoundrel
 Macabre Mockery
 Mantle of Leadership
+Marchesa's Decree
 Mardu Shadowspear
 Martyr of Dusk
 Maximize Altitude
 Medicine Bag
+Molten Rain
 Moriok Scavenger
 Mountain
+Muzzio, Visionary Architect
 Nausea
+Nether Spirit
+Nyxborn Triton
 Ominous Cemetery
 Oriq Loremage
 Ornamental Courage
 Oswald Fiddlebender
+Owl Familiar
+Plague Spitter
 Plains
 Primal Growth
 Pteramander
 Qasali Pridemage
 Quirion Dryad
+Ragefire
 Rat Colony
+Rats of Rath
+Repair and Recharge
+Repository Skaab
 Restoration Angel
+Retrofitter Foundry
 Revel of the Fallen God
 Reverse Engineer
 Royal Warden
+Rude Awakening
+Rushwood Herbalist
+Rusting Golem
 Sanguimancy
 Savannah Sage
 Scour All Possibilities
 Security Blockade
 Seedling Charm
+Seismic Shudder
 Seven-Tail Mentor
 Sheoldred, Whispering One
 Sifter Wurm
+Silverquill Apprentice
 Slimy Piper
+Soul Shred
+Soul of Innistrad
 Spiritual Asylum
+Spontaneous Mutation
 Steam Augury
 Steel Overseer
 Steelshaper's Gift
 Stonebrow, Krosan Hero
+Storm of Souls
+Sudden Edict
 Sunhome Enforcer
 Swamp
 Swamp Mosquito
 Tamiyo's Epiphany
 Tana, the Bloodsower
+Thanos, Death's Consort
 Thunderwolf Cavalry
+Tramway Station
 Tread Upon
 Treeshaker Chimera
 Underhanded Designs
 Undying Beast
+Unnatural Restoration
 Unquestioned Authority
+Urborg Skeleton
+Uthros Research Craft
 Vedalken Anatomist
 Vigil for the Lost
+Vindictive Mob
 Viscera Seer
 War Flare
 Warden of the Chained
 Waste Away
+Waterfront Bouncer
 Weapon Surge
+Well of Discovery
 Wildwood Patrol
 Wither and Bloom

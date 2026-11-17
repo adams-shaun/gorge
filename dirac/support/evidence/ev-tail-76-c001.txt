@@ -1,3 +1,4 @@
+A-Lantern of Revealing
 A-Vega, the Watcher
 Active Volcano
 Aether Meltdown
@@ -9,20 +10,27 @@ Armguard Familiar
 Arrester's Zeal
 Aspect of Gorgon
 Avenging Druid
+Awakening Zone
 Battle Squadron
 Beacon Hawk
 Bitter Downfall
 Black Widow, Daring Operative
+Blacksmith's Skill
 Blight Pile
 Blightbelly Rat
 Bojuka Brigand
 Borrowed Grace
 Break Through the Line
+Bumi, Eclectic Earthbender
 Captivating Unicorn
 Carrion Screecher
+Circle of the Land Druid
+Cleanfall
 Clout of the Dominus
+Commencement of Festivities
 Commune with Dinosaurs
 Consuming Fervor
+Crash of Rhinos
 Crimson Manticore
 Crowd Favorites
 Cruel Edict
@@ -36,6 +44,7 @@ Defiant Khenra
 Diabolic Intent
 Diregraf Horde
 Draconic Muralists
+Dromoka, the Eternal
 Drowned Secrets
 Dutiful Attendant
 Dying to Serve
@@ -43,8 +52,11 @@ Elvish Lookout
 Emergent Sequence
 Enigmatic Incarnation
 Epicure of Blood
+Ertai, Wizard Adept
 Essence Drain
+Essence Filter
 Excavating Anurid
+Far Traveler
 Feral Ferocity
 Feral Prowler
 Fiery Impulse
@@ -64,6 +76,7 @@ Goblin War Party
 Goliath Paladin
 Guard Duty
 Gurgling Anointer
+Haldir, Lórien Lieutenant
 Hamlet Captain
 Hematite Talisman
 Herald of the Fair
@@ -84,11 +97,13 @@ Lash of Thorns
 Letter of Acceptance
 Llanowar Tribe
 Lotho, Corrupt Shirriff
+Luminescent Rain
 Magmatic Sinkhole
 Magmaw
 Makindi Sliderunner
 Malakir Cullblade
 Manticore
+Maro
 Master of the Feast
 Merciless Javelineer
 Merciless Resolve
@@ -102,6 +117,7 @@ Murderous Rider
 Myojin of Cleansing Fire
 Nantuko Calmer
 Nephalia Smuggler
+Niblis of Frost
 Nocturnal Feeder
 Oathsworn Vampire
 Ojutai's Summons
@@ -122,7 +138,9 @@ Regrowth
 Renegade Troops
 Returned Reveler
 Rhonas the Indomitable
+Rhox Pummeler
 Rishadan Footpad
+Rockcaster Platoon
 Sage Owl
 Savage Gorilla
 Scapegoat
@@ -139,7 +157,9 @@ Skymarch Bloodletter
 Skywise Teachings
 Smite
 Snarling Wolf
+Spell Shrivel
 Spell Swindle
+Sphinx's Disciple
 Spidersilk Armor
 Stitcher's Supplier
 Stone-Seeder Hierophant
@@ -150,14 +170,18 @@ Swamp
 Sylvan Caryatid
 Tempest Technique
 Terror
+Teyo, the Shieldmage
 Tezzeret's Ambition
 Tezzeret's Gambit
+The First Iroan Games
 The Shattered States Era
+Thraben Purebloods
 Time Sieve
 Tocasia's Welcome
 Tokka & Rahzar, Unsupervised
 Tourach's Canticle
 Transpose
+Tuinvale Treefolk
 Unbreakable Bond
 Undercity Shade
 Unhinge
@@ -166,6 +190,8 @@ Valkyrie's Sword
 Vastwood Fortification
 Vedalken Archmage
 Verdant Crescendo
+Vernadi Shieldmate
+Vial of Dragonfire
 Voltstorm Angel
 Vow of Duty
 Wall of Spears

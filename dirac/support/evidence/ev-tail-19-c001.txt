@@ -57,6 +57,8 @@ Crypt Creeper
 Cryptbreaker
 Damn
 Daru Warchief
+Death Mutation
+Deathmark Prelate
 Deepwood Ghoul
 Defensive Maneuvers
 Defiant Strike
@@ -91,6 +93,7 @@ Fated Return
 Fiery Hellhound
 Final Flourish
 Final Strike
+Fire Covenant
 Fire Diamond
 Flailing Soldier
 Flamekin Village

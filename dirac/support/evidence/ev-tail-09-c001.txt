@@ -19,6 +19,7 @@ Blood Ogre
 Bloodfire Kavu
 Bob, Reluctant HYDRA Agent
 Bone Flute
+Boon of the Spirit Realm
 Borrowed Hostility
 Bull Rush
 Canal Monitor
@@ -49,6 +50,7 @@ Disciple of Tevesh Szat
 Dolmen Gate
 Donate
 Dragon Engine
+Dragon Tempest
 Dream Stalker
 Earsplitting Rats
 Electrostatic Bolt

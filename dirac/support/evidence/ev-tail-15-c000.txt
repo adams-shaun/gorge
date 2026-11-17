@@ -199,6 +199,7 @@ Josu Vess, Lich Knight
 Jungle Basin
 Kalonian Hydra
 Kami of Whispered Hopes
+Kappa Tech-Wrecker
 Kathari Screecher
 Kederekt Parasite
 Kenrith's Transformation
@@ -271,6 +272,7 @@ Nightstalker Engine
 Nimble Pilferer
 Nissa's Triumph
 Novellamental
+Null Elemental Blast
 Nyxborn Marauder
 Obelisk of Esper
 Ochre Jelly
@@ -341,6 +343,7 @@ Selesnya Evangel
 Seraph of New Capenna
 Serene Steward
 Shaper Guildmage
+Shardless Outlander
 Shared Trauma
 Shark Typhoon
 Shrieking Drake

@@ -1,10 +1,13 @@
 Abandon Reason
+Academy Journeymage
+Acquisition Octopus
 Aerial Maneuver
 Alena, Kessig Trapper
 Angelfire Ignition
 Arcane Teachings
 Archmage's Charm
 Arctic Merfolk
+Ardenvale Tactician
 Argent Mutation
 Armada Wurm
 Armistice
@@ -14,6 +17,7 @@ Astral Steel
 Aura Flux
 Auriok Glaivemaster
 Autumn Willow, Harmony
+Aveline de Grandpré
 Aven Reedstalker
 Baloth Woodcrasher
 Barkhide Troll
@@ -24,10 +28,14 @@ Battlewise Valor
 Benthic Giant
 Black Dragon
 Blade Historian
+Blessed Defiance
+Blood Pact
 Bloodchief's Thirst
 Bogbrew Witch
+Bolrac-Clan Crusher
 Bone Saw
 Breakneck Berserker
+Brilliant Restoration
 Brinebarrow Intruder
 Bring Low
 Brion Stoutarm
@@ -35,6 +43,7 @@ Bumi's Feast Lecture
 Burning Wish
 Bygone Marvels
 Cabal Conditioning
+Cache Raiders
 Calamity of Cinders
 Campfire
 Carapace
@@ -46,37 +55,55 @@ Cinder Hellion
 Converter Beast
 Coordinated Assault
 Coral Commando
+Court of Ardenvale
 Crash the Party
+Crumble
+Curse of Vitality
 Cursed Minotaur
 Cut Down
 Cyclops of One-Eyed Pass
 Daring Escape
 Dark Privilege
 Darksteel Forge
+Darksteel Ingot
+Daughter of the Deep
 Daxiver, Izzet Electromancer
 Deepwood Wolverine
 Defend the Campus
 Delayed Blast Fireball
+Demon's Due
+Dense Canopy
 Devoted Paladin
 Devout Monk
+Diregraf Rebirth
+Disciple of Kangee
 Donatello's Science Lesson
+Douse in Gloom
 Dream Stalker
 Dripping-Tongue Zubera
 Dross Hopper
 Dross Ripper
 Drowsing Tyrannodon
 Dungeon Shade
+Early Frost
 Echoes of the Kin Tree
+Eddytrail Hawk
 Eiganjo Free-Riders
 Elderfang Disciple
+Eldrazi Repurposer
+Electrodominance
 Elite Archers
+Elven Chorus
 Elven Lyre
 Emerald Dragonfly
 Emissary of Hope
+Epic Proportions
 Equestrian Skill
 Erkenbrand, Lord of Westfold
 Errand-Rider of Gondor
 Ertai Resurrected
+Eternal Isolation
+Evasive Action
 Eviscerator's Insight
 Evolution Charm
 Excoriate
@@ -89,19 +116,29 @@ Final-Sting Faerie
 Firefly
 Forest
 Fountain Watch
+Freewind Equenaut
 Gallant Cavalry
 Gemhide Sliver
+General Thunderbolt Ross
 Giant Ox
 Gideon's Battle Cry
 Gift of Growth
+Glint-Sleeve Siphoner
+Gnarled Effigy
 Goblin Battle Jester
 Goblin Brigand
+Goblin Masons
 Goblin Sharpshooter
+Grazing Whiptail
+Grim Hireling
+Grim Poppet
 Guardian Augmenter
+Guide of Souls
 Guild Thief
 Gut Shot
 Guul Draz Overseer
 Gyre Sage
+Headless Skaab
 Headstrong Brute
 Heiko Yamazaki, the General
 Hell Mongrel
@@ -116,6 +153,7 @@ Hulking Ogre
 Ideas Unbound
 Impetuous Protege
 Industrial Advancement
+Inescapable Brute
 Infantry Veteran
 Inhumaniac
 Innistrad Charm
@@ -126,13 +164,16 @@ Jace Beleren
 Jackhammer
 Jodah's Codex
 Jousting Lance
+Joven and Chandler
 Kalonian Twingrove
 Kaya's Ghostform
+Keen Sense
 Keldon Warlord
 Kithkin Billyrider
 Kitsune Bonesetter
 Knight Exemplar
 Knight of Sorrows
+Kobolds of Kher Keep
 Kolaghan Aspirant
 Kraul Foragers
 Latch Seeker
@@ -140,6 +181,7 @@ Lathnu Hellion
 Let the Galaxy Burn
 Leveler
 Life Insurance
+Light of Hope
 Lightning Elemental
 Living Wish
 Loathsome Curator
@@ -147,6 +189,8 @@ Long-Lost Lances
 Magus of the Future
 Make Mischief
 Mass Appeal
+Master Splicer
+Might Beyond Reason
 Militant Inquisitor
 Mire in Misery
 Mirror of Galadriel
@@ -163,17 +207,26 @@ Naya Battlemage
 Necroskitter
 Needle Storm
 Nettletooth Djinn
+Nick Fury, Spymaster
 Nighthawk, Dark Defender
 Nimbus Swimmer
 Nissa's Judgment
 Noble Steeds
 Nomad Mythmaker
+Olivia, Mobilized for War
+One-Clown Band
 Onyx Mage
+Oona's Gatewarden
+Oraxid
+Ostracize
 Ox Drover
 Oxidda Finisher
 Paradigm Shift
 Parapet Watchers
+Patron Wizard
 Pestilence Rats
+Phantom Flock
+Plague Beetle
 Plaguemaw Beast
 Plains
 Plunder
@@ -187,18 +240,23 @@ Psionic Snoop
 Purraj of Urborg
 Pygmy Pyrosaur
 Quick-Draw Dagger
+Rabid Wolverines
 Rain of Rust
 Ranger Class
 Ranger-Captain of Eos
+Ravages of War
 Raven Wings
 Regent's Authority
+Reject
 Rejuvenating Springs
 Repentant Vampire
 Requiem Angel
 Retreat to Valakut
+Rhystic Syphon
 Riddle Gate Gargoyle
 Rigging Runner
 Risona, Asari Commander
+River Merfolk
 Roar of Reclamation
 Robber Fly
 Rorix Bladewing
@@ -206,6 +264,7 @@ Rosecot Knight
 Roving Harper
 Royal Falcon
 Rubblebelt Boar
+Ruthless Predation
 Sadistic Obsession
 Salvage Titan
 Sandsteppe War Riders
@@ -215,6 +274,7 @@ Scourge of the Nobilis
 Screams of the Damned
 Seagraf Skaab
 Seek New Knowledge
+Serendib Efreet
 Serpent's Gift
 Seshiro the Anointed
 Sewer Crocodile
@@ -228,6 +288,7 @@ Show of Confidence
 Sigiled Skink
 Silverclad Ferocidons
 Siren of the Silent Song
+Skittering Invasion
 Skulking Fugitive
 Skyblinder Staff
 Skyhunter Strike Force
@@ -236,10 +297,14 @@ Skysnare Spider
 Smashing Spree
 Smelt
 Snapping Thragg
+Soramaro, First to Dream
 Sorcerer of the Fang
 Soul Barrier
 Soul-Strike Technique
 Spark Reaper
+Specter's Wail
+Spectral Bears
+Sphere of Purity
 Sphinx's Insight
 Spidersilk Net
 Spire Golem
@@ -248,6 +313,8 @@ Spring
 Springsage Ritual
 Stabbing Pain
 Start from Scratch
+Steal Artifact
+Steelform Sliver
 Stew the Coneys
 Stir the Pride
 Straw Soldiers
@@ -264,35 +331,46 @@ Swirling Sandstorm
 Synchronous Sliver
 Syphon Sliver
 Take Flight
+Talas Warrior
 Tavern Ruffian
 Tegan Jovanka
 Terramorph
+Territorial Hammerskull
 The Hive
 The Spike Cactus
+Theoretical Duplication
 Thornscape Apprentice
 Thundering Tanadon
 Thunderous Wrath
 Thunderwolf Cavalry
 Thwart
+Tivadar's Crusade
 Tormented Hero
+Touch of Brilliance
 Tourach's Canticle
+Treetop Warden
 Tresserhorn Sinks
 Ulrich's Kindred
 Undercover Butler
 Unexpected Windfall
 Unholy Officiant
 Unity of Purpose
+Unstoppable Ogre
 Valeria Richards, Precocious
 Vaultbreaker
 Veiled Apparition
 Wall Off
 Wall of Blood
+Wall of Mist
 Warbeast of Gorgoroth
 Warbriar Blessing
+Wayward Soul
 Weldfast Engineer
 Wight
+Wild Growth
 Wolfrider's Saddle
 Wooden Cane
 Woodripper
 Workshop Assistant
+Write into Being
 Zulaport Cutthroat
