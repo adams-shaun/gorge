@@ -185,6 +185,18 @@ type Ability struct {
 	// through (canon's set.AbilityOrigin) -- and its body is the same
 	// lowering. queueTrig enqueues the printed index. A table byte, not State.
 	SplitPrev bool
+	// FromAnyGrave: this Dies half is the battlefield half of a printed
+	// "put into a graveyard from ANYWHERE" line (kgen lowerTriggerSplit's
+	// anyToGrave split). Per CR 603.6c such a line is never a
+	// leaves-the-battlefield trigger, so it does not look back over the
+	// simultaneous departures of leaveAllBatched: a member of the batch that
+	// has already left fires it on no later member's move (kernel
+	// objEventMatch; gorge's split gate keeps it off the look-back walk and
+	// its live walk reads the source only while it is still on the
+	// battlefield). The line's own death is not such a read: the referent
+	// fires it as before, exactly as gorge's live walk does. A table byte,
+	// not State.
+	FromAnyGrave bool
 }
 
 // Timing is when a card may be cast.

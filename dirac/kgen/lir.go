@@ -999,6 +999,7 @@ type lAbility struct {
 	Origin          int    // gorge's Face.Abilities index, or 0x80|Face.Triggers index; 0 is ambiguous with A[0], so Origin is valid only when OriginOK
 	OriginOK        bool
 	SplitPrev       bool // a split line's half but the first: the printed identity on the stack is the preceding ability (kop.Ability.SplitPrev)
+	FromAnyGrave    bool // a Dies half of a printed from-anywhere grave line (kop.Ability.FromAnyGrave; lower_anytograve.go)
 	Index           int  // position in the card's ability list (latent abilities included)
 	Name            string
 	Cost            lCost

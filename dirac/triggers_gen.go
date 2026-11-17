@@ -267,6 +267,21 @@ func (s *State) enqueueLKI(o Obj, ver uint8, c CardID, ab, ctrl uint8, tobj Obj,
 
 // objEventMatch: the event object at evSl matches the listener's filter.
 func (s *State) objEventMatch(k *prep, l trigListener, a *kop.Ability, evSl Slot) bool {
+	if l.sl != evSl && l.sl != NoSlot && a.FromAnyGrave && a.Trig.Flags2&kop.Tf2ToGraveHalf == 0 &&
+		s.perms[l.sl].flags&pfBatchGone != 0 {
+		// CR 603.6c, 603.10: a printed "put into a graveyard from anywhere"
+		// line is not a leaves-the-battlefield trigger, so it does not look
+		// back over a simultaneous departure still firing its members'
+		// leaves: a member gone with an earlier move fires it on no later
+		// member's move (gorge's split gate keeps it off the look-back walk
+		// and its live walk reads the source only while the source is still
+		// on the battlefield). fireLeave marks a member once its move has
+		// fired, across every departure arm; its own move is not such a read:
+		// the referent is not marked yet when its leave fires. A half the
+		// removal-point fire already handles (Tf2ToGraveHalf) is not gated
+		// here: fireToGraveDies reads the live subscriptions per move.
+		return false
+	}
 	t := &a.Trig
 	if t.From != kop.ZoneNone && t.From != kop.ZoneBattlefield {
 		return false // a graveyard leave, fired by fireLeavesGraveyard
