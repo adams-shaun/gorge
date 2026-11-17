@@ -29,12 +29,17 @@ func sacCtrManaAb(a *kop.Ability) bool {
 }
 
 // sacCtrUsable reports whether the counter-scaled sacrifice source at sl can
-// be activated now: untapped, not summoning sick, its abilities kept, and
-// sacrificable (CR 602.2b). A source with no counter still activates (its
-// cost is payable) and adds nothing.
-func (s *State) sacCtrUsable(k *prep, sl Slot) bool {
+// be activated now: it holds at least one counter of the ability's kind, and
+// is untapped, not summoning sick, its abilities kept, and sacrificable
+// (CR 602.2b). A source with no counter could pay the cost, but its amount
+// resolves to zero, so gorge's census drops it (payment_window_yield.go's
+// manaAbilityYieldsNothing: it can contribute to no payment and no prefix
+// activates it). Listing it would sacrifice it for nothing, a sacrifice
+// gorge never makes.
+func (s *State) sacCtrUsable(k *prep, sl Slot, a *kop.Ability) bool {
 	pm := &s.perms[sl]
-	return pm.flags&pfTapped == 0 && pm.ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0 && !s.activationSick(k, sl) && !s.sacBlocked(k, sl)
+	return pm.ctrN(s, int(a.ManaV.N)) > 0 &&
+		pm.flags&pfTapped == 0 && pm.ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0 && !s.activationSick(k, sl) && !s.sacBlocked(k, sl)
 }
 
 // sacCtrUnits is the mana the source at sl adds now: its counters of the
@@ -51,7 +56,10 @@ func (s *State) sacCtrUnits(sl Slot, a *kop.Ability) int {
 // sacCtrGap activates the counter-scaled sacrifice source at sl for p: the
 // {T}, then the mana its counters count, then the sacrifice (gorge pays the
 // cost first and the amount reads the source's last known counters; the pool
-// is the same either way).
+// is the same either way). It always runs the activation's trigger passes
+// (manaTapped, fireSac): the shape is no grant-search candidate
+// (mana_grantedoffers.go), so ctrGapDo's fire false fork-side branch never
+// reaches it and there is no deferred grantApply pass to leave them to.
 func (s *State) sacCtrGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
 	pm := &s.perms[sl]
 	if pm.flags&pfTapped != 0 {

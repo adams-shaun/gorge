@@ -14,7 +14,11 @@ const dynamicSacrificeManaRepro = "dynamic_sacrifice_mana_gap_unmodelled"
 // (mana_sacctr.go), so the pinned cast is offered too.
 func TestMBCBushmeatPoacherReprosLockstep(t *testing.T) {
 	t.Parallel()
-	if res := replayRawRepro(t, dynamicSacrificeManaRepro); res.Div != nil || res.StallUnmodelled {
-		t.Fatalf("divergence at %d: %s %s %v (stall %q)", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff, res.Stall)
+	res := replayRawRepro(t, dynamicSacrificeManaRepro)
+	if res.Div != nil {
+		t.Fatalf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	if res.StallUnmodelled {
+		t.Fatalf("unmodelled stall %q", res.Stall)
 	}
 }
