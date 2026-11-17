@@ -3390,6 +3390,10 @@ func init() {
 		// Modular (CR 702.43): the enters-with-counters replacement and the
 		// dies trigger are expanded from the keyword line in cards/kw_modular.go.
 		"kw:Modular",
+		// Haunt (CR 702.55): the dies / resolved exile-haunting trigger, the
+		// creature's enters trigger and the haunted-creature-dies trigger are
+		// expanded from the keyword line in cards/kw_haunt.go.
+		"kw:Haunt",
 		// Soulshift (CR 702.46a): the optional dies trigger returning a Spirit
 		// card with mana value N or less from the graveyard to hand is expanded
 		// from the keyword line in cards/kw_soulshift.go.
