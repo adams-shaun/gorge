@@ -1896,7 +1896,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.ProtExc, err = filter(s.ProtExc, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
-		if st.Landwalk, err = filter(s.Landwalk, kop.ZoneBattlefield); err != nil {
+		if st.Landwalk, st.GainsOf, err = battlefieldFilterPair(filter, s.Landwalk, s.GainsOf); err != nil {
 			return ka, nil, err
 		}
 		st.Evasion, st.Infect = s.Evasion, s.Infect // lower_kwmark.go

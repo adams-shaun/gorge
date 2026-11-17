@@ -123,6 +123,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallZeroAltShared,     // a {0} may-play alternative beside a free, pay-life or otherwise priced permission, or a second one: two of gorge's casts would share one mode (cast_mayzeroalt.go)
 	StallDredge,            // a draw path other than the turn draw or an OpDraw card meets a dredge candidate: gorge asks, the kernel cannot suspend there (kw_dredge.go)
 	StallPrevScopeCopy,     // a filtered scoped prevention resolving from a copy of its card: the record cannot find its filters again from the copier's object (repl_prevscopefilter.go)
+	StallGainsOf,           // a gained (GainsAbilitiesOf$) mana, limited, once-each-turn, loyalty, exhaust, host-cost or off-battlefield ability, or one past index 63 (static_gainsof.go)
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its

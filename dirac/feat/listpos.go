@@ -152,6 +152,13 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 			// the battlefield walk's zones: battlefield, stack, graveyard,
 			// hand, exile; each seat's list in order; ability index
 			z := e.zoneOf(dirac.Obj(src))
+			if mode&0xC0 == 0xC0 {
+				// a gained activation (GainsAbilitiesOf$, CR 613.1f): gorge
+				// lists it in the same granted sweep after every printed
+				// ability, keyed by the recipient; its 0xC0 mode ranks it
+				// after the recipient's granted ones, by ability index
+				return secAbility<<24 | 6<<20 | uint32(z.seat)<<16 | uint32(z.idx)<<8 | uint32(mode)
+			}
 			if mode&0x80 != 0 {
 				// a granted activation (CR 613.1f): gorge's walk offers the
 				// granted abilities in a sweep after every printed ability,

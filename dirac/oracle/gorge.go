@@ -943,20 +943,8 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			}
 			note("granted/" + o.SVar)
 		case "ability":
-			if o.SVar != "" && o.GrantSource != 0 && o.Keyword == "" && o.GainedSource == 0 && o.AltCostIndex == 0 {
-				// An ability another permanent grants (an Equipment's: Fishing
-				// Pole's), offered when the floating pool pays it: the kernel's
-				// latent-ability activation (ability code 255). Its grantor tells
-				// two granted abilities on one permanent apart; a second copy of a
-				// grantor gives the same ability, which stays the first's option.
-				grantor := o.GrantSource
-				for j := range d.Options[:i] {
-					if x := &d.Options[j]; x.Kind == "ability" && x.Obj == o.Obj && x.SVar == o.SVar && x.GrantSource != 0 {
-						grantor = x.GrantSource
-						break
-					}
-				}
-				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(grantor), 255), opt: o.Index})
+			if a, ok := grantedOrGainedActivation(o, d.Options[:i], ref); ok {
+				add(prioEntry{a: a, opt: o.Index})
 				continue
 			}
 			if o.Keyword != "" && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 && g.selfKeywordGrant(o.Obj, o.Keyword) {
@@ -2060,4 +2048,32 @@ func (g *GorgeSide) selfKeywordGrant(id state.ObjID, line string) bool {
 		}
 	}
 	return false
+}
+
+// grantedOrGainedActivation is the canonical action of an "ability" option
+// another permanent's static gives o.Obj, when it is one the kernel models:
+//   - an ability another permanent grants (an Equipment's: Fishing Pole's),
+//     offered when the floating pool pays it: the kernel's latent-ability
+//     activation (ability code 255). Its grantor tells two granted abilities
+//     on one permanent apart; a second copy of a grantor gives the same
+//     ability, which stays the first's option (before: the options listed
+//     ahead of o);
+//   - a has-all-abilities-of gained ability (GainsAbilitiesOf$): the foreign
+//     permanent's face ability, told apart by that permanent (the kernel's
+//     AkActivate mode 0xC0, dirac/static_gainsof.go).
+func grantedOrGainedActivation(o *decision.Option, before []decision.Option, ref func(state.ObjID) Ref) (Canon, bool) {
+	if o.SVar != "" && o.GrantSource != 0 && o.Keyword == "" && o.GainedSource == 0 && o.AltCostIndex == 0 {
+		grantor := o.GrantSource
+		for j := range before {
+			if x := &before[j]; x.Kind == "ability" && x.Obj == o.Obj && x.SVar == o.SVar && x.GrantSource != 0 {
+				grantor = x.GrantSource
+				break
+			}
+		}
+		return Pack(ActActivate, ref(o.Obj), ref(grantor), 255), true
+	}
+	if o.GainedSource != 0 && o.SVar == "" && o.Keyword == "" && o.GrantSource == 0 && o.AltCostIndex == 0 && o.GainedIdx >= 0 && o.GainedIdx < 0x80 {
+		return Pack(ActActivate, ref(o.Obj), ref(o.GainedSource), uint8(o.GainedIdx)), true
+	}
+	return 0, false
 }

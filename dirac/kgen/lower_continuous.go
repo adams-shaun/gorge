@@ -458,13 +458,8 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			}
 		}
 	}
-	if ab, ok := sp.m["AddAbility"]; ok && !sp.used["AddAbility"] { // not already lowered by stationSelfGrant
-		sp.used["AddAbility"] = true
-		idx, err := lc.grantedAbility(ab)
-		if err != nil {
-			return nil, err
-		}
-		st.Grant = append(st.Grant, idx)
+	if err := lc.abilityGrants(sp, st, aff); err != nil {
+		return nil, err
 	}
 	if tr, ok := sp.m["AddTrigger"]; ok && !sp.used["AddTrigger"] { // not already lowered by stationSelfGrant
 		sp.used["AddTrigger"] = true
@@ -492,6 +487,24 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 	}
 	return nil, nil
+}
+
+// abilityGrants lowers a Continuous static's activated-ability grants: its
+// GainsAbilitiesOf$ (lower_gainsof.go) and its AddAbility$ (unless
+// stationSelfGrant already lowered it).
+func (lc *lowerCtx) abilityGrants(sp *params, st *lStatic, aff string) error {
+	if err := lc.gainsAbilitiesOf(sp, st, aff); err != nil {
+		return err
+	}
+	if ab, ok := sp.m["AddAbility"]; ok && !sp.used["AddAbility"] { // not already lowered by stationSelfGrant
+		sp.used["AddAbility"] = true
+		idx, err := lc.grantedAbility(ab)
+		if err != nil {
+			return err
+		}
+		st.Grant = append(st.Grant, idx)
+	}
+	return nil
 }
 
 // removeKeywords lowers a RemoveKeyword$ list: plain keywords only (a

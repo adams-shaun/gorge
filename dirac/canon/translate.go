@@ -315,8 +315,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			c, _ := SpecialCode("station") // gorge's priority option (rules/station.go)
 			return Pack(ActSpecial, src, RefNone, c)
 		}
-		if mode&0x80 != 0 && r.FaceAbility(dirac.Obj(src), mode, false) == 255 {
-			return Pack(ActActivate, src, tgt, 255) // a granted ability, told apart by its grantor
+		if c, ok := r.grantedOrGained(src, tgt, mode); ok {
+			return c
 		}
 		return Pack(ActActivate, src, RefNone, r.FaceAbility(dirac.Obj(src), mode, false))
 	case dirac.AkAttack:
@@ -1156,3 +1156,18 @@ func NameOrdinal(v uint16, earlier []string) uint8 {
 // teamworked casts (CastModeOther, nibble 0) and the optional-cost casts
 // (nibble i+1 of a short list).
 const ConspiredCastCode = CastModeOther | 15<<4
+
+// grantedOrGained is the canonical form of an AkActivate whose mode names
+// another permanent's ability: a gained one (mode 0xC0|ab, GainsAbilitiesOf$,
+// dirac/static_gainsof.go) is the foreign permanent's face index, told apart
+// by that permanent (gorge Option.GainedSource/GainedIdx); a granted one
+// (0x80|ab) with no face index of its own is 255, told apart by its grantor.
+func (r *Translator) grantedOrGained(src, tgt Ref, mode uint8) (Canon, bool) {
+	if mode&0xC0 == 0xC0 {
+		return Pack(ActActivate, src, tgt, r.CardAbility(r.KP.Objs[tgt].Card, mode&0x3F)), true
+	}
+	if mode&0x80 != 0 && r.FaceAbility(dirac.Obj(src), mode, false) == 255 {
+		return Pack(ActActivate, src, tgt, 255), true
+	}
+	return 0, false
+}
