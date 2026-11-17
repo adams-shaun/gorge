@@ -141,6 +141,9 @@ func (s *State) costTargetMatchSrc(k *prep, f kop.FilterID, p uint8, t TCode, sr
 		return ob.zone == kop.ZoneStack && s.matchCardAt(k, f, ob.card, s.stackCtrl(Obj(t)), p, Obj(t))
 	}
 	if ob.zone == kop.ZoneGraveyard || ob.zone == kop.ZoneExile {
+		if src != NoSlot && selfOnlyFilter(k, f) {
+			return false // a Card.Self ValidTarget$ names the source permanent, never a card in a graveyard or exile
+		}
 		// a card target (No One Left Behind's "targets a creature card with
 		// mana value 3 or less"): gorge matches the chosen object in any zone
 		return s.matchCardAt(k, f, ob.card, ob.owner(), p, Obj(t))
