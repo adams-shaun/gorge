@@ -1,0 +1,16 @@
+# Affected$ Food.YouCtrl with GainsAbilitiesOf$ Creature.ExiledWithSource
+# (Hazel's Brewmaster: Foods gain the activated abilities of the creature
+# cards it exiled), Food makers (Brandywine Farmer, Brewmaster itself), and
+# creatures with non-mana activated abilities (Prodigal Sorcerer, Prava of
+# the Steel Legion, Jeska, Warrior Adept), plus basics
+# (dirac/oracle/gainsabilitiesofaffected_lockstep_test.go)
+Brandywine Farmer
+Forest
+Hazel's Brewmaster
+Island
+Jeska, Warrior Adept
+Mountain
+Plains
+Prava of the Steel Legion
+Prodigal Sorcerer
+Swamp
