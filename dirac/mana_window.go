@@ -2048,7 +2048,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			for j := 0; j < depth; j++ {
 				t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, ca, int(path[j]), &spill)
 			}
-			t.hideDeferred(k, p, tapsDef)
+			t.hideDeferred(k, p, a, tapsDef)
 			t.restrOptions(k, &d, p)
 			// gorge's search completes at a payer priority only when the play
 			// is among the decision's options (offered). A trigger the path's
@@ -2151,6 +2151,7 @@ func (s *State) scriptGapOrder(k *prep, a Action, p uint8, gaps slotMask, order 
 // scriptDeadEndAny is scriptDeadEnd with a Courtyard, a Taps-deferred source
 // or a counter-cost gap among the gaps.
 func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr, ca slotMask) bool {
+	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
 	var order [MaxPerm]Slot
 	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca)
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
@@ -2170,6 +2171,7 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 	if hasOption(&d, a) {
 		return
 	}
+	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
 	var order [MaxPerm]Slot
 	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca)
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
