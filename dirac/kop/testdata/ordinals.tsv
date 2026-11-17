@@ -1136,6 +1136,7 @@ RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
 RememberAllObjOrder	untyped int	1
 RepeatEachSeatOrder	untyped int	2
+RepeatPlain	untyped int	1
 ReplAddCountersOn	ReplKind	21
 ReplAddToken	ReplKind	35
 ReplAfterEnter	untyped int	1
