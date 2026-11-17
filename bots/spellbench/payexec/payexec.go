@@ -452,6 +452,19 @@ func matchManaProved(d *decision.Decision, act decision.PaymentActivation, prove
 			c := symIndex(o.ManaSymbol)
 			return c == col && want[col] == 1
 		},
+		// A reflected mana ability (Plaza of Heroes' "add one mana of any
+		// color among legendary permanents you control") has no Produced$,
+		// so its wheel label is a bare "Add ": its colours are the board's,
+		// which the witness already priced, and no label says whether it is
+		// the witness's ability. The wheel's Ability index does when it is
+		// the step's own printed one, and it must outrank the any-colour
+		// class: Plaza's restricted "Add any color" fits the colour too, and
+		// the mana it floats is legendary-spell mana no ordinary activation
+		// can spend (CR 106.6).
+		func(o *decision.Option) bool {
+			return act.Ability.Kind == decision.PaymentAbilityPrinted && uint32(o.Ability) == act.Ability.Index &&
+				o.ManaSymbol == "" && bareAddLabel(o.Label)
+		},
 		func(o *decision.Option) bool {
 			if !single || o.ManaSymbol != "" {
 				return false
@@ -604,6 +617,13 @@ func matchAllocation(d *decision.Decision, want decision.ManaAmount) ([]int, boo
 		choices = append(choices, found)
 	}
 	return choices, true
+}
+
+// bareAddLabel reports whether label names no production: "Add " beside an
+// optional cost prefix ("Sacrifice a land: Add ").
+func bareAddLabel(label string) bool {
+	l := strings.TrimSpace(label)
+	return l == "Add" || strings.HasSuffix(l, ": Add")
 }
 
 func hasCostPrefix(label string) bool {
