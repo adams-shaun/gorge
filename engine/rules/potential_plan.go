@@ -1417,6 +1417,14 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 			return Cost{}, false
 		}
 		return pay.WithSpellAbilityExtras(af, ParseCost(af.ManaCost)), true
+	case potentialModeBaseCostDisturb:
+		// CR 702.146a: the disturb cost, plus the back face's own SP Cost$
+		// extras, exactly the offer's price (legal_walk_alt.go).
+		bf, dc, ok := disturbCast(e.G.Obj(id))
+		if !ok {
+			return Cost{}, false
+		}
+		return pay.WithSpellAbilityExtras(bf, dc), true
 	case potentialModeBaseCostAdventureRecast:
 		// CR 714.3a: the main face is already the object's face off the
 		// stack, and the offer prices it without spell-ability extras.
@@ -1468,6 +1476,9 @@ func potentialModeCastFace(o *state.Object, mode string) *cards.Face {
 		return roomAlternateCastFace(o)
 	case potentialModeBaseCostAftermath:
 		return aftermathAlternateFace(o)
+	case potentialModeBaseCostDisturb:
+		bf, _, _ := disturbCast(o)
+		return bf
 	}
 	return nil
 }
@@ -2397,6 +2408,7 @@ const (
 	potentialModeBaseCostSplitAlt
 	potentialModeBaseCostRoomAlt
 	potentialModeBaseCostAftermath
+	potentialModeBaseCostDisturb
 	potentialModeBaseCostAdventureRecast
 	potentialModeBaseCostPreparedCopy
 	potentialModeBaseCostSneak
@@ -2423,6 +2435,7 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "split_alt", Val: potentialModeBaseCostSplitAlt},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "room_alt", Val: potentialModeBaseCostRoomAlt},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "aftermath", Val: potentialModeBaseCostAftermath},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "disturb", Val: potentialModeBaseCostDisturb},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "adventure_recast", Val: potentialModeBaseCostAdventureRecast},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "prepared_copy", Val: potentialModeBaseCostPreparedCopy},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "sneak", Val: potentialModeBaseCostSneak},

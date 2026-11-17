@@ -80,6 +80,40 @@ func entwineCost(f *cards.Face) (Cost, bool) {
 	return c, true
 }
 
+// disturbCost resolves the front face's Disturb keyword cost (CR 702.146a,
+// Forge's K:Disturb:<cost>), the entwineCost shape: a cost ParseCost cannot
+// price fails closed rather than charging a degraded generic.
+func disturbCost(f *cards.Face) (Cost, bool) {
+	if f == nil {
+		return Cost{}, false
+	}
+	s, ok := f.KeywordCostParam("Disturb")
+	if !ok {
+		return Cost{}, false
+	}
+	c := ParseCost(s)
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
+}
+
+// disturbCast reads the one Disturb cast of o (CR 702.146a-b): o shows its
+// front face in its owner's graveyard, that face carries a priceable Disturb
+// cost, and the card has a back face to be cast transformed. It returns the
+// back face and the disturb cost; the offer, the plan's base cost and
+// beginCast's charge all read it so they cannot disagree.
+func disturbCast(o *state.Object) (*cards.Face, Cost, bool) {
+	if o == nil || o.Zone != state.ZGraveyard || o.Card == nil || len(o.Card.Faces) != 2 || o.FaceIdx != 0 {
+		return nil, Cost{}, false
+	}
+	c, ok := disturbCost(o.Card.Faces[0])
+	if !ok || o.Card.Faces[1] == nil {
+		return nil, Cost{}, false
+	}
+	return o.Card.Faces[1], c, true
+}
+
 func surgeCost(f *cards.Face) (Cost, bool) {
 	s, ok := f.KeywordCostParam("Surge")
 	if !ok {

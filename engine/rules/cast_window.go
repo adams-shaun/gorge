@@ -22,6 +22,32 @@ func (e *Engine) flipProposalFace(o *state.Object, faceBefore **uint8, preSuppre
 	e.emitProposalFlip(o.ID, before, preSuppress, preAborts)
 }
 
+// proposalFlipper is the one Engine method flipTransformedCast needs.
+type proposalFlipper interface {
+	flipProposalFace(o *state.Object, faceBefore **uint8, preSuppress map[state.ObjID]bool, preAborts map[state.ObjID]int32)
+}
+
+// flipTransformedCast flips a defeat_cast (CR 310.11, exiled battle) or
+// disturb (CR 702.146a-b, graveyard) cast proposal to its back face. It
+// reports false when mode is one of those and o is not where that cast reads
+// it; any other mode is a no-op that reports true.
+func flipTransformedCast(e proposalFlipper, o *state.Object, mode string, faceBefore **uint8, preSuppress map[state.ObjID]bool, preAborts map[state.ObjID]int32) bool {
+	switch castModeCodes.Code(mode) {
+	case castModeDefeatCast:
+		if o.Zone != state.ZExile || o.Card == nil || len(o.Card.Faces) < 2 || o.FaceIdx != 0 {
+			return false
+		}
+	case castModeDisturb:
+		if _, _, ok := disturbCast(o); !ok {
+			return false
+		}
+	default:
+		return true
+	}
+	e.flipProposalFace(o, faceBefore, preSuppress, preAborts)
+	return true
+}
+
 // emitProposalFlip records the FlipFace an alternate-face cast proposal
 // (room_alt, adventure_alt, adventure_recast, aftermath, split_alt,
 // omen_alt, defeat_cast) makes before its ordinary cast transaction, WITHOUT letting
