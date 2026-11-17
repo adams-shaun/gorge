@@ -170,6 +170,51 @@ func PlanManaUnderRiderPinned(c Cost, r PipRider, pin int) Cost {
 	return c
 }
 
+// PlanManaUnderRiderAlternatives is the ordered cost alternatives a plan may
+// fund under rider r: the folded cost first (PlanManaUnderRider), then, under
+// an AnyColor rider alone, one pinned per WUBRG colour
+// (PlanManaUnderRiderPinned) when plain coloured pips moved, then the unfolded
+// cost c when its wire form differs from the fold's. A pin holds the plain
+// coloured pips coloured on one concrete colour, so the plan must fund them
+// from that colour's units and the rider then lets those units pay the printed
+// pip. An AnyType rider lets even colourless mana pay, so it has no pins.
+// n is the number of alternatives.
+func PlanManaUnderRiderAlternatives(c Cost, r PipRider) (alts [7]Cost, n int) {
+	folded := PlanManaUnderRider(c, r)
+	alts[0], n = folded, 1
+	if r.AnyColor && !r.AnyType {
+		moved := int32(0)
+		for i := 0; i+1 < len(c.Colored); i++ {
+			moved += c.Colored[i]
+		}
+		if moved != 0 {
+			for pin := state.MW; pin <= state.MG; pin++ {
+				alts[n] = PlanManaUnderRiderPinned(c, r, pin)
+				n++
+			}
+		}
+	}
+	if WireCost(c) != WireCost(folded) {
+		alts[n] = c
+		n++
+	}
+	return alts, n
+}
+
+// PlanManaUnderRiderMatching returns the alternative of
+// PlanManaUnderRiderAlternatives whose wire form is wire, scanning the same
+// order. A plan built for one alternative (the folded cost or a pinned one) is
+// settled against exactly that cost.
+func PlanManaUnderRiderMatching(c Cost, r PipRider, wire decision.PaymentCost) (Cost, bool) {
+	alts, n := PlanManaUnderRiderAlternatives(c, r)
+	for i := 0; i < n; i++ {
+		if WireCost(alts[i]) == wire {
+			return alts[i], true
+		}
+	}
+	return Cost{}, false
+}
+
 func PlanCostDetail(c Cost) string {
 	switch {
 	case c.X != 0 || c.XMin != 0:
