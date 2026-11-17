@@ -217,9 +217,12 @@ func (s *State) prevNextCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard Car
 // registration order, to the candidates of a damage event after its first c
 // (cand holds the record's index, the option names its source), marking them
 // in *pm; the new count, or -1 (a loud stall) when another replacement is also
-// a candidate or the candidates overflow. With no shield on the recipient, or
-// under CR 615.12, it adds nothing.
-func (s *State) prevNextCands(k *prep, code TCode, combat bool, cand *[4]Obj, c int, pm *uint8) int {
+// a candidate or the candidates overflow. prevMask marks the c candidates
+// collected so far that prevent the event whole: beside only those the order
+// changes nothing but the shield's spend, which the walk applies as picked, so
+// the ask is posed; beside any other candidate the amounts change and it
+// stalls. With no shield on the recipient, or under CR 615.12, it adds nothing.
+func (s *State) prevNextCands(k *prep, code TCode, combat bool, cand *[4]Obj, c int, pm *uint8, prevMask uint8) int {
 	if s.noPrev(k, combat) {
 		return c
 	}
@@ -241,8 +244,8 @@ func (s *State) prevNextCands(k *prep, code TCode, combat bool, cand *[4]Obj, c 
 			return -1
 		}
 	}
-	if c > start && start > 0 {
-		s.capFull(StallPrevNext) // beside another candidate the order changes the amounts
+	if c > start && start > 0 && uint8((1<<start)-1)&^prevMask != 0 {
+		s.capFull(StallPrevNext) // beside a non-prevention candidate the order changes the amounts
 		return -1
 	}
 	return c

@@ -263,6 +263,11 @@ func staticMayChangeTypes(st *Static) (has, offBF bool) {
 	return true, staticMayFunctionOffBattlefield(st)
 }
 
+// kwFlashHead is the interned Flash head (CR 702.36a): the one keyword a
+// characteristic-defining static may grant off the battlefield
+// (staticMayFunctionOffBattlefield; engine/rules/chars.StaticCDAFlashAdmits).
+var kwFlashHead = InternKeywordHead("Flash")
+
 // staticMayFunctionOffBattlefield over-approximates rules' Continuous source
 // zone gate (chars.StaticZoneAdmits || stackSelfStaticOK) for a source NOT on the
 // battlefield: with no EffectZone$ and no ExcludeZone$ key, chars.StaticZoneAdmits
@@ -271,7 +276,12 @@ func staticMayChangeTypes(st *Static) (has, offBF bool) {
 func staticMayFunctionOffBattlefield(st *Static) bool {
 	ez := st.HasParam(PKEffectZone)
 	xz := st.HasParam(PKExcludeZone)
-	return ez || xz || strings.Contains(st.ParamStr(PKPresentZone), "Stack")
+	// A characteristic-defining "this spell has flash" static works in every
+	// zone (CR 604.3; chars.StaticCDAFlashAdmits). Param values are trimmed
+	// at the parse boundary, and the Flash head resolves through the keyword
+	// interner.
+	cdaFlash := st.HasParam(PKCharacteristicDefining) && KeywordHeadIDOf(st.ParamStr(PKAddKeyword)) == kwFlashHead
+	return ez || xz || cdaFlash || strings.Contains(st.ParamStr(PKPresentZone), "Stack")
 }
 
 // deriveTypeStatics binds the layer-4 static probe to the face's current

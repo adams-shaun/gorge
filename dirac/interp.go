@@ -86,11 +86,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 		}
 	case kop.OpGrantKeyword:
-		if sl := s.objRef(k, in.Obj); sl != NoSlot {
-			s.grantEOT(sl, kop.KwMask(uint16(in.C))|kop.KwMask(uint16(in.B.N))<<16)
-			s.promoKw(k, sl, kop.KwMask(uint16(in.C))|kop.KwMask(uint16(in.B.N))<<16)
-			s.touchSl(sl)
-		}
+		s.execGrantKeyword(k, in)
 	case kop.OpPutCounter:
 		if !s.execPutCounter(k, in) {
 			return false // the CR 616.1 order ask (repl_ctrorder.go)
@@ -678,6 +674,21 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		panic("kernel: op not implemented: " + in.Op.String())
 	}
 	return true
+}
+
+// execGrantKeyword applies OpGrantKeyword: an until-end-of-turn keyword
+// grant on a battlefield permanent, with the effect source recorded for a
+// combat-damage prevention's CR 616.1 option (combat_prevention.go).
+func (s *State) execGrantKeyword(k *prep, in *kop.Instr) {
+	sl := s.objRef(k, in.Obj)
+	if sl == NoSlot {
+		return
+	}
+	m := kop.KwMask(uint16(in.C)) | kop.KwMask(uint16(in.B.N))<<16
+	s.grantEOT(sl, m)
+	s.promoKw(k, sl, m)
+	s.recordPrevGrant(sl, m)
+	s.touchSl(sl)
 }
 
 // cond evaluates OpSkipIf's condition C with operand A.
