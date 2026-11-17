@@ -1,0 +1,14 @@
+# Mode$ BecomesTarget list and FirstTime forms (Fey Steed's comma list
+# watcher, Angelic Cub's FirstTime$ True self line): burn targeting creatures
+# and players, vanilla bodies (dirac/oracle/becomestargetlist_lockstep_test.go;
+# Kira, Great Glass-Spinner's Counter body refuses —
+# TriggeredSourceSA outside a SpellCast trigger — and Dormant Gomazoa's
+# player target stays the pre-existing inert lowering, so neither plays)
+Fey Steed
+Angelic Cub
+Lightning Bolt
+Grizzly Bears
+Hill Giant
+Plains
+Mountain
+Forest

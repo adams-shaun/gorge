@@ -46,12 +46,61 @@ func btSpellSource(v string) btSource {
 	return btSource{}
 }
 
+// btSelfFirstTime reads FirstTime$ True on the ungated Card.Self self line
+// ("becomes the target of a spell or ability for the first time each turn",
+// Kira, Great Glass-Spinner, Angelic Cub; gorge becomesTargetMatches'
+// firstTimeTargetedThisTurn: no EARLIER TargetsChosen event this turn named
+// the object). The line's TfSelf shape queues on every targeting of its
+// object, so the first targeting always queues and spends the kernel's
+// per-source Tf2FirstTime latch (trig_counterfirst.go, keyed on the trigger
+// object's version): the once-a-turn cadence gorge's per-object log scan
+// gives. Only this ungated self shape may carry it: with a source gate the
+// line does not queue on a targeting gorge counts (its own controller's),
+// which a queue-side latch cannot see.
+func btSelfFirstTime(tp *params, tr *lTrigger) error {
+	v, ok := tp.get("FirstTime")
+	if !ok {
+		return nil
+	}
+	if v != "True" {
+		return refuse("BecomesTarget FirstTime$ %q", v)
+	}
+	tr.First = true
+	return nil
+}
+
+// btTargetList lowers a BecomesTarget watcher's ValidTarget$ alternatives:
+// gorge becomesTargetMatches matches the whole ValidTarget$ spec against each
+// chosen target, so a comma list of permanent filters is the OR of the
+// alternatives (the filter's Clauses), one trigger per matching target. A
+// list naming a player refuses (the kernel's targetedOne walk sees object
+// targets only, dirac/cast.go: a lowered player half would silently never
+// fire), and so does a Card.Self alternative (the watcher shape). A single
+// alternative lowers exactly as one filter always did.
+func (lc *lowerCtx) btTargetList(alts []string) (*lFilter, error) {
+	f, err := lc.filter(strings.Join(alts, ","))
+	if err != nil {
+		return nil, err
+	}
+	if len(alts) > 1 {
+		if f.Players != 0 {
+			return nil, refuse("BecomesTarget list with a player alternative")
+		}
+		for _, c := range f.Clauses {
+			if c.Flags&fSelf != 0 {
+				return nil, refuse("BecomesTarget shape")
+			}
+		}
+	}
+	return f, nil
+}
+
 // lowerBTSpellSource lowers a BecomesTarget line whose ValidSource$ is a spell
 // form (gorge becomesTargetSourceMatches reads the targeting stack object as
 // an ordinary filter whose Spell base is any stack object) over
-// ValidTarget$ Card.Self or one filter: the watcher arms with a spell gate,
-// the controller in Whose and the type in the card filter (kernel
-// btSpellSrcOK).
+// ValidTarget$ Card.Self, one filter or a comma list of filters: the watcher
+// arms with a spell gate, the controller in Whose and the type in the card
+// filter (kernel btSpellSrcOK).
 func (lc *lowerCtx) lowerBTSpellSource(tp *params, tr *lTrigger) (err error) {
 	src := btSpellSource(tp.str("ValidSource"))
 	switch vt := tp.str("ValidTarget"); {
@@ -60,7 +109,7 @@ func (lc *lowerCtx) lowerBTSpellSource(tp *params, tr *lTrigger) (err error) {
 	case strings.Contains(vt, "Card.Self"):
 		return refuse("BecomesTarget shape")
 	default:
-		if tr.F, err = lc.filter(vt); err != nil {
+		if tr.F, err = lc.btTargetList(strings.Split(vt, ",")); err != nil {
 			return err
 		}
 	}
@@ -76,10 +125,11 @@ func (lc *lowerCtx) lowerBTSpellSource(tp *params, tr *lTrigger) (err error) {
 }
 
 // isBTSpellSourceLine reports a BecomesTarget line this arm lowers: a spell
-// ValidSource$ over a ValidTarget$ that is Card.Self or one filter (no
-// alternative list), and no Ward, Valiant or FirstTime.
+// ValidSource$ over a ValidTarget$ that is Card.Self or permanent filters
+// (one alternative or a comma list), and no Ward, Valiant or FirstTime.
 func isBTSpellSourceLine(tp *params) bool {
 	vt := tp.str("ValidTarget")
-	return btSpellSource(tp.str("ValidSource")).ok && vt != "" && !strings.Contains(vt, ",") &&
+	return btSpellSource(tp.str("ValidSource")).ok && vt != "" &&
+		!(strings.Contains(vt, ",") && strings.Contains(vt, "Card.Self")) &&
 		!tp.is("Ward", "True") && !tp.is("Valiant", "True") && !tp.is("FirstTime", "True")
 }
