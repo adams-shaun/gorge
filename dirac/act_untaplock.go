@@ -7,7 +7,7 @@ import (
 )
 
 // A source-bound untap lock (OpSkipUntap C kop.SkipUntapLockStep,
-// kop.SkipUntapLockAny and kop.SkipUntapLockHostStep): "it doesn't untap during its controller's untap
+// kop.SkipUntapLockAny, kop.SkipUntapLockHostStep and kop.SkipUntapLockUntapStep): "it doesn't untap during its controller's untap
 // step", or "it can't become untapped", "for as long as you control
 // <this>" (Ty Lee, Chi Blocker; Spider-Woman, Secret Agent). gorge registers a
 // Duration$ AsLongAsControl Effect replacement over the remembered target.
@@ -28,9 +28,10 @@ const (
 	maxUntapLock = 4
 	ulBytes      = maxUntapLock*int(unsafe.Sizeof(untapLock{})) + 1 // the table and its count: taken from rsv
 
-	ulAny  uint8 = 1 << 7 // the record is the any-event form
-	ulHost uint8 = 1 << 6 // live while the source is on the battlefield, under any controller (bit 5 is kept free)
-	ulCtrl uint8 = 1<<5 - 1
+	ulAny   uint8 = 1 << 7 // the record is the any-event form
+	ulHost  uint8 = 1 << 6 // live while the source is on the battlefield, under any controller
+	ulUntap uint8 = 1 << 5 // with ulHost: live only while the source is also tapped (Duration$ UntilUntaps)
+	ulCtrl  uint8 = 1<<5 - 1
 )
 
 // untapLock is one record.
@@ -42,6 +43,10 @@ type untapLock struct {
 // DebugNoUntapLockHost (TestUntapLockHostMutation): the ulHost records are
 // never live.
 var DebugNoUntapLockHost bool
+
+// DebugNoUntapLockUntapDrop (TestUntapLockUntilUntapsMutation): the source's
+// untap does not drop its ulUntap records, so a retap revives them.
+var DebugNoUntapLockUntapDrop bool
 
 // StallUntapLock is a fifth source-bound untap lock at once (genState.ul;
 // act_untaplock.go).
@@ -72,6 +77,12 @@ func (s *State) untapLockAdd(k *prep, in *kop.Instr) {
 	if in.C == kop.SkipUntapLockHostStep {
 		r.ctrl |= ulHost
 	}
+	if in.C == kop.SkipUntapLockUntapStep {
+		if s.perms[s.objs[s.res.e.obj].slot].flags&pfTapped == 0 {
+			return // "for as long as this remains tapped" needs a source tapped as it resolves (gorge untilUntapsBind)
+		}
+		r.ctrl |= ulHost | ulUntap
+	}
 	for i := 0; i < int(s.g.nul); i++ {
 		if s.g.ul[i] == r {
 			return // one more of the same record changes nothing: both end together
@@ -94,7 +105,8 @@ func (s *State) untapLockLive(r untapLock) bool {
 		return false
 	}
 	if r.ctrl&ulHost != 0 && !DebugNoUntapLockHost {
-		return true // Duration$ AsLongAsInPlay: any controller
+		// Duration$ AsLongAsInPlay: any controller; UntilUntaps: while tapped too
+		return r.ctrl&ulUntap == 0 || s.perms[src.slot].flags&pfTapped != 0
 	}
 	return r.ctrl&ulHost == 0 && s.perms[src.slot].ctrl == r.ctrl&ulCtrl
 }
@@ -132,6 +144,18 @@ func (s *State) untapLockDrop(drop func(r untapLock) bool) {
 //go:noinline
 func (s *State) untapLockLeft(o Obj) {
 	s.untapLockDrop(func(r untapLock) bool { return r.tgt == o || r.src == o })
+}
+
+// untapLockUntapped ends the ulUntap records whose source o just untapped:
+// the lock lasts for as long as o remains tapped, and a retap is a new
+// lifetime (CR 611.2b). Callers gate on s.g.nul != 0.
+//
+//go:noinline
+func (s *State) untapLockUntapped(o Obj) {
+	if DebugNoUntapLockUntapDrop {
+		return
+	}
+	s.untapLockDrop(func(r untapLock) bool { return r.ctrl&ulUntap != 0 && r.src == o })
 }
 
 // untapLockCtrlDrop ends the records whose source is o now that its

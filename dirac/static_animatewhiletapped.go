@@ -13,9 +13,12 @@ package dirac
 // kop.Override.WhileTapped; the untap sites call untapEnds.
 
 // untapEnds is what the untap of the permanent o ends: a Braided Net lock and
-// the Panharmonicon grants it hosts (netDrop), and the WhileTapped override
-// records it hosts.
+// the Panharmonicon grants it hosts (netDrop), the WhileTapped override
+// records it hosts, and the UntilUntaps untap locks it hosts.
 func (s *State) untapEnds(k *prep, o Obj) {
+	if s.g.nul != 0 {
+		s.untapLockUntapped(o) // act_untaplock.go: an UntilUntaps lock ends with its source's untap
+	}
 	if s.g.netAny() {
 		s.netDrop(o) // act_lockpermanent.go
 	}
