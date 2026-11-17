@@ -818,10 +818,11 @@ type planner struct {
 	// second pass of plan, mana_tapsdefer.go)
 	tapsIn bool
 	// cut: the plan stopped after a tap whose gated extra floated and left the
-	// pool paying payCost (planTapExtra): gorge's stepwise payment takes no
+	// pool paying payFor (planTapExtra): gorge's stepwise payment takes no
 	// further source once the pool pays
-	cut     bool
-	payCost *kop.ManaCost
+	cut    bool
+	payOK  bool
+	payFor kop.ManaCost
 	// comboIn: the plan also counts the Combo Any sources gorge's planner
 	// has no witness for (the fallback pass of planTiered, mana_comboanyplan.go)
 	comboIn bool
@@ -979,9 +980,9 @@ func (s *State) tapNeed(pk *planner, p uint8, cost *kop.ManaCost, x int, anyColo
 func (s *State) tapPlanNeed(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, first, anyColor bool, pk *planner) {
 	s.tapNeed(pk, p, cost, x, anyColor)
 	pk.lastSl = NoSlot
-	pk.cut, pk.payCost = false, nil
-	if x == 0 && cost.X == 0 && cost.XPip == 0 && !anyColor {
-		pk.payCost = cost
+	pk.cut, pk.payOK = false, x == 0 && cost.X == 0 && cost.XPip == 0 && !anyColor
+	if pk.payOK {
+		pk.payFor = *cost
 	}
 	if pk.needT > 0 {
 		pk.first = first

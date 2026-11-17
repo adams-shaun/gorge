@@ -456,7 +456,7 @@ func (s *State) planTapExtra(k *prep, p uint8, sl Slot, pk *planner, ty *utype) 
 	if ty.xt != 0 {
 		s.addXv(p, &ty.xv)
 	}
-	if pk.tapsIn && !ty.sacOnly && s.addGatedExtra(k, p, sl, s.perms[sl].ctrl) && s.cfg&cfgGorgeAutopay == 0 && pk.payCost != nil && s.poolPays(p, pk.payCost) {
+	if pk.tapsIn && !ty.sacOnly && s.addGatedExtra(k, p, sl, s.perms[sl].ctrl) && s.cfg&cfgGorgeAutopay == 0 && pk.payOK && s.poolPays(p, &pk.payFor) {
 		pk.cut = true // gorge's stepwise payment takes no further source once the floated extra pays; its autopay plan is the one shot
 	}
 }
