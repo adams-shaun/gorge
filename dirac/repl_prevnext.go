@@ -184,6 +184,9 @@ func (s *State) prevNextCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard Car
 	if g.anyDmgMark && s.dmgMarkEv(rcp, srcCtrl) > 0 {
 		return true
 	}
+	if k.embPrev && s.embPrevHit(k, &spEv{srcCtrl, srcSl, srcCard, rcp, sl, combat, 0}) {
+		return true // a live emblem's static prevention (repl_staticprevent_emblem.go)
+	}
 	if sl != NoSlot {
 		if g.anyRepl&rbShield != 0 && s.shieldN(sl) > 0 && !s.noPrev(k, combat) {
 			return true

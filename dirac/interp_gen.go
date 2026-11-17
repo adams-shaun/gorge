@@ -728,8 +728,8 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if k.gen.anyWhileHost && k.t.Emblems[in.C].HostBound() && s.hostEmblemDone(e, p, uint8(in.C)+1) {
 			break // filter_combatwords.go
 		}
-		if k.embComb && s.idemEmblemHeld(k, p, uint8(in.C)+1) {
-			break // static_emblemcombat.go
+		if k.embIdem && s.idemEmblemHeld(k, p, uint8(in.C)+1) {
+			break // static_emblemcombat.go, repl_staticprevent_emblem.go
 		}
 		if k.t.Emblems[in.C].NotHere && s.hostNow(e) {
 			break // a registration made with its host on the battlefield ends with it (kop.Emblem.NotHere)
