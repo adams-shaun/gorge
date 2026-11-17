@@ -106,6 +106,10 @@ type prep struct {
 	gyCont   bool     // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
 	cold     coldLayout
 	anyNoDmg bool // a card or emblem has a StatNoCombatDamage static (combat.go's combatAmount); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	// embPrev: some emblem carries a static damage prevention
+	// (tableEmbHasStaticPrev, repl_staticprevent_emblem.go); on prep, not
+	// genPrep, so the pinned fixed-State inventory is unchanged
+	embPrev  bool
 	cda      bool // some card has a characteristic-defining P/T (StatCDAPT)
 	casualty bool // some card has Casualty (kw_casualty.go): guards the casualty cast offer
 	mayhem   bool // some card has Mayhem (kw_mayhem.go): guards the discard mark, the cast mark and the graveyard offer
@@ -223,6 +227,9 @@ type prep struct {
 	// (act_support.go): guards the combat static checks that skip on an
 	// empty statM
 	embComb bool
+	// embIdem: OpCreateEmblem reads idemEmblemHeld (embComb, or an emblem's
+	// static prevention: repl_staticprevent_emblem.go)
+	embIdem bool
 	// anyPwVsSrc: some CantBlockBy static compares the blocker's power with
 	// its host's (kop.Static.PwVsSrc; static_powercompare.go): the one guard
 	// blockForbiddenGen adds
@@ -467,6 +474,7 @@ func prepare(t *kop.Table) *prep {
 	// generated extension: forcing prepareGen here would switch every static
 	// and cost path to the generated forms (value_tappower.go)
 	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
+	p.embPrev = tableEmbHasStaticPrev(t)
 	p.gen = prepareGen(t, p)
 	p.gyCont = tableHasGyCont(t)
 	p.anyNoDmg = tableHasStatic(t, kop.StatNoCombatDamage)
@@ -475,6 +483,7 @@ func prepare(t *kop.Table) *prep {
 	p.availExt = p.painMana || p.phyMana
 	p.restrSrc = p.gen != nil && p.gen.anyRestrSrc
 	p.embComb = prepEmbComb(t, p)
+	p.embIdem = prepEmbIdem(p) // static_emblemcombat.go
 	p.cold.size()
 	// Only a Commander game can seat a partner pair, so only its layout
 	// carries the record: a non-Commander State's cold buffer stays empty,
