@@ -1,0 +1,9 @@
+# the Equip autopay pool: Crude Bent Blade (Equip {2}) beside Dwarven Mauler
+# (equips that target it cost {2} less) and Bolg's Company (a sacrifice mana
+# ability), xengine farm RAND-c4-g19 (dirac/equip_autopay_test.go)
+Crude Bent Blade
+Dwarven Mauler
+Bolg's Company
+Fearsome Goblin Pair
+Mountain
+Swamp
