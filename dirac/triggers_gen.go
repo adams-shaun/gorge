@@ -292,7 +292,11 @@ func (s *State) fireObjGen(k *prep, ev kop.TrigEvent, evSl Slot, evObj Obj, evCt
 	if ev == kop.TrigETB && k.gen.anyDisETB && s.etbDisabled(k, evSl) {
 		return // DisableTriggers (trig_disable.go)
 	}
+	dies := ev == kop.TrigDies
 	s.eachBattlefieldTrigger(k, ev, func(l trigListener, a *kop.Ability) {
+		if dies && a.Trig.Flags2&kop.Tf2ToGraveHalf != 0 {
+			return // fires from the removal point (fireToGraveDies, CR 603.6c)
+		}
 		s.objTrigGen(k, ev, l, a, evSl, evObj, evCtrl, amt)
 	})
 	if ev == kop.TrigETB && k.gen.graveETB {

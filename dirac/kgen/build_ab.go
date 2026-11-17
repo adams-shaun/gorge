@@ -1166,6 +1166,39 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"Attached":         kop.TrigAttached,   // the attachment's own, Creature bearer (Assimilation Aegis)
 	"Unattached":       kop.TrigUnattached} // the attachment's own, the FORMER BEARER (Captain's Hook family)
 
+// trigQualifierFlags is trigger's qualifier-flag block: the Evolve, the
+// SpellCast spend qualifiers (Increment, the mana-spend gate) and the split
+// dies half's Tf2ToGraveHalf mark, each refused beside an incompatible event.
+func (cb *cardBuilder) trigQualifierFlags(kt *kop.Trigger, t *lTrigger) error {
+	if t.Evolve {
+		if t.Event != "ETB" {
+			return fmt.Errorf("Evolve on a %s trigger", t.Event)
+		}
+		kt.Flags2 |= kop.Tf2Evolve
+	}
+	if t.Increment {
+		if t.Event != "SpellCast" || t.OrCopy || t.CastSnap || t.CastSpent || t.NthSpell != 0 || t.TargetsAll {
+			return fmt.Errorf("Increment on a %s trigger", t.Event)
+		}
+		kt.Flags2 |= kop.Tf2Increment
+	}
+	if t.ToGraveHalf {
+		if t.Event != "Dies" || t.Batch {
+			return fmt.Errorf("ToGraveHalf on a %s trigger", t.Event)
+		}
+		kt.Flags2 |= kop.Tf2ToGraveHalf
+	}
+	if t.SpentGate != 0 {
+		// Trigger.N is read on SpellCast only under
+		// Tf2NthSpell (castTrigGen), so the gate rides in N with no flag.
+		if t.Event != "SpellCast" || t.OrCopy || t.CastSnap || t.CastSpent || t.NthSpell != 0 || t.Increment {
+			return fmt.Errorf("spend gate on a %s trigger", t.Event)
+		}
+		kt.N = t.SpentGate
+	}
+	return nil
+}
+
 func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	var kt kop.Trigger
 	ev, ok := eventMap[t.Event]
@@ -1427,25 +1460,8 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags4 |= kop.Tf4PerCounter
 	}
-	if t.Evolve {
-		if t.Event != "ETB" {
-			return kt, fmt.Errorf("Evolve on a %s trigger", t.Event)
-		}
-		kt.Flags2 |= kop.Tf2Evolve
-	}
-	if t.Increment {
-		if t.Event != "SpellCast" || t.OrCopy || t.CastSnap || t.CastSpent || t.NthSpell != 0 || t.TargetsAll {
-			return kt, fmt.Errorf("Increment on a %s trigger", t.Event)
-		}
-		kt.Flags2 |= kop.Tf2Increment
-	}
-	if t.SpentGate != 0 {
-		// Trigger.N is read on SpellCast only under
-		// Tf2NthSpell (castTrigGen), so the gate rides in N with no flag.
-		if t.Event != "SpellCast" || t.OrCopy || t.CastSnap || t.CastSpent || t.NthSpell != 0 || t.Increment {
-			return kt, fmt.Errorf("spend gate on a %s trigger", t.Event)
-		}
-		kt.N = t.SpentGate
+	if err := cb.trigQualifierFlags(&kt, t); err != nil {
+		return kt, err
 	}
 	if t.Alone {
 		if t.Event != "Attacks" {
