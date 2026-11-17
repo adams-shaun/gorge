@@ -324,7 +324,7 @@ func planPaysManaUnderRider(pe pay.Engine, p state.PlayerID, life int32, plan de
 		}
 	}
 	pool := pay.ManaAdd(pay.PlanPool(pe, p, desc), produced)
-	_, ok := resolveManaWith(real, pool, state.Mana{}, [7]state.Mana{}, life, false, rider, nil)
+	_, ok := resolveManaWith(real, pool, state.Mana{}, [8]state.Mana{}, life, false, rider, nil)
 	return ok
 }
 
