@@ -53,17 +53,13 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		if modalSpellBack(o) == nil {
 			return
 		}
-		before := o.FaceIdx
-		faceBefore = &before
-		e.emitProposalFlip(id, before, preSuppress, preAborts)
+		e.flipProposalFace(o, &faceBefore, preSuppress, preAborts)
 	}
 	if opt.Mode == "room_alt" {
 		if roomAlternateCastFace(o) == nil {
 			return
 		}
-		before := o.FaceIdx
-		faceBefore = &before
-		e.emitProposalFlip(id, before, preSuppress, preAborts)
+		e.flipProposalFace(o, &faceBefore, preSuppress, preAborts)
 	}
 	// CR 714: the same flip mechanism serves the Adventure spell face. From
 	// the hand the cast flips to the Adventure spell face (adventure_alt);
@@ -77,9 +73,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		if adventureSpellFace(o) == nil {
 			return
 		}
-		before := o.FaceIdx
-		faceBefore = &before
-		e.emitProposalFlip(id, before, preSuppress, preAborts)
+		e.flipProposalFace(o, &faceBefore, preSuppress, preAborts)
 	}
 	if opt.Mode == "adventure_recast" {
 		if o.Zone != state.ZExile || adventureSpellFace(o) == nil || o.FaceIdx != 0 {
@@ -111,9 +105,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		if o.Zone != state.ZGraveyard || aftermathAlternateFace(o) == nil {
 			return
 		}
-		before := o.FaceIdx
-		faceBefore = &before
-		e.emitProposalFlip(id, before, preSuppress, preAborts)
+		e.flipProposalFace(o, &faceBefore, preSuppress, preAborts)
 	}
 	// CR 709.4: the alternate half of a non-Room split card (mode split_alt)
 	// is cast from hand exactly like a Room door or an Adventure spell face:
@@ -124,9 +116,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		if splitAlternateCastFace(o) == nil {
 			return
 		}
-		before := o.FaceIdx
-		faceBefore = &before
-		e.emitProposalFlip(id, before, preSuppress, preAborts)
+		e.flipProposalFace(o, &faceBefore, preSuppress, preAborts)
 	}
 	// CR 310.11: the defeated battle's owner casts it TRANSFORMED (mode
 	// defeat_cast). The exiled battle is its front face; one FlipFace to the
@@ -138,13 +128,8 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 	// defeat, which happens in a combat the owner is usually not the active
 	// player of, so a creature- or sorcery-timed back face must still be
 	// castable (every Siege back face is printed exactly for this cast).
-	if opt.Mode == "defeat_cast" {
-		if o.Zone != state.ZExile || o.Card == nil || len(o.Card.Faces) < 2 || o.FaceIdx != 0 {
-			return
-		}
-		before := o.FaceIdx
-		faceBefore = &before
-		e.emitProposalFlip(id, before, preSuppress, preAborts)
+	if !flipTransformedCast(e, o, opt.Mode, &faceBefore, preSuppress, preAborts) {
+		return
 	}
 	f := o.Face()
 	if f == nil {
@@ -239,6 +224,11 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 	case castModeSurged:
 		if sc, ok := surgeCost(f); ok {
 			cost = sc
+		}
+	case castModeDisturb:
+		// CR 702.146a: the FRONT face's disturb cost replaces the mana cost.
+		if dc, ok := disturbCost(o.Card.Faces[0]); ok {
+			cost = dc
 		}
 	case castModeEntwined:
 		// Entwine (CR 702.42a): the additional cost is paid ON TOP of the
@@ -598,7 +588,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// spell's own additional cost (Eviscerator's Insight's sacrifice,
 		// Electric Revelation's discard) is still paid. The offer gate
 		// (legal.go's flashback walk) folds the same extras.
-		opt.Mode == "flashback" || opt.Mode == "escape" || opt.Mode == beamMeUpMode ||
+		opt.Mode == "flashback" || opt.Mode == "escape" || opt.Mode == beamMeUpMode || opt.Mode == "disturb" ||
 		// CR 702.138a, 118.9d: escape is an alternative cost, so the spell's
 		// own additional cost (Village Rites' sacrifice, Thrill of
 		// Possibility's discard) is still paid on top of the escape cost.
@@ -1397,6 +1387,7 @@ const (
 	castModeCleaved
 	castModePrototype
 	castModeBeamMeUp
+	castModeDisturb
 )
 
 var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
@@ -1415,6 +1406,7 @@ var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
 	state.StrEntry[castModeCode]{Key: "suspend", Val: castModeSuspend},
 	state.StrEntry[castModeCode]{Key: "suspend_cast", Val: castModeSuspendCast},
 	state.StrEntry[castModeCode]{Key: "defeat_cast", Val: castModeDefeatCast},
+	state.StrEntry[castModeCode]{Key: "disturb", Val: castModeDisturb},
 	state.StrEntry[castModeCode]{Key: "plot", Val: castModePlot},
 	state.StrEntry[castModeCode]{Key: "plot_cast", Val: castModePlotCast},
 	state.StrEntry[castModeCode]{Key: "prepared_copy", Val: castModePreparedCopy},
