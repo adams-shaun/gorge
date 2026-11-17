@@ -648,6 +648,17 @@ func describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " protects " + obj(g, ev.Obj) +
 				" (chosen by " + player(g, objController(g, ev.Obj)) + ")"
 		}
+		switch ev.Counter {
+		case "remembered":
+			// A source's remembered list set (Dig RememberChanged$, choose-and-remember): the
+			// cards it now remembers, not a player's choice.
+			if len(ev.IDs) == 0 {
+				return obj(g, ev.Obj) + " remembers nothing"
+			}
+			return obj(g, ev.Obj) + " remembers " + objs(g, ev.IDs)
+		case "clear-remembered":
+			return obj(g, ev.Obj) + " clears its remembered objects"
+		}
 		what := "a value"
 		switch ev.Counter {
 		case "name":
