@@ -196,8 +196,17 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
-		if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || !tapsDeferColour(kop.ColorMask(s.srcMaskAt(pc, sl)), pc.manaChosen) ||
+		if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || !tapsDeferColour(kop.ColorMask(s.srcMaskAt(pc, sl))) ||
 			pc.manaFixedChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
+			continue
+		}
+		if s.landSetGap(k, sl) {
+			// A land a type setter made an Island (Spreading Seas on a Forest):
+			// only its intrinsic ability is left, which the planner defers
+			// like any Island's under Rikala and gorge's prefix search taps as
+			// a census gap. It has no card ability to read; the view's tap is
+			// the activation (tapDeferFloat).
+			m = m.with(sl)
 			continue
 		}
 		if !s.landSetIntrinsic(k, c, pc) && (int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0) {
@@ -209,6 +218,14 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		m = m.with(sl)
 	}
 	return m
+}
+
+// landSetGap: sl lost its own abilities to land-type setters alone
+// (landSetLost) and can still be tapped for its intrinsic mana now: untapped,
+// not summoning-sick, under no CantBeActivated lock.
+func (s *State) landSetGap(k *prep, sl Slot) bool {
+	return k.gen.landSet && s.landSetLost(k, sl) && s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) &&
+		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
 }
 
 // tapsGapActivatable: the Taps-deferred gap at sl can be tapped for mana now:
@@ -226,13 +243,18 @@ func (s *State) tapsGapReady(k *prep, sl Slot) bool {
 		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
 }
 
-// tapsDeferColour is the production scriptTapsDefer models: any colour, {C}
-// (Crumbling Vestige under Brink of Disaster), or exactly one of WUBRG. A
+// tapsDeferColour is the production scriptTapsDefer models: a choice among
+// one or more of WUBRG (any colour, a Combo such as Razortide Bridge's W or
+// U, or one fixed colour), or {C} (Crumbling Vestige under Brink of
+// Disaster). gorge's relaxed alternatives are one mana per colour the
+// production names, so the gap's answers are those colours
+// (deferGapAnswers), and a source whose production was left out kept its
+// census unit in availFor, offering a cast gorge's census never prices. A
 // chosen-colour source (Cliffgate's R or the chosen colour) names its printed
 // colours beside the chosen one, so any colours of WUBRG: gorge's mana ask
 // lists each.
-func tapsDeferColour(c kop.ColorMask, chosen bool) bool {
-	return c == kop.ColAny || c == kop.ColC || c != 0 && c&^kop.ColAny == 0 && (chosen || c&(c-1) == 0)
+func tapsDeferColour(c kop.ColorMask) bool {
+	return c == kop.ColC || c != 0 && c&^kop.ColAny == 0
 }
 
 // chosenAskOrder writes, as WUBRG indexes, the colours of the chosen-colour
