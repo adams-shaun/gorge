@@ -48,13 +48,16 @@ type Static struct {
 	Cond    uint8 // reserved condition opcode (0 = always)
 
 	// Appended by dirac/kgen.
-	Cond2    CondID      // the static applies while Table.Conds[Cond2] holds (0 = always)
-	VA, VB   ValueRef    // the amounts when StDynamic (P/T deltas, cost reduction, CDA P/T)
-	StFlags  StaticFlags // kind-specific qualifiers
-	AddSub   SubMask     // subtypes granted (Table.Subtypes indexes)
-	Grant    uint8       // the source card's ability Grant-1 is granted to the affected objects (0 = none)
-	Zone     Zone        // StatMayPlayFrom: the zone played from; StatReduceCost: ZoneNone = battlefield only, ZoneCommand = any zone (the card itself)
-	Override uint16      // StatOverride: Table.Overrides[Override-1]
+	Cond2   CondID      // the static applies while Table.Conds[Cond2] holds (0 = always)
+	VA, VB  ValueRef    // the amounts when StDynamic (P/T deltas, cost reduction, CDA P/T)
+	StFlags StaticFlags // kind-specific qualifiers
+	AddSub  SubMask     // subtypes granted (Table.Subtypes indexes)
+	Grant   uint8       // the source card's ability Grant-1 is granted to the affected objects (0 = none)
+	// GrantSt: the source card's CardDef.Granted[GrantSt-1], a static, is
+	// granted to the affected objects (0 = none). Each recipient is its source.
+	GrantSt  uint8
+	Zone     Zone   // StatMayPlayFrom: the zone played from; StatReduceCost: ZoneNone = battlefield only, ZoneCommand = any zone (the card itself)
+	Override uint16 // StatOverride: Table.Overrides[Override-1]
 	// Ward: a StatContinuous grant's ward {Ward} (Kw holds KwWard; CR
 	// 702.21a): each such static is its own ward instance
 	Ward uint8

@@ -452,9 +452,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 				if st.StFlags&(kop.StRaiseYou|kop.StRaiseOpp) != 0 {
 					add("st:RaiseYou", name)
 				}
-				if st.Grant != 0 {
-					add("st:Grant", name)
-				}
+				grantUsage(&st, name, add)
 				if st.ProtChosen {
 					add("st:ProtChosen", name)
 				}
