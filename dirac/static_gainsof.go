@@ -3,9 +3,10 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // A Continuous static's GainsAbilitiesOf$ (CR 613.1f, "has all activated
-// abilities of ..."; kop.Static.GainsOf, kgen lower_gainsof.go): the static's
-// source, its only recipient (AffectedDefined$ Self), may activate each
-// activated ability of every battlefield permanent (or graveyard card, Zone
+// abilities of ..."; kop.Static.GainsOf, kgen lower_gainsof.go): each
+// recipient (the static's source for AffectedDefined$ Self, else each
+// battlefield permanent its Filter matches, Hazel's Brewmaster's Foods; one
+// that lost all abilities gains nothing) may activate each activated ability of every battlefield permanent (or graveyard card, Zone
 // ZoneGraveyard) the filter matches right now. The walk is stateless: the filter picks the foreign permanents again at
 // every priority (gorge layers.go gainedFacesForSpec rescans, legal_granted.go
 // grantedAbilitiesLimited lists their faces' AB lines).
@@ -54,11 +55,12 @@ func tableHasGainsOf(t *kop.Table) bool {
 	return false
 }
 
-// gainedAbilities offers p's gained activations: each GainsOf static p
-// controls whose source keeps its abilities and whose condition holds, in the
-// static walk's order (contGrants'), each foreign permanent in battlefield
-// order, each of its activated abilities in card order. It offers nothing
-// unless the table has a GainsOf static (useGainsOf).
+// gainedAbilities offers p's gained activations: each GainsOf static whose
+// source keeps its abilities and whose condition holds, in the static walk's
+// order (contGrants'), each recipient p controls (gainedRecipients), each
+// foreign permanent in battlefield order, each of its activated abilities in
+// card order. It offers nothing unless the table has a GainsOf static
+// (useGainsOf).
 func (s *State) gainedAbilities(k *prep, d *Decision, p uint8, sorc bool, av *avail) {
 	if DebugNoGainsOf || !k.gen.uses.has(useGainsOf) {
 		return
@@ -67,7 +69,7 @@ func (s *State) gainedAbilities(k *prep, d *Decision, p uint8, sorc bool, av *av
 	n := s.listenerOrder(s.statM, &order)
 	for oi := 0; oi < n; oi++ {
 		src := order[oi]
-		if s.perms[src].ctrl != p || s.genLost(k, src) {
+		if s.genLost(k, src) {
 			continue
 		}
 		cd := &k.t.Cards[s.cardAt(src)]
@@ -76,22 +78,43 @@ func (s *State) gainedAbilities(k *prep, d *Decision, p uint8, sorc bool, av *av
 			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.GainsOf == 0 {
 				continue
 			}
-			st := statSrc{a: a, sl: src, ctrl: p, obj: s.perms[src].obj}
+			st := statSrc{a: a, sl: src, ctrl: s.perms[src].ctrl, obj: s.perms[src].obj}
 			if !s.statCond(k, st) {
 				continue
 			}
-			if !s.gainedFrom(k, d, st, sorc, av) {
+			if !s.gainedRecipients(k, d, st, p, sorc, av) {
 				return
 			}
 		}
 	}
 }
 
-// gainedFrom offers the abilities static st's recipient (its source) gains
-// from each foreign permanent its filter matches (or, for a static whose Zone
+// gainedRecipients offers each recipient of static st that p controls (every
+// battlefield permanent the static's Filter matches, in battlefield order:
+// gorge's offer walk goes recipient by recipient) what it gains; a recipient
+// that lost all abilities gains nothing. False when the walk stalled.
+func (s *State) gainedRecipients(k *prep, d *Decision, st statSrc, p uint8, sorc bool, av *avail) bool {
+	var order [MaxPerm]Slot
+	n := s.listenerOrder(s.occ, &order)
+	for oi := 0; oi < n; oi++ {
+		rl := order[oi]
+		if s.perms[rl].ctrl != p || s.genLost(k, rl) ||
+			!s.matchPermGen(k, st.a.Static.Filter, rl, st.ctrl, st.sl, layerKw) {
+			continue
+		}
+		rc := statSrc{a: st.a, sl: rl, ctrl: p, obj: s.perms[rl].obj}
+		if !s.gainedFrom(k, d, st, rc, sorc, av) {
+			return false
+		}
+	}
+	return true
+}
+
+// gainedFrom offers the abilities static st's recipient rc gains from each
+// foreign permanent its filter matches (or, for a static whose Zone
 // is the graveyard, from each graveyard card it matches); false when the walk
 // stalled.
-func (s *State) gainedFrom(k *prep, d *Decision, st statSrc, sorc bool, av *avail) bool {
+func (s *State) gainedFrom(k *prep, d *Decision, st, rc statSrc, sorc bool, av *avail) bool {
 	first := int(d.N)
 	if st.a.Static.Zone == kop.ZoneExile {
 		// GainsAbilitiesOfZones$ Exile: every seat's exile zone in seat order,
@@ -111,7 +134,7 @@ func (s *State) gainedFrom(k *prep, d *Decision, st statSrc, sorc bool, av *avai
 				if !s.matchCardGenAt(k, st.a.Static.GainsOf, card, p, st.ctrl, o, &ctx) {
 					continue
 				}
-				if !s.gainedOffer(k, d, st, first, o, &k.t.Cards[card], sorc, av) {
+				if !s.gainedOffer(k, d, rc, first, o, &k.t.Cards[card], sorc, av) {
 					return false
 				}
 			}
@@ -135,7 +158,7 @@ func (s *State) gainedFrom(k *prep, d *Decision, st statSrc, sorc bool, av *avai
 				if !s.matchCardGenAt(k, st.a.Static.GainsOf, card, p, st.ctrl, o, &ctx) {
 					continue
 				}
-				if !s.gainedOffer(k, d, st, first, o, &k.t.Cards[card], sorc, av) {
+				if !s.gainedOffer(k, d, rc, first, o, &k.t.Cards[card], sorc, av) {
 					return false
 				}
 			}
@@ -149,14 +172,14 @@ func (s *State) gainedFrom(k *prep, d *Decision, st statSrc, sorc bool, av *avai
 		if !s.matchPermGen(k, st.a.Static.GainsOf, fs, st.ctrl, st.sl, layerKw) {
 			continue
 		}
-		if !s.gainedOffer(k, d, st, first, s.perms[fs].obj, &k.t.Cards[s.cardAt(fs)], sorc, av) {
+		if !s.gainedOffer(k, d, rc, first, s.perms[fs].obj, &k.t.Cards[s.cardAt(fs)], sorc, av) {
 			return false
 		}
 	}
 	return true
 }
 
-// gainedOffer offers the recipient of st each activated ability of the
+// gainedOffer offers the recipient rc each activated ability of the
 // foreign object fo (card cd); false when the walk stalled.
 func (s *State) gainedOffer(k *prep, d *Decision, st statSrc, first int, fo Obj, cd *kop.CardDef, sorc bool, av *avail) bool {
 	abs := cd.Abilities
