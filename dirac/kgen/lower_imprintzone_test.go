@@ -105,14 +105,14 @@ Oracle:probe
 
 // TestImprintCrossAbilityRefuses: a read in another ability than the writer's
 // stays refused by name for a face the persistent-Imprinted shape does not
-// cover (Oblivious Bookworm, Superior Foes of Spider-Man), and the card-level
-// check refuses an ability that reads the set without writing it. The probe
-// below now lowers: the source keeps its Imprinted list (CardDef.ImpPersist),
-// so the activated reader reads what the enters trigger imprinted
-// (lower_imppersist.go).
+// cover (Superior Foes of Spider-Man), and the card-level check refuses an
+// ability that reads the set without writing it. The probe below now lowers:
+// the source keeps its Imprinted list (CardDef.ImpPersist), so the activated
+// reader reads what the enters trigger imprinted (lower_imppersist.go).
+// Oblivious Bookworm's Pump ImprintCards$ TriggeredCard is the persist
+// shape's writer, so it now lowers too (TestTurnFaceUpValidCauseForms).
 func TestImprintCrossAbilityRefuses(t *testing.T) {
 	for _, c := range []struct{ name, want string }{
-		{"Oblivious Bookworm", "Count$ImprintedSize"},
 		{"Superior Foes of Spider-Man", "Defined$ Imprinted outside a DigUntil ImprintFound$"},
 	} {
 		var got []string
