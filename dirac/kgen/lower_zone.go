@@ -3011,7 +3011,8 @@ func (lc *lowerCtx) emblemUnimplementedMayPlay(list string) error {
 }
 
 func (lc *lowerCtx) animate(ps *params) error {
-	if _, ok := ps.get("Abilities"); ok {
+	if _, ok := ps.m["Abilities"]; ok && strings.TrimSpace(ps.m["Defined"]) == "Remembered" {
+		ps.consume("Abilities")
 		return lc.animateGrantExile(ps) // lower_exilegrant.go
 	}
 	if d, ok := ps.get("Defined"); ok && strings.HasPrefix(d, "ValidGraveyard ") {
@@ -3328,6 +3329,9 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			}
 			o.AddKw = ks
 		}
+	}
+	if err := lc.animateSelfAbilities(ps, o, obj); err != nil {
+		return nil, "", false, err
 	}
 	if tr, ok := ps.get("Triggers"); ok {
 		idx, err := lc.latentTrigger(tr)
@@ -5167,4 +5171,40 @@ func (lc *lowerCtx) targetLibrarySearch(ps *params, origin int) (int, error) {
 	}
 	ps.consume("Chooser", "TgtPrompt")
 	return lc.addTarget(lTarget{F: pf}), nil
+}
+
+// animateSelfAbilities reads an Animate's Abilities$ on the source itself
+// (Defined$ Self: Spawning Pool's "{B}: Regenerate this creature", Lavaclaw
+// Reaches' "{X}: +X/+0"): each named ability is a latent the override
+// record grants for the record's duration, the self-granted record the
+// kernel hosts on the animated permanent from its own card (ownGrants). The
+// grant to another object refuses: the kernel hosts a granted activated
+// ability only on its granting card's own permanent. One or two names, as
+// kop.Override.Grant holds; beside RemoveAllAbilities$ the order of the
+// loss and the grant is not carried, so it refuses.
+func (lc *lowerCtx) animateSelfAbilities(ps *params, o *lOverride, obj lRef) error {
+	ab, ok := ps.get("Abilities")
+	if !ok {
+		return nil
+	}
+	if obj.Kind != rSelf {
+		return refuse("Animate Abilities$ granted to an object other than the source")
+	}
+	if o.LoseAbilities {
+		return refuse("Animate Abilities$ beside RemoveAllAbilities$")
+	}
+	for _, nm := range strings.Split(ab, ",") {
+		if nm = strings.TrimSpace(nm); nm == "" {
+			continue
+		}
+		idx, err := lc.grantedAbility(nm)
+		if err != nil {
+			return err
+		}
+		o.GrantAbility = append(o.GrantAbility, idx)
+	}
+	if n := len(o.GrantAbility); n == 0 || n > 2 {
+		return refuse("Animate Abilities$ %q: %d granted abilities", ab, n)
+	}
+	return nil
 }
