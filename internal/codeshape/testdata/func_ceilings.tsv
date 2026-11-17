@@ -53,10 +53,10 @@ dirac (*State).stepRaw	153	63
 dirac (*State).windowColOwed	143	64
 dirac (*State).windowTapWalk	129	73
 dirac (*State).wordPerm3	92	51
-dirac (*filtSearch).otherGap	228	57
-dirac (*filtSearch).visit	142	57
+dirac (*filtSearch).otherGap	168	51
+dirac (*filtSearch).visit	136	57
 dirac (*grantSrch).visit	274	105
-dirac (*tapXSearch).visit	266	65
+dirac (*tapXSearch).visit	229	65
 dirac arenaUses	114	58
 dirac prepare	208	116
 dirac prepareGen	1084	431
@@ -80,7 +80,7 @@ dirac/kgen (*cardBuilder).cost	247	74
 dirac/kgen (*cardBuilder).fold	103	51
 dirac/kgen (*cardBuilder).mana	171	62
 dirac/kgen (*cardBuilder).record	628	186
-dirac/kgen (*cardBuilder).repl	227	91
+dirac/kgen (*cardBuilder).repl	226	91
 dirac/kgen (*cardBuilder).static	789	292
 dirac/kgen (*cardBuilder).target	305	183
 dirac/kgen (*cardBuilder).trigger	591	290
@@ -97,7 +97,7 @@ dirac/kgen (*lowerCtx).defined	361	123
 dirac/kgen (*lowerCtx).definedValid	132	51
 dirac/kgen (*lowerCtx).dig	172	65
 dirac/kgen (*lowerCtx).effectEtbCounters	110	57
-dirac/kgen (*lowerCtx).effectTargetStatic	277	97
+dirac/kgen (*lowerCtx).effectTargetStatic	275	97
 dirac/kgen (*lowerCtx).filter	164	67
 dirac/kgen (*lowerCtx).handMove	162	68
 dirac/kgen (*lowerCtx).imprintMoxShape	56	59
@@ -112,7 +112,7 @@ dirac/kgen (*lowerCtx).overrideStatic	205	59
 dirac/kgen (*lowerCtx).payInstr	330	130
 dirac/kgen (*lowerCtx).play	285	130
 dirac/kgen (*lowerCtx).publicPick	114	54
-dirac/kgen (*lowerCtx).pumpBody	175	65
+dirac/kgen (*lowerCtx).pumpBody	134	51
 dirac/kgen (*lowerCtx).refuseEntwineCombos	37	57
 dirac/kgen (*lowerCtx).refuseMultiMana	103	51
 dirac/kgen (*lowerCtx).refuseRemLKIPT	141	64
