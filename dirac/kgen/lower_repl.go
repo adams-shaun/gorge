@@ -44,10 +44,9 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 				}
 				break
 			}
-			if err := lc.graveToLibrary(rp, r.With); err != nil {
+			if err := lc.graveToLibrary(rp, r.With, &rl); err != nil {
 				return err
 			}
-			rl.Kind = "GraveToLibrary"
 			break
 		}
 		if ok, err := lc.discardOppToBattlefield(rp, r.With, &rl); ok || err != nil { // lower_discardetb.go
@@ -383,14 +382,72 @@ func (lc *lowerCtx) damageRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	return lc.damageDoubler(rp, w, rl)
 }
 
-// graveToLibrary checks Progenitus's "if this would be put into a
-// graveyard from anywhere, shuffle it into its owner's library instead".
-func (lc *lowerCtx) graveToLibrary(rp *params, w *cards.SA) error {
-	if rp.str("ValidCard") != "Card.Self" || rp.str("ActiveZones") != "" ||
-		!withIs(w, "ChangeZone", map[string]string{"Hidden": "True", "Origin": "All", "Destination": "Library",
-			"Defined": "ReplacedCard", "Reveal": "True", "Shuffle": "True"}) {
+// graveToLibrary lowers a self "if this card would be put into a graveyard
+// from anywhere, put it into its owner's library instead" line: Progenitus
+// and the other reveal-and-shuffle cards, plus Gravebane Zombie's top and
+// Nissa's Chosen's bottom (LibraryPosition$ 0 / -1, no shuffle). The
+// replacement applies only to a move from the battlefield when the R: line
+// names Origin$ Battlefield (or ActiveZones$ Battlefield); a missing Origin$
+// is gorge's from-anywhere reading.
+func (lc *lowerCtx) graveToLibrary(rp *params, w *cards.SA, rl *lRepl) error {
+	if rp.str("ValidCard") != "Card.Self" {
 		return refuse("repl-hard: Moved to Graveyard shape")
 	}
+	az := rp.str("ActiveZones")
+	if az != "" && az != "Battlefield" {
+		return refuse("repl-hard: Moved to Graveyard ActiveZones %q", az)
+	}
+	ro := rp.str("Origin")
+	switch ro {
+	case "", "All", "Any", "Battlefield":
+	default:
+		return refuse("repl-hard: Moved to Graveyard origin %q", ro)
+	}
+	if w == nil || w.API != "ChangeZone" || w.Sub != nil {
+		return refuse("repl-hard: Moved to Graveyard shape")
+	}
+	bp := newParams(w.Params)
+	bp.consume("Defined", "Destination", "Origin", "Hidden", "Reveal", "Shuffle", "LibraryPosition")
+	if bp.str("Defined") != "ReplacedCard" || bp.str("Destination") != "Library" || len(bp.unread()) != 0 {
+		return refuse("repl-hard: Moved to Graveyard shape")
+	}
+	bo := bp.str("Origin")
+	switch bo {
+	case "", "All", "Any", "Battlefield":
+	default:
+		return refuse("repl-hard: Moved to Graveyard body origin %q", bo)
+	}
+	if h, ok := bp.get("Hidden"); ok && !strings.EqualFold(strings.TrimSpace(h), "True") {
+		return refuse("repl-hard: Moved to Graveyard Hidden %q", h)
+	}
+	if rv, ok := bp.get("Reveal"); ok && !strings.EqualFold(strings.TrimSpace(rv), "True") {
+		return refuse("repl-hard: Moved to Graveyard Reveal %q", rv)
+	}
+	shuffle := false
+	if sh, ok := bp.get("Shuffle"); ok {
+		if !strings.EqualFold(strings.TrimSpace(sh), "True") {
+			return refuse("repl-hard: Moved to Graveyard Shuffle %q", sh)
+		}
+		shuffle = true
+	}
+	bottom := false
+	if pos, ok := bp.get("LibraryPosition"); ok {
+		switch strings.TrimSpace(pos) {
+		case "0":
+		case "-1":
+			bottom = true
+		default:
+			return refuse("repl-hard: Moved to Graveyard LibraryPosition %q", pos)
+		}
+		if shuffle {
+			return refuse("repl-hard: Moved to Graveyard LibraryPosition with Shuffle")
+		}
+	} else if !shuffle {
+		return refuse("repl-hard: Moved to Graveyard shape")
+	}
+	rl.Kind = "GraveToLibrary"
+	rl.LibBottom, rl.LibShuffle = bottom, shuffle
+	rl.LibFromBattlefield = ro == "Battlefield" || az == "Battlefield"
 	return nil
 }
 
@@ -406,8 +463,11 @@ func (lc *lowerCtx) exileOnLeave(rp *params, w *cards.SA, rl *lRepl) (bool, erro
 	if vc == "" && vl == "" {
 		return false, nil
 	}
-	if vc == "Card.Self" || strings.HasPrefix(vc, "Card.Self+") {
-		return false, nil // Progenitus and other self replacements
+	if vc == "Card.Self" {
+		return lc.selfExile(rp, w, rl)
+	}
+	if strings.HasPrefix(vc, "Card.Self+") {
+		return false, nil // other self replacements Progenitus, the library forms
 	}
 	if !exileBody(w) {
 		return false, nil
@@ -460,6 +520,39 @@ func (lc *lowerCtx) exileOnLeave(rp *params, w *cards.SA, rl *lRepl) (bool, erro
 	}
 	rl.Kind = "ExileOnLeave"
 	rl.F = f
+	return true, nil
+}
+
+// selfExile lowers the self "if this would be put into a graveyard from
+// anywhere, exile it instead" body: ValidCard$ Card.Self with a plain
+// ChangeZone of ReplacedCard to Exile. A missing Origin$ (or All/Any) is
+// gorge's from-anywhere reading unless ActiveZones$ Battlefield keeps the
+// ability to the battlefield; an explicit Origin$ Battlefield is the
+// dies-to-exile reading (Possessed Skaab, Gloomshrieker).
+func (lc *lowerCtx) selfExile(rp *params, w *cards.SA, rl *lRepl) (bool, error) {
+	if !exileBody(w) {
+		return false, nil
+	}
+	az := rp.str("ActiveZones")
+	if az != "" && az != "Battlefield" {
+		return true, refuse("repl-hard: dies-to-exile ActiveZones %q", az)
+	}
+	anyZone := false
+	switch rp.str("Origin") {
+	case "Battlefield":
+		// dies-to-exile; the kernel's battlefield matching reads it
+	case "", "All", "Any":
+		// a missing Origin$ is from anywhere (gorge replacementMatches); the
+		// ability itself is still battlefield-only under ActiveZones
+		anyZone = az != "Battlefield"
+	default:
+		return true, refuse("repl-hard: dies-to-exile origin %q", rp.str("Origin"))
+	}
+	f, err := lc.filter(rp.str("ValidCard"))
+	if err != nil {
+		return true, err
+	}
+	rl.Kind, rl.F, rl.AnyZone = "ExileOnLeave", f, anyZone
 	return true, nil
 }
 

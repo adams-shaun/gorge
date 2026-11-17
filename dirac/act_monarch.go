@@ -224,6 +224,10 @@ func monarchTrig(e *stackEntry) bool {
 func (s *State) resolveMonarchTrig(k *prep, e *stackEntry) {
 	if e.trigAmt == monDrawAmt {
 		if !s.pl[SeatIx(e.ctrl)].lost {
+			if !s.dredgeResPose(k, e.ctrl, dredgeResMonarch, 1) {
+				s.ctl = ctlResolve
+				return // the dredge ask is posed (kw_dredge.go); its answer finishes the trigger
+			}
 			s.draw(e.ctrl)
 		}
 		return

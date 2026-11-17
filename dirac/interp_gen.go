@@ -1513,7 +1513,7 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 	// loyalty dies too (CR 700.4; gorge registerReplaceDying matches any object)
 	exileEx := s.mSl(k, mechExileEx, sl)
 	graveLib := k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 && !s.genLost(k, sl) &&
-		s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard) == kop.ZoneLibrary
+		s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard, kop.ZoneBattlefield) == kop.ZoneLibrary
 	// Each matching replacement is a separate CR 616.1 effect. Gorge asks
 	// the affected player to order them when two or more apply, even when
 	// they agree on the destination.
@@ -1540,7 +1540,7 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 		if exileN > 0 || exileEx || scopeN > 0 {
 			return kop.ZoneExile
 		}
-		return s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard)
+		return s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard, kop.ZoneBattlefield)
 	}
 	if exileN > 0 || exileEx || scopeN > 0 {
 		return kop.ZoneExile

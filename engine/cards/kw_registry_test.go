@@ -185,6 +185,10 @@ var expandedHeads = []string{
 	// share a creature type and putting N +1/+1 counters per card
 	// (engine/cards/kw_amplify.go). Added after the split.
 	"Amplify",
+	// Soulshift (CR 702.46a): an optional dies trigger returning a Spirit card
+	// with mana value N or less from the graveyard to hand
+	// (engine/cards/kw_soulshift.go). Added after the split.
+	"Soulshift",
 	// Reinforce (CR 702.77a): a hand-zone discard-for-counters activation
 	// (engine/cards/kw_reinforce.go). Added after the split.
 	"Reinforce",

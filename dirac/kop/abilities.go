@@ -517,6 +517,26 @@ func StoreManaAb(a *Ability) bool {
 	return (f == CostTap|CostLoyaltyX || f == CostLoyaltyX) && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && !a.ManaEach && len(a.Prog) == 0
 }
 
+// GapLifeManaAb reports whether mana ability a is "Pay N life: Add <mana>"
+// with no {T} and no mana cost (Treasonous Ogre's "Pay 3 life: Add {R}"):
+// exactly CostPayLife with N >= 1, a plain unrestricted production of one
+// fixed colour or one of any colour, and no rider, gate, deferral, dynamic
+// amount, each-colour or latent flag. gorge's planner census misses it (the
+// life-only cost is no payment-plan unit), so its one prefix search activates
+// the source; the kernel models the activation as a census gap (dirac
+// mana_lifegap.go). Kozilek's Translator's ActivationLimit$ 1 is a once-a-turn
+// cost part and is no GapLifeManaAb.
+func GapLifeManaAb(a *Ability) bool {
+	c := a.ManaColors
+	return a.Kind == AbMana && a.Cost.Flags == CostPayLife && a.Cost.N >= 1 &&
+		a.Cost.Mana == (ManaCost{}) && a.Cost.Host == 0 && a.Cost.Ctr == 0 && a.Cost.Filter == 0 &&
+		!a.Cost.PutLibSelf && !a.Cost.ExileHand && !a.Cost.DiscardHand && !a.Cost.DiscardRandom && !a.Cost.Exert &&
+		a.AFlags == 0 && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && !a.ManaEach && !a.ManaDeferred &&
+		a.ManaRider == ManaRiderNone && a.ManaRiderCtr == 0 && a.ManaRiderN == 0 &&
+		a.ManaN <= 1 && len(a.Prog) == 0 && a.Gate.Ctr == 0 && a.Trig.Cond == 0 && a.SplitGate == SplitGateNone &&
+		(c == ColAny || c != 0 && c&(c-1) == 0) && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
 // ManaAbilityHonoured reports whether the kernel can activate ability j of
 // cd, an AbMana. It is true for any other ability kind.
 //
@@ -565,7 +585,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SoleLifeManaAb(cd, j), StoreManaAb(a):
+	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SoleLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a):
 		return true
 	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true

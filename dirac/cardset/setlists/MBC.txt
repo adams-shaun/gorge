@@ -1238,6 +1238,7 @@ Monastery Swiftspear
 Moon-Blessed Cleric
 Moon-Circuit Hacker
 Moonglove Changeling
+Moonlit Strider
 Morbid Opportunist
 Mortuary
 Mothdust Changeling
