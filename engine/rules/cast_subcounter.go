@@ -63,7 +63,8 @@ func (e *Engine) chosenModesTargetableAt(pc *pendingCast, x int32) bool {
 }
 
 // targetsAnnounceableAt reports whether the target ask that follows xAsk can be
-// answered once X is x, by the rule targetAsk reverses a cast under.
+// answered once X is x, by the rule targetAsk reverses a cast under, and the
+// announce-bound discard part still has a hand card to pay it.
 func (e *Engine) targetsAnnounceableAt(pc *pendingCast, x int32) bool {
 	o := e.G.Obj(pc.card)
 	if o == nil || pc.faceDown {
@@ -76,6 +77,17 @@ func (e *Engine) targetsAnnounceableAt(pc *pendingCast, x int32) bool {
 	saved := pc.x
 	pc.x = x
 	defer func() { pc.x = saved }()
+	// CR 601.2b announces X before CR 601.2h chooses the discard: an announce-
+	// bound Discard<1/Card.cmcEQX> (Knollspine Invocation) leaves X unanswerable
+	// when no hand card matches at it.
+	for _, part := range pc.cost.Discard {
+		if !part.Announced && e.costSpecAnnounceBound(part.Spec, pc.card) {
+			if !pay.DiscardCostPayable(asPayer(e), pc.player, pc.card, pc.cost.Discard, !pc.isAbility()) {
+				return false
+			}
+			break
+		}
+	}
 	var exclude state.ObjID
 	if !pc.isAbility() || attachSelfDestination(sa) {
 		exclude = pc.card

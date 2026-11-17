@@ -278,7 +278,8 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 }
 
 // addXOptions offers X = 0..mx for the entry being built, less any value the target
-// ask that follows could not answer: X is announced before the targets (CR 601.2b-c),
+// ask that follows could not answer, or no hand card could pay the discard at
+// (cost_discardxbound.go): X is announced before the targets (CR 601.2b-c),
 // and a filter bounded by X (Rydia's Saga card with mana value X) has its candidates
 // only at some values. When no value has one, the whole range stands and the target
 // ask reverses the cast (gorge xAsk).
@@ -337,9 +338,10 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 	}
 	n0 := d.N
 	fl := s.xFloor(k) // the announced X's floor (cost_sacx.go)
-	if bound {
+	dxb := s.xDiscardBound(k)
+	if bound || dxb {
 		for x := fl; x <= hi; x++ {
-			if s.xAnswerable(k, a, e, x) && pays(x) {
+			if (!bound || s.xAnswerable(k, a, e, x)) && (!dxb || s.xDiscardPays(k, e, x)) && pays(x) {
 				d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
 			}
 		}
