@@ -994,6 +994,14 @@ func offeredTargetSA(o *state.Object, svars map[string]string) *cards.SA {
 					return sub
 				}
 			}
+			// A GenericChoice can declare its target on the choice itself
+			// (Inspirit, Flagship Vessel's "up to one other target artifact")
+			// instead of inside a chosen mode. handleModes asks that target
+			// after the modes, so the placement ask covered this SA too and
+			// resolution must not re-pose it.
+			if effects.TargetsOf(o.Ability).Targeted() {
+				return o.Ability
+			}
 			return nil
 		}
 		if effects.TargetsOf(o.Ability).Targeted() {
