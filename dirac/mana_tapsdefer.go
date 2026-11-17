@@ -200,6 +200,15 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			pc.manaFixedChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
 			continue
 		}
+		if s.landSetGap(k, sl) {
+			// A land a type setter made an Island (Spreading Seas on a Forest):
+			// only its intrinsic ability is left, which the planner defers
+			// like any Island's under Rikala and gorge's prefix search taps as
+			// a census gap. It has no card ability to read; the view's tap is
+			// the activation (tapDeferFloat).
+			m = m.with(sl)
+			continue
+		}
 		if !s.landSetIntrinsic(k, c, pc) && (int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0) {
 			continue // the ability is restricted (Pillar of the Paruns): the gap floats plain mana
 		}
@@ -209,6 +218,14 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		m = m.with(sl)
 	}
 	return m
+}
+
+// landSetGap: sl lost its own abilities to land-type setters alone
+// (landSetLost) and can still be tapped for its intrinsic mana now: untapped,
+// not summoning-sick, under no CantBeActivated lock.
+func (s *State) landSetGap(k *prep, sl Slot) bool {
+	return k.gen.landSet && s.landSetLost(k, sl) && s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) &&
+		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
 }
 
 // tapsGapActivatable: the Taps-deferred gap at sl can be tapped for mana now:
