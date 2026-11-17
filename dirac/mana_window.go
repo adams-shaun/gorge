@@ -3318,7 +3318,10 @@ func (s *State) manaStep(k *prep) bool {
 				return true
 			}
 		case k.phyMana && s.phyBuild(k):
-			s.phyAbilityMana(k, e, &cost, &saved) // the plan for the cost its pips settled; the manual window when none (mana_phyrexian.go)
+			if !s.phyAbilityMana(k, e, &cost, &saved) { // the plan for the cost its pips settled; the manual window when none (mana_phyrexian.go)
+				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
+				return true
+			}
 		case s.bld().pipN != 0 && s.hybAbilityUnwitnessed(k, e, a, sl) && !s.poolPays(e.ctrl, &cost):
 			if !s.hybWindowPay(k, e, &cost, &saved, hostSl, sl, selfUntapped) {
 				return true // gorge's manual window for the hybrid-only cost (mana_resolutionpay.go)
