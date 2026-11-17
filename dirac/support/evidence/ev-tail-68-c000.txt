@@ -25,6 +25,8 @@ Assassin Den
 Assault Griffin
 Auriok Bladewarden
 Auriok Steelshaper
+Azorius Locket
+Balefire Liege
 Barrowgoyf
 Basal Thrull
 Bearer of Memory
