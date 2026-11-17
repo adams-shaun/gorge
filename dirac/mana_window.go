@@ -560,6 +560,16 @@ func (s *State) windowGrantPC(k *prep, sl Slot) *pcard {
 	if k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 		return &noManaPC // a CantBeActivated lock, a granted ability's too (cast_cantactivate.go)
 	}
+	if s.g.winMode == winTrig {
+		// a trigger's own cost window lists a Produced$ ColorIdentity source a
+		// rider or a cost beyond {T} kept out of the planner's census: it makes
+		// one mana of a colour in its controller's commander identity (CR
+		// 903.4), the shape gorge's potential-bound offer prices but the
+		// planner lists no unit for (legal.go identityPotentialView)
+		if pc, ok := s.identityPotentialView(k, sl); ok {
+			return pc
+		}
+	}
 	if len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || s.ownManaUsable(k, sl) {
 		return s.manaPCGen(k, sl)
 	}

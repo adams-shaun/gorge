@@ -4024,13 +4024,16 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 		// pay.CommanderIdentityColours). One with a rider (Path of Ancestry's
 		// scry, Opal Palace's counters) or a cost beyond {T} stays a source of no
 		// colour, which the kernel leaves out of payment: a TriggersWhenSpent$
-		// rider waits on that mana being spent, so it never triggers
+		// rider waits on that mana being spent, so it never triggers. It is still
+		// one gorge's potential fold prices at the identity
+		// (kop.Ability.ManaIdentityPotential; kernel legal.go availPotentialFor).
 		if ps.peek("TriggersWhenSpent") == "" && ps.peek("AddsCounters") == "" && lc.granted == 0 && reflTapCost(&ab.Cost) {
 			m.Special = "ReflectedIdentity"
 			m.Colors, m.Choice, m.Amount = "WUBRG", true, cst(1)
 			return lc.finishMana(sa, ps, ab, m)
 		}
 		ps.str("TriggersWhenSpent")
+		m.IdentityPotential = true
 		m.Colors = ""
 		m.Amount = cst(1)
 		return lc.finishMana(sa, ps, ab, m)

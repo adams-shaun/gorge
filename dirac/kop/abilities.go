@@ -84,7 +84,16 @@ type Ability struct {
 	// ColorIdentity). The colours are the union of CardDef.Identity over the
 	// controller's commander slots at each use; no commander reads nothing.
 	ManaIdentity bool
-	Gate         Gate // a threshold gate: the ability exists only while it holds
+	// ManaIdentityPotential: a Produced$ ColorIdentity source whose rider or
+	// cost beyond {T} kept kgen out of the ManaIdentity shape (Path of
+	// Ancestry's TriggersWhenSpent$, Opal Palace's AddsCounters$). It stays a
+	// source of no colour in the planner and payment, but gorge's potential
+	// fold still prices it at the controller's commander identity (rules
+	// potential.go addPotentialIdentityColours; kernel legal.go
+	// availPotentialFor and interp_ask.go anyManaSource). AbilityFlags has no
+	// free bit, so this is a table bool, not State.
+	ManaIdentityPotential bool
+	Gate                  Gate // a threshold gate: the ability exists only while it holds
 	// OwnReduce: an activated hand ability's own ReduceCost$ (Channel): its
 	// mana cost's generic part is reduced by this value, floored at zero,
 	// at the offer and the charge alike (gorge ownReduceCost; CR 601.2f).
