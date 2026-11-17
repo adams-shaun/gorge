@@ -1,6 +1,7 @@
 package pay
 
 import (
+	"slices"
 	"sort"
 	"strings"
 
@@ -128,6 +129,7 @@ func NonManaCastableP(e Engine, p state.PlayerID, id state.ObjID, cost *costvoca
 		return false
 	}
 	reserved := map[state.ObjID]bool{}
+	var sacd []state.ObjID // what the Sac parts claimed; counter removals may still draw on them
 	for _, part := range cost.Sac {
 		var avail []state.ObjID
 		matchSpec := SacrificeMatchSpec(part.Spec)
@@ -146,6 +148,7 @@ func NonManaCastableP(e Engine, p state.PlayerID, id state.ObjID, cost *costvoca
 		}
 		for i := int32(0); i < part.N; i++ {
 			reserved[avail[i]] = true
+			sacd = append(sacd, avail[i])
 		}
 	}
 	if !DiscardCostPayable(e, p, id, cost.Discard, !ability) {
@@ -451,18 +454,8 @@ func NonManaCastableP(e Engine, p state.PlayerID, id state.ObjID, cost *costvoca
 			// you control"), reserved against the earlier parts the same way.
 			// A source-anchored part keeps the pre-existing source read.
 			if !costvocab.SubCounterTargetsSource(part.Target) {
-				// A wildcard part sums its counters across candidates
-				// (SubCounterPartPayers, CR 118.3).
-				payers, ok := SubCounterPartPayers(e, p, id, part, reserved)
-				if !ok {
+				if !filteredSubCounterPayable(e, p, id, part, reserved, &sacd) {
 					return false
-				}
-				// Deterministically mirror the ask stage's reservation: the
-				// first candidates (candidates are in zone order) pay this
-				// part when the later parts of the same cost count the same
-				// pool. A board change before the ask aborts there.
-				for _, oid := range payers {
-					reserved[oid] = true
 				}
 				continue
 			}
@@ -475,6 +468,37 @@ func NonManaCastableP(e Engine, p state.PlayerID, id state.ObjID, cost *costvoca
 		}
 	} else if len(cost.SubCounter) > 0 || cost.Tap {
 		return false
+	}
+	return true
+}
+
+// filteredSubCounterPayable reports whether a filtered counter-removal part is
+// payable. A wildcard part sums its counters across candidates
+// (SubCounterPartPayers, CR 118.3). The counters come off before the
+// sacrifices settle, so a permanent a Sac part claimed (*sacd) still pays them:
+// The Filigree Sylex removes ten oil counters from among permanents, itself
+// the only one, then sacrifices itself (CR 118.3, 601.2h). The payers join
+// reserved, mirroring the ask stage's reservation (candidates are in zone
+// order; a board change before the ask aborts there), and leave *sacd so a
+// later part cannot draw on them again.
+func filteredSubCounterPayable(e Engine, p state.PlayerID, id state.ObjID, part costvocab.CostPart, reserved map[state.ObjID]bool, sacd *[]state.ObjID) bool {
+	view := reserved
+	if len(*sacd) > 0 {
+		view = make(map[state.ObjID]bool, len(reserved))
+		for oid := range reserved {
+			view[oid] = true
+		}
+		for _, oid := range *sacd {
+			delete(view, oid)
+		}
+	}
+	payers, ok := SubCounterPartPayers(e, p, id, part, view)
+	if !ok {
+		return false
+	}
+	for _, oid := range payers {
+		reserved[oid] = true
+		*sacd = slices.DeleteFunc(*sacd, func(s state.ObjID) bool { return s == oid })
 	}
 	return true
 }
