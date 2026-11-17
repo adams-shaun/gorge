@@ -2113,11 +2113,33 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 	}
 }
 
+// scriptGapOrder is the prefix search's gap order for play a: every gap in
+// battlefield order, but not the play's own source when its ability's cost
+// taps it. A permanent tapped for mana cannot also pay a {T} cost (CR 602.2b,
+// 118.3), so a prefix that tapped the source could only take the play's own
+// {T} away. Under Price of Glory every land of the non-active payer is a
+// Taps-deferred gap, and Ramunap Ruins's "{2}{R}{R}, {T}, Sacrifice a Desert"
+// was lost that way: the prefix tapped the Ruins before the other lands
+// funded it (pair 131, decision 286), while the Ruins stays the untapped
+// permanent its own {T} pays.
+func (s *State) scriptGapOrder(k *prep, a Action, p uint8, gaps slotMask, order []Slot) int {
+	if a.Kind() == AkActivate && a.Mode()&0x80 == 0 {
+		if o := Obj(a.Source()); s.objs[o].zone == kop.ZoneBattlefield && s.objs[o].slot != NoSlot {
+			if c := s.objs[o].card; int(a.Mode()) < len(k.t.Cards[c].Abilities) &&
+				k.t.Cards[c].Abilities[a.Mode()].Cost.Flags&kop.CostTap != 0 {
+				gaps = gaps.without(s.objs[o].slot)
+			}
+		}
+	}
+	return s.battlefieldOrder(p, gaps, order, 0)
+}
+
 // scriptDeadEndAny is scriptDeadEnd with a Courtyard, a Taps-deferred source
 // or a counter-cost gap among the gaps.
 func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr, ca slotMask) bool {
 	var order [MaxPerm]Slot
-	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca), order[:], 0)
+	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca)
+	n := s.scriptGapOrder(k, a, p, gaps, order[:])
 	var path [MaxPerm]uint8
 	dead := true
 	if _, ok := s.scriptDFS(k, a, p, order[:n], ctr, restr, anyR, tapsDef, ca, path[:], &dead); !ok {
@@ -2135,7 +2157,8 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 		return
 	}
 	var order [MaxPerm]Slot
-	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca), order[:], 0)
+	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca)
+	n := s.scriptGapOrder(k, a, p, gaps, order[:])
 	var path [MaxPerm]uint8
 	var dead bool
 	m, ok := s.scriptDFS(k, a, p, order[:n], ctr, restr, anyR, tapsDef, ca, path[:], &dead)
