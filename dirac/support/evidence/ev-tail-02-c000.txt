@@ -236,6 +236,7 @@ Obsianus Golem
 Ohabi Caleria
 Ojutai Interceptor
 Ojutai's Breath
+Ominous Seas
 On the Trail
 Ondu Cleric
 Orcish Mechanics
@@ -342,6 +343,7 @@ Toil
 Tome Raider
 Tormentor Exarch
 Tranquilize
+Trapjaw Kelpie
 Treachery
 Trusty Companion
 Unruly Krasis

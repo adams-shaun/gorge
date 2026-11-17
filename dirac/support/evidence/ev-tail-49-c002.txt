@@ -11,9 +11,11 @@ Artifact Ward
 Ashling the Pilgrim
 Augur of Bolas
 Avaricious Dragon
+Bad Moon
 Batroc the Leaper
 Batterbone
 Blightbeetle
+Blistering Barrier
 Blurred Mongoose
 Bog Initiate
 Boon Reflection
@@ -35,14 +37,19 @@ Charging Slateback
 Checkpoint Officer
 Chieftain en-Dal
 Citadel Gate
+Citanul Flute
+Cobblebrute
+Connive
 Corpse Connoisseur
 Countryside Crusher
 Crash
 Crimson Cowl, Master of Evil
+Cultist of the Absolute
 Daredevil's Billy Club
 Dark Bargain
 Dauntless Aven
 Dauntless Unity
+Death Cloud
 Demon's Jester
 Depala, Pilot Exemplar
 Desert of the Indomitable
@@ -54,12 +61,14 @@ Double Trouble
 Dragon Whelp
 Drake Haven
 Electrify
+Elemental Uprising
 Elenda, the Dusk Rose
 Elixir of Immortality
 Elvish Scrapper
 Elvish Visionary
 Emmara, Soul of the Accord
 Enduring Bondwarden
+Enlightened Ascetic
 Ent's Fury
 Eternity Vessel
 Ever After
@@ -67,12 +76,15 @@ Evernight Shade
 Expedite
 Extinguish the Light
 Faerie Duelist
+Fallen Shinobi
 Farid, Enterprising Salvager
 Feral Appetite
 Ferocious Pup
 Festering Newt
 Fevered Strength
 Feywild Visitor
+Fiery Mantle
+Flamecore Elemental
 Flames of the Firebrand
 Fleeting Spirit
 Forest
@@ -82,6 +94,8 @@ Garruk's Companion
 Gate to Phyrexia
 Gaze of Adamaro
 Geistblast
+Generous Stray
+Gibbering Barricade
 Gloomdrifter
 Gnat Alley Creeper
 Goblin Marshal
@@ -110,6 +124,7 @@ Island
 Island of Wak-Wak
 Jaya, Venerated Firemage
 Kaldra Compleat
+Kayla's Command
 Kazandu Blademaster
 Kei Takahashi
 Kessig Wolfrider
@@ -121,29 +136,39 @@ Kuldotha Rebirth
 Kyoshi Warrior Guard
 Lantern of Revealing
 Lantern of the Lost
+Lapis Lazuli Talisman
 Last Caress
 Lawmage's Binding
 Library
 Living Wish
 Long-Finned Skywhale
 Magistrate's Veto
+Maned Serval
 Manic Scribe
 Manifold Key
 Manta Riders
+Mask of Law and Grace
+Mass Hysteria
 Masticore
 Memory Plunder
+Merciless Eternal
+Merfolk Observer
 Mightstone's Animation
 Mind Harness
+Misery Charm
 Misery's Shadow
 Monologue Tax
 Moonwing Moth
 Moorish Cavalry
+Motivated Pony
 Mountain
 Murderous Compulsion
 Mystery Key
 Mythic Proportions
 Naiad of Hidden Coves
 Nico Minoru, Runaway
+Nightshade Seer
+Nim Grotesque
 Noose Constrictor
 Nylea's Colossus
 Ogre Gatecrasher
@@ -159,10 +184,12 @@ Pillaging Horde
 Pillarfield Ox
 Plains
 Poison Arrow
+Pooling Venom
 Prison Term
 Prodigy's Prototype
 Psychomancer
 Pyknite
+Quantum Entanglement
 Quicksilver Fisher
 RMS Titanic
 Radha, Heart of Keld
@@ -170,52 +197,71 @@ Rain of Salt
 Raking Claws
 Rampaging Cyclops
 Ray of Dissolution
+Razorgrass Ambush
 Reaver Titan
 Refocus
 Renari, Merchant of Marvels
+Resplendent Mentor
 Response
 Reverent Hoplite
+Rhystic Shield
 Righteous Cause
 Righteous Fury
 Riptide Pilferer
 Roc Charger
+Rocksteady, Mutant Marauder
+Rogue's Gloves
 Runebound Wolf
 Runner's Bane
 Sacred Fire
 Sage of Epityr
 Sanctum of Stone Fangs
+Sandstorm Eidolon
 Sarpadian Simulacrum
 Saruman the White
 Saw It Coming
 Scale Blessing
+Scapeshift
 Scout the Borders
 Scroll of the Masters
 Search the Premises
+Sedge Scorpion
 Seething Pathblazer
 Selesnya Sanctuary
 Serendib Efreet
+Serpent-Blade Assailant
+Shadowmage Infiltrator
+Shalai, Voice of Plenty
+Shape the Sands
 Sigarda, Heron's Grace
 Silver Bolt
 Silverquill Command
 Sleeper Agent
+Smelt
 Soul Shred
 Soulshriek
 Spawn-Gang Commander
 Stinging Hivemaster
+Stone Catapult
 Stonefury
 Storm Fleet Sprinter
+Stormchaser Mage
+Stormfront Pegasus
 Struggle for Skemfar
 Stump Stomp
 Supply Caravan
+Supreme Will
 Surgical Skullbomb
 Survivor of the Unseen
 Swamp
 Swarm of Bloodflies
 Swell of Growth
 Sylvan Anthem
+Symbiotic Elf
 Synod Sanctum
 Sythis, Harvest's Hand
 Tallyman of Nurgle
+Tamiyo's Logbook
 Tar Pitcher
 Teeterpeak Ambusher
 The Rack
@@ -225,6 +271,11 @@ Torment
 Touch of Brilliance
 Towering-Wave Mystic
 Tranquil Thicket
+Turn
+Twisted Embrace
+Ultimate Magic: Holy
+Undertaker
+Unraveling Mummy
 Vagrant Plowbeasts
 Vanquish the Weak
 Vault Guardsman
@@ -240,10 +291,12 @@ Wake Thrasher
 Wall of Essence
 Wall of Reverence
 Warpath
+Warteye Witch
 Watcher of the Spheres
 Wave-Wing Elemental
 Whip Silk
 Whiptongue Frog
+Whirlwind Technique
 Wildwood Geist
 Willow Faerie
 Willow-Wind
@@ -254,4 +307,5 @@ Wose Pathfinder
 Wu Longbowman
 Xun Yu, Wei Advisor
 Yuriko, the Tiger's Shadow
+Zephyr Charge
 Zoologist

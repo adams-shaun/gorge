@@ -11,11 +11,13 @@ Alpha Tyrranax
 Ambush Paratrooper
 Anaconda
 Anarchist
+Anowon, the Ruin Sage
 Anthousa, Setessan Hero
 Aphetto Alchemist
 Arc Lightning
 Arcane Teachings
 Archfiend of Despair
+Argivian Phalanx
 Argothian Opportunist
 Argothian Treefolk
 Armory Veteran
@@ -75,9 +77,11 @@ Colossal Growth
 Combat Medic
 Consider
 Council's Judgment
+Cradle Guard
 Crocodile of the Crossing
 Crumbling Vestige
 Dark-Dweller Oracle
+Darksteel Splicer
 Death-Hood Cobra
 Deathcap Cultivator
 Debt to the Kami
@@ -91,6 +95,7 @@ Demolition Stomper
 Demon Bolt
 Descent into Avernus
 Desert Drake
+Dictate of Heliod
 Dire Fleet Hoarder
 Dire Fleet Interloper
 Doombot Harbinger
@@ -186,6 +191,7 @@ Karstoderm
 Kazuul's Toll Collector
 Kederekt Leviathan
 Kessig Wolf
+Kokusho, the Evening Star
 Lagonna-Band Elder
 Launch Mishap
 Leaping Master
@@ -196,6 +202,7 @@ Leyline of the Meek
 Lifeline
 Lightning Blow
 Liquimetal Coating
+Longshot, Rebel Bowman
 Lost in the Woods
 Lumengrid Gargoyle
 Mad Dog
@@ -204,6 +211,7 @@ Marshal of Zhalfir
 Master Symmetrist
 Match the Odds
 Meandering River
+Meditation Puzzle
 Memory Deluge
 Mercurial Transformation
 Merfolk Branchwalker
@@ -229,6 +237,7 @@ Natural State
 Nearheath Stalker
 Nihil Spellbomb
 Nurturing Presence
+One with Death
 Ordeal of Heliod
 Orim, Samite Healer
 Otherworldly Journey
@@ -296,6 +305,7 @@ Shield of Kaldra
 Shire Shirriff
 Shu General
 Sidisi's Pet
+Sigrid, God-Favored
 Silverback Elder
 Sisters of the Flame
 Skeletal Snake
@@ -347,6 +357,7 @@ Take Up Arms
 Talas Air Ship
 Talas Explorer
 Talas Merchant
+Talon of Pain
 Tempered Sliver
 Tempest Harvester
 Terra Stomper
@@ -377,12 +388,14 @@ Verdant Field
 Vessel of Malignity
 Victory's Envoy
 Voltstorm Angel
+Vulpine Harvester
 Walking Wall
 Wall of One Thousand Cuts
 Wanderer's Twig
 Warbriar Blessing
 Warden of Geometries
 Warmth
+Warrant
 Weaver of Lightning
 Weldfast Wingsmith
 Wellwisher
@@ -395,6 +408,7 @@ Wing It
 Witness the End
 Yahenni, Undying Partisan
 Yavimaya Elder
+Yavimaya Kavu
 Yotian Medic
 Zephid
 Zombie Infestation

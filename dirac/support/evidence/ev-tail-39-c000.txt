@@ -301,6 +301,7 @@ Primeval Shambler
 Primordial Ooze
 Prismari Pianist
 Prized Elephant
+Psychic Drain
 Punish the Enemy
 Quandrix Campus
 Rack and Ruin
@@ -362,6 +363,7 @@ Skystrike Officer
 Slaughterhouse Bouncer
 Sleeper's Guile
 Smokespew Invoker
+Smoldering Tar
 Snapping Drake
 Soaring Thought-Thief
 Solemn Recruit

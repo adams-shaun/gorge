@@ -5,6 +5,7 @@ Alpha Tyrranax
 Answered Prayers
 Ant Queen
 Arc Trail
+Aven Mindcensor
 Awakened Awareness
 Barrage Tyrant
 Barrowgoyf
@@ -12,20 +13,24 @@ Besmirch
 Bewilder
 Brimstone Volley
 Burning Hands
+Burning Oil
 Carnage Wurm
 Carrion Call
 Cessation
 Chaos Terminator Lord
 Claws of Valakut
+Coldsteel Heart
 Consuming Corruption
 Cruel Witness
 Dark Prophecy
 Disciple of the Vault
 Dross Crocodile
+Echoing Ruin
 Emergency Weld
 Exemplar of Strength
 Fireflux Squad
 Fissure
+Flatten
 Flawless Maneuver
 Fledgling Mawcor
 Flusterstorm
@@ -40,6 +45,7 @@ God-Eternal Bontu
 Grasp of Darkness
 Grenzo, Havoc Raiser
 Horizon Explorer
+Horn of Gondor
 Hovermyr
 Ill-Gotten Inheritance
 Illusory Angel
@@ -54,25 +60,32 @@ Mana Short
 Mardu Runemark
 Master Transmuter
 Mite Overseer
+Mordant Dragon
 Mountain
 Mugging
 Nectar Faerie
 Nest Robber
 Nimbus Champion
+Nova Flame
 Oni of Wild Places
 Orcish Veteran
 Overload
 Pack's Betrayal
 Pelakka Predation
+Piety
 Plains
 Priests of Norn
 Psychic Impetus
 Ral's Dispersal
+Recall
+Resplendent Griffin
 Sage's Reverie
 Samut's Sprint
+Satyr Nyx-Smith
 Scytheclaw
 Sea Drake
 Seek the Horizon
+Serene Steward
 Sewer Rats
 Shadow of Mortality
 Shaman of the Pack
@@ -90,7 +103,9 @@ Urza's Guilt
 Votary of the Conclave
 Wakanda Forever!
 Water Servant
+Weatherlight
 Wellspring
+Wings of Aesthir
 Wolf's Quarry
 Woodland Bellower
 Wrangle

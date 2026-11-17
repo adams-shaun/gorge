@@ -1,9 +1,14 @@
 A-Plate Armor
+Aang, Airbending Master
 Abzan Runemark
 Ajani's Mantra
+Aku Djinn
+Angelic Purge
 Aven Trooper
 Barrel Down Sokenzan
+Betrayal
 Black Sun's Twilight
+Blinding Mage
 Bloodlust Inciter
 Boiling Blood
 Brainsurge
@@ -15,16 +20,22 @@ Chilling Trap
 Choke
 Chromatic Star
 City of Brass
+Cleopatra, Exiled Pharaoh
 Colossal Dreadmaw
 Concordant Crossroads
+Contortionist Troupe
 Curse of Predation
 Death Speakers
 Defenestrate
+Devoted Retainer
 Devouring Swarm
 Echoing Calm
 Eiganjo Castle
 Encroaching Wastes
+Endless Wurm
 Entish Restoration
+Esika's Chariot
+Feeding Frenzy
 Ferocious Charge
 Field Marshal
 Fire Ambush
@@ -34,31 +45,43 @@ Forest
 Frightcrawler
 Frontier Mastodon
 Gaea's Bounty
+Ghalma's Warden
 Ghoulcaller's Bell
+Gift of Paradise
 Gloomhunter
+Go-Shintai of Hidden Cruelty
 Goblin Arsonist
 Goblin Bushwhacker
 Goblin Tinkerer
+God-Eternal Rhonas
 Golden Ratio
+Griptide
+Grismold, the Dreadsower
 Guardian of the Guildpact
 Halberdier
 Hamletback Goliath
 Hardened Scales
 Harpoon Sniper
+Haunted Crossroads
 Horned Cheetah
 Horned Helm
 Hornet Cobra
+Incurable Ogre
 Inferno Fist
 Insidious Bookworms
 Island
 Khenra Charioteer
 Kiora's Follower
+Kjeldoran Pride
+Knights of Dol Amroth
 Land Leeches
 Lava Axe
 Liliana's Standard Bearer
 Lokhust Heavy Destroyer
 MACH-1, Swooping Scoundrel
+Magmatic Core
 Malicious Advice
+Marshaling Cry
 Master the Way
 Meadowboon
 Merciless Executioner
@@ -80,33 +103,46 @@ Oreskos Swiftclaw
 Painwracker Oni
 Pathbreaker Ibex
 Patient Rebuilding
+Plague Fiend
 Plains
 Planar Portal
 Pool Resources
 Portent of Betrayal
 Precision Bolt
+Prey Upon
+Psychotic Haze
 Pull from Tomorrow
 Purple Pentapus
 Putrid Imp
 Pyrrhic Blast
 Rag Dealer
+Rakshasa's Disdain
 Rancid Rats
 Razortooth Rats
+Reaper of the Wilds
+Reaping the Rewards
 Reaver Ambush
 Rekindled Flame
 Relief Captain
 Return to the Earth
 Reveille Squad
+Reverent Mantra
+Ring of Three Wishes
 Roar of the Crowd
 Roaring Slagwurm
 Roc Hunter
 Runeclaw Bear
 Sacred Cat
+Samurai Enforcers
 Sanctify
+Sapphire Dragon
 Scoria Wurm
 Scrivener
 Scurry Oak
+Seismic Mage
+Shagrat, Loot Bearer
 Sheltering Landscape
+Shu Yun, the Silent Tempest
 Sigarda's Summons
 Sign in Blood
 Silent Sentinel
@@ -118,6 +154,7 @@ Spectral Rider
 Spitfire Handler
 Steel Leaf Paladin
 Stenchskipper
+String of Disappearances
 Surrakar Marauder
 Swamp
 Sword of the Animist
@@ -131,6 +168,7 @@ Two-Headed Zombie
 Unholy Indenture
 Unquestioned Authority
 Vedalken Heretic
+Vhati il-Dal
 Vilis, Broker of Blood
 Vineweft
 Vintara Snapper
@@ -138,4 +176,5 @@ Viridian Longbow
 Wall of Heat
 Wei Scout
 Weirding Shaman
+Western Paladin
 Whispers of the Muse

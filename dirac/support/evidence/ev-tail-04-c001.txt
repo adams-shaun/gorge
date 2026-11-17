@@ -4,6 +4,7 @@ A-Sunbathing Rootwalla
 Akiri, Line-Slinger
 Alchemist's Retrieval
 Alley Strangler
+Alpha Myr
 Anaba Shaman
 Andúril, Narsil Reforged
 Angelic Exaltation
@@ -42,6 +43,7 @@ Browse
 Caller of the Pack
 Canyon Jerboa
 Carapace Forger
+Caustic Rain
 Celestial Unicorn
 Centaur Chieftain
 Charging Badger
@@ -71,7 +73,10 @@ Darkwater Egg
 Deadly Wanderings
 Death-Greeter's Champion
 Deathbloom Thallid
+Deepwood Drummer
+Dega Disciple
 Demonic Collusion
+Deputy of Acquittals
 Desperate Castaways
 Devotee of Strength
 Devouring Swarm
@@ -99,6 +104,7 @@ Evolutionary Leap
 Expose Evil
 Exultant Cultist
 Fantastic Elasticity
+Feast of Flesh
 Feebleness
 Fierce Witchstalker
 Filigree Sages
@@ -117,6 +123,7 @@ Glass Golem
 Gluttonous Zombie
 Goblin Fireslinger
 Goblin Gathering
+Gorgon's Head
 Greatsword of Tyr
 Greel's Caress
 Greensleeves, Maro-Sorcerer
@@ -193,6 +200,7 @@ Mortiphobia
 Mountain
 Nahiri's Binding
 Nantuko Shade
+Nav Squad Commandos
 Necklace of Girion
 Necrotic Wound
 Nim Replica
@@ -215,6 +223,8 @@ Patient Rebuilding
 Peach Garden Oath
 Phantom Wurm
 Phyrexian Broodstar
+Pilgrim of the Ages
+Pit Scorpion
 Placid Rottentail
 Plains
 Planar Gate
