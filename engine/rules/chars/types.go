@@ -215,11 +215,18 @@ func typesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 		// remaining one; a step with no such effect is a dependency cycle,
 		// which CR 613.8b resolves in timestamp order. Dependency is CR
 		// 613.8a's "applying the other would change what it applies to",
-		// simulated against the types-so-far: A's application -- and every
-		// further remaining effect A's application newly lets apply (so
-		// Conspiracy waits on Enchanted Evening through Opalescence) --
-		// changes B's match. Everything scans the timestamp-sorted act
-		// slice, so the order is deterministic.
+		// simulated against the group's entry list: A's application -- and
+		// every further remaining effect A's application newly lets apply
+		// (so Conspiracy waits on Enchanted Evening through Opalescence) --
+		// changes B's match. The base is the list as the walk found it, not
+		// the list as the walk has changed it so far: a grant that an earlier
+		// step's animate re-enabled still depends on a later animate's strip
+		// (applying it is what re-enabled the grant), and reading the base
+		// from the types-so-far would call the grant independent and let the
+		// later strip erase it. reach itself still simulates from the current
+		// list, so a partially applied chain (Enchanted Evening in, Opalescence
+		// waiting) still orders its remaining half. Everything scans the
+		// timestamp-sorted act slice, so the order is deterministic.
 		var doneBuf [16]bool
 		done := doneBuf[:0]
 		if n := hi - lo; n <= len(doneBuf) {
@@ -235,6 +242,11 @@ func typesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 			applied = make([]bool, n)
 		}
 		var sim []string
+		// The group's entry list: the dependency simulation's base. ty is never
+		// mutated in place (apply copies before its first change), so the
+		// header is the snapshot.
+		baseTy := ty
+		baseAll, baseFull := allCreatureTypes, full
 		// reach simulates applying effect j (then the closure of remaining
 		// effects it enables, never skip) to the current list.
 		reach := func(j, skip int) ([]string, bool, bool, bool) {
@@ -269,7 +281,7 @@ func typesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 			if act[lo+i].Affects == "Card.Self" {
 				return true
 			}
-			base := applies(&act[lo+i], ty, allCreatureTypes, full)
+			base := applies(&act[lo+i], baseTy, baseAll, baseFull)
 			for j := range done {
 				if j == i || done[j] {
 					continue
