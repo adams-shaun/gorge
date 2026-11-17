@@ -35,6 +35,50 @@ func (s *State) prevFromGrant(k *prep, sl Slot) bool {
 	return s.kwGen(k, sl)&kop.KwPreventCombatDamageFrom != 0 && !s.noPrev(k, true)
 }
 
+// recordPrevGrant remembers the source of an until-end-of-turn
+// KwPreventCombatDamageFrom / KwPreventCombatDamageTo grant on sl: gorge's
+// Effect names itself in the CR 616.1 option, not the creature it protects,
+// so the order ask needs the granting object. A full effect pool drops the
+// record (the grant still applies; only the option's name falls back).
+func (s *State) recordPrevGrant(sl Slot, m kop.KwMask) {
+	if m&(kop.KwPreventCombatDamageFrom|kop.KwPreventCombatDamageTo) == 0 {
+		return
+	}
+	src := s.res.e.obj
+	if src == NoObj {
+		return
+	}
+	if s.fxM.has(sl) {
+		for i := 0; i < int(s.g.nfx); i++ {
+			if r := &s.g.fx[i]; r.sl == sl && r.kind == fxPrevGrant {
+				r.r.p = int16(src)
+				return
+			}
+		}
+	}
+	if int(s.g.nfx) >= maxFx {
+		return
+	}
+	s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxPrevGrant, r: ovRec{p: int16(src)}}
+	s.g.nfx++
+	s.fxM.set(sl)
+}
+
+// prevGrantSrc is the object that granted sl its until-end-of-turn combat
+// damage prevention, or NoObj (a printed prevention, a directly set keyword,
+// or a dropped record: the ask names the protected permanent then).
+func (s *State) prevGrantSrc(sl Slot) Obj {
+	if !s.fxM.has(sl) {
+		return NoObj
+	}
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxPrevGrant {
+			return Obj(r.r.p)
+		}
+	}
+	return NoObj
+}
+
 // prevAnyTo reports whether the permanent at sl prevents every damage event
 // dealt to it, combat and noncombat ("Prevent all damage that would be dealt
 // to CARDNAME."), the printed fact gone with lost abilities or face down

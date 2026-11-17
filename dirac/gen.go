@@ -1842,6 +1842,7 @@ type ovRec struct {
 	ts uint16
 	// p, t are the record's set P/T values, computed at application (a
 	// value-driven Animate: Power$/Toughness$ read once at resolution).
+	// fxPrevGrant stores the granting object in p (combat_prevention.go).
 	p, t int16
 }
 
@@ -1897,6 +1898,7 @@ const (
 	fxAegisBase              // the copy a bearer wore (r.src its card) when an Aegis stack took over with no copy marker of its own, which shows again when the last Aegis copy ends (copy_aegisunder.go)
 	fxAegisHeld              // a copy exception of the copy an Aegis stack covered (r.idx), held aside while the Aegis copy shows: no marker can rebuild it (copy_aegisunder.go aegisHold)
 	fxCopySelf               // a self-copy layer's inherited copy exception (r.idx, r.ts the layer's timestamp), held beside the layer because its template is the becomer itself (copy_clone.go cloneSelfHeldPush)
+	fxPrevGrant              // an until-end-of-turn KwPreventCombatDamageFrom/To grant's source (r.p the granting object; combat_prevention.go recordPrevGrant)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
