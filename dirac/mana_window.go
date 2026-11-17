@@ -351,7 +351,8 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				col = c // the unsettled generic keeps every colour: the grant that makes the owed pip is listed first (mana_grantfirst.go)
 			}
 		}
-		sacOnly := windowSacOnly(k, pc) // printed or granted (mana_grantcost.go)
+		pc = s.windowGrantAnswer(k, sl, col, pc) // the answer is a colour only a granted ability makes: the tap is the grant's (mana_grantcost.go)
+		sacOnly := windowSacOnly(k, pc)          // printed or granted (mana_grantcost.go)
 		if k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDyn(k, p, cost, sl) {
 			continue
 		}
