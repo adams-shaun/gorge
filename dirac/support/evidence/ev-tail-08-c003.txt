@@ -6,10 +6,12 @@ Anurid Barkripper
 Archghoul of Thraben
 Assassin Initiate
 Aven Gagglemaster
+Bankrupt in Blood
 Barrenton Cragtreads
 Barrin's Codex
 Battle Sliver
 Benalish Missionary
+Blood Seeker
 Captain America, Liberator
 Clockwork Fox
 Coercive Impetus
@@ -21,6 +23,8 @@ Death Speakers
 Death Wind
 Divest
 Domestication
+Drana's Emissary
+Dread Specter
 Dromoka's Gift
 Drudge Reavers
 Duergar Mine-Captain
@@ -30,6 +34,7 @@ Electrify
 Elvish Hunter
 Energy Arc
 Enfeeblement
+Engulf the Shore
 Eyeblight's Ending
 Faerie Macabre
 Feast or Famine
@@ -37,6 +42,8 @@ Fetid Gargantua
 Flare
 Flowstone Mauler
 Forest
+Frenetic Efreet
+Glarewielder
 Go-Shintai of Shared Purpose
 Goblin Sky Raider
 Goblin Soothsayer
@@ -64,12 +71,15 @@ Kolaghan Warmonger
 Krazy Kow
 Last Breath
 Last Kiss
+Lat-Nam Adept
 Lone Missionary
+Lynx
 Magmaroth
 Mardu Hateblade
 Marsh Casualties
 Mass Appeal
 Military Discipline
+Militia Bugler
 Mind Slash
 Mogg Maniac
 Mother Kangaroo
@@ -92,8 +102,10 @@ Ral's Outburst
 Rally at the Hornburg
 Ratcatcher
 Regisaur Alpha
+Relic Bind
 Reverent Mantra
 Righteous Fury
+Ruthless Deathfang
 Scourge of the Nobilis
 Screeching Drake
 Selesnya Charm
@@ -108,6 +120,7 @@ Slimy Piper
 Sorcerer's Strongbox
 Soulblade Djinn
 Spectral Flight
+Sphere of Reason
 Spore Crawler
 Stalwart Aven
 Stand

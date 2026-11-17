@@ -79,6 +79,7 @@ Orthion, Hero of Lavabrink
 Orzhov Enforcer
 Overwhelming Encounter
 Pawn of Ulamog
+Phantom Tiger
 Plains
 Plated Crusher
 Porcelain Legionnaire
@@ -121,6 +122,7 @@ Unbounded Potential
 Unsubstantiate
 Urborg Uprising
 Wave-Wing Elemental
+Wickerbough Elder
 Wildheart Invoker
 Windstorm Drake
 Wood Elves

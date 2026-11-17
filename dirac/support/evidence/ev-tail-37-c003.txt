@@ -13,8 +13,10 @@ Atog
 Atrocious Experiment
 Automated Artificer
 Avalanche Riders
+Aven Reedstalker
 Barricade Breaker
 Beast Whisperer
+Big Wheel
 Blightreaper Thallid
 Blitz Leech
 Bog Tatters
@@ -36,6 +38,7 @@ Conclave Evangelist
 Conductor of Cacophony
 Constant Mists
 Controlled Instincts
+Crawling Chorus
 Crumbling Ashes
 Crusher Zendikon
 Culling Ritual
@@ -43,11 +46,13 @@ Darkness
 Deadbridge Shaman
 Deal Broker
 Deathbringer Regent
+Delightful Discovery
 Demon of Wailing Agonies
 Deploy the Gatewatch
 Despondency
 Deviant Skytech
 Dire Mimic
+Drag to the Underworld
 Dragon Moose
 Drogskol Cavalry
 Earth-Cult Elemental
@@ -57,7 +62,9 @@ Elenda's Hierophant
 Elusive Krasis
 Enlisted Wurm
 Esper Cormorants
+Exultant Cultist
 Fallaji Excavation
+Fate Forgotten
 Flame of Anor
 Fleshbag Marauder
 Force of Despair
@@ -69,34 +76,42 @@ God-Eternal Rhonas
 Gray Merchant of Asphodel
 Great Sable Stag
 Greatsword
+Guard Gomazoa
 Harmonic Prodigy
 Heartbeat of Spring
 Honor the God-Pharaoh
 Hooded Hydra
 Icatian Crier
 In the Trenches
+Incubator Drone
 Infiltrate
 Infused Arrows
 Island
 Juzám Djinn
 Kabira Takedown
 Karlach, Fury of Avernus
+Kasimir the Lone Wolf
 Kavu Climber
 Lazotep Reaver
 Lieutenant Kirtar
 Lightning Axe
 Llanowar Stalker
 Looter il-Kor
+Loxodon Gatekeeper
 Lumithread Field
 Malevolent Rumble
 Marionette Master
 Master Apothecary
+Meishin, the Mind Cage
 Midnight Scavengers
+Mindstatic
 Mirror Wall
 Mob
 Monk Realist
 Mountain
 Mystifying Maze
+Nearheath Chaplain
+Niambi, Faithful Healer
 Organ Hoarder
 Paralyzing Grasp
 Pestilent Souleater
@@ -107,28 +122,37 @@ Presence of Gond
 Presence of the Master
 Primal Empathy
 Protomatter Powder
+Psionic Sliver
 Pumpkin Bombs
 Quarrel's End
 Quest for Pure Flame
+Quicksilver Gargantuan
 Quirion Sentinel
+Ral's Outburst
 Ravenous Skirge
 Reach of Branches
+Reduce to Dreams
 Rhox Oracle
+Riptide
 Robot Chicken
 Rootwater Commando
 Rubblebelt Runner
 Ruby Medallion
 Sandstorm Charger
 Scrubland
+Sea Legs
 Sejiri Shelter
 Shatterstorm
 Shimmering Mirage
 Shrieking Mogg
 Silkguard
+Silundi Vision
 Skyway Sniper
 Snapping Voidcraw
+Soratami Rainshaper
 Sorin's Vengeance
 Soul Reap
+Spellheart Chimera
 Staunch Defenders
 Steadfast Paladin
 Steel Overseer
@@ -140,14 +164,18 @@ Swarm Guildmage
 Tainted Indulgence
 Tangle Mantis
 Target Minotaur
+Terminal Agony
 The Brute
 The Torment of Gollum
 Tithebearer Giant
 Towashi Guide-Bot
+Tradewind Rider
+Undead Butler
 Undergrowth Scavenger
 Vanquish the Foul
 Voices from the Void
 Walking Archive
+Warped Physique
 Whisper Squad
 Wicker Witch
 Wildfire Emissary

@@ -1,0 +1,53 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Artisan of Forms	2ece83d9e9c534a0	42	1/1		1/1	
+Bathe in Dragonfire	662e4e767748140c	6	0/0		1/2	ix:resp
+Big Apple, 3 a.m.	c500e13e72b11b90	13	2/2		0/1	ix:resp
+Blessed Spirits	099a77f93ebd3199	4	1/1		0/1	ix:resp
+Blighted Fen	527fb3db343cd3ce	14	2/2		0/1	ix:resp
+Canyon Minotaur	bd6444d59ea6f4e4	6	0/0		0/0	
+Ceremonial Knife	efb5e5a7ddb90047	4	1/1		0/1	ix:resp
+Circuit Mender	2c9ee9220dbfe9bc	4	2/2		0/1	ix:resp
+Coral Helm	5f24b57d5967b301	4	1/1		0/1	ix:resp
+Cruel Grimnarch	2a1dce3f05ce3eaa	4	1/1		1/1	
+Decaying Time Loop	69548488f33bd524	13	0/0		2/2	
+Ebony Charm	5dea4cc8b6be209e	10	0/0		2/2	
+Flutterfox	ef85a3cafc8dc210	6	0/0		0/0	
+Gargoyle Castle	a9d9a72e48b40037	16	2/2		0/1	ix:resp
+Glamorous Grapplers	4b01f2cb1ad11b19	4	0/0		0/0	
+Goblin King	d965a7b8ce1cc5b6	3	0/0		0/0	
+Golgari Keyrune	6148973afa9cfe58	8	2/2		0/1	ix:resp
+Heliod's Punishment	99da4ba5ee42e6db	4	0/0		2/2	
+Hell's Caretaker	2900a12f6c41564f	4	1/1		0/1	ix:resp
+Ice Floe	7238e5a4eee73648	8	1/1		0/1	ix:resp
+Iron-Heart Chimera	1bd49c09b12456b0	6	1/1		0/1	ix:resp
+Izzet Boilerworks	5dc9e723f7ac6fd4	24	2/2		0/1	ix:resp
+Jamuraan Lion	b26b5f7a63c6a658	4	1/1		1/1	
+Krovikan Whispers	8dc3f7f15ed8251f	5	2/2		1/2	ix:resp
+Landslide	a4eaf305f5c25a7e	4	0/0		1/2	ix:resp
+Launch Party	d479c94261de88c1	4	0/0		2/2	
+Looming Spires	30a2a2b92249acdb	6	2/2		0/1	ix:resp
+Master Healer	27226f822ab5ed26	4	1/1		1/1	
+Merchant Raiders	3d89b90a2c5f9c52	4	1/1		0/1	ix:resp
+Minotaur Sureshot	86cc30139afb9893	4	1/1		1/1	
+Niv-Mizzet, Dracogenius	48eacd6d658b4518	4	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Oona's Grace	21754f394ff86b9a	4	0/0		2/2	
+Outrider of Jhess	f98e5919a3f9570b	6	1/1		0/1	ix:resp
+Pardic Firecat	4d8cc25f4c68e5e5	3	0/0		0/0	
+Pensive Minotaur	0c7eaf562e123f44	6	0/0		0/0	
+Pull from the Deep	ab9a3cfefa890e04	6	0/0		1/2	ix:resp
+Ray of Enfeeblement	51e0e7c254aa951c	6	0/0		1/2	ix:resp
+Reckless Ogre	cfb574aaab9b093e	3	1/1		0/1	ix:resp
+Reflex Sliver	c557a28c9fbf59eb	3	0/0		0/0	
+Revenge of Ravens	f2375406053249df	8	1/1		1/1	
+Ritual of the Machine	d78e81c20f7a9d4f	5	0/0		2/2	
+Shinka, the Bloodsoaked Keep	281b03ec1f8d0881	10	2/2		0/1	ix:resp
+Skirk Ridge Exhumer	3cc109eee1bbae21	8	1/1		0/1	ix:resp
+Snapping Thragg	5a6d43aabe999bbe	4	1/1		1/3	cast/alt:morphed,ix:resp
+Soratami Mirror-Guard	6d152a067b2d9d32	4	1/1		0/1	ix:resp
+The First Eruption	168928b331b1cf94	4	0/0		0/0	
+Thraben Gargoyle	ada03746f61d187c	4	1/1		0/1	ix:resp
+Urborg Repossession	0187c6f697368994	4	0/0		2/4	cast/alt:kicked,ix:resp
+Witch's Familiar	8bfdae66ceb73a94	4	0/0		0/0	
+Witch's Oven	d0cfc5f12deba55e	7	1/1		1/1	
+Yavimaya Coast	3e5973ebc7e03e0a	17	2/2		0/1	ix:resp
+Zombie Cannibal	9443a0a84e4bc03e	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp

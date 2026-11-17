@@ -3,6 +3,7 @@ Abyssal Hunter
 Ace, Fearless Rebel
 Agent of the Iron Throne
 Alchemist's Retrieval
+Ambush
 Archon of Emeria
 Argothian Pixies
 Arisen Gorgon
@@ -18,6 +19,7 @@ Brokers Veteran
 Broodbirth Viper
 Canal Monitor
 Carrion
+Carrion Rats
 Cateran Slaver
 Ceaseless Conflict
 Citizen's Crowbar
@@ -36,11 +38,13 @@ Dolmen Gate
 Donate
 Electrostatic Bolt
 Erratic Visionary
+Etched Monstrosity
 Evincar's Justice
 Farmstead
 Fate Foretold
 Fathom Fleet Firebrand
 Festering March
+Fit of Rage
 Flaming Fist
 Fleshmad Steed
 Flowstone Blade
@@ -57,6 +61,7 @@ Glimpse the Unthinkable
 Gloom Sower
 Goblin Berserker
 Goblin Grenadiers
+Goblin Machinist
 Goblin Wizardry
 Gorilla Titan
 Grenzo's Cutthroat
@@ -70,6 +75,7 @@ Hollowhenge Spirit
 Hunter's Bow
 Ill-Tempered Loner
 Immortal Servitude
+Increasing Vengeance
 Indulgent Tormentor
 Inga Rune-Eyes
 Ironhoof Ox
@@ -79,12 +85,14 @@ Jungle Wurm
 Kamahl, Heart of Krosa
 Kami of Industry
 Kelsinko Ranger
+Ken, Burning Brawler
 Koilos Roc
 Lady Orca
 Landbind Ritual
 Lulu, Stern Guardian
 Magus of the Bazaar
 Marauding Dreadship
+Mephitic Vapors
 Mistral Charger
 Moat
 Monoskelion
@@ -123,18 +131,23 @@ Revered Elder
 Rhox Pikemaster
 Ribbons of the Reikai
 Ridged Kusite
+Risk Factor
 Rites of Initiation
 Rogue Kavu
 Rushblade Commander
 Safe Passage
 Saurian Symbiote
+Scampering Scorcher
 Scourglass
 Sea Monster
 Security Detail
 Seize the Storm
+Seizures
 Serenity
 Shadowstorm
+Shambling Shell
 Sidisi's Faithful
+Sima Yi, Wei Field Marshal
 Skyclave Pick-Axe
 Sleep with the Fishes
 Sonic Assault
@@ -167,5 +180,6 @@ Warmonger's Chariot
 Weary Prisoner
 Wild Cantor
 Wild Mongrel
+Wing Splicer
 Wingshield Agent
 Workshop Elders

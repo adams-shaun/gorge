@@ -18,6 +18,7 @@ Angelfire Ignition
 Arashin Cleric
 Arborback Stomper
 Arcade Gannon
+Arcbound Lancer
 Architect of the Untamed
 Argivian Phalanx
 Army of the Damned
@@ -37,6 +38,7 @@ Benalish Sleeper
 Bereavement
 Birthing Ritual
 Bladed Ambassador
+Blanka, Ferocious Friend
 Blightbeetle
 Bloodcrazed Paladin
 Boil
@@ -45,6 +47,7 @@ Bomat Bazaar Barge
 Bravado
 Brazen Borrower
 Breakneck Berserker
+Brood of Cockroaches
 Brushfire Elemental
 Burgeoning
 Burning-Yard Trainer
@@ -79,6 +82,7 @@ Deadly Dispute
 Deceive the Messenger
 Deem Inferior
 Demonic Gifts
+Depopulate
 Desecrated Tomb
 Desolate Mire
 Destructive Revelry
@@ -190,9 +194,11 @@ Krosan Restorer
 Krosan Verge
 Lacerate Flesh
 Lash of Malice
+Last Laugh
 Lavafume Invoker
 Lead-Belly Chimera
 Lena, Selfless Champion
+Lightning Blow
 Lightwielder Paladin
 Living Lightning, Charged Up
 Llanowar Empath
@@ -320,6 +326,7 @@ Skyshroud Behemoth
 Slag Fiend
 Slaughterhorn
 Slinking Giant
+Sol'kanar the Swamp King
 Soldier of Fortune
 Soldier of the Grey Host
 Soratami Mirror-Mage

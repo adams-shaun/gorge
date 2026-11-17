@@ -5,6 +5,7 @@ A-Glittermonger
 A-Midnight Assassin
 Adrix and Nev, Twincasters
 Aegis of the Heavens
+Aerith, Last Ancient
 Aeromunculus
 Aeronaut Tinkerer
 Aether Helix
@@ -21,6 +22,7 @@ Araumi of the Dead Tide
 Archers' Parapet
 Arcum Dagsson
 Argothian Swine
+Arjun, the Shifting Flame
 Artifact Blast
 Artisan of Kozilek
 Asgardian Inspiration
@@ -72,6 +74,7 @@ Colossodon Yearling
 Commune with Dinosaurs
 Conquering Manticore
 Contract Hero
+Converter Beast
 Coordinated Charge
 Corrupted Zendikon
 Cosmic Crucible
@@ -168,6 +171,7 @@ Iconic Shield
 Increasing Savagery
 Incubation
 Infiltrator il-Kor
+Inspiring Statuary
 Insufferable Balladeer
 Inventor's Apprentice
 Island
@@ -194,6 +198,7 @@ Liability
 Lightbringer
 Liliana's Caress
 Llanowar Empath
+Lobber Crew
 Lose Hope
 Lost Leonin
 Loxodon Stalwart
@@ -215,6 +220,7 @@ Mirozel
 Molten Blast
 Moonring Island
 Moonsnare Specialist
+Moorland Drifter
 Morgul-Knife Wound
 Mossdog
 Mountain
@@ -261,6 +267,7 @@ Plated Sliver
 Plundering Predator
 Pouncing Jaguar
 Precognition
+Predict
 Prosperous Bandit
 Psionic Snoop
 Psychic Miasma
@@ -269,7 +276,9 @@ Pyreswipe Hawk
 Pyroceratops
 Queen's Bay Soldier
 Rage Reflection
+Raggadragga, Goreguts Boss
 Ranger's Path
+Rebuild
 Recalibrate
 Renewal
 Rescue, Pepper Potts

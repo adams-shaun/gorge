@@ -8,6 +8,8 @@ Apothecary Initiate
 Argivian Find
 Armored Cancrix
 Armored Skaab
+Astarion, the Decadent
+Avacyn and Griselbrand
 Awaken the Sky Tyrant
 Bandage
 Barbary Apes
@@ -20,6 +22,7 @@ Brass Man
 Brood Weaver
 Brought Back
 Burning-Yard Trainer
+Cartographer
 Cathar's Call
 Cement Shoes
 Champion of Dusk
@@ -29,12 +32,16 @@ Cloudfin Raptor
 Corpse Churn
 Cutthroat Negotiator
 Deb Thomas
+Dora Milaje Elite
 Dream Trawler
 Drizzt Do'Urden
+Dwarven Demolition Team
 Eldrazi Mimic
 Emberwilde Caliph
 Embodiment of Fury
+Ethereal Absolution
 Experimental Armor
+Explosive Entry
 Eye of Yawgmoth
 Faerie Seer
 Falconer Adept
@@ -49,11 +56,13 @@ Glamorous Grapplers
 Gluttonous Troll
 Gold-Forged Thopteryx
 Golem's Heart
+Golgari Keyrune
 Golgari Raiders
 Graviton, Fundamental Force
 Great Defender
 Halo Scarab
 Hornet Nest
+Hot Springs
 Hymn to Tourach
 Illusionary Informant
 Innocent Blood
@@ -64,24 +73,32 @@ Jeering Homunculus
 Jewel Thief
 Jolted Awake
 Kaseto, Orochi Archmage
+Launch Party
 Leaf Gilder
+Leyline of Vitality
 Lightning Surge
 Lost Soul
 Loxodon Warhammer
 Mantle of Webs
+Marang River Skeleton
 Marsh Boa
+Merchant Raiders
 Molten Vortex
 Mountain
 Mystic Melting
 Nim Shambler
 Nirkana Revenant
 Nuka-Cola Vending Machine
+Onward
+Ordruun Veteran
 Outnumber
 Overwhelmed Apprentice
 Ox of Agonas
 Peek
 Pemmin's Aura
+Pestilence Demon
 Phyrexian Battleflies
+Phyrexian Marauder
 Plague Mare
 Plains
 Pounce
@@ -89,8 +106,11 @@ Pre-War Formalwear
 Putrefax
 Rats of Rath
 Ray of Enfeeblement
+Recoup
 Renewing Dawn
+Return to the Earth
 Rhizome Lurcher
+Rotten Reunion
 Rule of Law
 Sanctum of Shattered Heights
 Seraph of the Masses
@@ -98,8 +118,10 @@ Shadowheart, Dark Justiciar
 Shamble Back
 Simic Keyrune
 Sire of the Storm
+Skirk Ridge Exhumer
 Soot Imp
 Soul Collector
+Soul Link
 Soul's Grace
 Spellbound Dragon
 Splinter, the Mentor
@@ -109,6 +131,7 @@ Stronghold Taskmaster
 Sungrace Pegasus
 Suntail Hawk
 Swamp
+Sword of Feast and Famine
 Teferi's Ageless Insight
 Teleportation Circle
 Thalakos Scout
@@ -121,9 +144,12 @@ Ultimate Magic: Holy
 Valorous Steed
 Venser, Shaper Savant
 Vindictive Triumph
+Vizier of Remedies
 Wall of Kelp
 Warlord's Fury
 Whispersilk Cloak
+Wild Defiance
 Winged Sliver
 Wirewood Pride
+Witch's Oven
 Zombie Cannibal

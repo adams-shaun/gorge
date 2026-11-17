@@ -23,6 +23,7 @@ Brushwagg
 Cadira, Caller of the Small
 Careless Celebrant
 Carnophage
+Carrion Crow
 Celestial Purge
 Cephalid Looter
 Charging Tuskodon
@@ -87,6 +88,7 @@ Lifeblood Hydra
 Lotus Field
 Malakir Cullblade
 Mardu Woe-Reaper
+Marsh Gas
 Merfolk Looter
 Minotaur Tactician
 Mirran Spy
@@ -99,6 +101,7 @@ Necromancer's Assistant
 Needleshot Gourna
 Needletooth Raptor
 Nemesis of Mortals
+Nerd Rage
 Nimble Pilferer
 Nylea's Emissary
 One with the Stars

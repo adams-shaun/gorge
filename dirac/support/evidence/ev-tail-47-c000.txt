@@ -39,6 +39,7 @@ Blisterstick Shaman
 Bloodlust Inciter
 Bloodrite Invoker
 Bloodthirsty Blade
+Bloodthirsty Ogre
 Bloodthrone Vampire
 Bomat Bazaar Barge
 Bow of Nylea
@@ -70,6 +71,7 @@ Conclave Sledge-Captain
 Conquer
 Consider
 Consume Spirit
+Copycrook
 Countermand
 Creative Technique
 Crucible of Fire
@@ -116,6 +118,7 @@ Elspeth's Nightmare
 Elvish Berserker
 Emberstrike Duo
 Embodiment of Insight
+Endangered Armodon
 Energy Tap
 Environmental Sciences
 Erase
@@ -213,6 +216,7 @@ Lae'zel, Vlaakith's Champion
 Laurine, the Diversion
 Leonin Elder
 Leonin Iconoclast
+Light of Sanction
 Lignify
 Livonya Silone
 Lone Revenant
@@ -256,6 +260,7 @@ Nesting Wurm
 Nine-Ringed Bo
 Nourish
 Nurturing Presence
+Oath of Liliana
 Obsidian Obelisk
 Open the Vaults
 Origin of the Hidden Ones
@@ -338,6 +343,7 @@ Simian Simulacrum
 Simic Ragworm
 Singing Bell Strike
 Siren Lookout
+Sisters of Stone Death
 Skeletal Grimace
 Sky Diamond
 Skyknight Vanguard
@@ -439,6 +445,7 @@ Volcanic Island
 Voracious Vampire
 Vow of Wildness
 Voyage's End
+Vraska, Regal Gorgon
 Walking Corpse
 Wandering Stream
 Wandering Treefolk

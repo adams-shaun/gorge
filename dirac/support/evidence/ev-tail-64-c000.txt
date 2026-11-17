@@ -92,6 +92,7 @@ Cutthroat Centurion
 Cyberdrive Awakener
 Dakmor Bat
 Dance of the Skywise
+Dandân
 Danitha, New Benalia's Light
 Daring Demolition
 Dark Betrayal
@@ -250,6 +251,7 @@ Kumena's Awakening
 Kyoki, Sanity's Eclipse
 Labyrinth Raptor
 Lapse of Certainty
+Lash Out
 Learn from the Past
 Legion Guildmage
 Legions to Ashes
@@ -320,6 +322,7 @@ Noxious Ghoul
 Obelisk of Grixis
 Obelisk of Jund
 Ogre Recluse
+Opaline Sliver
 Ordeal of Thassa
 Order of the Mirror
 Outland Boar
@@ -469,6 +472,7 @@ Trelasarra, Moon Dancer
 Tremor
 Triskelavus
 Tukatongue Thallid
+Uncontrolled Infestation
 Unruly Krasis
 Urborg Syphon-Mage
 Valkyrior Skyrider
@@ -493,6 +497,7 @@ Weldfast Monitor
 Whiptongue Hydra
 White Knight
 Wild Aesthir
+Windreaver
 Windrider Wizard
 Witness of the Ages
 Wurmcoil Larva

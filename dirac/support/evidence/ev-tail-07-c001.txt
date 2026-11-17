@@ -168,6 +168,7 @@ Grayscaled Gharial
 Gruul Ragebeast
 Gryff's Boon
 Hajar, Loyal Bodyguard
+Hallowed Burial
 Hallowed Respite
 Harness Infinity
 Harvester Troll
@@ -337,9 +338,11 @@ Shimmer Myr
 Shore Keeper
 Shoreline Raider
 Sight of the Scalelords
+Siphon Insight
 Skarrg Goliath
 Skull of Orm
 Somberwald Spider
+Soulcipher Board
 Spaceshift
 Spark Mage
 Spark Reaper
@@ -423,6 +426,7 @@ Will of the All-Hunter
 Windrider Patrol
 Wolfsbane, Highland Hero
 Woodvine Elemental
+Woolly Mammoths
 Wormhole Serpent
 Wreak Havoc
 Wurm's Tooth

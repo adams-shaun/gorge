@@ -29,6 +29,7 @@ Assimilate Essence
 Atreus, Impulsive Son
 Aven Gagglemaster
 Awesome Presence
+Azorius Skyguard
 Back to Basics
 Back to Nature
 Baleful Beholder
@@ -147,11 +148,13 @@ Epicenter
 Essence Infusion
 Eternal Flame
 Etherium Sculptor
+Ethersworn Sphinx
 Excise
 Excise the Imperfect
 Execute
 Exemplar of Strength
 Expedition Champion
+Experiment Kraj
 Extract the Truth
 Eyes of the Wisent
 Ezio, Blade of Vengeance
@@ -251,6 +254,7 @@ Knowledge Is Power
 Kokusho, the Evening Star
 Koskun Falls
 Krav, the Unredeemed
+Krile Baldesion
 Kruphix's Insight
 Landscaper Colos
 Lava Hounds
@@ -346,6 +350,7 @@ Planar Cleansing
 Poison the Blade
 Power Plant Worker
 Power of Fire
+Priest of the Haunted Edge
 Pyrohemia
 Qarsi High Priest
 Quagmire Druid
@@ -438,8 +443,10 @@ Stun Sniper
 Sudden Insight
 Sulfurous Blast
 Sultai Skullkeeper
+Sumala Rumblers
 Sun Ce, Young Conquerer
 Swamp
+Sword of Fire and Ice and War and Peace
 Sylvok Explorer
 Syphon Flesh
 Tainted Strike

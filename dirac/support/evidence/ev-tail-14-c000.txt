@@ -21,9 +21,11 @@ Archnemesis
 Argivian Archaeologist
 Armor Thrull
 Armored Whirl Turtle
+Assault Suit
 Auriok Champion
 Avacynian Priest
 Avalanche Riders
+Avalanche Tusker
 Aven Archer
 Awaken the Woods
 Barrage Ogre
@@ -53,6 +55,7 @@ Briar Shield
 Brinelin, the Moon Kraken
 Brothers of Fire
 Buy Your Silence
+Calcite Snapper
 Call to Serve
 Caravan Hurda
 Carnassid
@@ -128,6 +131,7 @@ Eyes in the Skies
 Ezuri, Claw of Progress
 False Defeat
 Famished Paladin
+Fearless Pup
 Feast or Famine
 Feedback
 Fire Diamond
@@ -140,6 +144,7 @@ Flitterstep Eidolon
 Fog of War
 Font of Progress
 Foothill Guide
+Force Away
 Force of Nature
 Forest
 Forgotten Sentinel
@@ -160,6 +165,7 @@ Goblin Wardriver
 Gold Myr
 Golgari Rotwurm
 Goretusk Firebeast
+Graham O'Brien
 Gravel-Hide Goblin
 Grip of the Roil
 Groffskithur
@@ -218,6 +224,7 @@ Krumar Bond-Kin
 Kuro's Taken
 Lagomos, Hand of Hatred
 Laid to Rest
+Landscaper Colos
 Leering Emblem
 Leonin of the Lost Pride
 Lethal Protection
@@ -450,6 +457,7 @@ Vanishment
 Vastwood Hydra
 Vault 87: Forced Evolution
 Vault Skyward
+Veldrane of Sengir
 Veteran Armorer
 Vicious Battlerager
 Villainous Ogre
@@ -466,6 +474,7 @@ Wild Celebrants
 Willow Dryad
 Wily Bandar
 Wipe Clean
+Withering Hex
 Wolf Cove Villager
 Woodcaller Automaton
 Wooden Cane

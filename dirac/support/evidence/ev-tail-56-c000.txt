@@ -252,6 +252,7 @@ Mind Funeral
 Mind's Eye
 Minsc, Beloved Ranger
 Mirran Banesplitter
+Mirror of Life Trapping
 Misdirection
 Mishra's Helix
 Mobilized District
@@ -316,6 +317,7 @@ Put Away
 Pygmy Allosaurus
 Rabid Wombat
 Raking Claws
+Rampant Elephant
 Raphael, the Muscle
 Rathi Fiend
 Reclusive Wight
@@ -343,6 +345,7 @@ Scouting Hawk
 Sea Gate
 Sea Hag
 Searing Flesh
+Seasoned Dungeoneer
 Sedge Scorpion
 Seed of Hope
 Seismic Assault
@@ -363,6 +366,7 @@ Skorpekh Destroyer
 Skullport Merchant
 Skyfisher Spider
 Skyshaper
+Snow Devil
 Soltari Priest
 Somber Hoverguard
 Somberwald Alpha
@@ -389,6 +393,7 @@ Talruum Champion
 Tarpan
 Tasseled Dromedary
 Temur Battle Rage
+Terminus
 Testament of Faith
 Teval, the Balanced Scale
 The Great Juggernaut

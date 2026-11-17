@@ -39,6 +39,7 @@ Broodbirth Viper
 Bull Rush
 Canal Monitor
 Carrion
+Carrion Rats
 Castle Ardenvale
 Cateran Slaver
 Ceaseless Conflict
@@ -254,6 +255,7 @@ Seizures
 Serenity
 Serra's Embrace
 Shadowstorm
+Shambling Shell
 Sidisi's Faithful
 Sima Yi, Wei Field Marshal
 Sisterhood of Karn

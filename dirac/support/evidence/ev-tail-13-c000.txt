@@ -79,6 +79,7 @@ Corpulent Corpse
 Covert Technician
 Crackling Triton
 Cryptwailing
+Crystallization
 Curse of the Restless Dead
 Cursed Minotaur
 Daring Escape
@@ -282,6 +283,7 @@ Order of the Golden Cricket
 Order of the Mirror
 Order of the White Shield
 Ordered Migration
+Origin of Iron Man
 Orim, Samite Healer
 Oviya Pashiri, Sage Lifecrafter
 Owlin Spiralmancer

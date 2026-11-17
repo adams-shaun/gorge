@@ -1,0 +1,8 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Barbarian Outcast	da16308a1489a674	11	1/1		0/1	ix:resp
+Carrion Wurm	2936e7291a421b2f	16	2/2		0/1	ix:resp
+Doran, the Siege Tower	1aec2dcb0660d470	4	0/0		0/0	
+Greater Mossdog	007aae63a3fde104	8	0/0		0/0	
+Jetting Glasskite	c28b4ce3df8c9183	21	1/1		1/1	
+Oath of Nissa	494a993b02747912	4	1/1		0/1	ix:resp
+Sentry Oak	0260bb2761a5d68e	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp

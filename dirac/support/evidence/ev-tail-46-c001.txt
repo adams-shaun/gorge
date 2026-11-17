@@ -25,6 +25,7 @@ Astarion's Thirst
 Auriok Transfixer
 Ayara, First of Locthwain
 Back in Town
+Banishing Stroke
 Battle Hurda
 Battlefront Krushok
 Beast of Burden
@@ -135,6 +136,7 @@ Feedback Bolt
 Feral Animist
 Fire Snake
 Floral Evoker
+Flowstone Wyvern
 Foot Soldiers
 Forerunner of Slaughter
 Forerunner of the Heralds
@@ -153,6 +155,7 @@ Gift of Strands
 Gnarled Mass
 Goblin Gaveleer
 Goblin Skycutter
+Goblins of the Flarg
 Goldenhide Ox
 Grasping Scoundrel
 Gray Harbor Merfolk
@@ -194,6 +197,7 @@ Kessig Wolf
 Kokusho, the Evening Star
 Lagonna-Band Elder
 Launch Mishap
+Lava Blister
 Leaping Master
 Ledev Guardian
 Lesser Gargadon
@@ -246,6 +250,7 @@ Pest Summoning
 Phalanx Leader
 Phalanx Tactics
 Phyrexian Rager
+Phyrexian Vault
 Pit Imp
 Placid Rottentail
 Plains
@@ -287,6 +292,7 @@ Samite Healer
 Sanctum of Tranquil Light
 Saproling Migration
 Sarkhan's Scorn
+Savaen Elves
 Scarwood Goblins
 Scent of Brine
 Scoria Cat
@@ -305,6 +311,7 @@ Shield of Kaldra
 Shire Shirriff
 Shu General
 Sidisi's Pet
+Siege Wurm
 Sigrid, God-Favored
 Silverback Elder
 Sisters of the Flame
@@ -381,6 +388,7 @@ Tura Kennerüd, Skyknight
 Twisted Experiment
 Unexpected Windfall
 Unexplained Disappearance
+Universal Solvent
 Urborg Stalker
 Ureni's Counsel
 Veil of Birds
@@ -390,6 +398,7 @@ Victory's Envoy
 Voltstorm Angel
 Vulpine Harvester
 Walking Wall
+Wall of Denial
 Wall of One Thousand Cuts
 Wanderer's Twig
 Warbriar Blessing

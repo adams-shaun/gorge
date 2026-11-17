@@ -61,6 +61,7 @@ Captain N'ghathrod
 Captured by Lagacs
 Cartouche of Solidarity
 Casey Jones, Back Alley Brute
+Celestial Prism
 Cephalid Illusionist
 Chain Lightning
 Chaos Maw
@@ -155,6 +156,7 @@ Fortress Cyclops
 Frightcrawler
 From the Rubble
 Frontier Mastodon
+Frostwalk Bastion
 Fume Spitter
 Gaea's Bounty
 Gamekeeper
@@ -174,6 +176,7 @@ Goblin Bushwhacker
 Goblin Commando
 Goblin Tinkerer
 God-Eternal Rhonas
+Golden Ratio
 Goldnight Redeemer
 Goldwarden's Helm
 Gridlock
@@ -353,6 +356,7 @@ Sarinth Greatwurm
 Saruman, the White Hand
 Savai Thundermane
 Scoria Wurm
+Scour the Desert
 Scrapwork Cohort
 Scrivener
 Scroll of the Masters
@@ -408,6 +412,7 @@ Tawnos, Urza's Apprentice
 Tel-Jilad Outrider
 Temporal Adept
 Territorial Baloth
+Tethered Griffin
 The Blue Spirit
 The Indomitable
 The Shattered States Era
@@ -444,6 +449,8 @@ Venser's Journal
 Verdant Touch
 Verge Rangers
 Vessel of Endless Rest
+Veteran Adventurer
+Veteran Bodyguard
 Vhati il-Dal
 Viashino Bladescout
 Vilis, Broker of Blood

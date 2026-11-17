@@ -1,3 +1,4 @@
+A-Cori-Steel Cutter
 A-Meria's Outrider
 Aethersnipe
 Alluring Suitor
@@ -16,20 +17,24 @@ Burning Hands
 Burning Oil
 Carnage Wurm
 Carrion Call
+Cascade Seer
 Cessation
 Chaos Terminator Lord
 Claws of Valakut
+Clock of Omens
 Coldsteel Heart
 Consuming Corruption
 Cruel Witness
 Dark Prophecy
 Disciple of the Vault
+Djeru's Resolve
 Dross Crocodile
 Echoing Ruin
 Emergency Weld
 Exemplar of Strength
 Fireflux Squad
 Fissure
+Fissure Vent
 Flatten
 Flawless Maneuver
 Fledgling Mawcor
@@ -40,6 +45,7 @@ Gaze of Justice
 Ghoulsteed
 Glimpse the Unthinkable
 Gloomwidow's Feast
+Go for the Throat
 Goblin Mountaineer
 God-Eternal Bontu
 Grasp of Darkness
@@ -53,14 +59,19 @@ Immolating Souleater
 Invasion of Xerex
 Ishai, Ojutai Dragonspeaker
 Island
+Junk Winder
 Kamahl's Desire
 Kill-Zone Acrobat
+Looter il-Kor
 Lyzolda, the Blood Witch
 Mana Short
 Mardu Runemark
 Master Transmuter
+Meteoric Mace
+Mishra's Command
 Mite Overseer
 Mordant Dragon
+Morkrut Banshee
 Mountain
 Mugging
 Nectar Faerie
@@ -71,14 +82,17 @@ Oni of Wild Places
 Orcish Veteran
 Overload
 Pack's Betrayal
+Painwracker Oni
 Pelakka Predation
 Piety
 Plains
 Priests of Norn
+Protective Bubble
 Psychic Impetus
 Ral's Dispersal
 Recall
 Resplendent Griffin
+Sabertooth Outrider
 Sage's Reverie
 Samut's Sprint
 Satyr Nyx-Smith
@@ -98,8 +112,10 @@ Thran Spider
 Thrummingbird
 Thunderscape Familiar
 Twitch
+Umbilicus
 Unbreathing Horde
 Urza's Guilt
+Vedalken Orrery
 Votary of the Conclave
 Wakanda Forever!
 Water Servant

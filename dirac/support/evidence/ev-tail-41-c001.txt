@@ -88,9 +88,11 @@ Eye Gouge
 Faceless Devourer
 Faerie Invaders
 Faerie Vandal
+Farrel's Zealot
 Femeref Archers
 Fiend Binder
 Flare of Duplication
+Flaxen Intruder
 Flood of Recollection
 Flowstone Overseer
 Flutterfox
@@ -105,6 +107,7 @@ Gallifrey Stands
 Galvanic Discharge
 Gamble
 General Marhault Elsdragon
+Genestealer Patriarch
 Genju of the Realm
 Ghirapur Guide
 Ghost Tactician
@@ -230,6 +233,7 @@ Runaway Carriage
 Salvage Slasher
 Samite Pilgrim
 Sanctified Charge
+Scent of Ivy
 Scepter of Celebration
 Scourglass
 Sea Kings' Blessing
@@ -244,6 +248,7 @@ Shadow Prophecy
 Shadow-Rite Priest
 Shamanic Revelation
 Shard of Broken Glass
+Sheltering Light
 Shrieking Mogg
 Silver-Inlaid Dagger
 Skittering Monstrosity
@@ -291,6 +296,7 @@ Torch Slinger
 Tormod's Crypt
 Torsten, Founder of Benalia
 Tracker's Instincts
+Trustworthy Scout
 Twinscroll Shaman
 Tymaret, Chosen from Death
 Uncage the Menagerie

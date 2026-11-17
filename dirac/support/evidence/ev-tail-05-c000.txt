@@ -59,6 +59,7 @@ Centaur Garden
 Chandra's Spitfire
 Changeling Sentinel
 Chaotic Backlash
+Charging Cinderhorn
 Chlorophant
 Clash of Realities
 Cloudheath Drake
@@ -95,6 +96,7 @@ Dread Tiller
 Dreadfeast Demon
 Dream Prowler
 Dream's Grip
+Drogskol Reinforcements
 Dross Golem
 Elda, Conjurer of Spectacle
 Elite Cat Warrior
@@ -123,6 +125,7 @@ Frenzied Rage
 Furtive Homunculus
 Futurist Sentinel
 Gaea's Touch
+Gangrenous Zombies
 Genasi Enforcers
 Giant Killer
 Giltgrove Stalker
@@ -138,6 +141,7 @@ Goblin Gathering
 Goblin War Strike
 Goldenhide Ox
 Gorilla Shaman
+Graven Lore
 Graveyard Marshal
 Griffin Aerie
 Guardians of Meletis
@@ -323,6 +327,7 @@ Soul of New Phyrexia
 Spare Dagger
 Spectral Guardian
 Spell Shrivel
+Sphere of Law
 Spike Tiller
 Spikefield Hazard
 Spirit Cairn
@@ -344,10 +349,12 @@ Swirling Torrent
 Sylvan Basilisk
 Tablet of Compleation
 Take into Custody
+Tangle Angler
 Territorial Hammerskull
 Thalisse, Reverent Medium
 The Bear Force Pilot
 The Mirari Conjecture
+Thermokarst
 Thrashing Mudspawn
 Thriving Grove
 Time Spiral

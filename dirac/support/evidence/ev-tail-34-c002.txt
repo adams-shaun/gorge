@@ -1,42 +1,63 @@
+Aboshan's Desire
+Ageless Guardian
+Ambitious Farmhand
 An-Havva Inn
 Ancient Amphitheater
 Angel's Mercy
 Angelic Wall
+Araba Mothrider
 Arcane Flight
+Archon of Redemption
 Arm-Mounted Anchor
 Aven Trailblazer
 Bar the Door
 Bast, Panther Goddess
+Battle Angels of Tyr
 Beastcaller Savant
 Blighted Steppe
+Blink Dog
 Blockbuster
 Blood Clock
 Boon of Safety
+Borrowed Time
 Brambleweft Behemoth
 Carrion Grub
 Cathartic Adept
 Caustic Caterpillar
 Cave of the Frost Dragon
+Charix, the Raging Isle
 Child of Thorns
 Choose Your Weapon
+Chosen by Heliod
 Citywide Bust
+Clear the Mind
+Conjurer's Mantle
+Consulate Turret
 Copperline Gorge
 Crash the Ramparts
 Crown of Empires
+Crusade
 Crystal Ball
 Culmination of Studies
 Cult Guildmage
 Custodian of the Trove
 Dark Salvation
+Devious Cover-Up
 Dirty Rat
+Drowner of Secrets
+Dust Elemental
 Ebony Charm
 Ebony Horse
 Electric Revelation
 Electrozoa
 Elegant Entourage
+Elminster's Simulacrum
 Embersmith
 Encase in Ice
 Endurance Bobblehead
+Evanescent Intellect
+Experimental Augury
+Feeling of Dread
 Folk of An-Havva
 Forest
 Ghalma's Warden
@@ -47,64 +68,96 @@ Grim Guardian
 Guise of Fire
 Harsh Scrutiny
 Hawkeye, Clint Barton
+Herald of Serra
 Hired Poisoner
+Hoverguard Observer
 Imperial Recovery Unit
 Island
+Jace's Phantasm
+Join Forces
+Jwari Scuttler
 Kazandu Refuge
 Kitesail Apprentice
 Knotvine Paladin
 Labyrinth Champion
+Launch Mishap
 Lightfoot Rogue
+Lionheart Maverick
+Locthwain Gargoyle
 Loran's Escape
 Lothlórien Lookout
+Loxodon Warhammer
+Loyal Cathar
 Luke Cage, Hero for Hire
 Malachite Golem
+Marchesa's Infiltrator
 Master of the Pearl Trident
 Merciless Javelineer
 Midnight Entourage
+Mirari
 Morinfen
 Mountain
 Night Market Guard
 Nimana Sell-Sword
+Numbing Dose
 Nurturer Initiate
+Oboro Breezecaller
 Ogre Jailbreaker
 Ordeal of Erebos
 Painful Memories
+Paladin Danse, Steel Maverick
+Pearl Dragon
 Pegasus Stampede
+Perilous Myr
 Pharika's Chosen
+Pillar of Light
 Plains
+Power Armor
 Press into Service
 Primal Cocoon
 Purgatory
 Quest for the Nihil Stone
 Quirion Explorer
 Rain of Rust
+Raise the Alarm
 Ramosian Sergeant
 Reclusive Wight
+Resurrection Orb
 Retreat to Coralhelm
 Rhys the Exiled
 Rile
 Rising of the Day
 Rukh Egg
+Saheeli's Silverwing
 Salvage Slasher
 Sand Silos
+Seagraf Skaab
+Serra Advocate
+Serum Visions
 Shadow Rift
 Sibsig Icebreakers
 Siege Zombie
 Siegecraft
+Silverchase Fox
 Slate of Ancestry
 Soltari Trooper
+Sphere of Grace
 Spidersilk Armor
 Spike-Tailed Ceratops
+Spire Owl
 Squelching Leeches
+Storm Sculptor
 Sunder Shaman
 Swamp
+Sylvia Brightspear
+Tangle Hulk
 Teardrop Kami
 The Roaring Toeclaws
 Their Number Is Legion
 Thrull Surgeon
 Thumbscrews
 Thunder Wall
+Tide Drifter
 Toil to Renown
 Tombfire
 Touch of Death
@@ -114,12 +167,18 @@ Troll-Horn Cameo
 Typhoid Rats
 Undercellar Myconid
 Unlikely Aid
+Vault of the Archangel
+Venerable Monk
 Veteran's Powerblade
+Viral Drake
 Vivisection
+Vodalian Arcanist
 Vortex Runner
 Warpath Ghoul
 Wasp, Shrinking Savior
+Watchwing Scarecrow
 Whisper of the Dross
 Witness the End
 Woolly Loxodon
 Xenk, Paladin Unbroken
+Xerex Strobe-Knight

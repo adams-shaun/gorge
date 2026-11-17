@@ -54,6 +54,7 @@ Diabolic Intent
 Dingus Egg
 Diregraf Horde
 Draconic Muralists
+Drift of the Dead
 Dromoka, the Eternal
 Drowned Secrets
 Dutiful Attendant
@@ -171,6 +172,7 @@ Rishadan Footpad
 Rockcaster Platoon
 Ruins of Oran-Rief
 Sage Owl
+Saiba Syphoner
 Salvager of Ruin
 Savage Gorilla
 Scapegoat

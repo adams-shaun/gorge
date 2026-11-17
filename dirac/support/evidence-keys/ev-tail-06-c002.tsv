@@ -1,0 +1,51 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Kargan Warleader	0940b2de7fc34c06	5	1/1		0/1	ix:resp
+Aether Tunnel	6da46ff9d61ce1b8	4	0/0		1/2	ix:resp
+Balm of Restoration	a2822540c3dc467a	6	1/1		0/1	ix:resp
+Benalish Knight	a67d948ea1e6f939	16	0/0		0/0	
+Blessed Spirits	099a77f93ebd3199	10	1/1		0/1	ix:resp
+Brotherhood Patriarch	22211f7692e1bf6e	10	1/1		0/1	ix:resp
+Cartographer	685c78462a69ae59	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Cavalier of Dawn	a0ab2a52b672b357	3	2/2		0/1	ix:resp
+Crown of Skemfar	46ca93872aa09f92	5	1/1		2/2	
+Cruel Grimnarch	2a1dce3f05ce3eaa	7	1/1		1/1	
+Dimir Cluestone	ca432feabb5cba80	4	2/2		0/1	ix:resp
+Dora Milaje Elite	48f0e2f759671a39	8	2/2		0/1	ix:resp
+Dwarven Pony	96246eee0f502e5e	39	1/1		1/1	
+Elvish Rejuvenator	edb4a17dc336dc5d	6	1/1		0/1	ix:resp
+Empty-Shrine Kannushi	38c4bab7c7ce2f4d	6	0/0		0/0	
+Explosive Entry	906a34f6165115cd	4	0/0		1/2	ix:resp
+Eye of Vecna	23795ed80fe81fb6	4	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Gaea's Balance	d0daed88c8985fc0	4	0/0		1/2	ix:resp
+Glamorous Grapplers	4b01f2cb1ad11b19	4	0/0		0/0	
+Glyph of Life	955c8039608b3d44	46	0/0		2/2	
+Goblin King	d965a7b8ce1cc5b6	21	0/0		0/0	
+Golgari Keyrune	6148973afa9cfe58	4	2/2		0/1	ix:resp
+Hot Springs	80e0b43e0a9321af	15	0/0		1/2	ix:resp
+Luminesce	1cd98c6e217709c2	5	0/0		1/2	ix:resp
+Master's Call	e8176e16a9b0aba8	4	0/0		2/2	
+Merchant Raiders	3d89b90a2c5f9c52	10	1/1		1/1	
+Mindwhip Sliver	c6a8c28cc53cdf4a	8	0/0		0/0	
+Mortivore	60e0f5d0791933c3	5	1/1		0/1	ix:resp
+Nomad Mythmaker	4c0cc99de3532940	8	1/1		0/1	ix:resp
+Obstinate Gargoyle	0ccf333e045d3797	9	1/1		0/1	ix:resp
+Oona's Grace	21754f394ff86b9a	6	0/0		1/2	ix:resp
+Ordruun Veteran	5ad7b1cd2719077a	8	1/1		0/1	ix:resp
+Outrider of Jhess	f98e5919a3f9570b	4	1/1		1/1	
+Ray of Enfeeblement	51e0e7c254aa951c	16	0/0		2/2	
+Recoup	80f9224a9fa91b3b	4	0/0		2/4	cast/alt:flashback,ix:resp
+Rosemane Centaur	8cc6156c54a86e31	5	0/0		0/0	
+Rotten Reunion	0f02de257fcdea00	10	0/0		3/4	ix:resp
+Second Thoughts	b3d331bae2dfe458	4	0/0		2/2	
+Selhoff Entomber	d065004c4dcd2872	14	1/1		1/1	
+Shepherd of Heroes	861694d2920567de	3	1/1		0/1	ix:resp
+Skirk Ridge Exhumer	3cc109eee1bbae21	4	1/1		0/1	ix:resp
+Soul Link	d127c511383c6dea	18	2/2		1/2	ix:resp
+Thassa, God of the Sea	8ab646f4af65b41a	8	2/2		1/1	
+Thickest in the Thicket	03c182f3a5b2e281	16	2/2		0/1	ix:resp
+Thraben Gargoyle	ada03746f61d187c	26	1/1		1/1	
+Tiller of Flesh	893975d8e9b12a44	14	1/1		0/1	ix:resp
+Traproot Kami	24325250ff23d4e9	4	0/0		0/0	
+Urborg Repossession	0187c6f697368994	6	0/0		2/4	cast/alt:kicked,ix:resp
+Vampire Sovereign	f75ebda158ca529d	6	1/1		0/1	ix:resp
+Witch's Oven	d0cfc5f12deba55e	4	1/1		0/1	ix:resp

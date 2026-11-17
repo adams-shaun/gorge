@@ -56,6 +56,7 @@ Elephant Ambush
 Elephant-Rat
 Elusive Tormentor
 Emergent Growth
+Faceless Devourer
 Fall of the Thran
 Far Traveler
 Fast Forward
@@ -183,7 +184,9 @@ Slavering Nulls
 Smelt-Ward Ignus
 Smothering Abomination
 Soilshaper
+Somnophore
 Soratami Seer
+Soul Net
 Souldrinker
 Spectral Hunt-Caller
 Spellshock

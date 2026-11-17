@@ -28,6 +28,8 @@ Apothecary Geist
 Arborea Pegasus
 Arcane Proxy
 Arcbound Condor
+Arcbound Prototype
+Arcbound Ravager
 Arch of Orazca
 Armed Assailant
 Arrester's Zeal
@@ -263,6 +265,7 @@ Midnight Charm
 Mindless Null
 Mindswipe
 Minion Reflector
+Mistform Ultimus
 Misthoof Kirin
 Mistvault Bridge
 Mold Demon

@@ -1,6 +1,7 @@
 Abomination, Irradiated Brute
 Absolute Law
 Abyssal Specter
+Accorder Paladin
 Aethermage's Touch
 Aggressive Instinct
 Airlift Chaplain
@@ -11,112 +12,178 @@ Arrester's Zeal
 Aven Envoy
 Azorius Charm
 Become the Avalanche
+Binding Agony
 Blanchwood Treefolk
+Bleed Dry
+Blinking Spirit
 Bloodsworn Steward
 Bog Imp
 Bottle Golems
 Bramblesnap
 Brass-Talon Chimera
 Brokers Initiate
+Canopy Tactician
+Cerulean Wyvern
 Chameleon Colossus
 Cindervines
+Citizen's Arrest
 Common Bond
 Compelled Duel
+Copperhorn Scout
 Corridor Monitor
 Crookshank Kobolds
 Crow Storm
+Culling the Weak
 Curfew
 Curse Artifact
+Dakmor Bat
 Danitha, New Benalia's Light
+Daring Demolition
+Dark Betrayal
 Dawnfluke
+Destructor Dragon
 Detainment Spell
 Devil Dinosaur
 Devkarin Dissident
+Dig Up the Body
+Doctor Doom, Unrivaled
+Dreadwurm
 Dwarven Armorer
+Eastern Paladin
 Empty City Ruse
 Empyrial Plate
 Enclave Elite
 Ensnare
+Erinis, Gloom Stalker
 Escape Velocity
 Eureka Moment
 Evacuation
 Evie Frye
 Expedition Skulker
 Eye Gouge
+Fallaji Archaeologist
 Feast of Dreams
+Fell Stinger
 Fen Hauler
 Feral Krushok
 Flamekin Spitfire
+Flood of Recollection
 Fog Elemental
 Foresee
 Forest
 Forgehammer Centurion
+Forsaken Drifters
 Fugue
+Genju of the Spires
 Gerrard's Irregulars
 Ghostfire Slice
 Glass of the Guildpact
 Glissa's Scorn
 Golden-Scale Aeronaut
+Greenwood Sentinel
+Grisly Ritual
 Gruesome Deformity
+Gutwrencher Oni
+Healing Technique
+Heron of Hope
+Honored Heirloom
+Hydromorph Guardian
 Illusory Demon
 Inkling Summoning
+Ironclad Krovod
 Island
 Ivy Elemental
 Jace's Sanctum
+Jade Mage
 Junk Diver
 Kashi-Tribe Elite
 Kashi-Tribe Reaver
+Kitesail Cleric
 Kuldotha Rebirth
 Kumena's Awakening
+Lash Out
 Learn from the Past
 Legion Guildmage
+Life and Limb
 Light 'Em Up
+Liliana's Standard Bearer
+Liliana, Death Wielder
 Lily Bowen, Raging Grandma
 Lionheart Maverick
+Live Fast
 Living Airship
 Lulu, Loyal Hollyphant
 Mage-Ring Bully
+March of the Returned
+Marrow-Gnawer
 Marshdrinker Giant
 Master Symmetrist
 Master's Guidance
+Maverick Thopterist
 Merfolk Secretkeeper
 Midnight Charm
+Mindleech Ghoul
+Miscast
+Molder Slug
 Mountain
+Muscle Sliver
+Myojin of Seeing Winds
 Mystic Familiar
 Mystical Tutor
+Nantuko Husk
 Narnam Cobra
 Natural End
 Necrogen Spellbomb
 Necrotic Hex
+Needleshot Gourna
 Nevinyrral's Disk
+Norwood Warrior
 Order of the Mirror
 Outland Boar
+Overgrown Armasaur
+Paragon of New Dawns
 Pemmin's Aura
 Phyrexian Lens
 Plains
+Poultice Sliver
+Predators' Hour
 Priest of Urabrask
 Pyknite
 Pyrophobia
 Ral's Reinforcements
 Ray Fillet, Wave Warrior
+Reaver Ambush
+Recantation
 Red Dragon
 Red Elemental Blast
 Refocus
+Renegade Krasis
+Repentant Vampire
+Repudiate
 Resplendent Griffin
+Retrieve
 Riders of Rohan
 Rise of the Ants
 Rofellos's Gift
 Rootborn Defenses
+Rouse
+Run for Your Life
+Sanguine Spy
 Screeching Bat
 Scryb Sprites
+Seeker of the Way
+Segmented Krotiq
 Self-Inflicted Wound
 Setessan Oathsworn
 Shacklegeist
+Shiv's Embrace
+Shu Soldier-Farmers
 Skillful Lunge
 Skyshroud Sentinel
 Smoldering Werewolf
 Spiked Ripsaw
 Squeeze
+Stitched Mangler
 Stormrider Spirit
 Stratus Walk
 Strength in Numbers
@@ -124,17 +191,27 @@ Stromgald Crusader
 Stymied Hopes
 Suit Up
 Swamp
+Tainted Pact
+Temperamental Oozewagg
 Terravore
+Territorial Allosaurus
 Thaumatic Compass
+The Weaver King
 Thought Harvester
+Thresher Lizard
 Thrun, the Last Troll
+Thundering Djinn
 Tidy Conclusion
+Time Reversal
+Time Walk
 Topplegeist
 Tremor
 Triskelavus
 Unruly Krasis
+Urborg Syphon-Mage
 Urgoros, the Empty One
 Vampiric Tutor
+Vitalize
 Wall of Pine Needles
 War Chariot
 War Dance

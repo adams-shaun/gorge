@@ -1,0 +1,124 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Druidic Ritual	7401621aecf44709	38	0/0		2/2	
+Accursed Marauder	6ccb61926d045c55	20	1/1		1/1	
+Angelic Curator	d169ae7bcca1d5c2	25	0/0		0/0	
+Argivian Restoration	043133d6ecb9cca3	15	0/0		2/2	
+Aria of Flame	2956bfc17c9c8c72	21	2/2		1/1	
+Armageddon	9265e1daa23d406b	8	0/0		1/2	ix:resp
+Artifact Ward	fd4cc8898db2a3c5	11	0/0		2/2	
+Ashling, the Extinguisher	f54a434105196652	10	1/1		0/1	ix:resp
+Bad Moon	db0b883675f487c9	25	0/0		0/0	
+Barbarian Outcast	da16308a1489a674	22	1/1		1/1	
+Blistering Barrier	c55e15225b70a029	24	0/0		0/0	
+Briarhorn	f5c680fa451f2443	37	1/1		3/3	
+Call the Cavalry	701bfe8135887be0	6	0/0		1/2	ix:resp
+Call the Scions	c2a90de5aeb066b9	42	0/0		1/2	ix:resp
+Chandra's Outburst	2dd9a5bc74c899e0	24	0/0		2/2	
+Citanul Flute	b43160582a64ccd4	33	1/1		1/1	
+Cobblebrute	a6bb31d31511c19f	23	0/0		0/0	
+Connive	6a0702364c65c074	14	0/0		1/3	f1/s,ix:resp
+Damping Matrix	5354a03d680f9537	39	0/0		0/0	
+Darksteel Myr	d3ac69d0d5b79203	12	0/0		0/0	
+Disciple of Perdition	545018a18bf3b67d	21	1/1		0/1	ix:resp
+Dismember	0ec0345033f87c4b	32	0/0		1/2	ix:resp
+Double Trouble	191df6ef7cce9212	18	0/0		1/2	ix:resp
+Dregs of Sorrow	4e2b9ab505ae4f92	6	0/0		2/4	f0/s/x0,ix:resp
+Elemental Uprising	0e97d5400fa9d944	15	0/0		1/2	ix:resp
+Elvish Promenade	ee7a6aa8069406ac	33	0/0		2/2	
+Elvish Scrapper	18447dc2698f682b	44	1/1		1/1	
+Enlightened Ascetic	2d3db5f007a7a347	13	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Escape Velocity	915cf8c53df30df7	31	0/0		3/4	cast/alt:escaped
+Fencing Ace	27cf254e45689a37	10	0/0		0/0	
+Feral Appetite	57a00d85261af924	20	1/1		1/1	
+Ferocious Pup	3846da2b5f11074e	37	1/1		0/1	ix:resp
+Fiery Mantle	fced8eb1a4cf8a68	33	2/2		2/2	
+Fireball	38e57e53e1b89980	12	0/0		2/4	f0/s/x0,ix:resp
+Fissure Wizard	ed3a23b15b100962	27	1/1		1/1	
+Fungal Rebirth	2bc997dc2734fdc1	38	0/0		2/2	
+Generous Stray	2fab5b99d7cc4324	18	1/1		0/1	ix:resp
+Goldmeadow Lookout	d1caab94516c6fb5	12	1/1		0/1	ix:resp
+Great Desert Prospector	caac215f8258d70d	8	1/1		0/1	ix:resp
+Greater Mossdog	007aae63a3fde104	38	0/0		0/0	
+Greenwarden of Murasa	9e6a08b9a3aaf756	9	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Hellion Eruption	7d074fd2503ab3ce	10	0/0		2/2	
+Hewed Stone Retainers	16cafb239bc4eeb9	21	0/0		0/0	
+Inferno Fist	e8861bf424d3a1dd	18	1/1		2/2	
+Jadecraft Artisan	139644955077e22b	30	1/1		0/1	ix:resp
+Kayla's Command	cef43151416d9e71	24	0/0		1/2	ix:resp
+Kessig Wolfrider	db499b5e773d1d41	15	1/1		1/1	
+Kiss of Death	a87775e07ae415c5	10	0/0		1/2	ix:resp
+Kor Cartographer	1d0b9a025e607225	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Kor Outfitter	0eb49755f1ff53e7	11	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Kor Scythemaster	c6c366c17a22645a	6	0/0		0/0	
+Lantern of Revealing	c3be36ab6ed24f25	38	2/2		1/1	
+Long-Finned Skywhale	a7b30faf8a8c7b7d	34	0/0		0/0	
+Lu Su, Wu Advisor	1c4aed38d393128b	23	1/1		1/1	
+Maned Serval	266cccae7a461def	15	0/0		0/0	
+Mark of the Vampire	5d25d0cdb07cc789	20	0/0		2/2	
+Mask of Law and Grace	138948788bf42998	16	0/0		1/2	ix:resp
+Mass Hysteria	c38119b50e70135f	34	0/0		0/0	
+Maze Skullbomb	aa77207396473cad	36	2/2		1/1	
+Merfolk Observer	c26fc65fce6573e2	31	1/1		1/1	
+Metamorphic Wurm	685044cf70e47a57	34	0/0		0/0	
+Misery's Shadow	84cf96e5e708e090	27	1/1		1/1	
+Moldgraf Scavenger	ca89884c3bacdbaf	31	0/0		0/0	
+Myr Convert	f53a86a68fd10d18	23	1/1		1/1	
+Nightshade Seer	2a11e0310d54ca32	17	1/1		1/1	
+Nim Grotesque	c3fa8886a0756474	5	0/0		0/0	
+Oblivion Strike	4d1a879863db0d9c	13	0/0		1/2	ix:resp
+Outland Colossus	dcd4061dec040dbc	14	1/1		0/1	ix:resp
+Patch Up	e901dd0fe66a973f	15	0/0		1/2	ix:resp
+Pip-Boy 3000	207e7f3c0d8ffdb1	53	2/2		1/1	
+Pooling Venom	fef6fb764b36659e	30	2/2		2/2	
+Prodigy's Prototype	9b92f6ff22628662	7	2/2		1/1	
+Pyknite	df2e2fbfe9e70fa2	28	1/1		1/1	
+Radha, Heart of Keld	ddd1e13655a03650	12	1/1		0/1	ix:resp
+Raise Dead	a7cd065f9abb4b29	26	0/0		1/2	ix:resp
+Razorgrass Ambush	b8d3194ba7413c15	20	1/1		1/2	ix:resp
+Razortide Bridge	69eb353533e4d95d	159	1/1		0/1	ix:resp
+Rhystic Shield	2a361580956a5058	18	0/0		2/2	
+Righteous Cause	7641535a453816f5	11	1/1		1/1	
+Rishkar's Expertise	77e9f8f2e480da42	11	0/0		1/2	ix:resp
+Roc Charger	122d30d466315ab6	8	1/1		0/1	ix:resp
+Rock Basilisk	572b317d243dcc86	7	2/2		1/1	
+Rocksteady, Mutant Marauder	f8d398f718fa7dc5	44	2/2		1/1	
+Rootbreaker Wurm	fcf4b727abd13d9a	13	0/0		0/0	
+Rubble Slinger	dbcd476a3b692cf2	6	0/0		0/0	
+Runner's Bane	72fbbfe1d1cfd525	25	1/1		2/2	
+Sage of Epityr	1720633f5730a611	50	1/1		0/1	ix:resp
+Salt Road Quartermasters	4ada7f915aa69e55	52	1/1		1/1	
+Scale Blessing	10fbdfe92e68de4d	17	0/0		1/2	ix:resp
+Scapeshift	d1f478720ca0b873	21	0/0		1/2	ix:resp
+Sedge Scorpion	4671c8bf9b2edd82	43	0/0		0/0	
+Seething Pathblazer	b30161bf759a6fb0	23	1/1		1/1	
+Sentry Oak	0260bb2761a5d68e	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Serpent-Blade Assailant	5b37ef3fb6eb8751	42	1/1		1/1	
+Shadowmage Infiltrator	6db1f9d721abfd12	33	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Shape the Sands	bbc9077beb358549	34	0/0		2/2	
+Shriekmaw	04ec8ea2f45407f8	23	1/1		2/3	ix:resp
+Sigiled Paladin	ab3b5c5cf68becbe	5	1/1		1/1	
+Skinshifter	54e2f5ba6534b120	32	1/1		0/1	ix:resp
+Slaughterhorn	f544d4794bc40caf	29	1/1		1/1	
+Sleeper Agent	1d16d873dd7837cb	31	2/2		1/1	
+Smelt	b55709da598f4c1f	28	0/0		2/2	
+Squirrel Sanctuary	d3ef1c31cfc25cff	19	2/2		1/1	
+Stinging Hivemaster	5662092a091f8961	12	1/1		0/1	ix:resp
+Stone Catapult	6d857f0d70cb7f8f	11	1/1		0/1	ix:resp
+Storm Shaman	fb7dd7fa5dc0be68	33	1/1		1/1	
+Supreme Will	cc84ba4df15f11a2	41	0/0		2/2	
+Swat	1f8fcb3d175a744b	8	1/1		1/2	ix:resp
+Symbiotic Elf	f2f999f29d5c9379	16	1/1		0/1	ix:resp
+Tamiyo's Logbook	990fa039a81f2c73	42	1/1		1/1	
+Terrain Elemental	415e750e244893ad	28	0/0		0/0	
+Terror Ballista	fe620a441cb7b766	18	2/2		0/1	ix:resp
+Thorncaster Sliver	2e971dde2084cb1a	19	0/0		0/0	
+Tidings	e41225ab50f79998	16	0/0		1/2	ix:resp
+Turn	771c1a0ba1a8df8d	34	0/0		3/5	cast/alt:fused,f1/s
+Ultimate Magic: Holy	6217bc6adb854124	11	0/0		3/4	cast/alt:foretold
+Untamed Might	b8dd8bf8a06df837	24	0/0		3/4	f0/s/x0
+Viridian Harvest	90e5d4fa693d913d	26	1/1		2/2	
+Vitu-Ghazi Guildmage	c0e8a7de4964deb9	5	2/2		0/1	ix:resp
+Wall of Corpses	7bcaf2a2e862e36f	18	1/1		0/1	ix:resp
+Warteye Witch	34a44d41da6b5bae	9	1/1		0/1	ix:resp
+Xathrid Slyblade	6de3c6dc3c0d9e78	21	1/1		1/1	
+Zephyr Charge	60d137ff34788e62	31	1/1		1/1	

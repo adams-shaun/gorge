@@ -1,24 +1,94 @@
+Aang's Defense
 Adaptive Snapjaw
 Aether Charge
+Akki Underling
+Alpine Meadow
+Amaranthine Wall
 Angelic Purge
+Angelic Wall
+Anointed Procession
+Auriok Bladewarden
+Balefire Liege
 Boros Guildmage
 Bull Cerodon
+Cliffhaven Vampire
+Colorful Feiyi Sparrow
+Crushing Disappointment
+Crystal Ball
+Curse of Bounty
 Daring Fiendbonder
 Dark Petition
 Dark Temper
+Deeptread Merrow
+Didgeridoo
 Dredge
 Drowner of Secrets
+Eladamri, Lord of Leaves
 Eldrazi Displacer
+Erratic Mutation
+Escarpment Fortress
+Eyeblight Assassin
+Faerie Guidemother
+Fey Steed
+Fill with Fright
+Fire Tempest
+Fire of Orthanc
+Flamecast Wheel
 Forest
+Ghitu Slinger
+Ghostfire
+Gilacorn
+Grave Peril
+Hallowed Spiritkeeper
+Hedge Troll
+Highland Forest
+Howling Fury
+Hushwing Gryff
 Island
+Isolate
+Jeskai Runemark
+Kasmina's Transmutation
+Kongming, "Sleeping Dragon"
 Lita, Mechanical Engineer
+Living Death
+Malleable Impostor
+Matt Murdock, Justice Seeker
+Mogg Flunkies
 Mountain
 Nagging Thoughts
+Needle Spires
+Niblis of the Urn
+Omen
+Ominous Cemetery
 Phantasmal Dragon
 Plains
 Rathi Assassin
+Recalibrate
+Reckoner Bankbuster
+Rending Vines
+Reveille Squad
+Revitalize
+Rupture Spire
+Rustrazor Butcher
+Sangrophage
+Serene Offering
 Serra Paladin
+Shefet Dunes
+Short Sword
+Silburlind Snapper
+Soulstealer Axe
+Spark Jolt
+Spiraling Duelist
 Spreading Rot
+Squirrel Wrangler
 Sun Ce, Young Conquerer
+Sunrise Seeker
 Swamp
+Terra Eternal
+Thirst
+Tower of Eons
+Treva's Ruins
 Whispering Wizard
+Wingmate Roc
+Yotian Frontliner
+Zephyr Gull

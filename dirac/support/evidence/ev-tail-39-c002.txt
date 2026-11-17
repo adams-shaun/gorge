@@ -1,9 +1,14 @@
 A-Esika's Chariot
 A-Gnarlid Colony
 A-Pyre-Sledge Arsonist
+Absorbing Man and Titania
 Accursed Marauder
+Aetherstream Leopard
+Aim High
 Ajani's Sunstriker
+Akki Lavarunner
 Ancient Ziggurat
+Angel of Fury
 Ant-Man, Elusive Avenger
 Archon of Emeria
 Archway Commons
@@ -18,8 +23,10 @@ Beastmaster Ascension
 Benalish Veteran
 Berserkers of Blood Ridge
 Blood Pact
+Bloodvial Purveyor
 Bolshack Dragon
 Boros Cluestone
+Bulette
 Burgeoning
 Cavern Harpy
 Chaos Channeler
@@ -35,18 +42,22 @@ Consign to Dream
 Corpsejack Menace
 Courageous Outrider
 Court Cleric
+Creeperhulk
 Crypt Cobra
 Crypt Rats
 Crystalline Armor
 Curse of Vitality
 Dark Triumph
+Darksteel Pendant
 Dauntless Onslaught
 Dawnbringer Cleric
+Dawnfeather Eagle
 Day's Undoing
 Demogorgon's Clutches
 Dense Foliage
 Desecration Elemental
 Drana's Emissary
+Dread Presence
 Dromoka Dunecaster
 Dry Spell
 Durkwood Boars
@@ -55,13 +66,17 @@ Elusive Tormentor
 Elvish Mystic
 Envoy of the Ancestors
 Errant and Giada
+Ethereal Guidance
 Exsanguinator Cavalry
 Fact or Fiction
+Fain, the Broker
 Fast
 Flooded Strand
 Flowering of the White Tree
 Forest
 Forked Bolt
+Frontline Rebel
+Fungal Sprouting
 Game-Trail Changeling
 Geistflame Reservoir
 Ghave, Guru of Spores
@@ -69,21 +84,31 @@ Ghost Quarter
 Ghoul's Feast
 Gibbering Barricade
 Glacial Grasp
+Gleaming Overseer
+Glittermonger
 Glorious Charge
 Golem Artisan
+Gretchen Titchwillow
+Grisly Salvage
 Grumgully, the Generous
 HYDRA Disintegrator
+Hag of Inner Weakness
 Hangar Scrounger
+Heartmender
 Herald of Hadar
 Hero's Resolve
 Hewed Stone Retainers
 Hidden Guerrillas
 Hobble
 Hostile Realm
+Instill Furor
 Instill Infection
+Invert
 Island
 It's Clobberin' Time!
 Kasmina's Transmutation
+Kazandu Mammoth
+Labyrinth Guardian
 Lance
 Late to Dinner
 Lay of the Land
@@ -94,10 +119,13 @@ Lotus Bloom
 Manalith
 Marchesa's Emissary
 Mark of the Vampire
+Marwyn, the Nurturer
+Merfolk Mistbinder
 Mind Whip
 Mobile Fort
 Moonstone Eulogist
 Mountain
+Mudbrawler Raiders
 Mulldrifter
 Mystic Retrieval
 Nameless One
@@ -113,14 +141,18 @@ Phantom Wings
 Plains
 Power Fist
 Priest of Gix
+Psychic Drain
 Quandrix Campus
 Rack and Ruin
 Rage of Purphoros
 Ragged Recluse
 Rakka Mar
 Rally at the Hornburg
+Ravenous Necrotitan
 Renewed Faith
+Resistance Reunited
 Rhystic Shield
+Ridgetop Raptor
 Riot Piker
 Riverwheel Aerialists
 Ronin Warclub
@@ -129,7 +161,9 @@ Ruinous Minotaur
 Safeguard
 Scourge of Fleets
 Scurry of Squirrels
+Segovian Angel
 Sentinels of Glen Elendra
+Serene Sunset
 Shambling Ghast
 Sheltering Boughs
 Shriek of Dread
@@ -148,6 +182,7 @@ Spellweaver Eternal
 Splitting Slime
 Springmane Cervin
 Squire's Devotion
+Star-Crowned Stag
 Stasis Field
 Steward of Valeron
 Stingerfling Spider
@@ -169,10 +204,13 @@ Trophy Hunter
 Twinblade Assassins
 Ugin's Construct
 Ulasht, the Hate Seed
+Underdark Explorer
 Underworld Sentinel
+Unmask
 Urborg Drake
 Vengevine
 Victor Mancha, Runaway
+Vraska, Swarm's Eminence
 Wakening Sun's Avatar
 Wall of Fire
 Warped Landscape
@@ -186,6 +224,7 @@ Woodland Changeling
 Wort, Boggart Auntie
 Wrecking Ball
 Wrenn's Resolve
+Yargle and Multani
 Yawgmoth's Agenda
 Yuan Shao, the Indecisive
 Zar Ojanen, Scion of Efrava

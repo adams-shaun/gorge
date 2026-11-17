@@ -15,19 +15,27 @@ Archfiend of Despair
 Aspect of Gorgon
 Balshan Beguiler
 Barrage Ogre
+Basilica Guards
 Blessed Hippogriff
 Bonds of Faith
+Bone Shards
 Brazen Wolves
 Bringer of the Blue Dawn
 Broodstar
+Carrion Grub
 Cateran Kidnappers
+Charging Troll
+Chasm Guide
 Consulate Turret
 Coral Helm
+Deathbringer Thoctar
+Dematerialize
 Dig Up the Body
 Diversionary Tactics
 Dominating Licid
 Drag to the Bottom
 Dragon Arch
+Dying Wish
 Earthquake
 Eidolon of Astral Winds
 Expendable Lackey
@@ -36,6 +44,7 @@ Faith Unbroken
 Farfinder
 Fen Stalker
 Feral Shadow
+Fervent Cathar
 Fever Charm
 Fleeting Memories
 Flickerwisp
@@ -45,6 +54,9 @@ Foundry Inspector
 Ganax, Astral Hunter
 Geist of the Moors
 Ghastly Death Tyrant
+Ghostfire Slice
+Giant Spectacle
+Gift of the Deity
 Gigapede
 Grafted Butcher
 Gravecrawler
@@ -53,7 +65,9 @@ Hammerhead, Maggia Boss
 Harbor Serpent
 Harrier Griffin
 Haru-Onna
+Hellraiser Goblin
 Herald of Dromoka
+Herald of the Sun
 Heron-Blessed Geist
 Hormagaunt Horde
 Hydrosurge
@@ -63,14 +77,18 @@ Ith, High Arcanist
 Jacked Rabbit
 Keldon Halberdier
 Kinjalli's Caller
+Krark-Clan Ogre
 Lava Coil
 Leering Gargoyle
 Lifecrafter's Bestiary
 Lunarch Mantle
 Masterwork of Ingenuity
 Melancholy
+Merchant of Truth
 Merciless Repurposing
+Mesa Unicorn
 Mikaeus, the Lunarch
+Mind Sludge
 Misers' Cage
 Moldervine Reclamation
 Mountain
@@ -80,6 +98,7 @@ Orazca Raptor
 Ordeal of Purphoros
 Orim's Touch
 Pensive Minotaur
+Phantasmal Fiend
 Pippin's Bravery
 Plains
 Plated Crusher
@@ -96,6 +115,7 @@ Roots of Wisdom
 Runeboggle
 Scoria Elemental
 Scrapper Champion
+Search for Glory
 Searing Spear
 Sigiled Sentinel
 Silverquill Pledgemage
@@ -122,15 +142,19 @@ Tromokratis
 Tyrannize
 Ultimate Alliance
 Unnatural Endurance
+Urza's Science Fair Project
 Vampire Aristocrat
 Viridian Joiner
 Virtuous Variant
 Vitality Charm
+Vodalian Hypnotist
 Voice of Grace
 Warrior's Charge
+Wei Infantry
 Wild Griffin
 Wilderness Reclamation
 Wintermoor Commander
 Wipe Away
+Wu Infantry
 Yeva, Nature's Herald
 Zodiac Monkey

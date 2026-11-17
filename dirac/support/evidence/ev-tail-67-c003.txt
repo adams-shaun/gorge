@@ -1,6 +1,7 @@
 A-Briar Hydra
 A-Dokuchi Silencer
 A-Rockslide Sorcerer
+A-Umara Mystic
 Aerial Assault
 Aethershield Artificer
 Against All Odds
@@ -25,12 +26,18 @@ Burning Palm Efreet
 Burst of Speed
 Butcher Ghoul
 Cacophony Scamp
+Caravan Escort
+Castle
 Chain Lightning
+Clackbridge Troll
 Claim the Firstborn
+Cling to Dust
 Cogwork Assembler
 Commissar Severina Raine
 Common Iguana
+Company Commander
 Conclave Guildmage
+Confront the Unknown
 Conservator
 Corpse Knight
 Courier's Capsule
@@ -39,15 +46,20 @@ Culling Mark
 Daring Fiendbonder
 Dauntless Survivor
 Deadshot
+Death's-Head Buzzard
 Deathless Angel
 Deep Reconnaissance
 Deepwood Ghoul
 Deft Dismissal
 Demon's Grasp
 Demonic Rising
+Despise
+Diligent Excavator
 Dragon's Approach
+Dwarven Vigilantes
 Dyfed, the Guiding Hand
 Earthen Goo
+Eidolon of Rhetoric
 Ekthi, Contaminator Priest
 Erratic Visionary
 Essence Warden
@@ -64,6 +76,7 @@ Flux Channeler
 Forest
 Fungal Sprouting
 Furnace Celebration
+Galvanic Iteration
 Gluttonous Zombie
 Goblin Racketeer
 Grim Monolith
@@ -87,14 +100,18 @@ Ironclad Krovod
 Island
 Jackalope Herd
 Keen-Eyed Raven
+Lagrella, the Magpie
 Leafkin Druid
 Lightning Hounds
 Lightning Reaver
 Liliana's Influence
 Lodestone Myr
 Longtusk Cub
+Lucas, the Sharpshooter
 Lush Growth
+Lyla, Holographic Assistant
 MJ, Rising Star
+Mana Matrix
 Manaforce Mace
 Manamorphose
 Manticore Eternal
@@ -104,6 +121,7 @@ Mirror of Galadriel
 Mise
 Mogg Sentry
 Mogis's Warhound
+Mortal's Ardor
 Moss Monster
 Mothrider Patrol
 Mountain
@@ -114,6 +132,9 @@ Nemesis of Reason
 Nezumi Bladeblesser
 Norn's Disassembly
 Oblation
+Obscura Initiate
+Orcish Bowmasters
+Orim's Touch
 Path of Anger's Flame
 Pentarch Ward
 Pernicious Deed
@@ -123,6 +144,7 @@ Pollywog Prodigy
 Primeval Force
 Prosper, Tome-Bound
 Prosperous Innkeeper
+Prowling Pangolin
 Python
 Quest for Pure Flame
 Rage Weaver
@@ -146,12 +168,14 @@ Sentinel Sliver
 Shake the Foundations
 Shepherd of the Lost
 Skitter of Lizards
+Sky Terror
 Slinking Giant
 Sol Grail
 Solid Footing
 Spined Fluke
 Squee's Embrace
 Steam Blast
+Streetbreaker Wurm
 Swamp
 Tale of Momo
 Talons of Falkenrath
@@ -159,8 +183,10 @@ Talons of Wildwood
 Temmet, Vizier of Naktamun
 Territorial Allosaurus
 The Bears of Littjara
+The Bloodsky Massacre
 The Whizzer, Classic Speedster
 Thorn Thallid
+Thrull Retainer
 Thrór's Map
 Thwart the Grave
 Titan's Strength
@@ -176,9 +202,13 @@ Warped Devotion
 Way of the Thief
 Weight of the Underworld
 Welder Automaton
+Well-Laid Plans
 Whispering Wizard
+Windgrace Acolyte
 Wirecat
 Wrath of Oko
+Writhing Necromass
 You Look Upon the Tarrasque
+Young Blue Dragon
 Zephyr Falcon
 Zodiac Ox

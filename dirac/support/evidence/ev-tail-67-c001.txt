@@ -1,7 +1,9 @@
+A-Briar Hydra
 A-Dokuchi Silencer
 A-Elven Bow
 A-Eyes of the Beholder
 A-Most Wanted
+A-Rockslide Sorcerer
 A-Rulik Mons, Warren Chief
 A-Umara Mystic
 Accelerated Evolution
@@ -13,10 +15,12 @@ Akrasan Squire
 Akroan Crusader
 Angelic Field Marshal
 Angelic Renewal
+Animate Land
 Appa, the Vigilant
 Aquatic Incursion
 Archaeomender
 Armor Thrull
+Asphodel Wanderer
 Augury Adept
 Autochthon Wurm
 Avatar of the Resolute
@@ -24,14 +28,18 @@ Aven Trailblazer
 Awakener Druid
 Axebane Guardian
 Azimaet Drake
+Azorius Ploy
 Baneful Omen
 Barbarian Lunatic
+Bastion Inventor
 Beast Attack
 Biting Rain
 Blight Grenade
 Blight Sickle
 Blisterspit Gremlin
 Blossom Dryad
+Boldwyr Intimidator
+Buccaneer's Bravado
 Buried Alive
 Burn the Impure
 Burning Palm Efreet
@@ -41,10 +49,13 @@ Cacophony Scamp
 Caldera Pyremaw
 Cao Cao, Lord of Wei
 Caravan Escort
+Case the Joint
 Castle
 Chain Lightning
 Chakram Slinger
 Champion's Helm
+Clackbridge Troll
+Claim the Firstborn
 Cling to Dust
 Clutch of Undeath
 Cogwork Assembler
@@ -52,17 +63,23 @@ Commissar Severina Raine
 Common Iguana
 Company Commander
 Conclave Guildmage
+Confront the Unknown
 Consuming Vapors
+Contagion
+Coralhelm Guide
 Corpse Knight
+Corrupted Zendikon
 Corrupting Licid
 Corsairs of Umbar
 Cosmos Elixir
 Courier's Capsule
 Crackling Triton
 Crop Rotation
+Crypt Incursion
 Crystalline Armor
 Culling Mark
 Custodi Soulbinders
+Daily Bugle Newspaper
 Daring Fiendbonder
 Dauntless Survivor
 Deadshot
@@ -80,6 +97,7 @@ Domri, Anarch of Bolas
 Drag Down
 Dragon's Approach
 Dramatic Reversal
+Dwarven Vigilantes
 Dynavolt Tower
 Earthen Goo
 Eidolon of Rhetoric
@@ -95,7 +113,10 @@ Eternal Witness
 Everglades
 Expansion
 Explosive Welcome
+Eyes of Gitaxias
+Faerie Mastermind
 Fain, the Broker
+Farbog Boneflinger
 Femeref Healer
 Final-Sting Faerie
 Firebird, Blazing Ranger
@@ -109,9 +130,11 @@ Flux Channeler
 Foe-liage
 Fog of Gnats
 Forest
+Fountain of Cho
 Fungal Sprouting
 Furnace Celebration
 Furnace Hellkite
+Galvanic Iteration
 Genku, Future Shaper
 Glittermonger
 Glory Bearers
@@ -120,8 +143,10 @@ Gnome-Made Engine
 Go Forth
 Goblin Glider
 Goblin Racketeer
+Goblin Trenches
 Golden Egg
 Golgari Raiders
+Gray Merchant of Asphodel
 Grazilaxx, Illithid Scholar
 Grim Monolith
 Hadran, Naya Sunseeder
@@ -129,8 +154,10 @@ Hail Storm
 Hana Kami
 Hanabi Blast
 Hanna, Ship's Navigator
+Helitrooper
 Helm of the Ghastlord
 Hemlock Vial
+Heroes' Podium
 Hidden Blade
 Honed Khopesh
 Hooting Mandrills
@@ -161,12 +188,15 @@ Kiyomaro, First to Stand
 Knight of the Keep
 Knights of the Black Rose
 Kor Castigator
+Lagrella, the Magpie
+Lattice Library
 Leafkin Druid
 Leather Armor
 Lightning Hounds
 Lightning Reaver
 Lightning-Core Excavator
 Liliana's Influence
+Liliana's Steward
 Lodestone Myr
 Longtusk Cub
 Lowland Oaf
@@ -184,8 +214,10 @@ Mise
 Misery's Shadow
 Mogg Sentry
 Mogis's Warhound
+Moonblade Shinobi
 Moonglove Changeling
 Moonlight Hunt
+Morkrut Necropod
 Mortal's Ardor
 Moss Monster
 Mother of Runes
@@ -200,24 +232,31 @@ Nemesis of Reason
 Neurok Familiar
 Nezumi Bladeblesser
 Norn's Disassembly
+Novice Dissector
 Oblation
 Obscura Initiate
 Onulet
+Orcish Bowmasters
 Organ Hoarder
 Orim's Touch
+Paradox Engine
 Path of Anger's Flame
 Pentarch Ward
 Phyrexian Etchings
+Phyrexian Obliterator
 Plains
 Pol Jamaar, Illusionist
 Preeminent Captain
 Primeval Force
+Prizefighter Construct
+Progenitor Mimic
 Prosper, Tome-Bound
 Prosperous Innkeeper
 Protector of Gondor
 Prowling Pangolin
 Psychic Spear
 Psychotrope Thallid
+Pulse of the Grid
 Purifying Dragon
 Python
 Quest for Pure Flame
@@ -232,6 +271,7 @@ Reckless Handling
 Reduce to Ashes
 Relic Barrier
 Renewed Faith
+Reparations
 Replenish
 Revelation of Power
 Rhox Oracle
@@ -242,21 +282,31 @@ Savage Conception
 Savra, Queen of the Golgari
 Scavenged Blade
 Scepter of Celebration
+Scion of Oona
 Scion of Vitu-Ghazi
 Searing Barb
 Searing Blood
 Secure the Scene
 Sentinel Sliver
+Settle the Score
+Shadowspear
 Shake the Foundations
+Sheoldred
 Shore Keeper
 Simic Keyrune
 Simplify
+Skitter of Lizards
 Skullknocker Ogre
+Skullscorch
 Sky Terror
+Sky Weaver
 Slinking Giant
 Slobad, Goblin Tinkerer
 Sol Grail
 Soul of Theros
+Spearbreaker Behemoth
+Spectral Shepherd
+Spellweaver Eternal
 Spined Fluke
 Spirit Weaver
 Squee's Embrace
@@ -274,24 +324,30 @@ Talons of Wildwood
 Task Force
 Tawnos's Wand
 Temmet, Vizier of Naktamun
+Temporal Cascade
 Tenza, Godo's Maul
 Territorial Allosaurus
 The Bears of Littjara
 The Bloodsky Massacre
 Thorn Thallid
 Throes of Chaos
+Thrull Retainer
 Thrór's Map
 Thunder Drake
 Thundering Sparkmage
 Thwart the Grave
+Tibor and Lumia
+Tidal Bore
 Titan Hunter
 Titan's Strength
 Topan Freeblade
 Tor Giant
 Tormod's Cryptkeeper
+Tranquil Frillback
 Tranquil Path
 Transcendent Master
 Trenching Steed
+Trigon of Rage
 Troublesome Spirit
 Trueheart Duelist
 Umbris, Fear Manifest
@@ -312,6 +368,7 @@ Way of the Thief
 Weight of the Underworld
 Welder Automaton
 Well-Laid Plans
+Whack
 Whispering Wizard
 Windgrace Acolyte
 Wirecat

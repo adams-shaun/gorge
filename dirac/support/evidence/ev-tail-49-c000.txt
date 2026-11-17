@@ -31,6 +31,7 @@ Augur of Bolas
 Avaricious Dragon
 Axegrinder Giant
 Bad Moon
+Barbarian Outcast
 Batroc the Leaper
 Batterbone
 Battle Mammoth
@@ -56,6 +57,7 @@ Cacophony Unleashed
 Call the Cavalry
 Call the Scions
 Captain America, Steve Rogers
+Carrion Wurm
 Casting of Bones
 Catalog
 Centaur Glade
@@ -104,6 +106,7 @@ Disciple of Perdition
 Disentomb
 Dismember
 Domri, City Smasher
+Doran, the Siege Tower
 Double Trouble
 Dragon Whelp
 Dragonlord Dromoka
@@ -179,6 +182,7 @@ Gravetiller Wurm
 Great Desert Prospector
 Greater Auramancy
 Greater Good
+Greater Mossdog
 Greenwarden of Murasa
 Hagra Constrictor
 Hatching Plans
@@ -203,6 +207,7 @@ Island of Wak-Wak
 Iymrith, Desert Doom
 Jadecraft Artisan
 Jaya, Venerated Firemage
+Jetting Glasskite
 Jhessian Thief
 Junktroller
 Kaldra Compleat
@@ -270,6 +275,7 @@ Nim Grotesque
 Nivix Guildmage
 Nylea's Colossus
 Nylea's Forerunner
+Oath of Nissa
 Oblivion Strike
 Obsessive Stitcher
 Ocular Halo
@@ -352,6 +358,7 @@ Secluded Glen
 Sedge Scorpion
 Seething Pathblazer
 Selesnya Sanctuary
+Sentry Oak
 Serendib Efreet
 Serpent-Blade Assailant
 Shadowmage Infiltrator

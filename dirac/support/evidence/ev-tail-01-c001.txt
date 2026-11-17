@@ -106,6 +106,7 @@ Dragon's Smile
 Dragonshift
 Dread Reaper
 Duskfang Mentor
+Dwarven Driller
 ED-E, Lonesome Eyebot
 Earthblighter
 Eastfarthing Farmer
@@ -291,6 +292,7 @@ Psychic Spiral
 Pull Under
 Puppeteer
 Pyrite Spellbomb
+Quintorius, Field Historian
 Raka Sanctuary
 Rakdos Carnarium
 Raking Canopy
@@ -405,6 +407,7 @@ Tolarian Serpent
 Torch Drake
 Torch Gauntlet
 Torture
+Trailblazer's Boots
 Trained Caracal
 Trained Condor
 Transcendent Master

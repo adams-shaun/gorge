@@ -64,6 +64,7 @@ Cut Down
 Cyclops of One-Eyed Pass
 Daring Escape
 Dark Privilege
+Darkslick Drake
 Darksteel Forge
 Darksteel Ingot
 Daughter of the Deep
@@ -114,6 +115,7 @@ Famine
 Fell Stinger
 Final-Sting Faerie
 Firefly
+Flames of the Firebrand
 Forest
 Fountain Watch
 Freewind Equenaut
@@ -125,6 +127,7 @@ Gideon's Battle Cry
 Gift of Growth
 Glint-Sleeve Siphoner
 Gnarled Effigy
+Goblin Bangchuckers
 Goblin Battle Jester
 Goblin Brigand
 Goblin Masons
@@ -182,6 +185,7 @@ Latch Seeker
 Lathnu Hellion
 Let the Galaxy Burn
 Leveler
+Life Chisel
 Life Insurance
 Light of Hope
 Lightning Elemental
@@ -234,6 +238,7 @@ Plague Beetle
 Plaguemaw Beast
 Plains
 Plunder
+Possessed Skaab
 Pouncing Cheetah
 Prava of the Steel Legion
 Presence of the Wise
@@ -263,6 +268,7 @@ Risona, Asari Commander
 River Merfolk
 Roar of Reclamation
 Robber Fly
+Ronin Cavekeeper
 Rorix Bladewing
 Rosecot Knight
 Rotting Giant
@@ -325,6 +331,7 @@ Stir the Pride
 Straw Soldiers
 Street Spasm
 Strength in Numbers
+Strider Harness
 Stronghold Assassin
 Summit Apes
 Sun Droplet
@@ -355,8 +362,10 @@ Tivadar's Crusade
 Tormented Hero
 Touch of Brilliance
 Tourach's Canticle
+Tovolar's Huntmaster
 Treetop Warden
 Tresserhorn Sinks
+Tuktuk Rubblefort
 Ulrich's Kindred
 Undercover Butler
 Unexpected Windfall

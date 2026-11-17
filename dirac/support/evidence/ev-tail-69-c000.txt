@@ -13,6 +13,7 @@ Amy Rose
 Ancient Amphitheater
 Angelic Blessing
 Anje's Ravager
+Aphelia, Viper Whisperer
 Archfiend of Ifnir
 Arctic Aven
 Arctic Flats
@@ -21,6 +22,7 @@ Auriok Sunchaser
 Aven Skirmisher
 Bala Ged Scorpion
 Balduvian Bears
+Balduvian Conjurer
 Baloth Null
 Baneful Omen
 Bard, Heir of Girion
@@ -69,6 +71,7 @@ Corpse Traders
 Corrupt
 Council of Advisors
 Countless Gears Renegade
+Crab Umbra
 Crackdown
 Cranial Ram
 Criminal Enterprise
@@ -191,6 +194,7 @@ Hunter's Insight
 Hunting Cheetah
 Hypnotic Cloud
 Icatian Moneychanger
+Ice-Fang Coatl
 Illicit Shipment
 Illusory Demon
 Impending Disaster
@@ -234,6 +238,7 @@ Magmatic Channeler
 Magmatic Chasm
 Make Disappear
 Mana Leak
+Marsh Goblins
 Master of Death
 Memorial to Glory
 Memory's Journey
@@ -243,6 +248,7 @@ Mindsplice Apparatus
 Mindwrack Demon
 Mire Triton
 Mishra, Excavation Prodigy
+Molten Influence
 Moon-Circuit Hacker
 Mortarion, Daemon Primarch
 Mountain
@@ -293,6 +299,7 @@ Planar Bridge
 Political Triumph
 Primetime Suspect
 Prodigious Growth
+Protean Thaumaturge
 Putrefy
 Pyre-Sledge Arsonist
 Pyreswipe Hawk
@@ -328,6 +335,7 @@ Salvage Scout
 Saprazzan Heir
 Sarulf's Packmate
 Scale the Heights
+Scarecrow
 Seal of Removal
 Searchlight Geist
 Seize the Day

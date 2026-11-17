@@ -8,6 +8,7 @@ Abrupt Decay
 Abzan Beastmaster
 Abzan Kin-Guard
 Access Tunnel
+Acorn Catapult
 Adarkar Sentinel
 Adverse Conditions
 Aether Flash
@@ -128,6 +129,7 @@ Earthblighter
 Eidolon of the Great Revel
 Eiganjo Exemplar
 Ekundu Griffin
+Eldritch Immunity
 Electrolyze
 Ellyn Harbreeze, Busybody
 Elspeth's Devotee
@@ -282,6 +284,7 @@ Merfolk Pupil
 Merfolk Trickster
 Metallic Mimic
 Military Discipline
+Mindmoil
 Mishra's Helix
 Mistcutter Hydra
 Mizzium Mortars
@@ -421,6 +424,7 @@ Sundering Growth
 Sunken Hope
 Swamp
 Sweep the Skies
+Sword of Fire and Ice
 Taj-Nar Swordsmith
 Talas Air Ship
 Talonrend
@@ -438,6 +442,7 @@ The Surgical Bay
 Thopter Engineer
 Thorncaster Sliver
 Thought Monitor
+Thought Reflection
 Thoughts of Ruin
 Théoden, King of Rohan
 Time of Ice
@@ -454,6 +459,7 @@ Valkyrie Harbinger
 Vandalblast
 Venarian Gold
 Venerable Lammasu
+Venerated Rotpriest
 Vengeant Vampire
 Verdigris
 Verix Bladewing

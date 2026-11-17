@@ -5,6 +5,7 @@ Ambitious Assault
 Amrou Seekers
 Anafenza, Kin-Tree Spirit
 Annex
+Annihilate
 Appeal
 Arbaaz Mir
 Archdemon of Paliano
@@ -21,11 +22,16 @@ Blisterpod
 Blood Hound
 Blood Petal Celebrant
 Bloodstained Mire
+Break of Day
 Breya's Apprentice
+Briarbridge Tracker
 Bruse Tarl, Boorish Herder
 Bushmeat Poacher
 Captain America, Unbowed
+Capture Sphere
+Carapace
 Careful Consideration
+Catacomb Slug
 Catalyst Elemental
 Celestial Gatekeeper
 Chalice of the Void
@@ -35,15 +41,20 @@ Chatter of the Squirrel
 Childhood Horror
 Cleansing Wildfire
 Cloak of Feathers
+Combat Courier
 Conclave Naturalists
 Connive
+Cosmos Elixir
 Counsel of the Soratami
 Cranial Plating
 Crossbow Ambush
 Crowd of Cinders
+Crypt Champion
 Curse of Inertia
 Daily Bugle Newspaper
 Danitha Capashen, Paragon
+Daring Saboteur
+Dawnstrike Paladin
 Deathbellow War Cry
 Deluge
 Dematerialize
@@ -62,6 +73,7 @@ Excavation Technique
 Falkenrath Perforator
 Fallowsage
 False Memories
+False Prophet
 Field of Reality
 Fire Nation's Conquest
 Flay
@@ -74,16 +86,19 @@ Galvanic Bombardment
 Geistcatcher's Rig
 Ghosts of the Damned
 Giant Strength
+Gisa and Geralf
 Gisa's Bidding
 Glimmerbell
 Goblin Cohort
 Goblin Piker
+Grappler Spider
 Grasslands
 Green Goblin, Nemesis
 Greenhilt Trainee
 Guardian of Pilgrims
 Gudul Lurker
 Hapatra's Mark
+Haunter of Nightveil
 Healer of the Pride
 Hero's Blade
 Hexplate Golem
@@ -91,6 +106,7 @@ Hit-Monkey
 Hornet Cannon
 Huatli, the Sun's Heart
 Hulking Goblin
+Hunted Horror
 Hypnotic Grifter
 Implement of Examination
 Increasing Vengeance
@@ -105,6 +121,7 @@ Jolrael's Favor
 Kitesail
 Kithkin Zealot
 Kor Firewalker
+Kor Line-Slinger
 Kragma Warcaller
 Lathnu Sailback
 Ledev Guardian
@@ -128,8 +145,11 @@ Mizzium Meddler
 Mogis's Favor
 Mons's Goblin Raiders
 Moonglove Extract
+Mortarpod
 Mountain
 Mourning Thrull
+Mystic Repeal
+Nardole, Resourceful Cyborg
 Nether Void
 Nightmares and Daydreams
 Nissa's Encouragement
@@ -145,14 +165,20 @@ Oran-Rief Hydra
 Orcish Oriflamme
 Original Skullclamp
 Patagia Golem
+Patrician's Scorn
+Peach Garden Oath
 Phantom Ninja
 Phyrexian Espionage
 Pilfered Plans
+Pious Kitsune
 Plains
+Plate Armor
 Precision Bolt
 Predator's Rapport
+Presence of the Wise
 Princess Lucrezia
 Prohibit
+Prowling Caracal
 Rathi Dragon
 Reflections of Littjara
 Reforge the Soul
@@ -160,18 +186,24 @@ Revered Dead
 Rhox Charger
 Rishadan Port
 River Boa
+Roaming Ghostlight
 Roar of the Wurm
+Rolling Stones
 Rootless Yew
 Rowan, Fearless Sparkmage
 Rummaging Wizard
+Runechanter's Pike
 Runed Crown
 Sacred Knight
+Scab-Clan Mauler
 Scavenger Grounds
 Scour the Laboratory
 Scourgemark
 Scroll of Griselbrand
 Seasoned Marshal
+Seize the Initiative
 Selhoff Occultist
+Senate Guildmage
 Sentry Bot
 Serene Heart
 Servo Schematic
@@ -194,15 +226,18 @@ Spitting Sliver
 Squad Captain
 Staff of the Death Magus
 Starnheim Memento
+Stirring Bard
 Stone Spirit
 Storm God's Oracle
 Structural Assault
+Sundial of the Infinite
 Sungrass Egg
 Swamp
 Swiftgear Drake
 Sylvan Might
 Syndicate Enforcer
 Tezzeret's Touch
+Thassa's Bounty
 The Blackstaff of Waterdeep
 Thraxodemon
 Titanic Ultimatum
@@ -211,20 +246,27 @@ Transmogrifying Licid
 Traproot Kami
 True Love's Kiss
 Trumpet Blast
+Trusty Retriever
 Turtle-Seals
 Undead Slayer
 Urza's Incubator
 Utrom Monitor
 Vigorspore Wurm
 Vulturous Aven
+Wakestone Gargoyle
 Wall of Lost Thoughts
 Wall of Spears
 Warren Weirding
 Waste Not
 Weapon Rack
+Weatherseed Treefolk
+Weirding Wood
 Whetstone
 Whimwader
+Whitesun's Passage
 Wild Instincts
 Winter Eladrin
 Wintermoon Mesa
+Wretched Anurid
+Yavimaya Barbarian
 Zealous Inquisitor

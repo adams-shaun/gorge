@@ -167,6 +167,7 @@ Garrison Cat
 Gathering Throng
 Ghirapur Gearcrafter
 Giant-Man, Gargantuan Genius
+Gladewalker Ritualist
 Glissa, the Traitor
 Glowrider
 Gluttonous Cyclops
@@ -305,9 +306,11 @@ Parish-Blade Trainee
 Peer into the Abyss
 Permission Denied
 Pestilent Cauldron
+Phantasmal Image
 Phantom Whelp
 Phyrexian Scriptures
 Pillardrop Warden
+Plague Boiler
 Plague Sliver
 Plains
 Priest of the Crossing
@@ -401,6 +404,7 @@ Sunspire Griffin
 Suntail Hawk
 Survey the Wreckage
 Swamp
+Sword of Body and Mind
 Sylvan Paradise
 Sylvan Reclamation
 Synchronized Spellcraft

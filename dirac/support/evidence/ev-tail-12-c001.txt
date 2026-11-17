@@ -28,6 +28,7 @@ Battle Hymn
 Benalish Veteran
 Birthing Boughs
 Birthing Ritual
+Blessed Wind
 Blind-Spot Giant
 Bloodsworn Steward
 Bog Glider
@@ -37,6 +38,7 @@ Brave the Elements
 Briarberry Cohort
 Briarblade Adept
 Broodstar
+Budoka Pupil
 Butch DeLoria, Tunnel Snake
 Call to Serve
 Catalyst Elemental
@@ -61,6 +63,7 @@ Deepwater Hypnotist
 Diamond Knight
 Disentomb
 Dispel
+Double Cleave
 Dragonspark Reactor
 Drowned Rusalka
 Druid's Call
@@ -86,8 +89,10 @@ Flowstone Salamander
 Fog on the Barrow-Downs
 Force of Despair
 Forest
+Forever Young
 Funeral Longboat
 Garrison Griffin
+General Tazri
 Genesis
 Geralf's Masterpiece
 Geralf, Visionary Stitcher
@@ -167,6 +172,7 @@ Maximize Altitude
 Medicine Bag
 Memory Erosion
 Mephitic Ooze
+Millikin
 Mind's Eye
 Mine Collapse
 Minotaur Tactician
@@ -180,6 +186,7 @@ Mutilate
 Muzzio, Visionary Architect
 Nausea
 Neck Snap
+Nether Spirit
 Niblis of the Mist
 Nikara, Lair Scavenger
 Nissa, Worldwaker
@@ -231,6 +238,7 @@ Run Aground
 Rushwood Herbalist
 Rusting Golem
 Sanctifier of Souls
+Sand Squid
 Sanguimancy
 Savannah Sage
 Scour All Possibilities
@@ -245,11 +253,13 @@ Shadowmage Infiltrator
 Sheoldred, Whispering One
 Sifter Wurm
 Silverquill Apprentice
+Skirk Fire Marshal
 Slimebind
 Slimy Piper
 Slingshot Goblin
 Sliptide Serpent
 Slumbering Dragon
+Sly Requisitioner
 Solar Tide
 Sonic Assault
 Sophic Centaur

@@ -1,4 +1,5 @@
 Abzan Battle Priest
+Abzan Falconer
 Accursed Spirit
 Aeronaut Admiral
 Aether Poisoner
@@ -58,6 +59,7 @@ Gaea's Touch
 Genasi Enforcers
 Giant Killer
 Giltgrove Stalker
+Gimli, Mournful Avenger
 Glistener Seer
 Goblin Fireslinger
 Goblin Gathering
@@ -126,6 +128,7 @@ Planar Birth
 Plant Elemental
 Plate Armor
 Pressure Point
+Priest of the Wakening Sun
 Prismatic Ending
 Prized Griffin
 Prophecy
@@ -164,6 +167,7 @@ Swamp
 Sylvan Basilisk
 Tablet of Compleation
 Tainted Observer
+Tangle Angler
 Territorial Hammerskull
 Thalisse, Reverent Medium
 The Bear Force Pilot

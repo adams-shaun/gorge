@@ -5,12 +5,17 @@ Aether Meltdown
 Amrou Scout
 Ancestral Recall
 Anticipate
+April O'Neil, Live on the Scene
 Arboreal Grazer
+Arcbound Bruiser
+Arena of the Ancients
 Armguard Familiar
 Arrester's Zeal
 Aspect of Gorgon
+Autonomous Assembler
 Avenging Druid
 Awakening Zone
+Barl's Cage
 Battle Squadron
 Beacon Hawk
 Bitter Downfall
@@ -31,6 +36,7 @@ Commencement of Festivities
 Commune with Dinosaurs
 Consuming Fervor
 Crash of Rhinos
+Craw Wurm
 Crimson Manticore
 Crowd Favorites
 Cruel Edict
@@ -40,10 +46,14 @@ Dark Heart of the Wood
 Daru Cavalier
 Dauthi Cutthroat
 Deathcurse Ogre
+Deepwood Legate
 Defiant Khenra
+Desert's Hold
 Diabolic Intent
+Dingus Egg
 Diregraf Horde
 Draconic Muralists
+Drift of the Dead
 Dromoka, the Eternal
 Drowned Secrets
 Dutiful Attendant
@@ -56,6 +66,7 @@ Ertai, Wizard Adept
 Essence Drain
 Essence Filter
 Excavating Anurid
+Faerie Vandal
 Far Traveler
 Feral Ferocity
 Feral Prowler
@@ -71,6 +82,8 @@ Galion, Elvenking's Butler
 Galvanic Bombardment
 Gavony Trapper
 Gladecover Scout
+Glademuse
+Glasses of Urza
 Goblin Fire Fiend
 Goblin War Party
 Goliath Paladin
@@ -80,6 +93,7 @@ Haldir, Lórien Lieutenant
 Hamlet Captain
 Hematite Talisman
 Herald of the Fair
+Herald of the Pantheon
 Hobgoblin Dragoon
 Hookblade Veteran
 Icatian Lieutenant
@@ -89,8 +103,10 @@ Island
 Jaya's Firenado
 Kami of Ancient Law
 Katara, Heroic Healer
+Kavu Chameleon
 Kavu Predator
 Khalni Gem
+Kitsune Blademaster
 Kiyomaro, First to Stand
 Kuldotha Ringleader
 Lash of Thorns
@@ -109,6 +125,7 @@ Merciless Javelineer
 Merciless Resolve
 Mercurial Kite
 Meteor Shower
+Mind Rake
 Mizzium Mortars
 Moment of Defiance
 Mountain
@@ -116,6 +133,7 @@ Multiclass Baldric
 Murderous Rider
 Myojin of Cleansing Fire
 Nantuko Calmer
+Nantuko Cultivator
 Nephalia Smuggler
 Niblis of Frost
 Nocturnal Feeder
@@ -126,8 +144,10 @@ One with Nature
 Panther Robot
 Plague Belcher
 Plains
+Plant Elemental
 Predation Steward
 Prickly Boggart
+Primal Huntbeast
 Pyretic Ritual
 Ramirez DePietro, Pillager
 Ramosian Greatsword
@@ -136,12 +156,14 @@ Raphael, Fiendish Savior
 Rebel Salvo
 Regrowth
 Renegade Troops
+Repulsor Bots
 Returned Reveler
 Rhonas the Indomitable
 Rhox Pummeler
 Rishadan Footpad
 Rockcaster Platoon
 Sage Owl
+Salvager of Ruin
 Savage Gorilla
 Scapegoat
 Scattered Thoughts
@@ -174,12 +196,14 @@ Terror
 Teyo, the Shieldmage
 Tezzeret's Ambition
 Tezzeret's Gambit
+The Balrog, Flame of Udûn
 The First Iroan Games
 The Shattered States Era
 Thraben Purebloods
 Time Sieve
 Tocasia's Welcome
 Tokka & Rahzar, Unsupervised
+Touchstone
 Tourach's Canticle
 Transpose
 Tuinvale Treefolk
@@ -193,6 +217,7 @@ Vedalken Archmage
 Verdant Crescendo
 Vernadi Shieldmate
 Vial of Dragonfire
+Vital Splicer
 Voltstorm Angel
 Vow of Duty
 Wall of Spears

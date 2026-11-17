@@ -267,6 +267,7 @@ Puresight Merrow
 Purestrain Genestealer
 Purify the Grave
 Quag Vampires
+Quarry Hauler
 Ral's Dispersal
 Ramunap Ruins
 Raven Clan War-Axe
@@ -368,8 +369,10 @@ Topple
 Torrential Gearhulk
 Triton Shorestalker
 Troll Ascetic
+Tuknir Deathlock
 Tuktuk Grunts
 Turntimber Ascetic
+Turntimber Basilisk
 Twisted Landscape
 Ukud Cobra
 Uncovered Clues

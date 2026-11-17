@@ -1,17 +1,23 @@
+A-Druidic Ritual
+Accursed Marauder
 Aether Flash
 Akroan Hoplite
 Amphin Pathmage
 Amugaba
 Angelic Curator
 Ant-Man, Scott Lang
+Arc Spitter
 Arcanist's Owl
+Argivian Restoration
 Aria of Flame
 Armageddon
 Artifact Ward
 Ashling the Pilgrim
+Ashling, the Extinguisher
 Augur of Bolas
 Avaricious Dragon
 Bad Moon
+Barbarian Outcast
 Batroc the Leaper
 Batterbone
 Blightbeetle
@@ -21,15 +27,20 @@ Bog Initiate
 Boon Reflection
 Boros Swiftblade
 Brand
+Briarhorn
 Briarpack Alpha
 Broodbirth Viper
 Butcher's Cleaver
 Cacophony Unleashed
 Call the Cavalry
+Call the Scions
+Captain America, Steve Rogers
+Carrion Wurm
 Casting of Bones
 Catalog
 Celestial Kirin
 Cephalid Broker
+Chandra's Outburst
 Change of Fortune
 Chapel Geist
 Charge Across the Araba
@@ -37,6 +48,7 @@ Charging Slateback
 Checkpoint Officer
 Chieftain en-Dal
 Citadel Gate
+Citanul Centaurs
 Citanul Flute
 Cobblebrute
 Connive
@@ -45,8 +57,10 @@ Countryside Crusher
 Crash
 Crimson Cowl, Master of Evil
 Cultist of the Absolute
+Damping Matrix
 Daredevil's Billy Club
 Dark Bargain
+Darksteel Myr
 Dauntless Aven
 Dauntless Unity
 Death Cloud
@@ -60,16 +74,20 @@ Dismember
 Double Trouble
 Dragon Whelp
 Drake Haven
+Druid's Deliverance
 Electrify
 Elemental Uprising
 Elenda, the Dusk Rose
 Elixir of Immortality
+Elvish Piper
+Elvish Promenade
 Elvish Scrapper
 Elvish Visionary
 Emmara, Soul of the Accord
 Enduring Bondwarden
 Enlightened Ascetic
 Ent's Fury
+Escape Velocity
 Eternity Vessel
 Ever After
 Evernight Shade
@@ -77,18 +95,23 @@ Expedite
 Extinguish the Light
 Faerie Duelist
 Fallen Shinobi
+Fallowsage
 Farid, Enterprising Salvager
+Fencing Ace
 Feral Appetite
 Ferocious Pup
 Festering Newt
 Fevered Strength
 Feywild Visitor
 Fiery Mantle
+Fireball
+Fissure Wizard
 Flamecore Elemental
 Flames of the Firebrand
 Fleeting Spirit
 Forest
 Fortified Rampart
+Fungal Rebirth
 Gainsay
 Garruk's Companion
 Gate to Phyrexia
@@ -106,9 +129,13 @@ Graceful Restoration
 Great Desert Prospector
 Greater Auramancy
 Greater Good
+Greater Mossdog
+Greenwarden of Murasa
 Hagra Constrictor
+Hatching Plans
 Havengul Vampire
 Hell Swarm
+Hellion Eruption
 Hero of the Nyxborn
 Heroic Charge
 Hobblefiend
@@ -118,10 +145,12 @@ Howling Golem
 Humongulus
 Hunted Dragon
 Incriminate
+Inferno Fist
 Inspired Fire
 Inspiring Veteran
 Island
 Island of Wak-Wak
+Jadecraft Artisan
 Jaya, Venerated Firemage
 Kaldra Compleat
 Kayla's Command
@@ -129,19 +158,24 @@ Kazandu Blademaster
 Kei Takahashi
 Kessig Wolfrider
 Kiln Walker
+Kiri-Onna
+Kor Cartographer
 Kor Entanglers
 Kor Outfitter
 Kor Scythemaster
 Kuldotha Rebirth
 Kyoshi Warrior Guard
+Lantern Spirit
 Lantern of Revealing
 Lantern of the Lost
 Lapis Lazuli Talisman
 Last Caress
+Lavamancer's Skill
 Lawmage's Binding
 Library
 Living Wish
 Long-Finned Skywhale
+Lu Su, Wu Advisor
 Magistrate's Veto
 Maned Serval
 Manic Scribe
@@ -153,10 +187,13 @@ Masticore
 Memory Plunder
 Merciless Eternal
 Merfolk Observer
+Metamorphic Wurm
 Mightstone's Animation
 Mind Harness
+Mindmelter
 Misery Charm
 Misery's Shadow
+Moldgraf Scavenger
 Monologue Tax
 Moonwing Moth
 Moorish Cavalry
@@ -166,14 +203,20 @@ Murderous Compulsion
 Mystery Key
 Mythic Proportions
 Naiad of Hidden Coves
+Nantuko Tracer
 Nico Minoru, Runaway
 Nightshade Seer
 Nim Grotesque
 Noose Constrictor
 Nylea's Colossus
+Nylea's Forerunner
+Oath of Nissa
+Oblivion Strike
 Ogre Gatecrasher
 Omnath, Locus of Rage
+Outland Colossus
 Oversold Cemetery
+Pallid Mycoderm
 Part the Veil
 Passionate Archaeologist
 Patagia Golem
@@ -182,6 +225,7 @@ Perilous Forays
 Perilous Research
 Pillaging Horde
 Pillarfield Ox
+Pip-Boy 3000
 Plains
 Poison Arrow
 Pooling Venom
@@ -196,8 +240,10 @@ Radha, Heart of Keld
 Rain of Salt
 Raking Claws
 Rampaging Cyclops
+Raptor Companion
 Ray of Dissolution
 Razorgrass Ambush
+Razortide Bridge
 Reaver Titan
 Refocus
 Renari, Merchant of Marvels
@@ -208,13 +254,17 @@ Rhystic Shield
 Righteous Cause
 Righteous Fury
 Riptide Pilferer
+Rishkar's Expertise
 Roc Charger
 Rocksteady, Mutant Marauder
 Rogue's Gloves
+Rootbreaker Wurm
 Runebound Wolf
 Runner's Bane
+Rustvine Cultivator
 Sacred Fire
 Sage of Epityr
+Salt Road Quartermasters
 Sanctum of Stone Fangs
 Sandstorm Eidolon
 Sarpadian Simulacrum
@@ -228,23 +278,32 @@ Search the Premises
 Sedge Scorpion
 Seething Pathblazer
 Selesnya Sanctuary
+Sentry Oak
 Serendib Efreet
 Serpent-Blade Assailant
 Shadowmage Infiltrator
 Shalai, Voice of Plenty
 Shape the Sands
+Shower of Coals
+Shriekmaw
 Sigarda, Heron's Grace
 Silver Bolt
 Silverquill Command
+Simic Ascendancy
+Skinshifter
+Slaughterhorn
 Sleeper Agent
+Slippery Bogle
 Smelt
 Soul Shred
 Soulshriek
 Spawn-Gang Commander
+Squirrel Sanctuary
 Stinging Hivemaster
 Stone Catapult
 Stonefury
 Storm Fleet Sprinter
+Storm Shaman
 Stormchaser Mage
 Stormfront Pegasus
 Struggle for Skemfar
@@ -264,9 +323,12 @@ Tallyman of Nurgle
 Tamiyo's Logbook
 Tar Pitcher
 Teeterpeak Ambusher
+Terrain Elemental
 The Rack
+Thorncaster Sliver
 Thought Collapse
 Thundercloud Shaman
+Tidings
 Torment
 Touch of Brilliance
 Towering-Wave Mystic
@@ -276,6 +338,7 @@ Twisted Embrace
 Ultimate Magic: Holy
 Undertaker
 Unraveling Mummy
+Untamed Might
 Vagrant Plowbeasts
 Vanquish the Weak
 Vault Guardsman
@@ -285,9 +348,11 @@ Vengeful Dead
 Verix Bladewing
 Viridian Harvest
 Virtue's Ruin
+Vitu-Ghazi Guildmage
 Voracious Fell Beast
 Vorrac Battlehorns
 Wake Thrasher
+Wall of Corpses
 Wall of Essence
 Wall of Reverence
 Warpath
@@ -305,6 +370,7 @@ Woodland Wanderer
 Woodwraith Strangler
 Wose Pathfinder
 Wu Longbowman
+Xathrid Slyblade
 Xun Yu, Wei Advisor
 Yuriko, the Tiger's Shadow
 Zephyr Charge

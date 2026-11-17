@@ -1,0 +1,56 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Agent of Erebos	c234bd8f186b0d6a	3	1/1		0/1	ix:resp
+Blockade Runner	b86f582ab64cf611	8	1/1		1/1	
+Bloodchief's Thirst	79d88e426eea4a60	3	0/0		4/4	
+Cabal Slaver	7610142082c3e9d3	8	1/1		0/1	ix:resp
+Cabaretti Initiate	f98e6e7c5178247c	11	1/1		0/1	ix:resp
+Chambered Nautilus	2c41df9e4ad0a24b	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Coiling Woodworm	da6f0438e82d510f	10	0/0		0/0	
+Darkwater Egg	b5a1f0f22a95cf0d	7	1/1		1/1	
+Defiant Ogre	9fddfeba1c3a6a77	4	1/1		0/1	ix:resp
+Demon's Grasp	febbb1548451440d	12	0/0		2/2	
+Denethor, Stone Seer	df7f7e23705c610d	5	2/2		0/1	ix:resp
+Doomskar Titan	8cf7439f2e72e14c	4	1/1		1/3	cast/alt:foretold,ix:resp
+Dragonshift	58fa433aa0139f60	8	0/0		2/4	cast/alt:overloaded,ix:resp
+Fascination	27bf44720d1901cd	3	0/0		2/4	f0/s/x0,ix:resp
+Flowstone Embrace	3783de364c382bcd	22	1/1		2/2	
+Get the Point	ce708615adf2a9c7	8	0/0		2/2	
+Ghitu Amplifier	2de13f10d918e459	22	2/2		2/3	ix:resp
+Ghitu Fire-Eater	989fe8237dcd0857	8	1/1		1/1	
+Ghoulcaller's Chant	4ebbdcfe24452fbb	6	0/0		1/2	ix:resp
+Goblin Assault	e3db7f4f1489de5c	17	1/1		1/1	
+Goblin War Drums	97dc8b6ec881a0c4	8	0/0		0/0	
+Grotag Siege-Runner	1597c2d9625a147e	6	1/1		0/1	ix:resp
+Heavy Ballista	6c551715a9293cc1	8	1/1		0/1	ix:resp
+Hero of the Games	10dc8b755c3fad28	14	1/1		0/1	ix:resp
+Improvised Weaponry	c5f4f99c63759283	27	0/0		1/2	ix:resp
+Incendiary	7ade24e5543188c7	15	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
+Ire of Kaminari	737eed8f78b60aa4	15	0/0		1/2	ix:resp
+Jasmine Boreal	a06332051935f0e7	4	0/0		0/0	
+Kessig Prowler	33ef871771ffb03b	8	1/1		0/1	ix:resp
+Lurking Roper	9ea3cd3963ca8bbc	12	1/1		0/1	ix:resp
+Maniacal Rage	274bb5e3cf00ad35	20	0/0		1/2	ix:resp
+Manipulate Fate	0c8c84d2dec2d220	5	0/0		1/2	ix:resp
+Mark of Fury	23d65b1fbefcfc16	41	1/1		2/2	
+Master the Way	07a5e38d47ec0b24	6	0/0		1/2	ix:resp
+Merfolk Seer	998d7b5b21b70ac9	6	1/1		0/1	ix:resp
+Mire Kavu	3055cd686039178e	18	0/0		0/0	
+Nyx Herald	02c0ba866c2bf446	4	1/1		0/1	ix:resp
+Polygoyf	f8134dd0ae2c2989	6	1/1		0/1	ix:resp
+Raka Sanctuary	df07c62143c838e1	10	1/1		0/1	ix:resp
+Rosnakht, Heir of Rohgahh	dbdccaf2ea71fac6	10	2/2		0/1	ix:resp
+Rumbling Crescendo	9880a23fdd09fd1c	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Rune Snag	fb953d391ae07949	7	0/0		1/2	ix:resp
+Scar	4302e10e818fdc16	3	0/0		2/2	
+Smokespew Invoker	e938bf6a086fad78	7	1/1		0/1	ix:resp
+Spare Dagger	e3e63787263e0f2e	15	1/1		0/1	ix:resp
+Specimen Collector	3a426794eccd8e8e	7	2/2		1/1	
+Stonebrow, Krosan Hero	0522f4fe2eba8e68	15	1/1		1/1	
+Stronghold Assassin	f08b3cf4599a0b5c	10	1/1		1/1	
+Swarm Guildmage	2594a92e2c9f9fc7	5	2/2		0/1	ix:resp
+Thallid Shell-Dweller	dddcf8a0854be3c8	14	2/2		1/1	
+Thrasios, Triton Hero	b1d703346fec15c1	5	1/1		0/1	ix:resp
+Trained Caracal	945612173367b5ea	4	0/0		0/0	
+Vesperlark	4e8d1ca1521f1626	4	1/1		2/3	ix:resp
+Vow of Wildness	3c3b59fbd1250410	9	0/0		2/2	
+Wing Snare	cc24a3626293e7f0	8	0/0		2/2	

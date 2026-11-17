@@ -3,38 +3,57 @@ Archangel of Thune
 Arctic Aven
 Auriok Sunchaser
 Baloth Null
+Battle at the Helvault
 Baxter, Fly in the Ointment
+Blessed Orator
 Bootleggers' Stash
 Briarberry Cohort
+Brushstrider
+Brutal Deceiver
 Bull's Strength
 Cackling Counterpart
 Cavern Lampad
 Chamber of Manipulation
 Chime of Night
+Compulsory Rest
 Contagious Vorrac
 Corrupt
 Cranial Ram
 Criminal Enterprise
 Dark Offering
+Deeproot Warrior
 Desert Twister
 Diabolic Vision
+Dispeller's Capsule
 Dukhara Peafowl
+Elephant Grass
+Elvish Farmer
+Emerald Charm
 Epistolary Librarian
 Escape Routes
 Essence Extraction
+Everdawn Champion
 Face of Fear
 Faerie Bladecrafter
+Faerie Swarm
 Favor of the Woods
 Forest
+Foriysian Brigade
+Garruk Wildspeaker
 Gorgon's Head
+Gut, True Soul Zealot
+Hanweir Militia Captain
 Heir of the Wilds
 Hesitation
 Hidden Ancients
 Hollowhenge Scavenger
+Honored Hierarch
 How to Keep an Izzet Mage Busy
 Hunter's Insight
+Illusory Demon
 Infectious Host
 Inspired Insurgent
+Invisible Force Field
 Island
 Jagged-Scar Archers
 Jungle Wurm
@@ -51,33 +70,52 @@ Nantuko Elder
 Natural Spring
 Nature's Resurgence
 Night Market Lookout
+Nimana Skitter-Sneak
 Noxious Revival
+Nullhide Ferox
 Nyxborn Seaguard
 On the Trail
+Organ Grinder
 Paladin of Atonement
 Phantom Beast
 Pinnacle Monk
 Plains
+Political Triumph
 Pondering Mage
 Prodigious Growth
+Protean Thaumaturge
 Quickling
 Ranger's Guile
+Raze the Effigy
 Razorfield Thresher
+Replication Technique
 Research Thief
 Reviving Dose
+Root Out
 Rubble Reading
 Rushwood Herbalist
 Scale the Heights
 Shard Convergence
+Shepherd of the Lost
+Shu Elite Companions
 Sky Theater Strix
+So Shiny
+Starnheim Aspirant
 Structural Assault
 Swamp
 Tales of Master Seshiro
 Tel-Jilad Exile
+Tempest Drake
+Thirst for Meaning
+Thriving Ibex
 Thunderfoot Baloth
+Titania's Boon
+Topplegeist
 Training Grounds
 Transluminant
+Triskelion
 Trollbred Guardian
+Ukkima, Stalking Shadow
 Underworld Connections
 Vampire Hexmage
 Watcher Sliver

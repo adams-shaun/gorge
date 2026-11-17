@@ -35,6 +35,7 @@ Banefire
 Banishment Decree
 Barbed Battlegear
 Battlewise Aven
+Bearer of the Heavens
 Beast Attack
 Bee Sting
 Belligerent Brontodon
@@ -43,6 +44,7 @@ Bladetusk Boar
 Blanchwood Prowler
 Blighted Woodland
 Blink of an Eye
+Blistering Firecat
 Blood Tithe
 Bloodhaze Wolverine
 Bloodmad Vampire
@@ -57,6 +59,7 @@ Briar Hydra
 Briar Shield
 Briber's Purse
 Burn Bright
+Burning-Tree Emissary
 Burst of Strength
 Cabal Conditioning
 Capture Sphere
@@ -66,6 +69,7 @@ Caustic Wasps
 Cavern Crawler
 Chained Brute
 Champion of Dusk
+Chief of the Wilds
 Chimeric Egg
 Circle of the Land Druid
 Cirith Ungol Patrol
@@ -96,10 +100,12 @@ Desert Drake
 Destructive Tampering
 Dimir Signet
 Dingus Staff
+Dire Fleet Captain
 Disruptive Student
 Divine Arrow
 Dockside Extortionist
 Doomskar
+Dragonlord Ojutai
 Drifter il-Dal
 Drogskol Captain
 Duskmantle Prowler
@@ -107,6 +113,7 @@ Earth Servant
 Earthcraft
 Echo Inspector
 Elderfang Disciple
+Elite Guardmage
 Elven Lyre
 Enhanced Awareness
 Essence Fracture
@@ -181,6 +188,7 @@ In the Eye of Chaos
 Inferno Elemental
 Infiltrator's Magemark
 Inga Rune-Eyes
+Into the Core
 Into the Void
 Invasion of Belenon
 Iron Lance
@@ -214,6 +222,7 @@ Lifecrafter's Gift
 Lightning Angel
 Lightning Runner
 Looming Hoverguard
+Lorehold Command
 Marchesa's Emissary
 Markov Dreadknight
 Markov Waltzer
@@ -222,6 +231,7 @@ Massive Might
 Master of Winds
 Maze Glider
 Meatsqueak, Hoard Lord
+Mechanized Warfare
 Memnarch
 Memorial to War
 Merfolk Pupil
@@ -231,10 +241,12 @@ Millicent, Restless Revenant
 Mind's Eye
 Minsc, Beloved Ranger
 Mirran Banesplitter
+Mirror of Life Trapping
 Misdirection
 Mishra's Helix
 Mobilized District
 Mogg Toady
+Molten Vortex
 Mondrak, Glory Dominus
 Moonsnare Specialist
 Moorish Cavalry
@@ -291,8 +303,10 @@ Put Away
 Pygmy Allosaurus
 Rabid Wombat
 Raking Claws
+Rampant Elephant
 Raphael, the Muscle
 Reclusive Wight
+Red Scarab
 Reduce
 Reject Imperfection
 Repel the Darkness
@@ -307,6 +321,7 @@ Road
 Rousing Read
 Sandstone Deadfall
 Sarkhan's Rage
+Sawback Manticore
 Scarland Thrinax
 Scorchmark
 Scouting Hawk
@@ -332,6 +347,7 @@ Skorpekh Destroyer
 Skullport Merchant
 Skyfisher Spider
 Skyshaper
+Snow Devil
 Soltari Priest
 Somber Hoverguard
 Somberwald Alpha
@@ -340,6 +356,7 @@ Spawnbed Protector
 Spell Snuff
 Spellrune Painter
 Spidersilk Net
+Spike Jester
 Sporecap Spider
 Squall Drifter
 Stampeding Wildebeests
@@ -376,6 +393,7 @@ Troll of Khazad-dûm
 Tsabo's Decree
 Tusked Colossodon
 Uktabi Drake
+Upriser Renegade
 Vandalblast
 Venarian Glimmer
 Venarian Gold

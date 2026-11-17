@@ -99,6 +99,7 @@ Dissipate
 Dragon Engine
 Dragon Mask
 Draugr's Helm
+Dross Hopper
 Drumbellower
 Dune Beetle
 Dwarven Nomad
@@ -261,10 +262,12 @@ Quandrix Campus
 Quilled Sliver
 Raging Minotaur
 Rain of Blades
+Rakdos Signet
 Raphael, the Muscle
 Raptor Companion
 Ravenous Vampire
 Rebuff the Wicked
+Recoil
 Reef Shaman
 Relentless Assault
 Remand
@@ -272,6 +275,7 @@ Renegade Tactics
 Resolute Archangel
 Resupply
 Rite of the Raging Storm
+Roiling Regrowth
 Rootwire Amalgam
 Rush of Inspiration
 Rusted Sentinel
@@ -363,6 +367,7 @@ Thoughtrender Lamia
 Thunder Spirit
 Tibalt, the Fiend-Blooded
 Time of Need
+Tin Street Hooligan
 Tolarian Sentinel
 Topiary Stomper
 Torch Courier

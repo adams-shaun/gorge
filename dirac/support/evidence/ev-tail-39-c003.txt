@@ -2,7 +2,10 @@ A-Esika's Chariot
 A-Gnarlid Colony
 A-Pyre-Sledge Arsonist
 Accursed Marauder
+Aetherstream Leopard
+Aim High
 Ajani's Sunstriker
+Ancestral Vision
 Ancient Ziggurat
 Ant-Man, Elusive Avenger
 Archon of Emeria
@@ -15,6 +18,7 @@ Benalish Veteran
 Berserkers of Blood Ridge
 Blood Pact
 Boros Keyrune
+Bulette
 Carrion Crow
 Cavern Harpy
 Chaos Channeler
@@ -27,45 +31,61 @@ Common Iguana
 Congregate
 Courageous Outrider
 Court Cleric
+Creeperhulk
+Crowned Ceratok
 Crypt Cobra
 Crypt Rats
 Curse of Vitality
 Dark Triumph
+Darksteel Pendant
 Dauntless Onslaught
 Dauthi Trapper
 Dawnbringer Cleric
+Dawnfeather Eagle
 Demogorgon's Clutches
 Dense Foliage
+Dread Presence
 Dromoka Dunecaster
 Dry Spell
 Elvish Mystic
 Envoy of the Ancestors
+Ethereal Guidance
 Exsanguinator Cavalry
 Fact or Fiction
 Fast
 Fervent Paincaster
 Forest
 Forked Bolt
+Frontline Rebel
+Fungal Sprouting
 Ghost Lantern
 Ghost Quarter
 Ghoul's Feast
 Glacial Grasp
+Glittermonger
 Goblin Deathraiders
 HYDRA Disintegrator
 Hangar Scrounger
+Heartmender
 Hellion Crucible
 Hidden Guerrillas
 Hydromorph Guardian
+Instill Furor
 Instill Infection
 Invasive Species
 Island
 Jade Bearer
+Kamigawa Charm
+Kazandu Mammoth
+Laccolith Warrior
 Late to Dinner
 Lavabelly Sliver
 Leonin Bladetrap
 Lord of the Accursed
 Manalith
 Mark of the Vampire
+Marshal of Zhalfir
+Marwyn, the Nurturer
 Mind Whip
 Mobile Fort
 Moonstone Eulogist
@@ -90,9 +110,11 @@ Rage of Purphoros
 Ragged Recluse
 Rakka Mar
 Rally at the Hornburg
+Ravenous Necrotitan
 Reconstruct History
 Renewed Faith
 Rhystic Shield
+Rime Tender
 Riot Piker
 Riverwheel Aerialists
 Ronin Warclub
@@ -101,7 +123,9 @@ Ruinous Minotaur
 Safeguard
 Scaldkin
 Scourge of Fleets
+Segovian Angel
 Sentinels of Glen Elendra
+Serene Sunset
 Shambling Ghast
 Sheltering Boughs
 Shriek of Dread
@@ -123,6 +147,7 @@ Splitting Slime
 Springmane Cervin
 Squire's Devotion
 Stalking Vengeance
+Star-Crowned Stag
 Stasis Field
 Storm's Wrath
 Swamp
@@ -142,7 +167,9 @@ Tooth and Nail
 Trophy Hunter
 Ugin's Construct
 Ulasht, the Hate Seed
+Underdark Explorer
 Underworld Sentinel
+Unmask
 Urborg Drake
 Victor Mancha, Runaway
 Wakening Sun's Avatar

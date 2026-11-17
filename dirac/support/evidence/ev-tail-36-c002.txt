@@ -1,114 +1,219 @@
 A-Cosmos Elixir
 Abandon Reason
 Aberrant Return
+Abuna Acolyte
 Akki Drillmaster
+Alaborn Cavalier
+Alert Heedbonder
+Aligned Hedron Network
+Alloy Animist
+Anathemancer
 Angel of Flight Alabaster
 Angelic Page
 Anodet Lurker
+Apostle of Invasion
 Archetype of Aggression
+Argivian Archaeologist
+Arrow Volley Trap
+Assault Intercessor
 Auriok Steelshaper
 Avacyn's Pilgrim
 Azra Oddsmaker
 Backwoods Survivalists
 Balthor the Defiled
+Balthor the Stout
+Benalish Emissary
 Biolume Egg
 Black Oak of Odunos
+Blessed Reversal
 Bloodshot Cyclops
+Branded Brawlers
 Break Down
 Brush with Death
 Campaign of Vengeance
+Candlegrove Witch
 Capashen Templar
 Captain Lannery Storm
 Castle Ardenvale
 Cathar's Shield
 Cazur, Ruthless Stalker
 Cemetery Gate
+Chaos Harlequin
+Charge of the Mites
 Charmed Stray
 Chief of the Edge
 Collar the Culprit
+Collision
 Combat Professor
+Conclave Equenaut
+Conduit Goblin
 Corrupt Eunuchs
 Craven Knight
+Crux of Fate
 Cryptic Serpent
+Dawn Elemental
+Defile
+Descendant of Kiyomaro
 Dispersal Shield
+Drumbellower
+Dwarven Berserker
+Dwarven Priest
 Earth Surge
 Eat to Extinction
+Elesh Norn, Grand Cenobite
+Elspeth, Knight-Errant
 Elven Fortress
+Ember Hauler
 Emeria's Call
+Erdwal Ripper
 Etherium-Horn Sorcerer
 Fairgrounds Warden
+Faithful Watchdog
+False Defeat
 Fireborn Knight
+Firefiend Elemental
 Fleshbag Marauder
 Forest
+Frantic Confrontation
+Frondland Felidar
 General's Kabuto
 Gift of Tusks
 Gift of the Deity
+Golden-Tail Trainer
 Goldnight Commander
 Goliath Truck
 Great Desert Prospector
+Hallowed Priest
 Hallowed Spiritkeeper
+Harbinger of the Hunt
+Harvesttide Infiltrator
+Haunted Cloak
+Heat Ray
+Heaven
 Hero of the Winds
+Honden of Infinite Rage
 Hunted Troll
 Hypochondria
+Illuminator Virtuoso
+Insolent Neonate
+Inspired Fire
+Isamaru and Yoshimaru
 Island
+Jace's Ruse
 Jackdaw
+Jugan, the Rising Star
 Jungleborn Pioneer
+Kamahl's Sledge
+Kargan Warleader
 Kathari Remnant
+Kaya's Onslaught
 Keensight Mentor
 Kirtar's Desire
 Kolvori, God of Kinship
+Kor Sanctifiers
+Krosan Warchief
+Lae'zel, Vlaakith's Champion
+Leonin Snarecaster
 Lich's Caress
+Lingering Death
+Liturgy of Blood
+Lone Missionary
+Loxodon Mender
 Luminarch Aspirant
+MJ, Rising Star
+Mass Mutiny
 Mending Hands
+Mikaeus, the Lunarch
+Mike, the Dungeon Master
 Militia Bugler
 Mistmeadow Witch
 Mite Overseer
+Mobilization
 Mountain
+Myr Scrapling
 Necrosquito
 Novice Knight
 Null Brooch
 Olivia, Mobilized for War
+Orcish Siegemaster
+Phyrexian Vivisector
+Pious Warrior
 Pitiless Plunderer
 Plague Witch
 Plains
 Praetor's Counsel
+Pride of Conquerors
 Psychic Membrane
 Pulsemage Advocate
+Punish the Enemy
+Pursuit of Flight
 Quest for Pure Flame
+Rally the Forces
 Razortip Whip
+Reckless Fireweaver
+Reconstruct History
+Refurbish
+Rekindling Phoenix
 Renowned Weaver
+Rescuer Chwinga
+Rhox Faithmender
 Righteous Cause
 Rootwater Mystic
 Rousing Read
+Rumor Gatherer
 Ruthless Cullblade
+Sacred Wolf
 Samite Healer
+Samite Herbalist
 Sanguimancy
 Sanitarium Skeleton
+Scepter of Dominance
+Scorched Rusalka
 Segovian Angel
+Seize the Storm
 Serum Visions
+Settle Beyond Reality
+Shellshock
 Shriekgeist
 Silvan Reveler
+Silvergill Douser
+Skarrg Guildmage
 Skulking Fugitive
 Skyblade of the Legion
 Skyshroud Ridgeback
+Slimefoot's Survey
 Soul Partition
+Soulscour
 Spawnwrithe
+Specter's Shroud
 Splinterfright
 Steel Exemplar
+Storm, Queen of Wakanda
 Sultai Banner
 Summoner's Pact
 Svyelun of Sea and Sky
 Swamp
+Sword of Kaldra
 Tainted Wood
 Take Down
+Tall as a Beanstalk
+Telethopter
+Tendershoot Dryad
 The Third Doctor
 Thran Spider
+Throwing Knife
+Titanic Bulvox
 Transcendent Envoy
 Travel Preparations
 Veteran Explorer
+Veteran of the Depths
 Wandering Stream
 War Machine, James Rhodes
 Warren-Scourge Elf
 Wheel and Deal
+Wildfire Emissary
+Wipe Clean
 Witches' Eye
+Woodwraith Strangler
+Wrap in Flames
 Xenograft

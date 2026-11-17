@@ -88,6 +88,7 @@ Embraal Bruiser
 Empress Galina
 Enter the God-Eternals
 Era of Enlightenment
+Etched Champion
 Ettercap
 Evolution Sage
 Excise the Imperfect
@@ -191,6 +192,7 @@ Mountain
 Mournwillow
 Murderous Redcap
 Mycoid Shepherd
+Myr Quadropod
 Mystic Skyfish
 Mystic Snake
 Márton Stromgald
@@ -286,6 +288,7 @@ Stillmoon Cavalier
 Stitch in Time
 Stormclaw Rager
 Stream of Life
+Strength of Lunacy
 Stromgald Crusader
 Sunbathing Rootwalla
 Swamp

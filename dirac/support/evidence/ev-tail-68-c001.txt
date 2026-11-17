@@ -1,6 +1,8 @@
 A-Elven Bow
 A-Glittermonger
+A-Mishra, Excavation Prodigy
 Abyssal Horror
+Adamaro, First to Desire
 Aether Poisoner
 Akki Underling
 Alpine Meadow
@@ -8,8 +10,11 @@ Ammit Eternal
 Angel's Feather
 Angelic Purge
 Angelic Wall
+Auriok Bladewarden
+Auriok Steelshaper
 Awakener Druid
 Azimaet Drake
+Azorius Locket
 Basal Thrull
 Bearer of Memory
 Behemoth Sledge
@@ -17,18 +22,24 @@ Bitterthorn, Nissa's Animus
 Blastfire Bolt
 Blight Grenade
 Blighted Shaman
+Blood on the Snow
 Boros Guildmage
 Brokers Hideout
 Bull Cerodon
 Buried Alive
 Captain America's Motorcycle
+Captain Lannery Storm
+Cateran Brute
+Cavern Harpy
 Cephalid Vandal
 Chakram Slinger
 Charging Paladin
 Cinder Storm
+Citadel Castellan
 Cliffhaven Vampire
 Clot Sliver
 Cogwork Assembler
+Cold Storage
 Colorful Feiyi Sparrow
 Courier Hawk
 Courier's Capsule
@@ -43,6 +54,7 @@ Didgeridoo
 Dimir Locket
 Eladamri, Lord of Leaves
 Electrickery
+Elvish Archers
 Embersmith
 Empty the Laboratory
 Engineered Might
@@ -64,9 +76,11 @@ Fire of Orthanc
 Firebird, Blazing Ranger
 Flow of Ideas
 Forest
+Furious Resistance
 Gargadon
 Gem of Becoming
 Geth's Grimoire
+Ghastly Demise
 Giant Tortoise
 Gilacorn
 Gitaxian Anatomist
@@ -74,12 +88,14 @@ Glory Bearers
 Gnawing Zombie
 Grave Peril
 Gruesome Discovery
+Hallowed Spiritkeeper
 Hanabi Blast
 Hedge Troll
 Highland Forest
 Honden of Seeing Winds
 Howling Fury
 Hulking Bugbear
+Hushwing Gryff
 Intrepid Ace
 Intruder Alarm
 Iroas's Champion
@@ -99,6 +115,7 @@ Ley Weaver
 Lightning Spear
 Lightning-Core Excavator
 Liliana's Influence
+Living Death
 Loam Dryad
 Lone Rider
 Lorehold Command
@@ -107,6 +124,7 @@ Malachite Talisman
 Malakir Bloodwitch
 Manamorphose
 Marwyn, the Nurturer
+Miasmic Mummy
 Mogg Flunkies
 Monstrify
 Moss Monster
@@ -121,6 +139,7 @@ Oashra Cultivator
 Omen
 Ominous Cemetery
 Onyx Talisman
+Oxidda Scrapmelter
 Penumbra Bobcat
 Phantasmal Dragon
 Plains
@@ -148,14 +167,18 @@ Rustrazor Butcher
 Samite Archer
 Sandcrafter Mage
 Sangrophage
+Scaled Herbalist
 Scrapper Champion
 Searing Barb
 Sentinel Sliver
 Serra Paladin
 Shambling Ghoul
 Shefet Dunes
+Shelinda, Yevon Acolyte
 Shivan Harvest
+Short Sword
 Silverglade Pathfinder
+Slaughterhouse Bouncer
 Sledding Otter-Penguin
 Slither Blade
 Snag
@@ -163,6 +186,7 @@ Sol Grail
 Solid Footing
 Soulhunter Rakshasa
 Soulstealer Axe
+Spark Jolt
 Spark Mage
 Sparring Collar
 Spider-Man 2099, Miguel O'Hara
@@ -171,17 +195,25 @@ Sporemound
 Stitcher's Apprentice
 Stormbind
 Strangling Soot
+Strangling Spores
 Stratozeppelid
+Stronghold Discipline
 Sun Ce, Young Conquerer
 Sunrise Seeker
 Surrak and Goreclaw
 Surrakar Banisher
+Suture Priest
 Swamp
 Swift Spinner
 Tangleclaw Werewolf
+Tattered Mummy
+Terra Eternal
 The Whizzer, Classic Speedster
 Thunderous Might
+Tishana's Wayfinder
+Tower of Eons
 Tranquil Path
+Trespasser il-Vec
 Treva's Ruins
 Troublesome Spirit
 Tune the Narrative
@@ -193,9 +225,14 @@ Warkite Marauder
 Wasp Lancer
 Weatherseed Elf
 Whispering Wizard
+White Shield Crusader
 Wildfire Cerberus
+Wolfbriar Elemental
+Wooden Sphere
+Yavimaya Elder
 Yavimaya Granger
 Yavimaya Sapherd
 Yotian Frontliner
+Zephyr Falcon
 Zephyr Gull
 Zhalfirin Shapecraft

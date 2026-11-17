@@ -1,4 +1,5 @@
 A-Lantern of Revealing
+Abominable Treefolk
 Acrobatic Maneuver
 Act of Treason
 Adric, Mathematical Genius
@@ -54,6 +55,7 @@ Charge
 Chimney Rabble
 Chrome Host Seedshark
 Civic Wayfinder
+Cloak of Confusion
 Cloud Djinn
 Cloud Manta
 Cobbled Lancer
@@ -228,6 +230,7 @@ Old Stickfingers
 Omen of the Forge
 Ooze Garden
 Oran-Rief Invoker
+Orcish Captain
 Orcish Veteran
 Overmaster
 Patagia Viper
@@ -297,11 +300,14 @@ Silk Net
 Silverflame Squire
 Sire of Stagnation
 Sisay's Ingenuity
+Skull Rend
 Slaughter Specialist
+Slavering Nulls
 Slurrk, All-Ingesting
 Smelt-Ward Ignus
 Smothering Abomination
 Soilshaper
+Somnophore
 Song of Serenity
 Soratami Seer
 Sorcerer's Broom

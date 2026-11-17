@@ -10,6 +10,7 @@ Angrath's Fury
 Ant-Man, Scott Lang
 Arc Mage
 Arc Spitter
+Argivian Restoration
 Aria of Flame
 Armageddon
 Artifact Ward
@@ -20,6 +21,7 @@ Augur of Bolas
 Avaricious Dragon
 Aven Sunstriker
 Bad Moon
+Barbarian Outcast
 Batroc the Leaper
 Batterbone
 Battle Mammoth
@@ -45,6 +47,7 @@ Cacophony Unleashed
 Call the Cavalry
 Call the Scions
 Captain America, Steve Rogers
+Carrion Wurm
 Casting of Bones
 Catalog
 Centaur Glade
@@ -126,6 +129,7 @@ Ferocious Pup
 Fevered Strength
 Feywild Visitor
 Fiery Mantle
+Fireball
 Fissure Wizard
 Flamecore Elemental
 Flames of the Firebrand
@@ -134,6 +138,7 @@ Flesh-Eater Imp
 Forest
 Fortified Rampart
 Fountain of Youth
+Frenzied Gorespawn
 Frost Trickster
 Fungal Rebirth
 Gainsay
@@ -158,6 +163,7 @@ Gravetiller Wurm
 Great Desert Prospector
 Greater Auramancy
 Greater Good
+Greater Mossdog
 Greenwarden of Murasa
 Hagra Constrictor
 Havengul Vampire
@@ -189,6 +195,7 @@ Kessig Wolfrider
 Kiln Walker
 Kor Cartographer
 Kor Entanglers
+Kor Outfitter
 Kor Scythemaster
 Krosan Druid
 Kuldotha Rebirth
@@ -235,6 +242,7 @@ Nim Grotesque
 Noose Constrictor
 Nylea's Colossus
 Nylea's Forerunner
+Oath of Nissa
 Oblivion Strike
 Ocular Halo
 Ogre Gatecrasher
@@ -242,6 +250,7 @@ Omnath, Locus of Rage
 Orochi Hatchery
 Outland Colossus
 Overflowing Basin
+Oversold Cemetery
 Pallid Mycoderm
 Part the Veil
 Passionate Archaeologist
@@ -393,6 +402,7 @@ Wall of Essence
 Wall of Reverence
 Warlock Class
 Warpath
+Warteye Witch
 Watcher of the Spheres
 Wave-Wing Elemental
 Whip Silk

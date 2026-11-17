@@ -8,6 +8,7 @@ Aeromunculus
 Aggressive Crag
 Air Nomad Student
 Alaborn Veteran
+Ally Encampment
 Ambassador Laquatus
 Amulet of Kroog
 Ancestral Mask
@@ -405,6 +406,7 @@ Vile Deacon
 Vito, Thorn of the Dusk Rose
 Vivid Crag
 Vodalian Serpent
+Volley of Boulders
 Voyage's End
 Wall of Tears
 Warmth

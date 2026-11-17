@@ -10,6 +10,7 @@ Air-Cult Elemental
 Aladdin's Ring
 Altar's Reap
 Ancient Spider
+Ancient Tomb
 Angel of the Dawn
 Angelsong
 Archangel's Light
@@ -21,7 +22,9 @@ Atog
 Atrocious Experiment
 Automated Artificer
 Avalanche Riders
+Avatar of the Resolute
 Aven Reedstalker
+Back to Nature
 Barricade Breaker
 Beast Whisperer
 Behold the Beyond
@@ -61,6 +64,7 @@ Conductor of Cacophony
 Constant Mists
 Contagion Clasp
 Crawling Chorus
+Crimson Kobolds
 Crumbling Ashes
 Crusher Zendikon
 Culling Ritual
@@ -83,6 +87,7 @@ Dragon Moose
 Dragon Roost
 Dreadhorde Twins
 Driven
+Drownyard Temple
 Dusk's Landing
 Duskrider Falcon
 Dynavolt Tower
@@ -92,7 +97,9 @@ Eidolon of Blossoms
 Eiganjo Uprising
 Eladamri's Call
 Elder Cathar
+Elderleaf Mentor
 Elvish Ranger
+Emerald Oryx
 Emeria's Call
 Enlisted Wurm
 Exultant Cultist
@@ -109,8 +116,11 @@ Forging the Tyrite Sword
 Fourth Bridge Prowler
 Frogmite
 Frozen Shade
+Gaea's Touch
+Ghostfire Blade
 Goblin Patrol
 God-Eternal Rhonas
+Golgari Grave-Troll
 Gore Swine
 Grave Venerations
 Gray Merchant of Asphodel
@@ -118,6 +128,7 @@ Great Sable Stag
 Greatsword
 Guard Gomazoa
 Guild Artisan
+Halo Hopper
 Halvar, God of Battle
 Hand of Silumgar
 Harmonic Prodigy
@@ -135,6 +146,7 @@ Infused Arrows
 Intrepid Provisioner
 Invading Manticore
 Island
+Isolation Cell
 Jhessian Lookout
 Jungle Delver
 Juzám Djinn
@@ -157,6 +169,8 @@ Llanowar Stalker
 Looter il-Kor
 Loxodon Anchorite
 Loxodon Gatekeeper
+Lux Cannon
+Maestros Theater
 Malevolent Rumble
 Marionette Master
 Markov Blademaster
@@ -165,6 +179,8 @@ Maze Rusher
 Meishin, the Mind Cage
 Mephidross Vampire
 Midnight Scavengers
+Millennial Gargoyle
+Millstone
 Mindless Automaton
 Mindstatic
 Mirror Wall
@@ -182,6 +198,7 @@ Organ Hoarder
 Orochi Merge-Keeper
 Paralyzing Grasp
 Peregrine Griffin
+Pestilent Souleater
 Phyrexian Etchings
 Phyrexian Missionary
 Pierce the Sky
@@ -195,6 +212,7 @@ Priest of the Crossing
 Professor Hulk
 Protomatter Powder
 Psionic Sliver
+Pulse of the Tangle
 Pumpkin Bombs
 Purgatory
 Qilin's Blessing
@@ -211,7 +229,9 @@ Reap and Sow
 Reduce to Dreams
 Regal Bloodlord
 Rejuvenation Chamber
+Reviving Melody
 Rhox Oracle
+Riptide
 Rising Populace
 Roar of Reclamation
 Robot Chicken
@@ -223,14 +243,18 @@ Rustmouth Ogre
 Said
 Sandstorm Charger
 Sarkhan's Dragonfire
+Savage Stomp
 Scalding Tongs
+Scorch Spitter
 Scrubland
 Sea Legs
 Sejiri Shelter
+Selesnya Signet
 Selkie Hedge-Mage
 Shadowfeed
 Shatterstorm
 Shimmering Mirage
+Shivan Oasis
 Shrieking Mogg
 Sickle Ripper
 Sightless Ghoul
@@ -239,6 +263,7 @@ Silumgar Butcher
 Silundi Vision
 Siren of the Silent Song
 Skin Invasion
+Skred
 Sky Ruin Drake
 Skyway Sniper
 Slice in Twain
@@ -246,6 +271,7 @@ Soltari Priest
 Soratami Rainshaper
 Sorin's Vengeance
 Soul Reap
+Spawning Breath
 Spellbane Centaur
 Spellheart Chimera
 Spineless Thug
@@ -263,6 +289,8 @@ Supply Runners
 Swamp
 Tainted Adversary
 Tangle Mantis
+Tangle Spider
+Tangled Islet
 Target Minotaur
 Temur Runemark
 Tenth District Veteran
@@ -270,6 +298,7 @@ Tergrid's Shadow
 Terminal Agony
 The Brute
 The Meathook Massacre
+Thornglint Bridge
 Thraben Inspector
 Thragtusk
 Tithebearer Giant
@@ -288,6 +317,7 @@ Vorel of the Hull Clade
 Wakedancer
 Walking Archive
 Walking Corpse
+Warped Physique
 Warrior's Charge
 Wayfaring Giant
 Wei Elite Companions
@@ -300,5 +330,6 @@ Wizard's Lightning
 Worry Beads
 Wring Flesh
 Yavimaya Ancients
+Yorvo, Lord of Garenbrig
 You See a Pair of Goblins
 Zuran Spellcaster

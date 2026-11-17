@@ -41,6 +41,7 @@ Bottomless Pit
 Bounding Krasis
 Bountiful Landscape
 Brink of Disaster
+Broken Ambitions
 Bronzebeak Moa
 Brotherhood Outcast
 Brushstrider
@@ -136,6 +137,7 @@ Gruul Locket
 Guul Draz Specter
 Gyre Engineer
 Harsh Deceiver
+Harvestguard Alseids
 Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
@@ -206,6 +208,7 @@ Ornery Goblin
 Orzhov Keyrune
 Out of the Way
 Overload
+Owen Grady, Raptor Trainer
 Pangosaur
 Paradise Druid
 Pardic Collaborator
@@ -247,6 +250,7 @@ Shreds of Sanity
 Silent Attendant
 Silt Crawler
 Silumgar Monument
+Skeletal Swarming
 Skinrender
 Skyclave Plunder
 Skyshroud Poacher
@@ -274,6 +278,7 @@ Swamp
 Swiftgear Drake
 Swooping Lookout
 Sword of Sinew and Steel
+Sword of War and Peace
 Sylvok Explorer
 Syphon Life
 Tail Slash

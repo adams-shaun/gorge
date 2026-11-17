@@ -13,6 +13,7 @@ Arbor Armament
 Arboreal Alliance
 Arcade Cabinet
 Arcane Encyclopedia
+Arcbound Reclaimer
 Archivist of Oghma
 Argivian Find
 Armor of Faith
@@ -44,6 +45,7 @@ Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
 Bramble Armor
+Breaking Point
 Breath of Fire
 Briarknit Kami
 Bridgeworks Battle
@@ -67,6 +69,7 @@ Clear Shot
 Clear the Land
 Clever Lumimancer
 Clockwork Drawbridge
+Cloud Cover
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier

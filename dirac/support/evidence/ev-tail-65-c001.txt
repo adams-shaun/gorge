@@ -15,9 +15,11 @@ Apostle of Purifying Light
 Appetite for the Unnatural
 Aqueous Form
 Arcane Flight
+Arcbound Whelp
 Attunement
 Banewasp Affliction
 Bastion Protector
+Battle-Rage Blessing
 Beacon of Immortality
 Blisterstick Shaman
 Blood Burglar
@@ -27,6 +29,7 @@ Boss Uramon, Shadow's Reach
 Bounteous Kirin
 Box of Free-Range Goblins
 Brawler's Plate
+Brightcap Badger
 Brink of Madness
 Burning Cloak
 Burning Sun's Fury
@@ -71,8 +74,10 @@ Embraal Bruiser
 Empress Galina
 Enter the God-Eternals
 Era of Enlightenment
+Etched Champion
 Ettercap
 Excise the Imperfect
+Explosive Growth
 Eyeblight Cullers
 Faith Healer
 Falkenrath Celebrants
@@ -88,6 +93,7 @@ Forest
 Formless Genesis
 Fortifying Draught
 Furnace Spirit
+Gaea's Cradle
 Ganax, Astral Hunter
 Ghoulraiser
 Gilded Pinions
@@ -106,6 +112,7 @@ Guardians of Koilos
 Happy Hogan, Dauntless Driver
 Headsplitter
 Hedron Detonator
+Hellion Crucible
 Herald of the Dreadhorde
 Hero of Leina Tower
 Hibernation
@@ -120,6 +127,7 @@ Industrial Advancement
 Inner Sanctum
 Insatiable Gorgers
 Instill Infection
+Ishkanah, Grafwidow
 Island
 Ixalli's Keeper
 Jagwasp Swarm
@@ -131,6 +139,7 @@ Kabuto Moth
 Kami of the Crescent Moon
 Kangee's Lieutenant
 Kardur's Vicious Return
+Kazandu Tuskcaller
 Kefnet's Last Word
 Kenku Artificer
 Kheru Bloodsucker
@@ -167,6 +176,7 @@ Ore-Scale Guardian
 Oreskos Swiftclaw
 Organic Extinction
 Perilous Forays
+Petrified Field
 Pick Up the Pace
 Pitiless Plunderer
 Plains
@@ -191,6 +201,7 @@ Reservoir Kraken
 Resounding Silence
 Restless Apparition
 Rhys the Exiled
+Rogue Elephant
 Rotting Rats
 Run Out of Town
 Ruthless Cullblade
@@ -198,6 +209,7 @@ Ruthless Invasion
 Safeguard
 Sage Aven
 Sarinth Steelseeker
+Satyr Piper
 Scavenger Drake
 Scouring Swarm
 Scrap
@@ -209,6 +221,7 @@ Shadows' Verdict
 Shang-Chi, Martial Mentor
 Shao Jun
 Shauku, Endbringer
+Shimmerdrift Vale
 Shinen of Flight's Wings
 Shinka Gatekeeper
 Siegecraft
@@ -226,11 +239,14 @@ Stern Constable
 Stitch in Time
 Stormclaw Rager
 Stream of Life
+Strength of Lunacy
 Stromgald Crusader
+Sunbathing Rootwalla
 Swamp
 Sworn Defender
 Sylvan Ranger
 Talruum Minotaur
+Tephraderm
 Throne of Bone
 Thunderblust
 Tide Skimmer
@@ -239,6 +255,7 @@ Tormented Soul
 Tormenting Voice
 Trip Noose
 Trophy Mage
+Turbulent Fen
 Uktabi Orangutan
 Umara Mystic
 Undercity Informer
@@ -259,5 +276,6 @@ Winged Words
 Wish Good Luck
 Wishcoin Crab
 Withstand Death
+Woodland Cemetery
 Wurmcalling
 Zombie Master

@@ -3,10 +3,12 @@ A-Canopy Tactician
 A-Luminarch Aspirant
 A-Navigation Orb
 A-Social Climber
+A-Teferi, Time Raveler
 Aang, Air Nomad
 Abbey Gargoyles
 Adrix and Nev, Twincasters
 Aerie Auxiliary
+Aeromoeba
 Aether Adept
 Aggressive Urge
 Agrus Kos, Wojek Veteran
@@ -98,6 +100,7 @@ Destructive Revelry
 Dimir Guildmage
 Diregraf Captain
 Dismantling Wave
+Dissatisfied Customer
 Doric, Nature's Warden
 Dramatic Rescue
 Dreadbringer Lampads
@@ -205,6 +208,7 @@ Krosan Restorer
 Krosan Verge
 Lacerate Flesh
 Lash of Malice
+Last Laugh
 Lavafume Invoker
 Lead-Belly Chimera
 Lena, Selfless Champion

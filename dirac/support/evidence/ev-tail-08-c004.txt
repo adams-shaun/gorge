@@ -1,27 +1,42 @@
 Ancestral Recall
 Barrenton Cragtreads
+Blood Glutton
+Bronze Sword
+Bronze Walrus
 Carnage Tyrant
+Chase Stein, Runaway
+Corrosive Mentor
+Crystal Golem
+Diamond Knight
+Dread Specter
 Dromoka's Gift
 Drudge Reavers
+Engulf the Shore
 Forest
+Foundry Inspector
 Gavony Silversmith
 Ghost-Lit Raider
 Go-Shintai of Shared Purpose
+Goblin Heelcutter
 Homicidal Seclusion
 Honeymoon Hearse
 Horizon Explorer
 Imperial Oath
 Island
+Kjeldoran Frostbeast
 Krazy Kow
 Lone Missionary
+Loxodon Mystic
 Mother Kangaroo
 Mountain
 Network Terminal
+Nightstalker Engine
 Ob Nixilis, the Ascended
 Paradox Engine
 Pearled Unicorn
 Pious Wayfarer
 Plains
+Primal Adversary
 Promise of Tomorrow
 Regisaur Alpha
 Reverent Mantra
@@ -30,7 +45,9 @@ Selesnya Charm
 Sell-Sword Brute
 Serra's Guardian
 Serum Tank
+Shared Triumph
 Sinstriker's Will
+Six-Sided Die
 Skyhunter Patrol
 Sorcerer's Strongbox
 Spectral Flight
@@ -39,8 +56,10 @@ Strafe
 Swamp
 Sylvia Brightspear
 Talas Researcher
+Talisman of Unity
 Talruum Champion
 Tangle Asp
+Tempest of Light
 Thalia's Lieutenant
 Thopter Mechanic
 Thraben Valiant
@@ -50,5 +69,6 @@ Updraft
 Vulpine Goliath
 War Falcon
 Warcry Phoenix
+Yavimaya Enchantress
 Zhang Fei, Fierce Warrior
 Éowyn, Shieldmaiden

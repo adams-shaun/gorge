@@ -211,6 +211,7 @@ Hideous Visage
 Highland Weald
 Hithlain Knots
 Hovermyr
+Icequake
 Icy Prison
 Idyllic Beachfront
 Ikiral Outrider
@@ -359,6 +360,7 @@ Sanctum Weaver
 Sanguine Statuette
 Sanity Gnawers
 Scouring Sands
+Scrapyard Recombiner
 Seachrome Coast
 Secrets of the Key
 Seedcradle Witch
@@ -440,6 +442,7 @@ Thicket Crasher
 Thrash
 Three Dreams
 Tibalt, Rakish Instigator
+Tidebinder Mage
 Tidepool Turtle
 Timid Drake
 Tomakul Honor Guard
@@ -473,9 +476,11 @@ Voice of Law
 Voidmage Prodigy
 Voracious Vampire
 Vorstclaw
+Walking Sponge
 Wall of Limbs
 Wash Out
 Waste Away
+Watcher of Hours
 Weapons Trainer
 Welding Jar
 Welkin Hawk

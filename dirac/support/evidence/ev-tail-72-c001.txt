@@ -5,6 +5,7 @@ Advanced Hoverguard
 Adventure Awaits
 Aerial Predation
 Aether Channeler
+Aether Theorist
 Air Marshal
 Akki Coalflinger
 Alchemax Slayer-Bots
@@ -18,6 +19,7 @@ Arcane Laboratory
 Archfiend of the Dross
 Archway Commons
 Artful Dodge
+Astral Wingspan
 Atalan Jackal
 Audacious Thief
 Aven Redeemer
@@ -52,6 +54,7 @@ Chain Stasis
 Chainflinger
 Champion of Lambholt
 Champions from Beyond
+Chandra's Embercat
 Chaplain's Blessing
 Charging Badger
 Chromatic Lantern
@@ -61,6 +64,7 @@ Clan Defiance
 Cleaving Skyrider
 Cloudchaser Eagle
 Cloudfin Raptor
+Cloudhoof Kirin
 Cobbled Lancer
 Collector's Case
 Combustible Gearhulk
@@ -183,6 +187,7 @@ Ingenious Skaab
 Inner-Flame Acolyte
 Insidious Will
 Invading Manticore
+Iron Man, Modern Marvel
 Irontread Crusher
 Island
 Ivy Seer

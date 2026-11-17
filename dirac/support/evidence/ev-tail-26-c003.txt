@@ -1,5 +1,7 @@
+Act on Impulse
 Advance Scout
 Akki Lavarunner
+Akroan Hoplite
 Angelic Overseer
 Arc Lightning
 Army Ants
@@ -11,9 +13,13 @@ Blood Knight
 Bloodhall Priest
 Bloodscale Prowler
 Brimstone Dragon
+Brindle Shoat
+Bringer of the Blue Dawn
+Celebrity Fencer
 Chase Stein, Runaway
 Chemister's Insight
 Chorus of Woe
+Cyclops Superconductor
 Cystbearer
 Dragon Hatchling
 Dralnu's Crusade
@@ -25,18 +31,22 @@ Fast Forward
 Fencing Ace
 Forest
 Foul-Tongue Shriek
+Galadhrim Ambush
 Goblin Firebug
 Harrow
 Island
+Jewel-Eyed Cobra
 Junk Golem
 Kami of Fire's Roar
 Lava Axe
 Lightning Prowess
+Living Lands
 Lord of Extinction
 Lulu, Stern Guardian
 Markov Enforcer
 Mogg Sentry
 Mountain
+No Escape
 Nullmage Advocate
 Oblivion Ring
 Pharika's Libation
@@ -46,14 +56,20 @@ Possessed Aven
 Quickening Licid
 Rally the Ranks
 Reality Ripple
+Rootwater Diver
 Saltfield Recluse
+Savage Swipe
 Scathe Zombies
 Serpent Warrior
+Slip Through Space
 Sparkspitter
+Spellbook
 Spontaneous Combustion
 Steadfast Unicorn
 Sunspire Griffin
 Swamp
+Swift Warden
+Thundering Spineback
 Tide Drifter
 Triad of Fates
 Unholy Strength

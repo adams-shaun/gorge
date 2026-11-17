@@ -3,7 +3,11 @@ A-Tenured Inkcaster
 Accelerated Mutation
 Aether Shockwave
 Akoum Firebird
+Amulet of Vigor
+Appetite for the Unnatural
+Arcbound Whelp
 Assault Zeppelid
+Attunement
 Bastion Protector
 Battle Cry Goblin
 Beacon of Immortality
@@ -15,16 +19,24 @@ Burning Sun's Fury
 Burning-Fist Minotaur
 Catacomb Slug
 Chandra's Outburst
+Chaosphere
+Clarion Cathars
+Copperhoof Vorrac
+Corpse Churn
 Corrosive Mentor
 Debtors' Transport
 Decaying Time Loop
 Deputy of Acquittals
 Devastation Tide
+Devout Witness
 Dictate of Erebos
 Dispense Justice
 Distress
+Elvish Branchbender
 Embereth Shieldbreaker
+Embodiment of Fury
 Embraal Bruiser
+Etched Champion
 Ettercap
 Excise the Imperfect
 Faith Healer
@@ -36,28 +48,43 @@ Font of Fortunes
 Forest
 Fortifying Draught
 Furnace Spirit
+Ghoulraiser
+Gilded Pinions
 Glimmer of Genius
 Glitterfang
+Glorious Anthem
+Grotag Bug-Catcher
 Guardians of Koilos
 Hedron Detonator
+Herald of the Dreadhorde
+Hibernation
 Horned Cheetah
 Horned Helm
+Hunter's Ambush
 Inner Sanctum
 Inner Struggle
 Insatiable Gorgers
 Island
+Ixalli's Keeper
+Jhessian Infiltrator
 Jhoira's Toolbox
 Joraga Visionary
+Kefnet's Last Word
+Kenku Artificer
 Kheru Bloodsucker
 Light of Day
 Livaan, Cultist of Tiamat
+Makeshift Mauler
+Momentary Blink
 Mortis Dogs
 Mountain
+Mycoid Shepherd
 Mystic Snake
 Nimble-Blade Khenra
 Obelisk of Urd
 Obsessive Search
 Ohran Frostfang
+On Thin Ice
 Ore-Scale Guardian
 Perilous Forays
 Phyrexian Scriptures
@@ -68,6 +95,7 @@ Priests of Norn
 Prison Sentence
 Prodigal Pyromancer
 Professor's Warning
+Proper Burial
 Radiant Essence
 Reach Through Mists
 Reckless Brute
@@ -76,22 +104,34 @@ Resounding Silence
 Rhys the Exiled
 Rotting Rats
 Ruthless Invasion
+Safeguard
 Sage Aven
 Sarinth Steelseeker
+Scorched Earth
 Scouring Swarm
+Sculpting Steel
 Serrated Scorpion
 Siegecraft
 Skybind
 Skyfire Kirin
+Spark of Creativity
 Spectral Force
+Spined Basher
+Spirit of the Spires
 Spontaneous Combustion
 Stern Constable
+Stream of Life
 Stromgald Crusader
+Sunbathing Rootwalla
 Swamp
+Sworn Defender
 Sylvan Ranger
 Talruum Minotaur
+Throne of Bone
 Tormenting Voice
+Trophy Mage
 Uktabi Orangutan
+Umara Mystic
 Undercity Informer
 Valor
 Wall of Fire

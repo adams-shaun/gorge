@@ -35,6 +35,7 @@ Befriending the Moths
 Bellowing Aegisaur
 Binding Grasp
 Birds of Paradise
+Bladestitched Skaab
 Blaring Captain
 Blaster Mage
 Blessing
@@ -61,10 +62,12 @@ Catacomb Crocodile
 Centaur Nurturer
 Cerulean Wisps
 Chambered Nautilus
+Charnel Serenade
 Chief of the Edge
 Child of Gaea
 Cho-Manno's Blessing
 Cho-Manno, Revolutionary
+Choking Miasma
 Cliffside Lookout
 Clone Legion
 Cogworker's Puzzleknot
@@ -75,13 +78,16 @@ Coral Merfolk
 Corporeal Projection
 Cosmic Hunger
 Counterspell
+Courier Bat
 Court Cleric
 Creeping Crystal Coating
 Crenellated Wall
 Crimson Fleet Commodore
 Crowd's Favor
 Curious Homunculus
+Curse of Wizardry
 Cybermat
+Dark Salvation
 Dauntless Cathar
 Dawnhart Rejuvenator
 Dead
@@ -101,6 +107,7 @@ Dragonlord Ojutai
 Dread Drone
 Dreadfeast Demon
 Dross Harvester
+Drowner of Hope
 Drumhunter
 Dryad Greenseeker
 Dueling Coach
@@ -120,6 +127,8 @@ Excise the Imperfect
 Execute
 Exemplar of Strength
 Expedition Champion
+Extract the Truth
+Ezio, Blade of Vengeance
 Fade from History
 Faerie Harbinger
 Faithless Looting
@@ -134,6 +143,7 @@ Fleetwheel Cruiser
 Flesh-Eater Imp
 Flickering Ward
 Flowstone Kavu
+Forerunner of the Coalition
 Forest
 Forsaken City
 Frenzied Fugue
@@ -141,6 +151,8 @@ Ghost-Spider, Gwen Stacy
 Gild
 Gird for Battle
 Glorifier of Dusk
+Goblin Arsonist
+Goblin Kaboomist
 Goblin Replica
 Goblin Striker
 Goblin Tunneler
@@ -152,6 +164,7 @@ Great Oak Guardian
 Greenhilt Trainee
 Grindstone
 Guardians of Akrasa
+Guildpact Informant
 Gutless Ghoul
 Haazda Snare Squad
 Hag of Syphoned Breath
@@ -170,14 +183,17 @@ Heightened Reflexes
 Hellhole Rats
 Highland Game
 Hopeful Eidolon
+Hulk, Always Angry
 Hulk, Strongest There Is
 Hungry Mist
 Icatian Scout
 Ichor Wellspring
+Illness in the Ranks
 Illusionary Armor
 Implement of Combustion
 Impostor of the Sixth Pride
 Invasion of Eldraine
+Ironclaw Buzzardiers
 Island
 Island of Wak-Wak
 Ivory Crane Netsuke
@@ -192,6 +208,7 @@ Keeper of the Lens
 Kemba's Skyguard
 Kill! Maim! Burn!
 Kitesail Cleric
+Knight of Sorrows
 Knowledge Is Power
 Kokusho, the Evening Star
 Krav, the Unredeemed
@@ -203,6 +220,7 @@ Lightning-Core Excavator
 Lithophage
 Littjara Glade-Warden
 Livonya Silone
+Llanowar Stalker
 Lockjaw Snapper
 Lore Broker
 Lorehold Archivist
@@ -210,6 +228,7 @@ Lorehold Excavation
 Loxodon Gatekeeper
 Mad Ratter
 Magmaroth
+Marble Chalice
 Mardu Blazebringer
 Mardu Shadowspear
 Marionette Apprentice
@@ -222,16 +241,19 @@ Maw of Kozilek
 Menagerie Liberator
 Mer-Ek Nightblade
 Metastatic Evangel
+Midnight Clock
 Minamo, School at Water's Edge
 Mind Harness
 Mind Maggots
 Mind Ravel
 Mind Sculpt
 Mindwhip Sliver
+Minotaur, Roxxon CEO
 Mirozel
 Mischief and Mayhem
 Mishra's Domination
 Mist Leopard
+Mist-Cloaked Herald
 Mistmeadow Skulk
 Mogg Mob
 Molder Slug
@@ -245,6 +267,7 @@ Mountain
 Myr Mindservant
 Namora, the Sea Queen
 Needle Storm
+Nezahal, Primal Tide
 Niblis of Frost
 Occult Epiphany
 Ogre Battledriver
@@ -257,6 +280,7 @@ Outnumber
 Overgrown Battlement
 Pact of the Titan
 Path of Discovery
+Pillardrop Rescuer
 Pinnacle Monk
 Pir, Imaginative Rascal
 Plains
@@ -269,6 +293,7 @@ Quirion Trailblazer
 Rakdos Guildmage
 Rambunctious Mutt
 Ramosian Captain
+Rampage of the Valkyries
 Ramunap Hydra
 Ravenous Baloth
 Razor Golem
@@ -295,8 +320,10 @@ Rotting Rats
 Rowan Treefolk
 Sardian Cliffstomper
 Satyr Rambler
+Sawtooth Thresher
 Scion of Ugin
 Sculpted Perfection
+Scuttling Sliver
 Secluded Glen
 Secrets of the Golden City
 Seismic Tutelage
@@ -304,11 +331,14 @@ Sengir Nosferatu
 Serene Sunset
 Serum Snare
 Setessan Training
+Shaleskin Plower
 Shard of the Nightbringer
 Sigiled Starfish
 Silent Specter
 Silver Erne
+Silverstorm Samurai
 Sixth Sense
+Skeletal Grimace
 Skeletal Wurm
 Skull Prophet
 Sky Terror
@@ -317,25 +347,30 @@ Sling-Gang Lieutenant
 Smiting Helix
 Soltari Emissary
 Sonic Burst
+Spawn of Thraxes
 Spectral Guardian
 Spider Spawning
 Split-Tail Miko
 Sporecap Spider
 Spurnmage Advocate
+Stasis Field
 Steadfast Sentry
 Stenchskipper
 Stern Proctor
 Stitched Assistant
 Stronghold Biologist
+Sudden Insight
 Sulfurous Blast
 Sultai Skullkeeper
 Summoner's Bane
 Sun Ce, Young Conquerer
 Swamp
+Sword of Fire and Ice and War and Peace
 Syndicate Heavy
 Syphon Flesh
 Tainted Strike
 Tarkir Charm
+Tasigur's Cruelty
 Tawnos's Wand
 Tek
 Tenacity
@@ -357,9 +392,11 @@ Trash for Treasure
 Treacherous Werewolf
 Treebeard, Gracious Host
 Trench Wurm
+Triton Shorestalker
 Tymaret, Chosen from Death
 Uktabi Efreet
 Unliving Psychopath
+Vapor Snare
 Veiled Shade
 Venomous Hierophant
 Vesper Ghoul
@@ -370,6 +407,7 @@ Voice of Duty
 Voldaren Pariah
 Voracious Hydra
 Wall of Distortion
+Wall of Wonder
 Warpath
 Warrior's Honor
 Watertrap Weaver
@@ -378,6 +416,7 @@ Wave Elemental
 Wetland Sambar
 Whip Sergeant
 White Shield Crusader
+Wicker Warcrawler
 Wind Shear
 Windbrisk Raptor
 Wort, Boggart Auntie

@@ -1,8 +1,15 @@
+A-Forge Boss
 Akki Avalanchers
+Akoum Battlesinger
+Amoeboid Changeling
 Bastion Mastodon
 Binding the Old Gods
+Blood Cultist
+Capricious Sorcerer
+Cavern Thoctar
 Chakra Meditation
 Chorus of the Tides
+Deep Spawn
 Devastation
 Dispersal Shield
 Drafna, Founder of Lat-Nam
@@ -23,6 +30,8 @@ Forest
 Frost Lynx
 Gloomhunter
 Grimgrin, Corpse-Born
+Gruul Signet
+Havengul Runebinder
 Hawkeye, Trick Shot
 Heaven Sent
 High Ground
@@ -37,30 +46,40 @@ Ludevic's Test Subject
 Magma Jet
 Merrow Grimeblotter
 Midnight Scavengers
+Mind Games
 Mountain
+Myr Battlesphere
+Octomancer
 Omnispell Adept
 Phantom Wings
 Plains
+Plow Through Reito
 Polyraptor
+Prickly Marmoset
+Priest of Titania
 Princess Lucrezia
 Psemilla, Meletian Poet
 Road
 Sinister Strength
+Slaughter-Priest of Mogis
 Solar Blast
 Spiraling Embers
 Spirit en-Kor
 Staff of the Flame Magus
+Stampede
 Stealer of Secrets
 Strider, Ranger of the North
 Sturmgeist
 Swamp
 Swarm of Rats
 Thundering Raiju
+Tibalt's Rager
 Totally Lost
 Touch of Invisibility
 Vengeful Firebrand
 Violent Impact
 Viscera Dragger
+Wall of Earth
 Wild Leotau
 Wind Zendikon
 Wing Commando

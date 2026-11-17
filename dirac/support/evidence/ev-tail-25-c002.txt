@@ -16,6 +16,7 @@ Anointed Chorister
 Aquatic Incursion
 Argivian Avenger
 Army of Allah
+Arterial Flow
 Ashen-Skin Zubera
 Augur of Skulls
 Autonomous Assembler
@@ -47,6 +48,7 @@ Craven Giant
 Crippling Blight
 Crook of Condemnation
 Cudgel Troll
+Cyclonic Rift
 Dark Hatchling
 Dark Privilege
 Dark Supplicant
@@ -98,16 +100,19 @@ Gods' Hall Guardian
 Gone Missing
 Griffin Sentinel
 Guardian Kirin
+Hada Freeblade
 Harrowing Journey
 Hawkeye's Shot
 Healing Salve
 Heroes' Reunion
 Horror of the Dim
+Howling Gale
 Hulk, Strongest There Is
 Humble Defector
 Hungry for More
 Ichor Synthesizer
 Illusions of Grandeur
+Inversion Behemoth
 Iron League Steed
 Island
 Ixalli's Keeper
@@ -118,6 +123,7 @@ Junk Golem
 Junk Jet
 Kamber, the Plunderer
 Keiga, the Tide Star
+Kjeldoran Gargoyle
 Kudo, King Among Bears
 Labyrinth of Skophos
 Lapis Lazuli Talisman
@@ -141,10 +147,13 @@ Necron Deathmark
 Necropede
 Necrotic Hex
 Nesting Dovehawk
+Nexus Wardens
+Nightveil Predator
 Noble Stand
 Nyxborn Eidolon
 Omen of the Hunt
 Open the Gates
+Orb of Dreams
 Ostiary Thrull
 Overgrowth
 Overgrowth Elemental
@@ -158,6 +167,7 @@ Plains
 Planar Incision
 Polluted Dead
 Pouncing Cheetah
+Power Taint
 Prickly Boggart
 Prowler, Misguided Mentor
 Psychic Corrosion
@@ -178,6 +188,7 @@ Ripjaw Raptor
 Rot Shambler
 Rotting Mastodon
 Sage of the Falls
+Sally Sparrow
 Salt Road Patrol
 Saltfield Recluse
 Satyr's Cunning
@@ -208,11 +219,13 @@ Sporecrown Thallid
 Staff of Titania
 Stampeding Elk Herd
 Steadfast Armasaur
+Steelgaze Griffin
 Steward of Solidarity
 Stonerise Spirit
 Striding Shotcaller
 Stromkirk Mentor
 Sun Clasp
+Svyelun of Sea and Sky
 Swamp
 Sword Coast Serpent
 Tajuru Beastmaster
@@ -243,12 +256,14 @@ Vessel of Paramnesia
 Viashino Sandscout
 Voda Sea Scavenger
 Voice of the Blessed
+Voices from the Void
 Volcanic Vision
 Voracious Wurm
 Wall of Granite
 Wall of Swords
 Wall of Tombstones
 Wayward Swordtooth
+Whitemane Lion
 Wild Ceratok
 Wild Onslaught
 Will of the Mardu

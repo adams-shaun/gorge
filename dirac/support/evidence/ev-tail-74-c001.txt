@@ -9,12 +9,14 @@ Abomination, World Ravager
 Absorb
 Agony Warp
 Ajani's Mantra
+Aku Djinn
 Alchemist's Greeting
 Alley Grifters
 Alrund's Epiphany
 Angelic Purge
 Aphotic Wisps
 Aragorn, King of Gondor
+Arashin Sovereign
 Astarion's Thirst
 Astral Dragon
 Avatar of Growth
@@ -24,6 +26,7 @@ Barricade Breaker
 Battleflight Eagle
 Bearer of Memory
 Betrayal
+Big Game Hunter
 Black Sun's Twilight
 Blackbloom Rogue
 Blindblast
@@ -35,6 +38,7 @@ Bounty of the Luxa
 Brainsurge
 Bramblecrush
 Bronze Guardian
+Calculated Dismissal
 Capashen Unicorn
 Captain N'ghathrod
 Captured by Lagacs
@@ -53,10 +57,13 @@ Clickslither
 Colossal Dreadmaw
 Concordant Crossroads
 Constable of the Realm
+Constricting Tendrils
+Corrupt
 Creature Bond
 Curse of Predation
 Cursed Totem
 Daemogoth Titan
+Danitha Capashen, Paragon
 Deadeye Plunderers
 Deadly Insect
 Deadly Wanderings
@@ -69,10 +76,12 @@ Descendant of Kiyomaro
 Desecrated Earth
 Despondency
 Devouring Swarm
+Dire Fleet Interloper
 Disciple of Freyalise
 Divine Smite
 Dragonborn Looter
 Dread Tiller
+Earthquake
 Easterling Vanguard
 Ebony Treefolk
 Echoing Calm
@@ -86,6 +95,7 @@ Equestrian Skill
 Esika's Chariot
 Eternal of Harsh Truths
 Euroakus
+Experiment Twelve
 Fanatical Fever
 Fangs of Kalonia
 Feldon, Ronom Excavator
@@ -98,15 +108,18 @@ Fire Prophecy
 Firemaw Kavu
 Flameskull
 Forest
+Forge, Neverwinter Charlatan
 Frightcrawler
 From the Rubble
 Frontier Mastodon
+Fume Spitter
 Gaea's Bounty
 Gamekeeper
 Ghalma's Warden
 Ghoulcaller's Bell
 Gift of Paradise
 Gimli's Axe
+Gixian Infiltrator
 Glittering Wish
 Gloomhunter
 Go-Shintai of Hidden Cruelty
@@ -115,6 +128,8 @@ Goblin Bushwhacker
 Goblin Commando
 Goblin Tinkerer
 Golden Ratio
+Goldnight Redeemer
+Goldwarden's Helm
 Grave Exchange
 Griptide
 Grismold, the Dreadsower
@@ -127,6 +142,7 @@ Harpoon Sniper
 Haunted Crossroads
 Hellkite Igniter
 Hero's Resolve
+Hollow Dogs
 Horned Cheetah
 Horned Helm
 Hornet Cannon
@@ -152,12 +168,15 @@ Land Leeches
 Laquatus's Creativity
 Late to Dinner
 Lava Axe
+Leonin Squire
 Lignify
+Liliana's Defeat
 Liliana's Elite
 Liliana's Standard Bearer
 Lokhust Heavy Destroyer
 Lore Seeker
 MACH-1, Swooping Scoundrel
+Malach of the Dawn
 Malevolent Awakening
 Malicious Advice
 Markov Dreadknight
@@ -179,6 +198,7 @@ Moonveil Dragon
 Mountain
 Mulch
 Multiform Wonder
+Mystic Enforcer
 Nature's Chant
 Navigation Orb
 Necromancer's Familiar
@@ -199,17 +219,21 @@ Pathbreaker Ibex
 Patient Rebuilding
 Peggy Carter, Secret Agent
 Phyrexian Prowler
+Plague Fiend
 Plains
 Planar Portal
 Pool Resources
 Precision Bolt
 Preening Champion
+Preordain
 Priest of Ancient Lore
 Psychotic Haze
 Purple Pentapus
 Putrid Imp
 Pyromantic Pilgrim
 Pyrrhic Blast
+Quicksilver Wall
+Rabbit Battery
 Rag Dealer
 Raging Bull
 Raging Kavu
@@ -282,6 +306,8 @@ Sweep the Skies
 Sword of the Animist
 Talisman of Unity
 Telepathic Spies
+Temporal Adept
+Territorial Baloth
 The Blue Spirit
 The Indomitable
 The Shattered States Era
@@ -302,6 +328,7 @@ Treetop Rangers
 Triceraton Regenta
 Tuktuk Rubblefort
 Tuktuk the Explorer
+Turntimber Symbiosis
 Tuya Bearclaw
 Two-Headed Zombie
 Undead Executioner
@@ -312,7 +339,9 @@ Urza, Powerstone Prodigy
 Vedalken Heretic
 Venom, Eddie Brock
 Venser's Journal
+Verdant Touch
 Verge Rangers
+Veteran Bodyguard
 Vhati il-Dal
 Viashino Bladescout
 Vilis, Broker of Blood

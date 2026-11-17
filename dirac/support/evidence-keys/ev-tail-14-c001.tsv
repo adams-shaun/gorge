@@ -1,0 +1,106 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Armored Whirl Turtle	f73b11ce6b952ddc	35	0/0		0/0	
+Assault Suit	8461c940d1982b40	54	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Barrage Ogre	9b4514472b4d1bb9	26	1/1		0/1	ix:resp
+Battlefield Percher	269217f77db6326c	9	1/1		1/1	
+Blaster Mage	476e5f414a197531	42	1/1		1/1	
+Blazethorn Scarecrow	753efb151cf057e4	3	0/0		0/0	
+Blight Mamba	986a35acb45eb6e4	18	1/1		0/1	ix:resp
+Blood Aspirant	2d1ca1a8027a8f0e	37	2/2		1/1	
+Bloodcrazed Socialite	39e2148e82f2c2e2	15	2/2		1/1	
+Bone Sabres	e848554d71de652c	4	2/2		0/1	ix:resp
+Brothers of Fire	7b8e0458cbc36108	30	1/1		0/1	ix:resp
+Buy Your Silence	2f2b18c478f1ae9a	28	0/0		2/2	
+Carnassid	0c2e0bf51038b381	13	1/1		1/1	
+Chalice of the Void	e0a41247078b4fc3	45	1/1		0/1	ix:resp
+Chatterstorm and Awaken the Woods	588aa809592f5f3f	8	1/1		2/2	
+Dauthi Marauder	8980e4d1204e2cdd	8	0/0		0/0	
+Deglamer	d7576eb627943111	22	0/0		2/2	
+Dire Undercurrents	64a2884efa7d870b	9	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
+Dread Fugue	9abd9a318761ff51	10	0/0		1/2	ix:resp
+Dripping-Tongue Zubera	0cd714577262342a	13	1/1		0/1	ix:resp
+Elvish Warmaster	b24a455c3bd832c4	30	2/2		0/1	ix:resp
+Enfeeblement	3c1069e7a4c3fcdf	10	0/0		2/2	
+Enslaved Scout	3cc4a3a638ab4ab5	16	1/1		1/1	
+Fire-Omen Crane	ce5283ad1b710fa2	12	1/1		0/1	ix:resp
+Fog of War	9ea7bee1b79cb67f	4	0/0		2/2	
+Force Away	2a38d62aeec9cebc	45	0/0		2/2	
+Frost Bite	9976a02ac05abee8	38	0/0		2/2	
+Gaea's Bounty	06b757b3006656a2	13	0/0		1/2	ix:resp
+Glistening Deluge	b96abb646c13df76	18	0/0		1/2	ix:resp
+Groffskithur	b4add00e9aa2b207	7	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Groundshaker Sliver	8a54a19a98240dfd	4	0/0		0/0	
+Gruul Ragebeast	17c51e626f923799	10	1/1		0/1	ix:resp
+Harrier Griffin	83a7bdef46a05ad3	16	1/1		1/1	
+Haunted Library	67adbd1618618edb	33	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Helm of the Gods	721d8984a0518fb0	31	1/1		1/1	
+Hobbling Zombie	da1e0a1167c9ec29	24	1/1		0/1	ix:resp
+Illusionary Forces	9b832b89eaafa159	52	1/1		1/1	
+Initiate of Blood	7f0ad72ea5b44cf9	19	2/2		1/1	
+Inspiring Unicorn	54d8561b8019e82e	25	1/1		0/1	ix:resp
+Jaspera Sentinel	fa35bbf5d8e2ca5b	25	1/1		0/1	ix:resp
+Jungle Patrol	dce94add5207085a	28	2/2		0/1	ix:resp
+Keeper of the Accord	c3a159a41ed9facc	3	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Krumar Bond-Kin	27177d5d212a4ebd	3	0/0		1/2	cast/alt:morphed
+Kuro's Taken	4927f9d9c07b5b67	50	3/3		1/1	
+Laid to Rest	8c6ce4636e0bcb02	13	2/2		1/1	
+Landscaper Colos	7282df56169e8ec8	3	2/2		0/1	ix:resp
+Manglehorn	061c97e1707d5907	14	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Merfolk Wayfinder	a2644e96fc78259a	53	1/1		0/1	ix:resp
+Mighty Emergence	a5f23f9c5afef305	21	1/1		0/1	ix:resp
+Migloz, Maze Crusher	6ef9937e1bdb437a	21	3/3		1/1	
+Mindsplice Apparatus	2664d06232a26b46	37	1/1		1/1	
+Mishra's Juggernaut	834cac824e88c95c	15	1/1		1/1	
+Mistmeadow Witch	86a01520535392eb	3	1/1		1/1	
+Mogg Bombers	7115010155e031f0	16	1/1		1/1	
+Nael, Avizoa Aeronaut	21152064272c840a	13	1/1		1/1	
+Narnam Cobra	331d43b0e5ba1e48	41	1/1		1/1	
+Nether Traitor	d589da18c5a77977	13	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Nightscape Apprentice	fa9770e0a8b28088	53	2/2		1/1	
+Ocular Halo	e671de6c4c315553	28	1/1		2/2	
+Odious Trow	98475126fa56cbae	6	1/1		1/1	
+Patron of the Vein	aba9cd271ca3ea8b	23	2/2		1/1	
+Persuasion	312ef0255942adec	8	0/0		1/2	ix:resp
+Plague Myr	5b58ac68aabd9ea8	4	1/1		0/1	ix:resp
+Planar Disruption	b2d6c95c2cfa67f6	32	0/0		1/2	ix:resp
+Presence of the Master	9a9923a148bcb1f1	31	1/1		0/1	ix:resp
+Prismatic Ending	aab0a5dce53a59ad	3	0/0		2/4	f0/s/x0,ix:resp
+Psychic Pickpocket	1db2e5b377b7af07	8	1/1		0/1	ix:resp
+Puncture Bolt	4d513158de206f0c	38	0/0		1/2	ix:resp
+Quest for Ula's Temple	5ea7f891871ee15a	47	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
+Realm-Cloaked Giant	4d07555e8c3c27ef	67	0/0		2/2	
+Red Dragon	7903dfb59fd6ae22	13	1/1		0/1	ix:resp
+Regal Sliver	8d9b86ce3a633398	50	0/0		0/0	
+Revel of the Fallen God	3972a1d1365f9b5b	4	0/0		1/2	ix:resp
+Ruination Rioter	aae23700efbb2a93	18	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Salivating Gremlins	41cc24486387277e	4	1/1		0/1	ix:resp
+Sandwurm Convergence	0d5ba3c750da0f8d	4	1/1		0/1	ix:resp
+Saruman's Trickery	dea22ea811139db5	16	0/0		1/2	ix:resp
+Scrib Nibblers	47e7550e055adfee	18	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Seal Away	9fa11b83fdd58d09	18	1/1		0/1	ix:resp
+Seeds of Strength	e8a3554718e0f167	4	0/0		1/2	ix:resp
+Shipwreck Looter	45df259c62d05d8d	52	1/1		1/1	
+Sink into Takenuma	31683d0874e09a10	25	0/0		2/2	
+Skeletal Crocodile	829379c2e0d6bf54	19	0/0		0/0	
+Skrelv, Defector Mite	2c1631742a90225c	28	1/1		1/1	
+Solemn Recruit	a0b06b57a606b28c	43	1/1		1/1	
+Solitary Camel	5a154c6f2c1c7e35	24	0/0		0/0	
+Soul of Zendikar	d0ee5b95ef32dedd	3	2/2		0/1	ix:resp
+Soulcatchers' Aerie	226cf3e5dd45ee3a	48	1/1		1/1	
+Spinal Villain	ac4e27611f8cda2a	20	1/1		1/1	
+Stensia Banquet	730284670e14bb57	20	0/0		1/2	ix:resp
+Symbiotic Wurm	9612f01c444d8e11	10	1/1		0/1	ix:resp
+Thunderous Snapper	9944a9f66ab01632	7	1/1		0/1	ix:resp
+Tilling Treefolk	95912931cb9604fa	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Torpid Moloch	3066e4e85c7994a7	15	1/1		1/1	
+Trumpeting Armodon	9b2054e3e11d8fa6	27	1/1		1/1	
+Twice Upon a Time	f86ad703b7e51a02	56	0/0		2/3	f1/s
+Umbris, Fear Manifest	4c98aa06e9bcae7b	3	1/1		0/1	ix:resp
+Undercellar Myconid	8d7ccfd5f465ade1	25	3/3		1/1	
+Unified Front	6b1fadcfebb9403a	24	0/0		2/2	
+Vandalblast	f7b3fc60322f033e	27	0/0		3/4	ix:resp
+Vault Skyward	4823011077d41d1d	50	0/0		1/2	ix:resp
+Vrestin, Menoptra Leader	943f724e4988dede	14	2/2		0/1	ix:resp
+Wild Cantor	752ebb431c77d41b	4	1/1		0/1	ix:resp
+Wily Bandar	bcf9e9b8d5367bce	18	1/1		0/1	ix:resp
+Worldfire	db126413f45d6355	10	0/0		1/2	ix:resp

@@ -11,12 +11,16 @@ Aku Djinn
 Alley Grifters
 Angelic Purge
 Aphotic Wisps
+Arashin Sovereign
+Armorer Guildmage
 Assassin Gauntlet
 Assault Strobe
 Astarion's Thirst
+Auriok Edgewright
 Avatar of Growth
 Aven Trooper
 Aven Windreader
+Azimaet Drake
 Barricade Breaker
 Battleflight Eagle
 Bearer of Memory
@@ -55,6 +59,7 @@ Contortionist Troupe
 Curse of Predation
 Daemogoth Titan
 Danitha Capashen, Paragon
+Darksteel Brute
 Dauntless Bodyguard
 Deadly Insect
 Death Speakers
@@ -62,6 +67,7 @@ Deathleaper, Terror Weapon
 Debtor's Pulpit
 Defenestrate
 Descendant of Kiyomaro
+Despondency
 Devoted Retainer
 Devouring Swarm
 Disciple of Freyalise
@@ -112,6 +118,7 @@ Gruul Keyrune
 Guardian of the Guildpact
 Guul Draz Assassin
 Halberdier
+Hanweir Garrison
 Hardened Scales
 Haunted Crossroads
 Hero's Resolve
@@ -131,6 +138,7 @@ Khenra Charioteer
 Kjeldoran Pride
 Knights of Dol Amroth
 Kor Blademaster
+Kraken of the Straits
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
@@ -187,6 +195,7 @@ Pool Resources
 Portent of Betrayal
 Precision Bolt
 Prey Upon
+Protect
 Psychotic Haze
 Pull from Tomorrow
 Purple Pentapus
@@ -213,6 +222,7 @@ Roar of the Crowd
 Roaring Slagwurm
 Roc Hunter
 Rockshard Elemental
+Ruby Medallion
 Rundvelt Hordemaster
 Runeclaw Bear
 Sabertooth Nishoba
@@ -237,6 +247,7 @@ Silverflame Squire
 Silverskin Armor
 Skirsdag Flayer
 Skizzik Surger
+Skyshaper
 Sleeper Agent
 Smash to Dust
 Smoldering Crater
@@ -258,6 +269,7 @@ Surrakar Marauder
 Swamp
 Sword of the Animist
 Talisman of Unity
+Tethered Griffin
 The Blue Spirit
 The Indomitable
 The Shattered States Era
@@ -295,6 +307,7 @@ Weapon Rack
 Wei Scout
 Weirding Shaman
 Western Paladin
+Whispers of the Muse
 Willow-Wind
 Woodland Liege
 Zhalfirin Shapecraft

@@ -1,0 +1,76 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Alhammarret, High Arbiter	db51cbc43c0513fc	4	0/0		0/0	
+Avenging Hunter	4e2b8b7e1638525e	10	1/1		1/1	
+Bootleggers' Stash	75b5a07aaa6eca86	7	0/0		0/0	
+Bumbling Pangolin	e8e351564e9adaac	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Cartouche of Knowledge	8cb24379910756af	6	1/1		1/2	ix:resp
+Cogwork Spy	b5a25b41cc931247	12	0/0		0/0	
+Consider	7a4cba30568ede20	12	0/0		2/2	
+Covert Operative	8380f3330f8fa4a4	4	0/0		0/0	
+Davriel's Shadowfugue	f30c39bf525f91c5	4	0/0		1/2	ix:resp
+Defiant Elf	c1ca20a64b2ea853	23	0/0		0/0	
+Drumhunter	92f6bd0c70eff24d	8	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Duskworker	bcdbe10158f077fd	19	2/2		1/1	
+Embraal Gear-Smasher	5e783403bb10ca3b	3	1/1		0/1	ix:resp
+Entish Restoration	441b5885a3ad77b0	9	0/0		2/2	
+False Mourning	03790b6fe8423d8b	10	0/0		1/2	ix:resp
+Fire Whip	c6ea78ff4dbc02ae	4	1/1		1/2	ix:resp
+Goblin Artillery	d0da9d4503322c5a	12	1/1		1/1	
+Goblin Champion	9fc07f38c302164a	4	1/1		0/1	ix:resp
+Goldnight Commander	36e236bd55a5f133	7	1/1		0/1	ix:resp
+Grovetender Druids	3f3d139471bfcf52	8	1/1		1/1	
+Guardian Seraph	6d7b1ef0359a84b4	4	0/0		0/0	
+Hanabi Blast	31d7129bdd3c21db	16	0/0		1/2	ix:resp
+Harsh Scrutiny	13a49b8b2e68ed1f	8	0/0		1/2	ix:resp
+Harvesttide Sentry	972ad275cd946380	15	1/1		0/1	ix:resp
+Heartless Pillage	9b87700dbb54534d	9	0/0		1/2	ix:resp
+Hunting Moa	596e30abfb225bc9	14	3/3		0/1	ix:resp
+Imaginary Friends	0e37cd3d9ce42fd9	3	0/0		2/2	
+Incubation Sac	b593d8f8a96e1373	5	1/1		0/1	ix:resp
+Insatiable Gorgers	c6c8440e88021b16	4	0/0		0/0	
+Irradiate	1b9040ae5e285f0a	4	0/0		1/2	ix:resp
+Just the Wind	9d9bd38171f106e1	7	0/0		2/2	
+K-9, Mark I	35fcf32105586f4a	4	1/1		0/1	ix:resp
+Krosan Archer	9323b5807b64e75d	7	1/1		0/1	ix:resp
+Legacy Weapon	25dea274cbed109b	3	1/1		0/1	ix:resp
+Magma Sliver	e53615a1fa7b9a4b	4	0/0		0/0	
+Meriadoc Brandybuck	09325813c22a907e	12	1/1		1/1	
+Moira, Urborg Haunt	9ccb823fd95a477f	6	1/1		0/1	ix:resp
+Mysterious Tome	3fcfa031868cda98	4	2/2		0/1	ix:resp
+Nagao, Bound by Honor	c963f31e43b98e23	11	3/3		0/1	ix:resp
+Nekrataal	7a65e4bf7fd3495c	9	1/1		0/1	ix:resp
+Orazca Relic	238259f37324f721	4	2/2		0/1	ix:resp
+Phyrexian Archivist	1ec7fb658ba821bb	4	1/1		1/1	
+Planar Atlas	4e0f6300b1759c80	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Possessed Centaur	f4726bf12327a9ab	15	0/0		0/0	
+Power Sink	68935fc75ec8fdb6	4	0/0		2/4	f0/s/x0,ix:resp
+Pygmy Troll	4c4220c773ac8599	7	2/2		1/1	
+Reckless Pangolin	f11ab55b23c610d2	9	1/1		0/1	ix:resp
+Rhonas's Monument	fccc040cfe42c311	4	1/1		0/1	ix:resp
+Roc Egg	35282d2815ed9b32	4	1/1		0/1	ix:resp
+Safe Haven	3aac8cb7b7606633	15	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Savage Silhouette	174fab95fd12466b	10	0/0		2/2	
+Security Bypass	e89db1b0398e7e77	6	0/0		1/2	ix:resp
+Sengir Autocrat	2e039fdb09205f62	3	2/2		0/1	ix:resp
+Shatterskull Recruit	521d559f11b83a04	3	0/0		0/0	
+Simic Signet	cd035891212300a7	4	1/1		1/1	
+Slinza, the Spiked Stampede	7a30ae0da51256da	4	1/1		0/1	ix:resp
+Songbird, Sonic Screamer	fd92cb1d9e286f97	8	1/1		1/1	
+Soul's Majesty	7af9badfc9a6985c	7	0/0		1/2	ix:resp
+Steely Resolve	0a25dc23549283d8	8	0/0		0/0	
+Steppe Lynx	c21a4037f95a0a9d	4	1/1		0/1	ix:resp
+Strongarm Monk	55fdade409779b84	8	1/1		0/1	ix:resp
+Survivor of Korlis	c40f87aa8e0e3daa	12	1/1		1/1	
+Syndicate Messenger	c69d9c97d802c895	6	1/1		0/1	ix:resp
+Tectonic Rift	4d38ed4c42eec8a7	9	0/0		2/2	
+Teroh's Faithful	d7042fac72e476bd	4	1/1		0/1	ix:resp
+Thassa's Rebuff	79775571de92280e	4	0/0		1/2	ix:resp
+Thran Quarry	418a6afafd3f4fed	37	2/2		0/1	ix:resp
+Timeless Lotus	272cbb2b4c8772b9	4	1/1		1/1	
+Town Gossipmonger	17f61654f1b790d3	3	2/2		1/1	
+Trigon of Thought	25e35f5ecbe0826c	12	2/2		1/1	
+Triumph of the Hordes	bc04a07654e449f7	4	0/0		2/2	
+Viscerid Deepwalker	54d829cce69e9a42	4	1/1		3/3	
+Volatile Rig	ce0421fdf2b063ac	8	2/2		1/1	
+Wrong Turn	9bbe71d52570827d	4	0/0		2/2	
+Wu Longbowman	79893f17cb5954b5	4	1/1		1/1	

@@ -1,10 +1,12 @@
 A-Deal Gone Bad
+A-Skemfar Elderhall
 Air Bladder
 Akki Battle Squad
 Alaborn Veteran
 All Is Dust
 Altar of the Goyf
 Ambuscade
+Ambush Viper
 Ancient Animus
 Angelic Ascension
 Apocalypse Hydra
@@ -38,6 +40,7 @@ Bloodfire Expert
 Body of Knowledge
 Boiling Seas
 Bonded Horncrest
+Book Burning
 Book of Mazarbul
 Brain Maggot
 Brassclaw Orcs
@@ -55,6 +58,7 @@ Cephalid Looter
 Chandra's Phoenix
 Charging Tuskodon
 Circular Logic
+City of Brass
 Civil Servant
 Clay Statue
 Clinging Anemones
@@ -63,6 +67,7 @@ Cloudpost
 Cloudreach Cavalry
 Coastal Piracy
 Cogwork Assembler
+Combat Research
 Consuming Bonfire
 Containment Breach
 Coralhelm Guide
@@ -88,6 +93,7 @@ Draco
 Dragon-Style Twins
 Dragonloft Idol
 Drogskol Captain
+Dromoka Captain
 Drowned Rusalka
 Duke Ulder Ravengard
 Dusk Legion Dreadnought
@@ -98,6 +104,7 @@ Ebon Dragon
 Efficient Construction
 Elas il-Kor, Sadistic Pilgrim
 Eldrazi Linebreaker
+Elspeth's Devotee
 Elvish Hexhunter
 Emblem of the Warmind
 Enraged Revolutionary
@@ -114,6 +121,9 @@ Final Reward
 Firestorm Hellkite
 Flamekin Herald
 Flaming Sword
+Fledgling Griffin
+Flip the Switch
+Flooded Strand
 Floriferous Vinewall
 Flumph
 Foil
@@ -151,6 +161,7 @@ Hada Freeblade
 Hagra Sharpshooter
 Hall of Tagsin
 Harbinger of Night
+Haunted Guardian
 Hematite Golem
 Hexgold Slith
 Hidden Ancients
@@ -159,6 +170,7 @@ Hope Against Hope
 Hope Charm
 Hopping Automaton
 Horizon Chimera
+Hound Tamer
 Howling Wolf
 Hurly-Burly
 Impede Momentum
@@ -170,6 +182,7 @@ Inspired Skypainter
 Invigorating Surge
 Island
 Ivy Lane Denizen
+Jace, the Living Guildpact
 Jaya, Venerated Firemage
 Jovial Evil
 Keening Apparition
@@ -199,6 +212,7 @@ Mauhúr, Uruk-hai Captain
 Merchant Scroll
 Merfolk Looter
 Midnight Banshee
+Mightstone
 Mind Burst
 Mindless Automaton
 Minotaur Tactician
@@ -215,6 +229,7 @@ Necromancer's Assistant
 Needleshot Gourna
 Needletooth Raptor
 Nemesis of Mortals
+Nerd Rage
 Nesting Wurm
 Netherborn Altar
 Nimble Pilferer
@@ -242,6 +257,7 @@ Prizefighter Construct
 Prophetic Bolt
 Qarsi High Priest
 Quantum Misalignment
+Queen of Ice
 Quicksmith Genius
 Racecourse Fury
 Raffine's Silencer
@@ -268,6 +284,7 @@ Rootwater Diver
 Rowan's Stalwarts
 Ruthless Sniper
 Sakiko, Mother of Summer
+Salt Road Patrol
 Sanctum Seeker
 Sanguine Praetor
 Scatter Arc
@@ -335,6 +352,7 @@ Thermal Blast
 Thieves' Guild Enforcer
 Thorn Thallid
 Thoughtbind
+Thriving Bluff
 Thunderbreak Regent
 Thundermaw Hellkite
 Tocasia's Onulet
@@ -359,6 +377,8 @@ Victory's Envoy
 Vile Requiem
 Violet Pall
 Virtuous Variant
+Vitu-Ghazi, the City-Tree
+Volcanic Island
 Vulshok Refugee
 Wall of Brambles
 Wall of Mulch

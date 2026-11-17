@@ -73,6 +73,7 @@ Fae Flight
 Fanatical Strength
 Felonious Rage
 Festerleech
+Flourishing Bloom-Kin
 Forensic Gadgeteer
 Forensic Researcher
 Forest
@@ -154,6 +155,7 @@ Pompous Gadabout
 Presumed Dead
 Private Eye
 Proft's Eidetic Memory
+Projektor Inspector
 Public Thoroughfare
 Pyrotechnic Performer
 Rakdos, Patron of Chaos

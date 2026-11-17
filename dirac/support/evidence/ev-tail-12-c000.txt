@@ -197,6 +197,7 @@ Kyren Glider
 Landroval, Horizon Witness
 Last Caress
 Laurine, the Diversion
+Lazotep Chancellor
 Legion Loyalist
 Legions to Ashes
 Leonin Armorguard
@@ -218,6 +219,7 @@ Medicine Bag
 Medusa, Inhuman Queen
 Memory Erosion
 Mephitic Ooze
+Millikin
 Mind's Eye
 Mine Collapse
 Minotaur Tactician
@@ -287,6 +289,7 @@ Repair and Recharge
 Repository Skaab
 Reprocess
 Rescind
+Restless Bones
 Restoration Angel
 Retrofitter Foundry
 Revel of the Fallen God
@@ -391,6 +394,7 @@ Urza's Rebuff
 Uthros Research Craft
 Uurg, Spawn of Turg
 Vampire Noble
+Veteran's Reflexes
 Vigil for the Lost
 Vindictive Mob
 Viridescent Bog

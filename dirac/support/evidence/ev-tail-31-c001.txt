@@ -1,16 +1,26 @@
+A-Deal Gone Bad
 A-Warm Welcome
+Abandon the Post
+Abrupt Decay
+Accelerated Mutation
 Adanto Vanguard
 Agent of Horizons
 Aggressive Crag
+Agonizing Memories
+Akki Underminer
 Akoum Firebird
 Aliban's Tower
 Alora, Merry Thief
 Amrou Kithkin
 Angelic Shield
+Animal Boneyard
+Arachnoid Adaptation
+Arachnus Spinner
 Arctic Nishoba
 Arms Dealer
 Aron, Benalia's Ruin
 Arterial Flow
+Atomize
 Auramancer
 Aven Skirmisher
 Avenging Huntbonder
@@ -18,18 +28,33 @@ Baloth Pup
 Barrage of Expendables
 Basim Ibn Ishaq
 Battered Golem
+Beloved Chaplain
+Bespoke Bō
 Black Knight
+Black Poplar Shaman
 Blazing Volley
 Blighted Bat
 Blitz Hellion
+Blood-Cursed Knight
+Bloodcrazed Hoplite
 Bloodcurdling Scream
 Bloodline Culling
 Bloodmist Infiltrator
 Blot Out
+Boot Nipper
+Borderland Marauder
 Boromir, Gondor's Hope
 Brightmare
+Bronzeplate Boar
+Brood Birthing
 Burlfist Oak
+Cabal Surgeon
+Cached Defenses
+Caller of the Claw
 Cast Down
+Celestial Flare
+Centaur Rootcaster
+Cephalid Inkshrouder
 Charge Through
 Circle of Dreams Druid
 Claim of Erebos
@@ -38,38 +63,53 @@ Conclave Phalanx
 Consuming Fervor
 Consuming Sinkhole
 Crack Open
+Crash Landing
 Crucible of Worlds
 Crystacean
 Daily Regimen
 Dancing Scimitar
+Darkheart Sliver
 Darksteel Juggernaut
+Dawnfluke
 Deliberate
 Detainment Spell
 Dictate of Heliod
+Diplomatic Immunity
 Distorting Wake
 Divine Transformation
 Dogged Pursuit
+Dormant Grove
+Dreadmobile
 Dross Scorpion
 Dryad Arbor
 Dust Stalker
 Ebony Rhino
+Eliminate
+Entangling Vines
 Epic Proportions
 Era of Enlightenment
 Eternal Scourge
 Ettercap
+Experimental Aviator
+Explorer's Scope
+Fauna Shaman
 Femeref Scouts
 Fists of Flame
 Flame Rift
+Fleeting Memories
 Flickering Ward
 Flight of Fancy
 Flood
 Fodder Tosser
+Foreshadow
 Forest
 Forfend
 Fortress Crab
+Frenzied Tilling
 Frenzy Sliver
 Fury Sliver
 Galadhrim Bow
+Ghost Ship
 Ghoulish Procession
 Giant's Skewer
 Glissa, the Traitor
@@ -79,18 +119,28 @@ Gluttonous Slug
 Goblin Cannon
 Goblin Guide
 Goblin Piker
+Goblin Turncoat
 Graceful Restoration
+Graveyard Trespasser
+Grim Servant
 Grizzly Ghoul
 Gruul Guildmage
+Guardian of the Great Conduit
 Gustrider Exuberant
+Hamletback Goliath
+Harsh Judgment
 Heartless Pillage
+Heavy Mattock
 Herald of the Fair
 Homestead Courage
+Hopeful Eidolon
 Hornet Sting
 Hot Springs
+Hullbreaker Horror
 Impede Momentum
 Improvised Weaponry
 Incendiary Sabotage
+Infested Roothold
 Inner-Flame Acolyte
 Inquisitor's Ox
 Integrity
@@ -99,115 +149,196 @@ Inventor's Axe
 Island
 Ivory Guardians
 Jiang Yanggu
+Jungle Creeper
 Justice Strike
+Kami of Transience
 Kaysa
 Keen Glidemaster
 Keeper of Keys
 Kithkin Harbinger
 Kitsune Loreweaver
+Kumena's Awakening
+Laccolith Titan
+Laccolith Whelp
 Lantern of Revealing
+Legions of Lim-Dûl
 Lim-Dûl's High Guard
 Living Lightning, Charged Up
 Living Twister
 Long-Range Sensor
 Lumbering Falls
 Lumithread Field
+Mana Cylix
 Marsh Flats
+Metathran Elite
+Metathran Soldier
 Miraculous Recovery
 Moon Heron
+Mortiphobia
 Mountain
+Mountain Yeti
 Murderous Rider
 Nacre Talisman
+Nadir Kraken
+Natural Order
 Nettlecyst
+Neurok Familiar
 Nightbird's Clutches
+Nighthaze
 Nightmare Lash
+Nightpack Ambusher
+Nissa's Expedition
 Noble Quarry
 Not Forgotten
 Nyx Herald
 Oakgnarl Warrior
+Ob Nixilis, the Hate-Twisted
 Obsidian Battle-Axe
 Ondu Inversion
 Opal Gargoyle
+Open the Gates
 Orzhov Guildmage
 Parcel Myr
+Part Water
+Pathrazer of Ulamog
 Patriot, Young Avenger
+Pharika's Disciple
+Pharika's Mender
+Phyrexian Hulk
 Phyrexian Vivisector
 Plains
 Pre-War Formalwear
+Prismatic Ward
+Profane Tutor
 Purify the Grave
+Putrid Leech
+Pyre Spawn
 Pyrophobia
+Quarry Beetle
+Quicksilver, Speedster
 Qumulox
+Rage of Purphoros
+Ramosian Sky Marshal
 Rancor
 Reckless Rage
+Reclusive Taxidermist
+Reef Pirates
 Restless Dead
 Retrofitted Transmogrant
+Revenge of the Drowned
 Revive
+Rhonas's Last Stand
 Rile
+Ring of Xathrid
 Rite of Consumption
 Rite of Harmony
+River Heralds' Boon
 Ronom Unicorn
 Ruinous Minotaur
 Rummaging Goblin
+Run Aground
 Saprazzan Raider
 Sarah Jane Smith
 Savage Stomp
 Scale Up
+Scion of the Wild
+Scorching Spear
 Scrapheap Scrounger
 Scurrid Colony
 Scuttletide
 Seedborn Muse
+Seismic Tutelage
 Selesnya Cluestone
+Sengir Vampire
+Serum Tank
+Setessan Champion
 Shadow Glider
 Shadowspear
 Shadowstorm
 Shapers of Nature
+Shipwreck Patrol
 Shivan Fire
 Show of Confidence
 Shriek Raptor
 Silent Dart
 Silver Shroud Costume
 Skitter Eel
+Skyshroud Lookout
+Slice in Twain
+Snapping Gnarlid
 Soldevi Heretic
 Soldevi Steam Beast
+Solemn Offering
 Solid Ground
 Soul Link
+Spectral Deluge
 Spectral Reserves
+Spider-Man, Web-Spinner
 Spined Basher
+Spinning Wheel
 Stall for Time
 Stirring Address
+Stolen Goods
 Stone Kavu
 Strix Serenade
 Stromkirk Patrol
+Stronghold Biologist
 Sunflare Shaman
+Sustenance
 Swamp
 Swelter
+Synod Sanctum
 Tale of Momo
+Talisman of Curiosity
 Talruum Minotaur
+Teferi's Sentinel
+Tel-Jilad Fallen
 Temple Acolyte
 Temporal Fissure
 Terrain Elemental
+Thalakos Mistfolk
 That Which Was Taken
 Tidal Courier
+Tin Street Dodger
 Tobias, Doomed Conqueror
 Tower Geist
+Tragic Poet
 Trained Armodon
 Trained Cheetah
+Training Grounds
 Triclopean Sight
 Trigon of Infestation
 Triplicate Spirits
 Trudge Garden
+Twiddle
 Umara Mystic
+Undead Augur
 Undying Beast
+Unfulfilled Desires
+Updraft
+Utopia Tree
+Utopia Vow
+Valeria Richards, Precocious
 Vampire Aristocrat
 Vial of Poison
 Vicious Hunger
 Vindictive Vampire
 Viridian Emissary
 Viridian Scout
+Vodalian Mage
 Voice of Truth
+Vulpine Goliath
 Vulshok Morningstar
 Wall of Vines
+Wary Okapi
+Weather the Storm
 White Scarab
 Wild Growth
+Wirewood Elf
+Woodwraith Corrupter
 Worn Powerstone
+Worthy Knight
+Wreath of Geists
+Wretched Throng
 Wu Light Cavalry
+Zephyr Net

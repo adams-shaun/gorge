@@ -10,8 +10,10 @@ Anaba Bodyguard
 Anaconda
 Anafenza, Kin-Tree Spirit
 Angelic Protector
+Angelic Quartermaster
 Annoyed Altisaur
 Arcane Melee
+Arcbound Mouser
 Archers' Parapet
 Ardent Plea
 Argothian Enchantress
@@ -22,6 +24,7 @@ Arms of Hadar
 Army Ants
 Arvad of the Weatherlight
 Ashes to Ashes
+Avatar of Fury
 Aven Tactician
 Aven Wind Mage
 Barony Vampire
@@ -29,6 +32,7 @@ Basilisk Gate
 Behold the Multiverse
 Berserkers' Onslaught
 Biting Rain
+Blessing of Leeches
 Blisterstick Shaman
 Bloodlust Inciter
 Bloodrite Invoker
@@ -62,6 +66,7 @@ Clear the Stage
 Conclave Sledge-Captain
 Conquer
 Consume Spirit
+Copycrook
 Countermand
 Creative Technique
 Crucible of Fire
@@ -74,9 +79,11 @@ Dark Ritual
 Darksteel Angel
 Dawnhart Mentor
 Deathbellow Raider
+Deeproot Elite
 Definitely Not a Turtle
 Delighted Killbot
 Demonic Lore
+Deprive
 Depths of Desire
 Deranged Outcast
 Devilthorn Fox
@@ -95,12 +102,14 @@ Dreamstalker Manticore
 Drinker of Sorrow
 Duergar Cave-Guard
 Eat to Extinction
+Electrolyze
 Electrostatic Infantry
 Elephant Guide
 Elspeth's Nightmare
 Elvish Berserker
 Emberstrike Duo
 Embodiment of Insight
+Endangered Armodon
 Energy Tap
 Environmental Sciences
 Erase
@@ -129,6 +138,7 @@ Fowl Play
 Frilled Deathspitter
 Frost Ogre
 Fruitcake Elemental
+Fyndhorn Elves
 Gaea's Balance
 Garruk, Unleashed
 Genju of the Cedars
@@ -212,6 +222,7 @@ Merfolk Mesmerist
 Midnight Covenant
 Might Weaver
 Mind Rot
+Mindslicer
 Minion Missile
 Mirage Mockery
 Mirko Vosk, Mind Drinker
@@ -222,6 +233,7 @@ Moment of Heroism
 Mordenkainen
 Mountain
 Multani's Acolyte
+Multani, Yavimaya's Avatar
 Mutant's Prey
 Muxus, Goblin Grandee
 Myr Galvanizer
@@ -233,6 +245,7 @@ Nine-Ringed Bo
 Nourish
 Nurturing Presence
 Oath of Liliana
+Obsidian Obelisk
 Open the Vaults
 Origin of the Hidden Ones
 Oswald Fiddlebender
@@ -252,6 +265,7 @@ Plasmancer
 Plated Wurm
 Platinum Angel
 Poison the Well
+Portent
 Power Boost
 Priest of the Blood Rite
 Primal Druid
@@ -259,6 +273,7 @@ Pyromancer's Gauntlet
 Pyromania
 Qala, Ajani's Pridemate
 Radiant's Dragoons
+Rakdos Locket
 Rakish Heir
 Rally the Forces
 Ramirez DePietro
@@ -291,6 +306,7 @@ Scrapyard Mongrel
 Screeching Buzzard
 Screeching Skaab
 Scute Mob
+Sea Gate Colossus
 Seal of Cleansing
 Searing Light
 Sentry of the Underworld
@@ -336,6 +352,7 @@ Spiketail Hatchling
 Spoils of Victory
 Spring-Leaf Avenger
 Sprout
+Sprouting Goblin
 Squirrel Mob
 Stallion of Ashmouth
 Startled Awake
@@ -379,6 +396,7 @@ Time Bomb
 Time of Ice
 Tin Street Dodger
 Titanic Bulvox
+Tragic Slip
 Tranquility
 Trinket Mage
 Tunneling Geopede

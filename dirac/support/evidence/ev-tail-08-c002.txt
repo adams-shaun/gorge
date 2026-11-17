@@ -14,9 +14,12 @@ Benalish Missionary
 Blind-Spot Giant
 Blood Divination
 Blood Glutton
+Blood Seeker
 Bolt of Keranos
+Bronze Sword
 Cabal Inquisitor
 Cadira, Caller of the Small
+Call to the Netherworld
 Captain America, Liberator
 Chase Stein, Runaway
 Clockwork Fox
@@ -51,6 +54,7 @@ Gavony Silversmith
 Ghost-Lit Raider
 Glarewielder
 Go-Shintai of Shared Purpose
+Goblin Heelcutter
 Goblin Soothsayer
 Grid Monitor
 Gust of Wind
@@ -79,6 +83,7 @@ Keeper of the Cadence
 Kolaghan Warmonger
 Krazy Kow
 Last Kiss
+Lesser Werewolf
 Liliana's Triumph
 Lone Missionary
 Lucky the Pizza Dog
@@ -109,12 +114,14 @@ Pitchburn Devils
 Plains
 Portable Hole
 Precinct Captain
+Primal Adversary
 Protector of the Wastes
 Queen's Agent
 Rain of Revelation
 Ral's Outburst
 Rally at the Hornburg
 Ratcatcher
+Relentless Rats
 Reverent Mantra
 Riddle Gate Gargoyle
 Righteous Fury
@@ -151,6 +158,7 @@ Sylvia Brightspear
 Talas Researcher
 Tangle Asp
 Taunting Arbormage
+Tempest of Light
 Teval's Judgment
 Thalia's Lieutenant
 That Which Was Taken

@@ -1,0 +1,31 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Esika's Chariot	5a2c801360581e4e	30	3/3		1/1	
+Anathemancer	6f10ca2bf15dee0b	10	2/2		0/1	ix:resp
+Argivian Archaeologist	7b9ab4eaa7f79512	35	1/1		0/1	ix:resp
+Aviation Pioneer	f0c5f98954f34746	55	1/1		1/1	
+Blademane Baku	20473f71538723ff	4	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Conclave Equenaut	7c3e3e354bbbff3c	3	0/0		0/0	
+Conduit Goblin	e68e67aac703abb7	12	2/2		0/1	ix:resp
+Downpour	b40a9ea734a41fca	4	0/0		2/2	
+Exotic Disease	d451c8d17db4a22b	28	0/0		1/2	ix:resp
+Faithful Watchdog	9ed2b069f15cdd93	11	0/0		0/0	
+Gilt-Leaf Seer	9d06c466c172e1b7	35	1/1		1/1	
+Glare of Heresy	427b689f598fc0d7	19	0/0		1/2	ix:resp
+Graceful Adept	49f5d8faffac9c7a	4	0/0		0/0	
+Illuminator Virtuoso	eb5d385a649be3fc	37	1/1		1/1	
+Jace's Triumph	3f25f1c295d5ba8d	8	0/0		2/2	
+Kargan Warleader	75ec54b1811df306	6	0/0		0/0	
+Kaya's Onslaught	494e3e578e6209ca	3	0/0		2/4	cast/alt:foretold,ix:resp
+Krosan Warchief	f29aeb5f92b38754	4	1/1		1/1	
+Lae'zel, Vlaakith's Champion	4aa3bd219c19205a	6	0/0		0/0	
+Mike, the Dungeon Master	b1b9a2fe5eec77fe	25	1/1		1/1	
+Myr Scrapling	71933408620d0b2b	4	1/1		0/1	ix:resp
+Netherborn Phalanx	3800049a2ed30fcd	9	2/2		0/1	ix:resp
+Seer's Lantern	ce9b5fcf3b295641	7	2/2		1/1	
+Sword of Kaldra	62ced94099232505	15	2/2		1/1	
+Telethopter	65834c4699e6db53	4	1/1		1/1	
+Throwing Knife	3614e45a30e2d4cb	34	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Triumphant Reckoning	04c34a3422ca9c32	4	0/0		1/2	ix:resp
+Vex	a9e2c2aa72489ca9	18	0/0		2/2	
+Walking Ballista	4a4e8178dbf73f5e	32	2/2		1/1	
+War Mammoth	ecfd0ba3da926dcc	44	0/0		0/0	

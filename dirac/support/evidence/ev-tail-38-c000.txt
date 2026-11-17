@@ -78,6 +78,7 @@ Doomskar Oracle
 Doomwake Giant
 Dovin's Dismissal
 Dragon Whisperer
+Draugr Recruiter
 Dread Slag
 Dual Strike
 Dusk Urchins
@@ -335,6 +336,7 @@ Transmogrifying Wand
 Triumph of Ferocity
 Tropical Island
 Turbulent Wetlands
+Twisted Reflection
 Uglúk of the White Hand
 Undercity's Embrace
 Unified Strike

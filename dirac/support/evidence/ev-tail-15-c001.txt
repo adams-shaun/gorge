@@ -8,20 +8,25 @@ Angelheart Vial
 Anointed Chorister
 Anurid Murkdiver
 Apex Devastator
+Aphotic Wisps
 Arrows of Justice
 Artful Maneuver
 Augury Owl
 Avatar of Will
 Aven Brigadier
 Aven Eternal
+Azor's Elocutors
 Basri's Aegis
+Battle Frenzy
 Bayou Dragonfly
+Beacon of Immortality
 Bedeck
 Black Widow, Agile Avenger
 Blazing Rootwalla
 Blessed Spirits
 Blinding Radiance
 Bloodflow Connoisseur
+Boon of Emrakul
 Brightclimb Pathway
 Brilliant Restoration
 Brimstone Mage
@@ -51,6 +56,7 @@ Deathbloom Ritualist
 Declare Dominance
 Delightful Discovery
 Deluge of Doom
+Desecration Elemental
 Desynchronize
 Dihada's Ploy
 Dingus Staff
@@ -58,6 +64,8 @@ Diplomacy of the Wastes
 Displace
 Domri, Anarch of Bolas
 Drossclaw
+Dusk
+Dáin of the Ancient Halls
 Dúnedain Blade
 Ebon Drake
 Eerie Interlude
@@ -94,6 +102,7 @@ Fungus Elemental
 Furious Assault
 Galina's Knight
 Gert and Old Lace, Runaways
+Giant Fly
 Giant Strength
 Gixian Skullflayer
 Goblin Electromancer
@@ -138,8 +147,10 @@ Kami of Whispered Hopes
 Kazuul's Fury
 Kederekt Parasite
 Kenrith's Transformation
+King Cheetah
 Kitchen Finks
 Knight Watch
+Knight of New Benalia
 Kor Duelist
 Kraken Hatchling
 Krark-Clan Engineers
@@ -179,11 +190,14 @@ Moan of the Unhallowed
 Moonfolk Puzzlemaker
 Morkrut Behemoth
 Mountain
+Mouth
 Nael, Avizoa Aeronaut
 Nature's Ruin
 Nefarox, Overlord of Grixis
 Nessian Game Warden
+Nightscape Familiar
 Nightstalker Engine
+Nimble Pilferer
 Nissa's Triumph
 Novellamental
 Nyxborn Marauder
@@ -192,6 +206,7 @@ Oji, the Exquisite Blade
 Otherworld Atlas
 Oxidize
 Ozox, the Clattering King
+Palladium Myr
 Parasitic Grasp
 Pawn of Ulamog
 Pendrell Mists
@@ -202,6 +217,7 @@ Plains
 Pledge of Unity
 Portcullis Vine
 Psychic Impetus
+Pulsating Illusion
 Putrid Cyclops
 Pyre Hound
 Quagmire Lamprey
@@ -216,11 +232,13 @@ Reckless Scholar
 Regisaur Alpha
 Release to Memory
 Relic of Progenitus
+Remove Soul
 Retreat to Hagra
 Ring of Evos Isle
 Rise Again
 Rolling Hamsphere
 Romana II
+Rust Tick
 Sacred Nectar
 Sand Golem
 Sanguine Glorifier
@@ -228,6 +246,7 @@ Saprazzan Heir
 Saprazzan Outrigger
 Scion of Glaciers
 Scuttling Sentinel
+Sea's Claim
 Seal of Fire
 Seer's Vision
 Selesnya Evangel
@@ -238,6 +257,7 @@ Shimmerscale Drake
 Shrieking Drake
 Shrouded Serpent
 Sibsig Host
+Sigardian Priest
 Sign in Blood
 Sindbad
 Sip of Hemlock
@@ -275,9 +295,12 @@ Swamp
 TVA Bureaucrat
 Talisman of Resilience
 Teething Wurmlet
+The Wasp, Winsome Avenger
 Thornhide Wolves
 Thought Scour
 Thundering Raiju
+Tidal Wave
+Treachery
 Treasure Hunter
 Trokin High Guard
 Tui and La, Moon and Ocean
@@ -309,6 +332,7 @@ Wrack with Madness
 Xun Yu, Wei Advisor
 Yavimaya Barbarian
 Yawgmoth, Thran Physician
+Zephyr Boots
 Ziatora's Proving Ground
 Zodiac Rat
 Zuko, Seeking Honor

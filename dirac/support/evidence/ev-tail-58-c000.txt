@@ -173,6 +173,7 @@ Hook Swords
 Hound of the Farbogs
 House Guildmage
 Hunger of the Nim
+Iceberg Cancrix
 Icingdeath, Frost Tyrant
 Incite
 Infernal Captor
@@ -229,6 +230,7 @@ Minds Aglow
 Minion's Return
 Mire Triton
 Mishra's Research Desk
+Moldervine Cloak
 Molting Snakeskin
 Moria Marauder
 Mortal Obstinacy
@@ -394,6 +396,7 @@ Umbral Mantle
 Unbender Tine
 Universal Solvent
 Urbis Protector
+Urza's Armor
 Utter End
 Vebulid
 Vedalken Blademaster
@@ -407,10 +410,12 @@ Victory's Envoy
 Vigilance
 Villainous Wealth
 Vinelasher Kudzu
+Visions of Brutality
 Vivify
 Voidslime
 Voldaren Duelist
 Voltaic Construct
+Vraska the Unseen
 Vryn Wingmare
 Wailing Ghoul
 Wall of Kelp

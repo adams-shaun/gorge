@@ -3,12 +3,17 @@ Akoum Refuge
 Ancestral Blade
 Ancient Gold Dragon
 Anointer Priest
+Arachnus Web
+Archwing Dragon
 Ashen Monstrosity
+Aspect of Lamprey
 Attune with Aether
 Avatar of Growth
 Aven Fogbringer
 Azure Drake
 Backfire
+Baloth Null
+Banishment
 Barrow Witches
 Bathe in Dragonfire
 Battle of Hoover Dam
@@ -16,22 +21,30 @@ Belligerent Sliver
 Bellowing Mauler
 Big Boa Constrictor
 Black Widow, Intel Expert
+Bloodcrazed Neonate
 Bloodmark Mentor
+Bloodthirsty Adversary
 Blustersquall
 Bond of Flourishing
 Bond of Insight
 Bonehoard
 Bonepicker Skirge
 Bound in Silence
+Bountiful Promenade
 Brandywine Farmer
 Burning Fields
+Cabaretti Courtyard
 Captive Weird
 Catacomb Sifter
+Chainweb Aracnir
 Chaotic Backlash
 Clip Wings
 Crookclaw Elder
 Cunning Survivor
 Death's Shadow
+Demon's Disciple
+Dense Foliage
+Desolate Mire
 Desynchronize
 Devouring Swarm
 Double Negative
@@ -39,28 +52,42 @@ Dragonlord Silumgar
 Drainpipe Vermin
 Dread Tiller
 Dreamshackle Geist
+Drossclaw
+Drown in Dreams
 Dune Mover
+Duplicant
 Dust Corona
 Easy Prey
+Emperor Crocodile
 Ethereal Investigator
 Falkenrath Marauders
+Fateful Showdown
+Feral Instinct
 Ferocious Zheng
+Fetid Imp
 Fireblade Charger
 Flare of Denial
 Forest
+Gift of Fangs
 Gift of Paradise
 Gild
+Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
+Greater Harvester
 Griffin Aerie
 Guul Draz Mucklord
 Haazda Officer
 Herd Gnarr
+Hero of the Dunes
 Hibernation
 Honden of Life's Web
 Howl of the Night Pack
 Huatli, Radiant Champion
 Hurloon Battle Hymn
+Immortal Phoenix
+Incisor Steed
+Inspire Awe
 Island
 Jace's Erasure
 Jalum Tome
@@ -71,7 +98,10 @@ Kjeldoran Outrider
 Launch
 Leapfrog
 Lost in the Mist
+Magma Vein
+Magmatic Insight
 Mana Vault
+Mardu Woe-Reaper
 Markov Patrician
 Mass Mutiny
 Master of Winds
@@ -80,18 +110,26 @@ Metathran Elite
 Mijae Djinn
 Mind Over Matter
 Minotaur, Roxxon CEO
+Mobile Fort
 Momentum Rumbler
 Mountain
+Mox Tantalite
 Muck Rats
 Myrel, Shield of Argive
+Nakaya Shade
 Nebelgast Herald
 Neonate's Rush
 Nezumi Freewheeler
 Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper
+Obelisk of Grixis
+Ogre Taskmaster
+One-Eyed Scarecrow
+Panic Attack
 Paradigm Shift
 Parallel Lives
+Patrol Hound
 Peregrine Mask
 Perimeter Captain
 Personal Tutor
@@ -103,24 +141,39 @@ Precinct Captain
 Privileged Position
 Pyrrhic Blast
 Quest for Renewal
+Quirion Explorer
 Radstorm
 Rageblood Shaman
 Rally the Peasants
+Raugrin Triome
 Return from Extinction
+Rimewood Falls
 Rishadan Cutpurse
 Rishkar's Expertise
 Rockshard Elemental
 Rooftop Nuisance
+Rout
 Sage Aven
 Sailor of Means
+Sanctify
+Scalding Devil
 School of Piranha
 Seething Pathblazer
 Selhoff Occultist
+Shaman of Spring
+Shield of the Oversoul
+Show of Valor
 Sibsig Muckdraggers
+Simian Brawler
+Singing Tree
+Sinkhole
 Sizzle
+Skyclave Shadowcat
 Skyline Cascade
+Slagwoods Bridge
 Sonic Screwdriver
 Spectacle Mage
+Spike Breeder
 Spindrift Drake
 Spirit Shackle
 Spitebellows
@@ -128,12 +181,16 @@ Spitfire Handler
 Stormscape Apprentice
 Sunscorched Desert
 Swamp
+Swarm Surge
 Swarm of Rats
+Tamiyo's Safekeeping
 Tectonic Edge
 Territorial Boar
 Thopter Assembly
 Threnody Singer
 Thundersteel Colossus
+Timbermaw Larva
+Trailblazing Historian
 Trained Caracal
 Tui and La, Moon and Ocean
 Twiddle
@@ -142,10 +199,14 @@ Undead Servant
 Urza, Powerstone Prodigy
 Venomous Changeling
 Viscerid Deepwalker
+Volcanic Torrent
+Volcanic Upheaval
 Warmonger Hellkite
 Will-o'-the-Wisp
+Winding Canyons
 Winged Shepherd
 Wizard Replica
 Woodland Stream
 Zap
+Zealot's Conviction
 Zendikar Farguide

@@ -1,9 +1,11 @@
+A-Cabaretti Charm
 A-Gnarlid Colony
 A-Kenku Artificer
 A-Moon-Circuit Hacker
 A-Young Blue Dragon
 Abattoir Ghoul
 Aberrant
+Adder-Staff Boggart
 Aegis Automaton
 Agadeem Occultist
 Agent of Masks
@@ -66,6 +68,7 @@ Cenn's Heir
 Chainer's Edict
 Chandra's Fury
 Charcoal Diamond
+Charitable Levy
 Charmbreaker Devils
 Charmed Stray
 Charnel Troll
@@ -111,6 +114,7 @@ Drannith Ruins
 Dreadwaters
 Drover of the Mighty
 Dungeoneer's Pack
+Dwarven Scorcher
 Dynacharge
 E. Honda, Sumo Champion
 Elvish Harbinger
@@ -190,6 +194,7 @@ Jokulmorder
 Kabira Outrider
 Kardur, Doomscourge
 Kargan Dragonlord
+Karona, False God
 Killian, Ink Duelist
 Knight of Infamy
 Knowledge and Power
@@ -223,6 +228,7 @@ Meng Huo, Barbarian King
 Mental Discipline
 Mental Misstep
 Merchant Scroll
+Merchant Ship
 Miasmic Mummy
 Mind Burst
 Minion of the Mighty
@@ -287,6 +293,7 @@ Ring of Three Wishes
 Ringwarden Owl
 Riot Spikes
 Rip Apart
+Ronin Cliffrider
 Rooting Kavu
 Roughshod Mentor
 Rousing of Souls
@@ -348,6 +355,7 @@ Strafe
 Strength of Night
 Structural Distortion
 Stunted Growth
+Sultai Ascendancy
 Sumala Rumblers
 Sunhome Guildmage
 Survival Cache

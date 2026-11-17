@@ -24,9 +24,12 @@ Archfiend of Ifnir
 Argivian Find
 Armored Cancrix
 Armored Skaab
+Artisan of Forms
 Artistic Refusal
+Astarion, the Decadent
 Atomize
 Augur of Skulls
+Avacyn and Griselbrand
 Awaken the Sky Tyrant
 Azorius Chancery
 Balduvian Hydra
@@ -110,7 +113,9 @@ Dora Milaje Elite
 Dramatic Entrance
 Dreamdrinker Vampire
 Dwarven Demolition Team
+Dwarven Pony
 Ebony Charm
+Eland Umbra
 Eldrazi Mimic
 Elvish Rejuvenator
 Embodiment of Fury
@@ -153,6 +158,7 @@ Galvanic Arc
 Gargoyle Castle
 Gate to the Citadel
 Gift of Growth
+Gift of the Woods
 Glacial Wall
 Glamorous Grapplers
 Gleeful Demolition
@@ -178,6 +184,7 @@ Heliod, God of the Sun
 Heliophial
 Hell Swarm
 Hell's Caretaker
+Helm of the Ghastlord
 Herald of Hadar
 Hobgoblin Bandit Lord
 Honor the Fallen
@@ -186,6 +193,7 @@ Hot Springs
 Humiliate
 Hunger of the Howlpack
 Hymn to Tourach
+Ice Floe
 Illusionary Informant
 Illusory Angel
 Imperious Oligarch
@@ -285,6 +293,7 @@ Ox of Agonas
 P-Joven and Chandler
 Paragon of the Amesha
 Pardic Firecat
+Pariah
 Peek
 Pemmin's Aura
 Pensive Minotaur
@@ -365,6 +374,7 @@ Soul Collector
 Soul Link
 Soul of Ravnica
 Soul's Grace
+Spectral Prison
 Spellbound Dragon
 Spirit Link
 Spitting Slug
@@ -384,6 +394,7 @@ Suntail Hawk
 Supply-Line Cranes
 Suture Spirit
 Swamp
+Sword of Feast and Famine
 Sylvan Bounty
 Take to the Streets
 Talara's Battalion
@@ -431,6 +442,7 @@ Wall of Kelp
 Wandering Wolf
 Warlord's Fury
 Whispersilk Cloak
+Wild Defiance
 Wildwood Rebirth
 Winged Sliver
 Wirewood Pride

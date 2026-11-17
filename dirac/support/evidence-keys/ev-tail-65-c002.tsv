@@ -1,0 +1,41 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Amulet of Vigor	8aebece98dc8dd63	4	1/1		0/1	ix:resp
+Appetite for the Unnatural	a9b714daf3371318	5	0/0		1/2	ix:resp
+Arcbound Whelp	ef674bc43eab24cd	7	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Attunement	740e87a2bec937af	4	1/1		0/1	ix:resp
+Chaosphere	8f29948cf4918187	4	0/0		0/0	
+Clarion Cathars	34bfcbb817e100f1	4	1/1		0/1	ix:resp
+Copperhoof Vorrac	4b07cee508c053f6	3	0/0		0/0	
+Corpse Churn	d7c133da5f7aa8ed	8	0/0		2/2	
+Devout Witness	021ad1b40484461b	13	1/1		0/1	ix:resp
+Elvish Branchbender	2c536002444a7db3	8	1/1		0/1	ix:resp
+Embodiment of Fury	3fa55b3ae2102da2	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Etched Champion	62a25ec3aa7338ca	4	0/0		0/0	
+Ghoulraiser	c43c52cc9a19402e	4	1/1		0/1	ix:resp
+Gilded Pinions	23d3dc7a6c5cdba9	8	2/2		0/1	ix:resp
+Glorious Anthem	e5276426ba45c598	7	0/0		0/0	
+Grotag Bug-Catcher	a9fd9bbaa6cddd70	5	1/1		0/1	ix:resp
+Herald of the Dreadhorde	c182fc3977b9a707	6	1/1		1/1	
+Hibernation	0830b3572ab7d983	6	0/0		1/2	ix:resp
+Hunter's Ambush	4cd7cb236db4e7bd	3	0/0		1/2	ix:resp
+Ixalli's Keeper	886aeb2013b5a549	4	1/1		0/1	ix:resp
+Jhessian Infiltrator	a38f83ae6db469c8	8	0/0		0/0	
+Kefnet's Last Word	b1dc61b049981ba1	4	0/0		1/2	ix:resp
+Kenku Artificer	f584cb4ae0c7f565	9	1/1		0/1	ix:resp
+Makeshift Mauler	014cd061a45a621e	3	0/0		1/2	ix:resp
+Momentary Blink	07c1227092d137d5	18	0/0		4/4	
+Mycoid Shepherd	562c8532c202e97c	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+On Thin Ice	539ed99d2a375fb5	6	1/1		1/2	ix:resp
+Proper Burial	9c528762f3abeb96	7	1/1		1/1	
+Safeguard	ce76e6b79b35c564	3	1/1		1/1	
+Scorched Earth	d8a8679bc8677fb5	15	0/0		3/4	f0/s/x0
+Sculpting Steel	04b18d4f3f7fb922	4	0/0		0/0	
+Spark of Creativity	4c204a61e0bb5522	4	0/0		2/2	
+Spined Basher	aba93b69b8aa7bd1	6	0/0		1/2	cast/alt:morphed
+Spirit of the Spires	95490465dfb8a030	9	0/0		0/0	
+Stream of Life	73c16e1ea6160627	4	0/0		2/4	f0/s/x0,ix:resp
+Sunbathing Rootwalla	5cffb48f178baa92	3	1/1		1/1	
+Sworn Defender	07e0dd972c965141	6	1/1		0/1	ix:resp
+Throne of Bone	cefff70efec06ab2	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Trophy Mage	5fa3a1bab5573d92	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Umara Mystic	24eaf11516816652	6	1/1		0/1	ix:resp

@@ -1,0 +1,86 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Abzan Battle Priest	c233980bb733840c	3	1/1		0/1	ix:resp
+Aetherworks Marvel	19f9a02acc606771	19	2/2		1/1	
+Ambulatory Edifice	bc39af407f0a6367	9	1/1		0/1	ix:resp
+Arcbound Tracker	d8a4e93d82281b6c	30	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Assault Strobe	7ebd409823b729d1	23	0/0		2/2	
+Aurochs	9eb6b9cef49b4179	12	1/1		0/1	ix:resp
+Avenging Huntbonder	0ede4ce3e2ca3648	14	1/1		0/1	ix:resp
+Blight Grenade	0d00033f8f15cf95	10	0/0		2/2	
+Blood Lust	4dbca0e67823e4a2	10	0/0		1/2	ix:resp
+Bold Impaler	ab59b472a63df75a	6	1/1		0/1	ix:resp
+Bone Dragon	2ec185caa4797617	8	1/1		0/1	ix:resp
+Bonesplitter	7701103caf9fad97	4	1/1		1/1	
+Bristling Hydra	81fea212ab2de7ad	5	2/2		1/1	
+Burn the Impure	1f6e7e26c1fe55c8	27	0/0		2/2	
+Celestial Force	146b409aa8ff5e05	6	1/1		0/1	ix:resp
+Cleansing Ray	9cd742647158bc95	5	0/0		1/2	ix:resp
+Clockwork Beetle	e9e4e5d9f3fe561f	23	2/2		0/1	ix:resp
+Cryptothrall	46c57c3f356a2d74	27	0/0		0/0	
+Crystal Slipper	24c68bd822df802a	21	1/1		1/1	
+Deathspore Thallid	3db3e7c109b781c6	22	3/3		1/1	
+Dreamstone Hedron	dd0546c1484e331e	17	2/2		1/1	
+Drey Keeper	871404a63ed57947	11	2/2		1/1	
+Dust Corona	c822ca84c04a7531	36	0/0		2/2	
+End-Raze Forerunners	2929c4d066584498	4	1/1		0/1	ix:resp
+Expedition Raptor	a23a64d3fda3682b	6	1/1		0/1	ix:resp
+Fatal Attraction	271751a01f8ad54e	29	2/2		2/2	
+Feiyi Snake	ba414b27a910a0d9	4	0/0		0/0	
+Flash Counter	24e062b264238970	3	0/0		1/2	ix:resp
+Flowstone Kavu	f4813279df3d6712	4	1/1		0/1	ix:resp
+Fortress Crab	d5c4c9157046f785	12	0/0		0/0	
+Goliath Beetle	671f384791de91e2	14	0/0		0/0	
+Grave-Shell Scarab	095a5b3bfcee3106	4	1/1		0/1	ix:resp
+Greater Basilisk	85f857fe8187d0a4	8	0/0		0/0	
+Gudul Lurker	9fda11d44515e2b8	45	0/0		1/2	cast/alt:megamorphed
+Gust-Skimmer	0fc15d2c28fb52ef	27	1/1		1/1	
+Helica Glider	343ae349a6840bce	18	0/0		0/0	
+Hydra's Growth	7adbc279e6314c44	14	2/2		2/2	
+Ichorid	0197a04a28a9f41d	15	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Illusionary Armor	01a89250314edc4e	7	1/1		1/2	ix:resp
+Impending Doom	824ee4a2f957264a	24	1/1		2/2	
+Inner Struggle	df82d432ba21cbdd	8	0/0		2/2	
+Iron Suitcase	0241358699a6e78d	34	2/2		1/1	
+Koma's Faithful	8fb601e99bd56d47	7	1/1		0/1	ix:resp
+Lifesmith	a51cd4239656451e	38	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Lord of the Accursed	f3773c3cdefcb8ab	4	1/1		0/1	ix:resp
+Malevolent Awakening	50eb4b9dba8a4301	11	1/1		1/1	
+Malevolent Whispers	caf0636323fc16e9	19	0/0		2/2	
+Mana Leech	4965908738906836	17	1/1		1/1	
+Molimo, Maro-Sorcerer	acb698294d93055c	5	0/0		0/0	
+Mountain Goat	8c1f72a55a7b25ae	26	0/0		0/0	
+Mox Diamond	95846392ce7ab93e	27	1/1		1/1	
+Necropolis Regent	5dcf44e1265aa0bc	5	1/1		0/1	ix:resp
+Orcish Vandal	e0ae7d9e7b972ee9	21	1/1		1/1	
+Orgg	a41bdc59034cfe92	16	0/0		0/0	
+Pack Rat	b6554387064da5e4	24	1/1		0/1	ix:resp
+Pestilent Cauldron	8c2039d66b1283ac	4	3/3		1/2	ix:resp
+Pilgrim of the Fires	92fbe3622a94d0c0	5	0/0		0/0	
+Primeval Force	8cc3168a796ebdb9	10	1/1		1/1	
+Quirion Trailblazer	1acea4428970fb9a	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Radiating Lightning	bb79c84b476d77ef	17	0/0		2/2	
+Rage Thrower	219fee6c758e228e	10	1/1		1/1	
+Reito Lantern	f3a3c824bda3f813	45	1/1		1/1	
+Reroute	6118a410fc9a0469	16	0/0		2/2	
+Rhystic Study	d14d957960da9916	28	1/1		1/1	
+Roiling Waters	4e2b6b09a8aad7de	8	0/0		2/2	
+Sibsig Host	8c2208432aafd496	8	1/1		1/1	
+Sidewinder Naga	284abe7d9d2d01ab	4	0/0		0/0	
+Silkguard	68a971eeded89f2c	6	0/0		2/4	f0/s/x0,ix:resp
+Sisters of the Flame	774651c7611f1c56	15	1/1		1/1	
+Skirk Shaman	72c6b80c5bfbc24a	19	0/0		0/0	
+Skullslither Worm	683e16bf2b71855b	5	1/1		0/1	ix:resp
+Skullsnatcher	3799a2e8471cb4d5	9	2/2		1/1	
+Skyshroud Vampire	aa76b56d735c9d4b	4	1/1		0/1	ix:resp
+Stingerfling Spider	f098f254f42a3f21	19	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Sunken City	16a13f53ba6cf485	22	1/1		1/1	
+Taste for Mayhem	b2b55cf01b1c213c	22	0/0		2/2	
+Tectonic Break	afd8c63556924f67	7	0/0		2/4	f0/s/x0,ix:resp
+Thunderous Wrath	df506c1a627c3646	4	0/0		2/4	cast/alt:miracle,ix:resp
+Thunderscape Apprentice	2fc1ebe6eb0c8c07	3	2/2		0/1	ix:resp
+Transmutation	cc94f668ecc9e3b7	10	0/0		1/2	ix:resp
+Ulasht, the Hate Seed	bbf64232812a24c8	11	1/1		0/1	ix:resp
+Unleash Fury	610441d001a1637d	23	0/0		2/2	
+Veteran Brawlers	b7dd7b9d88d43f6a	40	0/0		0/0	
+Vine Snare	b8e5b7a256130141	21	0/0		2/2	
+Yellow Scarves General	a9d55c864f1ad0ae	17	0/0		0/0	

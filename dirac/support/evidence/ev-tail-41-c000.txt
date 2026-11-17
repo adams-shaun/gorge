@@ -20,6 +20,7 @@ Ashcoat Bear
 Assassin's Ink
 Attended Socialite
 Aurora Griffin
+Avalanche
 Azorius Chancery
 Barbed Field
 Basri's Aegis
@@ -91,6 +92,7 @@ Deadeye Tracker
 Death Frenzy
 Death's Presence
 Defense of the Heart
+Depala, Pilot Exemplar
 Digsite Engineer
 Dimensional Infiltrator
 Dive Bomber
@@ -203,6 +205,7 @@ Magma Rift
 Magus of the Moat
 Mammoth Growth
 Mana Flare
+Manakin and Millikin
 Manic Scribe
 Marble Diamond
 Mardu Heart-Piercer
@@ -240,6 +243,7 @@ Myojin of Roaring Blades
 Nacatl Savage
 Necrobite
 Necroduality
+Necroplasm
 Nephalia Seakite
 Night
 Nightveil Sprite
@@ -291,6 +295,7 @@ Renowned Weaponsmith
 Rescind
 Retributive Wand
 Returned Centaur
+Revive the Fallen
 Rhythmic Water Vortex
 Rimeshield Frost Giant
 Rimrock Knight

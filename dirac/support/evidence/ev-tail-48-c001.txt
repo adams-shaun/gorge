@@ -9,13 +9,18 @@ Assault
 Aveline de Grandpré
 Balance of Power
 Baleful Force
+Bartolomé del Presidio
 Beanstalk Giant
+Bessie, the Doctor's Roadster
 Blinding Drone
+Blitz Leech
 Bob, Reluctant HYDRA Agent
 Bow of Nylea
 Breathstealer
 Brilliant Halo
 Bygone Bishop
+Cackling Counterpart
+Citanul Stalwart
 Cliff Threader
 Colossal Badger
 Courage in Crisis
@@ -23,15 +28,20 @@ Crater Hellion
 Cryptic Serpent
 Crystal Chimes
 Crystalline Sliver
+Daring Piracy
 Day of Destiny
 Dazzling Lights
+Deadly Rollick
 Demonic Bargain
+Demotion
 Dictate of Karametra
 Disperse
 Doom's Servo-Guards
 Dragon's Presence
 Drake-Skull Cameo
+Dusk Imp
 Eliminate
+Elven Riders
 Environmental Sciences
 Escape Protocol
 Ethrimik, Imagined Fiend
@@ -39,14 +49,24 @@ Evolution Witness
 Excommunicate
 Eyeless Watcher
 Ezio, Brash Novice
+Falcon, Joaquin Torres
 Fallen Ideal
+Final Revels
+Firescreamer
+Fleetfoot Panther
+Flusterstorm
+Fodder Tosser
 Forest
 Foul Watcher
 Gelatinous Genesis
+Ghoulish Procession
 Gnoll Hunter
+Golgari Thug
+Greatsword
 Green Sun's Zenith
 Hall Monitor
 Hanged Executioner
+Heavenly Qilin
 Hedron Crab
 Hexavus
 Hexgold Hoverwings
@@ -54,16 +74,23 @@ Highland Game
 Hookblade
 Hope-Ender Coatl
 Humble Naturalist
+Hurl Through Hell
 Illusionary Forces
+Impatience
 Imperial Outrider
+Imperial Recovery Unit
 Increasing Savagery
 Indoctrination Attendant
 Inquisition of Kozilek
+Insidious Bookworms
 Island
+Juzám Djinn
 Karplusan Wolverine
 Killmonger, Ruthless Usurper
+Kingpin's Pet
 Knight of Obligation
 Krark-Clan Shaman
+Kura, the Boundless Sky
 Lantern of the Lost
 Liliana's Reaver
 Living Lies of Loki
@@ -72,10 +99,12 @@ Loathsome Chimera
 Lorehold Pledgemage
 Mage Slayer
 Malevolent Rumble
+Marsh Boa
 Mausoleum Secrets
 Maze Behemoth
 Merfolk Mesmerist
 Michelangelo, the Heart
+Midnight Charm
 Militant Monk
 Mountain
 Munda, Ambush Leader
@@ -85,7 +114,9 @@ Neck Snap
 Night
 Nim Lasher
 Nine-Ringed Bo
+Olivia's Dragoon
 Order of Leitbur
+Order of the Ebon Hand
 Oswald Fiddlebender
 Plains
 Plated Wurm
@@ -94,17 +125,22 @@ Primeval Herald
 Profit
 Ragavan, Nimble Pilferer
 Ral, Storm Conduit
+Reckless Racer
 Rishadan Pawnshop
+Robaran Mercenaries
 Rushwood Legate
 Saber Ants
 Scarwood Bandits
 Scent of Cinder
+Scepter of Fugue
 Scissors Lizard
 Screeching Drake
 Seismic Stomp
 Shield-Wall Sentinel
 Shipwreck Moray
+Shockmaw Dragon
 Shu Yun, the Silent Tempest
+Sigil of Distinction
 Silvanus's Invoker
 Skirsdag Flayer
 Skyboon Evangelist
@@ -113,12 +149,16 @@ Song of the Worldsoul
 Spark Harvest
 Squirrel Mob
 Steeple Creeper
+Stone Haven Pilgrim
 Stoneshock Giant
+Sun Clasp
+Sunken Field
 Swamp
 Swamp Mosquito
 Szarekh, the Silent King
 Terra Eternal
 The Mightstone and Weakstone
+Thoughtseize
 Tiger Claws
 Tilonalli's Crown
 Topan Ascetic
@@ -130,3 +170,6 @@ Unruly Mob
 Urza's Command
 Vance's Blasting Cannons
 Vedalken Infuser
+Veinwitch Coven
+Vexing Devil
+Virulent Swipe

@@ -96,7 +96,9 @@ Frost Marsh
 Funeral Pyre
 Funeral Rites
 Garenbrig Carver
+Gate Hound
 General's Enforcer
+Ghirapur Aether Grid
 Giant Dustwasp
 Glint-Nest Crane
 Goblin Engineer
@@ -113,6 +115,7 @@ Guma
 Hamato Ninpō
 Harbor Bandit
 Haunted Crossroads
+Heavy Arbalest
 Hellfire
 Hellkite Punisher
 Hog-Monkey Rampage
@@ -123,6 +126,7 @@ House Guildmage
 Hunger of the Nim
 Icingdeath, Frost Tyrant
 Illustrious Historian
+Incite
 Infernal Captor
 Inspired Insurgent
 Inspired Sphinx
@@ -143,6 +147,7 @@ Kurgadon
 Lambholt Harrier
 Lawless Broker
 Lembas
+Leopard-Spotted Jiao
 Lethal Exploit
 Lightning Dragon
 Lightning Talons
@@ -158,6 +163,8 @@ Might of Murasa
 Minds Aglow
 Minion's Return
 Mire Triton
+Mishra's Research Desk
+Moldervine Cloak
 Molting Snakeskin
 Moria Marauder
 Mortal Obstinacy
@@ -200,6 +207,7 @@ Ranger's Longbow
 Rank Officer
 Ransack the Lab
 Rat King, Pale Piper
+Rebuke
 Reckless One
 Relic Runner
 Reshape the Earth
@@ -227,6 +235,7 @@ Shriekdiver
 Silverwing Squadron
 Simian Brawler
 Simic Charm
+Sinew Sliver
 Skittering Horror
 Skyhunter Cub
 Skystrike Officer
@@ -271,6 +280,7 @@ Umbral Mantle
 Unbender Tine
 Universal Solvent
 Urbis Protector
+Urza's Armor
 Vebulid
 Vedalken Blademaster
 Veiled Apparition
@@ -281,6 +291,7 @@ Vigilance
 Vinelasher Kudzu
 Vivify
 Voidslime
+Voltaic Construct
 Vraska's Stoneglare
 Vryn Wingmare
 Wailing Ghoul

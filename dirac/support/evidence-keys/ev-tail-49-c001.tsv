@@ -1,0 +1,11 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Argivian Restoration	043133d6ecb9cca3	4	0/0		2/2	
+Barbarian Outcast	da16308a1489a674	7	1/1		0/1	ix:resp
+Carrion Wurm	2936e7291a421b2f	8	2/2		1/1	
+Fireball	38e57e53e1b89980	6	0/0		3/4	f0/s/x0
+Frenzied Gorespawn	42ff72be686d552b	10	2/2		1/1	
+Greater Mossdog	007aae63a3fde104	28	0/0		0/0	
+Kor Outfitter	0eb49755f1ff53e7	11	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Oath of Nissa	494a993b02747912	27	1/1		0/1	ix:resp
+Oversold Cemetery	4612e5e74017fa32	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Warteye Witch	34a44d41da6b5bae	5	1/1		1/1	

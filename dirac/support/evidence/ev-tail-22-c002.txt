@@ -1,5 +1,6 @@
 A-Canopy Tactician
 A-Luminarch Aspirant
+A-Navigation Orb
 Aang, Air Nomad
 Aerie Auxiliary
 Aether Adept
@@ -8,6 +9,7 @@ Agrus Kos, Wojek Veteran
 Akki Scrapchomper
 Alabaster Kirin
 Albino Troll
+Amateur Hero
 Ancient Grudge
 Angelfire Ignition
 Arashin Cleric
@@ -15,6 +17,7 @@ Arcade Gannon
 Argivian Phalanx
 Army of the Damned
 Assert Authority
+Atarka Efreet
 Aven Fleetwing
 Awakener Druid
 Baleful Ammit
@@ -25,6 +28,7 @@ Beaming Defiance
 Bereavement
 Birthing Ritual
 Bladed Ambassador
+Blanka, Ferocious Friend
 Blightbeetle
 Bloodcrazed Paladin
 Boil
@@ -33,11 +37,14 @@ Bomat Bazaar Barge
 Brazen Borrower
 Breakneck Berserker
 Brion Stoutarm
+Brood of Cockroaches
 Brushfire Elemental
 Burgeoning
 Burning-Yard Trainer
 Canal Dredger
 Candlelit Cavalry
+Canoptek Spyder
+Careful Consideration
 Carnage Tyrant
 Castle Embereth
 Champion's Helm
@@ -62,6 +69,7 @@ Deadly Dispute
 Deceive the Messenger
 Deem Inferior
 Demonic Gifts
+Depopulate
 Desolate Mire
 Destructive Revelry
 Diregraf Captain
@@ -81,9 +89,11 @@ Engulfing Eruption
 Ephara's Enlightenment
 Epiphany Storm
 Eron the Relentless
+Erratic Portal
 Essence Warden
 Excavation Explosion
 Exile into Darkness
+Expanding Ooze
 Fairgrounds Warden
 Farbog Explorer
 Fathom Fleet Boarder
@@ -111,12 +121,15 @@ Greatsword of Tyr
 Grim Flayer
 Gríma Wormtongue
 H.E.R.B.I.E., Lovable Robot
+Hair-Strung Koto
 Hammerfist Giant
 Hancock, Ghoulish Mayor
 Heart-Piercer Manticore
+Higure, the Still Wind
 Hippo-Cows
 Homarid Warrior
 Honor the Fallen
+Hookhand Mariner
 Hunted Ghoul
 Hunter of Eyeblights
 Hunter's Mark
@@ -126,6 +139,7 @@ Ignition Team
 Immolating Gyre
 Impetuous Protege
 Indomitable Ancients
+Insight
 Inspired Skypainter
 Iron Fist, Hero for Hire
 Irreverent Revelers
@@ -145,12 +159,16 @@ Krosan Beast
 Krosan Restorer
 Krosan Verge
 Lash of Malice
+Last Laugh
 Lavafume Invoker
 Lead-Belly Chimera
 Lena, Selfless Champion
+Lightning Blow
 Living Lightning, Charged Up
 Llanowar Empath
+Loyal Warhound
 Lynx
+Maddening Wind
 Maggot Carrier
 Magus of the Bridge
 Mana Cylix
@@ -163,23 +181,29 @@ Mind Control
 Minister of Pain
 Minotaur Explorer
 Mirri the Cursed
+Mirror Wall
 Molder
 More of That Strange Oil...
 Mountain
 Mukotai Soulripper
+Myrsmith
 Mystic Visionary
+Narstad Scrapper
 Necrogen Scudder
 Necrotic Sliver
 Needlepeak Spider
 Nezumi Shadow-Watcher
 Niambi, Esteemed Speaker
 Nightsquad Commando
+Nihil Spellbomb
 Nim Shrieker
 Null Champion
 Obscuring Haze
 Ojutai Exemplars
 Oketra the True
+Orim's Cure
 Ornithopter of Paradise
+Orzhov Guildmage
 Oxidda Golem
 Parapet Watchers
 Peak Eruption
@@ -188,6 +212,8 @@ Perilous Shadow
 Pillardrop Rescuer
 Pin to the Earth
 Plains
+Plumeveil
+Predator, Flagship
 Prodigal Pyromancer
 Psionic Gift
 Psychic Barrier
@@ -208,10 +234,13 @@ Render Inert
 Rites of Spring
 Root Greevil
 Roots of Wisdom
+Rootwire Amalgam
 Rot-Tide Gargantua
 Rubbleback Rhino
 Savage Order
+Scepter of Empires
 Scourge Servant
+Sea Gate Loremaster
 See Red
 Shackles of Treachery
 Shifting Wall
@@ -224,7 +253,9 @@ Skyshroud Behemoth
 Slag Fiend
 Slinking Giant
 Soldier of Fortune
+Soldier of the Grey Host
 Soul Manipulation
+Soul Shepherd
 Sparkmage Apprentice
 Spitting Dilophosaurus
 Staff of Domination
@@ -238,12 +269,15 @@ Stone Quarry
 Stormcaller of Keranos
 Strength of Night
 Strongarm Thug
+Summoner's Sending
 Sundering Eruption
 Survivors' Bond
 Swamp
 Sword of the Chosen
 Tahngarth's Rage
 Takenuma Bleeder
+Tangle Asp
+Teferi's Wavecaster
 Tempered in Solitude
 Temporal Eddy
 Terminal Moraine
@@ -258,6 +292,8 @@ Tolabow, Loch Rascal
 Toll of the Invasion
 Treacherous Werewolf
 Trumpeting Herd
+Tymaret, the Murder King
+Ultron's Auxiliary
 Ultron, Machine Overlord
 Uncomfortable Chill
 Utility Knife
@@ -268,16 +304,20 @@ Victim of Night
 Virulent Plague
 Vitaspore Thallid
 Vortex Runner
+Wake Thrasher
 Wall of Stone
+Wand of Vertebrae
 Warclamp Mastiff
 Warmind Infantry
 Waterspout Djinn
 Wavebreak Hippocamp
+Wavecrash Triton
 Whisperwood Elemental
 Wildfire Elemental
 Wings of Velis Vel
 Xander's Pact
 Yasmin Khan
 Zealot of the God-Pharaoh
+Zendikar's Roil
 Zephid's Embrace
 Zodiac Goat

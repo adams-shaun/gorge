@@ -5,14 +5,18 @@ Abstruse Interference
 Academy Drake
 Aether Helix
 Agent of Erebos
+Ajani, Strength of the Pride
 Anarchy
 Anax and Cymede
 Anje, Maid of Dishonor
+Aphemia, the Cacophony
 Archwing Dragon
 Arctic Wolves
 Assassin Initiate
 Azami, Lady of Scrolls
 Azusa's Many Journeys
+Barbarian Lunatic
+Barrenton Cragtreads
 Battle Frenzy
 Belbe's Percher
 Bellowing Aegisaur
@@ -26,11 +30,14 @@ Brash Taunter
 Brood of Cockroaches
 Broodhunter Wurm
 Brutal Expulsion
+Brute Strength
+Bucky Barnes, Eager Ally
 Bureau Headmaster
 Calamity Bearer
 Canyon Drake
 Captain's Call
 Cartouche of Ambition
+Cephalopod Sentry
 Chainbreaker
 Charnel Troll
 Chillbringer
@@ -57,11 +64,15 @@ Dragon's Approach
 Dragonscale Boon
 Dwarven Hammer
 Electrostatic Field
+Elspeth, Sun's Champion
 Elvish Warmaster
 Ephara's Warden
+Eternity Snare
 Execute
 Extinguish All Hope
 Faerie Trickery
+Fall of the Gavel
+Firebolt
 Fireflux Squad
 Flametongue Kavu
 Fleshtaker
@@ -70,6 +81,7 @@ Flowstone Embrace
 Forbidden Friendship
 Forest
 Fruition
+Funeral Charm
 Game Trail
 Ghoulcaller Gisa
 Gift of Wrath
@@ -87,6 +99,7 @@ Hellkite Whelp
 Henge Guardian
 Hideous End
 Highland Weald
+Hithlain Knots
 Ill-Tempered Cyclops
 In Bolas's Clutches
 Incendiary Sabotage
@@ -98,6 +111,7 @@ Junkyard Genius
 Justiciar's Portal
 Kagemaro's Clutch
 Kamahl's Desire
+Kindly Stranger
 Kjeldoran Dead
 Labyrinth Champion
 Last-Ditch Effort
@@ -106,6 +120,8 @@ Library of Alexandria
 Lifeforce
 Live Fast
 Living Wall
+Lose Hope
+Lost in a Labyrinth
 Loxodon Convert
 Magus of the Tabernacle
 Makindi Aeronaut
@@ -122,12 +138,16 @@ Moment of Defiance
 Morgue Burst
 Mountain
 Murder of Crows
+Naya Hushblade
 Nekrataal
 Nighthowler
 Nyx Infusion
 Ob Nixilis's Cruelty
 Ojutai's Breath
 Ojutai's Summons
+Path of Bravery
+Phyrexian Warhorse
+Pirate's Pillage
 Plains
 Powerstone Fracture
 Promise of Power
@@ -146,7 +166,9 @@ Sacrifice
 Sanity Gnawers
 Seedcradle Witch
 Seer's Lantern
+Send to Sleep
 Shire Scarecrow
+Shire Terrace
 Shiv's Embrace
 Shu Elite Companions
 Silumgar Butcher
@@ -154,19 +176,25 @@ Sima Yi, Wei Field Marshal
 Sinkhole
 Skyknight Legionnaire
 Skyscanner
+Sledding Otter-Penguin
 Smelted Chargebug
 Soramaro, First to Dream
 Sparkcaster
+Sparkshaper Visionary
 Species Gorger
 Spelleater Wolverine
 Spiketail Hatchling
 Spinal Villain
 Spirit Loop
 Squealing Devil
+Stand
 Star Pupil
 Starfall
+Stormrider Spirit
 Subterranean Tremors
 Sudden Death
+Sundering Growth
+Surtr, Fiery Jötun
 Swamp
 Take Heart
 Taunting Challenge
@@ -179,6 +207,8 @@ Three Dreams
 Tibalt, Rakish Instigator
 Timid Drake
 Torch Song
+Tormentor Exarch
+Tortoise Formation
 Treetop Ambusher
 Treetop Scout
 Triangle of War
@@ -186,6 +216,7 @@ True Polymorph
 Ulamog, the Ceaseless Hunger
 Ulcerate
 Unnatural Speed
+Vampire Opportunist
 Vermiculos
 Viashino Sandstalker
 Vicious Offering

@@ -48,8 +48,10 @@ Dawn's Light Archer
 Dawn-Blessed Pennant
 Dawnhand Dissident
 Dawnhand Eulogist
+Deceit
 Disruptor of Currents
 Dose of Dawnglow
+Dream Harvest
 Dream Seizer
 Dundoolin Weaver
 Eclipsed Boggart
@@ -82,6 +84,7 @@ Glamer Gifter
 Glamermite
 Glen Elendra Guardian
 Glen Elendra's Answer
+Glister Bairn
 Gloom Ripper
 Gnarlbark Elm
 Goatnap
@@ -107,6 +110,7 @@ Kinscaer Sentry
 Kirol, Attentive First-Year
 Kithkeeper
 Kulrath Mystic
+Kulrath Zealot
 Lasting Tarfire
 Lavaleaper
 Liminal Hold
@@ -117,6 +121,7 @@ Lys Alana Informant
 Meanders Guide
 Midnight Tilling
 Mirrormind Crown
+Mischievous Sneakling
 Mistmeadow Council
 Moon-Vigil Adherents
 Moonglove Extractor
@@ -205,6 +210,8 @@ Virulent Emissary
 Wanderbrine Preacher
 Wanderbrine Trapper
 Wanderwine Distracter
+Wanderwine Farewell
 Warren Torchmaster
 Wild Unraveling
 Wildvine Pummeler
+Wistfulness

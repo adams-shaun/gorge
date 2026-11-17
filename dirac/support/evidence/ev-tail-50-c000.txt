@@ -95,6 +95,7 @@ Cloven Casting
 Cold-Eyed Selkie
 Combat Research
 Condemn
+Conifer Wurm
 Converter Beast
 Corpse Connoisseur
 Crackling Club
@@ -233,6 +234,7 @@ Kolaghan Warmonger
 Kor Entanglers
 Kraul Foragers
 Krenko, Tin Street Kingpin
+Latulla, Keldon Overseer
 Lead by Example
 Ledger Shredder
 Library
@@ -271,6 +273,7 @@ Nantuko Monastery
 Natural Affinity
 Nature's Ruin
 Necroskitter
+Needle Drop
 Neurok Replica
 Nightwind Glider
 Nimbus Swimmer

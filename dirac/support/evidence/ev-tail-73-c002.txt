@@ -1,37 +1,54 @@
 A-Circuit Mender
 Abomination of Llanowar
 Aboshan, Cephalid Emperor
+Abzan Battle Priest
+Aetherworks Marvel
 Agent of Shauku
 Agility Bobblehead
 Agony Warp
 Akroan Skyguard
 Akuta, Born of Ash
 Always Watching
+Ambulatory Edifice
 Amy Rose
 Ancient Stirrings
+Arcbound Tracker
 Archon of Falling Stars
 Arm-Mounted Anchor
 Arrogant Poet
+Assault Strobe
 Atarka, World Render
+Aurochs
 Automated Artificer
+Avenging Huntbonder
 Barrin, Master Wizard
 Beacon Behemoth
 Bionic Blow
 Black Market Tycoon
+Blight Grenade
+Blood Lust
 Blood Money
 Bloodlust Inciter
+Bold Impaler
+Bone Dragon
+Bonesplitter
 Boneyard Wurm
 Bottle Gnomes
 Brass Gnat
+Bristling Hydra
+Burn the Impure
 Canopy Stalker
 Cave-In
+Celestial Force
 Chaplain's Blessing
 Chariot of the Sun
 Chasm Drake
 Chorus of the Tides
 Cinder Wall
+Cleansing Ray
 Cleaving Sliver
 Cleon, Merry Champion
+Clockwork Beetle
 Clockwork Drawbridge
 Cloudcrown Oak
 Cold-Eyed Selkie
@@ -39,12 +56,15 @@ Collected Company
 Confessor
 Conjurer's Closet
 Continue?
+Cryptothrall
 Crystal Dragon
+Crystal Slipper
 Cunning Evasion
 Cunning Geysermage
 Curio Vendor
 Curse of Verbosity
 Death's-Head Buzzard
+Deathspore Thallid
 Deep-Sea Terror
 Deepglow Skate
 Deny Existence
@@ -53,34 +73,44 @@ Devastate
 Diabolic Tutor
 Dimir Aqueduct
 Dragon Mantle
+Dreamstone Hedron
+Drey Keeper
 Dromad Purebred
 Dromoka Dunecaster
 Drownyard Temple
 Durkwood Tracker
+Dust Corona
 Dúnedain Blade
 Earthbending Student
 Embereth Shieldbreaker
 Enclave Cryptologist
+End-Raze Forerunners
 Ephara's Dispersal
 Epitaph Golem
 Eternal Taskmaster
 Excommunicate
+Expedition Raptor
 Eye of Nowhere
 Faithbearer Paladin
 Falter
 Fang Skulkin
+Fatal Attraction
 Feast of the Unicorn
+Feiyi Snake
 Feral Invocation
 Festering Evil
 Fire Urchin
 Flameshadow Conjuring
 Flaring Pain
+Flash Counter
 Fleeting Image
+Flowstone Kavu
 Flowstone Surge
 For the Emperor!
 Forest
 Forgotten Cave
 Fortitude
+Fortress Crab
 Frilled Sandwalla
 Frostveil Ambush
 Fungal Plots
@@ -99,30 +129,42 @@ Goblin Fire Fiend
 Goblin Medics
 Goblin Morningstar
 Goblin Roughrider
+Goliath Beetle
 Gouged Zealot
 Grapeshot
 Grasp of Phantoms
+Grave-Shell Scarab
 Gravetiller Wurm
 Great Goblin, Foul-Hearted
 Great Hart
+Greater Basilisk
 Grotag Siege-Runner
 Ground Rift
+Gudul Lurker
 Guild Thief
+Gust-Skimmer
 Guul Draz Mucklord
 Hapatra, Vizier of Poisons
 Hardened-Scale Armor
 Headless Horseman
 Heap Doll
+Helica Glider
 Hellkite Charger
 Hieromancer's Cage
 Hobgoblin Captain
 Honor Troll
 Hunter's Mark
 Hurloon Minotaur
+Hydra's Growth
+Ichorid
+Illusionary Armor
 Impaler Shrike
+Impending Doom
 Infectious Inquiry
+Inner Struggle
 Invading Manticore
 Iroas's Blessing
+Iron Suitcase
 Island
 Ivy Seer
 Jade Guardian
@@ -139,12 +181,18 @@ Kin-Tree Invocation
 Kinjalli's Sunwing
 Kithkin Healer
 Kithkin Spellduster
+Koma's Faithful
 Leafkin Avenger
+Lifesmith
 Lord of Change
+Lord of the Accursed
 Lore Seeker
 Malanthrope
+Malevolent Awakening
+Malevolent Whispers
 Malfunction
 Malignant Growth
+Mana Leech
 Mana Severance
 Maniacal Rage
 Marauder's Axe
@@ -157,13 +205,17 @@ Mindshrieker
 Mirran Mettle
 Mirrorpool
 Misguided Rage
+Molimo, Maro-Sorcerer
 Morphling
 Moss Viper
 Mountain
+Mountain Goat
 Mowu, Loyal Companion
+Mox Diamond
 Murasa Behemoth
 Myrsmith
 Nantuko Mentor
+Necropolis Regent
 Neurok Replica
 Night Out in Vegas
 Nimble Birdsticker
@@ -173,31 +225,44 @@ Ogre Errant
 Old Rutstein
 Oneirophage
 Orcish Settlers
+Orcish Vandal
 Ordeal of Heliod
 Ordered Migration
+Orgg
 Outmaneuver
+Pack Rat
 Paradise Mantle
 Penumbra Wurm
+Pestilent Cauldron
 Phantasmal Sphere
 Pheres-Band Warchief
 Phyrexian Crusader
+Pilgrim of the Fires
 Pitfall Trap
 Plains
 Poison-Tip Archer
+Primeval Force
 Prizefight
 Professor Hulk
 Protective Bubble
 Puppeteer
 Qilin's Blessing
+Quirion Trailblazer
+Radiating Lightning
+Rage Thrower
 Raise Dead
 Ramosian Lieutenant
 Raven's Crime
 Reckless Scholar
 Reclaim
+Reito Lantern
 Reprocess
+Reroute
 Reya Dawnbringer
+Rhystic Study
 Roalesk, Apex Hybrid
 Rocksteady, Mutant Marauder
+Roiling Waters
 Rotted Hystrix
 Rotting Legion
 Saddled Rimestag
@@ -214,14 +279,22 @@ Selfless Spirit
 Senate Courier
 Serra Aviary
 Shuri's Fabricator
+Sibsig Host
+Sidewinder Naga
 Sigarda's Imprisonment
 Silas Renn, Seeker Adept
+Silkguard
+Sisters of the Flame
 Sivvi's Ruse
+Skirk Shaman
 Skittish Kavu
 Skulking Ghost
+Skullslither Worm
+Skullsnatcher
 Skyreach Manta
 Skyshroud Blessing
 Skyshroud Falcon
+Skyshroud Vampire
 Skysnare Spider
 Smogsteed Rider
 Snake Pit
@@ -242,6 +315,7 @@ Steelform Sliver
 Steppe Glider
 Sterling Grove
 Stern Dismissal
+Stingerfling Spider
 Stinging Shot
 Stoneshaker Shaman
 Stoneskin
@@ -250,6 +324,7 @@ Storm the Seedcore
 Strip Mine
 Sulfur Elemental
 Sun-Collared Raptor
+Sunken City
 Supreme Will
 Survey the Wreckage
 Swamp
@@ -259,25 +334,34 @@ TVA Bureaucrat
 Tallyman of Nurgle
 Tar Pit Warrior
 Tarkir Duneshaper
+Taste for Mayhem
+Tectonic Break
 Thraben Charm
 Threads of Disloyalty
 Thunder Totem
+Thunderous Wrath
+Thunderscape Apprentice
 Tideshaper Mystic
 Timid Drake
 Tower Geist
 Tranquil Grove
+Transmutation
 Traumatize
 Treefolk Healer
 Twinscroll Shaman
+Ulasht, the Hate Seed
 Ulvenwald Hydra
 Undercity Troll
 Unholy Officiant
+Unleash Fury
 Unnatural Growth
 Urborg Shambler
 Vedalken Ghoul
 Verdurous Gearhulk
 Veteran Armorer
+Veteran Brawlers
 Viashino Outrider
+Vine Snare
 Violet Pall
 Virtus the Veiled
 Vital Splicer
@@ -293,3 +377,4 @@ Windstorm
 Wispweaver Angel
 Witch's Web
 Witching Well
+Yellow Scarves General

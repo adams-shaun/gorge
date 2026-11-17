@@ -113,6 +113,7 @@ Dire Fleet Warmonger
 Disciple of Malice
 Disciple of the Vault
 Divine Smite
+Djeru's Resolve
 Doomskar Titan
 Dragon-Cursed Halls
 Dread Slaver
@@ -466,6 +467,7 @@ Weldfast Engineer
 Wellspring
 Whisper Agent
 Wild Celebrants
+Wildwood Escort
 Wings of Hope
 Wolf's Quarry
 Woodland Bellower

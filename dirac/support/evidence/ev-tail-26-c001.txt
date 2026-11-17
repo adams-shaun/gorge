@@ -148,6 +148,7 @@ Portal to Phyrexia
 Possessed Aven
 Psionic Blast
 Pyretic Charge
+Quandrix Pledgemage
 Quickening Licid
 Rally the Ranks
 Ransack

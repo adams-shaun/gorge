@@ -1,3 +1,4 @@
+A-Bruenor Battlehammer
 A-Cosmos Elixir
 A-Dreamshackle Geist
 A-Eiganjo Exemplar
@@ -8,8 +9,10 @@ Akki Avalanchers
 Akoum Battlesinger
 Akroma's Memorial
 Alexi's Cloak
+Amber Prison
 Amoeboid Changeling
 Angelheart Protector
+Angelic Cub
 Araña, Heart of the Spider
 Arbor Colossus
 Avacyn's Memorial
@@ -60,6 +63,7 @@ Deal Gone Bad
 Deathgazer
 Debtors' Transport
 Decisive Denial
+Deep Spawn
 Dega Sanctuary
 Devastation
 Dirty Wererat
@@ -230,6 +234,7 @@ Staff of the Flame Magus
 Stampede
 Stealer of Secrets
 Steelshaper Apprentice
+Stormchaser Drake
 Stormcloud Djinn
 Strategic Planning
 Strength of the Pack
@@ -270,6 +275,7 @@ Wild Aesthir
 Wildsize
 Wind Zendikon
 Wing Commando
+Woodland Guidance
 Yellow Scarves Cavalry
 Zar Ojanen, Scion of Efrava
 Zodiac Pig

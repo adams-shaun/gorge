@@ -7,7 +7,9 @@ Aether Rift
 Akki Lavarunner
 Alpine Guide
 Anaba Spirit Crafter
+Apex Hawks
 Aquatic Incursion
+Armored Warhorse
 Ashen-Skin Zubera
 Ashenmoor Gouger
 Autonomous Assembler
@@ -32,10 +34,12 @@ Dark Hatchling
 Dark Privilege
 Darkest Hour
 Daybreak Chaplain
+Deeproot Champion
 Defiant Falcon
 Deviant Glee
 Dralnu's Crusade
 Dream Fracture
+Dromoka's Gift
 Dunland Crebain
 Ebony Owl Netsuke
 Eldrazi Devastator
@@ -48,6 +52,7 @@ Forest
 Forge Devil
 Forging the Anchor
 Frantic Inventory
+Fresh Volunteers
 Fungusaur
 Furious Reprisal
 Ghost Ship
@@ -58,6 +63,8 @@ Goblin Striker
 Gone Missing
 Guardian Kirin
 Gwenna, Eyes of Gaea
+Hada Freeblade
+Howling Gale
 Hulk, Strongest There Is
 Hungry for More
 Island
@@ -76,8 +83,10 @@ Mogg Sentry
 Monster Mashup
 Mountain
 Necropede
+Orb of Dreams
 Overgrowth Elemental
 Oxidda Finisher
+Patrol Signaler
 Pearl Medallion
 Persist
 Phoenix of Ash
@@ -128,6 +137,7 @@ Viashino Sandscout
 Voracious Wurm
 Wall of Granite
 Weaver of Currents
+Whitemane Lion
 Wild Ceratok
 Wild Onslaught
 Wistful Thinking

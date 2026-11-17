@@ -4,6 +4,7 @@ Active Volcano
 Aethergeode Miner
 Agonizing Syphon
 Ajani's Influence
+Alhammarret, High Arbiter
 Amazing Alliance
 Ambush
 Araña, Heart of the Spider
@@ -11,6 +12,7 @@ Argivian Blacksmith
 Asha's Favor
 Atsushi, the Blazing Sky
 Augur il-Vec
+Avenging Hunter
 Azra Smokeshaper
 Bad Deal
 Barbtooth Wurm
@@ -19,35 +21,49 @@ Beetleback Chief
 Benalish Sleeper
 Benthic Biomancer
 Boon-Bringer Valkyrie
+Bootleggers' Stash
 Bottle-Cap Blast
 Briarbridge Tracker
 Broken Fall
+Bumbling Pangolin
 Carrion Ants
+Cartouche of Knowledge
 Case of the Shifting Visage
 Cerodon Yearling
 Chimney Goyf
 Chorus of Might
 Clattering Augur
+Cogwork Spy
 Confound
+Consider
+Covert Operative
 Crimson Hellkite
 Daemogoth Woe-Eater
 Daredevil, Fearless Fighter
+Davriel's Shadowfugue
 Dawnhart Geist
 Death Frenzy
 Death's Duet
 Deeproot Waters
+Defiant Elf
 Demon of Dark Schemes
 Devouring Deep
 Diminish
 Disturbed Burial
 Dreadmalkin
+Drumhunter
+Duskworker
 Elemental Summoning
 Ellyn Harbreeze, Busybody
+Embraal Gear-Smasher
+Entish Restoration
 Etherium Abomination
 Exuberant Wolfbear
+False Mourning
 Fangren Hunter
 Farmstead
 Filigree Crawler
+Fire Whip
 Font of Progress
 Force of Vigor
 Forest
@@ -55,59 +71,90 @@ Fortress Cyclops
 Freyalise, Llanowar's Fury
 Gift of Wrath
 Gobbling Ooze
+Goblin Artillery
+Goblin Champion
 Goblin Chariot
 Goblin Chieftain
 Goblin War Drums
+Goldnight Commander
 Gravel-Hide Goblin
 Grimdancer
+Grovetender Druids
+Guardian Seraph
+Hanabi Blast
+Harsh Scrutiny
+Harvesttide Sentry
 Hawkeye, Trick Shot
+Heartless Pillage
 Hellcarver Demon
 Howlpack Wolf
 Huatli's Raptor
 Hunted Ghoul
+Hunting Moa
 Ifh-Bíff Efreet
 Ihsan's Shade
 Illumination
+Imaginary Friends
+Incubation Sac
 Infuriate
+Insatiable Gorgers
 Iridescent Angel
+Irradiate
 Irregular Cohort
 Island
 Izzet Chronarch
 Jagwasp Swarm
 Jon Irenicus, the Exile
+Just the Wind
+K-9, Mark I
 Kessig Wolfrider
 Kranioceros
+Krosan Archer
 Leech Gauntlet
+Legacy Weapon
 Lingering Phantom
 Maga, Traitor to Mortals
+Magma Sliver
 Mana Prism
 Master Thief
 Maulfist Doorbuster
 Meishin, the Mind Cage
 Merfolk of the Depths
+Meriadoc Brandybuck
 Mesa Unicorn
 Mirkwood Channeler
+Moira, Urborg Haunt
 Molten Rebuke
 Monastery Flock
 Mountain
 Mwonvuli Acid-Moss
+Mysterious Tome
+Nagao, Bound by Honor
 Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
+Nekrataal
 One with Nature
 Onslaught
+Orazca Relic
 Outbreak
 Panic Attack
 Patriarch's Desire
 Pegasus Courser
+Phyrexian Archivist
 Pianna, Nomad Captain
 Pillar Tombs of Aku
 Plains
+Planar Atlas
+Possessed Centaur
 Pouncing Lynx
+Power Sink
 Primordial Sage
 Prismari Apprentice
+Pygmy Troll
 Ravenous Lindwurm
 Razor Swine
+Reckless Pangolin
 Reforge the Soul
 Relic Robber
 Reprobation
@@ -115,47 +162,75 @@ Resistance Reunited
 Resounding Silence
 Returned Pastcaller
 Reverberate
+Rhonas's Monument
+Roc Egg
+Safe Haven
 Sage's Row Denizen
 Sandstorm
+Savage Silhouette
+Security Bypass
+Sengir Autocrat
 Shabraz, the Skyshark
 Shaman of the Pack
 Shapeshifter
+Shatterskull Recruit
 Sheltering Light
 Shoreline Ranger
 Sigiled Paladin
+Simic Signet
 Skirk Commando
 Sky-Blessed Samurai
 Skyship Stalker
 Skyshroud Claim
+Slinza, the Spiked Stampede
 Slith Firewalker
 Smogsteed Rider
 Solitary Defiance
+Songbird, Sonic Screamer
 Sootfeather Flock
+Soul's Majesty
 Spiketail Drake
 Spotter Thopter
 Staff of the Storyteller
 Stalwart Pathlighter
+Steely Resolve
+Steppe Lynx
 Stern Scolding
+Strongarm Monk
 Stupor
 Summon the School
+Survivor of Korlis
 Sutina, Speaker of the Tajuru
 Swamp
+Syndicate Messenger
 Syphon Life
 Tarfire
 Tavern Swindler
+Tectonic Rift
 Temporal Eddy
 Tenth District Veteran
+Teroh's Faithful
 Thalakos Sentry
 Thanos, Death's Consort
+Thassa's Rebuff
+Thran Quarry
+Timeless Lotus
 Titans' Vanguard
 Towering Viewpoint
+Town Gossipmonger
 Trading Post
+Trigon of Thought
+Triumph of the Hordes
 Vampire Revenant
 Verdant Rebirth
 Viashino Runner
 Viridian Corrupter
+Viscerid Deepwalker
+Volatile Rig
 Volcanic Spite
 Whelming Wave
 Whiptail Wurm
 Whirlwind Technique
 Wretched Anurid
+Wrong Turn
+Wu Longbowman

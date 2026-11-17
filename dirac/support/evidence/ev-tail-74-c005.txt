@@ -2,9 +2,16 @@ A-Guide of Souls
 A-Plate Armor
 A-Teferi, Time Raveler
 Abomination, World Ravager
+Abzan Runemark
 Ajani's Mantra
+Aku Djinn
+Arashin Sovereign
+Armorer Guildmage
+Auriok Edgewright
 Avatar of Growth
 Aven Trooper
+Azimaet Drake
+Blackbloom Rogue
 Blue Marvel, Adam Brashear
 Boiling Blood
 Boulderfall
@@ -16,10 +23,16 @@ Chicken Egg
 Chilling Trap
 City of Brass
 Civilized Scholar
+Constricting Tendrils
+Contortionist Troupe
 Curse of Opulence
 Curse of Predation
+Darksteel Brute
 Death Speakers
+Deathleaper, Terror Weapon
 Defenestrate
+Despondency
+Devoted Retainer
 Doom's Servo-Guards
 Dragonborn Looter
 Ebony Treefolk
@@ -27,22 +40,28 @@ Echoing Calm
 Eiganjo Castle
 Ember-Fist Zubera
 Encroaching Wastes
+Endless Wurm
 Euroakus
 Feral Maaka
 Field Marshal
 Fire Ambush
+Firemaw Kavu
 Flameskull
 Forest
 Frontier Mastodon
 Gaea's Bounty
 Galea, Kindler of Hope
 Ghoulcaller's Bell
+Gixian Infiltrator
+Go-Shintai of Hidden Cruelty
 Goblin Arsonist
 Goblin Tinkerer
 Guardian of the Guildpact
 Halberdier
+Hanweir Garrison
 Hardened Scales
 Harpoon Sniper
+Haunted Crossroads
 Horned Helm
 Hulk, Always Angry
 Inferno Fist
@@ -54,6 +73,7 @@ Jaya's Greeting
 Jhoira's Familiar
 Khenra Charioteer
 Kor Blademaster
+Kraken of the Straits
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
@@ -68,10 +88,12 @@ Moonveil Dragon
 Mountain
 Mulch
 Multiform Wonder
+Mystic Enforcer
 Necromancer's Familiar
 Needlethorn Drake
 Nexus of Fate
 Nomads' Assembly
+Norn's Inquisitor
 Orazca Frillback
 Pathbreaker Ibex
 Peggy Carter, Secret Agent
@@ -82,6 +104,7 @@ Portent of Betrayal
 Precision Bolt
 Pull from Tomorrow
 Putrid Imp
+Pyromantic Pilgrim
 Pyrrhic Blast
 Raging Kavu
 Rancid Rats
@@ -92,13 +115,21 @@ Riddlekeeper
 Roar of the Crowd
 Roaring Slagwurm
 Roc Hunter
+Ruby Medallion
 Rundvelt Hordemaster
 Runeclaw Bear
+Ruthless Disposal
 Sanctify
+Sarinth Greatwurm
 Scoria Wurm
+Scrivener
+Seismic Mage
+Shagrat, Loot Bearer
 Sheltering Landscape
+Silver Knight
 Silverskin Armor
 Skizzik Surger
+Skyshaper
 Sleeper Agent
 Smash to Dust
 Smoldering Crater
@@ -108,6 +139,8 @@ Spitfire Handler
 Spurnmage Advocate
 Steel Leaf Paladin
 Stenchskipper
+String of Disappearances
+Suncrusher
 Sunstrike Legionnaire
 Sunweb
 Surrakar Marauder
@@ -121,14 +154,20 @@ Thopter Assembly
 Towering Indrik
 Treetop Scout
 Triceraton Regenta
+Tuktuk the Explorer
+Tuya Bearclaw
 Two-Headed Zombie
 Unholy Indenture
 Unquestioned Authority
 Urza, Powerstone Prodigy
 Venser's Journal
+Veteran Adventurer
+Veteran Bodyguard
 Vineweft
 Viridian Longbow
 Vulshok Replica
 Wall of Heat
 Weapon Rack
+Whispers of the Muse
+Wildfire Eternal
 Willow-Wind

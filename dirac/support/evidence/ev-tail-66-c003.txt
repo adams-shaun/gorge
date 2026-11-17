@@ -1,3 +1,4 @@
+A-Demon's Due
 A-Radha, Coalition Warlord
 A-Wizard Class
 Abiding Grace
@@ -5,83 +6,128 @@ Academy Wall
 Ancient Craving
 Angel of Fury
 Argivian Avenger
+Ashnod's Harvester
+Atarka Beastbreaker
 Axebane Guardian
 Ayara, First of Locthwain
 Balustrade Spy
 Bartered Cow
 Black Poplar Shaman
+Blossom Prancer
+Bomber Corps
+Bone Harvest
+Boon Reflection
 Boros Swiftblade
+Bumi's Feast Lecture
 Carrion Imp
+Celestial Regulator
 Champion of the Flame
 Cloudkill
 Commissar Severina Raine
+Composer of Spring
 Confront the Assault
 Corpse Blockade
 Corpse Knight
 Crop Rotation
+Crypt Ghast
 Cunning Wish
 Dagger Caster
 Dawn Elemental
+Delighted Killbot
+Deviant Skytech
+Elephant-Mandrill
 Elspeth, Sun's Nemesis
 Elvish Hexhunter
+Elvish Reclaimer
 Explosive Welcome
 Feign Death
 Field Marshal
 Flametongue Kavu
 Forest
 Formless Genesis
+Frog-Squirrels
 Gathering Throng
+Ghoul's Feast
+Glissa's Scorn
 Gnarlid Pack
 Goblin Commando
 Granite Gargoyle
 Grave Venerations
 Grazilaxx, Illithid Scholar
+Greater Good
 Grizzly Fate
 Guide of Souls
+Guise of Fire
+Haunted Angel
 Haunting Hymn
+Heaven Sent
 Hexgold Halberd
+Horn of the Mark
 Hunger of the Howlpack
 Hydra's Growth
+Hyrax Tower Scout
+Igneous Cur
+Illuminated Wings
 Increasing Confusion
 Insight Engine
+Insist
 Inspiring Refrain
 Iron Suitcase
 Island
 Jackal Pup
 Jeskai Barricade
+Karoo Meerkat
 Keening Banshee
 Ken, Burning Brawler
 Knight's Pledge
 Kyren Sniper
+Manhole Cover
 Marchesa's Infiltrator
+Mark of Mutiny
+Mask of Immolation
 Mentor's Guidance
+Minister of Inquiries
+Mirror Golem
+Mirrorworks
 Mise
 Mountain
+Oggyar Battle-Seer
+Ominous Parcel
 Overwhelming Remorse
+Pariah's Shield
 Pentarch Ward
 Phylath, World Sculptor
 Plains
 Plated Pegasus
+Primordial Ooze
 Prized Griffin
 Radiant, Archangel
 Raven's Run Dragoon
 Recuperate
+Regathan Firecat
 Regrowth
+Reign of Terror
 Relic Bane
 Return to Action
 Rhox Veteran
 Rotting Fensnake
+Rowan Treefolk
 Sacred Rites
 Sage of Epityr
 Savage Gorger
 Scaled Wurm
+Scouring Sands
 Seeker of Skybreak
 Sentinel Sliver
+Serpentine Kavu
 Shadowcloak Vampire
 She-Hulk, Wallbreaker
+Shivan Wurm
+Shocking Grasp
 Sick and Tired
 Silverstrike
 Slash the Ranks
+Slime Molding
 Slobad, Goblin Tinkerer
 Snuff Out
 Soaring Drake
@@ -93,8 +139,10 @@ Spellskite
 Spike Worker
 Spined Sliver
 Squee's Embrace
+Staff of Compleation
 Stalking Assassin
 Steadfast Armasaur
+Stimulus Package
 Stratozeppelid
 Sunastian Falconer
 Swamp
@@ -105,13 +153,17 @@ Territorial Baloth
 Thallid Devourer
 Thraben Watcher
 Thrashing Wumpus
+Three Visits
 Throes of Chaos
+Tidespout Tyrant
 Torch Courier
+Tyvar, Jubilant Brawler
 Unyaro Bee Sting
 Urza's Cave
 Valeron Outlander
 Vedalken Plotter
 Vine Trellis
+Wakandan Shield Guard
 Wall of Mist
 Wall of Souls
 Weight of the Underworld

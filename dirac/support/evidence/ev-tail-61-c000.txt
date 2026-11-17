@@ -26,6 +26,7 @@ Attended Knight
 Augur il-Vec
 Aura Blast
 Avabruck Caretaker
+Avenger en-Dal
 Avenging Hunter
 Awakening Zone
 Azra Smokeshaper
@@ -72,6 +73,7 @@ Covert Operative
 Crackling Doom
 Crested Herdcaller
 Crimson Hellkite
+Crush of Wurms
 Curious Killbot
 Daggerdrome Imp
 Daredevil, Fearless Fighter
@@ -142,6 +144,7 @@ Goblin Chariot
 Goblin Chieftain
 Goblin Goon
 Goblin War Drums
+Godsire
 Goldnight Commander
 Gravel-Hide Goblin
 Grimdancer
@@ -150,6 +153,7 @@ Grovetender Druids
 Guardian Seraph
 Hanabi Blast
 Harsh Scrutiny
+Harvesttide Sentry
 Hatchery Spider
 Hawkeye, Trick Shot
 Heartless Pillage
@@ -289,6 +293,7 @@ Rhystic Study
 Riders of Rohan
 Roc Egg
 Rocco, Cabaretti Caterer
+Rogue Refiner
 Safe Haven
 Safehold Sentry
 Sage's Row Denizen
@@ -318,6 +323,7 @@ Skyship Stalker
 Skyshroud Claim
 Slinza, the Spiked Stampede
 Slith Firewalker
+Sliver Overlord
 Slobad, Goblin Tinkerer
 Smogsteed Rider
 Sokenzan Spellblade
@@ -327,6 +333,7 @@ Sootfeather Flock
 Soul Snuffers
 Soul's Majesty
 Spiketail Drake
+Spitemare
 Spitting Drake
 Spotter Thopter
 Staff of the Storyteller
@@ -338,10 +345,14 @@ Steppe Lynx
 Stitched Mangler
 Stolen Grain
 Stonewood Invocation
+Stormscape Master
 Stream of Consciousness
+Strength of the Pack
 Strongarm Monk
+Struggle for Skemfar
 Stun Sniper
 Stupor
+Sturdy Hatchling
 Summon the School
 Summon: Good King Mog XII
 Sunweb
@@ -361,7 +372,9 @@ Teetering Peaks
 Tempest Owl
 Temporal Eddy
 Tenth District Veteran
+Termagant Swarm
 Teroh's Faithful
+Tezzeret, Artifice Master
 Thalakos Sentry
 Thanos, Death's Consort
 Thassa's Rebuff
@@ -379,11 +392,14 @@ Towering Viewpoint
 Town Gossipmonger
 Trading Post
 Trigon of Thought
+Triumph of the Hordes
+Turret Ogre
 Twincast
 Unbreakable Formation
 Uninvited Geist
 Unstable Frontier
 Vampire Revenant
+Vega, the Watcher
 Verdant Rebirth
 Vexing Bauble
 Viashino Runner
@@ -393,6 +409,8 @@ Vivid Crag
 Vizier of the Scorpion
 Volatile Rig
 Volcanic Spite
+Volcano Imp
+Voracious Cobra
 Vrock
 Wakandan Tusker
 Walking Skyscraper
@@ -408,6 +426,7 @@ Whiptail Wurm
 Whirlwind Technique
 Whirlwind, Killer Cyclone
 Wildest Dreams
+Wit's End
 Without Weakness
 Wizened Cenn
 Wrack with Madness

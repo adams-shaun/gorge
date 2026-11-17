@@ -337,6 +337,7 @@ Shuri, the Black Panther
 Sidewinder Naga
 Siege Mastodon
 Siegehorn Ceratops
+Silverfur Partisan
 Slither Blade
 Sliver Construct
 Smash
@@ -399,6 +400,7 @@ Valor of the Worthy
 Vampirism
 Vebulid
 Vengeful Devil
+Venomous Fangs
 Verdant Sun's Avatar
 Viashino Branchrider
 Vincent, Vengeful Atoner

@@ -1,34 +1,69 @@
+Abbey Griffin
+Aerial Caravan
+Akoum Hellkite
 Amateur Auteur
 Amethyst Dragon
+Ana Disciple
 Ancestral Recall
 Ancient Den
+Arrester's Admonition
+Ashiok's Skulker
 Assassin Initiate
 Aven Gagglemaster
 Awaken the Woods
+Azami, Lady of Scrolls
 Ballynock Trapper
+Banewhip Punisher
+Bankrupt in Blood
 Barrenton Cragtreads
 Barrin's Codex
+Battle Sliver
+Bequeathal
 Black Market Tycoon
 Blind-Spot Giant
+Blood Age General
+Blood Glutton
+Blood Seeker
+Blur Sliver
 Bolt of Keranos
+Bounty Agent
+Bronze Walrus
 Brush with Death
 Cabaretti Confluence
 Call to Glory
 Call to the Netherworld
+Calming Verse
 Captain America, Liberator
 Carnage Tyrant
 Cavern Thoctar
 Certain Death
+Chakram Retriever
+Chase Stein, Runaway
+Chill to the Bone
 Clockwork Fox
+Coercive Impetus
+Commence the Endgame
+Concordant Crossroads
 Containment Protocol
 Coral Barrier
 Corrosive Mentor
+Courier Griffin
+Courtly Provocateur
+Cover of Darkness
 Crash Landing
+Crisis of Conscience
+Crystal Golem
 Culling Dais
 Darkwater Catacombs
 Davvol, Evincar of Rath
 Dead
+Death Speakers
+Death's Duet
+Denizen of the Deep
+Devil's Play
+Devouring Deep
 Djinn of Infinite Deceits
+Drana's Emissary
 Dream Prowler
 Dromoka's Gift
 Drudge Reavers
@@ -36,27 +71,37 @@ Duergar Mine-Captain
 Dusk Legion Dreadnought
 Dwarven Recruiter
 Dwarven Trader
+Eagle of Deliverance
 Elvish Hunter
 Energy Arc
 Enfeeblement
 Engulf the Shore
 Excavated Wall
 Eyeblight's Ending
+False Demise
 Feast of the Unicorn
 Feast or Famine
+Feedback
 Fetid Gargantua
+Fists of Flame
 Flare
+Flay
 Flowstone Mauler
 Forest
 Foundry Inspector
 Fruit of Tizerus
 Fyndhorn Elder
 Geralf's Messenger
+Ghost-Lit Nourisher
 Ghost-Lit Raider
 Giant Inheritance
+Glarewielder
+Glimpse the Future
 Goblin Brigand
+Goblin Heelcutter
 Goblin Sky Raider
 Goblin Soothsayer
+Goggles of Night
 Grid Monitor
 Hag of Noxious Nightmares
 Hammerheim Deadeye
@@ -68,28 +113,46 @@ Honored Crop-Captain
 Horizon Explorer
 Hour of Revelation
 Hunter's Edge
+Hyperion Blacksmith
+Ilysian Caryatid
 Imperial Oath
 Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
+Inspiring Cleric
+Iron Fist, Hero for Hire
 Iron Verdict
 Island
 Jolting Merfolk
+Juju Bubble
+Jukai Trainee
 Juvenile Gloomwidow
+Kaervek's Torch
 Kavu Howler
+Kjeldoran Frostbeast
+Kolaghan Warmonger
 Krazy Kow
+Last Breath
 Last Kiss
+Lesser Werewolf
 Liliana's Triumph
 Lone Missionary
 Loxodon Mystic
+Lynx
 Magmaroth
 Mana Leak
 Marionette Apprentice
+Mascot Exhibition
 Mass Appeal
+Mass Diminish
 Mercurial Pretender
+Midnight Ritual
 Military Discipline
+Militia Bugler
+Mind Slash
 Minions' Murmurs
 Mogg Maniac
+Mogg Squad
 Moldering Karok
 Mona Lisa, Ever Adaptable
 Mortal's Resolve
@@ -100,11 +163,18 @@ Necropede
 Nether Spirit
 Network Terminal
 Night Terrors
+Nightstalker Engine
+Nomads en-Kor
+O'aka, Traveling Merchant
+Orim's Thunder
+Otherworld Atlas
 Overtaker
 Paradise Druid
 Paradox Engine
 Pashalik Mons
 Pearled Unicorn
+Pernicious Deed
+Pestilent Wolf
 Pharaoh Rama-Tut
 Pious Wayfarer
 Pitchburn Devils
@@ -112,24 +182,34 @@ Plains
 Plateau
 Portable Hole
 Precinct Captain
+Primal Adversary
 Promise of Tomorrow
 Protector of the Wastes
+Quietus Spike
 Rain of Filth
 Rain of Revelation
 Ral's Outburst
+Rally at the Hornburg
+Rat Colony
+Red XIII, Proud Warrior
 Regisaur Alpha
 Reverent Mantra
 Riddle Gate Gargoyle
+Righteous Charge
+Righteous Fury
 Scent of Nightshade
 Scrap Mastery
 Scroll Thief
 Selesnya Charm
+Selfless Cathar
 Serra's Guardian
 Serum Tank
+Shared Triumph
 Shield Sphere
 Sifter of Skulls
 Sinstriker's Will
 Siphon Insight
+Six-Sided Die
 Skirk Outrider
 Skyhunter Patrol
 Slimy Piper
@@ -138,35 +218,50 @@ Sorcerer's Strongbox
 Soul Channeling
 Soulblade Djinn
 Spectral Flight
+Sphere of Reason
+Sphinx of Clear Skies
 Spontaneous Artist
 Spore Crawler
 Sprinting Warbrute
+Square Up
 Stalwart Aven
 Stand
 Staunch Shieldmate
 Stitch in Time
+Stonewood Invocation
 Storm Fleet Aerialist
 Strafe
+Stroke of Genius
 Sublime Archangel
+Summon Undead
+Summon: Kujata
 Suspicious Bookcase
 Sustainer of the Realm
 Swamp
 Sylvia Brightspear
 Talas Researcher
+Talisman of Unity
 Talruum Champion
 Tangle Asp
 Tek
 Thalia's Lieutenant
+That Which Was Taken
 The Terror of Serpent's Pass
 Thopter Mechanic
 Thraben Valiant
 Thran War Machine
 Tor Giant
 Treespring Lorian
+Troubled Healer
+Troublesome Spirit
+True-Faith Censer
+Trusty Packbeast
 Tukatongue Thallid
+Tyranid Prime
 Umara Wizard
 Unbreakable Formation
 Uncontrollable Anger
+Underhanded Designs
 Unravel the Aether
 Updraft
 Urborg Drake
@@ -174,15 +269,22 @@ Valorous Steed
 Vampire Outcasts
 Veilborn Ghoul
 Vengeful Vampire
+Vexilus Praetor
+Vrock
 Vulpine Goliath
 Wall of Opposition
 War Falcon
+Wardscale Crocodile
 Water Elemental
 Wayward Servant
 Wayward Soul
+Weakness
 White Widow, Yelena Belova
+Winds of Rath
+Wormhole Serpent
 Wu Scout
 Wyluli Wolf
 Yarok's Wavecrasher
 You Meet in a Tavern
+Yukora, the Prisoner
 Zhang Fei, Fierce Warrior

@@ -3,12 +3,16 @@ A-Nael, Avizoa Aeronaut
 A-Psionic Snoop
 A-Thran Spider
 Aardvark Sloth
+Abzan Skycaptain
 Acolyte of Xathrid
 Adaptive Omnitool
 Adaptive Sporesinger
 Ajani's Last Stand
+Akiri, Line-Slinger
+Akroma's Blessing
 Alchor's Tomb
 Alluring Scent
+Alseid of Life's Bounty
 Ambush Party
 Ana Sanctuary
 Ancient Crab
@@ -24,12 +28,14 @@ Ashen Rider
 Ashnod's Transmogrant
 Atlas, Sizable Stooge
 Augury Raven
+Aura Blast
 Aven Battle Priest
 Aysen Bureaucrats
 Bag of Holding
 Ballista Watcher
 Bane of Progress
 Basalt Gargoyle
+Battering Craghorn
 Black Panther, Claws of Bast
 Bladewing the Risen
 Blaze
@@ -60,6 +66,7 @@ Crackling Triton
 Cryptwailing
 Curse of the Restless Dead
 Cursed Minotaur
+Daring Escape
 Daring Leap
 Dawntreader Elk
 Deadshot
@@ -109,7 +116,9 @@ Forest
 Foundry Hornet
 Fountain Watch
 Fretwork Colony
+Furious Spinesplitter
 Gaea's Skyfolk
+Ghirapur Osprey
 Ghost Warden
 Ghoulcaller's Bell
 Ghoulcaller's Harvest
@@ -121,6 +130,7 @@ Glen Elendra Archmage
 Glimmer Lens
 Goblin Champion
 Goblin Lookout
+Goro-Goro, Disciple of Ryusei
 Grindclock
 Groundskeeper
 Guardian Lions
@@ -134,9 +144,11 @@ Heir of Falkenrath
 Hold at Bay
 Horned Troll
 Hound of Urabrask
+Huatli's Raptor
 Hunted Dragon
 Hypnotic Specter
 Hypnotic Sprite
+Icatian Moneychanger
 Iceman and Firestar
 Illusory Ambusher
 Immolating Glare
@@ -170,11 +182,13 @@ Lembas
 Liliana's Scorn
 Lizard Blades
 Lock and Load
+Lofty Denial
 Long-Lost Lances
 Markov Purifier
 Marrow Bats
 Mass of Ghouls
 Maul of the Skyclaves
+Medicine Runner
 Merrow Commerce
 Might of Murasa
 Minotaur Aggressor
@@ -194,13 +208,17 @@ Nessian Courser
 Noble Quarry
 Novice Occultist
 Old Stickfingers
+Omnath, Locus of Rage
 One Dozen Eyes
 Order of the Mirror
+Order of the White Shield
 Ordered Migration
+Origin of Iron Man
 Orim, Samite Healer
 Oviya Pashiri, Sage Lifecrafter
 Paragon of Eternal Wilds
 Pardic Wanderer
+Patagia Tiger
 Peacekeeper
 Phyrexian Boon
 Phyrexian Negator
@@ -212,7 +230,9 @@ Predatory Sliver
 Prey's Vengeance
 Pull Under
 Pulsating Illusion
+Put Away
 Putrid Imp
+Pyromania
 Quest for the Gravelord
 Quicksilver, Pietro Maximoff
 Rabid Rats
@@ -228,11 +248,14 @@ Riverwise Augur
 Rocky Tar Pit
 Rolling Temblor
 Rot Shambler
+Rubblebelt Rioters
+Runic Shot
 Rupture
 Ruthless Waterbender
 Sabertooth Alley Cat
 Saprazzan Cove
 Scent of Ivy
+Scourge of the Throne
 Sea Legs
 Seachrome Coast
 Segovian Leviathan
@@ -240,8 +263,10 @@ Sejiri Steppe
 Sharpened Pitchfork
 Shattering Pulse
 Shield of Kaldra
+Shivan Meteor
 Shower of Coals
 Sickle Dancer
+Silent Departure
 Silent Skimmer
 Sinking Feeling
 Skeletal Kathari
@@ -258,13 +283,16 @@ Sorceress Queen
 Soul Partition
 Space Marine Scout
 Spark of Creativity
+Spectral Flight
 Spelleater Wolverine
 Sphinx's Disciple
 Squirrel Sovereign
+Stature, Young Avenger
 Steel Seraph
 Stitcher's Apprentice
 Storm Entity
 Strength-Testing Hammer
+Stromkirk Patrol
 Surrakar Marauder
 Swamp
 Sword of the Paruns
@@ -285,7 +313,9 @@ Tribute to Urborg
 Tribute to the World Tree
 Tzaangor Shaman
 Uncage the Menagerie
+Valiant Changeling
 Value Town
+Vampire Cutthroat
 Vedalken Plotter
 Vengeant Earth
 Vertigo
@@ -303,10 +333,12 @@ Warmonger
 Weathered Wayfarer
 Welkin Tern
 Westgate Regent
+Whisper of the Dross
 Wight of Precinct Six
 Wind-Kin Raiders
 Woebringer Demon
 Wolfir Avenger
+Woolly Spider
 Words of Wisdom
 World Shaper
 Wurmskin Forger

@@ -1,6 +1,7 @@
 A-Kenku Artificer
 A-Riveteers Initiate
 A-Stimulus Package
+A-Tyvar Kell
 Accursed Centaur
 Act on Impulse
 Advance Scout
@@ -66,6 +67,7 @@ Divebomber Griffin
 Domri's Ambush
 Dragon Hatchling
 Dralnu's Crusade
+Dramatist's Puppet
 Drider
 Eel-Hounds
 Elven Bow
@@ -87,6 +89,7 @@ Frantic Inventory
 Furnace Scamp
 Galadhrim Ambush
 Gate Hound
+Gate to the Afterlife
 Gerrard's Irregulars
 Gideon's Lawkeeper
 Glimpse of Freedom
@@ -242,6 +245,7 @@ Urabrask's Anointer
 Urza's Filter
 Vapor Snag
 Verduran Emissary
+Vivien's Arkbow
 Volcanic Dragon
 Volcanic Rush
 Wall of Faith

@@ -144,6 +144,7 @@ Firemind's Foresight
 Fit of Rage
 Flaming Fist Officer
 Flight of Equenauts
+Floodgate
 Folk Medicine
 Forest
 Forestfolk
@@ -161,6 +162,7 @@ Gideon's Lawkeeper
 Gift of Orzhova
 Gilt-Leaf Winnower
 Glimpse of Freedom
+Gloomshrieker
 Glyph Elemental
 Goblin Morningstar
 Goblin Trenches

@@ -5,7 +5,9 @@ A-Psionic Snoop
 A-Urza, Powerstone Prodigy
 Abzan Advantage
 Accursed Horde
+Acrobatic Maneuver
 Advanced Stitchwing
+Aether Chaser
 Aether Vial
 Afterlife Insurance
 Aftershock
@@ -20,6 +22,7 @@ Ancestral Knowledge
 Animal Boneyard
 Anowon, the Ruin Thief
 Arcane Investigator
+Archweaver
 Arcum Dagsson
 Ardent Elementalist
 Armorcraft Judge
@@ -28,13 +31,16 @@ Audacity
 Aura Extraction
 Autumnal Gloom
 Avaricious Dragon
+Baboon Spirit
 Bag End Porter
 Battlefront Krushok
+Blast Zone
 Blighted Agent
 Blistering Dieflyn
 Blood Divination
 Blood Speaker
 Bloodstone Cameo
+Blurred Mongoose
 Bogardan Dragonheart
 Bond of Passion
 Bonded Herdbeast
@@ -52,6 +58,7 @@ Carnival of Souls
 Casey Jones, Asphalt Hooligan
 Caustic Caterpillar
 Charforger
+Chittering Witch
 Circle of Flame
 Citywatch Sphinx
 Cold-Water Snapper
@@ -62,20 +69,24 @@ Cordial Vampire
 Crawl from the Cellar
 Cruel Deceiver
 Curious Pair
+Curse of Inertia
 Darling of the Masses
 Darwin, Adaptive Mutant
 Davriel, Rogue Shadowmage
 Deadly Recluse
 Death Tyrant
 Deathbloom Thallid
+Deception
 Demonic Lore
 Depose
 Deranged Whelp
 Despondent Killbot
 Destroy Evil
 Destructive Digger
+Detonate
 Dewdrop Spy
 Dimir Machinations
+Diving Griffin
 Donate
 Draconic Destiny
 Dragon Whisperer
@@ -85,8 +96,12 @@ Drawn from Dreams
 Dread Warlock
 Drelnoch
 Drill-Skimmer
+Dripping Dead
 Dross Golem
+Dross Prowler
+Dross Skullbomb
 Dwarven Forge-Chanter
+Dáin's Company
 Déjà Vu
 Ebon Drake
 Ebony Charm
@@ -107,33 +122,48 @@ Fill with Fright
 Final Flourish
 Fire Nation Occupation
 Flame Elemental
+Flawless Maneuver
 Flip the Switch
+Flourishing Hunter
+Flumph
+Forbidding Watchtower
 Force Spike
+Forceful Cultivator
 Forest
 Freejam Regent
+Frontline Sage
 Furious Resistance
 Furnace Gremlin
 Gaea's Might
+Gates of Istfell
+Gau, Feral Youth
 Gearsmith Prodigy
 Gleam of Authority
 Gluttonous Guest
+Godo, Bandit Warlord
 Golden Bear
 Golden Hind
 Goldwarden's Helm
 Gravitational Shift
+Grimoire of the Dead
 Gristle Grinner
 Hadana's Climb
 Hammer of Purphoros
 Harvesttide Infiltrator
 Haunted Dead
 Hazoret's Monument
+Healer's Headdress
 Honor's Reward
+Horrific Assault
 Hysterical Blindness
+Illustrious Historian
 Indulgent Tormentor
 Inexorable Tide
 Infernal Reckoning
 Inner Fire
 Innocent Traveler
+Inspiring Veteran
+Insurrection
 Invasive Species
 Ire of Kaminari
 Ironclad Revolutionary
@@ -146,7 +176,9 @@ Jhoira's Familiar
 Kambal, Consul of Allocation
 Katara, Heroic Healer
 Kavu Aggressor
+Kinscaer Harpoonist
 Kithkin Mourncaller
+Kjeldoran Javelineer
 Kor Line-Slinger
 Kozilek's Unsealing
 Krark-Clan Grunt
@@ -157,6 +189,7 @@ Liege of the Pit
 Lightfoot Rogue
 Lightning Elemental
 Liliana's Influence
+Llanowar Dead
 Lone Revenant
 Long-Forgotten Gohei
 Looming Altisaur
@@ -170,17 +203,24 @@ Maraleaf Pixie
 Marauding Knight
 Mass Hysteria
 Mawcor
+Maximize Altitude
 Memorial to Folly
 Military Intelligence
+Mimic
 Ministrant of Obligation
+Mjölnir's Might
 Mogg Conscripts
+Mogg Jailer
+Monastery Mentor
 Moonglove Winnower
 Mountain
 Mox Amber
 Murder Investigation
+Muster the Departed
 Myr Enforcer
 Mystery Key
 Mystic Might
+Naga Eternal
 Nath's Buffoon
 Nebelgast Beguiler
 Necrosynthesis
@@ -211,21 +251,29 @@ Puppet Conjurer
 Purify
 Quag Sickness
 Quirion Dryad
+Raiders' Spoils
 Rattlechains
+Ravenous Leucrocota
 Raze
 Razorjaw Oni
 Reanimate
 Reaver Drone
 Reckoner's Bargain
+Regeneration
+Relentless Advance
+Remember the Fallen
 Rending Volley
 Renounce
+Research the Deep
 Reverent Hunter
 Rewind
 Rip Apart
+Roar of the Wurm
 Rona, Disciple of Gix
 Roofstalker Wight
 Royal Falcon
 Ruin Crab
+Runehorn Hellkite
 Sabertooth Mauler
 Sage's Knowledge
 Sage's Row Savant
@@ -238,13 +286,18 @@ Sea God's Revenge
 Sea Snidd
 Seasoned Hallowblade
 Seed Guardian
+Seeker
 Seething Anger
 Sharktocrab
+Shattered Dreams
+Shepherd of Rot
 Shinen of Fear's Chill
 Showstopping Surprise
 Shredded Sails
+Shu Foot Soldiers
 Shu Grain Caravan
 Sibling Rivalry
+Sifter of Skulls
 Sisay's Ring
 Sivitri Scarzam
 Skizzik Surger
@@ -255,6 +308,7 @@ Smoldering Efreet
 Sol Talisman
 Solar Blast
 Soltari Trooper
+Soul Kiss
 Spearpoint Oread
 Spectral Deluge
 Spidersilk Armor
@@ -263,18 +317,23 @@ Spiteful Banditry
 Spiteful Sliver
 Spore Cloud
 Square Up
+Stamina
 Stensia Uprising
 Streetwise Negotiator
 Striped Bears
 Subversion
 Sunder Shaman
 Swamp
+Sylvan Hierophant
 Sythis, Harvest's Hand
+Tajuru Warcaller
 Temple Elder
 Temporal Machinations
+The Tabernacle at Pendrell Vale
 Thought Monitor
 Thraben Foulbloods
 Thresher Lizard
+Timberland Ancient
 Tin-Wing Chimera
 Tolsimir, Friend to Wolves
 Tower of Champions
@@ -285,6 +344,7 @@ Tranquil Path
 Trash for Treasure
 Traverse the Outlands
 Tree of Tales
+Treefolk Seedlings
 Trespasser's Curse
 Two-Headed Dragon
 Tyranid Harridan
@@ -298,11 +358,15 @@ Unyaro Bee Sting
 Urborg Shambler
 Urza's Command
 Utvara Scalper
+Vedalken Engineer
 Verdant Crescendo
 Verdant Embrace
+Vernal Fen
+Viashino Skeleton
 Victorious Destruction
 Vinelasher Kudzu
 Viridian Zealot
+Voice of Truth
 Voidwielder
 Voyaging Satyr
 Vulshok War Boar
@@ -315,7 +379,10 @@ Warmonger's Chariot
 Warren Instigator
 Wave Goodbye
 Wayward Swordtooth
+Weatherlight Compleated
+Weatherseed Totem
 Wei Infantry
+Wild Griffin
 Willow Faerie
 Wilson, Refined Grizzly
 Winged Hive Tyrant

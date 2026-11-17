@@ -51,7 +51,9 @@ Celebrity Fencer
 Cephalid Broker
 Chain to Memory
 Chainwhip Cyclops
+Chandra, Acolyte of Flame
 Charging Rhino
+Charisma
 Chief of the Scale
 Chimney Goyf
 Chronomaton
@@ -377,6 +379,7 @@ Sylvan Caryatid
 Sylvan Messenger
 Syphon Flesh
 Séance
+Taborax, Hope's Demise
 Talons of Falkenrath
 Taste of Death
 Tattered Haunter

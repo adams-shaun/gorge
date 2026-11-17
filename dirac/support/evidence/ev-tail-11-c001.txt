@@ -192,6 +192,7 @@ Hideous Visage
 Highland Weald
 Hithlain Knots
 Hovermyr
+Icequake
 Icy Prison
 Ikiral Outrider
 Ill-Tempered Cyclops
@@ -382,6 +383,7 @@ Stampede Driver
 Star Pupil
 Starfall
 Steel Sabotage
+Stirring Wildwood
 Stormrider Spirit
 Striding Shotcaller
 Subterranean Tremors
@@ -409,6 +411,7 @@ Thicket Crasher
 Thrash
 Three Dreams
 Tibalt, Rakish Instigator
+Tidebinder Mage
 Tidepool Turtle
 Timid Drake
 Tomakul Honor Guard

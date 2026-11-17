@@ -1,72 +1,132 @@
+A-Demon's Due
 A-Hagra Constrictor
 A-Moon-Circuit Hacker
 A-Radha, Coalition Warlord
+Akki Ronin
 Ambuscade Shaman
 Ancient Craving
 Argivian Avenger
 Arrester's Admonition
+Ashnod's Harvester
+Atarka Beastbreaker
 Axebane Guardian
 Ayara, First of Locthwain
 Balshan Griffin
 Balustrade Spy
 Bloodfire Mentor
+Blossom Prancer
+Bomber Corps
+Bone Harvest
+Boon Reflection
+Bumi's Feast Lecture
 Carrion Imp
+Celestial Regulator
+Centaur Healer
 Champion of the Flame
 Cloudkill
 Commissar Severina Raine
+Composer of Spring
 Confront the Assault
 Crop Rotation
 Cruel Revival
+Crypt Ghast
 Cunning Wish
+Delighted Killbot
+Deviant Skytech
+Drown in Filth
+Elephant-Mandrill
+Eloise, Nephalia Sleuth
+Elvish Reclaimer
 Explosive Welcome
 Feign Death
 Fireblade Artist
 Flametongue Kavu
 Forest
+Frog-Squirrels
+Ghoul's Feast
+Glissa's Scorn
 Gnarlid Pack
 Granite Gargoyle
+Greater Good
 Grizzly Fate
+Guise of Fire
+Haunted Angel
 Haunting Hymn
+Heaven Sent
+Hero of Iroas
 Hexgold Halberd
+Horn of the Mark
 Hunger of the Howlpack
 Hydra's Growth
+Hyrax Tower Scout
+Igneous Cur
+Illuminated Wings
 Imperial Seal
 Increasing Confusion
 Insight Engine
+Insist
 Iron Suitcase
 Island
+Izzet Chronarch
 Jace's Phantasm
 Jeskai Barricade
+Karoo Meerkat
 Ken, Burning Brawler
 Knight's Pledge
 Kor Outfitter
+Manamorphose
+Manhole Cover
 Marchesa's Infiltrator
 Mardu Banner
+Mark of Mutiny
+Mask of Immolation
 Mental Agony
+Mentor's Guidance
 Mine Worker
+Minister of Inquiries
+Mirrorworks
 Mise
+Mistfire Weaver
 Mountain
+Najal, the Storm Runner
 Nezumi Informant
+Nico Minoru, Runaway
+Oggyar Battle-Seer
+Ominous Parcel
+Pariah's Shield
 Pelt Collector
 Pentarch Ward
 Plains
+Primordial Ooze
+Prized Griffin
+Prophet of Distortion
 Radiant, Archangel
+Regathan Firecat
 Regrowth
+Reign of Terror
 Rhox Veteran
 Rotting Fensnake
+Rowan Treefolk
 Ruthless Winnower
 Sacred Rites
 Sage of Epityr
 Savage Gorger
 Scaled Wurm
+Scouring Sands
 Scrapyard Salvo
 Seeker of Skybreak
 Sentinel Sliver
+Serpentine Kavu
 Shadowcloak Vampire
 She-Hulk, Wallbreaker
+Shivan Wurm
+Shocking Grasp
 Sick and Tired
+Sidisi, Undead Vizier
 Sif's Spearmaster
+Silverback Shaman
 Slash the Ranks
+Slime Molding
 Slobad, Goblin Tinkerer
 Snuff Out
 Soaring Drake
@@ -78,27 +138,35 @@ Spellskite
 Spike Worker
 Spined Sliver
 Squee's Embrace
+Staff of Compleation
+Stimulus Package
 Sunder
 Surgehacker Mech
 Swamp
 Swift Demise
+Sylvan Paradise
 Syndicate Guildmage
 Talons of Wildwood
+Tanazir Quandrix
 Territorial Allosaurus
 Territorial Baloth
 Thallid Devourer
 Thrashing Wumpus
+Three Visits
 Throes of Chaos
+Tidespout Tyrant
 Time Spiral
 Torch Courier
 Torsten Von Ursus
 Tragic Poet
 Two-Headed Cerberus
+Tyvar, Jubilant Brawler
 Umbris, Fear Manifest
 Unyaro Bee Sting
 Urza's Cave
 Valeron Outlander
 Vine Trellis
+Wakandan Shield Guard
 Wall of Mist
 Wall of Souls
 Warstorm Surge

@@ -1,16 +1,27 @@
+Abyssal Gatekeeper
 Acolyte of the Inferno
+Ainok Bond-Kin
+Ajani's Mantra
+Ajani, Adversary of Tyrants
+Altar's Light
+Ancestral Memories
 Animating Faerie
 Arbalest Elite
 Arbor Armament
 Arboreal Alliance
+Arcade Cabinet
 Arcane Encyclopedia
 Archivist of Oghma
+Armor of Faith
+Armored Pegasus
 Artillerize
 Ash Barrens
 Auriok Salvagers
 Avatar of Will
 Azorius Skyguard
 Azra Oddsmaker
+Back to Basics
+Band Together
 Battle Rampart
 Bitter Reunion
 Blade Banish
@@ -19,25 +30,38 @@ Bloody Betrayal
 Bonebreaker Giant
 Boneyard Scourge
 Bontu's Monument
+Borderland Minotaur
 Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
+Brass Squire
+Briarknit Kami
 Brightmare
+Brushwagg
 Buccaneer's Bravado
 Bygone Bishop
 Cabal Executioner
+Celestial Crusader
 Cenn's Heir
 Cerulean Wyvern
 Choke
 Cinderslash Ravager
 Citanul Woodreaders
 Claim of Erebos
+Clear Shot
+Clever Lumimancer
 Clockwork Drawbridge
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
+Conclave Phalanx
+Confirm Suspicions
 Consulate Dreadnought
+Consulate Skygate
+Coral Colony
+Courier's Capsule
 Cowl Prowler
+Crack the Earth
 Creeping Trailblazer
 Crown of Flames
 Crush Dissent
@@ -45,32 +69,58 @@ Cryptothrall
 Cyclopean Snare
 Damning Verdict
 Dawnstrike Paladin
+Deadly Visit
 Defend the Campus
 Defenders of Humanity
 Defiant Bloodlord
 Dega Disciple
 Demonic Appetite
+Devils' Playground
 Dire Fleet Neckbreaker
+Dirge of Dread
+Dismal Failure
+Dominating Licid
+Doom Foretold
 Dragon Roost
+Drana, Liberator of Malakir
 Drift of Phantasms
 Dust Elemental
+Eerie Procession
 Eiganjo Uprising
 Elvish Eulogist
+Enchantress's Presence
+Enclave Elite
 Endless One
 Enshrined Memories
 Entomb
+Ephemerate
+Eternal Thirst
+Ethercaste Knight
 Excise
+Extravagant Spirit
 Falkenrath Celebrants
 Fauna Shaman
 Fen Hauler
+Festering Newt
+Fiery Confluence
+Firehoof Cavalry
 Flicker of Fate
+Flowstone Infusion
 Fogwalker
 Font of Mythos
 Forest
+Frenetic Ogre
+Fruitcake Elemental
 Fumarole
+Funeral Longboat
 Furor of the Bitten
+Furyblade Vampire
+Galecaster Colossus
 Gather the Pack
+Gaze of Adamaro
+Geology Enthusiast
 Githzerai Monk
+Glaring Fleshraker
 Glissa Sunslayer
 Glyph Elemental
 Gnarlwood Dryad
@@ -81,6 +131,7 @@ Golden Ratio
 Grave Bramble
 Graveyard Marshal
 Greater Forgeling
+Grey Knight Paragon
 Grim Captain's Call
 Halcyon Glaze
 Half-Elf Monk
@@ -90,125 +141,194 @@ Hamato Ninpō
 Hardy Outlander
 Haunted Angel
 Hedron Scrabbler
+Heliod, Sun-Crowned
 Heliophial
+Hill Giant
 Hoar Shade
+Horncaller's Chant
 Horned Kavu
 Howl from Beyond
+Howling Wolf
 Hungry Mist
 Hunt the Hunter
 Immortal Servitude
 Impale
 Implement of Malice
 In Too Deep
+Infiltrate
 Invincible Hymn
+Iridescent Angel
 Island
+Jace, Memory Adept
+Jeskai Student
 Jolrael, Mwonvuli Recluse
 Just the Wind
 Kalonian Behemoth
 Kami of Restless Shadows
 Katilda, Dawnhart Prime
 Kazarov, Sengir Pureblood
+Knighthood
 Kor Castigator
 Kraul Raider
 Lamentation
+Land Tax
 Leeching Licid
+Lion's Eye Diamond
 Living Tempest
 Longshot, Rebel Bowman
 Lore Seeker
 Loxodon Stalwart
+Lucent Liminid
+Lunge
+Mantle of Webs
 March from the Black Gate
+Martyrs of Korlis
 Mavren Fein, Dusk Apostle
 Merciless Eviction
 Merfolk Seer
 Metropolis Sprite
 Migratory Route
 Minion Missile
+Minotaur Warrior
 Mirage Mockery
 Mirkwood Channeler
 Mirri, Cat Warrior
 Mirror-Sigil Sergeant
+Misthollow Griffin
 Mnemonic Sliver
+Molten Gatekeeper
+Monk of the Open Hand
 Moor Fiend
 Mountain
 Munda, Ambush Leader
 Muzzle
+Myr Kinsmith
+Mysterious Pathlighter
+Mystic Penitent
+Mystical Tutor
+Nadier's Nightblade
 Narcolepsy
 Nezumi Bone-Reader
 Nightmare Shepherd
 Nimble Birdsticker
 Oko's Hospitality
 Ollenbock Escort
+Oona's Blackguard
 Orcish Artillery
+Pack Mastiff
 Palace Sentinels
 Pale Bears
+Pale Rider of Trostad
 Patrol Hound
+Peek
 Permafrost Trap
 Pestilent Haze
+Pheres-Band Tromper
+Phthisis
+Phyrexian Metamorph
 Phyrexian Rebirth
 Plains
+Plated Wurm
 Predator, Flagship
+Profit
+Prosperous Partnership
 Psychic Allergy
 Puppet Conjurer
+Raise the Palisade
 Rakdos Signet
 Reap What Is Sown
+Reshape
 Reshape the Earth
 Revoke Existence
+Rigging Runner
 Rite of Belzenlok
 Roc Hunter
 Rootwalla
+Rousing of Souls
+Rural Recruit
+Sailors' Bane
+Salvage Scuttler
 Samite Herbalist
+Sanctum of Fruitful Harvest
+Sapphire Medallion
 Sarinth Steelseeker
+Scarblade Elite
 Scroll of Griselbrand
 Scute Mob
+Sea Snidd
 Servant of the Scale
 Shifting Ceratops
 Shinen of Stars' Light
 Shu Defender
 Silver Drake
+Simic Locket
 Skitterbeam Battalion
 Slab Hammer
+Slag Strider
 Sliptide Serpent
 Sliversmith
 Smellerbee, Rebel Fighter
 Smite
 Soaring Hope
 Somberwald Stag
+Song of Serenity
 Spined Megalodon
 Spreading Rot
 Sprout
 Stalking Drone
 Start
+Stillmoon Cavalier
+Stonewood Invoker
+Storm Fleet Pyromancer
 Strange Augmentation
 Stream of Acid
 Stromkirk Condemned
+Summary Judgment
+Sun Droplet
 Sunlance
 Surge Conductor
 Surveilling Sprite
 Swamp
 Sweet Oblivion
 Sylvan Safekeeper
+Sylvan Shepherd
 Syphon Sliver
+Tamiyo, Inquisitive Student
+Teval's Judgment
 Thatcher Revolt
 The Battle of Bywater
+The Covert Blue Mage
 Thran Golem
+Tidehollow Sculler
+Tocatli Honor Guard
 Tome Shredder
 Torbran, Thane of Red Fell
 Trailblazer
 Trynn, Champion of Freedom
+Turbulent Moor
 Twisted Justice
 Tyvar Kell
 Ulgrotha Charm
 Ulvenwald Observer
 Unlikely Alliance
+Urza, Prince of Kroog
 Vastwood Animist
+Vegetation Abomination
 Veteran Swordsmith
 Voidslime
 Vorapede
 Vraan, Executioner Thane
+Vraska's Stoneglare
+Wandering Wolf
+Wax
+Wei Ambush Force
 Wirewood Symbiote
+Wizard Class
 Wolfcaller's Howl
 Word of Binding
 Yawgmoth's Vile Offering
+You Happen On a Glade
 Zephyr Spirit
 Zhalfirin Lancer
+Zo-Zu the Punisher
 Zuberi, Golden Feather

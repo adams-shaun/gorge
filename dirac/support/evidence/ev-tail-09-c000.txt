@@ -42,6 +42,7 @@ Broodbirth Viper
 Bull Rush
 Canal Monitor
 Carrion
+Carrion Rats
 Castle Ardenvale
 Cateran Slaver
 Ceaseless Conflict
@@ -164,6 +165,7 @@ Ixalli's Diviner
 Jhovall Queen
 Jinx
 Jinxed Ring
+Jubilant Skybonder
 Jungle Wurm
 Kazarov, Sengir Pureblood
 Kelsinko Ranger

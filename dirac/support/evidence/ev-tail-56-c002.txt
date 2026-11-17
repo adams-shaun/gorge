@@ -1,22 +1,31 @@
 A-Mishra, Excavation Prodigy
 A-Stimulus Package
 Addle
+Adorable Kitten
 Aether Flash
 Aetherflux Car
+Agate Instigator
 Alchemist's Greeting
 Ancient Grudge
+Angelic Gift
 Anointer of Champions
 Arachnoid
 Arachnoid Adaptation
 Arcade Gannon
 Armament Master
 Avacynian Priest
+Aven Smokeweaver
+Awaken the Ancient
 Banefire
 Banishment Decree
 Battlewise Aven
+Bearer of the Heavens
 Beast Attack
+Belligerent Brontodon
+Bladetusk Boar
 Blighted Woodland
 Blink of an Eye
+Blistering Firecat
 Blood Tithe
 Bloodhaze Wolverine
 Bloodmad Vampire
@@ -24,53 +33,80 @@ Bloodthirsty Aerialist
 Bonds of Quicksilver
 Bone Flute
 Bounding Krasis
+Brave the Sands
 Briar Hydra
+Burn Bright
+Burning-Tree Emissary
 Burst of Strength
 Cabal Conditioning
 Capture Sphere
 Cartouche of Strength
 Caustic Wasps
 Cavern Crawler
+Champion of Dusk
+Chimeric Egg
 Circle of the Land Druid
 Cirith Ungol Patrol
+Citywide Bust
 Clay Statue
+Cleansing Meditation
 Cleric of Life's Bond
+Close Quarters
 Cloudreader Sphinx
 Coffin Purge
 Conclave Guildmage
 Copperhorn Scout
 Crocodile of the Crossing
+Dai Li Censor
 Daring Archaeologist
 Daring Demolition
 Dark Nourishment
 Dauthi Jackal
+Dauthi Slayer
 Death-Rattle Oni
 Deathgorge Scavenger
 Desert Drake
+Destructive Tampering
 Disruptive Student
 Divine Arrow
 Dockside Extortionist
+Earthcraft
+Echo Inspector
+Elderfang Disciple
 Expanding Ooze
 Explosive Vegetation
 Farewell
 Fathom Fleet Boarder
+Feldon of the Third Path
 Field of Ruin
 Fiery Finish
+Finishing Blow
+Fire Ambush
+Fires of Yavimaya
 Flailing Manticore
 For the Ancestors
 Forest
 Forlorn Pseudamma
+Foundry Screecher
 Fresh Volunteers
 Fyndhorn Elves
 Gatecreeper Vine
 Gixian Infiltrator
 Goblin Chirurgeon
+Goblin Mutant
+Goblin Spy
+Golgari Guildmage
+Great Teacher's Decree
 Greater Harvester
 Greenwood Sentinel
+Griffin Rider
 Grisly Transformation
 Ground Seal
+Gruul Charm
 Gulping Scraptrap
 Gush
+Gyome, Master Chef
+Haazda Exonerator
 Happy Hogan, Bodyguard
 Harrier Naga
 Haunted Dead
@@ -80,38 +116,62 @@ Herald of the Dreadhorde
 Hexplate Golem
 Honden of Cleansing Fire
 Hope-Ender Coatl
+Hotshot Mechanic
+Hound of Griselbrand
 Hover Barrier
+Hulking Devil
+Hurloon Minotaur
+Ignite Disorder
+In the Eye of Chaos
 Infiltrator's Magemark
 Inga Rune-Eyes
+Into the Core
 Iron Lance
 Island
+Jagged-Scar Archers
 Jasmine Seer
+Joraga Warcaller
 Kabira Crossroads
 Keen Sense
+Keldon Champion
+Khenra Charioteer
 Kheru Bloodsucker
+Kin-Tree Invocation
 Kor Hookmaster
 Kraul Stinger
 Krosan Adaptation
 Last Rites
+Lay Bare the Heart
 Leonin Warleader
+Life Finds a Way
 Lifecrafter's Gift
+Lightning Runner
 Markov Waltzer
 Marsh Casualties
 Meatsqueak, Hoard Lord
+Mechanized Warfare
 Memorial to War
 Merfolk Pupil
 Mind's Eye
+Mirran Banesplitter
 Misdirection
 Mishra's Helix
 Mobilized District
+Mogg Toady
+Molten Vortex
 Mondrak, Glory Dominus
+Moorish Cavalry
+Moriok Replica
 Mothrider Patrol
 Mountain
 Mowu, Loyal Companion
+Mudbrawler Cohort
 Myr Prototype
 Needletooth Raptor
 Nessian Boar
 Nested Shambler
+Nightbird's Clutches
+Nighthowler
 Nightsquad Commando
 Null Caller
 Nyxborn Wolf
@@ -119,8 +179,11 @@ Olivia's Bloodsworn
 Olivia's Dragoon
 On Wings of Gold
 Peace Strider
+Phyrexian Vatmother
 Pierce the Sky
+Pinpoint Avalanche
 Plains
+Poison-Blade Mentor
 Pore Over the Pages
 Poultrygeist
 Power Conduit
@@ -129,42 +192,67 @@ Primaris Eliminator
 Pursued Whale
 Pygmy Allosaurus
 Rabid Wombat
+Raking Claws
+Raphael, the Muscle
+Red Scarab
 Reduce
 Repel the Darkness
 Repentance
 Reprieve
+Reprisal
 Resculpt
 Retreat to Hagra
+Returned Phalanx
 Road
+Sandstone Deadfall
 Sarkhan's Rage
+Sawback Manticore
 Scorchmark
+Scouting Hawk
 Sea Gate
 Sea Hag
 Searing Flesh
 Sedge Scorpion
 Seed of Hope
+Seismic Assault
+Servant of Nefarox
 Shepherd of Rot
 Shrine Steward
 Silent Departure
 Simplify
+Skorpekh Destroyer
+Skullport Merchant
 Skyshaper
 Soltari Priest
+Spellrune Painter
 Stampeding Wildebeests
 Storm, Queen of Wakanda
 Stratadon
 Sunhome, Fortress of the Legion
 Swamp
+Talruum Champion
 Temur Battle Rage
 Teval, the Balanced Scale
 The Wasp, Janet Van Dyne
+Thoughtrender Lamia
+Tithebearer Giant
 Tolarian Kraken
 Tome Scour
 Traitorous Blood
 Traverse the Ulvenwald
+Treetop Bracers
+Tribal Flames
 Uktabi Drake
+Upriser Renegade
 Vampire's Kiss
 Vandalblast
 Vendetta
 Vexing Sphinx
+Viashino Racketeer
 Vivid Meadow
+Wandering Mind
+Whipflare
+Wort, the Raidmother
+Xorn
+Yarok's Wavecrasher
 Yasova Dragonclaw

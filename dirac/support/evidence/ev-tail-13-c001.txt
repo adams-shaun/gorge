@@ -23,6 +23,7 @@ Arcane Denial
 Archmage Emeritus
 Armed Assailant
 Armored Skaab
+Armory Paladin
 Arvad of the Weatherlight
 Asgardian Inspiration
 Ashen Rider
@@ -37,6 +38,7 @@ Bag of Holding
 Ballista Watcher
 Bane of Progress
 Basalt Gargoyle
+Battering Craghorn
 Berserkers of Blood Ridge
 Black Panther, Claws of Bast
 Blaze
@@ -100,6 +102,7 @@ Drunau Corpse Trawler
 Dusk Feaster
 Dutiful Return
 Earth Tremor
+Ecologist's Terrarium
 Efficient Construction
 Elvish Pioneer
 Emissary of Hope

@@ -50,6 +50,7 @@ Bloodrage Brawler
 Blossoming Calm
 Blue Elemental Blast
 Body of Knowledge
+Boing!
 Bojuka Brigand
 Bold Defense
 Bond of Passion
@@ -102,6 +103,7 @@ Cut of the Profits
 Dagger Caster
 Daring Piracy
 Dark Favor
+Darksteel Mutation
 Dauntless Onslaught
 Dawn of Hope
 Decimator Beetle
@@ -135,6 +137,7 @@ Escaped Experiment
 Etched Familiar
 Ether Well
 Executioner's Capsule
+Exocrine
 Extinguish the Light
 Exultant Skymarcher
 Ezuri, Claw of Progress
@@ -161,6 +164,7 @@ Fog
 Foratog
 Force of Vigor
 Forest
+Forsaken Wastes
 Foul Play
 Frostling
 Galerider Sliver
@@ -197,6 +201,7 @@ High Priest of Penance
 Highland Lake
 Hinterland Drake
 Hoodwink
+Hooting Mandrills
 Hornet Cobra
 Hour of Promise
 Howling Giant
@@ -243,6 +248,7 @@ Lorthos, the Tidemaker
 Lotleth Giant
 Mage-Ring Bully
 Magnify
+Magus of the Moon
 Malevolent Whispers
 Malicious Intent
 Masked Blackguard
@@ -322,6 +328,7 @@ Renegade Tactics
 Replenish
 Resolute Archangel
 Resupply
+Rime Transfusion
 Rite of the Raging Storm
 Roiling Regrowth
 Rootwire Amalgam
@@ -400,6 +407,7 @@ Svyelunite Priest
 Swamp
 Swarm Surge
 Swarmborn Giant
+Sword of Forge and Frontier
 Syr Faren, the Hengehammer
 Tajuru Blightblade
 Take Inventory
@@ -410,6 +418,7 @@ Tavern Brawler
 Telethopter
 Tempered Veteran
 Tenured Oilcaster
+Thalakos Dreamsower
 The Cabbage Merchant
 The Fair Basilica
 The Frightful Four

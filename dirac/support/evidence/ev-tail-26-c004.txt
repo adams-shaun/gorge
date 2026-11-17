@@ -1,3 +1,4 @@
+Act on Impulse
 Advance Scout
 Akki Lavarunner
 Amrou Scout
@@ -9,41 +10,61 @@ Band Together
 Blade of the Bloodchief
 Blood Knight
 Bloodscale Prowler
+Brindle Shoat
+Bringer of the Blue Dawn
 Chemister's Insight
+Colossal Badger
 Crypt Ripper
+Cyclops Superconductor
+Cystbearer
 Dragon Bell Monk
 Faithless Looting
 Faithless Salvaging
 Fencing Ace
 Forest
 Foul-Tongue Shriek
+Galadhrim Ambush
 Gate Hound
 Glimpse of Freedom
 Hermes, Overseer of Elpis
 Island
+Jewel-Eyed Cobra
 Junk Golem
 Kami of False Hope
 Kavu Chameleon
+Kithkin Mourncaller
+Living Lands
 Lulu, Stern Guardian
 Mana Geyser
 Mogg Sentry
 Mountain
+No Escape
+Nullmage Advocate
 Nyxborn Hydra
 Oblivion Ring
 Pharika's Libation
 Plains
 Ransack
+Riptide Crab
+Rise from the Nether
+Rootwater Diver
 Rubblebelt Recluse
 Saltfield Recluse
+Satyr Grovedancer
+Savage Swipe
 Serpent Warrior
+Slip Through Space
+Spellbook
 Steadfast Unicorn
 Stitched Drake
 Swamp
+Swift Warden
 Tide Drifter
 Volcanic Dragon
 Volcanic Rush
 Wall of Opposition
 Warlord's Axe
+Warthog
 Whirler Rogue
 Wight of Precinct Six
 Wretched Throng

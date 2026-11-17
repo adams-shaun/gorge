@@ -4,108 +4,184 @@ Abattoir Ghoul
 Aegis Automaton
 Agadeem Occultist
 Akroan Sergeant
+Aladdin's Ring
 Altar Golem
 Amulet of Vigor
 Angrath's Marauders
 Armageddon
 Asylum Visitor
 Auger Spree
+Augur of Bolas
 Avatar of Might
+Aven Battle Priest
 Banishing Slash
 Baron Sengir
 Baru, Wurmspeaker
 Bastion of Remembrance
+Beetleform Mage
+Bereaved Survivor
 Blessed Light
 Blood Ogre
 Bloodline Necromancer
+Blor the Impervious
+Bog-Strider Ash
+Bogardan Rager
 Boon of Emrakul
 Broken Visage
 Bubble Matrix
+Bull's Strength
 Butterbur, Bree Innkeeper
+Carnage Altar
 Carrion Wall
 Chainer's Edict
 Chandra's Fury
 Charcoal Diamond
+Charmed Stray
+Charnel Troll
+Choking Fumes
+Choose Your Weapon
 Cinderbones
 Cliffhaven Sell-Sword
 Cogwork Archivist
 Colossal Majesty
 Compulsion
 Concordia Pegasus
+Conformer Shuriken
+Cosi's Ravager
+Crimson Hellkite
 Crumbling Colossus
 Daraja Griffin
+Deceptive Frostkite
+Deepcavern Imp
 Deflection
+Dehydration
 Devils' Playground
+Digsite Engineer
+Dire Fleet Neckbreaker
 Dirtwater Wraith
 Dragon Egg
 Dragonstorm
+Drannith Ruins
+Dreadwaters
 Drifter il-Dal
 Dune Beetle
+Dungeoneer's Pack
 Elvish Harbinger
 Endless Scream
+Experimental Armor
 Faceless Devourer
 Feldon, Ronom Excavator
 Fetid Imp
 Field of Reality
 Filigree Attendant
 Flowstone Crusher
+Forced Retreat
 Forest
+Forgehammer Centurion
 Foul Play
+Foundry Helix
 Free from Flesh
 Frog-Squirrels
 Frontline Medic
+Fumble
 Furnace Scamp
 Futurist Sentinel
+Geist Snatch
 Generous Patron
+Glimpse of Nature
+Glistening Dawn
 Gluttonous Slug
 Gnoll War Band
 Gnome-Made Engine
+Hadran, Naya Sunseeder
 Hangar Scrounger
+Hedron Crawler
 Helitrooper
+Hell Mongrel
+Highspire Mantis
+Horde of Boggarts
 Hornswoggle
 Hunters' Feast
 Idol of Oblivion
+Ihsan's Shade
 Inferno Titan
+Into the Story
+Invasion of Lorwyn
 Invasive Species
 Ironroot Treefolk
 Island
 Isolate
+Kardur, Doomscourge
+Knight of Infamy
 Lava Zombie
+Leinore, Autumn Sovereign
 Leonin Scimitar
+Leyline of Lightning
+Lightning Cloud
 Liliana's Scrounger
+Lingering Phantom
 Lorehold Excavation
+Mage Duel
 Manabond
 Manglehorn
+Maw of the Obzedat
+Meldweb Curator
+Mental Discipline
 Mental Misstep
 Merchant Scroll
 Mercurial Transformation
 Mind Burst
 Minion of the Mighty
+Minotaur Skullcleaver
 Mnemonic Wall
+Mogg Alarm
+Moment of Heroism
+Monstrous Onslaught
 Morgue Theft
 Mortal's Ardor
 Mountain
 Mountain Bandit
+Mournful Zombie
 Mysterious Pathlighter
+Namora, the Sea Queen
+Nantuko Shade
+Nephalia Drownyard
+Nightveil Sprite
 Nimraiser Paladin
+Noggle Bridgebreaker
+Oasis
+Oath of the Ancient Wood
+Obelisk of Esper
 Omen of the Sun
 Ore-Scale Guardian
 Oread of Mountain's Blaze
 Ovalchase Daredevil
 Patrol Signaler
 Phantom Wings
+Phyrexian Fleshgorger
 Plains
 Platinum Angel
 Plummet
 Porcelain Legionnaire
+Precognitive Perception
+Press for Answers
 Primordial Ooze
 Prophetic Flamespeaker
+Protector of the Crown
+Quintorius, History Chaser
 Rakka Mar
 Ravenous Baboons
+Ravenous Bloodseeker
 Reiver Demon
+Relic Bane
+Relic Sloth
+Rescue
 Resourceful Return
+Restore
 Ring of Three Wishes
 Ringwarden Owl
+Riot Spikes
+Rip Apart
 Rooting Kavu
 Rousing of Souls
 Ruination Wurm
@@ -122,9 +198,15 @@ Selesnya Sentry
 Sentinel Spider
 Shaggy Camel
 Shelter
+Shepherd of the Cosmos
+Shield Mare
+Shrill Howler
+Silumgar's Command
+Sinking Feeling
 Six-Sided Die
 Skyclave Geopede
 Skylasher
+Slimefoot, the Stowaway
 Slinking Skirge
 Smolder Initiate
 Snarling Warg
@@ -132,14 +214,22 @@ Spark Trooper
 Spartan Veteran
 Spellskite
 Spinehorn Minotaur
+Spire Mangler
+Sprouting Renewal
 Steam Blast
 Steward of Valeron
 Stone Rain
+Stoneshaker Shaman
 Structural Distortion
+Sunhome Guildmage
 Swamp
+Swarmyard
 Tah-Crop Skirmisher
 Tajuru Beastmaster
+Taunting Challenge
+Teferi's Ageless Insight
 Tegan Jovanka
+Tenured Oilcaster
 Territorial Kavu
 Terror of the Fairgrounds
 The Destined White Mage
@@ -149,11 +239,21 @@ Thrasher Brute
 Tidespout Tyrant
 Tigereye Cameo
 Time of Heroes
+Topan Ascetic
+Tormented Hero
+Tower Drake
 Triton Shorethief
 Turn the Tide
 Turnabout
+Uncanny Speed
 Undercity Shade
 Valor of the Worthy
 Vampire Revenant
 Vivid Revival
 Vivisurgeon's Insight
+Vulshok Refugee
+Wand of the Elements
+When We Were Young
+Xiahou Dun, the One-Eyed
+Zhao, the Seething Flame
+Zuran Orb

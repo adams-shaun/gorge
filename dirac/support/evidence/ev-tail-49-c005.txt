@@ -1,16 +1,23 @@
 Akroan Hoplite
 Amphin Pathmage
+Angelic Curator
+Ant-Man, Scott Lang
+Armageddon
 Ashling the Pilgrim
 Augur of Bolas
 Avaricious Dragon
 Biomathematician
 Blightbeetle
+Blistering Barrier
 Blurred Mongoose
 Boon Reflection
+Briarhorn
 Briarpack Alpha
 Butcher's Cleaver
+Call the Cavalry
 Catalog
 Cephalid Broker
+Chandra's Outburst
 Change of Fortune
 Chapel Geist
 Charge Across the Araba
@@ -30,14 +37,20 @@ Dimir Signet
 Disentomb
 Dragon Whelp
 Electrify
+Elemental Uprising
 Elixir of Immortality
+Elvish Piper
+Elvish Scrapper
 Elvish Visionary
 Enduring Bondwarden
 Ever After
+Exhaustion
 Extinguish the Light
 Faerie Duelist
 Farid, Enterprising Salvager
 Fate Foretold
+Fencing Ace
+Ferocious Pup
 Fevered Strength
 Feywild Visitor
 Flame-Kin Zealot
@@ -47,6 +60,7 @@ Frost Trickster
 Garruk's Companion
 Geistblast
 Ghirapur Aether Grid
+Gnat Alley Creeper
 Goblin Marshal
 Goblin Skycutter
 Golgari Death Swarm
@@ -61,12 +75,17 @@ Howling Golem
 Inspired Fire
 Island
 Island of Wak-Wak
+Jadecraft Artisan
 Jhessian Thief
 Kaldra Compleat
 Kiln Walker
+Kor Entanglers
+Lantern of the Lost
 Last Caress
 Library
 Long-Finned Skywhale
+Magistrate's Veto
+Manic Scribe
 Manifold Key
 Manta Riders
 Mightstone's Animation
@@ -75,11 +94,15 @@ Moonwing Moth
 Mountain
 Murderous Compulsion
 Naiad of Hidden Coves
+Nantuko Tracer
 Nico Minoru, Runaway
 Obsessive Stitcher
 Ocular Halo
 Ogre Gatecrasher
+Outland Colossus
+Pallid Mycoderm
 Part the Veil
+Passionate Archaeologist
 Patagia Golem
 Perilous Forays
 Perilous Research
@@ -89,25 +112,33 @@ Plains
 Poison Arrow
 Prison Term
 Prowling Pangolin
+Pyknite
 Quicksilver Fisher
 RMS Titanic
 Rampaging Cyclops
+Raptor Companion
 Ravenous Demon
 Renari, Merchant of Marvels
 Reverent Hoplite
 Righteous Fury
+Rootbreaker Wurm
+Rustvine Cultivator
 Sacred Fire
 Sarpadian Simulacrum
 Saw It Coming
 Scout the Borders
 Scroll of the Masters
 Search the Premises
+Sedge Scorpion
+Seething Pathblazer
 Selesnya Sanctuary
+Sentry Oak
 Serendib Efreet
 Sigarda, Heron's Grace
 Silverquill Command
 So Shiny
 Soulshriek
+Squirrel Sanctuary
 Stonefury
 Struggle for Skemfar
 Sunken City
@@ -126,6 +157,7 @@ Thundercloud Shaman
 Touch of Brilliance
 Towering-Wave Mystic
 Tranquil Thicket
+Ultimate Magic: Holy
 Vectis Silencers
 Vector Asp
 Vengeful Dead

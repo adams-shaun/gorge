@@ -48,6 +48,7 @@ Cast Down
 Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
+Celestial Purge
 Channel the Suns
 Chaotic Goo
 Charging Monstrosaur
@@ -239,6 +240,8 @@ Pygmy Pyrosaur
 Quicksilver Dagger
 Raiding Nightstalker
 Rakka Mar
+Rampaging Monument
+Ranger Class
 Ravenous Harpy
 Raving Oni-Slave
 Razorjaw Oni
@@ -330,6 +333,7 @@ Wander in Death
 Warleader's Helix
 Wave-Wing Elemental
 Wheel and Deal
+Wilderness Elemental
 Wildfire Eternal
 Windreader Sphinx
 Witch's Mist

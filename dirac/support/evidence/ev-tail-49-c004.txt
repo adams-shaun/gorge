@@ -1,30 +1,50 @@
+A-Druidic Ritual
+Accursed Marauder
 Amphin Pathmage
+Angelic Curator
 Arcanist's Owl
+Argivian Restoration
+Aria of Flame
+Armageddon
+Artifact Ward
 Ashling the Pilgrim
+Ashling, the Extinguisher
 Augur of Bolas
 Avaricious Dragon
+Bad Moon
+Barbarian Outcast
 Blightbeetle
+Blistering Barrier
+Briarhorn
 Briarpack Alpha
 Broodbirth Viper
 Butcher's Cleaver
+Call the Cavalry
+Call the Scions
 Catalog
 Celestial Kirin
 Centaur Glade
 Centaur Peacemaker
 Cephalid Broker
+Chandra's Outburst
 Chapel Geist
 Charge Across the Araba
 Charging Slateback
 Chieftain en-Dal
 Chimeric Coils
 Citadel Gate
+Citanul Flute
 Clan Crafter
 Cloakwood Swarmkeeper
+Cobblebrute
+Connive
 Countryside Crusher
 Crash
 Crimson Cowl, Master of Evil
 Cyclops of Eternal Fury
+Damping Matrix
 Dark Bargain
+Darksteel Myr
 Dauntless Aven
 Dauntless Unity
 Decisive Denial
@@ -32,128 +52,229 @@ Demon's Jester
 Depala, Pilot Exemplar
 Desert of the Indomitable
 Dimir Signet
+Disciple of Perdition
 Disentomb
+Dismember
+Double Trouble
 Drake Haven
+Dregs of Sorrow
 Electrify
+Elemental Uprising
 Elenda, the Dusk Rose
 Elixir of Immortality
+Elvish Promenade
+Elvish Scrapper
 Elvish Visionary
 Enduring Bondwarden
+Enlightened Ascetic
 Ent's Fury
+Escape Velocity
 Ever After
 Expedite
 Extinguish the Light
 Faerie Duelist
 Farid, Enterprising Salvager
 Fate Foretold
+Fencing Ace
+Feral Appetite
+Ferocious Pup
 Fevered Strength
 Feywild Visitor
+Fiery Mantle
+Fireball
+Fissure Wizard
 Flames of the Firebrand
 Forest
 Fortified Rampart
 Frost Trickster
+Fungal Rebirth
 Gate to Phyrexia
 Geistblast
+Generous Stray
 Ghirapur Aether Grid
 Goblin Marshal
 Goblin Skycutter
+Goldmeadow Lookout
 Golgari Death Swarm
+Great Desert Prospector
 Greater Good
+Greater Mossdog
+Greenwarden of Murasa
 Hagra Constrictor
 Havengul Vampire
 Hell Swarm
+Hellion Eruption
 Heroic Charge
+Hewed Stone Retainers
 Hobblefiend
 Horizon Scholar
 Howling Golem
 Humongulus
+Inferno Fist
 Inspired Fire
 Island
 Island of Wak-Wak
+Jadecraft Artisan
 Jaya, Venerated Firemage
 Kaldra Compleat
+Kayla's Command
+Kessig Wolfrider
 Kiln Walker
+Kiss of Death
+Kor Cartographer
+Kor Outfitter
+Kor Scythemaster
+Lantern of Revealing
 Last Caress
 Library
 Living Wish
+Long-Finned Skywhale
+Lu Su, Wu Advisor
+Maned Serval
 Manifold Key
 Manta Riders
+Mark of the Vampire
+Mask of Law and Grace
+Mass Hysteria
+Maze Skullbomb
+Merfolk Observer
+Metamorphic Wurm
 Mightstone's Animation
+Misery's Shadow
+Moldgraf Scavenger
 Monologue Tax
 Moonwing Moth
 Mountain
+Myr Convert
 Naiad of Hidden Coves
 Nico Minoru, Runaway
+Nightshade Seer
+Nim Grotesque
 Noose Constrictor
 Nylea's Colossus
+Oblivion Strike
 Ogre Gatecrasher
+Outland Colossus
 Part the Veil
 Patagia Golem
+Patch Up
 Perilous Forays
 Perilous Research
 Pillaging Horde
 Pillarfield Ox
+Pip-Boy 3000
 Plains
 Poison Arrow
+Pooling Venom
 Prison Term
+Prodigy's Prototype
+Pyknite
 Quicksilver Fisher
 RMS Titanic
+Radha, Heart of Keld
+Raise Dead
 Raking Claws
 Rampaging Cyclops
 Ravenous Demon
+Razorgrass Ambush
+Razortide Bridge
 Red Ghost, Intangible Genius
 Renari, Merchant of Marvels
 Reverent Hoplite
+Rhystic Shield
+Righteous Cause
 Righteous Fury
+Rishkar's Expertise
+Roc Charger
+Rock Basilisk
+Rocksteady, Mutant Marauder
+Rootbreaker Wurm
+Rubble Slinger
 Runebound Wolf
+Runner's Bane
 Sacred Fire
+Sage of Epityr
+Salt Road Quartermasters
 Sarpadian Simulacrum
 Saruman the White
 Saw It Coming
+Scale Blessing
+Scapeshift
 Scout the Borders
 Scroll of the Masters
 Search the Premises
+Sedge Scorpion
+Seething Pathblazer
 Selesnya Sanctuary
+Sentry Oak
 Serendib Efreet
+Serpent-Blade Assailant
+Shadowmage Infiltrator
 Shao Jun
+Shape the Sands
+Shriekmaw
 Shrine Keeper
 Sigarda, Heron's Grace
+Sigiled Paladin
+Skinshifter
+Slaughterhorn
+Sleeper Agent
 Slippery Bogle
+Smelt
 So Shiny
 Soulshriek
+Squirrel Sanctuary
+Stinging Hivemaster
+Stone Catapult
 Storm Fleet Sprinter
+Storm Shaman
 Struggle for Skemfar
 Stump Stomp
 Sungrass Prairie
 Sunken City
+Supreme Will
 Survivor of the Unseen
 Swamp
 Swarm of Bloodflies
+Swat
 Swell of Growth
 Sylvan Anthem
+Symbiotic Elf
 Synod Sanctum
 Sythis, Harvest's Hand
 Tallyman of Nurgle
+Tamiyo's Logbook
 Tar Pitcher
 Teeterpeak Ambusher
+Terrain Elemental
+Terror Ballista
 The Rack
+Thorncaster Sliver
 Thought Collapse
 Thundercloud Shaman
 Tide Skimmer
+Tidings
 Touch of Brilliance
 Towering-Wave Mystic
 Tranquil Thicket
+Turn
+Ultimate Magic: Holy
 Unctus's Retrofitter
+Untamed Might
 Vagrant Plowbeasts
 Vault Guardsman
 Vector Asp
 Vengeful Dead
 Verix Bladewing
+Viridian Harvest
+Vitu-Ghazi Guildmage
 Voracious Fell Beast
 Vorrac Battlehorns
+Wall of Corpses
 Wall of Essence
 Wall of Reverence
 Warpath
+Warteye Witch
 Watcher of the Spheres
 Wave-Wing Elemental
 Whip Silk
@@ -163,5 +284,7 @@ Wing Puncture
 Woodwraith Strangler
 Wose Pathfinder
 Wu Longbowman
+Xathrid Slyblade
 Xun Yu, Wei Advisor
+Zephyr Charge
 Zoologist

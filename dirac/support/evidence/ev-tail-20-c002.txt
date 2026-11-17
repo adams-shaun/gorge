@@ -1,6 +1,7 @@
 A-Bretagard Stronghold
 Anafenza, Kin-Tree Spirit
 Annex
+Annihilate
 Appeal
 Arbaaz Mir
 Archdemon of Paliano
@@ -14,11 +15,13 @@ Baton of Courage
 Bazaar of Baghdad
 Betrayal
 Blisterpod
+Blood Hound
 Blood Petal Celebrant
 Bloodstained Mire
 Breya's Apprentice
 Bruse Tarl, Boorish Herder
 Captain America, Unbowed
+Capture Sphere
 Careful Consideration
 Catalyst Elemental
 Celestial Gatekeeper
@@ -27,8 +30,10 @@ Chance-Met Elves
 Chandler
 Chatter of the Squirrel
 Childhood Horror
+Cleansing Wildfire
 Cloak of Feathers
 Conclave Naturalists
+Consuming Corruption
 Counsel of the Soratami
 Cranial Plating
 Crossbow Ambush
@@ -38,6 +43,7 @@ Daily Bugle Newspaper
 Danitha Capashen, Paragon
 Deluge
 Dematerialize
+Demonic Gifts
 Devout Witness
 Diregraf Scavenger
 Doomsday
@@ -58,8 +64,10 @@ Ghosts of the Damned
 Giant Strength
 Gisa's Bidding
 Goblin Cohort
+Goblin Piker
 Grasslands
 Guardian of Pilgrims
+Guardian of the Ages
 Guardian's Magemark
 Gudul Lurker
 Hapatra's Mark
@@ -68,7 +76,9 @@ Hit-Monkey
 Hornet Cannon
 Huatli, the Sun's Heart
 Hulking Goblin
+Hunted Horror
 Hypnotic Grifter
+Ichorspit Basilisk
 Infected Defector
 Irenicus's Vile Duplication
 Island
@@ -84,6 +94,8 @@ Lathnu Sailback
 Ledev Guardian
 Lightning Prowess
 Lightning Talons
+Liliana's Mastery
+Livewire Lash
 Loyal Fire Sage
 Majestic Heliopterus
 Maw of the Obzedat
@@ -106,6 +118,7 @@ Onyx Goblet
 Oran-Rief Hydra
 Orcish Oriflamme
 Original Skullclamp
+Patagia Golem
 Phyrexian Espionage
 Pilfered Plans
 Plains
@@ -118,7 +131,9 @@ Rishadan Port
 River Boa
 Rootless Yew
 Rummaging Wizard
+Runed Crown
 Sacred Knight
+Sanitarium Skeleton
 Scavenger Grounds
 Scour the Laboratory
 Scourgemark
@@ -131,7 +146,9 @@ Shinechaser
 Shower of Arrows
 Shriekhorn
 Sigil Blessing
+Silhana Ledgewalker
 Silverbluff Bridge
+Skeletal Changeling
 Slaughter-Priest of Mogis
 Sleeper Dart
 Solphim, Mayhem Dominus
@@ -141,17 +158,21 @@ Squad Captain
 Staff of the Death Magus
 Staunch-Hearted Warrior
 Stone Spirit
+Structural Assault
 Sungrass Egg
 Swamp
 Sylvan Might
 Syndicate Enforcer
+Tel-Jilad Lifebreather
 Tezzeret's Touch
+Time of Need
 Tramway Station
 Transmogrifying Licid
 Traproot Kami
 Triumph of the Hordes
 True Love's Kiss
 Turtle-Seals
+Underworld Breach
 Utrom Monitor
 Vigorspore Wurm
 Voldaren Ambusher
@@ -160,7 +181,12 @@ Wall of Lost Thoughts
 Wall of Spears
 Warren Weirding
 Waste Not
+Weirding Wood
 Whimwader
+Whiteout
 Wild Instincts
+Wildwood Patrol
 Wintermoon Mesa
+Wretched Anurid
+Yavimaya Barbarian
 Zealous Inquisitor

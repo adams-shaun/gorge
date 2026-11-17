@@ -1,0 +1,20 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Forge Boss	b137bad57961d3bf	24	1/1		1/1	
+Akoum Battlesinger	ce9c2632997c0365	24	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Amoeboid Changeling	d5ea262dde8aa102	14	2/2		1/1	
+Blood Cultist	e733f22ac05fce1c	25	2/2		1/1	
+Capricious Sorcerer	e1a2095e335baeeb	4	1/1		0/1	ix:resp
+Cavern Thoctar	bfb18c260991a4ad	4	1/1		0/1	ix:resp
+Deep Spawn	f037bcdff2014a81	22	2/2		1/1	
+Gruul Signet	b1dcf1d646ccc8de	4	1/1		0/1	ix:resp
+Havengul Runebinder	e55aae12775585e5	4	1/1		0/1	ix:resp
+Mind Games	ba103d3fc0359106	31	0/0		4/4	
+Myr Battlesphere	1d597e18c12717d6	8	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Octomancer	977e70787db80531	4	1/1		1/3	cast/alt:none,ix:resp
+Plow Through Reito	c9ec71bfdca733d2	23	0/0		2/2	
+Prickly Marmoset	5c385a6a3bf2cef4	12	1/1		0/1	ix:resp
+Priest of Titania	801249adc6b6762c	4	1/1		0/1	ix:resp
+Slaughter-Priest of Mogis	8bc29cc8305e9828	28	2/2		1/1	
+Stampede	66a5a5924a139857	26	0/0		2/2	
+Tibalt's Rager	3f4a5ddea626862f	25	2/2		1/1	
+Wall of Earth	06ac1df98877341e	22	0/0		0/0	

@@ -20,6 +20,7 @@ Aura of Dominion
 Avarice Amulet
 Awaken the Sky Tyrant
 Baird, Argivian Recruiter
+Barrow Witches
 Basking Broodscale
 Bedlam
 Beskir Shieldmate
@@ -28,6 +29,7 @@ Big Score
 Black Panther, Claws of Bast
 Blessed Respite
 Blood-Chin Fanatic
+Bog Smugglers
 Branchsnap Lorian
 Brigone, Soldier of Meletis
 Burrenton Shield-Bearers
@@ -48,9 +50,12 @@ Cragplate Baloth
 Curate
 Curious Pair
 Curse of Verbosity
+Damnable Pact
+Dark Hatchling
 Dauthi Warlord
 Dega Sanctuary
 Desert Nomads
+Dig Up
 Doomed Artisan
 Dragonlair Spider
 Drogskol Shieldmate
@@ -81,6 +86,7 @@ Forced Adaptation
 Forest
 Foul Imp
 Fractal Harness
+Freyalise Supplicant
 Galvanic Blast
 Gate of the Black Dragon
 Gearsmith Prodigy
@@ -94,6 +100,7 @@ Golden Demise
 Gorging Vulture
 Grafted Growth
 Graypelt Refuge
+Greataxe
 Groundling Pouncer
 Headless Rider
 Heaven
@@ -113,6 +120,7 @@ Ironclaw Buzzardiers
 Island
 Jagged Lightning
 Join the Maestros
+Kari Zev's Expertise
 Kazandu Stomper
 Kefnet's Last Word
 Key to the City
@@ -149,10 +157,13 @@ Oakhame Adversary
 Open Fire
 Owl Familiar
 Pallid Mycoderm
+Panacea
 Park Heights Maverick
 Peel from Reality
 Peregrine Drake
 Phantom Whelp
+Phyrexian Gremlins
+Plague Engineer
 Plague Fiend
 Plague Sliver
 Plains
@@ -172,7 +183,9 @@ Renegade Wheelsmith
 Restrain
 Roc of Kher Ridges
 Rockslide Ambush
+Ruin Raider
 Rumor Gatherer
+Runewing
 Rush of Adrenaline
 Ruthless Disposal
 Sage of the Unknowable
@@ -185,13 +198,16 @@ Scorching Missile
 Scour from Existence
 Scrapwork Rager
 Scrivener
+Sea Drake
 Searchlight Geist
 Serra Avenger
 Shatter
 Skull of Orm
 Slith Bloodletter
+Slurrk, All-Ingesting
 Smell Fear
 Snarespinner
+Sorin, Imperious Bloodlord
 Soul Swallower
 Specter of the Fens
 Sphere of Duty
@@ -218,7 +234,9 @@ Tenement Crasher
 Thalia's Lancers
 The Binding of the Titans
 The Immortal Weapons
+The Stasis Coffin
 Thriving Isle
+Throne of Empires
 Timberpack Wolf
 Tower of Calamities
 Tree of Tales
@@ -233,6 +251,7 @@ Veteran Cavalier
 Virulent Plague
 Wayward Giant
 Wetland Sambar
+Wild Leotau
 Winding Wurm
 Winged Portent
 Witching Well

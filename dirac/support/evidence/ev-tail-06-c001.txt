@@ -13,6 +13,7 @@ Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
 Armored Skaab
+Artisan of Forms
 Artistic Refusal
 Atomize
 Augur of Skulls
@@ -24,8 +25,12 @@ Bandage
 Barbary Apes
 Barl's Cage
 Basilisk Gate
+Bathe in Dragonfire
 Beacon of Creation
+Big Apple, 3 a.m.
 Big Mother Mouser
+Blessed Spirits
+Blighted Fen
 Blood Lust
 Bloodfire Infusion
 Boarding Party
@@ -41,25 +46,31 @@ Burning-Yard Trainer
 Cacophodon
 Caldera Lake
 Callous Deceiver
+Canyon Minotaur
 Cathar's Call
 Cavalier of Dawn
 Cement Shoes
+Ceremonial Knife
 Champion of Dusk
 Changeling Outcast
 Chimeric Staff
+Circuit Mender
 Cloudfin Raptor
 Cloudthresher
 Conscripted Infantry
 Control of the Court
+Coral Helm
 Corpse Churn
 Court of Embereth
 Crosstown Courier
 Crucible of Fire
+Cruel Grimnarch
 Cutthroat Negotiator
 Dawnhart Wardens
 Death Stroke
 Deathbloom Gardener
 Deb Thomas
+Decaying Time Loop
 Decorated Griffin
 Decree of Savagery
 Diregraf Scavenger
@@ -67,6 +78,7 @@ Dramatic Entrance
 Dream Trawler
 Dreamdrinker Vampire
 Drizzt Do'Urden
+Ebony Charm
 Edge of Autumn
 Eldrazi Mimic
 Emberwilde Caliph
@@ -86,6 +98,7 @@ Firebrand Ranger
 Flamewave Invoker
 Flaming Gambit
 Flow of Knowledge
+Flutterfox
 Forest
 Founding of Omashu
 Freed from the Real
@@ -96,12 +109,16 @@ Fugitive Wizard
 Gaea's Balance
 Galadhrim Guide
 Galvanic Arc
+Gargoyle Castle
 Gift of Growth
+Glamorous Grapplers
 Gluttonous Troll
+Goblin King
 Goblin Wizardry
 Gold-Forged Thopteryx
 Golem's Heart
 Golgari Germination
+Golgari Keyrune
 Golgari Raiders
 Graviton, Fundamental Force
 Great Defender
@@ -110,7 +127,9 @@ Grinning Demon
 Griselbrand
 Hagra Diabolist
 Halo Scarab
+Heliod's Punishment
 Heliod, God of the Sun
+Hell's Caretaker
 Herald of Hadar
 Hobgoblin Bandit Lord
 Honor the Fallen
@@ -118,13 +137,17 @@ Hornet Nest
 Hot Springs
 Humiliate
 Hymn to Tourach
+Ice Floe
 Iceman and Firestar
 Illusionary Informant
 Illusory Angel
 Innocent Blood
 Invoke the Divine
+Iron-Heart Chimera
 Island
+Izzet Boilerworks
 Jaddi Offshoot
+Jamuraan Lion
 Jeering Homunculus
 Jewel Thief
 Jolted Awake
@@ -134,8 +157,11 @@ Kavu Howler
 Kemba, Kha Enduring
 King Darien XLVIII
 Kiora, Behemoth Beckoner
+Krovikan Whispers
 Kyoshi Warrior Exemplars
 Lagonna-Band Elder
+Landslide
+Launch Party
 Leaf Gilder
 Leafcrown Dryad
 Lesser Masticore
@@ -143,6 +169,7 @@ Leyline of Vitality
 Lightning Surge
 Locthwain Lancer
 Long Road Home
+Looming Spires
 Lost Soul
 Loxodon Warhammer
 Luminesce
@@ -155,9 +182,12 @@ Mantle of Webs
 Marang River Skeleton
 Marsh Boa
 Mascot Exhibition
+Master Healer
 Master's Call
+Merchant Raiders
 Minds Aglow
 Mindstab
+Minotaur Sureshot
 Moan of the Unhallowed
 Molten Vortex
 Mothdust Changeling
@@ -166,16 +196,21 @@ Mystic Melting
 Nezahal, Primal Tide
 Nim Shambler
 Nirkana Revenant
+Niv-Mizzet, Dracogenius
 Noosegraf Mob
 Nuka-Cola Vending Machine
 Nylea's Disciple
 Obstinate Gargoyle
 On Serra's Wings
+Oona's Grace
 Order of the Ebon Hand
 Outnumber
+Outrider of Jhess
 Overwhelmed Apprentice
 P-Joven and Chandler
+Pardic Firecat
 Peek
+Pensive Minotaur
 Phyrexian Battleflies
 Phyrexian Bloodstock
 Phyrexian Debaser
@@ -187,20 +222,26 @@ Pounce
 Pre-War Formalwear
 Press the Advantage
 Prison Sentence
+Pull from the Deep
 Pulse of the Tangle
 Putrefax
 RMS Titanic
 Ragefire Hellkite
 Raging Swordtooth
 Rats of Rath
+Ray of Enfeeblement
 Reality Anchor
 Reckless Embermage
+Reckless Ogre
 Reconnaissance Mission
+Reflex Sliver
 Renewing Dawn
 Return to Battle
 Return to the Earth
+Revenge of Ravens
 Rhizome Lurcher
 Ricochet Trap
+Ritual of the Machine
 Root Snare
 Rosemane Centaur
 Rotten Reunion
@@ -217,14 +258,18 @@ Seraph of the Masses
 Servant of Volrath
 Shadowheart, Dark Justiciar
 Shamble Back
+Shinka, the Bloodsoaked Keep
 Silent Observer
 Silent-Chant Zubera
 Simic Keyrune
 Sire of the Storm
 Skarrg Goliath
+Skirk Ridge Exhumer
 Skullport Merchant
+Snapping Thragg
 Soltari Lancer
 Soot Imp
+Soratami Mirror-Guard
 Soul Collector
 Soul's Grace
 Spellbound Dragon
@@ -251,10 +296,12 @@ Teller of Tales
 Thalakos Scout
 Thassa, Deep-Dwelling
 The Antiquities War
+The First Eruption
 The Modern Age
 The One Ring
 Thopter Engineer
 Thorn of Amethyst
+Thraben Gargoyle
 Thran Lens
 Thunderhawk Gunship
 Toggo, Goblin Weaponsmith
@@ -266,6 +313,7 @@ Turn
 Ultimate Magic: Holy
 Underdark Basilisk
 Undergrowth Scavenger
+Urborg Repossession
 Valorous Steed
 Vampiric Spirit
 Vault 75: Middle School
@@ -278,9 +326,13 @@ Whispersilk Cloak
 Wildwood Rebirth
 Winged Sliver
 Wirewood Pride
+Witch's Familiar
+Witch's Oven
 Wolfsbane, Highland Hero
 Wooden Sphere
 Wrenn and Realmbreaker
+Yavimaya Coast
 Yawgmoth's Edict
 Yuna's Decision
 Zarichi Tiger
+Zombie Cannibal

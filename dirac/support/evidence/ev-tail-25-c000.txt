@@ -19,6 +19,7 @@ Anaba Spirit Crafter
 Angler Drake
 Anointed Chorister
 Apex Hawks
+Aquamoeba
 Aquatic Incursion
 Archangel Avacyn
 Archon of Sun's Grace
@@ -104,6 +105,7 @@ Disciple of Malice
 Discombobulate
 Distortion Strike
 Divine Sacrament
+Dormant Gomazoa
 Doubtless One
 Dragon Tempest
 Dralnu's Crusade
@@ -147,6 +149,7 @@ Fungusaur
 Furious Reprisal
 Future Flight
 Galestrike
+Gargos, Vicious Watcher
 Gate Hound
 Generous Patron
 Ghost Ship

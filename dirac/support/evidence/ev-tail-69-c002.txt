@@ -17,6 +17,7 @@ Balduvian Bears
 Baneful Omen
 Bard, Heir of Girion
 Barrin's Codex
+Battle at the Helvault
 Battlefield Raptor
 Baxter, Fly in the Ointment
 Bishop of Rebirth
@@ -44,6 +45,7 @@ Compulsory Rest
 Conifer Strider
 Contagious Vorrac
 Corrupt
+Countless Gears Renegade
 Crackdown
 Crypt Ripper
 Dakmor Plague
@@ -52,6 +54,7 @@ Daru Healer
 Dauntless River Marshal
 Dauthi Mercenary
 Davriel's Shadowfugue
+Deeproot Warrior
 Demogorgon's Clutches
 Depart the Realm
 Diabolical Salvation
@@ -62,6 +65,8 @@ Echoing Return
 Ecstatic Awakener
 Elephant Grass
 Elspeth, Knight-Errant
+Elvish Farmer
+Emerald Charm
 Envoy of the Ancestors
 Epistolary Librarian
 Escape Routes
@@ -78,8 +83,10 @@ Filter Out
 Forest
 Foriysian Brigade
 Forsake the Worldly
+Foul Watcher
 Frightcrawler
 Galvanic Blast
+Garruk Wildspeaker
 Geistflame
 Giant Harbinger
 Gift of Granite
@@ -110,9 +117,12 @@ How to Keep an Izzet Mage Busy
 Hunter's Insight
 Hypnotic Cloud
 Icatian Moneychanger
+Ice-Fang Coatl
 Illusory Demon
 Impending Disaster
+Indrik Umbra
 Ingenuity Engine
+Insatiable Souleater
 Invisible Force Field
 Island
 Ivory Charm
@@ -182,11 +192,13 @@ Reckless Embermage
 Reconstruction
 Red XIII, Proud Warrior
 Regent's Authority
+Replication Technique
 Research Thief
 Restore the Peace
 Reviving Dose
 Rites of Initiation
 Ritual Guardian
+Root Out
 Rotting Fensnake
 Rough
 Rubble Reading
@@ -194,6 +206,7 @@ Rushwood Herbalist
 Salvage Scout
 Scale the Heights
 Searchlight Geist
+Sergeant John Benton
 Serra Avenger
 Shard Convergence
 Shattering Blow
@@ -207,6 +220,7 @@ Singing Bell Strike
 Skirk Commando
 Sky Spirit
 Sky Theater Strix
+So Shiny
 Sparkmage's Gambit
 Spectral Shield
 Spellshock
@@ -247,6 +261,7 @@ War-Wing Siren
 Warm Welcome
 Watcher Sliver
 Wayfaring Temple
+Wedding Announcement
 Whirlwind Adept
 White Scarab
 Wolfir Avenger

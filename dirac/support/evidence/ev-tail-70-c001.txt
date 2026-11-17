@@ -1,18 +1,24 @@
+Abominable Treefolk
 Act of Treason
 Aerial Guide
 Aether Swooper
+Aether Tradewinds
 Akoum Warrior
 Alpha Authority
 Amazing Spider-Girl
+Ancient Hydra
 Angel of Sanctions
 Angelic Skirmisher
 Apprentice Necromancer
+Artful Takedown
 Artifact Mutation
 Ashen Powder
+Augury Raven
 Aurochs Herd
 Awakening
 Baloth Cage Trap
 Baloth Packhunter
+Bamboozle
 Baneblade Scoundrel
 Bayou Groff
 Bladed Pinions
@@ -31,9 +37,13 @@ Centaur Omenreader
 Cephalid Coliseum
 Chain Devil
 Chains of Custody
+Champion's Drake
+Chandra, Flamecaller
 Charge
+Chimney Rabble
 Chrome Host Seedshark
 Civic Wayfinder
+Cloak of Confusion
 Cloud Djinn
 Cloud Manta
 Commanding Presence
@@ -44,6 +54,7 @@ Corpsejack Menace
 Court of Ardenvale
 Court of Cunning
 Craven Knight
+Crown of Flames
 Cultist's Staff
 Dauntless Dourbark
 Dawnstrider
@@ -71,7 +82,11 @@ Elusive Tormentor
 Elvish Soultiller
 Emergent Growth
 Enlisted Wurm
+Essence Backlash
+Etherium Sculptor
 Experimental Overload
+Faceless Devourer
+Fall of the Thran
 Famished Ghoul
 Far Traveler
 Fast Forward
@@ -90,10 +105,12 @@ Forbidden Friendship
 Forest
 Garruk's Companion
 Geist-Fueled Scarecrow
+Geistlight Snare
 Ghostblade Eidolon
 Gift of Compleation
 Gix's Caress
 Gnaw to the Bone
+Goblin Grenade
 Goblin Guide
 Goblin Tinkerer
 Grave Titan
@@ -107,6 +124,7 @@ Heartwarming Redemption
 Heliod's Punishment
 Hero's Heirloom
 Holy Strength
+Hoof Skulkin
 Hopping Automaton
 Hullbreaker Horror
 Hythonia the Cruel
@@ -122,6 +140,7 @@ Insolent Neonate
 Iron Man, Titan of Innovation
 Island
 Ivory Guardians
+Jace's Scrutiny
 Jagged Poppet
 Jolrael's Favor
 Juri, Master of the Revue
@@ -139,6 +158,7 @@ Lifesmith
 Lightning Javelin
 Lion Vulture
 Loxodon Smiter
+Madblind Mountain
 Mage-Ring Responder
 Magnivore
 Makeshift Munitions
@@ -149,8 +169,10 @@ Mask of the Jadecrafter
 Maze Abomination
 Memnarch, the Warden
 Merry, Warden of Isengard
+Mesmeric Trance
 Metropolis Angel
 Minotaur Sureshot
+Moth Herb Elixir
 Mountain
 Mutilate
 Myconid Spore Tender
@@ -160,12 +182,14 @@ Nature's Spiral
 Necrotic Fumes
 Noble Vestige
 Oath of Eorl
+Oath of Scholars
 Offering to Asha
 Okiba Reckoner Raid
 Old Rutstein
 Old Stickfingers
 Ooze Garden
 Oran-Rief Invoker
+Orcish Captain
 Overmaster
 Patagia Viper
 Patchwork Gnomes
@@ -185,6 +209,7 @@ Primal Rage
 Putrid Cyclops
 Quietus Spike
 Quirion Beastcaller
+Radagast, Wizard of Wilds
 Radiant Purge
 Raging Goblin
 Raised by Giants
@@ -201,6 +226,7 @@ Rishadan Airship
 Road of Return
 Roaring Primadox
 Roving Keep
+Rush of Blood
 Ruthless Knave
 Saurian Symbiote
 Saving Grasp
@@ -220,14 +246,19 @@ Sickle Dancer
 Sigil Blessing
 Silk Net
 Silverflame Squire
+Sire of Stagnation
+Sisay's Ingenuity
 Skull Rend
 Slaughter Specialist
 Slavering Nulls
 Smelt-Ward Ignus
 Smothering Abomination
 Soilshaper
+Somnophore
 Song of Serenity
 Soratami Seer
+Sorcerer's Broom
+Soul Net
 Souldrinker
 Spectral Hunt-Caller
 Spinal Centipede
@@ -235,15 +266,18 @@ Spire Barrage
 Spire Tracer
 Spiritmonger
 Staff of Zegon
+Star Whale
 Start
 Steel of the Godhead
 Stonecloaker
+Stormbound Geist
 Summer Bloom
 Swamp
 Sylvok Lifestaff
 Syndicate Guildmage
 Taj-Nar Swordsmith
 Take Possession
+Tapestry of the Ages
 Tenacious Hunter
 Terra Ravager
 Thought-Knot Seer

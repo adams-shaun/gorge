@@ -57,6 +57,7 @@ Centaur Courser
 Cephalid Aristocrat
 Cephalid Sage
 Chief of the Foundry
+Chromeshell Crab
 Circuit Mender
 Civic Wayfinder
 Clash of Wills
@@ -224,6 +225,7 @@ Longbow Archer
 Maraleaf Pixie
 Marble Titan
 Massacre
+Mastery of the Unseen
 Melira's Keepers
 Mental Misstep
 Mephitic Vapors
@@ -365,6 +367,7 @@ Titanium Man
 Tolarian Academy
 Tolarian Entrancer
 Tortured Existence
+Transguild Courier
 Traveling Philosopher
 Treasure Vault
 Trench Gorger

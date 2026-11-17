@@ -1,0 +1,69 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Demon's Due	da206a2d881f0784	20	0/0		1/2	ix:resp
+Akki Ronin	e728f37e495d430d	38	1/1		0/1	ix:resp
+Ashnod's Harvester	1315980e0145744f	35	2/2		1/1	
+Atarka Beastbreaker	021ccfa245707d78	78	1/1		1/1	
+Blossom Prancer	cac251b48d5d242e	45	1/1		1/1	
+Bomber Corps	b3f2ee6d71d35517	23	1/1		1/1	
+Bone Harvest	724b5f2487c1bd5d	23	0/0		2/2	
+Boon Reflection	be1a1d1c7fb49446	13	0/0		0/0	
+Bumi's Feast Lecture	1e00211212d92441	41	0/0		1/2	ix:resp
+Celestial Regulator	da0353ab7913e235	11	1/1		0/1	ix:resp
+Centaur Healer	c19459a31c156eb3	15	1/1		1/1	
+Composer of Spring	d00983964b04970c	82	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Crypt Ghast	3dfc65e8f58db2c0	12	2/2		1/1	
+Delighted Killbot	525be0ec7029f9a5	37	0/0		0/0	
+Deviant Skytech	b090ba0197f69c30	45	1/1		0/1	ix:resp
+Drown in Filth	03812d5111a46955	19	0/0		1/2	ix:resp
+Elephant-Mandrill	934c89ce79c70b0d	34	2/2		1/1	
+Eloise, Nephalia Sleuth	17932b442d0f6ed9	16	2/2		0/1	ix:resp
+Elvish Reclaimer	340bf6aefabb5fa5	62	1/1		1/1	
+Frog-Squirrels	af39557dda0dfe8a	58	0/0		0/0	
+Ghoul's Feast	a1253552dc6a5081	61	0/0		2/2	
+Glissa's Scorn	cf3c2a3a663d1d51	74	0/0		2/2	
+Greater Good	6da83068de059259	38	1/1		1/1	
+Guise of Fire	dd7378f5ed758fd0	16	0/0		2/2	
+Haunted Angel	f3a5ce1afa375301	27	1/1		1/1	
+Heaven Sent	a2857e8ee8a38b0d	23	0/0		0/0	
+Hero of Iroas	56d6af6bf1639682	38	1/1		1/1	
+Horn of the Mark	098d4198cb2a95b6	63	1/1		1/1	
+Hyrax Tower Scout	5fa706e3c2703495	40	1/1		1/1	
+Igneous Cur	e73177be5e7659cb	19	1/1		1/1	
+Illuminated Wings	c9bba853948330b4	38	1/1		1/2	ix:resp
+Insist	2b2d93558382bc94	38	0/0		2/2	
+Izzet Chronarch	d7959948d6dcc296	16	1/1		1/1	
+Karoo Meerkat	3eed411ae4db05de	41	0/0		0/0	
+Manamorphose	ef9c80ccd73a8b02	14	0/0		2/2	
+Manhole Cover	0b16de8a3b8fd899	54	2/2		1/1	
+Mark of Mutiny	c0c4a8f538e6dedf	19	0/0		1/2	ix:resp
+Mask of Immolation	c2eb7649dc73e25b	32	2/2		1/1	
+Mentor's Guidance	e58ef4624021c1b5	38	1/1		2/2	
+Minister of Inquiries	5a8f59743cb62b20	55	2/2		1/1	
+Mirrorworks	5f903e3abf3f00ad	20	1/1		1/1	
+Mistfire Weaver	6c454ebd04380965	4	1/1		1/3	cast/alt:none,ix:resp
+Najal, the Storm Runner	a0553c6fa3f9707f	14	1/1		1/1	
+Nico Minoru, Runaway	e6a67efe0d850ca0	19	2/2		0/1	ix:resp
+Oggyar Battle-Seer	8f1cf89d4ccf92ed	23	1/1		1/1	
+Ominous Parcel	05e8eb6b3c414c75	48	2/2		1/1	
+Pariah's Shield	491940ac1f5c88a1	27	1/1		1/1	
+Primordial Ooze	62497444edbfcdf8	21	1/1		1/1	
+Prized Griffin	80ba2fdd479da2e6	27	0/0		0/0	
+Prophet of Distortion	1ebf54da6e898e60	49	1/1		1/1	
+Regathan Firecat	dd0fbbbca3d77f33	31	0/0		0/0	
+Reign of Terror	436652e412ee444c	14	0/0		2/2	
+Rowan Treefolk	87db64b61c3e82c4	39	0/0		0/0	
+Scouring Sands	ff43af32d1ed5561	19	0/0		2/2	
+Serpentine Kavu	8c397c3f359c9161	23	1/1		1/1	
+Shivan Wurm	d6b69a2dc7dc5d07	18	1/1		1/1	
+Shocking Grasp	925c2a65a5b24026	35	0/0		2/2	
+Sidisi, Undead Vizier	31e61d9df0e4bb11	13	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Silverback Shaman	ed352db373c71e7f	28	1/1		1/1	
+Slime Molding	0d6cdc8d0932182e	41	0/0		3/4	f0/s/x0
+Staff of Compleation	d0215ecef0db2d08	40	5/5		1/1	
+Stimulus Package	5d55807cfadedf14	11	2/2		0/1	ix:resp
+Sylvan Paradise	66fc4d632db0c510	83	0/0		2/2	
+Tanazir Quandrix	19d8ceedb31153a8	19	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Three Visits	ddfa8f3b037c91e9	57	0/0		2/2	
+Tidespout Tyrant	0e38797e441c269d	12	1/1		1/1	
+Tyvar, Jubilant Brawler	d90f4e208b0ce033	17	2/2		1/1	
+Wakandan Shield Guard	6c1062df42018553	22	1/1		1/1	

@@ -1,49 +1,126 @@
 Accursed Duneyard
 Acid Web Spider
+Aethergeode Miner
+Aetheric Amplifier
 Akroan Jailer
+Alpine Meadow
+Amaranthine Wall
+Angelic Wall
+Anointed Procession
+Assault Griffin
+Auriok Bladewarden
+Auriok Steelshaper
+Azorius Locket
 Barrowgoyf
+Bitterthorn, Nissa's Animus
 Broken Visage
+Brokers Hideout
 Bull Cerodon
+Cephalid Vandal
+Charging Paladin
+Citadel Castellan
+Clockwork Vorrac
+Colorful Feiyi Sparrow
+Coral Net
+Curse of Bounty
 Curse of Shallow Graves
 Cursed Wombat
 Cyclical Evolution
+Daring Apprentice
 Daring Fiendbonder
+Devotee of Strength
+Didgeridoo
+Disrupt
 Dramatic Reversal
 Dredge
 Drowner of Secrets
+Elvish Archers
+Errant and Giada
+Erratic Mutation
 Erratic Visionary
+Eternal Witness
+Ethereal Haze
 Experimental Overload
+Fade into Antiquity
+Faerie Guidemother
+Fated Intervention
+Flamecast Wheel
 Forest
+Fractal Summoning
+Hallowed Spiritkeeper
+Heavy Infantry
+Hedge Troll
+Highland Forest
+Honden of Seeing Winds
 Hound of the Farbogs
+Hushwing Gryff
 Intruder Alarm
 Island
+Isolate
 Jace's Scrutiny
+James, Wandering Dad
+Jeskai Runemark
+Kasmina's Transmutation
+Keeper of Fables
 King Harald's Revenge
+Kongming, "Sleeping Dragon"
 Lazotep Reaver
 Lorehold Command
 Lorescale Coatl
+Matt Murdock, Justice Seeker
 Matter Reshaper
 Mausoleum Secrets
 Misery's Shadow
+Mist-Syndicate Naga
+Monstrify
 Moonblade Shinobi
+Mother Kangaroo
 Mountain
 Murkfiend Liege
 Nagging Thoughts
+Needle Spires
+Oashra Cultivator
+Ominous Cemetery
+Ornate Kanzashi
 Phantasmal Dragon
 Plains
 Plaxmanta
 Pol Jamaar, Illusionist
+Proud Pack-Rhino
 Ray of Erasure
+Recalibrate
+Reckoner Bankbuster
 Reduce in Stature
+Rending Vines
+Reveille Squad
+Revitalize
 Rogue Refiner
+Rupture Spire
+Scaled Herbalist
+Shefet Dunes
 Sledding Otter-Penguin
 Slither Blade
 Spider-Man 2099, Miguel O'Hara
 Spined Fluke
 Stitcher's Apprentice
 Stormscape Master
+Stratozeppelid
+Suture Priest
 Swamp
 The Whizzer, Classic Speedster
+Think Tank
+Tishana's Wayfinder
 Tokka & Rahzar, Unsupervised
 Tranquil Path
+Treva's Ruins
+Tune the Narrative
+Twin-Silk Spider
+Valiant Veteran
+Wanderlust
 Whispering Wizard
+Windrider Wizard
+Wooden Sphere
+Yavimaya Elder
+Yavimaya Granger
+Zephyr Falcon
+Zephyr Gull

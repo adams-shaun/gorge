@@ -54,10 +54,12 @@ Breath of Life
 Bull Aurochs
 Bull-Rush Bruiser
 Bumbling Pangolin
+Burdened Aerialist
 Cackling Flames
 Callous Bloodmage
 Cavern-Hoard Dragon
 Cemetery Reaper
+Chain Stasis
 Chalice of Life
 Chariot of the Sun
 Chief Jim Hopper
@@ -66,6 +68,7 @@ Chorus of Woe
 Chromatic Sphere
 Clay Revenant
 Cleansing Nova
+Clergy en-Vec
 Cliffrunner Behemoth
 Collective Defiance
 Commander Greven il-Vec
@@ -97,6 +100,7 @@ Drowsing Tyrannodon
 Duelist of Deep Faith
 Dungeoneer's Pack
 Echoing Ruin
+Echoing Truth
 Electrozoa
 Elvish Champion
 Elvish Hydromancer
@@ -105,6 +109,7 @@ Empyreal Voyager
 Errand-Rider of Gondor
 Escape from Orthanc
 Essence of Orthodoxy
+Evangel of Synthesis
 Expanded Anatomy
 Exterminatus
 Exuberant Firestoker
@@ -130,6 +135,8 @@ Gibbering Fiend
 Gideon's Lawkeeper
 Gift of Orzhova
 Gilt-Leaf Winnower
+Glimpse of Freedom
+Gloomshrieker
 Glyph Elemental
 Goblin Morningstar
 Goblin Trenches
@@ -153,6 +160,7 @@ Hooded Hydra
 Hope and Glory
 Howl of the Horde
 Hulk, Brutal Brawler
+Hunted Witness
 Hypnotic Specter
 Indomitable Archangel
 Instill Furor
@@ -165,6 +173,7 @@ Iron Man, Armored Avenger
 Ironshell Beetle
 Island
 Jinxed Idol
+Judge's Familiar
 Jukai Naturalist
 Juntu Stakes
 Kaervek, the Spiteful
@@ -229,9 +238,11 @@ Pattern of Rebirth
 Perilous Voyage
 Pheres-Band Thunderhoof
 Phyrexian Battleflies
+Pia's Revolution
 Plains
 Plated Geopede
 Plated Spider
+Polymorphist's Jest
 Power Sink
 Precognition Field
 Primeval Titan
@@ -246,6 +257,7 @@ Ray of Distortion
 Razaketh, the Foulblooded
 Razormane Masticore
 Reaper of Flight Moonsilver
+Red Elemental Blast
 Reservoir Walker
 Revered Dead
 Revered Unicorn
@@ -256,6 +268,7 @@ Rockcaster Platoon
 Ronin Warclub
 Ruination Wurm
 Run Afoul
+Runeboggle
 Ruric Thar, the Unbowed
 Rush the Room
 Rusted Sentinel
@@ -290,6 +303,7 @@ Silversmote Ghoul
 Simic Slaw
 Sinuous Vermin
 Skullknocker Ogre
+Skyclave Squid
 Skyrider Trainee
 Slayers' Stronghold
 Sleep of the Dead
@@ -331,6 +345,7 @@ The Triumph of Anax
 Their Name Is Death
 Thriving Grubs
 Thriving Rhino
+Tobias Andrion
 Tolsimir Wolfblood
 Toph, Earthbending Master
 Touch of the Eternal

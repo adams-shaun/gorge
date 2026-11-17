@@ -1,3 +1,4 @@
+A-Circuit Mender
 A-Forge Boss
 A-Social Climber
 Abomination of Llanowar
@@ -23,6 +24,7 @@ Ashen Rider
 Aspect of Lamprey
 Assault Strobe
 Atarka, World Render
+Aurochs
 Automated Artificer
 Avenging Huntbonder
 Bala Ged Scorpion
@@ -31,6 +33,7 @@ Barrin, Master Wizard
 Beacon Behemoth
 Bionic Blow
 Black Market Tycoon
+Blight Grenade
 Blood Lust
 Bold Impaler
 Bone Dragon
@@ -67,6 +70,7 @@ Conjurer's Closet
 Continue?
 Contraband Livestock
 Copper Gnomes
+Cryptothrall
 Crystal Dragon
 Crystal Slipper
 Cunning Evasion
@@ -89,11 +93,13 @@ Diver Skaab
 Djeru's Renunciation
 Dogpile
 Dragon Mantle
+Drey Keeper
 Dromad Purebred
 Dromoka Dunecaster
 Drownyard Temple
 Dust Corona
 Dúnedain Blade
+Earthbending Student
 Elite Vanguard
 Embereth Shieldbreaker
 Embrace the Unknown
@@ -150,6 +156,7 @@ Goblin Medics
 Goblin Morningstar
 Goblin Roughrider
 God-Eternal Bontu
+Goliath Beetle
 Gouged Zealot
 Grapeshot
 Gravetiller Wurm
@@ -195,9 +202,11 @@ Iroas's Blessing
 Iron Man, Modern Marvel
 Iron Suitcase
 Island
+Ivy Dancer
 Ivy Seer
 Jade Guardian
 Jalira, Master Polymorphist
+Jeering Homunculus
 Jhessian Thief
 Jodah's Avenger
 Judge of Currents
@@ -216,6 +225,7 @@ Labyrinth Adversary
 Labyrinth Minotaur
 Leafkin Avenger
 Leap
+Lifesmith
 Liliana of the Veil
 Lodestone Myr
 Lord of Change
@@ -230,6 +240,7 @@ Malevolent Whispers
 Malfegor
 Malfunction
 Malignant Growth
+Mana Leech
 Mana Severance
 Maniacal Rage
 Marauder's Axe
@@ -253,6 +264,8 @@ Morphling
 Moss Viper
 Mountain
 Mountain Goat
+Mowu, Loyal Companion
+Mox Diamond
 Murasa Behemoth
 Myrsmith
 Nantuko Mentor
@@ -315,6 +328,7 @@ Rotted Hystrix
 Rotting Legion
 Ruin Raider
 Saber Ants
+Saddled Rimestag
 Sagu Archer
 Samite Alchemist
 Sandstorm Charger
@@ -351,6 +365,7 @@ Skyknight Vanguard
 Skyreach Manta
 Skyshroud Blessing
 Skyshroud Falcon
+Skyshroud Vampire
 Skysnare Spider
 Sly Spy
 Smogsteed Rider
@@ -409,6 +424,7 @@ Tireless Hauler
 Touch of the Eternal
 Tower Geist
 Tranquil Grove
+Transmutation
 Traumatize
 Treacherous Vampire
 Treefolk Healer

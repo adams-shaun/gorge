@@ -45,6 +45,7 @@ Blood Lust
 Blood Money
 Bloodlust Inciter
 Bold Impaler
+Bone Dragon
 Bonesplitter
 Boneyard Wurm
 Boreal Shelf
@@ -141,6 +142,7 @@ Feral Invocation
 Festering Evil
 Fierce Witchstalker
 Fiery Confluence
+Fire Juggler
 Fire Urchin
 Fireforger's Puzzleknot
 Flameshadow Conjuring
@@ -169,6 +171,7 @@ Gerrard Capashen
 Getaway Car
 Ghostway
 Giant Solifuge
+Glacial Revelation
 Gladecover Scout
 Goblin Fire Fiend
 Goblin Medics
@@ -321,6 +324,7 @@ Plague Spitter
 Plains
 Poison-Tip Archer
 Primal Whisperer
+Primeval Force
 Prizefight
 Protective Bubble
 Puca's Covenant

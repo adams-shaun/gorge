@@ -3,6 +3,7 @@ A-Pseudodragon Familiar
 A-Tatyova, Steward of Tides
 A-Urza, Powerstone Prodigy
 Aether Mutation
+Agent of Erebos
 Aim for the Head
 Ainok Artillerist
 Alaborn Trooper
@@ -22,20 +23,26 @@ Blind with Anger
 Blinding Mage
 Blistercoil Weird
 Blitz Automaton
+Blockade Runner
+Bloodchief's Thirst
 Blossoming Calm
 Bonded Herdbeast
 Bone Shards
 Bulette
 By Invitation Only
+Cabal Slaver
+Cabaretti Initiate
 Carrion Howler
 Carrion Locust
 Celebrate the Harvest
 Centaur Battlemaster
+Chambered Nautilus
 Choking Fumes
 Clash of Realities
 Clear
 Clickslither
 Coastal Tower
+Coiling Woodworm
 Confidence from Strength
 Corpsehatch
 Costly Plunder
@@ -44,24 +51,32 @@ Crafty Pathmage
 Crimson Manticore
 Crossroads Consecrator
 Darklit Gargoyle
+Darkwater Egg
 Dawnhart Disciple
 Deeproot Warrior
+Defiant Ogre
+Demon's Grasp
+Denethor, Stone Seer
 Desolation Twin
 Destructive Force
 Diabolic Machine
 Dig Up
 Dispersing Orb
+Doomskar Titan
 Dragon's Smile
+Dragonshift
 Eastfarthing Farmer
 Eddytrail Hawk
 Eternity Vessel
 Executioner's Hood
 Eyes in the Skies
 False Mourning
+Fascination
 Fellwar Stone
 Flamekin Brawler
 Flashfires
 Flinthoof Boar
+Flowstone Embrace
 Fog
 Font of Fertility
 Forest
@@ -70,28 +85,42 @@ Frostweb Spider
 Fíli and Kíli, Joyous
 Gaea's Cradle
 Generous Stray
+Get the Point
+Ghitu Amplifier
+Ghitu Fire-Eater
+Ghoulcaller's Chant
 Glaze Fiend
+Goblin Assault
 Goblin Heelcutter
 Goblin Picker
+Goblin War Drums
 Grave Titan
 Greensleeves, Maro-Sorcerer
+Grotag Siege-Runner
 Guardian of the Great Conduit
 Guild Artisan
 Harvest Wurm
 Hatred
+Heavy Ballista
 Helm of Awakening
+Hero of the Games
 Homarid Shaman
 Homarid Spawning Bed
 Hunted Wumpus
 Hyperion's Atomic Vision
 Implement of Examination
+Improvised Weaponry
+Incendiary
 Infernal Grasp
 Infernal Plunge
 Inspired Tinkering
+Ire of Kaminari
 Island
+Jasmine Boreal
 Jungle Lion
 Kamigawa Charm
 Kazuul Warlord
+Kessig Prowler
 Killer Whale
 Kithkin Shielddare
 Kjeldoran Frostbeast
@@ -101,13 +130,20 @@ Locked in the Cemetery
 Loran, Disciple of History
 Lotus Path Djinn
 Lu Su, Wu Advisor
+Lurking Roper
 Magnetic Mine
 Mana Geode
 Mana Severance
+Maniacal Rage
+Manipulate Fate
 Marble Chalice
+Mark of Fury
 Master of Waves
+Master the Way
 Meekstone
+Merfolk Seer
 Minor Misstep
+Mire Kavu
 Mogg Conscripts
 Mogg Flunkies
 Molten Nursery
@@ -120,6 +156,7 @@ Nessian Wanderer
 Nightguard Patrol
 Nighthawk, Dark Defender
 Nimbus Wings
+Nyx Herald
 Oboro Breezecaller
 Omenspeaker
 Omnispell Adept
@@ -135,10 +172,12 @@ Petrified Plating
 Plagued Rusalka
 Plains
 Polluted Delta
+Polygoyf
 Predator's Howl
 Pride of the Perfect
 Profaner of the Dead
 Puppeteer
+Raka Sanctuary
 Rakdos Carnarium
 Raking Canopy
 Recollect
@@ -149,6 +188,9 @@ Rionya, Fire Dancer
 Riverwise Augur
 Roc Egg
 Roofstalker Wight
+Rosnakht, Heir of Rohgahh
+Rumbling Crescendo
+Rune Snag
 Rupture Spire
 Rush of Battle
 Ruthless Instincts
@@ -156,6 +198,7 @@ Sage-Eye Harrier
 Sandstone Bridge
 Savage Order
 Scapeshift
+Scar
 Scepter of Fugue
 Seeds of Strength
 Seer of the Last Tomorrow
@@ -166,21 +209,29 @@ Sinister Strength
 Skaab Wrangler
 Skeletal Snake
 Sleek Schooner
+Smokespew Invoker
 Soul Snuffers
 Soul's Majesty
+Spare Dagger
+Specimen Collector
 Spellkeeper Weird
 Spire Mangler
 Spirit of the Hunt
 Splendid Reclamation
 Spontaneous Mutation
+Stonebrow, Krosan Hero
 Stormfront Pegasus
 Stream of Consciousness
+Stronghold Assassin
 Sumala Woodshaper
 Swamp
+Swarm Guildmage
 Sylvan Safekeeper
 Tear Asunder
 Tenza, Godo's Maul
+Thallid Shell-Dweller
 The Revelations of Ezio
+Thrasios, Triton Hero
 Thrilling Discovery
 Thunderous Snapper
 Tobias Andrion
@@ -188,6 +239,7 @@ Tolarian Serpent
 Torch Drake
 Torch Gauntlet
 Torture
+Trained Caracal
 Trained Condor
 Transcendent Master
 Turn Against
@@ -195,16 +247,19 @@ Unlikely Alliance
 Vat of Rebirth
 Vault of Whispers
 Venser's Sliver
+Vesperlark
 Vessel of Nascency
 Viashino Sandswimmer
 Vibrating Sphere
 Viridescent Wisps
 Volcanic Geyser
+Vow of Wildness
 Wanderguard Sentry
 Warg Rider
 Waterwhirl
 Wind Shear
 Wing It
+Wing Snare
 Witherscale Wurm
 Woodcutter's Grit
 Zhentarim Bandit

@@ -75,6 +75,7 @@ Cloudreader Sphinx
 Coal Stoker
 Cogworker's Puzzleknot
 Collective Voyage
+Conclave Tribunal
 Conservatory
 Corpse Cur
 Creeping Corrosion
@@ -206,6 +207,7 @@ King Macar, the Gold-Cursed
 Kinsbaile Borderguard
 Kirtar's Wrath
 Kitchen
+Knight Errant
 Kolaghan Monument
 Kor Hookmaster
 Laboratory Brute
@@ -226,6 +228,7 @@ Merfolk Pupil
 Merfolk Trickster
 Metallic Mimic
 Military Discipline
+Mindmoil
 Mishra's Helix
 Mistcutter Hydra
 Mobilized District
@@ -366,6 +369,7 @@ Urborg Stalker
 Valkyrie Harbinger
 Venarian Gold
 Venerable Lammasu
+Venerated Rotpriest
 Vengeant Vampire
 Verdigris
 Verix Bladewing
@@ -390,6 +394,7 @@ Wild Elephant
 Wild Might
 Wind Spirit
 Windscouter
+Witch Enchanter
 Yawgmoth's Agenda
 Your Temple Is Under Attack
 Yuffie, Materia Hunter

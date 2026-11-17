@@ -1,28 +1,39 @@
 Abyssal Gatekeeper
 Academy Journeymage
+Ajani's Influence
+Akki Drillmaster
+Alabaster Dragon
 Amoeboid Changeling
 Angelsong
 Anticipate
+Apprentice Sorcerer
 Armed Response
 Armix, Filigree Thrasher
 Augur il-Vec
 Awaken the Bear
 Awakening of Vitu-Ghazi
+Axebane Guardian
+Axgard Armory
 Ayumi, the Last Visitor
 Bane Alley Blackguard
 Bearded Axe
 Bitterbow Sharpshooters
 Brass Secretary
 Breach
+Bristling Boar
+Bushmaster, Coiled Henchman
 Captain of Umbar
 Cast into Darkness
 Caustic Hound
 Cavalcade of Calamity
+Chandra's Defeat
 Charity Extractor
+Cleaving Skyrider
 Cloud Pirates
 Coma Veil
 Commander's Authority
 Consecrated Sphinx
+Crack Open
 Crash the Ramparts
 Crumbling Ashes
 Cultivator of Blades
@@ -30,6 +41,7 @@ Custodi Lich
 Cutthroat Contender
 Darksteel Axe
 Dauntless River Marshal
+Deal Broker
 Deepcavern Imp
 Deepwater Hypnotist
 Deface
@@ -43,6 +55,7 @@ Dusk Urchins
 Dwarven Armory
 Easterling Vanguard
 Edge of the Divinity
+Elephant Resurgence
 Emerald Dragonfly
 Entomb
 Ephara's Enlightenment
@@ -50,6 +63,7 @@ Evacuation
 Faith Unbroken
 False Demise
 Fear of Death
+Fecundity
 Feral Ferocity
 Feral Thallid
 Festering March
@@ -63,24 +77,34 @@ Furor of the Bitten
 Future Sight
 Gargoyle Sentinel
 Garrison Cat
+Gate to Manorborn
+Gavony Unhallowed
+Ghitu Firebreathing
 Ghost Warden
+Gigantomancer
 Gitaxian Raptor
 Gixian Skullflayer
+Glimmervoid
 Glissa's Courier
+Glitterfang
+Glory Seeker
 Glóin the Mighty
 Goblin Spelunkers
 Goblin Turncoat
 God-Favored General
+Golden Hind
 Gothmog, Morgul Lieutenant
 Great Teacher's Decree
 Haunt of the Dead Marshes
 Hazoret's Monument
 Heavy Infantry
 Hibernation Sliver
+Hissing Quagmire
 Hook Swords
 Horizon Seed
 Impulse
 Inkling Summoning
+Insatiable Appetite
 Into Thin Air
 Island
 Jolted Awake
@@ -97,23 +121,34 @@ Lifecraft Cavalry
 Liliana's Reaver
 Lion Sash
 Loyal Gryff
+Loyal Retainers
 Magnetic Flux
 Malachite Golem
 Malakir Familiar
+Manaforce Mace
+Master of Arms
 Megatherium
+Mesmerizing Benthid
+Migration Path
 Minamo Sightbender
 Mindclaw Shaman
 Mirrorworks
 Mizzium Tank
+Molten Lavamancer
 Mountain
 Mournful Zombie
+Myojin of Life's Web
 Myr Servitor
 Mystic Crusader
 Nephalia Seakite
 Nettle Swine
+Norwood Ranger
 Noxious Hatchling
+Oakhame Ranger
 Ojutai Exemplars
+Omen of the Sun
 One With the Wind
+Orzhov Basilica
 Panic Spellbomb
 Paradise Plume
 Perish
@@ -124,81 +159,112 @@ Pit Scorpion
 Plague Mare
 Plains
 Poisonbelly Ogre
+Precise Strike
 Predatory Hunger
+Primevals' Glorious Rebirth
 Puncture Blast
+Quiet Purity
+Ragefire Hellkite
 Rallying Roar
 Rampaging Aetherhood
+Ravenous Demon
 Relearn
 Render Inert
+Renegade Freighter
 Renegade's Getaway
 Respite
+Ring of Gix
 Riven Turnbull and Princess Lucrezia
 Roar of the Kha
+Rumbling Slum
 Saiba Cryptomancer
+Samut's Sprint
 Scaldkin
 Scare Tactics
 Scattershot
+Scrap Mastery
 Scrapskin Drake
 Seacoast Drake
+Segmented Wurm
 Seluma, Light of Aysen
 Serpentine Curve
 Serum Visionary
+Shadow in the Warp
 Shambling Ghoul
 Shauku's Minion
 Shelter
 Shimmer Myr
 Shrieking Drake
 Shu Farmer
+Sigarda, Heron's Grace
 Siren Reaver
 Snapback
 Snare the Skies
+Sneaking Guide
 Soldevi Sage
 Soulknife Spy
 Soulless One
 Spark Harvest
+Spell Snuff
 Spellrune Painter
 Spined Wurm
+Spiritual Asylum
 Spitfire Handler
 Squash
+Squirrel Mob
 Stalking Bloodsucker
+Steadfastness
 Steamcore Weird
 Stoic Star-Captain
 Stone Idol Generator
 Stunning Shot
+Super Mutant Scavenger
 Suture Spirit
 Swamp
 Sweatworks Brawler
 Tandem Tactics
 Tar Snare
+Terashi's Cry
 Thalia, Heretic Cathar
 That's Rough Buddy
 Thaumaturge's Familiar
 The One Ring
 The Restoration of Eiganjo
 Thriving Rats
+Throne of the God-Pharaoh
 Throttle
 Thunderclap Wyvern
 Tidal Force
 Tidal Visionary
 Tireless Missionaries
+Trade Routes
 Trailblazing Historian
 Tranquil Grove
+Triumph of Ferocity
 Uglúk of the White Hand
 Unbender Tine
 Undercity's Embrace
 Unified Strike
 Unyielding Krumar
+Valiant Guard
 Vedalken Orrery
 Veil of Birds
 Vile Consumption
+Village Bell-Ringer
+Vineshaper Prodigy
+Viridian Joiner
+Viridian Lorebearers
 Viridian Scout
 Virulent Wound
 Vodalian Soldiers
 Voracious Vacuum
+Wall of Razors
 Warren Pilferers
 Wasp Lancer
 Wave of Indifference
+Whirlwind
 Windborne Charge
 Wither and Bloom
 Woebearer
 Wriggling Grub
+X-23, Deadly Weapon

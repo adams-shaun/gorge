@@ -2,6 +2,7 @@ A-Dokuchi Silencer
 A-Eyes of the Beholder
 A-Rockslide Sorcerer
 A-Rulik Mons, Warren Chief
+A-Umara Mystic
 Aerial Assault
 Aethershield Artificer
 Against All Odds
@@ -33,17 +34,20 @@ Caldera Pyremaw
 Castle
 Chain Lightning
 Champion's Helm
+Clackbridge Troll
 Claim the Firstborn
 Cling to Dust
 Cogwork Assembler
 Commissar Severina Raine
 Common Iguana
+Company Commander
 Conclave Guildmage
 Confront the Unknown
 Conservator
 Contagion
 Corpse Knight
 Corrupted Zendikon
+Corrupting Licid
 Cosmos Elixir
 Courier's Capsule
 Crackling Triton
@@ -64,6 +68,7 @@ Eidolon of Rhetoric
 Ekthi, Contaminator Priest
 Enslaved Dwarf
 Erratic Visionary
+Essence Feed
 Essence Warden
 Eternal Witness
 Ethereal Champion
@@ -81,6 +86,7 @@ Fuel for the Cause
 Fungal Sprouting
 Furnace Celebration
 Furnace Hellkite
+Galvanic Iteration
 Gluttonous Zombie
 Goblin Glider
 Goblin Racketeer
@@ -145,6 +151,7 @@ Oblation
 Obscura Initiate
 Oceanus Dragon
 Onulet
+Orcish Bowmasters
 Orim's Touch
 Path of Anger's Flame
 Pennon Blade
@@ -179,6 +186,7 @@ Scuttling Butler
 Searing Barb
 Searing Blood
 Secure the Scene
+Selective Memory
 Sentinel Sliver
 Settle the Score
 Shake the Foundations
@@ -212,6 +220,7 @@ Thrull Retainer
 Thrór's Map
 Thunder Drake
 Thwart the Grave
+Tibor and Lumia
 Titan Hunter
 Titan's Strength
 Topan Freeblade
@@ -234,10 +243,13 @@ Warped Devotion
 Way of the Thief
 Weight of the Underworld
 Welder Automaton
+Well-Laid Plans
+Whack
 Whispering Wizard
 Windgrace Acolyte
 Wirecat
 Wrath of Oko
+Writhing Necromass
 You Look Upon the Tarrasque
 Young Blue Dragon
 Zephyr Falcon
