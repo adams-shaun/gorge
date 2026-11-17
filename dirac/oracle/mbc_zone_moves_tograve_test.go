@@ -34,6 +34,7 @@ import (
 const (
 	konradRepro  = "mbc_zone_moves_10_konrad_mills_a_creature"
 	grizzlyRepro = "mbc_zone_moves_10_grizzly_bottoms_the_top_card"
+	caligoRepro  = "mbc_zone_moves_10_caligo_kicked_over_gemhide"
 )
 
 var konradDecks = [2][]string{
@@ -46,13 +47,30 @@ var grizzlyDecks = [2][]string{
 	deckOf(40, "Mountain"),
 }
 
+// caligoDecks: Rain of Filth's grants, Gemhide Sliver's open production and
+// Caligo Skin-Witch's kicked {4}{B}{B}. The policy holds the Witch for its
+// kicked cast, plays the fifth land, casts the Rain and then the kicked cast:
+// the Gemhide open-production game recorded here. The relaxed
+// census pays (each land's sacrifice grant once beside Gemhide's production);
+// the bounded arm's acceptance itself is pinned by TestKickedOpenCensusOffered.
+var caligoDecks = [2][]string{
+	append(deckOf(4, "Rain of Filth"), append(deckOf(4, "Caligo Skin-Witch"), append(deckOf(4, "Gemhide Sliver"), append(deckOf(14, "Swamp"), deckOf(14, "Forest")...)...)...)...),
+	deckOf(40, "Mountain"),
+}
+
 // mbcZoneCase is one spelling's fixture: its pool half, decks, the card its
 // seat casts, the card whose ability it activates, and the observable the
 // game must reach.
 type mbcZoneCase struct {
 	name, pool, cast, activate string
-	decks                      [2][]string
-	maxTurns, maxDecisions     int
+	// setup and preCast are cast before cast when the open-production pose
+	// needs them (Gemhide Sliver, Rain of Filth); kicked takes the mode-1
+	// action of cast rather than its plain one.
+	setup, preCast         string
+	kicked                 bool
+	landCap                int
+	decks                  [2][]string
+	maxTurns, maxDecisions int
 	// hit reports the game's observable: a count the replay requires > 0.
 	hit func(evs []events.Event, g *state.Game) int
 }
@@ -105,7 +123,70 @@ func mbcZoneCases() []mbcZoneCase {
 				return moved
 			},
 		},
+		{
+			name: caligoRepro, pool: "dr-mbc-bbba", cast: "Caligo Skin-Witch", kicked: true,
+			setup: "Gemhide Sliver", preCast: "Rain of Filth", landCap: 5,
+			decks: caligoDecks, maxTurns: 20, maxDecisions: 600,
+			hit: func(evs []events.Event, g *state.Game) int {
+				// the kicked Caligo cast after Gemhide entered and Rain of Filth
+				// resolved this turn: a Gemhide open-production pose, where the
+				// relaxed census counts each land's sacrifice grant once beside
+				// Gemhide's production. The plain Gemhide and Rain casts carry
+				// no CastInfo (an unflagged cast emits none), so their zone
+				// moves and Resolve are the trace.
+				gemhide, rain, kicked := false, false, 0
+				for i := range evs {
+					e := &evs[i]
+					o := g.Obj(e.Obj)
+					name := ""
+					if o != nil && o.Face() != nil {
+						name = o.Face().Name
+					}
+					switch {
+					case e.Kind == events.TurnChange:
+						rain = false // Rain of Filth's grants end with the turn
+					case e.Kind == events.MoveZone && e.To == state.ZBattlefield && name == "Gemhide Sliver":
+						gemhide = true
+					case e.Kind == events.Resolve && name == "Rain of Filth":
+						rain = gemhide
+					case e.Kind == events.CastInfo && name == "Caligo Skin-Witch" && strings.Contains(e.Counter, "kicked"):
+						if gemhide && rain {
+							kicked++
+						}
+					}
+				}
+				return kicked
+			},
+		},
 	}
+}
+
+// controlledLands counts p's battlefield lands, the cap a case's policy
+// plays to (Gemhide Sliver's open-production pose needs exactly five).
+func controlledLands(g *GorgeSide, p state.PlayerID) int {
+	n := 0
+	for i := range g.E.G.Objs {
+		o := &g.E.G.Objs[i]
+		if o.Zone != state.ZBattlefield || o.Controller != p || o.Face() == nil {
+			continue
+		}
+		switch o.Face().Name {
+		case "Swamp", "Forest", "Island", "Mountain", "Plains":
+			n++
+		}
+	}
+	return n
+}
+
+// hasPermanent reports whether p controls a battlefield permanent named name.
+func hasPermanent(g *GorgeSide, p state.PlayerID, name string) bool {
+	for i := range g.E.G.Objs {
+		o := &g.E.G.Objs[i]
+		if o.Zone == state.ZBattlefield && o.Controller == p && o.Face() != nil && o.Face().Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 // mbcZonePolicy is the scripted-seats' policy: seat 0 casts the case's card,
@@ -123,9 +204,32 @@ func mbcZonePolicy(m *Matchup, c mbcZoneCase) Policy {
 			return out
 		}
 		if p.D.Kind == DPriority && p.D.Player == 0 {
+			// a kicked case takes the mode-1 action of its card: the plain
+			// cast of the same card sorts first and would never show the
+			// open-production arm
 			for _, o := range kindOf(ActCast) {
-				if m.InstanceCard(int(o.Src())) == c.cast {
+				if m.InstanceCard(int(o.Src())) == c.cast && (!c.kicked || o.Mode()&3 == 1) {
 					return o
+				}
+			}
+			// the land drop before the setup: the open-production pose prices
+			// the fifth land beside Gemhide and Rain of Filth's grants, and a
+			// capped case stops at that board.
+			if l := kindOf(ActPlayLand); len(l) > 0 && (c.landCap == 0 || p.G == nil || controlledLands(p.G, p.G.E.G.Players[0].ID) < c.landCap) {
+				return l[0]
+			}
+			if c.setup != "" && (p.G == nil || !hasPermanent(p.G, p.G.E.G.Players[0].ID, c.setup)) {
+				for _, o := range kindOf(ActCast) {
+					if m.InstanceCard(int(o.Src())) == c.setup {
+						return o
+					}
+				}
+			}
+			if c.preCast != "" && (p.G == nil || c.landCap == 0 || controlledLands(p.G, p.G.E.G.Players[0].ID) >= c.landCap) {
+				for _, o := range kindOf(ActCast) {
+					if m.InstanceCard(int(o.Src())) == c.preCast {
+						return o
+					}
 				}
 			}
 			if c.activate != "" {
@@ -134,9 +238,6 @@ func mbcZonePolicy(m *Matchup, c mbcZoneCase) Policy {
 						return o
 					}
 				}
-			}
-			if l := kindOf(ActPlayLand); len(l) > 0 {
-				return l[0]
 			}
 		}
 		if p.D.Kind == DAttackers || p.D.Kind == DBlockers {
