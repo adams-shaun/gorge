@@ -21,7 +21,7 @@ import (
 // fee out: the arm is the unless census's, the shared windowManaUnits
 // withholds the shape as it withholds the choice-shaped plain one beside it.
 func TestWeatherMakerUnlessCtrFee(t *testing.T) {
-	set := cardsettest.Synth(t, "std-tmt")
+	set := cardsettest.Set(t, "ctrfilter")
 	ent := func(names ...string) []cardset.Entry {
 		es := make([]cardset.Entry, len(names))
 		for i, n := range names {

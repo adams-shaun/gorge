@@ -276,11 +276,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			return false, held
 		}
 		if gap {
-			if census && s.ctrCensusOffer(k, p, sl) {
-				s.ctrGap(k, p, sl, -1) // the counters, the use, the mana (ctrGapDo): the census's fee shape
-				continue
-			}
-			if s.windowCtrGapTap(k, p, sl) {
+			if s.windowCtrGapTap(k, p, sl, census) {
 				continue
 			}
 			if a, ok := s.riderAbilityOf(k, sl); ok && (s.scriptTapsDefer(k, p).has(sl) ||

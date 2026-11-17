@@ -228,6 +228,46 @@ func addCtrUnits(av *avail, a *kop.Ability) {
 // answers the window without it, though its activation is offered and the
 // prefix script's steps activate it (ctrDeadGap).
 //
+// windowCtrGapTap pays a counter-cost source the window picked in a gap.
+// The once-each-turn Produced$ Any shape takes the plain {T} first mana
+// ability: gorge's activation ask lists it first (owedAbilitiesFirst prices
+// no colour in a counter-cost shape: AnnouncedAbilityColours is nil for
+// one), so the window's answer takes it and the counters and the
+// once-each-turn use stay (ctrChainTap's first branch); otherwise the
+// counter, the use, the mana. A census walk's (an unless / ward window's
+// probe) counter-fee shape the unless census prices (ctrCensusAb, the pick
+// ctrCensusOffer made) takes the counter activation itself, the plain first
+// ability's tap pricing the census's other alternative only. Reports whether
+// the walk continues past a handled gap.
+//
+//go:noinline
+func (s *State) windowCtrGapTap(k *prep, p uint8, sl Slot, census bool) bool {
+	if !k.ctrMana || !s.scriptCtr(k, p).has(sl) {
+		return false
+	}
+	if census && ctrCensusAb(k.ctrAbOf(s.cardAt(sl))) {
+		s.ctrGap(k, p, sl, -1) // the census's fee shape: the counters, the use, the mana (ctrCensusOffer's pick)
+		return true
+	}
+	if k.ctrSecond(s.cardAt(sl)) {
+		s.ctrAb1(k, p, sl, -1)
+	} else {
+		s.ctrGap(k, p, sl, -1) // the counter, the use, the mana (mana_countercost.go)
+	}
+	return true
+}
+
+func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
+	if !k.ctrMana || !s.scriptCtr(k, p).has(o) {
+		return false
+	}
+	a := k.ctrAbOf(s.cardAt(o))
+	if deadCtrAb(a) {
+		return false
+	}
+	return !decided || uint8(a.ManaColors)&want != 0
+}
+
 // ctrCensusAb reports whether counter-cost ability a is one gorge's unless
 // census prices (rules paid_mana_census.go unlessWindowUnits' SubCounter arm,
 // pay.ManaSubCounterOnlyCost): a bare {T} plus a fixed, source-anchored
@@ -260,46 +300,13 @@ func (s *State) unlessCtrGaps(k *prep, p uint8) bool {
 }
 
 // ctrCensusOffer: slot o is p's activatable counter-cost source the unless
-// census prices (ctrCensusAb). The probe's windowPick answers it with the
-// counter activation itself (windowTapWalk's census arm, ctrGap): the plain
-// first ability's tap prices the census's other alternative, never the fee
-// shape's, so the probe would under-price the fee and offer decline only
-// where gorge offers pay.
+// census prices (ctrCensusAb). The probe's windowPick answers it as a gap and
+// windowCtrGapTap's census arm takes the counter activation itself (ctrGap):
+// the plain first ability's tap prices the census's other alternative, never
+// the fee shape's, so the probe would under-price the fee and offer decline
+// only where gorge offers pay.
 func (s *State) ctrCensusOffer(k *prep, p uint8, o Slot) bool {
 	return k.ctrMana && s.scriptCtr(k, p).has(o) && ctrCensusAb(k.ctrAbOf(s.cardAt(o)))
-}
-
-// windowCtrGapTap pays a counter-cost source the window picked in a gap.
-// The once-each-turn Produced$ Any shape takes the plain {T} first mana
-// ability: gorge's activation ask lists it first (owedAbilitiesFirst prices
-// no colour in a counter-cost shape: AnnouncedAbilityColours is nil for
-// one), so the window's answer takes it and the counters and the
-// once-each-turn use stay (ctrChainTap's first branch); otherwise the
-// counter, the use, the mana. Reports whether the walk continues past a
-// handled gap.
-//
-//go:noinline
-func (s *State) windowCtrGapTap(k *prep, p uint8, sl Slot) bool {
-	if !k.ctrMana || !s.scriptCtr(k, p).has(sl) {
-		return false
-	}
-	if k.ctrSecond(s.cardAt(sl)) {
-		s.ctrAb1(k, p, sl, -1)
-	} else {
-		s.ctrGap(k, p, sl, -1) // the counter, the use, the mana (mana_countercost.go)
-	}
-	return true
-}
-
-func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
-	if !k.ctrMana || !s.scriptCtr(k, p).has(o) {
-		return false
-	}
-	a := k.ctrAbOf(s.cardAt(o))
-	if deadCtrAb(a) {
-		return false
-	}
-	return !decided || uint8(a.ManaColors)&want != 0
 }
 
 // ctrGap activates counter-cost source sl for p: its counters, its use this
