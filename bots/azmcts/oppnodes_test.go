@@ -214,6 +214,9 @@ func TestSearchWithOpponentNodesOnRedealtWorlds(t *testing.T) {
 // world -- returns the uncached Result, its opponent counters included
 // (the stored states carry copies of the opponent's collectors).
 func TestNodeCacheIsExactWithOpponentNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	roots := measureRoots(t, 6)
 	if len(roots) < 4 {
 		t.Fatalf("only %d searchable roots", len(roots))

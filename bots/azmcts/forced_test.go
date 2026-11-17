@@ -280,6 +280,9 @@ func TestValidateForcedK(t *testing.T) {
 // node cache stays exact under them: the forced rule reads only the root's
 // tree statistics, which a cached walk rebuilds identically.
 func TestForcedIsDeterministicAndCacheExact(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	forced := 0
 	for i, r := range measureRoots(t, 4) {
 		run := func(cache int) Result {
