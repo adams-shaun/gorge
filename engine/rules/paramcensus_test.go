@@ -2378,6 +2378,12 @@ var handRoots = struct {
 		// helper, so a caller of the collector root is not reachable FROM
 		// that root and must be declared here -- the AttackRestrict shape.
 		"TapPowerValue": {"Engine.tapPowerValue"},
+		// countersRemainApplies calls activeStatics with the countersRemainMode
+		// constant (the single home of the CountersRemain word) rather than a
+		// literal, and its off-battlefield arm reads the card's own printed
+		// CountersRemain static. Both are the mode's reads; declare the root
+		// so the scan attributes them.
+		"CountersRemain": {"Engine.countersRemainApplies"},
 	},
 	// The trigger-queue drain and the stack-resolution paths read trigger
 	// params (OptionalDecider$, TriggerDescription$, Static$, ValidCard$)

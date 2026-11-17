@@ -29,7 +29,7 @@ func (s *State) moveCounter(k *prep, in *kop.Instr) {
 		return
 	}
 	ps.seeCtr(s)
-	ps.subCtrN(s, kind, n)
+	s.subCtrFire(k, src, kind, n) // trig_counterremoved.go
 	s.touchSl(src)
 	n = s.placeCounters(k, dst, kind, n, s.perms[dst].ctrl, ctrPutEffect) // as OpPutCounter
 
