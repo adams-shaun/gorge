@@ -34,7 +34,7 @@ func (s *State) untapOthers(k *prep) {
 		}
 		if p.ctrLow(int(kop.CtrStun)) > 0 {
 			p.seeCtr(s)
-			p.subCtrN(s, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d; turn.go's rule)
+			s.subCtrFire(k, sl, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d; turn.go's rule)
 			s.touchSl(sl)
 			continue
 		}

@@ -60,7 +60,7 @@ func (s *State) untapSlot(k *prep, sl Slot) {
 	p := &s.perms[sl]
 	if p.flags&pfTapped != 0 && p.ctrLow(int(kop.CtrStun)) > 0 {
 		p.seeCtr(s)
-		p.subCtrN(s, int(kop.CtrStun), 1)
+		s.subCtrFire(k, sl, int(kop.CtrStun), 1)
 		s.touchSl(sl)
 		return
 	}

@@ -55,6 +55,7 @@ var modelledValueHeads = []string{
 	"FatefulHour",
 	"FinishedEndOfTurnsThisTurn",
 	"Foretold",
+	"Freerunning",
 	"Hellbent",
 	"IfCastInOwnMainPhase",
 	"ImprintedSize",

@@ -10,9 +10,16 @@ import (
 // in a SpellCast trigger ("counter that spell": gorge effCounter over the
 // trigger's spell, which must still be on the stack and may be uncounterable)
 // to OpCounter of the trigger object, the spell whose cast triggered it.
-// Every other Defined$ refuses.
+// On a BecomesTarget trigger, Defined$ TriggeredSourceSA counters the spell
+// or ability that targeted the watched permanent (gorge TriggerStack, the
+// kernel queue's trigSA slot; Kira, Great Glass-Spinner). Every other
+// Defined$ refuses.
 func (lc *lowerCtx) counterTriggered(d string) error {
 	tr := lc.ab.Trigger
+	if d == "TriggeredSourceSA" && tr != nil && tr.Event == "BecomesTarget" {
+		lc.emit(lInstr{Op: "Counter", Obj: lRef{Kind: rTriggeredSource}})
+		return nil
+	}
 	if d != "TriggeredSpellAbility" || tr == nil || tr.Event != "SpellCast" {
 		return refuse("Counter Defined$ %q outside a SpellCast trigger", d)
 	}

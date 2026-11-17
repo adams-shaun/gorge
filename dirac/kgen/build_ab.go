@@ -1220,6 +1220,40 @@ func (cb *cardBuilder) trigQualifierFlags(kt *kop.Trigger, t *lTrigger) error {
 	return nil
 }
 
+// playerTriggerFilter builds a BecomesTarget player alternative: an FPlayer
+// chain entry the kernel's player walk matches with castTargetsPlayer,
+// beside the battlefield object clauses.
+func (cb *cardBuilder) playerTriggerFilter(f *lFilter, t *lTrigger, self bool) (kop.FilterID, error) {
+	if t.Event != "BecomesTarget" || !t.PlayerAlt || self {
+		return 0, fmt.Errorf("player filter on a trigger object")
+	}
+	zones := make([]kop.Zone, len(f.Clauses))
+	for i := range zones {
+		zones[i] = kop.ZoneBattlefield
+	}
+	return cb.filterPlayerAlt(f, zones, f.Players)
+}
+
+// counterTriggerN returns the counter kind carried in Trigger.N for the
+// CounterAdded and CounterRemoved trigger families: every kind for the "*"
+// CounterAddedOnce form, else the named kind.
+func counterTriggerN(t *lTrigger) (int16, bool, error) {
+	switch t.Event {
+	case "CounterAddedOnce", "CounterAdded":
+		if t.Step == "*" {
+			return kop.TrigNAnyCounter, true, nil
+		}
+	case "CounterRemoved", "CounterRemovedOnce":
+	default:
+		return 0, false, nil
+	}
+	k, err := counterKind(t.Step)
+	if err != nil {
+		return 0, false, err
+	}
+	return int16(k), true, nil
+}
+
 func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	var kt kop.Trigger
 	ev, ok := eventMap[t.Event]
@@ -1248,40 +1282,44 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			}
 		}
 		if f.Players != 0 {
-			return kt, fmt.Errorf("player filter on a trigger object")
-		}
-		switch {
-		case self && len(f.Clauses) == 0:
-			kt.Flags |= kop.TfSelf
-			if selfCreature && t.Event == "Dies" {
-				// a creature card that may leave as something else (CR 700.4,
-				// Tom, Bert, and William returned as an artifact)
-				kt.Filter, err = cb.filter(&lFilter{Clauses: []lClause{{Types: tCreature}}}, kop.ZoneBattlefield)
-				if err != nil {
-					return kt, err
-				}
+			kt.Filter, err = cb.playerTriggerFilter(&f, t, self)
+			if err != nil {
+				return kt, err
 			}
-		case self:
-			kt.Flags2 |= kop.Tf2SelfOrFilter
-			fallthrough
-		default:
-			if len(f.Clauses) > 0 {
-				zone := kop.ZoneBattlefield
-				if t.Event == "SpellCast" {
-					zone = kop.ZoneStack
-					if t.NthFiltered {
-						zone = kop.ZoneNone // it also tests the earlier pushes, wherever they now live
+		} else {
+			switch {
+			case self && len(f.Clauses) == 0:
+				kt.Flags |= kop.TfSelf
+				if selfCreature && t.Event == "Dies" {
+					// a creature card that may leave as something else (CR 700.4,
+					// Tom, Bert, and William returned as an artifact)
+					kt.Filter, err = cb.filter(&lFilter{Clauses: []lClause{{Types: tCreature}}}, kop.ZoneBattlefield)
+					if err != nil {
+						return kt, err
 					}
 				}
-				if t.Event == "Discarded" || t.Event == "ToGraveyard" {
-					zone = kop.ZoneGraveyard
-				}
-				old := cb.selfCast
-				cb.selfCast = selfCast
-				kt.Filter, err = cb.filter(&f, zone)
-				cb.selfCast = old
-				if err != nil {
-					return kt, err
+			case self:
+				kt.Flags2 |= kop.Tf2SelfOrFilter
+				fallthrough
+			default:
+				if len(f.Clauses) > 0 {
+					zone := kop.ZoneBattlefield
+					if t.Event == "SpellCast" {
+						zone = kop.ZoneStack
+						if t.NthFiltered {
+							zone = kop.ZoneNone // it also tests the earlier pushes, wherever they now live
+						}
+					}
+					if t.Event == "Discarded" || t.Event == "ToGraveyard" {
+						zone = kop.ZoneGraveyard
+					}
+					old := cb.selfCast
+					cb.selfCast = selfCast
+					kt.Filter, err = cb.filter(&f, zone)
+					cb.selfCast = old
+					if err != nil {
+						return kt, err
+					}
 				}
 			}
 		}
@@ -1336,21 +1374,10 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.Event == "ClassLevelGained" {
 		kt.N = int16(kop.CtrLevel)
 	}
-	if t.Step == "*" && (t.Event == "CounterAddedOnce" || t.Event == "CounterAdded") {
-		kt.N = kop.TrigNAnyCounter
-	} else if t.Event == "CounterAddedOnce" || t.Event == "CounterAdded" {
-		k, err := counterKind(t.Step)
-		if err != nil {
-			return kt, err
-		}
-		kt.N = int16(k)
-	}
-	if t.Event == "CounterRemoved" || t.Event == "CounterRemovedOnce" {
-		k, err := counterKind(t.Step)
-		if err != nil {
-			return kt, err
-		}
-		kt.N = int16(k)
+	if n, ok, err := counterTriggerN(t); err != nil {
+		return kt, err
+	} else if ok {
+		kt.N = n
 	}
 	if t.MinAttackers > 0 {
 		kt.N = trigCmpN(t.AtkCmp, t.MinAttackers)
@@ -1439,7 +1466,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			// targeting gorge's per-object count sees (lower_trigger.go)
 			return kt, fmt.Errorf("FirstTime on a gated BecomesTarget")
 		}
-		if !selfPlain && !(t.Watch && (kt.Whose == kop.WhoseOpp || kt.Whose == kop.WhoseAny || t.SrcSpell && kt.Whose == kop.WhoseYou)) {
+		if !selfPlain && !(t.Watch && (kt.Whose == kop.WhoseOpp || kt.Whose == kop.WhoseAny || (t.SrcSpell || t.SrcAbility) && kt.Whose == kop.WhoseYou)) {
 			return kt, fmt.Errorf("BecomesTarget without Valiant")
 		}
 		if t.SrcSpell {
@@ -1452,6 +1479,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 					return kt, err
 				}
 			}
+		}
+		if t.SrcAbility {
+			if !t.Watch || t.SrcSpell {
+				return kt, fmt.Errorf("ability source on a non-watcher BecomesTarget")
+			}
+			kt.N = kop.TrigNSrcAbility
 		}
 		if t.SpellToo {
 			if kt.Flags&kop.TfSelf != 0 {

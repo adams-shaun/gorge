@@ -362,7 +362,12 @@ func (s *State) ctrGapDo(k *prep, p uint8, sl Slot, col int, fire bool) {
 	pm := &s.perms[sl]
 	if a.Cost.Flags&kop.CostRemoveCtr != 0 {
 		pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
-		pm.subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
+		if fire {
+			s.subCtrFire(k, sl, int(a.Cost.Ctr), int(a.Cost.N))
+		} else {
+			// the search's fork-side probe leaves the trigger passes to grantApply
+			pm.subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
+		}
 	} else {
 		n := s.placeCounters(k, sl, int(a.Cost.Ctr), int(a.Cost.N), p, ctrPutCost) // a cost: only the non-EffectOnly$ replacements
 		if n > 0 && k.anyCtrAdded {
@@ -415,7 +420,7 @@ func (s *State) ctrGapDo(k *prep, p uint8, sl Slot, col int, fire bool) {
 func (s *State) ctrDeadGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
 	pm := &s.perms[sl]
 	pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
-	pm.subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
+	s.subCtrFire(k, sl, int(a.Cost.Ctr), int(a.Cost.N))
 	if a.Cost.Flags&kop.CostTap != 0 {
 		pm.flags |= pfTapped // its {T}
 		s.manaTapped(k, sl)
@@ -736,7 +741,7 @@ func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
 	}
 	s.touchSl(sl)
 	pm.seeCtr(s)
-	pm.subCtrN(s, int(a.Cost.Ctr), n)
+	s.subCtrFire(k, sl, int(a.Cost.Ctr), n)
 	col := bits.TrailingZeros8(uint8(a.ManaColors) & 0x3f)
 	s.poolAdd(SeatIx(p), col, n)
 	if taps {

@@ -344,8 +344,8 @@ func (s *State) pushBuild(k *prep) {
 			}
 		}
 	}
-	if e.kind != seSpell && k.gen != nil && (k.gen.anyStackTgt || k.gen.anyWard || k.gen.anyWardGrant) {
-		s.stackSid(e) // a stack-ability target's identity (tgt_stackability.go); a ward trigger's warded ability (wardedIndex)
+	if e.kind != seSpell && k.gen != nil && (k.gen.anyStackTgt || k.gen.anyWard || k.gen.anyWardGrant || s.subs[kop.TrigBecomesTarget].any()) {
+		s.stackSid(e) // a stack-ability target's identity (tgt_stackability.go); a ward trigger's warded ability (wardedIndex); a BecomesTarget TriggeredSourceSA's targeting ability (trig_becomestarget.go)
 	}
 	s.push(*e)
 	s.bld().bfl |= bflPushed
@@ -1995,8 +1995,17 @@ func (s *State) castTrigVanilla(k *prep, ls Slot, e *stackEntry) {
 // targetedOne is one target code t of entry e chosen: its BecomesTarget
 // triggers, then the ward of a permanent its controller does not control.
 func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
+	if isPlayerTarget(t) {
+		// A player target's BecomesTarget watchers (gorge's TargetsChosen
+		// player half: ValidTarget$ You/Player/Opponent beside a permanent
+		// list). The object walk below never reaches it, so it has its own.
+		if k.gen != nil && s.subs[kop.TrigBecomesTarget].any() {
+			s.becameTargetPlayer(k, t, e) // trig_becomestarget.go
+		}
+		return
+	}
 	if !isObjTarget(t) {
-		return // a player, or a stack ability (tgt_stackability.go)
+		return // a stack ability (tgt_stackability.go)
 	}
 	ob := &s.objs[t]
 	if ob.zone != kop.ZoneBattlefield {
@@ -2194,11 +2203,17 @@ func (s *State) takePending(k *prep, i int) {
 	// resolves doing nothing to the new object (CR 400.7: resolveDelayed and
 	// resolveTrig check the version), as gorge's resolveTop does.
 	*s.bld() = build{e: stackEntry{kind: seTrigger, obj: pt.obj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl,
-		trigObj: pt.trigObj, trigPl: pt.trigPl, trigAmt: pt.trigAmt, li: pt.li, remVer: pt.remVer, remSet: pt.skw&skwRem != 0, x: pt.x, trigMV: pt.trigMV, grp: pt.grp, skw: pt.skw &^ (skwRem | skwMany), defSeat: pt.defSeat}}
+		trigObj: pt.trigObj, trigPl: pt.trigPl, trigSA: pt.trigSA, trigSASid: pt.wardSid, trigAmt: pt.trigAmt, li: pt.li, remVer: pt.remVer, remSet: pt.skw&skwRem != 0, x: pt.x, trigMV: pt.trigMV, grp: pt.grp, skw: pt.skw &^ (skwRem | skwMany), defSeat: pt.defSeat}}
 	if pt.skw&skwMany != 0 {
 		s.dpManyVers(&s.bld().e)
 	}
 	s.bld().e.tgt = noTargets
+	if pt.trigSA != 0 {
+		// a BecomesTarget player half's targeted seat rides defSeat while
+		// pending (pendingTrig); it is a trigger referent, not an attack
+		// trigger's defender
+		s.bld().e.btPl = pt.defSeat
+	}
 	if pt.ab == abWard && pt.wardSid != 0 {
 		// the ability this ward trigger answers, by the identity captured when
 		// checkWard queued it: a sibling ward may counter it first, and a newer
