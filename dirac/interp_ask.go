@@ -242,6 +242,9 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if l := kop.PayManaLife(life); l != 0 && int(s.pl[SeatIx(p)].life) < l {
 		return false
 	}
+	if s.caPotentialOpen(k, p) {
+		return true // Sage of the Maze: gorge's potential walk prices a Combo Any production unbounded in every colour (mana_comboany.go)
+	}
 	other := payDesc{class: pdOther, subBound: true}
 	if !s.anyDifferentOpen(k, p) && !s.anyManaSource(k, p, &other) {
 		return false
