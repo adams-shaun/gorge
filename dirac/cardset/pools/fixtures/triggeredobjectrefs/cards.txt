@@ -1,0 +1,16 @@
+# the Defined$ Triggered* object-reference pool (dirac/kgen/lower_trigrefs.go):
+# the damage, BecomesTarget and Blocks carriers of TriggeredSourceController,
+# TriggeredTarget(LKICopy) and TriggeredBlocker, for the oracle's lockstep
+# (dirac/oracle/triggeredobjectrefs_lockstep_test.go)
+Phyrexian Obliterator
+Belltower Sphinx
+Charisma
+Cloud Cover
+Sword of Kaldra
+Ferocity
+Grizzly Bears
+Plains
+Island
+Swamp
+Mountain
+Forest
