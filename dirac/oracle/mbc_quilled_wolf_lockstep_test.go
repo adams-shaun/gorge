@@ -9,7 +9,7 @@ const shrineTapSacDynamicRepro = "shrine_of_boundless_growth_tap_sac_dynamic_man
 // source gorge's potential planner activates while paying, so gorge offers a
 // six-mana activation (Quilled Wolf's {5}{G}) that four Forests, a Plains and
 // the Shrine pay. The kernel's varPC variants now carry the {T}, sacrifice
-// cost for an activated-ability offer (availDynSac), as they carry a bare {T}
+// cost for an activated-ability offer (avail.dynSac), as they carry a bare {T}
 // (tail-34 pair 7, autopay, decision 362).
 func TestMBCQuilledWolfReprosLockstep(t *testing.T) {
 	t.Parallel()
