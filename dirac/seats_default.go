@@ -81,8 +81,11 @@ type xtMask = uint8
 const embRemSlots = 4
 
 // linkPadN pads genState after its sixteen exile-until-leaves links so perms
-// keeps its cache-line phase (statelayout_test.go).
-const linkPadN = 16
+// keeps its cache-line phase (statelayout_test.go). It pays for the
+// BecomesTarget player/source referent bytes (stackEntry.btPl, trigSA,
+// trigSASid; pendingTrig.defSeat/trigSA reuse existing bytes): the pad grows
+// to 40 so the net State growth stays 64-byte aligned.
+const linkPadN = 40
 
 // seatWord is a packed field holding a few bits per seat beside its other
 // bits (genState.speed, genState.freeP): a byte at two seats.
