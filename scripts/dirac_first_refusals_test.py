@@ -118,6 +118,96 @@ class TestWriteEvidencePools(unittest.TestCase):
         self.assertEqual(cm.exception.code, 1)
         self.assertEqual(self.snapshot(), before, "an unfinished pool must change nothing")
 
+    def pool_p(self, branch_rows, casts=(3, 0, 0, 0)):
+        """A pool "p" with four passing runs; run i's coverage holds X with casts[i] casts (zero
+        leaves it out), and only the first run's branches hold branch_rows."""
+        i = 0
+        for surface in ("autopay", "full"):
+            for m in (0, 1):
+                form = f"{surface}.m{m}"
+                stem = os.path.join(self.out, f"p.{form}")
+                with open(stem + ".rc", "w") as f:
+                    f.write("0\n")
+                with open(stem + ".coverage", "w") as f:
+                    f.write("card\tcast\tland\tkeys_used\tkeys_total\tunused_keys\n")
+                    if casts[i]:
+                        f.write(f"X\t{casts[i]}\t0\t2\t2\t\n")
+                with open(stem + ".branches", "w") as f:
+                    f.write("card\tkey\tuses\towed\n")
+                    if i == 0:
+                        f.write("".join(f"X\t{r}\n" for r in branch_rows))
+                with open(stem + ".out", "w") as f:
+                    f.write(verdict_line("p", 20) + "\n")
+                i += 1
+
+    def keys_file(self, pool):
+        with open(os.path.join(self.top, "dirac/support/evidence-keys", pool + ".tsv")) as f:
+            return f.read()
+
+    def test_sidecar_written_beside_list(self):
+        self.pool_p(["f0/s\t3\t1", "ix:resp\t0\t1"])
+        lir = os.path.join(self.tmp.name, "lir.tsv")
+        with open(lir, "w") as f:
+            f.write("X\t0123456789abcdef\n")
+        os.environ["DFR_LIR_KEYS"] = lir
+        self.addCleanup(os.environ.pop, "DFR_LIR_KEYS", None)
+        self.write(["p"])
+        self.assertEqual(self.list_bytes("p"), b"X\n")
+        self.assertEqual(self.keys_file("p"),
+                         "card\tlir16\tplays\tkeys\tunused\tbranches\tmissing_branches\n"
+                         "X\t0123456789abcdef\t3\t2/2\t\t1/2\tix:resp\n")
+        # A card already in the sidecar keeps its row byte for byte, whatever a later run says.
+        with open(lir, "w") as f:
+            f.write("X\tfedcba9876543210\n")
+        self.write(["p"])
+        self.assertIn("0123456789abcdef", self.keys_file("p"))
+        self.assertNotIn("fedcba9876543210", self.keys_file("p"))
+
+    def test_sidecar_row_refreshed_when_a_card_is_regained(self):
+        """A dirty whole-corpus round deletes the pool's list but leaves its sidecar; the next clean
+        round re-gains the card, which must get the current row, not the pre-deletion one."""
+        lir = os.path.join(self.tmp.name, "lir.tsv")
+        with open(lir, "w") as f:
+            f.write("X\t0123456789abcdef\n")
+        os.environ["DFR_LIR_KEYS"] = lir
+        self.addCleanup(os.environ.pop, "DFR_LIR_KEYS", None)
+        self.pool_p(["f0/s\t3\t1", "ix:resp\t0\t1"], casts=(3, 3, 3, 3))
+        self.write(["p"])
+        self.assertIn("\t12\t", self.keys_file("p"))
+        with open(os.path.join(self.out, "p.full.m0.rc"), "w") as f:
+            f.write("1\n")
+        self.write()
+        self.assertFalse(os.path.exists(os.path.join(self.top, "dirac/support/evidence/p.txt")),
+                         "the dirty round removes the pool's list")
+        self.assertIn("\t12\t", self.keys_file("p"), "the dirty round leaves the old sidecar")
+        with open(os.path.join(self.out, "p.full.m0.rc"), "w") as f:
+            f.write("0\n")
+        for surface in ("autopay", "full"):
+            for m in (0, 1):
+                with open(os.path.join(self.out, f"p.{surface}.m{m}.coverage"), "w") as f:
+                    f.write("card\tcast\tland\tkeys_used\tkeys_total\tunused_keys\nX\t5\t0\t2\t2\t\n")
+        with open(lir, "w") as f:
+            f.write("X\tfedcba9876543210\n")
+        self.write()
+        self.assertEqual(self.keys_file("p"),
+                         "card\tlir16\tplays\tkeys\tunused\tbranches\tmissing_branches\n"
+                         "X\tfedcba9876543210\t20\t2/2\t\t1/2\tix:resp\n")
+
+    def test_lir_failure_without_pools_changes_nothing(self):
+        """The whole-corpus write computes the sidecars before removing any list: a key lookup that
+        fails must leave the evidence corpus alone, as the docstring promises."""
+        os.environ.pop("DFR_LIR_KEYS", None)
+        os.makedirs(os.path.join(self.top, "bin"))
+        kgen = os.path.join(self.top, "bin", "kgen")
+        with open(kgen, "w") as f:
+            f.write("#!/bin/sh\nexit 1\n")
+        os.chmod(kgen, 0o755)
+        before = self.snapshot()
+        with self.assertRaises(SystemExit) as cm:
+            self.write()
+        self.assertEqual(cm.exception.code, 1)
+        self.assertEqual(self.snapshot(), before, "a failed key lookup must change nothing")
+
     def test_without_pools_rewrites_everything(self):
         """The old behaviour, kept for settle: dirty pools lose their list, clean ones are rebuilt
         from the whole corpus, every tsv row is rewritten."""
