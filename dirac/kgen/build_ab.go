@@ -1413,6 +1413,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		// a watcher (opponent-source gated or not) or the plain self form
 		// (TfSelf, no gate: "becomes the target of a spell or ability")
 		selfPlain := !t.Watch && kt.Flags&kop.TfSelf != 0 && kt.Whose == kop.WhoseAny
+		if t.First && !selfPlain {
+			// the Tf2FirstTime latch (trig_counterfirst.go) is keyed on the
+			// trigger object; only the ungated self line queues on every
+			// targeting gorge's per-object count sees (lower_trigger.go)
+			return kt, fmt.Errorf("FirstTime on a gated BecomesTarget")
+		}
 		if !selfPlain && !(t.Watch && (kt.Whose == kop.WhoseOpp || kt.Whose == kop.WhoseAny || t.SrcSpell && kt.Whose == kop.WhoseYou)) {
 			return kt, fmt.Errorf("BecomesTarget without Valiant")
 		}

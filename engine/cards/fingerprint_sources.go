@@ -105,6 +105,7 @@ import "embed"
 //go:embed kw_saddle.go
 //go:embed kw_scavenge.go
 //go:embed kw_soulbond.go
+//go:embed kw_soulshift.go
 //go:embed kw_squad.go
 //go:embed kw_storm.go
 //go:embed kw_sunburst.go

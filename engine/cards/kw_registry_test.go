@@ -174,6 +174,10 @@ var expandedHeads = []string{
 	// optional dies trigger moving the last-known count to a target artifact
 	// creature (engine/cards/kw_modular.go). Added after the split.
 	"Modular",
+	// Soulshift (CR 702.46a): an optional dies trigger returning a Spirit card
+	// with mana value N or less from the graveyard to hand
+	// (engine/cards/kw_soulshift.go). Added after the split.
+	"Soulshift",
 	// Reinforce (CR 702.77a): a hand-zone discard-for-counters activation
 	// (engine/cards/kw_reinforce.go). Added after the split.
 	"Reinforce",

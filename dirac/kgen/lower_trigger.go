@@ -896,10 +896,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				}
 				alts = append(alts, a)
 			}
-			if len(alts) != 1 {
+			if len(alts) == 0 {
 				return refuse("BecomesTarget shape")
 			}
-			if tr.F, err = lc.filter(alts[0]); err != nil {
+			if tr.F, err = lc.btTargetList(alts); err != nil { // lower_bt_source.go
 				return err
 			}
 			tr.Whose = whoOpp
@@ -910,25 +910,32 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return err
 			}
 		case tp.str("ValidSource") == "" && tp.str("ValidTarget") == "Card.Self" &&
-			!tp.is("Ward", "True") && !tp.is("Valiant", "True") && !tp.is("FirstTime", "True"):
+			!tp.is("Ward", "True") && !tp.is("Valiant", "True"):
 			// "Whenever this becomes the target of a spell or ability" with
 			// no source restriction (CR 603.2; gorge becomesTargetMatches
 			// with ValidTarget$ Card.Self and no ValidSource$): every
 			// TargetsChosen naming the permanent fires it, its controller's
 			// own included. A TfSelf line with no Whose gate: the kernel's
 			// becameTarget fires it through the plain per-object walk
-			// (fireObjGen), no opponent gate.
+			// (fireObjGen), no opponent gate. FirstTime$ True is this
+			// shape's once-a-turn rider (btSelfFirstTime); any other shape
+			// carrying it falls to the default refuse.
 			tr.F = &lFilter{Clauses: []lClause{{Flags: fSelf}}}
+			if err := btSelfFirstTime(tp, tr); err != nil { // lower_bt_source.go
+				return err
+			}
 		case tp.str("ValidSource") == "" && tp.str("ValidTarget") != "" &&
-			!strings.Contains(tp.str("ValidTarget"), "Card.Self") && !strings.Contains(tp.str("ValidTarget"), ",") &&
+			!strings.Contains(tp.str("ValidTarget"), "Card.Self") &&
 			!tp.is("Ward", "True") && !tp.is("Valiant", "True") && !tp.is("FirstTime", "True"):
 			// the watcher with no source restriction (Daru Spiritualist:
 			// "whenever a Cleric creature you control becomes the target of
 			// a spell or ability"): the opponent-source watcher's arm
 			// without its Whose gate; one trigger per matching chosen
 			// target, the targeted permanent as the trigger object
-			// (gorge becomesTargetReferent)
-			if tr.F, err = lc.filter(tp.str("ValidTarget")); err != nil {
+			// (gorge becomesTargetReferent). ValidTarget$ may be a comma
+			// list of permanent filters: the OR of the alternatives (gorge
+			// matches the whole ValidTarget$ against each chosen target).
+			if tr.F, err = lc.btTargetList(strings.Split(tp.str("ValidTarget"), ",")); err != nil { // lower_bt_source.go
 				return err
 			}
 			tr.Watch = true
