@@ -13,6 +13,8 @@ import "testing"
 // it dropped the trigger the kernel pushed. The recording is the first
 // divergence of dr-mbc-bbaa pair 86: projection NStack at decision 362, gorge
 // leading, on the autopay surface.
+// The recording is pooled custom (the table its own decks need): the dr-mbc
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCCastLedgerPhasedOutSpellReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "mbc_cast_ledger_phased_out_spell")

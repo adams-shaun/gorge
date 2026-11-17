@@ -9,6 +9,8 @@ import "testing"
 // kernel once counted the evaluated amount as that many mana of any one
 // colour and offered the activation gorge withholds (decision 367 of the
 // tail-42 autopay game, pair 2).
+// The recording is pooled custom (the table its own decks need): the synthetic
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCDauthiEmbraceReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "dyn_restricted_mana_keeps_its_colours")
