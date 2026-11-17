@@ -453,6 +453,9 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 	ob.zone = kop.ZoneBattlefield
 	ob.slot = sl
 	ob.ver++
+	if k.gen != nil && k.gen.anySrcMem {
+		s.impEnter(o) // zone_imprint.go: gorge clears the kept Imprinted list at the next entry
+	}
 	s.g.dmgTurn.clr(o) // entering is a new object (CR 400.7); gorge clears WasDealtDamageThisTurn here, phases keep it (kw_phasing.go phaseIn)
 	if k.anyRoom {
 		s.roomEnter(k, o, from) // a Room's doors as it enters (face_rooms.go)

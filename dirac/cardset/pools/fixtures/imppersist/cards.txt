@@ -1,0 +1,17 @@
+# the Imprinted-on-the-source pool: Dino DNA's second ability reads the card
+# its first one exiled, Journey to the Lost City and Sivriss, Nightmare
+# Speaker write without a same-chain unconditional clear, and Naturalize
+# makes the source leave (the kept list survives the departure and is cleared
+# at the next battlefield entry), for the oracle's constructed lockstep
+# (dirac/oracle/imppersist_test.go)
+Dino DNA
+Journey to the Lost City
+Sivriss, Nightmare Speaker
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Murder
+Naturalize
+Forest
+Mountain
+Swamp
