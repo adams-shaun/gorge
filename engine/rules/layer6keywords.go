@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -47,18 +48,18 @@ func (e *Engine) EffectiveKeywords() []effects.ObjectKeywords {
 // battlefield object nested, as Derived documents is allowed, and leaves out
 // the objects whose own walk is in progress, which keep the printed read (the
 // walk cannot re-enter them). Same order and entries as EffectiveKeywords.
-func (e *Engine) effectiveKeywordsInWalk() []effects.ObjectKeywords {
+func effectiveKeywordsInWalk(g *state.Game, s *chars.Scratch, d interface{ Derived(state.ObjID) Derived }) []effects.ObjectKeywords {
 	var out []effects.ObjectKeywords
-	for _, p := range e.G.AliveFrom(0) {
-		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			o := e.G.Obj(id)
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			o := g.Obj(id)
 			if o == nil || o.Face() == nil {
 				continue
 			}
-			if _, busy := e.charsWalk.InProgress(id); busy {
+			if _, busy := s.InProgress(id); busy {
 				continue
 			}
-			derived := e.Derived(id).Keywords
+			derived := d.Derived(id).Keywords
 			if keywordsMatchPrinted(o, derived) {
 				continue
 			}
