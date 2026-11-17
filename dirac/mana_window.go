@@ -1949,6 +1949,9 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 			return 0
 		}
 		off, c = 1, c-1
+	} else if s.restrCensusTapsGapShape(k, sl) {
+		a := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab]
+		mask = uint8(a.ManaColors & kop.ColAny)
 	} else if a, ok := s.riderAbilityOf(k, sl); ok {
 		mask = uint8(a.ManaColors)
 	} else {
