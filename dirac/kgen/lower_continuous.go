@@ -205,6 +205,14 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, nil
 	}
 	if sp.is("CharacteristicDefining", "True") {
+		folded, err := lc.cdaColorType(sp, st, aff) // lower_cdacolortype.go
+		if err != nil {
+			return nil, err
+		}
+		if _, p := sp.m["SetPower"]; folded && !p && sp.m["SetToughness"] == "" {
+			st.Kind = "" // the printed record carries it: lower to nothing
+			return nil, nil
+		}
 		// gorge CDASetPT: SetPower$/SetToughness$ each set its half; a
 		// missing half keeps the printed value (the "*/4" cards)
 		pw, tg, _ := strings.Cut(lc.face.PT, "/")
