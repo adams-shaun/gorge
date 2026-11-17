@@ -14,15 +14,12 @@ import (
 // same way; the value is the reason a kind that is not open yet refuses ("" =
 // open). A kind absent from the map has no kernel reader at all.
 //
-// NoMaxHandSize (Nerd Rage's "You have no maximum hand size") has its kernel
-// reader (maxHand) but stays closed: gorge's maxHandSizeFor
-// (engine/rules/combat.go) walks the printed Continuous statics and the
-// Effect-delivered ones and never a granted one, so an enchanted creature's
-// controller keeps a maximum of seven in gorge where the rules (and the
-// kernel) give none. Gorge leads; the lockstep would diverge on the cleanup
-// discard. Open it (set "") with the engine fix.
+// NoMaxHandSize (Nerd Rage's "You have no maximum hand size") is open: the
+// kernel reader (maxHand) walks eachStaticG, and gorge's maxHandSizeFor
+// (engine/rules/combat.go) reads the AddStaticAbility$ grant's inner
+// SetMaxHandSize$ against the recipient's controller.
 var grantedStaticKinds = map[string]string{
-	"NoMaxHandSize": "gorge's maxHandSizeFor never reads a granted static (an enchanted creature's controller keeps a maximum of seven)",
+	"NoMaxHandSize": "",
 	// RaiseCost: raiseCostGen and the target-dependent raise walks read it per
 	// recipient (a generic raise only: grantedRaiseShape refuses the rest).
 	"RaiseCost": "",
