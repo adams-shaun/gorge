@@ -29,6 +29,57 @@ func (s *State) sameNameT0(sl Slot, other bool) bool {
 	return n != NoCard && n == s.nameCardAt(sl)
 }
 
+// predSameNameCard is the card matcher's sharesNameWith arm: Remembered
+// reads the remembered set, Self the reading source's current name (Marvin,
+// Murderous Mimic) with PredN 1 as the ordinary ! negation.
+func (s *State) predSameNameCard(fl *kop.Filter, c CardID, o Obj, fd bool, ctx *evalCtx) bool {
+	if fl.Pred == kop.PredSameNameRem {
+		return s.sharesNameRem(o, c, fd)
+	}
+	cx := s.ctxCur()
+	if ctx != nil {
+		cx = *ctx
+	}
+	return s.sharesNameSelf(cx.srcSl, cx.src, NoSlot, c, o, fd, fl.PredN == 1)
+}
+
+// sharesNameSelf is PredSameNameSelf (gorge sharesNameWith Self): the
+// candidate's current name equals the reading source's current name. The
+// source is a battlefield permanent at src, or its object srcObj when it has
+// no slot (a source still on the stack); the candidate is a permanent at sl,
+// or the card c at object o. The name identity is sharesNameRem's: a
+// battlefield permanent reads its layer-3 name (nameCardAt), anything else
+// its card. A face-down candidate has no name (CR 708.2); neg is the
+// ordinary ! negation.
+func (s *State) sharesNameSelf(src Slot, srcObj Obj, sl Slot, c CardID, o Obj, fd, neg bool) bool {
+	sn := NoCard
+	if src != NoSlot {
+		sn = s.nameCardAt(src)
+	} else if srcObj != NoObj {
+		sn = s.objName(srcObj)
+	}
+	cn := c
+	if sl != NoSlot {
+		cn = s.nameCardAt(sl)
+	} else if o != NoObj {
+		cn = s.objName(o)
+	}
+	eq := !fd && cn != NoCard && sn != NoCard && cn == sn
+	if neg {
+		return !eq
+	}
+	return eq
+}
+
+// objName is o's current name card: its layer-3 name (nameCardAt) on the
+// battlefield, else its card.
+func (s *State) objName(o Obj) CardID {
+	if s.objs[o].zone == kop.ZoneBattlefield {
+		return s.nameCardAt(s.objs[o].slot)
+	}
+	return s.objs[o].card
+}
+
 // sameNameT0Card is PredSameNameT0 for the card c at object o off the
 // battlefield (gorge's "TargetedCard.Self,Card.NotDefinedTargeted+
 // sharesNameWith Targeted" over a graveyard: Rat King, Verminister): the

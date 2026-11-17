@@ -56,7 +56,7 @@ func (s *State) discover(k *prep, in *kop.Instr) {
 		s.objs[o].zone = kop.ZoneNone
 		s.placeFrom(o, kop.ZoneExile, false, kop.ZoneLibrary, false)
 		pc := &k.cards[s.objs[o].card]
-		if !pc.land && int(pc.total) <= n {
+		if !pc.land && s.splitMV(k, s.objs[o].card, o, int(pc.total)) <= n { // CR 709.4b: the exiled split card shows both halves
 			found = o
 			break
 		}

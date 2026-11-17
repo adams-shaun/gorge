@@ -75,7 +75,7 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		if pips == kop.PayBSubBlight {
 			return s.countPermMatch(k, p, f, s.resSrcSlot(k), false) >= 1 // a Blight: one creature, source included
 		}
-		return s.countSac(k, p, f, s.resSrcSlot(k)) >= amt // "another": not the source
+		return s.countSac(k, p, f, s.resSrcSlot(k)) >= amt && s.sacRidersPayable(p, pips) // "another": not the source; an UnlessCost$ with life and draw riders (cost_unlesssacriders.go)
 	case kop.PayLife:
 		return int(s.pl[p].life) >= amt
 	case kop.PayEnergy:
@@ -242,7 +242,7 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if l := kop.PayManaLife(life); l != 0 && int(s.pl[SeatIx(p)].life) < l {
 		return false
 	}
-	other := payDesc{class: pdOther}
+	other := payDesc{class: pdOther, subBound: true}
 	if !s.anyDifferentOpen(k, p) && !s.anyManaSource(k, p, &other) {
 		return false
 	}
@@ -276,6 +276,9 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 		pc := s.manaPCGen(k, sl)
 		if s.canTapForManaPC(k, sl, pc) || k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc) {
 			return true
+		}
+		if s.storeSourceCounts(k, p, sl) {
+			return true // a storage battery holding counters (mana_storesource.go)
 		}
 		if s.riderPotential(k, p, sl) {
 			return true // a bounded rider source: gorge's untappedManaSourceFor counts its activation (CR 605.3b)
@@ -736,6 +739,7 @@ func (s *State) autoPayPick(k *prep) bool {
 		s.g.pickLeft = 0 // exactly the candidates owed: gorge records them unasked (pay/unlessflow.go AdvanceUnless); nothing moves
 		return true
 	}
+	s.payRidersLife(k) // life before the sacrifices (cost_unlesssacriders.go)
 	objs := d.Options[:d.N]
 	for i := 1; i < len(objs); i++ { // battlefield (entry) order
 		for j := i; j > 0; j-- {
@@ -1477,6 +1481,9 @@ func (s *State) payDone(k *prep, paid bool) {
 			s.exileStackSelf(k) // ExileFromStack<1/Card.Self> (cost_exilestack.go)
 		}
 		s.chainCharge(k) // the mana half of a mana-and-exile cost (cost_exilepool.go)
+	}
+	if paid && s.g.pickZ == kop.PaySac {
+		s.payRidersDraw(k) // an UnlessCost$ Sac beside a draw (cost_unlesssacriders.go)
 	}
 	skip := uint8(0)
 	if (f&pfIfPaid != 0) != paid {

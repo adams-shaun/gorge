@@ -89,13 +89,22 @@ func phyPlanHalf(cost kop.ManaCost) kop.ManaCost {
 
 // phyCastGateAffords is the offer gate's affordability read for p's cast of
 // card c at cost over cav: the printed cost when its own is affordable, else
-// — for a Phyrexian cost — the pip-free mana half alone, gorge pay.PlanManaHalf
-// (each pip's face is announced afterwards, CR 601.2b). A pip behind the
-// payer's life total (its two-life face above it, its colour face left
-// unfundable by the census the planner's lethal guard holds the pain out of)
-// does not withhold a plain cast the planner prices (dr-mbc-baab pair 141,
-// Porcelain Legionnaire at 1 life).
-func (s *State) phyCastGateAffords(cav *avail, cost *kop.ManaCost) bool {
+// — for a Phyrexian cost — the cost again over the cast window's census
+// (availCastWindowFor, availWinCol) when the pip-free mana half, gorge
+// pay.PlanManaHalf, is affordable at all (CR 601.2b: each pip's face is
+// announced afterwards, so the offer prices the whole cost with the
+// assignment the announcement will find).
+//
+// CR 107.4f / CR 119.4 bound a two-life face by the payer's life (the
+// affordsTb guard), so at 1 life every pip must be paid with its colour. A
+// colour face is still payable from a damage-painful source the offer
+// census holds out at 1 life — paying the pain is legal, if lethal — and the
+// window's census counts it (dr-mbc-baab pair 141, Porcelain Legionnaire at
+// 1 life). The pip-free half alone is not enough: a cost whose pips need
+// colour units the census does not have withholds the cast even when its
+// generic half is affordable (phyact seed 510, Moltensteel Dragon's two
+// {R/P} at 1 life from three Mountains and an Island).
+func (s *State) phyCastGateAffords(k *prep, p uint8, cav *avail, cost *kop.ManaCost) bool {
 	if cav.affords(cost, pipMaskOf(cost), 0) {
 		return true
 	}
@@ -103,7 +112,15 @@ func (s *State) phyCastGateAffords(cav *avail, cost *kop.ManaCost) bool {
 		return false
 	}
 	h := phyPlanHalf(*cost)
-	return cav.affords(&h, pipMaskOf(&h), 0)
+	if !cav.affords(&h, pipMaskOf(&h), 0) {
+		return false
+	}
+	if !k.painMana {
+		return false // no damage-painful source the offer census dropped
+	}
+	var w avail
+	s.availCastWindowFor(k, p, &w)
+	return w.affords(cost, pipMaskOf(cost), 0)
 }
 
 // phyAbilityMana pays a Phyrexian activation: the plan for the cost its pips
@@ -198,13 +215,18 @@ var DebugNoPhyrexianLife bool
 // unit through the script route (Hall of Tagsin's "{1}, {T}: Add one mana of
 // any color"), so the gate counts what av carries, gap units included.
 //
+// A storage battery (Subterranean Hangar) is a census gap, but its live
+// counters are real mana and the planner prices them (mana_countercost.go
+// storeGap): the real offer's gate reads them beside the plain units, or a
+// second activation its counters pay is withheld (pair 149). The plain
+// probes (availPlain: plainOptions and the other probe walks, which model
+// gorge's planner) read without them — the planner reaches a battery only
+// through the script route, so a play its probes list runs unscripted and
+// the battery is never activated (pair 149).
+//
 //go:noinline
 func (s *State) phyActAffords(k *prep, sl Slot, a *kop.Ability, p uint8, c kop.ManaCost, av *avail) bool {
-	// A storage battery (Subterranean Hangar) is a census gap, but its live
-	// counters are real mana and the planner prices them (mana_countercost.go
-	// storeGap): the gate reads them beside the plain units, or a second
-	// activation its counters pay is withheld (pair 149).
-	if k.gen != nil {
+	if k.gen != nil && s.g.availX&availPlain == 0 {
 		var store avail
 		store = *av
 		if s.phyStoreUnits(k, p, &store) {

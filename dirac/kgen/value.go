@@ -80,6 +80,10 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 		}
 		return lValue{}, fmt.Errorf("amount %q names no SVar", raw)
 	}
+	if v, sok := lc.srcRemValue(body); sok { // a token's CDA reads its remembered creator (lower_tokenrem.go)
+		v.Neg = neg
+		return v, nil
+	}
 	v, err := lc.svarValue(body, 0)
 	if err != nil {
 		return lValue{}, fmt.Errorf("SVar %s=%q: %w", raw, body, err)
@@ -782,29 +786,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		}
 		err = fmt.Errorf("Remembered$%s", rest)
 	case "Imprinted":
-		if rest == "Amount" {
-			// the size of the set the writer filled: DigUntil ImprintFound$
-			// accumulates the found cards in the chosen set (Demonlord
-			// Belzenlok), a Dig Imprint$ in the imprinted one
-			ref := rImprinted
-			if lc.digImprintChosen {
-				ref = rChosen
-			}
-			v = lValue{Kind: vRefCount, Ref: lRef{Kind: ref}}
-			break
-		}
-		if spec, ok := strings.CutPrefix(rest, "Valid "); ok {
-			// gorge evalRefProperty Valid over the imprinted set where the
-			// objects now are (kernel countRefMatches); Tainted Pact's
-			// CheckName (Imprinted$Valid Card.sharesNameWith Remembered)
-			f, ferr := lc.filter(spec)
-			if ferr != nil {
-				return lValue{}, ferr
-			}
-			v = lValue{Kind: vRefCount, Ref: lRef{Kind: rImprinted}, F: f}
-			break
-		}
-		err = fmt.Errorf("Imprinted$%s", rest)
+		v, err = lc.imprintedValue(rest)
 	default:
 		err = fmt.Errorf("value head %s$", head)
 	}
@@ -817,6 +799,41 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		}
 	}
 	return v, nil
+}
+
+// imprintedValue reads the Imprinted$ head: the set's size (Amount), its
+// members matching a spec where they now are (Valid), or the head card's
+// power and toughness (CardPower/CardToughness).
+func (lc *lowerCtx) imprintedValue(rest string) (lValue, error) {
+	if rest == "Amount" {
+		// the size of the set the writer filled: DigUntil ImprintFound$
+		// accumulates the found cards in the chosen set (Demonlord
+		// Belzenlok), a Dig Imprint$ in the imprinted one
+		ref := rImprinted
+		if lc.digImprintChosen {
+			ref = rChosen
+		}
+		return lValue{Kind: vRefCount, Ref: lRef{Kind: ref}}, nil
+	}
+	if spec, ok := strings.CutPrefix(rest, "Valid "); ok {
+		// gorge evalRefProperty Valid over the imprinted set where the
+		// objects now are (kernel countRefMatches); Tainted Pact's
+		// CheckName (Imprinted$Valid Card.sharesNameWith Remembered)
+		f, err := lc.filter(spec)
+		if err != nil {
+			return lValue{}, err
+		}
+		return lValue{Kind: vRefCount, Ref: lRef{Kind: rImprinted}, F: f}, nil
+	}
+	if rest == "CardPower" || rest == "CardToughness" {
+		// gorge count_ref_property.go CardPower/CardToughness over the
+		// imprint pile (Duplicant's SetPower$ X / SetToughness$ Y): the
+		// kernel's ExPowerOf/ExToughnessOf resolves the ref through
+		// refObjCtx, whose store arm answers for a source that keeps
+		// its list (zone_imprint.go impRefSrc).
+		return imprintedPTValue(rest), nil
+	}
+	return lValue{}, fmt.Errorf("Imprinted$%s", rest)
 }
 
 // opponentView rewrites a filter read from the opponent's side (a

@@ -174,6 +174,9 @@ var expandedHeads = []string{
 	// optional dies trigger moving the last-known count to a target artifact
 	// creature (engine/cards/kw_modular.go). Added after the split.
 	"Modular",
+	// Reinforce (CR 702.77a): a hand-zone discard-for-counters activation
+	// (engine/cards/kw_reinforce.go). Added after the split.
+	"Reinforce",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

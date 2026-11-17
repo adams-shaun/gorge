@@ -62,8 +62,9 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	// source (kernel ctxStatic); an emblem's or an Effect's static has another
 	// source object, so only this entry sets it
 	lc.exwStatic = s.Mode == "Continuous"
+	lc.srcRemStatic = lc.out.Token && lc.exwStatic && s.Params["CharacteristicDefining"] == "True"
 	sts, err := lc.staticBody(s)
-	lc.exwStatic = false
+	lc.exwStatic, lc.srcRemStatic = false, false
 	if err != nil {
 		return err
 	}

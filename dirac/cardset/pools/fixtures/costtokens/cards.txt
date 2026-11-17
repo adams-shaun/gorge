@@ -5,6 +5,8 @@
 # Deep Spawn (UnlessCost$ Mill<2>, the sacrifice-it-unless-you-mill election)
 # Priest of the Wakening Sun (UnlessCost$ Reveal<1/Creature.Dinosaur>, the
 # reveal-pick "if you do" gain-life election)
+# Tresserhorn's Lord, Returned (UnlessCost$ Sac<3/Creature> PayLife<3>
+# Draw<3/Player.targetedBy>, one election over three parts)
 # the forecast family's Reveal<1/CARDNAME> carriers (Pride of the Clouds,
 # Sky Hussar and Karlov's Crossbow: the cost's only candidate is the source
 # itself, CR 201.5, so a battlefield copy can never pay it and the ability
@@ -18,9 +20,16 @@ Priest of the Wakening Sun
 Pride of the Clouds
 Sky Hussar
 Karlov's Crossbow
+Tresserhorn's Lord, Returned
 Grizzly Bears
 Island
 Mountain
 Swamp
 Forest
 Plains
+# Millikin: the mana ability's own Mill<1> ({T}, Mill a card: Add {C}):
+# no CR 605.1a mana ability's cost moves a library card
+# (cards.IsManaAbilitySA's movesLibraryCard), so gorge resolves the whole
+# ability on the stack as an ordinary activated ability; the kernel lowers
+# it through lower_stackmana.go stackManaAbility the same way.
+Millikin

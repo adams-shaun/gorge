@@ -1180,7 +1180,8 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
 	"Evolved":          kop.TrigEvolved,    // the source's own, after its evolve counter lands
 	"Attached":         kop.TrigAttached,   // the attachment's own, Creature bearer (Assimilation Aegis)
-	"Unattached":       kop.TrigUnattached} // the attachment's own, the FORMER BEARER (Captain's Hook family)
+	"Unattached":       kop.TrigUnattached, // the attachment's own, the FORMER BEARER (Captain's Hook family)
+	"LeaveExile":       kop.TrigLeaveExile} // an imprinted card leaves exile (lower_changezonepairs.go; dirac/trig_leaveexile.go)
 
 // trigQualifierFlags is trigger's qualifier-flag block: the Evolve, the
 // SpellCast spend qualifiers (Increment, the mana-spend gate) and the split
@@ -1421,8 +1422,19 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		// a watcher (opponent-source gated or not) or the plain self form
 		// (TfSelf, no gate: "becomes the target of a spell or ability")
 		selfPlain := !t.Watch && kt.Flags&kop.TfSelf != 0 && kt.Whose == kop.WhoseAny
-		if !selfPlain && !(t.Watch && (kt.Whose == kop.WhoseOpp || kt.Whose == kop.WhoseAny)) {
+		if !selfPlain && !(t.Watch && (kt.Whose == kop.WhoseOpp || kt.Whose == kop.WhoseAny || t.SrcSpell && kt.Whose == kop.WhoseYou)) {
 			return kt, fmt.Errorf("BecomesTarget without Valiant")
+		}
+		if t.SrcSpell {
+			if !t.Watch {
+				return kt, fmt.Errorf("spell source on a non-watcher BecomesTarget")
+			}
+			kt.N = kop.TrigNSrcSpell
+			if t.SrcF != nil {
+				if kt.Filter2, err = cb.filter(t.SrcF, kop.ZoneStack); err != nil {
+					return kt, err
+				}
+			}
 		}
 		if t.SpellToo {
 			if kt.Flags&kop.TfSelf != 0 {
@@ -2605,6 +2617,22 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	return ka, add, err
 }
 
+// graveLibFlags is the Repl.C placement bits of a GraveToLibrary replacement:
+// bottom instead of top, shuffle after the insert, and battlefield-only.
+func graveLibFlags(r lRepl) int16 {
+	var c int16
+	if r.LibBottom {
+		c |= kop.ReplLibBottom
+	}
+	if r.LibShuffle {
+		c |= kop.ReplLibShuffle
+	}
+	if r.LibFromBattlefield {
+		c |= kop.ReplLibBattlefield
+	}
+	return c
+}
+
 func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 	ka := kop.Ability{Kind: kop.AbReplacement}
 	rp := &ka.Repl
@@ -2744,6 +2772,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":
 		rp.Kind = kop.ReplGraveToLibrary
+		rp.C |= graveLibFlags(r)
 	case "DiscardOppToBattlefield":
 		rp.Kind = kop.ReplDiscardOppToBattlefield
 	case "PayBeforeETB":

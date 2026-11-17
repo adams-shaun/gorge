@@ -42,16 +42,22 @@ func (s *State) impSource(k *prep, src Obj) bool {
 }
 
 // impZoneGate is gorge's IsImprinted zone gate: a non-token candidate matches
-// only in exile or on the battlefield, a token in any zone.
-func (s *State) impZoneGate(o Obj) bool {
+// only in exile or on the battlefield, a token in any zone. origin is the
+// event-time zone when a matcher names one (a leave-exile trigger reads the
+// card as it was in exile, CR 603.10a); ZoneNone reads the live zone.
+func (s *State) impZoneGate(o Obj, origin kop.Zone) bool {
 	ob := &s.objs[o]
+	if origin != kop.ZoneNone {
+		return ob.of&ofToken != 0 || origin == kop.ZoneExile || origin == kop.ZoneBattlefield
+	}
 	return ob.of&ofToken != 0 || ob.zone == kop.ZoneExile || ob.zone == kop.ZoneBattlefield
 }
 
 // impStoreHas reports whether o is one of src's kept imprints a reader can
 // still see: the records live now, or of the incarnation a resolving trigger
-// fired from (a leaves trigger reads the list after the departure).
-func (s *State) impStoreHas(src, o Obj) bool {
+// fired from (a leaves trigger reads the list after the departure). origin is
+// the matcher's event-time zone (ZoneNone: the live one).
+func (s *State) impStoreHas(src, o Obj, origin kop.Zone) bool {
 	var e *stackEntry
 	if s.res.active {
 		e = &s.res.e
@@ -64,7 +70,7 @@ func (s *State) impStoreHas(src, o Obj) bool {
 		if r[i].src != src || r[i].fl&(smImp|smImpAny) == 0 || !s.smLiveFor(&r[i], e) {
 			continue
 		}
-		if r[i].o == o && s.impZoneGate(o) {
+		if r[i].o == o && s.impZoneGate(o, origin) {
 			return true
 		}
 	}
@@ -74,7 +80,7 @@ func (s *State) impStoreHas(src, o Obj) bool {
 // impHasAt reports whether o is in the imprinted list of src: the resolving
 // resolution's set when src is the resolving entry, else the source's kept
 // records (a source without ImpPersist reads the resolution's set as before).
-func (s *State) impHasAt(k *prep, src, o Obj) bool {
+func (s *State) impHasAt(k *prep, src, o Obj, origin kop.Zone) bool {
 	if src == NoObj {
 		return s.impHas(o)
 	}
@@ -87,14 +93,117 @@ func (s *State) impHasAt(k *prep, src, o Obj) bool {
 	}
 	ok := false
 	if s.res.active && s.res.e.obj == src {
-		ok = s.impHas(o) && s.impZoneGate(o)
+		ok = s.impHas(o) && s.impZoneGate(o, origin)
 	} else {
-		ok = s.impStoreHas(src, o)
+		ok = s.impStoreHas(src, o, origin)
 	}
 	if st != nil && ok {
 		st.Matched++
 	}
 	return ok
+}
+
+// impRefSrc reports whether a RefImprinted value read names an expression
+// source that keeps its Imprinted list and is not the resolving entry: the
+// read then answers from the store (impStoreEach), as gorge's Defined$
+// Imprinted does from the source's own list.
+func (s *State) impRefSrc(ctx evalCtx) (Obj, bool) {
+	src := ctx.src
+	if src == NoObj || !s.impSource(s.k(), src) {
+		return NoObj, false
+	}
+	if s.res.active && s.res.e.obj == src {
+		return NoObj, false
+	}
+	return src, true
+}
+
+// impStoreEach calls f for each of src's kept imprints, in store order, with
+// no zone gate (gorge's Defined$ Imprinted): the records live now (the
+// source on the battlefield at the stamped ver).
+func (s *State) impStoreEach(src Obj, f func(Obj)) {
+	r := coldSrcMem.of(s)
+	for i := range r {
+		if r[i].fl == 0 {
+			break
+		}
+		if r[i].src != src || r[i].fl&(smImp|smImpAny) == 0 || !s.smLiveNow(&r[i]) {
+			continue
+		}
+		f(r[i].o)
+	}
+}
+
+// impCreatureSub is kop.Override ImpSub (Duplicant's AddType$
+// ImprintedCreatureType): the printed creature types of the last card in
+// src's kept imprints whose printed face is a creature and that is still in
+// exile (gorge layers.go reads o.Imprinted from its end, the live object's
+// zone the CR 607.2a exile test). The records live now; the list order is
+// the store's insertion order.
+func (s *State) impCreatureSub(k *prep, src Obj) kop.SubMask {
+	var out kop.SubMask
+	if src == NoObj {
+		return out
+	}
+	r := coldSrcMem.of(s)
+	for i := s.smLen() - 1; i >= 0; i-- {
+		rec := &r[i]
+		if rec.src != src || rec.fl&(smImp|smImpAny) == 0 || !s.smLiveNow(rec) {
+			continue
+		}
+		ob := &s.objs[rec.o]
+		if ob.zone != kop.ZoneExile {
+			continue
+		}
+		c := &k.t.Cards[ob.card]
+		if c.Types&kop.TCreature == 0 {
+			continue
+		}
+		subs := c.Subtypes
+		if c.AllCreatureTypes {
+			subs = c.PrintedSubtypes // a changeling's printed face names its type word alone (gorge CreatureTypeWords over Face().Types)
+		}
+		out = out.Or(k.gen.creatSub.And(subs))
+		break
+	}
+	return out
+}
+
+// imprintExt is execExt's shared ExtClearImprinted/ExtForgetImprinted arm:
+// clear the whole kept list, or forget the one object the op's ref names.
+func (s *State) imprintExt(k *prep, in *kop.Instr) {
+	if kop.ExtOp(in.A.N) == kop.ExtForgetImprinted {
+		s.forgetImprinted(k, in)
+		return
+	}
+	s.extClearImprinted(k)
+}
+
+// forgetImprinted is ExtForgetImprinted: the object the op's Obj ref names
+// (RefTriggered, gorge Pump ForgetImprinted$ TriggeredCard) leaves the
+// resolution's imprinted set, keeping order; for a card that keeps its list
+// the store record goes too (gorge forgetImprinted on Pump).
+func (s *State) forgetImprinted(k *prep, in *kop.Instr) {
+	o := s.objRefObj(in.Obj)
+	if o == NoObj {
+		return
+	}
+	n := uint8(0)
+	for i := 0; i < int(s.g.nimp); i++ {
+		if s.g.imp[i] == o {
+			continue
+		}
+		s.g.imp[n] = s.g.imp[i]
+		n++
+	}
+	for j := int(n); j < int(s.g.nimp); j++ {
+		s.g.imp[j] = NoObj
+	}
+	s.g.nimp = n
+	e := &s.res.e
+	if k.gen != nil && k.gen.anySrcMem && int(e.card) < len(k.t.Cards) && k.t.Cards[e.card].ImpPersist {
+		s.smForget(o, e.obj, smImp|smImpAny)
+	}
 }
 
 // extClearImprinted empties the resolution's set and, for a source that

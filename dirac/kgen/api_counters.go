@@ -9,7 +9,8 @@ func init() {
 	apiOp("PutCounter", (*lowerCtx).apiPutCounter)
 	apiOp("RemoveCounter", (*lowerCtx).apiRemoveCounter)
 	apiOp("MultiplyCounter", (*lowerCtx).apiMultiplyCounter)
-	apiPS("Endure", (*lowerCtx).endure) // lower_endure.go
+	apiOp("AddOrRemoveCounter", (*lowerCtx).apiAddOrRemoveCounter) // lower_addorremovecounter.go
+	apiPS("Endure", (*lowerCtx).endure)                            // lower_endure.go
 	apiPS("PutCounterAll", (*lowerCtx).putCounterAll)
 	apiPS("RemoveCounterAll", (*lowerCtx).removeCounterAll)
 	apiPS("Amass", (*lowerCtx).amass)

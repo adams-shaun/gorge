@@ -219,13 +219,31 @@ func (s *State) playerHexproof(k *prep, p uint8) bool {
 }
 
 // graveRedirect is the zone a card going to zone z really goes to: its
-// owner's library (shuffled by the caller) for a ReplGraveToLibrary card
-// headed for a graveyard.
-func (s *State) graveRedirect(k *prep, c CardID, z kop.Zone) kop.Zone {
-	if z == kop.ZoneGraveyard && k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 && k.gen.replBits[c]&rbGraveLib != 0 {
-		return kop.ZoneLibrary
+// owner's library for a ReplGraveToLibrary card headed for a graveyard from
+// the zones the replacement reads (from is the move's origin; a
+// battlefield-only line does not apply elsewhere).
+func (s *State) graveRedirect(k *prep, c CardID, z kop.Zone, from kop.Zone) kop.Zone {
+	if z != kop.ZoneGraveyard || k.gen == nil || k.gen.anyRepl&rbGraveLib == 0 || k.gen.replBits[c]&rbGraveLib == 0 {
+		return z
 	}
-	return z
+	if k.gen.exileAnyC != nil && k.gen.exileAnyC[c]&eaLibBattlefield != 0 && from != kop.ZoneBattlefield {
+		return z
+	}
+	return kop.ZoneLibrary
+}
+
+// graveLibInsert reports how a ReplGraveToLibrary card is put into its
+// owner's library: bottom of the library, and whether the owner shuffles
+// after a top insert (Progenitus and the other reveal-and-shuffle cards).
+func (s *State) graveLibInsert(k *prep, c CardID) (bottom, shuffle bool) {
+	if k.gen == nil {
+		return false, false
+	}
+	if k.gen.exileAnyC == nil {
+		return false, false
+	}
+	b := k.gen.exileAnyC[c]
+	return b&eaLibBottom != 0, b&eaLibShuffle != 0
 }
 
 // replCombatGen applies protection from everything and the damage-amount

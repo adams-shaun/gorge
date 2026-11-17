@@ -21,6 +21,7 @@ func init() {
 	apiPS("StoreSVar", (*lowerCtx).storeSVar)
 	apiPS("Demonstrate", (*lowerCtx).demonstrate)
 	apiPS("FlipCoin", (*lowerCtx).flipCoin)
+	apiPS("Clash", (*lowerCtx).clash) // lower_clash.go
 	apiPS("Branch", (*lowerCtx).branch)
 	apiPS("RepeatEach", (*lowerCtx).repeatEachPlayers)
 	apiPS("RollDice", (*lowerCtx).rollDice)

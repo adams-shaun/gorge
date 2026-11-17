@@ -77,8 +77,14 @@ func TestSrcMemRecords(t *testing.T) {
 	if s.smLiveFor(&r, trig) {
 		t.Fatalf("a trigger of a later incarnation reads the record")
 	}
-	if s.smLiveFor(&r, &stackEntry{kind: seAbility, obj: a, srcVer: r.sver}) || s.smLiveFor(&r, nil) {
-		t.Fatalf("a non-trigger or no entry reads a dead record")
+	// an activated ability of the stamped incarnation still on the stack reads
+	// the kept list (gorge's object keeps it through the departure: Dino DNA's
+	// {6} ability after Dino DNA was sacrificed); a later incarnation's does not
+	if !s.smLiveFor(&r, &stackEntry{kind: seAbility, obj: a, srcVer: r.sver}) {
+		t.Fatalf("an activated ability of the stamped incarnation does not read the record")
+	}
+	if s.smLiveFor(&r, &stackEntry{kind: seAbility, obj: a, srcVer: r.sver + 2}) || s.smLiveFor(&r, &stackEntry{kind: seSpell, obj: a, srcVer: r.sver}) || s.smLiveFor(&r, nil) {
+		t.Fatalf("a later ability, a spell or no entry reads a dead record")
 	}
 	s.objs[a].ver--
 

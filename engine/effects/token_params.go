@@ -63,6 +63,10 @@ type TokenParams struct {
 	Attacking string
 	// ImprintTokens is ImprintTokens$ True.
 	ImprintTokens bool
+	// RememberSource is RememberSource$ True (Saproling Burst): each minted
+	// token's persistent memory names the creating source, so a token
+	// characteristic that reads Remembered$ (its P/T) reads the source.
+	RememberSource bool
 
 	// Unread are the parameters present on the ability that no Token reader
 	// consumes: the resolution Notes them once.
@@ -176,6 +180,7 @@ var tokenKnownKeys = [...]string{
 	"RememberCostMana",
 	"RememberObjects",
 	"RememberOriginalTokens",
+	"RememberSource",
 	"RememberTargets",
 	"RememberTokens",
 	"ReplaceColor",
@@ -302,6 +307,7 @@ func compileToken(sa *cards.SA) *TokenParams {
 	p.Remembered = strings.TrimSpace(sa.ParamStr(cards.PKTokenRemembered))
 	p.Attacking = strings.TrimSpace(sa.ParamStr(cards.PKTokenAttacking))
 	p.ImprintTokens = isTrue(sa.ParamStr(cards.PKImprintTokens))
+	p.RememberSource = isTrue(sa.ParamStr(cards.PKRememberSource))
 	p.Unread = unreadKeys(sa, tokenKnownKeys[:])
 	return p
 }

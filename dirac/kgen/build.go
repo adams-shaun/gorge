@@ -1861,8 +1861,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredMonoColor
 	case cmpSameNameT0:
 		kf.Pred, kf.PredN = kop.PredSameNameT0, int16(c.CmpN) // PredN 1: the target itself excluded
-	case cmpSameNameRem:
-		kf.Pred = kop.PredSameNameRem
+	case cmpSameNameRem, cmpSameNameSelf:
+		sameNamePred(&c, &kf)
 	case cmpAdventureCard:
 		kf.Pred = kop.PredAdventureCard
 	case cmpSolved:
@@ -2396,7 +2396,8 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vBlessing:           kop.ExBlessing,   // dirac/kw_ascend.go
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
 	vCmdGreatestMV:      kop.ExCmdGreatestMV,
-	vDmgOppsTaken:       kop.ExDmgOppsTaken, // lower_bloodthirst.go
+	vDmgOppsTaken:       kop.ExDmgOppsTaken,   // lower_bloodthirst.go
+	vSrcRemCounters:     kop.ExSrcRemCounters, // lower_tokenrem.go
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
@@ -2603,6 +2604,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub
 	ko.SetLandSub = o.SetLandSub
+	ko.ImpSub = o.ImpSub
 	ko.HasColors, ko.SetColors = o.HasSetColors, colorMask(o.SetColors)
 	ko.LoseAbilities = o.LoseAbilities
 	ko.KeepP, ko.KeepT = o.KeepP, o.KeepT
@@ -2765,6 +2767,16 @@ func putsTimeCounters(d *kop.CardDef) bool {
 		}
 	}
 	return false
+}
+
+// sameNamePred maps the sharesNameWith compare kinds: Remembered has no
+// PredN, Self carries the ordinary ! negation in PredN.
+func sameNamePred(c *lClause, kf *kop.Filter) {
+	if c.CmpStat == cmpSameNameRem {
+		kf.Pred = kop.PredSameNameRem
+		return
+	}
+	kf.Pred, kf.PredN = kop.PredSameNameSelf, int16(c.CmpN)
 }
 
 // clauseSubtypes fills kf's subtype slots from the clause's Subtype,

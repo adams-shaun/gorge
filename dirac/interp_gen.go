@@ -135,6 +135,7 @@ const (
 	ChGenTextWord                             // mode = the word index (0..4 colours WUBRG, 5..9 basic land types) of a ChangeText "from" word, +16 for a "to" word (gorge's changetext_from / changetext_to, two sequential picks; act_changetext.go)
 	ChGenTapOrUntapAll                        // no source; mode 1 = tap all / 0 = untap all (gorge effTapOrUntapAll's "tap" / "untap", in that order; act_taporuntapall.go)
 	ChGenUnleash                              // source = the entering permanent; mode 1 = enter with the +1/+1 counter, 0 = without (gorge's "unleash" KChoose, option 0 = the counter, CR 702.86; kw_unleash.go)
+	ChGenClash                                // source = the clasher's revealed top card; mode 0 = bottom / 1 = top of its owner's library (gorge's clash_placement "bottom" / "top"; act_clash.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -1512,7 +1513,7 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 	// loyalty dies too (CR 700.4; gorge registerReplaceDying matches any object)
 	exileEx := s.mSl(k, mechExileEx, sl)
 	graveLib := k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 && !s.genLost(k, sl) &&
-		s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard) == kop.ZoneLibrary
+		s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard, kop.ZoneBattlefield) == kop.ZoneLibrary
 	// Each matching replacement is a separate CR 616.1 effect. Gorge asks
 	// the affected player to order them when two or more apply, even when
 	// they agree on the destination.
@@ -1539,7 +1540,7 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 		if exileN > 0 || exileEx || scopeN > 0 {
 			return kop.ZoneExile
 		}
-		return s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard)
+		return s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard, kop.ZoneBattlefield)
 	}
 	if exileN > 0 || exileEx || scopeN > 0 {
 		return kop.ZoneExile
@@ -1781,6 +1782,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	if in.Op == kop.OpChangeZoneAllEx {
 		mv = in.C >> 3
 	}
+	s.czallArmRev(fl, z) // a battlefield sweep's group is in reverse move order
 	var carry czallCarry // the prefix placed before a CR 903.9b park
 	carry.load(&s.g.pre)
 	if mv&kop.MvForgetOther != 0 || z == kop.ZoneExile && in.B.N&kop.CzUntilLeaves != 0 {

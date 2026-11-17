@@ -276,7 +276,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			return false, held
 		}
 		if gap {
-			if s.windowCtrGapTap(k, p, sl) {
+			if s.windowCtrGapTap(k, p, sl, census) {
 				continue
 			}
 			if a, ok := s.riderAbilityOf(k, sl); ok && (s.scriptTapsDefer(k, p).has(sl) ||
@@ -444,7 +444,7 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 // skip the source without offering it.
 func (s *State) windowClampSkip(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
 	return decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) &&
-		!s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, decided, want)
+		!s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, decided, want) && !s.windowTapXSecondUseful(k, p, o, want)
 }
 
 // windowPick is the window's next source among order (p's battlefield, in
@@ -457,8 +457,9 @@ func (s *State) windowClampSkip(k *prep, p uint8, o Slot, decided bool, want uin
 // so the walk takes it here and riderGap pays its counter, mana and rider
 // (mana_rider.go) in the paying cast's window. A ward or unless window's
 // offer gate (census: windowAffordsTake) counts only rules unlessWindowUnits'
-// sources, so there a rider whose cost is more than a bare tap (Gemstone
-// Mine) cannot make the pay affordable (riderWindowable). The
+// sources, so there a rider whose cost or production the census does not
+// price (Gemstone Mine's any colour) cannot make the pay affordable
+// (riderWindowable); a fixed depletion fee (Remote Farm) can. The
 // potential route (a trigger-cost window, windowTapNoOwed) takes it too:
 // gorge's trigger-cost ask prices the payer's potential mana, whose walk
 // counts the rider's activation, so the elected pay funds it here the same
@@ -488,6 +489,9 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 				}
 				return o, true
 			}
+		}
+		if census && s.ctrCensusOffer(k, p, o) {
+			return o, true // the unless census's fixed counter-fee source (ctrCensusOffer)
 		}
 		if s.windowCanTap(k, o) || s.windowSacNow(k, o) {
 			if !takeDeferred && s.planDeferred(k, p, o) {
@@ -1136,20 +1140,21 @@ func (s *State) windowAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
 }
 
 // tapsDefRider: the Taps-deferred source o has a bounded rider ability the
-// window may take (not a depletion land's in an unless / ward window).
+// window may take.
 func (s *State) tapsDefRider(k *prep, o Slot) bool {
-	a, ok := s.riderAbilityOf(k, o)
-	return ok && !s.unlessSkipsRider(a)
+	_, ok := s.riderAbilityOf(k, o)
+	return ok
 }
 
-// unlessSkipsRider: a depletion land's activation (a SubCounter cost) is not
-// in an unless window (not a ward's). gorge's unlessWindowUnits lists only free-cost
-// abilities, so its offer gate never counts Remote Farm's {W}{W} and its tap
-// ask never lists the land; the walk of such a window leaves it alone
-// (payWindow, windowAffordsTake). A ward's window takes it. The potential route and the cast windows
-// still take it.
+// unlessSkipsRider: a depletion land's activation is in an unless window
+// when gorge's unless census prices it -- a fixed, source-anchored counter
+// removal on a production needing no colour choice (Remote Farm, CR 608.2g;
+// riderCensusFree). A choice-shaped one (Gemstone Mine's any colour) stays
+// out, as the census leaves it out (payWindow, windowAffordsTake). A ward's
+// window takes either. The potential route and the cast windows still take
+// them.
 func (s *State) unlessSkipsRider(a *kop.Ability) bool {
-	return s.g.turnF&turnUnlessWin != 0 && a.ManaRider == kop.ManaRiderDeplete
+	return s.g.turnF&turnUnlessWin != 0 && a.ManaRider == kop.ManaRiderDeplete && !riderCensusFree(a)
 }
 
 // turnUnlessWin is genState.turnF's bit 7: the walk is an unless / ward
@@ -1167,35 +1172,29 @@ func (s *State) setUnlessWin(on bool) {
 
 // riderOfferable: some source's first mana ability is a bounded rider
 // activation the window walk can take (windowPick's rider arm): gorge's
-// manual windows list it and the census probes must count it. unless is an
-// unless / ward window, which lists only bare-tap abilities
-// (unlessWindowUnits): a rider that removes counters as its cost (Gemstone
-// Mine) is no unit there, so it is not offerable.
-func (s *State) riderOfferable(k *prep, p uint8, unless bool) bool {
+// manual windows list it and the census probes must count it. census is an
+// unless / ward window, whose offer gate lists the sources gorge's
+// unlessWindowUnits prices (riderCensusFree): a rider whose cost or
+// production the census does not price is no unit there, so it is not
+// offerable.
+func (s *State) riderOfferable(k *prep, p uint8, census bool) bool {
 	if k.gen == nil || !k.gen.anyManaRider {
 		return false
 	}
 	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
-		if s.riderPotential(k, p, m.first()) && !(unless && s.riderCtrCost(k, m.first())) {
+		sl := m.first()
+		if a, ok := s.riderAbilityOf(k, sl); ok && s.riderPotential(k, p, sl) && (!census || riderCensusFree(a)) {
 			return true
 		}
 	}
 	return false
 }
 
-// riderCtrCost: the bounded rider at sl pays a counter-removal cost (a
-// depletion land, Gemstone Mine), which gorge's unless / ward window does not
-// price (unlessWindowUnits lists only mana abilities with a bare-tap cost).
-func (s *State) riderCtrCost(k *prep, sl Slot) bool {
-	a, ok := s.riderAbilityOf(k, sl)
-	return ok && a.Cost.Flags&kop.CostRemoveCtr != 0
-}
-
 // unlessTapsDeferred is scriptTapsDefer as an unless / ward window prices it:
-// without the riders that remove counters as their cost (riderCtrCost).
+// leaving out the riders riderCensusFree rejects.
 func (s *State) unlessTapsDeferred(k *prep, p uint8) bool {
 	for m := s.scriptTapsDefer(k, p); m.any(); m = m.rest() {
-		if !s.riderCtrCost(k, m.first()) {
+		if a, ok := s.riderAbilityOf(k, m.first()); !ok || riderCensusFree(a) {
 			return true
 		}
 	}
@@ -1203,15 +1202,18 @@ func (s *State) unlessTapsDeferred(k *prep, p uint8) bool {
 }
 
 // windowAffordsTake is windowAffords; unless: the window is an unless cost's,
-// which leaves a depletion land alone (unlessSkipsRider; a ward's takes it).
-// takeDeferred is an unless / ward window
-// (payWindow), which taps a planner-deferred source (a counter-rider mana
-// source, Twitching Doll) once the rest cannot cover the cost: gorge's
-// unlessWindowUnits lists it, so the pay is offered (CR 118.3, 605.3b).
+// which leaves a depletion land alone when its rider is not a census unit
+// (unlessSkipsRider; a ward's takes it). takeDeferred is an unless / ward
+// window (payWindow), which taps a planner-deferred source (a counter-rider
+// mana source, Twitching Doll, or a depletion land the census prices) once
+// the rest cannot cover the cost: gorge's unlessWindowUnits lists it, so the
+// pay is offered (CR 118.3, 605.3b). So does it tap a fixed counter-fee
+// source the census prices (unlessCtrGaps, Weather Maker), whose activation
+// the windowPick census arm takes (ctrCensusOffer).
 func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred, unless bool) bool {
 	s.setUnlessWin(unless)
 	defer s.setUnlessWin(false)
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || s.riderOfferable(k, p, takeDeferred)) {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || s.riderOfferable(k, p, takeDeferred)) {
 		return false
 	}
 	t := s.fork()
@@ -2851,7 +2853,7 @@ func (s *State) digMove(k *prep, p uint8, o Obj, z kop.Zone, next, after []Obj) 
 		s.pl[p].libRemove(o)
 	}
 	s.objs[o].zone = kop.ZoneNone
-	if z == kop.ZoneGraveyard && s.g.on && s.graveRedirect(k, s.objs[o].card, z) == kop.ZoneLibrary {
+	if z == kop.ZoneGraveyard && s.g.on && s.graveRedirect(k, s.objs[o].card, z, kop.ZoneLibrary) == kop.ZoneLibrary {
 		pl := &s.pl[p]
 		for i := len(after) - 1; i >= 0; i-- {
 			if x := after[i]; s.objs[x].zone == kop.ZoneNone {
@@ -3694,8 +3696,11 @@ func (s *State) sacXWindowPays(k *prep, e *stackEntry, cost *kop.ManaCost) bool 
 	if s.bld().bfl&bflMsDone != 0 {
 		return true
 	}
-	if !k.tapMana || DebugNoSacXMana || cost.X != 0 || !s.sacXLive(k, e.ctrl) {
+	if !k.tapMana || DebugNoSacXMana || cost.X != 0 {
 		return false
+	}
+	if !s.sacXLive(k, e.ctrl) {
+		return s.openCensusUnpayable(k, e, cost) // the window runs dry and reverses (mana_openunpayable.go)
 	}
 	chk := planner{dry: true, noGrant: true}
 	s.tapForPK(k, e.ctrl, cost, int(e.x), NoObj, false, false, &chk)

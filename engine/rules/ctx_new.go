@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"slices"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -95,10 +97,17 @@ func (e *Engine) cdaEvalCtx(o *state.Object, f *cards.Face) *effects.Ctx {
 		e.colorsObjs == len(e.G.Objs) && e.colorsStatic == e.staticBuildSeq {
 		colors = e.layer5Colors
 	}
-	return &effects.Ctx{Source: o.ID, Controller: o.Controller, SVars: f.SVars, Layers: effects.LayerTables{
+	ctx := &effects.Ctx{Source: o.ID, Controller: o.Controller, SVars: f.SVars, Layers: effects.LayerTables{
 		DerivedTypes:  e.EffectiveTypes(),
 		DerivedColors: colors,
 	}}
+	// The object's own persistent memory (a token minted under RememberSource$
+	// or TokenRemembered$) is what a Remembered$ read in its characteristic-
+	// defining P/T resolves against (Saproling Burst's token).
+	if len(o.Remembered) > 0 {
+		ctx.Remembered = slices.Clone(o.Remembered)
+	}
+	return ctx
 }
 
 // manaAmountCtx is the Ctx a mana ability's Amount$ is priced in outside its

@@ -1125,6 +1125,11 @@ const ExWasCastFromYourLibrary ExprKind = 162
 // count xColorPaid (dirac/manifest/ExprKind/ExXColorPaid)
 const ExXColorPaid ExprKind = 163
 
+// Remembered$CardCounters (dirac/manifest/ExprKind/ExSrcRemCounters)
+//
+// ExSrcRemCounters (Ctr): the counters of kind Ctr on the object the evaluating source remembers, read live on the battlefield (0 when it is elsewhere): the first live smRem record keyed by the source, which a token minted under TokRememberSrc (RememberSource$ True) keeps for its creator. It is `Remembered$CardCounters.<KIND>` in a token's characteristic-defining P/T (Saproling Burst's token reads the fade counters on the Burst). dirac/zone_tokrem.go.
+const ExSrcRemCounters ExprKind = 164
+
 // api MakeCard (dirac/manifest/ExtOp/ExtMakeCard)
 const ExtMakeCard ExtOp = 11
 
@@ -1231,6 +1236,8 @@ const ExtDigMultiple ExtOp = 35
 func init() { extOpNames[ExtDigMultiple] = "DigMultiple" }
 
 // api AddOrRemoveCounter (dirac/manifest/ExtOp/ExtAddOrRemoveCounter)
+//
+// ExtAddOrRemoveCounter: AddOrRemoveCounter (gorge effAddOrRemoveCounter): for the target or Defined$ object in Obj and the amount in B, pose gorge's remove-then-put election to the resolving controller for the named counter kind in C, or with C -1 for each counter kind the object holds; the put runs an ordinary OpPutCounter (replacements, the CR 616.1 order ask and CounterAddedOnce), the remove marks the kind seen and subtracts what the object holds. dirac/ctr_addorremove.go.
 const ExtAddOrRemoveCounter ExtOp = 36
 
 func init() { extOpNames[ExtAddOrRemoveCounter] = "AddOrRemoveCounter" }
@@ -1792,6 +1799,11 @@ const KwStartingHandFive KwID = 124
 // PredNamedCard: the card-name property NamedCard (gorge namePredicate NamedCard, CR 201.4): the candidate's name card is the reading source's chosen card name. The chosen name lives in the source permanent's chosen byte (the as-enters choice and a mid-resolution NameCard ask store it there, kernel repl_namecard.go), in a resolution's own answer for a source still on the stack (gorge Object.ChosenName), and in a host-bound emblem's frozen capture once a `DB$ Cleanup | ClearNamedCard$ True` wiped the source (gorge state.ContinuousEffect.ChosenName, Cheering Fanatic's ReduceCost ValidCard$ Card.NamedCard). A face-down candidate has no name (CR 708.2) and matches nothing. A reader with no chosen name to read fails closed, as gorge's empty ChosenName matches nothing. FilterFlags2 is full, so the word takes the one Pred slot (kernel filter_negations.go). 235: the free explicit ordinal below the 236+ family (PredRenowned took 236).
 const PredNamedCard Pred = 35
 
+// Pred (dirac/manifest/Pred/PredSameNameSelf)
+//
+// PredSameNameSelf: the candidate's current name equals the reading source's current name (gorge sharesNameWith Self, filter_attachment.go; Marvin, Murderous Mimic's GainsAbilitiesOf$ Creature.YouCtrl+!sharesNameWith Self). The source is the static's own source slot, or the resolving entry's object; the name identity is sharesNameRem's (a battlefield permanent reads its layer-3 name, a face-down object has no name, CR 708.2). PredN 1 is the ordinary ! negation.
+const PredSameNameSelf Pred = 36
+
 // repl BeginPhase (dirac/manifest/ReplKind/ReplBeginPhase)
 const ReplBeginPhase ReplKind = 42
 
@@ -2248,6 +2260,11 @@ const TrigUntapAll TrigEvent = 126
 
 // trig VisitAttraction (dirac/manifest/TrigEvent/TrigVisitAttraction)
 const TrigVisitAttraction TrigEvent = 127
+
+// trig ChangesZone Exile->Any (dirac/manifest/TrigEvent/TrigLeaveExile)
+//
+// "a card leaves the exile zone" (Mode$ ChangesZone Origin$ Exile, Destination$ Any: the imprint carriers' forget/cleanup lines, Mirror Golem's DBForget, Duplicant's imprinted-card DBCleanup). The kernel fires it in placeFromK while the card is still in exile (CR 603.10a look-back), so a filter read of the imprint association judges the candidate as it was there; no slot subscription (nSubEvents ends at TrigGiveGift) — the firing walk scans the battlefield like the other no-subscription events.
+const TrigLeaveExile TrigEvent = 128
 
 // TrigFlags5 (dirac/manifest/TrigFlags5/Tf5DmgNoContract)
 //

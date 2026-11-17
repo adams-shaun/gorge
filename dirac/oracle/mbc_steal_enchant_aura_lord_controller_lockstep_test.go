@@ -12,6 +12,8 @@ import "testing"
 // control have trample" grants trample on that side only. The kernel once
 // left the inner want stale, holding the creature on the old stealer's side
 // (decision 391 of 391; dr-mbc-baab full, m1, pair 220).
+// The recording is pooled custom (the table its own decks need): the dr-mbc
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCStealEnchantAuraLordControllerReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "steal_enchant_aura_lord_controller")

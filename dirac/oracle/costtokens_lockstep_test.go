@@ -22,7 +22,14 @@ import (
 // so a battlefield copy can never pay it and the ability is withheld; gorge
 // never offers these abilities from the hand either — no ActivationZone$ Hand
 // — so the forecast costs stay unpayable on both engines and the offer gates
-// must agree).
+// must agree) and Millikin's "{T}, Mill a card: Add {C}" (the mana ability's
+// own Mill<1>: no CR 605.1a mana ability's cost moves a library card,
+// cards.IsManaAbilitySA's movesLibraryCard, so gorge resolves the whole
+// ability on the stack as an ordinary activated ability — offered at
+// priority, its activation pays the tap and the mill through the same Cost.Mill
+// arm every activated ability pays, and its resolution adds the {C} — never
+// a manual-window source, a census unit or a planner one; the kernel lowers
+// it through lower_stackmana.go stackManaAbility the same way).
 func kcostTokensDecks() [2][]cardset.Entry {
 	d := []cardset.Entry{
 		{Name: "Abandon Hope", Count: 4},
@@ -30,15 +37,19 @@ func kcostTokensDecks() [2][]cardset.Entry {
 		{Name: "Rot Farm Skeleton", Count: 4},
 		{Name: "Deep Spawn", Count: 2},
 		{Name: "Priest of the Wakening Sun", Count: 2},
-		{Name: "Pride of the Clouds", Count: 3},
+		{Name: "Pride of the Clouds", Count: 2},
 		{Name: "Sky Hussar", Count: 2},
 		{Name: "Karlov's Crossbow", Count: 2},
-		{Name: "Grizzly Bears", Count: 1},
+		{Name: "Tresserhorn's Lord, Returned", Count: 2},
 		{Name: "Swamp", Count: 4},
-		{Name: "Forest", Count: 2},
-		{Name: "Island", Count: 6},
-		{Name: "Mountain", Count: 2},
+		{Name: "Forest", Count: 1},
+		// (one Island and one Forest became the Millikins; the lands' colour
+		// mix stays so every card still casts and every unless election is
+		// still paid within the seed run)
+		{Name: "Island", Count: 5},
+		{Name: "Millikin", Count: 2},
 		{Name: "Plains", Count: 2},
+		{Name: "Mountain", Count: 2},
 	}
 	return [2][]cardset.Entry{append([]cardset.Entry(nil), d...), append([]cardset.Entry(nil), d...)}
 }

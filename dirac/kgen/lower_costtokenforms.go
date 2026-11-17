@@ -126,15 +126,20 @@ func (lc *lowerCtx) damageYouCost(c *lCost, parts []string, n int, t string) err
 // An activated ability's own cost lowers it into the Cost.Mill byte, an
 // UnlessCost$ into payInstr's CS=Mill instruction (gorge payUnlessCost mills
 // through the shared pay.PayMillCost behind the election, gated
-// pay.MillCostPayable; Deep Spawn). A mana ability's Mill<1> is a shape
-// kop.ManaAbilityHonoured does not list (gorge's manual window does pay it,
-// mana_activation.go over pay.ManaCostPayableFull, so the lowering is its own
-// kernel slice), and a trigger's own Cost$ Mill (Ashcoat of the Shadow Swarm)
-// parses here — costUnless — but payInstr refuses it: gorge's triggered-cost
-// window keeps the component decline-only (cumulative.go
-// triggeredCostComponentsPayable).
+// pay.MillCostPayable; Deep Spawn), and a mana ability's Mill<N> into the
+// Cost.Mill byte beside its {T} (Millikin): the head's Cost$ is parsed while
+// the ability is still classified akMana -- the reclassification reads the
+// parsed body (lower_stackmana.go stackManaAbility) -- and no CR 605.1a mana
+// ability's cost moves a library card (cards.IsManaAbilitySA's library gate),
+// so gorge resolves the whole ability on the stack as an ordinary activated
+// ability and its activation pays the mill through the same Cost.Mill arm
+// every activated ability pays (mana_window.go payAbilityCosts). A trigger's
+// own Cost$ Mill (Ashcoat of the Shadow Swarm) parses here — costUnless — but
+// payInstr refuses it: gorge's triggered-cost window keeps the component
+// decline-only (cumulative.go triggeredCostComponentsPayable).
 func (lc *lowerCtx) millCost(c *lCost, parts []string, n int, t string) error {
-	if !lc.actCost && !lc.unlessParse || len(parts) != 1 || n < 1 || c.MillN != 0 {
+	if !lc.actCost && !lc.unlessParse && (lc.ab == nil || lc.ab.Kind != akMana) ||
+		len(parts) != 1 || n < 1 || c.MillN != 0 {
 		return refuse("mill cost %q", t)
 	}
 	c.MillN = n
@@ -200,6 +205,20 @@ func (lc *lowerCtx) forecastParam(ps *params) {
 	ps.consume("Forecast")
 }
 
+// drawRecipient is the Ref a Draw<N/Who> cost's cards go to. Draw<N/Player
+// .targetedBy> draws for the parent's targeted player, not the payer
+// (Tresserhorn's Lord): the kernel reads the recipient from the instruction's
+// W (interp_ask.go applyResolveGen); "" (Draw<N/You>) is rNone, the payer.
+func (lc *lowerCtx) drawRecipient(who string) (lRef, error) {
+	switch who {
+	case "":
+		return lRef{}, nil
+	case "Player.TriggeredPlayer":
+		return lc.defined("TriggeredPlayer")
+	}
+	return lc.defined("TargetedPlayer")
+}
+
 // resTokenInstr lowers the resolution-time tokens that are payments the
 // kernel performs as effects: Draw<N/Who> (a trigger's own or an unless cost;
 // the drawing player may be the parent's targeted or the triggered player),
@@ -220,21 +239,11 @@ func (lc *lowerCtx) resTokenInstr(c *lCost, in *lInstr, n int) (int, error) {
 		}
 		n++
 		in.CS, in.A = "Draw", cst(c.DrawN)
-		if c.DrawWho != "" {
-			// Draw<N/Player.targetedBy> draws for the parent's targeted
-			// player, not the payer (Tresserhorn's Lord): the kernel reads
-			// the recipient from the instruction's W (interp_ask.go
-			// applyResolveGen)
-			who := "TargetedPlayer"
-			if c.DrawWho == "Player.TriggeredPlayer" {
-				who = "TriggeredPlayer"
-			}
-			r, err := lc.defined(who)
-			if err != nil {
-				return n, err
-			}
-			in.W = r // the drawing player (cb.instr fills ki.W)
+		r, err := lc.drawRecipient(c.DrawWho)
+		if err != nil {
+			return n, err
 		}
+		in.W = r // the drawing player (cb.instr fills ki.W)
 	case c.DamageYouN > 0:
 		// an UnlessCost$ DamageYou<N> (gorge payUnlessDamageCost; CR
 		// 118.3): the resolving source deals the amount to the payer

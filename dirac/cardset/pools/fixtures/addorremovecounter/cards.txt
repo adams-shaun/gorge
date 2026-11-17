@@ -1,0 +1,7 @@
+# TestAddOrRemoveCounterLockstep (dirac/oracle/addorremovecounter_lockstep_test.go)
+Plague Boiler
+Quarry Hauler
+Dramatist's Puppet
+Forest
+Swamp
+Mountain

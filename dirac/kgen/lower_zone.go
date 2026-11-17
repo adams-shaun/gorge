@@ -1210,18 +1210,24 @@ func overrideString(o *lOverride) string {
 }
 
 func (lc *lowerCtx) changeZoneAll(ps *params) error {
-	bracket, err := libPlaceAll(ps) // lower_libplace.go
-	if err != nil || !bracket {
-		if err != nil {
-			return err
-		}
+	if (lc.digImprinted || lc.playLibrary) && ps.peek("RandomOrder") == "True" {
+		// a DigUntil/Play chain's own random-order bottom move reads the
+		// remembered/free-queued set, not a zone sweep (lower_digimprint.go,
+		// lower_playlibrary.go): no CR 401.4 bracket
 		return lc.changeZoneAllSweep(ps)
 	}
-	lc.emit(lInstr{Op: "LibPlace", C: kop.PlaceArmTop, Note: "count the cards this sweep puts into libraries"})
+	arm, bracket, err := libPlaceAll(ps) // lower_libplace.go
+	if err != nil {
+		return err
+	}
+	if !bracket {
+		return lc.changeZoneAllSweep(ps)
+	}
+	lc.emit(lInstr{Op: "LibPlace", C: arm, Note: "count the cards this sweep puts into libraries"})
 	if err := lc.changeZoneAllSweep(ps); err != nil {
 		return err
 	}
-	lc.emit(lInstr{Op: "LibPlace", C: kop.PlaceAsk, Note: "each owner of two or more orders them (CR 401.4)"})
+	lc.emit(lInstr{Op: "LibPlace", C: kop.PlaceAsk, Note: "each owner of two or more orders them; RandomOrder$ shuffle the group"})
 	return nil
 }
 

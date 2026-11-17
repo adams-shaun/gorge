@@ -913,6 +913,11 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.Whose = whoOpp
 			tr.Watch = true
+		case isBTSpellSourceLine(tp):
+			// the spell source forms: lower_bt_source.go
+			if err := lc.lowerBTSpellSource(tp, tr); err != nil {
+				return err
+			}
 		case tp.str("ValidSource") == "" && tp.str("ValidTarget") == "Card.Self" &&
 			!tp.is("Ward", "True") && !tp.is("Valiant", "True") && !tp.is("FirstTime", "True"):
 			// "Whenever this becomes the target of a spell or ability" with

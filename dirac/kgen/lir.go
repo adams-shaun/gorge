@@ -242,6 +242,7 @@ const (
 	vDmgOppsTaken        // the damage the living opponents were dealt this turn (Count$DamageOppsTakenThisTurn; bloodthirst)
 	vCmdGreatestMV       // the greatest mana value among the controller's commanders on the battlefield or in the command zone (kop.ExCmdGreatestMV; value_cmdmv.go)
 	vBlessing            // Sub[0] if the controller has the city's blessing, else Sub[1] (Count$Blessing.<yes>.<no>, CR 702.131)
+	vSrcRemCounters      // counters of kind S on the object the evaluating source remembers (a token's creator, kop.ExSrcRemCounters; lower_tokenrem.go)
 	vCount_
 )
 
@@ -358,6 +359,7 @@ var valNames = [...]string{
 	vDmgOppsTaken:        "DmgOppsTaken",
 	vCmdGreatestMV:       "CmdGreatestMV",
 	vBlessing:            "Blessing",
+	vSrcRemCounters:      "SrcRemCounters",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
@@ -948,6 +950,11 @@ type lTrigger struct {
 	// opponent's spell or ability (ValidSource$ SpellAbility.OppCtrl);
 	// SpellToo: a creature spell its controller controls counts too.
 	Watch, SpellToo bool
+	// SrcSpell: BecomesTarget watcher whose ValidSource$ is a spell form
+	// (Spell[.YouCtrl|.OppCtrl|.<Type>], Instant,Sorcery); SrcF is its card
+	// filter when it names a type (kop.TrigNSrcSpell, Filter2).
+	SrcSpell bool
+	SrcF     *lFilter
 	// ByCreature: AttackerBlocked lowered from Mode$ AttackerBlockedByCreature,
 	// once per (attacker, blocker) pair; F reads the attacker, F2 the
 	// blocker, exactly one of them Card.Self; the trigger object is the
@@ -1230,6 +1237,7 @@ type lOverride struct {
 	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
 	Landwalk          *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
 	SetLandSub        bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
+	ImpSub            bool     // AddType$ ImprintedCreatureType: the imprinted card's creature types (kop.Override.ImpSub; Duplicant)
 	ProtFrom          *lFilter // a granted protection's sources (kop.Override.ProtFrom): colour-mask clauses for the ProtectionFrom<Colour> spellings, lc.filter's clauses for Protection:<spec>
 }
 
@@ -1249,7 +1257,12 @@ type lRepl struct {
 	// AnyZone: ExileOnLeave applies to a move to a graveyard from every zone
 	// (Repl.C = 1), not only a permanent dying.
 	AnyZone bool
-	F2      *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
+	// LibBottom / LibShuffle / LibFromBattlefield: GraveToLibrary's library
+	// insert (bottom, not top), whether its owner shuffles after a top insert,
+	// and whether it applies only to a move from the battlefield (the R: line's
+	// Origin$ Battlefield / ActiveZones$ Battlefield).
+	LibBottom, LibShuffle, LibFromBattlefield bool
+	F2                                        *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
 }
 
 // lCard is a lowered card.

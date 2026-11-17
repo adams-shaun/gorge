@@ -140,12 +140,7 @@ func (s *State) mintTokenCopy(k *prep, in *kop.Instr, p uint8, host Obj) bool {
 	}
 	if in.Op == kop.OpCreateTokenEx {
 		s.g.tokMade++
-		if in.B.N&kop.TokRememberObj != 0 {
-			s.remember(t)
-		}
-		if in.B.N&kop.TokImprintObj != 0 {
-			s.imprint(t) // zone_imprint.go
-		}
+		s.tokenMemos(in, t) // zone_tokrem.go
 	}
 	e := &s.res.e
 	was := e.ctrl

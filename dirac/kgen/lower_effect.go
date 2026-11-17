@@ -1079,7 +1079,7 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 			}
 		}
 		lc.unlessCost = lc.ab.Kind != akLatent
-		in, err = lc.payInstr(cost, lRef{}, cost.SubCtr > 0)
+		in, err = lc.unlessPayInstr(cost, lRef{}, cost.SubCtr > 0) // lower_unlesschain.go
 		lc.unlessCost = false
 		if err != nil {
 			return err
@@ -3177,7 +3177,7 @@ func (lc *lowerCtx) token(ps *params) error {
 		}
 		in.C |= 4
 	}
-	if err := lc.tokenImprint(ps, &in); err != nil { // lower_imprintzone.go
+	if err := lc.tokenMemory(ps, script, &in); err != nil { // lower_imprintzone.go, lower_tokenrem.go
 		return err
 	}
 	var pump []string

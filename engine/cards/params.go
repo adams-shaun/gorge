@@ -904,6 +904,13 @@ const (
 	// CR 611.3a). Read by rules continuousGateHolds. Appended: earlier
 	// ordinals stay stable.
 	PKTopCardOfLibraryIs
+	// RememberSource$ True on a Token (Saproling Burst): each minted token's
+	// memory names the creating source. Read by effects' compileToken.
+	// Appended: earlier ordinals stay stable.
+	PKRememberSource
+	// ValidKeyword$ <Landwalk:Type> on S:Mode$ IgnoreLandWalk, read by
+	// combat.landwalkIgnored. Appended: earlier ordinals stay stable.
+	PKValidKeyword
 	paramKeyCount
 )
 
@@ -1726,6 +1733,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKValidAfterStack:                  "ValidAfterStack",
 	PKAtLeastOneInstance:               "AtLeastOneInstance",
 	PKTopCardOfLibraryIs:               "TopCardOfLibraryIs",
+	PKRememberSource:                   "RememberSource",
+	PKValidKeyword:                     "ValidKeyword",
 }
 
 // String is the key's Forge text.
