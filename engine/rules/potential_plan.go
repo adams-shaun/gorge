@@ -515,6 +515,22 @@ func (e *Engine) paymentPlanRelaxProof(c paymentPlanCensus, verdict func() Payme
 	return PaymentPlanOutcome{Reason: "insufficient"}
 }
 
+// potentialModeCredit classifies the cast credit the mode's plan must respect:
+// withheld keeps the old unknown verdict (the credit may still pay it), and
+// credit, the no-credit witness's fallback. The caller has already excluded a
+// CR 116.2 special action (plot, foretell, suspend), which is not a spell
+// cast: no convoke/improvise/delve credit can pay it, so it is planned at its
+// raw cost whether or not the card would carry one as a spell.
+func potentialModeCredit(mode string, convoke, improvise, delve bool) (withheld, credit bool) {
+	if !convoke && !improvise && !delve {
+		return false, false
+	}
+	if m := altCastFor(mode); m == nil || !m.potential {
+		return true, true
+	}
+	return false, true
+}
+
 // potentialModeCastPlan prices a cast the cast planner does not witness --
 // an alternative or additional-cost mode (flashback, bestow, kicker,
 // buyback, entwine, surge, evoke, dash, overload, warp, madness, miracle)
@@ -550,18 +566,18 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 	}
 	f := obj.Face()
 	// A convoke/improvise/delve credit is an optional announcement that
-	// reprices the cast. A printed-cost cast keeps the cast planner's own
-	// answer: its offer base commits the credit (castOfferBase) and that
-	// planner declines the credit-bearing shape (shape:contribution), so the
-	// mode witness must not second-guess it. An alternative-cost keyword
-	// mode charges the cost its offer gate prices WITHOUT the credit, so
-	// plan that no-credit payment and keep the old unknown verdict -- never
-	// a proof -- when it fails.
-	credit := !e.planIgnoreCredit && (e.hasCastConvoke(id) || e.hasCastImprovise(id) || e.hasCastDelve(id, false))
+	// reprices the cast: a printed-cost cast keeps the cast planner's own
+	// answer, and an alternative-cost keyword mode is planned at its
+	// no-credit cost with the old unknown verdict kept on failure. A special
+	// action is never a cast, so no credit can reprice it.
+	var withheld, credit bool
+	if !e.planIgnoreCredit && pay.SpecialOfCastMode(o.Mode) == pay.SpecialNone {
+		withheld, credit = potentialModeCredit(o.Mode, e.hasCastConvoke(id), e.hasCastImprovise(id), e.hasCastDelve(id, false))
+	}
+	if withheld {
+		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:credit"}
+	}
 	if credit {
-		if m := altCastFor(o.Mode); m == nil || !m.potential {
-			return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:credit"}
-		}
 		defer func() {
 			if out.Plan == nil && out.Reason == "insufficient" {
 				out = PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:credit"}
