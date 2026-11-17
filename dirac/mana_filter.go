@@ -546,7 +546,14 @@ func (w *filtWalk) activated(t avail, st filtPos, sl Slot) int {
 // covered by p's floating mana (gorge's paymentSourceUseful reads the window
 // abilities, and a filter's is listed only once the pool pays it).
 func (s *State) windowFiltUseful(k *prep, p uint8, sl Slot, want uint8) bool {
-	if k.gen == nil || !k.gen.has(s.cardAt(sl), gfFilt) || uint8(s.filtAb(k, sl).ManaColors)&want == 0 {
+	if k.gen == nil || !k.gen.has(s.cardAt(sl), gfFilt) {
+		return false
+	}
+	a := s.filtAb(k, sl)
+	if a.AFlags&kop.AfManaDynamic != 0 && s.dynManaN(k, a, sl) <= 0 {
+		return false // a zero evaluated amount makes no colour (CR 107.4a; payment_plan.go skips it)
+	}
+	if uint8(a.ManaColors)&want == 0 {
 		return false
 	}
 	if col, ok := s.filtPip(k, sl); ok {
