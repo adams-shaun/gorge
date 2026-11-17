@@ -284,11 +284,22 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 		if c := s.cardAt(sl); k.gen.eachCol(c) >= 0 && s.potentialAdmits(k, p, sl, int(k.gen.eachCol(c)), &k.t.Cards[c].Abilities[k.gen.eachCol(c)], nil) {
 			return true
 		}
-		// a counter-cost gap source whose mana ability is no card-level manaAb (a
-		// storage battery, Sand Silos: its cost announces X, so gorge's walk
-		// prices the activation payable at any counter count)
-		if c := s.cardAt(sl); k.ctrAbOf(c) != nil && k.cards[c].manaAb < 0 && s.potentialAdmits(k, p, sl, int(k.ctrAb[c]), k.ctrAbOf(c), nil) {
-			return true
+		// a counter-cost gap source whose mana ability is no card-level manaAb
+		// (a storage battery, Sand Silos: its cost announces X, so gorge's walk
+		// prices the activation payable at any counter count) is a source for a
+		// trigger's own cost. A storage battery yields only while it holds a
+		// counter: gorge's windowSourceYields reads its announced X production as
+		// yielding only then (manaAbilityYieldsNothing), so with none it is no
+		// source.
+		if c := s.cardAt(sl); k.ctrAbOf(c) != nil {
+			ab := k.ctrAbOf(c)
+			if kop.StoreManaAb(ab) {
+				if s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) > 0 && s.potentialAdmits(k, p, sl, int(k.ctrAb[c]), ab, nil) {
+					return true
+				}
+			} else if k.cards[c].manaAb < 0 && s.potentialAdmits(k, p, sl, int(k.ctrAb[c]), ab, nil) {
+				return true
+			}
 		}
 		// gorge untappedManaSourceFor: an available mana ability counts when its
 		// RestrictValid$ admits this payment, so a source whose only ability is
