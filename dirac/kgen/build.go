@@ -1117,6 +1117,23 @@ func (cb *cardBuilder) record() error {
 }
 
 // cost builds a kop cost.
+// millRevealCostBytes writes the cost parts that ride their own table bytes:
+// the energy part's flag (kop.CostPayEnergy), Mill<N> which mills the count
+// from the payer's own library's top (CR 701.17b) with no N/Filter share and
+// no pick, and Reveal<1/CARDNAME> (the forecast family) which reveals the
+// source from its controller's hand and moves nothing, so nothing is asked.
+func millRevealCostBytes(out *kop.Cost, c lCost, set func(kop.CostFlags, int)) {
+	if c.Energy > 0 {
+		set(kop.CostPayEnergy, c.Energy)
+	}
+	if c.MillN > 0 {
+		out.Mill = uint8(c.MillN)
+	}
+	if c.RevealSelf {
+		out.RevealSelf = true
+	}
+}
+
 func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	var out kop.Cost
 	var err error
@@ -1321,9 +1338,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 			return out, err
 		}
 	}
-	if c.Energy > 0 {
-		set(kop.CostPayEnergy, c.Energy)
-	}
+	millRevealCostBytes(&out, c, set)
 	if c.ReturnSelf {
 		out.Flags |= kop.CostReturnSelf
 	}

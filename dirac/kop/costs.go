@@ -294,6 +294,26 @@ type Cost struct {
 	// words are full); only a spell's or an activated ability's own cost
 	// carries it.
 	DiscardX bool
+	// Mill: Mill<N>, the payer mills N cards from the top of their own
+	// library as the cost is paid (CR 701.17b, 118.3; gorge cost.parse's
+	// Mill part, pay.PayMillCost, cast_commit.go's payMillCostParts). A table
+	// byte, not a CostFlags bit (the words are full); only a printed
+	// activated ability's own non-mana cost carries it today (Rot Farm
+	// Skeleton; a mana ability's Mill<1> is a shape kop.ManaAbilityHonoured
+	// does not list). The payment moves cards, so every offer gate prices the
+	// library on it (legal.go's canActivate, the hand and graveyard option
+	// walks) and the payment sits after the life and energy parts, as gorge's
+	// cast_commit pays it (mana_window.go payAbilityCosts, cost_millcost.go).
+	Mill uint8
+	// RevealSelf: the source card is revealed from its controller's hand as
+	// the cost is paid and nothing moves (the forecast family's
+	// Reveal<1/CARDNAME>, CR 702.54a; gorge cast_asks.go revealCostAsk
+	// settles it unasked with the one candidate, cast_commit.go's
+	// EmitChoiceCosts announces it as a Note only). A table byte, not a
+	// CostFlags bit (the words are full). Only a printed activated ability's
+	// own cost carries it, and the source is in hand whenever the ability is
+	// offered (canActivate's gate; the hand walk lists hand cards alone).
+	RevealSelf bool
 }
 
 // CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction
