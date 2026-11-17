@@ -116,7 +116,7 @@ func auditRows(fsys fs.FS, reg *cards.Registry, lir func([]string) map[string]st
 		return nil, err
 	}
 
-	names := universe(ev, ref, sc, legacy, hunt, xl, dx)
+	names := universe(reg, ev, ref, sc, legacy, hunt, xl, dx)
 	lirNow := lir(append([]string(nil), names...))
 	if lirNow == nil {
 		lirNow = map[string]string{}
@@ -324,16 +324,19 @@ func readHunt(file string) (*huntIndex, error) {
 	return idx, nil
 }
 
-// keySides reads the hunt row's engine columns. A row that names no side is
-// a key both engines are compared on.
+// keySides reads the hunt row's engine columns from the status token. Only
+// exact tokens count: both/agree/agreed/same name both engines, x/xmage/x-only
+// name X alone, g/gorge/g-only name gorge alone. Any other status (diverged,
+// open, ...) names no side and falls through to the ctx column, and then to
+// both engines.
 func keySides(h huntRow) (g, x bool) {
 	s := strings.ToLower(strings.TrimSpace(h.Status))
-	switch {
-	case s == "both", s == "agree", s == "agreed", s == "same":
+	switch s {
+	case "both", "agree", "agreed", "same":
 		return true, true
-	case strings.Contains(s, "x"):
+	case "x", "xmage", "x-only", "xonly":
 		return false, true
-	case strings.Contains(s, "g"):
+	case "g", "gorge", "g-only", "gonly":
 		return true, false
 	}
 	c := strings.ToLower(h.Ctx)
@@ -553,13 +556,21 @@ func readXMageJSON(b []byte) (map[string]string, error) {
 	return out, nil
 }
 
-// universe is every card any input names, sorted.
-func universe(ev *evidence, ref map[string]*cardset.RefusedEntry, sc map[string]sidecarRow,
+// universe is every card in the registry plus every name any input names,
+// sorted. A registry card is named as the evidence lists name it: by its first
+// face, so a split card is one row. A card in no list (unverified or
+// not-lowered) still gets its row.
+func universe(reg *cards.Registry, ev *evidence, ref map[string]*cardset.RefusedEntry, sc map[string]sidecarRow,
 	legacy map[string]bool, hunt *huntIndex, xl *xledgerIndex, dx *diagnosedIndex) []string {
 	seen := map[string]bool{}
 	add := func(n string) {
 		if n != "" {
 			seen[n] = true
+		}
+	}
+	for _, c := range reg.AllCards() {
+		if c != nil && len(c.Faces) > 0 && c.Faces[0] != nil {
+			add(c.Faces[0].Name)
 		}
 	}
 	for n := range ev.lists {
@@ -844,6 +855,8 @@ func writeRows(w io.Writer, rows []row) error {
 
 // writeNeed writes the hunt plan's need/<ctx>.tsv: the supported cards whose
 // missing keys are still owed, 4-seat cards first and then fewer plays first.
+// owed_uses is the number of owed keys: each is one use the evidence runs have
+// not yet exercised, so it counts the uses owed, not the plays the card had.
 func writeNeed(w io.Writer, rows []row) error {
 	var need []row
 	for _, r := range rows {
@@ -1002,6 +1015,7 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
+	var lirErr error
 	lir := func(names []string) map[string]string {
 		load := make([]string, 0, len(names))
 		seen := map[string]bool{}
@@ -1024,7 +1038,7 @@ func run(args []string) error {
 		}
 		m, err := kgen.LIRKeysFor(*cardsDir, load)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "cardaudit: lowering keys: %v\n", err)
+			lirErr = fmt.Errorf("lowering keys: %w", err)
 			return nil
 		}
 		return m
@@ -1032,6 +1046,9 @@ func run(args []string) error {
 	rows, err := auditRows(os.DirFS(*root), reg, lir, o)
 	if err != nil {
 		return err
+	}
+	if lirErr != nil {
+		return lirErr
 	}
 	wrote := false
 	if *out != "" {
