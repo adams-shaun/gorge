@@ -74,6 +74,9 @@ func (s *State) ProjectChars(p *Projection) {
 		if k.gen != nil && k.gen.anyColGrant {
 			c.Kw |= s.colProtKw(k, sl) // static_colourprot.go
 		}
+		if k.gen != nil && k.gen.anyProtGrant {
+			c.Kw |= s.grantedProtColKw(k, sl) // kw_protection.go
+		}
 		if k.gen != nil {
 			// one batch query for the slot (subsGen), not one hasSubGen per
 			// subtype: the per-slot reduction is i-independent

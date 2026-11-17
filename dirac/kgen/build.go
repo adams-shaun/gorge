@@ -2604,6 +2604,11 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		// value's filter does (refSubs walks ovVals)
 		cb.out.ovVals = append(cb.out.ovVals, kop.ValueRef{K: kop.VCountFilter, N: int16(ko.Landwalk)})
 	}
+	if o.ProtFrom != nil {
+		if ko.ProtFrom, err = cb.filter(o.ProtFrom, kop.ZoneBattlefield); err != nil {
+			return 0, err
+		}
+	}
 	ko.AddColors = colorMask(o.AddColors)
 	if ko.AddKw, err = kwMask(o.AddKw); err != nil {
 		return 0, err

@@ -237,6 +237,16 @@ type Override struct {
 	// A layer-6 grant: it does not survive a later loss of the permanent's
 	// abilities. 0 = none.
 	Landwalk FilterID
+	// ProtFrom: a Pump's or an Animate's granted protection (CR 702.16): while
+	// the record lasts the permanent is protected from a source matching this
+	// battlefield filter, read with the protected permanent's controller as
+	// the "you" a controller clause names (a Player.Opponent quality judges
+	// the source's controller against it; gorge protection.go's
+	// player-relative arm, which only a live source object has). Its colour
+	// clauses are the "Protection from <colour>" and "from each color"
+	// spellings' colour mask. Read beside a Continuous static's ProtFrom
+	// (protOvF); a layer-6 grant, lost with the permanent's abilities. 0 = none.
+	ProtFrom FilterID
 }
 
 // Emblem is a command-zone object with abilities (triggered or static).
