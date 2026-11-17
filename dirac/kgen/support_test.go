@@ -353,10 +353,12 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 	return b.Bytes()
 }
 
-// TestSupportDocIsCurrent holds dirac/docs/support.md to this tree. The page is owned by
-// land (dirac/LANDGEN): land regenerates it on every landing, so by default a seat's tree
-// fails only on a fall against the stored page (supportFalls), and a rise passes.
-// DIRAC_PIN_STRICT=1 (land's re-pin, the promote CI) compares the page byte for byte.
+// TestSupportDocIsCurrent holds dirac/docs/support.md to this tree. By default it fails only on
+// a fall against the stored page (supportFalls): a card losing support is a regression. A page
+// stale with rises only is logged, not failed: a doc update should not block a merge, and PRs
+// merged together in one queue batch each carry a correct page that no longer matches their
+// union. DIRAC_SUPPORT_STRICT=1
+// (the nightly) compares the page byte for byte.
 func TestSupportDocIsCurrent(t *testing.T) {
 	heavyParallel(t)
 	cardsDir := ratchetCards(t)
@@ -376,7 +378,7 @@ func TestSupportDocIsCurrent(t *testing.T) {
 		return
 	}
 	const regen = "DIRAC_UPDATE_SUPPORT=1 go test -run TestSupportDocIsCurrent ./dirac/kgen rewrites it"
-	if os.Getenv("DIRAC_PIN_STRICT") == "1" {
+	if os.Getenv("DIRAC_SUPPORT_STRICT") == "1" {
 		t.Fatalf("%s is stale: %s", supportDocPath, regen)
 	}
 	stored, err := parseSupportDoc(want)
@@ -395,7 +397,7 @@ func TestSupportDocIsCurrent(t *testing.T) {
 		t.Logf("a fall is a regression; one that is meant (a lowering given up) is re-measured with %s", regen)
 		return
 	}
-	t.Logf("%s is stale with rises only: land regenerates it (DIRAC_PIN_STRICT=1 compares it exactly)", supportDocPath)
+	t.Logf("WARNING: %s is stale with rises only: %s (the nightly, DIRAC_SUPPORT_STRICT=1, fails on it)", supportDocPath, regen)
 }
 
 // supportPage is what the fall-only check reads from a support page: its list rows in page
