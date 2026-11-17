@@ -993,9 +993,21 @@ func (s *State) ovGrantsBetween(k *prep, sl Slot, lo, hi uint32, lost bool, lts 
 			if kinds != grantAny && (k.t.Cards[r.src].Abilities[g-1].GrantedKw) != (kinds == grantKw) {
 				continue
 			}
-			f(r.src, g-1, r.reps())
+			f(r.src, g-1, copyGrantTimes(&k.t.Cards[r.src].Abilities[g-1], r))
 		}
 	}
+}
+
+// copyGrantTimes is how many instances of ability ab a grant record r holds:
+// its merged applications, except that an as-enters copy grant's activated
+// ability stays one (gorge's fold keeps an AddAbilities$ ability once, CR 707.3)
+// beside a trigger grant of the same record that is appended each time
+// (copyGrantOnce).
+func copyGrantTimes(ab *kop.Ability, r ovRec) int {
+	if r.copyGrant() && ab.Kind != kop.AbTriggered {
+		return 1
+	}
+	return r.reps()
 }
 
 // grantedHost returns the permanent granting sl the ability (c, ab) (the
