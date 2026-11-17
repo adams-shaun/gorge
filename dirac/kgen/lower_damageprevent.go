@@ -49,7 +49,7 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	if _, ok := ps.get("Duration"); ok {
 		return lc.effectDurationPrevent(ps) // lower_effectemblemprevent.go: Ajani's Permanent emblem, else refuses
 	}
-	if ok, err := lc.effectPreventScope(ps); ok || err != nil {
+	if ok, err := lc.effectPreventScoped(ps); ok || err != nil {
 		return err
 	}
 	if ok, err := lc.effectDmgRedirectScope(ps); ok || err != nil { // lower_effectredirect.go
@@ -110,6 +110,17 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	}
 	lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(kws, "&")})
 	return nil
+}
+
+// effectPreventScoped tries the two this-turn scoped-prevention arms in turn:
+// the bodyless Prevent$ True line (effectPreventScope) and the gain-rider form
+// (effectPreventRider, lower_preventrider.go). It keeps effectPrevent under the
+// complexity ceiling.
+func (lc *lowerCtx) effectPreventScoped(ps *params) (bool, error) {
+	if ok, err := lc.effectPreventScope(ps); ok || err != nil {
+		return ok, err
+	}
+	return lc.effectPreventRider(ps)
 }
 
 // effectPreventScope lowers the this-turn prevention Effect that names no
