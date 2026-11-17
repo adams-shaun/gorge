@@ -1,0 +1,7 @@
+# A Taps-deferred depletion gap (Hickory Woodlot) beside a filter (Viridescent
+# Bog) and the activated ability only the two together pay (Retrofitter
+# Foundry's {3}: Untap): dirac/mana_filtertapsdefer_test.go
+Hickory Woodlot
+Viridescent Bog
+Retrofitter Foundry
+Forest
