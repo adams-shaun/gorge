@@ -474,6 +474,7 @@ func (s *State) clearCombat() {
 		}
 	}
 	s.xblkClear()
+	s.mbaEndCombat() // combat_mustblockatk.go
 	s.nAttackers = 0
 	s.fsStep = false
 }

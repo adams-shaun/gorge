@@ -664,6 +664,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 	switch kop.ExtOp(in.A.N) {
 	case kop.ExtClearNamedCard:
 		return s.clearNamedCardExt(k, in) // repl_namecard.go
+	case kop.ExtMustBlock:
+		return s.mustBlockAtkExt(k, in) // combat_mustblockatk.go
 	case kop.ExtNameCard:
 		return s.nameCardExt(k, in) // repl_namecard.go
 	case kop.ExtPutContract:
