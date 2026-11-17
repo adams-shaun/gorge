@@ -11,6 +11,12 @@ package kop
 const (
 	SkipUntapLockStep = 2 // Obj doesn't untap during its controller's untap step (ValidStepTurnToController$ You: Ty Lee, Chi Blocker)
 	SkipUntapLockAny  = 3 // Obj can't become untapped at all, in the untap step or by an effect (no ValidStepTurnToController$: Spider-Woman, Secret Agent)
+
+	// SkipUntapLockHostStep is the untap-step lock of SkipUntapLockStep that lasts for as
+	// long as the source is on the battlefield under any controller (gorge
+	// Duration$ AsLongAsInPlay or UntilHostLeavesPlay: Somnophore, Tidebinder
+	// Mage, Origin of Iron Man). It ends only when the source or Obj leaves.
+	SkipUntapLockHostStep = 5
 )
 
 // SkipUntapPlayerCL is the OpSkipUntap C value for the player Obj's creatures
