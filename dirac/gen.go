@@ -33,6 +33,7 @@ type genPrep struct {
 	smallRecs []cardSmall
 	leyline   bool // some card is a Leyline
 	anyUmbra  bool // some card is an umbra Aura (CardDef.UmbraArmor; kw_umbraarmor.go)
+	anySrcMem bool // some card keeps its Imprinted or Remembered on the source (CardDef.ImpPersist/SrcMem; zone_srcmem.go)
 	// mana abilities a card only grants (Imprisoned in the Moon's "{T}: Add
 	// {C}"): grantPC[i] is the mana source the permanent it is granted to
 	// becomes for the autopay planner (manaPCGen)
@@ -647,6 +648,13 @@ func tableHasReconfigure(t *kop.Table) bool {
 	return false
 }
 
+// noteKeptSets records the card's flags for a kept remembered or imprinted set
+// (zone_rememberpersist.go, zone_srcmem.go).
+func (g *genPrep) noteKeptSets(c *kop.CardDef) {
+	g.anyRemPersist = g.anyRemPersist || c.RemPersist
+	g.anySrcMem = g.anySrcMem || c.ImpPersist || c.SrcMem
+}
+
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
@@ -972,9 +980,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.HasForetell {
 			g.anyForetell = true
 		}
-		if c.RemPersist {
-			g.anyRemPersist = true
-		}
+		g.noteKeptSets(c)
 		if c.ExiledWith {
 			if g.exwRec == nil {
 				g.exwRec = make([]uint8, len(t.Cards))
