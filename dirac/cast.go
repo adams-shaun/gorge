@@ -1296,6 +1296,16 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 	s.availCastWindowFor(k, e.ctrl, &av)
 	if e.kind == seAbility {
 		s.excludeTapSource(k, &av)
+		if s.rbAny(e.ctrl) {
+			// The restricted mana the activation's payment may spend is a
+			// unit of its pip ask too (CR 106.6): gorge's announceFeasible
+			// reads AvailableFor, whose restricted batches the pay spends
+			// first (Gwenna's creature-only {R} beside a Souleater's pip).
+			d := s.payDescNow(NoObj)
+			if m := s.restrFloatAdmits(k, e.ctrl, &d); m != 0 {
+				s.restrAvailAdd(e.ctrl, m, &av)
+			}
+		}
 	} else if s.rbAny(SeatIx(e.ctrl)) {
 		s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) // the restricted mana the spell may spend, as the X ask reads it
 	}
