@@ -88,8 +88,12 @@ func (e *Engine) paymentPlanCheckUnits(pc *pendingCast) (string, []windowManaUni
 	if !pc.isAbility() {
 		rider = rider.Or(pay.ConvRider(asEval(e).Conv(pc.player, pc.card, pay.SASpell))) // a creature spell under Vizier (payment_plan.go)
 	}
-	cost := pay.PlanManaUnderRider(e.castPaymentMana(pc), rider)
-	if plan.Version != decision.PaymentPlanV1 || plan.Cost != pay.WireCost(cost) {
+	// The plan's Cost names the alternative it was built for: the folded cost,
+	// or (under an AnyColor rider) a pinned cost keeping a relaxed coloured pip
+	// funded from a coloured unit. Matching that wire cost re-derives the exact
+	// cost the executor spends; desc, the pool and the settle all read it.
+	cost, ok := pay.PlanManaUnderRiderMatching(e.castPaymentMana(pc), rider, plan.Cost)
+	if plan.Version != decision.PaymentPlanV1 || !ok {
 		return paymentFallbackCostChanged, nil, pay.Alt{}, false
 	}
 	next := pc.PaymentNext
