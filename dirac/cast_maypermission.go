@@ -59,9 +59,10 @@ func (s *State) mayLimitSpent(r mayPlay) bool {
 // (rules mayPlaySpellIds' per-card dedupe) and casts it free when any free
 // grant covers it (mayPlayGrant), so the free record's cast is the card's one
 // option and the plain one is not offered beside it. A land's play stays on
-// both records (offerLandOnce lists it once).
+// both records (offerLandOnce lists it once). Only a table with kind
+// records (genPrep.anyMayKind) can hold a free one.
 func (s *State) freeMayDominates(k *prep, p uint8, i int, r mayPlay) bool {
-	if r.kind&(kop.MayPlayFree|kop.MayPlayAdvKind) != 0 || k.cards[s.objs[r.obj].card].land {
+	if !k.gen.anyMayKind || r.kind&(kop.MayPlayFree|kop.MayPlayAdvKind) != 0 || k.cards[s.objs[r.obj].card].land {
 		return false
 	}
 	for j := 0; j < int(s.g.nmay); j++ {
