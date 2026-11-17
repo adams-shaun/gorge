@@ -45,6 +45,9 @@ func foldMutate(g *state.Game, e *Event) {
 		oldCard, oldFace, owner := survivor.Card, survivor.FaceIdx, survivor.Owner
 		parked := g.AddObject(oldCard, owner)
 		parked.Zone = state.ZCeased
+		// The parked under-card is born ceased: straight off the live-object
+		// tally AddObject just raised (see state.Game.liveObjs).
+		g.ClearLiveObject()
 		parkedID := parked.ID
 		survivor = g.Obj(e.Obj)
 		if survivor == nil {

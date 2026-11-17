@@ -209,7 +209,7 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 	departing, link, controller := e.captureSourceLifelinkLKI(ev)
 	stored := ev
 	absorbed := e.foldEntryMove(&stored, false)
-	e.loop.observeFrom(&stored, e.damaging, len(e.G.Objs))
+	e.loop.observeFrom(&stored, e.damaging, e.G.LiveObjs())
 	// The move-driven Effect lifetimes, replayed inline exactly as the
 	// single-match Updated branch does (the raw events.Emit above bypasses
 	// Engine.emit's own sweep point).
@@ -375,7 +375,7 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 		absorbed := e.foldEntryMove(&stored, false)
 		rc.absorbed = absorbed
 		rc.stored = stored
-		e.loop.observeFrom(&stored, e.damaging, len(e.G.Objs))
+		e.loop.observeFrom(&stored, e.damaging, e.G.LiveObjs())
 		// The move-driven Effect lifetimes, replayed inline exactly as the
 		// synchronous composition does (see applyReplacement's Updated arm).
 		e.effectMoveSweep(rc.ev)

@@ -1404,7 +1404,7 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		departing, link, controller := e.captureSourceLifelinkLKI(ev)
 		stored := ev
 		absorbed := e.foldEntryMove(&stored, false)
-		e.loop.observeFrom(&stored, e.damaging, len(e.G.Objs))
+		e.loop.observeFrom(&stored, e.damaging, e.G.LiveObjs())
 		// The move-driven Effect lifetimes (the ExileOnMoved$/ForgetOnMoved$
 		// sweep) run on Engine.emit's own MoveZone path right here in the
 		// ordering; the raw events.Emit above bypasses that path, so the sweep

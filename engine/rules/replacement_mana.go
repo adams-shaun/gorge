@@ -40,7 +40,7 @@ func (e *Engine) continueManaReplacements(ev events.Event, candidates []replMatc
 				return ev, false
 			}
 			stored := events.Emit(e.G, e.L, ev)
-			e.loop.observeFrom(&stored, e.damaging, len(e.G.Objs))
+			e.loop.observeFrom(&stored, e.damaging, e.G.LiveObjs())
 			e.checkTriggers(&stored, nil, 0, 0, false)
 			return stored, true
 		}

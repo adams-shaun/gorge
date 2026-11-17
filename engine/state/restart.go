@@ -70,6 +70,8 @@ func (g *Game) Restart(life int32, keep []ObjID) {
 		id, owner, card := o.ID, o.Owner, o.Card
 		isCard := !o.IsToken && !o.IsCopy && o.Ability == nil && !dungeon[id] && card != nil
 		o.Zone = ZCeased
+		// The old object ceased: off the live-object tally (state.Game.liveObjs).
+		g.ClearLiveObject()
 		// A player who lost before the restart is not in the new game
 		// (CR 727.1, "All players in that game when it ended"), so their
 		// cards cease instead of being dealt into a library nobody owns.

@@ -415,6 +415,19 @@ type Game struct {
 	Players []Player
 	// Objs is a dense arena: Objs[i] has ID i+1, so ObjID 0 is "no object".
 	Objs []Object
+	// liveObjs is the count of arena objects that have NOT ceased to exist
+	// (every zone except ZCeased): one live object per object ever minted
+	// that is still somewhere in the game. AddObject counts a mint, and the
+	// zone folds count a ceasure and an un-ceasure (a ZCeased park coming
+	// back, events' move and the copy-park fold; Restart's own ceasure
+	// sweep), so a live game and a log-only replay derive the same value.
+	// It is the volume bound the livelock watcher's LoopGuard.MaxObjs
+	// measures: the arena's length also counts every ceased object, which
+	// on a long storm game (thousands of resolved triggers and expired
+	// tokens) exceeds the live population several times over.
+	// Written only by state.AddObject, the zone folds in events.Apply and
+	// Restart -- never by rules or effects. Clone copies it with the struct.
+	liveObjs int
 	// ExcessDamageVictims is appended by events.Apply's ExcessDamage fold
 	// and cleared at TurnChange; the source object's own predicate is separate.
 	ExcessDamageVictims []ExcessDamageVictim
@@ -1045,17 +1058,32 @@ func (g *Game) ClearPreparedSource() { g.preparedSources-- }
 // CrewedObjectsLive reports whether any object has recorded a crew pairing.
 func (g *Game) CrewedObjectsLive() bool { return g.crewedObjects != 0 }
 
+// NoteLiveObject counts one object's ceased-to-live transition (a ZCeased
+// park coming back), the tally LiveObjs reads. See the liveObjs field.
+func (g *Game) NoteLiveObject() { g.liveObjs++ }
+
+// ClearLiveObject counts one object's live-to-ceased transition (a ZCeased
+// park or a CR 113.7a ability's exile parking), the tally LiveObjs reads.
+// See the liveObjs field.
+func (g *Game) ClearLiveObject() { g.liveObjs-- }
+
 // NoteCrewedObject tracks an object's empty-to-nonempty crew-list transition.
 func (g *Game) NoteCrewedObject() { g.crewedObjects++ }
 
 // ClearCrewedObject tracks an object's nonempty-to-empty crew-list transition.
 func (g *Game) ClearCrewedObject() { g.crewedObjects-- }
 
+// LiveObjs is the number of arena objects that have not ceased to exist
+// (see the liveObjs field): the volume the livelock watcher's object cap
+// (rules.LoopGuard.MaxObjs) bounds.
+func (g *Game) LiveObjs() int { return g.liveObjs }
+
 func (g *Game) AddObject(card *cards.Card, owner PlayerID) *Object {
 	o := Object{ID: g.NextID, Card: card, Owner: owner, Controller: owner, Zone: ZLibrary}
 	o.SyncFace()
 	g.NextID++
 	g.Objs = append(g.Objs, o)
+	g.liveObjs++
 	return &g.Objs[len(g.Objs)-1]
 }
 

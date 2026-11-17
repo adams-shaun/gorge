@@ -807,7 +807,22 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		g.SetZone(to, dst, append(g.Zone(to, dst), id))
 	}
 
+	// The live-object tally (state.Game.liveObjs): the shape (Card/Ability)
+	// does not change in a move, so the transition's two ends decide it — an
+	// object that left the tombstone (ZCeased, or the CR 113.7a ability's
+	// exile parking below) is live again, and one that entered either
+	// tombstone stopped being live. Kept in the same fold as o.Zone so a
+	// live game and a log-only replay derive the same count.
+	wasLive := enteredFrom != state.ZCeased && !(o.Card == nil && o.Ability != nil && enteredFrom != state.ZStack)
 	o.Zone = to
+	isLive := to != state.ZCeased && !ceasedAbility
+	if isLive != wasLive {
+		if isLive {
+			g.NoteLiveObject()
+		} else {
+			g.ClearLiveObject()
+		}
+	}
 	// CR 709.4: a non-Room split card has no persistent "current half" once it
 	// leaves the stack -- both halves are printed on the same physical card and
 	// either is castable again from whatever zone it lands in. A split_alt (or

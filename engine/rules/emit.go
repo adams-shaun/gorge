@@ -523,7 +523,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.bendSeatsThisTurn = [64]uint8{}
 		e.noncombatDamagedSeatsLast, e.noncombatDamagedSeats = e.noncombatDamagedSeats, 0
 	}
-	e.loop.observeFrom(&stored, e.damaging, len(e.G.Objs))
+	e.loop.observeFrom(&stored, e.damaging, e.G.LiveObjs())
 	// setname.go: keep the layer-3 rename table the filter tier reads in step
 	// with the board. Gated so a match with no SetName$ carrier pays one
 	// branch.
@@ -972,7 +972,7 @@ func bookkeepingKind(k events.Kind) bool {
 func (e *Engine) emitBookkeeping(ev *events.Event) {
 	events.EmitPtr(e.G, e.L, ev)
 	e.noteTurnsTaken(ev)
-	e.loop.observeFrom(ev, e.damaging, len(e.G.Objs))
+	e.loop.observeFrom(ev, e.damaging, e.G.LiveObjs())
 	if e.setNameInPool {
 		e.refreshRenames()
 	}
