@@ -1090,7 +1090,12 @@ func (g *grantSrch) candidates(s *State) {
 		}
 		g.n++
 	}
-	if holders == 0 {
+	if holders == 0 && g.n == 0 {
+		// The activation's own source is the only holder (g.ex): its {T}
+		// cannot also make the mana, so no grant funds it. Another gap kind
+		// (a Taps-deferred source, a filter) still can, and gorge's one
+		// prefix search activates it: keep those candidates and fall back to
+		// the printed sources only when no gap survives.
 		g.n, g.gapN = 0, 0
 		return
 	}
