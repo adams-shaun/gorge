@@ -1173,6 +1173,7 @@ func (s *State) xtLegalBase(k *prep, e *stackEntry, j int) bool {
 // when a copy token's as-enters ask parked the loop (copy_eachtarget.go).
 func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 	e := &s.res.e
+	s.noteLibPlaceRev(in)
 	saveT, saveV, saveBad := e.tgt[i], e.tver[i], s.res.bad
 	if k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen())
