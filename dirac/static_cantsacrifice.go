@@ -19,9 +19,22 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // so a Treasure gorge keeps is sacrificed here and the lockstep diverges.
 var DebugCantSacOff bool
 
-// prepCantSac arms genPrep.anyCantSac when some card has a StatCantSacrifice.
+// DebugGrantedCantSacOff (test only, TestGrantedCantSacrificeMutation):
+// sacBlockedBy skips every granted CantSacrifice (CardDef.Granted), so a
+// Warrior token Zurgo protects is sacrificed here and the lockstep diverges.
+var DebugGrantedCantSacOff bool
+
+// prepCantSac arms genPrep.anyCantSac when some card has a StatCantSacrifice,
+// printed or granted (CardDef.Granted: Zurgo, Thunder's Decree).
 func prepCantSac(t *kop.Table, g *genPrep) {
 	g.anyCantSac = tableHasStatic(t, kop.StatCantSacrifice)
+	for i := 0; i < len(t.Cards) && !g.anyCantSac; i++ {
+		for j := range t.Cards[i].Granted {
+			if a := &t.Cards[i].Granted[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCantSacrifice {
+				g.anyCantSac = true
+			}
+		}
+	}
 }
 
 // sacBlocked reports whether a StatCantSacrifice forbids sacrificing the
@@ -41,9 +54,9 @@ func (s *State) sacBlockedBy(k *prep, sl Slot) bool {
 		return false
 	}
 	hit := false
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachStaticG(k, func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatCantSacrifice {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatCantSacrifice || st.gr && DebugGrantedCantSacOff {
 			return true
 		}
 		if s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerFull) {

@@ -23,6 +23,28 @@ import (
 // discard. Open it (set "") with the engine fix.
 var grantedStaticKinds = map[string]string{
 	"NoMaxHandSize": "gorge's maxHandSizeFor never reads a granted static (an enchanted creature's controller keeps a maximum of seven)",
+	// Zurgo, Thunder's Decree: gorge sacrificeBlockedBy reads grantedStatics
+	// ("CantSacrifice") per recipient, and the kernel's sacBlockedBy walks
+	// eachStaticG.
+	"CantSacrifice": "",
+}
+
+// grantWindow lowers the outer Continuous static's Phases$ window beside a
+// granted static (Zurgo, Thunder's Decree: Phases$ End of Turn beside
+// Condition$ PlayerTurn): gorge grantPhasesHold, the step test
+// continuousGateHolds reads, ANDed with the turn condition into the outer
+// static's Cond2 (the inner static carries no condition of its own).
+func grantWindow(sp *params, st *lStatic) error {
+	ph, ok := sp.get("Phases")
+	if !ok {
+		return nil
+	}
+	c, err := phasesCond("Phases", ph)
+	if err != nil {
+		return err
+	}
+	st.Cond = andCond(st.Cond, c)
+	return nil
 }
 
 // grantedStaticParam lowers a Continuous static's AddStaticAbility$ when no
@@ -33,6 +55,9 @@ func (lc *lowerCtx) grantedStaticParam(sp *params, st *lStatic) error {
 	v, ok := sp.m["AddStaticAbility"]
 	if !ok || sp.used["AddStaticAbility"] || st.Kind != "Continuous" {
 		return nil
+	}
+	if err := grantWindow(sp, st); err != nil {
+		return err
 	}
 	return lc.grantedStatic(sp, st, v)
 }
