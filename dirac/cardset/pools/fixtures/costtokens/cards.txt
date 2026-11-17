@@ -24,3 +24,9 @@ Mountain
 Swamp
 Forest
 Plains
+# Millikin: the mana ability's own Mill<1> ({T}, Mill a card: Add {C}):
+# no CR 605.1a mana ability's cost moves a library card
+# (cards.IsManaAbilitySA's movesLibraryCard), so gorge resolves the whole
+# ability on the stack as an ordinary activated ability; the kernel lowers
+# it through lower_stackmana.go stackManaAbility the same way.
+Millikin
