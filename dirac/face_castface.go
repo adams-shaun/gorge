@@ -298,31 +298,13 @@ const FeatCastFace = castFace
 func (s *State) faceWitnessReaches(k *prep, p uint8, o Obj, c CardID, cost *kop.ManaCost) bool {
 	tmp := s.fork()
 	defer s.unfork()
-	n0 := tmp.npend
 	var pk planner
 	pk.try = true
 	tmp.tapForPK(k, p, cost, 0, NoObj, false, false, &pk)
 	if !pk.found || !plannerConsumesSac(&pk) {
 		return true
 	}
-	if !tmp.spellTargetsFeasible(k, c, p) || !tmp.FeatPoolPays(p, o, 0) {
-		return false
-	}
-	// The lowering sacrifices the witness's sources at priority
-	// (lowerWitness), so their triggers resolve before the cast. The oracle's
-	// potential-plan execution answers the lowering player's own trigger
-	// decisions but not another player's: one still pending after
-	// resolveLowerCounterTriggers (an optional "may", a target) aborts the
-	// lowering ("lower dead end") and the autopay vocabulary drops the play,
-	// so the kernel must not offer it either. A trigger that asks nothing
-	// lands before the cast and leaves no pending entry.
-	tmp.resolveLowerCounterTriggers(k, n0, k.cards[c].instant || tmp.castFlash(k, p, c))
-	for i := int(n0); i < int(tmp.npend); i++ {
-		if tmp.pend[i].ctrl != p {
-			return false
-		}
-	}
-	return true
+	return tmp.spellTargetsFeasible(k, c, p) && tmp.FeatPoolPays(p, o, 0)
 }
 
 // plannerConsumesSac reports whether the planner's chosen witness sacrifices

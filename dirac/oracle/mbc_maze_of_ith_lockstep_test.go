@@ -1,7 +1,7 @@
 package oracle
 
 import (
-	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -13,29 +13,24 @@ const mazeOfIthRepro = "maze_of_ith_prevention_beside_shield_ask_options"
 // the untapped attacker, and each activation is its own replacement effect
 // whose source is the Maze. A Dapper Shieldmate's shield counter (CR 122.1c)
 // is another match for damage dealt to it, so gorge asks the order and offers
-// the shield (the Shieldmate) beside one option for every Maze that
-// activated on it. The kernel holds the grant as a keyword bit on the
-// recipient: it names the recipient for the prevention, not the Maze, and
-// counts one candidate however many Mazes activated, so the two menus
-// differ (pair 3 of the 60-deck mz pool, decision 321 of 321). Modelling it
-// needs the granting Maze recorded per recipient and per grant, so the card is
-// refused by name, as Blanket of Night is, and the recorded game still shows
-// the divergence with it implicated.
+// the shield beside the Maze's prevention (pair 3 of the 60-deck mz pool,
+// decision 321 of 321). The kernel once held the grant as a bare keyword bit
+// and offered a different menu, so the card was refused; it now asks the
+// CR 616.1 order for a depleting shield beside a granted prevention
+// (dirac/combat_prevention.go, 7d5dfe3830), and the recorded game replays
+// clean on a raw table of its own decks' cards, its whole script served.
 func TestMBCMazeOfIthReprosLockstep(t *testing.T) {
-	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
+	t.Parallel()
+	r, err := ReadRepro(filepath.Join("testdata", "repro", mazeOfIthRepro+".repro.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := range entries {
-		e := &entries[i]
-		if e.Card != "Maze of Ith" {
-			continue
-		}
-		if e.Repro.Pool != "custom" || e.Repro.File != mazeOfIthRepro {
-			t.Fatalf("Maze of Ith's entry replays %s/%s, want custom/%s", e.Repro.Pool, e.Repro.File, mazeOfIthRepro)
-		}
-		checkRefusedRepro(t, e)
-		return
+	pol := &ScriptPolicy{Actions: r.Actions}
+	res := replayDecodedScript(t, synthReg(t), cardset.Raw(printedDelveSet(t, r.Cards)), r, pol)
+	if pol.next != len(r.Actions) || pol.Skipped != 0 {
+		t.Fatalf("recording served %d of %d actions (%d skipped): its game path has drifted", pol.next, len(r.Actions), pol.Skipped)
 	}
-	t.Fatal("Maze of Ith has no dirac/support/refused entry: its Effect prevention beside a shield counter offers a different replacement-order menu")
+	if !res.Clean() {
+		t.Fatalf("Maze of Ith's recorded game no longer replays clean: div %+v, stall %q", res.Div, res.Stall)
+	}
 }
