@@ -143,6 +143,11 @@ type CardDef struct {
 	// damage preventions' ReplSPRecipSnow (Goblin Furrier). Printed only: a
 	// layer effect that adds or removes it is not read.
 	Snow bool
+	// SpentSnow: the face reads Count$CastTotalManaSpent Snow — a cast whose
+	// payment spent snow mana (CR 107.4h) counts it. Printed only; kgen does
+	// not set it yet (the kernel's snow-spend bit rides the snow tally,
+	// dirac/mana_snow.go).
+	SpentSnow bool
 	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
 	// StatCastWithFlash ability grants it from hand, never from the

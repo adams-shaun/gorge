@@ -57,6 +57,7 @@ type pcard struct {
 	cdRec      bool // the card reads CtrlHitBySrc against itself: its combat hits on players are recorded (value_turntallies.go)
 	food       bool // the card's printed subtypes include Food (the sacFood tally; value_turntallies.go)
 	manaTyped  bool // gorge tallies the mana it adds as typed (an artifact, a Desert or a Cave: mana_artifact.go)
+	manaSnow   bool // gorge tallies the mana it adds as snow (the printed Snow supertype and no typed word: CR 106.3, effects.ManaProducerTag; mana_snow.go)
 	// painCol, painN: the source's painful mana alternative, its colours and
 	// its damage to the controller (a painland's second ability; for
 	// painOnly, a pain-only source's sole one, manaAb itself), gorge's
@@ -324,6 +325,7 @@ func prepare(t *kop.Table) *prep {
 		// the producing ability is printed or granted: the tag rides the
 		// source, not the ability (effects.ManaProducerTag)
 		pc.manaTyped = c.Types&kop.TArtifact != 0 || (c.Subtypes[0]&typedSub[0]|c.Subtypes[1]&typedSub[1]) != 0
+		pc.manaSnow = snowMana(c, pc.manaTyped)
 		p.artMana = p.artMana || pc.manaTyped
 		pc.land = c.Types&kop.TLand != 0
 		pc.creature = c.Types&kop.TCreature != 0
