@@ -1024,7 +1024,7 @@ var expandedKeywords = map[string]bool{
 	// into the resolution, which kgen never sees.
 	"Undying": true, "Persist": true, "Backup": true, "Fabricate": true, "Living Weapon": true,
 	"Job select": true, "For Mirrodin": true, "Transmute": true, "Outlast": true, "Battle cry": true,
-	"Afterlife": true, "Afflict": true, "Ravenous": true, "Modular": true,
+	"Afterlife": true, "Afflict": true, "Ravenous": true, "Rampage": true, "Modular": true,
 	// Demonstrate (CR 702.144a): gorge kwDemonstrate (cards/kw_demonstrate.go)
 	// appends a "when you cast this spell" trigger whose body is the
 	// __kwDemonstrate SVar, DB$ Demonstrate. (gorge's comment there cites
