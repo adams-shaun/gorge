@@ -3694,8 +3694,11 @@ func (s *State) sacXWindowPays(k *prep, e *stackEntry, cost *kop.ManaCost) bool 
 	if s.bld().bfl&bflMsDone != 0 {
 		return true
 	}
-	if !k.tapMana || DebugNoSacXMana || cost.X != 0 || !s.sacXLive(k, e.ctrl) {
+	if !k.tapMana || DebugNoSacXMana || cost.X != 0 {
 		return false
+	}
+	if !s.sacXLive(k, e.ctrl) {
+		return s.openCensusUnpayable(k, e, cost) // the window runs dry and reverses (mana_openunpayable.go)
 	}
 	chk := planner{dry: true, noGrant: true}
 	s.tapForPK(k, e.ctrl, cost, int(e.x), NoObj, false, false, &chk)
