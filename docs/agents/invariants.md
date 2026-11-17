@@ -319,7 +319,7 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
 1. **Work in a task worktree** with the main checkout's `.cards/` linked into
    it, so corpus tests really run (`ln -s <main>/.cards .cards`, then check
    the link resolves). Leave `main`'s checkout clean. Open a pull request
-   against `develop`, then remove the worktree.
+   against `main`, then remove the worktree.
 2. **Prove the corpus ran.** A package that prints `ok` in about 2 ms with
    `.cards/` missing executed nothing. If `.cards/` is absent, say so. Do not
    report green.
@@ -328,16 +328,18 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
      plus every package whose tests import them, capped, one verdict line.
    - `make test-smart` once on the committed tree (`make precheck` is an alias):
      fail-fast, the affected packages (`./engine/rules` whole when the change
-     reaches it) plus the pin, census, layout and lint groups; the prescreen and
-     the lander run the dirac gate. `GORGE_TEST_SMART_GATES=1` runs the landing
+     reaches it) plus the pin, census, layout and lint groups; the merge queue
+     batch runs `dirac-slices`. `GORGE_TEST_SMART_GATES=1` runs the landing
      gate's own affected and dirac gates instead. Quote its verdict line.
    - `make lint`: gofmt, vet, `gentypes -check`, plus web lint.
    - `make sim`: 20/20 `replay OK`.
    - If you touched `web/` or changed when a decision is posed, also run the
      `./engine/view` package and the web gates.
-   - The full suite runs in CI: every pull request runs the six test shards,
-     and a pull request to `main` also runs the whole `dirac/oracle` in ten
-     parts. Never run an uncapped `go test ./...` or the whole oracle by hand.
+   - The full suite runs in CI, never locally: a pull request runs the fast
+     stage (`scripts/ci-fast.sh`) and `lint`; the Mergify queue batch runs the
+     six test shards, the wire matrix and `dirac-slices`; the whole
+     `dirac/oracle` runs every 6 hours on `main`. Never run an uncapped
+     `go test ./...` or the whole oracle by hand.
 4. **Every test fits the budget: 4 GB RSS, 4 vCPU, 1 minute wall.** Run tests
    through the make targets (`scripts/test-targets.sh`), never a raw
    `go test`. To debug one test: `make test-one PKG=./pkg RUN='^TestX$'`

@@ -253,4 +253,4 @@ gofmt, `go vet` on the touched packages, `go run ./cmd/gentypes -check` if
 sim`, and `TestHeads`. Then write the commit message the way `git show
 786510b3f` does: the rule and its CR number, what was wrong and where, what
 you measured, and the gates you ran. Open the pull request against
-`develop`.
+`main`.

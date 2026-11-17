@@ -7,8 +7,9 @@ Forge. To fix a card that plays wrong, read this page and follow
 [glossary](docs/site/contributing/glossary.md). The fuller guide, including
 worktrees and what CI runs, is [docs/site/contributing/index.md](docs/site/contributing/index.md).
 
-**Open pull requests against `develop`,** not `main`. The maintainers promote
-landed work to `main` through pull requests whose CI is the full gate.
+**Open pull requests against `main`.** A Mergify merge queue merges them: once a
+pull request's `fast` and `lint` checks pass, the queue batches it with others and
+runs the full suite on the batch.
 
 ## Set up
 
@@ -73,7 +74,7 @@ each ratchet and golden failure means.
 - [ ] Focused `go test` of the packages you touched, with `.cards/` present.
 - [ ] `make sim`: 20/20 `replay OK`.
 - [ ] If you changed the rules or `dirac/`: `make dirac-tables`, then
-      `bash scripts/dirac-gate.sh develop` ends `dirac gate: ok` or `skipped`.
+      `bash scripts/dirac-gate.sh origin/main` ends `dirac gate: ok` or `skipped`.
 - [ ] `go test -run '^TestHeads$' ./engine/rules/`. If a chain head moved, your change
       altered what those games do. If that is intended, re-pin with
       `GORGE_UPDATE_HEADS=1 go test ./engine/rules/ -run '^TestHeads$'` and name the
