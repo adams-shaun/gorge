@@ -1,7 +1,6 @@
 package dirac
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -9,15 +8,16 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// comboAnyPayTable builds the synthetic tail bucket that holds Sage of the
-// Maze, as its own two-seat matchup (the whole bucket stalls at Init on a
-// pair inside it), plus a synthetic 1/1 whose attack trigger carries an
-// optional own-cost ask: OpIfPaid {1} (C 17 = the PayMana kind with an empty
-// skip nibble, as mana_rider_trigcost_test.go's rider), then draw a card.
+// comboAnyPayTable builds a two-seat matchup holding Axebane Guardian, an
+// unrestricted Combo Any source ("{T}: Add X mana in any combination of
+// colors", the same census gap as Sage of the Maze), plus a synthetic 1/1
+// whose attack trigger carries an optional own-cost ask: OpIfPaid {1} (C 17 =
+// the PayMana kind with an empty skip nibble, as mana_rider_trigcost_test.go's
+// rider), then draw a card.
 func comboAnyPayTable(t *testing.T) (*kop.Table, map[string]CardID, CardID) {
 	t.Helper()
-	set := cardsettest.Synth(t, fmt.Sprintf("tail-%02d", cardset.TailBucketOf("Sage of the Maze")))
-	deck := []cardset.Entry{{Name: "Sage of the Maze", Count: 4}, {Name: "Plains", Count: 8}}
+	set := cardsettest.Set(t, "mbc")
+	deck := []cardset.Entry{{Name: "Axebane Guardian", Count: 4}, {Name: "Plains", Count: 8}}
 	tbl, da, _, err := set.Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
@@ -40,12 +40,12 @@ func comboAnyPayTable(t *testing.T) (*kop.Table, map[string]CardID, CardID) {
 }
 
 // comboAnyPayBoard is a scenario whose payer's only permanent besides the
-// synthetic trigger is an untapped Sage of the Maze (tapped=false) or a
+// synthetic trigger is an untapped Combo Any source (tapped=false) or a
 // tapped one (tapped=true); its pool is empty.
-func comboAnyPayBoard(t *testing.T, tbl *kop.Table, sage CardID, tapped bool) (*scen, Obj) {
+func comboAnyPayBoard(t *testing.T, tbl *kop.Table, source CardID, tapped bool) (*scen, Obj) {
 	t.Helper()
-	sc := newScenTableLib(t, tbl, sage, Config{NoElide: true})
-	o := sc.perm(sage, 0)
+	sc := newScenTableLib(t, tbl, source, Config{NoElide: true})
+	o := sc.perm(source, 0)
 	sl := sc.slot(o)
 	if tapped {
 		sc.s.perms[sl].flags |= pfTapped
@@ -78,9 +78,9 @@ func comboAnyPayAsk(t *testing.T, sc *scen, trig CardID) Decision {
 // TestComboAnyTriggerCostPay: a trigger's own optional mana cost is offered on
 // the payer's POTENTIAL mana (rules respay.go resPayNeedsMana over
 // potential.go), and gorge's potential walk prices a Combo Any production
-// ("{T}: Add two mana in any combination of colors", Sage of the Maze,
-// lowered as a gfGapOther census gap, mana_comboany.go) unbounded in every
-// colour: addPotentialMana's producedOpen. The kernel's offer gate
+// ("{T}: Add X mana in any combination of colors", Axebane Guardian's Combo
+// Any ability, lowered as a gfGapOther census gap, mana_comboany.go) unbounded
+// in every colour: addPotentialMana's producedOpen. The kernel's offer gate
 // (trigCostPotentialPays over anyManaSource and availPotentialFor) admitted a
 // source only through canTapForManaPC, the each-colour gap, a storage battery,
 // a rider or a restricted ability, so the Combo Any source was invisible and
@@ -89,13 +89,13 @@ func comboAnyPayAsk(t *testing.T, sc *scen, trig CardID) Decision {
 // window walk (windowComboTap) funds the cost or the payer declines.
 func TestComboAnyTriggerCostPay(t *testing.T) {
 	tbl, id, trig := comboAnyPayTable(t)
-	sage := id["Sage of the Maze"]
+	source := id["Axebane Guardian"]
 
 	// live: the gate counts the source, and the ask offers pay beside decline
-	sc, o := comboAnyPayBoard(t, tbl, sage, false)
+	sc, o := comboAnyPayBoard(t, tbl, source, false)
 	sl := sc.slot(o)
 	if !sc.k.gen.anyComboAny || !sc.k.isComboAny(sc.s.cardAt(sl)) {
-		t.Fatal("precondition: Sage of the Maze is not the table's Combo Any gap")
+		t.Fatal("precondition: Axebane Guardian is not the table's Combo Any gap")
 	}
 	for i := range sc.s.pl[0].pool {
 		if sc.s.pl[0].pool[i] != 0 {
@@ -109,30 +109,30 @@ func TestComboAnyTriggerCostPay(t *testing.T) {
 
 	// the ask, on a fresh state (the probe above pokes res): gorge poses the
 	// trigger's own {1} beside the live Combo Any source
-	scA, _ := comboAnyPayBoard(t, tbl, sage, false)
+	scA, _ := comboAnyPayBoard(t, tbl, source, false)
 	if d := comboAnyPayAsk(t, scA, trig); d.Sub != ChGenPay || d.N != 2 ||
 		d.Options[0].Mode() != 0 || d.Options[1].Mode() != 1 {
 		t.Fatalf("live ask %d options %v, want decline then pay: gorge's potential counts the Combo Any source", d.Sub, d.Options[:d.N])
 	}
 
 	// tapped: gorge's walk skips the source, so decline only
-	sc2, _ := comboAnyPayBoard(t, tbl, sage, true)
+	sc2, _ := comboAnyPayBoard(t, tbl, source, true)
 	sc2.s.res.e.kind = seTrigger
 	if sc2.s.trigCostPotentialPays(sc2.k, 0, kop.PayMana, 0, 1, 0, 0) {
 		t.Fatal("trigCostPotentialPays offered the {1} beside a tapped Combo Any source")
 	}
-	sc2A, _ := comboAnyPayBoard(t, tbl, sage, true)
+	sc2A, _ := comboAnyPayBoard(t, tbl, source, true)
 	if d := comboAnyPayAsk(t, sc2A, trig); d.Sub != ChGenPay || d.N != 1 || d.Options[0].Mode() != 0 {
 		t.Fatalf("tapped ask %d options %v, want decline only", d.Sub, d.Options[:d.N])
 	}
 
 	// absent: no source at all, decline only
-	sc3 := newScenTableLib(t, tbl, sage, Config{NoElide: true})
+	sc3 := newScenTableLib(t, tbl, source, Config{NoElide: true})
 	sc3.s.res.e.kind = seTrigger
 	if sc3.s.trigCostPotentialPays(sc3.k, 0, kop.PayMana, 0, 1, 0, 0) {
 		t.Fatal("trigCostPotentialPays offered the {1} with no mana source")
 	}
-	sc3A := newScenTableLib(t, tbl, sage, Config{NoElide: true})
+	sc3A := newScenTableLib(t, tbl, source, Config{NoElide: true})
 	if d := comboAnyPayAsk(t, sc3A, trig); d.Sub != ChGenPay || d.N != 1 || d.Options[0].Mode() != 0 {
 		t.Fatalf("absent ask %d options %v, want decline only", d.Sub, d.Options[:d.N])
 	}
