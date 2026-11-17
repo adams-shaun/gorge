@@ -289,7 +289,8 @@ func (lc *lowerCtx) preventMillRepl(rp *params, w *cards.SA, rl *lRepl) (bool, e
 //
 // false: not this shape (ValidTarget$ is not Card.Self).
 func (lc *lowerCtx) selfDamageRepl(rp *params, w *cards.SA, rl *lRepl) (bool, error) {
-	if rp.peek("ValidTarget") != "Card.Self" || w == nil || w.API != "PutCounter" && w.API != "HealDamage" && w.API != "RemoveCounter" {
+	gated := rp.peek("ValidTarget") == "Card.Self+counters_GE1_P1P1" && w != nil && w.API == "RemoveCounter"
+	if rp.peek("ValidTarget") != "Card.Self" && !gated || w == nil || w.API != "PutCounter" && w.API != "HealDamage" && w.API != "RemoveCounter" {
 		return false, nil
 	}
 	rp.consume("ValidTarget")
@@ -316,7 +317,13 @@ func (lc *lowerCtx) selfDamageRepl(rp *params, w *cards.SA, rl *lRepl) (bool, er
 	}
 	rp.consume("AlwaysReplace") // not read by gorge
 	if w.API == "RemoveCounter" {
-		return true, lc.preventRemoveCounter(w, rl)
+		if err := lc.preventRemoveCounter(w, rl); err != nil {
+			return true, err
+		}
+		if gated {
+			rl.Bits |= kop.ReplPrevSelfIfCounter // only while it has a +1/+1 counter (Undergrowth Champion)
+		}
+		return true, nil
 	}
 	bp.consume("Defined", "CounterType", "CounterNum")
 	cn := strings.TrimSpace(w.Params["CounterNum"])
@@ -408,10 +415,18 @@ func (lc *lowerCtx) tokenCopyFirst(rp *params, w *cards.SA, rl *lRepl) error {
 func (lc *lowerCtx) preventRemoveCounter(w *cards.SA, rl *lRepl) error {
 	bp := newParams(w.Params)
 	bp.consume("Defined", "CounterType", "CounterNum")
+	cn := bp.str("CounterNum")
+	if sv, ok := lc.face.SVars[cn]; ok {
+		cn = strings.TrimSpace(sv)
+	}
 	if d := bp.str("Defined"); w.Sub != nil || d != "Self" && d != "ReplacedTarget" || bp.str("CounterType") != "P1P1" ||
-		bp.str("CounterNum") != "1" || len(bp.unread()) != 0 {
+		cn != "1" && cn != "ReplaceCount$DamageAmount" || len(bp.unread()) != 0 {
 		return refuse("repl-hard: DamageDone prevent-and-remove-counter body")
 	}
 	rl.Kind, rl.Bits = "PreventDamageCounters", kop.ReplPrevSelfRemoveOne
+	if cn == "ReplaceCount$DamageAmount" {
+		// "remove that many +1/+1 counters" (Polukranos, Unchained)
+		rl.Bits = kop.ReplPrevSelfRemoveDmg
+	}
 	return nil
 }

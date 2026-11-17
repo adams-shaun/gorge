@@ -28,6 +28,7 @@ func prepPermMark(g *genPrep) {
 	g.anyPermMark = g.ix[mechAttacked] != arenaNone || g.ix[mechDealtTurn] != arenaNone ||
 		g.ix[mechDealtAny] != arenaNone || g.ix[mechDealtCombat] != arenaNone
 	g.anyTappedTurn = g.ix[mechTappedTurn] != arenaNone
+	g.anyBtTurn = g.ix[mechBtTurn] != arenaNone
 }
 
 // permMarkUses reports which marks some table filter reads (arenaUses).
@@ -96,6 +97,7 @@ func (s *State) permMarkNewTurn(k *prep) {
 	s.mSlZero(k, mechAttacked)
 	s.mSlZero(k, mechDealtTurn)
 	s.mSlZero(k, mechTappedTurn)
+	s.mSlZero(k, mechBtTurn)
 }
 
 // markTapped records that the permanent at sl has become tapped this turn

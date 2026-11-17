@@ -1,0 +1,11 @@
+# DamageDone self prevention gated on a +1/+1 counter, removing one or that
+# many (dirac/oracle/prevremovectr_lockstep_test.go TestDamageDoneReplShapeLockstep;
+# kgen lower_replmult.go selfDamageRepl, kernel repl_selfdamage.go)
+Undergrowth Champion
+Oathsworn Knight
+Ugin's Conjurant
+Shock
+Grizzly Bears
+Forest
+Swamp
+Mountain

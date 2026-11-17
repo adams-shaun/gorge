@@ -71,7 +71,8 @@ func tspecE(k *prep, e *stackEntry, i int) *kop.TargetSpec {
 
 // offerBestowHand offers hand card o's bestowed cast (gorge
 // legal_walk_hand.go: offerCastable at the bestow cost and
-// castTargetsAvailable over the synthesized enchant creature SA). The
+// castTargetsAvailable over the synthesized enchant creature SA, with the
+// potential play's planner verdict beside them: bestowSacWitness). The
 // caller has checked the card's timing, its prohibition and the plain
 // cast's gates.
 //
@@ -105,10 +106,44 @@ func (s *State) offerBestowHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 		s.g.probe = probe{kind: probeSpell, src: NoSlot, card: c, ctrl: p}
 		defer func() { s.g.probe = probe{} }()
 	}
-	if s.targetCands(k, &cd.BestowTgt, p, NoSlot, o, &buf) == 0 {
+	if !s.bestowSacWitness(k, p, c, o, &bc) || s.targetCands(k, &cd.BestowTgt, p, NoSlot, o, &buf) == 0 {
 		return
 	}
 	d.add(MakeAction(AkBestow, TCode(o), 0, 0))
+}
+
+// bestowSacWitness mirrors gorge's planner's witness stage for the bestowed
+// cast (potential_plan.go's witness check over potentialModeCastPlan's plan):
+// a plan whose mana activations sacrifice a source must still leave the
+// bestowed spell's enchant-creature target available -- gorge executes the
+// witness on a clone and asks whether the play is then offered
+// (potentialWitnessReaches), so sacrificing the only enchantable creature is
+// not a way to pay -- and a sacrifice that stacks more than the wait budget's
+// triggers is not one either (potential_script.go's wait budget). The
+// floating pool alone paying the cost is gorge's walk offer
+// (legal_walk_hand.go offerCastable), which runs before the planner prices
+// the play and runs no witness; kickWitness (mana_sacsource.go) is the
+// kicked cast's mirror.
+func (s *State) bestowSacWitness(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
+	if s.poolPays(p, cost) || !s.anySacSource(k, p) {
+		return true
+	}
+	tmp := s.fork()
+	defer s.unfork()
+	n0 := tmp.npend
+	var pk planner
+	pk.try = true
+	tmp.tapForPK(k, p, cost, 0, NoObj, false, false, &pk)
+	if !pk.found {
+		return true
+	}
+	if plannerConsumesSac(&pk) {
+		var buf [MaxOptions]TCode
+		if tmp.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, o, &buf) == 0 {
+			return false // the witness ate the bestowed spell's only target
+		}
+	}
+	return !s.subs[kop.TrigSacrificed].any() || int(tmp.npend)-int(n0) <= witnessWaits
 }
 
 // offerBestowIfPrinted is offerBestowHand for a card printed with bestow.

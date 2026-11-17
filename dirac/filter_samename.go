@@ -7,8 +7,9 @@ import (
 // sameNameT0 is PredSameNameT0 for the permanent at sl: the resolving
 // ability's target 0 itself, or another permanent with its name (gorge
 // Maelstrom Pulse's TargetedCard.Self or sharesNameWith Targeted; a
-// face-down permanent has no name, CR 708.2).
-func (s *State) sameNameT0(sl Slot) bool {
+// face-down permanent has no name, CR 708.2). other excludes the target
+// itself (PredN 1: Targeted.sameName+Other, Echoing Decay).
+func (s *State) sameNameT0(sl Slot, other bool) bool {
 	if !s.res.active {
 		return false
 	}
@@ -22,7 +23,7 @@ func (s *State) sameNameT0(sl Slot) bool {
 		return false
 	}
 	if ob.slot == sl {
-		return true
+		return !other
 	}
 	n := s.nameCardAt(ob.slot)
 	return n != NoCard && n == s.nameCardAt(sl)
@@ -88,9 +89,10 @@ func (s *State) objName(o Obj) CardID {
 // keeps naming the target after the sweep has moved it (an ObjID survives
 // the zone change), so a card after the target in the graveyard still
 // matches. A graveyard card is face up; fd only refuses a face-down
-// candidate's name (CR 708.2).
-func (s *State) sameNameT0Card(c CardID, o Obj, fd bool) bool {
-	if !s.res.active || o == NoObj || s.res.bad&1 != 0 { // seat-ok: a resolution flag bit
+// candidate's name (CR 708.2). The Other form (predN != 0) reads the
+// battlefield only, so it never matches here.
+func (s *State) sameNameT0Card(predN int16, c CardID, o Obj, fd bool) bool {
+	if predN != 0 || !s.res.active || o == NoObj || s.res.bad&1 != 0 { // seat-ok: a resolution flag bit
 		return false
 	}
 	t := s.res.e.tgt[0]

@@ -728,7 +728,7 @@ func (s *State) destroySpared(k *prep, sl Slot, noRegen bool) bool {
 	}
 	// CR 122.1c, after regeneration (gorge effDestroy); NoRegen$ suppresses
 	// regeneration, not the shield counter
-	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl) {
+	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(k, sl) {
 		return true
 	}
 	return s.umbraSpare(k, sl) // CR 702.89a, after the shield counter (kw_umbraarmor.go)

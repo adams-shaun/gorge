@@ -121,6 +121,7 @@ func (s *State) divCounters(k *prep, in *kop.Instr) {
 			m = 0
 		}
 	}
+	ctrOld := s.ctrAllBatchOpen() // the division is one action (trig_counteraddedall.go)
 	for i := 0; i < m; i++ {
 		c := codes[i]
 		if amts[i] <= 0 || isPlayerOrNone(c) || s.objs[c].zone != kop.ZoneBattlefield {
@@ -128,6 +129,7 @@ func (s *State) divCounters(k *prep, in *kop.Instr) {
 		}
 		s.putDividedShare(k, s.objs[c].slot, kop.CounterKind(in.B.N), amts[i]) // B.N: the kind, 0 = +1/+1
 	}
+	s.ctrAllBatchClose(ctrOld)
 }
 
 // putDividedShare puts amt counters of kind ck (+1/+1 but for the

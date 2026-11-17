@@ -127,7 +127,8 @@ func (s *State) pickOrigin(k *prep) kop.Zone {
 // player's graveyard (SrOwnZone, The Weaver King) enters under the resolving
 // controller, not the fetch player; else the fetch player (the zones whose
 // owner owns every card in them: a library, a hand, the fetch player's own
-// graveyard).
+// graveyard); a GainControl$ search of a library enters under the resolving
+// controller (gorge settleChangeZoneMoveAs: Bribery searching an opponent's).
 func (s *State) pickEntryPlayer(o Obj, p uint8, from kop.Zone) uint8 {
 	fl := s.g.pickF
 	ep := p
@@ -136,6 +137,9 @@ func (s *State) pickEntryPlayer(o Obj, p uint8, from kop.Zone) uint8 {
 	}
 	if fl&(kop.SrUnderYourControl|kop.SrOwnZone) == kop.SrUnderYourControl|kop.SrOwnZone {
 		ep = s.res.e.ctrl
+	}
+	if from == kop.ZoneLibrary && fl&kop.SrUnderYourControl != 0 {
+		ep = s.res.e.ctrl // GainControl$ on a search of another player's library (Bribery, Acquire)
 	}
 	if DebugGyBfOwnerEntry && fl&kop.SrUnderYourControl != 0 {
 		ep = s.objs[o].owner() // mutation: a GainControl$ graveyard pick keeps its owner

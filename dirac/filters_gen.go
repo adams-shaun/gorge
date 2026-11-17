@@ -801,8 +801,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		}
 		return mv <= s.evalV(k, fl.PredV, cx)
 	case kop.PredCountersGE:
-		// off the battlefield only stash counters exist (Tinybones)
-		return kop.CounterKind(n&0xff) == kop.CtrStash && n>>8 <= 1 && o != NoObj && s.mObj(k, mechStash, o)
+		return s.offFieldCountersGE(k, n, o)
 	case kop.PredHasKeyword:
 		return pc.kw&(1<<uint(n)) != 0
 	case kop.PredSubtype:
@@ -858,7 +857,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			return s.typesAllCMCCard(k, fl, c, o, fd) // filter_typesall.go
 		}
 		if fl.Pred == kop.PredSameNameT0 {
-			return s.sameNameT0Card(c, o, fd) // filter_samename.go
+			return s.sameNameT0Card(fl.PredN, c, o, fd) // filter_samename.go
 		}
 		if fl.Pred == kop.PredNamedCard {
 			return s.namedCardCard(c, fd, ctx) // repl_namecard.go
@@ -878,4 +877,15 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 // TargetedController, the card's owner is the target's controller).
 func (s *State) cardCtrlTgtOK(k *prep, fl *kop.Filter, owner uint8) bool {
 	return fl.CtrlTgt&kop.CtrlTgtOwner != 0 && s.ctrlRoleTgt(k, int(fl.CtrlTgt&^kop.CtrlTgtOwner)-1, owner)
+}
+
+// offFieldCountersGE is PredCountersGE on a card that is off the battlefield.
+func (s *State) offFieldCountersGE(k *prep, n int, o Obj) bool {
+	if s.g.tli&tliOn != 0 && kop.CounterKind(n&0xff) != kop.CtrStash {
+		// a target the resolution moved off the battlefield: its last
+		// known counters (CR 608.2h; gorge targetCountersLKI)
+		return s.lkiCounter(s.g.tli&tliIdx, kop.CounterKind(n&0xff)) >= n>>8
+	}
+	// off the battlefield only stash counters exist (Tinybones)
+	return kop.CounterKind(n&0xff) == kop.CtrStash && n>>8 <= 1 && o != NoObj && s.mObj(k, mechStash, o)
 }

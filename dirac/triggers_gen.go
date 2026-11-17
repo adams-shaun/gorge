@@ -202,7 +202,7 @@ func (s *State) trigOK(k *prep, l trigListener, a *kop.Ability) bool {
 	if a.Trig.Cond != 0 && !s.condEval(k, a.Trig.Cond, evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}) {
 		return false
 	}
-	if a.Trig.Flags2&kop.Tf2FirstTime != 0 && firstTimeLatchEvent(a) && s.counterFirstUsed(k, l) {
+	if a.Trig.Flags2&kop.Tf2FirstTime != 0 && firstTimeLatchEvent(a) && s.counterFirstUsed(k, l, a) {
 		return false // the turn's first matching event already fired (trig_counterfirst.go)
 	}
 	return true
@@ -216,7 +216,7 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 		s.markUsed(l.obj, l.ab)
 	}
 	if a.Trig.Flags2&kop.Tf2FirstTime != 0 && firstTimeLatchEvent(a) {
-		s.markCounterFirst(k, l) // trig_counterfirst.go
+		s.markCounterFirst(k, l, a) // trig_counterfirst.go
 	}
 	if k.gen.anyGameOnce && a.Trig.Flags3&kop.Tf3GameOnce != 0 {
 		s.markGameOnce(l)
@@ -337,12 +337,14 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		}
 		amt = 0 // the destination zone, not an amount (trig_zonepairs.go)
 	}
-	if ev == kop.TrigCounterAddedOnce {
+	if ev == kop.TrigCounterAddedOnce || ev == kop.TrigCounterAddedAll {
 		if a.Trig.N != kop.TrigNAnyCounter && kop.CounterKind(a.Trig.N) != s.g.lastCK {
 			return
 		}
-		if s.g.ctrCellHit && a.Trig.Flags4&kop.Tf4CounterCell != 0 {
-			return // this put action already fired it for this recipient (trig_countercell.go)
+		if ev == kop.TrigCounterAddedOnce {
+			if s.ctrCellHit() && a.Trig.Flags4&kop.Tf4CounterCell != 0 {
+				return // this put action already fired it for this recipient (trig_countercell.go)
+			}
 		}
 		// ValidSource$ You: the player putting the counters (the
 		// resolving spell's or ability's controller; Fleeting Flight cast
@@ -357,14 +359,16 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		if !whoseOK(a.Trig.Whose, l.ctrl, putter) {
 			return
 		}
-		if a.Trig.Flags4&kop.Tf4StateCtr != 0 {
-			// a state trigger's threshold is its Cond: the put re-checks it
-			// only while no instance is outstanding (CR 603.8, trig_statectr.go)
-			if s.stateTrigOutstanding(l.obj, l.ab) {
-				return
+		if ev == kop.TrigCounterAddedOnce {
+			if a.Trig.Flags4&kop.Tf4StateCtr != 0 {
+				// a state trigger's threshold is its Cond: the put re-checks it
+				// only while no instance is outstanding (CR 603.8, trig_statectr.go)
+				if s.stateTrigOutstanding(l.obj, l.ab) {
+					return
+				}
+			} else if a.Gate.Ctr != 0 && !s.crossingOK(l.sl, a, int(amt)) {
+				return // a Saga chapter / "Nth counter" line triggers only when its number is reached
 			}
-		} else if a.Gate.Ctr != 0 && !s.crossingOK(l.sl, a, int(amt)) {
-			return // a Saga chapter / "Nth counter" line triggers only when its number is reached
 		}
 	}
 	tapAll := false
@@ -404,6 +408,12 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 			s.queueTrig(k, l, a, evObj, evCtrl, 1)
 		}
 		return
+	}
+	if ev == kop.TrigCounterAddedAll {
+		DebugCtrAllFires++
+		if s.ctrAllJoin(l, amt) {
+			return // this action's watcher already queued: fold the amount in
+		}
 	}
 	s.queueTrig(k, l, a, evObj, evCtrl, amt)
 }
@@ -534,7 +544,7 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 // command-zone triggers, then emblems.
 func (s *State) firePhaseGen(k *prep, st kop.Step) {
 	f := func(l trigListener, a *kop.Ability) {
-		if a.Trig.Step != st || !whoseOK(a.Trig.Whose, l.ctrl, s.active) && !(a.Trig.Whose == kop.WhoseEnchCtrl && s.enchCtrlIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseChosen && s.chosenIs(l.sl, s.active)) || !s.trigOK(k, l, a) {
+		if a.Trig.Step != st || !whoseOK(a.Trig.Whose, l.ctrl, s.active) && !(a.Trig.Whose == kop.WhoseEnchCtrl && s.enchCtrlIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseChosen && s.chosenIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseEnchanted && s.defEnchanted(k, l, s.active)) || !s.trigOK(k, l, a) {
 			return
 		}
 		s.queueTrig(k, l, a, NoObj, s.active, 0)
@@ -702,11 +712,8 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			if t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
 				return
 			}
-			if t.Flags5&kop.Tf5DmgAttackedYouLastTurn != 0 && (!toPlayer || !s.attackedYouLastTurn(dpl, l.ctrl)) {
-				return // trig_atklastturn.go
-			}
-			if t.Flags5&kop.Tf5DmgNoContract != 0 && (!toPlayer || s.contracts(dpl) != 0) {
-				return // ctr_contract.go
+			if s.dmgPlayerGateFails(k, l, t, toPlayer, dpl) { // trig_defendingplayer.go
+				return
 			}
 			once := t.Event == kop.TrigDamageDealtOnce && latch != nil
 			if once && latch.has(l, seen) {

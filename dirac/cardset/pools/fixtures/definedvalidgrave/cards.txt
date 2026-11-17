@@ -1,0 +1,11 @@
+# ChangeZone Defined$ ValidGraveyard <filter> lowered as the ChangeZoneAll
+# sweep (dirac/oracle/definedvalidgrave_lockstep_test.go
+# TestDefinedValidZoneLockstep; kgen lower_zone.go definedValidGraveyard)
+Faith's Reward
+Second Sunrise
+No Rest for the Wicked
+Pyrrhic Revival
+Grizzly Bears
+Plains
+Forest
+Swamp

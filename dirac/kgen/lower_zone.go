@@ -26,11 +26,8 @@ func zoneOf(ps *params, key string, dflt int) (int, error) {
 // changeZone lowers api:ChangeZone: targeted moves, defined moves, and the
 // hidden-zone searches (library, or a graveyard choice without targeting).
 func (lc *lowerCtx) changeZoneMove(ps *params) error {
-	if err := libPlaceManyDefined(ps); err != nil { // lower_libplace.go
+	if done, err := lc.changeZoneDefinedSet(ps); done || err != nil {
 		return err
-	}
-	if _, ok := ps.m["DestAltSVar"]; ok {
-		return lc.czAltDest(ps) // lower_czaltdest.go
 	}
 	if isSelfAndChosen(ps) {
 		return lc.selfAndChosenExile(ps) // lower_selfchosen.go
@@ -267,11 +264,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		ps.consume("Imprint")
 	}
 	if ct, ok := ps.get("ChangeType"); ok {
-		ownSearch, err := lc.targetPlayerOwnSearch(ps, origin, dest) // lower_partnerwith.go
+		tgtClaimed, tgtLib, err := lc.targetPlayerSearch(ps, origin, dest)
 		if err != nil {
 			return err
 		}
-		if _, has := ps.m["ValidTgts"]; has && !ownSearch && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
+		if _, has := ps.m["ValidTgts"]; has && !tgtClaimed && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
 			(origin == zBattlefield || origin == zGraveyard) && (dest == zExile || dest == zHand) && ps.is("Hidden", "True") ||
 			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True")) {
 			return refuse("ChangeType$ with ValidTgts$")
@@ -376,8 +373,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				return err
 			}
 			// DefinedPlayer$: whose library is searched (lower_eachsearch.go)
-			obj, err := lc.searchOwner(ps, arm != nil)
-			if err != nil {
+			var obj lRef
+			if obj, flags, err = lc.libSearchOwner(ps, arm != nil, tgtLib, flags); err != nil {
 				return err
 			}
 			// Optional$ True/You gates the search on the fetching player's
@@ -2969,6 +2966,12 @@ func emblemTimedMode(mode string, eot, paired bool) bool {
 	case "SpellCast", "ChangesZone", "Sacrificed", "DamageDone",
 		"AttackersDeclared", "AttackersDeclaredOneTarget", "Attacks", "AttackerBlocked":
 		return true
+	case "LifeGained":
+		// the player event's emblem walk (fireEmblemsAmt) is the one a
+		// permanent LifeGained emblem rides; the end-of-turn one is dropped
+		// at cleanup (dropEOTEmblems), gorge's turn-change drop of the
+		// Effect's delayed trigger (False Cure)
+		return eot
 	case "DamageDoneOnce":
 		return eot
 	case "DamageDealtOnce":
@@ -3007,7 +3010,8 @@ func (lc *lowerCtx) emblemUnimplementedMayPlay(list string) error {
 }
 
 func (lc *lowerCtx) animate(ps *params) error {
-	if _, ok := ps.get("Abilities"); ok {
+	if _, ok := ps.m["Abilities"]; ok && strings.TrimSpace(ps.m["Defined"]) == "Remembered" {
+		ps.consume("Abilities")
 		return lc.animateGrantExile(ps) // lower_exilegrant.go
 	}
 	if d, ok := ps.get("Defined"); ok && strings.HasPrefix(d, "ValidGraveyard ") {
@@ -3102,6 +3106,9 @@ func (lc *lowerCtx) animate(ps *params) error {
 	}
 	o, dur, chosen, err := lc.animateOverride(ps, obj)
 	if err != nil {
+		return err
+	}
+	if err := lc.animateSelfAbilities(ps, o, obj); err != nil { // the plain Animate only: AnimateAll reads its own (animateAllGranted)
 		return err
 	}
 	if chosen && obj.Kind == rTarget {
@@ -5100,4 +5107,148 @@ func noCost(c lCost) bool {
 func plainTapCostIgnoringTap(c lCost) bool {
 	c.Tap = true
 	return plainTapCost(c)
+}
+
+// definedValidGraveyard lowers a ChangeZone whose Defined$ is the zone set
+// "ValidGraveyard <filter>" out of the graveyard (Pyrrhic Revival, Faith's
+// Reward, No Rest for the Wicked): gorge's Defined resolves the selector to
+// every graveyard card matching <filter> (effects context.go
+// zoneValidPrefixes) and moves that set, the sweep a ChangeZoneAll
+// ChangeType$ <filter> Origin$ Graveyard makes, so it lowers as that sweep.
+// Every other ChangeZone param is read by the sweep's lowering or left
+// unread (and refused). done is false for any other Defined$.
+func (lc *lowerCtx) definedValidGraveyard(ps *params) (bool, error) {
+	spec, ok := strings.CutPrefix(ps.m["Defined"], "ValidGraveyard ")
+	if !ok || strings.TrimSpace(ps.m["Origin"]) != "Graveyard" {
+		return false, nil
+	}
+	if _, ok := ps.m["ChangeType"]; ok {
+		return true, refuse("ChangeZone Defined$ ValidGraveyard beside ChangeType$")
+	}
+	m := make(map[string]string, len(ps.m))
+	for k, v := range ps.m {
+		if k != "Defined" {
+			m[k] = v
+		}
+	}
+	m["ChangeType"] = strings.TrimSpace(spec)
+	np := newParams(m)
+	ps.consume("Defined")
+	err := lc.changeZoneAll(np)
+	for k := range np.used {
+		if k != "ChangeType" {
+			ps.consume(k)
+		}
+	}
+	return true, err
+}
+
+// targetLibrarySearch claims "search target player's library" with ValidTgts$
+// a player filter and no DefinedPlayer$ (Acquire, Bribery, Jester's Cap):
+// gorge's searchPlayersFor reads the owners off the targets and
+// searchChooser makes the resolving controller the chooser for that shape
+// (searchTargetedOwner), as Chooser$ You does. It adds the player target and
+// returns its slot, -1 for any other shape (left to refuse).
+func (lc *lowerCtx) targetLibrarySearch(ps *params, origin int) (int, error) {
+	if origin != zLibrary || ps.peek("ValidTgts") == "" || ps.peek("DefinedPlayer") != "" || ps.peek("Defined") != "" {
+		return -1, nil
+	}
+	if ch := strings.TrimSpace(ps.peek("Chooser")); ch != "" && ch != "You" {
+		return -1, nil
+	}
+	for _, k := range []string{"TargetMin", "TargetMax", "OriginAlternative", "ChooseFromDefined", "RememberSearcher", "TargetUnique"} {
+		if _, ok := ps.m[k]; ok {
+			return -1, nil
+		}
+	}
+	if lc.lastTarget() >= 0 {
+		return -1, refuse("a target player's library search after another target slot")
+	}
+	pf, err := lc.filter(ps.str("ValidTgts"))
+	if err != nil {
+		return -1, err
+	}
+	if len(pf.Clauses) != 0 || pf.Players == 0 {
+		return -1, refuse("library search ValidTgts$ %q", ps.str("ValidTgts"))
+	}
+	ps.consume("Chooser", "TgtPrompt")
+	return lc.addTarget(lTarget{F: pf}), nil
+}
+
+// animateSelfAbilities reads an Animate's Abilities$ on the source itself
+// (Defined$ Self: Spawning Pool's "{B}: Regenerate this creature", Lavaclaw
+// Reaches' "{X}: +X/+0"): each named ability is a latent the override
+// record grants for the record's duration, the self-granted record the
+// kernel hosts on the animated permanent from its own card (ownGrants). The
+// grant to another object refuses: the kernel hosts a granted activated
+// ability only on its granting card's own permanent. One or two names, as
+// kop.Override.Grant holds; beside RemoveAllAbilities$ the order of the
+// loss and the grant is not carried, so it refuses.
+func (lc *lowerCtx) animateSelfAbilities(ps *params, o *lOverride, obj lRef) error {
+	ab, ok := ps.get("Abilities")
+	if !ok {
+		return nil
+	}
+	if obj.Kind != rSelf {
+		return refuse("Animate Abilities$ granted to an object other than the source")
+	}
+	if o.LoseAbilities {
+		return refuse("Animate Abilities$ beside RemoveAllAbilities$")
+	}
+	for _, nm := range strings.Split(ab, ",") {
+		if nm = strings.TrimSpace(nm); nm == "" {
+			continue
+		}
+		idx, err := lc.grantedAbility(nm)
+		if err != nil {
+			return err
+		}
+		o.GrantAbility = append(o.GrantAbility, idx)
+	}
+	if n := len(o.GrantAbility); n == 0 || n > 2 {
+		return refuse("Animate Abilities$ %q: %d granted abilities", ab, n)
+	}
+	return nil
+}
+
+// changeZoneDefinedSet dispatches the ChangeZone shapes changeZoneMove hands
+// off before reading its own params: the many-card library placement
+// (lower_libplace.go), Defined$ ValidGraveyard (definedValidGraveyard) and
+// DestAltSVar$ (lower_czaltdest.go). done is false for any other shape.
+func (lc *lowerCtx) changeZoneDefinedSet(ps *params) (bool, error) {
+	if err := libPlaceManyDefined(ps); err != nil {
+		return true, err
+	}
+	if done, err := lc.definedValidGraveyard(ps); done || err != nil {
+		return true, err
+	}
+	if _, ok := ps.m["DestAltSVar"]; ok {
+		return true, lc.czAltDest(ps)
+	}
+	return false, nil
+}
+
+// targetPlayerSearch claims a ChangeType$ search's player target: the
+// targeted player's own library search (targetPlayerOwnSearch,
+// lower_partnerwith.go) or the target player's library searched by you
+// (targetLibrarySearch, whose slot it returns, -1 otherwise). claimed is
+// true when either read the ValidTgts$.
+func (lc *lowerCtx) targetPlayerSearch(ps *params, origin, dest int) (claimed bool, tgtLib int, err error) {
+	ownSearch, err := lc.targetPlayerOwnSearch(ps, origin, dest)
+	if err != nil || ownSearch {
+		return ownSearch, -1, err
+	}
+	tgtLib, err = lc.targetLibrarySearch(ps, origin)
+	return tgtLib >= 0, tgtLib, err
+}
+
+// libSearchOwner is the searched library's owner (searchOwner,
+// lower_eachsearch.go); a target player's library searched by you (tgtLib >=
+// 0, targetLibrarySearch) is that target's, with you choosing.
+func (lc *lowerCtx) libSearchOwner(ps *params, arm bool, tgtLib int, flags []string) (lRef, []string, error) {
+	obj, err := lc.searchOwner(ps, arm)
+	if err != nil || tgtLib < 0 {
+		return obj, flags, err
+	}
+	return lRef{Kind: rTarget, N: tgtLib}, append(flags, "ChooserYou"), nil
 }

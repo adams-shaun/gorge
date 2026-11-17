@@ -235,6 +235,7 @@ func run() int {
 		cmdMini    = flag.Int("cmd-mini", 0, "-seats above 2: cut every commander deck of the pool to this many cards, its commanders and an even spread of the rest (oracle.MiniCommanderDeck), so a Commander pod fits the oracle's card table: -kernel gorge")
 		eventTail  = flag.Int("events", 0, "-repro: print the last N events of gorge's log when the game ends, objects named by card")
 		refusedIn  = flag.Bool("play-refused", false, "pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does")
+		playInter  = flag.Bool("play-interaction-refused", false, "pool runs: play the pairs the kernel's interaction guard refuses too, to observe the divergence or stall the refusal hides (diagnostic; evidence runs keep refusing)")
 		focusPath  = flag.String("focus", "", "-synth: deal a focus pool instead: every deck holds -focus-per-deck cards of this list (one card a line, enablers after a tab, ';'-separated) beside the enablers they name; the run is named after the file (fx-dsk.txt: fx-dsk)")
 		focusPer   = flag.Int("focus-per-deck", oracle.FocusPerDeck, "-focus: focus cards per deck")
 		onlyPath   = flag.String("only", "", "-synth: play the supported cards and, of the unverified ones, only those this file names (one a line): a targeted evidence run deals the cards it owes evidence among cards that have it")
@@ -554,7 +555,7 @@ func run() int {
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
 			return 1
 		}
-		o := sweepOpts{features: *features, lead: *lead, surface: surfaceName, workers: *workers, out: *out, timeout: *gameLimit, absolute: *absolute, reach: reach, mulligans: *mulligans, seats: *seats, search: searchCfg}
+		o := sweepOpts{features: *features, lead: *lead, surface: surfaceName, workers: *workers, out: *out, timeout: *gameLimit, absolute: *absolute, reach: reach, mulligans: *mulligans, seats: *seats, search: searchCfg, playInteractionRefused: *playInter}
 		if *synth == "" && *firstPair == 0 && *pairs == oracle.SynthPairs && *seed == oracle.EvidenceSeed {
 			o.minGames = oracle.GateMinGames[*setName]
 			if sliced {
@@ -1134,6 +1135,8 @@ type sweepOpts struct {
 
 	search *oracle.SearchSeatConfig // -search-seats: the seats dirac/search answers; nil: none
 
+	playInteractionRefused bool // -play-interaction-refused: replay the pairs the interaction guard refuses
+
 	onGame func(*oracle.Result) // a test's look at each game, Actions included
 
 	corpus *oracle.Corpus // where a bad-game line reads its decks
@@ -1148,6 +1151,8 @@ type played struct {
 	skip error
 	hang bool
 	err  error
+
+	refusedPair string // -play-interaction-refused: the guard reason the pair would have been skipped with
 
 	searched [oracle.MaxSeats]int // -search-seats: decisions each seat's search searched
 }
@@ -1193,8 +1198,36 @@ type verdict struct {
 
 	TwoSeat int // of Capacity: twoseat stalls (dirac.StallTwoSeat), a two-seat table in a pod
 
+	// -play-interaction-refused: refused pairs played with the guards skipped,
+	// how many of those played clean, and the guards' reasons.
+	Replayed, ReplayedClean int
+	ReplayedWhy             map[string]int
+
 	UnmodelledWhy, CapacityWhy map[string]int // stalls by reason
 	RefusedPairWhy             map[string]int // refused pairs by reason (pairReason)
+}
+
+// replay counts a game played inside a pair the interaction guard refused:
+// refused is the guard's reason, "" for a normal game. A clean replay means
+// the guard's prediction was too wide.
+func (v *verdict) replay(refused string, res *oracle.Result) {
+	if refused == "" {
+		return
+	}
+	v.Replayed++
+	v.ReplayedWhy[refused]++
+	if res.Clean() {
+		v.ReplayedClean++
+	}
+}
+
+// printReplayed is the -play-interaction-refused line: which guard reasons the
+// run played and how many of those games came out clean.
+func (v *verdict) printReplayed() {
+	if len(v.ReplayedWhy) == 0 {
+		return
+	}
+	fmt.Printf("interaction-refused: played %d (%d clean), %s\n", v.Replayed, v.ReplayedClean, strings.TrimSpace(sortedCounts(v.ReplayedWhy)))
 }
 
 // pairReason is a refused pair's reason, without card names: the stall the game
@@ -1271,6 +1304,17 @@ func (v *verdict) legacyLine(name, lead string, classes map[string]int) string {
 		name, v.Games, v.RefusedCard+v.RefusedPair+v.SkipError, v.Clean, v.Capacity+v.Unmodelled, strings.TrimSpace(sortedCounts(why)), lead, sortedCounts(classes))
 }
 
+// playMatchup builds one pair's kernel table. With -play-interaction-refused a
+// pair the interaction guard refuses plays with the guards skipped, and refused
+// is the guard's reason ("" when it did not refuse).
+func playMatchup(set cardset.Set, c *oracle.Corpus, decks []string, mulligans int, playRefused bool) (*oracle.Matchup, *kop.Table, string, error) {
+	if playRefused {
+		return oracle.SetMatchupNPlayRefused(set, c, decks, mulligans)
+	}
+	m, tbl, err := oracle.SetMatchupN(set, c, decks, mulligans)
+	return m, tbl, "", err
+}
+
 // runFDN plays package kernel (set's tables) against gorge on pool pairings and
 // reports every pair by outcome.
 // verboseFDN prints every game's first divergence in full (-v).
@@ -1299,7 +1343,7 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 	play := func(i int) played {
 		p := ps[i]
 		ks.pair = p.Index
-		m, tbl, err := oracle.SetMatchupN(set, c, p.Decks(), o.mulligans)
+		m, tbl, refused, err := playMatchup(set, c, p.Decks(), o.mulligans, o.playInteractionRefused)
 		if err != nil {
 			return played{skip: err}
 		}
@@ -1335,7 +1379,7 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 		if !verboseFDN && (o.out == "" || res.Div == nil && !strings.HasPrefix(res.Stall, oracle.KernelStallPrefix)) && (!implicatesAll || res.Clean()) {
 			res.Actions = nil // only the reports of a bad game read them; don't hold every game's
 		}
-		return played{m: m, res: res, cov: cov, searched: oracle.SearchedBy(gp)}
+		return played{m: m, res: res, cov: cov, refusedPair: refused, searched: oracle.SearchedBy(gp)}
 	}
 	// Pairs are independent, so they play on `workers` goroutines and are tallied
 	// in pair order, which keeps the output identical to a serial run. -stats and
@@ -1551,7 +1595,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 	classes := map[string]int{}
 	skips := map[string]int{}
 	implicated := map[string]int{}
-	v := verdict{CapacityWhy: map[string]int{}, UnmodelledWhy: map[string]int{}, RefusedPairWhy: map[string]int{}}
+	v := verdict{CapacityWhy: map[string]int{}, UnmodelledWhy: map[string]int{}, RefusedPairWhy: map[string]int{}, ReplayedWhy: map[string]int{}}
 	var st oracle.Stats
 	var searched [oracle.MaxSeats]int
 	var cov *oracle.Coverage
@@ -1598,6 +1642,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			searched[s] += n
 		}
 		v.Games++
+		v.replay(out[i].refusedPair, &res)
 		if implicatesAll && len(res.Stats.Unknown) > 0 {
 			kinds := make([]string, 0, len(res.Stats.Unknown))
 			for k := range res.Stats.Unknown {
@@ -1689,6 +1734,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 	if len(v.RefusedPairWhy) > 0 {
 		fmt.Printf("refused-pair: %s\n", strings.TrimSpace(sortedCounts(v.RefusedPairWhy)))
 	}
+	v.printReplayed()
 	for _, l := range skipLines(skips) {
 		fmt.Println(l)
 	}

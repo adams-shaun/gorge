@@ -165,17 +165,30 @@ func landwalkGrantIn(abs []kop.Ability) bool {
 
 // keyword arms (cold, out of line).
 
+// artifactTy is slot sl's artifact supertype for the fear / intimidate
+// blocker checks (gorge bf.IsArtifact over the object's current face): the
+// card types its face resolves to plus its layer-1 copy exceptions' added
+// types (CR 707.9b — a copy that is an artifact in addition to its other
+// types is an artifact creature), as phasedTypes composes them.
+func (s *State) artifactTy(k *prep, sl Slot) bool {
+	t := s.typesAt(k, sl)
+	if s.fxM.has(sl) {
+		t |= s.copyExcTypes(k, sl)
+	}
+	return t&kop.TArtifact != 0
+}
+
 // evadesShadowFear reports whether the fear / shadow rules forbid blocker b from
 // blocking an attacker with keywords akw (gorge combat.CanBlock):
 // CR 702.28b-c a shadow creature blocks and is blocked only by shadow
 // creatures; CR 702.36b a fear creature is blocked only by an artifact
-// creature (the blocker's printed face, gorge bf.IsArtifact) or a black one
+// creature (its current face, gorge bf.IsArtifact) or a black one
 // (its derived colours).
 func (s *State) evadesShadowFear(k *prep, b Slot, akw, bkw kop.KwMask) bool {
 	if (akw^bkw)&kop.KwShadow != 0 {
 		return true
 	}
-	if akw&kop.KwFear != 0 && k.t.Cards[s.cardAt(b)].Types&kop.TArtifact == 0 && s.colorsAt(k, b)&kop.ColB == 0 {
+	if akw&kop.KwFear != 0 && !s.artifactTy(k, b) && s.colorsAt(k, b)&kop.ColB == 0 {
 		return true
 	}
 	return false
@@ -198,7 +211,7 @@ func (s *State) evasionAt(k *prep, sl Slot) uint8 {
 // evasionEvades: attacker a's printed horsemanship or intimidate forbids
 // blocker b (gorge rules/combat/block.go CanBlock): horsemanship unless b
 // has horsemanship (CR 702.31b); intimidate unless b is an artifact
-// creature (its printed face, gorge bf.IsArtifact, as Fear's) or shares a
+// creature (its current face, gorge bf.IsArtifact, as Fear's) or shares a
 // current colour with a (CR 702.13a).
 //
 //go:noinline
@@ -207,7 +220,7 @@ func (s *State) evasionEvades(k *prep, b, a Slot) bool {
 	if ev&kop.EvHorsemanship != 0 && s.evasionAt(k, b)&kop.EvHorsemanship == 0 {
 		return true
 	}
-	if ev&kop.EvIntimidate != 0 && k.t.Cards[s.cardAt(b)].Types&kop.TArtifact == 0 && s.colorsAt(k, a)&s.colorsAt(k, b)&kop.ColAny == 0 {
+	if ev&kop.EvIntimidate != 0 && !s.artifactTy(k, b) && s.colorsAt(k, a)&s.colorsAt(k, b)&kop.ColAny == 0 {
 		return true
 	}
 	if ev&kop.EvSkulk != 0 && s.skulkEvades(k, b, a) {

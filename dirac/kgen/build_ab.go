@@ -873,13 +873,8 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		if ka.Trig, err = cb.trigger(a.Trigger); err != nil {
 			return ka, err
 		}
-		if ka.Trig.Whose == kop.WhoseChosen && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zBattlefield) {
-			// the kernel reads it only for a printed battlefield Phase listener (chosenIs)
-			return ka, fmt.Errorf("Player.Chosen outside a printed battlefield Phase trigger")
-		}
-		if ka.Trig.Whose == kop.WhoseEnchCtrl && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
-			// the kernel reads it only for a printed battlefield Phase listener
-			return ka, fmt.Errorf("EnchantedController outside a printed battlefield Phase trigger")
+		if err := trigWhoseScope(ka.Trig.Whose, a); err != nil {
+			return ka, err
 		}
 		if a.Name == "CheckOnTriggerOnly" {
 			ka.AFlags |= kop.AfCheckOnTrigger
@@ -1176,7 +1171,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"LifeGained": kop.TrigLifeGained, "LifeLost": kop.TrigLifeLost, "DamageDone": kop.TrigDamageDone,
 	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence, "Exploited": kop.TrigExploited,
 	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover, "ManifestDread": kop.TrigManifestDread,
-	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "Untaps": kop.TrigUntaps,
+	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "CounterAddedAll": kop.TrigCounterAddedAll, "Untaps": kop.TrigUntaps,
 	"CounterRemoved": kop.TrigCounterRemoved, "CounterRemovedOnce": kop.TrigCounterRemovedOnce, // the card's own (lower_counterremoved.go; dirac/trig_counterremoved.go)
 	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "BecomeMonarch": kop.TrigBecomeMonarch, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
 	"BecomesTarget":    kop.TrigBecomesTarget,    // the Valiant, watcher and self shapes (lower_trigger.go)
@@ -1244,7 +1239,7 @@ func counterTriggerN(t *lTrigger) (int16, bool, error) {
 		if t.Step == "*" {
 			return kop.TrigNAnyCounter, true, nil
 		}
-	case "CounterRemoved", "CounterRemovedOnce":
+	case "CounterAddedAll", "CounterRemoved", "CounterRemovedOnce":
 	default:
 		return 0, false, nil
 	}
@@ -3158,6 +3153,24 @@ func panharmoniconFlags(st *kop.Static, flags []string) error {
 		default:
 			return fmt.Errorf("Panharmonicon flag %s", fl)
 		}
+	}
+	return nil
+}
+
+// trigWhoseScope refuses a trigger's player qualifier the kernel reads only
+// on a printed battlefield listener of the events it handles.
+func trigWhoseScope(whose kop.Whose, a *lAbility) error {
+	if whose == kop.WhoseChosen && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zBattlefield) {
+		// the kernel reads it only for a printed battlefield Phase listener (chosenIs)
+		return fmt.Errorf("Player.Chosen outside a printed battlefield Phase trigger")
+	}
+	if whose == kop.WhoseEnchanted && (a.Latent || a.Trigger.Event != "Phase" && a.Trigger.Event != "DamageDone" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
+		// the kernel reads it only for a printed battlefield Phase or DamageDone listener (defEnchanted)
+		return fmt.Errorf("Player.EnchantedBy outside a printed battlefield Phase or DamageDone trigger")
+	}
+	if whose == kop.WhoseEnchCtrl && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
+		// the kernel reads it only for a printed battlefield Phase listener
+		return fmt.Errorf("EnchantedController outside a printed battlefield Phase trigger")
 	}
 	return nil
 }

@@ -166,7 +166,7 @@ func (s dataSet) AbilityOrigin(i, ab int) uint8 {
 }
 
 func (s dataSet) Matchup(a, b []Entry) (*kop.Table, []kop.CardID, []kop.CardID, error) {
-	t, ids, err := s.matchup([][]Entry{a, b}, false)
+	t, ids, err := s.matchup([][]Entry{a, b}, matchupGame)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -174,7 +174,25 @@ func (s dataSet) Matchup(a, b []Entry) (*kop.Table, []kop.CardID, []kop.CardID, 
 }
 
 func (s dataSet) MatchupN(decks [][]Entry) (*kop.Table, [][]kop.CardID, error) {
-	return s.matchup(decks, false)
+	return s.matchup(decks, matchupGame)
+}
+
+// MatchupInert is Matchup with the matchup guards skipped: it builds the table
+// the game would have played had the guards not refused it, with the game's
+// compact CardIDs. A diagnostic run uses it to observe the divergence or
+// unmodelled stall an interaction refusal hides. A card the set does not play
+// is still a *RefusedError: this is not a by-name bypass (see Raw).
+func (s dataSet) MatchupInert(a, b []Entry) (*kop.Table, []kop.CardID, []kop.CardID, error) {
+	t, ids, err := s.matchup([][]Entry{a, b}, matchupSkipGuards)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return t, ids[0], ids[1], nil
+}
+
+// MatchupNInert is MatchupInert for any number of decks.
+func (s dataSet) MatchupNInert(decks [][]Entry) (*kop.Table, [][]kop.CardID, error) {
+	return s.matchup(decks, matchupSkipGuards)
 }
 
 func (s dataSet) Pool() (*kop.Table, error) {
@@ -182,7 +200,7 @@ func (s dataSet) Pool() (*kop.Table, error) {
 	for i := range all {
 		all[i] = Entry{Name: s.d.Names[i], Count: 1}
 	}
-	t, _, err := s.matchup([][]Entry{all, nil}, true)
+	t, _, err := s.matchup([][]Entry{all, nil}, matchupInert)
 	return t, err
 }
 
@@ -330,7 +348,20 @@ func matchupOverrides(dd *PoolData, usesOverride map[int]bool, mask func([]uint8
 	return out
 }
 
-func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardID, error) {
+// matchupMode says which table a matchup builds: a game's, the whole pool's,
+// or a refused pair's replayed without the guards.
+type matchupMode uint8
+
+const (
+	matchupGame       matchupMode = iota // a game's table: compact CardIDs, every guard on
+	matchupInert                         // Pool's table: stable pool CardIDs, inert cards, no guards
+	matchupSkipGuards                    // a refused pair replayed: compact CardIDs, no guards
+)
+
+func (m matchupMode) inert() bool  { return m == matchupInert }
+func (m matchupMode) guards() bool { return m == matchupGame }
+
+func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop.CardID, error) {
 	dd := s.d
 	var pool []int
 	seen := map[int]bool{}
@@ -351,14 +382,14 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 			if !ok {
 				return nil, nil, fmt.Errorf("card %q is not in the pool", e.Name)
 			}
-			if !s.plays[i] && !inert {
+			if !s.plays[i] && !mode.inert() {
 				return nil, nil, &RefusedError{Card: e.Name, Status: dd.Status[i], Reason: dd.Reason[i]}
 			}
 			add(i)
 		}
 	}
 	sort.Ints(pool)
-	if !inert {
+	if mode.guards() {
 		if err := s.layerGuard(pool); err != nil {
 			return nil, nil, err
 		}
@@ -375,7 +406,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 	id := map[int]kop.CardID{}
 	for j, i := range pool {
 		id[i] = kop.CardID(j)
-		if inert {
+		if mode.inert() {
 			id[i] = kop.CardID(dd.PoolID[i]) // the pool table's stable CardIDs
 		}
 	}
@@ -514,7 +545,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 					all = all.Or(dd.CardSubs[i])
 				}
 			}
-			if inert && all.Count() > kop.MaxSubtypes {
+			if mode.inert() && all.Count() > kop.MaxSubtypes {
 				// The whole-pool table (Pool: the names, stable CardIDs and the
 				// net's vocabulary, never a game) of a pool wider than one table
 				// keeps the subtypes its cards name or grant; a game's table
@@ -643,7 +674,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 		t.Emblems[k].Abilities = remap(e.Abilities)
 	}
 	t.Cards = make([]kop.CardDef, len(pool))
-	if inert {
+	if mode.inert() {
 		t.Cards = make([]kop.CardDef, dd.NumIDs)
 		for _, a := range dd.Absent {
 			t.Cards[a.ID] = kop.CardDef{Name: a.Name}
@@ -674,7 +705,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 		if d.FuseDef != 0 {
 			d.FuseDef = id[int(d.FuseDef)-1] + 1 // the fused spell's def (dirac/face_fuse.go)
 		}
-		if inert && s.Inert(i) {
+		if mode.inert() && s.Inert(i) {
 			d = inertDef(d)
 		}
 		for _, as := range dd.StaticSubs[i] {
@@ -684,12 +715,12 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 		}
 		t.Cards[j] = d
 	}
-	if !inert {
+	if mode.guards() {
 		if err := s.interactionGuard(t, pool); err != nil {
 			return nil, nil, err
 		}
 	}
-	if !inert {
+	if mode.guards() {
 		if err := copyNamedGuard(t); err != nil { // pooldata_names.go
 			return nil, nil, err
 		}

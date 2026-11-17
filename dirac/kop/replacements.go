@@ -86,6 +86,17 @@ const (
 // CounterNum$ 1).
 const ReplPrevSelfRemoveOne = 1
 
+// More ReplPreventDamageCounters bits (Repl.C), beside ReplPrevSelfRemoveOne.
+// ReplPrevSelfIfCounter: ValidTarget$ Card.Self+counters_GE1_P1P1, the
+// replacement applies only while the permanent has a +1/+1 counter (Undergrowth
+// Champion, Oathsworn Knight, Polukranos, Unchained). ReplPrevSelfRemoveDmg:
+// the body removes as many +1/+1 counters as the damage (CounterNum$
+// ReplaceCount$DamageAmount: Polukranos, Ugin's Conjurant).
+const (
+	ReplPrevSelfIfCounter = 1 << 1
+	ReplPrevSelfRemoveDmg = 1 << 2
+)
+
 // ReplDrawMore flags (Repl.C).
 const ReplDrawNotFirst = 1 // NotFirstCardInDrawStep$ True
 

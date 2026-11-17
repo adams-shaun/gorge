@@ -164,7 +164,7 @@ func TestDefendingPlayerCtrlFilter(t *testing.T) {
 		c.Faces[0].Statics[0].Params["Affected"] = "Creature.ControlledBy TriggeredDefendingPlayer"
 		p.byName["Spider-Ham, Peter Porker"] = c
 	})
-	kp.refusedWith(t, "Spider-Ham, Peter Porker", why)
+	kp.refusedWith(t, "Spider-Ham, Peter Porker", strings.Replace(why, "an Attacks trigger's", "an Attacks or becomes-(un)blocked trigger's", 1))
 }
 
 func TestCostTypeListSemicolon(t *testing.T) {

@@ -54,13 +54,30 @@ func firstTimeLatchEvent(a *kop.Ability) bool {
 	return a.Trig.Event == kop.TrigCounterAddedOnce || a.Trig.Event == kop.TrigBecomesTarget
 }
 
-// counterFirstUsed reports whether a's first-time CounterAddedOnce line
-// already queued a trigger this turn. The caller has checked the event and
-// Tf2FirstTime.
+// counterFirstUsed reports whether a's first-time line already had its turn
+// this turn. A CounterAddedOnce line reads the per-line mark. A BecomesTarget
+// line reads the object's targeted-this-turn bit (mechBtTurn) instead: gorge's
+// gate is the log scan over the turn's targetings, so an earlier targeting
+// counts even when no such line was live to queue then -- the Lightning Bolt
+// that hit a creature before Kira, Great Glass-Spinner entered and granted it
+// the line -- and a queue-time mark would also make two lines of one object
+// share one latch (the granted-on permanent's own printed line and the
+// granted line are both ab 0 in their own cards). The caller has checked the
+// event and Tf2FirstTime.
 //
 //go:noinline
-func (s *State) counterFirstUsed(k *prep, l trigListener) bool {
-	if !DebugCounterFirstOff && s.usedThisTurn(l.obj, l.ab) {
+func (s *State) counterFirstUsed(k *prep, l trigListener, a *kop.Ability) bool {
+	used := false
+	if a.Trig.Event == kop.TrigBecomesTarget {
+		// the bit only: a per-line mark would share another line's record (the
+		// granted-on permanent's own printed line and the granted line are both
+		// ab 0 in their own cards, and a printed line's once-per-turn mark
+		// would block the granted line's first time)
+		used = s.mSl(k, mechBtTurn, l.sl)
+	} else {
+		used = s.usedThisTurn(l.obj, l.ab)
+	}
+	if !DebugCounterFirstOff && used {
 		if CounterFirstLog != nil {
 			*CounterFirstLog = append(*CounterFirstLog, CounterFirstRec{Card: k.t.Cards[l.card].Name, Obj: l.obj, Turn: s.turn})
 		}
@@ -70,10 +87,15 @@ func (s *State) counterFirstUsed(k *prep, l trigListener) bool {
 }
 
 // markCounterFirst spends the line's per-turn latch when the trigger queues.
+// A BecomesTarget line writes none: its gate is the object bit, which this
+// targeting set after the walk (targetedOne), and a mark would spend pool
+// space no read ever consults.
 //
 //go:noinline
-func (s *State) markCounterFirst(k *prep, l trigListener) {
-	s.markUsed(l.obj, l.ab)
+func (s *State) markCounterFirst(k *prep, l trigListener, a *kop.Ability) {
+	if a.Trig.Event != kop.TrigBecomesTarget {
+		s.markUsed(l.obj, l.ab)
+	}
 	if CounterFirstLog != nil {
 		*CounterFirstLog = append(*CounterFirstLog, CounterFirstRec{Card: k.t.Cards[l.card].Name, Obj: l.obj, Turn: s.turn, Fired: true})
 	}

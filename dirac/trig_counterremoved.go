@@ -28,8 +28,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (ctrGapDo, ctrDeadGap, storeGap and riderGap) and the stun counter the untap
 // replacement spends instead of untapping (turn.go, repl_untapstep.go,
 // untapSlot, untapAll, untapCost, untapOthers, gainControlOne and
-// OpGainControlEOT). A removal by damage, +1/+1 / -1/-1 annihilation or a
-// shield counter fires nothing (kgen refuses +1/+1 and -1/-1 lines for it;
+// OpGainControlEOT) and the shield counter spent instead of damage or
+// destruction (spendShield, CR 122.1c; gorge emits a CounterChange -1 there
+// too). A removal by damage or +1/+1 / -1/-1 annihilation fires nothing (kgen refuses +1/+1 and -1/-1 lines for it;
 // gorge folds a walker's damage loyalty loss into the Damage event, never a
 // CounterChange). A suspended card's upkeep time counter fires from exile
 // (suspendTick, fireCtrRemovedExile).

@@ -411,6 +411,9 @@ func prepare(t *kop.Table) *prep {
 				}
 			case kop.AbTriggered:
 				pc.trigMask |= 1 << a.Trig.Event & (1<<nSubEvents - 1) // TrigGiveGift: no subscription (kw_gift.go)
+				if a.Trig.Event == kop.TrigCounterAddedAll {
+					pc.trigMask |= 1 << kop.TrigCounterAddedOnce // the counter sites' gate; fireObj's hook runs the watcher (trig_counteraddedall.go)
+				}
 			case kop.AbStatic:
 				pc.hasStat = battlefieldStatic(pc.hasStat, a) // a graveyard static is none (static_gycont.go)
 				if a.Static.Kind == kop.StatOverride || (a.Static.Kind == kop.StatContinuous && a.Static.Grant != 0) {
