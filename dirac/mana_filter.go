@@ -813,7 +813,14 @@ type filtKey struct {
 	gy   uint8
 }
 
-const maxFiltPath = 16
+// maxFiltPath bounds one searched path. gorge's scriptSearch has no path
+// length of its own, only the potentialScriptNodes it visits, and every path
+// step is one of those nodes, so a path longer than the budget cannot be
+// reached. Sixteen was smaller: a repeatable fee-only filter funds its next
+// activation from the pool, so the search walks chains longer than sixteen
+// steps (Simic Cluestone's {G}{U} through repeated Signpost Scarecrow
+// activations) and the cap dropped the branch gorge takes.
+const maxFiltPath = potentialScriptNodes
 
 // maxFaceFilters bounds the filters faceReachable tries in combination.
 const maxFaceFilters = 6
