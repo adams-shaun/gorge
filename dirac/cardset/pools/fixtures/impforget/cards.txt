@@ -1,0 +1,14 @@
+# the ImpForget pool: the classic Imprint artifacts lower and forget
+# (dirac/oracle/impforget_test.go)
+Duplicant
+Mirror Golem
+Mirror of Life Trapping
+Grizzly Bears
+Hill Giant
+Naturalize
+Lightning Bolt
+Murder
+Forest
+Mountain
+Swamp
+Binding Negotiation

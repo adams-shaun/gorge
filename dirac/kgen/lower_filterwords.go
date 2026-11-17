@@ -45,6 +45,14 @@ func filterWordPred(p string) (n int, ok bool) {
 		return int(kop.W7GreatestPower), true
 	case "attackingAlone":
 		return int(kop.W7AttackingAlone), true
+	case "!IsImprinted":
+		// gorge's '!' of the word (kop.W7NotImprinted: the negation of the
+		// source's persistent imprint read, the store and zone gate
+		// included; Mirror of Life Trapping's TrigReturn pick). The word
+		// itself maps in filterWordPred3, refused outside a chain that
+		// writes the imprinted set (imprintedFilterGate); so is its
+		// negation.
+		return int(kop.W7NotImprinted), true
 	}
 	z, found := strings.CutPrefix(p, "inZone")
 	if !found {

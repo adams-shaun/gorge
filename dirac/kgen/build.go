@@ -2604,6 +2604,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub
 	ko.SetLandSub = o.SetLandSub
+	ko.ImpSub = o.ImpSub
 	ko.HasColors, ko.SetColors = o.HasSetColors, colorMask(o.SetColors)
 	ko.LoseAbilities = o.LoseAbilities
 	ko.KeepP, ko.KeepT = o.KeepP, o.KeepT

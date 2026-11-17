@@ -79,7 +79,30 @@ func (lc *lowerCtx) tokenImprint(ps *params, in *lInstr) error {
 // changeZoneImprint reads ChangeZone's Imprint$ True on a targeted or defined
 // exile (the kernel's ExileEx): each moved card joins the imprinted set. A
 // hidden-zone pick, a hand return or any other destination stays refused.
+// Unimprint$ and ImprintLast$ on the same writer exile clear the source's
+// imprint before the move (gorge clearChangeZoneImprint, from
+// changeZonePrelude; at the move ImprintLast replaces rather than appends):
+// the kernel emits the same ExtClearImprinted immediately before its exile
+// instruction.
 func (lc *lowerCtx) changeZoneImprint(ps *params, in *lInstr) error {
+	if in.Op == "Exile" {
+		if v, ok := ps.get("Unimprint"); ok {
+			if v != "True" {
+				return refuse("ChangeZone Unimprint$ %q", v)
+			}
+			if err := lc.changeZoneUnimprint("Unimprint$"); err != nil {
+				return err
+			}
+		}
+		if v, ok := ps.get("ImprintLast"); ok {
+			if v != "True" {
+				return refuse("ChangeZone ImprintLast$ %q", v)
+			}
+			if err := lc.changeZoneUnimprint("ImprintLast$"); err != nil {
+				return err
+			}
+		}
+	}
 	v, ok := ps.get("Imprint")
 	if !ok {
 		return nil
@@ -94,6 +117,20 @@ func (lc *lowerCtx) changeZoneImprint(ps *params, in *lInstr) error {
 		return err
 	}
 	in.CS = strings.TrimPrefix(in.CS+"|ImprintMove", "|")
+	return nil
+}
+
+// changeZoneUnimprint emits the pre-move clear of a writer ChangeZone's
+// Unimprint$/ImprintLast$: the resolution's imprinted set empties and the
+// source's kept records the resolving entry can read go with it (gorge
+// clearChangeZoneImprint uses the same event as Cleanup's ClearImprinted$
+// rider). Only the persist shape lowers it; anywhere else the params stay
+// unread and refuse.
+func (lc *lowerCtx) changeZoneUnimprint(what string) error {
+	if !lc.impPersist {
+		return refuse("ChangeZone %s outside the persist shape", what)
+	}
+	lc.emit(lInstr{Op: "ClearImprinted"})
 	return nil
 }
 
@@ -136,6 +173,17 @@ func filterReadsImprinted(f *lFilter) bool {
 		}
 	}
 	return false
+}
+
+// imprintedPTValue is the Imprinted$CardPower/CardToughness head: the imprint
+// pile's objects' property (gorge count_ref_property.go; the persist shape
+// holds one), the kernel's ExPowerOf/ExToughnessOf over RefImprinted.
+func imprintedPTValue(rest string) lValue {
+	kind := vPowerOf
+	if rest == "CardToughness" {
+		kind = vToughnessOf
+	}
+	return lValue{Kind: kind, Ref: lRef{Kind: rImprinted}}
 }
 
 // imprintWriter reports whether in adds to the resolution's imprinted set.

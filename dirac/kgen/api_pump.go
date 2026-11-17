@@ -40,5 +40,29 @@ func (lc *lowerCtx) apiPump(sa *cards.SA, ps *params) error {
 	if err := lc.pump(ps); err != nil {
 		return err
 	}
-	return lc.pumpRememberTargeted(ps, t0) // lower_remembered.go
+	if err := lc.pumpRememberTargeted(ps, t0); err != nil { // lower_remembered.go
+		return err
+	}
+	return lc.pumpForgetImprinted(ps)
+}
+
+// pumpForgetImprinted reads Pump's ForgetImprinted$: the imprinted card(s)
+// the Defined$ spec names leave the source's imprinted list (gorge
+// forgetImprinted on Pump: the o.Imprinted half is not auto-pruned on the
+// card's move, so the forget keeps a later read from a stale imprint; Mirror
+// Golem's DBForget). Only the TriggeredCard$ spelling lowers, on a card that
+// keeps its Imprinted list: the op's Obj ref is the trigger's object.
+func (lc *lowerCtx) pumpForgetImprinted(ps *params) error {
+	v, ok := ps.get("ForgetImprinted")
+	if !ok {
+		return nil
+	}
+	if !lc.impPersist {
+		return refuse("Pump ForgetImprinted$ %q outside the persist shape", v)
+	}
+	if v != "TriggeredCard" {
+		return refuse("Pump ForgetImprinted$ %q", v)
+	}
+	lc.emit(lInstr{Op: "ForgetImprinted", Obj: lRef{Kind: rTriggered}})
+	return nil
 }

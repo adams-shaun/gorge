@@ -829,10 +829,10 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		}
 		if fl.Pred == kop.PredWord7 {
 			src := NoObj
-			if fl.PredN&0xff == kop.W7Imprinted {
+			if wordImprintedKind(fl) {
 				src = s.cardFilterSrc(ctx) // filter_props.go: a source-persistent Imprinted read
 			}
-			return s.wordCardAt(k, fl, c, o, fd, ctrl, src)
+			return s.wordCardAt(k, fl, c, o, fd, ctrl, src, cardFilterOrigin(ctx))
 		}
 		if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV) && fl.PredN == 1 {
 			return s.cardPTEqV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go
