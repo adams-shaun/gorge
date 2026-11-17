@@ -1061,6 +1061,10 @@ func (e *Engine) castModeAsk() bool {
 	// mana has been floated yet (the CR 601.2g window is in payCast), so the
 	// floating pool alone would wrongly withhold every payable mode.
 	pot := e.PotentialMana(pc.player)
+	// CR 106.6: a source whose RestrictValid$ cannot spend on THIS cast
+	// (Plaza of Heroes' legendary-only mana vs a nonlegendary spell) must
+	// not feed the mode-affordability bound.
+	pot = e.potentialPoolFor(pc.player, offerPayment(pc.card, pc.isAbility(), spellScope(pc.mode)), pot)
 	legal := make([]string, 0, len(choices))
 	for _, name := range choices {
 		name = strings.TrimSpace(name)
