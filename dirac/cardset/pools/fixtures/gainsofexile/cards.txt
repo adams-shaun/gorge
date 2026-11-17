@@ -1,0 +1,13 @@
+# GainsAbilitiesOfZones$ Exile (Dark Impostor: all activated abilities of the
+# creature cards it exiled), beside creatures with non-mana activated
+# abilities (Prodigal Sorcerer's {T} ping, Prava of the Steel Legion's token
+# maker, Jeska, Warrior Adept's {T} ping), plus basics
+# (dirac/oracle/gainsabilitiesofexile_lockstep_test.go)
+Dark Impostor
+Island
+Jeska, Warrior Adept
+Mountain
+Plains
+Prava of the Steel Legion
+Prodigal Sorcerer
+Swamp
