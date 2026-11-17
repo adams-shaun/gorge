@@ -243,19 +243,75 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	if mayPlay {
 		rider = rider.Or(asPayer(e).Eval().MayPlayRider(p, cast.Object))
 	}
-	mana = pay.PlanManaUnderRider(mana, rider)
 	if len(improviseTaps) != 0 {
+		mana = pay.PlanManaUnderRider(mana, rider)
 		return planImprovise(asPayer(e), p, cast, mana, &desc, improviseTaps)
 	}
-	if len(cost.Sac) == 0 && len(cost.TapPermanent) == 0 {
-		return pay.PlanPaymentCost(asPayer(e), p, cast, mana, &desc)
+	plan := func(c Cost, d *pay.Descriptor) PaymentPlanOutcome {
+		if len(cost.Sac) == 0 && len(cost.TapPermanent) == 0 {
+			return pay.PlanPaymentCost(asPayer(e), p, cast, c, d)
+		}
+		// The mana abilities run first (CR 601.2g-h), so a source that
+		// sacrifices itself can use up what an additional cost must sacrifice.
+		parts, _ := planCostParts(cost, cast.Object, false)
+		return e.planReserving(p, cast.Object, cost, false, false, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
+			return pay.PlanPaymentCostWithout(asPayer(e), p, cast, c, d, tapR, nil, keptR)
+		})
 	}
-	// The mana abilities run first (CR 601.2g-h), so a source that sacrifices
-	// itself can use up what an additional cost must sacrifice.
-	parts, _ := planCostParts(cost, cast.Object, false)
-	return e.planReserving(p, cast.Object, cost, false, false, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
-		return pay.PlanPaymentCostWithout(asPayer(e), p, cast, mana, &desc, tapR, nil, keptR)
-	})
+	return planManaUnderRider(asPayer(e), p, e.G.Players[p].Life, cast, mana, rider, plan)
+}
+
+// planManaUnderRider plans a cast's mana half under a may-play pip rider and
+// keeps the rider's relaxed coloured pips funded from a coloured unit. The
+// folded witness (pay.PlanManaUnderRider) prices every plain coloured pip
+// generic, so the plan may tap a colourless-only ability; but "any color"
+// never includes colourless (CR 107.4c), and the real payment then cannot
+// settle the pip -- the cast reverts with the card still in its old zone and
+// the pool holding the stranded {C}. If the folded plan's production cannot pay
+// the pre-fold cost under the rider, re-plan the pinned alternatives
+// (potentialPinnedColourPlan's shape) and return the first that does. A folded
+// plan with no witness (insufficient) is returned unchanged: pins never make a
+// cost cheaper, so there is nothing to re-plan. Otherwise the folded plan is
+// never returned -- it would validate and then fail at execution -- so the
+// verdict is unsupported/witness_not_offered, never insufficient, which
+// provesUnpayable reads as a proof.
+func planManaUnderRider(pe pay.Engine, p state.PlayerID, life int32, cast decision.PlannedCast, mana Cost, rider pipRider,
+	plan func(Cost, *pay.Descriptor) PaymentPlanOutcome) PaymentPlanOutcome {
+	real := pay.PlanManaHalf(mana)
+	alts, n := pay.PlanManaUnderRiderAlternatives(real, rider)
+	desc := pay.DescriptorFor(cast.Object, false, alts[0])
+	got := plan(alts[0], &desc)
+	if got.Plan == nil {
+		return got
+	}
+	if planPaysManaUnderRider(pe, p, life, *got.Plan, &desc, real, rider) {
+		return got
+	}
+	for i := 1; i < n; i++ {
+		desc := pay.DescriptorFor(cast.Object, false, alts[i])
+		retry := plan(alts[i], &desc)
+		if retry.Plan != nil && retry.Reason == "" &&
+			planPaysManaUnderRider(pe, p, life, *retry.Plan, &desc, real, rider) {
+			return retry
+		}
+	}
+	return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
+}
+
+// planPaysManaUnderRider reports whether plan's activations plus the starting
+// pool can settle real under rider, exactly as ValidateCastPayment settles a
+// matched alternative: the plan prices the folded (or pinned) cost, and the
+// real payment spends the produced units under the rider.
+func planPaysManaUnderRider(pe pay.Engine, p state.PlayerID, life int32, plan decision.PaymentPlan, desc *pay.Descriptor, real Cost, rider pipRider) bool {
+	var produced state.Mana
+	for _, a := range plan.Activations {
+		for i := range produced {
+			produced[i] += int32(a.Produces[i])
+		}
+	}
+	pool := pay.ManaAdd(pay.PlanPool(pe, p, desc), produced)
+	_, ok := resolveManaWith(real, pool, state.Mana{}, [7]state.Mana{}, life, false, rider, nil)
+	return ok
 }
 
 // planCastAltAdd prices a plain cast's mandatory either-or additional cost
@@ -295,8 +351,9 @@ func (e *Engine) planCastAltAdd(statics costStaticViews, p state.PlayerID, cast 
 		if mayPlay {
 			composed = pay.WithSpellAbilityExtras(o.Face(), composed)
 		}
-		composed = pay.PlanManaUnderRider(composed, rider)
-		got := e.planComposedCostFor(p, cast.Object, cast, composed, false, false)
+		got := planManaUnderRider(asPayer(e), p, e.G.Players[p].Life, cast, composed, rider, func(c Cost, _ *pay.Descriptor) PaymentPlanOutcome {
+			return e.planComposedCostFor(p, cast.Object, cast, c, false, false)
+		})
 		// A part with no mana of its own is paid by the cast flow's in-flow
 		// ask (altAddAsk), not by the offer walk, so the walk cannot price it
 		// on its own: a Behold part makes offerCastable decline the cast
@@ -999,18 +1056,24 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 	if o := e.G.Obj(cast.Object); o != nil && plannedMayPlayZone(o.Zone) && cast.Origin != decision.OriginFlashback {
 		rider = rider.Or(asPayer(e).Eval().MayPlayRider(p, cast.Object))
 	}
-	cost = pay.PlanManaUnderRider(cost, rider)
-	if got.Plan != nil && pay.WireCost(cost) != got.Plan.Cost {
+	// The witness's Cost names the alternative the plan was built for: the
+	// folded cost, or (under an AnyColor rider) one of the pinned costs that
+	// keep a relaxed coloured pip funded from a coloured unit. Matching the
+	// plan's wire cost picks exactly that alternative, so desc, the pool and
+	// the settle below read the cost the executor will actually spend.
+	cost, ok := pay.PlanManaUnderRiderMatching(cost, rider, got.Plan.Cost)
+	if !ok {
 		// A planned target-paid cast witnesses the cheapest legal target
 		// set's composed price (planCastPaymentChecked's targetPaid arm), not
 		// the printed composition: re-derive that enumeration so the settle
 		// proves the price the target ask will charge.
 		base := pay.WithSpellAbilityExtras(e.G.Obj(cast.Object).Face(), settleBase)
 		if priced, alt := e.targetPricedPlan(e.collectCostStatics(), p, cast.Object, base, settleScope, rider); alt.Plan != nil && alt.Reason == "" {
-			if altCost := pay.PlanManaUnderRider(pay.PlanManaHalf(priced), rider); pay.WireCost(altCost) == got.Plan.Cost {
-				cost = altCost
-			}
+			cost, ok = pay.PlanManaUnderRiderMatching(pay.PlanManaHalf(priced), rider, got.Plan.Cost)
 		}
+	}
+	if !ok {
+		return fmt.Errorf("payment plan cost or version changed")
 	}
 	desc := pay.DescriptorFor(cast.Object, false, cost)
 	initial := pay.PlanPool(asPayer(e), p, &desc)
