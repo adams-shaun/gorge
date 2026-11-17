@@ -303,6 +303,23 @@ func looksBackOnDeparture(t *cards.Trigger) bool {
 	return false
 }
 
+// zoneChangeFunctionsInZone reports whether a zone-change trigger's
+// TriggerZones$/ActiveZones$ gate (default Battlefield) still has the source
+// functional in z. A destination-based line that names no such zone loses its
+// ability once the move takes its source off the battlefield (CR 113.6), while
+// a "when this card is put into a graveyard" line naming the destination keeps
+// working from there.
+func zoneChangeFunctionsInZone(t *cards.Trigger, z state.Zone) bool {
+	spec := t.ParamStr(cards.PKTriggerZones)
+	if spec == "" {
+		spec = t.ParamStr(cards.PKActiveZones)
+	}
+	if spec == "" {
+		return z == state.ZBattlefield
+	}
+	return zoneSpecContains(spec, z)
+}
+
 // computeFaceLookBackZones is the bit set (by trigZoneSlot) of the zones from
 // which some trigger line of f survives the leaves-the-battlefield look-back
 // walk's split gate -- looksBackOnDeparture (checkFaceTriggers' leaving
