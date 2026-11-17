@@ -29,7 +29,7 @@ func mmmenonHandBarredBoard(t *testing.T) (sc *scen, equip Action) {
 // searched: it is not offered (std-eoe pair 2041, decision 981).
 func TestRelaxedProofCountsTapAnotherUnitAndRefusesHandBarredGrant(t *testing.T) {
 	sc, equip := mmmenonHandBarredBoard(t)
-	if !sc.s.tapXScript(sc.k, equip, 0, false) {
+	if found, _ := sc.s.tapXScript(sc.k, equip, 0, false); !found {
 		t.Fatal("precondition: the tap-another search finds no line for the equip")
 	}
 	d := sc.s.Step()
