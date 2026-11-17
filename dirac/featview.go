@@ -566,7 +566,10 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 // Abhorrent Oculus's exile) is "shape:additional_cost", offered by the pool only.
 func planDeclinesAddCost(k *prep, c CardID) bool {
 	ac := spellAddCost(k, c)
-	return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0 || ac.ExileBf || sacXCost(ac) || discardXCost(ac) // an Exile<N/Spec> part is "cost:exile" (cost_exilebf.go); an announced Sac<X/Spec> is not "cost:sacrifice" admissible, nor an announced Discard<X/Spec> "cost:discard" (PlanNonManaAdmissible; cost_sacx.go, cost_discardfiltered.go)
+	// an announced Discard<X/Spec> (Turbulent Dreams beside no printed {X}) is
+	// "cost:discard" too: PlanNonManaAdmissible declines part.Announced the way
+	// it declines an announced Sac<X/Spec> (cost_sacx.go, cost_discardfiltered.go)
+	return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0 || ac.ExileBf || sacXCost(ac) || discardXCost(ac) || ac.DiscardHand && ac.N == 0 && ac.Flags&kop.CostDiscard == 0 // an Exile<N/Spec> part is "cost:exile" (cost_exilebf.go); an announced Sac<X/Spec> is not "cost:sacrifice" admissible (PlanNonManaAdmissible; cost_sacx.go)
 }
 
 // plannedCastCost is the cost gorge's cast planner prices for p's cast of
@@ -711,8 +714,11 @@ func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 		return true // gorge's planner declines a CollectEvidence part ("cost:evidence", classify.go): offered by the pool only (cost_collectevidencex.go)
 	}
 	if modal {
-		// gorge's PlanTargetPaidManaHalf funds the mana without life and energy
-		return spellAddCost(k, c).Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered|kop.CostPayLife|kop.CostPayEnergy) != 0 || spellAddCost(k, c).ExileBf || sacXCost(spellAddCost(k, c))
+		// gorge's PlanTargetPaidManaHalf funds the mana without life and energy;
+		// the parts it keeps still run PlanNonManaAdmissible, so an announced
+		// Discard<X/Spec> or whole-hand 0-count discard declines there too
+		ac := spellAddCost(k, c)
+		return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered|kop.CostPayLife|kop.CostPayEnergy) != 0 || ac.ExileBf || sacXCost(ac) || discardXCost(ac) || ac.DiscardHand && ac.N == 0 && ac.Flags&kop.CostDiscard == 0
 	}
 	if planDeclinesAddCost(k, c) {
 		// The spell's own Cost$ is separate from an AlternateAdditionalCost
