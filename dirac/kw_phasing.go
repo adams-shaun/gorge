@@ -273,7 +273,10 @@ func (s *State) phaseUntap(k *prep) {
 func (s *State) phasedHostLeft(k *prep, sl Slot, host Obj) {
 	for q := 0; q < MaxPerm; q++ {
 		if qs := Slot(q); s.perms[qs].attached == sl && s.hiddenAt(qs) {
-			if s.unattachedFires(k, qs) {
+			// A token host is the same exception as removePerm's bearer-left
+			// arm: it ceased to exist before gorge's checkpoint, so
+			// ValidObject$ Permanent's PermanentCard retry finds nothing.
+			if s.unattachedFires(k, qs) && s.objs[host].of&ofToken == 0 {
 				s.fireUnattached(k, qs, sl)
 			}
 			s.perms[qs].attached = NoSlot
