@@ -219,6 +219,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 			projCtr(po, uint16(kop.CtrTime), uint16(n)) // a suspended card's time counters (kw_suspend.go)
 		}
 	}
+	s.projExileCounter(k, i, po)
 	if s.res.ask == raGenRetChoice && s.g.pre.obj == i && ob.zone != kop.ZoneBattlefield {
 		po.Ctrl = s.res.askP // a card entering under another player, its as-enters choice asked first (cloneReturnPark): gorge changed control before the move
 	}

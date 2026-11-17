@@ -469,7 +469,11 @@ func (lc *lowerCtx) exileOnLeave(rp *params, w *cards.SA, rl *lRepl) (bool, erro
 	if strings.HasPrefix(vc, "Card.Self+") {
 		return false, nil // other self replacements Progenitus, the library forms
 	}
-	if !exileBody(w) {
+	ctr, ctrN, bodyOK := exileBody(w)
+	if !bodyOK {
+		if exileCounterRider(w) { // lower_exilectrrider.go
+			return true, refuse("repl-hard: dies-to-exile counter rider")
+		}
 		return false, nil
 	}
 	if az := rp.str("ActiveZones"); az != "" && az != "Battlefield" {
@@ -520,6 +524,7 @@ func (lc *lowerCtx) exileOnLeave(rp *params, w *cards.SA, rl *lRepl) (bool, erro
 	}
 	rl.Kind = "ExileOnLeave"
 	rl.F = f
+	rl.Ctr, rl.CtrN = ctr, int(ctrN)
 	return true, nil
 }
 
@@ -530,7 +535,11 @@ func (lc *lowerCtx) exileOnLeave(rp *params, w *cards.SA, rl *lRepl) (bool, erro
 // ability to the battlefield; an explicit Origin$ Battlefield is the
 // dies-to-exile reading (Possessed Skaab, Gloomshrieker).
 func (lc *lowerCtx) selfExile(rp *params, w *cards.SA, rl *lRepl) (bool, error) {
-	if !exileBody(w) {
+	ctr, ctrN, bodyOK := exileBody(w)
+	if !bodyOK {
+		if exileCounterRider(w) { // lower_exilectrrider.go
+			return true, refuse("repl-hard: dies-to-exile counter rider")
+		}
 		return false, nil
 	}
 	az := rp.str("ActiveZones")
@@ -553,6 +562,7 @@ func (lc *lowerCtx) selfExile(rp *params, w *cards.SA, rl *lRepl) (bool, error) 
 		return true, err
 	}
 	rl.Kind, rl.F, rl.AnyZone = "ExileOnLeave", f, anyZone
+	rl.Ctr, rl.CtrN = ctr, int(ctrN)
 	return true, nil
 }
 
@@ -572,23 +582,55 @@ func permanentSpec(vc string) bool {
 }
 
 // exileBody: DB$ ChangeZone | Defined$ ReplacedCard | Destination$ Exile
-// (Origin All/Battlefield, Hidden optional), no sub-ability or rider.
-func exileBody(w *cards.SA) bool {
+// (Origin All/Battlefield, Hidden optional), no sub-ability. The body may
+// also put counters on the exiled card (WithCountersType$ and the optional
+// WithCountersAmount$, default 1): Dauthi Voidwalker's VOID, Draugr
+// Necromancer's ICE. ctr is "" when the body puts none.
+func exileBody(w *cards.SA) (ctr string, n uint8, ok bool) {
 	if w == nil || w.API != "ChangeZone" || w.Sub != nil {
-		return false
+		return "", 0, false
 	}
 	bp := newParams(w.Params)
 	if bp.str("Defined") != "ReplacedCard" || bp.str("Destination") != "Exile" {
-		return false
+		return "", 0, false
 	}
 	if o := bp.str("Origin"); o != "" && o != "All" && o != "Battlefield" {
-		return false
+		return "", 0, false
 	}
 	if h, ok := bp.get("Hidden"); ok && !strings.EqualFold(h, "True") {
-		return false
+		return "", 0, false
 	}
-	bp.consume("Defined", "Destination", "Origin", "Hidden")
-	return len(bp.unread()) == 0
+	ctr = bp.str("WithCountersType")
+	n = 1
+	amountSet := false
+	if v, ok := bp.get("WithCountersAmount"); ok {
+		amountSet = true
+		amount, err := strconv.Atoi(strings.TrimSpace(v))
+		if err != nil || amount < 1 || amount > 255 {
+			return "", 0, false
+		}
+		n = uint8(amount)
+	}
+	if amountSet && ctr == "" {
+		return "", 0, false // an amount with no kind is not a counter
+	}
+	if ctr != "" {
+		// the kernel's exile-counter record holds one of the four kinds the
+		// dies-to-exile bodies name, and a count up to 3 (repl_exilectr.go)
+		switch strings.ToUpper(ctr) {
+		case "VOID", "ICE", "BLOOD", "HIT":
+		default:
+			return "", 0, false
+		}
+		if n > 3 {
+			return "", 0, false
+		}
+	}
+	bp.consume("Defined", "Destination", "Origin", "Hidden", "WithCountersType", "WithCountersAmount")
+	if len(bp.unread()) != 0 {
+		return "", 0, false
+	}
+	return ctr, n, true
 }
 
 // addCounterRepl lowers the counter replacements: Doubling Season's

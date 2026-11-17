@@ -886,6 +886,7 @@ func (s *State) offFieldCountersGE(k *prep, n int, o Obj) bool {
 		// known counters (CR 608.2h; gorge targetCountersLKI)
 		return s.lkiCounter(s.g.tli&tliIdx, kop.CounterKind(n&0xff)) >= n>>8
 	}
-	// off the battlefield only stash counters exist (Tinybones)
-	return kop.CounterKind(n&0xff) == kop.CtrStash && n>>8 <= 1 && o != NoObj && s.mObj(k, mechStash, o)
+	// off the battlefield: a stash counter (Tinybones) or an exile counter
+	// (Dauthi Voidwalker's VOID, Draugr Necromancer's ICE)
+	return s.predCountersGECard(k, o, n)
 }

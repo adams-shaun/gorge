@@ -192,6 +192,12 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	s.touch(o)
 	ob := &s.objs[o]
 	ob.ver++
+	if k != nil && k.gen != nil && k.gen.exileOnLeave != nil && z != kop.ZoneExile {
+		// a new object: an exile counter does not follow the card out of
+		// exile (CR 400.7; repl_exilectr.go). A move that exileAnyDest below
+		// turns into exile clears here and stamps afterwards.
+		s.clearExileCounter(o)
+	}
 	ob.slot = NoSlot // off a face-down spell's stack mark (slotFaceDownSpell)
 	s.g.zoneTurn.set(o)
 	if k != nil {
