@@ -838,7 +838,33 @@ func (e *Engine) expireAsLongAsControl(src state.ObjID) {
 	kept := e.continuous[:0]
 	changed := false
 	for _, ce := range e.continuous {
-		if ce.Source == src && ce.Controller != o.Controller && effects.IsAsLongAsControlDuration(ce.Duration) {
+		if (ce.Source == src || ce.DurationSource == src) && ce.Controller != o.Controller && effects.IsAsLongAsControlDuration(ce.Duration) {
+			changed = true
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	if !changed {
+		return
+	}
+	e.continuous = kept
+	e.continuousChanged()
+}
+
+// expireAsLongAsControlPhasedOut drops every host-anchored (DurationSource)
+// Duration$ AsLongAsControl grant whose host is src once src has phased out:
+// Forge ends "for as long as you control CARDNAME" on the host's phase-out
+// command, and the effect does not return when it phases back in (Aegis
+// Angel's pump). Called after a PhaseOut that phased src out; like
+// expireAsLongAsControl it emits no event.
+func (e *Engine) expireAsLongAsControlPhasedOut(src state.ObjID) {
+	if o := e.G.Obj(src); o == nil || !o.PhasedOut {
+		return
+	}
+	kept := e.continuous[:0]
+	changed := false
+	for _, ce := range e.continuous {
+		if ce.DurationSource == src && effects.IsAsLongAsControlDuration(ce.Duration) {
 			changed = true
 			continue
 		}
@@ -1221,15 +1247,23 @@ func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
 	if ce.SourceIncarnation != 0 && o.Incarnation != ce.SourceIncarnation {
 		return false
 	}
-	if o.Controller != ce.Controller && effects.IsAsLongAsControlDuration(ce.Duration) {
+	if ce.DurationSource == 0 && o.Controller != ce.Controller && effects.IsAsLongAsControlDuration(ce.Duration) {
 		// CR 611.2b: "for as long as you control CARDNAME" also ends when the
 		// effect's controller stops controlling the source (it was stolen).
 		// The object's own Controller field, as controllerTurnHolds reads it.
+		// A host-anchored grant (DurationSource) reads the host instead: its
+		// Source is the pumped object, whose controller is its own business.
 		return false
 	}
 	if ce.DurationSource != 0 {
 		durationSource := e.G.Obj(ce.DurationSource)
-		return durationSource != nil && durationSource.Zone == state.ZBattlefield
+		if durationSource == nil || durationSource.Zone != state.ZBattlefield {
+			return false
+		}
+		if effects.IsAsLongAsControlDuration(ce.Duration) {
+			return durationSource.Controller == ce.Controller && !durationSource.PhasedOut
+		}
+		return true
 	}
 	return true
 }
