@@ -280,7 +280,7 @@ func sourceReturnedSincePush(h Host, c *Ctx, o *state.Object) bool {
 // changeZoneSourceGone reports that a ChangeZone mover's object o cannot be
 // moved because it is a new object the resolving ability's source reference
 // cannot find (CR 400.7): the ability went on the stack with its source on
-// the battlefield and that source has since left it or returned as a later
+// the battlefield and that source has since returned to it as a later
 // incarnation (Wydwen, the Biting Gale bounced and recast between her two
 // bounce activations), or an off-battlefield source has crossed a zone since
 // (sourceReturnedSincePush). The kernel's RefSelf move (dirac/interp.go
@@ -291,16 +291,28 @@ func sourceReturnedSincePush(h Host, c *Ctx, o *state.Object) bool {
 // for a trigger whose source left before it was put on the stack) is true for
 // every dies trigger, whose own return-from-graveyard effect must still move
 // the card it remembers (Undying, Persist, Weatherseed Treefolk).
-func changeZoneSourceGone(h Host, c *Ctx, o *state.Object) bool {
+//
+// Only a source back on the battlefield as a later incarnation counts: one
+// that is elsewhere is the Origin$ precondition's to skip, and an ability whose
+// own cost moved the source must still move it (Craft's exile-then-return,
+// kw_craft.go: Origin$ Exile, Defined$ Self).
+//
+// A mover that names its object through a chain the resolution itself built
+// (Defined$ Remembered, an imprint, a trigger or delayed-trigger capture) is
+// outside this check: the ability's own earlier move of the source ("Exile
+// Joshua, then return it", Phoenix's chapter III) changes its zone and
+// incarnation mid-resolution, and the return must still move it.
+func changeZoneSourceGone(h Host, c *Ctx, cz *ChangeZoneParams, o *state.Object) bool {
 	if sourceReturnedSincePush(h, c, o) {
 		return true
 	}
-	if o.ID != c.Source || c.ResolvingObj == 0 {
+	if o.ID != c.Source || c.ResolvingObj == 0 || cz.DefinedRemembered || cz.DefinedImprinted ||
+		cz.DefinedDelayRemembered || cz.DefinedTriggered {
 		return false
 	}
 	ro := h.Game().Obj(c.ResolvingObj)
 	return ro != nil && ro.Source == o.ID && ro.PushSourceOnBattlefield &&
-		(o.Zone != state.ZBattlefield || o.Incarnation != ro.PushSourceIncarnation)
+		o.Zone == state.ZBattlefield && o.Incarnation != ro.PushSourceIncarnation
 }
 
 // SourceIsNewObject reports that ro, an ability on the stack, has a source on the
@@ -1010,7 +1022,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 		// Origin$ precondition and CantExile guard, shared with the
 		// departure-batch pre-pass above: see changeZoneMoveSkip.
-		if changeZoneMoveSkip(h, cz, o, to, originAll) || changeZoneSourceGone(h, c, o) {
+		if changeZoneMoveSkip(h, cz, o, to, originAll) || changeZoneSourceGone(h, c, cz, o) {
 			continue
 		}
 		// Inlined rather than routed through settleChangeZoneMove: this loop
