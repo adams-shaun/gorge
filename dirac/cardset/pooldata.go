@@ -570,7 +570,30 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 	}
 	t.Overrides = make([]kop.Override, len(dd.Overrides))
 	copy(t.Overrides, dd.Overrides)
+	// The override list is the pool's, so a CR 305.7 land-type setter of a
+	// card outside this matchup (Blood Moon beside a deck that has none) is in
+	// it too, and the kernel reads the flag table-wide (prepLandSet,
+	// prepLandGrant: a land-type model, and an attack tax's refusal beside
+	// it). A setter nothing here reaches is an empty record: its index stays.
+	for _, e := range dd.Emblems {
+		for _, ab := range e.Abilities {
+			if ab.Static.Override > 0 {
+				usesOverride[int(ab.Static.Override)-1] = true
+			}
+			for _, in := range ab.Prog {
+				if in.Op == kop.OpOverride || in.Op == kop.OpOverrideAll {
+					for n := 0; n < 5; n++ {
+						usesOverride[int(in.C)+n] = true // a chosen-type group's five records
+					}
+				}
+			}
+		}
+	}
 	for k := range t.Overrides {
+		if t.Overrides[k].SetLandSub && !usesOverride[k] {
+			t.Overrides[k] = kop.Override{}
+			continue
+		}
 		t.Overrides[k].SetSub = mask(dd.OverrideSubs[k].Set)
 		t.Overrides[k].AddSub = mask(dd.OverrideSubs[k].Add)
 		t.Overrides[k].KeepSub = mask(dd.OverrideSubs[k].Keep)
