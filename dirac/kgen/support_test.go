@@ -365,7 +365,9 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 // stale with rises only is logged, not failed: a doc update should not block a merge, and PRs
 // merged together in one queue batch each carry a correct page that no longer matches their
 // union. DIRAC_SUPPORT_STRICT=1
-// (the nightly) compares the page byte for byte.
+// (the nightly) compares the page byte for byte. TestEvidenceCoverageRatchet is its per-card
+// companion (the evidence-keys sidecar against coverage-floor.txt); DIRAC_UPDATE_SUPPORT=1 with
+// -run 'TestSupportDocIsCurrent|TestEvidenceCoverageRatchet' regenerates both.
 func TestSupportDocIsCurrent(t *testing.T) {
 	heavyParallel(t)
 	cardsDir := ratchetCards(t)
