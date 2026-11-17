@@ -1062,6 +1062,7 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	}
 	ka.ManaEach = m.Each
 	ka.ManaDeferred = m.Deferred
+	ka.ManaIdentityPotential = m.IdentityPotential
 	ka.ManaRider = uint8(m.Rider)
 	if m.RiderCtr != "" {
 		k, err := counterKind(m.RiderCtr)

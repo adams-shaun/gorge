@@ -1105,6 +1105,10 @@ type lMana struct {
 	Deferred   bool     // a TriggersWhenSpent$ source gorge's planner defers (kop.Ability.ManaDeferred; lower_deferredmana.go)
 	Split      *lSplit  // a Condition-split production's arm (kop.Ability.SplitGate; lower_condsplit.go)
 	HasteValid *lFilter // AddsKeywords$ Haste: a spell matching it, paid with this mana, gains haste until end of turn (kop.Ability.ManaHasteValid)
+	// IdentityPotential: a Produced$ ColorIdentity source a rider or a cost
+	// beyond {T} kept out of the reflected shape; the potential walk still
+	// prices it at the commander identity (kop.Ability.ManaIdentityPotential)
+	IdentityPotential bool
 	// Rider is the rider the ability runs with its mana (kop.Ability.ManaRider;
 	// lower_manarider.go): none, deplete or each-opponent life.
 	Rider    int
