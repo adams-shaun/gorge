@@ -597,6 +597,13 @@ func (s *State) flushPrefixTriggers(k *prep) {
 		if i < 0 {
 			return
 		}
+		// A may-election is a decision too (pendNeedsDecision): its build is
+		// run out here, and the election itself is the resolution ask
+		// resolvePrefixStack answers for a sorcery-speed play. A foreign
+		// build ask never reaches this flush: foreignPendAsks ends the search
+		// first. A foreign may-election of an instant-speed play does -- the
+		// trigger is placed below the play, its election the opponent's to
+		// answer at the resolution (mana_window.go's gate).
 		decides := s.pendNeedsDecision(k, i)
 		s.takePending(k, i)
 		if decides {
@@ -615,20 +622,31 @@ func (s *State) flushPrefixTriggers(k *prep) {
 	}
 }
 
-// pendNeedsDecision reports whether pending trigger i would pose a choice
-// (targets or modes) when built. A delayed trigger (ab >= abDelayed) carries
-// its own body and no printed target list, so it is placed directly.
-func (s *State) pendNeedsDecision(k *prep, i int) bool {
+// pendAbility is pending trigger i's lowered ability, nil when dirac models
+// no printed one: a delayed trigger (ab >= abCascade) carries its own body and
+// no printed target list, so it is placed directly.
+func (s *State) pendAbility(k *prep, i int) *kop.Ability {
 	pt := &s.pend[i]
 	if pt.ab >= abCascade || int(pt.card) >= len(k.t.Cards) {
-		return false
+		return nil
 	}
 	cd := &k.t.Cards[pt.card]
 	if int(pt.ab) >= len(cd.Abilities) {
+		return nil
+	}
+	return &cd.Abilities[pt.ab]
+}
+
+// pendNeedsDecision reports whether pending trigger i would pose a choice
+// (targets, modes or a may-election at resolution) when built. A delayed
+// trigger (ab >= abDelayed) carries its own body and no printed target list,
+// so it is placed directly.
+func (s *State) pendNeedsDecision(k *prep, i int) bool {
+	a := s.pendAbility(k, i)
+	if a == nil {
 		return false
 	}
-	a := &cd.Abilities[pt.ab]
-	return a.NTargets != 0 || a.NModes != 0
+	return a.NTargets != 0 || a.NModes != 0 || a.Trig.Flags&kop.TfOptional != 0
 }
 
 // castTimingNeutral is the AkCast mode bits that leave the card's own timing:

@@ -3,7 +3,8 @@
 # gain 1 life") defers a Merfolk {T} mana source -- Firdoch Core, a changeling
 # artifact, the only lowering one: the census never lists it, so autopay taps
 # an ordinary source instead. Hawkeye's Bow's vetted damage to each opponent
-# leaves its creature an ordinary unit. Magda (no lowering Dwarf mana source),
+# leaves its creature an ordinary unit. Tragic Slip is the instant-speed play
+# the foreign-ask gate's timing test casts. Magda (no lowering Dwarf mana source),
 # Quest for Renewal (an UntapOtherPlayer line), Volshe Tideturner, Sea Scryer,
 # Hydro-Channeler and Rubble Rouser refuse in kgen.
 # Decks play it in dirac/oracle/taps_planner_defer_test.go.
@@ -16,5 +17,6 @@ Grizzly Bears
 Hill Giant
 Lightning Bolt
 Shock
+Tragic Slip
 Plains
 Mountain
