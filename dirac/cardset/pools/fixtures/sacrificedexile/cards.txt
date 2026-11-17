@@ -1,0 +1,15 @@
+# Sacrificed-trigger-in-exile lockstep pool, for
+# dirac/oracle/sacrificedexile_lockstep_test.go: It That Betrays (an opponent's
+# sacrificed nontoken permanent comes back under your control, Origin$ Graveyard
+# in the script) beside Rest in Peace (the sacrificed card is exiled instead),
+# Flooded Strand as the sacrifice, and the two other corpus carriers of
+# Mode$ Sacrificed with Origin$ Graveyard (Biolume Egg, Riveteers Ascendancy).
+It That Betrays
+Rest in Peace
+Biolume Egg
+Riveteers Ascendancy
+Flooded Strand
+Plains
+Island
+Swamp
+Mountain
