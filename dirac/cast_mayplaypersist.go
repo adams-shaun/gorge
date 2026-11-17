@@ -3,8 +3,10 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // mayUntilForgetExile marks a DurWhileGrave record whose effect forgets the
-// card when it moves to exile (ForgetOnMoved$ Exile; Skyclave Shade's
-// landfall grant). It rides the low bit of a limited grant's used count, so a
+// card when it leaves exile (ForgetOnMoved$ Exile; Skyclave Shade's landfall
+// grant). The grant only applies in the graveyard, so the card cannot return
+// there without leaving exile: the kernel drops the record on the move to
+// exile, which is observably the same. It rides the low bit of a limited grant's used count, so a
 // DurWhileGrave record carries no cap (kgen lowers only an unlimited Effect
 // to it).
 const mayUntilForgetExile uint8 = 0x10

@@ -2438,10 +2438,14 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 }
 
 // mayPlayGraveLifetime turns an until-end-of-turn Effect-delivered may-play
-// grant over a remembered graveyard card into the record that survives the
-// card's stay (DurWhileGrave; DurWhileGraveForget when the effect forgets the
-// card on a move to exile). A limited grant spends its use, and an
-// ExileOnMoved grant ends with the move, so both keep the one-shot duration.
+// grant over a remembered graveyard card into DurWhileGraveForget, the record
+// that survives the card's stay in the graveyard and is dropped when the card
+// leaves exile. Only ForgetOnMoved$ Exile qualifies: gorge's effectMoveSweep
+// prunes every other grant's remembered card the moment it leaves the grant's
+// zone (mayPlayRememberedLeftZone, CR 400.7: a new object), so a grant with no
+// ForgetOnMoved$ (Reezug, the Bonecobbler; Ichor Aberration) does not follow
+// the card back. A limited grant spends its use and an ExileOnMoved grant ends
+// with the move; both, like every other ForgetOnMoved$, keep the one-shot dur.
 func mayPlayGraveLifetime(ps, sp *params, zone int, zones []int, dur string) string {
 	if zone != zGraveyard || len(zones) != 1 || dur != "EOT" {
 		return dur
@@ -2452,11 +2456,8 @@ func mayPlayGraveLifetime(ps, sp *params, zone int, zones []int, dur string) str
 	if _, endsOnMove := ps.get("ExileOnMoved"); endsOnMove {
 		return dur
 	}
-	switch strings.TrimSpace(ps.str("ForgetOnMoved")) {
-	case "Exile":
+	if strings.TrimSpace(ps.str("ForgetOnMoved")) == "Exile" {
 		return "WhileGraveForget"
-	case "":
-		return "WhileGrave"
 	}
 	return dur
 }
