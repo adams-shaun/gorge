@@ -239,13 +239,16 @@ func (s *State) dealHitsToOne(k *prep, hs []dmgHit) bool {
 }
 
 // replPlusBatch parks a batch whose first hit's damage event is matched by two
-// or more pure plus-N replacements (or, batchOrderAskable, an addition beside
-// a prevention): gorge collects every matching damage
-// replacement and asks the affected player their CR 616.1 order even though the
-// additions commute, so the kernel poses the same no-op ask before the batch
-// lands. The parked event's amount is discarded: the answer resumes the op
-// (interp_ask.go), which re-executes the batch and deals every hit with the
-// summed amount (trig_oneormore.go's exemption). The op-resume shape holds one
+// or more damage replacements whose order the amount does not follow (a pure
+// plus-N competition, an addition beside a prevention) or — like
+// replPlusSrcPass — the mixed one it does (a plus-N addition or a raise
+// beside a doubling, repl_pluswalk.go): gorge collects every matching damage
+// replacement and asks the affected player their CR 616.1 order. A pure
+// plus-N ask is a no-op, so the parked event's amount is discarded: the
+// answer re-executes the batch (interp_ask.go), which deals every hit with
+// the summed amount (trig_oneormore.go's exemption). The mixed competition's
+// answer re-executes the batch too, and the asked hit deals from the record
+// (replDamagePend). The op-resume shape holds one
 // parked event per op, so it parks only a batch whose first hit competes: two
 // or more competing hits would need one ask per event, and a later competing
 // hit would be parked before the earlier hits land. Both are a declared
@@ -418,7 +421,7 @@ func (s *State) damageHit(k *prep, h *dmgHit) int {
 		return 0
 	}
 	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 && n > 0 {
-		n = s.replDamage(k, s.perms[a].ctrl, a, s.cardAt(a), TCode(s.perms[b].obj), false, n)
+		n = s.replDamagePend(k, s.perms[a].ctrl, a, s.cardAt(a), TCode(s.perms[b].obj), n, s.perms[a].obj)
 	}
 	if n <= 0 {
 		return 0

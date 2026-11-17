@@ -345,6 +345,14 @@ const (
 	akwDeathtouch
 )
 
+// ro.plus's bits.
+const (
+	plRaiseShift = 4 // the raise bodies (Ojer Axonil) among the candidates, above the plus-N additions' low nibble: the noncombat walk applies one as picked while the amount is below its host's power (repl_pluswalk.go)
+)
+
+// plRaise lifts the plus-N additions' mask b into the raise bodies' nibble.
+func plRaise(b uint8) uint8 { return b << plRaiseShift }
+
 type replHdr struct {
 	// the asked combat event as it stood when asked (gorge's assignment is
 	// fixed then: a source or recipient the state-based actions remove
@@ -358,7 +366,7 @@ type replHdr struct {
 	n             uint8  // its candidates (0 = no ask in progress)
 	used          uint8  // candidates applied so far (bit per cand)
 	prev          uint8  // candidates that prevent the damage (bit per cand)
-	plus          uint8  // candidates that are a plus-N addition already in the asked amount (bit per cand; the order walk)
+	plus          uint8  // the candidates of the order walk: the plus-N additions already in the asked amount, low nibble (bit per cand), the raise bodies (Ojer Axonil) above them, high nibble (plRaise): the noncombat walk applies a raise as picked, while the amount is below its host's power (repl_pluswalk.go)
 	p             uint8  // the affected player, who answers
 	cand          [4]Obj // the replacements' sources
 	nca           bool   // a parked noncombat event's ask is posed (ncDmg)
@@ -940,12 +948,15 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 }
 
 // replOrderOptions poses the order ask: the affected player picks the
-// replacement that applies next among those not yet applied.
+// replacement that applies next among those not yet applied. The pend ask's
+// options are the ones gorge re-collects at this pick (a raise past its
+// host's power is out, ncPlusLive).
 func (s *State) replOrderOptions(d *Decision) {
 	ro := &s.g.ro
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenReplOrder, ro.p
+	pend := !ro.on && s.g.nc.n == ncPend
 	for i := 0; i < int(ro.n); i++ {
-		if ro.used&(1<<i) == 0 {
+		if ro.used&(1<<i) == 0 && !(pend && !s.ncPlusLive(i)) {
 			o := ro.cand[i]
 			if ro.pnx&(1<<i) != 0 {
 				o = s.g.prevCol[o].obj // a shield's option names its source
@@ -960,7 +971,9 @@ func (s *State) replOrderOptions(d *Decision) {
 // doubling picked, two or more replacements left). With a plus-N addition
 // beside a doubling (roPlusPend) the picked addition or doubling applies as
 // it is picked (gorge handleDamageReplacementChoice, CR 616.1e): the two do
-// not commute, so the walk carries the running amount in ro.an.
+// not commute, so the walk carries the running amount in ro.an. The parked
+// noncombat event's mixed competition is walked the same way (ncPend,
+// ncPlusPickNC), and its record's amount is written at the ask's end.
 func (s *State) replOrderPick(a Action) bool {
 	ro := &s.g.ro
 	if i := a.Mode(); i < ro.n {
@@ -971,12 +984,19 @@ func (s *State) replOrderPick(a Action) bool {
 		if ro.pnx&(1<<i) != 0 {
 			return s.prevNextPick(int(i))
 		}
-		if ro.on && s.roPlusPend() && ro.prev&(1<<i) == 0 {
-			if ro.plus&(1<<i) != 0 {
-				ro.an = s.sat16(int(ro.an) + s.roPlusAdd(s.k(), int(i), int(ro.an)))
-			} else if ro.an < 1<<12 {
-				ro.an *= 2
+		if ro.on {
+			if s.roPlusPend() && ro.prev&(1<<i) == 0 {
+				if ro.plus&(1<<i) != 0 {
+					ro.an = s.sat16(int(ro.an) + s.roPlusAdd(s.k(), int(i), int(ro.an)))
+				} else if ro.an < 1<<12 {
+					ro.an *= 2
+				}
 			}
+		} else if s.g.nc.n == ncPend && ro.prev&(1<<i) == 0 {
+			// the parked noncombat event's mixed competition: the picked
+			// addition, raise or doubling applies as it is picked (gorge
+			// handleDamageReplacementChoice, CR 616.1e)
+			s.ncPlusPickNC(int(i))
 		}
 		if ro.prev&(1<<i) != 0 {
 			if !ro.on {
@@ -985,15 +1005,32 @@ func (s *State) replOrderPick(a Action) bool {
 			return false
 		}
 		left := 0
+		pend := !ro.on && s.g.nc.n == ncPend
 		for j := 0; j < int(ro.n); j++ {
 			// gorge re-collects the rest after each pick: in combat a
-			// candidate removed at a pause no longer counts
-			if ro.used&(1<<j) == 0 && (!ro.on || s.replCandLive(s.k(), j)) {
+			// candidate removed at a pause no longer counts; in the pend ask
+			// a raise past its host's power no longer matches (ncPlusLive)
+			if ro.used&(1<<j) != 0 {
+				continue
+			}
+			if ro.on {
+				if s.replCandLive(s.k(), j) {
+					left++
+				}
+			} else if !pend || s.ncPlusLive(j) {
 				left++
 			}
 		}
 		if left < 2 && !ro.on {
 			s.replNCAutoShield()
+			if s.g.nc.n == ncPend {
+				// gorge re-collects the rest after the last pick: the last
+				// remaining candidate applies automatically (a raise past
+				// its host's power drops out), and the record's amount
+				// becomes the picked order's
+				s.ncPlusLeftovers()
+				s.g.nc.n = s.g.ro.an
+			}
 		}
 		return left >= 2
 	}
@@ -1153,7 +1190,10 @@ func (s *State) damageSeqNext(k *prep, n int) {
 // K:Prevent "all damage" line (Dawn Elemental) is one of those printed
 // matches: it is collected in the scan too, so it is a candidate here before
 // the shield. Protection prevents the damage before the replacements
-// (gorge emit).
+// (gorge emit). A pure plus-N competition is parked with its sum (the same
+// in every order); a mixed one — a plus-N addition or a raise beside a
+// doubling — with the amount unknown (ncPend), the picks applied as made
+// (repl_pluswalk.go).
 func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, n int, kw kop.KwMask) bool {
 	if s.statRdrStall(k, ctrl, srcSl, srcCard, code, false) {
 		return false // a static redirect beside another candidate is gorge's ask: stalled (repl_staticredirect.go)
@@ -1193,7 +1233,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	crt := sl != NoSlot && s.isCreature(k, sl)
 	c := 0
 	plusAdd := 0
-	var prev, shld, plus uint8
+	var prev, shld, plus, rs uint8
 	var cand [4]Obj
 	for p := uint8(0); p < s.nSeats(); p++ {
 		if s.out(p) {
@@ -1221,28 +1261,18 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 				prev |= 1 << c
 				c++
 			} else if rb&rbPlusDmg != 0 && p == ctrl {
-				// an addition (Fated Firepower, Hawkeye): gorge collects it
-				// beside every other match, so two or more are asked as its
-				// CR 616.1 order (replPlus); beside a prevention every order
-				// gives 0, beside a doubling replDamage stalls loudly
-				add, raise, ok := s.replPlusCand(k, b, srcSl, srcCard, ctrl, rcp, sl, false, n)
-				if ok {
-					if raise != 0 {
-						// A raise (Ojer Axonil) competing with the additions
-						// does not commute with them, so this sum-only park
-						// would drop it. Leave the event to damageTo's
-						// replDamage/replPlus, which caps StallReplPlus loudly.
-						return false
-					}
-					if c == len(cand) {
-						s.capFull(StallReplCands) // loud: never truncate the candidates
-						return false
-					}
-					cand[c] = s.perms[b].obj
-					plus |= 1 << c
-					plusAdd += add
-					c++
+				// an addition (Fated Firepower, Hawkeye) or a raise (Ojer
+				// Axonil): gorge collects it beside every other match, so two
+				// or more are asked as its CR 616.1 order (replPlus); beside a
+				// prevention every order gives 0, beside a doubling the picks
+				// are applied as made (parkNCPend). A raise is collected as a
+				// candidate of its own kind: it does not commute with the
+				// additions or the doublings either.
+				nc, add := s.parkPlusCand(k, b, srcSl, srcCard, ctrl, rcp, sl, n, &cand, c, &plus, &rs)
+				if nc < 0 {
+					return false
 				}
+				c, plusAdd = nc, plusAdd+add
 			}
 		}
 	}
@@ -1299,6 +1329,9 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 		s.capFull(StallReplPlus)
 		return false
 	}
+	if s.parkNCPend(k, ctrl, srcSl, srcCard, code, rcp, sl, n, kw, plus, rs, prev, shld, pnx, cand, c) {
+		return true
+	}
 	// A shield candidate (or another prevention) stops the whole event, so
 	// skip replDamage: it would spend the counter while parking and stall on
 	// the very competition being asked. A pure-plus competition is a sum,
@@ -1328,6 +1361,27 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	return true
 }
 
+// parkPlusCand appends the battlefield plus-N candidate at b (an addition or
+// a raise, replPlusCand) to parkNC's list: the new count and the candidate's
+// live addition, or -1 after a loud stall (the candidates overflow).
+func (s *State) parkPlusCand(k *prep, b Slot, srcSl Slot, srcCard CardID, ctrl, rcp uint8, sl Slot, n int, cand *[4]Obj, c int, plus, rs *uint8) (int, int) {
+	add, raise, ok := s.replPlusCand(k, b, srcSl, srcCard, ctrl, rcp, sl, false, n)
+	if !ok {
+		return c, 0
+	}
+	if c == len(cand) {
+		s.capFull(StallReplCands) // loud: never truncate the candidates
+		return -1, 0
+	}
+	cand[c] = s.perms[b].obj
+	if raise != 0 {
+		*rs |= 1 << c
+	} else {
+		*plus |= 1 << c
+	}
+	return c + 1, add
+}
+
 // parkPrevAny appends the recipient's own printed K:Prevent "all damage" line
 // to parkNC's candidates when it has one (replDamage's prevAnyTo arm): the new
 // count, or -1 after a loud stall (the candidates overflow).
@@ -1346,7 +1400,8 @@ func (s *State) parkPrevAny(k *prep, cand *[4]Obj, c int, sl Slot, prev *uint8) 
 
 // dealNC deals the parked noncombat damage after the ask is answered: the
 // damage (loyalty for a planeswalker), deathtouch, a player's life loss, the
-// source's lifelink gain and its damage triggers.
+// source's lifelink gain, the red noncombat damage tally (the parked event
+// never reached replDamage, the funnel that takes it) and its damage triggers.
 func (s *State) dealNC(k *prep) {
 	nc := s.g.nc
 	s.g.nc = ncDmg{}
@@ -1375,6 +1430,17 @@ func (s *State) dealNC(k *prep) {
 	}
 	if nc.ll {
 		s.gainLife(k, nc.ctrl, n)
+	}
+	if k.anyRedNC {
+		// the tally reads the source as the hit lands (value_damagetally.go)
+		var tsl Slot = NoSlot
+		tc := CardID(0)
+		if ob := &s.objs[nc.src]; nc.spell || ob.zone != kop.ZoneBattlefield {
+			tc = ob.card
+		} else {
+			tsl = ob.slot
+		}
+		s.tallyRedNC(k, nc.ctrl, tsl, tc, n)
 	}
 	if k.gen.anyPermMark {
 		if ob := &s.objs[nc.src]; !nc.spell && ob.zone == kop.ZoneBattlefield {
