@@ -245,6 +245,7 @@ var auraEntryCensusEffects = map[string]string{
 	"zone_change.go:effChangeZone":              "marks: object-target loop marks before its inlined move",
 	"zone_change.go:markChangeZoneAttach":       "attach: the ChangeZone marking helper itself (resolves the named set before the move)",
 	"zone_change.go:settleChangeZoneMoveAs":     "marks: the shared ChangeZone settle (no attach of its own; callers attach)",
+	"zone_change.go:settleInlinedObjectEntry":   "attach: the inlined object mover's AttachedTo$/Tapped$ entry tail; effChangeZone marks before the move",
 	"zone_changeall.go:effChangeZoneAll":        "gate: ChangeZoneAll has no AttachedTo$; every entry takes the CR 303.4f choice",
 	"zone_hidden.go:effHiddenPick":              "marked-by zone_change.go:settleChangeZoneMoveAs",
 	"zone_manifest.go:effCloak":                 "noentry: face-down entry (CR 708.5: not an Aura)",

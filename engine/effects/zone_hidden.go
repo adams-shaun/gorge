@@ -145,6 +145,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 			if o == nil || !zoneIn(originZones, o.Zone) {
 				continue
 			}
+			entryTapped := beginEntryTappedBatch(h, to, cz.Tapped)
 			settleChangeZoneMoveAs(h, c, sa, cz, id, o.Zone, to, withKind, withAmt, o.Owner, true, &rider)
 			// AttachedTo$ on a hidden public-origin pick (Cass, Hand of
 			// Vengeance's returned `AttachedTo$ Targeted` Aura; Bruna,
@@ -163,9 +164,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 				eventRemember(h, c, id)
 			}
 			eventForgetChanged(h, c, sa, id)
-			if to == state.ZBattlefield && cz.Tapped {
-				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: o.Owner, Text: "entered tapped"})
-			}
+			closeEntryTappedBatch(h, entryTapped, to, cz.Tapped, id, o.Owner)
 		}
 		// LibraryPosition$ on a library-bound pick (Lluwen, Imperfect
 		// Naturalist's "on top of your library"): the object-target path's
