@@ -56,7 +56,8 @@ REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|^TestStd[
 # failed only in the Mergify batch, three times). About 66 tests in engine/rules and engine/effects, ~5 s.
 CENSUS = ("Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|"
           "PublicBoundary|Acceptance|EnumConst|^TestHeads$|^TestSetHeads$|"
-          "Pinned$|AreRegistered|ParamsAreRead|FilesWellFormed|KnownKeys|OnlyGrows")
+          "Pinned$|AreRegistered|ParamsAreRead|FilesWellFormed|KnownKeys|OnlyGrows|"
+          "NoNewFixedStateFields|StateLayoutPinned|HashPins")  # #627 11-17: dirac State layout guards failed lint
 # Sub-second guards of the committed tables (repro compact encoding, repro glob table, kop ordinals) that
 # fail the landing gate and the daemon precheck when a change breaks them. They run for every diff, as
 # named tests, whatever the package's weight: forcing ./dirac/kop whole would be far slower.
