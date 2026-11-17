@@ -41,4 +41,19 @@ for pkg in $(grep '_test\.go$' <<<"$changed" | xargs -r -n1 dirname | sort -u); 
   [ -n "$rx" ] || continue
   "${cap[@]}" go test -timeout 5m -run "^($rx)\$" "./$pkg" >"$log" 2>&1 || { cat "$log"; fail "tests in $pkg: $(grep -o -E -- '--- FAIL: [A-Za-z0-9_/]+' "$log" | head -2 | sed 's/--- FAIL: //' | paste -sd' ')"; }
 done
+# The same new dirac tests as a fresh clone runs them (lint's fresh-clone-check: no corpus, no tables): each must skip,
+# never fail. #747 (11-17) added a lockstep repro that failed "no card corpus" there; with .cards linked it passed.
+fresh=$(grep -E '^dirac/.*_test\.go$' <<<"$changed" | xargs -r -n1 dirname | sort -u)
+if [ -n "$fresh" ]; then
+  scratch=$(mktemp -d -p "${PRECHECK_FRESH_DIR:-$HOME/.cache}" pr-precheck-fresh.XXXXXX)
+  git archive HEAD | tar -x -C "$scratch"
+  for pkg in $fresh; do
+    rx=$(grep "^$pkg/[^/]*_test\.go$" <<<"$changed" | while read -r f; do [ -f "$f" ] && sed -n 's/^func \(Test[A-Za-z0-9_]*\)(t \*testing\.T).*/\1/p' "$f"; done | sort -u | paste -sd'|')
+    [ -n "$rx" ] || continue
+    (cd "$scratch" && unset GORGE_CARDS GORGE_CARDS_DIR DIRAC_TABLES GORGE_POOLS KGEN_DECKS &&
+      GOWORK=off GOFLAGS=-trimpath "${cap[@]}" go test -timeout 5m -run "^($rx)\$" "./$pkg") >"$log" 2>&1 ||
+      { cat "$log"; rm -rf "$scratch"; fail "fresh clone, tests in $pkg (a corpus test must skip without .cards): $(grep -o -E -- '--- FAIL: [A-Za-z0-9_/]+' "$log" | head -2 | sed 's/--- FAIL: //' | paste -sd' ')"; }
+  done
+  rm -rf "$scratch"
+fi
 echo "pr-precheck: ok"
