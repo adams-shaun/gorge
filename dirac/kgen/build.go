@@ -277,6 +277,7 @@ func manaCostOf(m manaCost) (kop.ManaCost, error) {
 		out.Pips[i] = uint8(m.Pips[i])
 	}
 	out.Pips[kop.C] = uint8(m.C)
+	out.Snow = uint8(m.Snow)
 	if m.X {
 		out.X = 1
 	}
