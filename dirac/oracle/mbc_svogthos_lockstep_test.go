@@ -1,41 +1,26 @@
 package oracle
 
-import (
-	"os"
-	"testing"
-
-	"github.com/adams-shaun/gorge/dirac/cardset"
-)
+import "testing"
 
 const svogthosRepro = "svogthos_green_only_from_candleguide_filter_search_unmodelled"
 
 // CR 602.2b, 605.3a: Svogthos, the Restless Tomb's {3}{B}{G} animate is payable
 // when the only green source is Crossroads Candleguide's "{2}: Add one mana of
-// any color", and the kernel offers it. gorge's potential-play prefix search
-// (potentialPrefixScript, 160 nodes) tries the colour ask's B answer before
-// its G one, both being announced pips, and runs out of budget before it
-// reaches G, so gorge offers no activation (census_incomplete, measured at
-// found=false limited=true on a Candleguide, three Islands, four Swamps and
-// the land). Mirroring that search's budget for a two-mana repeatable fee is
-// over the bounded-code line, so the card is refused by name and the recorded
-// game (tail-71 pair 100, seed 7; first filed against tail-70 pair 4 before a
-// refusal moved the pool's buckets) still shows the divergence with it
-// implicated.
-func TestMBCSvogthosTheRestlessTombReprosLockstep(t *testing.T) {
-	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
-	if err != nil {
-		t.Fatal(err)
+// any color". gorge's potential-play prefix search (potentialPrefixScript, 160
+// nodes) tries the colour ask's B answer before its G one, both being announced
+// pips, and leaves the activation census_incomplete (found=false limited=true)
+// on a Candleguide, three Islands, four Swamps and the land, so gorge offers
+// none. The kernel's filter search now bounds a path by the same 160-node
+// budget instead of sixteen steps, so on the pinned game it spends the budget
+// the way gorge does and also offers none: the recorded game replays clean.
+// The card is therefore no longer refused (dirac/support/unrefused.tsv); this
+// test pins the unrefusal's proof, the game replaying without a divergence.
+func TestMBCSvogthosReproReplaysClean(t *testing.T) {
+	res := replayRawRepro(t, svogthosRepro)
+	if res.Div != nil {
+		t.Fatalf("%s's recorded game diverges at %d: %s", svogthosRepro, res.Div.At, res.Div)
 	}
-	for i := range entries {
-		e := &entries[i]
-		if e.Card != "Svogthos, the Restless Tomb" {
-			continue
-		}
-		if e.Repro.Pool != "custom" || e.Repro.File != svogthosRepro {
-			t.Fatalf("Svogthos's entry replays %s/%s, want custom/%s", e.Repro.Pool, e.Repro.File, svogthosRepro)
-		}
-		checkRefusedRepro(t, e)
-		return
+	if res.StallUnmodelled {
+		t.Fatalf("%s's recorded game ends at an unmodelled stall: %q", svogthosRepro, res.Stall)
 	}
-	t.Fatal("Svogthos, the Restless Tomb has no dirac/support/refused entry: its animate over a Candleguide-only green is offered by the kernel alone")
 }
