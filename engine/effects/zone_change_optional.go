@@ -24,7 +24,7 @@ func changeZoneOptionalConfirm(h Host, c *Ctx, cz *ChangeZoneParams, targets []s
 	kept := make([]state.Target, 0, len(targets))
 	for _, t := range targets {
 		o := h.Game().Obj(t.Obj)
-		if t.IsPlayer || o == nil || changeZoneMoveSkip(h, cz, o, to, originAll) || sourceReturnedSincePush(h, c, o) {
+		if t.IsPlayer || o == nil || changeZoneMoveSkipFor(h, c, cz, o, to, originAll) || sourceReturnedSincePush(h, c, o) {
 			kept = append(kept, t)
 			continue
 		}

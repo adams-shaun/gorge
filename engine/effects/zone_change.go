@@ -504,6 +504,33 @@ func changeZoneMoveSkip(h Host, cz *ChangeZoneParams, o *state.Object, to state.
 	return to == state.ZExile && h.ExileBlocked(o.ID, false)
 }
 
+// changeZoneMoveSkipFor is changeZoneMoveSkip for a mover that has its
+// resolving Ctx: a Defined$ TriggeredCard object that a look-back trigger
+// (CR 603.10a) found in exile satisfies an Origin$ Graveyard gate. The script's
+// Origin$ is its assumption of where the card went (Forge), not a rules
+// condition: a replacement (Rest in Peace) sent it to exile instead, and the
+// trigger finds it in the first public zone it moved to (CR 603.6c, 400.7e).
+// The object is the one the trigger fired on (stamped at fire time and not
+// moved since, CR 400.7), so exile is that first zone.
+func changeZoneMoveSkipFor(h Host, c *Ctx, cz *ChangeZoneParams, o *state.Object, to state.Zone, originAll bool) bool {
+	return changeZoneMoveSkip(h, cz, o, to, originAll || originSatisfiedInExile(c, cz, o))
+}
+
+// originSatisfiedInExile reports the CR 603.6c relaxation changeZoneMoveSkipFor
+// applies: Origin$ names the graveyard, the object is a Defined$ TriggeredCard
+// referent that has not moved since the trigger fired, and it sits in exile.
+func originSatisfiedInExile(c *Ctx, cz *ChangeZoneParams, o *state.Object) bool {
+	if !cz.DefinedTriggered || !cz.OriginMask.Has(state.ZGraveyard) || o.Zone != state.ZExile {
+		return false
+	}
+	for _, s := range c.TriggerRememberedStamps {
+		if s.Obj == o.ID {
+			return s.ZoneGen == o.ZoneGen && !slices.Contains(c.TriggerRememberedMoved, o.ID)
+		}
+	}
+	return false
+}
+
 // changeZoneDepartureBatch lists the mover loop's battlefield departures for
 // ONE simultaneous departure batch (CR 614.6/616.1 with 603.10): the members
 // leave as one event, so a departing replacement source among them (Kalitas,
@@ -1022,7 +1049,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 		// Origin$ precondition and CantExile guard, shared with the
 		// departure-batch pre-pass above: see changeZoneMoveSkip.
-		if changeZoneMoveSkip(h, cz, o, to, originAll) || changeZoneSourceGone(h, c, cz, o) {
+		if changeZoneMoveSkipFor(h, c, cz, o, to, originAll) || changeZoneSourceGone(h, c, cz, o) {
 			continue
 		}
 		// Inlined rather than routed through settleChangeZoneMove: this loop
