@@ -311,6 +311,10 @@ func TestReproGlobMatchesTable(t *testing.T) {
 
 // stdReproOtherSurface replays a recording on a surface other than the one it
 // records, for a game the old tables ran on a surface its own test does not.
+// The other surface asks different decisions, so the recorded script is
+// served only where the two surfaces agree: this replay runs without
+// replayReproValue's whole-script guard, whose drift it would name on every
+// decision the surfaces disagree about. It still fails on a divergence.
 func stdReproOtherSurface(t *testing.T, name, recorded, other string) {
 	t.Helper()
 	r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))
@@ -321,7 +325,11 @@ func stdReproOtherSurface(t *testing.T, name, recorded, other string) {
 		t.Fatalf("recorded on %q, want %q: this test is the other surface", r.Surface, recorded)
 	}
 	r.Surface = other
-	stallCheck(t, r, replayReproValue(t, synthReg(t), globSet(t, r.Pool, r), r), false)
+	res := replayDecodedScript(t, synthReg(t), globSet(t, r.Pool, r), r, &ScriptPolicy{Actions: r.Actions})
+	if res.Div != nil {
+		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	stallCheck(t, r, res, false)
 }
 
 // The std-tdm table ran this game on both surfaces; the recording is on full.
