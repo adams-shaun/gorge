@@ -52,3 +52,21 @@ func TestMondrakPotentialWitnessFundsPipsAtLowLife(t *testing.T) {
 		t.Fatalf("life 1 priced only the mana half, a witness that cannot make the play: %+v", out.Plan)
 	}
 }
+
+// CR 119.4: a player below 0 life (Platinum Angel keeps them in the game)
+// cannot pay even one pip with life, so the potential-play witness clamps to
+// k = 0 exactly as the offer walk does (autoPayPhyrexian). The life<0 early
+// return once left the mana-half-only witness of the unclamped cost standing,
+// a witness that strands the pips on life the player does not have.
+func TestMondrakPotentialWitnessClampsNegativeLife(t *testing.T) {
+	t.Parallel()
+	e, mon := mondrakBoard(t, 1)
+	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: -2})
+	if got := e.G.Players[0].Life; got != -1 {
+		t.Fatalf("precondition: life = %d, want -1", got)
+	}
+	out, _ := e.potentialPlayVerdictShared(0, decision.Option{Kind: "ability", Obj: mon, Ability: 0}, nil)
+	if out.Plan != nil {
+		t.Fatalf("life -1 priced only the mana half, a witness that leaves the pips to life below zero: %+v", out.Plan)
+	}
+}

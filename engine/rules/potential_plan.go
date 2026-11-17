@@ -1546,14 +1546,24 @@ type abilityPlanner interface {
 func potentialAbilityPlan(pl abilityPlanner, p state.PlayerID, o *state.Object, ability int, life int32) PaymentPlanOutcome {
 	out := pl.planAbilityPayment(p, o.ID, ability)
 	pa, ok := o.PileAbilityAt(ability)
-	if !ok || pa.SA == nil || life < 0 {
+	if !ok || pa.SA == nil {
 		return out
 	}
 	pips := len(pl.abilityCompiledCost(pa.SA).Cost.Phyrexian)
-	if pips == 0 || int(life)/decision.PhyrexianLife >= pips {
+	if pips == 0 {
 		return out
 	}
-	for k := int(life) / decision.PhyrexianLife; k >= 0; k-- {
+	// CR 119.4: a player below 0 life (Platinum Angel keeps them in the
+	// game) pays no pip with life; autoPayPhyrexian clamps to k = 0 the
+	// same way.
+	afford := int(life) / decision.PhyrexianLife
+	if afford < 0 {
+		afford = 0
+	}
+	if afford >= pips {
+		return out
+	}
+	for k := afford; k >= 0; k-- {
 		out = pl.planAbilityPaymentLifePips(p, o.ID, ability, k)
 		if out.Plan != nil && out.Reason == "" {
 			break
