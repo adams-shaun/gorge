@@ -21,4 +21,12 @@ func init() { extOpNames[ExtKwMark] = "KwMark" }
 const (
 	KwMarkIntimidate = 1 << iota // intimidate (CR 702.13a)
 	KwMarkInfect                 // infect (CR 702.90)
+	// KwMarkSwitchPT is not a keyword: Forge's hidden "CARDNAME's power and
+	// toughness are switched" (CR 613.4d, gorge's layer-7 SubSwitch effect)
+	// rides the same until-end-of-turn mark. Each one flips the subject's
+	// switch bit (perm.spare, no arena mask), so an even count cancels as
+	// gorge's switch parity does; the P/T fold exchanges the two values
+	// last (after counters), and a loss of abilities leaves it in force (an
+	// effect, not an ability).
+	KwMarkSwitchPT
 )

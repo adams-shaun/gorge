@@ -284,9 +284,9 @@ type perm struct {
 	// is general slot i (a seen slot keeps its kind at count 0), then
 	// cseenP1 and cseenDT (the deathtouch mark, FeatCtrDeathtouched).
 	cseen uint8
-	// spare is the byte the 16-bit counter kinds (ck) left ahead of card:
-	// named and never written, so perm has no padding (ObjHash hashes every
-	// byte of it).
+	// spare is the byte the 16-bit counter kinds (ck) left ahead of card,
+	// named so perm has no padding (ObjHash hashes every byte of it). Its
+	// one bit in use is spareSwitchPT (kw_kwmark.go).
 	spare uint8
 	card  CardID       // the card's id (the copy-of id lives in ovr)
 	gty   kop.TypeMask // types derived by a generated table's overrides (ovGenTy)
@@ -295,6 +295,10 @@ type perm struct {
 // ctrSlots is the number of general (non-+1/+1) counter kinds a permanent
 // stores itself; further kinds go to the overflow table (ctr_sparse.go).
 const ctrSlots = 3
+
+// spareSwitchPT is perm.spare's until-end-of-turn P/T switch parity
+// (ExtKwMark KwMarkSwitchPT, CR 613.4d).
+const spareSwitchPT uint8 = 1
 
 // Slots hold the lowest kinds, so a kind with fewer than ctrSlots general
 // kinds below it is never in the overflow table: ctrLow reads it.

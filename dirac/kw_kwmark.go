@@ -86,7 +86,24 @@ func (s *State) kwMark(k *prep, sl Slot, c int16) {
 	if c&kop.KwMarkInfect != 0 {
 		s.kwMarkSet(k, sl, mechInfect, mechInfectPost)
 	}
+	if c&kop.KwMarkSwitchPT != 0 {
+		// CR 613.4d: each switch exchanges what the earlier ones left, so
+		// only the parity matters (gorge derive.go's switches%2); the
+		// cleanup step clears the bit with the turn's pumps (turn.go), and
+		// a new permanent in the slot starts at 0 (zones.go)
+		s.perms[sl].spare ^= spareSwitchPT
+		s.touchSl(sl)
+	}
 }
+
+// ptSwitched: the permanent at sl has an odd number of until-end-of-turn P/T
+// switches in force (KwMarkSwitchPT).
+func (s *State) ptSwitched(_ *prep, sl Slot) bool { return s.perms[sl].spare&spareSwitchPT != 0 }
+
+// sbaPTMoved: something besides the inline fields can have lowered sl's
+// toughness below its printed value, an effect record or a P/T switch (the
+// state-based check's no-damage shortcut, turn.go sba).
+func (s *State) sbaPTMoved(k *prep, sl Slot) bool { return s.fxM.has(sl) || s.ptSwitched(k, sl) }
 
 func (s *State) kwMarkSet(k *prep, sl Slot, m, post mech) {
 	if !s.mSl(k, m, sl) {
