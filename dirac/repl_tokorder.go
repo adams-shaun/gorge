@@ -452,6 +452,11 @@ func (s *State) execCreateToken(k *prep, in *kop.Instr) (ok, done bool) {
 	if !t.on && n > 0 {
 		// an adder's token enters with the op's own (it is alone: replTokensOp)
 		cs, na, _ = s.tokAddCards(k, p, CardID(in0.C))
+		if na == 0 && s.g.tokPT.on && n > 0 {
+			// a TokenPower$ mint: every token of the replaced count takes the
+			// set, not just the op's amount (act_tokenpt.go)
+			s.g.tokPT.left = uint8(min(n, 255) - 1)
+		}
 	}
 	if t.on && t.copyTaken() {
 		// the accepted copy-instead election makes every token the walk's

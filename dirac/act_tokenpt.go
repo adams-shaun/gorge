@@ -12,9 +12,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // program), and sets the token the mint left in res.lastTok inside the same
 // resolution, before any SBA check (CR 704.3), like Endure's Spirit.
 
-// StallTokenPT: a TokenPower$ mint whose count is not the op's amount (a
-// CreateToken replacement multiplied or cut it; no pool card has a token
-// doubler).
+// StallTokenPT: a TokenPower$ mint some entry of which missed the set (an
+// adder or a contested creation order left a token uncounted).
 const StallTokenPT = 111
 
 // DebugTokenXPTSkip is the mutation switch of TestTokenxptLockstep: the set
@@ -51,8 +50,8 @@ func (s *State) tokenPT(k *prep, in *kop.Instr) {
 	switch {
 	case n == 0:
 		return
-	case n != want && (n > 1 || want > 1):
-		s.capFull(StallTokenPT)
+	case n != want && (n > 1 || want > 1) && !applied:
+		s.capFull(StallTokenPT) // a count the replacement changed is fine once every entry took the set
 		return
 	case n > 1:
 		if !applied {
