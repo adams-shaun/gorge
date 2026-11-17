@@ -74,8 +74,21 @@ class RenderTest(unittest.TestCase):
         self.out = docs_sets.render(A_ROWS, META, B_ROWS, DD)
 
     def test_sections(self):
-        for name in ("headline", "glance", "sets", "rollup", "charts"):
+        for name in ("headline", "glance", "sets", "rollup", "charts", "edh"):
             section(self.out, name)
+
+    def test_edh_section(self):
+        edh = {"corpus": "0123456789abcdef", "dirac": True, "lists": [
+            {"name": "Archidekt top 100", "decks": 100, "decks_supported": 40, "cards": 2000,
+             "cards_supported": 1990, "dirac_cards_supported": 1000}],
+            "blockers": [{"card": "Digital | Card", "decks": 9, "sole_blocker_decks": 1, "paper": False},
+                         {"card": "Real Card", "decks": 7, "sole_blocker_decks": 2, "paper": True}]}
+        body = section(docs_sets.render(A_ROWS, META, B_ROWS, DD, edh), "edh")
+        self.assertIn("| Archidekt top 100 | 100 | 40 (40.0%) | 1,990 of 2,000 (99.5%) | 1,000 of 2,000 (50.0%) |", body)
+        self.assertIn("| 1 | Real Card | 7 | 2 |", body)
+        self.assertNotIn("Digital", body)
+        self.assertIn("`012345678`", body)
+        self.assertIn("not available", section(self.out, "edh"))
 
     def test_join_by_set_code(self):
         sets = section(self.out, "sets")
@@ -199,9 +212,14 @@ class MainTest(unittest.TestCase):
             with open(meta, "w") as f:
                 json.dump(META, f)
             out = os.path.join(d, "out.md")
-            self.assertEqual(docs_sets.main([a, "--meta", meta, "--dirac-support", dd, "-o", out]), 0)
+            ej = os.path.join(d, "edh.json")
+            with open(ej, "w") as f:
+                json.dump({"lists": [{"name": "L", "decks": 2, "decks_supported": 1, "cards": 4, "cards_supported": 4}]}, f)
+            self.assertEqual(docs_sets.main([a, "--meta", meta, "--dirac-support", dd, "--edh", ej, "-o", out]), 0)
             with open(out) as f:
-                self.assertIn("500 / 517", f.read())
+                got = f.read()
+            self.assertIn("500 / 517", got)
+            self.assertIn("| L | 2 | 1 (50.0%) | 4 of 4 (100.0%) |", got)
 
     def test_bad_support_page(self):
         for bad in (PAGE.replace("| 500 |", "| 600 |"),
