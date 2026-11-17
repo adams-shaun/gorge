@@ -5,6 +5,7 @@
 #   dirac/docs/support.md                      TestSupportDocIsCurrent passes a page stale by rises only
 #   dirac/kgen/testdata/acceptance.tsv,        kgen's acceptance pins pass a rise outside DIRAC_PIN_STRICT=1
 #   dirac/kgen/testdata/build_acceptance.tsv
+#   dirac/kgen/testdata/remspan.tsv            TestRememberedSpanCensus passes a shrink (refused cards fewer) outside strict
 # Every dirac ticket raised the same few lines of these files, so each batch merge put the open ones in conflict with
 # main (11-17: 10 PRs dequeued per batch). A rise now reaches main through one regen PR (scripts/regen-main.sh). A fall
 # fails the tolerant check on the base copy, so the ticket keeps its own copy and its reason. The nightly
@@ -12,7 +13,7 @@
 set -uo pipefail
 base=${1:?usage: pr-derived.sh BASE}
 cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
-pins='^(TestCorpusAcceptance|TestSetAcceptance|TestCorpusBuildAcceptance|TestPinTablesParse)$'
+pins='^(TestCorpusAcceptance|TestSetAcceptance|TestCorpusBuildAcceptance|TestPinTablesParse|TestRememberedSpanCensus)$'
 changed() { git diff --name-only "$base" HEAD -- "$@"; }
 
 # leave REGEX FILE...: take BASE's copy of the files; keep it when the tolerant tests pass on it, else restore HEAD's.
@@ -27,7 +28,7 @@ leave() {
   fi
 }
 
-pinfiles=(dirac/kgen/testdata/acceptance.tsv dirac/kgen/testdata/build_acceptance.tsv)
+pinfiles=(dirac/kgen/testdata/acceptance.tsv dirac/kgen/testdata/build_acceptance.tsv dirac/kgen/testdata/remspan.tsv)
 [ -n "$(changed dirac/docs/support.md "${pinfiles[@]}")" ] || exit 0
 source scripts/pr-cards.sh
 # The pins first: both tables in one step, as KGEN_REPIN writes them together.
