@@ -1,5 +1,6 @@
 A-Sewer Crocodile
 A-Steadfast Unicorn
+A-Young Blue Dragon
 Abzan Beastmaster
 Accorder's Shield
 Afterlife Insurance
@@ -20,6 +21,7 @@ Baloth Null
 Baneful Omen
 Bard, Heir of Girion
 Barrin's Codex
+Battle at the Helvault
 Battlefield Raptor
 Baxter, Fly in the Ointment
 Benalish Emissary
@@ -52,6 +54,7 @@ Change of Fortune
 Claws of Gix
 Clearwater Goblet
 Cliffhaven Kitesail
+Colossapede
 Compulsory Rest
 Conifer Strider
 Contagious Vorrac
@@ -64,6 +67,7 @@ Criminal Enterprise
 Crypt Ripper
 Dakmor Plague
 Dark Offering
+Dark Supplicant
 Daru Healer
 Daughter of the Deep
 Dauntless River Marshal
@@ -74,6 +78,7 @@ Depart the Realm
 Desert Twister
 Diabolic Vision
 Diabolical Salvation
+Disembowel
 Dispeller's Capsule
 Divine Favor
 Drannith Magistrate
@@ -83,8 +88,12 @@ Earthshaker
 Echoing Return
 Ecstatic Awakener
 Ekthi, Contaminator Priest
+Elephant Grass
 Elspeth, Knight-Errant
 Elvish Doomsayer
+Elvish Farmer
+Emerald Charm
+Empyrial Plate
 Entropic Specter
 Envoy of the Ancestors
 Epistolary Librarian
@@ -102,6 +111,7 @@ Falcon and Redwing
 Falkenrath Torturer
 Favor of the Woods
 Feast of Flesh
+Fetid Gargantua
 Filigree Crawler
 Filter Out
 Fire Nation Soldier
@@ -110,6 +120,7 @@ Foriysian Brigade
 Forsake the Worldly
 Fretwork Colony
 Frightcrawler
+Fyndhorn Brownie
 Galvanic Blast
 Gateway Plaza
 Geistflame
@@ -126,6 +137,7 @@ Gorgon's Head
 Grab the Reins
 Granulate
 Grasp of Phantoms
+Greed
 Guildless Commons
 Gust-Skimmer
 Gut, True Soul Zealot
@@ -145,7 +157,9 @@ Holdout Settlement
 Honey Mammoth
 Honored Hierarch
 Hooded Assassin
+Hot Soup
 How to Keep an Izzet Mage Busy
+Human Frailty
 Hunter's Insight
 Hunting Cheetah
 Hypnotic Cloud
@@ -154,6 +168,7 @@ Illicit Shipment
 Illusory Demon
 Impending Disaster
 Infectious Host
+Insatiable Souleater
 Invasion of Belenon
 Invisible Force Field
 Iroas's Champion
@@ -169,6 +184,7 @@ Jwar Isle Refuge
 Kami of the Waning Moon
 Killer Bees
 Kithkin Zealot
+Knight of Dusk's Shadow
 Knightly Valor
 Krovikan Scoundrel
 Kytheon's Tactics
@@ -188,6 +204,7 @@ Memory's Journey
 Mephidross Vampire
 Militia's Pride
 Mindsplice Apparatus
+Mindwrack Demon
 Mire Triton
 Mishra, Excavation Prodigy
 Molten Frame
@@ -198,8 +215,10 @@ Mox Sapphire
 Myr Matrix
 Myr Scrapling
 Nantuko Elder
+Naru Meha, Master Wizard
 Natural Spring
 Nature's Resurgence
+Necropouncer
 Night Market Lookout
 Nightshade Harvester
 Nimana Skitter-Sneak
@@ -208,6 +227,7 @@ Nyxborn Seaguard
 Ob Nixilis, the Ascended
 Obscura Storefront
 Obzedat's Aid
+Oculus
 Ogre Shaman
 On the Trail
 Orah, Skyclave Hierophant
@@ -226,6 +246,7 @@ Phyrexian Ironworks
 Phyrexian Revoker
 Pia and Kiran Nalaar
 Plains
+Planar Bridge
 Political Triumph
 Prodigious Growth
 Putrefy
@@ -241,22 +262,28 @@ Reconstruction
 Regent's Authority
 Reiver Demon
 Relic Sloth
+Replication Technique
 Research Thief
 Reviving Dose
+Ring of Kalonia
 Rites of Initiation
 Ritual Guardian
 Rotting Fensnake
 Rough
 Rubble Reading
 Rushwood Herbalist
+Saiba Cryptomancer
 Salvage Scout
+Sarulf's Packmate
 Scale the Heights
+Seal of Removal
 Searchlight Geist
 Seize the Day
 Serra Avenger
 Serum-Core Chimera
 Shard Convergence
 Shattering Blow
+Shepherd of the Lost
 Shivan Emissary
 Shu Elite Companions
 Sigarda's Aid
@@ -282,6 +309,7 @@ Tales of Master Seshiro
 Taranika, Akroan Veteran
 Tel-Jilad Exile
 Tempest Drake
+Temple Bell
 Theft of Dreams
 Thriving Ibex
 Thunderfoot Baloth
@@ -295,18 +323,23 @@ Tortoise Formation
 Training Grounds
 Traitorous Blood
 Treasure Hunt
+Triangle of War
+Triskelion
 Underworld Connections
 Unhinge
+Unholy Indenture
 Unwind
 Urza's Filter
 Vampire Hexmage
 Vampire's Bite
 Venomcrawler
 Vex
+Vibranium Mining Mech
 Vigilant Sentry
 Vogar, Necropolis Tyrant
 Void
 Volcanic Torrent
+Voracious Typhon
 Vraska's Contempt
 Wall of Blossoms
 War-Wing Siren

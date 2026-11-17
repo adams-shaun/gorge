@@ -5,6 +5,7 @@ Academy Wall
 Akki Ronin
 Ambuscade Shaman
 Amok
+And They Shall Know No Fear
 Angel of Fury
 Archetype of Courage
 Argivian Avenger
@@ -26,8 +27,11 @@ Boon Reflection
 Boros Swiftblade
 Bumi's Feast Lecture
 Celestial Regulator
+Centaur Healer
 Chains of Custody
+Chakra Meditation
 Champion of the Flame
+Chant of the Skifsang
 Cloudkill
 Commissar Severina Raine
 Composer of Spring
@@ -36,6 +40,7 @@ Corpse Blockade
 Corpse Knight
 Crop Rotation
 Cruel Revival
+Cryptic Annelid
 Cunning Wish
 Dagger Caster
 Dawn Elemental
@@ -62,7 +67,9 @@ Fiery Finish
 Fireblast
 Flametongue Kavu
 Flaring Flame-Kin
+Fledgling Mawcor
 Fledgling Osprey
+Fog Elemental
 Forced Fruition
 Forest
 Frilled Deathspitter
@@ -86,6 +93,7 @@ Grizzly Fate
 Gruul Keyrune
 Guise of Fire
 Haru-Onna
+Haunted Angel
 Haunting Hymn
 Hazoret the Fervent
 Headless Horseman
@@ -93,6 +101,7 @@ Heaven Sent
 Hero of Iroas
 Hexgold Halberd
 Hieroglyphic Illumination
+Honor Guard
 Hooded Kavu
 Hunger of the Howlpack
 Illuminated Wings
@@ -110,21 +119,26 @@ Jeskai Barricade
 Kalemne's Captain
 Karoo Meerkat
 Ken, Burning Brawler
+Kimoyo Beads
 Knight's Pledge
 Kor Outfitter
 Kuon, Ogre Ascendant
 Leonin Elder
 Leonin Sun Standard
+Lotus-Eye Mystics
 Manacles of Decay
 Manamorphose
 Manhole Cover
+Mantis Engine
 Marauding Maulhorn
 Marchesa's Infiltrator
 Mardu Banner
 Mark of Mutiny
 Mask of Immolation
 Master of Death
+Meloku the Clouded Mirror
 Mentor's Guidance
+Merfolk Secretkeeper
 Mind Flayer
 Mise
 Mist Dancer
@@ -132,6 +146,7 @@ Mithril Coat
 Mob Mentality
 Mountain
 Mukotai Ambusher
+Narrow Escape
 Nezumi Informant
 Nico Minoru, Runaway
 Noxious Field
@@ -145,13 +160,16 @@ Plated Pegasus
 Poisonbelly Ogre
 Primordial Ooze
 Prized Griffin
+Prophet of Distortion
 Psychic Overload
 Radiant, Archangel
 Rage-Scarred Berserker
 Raging Minotaur
 Raven's Run Dragoon
+Recruiter of the Guard
 Regathan Firecat
 Regrowth
+Revelsong Horn
 Rhox Veteran
 Rotting Fensnake
 Rowan Treefolk
@@ -204,8 +222,10 @@ Street Urchin
 Subjugator Angel
 Sudden Shock
 Sunastian Falconer
+Sunspring Expedition
 Swamp
 Swift Demise
+Taigam's Scheming
 Talons of Wildwood
 Temmet, Vizier of Naktamun
 Territorial Allosaurus
@@ -216,16 +236,21 @@ Thoughtflare
 Thraben Watcher
 Thrashing Wumpus
 Throes of Chaos
+Tidespout Tyrant
 Time Spiral
+Tireless Missionaries
 Tolarian Scholar
 Torch Courier
 Torsten Von Ursus
 Tragic Poet
+Tranquilize
+Twilight Drover
 Tymora's Invoker
 Undead Hand Ninja
 Undertaker
 Unhallowed Pact
 Unyaro Bee Sting
+Ursine Fylgja
 Urza's Cave
 Valeron Outlander
 Vedalken Plotter

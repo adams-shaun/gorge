@@ -24,6 +24,7 @@ Angel of the Dawn
 Angelic Field Marshal
 Ant-Man's Air Force
 Apocalypse Demon
+Apothecary Geist
 Arborea Pegasus
 Arcane Proxy
 Arch of Orazca
@@ -212,6 +213,7 @@ Ichor Drinker
 Illusory Demon
 Imperial Subduer
 Inkwell Leviathan
+Inner-Chamber Guard
 Invigorated Rampage
 Ironsoul Enforcer
 Island

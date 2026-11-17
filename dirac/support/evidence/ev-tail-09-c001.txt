@@ -3,8 +3,10 @@ A-Goggles of Night
 Abnormal Endurance
 Abyssal Hunter
 Agent of the Iron Throne
+Alchemist's Retrieval
 Ambush
 Ancient Excavation
+Ant-Man, Elusive Avenger
 Archon of Emeria
 Argothian Pixies
 Arisen Gorgon
@@ -21,6 +23,8 @@ Bob, Reluctant HYDRA Agent
 Bone Flute
 Boon of the Spirit Realm
 Borrowed Hostility
+Brokers Veteran
+Broodbirth Viper
 Bull Rush
 Canal Monitor
 Carrion
@@ -33,6 +37,7 @@ Clutch of Undeath
 Concentrated Fire
 Conduit of Ruin
 Contagion
+Corporeal Projection
 Corrupt Official
 Crash of Rhinos
 Creepy Puppeteer
@@ -56,11 +61,13 @@ Earsplitting Rats
 Electrostatic Bolt
 Electrostatic Field
 Enraged Killbot
+Erratic Visionary
 Evincar's Justice
 Explore
 Fallen Ferromancer
 Far
 Farmstead
+Fate Foretold
 Fathom Fleet Firebrand
 Fathom Mage
 Feral Lightning
@@ -72,6 +79,7 @@ Flowstone Blade
 Flowstone Overseer
 Flying Men
 Footfall Crater
+Forerunner of the Heralds
 Forest
 Forgotten Sentinel
 Foundry Screecher
@@ -80,6 +88,9 @@ Frenzied Raptor
 Frost Lynx
 Frost Walker
 Furnace Celebration
+Fyndhorn Pollen
+Genku, Future Shaper
+Geralf's Masterpiece
 Ghost Lantern
 Ghostly Visit
 Giant Cockroach
@@ -108,15 +119,18 @@ Ill-Tempered Loner
 Immortal Servitude
 Increasing Vengeance
 Indulgent Tormentor
+Inga Rune-Eyes
 Ironhoof Ox
 Island
 Ixalli's Diviner
 Jhovall Queen
 Jinxed Ring
+Jungle Wurm
 Kamahl, Heart of Krosa
 Kelsinko Ranger
 Ken, Burning Brawler
 Kingfisher
+Koilos Roc
 Lady Orca
 Landbind Ritual
 Lay Bare
@@ -152,6 +166,7 @@ Phantom Monster
 Phyrexian Crusader
 Phyrexian Rager
 Pit Keeper
+Pixie Queen
 Plains
 Pollywog Prodigy
 Primal Cocoon
@@ -161,18 +176,21 @@ Pulse of the Grid
 Pyric Salamander
 Pyrotechnics
 Quench
+Raff Capashen, Ship's Mage
 Rage Nimbus
 Raging Cougar
 Rakdos Firewheeler
 Rakshasa Gravecaller
 Ray of Distortion
 Reckless Assault
+Red Death, Shipwrecker
 Rend Flesh
 Repopulate
 Resculpt
 Restrain
 Revered Elder
 Rhox Pikemaster
+Ribbons of the Reikai
 Ridged Kusite
 Rishadan Cutpurse
 Rites of Initiation
@@ -185,6 +203,7 @@ Saurian Symbiote
 Savage Hunger
 Scampering Scorcher
 Scourglass
+Sea Monster
 Security Detail
 Seize the Storm
 Seizures
@@ -202,14 +221,20 @@ Snare Tactician
 Sonic Assault
 Soul Diviner
 Soul Salvage
+Species Gorger
+Spectral Adversary
 Squall
 Stark's Ingenuity
 Stoic Rebuttal
 Stone Drake
+Stonybrook Banneret
+Storm God's Oracle
+Stormscape Familiar
 Stronghold Rats
 Swamp
 Sylvan Advocate
 Synchronized Strike
+Tah-Crop Skirmisher
 Target Minotaur
 Taunting Sliver
 Temporal Spring
@@ -225,6 +250,7 @@ Unicycle
 Unnerve
 Untethered Express
 Vault Robber
+Vedalken Infuser
 Verdant Force
 Vertigo
 Vial of Dragonfire
@@ -237,5 +263,7 @@ Warmonger's Chariot
 Weary Prisoner
 Wild Mongrel
 Wing Splicer
+Wingshield Agent
 Without Weakness
+Workshop Elders
 Yarok's Fenlurker

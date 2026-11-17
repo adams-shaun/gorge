@@ -2,6 +2,7 @@ A-Dragonborn Looter
 A-Plate Armor
 Ajani, Wise Counselor
 Amulet of Unmaking
+Annex Sentry
 Aphemia, the Cacophony
 Ardent Soldier
 Arlinn's Wolf
@@ -14,6 +15,7 @@ Bill the Pony
 Blight Keeper
 Blistering Dieflyn
 Bloodline Necromancer
+Bloodscent
 Bloodthorn Taunter
 Bonded Construct
 Boon of Boseiju
@@ -40,6 +42,7 @@ Donald Blake, Guise of Thor
 Dragonlord Atarka
 Duelcraft Trainer
 Duggan, Private Detective
+Dungrove Elder
 Elderfang Ritualist
 Elite Inquisitor
 Elvish Archers
@@ -55,8 +58,10 @@ Firehoof Cavalry
 Fledgling Mawcor
 Forest
 Forgotten Cave
+Fruit of the First Tree
 Geology Enthusiast
 Gnoll Hunter
+Great Sable Stag
 Greataxe
 Gridlock
 Groffskithur
@@ -65,6 +70,7 @@ High Market
 Hildibrand Manderville
 History of Benalia
 Hive Stirrings
+Hunt the Weak
 Icewind Stalwart
 Infernal Medusa
 Instruments of War
@@ -80,6 +86,7 @@ King of the Pride
 Kitesail Scout
 Kjeldoran Outrider
 Knight of the Reliquary
+Kraul Stinger
 Leaping Lizard
 Living Armor
 Lofty Denial
@@ -103,6 +110,7 @@ Nightfire Giant
 No-Dachi
 Ojutai Interceptor
 Opal Caryatid
+Order of the Sacred Bell
 Origin of Captain America
 Outflank
 Persecute
@@ -116,6 +124,7 @@ Quag Vampires
 Razorgrass Ambush
 Reinforced Bulwark
 Ritual of Rejuvenation
+River Bear
 Run Afoul
 Rusted Relic
 Saberclaw Golem
@@ -132,6 +141,7 @@ Soldier On
 Somberwald Beastmaster
 Sorin, Solemn Visitor
 Soulbound Guardians
+Spike Rogue
 Spitting Drake
 Steadfast Sentry
 Stirring Address

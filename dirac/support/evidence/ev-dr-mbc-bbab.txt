@@ -73,6 +73,7 @@ Matoc, Lavamancer
 Militia Bugler
 Mirror Image
 Mountain
+Needle Drop
 Negate
 Oath of Druids
 Oblivion Strike

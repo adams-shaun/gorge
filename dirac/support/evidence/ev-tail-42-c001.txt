@@ -56,6 +56,7 @@ Claws of Valakut
 Cloak and Dagger
 Clone
 Cloudheath Drake
+Coldsteel Heart
 Cone of Flame
 Conqueror's Pledge
 Consuming Corruption
@@ -150,6 +151,7 @@ Ishai, Ojutai Dragonspeaker
 Island
 Izzet Signet
 Jousting Dummy
+Kamahl's Desire
 Kill-Zone Acrobat
 Kindly Customer
 King of the Pride
@@ -228,6 +230,7 @@ Sacred Armory
 Sage's Reverie
 Samite Archer
 Samut's Sprint
+Sandsteppe Scavenger
 Sandstorm
 Satyr Hoplite
 Scalding Devil
@@ -302,9 +305,11 @@ Unbreathing Horde
 Undead Warchief
 Unicycle
 Unraveling Mummy
+Ursine Champion
 Urza's Guilt
 Vedalken Orrery
 Verduran Emissary
+Vhal, Candlekeep Researcher
 Viashino Firstblade
 Villainous Ogre
 Volcanic Fallout

@@ -1,8 +1,11 @@
 A-Meria's Outrider
 A-Ominous Parcel
+Adaptive Snapjaw
+Alpha Tyrranax
 Angler Turtle
 Armory Guard
 Audacious Infiltrator
+Aven Mindcensor
 Barrage Tyrant
 Besmirch
 Bewilder
@@ -10,21 +13,29 @@ Blood Burglar
 Breaching Hippocamp
 Brimstone Volley
 Burning Hands
+Burning Oil
+Carrion Call
 Centaur Healer
 Chaos Terminator Lord
+Coldsteel Heart
 Consuming Corruption
 Cystbearer
 Dark Prophecy
+Dawnbringer Charioteers
 Disciple of the Vault
 Dross Crocodile
+Echoing Ruin
+Evolution Sage
 Feral Abomination
 Fireflux Squad
+Flatten
 Flywheel Racer
 Forerunner of Slaughter
 Forest
 Funnel-Web Recluse
 Furnace Spirit
 Gadwick, the Wizened
+Galadhrim Bow
 Gauntlet of Might
 Ghoulsteed
 Glimpse the Unthinkable
@@ -34,12 +45,16 @@ God-Eternal Bontu
 Goreclaw, Terror of Qal Sisma
 Grasp of Darkness
 Griffin Dreamfinder
+Harvest Wurm
 Horizon Explorer
+Horn of Gondor
 Hovermyr
 Idle Thoughts
+Ill-Gotten Inheritance
 Immolating Souleater
 Intrepid Hero
 Island
+Kamahl's Desire
 Krosan Archer
 Legion Leadership
 Lifelink
@@ -59,18 +74,28 @@ Night Market Aeronaut
 Ob Nixilis, the Fallen
 Oni of Wild Places
 Pelakka Predation
+Piety
 Plains
 Prismatic Strands
 Psychic Impetus
 Ral's Dispersal
+Recall
 Resurrection Orb
+Ridgescale Tusker
 Samut's Sprint
+Sandsteppe Scavenger
+Sandstorm
+Satyr Nyx-Smith
 Scalding Devil
+Serene Steward
 Sewer Rats
 Shadow of Mortality
+Shaman of the Pack
 Shamble Back
 Shauku's Minion
+Silt Crawler
 Silver Raven
+Simic Sky Swallower
 Skymark Roc
 Spellbook
 Spiderwig Boggart
@@ -80,6 +105,7 @@ Stolen Grain
 Stolen Vitality
 Swamp
 Sweatworks Brawler
+Tatyova, Steward of Tides
 Thalia's Lancers
 The Cauldron of Eternity
 Thirsting Bloodlord
@@ -89,12 +115,15 @@ Traitor's Clutch
 Twitch
 Ultimate Price
 Unicycle
+Ursine Champion
 Viashino Firstblade
 Villainous Ogre
 Volcanic Fallout
 War-Torch Goblin
 Water Servant
+Weatherlight
 Weldfast Engineer
 Wellspring
 Wrenn's Resolve
+Wyluli Wolf
 Zirilan of the Claw
