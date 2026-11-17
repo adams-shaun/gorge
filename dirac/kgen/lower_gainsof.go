@@ -10,18 +10,18 @@ import (
 
 // gainsAbilitiesOf lowers a Continuous static's GainsAbilitiesOf$ (CR
 // 613.1f, "has all activated abilities of ..."): the affected object, the
-// static's own source (AffectedDefined$ Self arrives as Card.Self), may
-// activate each activated ability of every battlefield permanent the filter
+// static's own source (AffectedDefined$ Self arrives as Card.Self) or each
+// permanent its Affected$ filter matches (Hazel's Brewmaster's Foods; the
+// filter is the static's Filter), may activate each activated ability of every battlefield permanent the filter
 // matches at that moment (gorge layers.go gainedFacesForSpec,
 // legal_granted.go grantedAbilitiesLimited). The filter is read relative to
 // the source (Other excludes it) and lands in kop.Static.GainsOf; the zone
 // rides kop.Static.Zone (ZoneNone: the battlefield, Forge's default;
 // ZoneGraveyard: GainsAbilitiesOfZones$ Graveyard, every seat's graveyard;
 // ZoneExile: GainsAbilitiesOfZones$ Exile, every seat's exile zone). The
-// kernel's offer walk is dirac/static_gainsof.go. Other zones, another
-// recipient, and artifact or land sources (whose mana abilities the walk
+// kernel's offer walk is dirac/static_gainsof.go. Other zones and artifact or land sources (whose mana abilities the walk
 // does not model) are refused by name.
-func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, aff string) error {
+func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, _ string) error {
 	spec, ok := sp.get("GainsAbilitiesOf")
 	if !ok {
 		return nil
@@ -53,9 +53,6 @@ func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, aff string) error 
 	}
 	if offField {
 		return refuse("GainsAbilitiesOfZones$ %q", z)
-	}
-	if aff != "Card.Self" {
-		return refuse("GainsAbilitiesOf Affected %q", aff)
 	}
 	st.GainsOf = f
 	switch {
