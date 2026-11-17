@@ -1083,6 +1083,22 @@ func (s *State) dealsNow(k *prep, sl Slot, first bool) bool {
 	return s.perms[sl].flags&pfDealtFirst == 0
 }
 
+// combatAmount is the creature's combat damage assignment amount (CR
+// 510.1): its power, as its toughness under a CombatDamageToughness
+// grant, or zero under an AssignNoCombatDamage static, printed or carried
+// by an emblem (gorge combatDamageAmount,
+// engine/rules/statics_assignment.go).
+func (s *State) combatAmount(k *prep, sl Slot) int {
+	amt := s.power(k, sl)
+	if k.gen != nil && k.gen.anyCdmgTough {
+		amt = s.combatAmtTough(k, sl)
+	}
+	if k.anyNoDmg && s.staticFlag(k, kop.StatNoCombatDamage, sl) {
+		return 0
+	}
+	return amt
+}
+
 // combatDamage assigns and deals one combat damage step. Attacker damage
 // to its blockers goes in block order, lethal to each (1 with deathtouch)
 // and the rest to the last blocker, or with trample to the player (gorge's
@@ -1102,10 +1118,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			ap.flags |= pfDealtFirst
 			s.touchSl(a)
 		}
-		pw := s.power(k, a)
-		if k.gen != nil && k.gen.anyCdmgTough {
-			pw = s.combatAmtTough(k, a)
-		}
+		pw := s.combatAmount(k, a)
 		if pw <= 0 {
 			continue
 		}
@@ -1218,10 +1231,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			bp.flags |= pfDealtFirst
 			s.touchSl(b)
 		}
-		pw := s.power(k, b)
-		if k.gen != nil && k.gen.anyCdmgTough {
-			pw = s.combatAmtTough(k, b)
-		}
+		pw := s.combatAmount(k, b)
 		if pw <= 0 {
 			continue
 		}
@@ -1531,10 +1541,7 @@ func (s *State) nextDivision(k *prep, first bool) bool {
 		if ap.nblock < 2 || !s.dealsNow(k, a, first) || s.kw(k, a)&kop.KwTrample != 0 || s.asUnblocked(k, a) {
 			continue
 		}
-		pw := s.power(k, a)
-		if k.gen != nil && k.gen.anyCdmgTough {
-			pw = s.combatAmtTough(k, a)
-		}
+		pw := s.combatAmount(k, a)
 		if pw <= 0 {
 			continue
 		}

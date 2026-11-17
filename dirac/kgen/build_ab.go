@@ -1801,6 +1801,19 @@ func splitSelfClause(event string, f *lFilter) (self, selfCreature bool) {
 	return self, selfCreature
 }
 
+// combatAmountFilter builds the two combat-assignment statics (CR 510.1):
+// the kind zeroes the matching creature's combat damage assignment, and the
+// filter reads its creature on the battlefield.
+func (cb *cardBuilder) combatAmountFilter(st *kop.Static, kind kop.StaticKind, f *lFilter) error {
+	st.Kind = kind
+	if f == nil {
+		return nil
+	}
+	fid, err := cb.filter(f, kop.ZoneBattlefield)
+	st.Filter = fid
+	return err
+}
+
 // static builds a static ability and its granted subtypes.
 func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	ka := kop.Ability{Kind: kop.AbStatic}
@@ -2274,10 +2287,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 	case "CombatDamageToughness":
-		st.Kind = kop.StatCombatDmgToughness
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
+		return ka, nil, cb.combatAmountFilter(st, kop.StatCombatDmgToughness, s.F)
+	case "AssignNoCombatDamage":
+		return ka, nil, cb.combatAmountFilter(st, kop.StatNoCombatDamage, s.F)
 	case "DisableTriggers":
 		st.Kind = kop.StatDisableETB
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
