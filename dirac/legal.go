@@ -361,10 +361,10 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	// A dynamic {T}, sacrifice source (Lotus Blossom) is a census unit for an
 	// activated-ability offer -- gorge's potential planner activates it while
 	// paying -- but not for a cast: its cast planner never plans an
-	// indeterminate amount (availDynSac, gen.go dynamicManaCost).
+	// indeterminate amount (avail.dynSac, gen.go dynamicManaCost).
 	dynWas := s.g.availX
 	if k.gen != nil && len(k.gen.varPC) != 0 {
-		s.g.availX |= availDynSac
+		av.dynSac = true
 		haveAv = false // rebuild the census with the dynamic units
 	}
 	haveAv = s.activateOffers(k, d, p, sorc, &av, haveAv)
@@ -380,6 +380,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			s.offerUnlocks(k, d, p) // CR 709.5e: special action (face_rooms.go)
 		}
 		s.g.availX = dynWas // the script walks below read their own modes
+		av.dynSac = false
 		haveAv = false
 		var capSpent Decision // the plays grantCap's grant search refused within gorge's budget
 		if len(k.gen.grantPC) != 0 && s.g.availX == 0 {
@@ -403,7 +404,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 }
 
 // activateOffers appends p's printable activated abilities to d and reports
-// whether av was built. The walk runs with availDynSac set when the table has
+// whether av was built. The walk's census carries dynSac when the table has
 // dynamic-amount variants (priorityOptions): an activated-ability offer
 // prices a dynamic {T}, sacrifice source, unlike a cast.
 func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *avail, haveAv bool) bool {

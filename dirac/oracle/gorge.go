@@ -1916,6 +1916,14 @@ func (g *GorgeSide) lower(pe prioEntry) (done bool) {
 					in.Choices = []int{o.Index}
 				}
 			}
+		} else if d.Player != x.Player && d.Kind != decision.KPriority {
+			// A trigger the witness's activations stacked for another seat
+			// (a Scion's sacrifice beside the opponent's Falkenrath Noble:
+			// its target is theirs to choose, CR 603.3d) is theirs to answer
+			// and no abort of the lowering: gorge makes the play, so the
+			// legal-play set must keep it. Answered as a foreign Yield is.
+			in = botpolicy.Clamp(d, decision.Intent{Seq: d.Seq, Player: d.Player})
+			in.Seq, in.Player = d.Seq, d.Player
 		} else {
 			var st payexec.Status
 			in, st = x.StepOn(d, payexec.SurfaceOf(e, d.Player))

@@ -169,6 +169,12 @@ func attachObjectGone(h Host, c *Ctx, id state.ObjID) bool {
 	if o.Zone != state.ZBattlefield && o.Zone != state.ZStack {
 		return true
 	}
+	// CR 702.26b: a phased-out permanent (an Aura that phased out indirectly
+	// with its bearer, Felidar Umbra under a phased-out creature) is treated
+	// as though it does not exist, so an Attach can't move it.
+	if o.PhasedOut {
+		return true
+	}
 	return sourceLeftSincePush(h, c, o)
 }
 

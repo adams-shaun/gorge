@@ -121,6 +121,16 @@ type avail struct {
 	// credit once at the leaf (CR 702.66a). Zero everywhere else, so every
 	// other caller prices exactly as before.
 	delve int
+	// dynSac: this census is an activated-ability offer's, which prices a
+	// dynamic {T}, sacrifice source (Lotus Blossom, gen.go dynamicManaCost).
+	// gorge's activated-ability planner activates such a source while
+	// paying; its cast planner never plans an indeterminate amount, so a
+	// cast offer leaves it out. Carried on the census, not in genState.availX:
+	// that byte's eight mode bits are all taken, and sharing availWinCol's
+	// made the painland offer gate read the flag as the manual window's
+	// no-lethal-guard mode (mana_pain.go painAvailMask), offering a
+	// self-lethal painland tap at 1 life.
+	dynSac bool
 }
 
 // maxOneColour bounds a player's one-colour sources; one more stalls
@@ -391,8 +401,8 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 		} else {
 			pc = &k.cards[s.cardAt(sl)]
 		}
-		if pc.manaDyn && pc.manaSac && s.g.availX&availDynSac == 0 {
-			continue // a dynamic {T}, sacrifice source prices only an activated-ability offer (availDynSac)
+		if pc.manaDyn && pc.manaSac && !a.dynSac {
+			continue // a dynamic {T}, sacrifice source prices only an activated-ability offer (avail.dynSac)
 		}
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 {
 			continue
