@@ -254,15 +254,17 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 // P/T tables are built by walking every CDA/animated object's layer-7 P/T,
 // and the fold already binds the per-candidate P/T it reads (readsPT,
 // GreatestPowerDerivedPTs): asking for them here would recurse into the layer
-// walk a CDA count runs inside.
+// walk a CDA count runs inside. Known gap: a count over an off-battlefield
+// CDA/P-T spec (Count$ValidGraveyard Creature.powerGE3) still reads the
+// printed value; it needs a bind that is skipped only inside a charsWalk.
 const countLayerSkip = LayerCDAPT | LayerBattlefieldPT
 
-// bindSpecLayerTables fills the on-demand tables spec can read into t, which a
-// cost, mana-amount or CDA context built outside Resolve binds none of (CR
+// bindSpecLayerTables fills the on-demand tables spec can read into t (CR
 // 613.3: layer 5 and 6 apply before a layer-7a count reads a colour or a
-// keyword). One host call asks for every table specLayerWants names that t
-// does not already carry; a table the caller bound (a CDA Ctx's mid-walk
-// colours) is kept.
+// keyword). A cost or mana-amount Ctx built outside Resolve carries none of
+// them; a CDA Ctx (rules' cdaEvalCtx) already carries the mid-walk colours,
+// which this keeps. One host call asks for every table specLayerWants names
+// that t does not already carry.
 func bindSpecLayerTables(h Host, t *LayerTables, spec string) {
 	want := specLayerWants(spec) &^ countLayerSkip
 	if t.DerivedColors != nil {

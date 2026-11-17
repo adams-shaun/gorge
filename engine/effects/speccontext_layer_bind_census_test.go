@@ -17,11 +17,17 @@ import (
 // holds: one "<engine-relative file> <Func>" line per function that builds a
 // SpecContext, reads it through MatchesObjectCtx/MatchesSpecCtx and does not
 // bind the on-demand layer tables (specLayerWants / bindSpecLayerTables /
-// layerTablesFor / a LayerTables host call) itself.
+// layerTablesFor / a LayerTables host call) itself. Matching is any
+// MatchesObjectCtx/MatchesSpecCtx entry, the unexported filter cores
+// (matchesZoneSpecCtx, matchesObjectPtr, compiledMatchZone), or a
+// zoneCountFold literal (the Count$Valid scan).
 const specContextBindCensusFile = "testdata/speccontext_layer_bind.txt"
 
 // bindCalls are the calls that count as binding a layer table: the one
-// text-to-tables rule, its two callers, and the host read itself.
+// text-to-tables rule, its two callers, and the host read itself. The census
+// is per function and does not track WHICH tables a LayerTables(want) call
+// asks for: a site that binds one table but reads another is a review check
+// (specLayerWants pins the spec-to-tables rule in TestSpecLayerWants).
 var bindCalls = map[string]bool{
 	"specLayerWants": true, "bindSpecLayerTables": true, "layerTablesFor": true,
 	"LayerTables": true,
@@ -31,7 +37,16 @@ var bindCalls = map[string]bool{
 }
 
 // matchCalls are the entry points a SpecContext is built for.
-var matchCalls = map[string]bool{"MatchesObjectCtx": true, "MatchesSpecCtx": true, "MatchesSpecCtxPtr": true}
+var matchCalls = map[string]bool{
+	"MatchesObjectCtx": true, "MatchesSpecCtx": true, "MatchesSpecCtxPtr": true,
+	// the unexported filter cores a fold or scan reaches a SpecContext through.
+	"matchesZoneSpecCtx": true, "matchesObjectPtr": true, "compiledMatchZone": true,
+}
+
+// matchHolders are types whose literal carries a SpecContext's match into
+// methods of another function: building one is a match site. zoneCountFold is
+// the Count$Valid scan evalCountBodyZone hands its specCtx to (visit matches).
+var matchHolders = map[string]bool{"zoneCountFold": true}
 
 // specContextSites returns the census keys of every non-test function under
 // engine/ that constructs a SpecContext (a SpecContext{...} literal or a
@@ -65,6 +80,7 @@ func specContextSites(t *testing.T) map[string]bool {
 				switch x := n.(type) {
 				case *ast.CompositeLit:
 					builds = builds || typeName(x.Type) == "SpecContext"
+					matches = matches || matchHolders[typeName(x.Type)]
 				case *ast.CallExpr:
 					switch name := typeName(x.Fun); {
 					case matchCalls[name]:

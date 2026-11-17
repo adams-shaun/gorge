@@ -35,9 +35,20 @@ effects/copy.go copyForEachCanTarget
 effects/copypermanent.go effCopyPermanent
 effects/count_agg.go partySize
 effects/count_body.go evalCountBodyCost
+effects/count_body_heads.go evalCountBodyObjHeads
+effects/count_cov3.go evalCov3Head
+effects/count_cov3.go mostProminentCreatureType
+effects/count_cov3.go sacrificedThisTurn
+effects/count_cov3.go typesSharedWith
+effects/count_damage.go damageRecipientMatches
+effects/count_damage.go damageSourceMatches
 effects/count_player.go evalCountValidSelf
+effects/count_player.go hasPropertyStateBacked
 effects/count_player.go playerCountDefinedRegistered
+effects/count_player.go playerCountExtremeZones
+effects/count_ref.go countMostCardName
 effects/count_ref.go sacrificedValidCount
+effects/count_ref_property.go evalPlayerRefProperty
 effects/count_ref_property.go evalRefProperty
 effects/counters.go effRemoveCounterAll
 effects/counters.go putCounterAllSweep
@@ -72,6 +83,7 @@ effects/resolve.go setStateChoose
 effects/resolve.go setStateTurnUpVerdict
 effects/sacrificeall.go effSacrificeAll
 effects/taporuntapall.go effTapOrUntapAll
+effects/token.go tokenControlledCount
 effects/trigger_referents.go Ctx.MatchSpec
 effects/twopiles.go twoPilesBattlefieldSet
 effects/untap.go untapBattlefieldCondition
@@ -80,6 +92,7 @@ effects/zone.go effSeek
 effects/zone_bulk.go effDestroyAll
 effects/zone_bulk.go effSacrifice
 effects/zone_change.go effChangeZone
+effects/zone_change.go instantCannotEnter
 effects/zone_changeall.go changeZoneAllMatcher
 effects/zone_hand.go handMoveOwnersWalk
 effects/zone_hidden.go effHiddenPick
