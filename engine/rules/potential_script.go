@@ -898,6 +898,9 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 					return true
 				}
 			}
+			if witnessAnnouncesBeforePaying(e, c, e.G, p, o, plan) {
+				return true
+			}
 			if len(c.G.Stack) <= rootStack || waits >= 4 {
 				return false
 			}
