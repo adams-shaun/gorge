@@ -186,20 +186,69 @@ func (s *State) copyCastAbortsBeforeWindow(k *prep, c CardID, p uint8, o Obj) bo
 	return s.copyCastUnpayable(k, c, p, o, s.restrOriginOfObj(o), 0)
 }
 
+// playCastPriced is a paid play or copy cast's priced cost: the faces' Delve
+// credit and the offer's adjusted fit, X folded at x. The cast is a stack
+// spell, never a hand cast, so the credit reads the faces (CR 702.66a).
+func (s *State) playCastPriced(k *prep, c CardID, p uint8, o Obj, x int, av *avail) kop.ManaCost {
+	s.availFor(k, p, av)
+	base := k.cards[c].cost
+	av.delve = s.tbDelveCredit(k, p, c, o, false) // the faces' credit (CR 702.66a); the copy object is a stack spell, not a hand cast
+	cost := s.adjustFit(k, av, p, c, o, base, true)
+	if !av.tbLeafCredited(&base) {
+		cost = s.delveOfferCredit(k, p, c, o, false, cost) // gorge's choke point credits the generic at this read too
+	}
+	return cost.AtX(x)
+}
+
 // copyCastUnpayable reports whether the paid copy cast of c by p, as object o
 // and cast from og, at announced X x, cannot be covered by what p can produce
 // (the cast offer's own affordability read).
 func (s *State) copyCastUnpayable(k *prep, c CardID, p uint8, o Obj, og restrOrigin, x int) bool {
 	var av avail
-	s.availFor(k, p, &av)
-	base := k.cards[c].cost
-	av.delve = s.tbDelveCredit(k, p, c, o, false) // the faces' credit (CR 702.66a); the copy object is a stack spell, not a hand cast
-	cost := s.adjustFit(k, &av, p, c, o, base, true)
-	if !av.tbLeafCredited(&base) {
-		cost = s.delveOfferCredit(k, p, c, o, false, cost) // gorge's choke point credits the generic at this read too
-	}
-	cost = cost.AtX(x)
+	cost := s.playCastPriced(k, c, p, o, x, &av)
 	return !s.castAffordsR(k, p, c, og, &cost, &av)
+}
+
+// playTargetGateAborts reports whether gorge's target ask aborts the paid
+// play cast begun without an offer (the freeQ drain's paid route,
+// turn_gen.go) before its menu: the pool cannot cover the resolved cost and
+// no untapped mana source the CR 601.2g window could activate exists (CR
+// 601.2c, 733.1), or the menu withholds every candidate the window's
+// productions still cannot cover (affordableTargetCandidates). The chain's
+// own treatment -- a required target reverses, an up-to target asks nothing
+// and payCast reverses the cast in the window -- is the same reversal either
+// way. The modes were announced before the target stage, exactly where gorge
+// runs the gates; the paid copy casts keep their own
+// (copyCastAbortsBeforeWindow, copyCastXTargetAbort).
+func (s *State) playTargetGateAborts(k *prep, t *kop.TargetSpec, e *stackEntry) bool {
+	if s.g.freeP&freePaid == 0 || s.g.freeP&freeCopy != 0 {
+		return false
+	}
+	poolAbort, menuAbort := s.playTargetAborts(k, e)
+	return poolAbort || menuAbort
+}
+
+// playTargetAborts reports the two target-ask aborts gorge runs on a paid
+// play cast begun without an offer (the freeQ drain's paid route,
+// turn_gen.go): poolAbort is targetAsk's pre-menu abort -- the pool cannot
+// cover the resolved cost and no untapped mana source the CR 601.2g window
+// could activate exists (CR 601.2c, 733.1) -- and menuAbort is the menu
+// withholding every candidate the window's productions still cannot cover
+// (affordableTargetCandidates): a required target turns it into the same
+// reversal, an up-to target into an ask that poses nothing and lets payCast
+// reverse the cast in the window. The menu is priced at the announced X
+// (CR 601.2b). The build is live (the cast is in its target stage); the
+// census reads it.
+func (s *State) playTargetAborts(k *prep, e *stackEntry) (poolAbort, menuAbort bool) {
+	c, p, o := e.card, e.ctrl, e.obj
+	var av avail
+	cost := s.playCastPriced(k, c, p, o, int(e.x), &av)
+	if !s.windowPoolPays(p, &cost, false) && !s.windowUnpricedOpenIf(k, e, true) {
+		poolAbort = true
+	}
+	menuAbort = !s.windowUnpricedOpen(k, e) &&
+		!s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, &av)
+	return poolAbort, menuAbort
 }
 
 // copyCastXTargetAbort: the target ask of a paid Play's copy cast that X, now
