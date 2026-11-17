@@ -1,0 +1,19 @@
+# the {S} activation cost pool: Boreal Centaur, Icehide Troll, Thermopod, Frost
+# Raptor and Phyrexian Ironfoot pay {S} from snow units of the floating pool
+# (CR 107.4h), over snow and nonsnow basics and Coldsteel Heart, whose typed
+# mana is not snow.
+Boreal Centaur
+Icehide Troll
+Thermopod
+Frost Raptor
+Phyrexian Ironfoot
+Coldsteel Heart
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Snow-Covered Forest
+Snow-Covered Mountain
+Snow-Covered Island
+Forest
+Mountain
+Island
