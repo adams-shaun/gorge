@@ -2308,6 +2308,14 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 		}
 		cost, ok = s.plannedCastCostOf(k, p, Obj(a.Source()), a.Mode()&(3|castMayPlay), true, true)
 		return cost, ex, need, ok
+	case AkPlot:
+		if a.Mode() == 0 {
+			// the plot special action (CR 702.170a): gorge's walk lists it as a
+			// "plot" cast priced at its plot cost, a play of its own beside the
+			// card's plain cast, so the search funds that cost
+			c := s.objs[a.Source()].card
+			return s.adjustCost(k, p, c, Obj(a.Source()), k.t.Cards[c].PlotCost), ex, need, true
+		}
 	}
 	return cost, ex, need, false
 }
