@@ -801,6 +801,11 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		}
 		return mv <= s.evalV(k, fl.PredV, cx)
 	case kop.PredCountersGE:
+		if s.g.tli&tliOn != 0 && kop.CounterKind(n&0xff) != kop.CtrStash {
+			// a target the resolution moved off the battlefield: its last
+			// known counters (CR 608.2h; gorge targetCountersLKI)
+			return s.lkiCounter(s.g.tli&tliIdx, kop.CounterKind(n&0xff)) >= n>>8
+		}
 		// off the battlefield only stash counters exist (Tinybones)
 		return kop.CounterKind(n&0xff) == kop.CtrStash && n>>8 <= 1 && o != NoObj && s.mObj(k, mechStash, o)
 	case kop.PredHasKeyword:
