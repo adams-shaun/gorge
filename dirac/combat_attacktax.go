@@ -439,7 +439,11 @@ func (s *State) atkTaxFilter(k *prep, d *Decision) {
 
 // atkTaxAnyOffer is anyAttacker under an attack tax: gorge poses no
 // attackers decision when every pair is priced out (askAttackers' empty
-// option list).
+// option list). Its candidates carry the plain branch's gates beside the
+// price (combat.go): a scoped CantAttack static (Rite of the Raging Storm's
+// tokens, combat_cantattack.go) or a sickness exemption against no live
+// defender leaves the creature no pair, tax or no tax, so gorge's empty
+// option list records the forced empty declaration without asking.
 //
 //go:noinline
 func (s *State) atkTaxAnyOffer(k *prep) bool {
@@ -448,7 +452,7 @@ func (s *State) atkTaxAnyOffer(k *prep) bool {
 	budget := s.manaBudget(k, s.active)
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
 		sl := m.first()
-		if !s.canAttack(k, sl) {
+		if !s.canAttack(k, sl) || s.atkHasteNoPair(k, sl) || s.cantAtkEveryPair(k, sl) {
 			continue
 		}
 		u := s.atkTaxUnits(k, sl)
