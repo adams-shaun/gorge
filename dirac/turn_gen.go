@@ -487,6 +487,9 @@ func (s *State) leaveGen(k *prep, sl Slot, o Obj) {
 	if k.gen.anyAegis {
 		s.aegisLeaves(k, sl, o) // zone_exilethenattach.go: before returnLinked drops the link's bit
 	}
+	// The kept Imprinted list is deliberately NOT dropped here: gorge keeps
+	// Object.Imprinted through the departure for the leaves trigger that
+	// reads it, and clears it at the next battlefield entry (impEnter).
 	if k.gen.anyFaces {
 		s.faceReset(k, o) // face_multiface.go
 	}

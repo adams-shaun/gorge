@@ -12,9 +12,9 @@ var DebugWord7Flip bool
 // inZone<Zone>).
 //
 //go:noinline
-func (s *State) wordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
+func (s *State) wordPerm(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 	if fl.PredN&0xff >= kop.W7FaceUp {
-		return s.wordPerm2(k, fl, sl, s.ctxCur().ctrl, NoSlot) // the walk path (matchPermOne passes its own ctrl and src)
+		return s.wordPerm2(k, fl, sl, s.ctxCur().ctrl, src) // the walk path passes NoSlot (matchPermOne passes its own ctrl and src)
 	}
 	ans := false
 	switch fl.PredN & 0xff {
@@ -56,8 +56,23 @@ func (s *State) wordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
 //
 //go:noinline
 func (s *State) wordCard(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8) bool {
+	return s.wordCardAt(k, fl, c, o, fd, ctrl, NoObj)
+}
+
+// cardFilterSrc is a card matcher's source object: the caller's ctx source,
+// else the resolving (or building) entry's. A static passes its own ctx.
+func (s *State) cardFilterSrc(ctx *evalCtx) Obj {
+	if ctx != nil {
+		return ctx.src
+	}
+	return s.ctxCur().src
+}
+
+// wordCardAt is wordCard with the filter's source object (NoObj when the
+// caller has none), which a source-persistent Imprinted read needs.
+func (s *State) wordCardAt(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8, src Obj) bool {
 	if fl.PredN&0xff >= kop.W7FaceUp {
-		return s.wordCard2(k, fl, c, o, fd, ctrl) // filter_props.go
+		return s.wordCard2(k, fl, c, o, fd, ctrl, src) // filter_props.go
 	}
 	ans := false
 	switch fl.PredN & 0xff {
@@ -100,7 +115,11 @@ func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot
 		return s.sharesCrTrigObj(k, s.perms[sl].obj)
 	}
 	if fl.PredN&0xff == kop.W7Imprinted {
-		return s.impHas(s.perms[sl].obj) != DebugWord7Flip
+		so := NoObj
+		if src != NoSlot {
+			so = s.perms[src].obj
+		}
+		return s.impHasAt(k, so, s.perms[sl].obj) != DebugWord7Flip
 	}
 	if fl.PredN&0xff >= kop.W7WithWarp {
 		return s.wordPerm3(k, fl, sl, src) // filter_props.go
@@ -187,7 +206,7 @@ func (s *State) nameInGrave(nm CardID, p uint8) bool {
 // c is the card, ctrl the evaluating controller.
 //
 //go:noinline
-func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8) bool {
+func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8, src Obj) bool {
 	if n := fl.PredN & 0xff; n == kop.W7BottomLibrary || n == kop.W7NotBottomLibrary {
 		return s.bottomLibrary(o) == (n == kop.W7BottomLibrary)
 	}
@@ -195,7 +214,7 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 		return o != NoObj && s.sharesCrTrigObj(k, o)
 	}
 	if fl.PredN&0xff == kop.W7Imprinted {
-		return o != NoObj && s.impHas(o) != DebugWord7Flip
+		return o != NoObj && s.impHasAt(k, src, o) != DebugWord7Flip
 	}
 	if n := fl.PredN & 0xff; n == kop.W7EnteredFromBF || n == kop.W7EnteredFromLib {
 		from := kop.ZoneBattlefield
