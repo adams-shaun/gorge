@@ -4,4 +4,5 @@ value: 58
 forge: CounterRemoved
 census: trig CounterRemoved all=11 std=0 mbc=0 sole=3
 state: code 0
-status: reserved
+status: active
+ticket: cg2-d03-counter-removed-trig
