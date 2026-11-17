@@ -1213,17 +1213,8 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	var err error
 	if t.F != nil {
 		f := *t.F
-		var rest []lClause
-		self, selfCast, selfCreature := false, false, false
-		for _, c := range f.Clauses {
-			if c == (lClause{Flags: fSelf}) || c == (lClause{Types: tCreature, Flags: fSelf}) {
-				self = true
-				selfCreature = c.Types != 0
-				continue
-			}
-			rest = append(rest, c)
-		}
-		f.Clauses = rest
+		self, selfCreature := splitSelfClause(t.Event, &f)
+		selfCast := false
 		if !self && t.Event == "SpellCast" {
 			sc, err := selfCastClause(&f)
 			if err != nil {
@@ -1231,7 +1222,6 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			}
 			if sc {
 				kt.Flags |= kop.TfSelf
-				rest = f.Clauses
 				self = false // the rest is the spell's Filter, not an alternative
 				selfCast = true
 			}
@@ -1240,7 +1230,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			return kt, fmt.Errorf("player filter on a trigger object")
 		}
 		switch {
-		case self && len(rest) == 0:
+		case self && len(f.Clauses) == 0:
 			kt.Flags |= kop.TfSelf
 			if selfCreature && t.Event == "Dies" {
 				// a creature card that may leave as something else (CR 700.4,
@@ -1254,7 +1244,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			kt.Flags2 |= kop.Tf2SelfOrFilter
 			fallthrough
 		default:
-			if len(rest) > 0 {
+			if len(f.Clauses) > 0 {
 				zone := kop.ZoneBattlefield
 				if t.Event == "SpellCast" {
 					zone = kop.ZoneStack
@@ -1772,6 +1762,31 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		return kt, err
 	}
 	return kt, nil
+}
+
+// splitSelfClause pulls a bare Card.Self (or Creature.Self) clause out of a
+// trigger's object filter, reporting whether it was the self clause and
+// whether it required a creature. An AttackersDeclared filter is
+// ValidAttackers$, matched against each declared attacker (kop.Trigger.Filter,
+// read by the kernel's attackersMatching): Card.Self there means the source is
+// one of the attackers (CR 508.3a), not that the event object is the source,
+// so it stays in the filter instead of becoming TfSelf, which that path never
+// reads.
+func splitSelfClause(event string, f *lFilter) (self, selfCreature bool) {
+	if event == "AttackersDeclared" {
+		return false, false
+	}
+	var rest []lClause
+	for _, c := range f.Clauses {
+		if c == (lClause{Flags: fSelf}) || c == (lClause{Types: tCreature, Flags: fSelf}) {
+			self = true
+			selfCreature = c.Types != 0
+			continue
+		}
+		rest = append(rest, c)
+	}
+	f.Clauses = rest
+	return self, selfCreature
 }
 
 // static builds a static ability and its granted subtypes.
