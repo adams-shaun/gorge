@@ -1,0 +1,21 @@
+# The granted-protection-forms lowerings for the oracle's constructed
+# lockstep (dirac/oracle/protectionforms_lockstep_test.go): a Continuous
+# static's AddKeyword$ Protection from red & Protection from blue (Sword of
+# Fire and Ice), a Pump's KW$ Protection from each color until end of turn
+# (Eldritch Immunity) and an Animate's Keywords$ Protection:Player.Opponent
+# (Figure of Fable), with coloured creatures, burn and removal on the other
+# seat to test the protection against (blocking, damage and targeting).
+Sword of Fire and Ice
+Eldritch Immunity
+Figure of Fable
+Savannah Lions
+Silver Knight
+Hill Giant
+Grizzly Bears
+Shock
+Lightning Bolt
+Terror
+Plains
+Mountain
+Forest
+Swamp

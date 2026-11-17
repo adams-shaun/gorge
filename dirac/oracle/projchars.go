@@ -264,6 +264,12 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 		// target, block and damage options); black and red keep their bits
 		return 0, true
 	}
+	if strings.HasPrefix(s, "Protection:") {
+		// a granted "Protection:<spec>" quality the kernel models as a
+		// filter (kop.Static.ProtFrom, kop.Override.ProtFrom): compared
+		// through the target, block, damage and attachment options
+		return 0, true
+	}
 	head := s
 	if i := strings.IndexByte(head, ':'); i >= 0 {
 		head = head[:i]

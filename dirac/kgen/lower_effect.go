@@ -2178,6 +2178,35 @@ func (lc *lowerCtx) pumpPlayerEOT(ks []string) error {
 	return nil
 }
 
+// protKwInto splits a granted-keyword list's protection terms into the
+// override record's ProtFrom (splitProtFromKW) and lowers the rest through
+// pumpKeywords into AddKw.
+func (lc *lowerCtx) protKwInto(o *lOverride, kw string) error {
+	rest, err := lc.splitProtFromKW(kw, o)
+	if err != nil {
+		return err
+	}
+	if rest == "" {
+		return nil
+	}
+	if o.AddKw, err = pumpKeywords(rest); err != nil {
+		return err
+	}
+	return nil
+}
+
+// pumpPermanentKwGrant lowers a battlefield object's Pump Duration$
+// Permanent keyword grant: the protection terms and the rest of the keyword
+// list ride one layer-6 override record (the Duration arm in pumpBody).
+func (lc *lowerCtx) pumpPermanentKwGrant(kw string, obj lRef) error {
+	o := &lOverride{}
+	if err := lc.protKwInto(o, kw); err != nil {
+		return err
+	}
+	lc.emitOverride(obj, o, "Permanent")
+	return nil
+}
+
 // pumpNextTurnObject lowers a battlefield object's Pump Duration$
 // UntilYourNextTurn: a keyword grant is the ovNT override record (gorge's
 // durationTiming UntilTurn boundary, CR 611.2b; The Undercity's Throne), a
@@ -2191,20 +2220,20 @@ func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw str
 		if !hasKW {
 			return refuse("Pump Duration %q without NumAtt$/NumDef$/KW$", "UntilYourNextTurn")
 		}
-		ks, err := pumpKeywords(kw)
-		if err != nil {
+		o := &lOverride{}
+		if err := lc.protKwInto(o, kw); err != nil {
 			return err
 		}
-		lc.emitOverride(obj, &lOverride{AddKw: ks}, "UntilYourNextTurn")
+		lc.emitOverride(obj, o, "UntilYourNextTurn")
 		return nil
 	}
 	o := &lOverride{}
-	var err error
 	if hasKW {
-		if o.AddKw, err = pumpKeywords(kw); err != nil {
+		if err := lc.protKwInto(o, kw); err != nil {
 			return err
 		}
 	}
+	var err error
 	att, def := cst(0), cst(0)
 	if v, ok := ps.get("NumAtt"); ok {
 		if att, err = lc.value(v); err != nil {
@@ -2256,12 +2285,7 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		if d != "Permanent" || na || nd || !hasKW || zone != zBattlefield {
 			return refuse("Pump Duration %q", d)
 		}
-		ks, err := pumpKeywords(kw)
-		if err != nil {
-			return err
-		}
-		lc.emitOverride(obj, &lOverride{AddKw: ks}, "Permanent")
-		return nil
+		return lc.pumpPermanentKwGrant(kw, obj)
 	}
 	att, def := lValue{}, lValue{}
 	if a, ok := ps.get("NumAtt"); ok {
@@ -2362,8 +2386,9 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 }
 
 // pumpGrantKw emits one Pump's granted-keyword sentence (the KW$ value split
-// into rest keywords, Firebending, Myriad and Landwalk grants, each until end
-// of turn as the rules grant them) for the already-resolved subject obj.
+// into rest keywords, Firebending, Myriad, Landwalk and protection grants,
+// each until end of turn as the rules grant them) for the already-resolved
+// subject obj.
 func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 	rest, fbs, err := splitFirebendingGrant(kw)
 	if err != nil {
@@ -2376,6 +2401,16 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 	if myriads > 0 && (zone != zBattlefield || lc.pumpPlayerRef(obj)) {
 		return refuse("granted Myriad to a non-battlefield object")
 	}
+	prot := &lOverride{}
+	if !lc.pumpPlayerRef(obj) {
+		// the protection terms lower to the grant's quality filter
+		// (kop.Override.ProtFrom); a player subject's protection grant still
+		// refuses below, as pumpPlayerEOT always has
+		rest, err = lc.splitProtFromKW(rest, prot)
+		if err != nil {
+			return err
+		}
+	}
 	rest, landwalk, err := lc.splitLandwalkPump(rest) // lower_landwalkgrant.go
 	if err != nil {
 		return err
@@ -2383,7 +2418,10 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 	if landwalk != nil && (zone != zBattlefield || !lc.pumpObjectRef(obj)) {
 		return refuse("granted landwalk to a non-permanent subject")
 	}
-	if rest != "" || len(fbs)+myriads == 0 && landwalk == nil {
+	if prot.ProtFrom != nil && (zone != zBattlefield || !lc.pumpObjectRef(obj)) {
+		return refuse("granted protection to a non-permanent subject")
+	}
+	if rest != "" || prot.ProtFrom == nil && len(fbs)+myriads == 0 && landwalk == nil {
 		ks, err := pumpKeywords(rest)
 		if err != nil {
 			return err
@@ -2395,6 +2433,13 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 		} else {
 			lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(ks, "&")})
 		}
+	}
+	if prot.ProtFrom != nil {
+		// CR 702.16 granted until end of turn: an end-of-turn override record
+		// carrying the protection's quality filter (kop.Override.ProtFrom),
+		// the colour-mask clauses of the "Protection from <colour>" spellings
+		// and lc.filter's clauses of the Protection:<spec> spellings beside it
+		lc.emitOverride(obj, prot, "EOT")
 	}
 	if landwalk != nil {
 		// CR 702.14 granted until end of turn: an end-of-turn override

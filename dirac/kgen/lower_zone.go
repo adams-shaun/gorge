@@ -1175,6 +1175,9 @@ func overrideString(o *lOverride) string {
 	if o.Landwalk != nil {
 		p = append(p, "landwalk="+o.Landwalk.String())
 	}
+	if o.ProtFrom != nil {
+		p = append(p, "protfrom="+o.ProtFrom.String())
+	}
 	if o.LoseAbilities {
 		p = append(p, "loseabilities")
 	}
@@ -3249,6 +3252,10 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			return nil, "", false, err
 		}
 		k, err = lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
+		if err != nil {
+			return nil, "", false, err
+		}
+		k, err = lc.splitProtFromKW(k, o) // the protection terms ride o.ProtFrom (lower_protgrant.go)
 		if err != nil {
 			return nil, "", false, err
 		}
