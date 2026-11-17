@@ -120,6 +120,29 @@ func (s *State) phyActAffords(k *prep, sl Slot, a *kop.Ability, p uint8, c kop.M
 	if !s.phyActUngrantedOK(k, sl, a, p, c) {
 		return false
 	}
+	// Under gorge's autopay surface the gate must not count a census-gap
+	// source: gorge prices only the cost's mana half with its planner, whose
+	// census misses a mana ability with its own mana cost (Hall of Tagsin's
+	// "{1}, {T}: Add one mana of any color"). A play whose colour faces only
+	// such a source makes is a potential play whose lowering dead-ends on the
+	// Phyrexian faces (oracle/gorge.go, "the play is not one gorge makes"),
+	// so offering it here would diverge from gorge's canonical list.
+	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 {
+		if gaps := s.phyGapSources(k, p); gaps.any() {
+			// The gap units are normally added by the availScript hook
+			// (availGaps/availAny) or by a grant, so the recompute must run
+			// as the plain, no-grant census: otherwise the very sources the
+			// exclusion drops are added back and the gate re-opens.
+			var plain avail
+			func() {
+				savedX, savedNoGrant := s.g.availX, s.g.noGrant
+				defer func() { s.g.availX, s.g.noGrant = savedX, savedNoGrant }()
+				s.g.availX, s.g.noGrant = availPlain, true
+				s.availForExcluding(k, p, &plain, gaps)
+			}()
+			av = &plain
+		}
+	}
 	n := min(c.TbN(), 5)
 	life := int(s.pl[p].life)
 	base := c
@@ -139,6 +162,34 @@ func (s *State) phyActAffords(k *prep, sl Slot, a *kop.Ability, p uint8, c kop.M
 		}
 	}
 	return false
+}
+
+// phyGapSources is the battlefield slots with a mana ability the planner
+// census cannot price (censusGapMana: an activation cost of its own, an
+// each-colour or restricted production). The Phyrexian gate excludes the
+// whole source under gorge's surface: the aggregate avail keeps one unit per
+// source, so the priced half of a dual source (Hall of Tagsin's bare-tap
+// {C}) cannot be kept while its gap half (the "{1}, {T}: Add one mana of any
+// color" that pays a coloured pip) is dropped. A phyrexian cost asks only
+// coloured faces, which such a source's priced half cannot make unless it
+// itself makes that colour.
+func (s *State) phyGapSources(k *prep, p uint8) slotMask {
+	var out slotMask
+	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
+		sl := b.first()
+		c := s.cardAt(sl)
+		if c == 0 || int(c) >= len(k.t.Cards) {
+			continue
+		}
+		for j := range k.t.Cards[c].Abilities {
+			a := &k.t.Cards[c].Abilities[j]
+			if a.Kind == kop.AbMana && censusGapMana(a) && !sacOnlyManaAb(a) {
+				out.set(sl)
+				break
+			}
+		}
+	}
+	return out
 }
 
 // phyActUngrantedOK is the grant half of a Phyrexian activation's offer under

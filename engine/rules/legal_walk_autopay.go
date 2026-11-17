@@ -1,9 +1,6 @@
 package rules
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -51,7 +48,7 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 		}
 		return true
 	}
-	return w.autoPayPlan(p, id, idx, base, scope, statics) || w.autoPayScriptOffer(p, id, idx, scope)
+	return w.autoPayPlan(p, id, idx, base, scope, statics)
 }
 
 // autoPayPlan is the ordinary autopay path: run the payment planner and
@@ -81,78 +78,7 @@ func (w *legalWalk) autoPayPhyrexian(p state.PlayerID, id state.ObjID, idx int, 
 			return true
 		}
 	}
-	return w.autoPayScriptOffer(p, id, idx, scope)
-}
-
-// autoPayScriptOffer is autoPayOffer's last resort: the planner prices no
-// witness, and its census cannot execute a mana-fee mana ability (Heap Gate's
-// "{1}, {T}: Add one mana of any color" beside a floating {C}), so its
-// "insufficient" is not the proof a complete census would make it. CR 601.2g
-// lets the payer activate mana abilities while paying, and CR 605.3a funds a
-// fee from an earlier same-window activation, so the route the potential
-// surface's prefix search proves (potentialPrefixScript: the same census, the
-// same relax and bounded proofs, the same node budget) is a legal payment. The
-// play is offered on a found script; the payment falls to the ordinary manual
-// window (armAbilityAutoPay's planner decline leaves it in place), which offers
-// the route's abilities one step at a time, or to the planner's witness once
-// the prefix has floated.
-//
-// The census and the search-slot count are shared across the walk's plays the
-// way the potential query's are (autoBound, potentialScriptPlays): a slot is
-// consumed when the census is incomplete and the play is not target-priced,
-// whether or not the bounded skip and the search run below.
-func (w *legalWalk) autoPayScriptOffer(p state.PlayerID, id state.ObjID, idx int, scope costScope) bool {
-	e := w.e
-	if w.autoCensus == nil {
-		e.beginDerivedMemo()
-		c := e.paymentPlanCensusOf(p, w.autoBound)
-		e.endDerivedMemo()
-		w.autoCensus = &c
-	}
-	census := *w.autoCensus
-	if os.Getenv("GORGE_SPDBG") != "" && id == 14 {
-		fmt.Fprintf(os.Stderr, "SPDBG id=14 complete=%v relaxable=%v gaps=%d searched=%d\n", census.complete, census.relaxable, len(census.gaps), w.autoScriptSearched)
-	}
-	if census.complete {
-		return false
-	}
-	verdict := func() PaymentPlanOutcome { return e.planAbilityPayment(p, id, idx) }
-	e.beginDerivedMemo()
-	defer e.endDerivedMemo()
-	if r := e.paymentPlanRelaxProof(census, verdict); census.relaxable && r.Reason == pay.ReasonInsufficient {
-		if os.Getenv("GORGE_SPDBG") != "" && id == 14 {
-			fmt.Fprintf(os.Stderr, "SPDBG id=14 relax proof insufficient\n")
-		}
-		return false
-	}
-	o := decision.Option{Kind: "ability", Obj: id, Ability: idx}
-	if tp := e.potentialTargetPriced(p, o); w.autoScriptSearched >= potentialScriptPlays || tp {
-		if os.Getenv("GORGE_SPDBG") != "" && id == 14 {
-			fmt.Fprintf(os.Stderr, "SPDBG id=14 cap=%v targetPriced=%v\n", w.autoScriptSearched >= potentialScriptPlays, tp)
-		}
-		return false
-	}
-	w.autoScriptSearched++
-	if !census.relaxable && census.bounded &&
-		e.paymentPlanRelaxProof(census.boundedProof(), verdict).Reason == pay.ReasonInsufficient {
-		if os.Getenv("GORGE_SPDBG") != "" && id == 14 {
-			fmt.Fprintf(os.Stderr, "SPDBG id=14 bounded skip\n")
-		}
-		return false
-	}
-	gaps2 := e.scriptSpendableGaps(p, o, census.gaps)
-	sr := e.newScriptSearch(p, decision.PotentialAction{Kind: "ability", Obj: id, Ability: idx}, 0, potentialScriptNodes)
-	var ok bool
-	if sr != nil {
-		sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps2, true, census.fees(), true
-		sr.passes = true
-		_, ok = sr.run(e)
-		if os.Getenv("GORGE_SPDBG") != "" && id == 14 {
-			fmt.Fprintf(os.Stderr, "SPDBG id=14 inline search gaps=%d found=%v limited=%v approx=%v unproven=%v (direct=%v)\n",
-				len(gaps2), ok, sr.limited, sr.approx, sr.unproven, func() bool { _, d := e.potentialPrefixScript(p, o, census.gaps, census.fees()); return d }())
-		}
-	}
-	return ok
+	return false
 }
 
 // autoPayConfirm runs the engine's own offer gate over a planner outcome's
