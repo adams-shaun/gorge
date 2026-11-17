@@ -135,6 +135,7 @@ const (
 	ChGenTextWord                             // mode = the word index (0..4 colours WUBRG, 5..9 basic land types) of a ChangeText "from" word, +16 for a "to" word (gorge's changetext_from / changetext_to, two sequential picks; act_changetext.go)
 	ChGenTapOrUntapAll                        // no source; mode 1 = tap all / 0 = untap all (gorge effTapOrUntapAll's "tap" / "untap", in that order; act_taporuntapall.go)
 	ChGenUnleash                              // source = the entering permanent; mode 1 = enter with the +1/+1 counter, 0 = without (gorge's "unleash" KChoose, option 0 = the counter, CR 702.86; kw_unleash.go)
+	ChGenClash                                // source = the clasher's revealed top card; mode 0 = bottom / 1 = top of its owner's library (gorge's clash_placement "bottom" / "top"; act_clash.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
