@@ -18,12 +18,13 @@ func (s *State) sorcerySpeed(p uint8) bool {
 }
 
 // castGateAffordable is the hand-cast offer gate's affordability read over
-// cav: the printed cost when its own is affordable (s.phyCastGateAffords,
-// mana_phyrexian.go: a Phyrexian cost's pip-free mana half alone, gorge pay.
-// PlanManaHalf, CR 601.2b), else the restricted-spend fallback (a restricted
-// source the spell may spend prices it, as gorge's planner's prefix search).
+// cav: the printed cost when its own is affordable, else for a Phyrexian
+// cost the whole cost over the cast window's census when its pip-free mana
+// half is (s.phyCastGateAffords, mana_phyrexian.go, CR 601.2b), else the
+// restricted-spend fallback (a restricted source the spell may spend prices
+// it, as gorge's planner's prefix search).
 func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, cav *avail) bool {
-	if s.phyCastGateAffords(cav, cost) {
+	if s.phyCastGateAffords(k, p, cav, cost) {
 		return true
 	}
 	return (s.rbAny(p) || k.restrSrc) && s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav)
