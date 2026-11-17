@@ -30,7 +30,8 @@ fi
 # TestGrantedKeywordHeadsAreRegisteredOrPinned failed in the batch (11-17). engine/rules' 225 run in ~32 s. The
 # append-only ordinals and layouts too: #635 added an ask kind with no manifest record and TestAskKindsUnchanged
 # failed fast and lint (11-17).
-census='Census|Pinned|Ratchet|OnlyShrink|AreRegistered|KindsUnchanged|OrdinalsUnchanged|LayoutFrozen'
+# #627 (11-17): TestNoNewFixedStateFields (dirac State layout) matched no census word and failed lint.
+census='Census|Pinned|Ratchet|OnlyShrink|AreRegistered|KindsUnchanged|OrdinalsUnchanged|LayoutFrozen|NoNewFixedStateFields|HashPins'
 for pkg in $(grep -E '\.(go|txt|tsv|json)$' <<<"$changed" | xargs -r -n1 dirname | sed -E 's#/testdata(/.*)?$##' | sort -u); do
   [ -n "$(ls "$pkg"/*_test.go 2>/dev/null)" ] || continue
   grep -q -E "^func Test[A-Za-z0-9_]*($census)" "$pkg"/*_test.go || continue
