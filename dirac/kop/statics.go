@@ -339,6 +339,7 @@ func (e *Emblem) HostBound() bool {
 const (
 	PanhModeLifeGained int16 = 1 // ValidMode$ LifeGained: a trigger of a player gaining life
 	PanhModeDrawn      int16 = 2 // ValidMode$ Drawn: a trigger of a player drawing a card
+	PanhModeDies       int16 = 3 // ValidCause$ + Origin$ Battlefield + Destination$ Graveyard: a ChangesZone trigger caused by a matching permanent dying (Filter2 = the cause)
 )
 
 // StaticFlags (Static.StFlags).

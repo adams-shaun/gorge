@@ -23,6 +23,9 @@ func (sc *staticCtx) modePanharmonicon() ([]lStatic, bool, error) {
 	// A ValidMode$ of one player-event mode alone (LifeGained, Drawn),
 	// with an optional ValidPlayer$ You, echoes only that mode's triggers
 	// of that player (flags "LifeGained" / "Drawn" and "You").
+	// The same ValidMode$ with Destination$ Graveyard and Origin$ Battlefield
+	// is the dies form (flag "Dies"): a ChangesZone trigger caused by a
+	// matching permanent dying.
 	// Every other gate (Origin$, Condition$, ...) is unread, so the shared
 	// unread check refuses it by name.
 	v, ok := sp.get("ValidCard")
@@ -53,7 +56,16 @@ func (sc *staticCtx) modePanharmonicon() ([]lStatic, bool, error) {
 		if vm != "ChangesZone,ChangesZoneAll" {
 			return nil, true, refuse("Panharmonicon ValidMode$ %s", vm)
 		}
-		if dest != "Battlefield" {
+		switch dest {
+		case "Battlefield":
+		case "Graveyard":
+			// the dies form: a creature's battlefield-to-graveyard move
+			// (kop.PanhModeDies, Filter2 = the cause)
+			if org, _ := sp.get("Origin"); org != "Battlefield" {
+				return nil, true, refuse("Panharmonicon Origin$ %s", org)
+			}
+			sc.st.Flags = append(sc.st.Flags, "Dies")
+		default:
 			return nil, true, refuse("Panharmonicon Destination$ %s", dest)
 		}
 		if sc.st.F2, err = lc.filter(cause); err != nil {
