@@ -2192,7 +2192,10 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 // 605.1a) — and the play then prices from the printed sources and the
 // tap-another gap's own mana (CR 601.2g-h).
 func (s *State) grantTapXPrefix(k *prep, a Action, p uint8) {
-	if !s.grantsLive(k) || !s.tapXScript(k, a, p, false) {
+	if !s.grantsLive(k) {
+		return
+	}
+	if found, _ := s.tapXScript(k, a, p, false); !found {
 		return // no tap-another script within gorge's node budget (mana_grantedoffers.go)
 	}
 	cost, ex, _, ok := s.grantPlayCost(k, p, a, true)
