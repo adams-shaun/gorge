@@ -84,6 +84,19 @@ func (s *State) fireLeavesBatched(k *prep, sl Slot, z kop.Zone) {
 
 // leaveAllBatched is leaveAll's moves as one batch.
 //
+// The trigger pre-pass keeps every member subscribed while each member's
+// move is fired, so a look-back-shaped line of a member that leaves early
+// still fires on the later members' moves (CR 603.10a). A printed
+// "put into a graveyard from anywhere" line is NOT such a line (CR 603.6c,
+// 603.10): gorge reads it from the live board only, so a member gone with
+// an earlier move fires it on no later one. fireLeave marks each member
+// pfBatchGone once its move has fired and removePerm clears the mark, so
+// objEventMatch drops the FromAnyGrave halves of a gone member on another
+// member's move. The member's own move is not marked yet when it fires, so
+// its own half still queues, as gorge's live walk queues it off its LKI.
+// Every simultaneous-departure arm gets the same discipline from
+// fireLeave/removePerm; this function adds only the zone batch.
+//
 //go:noinline
 func (s *State) leaveAllBatched(k *prep, order []Slot, z kop.Zone) {
 	var zs [MaxPerm]kop.Zone
