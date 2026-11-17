@@ -473,7 +473,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		}
 		if k.gen != nil && k.gen.anyManaRider {
 			c := s.cardAt(o)
-			if a, ok := s.riderAbilityOf(k, o); ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && s.riderWindowable(k, p, o, a, census) {
+			if a, ok := s.riderAbilityOf(k, o); ok && (int(k.cards[c].manaAb) == int(k.riderAbOf(c)) || s.riderPlainWindow(k, o, a)) && s.riderWindowable(k, p, o, a, census) {
 				mask := uint8(a.ManaColors)
 				if a.ManaEach {
 					mask = uint8(kop.ColAny)
