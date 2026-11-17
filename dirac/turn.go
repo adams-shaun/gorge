@@ -762,7 +762,7 @@ func (s *State) sba(k *prep) bool {
 			if MaxSeats > 2 && s.sweepDeparted(k) {
 				continue
 			}
-			return false
+			return s.sbaClean(k)
 		}
 		// gorge poses the legend ask before any of the pass's casualties
 		// apply (parkLegendChoice): park the creature casualties, which
