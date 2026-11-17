@@ -42,6 +42,32 @@ func (e *Engine) EffectiveKeywords() []effects.ObjectKeywords {
 	return out
 }
 
+// effectiveKeywordsInWalk is EffectiveKeywords for a read made inside a layer
+// walk (a layer-7 amount counting creatures by keyword): it derives each
+// battlefield object nested, as Derived documents is allowed, and leaves out
+// the objects whose own walk is in progress, which keep the printed read (the
+// walk cannot re-enter them). Same order and entries as EffectiveKeywords.
+func (e *Engine) effectiveKeywordsInWalk() []effects.ObjectKeywords {
+	var out []effects.ObjectKeywords
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			if _, busy := e.charsWalk.InProgress(id); busy {
+				continue
+			}
+			derived := e.Derived(id).Keywords
+			if keywordsMatchPrinted(o, derived) {
+				continue
+			}
+			out = append(out, effects.ObjectKeywords{ID: id, Keywords: append([]string{}, derived...)})
+		}
+	}
+	return out
+}
+
 // keywordsMatchPrinted reports whether derived names exactly the keyword
 // heads the printed read (effects.PrintedHasKeyword) answers for o: every
 // derived head is printed, and every printed face keyword survives.
