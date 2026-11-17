@@ -2032,7 +2032,7 @@ func (e *Engine) paymentSourceUseful(pc *pendingCast, p state.PlayerID, id state
 	chosen := pay.ChosenProducedColour(e.G, id)
 	f := e.G.Obj(id).Face()
 	for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
-		if manaAbilityAddsNothing(ma) || e.manaAbilityYieldsNothing(p, id, f, ma) {
+		if manaAbilityAddsNothing(ma) || e.manaAbilityYieldsNothing(p, id, f, ma) || e.feeOnlyConversionStalls(pc, p, id, ma) {
 			continue
 		}
 		cols := pay.AnnouncedAbilityColours(asPayer(e), p, id, ma, chosen)
