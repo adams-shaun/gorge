@@ -730,6 +730,7 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 	}
 	nodes := 0
 	used := make([]bool, len(ordered))
+	twin := castWindowTwins(ordered)
 	// canReach caps what the walk can still bring: the units' best production,
 	// largest first. A walk whose pool plus the most the remaining
 	// activations could add falls short of the units the cost spends
@@ -818,7 +819,11 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 			dead = map[cwDead]int{}
 		}
 		for i := range ordered {
-			if used[i] {
+			// Units the walk cannot tell apart (five Mountains, two Mana
+			// Prisms) are taken in order: any subset of them is reached
+			// as a prefix, so the search does not enumerate each subset
+			// once per choice of which twin to leave out.
+			if used[i] || (twin[i] >= 0 && !used[twin[i]]) {
 				continue
 			}
 			for _, a := range ordered[i].Alts {
@@ -885,6 +890,43 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 		return false
 	}
 	return rec(spellPool, snow, free, snow, life, -1, budget)
+}
+
+// castWindowTwins maps each unit to the nearest earlier unit the walk cannot
+// tell from it, or -1: the same alternatives in the same order, equal in
+// everything the walk reads (production, fee, life), differing at most in
+// the source's ability pointer. Spending one twin or the other reaches the
+// same pools, so the walk takes them in order. Without it a board of many
+// interchangeable sources made the walk enumerate every subset of them, and
+// the node cap ended the search on an {X} one mana short of what the sources
+// make (Crimson Hellkite's red-only X with seven Swamps beside its six red
+// sources and two Mana Prisms).
+func castWindowTwins(units []windowManaUnit) []int {
+	twin := make([]int, len(units))
+	for i := range units {
+		twin[i] = -1
+		for j := i - 1; j >= 0; j-- {
+			if castWindowUnitsTwin(units[j], units[i]) {
+				twin[i] = j
+				break
+			}
+		}
+	}
+	return twin
+}
+
+func castWindowUnitsTwin(a, b windowManaUnit) bool {
+	if len(a.Alts) != len(b.Alts) {
+		return false
+	}
+	for k := range a.Alts {
+		x, y := a.Alts[k], b.Alts[k]
+		x.Ma, y.Ma = nil, nil
+		if x != y {
+			return false
+		}
+	}
+	return true
 }
 
 // cwDead is one state of castWindowReachable's walk: the units spent (a mask) and

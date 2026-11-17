@@ -214,9 +214,17 @@ func (s *State) filtRelaxable(k *prep, f slotMask) bool {
 //
 //go:noinline
 func (s *State) availFilt(k *prep, p uint8, a *avail) {
+	neg := 0
 	for b := s.scriptFilt(k, p); b.any(); b = b.rest() {
-		addFiltUnits(a, s.filtAb(k, b.first()), uint8(s.filtUnits(k, b.first())))
-		a.total -= s.filtFee(k, b.first())
+		units, fee := s.filtUnits(k, b.first()), s.filtFee(k, b.first())
+		if units < fee {
+			// a subset of the relaxed proof (mana_filtersubset.go): this filter is left out
+			if neg++; neg <= relaxedPaidLimit && s.g.availX&availGaps != 0 && s.filtSkip()&(uint8(1)<<(neg-1)) != 0 {
+				continue
+			}
+		}
+		addFiltUnits(a, s.filtAb(k, b.first()), uint8(units))
+		a.total -= fee
 	}
 }
 
