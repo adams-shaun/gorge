@@ -113,7 +113,11 @@ func (s *State) tapsDeferred(k *prep, p uint8, sl Slot) bool {
 // then has no mana of its own to take out, and removing its printed mana would
 // take a floating unit of the pool instead: Cabal Pit's {B},{T}, sacrifice
 // beside Price of Glory, paid by the {B} a scripted prefix tapped from a
-// Swamp into the pool (CR 602.2b). The test is availFor's skip.
+// Swamp into the pool (CR 602.2b). The test is availFor's skip; the caller
+// exempts the plain gap units availTapsDeferIn counted (a.gapIn): their
+// removal is a census unit's, and skipping it lets a source's own mana fund
+// its own tap-cost ability (the Gate to Tumbledown seek beside the same
+// watcher, gorge's planner withholds).
 func (s *State) availLeavesOut(k *prep, sl Slot) bool {
 	if !s.deferLive(k) || s.g.availX&(availWalk|availHyp|availGaps|availAny) != 0 {
 		return false
@@ -180,6 +184,29 @@ func (s *State) deferGapsForPlay(k *prep, a Action, m slotMask) slotMask {
 // the offer priced a plain cast with it, which gorge's census never lists and
 // its autopay surface never scripts. Any other production stays unmodelled.
 func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
+	return s.scriptTapsDeferWalk(k, p, deferArmFull)
+}
+
+// scriptTapsDeferPlain is the plain Taps-deferred arm of scriptTapsDefer
+// alone: the sources whose tap a Defer-class watcher watches and whose
+// production is one mana of any colour or of exactly one of WUBRG -- the
+// census gap gorge's second pass funds (engine/rules/pay plandeferred.go,
+// this planner's planTiered pass 2). availTapsDeferIn counts their units
+// into the offer walk's picture.
+func (s *State) scriptTapsDeferPlain(k *prep, p uint8) slotMask {
+	return s.scriptTapsDeferWalk(k, p, deferArmPlain)
+}
+
+// deferArm is which arms of scriptTapsDefer's walk a caller wants.
+type deferArm uint8
+
+const (
+	deferArmFull  deferArm = iota // every arm
+	deferArmPlain                 // the plain one-mana tap arm only
+)
+
+// scriptTapsDeferWalk is scriptTapsDefer's walk over deferArm.
+func (s *State) scriptTapsDeferWalk(k *prep, p uint8, arms deferArm) slotMask {
 	if k.gen == nil || !(k.gen.anyTapsDefer || k.gen.anyManaRider) {
 		return slotMask{}
 	}
@@ -191,8 +218,11 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			// A bounded rider source: the planner defers its first ability
 			// (riderDeferred) or, with a plain first ability, its later
 			// rider (Grove of the Burnwillows). Both are prefix gaps; the
-			// activation pays the ability's own cost (mana_rider.go). A
-			// granted mana ability beside the rider does not exclude the
+			// activation pays the ability's own cost (mana_rider.go).
+			if arms == deferArmPlain {
+				continue
+			}
+			// A granted mana ability beside the rider does not exclude the
 			// gap: the grant stays the availability unit availGrant counts
 			// (ownManaUsable is false for a rider-first source, so the
 			// grant is all its census keeps), while gorge's census lists
@@ -217,8 +247,15 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		if !s.planDeferred(k, p, sl) {
 			continue
 		}
+		if arms == deferArmPlain && s.riderDeferred(k, sl) {
+			// a counter rider (Twitching Doll's nest counter) is a shape
+			// deferral gorge's tier classifier returns before it reads the
+			// watcher: "source:rider", no interference row, so the second
+			// pass (paymentPlanGapGate) never funds it
+			continue
+		}
 		if s.splitDeferred(k, sl) {
-			if s.splitUsable(k, sl) {
+			if arms != deferArmPlain && s.splitUsable(k, sl) {
 				m = m.with(sl) // a Condition-split source (mana_condsplit.go): its relaxed unit and answers are the live gate's
 			}
 			continue
@@ -228,7 +265,7 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			// colour makes (Hydraulic Helper): the same gap, its mana floating
 			// restricted (tapDeferFloat's restrTaps arm, floatRestrAb), when
 			// the source can be activated at all.
-			if s.tapsGapActivatable(k, sl) {
+			if arms != deferArmPlain && s.tapsGapActivatable(k, sl) {
 				m = m.with(sl)
 			}
 			continue
@@ -246,6 +283,15 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		pc := s.manaPCGen(k, sl)
 		if pc.manaAb < 0 || !pc.manaTap || !tapsDeferColour(kop.ColorMask(s.srcMaskAt(pc, sl))) ||
 			pc.manaFixedChosen || pc.manaOne || !tapsDeferYield(pc, s.srcMaskAt(pc, sl)) {
+			continue
+		}
+		if arms == deferArmPlain && s.srcYieldAt(k, sl, pc) != 1 {
+			// the second pass funds one unit of one symbol only (engine/rules/pay
+			// plandeferred.go paymentPlanGapGate's total == 1 over the census
+			// alternative): a several-mana evaluated production (Llanowar
+			// Tribe's {G}{G}{G}, a Priest of Titania beside another Elf) stays
+			// the script route's gap, its yield the prefix's -- the offer's
+			// picture prices a play with the one unit the gate funds
 			continue
 		}
 		if s.landSetGap(k, sl) {
@@ -298,6 +344,45 @@ func tapsDeferYield(pc *pcard, mask uint8) bool {
 func (s *State) landSetGap(k *prep, sl Slot) bool {
 	return k.gen.landSet && s.landSetLost(k, sl) && s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) &&
 		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
+}
+
+// availTapsDeferIn is availFor with the plain Taps-deferred sources counted
+// (scriptTapsDeferPlain): the priority walk's picture of the sources gorge's
+// census-gap second pass funds (engine/rules/pay plandeferred.go). The plain
+// walk the script route consults (plainOptions) counts them too, so a play
+// they pay is listed there and its payment is the planner's second pass
+// (planTiered0), not a prefix -- as gorge's planner pays it. The sources are
+// admitted in availFor's own loop (a.gapIn), so a source with a second
+// ability (Talisman's {G} or {W} beside its {C}) is counted as in the
+// planner's census, and removeSrc takes a cost's own tap out of them
+// (CR 602.2b) instead of trusting availLeavesOut's availFor premise.
+func (s *State) availTapsDeferIn(k *prep, p uint8, a *avail) {
+	if s.g.availX&(availGaps|availAny|availWalk|availHyp) != 0 {
+		// those walks already count the plain gap sources (availScript's
+		// scriptTapsDefer arm; the potential walks' main loop, which skips
+		// no deferred source), so a second unit would double them
+		s.availFor(k, p, a)
+		return
+	}
+	// availFor's source loop admits the recorded sources like any census
+	// unit, so a source with a second ability (Talisman's {G} or {W} beside
+	// its {C}) is counted as it is in the planner's census.
+	a.gapIn = s.scriptTapsDeferPlain(k, p)
+	s.availFor(k, p, a)
+}
+
+// planUnitBefore orders plan units: entry order, and in the second pass
+// (pk.tapsIn) the Taps-deferred gap sources after the census units, as gorge's
+// second pass lists its gap rows after the census's (engine/rules/pay
+// plandeferred.go PaymentPlanGapUnits): the plan's ties and the order its taps
+// run in follow the list.
+func (s *State) planUnitBefore(k *prep, p uint8, pk *planner, a, b Slot) bool {
+	if pk.tapsIn {
+		if ga, gb := s.planDeferred(k, p, a), s.planDeferred(k, p, b); ga != gb {
+			return gb
+		}
+	}
+	return s.perms[a].ts < s.perms[b].ts
 }
 
 // tapsGapActivatable: the Taps-deferred gap at sl can be tapped for mana now:
