@@ -2936,15 +2936,15 @@ func (lc *lowerCtx) token(ps *params) error {
 		return err
 	}
 	owner := lRef{Kind: rYou}
-	if _, ok, err := lc.targetedAndYou(ps, "TokenOwner"); err != nil {
+	andYou := false
+	if who, ok, err := lc.tokenAndYou(ps, xpt); err != nil {
 		return err
 	} else if ok {
-		// gorge's token path (tokenOwnerPlayers, token.go:144) reads
-		// definedSpec, not DefinedRef, so the TargetedAndYou alias is not
-		// expanded there: the TokenOwner falls back to the resolving
-		// controller (with a Note). Match that one-token fallback; the
-		// target is still asked.
-		owner = lRef{Kind: rYou}
+		// gorge's tokenOwnerPlayers resolves the alias through the wider
+		// Defined$ grammar: the targeted player first, then the controller,
+		// one mint each. The second mint is emitted below, only for the
+		// plain shape.
+		owner, andYou = who, true
 	} else if o, ok := ps.get("TokenOwner"); ok && o == "RememberedOwner" {
 		// the owner of the card the enters trigger exiled (CR 108.3), only
 		// in the remembered-persist shape (lower_rempersist.go)
@@ -3167,7 +3167,7 @@ func (lc *lowerCtx) token(ps *params) error {
 		// the Ext reads the X/X, then runs the CreateToken that follows
 		lc.emit(lInstr{Op: "TokenPT", C: xptIdx})
 	}
-	lc.emit(in)
+	lc.emitMints(in, andYou)
 	if pump != nil {
 		f, err := lc.filter("Card.IsRemembered")
 		if err != nil {
@@ -3176,6 +3176,36 @@ func (lc *lowerCtx) token(ps *params) error {
 		lc.emit(lInstr{Op: "PumpAll", F: f, A: cst(0), B: cst(0), CS: strings.Join(pump, "&")})
 	}
 	return nil
+}
+
+// tokenAndYou is targetedAndYou for a Token's TokenOwner$: gorge mints once for
+// the targeted player, then once for the controller, so only the plain shape
+// (the tapped rider alone) is lowered; any other rider would have to ride
+// both mints.
+func (lc *lowerCtx) tokenAndYou(ps *params, xpt bool) (lRef, bool, error) {
+	who, ok, err := lc.targetedAndYou(ps, "TokenOwner")
+	if err != nil || !ok {
+		return who, ok, err
+	}
+	if xpt {
+		return lRef{}, false, refuse("Token TokenOwner$ TargetedAndYou with a TokenPower$ override")
+	}
+	for _, k := range []string{"TokenAttacking", "AttachedTo", "RememberTokens", "RememberOriginalTokens", "AtEOT", "ImprintTokens", "PumpKeywords", "PumpDuration"} {
+		if _, has := ps.get(k); has {
+			return lRef{}, false, refuse("Token TokenOwner$ TargetedAndYou with %s$", k)
+		}
+	}
+	return who, true, nil
+}
+
+// emitMints emits a Token's CreateToken; under TargetedAndYou it adds the
+// controller's mint after the targeted player's.
+func (lc *lowerCtx) emitMints(in lInstr, andYou bool) {
+	lc.emit(in)
+	if andYou {
+		in.Obj = lRef{Kind: rYou}
+		lc.emit(in)
+	}
 }
 
 // tokenIsAura reports whether the token script's face is an Aura with an
