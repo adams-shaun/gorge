@@ -420,7 +420,7 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 			}
 			continue
 		}
-		if deferSkip && deferGap.has(sl) && s.planDeferred(k, p, sl) {
+		if deferSkip && deferGap.has(sl) && !a.gapIn.has(sl) && s.planDeferred(k, p, sl) {
 			if dual && s.grantIdx(k, sl) >= 0 {
 				// its granted ability is a census gap of its own, which the
 				// grant search taps (Enduring Vitality on Twitching Doll):
@@ -817,6 +817,11 @@ type planner struct {
 	// tapsIn: the plan also taps the sources a Taps watcher defers (the
 	// second pass of plan, mana_tapsdefer.go)
 	tapsIn bool
+	// cut: the plan stopped after a tap whose gated extra floated and left the
+	// pool paying payCost (planTapExtra): gorge's stepwise payment takes no
+	// further source once the pool pays
+	cut     bool
+	payCost *kop.ManaCost
 	// comboIn: the plan also counts the Combo Any sources gorge's planner
 	// has no witness for (the fallback pass of planTiered, mana_comboanyplan.go)
 	comboIn bool
@@ -974,6 +979,10 @@ func (s *State) tapNeed(pk *planner, p uint8, cost *kop.ManaCost, x int, anyColo
 func (s *State) tapPlanNeed(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, first, anyColor bool, pk *planner) {
 	s.tapNeed(pk, p, cost, x, anyColor)
 	pk.lastSl = NoSlot
+	pk.cut, pk.payCost = false, nil
+	if x == 0 && cost.X == 0 && cost.XPip == 0 && !anyColor {
+		pk.payCost = cost
+	}
 	if pk.needT > 0 {
 		pk.first = first
 		s.planTiered(k, p, pk, exclude)
@@ -1354,7 +1363,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	}
 	// insertion sort by timestamp (entry order)
 	for i := 1; i < no; i++ {
-		for j := i; j > 0 && s.perms[order[j]].ts < s.perms[order[j-1]].ts; j-- {
+		for j := i; j > 0 && s.planUnitBefore(k, p, pk, order[j], order[j-1]); j-- {
 			order[j], order[j-1] = order[j-1], order[j]
 		}
 	}
@@ -1698,7 +1707,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			}
 		}
 	}
-	for r := 0; r < bn; r++ {
+	for r := 0; r < bn && !pk.cut; r++ {
 		i := int(run[r])
 		u := best[i]
 		sl := pk.units[u]

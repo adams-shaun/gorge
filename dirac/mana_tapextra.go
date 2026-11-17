@@ -272,9 +272,9 @@ func (s *State) tapExtraReaches(k *prep, st statSrc, sl Slot, ctl uint8) bool {
 // paymentPlanTapExtraMana sums only folded triggers, so the planner's
 // readers never price it -- tapExtraReaches), while the tap itself, which
 // gorge fires the trigger on, still brings it.
-func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
+func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) (floated bool) {
 	if k.gen == nil || !k.gen.anyTapExtra {
-		return
+		return false
 	}
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
@@ -294,8 +294,10 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 		}
 		s.tapExtraEchoStall(k, st)
 		s.pl[p].pool[a.A] += uint8(a.B)
+		floated = true
 		return true
 	})
+	return floated
 }
 
 // tapExtraEchoStall stalls (StallTapExtra) when a Panharmonicon static echoes
@@ -454,8 +456,8 @@ func (s *State) planTapExtra(k *prep, p uint8, sl Slot, pk *planner, ty *utype) 
 	if ty.xt != 0 {
 		s.addXv(p, &ty.xv)
 	}
-	if pk.tapsIn && !ty.sacOnly {
-		s.addGatedExtra(k, p, sl, s.perms[sl].ctrl)
+	if pk.tapsIn && !ty.sacOnly && s.addGatedExtra(k, p, sl, s.perms[sl].ctrl) && s.cfg&cfgGorgeAutopay == 0 && pk.payCost != nil && s.poolPays(p, pk.payCost) {
+		pk.cut = true // gorge's stepwise payment takes no further source once the floated extra pays; its autopay plan is the one shot
 	}
 }
 

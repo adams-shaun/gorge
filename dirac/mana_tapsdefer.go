@@ -328,28 +328,36 @@ func (s *State) landSetGap(k *prep, sl Slot) bool {
 // recorded in a.gapIn, so removeSrc takes a cost's own tap out of them
 // (CR 602.2b) instead of trusting availLeavesOut's availFor premise.
 func (s *State) availTapsDeferIn(k *prep, p uint8, a *avail) {
-	s.availFor(k, p, a)
 	if s.g.availX&(availGaps|availAny|availWalk|availHyp) != 0 {
 		// those walks already count the plain gap sources (availScript's
 		// scriptTapsDefer arm; the potential walks' main loop, which skips
-		// no deferred source), so a second unit would double them
+		// no deferred source), so a second unit would double them. A queued
+		// trigger means a prefix search's tap is still waiting for its
+		// placement: the search prices the gaps it has left by its own taps
+		// (foreignPendAsks ends its line on a foreign ask), not by a census
+		// unit that would list the play before its trigger is placed.
+		s.availFor(k, p, a)
 		return
 	}
-	m := s.scriptTapsDeferPlain(k, p)
-	a.gapIn = m
-	for b := m; b.any(); b = b.rest() {
-		sl := b.first()
-		pc := s.manaPCGen(k, sl)
-		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
-		if k.gen != nil && k.gen.anyTapExtra {
-			xv := s.srcExtra(k, sl, pc)
-			for c := range xv {
-				if xv[c] > 0 {
-					a.addUnits(1<<c, xv[c])
-				}
-			}
+	// availFor's source loop admits the recorded sources like any census
+	// unit, so a source with a second ability (Talisman's {G} or {W} beside
+	// its {C}) is counted as it is in the planner's census.
+	a.gapIn = s.scriptTapsDeferPlain(k, p)
+	s.availFor(k, p, a)
+}
+
+// planUnitBefore orders plan units: entry order, and in the second pass
+// (pk.tapsIn) the Taps-deferred gap sources after the census units, as gorge's
+// second pass lists its gap rows after the census's (engine/rules/pay
+// plandeferred.go PaymentPlanGapUnits): the plan's ties and the order its taps
+// run in follow the list.
+func (s *State) planUnitBefore(k *prep, p uint8, pk *planner, a, b Slot) bool {
+	if pk.tapsIn {
+		if ga, gb := s.planDeferred(k, p, a), s.planDeferred(k, p, b); ga != gb {
+			return gb
 		}
 	}
+	return s.perms[a].ts < s.perms[b].ts
 }
 
 // tapsGapActivatable: the Taps-deferred gap at sl can be tapped for mana now:

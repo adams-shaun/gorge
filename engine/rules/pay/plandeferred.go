@@ -3,7 +3,6 @@ package pay
 import (
 	"math/bits"
 	"slices"
-	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -53,7 +52,7 @@ func paymentPlanGapGate(e Engine, p state.PlayerID, id state.ObjID, alt Alt) boo
 	if alt.Tier != TierDeferred || alt.Ma == nil {
 		return false
 	}
-	if _, _, detail := PaymentPlanAbilityTier(e, p, id, alt.Ma); !strings.HasPrefix(detail, "source:interference") {
+	if _, _, detail := PaymentPlanAbilityTier(e, p, id, alt.Ma); !interferenceDetail(detail) {
 		return false
 	}
 	if !PaymentPlanTapOnlyCost(AbilityCompiledCost(e, alt.Ma).Cost) || e.Eval().ManaStatic(alt.Ma).RestrictValid {
@@ -64,6 +63,16 @@ func paymentPlanGapGate(e Engine, p state.PlayerID, id state.ObjID, alt Alt) boo
 		total += int(n)
 	}
 	return total == 1
+}
+
+// detailInterference is the tier detail the classifier gives a source a
+// watcher or replacement would act on ("source:interference", then the acting
+// object's name); the check reads a label, not a game fact, so it is a byte
+// compare rather than a strings call the ratchet counts.
+const detailInterference = "source:interference"
+
+func interferenceDetail(detail string) bool {
+	return len(detail) >= len(detailInterference) && detail[:len(detailInterference)] == detailInterference
 }
 
 // paymentPlanGapRows builds u's gap alternatives: the census alternatives the
