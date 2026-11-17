@@ -922,7 +922,7 @@ func (s *State) tapAllStep(k *prep, p uint8) bool {
 // tapOneForMana taps the source at sl into the pool, reporting whether it could.
 func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
 	if k.gen != nil && s.anyDifferentAt(k, sl) {
-		s.windowAnyDifferentTap(k, sl) // the window lists a Firemind Vessel and its tap makes no mana (mana_anydifferent.go)
+		s.windowAnyDifferentTap(k, p, sl, nil, nil, false, true) // the window lists an AnyDifferent source and floats its N distinct colours
 		return true
 	}
 	if k.gen != nil && k.gen.anyWindowGap && s.windowGap(k, p, sl) {
