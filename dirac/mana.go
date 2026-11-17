@@ -245,6 +245,14 @@ func (a *avail) dropOneColour(n uint8) {
 }
 
 func (s *State) availFor(k *prep, p uint8, a *avail) {
+	s.availForExcluding(k, p, a, slotMask{})
+}
+
+// availForExcluding is availFor over the battlefield sources except the
+// slots in ex: the Phyrexian activation gate prices a cost the census misses
+// (a mana-fee ability) without those sources under the autopay surface, as
+// gorge's planner does (mana_phyrexian.go phyActAffords).
+func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 	a.total, a.n, a.nOne, a.nModal, a.pain.on = 0, 0, 0, 0, false
 	pl := &s.pl[p]
 	for c := 0; c < kop.NumManaKinds; c++ {
@@ -253,6 +261,9 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 		}
 	}
 	m := s.ctrlM[p]
+	if ex.any() {
+		m = m.andNot(ex)
+	}
 	// A granted colour beside the own ability (mana_grantedoffers.go): the
 	// planner's census and the offer read it, and grantCap's potential walk
 	// (availWalk) counts the relaxed alternatives. An activated ability's
