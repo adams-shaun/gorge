@@ -857,6 +857,16 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 				}
 				return int(l.tough)
 			}
+			// A target off the battlefield with no LKI snapshot reads its
+			// printed (or characteristic-defining) P/T: a graveyard card
+			// exiled by Morbid Bloom still has its toughness (CR 608.2g/h).
+			if o := s.objRefObj(kop.RefTarget0); o != NoObj {
+				pw, t := s.objPT(k, o, NoSlot)
+				if v.K == kop.VTargetPower {
+					return pw
+				}
+				return t
+			}
 			return 0
 		}
 		p, t := s.pt(k, sl)
