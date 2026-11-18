@@ -12,11 +12,14 @@ import (
 // be offered (effects.CloneETBOffered) so the gate no longer counts it
 // unplayable.
 //
-// Three cards of the class stay gated and are NOT listed: each needs engine
-// work beyond a CopyExcept rider (follow-up tickets in the report):
-// Vizier of Many Faces (Embalm$ provenance: "if it was embalmed"), Vesuvan
+// Two cards of the class stay gated and are NOT listed: each needs engine
+// work beyond a CopyExcept rider (follow-up tickets in the report): Vesuvan
 // Shapeshifter (Duration$ UntilFacedown plus its TurnFaceUp replacement) and
 // Infinite Reflection (an ETBReplacement on OTHER entering creatures).
+// Vizier of Many Faces' Embalm$ provenance rider ("if it was embalmed") is
+// offered since the Embalm$ gate: the gated RemoveCost$/SetColor$/AddTypes$
+// exceptions apply only to the card's own embalm token
+// (engine/rules/edh_etbclone_vizier_test.go).
 var edhETBCloneCards = []string{
 	"Spark Double",
 	"Cursed Mirror",
@@ -25,6 +28,7 @@ var edhETBCloneCards = []string{
 	"Estrid's Invocation",
 	"Moritte of the Frost",
 	"Machine God's Effigy",
+	"Vizier of Many Faces",
 }
 
 func TestEDHETBCloneRidersSupported(t *testing.T) {
