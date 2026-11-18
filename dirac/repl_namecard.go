@@ -234,5 +234,5 @@ func (s *State) namedCardCard(c CardID, fd bool, ctx *evalCtx) bool {
 		return false
 	}
 	n := s.chosenNameCard(ctx)
-	return n != NoCard && n == c
+	return n != NoCard && s.nameKey(n) == s.nameKey(c)
 }
