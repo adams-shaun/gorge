@@ -427,8 +427,9 @@ func dropTriggerRememberedMoved(c *Ctx, targets []state.Target) []state.Target {
 // definedDelayRememberedTargets is Defined(sa) with dropDelayedRememberedMoved
 // applied when the selector is Defined$ DelayTriggerRemembered[LKI]: the
 // Destroy and SacrificeAll movers ("destroy/sacrifice that creature at the
-// beginning of the next end step") find only the remembered object, as
-// ChangeZone's mover does (CR 400.7).
+// beginning of the next end step") and DealDamage's recipients (Sawtooth
+// Ogre's "deals 1 damage to that creature at end of combat") find only the
+// remembered object, as ChangeZone's mover does (CR 400.7).
 func definedDelayRememberedTargets(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	targets := Defined(h, c, sa)
 	switch definedSpecCodes.Code(DefinedRefOf(sa).Text) {

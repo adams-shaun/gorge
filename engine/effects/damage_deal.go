@@ -30,7 +30,7 @@ func dealDamageDecider(h Host, c *Ctx, spec string) (state.PlayerID, bool) {
 // a player target, or a permanent still on the battlefield (CR 608.2b). With
 // nothing to damage the election is a no-op, so no ask is posed.
 func damageHasRecipient(h Host, c *Ctx, sa *cards.SA) bool {
-	for _, t := range Defined(h, c, sa) {
+	for _, t := range definedDelayRememberedTargets(h, c, sa) {
 		if t.IsPlayer {
 			return true
 		}
@@ -45,7 +45,7 @@ func damageHasRecipient(h Host, c *Ctx, sa *cards.SA) bool {
 // election's prompt ("Have Requiem Monolith deal 1 damage to Grizzly Bears?").
 func damageOptionalPrompt(h Host, c *Ctx, sa *cards.SA, n int32) string {
 	target := "it"
-	if ts := Defined(h, c, sa); len(ts) > 0 {
+	if ts := definedDelayRememberedTargets(h, c, sa); len(ts) > 0 {
 		t := ts[0]
 		if t.IsPlayer {
 			if g := h.Game(); int(t.Player) < len(g.Players) {
@@ -186,7 +186,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 
 	if divided {
 		var live []state.Target
-		for _, t := range Defined(h, c, sa) {
+		for _, t := range definedDelayRememberedTargets(h, c, sa) {
 			if t.IsPlayer {
 				divTargets = append(divTargets, divTarget{player: t.Player})
 				live = append(live, t)
@@ -325,7 +325,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// ReplaceDyingDefined$) the flush could not honour.
 	inherits := (len(c.PendingDamage) > 0 || c.DamageMapOpen) && !remember && dp.ReplaceDyingDefined == ""
 	if (dp.DamageMap || inherits) && !divided && len(multiSources) < 2 {
-		for _, t := range Defined(h, c, sa) {
+		for _, t := range definedDelayRememberedTargets(h, c, sa) {
 			if t.IsPlayer {
 				c.PendingDamage = append(c.PendingDamage, PendingDamage{rider: rider,
 					target: state.Target{Player: t.Player, IsPlayer: true}})
@@ -393,7 +393,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 		h.EndDamageBatch()
 		return
 	}
-	for _, t := range Defined(h, c, sa) {
+	for _, t := range definedDelayRememberedTargets(h, c, sa) {
 		if t.IsPlayer {
 			dealt := emitPlayerDamage(rider, t.Player)
 			if remember && dealt > 0 {
@@ -423,7 +423,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 // list, an illegal target having left it, CR 608.2b); no target deals 0.
 func divideEvenlyDown(h Host, c *Ctx, sa *cards.SA, n int32) int32 {
 	var live int32
-	for _, t := range Defined(h, c, sa) {
+	for _, t := range definedDelayRememberedTargets(h, c, sa) {
 		if t.IsPlayer {
 			live++
 		} else if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
@@ -466,7 +466,7 @@ func emitFromEachSource(h Host, c *Ctx, sa *cards.SA, dp *DealDamageParams, sour
 	relative := dp.RelativeTarget
 	var shared []state.Target
 	if !relative {
-		shared = Defined(h, c, sa)
+		shared = definedDelayRememberedTargets(h, c, sa)
 		if len(shared) == 0 {
 			return false
 		}
@@ -480,7 +480,7 @@ func emitFromEachSource(h Host, c *Ctx, sa *cards.SA, dp *DealDamageParams, sour
 		pc := NewCtxPtr(src, o.Controller, CtxInit{SVars: c.SVars})
 		recips := shared
 		if relative {
-			recips = Defined(h, pc, sa)
+			recips = definedDelayRememberedTargets(h, pc, sa)
 			if len(recips) == 0 {
 				continue
 			}
