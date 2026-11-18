@@ -959,9 +959,14 @@ func dayTimeChangesMatches(e Board, ev events.Event) bool {
 }
 
 func init() {
+	// Mode$ DayTimeChanges ("whenever day becomes night or night becomes
+	// day", Brimstone Vandal, The Celestus): the matcher's DayNightChange
+	// switch check IS the behaviour, so the census key is registered here
+	// beside it, the way renowned.go registers trig:BecomeRenowned.
 	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return dayTimeChangesMatches(e, ev)
 	}, "DayTimeChanges")
+	effects.RegisterNonAPI("trig:DayTimeChanges")
 	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return commitCrimeMatches(e, t, source, ev)
 	}, "CommitCrime")
