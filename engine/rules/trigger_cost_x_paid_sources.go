@@ -8,27 +8,15 @@ import (
 )
 
 // paidSourceWindow is what triggeredCostXPaidNet reads of the engine: the board,
-// each source's probe-admitted mana abilities, the cost one activation pays and
-// the mana it makes.
-type paidSourceWindow interface {
-	game() *state.Game
-	probeAbilities(p state.PlayerID, id state.ObjID) []*cards.SA
-	feeCost(p state.PlayerID, id state.ObjID, ma *cards.SA) Cost
-	amount(p state.PlayerID, id state.ObjID, o *state.Object, ma *cards.SA) (int32, bool)
-}
-
-// engineWindow adapts the Engine to paidSourceWindow.
-type engineWindow struct{ e *Engine }
-
-func (w engineWindow) game() *state.Game { return w.e.G }
-func (w engineWindow) probeAbilities(p state.PlayerID, id state.ObjID) []*cards.SA {
-	return w.e.castWindowProbeAbilities(p, id)
-}
-func (w engineWindow) feeCost(p state.PlayerID, id state.ObjID, ma *cards.SA) Cost {
-	return w.e.manaAbilityCC(p, id, ma).Cost
-}
-func (w engineWindow) amount(p state.PlayerID, id state.ObjID, o *state.Object, ma *cards.SA) (int32, bool) {
-	return w.e.castWindowAmount(p, id, o, ma)
+// each source's probe-admitted mana abilities, the compiled cost one activation
+// pays and the mana it makes. Its fields are the Engine's own method values
+// (e.castWindowProbeAbilities, e.manaAbilityCC, e.castWindowAmount), so the
+// census adds no Engine surface.
+type paidSourceWindow struct {
+	g              *state.Game
+	probeAbilities func(p state.PlayerID, id state.ObjID) []*cards.SA
+	feeCost        func(p state.PlayerID, id state.ObjID, ma *cards.SA) *compiledCost
+	amount         func(p state.PlayerID, id state.ObjID, o *state.Object, ma *cards.SA) (int32, bool)
 }
 
 // triggeredCostXPaidNet is the mana a source the payment-window census leaves
@@ -47,8 +35,8 @@ func triggeredCostXPaidNet(w paidSourceWindow, p state.PlayerID, supply int32, u
 		priced[u.ID] = true
 	}
 	total := supply
-	for _, id := range pay.BattlefieldManaSourceIDs(w.game(), p) {
-		o := w.game().Obj(id)
+	for _, id := range pay.BattlefieldManaSourceIDs(w.g, p) {
+		o := w.g.Obj(id)
 		if priced[id] || o == nil || o.Face() == nil {
 			continue
 		}
@@ -58,7 +46,7 @@ func triggeredCostXPaidNet(w paidSourceWindow, p state.PlayerID, supply int32, u
 			if mp.RestrictValid != "" && !admits(id, ma) {
 				continue
 			}
-			cost := w.feeCost(p, id, ma)
+			cost := w.feeCost(p, id, ma).Cost
 			if pay.ActivationTapCostUnavailable(o, &cost) || !castWindowGenericCostShape(cost) {
 				continue
 			}

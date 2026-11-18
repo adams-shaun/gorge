@@ -1070,7 +1070,7 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 			pool := pay.AvailableFor(asPayer(e), tc.player, desc).Pool.Total()
 			units := pay.PaymentPlanQueryUnits(asPayer(e), tc.player)
 			supply := triggeredCostXSupply(pool, units, admits)
-			supply += triggeredCostXPaidNet(engineWindow{e}, tc.player, supply, units, admits)
+			supply += triggeredCostXPaidNet(paidSourceWindow{e.G, e.castWindowProbeAbilities, e.manaAbilityCC, e.castWindowAmount}, tc.player, supply, units, admits)
 			if supply < bound {
 				bound = supply
 			}

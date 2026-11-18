@@ -49,10 +49,11 @@ func TestTriggeredCostXPaidNetNeedsTheFeeFunded(t *testing.T) {
 	e, _, _ := xCensusBoard(t, xPaidLake)
 	admits := func(state.ObjID, *cards.SA) bool { return true }
 	units := pay.PaymentPlanQueryUnits(asPayer(e), 0)
-	if got := triggeredCostXPaidNet(engineWindow{e}, 0, 0, units, admits); got != 0 {
+	w := paidSourceWindow{e.G, e.castWindowProbeAbilities, e.manaAbilityCC, e.castWindowAmount}
+	if got := triggeredCostXPaidNet(w, 0, 0, units, admits); got != 0 {
 		t.Fatalf("a fee source with no supply added %d, want 0", got)
 	}
-	if got := triggeredCostXPaidNet(engineWindow{e}, 0, 1, units, admits); got != 1 {
+	if got := triggeredCostXPaidNet(w, 0, 1, units, admits); got != 1 {
 		t.Fatalf("a fee source beside 1 supply added %d, want 1 (two mana for a one-mana fee)", got)
 	}
 }
