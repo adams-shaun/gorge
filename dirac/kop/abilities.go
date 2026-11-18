@@ -530,10 +530,14 @@ func StoreManaAb(a *Ability) bool {
 // with no {T} and no mana cost (Treasonous Ogre's "Pay 3 life: Add {R}"):
 // exactly CostPayLife with N >= 1, a plain unrestricted production of one
 // fixed colour or one of any colour, and no rider, gate, deferral, dynamic
-// amount, each-colour or latent flag. gorge's planner census misses it (the
-// life-only cost is no payment-plan unit), so its one prefix search activates
-// the source; the kernel models the activation as a census gap (dirac
-// mana_lifegap.go). Kozilek's Translator's ActivationLimit$ 1 is a once-a-turn
+// amount, each-colour or latent flag. gorge's planner prices it as its
+// source's last-resort alternative with Consequence{Life: N}
+// (pay.PlanLastResortCostOK, PaymentPlanShapeTierOf's cost.Life arm, which
+// asks no {T}), so a SOLE one (SoleGapLifeManaAb) is a pain-only census unit
+// of the kernel's plain census (dirac mana_pain.go prepSoleLifeMana), not a
+// census gap; a life-only ability beside the source's own {T} mana ability
+// stays a census gap (dirac mana_lifegap.go), the prefix search's gap it has
+// always been. Kozilek's Translator's ActivationLimit$ 1 is a once-a-turn
 // cost part and is no GapLifeManaAb.
 func GapLifeManaAb(a *Ability) bool {
 	c := a.ManaColors
@@ -544,6 +548,22 @@ func GapLifeManaAb(a *Ability) bool {
 		a.ManaRider == ManaRiderNone && a.ManaRiderCtr == 0 && a.ManaRiderN == 0 &&
 		a.ManaN <= 1 && len(a.Prog) == 0 && a.Gate.Ctr == 0 && a.Trig.Cond == 0 && a.SplitGate == SplitGateNone &&
 		(c == ColAny || c != 0 && c&(c-1) == 0) && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
+// SoleGapLifeManaAb reports whether ability j of cd is the card's only own
+// mana ability and is a GapLifeManaAb: the pain-only census unit
+// prepSoleLifeMana classifies (dirac mana_pain.go), the way SoleLifeManaAb
+// is Mana Confluence's "{T}, Pay N life: Add one mana".
+func SoleGapLifeManaAb(cd *CardDef, j int) bool {
+	if !GapLifeManaAb(&cd.Abilities[j]) {
+		return false
+	}
+	for i := range cd.Abilities {
+		if i != j && cd.Abilities[i].Kind == AbMana && cd.Abilities[i].AFlags&AfLatent == 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // ManaAbilityHonoured reports whether the kernel can activate ability j of

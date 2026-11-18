@@ -354,14 +354,11 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		}
 		pc = s.windowGrantAnswer(k, sl, col, pc) // the answer is a colour only a granted ability makes: the tap is the grant's (mana_grantcost.go)
 		sacOnly := windowSacOnly(k, pc)          // printed or granted (mana_grantcost.go)
+		noTap := windowNoTapPain(k, pc)          // a life-only pain unit: the pain arm below pays its life (mana_pain.go)
 		if k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDyn(k, p, cost, sl) {
 			continue
 		}
-		if !sacOnly {
-			s.perms[sl].flags |= pfTapped
-			s.touchSl(sl)
-			s.manaTapped(k, sl)
-		}
+		s.windowTapCost(k, sl, sacOnly || noTap)
 		life := s.windowGrantLife(k, sl, pc, col)
 		s.poolAdd(p, col, int(s.windowGrantYield(k, sl, pc, col)))
 		s.addExtraCol(k, p, sl, pc, col)
@@ -488,7 +485,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if census && s.ctrCensusOffer(k, p, o) {
 			return o, true // the unless census's fixed counter-fee source (ctrCensusOffer)
 		}
-		if s.windowCanTap(k, o) || s.windowSacNow(k, o) {
+		if s.windowSourceUsable(k, o, p) {
 			if !takeDeferred && s.planDeferred(k, p, o) {
 				continue // the window's answer follows the planner's tier: gorge's bot never picks a deferred source (mana_tapsdefer.go)
 			}
@@ -531,6 +528,26 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		}
 	}
 	return NoSlot, false
+}
+
+// windowSourceUsable: the manual window's pick may take sl now — a tap, a
+// no-tap cost (a sacrifice-only source, or a sole life-only pain unit whose
+// guard is gorge's CR 119.4 lethal one), or a live granted one.
+func (s *State) windowSourceUsable(k *prep, o Slot, p uint8) bool {
+	return s.windowCanTap(k, o) || s.windowSacNow(k, o) || k.painMana && s.canLifeOnlyMana(k, o, p)
+}
+
+// windowTapCost: the window's payment taps sl unless the ability pays without
+// a tap — a sacrifice-only source (the walk sacrifices it) or a life-only
+// pain one (the pain arm below pays its life). It reports whether it tapped.
+func (s *State) windowTapCost(k *prep, sl Slot, noTap bool) bool {
+	if noTap {
+		return false
+	}
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	return true
 }
 
 // windowRiderPick: o is a bounded rider source gorge's window lists (hit); skip
@@ -924,8 +941,10 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 }
 
 // windowDryWalk is windowDryRestr, and also reports whether the walk stopped
-// unknown only at a sacrifice-only source (sacStop): a last-resort unit the
-// payment planner prices where this walk does not (an Eldrazi Spawn).
+// unknown only at a source that pays without a tap (sacStop): a last-resort
+// unit the payment planner prices where this walk does not — a sacrifice-only
+// source (an Eldrazi Spawn), or a life-only pain one (a Treasonous Ogre,
+// mana_pain.go).
 func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known, restr, sacStop bool) {
 	pool := s.pl[p].pool
 	var tapped [MaxPerm]Slot
@@ -964,9 +983,9 @@ func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor boo
 		}
 		pc := s.windowGrantPC(k, sl)
 		dyn := k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDynMask(k, p, sl) != 0
-		if gap || windowSacOnly(k, pc) || s.perms[sl].flags&pfTapped != 0 || dyn {
+		if gap || windowSacOnly(k, pc) || windowNoTapPain(k, pc) || s.perms[sl].flags&pfTapped != 0 || dyn {
 			ok, known = false, false
-			sacStop = !gap && !dyn && windowSacOnly(k, pc) && s.perms[sl].flags&pfTapped == 0
+			sacStop = !gap && !dyn && (windowSacOnly(k, pc) || windowNoTapPain(k, pc)) && s.perms[sl].flags&pfTapped == 0
 			break
 		}
 		col := s.windowCol(k, p, cost, sl, pc, anyColor, false)

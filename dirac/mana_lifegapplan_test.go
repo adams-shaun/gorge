@@ -27,15 +27,15 @@ func TestLifeGapPlansPlainCastOnAutopaySurface(t *testing.T) {
 	offered := func(life int) bool {
 		sc := newScenTableLib(t, tbl, id["Mountain"], Config{NoElide: true, GorgeAutopaySurface: true})
 		sc.lands(0, id["Mountain"], 4)
-		sc.perm(id["Treasonous Ogre"], 0)
+		ogre := sc.perm(id["Treasonous Ogre"], 0)
 		dragon := sc.hand(id["Rapacious Dragon"], 0)
 		s := sc.s
 		s.pl[0].life = int16(life)
 		if mv := sc.k.t.Cards[id["Rapacious Dragon"]].Cost.MV(); mv != 5 {
 			t.Fatalf("precondition: Rapacious Dragon costs {%d}, want five mana", mv)
 		}
-		if !s.lifeGapMask(sc.k, 0).any() {
-			t.Fatalf("precondition: the Ogre is not a payable life gap at %d life", life)
+		if !lifeOnlyPain(s.manaPCAt(sc.k, sc.slot(ogre))) {
+			t.Fatalf("precondition: the Ogre is not the life-only pain census unit at %d life", life)
 		}
 		d := s.Step()
 		for i := 0; i < int(d.N); i++ {

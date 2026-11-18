@@ -6,22 +6,25 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// Life-only mana abilities (kop.GapLifeManaAb: Treasonous Ogre's "Pay 3 life:
-// Add {R}"). gorge's payment planner has no unit for the ability (the cost is
-// life with no {T}, so it is neither a census source nor a last-resort tap),
-// and the census misses it: a potential play the planner proves insufficient
-// gets gorge's one prefix search (rules scriptSearch.visit), which activates
-// the source and pays the life. The kernel models it as a census gap whose
-// activation pays the life and floats the mana (AvailScript's gaps walk), and
-// beside a paid filter as an otherLife step of the filter search
-// (mana_mixgaps.go), so the life funds the filter's fee and the filter's mana
-// pays the play.
+// A life-only mana ability BESIDE the source's own {T} mana ability
+// (kop.GapLifeManaAb but not kop.SoleGapLifeManaAb: the mixed card the census
+// gap stays for). A SOLE life-only ability is no gap here: gorge's planner
+// prices it as the source's last-resort census unit with Consequence{Life: N}
+// (pay.PaymentPlanShapeTierOf), and the kernel joins it to the pain census
+// instead (mana_pain.go prepSoleLifeMana). For the mixed card the life
+// ability is the alternative the planner does not list a unit for: a potential
+// play the planner proves insufficient gets gorge's one prefix search (rules
+// scriptSearch.visit), which activates the source and pays the life. The
+// kernel models that ability as a census gap whose activation pays the life
+// and floats the mana (AvailScript's gaps walk), and beside a paid filter as
+// an otherLife step of the filter search (mana_mixgaps.go), so the life funds
+// the filter's fee and the filter's mana pays the play.
 //
-// The source neither taps nor needs to be unsick: paying life is not a {T}
-// cost, so its mask is not gapMask's (a tapped or summoning-sick source stays
-// usable). The life total is not part of the filter search's state key, so
-// every activation checks the payer can pay (lifeGapAt; lifeGapMask at the
-// root).
+// The source neither taps nor needs to be unsick for its life ability: paying
+// life is not a {T} cost, so its mask is not gapMask's (a tapped or
+// summoning-sick source stays usable). The life total is not part of the
+// filter search's state key, so every activation checks the payer can pay
+// (lifeGapAt; lifeGapMask at the root).
 
 // useLifeGap: some card's gapOther mana ability is a life-only one
 // (kop.GapLifeManaAb). prepCensusGap sets it, as it is the registered ability
