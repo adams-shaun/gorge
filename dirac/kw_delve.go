@@ -42,7 +42,23 @@ func (s *State) hasCastDelve(k *prep, p uint8, c CardID, o Obj, fromHand bool) b
 // offered only against the floating pool. gorge declines a spell carrying
 // delve whatever its graveyard holds.
 func (s *State) contribPays(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
+	p = s.creditReader(p, o)
 	return s.tapPays(k, p, c, o, fromHand) || s.hasCastDelve(k, p, c, o, fromHand)
+}
+
+// creditReader is the seat a planner read of o's convoke, improvise or delve
+// grant names as "you": gorge's hasCastConvoke and friends read
+// derivedWith(id, ZStack), whose controller is the card's own until it is
+// cast (CR 108.4a, an exiled card's owner), not the seat offered the cast.
+// p's Ironheart ("Noncreature spells you cast have improvise") is no credit
+// to p's permission cast of the other seat's exiled Borough Backup (Black
+// Widow, Super Spy's dig grant), so gorge's planner prices and offers it.
+// On the stack the spell's controller is its caster, p.
+func (s *State) creditReader(p uint8, o Obj) uint8 {
+	if o == NoObj || s.objs[o].zone == kop.ZoneStack {
+		return p
+	}
+	return s.objs[o].owner()
 }
 
 // delvePaysEntry reports a spell on the stack cast with delve:

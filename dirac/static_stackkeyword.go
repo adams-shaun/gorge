@@ -153,10 +153,14 @@ func (s *State) grantImprovise(k *prep, p uint8, c CardID, o Obj, fromHand bool)
 // Ironheart over p's exiled nonland card is a credit to that read too. So the
 // grant loop here answers it the way the CantBeCast offer read does
 // (matchSpellCardOffer: the origin the cast would come from) per live static,
-// without the caster filter. The keyword reads above stay: their callers
-// already agree with gorge where their grants carry no wasCast clause.
+// without the caster filter. The keyword reads above read the card's own
+// controller (an exiled card's owner) too, never the caster: p's Ironheart
+// over the other seat's exiled Borough Backup (Black Widow's dig grant) is
+// no credit to gorge's read (its YouCtrl names the owner), so the cast is
+// priced and offered.
 func (s *State) creditOfferLive(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
-	if s.hasConvoke(k, p, c, o, fromHand) || s.hasCastDelve(k, p, c, o, fromHand) || s.isImprovise(k, p, c, o, fromHand) {
+	q := s.creditReader(p, o)
+	if s.hasConvoke(k, q, c, o, fromHand) || s.hasCastDelve(k, q, c, o, fromHand) || s.isImprovise(k, q, c, o, fromHand) {
 		return true
 	}
 	if k.gen == nil || !k.gen.anyStackKw || s.objs[o].zone == kop.ZoneBattlefield {
