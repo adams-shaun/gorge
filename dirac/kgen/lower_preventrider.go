@@ -16,13 +16,18 @@ import (
 // effectPreventScope (ActiveZones$ absent or Command, IsCombat$ absent or
 // True, ValidTarget$/ValidSource$ of scopeTargetBits/scopeSourceBits), and
 // the body is exactly DB$ GainLife | Defined$ You | LifeAmount$ X with
-// X = ReplaceCount$DamageAmount. One OpExt PreventDamageScope with
-// kop.PrevScopeGain. It reports false, consuming nothing, for any other shape.
-func (lc *lowerCtx) effectPreventRider(ps *params) (bool, error) {
-	for _, k := range []string{"RememberObjects", "ValidTgts", "Duration"} {
+// X = ReplaceCount$DamageAmount. A Duration$ UntilEndOfCombat on the Effect
+// marks the record kop.PrevScopeEndCombat instead of the turn (prevstate-04's
+// shapes). One OpExt PreventDamageScope with kop.PrevScopeGain. It reports
+// false, consuming nothing, for any other shape.
+func (lc *lowerCtx) effectPreventRider(ps *params, eoc bool) (bool, error) {
+	for _, k := range []string{"RememberObjects", "ValidTgts"} {
 		if _, ok := ps.m[k]; ok {
 			return false, nil
 		}
+	}
+	if _, ok := ps.get("Duration"); ok && !eoc {
+		return false, nil
 	}
 	name := strings.TrimSpace(ps.peek("ReplacementEffects"))
 	if name == "" || strings.Contains(name, ",") {
@@ -40,6 +45,9 @@ func (lc *lowerCtx) effectPreventRider(ps *params) (bool, error) {
 		return false, nil
 	}
 	bits := kop.PrevScopeGain
+	if eoc {
+		bits |= kop.PrevScopeEndCombat
+	}
 	if v, has := rm["IsCombat"]; has {
 		if strings.TrimSpace(v) != "True" {
 			return false, nil
@@ -61,6 +69,9 @@ func (lc *lowerCtx) effectPreventRider(ps *params) (bool, error) {
 		return false, nil
 	}
 	ps.consume("ReplacementEffects", "AILogic")
+	if eoc {
+		ps.consume("Duration", "UntilEndOfCombat")
+	}
 	lc.emit(lInstr{Op: "PreventDamageScope", C: bits, Note: "prevent the damage and gain that much life this turn"})
 	return true, nil
 }

@@ -32,6 +32,9 @@ func (s *State) prevScopeAdd(k *prep, in *kop.Instr) {
 			if in.C&kop.PrevScopeGain != 0 {
 				s.g.prevX[i] = pxRidGain | s.res.e.ctrl<<pxSeatShift // repl_prevx.go
 			}
+			if in.C&kop.PrevScopeEndCombat != 0 {
+				s.g.prevX[i] |= pxEOC // repl_prevx.go: the record ends with the combat
+			}
 			return
 		}
 	}
