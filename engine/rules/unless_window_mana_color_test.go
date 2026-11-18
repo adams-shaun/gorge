@@ -16,9 +16,9 @@ import (
 func TestUnlessWindowManaColorReplacementIsServed(t *testing.T) {
 	const gain = "\nSVar:Gain:DB$ GainLife | LifeAmount$ 2 | Defined$ You"
 	const pulse = "Name:Window Pulse\nTypes:Enchantment\n" +
-		"R:Event$ ProduceMana | ActiveZones$ Battlefield | ValidCard$ Land.Basic+YouCtrl | ReplaceWith$ ProduceAny | " +
-		"Description$ Fixture: a basic land you control tapped for mana produces a colour of your choice.\n" +
-		"SVar:ProduceAny:DB$ ReplaceMana | ReplaceType$ Any\nOracle:x\n"
+		"R:Event$ ProduceMana | ValidCard$ Land.Basic+YouCtrl | ReplaceWith$ AnyHue | ActiveZones$ Battlefield | " +
+		"Description$ Fixture: a basic land you control tapped for mana yields one colour of its controller's choice.\n" +
+		"SVar:AnyHue:DB$ ReplaceMana | ReplaceType$ Any\nOracle:x\n"
 	name := "Window Pulse Tithe"
 	src := tapeUnlessSorcery(name,
 		"A:SP$ GainLife | LifeAmount$ 3 | UnlessCost$ 1 | UnlessPayer$ You | UnlessSwitched$ True | SubAbility$ Gain"+gain)
