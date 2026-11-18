@@ -428,7 +428,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	exactKnown := potUnitsAvail(&ex, &pu, int(s.pl[SeatIx(p)].life))
 	var gs gapSubsets
 	if !exactKnown {
-		s.xBoundGapSubsets(k, p, d, &gs) // the paid gaps' fees, as gorge's relaxed proof charges them (xbound_gapfee.go)
+		s.xBoundGapSubsets(k, p, d, &gs) // the paid gaps' fees, as gorge's relaxed proof charges them (mana_xboundgap.go)
 	}
 	ok := false
 	for x := costXMin(&a.Cost); !ok && x < 255; x++ { // from the floor (cost_sacx.go)
