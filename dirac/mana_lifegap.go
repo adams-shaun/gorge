@@ -206,3 +206,42 @@ func (s *State) windowLifeCtrGapTap(k *prep, p uint8, sl Slot, cost *kop.ManaCos
 	}
 	return false
 }
+
+// lifeGapPriced reports whether the autopay surface lists the plain cast of o
+// that the prefix search pays through p's life-only gaps: gorge's planner
+// prices it, the source being a unit of its last-resort phase
+// (PlanLastResortChoices), so the cast is a planned one and not a scripted one
+// the surface drops. That holds when the life gaps are the board's only gaps
+// (beside another kind, a filter included, the planner's phases are not
+// modelled) and each activation leaves the payer above 0 life: the planner
+// refuses a unit whose pain is at least the life (pay/classify.go), where the
+// search's own check (lifeGapAt) allows paying down to 0. A spell the planner
+// never prices (an {X} cost: plannedCastCost's shape test) stays dropped.
+func (s *State) lifeGapPriced(k *prep, p uint8, o Obj) bool {
+	life := s.lifeGapMask(k, p)
+	if !life.any() || k.gen.anyFilt && (s.scriptFilt(k, p).any() || s.mixBoard(k, p)) {
+		return false
+	}
+	if _, shape := s.plannedCastCost(k, p, o, 0); !shape {
+		return false
+	}
+	if s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).
+		or(s.scriptTapXModelled(k, p)).or(s.scriptCtrModelled(k, p)).or(s.anyDifferentGaps(k, p)).any() ||
+		k.gen.anyDiscHand && s.dhBoard(k, p) || k.gen.anyComboAny && s.caBoard(k, p) {
+		return false
+	}
+	for b := life; b.any(); b = b.rest() {
+		a, _ := s.lifeGapSource(k, b.first())
+		if int(s.pl[SeatIx(p)].life) <= int(a.Cost.N) {
+			return false
+		}
+	}
+	return true
+}
+
+// lifeGapShaped reports whether gorge's cast planner prices o at all (an {X}
+// cost, say, it never does), so the planner's phase 2 cannot pay it.
+func (s *State) lifeGapShaped(k *prep, p uint8, o Obj) bool {
+	_, shape := s.plannedCastCost(k, p, o, 0)
+	return shape
+}
