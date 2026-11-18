@@ -431,8 +431,6 @@ func (e *Engine) askReplacementChoiceIn(p state.PlayerID, fromEmit bool) events.
 			d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: rc.cands[rc.selected].id,
 				Label: "Add " + color, ManaSymbol: color})
 		}
-		e.ask(d)
-		return events.Event{}
 	case replChoicePhaseOrder:
 		d.Prompt = "Several replacement effects would change this step: choose which applies first."
 		indices = rc.applicable
@@ -550,7 +548,7 @@ func (e *Engine) askReplacementChoiceIn(p state.PlayerID, fromEmit bool) events.
 	// pose takes the plain ask and creates no record at all. A recomputation
 	// ask already owns a resume point; pose it directly without overwriting
 	// the original continuation.
-	if e.resolvingObj != 0 || e.applyingReplacement {
+	if e.resolvingObj != 0 || e.applyingReplacement || e.tapeWindowAsking {
 		// Under the resolution kernel the order is answered in place:
 		// the chosen replacement applies at the
 		// point of the competing event, not after the rest of the chain.
