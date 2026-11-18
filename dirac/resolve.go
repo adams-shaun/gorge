@@ -456,7 +456,13 @@ func (s *State) resolveWard(k *prep) {
 // landfall triggers).
 func (s *State) wardedIndex(e *stackEntry) int {
 	i := s.stackIndexOf(e.trigObj)
-	if i < 0 || s.stack[i].kind == seSpell {
+	if e.tver[0] != 0 {
+		// The ward answers an ability (enqueueWard stamps its identity; a spell
+		// has none). Its source can be a spell still on the stack, whose own cast
+		// trigger sits above it (Ugin, Eye of the Storms), so the scan starts at the
+		// top, not at the spell stackIndexOf names (CR 702.21a).
+		i = int(s.sp) - 1
+	} else if i < 0 || s.stack[i].kind == seSpell {
 		return i
 	}
 	for j := i; j >= 0; j-- {
