@@ -1150,7 +1150,7 @@ func (s *State) plainHandPlayLowers(k *prep, p uint8, c CardID, o Obj) bool {
 	if s.g.mayPlayAny {
 		cost = anyType(cost)
 	}
-	return !s.dhWithholdsCast(k, p, o, &cost)
+	return !s.dhWithholdsCast(k, p, o, &cost) && s.plainSacKeepsTarget(k, p, c, o, &cost)
 }
 
 // scriptSourceLive: p has a source the planner's census leaves a gap (an
