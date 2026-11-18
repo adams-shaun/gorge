@@ -142,23 +142,7 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 			return n, true, true
 		}
 		if rest == "HasPropertycontrolsCreature.powerGE4" && arg == "" {
-			// Yojimbo's chapter IV counts opponents, not creatures. Read the
-			// battlefield and derived power (including continuous effects).
-			seen := make(map[state.PlayerID]bool)
-			for i := range g.Objs {
-				o := &g.Objs[i]
-				if o.Zone == state.ZBattlefield && o.Controller != c.Controller &&
-					h.IsCreature(o.ID) && h.Power(o.ID) >= 4 {
-					seen[o.Controller] = true
-				}
-			}
-			var n int32
-			for _, p := range opponentGroup(g, c) {
-				if seen[p] {
-					n++
-				}
-			}
-			return n, true, true
+			return opponentsControlsCreaturePowerGE4(h, g, c), true, true
 		}
 		if n, ok2 := hasPropertyStateBacked(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
 			return n, true, true
@@ -316,6 +300,29 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 		return dotBranch(h, c, branches, g.IsStartingPlayer(c.Controller), depth), true, true
 	}
 	return 0, false, false
+}
+
+// opponentsControlsCreaturePowerGE4 is the PlayerCountOpponents$
+// HasPropertycontrolsCreature.powerGE4 read (Yojimbo's chapter IV counts
+// OPPONENTS, not creatures): how many of the resolving controller's living
+// opponents control a battlefield creature whose derived power — continuous
+// effects included — is 4 or greater.
+func opponentsControlsCreaturePowerGE4(h Host, g *state.Game, c *Ctx) int32 {
+	seen := make(map[state.PlayerID]bool)
+	for i := range g.Objs {
+		o := &g.Objs[i]
+		if o.Zone == state.ZBattlefield && o.Controller != c.Controller &&
+			h.IsCreature(o.ID) && h.Power(o.ID) >= 4 {
+			seen[o.Controller] = true
+		}
+	}
+	var n int32
+	for _, p := range opponentGroup(g, c) {
+		if seen[p] {
+			n++
+		}
+	}
+	return n
 }
 
 // playerMaxSpeedProperty is the PlayerCountPropertyYou$HasPropertyMaxSpeed
