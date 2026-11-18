@@ -171,13 +171,7 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 		if d := t.ParamStr(cards.PKDestination); d != "" && d != "Any" {
 			gyOrigin = false
 		}
-		lookBack := false
-		if ev.From == state.ZGraveyard && ev.To != state.ZGraveyard {
-			lookBack = gyOrigin
-		} else {
-			lookBack = (source == ev.Obj && ev.To != state.ZBattlefield) || LeftBattlefield(ev) ||
-				(ev.From == state.ZExile && ev.To != state.ZBattlefield)
-		}
+		lookBack := zoneLookBack(ev, source, gyOrigin)
 		if ev.Obj != 0 && lki != nil && lookBack {
 			spec, ok := e.CastProvenanceAdmits(v, lki.ID, ctrl)
 			// The IsGoaded static route (staticgoad1), passed as an override
@@ -234,6 +228,18 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 		}
 	}
 	return true
+}
+
+// zoneLookBack reports whether a zone-change watcher judges the moving object
+// from its LKI snapshot rather than the live object (CR 603.10a). A source
+// entering the battlefield matches live: its own entry trigger sees the
+// permanent as it entered, not its stack snapshot (CR 603.6a).
+func zoneLookBack(ev events.Event, source state.ObjID, gyOrigin bool) bool {
+	if ev.From == state.ZGraveyard && ev.To != state.ZGraveyard {
+		return gyOrigin
+	}
+	return (source == ev.Obj && ev.To != state.ZBattlefield) || LeftBattlefield(ev) ||
+		(ev.From == state.ZExile && ev.To != state.ZBattlefield)
 }
 
 // LeftBattlefield reports a zone change whose object left the battlefield.
