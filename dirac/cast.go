@@ -339,7 +339,7 @@ func (s *State) pushBuild(k *prep) {
 			if ob.activations() < objActsMask {
 				s.touch(e.obj)
 				ob.acts++
-				if e.trigObj != NoObj && k.gen != nil && k.gen.grantActOn {
+				if e.trigObj != NoObj && s.grantActOn() {
 					s.noteGrantAct(e.obj) // act_grantledger.go
 				}
 			} else {

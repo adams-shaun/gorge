@@ -56,7 +56,6 @@ type genPrep struct {
 	fxNeed          uint8 // CR 613 layer walk triggers (static_layerwalk.go fxNeed* bits); 0: the fixed-order code
 	enteredNeed     bool  // some expression reads the ring
 	actRingOn       bool  // some expression reads the ring (ExThisTurnActGrave): the activation push records it
-	grantActOn      bool  // some expression is ExActivations N 1 (an ActivationLimit$ N offer gate): a granted activation's push records its host (act_grantledger.go)
 	anyTurnF        bool  // some table reads this turn's per-player coin-flip or Exhaust-activation bits (genState.turnF; static_turnbits.go)
 	castTapOn       bool  // castRingOn, or some card carries a Tf2ManaFromSelf reader: the planner's tap sites record a Treasure or observed source (noteTapSrc)
 	anyManaHaste    bool  // some mana ability carries a ManaHasteValid rider (mana_spentrider.go)
@@ -834,9 +833,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if t.Exprs[i].Kind == kop.ExThisTurnActGrave {
 			g.actRingOn = true
-		}
-		if t.Exprs[i].Kind == kop.ExActivations && t.Exprs[i].N == 1 {
-			g.grantActOn = true
 		}
 		if t.Exprs[i].Kind == kop.ExFirstCast {
 			g.anyFirstCast = true // cast_firstcast.go
@@ -1831,6 +1827,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepChoosePlayer(t, g) // repl_chooseplayer.go
 	prepTokListAdd(t, g)   // repl_toklistadd.go
 	prepCold(g, &p.cold)
+	prepGrantAct(t, p) // act_grantledger.go
 	return g
 }
 
@@ -2110,9 +2107,6 @@ type genState struct {
 	// actRing: per activator, the first actRingN abilities activated this turn, each as the source Obj+1 (0 = empty), actN the counts. Written only when genPrep.actRingOn; in no hash (cast_activationledger.go).
 	actRing [MaxSeats][actRingN]Obj
 	actN    [MaxSeats]uint8
-	// grantAct: the hosts (Obj+1) of this turn's granted activations, grantN of them; written only when genPrep.grantActOn (act_grantledger.go).
-	grantAct [grantActN]Obj
-	grantN   uint8
 
 	// pending as-enters choices (colour / creature type) and the leyline ask
 	ask  [4]askRec

@@ -765,7 +765,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	}
 	s.setOnceBits(k, sl, 0)        // CR 400.7: the activate-only-once marks end with the permanent
 	s.objs[o].acts &^= objActsMask // CR 400.7: the count ends with the permanent
-	if k.gen != nil && k.gen.grantActOn {
+	if s.grantActOn() {
 		s.dropGrantActs(o) // act_grantledger.go
 	}
 	if s.g.netAny() {
