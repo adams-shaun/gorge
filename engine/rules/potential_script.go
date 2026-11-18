@@ -119,6 +119,22 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		return nil, false
 	}
 	script, found = sr.run(e)
+	if found && len(script) > 0 {
+		return script, true
+	}
+	// The subsume run, only where the plain search ran out of budget (a
+	// completed plain search saw the whole space, whose paying states the
+	// subsume run's kept answers also reach) and the play's cost is
+	// coloured pips alone with no fee-carrying gap to fund (a generic or X
+	// pip, or a fee, is payable with any colour, so a covered colour is not
+	// dominated while one is outstanding; census.fees counts the latter).
+	if plain.limited && funding == 0 {
+		ss := build(false)
+		if ss != nil {
+			ss.subsume = true
+			script, found = ss.run(e)
+		}
+	}
 	return script, found && len(script) > 0
 }
 
@@ -202,6 +218,22 @@ type scriptSearch struct {
 	// real-payable gates (potentialPrefixScript's fallback run). The plain
 	// run keeps the order and node walk dirac's mirror prices plays by.
 	phased bool
+	// subsume is potentialPrefixScript's third run: with the plain and phased
+	// orders both unable to price the play, it drops a mana activation's
+	// colour-ask answers the floating pool has already covered (a kept answer
+	// dominates them), so the search walks the funding line before its budget
+	// runs out (subsumeAnswers). The run is strictly narrower than the plain
+	// one -- every dropped answer's paying continuations are reachable along
+	// a kept one -- so it can only find a script the plain search walked
+	// past, never refuse one it found.
+	subsume bool
+	// costCol holds the searched play's base cost's coloured pips per colour
+	// when that cost is coloured pips alone (scriptNeedCounts), the bound the
+	// subsume run's colour-ask filter prunes against. costOK is false for a
+	// cost with a generic, snow or X pip or a hybrid face, whose pips any
+	// colour may help pay.
+	costCol [state.MC + 1]int32
+	costOK  bool
 	// printedOnly: the play is a printed ability, and a granted one sharing its
 	// Ability is another option (only a printed ability reaches the planner).
 	printedOnly bool
@@ -239,6 +271,7 @@ func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, a
 	}
 	if altCost <= 0 {
 		sr.need = scriptNeedColours(e, e.G.Obj(a.Obj), p, a)
+		sr.costCol, sr.costOK = scriptNeedCounts(e, e.G.Obj(a.Obj), p, a)
 	}
 	return sr
 }
@@ -294,20 +327,66 @@ func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a 
 			}
 		}
 	}
+	if c, ok := scriptPlayBaseCost(r, o, p, a); ok {
+		add(c)
+	}
+	return need
+}
+
+// scriptPlayBaseCost is the cost the searched play's base face announces (CR
+// 601.2b: the caster announces each pip's colour before targets): a plain
+// cast's printed mana cost, an ability's compiled cost. ok is false when the
+// play's cost is not the printed base one -- a cast of a mode or an
+// alternative cost (MayPlay*, flashback), an unresolvable ability, or a play
+// that is neither kind -- so both need-readers (scriptNeedColours, the
+// search's branch-order preference, and scriptNeedCounts, the subsume run's
+// prune bound) leave the cost unread rather than guess one.
+func scriptPlayBaseCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) (costvocab.Cost, bool) {
 	if o == nil || o.Face() == nil {
-		return need
+		return costvocab.Cost{}, false
 	}
 	switch a.Kind {
 	case "cast":
-		if a.Mode == "" {
-			add(r.castOfferBase(p, a.Obj))
+		if a.Mode != "" {
+			return costvocab.Cost{}, false
 		}
+		return r.castOfferBase(p, a.Obj), true
 	case "ability":
-		if pa, ok := o.PileAbilityAt(a.Ability); ok && pa.SA != nil {
-			add(r.abilityCompiledCost(pa.SA).Cost)
+		pa, ok := o.PileAbilityAt(a.Ability)
+		if !ok || pa.SA == nil {
+			return costvocab.Cost{}, false
+		}
+		return r.abilityCompiledCost(pa.SA).Cost, true
+	default:
+		return costvocab.Cost{}, false
+	}
+}
+
+// scriptNeedCounts is scriptNeedColours as counts: the searched play's base
+// cost's coloured pips per colour, ok false when the cost has a part whose
+// payment any colour may help (a generic, snow or X pip, a hybrid, Phyrexian,
+// twobrid or hybrid-Phyrexian face) or that the base cost does not announce
+// (a mode or alternative cost; scriptPlayBaseCost): the subsume run's
+// colour-ask filter prunes a colour only when floating more of it can pay
+// nothing.
+func scriptNeedCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) ([state.MC + 1]int32, bool) {
+	var counts [state.MC + 1]int32
+	c, ok := scriptPlayBaseCost(r, o, p, a)
+	if !ok {
+		return counts, false
+	}
+	if c.Generic != 0 || c.Snow != 0 || c.X != 0 || c.Forage ||
+		len(c.Hybrid) != 0 || len(c.Phyrexian) != 0 || len(c.Twobrid) != 0 || len(c.HybridPhyrexian) != 0 {
+		return counts, false
+	}
+	any := false
+	for i, n := range c.Colored {
+		if n > 0 && i <= state.MC {
+			counts[i] = n
+			any = true
 		}
 	}
-	return need
+	return counts, any
 }
 
 // run searches from a clone of e; found reports a path (possibly empty,
@@ -586,6 +665,9 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 		answers := scriptAnswers(d)
 		if scriptManaAskHoists(asPayer(c), c.manaActivation, p, d) {
 			answers = scriptOrderAnswers(d, answers, sr.need)
+		}
+		if sr.subsume {
+			answers = sr.subsumeAnswers(c, d, answers)
 		}
 		if len(answers) == 0 {
 			sr.approx = true
@@ -1001,6 +1083,57 @@ func scriptOrderAnswers(d *decision.Decision, answers []decision.Intent, need [s
 		}
 	}
 	return append(first, rest...)
+}
+
+// subsumeAnswers narrows, for the subsume run (potentialPrefixScript's third
+// search), the answers of a mana activation's ask, so the search reaches a
+// funding line its budget would otherwise spend itself dead on. The colour
+// ask is filtered:
+//
+//   - a colour ask (every option names a mana symbol) keeps only the colours
+//     the floating pool still lacks of the play's coloured-pip-only cost
+//     (sr.costCol) and drops the rest: a colour the pool already covers pays
+//     nothing more, and every continuation that floats it again reaches the
+//     same payer states one that floats a lacking colour reaches -- a pool
+//     that covered the pip before covers it after, so any line through the
+//     covered answer is dominated by the same line through a lacking one.
+//     The run is gated on a play whose cost is coloured pips alone
+//     (scriptNeedCounts): a generic or X pip is payable with any colour, so
+//     a covered colour is not dominated while one is outstanding.
+//
+// A colour ask of a source without the play's cost colours (sr.costCol all
+// zero at the ask's colours) keeps nothing: with no generic pip outstanding
+// its every answer floats mana no pip needs. An ask the filter cannot read
+// (an option whose symbol the code cannot resolve) is kept whole, as are
+// every non-mana ask and the single-answer asks.
+func (sr *scriptSearch) subsumeAnswers(c *Engine, d *decision.Decision, answers []decision.Intent) []decision.Intent {
+	if len(answers) <= 1 || !scriptManaUnits(d) || !sr.costOK {
+		return answers
+	}
+	pool := c.G.Players[sr.p].Pool
+	kept := 0
+	for _, in := range answers {
+		wanted := false
+		for _, ch := range in.Choices {
+			for i := range d.Options {
+				o := &d.Options[i]
+				if o.Index == ch && len(o.ManaSymbol) == 1 {
+					if j := state.ManaIndex(o.ManaSymbol[0]); j <= state.MC && sr.costCol[j] > pool[j] {
+						wanted = true
+					}
+					break
+				}
+			}
+		}
+		if wanted {
+			answers[kept] = in
+			kept++
+		}
+	}
+	if kept == 0 {
+		return nil
+	}
+	return answers[:kept]
 }
 
 // witnessSelfTargetsLast stably moves, in a target ask the witness replay
