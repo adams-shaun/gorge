@@ -798,11 +798,19 @@ func isDigits(s string) bool {
 // with a strictly smaller conversionDeficit? The payment is simulated the
 // way the engine pays it (coloured pips from their slot, generic from C then
 // W, U, B, R, G); a pool that cannot pay is no progress. A plain production
-// adds exactly its Colour vector; a choice production (Any, Reflected) is
-// priced as ONE unit of the card's most-needed colour (its guaranteed lower
-// bound); an indeterminate amount cannot be priced and is no progress.
+// adds exactly its Colour vector; a choice production (Any, Reflected) or an
+// indeterminate amount cannot be priced and is no progress.
 func (b Board) conversionProgresses(c Card, spend manaSpend, prod cards.ManaProduction) bool {
 	if spend.unknown || prod.Indeterminate {
+		return false
+	}
+	// A choice production (Any, Combo, Reflected) has a colour the policy
+	// cannot steer: the converter's own ask is a costed "Pay 1: Add R" ask,
+	// which manaOptionColour never reads, so the engine's fallback adds the
+	// first colour. Pricing it as the card's most-needed colour promised
+	// progress the activation did not deliver, and a Skyshroud Elf looped
+	// {1}: Add {R} on a floating {R} until the livelock watcher fired.
+	if prod.Any || prod.Reflected {
 		return false
 	}
 	// Only the unrestricted pool (see Board.PoolRestricted) pays a
@@ -833,18 +841,8 @@ func (b Board) conversionProgresses(c Card, spend manaSpend, prod cards.ManaProd
 		return false
 	}
 	pips := colourPips(c.ManaCost)
-	if prod.Any || prod.Reflected {
-		bestI, bestGap := int(state.MC), int32(0)
-		for i := 0; i < 5; i++ {
-			if gap := pips[i] - pool[i]; gap > bestGap {
-				bestI, bestGap = i, gap
-			}
-		}
-		pool[bestI]++
-	} else {
-		for i := range pool {
-			pool[i] += prod.Colour[i]
-		}
+	for i := range pool {
+		pool[i] += prod.Colour[i]
 	}
 	return conversionDeficit(c, pips, pool) < conversionDeficit(c, pips, base)
 }
