@@ -148,6 +148,12 @@ type Ability struct {
 	// script or the manual mana window does (kernel mana_deferred.go). A
 	// table byte: AbilityFlags has no free bit.
 	ManaDeferred bool
+	// ManaNoCounter: AddsNoCounter$ True on a restricted any-colour mana
+	// ability (Cavern of Souls, Delighted Halfling; CR 106.6): the spell its
+	// mana pays for can't be countered. A table byte: AbilityFlags has no
+	// free bit. The restriction batch it floats is its own kind
+	// (dirac mana_nocounter.go), so a payment that spends it stamps the spell.
+	ManaNoCounter bool
 	// SplitGate, SplitCtr, SplitCols: a Condition-split mana ability (River of
 	// Tears' "{T}: Add {U}. If you played a land this turn, add {B}
 	// instead"; Gemstone Caverns' "{T}: Add {C}. If this has a luck counter on

@@ -78,6 +78,11 @@ type ForkPool struct {
 	// outermost fork was taken: the search root's (static_turnbits.go
 	// rootTurnF).
 	rootF []uint8
+	// census: the walk being run is an unless / ward window's affordability
+	// probe (windowAffordsTake), which prices the deferred sources the way
+	// gorge's unlessWindowUnits does: a source's own mana, never a
+	// Produced$ Chosen TapsForMana trigger's extra (addGatedExtra).
+	census bool
 }
 
 // warmForkDepth is past the deepest nesting measured, 5 in random play.

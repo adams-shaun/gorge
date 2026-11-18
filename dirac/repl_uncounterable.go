@@ -73,6 +73,9 @@ func uncStats(n, self int) {
 //
 //go:noinline
 func (s *State) uncounterable(k *prep, i int) bool {
+	if noCounterStamped(&s.stack[i]) {
+		return true // AddsNoCounter$ mana paid for it (mana_nocounter.go): stopped before any replacement is asked
+	}
 	n, self, _, _, _ := s.uncCount(k, i)
 	scan := k.anyUncounter && !DebugUncounterOff
 	if !scan && n == 0 {
@@ -131,6 +134,9 @@ func (s *State) uncCount(k *prep, i int) (n, self, nDelayed, nScope, nScan int) 
 //
 //go:noinline
 func (s *State) uncGate(k *prep, i int) (unc, park bool) {
+	if noCounterStamped(&s.stack[i]) {
+		return true, false // gorge counterStopped reads FlagNoCounter ahead of CounterAllowed: no order ask (mana_nocounter.go)
+	}
 	ro := &s.g.ro
 	if ro.ac&uncOrdTag == uncOrdTag {
 		// the answered competition: CR 616.1f applies the picked candidate,

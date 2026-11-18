@@ -25,8 +25,8 @@ import (
 // each with YouCtrl, or ReflectProperty$ Produce with each with OppCtrl.
 // Anything else is refused.
 func (lc *lowerCtx) lowerManaReflected(sa *cards.SA, ps *params, ab *lAbility) error {
-	if ps.str("ColorOrType") != "Color" {
-		return refuse("ManaReflected ColorOrType$ %q", ps.str("ColorOrType"))
+	if ct := ps.str("ColorOrType"); ct != "Color" && !(ct == "Type" && ps.str("ReflectProperty") == "Produce") {
+		return refuse("ManaReflected ColorOrType$ %q", ct)
 	}
 	if ps.str("ReflectProperty") == "Produce" {
 		return lc.lowerManaReflectedProduce(sa, ps, ab)
@@ -71,13 +71,15 @@ func (lc *lowerCtx) lowerManaReflected(sa *cards.SA, ps *params, ab *lAbility) e
 	return lc.finishMana(sa, ps, ab, m)
 }
 
-// lowerManaReflectedProduce lowers the opponents'-production shape (Valid$
-// <filter>[,<filter>] each with OppCtrl): one mana of any colour among the
-// matched permanents' cards' producible colours (CardDef.ProduceCol; kernel
-// mana_reflected.go produceColours, gorge effects.producibleSymbols). A
-// mixed YouCtrl list would need two walks, the kernel's one walk is the
-// opponents' alone, so every alternative must carry OppCtrl; gorge's planner
-// admits the mixed list (reflectsStableObjects), no corpus card carries one.
+// lowerManaReflectedProduce lowers the production shape (Valid$
+// <filter>[,<filter>] each with OppCtrl, Exotic Orchard's "a land an opponent
+// controls", or YouCtrl, Gond Gate's "a Gate you control" and Star Compass's
+// "a basic land you control"): one mana of any colour among the matched
+// permanents' cards' producible colours (CardDef.ProduceCol; kernel
+// mana_reflected.go produceColours, gorge effects.producibleSymbols). The
+// kernel's walk covers every seat's permanents and the filter's control
+// property keeps one side out, the same read as gorge's object walk
+// (effects.ManaReflectedObjects over AliveFrom(0)).
 func (lc *lowerCtx) lowerManaReflectedProduce(sa *cards.SA, ps *params, ab *lAbility) error {
 	valid := ps.str("Valid")
 	if valid == "" || strings.HasPrefix(valid, "Defined.") {
@@ -85,11 +87,11 @@ func (lc *lowerCtx) lowerManaReflectedProduce(sa *cards.SA, ps *params, ab *lAbi
 	}
 	for _, alt := range strings.Split(valid, ",") {
 		if _, props, ok := strings.Cut(strings.TrimSpace(alt), "."); !ok ||
-			!slices.Contains(strings.Split(props, "+"), "OppCtrl") {
-			// gorge's shape needs the opponent read on every alternative
-			// (reflectsStableObjects); the kernel's one walk is the
-			// opponents' matching permanents (produceColours)
-			return refuse("ManaReflected Valid$ %q without OppCtrl", valid)
+			!slices.Contains(strings.Split(props, "+"), "OppCtrl") && !slices.Contains(strings.Split(props, "+"), "YouCtrl") {
+			// gorge's shape needs a control read on every alternative
+			// (reflectsStableObjects); the kernel walks every seat's
+			// permanents and the filter's own control property decides
+			return refuse("ManaReflected Valid$ %q without OppCtrl or YouCtrl", valid)
 		}
 	}
 	f, err := lc.filter(valid)
@@ -201,9 +203,21 @@ func (lc *lowerCtx) refuseReflectedMana(ms []*lAbility) bool {
 		}
 		return true
 	}
+	if len(ms) == 2 && at == 1 {
+		// (Gond Gate) {T}: Add {C}; {T}: the reflected colour. gorge's census
+		// lists the same one unit, {C} | the reflected colours, without the
+		// restricted any colour's deferred gap
+		switch {
+		case !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) || ms[0].Mana.Colors != "C" || ms[0].Mana.Choice:
+			lc.refuseNode("card", "reflected mana ability beside a first ability other than {T}: Add {C}")
+		case !reflTapMana(ms[1]):
+			lc.refuseNode("card", "reflected mana ability with a cost beyond {T}")
+		}
+		return true
+	}
 	switch {
 	case len(ms) != 3 || at != 2:
-		lc.refuseNode("card", "reflected mana ability outside {C}, restricted any colour, reflected")
+		lc.refuseNode("card", "reflected mana ability outside {C}, reflected or {C}, restricted any colour, reflected")
 	case !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) || ms[0].Mana.Colors != "C" || ms[0].Mana.Choice:
 		lc.refuseNode("card", "reflected mana ability beside a first ability other than {T}: Add {C}")
 	case !plainTapMana(ms[1], false) || ms[1].Mana.Colors != "WUBRG" || ms[1].Mana.Restrict == nil || ms[1].Mana.RestrictAb != nil ||

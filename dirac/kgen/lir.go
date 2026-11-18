@@ -1114,6 +1114,7 @@ type lMana struct {
 	// abilities could PRODUCE, not their colours (ReflectProperty$ Produce,
 	// every Valid$ alternative OppCtrl: Exotic Orchard, Fellwar Stone).
 	Produce    bool
+	NoCounter  bool     // AddsNoCounter$ True beside a spell restriction: the spell this mana pays for can't be countered (kop.Ability.ManaNoCounter; lower_manaspent.go)
 	Deferred   bool     // a TriggersWhenSpent$ source gorge's planner defers (kop.Ability.ManaDeferred; lower_deferredmana.go)
 	Split      *lSplit  // a Condition-split production's arm (kop.Ability.SplitGate; lower_condsplit.go)
 	HasteValid *lFilter // AddsKeywords$ Haste: a spell matching it, paid with this mana, gains haste until end of turn (kop.Ability.ManaHasteValid)
