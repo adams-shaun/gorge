@@ -185,6 +185,7 @@ func (s *State) phyWindowReach(k *prep, p uint8, cost *kop.ManaCost) bool {
 	// window can tap it, and the pip ask that announced the face counted it
 	// (mana_deferred.go)
 	s.addDeferredUnits(k, p, &av)
+	s.addPipTapsDefer(k, &s.bld().e, &av) // a Taps-deferred source too (mana_pipstapsdefer.go)
 	if av.affords(cost, pipMaskOf(cost), 0) {
 		return true
 	}
