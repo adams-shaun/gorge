@@ -532,6 +532,12 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 	// each potential target's composition; an unsupported shape is not a proof
 	// either way and keeps the bound's answer.
 	priceExactly := func(cost Cost) bool {
+		// "insufficient" is a proof only while the planner's source census
+		// covers every mana ability the seat could activate, or a relaxation
+		// of the ones it misses still cannot pay: a filter's "{1}, {T}: Add one
+		// mana of any color" (Unknown Shores) is a gap, so Killing Glare's X=1
+		// ({1}{B} from Plains, Radiant Grove and Shores) stays offered (CR
+		// 605.3b, 601.2g).
 		insufficient := func(composed Cost) bool {
 			// bound is the potential pool the census reads.
 			verdict := func() PaymentPlanOutcome { return e.planComposedCost(p, id, composed, ability, ability) }
