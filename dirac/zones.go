@@ -889,6 +889,12 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	}
 	if k.gen != nil {
 		s.leaveGen(k, sl, o)
+		if k.gen.ctrlSBA && s.g.nfx != 0 {
+			// gorge's expireControl runs after the leave event: a steal that
+			// lasts while its source stays ends before anything the source
+			// does next (an Essence Flux return) sees the stolen permanent
+			s.ctrlExpire(k, false)
+		}
 	}
 	if rider.src != 0 {
 		s.exileRiderRun(k, rider, o)
