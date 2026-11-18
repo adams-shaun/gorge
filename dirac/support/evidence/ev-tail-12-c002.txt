@@ -7,11 +7,13 @@ Adverse Conditions
 Aether Spike
 Ajani Fells the Godsire
 Akki Scrapchomper
+Angel of Invention
 Angelheart Vial
 Apocalypse Demon
 Apprentice Necromancer
 Arbor Colossus
 Arlinn's Wolf
+Armament Master
 Asmira, Holy Avenger
 Assaultron Dominator
 Assert Authority
@@ -21,8 +23,10 @@ Backwoods Survivalists
 Balustrade Spy
 Banefire
 Battle Hymn
+Benalish Veteran
 Birthing Boughs
 Birthing Ritual
+Blessed Wind
 Blind-Spot Giant
 Bloodsworn Steward
 Bog Glider
@@ -31,6 +35,7 @@ Brainstone
 Briarberry Cohort
 Briarblade Adept
 Brood of Cockroaches
+Broodstar
 Butch DeLoria, Tunnel Snake
 Call to Serve
 Catalyst Elemental
@@ -38,8 +43,10 @@ Champion of Arashin
 Char
 Charismatic Vanguard
 Child of Gaea
+Chimeric Mass
 Chittering Rats
 Chocobo Knights
+Cinder Seer
 Cinderbones
 Cloudthresher
 Compulsion
@@ -91,6 +98,8 @@ Goblin Tutor
 Golden-Scale Aeronaut
 Goldmane Griffin
 Golem Artisan
+Gorgon Flail
+Gourmand's Talent
 Ground Assault
 Growing Ranks
 Guardian Gladewalker
@@ -105,6 +114,7 @@ Hobgoblin Captain
 Holy Armor
 Hopeful Initiate
 Hornbash Mentor
+Hostile Desert
 Hurloon Battle Hymn
 Hydra Omnivore
 Illusionist's Stratagem
@@ -129,6 +139,7 @@ Kjeldoran War Cry
 Knowing
 Kyren Glider
 Landroval, Horizon Witness
+Last Caress
 Laurine, the Diversion
 Legion Loyalist
 Legion's Landing
@@ -138,6 +149,7 @@ Lich's Caress
 Loyal Fire Sage
 MACH-1, Swooping Scoundrel
 Macabre Mockery
+Mana Confluence
 Manaplasm
 Mantle of Leadership
 Marchesa's Decree
@@ -146,6 +158,7 @@ Marsh Flats
 Martyr of Dusk
 Maximize Altitude
 Medicine Bag
+Mind's Eye
 Mishra's Self-Replicator
 Molten Nursery
 Molten Rain
@@ -164,30 +177,40 @@ Oriq Loremage
 Ornamental Courage
 Oswald Fiddlebender
 Owl Familiar
+Patagia Viper
+Phyrexian Juggernaut
+Phyrexian War Beast
 Plague Spitter
 Plains
 Portent of Betrayal
 Primal Growth
 Prophetic Titan
+Prying Blade
 Pteramander
 Qasali Pridemage
 Quirion Dryad
 Ragefire
 Rain of Tears
+Ramosian Sergeant
+Ranger-Captain of Eos
 Rat Colony
 Rats of Rath
 Relic Robber
 Repair and Recharge
 Repository Skaab
+Restless Bones
 Restoration Angel
 Retrofitter Foundry
 Revel of the Fallen God
 Reverse Engineer
 Rise to the Challenge
+Rishadan Pawnshop
+Rix Maadi, Dungeon Palace
 Royal Warden
 Rude Awakening
 Rushwood Herbalist
 Rusting Golem
+Sanctifier of Souls
 Sanguimancy
 Savannah Sage
 Scour All Possibilities
@@ -195,6 +218,7 @@ Scourge of Valkas
 Security Blockade
 Seedling Charm
 Seismic Shudder
+Serum Powder
 Seven-Tail Mentor
 Sheoldred, Whispering One
 Sifter Wurm
@@ -205,6 +229,7 @@ Sliptide Serpent
 Sonic Assault
 Soul Shred
 Soul of Innistrad
+Sphinx of Magosi
 Spiritual Asylum
 Spontaneous Mutation
 Steam Augury
@@ -221,12 +246,15 @@ Swamp Mosquito
 Tamiyo's Epiphany
 Tana, the Bloodsower
 Thanos, Death's Consort
+Thaumatic Compass
 The Circle of Loyalty
+Thumbscrews
 Thundering Chariot
 Thundermare
 Thunderwolf Cavalry
 Tramway Station
 Tread Upon
+Treebeard, Gracious Host
 Treeshaker Chimera
 Tromp the Domains
 Underhanded Designs
@@ -234,11 +262,14 @@ Undying Beast
 Unnatural Restoration
 Unquestioned Authority
 Urborg Skeleton
+Urza's Factory
 Uthros Research Craft
 Vedalken Anatomist
 Vigil for the Lost
 Vindictive Mob
+Viridescent Bog
 Viscera Seer
+Vivid Creek
 War Flare
 Warden of the Chained
 Waste Away

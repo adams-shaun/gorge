@@ -26,6 +26,7 @@ Baton of Courage
 Bazaar of Baghdad
 Beast Hunt
 Bitterblossom
+Blightsoil Druid
 Blisterpod
 Blood Hound
 Blood Petal Celebrant
@@ -34,9 +35,11 @@ Break of Day
 Breya's Apprentice
 Briarbridge Tracker
 Brilliant Wings
+Broadside Bombardiers
 Bruse Tarl, Boorish Herder
 Burrowing Razormaw
 Bushmeat Poacher
+Callaphe, Beloved of the Sea
 Captain America, Unbowed
 Capture Sphere
 Carapace
@@ -72,6 +75,7 @@ Crowd of Cinders
 Crypt Champion
 Curse of Inertia
 Daily Bugle Newspaper
+Dance of Many
 Danitha Capashen, Paragon
 Daring Saboteur
 Dawnstrike Paladin
@@ -121,11 +125,13 @@ Folk Medicine
 Forest
 Frenzied Fugue
 Frogmyr Enforcer
+Frost Augur
 Frost Walker
 Fulminator Mage
 Gadwick, the Wizened
 Gallant Cavalry
 Galvanic Bombardment
+Garenbrig Paladin
 Gate to Phyrexia
 Gearsmith Guardian
 Geistcatcher's Rig
@@ -148,6 +154,7 @@ Grumgully, the Generous
 Guan Yu's 1,000-Li March
 Guan Yu, Sainted Warrior
 Guardian of Pilgrims
+Guardian of the Ages
 Gudul Lurker
 Guiding Bolt
 Hapatra's Mark
@@ -198,6 +205,7 @@ Life Finds a Way
 Lightning Prowess
 Lightning Talons
 Liliana's Mastery
+Livewire Lash
 Loyal Fire Sage
 Lurking Predators
 Ma Chao, Western Warrior
@@ -206,6 +214,7 @@ Majestic Heliopterus
 Manic Vandal
 Mark of Asylum
 Markov Crusader
+Matsu-Tribe Decoy
 Maw of the Obzedat
 Menagerie Liberator
 Merrow Wavebreakers
@@ -233,6 +242,7 @@ Nissa's Encouragement
 Nissa's Zendikon
 Null Rod
 Nut Collector
+Oaken Brawler
 Oath of Gideon
 Oculus
 Off Balance
@@ -398,8 +408,10 @@ Weatherseed Treefolk
 Wee Dragonauts
 Wei Scout
 Weirding Wood
+Wellgabber Apothecary
 Whetstone
 Whimwader
+Whiteout
 Whitesun's Passage
 Wild Instincts
 Wildwood Patrol

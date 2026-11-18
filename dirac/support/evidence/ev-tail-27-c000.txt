@@ -39,6 +39,7 @@ Bottomless Pit
 Bounding Krasis
 Bountiful Landscape
 Brink of Disaster
+Broken Ambitions
 Bronzebeak Moa
 Brotherhood Outcast
 Brushstrider
@@ -49,6 +50,7 @@ Captain of the Mists
 Captured Sunlight
 Carrion Beetles
 Cathar's Shield
+Chandra, Flame's Fury
 Chitterspitter
 Chromatic Sphere
 Cloak of Mists
@@ -56,6 +58,7 @@ Cobalt Golem
 Conch Horn
 Conclave Naturalists
 Constricting Tendrils
+Contested Cliffs
 Crimson Fleet Commodore
 Crimson Muckwader
 Cursed Flesh
@@ -129,6 +132,7 @@ Gruul Locket
 Guul Draz Specter
 Gyre Engineer
 Harsh Deceiver
+Harvestguard Alseids
 Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
@@ -195,6 +199,7 @@ Nyxborn Wolf
 Offalsnout
 Old Ghastbark
 Onyx Goblet
+Orcish Squatters
 Ornery Goblin
 Orzhov Keyrune
 Out of the Way
@@ -205,9 +210,11 @@ Paradise Druid
 Pardic Collaborator
 Pause for Reflection
 Phoenix of Ash
+Phyrexian Snowcrusher
 Pilgrim of the Ages
 Plains
 Polukranos Reborn
+Pretender's Claim
 Promise of Power
 Python
 Rakdos the Defiler
@@ -239,6 +246,7 @@ Shorecomber Crab
 Silent Attendant
 Silt Crawler
 Silumgar Monument
+Skeletal Swarming
 Skinrender
 Skull Rend
 Skyclave Plunder
@@ -267,6 +275,7 @@ Swamp
 Swiftgear Drake
 Swooping Lookout
 Sword of Sinew and Steel
+Sword of War and Peace
 Syphon Life
 Tail Slash
 Tainted Isle

@@ -59,6 +59,7 @@ Centaur Garden
 Chandra's Spitfire
 Changeling Sentinel
 Chaotic Backlash
+Charging Cinderhorn
 Chlorophant
 Clash of Realities
 Cloudheath Drake
@@ -91,10 +92,12 @@ Desert of the Mindful
 Desperate Lunge
 Divergent Growth
 Dominating Vampire
+Dragon's Hoard
 Dread Tiller
 Dreadfeast Demon
 Dream Prowler
 Dream's Grip
+Drogskol Reinforcements
 Dross Golem
 Elda, Conjurer of Spectacle
 Elite Cat Warrior
@@ -123,6 +126,7 @@ Frenzied Rage
 Furtive Homunculus
 Futurist Sentinel
 Gaea's Touch
+Gangrenous Zombies
 Genasi Enforcers
 Giant Killer
 Giltgrove Stalker
@@ -138,6 +142,7 @@ Goblin Gathering
 Goblin War Strike
 Goldenhide Ox
 Gorilla Shaman
+Graven Lore
 Graveyard Marshal
 Griffin Aerie
 Guardians of Meletis
@@ -262,6 +267,7 @@ Possessed Barbarian
 Predation Steward
 Predatory Advantage
 Pressure Point
+Priest of the Wakening Sun
 Prince Imrahil the Fair
 Prismatic Ending
 Private Research
@@ -287,6 +293,7 @@ Roiling Regrowth
 Rollick of Abandon
 Rookie Mistake
 Ruinous Gremlin
+Rust Scarab
 Rustvale Bridge
 Sage's Dousing
 Salt Flats
@@ -323,6 +330,7 @@ Soul of New Phyrexia
 Spare Dagger
 Spectral Guardian
 Spell Shrivel
+Sphere of Law
 Spike Tiller
 Spikefield Hazard
 Spirit Cairn
@@ -334,6 +342,7 @@ Standstill
 Static Prison
 Stony Silence
 Stormfist Crusader
+Stormwing Dragon
 Strip Mine
 Student of Ojutai
 Stump Stomp
@@ -344,10 +353,12 @@ Swirling Torrent
 Sylvan Basilisk
 Tablet of Compleation
 Take into Custody
+Tangle Angler
 Territorial Hammerskull
 Thalisse, Reverent Medium
 The Bear Force Pilot
 The Mirari Conjecture
+Thermokarst
 Thrashing Mudspawn
 Thriving Grove
 Time Spiral
@@ -377,6 +388,7 @@ Void Grafter
 Void Snare
 Volcanic Hammer
 Volcanic Submersion
+Voodoo Doll
 Voracious Null
 Vryn Wingmare
 Walker of the Grove

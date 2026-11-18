@@ -1,0 +1,71 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Demon's Due	da206a2d881f0784	6	0/0		1/2	ix:resp
+Academy Drake	4b697df4d8ff5e0b	30	0/0		1/2	cast/alt:kicked
+Aethersphere Harvester	5a1f36af205ef8e4	61	3/3		1/1	
+Apprentice Wizard	5caa6fb04a3a746f	30	1/1		0/1	ix:resp
+Ardbert, Warrior of Darkness	8c3124ca72199e4e	7	2/2		1/1	
+Ashnod's Harvester	1315980e0145744f	37	2/2		1/1	
+Azra Bladeseeker	622ac4aac2bb09be	34	1/1		1/1	
+Balshan Griffin	d899cff4dac4fa20	44	1/1		1/1	
+Bant Panorama	32be088670415513	28	2/2		0/1	ix:resp
+Bloodcurdling Scream	c4d9c808a89d80b4	6	0/0		2/4	f0/s/x0,ix:resp
+Bog Raiders	598866e6b183c382	33	0/0		0/0	
+Bone Harvest	724b5f2487c1bd5d	36	0/0		2/2	
+Boomer Scrapper	67923ef9c3d88bb6	6	3/3		0/1	ix:resp
+Call to the Grave	e1b43bf46442569a	4	2/2		0/1	ix:resp
+Carrion Ants	3c36c6ab1297afc4	22	1/1		1/1	
+Cephalid Coliseum	9ff45f262d867625	10	2/2		0/1	ix:resp
+Ceremonial Guard	a47a5f1732f82dea	16	2/2		1/1	
+Chameleon Spirit	1af039d9d96f1e79	24	0/0		0/0	
+Charred Graverobber	c776d3ec7663fa43	6	1/1		1/3	cast/alt:escaped,ix:resp
+Chittering Rats	e71dca3150da17ff	4	1/1		1/1	
+Crypt Ghast	3dfc65e8f58db2c0	31	2/2		1/1	
+Crystal Skull, Isu Spyglass	9282a9fa5b233764	22	1/1		1/1	
+Dead of Winter	2327cd513faf3d0b	33	0/0		2/2	
+Delighted Killbot	525be0ec7029f9a5	34	0/0		0/0	
+Delirium Skeins	69ad31d93c101a50	8	0/0		1/2	ix:resp
+Dockside Chef	f712a353245f54bc	19	1/1		1/1	
+Dragon's Claw	8edf640ceaedb521	41	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Drown in Filth	03812d5111a46955	18	0/0		1/2	ix:resp
+Elephant-Mandrill	934c89ce79c70b0d	17	2/2		1/1	
+Elvish Vanguard	cd04ddced8215536	6	1/1		0/1	ix:resp
+Extractor Demon	dad1f6e220f579a3	9	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Filth	40fb7b3d9c03de08	4	0/0		0/0	
+Flamewave Invoker	574b218ca5b493d9	35	1/1		1/1	
+Funeral Rites	51d28450badc221d	23	0/0		1/2	ix:resp
+Gnarlroot Pallbearer	9c5363a4152bf36a	21	1/1		0/1	ix:resp
+Goma Fada Vanguard	f3e560a8a410e196	4	1/1		0/1	ix:resp
+Gravebane Zombie	668d160c2c26bc18	15	0/0		0/0	
+Grim Strider	684f91fa368b3c03	31	0/0		0/0	
+Horn of the Mark	098d4198cb2a95b6	10	1/1		1/1	
+Horror of the Dim	a2641178dd6e2e0b	24	1/1		1/1	
+Hyrax Tower Scout	5fa706e3c2703495	4	1/1		1/1	
+Icy Manipulator	e9ea9102a0b9701d	8	1/1		0/1	ix:resp
+Igneous Cur	e73177be5e7659cb	38	1/1		1/1	
+Insist	2b2d93558382bc94	4	0/0		1/2	ix:resp
+Jester's Cap	e171bd8ec2220514	6	1/1		0/1	ix:resp
+Knight of the Last Breath	eb46ffc1bf307759	3	2/2		1/1	
+Lotus Field	95f9bba5d44f5c18	11	2/2		0/1	ix:resp
+Minister of Inquiries	5a8f59743cb62b20	4	2/2		0/1	ix:resp
+Mischievous Poltergeist	20a5cde9ebad1242	4	1/1		1/1	
+Nezumi Bone-Reader	329d22aa0fa3f5b7	34	1/1		1/1	
+Pariah's Shield	491940ac1f5c88a1	47	1/1		1/1	
+Purraj of Urborg	cdb92f3a29176293	11	1/1		0/1	ix:resp
+Reign of Terror	436652e412ee444c	26	0/0		2/2	
+Rite of Consumption	fee8e2428d21c9b5	4	0/0		2/2	
+Serum Snare	7476320009b8632d	45	0/0		2/2	
+Shatterskull Minotaur	9cf0dbf9d3d18937	11	0/0		0/0	
+Sheoldred, the Apocalypse	3e3658d0e4eaf8e9	29	2/2		1/1	
+Shocking Grasp	925c2a65a5b24026	34	0/0		2/2	
+Sidisi, Undead Vizier	31e61d9df0e4bb11	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Slumbering Waterways	581053204fbac475	20	1/1		0/1	ix:resp
+Soulreaper of Mogis	77139700206b0b2b	22	1/1		1/1	
+Sun-Blessed Mount	20a922569db6edc1	10	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Swathcutter Giant	cb0886bb3f16cab4	6	1/1		1/1	
+Sylvan Paradise	66fc4d632db0c510	4	0/0		1/2	ix:resp
+Taste of Blood	c9605d01f7633a8e	24	0/0		2/2	
+Vault of Whispers	ac9f561bf644b29c	14	1/1		0/1	ix:resp
+Veiled Shade	c6d43e521c7453f3	4	1/1		0/1	ix:resp
+Voracious Hatchling	c1adb2a5722c6c44	6	2/2		1/1	
+Witherbloom Campus	63335a5536037388	23	2/2		0/1	ix:resp
+Xathrid Demon	737dd9b7376327ad	8	1/1		1/1	

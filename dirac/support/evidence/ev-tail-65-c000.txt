@@ -88,6 +88,7 @@ Embraal Bruiser
 Empress Galina
 Enter the God-Eternals
 Era of Enlightenment
+Etched Champion
 Ettercap
 Evolution Sage
 Excise the Imperfect
@@ -122,6 +123,7 @@ Gold Myr
 Golgari Locket
 Graceblade Artisan
 Grateful Apparition
+Gremlin Infestation
 Grip of the Roil
 Grotag Bug-Catcher
 Groundbreaker
@@ -134,6 +136,7 @@ Hedron Detonator
 Hellion Crucible
 Helm of the Gods
 Herald of the Dreadhorde
+Herdchaser Dragon
 Hero of Leina Tower
 Hibernation
 Homicidal Seclusion
@@ -191,6 +194,7 @@ Mountain
 Mournwillow
 Murderous Redcap
 Mycoid Shepherd
+Myr Quadropod
 Mystic Skyfish
 Mystic Snake
 Márton Stromgald
@@ -198,12 +202,14 @@ Narrow Escape
 Nimble-Blade Khenra
 Ninth Bridge Patrol
 Norn's Disassembly
+Nosy Goblin
 Novice Knight
 Nurgle's Rot
 Obelisk of Urd
 Ohran Frostfang
 Oko, Thief of Crowns
 On Serra's Wings
+On Thin Ice
 Oran-Rief Ooze
 Ore-Scale Guardian
 Oreskos Swiftclaw
@@ -255,6 +261,7 @@ Sarinth Steelseeker
 Satyr Piper
 Scapegoat
 Scavenger Drake
+Scorched Earth
 Scouring Swarm
 Scrap
 Sculpting Steel
@@ -269,6 +276,7 @@ Shauku, Endbringer
 Shimmerdrift Vale
 Shinen of Flight's Wings
 Shinka Gatekeeper
+Sickening Dreams
 Siegecraft
 Silhana Ledgewalker
 Skitterskin
@@ -286,6 +294,7 @@ Stillmoon Cavalier
 Stitch in Time
 Stormclaw Rager
 Stream of Life
+Strength of Lunacy
 Stromgald Crusader
 Sunbathing Rootwalla
 Swamp
@@ -293,6 +302,7 @@ Sworn Defender
 Sylvan Ranger
 Synchronized Strike
 Talruum Minotaur
+Tephraderm
 The Mana Rig
 Thran Quarry
 Throne of Bone

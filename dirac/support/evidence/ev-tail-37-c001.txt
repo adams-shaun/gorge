@@ -13,10 +13,13 @@ Akki Raider
 Aladdin's Ring
 Altar's Reap
 Ancient Spider
+Ancient Tomb
 Angel of Flight Alabaster
 Angel of the Dawn
 Angelic Sell-Sword
 Angelsong
+Arcane Adaptation
+Arcbond
 Archangel's Light
 Archers of Qarsi
 Ardoz, Cobbler of War
@@ -42,6 +45,7 @@ Bog Tatters
 Born to Drive
 Boseiju Reaches Skyward
 Bountiful Promenade
+Break Down
 Brightstone Ritual
 Brotherhood Vertibird
 Brutal Deceiver
@@ -58,6 +62,7 @@ Chrome Host Seedshark
 Citizen V, Helmut Zemo
 Clairvoyance
 Cliff Threader
+Cloudreach Cavalry
 Cloudseeder
 Commander's Authority
 Concordia Pegasus
@@ -66,6 +71,7 @@ Constant Mists
 Contagion Clasp
 Controlled Instincts
 Crawling Chorus
+Crimson Kobolds
 Crumbling Ashes
 Crusher Zendikon
 Culling Ritual
@@ -90,6 +96,7 @@ Dragon Roost
 Dreadhorde Twins
 Driven
 Drogskol Cavalry
+Drownyard Temple
 Dusk's Landing
 Duskrider Falcon
 Dynavolt Tower
@@ -100,10 +107,12 @@ Eiganjo Uprising
 Eladamri's Call
 Elder Cathar
 Elderfang Venom
+Elderleaf Mentor
 Eldrazi Linebreaker
 Elenda's Hierophant
 Elusive Krasis
 Elvish Ranger
+Emerald Oryx
 Emeria's Call
 Esper Cormorants
 Exultant Cultist
@@ -126,9 +135,11 @@ Fourth Bridge Prowler
 Fractal Summoning
 Frogmite
 Frozen Shade
+Gaea's Touch
 Ghostfire Blade
 Giant Ankheg
 Goblin Patrol
+Golgari Grave-Troll
 Gore Swine
 Gornog, the Red Reaper
 Grave Venerations
@@ -136,6 +147,8 @@ Gray Merchant of Asphodel
 Great Sable Stag
 Greatsword
 Grim Backwoods
+Gruul Turf
+Guard Gomazoa
 Guild Artisan
 Gustcloak Harrier
 Halo Hopper
@@ -151,6 +164,7 @@ Icatian Priest
 Igneous Golem
 In the Trenches
 Incubator Drone
+Indestructible Aura
 Infiltrate
 Infused Arrows
 Intrepid Provisioner
@@ -166,11 +180,14 @@ Kasimir the Lone Wolf
 Kavu Climber
 Kavu Glider
 Kavu Scout
+Kaysa
 Kindred Denial
+King's Assassin
 Kitsune Diviner
 Knight of Cliffhaven
 Kolaghan Monument
 Lazotep Reaver
+Legion Loyalty
 Lieutenant Kirtar
 Lightning Axe
 Lightning Wolf
@@ -180,12 +197,14 @@ Loxodon Anchorite
 Loxodon Gatekeeper
 Lumithread Field
 Lux Cannon
+Maestros Theater
 Malevolent Rumble
 Marionette Master
 Markov Blademaster
 Master Apothecary
 Maulfist Doorbuster
 Maze Rusher
+Maze of Shadows
 Meishin, the Mind Cage
 Mephidross Vampire
 Midnight Scavengers
@@ -206,6 +225,7 @@ Niambi, Faithful Healer
 Nishoba Brawler
 Norika Yamazaki, the Poet
 Noxious Dragon
+Nullify
 Off Balance
 Organ Hoarder
 Orochi Merge-Keeper
@@ -216,7 +236,9 @@ Pestilent Souleater
 Phyrexian Etchings
 Phyrexian Missionary
 Pierce the Sky
+Pillar Tombs of Aku
 Plains
+Polluted Delta
 Possessed Nomad
 Pradesh Gypsies
 Prakhata Club Security
@@ -224,17 +246,22 @@ Presence of Gond
 Presence of the Master
 Priest of the Crossing
 Primaris Chaplain
+Prismari Campus
 Professor Hulk
 Protomatter Powder
+Psionic Sliver
+Pulse of the Tangle
 Pumpkin Bombs
 Purgatory
 Qilin's Blessing
 Quarrel's End
 Quest for Pure Flame
+Quicksilver Gargantuan
 Quirion Sentinel
 Ral's Outburst
 Rampaging Growth
 Ravenous Skirge
+Raving Visionary
 Reach of Branches
 Reap and Sow
 Reduce to Dreams
@@ -242,6 +269,7 @@ Regal Bloodlord
 Rejuvenation Chamber
 Rekindled Flame
 Rhox Oracle
+Rime Dryad
 Riptide
 Rising Populace
 Roar of Reclamation
@@ -249,20 +277,27 @@ Robot Chicken
 Rootwater Commando
 Rubblebelt Runner
 Ruby Medallion
+Rumbling Baloth
 Rustmouth Ogre
+Said
 Sandstorm Charger
 Sarkhan's Dragonfire
+Savage Stomp
 Scalding Tongs
 Scorch Spitter
 Scrubland
 Sea Legs
 Sejiri Shelter
+Selesnya Signet
 Selkie Hedge-Mage
+Shadow Lance
 Shadowfeed
 Shatterstorm
 Shimmering Mirage
+Shivan Oasis
 Shrieking Mogg
 Sickle Ripper
+Siege Smash
 Sightless Ghoul
 Silkguard
 Silumgar Butcher
@@ -285,8 +320,10 @@ Stand Firm
 Staunch Defenders
 Steadfast Paladin
 Steel Overseer
+Steelburr Champion
 Stinging Scorpion
 Storm, Shaker of Skies
+Stormrider Rig
 Subira, Tulzidi Caravanner
 Suleiman's Legacy
 Sun-Collared Raptor
@@ -296,6 +333,7 @@ Swamp
 Tainted Adversary
 Tainted Indulgence
 Tangle Mantis
+Tangle Spider
 Target Minotaur
 Temur Runemark
 Tenth District Veteran
@@ -304,9 +342,11 @@ Terminal Agony
 The Brute
 The Meathook Massacre
 The Torment of Gollum
+Thornglint Bridge
 Thraben Inspector
 Thragtusk
 Towashi Guide-Bot
+Tradewind Rider
 Trollbred Guardian
 Twilight Prophet
 Undead Butler
@@ -329,6 +369,7 @@ Wei Elite Companions
 Whisper Squad
 White Glove Gourmand
 Wicker Witch
+Wielding the Green Dragon
 Wildfire Emissary
 Will-o'-the-Wisp
 Witch's Cauldron

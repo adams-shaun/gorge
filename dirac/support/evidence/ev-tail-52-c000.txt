@@ -4,6 +4,7 @@ A-Sewer Crocodile
 A-Uurg, Spawn of Turg
 Aboshan, Cephalid Emperor
 Abzan Runemark
+Acid-Spewer Dragon
 Adorable Kitten
 Ajani, Valiant Protector
 Alabaster Host Sanctifier
@@ -44,6 +45,7 @@ Bay Falcon
 Beacon Bolt
 Believe in the Cleave
 Benalish Trapper
+Berg Strider
 Betrayal of Flesh
 Biomass Mutation
 Blaze
@@ -52,6 +54,7 @@ Blessing of Belzenlok
 Blinding Souleater
 Blue Dragon
 Bola Slinger
+Bonecrusher Giant
 Boros Keyrune
 Boros Signet
 Boulderfall
@@ -216,6 +219,7 @@ Infernal Medusa
 Instill Energy
 Intrepid Provisioner
 Island
+Izzet Staticaster
 Javelin of Lightning
 Jeskai Banner
 Join the Ranks
@@ -255,6 +259,7 @@ Lithomantic Barrage
 Llanowar Dead
 Llanowar Elite
 Llanowar Vanguard
+Longhorn Firebeast
 Lord Jyscal Guado
 Lord of the Void
 Lounge
@@ -304,6 +309,7 @@ Oak Street Innkeeper
 Occult Epiphany
 Ondu Champion
 Order of Yawgmoth
+Overwhelm
 P-Joven and Chandler
 Palinchron
 Papercraft Decoy
@@ -369,6 +375,7 @@ Rise of the Dread Marn
 Rivendell
 Rix Maadi, Dungeon Palace
 Rock Badger
+Ronom Serpent
 Root Maze
 Rootless Yew
 Rotted Hystrix

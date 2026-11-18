@@ -1,4 +1,5 @@
 Abolish
+About Face
 Against All Odds
 Ancient Hydra
 Ancient Silverback
@@ -30,9 +31,11 @@ Decree of Justice
 Dreadhound
 Dynacharge
 Engineered Explosives
+Evangel of Heliod
 Exsanguinate
 Fae Offering
 Faerie Mechanist
+Falkenrath Noble
 Feral Hydra
 Flock Impostor
 Forest
@@ -41,6 +44,7 @@ Gloom Sower
 Goblinslide
 Goldlust Triad
 Goldmeadow Harrier
+Guardian of Faith
 Healer's Hawk
 Hieroglyphic Illumination
 Imperious Perfect
@@ -65,6 +69,7 @@ Muddle the Mixture
 Myth Realized
 Neheb, the Eternal
 Nephilim Epochal
+Nevermaker
 Nyxborn Hydra
 Plains
 Portent
@@ -74,6 +79,7 @@ Quest for Pure Flame
 Quest for the Gravelord
 Ramosian Rally
 Reality Shift
+Recross the Paths
 Relic Crush
 Renegade Warlord
 Reverent Mantra
@@ -84,6 +90,7 @@ Sea Gate
 Sea Gate Oracle
 Send in the Pest
 Sheoldred, Whispering One
+Shimmering Glasskite
 Sign in Blood
 Skeletal Wurm
 Sparkmage Apprentice

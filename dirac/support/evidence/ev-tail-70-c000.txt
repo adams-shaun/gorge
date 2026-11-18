@@ -1,4 +1,5 @@
 A-Lantern of Revealing
+Abominable Treefolk
 Acrobatic Maneuver
 Act of Treason
 Adric, Mathematical Genius
@@ -35,10 +36,12 @@ Blood-Chin Rager
 Bloodhusk Ritualist
 Bloodletter Quill
 Bloodthirsty Adversary
+Bog Serpent
 Bog Tatters
 Bonded Horncrest
 Boon of Erebos
 Boulderbranch Golem
+Bribery
 Caller of the Pack
 Carrion Feeder
 Cathartic Reunion
@@ -50,10 +53,12 @@ Chain Devil
 Chains of Custody
 Champion's Drake
 Chandra, Flamecaller
+Chant of Vitu-Ghazi
 Charge
 Chimney Rabble
 Chrome Host Seedshark
 Civic Wayfinder
+Cloak of Confusion
 Cloud Djinn
 Cloud Manta
 Cobbled Lancer
@@ -174,6 +179,7 @@ Island
 Ivory Guardians
 Jace's Scrutiny
 Jolrael's Favor
+Juri, Master of the Revue
 Jwar Isle Refuge
 Jwari Disruption
 Kargan Warleader
@@ -228,6 +234,7 @@ Old Stickfingers
 Omen of the Forge
 Ooze Garden
 Oran-Rief Invoker
+Orcish Captain
 Orcish Veteran
 Overmaster
 Patagia Viper
@@ -297,11 +304,14 @@ Silk Net
 Silverflame Squire
 Sire of Stagnation
 Sisay's Ingenuity
+Skull Rend
 Slaughter Specialist
+Slavering Nulls
 Slurrk, All-Ingesting
 Smelt-Ward Ignus
 Smothering Abomination
 Soilshaper
+Somnophore
 Song of Serenity
 Soratami Seer
 Sorcerer's Broom
