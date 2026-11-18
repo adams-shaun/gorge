@@ -5,12 +5,12 @@ package dirac
 // (scriptStateKey), so a Vivid Meadow tapped for its plain {W} and one tapped
 // for {W} by removing a charge counter are two states, and the second is
 // searched. Only a counter-cost gap's own counter kind changes along the path.
-func (fs *filtSearch) ctrKey(k *prep, t *State, key *filtKey) {
+func (t *State) ctrKey(k *prep, other slotMask, key *filtKey) {
 	if len(k.ctrAb) == 0 {
 		return
 	}
 	i := 0
-	for b := fs.other; b.any(); b = b.rest() {
+	for b := other; b.any(); b = b.rest() {
 		sl := b.first()
 		a := k.ctrAbOf(t.cardAt(sl))
 		if a == nil {
