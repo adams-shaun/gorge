@@ -279,8 +279,9 @@ func (s *State) riderGap(k *prep, p uint8, sl Slot, answer int) bool {
 // riderPlainGap activates a riderPlainFirst source for the script search's
 // answer c: the source's mana ask offers the plain first ability's
 // production before the rider's colours (engine order), and gorge's
-// scriptSearch stably reorders those answers by the play's needed pips
-// (scriptOrderAnswers). c indexes that reordered list; the chosen plain
+// scriptSearch reorders those answers by the play's needed pips
+// (scriptOrderAnswers) only beside a granted ability (scriptManaAskHoists);
+// a plain mana-ability ask keeps its own order. c indexes that list; the chosen plain
 // production taps without the rider, a chosen rider production runs it.
 func (s *State) riderPlainGap(k *prep, p uint8, a Action, sl Slot, c int) bool {
 	if !s.riderPlainFirst(k, sl) {
@@ -299,18 +300,24 @@ func (s *State) riderPlainGap(k *prep, p uint8, a Action, sl Slot, c int) bool {
 			n++
 		}
 	}
-	need := s.playNeed(k, a)
-	for i := 1; i < n; i++ { // needFirst over colours and their productions
-		if !need[cols[i]] {
-			continue
+	if s.grantsLive(k) && s.grantGapUsable(k, sl) {
+		// only an ask carrying a granted ability beside the printed ones is
+		// reordered by the play's needed colours (rules scriptManaAskHoists);
+		// a plain mana-ability ask branches in its own order, the plain
+		// ability first, whatever the play needs
+		need := s.playNeed(k, a)
+		for i := 1; i < n; i++ { // needFirst over colours and their productions
+			if !need[cols[i]] {
+				continue
+			}
+			col, r := cols[i], rider[i]
+			j := i
+			for j > 0 && !need[cols[j-1]] {
+				cols[j], rider[j] = cols[j-1], rider[j-1]
+				j--
+			}
+			cols[j], rider[j] = col, r
 		}
-		col, r := cols[i], rider[i]
-		j := i
-		for j > 0 && !need[cols[j-1]] {
-			cols[j], rider[j] = cols[j-1], rider[j-1]
-			j--
-		}
-		cols[j], rider[j] = col, r
 	}
 	if c >= n {
 		return false
