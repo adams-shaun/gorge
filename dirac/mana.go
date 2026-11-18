@@ -1426,7 +1426,7 @@ func (s *State) planSourceUsable(k *prep, p uint8, sl Slot, rd *payDesc) bool {
 	return s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) ||
 		k.restrSrc && s.restrOnlyUsable(k, p, sl, rd) || s.planTapGrantSacNow(k, sl) ||
 		k.painMana && s.canLifeOnlyMana(k, sl, p) ||
-		s.cfg&cfgGorgeAutopay != 0 && s.isLifeGapAt(k, p, sl)
+		s.cfg&cfgGorgeAutopay != 0 && s.lifeGapSurvives(k, p, sl)
 }
 
 // planLastResort reports whether plan leaves source sl to phase 1: a
@@ -1434,7 +1434,7 @@ func (s *State) planSourceUsable(k *prep, p uint8, sl Slot, rd *payDesc) bool {
 // census gap's unit, whose life cost is a disclosed consequence
 // (mana_lifegap.go).
 func (s *State) planLastResort(k *prep, p uint8, sl Slot, sac, noUntap bool) bool {
-	return lastResortUnit(sac, noUntap) || s.cfg&cfgGorgeAutopay != 0 && s.isLifeGapAt(k, p, sl)
+	return lastResortUnit(sac, noUntap) || s.cfg&cfgGorgeAutopay != 0 && s.lifeGapSurvives(k, p, sl)
 }
 
 func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
