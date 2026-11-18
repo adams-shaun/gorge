@@ -539,6 +539,9 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			exc.svars = append(exc.svars, [2]string{name, raw})
 		}
 	}
+	if c.CloneEnter.ETB {
+		exc.svars = append(exc.svars, cloneETBTapLockSVars(sa, grantTable)...)
+	}
 	for _, name := range cp.AddTriggers {
 		if raw, ok := grantTable[name]; ok {
 			if _, ok := cards.ParseTriggerLine(raw); ok {

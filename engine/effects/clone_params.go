@@ -143,7 +143,7 @@ var cloneKnownKeys = [...]string{
 	"AIXMax", "Activation", "ActivationAfterBlockers", "ActivationFirstCombat", "ActivationGameTypes",
 	"ActivationLimit", "ActivationPhases", "ActivationZone", "Activator", "AddAbilities", "AddColors",
 	"AddKeywords", "AddSVars", "AddStaticAbilities", "AddTriggers", "AddTypes",
-	"AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
+	"AdditionalDesc", "AdditionalDescription", "Affected", "AiChoiceLogic", "AlternateCost",
 	"AlternativeCost", "Announce", "AnnounceTitle", "AttachedTo", "Boast", "CantCopy", "ChangeNumDesc", "ChangeTypeDesc",
 	"ChangeValidDesc", "CharacteristicDefining", "CheckSVar", "ChoiceDesc", "ChoiceOptional", "ChoiceTitle", "ChoiceTitleAppend", "ChoiceZone",
 	"Choices", "ChooseFromList", "ClassBand", "ClearImprinted", "CloneTarget", "CloneZone",
@@ -151,7 +151,7 @@ var cloneKnownKeys = [...]string{
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionTargetValidTargeting", "ConditionTargetsSingleTarget", "ConditionZone", "CopyCard", "CopyFromChosenName", "Cost", "CostDesc", "Defined",
-	"DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Duration", "Exclude", "ExcludeChosen", "Exhaust", "FaceDown", "ForgetOtherTargets", "FromDesc", "GainThisAbility", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
+	"DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Duration", "Exclude", "ExcludeChosen", "Execute", "Exhaust", "FaceDown", "ForgetOnMoved", "ForgetOtherTargets", "FromDesc", "GainThisAbility", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IntoPlayTapped", "IsCurse",
 	"IsPresent", "KW", "KeepFacedown", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "NewController", "NewName",
@@ -160,7 +160,7 @@ var cloneKnownKeys = [...]string{
 	"PresentZone", "PrimaryPrompt", "PumpDuration", "PumpKeywords", "RandomNumTargets", "ReduceAmount",
 	"ReduceCost", "RememberAnimated", "RememberCloneOrigin", "RememberCostMana", "RememberObjects", "RememberTargets", "RemoveCardTypes",
 	"RemoveCreatureTypes", "RemoveSubTypes", "ReplaceColor", "ReplaceGraveyard",
-	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare",
+	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType", "ReplacementEffects", "ReturnAbility", "ReturnValid", "SVarCompare",
 	"SelectPrompt", "SetChosenMode", "SetColor", "SetCreatureTypes", "SetPower",
 	"SetToughness", "ShowCards", "SorcerySpeed", "SpellDescription", "StackDescription",
 	"SubAbility", "TargetMax", "TargetMin", "TargetType", "TargetUnique",
@@ -437,5 +437,5 @@ var cloneETBShapeKeys = state.NewNameSet(
 	// CR 707.9b exceptions CopyExcept writes (Imposter Mech's "loses all other
 	// card types"), the AI-hint keys no resolver reads, and Duration$ (its
 	// value is held to the until-end-of-turn spelling by cloneETBShapeOK).
-	"RemoveCardTypes", "RemoveSubTypes", "Duration", "AILogic",
+	"RemoveCardTypes", "RemoveSubTypes", "Duration", "AILogic", "AiChoiceLogic",
 )

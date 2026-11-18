@@ -63,7 +63,8 @@ func CloneETBSubChainOK(sa *cards.SA, svars map[string]string) bool {
 		}
 		if link.API == "ImmediateTrigger" {
 			// The reflexive exile is the second-to-last link, closed by Cleanup.
-			return CloneETBReflexiveExileOK(link, svars) && cloneETBCleanupOnly(link.Sub)
+			return (CloneETBReflexiveExileOK(link, svars) || cloneETBReflexiveTapLockOK(sa, link, svars)) &&
+				cloneETBCleanupOnly(link.Sub)
 		}
 		if !IsPutCounter(link) {
 			return false
@@ -210,4 +211,77 @@ func CloneETBNoCopy(g *state.Game, c *Ctx, sa *cards.SA, pt DerivedPTSource) boo
 		return false
 	}
 	return c.CloneEnter.Choice == 0 || !cloneETBTemplateLegal(g, c, CloneOf(sa), pt)
+}
+
+// cloneETBTapLockKeys are the keys Wall of Stolen Identity's "When you do"
+// link may carry (no Condition* gate: the reflexive trigger is unconditional).
+var cloneETBTapLockKeys = state.NewNameSet("Execute", "RememberObjects", "SubAbility", "TriggerDescription")
+
+// cloneETBTapLockEffectKeys are the keys of the lock's registering Effect.
+var cloneETBTapLockEffectKeys = state.NewNameSet(
+	"RememberObjects", "ForgetOnMoved", "ReplacementEffects", "Duration")
+
+// cloneETBReflexiveTapLockOK reports whether link is exactly Wall of Stolen
+// Identity's "When you do, tap the copied creature and it doesn't untap during
+// its controller's untap step for as long as you control CARDNAME": an
+// unconditional ImmediateTrigger over the remembered copy origin (so the copy
+// must RememberCloneOrigin$) whose Execute$ is a Tap of the delayed trigger's
+// remembered card chained to an Effect registering the Layer$ CantHappen Untap
+// replacement for Duration$ AsLongAsControl, forgotten when the creature
+// leaves the battlefield.
+func cloneETBReflexiveTapLockOK(sa, link *cards.SA, svars map[string]string) bool {
+	if link == nil || link.API != "ImmediateTrigger" || link != sa.Sub || !CloneOf(sa).RememberCloneOrigin {
+		return false
+	}
+	for k := range link.Params {
+		if !cloneETBTapLockKeys.Has(k) {
+			return false
+		}
+	}
+	if link.ParamStr(cards.PKRememberObjects) != "RememberedCard" {
+		return false
+	}
+	tap := cards.ResolveSVar(svars, link.ParamStr(cards.PKExecute))
+	if tap == nil || tap.API != "Tap" || tap.Sub == nil || len(tap.Params) != 2 ||
+		tap.ParamStr(cards.PKDefined) != "DelayTriggerRemembered" {
+		return false
+	}
+	eff := tap.Sub
+	if eff.API != "Effect" || eff.Sub != nil {
+		return false
+	}
+	for k := range eff.Params {
+		if !cloneETBTapLockEffectKeys.Has(k) {
+			return false
+		}
+	}
+	if eff.ParamStr(cards.PKRememberObjects) != "DelayTriggerRemembered" ||
+		eff.ParamStr(cards.PKForgetOnMoved) != "Battlefield" || !IsAsLongAsControlDuration(eff.ParamStr(cards.PKDuration)) {
+		return false
+	}
+	event, params := parseReplacementLine(svars, strings.TrimSpace(eff.ParamStr(cards.PKReplacementEffects)))
+	return event == "Untap" && params["Layer"] == "CantHappen" && params["ValidCard"] == "Card.IsRemembered" &&
+		params["ValidStepTurnToController"] == "You" && len(params) == 5
+}
+
+// cloneETBTapLockSVars are the {name, body} SVars the tap-lock chain reads at
+// its resolution by name (the Execute$ body, its Effect sub-link and the
+// Untap replacement line): the reflexive trigger runs under the COPY's face,
+// whose table is the copied card's, so the Wall's own bodies ride the CopyExcept
+// like any AddSVars$ grant (CR 707.9a). Nil unless sa's chain is the tap-lock
+// shape.
+func cloneETBTapLockSVars(sa *cards.SA, svars map[string]string) [][2]string {
+	if sa == nil || !cloneETBReflexiveTapLockOK(sa, sa.Sub, svars) {
+		return nil
+	}
+	exec := strings.TrimSpace(sa.Sub.ParamStr(cards.PKExecute))
+	tap := cards.ResolveSVar(svars, exec)
+	var out [][2]string
+	for _, name := range []string{exec, strings.TrimSpace(tap.ParamStr(cards.PKSubAbility)),
+		strings.TrimSpace(tap.Sub.ParamStr(cards.PKReplacementEffects))} {
+		if body, ok := cloneETBSVarBody(svars, name); ok && name != "" {
+			out = append(out, [2]string{name, body})
+		}
+	}
+	return out
 }

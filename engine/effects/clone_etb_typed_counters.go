@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -36,11 +37,11 @@ var cloneETBTypedCounterKeys = state.NewNameSet("Defined", "CounterType", "ETB",
 
 // cloneETBTypedDefined maps a link's Defined$ onto the type it is gated on;
 // "" means the type comes from the replacement's single ValidCard$ type.
-var cloneETBTypedDefined = map[string]string{
-	"ReplacedNewCard.Creature":     "Creature",
-	"ReplacedNewCard.Planeswalker": "Planeswalker",
-	"ReplacedCard":                 "",
-}
+var cloneETBTypedDefined = state.NewStrTable[string](
+	state.StrEntry[string]{Key: "ReplacedNewCard.Creature", Val: "Creature"},
+	state.StrEntry[string]{Key: "ReplacedNewCard.Planeswalker", Val: "Planeswalker"},
+	state.StrEntry[string]{Key: "ReplacedCard", Val: ""},
+)
 
 // cloneETBTypedCounterKinds are the counter kinds the rider may place.
 var cloneETBTypedCounterKinds = state.NewNameSet("P1P1", "LOYALTY")
@@ -84,32 +85,35 @@ func CloneETBTypedCounters(link *cards.SA, svars map[string]string) (out []clone
 	if len(valid) == 0 {
 		return nil, false
 	}
-	body := cards.ResolveSVar(svars, params["ReplaceWith"])
-	for d := 0; body != nil; d, body = d+1, body.Sub {
+	// The replacement's body is walked as SVar TEXT (cloneETBDBLine), not
+	// through the PutCounter compile: the Effect primitive that reaches this
+	// rider reads no PutCounter parameter of its own.
+	name = params["ReplaceWith"]
+	for d := 0; name != ""; d++ {
 		if d >= cloneETBTypedLinks {
 			return nil, false
 		}
-		if body.API == "ChangeZone" {
+		_, lp := parseReplacementLine(svars, name)
+		api := lp["DB"]
+		if api == "ChangeZone" {
 			// The chain's terminal self-exile of the effect from the command
 			// zone: the effect token this build does not mint.
-			cz := body
-			if cz.Sub != nil || len(cz.Params) != 3 || cz.ParamStr(cards.PKDefined) != "Self" ||
-				cz.ParamStr(cards.PKOrigin) != "Command" || cz.ParamStr(cards.PKDestination) != "Exile" {
+			if len(lp) != 4 || lp["Defined"] != "Self" || lp["Origin"] != "Command" || lp["Destination"] != "Exile" {
 				return nil, false
 			}
 			return out, len(out) > 0
 		}
-		if !IsPutCounter(body) {
+		if api != "PutCounter" || lp["ETB"] != "True" {
 			return nil, false
 		}
-		for k := range body.Params {
-			if !cloneETBTypedCounterKeys.Has(k) {
+		for k := range lp {
+			if k != "DB" && !cloneETBTypedCounterKeys.Has(k) {
 				return nil, false
 			}
 		}
-		pc := PutCounterOf(body)
-		typ, known := cloneETBTypedDefined[strings.TrimSpace(body.ParamStr(cards.PKDefined))]
-		if !pc.ETB || len(pc.Unread) > 0 || !known || !cloneETBTypedCounterKinds.Has(pc.CounterType) {
+		typ, known := cloneETBTypedDefined.Get(lp["Defined"])
+		kind := lp["CounterType"]
+		if !known || !cloneETBTypedCounterKinds.Has(kind) {
 			return nil, false
 		}
 		if typ == "" {
@@ -122,11 +126,12 @@ func CloneETBTypedCounters(link *cards.SA, svars map[string]string) (out []clone
 		for _, v := range valid {
 			inValid = inValid || v == typ
 		}
-		n, lit := literalInt(pc.CounterNum)
-		if !inValid || !lit || n < 1 {
+		n, err := strconv.Atoi(lp["CounterNum"])
+		if !inValid || err != nil || n < 1 {
 			return nil, false
 		}
-		out = append(out, cloneETBTypedCounter{Type: typ, Kind: pc.CounterType, N: int32(n)})
+		out = append(out, cloneETBTypedCounter{Type: typ, Kind: kind, N: int32(n)})
+		name = lp["SubAbility"]
 	}
 	return nil, false
 }
@@ -153,20 +158,11 @@ func applyCloneETBTypedCounters(h Host, c *Ctx, link *cards.SA) bool {
 	if o := g.Obj(c.Source); o == nil || o.Zone != state.ZBattlefield {
 		return true
 	}
-	// Re-resolve the PutCounter links beside their classified values so the
-	// placement reads the link's own compiled parameters (putCounterAmount).
-	_, params := parseReplacementLine(svars, strings.TrimSpace(EffectOf(link).ReplacementEffects))
-	body := cards.ResolveSVar(svars, params["ReplaceWith"])
 	sc := c.TableSpecContext(c.Controller)
 	for _, r := range rider {
-		if !IsPutCounter(body) {
-			break
-		}
 		if MatchesSpecCtx(g, r.Type, c.Source, sc) {
-			n := putCounterAmount(h, c, body, PutCounterOf(body), true, r.N, 0)
-			emitPutCounterChange(h, c, body, events.Event{Kind: events.CounterChange, Obj: c.Source, Counter: r.Kind, Amount: n})
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: c.Source, Counter: r.Kind, Amount: r.N})
 		}
-		body = body.Sub
 	}
 	return true
 }

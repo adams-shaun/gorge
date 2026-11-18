@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/adams-shaun/gorge/engine/events"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -198,5 +199,45 @@ func TestEDHETBCloneRidersMoritteTwoCountersOnlyForCreatures(t *testing.T) {
 	}
 	if got := o2.Counter("P1P1"); got != 0 {
 		t.Fatalf("noncreature copy took %d +1/+1 counters, want none", got)
+	}
+}
+
+// TestEDHETBCloneRidersWallOfStolenIdentityLocksTheOriginal: the Wall enters
+// as a defender Wall copy of an opponent's creature, taps it, and that
+// creature stays tapped through its controller's untap step.
+func TestEDHETBCloneRidersWallOfStolenIdentityLocksTheOriginal(t *testing.T) {
+	t.Parallel()
+	e, id, tpl := edhCloneCast(t, "Wall of Stolen Identity", "Grizzly Bears", 1,
+		map[int]int32{state.MC: 3, state.MU: 1})
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield || o.Face().Name != "Grizzly Bears" {
+		t.Fatalf("wall = %+v, want a Grizzly Bears copy on the battlefield", o)
+	}
+	if !e.hasType(o, "Wall") || !edhHasKeyword(o, "Defender") {
+		t.Fatalf("copy is not a defender Wall: %v %v", o.Face().Types, o.Face().Keywords)
+	}
+	e.putTriggersOnStack()
+	pushed := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.DelayedPush {
+			pushed = true
+		}
+	}
+	if !pushed {
+		t.Fatal("no reflexive trigger was put on the stack")
+	}
+	for i := 0; i < 8 && len(e.G.Stack) > 0; i++ {
+		resolveTopProbe(e)
+		settleDrain(e)
+	}
+	if !e.G.Obj(tpl).Tapped {
+		t.Fatal("the copied creature was not tapped")
+	}
+	// The opponent's untap step: the locked creature stays tapped.
+	e.G.Active = 1
+	e.setStep(state.StepUntap)
+	e.untapTurnPermanent(tpl)
+	if !e.G.Obj(tpl).Tapped {
+		t.Fatal("the copied creature untapped during its controller's untap step")
 	}
 }
