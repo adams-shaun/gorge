@@ -31,14 +31,15 @@ func splitFrontHalfRead(o *state.Object, fused bool) bool {
 	return combined && !fused
 }
 
-// offerFusedCastable is offerCastable for the fused cast's combined cost
-// (CR 702.102c), priced with the split card read as both halves (CR
-// 702.102b): a RestrictValid$ "multicolored spell" source may pay for it.
-func (w *legalWalk) offerFusedCastable(p state.PlayerID, id state.ObjID, cost Cost) bool {
-	prev := w.e.pricingFused
-	w.e.pricingFused = true
-	defer func() { w.e.pricingFused = prev }()
-	return w.offerCastable(p, id, cost, spellScope(""), false)
+// pricingFusedRead runs price, the fused cast's offer (CR 702.102c), with
+// *flag (Engine.pricingFused) set, so the split card is read as both halves
+// (CR 702.102b) and a RestrictValid$ "multicolored spell" source may pay for
+// it; the flag is restored after.
+func pricingFusedRead(flag *bool, price func() bool) bool {
+	prev := *flag
+	*flag = true
+	defer func() { *flag = prev }()
+	return price()
 }
 
 // fusedTimingOK reports whether a Fuse cast (mode "fuse") may be announced
