@@ -22,7 +22,13 @@ func TestChooseKinds(t *testing.T) {
 	}{
 		{"look ack", "yes", "look_ack", []decision.Option{{Index: 0, Kind: "yes", Label: "Continue"}}, "chooseFromSelection"},
 		{"damage split", "damage_split", "", []decision.Option{{Index: 0, Kind: "damage_split", Label: "A", Amount: 1}, {Index: 1, Kind: "damage_split", Label: "B", Amount: 1}}, "chooseFromSelection"},
-		{"division", "division", "", []decision.Option{{Index: 0, Kind: "division", Label: "1 to Bear", Amount: 1}}, "chooseFromSelection"},
+		// The combat damage-division ask maps onto the protocol's dedicated
+		// chooseCombatDamageAssignment when the seat's view resolves the
+		// attacker's blockers (prompt_damage_assign.go). This table builds
+		// its asks against a nil view, so the resolvable shape is covered by
+		// TestDamageAssignPromptAndAnswer; here the unresolvable ask must
+		// fall back to the generic, always-answerable selection.
+		{"division (unresolvable view falls back)", "division", "", []decision.Option{{Index: 0, Kind: "division", Label: "1 to Bear", Amount: 1}}, "chooseFromSelection"},
 		{"name", "name", "", []decision.Option{{Index: 0, Kind: "name", Label: "Bear"}}, "chooseFromSelection"},
 		{"type", "type", "", []decision.Option{{Index: 0, Kind: "type", Label: "Creature"}}, "chooseFromSelection"},
 		{"number", "number", "", []decision.Option{{Index: 0, Kind: "number", Label: "2", Amount: 2}, {Index: 1, Kind: "number", Label: "3", Amount: 3}}, "chooseNumber"},

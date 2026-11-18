@@ -262,6 +262,12 @@ func ResponseForIntent(p *manabrew.Pending, want decision.Intent) (mb.ClientMess
 			return mb.ClientMessage{}, err
 		}
 		return mk(out), nil
+	case mb.ChooseCombatDamageAssignmentInput:
+		out, err := damageAssignmentAnswer(in, d, want)
+		if err != nil {
+			return mb.ClientMessage{}, err
+		}
+		return mk(out), nil
 	case mb.ScryInput:
 		out, err := scryAnswer(in, d, want)
 		if err != nil {
@@ -575,6 +581,35 @@ func selectionAnswer(in mb.ChooseFromSelectionInput, d *decision.Decision, want 
 		}
 	}
 	return mb.SelectionDecision{ChosenIndices: slices.Clone(want.Choices)}, nil
+}
+
+// damageAssignmentAnswer maps the combat damage-division ask the same way
+// parseDamageAssignment reads its answer back: the chosen option's Label
+// parses (manabrew.ParseDivisionLabel) to the per-recipient vector in engine
+// recipient order, and the answer names each recipient the prompt itself
+// offered (its BlockerIDs) with that amount. Recipients the chosen split
+// assigns nothing to carry no entry — parseDamageAssignment defaults an
+// absent assignee to 0, so the parsed vector is identical either way.
+func damageAssignmentAnswer(in mb.ChooseCombatDamageAssignmentInput, d *decision.Decision, want decision.Intent) (mb.PromptOutputValue, error) {
+	if len(want.Choices) != 1 {
+		return nil, fmt.Errorf("a division ask answers one option, want has %d", len(want.Choices))
+	}
+	opt := optionAt(d, want.Choices[0])
+	if opt == nil {
+		return nil, fmt.Errorf("option %d is not offered", want.Choices[0])
+	}
+	vec, ok := manabrew.ParseDivisionLabel(opt.Label, len(in.BlockerIDs))
+	if !ok {
+		return nil, fmt.Errorf("option label %q does not name %d recipients", opt.Label, len(in.BlockerIDs))
+	}
+	assignments := make([]mb.DamageAssignment, 0, len(vec))
+	for i, amt := range vec {
+		if amt == 0 {
+			continue
+		}
+		assignments = append(assignments, mb.DamageAssignment{AssigneeID: in.BlockerIDs[i], Damage: amt})
+	}
+	return mb.DamageAssignmentDecision{Assignments: assignments}, nil
 }
 
 // scryAnswer maps scryDecision{zoneCardIds}: pile A from the chosen options
