@@ -1,11 +1,6 @@
 package dirac
 
-import (
-	"testing"
-
-	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
-)
+import "testing"
 
 // A target-dependent raise (Dragon's Prey's "this spell costs {2} more to
 // cast if it targets a Dragon") drops from the target menu the candidates
@@ -25,23 +20,8 @@ import (
 // tapSource (the Relic's tap-another part then has a candidate).
 func raiseTapXScen(t *testing.T, withRelic, tapSource bool) (*scen, Decision, Obj, Obj) {
 	t.Helper()
-	deck := []cardset.Entry{
-		{Name: "Dragon's Prey", Count: 2},
-		{Name: "Dragonbroods' Relic", Count: 2},
-		{Name: "Scavenger Regent", Count: 2},
-		{Name: "Lasyd Prowler", Count: 2},
-		{Name: "Swamp", Count: 12},
-	}
-	set := cardsettest.Synth(t, "std-tdm")
-	tbl, da, _, err := set.Matchup(deck, deck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
-	sc := newScenTableLib(t, tbl, id["Swamp"], Config{NoElide: true})
+	sc, id := synthScen(t, "std-tdm",
+		"Dragon's Prey", "Dragonbroods' Relic", "Scavenger Regent", "Lasyd Prowler", "Swamp")
 	dp := sc.hand(id["Dragon's Prey"], 0)
 	if withRelic {
 		sc.perm(id["Dragonbroods' Relic"], 0)
