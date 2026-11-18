@@ -1,7 +1,10 @@
 package oracle
 
 import (
+	"errors"
 	"testing"
+
+	"github.com/adams-shaun/gorge/dirac/cardset"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -17,12 +20,20 @@ func TestMBCDraftPodPlays(t *testing.T) {
 	if n := len(set.Subtypes()); n <= kop.MaxSubtypes {
 		t.Fatalf("precondition: the mbc pool holds %d subtypes, no more than one table's %d", n, kop.MaxSubtypes)
 	}
+	played := 0
 	for _, i := range []int{58, 6} {
 		p := PodAt(pool, i, SliceSeed, 4)
 		m, tbl, err := SetMatchupN(set, c, p.Decks(), 0)
+		if ir := (*cardset.InteractionRefusal)(nil); errors.As(err, &ir) {
+			// the interaction guard refuses the pod (pod 6's comboanymix,
+			// since 11-14): a refusal is no play, and pod 58 still plays
+			t.Logf("pod %d %v: refused: %v", i, p.Decks(), err)
+			continue
+		}
 		if err != nil {
 			t.Fatalf("pod %d %v: %v", i, p.Decks(), err)
 		}
+		played++
 		if !m.Commander || m.NSeat() != 4 {
 			t.Fatalf("pod %d: commander %v, %d seats", i, m.Commander, m.NSeat())
 		}
@@ -40,5 +51,8 @@ func TestMBCDraftPodPlays(t *testing.T) {
 		if !res.Over || res.Stall != "" {
 			t.Errorf("pod %d: over %v, stall %q: want a finished game", i, res.Over, res.Stall)
 		}
+	}
+	if played == 0 {
+		t.Fatal("every pod was refused: the test plays nothing")
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -34,16 +35,29 @@ func TestCmd5ArmyOfTheDamnedPastOldObjectBound(t *testing.T) {
 
 // TestReproFormat1MapsTargetBytes: a format-1 repro (stack abilities at
 // 0xE0.., players at 0xF0/0xF1) loads with the current Refs, and a format-2
-// one loads as written.
+// one (the two-seat wire bytes: stack abilities at 0xEC.., players at
+// 0xFC/0xFD) loads as the same Refs. The files are written as disk bytes, one
+// byte a field, as a recording holds them.
 func TestReproFormat1MapsTargetBytes(t *testing.T) {
+	word := func(k CanonKind, src, tgt, mode uint8) uint64 {
+		return uint64(k)<<24 | uint64(src)<<16 | uint64(tgt)<<8 | uint64(mode)
+	}
 	// the kinds are arbitrary: only source and target bytes are Refs
-	old := []Canon{
-		Pack(ActActivate, 0x05, 0xF0, 7),    // player 0
-		Pack(ActAttack, 0x17, 0xF1, 0),      // player 1
-		Pack(ActActivate, 0xE0, RefNone, 3), // stack ability 0 as the source
-		Pack(ActActivate, 0x02, 0xE3, 0),    // stack ability 3 as the target
-		Pack(ActActivate, 0xEF, 0xDF, 1),    // stack ability 15; the last old instance, 223
-		Pack(ActActivate, RefNone, RefNone, 0xE5),
+	old := []uint64{
+		word(ActActivate, 0x05, 0xF0, 7),    // player 0
+		word(ActAttack, 0x17, 0xF1, 0),      // player 1
+		word(ActActivate, 0xE0, 0xFF, 3),    // stack ability 0 as the source
+		word(ActActivate, 0x02, 0xE3, 0),    // stack ability 3 as the target
+		word(ActActivate, 0xEF, 0xDF, 1),    // stack ability 15; the last old instance, 223
+		word(ActActivate, 0xFF, 0xFF, 0xE5), // the mode byte is not a Ref
+	}
+	cur := []uint64{
+		word(ActActivate, 0x05, 0xFC, 7),
+		word(ActAttack, 0x17, 0xFD, 0),
+		word(ActActivate, 0xEC, 0xFF, 3),
+		word(ActActivate, 0x02, 0xEF, 0),
+		word(ActActivate, 0xFB, 0xDF, 1),
+		word(ActActivate, 0xFF, 0xFF, 0xE5),
 	}
 	want := []Canon{
 		Pack(ActActivate, 0x05, RefPlayer, 7),
@@ -51,31 +65,24 @@ func TestReproFormat1MapsTargetBytes(t *testing.T) {
 		Pack(ActActivate, RefStack, RefNone, 3),
 		Pack(ActActivate, 0x02, RefStack+3, 0),
 		Pack(ActActivate, RefStack+15, 0xDF, 1),
-		Pack(ActActivate, RefNone, RefNone, 0xE5), // the mode byte is not a Ref
+		Pack(ActActivate, RefNone, RefNone, 0xE5),
 	}
 	if RefPlayer-RefStack != 16 {
 		t.Fatalf("RefStack %#x RefPlayer %#x: %d stack codes, a format-1 recording names 16", RefStack, RefPlayer, RefPlayer-RefStack)
 	}
-	for i := range old[:len(old)-1] { // the last case is the unchanged mode byte
-		if old[i] == want[i] {
-			t.Fatalf("action %d is unchanged by the map; the case proves nothing", i)
-		}
-	}
 	dir := t.TempDir()
 	for _, c := range []struct {
 		format string
-		acts   []Canon
-		want   []Canon
+		words  []uint64
 	}{
-		{"koracle-repro-1", old, want},
-		{"koracle-repro-2", want, want},
+		{"koracle-repro-1", old},
+		{"koracle-repro-2", cur},
 	} {
-		r := &Repro{Format: c.format, Decks: [2]string{"a", "b"}, Actions: c.acts}
-		path := filepath.Join(dir, c.format+".json")
-		b, err := json.Marshal(r)
+		b, err := json.Marshal(map[string]any{"format": c.format, "decks": [2]string{"a", "b"}, "actions": c.words})
 		if err != nil {
 			t.Fatal(err)
 		}
+		path := filepath.Join(dir, c.format+".json")
 		if err := os.WriteFile(path, b, 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -86,10 +93,25 @@ func TestReproFormat1MapsTargetBytes(t *testing.T) {
 		if got.Format != reproFormat {
 			t.Errorf("%s loaded as %q, want %q", c.format, got.Format, reproFormat)
 		}
-		for i := range c.want {
-			if got.Actions[i] != c.want[i] {
-				t.Errorf("%s action %d: got %#x, want %#x", c.format, i, uint32(got.Actions[i]), uint32(c.want[i]))
+		for i := range want {
+			if got.Actions[i] != want[i] {
+				t.Errorf("%s action %d: got %#x, want %#x", c.format, i, uint64(got.Actions[i]), uint64(want[i]))
 			}
+		}
+		// and back: the current Refs write the two-seat bytes
+		out, err := json.Marshal(got)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var w struct {
+			Actions []uint64 `json:"actions"`
+			Packing string   `json:"packing"`
+		}
+		if err := json.Unmarshal(out, &w); err != nil {
+			t.Fatal(err)
+		}
+		if w.Packing != "" || !slices.Equal(w.Actions, cur) {
+			t.Errorf("%s written back as %#x (packing %q), want %#x", c.format, w.Actions, w.Packing, cur)
 		}
 	}
 }
@@ -116,7 +138,7 @@ func TestKernelGameFormat1MapsTargetBytes(t *testing.T) {
 	if got.Format != gameFormat || got.Hashes != nil {
 		t.Errorf("format %q hashes %v, want %q and none", got.Format, got.Hashes, gameFormat)
 	}
-	if got.Actions[0] != Pack(ActAttack, 0x17, 0xFD, 0) || got.Actions[1] != Pack(ActActivate, 0xEE, RefNone, 0) {
+	if got.Actions[0] != Pack(ActAttack, 0x17, RefPlayer+1, 0) || got.Actions[1] != Pack(ActActivate, RefStack+2, RefNone, 0) {
 		t.Errorf("actions %#x, not mapped", got.Actions)
 	}
 }
