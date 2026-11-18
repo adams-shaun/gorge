@@ -128,3 +128,65 @@ func TestEDHKeywordsTransfigureTutorsSameManaValue(t *testing.T) {
 		t.Fatalf("Transfigure target zone=%s, want battlefield", e.G.Obj(wanted).Zone)
 	}
 }
+
+// TestEDHKeywordsOnlyAttackAloneSoleAttacker plays Master of Cruelties'
+// printed "CARDNAME can only attack alone." (CR 506.5) through a real
+// combat: declaring it beside another attacker is refused (and the option
+// publishes the fact the wire fence repairs), while declaring it as the
+// sole attacker is legal.
+func TestEDHKeywordsOnlyAttackAloneSoleAttacker(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	master, ok := reg.Lookup("Master of Cruelties")
+	if !ok {
+		t.Fatal("Master of Cruelties not in the corpus")
+	}
+	const bearCard = "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	e := combatEngine(t)
+	moc := onBoardCard(t, e, 0, master)
+	bear := onBoard(t, e, 0, bearCard)
+	e.G.Obj(moc).SummonSick = false
+	e.G.Obj(bear).SummonSick = false
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected an attackers decision, got %+v", d)
+	}
+	mocIdx, bearIdx := -1, -1
+	for _, o := range d.Options {
+		if o.Obj == moc {
+			mocIdx = o.Index
+			if !o.OnlyAloneRestricted {
+				t.Fatal("Master of Cruelties attack option does not publish OnlyAloneRestricted")
+			}
+		}
+		if o.Obj == bear {
+			bearIdx = o.Index
+			if o.OnlyAloneRestricted {
+				t.Fatal("unrestricted bear publishes OnlyAloneRestricted")
+			}
+		}
+	}
+	if mocIdx < 0 || bearIdx < 0 {
+		t.Fatalf("attack options not offered: %+v", d.Options)
+	}
+	// The whole-declaration guard refuses the pair...
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{mocIdx, bearIdx}}); err == nil {
+		t.Fatal("declaring Master of Cruelties beside another attacker was accepted")
+	}
+	// ...and the shared repair drops the restricted creature from the bot's
+	// answer, the same home the wire fence validates.
+	if got := d.FitAlone([]int{mocIdx, bearIdx}); len(got) != 1 || got[0] != bearIdx {
+		t.Fatalf("FitAlone({moc, bear}) = %v, want {bear}", got)
+	}
+	if !d.AloneLegal([]int{mocIdx}) || d.AloneLegal([]int{mocIdx, bearIdx}) {
+		t.Fatal("AloneLegal polarity inverted for only-attack-alone")
+	}
+	// A lone Master of Cruelties is legal: the attack goes through.
+	e2 := combatEngine(t)
+	alone := onBoardCard(t, e2, 0, master)
+	e2.G.Obj(alone).SummonSick = false
+	e2.askAttackers()
+	submitAttackersOnly(t, e2, alone)
+	drainCombatPriority(t, e2)
+}

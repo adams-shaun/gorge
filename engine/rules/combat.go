@@ -241,6 +241,11 @@ func (e *Engine) askAttackers() {
 		// build a legal declaration, and decision.Decision.Validate/FitAlone
 		// enforce the same field. combat.DeclaresAlone is the one reader.
 		opt.AloneRestricted = combat.DeclaresAlone(asBoard(e), of.id, true, nil)
+		// CR 506.5's inverse polarity ("can only attack alone"): the same
+		// wire-fact shape, opposite direction -- the option is legal only as
+		// the whole attacker declaration. combat.OnlyAttackAloneKeyword is
+		// the one read; Decision.Validate/FitAlone enforce the same field.
+		opt.OnlyAloneRestricted = combat.OnlyAttackAloneKeyword(asBoard(e), of.id)
 		opts = append(opts, opt)
 	}
 	// A CantChangeLife static (CR 119.7/119.8) makes every positive life
@@ -759,6 +764,18 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 // which the ask sites also use to publish Option.AloneRestricted.
 func (e *Engine) validateAloneDeclaration(chosen []decision.Option, attack bool) error {
 	if len(chosen) != 1 {
+		// CR 506.5's inverse polarity (Master of Cruelties' "can only attack
+		// alone"): a declaration BESIDE another attacker is the illegal one,
+		// and only an attack declaration can be so restricted. The same
+		// whole-declaration oracle (combat.OnlyAttackAloneKeyword) is the
+		// published option fact's one read.
+		if attack {
+			for _, o := range chosen {
+				if combat.OnlyAttackAloneKeyword(asBoard(e), attackedCreature(o)) {
+					return fmt.Errorf("attacker %d can only attack alone", attackedCreature(o))
+				}
+			}
+		}
 		return nil
 	}
 	id := chosen[0].Obj

@@ -40,6 +40,12 @@ type HiddenKeywordFlags struct {
 	// blocker obeys none of it; it is a separate unit from MustBlock, which
 	// the same attacker usually carries too.
 	MustBeBlockedByTwo bool
+	// OnlyAttackAlone is CR 506.5's inverse polarity (Master of Cruelties):
+	// the creature may be declared as an attacker only when it is the WHOLE
+	// attacker declaration. Like CantAttackAlone it is a property of the
+	// whole DECLARATION and is consumed by the declaration validators and
+	// the published option fact, never by a per-pair reader.
+	OnlyAttackAlone bool
 }
 
 // ParseHiddenKeyword reads one derived keyword line into its combat meaning.
@@ -96,6 +102,10 @@ func ParseHiddenKeyword(k string) HiddenKeywordFlags {
 		return HiddenKeywordFlags{AllMustBlock: true}
 	case cards.HiddenKeywordMustBeBlockedByTwo:
 		return HiddenKeywordFlags{MustBeBlockedByTwo: true}
+	case cards.HiddenKeywordOnlyAttackAlone:
+		// CR 506.5's inverse polarity: the lone declaration is the ONLY legal
+		// one. Blocking is unrestricted.
+		return HiddenKeywordFlags{OnlyAttackAlone: true}
 	}
 	return HiddenKeywordFlags{}
 }
@@ -116,6 +126,7 @@ func DerivedHiddenFlags(b Board, id state.ObjID) HiddenKeywordFlags {
 		f.CantBlockAlone = f.CantBlockAlone || g.CantBlockAlone
 		f.AllMustBlock = f.AllMustBlock || g.AllMustBlock
 		f.MustBeBlockedByTwo = f.MustBeBlockedByTwo || g.MustBeBlockedByTwo
+		f.OnlyAttackAlone = f.OnlyAttackAlone || g.OnlyAttackAlone
 	}
 	return f
 }
@@ -179,6 +190,16 @@ func CantAttackAloneKeyword(b Board, id state.ObjID) bool {
 // least one OTHER creature is declared blocking in the same declaration.
 func CantBlockAloneKeyword(b Board, id state.ObjID) bool {
 	return DerivedHiddenFlags(b, id).CantBlockAlone
+}
+
+// OnlyAttackAloneKeyword is CR 506.5's inverse polarity (Master of Cruelties'
+// "CARDNAME can only attack alone."): the creature may be declared as an
+// attacker only when it is the whole attacker declaration. Read from the
+// DERIVED keyword list like the other alone-side readers, and consumed by
+// validateAttackers' whole-declaration check and the published option fact
+// (Option.OnlyAloneRestricted), never by a per-pair reader.
+func OnlyAttackAloneKeyword(b Board, id state.ObjID) bool {
+	return DerivedHiddenFlags(b, id).OnlyAttackAlone
 }
 
 // DeclaresAlone reports whether declaring creature id as an attacker
