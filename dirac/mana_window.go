@@ -2627,6 +2627,12 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	// an {X} cast at an X the plan could not tap, and the payment panicked
 	// "autopay found no plan" (tail-34-c001 pair 9, Crackle with Power).
 	av.dynSac = false
+	if cost.X != 0 && s.bld().e.kind == seSpell {
+		if held := s.sacPartReserved(k, p, spellAddCost(k, s.bld().e.card)); held.any() {
+			s.ctrlM[p] = s.ctrlM[p].andNot(held)
+			defer func() { s.ctrlM[p] = s.ctrlM[p].or(held) }()
+		}
+	}
 	s.availFor(k, p, &av)
 	printedPays := false
 	if any != 0 || anyColor {
@@ -3256,7 +3262,7 @@ func (s *State) manaStep(k *prep) bool {
 		}
 		s.lowerTargetDepCostCast(k, e)
 		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 || e.trigPl == trigPlMiracle {
-			return false
+			return s.xSacWindowFirst(k, e, &cost)
 		}
 		var saved [len(build{}.picks)]uint8
 		s.holdCostTaps(k, &saved)

@@ -1079,6 +1079,16 @@ func (s *State) xCostLowers(k *prep, p uint8, c CardID, o Obj) bool {
 			return false
 		}
 	}
+	// a source that sacrifices itself can use up what the part must sacrifice,
+	// as for the fixed-cost arm in gorgeLowersRider (Reshape's only artifact a
+	// Treasure that also pays {U}; CR 601.2g-h, gorge planReserving). The
+	// census pays the cheapest announcement X = 0.
+	if ac := spellAddCost(k, c); ac.Flags&kop.CostSac != 0 && k.sacMana {
+		cost := s.featCost(k, p, c, o, k.cards[c].cost)
+		if !s.spellPartDisjoint(k, p, c, o, ac, &cost) {
+			return false
+		}
+	}
 	return s.xWitnessOffered(k, p, c, o)
 }
 
