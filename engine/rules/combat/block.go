@@ -67,7 +67,7 @@ func CanBlock(b Board, blocker, attacker state.ObjID) bool {
 	if b.HasKW(attacker, KWShadow) != b.HasKW(blocker, KWShadow) {
 		return false
 	}
-	if b.HasKW(attacker, KWFear) && !bf.IsArtifact() && !strings.ContainsRune(b.ObjectColors(bo), 'B') {
+	if b.HasKW(attacker, KWFear) && !isArtifactCreature(b, blocker, bo) && !strings.ContainsRune(b.ObjectColors(bo), 'B') {
 		return false
 	}
 	// CR 702.13a: an Intimidate attacker can be blocked only by artifact
@@ -86,7 +86,7 @@ func CanBlock(b Board, blocker, attacker state.ObjID) bool {
 				break
 			}
 		}
-		if !bf.IsArtifact() && !shared {
+		if !isArtifactCreature(b, blocker, bo) && !shared {
 			return false
 		}
 	}
@@ -354,4 +354,11 @@ func DefenderCreatureCount(b Board, defender state.PlayerID) int {
 		}
 	}
 	return n
+}
+
+// isArtifactCreature reports whether the blocker is an artifact right now: the
+// layer-derived type list, not the printed face, so a land that Mishra's
+// Groundbreaker made an artifact creature (CR 702.36b, 702.13a) counts.
+func isArtifactCreature(b Board, id state.ObjID, o *state.Object) bool {
+	return b.MatchesSpec("Artifact", id, id, o.Controller, nil, nil, false)
 }
