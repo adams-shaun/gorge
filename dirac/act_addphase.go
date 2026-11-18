@@ -36,8 +36,7 @@ import (
 // phase as a one-step grant that resumes at the ordinary combat; here the
 // entry stays queued with bit 7 set for the main phase and resumes at its
 // splice point's successor. Grants of the kind queue behind one another
-// (addPhaseMayQueue; identical grants merge into one entry's n, a completing
-// entry clears its follow bit so the n left runs its own combat and main); a
+// (addPhaseMayQueue; identical grants merge into one entry's n); a
 // grant of another kind beside it, a grant outside a main phase, or n > 1 in
 // one grant is a loud StallLowering (an interleaving of gorge's scan the kernel
 // does not reproduce; an unmodelled rule, not a capacity limit). StallAddPhase
@@ -172,9 +171,9 @@ func (s *State) addPhaseGrant(k *prep, in *kop.Instr) {
 // gorge's scan exactly: grants at one splice point run newest first (the
 // run-length coded n of a matching last entry), a grant resolving in a running
 // additional main phase takes that splice point before the older entries, and
-// completion of an entry clears its follow bit (addPhaseNext) so a remaining
-// n starts its own combat. A grant of another kind beside a CombatMain entry is
-// the interleaving the kernel does not reproduce.
+// the n left of a completed entry starts its own combat. A grant of another
+// kind beside a CombatMain entry is the interleaving the kernel does not
+// reproduce.
 func (s *State) addPhaseMayQueue() bool {
 	g := &s.g
 	for i := 0; i < int(g.nxph); i++ {
@@ -217,7 +216,7 @@ func (s *State) addPhaseNext(next kop.Step) kop.Step {
 				resume = kop.StepMain2
 			}
 			completed = true
-			e.at &^= xphConsumed | xphFollow // a remaining n (grants merged into the entry) runs its own combat and main
+			e.at &^= xphConsumed
 			if e.n == 0 {
 				copy(g.xph[i:], g.xph[i+1:g.nxph])
 				g.nxph--
