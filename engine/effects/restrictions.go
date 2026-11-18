@@ -241,30 +241,52 @@ func unlessDefenderProperty(g *state.Game, property string, defender, you state.
 		}
 		return playerCompare(unlessDefenderTypeCount(g, z, defender, parts[1], sc), op, want), true
 	case strings.HasPrefix(property, "hasFewer"):
-		// hasFewer[Type]sIn[Play|Yard]ThanYou
-		if int(you) >= len(g.Players) {
-			return false, false
-		}
-		body := strings.TrimPrefix(property, "hasFewer")
-		i := strings.Index(body, "sIn")
-		if i < 0 {
-			return false, false
-		}
-		cardType, tail := body[:i], body[i+len("sIn"):]
-		if cardType == "" {
-			return false, false
-		}
-		z := state.ZBattlefield
-		switch {
-		case strings.HasPrefix(tail, "PlayThan"):
-		case strings.HasPrefix(tail, "YardThan"):
-			z = state.ZGraveyard
-		default:
-			return false, false
-		}
-		return unlessDefenderTypeCount(g, z, defender, cardType, sc) < unlessDefenderTypeCount(g, z, you, cardType, sc), true
+		return hasFewerThanYouHolds(g, property, defender, you, sc)
 	}
 	return false, false
+}
+
+// hasFewerThanYouSpec parses Forge's hasFewer<Type>sIn<Play|Yard>ThanYou
+// player property: the type word before "sIn" and the zone the two counts
+// read ("Play" is the battlefield, "Yard" the graveyard). Extracted from
+// unlessDefenderProperty's hasFewer arm so the PlayerCount comparison
+// family (player_than_you.go, Birth of the Imperium's
+// HasPropertyhasFewerCreaturesInPlayThanYou) shares the ONE parse and the
+// two readers cannot drift.
+func hasFewerThanYouSpec(property string) (cardType string, z state.Zone, ok bool) {
+	body := strings.TrimPrefix(property, "hasFewer")
+	i := strings.Index(body, "sIn")
+	if i < 0 {
+		return "", 0, false
+	}
+	cardType, tail := body[:i], body[i+len("sIn"):]
+	if cardType == "" {
+		return "", 0, false
+	}
+	z = state.ZBattlefield
+	switch {
+	case strings.HasPrefix(tail, "PlayThan"):
+	case strings.HasPrefix(tail, "YardThan"):
+		z = state.ZGraveyard
+	default:
+		return "", 0, false
+	}
+	return cardType, z, true
+}
+
+// hasFewerThanYouHolds evaluates one hasFewer<Type>sIn<Play|Yard>ThanYou
+// property: the candidate player controls (or holds in its graveyard)
+// strictly fewer objects of that type than You. Malformed or out-of-range
+// reads report known=false so neither caller can read a fabricated verdict.
+func hasFewerThanYouHolds(g *state.Game, property string, defender, you state.PlayerID, sc SpecContext) (holds, known bool) {
+	if int(defender) >= len(g.Players) || int(you) >= len(g.Players) {
+		return false, false
+	}
+	cardType, z, ok := hasFewerThanYouSpec(property)
+	if !ok {
+		return false, false
+	}
+	return unlessDefenderTypeCount(g, z, defender, cardType, sc) < unlessDefenderTypeCount(g, z, you, cardType, sc), true
 }
 
 // unlessDefenderZone maps a Forge zone word in a HasCardsIn property to a
