@@ -163,6 +163,25 @@ class TestWriteEvidencePools(unittest.TestCase):
         self.assertIn("0123456789abcdef", self.keys_file("p"))
         self.assertNotIn("fedcba9876543210", self.keys_file("p"))
 
+    def test_a_keyed_card_leaves_legacy(self):
+        """A card the write gives a sidecar row is dropped from LEGACY.txt; other legacy names stay."""
+        self.pool_p(["f0/s\t3\t1"])
+        lir = os.path.join(self.tmp.name, "lir.tsv")
+        with open(lir, "w") as f:
+            f.write("X\t0123456789abcdef\n")
+        os.environ["DFR_LIR_KEYS"] = lir
+        self.addCleanup(os.environ.pop, "DFR_LIR_KEYS", None)
+        keys = os.path.join(self.top, "dirac/support/evidence-keys")
+        os.makedirs(keys, exist_ok=True)
+        with open(os.path.join(self.top, "dirac/support/evidence/q.txt"), "w") as f:
+            f.write("Old\n")
+        with open(os.path.join(keys, "LEGACY.txt"), "w") as f:
+            f.write("Old\nX\n")
+        self.write(["p"])
+        self.assertIn("X\t0123456789abcdef", self.keys_file("p"))
+        with open(os.path.join(keys, "LEGACY.txt")) as f:
+            self.assertEqual(f.read(), "Old\n")
+
     def test_sidecar_row_refreshed_when_a_card_is_regained(self):
         """A dirty whole-corpus round deletes the pool's list but leaves its sidecar; the next clean
         round re-gains the card, which must get the current row, not the pre-deletion one."""
