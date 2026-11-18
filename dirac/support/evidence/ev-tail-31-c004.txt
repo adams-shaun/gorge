@@ -1,3 +1,4 @@
+Accelerated Mutation
 Adanto Vanguard
 Alora, Merry Thief
 Amrou Kithkin
@@ -7,26 +8,36 @@ Arms Dealer
 Aron, Benalia's Ruin
 Aven Skirmisher
 Baloth Pup
+Celestial Flare
+Centaur Rootcaster
 Charge Through
 Claim of Erebos
 Clinging Darkness
+Conjurer's Closet
 Consuming Sinkhole
 Crystacean
 Daily Regimen
 Dancing Scimitar
+Darkheart Sliver
 Darksteel Myr
+Detainment Spell
 Dictate of Heliod
 Era of Enlightenment
 Ezuri's Brigade
+Festival of the Guildpact
 Fists of Flame
 Fit of Rage
 Flickering Ward
 Forest
+Fork in the Road
+Frenzied Tilling
 Ghoulish Procession
 Giant's Skewer
 Gustrider Exuberant
+Herald of Ilharg
 Herald of the Fair
 Homestead Courage
+Hopeful Eidolon
 Hornet Sting
 Inquisitor's Ox
 Island
@@ -34,24 +45,31 @@ Keeper of Keys
 Kithkin Harbinger
 Kitsune Loreweaver
 Living Lightning, Charged Up
+Miraculous Recovery
 Mountain
 Nacre Talisman
 Nettlecyst
+Nighthaze
 Nightmare Lash
 Noble Quarry
 Oakgnarl Warrior
 Obsidian Battle-Axe
 Ondu Inversion
 Plains
+Prismatic Ward
+Purify the Grave
+Putrid Leech
 Rancor
 Reckless Rage
 Recurring Insight
 Rite of Consumption
 Ronom Unicorn
+Rubblebelt Runner
 Scale Up
 Shadow Glider
 Solid Ground
 Spectral Reserves
+Steel Leaf Paladin
 Stirring Address
 Strix Serenade
 Swamp
@@ -61,6 +79,10 @@ Temporal Fissure
 Trained Cheetah
 Vindictive Vampire
 Voice of Truth
+Vulshok Morningstar
 Wall of Vines
+Wary Okapi
 White Scarab
 Wildwood Tracker
+Wreath of Geists
+Zendikar Incarnate

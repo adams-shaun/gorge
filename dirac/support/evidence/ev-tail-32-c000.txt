@@ -19,7 +19,9 @@ Archfiend of Sorrows
 Arctic Treeline
 Arena Athlete
 Ashling the Pilgrim
+Asylum Visitor
 Atarka Beastbreaker
+Attrition
 Attune with Aether
 Avenger of Zendikar
 Axgard Armory
@@ -43,11 +45,13 @@ Boreal Elemental
 Bottle Golems
 Brand
 Brood Birthing
+Bull Hippo
 Cartouche of Zeal
 Cast Down
 Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
+Celestial Purge
 Channel the Suns
 Chaotic Goo
 Charging Monstrosaur
@@ -60,6 +64,7 @@ Cloudchaser Kestrel
 Cold Storage
 Combust
 Conclave Mentor
+Consuming Sinkhole
 Copper Host Crusher
 Copper Myr
 Court Homunculus
@@ -67,6 +72,7 @@ Court of Grace
 Curious Altisaur
 Cut
 Dakmor Plague
+Damning Verdict
 Dark Betrayal
 Dark Ritual
 Darksteel Brute
@@ -79,6 +85,7 @@ Dormant Sliver
 Drana, Liberator of Malakir
 Draugr Thought-Thief
 Drown in Ichor
+Dryad Greenseeker
 Duskhunter Bat
 Dwarven Warriors
 Dwell on the Past
@@ -106,6 +113,7 @@ Facevaulter
 Familiar Ground
 Farm
 Fault Riders
+Feral Abomination
 Filigree Fracture
 Flamekin Harbinger
 Flamespeaker's Will
@@ -119,6 +127,8 @@ Forget
 Foul Orchard
 Fourth Bridge Prowler
 Frontline Devastator
+Frostweb Spider
+Gaea's Embrace
 Garrison Griffin
 Geier Reach Sanitarium
 Genasi Enforcers
@@ -128,6 +138,7 @@ Ghitu Journeymage
 Ghostly Visit
 Glare of Subdual
 Glimmerbell
+Go-Shintai of Shared Purpose
 Goblin Bombardment
 Goblin Hero
 Goblin Tutor
@@ -161,10 +172,13 @@ Irini Sengir
 Island
 Ivory Crane Netsuke
 Izzet Charm
+Knight of Old Benalia
 Koilos Roc
 Krenko's Enforcer
 Krosan Restorer
+Kruin Striker
 Lace with Moonglove
+Lancer Sliver
 Lavakin Brawler
 Leo's Guidance
 Lesser Gargadon
@@ -193,6 +207,7 @@ Memory Worm
 Mercurial Spelldancer
 Merrow Bonegnawer
 Merrow Witsniper
+Mesa Falcon
 Mesa Lynx
 Metallic Mastery
 Mind Drain
@@ -221,6 +236,7 @@ Ondu Cleric
 Oni Possession
 Ovalchase Daredevil
 Overrule
+Pattern of Rebirth
 Peer Through Depths
 Penance Stare
 Pest Infestation
@@ -228,23 +244,30 @@ Pestermite
 Phantasmal Sphere
 Pillar of Light
 Pious Evangel
+Pious Wayfarer
 Plains
 Plateau
 Pollenbright Wings
 Prakhata Pillar-Bug
 Precognition Field
+Prized Statue
 Provoke
 Psychic Spear
 Pygmy Pyrosaur
 Quicksilver Dagger
+Radiant Fountain
 Raiding Nightstalker
 Rakka Mar
+Rakshasa's Secret
+Rampaging Monument
+Ranger Class
 Ravenous Harpy
 Raving Oni-Slave
 Razorjaw Oni
 Reckless Imp
 Relic of Progenitus
 Renounce
+Rescue Retriever
 Returned Centaur
 Rhox Brute
 Rhox Meditant
@@ -258,6 +281,7 @@ Ruin Ghost
 Rust Monster
 Salt Marsh
 Sandstone Warrior
+Sarcomancy
 Savage Thallid
 Scragnoth
 Scroll of Origins
@@ -289,11 +313,13 @@ Storm Crow
 Strandwalker
 Strength of Arms
 Strike It Rich
+Sunblade Angel
 Surreal Memoir
 Swamp
 Tail Slash
 Telim'Tor's Edict
 Tervigon
+Tezzeret's Touch
 The Prydwen, Steel Flagship
 The Royal Scions
 Thorn Lieutenant
@@ -315,6 +341,7 @@ Ugin's Insight
 Umbral Juke
 Unnatural Speed
 Untamed Wilds
+Unwavering Initiate
 Valkyrior Skyrider
 Value Town
 Vaporkin
@@ -322,14 +349,18 @@ Venomous Vines
 Vexing Sphinx
 Viashivan Dragon
 Viridian Zealot
+Vivid Revival
 Vivisection
 Voda Sea Scavenger
 Vraska's Contempt
 Wake of Destruction
+Walking Archive
 Wander in Death
 Warleader's Helix
 Wave-Wing Elemental
 Wheel and Deal
+Wild Crocodile
+Wilderness Elemental
 Wildfire Eternal
 Windreader Sphinx
 Witch's Mist

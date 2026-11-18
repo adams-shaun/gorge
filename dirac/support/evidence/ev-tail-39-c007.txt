@@ -12,6 +12,7 @@ Beastmaster Ascension
 Benalish Veteran
 Berserkers of Blood Ridge
 Blood Pact
+Bloodvial Purveyor
 Burgeoning
 Chaos Channeler
 Chill
@@ -36,6 +37,7 @@ Dromoka Dunecaster
 Dry Spell
 Elda, Conjurer of Spectacle
 Envoy of the Ancestors
+Ethereal Guidance
 Fast
 Forest
 Forked Bolt
@@ -51,6 +53,7 @@ Late to Dinner
 Leonin Bladetrap
 Lord of the Accursed
 Manalith
+Marshal of Zhalfir
 Mobile Fort
 Mountain
 Mulldrifter
@@ -66,19 +69,23 @@ Paroxysm
 Perish
 Plains
 Power Fist
+Primeval Shambler
 Quandrix Campus
 Rage of Purphoros
 Rally at the Hornburg
+Resistance Reunited
 Rhystic Shield
 Riot Piker
 Riverwheel Aerialists
 Ronin Warclub
 Rotten Reunion
 Ruinous Minotaur
+Sanctum Spirit
 Scourge of Fleets
 Scurry of Squirrels
 Sentinels of Glen Elendra
 Sheltering Boughs
+Shield of the Avatar
 Shriek of Dread
 Signal Pest
 Silburlind Snapper
@@ -107,6 +114,7 @@ Tivadar's Crusade
 Tooth and Nail
 Trophy Hunter
 Ugin's Construct
+Underdark Explorer
 Underworld Sentinel
 Urborg Drake
 Wakening Sun's Avatar

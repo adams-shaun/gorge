@@ -1,126 +1,249 @@
+Abyssal Nocturnus
 Acidic Sliver
+Aether Rift
 Aid the Fallen
 Animate Land
 Appa, Aang's Companion
 Aspiring Aeronaut
+Assault
 Aveline de Grandpré
+Badlands
 Balance of Power
 Baleful Force
+Bartolomé del Presidio
+Basilica Screecher
 Beanstalk Giant
+Bessie, the Doctor's Roadster
+Black Dragon Gate
+Blazing Sunsteel
 Blinding Drone
+Blitz Leech
 Bob, Reluctant HYDRA Agent
+Boon-Bringer Valkyrie
 Bow of Nylea
 Breathstealer
+Brilliant Halo
+Builder's Blessing
+Burst of Energy
 Bygone Bishop
+Cackling Counterpart
 Cadaver Imp
+Chitinous Cloak
 Cinderhaze Wretch
+Circle of Affliction
+Cliff Threader
+Collective Voyage
 Colossal Badger
+Consul's Shieldguard
+Corrupt Eunuchs
 Crater Hellion
 Cryptic Serpent
 Crystal Chimes
+Cyclical Evolution
+Dark Revenant
 Day of Destiny
 Dazzling Lights
+Deadly Rollick
 Demonic Bargain
 Demonic Lore
 Demonic Tutor
+Demotion
+Desecration Plague
 Dictate of Karametra
 Disperse
+Divine Light
 Doom Foretold
 Doom's Servo-Guards
 Down
 Dragon's Presence
+Draining Whelk
 Drake-Skull Cameo
 Dreadbore
+Dueling Rapier
+Dusk Imp
+Earth-Cult Elemental
 Eliminate
+Emancipation Angel
 Environmental Sciences
 Evolution Witness
+Excommunicate
+Exiled Boggart
+Expose to Daylight
 Eyeless Watcher
+Falcon, Joaquin Torres
 Fallen Ideal
+Final Revels
 Fire Nation Salvagers
+Firescreamer
+Flowstone Surge
+Flusterstorm
+Fodder Tosser
 Forest
 Foul Watcher
+Fry
+Fuming Effigy
+Gateway Plaza
+Ghost-Lit Redeemer
+Ghoulish Procession
 Gimli's Fury
 Glamorous Grapplers
 Gnoll Hunter
 Goblin Masons
+Goblin Piledriver
+Gorehorn Minotaurs
 Grave Upheaval
 Gravedig
+Greatsword
 Green Sun's Zenith
+Grizzly Fate
+Hagra Sharpshooter
 Hall Monitor
+Heavenly Qilin
 Hedron Crab
+Hellkite Charger
+Hexavus
+Hexgold Hoverwings
 Highland Game
+Hookblade
 Hope-Ender Coatl
+Hurl Through Hell
 Illusionary Forces
 Increasing Savagery
 Inquisition of Kozilek
+Insidious Bookworms
+Inspiring Roar
+Iron Tusk Elephant
 Island
+Jaddi Offshoot
 Jarad's Orders
+Juzám Djinn
 Kessig Wolf
 Knight of Obligation
+Knight-Errant of Eos
+Kor Hookmaster
+Kragma Butcher
 Lady Orca
 Lantern of the Lost
+Lifelink
 Liliana's Reaver
 Living Lies of Loki
 Living Plane
+Llanowar Visionary
 Loathsome Chimera
+Loch Korrigan
+Lurking Crocodile
+Mage Slayer
+Magus of the Mind
 Malevolent Rumble
+Markov Purifier
+Marsh Boa
 Master of the Feast
 Mausoleum Secrets
 Maze Behemoth
+Memory Plunder
 Merfolk Mesmerist
 Michelangelo, the Heart
+Midnight Charm
 Midnight Covenant
 Midnight Ritual
 Minion Missile
+Mirran Crusader
+Mirri, Cat Warrior
+Molting Skin
 Mountain
+Munda, Ambush Leader
 Natural Selection
 Nature's Spiral
 Neck Snap
+Night
 Nim Lasher
 Nine-Ringed Bo
+Oath of Gideon
+Oblivion Crown
+Olivia's Dragoon
 Order of Leitbur
+Order of the Ebon Hand
+Order of the Stars
+Patron of the Arts
 Persistent Specimen
+Pile On
 Plains
 Plated Wurm
 Polluted Dead
 Primeval Herald
+Pseudodragon Familiar
 Pyromancer's Gauntlet
 Ragavan, Nimble Pilferer
 Ramirez DePietro
+Ravenous Lindwurm
 Recall
 Reckless Brute
+Reckless Racer
 Renegade Wheelsmith
+Resolute Watchdog
+Resurgent Belief
 Return of the Nightstalkers
+Robaran Mercenaries
+Rootbound Crag
+Roterothopter
+Rubble Reading
+Ruin Crab
+Runed Stalactite
 Rushwood Legate
 Saber Ants
 Saddle of the Cavalier
 Scarwood Bandits
+Scavenged Weaponry
+Scepter of Fugue
+Scissors Lizard
+Scorch the Fields
 Scrapyard Mongrel
 Screeching Buzzard
 Screeching Drake
+Sea Kings' Blessing
+Search the Premises
+Sentry Bot
+She-Hulk, Wallbreaker
 Shipwreck Moray
 Shu Yun, the Silent Tempest
 Sicken
 Silvanus's Invoker
 Simian Simulacrum
 Singing Bell Strike
+Sire of the Storm
+Siren Song Lyre
 Skirsdag Flayer
+Skyboon Evangelist
+Skyclave Relic
 Snooping Newsie
+Sprite Noble
 Stirring Wildwood
+Stone Haven Pilgrim
 Stoneshock Giant
+Sun Clasp
 Sun Sentinel
 Swamp
 Swamp Mosquito
 Szarekh, the Silent King
 The Mightstone and Weakstone
+Theft of Dreams
+Thoughtseize
 Topan Ascetic
 Treefolk Harbinger
+Treefolk Healer
 Tunneling Geopede
 Two-Headed Dragon
 Ulcerate
 Unruly Mob
 Vectis Agents
 Vedalken Infuser
+Veinwitch Coven
+Vexing Devil
+Virulent Swipe
 Virulent Wound
 Warchanter Skald
 Weaselback Redcap
+Windbrisk Heights
+You Come to a River
+Zodiac Rat
+Zuberi, Golden Feather

@@ -20,6 +20,8 @@ Ancient Tomb
 Angel of the Dawn
 Angelic Sell-Sword
 Angelsong
+Arcane Adaptation
+Arcbond
 Archangel's Light
 Archers of Qarsi
 Ardoz, Cobbler of War
@@ -72,6 +74,7 @@ Concordia Pegasus
 Conductor of Cacophony
 Constant Mists
 Contagion Clasp
+Contested War Zone
 Controlled Instincts
 Crawling Chorus
 Crimson Kobolds
@@ -143,6 +146,7 @@ Ghostfire Blade
 Giant Ankheg
 Goblin Patrol
 God-Eternal Rhonas
+Golgari Grave-Troll
 Gore Swine
 Gornog, the Red Reaper
 Grave Venerations
@@ -169,6 +173,7 @@ Icatian Priest
 Igneous Golem
 In the Trenches
 Incubator Drone
+Indestructible Aura
 Infiltrate
 Infused Arrows
 Intrepid Provisioner
@@ -278,6 +283,7 @@ Rejuvenation Chamber
 Rekindled Flame
 Reviving Melody
 Rhox Oracle
+Rime Dryad
 Riptide
 Rising Populace
 Roar of Reclamation
@@ -312,6 +318,7 @@ Silumgar Butcher
 Silundi Vision
 Siren of the Silent Song
 Skin Invasion
+Skred
 Sky Ruin Drake
 Skyway Sniper
 Slice in Twain
@@ -348,6 +355,7 @@ Tangle Mantis
 Tangle Spider
 Tangled Islet
 Target Minotaur
+Tattermunge Duo
 Temur Runemark
 Tenth District Veteran
 Tergrid's Shadow

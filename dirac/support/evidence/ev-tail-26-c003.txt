@@ -1,59 +1,139 @@
+Accursed Centaur
+Act on Impulse
 Advance Scout
 Akki Lavarunner
+Akroan Hoplite
 Angelic Overseer
 Arc Lightning
+Armor of Shadows
 Army Ants
 Arno Dorian
+Asceticism
+Ashcoat Bear
 Ashenmoor Gouger
 Ashnod, Flesh Mechanist
+Ayula, Queen Among Bears
+Birthing Pod
 Blade of the Bloodchief
 Blood Knight
 Bloodhall Priest
 Bloodscale Prowler
 Brimstone Dragon
+Brindle Shoat
+Bringer of the Blue Dawn
+Butch DeLoria, Tunnel Snake
+Celebrity Fencer
 Chase Stein, Runaway
 Chemister's Insight
 Chorus of Woe
+Curse of Shallow Graves
+Cyclopean Snare
+Cyclops Superconductor
 Cystbearer
+Deadly Dispute
+Death of a Thousand Stings
+Declare Dominance
+Dirty Rat
+Domri's Ambush
 Dragon Hatchling
 Dralnu's Crusade
 Dunes of the Dead
+Eel-Hounds
+Elven Bow
 Empty the Warrens
+Excogitator Sphinx
 Faithless Looting
 Faithless Salvaging
 Fast Forward
+Feast of Dreams
 Fencing Ace
+Festering Wound
+Force of Savagery
 Forest
 Foul-Tongue Shriek
+Furnace Scamp
+Galadhrim Ambush
+Gerrard's Irregulars
+Gloom Pangolin
 Goblin Firebug
+Graceful Cat
+Grappling Sundew
+Grave Betrayal
+Greenseeker
+Grizzly Ghoul
 Harrow
 Island
+Jewel-Eyed Cobra
 Junk Golem
 Kami of Fire's Roar
+Knight of Dawn's Light
 Lava Axe
+Leela, Sevateem Warrior
 Lightning Prowess
+Living Lands
 Lord of Extinction
 Lulu, Stern Guardian
+Makeshift Battalion
 Markov Enforcer
+Merrow Bonegnawer
+Mizzium Skin
 Mogg Sentry
+Molting Harpy
+Monster Manual
+Moss Kami
 Mountain
+Necra Sanctuary
+Necrosquito
+Nested Shambler
+Niall Silvain
+Nighthawk Scavenger
+Nightmarish End
+No Escape
 Nullmage Advocate
 Oblivion Ring
+Orochi Soul-Reaver
+Orzhov Racketeers
 Pharika's Libation
+Phyrexian Ghoul
+Pit Imp
 Pit Keeper
 Plains
+Polluted Bonds
 Possessed Aven
+Quest for Ancient Secrets
 Quickening Licid
 Rally the Ranks
+Rampaging Aetherhood
 Reality Ripple
+Rhox Brute
+Rootwater Diver
 Saltfield Recluse
+Satyr Grovedancer
+Savage Swipe
+Scarwood Treefolk
 Scathe Zombies
+Sentinel
 Serpent Warrior
+Shessra, Death's Whisper
+Shrieking Affliction
+Sivriss, Nightmare Speaker
+Skulltap
+Skyway Sniper
+Slate Street Ruffian
+Slip Through Space
+Snake Pit
 Sparkspitter
+Spellbook
+Spined Fluke
 Spontaneous Combustion
 Steadfast Unicorn
+Stony Strength
 Sunspire Griffin
 Swamp
+Swift Warden
+Tel-Jilad Chosen
+The Wretched
+Thundering Spineback
 Tide Drifter
 Triad of Fates
 Unholy Strength
@@ -62,8 +142,15 @@ Volcanic Dragon
 Volcanic Rush
 Wall of Opposition
 Warlord's Axe
+Warthog
+Watchful Blisterzoa
+Wei Night Raiders
 Whirler Rogue
+Wicked Guardian
 Wight of Precinct Six
+Wishful Merfolk
 Wretched Throng
+Yahenni's Expertise
 Yawgmoth's Vile Offering
 You See a Guard Approach
+Zodiac Snake
