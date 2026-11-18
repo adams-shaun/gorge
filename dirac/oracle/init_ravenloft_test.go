@@ -20,17 +20,15 @@ var kravenDecks = func() [2][]cardset.Entry {
 	return d
 }()
 
-// TestRavenloftAdventurerLockstepKnownGap: the kernel puts Ravenloft
-// Adventurer's Attacks trigger on the stack once its controller has completed
-// a dungeon (DungeonsCompleted$Amount, genState's coldDDone), as the card
-// reads; gorge never does, because its count evaluator has no
-// DungeonsCompleted$ head (it reads 0) and no TriggeredDefendingPlayer$
-// ValidExile head. So the pool diverges on exactly that stack entry until
-// gorge reads both heads; then this test fails and becomes a lockstepRun with
-// report set, like TestInitLockstep.
-func TestRavenloftAdventurerLockstepKnownGap(t *testing.T) {
+// TestRavenloftLockstep: the kernel puts Ravenloft Adventurer's Attacks
+// trigger on the stack once its controller has completed a dungeon
+// (DungeonsCompleted$Amount, genState's coldDDone), as the card reads, and
+// pays by the defender-owned exile count
+// (TriggeredDefendingPlayer$ValidExile Card.YouOwn+counters_GE1_HIT). Gorge
+// reads both heads (engine/effects count_body_player.go's DungeonsCompleted$
+// arm, count_ref_property.go's TriggeredDefendingPlayer Valid-family widening),
+// so the pool is strict lockstep like TestInitLockstep.
+func TestRavenloftLockstep(t *testing.T) {
 	t.Parallel()
-	if !lockstepDiverges(t, "ravenloft", kravenDecks, 120) {
-		t.Fatal("no seed diverged: gorge now reads DungeonsCompleted$Amount; make this a strict lockstepRun")
-	}
+	lockstepRun(t, "ravenloft", kravenDecks, 200, true, nil)
 }
