@@ -92,6 +92,15 @@ type WindowAlt struct {
 	// cast-payment probe and paid by castWindowReachable from the pool the
 	// window has already accumulated.
 	CostColored state.Mana
+	// FreeTap marks a bare (or empty-cost) tap activation, so it leaves the
+	// source on the battlefield and a no-tap self-sacrifice ability may
+	// follow it (cast_window.go's Extras).
+	FreeTap bool
+	// SelfSac marks an activation whose cost sacrifices the source itself
+	// (with or without its {T}). The source is gone afterwards, so the walk
+	// must not follow this alternative with a no-tap sacrifice Extra
+	// (cast_window.go's castWindowTryAlternative).
+	SelfSac bool
 }
 
 // Fee is the alt's activation fee as one mana count, generic and coloured.
@@ -122,6 +131,16 @@ type WindowUnit struct {
 	ID        state.ObjID
 	FreeCount int
 	Alts      []WindowAlt
+	// Extras are the no-tap activations a source may take AFTER its main
+	// (tap) activation: a self-sacrifice mana ability beside a tap ability
+	// (an Eldrazi Scion that taps for a granted "{T}: Add {C}" and then
+	// sacrifices itself for its printed "{Sacrifice this: Add {C}").
+	// CR 602.2b/605.1a: paying a cost does not stop a permanent's other
+	// abilities from being activated, so the source makes both. Only the
+	// cast-payment probe sets them, and only when the unit already has a
+	// tap activation; the extras are one-shot (self-sacrifice), so the
+	// cast-window search tries them once, after the main activation.
+	Extras []WindowAlt
 }
 
 // AppendUnitAlt appends one alternative to the unit that already
@@ -156,7 +175,9 @@ func SameManaAbility(a, b *cards.SA) bool {
 // alternative by alternative (the verify-mode check of the query cache).
 func SameUnits(a, b []WindowUnit) bool {
 	return slices.EqualFunc(a, b, func(x, y WindowUnit) bool {
-		return x.ID == y.ID && x.FreeCount == y.FreeCount && slices.EqualFunc(x.Alts, y.Alts, SameWindowAlt)
+		return x.ID == y.ID && x.FreeCount == y.FreeCount &&
+			slices.EqualFunc(x.Alts, y.Alts, SameWindowAlt) &&
+			slices.EqualFunc(x.Extras, y.Extras, SameWindowAlt)
 	})
 }
 
