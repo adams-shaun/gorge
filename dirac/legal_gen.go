@@ -210,19 +210,21 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			cost = anyType(cost)
 		}
 		if s.cfg&cfgGorgeUnpriced != 0 && s.g.availX&availWalk == 0 && s.creditOfferLive(k, p, c, o, s.objs[o].zone == kop.ZoneHand) &&
-			!s.windowPoolPays(p, &cost, anyColor) {
-			// gorge's may-play offer gate prices the floating pool alone
-			// (legal_walk_alt.go's mayPlayAffordable: castable over
-			// pay.AvailableFor, the rider inside its feasibility read), while
-			// the afford read below prices the census (availFor: the pool plus
-			// the untapped sources). A may-play cast the census pays but the
-			// pool does not is a pass to gorge -- Black Widow, Super Spy's dig
-			// grant (MayPlay$ True | MayPlayIgnoreType$ True) over the exiled
+			!s.poolOfferPays(k, p, c, o, &base, &cost, anyMana, anyColor) {
+			// gorge prices no potential play of a may-play cast carrying a
+			// live convoke, improvise or delve credit: the potential plan
+			// withholds it (potentialModeCredit's "cost:credit",
+			// potential_plan.go), so only the floating pool casts it -- the
+			// offer gate (mayPlayAffordable: castable over pay.AvailableFor)
+			// prices the pool against the credited composed cost -- and the
+			// afford read below prices the census (availFor: the pool plus the
+			// untapped sources). Black Widow, Super Spy's dig grant
+			// (MayPlay$ True | MayPlayIgnoreType$ True) over the exiled
 			// Futurist Forge with an empty pool, two untapped sources paying
-			// the rider-converted {2} -- so the posed enumeration drops it
-			// here; a potential walk keeps the census read (availWalk), whose
-			// hyp bound is the one gorge's own potential planner prices the
-			// play against.
+			// the rider-converted {2}, is the pair: gorge poses pass, the
+			// posed enumeration drops the cast here; a potential walk keeps
+			// the census read (availWalk), whose hyp bound is the one gorge's
+			// own potential walk prices the play against.
 			return
 		}
 		if anyColor {
@@ -273,6 +275,39 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		}
 	}
 	d.add(MakeAction(AkCast, TCode(o), 0, mode))
+}
+
+// poolOfferPays is the pool half of gorge's may-play offer gate (castable's
+// manaFeasible over pay.AvailableFor): the floating pool pays the credited
+// composed cost the offer carries, a twobrid one on some announcement face,
+// the delve credit paying the generic faces (CR 702.66a, 107.4e). cost is the
+// offer's composition, resolved to the face the census pays; for a twobrid
+// cost that face is not the answer -- Teval, Arbiter of Virtue's granted
+// delve covers a generic face an empty pool never would -- so base is
+// re-composed on the pool the way offerPlay composes it on the census.
+func (s *State) poolOfferPays(k *prep, p uint8, c CardID, o Obj, base, cost *kop.ManaCost, anyMana, anyColor bool) bool {
+	if s.windowPoolPays(p, cost, anyColor) {
+		return true
+	}
+	if base.Hyb[0] != kop.HybTwobrid {
+		return false
+	}
+	fromHand := s.objs[o].zone == kop.ZoneHand
+	var pav avail
+	s.availPool(p, &pav)
+	pav.life = s.pl[SeatIx(p)].life
+	pav.delve = s.tbDelveCredit(k, p, c, o, fromHand)
+	pcost := s.adjustFit(k, &pav, p, c, o, *base, true)
+	if !pav.tbLeafCredited(base) {
+		pcost = s.delveOfferCredit(k, p, c, o, fromHand, pcost)
+	}
+	if anyMana {
+		pcost = anyType(pcost)
+	}
+	if anyColor {
+		return pav.affordsAnyColor(&pcost, 0)
+	}
+	return pav.affords(&pcost, pipMaskOf(&pcost), 0)
 }
 
 // anyType turns coloured pips into generic (mana of any type may be spent).
