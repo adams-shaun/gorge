@@ -35,11 +35,14 @@ var DebugRestrGrantStats *RestrictGrantStats
 // restrOrigin is the cast the restriction is read for: the zone it comes
 // from (the current zone before the push, the entry's prov after), whether
 // the entry is pushed (the honest read), and whether the reading player is
-// the caster. The zero value fails closed.
+// the caster. The zero value fails closed. bestowed: the cast is a bestowed
+// one, an Aura spell and no creature spell (CR 702.103b; gorge
+// pay.Descriptor.Bestowed, bestowedSpecMatches).
 type restrOrigin struct {
-	from  kop.Zone
-	cast  bool
-	byYou bool
+	from     kop.Zone
+	cast     bool
+	byYou    bool
+	bestowed bool
 }
 
 // restrProvHolds is PredWasCastSpell n for a restriction match.
@@ -75,7 +78,7 @@ func (s *State) restrOriginOfObj(o Obj) restrOrigin {
 // restrOriginOfEntry is the origin of the pushed spell entry e, paid for by
 // its caster: the honest read.
 func restrOriginOfEntry(e *stackEntry) restrOrigin {
-	return restrOrigin{from: kop.Zone(e.prov & 7), cast: true, byYou: true}
+	return restrOrigin{from: kop.Zone(e.prov & 7), cast: true, byYou: true, bestowed: e.bestowedEntry()}
 }
 
 // restrFilterMatch: card c, cast from origin og, matches restriction
@@ -85,6 +88,14 @@ func (s *State) restrFilterMatch(k *prep, fl *kop.Filter, c CardID, p uint8, og 
 	prov, n := fl.Pred == kop.PredWasCastSpell, fl.PredN
 	if prov {
 		fl.Pred, fl.PredN = kop.PredNone, 0
+	}
+	if og.bestowed {
+		// the bestowed spell is an Aura, not a creature (CR 702.103b): read the
+		// alternative's type words against that, the rest against the card
+		if ty := k.cards[c].types&^kop.TCreature | kop.TAura; fl.Types != 0 && ty&fl.Types == 0 || ty&fl.NotTypes != 0 {
+			return false
+		}
+		fl.Types, fl.NotTypes = 0, 0
 	}
 	if !s.matchCardOne(k, fl, c, p, p, NoObj) {
 		return false

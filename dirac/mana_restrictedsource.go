@@ -251,6 +251,7 @@ func (s *State) payDescNow(exclude Obj) payDesc {
 			if s.bld().bfl&bflPushed != 0 {
 				og = restrOriginOfEntry(e)
 			}
+			og.bestowed = e.bestowedEntry() // CR 702.103b
 			return payDesc{class: pdSpell, card: e.card, src: NoSlot, og: og}
 		case seAbility:
 			return payDesc{class: pdAct, card: e.card, src: s.srcSlot()}
