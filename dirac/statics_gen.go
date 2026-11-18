@@ -217,6 +217,14 @@ func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint
 		fl.Flags2 &^= kop.F2ChosenType
 		return has && s.matchCardOne(k, &fl, c, owner, ctrl, o)
 	}
+	if src != NoSlot && fl.Flags2&kop.F2ChosenColor != 0 {
+		// Iona, Shield of Emeria's "spells of the chosen color": the static
+		// source's as-enters colour, read against the card's own colours
+		ch, ok := s.chosenTypeSub(src)
+		has := ok && ch <= 4 && k.t.Cards[c].Colors&(kop.ColW<<ch) != 0
+		fl.Flags2 &^= kop.F2ChosenColor
+		return has && s.matchCardOne(k, &fl, c, owner, ctrl, o)
+	}
 	return s.matchCardOne(k, &fl, c, owner, ctrl, o)
 }
 
