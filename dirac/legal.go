@@ -2440,6 +2440,14 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 	case k.tapMana && kop.TapXMana(ab) && int(k.tapXAb[c]) == j: // the first mana ability or a second beside a plain one (mana_tapanother.go tapXAbOf)
 		var cs [MaxPerm]Slot
 		return s.tapXCands(k, p, sl, &cs) >= int(ab.Cost.N)
+	case ab.Cost.Flags&kop.CostSac != 0 && ab.Cost.N > 0:
+		// a printed sacrifice-mana ability ("Sacrifice a creature: Add {C}{C}",
+		// Ashnod's Altar): gorge's potential walk admits it while the
+		// sacrifice has its candidates, priced against the real board like
+		// every non-mana cost part (manaAbilityPayablePool, CR 605.1a, CR
+		// 601.2g's window census keeps the shape out, so only the potential
+		// walk's answer is over-bound here)
+		return s.countCostSac(k, s.perms[sl].ctrl, &ab.Cost, sl) >= int(ab.Cost.N)
 	}
 	return false
 }
