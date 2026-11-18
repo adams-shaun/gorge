@@ -382,8 +382,11 @@ func (s *State) atkTaxCandidate(k *prep, sl Slot) bool {
 
 // atkTaxRead is the declaration's budget at a pick: budget (MaxSum), taxed
 // (some offered pair is charged: each Value then folds in its creature's
-// own units, gorge attackTaxed) and spent (the declared picks' Values).
-func (s *State) atkTaxRead(k *prep, tg []TCode) (budget int, taxed bool, spent int) {
+// own units, gorge attackTaxed) and spent (the declared picks' Values). The
+// declaration's picks are the lifted set (attackerOptions clears their
+// pfAttacking marks while the offers are read), so served names them beside
+// the marked pose attackers.
+func (s *State) atkTaxRead(k *prep, tg []TCode, served slotMask) (budget int, taxed bool, spent int) {
 	budget = s.manaBudget(k, s.active)
 	for m := s.ctrlM[s.active]; m.any() && !taxed; m = m.rest() {
 		sl := m.first()
@@ -402,7 +405,7 @@ func (s *State) atkTaxRead(k *prep, tg []TCode) (budget int, taxed bool, spent i
 		return budget, false, 0
 	}
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
-		if sl := m.first(); s.perms[sl].flags&pfAttacking != 0 {
+		if sl := m.first(); s.perms[sl].flags&pfAttacking != 0 || served.has(sl) {
 			n, _ := s.atkTaxCharge(k, sl, s.perms[sl].atk)
 			spent += n + s.atkTaxUnits(k, sl)
 		}
@@ -417,9 +420,9 @@ func (s *State) atkTaxRead(k *prep, tg []TCode) (budget int, taxed bool, spent i
 // fit by construction.
 //
 //go:noinline
-func (s *State) atkTaxFilter(k *prep, d *Decision) {
+func (s *State) atkTaxFilter(k *prep, d *Decision, served slotMask) {
 	var tg [MaxPerm + MaxSeats]TCode
-	budget, taxed, spent := s.atkTaxRead(k, tg[:s.atkTaxTargets(k, &tg)])
+	budget, taxed, spent := s.atkTaxRead(k, tg[:s.atkTaxTargets(k, &tg)], served)
 	j := 0
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
