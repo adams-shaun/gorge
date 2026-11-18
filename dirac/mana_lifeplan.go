@@ -43,8 +43,8 @@ func (s *State) availLifeGaps(k *prep, p uint8, a *avail) {
 // pay plain cast a (gorge's phase 2 plan). walk is the walk's lazily built
 // options: built says it was.
 func (s *State) lifePlanned(k *prep, p uint8, life slotMask, walk *Decision, built *bool, a Action) bool {
-	if !life.any() {
-		return false
+	if !life.any() || !s.lifeGapShaped(k, p, Obj(a.Source())) {
+		return false // none, or a cast the planner never prices (an {X} cost)
 	}
 	if !*built {
 		*built = true

@@ -804,6 +804,9 @@ func (s *State) gorgeOffers(p uint8, o Obj, mode uint8) bool {
 	if mode&1 != 0 || s.FeatPlannedCast(p, o, mode) || s.FeatPoolPays(p, o, mode) { // seat-ok: a cast-mode bit
 		return true
 	}
+	if k := s.k(); mode == 0 && s.g.availX&(availGaps|availAny) != 0 && k.gen != nil && k.gen.uses.has(useLifeGap) && s.lifeGapPriced(k, p, o) {
+		return true // gorge's planner prices it with a life-only source's last-resort unit (mana_lifegap.go)
+	}
 	if k := s.k(); mode == 0 && k.gen != nil && k.gen.anySacX && s.sacXPoolOffer(k, p, o) {
 		return true // the floating pool pays it at some announced Sac<X> count (cost_sacx.go)
 	}
