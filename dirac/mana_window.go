@@ -1118,6 +1118,9 @@ func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 		k.gen.anyCantAct && s.actForbidden(k, sl, true) { // a CantBeActivated lock (cast_cantactivate.go), the same gate gapMask applies
 		return false
 	}
+	if k.gen.flags[c]&gfDeferred != 0 && !s.deferLifeOK(k, p, sl) {
+		return false
+	}
 	if k.gen.flags[c]&(gfEachCol|gfRestr) == gfRestr {
 		// CR 106.6: a restricted source whose mana the payment cannot spend is
 		// not offered (gorge's window lists only the abilities the payment meets).

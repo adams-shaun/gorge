@@ -84,13 +84,19 @@ func refuseAddsCounters() error {
 // carrying the parameter; the kernel's restricted any-colour census gap
 // (Secluded Courtyard's shape) is that deferral.
 //
-// Boseiju's "!Permanent" (a source with no restriction and a life cost) has
-// no kernel carrier: its mana floats unrestricted beside a condition on the
-// spell's face, and the source is a deferred {C} source of a shape
-// mana_deferred.go does not vet.
+// Boseiju's "!Permanent" (a legendary {T}, Pay 2 life source of {C} with no
+// spend restriction) is a deferred source (kop.Ability.ManaDeferred beside
+// ManaNoCounter, mana_deferred.go): gorge's planner defers it too, so autopay
+// never taps it and only a prefix script or the mana window does, paying the
+// life as it taps. Its {C} floats in the plain pool; the payment that spends it
+// on an instant or sorcery spell stamps the spell (dirac mana_nocounter.go
+// deferredNoCounter).
 func (lc *lowerCtx) manaNoCounter(ps *params, ab *lAbility, m *lMana, v string) error {
+	if v == "!Permanent" {
+		return lc.manaNoCounterNotPermanent(ps, ab, m)
+	}
 	if v != "True" {
-		return refuse("AddsNoCounter$ %s: the unit's can't-be-countered condition (a !Permanent test on the spell's face, no spend restriction) has no kernel carrier: the restricted batch records the spell it paid for, not a face test, and gorge's planner defers the source (pay.PlanHasSpecialProductionParam), a {T}+PayLife deferred {C} source the kernel's deferred model does not vet", v)
+		return refuse("AddsNoCounter$ %s: a condition other than True and !Permanent", v)
 	}
 	if ab.Kind != akMana || ab.Loyalty || !plainTapCost(ab.Cost) || m.Restrict == nil || m.RestrictAb != nil || m.NonSpell ||
 		m.Special != "" || m.Choice || m.Colors != "WUBRG" || !m.Amount.isConst() || m.Amount.N != 1 {
@@ -102,6 +108,28 @@ func (lc *lowerCtx) manaNoCounter(ps *params, ab *lAbility, m *lMana, v string) 
 		}
 	}
 	m.NoCounter = true
+	ps.consume("AddsNoCounter")
+	return nil
+}
+
+// manaNoCounterNotPermanent lowers AddsNoCounter$ !Permanent (Boseiju, Who
+// Shelters All): the deferred {C} source of manaNoCounter's comment. One
+// floating deferred source per player is all the kernel tracks
+// (genState.defSrc), so only a legendary source lowers (CR 704.5j).
+func (lc *lowerCtx) manaNoCounterNotPermanent(ps *params, ab *lAbility, m *lMana) error {
+	c := ab.Cost
+	life := c.PayLife
+	c.PayLife = 0
+	if ab.Kind != akMana || ab.Loyalty || life < 1 || !c.Tap || !plainTapCost(c) || lc.face == nil || !lc.face.IsLegendary() ||
+		m.Restrict != nil || m.RestrictAb != nil || m.NonSpell || m.Special != "" || m.Choice || m.Colors != "C" || !m.Amount.isConst() || m.Amount.N != 1 {
+		return refuse("AddsNoCounter$ !Permanent beside a mana ability that is not a legendary {T}, Pay life one-mana {C} source with no spend restriction")
+	}
+	for _, k := range []string{"AddsCounters", "TriggersWhenSpent", "PersistentMana", "AddsKeywords"} {
+		if _, ok := ps.m[k]; ok {
+			return refuse("AddsNoCounter$ beside another mana-spend rider (%s)", k)
+		}
+	}
+	m.NoCounter, m.Deferred = true, true
 	ps.consume("AddsNoCounter")
 	return nil
 }

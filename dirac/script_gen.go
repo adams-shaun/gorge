@@ -100,7 +100,8 @@ func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
 		}
 		pm := &s.perms[sl]
 		if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) ||
-			k.gen.anyCantAct && s.actForbidden(k, sl, true) { // a CantBeActivated lock (cast_cantactivate.go)
+			k.gen.anyCantAct && s.actForbidden(k, sl, true) || // a CantBeActivated lock (cast_cantactivate.go)
+			k.gen.anyDeferred && k.gen.has(s.cardAt(sl), gfDeferred) && !s.deferLifeSurvives(k, p, sl) {
 			continue
 		}
 		m = m.with(sl)
@@ -622,6 +623,9 @@ func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.Num
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
 	if k.gen.has(s.cardAt(sl), gfDeferred) {
+		if a := k.deferAb(s.cardAt(sl)); a != nil && a.Cost.Flags&kop.CostPayLife != 0 {
+			s.payLifeCost(k, p, &a.Cost, 0) // Boseiju's "Pay 2 life" (mana_deferred.go deferLifeSurvives)
+		}
 		s.floatDeferred(k, p, sl) // (the window's gap too: restr is empty there)
 		return
 	}
