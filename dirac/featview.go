@@ -871,13 +871,20 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, sk
 		}
 	}
 	defer_ := s.deferLive(k)
+	// gorge's second pass funds the plain Taps-deferred gap sources the
+	// census leaves out (engine/rules/pay plandeferred.go): the planner's
+	// availability holds them beside the census's (availTapsDeferIn)
+	var gapIn slotMask
+	if defer_ {
+		gapIn = s.scriptTapsDeferPlain(k, p)
+	}
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
 		if sl == ex || skip.has(sl) || s.grantMay(k, sl) && s.manaGranted(k, sl) {
 			continue
 		}
-		if defer_ && s.planDeferred(k, p, sl) {
+		if defer_ && !gapIn.has(sl) && s.planDeferred(k, p, sl) {
 			continue // the census never lists a deferred source (mana_rider.go)
 		}
 		pc := s.manaPCGen(k, sl)
