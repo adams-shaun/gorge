@@ -112,6 +112,8 @@ type avail struct {
 	xdOn bool
 	// xPlain: set by availXWindow on the plain configuration: a source with its own ability counts that ability only, the one the planner taps (a grant-only source still counts, plan's phase 2 taps it)
 	xPlain bool
+	// capped: set by availForCapped's census, whose loop already counts a Taps-deferred source's own tap once (availScript's gap loop skips it: mana_tapsdefer.go tapsDeferGapOwn)
+	capped bool
 	// pipWin: set by addPipTapsDefer: a hybrid or Phyrexian pip ask prices a Condition-split source by gorge's window census (mana_condsplit.go splitWindowPC), not the relaxed play census
 	pipWin bool
 	// delve: the graveyard credit a granted-delve cast prices its twobrid
@@ -428,6 +430,7 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 // when withDeferred is set (availForCapped).
 func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferred bool) {
 	a.total, a.n, a.nOne, a.nModal, a.pain.on = 0, 0, 0, 0, false
+	a.capped = withDeferred
 	pl := &s.pl[p]
 	for c := 0; c < kop.NumManaKinds; c++ {
 		if pl.pool[c] > 0 {

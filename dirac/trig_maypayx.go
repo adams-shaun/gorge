@@ -142,7 +142,7 @@ func (s *State) applyAskTrigX(k *prep, a Action) bool {
 	s.g.pickZ = kop.PayMana
 	s.g.pickLeft = a.Mode()
 	p := s.g.pickP
-	ok := s.canPayGen(k, p, kop.PayMana, int(a.Mode()), 0, 0)
+	ok := s.trigXCensusPays(k, p, int(a.Mode()), 0)
 	var stall uint8
 	if !ok {
 		ok, stall = s.windowPays(k, p, kop.PayMana, s.g.pickF, int(a.Mode()), 0)
@@ -161,6 +161,45 @@ func (s *State) applyAskTrigX(k *prep, a Action) bool {
 	}
 	s.res.ask, s.res.askP = raGenPay, p
 	return true
+}
+
+// trigXCensusPays is the trigger's own X election's affordability: the same
+// one-tap census the announcement's bound caps by (execTrigX's
+// availForCapped), so every announced X is payable (CR 601.2b: the announced
+// X must be one the payment can settle). canPayGen's plain window census
+// leaves a planner-deferred source out (the script gap the bound's census and
+// the payment's window both count): a Condition-split source beside Mana
+// Flare was offered X = 13 and answered decline only.
+func (s *State) trigXCensusPays(k *prep, p uint8, amt int, pips int16) bool {
+	c := s.numTimesCost(k, amt, pips)
+	s.payManaHyb(k, 0, &c) // a trigger's own hybrid cost (cost_trighybrid.go)
+	s.announcedHyb(&c)
+	var av avail
+	av.xd, av.xdOn = payDesc{class: pdOther}, true // an X-folded trigger cost is no spell's, an ability's or a cast's
+	s.availForCapped(k, p, &av)
+	if m := s.restrFloatAdmits(k, p, &av.xd); m != 0 {
+		// the floating restricted mana this payment admits is pool too
+		// (CR 106.6: gorge's unless, ward and trigger-cost gates price
+		// AvailableFor's PurposeOther view, which restores every batch a
+		// non-spell payment may spend)
+		var rn [kop.NumManaKinds]uint8
+		s.rbUnits(p, m, &rn)
+		for ci, n := range rn {
+			if n != 0 {
+				av.addUnits(1<<uint(ci), n)
+			}
+		}
+	}
+	av.xdOn = false
+	if m := s.restrFloatAdmits(k, p, &av.xd); m != 0 {
+		s.restrAvailAdd(p, m, &av) // floating restricted mana a non-spell payment may spend (CR 106.6; gorge AvailableFor)
+	}
+	if av.affords(&c, pipMaskOf(&c), 0) {
+		return true
+	}
+	// a restricted source whose spend restriction admits a non-spell payment
+	// funds the trigger's cost too, as canPayGen's arm reads it (CR 106.6)
+	return k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdOther, src: NoSlot}, &c, &av, NoSlot, 0)
 }
 
 // trigXBind makes the paid X the resolving trigger's Count$xPaid.
