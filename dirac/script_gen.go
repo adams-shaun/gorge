@@ -428,7 +428,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				s.capStall(gstall)
 				continue // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go); a cast too: Quest for Renewal's Taps watcher defers Gold Myr, so five mana from two Mountains, the Myr and two Saprolings under Brightcap Badger pays Quakebringer only by that search
 			}
-		} else if tx.any() && !(tapsDef.any() && !s.tapXRiderGaps(k, p).any()) && s.tapXBoard(k, p) {
+		} else if tx.any() && !s.tapXDeadEndRoute(k, p, tx, tapsDef) && s.tapXBoard(k, p) {
 			if offered, stall := s.tapXScriptOffered(k, a, p); !offered {
 				// every route gave the play up and one of the search's lines
 				// ran into a rule gap the kernel stalls by name: declare it,
