@@ -749,8 +749,10 @@ func (c *MockClient) answerDamageAssignmentOrder(in mb.ChooseDamageAssignmentOrd
 }
 
 // answerCombatDamageAssignment dumps all damage on the first blocker (or the
-// defender when there are none). Not reachable through server/manabrew
-// today; kept for the same reason as answerDamageAssignmentOrder.
+// defender when there are none) — a legal split, since the engine's division
+// options enumerate every composition of the attacker's power into its
+// blockers. Reachable through server/manabrew's chooseCombatDamageAssignment
+// prompt whenever a game double-blocks an attacker.
 func (c *MockClient) answerCombatDamageAssignment(in mb.ChooseCombatDamageAssignmentInput) mb.PromptOutputValue {
 	if len(in.BlockerIDs) == 0 {
 		if in.DefenderID == "" {
