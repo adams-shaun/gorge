@@ -61,23 +61,17 @@ func ParseFocus(b []byte) ([]FocusCard, error) {
 	return out, nil
 }
 
-// FocusPool deals nDecks 40-card decks named after pool from set's playable cards
-// around focus. Deck d starts from focus card d mod len(focus): its colours are that
-// card's (topped up to two from PCG(seed, d) when it has fewer), then it takes that
-// card and up to perDeck-1 more focus cards fitting those colours, in list order from
-// there, two copies each, and every enabler they name that fits. The other spell
-// slots, the nonbasic lands and the basics are SynthPool's. A focus card or enabler
-// the set does not play is an error, so a stale list fails loudly.
-func FocusPool(reg *cards.Registry, set cardset.Set, pool string, focus []FocusCard, perDeck int, seed uint64, nDecks int) ([]PoolDeck, map[string]deck.File, error) {
-	if perDeck < 1 {
-		perDeck = 1
-	}
+// focusInfo is what FocusPoolWith keeps of a playable card: its pip colours and its kind.
+type focusInfo struct {
+	mask uint8
+	kind synthKind
+}
+
+// focusPlayable lists the cards of set a focus deck can hold: every supported, lowered
+// nonbasic spell or land, with its colours, and the spell and land names apart.
+func focusPlayable(reg *cards.Registry, set cardset.Set, pool string) (map[string]focusInfo, []string, []string, error) {
 	plays := set.Supported()
-	type info struct {
-		mask uint8
-		kind synthKind
-	}
-	playable := map[string]info{}
+	playable := map[string]focusInfo{}
 	var spells, lands []string
 	for i, name := range set.Names()[:set.NumCards()] {
 		if set.Status(i) == cardset.StatusNotLowered || !plays[i] || cardset.IsSynthBasic(name) {
@@ -85,7 +79,7 @@ func FocusPool(reg *cards.Registry, set cardset.Set, pool string, focus []FocusC
 		}
 		c, ok := reg.Lookup(name)
 		if !ok {
-			return nil, nil, fmt.Errorf("focus %s: card %q is not in the corpus", pool, name)
+			return nil, nil, nil, fmt.Errorf("focus %s: card %q is not in the corpus", pool, name)
 		}
 		k := kindOf(c)
 		switch k {
@@ -96,30 +90,66 @@ func FocusPool(reg *cards.Registry, set cardset.Set, pool string, focus []FocusC
 		default:
 			continue
 		}
-		playable[name] = info{mask: pipMask(c), kind: k}
+		playable[name] = focusInfo{mask: pipMask(c), kind: k}
 	}
+	return playable, spells, lands, nil
+}
+
+// FocusPool is FocusPoolWith over a set with no cards from other pools.
+func FocusPool(reg *cards.Registry, set cardset.Set, pool string, focus []FocusCard, perDeck int, seed uint64, nDecks int) ([]PoolDeck, map[string]deck.File, error) {
+	return FocusPoolWith(reg, set, nil, pool, focus, perDeck, seed, nDecks)
+}
+
+// FocusPoolWith deals nDecks 40-card decks named after pool from set's playable cards
+// around focus. Deck d starts from focus card d mod len(focus): its colours are that
+// card's (topped up to two from PCG(seed, d) when it has fewer), then it takes that
+// card and up to perDeck-1 more focus cards fitting those colours, in list order from
+// there, two copies each, and every enabler they name that fits. The other spell
+// slots, the nonbasic lands and the basics are SynthPool's. A focus card or enabler
+// the set does not play is an error, so a stale list fails loudly.
+//
+// extra names the cards of set that came from other pools (kfuzz -synth-with): they
+// resolve as enablers only. A focus card is never one, and the filler never deals one,
+// so a deck holds an extra card only when a focus line names it. An enabler a line
+// names k times is dealt k copies when it is a land, and those land copies go past
+// synthLands (the filler keeps its slots); a spell keeps synthMaxCopies whatever the
+// repeats.
+func FocusPoolWith(reg *cards.Registry, set cardset.Set, extra map[string]bool, pool string, focus []FocusCard, perDeck int, seed uint64, nDecks int) ([]PoolDeck, map[string]deck.File, error) {
+	if perDeck < 1 {
+		perDeck = 1
+	}
+	playable, spells, lands, err := focusPlayable(reg, set, pool)
+	if err != nil {
+		return nil, nil, err
+	}
+	// the filler lists are the main pool's: drop the cards another pool lent
+	spells = slices.DeleteFunc(spells, func(n string) bool { return extra[n] })
+	lands = slices.DeleteFunc(lands, func(n string) bool { return extra[n] })
 	// A list names a card as the set lists it; an evidence row names its first face.
 	byFace := map[string]string{}
 	for n := range playable {
 		f, _, _ := strings.Cut(n, " // ")
+		if old, ok := byFace[f]; ok && !extra[old] && extra[n] {
+			continue // a main pool's card wins its face
+		}
 		byFace[f] = n
 	}
-	resolve := func(n string) (string, bool) {
-		if _, ok := playable[n]; ok {
+	resolve := func(n string, enabler bool) (string, bool) {
+		if _, ok := playable[n]; ok && (enabler || !extra[n]) {
 			return n, true
 		}
 		f, _, _ := strings.Cut(n, " // ")
 		full, ok := byFace[f]
-		return full, ok
+		return full, ok && (enabler || !extra[full])
 	}
 	for i := range focus {
-		n, ok := resolve(focus[i].Name)
+		n, ok := resolve(focus[i].Name, false)
 		if !ok {
 			return nil, nil, fmt.Errorf("focus %s: %q is not a card %s plays", pool, focus[i].Name, set.Name())
 		}
 		focus[i].Name = n
 		for j, w := range focus[i].With {
-			if focus[i].With[j], ok = resolve(w); !ok {
+			if focus[i].With[j], ok = resolve(w, true); !ok {
 				return nil, nil, fmt.Errorf("focus %s: enabler %q of %q is not a card %s plays", pool, w, n, set.Name())
 			}
 		}
@@ -145,16 +175,28 @@ func FocusPool(reg *cards.Registry, set cardset.Set, pool string, focus []FocusC
 		fits := func(n string) bool { return playable[n].mask&^allowed == 0 }
 		have := map[string]int{}
 		nSpells, nLands := 0, 0
-		add := func(n string) {
-			if have[n] > 0 || !fits(n) {
+		// add deals n. A land enabler a line names want times is topped up to want
+		// copies, past synthLands but never into the spell slots; a focus card that
+		// is a land keeps one nonbasic slot.
+		add := func(n string, want int, enabler bool) {
+			if !fits(n) {
 				return
 			}
 			if playable[n].kind == synthLand {
-				if nLands >= synthLands {
+				if !enabler {
+					if have[n] == 0 && nLands < synthLands {
+						have[n] = 1
+						nLands++
+					}
 					return
 				}
-				have[n] = 1
-				nLands++
+				for have[n] < want && nLands+synthSpells < synthDeckSize {
+					have[n]++
+					nLands++
+				}
+				return
+			}
+			if have[n] > 0 {
 				return
 			}
 			if nSpells+synthMaxCopies > synthSpells {
@@ -169,10 +211,10 @@ func FocusPool(reg *cards.Registry, set cardset.Set, pool string, focus []FocusC
 			if have[fc.Name] > 0 || !fits(fc.Name) {
 				continue
 			}
-			add(fc.Name)
+			add(fc.Name, 1, false)
 			taken++
 			for _, w := range fc.With {
-				add(w)
+				add(w, countOf(fc.With, w), true)
 			}
 		}
 		for nSpells < synthSpells {
@@ -216,4 +258,15 @@ func FocusPool(reg *cards.Registry, set cardset.Set, pool string, focus []FocusC
 		out = append(out, PoolDeck{Name: name, Split: "train", Colors: colours})
 	}
 	return out, files, nil
+}
+
+// countOf is how many times name is in names.
+func countOf(names []string, name string) int {
+	n := 0
+	for _, x := range names {
+		if x == name {
+			n++
+		}
+	}
+	return n
 }
