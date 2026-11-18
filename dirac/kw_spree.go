@@ -216,16 +216,33 @@ func (s *State) charmTargetAskDead(k *prep) bool {
 // source (gorge hasUntappedManaSource over pay.ManaSourceIDs). The
 // restriction is unread: gorge's untapped-source gate reads every
 // available mana ability, so a restricted source that will not pay the
-// cost still opens the window (restrManaUntapped).
+// cost still opens the window (restrManaUntapped). The abilities'
+// payability gate is read: a tap-another one is a source only while its
+// tap-another part has candidates (tapXActivatable; gorge ManaTapsPayable),
+// and an ability whose cost needs no tap is a source however tapped its
+// permanent is (gorge mana_available.go rejects only mf.Tap && o.Tapped),
+// so the sacrifice-only, life-only-pain and no-{T} tap-another arms run
+// ahead of the tapped skip. A counter-cost source that can be activated now
+// (scriptCtrIdle, a storage battery holding no counters included: gorge
+// prices its X at 0, Icatian Store) is a source as well; the mask carries
+// its own {T} gate.
 //
 //go:noinline
 func (s *State) hasUntappedMana(k *prep, p uint8) bool {
+	ctr := s.scriptCtrIdle(k, p, true) // an empty storage battery is a source too: gorge prices it at X=0
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
+		// the no-tap arms first (see above): a sacrifice-only source
+		// (CR 602.2b), a life-only pain one, a tap-another one whose cost
+		// taps another permanent
+		if k.sacOnlyMana && s.canSacOnlyNowAt(k, sl) ||
+			k.painMana && s.canLifeOnlyMana(k, sl, SeatIx(p)) || s.tapXActivatable(k, p, sl) || ctr.has(sl) {
+			return true
+		}
 		if s.perms[sl].flags&pfTapped != 0 {
 			continue
 		}
-		if s.canTapForMana(k, sl) || s.restrManaUntapped(k, sl) || k.sacOnlyMana && s.canSacOnlyNowAt(k, sl) {
+		if s.canTapForMana(k, sl) || s.restrManaUntapped(k, sl) || s.eachColLive(k, p, sl) {
 			return true
 		}
 	}
