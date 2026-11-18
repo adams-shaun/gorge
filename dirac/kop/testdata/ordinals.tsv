@@ -1168,6 +1168,7 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
+ReplCopyFirstAttached	untyped int	1
 ReplCopyFirstToken	ReplKind	38
 ReplCount	ReplKind	41
 ReplCtrAny	int16	-1

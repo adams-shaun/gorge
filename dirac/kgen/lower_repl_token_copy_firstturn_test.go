@@ -4,6 +4,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // copyProbe assembles an Equipment probe whose replacement is the shape under
@@ -57,6 +59,10 @@ func TestLowerReplTokenCopyFirstturn(t *testing.T) {
 		}
 		if len(lc.Repls) != 1 || lc.Repls[0].Kind != "CopyFirstToken" || lc.Repls[0].Cond.Kind != cValue || lc.Repls[0].Cond.Op != opEQ {
 			t.Errorf("%s lowered %+v, want one CopyFirstToken replacement gated by a value compare", name, lc.Repls)
+		}
+		// the Crown's IsPresent$ attachment is a flag, the Aura has none
+		if want := map[string]int{"Mirrormind Crown": kop.ReplCopyFirstAttached}[name]; len(lc.Repls) == 1 && lc.Repls[0].Bits != want {
+			t.Errorf("%s lowered Bits %#x, want %#x (kop.ReplCopyFirstAttached for an IsPresent$ attachment)", name, lc.Repls[0].Bits, want)
 		}
 	}
 	auraRepl := []string{"Event$ CreateToken", "ActiveZones$ Battlefield", "ValidPlayer$ You", "Optional$ True", "Layer$ Copy",
