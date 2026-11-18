@@ -45,7 +45,7 @@ func (cb *cardBuilder) abilities() error {
 	cb.out.stAddSub = make([][]uint8, len(d.Abilities))
 	for i, s := range c.Statics {
 		cb.node = fmt.Sprintf("static[%d] %s", i, s.Kind)
-		ka, add, err := cb.static(s)
+		ka, add, err := cb.staticFor(s)
 		if err == nil {
 			err = cb.grantStatic(&ka, s) // lower_grantedstatic.go
 		}
@@ -101,7 +101,7 @@ func (cb *cardBuilder) abilities() error {
 			ke.Capture2 = r
 		}
 		for _, s := range e.Statics {
-			ka, add, err := cb.static(s)
+			ka, add, err := cb.staticFor(s)
 			if err != nil {
 				return bfail(cb.node, "%v", err)
 			}
@@ -1863,6 +1863,15 @@ func splitSelfClause(event string, f *lFilter) (self, selfCreature bool) {
 	return self, selfCreature
 }
 
+// staticFor dispatches the static kinds whose build is its own helper
+// (lower_offzone.go), else static.
+func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
+	if s.Kind == "RetraceGrant" {
+		return cb.offKwGrantAbility(s)
+	}
+	return cb.static(s)
+}
+
 // combatAmountFilter builds the two combat-assignment statics (CR 510.1):
 // the kind zeroes the matching creature's combat damage assignment, and the
 // filter reads its creature on the battlefield.
@@ -1936,7 +1945,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	case "ActivationLimit":
 		st.Kind = kop.StatActivationLimit // static_turnbits.go
 	case "Continuous":
-		st.Kind = kop.StatContinuous
+		zone := continuousKind(st, s.Flags, s.Zone) // lower_offzone.go
 		if s.F != nil && s.F.Players != 0 {
 			// "You and <objects> you control have hexproof" (Captain America,
 			// Shalai, Sigarda): the controller half rides StYouHexproof (the
@@ -1949,7 +1958,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			st.StFlags |= kop.StYouHexproof
 		}
 		st.StFlags |= gyContStFlag(s.Flags)
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+		if st.Filter, err = filter(s.F, zone); err != nil {
 			return ka, nil, err
 		}
 		if err := amounts(s.Power, s.Tough); err != nil {
@@ -3100,6 +3109,8 @@ func continuousStFlags(s lStatic, st *kop.Static) error {
 			// gyContStFlag sets the Graveyard bit above; a FunctionsInExile
 			// on a Continuous stays silently dropped (this allow-list only
 			// stops the refusal)
+		case offZoneFlag:
+			// continuousKind made it a StatOffZoneGrant (lower_offzone.go)
 		default:
 			return fmt.Errorf("continuous flag %q", fl)
 		}
