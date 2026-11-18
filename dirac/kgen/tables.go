@@ -64,6 +64,10 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 		d.Reason = append(d.Reason, why)
 		d.Defs[i] = bs[i].def
 		d.Defs[i].Name = "" // names live in the name table only
+		// a token's or face entry's printed name (its script's Name: line;
+		// Name is the pool key): CR 704.5j's legend rule groups by it
+		// (kop.Table.CardName, dirac/turn.go legendGroup)
+		d.Defs[i].FaceName = c.printed
 		for _, s := range bs[i].subs {
 			d.CardSubs[i] = d.CardSubs[i].With(int(s))
 		}
