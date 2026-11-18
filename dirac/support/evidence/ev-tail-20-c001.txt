@@ -10,6 +10,7 @@ Anafenza, Kin-Tree Spirit
 Annex
 Annihilate
 Ant-Man, Reformed Rogue
+Aphetto Vulture
 Appeal
 Arbaaz Mir
 Archdemon of Paliano
@@ -24,6 +25,8 @@ Baton of Courage
 Bazaar of Baghdad
 Beast Hunt
 Betrayal
+Bitterblossom
+Blightsoil Druid
 Blisterpod
 Blood Hound
 Blood Petal Celebrant
@@ -59,6 +62,7 @@ Cloak of Feathers
 Coffin Purge
 Combat Courier
 Conclave Naturalists
+Conductor of Cacophony
 Connive
 Consuming Corruption
 Cosmos Elixir
@@ -107,7 +111,9 @@ Envelop
 Excava, the Risen Past
 Excavation Technique
 Expansion
+Exquisite Huntmaster
 Extraction Specialist
+Falkenrath Noble
 Falkenrath Perforator
 Fallowsage
 False Memories
@@ -147,6 +153,7 @@ Green Goblin, Nemesis
 Greenhilt Trainee
 Grumgully, the Generous
 Guan Yu's 1,000-Li March
+Guan Yu, Sainted Warrior
 Guardian of Pilgrims
 Guardian of the Ages
 Gudul Lurker
@@ -205,6 +212,7 @@ Madrush Cyclops
 Majestic Heliopterus
 Manic Vandal
 Mark of Asylum
+Markov Crusader
 Matsu-Tribe Decoy
 Maw of the Obzedat
 Merrow Wavebreakers
@@ -267,6 +275,7 @@ Princess Lucrezia
 Prohibit
 Prowling Caracal
 Rathi Dragon
+Razaketh, the Foulblooded
 Recollect
 Reflections of Littjara
 Reforge the Soul
@@ -292,6 +301,7 @@ Runed Crown
 Rushwood Dryad
 Sacred Knight
 Sakura-Tribe Springcaller
+Sanitarium Skeleton
 Scab-Clan Mauler
 Scavenger Grounds
 Scour the Laboratory
@@ -344,6 +354,7 @@ Stone Spirit
 Stonehands
 Stonehorn Chanter
 Storm God's Oracle
+Storm Herd
 Structural Assault
 Sundial of the Infinite
 Sungrass Egg
@@ -351,6 +362,7 @@ Swamp
 Swiftgear Drake
 Sylvan Might
 Syndicate Enforcer
+Teeka's Dragon
 Tel-Jilad Lifebreather
 Tezzeret's Touch
 Thassa's Bounty
@@ -367,6 +379,7 @@ True Love's Kiss
 Trumpet Blast
 Trusty Retriever
 Turtle-Seals
+Uktabi Kong
 Undead Hand Ninja
 Undead Slayer
 Underworld Breach
@@ -380,6 +393,7 @@ Vigorspore Wurm
 Vivien, Champion of the Wilds
 Volatile Claws
 Volatile Fjord
+Votary of the Conclave
 Vulturous Aven
 Vulturous Zombie
 Wakestone Gargoyle

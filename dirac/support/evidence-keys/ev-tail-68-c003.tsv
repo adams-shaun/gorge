@@ -1,10 +1,13 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Mishra, Excavation Prodigy	e592cf23d6cf7be7	10	2/2		1/1	
 A-Ready to Rumble	b8cc52d56800fe11	4	0/0		1/2	ix:resp
 Aang's Defense	eadc97a335c3dc16	6	0/0		2/2	
 Adamaro, First to Desire	3ef8994658b24d07	4	0/0		0/0	
 Aether Poisoner	009e64c845c79d1d	11	2/2		1/1	
+Aethergeode Miner	f085ed898a2ec3d9	6	2/2		1/1	
 Aetheric Amplifier	e2d85382be8e91a9	4	2/2		0/1	ix:resp
 Aethermage's Touch	ecf4c5d6c5d9987d	4	0/0		1/2	ix:resp
+Ageless Sentinels	82954f96e56db2bc	4	1/1		1/1	
 Akki Underling	5a61a1d2adaa9e73	4	0/0		0/0	
 Alpine Meadow	c9b9959f80f366f1	17	2/2		0/1	ix:resp
 Amaranthine Wall	eec54eb58dcc189f	4	1/1		1/1	
@@ -17,6 +20,7 @@ Auriok Bladewarden	5ee791f847cbbf89	7	1/1		0/1	ix:resp
 Auriok Steelshaper	dcfb29ce340ad19e	6	0/0		0/0	
 Azorius Locket	112de24bf87528b2	4	2/2		0/1	ix:resp
 Balefire Liege	6323afcf9a2a8ff7	3	2/2		0/1	ix:resp
+Barbarian Bully	ca5d20625c9a910a	5	1/1		1/1	
 Basal Thrull	312503660680638f	3	1/1		1/1	
 Bearer of Memory	6751bbd2a75470aa	6	1/1		0/1	ix:resp
 Bitterthorn, Nissa's Animus	03761b45ddf4a7b3	9	3/3		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -135,6 +139,7 @@ Oxidda Scrapmelter	1b82c76ea4b86ef2	10	1/1		0/1	ix:resp
 Plummet	cacc79b5e1319fa9	4	0/0		2/2	
 Priest of Gix	28a5775320daef44	6	1/1		0/1	ix:resp
 Proud Pack-Rhino	4c06287d8b7e3d48	6	1/1		1/1	
+Psychic Strike	dae788a40fb18f76	3	0/0		1/2	ix:resp
 Rakdos Ragemutt	d35c34b5511c963e	4	0/0		0/0	
 Ranging Raptors	163f887da385add5	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Rashka the Slayer	e4b67d8023cd9e66	8	1/1		1/1	
@@ -150,6 +155,7 @@ Sangrophage	e0a40f792ef609a3	6	1/1		0/1	ix:resp
 Saryth, the Viper's Fang	dcf284d9c90defbd	4	1/1		0/1	ix:resp
 Scaled Herbalist	9501a2d0dfc3f7ec	5	1/1		0/1	ix:resp
 Scaled Hulk	dc8b3f535a95de1d	4	1/1		0/1	ix:resp
+Scrapper Champion	8d1b1958b8e9337a	9	2/2		0/1	ix:resp
 Sea Gate Oracle	22b5ef54d75339bc	8	1/1		0/1	ix:resp
 Sentinel Sliver	d1ce10c0d51e6ae2	4	0/0		0/0	
 Serene Offering	92269d308464f074	4	0/0		1/2	ix:resp

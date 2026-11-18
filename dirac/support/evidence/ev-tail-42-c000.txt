@@ -254,6 +254,7 @@ Living Lands
 Loamcrafter Faun
 Looter il-Kor
 Lucid Dreams
+Lurebound Scarecrow
 Lurking Nightstalker
 Lys Alana Huntmaster
 Lyzolda, the Blood Witch
@@ -339,6 +340,7 @@ Ral's Dispersal
 Reality Heist
 Reborn Hope
 Recall
+Reflections of Littjara
 Renegade Reaper
 Resplendent Griffin
 Resurrection Orb

@@ -1,6 +1,7 @@
 A Little Chat
 A.I.M. Bot
 Accursed Centaur
+Addle
 Ambassador Oak
 Ancient Brontodon
 Archon of Cruelty
@@ -44,6 +45,7 @@ Deny Existence
 Destined
 Diabolic Revelation
 Diplomatic Immunity
+Distant Melody
 Dragon Blood
 Dragonloft Idol
 Dread Warlock
@@ -61,6 +63,7 @@ Firemane Avenger
 Flaming Sword
 Flayer Husk
 Fledgling Djinn
+Flying Men
 Foot Soldiers
 Forbidden Lore
 Forest
@@ -79,15 +82,19 @@ Grateful Apparition
 Green Scarab
 Grendel, Spawn of Knull
 Grounded
+Hag of Dark Duress
 Hidden Blade
 High Ground
 Honor Guard
 Hope Tender
 Horn of Valhalla
+Hover Barrier
 Howl from Beyond
 Huatli's Spurring
 Hussar Patrol
 Hydroelectric Specimen
+Impulse
+Incarnation Technique
 Invasion of Kylem
 Island
 It That Heralds the End
@@ -101,7 +108,9 @@ Lambholt Raconteur
 Lampad of Death's Vigil
 Lash of Thorns
 Lava Storm
+Lay Bare
 Layla Hassan
+Leaden Fists
 Leisure Bicycle
 Leonin Snarecaster
 Lightkeeper of Emeria
@@ -114,6 +123,7 @@ Massacre
 Mastermind's Acquisition
 Meloku the Clouded Mirror
 Meneldor, Swift Savior
+Military Intelligence
 Mind Carver
 Mogg Squad
 Mortuary
@@ -159,6 +169,7 @@ Reyav, Master Smith
 Rhystic Tutor
 Roadside Reliquary
 Robot Chicken
+Rogue Class
 Run for Your Life
 Sacred Wolf
 Sage of Mysteries
@@ -185,6 +196,7 @@ Sparkshaper Visionary
 Sprouting Phytohydra
 Standing Troops
 Steelshaper Apprentice
+Stone of Erech
 Stormcaller's Boon
 Subterranean Scout
 Sultai Skullkeeper
@@ -200,10 +212,12 @@ The Dross Pits
 The Howling Commandos
 The Mending of Dominaria
 Thraben Watcher
+Thunder Totem
 Tormenting Voice
 Torpid Moloch
 Traproot Kami
 Tri-Sentinel, Act of Vengeance
+Undead Minotaur
 Veil of Assimilation
 Walking Wall
 Wasteful Harvest

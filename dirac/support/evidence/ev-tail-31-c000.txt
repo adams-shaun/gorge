@@ -144,6 +144,7 @@ Fury Sliver
 Galadhrim Bow
 Ghost Ship
 Ghoulish Procession
+Giant Spider
 Giant's Skewer
 Gleam of Resistance
 Glissa, the Traitor
@@ -240,6 +241,7 @@ Mox Jet
 Murderous Rider
 Nacre Talisman
 Nadir Kraken
+Nantuko Vigilante
 Natural Order
 Nettlecyst
 Neurok Familiar

@@ -109,6 +109,7 @@ Erebos, God of the Dead
 Expedition Envoy
 Explosive Entry
 Explosive Growth
+Expunge
 Exterminatus
 Faceless Butcher
 Faithbearer Paladin
@@ -337,8 +338,10 @@ Stone Haven Medic
 Subterranean Scout
 Swamp
 Sword Dancer
+Symbol of Unsummoning
 Syndic of Tithes
 Take Vengeance
+Tangle
 Tel-Jilad Fallen
 Temple Altisaur
 Temporary Lockdown

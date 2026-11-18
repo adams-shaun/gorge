@@ -60,6 +60,7 @@ Consume Spirit
 Courageous Outrider
 Crossover Collaboration
 Crosswinds
+Crovax, Ascendant Hero
 Curse of Chaos
 Curse of the Nightly Hunt
 Cursebreak
@@ -346,6 +347,7 @@ Tower Worker
 Trigon of Mending
 Tuktuk Scrapper
 Turbulent Wilderness
+Umara Raptor
 Umbilicus
 Undead Minotaur
 Unspeakable Symbol

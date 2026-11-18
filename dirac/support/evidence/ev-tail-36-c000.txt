@@ -240,6 +240,7 @@ Malefic Scythe
 Mardu Hordechief
 Masked Vandal
 Mass Mutiny
+Megaton's Fate
 Melt Terrain
 Mending Hands
 Mesmerizing Dose
@@ -371,6 +372,7 @@ Storm, Queen of Wakanda
 Stream of Unconsciousness
 Subversion
 Sultai Banner
+Sunbaked Canyon
 Sundering Vitae
 Supply Runners
 Surge Node

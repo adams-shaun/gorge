@@ -61,6 +61,7 @@ Dream Seizer
 Dundoolin Weaver
 Eclipsed Boggart
 Eclipsed Flamekin
+Eclipsed Merrow
 Eclipsed Realms
 Elder Auntie
 Emptiness
@@ -198,6 +199,8 @@ Sunderflock
 Surly Farrier
 Swamp
 Swat Away
+Sygg's Command
+Sygg, Wanderwine Wisdom
 Tam, Mindful First-Year
 Tanufel Rimespeaker
 Temple Garden

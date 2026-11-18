@@ -49,12 +49,14 @@ Brandywine Farmer
 Burning Fields
 Cabal Patriarch
 Cabaretti Courtyard
+Cao Cao, Lord of Wei
 Captive Weird
 Catacomb Sifter
 Chainweb Aracnir
 Change the Equation
 Chaos Lord
 Chaotic Backlash
+Cinder Shade
 Clear a Path
 Clip Wings
 Colossal Dreadmaw and Storm Crow
@@ -173,6 +175,7 @@ Mind Over Matter
 Minotaur, Roxxon CEO
 Mobile Fort
 Momentum Rumbler
+Mortal Wound
 Mountain
 Mox Tantalite
 Muck Rats
@@ -188,6 +191,7 @@ Nyx-Fleece Ram
 Oak Street Innkeeper
 Obelisk of Grixis
 Ogre Taskmaster
+Ondu Knotmaster
 One-Eyed Scarecrow
 Order of the Sacred Torch
 Panic Attack

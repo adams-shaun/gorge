@@ -26,6 +26,7 @@ Assure
 Atlas, Sizable Stooge
 Aura Fracture
 Auramancer
+Avacyn, Angel of Hope
 Axebane Stag
 Baffling End
 Balduvian Barbarians
@@ -114,6 +115,7 @@ Elvish Champion
 Elvish Hydromancer
 Embodiment of Insight
 Empyreal Voyager
+Enter the Infinite
 Errand-Rider of Gondor
 Escape from Orthanc
 Essence of Orthodoxy
@@ -188,6 +190,7 @@ Ionize
 Iron Man, Armored Avenger
 Ironshell Beetle
 Island
+Jacked Rabbit
 Jinx
 Jinxed Idol
 Judge's Familiar

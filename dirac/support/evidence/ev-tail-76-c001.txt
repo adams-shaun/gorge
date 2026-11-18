@@ -1,5 +1,6 @@
 A-Lantern of Revealing
 A-Vega, the Watcher
+About Face
 Active Volcano
 Adventurous Impulse
 Aether Meltdown
@@ -117,6 +118,7 @@ Kitsune Blademaster
 Kiyomaro, First to Stand
 Kuldotha Ringleader
 Lash of Thorns
+Lava Serpent
 Letter of Acceptance
 Llanowar Tribe
 Lotho, Corrupt Shirriff
@@ -174,6 +176,7 @@ Rhox Pummeler
 Rishadan Footpad
 Rockcaster Platoon
 Ruins of Oran-Rief
+Sadistic Glee
 Sage Owl
 Saiba Syphoner
 Salvager of Ruin
@@ -250,4 +253,5 @@ Whirler Virtuoso
 White Sun's Twilight
 Will of the Naga
 Wurmskin Forger
+Zoanthrope
 Zuko's Offense

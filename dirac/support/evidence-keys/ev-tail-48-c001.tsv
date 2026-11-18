@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Abyssal Nocturnus	6cbc69550b1a92db	115	1/1		1/1	
 Alpha Kavu	e7c4847eb9a1b6c9	4	1/1		1/1	
+Angrath's Rampage	df4cf6e20bff57a2	71	0/0		1/2	ix:resp
 Azusa, Lost but Seeking	3a59834fd2aebde1	6	0/0		0/0	
 Badlands	b58806a2e68ea63e	612	2/2		0/1	ix:resp
 Bartolomé del Presidio	e8926fab9272cc2c	10	1/1		1/1	
@@ -30,10 +31,12 @@ Daring Piracy	6f980b0595670bf3	6	1/1		0/1	ix:resp
 Dark Impostor	ac44f7c1d41a7278	122	1/1		1/1	
 Dark Revenant	2bf447023dcbdac6	157	1/1		1/1	
 Deadly Rollick	25336c38c1bd3558	4	0/0		1/2	ix:resp
+Deathgrip	889486999d5769cd	84	1/1		1/1	
 Demotion	a1a8fda2aa330d81	4	0/0		1/2	ix:resp
 Desecration Plague	6d056a0194ea43a7	4	0/0		1/2	ix:resp
 Divine Light	5c9f4b7bd2f35500	136	0/0		2/2	
 Draining Whelk	b2967a6be0f91b96	4	1/1		1/1	
+Drake Haven	24fa220538f8f3bc	20	1/1		1/1	
 Dusk Imp	20577b864b52f049	6	0/0		0/0	
 Elven Riders	2c4f982dce495016	3	0/0		0/0	
 Emancipation Angel	d725e87ed6a560c2	3	1/1		0/1	ix:resp
@@ -57,6 +60,7 @@ Gateway Plaza	f0246163c137388d	20	2/2		0/1	ix:resp
 Ghost-Lit Redeemer	2f993973f271a866	45	2/2		1/1	
 Ghoulish Procession	3b7fcfb0c12b967c	8	1/1		1/1	
 Gideon's Sacrifice	79986ec702009674	136	0/0		2/2	
+Gift of Strength	00148415f6c6c668	32	0/0		1/2	ix:resp
 Goblin Piledriver	188fe97d2977021e	6	1/1		0/1	ix:resp
 Golgari Thug	094f77996fd312a7	6	1/1		0/1	ix:resp
 Gorehorn Minotaurs	854de0e053100c07	4	0/0		0/0	
@@ -66,6 +70,7 @@ Gruesome Scourger	1487e46a446dcb45	91	1/1		1/1
 Hagra Sharpshooter	d157f20e89b39898	116	1/1		1/1	
 Harmonic Convergence	0998d010f62f4092	52	0/0		2/2	
 Heavenly Qilin	ed54dd72dd1c4f20	8	1/1		1/1	
+Hunted Phantasm	6bd124f0adc9ae0f	34	1/1		1/1	
 Hurl Through Hell	771bf86728c7a63c	4	0/0		1/2	ix:resp
 Impatience	daaf92be39316520	4	1/1		0/1	ix:resp
 Imperial Recovery Unit	b0a0603e9f9c0f72	4	2/2		1/1	
@@ -74,6 +79,7 @@ Insidious Bookworms	4a0eca11e24c4fb4	6	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Inspiring Roar	1eb007b1780b4a6c	83	0/0		2/2	
 Iron Tusk Elephant	2820f5c50851d3e2	3	0/0		0/0	
 Jaddi Offshoot	0113592b33caf13e	8	1/1		1/1	
+Jin-Gitaxias, Progress Tyrant	04497c3c73f3342c	14	2/2		1/1	
 Juzám Djinn	a212f7844465db40	4	1/1		1/1	
 Kingpin's Pet	6bc2164c428ac538	4	1/1		0/1	ix:resp
 Knight-Errant of Eos	d3a251779c6468aa	21	1/1		1/1	
@@ -88,6 +94,7 @@ Lys Alana Scarblade	717d5f91764d087d	96	1/1		1/1
 Managorger Hydra	6f11af26bd37544d	4	1/1		1/1	
 Markov Purifier	a6835628d3c4586e	97	1/1		1/1	
 Marsh Boa	69282b14c2391bc3	4	0/0		0/0	
+Memory Plunder	f3a1ba33472914c5	33	0/0		2/2	
 Mercenary Informer	c4eccba501e0023e	4	1/1		1/1	
 Midnight Charm	b9b0c06f47cc2e2f	10	0/0		1/2	ix:resp
 Mirran Crusader	12f68aaabe79d366	6	0/0		0/0	
@@ -101,6 +108,7 @@ Order of the Ebon Hand	cdb1fb0e649388ed	4	2/2		1/1
 Order of the Stars	dda65877f46e9d41	137	0/0		0/0	
 Patron of the Arts	4866ed90df953817	4	2/2		0/1	ix:resp
 Pile On	af82bbcc9562a078	94	0/0		2/2	
+Pseudodragon Familiar	94118e9e49f587bf	36	1/1		0/1	ix:resp
 Ravenous Lindwurm	99c0e7ddbbdb20af	4	1/1		0/1	ix:resp
 Reckless Racer	09023828a5a13e41	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Reconnaissance	3d2066d409ca8c44	12	1/1		1/1	
@@ -109,8 +117,10 @@ Resurgent Belief	230df2e1470dca3d	3	0/0		3/4	cast/alt:none
 Robaran Mercenaries	3dd581350053321c	33	0/0		0/0	
 Rootbound Crag	020db38246235ad3	28	1/1		0/1	ix:resp
 Roterothopter	027cbaf51a1cded5	6	1/1		0/1	ix:resp
+Rubble Reading	472a8740f46ed285	66	0/0		2/2	
 Ruin Crab	338de945d221695e	4	1/1		0/1	ix:resp
 Runed Stalactite	0af851c13cd6b10f	4	1/1		0/1	ix:resp
+Ryusei, the Falling Star	8fb13e8533c52dc8	25	1/1		0/1	ix:resp
 Scale Up	c31599258cd918d5	8	0/0		4/4	
 Scavenged Weaponry	8cace01660905037	100	1/1		2/2	
 Scepter of Fugue	06b1fe6ab26f9689	4	1/1		0/1	ix:resp
@@ -129,14 +139,20 @@ Sprite Noble	15c6cd4ba7399876	3	1/1		0/1	ix:resp
 Stone Haven Pilgrim	406266b9e85d81ae	6	1/1		0/1	ix:resp
 Sun Clasp	1931aa6c65cae8fa	9	1/1		2/2	
 Sunken Field	6802bc6e9215bb8d	5	0/0		2/2	
+Thalakos Deceiver	a5460304ee0ad825	49	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Theft of Dreams	66c26f94739a352d	11	0/0		2/2	
 Thoughtseize	e6d275098cb5c79a	17	0/0		2/2	
 Ulvenwald Oddity	6de739170b0cc168	6	1/1		0/1	ix:resp
+Vandalize	3cddfa2fb3677a75	31	0/0		1/2	ix:resp
 Vastwood Zendikon	9eb57307bc3f16ad	4	1/1		1/2	ix:resp
 Veinwitch Coven	d21efe8f0cca3af5	7	1/1		0/1	ix:resp
 Vexing Devil	102e80c608dacb62	48	1/1		1/1	
 Virulent Swipe	2c0081256a0143a1	12	0/0		2/2	
 Wall of Tears	753eca4216e5d229	4	1/1		0/1	ix:resp
 Warchanter Skald	b4be3887bcf93584	4	1/1		0/1	ix:resp
+Waterlogged Teachings	d6bb06625fc8aac9	72	1/1		2/2	
 Windbrisk Heights	3b3604079b0aebc7	16	3/3		0/1	ix:resp
+You Come to a River	6dc040967ca6c673	23	0/0		2/2	
+Yuki-Onna	2b2100c54dc3358f	47	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Zodiac Rat	b7b5618daf7dcefe	168	0/0		0/0	
 Zuberi, Golden Feather	942286eaa702696d	3	0/0		0/0	
