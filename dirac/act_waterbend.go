@@ -660,6 +660,9 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 				}
 			}
 		}
+		if s.depleteCensusGap(k, e.ctrl, sl) {
+			return false // its SubCounter cost is no shape the census prices (mana_ridercensus.go)
+		}
 		// A tap trigger that adds mana to this source's production is one the
 		// window census doesn't price (gorge manaProductionAltered, CR 605.1b).
 		// Read the ability the window would activate: a granted mana ability is
