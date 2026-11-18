@@ -562,7 +562,7 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 		// search never funds a hand play (mana_discardhand.go)
 		return false
 	}
-	return s.planHoldsOnStack(k, p, o, &cost) // cast_planholdsonstack.go
+	return s.witnessKeepsTargets(k, p, s.objs[o].card, o, &cost) && s.planHoldsOnStack(k, p, o, &cost) // cast_planholdsonstack.go
 }
 
 // planDeclinesAddCost reports a spell gorge's planner never prices: rules
