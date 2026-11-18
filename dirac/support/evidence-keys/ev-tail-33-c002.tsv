@@ -1,0 +1,71 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Acrobatic Maneuver	247e280b17403cc2	8	0/0		2/2	
+Aether Chaser	56f00dc43d71e9c9	10	2/2		0/1	ix:resp
+Archweaver	4880060c8109dca4	12	0/0		0/0	
+Baboon Spirit	e69f45dd7aa6eefd	17	2/2		1/1	
+Blast Zone	8c1d4fe9faa50dde	16	3/3		0/1	ix:resp
+Blurred Mongoose	eced1bc83bdf022a	6	0/0		0/0	
+Chittering Witch	fbe21de03cff1b38	21	2/2		1/1	
+Curse of Inertia	9feb0da0b6a06b95	51	1/1		2/2	
+Deception	438b9c5b65cb805a	12	0/0		1/2	ix:resp
+Detonate	d0732ebecf281b41	18	0/0		3/4	f0/s/x0
+Diving Griffin	b5133cde9a821486	20	0/0		0/0	
+Dripping Dead	fbd8b37305197225	4	1/1		1/1	
+Dross Prowler	09448dc30b0beb52	19	0/0		0/0	
+Dross Skullbomb	ca22a6b204328c59	52	2/2		1/1	
+Dáin's Company	0b78edbf31cf8c50	6	1/1		1/1	
+Flawless Maneuver	2efc11003abe2966	8	0/0		1/2	ix:resp
+Flourishing Hunter	c64875da0e4e5f77	24	1/1		1/1	
+Flumph	24f1edad24a9ab26	14	1/1		0/1	ix:resp
+Forbidding Watchtower	21a628b6bc9d2128	14	2/2		1/1	
+Forceful Cultivator	849cf71bbbf00737	21	1/1		1/1	
+Frontline Sage	0445a11459dd1aa9	59	2/2		1/1	
+Gates of Istfell	cb87855dad67f9fd	18	2/2		0/1	ix:resp
+Gau, Feral Youth	373911833ef063cf	6	2/2		1/1	
+Godo, Bandit Warlord	d7c8bbbe0d44632d	5	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Grimoire of the Dead	06f3c33478141729	4	2/2		1/1	
+Healer's Headdress	774d476fbee050f4	13	2/2		1/1	
+Horrific Assault	5b204425318b47a4	18	0/0		2/2	
+Illustrious Historian	dd4f222db777b10a	18	1/1		1/1	
+Infected Defector	07beb7a5bd1ee1f5	59	1/1		1/1	
+Inspiring Veteran	b15ca78f3ea865f2	29	0/0		0/0	
+Insurrection	393fd5fb48491151	7	0/0		1/2	ix:resp
+Kinscaer Harpoonist	3d1d7e483f8c0e13	14	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Kjeldoran Javelineer	d523656ecd8fc455	104	2/2		1/1	
+Llanowar Dead	5de75a1e8aafbe33	35	1/1		1/1	
+Maximize Altitude	1d90e4e57075b29f	23	0/0		3/4	cast/alt:jumpstart
+Mimic	e1b2af1bf78b357b	4	2/2		0/1	ix:resp
+Mjölnir's Might	dded82fb35bd5d26	4	0/0		1/2	ix:resp
+Mogg Jailer	cd1b593f8a9e10df	9	0/0		0/0	
+Monastery Mentor	d0b125dfad576e90	6	2/2		1/1	
+Muster the Departed	9c4d29996da92b06	4	2/2		0/1	ix:resp
+Naga Eternal	6da1b24597ee3daf	40	0/0		0/0	
+Quarantine Field	63d99bff5dbee294	16	1/1		1/1	
+Raiders' Spoils	ecc4909b8eb37733	46	1/1		1/1	
+Ravenous Leucrocota	ec04c01179d892c3	9	1/1		0/1	ix:resp
+Regeneration	196ad4d64628006d	36	1/1		2/2	
+Relentless Advance	4a2aae0db6301d6a	50	0/0		2/2	
+Remember the Fallen	878d2dadc4a9636a	6	0/0		1/2	ix:resp
+Research the Deep	66d349a404bc0140	93	0/0		2/2	
+Roar of the Wurm	97b2bd8cca423fe2	36	0/0		4/4	
+Runehorn Hellkite	7fede5649825f985	19	1/1		0/1	ix:resp
+Seeker	38c39e30d14ed784	26	0/0		2/2	
+Shattered Dreams	b972c93872aa182b	18	0/0		2/2	
+Shepherd of Rot	2b7ebeef134633d9	4	1/1		0/1	ix:resp
+Shu Foot Soldiers	96fce6c355023150	8	0/0		0/0	
+Sifter of Skulls	19307352c2df7021	64	1/1		1/1	
+Soul Kiss	4c520d14220dda46	4	1/1		1/2	ix:resp
+Stamina	33179de2c3d037e9	8	1/1		1/2	ix:resp
+Stonework Packbeast	1a3202b851800534	80	1/1		1/1	
+Sylvan Hierophant	6dc9f80fbdbf0811	17	1/1		1/1	
+Tajuru Warcaller	5fd572522f216183	16	1/1		0/1	ix:resp
+The Tabernacle at Pendrell Vale	8115b89e7a13e281	4	0/0		0/0	
+Timberland Ancient	065dc4846ebe01b3	4	1/1		0/1	ix:resp
+Treefolk Seedlings	5fa519f08886abdb	22	0/0		0/0	
+Vedalken Engineer	eba3a020a1d88753	70	1/1		1/1	
+Vernal Fen	4f46f46a30745961	6	2/2		0/1	ix:resp
+Viashino Skeleton	b8ae49e3a5f6a8eb	24	1/1		0/1	ix:resp
+Voice of Truth	bcd1fdae82ea0d97	36	0/0		0/0	
+Weatherlight Compleated	e250646646ab0bcb	6	1/1		1/1	
+Weatherseed Totem	3a5ca8323765fb69	45	3/3		1/1	
+Wild Griffin	fee89a03f03ffa8b	73	0/0		0/0	

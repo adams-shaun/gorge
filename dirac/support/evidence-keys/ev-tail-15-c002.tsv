@@ -1,0 +1,83 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Sepulcher Ghoul	d6bf4570b4f377f2	4	1/1		0/1	ix:resp
+Aerial Maneuver	6d789a24a5db71d1	8	0/0		2/2	
+Afflict	3c5dbdec69877f16	8	0/0		1/2	ix:resp
+Ampryn Tactician	78393dfa814ff9b0	4	1/1		0/1	ix:resp
+Anointed Chorister	a1a4a8e30cc6fdf0	12	1/1		1/1	
+Anurid Murkdiver	e860ed1a2064e238	5	0/0		0/0	
+Armillary Sphere	79c6a2f1557a02fd	16	1/1		1/1	
+Bedeck	266aef6a9c2b490d	3	0/0		1/3	f1/s,ix:resp
+Bloodflow Connoisseur	ea91caa4bafa6b7b	4	1/1		0/1	ix:resp
+Char	87e447d24c46247d	8	0/0		2/2	
+Chrome Cat	019954283153ccf8	3	1/1		0/1	ix:resp
+Corpse Hauler	27ecc9234ab3e274	4	1/1		0/1	ix:resp
+Deb Thomas	9092562d0ac0831c	4	3/3		1/1	
+Desecration Elemental	dc05770dbe5d2f7e	4	1/1		0/1	ix:resp
+Despoiler of Souls	7f083e1a4127e375	8	1/1		0/1	ix:resp
+Dihada's Ploy	15d4bb0d6f6f47ba	4	0/0		2/4	cast/alt:jumpstart,ix:resp
+Diplomacy of the Wastes	db50bc2822feb297	6	0/0		2/2	
+Dire Fleet Hoarder	f6de78b0aa6d8a93	5	1/1		1/1	
+Dowsing Shaman	841591f64cca5f36	3	1/1		0/1	ix:resp
+Ephara's Warden	2472951f13911000	4	1/1		1/1	
+Executioner's Hood	f2cb0bb5bced647e	9	1/1		0/1	ix:resp
+Falkenrath Marauders	c24f6cec34c705fa	3	1/1		0/1	ix:resp
+Fated Conflagration	a1823dc71deafa3a	6	0/0		1/2	ix:resp
+Giant Fly	bbc452c6a9849d38	3	1/1		0/1	ix:resp
+Goblin Warchief	f6bccc69c3a114f8	6	0/0		0/0	
+Grim Guardian	40ca779a6aa4b623	6	1/1		0/1	ix:resp
+Gutter Skulk	fc9df1811f72e49c	14	0/0		0/0	
+Imoti, Celebrant of Bounty	3b12e2db79d392a7	7	0/0		0/0	
+Inspired Inventor	074d78e9432dd201	4	1/1		0/1	ix:resp
+Into the Time Vortex	76c61f7caf6cc378	4	0/0		2/2	
+Kathari Screecher	26f530fe193c5391	15	1/1		0/1	ix:resp
+Learn from the Past	5c2e6fab150c86ea	4	0/0		1/2	ix:resp
+Lose Calm	c288de9dc1c920ce	8	0/0		1/2	ix:resp
+Lychguard	6291625f68b9a10f	7	1/1		1/1	
+Manriki-Gusari	7ffd80d40df8fa90	4	1/1		0/1	ix:resp
+Marsh Viper	283d0ef14fbad099	3	1/1		1/1	
+Mending Hands	73cceaa8dddf6c9f	3	0/0		1/2	ix:resp
+Metrognome	91c948c9b45b79b3	4	2/2		1/1	
+Mindwarper	17459aef9f8c5f7c	8	1/1		0/1	ix:resp
+Morkrut Behemoth	d17c32024be85eac	6	0/0		0/0	
+Mounted Dreadknight	b2a92285d200376c	4	0/0		0/0	
+Multiform Wonder	9b53cdbcb2f74226	7	3/3		1/1	
+Nightscape Familiar	5c488d18479da3b1	14	1/1		1/1	
+Nightshade Assassin	25e10d5dbf513315	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Nimble Pilferer	953b62840166e05e	5	0/0		0/0	
+Ogre Gatecrasher	3d49f02f14de222a	9	1/1		0/1	ix:resp
+Ogre Sentry	abecd93936433d57	5	0/0		0/0	
+Ozox, the Clattering King	06dfd9ed321a1eb0	3	1/1		1/1	
+Path of Peril	3b0f778ff2c30850	12	0/0		2/2	
+Pawn of Ulamog	c9a354b447b85941	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Poxwalkers	90e94a09da5889a3	5	1/1		0/1	ix:resp
+Primal Bellow	aac904dc951276ce	6	0/0		1/2	ix:resp
+Pulsating Illusion	1c63bc1bf224d70e	10	1/1		1/1	
+Raise the Draugr	3a6bce1aceecb102	7	0/0		1/2	ix:resp
+Retreat to Hagra	4ec8e3c5565ef945	8	1/1		0/1	ix:resp
+Roving Harper	0c1aebdec205843b	4	1/1		0/1	ix:resp
+Rust Tick	4907e82ccff4ab39	51	1/1		1/1	
+Sea's Claim	5a85ed60f30c7230	22	0/0		1/2	ix:resp
+Seer's Vision	0523ea1db7149a8d	4	1/1		0/1	ix:resp
+Sigardian Priest	fc51c762e637e2ab	4	1/1		1/1	
+Skirsdag Cultist	123ec8e785e2ae87	6	1/1		0/1	ix:resp
+Skyclave Pick-Axe	57192d0b964643df	4	3/3		0/1	ix:resp
+Skyfisher Spider	1cb931195e09aaf1	4	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Slagwurm Armor	ef2993bb142112b8	8	1/1		0/1	ix:resp
+Smitten Swordmaster	ebb42a373252c22e	3	0/0		1/2	ix:resp
+Spawning Grounds	bba18e07fbd42872	3	0/0		1/2	ix:resp
+Splinter, the Mentor	50698de4e09b835f	9	1/1		0/1	ix:resp
+Steelbane Hydra	64d31e75b8fc012a	3	1/1		0/1	ix:resp
+Stolen Strategy	b19a632a0e86883c	4	1/1		0/1	ix:resp
+Swift Response	4deca589d95dd700	8	0/0		2/2	
+Sylvan Tutor	1fb010a6ebf5d921	3	0/0		1/2	ix:resp
+Teyo's Lightshield	8c2093fd7e4e7451	5	1/1		1/1	
+Tidal Wave	a63e7bf9dac65c88	10	0/0		2/2	
+Treachery	3ce0072feacef208	3	1/1		1/2	ix:resp
+Trokin High Guard	7063ae8de6d1272e	4	0/0		0/0	
+Two-Headed Giant of Foriys	97fe9df449f4a528	16	0/0		0/0	
+Two-Headed Zombie	334a74a5250e0791	8	0/0		0/0	
+Wall of Omens	9a60928592432c58	4	1/1		1/1	
+Wound Reflection	9702a6df00cea4e6	4	1/1		1/1	
+Xun Yu, Wei Advisor	43c404145b3092c7	4	1/1		0/1	ix:resp
+Yawgmoth, Thran Physician	0fc0fc220ca08fc7	6	2/2		0/1	ix:resp
+Zephyr Boots	ceff46df1d5fe26a	7	2/2		1/1	

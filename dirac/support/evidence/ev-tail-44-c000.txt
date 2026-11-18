@@ -6,6 +6,7 @@ Abundant Harvest
 Academy Raider
 Accursed Spirit
 Acid Rain
+Adaptive Training Post
 Adeline, Resplendent Cathar
 Aetherflux Conduit
 Aetherwind Basker
@@ -267,6 +268,7 @@ Pact of Negation
 Paired Tactician
 Pale Rider of Trostad
 Pangosaur
+Paperfin Rascal
 Parasitic Strix
 Part the Veil
 Patrolling Peacemaker
@@ -368,6 +370,7 @@ Swamp
 Sworn Companions
 Sylvan Awakening
 Tajuru Snarecaster
+Tangletrove Kelp
 Telekinetic Sliver
 Terashi's Verdict
 Termination Facilitator
@@ -440,6 +443,7 @@ Wings of the Guard
 Wirewood Pride
 Witch's Cauldron
 Wolfkin Outcast
+Wolverine Pack
 Woodland Mystic
 Worldly Tutor
 Xiahou Dun, the One-Eyed

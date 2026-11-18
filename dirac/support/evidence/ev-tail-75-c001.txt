@@ -1,14 +1,23 @@
 Aether Spellbomb
+Afterlife
 Akoum Refuge
 Ancestral Blade
 Ancient Gold Dragon
 Anointer Priest
+Apprentice Sharpshooter
+Arachnus Web
+Archwing Dragon
+Ardent Elementalist
+Artificer Class
 Ashen Monstrosity
+Aspect of Lamprey
 Attune with Aether
 Avatar of Growth
 Aven Fogbringer
 Azure Drake
 Backfire
+Baloth Null
+Banishment
 Barrow Witches
 Bathe in Dragonfire
 Battle of Hoover Dam
@@ -16,62 +25,108 @@ Belligerent Sliver
 Bellowing Mauler
 Big Boa Constrictor
 Black Widow, Intel Expert
+Black Widow, Natasha Romanoff
+Blind Creeper
+Blood Fountain
+Bloodcrazed Neonate
 Bloodmark Mentor
+Bloodthirsty Adversary
 Blustersquall
 Bond of Flourishing
 Bond of Insight
+Bone Devourer
 Bonehoard
 Bonepicker Skirge
 Bound in Silence
+Bountiful Promenade
 Brandywine Farmer
 Burning Fields
+Cabaretti Courtyard
 Captive Weird
 Catacomb Sifter
+Chainweb Aracnir
 Chaotic Backlash
 Clip Wings
+Colossal Dreadmaw and Storm Crow
+Crackling Drake
 Crookclaw Elder
 Cunning Survivor
+Daunting Defender
 Death's Shadow
+Demon's Disciple
+Dense Foliage
+Deputized Protester
+Desolate Mire
 Desynchronize
+Devouring Light
 Devouring Swarm
 Double Negative
+Dragon-Scarred Bear
 Dragonlord Silumgar
 Drainpipe Vermin
 Dread Tiller
 Dreamshackle Geist
+Drillworks Mole
+Drossclaw
+Drown in Dreams
 Dune Mover
+Duplicant
 Dust Corona
 Easy Prey
+Emperor Crocodile
 Ethereal Investigator
 Falkenrath Marauders
+Fateful Showdown
+Feral Instinct
 Ferocious Zheng
+Fetid Imp
+Fiendslayer Paladin
 Fireblade Charger
 Flare of Denial
 Forest
+Gift of Fangs
 Gift of Paradise
 Gild
+Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
+Goblin Deathraiders
+Great Defender
+Greater Harvester
 Griffin Aerie
 Guul Draz Mucklord
 Haazda Officer
+Harmless Assault
 Herd Gnarr
+Hero of the Dunes
 Hibernation
 Honden of Life's Web
 Howl of the Night Pack
 Huatli, Radiant Champion
 Hurloon Battle Hymn
+Imaginary Pet
+Immortal Phoenix
+Incisor Steed
+Inspire Awe
 Island
 Jace's Erasure
+Jade Idol
 Jalum Tome
+Jolrael, Voice of Zhalfir
 Kayla's Reconstruction
 Khenra Spellspear
 Kher Keep
 Kjeldoran Outrider
 Launch
 Leapfrog
+Leyline of Punishment
+Lorthos, the Tidemaker
 Lost in the Mist
+Magma Vein
+Magmatic Insight
 Mana Vault
+Marauding Boneslasher
+Mardu Woe-Reaper
 Markov Patrician
 Mass Mutiny
 Master of Winds
@@ -80,18 +135,28 @@ Metathran Elite
 Mijae Djinn
 Mind Over Matter
 Minotaur, Roxxon CEO
+Mobile Fort
 Momentum Rumbler
 Mountain
+Mox Tantalite
 Muck Rats
 Myrel, Shield of Argive
+Mystic Skull
+Nakaya Shade
 Nebelgast Herald
 Neonate's Rush
 Nezumi Freewheeler
 Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper
+Obelisk of Grixis
+Ogre Taskmaster
+One-Eyed Scarecrow
+Order of the Sacred Torch
+Panic Attack
 Paradigm Shift
 Parallel Lives
+Patrol Hound
 Peregrine Mask
 Perimeter Captain
 Personal Tutor
@@ -103,49 +168,90 @@ Precinct Captain
 Privileged Position
 Pyrrhic Blast
 Quest for Renewal
+Quirion Explorer
 Radstorm
 Rageblood Shaman
 Rally the Peasants
+Raugrin Triome
 Return from Extinction
+Rimewood Falls
 Rishadan Cutpurse
 Rishkar's Expertise
 Rockshard Elemental
 Rooftop Nuisance
+Rout
+Rune-Cervin Rider
+Sacred Prey
 Sage Aven
 Sailor of Means
+Sanctify
+Scalding Devil
 School of Piranha
+Scour All Possibilities
 Seething Pathblazer
 Selhoff Occultist
+Shaman of Spring
+Shield of the Oversoul
+Show of Valor
+Shrine Keeper
 Sibsig Muckdraggers
+Sigil of Valor
+Silent Extraction
+Simian Brawler
+Singing Tree
+Sinkhole
 Sizzle
+Skyclave Shadowcat
 Skyline Cascade
+Slagwoods Bridge
 Sonic Screwdriver
+Soulmender
 Spectacle Mage
+Spike Breeder
 Spindrift Drake
 Spirit Shackle
+Spirited Companion
 Spitebellows
 Spitfire Handler
 Stormscape Apprentice
+Sultai Emissary
 Sunscorched Desert
 Swamp
+Swarm Surge
 Swarm of Rats
+Sygg, River Guide
+Tamiyo's Immobilizer
+Tamiyo's Safekeeping
 Tectonic Edge
+Tempestra, Dame of Games
 Territorial Boar
+Thirst for Discovery
 Thopter Assembly
 Threnody Singer
 Thundersteel Colossus
+Timbermaw Larva
+Trailblazing Historian
 Trained Caracal
 Tui and La, Moon and Ocean
 Twiddle
+Twilight's Call
 Ugin's Insight
 Undead Servant
 Urza, Powerstone Prodigy
 Venomous Changeling
 Viscerid Deepwalker
+Viscid Lemures
+Volcanic Torrent
+Volcanic Upheaval
+Voyager Staff
+Wall of Vines
 Warmonger Hellkite
+Waterknot
 Will-o'-the-Wisp
+Winding Canyons
 Winged Shepherd
 Wizard Replica
 Woodland Stream
 Zap
+Zealot's Conviction
 Zendikar Farguide

@@ -1,0 +1,102 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Scout the Wilderness	d4041b3e13bd555b	16	0/0		4/4	
+A-Skull Skaab	f16baf07e7177de9	8	2/2		1/1	
+Aeronaut's Wings	ad0ca221e233dd73	31	1/1		1/1	
+Ajani, Wise Counselor	14791de0f38a1e36	4	3/3		0/1	ix:resp
+Alesha, Who Smiles at Death	92b55b3af7ff6e1b	16	1/1		1/1	
+Angel of Serenity	10b9942f0a7bba3e	3	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Ashnod, Flesh Mechanist	171a0c9743224f97	14	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Balloon Peddler	d91892c247434387	31	1/1		1/1	
+Beacon Bolt	905d58f32d8827d2	11	0/0		2/4	cast/alt:jumpstart,ix:resp
+Black Dragon	b9053d57da2779bd	11	1/1		1/1	
+Blockbuster	cb3cfa0a50e2d2c5	11	1/1		0/1	ix:resp
+Bloodsky Berserker	0ffb5ed4a273dacc	20	1/1		0/1	ix:resp
+Brute Suit	c35a117805c5961c	29	1/1		1/1	
+Cateran Summons	26fd762b16c15eba	12	0/0		2/2	
+Caterwauling Boggart	fc9253903eee9e41	32	0/0		0/0	
+Cephalid Aristocrat	9f24c9f49a363dd4	19	1/1		1/1	
+Chandra's Outrage	898e3fd9f9b2f400	18	0/0		2/2	
+Chatterstorm	2a402341fa2c3a6a	11	1/1		2/2	
+Chromatic Star	f071cd06debcd177	16	2/2		1/1	
+Claws of Gix	af3e400c17dbf4d7	13	1/1		1/1	
+Clone Legion	2e165694d82d10cf	3	0/0		1/2	ix:resp
+Cremate	4531ffb280766117	26	0/0		2/2	
+Cruel Cut	1e94184a2afe5dfc	17	0/0		2/2	
+Cruel Tutor	57ff144c0980148f	19	0/0		2/2	
+Crumbling Colossus	947815114dde2115	21	1/1		1/1	
+Cultivator of Blades	4e322dc6193566a8	12	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Deadly Recluse	60bf91dcbd5aff88	4	0/0		0/0	
+Desecrated Tomb	dcc0e65d4a5ba23f	29	1/1		1/1	
+Disruption Protocol	4c61ab7c166fc2c1	8	0/0		1/2	ix:resp
+Dream Pillager	f26449328c8e4928	10	1/1		0/1	ix:resp
+Dungeon Geists	7104a2026a18b44e	32	1/1		1/1	
+Final Parting	3aab64b975a19f11	7	0/0		1/2	ix:resp
+Fountain of Renewal	ae50af9713dce985	28	2/2		0/1	ix:resp
+Gandalf, Shadow's Foe	77161bc3e3eb1853	9	2/2		1/1	
+Giant Caterpillar	a4f1e64bc4efab82	8	1/1		0/1	ix:resp
+Gibbering Hyenas	eb7d0fde7cfea536	20	0/0		0/0	
+Gimli of the Glittering Caves	a6770c663ea9ae50	13	2/2		0/1	ix:resp
+Gleam of Resistance	0e19bc285e746dfa	3	1/1		1/2	ix:resp
+Glóin, Dwarf Emissary	3ac0d67a9b50e475	8	2/2		0/1	ix:resp
+Go-Shintai of Lost Wisdom	6cd6820acfe431a8	7	1/1		1/1	
+Grandmother Sengir	9a165594e199415b	19	1/1		0/1	ix:resp
+Grasping Current	717a2e98332e7afe	4	0/0		2/2	
+Grunn, the Lonely King	903535bb8235e439	8	1/1		1/3	cast/alt:kicked,ix:resp
+Hail Storm	ee6021c27322daa5	15	0/0		2/2	
+Hermit Druid	374d7104e74f42e6	6	1/1		1/1	
+Hobgoblin Bandit Lord	6efb889c1ac7de1a	17	1/1		1/1	
+Howl of the Night Pack	0072122abdfd618a	5	0/0		2/2	
+Illusionary Wall	cfb7f371c8e2a0af	17	1/1		0/1	ix:resp
+Impulsivity	35fcd3482b506c62	12	2/2		1/1	
+Izzet Cluestone	c72dfd60aa8dcc49	12	2/2		1/1	
+Judge Unworthy	475f4ce8341806b9	10	0/0		1/2	ix:resp
+Katara's Reversal	97fe28ab747f8d06	9	0/0		1/2	ix:resp
+Kirtar's Desire	d78626f856943225	23	0/0		2/2	
+Kozilek's Predator	44bfae6117e4c324	4	1/1		0/1	ix:resp
+Krosan Groundshaker	6c07477606400cd2	5	1/1		1/1	
+Latch Seeker	c8c92c3799daf1fd	20	0/0		0/0	
+Lumengrid Augur	60a9782b4993ae68	20	1/1		1/1	
+Mammoth Growth	370ed3ad60f593dd	9	0/0		3/4	cast/alt:foretold
+Mishra's Bauble	db8330615378e851	22	1/1		1/1	
+Mistveil Plains	24c291918b439673	102	2/2		1/1	
+Misty Rainforest	0e277056404399cd	103	1/1		0/1	ix:resp
+Mystic Sanctuary	b4bd6b352bf3d40f	129	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Nantuko Blightcutter	c0905ac57b43193b	6	0/0		0/0	
+Necrogoyf	22ac851d3c7d3bbe	12	1/1		1/1	
+Nissa's Pilgrimage	77a676ae61775706	4	0/0		1/2	ix:resp
+Oakheart Dryads	79fe3d4bc05c7ae6	13	1/1		0/1	ix:resp
+Purple Pentapus	1ef28d6e4488eec9	32	2/2		1/1	
+Pyrokinesis	4d0f996934cfc278	6	0/0		1/2	ix:resp
+Rakdos Trumpeter	7f531ab6bddfbf4e	9	1/1		0/1	ix:resp
+Rakdos's Return	667a8d657364a072	8	0/0		3/4	f0/s/x0
+Ral's Dispersal	1d6ec11e3ce5b0a8	30	0/0		2/2	
+Ready to Rumble	b1240498b7bf3af2	7	0/0		1/2	ix:resp
+Reckless Spite	82ac4d810788420d	10	0/0		1/2	ix:resp
+Recurring Insight	cff24313b41e8c1d	32	0/0		2/2	
+Relic Golem	1a8d6da6c5473f12	5	1/1		0/1	ix:resp
+Reverse Engineer	42292fca8f078aaa	18	0/0		1/2	ix:resp
+Seedling Charm	46e03f5ffc0ae158	6	0/0		2/2	
+Serum Raker	6a07eabbc8257e83	8	1/1		0/1	ix:resp
+Setessan Starbreaker	2e222f6c7bb146ab	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Sheltered Aerie	6a4753a1496ee645	8	0/0		1/2	ix:resp
+Shoot Down	603f934ecf80ffdc	3	0/0		1/2	ix:resp
+Shuri, Vibranium Technologist	8186eac425cb4a47	9	1/1		1/1	
+Skarrg, the Rage Pits	0a3876dc1df85d9c	118	2/2		1/1	
+Skinrender	47dd7eee740689b6	9	1/1		0/1	ix:resp
+Sky Scourer	d9964029581e1113	24	1/1		1/1	
+Soldevi Sage	b09988f7495dd396	4	1/1		0/1	ix:resp
+Soratami Cloud Chariot	f92077272c0b8667	30	2/2		1/1	
+Stern Lesson	afef20b8702351f0	5	0/0		1/2	ix:resp
+Swarm Intelligence	cb03b7a5edb4bb01	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Sylvan Scrying	4123a2796ce35948	25	0/0		2/2	
+Tainted Observer	8c53c6d57fe58af1	4	1/1		1/1	
+Thassa's Ire	ba5c89f952156a32	24	1/1		0/1	ix:resp
+The Binding of the Titans	82c5205e75287738	9	0/0		0/0	
+The Whizzer, Classic Speedster	48799b3ff7a3c9ae	11	0/0		0/0	
+Thwart	386360a51b903404	8	0/0		1/2	ix:resp
+Totem-Guide Hartebeest	ef0fd7cf64faf408	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Tribute Mage	710545b0cdb67bdb	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Vampires' Vengeance	cb0b0463dbb2c16a	15	0/0		2/2	
+Vivien's Crocodile	18a9f8abe3ec9520	8	0/0		0/0	
+Weirded Vampire	f128bc9bd435f26d	18	0/0		0/0	
+Word of Blasting	18fc7d1a41d2ab7c	4	0/0		2/2	

@@ -1,6 +1,7 @@
 A-Mentor's Guidance
 A-Midnight Assassin
 Adarkar Sentinel
+Aether Sting
 Alchemist's Vial
 Amphin Mutineer
 Arboreal Grazer
@@ -11,26 +12,36 @@ Avengers Quinjet
 Banisher Priest
 Belligerent Sliver
 Bishop of Wings
+Bishop of the Bloodstained
+Blessed Wine
 Bloodthirsty Blade
 Bog Glider
+Brightwood Tracker
 Burrowing Razormaw
 Castle Locthwain
 Cat Warriors
 Caustic Rain
 Chainwhip Cyclops
+Charging Rhino
 Coal Stoker
 Collector Ouphe
+Contaminated Bond
 Corrupted Harvester
 Crackling Club
 Dampening Pulse
 Darkling Stalker
 Dauthi Ghoul
 Dawn Gryff
+Demonic Bargain
 Dirgur Focusmage
+Divine Retribution
+Dockside Extortionist
 Dread Presence
 Duchess, Wayward Tavernkeep
 Elaborate Firecannon
+Elfhame Wurm
 Ember-Fist Zubera
+Energy Chamber
 Entrancing Melody
 Escape Artist
 Essence Flux
@@ -39,6 +50,8 @@ Fallen Ideal
 Fated Return
 Filigree Familiar
 Filthy Cur
+Flame-Kin War Scout
+Flare of Cultivation
 Flash Flood
 Flowstone Sculpture
 Fodder Cannon
@@ -46,27 +59,41 @@ Foresee
 Forest
 Foundry of the Consuls
 Gargoyle Sentinel
+Geist-Honored Monk
 Geth's Grimoire
+Gird for Battle
 Glacial Wall
 Goblin Boom Keg
+Goblin Caves
 Goblin Dirigible
 Goblin Sky Raider
 Goliath Beetle
 Goro-Goro and Satoru
+Grave Birthing
+Grave Bramble
+Griffin Guide
 Grisly Salvage
 Gutless Ghoul
+HYDRA Disintegrator
+Heartwood Giant
+Hengegate Pathway
 High-Speed Hoverbike
 Horn of Deafening
+Humble the Brute
 Hungry Flames
 Ichor Shade
 Improvised Club
 Indatha Triome
+Intelligence Bobblehead
 Island
 Joraga Visionary
 Kalonian Tusker
 Korozda Guildmage
 Land Leeches
 Light 'Em Up
+Lost in the Woods
+Loyal Pegasus
+Make Obsolete
 Masked Vandal
 Mold Shambler
 Morgue Thrull
@@ -84,27 +111,36 @@ Nezumi Cutthroat
 Nim Mongoose
 Nimbus Wings
 Nimraiser Paladin
+Obelisk Spider
 Order of Whiteclay
 Paladin of Predation
 Peema Trailblazer
+Pennon Blade
 Pewter Golem
+Phobian Phantasm
+Piety Charm
 Piranha Marsh
 Plains
 Powerstone Fracture
 Priest of Titania
 Prism Ring
+Prodigious Growth
 Psemilla, Meletian Poet
 Quarry Beetle
+Raiding Nightstalker
 Raka Disciple
 Razorfin Abolisher
 Redcap Raiders
 Refurbished Familiar
 Repulsor Rays
 Restoration Gearsmith
+Righteous Avengers
 Rishadan Footpad
+Rule of Law
 Rush of Knowledge
 Ruthless Predation
 Sage Owl
+Sanctum of Shattered Heights
 Sandsower
 Sautekh Immortal
 Seismic Spike
@@ -114,6 +150,7 @@ Shrink
 Silence
 Sinuous Vermin
 Skull Collector
+Slayer of the Wicked
 Song-Mad Treachery
 Sorcerer of the Fang
 Spike Feeder
@@ -127,12 +164,15 @@ Supply Caravan
 Swamp
 Sylvan Caryatid
 Sylvan Messenger
+Taborax, Hope's Demise
 Talons of Falkenrath
 Tattered Haunter
+Tel-Jilad Exile
 Tentative Connection
 Terisiare's Devastation
 Thermal Glider
 Thought Harvester
+Thran Temporal Gateway
 Thriving Grove
 Tightening Coils
 Time Sieve
@@ -156,5 +196,6 @@ Webweaver Changeling
 Wicked Pact
 Wicked Reward
 Wild Slash
+Wildwood Rebirth
 Wolfrider's Saddle
 Wu Warship

@@ -1,4 +1,5 @@
 Ajani, Mentor of Heroes
+Akoum Stonewaker
 Anafenza, Kin-Tree Spirit
 Annex
 Appeal
@@ -29,6 +30,7 @@ Chance-Met Elves
 Chandler
 Chatter of the Squirrel
 Childhood Horror
+Cleansing Wildfire
 Cloak of Feathers
 Conclave Naturalists
 Connive
@@ -52,6 +54,7 @@ Eidolon of the Great Revel
 Elder of Laurels
 Excavation Technique
 Fallowsage
+Fang of Shigeki
 Folk Medicine
 Forest
 Fulminator Mage
@@ -61,6 +64,7 @@ Geistcatcher's Rig
 Ghosts of the Damned
 Giant Strength
 Goblin Cohort
+Goblin Piker
 Grasslands
 Green Goblin, Nemesis
 Guardian of Pilgrims
@@ -72,10 +76,12 @@ Hornet Cannon
 Huatli, the Sun's Heart
 Hulking Goblin
 Hypnotic Grifter
+Ichorspit Basilisk
 Increasing Vengeance
 Infected Defector
 Irenicus's Vile Duplication
 Island
+Jeska's Will
 Jet Medallion
 Jokulhaups
 Jolrael's Favor
@@ -90,6 +96,7 @@ Lightning Talons
 Loyal Fire Sage
 Ma Chao, Western Warrior
 Majestic Heliopterus
+Matsu-Tribe Decoy
 Maw of the Obzedat
 Merrow Wavebreakers
 Mindclaw Shaman
@@ -100,9 +107,12 @@ Mons's Goblin Raiders
 Moonglove Extract
 Mountain
 Mourning Thrull
+Mystic Repeal
 Nether Void
 Nissa's Encouragement
 Nissa, Voice of Zendikar
+Null Rod
+Oaken Brawler
 Oath of Gideon
 Oculus
 Off Balance
@@ -110,6 +120,8 @@ Onyx Goblet
 Oran-Rief Hydra
 Orcish Oriflamme
 Original Skullclamp
+Pardic Swordsmith
+Patrician's Scorn
 Phyrexian Espionage
 Phyrexian Reaper
 Pilfered Plans
@@ -120,15 +132,22 @@ Rathi Dragon
 Revered Dead
 Rhox Charger
 Rishadan Port
+Rite of Harmony
 River Boa
 Roar of the Wurm
 Rootless Yew
 Rummaging Wizard
+Runed Crown
+Rushwood Dryad
 Sacred Knight
+Sakura-Tribe Springcaller
+Sanitarium Skeleton
+Scab-Clan Mauler
 Scavenger Grounds
 Scour the Laboratory
 Scourgemark
 Seasoned Marshal
+Second Harvest
 Selhoff Occultist
 Sentry Bot
 Serene Heart
@@ -146,18 +165,21 @@ Spitting Sliver
 Squad Captain
 Staff of the Death Magus
 Stone Spirit
+Stonehands
 Storm God's Oracle
 Sungrass Egg
 Swamp
 Sylvan Might
 Syndicate Enforcer
 Thraxodemon
+Titania's Chosen
 Titanic Ultimatum
 Tramway Station
 Transmogrifying Licid
 Traproot Kami
 Triumph of the Hordes
 True Love's Kiss
+Trumpet Blast
 Turtle-Seals
 Utrom Monitor
 Vulturous Aven
@@ -169,3 +191,4 @@ Whimwader
 Wild Instincts
 Wintermoon Mesa
 Zealous Inquisitor
+Zodiac Goat

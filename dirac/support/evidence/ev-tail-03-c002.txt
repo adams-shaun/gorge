@@ -1,7 +1,9 @@
+A-Zar Ojanen, Scion of Efrava
 Abyssal Gatekeeper
 Acolyte of the Inferno
 Ainok Bond-Kin
 Ajani's Mantra
+Ajani, Adversary of Tyrants
 Altar's Light
 Ancestral Memories
 Animating Faerie
@@ -9,6 +11,7 @@ Applied Biomancy
 Arbalest Elite
 Arbor Armament
 Arboreal Alliance
+Arcade Cabinet
 Arcane Encyclopedia
 Archivist of Oghma
 Argivian Find
@@ -37,7 +40,10 @@ Brushwagg
 Buccaneer's Bravado
 Bygone Bishop
 Cabal Executioner
+Call the Skybreaker
+Campus Renovation
 Carnival
+Celestial Crusader
 Cenn's Heir
 Cerulean Wyvern
 Choke
@@ -48,19 +54,23 @@ Clear Shot
 Clear the Land
 Clever Lumimancer
 Clockwork Drawbridge
+Cloud Cover
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
 Conclave Phalanx
 Confirm Suspicions
+Consulate Skygate
 Coral Colony
 Counterbalance
 Courier's Capsule
 Cowl Prowler
+Crack the Earth
 Creeping Trailblazer
 Crown of Flames
 Cryptothrall
 Cyclopean Snare
+Dakmor Salvage
 Damning Verdict
 Dawnstrike Paladin
 Deadeye Brawler
@@ -72,22 +82,27 @@ Devils' Playground
 Dire Fleet Neckbreaker
 Dirge of Dread
 Dismal Failure
+Dominating Licid
 Doom Foretold
 Dragon Roost
 Drana, Liberator of Malakir
 Drawn from Dreams
 Drift of Phantasms
+Duergar Hedge-Mage
 Dust Elemental
 Eiganjo Uprising
 Elvish Eulogist
 Elvish Vanguard
 Enchantress's Presence
+Enclave Elite
 Endless One
 Enshrined Memories
 Entomb
 Ephemerate
 Eternal Thirst
+Ethercaste Knight
 Excise
+Extravagant Spirit
 Falkenrath Celebrants
 Fauna Shaman
 Fen Hauler
@@ -98,6 +113,7 @@ Flowstone Infusion
 Fogwalker
 Font of Mythos
 Forest
+Frenetic Ogre
 Fruitcake Elemental
 Fumarole
 Funeral Longboat
@@ -131,6 +147,7 @@ Haunted Angel
 Headstone
 Hedron Scrabbler
 Hermetic Study
+Hill Giant
 Hoar Shade
 Horncaller's Chant
 Horned Kavu
@@ -159,10 +176,12 @@ Kraul Raider
 Lamentation
 Land Tax
 Leeching Licid
+Lion's Eye Diamond
 Living Tempest
 Longshot, Rebel Bowman
 Lore Seeker
 Loxodon Stalwart
+Lunge
 Maddening Wind
 Mantle of Webs
 March from the Black Gate
@@ -189,6 +208,7 @@ Muzzle
 Myr Kinsmith
 Mystic Penitent
 Mystic Speculation
+Nadier's Nightblade
 Narcolepsy
 Nesting Dragon
 Nezumi Bone-Reader
@@ -211,6 +231,7 @@ Pheres-Band Tromper
 Phthisis
 Phyrexian Rebirth
 Plains
+Plated Wurm
 Predator, Flagship
 Prismatic Strands
 Profit
@@ -222,6 +243,7 @@ Raphael, Fiendish Savior
 Reap What Is Sown
 Reshape the Earth
 Revoke Existence
+Rigging Runner
 Rite of Belzenlok
 Roc Hunter
 Rootwalla
@@ -242,6 +264,7 @@ Shu Defender
 Siege-Gang Commander
 Silvan Reveler
 Silver Drake
+Simic Locket
 Sire of Insanity
 Skitterbeam Battalion
 Slab Hammer
@@ -260,6 +283,7 @@ Sprout
 Start
 Stillmoon Cavalier
 Stonewood Invoker
+Storm Fleet Pyromancer
 Strange Augmentation
 Stream of Acid
 Stromkirk Condemned
@@ -269,6 +293,7 @@ Sunlance
 Surge Conductor
 Swamp
 Sweet Oblivion
+Sword of Truth and Justice
 Sylvan Safekeeper
 Sylvan Shepherd
 Syphon Sliver
@@ -278,12 +303,15 @@ Thatcher Revolt
 The Battle of Bywater
 The Covert Blue Mage
 Thran Golem
+Tiana, Ship's Caretaker
 Tidehollow Sculler
 Tireless Provisioner
+Tocatli Honor Guard
 Tome Shredder
 Torbran, Thane of Red Fell
 Trailblazer
 Trynn, Champion of Freedom
+Turbulent Moor
 Twisted Justice
 Tyvar Kell
 Ulgrotha Charm
@@ -302,6 +330,7 @@ Wall of Essence
 Wall of Torches
 Wandering Wolf
 Warden of the First Tree
+Wax
 Wei Ambush Force
 Wilson, Refined Grizzly
 Wirewood Symbiote

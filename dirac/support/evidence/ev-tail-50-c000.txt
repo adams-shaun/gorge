@@ -84,6 +84,7 @@ Certain Death
 Chained to the Rocks
 Chandra's Fury
 Chandra's Revolution
+Chartooth Cougar
 Chillbringer
 Chitinous Cloak
 Chocobo Knights
@@ -95,6 +96,7 @@ Cloven Casting
 Cold-Eyed Selkie
 Combat Research
 Condemn
+Conifer Wurm
 Converter Beast
 Corpse Connoisseur
 Crackling Club
@@ -231,8 +233,10 @@ Knight of Sorrows
 Kobold Drill Sergeant
 Kolaghan Warmonger
 Kor Entanglers
+Koth of the Hammer
 Kraul Foragers
 Krenko, Tin Street Kingpin
+Latulla, Keldon Overseer
 Lead by Example
 Ledger Shredder
 Library
@@ -271,6 +275,7 @@ Nantuko Monastery
 Natural Affinity
 Nature's Ruin
 Necroskitter
+Needle Drop
 Neurok Replica
 Nightwind Glider
 Nimbus Swimmer
@@ -318,6 +323,7 @@ Pyre Charger
 Rainbow Efreet
 Ranger-Captain of Eos
 Raph's Bravado
+Rashida Scalebane
 Ravager's Mace
 Reaping the Rewards
 Reckless Barbarian
@@ -331,6 +337,7 @@ Reverent Hoplite
 Revive the Shire
 Revoke Existence
 Rhythmic Water Vortex
+Righteous War
 Riptide
 Riverglide Pathway
 Robe of Mirrors
@@ -460,6 +467,7 @@ Voldaren Ambusher
 Voldaren Epicure
 Vulshok War Boar
 Wake Thrasher
+Waker of the Wilds
 Wall of Ice
 Wandering Goblins
 Wanted Scoundrels
