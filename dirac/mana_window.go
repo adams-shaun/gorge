@@ -3357,6 +3357,10 @@ func (s *State) manaStep(k *prep) bool {
 			// (mana_phyrexian.go)
 			half := s.buildCost0(k)
 			half.Tb, half.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
+			// the restricted mana a granted source's prefix tap floated pays
+			// first, as the plain cast's payment spends it (CR 106.6)
+			half = s.restrAdmShortCost(k, e, half)
+			cost = s.restrAdmShortCost(k, e, cost)
 			if s.phyCastPlanSettles(k, e, half, cost) {
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			} else {

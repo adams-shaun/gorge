@@ -952,8 +952,11 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	if s.waterbendOwnPart(k, p, c, o) != 0 {
 		return false // ... and a waterbend one (potentialModeCastPlan, "shape:contribution")
 	}
-	if cd.Cost.Hyb[0] == kop.HybTwobrid {
-		return false // ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail)
+	if cd.Cost.Hyb[0] == kop.HybTwobrid && !cd.Cost.Phyrexian() {
+		// ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail); a
+		// Phyrexian pip rides the same encoding but PlanCostDetail plans its
+		// mana half (CR 107.4f), so a Phyrexian cast is lowered like any other
+		return false
 	}
 	if (cd.HasMultikicker || cd.HasEscalate) && !mayPlay && s.g.availX&(availAny|availGaps) != 0 {
 		// a plain Multikicker or Escalate hand cast is "shape:optional_cost" to the cast
