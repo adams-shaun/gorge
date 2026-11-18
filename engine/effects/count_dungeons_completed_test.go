@@ -25,3 +25,27 @@ func TestDungeonsCompletedAmount(t *testing.T) {
 		t.Fatal("an unmodelled DungeonsCompleted property must stay unresolvable")
 	}
 }
+
+// DungeonsCompleted$Amount (CR 309.7) reads the resolving controller's
+// completed-dungeon count: Undermountain Adventurer's "Count$Compare X GE1.6.2"
+// adds six {G} once its controller has completed a dungeon, {G}{G} before.
+func TestDungeonsCompletedAmountReadsTheControllersCount(t *testing.T) {
+	h, c := fixtureHost(t)
+	if h.g.Players[0].CompletedDungeons != 0 || h.g.Players[1].CompletedDungeons != 0 {
+		t.Fatalf("precondition: the fixture's seats start with no completed dungeon")
+	}
+	if n, ok := EvalCountOK(h, c, "DungeonsCompleted$Amount"); !ok || n != 0 {
+		t.Fatalf("no dungeon completed = (%d, %v), want (0, true)", n, ok)
+	}
+	h.g.Players[1].CompletedDungeons = 3 // the other seat's count never answers for seat 0
+	if n, _ := EvalCountOK(h, c, "DungeonsCompleted$Amount"); n != 0 {
+		t.Fatalf("seat 1's completed dungeons answered for seat 0: %d", n)
+	}
+	h.g.Players[0].CompletedDungeons = 2
+	if n, ok := EvalCountOK(h, c, "DungeonsCompleted$Amount"); !ok || n != 2 {
+		t.Fatalf("two completed = (%d, %v), want (2, true)", n, ok)
+	}
+	if _, ok := EvalCountOK(h, c, "DungeonsCompleted$Other"); ok {
+		t.Fatalf("an unmodelled DungeonsCompleted$ property resolved")
+	}
+}
