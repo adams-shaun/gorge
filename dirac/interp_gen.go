@@ -1535,19 +1535,13 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 		n++
 	}
 	if len(s.cold.parked) != 0 && s.takeAnswered(s.perms[sl].obj) {
-		if ctr != 0 {
-			o := s.perms[sl].obj
-			s.stampExileCounter(o, ctr, int(ctrN))
-		}
-		return kop.ZoneExile // settled by the ask, even with a source gone since
+		// settled by the ask, even with a source gone since; the answer's own
+		// counter is stamped by applyExileOrder, not by a re-scan here
+		return kop.ZoneExile
 	}
 	if n > 1 {
 		s.capFull(StallReplLeave)
 		if exileN > 0 || exileEx || scopeN > 0 {
-			if ctr != 0 {
-				o := s.perms[sl].obj
-				s.stampExileCounter(o, ctr, int(ctrN))
-			}
 			return kop.ZoneExile
 		}
 		return s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard, kop.ZoneBattlefield)

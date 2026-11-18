@@ -81,22 +81,30 @@ func (s *State) mayLimitSpent(r mayPlay) bool {
 	return lim > 0 && r.until&mayUntilUsed>>4 >= lim
 }
 
-// freeMayDominates reports whether record i, a priced cast permission over a
+// freeMayDominates reports whether record i, a cast permission over a
 // nonland card, is covered by another live free record of p's over the same
 // card (Ignite the Future cast from a graveyard grants the plain and the free
 // play over each card it exiles). Gorge offers a card its grants cover once
 // (rules mayPlaySpellIds' per-card dedupe) and casts it free when any free
 // grant covers it (mayPlayGrant), so the free record's cast is the card's one
 // option and the plain one is not offered beside it. A land's play stays on
-// both records (offerLandOnce lists it once). Only a table with kind
+// both records (offerLandOnce lists it once). Of several free records over one
+// card, the first stands and each later one is covered by it (two Dauthi
+// Voidwalkers choosing the same card), and a pay-life record only by an
+// earlier pay-life one (two identical pay-life grants): the two costs differ,
+// so only the same-cost records name the same option. Only a table with kind
 // records (genPrep.anyMayKind) can hold a free one.
 func (s *State) freeMayDominates(k *prep, p uint8, i int, r mayPlay) bool {
-	if !k.gen.anyMayKind || r.kind&(kop.MayPlayFree|kop.MayPlayAdvKind) != 0 || k.cards[s.objs[r.obj].card].land {
+	if !k.gen.anyMayKind || r.kind&kop.MayPlayAdvKind != 0 || k.cards[s.objs[r.obj].card].land {
 		return false
 	}
+	// a free record is dominated by an EARLIER free one over the same card
+	// (two Dauthi Voidwalkers choosing the one exiled card): gorge lists the
+	// card's one free cast, and exactly one record of the pair stays
+	free := r.kind&kop.MayPlayFree != 0
 	for j := 0; j < int(s.g.nmay); j++ {
 		f := *s.mayAt(j)
-		if j == i || f.obj != r.obj || f.ver != r.ver || f.ctrl != p || f.kind&kop.MayPlayFree == 0 || f.kind&kop.MayPlayAdvKind != 0 || f.payLife() || ownWalkerRecord(f) {
+		if j == i || free && j > i || f.obj != r.obj || f.ver != r.ver || f.ctrl != p || f.kind&kop.MayPlayFree == 0 || f.kind&kop.MayPlayAdvKind != 0 || f.payLife() != r.payLife() || ownWalkerRecord(f) {
 			continue
 		}
 		if k.gen.anyMayWhileSrc && s.maySrcDead(f) || k.gen.anyMayLimit && s.mayLimitSpent(f) {
