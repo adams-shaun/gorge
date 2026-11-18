@@ -1549,6 +1549,25 @@ func (cb *cardBuilder) clauseSubtype2(c lClause, kf *kop.Filter) error {
 	return nil
 }
 
+// predOnly maps the compare kinds whose kernel filter is nothing but the
+// pred itself (no PredN, no operator; the per-kind note lives beside the
+// cmp constant in filter.go).
+var predOnly = map[uint8]kop.Pred{
+	cmpHasX:           kop.PredHasXCost,
+	cmpMultiColor:     kop.PredMultiColor,
+	cmpEquipped:       kop.PredEquipped,
+	cmpAttached:       kop.PredAttached,
+	cmpActiveCtrl:     kop.PredActiveCtrl,
+	cmpTrigPlayerCtrl: kop.PredTrigPlayerCtrl,
+	cmpModified:       kop.PredModified,
+	cmpHasCounters:    kop.PredHasCounters,
+	cmpMonstrous:      kop.PredMonstrous,
+	cmpNoCounters:     kop.PredNoCounters,
+	cmpMonoColor:      kop.PredMonoColor,
+	cmpRingbearer:     kop.PredRingbearer, // dirac/act_ring.go; off the battlefield nothing is a Ring-bearer
+	cmpAdventureCard:  kop.PredAdventureCard,
+}
+
 func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	var kf kop.Filter
 	kf.Zone = zone
@@ -1823,35 +1842,20 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, fmt.Errorf("toughness compare against a value")
 		}
 		kf.PredN = int16(n)
-	case cmpHasX:
-		kf.Pred = kop.PredHasXCost
+	case cmpHasX, cmpMultiColor, cmpEquipped, cmpAttached, cmpActiveCtrl, cmpTrigPlayerCtrl,
+		cmpModified, cmpHasCounters, cmpMonstrous, cmpNoCounters, cmpMonoColor,
+		cmpRingbearer, cmpAdventureCard:
+		// the pred-only kinds (predOnly): the pred alone, no PredN
+		kf.Pred = predOnly[c.CmpStat]
 	case cmpPowerLTToughness:
 		kf.Pred, kf.PredN = kop.PredPowerLTToughness, int16(c.CmpN)
-	case cmpMultiColor:
-		kf.Pred = kop.PredMultiColor
 	case cmpHistoric:
 		kf.Pred = kop.PredHistoric
 		i, _ := cb.pt.sub("Saga")
 		kf.PredN = int16(i + 1)
-	case cmpEquipped:
-		kf.Pred = kop.PredEquipped
 	case cmpEnchanted:
 		kf.Pred = kop.PredEnchanted
 		kf.PredN = int16(c.CmpN) // 1: "!enchanted"
-	case cmpAttached:
-		kf.Pred = kop.PredAttached
-	case cmpActiveCtrl:
-		kf.Pred = kop.PredActiveCtrl
-	case cmpTrigPlayerCtrl:
-		kf.Pred = kop.PredTrigPlayerCtrl
-	case cmpModified:
-		kf.Pred = kop.PredModified
-	case cmpHasCounters:
-		kf.Pred = kop.PredHasCounters
-	case cmpMonstrous:
-		kf.Pred = kop.PredMonstrous
-	case cmpNoCounters:
-		kf.Pred = kop.PredNoCounters
 	case cmpLacksKw:
 		kf.Pred, kf.PredN = kop.PredLacksKeyword, int16(c.CmpN)
 	case cmpHasManaAbility:
@@ -1861,14 +1865,10 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		for _, w := range [...]string{"Assassin", "Mercenary", "Pirate", "Rogue", "Warlock"} {
 			cb.pt.sub(w) // the kernel finds the five by name (genPrep.outlawSub)
 		}
-	case cmpMonoColor:
-		kf.Pred = kop.PredMonoColor
 	case cmpSameNameT0:
 		kf.Pred, kf.PredN = kop.PredSameNameT0, int16(c.CmpN) // PredN 1: the target itself excluded
 	case cmpSameNameRem, cmpSameNameSelf:
 		sameNamePred(&c, &kf)
-	case cmpAdventureCard:
-		kf.Pred = kop.PredAdventureCard
 	case cmpSolved:
 		// a Case's solved designation (kernel predPermCold);
 		// off the battlefield nothing is solved (gorge clears Solved on
@@ -2396,9 +2396,10 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vDmgAmount:          kop.ExDmgAmountReceived,
 	vTimesKicked:        kop.ExKicked, // Expr.N 1: the multikicker count, not the kicked bit
 	vEnergyOf:           kop.ExEnergyOf,
-	vMonarch:            kop.ExMonarch,    // lower_monarch.go
-	vBlessing:           kop.ExBlessing,   // dirac/kw_ascend.go
-	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
+	vMonarch:            kop.ExMonarch,     // lower_monarch.go
+	vRingTempted:        kop.ExRingTempted, // lower_ring.go
+	vBlessing:           kop.ExBlessing,    // dirac/kw_ascend.go
+	vJoinForces:         kop.ExJoinForces,  // lower_storesvar.go
 	vExileKw:            kop.ExStaticExileKw,
 	vCmdGreatestMV:      kop.ExCmdGreatestMV,
 	vDmgOppsTaken:       kop.ExDmgOppsTaken,   // lower_bloodthirst.go

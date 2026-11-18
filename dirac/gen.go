@@ -345,6 +345,7 @@ type genPrep struct {
 	anySacSub       bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
 	ix              [numMech]uint8 // mechanic -> index in State's ms or mo, by its width; arenaNone (0xFF) when the table does not use it (arenaAssign; arena.go)
 	anyInit         bool           // some program is OpTakeInitiative (act_initiative.go)
+	anyRing         bool           // some program is ExtRingTemptsYou (act_ring.go)
 	dungeon         CardID         // anyInit: the dungeon card it ventures into
 	anyFaceDown     bool           // some card has Morph, Megamorph or Disguise (CardDef.MorphFamily; face_facedown.go)
 	anyTurnUpRepl   bool           // a ReplCantTurnUp or ReplTurnUpProgram card: the turn-up special action asks face_turnfaceup.go
@@ -1808,6 +1809,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepAddPhase(t, g)       // act_addphase.go
 	prepSkipPhase(t, g)      // act_skipphase.go
 	prepMonarch(t, g)        // act_monarch.go
+	prepRing(t, g)           // act_ring.go
 	prepAirbend(t, g)
 	prepMayWhileSrc(t, g) // cast_whilesource.go
 	prepInit(t, g)        // act_initiative.go
@@ -1825,7 +1827,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			break
 		}
 	}
-	g.tyPost = g.anyBestow || g.anyImpending || g.anyReconfigure
+	g.tyPost = g.anyBestow || g.anyImpending || g.anyReconfigure || g.anyRing
 	prepEquipAnim(t, g) // static_equipanimated.go
 	prepTrigAtk(t, g)   // trig_attackers.go
 	prepBatchPool(t, g) // trig_batchmembers.go

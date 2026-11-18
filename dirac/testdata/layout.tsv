@@ -647,6 +647,7 @@ default	field	genPrep.anySuspect	3562	1
 default	field	genPrep.anySacSub	3563	1
 default	field	genPrep.ix	3564	56
 default	field	genPrep.anyInit	3620	1
+default	field	genPrep.anyRing	3621	1
 default	field	genPrep.dungeon	3622	2
 default	field	genPrep.anyFaceDown	3624	1
 default	field	genPrep.anyTurnUpRepl	3625	1

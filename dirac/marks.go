@@ -229,6 +229,12 @@ func (s *State) genViewHash(h uint64) uint64 {
 	if c := s.dDoneCold(); c != nil {
 		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // act_initiative.go
 	}
+	if c := s.ringCold(); c != nil {
+		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // act_ring.go
+	}
+	if b := s.ringBearers(); b != nil {
+		h = hbytes(h, unsafe.Pointer(&b[0]), uintptr(len(b)*int(unsafe.Sizeof(objWord(0))))) // act_ring.go
+	}
 	if c := s.radCold(); c != nil {
 		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))*2) // act_radiation.go
 	}

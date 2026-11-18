@@ -11,6 +11,7 @@ import (
 func init() {
 	apiPS("TakeInitiative", (*lowerCtx).takeInitiative) // lower_initiative.go
 	apiPS("BecomeMonarch", (*lowerCtx).becomeMonarch)   // lower_monarch.go
+	apiPS("RingTemptsYou", (*lowerCtx).ringTempts)      // lower_ring.go
 	apiOp("Ward", (*lowerCtx).apiWard)
 	apiPS("ChangeSpeed", (*lowerCtx).changeSpeed) // lower_speed.go
 	apiPS("Connive", (*lowerCtx).connive)

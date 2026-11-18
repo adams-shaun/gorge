@@ -4,4 +4,5 @@ value: 14
 forge: RingTemptsYou
 census: api RingTemptsYou all=49 std=0 mbc=0 sole=33
 state: player 4 (ring)
-status: reserved
+status: active
+doc: ExtRingTemptsYou: "the Ring tempts you" (CR 701.54; gorge effRingTemptsYou): Obj is the tempted player (the resolving controller). The player's tempted count rises by one and a creature they control becomes (or stays) their Ring-bearer, chosen by the player when two or more qualify (raRingBearer); TrigRingTemptsYou fires. The emblem's legendary, evasion and level triggers are read from the count and bearer. dirac/act_ring.go.

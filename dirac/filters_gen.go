@@ -497,6 +497,8 @@ func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, src Slot, layer ui
 		return s.predPermKind(k, fl, sl)
 	case kop.PredActiveCtrl:
 		return s.perms[sl].ctrl == s.active
+	case kop.PredRingbearer:
+		return s.isRingbearer(sl) // act_ring.go
 	case kop.PredModified:
 		return s.predModified(k, sl)
 	case kop.PredHasCounters:
@@ -860,6 +862,8 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		return predCardKind(k, fl, c)
 	case kop.PredAttached, kop.PredActiveCtrl:
 		return fl.Pred == kop.PredActiveCtrl && owner == s.active // nothing off the battlefield is attached
+	case kop.PredRingbearer:
+		return false // CR 701.54e: only a battlefield permanent is a Ring-bearer
 	case kop.PredModified, kop.PredHasCounters:
 		return false // only a battlefield permanent is modified or holds counters here
 	case kop.PredSameNameRem, kop.PredSameNameSelf:

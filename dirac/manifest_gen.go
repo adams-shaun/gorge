@@ -21,6 +21,12 @@ const raDredgeRes uint8 = 149
 // ask (dirac/manifest/ask/raGenClash)
 const raGenClash uint8 = 150
 
+// ask (dirac/manifest/ask/raRingBearer)
+const raRingBearer uint8 = 151
+
+// ask (dirac/manifest/ask/raRingDiscard)
+const raRingDiscard uint8 = 152
+
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
 
@@ -700,6 +706,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.putContract(k, in) // ctr_contract.go
 	case kop.ExtPutCounterChoice:
 		return s.putCounterChoice(k, in) // ctr_choice.go
+	case kop.ExtRingTemptsYou:
+		return s.ringTempts(k, in) // act_ring.go
 	case kop.ExtRadiation:
 		return s.radiationExt(k, in) // act_radiation.go
 	}
@@ -734,6 +742,12 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raDredgeRes:
 		s.dredgeResOptions(k, d) // kw_dredge.go
 		return true
+	case raRingBearer:
+		s.ringOptions(k, d) // act_ring.go
+		return true
+	case raRingDiscard:
+		s.ringDiscardOptions(k, d) // act_ring.go
+		return true
 	}
 	return false
 }
@@ -755,6 +769,12 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raDredgeRes:
 		s.dredgeResAnswer(k, a) // kw_dredge.go
+		return true
+	case raRingBearer:
+		s.ringAnswer(k, a) // act_ring.go
+		return true
+	case raRingDiscard:
+		s.ringDiscardAnswer(k, a) // act_ring.go
 		return true
 	}
 	return false

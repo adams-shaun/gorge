@@ -89,6 +89,22 @@ func GorgeKind(d *dirac.Decision, gen bool) string {
 	return GorgeDKind(d, gen).String()
 }
 
+// chooseKinds are the KChoose option kinds whose ask is exactly the kind
+// over the source, no mode: Action's ch arm and generatedChoose's arm read
+// the same table (the gorge ask named beside the entry; doc.go's grammar).
+var chooseKinds = map[dirac.ChoiceKind]string{
+	dirac.ChCostExile:        "exilecost",
+	dirac.ChCostReturn:       "returncost",
+	dirac.ChCostPutToLib:     "puttolibcost",
+	dirac.ChGenCasualty:      "casualty", // gorge optionalSacrificeAsk
+	dirac.ChGenBargain:       "bargain",  // gorge optionalSacrificeAsk (CR 702.166)
+	dirac.ChGenConspire:      "conspire", // gorge conspireAsk (CR 702.78a)
+	dirac.ChGenTeamwork:      "teamwork", // gorge teamwork ask (CR 702.194a)
+	dirac.ChGenBlightPick:    "blight",
+	dirac.ChGenRingBearer:    "ring_bearer",
+	dirac.ChGenManifestDread: "manifest_dread",
+}
+
 // Action is a kernel action's canonical form.
 func (r *Translator) Action(a dirac.Action) Canon {
 	src, tgt, mode := Ref(a.Source()), Ref(a.Target()), a.Mode()
@@ -442,8 +458,9 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("subcounter", src, 0)
 		case dirac.ChCostBlight:
 			return ch("blightcost", src, 0)
-		case dirac.ChGenBlightPick:
-			return ch("blight", src, 0)
+		case dirac.ChGenBlightPick, dirac.ChGenRingBearer:
+			// the plain KChoose kinds (chooseKinds)
+			return ch(chooseKinds[r.D.Sub], src, 0)
 		case dirac.ChBottom:
 			return Pack(ActBottom, src, RefNone, 0)
 		case dirac.ChArrange:
@@ -483,20 +500,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 				return ch("forage_food", src, 0)
 			}
 			return ch("forage_exile", RefNone, 0)
-		case dirac.ChCostExile:
-			return ch("exilecost", src, 0)
-		case dirac.ChCostReturn:
-			return ch("returncost", src, 0)
-		case dirac.ChCostPutToLib:
-			return ch("puttolibcost", src, 0)
-		case dirac.ChGenCasualty:
-			return ch("casualty", src, 0) // gorge optionalSacrificeAsk: Option.Kind "casualty"
-		case dirac.ChGenBargain:
-			return ch("bargain", src, 0) // gorge optionalSacrificeAsk: Option.Kind "bargain" (CR 702.166)
-		case dirac.ChGenConspire:
-			return ch("conspire", src, 0) // gorge conspireAsk: Option.Kind "conspire" (CR 702.78a)
-		case dirac.ChGenTeamwork:
-			return ch("teamwork", src, 0) // gorge teamwork ask: Option.Kind "teamwork" (CR 702.194a)
+		case dirac.ChCostExile, dirac.ChCostReturn, dirac.ChCostPutToLib, dirac.ChGenCasualty,
+			dirac.ChGenBargain, dirac.ChGenConspire, dirac.ChGenTeamwork, dirac.ChGenManifestDread:
+			// the plain KChoose kinds (chooseKinds): the gorge ask is named
+			// beside the table entry
+			return ch(chooseKinds[r.D.Sub], src, 0)
 		case dirac.ChGenGift:
 			// gorge giftAsk: gift_decline, then one gift_promise per
 			// opponent in AliveFrom order, canonical by that position
@@ -505,8 +513,6 @@ func (r *Translator) Action(a dirac.Action) Canon {
 				return ch("gift_promise", RefNone, mode-1)
 			}
 			return ch("gift_decline", RefNone, 0)
-		case dirac.ChGenManifestDread:
-			return ch("manifest_dread", src, 0)
 		}
 		return ch("number", RefNone, mode)
 	}
@@ -854,8 +860,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("trigger_cost_blight"), Ref(src), RefNone, 0), true
 		}
 		return Pack(kind("sacrifice"), Ref(src), RefNone, 0), true
-	case dirac.ChGenBlightPick:
-		return Pack(kind("blight"), Ref(src), RefNone, 0), true
+	case dirac.ChGenBlightPick, dirac.ChGenRingBearer:
+		// the plain KChoose kinds (chooseKinds): over the source
+		return Pack(kind(chooseKinds[r.D.Sub]), Ref(src), RefNone, 0), true
 	case dirac.ChCostBlight:
 		return Pack(kind("blightcost"), Ref(src), RefNone, 0), true
 	case dirac.ChGenPayReturn:

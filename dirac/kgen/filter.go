@@ -176,6 +176,7 @@ const (
 	cmpSameNameSelf   // shares the reading source's name (gorge sharesNameWith Self; CmpN 1 negates)
 	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
 	cmpRenowned       // IsRenowned (CmpN 1) / !IsRenowned (CmpN 0): the CR 702.112b renowned designation
+	cmpRingbearer     // IsRingbearer: the permanent is its controller's Ring-bearer (CR 701.54e; no operator; lower_ring.go)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -650,9 +651,33 @@ func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 	return c, nil
 }
 
+// propCmpWords are the filter words whose clause is the bare designation
+// compare (no operator, no negation): prop's one-liner arms, kept in one
+// table; the note beside each entry names the gorge read.
+var propCmpWords = map[string]uint8{
+	"MultiColor":                 cmpMultiColor,     // gorge wordMultiColor: more than one current colour
+	"Historic":                   cmpHistoric,       // gorge historicMatches: artifact, legendary or Saga
+	"equipped":                   cmpEquipped,       // gorge equipped: an Equipment permanent is attached to it
+	"Attached":                   cmpAttached,       // gorge objectAttachedToSource: attached to the source
+	trigPlayerCtrlWord:           cmpTrigPlayerCtrl, // triggeredTargetCtrl's rewrite of ControlledBy TriggeredTarget
+	"ActivePlayerCtrl":           cmpActiveCtrl,     // gorge wordActivePlayerCtrl: its controller is the active player
+	"ControlledBy Player.Active": cmpActiveCtrl,
+	"modified":                   cmpModified,      // gorge modifiedPermanent (CR 700.9)
+	"HasCounters":                cmpHasCounters,   // gorge wordHasCounters, the internal markers included
+	"!HasCounters":               cmpNoCounters,    // gorge's '!' negation of wordHasCounters
+	"AdventureCard":              cmpAdventureCard, // gorge wordAdventureCard: the Adventure layout
+	"MonoColor":                  cmpMonoColor,     // gorge wordMonoColor: exactly one current colour
+	"IsMonstrous":                cmpMonstrous,     // gorge wordIsMonstrous (CR 701.37b)
+	"monstrous":                  cmpMonstrous,
+	"IsRingbearer":               cmpRingbearer, // gorge wordRingBearer (CR 701.54e): its controller's Ring-bearer
+}
+
 func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	if q, ok := filterPropAlias(p); ok {
 		p = q
+	}
+	if cmp, ok := propCmpWords[p]; ok {
+		return c.setCmp(cmp, 0, 0, "", "")
 	}
 	switch p {
 	case "nonLegendary":
@@ -825,15 +850,6 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		return c.setCmp(cmpHasX, 0, 0, "", "")
 	}
 	switch p {
-	case "MultiColor":
-		// gorge wordMultiColor: more than one current colour
-		return c.setCmp(cmpMultiColor, 0, 0, "", "")
-	case "Historic":
-		// gorge historicMatches: artifact, legendary or Saga
-		return c.setCmp(cmpHistoric, 0, 0, "", "")
-	case "equipped":
-		// gorge equipped: an Equipment permanent is attached to it
-		return c.setCmp(cmpEquipped, 0, 0, "", "")
 	case "withDefender", "withDeathtouch", "withTrample", "withHaste", "withMenace", "withVigilance", "withReach",
 		"withLifelink", "withIndestructible", "withFirstStrike", "withDoubleStrike", "withShadow":
 		// gorge objectHasKeyword over the derived keywords (filter.go's
@@ -843,33 +859,9 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// gorge registers hasKeyword<K> as with<K> (objectHasKeyword); only
 		// Flash is read
 		return c.setCmp(cmpHasKw, 0, bits.TrailingZeros32(uint32(kop.KwFlash)), "", "")
-	case "Attached":
-		// gorge objectAttachedToSource: the candidate is attached to the source
-		return c.setCmp(cmpAttached, 0, 0, "", "")
-	case trigPlayerCtrlWord:
-		// triggeredTargetCtrl's rewrite of ControlledBy TriggeredTarget in a
-		// damage-to-a-player trigger: the damaged player controls it
-		return c.setCmp(cmpTrigPlayerCtrl, 0, 0, "", "")
-	case "ActivePlayerCtrl", "ControlledBy Player.Active":
-		// gorge wordActivePlayerCtrl: its controller is the active player
-		return c.setCmp(cmpActiveCtrl, 0, 0, "", "")
 	case "enchanted", "Enchanted", "!enchanted":
 		// gorge enchanted: an Aura permanent is attached to it; "!enchanted" is CmpN 1
 		return c.setCmp(cmpEnchanted, 0, strings.Count(p, "!"), "", "")
-	case "modified":
-		// gorge modifiedPermanent (CR 700.9): a counter (not the
-		// internal Shield/Deathtouched markers, which the kernel never
-		// stores as counters), an Equipment attached, or an Aura its
-		// controller controls attached
-		return c.setCmp(cmpModified, 0, 0, "", "")
-	case "HasCounters":
-		// gorge wordHasCounters: hasCounters over Object.Counters, the
-		// internal Shield/Deathtouched markers INCLUDED (unlike modified)
-		return c.setCmp(cmpHasCounters, 0, 0, "", "")
-	case "!HasCounters":
-		// gorge's '!' negation of wordHasCounters (hasCounters, the
-		// internal Shield/Deathtouched markers included)
-		return c.setCmp(cmpNoCounters, 0, 0, "", "")
 	case "Outlaw", "!Outlaw":
 		// gorge outlawMatches (the Outlaw batch word): any of the five
 		// outlaw creature types through the layer-aware type read
@@ -982,12 +974,6 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// Read where the cast-provenance words read
 		// (lc.spellProvOK; lower.go refuses it elsewhere).
 		return c.setCmp(cmpWasCastSpell, 0, spellMayPlay, "", "")
-	case "AdventureCard":
-		// gorge wordAdventureCard: the object's card has the Adventure layout
-		return c.setCmp(cmpAdventureCard, 0, 0, "", "")
-	case "MonoColor":
-		// gorge wordMonoColor: exactly one current colour
-		return c.setCmp(cmpMonoColor, 0, 0, "", "")
 	case "!withDefender", "!withFlying", "!withDeathtouch", "!withTrample", "!withHaste", "!withMenace", "!withVigilance", "!withReach",
 		"!withLifelink", "!withIndestructible", "!withFirstStrike", "!withDoubleStrike", "!withShadow":
 		// gorge's '!' negation of the with<Keyword> registry
@@ -999,9 +985,6 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// (filter.go: !objectHasKeyword; Gingerbrute's withoutHaste;
 		// ). withoutFlying keeps its own flag.
 		return c.setCmp(cmpLacksKw, 0, withKwBit("with"+strings.TrimPrefix(p, "without")), "", "")
-	case "IsMonstrous", "monstrous":
-		// gorge wordIsMonstrous: Object.Monstrous, CR 701.37b's designation
-		return c.setCmp(cmpMonstrous, 0, 0, "", "")
 	}
 	if p == "powerGTbasePower" {
 		// gorge numericPred: current power > base power (CR 613.4)

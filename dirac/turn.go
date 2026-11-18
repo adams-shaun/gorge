@@ -1128,6 +1128,10 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 		s.resolveMonarchTrig(k, e) // the monarch's draw or steal (act_monarch.go)
 		return
 	}
+	if ringTrigEntry(e) {
+		s.resolveRingTrig(k, e) // the Ring emblem's levels 2-4 (act_ring.go)
+		return
+	}
 	if radTrig(e) {
 		s.resolveRadTrig(k, e) // the rad drain (act_radiation.go)
 		return

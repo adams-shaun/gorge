@@ -1081,9 +1081,10 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 	if k.gen.anyDmgRef {
 		rlp = &refLatch{r: r}
 	}
+	ring := k.gen.anyRing && s.ringHitLive()
 	for _, sl := range src[:n] {
 		loPl := int(s.npend)
-		if dmg {
+		if dmg || ring {
 			// one Damage event per recipient, in assignment order (gorge
 			// runCombatAssignments emits each assignment): DamageDone per
 			// event, DamageDealtOnce at the source's first matching event
@@ -1096,7 +1097,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 					if rlp != nil {
 						rlp.at = uint8(i + 1)
 					}
-					s.fireDamageEvGen(k, sl, ev.n, ev.dst == NoSlot, true, &latch, s.combatRcp(k, &r.ev[i]), rlp)
+					s.fireDmgRingGen(k, sl, ev, dmg, ring, &latch, r, rlp)
 				}
 			}
 		}
@@ -1124,5 +1125,17 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			}
 		}
 		s.gainLife(k, s.perms[sl].ctrl, tot)
+	}
+}
+
+// fireDmgRingGen emits one assignment's Damage event and, when the Ring's
+// level 4 is live and the recipient is a player, the Ring's lose-3 hit
+// after the event's listeners (CR 701.54c; act_ring.go).
+func (s *State) fireDmgRingGen(k *prep, sl Slot, ev dmgEv, dmg, ring bool, latch *dmgLatch, r *dmgRec, rlp *refLatch) {
+	if dmg {
+		s.fireDamageEvGen(k, sl, ev.n, ev.dst == NoSlot, true, latch, s.combatRcp(k, &ev), rlp)
+	}
+	if ring && ev.dst == NoSlot {
+		s.ringHit(sl)
 	}
 }

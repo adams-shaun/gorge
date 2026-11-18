@@ -427,6 +427,9 @@ func (s *State) finishAttacks(k *prep) {
 	s.declared = s.nAttackers > 0
 	if k.gen != nil {
 		s.fireAttacksGen(k)
+		if k.gen.anyRing {
+			s.ringAttack(k) // CR 701.54c level 2, after the declaration's listeners (act_ring.go)
+		}
 		if k.gen.anyAttackedObj {
 			s.markAttackedObj(k) // value_turntallies.go: after the declaration's triggers, so a FirstAttack read sees the earlier declarations only
 		}
@@ -659,6 +662,9 @@ func (s *State) canBlock(k *prep, b, a Slot) bool {
 	}
 	if k.gen != nil && k.gen.anyEvasion && s.evasionEvades(k, b, a) {
 		return false
+	}
+	if k.gen != nil && k.gen.anyRing && s.ringOutpowers(k, b, a) {
+		return false // CR 701.54c: a Ring-bearer can't be blocked by a greater power (act_ring.go)
 	}
 	if k.gen != nil && k.gen.anyProtCol && s.protPrinted(k, a)&s.colorsGen(k, b) != 0 {
 		return false // printed protection from the blocker's colour (CR 702.16e)
@@ -1063,6 +1069,9 @@ func (s *State) finishBlocks(k *prep) {
 	}
 	if k.gen != nil && s.subs[kop.TrigBlocks].any() {
 		s.fireBlocksGen(k)
+	}
+	if k.gen != nil && k.gen.anyRing {
+		s.ringBlocked(k) // CR 701.54c level 3, after the declaration's listeners (act_ring.go)
 	}
 	if k.gen != nil && k.gen.anyUnblocked {
 		s.fireUnblocked(k)

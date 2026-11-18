@@ -207,6 +207,9 @@ func (s *State) ctrlMove(sl Slot, to uint8) {
 	if k.gen != nil && k.gen.anyMayWhileSrc {
 		s.mayWhileSrcCtrlDrop(p.obj, to) // CR 611.2b (cast_aslongascontrol.go)
 	}
+	if k.gen != nil && k.gen.anyRing {
+		s.ringCtrl(p.obj, to) // CR 701.54b: another player's control ends the designation (act_ring.go)
+	}
 	if s.g.nul != 0 {
 		s.untapLockCtrlDrop(p.obj, to) // CR 611.2b (act_untaplock.go)
 	}

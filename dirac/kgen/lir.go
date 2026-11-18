@@ -234,6 +234,7 @@ const (
 	vLastDamage          // damage the spell's previous DealDamage landed (kop.VLastDamage; value_totaldamage.go)
 	vDmgAmount           // the positive damage the source received this turn (Count$TotalDamageReceivedThisTurn)
 	vTimesKicked         // CR 702.43's multikicker payment count (Count$TimesKicked; kop.ExKicked N 1)
+	vRingTempted         // how many times the Ring has tempted the controller (PlayerCountPropertyYou$RingTemptedYou; lower_ring.go)
 	vMonarch             // Sub[0] if the controller (N 0) or an opponent (N 1) is the monarch, else Sub[1] (Count$Monarch.<yes>.<no>, CheckDefinedPlayer$ You|Opponent.isMonarch; lower_monarch.go)
 	vEnergyOf            // energy counters of player Ref (Count$YourCountersEnergy)
 	vPlExtreme           // the highest, over a player group, of the member's filtered count in the named zones (PlayerCountPlayers/Opponents$HighestValid<zones>)
@@ -353,6 +354,7 @@ var valNames = [...]string{
 	vDmgAmount:           "DmgAmount",
 	vTimesKicked:         "TimesKicked",
 	vMonarch:             "Monarch",
+	vRingTempted:         "RingTempted",
 	vEnergyOf:            "EnergyOf",
 	vPlExtreme:           "PlExtreme",
 	vJoinForces:          "JoinForces",

@@ -645,6 +645,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vOppsAttacked}
 		case "HasPropertyMaxSpeed":
 			v = lValue{Kind: vYourSpeed, N: 1} // 1 at max speed (gorge playerMaxSpeedProperty), else 0
+		case "RingTemptedYou":
+			v = lValue{Kind: vRingTempted} // gorge evalCountBodyPlayerRingTemptedYou (lower_ring.go)
 		default:
 			v, err = sacrificedThisTurnValue(rest) // value_sacrificed.go; refuses any other property
 		}

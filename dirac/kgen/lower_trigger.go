@@ -1193,6 +1193,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if err := lc.becomeMonarchTrigger(tp, tr); err != nil { // lower_monarch.go
 			return err
 		}
+	case "RingTemptsYou":
+		if err := lc.ringTemptsTrigger(tp, tr, readF); err != nil { // lower_ring.go
+			return err
+		}
 	case "Scry", "Surveil":
 		if err := lc.scrySurveilTrigger(tp, tr, t.Mode); err != nil {
 			return err

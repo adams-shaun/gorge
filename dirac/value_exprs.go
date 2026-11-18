@@ -13,6 +13,25 @@ var DebugNoRedNC bool
 // never set, so ExYourExtraTurns stays 0.
 var DebugNoExtraTurnBegun bool
 
+// exTargetPlayers is TargetedPlayer$Amount of an opponents-only slot:
+// whether the slot holds a player (gorge counts the resolution's player
+// targets).
+func (s *State) exTargetPlayers(x *kop.Expr, ctx evalCtx) int {
+	e := ctx.e
+	i, ok := tgtSlot(x.Ref)
+	if e == nil || !ok {
+		return 0
+	}
+	t := e.tgt[i]
+	if e == &s.res.e {
+		t = s.tgtCode(i)
+	}
+	if isPlayerTarget(t) {
+		return 1
+	}
+	return 0
+}
+
 // exprCold evaluates the rarely used Expr kinds, out of line of State.expr
 // the controller's life lost this turn, an SVar-named modifier's sum,
 // a player's hand size, exiled cards matching a filter, the opponents who
@@ -24,21 +43,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExOppsAttacked:
 		return s.exOppsAttacked(ctx) // value_oppsattacked.go
 	case kop.ExTargetPlayers:
-		// TargetedPlayer$Amount of an opponents-only slot: whether the slot
-		// holds a player (gorge counts the resolution's player targets)
-		e := ctx.e
-		i, ok := tgtSlot(x.Ref)
-		if e == nil || !ok {
-			return 0
-		}
-		t := e.tgt[i]
-		if e == &s.res.e {
-			t = s.tgtCode(i)
-		}
-		if isPlayerTarget(t) {
-			return 1
-		}
-		return 0
+		return s.exTargetPlayers(x, ctx)
 	case kop.ExScriedThisTurn:
 		return int(s.pl[SeatIx(ctx.ctrl)].scry>>(4*(x.N&1))) & 15 // seat-ok: the scry nibble an operand selects
 	case kop.ExDilemmasFaced:
@@ -246,6 +251,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.committedCrime(k, x, ctx)
 	case kop.ExMonarch:
 		return s.exMonarch(k, x, ctx) // act_monarch.go
+	case kop.ExRingTempted:
+		return s.exRingTempted(ctx) // act_ring.go
 	case kop.ExBlessing:
 		return s.exBlessing(k, x, ctx) // kw_ascend.go
 	case kop.ExThisTurnActGrave:

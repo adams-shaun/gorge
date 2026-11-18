@@ -1,0 +1,7 @@
+family: Pred
+name: PredRingbearer
+value: next
+forge: IsRingbearer
+state: code 0
+status: active
+doc: PredRingbearer: the filter property IsRingbearer (CR 701.54e; gorge wordRingBearer): a battlefield permanent that is its controller's Ring-bearer. Off the battlefield nothing is. dirac/act_ring.go.

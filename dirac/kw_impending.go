@@ -147,6 +147,9 @@ func (s *State) tyPostTy(k *prep, sl Slot, t kop.TypeMask) kop.TypeMask {
 	if k.gen.anyReconfigure {
 		t = s.reconfigureTy(k, sl, t) // CR 702.151b (kw_reconfigure.go)
 	}
+	if k.gen.anyRing {
+		t = s.ringTy(sl, t) // CR 701.54c: a Ring-bearer is legendary (act_ring.go)
+	}
 	return t
 }
 
@@ -162,6 +165,9 @@ func (s *State) tyPostSlots(k *prep) (m slotMask) {
 	}
 	if k.gen.anyReconfigure {
 		m = m.or(s.reconfigureSlots(k))
+	}
+	if k.gen.anyRing {
+		m = m.or(s.ringSlots())
 	}
 	return m
 }

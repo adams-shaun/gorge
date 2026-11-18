@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExRingTempted
+value: next
+forge: RingTemptedYou
+state: code 0
+status: active
+doc: ExRingTempted: how many times the Ring has tempted the reading controller (gorge PlayerCountPropertyYou$RingTemptedYou, the uncapped Player.RingTempted; saturating at 255). dirac/act_ring.go.

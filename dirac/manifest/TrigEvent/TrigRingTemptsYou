@@ -4,4 +4,5 @@ value: 62
 forge: RingTemptsYou
 census: trig RingTemptsYou all=9 std=0 mbc=0 sole=3
 state: player 4 (ring)
-status: reserved
+status: active
+doc: TrigRingTemptsYou: Mode$ RingTemptsYou (CR 701.54d; gorge trigmatch ringTemptsMatches on events.RingTemptsYou): the Ring tempts a player (Whose; the tempted player) whose chosen Ring-bearer (none when they control no creature) passes the trigger's Filter, read with the listener as the source. No slot subscription: the battlefield is scanned in listener order (dirac/act_ring.go).

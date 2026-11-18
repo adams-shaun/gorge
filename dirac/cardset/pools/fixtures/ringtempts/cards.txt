@@ -1,0 +1,26 @@
+# The Ring (CR 701.54): Call of the Ring tempts at each upkeep, Boromir, Warden
+# of the Tower, Claim the Precious, Inherited Envelope, Soothing of Sméagol,
+# Birthday Escape, Samwise the Stouthearted, War of the Last Alliance and Slip
+# On the Ring tempt on resolution, Frodo, Adventurous Hobbit and One Ring to
+# Rule Them All read the count and the bearer, beside creatures of different
+# power for the bearer's choice and the evasion, plus basics
+# (dirac/oracle/ring_tempts_lockstep_test.go)
+Birthday Escape
+Boromir, Warden of the Tower
+Call of the Ring
+Claim the Precious
+Frodo, Adventurous Hobbit
+Inherited Envelope
+Island
+One Ring to Rule Them All
+Plains
+Samwise the Stouthearted
+Savannah Lions
+Serra Angel
+Slip On the Ring
+Soothing of Sméagol
+Swamp
+Vampire Nighthawk
+Walking Corpse
+War of the Last Alliance
+Wind Drake

@@ -752,6 +752,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if s.g.nul != 0 {
 		s.untapLockLeft(o) // the lock ends with its target (act_untaplock.go)
 	}
+	s.ringLeftGen(k, o) // the Ring-bearer designation ends (act_ring.go)
 	if s.pnxLive() {
 		s.prevAllLeft(o) // an unbounded prevent-all shield ends with its recipient (repl_prevnext.go)
 	}
@@ -893,6 +894,14 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	}
 	if rider.src != 0 {
 		s.exileRiderRun(k, rider, o)
+	}
+}
+
+// ringLeftGen ends a generated pool's Ring-bearer designation when the
+// bearer leaves the battlefield (CR 701.54b; act_ring.go).
+func (s *State) ringLeftGen(k *prep, o Obj) {
+	if k.gen != nil && k.gen.anyRing {
+		s.ringLeft(o)
 	}
 }
 
