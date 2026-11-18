@@ -886,8 +886,24 @@ type filtSearch struct {
 
 // filtFunded reports whether gorge's census funds the fees of the filter gaps f:
 // an unrelaxable census (or a live tap-X pair) pays none, so no search funds one.
+// A live storage battery (Subterranean Hangar's "{T}, Remove X storage
+// counters: Add {B} for each") makes the census unrelaxable: its announced X
+// has no once-only relaxed alternative (paymentPlanRelaxedAlternatives), so a
+// School of the Unseen beside it is funded by nothing (potential_plan.go
+// paymentPlanCensus.fees).
 func (s *State) filtFunded(k *prep, p uint8, f slotMask) bool {
-	return s.filtRelaxable(k, f) && !(k.tapMana && s.tapXTwoLive(k, p))
+	return s.filtRelaxable(k, f) && !(k.tapMana && s.tapXTwoLive(k, p)) && !s.storeGapLive(k, p)
+}
+
+// storeGapLive reports whether p controls an activatable storage battery: a
+// store counter-cost gap holding counters to remove (scriptCtr).
+func (s *State) storeGapLive(k *prep, p uint8) bool {
+	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
+		if kop.StoreManaAb(k.ctrAbOf(s.cardAt(b.first()))) {
+			return true
+		}
+	}
+	return false
 }
 
 // filtScript reports whether gorge's prefix search finds a script for play
