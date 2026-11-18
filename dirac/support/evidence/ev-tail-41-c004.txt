@@ -1,11 +1,14 @@
 Akroma's Memorial
+Alabaster Host Sanctifier
 Alpha Kavu
 Angelic Gift
 Antagonize
 Armor Sliver
 Ashcoat Bear
 Barbed Field
+Blessed Sanctuary
 Bring Low
+Brotherhood Outcast
 Butterbur, Bree Innkeeper
 Caustic Crawler
 Cephalid Retainer
@@ -15,26 +18,33 @@ Charging Monstrosaur
 Crack the Earth
 Dauntless Cathar
 Dawn Gryff
+Daybreak Chaplain
 Evolutionary Escalation
 Faceless Devourer
 Faerie Invaders
+Flaxen Intruder
 Flowstone Overseer
 Flutterfox
 Forest
 Furnace Scamp
+Gaea's Revenge
 Ghirapur Guide
 Ghost Tactician
 Goblin General
 Goblin War Party
 Heirs of Stromkirk
+Indomitable Archangel
 Isamaru, Hound of Konda
 Island
 Jungle Delver
 Kitesail Scout
 Kris Mage
+Loxodon Lifechanter
 Mammoth Growth
 Marble Diamond
+Marked by Honor
 Massive Raid
+Matsu-Tribe Sniper
 Merfolk Sovereign
 Meria's Outrider
 Mesa Lynx
@@ -60,12 +70,15 @@ Searchlight Companion
 Senate Guildmage
 Separatist Voidmage
 Shamanic Revelation
+Sheltering Light
 Silver-Inlaid Dagger
+Silversmote Ghoul
 Skittering Monstrosity
 Skulltap
 Skywing Aven
 Slaughter Pact
 Smoke Bomb
+Staunch Defenders
 Stone Retrieval Unit
 Strength of Night
 Striking Sliver
@@ -73,11 +86,13 @@ Sturmgeist
 Swamp
 Swift Justice
 Tattered Haunter
+Tel-Jilad Archers
 Thornling
 Thunder Strike
 Timberwatch Elf
 Tormod's Crypt
 Tracker's Instincts
+Trustworthy Scout
 Twincast
 Unexpected Fangs
 Untamed Might

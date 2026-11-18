@@ -1,6 +1,7 @@
 A-Hobbling Zombie
 A.I.M. Bot
 Abbey Gargoyles
+Abolish
 Abu Ja'far
 Abundant Harvest
 Abzan Banner
@@ -25,23 +26,28 @@ Augmenting Automaton
 Aven Smokeweaver
 Baboon Spirit
 Basalt Monolith
+Basri's Solidarity
 Beacon Hawk
+Benthic Biomancer
 Biomathematician
 Blanchwood Treefolk
 Blitz of the Thunder-Raptor
 Bloodfire Infusion
 Bogardan Firefiend
 Boggart Forager
+Bonded Construct
 Bonds of Quicksilver
 Break of Day
 Briarhorn
 Bronze Cudgels
 Brood Weaver
 Calamity's Wake
+Candelabra of Tawnos
 Casting of Bones
 Cat Warriors
 Ceremonious Rejection
 Chaos Maw
+Chardalyn Dragon
 Charging Bandits
 Chimeric Mass
 Chrome Mox
@@ -53,10 +59,13 @@ Concentrate
 Contagious Vorrac
 Council of Advisors
 Covert Technician
+Coveted Peacock
 Cruel Fate
 Dapper Shieldmate
+Daru Warchief
 Dauthi Horror
 Daxiver, Izzet Electromancer
+Death Ward
 Deathbonnet Sprout
 Debtor's Pulpit
 Deluge
@@ -73,10 +82,12 @@ Drownyard Explorers
 Druid of the Anima
 Dungrove Elder
 Dusk Feaster
+Dwarfhold Champion
 Dwarven Strike Force
 Early Frost
 Eccentric Farmer
 Elder Owyn Lyons
+Elgaud Inquisitor
 Elite Headhunter
 Emissary of the Sleepless
 Enraged Giant
@@ -89,6 +100,7 @@ Favorable Winds
 Festival Crasher
 Fists of Ironwood
 Flameborn Viron
+Flood of Tears
 Forest
 Fragmentize
 From Beyond
@@ -96,7 +108,10 @@ Frost Marsh
 Funeral Pyre
 Funeral Rites
 Garenbrig Carver
+Gate Hound
+Gate of the Black Dragon
 General's Enforcer
+Ghirapur Aether Grid
 Giant Dustwasp
 Glint-Nest Crane
 Goblin Engineer
@@ -109,10 +124,12 @@ Grave Strength
 Gravecrawler
 Gravedig
 Grismold, the Dreadsower
+Guardian of Pilgrims
 Guma
 Hamato Ninpō
 Harbor Bandit
 Haunted Crossroads
+Heavy Arbalest
 Hellfire
 Hellkite Punisher
 Hog-Monkey Rampage
@@ -123,17 +140,22 @@ House Guildmage
 Hunger of the Nim
 Icingdeath, Frost Tyrant
 Illustrious Historian
+Incite
 Infernal Captor
+Inquisitor Exarch
 Inspired Insurgent
 Inspired Sphinx
 Involuntary Cooldown
 Iron Myr
+Iron Will
 Island
 Ivory Tower
 Jarl of the Forsaken
+Journey to Oblivion
 Kamber, the Plunderer
 Khorvath Brightflame
 Kinjalli's Caller
+Kitesail Apprentice
 Kithkin Daggerdare
 Knighted Myr
 Knights' Charge
@@ -142,22 +164,31 @@ Kujar Seedsculptor
 Kurgadon
 Lambholt Harrier
 Lawless Broker
+Lazotep Plating
 Lembas
+Leopard-Spotted Jiao
 Lethal Exploit
 Lightning Dragon
 Lightning Talons
 Llanowar Visionary
 Looming Spires
 Lucky Offering
+Magma Mine
+Mandible Justiciar
 Marionette Master
 Mass Diminish
 Master Splicer
+Maul of the Skyclaves
+Meletis Astronomer
 Mesmeric Fiend
 Mesmeric Orb
 Might of Murasa
 Minds Aglow
 Minion's Return
 Mire Triton
+Mishra's Research Desk
+Molderhulk
+Moldervine Cloak
 Molting Snakeskin
 Moria Marauder
 Mortal Obstinacy
@@ -165,12 +196,14 @@ Mountain
 Mox Diamond
 Murder of Crows
 Mystic Compass
+Mystic Meditation
 Natural Obsolescence
 Nether Void
 Netherborn Altar
 Nezumi Prowler
 Nicol Bolas
 Nightshade Stinger
+Nissa's Encouragement
 Nissa's Judgment
 No Mercy
 Novice Dissector
@@ -184,15 +217,19 @@ Oreskos Sun Guide
 Overflowing Basin
 Peat Bog
 Peema Aether-Seer
+Pegasus Courser
 Phantatog
 Pheres-Band Tromper
 Plague Beetle
 Plague Witch
 Plains
+Power Plant Worker
 Prognostic Sphinx
 Prophet of Distortion
+Prophet of the Peak
 Pyrostatic Pillar
 Quarrel's End
+Quasiduplicate
 Rainbow Crow
 Rakdos Ickspitter
 Rampaging Classmate
@@ -200,12 +237,17 @@ Ranger's Longbow
 Rank Officer
 Ransack the Lab
 Rat King, Pale Piper
+Rebuke
 Reckless One
+Reito Sentinel
 Relic Runner
 Reshape the Earth
 Resolute Blademaster
+Riddlesmith
 Ring of Renewal
+Rishadan Airship
 Rith's Grove
+Riveteers Initiate
 Rooftop Bypass
 Rootwater Diver
 Rumbleweed
@@ -216,20 +258,27 @@ Sanctuary Cat
 Sandstone Deadfall
 Sanguinary Priest
 Saprazzan Bailiff
+Scornful Aether-Lich
 Screaming Seahawk
+Seize the Day
 Sengir Bats
 Serpent of the Endless Sea
 Serra's Boon
 Setessan Oathsworn
 Shadowborn Demon
+Shambling Vent
 Shard Volley
+Shield of the Realm
 Shriekdiver
+Shrieking Grotesque
 Silverwing Squadron
 Simian Brawler
 Simic Charm
+Sinew Sliver
 Skittering Horror
 Skyhunter Cub
 Skystrike Officer
+Slith Ascendant
 Snow-Covered Island
 Soul Rend
 Soul of Innistrad
@@ -237,15 +286,18 @@ Sparkmage's Gambit
 Spider-Man 2099, Miguel O'Hara
 Spidery Grasp
 Spine of Ish Sah
+Spirit Loop
 Sprouting Phytohydra
 Staff of Titania
 Stag Beetle
+Status
 Steadfast Guard
 Stone-Seeder Hierophant
 Storm Shaman
 Sudden Strength
 Summit Apes
 Summit Prowler
+Sunder
 Suspended Sentence
 Swamp
 Tainted Strike
@@ -254,6 +306,7 @@ Telepathy
 Tempered Veteran
 Temple Thief
 Tendershoot Dryad
+Terminal Moraine
 The Magic Mirror
 Theater of Horrors
 Thoughts of Ruin
@@ -263,27 +316,37 @@ Thunder Spirit
 Thundersong Trumpeter
 Tiamat's Fanatics
 Ticked Off
+Tomb Fortress
 Touch of Death
+Toymaker
 Traverse the Outlands
 Treacherous Blessing
 Tuinvale Treefolk
+Turbulent Springs
 Umbral Mantle
 Unbender Tine
 Universal Solvent
 Urbis Protector
+Urza's Armor
 Vebulid
 Vedalken Blademaster
 Veiled Apparition
 Vela the Night-Clad
+Vengeful Warchief
 Vessel of Paramnesia
 Viashino Grappler
 Vigilance
 Vinelasher Kudzu
+Visions of Brutality
 Vivify
 Voidslime
+Voltaic Construct
 Vraska's Stoneglare
 Vryn Wingmare
 Wailing Ghoul
+Wall of Kelp
+Weatherseed Faeries
+Welkin Guide
 Wheel of Fortune
 Whipcorder
 Wishcoin Crab

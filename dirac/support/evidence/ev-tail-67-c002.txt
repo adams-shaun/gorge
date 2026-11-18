@@ -1,7 +1,11 @@
+A-Briar Hydra
 A-Dokuchi Silencer
 A-Eyes of the Beholder
+A-Most Wanted
 A-Rockslide Sorcerer
 A-Rulik Mons, Warren Chief
+A-Umara Mystic
+Accelerated Evolution
 Aerial Assault
 Aethershield Artificer
 Against All Odds
@@ -13,43 +17,57 @@ Alms Beast
 Angelic Field Marshal
 Animate Land
 Aquatic Incursion
+Armor Thrull
+Asphodel Wanderer
 Augury Adept
 Avatar of the Resolute
 Aven Trailblazer
 Axebane Guardian
+Azorius Ploy
+Bastion Inventor
 Battlefield Medic
 Bayek of Siwa
+Beast Attack
 Blade Splicer
 Blight Sickle
 Blisterspit Gremlin
+Blossom Dryad
 Buccaneer's Bravado
 Bull Cerodon
 Buried Alive
 Burn the Impure
+Burning Palm Efreet
 Burst of Speed
 Butcher Ghoul
 Cacophony Scamp
 Caldera Pyremaw
+Caravan Escort
+Case the Joint
 Castle
 Chain Lightning
 Champion's Helm
+Clackbridge Troll
 Claim the Firstborn
 Cling to Dust
 Cogwork Assembler
 Commissar Severina Raine
 Common Iguana
+Company Commander
 Conclave Guildmage
 Confront the Unknown
 Conservator
 Contagion
 Corpse Knight
 Corrupted Zendikon
+Corrupting Licid
 Cosmos Elixir
 Courier's Capsule
 Crackling Triton
 Crop Rotation
+Crypt Incursion
 Culling Mark
 Custodi Soulbinders
+Daily Bugle Newspaper
 Dauntless Survivor
 Deadshot
 Death's-Head Buzzard
@@ -58,17 +76,24 @@ Deep Reconnaissance
 Demon's Grasp
 Demonic Rising
 Despise
+Diligent Excavator
 Dismantling Blow
 Domri, Anarch of Bolas
+Dragon's Approach
+Dwarven Vigilantes
 Eidolon of Rhetoric
 Ekthi, Contaminator Priest
+Emerge Unscathed
 Enslaved Dwarf
 Erratic Visionary
+Essence Feed
 Essence Warden
 Eternal Witness
 Ethereal Champion
 Explosive Welcome
+Faerie Mastermind
 Fain, the Broker
+Farbog Boneflinger
 Femeref Healer
 Final-Sting Faerie
 Firebird, Blazing Ranger
@@ -76,18 +101,25 @@ Flashfires
 Floodhound
 Flow of Ideas
 Flux Channeler
+Foe-liage
+Fog of Gnats
 Forest
 Fuel for the Cause
 Fungal Sprouting
 Furnace Celebration
 Furnace Hellkite
+Galvanic Iteration
 Gluttonous Zombie
+Gnome-Made Engine
 Goblin Glider
 Goblin Racketeer
+Golden Egg
 Golgari Raiders
+Gray Merchant of Asphodel
 Grim Monolith
 Guardian Kirin
 Hadran, Naya Sunseeder
+Hana Kami
 Helitrooper
 Hemlock Vial
 Heroes of the Revel
@@ -95,8 +127,10 @@ Honed Khopesh
 Horizon Chimera
 Horseshoe Crab
 Hound of the Farbogs
+Idol of Oblivion
 Implement of Ferocity
 Independent Troops
+Indigo Faerie
 Infernal Pet
 Inspiring Refrain
 Intrepid Ace
@@ -110,28 +144,36 @@ Keen-Eyed Raven
 Kirtar's Wrath
 Knight of the Keep
 Knights of the Black Rose
+Kor Castigator
+Lattice Library
 Leafkin Druid
 Lightning Hounds
 Lightning Reaver
 Lightning-Core Excavator
 Liliana's Influence
+Liliana's Steward
 Living End
 Lodestone Myr
 Longtusk Cub
 Lowland Oaf
+Lucas, the Sharpshooter
 Lush Growth
+Lyla, Holographic Assistant
 Mana Matrix
 Manaforce Mace
 Manticore Eternal
 Mardu Strike Leader
 Mausoleum Secrets
 Metropolis Reformer
+Might Weaver
 Mirror of Galadriel
 Mise
 Mogg Sentry
 Mogis's Warhound
 Moonglove Changeling
+Mortal's Ardor
 Moss Monster
+Mother of Runes
 Mothrider Patrol
 Mountain
 Mourning
@@ -145,15 +187,19 @@ Oblation
 Obscura Initiate
 Oceanus Dragon
 Onulet
+Orcish Bowmasters
 Orim's Touch
 Path of Anger's Flame
 Pennon Blade
+Phyrexian Etchings
+Phyrexian Obliterator
 Pilfering Imp
 Plains
 Preeminent Captain
 Primeval Force
 Prizefighter Construct
 Prosper, Tome-Bound
+Psychic Spear
 Psychotrope Thallid
 Purifying Dragon
 Python
@@ -173,20 +219,29 @@ Samite Pilgrim
 Sandcrafter Mage
 Savage Conception
 Savra, Queen of the Golgari
+Scion of Oona
 Scion of Vitu-Ghazi
 Sculpted Perfection
 Scuttling Butler
 Searing Barb
 Searing Blood
 Secure the Scene
+Selective Memory
 Sentinel Sliver
 Settle the Score
 Shake the Foundations
+Sheoldred
 Shepherd of the Lost
+Shore Keeper
+Simic Keyrune
+Simplify
 Skitter of Lizards
+Skullscorch
 Slinking Giant
 Solid Footing
+Spearbreaker Behemoth
 Spectral Shepherd
+Spellweaver Eternal
 Spider-Man 2099, Miguel O'Hara
 Spined Fluke
 Spirit Weaver
@@ -211,12 +266,15 @@ The Whizzer, Classic Speedster
 Thrull Retainer
 Thrór's Map
 Thunder Drake
+Thundering Sparkmage
 Thwart the Grave
+Tibor and Lumia
 Titan Hunter
 Titan's Strength
 Topan Freeblade
 Tor Giant
 Tormod's Cryptkeeper
+Tranquil Frillback
 Transcendent Master
 Trenching Steed
 Trigon of Rage
@@ -224,7 +282,9 @@ Trueheart Duelist
 Umbris, Fear Manifest
 Undercity Scavenger
 Unholy Hunger
+Unwilling Ingredient
 Vampire Lacerator
+Venomcrawler
 Viashino Fangtail
 Vine Trellis
 Voice of the Provinces
@@ -234,10 +294,13 @@ Warped Devotion
 Way of the Thief
 Weight of the Underworld
 Welder Automaton
+Well-Laid Plans
+Whack
 Whispering Wizard
 Windgrace Acolyte
 Wirecat
 Wrath of Oko
+Writhing Necromass
 You Look Upon the Tarrasque
 Young Blue Dragon
 Zephyr Falcon

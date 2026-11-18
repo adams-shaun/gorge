@@ -117,6 +117,7 @@ Joshua, Phoenix's Dominant
 Judge Magister Gabranth
 Judgment Bolt
 Jumbo Cactuar
+Kain, Traitorous Dragoon
 Kuja, Genome Sorcerer
 Laughing Mad
 Light of Judgment
@@ -250,6 +251,7 @@ Ultima Weapon
 Ultimecia, Temporal Threat
 Ultros, Obnoxious Octopus
 Undercity Dire Rat
+Vaan, Street Thief
 Valkyrie Aerial Unit
 Vayne's Treachery
 Vector, Imperial Capital

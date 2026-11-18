@@ -1,14 +1,21 @@
+A-Hobbling Zombie
 A-Llanowar Loamspeaker
+Abbey Gargoyles
 Abu Ja'far
 Accumulated Knowledge
 Acolyte of Affliction
+Aerie Ouphes
+Alesha's Vanguard
+Amok
 Animist's Awakening
 Anoint with Affliction
+Apocalypse Hydra
 Apprentice Sharpshooter
 Archangel
 Argothian Elder
 Augmenting Automaton
 Bane of Progress
+Basri's Solidarity
 Beacon Hawk
 Blanchwood Treefolk
 Blitz of the Thunder-Raptor
@@ -17,6 +24,10 @@ Bogardan Firefiend
 Boggart Forager
 Break of Day
 Briarhorn
+Bright Reprisal
+Brood Weaver
+Capashen Unicorn
+Casting of Bones
 Ceremonious Rejection
 Chimeric Mass
 Cinder Pyromancer
@@ -26,16 +37,27 @@ Compulsory Rest
 Concentrate
 Council of Advisors
 Coveted Peacock
+Dapper Shieldmate
+Daru Warchief
+Death Ward
 Deathbonnet Sprout
 Debtor's Pulpit
+Disciple of Law
+Disempower
 Dramatic Finale
 Drudge Spell
+Druid of the Anima
 Duchess, Wayward Tavernkeep
 Dungrove Elder
+Dusk Feaster
+Dwarfhold Champion
 Dwarven Strike Force
 Early Frost
 Eccentric Farmer
+Elgaud Inquisitor
+Elite Arrester
 Fantastic Elasticity
+Fateful Handoff
 Festival Crasher
 Fire at Will
 Fists of Ironwood
@@ -47,43 +69,72 @@ Funeral Rites
 Gaea's Avenger
 Gate Hound
 Geyserfield Stalker
+Ghirapur Aether Grid
+Giant Dustwasp
+Glint-Nest Crane
 Goblin Bomb
 Goblin Engineer
 Goblin Lore
 Goblin Soothsayer
+Graf Reaver
+Gravedig
 Grim Wanderer
 Grismold, the Dreadsower
+Guardian of Pilgrims
+Guma
 Hamato Ninpō
+Heavy Arbalest
 Hellkite Punisher
+Hold the Gates
+Hook Swords
+Hound of the Farbogs
 Hunted Horror
+Icingdeath, Frost Tyrant
+Incite
 Infernal Captor
+Inquisitor Exarch
 Inspired Insurgent
+Iron Will
 Island
 Jarl of the Forsaken
+Journey to Oblivion
 Kamber, the Plunderer
 Khorvath Brightflame
+Kinjalli's Caller
+Kitesail Apprentice
 Knighted Myr
 Krovikan Plague
 Kujar Seedsculptor
 Kurgadon
 Lagonna-Band Trailblazer
+Leopard-Spotted Jiao
 Lethal Exploit
 Lightning Talons
 Llanowar Visionary
 Lucky Offering
+Mandible Justiciar
 Mardu Warshrieker
 Mass Diminish
+Maul of the Skyclaves
 Might of Murasa
 Mire Triton
+Mishra's Research Desk
+Molting Snakeskin
 Mountain
 Murder of Crows
 Natural Obsolescence
+Nether Void
 Nissa's Judgment
+No Mercy
 Nullhide Ferox
 Ojutai's Command
 One-Clown Band
+Opportunistic Dragon
 Opportunity
 Oracle's Insight
+Oreskos Sun Guide
+Pegasus Courser
+Pelt Collector
 Pheres-Band Tromper
 Pixie Queen
 Plague Beetle
@@ -97,26 +148,41 @@ Quarrel's End
 Quirion Ranger
 Raffine's Silencer
 Rakdos Keyrune
+Rampaging Classmate
 Ranger's Longbow
+Rank Officer
 Ransack the Lab
+Rebuke
+Reito Sentinel
 Relic Runner
 Resolute Blademaster
 Ring of Renewal
 Rishadan Airship
 Riveteers Initiate
 Rooftop Bypass
+Rosecot Knight
+Ruinous Intrusion
 Runechanter's Pike
+Rush of Battle
 Sanctuary Cat
 Screaming Seahawk
+Serpent of the Endless Sea
 Serra's Boon
+Setessan Oathsworn
 Shriekdiver
+Shrieking Grotesque
 Sigiled Behemoth
 Silverwing Squadron
 Simian Brawler
+Sinew Sliver
 Skyhunter Cub
+Slith Ascendant
 Sparkmage's Gambit
+Spike Tiller
+Spirit Loop
 Spring-Leaf Avenger
 Squee's Toy
+Stag Beetle
 Steadfast Guard
 Stone-Seeder Hierophant
 Storm Shaman
@@ -126,11 +192,16 @@ Surrak and Goreclaw
 Swamp
 Tainted Strike
 Tempered Veteran
+Temple Thief
 Tendershoot Dryad
+Thopter Architect
 Thrull Parasite
 Thunder Spirit
+Thundersong Trumpeter
 Torens, Fist of the Angels
+Toymaker
 Traveling Philosopher
+Traverse the Outlands
 Tuinvale Treefolk
 Tuktuk Grunts
 Urbis Protector
@@ -141,9 +212,14 @@ Vigilance
 Vinelasher Kudzu
 Vivify
 Vodalian Arcanist
+Voltaic Construct
+Vryn Wingmare
 Wailing Ghoul
+Welkin Guide
 Wishcoin Crab
 Witness of Tomorrows
+Woodland Patrol
 Woolly Spider
 Yellow Scarves Cavalry
+Yisan, the Wanderer Bard
 Zealous Conscripts

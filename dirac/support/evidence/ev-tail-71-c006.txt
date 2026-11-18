@@ -1,86 +1,206 @@
+A-Armory Veteran
+A-Dokuchi Silencer
+Aerial Guide
 Alchemax Slayer-Bots
 All Is Dust
+Amateur Auteur
 Ambulatory Edifice
+Angel of Flight Alabaster
 Angelic Quartermaster
+Arcane Spyglass
 Aven of Enduring Hope
 Banners Raised
+Basilica Shepherd
+Battleground Geist
+Beacon of Destruction
+Ben-Ben, Akki Hermit
+Benalish Honor Guard
+Bennie Bracks, Zoologist
 Bladebrand
 Blazing Volley
+Blind with Anger
 Bloodvial Purveyor
 Bola Warrior
 Bone Pit Brute
 Boomerang
+Bounty of Might
 Bower Passage
+Braingeyser
+Bull Rush
+Burning Wish
 Callous Dismissal
+Campaign of Vengeance
 Canyon Lurkers
+Cathedral Sanctifier
+Caustic Caterpillar
+Cerebral Eruption
+Cerodon Yearling
 Commando Raid
 Contagion Engine
+Coordinated Barrage
 Cordial Vampire
+Cosmic Hunger
 Court of Ardenvale
+Crypt Cobra
 Cyclops Electromancer
+Dalek Drone
+Dangerous Wager
+Defend the Hearth
 Defy Death
 Desert Sandstorm
+Detective of the Month
 Dire Fleet Ravager
+Dispel
+Doomed Necromancer
 Doomed Traveler
 Earthshaker Giant
+Eccentric Farmer
+Elven Cache
+Enduring Victory
+Ensnare
+Evolution Charm
 Expedition Envoy
 Fall of the Thran
 Fanatical Devotion
 Fatal Frenzy
+Ferrovore
+Field of Souls
 Fire Servant
+Fire Shrine Keeper
 Firescreamer
+Flamekin Spitfire
+Flow of Knowledge
 Forest
+Frenzied Saddlebrute
+Garbage Elemental
 Gargoyle Flock
+Garruk's Warsteed
 Gather Courage
+Gnarled Sage
+Goretusk Firebeast
+Granite Gargoyle
+Growth Cycle
+Guardian Automaton
+Guardian Lions
 Gut, True Soul Zealot
+Gwaihir the Windlord
+Hallowed Healer
+Hanna, Ship's Navigator
 Harnessed Lightning
+Hateflayer
+Hearth Kami
+Hit-Monkey
+Hold for Questioning
+Huatli's Snubhorn
 Humble
+Hydrolash
 Imposing Visage
 Infernal Captor
+Inspirit
 Invasion of Segovia
 Invasion of Ulgrotha
+Invincible Hymn
 Island
+Jawbone Duelist
+Jeska, Warrior Adept
+Join the Dance
 Journey for the Elixir
+Kamahl's Druidic Vow
+Keldon Warcaller
 Knight of the Tusk
 Kor Scythemaster
+Kyoshi Warrior Guard
+Lightning Rift
+Lightning Spear
+Llanowar Vanguard
 Maned Serval
 Marked by Honor
+Mechanical Glider
+Meldweb Strider
 Mercurial Kite
+Metastatic Evangel
+Militia Rallier
+Mind Rot
 Moku, Meandering Drummer
 Momentary Blink
 Monk Idealist
+Morningtide
 Mountain
 Myr Retriever
 Myth Realized
+Nexus of Fate
 Nightmare Shepherd
 Nimble Mongoose
 Nylea's Disciple
+Nylea, God of the Hunt
 Pact of Negation
 Palace Sentinels
+Paladin of Atonement
+Pathmaker Initiate
+Phantatog
+Piston Sledge
 Plains
+Predatory Wurm
+Primal Boost
 Prized Elephant
 Puppet's Verdict
+Pyrogoyf
 Reckless Reveler
+Recruit the Worthy
 Renegade Warlord
+Retribution of the Meek
+Revolutionary Rebuff
+Revolutionist
+Rishkar, Peema Renegade
+Roc Hatchling
 Rummaging Goblin
 Sanctifier of Souls
+Scalding Salamander
 Scaled Behemoth
 Scrappy Bruiser
+Scryb Sprites
 Season of Growth
+Serene Heart
+Shield Mate
+Shocker
 Shu Grain Caravan
 Sky Crier
+Skycat Sovereign
+Slagstone Refinery
+Slice and Dice
+Slinking Skirge
+Sly Instigator
+Sonic Seizure
+Spawnwrithe
+Spiked Ripsaw
+Spikefield Hazard
+Spirit Summoning
+Steel Golem
 Sungrace Pegasus
 Swamp
 Terminal Agony
 Tezzeret's Gambit
+Threnody Singer
+Thunderous Might
 Time Bomb
+Tooth and Nail
+Tormod's Crypt
+Torture
+Treasure Mage
 Ukkima, Stalking Shadow
 Unseal the Necropolis
+Utvara Scalper
 Valduk, Keeper of the Flame
 Vapor Snag
 Vectis Dominator
 Veiled Sentry
 Vent Sentinel
+Viashino Firstblade
 Wandering Ones
 Witherbloom Command
+Wizards of Thay
+Wolfcaller's Howl
+Wrath of Marit Lage
+Wyleth, Soul of Steel
 Yisan, the Wanderer Bard
+Yotian Tactician

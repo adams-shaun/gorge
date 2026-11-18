@@ -2,6 +2,7 @@ A-Excavation Explosion
 A-Heartfire Hero
 Aang, Air Nomad
 Absorb
+Abundant Harvest
 Academy Raider
 Accursed Spirit
 Acid Rain
@@ -12,6 +13,9 @@ Aggression
 Aisling Leprechaun
 Ambush Party
 Ankh of Mishra
+Aradara Express
+Arcbound Crusher
+Archers of Qarsi
 Artificer's Intuition
 Ascendant Acolyte
 Ashen-Skin Zubera
@@ -25,6 +29,7 @@ Balduvian Rage
 Banishment Decree
 Barbarian General
 Barrin, Tolarian Archmage
+Basri's Acolyte
 Bassara Tower Archer
 Beacon Behemoth
 Black Vise
@@ -34,7 +39,9 @@ Blur of Blades
 Bond of Insight
 Bone Sabres
 Bonepicker Skirge
+Boros Locket
 Brain Gorgers
+Burrenton Shield-Bearers
 Butcher's Glee
 Cabal Patriarch
 Captain N'ghathrod
@@ -53,12 +60,15 @@ Colossal Dreadmask
 Combo Attack
 Coming In Hot
 Confessor
+Copper Carapace
 Core Prowler
 Corpse Hauler
+Corrupted Key
 Cragplate Baloth
 Cranial Plating
 Crazed Goblin
 Creature Bond
+Creeping Tar Pit
 Cruel Tutor
 Crush of Wurms
 Cunning Advisor
@@ -79,17 +89,21 @@ Devout Monk
 Diabolic Machine
 Diregraf Rebirth
 Discordant Dirge
+Dizzy Spell
 Dogged Pursuit
 Donald Blake, Guise of Thor
 Draconic Disciple
 Dream Twist
+Drown in Sorrow
 Duskrider Peregrine
 Dutiful Thrull
 Dystopia
 Echoing Truth
 Ecstatic Electromancer
 Elanor Gardner
+Emissary of Despair
 End the Festivities
+Entrancing Melody
 Entropic Eidolon
 Equilibrium
 Essence Flux
@@ -106,9 +120,11 @@ Fireblast
 Five Hundred Year Diary
 Fixer, Techno Terror
 Flame Slash
+Floodbringer
 For the Family
 Forest
 Forge Devil
+Forsaken Sanctuary
 Foundry Hornet
 Frogmite
 Funeral Pyre
@@ -120,6 +136,7 @@ Glamdring
 Goblin Balloon Brigade
 Gorging Vulture
 Gravedigger
+Graypelt Refuge
 Greater Werewolf
 Grim Flayer
 Grim Haruspex
@@ -127,6 +144,7 @@ Grim Poppet
 Grixis Battlemage
 Grotag Thrasher
 Gríma Wormtongue
+Guildless Commons
 Hampering Snare
 Harvest Gwyllion
 Havoc Demon
@@ -138,6 +156,7 @@ Horn of the Mark
 Hornet Harasser
 Howling Gale
 Humility
+Hunted Troll
 Hurler Cyclops
 Hyena Pack
 Icon of Ancestry
@@ -146,6 +165,7 @@ Imperial Outrider
 Infectious Inquiry
 Inheritance
 Island
+Jace Beleren
 Jhoira's Toolbox
 Joyous Respite
 Juri, Master of the Revue
@@ -157,28 +177,35 @@ Kelinore Bat
 Kiku, Night's Flower
 Krav, the Unredeemed
 Lavabelly Sliver
+Leitmotif Composer
 Leyline Binding
 Lightning Wolf
 Liliana's Indignation
 Liliana, the Last Hope
 Limestone Golem
 Lingering Tormentor
+Lord of Change
+Lumbering Falls
 Lunar Force
 Madame Vastra
 Maja, Bretagard Protector
 Majestic Heliopterus
 Make a Wish
+Makindi Shieldmate
 Mana-Charged Dragon
 Mardu Heart-Piercer
+Matsu-Tribe Birdstalker
 Mayhem Devil
 Michiko's Reign of Truth
 Midnight Entourage
 Mindscour Dragon
 Mist Raven
+Mistblade Shinobi
 Mob Rule
 Monastery Flock
 Mountain
 Mountain Bandit
+Mystic Compass
 Mystic Redaction
 Mythic Proportions
 Nantuko Shaman
@@ -188,6 +215,8 @@ Neurok Invisimancer
 Nezumi Graverobber
 Nick Fury, Spymaster
 Ninja of the Deep Hours
+Nissa, Who Shakes the World
+Nomadic Elf
 Nullmage Advocate
 Nut Collector
 Odylic Wraith
@@ -200,7 +229,10 @@ Overgrown Battlement
 Ovinize
 Pact of Negation
 Paired Tactician
+Pangosaur
+Paperfin Rascal
 Parasitic Strix
+Part the Veil
 Patrolling Peacemaker
 Patron Wizard
 Pestilent Wolf
@@ -209,14 +241,17 @@ Photon, Lady of Light
 Phyrexian Driver
 Phyrexian Reaper
 Phyrexian Soulgorger
+Pinion Feast
 Plains
 Planar Portal
+Plaxmanta
 Praetor's Counsel
 Price of Fame
 Priest of Forgotten Gods
 Putrid Warrior
 Qarsi Sadist
 Quartzwood Crasher
+Rakdos Keyrune
 Rathi Fiend
 Ravenous Gigamole
 Reanimate
@@ -235,6 +270,9 @@ Rise of the Witch-king
 Rise to Glory
 Rising of the Day
 Sabertooth Nishoba
+Saddle of the Cavalier
+Savage Punch
+Savannah
 Scribe of the Mindful
 Scroll of Avacyn
 Seasoned Pyromancer
@@ -247,16 +285,22 @@ Shrapnel Slinger
 Sift
 Silumgar Sorcerer
 Silver Erne
+Silverbluff Bridge
 Silverchase Fox
 Skyscanner
 Slash of Talons
 Sliversmith
+Snuff Out
+Solarion
 Soldevi Steam Beast
 Soul-Strike Technique
 Spectacular Showdown
 Spider-Man, Hometown Hero
+Spitting Image
 Squirming Mass
 Starved Rusalka
+Stone-Throwing Devils
+Stoneforge Acolyte
 Stonerise Spirit
 Storm Fleet Swashbuckler
 Storm-Kiln Artist
@@ -267,24 +311,31 @@ Sudden Strength
 Summoner's Pact
 Sunbond
 Sundial of the Infinite
+Svogthos, the Restless Tomb
 Swamp
+Sworn Companions
 Sylvan Awakening
 Tajuru Snarecaster
+Tangletrove Kelp
 Telekinetic Sliver
+Termination Facilitator
 Teshar, Ancestor's Apostle
 Thassa's Oracle
 Thermo-Alchemist
 They Came from the Pipes
 Thrashing Mudspawn
+Throne of the High City
 Thunder Drake
 Thunderclap
 Tiger Shark, Abyssal Hunter
+Tiller Engine
 Tinder Wall
 Tolabow, Loch Rascal
 Toski, Bearer of Secrets
 Totem Speaker
 Traitorous Instinct
 Transgress the Mind
+Transguild Promenade
 Tremor
 True Love's Kiss
 Tuktuk the Explorer
@@ -298,6 +349,7 @@ Urban Utopia
 Urborg Uprising
 Urza's Chalice
 Utopia Vow
+Utrom Monitor
 Vampire of the Dire Moon
 Vampiric Link
 Vengeful Reaper
@@ -311,6 +363,8 @@ Wall of Frost
 Wall of Reverence
 War-Torch Goblin
 Warleader's Helix
+Warrior Angel
+Weapons Trainer
 Weaselback Redcap
 Wei Strike Force
 Wild Nacatl
@@ -318,6 +372,7 @@ Will of the Temur
 Windreader Sphinx
 Wings of the Guard
 Wirewood Pride
+Witch's Cauldron
 Wolfkin Outcast
 Woodland Mystic
 Worldly Tutor

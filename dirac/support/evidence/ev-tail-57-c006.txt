@@ -15,6 +15,7 @@ Brushwagg
 Cadira, Caller of the Small
 Careless Celebrant
 Carnophage
+Carrion Crow
 Cephalid Looter
 Clinging Anemones
 Coastal Piracy
@@ -56,13 +57,16 @@ Jovial Evil
 Koma's Faithful
 Lifeblood Hydra
 Malakir Cullblade
+Marsh Gas
 Merfolk Looter
+Midnight Banshee
 Mirran Spy
 Mistral Singer
 Mortician Beetle
 Mountain
 Nature's Chant
 Necromancer's Assistant
+Netherborn Altar
 Nylea's Emissary
 Orochi Leafcaller
 Petrified Field
@@ -71,8 +75,10 @@ Piety
 Plains
 Raffine's Silencer
 Reckless Imp
+Renegade Reaper
 Repulse
 Restoration Specialist
+Revenant
 Rewards of Diversity
 Rootwater Diver
 Ruthless Sniper
@@ -81,6 +87,7 @@ Sculpting Steel
 Shifting Sliver
 Short Sword
 Sigardian Savior
+Silverquill Command
 Skittering Heartstopper
 Slumbering Waterways
 Snowfield Sinkhole

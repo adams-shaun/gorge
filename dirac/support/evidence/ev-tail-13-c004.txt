@@ -1,6 +1,12 @@
+A-Nael, Avizoa Aeronaut
 A-Psionic Snoop
+Adaptive Omnitool
 Adaptive Sporesinger
 Akroan Horse
+Alluring Scent
+Ambush Party
+Ana Sanctuary
+Appa, Aang's Companion
 Appetite for the Unnatural
 Arcane Denial
 Armed Assailant
@@ -8,56 +14,101 @@ Arvad of the Weatherlight
 Ashnod's Transmogrant
 Assure
 Baffling End
+Bane of Progress
+Bladewing the Risen
 Blaze
+Bloodtallow Candle
 Bog Raiders
 Bold Defense
 Bonders' Enclave
+Bounding Wolf
 Brain Freeze
 Brave the Sands
 Burn the Accursed
+Child of Thorns
+Contemplation
 Crackling Triton
 Crime
 Crosis's Charm
 Cryptwailing
+Cursed Minotaur
+Daring Escape
 Daring Leap
 Dawntreader Elk
 Deathreap Ritual
+Defiler of Souls
 Defiling Daemogoth
+Dhund Operative
+Dimir Charm
+Dimir Cutpurse
 Dismember
 Disruptive Pitmage
 Dive Bomber
+Diviner's Lockbox
+Doomskar Oracle
+Dreadhorde Invasion
 Dusk Feaster
 Dutiful Return
+Ecologist's Terrarium
 Efficient Construction
 Elvish Pioneer
+Enthrall
+Evil Eye of Orms-by-Gore
+Evolving Adaptive
 Eye Spy
+Faerie Duelist
 Fatal Fumes
+Feed the Serpent
+Flameskull
 Flight Spellbomb
+Flurry of Horns
 Forest
+Fountain Watch
 Fungus Sliver
+Furious Spinesplitter
+Gaea's Skyfolk
+Gerrard's Command
+Ghoulcaller's Harvest
 Giant Adephage
 Giant Caterpillar
+Gilded Scuttler
+Gladehart Cavalry
 Glaring Aegis
 Glimmer Lens
 Golden-Tail Disciple
+Green Goblin, Nemesis
+Grindclock
+Groundskeeper
+Gulping Scraptrap
 Hanweir Militia Captain
 Hatching Plans
 Haywire Mite
 Healer of the Glade
+Heir of Falkenrath
+Hellfire
 Hold at Bay
+Horned Troll
 Hound of Urabrask
+Huatli's Raptor
+Hunted Dragon
 Hypnotic Specter
 Hypnotic Sprite
+Index
 Inertia Bubble
+Inexorable Blob
 Insist
 Inspired Sprite
 Island
 Kemba's Skyguard
 Kiki-Jiki, Mirror Breaker
 Kite Shield
+Kitesail
 Knight-Captain of Eos
+Kothophed, Soul Hoarder
+Kujar Seedsculptor
 Lead the Stampede
 Leafcrown Dryad
+Lembas
 Levitation
 Living Totem
 Lizard Blades
@@ -66,63 +117,109 @@ Make Obsolete
 Mantle of Tides
 Markov Purifier
 Marrow Bats
+Mass of Ghouls
 Maul of the Skyclaves
 Merrow Commerce
+Moss Diamond
 Mountain
 Mudbrawler Cohort
+Multani's Decree
+Muse Drake
+Naturalize
 Necromaster Dragon
+Nemata, Grove Guardian
 Niblis of the Breath
 Nightveil Specter
+Noble Quarry
 Novice Occultist
+Omnath, Locus of Rage
+Order of the White Shield
 Orim, Samite Healer
+Oviya Pashiri, Sage Lifecrafter
+Pardic Wanderer
+Patagia Tiger
+Phyrexian Boon
+Phyrexian Negator
 Plague Wight
 Plains
+Predatory Sliver
 Pull Under
+Pyromania
 Quest for the Gravelord
 Quickbeam, Upstart Ent
+Quicksilver, Pietro Maximoff
 Rabid Rats
 Rat King, Pale Piper
+Reaper from the Abyss
+Rift Sower
+Riverwise Augur
 Rocky Tar Pit
+Rolling Temblor
+Rubblebelt Rioters
 Rupture
 Sanctum Custodian
 Saprazzan Cove
+Scourge of the Throne
+Scourge of the Undercity
 Seachrome Coast
 Sejiri Steppe
 Shield of Kaldra
+Shivan Meteor
 Shower of Coals
+Silent Departure
 Silent Skimmer
 Sinking Feeling
 Sivvi's Ruse
 Skeletal Kathari
 Skywatcher Adept
+Smashing Success
 Soldier Replica
+Sorcerer's Wand
+Spectral Flight
+Spelleater Wolverine
 Sphinx's Disciple
 Spike Rogue
 Squirrel Sovereign
 Staff of Compleation
+Stature, Young Avenger
+Steel Seraph
+Stitcher's Apprentice
 Stoic Star-Captain
 Storm Entity
+Stromkirk Patrol
 Swamp
+Sword of the Paruns
+Tenacious Dead
+The Scorpion God
 Thopter Spy Network
 Thriving Heath
 Throne of Empires
+Titanium Man
 Tocatli Honor Guard
 Towering Gibbon
 Trained Jackal
 Tribute to Urborg
 Triton Waverider
+Typhoid Rats
+Uncage the Menagerie
 Uncle's Musings
 Unlicensed Hearse
 Unmake
 Unworthy Dead
 Value Town
 Vengeant Earth
+Viridian Emissary
 Virulent Swipe
 Vitalize
 Vivien's Crocodile
+Waking Nightmare
 Weathered Wayfarer
+Whisper of the Dross
+Wind-Kin Raiders
 Woebringer Demon
 Wolfir Avenger
+World Shaper
 Wurmskin Forger
+Wyrm's Crossing Patrol
 Zephyr Scribe
 Zoetic Cavern

@@ -1,0 +1,42 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Ancient Crab	02da4e4d7b881806	43	0/0		0/0	
+Argothian Wurm	b6ddb86eb98e04ef	146	1/1		1/1	
+Arrows of Justice	ad73323c137d108d	34	0/0		2/2	
+Bident of Thassa	a1827052d434aa28	40	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Bottomless Pit	68b99c7553e922b6	59	1/1		1/1	
+Bounding Krasis	2499546357d929ec	13	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Brink of Disaster	65bd0ca2e38dc274	4	1/1		1/2	ix:resp
+Broken Ambitions	99a95549b7b014f9	3	0/0		2/4	f0/s/x0,ix:resp
+Buried Alive	7939f78a7bf800c1	12	0/0		2/2	
+Canopy Dragon	04c7f8cbd5ef9dea	33	1/1		1/1	
+Captain of the Mists	af05cb2e34a042c2	79	2/2		1/1	
+Captured Sunlight	10ac97f9fecb4202	20	0/0		2/2	
+Cathar's Shield	3b99502496dad6ad	152	1/1		1/1	
+Conclave Naturalists	24bcce9a6fe98969	50	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Dispersing Orb	aa7dbdfe7daa59f0	32	1/1		0/1	ix:resp
+Dwarven Lieutenant	1970c94f6bd5eb12	34	1/1		1/1	
+Electrosiphon	5d738c6291efa5e1	20	0/0		2/2	
+Elvish Hunter	37dbe58210db6a00	53	1/1		0/1	ix:resp
+Fruition	a8ecbd01ccef819e	32	0/0		2/2	
+Goblin Dark-Dwellers	47209431342a4afb	59	1/1		1/1	
+God-Favored General	257083191d484b3e	47	1/1		1/1	
+Gossamer Phantasm	c0063c4de7c6f382	43	1/1		1/1	
+Gyre Engineer	336c208a42abe771	3	1/1		0/1	ix:resp
+Hazoret's Undying Fury	972957637daf283b	41	0/0		1/2	ix:resp
+Ichorclaw Myr	201015e740185b33	97	1/1		0/1	ix:resp
+Increasing Confusion	7eb3529c3aa37010	51	0/0		6/6	
+Legolas Greenleaf	c7d78c2e0dd9db05	40	2/2		1/1	
+Marauding Looter	a358663f3c79d575	33	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Marauding Raptor	b677ddfc3121dc3b	101	1/1		1/1	
+Metallic Sliver	5046be891715961a	29	0/0		0/0	
+Old Ghastbark	95532e50de7559d8	5	0/0		0/0	
+Pardic Collaborator	f54d9988d0f4bb5b	76	1/1		1/1	
+Rakdos the Defiler	d6f6342b610e5d2a	43	2/2		1/1	
+Red Ghost, Intangible Genius	ab56905eb42d4ff2	24	2/2		1/1	
+Sarcomite Myr	af6a19df1edb99e2	42	2/2		1/1	
+Sedraxis Alchemist	6de86257c19a806d	26	1/1		1/1	
+Stormcloud Spirit	f755b2e3a463adf6	30	0/0		0/0	
+Thirsting Roots	6848082946440d9c	88	0/0		2/2	
+Unwind	00a437a3532d2b3c	9	0/0		1/2	ix:resp
+Vodalian Hexcatcher	7bc77f41afef359e	47	1/1		1/1	
+Zuri, Warrior of Wakanda	75ce05b667a7c809	61	1/1		0/1	ix:resp
