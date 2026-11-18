@@ -1001,7 +1001,9 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 }
 
 // grantSearchAdds reports a play a the grant search's prefix pays that the
-// offer list d lacks and gorge's walk lists:
+// offer list d lacks and gorge's walk lists (an improvise cast crediting no
+// artifact, whose plain planner never prices it, included: Reverse Engineer
+// paid by a Swamp wearing Sheltered Aerie; improviseAloneCast):
 // gorge's potential planner offers every play its one prefix search
 // pays (potentialPlayVerdict): the offer builder's census prices a
 // source's own and granted abilities as one join unit (availGrant),
