@@ -521,10 +521,21 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 		return
 	}
 	if a, ok := s.riderAbilityOf(k, sl); ok {
-		if a.Cost.Flags&kop.CostTap != 0 {
-			s.riderExtraUnits(k, sl, av) // the tap's StatTapExtra mana (mana_riderextra.go)
+		// The rider's own {T} is one tap for mana like any other (CR 605.3a):
+		// the reflected carrier's extra is one more of the pick (srcYieldAt),
+		// a fixed carrier's joins the unit as its own (srcExtra, manaRiderFloat
+		// floats both; gorge's planner folds them into the tap too,
+		// payment_plan_interference.go paymentPlanTapObservers).
+		pc := s.riderPC(k, sl, a)
+		n := max(a.ManaN, 1) + s.srcReflectPick(k, sl, pc)
+		if k.gen.anyTapExtra {
+			xv := s.srcExtra(k, sl, pc)
+			for c := range xv {
+				if xv[c] > 0 {
+					av.addUnits(1<<c, xv[c])
+				}
+			}
 		}
-		n := max(a.ManaN, 1)
 		if a.ManaEach {
 			for col := 0; col < kop.NumManaKinds; col++ {
 				if uint8(a.ManaColors)&(1<<uint(col)) != 0 {
