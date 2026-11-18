@@ -607,6 +607,9 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 	if s.storeCensusGap(k, e.ctrl) {
 		return false // a storage battery's SubCounter<X> cost is no shape the census prices (mana_storecensus.go)
 	}
+	if k.gen.anyDynZero && s.dynZeroCensusGap(k, e.ctrl) {
+		return false // a dynamic amount that resolves to nothing is no unit the census prices (mana_dyncensus.go)
+	}
 	if !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR && !k.gen.anyTapExtra && !k.gen.anyEachCol &&
 		!k.gen.anyTapsDefer && !k.gen.anySelfTaps {
 		return true
