@@ -42,7 +42,7 @@ these hurt someone other than you.
   dense slices, and compile strings to masks once.
 - **Don't write raw two-seat arithmetic in `dirac/`** (`1-p`, `p^1`, `[p&1]`,
   `p < 2` seat loops, `PlayerTarget0+p`). Use the helpers in `dirac/seatorder.go`
-  (`NextSeat`, `IsOpponent`, `SeatIx`, `PlayerCode`, `CodeSeat`) and `MaxSeats`;
+  (`nextSeat`, `IsOpponent`, `SeatIx`, `PlayerCode`, `CodeSeat`, `duel`) and `MaxSeats`;
   `TestSeatArithmeticOnlyShrinks` pins what is left per file and only shrinks
   (`DIRAC_SEAT_REPIN=1` lowers it). A lone "the opponent" has no helper yet:
   leave it raw rather than invent one.

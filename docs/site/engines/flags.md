@@ -42,8 +42,11 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 
 | Flag | Type | Default | Meaning |
 |---|---|---|---|
+| `-decklists` | string | `.edh-decks/edh-decks.jsonl` | edhcover: the stored decks (scripts/edh_decks.py writes them; absent: edhcover skips) |
 | `-dir` | string | `.cards` | working directory for the corpus and IR cache |
-| `-out` | string | `.coverage` | coverage: gitignored directory to write coverage.md and summary.md into |
+| `-dirac-support` | string | `dirac/support` | edhcover: dirac's evidence and refused lists (absent: no dirac columns) |
+| `-manifest` | string | `.edh-decks/edh-manifest.tsv` | edhcover: the deck manifest |
+| `-out` | string | `.coverage` | coverage, edhcover: gitignored directory to write the tables into |
 | `-ref` | string | `master` | Forge git ref to fetch |
 | `-repo` | string | `cards.ForgeRepo` | Forge git repository to fetch from |
 | `-top` | int | `25` | how many missing primitives to list in report |
@@ -183,7 +186,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-autopay-surface` | bool | `false` | deprecated alias of -surface autopay |
 | `-branches` | string | none | write the run's per-card choice-branch TSV (oracle.Coverage.WriteBranchTSV: card, key, uses, owed) here; reporting only, the -coverage file is unchanged |
 | `-cards` | string | none | gorge corpus directory (default: $GORGE_CARDS, else .cards in or above the working directory) |
-| `-cmd-mini` | int | `0` | -seats above 2: cut every commander deck of the pool to this many cards, its commanders and an even spread of the rest (oracle.MiniCommanderDeck), so a Commander pod fits the oracle's card table: -kernel gorge |
+| `-cmd-mini` | int | `0` | -seats above 2: cut every commander deck of the pool to this many cards, its commanders and an even spread of the rest (oracle.MiniCommanderDeck), so a Commander pod fits the kernel's four-seat build: -kernel gorge, or a Commander pool such as cmd5 |
 | `-coverage` | string | none | write the run's per-card/per-ability coverage TSV (oracle.Coverage) here and print a coverage summary line |
 | `-cpuprofile` | string | none | write a CPU profile here |
 | `-decks` | string | none | pool deck directory (default: the fdn pool's, under $GORGE_POOLS or the module's .pools, else its committed slice) |
@@ -222,9 +225,9 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-replay` | string | none | re-execute this kernel game (koracle-game-2) in gorge and report |
 | `-repro` | string | none | re-run this repro in lockstep and report |
 | `-search` | string | `paranoid` | -search-seats: the search, paranoid or maxn |
-| `-search-seats` | string | none | pool runs (-kernel a registered pool or -synth, -lead gorge): answer these seats, comma-separated (0 or 0,2), with dirac/search on the kernel's state; every other seat keeps -policy. Lockstep still compares every decision. Two seats |
+| `-search-seats` | string | none | pool runs (-kernel a registered pool or -synth, -lead gorge): answer these seats, comma-separated (0 or 0,2), with dirac/search on the kernel's state; every other seat keeps -policy. Lockstep still compares every decision. Up to four seats |
 | `-search-sims` | int | `oracle.SearchSeatDefaultSims` | -search-seats: simulations per searched decision |
-| `-seats` | int | `2` | seats a game: 2 plays deck pairs; 3 or 4 plays pods of distinct decks (oracle.PodAt) with -kernel gorge (dirac holds two seats) |
+| `-seats` | int | `2` | seats a game: 2 plays deck pairs; 3 or 4 plays pods of distinct decks (oracle.PodAt): -kernel gorge, -kernel vanilla or a -synth pool |
 | `-seed` | uint64 | `1` | base seed: pairs and game seeds derive from it (the pairing rule) |
 | `-set` | string | `fdn` | the generated card set the fdn kernel plays (a name in dirac/cardset) |
 | `-shrink` | int | `200` | shrink reruns for the first divergence (0: none) |
