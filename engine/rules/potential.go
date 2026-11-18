@@ -365,6 +365,17 @@ func (e *Engine) potentialTapExtra(p state.PlayerID, id state.ObjID, ma *cards.S
 	if sub := condSplitLiveSub(e, p, id, ma); sub != nil {
 		productions = append(slices.Clone(productions), pay.PaymentPlanProductions(payer, id, sub)...)
 	}
+	if alt, ok := paymentPlanReflectedAlt(e, p, id, ma, 1); ok {
+		// A reflected ability (Reflecting Pool, Exotic Orchard) prints no
+		// Produced$: the tap makes each colour the reflection names, and a
+		// TapsForMana trigger reads that colour (addPotentialReflected).
+		productions = productions[:0:0]
+		for i, n := range alt.Mana() {
+			if n > 0 {
+				productions = append(productions, string("WUBRGC"[i]))
+			}
+		}
+	}
 	for _, produced := range productions {
 		x := e.paymentPlanTapExtraMana(id, produced)
 		for i := range most {
