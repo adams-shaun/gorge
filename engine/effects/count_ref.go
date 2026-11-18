@@ -251,7 +251,17 @@ func sacrificedNumeric(c *Ctx, f func(state.SacrificedInfo) int32) int32 {
 func evalRememberedOK(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	body, op, hasOp := strings.Cut(body, "/")
 	if strings.TrimSpace(body) == "Amount" {
-		n := int32(len(rememberedExcludingCapture(h, c)))
+		// Forge counts the remembered CARDS only ("this calculation isn't
+		// considering the remembered player", Dark Deal): a RepeatEach
+		// iteration's player subject is remembered beside what the body
+		// remembers, and is not part of the amount (Khorvath's Fury's
+		// "that many cards plus one").
+		var n int32
+		for _, t := range rememberedExcludingCapture(h, c) {
+			if !t.IsPlayer {
+				n++
+			}
+		}
 		if hasOp {
 			n = applyCountOpOperand(h, c, n, op, depth)
 		}
