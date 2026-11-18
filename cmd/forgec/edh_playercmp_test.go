@@ -33,6 +33,11 @@ var edhPlayerCompareCards = []string{
 func TestEDHPlayerCompareSupported(t *testing.T) {
 	r := testutil.CorpusRegistry(t)
 	sup := effects.Supported()
+	// The predicate is exactly make report's, gate included; none of the
+	// class's cards carries an ETB Clone body today, so the gate is a no-op
+	// here — but if one ever grows one, the check must say so.
+	r.ShapeGate = etbCopyShapeGate
+	defer func() { r.ShapeGate = nil }()
 	for _, name := range edhPlayerCompareCards {
 		card, ok := r.Lookup(name)
 		if !ok {
