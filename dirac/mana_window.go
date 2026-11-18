@@ -269,7 +269,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 	for !s.windowSpellSettled(k, p, cost, anyColor) {
 		if potential {
 			var pot avail
-			other := payDesc{class: pdOther}
+			other := payDesc{class: pdOther, subBound: s.g.winMode == winTrig} // a trigger's own cost reads the trigger pay gate's bound (mana_repeatpotential.go)
 			s.availPotentialFor(k, p, &pot, &other, false)
 			s.availSacAny(k, p, &pot, &other) // a sacrifice-any source's fixed production, once (trigCostPotentialPays)
 			if !pot.affords(cost, pipMaskOf(cost), 0) {
