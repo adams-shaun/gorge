@@ -118,9 +118,11 @@ func (s *State) splitCensusPC(k *prep, sl Slot) *pcard {
 }
 
 // splitWindowPC is the facts gorge's window census prices the source by
-// (windowManaUnits reads the root ability alone, whatever the gate).
+// (windowManaUnits: the root ability's alone while the arm's gate fails, the
+// arm's alone while it holds, condSplitRootSuperseded: River of Tears after a
+// land drop is {B}, never {U}). It is the activation's view.
 func (s *State) splitWindowPC(k *prep, sl Slot) *pcard {
-	return &k.gen.varPC[k.gen.manaVar(s.cardAt(sl))]
+	return s.splitView(k, sl, s.cardAt(sl), false)
 }
 
 // splitUsable: the Condition-split gap at sl can be activated now

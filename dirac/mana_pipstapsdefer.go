@@ -18,6 +18,8 @@ func (s *State) addPipTapsDefer(k *prep, e *stackEntry, av *avail) {
 	if e.kind == seAbility && k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostTap != 0 {
 		own = s.srcSlot()
 	}
+	av.pipWin = true
+	defer func() { av.pipWin = false }()
 	for b := s.scriptTapsDefer(k, e.ctrl); b.any(); b = b.rest() {
 		sl := b.first()
 		if sl == own {
