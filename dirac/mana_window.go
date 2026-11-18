@@ -1996,6 +1996,7 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 	}
 	var mask uint8
 	var chosenPC *pcard
+	multi := false
 	off := 0
 	if anyR.has(sl) {
 		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
@@ -2017,6 +2018,15 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 		mask = s.srcMaskAt(pc, sl)
 		if pc.manaChosen {
 			chosenPC = pc
+		} else if pc.manaMulti {
+			// a multi-ability fold (mana_multicolour.go): kgen orders the
+			// abilities W U B R G C, so mask-ascending is the engine order
+			// the ask's options follow. gorge's scriptOrderAnswers reads
+			// only Option.ManaSymbol, and a multi-ability source's "Choose
+			// a mana ability" options (engine/rules/mana_activation.go) set
+			// it only on the Combo-flattened and stage-2 colour options,
+			// never here, so it keeps that order: no needFirst hoist.
+			multi = true
 		}
 	}
 	var order [kop.NumManaKinds]uint8
@@ -2034,7 +2044,9 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 	if c >= no {
 		return off + c // beyond the mask's colours: engine order as before
 	}
-	needFirst(order[:no], s.playNeed(k, a)) // scriptOrderAnswers on the ask
+	if !multi {
+		needFirst(order[:no], s.playNeed(k, a)) // scriptOrderAnswers on the ask
+	}
 	col := order[c]
 	if tapsDef.has(sl) {
 		return bits.OnesCount8(mask & ((1 << col) - 1)) // tapDeferFloat's engine-order index
