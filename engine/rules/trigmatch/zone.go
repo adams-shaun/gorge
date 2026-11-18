@@ -175,7 +175,7 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 		if ev.From == state.ZGraveyard && ev.To != state.ZGraveyard {
 			lookBack = gyOrigin
 		} else {
-			lookBack = source == ev.Obj || LeftBattlefield(ev) ||
+			lookBack = (source == ev.Obj && ev.To != state.ZBattlefield) || LeftBattlefield(ev) ||
 				(ev.From == state.ZExile && ev.To != state.ZBattlefield)
 		}
 		if ev.Obj != 0 && lki != nil && lookBack {
