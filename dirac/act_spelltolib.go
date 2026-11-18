@@ -9,7 +9,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // stack for finishResolve to cease (spellRestExiles), and so does a flashback
 // spell, which is exiled whenever it would leave the stack (CR 702.34a, gorge
 // keywordExileDeparture); the owner's library is shuffled either way (CR
-// 701.24c, objectPathShuffleOwners).
+// 701.24c, objectPathShuffleOwners). A copy is in the library while it is
+// shuffled (CR 608.2n, then it ceases to exist, CR 704.5d), so its shuffle
+// permutes one card more: it takes a transient slot on top for the shuffle and
+// leaves the library again, as gorge's moved-then-ceased copy does.
 //
 //go:noinline
 func (s *State) spellToLib(k *prep) {
@@ -22,6 +25,14 @@ func (s *State) spellToLib(k *prep) {
 		s.touch(o)
 		ob.zone = kop.ZoneNone
 		s.placeFromK(k, o, kop.ZoneLibrary, false, kop.ZoneStack, false)
+	}
+	if ob := &s.objs[o]; ob.zone == kop.ZoneStack && ob.of&ofCopy != 0 {
+		if pl := &s.pl[ob.owner()]; !pl.zoneFull(kop.ZoneLibrary) {
+			pl.libTop(o)
+			s.shuffleLib(ob.owner())
+			pl.libRemove(o)
+			return
+		}
 	}
 	s.shuffleLib(s.objs[o].owner())
 }
