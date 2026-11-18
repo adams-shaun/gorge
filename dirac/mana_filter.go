@@ -824,11 +824,11 @@ type filtStep struct {
 
 type filtKey struct {
 	pool [kop.NumManaKinds]uint8
-	rb   [maxRB]rbatch // the restricted mana (State.rb)
 	// art: the pool slots holding an artifact's mana (genState.poolArt):
 	// gorge's key reads the typed units apart (Player.ManaUnits), so a
 	// Three Tree Mascot's {W} over a Plains' {W} is a new state
 	art    uint8
+	typed  [kop.NumManaKinds]uint8 // the artifact-typed units by colour (the slots of art, a typed restricted batch)
 	tapped slotMask
 	// ctr: the counters of the counter-cost gaps (Vivid Meadow's charge
 	// counters): gorge's key reads every own permanent's counters
@@ -1205,10 +1205,35 @@ func (fs *filtSearch) stallOf(c *State) {
 // stateKey is the visited-state key of node t.
 func (fs *filtSearch) stateKey(k *prep, t *State) filtKey {
 	p := fs.p
-	key := filtKey{pool: t.pl[SeatIx(p)].pool, rb: t.rb[SeatIx(p)], sp: t.sp, hand: t.pl[SeatIx(p)].handN, gy: t.pl[SeatIx(p)].graveN}
+	key := filtKey{pool: t.pl[SeatIx(p)].pool, sp: t.sp, hand: t.pl[SeatIx(p)].handN, gy: t.pl[SeatIx(p)].graveN}
+	// gorge's key (scriptStateKey) reads the pool, a restricted unit included,
+	// by colour alone: Pool holds every floating unit, and the restriction
+	// that tags it is no part of the key. A restricted {U} beside a Relic's {W}
+	// is the state a Relic's {U} beside a restricted {W} is, so the second is
+	// a dedup hit there and must be one here, or the search spends nodes
+	// gorge's budget does not (CR 601.2g-h).
+	var rbPlain [kop.NumManaKinds]uint8
+	t.rbUnits(p, t.rbAll(p), &rbPlain)
+	for c, n := range rbPlain {
+		key.pool[c] += n
+	}
 	if k.artMana {
 		t.artSync(p)
-		key.art = t.g.poolArt[SeatIx(p)]
+		a := t.g.poolArt[SeatIx(p)]
+		key.art = a &^ (poolArtRestr | 1<<kop.NumManaKinds - 1) // the snow tag; the colour slots are typed below
+		// the typed units by colour, a restricted batch's included (gorge's
+		// ManaUnits: Heirloom's {U} and a Relic's {W} are both artifact mana,
+		// whichever made which)
+		for c := 0; c < kop.NumManaKinds; c++ {
+			if a&(1<<c) != 0 {
+				key.typed[c] = key.pool[c] - rbPlain[c]
+			}
+		}
+		if a&poolArtRestr != 0 {
+			for c := range key.typed {
+				key.typed[c] += rbPlain[c]
+			}
+		}
 	}
 	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
 		if sl := b.first(); t.perms[sl].flags&pfTapped != 0 {
@@ -1248,6 +1273,25 @@ func (fs *filtSearch) lifePass(k *prep, t *State, order []Slot, funded int) bool
 			continue
 		}
 		if fs.otherGap(k, t, sl, funded) {
+			return true
+		}
+	}
+	return false
+}
+
+// restrictedAnswers tries a restricted ability's colour answers (rm) of the
+// source at sl, after the census one's, the play's announced colours first
+// (gorge's scriptOrderAnswers on the same colour ask, CR 601.2b).
+func (fs *filtSearch) restrictedAnswers(k *prep, t *State, sl Slot, rm uint8, funded int, gapUsed bool) bool {
+	var order [kop.NumManaKinds]uint8
+	no := 0
+	for m := rm; m != 0; m &= m - 1 {
+		order[no] = uint8(bits.TrailingZeros8(m))
+		no++
+	}
+	needFirst(order[:no], fs.need)
+	for _, c := range order[:no] {
+		if fs.try(k, t, filtStep{sl: sl, ans: c, restr: true}, funded+1, gapUsed) {
 			return true
 		}
 	}
@@ -1376,10 +1420,8 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if bits.OnesCount8(rm) > 1 && !fs.tick() {
 				return false // the restricted ability's colour ask
 			}
-			for m := rm; m != 0; m &= m - 1 { // the restricted ability's answers, after the census one's
-				if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(m)), restr: true}, funded+1, gapUsed) {
-					return true
-				}
+			if fs.restrictedAnswers(k, t, sl, rm, funded, gapUsed) {
+				return true
 			}
 		}
 	}
