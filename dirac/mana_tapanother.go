@@ -378,17 +378,35 @@ func (s *State) tapXBoard(k *prep, p uint8) bool {
 	return !s.scriptGaps(k, p).any() || s.scriptTapX(k, p).any()
 }
 
+// tapXDeadEndRoute reports whether the board's Taps-deferred gaps (tapsDef,
+// non-empty) belong to the dead-end route, not the tap-another search: no
+// real tap-another source (a rider gap beside counter-cost ones, the DFS
+// search's rider step), or one the restricted routes own (tapXRiderGaps'
+// guard, whose mask empties beside them). Where the search's defer arm holds
+// the gaps (mana_tapxdefer.go, a Burning Earth deferring the play's own land
+// beside Ashnod's Altar, tx the modelled sources) the prefix is the search's.
+// scriptOffers' tx arm and tapXPrefix share it, so offer and replay agree.
+func (s *State) tapXDeadEndRoute(k *prep, p uint8, tx, tapsDef slotMask) bool {
+	return tapsDef.any() && !s.tapXRiderGaps(k, p).any() &&
+		(s.scriptRestr(k, p).or(s.scriptAnyR(k, p)).any() || !s.tapXDeferGaps(k, p, tx).any())
+}
+
 // tapXPrefix plays the search's script for play a at a tapX board; it
 // reports whether it handled the board (the caller then does nothing more).
 // A Taps-deferred rider gap beside counter-cost ones and no live real
-// tap-another source (tapXRiderGaps empty) is the scriptDeadEndAny route's
+// tap-another source (tapXRiderGaps empty, or the restricted routes' board
+// where that mask empties) is the scriptDeadEndAny route's
 // (scriptPrefixAny, mana_tapsdefer.go): the search here has no rider step
-// there, so a play the rider's mana funds would be left unfunded. Beside a
-// live tap-another source the search activates the rider gaps itself.
+// there, so a play the rider's mana funds would be left unfunded. Where its
+// defer arm holds the Taps-deferred gaps (mana_tapxdefer.go: a real
+// tap-another source is modelled, a Burning Earth deferring the play's own
+// land beside Ashnod's Altar) the search branches on them, and the board's
+// prefix is this search's.
 //
 //go:noinline
 func (s *State) tapXPrefix(k *prep, a Action, p uint8) bool {
-	if !s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).any() || (s.scriptTapsDefer(k, p).any() && !s.tapXRiderGaps(k, p).any()) {
+	tx := s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
+	if !tx.any() || s.tapXDeadEndRoute(k, p, tx, s.scriptTapsDefer(k, p)) {
 		return false
 	}
 	var d Decision
