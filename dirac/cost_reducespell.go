@@ -159,6 +159,8 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 			base = kop.ManaCost{}
 		} else if s.bld().altAdd == buildAltCost {
 			base = s.altBaseMana(k) // the cast pays its own alternative cost (gorge prices the probe with the cast's scope)
+		} else if e.mode&modeBestowed != 0 && e.bestowedEntry() {
+			base = cd.BestowCost // a bestowed cast prices each enchant-creature target at its bestow cost (Charix over Crystalline Nautilus)
 		} else if fb, ok := s.flashbackBase(k, e); ok {
 			base = fb // a flashback cast prices each target at its flashback cost, not the printed one (Charix over Sever the Bloodline)
 		} else if e.trigPl == trigPlMiracle && cd.HasMiracle {
