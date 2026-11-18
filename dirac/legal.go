@@ -46,10 +46,10 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	pl := &s.pl[p]
 	sorc := s.sorcerySpeed(p)
 	var av avail
-	// A cast prices a dynamic {T}, sacrifice source on the full surface
-	// (gorge's script route); the autopay surface drops a scripted plain cast
-	// (script_gen.go autopayDropsPlainCast).
-	av.dynSac = s.cfg&cfgGorgeAutopay == 0
+	// A cast's census leaves a dynamic {T}, sacrifice source out (avail.dynSac
+	// stays false): the counter-cost gap lists the cast that source funds
+	// (mana_sacctr.go), and gorge activates the source at priority (its script
+	// route), so a plain census cast would tap the printed sources instead.
 	haveAv := false
 	// faces: a table with built faces or a face-down card (one gate keeps
 	// the hand loop's registers as they were: facedown's perf blocker)
@@ -370,8 +370,8 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if k.anyRoom && sorc {
 			s.offerUnlocks(k, d, p) // CR 709.5e: special action (face_rooms.go)
 		}
-		s.g.availX = dynWas                    // the script walks below read their own modes
-		av.dynSac = s.cfg&cfgGorgeAutopay == 0 // the casts below price what the surface offers
+		s.g.availX = dynWas // the script walks below read their own modes
+		av.dynSac = false   // the casts below leave the dynamic sacrifice source to its counter-cost gap
 		haveAv = false
 		var capSpent Decision // the plays grantCap's grant search refused within gorge's budget
 		if len(k.gen.grantPC) != 0 && s.g.availX == 0 {
@@ -397,8 +397,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 // activateOffers appends p's printable activated abilities to d and reports
 // whether av was built. The walk's census carries dynSac when the table has
 // dynamic-amount variants (priorityOptions): an activated-ability offer
-// prices a dynamic {T}, sacrifice source on either surface, a cast on the full
-// surface (the autopay surface drops a scripted plain cast).
+// prices a dynamic {T}, sacrifice source, unlike a cast.
 func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *avail, haveAv bool) bool {
 	m := s.ctrlM[p]
 	for m.any() {
@@ -2285,6 +2284,9 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	}
 	if ab.Cost.Flags&kop.CostOncePerTurn != 0 && j < 8 && pp.actUsed&(1<<j) != 0 {
 		return false // Gravestone Strider, used this turn
+	}
+	if sacCtrManaAb(ab) && pp.ctrN(s, int(ab.ManaV.N)) <= 0 {
+		return false // a counter-scaled sacrifice source with no counter adds nothing (mana_sacctr.go; gorge manaAbilityYieldsNothing)
 	}
 	if ab.Cost.Flags&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, ab) {
 		return false // Loot, the Pathfinder's exhaust mana ability

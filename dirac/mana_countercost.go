@@ -189,6 +189,9 @@ func (s *State) availCtr(k *prep, p uint8, av *avail) {
 		if sacCtrManaAb(a) {
 			if n := s.sacCtrUnits(sl, a); n > 0 {
 				av.addUnits(uint8(a.ManaColors)&0x3f, uint8(n)) // its live counters (mana_sacctr.go)
+				if ctrAnyColour(a) && n > 1 {
+					s.addOneColour(av, uint8(n)) // X of any ONE colour (CR 106.4): the Hall bound must not read them as independent
+				}
 			}
 			continue
 		}
