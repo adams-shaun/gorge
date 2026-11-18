@@ -1,4 +1,6 @@
 A-Goma Fada Vanguard
+A-Knockout Blow
+A-Prosperous Thief
 Aether Gale
 Afterlife
 Aftershock
@@ -7,15 +9,22 @@ Angelic Benediction
 Angler Turtle
 Anoint with Affliction
 Arcane Encyclopedia
+Arcbound Fiend
+Archon of Justice
 Armory of Iroas
 Artisan's Sorrow
 Asari Captain
+Atarka Monument
+Automated Assembly Line
 Aven Trooper
 Awakened Awareness
+Baral's Expertise
 Barkchannel Pathway
 Barren Moor
 Battle Mammoth
+Benthic Djinn
 Black Cat
+Black Lotus
 Blood Clock
 Bloodhunter Bat
 Border Patrol
@@ -26,28 +35,40 @@ Cabal Ritual
 Call for Blood
 Call of the Herd
 Call the Bloodline
+Canal Monitor
 Cantivore
+Chandra's Spitfire
+Charmbreaker Devils
 Chrome Prowler
 Clay Statue
 Clergy en-Vec
 Coastal Hornclaw
 Coercive Impetus
+Colossal Whale
+Consecrated Sphinx
 Courtly Provocateur
+Cradle of the Accursed
 Crippling Chill
 D'Avenant Archer
 Daggerback Basilisk
 Dakmor Scorpion
 Darba
 Dark Revenant
+Darkblade Agent
 Darkness
 Dauntless Survivor
+Dauntless Unity
 Dawntreader Elk
 Daxos, Blessed by the Sun
 Deadeye Brawler
+Deadly Alliance
 Deepwood Drummer
 Defensive Stance
+Descend upon the Sinful
 Desert Sandstorm
+Didn't Say Please
 Disembowel
+Draconic Lore
 Dross Crocodile
 Dunland Crebain
 Dusk's Landing
@@ -57,15 +78,20 @@ Enchanted Carriage
 Enchantress's Presence
 Encroaching Wastes
 Encrust
+Endure
 Ertai's Scorn
 Evasive Action
 Exhume
 Eye Collector
+Faerie Formation
 Family's Favor
 Farbog Boneflinger
+Favor of the Woods
 Feebleness
 Ferocious Charge
+Ferocity of the Wilds
 Fierce Retribution
+Final Payment
 Fire Nation Ambushers
 Fires of Undeath
 Fleet-Footed Monk
@@ -74,11 +100,18 @@ Fomori Nomad
 Forced Adaptation
 Forest
 Foul Imp
+Frilled Sea Serpent
 Furnace Strider
+Furtive Analyst
+Garrison Cat
 Genesis Ultimatum
 Ghirapur Gearcrafter
+Giant-Man, Gargantuan Genius
+Glissa, the Traitor
 Glowrider
+Goblin Anarchomancer
 Goblin Assault Team
+Goblin Cratermaker
 Goblin Gathering
 Goblin Roughrider
 Goblin Swine-Rider
@@ -89,6 +122,7 @@ Gryff's Boon
 Guardian Scalelord
 Guardian Zendikon
 Guardian of Solitude
+Havoc Demon
 Heart-Piercer Manticore
 Hearth Charm
 Heedless One
@@ -96,11 +130,18 @@ Hermit Druid
 Hired Poisoner
 Hoar Shade
 Hoard-Smelter Dragon
+Hollowhenge Overlord
 Horned Sliver
 Hunter's Prowess
+Icy Blast
 Incursion Specialist
+Inner Fire
+Instrument of the Bards
 Iron-Barb Hellion
 Island
+Iymrith, Desert Doom
+Jokulhaups
+Juniper Order Ranger
 Junkyo Bell
 Kaito's Pursuit
 Kathari Bomber
@@ -108,6 +149,7 @@ Kazandu Nectarpot
 Keldon Necropolis
 Kemba's Banner
 Kindred Discovery
+Kiora's Dambreaker
 Knight Errant
 Kor Sky Climber
 Korozda Guildmage
@@ -125,15 +167,21 @@ March from the Black Gate
 Marsh Lurker
 Martyrs' Tomb
 Merfolk Branchwalker
+Merrow Commerce
 Mesmeric Trance
 Metropolis Reformer
 Might of the Old Ways
+Mind Shatter
 Mindleech Ghoul
 Mindshrieker
 Misshapen Fiend
 Mountain
+Munitions Expert
 Myrel, Shield of Argive
+Nacatl Outlander
 Nath's Buffoon
+Nebelgast Beguiler
+Necromancer's Assistant
 Nevinyrral's Disk
 Niambi, Esteemed Speaker
 Niblis of Dusk
@@ -141,34 +189,52 @@ Nimble Hobbit
 Oakhame Adversary
 Oblivion's Hunger
 Oboro Envoy
+Obsessive Search
 Octomancer
 Ogre Errant
+Omnibian
 Orchard Strider
+Orcish Bloodpainter
+Orcish Oriflamme
 Ordruun Commando
 Origin Spellbomb
+Oriq Loremage
+Orzhov Cluestone
 Orzhov Racketeers
 Parish-Blade Trainee
 Peer into the Abyss
 Permission Denied
 Pestilent Cauldron
+Phantasmal Image
 Phantom Whelp
+Phyrexian Scriptures
 Plains
 Provoke
 Puncture Bolt
 Quicken
+Ramroller
 Reduce to Ashes
+Renegade Firebrand
+Resolute Archangel
 Rishadan Brigand
 Ritual of the Machine
 Rock Slide
+Rubblebelt Maaka
+Ruthless Winnower
+Sai, Master Thopterist
 Sandblast
 Scent of Nightshade
+Schismotivate
 Scourge Devil
 Scourge of Geier Reach
 Scrapyard Mongrel
+Sea Hag
 Secret Rendezvous
+Seedborn Muse
 Shield Wall
 Shoreline Salvager
 Siege Zombie
+Siegfried, Famed Swordsman
 Silumgar Sorcerer
 Silver-Inlaid Dagger
 Simian Simulacrum
@@ -176,46 +242,73 @@ Sinister Starfish
 Sister Hospitaller
 Skylasher
 Skyline Despot
+Sleep
 Slip Through Space
 Smite the Monstrous
 Soaring Show-Off
+Soltari Lancer
+Soul Summons
 Soul of Migration
+Soul of Shandalar
 Soulsurge Elemental
 Sparktongue Dragon
 Sparring Construct
 Spell Crumple
+Sphinx Mindbreaker
 Spire Tracer
+Stalking Vengeance
 Stone Retrieval Unit
 Stonybrook Angler
 Stormcaller of Keranos
 Strands of Undeath
 Strength of Cedars
+Sun-Crested Pterodon
 Suntail Hawk
 Survey the Wreckage
 Swamp
+Sword of Body and Mind
 Taigam's Strike
 Tarkir Charm
 Tarpan
 Thassa's Emissary
+The Marvelous Scientist
+Thought Erasure
 Thranduil the Strategist
+Thrash of Raptors
 Thrull Parasite
 Thunderfoot Baloth
 Titan Hunter
 Towashi Songshaper
 Tribute to Horobi
 Trickster's Talisman
+Turn to Slag
+Uncle's Musings
 Unyaro Bees
+Vampirism
 Vanguard of Brimaz
 Venerable Knight
+Village Pillagers
+Violent Eruption
 Viper, Cruel Conspirator
+Visage of Bolas
 Vivify
+Vodalian Illusionist
+Voice of the Woods
+Vona, Butcher of Magan
 Voracious Wurm
 Vraska's Scorn
+Wall of Tanglecord
 War-Spike Changeling
+Warden of the Chained
 Waterfront Bouncer
 Welkin Guide
+Whirlwind Adept
+Wily Goblin
+Winged Boots
 Wishful Merfolk
 Witherbloom Pledgemage
 Woodland Mystic
+Wu Light Cavalry
+Wydwen, the Biting Gale
 You're Ambushed on the Road
 Young Wei Recruits

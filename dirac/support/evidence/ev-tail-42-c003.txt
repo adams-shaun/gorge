@@ -1,93 +1,169 @@
+A-Cori-Steel Cutter
 A-Meria's Outrider
 A-Ominous Parcel
 Adaptive Snapjaw
+Aerial Engineer
+Aether Inspector
+Akroan Sergeant
+Alluring Suitor
 Alpha Tyrranax
 Angler Turtle
+Anodet Lurker
+Answered Prayers
+Ant Queen
 Armory Guard
+Astral Dragon
 Audacious Infiltrator
 Aven Mindcensor
 Barrage Tyrant
 Besmirch
 Bewilder
+Big Score
 Blood Burglar
+Bloodline Culling
+Boil
+Bountiful Harvest
 Breaching Hippocamp
 Brimstone Volley
+Burning Fields
 Burning Hands
 Burning Oil
+Captain's Hook
+Carnage Wurm
 Carrion Call
 Centaur Healer
+Cessation
 Chaos Terminator Lord
+Claws of Valakut
+Cleric of Chill Depths
+Clock of Omens
 Coldsteel Heart
+Confidence from Strength
+Conqueror's Pledge
 Consuming Corruption
+Containment Construct
+Corpse Cur
+Crooked Custodian
 Cystbearer
 Dark Prophecy
+Dauthi Embrace
 Dawnbringer Charioteers
 Disciple of the Vault
 Dross Crocodile
 Echoing Ruin
+Essence Depleter
 Evolution Sage
+Exemplar of Strength
 Feral Abomination
+Fervent Champion
 Fireflux Squad
 Flatten
+Fledgling Osprey
+Fling
 Flywheel Racer
 Forerunner of Slaughter
 Forest
+Forked Bolt
 Funnel-Web Recluse
 Furnace Spirit
 Gadwick, the Wizened
+Gala Greeters
 Galadhrim Bow
 Gauntlet of Might
 Ghoulsteed
 Glimpse the Unthinkable
+Goblin Matron
 Goblin Mountaineer
+Goblin Ringleader
 Goblin Scouts
+Goblin Sledder
 God-Eternal Bontu
 Goreclaw, Terror of Qal Sisma
 Grasp of Darkness
+Greater Auramancy
 Griffin Dreamfinder
+Grizzled Angler
 Harvest Wurm
+Heavyweight Demolisher
+Here Comes a New Hero!
+High Seas
+Hindervines
 Horizon Explorer
 Horn of Gondor
 Hovermyr
 Idle Thoughts
 Ill-Gotten Inheritance
 Immolating Souleater
+Incremental Growth
 Intrepid Hero
 Island
+Jedit Ojanen, Mercenary
+Jousting Dummy
+Junk Winder
 Kamahl's Desire
+Kindly Customer
 Krosan Archer
+Leaping Lizard
 Legion Leadership
+Leonin of the Lost Pride
 Lifelink
 Living Lands
 Lucid Dreams
+Lurebound Scarecrow
+Lurking Nightstalker
+Lys Alana Huntmaster
 Lyzolda, the Blood Witch
+Maga, Traitor to Mortals
 Manipulate Fate
+Mardu Runemark
 Master Transmuter
 Meteoric Mace
+Mishra's Command
+Mite Overseer
 Mogg Alarm
+Morkrut Banshee
+Mossbeard Ancient
 Mosstodon
 Mountain
 Mugging
+Myr Adapter
 Mystic Snake
+Needlethorn Drake
 Nether Horror
 Night Market Aeronaut
+Nova Flame
 Ob Nixilis, the Fallen
 Oni of Wild Places
+Overload
+Pack's Betrayal
 Pelakka Predation
+Perimeter Captain
+Phantasmal Dreadmaw
+Phyrexian Denouncer
 Piety
 Plains
 Prismatic Strands
+Protective Bubble
 Psychic Impetus
 Ral's Dispersal
+Reality Heist
 Recall
 Resurrection Orb
 Ridgescale Tusker
+Sacred Armory
+Sage's Dousing
+Samite Archer
 Samut's Sprint
 Sandsteppe Scavenger
 Sandstorm
+Satyr Hoplite
 Satyr Nyx-Smith
 Scalding Devil
+Scholar of Athreos
+Scuttling Doom Engine
+Scythecat Cub
 Serene Steward
+Severed Legion
 Sewer Rats
 Shadow of Mortality
 Shaman of the Pack
@@ -95,35 +171,57 @@ Shamble Back
 Shauku's Minion
 Silt Crawler
 Silver Raven
+Silverquill Lecturer
+Silverwing Squadron
 Simic Sky Swallower
 Skymark Roc
 Spellbook
+Spider Spawning
 Spiderwig Boggart
 Spike Drone
 Squirrel Nest
 Stolen Grain
 Stolen Vitality
+Strength of Isolation
+Sunbringer's Touch
+Suppression Bonds
 Swamp
 Sweatworks Brawler
+Swelter
 Tatyova, Steward of Tides
+Temporal Manipulation
 Thalia's Lancers
 The Cauldron of Eternity
 Thirsting Bloodlord
 Thoughtcutter Agent
 Thran Spider
+Tome Raider
 Traitor's Clutch
+Trench Stalker
+Tribute to Horobi
+Trostani's Summoner
+Trufflesnout
+Turntimber Ranger
 Twitch
 Ultimate Price
+Unbreathing Horde
+Undead Warchief
 Unicycle
 Ursine Champion
+Vedalken Orrery
 Viashino Firstblade
 Villainous Ogre
 Volcanic Fallout
+Waking the Trolls
 War-Torch Goblin
 Water Servant
 Weatherlight
+Welder Automaton
 Weldfast Engineer
 Wellspring
+Wings of Aesthir
+Woodland Bellower
+Wrangle
 Wrenn's Resolve
 Wyluli Wolf
 Zirilan of the Claw

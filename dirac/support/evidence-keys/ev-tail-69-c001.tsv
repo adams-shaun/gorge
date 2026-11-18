@@ -1,0 +1,60 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Accomplished Automaton	acf5125569525d0f	8	1/1		1/1	
+Ancient Amphitheater	5b49df9c646cfb9e	59	1/1		0/1	ix:resp
+Arctic Flats	910f4bd012607376	89	1/1		0/1	ix:resp
+Balduvian Conjurer	89057392610de9d3	11	1/1		1/1	
+Blood-Chin Fanatic	cd4f331a6bc25d14	16	1/1		1/1	
+Caldera Lake	8b7068020647978c	66	2/2		0/1	ix:resp
+Chandra's Flame Wave	41a315a30dc47bba	3	0/0		1/2	ix:resp
+Clamavus	af134366970fbb98	12	0/0		0/0	
+Council of Advisors	8f1c2a47d34afdd1	8	1/1		1/1	
+Curse of Obsession	716ca63a80c517ab	8	2/2		1/2	ix:resp
+Deeproot Warrior	5f07a3d4e10e10f0	9	1/1		0/1	ix:resp
+Demonspine Whip	a4ffcf214363c83e	8	2/2		1/1	
+Duskdale Wurm	8cf42bbc1e1304e1	4	0/0		0/0	
+Foul Watcher	34c19bf13b614a4a	13	1/1		0/1	ix:resp
+Garruk Wildspeaker	3493ff5336d68c0c	4	3/3		0/1	ix:resp
+Ghostly Wings	55376e45c07a7477	8	1/1		2/2	
+Gigantiform	b6d87d97c7f133a7	3	1/1		3/6	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Gnoll War Band	1740fbbbffadda32	3	1/1		1/1	
+Graaz, Unstoppable Juggernaut	2762731a83de14e7	7	0/0		0/0	
+Grasping Giant	4d717c8365319fcd	7	1/1		0/1	ix:resp
+Gray Slaad	78c79d47ab0226ab	19	0/0		2/2	
+Ice-Fang Coatl	22fb34dea8535c2e	6	1/1		0/1	ix:resp
+In Bolas's Clutches	b9a5f22cd3d171b2	7	0/0		1/2	ix:resp
+Ingenuity Engine	5de03df13d2c00c2	7	1/1		1/1	
+Interceptor, Shadow's Hound	65192ead1ec5de3f	6	1/1		0/1	ix:resp
+Iron Lance	aea84959046668e3	12	1/1		0/1	ix:resp
+Jump	cb548ef0ee8bf639	16	0/0		2/2	
+Knight of the Tusk	49a369028efb3e79	4	0/0		0/0	
+Lounge	d6d032a1df7e850c	76	2/2		1/1	
+Mana Leak	dff236b6dfb2471f	17	0/0		2/2	
+Molten Influence	8e454f73e6dd4873	6	0/0		1/2	ix:resp
+Nullhide Ferox	2ca37245491d32e6	6	1/1		1/1	
+Peema Outrider	a08fe7ed3793fea4	6	1/1		0/1	ix:resp
+Phyrexian Walker	a2eb3772ad986c41	16	0/0		0/0	
+Primetime Suspect	9eb72f4768bd9525	6	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Protean Thaumaturge	da000ff0ff6266a8	20	1/1		0/1	ix:resp
+Redeem the Lost	a7ee522a30bc1392	10	0/0		1/2	ix:resp
+Restore the Peace	0cf62a4c515eba46	4	0/0		1/2	ix:resp
+Root Out	a9f84aa519f39d4a	6	0/0		1/2	ix:resp
+Sailor of Means	96018a20dd8c5283	21	1/1		1/1	
+Saprazzan Heir	7d6b836317867668	22	1/1		0/1	ix:resp
+Scarecrow	11377e56f9ee9efb	18	1/1		1/1	
+Sky Spirit	436a7b7b921eae61	12	0/0		0/0	
+So Shiny	fc07ed2618b128c0	10	1/1		2/2	
+Spectral Shield	e19e1d61261e87d5	3	0/0		1/2	ix:resp
+Surge Conductor	50844efaba6b48a8	4	1/1		0/1	ix:resp
+Sylvan Anthem	6e260811fc15690a	6	1/1		1/1	
+Tavern Swindler	8a1b28b175477f68	11	1/1		1/1	
+Thing in the Ice	ce7a20f557c9ee72	4	2/2		0/1	ix:resp
+Thirst for Meaning	6ff3a103797a4749	24	0/0		2/2	
+Thorn of the Black Rose	50e50d5e0b1a1109	4	1/1		1/1	
+Throne of Geth	661ac625c14fe905	6	1/1		0/1	ix:resp
+Ukkima, Stalking Shadow	a00039399456b047	6	2/2		0/1	ix:resp
+Venser's Sliver	63f79430395a7b26	18	0/0		0/0	
+Waterfront District	f39100c1ed6ed6c6	66	2/2		0/1	ix:resp
+Wolfir Avenger	ceef52c3b2be84b5	3	1/1		1/1	
+You Meet in a Tavern	a76c3d21341dde86	5	0/0		1/2	ix:resp
+Zagoth Triome	0fcfbdfe01a0a760	55	4/4		0/1	ix:resp
+Zhalfirin Lancer	6cef74f90de2f543	4	1/1		0/1	ix:resp

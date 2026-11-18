@@ -18,9 +18,11 @@ Ancient Tomb
 Angelic Sleuth
 Anoint
 Anointer of Champions
+Anvilwrought Raptor
 Arachnoid Adaptation
 Aragorn and Arwen, Wed
 Arashin Foremost
+Arcbound Stinger
 Archangel Avacyn
 Archnemesis
 Arctic Wolves
@@ -38,11 +40,13 @@ Basal Thrull
 Battlewise Aven
 Beast Attack
 Beast in Show
+Become Immense
 Behemoth Sledge
 Benevolent Ancestor
 Bile Urchin
 Bloodhaze Wolverine
 Bloodpyre Elemental
+Bolas's Citadel
 Bonds of Quicksilver
 Bone Picker
 Boon of Boseiju
@@ -53,6 +57,7 @@ Bosco, Just a Bear
 Bosh, Iron Golem
 Bosk Banneret
 Braids, Cabal Minion
+Breath of the Sleepless
 Bubble Snare
 Bump in the Night
 Burning Hands
@@ -75,6 +80,7 @@ Cloudreader Sphinx
 Coal Stoker
 Cogworker's Puzzleknot
 Collective Voyage
+Conclave Tribunal
 Conservatory
 Corpse Cur
 Creeping Corrosion
@@ -90,6 +96,7 @@ Deep-Sea Terror
 Defiant Salvager
 Demonmail Hauberk
 Desperate Castaways
+Devout Lightcaster
 Diplomacy of the Wastes
 Djinni Windseer
 Dragonspeaker Shaman
@@ -99,13 +106,16 @@ Drowner of Hope
 Duskmantle Operative
 Eidolon of the Great Revel
 Eiganjo Exemplar
+Eldritch Immunity
 Electrolyze
 Ellyn Harbreeze, Busybody
 Elven Fortress
 Encampment Keeper
+Enchanted Prairie
 Endless Ranks of the Dead
 Enlightened Maniac
 Epiphany Storm
+Esquire of the King
 Eternal Thirst
 Ethereal Investigator
 Ethrimik, Imagined Fiend
@@ -122,12 +132,14 @@ Fathom Fleet Boarder
 Fearsome Awakening
 Feed the Clan
 Feral Maaka
+Ferocity
 Fervent Paincaster
 Fierce Guardianship
 Fire Ants
 Fire Covenant
 Fire Nation Soldier
 Fireborn Knight
+Firemane Avenger
 Firemane Commando
 Fireslinger
 Firewake Sliver
@@ -151,10 +163,13 @@ Garruk's Gorehorn
 Geomancer's Gambit
 Ghost-Lit Redeemer
 Ghostfire Blade
+Glaciers
 Glory Bearers
 Gnaw to the Bone
 Gnottvold Hermit
+Gnottvold Slumbermound
 Goblin Assault
+Goblin Bomb
 Goblin Boom Keg
 Goblin Locksmith
 Goldmeadow Dodger
@@ -185,11 +200,13 @@ Huang Zhong, Shu General
 Humble Naturalist
 Hunger of the Nim
 Idyllic Beachfront
+Ifnir Deadlands
 Ignite the Future
 Imaginary Friends
 Immersturm Skullcairn
 Invasion of Dominaria
 Invasion of Kaldheim
+Invigorating Hot Spring
 Ioreth of the Healing House
 Iroh, Firebending Instructor
 Ironwright's Cleansing
@@ -206,6 +223,7 @@ King Macar, the Gold-Cursed
 Kinsbaile Borderguard
 Kirtar's Wrath
 Kitchen
+Knight Errant
 Kolaghan Monument
 Kor Hookmaster
 Laboratory Brute
@@ -226,6 +244,7 @@ Merfolk Pupil
 Merfolk Trickster
 Metallic Mimic
 Military Discipline
+Mindmoil
 Mishra's Helix
 Mistcutter Hydra
 Mobilized District
@@ -301,6 +320,7 @@ Scale of Chiss-Goria
 Scion of Calamity
 Scorchmark
 Sea Gate
+Seraph Sanctuary
 Seven-Tail Mentor
 Sever Soul
 Shell Skulkin
@@ -327,6 +347,7 @@ Soul Kiss
 Sparksmith
 Sparring Construct
 Spiteful Sliver
+Staff of the Death Magus
 Stampeding Serow
 Stampeding Wildebeests
 Staunch Throneguard
@@ -337,6 +358,7 @@ Sundering Growth
 Sunken Hope
 Swamp
 Sweep the Skies
+Sword of Fire and Ice
 Taj-Nar Swordsmith
 Talas Air Ship
 Talonrend
@@ -366,6 +388,7 @@ Urborg Stalker
 Valkyrie Harbinger
 Venarian Gold
 Venerable Lammasu
+Venerated Rotpriest
 Vengeant Vampire
 Verdigris
 Verix Bladewing
@@ -390,6 +413,7 @@ Wild Elephant
 Wild Might
 Wind Spirit
 Windscouter
+Witch Enchanter
 Yawgmoth's Agenda
 Your Temple Is Under Attack
 Yuffie, Materia Hunter

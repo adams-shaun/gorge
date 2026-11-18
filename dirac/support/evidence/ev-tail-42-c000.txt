@@ -28,6 +28,7 @@ Ardent Soldier
 Armored Ascension
 Armory Guard
 Ashiok's Adept
+Assemble the Legion
 Astral Dragon
 Attended Healer
 Audacious Infiltrator
@@ -113,6 +114,7 @@ Dire Fleet Warmonger
 Disciple of Malice
 Disciple of the Vault
 Divine Smite
+Djeru's Resolve
 Doomskar Titan
 Dragon-Cursed Halls
 Dread Slaver
@@ -124,6 +126,7 @@ Eidolon of Inspiration
 Elfhame Palace
 Elvish Ranger
 Ember Hauler
+Embermaw Hellion
 Emergency Weld
 Endless Sands
 Energy Storm
@@ -202,6 +205,7 @@ Helm of the Host
 Herald of Anguish
 Here Comes a New Hero!
 High Seas
+Hindervines
 Holdout Settlement
 Horizon Explorer
 Horn of Gondor
@@ -286,6 +290,7 @@ Nether Horror
 Night Market Aeronaut
 Nimbus Champion
 Nirkana Cutthroat
+Nostalgic Dreams
 Nova Flame
 Ob Nixilis, the Fallen
 Oni of Wild Places
@@ -333,6 +338,7 @@ Reality Heist
 Reborn Hope
 Recall
 Renegade Reaper
+Resplendent Griffin
 Resurrection Orb
 Ridgescale Tusker
 Roilmage's Trick
@@ -466,6 +472,8 @@ Weldfast Engineer
 Wellspring
 Whisper Agent
 Wild Celebrants
+Wildwood Escort
+Wings of Aesthir
 Wings of Hope
 Wolf's Quarry
 Woodland Bellower

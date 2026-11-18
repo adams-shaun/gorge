@@ -176,6 +176,7 @@ Gloomdrifter
 Gnarled Mass
 Goblin Gaveleer
 Goblin Skycutter
+Goblins of the Flarg
 Goldenhide Ox
 Grasping Scoundrel
 Gray Harbor Merfolk
@@ -188,6 +189,7 @@ Heart Sliver
 Heir of the Ancient Fang
 Heir of the Wilds
 Helionaut
+Helium Squirter
 Herald of Secret Streams
 Hoarding Ogre
 Hollow Trees
@@ -223,6 +225,7 @@ Kessig Wolf
 Kokusho, the Evening Star
 Lagonna-Band Elder
 Launch Mishap
+Lava Blister
 Leaping Master
 Ledev Guardian
 Lesser Gargadon
@@ -239,6 +242,7 @@ Lowland Oaf
 Lumengrid Gargoyle
 Mad Dog
 Magma Giant
+Mammoth Umbra
 Marshal of Zhalfir
 Master Symmetrist
 Match the Odds
@@ -329,8 +333,10 @@ Samite Healer
 Sanctum of Tranquil Light
 Saproling Migration
 Sarkhan's Scorn
+Savaen Elves
 Scarwood Goblins
 Scent of Brine
+Scion of Darkness
 Scoria Cat
 Scuttling Sliver
 Scythe Tiger
@@ -373,6 +379,7 @@ Sower of Temptation
 Spark Spray
 Sparksmith
 Spatial Contortion
+Spawn of Rix Maadi
 Spawn of Thraxes
 Spectral Grasp
 Spike Soldier
@@ -407,6 +414,7 @@ Talas Air Ship
 Talas Explorer
 Talas Merchant
 Talon of Pain
+Tanglesap
 Tempered Sliver
 Tempest Harvester
 Terra Stomper

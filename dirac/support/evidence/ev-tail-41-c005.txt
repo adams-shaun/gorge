@@ -13,6 +13,7 @@ Chandra's Pyreling
 Chaos Harlequin
 Charging Monstrosaur
 Cogwork Archivist
+Commissar Severina Raine
 Crack the Earth
 Cruel Bargain
 Dalakos, Crafter of Wonders
@@ -26,6 +27,7 @@ Faceless Devourer
 Faerie Invaders
 Fiend Binder
 Flare of Duplication
+Flaxen Intruder
 Flood of Recollection
 Flowstone Overseer
 Flutterfox
@@ -53,6 +55,7 @@ Marble Diamond
 Maw of the Mire
 Merfolk Sovereign
 Minister of Pain
+Morale
 Mountain
 Mountain Bandit
 Multani's Acolyte
@@ -66,6 +69,7 @@ Pontiff of Blight
 Rampaging Ferocidon
 Ravenous Baboons
 Reckless Abandon
+Revive the Fallen
 Root Snare
 Rottenheart Ghoul
 Seal of Doom
@@ -83,6 +87,7 @@ Slaughter Specialist
 Smoke Bomb
 Spell Contortion
 Spire Barrage
+Staunch Defenders
 Stone Retrieval Unit
 Striking Sliver
 Sturmgeist
@@ -98,6 +103,7 @@ Tracker's Instincts
 Underworld Charger
 Unexpected Fangs
 Untamed Might
+Valiant Knight
 Warfire Javelineer
 Warren Soultrader
 Xathrid Slyblade

@@ -9,6 +9,7 @@ Ali Baba
 Ambassador Oak
 Ancestral Tribute
 Ancient Brontodon
+Ankle Shanker
 Archon of Cruelty
 Ardent Recruit
 Argent Dais
@@ -18,6 +19,7 @@ Arrest
 Arrogant Vampire
 Artillery Blast
 Artistic Refusal
+Ashaya's Enduring Bond
 Aspect of Mongoose
 Aurora Champion
 Avacynian Missionaries
@@ -71,6 +73,7 @@ Cerulean Sphinx
 Cerulean Wisps
 Charge Across the Araba
 Chief Engineer
+Chulane, Teller of Tales
 Clear the Stage
 Cobbled Wings
 Confound
@@ -163,6 +166,7 @@ General Marhault Elsdragon
 Genesis Ultimatum
 Ghitu Slinger
 Gift of Compleation
+Glade Gnarr
 Glimmerdust Nap
 Glimpse the Sun God
 Glittering Wish
@@ -171,6 +175,7 @@ Goblin Kaboomist
 Goblin Tunneler
 Goblin War Buggy
 Golden-Tail Trainer
+Golgari Longlegs
 Graf Harvest
 Grand Arbiter Augustin IV
 Grateful Apparition
@@ -271,6 +276,7 @@ Mothdust Changeling
 Mountain
 Mounted Dreadknight
 Murderer's Axe
+Myojin of Night's Reach and Grim Betrayal
 Naban, Dean of Iteration
 Necra Sanctuary
 Nested Ghoul
@@ -319,6 +325,7 @@ Quilled Slagwurm
 Rabid Elephant
 Rageblood Shaman
 Raging Kronch
+Raging Regisaur
 Rally the Peasants
 Rancid Earth
 Ravenous Leucrocota
@@ -335,7 +342,9 @@ Righteous Valkyrie
 Roadside Reliquary
 Roast
 Robot Chicken
+Rogue Class
 Rot Hulk
+Rukarumel, Biologist
 Run for Your Life
 Rush the Room
 Sacred Wolf
@@ -415,7 +424,9 @@ The Dross Pits
 The Howling Commandos
 The Mending of Dominaria
 The Roaring Toeclaws
+Thoughtbound Phantasm
 Thraben Watcher
+Thrash
 Thunder Totem
 Timberpack Wolf
 Tinker
@@ -427,6 +438,7 @@ Torpid Moloch
 Tower Worker
 Trench Gorger
 Tri-Sentinel, Act of Vengeance
+Triassic Egg
 Trigon of Mending
 Trumpeting Herd
 Tuktuk Scrapper

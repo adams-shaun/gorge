@@ -16,6 +16,7 @@ Bretagard Stronghold
 Brushwagg
 Careless Celebrant
 Carnophage
+Carrion Crow
 Charging Tuskodon
 Cloudreach Cavalry
 Coastal Piracy
@@ -54,10 +55,13 @@ Island
 Koma's Faithful
 Lifeblood Hydra
 Malakir Cullblade
+Marsh Gas
 Mauhúr, Uruk-hai Captain
+Midnight Banshee
 Minotaur Tactician
 Mountain
 Necromancer's Assistant
+Netherborn Altar
 Nylea's Emissary
 Orochi Leafcaller
 Petrified Field
@@ -66,8 +70,10 @@ Piety
 Plains
 Raffine's Silencer
 Reckless Imp
+Renegade Reaper
 Repulse
 Restoration Specialist
+Revenant
 Rootwater Diver
 Ruthless Sniper
 Sanctum Seeker
@@ -75,6 +81,7 @@ Sculpting Steel
 Shalai, Voice of Plenty
 Shifting Sliver
 Short Sword
+Silverquill Command
 Skarrg Guildmage
 Skittering Heartstopper
 Slumbering Waterways

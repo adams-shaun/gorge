@@ -1,102 +1,179 @@
+A-Death-Priest of Myrkul
 Abnormal Endurance
 Abyssal Hunter
 Ace, Fearless Rebel
 Agent of the Iron Throne
+Akroan Horse
 Alchemist's Retrieval
+Alirios, Enraptured
+Altar of Dementia
+Ambush
+Ancient Excavation
+Arasta of the Endless Web
 Archon of Emeria
 Argothian Pixies
 Arisen Gorgon
+Ark of Blight
 Arms of Hadar
+Assembly-Worker
+Axelrod Gunnarson
+Barrier of Bones
+Bayou
 Bitter Revelation
 Blood Fountain
 Blood Ogre
 Bloodfire Kavu
+Bog Gnarr
 Bone Flute
+Boon Satyr
 Boon of the Spirit Realm
 Borrowed Hostility
+Brilliant Spectrum
 Brokers Veteran
 Broodbirth Viper
 Canal Monitor
 Carrion
+Carrion Rats
+Castle Ardenvale
 Cateran Slaver
 Ceaseless Conflict
+Chill
+Chittering Dispatcher
 Citizen's Crowbar
 Clutch of Undeath
+Conduit of Ruin
 Contagion
+Corpsehatch
+Corrupt Official
 Crash of Rhinos
 Creepy Puppeteer
 Crossway Vampire
 Crude Rampart
+Cybermat
 Cyclonic Rift
+Dakmor Scorpion
 Dakmor Sorceress
+Dark Prophecy
 Dawning Purist
 Dawnray Archer
 Deconstruct
+Demanding Dragon
+Disciple of Tevesh Szat
 Dolmen Gate
 Donate
+Dormant Volcano
+Dragon Blood
+Dragon Engine
+Dragon Tempest
+Drake-Skull Cameo
+Eiganjo Castle
 Electrostatic Bolt
+Electrostatic Field
+Elfhame Palace
 Erratic Visionary
+Etched Monstrosity
+Everythingamajig
 Evincar's Justice
+Fae Offering
 Farmstead
 Fate Foretold
 Fathom Fleet Firebrand
+Feral Lightning
 Festering March
+Fit of Rage
 Flaming Fist
 Fleshmad Steed
 Flowstone Blade
+Flowstone Overseer
 Flying Men
+Forerunner of the Heralds
 Forest
+Forgotten Sentinel
+Fortitude
 Foundry Screecher
 Frenzied Raptor
 Furnace Celebration
 Fyndhorn Pollen
+Gather Courage
 Gempalm Sorcerer
 Geralf's Masterpiece
+Ghastly Gloomhunter
+Ghostly Visit
+Giltgrove Stalker
 Gitaxian Probe
 Glimpse the Unthinkable
+Glinting Creeper
 Gloom Sower
 Goblin Berserker
 Goblin Grenadiers
+Goblin Machinist
 Goblin Wizardry
 Gorilla Titan
+Gravelighter
 Grenzo's Cutthroat
+Grim Giganotosaurus
 Grim Initiate
 Grotag Night-Runner
 Guul Draz Vampire
+Hand of the Praetors
 Harpoon Sniper
 Hexplate Wallbreaker
 Hissing Miasma
+Hoarding Recluse
 Hollowhenge Spirit
 Hunter's Bow
+Hunting Wilds
+Icatian Store
+Ice Tunnel
+Igneous Elemental
 Ill-Tempered Loner
 Immortal Servitude
+Increasing Vengeance
 Indulgent Tormentor
 Inga Rune-Eyes
+Inscribed Tablet
 Ironhoof Ox
 Island
+Ixalli's Diviner
 Jinxed Ring
 Jungle Wurm
 Kamahl, Heart of Krosa
 Kami of Industry
+Kazarov, Sengir Pureblood
 Kelsinko Ranger
+Ken, Burning Brawler
 Koilos Roc
 Lady Orca
 Landbind Ritual
+Lattice-Blade Mantis
+Lifespark Spellbomb
 Lulu, Stern Guardian
+Madcap Skills
 Magus of the Bazaar
 Marauding Dreadship
+Mephitic Vapors
+Might of the Old Ways
+Mishra's Helix
 Mistral Charger
 Moat
 Monoskelion
+Moonlight Hunt
 Mossdog
 Mountain
 Mox Emerald
 Muzzio, Visionary Architect
+Mwonvuli Ooze
+Necron Monolith
 Nemesis of Reason
+Neonate's Rush
 Nomads' Assembly
 Numbing Jellyfish
 Nyxborn Courser
+Okina Nightwatch
+Old One Eye
 Onakke Ogre
+Oran-Rief Survivalist
+Outpost Siege
 Ozox, the Clattering King
 Pack Leader
 Pegasus Refuge
@@ -106,6 +183,7 @@ Pit Keeper
 Pixie Queen
 Plains
 Pollywog Prodigy
+Prehistoric Turtlesaurus
 Primal Cocoon
 Prophetic Bolt
 Pterodon Knight
@@ -114,8 +192,10 @@ Quench
 Rage Nimbus
 Raging Cougar
 Rakdos Firewheeler
+Rakshasa Gravecaller
 Ray of Distortion
 Reckless Assault
+Rend Flesh
 Repopulate
 Resculpt
 Restrain
@@ -123,34 +203,55 @@ Revered Elder
 Rhox Pikemaster
 Ribbons of the Reikai
 Ridged Kusite
+Risk Factor
 Rites of Initiation
 Rogue Kavu
 Rushblade Commander
 Safe Passage
 Saurian Symbiote
+Scampering Scorcher
+Schema Thief
 Scourglass
 Sea Monster
 Security Detail
+Seed the Land
 Seize the Storm
+Seizures
 Serenity
 Shadowstorm
+Shambling Shell
+Shoreline Salvager
 Sidisi's Faithful
+Sima Yi, Wei Field Marshal
+Skithiryx, the Blight Dragon
 Skyclave Pick-Axe
 Sleep with the Fishes
 Sonic Assault
 Species Gorger
 Spectral Adversary
+Splitting Slime
 Squall
+Steal Strength
+Stomper Cub
 Stone Drake
 Stonybrook Banneret
 Stormscape Familiar
+Stronghold Rats
+Sudden Storm
+Sungrass Egg
 Swamp
 Sylvan Advocate
+Synchronized Strike
+Tablet of Compleation
 Tah-Crop Skirmisher
+Target Minotaur
 Temporal Spring
+Thriving Isle
 Tomb Robber
 Tome Scour
 Touch of Darkness
+Treasured Find
+Tresserhorn Sinks
 Turn to Frog
 Tymna the Weaver
 Unicycle
@@ -158,8 +259,11 @@ Upriser Renegade
 Vault Robber
 Vedalken Infuser
 Verdant Force
+Vertigo
 Vial of Dragonfire
+Viashino Slasher
 Victual Sliver
+Vines of the Recluse
 Vithian Stinger
 Voice of All
 War Falcon
@@ -167,5 +271,8 @@ Warmonger's Chariot
 Weary Prisoner
 Wild Cantor
 Wild Mongrel
+Wing Splicer
 Wingshield Agent
 Workshop Elders
+Wurmcoil Engine
+Yarok's Fenlurker

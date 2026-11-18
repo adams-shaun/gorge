@@ -3,6 +3,7 @@ A-Leyline of Resonance
 A-Pseudodragon Familiar
 A-Tatyova, Steward of Tides
 A-Urza, Powerstone Prodigy
+Abandon Hope
 Aether Mutation
 Aetherling
 Aethersnipe
@@ -110,6 +111,7 @@ Dragon's Smile
 Dragonshift
 Dread Reaper
 Duskfang Mentor
+Dwarven Driller
 ED-E, Lonesome Eyebot
 Earthblighter
 Eastfarthing Farmer
@@ -313,6 +315,7 @@ Reef Shaman
 Reinterpret
 Renegade Rallier
 Renowned Weaponsmith
+Restless Dreams
 Rionya, Fire Dancer
 Rishadan Port
 River Hoopoe
@@ -418,6 +421,7 @@ Tolarian Serpent
 Torch Drake
 Torch Gauntlet
 Torture
+Toshiro Umezawa
 Trailblazer's Boots
 Trained Caracal
 Trained Condor

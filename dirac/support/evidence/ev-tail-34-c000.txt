@@ -90,6 +90,7 @@ Compy Swarm
 Condescend
 Conjurer's Mantle
 Consulate Turret
+Conversion
 Copperline Gorge
 Cowl Prowler
 Crackle with Power
@@ -100,6 +101,7 @@ Crown of Empires
 Crude Rampart
 Cruel Deceiver
 Crusade
+Cryptoplasm
 Crystal Ball
 Crystalline Nautilus
 Culmination of Studies
@@ -246,6 +248,7 @@ Lothlórien Lookout
 Loxodon Warhammer
 Loyal Cathar
 Luke Cage, Hero for Hire
+Lurking Arynx
 Malachite Golem
 Mana Seism
 Mantle of the Wolf
@@ -277,6 +280,7 @@ Nezumi Bladeblesser
 Night Market Guard
 Nightwing Shade
 Nimana Sell-Sword
+Nissa's Chosen
 Nissa's Renewal
 Notorious Assassin
 Numbing Dose
@@ -327,6 +331,7 @@ Revenge of the Hunted
 Reyav, Master Smith
 Rhys the Exiled
 Rile
+Ringskipper
 Riot Piker
 Rise from the Grave
 Rising of the Day
@@ -380,6 +385,7 @@ Spiketail Drakeling
 Spire Owl
 Spitting Dilophosaurus
 Spitting Hydra
+Spring Cleaning
 Sprite Dragon
 Squelching Leeches
 Staff of the Wild Magus

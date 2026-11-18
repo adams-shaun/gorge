@@ -38,6 +38,7 @@ Curse of Chaos
 Curse of the Nightly Hunt
 Cursebreak
 Darksteel Relic
+Dazzling Lights
 Deepfathom Skulker
 Deny Existence
 Destined
@@ -48,6 +49,7 @@ Dragonloft Idol
 Dread Warlock
 Dread of Night
 Drown in Filth
+Elegant Entourage
 Elephant-Mandrill
 Elixir of Vitality
 Esquire of the King
@@ -67,6 +69,7 @@ Fury Sliver
 Galvanic Key
 Ghitu Slinger
 Gift of Compleation
+Glade Gnarr
 Glimmerdust Nap
 Glittering Wish
 Goblin Kaboomist
@@ -84,6 +87,7 @@ Horn of Valhalla
 Howl from Beyond
 Huatli's Spurring
 Hussar Patrol
+Hydroelectric Specimen
 Invasion of Kylem
 Island
 It That Heralds the End
@@ -92,6 +96,7 @@ Jushi Apprentice
 Kagemaro's Clutch
 Karametra's Acolyte
 Karn's Bastion
+Kessig Cagebreakers
 Lambholt Raconteur
 Lampad of Death's Vigil
 Lash of Thorns
@@ -103,6 +108,7 @@ Lightkeeper of Emeria
 Living Hive
 Magmatic Core
 Majestic Genesis
+Mana Geode
 Marrow-Gnawer
 Massacre
 Mastermind's Acquisition
@@ -124,9 +130,12 @@ Nightmares and Daydreams
 Oath of Druids
 Oketra the True
 Omen of Fire
+One with the Stars
 Open Fire
 Order of the Sacred Bell
 Ox of Agonas
+Pack's Favor
+Perilous Research
 Pestilent Haze
 Phantom Nomad
 Phantom Wurm
@@ -167,6 +176,7 @@ Serene Offering
 Serra Zealot
 Servo Exhibition
 Siege Modification
+Simian Grunts
 Slagwurm Armor
 Soltari Monk
 Song of Freyalise
@@ -182,6 +192,7 @@ Swallowing Plague
 Swamp
 Sylvan Tutor
 Take Vengeance
+Talonrend
 Tattermunge Maniac
 Tenacious Dead
 Thalakos Mistfolk
@@ -200,5 +211,6 @@ Weaponcraft Enthusiast
 Whip Sergeant
 Whiptail Moloch
 Windgrace's Judgment
+Winged Sliver
 Yasmin Khan
 Zealot's Conviction

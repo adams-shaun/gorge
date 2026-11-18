@@ -1,3 +1,4 @@
+A-Bruenor Battlehammer
 A-Cosmos Elixir
 A-Dreamshackle Geist
 A-Eiganjo Exemplar
@@ -8,8 +9,10 @@ Akki Avalanchers
 Akoum Battlesinger
 Akroma's Memorial
 Alexi's Cloak
+Amber Prison
 Amoeboid Changeling
 Angelheart Protector
+Angelic Cub
 Araña, Heart of the Spider
 Arbor Colossus
 Avacyn's Memorial
@@ -53,6 +56,7 @@ Conclave Sledge-Captain
 Court Hussar
 Cradle of Safety
 Crystal Seer
+Cunning Bandit
 Dawnhart Disciple
 Dawnhart Rejuvenator
 Daxos the Returned
@@ -60,6 +64,7 @@ Deal Gone Bad
 Deathgazer
 Debtors' Transport
 Decisive Denial
+Deep Spawn
 Dega Sanctuary
 Devastation
 Dirty Wererat
@@ -86,6 +91,7 @@ Expel
 Extract Power
 Ezio, Blade of Vengeance
 Fairgrounds Patrol
+False Cure
 Favored of Iroas
 Fiery Cannonade
 Filter Out
@@ -167,6 +173,7 @@ Nature's Wrath
 Need for Speed
 Nissa, Genesis Mage
 Noxious Groodion
+Nykthos Paragon
 Nyxborn Brute
 Nyxborn Shieldmate
 Octomancer
@@ -187,6 +194,7 @@ Prickly Marmoset
 Priest of Titania
 Princess Lucrezia
 Prowling Serpopard
+Psemilla, Meletian Poet
 Purge the Profane
 Quill-Slinger Boggart
 Ramosian Lieutenant
@@ -230,6 +238,7 @@ Staff of the Flame Magus
 Stampede
 Stealer of Secrets
 Steelshaper Apprentice
+Stormchaser Drake
 Stormcloud Djinn
 Strategic Planning
 Strength of the Pack
@@ -259,17 +268,20 @@ Vengeful Firebrand
 Vigorspore Wurm
 Vine Mare
 Violent Impact
+Viscera Dragger
 Voice of Duty
 Voldaren Epicure
 Wall of Earth
 Wand of Denial
 Warping Wail
 Watchwolf
+Whip Vine
 Whispersilk Cloak
 Wild Aesthir
 Wildsize
 Wind Zendikon
 Wing Commando
+Woodland Guidance
 Yellow Scarves Cavalry
 Zar Ojanen, Scion of Efrava
 Zodiac Pig
