@@ -9,13 +9,13 @@ engineMessage	prompt	mapped
 engineMessage	error	mapped		
 engineMessage	engineDirective	n/a		gorge emits no recording or repeat status; the decoder rejects the kind
 clientMessage	response	mapped		
-clientMessage	directive	mapped		only concede is modelled; see the directive rows
+clientMessage	directive	mapped		only concede is supported; the other documented directive types decode and are refused with invalidShape; see the directive rows
 directive	concede	mapped		
-directive	startRecording	refused	bad_request	decoder rejects an unknown directive type; the HTTP reply is bad_request, not one of the five protocol codes
-directive	stopRecording	refused	bad_request	decoder rejects an unknown directive type; the HTTP reply is bad_request, not one of the five protocol codes
-directive	requestRepeat	refused	bad_request	decoder rejects an unknown directive type; the HTTP reply is bad_request, not one of the five protocol codes
+directive	startRecording	refused	invalidShape	decodes; the server refuses with an invalidShape ProtocolError, gorge does not support it
+directive	stopRecording	refused	invalidShape	decodes; the server refuses with an invalidShape ProtocolError, gorge does not support it
+directive	requestRepeat	refused	invalidShape	decodes; the server refuses with an invalidShape ProtocolError, gorge does not support it
 directive	requestRestore	refused	bad_request	named by the ticket, absent from the public docs; decoder rejects an unknown directive type; the HTTP reply is bad_request, not one of the five protocol codes
-directive	repeatVote	refused	bad_request	decoder rejects an unknown directive type; the HTTP reply is bad_request, not one of the five protocol codes
+directive	repeatVote	refused	invalidShape	decodes; the server refuses with an invalidShape ProtocolError, gorge does not support it
 prompt	chooseNumber	mapped		
 prompt	chooseCards	mapped		
 prompt	chooseColor	mapped		
