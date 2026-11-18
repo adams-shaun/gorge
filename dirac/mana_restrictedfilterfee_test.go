@@ -18,6 +18,10 @@ func TestRestrictedSourceFundsFilterFee(t *testing.T) {
 		sc.perm(id["Red Room Recruit"], 1)
 		strat := sc.hand(id["Trickster's Stratagem"], 0)
 		d := sc.s.Step()
-		t.Errorf("withHelper=%v cast offered=%v", withHelper, castOffered(&d, strat))
+		// Offered exactly when Helper is on the battlefield; without it the
+		// cast is not payable.
+		if got := castOffered(&d, strat); got != withHelper {
+			t.Errorf("withHelper=%v: cast offered=%v, want %v", withHelper, got, withHelper)
+		}
 	}
 }
