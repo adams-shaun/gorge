@@ -51,6 +51,7 @@ Citadel Castellan
 Cliffhaven Vampire
 Clot Sliver
 Cloudreader Sphinx
+Clutch of the Undercity
 Cogwork Assembler
 Cold Storage
 Colorful Feiyi Sparrow
@@ -58,6 +59,7 @@ Coral Net
 Corpulent Corpse
 Courier Hawk
 Courier's Capsule
+Crater's Claws
 Creeping Trailblazer
 Crushing Disappointment
 Crystal Ball
@@ -228,6 +230,7 @@ Sandcrafter Mage
 Sangrophage
 Saryth, the Viper's Fang
 Scaled Herbalist
+Scaled Hulk
 Scarred Vinebreeder
 Scrapper Champion
 Sea Gate Oracle

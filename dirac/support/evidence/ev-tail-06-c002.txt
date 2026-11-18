@@ -1,5 +1,6 @@
 A-Imperial Subduer
 A-Kargan Warleader
+A-Syndicate Infiltrator
 Abzan Kin-Guard
 Aeronaut Tinkerer
 Aether Tunnel
@@ -7,12 +8,14 @@ Aethershield Artificer
 Akki Ronin
 Akoum Hellkite
 Anaba Spirit Crafter
+Ancestral Mask
 Ancestral Vengeance
 Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
 Armored Cancrix
 Armored Skaab
+Artisan of Forms
 Artistic Refusal
 Astarion, the Decadent
 Avacyn and Griselbrand
@@ -25,6 +28,7 @@ Barl's Cage
 Basilisk Gate
 Bathe in Dragonfire
 Beacon of Creation
+Behold the Unspeakable
 Benalish Knight
 Big Apple, 3 a.m.
 Big Mother Mouser
@@ -111,6 +115,7 @@ Fry
 Fugitive Wizard
 Gaea's Balance
 Galadhrim Guide
+Gargoyle Castle
 Gift of Growth
 Gift of the Woods
 Glacial Wall
@@ -141,6 +146,7 @@ Honor the Fallen
 Hornet Nest
 Hot Springs
 Hunger of the Howlpack
+Ice Floe
 Illusionary Informant
 Illusory Angel
 Imperious Oligarch
@@ -159,6 +165,7 @@ Juntu Stakes
 Kaseto, Orochi Archmage
 Kavu Howler
 Kezzerdrix
+Kiki-Jiki, Mirror Breaker
 Kiora, Behemoth Beckoner
 Krovikan Whispers
 Kyoshi Warrior Exemplars
@@ -173,6 +180,7 @@ Lesser Masticore
 Leyline of Vitality
 Lightning Surge
 Long Road Home
+Looming Spires
 Lost Soul
 Loxodon Warhammer
 Luminesce
@@ -194,6 +202,7 @@ Mindwhip Sliver
 Minotaur Sureshot
 Molten Vortex
 Mortivore
+Mothdust Changeling
 Mountain
 Mystic Melting
 Nezahal, Primal Tide
@@ -234,6 +243,7 @@ Rakdos Pit Dragon
 Rats of Rath
 Ray of Enfeeblement
 Reality Anchor
+Reality Strobe
 Reckless Ogre
 Reconnaissance Mission
 Recoup
@@ -262,6 +272,7 @@ Shadowheart, Dark Justiciar
 Shamble Back
 Shepherd of Heroes
 Shinen of Stars' Light
+Shinka, the Bloodsoaked Keep
 Silent Observer
 Simic Keyrune
 Sire of the Storm
@@ -324,6 +335,7 @@ Vampire Sovereign
 Vampiric Spirit
 Vault 75: Middle School
 Venser, Shaper Savant
+Viashino Slaughtermaster
 Vindictive Triumph
 Vizier of Remedies
 Wall of Kelp

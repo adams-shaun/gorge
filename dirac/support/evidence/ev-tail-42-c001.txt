@@ -8,6 +8,7 @@ Aerial Engineer
 Aether Adept
 Aether Inspector
 Aethersnipe
+Agent of Stromgald
 Akoum Refuge
 Akroan Sergeant
 Alluring Suitor
@@ -86,6 +87,7 @@ Consuming Corruption
 Containment Construct
 Corpse Cur
 Corrupted Resolve
+Crashing Boars
 Crenellated Wall
 Crooked Custodian
 Cruel Witness

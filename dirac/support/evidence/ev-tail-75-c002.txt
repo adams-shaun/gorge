@@ -23,6 +23,7 @@ Baloth Null
 Banishment
 Barkhide Troll
 Barrow Witches
+Basilica Skullbomb
 Belligerent Sliver
 Bellowing Mauler
 Big Boa Constrictor
@@ -71,6 +72,7 @@ Drainpipe Vermin
 Dream Thief
 Dreamshackle Geist
 Drifting Shade
+Drillworks Mole
 Drossclaw
 Dualcaster Mage
 Dune Mover
@@ -216,6 +218,7 @@ Seething Pathblazer
 Selhoff Occultist
 Shaman of Spring
 Shield of the Oversoul
+Shimmer of Possibility
 Show of Valor
 Shrine Keeper
 Sigil of Valor
@@ -230,6 +233,7 @@ Sootstoke Kindler
 Soulmender
 Spectacle Mage
 Spike Breeder
+Spindrift Drake
 Spirit Shackle
 Spitebellows
 Spitfire Handler
@@ -245,6 +249,7 @@ Tamiyo's Immobilizer
 Tamiyo's Safekeeping
 Tectonic Edge
 Tempestra, Dame of Games
+Territorial Boar
 Thirst for Discovery
 Thopter Assembly
 Thopter Mechanic
@@ -261,6 +266,7 @@ Twiddle
 Twilight's Call
 Ugin's Insight
 Undead Servant
+Unholy Hunger
 Urza's Rebuff
 Urza, Powerstone Prodigy
 Veiling Oddity
@@ -272,6 +278,7 @@ Volcanic Upheaval
 Voyager Staff
 Wall of Vines
 Warmonger Hellkite
+Waterknot
 Wavebreak Hippocamp
 Whiptail Moloch
 Will-o'-the-Wisp

@@ -1,6 +1,7 @@
 A-Kona, Rescue Beastie
 A-Master of Winds
 Afterlife
+Agility Bobblehead
 Air Servant
 Akoum Refuge
 Alabaster Potion
@@ -64,6 +65,7 @@ Deranged Assistant
 Desolate Mire
 Desynchronize
 Devouring Light
+Dina, Soul Steeper
 Dragon-Scarred Bear
 Drainpipe Vermin
 Dream Thief
@@ -75,6 +77,7 @@ Dualcaster Mage
 Dune Mover
 Elvish Dreadlord
 Enrage
+Erstwhile Trooper
 Ethereal Investigator
 Evolving Adaptive
 Faerie Noble
@@ -126,6 +129,7 @@ Kher Keep
 Kjeldoran Outrider
 Launch
 Leapfrog
+Leyline of Punishment
 Lightwielder Paladin
 Lost in the Spirit World
 Magma Vein
@@ -135,6 +139,7 @@ Malicious Advice
 Mana Vault
 Marauding Boneslasher
 Mardu Woe-Reaper
+Markov Patrician
 Masked Blackguard
 Mass Calcify
 Maze Rusher
@@ -146,6 +151,7 @@ Momentum Rumbler
 Mortal Wound
 Mossbridge Troll
 Mountain
+Mox Tantalite
 Muck Rats
 Mystic Skull
 Nakaya Shade
