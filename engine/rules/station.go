@@ -137,7 +137,7 @@ func (e *Engine) handleStation(spacecraft state.ObjID, chosen []decision.Option)
 	if o == nil || o.Zone != state.ZBattlefield || o.Tapped {
 		return
 	}
-	line := e.stationKeywordLine(spacecraft)
+	line := stationKeywordLine(e.G.Obj(spacecraft))
 	if line == "" {
 		return
 	}
@@ -149,9 +149,9 @@ func (e *Engine) handleStation(spacecraft state.ObjID, chosen []decision.Option)
 // stationKeywordLine is the Spacecraft's printed K:Station line ("Station:8"),
 // the Counter a KeywordAbilityPush carries so a replay re-synthesizes the
 // identical body. A Station keyword with no printed line (a grant) is the
-// bare head. "" when the object is gone.
-func (e *Engine) stationKeywordLine(spacecraft state.ObjID) string {
-	o := e.G.Obj(spacecraft)
+// bare head. "" when the object is gone. A free function over the object (no
+// Engine read beyond the caller's Obj lookup): the engine surface holds.
+func stationKeywordLine(o *state.Object) string {
 	if o == nil || o.Face() == nil {
 		return ""
 	}

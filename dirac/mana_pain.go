@@ -650,7 +650,7 @@ func (a *avail) painAffords(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 
 // availWin is the availFor mode of an unless / ward window's affordability
 // (availWindowFor).
-const availWin uint8 = 32
+const availWin uint16 = 32
 
 // availWindowFor is availFor for gorge's unless / ward payability: the
 // shared census's units (painAvailMask), not the planner's.
@@ -674,7 +674,7 @@ func (s *State) availWindowFor(k *prep, p uint8, a *avail) {
 // source-window probe skips a paid-life alternative that would leave the payer
 // at 0 or below (pay.windowManaAlt LifeKeep), so a hybrid face only that
 // source could make is not offered at 1 life (painAvailMaskAt).
-const availWinCol uint8 = 64
+const availWinCol uint16 = 64
 
 // availCastWindowFor is availFor under availWinCol.
 func (s *State) availCastWindowFor(k *prep, p uint8, a *avail) {

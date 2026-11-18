@@ -503,6 +503,7 @@ func (s *State) beginActivate(k *prep, o Obj, ab uint8) {
 	s.bld().stage = stageFirst[seAbility]
 	s.ctl = ctlBuild
 	s.lowerHybridOnly(k, ab)
+	s.lowerDynSacGap(k) // gorge's prefix script floats a dynamic {T}, sacrifice source before the play (mana_dynsacgap.go)
 }
 
 // buildAbility returns the ability being built (nil for a permanent spell).
@@ -1992,6 +1993,7 @@ func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
 	}
 	sl := ob.slot
 	p := &s.perms[sl]
+	nb := s.npend // the BecomesTarget walk's first pending trigger (wardBeforeGranted)
 	if s.subs[kop.TrigBecomesTarget].any() {
 		s.becameTarget(k, sl, e)
 		// after the walk: this targeting is not an earlier one (gorge's
@@ -2008,7 +2010,7 @@ func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
 		return
 	}
 	if k.gen != nil && k.gen.anyWardGrant {
-		s.wardGranted(k, sl, ob, e, disguise) // the printed ward and each granted one (kw_ward.go)
+		s.wardGranted(k, sl, ob, e, disguise, nb) // the printed ward and each granted one (kw_ward.go)
 		return
 	}
 	amt := wardAmt(&k.t.Cards[s.cardAt(sl)])
@@ -2018,6 +2020,7 @@ func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
 	np := s.npend
 	s.enqueueWard(e, p.obj, ob.ver, s.cardAt(sl), p.ctrl, e.ctrl, amt)
 	s.panharmKeyword(k, sl, kop.TrigBecomesTarget, e.obj, np)
+	s.wardBeforeGranted(k, p.obj, nb, np)
 }
 
 // enqueueWard queues the ward trigger e's targeting of a permanent answers,

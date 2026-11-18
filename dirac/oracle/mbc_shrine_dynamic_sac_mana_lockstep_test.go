@@ -8,9 +8,9 @@ const shrineDynamicSacRepro = "shrine_dynamic_sac_mana_unpriced"
 // for each charge counter" is a mana ability whose sacrifice may be paid while
 // paying a cost. gorge prices it as a last-resort sacrifice unit; the kernel's
 // dynamic-amount variants (gen.go varPC) now hold the {T}, sacrifice cost for
-// an activated-ability offer (avail.dynSac), so its autopay counts the source
-// and offers the Equip {2} an untapped Sandstone Bridge and the Shrine pay
-// (tail-01 pair 43).
+// an activated-ability offer (avail.dynSac; the autopay surface drops such a
+// plain cast), so its autopay counts the source and offers the Equip {2} an
+// untapped Sandstone Bridge and the Shrine pay (tail-01 pair 43).
 func TestMBCOathkeeperTakenoSDaishoReprosLockstep(t *testing.T) {
 	t.Parallel()
 	if res := replayRawRepro(t, shrineDynamicSacRepro); res.Div != nil || res.StallUnmodelled {

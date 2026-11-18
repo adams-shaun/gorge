@@ -36,3 +36,27 @@ func NamedAttachEntry(ev *Event) ([]state.ObjID, bool) {
 	}
 	return ev.IDs, true
 }
+
+// ChooseAttachEntryCounter marks a face-up battlefield-entry MoveZone whose
+// effect names a CLASS of bearers (ChangeZone's AttachedTo$ card filter) and
+// leaves the pick to the player putting the Aura onto the battlefield (CR
+// 303.4f). IDs are the class's members the Aura's enchant ability admits, in
+// the effect's order; the entry gate keeps those it can legally enchant (CR
+// 702.16c's protection included) and poses the choice among them.
+const ChooseAttachEntryCounter = "attach-choose"
+
+// MarkChooseAttachEntry tags ev, a face-up battlefield entry, with the class
+// of bearers its controller chooses among.
+func MarkChooseAttachEntry(ev *Event, cands []state.ObjID) {
+	ev.Counter = ChooseAttachEntryCounter
+	ev.IDs = append(ev.IDs[:0:0], cands...)
+}
+
+// ChooseAttachEntry returns the class of a choose-marked entry, and whether
+// ev is one.
+func ChooseAttachEntry(ev *Event) ([]state.ObjID, bool) {
+	if ev.Kind != MoveZone || ev.Counter != ChooseAttachEntryCounter {
+		return nil, false
+	}
+	return ev.IDs, true
+}

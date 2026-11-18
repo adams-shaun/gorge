@@ -1,6 +1,8 @@
 package kgen
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -22,6 +24,20 @@ func init() {
 func (lc *lowerCtx) apiPump(sa *cards.SA, ps *params) error {
 	if ps.str("RememberObjects") == "Imprinted" {
 		return lc.pumpRememberImprinted(ps) // lower_storesvar.go
+	}
+	if v, ok := ps.get("ImprintCards"); ok {
+		// Pump ImprintCards$ TriggeredCard (gorge imprint on the trigger
+		// body, effects/context.go): the triggering object joins the
+		// source's persistent Imprinted list. Only the TriggeredCard
+		// spelling inside a trigger body of a card that keeps its list
+		// lowers; every other shape stays refused by name.
+		if strings.TrimSpace(v) != "TriggeredCard" {
+			return refuse("Pump ImprintCards$ %q", v)
+		}
+		if !lc.impPersist || !lc.trigBody {
+			return refuse("Pump ImprintCards$ outside a persistent trigger body")
+		}
+		lc.emit(lInstr{Op: "ImprintTriggered", Obj: lRef{Kind: rTriggered}})
 	}
 	if _, ok := ps.m["TargetType"]; ok {
 		return lc.pumpSpellTarget(ps) // lower_stackexile.go

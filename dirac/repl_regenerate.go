@@ -123,5 +123,15 @@ func (s *State) destroyNoRegen(k *prep, sl Slot) {
 	if s.destroySpared(k, sl, true) {
 		return
 	}
+	s.leaveParked(k, sl)
+}
+
+// destroyNoRegenNow is destroyNoRegen for a caller that reads the object right
+// after the move (destroyRemember's RememberDestroyed$): a competing move is
+// not parked, so the read sees the move. It stalls by name as before.
+func (s *State) destroyNoRegenNow(k *prep, sl Slot) {
+	if s.destroySpared(k, sl, true) {
+		return
+	}
 	s.leave(k, sl, kop.ZoneGraveyard, false)
 }

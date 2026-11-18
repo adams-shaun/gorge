@@ -1056,11 +1056,19 @@ PredWasCastEnter	Pred	248
 PredWasCastSpell	Pred	247
 PredWithPowerLEX	Pred	10
 PredWord7	Pred	241
+PrevNextAll	untyped int	2
+PrevNextCombat	untyped int	1
+PrevNextEndCombat	untyped int	32
+PrevNextFrom	untyped int	4
+PrevNextGain	untyped int	8
+PrevNextPlayers	untyped int	64
+PrevNextTokens	untyped int	16
 PrevScopeAll	untyped int	8
 PrevScopeAnyPlayer	untyped int	16384
 PrevScopeColourShift	untyped int	8
 PrevScopeCombat	untyped int	16
 PrevScopeCreatures	untyped int	2
+PrevScopeEndCombat	untyped int	128
 PrevScopeFiltered	untyped int	32
 PrevScopeGain	untyped int	64
 PrevScopeOppPlayer	untyped int	8192
@@ -1146,6 +1154,7 @@ RefTriggerOpponents	Ref	247
 RefTriggerPlayer	Ref	10
 RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
+RememberAllImprint	untyped int	2
 RememberAllObjOrder	untyped int	1
 RepeatEachSeatOrder	untyped int	2
 ReplAddCountersOn	ReplKind	21

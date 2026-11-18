@@ -817,3 +817,45 @@ func (s *State) firstPlayerTgt(k *prep, ts *kop.TargetSpec, pt *pendingTrig) TCo
 	}
 	return PlayerCode(q)
 }
+
+// dynSacScriptPriced reports whether the plain walk's offer of activation a
+// is priced only through a dynamic {T}, sacrifice source's census unit (Lotus
+// Blossom beside Rabbit Battery's {R}): the planner census leaves the source
+// out (availForMode's dynSac gate), so gorge's potential walk prices the play
+// insufficient and its prefix search (potentialPrefixScript) activates the
+// source first, floating the mana before the play's own decisions. The kernel
+// mirrors that replay at the play's application (tapXPrefix): without it the
+// play is applied plainly and the source's sacrifice waits for the planner's
+// phase 2 at payment, after the targets (CR 601.2g, 605.1a).
+func (s *State) dynSacScriptPriced(k *prep, a Action, p uint8) bool {
+	if k.gen == nil || len(k.gen.varPC) == 0 || a.Kind() != AkActivate {
+		return false
+	}
+	o := Obj(a.Source())
+	if o == 0 || int(o) >= len(s.objs) || s.objs[o].zone != kop.ZoneBattlefield {
+		return false
+	}
+	ob := &s.objs[o]
+	sl := ob.slot
+	if sl == NoSlot {
+		return false
+	}
+	cid := s.cardAt(sl) // the slot's current card: a copy's own cost (activateOffers reads the same)
+	ai := int(a.Mode())
+	if ai >= len(k.t.Cards[cid].Abilities) {
+		return false
+	}
+	ab := &k.t.Cards[cid].Abilities[ai]
+	if ab.Kind != kop.AbActivated {
+		return false
+	}
+	var av avail
+	s.availFor(k, p, &av) // the planner's census: the dynamic source is skipped (mana.go availForMode)
+	if s.canActivate(k, sl, ai, ab, s.sorcerySpeed(p), &av) {
+		return false // the printed sources pay it: gorge prices the play, no script
+	}
+	var dv avail
+	dv.dynSac = true
+	s.availFor(k, p, &dv)
+	return s.canActivate(k, sl, ai, ab, s.sorcerySpeed(p), &dv)
+}

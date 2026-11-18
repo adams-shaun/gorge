@@ -46,6 +46,10 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	pl := &s.pl[p]
 	sorc := s.sorcerySpeed(p)
 	var av avail
+	// A cast's census leaves a dynamic {T}, sacrifice source out (avail.dynSac
+	// stays false): the counter-cost gap lists the cast that source funds
+	// (mana_sacctr.go), and gorge activates the source at priority (its script
+	// route), so a plain census cast would tap the printed sources instead.
 	haveAv := false
 	// faces: a table with built faces or a face-down card (one gate keeps
 	// the hand loop's registers as they were: facedown's perf blocker)
@@ -349,10 +353,6 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		s.offerPreparedCasts(k, d, p, sorc) // face_prepare.go
 	}
 	// activated abilities
-	// A dynamic {T}, sacrifice source (Lotus Blossom) is a census unit for an
-	// activated-ability offer -- gorge's potential planner activates it while
-	// paying -- but not for a cast: its cast planner never plans an
-	// indeterminate amount (avail.dynSac, gen.go dynamicManaCost).
 	dynWas := s.g.availX
 	if k.gen != nil && len(k.gen.varPC) != 0 {
 		av.dynSac = true
@@ -371,7 +371,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			s.offerUnlocks(k, d, p) // CR 709.5e: special action (face_rooms.go)
 		}
 		s.g.availX = dynWas // the script walks below read their own modes
-		av.dynSac = false
+		av.dynSac = false   // the casts below leave the dynamic sacrifice source to its counter-cost gap
 		haveAv = false
 		var capSpent Decision // the plays grantCap's grant search refused within gorge's budget
 		if len(k.gen.grantPC) != 0 && s.g.availX == 0 {
@@ -1926,6 +1926,12 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			// own faces alone.
 			if potentialOpenProduction(pc, payment) {
 				open = true
+				// the planner's census leaves a dynamic any-colour source
+				// out (a gap source, no proof against a play it could
+				// fund), so the per-tap view counts it at the amount it
+				// makes now (Lotus Blossom's petals, CR 601.2g); recTap is
+				// a no-op when the census is off
+				cen.recTap(sl, s.srcMaskAt(pc, sl), srcYield(pc))
 			} else if cen.on {
 				// the census reads the source at the amount it makes now, the
 				// planner's natural one (an Everflowing Chalice holding no
@@ -2044,7 +2050,16 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if s.censusDynamicAb(k, sl, ab, &cen, fold) {
 					continue
 				}
-				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, len(units) != 0, add, &anyFree, &open) {
+				// anyAdd is add, with the census's one-mana any-colour
+				// production of a source already holding a tap unit merged
+				// into that unit (anyAddAb): the source taps once, the
+				// production widens the unit's colours instead of adding a
+				// second mana (CR 605.3b; gorge's census makes one mana per
+				// tap). The over-bound pool keeps the fold.
+				anyAdd := func(sl Slot, mask, n uint8) {
+					cen.anyAddAb(sl, ab, mask, n, add, fold)
+				}
+				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, len(units) != 0, anyAdd, &anyFree, &open) {
 					cen.addOrMerge(sl, ab, add, fold)
 				}
 			}
@@ -2055,6 +2070,31 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		*units[0] = cen.units
 	}
 	return open
+}
+
+// anyTapP reports whether ab is a further fixed any-colour tap production the
+// census may merge into its source's already-recorded tap unit (the anyAdd
+// add availPotentialFor passes on): a source taps once, so its second {T}
+// ability (Mirrodin's Core's "{T}, Remove a charge counter: Add one mana of
+// any color" beside its {T}: {C}) widens that unit's colours instead of
+// adding a second mana (CR 605.3b; gorge's census makes one mana per tap).
+func (c *potCensus) anyTapP(ab *kop.Ability) bool {
+	return c.on && ab.ManaColors == kop.ColAny &&
+		ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor|kop.AfManaChoice) == 0 && !anyDifferentTapAb(ab)
+}
+
+// anyAddAb is the add the anyAdd closure in availPotentialFor passes on: a
+// further {T} ability of a source already holding a tap unit (Mirrodin's
+// Core's "{T}, Remove a charge counter: Add one mana of any color" beside its
+// {T}: {C}) widens that unit's colours instead of adding a second mana, the
+// source tapping once (CR 605.3b; gorge's census makes one mana per tap). The
+// over-bound pool keeps the fold.
+func (c *potCensus) anyAddAb(sl Slot, ab *kop.Ability, mask, n uint8, add, fold func(Slot, uint8, uint8)) {
+	if c.anyTapP(ab) && c.mergeTap(sl, ab) {
+		fold(sl, mask, n)
+		return
+	}
+	add(sl, mask, n)
 }
 
 // addOrMerge adds ab's fixed production as a unit of its own, or, when the census
@@ -2284,6 +2324,9 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	}
 	if ab.Cost.Flags&kop.CostOncePerTurn != 0 && j < 8 && pp.actUsed&(1<<j) != 0 {
 		return false // Gravestone Strider, used this turn
+	}
+	if sacCtrManaAb(ab) && pp.ctrN(s, int(ab.ManaV.N)) <= 0 {
+		return false // a counter-scaled sacrifice source with no counter adds nothing (mana_sacctr.go; gorge manaAbilityYieldsNothing)
 	}
 	if ab.Cost.Flags&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, ab) {
 		return false // Loot, the Pathfinder's exhaust mana ability

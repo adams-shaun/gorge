@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -20,11 +21,22 @@ import (
 // Grizzly Bears that Ajani's -3 had given flying. Entries are copies (the
 // Derived keyword stream is a scratch buffer), objects in battlefield seat
 // order; nil on the common board where nothing differs, and nil while a
-// layer walk is in progress (the printed read stands, as before).
+// layer walk is in progress (the printed read stands, as before) -- except
+// inside a layer-7 amount read (CR 613.4c reads the finished layer-6 keywords,
+// CR 613.1f): Pride of the Clouds' "+1/+1 for each other creature with
+// flying" counted only printed flyers in the full walk while the scalar P/T
+// read counted a granted one, so Derived(id).Power and Power(id) parted. The
+// table is built once per derivation (KWTableBuilding stops the nested
+// layer-7 reads of the objects it derives from rebuilding it).
 func (e *Engine) EffectiveKeywords() []effects.ObjectKeywords {
-	if e.activeDepth != 0 || e.charsWalk.Depth != 0 {
+	if e.activeDepth != 0 || e.charsWalk.KWTableBuilding {
 		return nil
 	}
+	if e.charsWalk.Depth != 0 && len(e.charsWalk.PTFrames) == 0 {
+		return nil
+	}
+	e.charsWalk.KWTableBuilding = true
+	defer func() { e.charsWalk.KWTableBuilding = false }()
 	var out []effects.ObjectKeywords
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
@@ -33,6 +45,32 @@ func (e *Engine) EffectiveKeywords() []effects.ObjectKeywords {
 				continue
 			}
 			derived := e.Derived(id).Keywords
+			if keywordsMatchPrinted(o, derived) {
+				continue
+			}
+			out = append(out, effects.ObjectKeywords{ID: id, Keywords: append([]string{}, derived...)})
+		}
+	}
+	return out
+}
+
+// effectiveKeywordsInWalk is EffectiveKeywords for a read made inside a layer
+// walk (a layer-7 amount counting creatures by keyword): it derives each
+// battlefield object nested, as Derived documents is allowed, and leaves out
+// the objects whose own walk is in progress, which keep the printed read (the
+// walk cannot re-enter them). Same order and entries as EffectiveKeywords.
+func effectiveKeywordsInWalk(g *state.Game, s *chars.Scratch, d interface{ Derived(state.ObjID) Derived }) []effects.ObjectKeywords {
+	var out []effects.ObjectKeywords
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			o := g.Obj(id)
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			if _, busy := s.InProgress(id); busy {
+				continue
+			}
+			derived := d.Derived(id).Keywords
 			if keywordsMatchPrinted(o, derived) {
 				continue
 			}
