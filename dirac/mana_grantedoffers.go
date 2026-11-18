@@ -606,6 +606,15 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	var gi [maxGrants]int16
 	ng := s.grantIdxs(k, sl, &gi)
 	own := s.ownManaUsable(k, sl)
+	// The tap's reflected extra (Mana Flare over a dual: one more mana of the
+	// type the tap produced, gorge addTapExtra) rides the own face as the plain
+	// census's does (availForMode's srcYieldAt): availGrantExtra prices only a
+	// fixed-vector extra, and a dual (or any-colour) source's pick-priced one
+	// dropped out of the census, withholding a hand cast gorge priced
+	// (tail-41 pair 2, Genestealer Patriarch over Mana Flare).
+	if own {
+		n += s.srcReflectPick(k, sl, pc)
+	}
 	if a.xdOn {
 		if n := s.grantsAdmitted(k, sl, &gi, ng, &a.xd); n < ng {
 			if ng = n; ng == 0 && !own {
