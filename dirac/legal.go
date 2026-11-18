@@ -362,7 +362,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		s.offerWarpRecasts(k, d, p, sorc) // kw_warp.go
 	}
 	if k.gen != nil && k.gen.anyPlot {
-		s.offerPlotCasts(k, d, p, sorc) // kw_plot.go
+		s.offerPlotCasts(k, d, p, sorc, &av) // kw_plot.go
 	}
 	if k.gen != nil && k.gen.anyForetell {
 		s.offerForetellCasts(k, d, p, sorc) // kw_foretell.go
