@@ -43,6 +43,11 @@ type PlanQuery struct {
 	Units   map[state.PlayerID][]WindowUnit
 	Alts    map[state.ObjID][]Alt
 	Classes map[PlanClassesKey][]Class
+	// Gaps / GapAlts are the second pass's census (PaymentPlanGapUnits) and
+	// each source's gap alternatives (plandeferred.go), the rows the third
+	// planner phase plans over and a gap plan's step resolution re-reads.
+	Gaps    map[state.PlayerID][]GapUnit
+	GapAlts map[state.ObjID][]Alt
 	// AltArena backs alts' lists.
 	AltArena []Alt
 	// Plans memoises plain-cost planner outcomes (planPaymentCost).

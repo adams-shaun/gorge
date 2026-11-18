@@ -63,7 +63,7 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 		// the same mana census an ordinary cast uses: the floating pool plus
 		// untapped sources.
 		var av avail
-		s.availFor(k, p, &av)
+		s.availTapsDeferIn(k, p, &av) // the census-gap picture a plain cast prices (legal.go)
 		cost := s.adjustCost(k, p, c, o, pc.cost)
 		// the census prices the face's granted delve credit as the hand
 		// walk does (legal.go delveOfferCreditHand; gorge delveCredit, CR
