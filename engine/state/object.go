@@ -1694,11 +1694,14 @@ type Object struct {
 	// distinction.
 	ChosenModes []string
 	// CastBattlefield is the frozen as-cast battlefield of a spell whose
-	// script reads Count$LastStateBattlefieldWithFallback (see
-	// CastBattlefield): nil when no snapshot was taken, non-nil-and-empty for
-	// an authoritative empty battlefield. Immutable and shared by clones and
-	// stack copies; folded only by events.Apply and cleared when the object
-	// leaves the stack.
+	// script reads Count$LastStateBattlefield or
+	// Count$LastStateBattlefieldWithFallback (see CastBattlefield): nil when
+	// no snapshot was taken, non-nil-and-empty for an authoritative empty
+	// battlefield. Immutable and shared by clones and stack copies; folded
+	// only by events.Apply, which clears it on every move off the stack
+	// EXCEPT the resolving spell's own battlefield entry (the etbCounter
+	// bodies Boss's Chauffeur and Aeve, Progenitor Ooze carry read it as
+	// the permanent enters).
 	CastBattlefield *CastBattlefield
 
 	// ModeChoices is the persistent per-object log a Charm's ChoiceRestriction$

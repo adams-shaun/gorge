@@ -28,10 +28,12 @@ func TestAvacynsJudgmentTargetBoundCountsPlayersAndPermanents(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("expected Avacyn's Judgment's target ask, got %+v", d)
 	}
-	// Two living players plus at least the bear: the bound must admit every
-	// player and permanent, never the zero the unsplit /Plus suffix read.
-	if d.Min != 0 || d.Max < 3 {
-		t.Fatalf("Avacyn's Judgment target bounds = [%d,%d], want [0, >=3]", d.Min, d.Max)
+	// Two living players plus at least the bear make MaxTgts at least 3, never
+	// the zero the unsplit /Plus suffix read; the announced bound is then
+	// capped at the 2 damage divided (Y = Count$Madness.X.2, madness unpaid),
+	// since each target of a division receives at least 1 (CR 601.2d).
+	if d.Min != 0 || d.Max != 2 {
+		t.Fatalf("Avacyn's Judgment target bounds = [%d,%d], want [0,2] (the 2 damage divided, CR 601.2d)", d.Min, d.Max)
 	}
 	bearOpt := -1
 	for _, o := range d.Options {
@@ -46,9 +48,8 @@ func TestAvacynsJudgmentTargetBoundCountsPlayersAndPermanents(t *testing.T) {
 	if got := eng.G.Obj(card).Targets; len(got) != 1 || got[0].Obj != bear {
 		t.Fatalf("Avacyn's Judgment targets = %+v, want the Grizzly Bears", got)
 	}
-	// (The damage amount, SVar:Y:Count$Madness.X.2, reads an unmodelled
-	// Count$Madness head -- a separate gap -- so this pins the bound and a
-	// clean resolution, not the bear's death.)
+	// (The damage amount, SVar:Y:Count$Madness.X.2, is 2 with madness unpaid;
+	// this pins the bound and a clean resolution.)
 	drainToEnd(t, eng, 40)
 	if len(eng.G.Stack) != 0 {
 		t.Fatalf("stack did not drain: %v", eng.G.Stack)
