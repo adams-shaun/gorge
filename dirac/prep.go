@@ -107,6 +107,10 @@ type prep struct {
 	gyCont   bool     // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
 	cold     coldLayout
 	anyNoDmg bool // a card or emblem has a StatNoCombatDamage static (combat.go's combatAmount); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	// dynZero: some card has a plain {T} dynamic-amount mana ability
+	// (mana_dyncensus.go); on prep, not genPrep, so the pinned fixed-State
+	// inventory is unchanged
+	dynZero bool
 	// embPrev: some emblem carries a static damage prevention
 	// (tableEmbHasStaticPrev, repl_staticprevent_emblem.go); on prep, not
 	// genPrep, so the pinned fixed-State inventory is unchanged
@@ -483,6 +487,7 @@ func prepare(t *kop.Table) *prep {
 	p.gen = prepareGen(t, p)
 	p.gyCont = tableHasGyCont(t)
 	p.anyNoDmg = tableHasStatic(t, kop.StatNoCombatDamage)
+	p.dynZero = prepDynZero(t)
 	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
 	p.costObj = p.costObj || p.gen != nil && p.gen.anyEscapeGrant // an escape cast's exile-fodder picks (kw_escape.go)
 	p.availExt = p.painMana || p.phyMana
