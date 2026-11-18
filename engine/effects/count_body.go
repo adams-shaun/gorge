@@ -134,7 +134,7 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	// filtering. Keep the caller's Ctx on the stack for every other count
 	// head (in particular the allocation-free Valid zone scan).
 	code := evalCountBodyCostCodes.Code(head)
-	if code == evalCountBodyCostMaxCombatDamageThisTurn || code == evalCountBodyCostNumDamageThisTurn || code == evalCountBodyCostNonCombatDamageThisTurn {
+	if isDamageHistoryCode(code) {
 		damageCtx := *c
 		return evalDamageHistory(h, &damageCtx, g, head, arg)
 	}
@@ -449,6 +449,15 @@ const (
 	evalCountBodyCostNonCombatDamageThisTurn
 	evalCountBodyCostCrewSize
 	evalCountBodyCostIntensity
+	// The edh-countA class's scalar heads: the no-fallback as-cast
+	// battlefield count, bloodthirst's damage-to-opponents and the
+	// greatest single-source damage this turn (count_damage.go /
+	// count_cast_battlefield.go), and the combat-only sibling of
+	// NumDamageThisTurn that evalDamageHistory dispatches.
+	evalCountBodyCostLastStateBattlefield
+	evalCountBodyCostBloodthirstAmount
+	evalCountBodyCostSingleMaxDamageThisTurn
+	evalCountBodyCostNumCombatDamageThisTurn
 )
 
 var evalCountBodyCostCodes = state.NewStrCodes(
@@ -474,4 +483,19 @@ var evalCountBodyCostCodes = state.NewStrCodes(
 	state.StrEntry[evalCountBodyCostCode]{Key: "NonCombatDamageThisTurn", Val: evalCountBodyCostNonCombatDamageThisTurn},
 	state.StrEntry[evalCountBodyCostCode]{Key: "CrewSize", Val: evalCountBodyCostCrewSize},
 	state.StrEntry[evalCountBodyCostCode]{Key: "Intensity", Val: evalCountBodyCostIntensity},
+	state.StrEntry[evalCountBodyCostCode]{Key: "LastStateBattlefield", Val: evalCountBodyCostLastStateBattlefield},
+	state.StrEntry[evalCountBodyCostCode]{Key: "BloodthirstAmount", Val: evalCountBodyCostBloodthirstAmount},
+	state.StrEntry[evalCountBodyCostCode]{Key: "SingleMaxDamageThisTurn", Val: evalCountBodyCostSingleMaxDamageThisTurn},
+	state.StrEntry[evalCountBodyCostCode]{Key: "NumCombatDamageThisTurn", Val: evalCountBodyCostNumCombatDamageThisTurn},
 )
+
+// isDamageHistoryCode reports whether a count head is one of the per-turn
+// damage-ledger reads evalDamageHistory answers.
+func isDamageHistoryCode(code evalCountBodyCostCode) bool {
+	switch code {
+	case evalCountBodyCostMaxCombatDamageThisTurn, evalCountBodyCostNumDamageThisTurn,
+		evalCountBodyCostNonCombatDamageThisTurn, evalCountBodyCostNumCombatDamageThisTurn:
+		return true
+	}
+	return false
+}

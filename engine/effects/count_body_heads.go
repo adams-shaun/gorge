@@ -237,14 +237,36 @@ func evalCountBodyObjHeads(h Host, c *Ctx, g *state.Game, head, arg string, dept
 	// against the object wherever it now lives -- the same live-card read
 	// Forge's getValidCards applies to the zone list. Gravelighter's "draw a
 	// card if a creature died this turn" is the corpus carrier.
-	if rest, ok := strings.CutPrefix(head, "ThisTurnEntered"); ok && strings.HasPrefix(rest, "_") {
-		if arg != "" {
-			rest += " " + arg
-		}
-		av, aok := evalThisTurnEntered(g, c, rest[1:])
+	if av, aok, matched := evalEnteredHead(g, c, head, arg); matched {
 		return av, aok, true
 	}
 	return 0, false, false
+}
+
+// evalEnteredHead claims the Count$ThisTurnEntered_<...> spelling (over
+// state.Entered) and its PREVIOUS-turn sibling Count$LastTurnEntered_<...>
+// (Ephara, God of the Polis; over state.EnteredLastTurn, the entries the
+// TurnChange fold rotated out of Entered): one parse, so the two spellings
+// cannot drift.
+func evalEnteredHead(g *state.Game, c *Ctx, head, arg string) (int32, bool, bool) {
+	rest, ok := strings.CutPrefix(head, "ThisTurnEntered")
+	last := false
+	if !ok {
+		rest, ok = strings.CutPrefix(head, "LastTurnEntered")
+		last = true
+	}
+	if !ok || !strings.HasPrefix(rest, "_") {
+		return 0, false, false
+	}
+	if arg != "" {
+		rest += " " + arg
+	}
+	if last {
+		av, aok := evalLastTurnEntered(g, c, rest[1:])
+		return av, aok, true
+	}
+	av, aok := evalThisTurnEntered(g, c, rest[1:])
+	return av, aok, true
 }
 
 // evalCountBodyDotted evaluates Forge's generic dotted yes/no branch heads
