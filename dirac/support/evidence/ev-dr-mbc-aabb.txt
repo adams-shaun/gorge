@@ -33,6 +33,7 @@ Divination
 Dragon Mage
 Dragon's Smile
 Drift of Phantasms
+Eel Umbra
 Ekthi, Contaminator Priest
 Elda, Conjurer of Spectacle
 Enclave Cryptologist

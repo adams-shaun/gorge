@@ -1,11 +1,14 @@
+A-Mishra, Excavation Prodigy
 A-Ready to Rumble
 Aang's Defense
 Adamaro, First to Desire
 Adaptive Snapjaw
 Aether Charge
 Aether Poisoner
+Aethergeode Miner
 Aetheric Amplifier
 Aethermage's Touch
+Ageless Sentinels
 Akki Underling
 Alpine Meadow
 Amaranthine Wall
@@ -19,6 +22,7 @@ Auriok Bladewarden
 Auriok Steelshaper
 Azorius Locket
 Balefire Liege
+Barbarian Bully
 Basal Thrull
 Bearer of Memory
 Bitterthorn, Nissa's Animus
@@ -152,6 +156,7 @@ Plains
 Plummet
 Priest of Gix
 Proud Pack-Rhino
+Psychic Strike
 Rakdos Ragemutt
 Ranging Raptors
 Rashka the Slayer
@@ -168,6 +173,7 @@ Sangrophage
 Saryth, the Viper's Fang
 Scaled Herbalist
 Scaled Hulk
+Scrapper Champion
 Sea Gate Oracle
 Sentinel Sliver
 Serene Offering

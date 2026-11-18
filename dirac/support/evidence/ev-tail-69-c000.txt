@@ -112,6 +112,7 @@ Elvish Doomsayer
 Elvish Farmer
 Emerald Charm
 Empyrial Plate
+Emrakul's Messenger
 Enduring Scalelord
 Entropic Specter
 Envoy of the Ancestors

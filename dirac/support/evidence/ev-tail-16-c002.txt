@@ -11,18 +11,22 @@ Anoint with Affliction
 Arboreal Alliance
 Arcane Encyclopedia
 Arcbound Fiend
+Archghoul of Thraben
 Archon of Justice
 Arm the Cathars
 Armory of Iroas
 Artisan's Sorrow
 Asari Captain
 Atarka Monument
+Automated Assembly Line
 Avacyn and Griselbrand
 Aven Trooper
 Awakened Awareness
+Awe Strike
 Baral's Expertise
 Barkchannel Pathway
 Barren Moor
+Battershield Warrior
 Battle Mammoth
 Beloved Chaplain
 Benthic Djinn
@@ -47,6 +51,7 @@ Canal Monitor
 Cantivore
 Cathartic Reunion
 Caustic Tar
+Caves of Chaos Adventurer
 Chandra's Spitfire
 Charmbreaker Devils
 Chastise
@@ -62,6 +67,7 @@ Conduit of Ruin
 Consecrated Sphinx
 Contagious Nim
 Courtly Provocateur
+Cradle of the Accursed
 Crippling Chill
 D'Avenant Archer
 Daggerback Basilisk
@@ -116,6 +122,7 @@ Fire Drake
 Fire Nation Ambushers
 Fires of Undeath
 Fleet-Footed Monk
+Flickering Spirit
 Flickerwisp
 Forced Adaptation
 Forced Landing
@@ -125,6 +132,7 @@ Foundry Champion
 Fountain of Renewal
 Frenzied Raptor
 Frilled Sea Serpent
+Frodo, Determined Hero
 Furnace Strider
 Furtive Analyst
 Garrison Cat
@@ -153,6 +161,7 @@ Gryff's Boon
 Guardian Zendikon
 Guardian of Solitude
 Guardians of Koilos
+Hagi Mob
 Hagra Crocodile
 Hashep Oasis
 Haunted Guardian
@@ -221,6 +230,7 @@ Mountain
 Mox Emerald
 Munitions Expert
 Myrel, Shield of Argive
+Myriad Landscape
 Nacatl Outlander
 Nebelgast Beguiler
 Necromancer's Assistant
@@ -250,6 +260,7 @@ Pestilent Cauldron
 Phantasmal Image
 Phyrexian Scriptures
 Pillardrop Warden
+Plague Boiler
 Plains
 Priest of the Crossing
 Primeval Protector
@@ -265,6 +276,7 @@ Renegade Firebrand
 Resolute Archangel
 Rishadan Brigand
 Ritual of the Machine
+Rivendell
 Rock Slide
 Rogue's Gloves
 Rolling Thunder
@@ -274,6 +286,8 @@ Ruthless Winnower
 Sai, Master Thopterist
 Sandblast
 Scab-Clan Berserker
+Scavenged Brawler
+Scent of Nightshade
 Schismotivate
 Scourge Devil
 Scourge of Geier Reach
@@ -333,6 +347,7 @@ Sword of Body and Mind
 Sylvan Paradise
 Synchronized Spellcraft
 Taigam's Strike
+Tainted Wood
 Tarkir Charm
 Tarpan
 Thalakos Seer
@@ -368,6 +383,7 @@ Viper, Cruel Conspirator
 Visage of Bolas
 Vivify
 Vodalian Illusionist
+Voice of the Woods
 Voidwielder
 Vona, Butcher of Magan
 Voracious Wurm

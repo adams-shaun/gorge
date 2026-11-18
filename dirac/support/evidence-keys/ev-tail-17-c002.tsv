@@ -28,10 +28,13 @@ Cinder Hellion	2ef2d367131f38b3	8	1/1		0/1	ix:resp
 Cinderclasm	7d33dc28d511122c	4	0/0		3/4	cast/alt:kicked
 Cirith Ungol Patrol	a8dfb3e348d11bb0	4	1/1		0/1	ix:resp
 Consign to the Pit	cbafed25e4f9e4f9	4	0/0		1/2	ix:resp
+Contingency Plan	c08e416497b21562	4	0/0		1/2	ix:resp
+Coral Eel	e085aff138d91d63	10	0/0		0/0	
 Council's Judgment	8d13c9b3dda81027	4	0/0		1/2	ix:resp
 Cunning Lethemancer	83ee495715ec7724	4	1/1		1/1	
 Curate	3ef5a864932838a4	5	0/0		2/2	
 Curious Pair	0b3573f005009961	16	0/0		1/2	ix:resp
+Daraja Griffin	b75db702694f1b83	4	1/1		0/1	ix:resp
 Dark Hatchling	526f0d2c0e9135e4	6	1/1		0/1	ix:resp
 Dauthi Warlord	7f124f41f796deb2	8	0/0		0/0	
 Desert of the True	878618b715af3b72	5	2/2		0/1	ix:resp
@@ -47,6 +50,7 @@ Escape Protocol	05bcd659b60362b9	4	1/1		0/1	ix:resp
 Esper Cormorants	cc7aefd33431da12	4	0/0		0/0	
 Ethereal Whiskergill	f985b557ec0eb12e	3	0/0		0/0	
 Evil Presence	c3c4f2a4446d1b86	4	0/0		1/2	ix:resp
+Extract	474257b5f7cf9bf6	4	0/0		2/2	
 Faerie Conclave	0928db5002307465	10	2/2		1/1	
 Fated Infatuation	ce39ac3e096643de	4	0/0		1/2	ix:resp
 Fell Flagship	2c87926e50541f34	5	2/2		0/1	ix:resp
@@ -57,6 +61,7 @@ Font of Return	fb62db45f3912f91	4	1/1		0/1	ix:resp
 Freyalise Supplicant	035044717905f167	10	1/1		0/1	ix:resp
 Freyalise's Charm	a9a5ef23c672f73c	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Gaea's Avenger	529901a0d9e2a435	4	0/0		0/0	
+Gift of Estates	22d9d4b19f5883a7	4	0/0		1/2	ix:resp
 Gift of Tusks	2972ed6eb76e33c9	4	0/0		1/2	ix:resp
 Gimli's Reckless Might	f9481b1216f642a6	4	1/1		1/1	
 Glacial Grasp	7a65c1472b1b1baf	8	0/0		2/2	
@@ -92,6 +97,7 @@ Lavafume Invoker	c3d9a3cad2bcd5a6	4	1/1		0/1	ix:resp
 Liliana's Elite	b77850e8cba6410a	5	0/0		0/0	
 Lin Sivvi, Defiant Hero	3492b12dc39f0aa2	10	2/2		1/1	
 Liu Bei, Lord of Shu	1d4cf5802d25b71f	5	0/0		0/0	
+Mahadi, Emporium Master	9983e6c14d8b98e0	4	1/1		0/1	ix:resp
 Manifold Key	1d63b91b1a7d4ef7	4	2/2		0/1	ix:resp
 March of the Drowned	acd2a0cb97d855dd	7	0/0		2/2	
 Melancholy	04971487420a5ef9	11	2/2		2/2	
@@ -108,6 +114,7 @@ Ondu Inversion	002c036cf20ec99a	7	1/1		0/2	f0/s,ix:resp
 Opal Acrolith	c1c30924404714cc	13	2/2		1/1	
 Open Fire	e978aac0c84d2e83	4	0/0		1/2	ix:resp
 Oran-Rief Hydra	066fcd446f6265dd	4	1/1		1/1	
+Orcish Spy	38f5290ace0316d0	6	1/1		0/1	ix:resp
 Orim's Prayer	05a63bc3fb096cc7	4	1/1		0/1	ix:resp
 Panacea	2b20e8eb1cf44b82	4	1/1		0/1	ix:resp
 Passwall Adept	244e2b944140f18b	6	1/1		1/1	
@@ -115,6 +122,7 @@ Phantom General	ca38c2436d715c9f	4	0/0		0/0
 Phyrexian Gremlins	58318eaa5c37ccfc	4	1/1		0/1	ix:resp
 Plague Dogs	ac92d583eb4f69b3	4	2/2		0/1	ix:resp
 Plague Engineer	fbbd5aee6cbbef4e	4	0/0		0/0	
+Plagued Rusalka	607eb12755943a9d	4	1/1		0/1	ix:resp
 Preemptive Strike	458f7d9d61d3a3a6	3	0/0		1/2	ix:resp
 Primal Command	6c4b6b9622045612	5	0/0		2/2	
 Prismatic Vista	aaf1a59f2978176e	4	1/1		0/1	ix:resp
@@ -132,6 +140,7 @@ Ruination	2b47c3928580daab	7	0/0		2/2
 Runewing	410ba46da704f392	8	1/1		0/1	ix:resp
 Sacred Mesa	ab6333b28f2a5db3	4	2/2		1/1	
 Salvager of Secrets	81e11cac2e74d506	4	1/1		0/1	ix:resp
+Sand Strangler	fa017896e01b01fc	6	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Sands of Delirium	c1a03ef556706a4e	5	1/1		0/1	ix:resp
 Sandstone Warrior	5dabc06a4406d89f	4	1/1		1/1	
 Sangrite Surge	1d1ec8579e40237d	4	0/0		1/2	ix:resp
@@ -148,12 +157,16 @@ Skyclave Sentinel	4509d8ca3a67edeb	11	0/0		1/2	cast/alt:kicked
 Sleep Paralysis	fdf3b75c77442d4c	3	1/1		1/2	ix:resp
 Smog Elemental	f70745562a704532	4	0/0		0/0	
 Sorin, Imperious Bloodlord	cfb400849c63dbf0	4	3/3		0/1	ix:resp
+Sphere of Duty	4dab6ae4c7660530	4	0/0		0/0	
 Stingmoggie	70d9e7fc031bb924	7	1/1		0/1	ix:resp
+Stoic Champion	6b62472d44a504cf	6	1/1		0/1	ix:resp
 Storm Fleet Negotiator	d5083686dab65708	6	1/1		1/1	
 Sunscape Familiar	b1fe50a915ae032a	6	0/0		0/0	
 Superior Numbers	b314537bb08c9be9	6	0/0		1/2	ix:resp
 Thalia's Lancers	fa6e589dd1986b7c	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 The Immortal Weapons	8c583e27431836e7	8	2/2		0/1	ix:resp
+The Stasis Coffin	1d48a6742cab949b	8	1/1		0/1	ix:resp
+Thoughtcutter Agent	01941d46520025b0	4	1/1		1/1	
 Throne of Empires	73735a02a4cb33a1	4	1/1		0/1	ix:resp
 Tibalt, Rakish Instigator	f822b641316334b3	6	1/1		0/1	ix:resp
 Tooth and Claw	c8917e6fb21447d1	4	1/1		0/1	ix:resp
@@ -164,5 +177,6 @@ Veteran Cavalier	08cd1d7bb25c5dd2	8	0/0		0/0
 Wayward Giant	0770bf871e94a9af	3	0/0		0/0	
 Wild Leotau	1cf036314bb94ddc	7	1/1		0/1	ix:resp
 Wild Shape	07cc9fc1d4df89b2	5	0/0		1/2	ix:resp
+Witch Hunter	607e2479a6f53e91	4	2/2		0/1	ix:resp
 Ziatora's Proving Ground	37ae02121718b953	12	4/4		0/1	ix:resp
 Zombie Master	f22e752c94cbed05	5	0/0		0/0	

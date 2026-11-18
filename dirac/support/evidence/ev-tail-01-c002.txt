@@ -1,3 +1,4 @@
+A-Dueling Coach
 A-Leyline of Resonance
 A-Pseudodragon Familiar
 A-Tatyova, Steward of Tides
@@ -26,6 +27,7 @@ Barkchannel Pathway
 Batterhorn
 Battleflight Eagle
 Bereavement
+Black Market Connections
 Blighted Agent
 Blind with Anger
 Blinding Mage
@@ -93,18 +95,23 @@ Doomskar Titan
 Doubtless One
 Dragon's Smile
 Dragonshift
+Dread Reaper
+Duskfang Mentor
 Dwarven Driller
 ED-E, Lonesome Eyebot
 Earthblighter
 Eastfarthing Farmer
 Eddytrail Hawk
+Escape Routes
 Eternity Vessel
 Executioner's Hood
 Exuberant Wolfbear
 Eyes in the Skies
 False Mourning
 Fangren Firstborn
+Farmstead Gleaner
 Fascination
+Felhide Petrifier
 Fellwar Stone
 Fervent Denial
 Filigree Angel
@@ -127,6 +134,7 @@ Genesis Chamber
 Get the Point
 Ghitu Amplifier
 Ghitu Fire-Eater
+Ghostly Flicker
 Ghoulcaller's Chant
 Giant Adephage
 Gibbering Fiend
@@ -146,6 +154,7 @@ Guild Artisan
 Hard Evidence
 Harvest Wurm
 Hatred
+Headless Specter
 Heavy Ballista
 Helm of Awakening
 Hero of the Games
@@ -167,6 +176,7 @@ Infernal Plunge
 Ingot Chewer
 Inner Calm, Outer Strength
 Inspired Tinkering
+Inundate
 Ire of Kaminari
 Island
 Ith, High Arcanist
@@ -177,11 +187,13 @@ Kazuul Warlord
 Kefnet's Monument
 Kessig Prowler
 Killer Whale
+Killian, Decisive Mentor
 Kithkin Shielddare
 Kjeldoran Frostbeast
 Knight of the Pilgrim's Road
 Kozilek's Sentinel
 Kyren Legate
+Lagonna-Band Trailblazer
 Legion's Landing
 Life Goes On
 Living Lies of Loki
@@ -193,6 +205,7 @@ Lu Bu, Master-at-Arms
 Lu Su, Wu Advisor
 Lurking Roper
 Magnetic Mine
+Magus of the Disk
 Mana Geode
 Mana Severance
 Maniacal Rage
@@ -207,6 +220,7 @@ Maze Behemoth
 Meekstone
 Meneldor, Swift Savior
 Merfolk Seer
+Minion of Tevesh Szat
 Minor Misstep
 Mire Kavu
 Mogg Conscripts
@@ -231,6 +245,7 @@ Omnispell Adept
 Open the Graves
 Orcish Medicine
 Origin Spellbomb
+Ossuary Rats
 Overwhelming Victory
 Palace Familiar
 Paradox Zone
@@ -247,9 +262,12 @@ Polygoyf
 Pondering Mage
 Predator's Howl
 Pride of the Perfect
+Primaris Eliminator
 Profaner of the Dead
 Psychic Spiral
+Pull Under
 Puppeteer
+Pyrite Spellbomb
 Raka Sanctuary
 Rakdos Carnarium
 Raking Canopy
@@ -262,6 +280,7 @@ Recycla-bird
 Reef Shaman
 Renegade Rallier
 Renowned Weaponsmith
+Restless Dreams
 Rionya, Fire Dancer
 River Hoopoe
 Riverwise Augur
@@ -270,6 +289,7 @@ Roc Egg
 Roil's Retribution
 Roofstalker Wight
 Rosnakht, Heir of Rohgahh
+Ruin Rat
 Rumbling Crescendo
 Rummaging Wizard
 Rune Snag
@@ -290,7 +310,9 @@ Seer of the Last Tomorrow
 Selfless Cathar
 Sewer Crocodile
 Shady Traveler
+Shambling Suit
 Sheltering Boughs
+Shichifukujin Dragon
 Shielded by Faith
 Shimmering Mirage
 Shock Troops
@@ -298,6 +320,9 @@ Short Circuit
 Sinister Strength
 Skaab Wrangler
 Skeletal Snake
+Skulking Ghost
+Skull Prophet
+Skyhunter Patrol
 Sleek Schooner
 Smokespew Invoker
 Sophic Centaur
@@ -307,6 +332,7 @@ Spare Dagger
 Specimen Collector
 Spellbinding Soprano
 Spellkeeper Weird
+Spiked Pit Trap
 Spire Mangler
 Spirit of the Hunt
 Spitting Gourna
@@ -341,6 +367,7 @@ Thraxodemon
 Thrilling Discovery
 Thriving Skyclaw
 Thunderous Snapper
+Tithe Drinker
 Tizerus Charger
 Tobias Andrion
 Tolarian Serpent
@@ -348,6 +375,7 @@ Torch Drake
 Torch Gauntlet
 Torture
 Toshiro Umezawa
+Trailblazer's Boots
 Trained Caracal
 Trained Condor
 Transcendent Master
@@ -360,6 +388,7 @@ Vampiric Touch
 Vat of Rebirth
 Vault Skirge
 Vault of Whispers
+Venomous Dragonfly
 Venser's Sliver
 Verdurous Gearhulk
 Vesperlark
@@ -371,7 +400,9 @@ Vicious Shadows
 Viridescent Wisps
 Vodalian Merchant
 Volcanic Geyser
+Voracious Fell Beast
 Vow of Wildness
+Walk the Plank
 Wanderguard Sentry
 War Screecher
 Warg Rider
@@ -384,6 +415,7 @@ Wing Puncture
 Wing Snare
 Witherscale Wurm
 Woodcutter's Grit
+Woodland Changeling
 Zealots en-Dal
 Zenith Festival
 Zhentarim Bandit

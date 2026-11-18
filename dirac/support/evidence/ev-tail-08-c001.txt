@@ -1,3 +1,5 @@
+A-Ochre Jelly
+A-Warm Welcome
 Abbey Griffin
 Aberrant Return
 Acceptable Losses
@@ -7,6 +9,7 @@ Age of Ultron
 Akoum Hellkite
 Amateur Auteur
 Amethyst Dragon
+Amnesia
 Ana Disciple
 Ancestral Recall
 Ancient Den
@@ -31,6 +34,7 @@ Blood Age General
 Blood Divination
 Blood Glutton
 Blood Seeker
+Bloodstained Mire
 Blur Sliver
 Boggart Trawler
 Bolt of Keranos
@@ -88,6 +92,7 @@ Dromoka's Gift
 Drudge Reavers
 Duergar Mine-Captain
 Dusk Legion Dreadnought
+Dwarven Hold
 Dwarven Recruiter
 Dwarven Trader
 Eagle of Deliverance
@@ -169,6 +174,7 @@ Kaervek's Torch
 Kavu Howler
 Kjeldoran Frostbeast
 Kolaghan Warmonger
+Kor Haven
 Krazy Kow
 Last Breath
 Last Kiss
@@ -236,6 +242,7 @@ Primal Adversary
 Promise of Tomorrow
 Propagator Drone
 Protector of the Wastes
+Puca's Covenant
 Quakefoot Cyclops
 Quickbeam, Upstart Ent
 Quietus Spike
@@ -281,6 +288,7 @@ Skyhunter Patrol
 Slimy Piper
 Slingshot Goblin
 Snap
+Snarespinner
 Sorcerer's Strongbox
 Soul Channeling
 Soulblade Djinn
@@ -296,6 +304,7 @@ Stand
 Static Net
 Staunch Shieldmate
 Staunch Throneguard
+Steel Wall
 Stitch in Time
 Stonewood Invocation
 Storm Fleet Aerialist

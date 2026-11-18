@@ -1,4 +1,5 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+About Face	f6c8796991030b6a	61	0/0		2/2	
 Adventurous Impulse	8bf0e846bf4e6aaf	7	0/0		1/2	ix:resp
 April O'Neil, Live on the Scene	2bcc2d6955d11d95	37	1/1		1/1	
 Arcbound Bruiser	bc062ddb69b375d4	43	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -22,6 +23,7 @@ Herald of the Pantheon	e45ce55b75048c09	38	1/1		0/1	ix:resp
 Jaheira, Friend of the Forest	13ccd4bc749e19b3	13	0/0		0/0	
 Kavu Chameleon	576d2420e1592743	6	1/1		1/1	
 Kitsune Blademaster	e8d111ba3031ee1a	43	2/2		1/1	
+Lava Serpent	b9b003dc8995c83c	3	1/1		1/1	
 Mind Rake	20f23adc35e742af	28	0/0		3/4	ix:resp
 Nantuko Cultivator	05910b0f501c2098	13	1/1		0/1	ix:resp
 Nantuko Elder	286f21572b29d527	4	1/1		0/1	ix:resp
@@ -32,6 +34,7 @@ Promise of Bunrei	25af7e9aff0138dd	40	1/1		1/1
 Razorfield Thresher	8b1fd54a67b7ec95	4	0/0		0/0	
 Repulsor Bots	e92ab2b54bce98cb	15	1/1		1/1	
 Ruins of Oran-Rief	46d94223608645aa	35	2/2		0/1	ix:resp
+Sadistic Glee	56256a219fc61551	45	1/1		2/2	
 Saiba Syphoner	5173c779ccde7a78	3	1/1		0/1	ix:resp
 Salvager of Ruin	f54af198fe5fc36e	43	1/1		0/1	ix:resp
 Seat of the Synod	332be3ce1548d204	25	1/1		0/1	ix:resp
@@ -47,3 +50,4 @@ Vital Splicer	3fc47fca6df29c3d	4	2/2		1/1
 Wall Off	e0a02586c9044c78	11	0/0		2/2	
 Wasteland	406e08c2ec8f89bc	18	2/2		0/1	ix:resp
 Will of the Naga	739a83ecfe919dc6	4	0/0		1/2	ix:resp
+Zoanthrope	e1c9bd2941117b03	19	3/3		1/1	

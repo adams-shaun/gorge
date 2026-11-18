@@ -59,6 +59,7 @@ Cantivore
 Cathartic Reunion
 Cathedral of War
 Caustic Tar
+Caves of Chaos Adventurer
 Chainwhip Cyclops
 Chandra's Spitfire
 Charmbreaker Devils
@@ -131,6 +132,7 @@ Faerie Formation
 Fall of the Hammer
 Family's Favor
 Farbog Boneflinger
+Fathom Fleet Captain
 Favor of the Woods
 Feebleness
 Ferocious Charge
@@ -440,6 +442,7 @@ Viper, Cruel Conspirator
 Visage of Bolas
 Vivify
 Vodalian Illusionist
+Voice of the Woods
 Voidwielder
 Vona, Butcher of Magan
 Voracious Wurm

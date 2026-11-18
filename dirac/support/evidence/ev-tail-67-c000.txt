@@ -206,6 +206,7 @@ Island
 Jackalope Herd
 Kaito Shizuki
 Keen-Eyed Raven
+Keeneye Aven
 Ken, Burning Brawler
 Khalni Gem
 Kirtar's Wrath
@@ -326,6 +327,7 @@ Scepter of Celebration
 Scion of Oona
 Scion of Vitu-Ghazi
 Scuttling Butler
+Seal from Existence
 Searing Barb
 Searing Blood
 Secure the Scene
@@ -404,6 +406,7 @@ Titan's Strength
 Topan Freeblade
 Tor Giant
 Tormod's Cryptkeeper
+Touch the Spirit Realm
 Tranquil Frillback
 Transcendent Master
 Trenching Steed

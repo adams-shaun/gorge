@@ -214,6 +214,7 @@ Lost in the Woods
 Lumengrid Gargoyle
 Mad Dog
 Magma Giant
+Mammoth Umbra
 Marshal of Zhalfir
 Master Symmetrist
 Match the Odds
@@ -338,6 +339,7 @@ Soul's Grace
 Sower of Temptation
 Spark Spray
 Sparksmith
+Spawn of Rix Maadi
 Spawn of Thraxes
 Spectral Grasp
 Spike Soldier
@@ -369,6 +371,7 @@ Talas Air Ship
 Talas Explorer
 Talas Merchant
 Talon of Pain
+Tanglesap
 Tempered Sliver
 Tempest Harvester
 Terra Stomper

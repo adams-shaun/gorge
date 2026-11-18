@@ -363,6 +363,7 @@ Soul Partition
 Space Marine Scout
 Spark of Creativity
 Spectral Flight
+Spell Blast
 Spelleater Wolverine
 Sphinx's Disciple
 Spike Rogue

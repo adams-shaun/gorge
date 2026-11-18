@@ -2,17 +2,26 @@ card	lir16	plays	keys	unused	branches	missing_branches
 A-Armory Veteran	b8519bf0a57c7b86	3	1/1		0/1	ix:resp
 A-Dokuchi Silencer	bbaaec6381c7fc5f	13	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Academy Elite	4321891ab13e4da9	8	1/1		0/1	ix:resp
+Aerial Guide	0586c2f2afa4c8ee	4	1/1		0/1	ix:resp
+Aerie Mystics	afa31da80f49fbca	4	1/1		0/1	ix:resp
+Alandra, Sky Dreamer	65a27e8139bfa024	10	2/2		0/1	ix:resp
 Alchemist's Gift	a45c2e153ae0aa99	4	0/0		2/2	
+Altar of the Goyf	dd8c91d6c7562d24	6	1/1		0/1	ix:resp
 Anaconda	0969ca0da0adba92	4	0/0		0/0	
 Ancient Carp	3c92e8e05adc50e3	10	0/0		0/0	
 Arcane Spyglass	09824fc3050d1297	3	2/2		0/1	ix:resp
+Ashnod's Altar	96367fcb33611442	4	1/1		0/1	ix:resp
 Awe for the Guilds	49f88e15347f2f65	4	0/0		2/2	
 Basilica Shepherd	a8bdde5117c2b2cd	4	1/1		0/1	ix:resp
 Baton of Courage	37af939224f8a158	3	1/1		0/1	ix:resp
 Battleground Geist	02f029d75fa8cee9	3	0/0		0/0	
 Beacon of Destruction	d5f2a1d616d6904f	8	0/0		1/2	ix:resp
+Ben-Ben, Akki Hermit	61c0d18551f0c72c	4	1/1		0/1	ix:resp
+Benalish Honor Guard	c286491d5696ab61	9	0/0		0/0	
 Blind with Anger	7ed8feea5be08fa5	8	0/0		1/2	ix:resp
 Bloodfire Expert	238de0276a100009	5	1/1		1/1	
+Bogbrew Witch	32c9fc32864a9145	4	1/1		0/1	ix:resp
+Bounty of Might	71bc18c7a5191aae	4	0/0		1/2	ix:resp
 Bull Rush	68e3a52613fa0366	13	0/0		2/2	
 Burning Earth	d81f436e123f6c82	4	1/1		1/1	
 Burning Wish	44e90b4985484e8c	3	0/0		1/2	ix:resp
@@ -49,6 +58,7 @@ Fallaji Chaindancer	cf33b39a650da41f	3	1/1		1/1
 Ferrovore	aaf4dee6ab217519	3	1/1		0/1	ix:resp
 Feywild Visitor	0a693b3ea8ce6368	6	0/0		0/0	
 Field Research	0d45e226e971b5eb	4	0/0		2/4	cast/alt:kicked,ix:resp
+Field of Souls	c3c32d611cbf786a	4	1/1		0/1	ix:resp
 Fire Shrine Keeper	36debb46b9a96af1	4	1/1		0/1	ix:resp
 Flamekin Spitfire	00b461886483da7c	6	1/1		0/1	ix:resp
 Flow of Knowledge	e54e374a40d23a13	5	0/0		1/2	ix:resp
@@ -59,6 +69,7 @@ Garbage Elemental	740235df3463a3d4	3	0/0		0/0
 Garruk's Warsteed	4efb3e2512ce310e	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Giant Inheritance	0d4aeb029b4db490	6	1/1		2/2	
 Glint	88e207df5f2d6150	4	0/0		2/2	
+Gnarled Sage	d2a849f7573e191d	4	0/0		0/0	
 Goblin Archaeologist	991499adcecf2508	6	1/1		0/1	ix:resp
 Goblin Dirigible	f0903e30cbc7ff04	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Goretusk Firebeast	a1432fe2ac872975	3	1/1		0/1	ix:resp
@@ -71,6 +82,7 @@ Hateflayer	543f2562a59dcee9	19	1/1		1/1
 Hidden Gibbons	a48f2cedf3b09f86	3	1/1		0/1	ix:resp
 Hideous End	02b7ede3b85df9fb	3	0/0		1/2	ix:resp
 Hold for Questioning	1771706b6cd7930e	4	1/1		1/2	ix:resp
+Huatli's Snubhorn	589d046f2b5dc6f0	4	0/0		0/0	
 Hydrolash	8336575e8fde4582	5	0/0		1/2	ix:resp
 Imperial Ceratops	5c7669e79514f4e1	4	1/1		0/1	ix:resp
 Inspirit	139f244df7f5bc15	3	0/0		1/2	ix:resp
@@ -84,6 +96,7 @@ Kessig Naturalist	a13882d347a8fbb5	4	2/2		0/1	ix:resp
 Kin-Tree Warden	37dfc91b4bc21323	4	1/1		1/3	cast/alt:morphed,ix:resp
 Kyoshi Warrior Guard	8be6691bb87008d2	4	0/0		0/0	
 Lightning Spear	5f77b304c1313075	5	2/2		0/1	ix:resp
+Llanowar Vanguard	46ed0f6574842ddd	10	1/1		0/1	ix:resp
 Lumberknot	d93dfb7b0641d744	4	1/1		0/1	ix:resp
 Mask of Memory	04785a8ce89bb6cc	6	2/2		0/1	ix:resp
 Mechanical Glider	94e7423797d80a8b	6	2/2		0/1	ix:resp
@@ -94,6 +107,8 @@ Militia Rallier	908f293be3f39bbe	3	1/1		0/1	ix:resp
 Mind Rot	64e80926a698fe7f	6	0/0		1/2	ix:resp
 Mine Worker	b2c79d3bc115d848	4	1/1		1/1	
 Morbid Opportunist	24722ae9947e36da	4	1/1		0/1	ix:resp
+Morningtide	f677ef1fff0ca117	4	0/0		1/2	ix:resp
+Myojin of Blooming Dawn	37ca8b8b64658b3b	4	1/1		0/1	ix:resp
 Nefashu	585199bf13e9ecec	4	1/1		0/1	ix:resp
 Nexus of Fate	178e6f3f2c93c53c	3	0/0		1/2	ix:resp
 Nezumi Graverobber	009f1970d78fa551	3	2/2		1/1	
@@ -105,6 +120,7 @@ Ogre Slumlord	83ce40f711352da0	8	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Overwhelming Remorse	02440e4fce36be77	3	0/0		1/2	ix:resp
 Pathmaker Initiate	c4d3a9eeb6d47a0f	4	1/1		1/1	
 Piston Sledge	c82ecf9a3595fd46	4	2/2		0/1	ix:resp
+Planar Despair	7865902e8b8cc4c7	5	0/0		1/2	ix:resp
 Primal Boost	feb8116f0288acf3	5	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
 Pyrogoyf	91f9e5534b0f9bb4	6	1/1		0/1	ix:resp
 Recruit the Worthy	f7e9a66721df085c	4	0/0		3/4	ix:resp
@@ -122,6 +138,7 @@ Serene Heart	3f6244b660d3b2c1	9	0/0		1/2	ix:resp
 Serum Sovereign	01b5c07f5840ed2c	3	2/2		0/1	ix:resp
 Shield Mate	99a7af629a48fbc3	4	1/1		0/1	ix:resp
 Shocker	267a5c994b859d5a	6	1/1		0/1	ix:resp
+Sibsig Icebreakers	0c37ccd8dd519076	10	1/1		0/1	ix:resp
 Sighted-Caste Sorcerer	598a36f040fd55ed	4	2/2		0/1	ix:resp
 Skarrgan Skybreaker	94b6af3d2b08a56d	3	1/1		0/1	ix:resp
 Skatewing Spy	f03b9e2d66c6d48f	3	1/1		0/1	ix:resp
@@ -161,3 +178,4 @@ Wolfcaller's Howl	1b365156ee2c0eaa	4	1/1		0/1	ix:resp
 Wrath of Marit Lage	a44bca058ea09a5b	7	1/1		0/1	ix:resp
 Wyleth, Soul of Steel	29c8d316a09be3d5	4	1/1		0/1	ix:resp
 Xathrid Necromancer	7dcd1058a139ab13	4	1/1		1/1	
+Yawgmoth Demon	cfdc5631a572500c	4	1/1		0/1	ix:resp
