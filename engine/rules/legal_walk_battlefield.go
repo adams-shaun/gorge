@@ -708,6 +708,9 @@ func (w *legalWalk) battlefieldWalk() {
 					// ability keeps the SVar-name anchor (boastGateOK's and the
 					// activation-limit gate's identity).
 					if ga.Gained {
+						if !gainedSVarGateOK(e, p, id, ab, ga.GainedFace) {
+							continue
+						}
 						if strings.EqualFold(strings.TrimSpace(ab.ParamStr(cards.PKBoast)), "True") && !e.boastGateOK(id, -1, "") {
 							continue
 						}
