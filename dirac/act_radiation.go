@@ -44,11 +44,10 @@ const radDrainAmt = -5
 
 // RadiationStats counts the mechanism's events; oracle tests only.
 var RadiationStats struct {
-	Gained   atomic.Int64 // players given rad counters (one per player per instruction)
-	Drains   atomic.Int64 // drain triggers queued
-	Milled   atomic.Int64 // cards a drain milled
-	Nonland  atomic.Int64 // nonland cards a drain milled: 1 life lost and a rad counter removed each
-	Negative atomic.Int64 // a negative amount given: that many removed (gorge's signed PlayerCounterChange)
+	Gained  atomic.Int64 // players given rad counters (one per player per instruction)
+	Drains  atomic.Int64 // drain triggers queued
+	Milled  atomic.Int64 // cards a drain milled
+	Nonland atomic.Int64 // nonland cards a drain milled: 1 life lost and a rad counter removed each
 }
 
 var coldRad = newCold[uint16]("rad", func(g *genPrep) int {
@@ -94,17 +93,11 @@ func (s *State) radiationExt(k *prep, in *kop.Instr) (ok, done bool) {
 
 // addRad gives seat p n rad counters, after the player-counter replacements.
 // A negative n (Feral Ghoul dying with negative power under Nuclear
-// Fallout's -X/-X) removes that many, floored at zero: gorge's effRadiation
-// emits the signed amount and Player.AddCounter clamps (CR 107.1b would make
-// it zero; the kernel plays as gorge does).
+// Fallout's -X/-X) gives nothing: CR 107.1b treats the negative amount as
+// zero, and gorge's effRadiation clamps it before emitting.
 func (s *State) addRad(k *prep, p uint8, n int) {
 	c := s.radCold()
-	if c == nil || n == 0 || p >= MaxSeats {
-		return
-	}
-	if n < 0 {
-		c[SeatIx(p)] = uint16(max(int(c[SeatIx(p)])+n, 0))
-		RadiationStats.Negative.Add(1)
+	if c == nil || n <= 0 || p >= MaxSeats {
 		return
 	}
 	n = s.plusPlayerCtr(k, p, n) // repl_plrcounter.go
