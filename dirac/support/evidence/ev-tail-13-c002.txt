@@ -3,12 +3,17 @@ A-Nael, Avizoa Aeronaut
 A-Psionic Snoop
 A-Thran Spider
 Aardvark Sloth
+Abzan Skycaptain
 Acolyte of Xathrid
 Adaptive Omnitool
 Adaptive Sporesinger
 Ajani's Last Stand
+Akiri, Line-Slinger
+Akroma's Blessing
 Alchor's Tomb
+Alloy Myr
 Alluring Scent
+Alseid of Life's Bounty
 Ambush Party
 Ana Sanctuary
 Ancient Crab
@@ -18,18 +23,24 @@ Arcane Denial
 Archmage Emeritus
 Armed Assailant
 Armored Skaab
+Armory Paladin
 Arvad of the Weatherlight
 Asgardian Inspiration
 Ashen Rider
 Ashnod's Transmogrant
 Atlas, Sizable Stooge
 Augury Raven
+Aura Blast
 Aven Battle Priest
+Aven Fleetwing
+Axgard Braggart
 Aysen Bureaucrats
 Bag of Holding
 Ballista Watcher
 Bane of Progress
 Basalt Gargoyle
+Battering Craghorn
+Berserkers of Blood Ridge
 Black Panther, Claws of Bast
 Bladewing the Risen
 Blaze
@@ -54,12 +65,15 @@ Child of Thorns
 Clinging Mists
 Coalition Victory
 Cobblebrute
+Commander Eesha
 Commune with Spirits
+Contemplation
 Covert Technician
 Crackling Triton
 Cryptwailing
 Curse of the Restless Dead
 Cursed Minotaur
+Daring Escape
 Daring Leap
 Dawntreader Elk
 Deadshot
@@ -73,12 +87,14 @@ Dhund Operative
 Dimir Charm
 Dimir Cutpurse
 Diregraf Colossus
+Disciple of the Sun
 Disturbed Burial
 Dive Bomber
 Diversionary Tactics
 Diviner's Lockbox
 Doomskar Oracle
 Dreadhorde Invasion
+Drivnod, Carnage Dominus
 Drove of Elves
 Drown in Dreams
 Drunau Corpse Trawler
@@ -86,6 +102,7 @@ Dutiful Return
 Earth Tremor
 Ecologist's Terrarium
 Emissary of Hope
+Ensoul Artifact
 Enthrall
 Evil Eye of Orms-by-Gore
 Evolving Adaptive
@@ -95,6 +112,7 @@ Eye Spy
 Faerie Duelist
 Fatal Fumes
 Feed the Serpent
+Ferropede
 Fire Nation Salvagers
 Fire Prophecy
 Flamekin Harbinger
@@ -102,6 +120,7 @@ Flameskull
 Flaming Tyrannosaurus
 Flight Spellbomb
 Floriferous Vinewall
+Flowstone Thopter
 Flowstone Wyvern
 Flurry of Horns
 Folk of An-Havva
@@ -109,7 +128,10 @@ Forest
 Foundry Hornet
 Fountain Watch
 Fretwork Colony
+Furious Spinesplitter
 Gaea's Skyfolk
+Gerrard's Command
+Ghirapur Osprey
 Ghost Warden
 Ghoulcaller's Bell
 Ghoulcaller's Harvest
@@ -121,22 +143,31 @@ Glen Elendra Archmage
 Glimmer Lens
 Goblin Champion
 Goblin Lookout
+Goblin Wardriver
+Goro-Goro, Disciple of Ryusei
+Grasp of the Hieromancer
+Green Goblin, Nemesis
 Grindclock
 Groundskeeper
 Guardian Lions
 Gulping Scraptrap
+Gustrider Exuberant
 Hanweir Militia Captain
 Haradrim Spearmaster
 Harvester Troll
 Haywire Mite
 Healer of the Glade
 Heir of Falkenrath
+Hellfire
 Hold at Bay
+Honor of the Pure
 Horned Troll
 Hound of Urabrask
+Huatli's Raptor
 Hunted Dragon
 Hypnotic Specter
 Hypnotic Sprite
+Icatian Moneychanger
 Iceman and Firestar
 Illusory Ambusher
 Immolating Glare
@@ -146,6 +177,7 @@ Inexorable Blob
 Inner-Flame Igniter
 Insist
 Invasion of Innistrad
+Invasion of Kaldheim
 Iron-Barb Hellion
 Island
 Izzet Cluestone
@@ -153,7 +185,9 @@ Jayemdae Tome
 Jedit's Dragoons
 Jerrard of the Closed Fist
 Jinxed Ring
+Jwari Shapeshifter
 Kagemaro, First to Suffer
+Kamahl, Pit Fighter
 Kami's Flare
 Keen-Eyed Archers
 Kemba's Skyguard
@@ -168,13 +202,16 @@ Lead the Stampede
 Leafcrown Dryad
 Lembas
 Liliana's Scorn
+Liliana, Waker of the Dead
 Lizard Blades
 Lock and Load
+Lofty Denial
 Long-Lost Lances
 Markov Purifier
 Marrow Bats
 Mass of Ghouls
 Maul of the Skyclaves
+Medicine Runner
 Merrow Commerce
 Might of Murasa
 Minotaur Aggressor
@@ -187,21 +224,31 @@ Mountain
 Mudbrawler Cohort
 Multani's Decree
 Murmuring Mystic
+Muse Drake
+Mystic Familiar
 Natural Obsolescence
 Naturalize
 Nemata, Grove Guardian
 Nessian Courser
 Noble Quarry
+Noble Templar
 Novice Occultist
 Old Stickfingers
+Ominous Sphinx
+Omnath, Locus of Rage
 One Dozen Eyes
+Order of the Golden Cricket
 Order of the Mirror
+Order of the White Shield
 Ordered Migration
+Origin of Iron Man
 Orim, Samite Healer
 Oviya Pashiri, Sage Lifecrafter
 Paragon of Eternal Wilds
 Pardic Wanderer
+Patagia Tiger
 Peacekeeper
+Perception Bobblehead
 Phyrexian Boon
 Phyrexian Negator
 Phyrexian Vault
@@ -210,17 +257,23 @@ Plains
 Poppet Stitcher
 Predatory Sliver
 Prey's Vengeance
+Privileged Position
 Pull Under
 Pulsating Illusion
+Put Away
 Putrid Imp
+Pyromania
 Quest for the Gravelord
 Quicksilver, Pietro Maximoff
 Rabid Rats
 Raka Sanctuary
 Rat King, Pale Piper
+Reaper from the Abyss
 Recruitment Officer
 Redress Fate
+Refuse to Yield
 Relic Putrescence
+Resistance Fighter
 Resounding Scream
 Rift Sower
 Rites of Refusal
@@ -228,11 +281,15 @@ Riverwise Augur
 Rocky Tar Pit
 Rolling Temblor
 Rot Shambler
+Rubblebelt Rioters
+Runic Shot
 Rupture
 Ruthless Waterbender
 Sabertooth Alley Cat
 Saprazzan Cove
 Scent of Ivy
+Scourge of the Throne
+Scourge of the Undercity
 Sea Legs
 Seachrome Coast
 Segovian Leviathan
@@ -240,8 +297,10 @@ Sejiri Steppe
 Sharpened Pitchfork
 Shattering Pulse
 Shield of Kaldra
+Shivan Meteor
 Shower of Coals
 Sickle Dancer
+Silent Departure
 Silent Skimmer
 Sinking Feeling
 Skeletal Kathari
@@ -258,16 +317,21 @@ Sorceress Queen
 Soul Partition
 Space Marine Scout
 Spark of Creativity
+Spectral Flight
 Spelleater Wolverine
 Sphinx's Disciple
 Squirrel Sovereign
+Starstorm
+Stature, Young Avenger
 Steel Seraph
 Stitcher's Apprentice
 Storm Entity
 Strength-Testing Hammer
+Stromkirk Patrol
 Surrakar Marauder
 Swamp
 Sword of the Paruns
+Tenacious Dead
 Tervigon
 The Scorpion God
 Thopter Assembly
@@ -280,12 +344,17 @@ Tine Shrike
 Titanium Man
 Tocatli Honor Guard
 Tome Shredder
+Toolcraft Exemplar
 Trained Jackal
+Traitorous Greed
 Tribute to Urborg
 Tribute to the World Tree
+Typhoid Rats
 Tzaangor Shaman
 Uncage the Menagerie
+Valiant Changeling
 Value Town
+Vampire Cutthroat
 Vedalken Plotter
 Vengeant Earth
 Vertigo
@@ -303,10 +372,12 @@ Warmonger
 Weathered Wayfarer
 Welkin Tern
 Westgate Regent
+Whisper of the Dross
 Wight of Precinct Six
 Wind-Kin Raiders
 Woebringer Demon
 Wolfir Avenger
+Woolly Spider
 Words of Wisdom
 World Shaper
 Wurmskin Forger

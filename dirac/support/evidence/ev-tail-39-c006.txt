@@ -11,6 +11,7 @@ Banshee of the Dread Choir
 Battering Krasis
 Beastmaster Ascension
 Blood Pact
+Bloodvial Purveyor
 Burgeoning
 Cavern Harpy
 Chaos Channeler
@@ -35,6 +36,7 @@ Desecration Elemental
 Drana's Emissary
 Dromoka Dunecaster
 Elda, Conjurer of Spectacle
+Ethereal Guidance
 Exsanguinator Cavalry
 Fact or Fiction
 Fast
@@ -42,6 +44,7 @@ Forest
 Forked Bolt
 Ghoul's Feast
 Glacial Grasp
+Grim Discovery
 Herald of Hadar
 Hero's Resolve
 Hidden Guerrillas
@@ -72,16 +75,19 @@ Rack and Ruin
 Rage of Purphoros
 Rally at the Hornburg
 Renewed Faith
+Resistance Reunited
 Rhystic Shield
 Riot Piker
 Riverwheel Aerialists
 Ronin Warclub
 Rotten Reunion
 Ruinous Minotaur
+Sanctum Spirit
 Scourge of Fleets
 Sentinels of Glen Elendra
 Shambling Ghast
 Sheltering Boughs
+Shield of the Avatar
 Shriek of Dread
 Signal Pest
 Sink into Takenuma
@@ -104,6 +110,7 @@ Tin Street Cadet
 Tivadar's Crusade
 Tooth and Nail
 Ugin's Construct
+Underdark Explorer
 Urborg Drake
 Victor Mancha, Runaway
 Wall of Fire

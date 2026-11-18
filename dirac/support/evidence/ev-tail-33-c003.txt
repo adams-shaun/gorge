@@ -1,95 +1,162 @@
 A-Akki Ronin
 A-Guide of Souls
 A-Oran-Rief Ooze
+A-Psionic Snoop
 A-Urza, Powerstone Prodigy
 Abzan Advantage
 Accursed Horde
+Acrobatic Maneuver
 Advanced Stitchwing
+Aether Chaser
 Aether Vial
+Afterlife Insurance
 Aftershock
+Aid from the Cowl
 Aim High
 Ajani's Sunstriker
 Alharu, Solemn Ritualist
+Allay
 Anaba Bodyguard
 Ancestral Knowledge
 Animal Boneyard
+Archweaver
 Arcum Dagsson
 Ardent Elementalist
 Armorcraft Judge
 Atraxa's Fall
 Audacity
+Autumnal Gloom
+Baboon Spirit
 Bag End Porter
+Battlefront Krushok
 Belligerent Brontodon
+Blast Zone
 Blighted Agent
 Blood Divination
+Blood Speaker
+Bloodstone Cameo
+Blurred Mongoose
+Bogardan Dragonheart
+Bonded Herdbeast
+Book of Rass
 Bramblecrush
 Brazen Buccaneers
+Briarpack Alpha
 Bringer of the Green Dawn
 Broodhatch Nantuko
+Cagemail
 Call of the Wild
 Call to Mind
 Canopy Baloth
+Carnival of Souls
 Caustic Caterpillar
+Charforger
+Chittering Witch
 Circle of Flame
 Citywatch Sphinx
+Cold-Water Snapper
 Confront the Unknown
 Consult the Necrosages
+Cordial Vampire
 Crawl from the Cellar
 Creakwood Ghoul
 Cruel Cut
 Cruel Deceiver
 Curious Pair
+Curse of Inertia
 Cyclops Tyrant
 Dakmor Lancer
+Darwin, Adaptive Mutant
 Davriel, Rogue Shadowmage
 Deadly Recluse
 Death Pulse
 Death Tyrant
+Deathbloom Thallid
+Deception
 Depose
+Deranged Whelp
 Despondent Killbot
 Destroy Evil
 Destructive Digger
 Dewdrop Spy
+Dimir Machinations
 Dire Tactics
+Diving Griffin
+Donate
 Draconic Destiny
 Dragonlord Silumgar
+Dragonwing Glider
+Drawn from Dreams
 Drelnoch
+Drill-Skimmer
+Dripping Dead
 Dross Golem
+Dross Prowler
+Dross Skullbomb
+Dwarven Forge-Chanter
 Dwarven Priest
 Dwarven Weaponsmith
+Dáin's Company
 Déjà Vu
 Eager First-Year
 Earthshape
 Ebony Charm
 Ebony Horse
 Electric Revelation
+Elven Ambush
+Elvish Fury
 Ember-Eye Wolf
+Encroach
+Eternal Taskmaster
 Ethereal Absolution
 Extinction
 Fallaji Dragon Engine
 False Peace
+Farbog Explorer
+Feroz's Ban
 Fill with Fright
 Final Flourish
+Fire Nation Occupation
 Flame Elemental
+Flawless Maneuver
 Flip the Switch
+Flourishing Hunter
+Flumph
+Forbidding Watchtower
 Forceful Cultivator
 Forest
+Freejam Regent
 Furious Resistance
 Furnace Gremlin
+Gaea's Might
+Gates of Istfell
+Gau, Feral Youth
 Gearsmith Prodigy
 Gleam of Authority
+Gluttonous Guest
+Godo, Bandit Warlord
 Golden Bear
 Goldwarden's Helm
 Gravitational Shift
+Grimoire of the Dead
 Gwaihir, Greatest of the Eagles
+Hammer of Purphoros
+Haunted Dead
 Hazoret's Monument
+Healer's Headdress
 History of Benalia
 Honor's Reward
+Horrific Assault
 Howling Fury
 Hurloon Shaman
+Illustrious Historian
 Inexorable Tide
+Infected Defector
+Infernal Reckoning
 Inner Fire
 Innocent Traveler
+Insurrection
+Invasive Species
 Island
 Jabs, Mistress of Mockery
 Jace's Triumph
@@ -98,40 +165,58 @@ Jhoira's Familiar
 Katara, Heroic Healer
 Kavu Aggressor
 Kindly Stranger
+Kinscaer Harpoonist
 Kird Chieftain
 Kithkin Mourncaller
+Kjeldoran Javelineer
 Kor Line-Slinger
 Land Grant
+Lava Coil
 Leaden Fists
+Liege of the Pit
 Lightfoot Rogue
 Lightning Elemental
 Liliana's Influence
+Llanowar Dead
 Looming Altisaur
 Lumengrid Augur
+Lumengrid Sentinel
 Magistrate's Scepter
+Magnetic Theft
 Manabond
 Marauding Knight
 Mass Hysteria
 Mawcor
 Maximize Altitude
+Memorial to Folly
 Metalspinner's Puzzleknot
 Military Intelligence
+Mimic
 Mindless Conscription
 Ministrant of Obligation
+Mjölnir's Might
+Monastery Mentor
 Mountain
 Mox Amber
 Murder Investigation
+Muster the Departed
 Myr Enforcer
 Mystery Key
+Mystic Might
+Nath's Buffoon
 Nebelgast Beguiler
 Necrosynthesis
 Necrotic Sliver
+Never
 Nezumi Freewheeler
 Noxious Grasp
+Nyxathid
 Obelisk of Naya
 Opal Champion
 Oran-Rief Recluse
+Ordeal of Erebos
 Overgrowth
+Pack's Disdain
 Pegasus Refuge
 Phantom Nishoba
 Photon, Mighty Marvel
@@ -142,13 +227,29 @@ Prickleboar
 Pterodon Knight
 Puppet Conjurer
 Purify
+Quarantine Field
 Quirion Dryad
+Rattlechains
+Ravenous Leucrocota
+Raze
+Reaver Drone
+Reckoner's Bargain
+Regeneration
+Remember the Fallen
 Rending Volley
+Renounce
+Reverent Hunter
+Rewind
 Rip Apart
+Roar of the Wurm
+Roofstalker Wight
 Royal Falcon
 Ruin Crab
+Sabertooth Mauler
 Sage's Knowledge
+Sage's Row Savant
 Saltblast
+Saruman the White
 Scab-Clan Charger
 Scholar of Combustion
 Scion of Stygia
@@ -156,15 +257,21 @@ Scourge of the Undercity
 Sea God's Revenge
 Sea Snidd
 Seasoned Hallowblade
+Seed Guardian
+Seeker
 Selesnya Sagittars
+Shattered Dreams
+Shinen of Fear's Chill
 Showstopping Surprise
 Shredded Sails
 Shu Grain Caravan
 Sibling Rivalry
 Sifter of Skulls
 Sisay's Ring
+Sivitri Scarzam
 Skyclave Relic
 Skyreaping
+Sling-Gang Lieutenant
 Smuggler's Copter
 Solar Blast
 Soltari Trooper
@@ -174,30 +281,68 @@ Spidersilk Armor
 Spirit Bonds
 Spiteful Sliver
 Spore Cloud
+Stamina
 Stensia Uprising
 Streetwise Negotiator
+Subversion
 Swamp
+Sylvan Hierophant
+Sythis, Harvest's Hand
+Tajuru Warcaller
+Temple Elder
+Temporal Machinations
+The Tabernacle at Pendrell Vale
 Thought Monitor
 Thraben Foulbloods
 Thresher Lizard
 Tin-Wing Chimera
+Tolsimir, Friend to Wolves
+Tower of Champions
+Towering Thunderfist
 Trained Armodon
+Trained Jackal
+Tranquil Path
+Trash for Treasure
+Tree of Tales
+Treefolk Seedlings
 Trespasser's Curse
 Two-Headed Dragon
+Ultron, Machine Overlord
+Umezawa's Charm
 Unchecked Growth
+Undead Servant
 Undo
+Unyaro Bee Sting
+Urborg Shambler
+Urza's Command
 Utvara Scalper
 Verdant Crescendo
 Verdant Embrace
+Vernal Fen
 Vinelasher Kudzu
 Viridian Zealot
+Voice of Truth
 Voidwielder
+Voyaging Satyr
+Vulshok War Boar
 Wall of Roots
 Wall of Wonder
 Wand of the Elements
 Warden of the Wall
+Warmonger's Chariot
 Warren Instigator
 Wave Goodbye
+Wayward Swordtooth
+Weatherlight Compleated
+Weatherseed Totem
 Wei Infantry
+Wild Griffin
+Willow Faerie
+Wilson, Refined Grizzly
+Wingfold Pteron
 Witch's Cottage
+Wizened Cenn
+You Look Upon the Tarrasque
+Yuan Shao, the Indecisive
+Yuriko, the Tiger's Shadow
 Zulaport Duelist

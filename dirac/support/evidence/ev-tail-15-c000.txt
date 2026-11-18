@@ -75,6 +75,7 @@ Curse of Wizardry
 Cursed Totem
 Cyclone Summoner
 Dark Triumph
+Dauthi Voidwalker
 Dawnfeather Eagle
 Deadeye Rig-Hauler
 Deathbloom Ritualist
@@ -189,7 +190,9 @@ Infuse
 Ink-Eyes, Servant of Oni
 Inner Calm, Outer Strength
 Innocuous Researcher
+Inside Out
 Inspired Inventor
+Into the North
 Into the Time Vortex
 Inviolability
 Island
@@ -211,6 +214,7 @@ Kor Duelist
 Kraken Hatchling
 Krark-Clan Engineers
 Kyoshi Warrior Exemplars
+Laccolith Rig
 Lady Caleria
 Learn from the Past
 Leeching Bite
@@ -328,6 +332,7 @@ Roil Cartographer
 Rolling Hamsphere
 Romana II
 Roving Harper
+Rust Tick
 Sacred Nectar
 Saddleback Lagac
 Sanguine Glorifier
@@ -401,6 +406,7 @@ Talisman of Resilience
 Teething Wurmlet
 Territory Culler
 Teyo's Lightshield
+Teysa Karlov
 The Prydwen, Steel Flagship
 The Wasp, Winsome Avenger
 Thornhide Wolves

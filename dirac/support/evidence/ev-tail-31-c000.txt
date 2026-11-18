@@ -4,6 +4,7 @@ A-Warm Welcome
 Abandon the Post
 Abrupt Decay
 Accelerated Mutation
+Acquire
 Adanto Vanguard
 Aerial Predation
 Agent of Horizons
@@ -63,6 +64,7 @@ Cast Down
 Celestial Flare
 Centaur Rootcaster
 Cephalid Inkshrouder
+Chandra, Fire Artisan
 Charge Through
 Circle of Dreams Druid
 Claim of Erebos
@@ -74,6 +76,7 @@ Consuming Fervor
 Consuming Sinkhole
 Costly Plunder
 Crack Open
+Crag Puca
 Crash Landing
 Crucible of Worlds
 Crypt Rats
@@ -152,6 +155,7 @@ Goblin Guide
 Goblin Piker
 Goblin Turncoat
 Graceful Restoration
+Graveyard Trespasser
 Graypelt Hunter
 Grim Captain's Call
 Grim Servant
@@ -171,6 +175,7 @@ Herald of the Fair
 Homestead Courage
 Hopeful Eidolon
 Hornet Sting
+Horrible Hordes
 Hot Springs
 Hullbreaker Horror
 Icon of Ancestry
@@ -197,13 +202,17 @@ Kami of Transience
 Kaysa
 Keen Glidemaster
 Keeper of Keys
+Keeper of Tresserhorn
 Keldon Overseer
 Kite Shield
 Kithkin Harbinger
 Kitsune Loreweaver
 Kumena's Awakening
+Laccolith Titan
+Laccolith Whelp
 Languish
 Lantern of Revealing
+Legions of Lim-Dûl
 Leopard-Spotted Jiao
 Lim-Dûl's High Guard
 Living Lightning, Charged Up
@@ -216,6 +225,7 @@ Mageta's Boon
 Mana Cylix
 Mardu Skullhunter
 Marsh Flats
+Mercurial Geists
 Metathran Elite
 Metathran Soldier
 Minotaur Illusionist
@@ -356,8 +366,10 @@ Sustenance
 Swamp
 Swelter
 Synod Sanctum
+Takeno's Cavalry
 Tale of Momo
 Talisman of Curiosity
+Talon Trooper
 Talruum Minotaur
 Teetering Peaks
 Teferi's Sentinel
@@ -388,6 +400,7 @@ Umara Mystic
 Undead Augur
 Undercity Informer
 Undying Beast
+Unfulfilled Desires
 Updraft
 Utopia Tree
 Utopia Vow
@@ -418,6 +431,7 @@ Woodwraith Corrupter
 Worn Powerstone
 Worthy Knight
 Wreath of Geists
+Wrenn and One
 Wretched Throng
 Xenk, Paladin Unbroken
 Zealous Guardian

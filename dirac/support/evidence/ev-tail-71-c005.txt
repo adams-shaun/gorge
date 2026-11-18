@@ -1,21 +1,36 @@
+A-Armory Veteran
 A-Skull Skaab
 Alchemax Slayer-Bots
 Alluring Suitor
+Amateur Auteur
 Ambulatory Edifice
+Angel of Flight Alabaster
 Assembly-Worker
 Aven of Enduring Hope
 Battlefield Raptor
+Battleground Geist
+Beacon of Destruction
+Benalish Honor Guard
+Bennie Bracks, Zoologist
 Blazing Volley
+Blind with Anger
 Bloodvial Purveyor
 Bola Warrior
 Bower Passage
+Burning Wish
 Canyon Lurkers
 Captured Sunlight
+Cathedral Sanctifier
+Caustic Caterpillar
 Chain Stasis
 Clan Defiance
 Commando Raid
 Contagion Clasp
+Coordinated Barrage
 Cyclops Electromancer
+Dalek Drone
+Dangerous Wager
+Defend the Hearth
 Defy Death
 Dismal Failure
 Dockside Chef
@@ -23,27 +38,40 @@ Doomed Traveler
 Drake Familiar
 Earthshaker Giant
 Elvish Piper
+Evolution Charm
 Fanatical Devotion
+Field of Souls
 Fire Servant
 Forest
 Gargoyle Flock
+Garruk's Warsteed
 Gather Courage
+Guardian Automaton
+Guardian Lions
 Gut, True Soul Zealot
 Harnessed Lightning
+Huatli's Snubhorn
 Humble
 Imposing Visage
 Ingenious Skaab
 Inner-Flame Acolyte
 Insidious Will
+Inspirit
+Invincible Hymn
 Island
+Jawbone Duelist
 Jhessian Balmgiver
+Join the Dance
 Journey for the Elixir
 Manhole Cover
 Marked by Honor
 Masumaro, First to Live
+Mechanical Glider
+Militia Rallier
 Moku, Meandering Drummer
 Molten Ravager
 Monk Idealist
+Morningtide
 Mountain
 Murasa Ranger
 Myr Retriever
@@ -58,16 +86,23 @@ Plains
 Portal to Phyrexia
 Psychic Overload
 Quandrix Apprentice
+Recruit the Worthy
 Renegade Warlord
+Revolutionary Rebuff
 Riptide Mangler
+Rishkar, Peema Renegade
 Rising Populace
 Rummaging Goblin
+Scryb Sprites
+Serene Heart
 Shu Farmer
 Shu Grain Caravan
 Sighted-Caste Sorcerer
 Sky Crier
+Sly Instigator
 Soulcatcher
 Spined Thopter
+Steel Golem
 Storm Seeker
 Stunted Growth
 Sungrace Pegasus
@@ -75,8 +110,10 @@ Swamp
 Swordwise Centaur
 Tezzeret's Gambit
 Thoughtpicker Witch
+Threnody Singer
 Throne of the God-Pharaoh
 Time Bomb
+Tormod's Crypt
 Tribute to the Wild
 Twisted Justice
 Ukkima, Stalking Shadow
@@ -84,5 +121,7 @@ Unseal the Necropolis
 Valduk, Keeper of the Flame
 Veiled Sentry
 Vent Sentinel
+Voltaic Brawler
 Wave of Terror
+Winged Coatl
 Yisan, the Wanderer Bard

@@ -15,11 +15,13 @@ Alpha Deathclaw
 Angel of Glory's Rise
 Ankh of Mishra
 Arc Mage
+Arcbound Worker
 Armor of Faith
 Armory Guard
 Ashling, the Extinguisher
 Attended Knight
 Autumn Willow, Harmony
+Avoid Fate
 Ballista Watcher
 Bartolomé del Presidio
 Beast Mode
@@ -32,6 +34,7 @@ Bladehold War-Whip
 Blood Funnel
 Bonesplitter Sliver
 Boots of Speed
+Borborygmos
 Brainspoil
 Bristling Hydra
 Buoyancy
@@ -40,7 +43,10 @@ Burst of Speed
 Buy Your Silence
 Cavern Crawler
 Cephalid Aristocrat
+Cheering Fanatic
 Chief of the Foundry
+Chromeshell Crab
+Civic Wayfinder
 Clash of Wills
 Clip Wings
 Commander Mustard
@@ -90,6 +96,7 @@ Everbark Shaman
 Evie Frye
 Extract from Darkness
 Extremis Elite
+Eye of Ugin
 Falkenrath Torturer
 Fallaji Archaeologist
 Fated Return
@@ -120,9 +127,11 @@ Goblin Bushwhacker
 Goblin Locksmith
 Goliath, Mass Manipulator
 Grafted Wargear
+Grasslands
 Grave Peril
 Graveblade Marauder
 Gravity Sphere
+Great Oak Guardian
 Great-Horn Krushok
 Grisly Survivor
 Grizzled Leotau
@@ -143,6 +152,7 @@ Hydromorph Gull
 Idolized
 Indestructibility
 Infernal Contract
+Infernal Kirin
 Infuriate
 Iona's Judgment
 Island
@@ -174,6 +184,7 @@ Luminescent Rain
 Maraleaf Pixie
 Marble Titan
 Massacre
+Mastery of the Unseen
 Melira's Keepers
 Mental Misstep
 Messenger's Speed
@@ -182,13 +193,16 @@ Mindculling
 Miracle Worker
 Misers' Cage
 Mob Justice
+Mortipede
 Mountain
 Murasa Brute
 Myojin of Infinite Rage
 Myr Sire
 Márton Stromgald
+Nature's Embrace
 Nausea
 Neheb, the Eternal
+Norwood Archers
 Numbing Dose
 Obelisk of Alara
 Opal Gargoyle
@@ -210,6 +224,7 @@ Pinnacle of Rage
 Plains
 Popular Entertainer
 Predator's Rapport
+Pyrrhic Revival
 Quicksilver Amulet
 Rampant Rejuvenator
 Ransom Note
@@ -236,6 +251,7 @@ Sanctum Custodian
 School of Piranha
 Scorch Rider
 Scrap Trawler
+Scrapwork Mutt
 Self-Inflicted Wound
 Sell-Sword Brute
 Seller of Songbirds
@@ -246,6 +262,7 @@ Shatterskull Smashing
 Shield-Wall Sentinel
 Shimmering Wings
 Shinechaser
+Shinen of Life's Roar
 Sif's Spearmaster
 Silas Renn, Seeker Adept
 Skeletal Wurm
@@ -286,10 +303,12 @@ Thornwatch Scarecrow
 Titanium Man
 Tolarian Entrancer
 Tortured Existence
+Transguild Courier
 Traveling Philosopher
 Treasure Vault
 Trench Gorger
 Trench Wurm
+Trenchpost
 Trip Noose
 Tromokratis
 Trusty Companion
@@ -307,12 +326,15 @@ Vandalize
 Vanquisher's Axe
 Vedalken Aethermage
 Vendetta
+Vengeful Dreams
+Vengeful Reaper
 Vivien's Grizzly
 Vizkopa Vampire
 Wake the Dragon
 Wake the Past
 Walker of the Grove
 Walking Atlas
+Wall of Roots
 Warlock Class
 Wave of Indifference
 Weaver of Harmony
@@ -324,7 +346,9 @@ Wirewood Elf
 Wirewood Herald
 Wolf Cove Villager
 Woodlot Crawler
+Wrenn and Realmbreaker
 Wyrm's Crossing Patrol
+Yavimaya Sapherd
 You Hear Something on Watch
 You're Ambushed on the Road
 Zephyr Net

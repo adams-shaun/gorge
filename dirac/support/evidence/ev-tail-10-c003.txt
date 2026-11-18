@@ -1,46 +1,88 @@
+A-Blessed Hippogriff
 A-Steadfast Unicorn
+Abbey Matron
 Abjure
+Acid Web Spider
 Aerial Engineer
 Aether Meltdown
+Aether Swooper
+Agent of the Fates
 Airdrop Aeronauts
 Alpine Grizzly
 Anax, Hardened in the Forge
 Angel of Light
+Angelic Benediction
+Argent Dais
 Armillary Sphere
+Armored Wolf-Rider
 Artifact Unknown Shores
 Ascend from Avernus
+Auramancer
 Automated Assembly Line
+Aysen Highway
 Baloth Packhunter
+Bastion of Remembrance
 Battalion Foot Soldier
 Battlegrowth
 Battlewise Valor
+Behold the Beyond
 Bellowing Saddlebrute
 Benevolent Ancestor
 Black Carriage
 Blade Sliver
+Blightcaster
 Blinding Light
 Blinking Spirit
 Blood Curdle
+Bloodfire Colossus
 Blossoming Wreath
 Blot Out the Sky
+Bog Elemental
+Bog Imp
 Bogardan Dragonheart
+Boggart Sprite-Chaser
+Brash Taunter
+Brutalizer Exarch
+Cacophodon
+Call of the Conclave
 Canopy Claws
 Carrier Thrall
+Case of the Shifting Visage
 Celestial Archon
+Ceremonious Rejection
+Child of the Pack
+Chromescale Drake
 Clockwork Fox
+Cloud Dragon
 Cloudgoat Ranger
+Coercive Recruiter
 Commander Sofia Daguerre
+Counsel of the Soratami
 Crazed Goblin
+Crushing Canopy
 Cylian Elf
 D'Avenant Trapper
 Darksteel Gargoyle
+Dash Hopes
+Dawn of a New Age
 Dazzling Ramparts
+Decanter of Endless Water
+Decimator Beetle
+Demonic Vigor
+Desert
+Desperate Sentry
+Donatello's Science Lesson
+Doublecast
 Dreadhorde Invasion
 Dreg Recycler
+Duskborne Skymarcher
 Dáin of the Ancient Halls
 Elderfang Ritualist
+Elite Archers
 Elvish Lookout
+Ember Shot
 Enlistment Officer
+Esper Sentinel
 Excavation Explosion
 Exiled Boggart
 Eye of Malcator
@@ -48,65 +90,133 @@ Falkenrath Reaver
 Fang of Shigeki
 Feed the Infection
 Felhide Spiritbinder
+Fend Off
+Festering Evil
+Fire Snake
 Flowstone Shambler
 Forest
+Forget
 Furnace Celebration
 Gallantry
 Gallows Warden
+Galvanic Juggernaut
 Gang of Elk
+Glasspool Mimic
 Glint
 Goblin Caves
+Goblin Furrier
+Goblin Picker
+Goblin Shrine
 Grapeshot Catapult
 Grey Host Reinforcements
+Grim Monolith
 Halo Hopper
+Harmonious Archon
 Haunted Cadaver
+Headstone
 Heal the Scars
 Heated Debate
+Hemlock Vial
 Herbal Poultice
+Highland Giant
 Hobbit's Sting
 Holy Justiciar
+Honden of Cleansing Fire
+Hunted Lammasu
 Ichor Rats
+Ignite the Beacon
+Illusory Wrappings
+Inspiring Commander
+Invasion of Ergamon
 Ironclaw Orcs
 Island
+Jeskai Sage
+Jhovall Queen
 Join Forces
+Kaervek, the Spiteful
 Karsus Depthguard
 Kaya's Onslaught
 Kenrith, the Returned King
+Kinetic Ooze
 Kismet
 Kjeldoran Gargoyle
 Knight of Stromgald
+Knight of the White Orchid
+Kraul Warrior
 Leonin Squire
+Lizard Warrior
 Mageta the Lion
+Magma Giant
 Mahamoti Djinn
+Majestic Genesis
 Marang River Skeleton
 Marsh Flitter
+Marsh Threader
 Master of Arms
 Merfolk Traders
+Merfolk Windrobber
+Might of the Masses
+Mindwrack Harpy
+Minions' Murmurs
 Mischievous Poltergeist
+Mishra, Excavation Prodigy
 Mists of Littjara
 Monumental Henge
+Morgue Theft
 Mountain
+Mystic Denial
+Mystic Zealot
 Need for Speed
 Neurok Stealthsuit
 Nightscape Apprentice
 Nim Grotesque
+Nim Mongoose
 Ondu Giant
+One with Nothing
+Oran-Rief Recluse
 Oraxid
+Ori, Plate Stacker
 Outland Colossus
 Paragon of Open Graves
+Paranoid Parish-Blade
+Pegasus Guardian
+Phantom Nishoba
+Phyrexian Broodlings
 Phyrexian Denouncer
+Phyrexian Pegasus
 Plains
 Pointed Discussion
+Pontiff of Blight
 Prison Realm
+Prophetic Flamespeaker
+Prophetic Ravings
+Proteus Staff
 Radiant Purge
+Ragged Veins
+Ravenous Squirrel
 Raze
 Reave Soul
 Regal Force
+Regal Unicorn
 Restock
 Reward the Faithful
+Ribskiff
 Ridgeline Rager
+Righteous Blow
+Riot Devils
+Ripjaw Raptor
+Ritual of Restoration
+Roil Eruption
+Royal Trooper
+Rubblebelt Recluse
+Rumbleweed
+Sanctuary Lockdown
 Scalding Tongs
+Scrapheap
+Scuzzback Scrapper
+Sea Eagle
 Seal from Existence
+Searing Flesh
 Servant of Nefarox
 Shields of Velis Vel
 Shimmering Grotto
@@ -115,34 +225,67 @@ Sigil of the New Dawn
 Skarrg, the Rage Pits
 Skeletal Changeling
 Skittering Precursor
+Skyhunter Strike Force
+Skyrider Trainee
+Slaughter Pact
+Smoldering Efreet
 Snapsail Glider
+Soldier On
+Sorin's Guide
+Soul-Guide Gryff
+Sparktongue Dragon
+Spined Tyrranax
 Spirit en-Kor
+Squad Captain
 Stalking Tiger
+Steam Catapult
+Stir the Pride
+Stoneskin
 Storm World
+Stormscape Apprentice
+Street Spasm
+Suki, Kyoshi Captain
 Sunscape Familiar
 Surge of Salvation
 Suspension Field
 Suture Priest
 Swamp
 Swirling Sandstorm
+Sword of Hours
+Tempting Witch
+Terror of the Fairgrounds
 Tireless Tribe
+Torch Gauntlet
+Transcendent Envoy
+Trapfinder's Trick
 Traveling Minister
+Trostani, Selesnya's Voice
 Tymaret Calls the Dead
 Undercity Scrounger
 Underworld Breach
+Universal Automaton
 Unstable Mutation
+Urgent Exorcism
 Uthros Research Craft
 Vedalken Blademaster
 Veteran's Voice
+Vicious Battlerager
+Vivisurgeon's Insight
+Vulshok Heartstoker
 Warded Battlements
+Warstorm Surge
 Waterspout Djinn
+Weigh Down
 Westfold Rider
 Wharf Infiltrator
 Whispergear Sneak
 Whispers of the Muse
+Wildfire Cerberus
+Witchstalker
 Wizards of Thay
 Wu Admiral
 Yanling's Harbinger
 Yavimaya Granger
 Yotian Soldier
+Zagoth Crystal
 Zulaport Enforcer

@@ -1,3 +1,4 @@
+Abandon Reason
 Alena, Kessig Trapper
 Arctic Merfolk
 Argent Mutation
@@ -6,6 +7,7 @@ Aspect of Manticore
 Autumn Willow, Harmony
 Aven Reedstalker
 Battlefly Swarm
+Battlewise Valor
 Blinding Souleater
 Bogbrew Witch
 Burning Wish
@@ -31,6 +33,7 @@ Final-Sting Faerie
 Forest
 Gift of Growth
 Goblin Sharpshooter
+Grim Poppet
 Guul Draz Overseer
 Heedless One
 Helldozer
@@ -41,6 +44,7 @@ Impetuous Protege
 Industrial Advancement
 Innocence Kami
 Island
+Jackhammer
 Jousting Lance
 Kalonian Twingrove
 Kaya's Ghostform
@@ -55,6 +59,7 @@ Moldgraf Millipede
 Mountain
 Mwonvuli Ooze
 Noble Steeds
+Oraxid
 Plains
 Plunder
 Pouncing Cheetah
@@ -66,6 +71,7 @@ Rejuvenating Springs
 Resolute Blademaster
 Riddle Gate Gargoyle
 Rigging Runner
+River Merfolk
 Salvage Titan
 Sandsteppe War Riders
 Screams of the Damned
@@ -76,9 +82,12 @@ Snapping Thragg
 Spidersilk Net
 Spitemare
 Stabbing Pain
+Start from Scratch
 Stir the Pride
 Stonybrook Angler
+Strider Harness
 Stronghold Assassin
+Summoning Station
 Sun Droplet
 Swamp
 The Spike Cactus
@@ -86,5 +95,7 @@ Thornscape Apprentice
 Thunderous Wrath
 Tresserhorn Sinks
 Vaultbreaker
+Wall of Blood
+Wand of Orcus
 Warbeast of Gorgoroth
 Wight

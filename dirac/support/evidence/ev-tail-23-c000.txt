@@ -66,6 +66,7 @@ Brass Herald
 Breath Weapon
 Broken Fall
 Built to Last
+Burakos, Party Leader
 Cabal Ritual
 Caged Zombie
 Call the Bloodline
@@ -142,6 +143,7 @@ Fogwalker
 Forcemage Advocate
 Forest
 Fortify
+Fractured Sanity
 Fungusaur
 Fylamarid
 Galadriel, Gift-Giver
@@ -202,6 +204,7 @@ Invasion of Mercadia
 Ion Storm
 Iridescent Drake
 Island
+It That Betrays
 Iwamori of the Open Fist
 Jeskai Windscout
 Jiang Yanggu, Wildcrafter
@@ -222,6 +225,7 @@ Kuldotha Forgemaster
 Lash of the Balrog
 Leela, Sevateem Warrior
 Lens Flare
+Leonardo, the Balance
 Liliana's Specter
 Lim-Dûl's High Guard
 Linvala, Keeper of Silence
@@ -255,6 +259,7 @@ Moonglove Extract
 Mossfire Valley
 Mountain
 Mtenda Lion
+Myojin of Grim Betrayal
 Myrkul's Edict
 Narcolepsy
 Nature's Will
@@ -326,6 +331,7 @@ Seal of Primordium
 Searing Wind
 Seething Landscape
 Seismic Mage
+Selfless Glyphweaver
 Selfless Savior
 Sentinel Spider
 Serpentine Ambush
@@ -337,6 +343,7 @@ Shuri, the Black Panther
 Sidewinder Naga
 Siege Mastodon
 Siegehorn Ceratops
+Silverfur Partisan
 Slither Blade
 Sliver Construct
 Smash
@@ -399,6 +406,7 @@ Valor of the Worthy
 Vampirism
 Vebulid
 Vengeful Devil
+Venomous Fangs
 Verdant Sun's Avatar
 Viashino Branchrider
 Vincent, Vengeful Atoner

@@ -1,15 +1,20 @@
+A-Death-Priest of Myrkul
 A-Meria's Outrider
 Abnormal Endurance
 Abyssal Hunter
 Agent of the Iron Throne
+Ambush
 Amphibian Downpour
 Ancient Kavu
 Angelic Blessing
+Argothian Pixies
 Arms of Hadar
 Arwen's Gift
+Axelrod Gunnarson
 Balloon Peddler
 Bitter Revelation
 Blood Fountain
+Bloodfire Kavu
 Bob, Reluctant HYDRA Agent
 Body Launderer
 Canal Monitor
@@ -22,41 +27,69 @@ Crossway Vampire
 Dakmor Sorceress
 Deafening Clarion
 Deathspore Thallid
+Disciple of Tevesh Szat
+Dolmen Gate
 Donate
 Dream Stalker
+Electrostatic Bolt
 Enraged Killbot
 Etherium Pteramander
+Everythingamajig
 Evincar's Justice
 Fallen Ferromancer
 Far
 Firefly
+Flaming Fist
 Forest
 Freedom Fighter Recruit
 Frost Lynx
 Giant Cockroach
+Glimpse the Unthinkable
 Glint-Sleeve Siphoner
 Gloom Sower
+Goblin Grenadiers
 Goblin Raider
 Goblin Wizardry
+Grenzo's Cutthroat
+Grim Initiate
 Hexplate Wallbreaker
 Hissing Miasma
+Ill-Tempered Loner
+Immortal Servitude
+Increasing Vengeance
 Indulgent Tormentor
 Island
 Jinxed Ring
 Kami of Industry
+Ken, Burning Brawler
+Lady Orca
 Magus of the Bazaar
 Marauding Dreadship
+Monoskelion
 Mountain
 Mox Emerald
+Nemesis of Reason
+Neonate's Rush
+Nomads' Assembly
+Onakke Ogre
 Oracle's Insight
+Pack Leader
+Pegasus Refuge
 Phyrexian Rager
 Pit Keeper
 Plains
 Pulse of the Grid
 Raging Cougar
+Rakdos Firewheeler
+Revered Elder
+Rhox Pikemaster
 Ridged Kusite
 Rishadan Cutpurse
 Rubblebelt Boar
+Rushblade Commander
+Safe Passage
+Skithiryx, the Blight Dragon
+Snare Tactician
 Squall
 Sudden Storm
 Swamp
@@ -67,7 +100,9 @@ Thassa's Rebuff
 Touch of Darkness
 Traveler's Amulet
 Unnerve
+Vertigo
 Vial of Dragonfire
 Vildin-Pack Outcast
+Voice of All
 Vulshok Berserker
 Warmonger's Chariot

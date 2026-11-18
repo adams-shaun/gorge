@@ -4,6 +4,7 @@ A-You Come to a River
 Abomination, World Ravager
 Absolute Law
 Abundant Countryside
+Acidic Sliver
 Adeliz, the Cinder Wind
 Aeolipile
 Aerial Boost
@@ -47,6 +48,7 @@ Carmen, Cruel Skymarcher
 Cathar's Shield
 Cathedral Acolyte
 Celestial Enforcer
+Centaur Archer
 Cephalid Sage
 Chained Brute
 Chandra's Magmutt
@@ -56,6 +58,7 @@ Choose Your Weapon
 Claws of Valakut
 Cloaked Siren
 Codex Shredder
+Consume Strength
 Control Magic
 Convolute
 Copper Carapace
@@ -69,10 +72,12 @@ Dauthi Embrace
 Dauthi Mercenary
 Dawn Charm
 Daxos, Blessed by the Sun
+Dead Reveler
 Death Grasp
 Death Pits of Rath
 Decimator Web
 Deekah, Fractal Theorist
+Deeproot Historian
 Defabricate
 Destiny Spinner
 Discontinuity
@@ -86,7 +91,9 @@ Drafna, Founder of Lat-Nam
 Drake Familiar
 Dramatic Finale
 Dreamshackle Geist
+Dwarven Thaumaturgist
 Dyfed, the Guiding Hand
+Ebonblade Reaper
 Elder Druid
 Elder Gargaroth
 Eldrazi Repurposer
@@ -114,7 +121,9 @@ Frantic Confrontation
 Fraying Omnipotence
 Frenetic Raptor
 Frost Breath
+Fugitive Druid
 Gargadon
+Generous Ent
 Gerrard's Battle Cry
 Ghost-Lit Warder
 Ghostly Changeling
@@ -124,10 +133,14 @@ Glint-Nest Crane
 Goatnapper
 Goblin Lore
 Godtracker of Jund
+Golgari Findbroker
 Graaz, Unstoppable Juggernaut
 Granger Guildmage
 Gravel Slinger
 Grayscaled Gharial
+Griselbrand
+Grixis Slavedriver
+Ground Assault
 Gruul Cluestone
 Guardian of Solitude
 Gulf Squid
@@ -135,6 +148,7 @@ Hag of Noxious Nightmares
 Hallowed Priest
 Hanweir Garrison
 Harmonic Sliver
+Hazerider Drake
 Helldozer
 Herald of War
 Herbology Instructor
@@ -153,6 +167,7 @@ Inferno
 Inspiring Bard
 Introduction to Prophecy
 Inventor's Goggles
+Iraxxa, Empress of Mars
 Iridescent Blademaster
 Iron-Craw Crusher
 Island
@@ -173,9 +188,11 @@ Leery Fogbeast
 Leyline of the Meek
 Linvala, the Preserver
 Living Lightning
+Living Twister
 Longbow Archer
 Loyal Warhound
 Lu Meng, Wu General
+Lullmage's Familiar
 Lulu, Loyal Hollyphant
 Lush Growth
 Mace of the Valiant
@@ -201,6 +218,7 @@ Myr Galvanizer
 Mystic Zealot
 Nantuko Tracer
 Necrogenesis
+Neheb, the Worthy
 Nezumi Cutthroat
 Night Market Aeronaut
 Nine-Tail White Fox
@@ -219,6 +237,7 @@ Otherworldly Outburst
 Overwhelming Intellect
 Pain Distributor
 Pain Seer
+Patriarch's Desire
 Pest Rescuer
 Pestilence
 Pile On
@@ -280,6 +299,7 @@ Spikeshot Goblin
 Spiketail Drake
 Spireside Infiltrator
 Spirit of Malevolence
+Spirit of the Night
 Spitting Hydra
 Stave Off
 Stensia Uprising
@@ -296,6 +316,7 @@ Syphon Essence
 Syphon Mind
 Tablet of Epityr
 Taigam's Scheming
+Tainted Aether
 Tears of Valakut
 Tectonic Fiend
 Tel-Jilad Outrider
@@ -316,6 +337,7 @@ Tolarian Emissary
 Tor Wauki the Younger
 Tranquil Frillback
 Tree Monkey
+Treefolk Umbra
 Tribal Flames
 Triclopean Sight
 Triton Fortune Hunter
@@ -328,6 +350,7 @@ Undercity Troll
 Unifying Theory
 Unwavering Initiate
 Utter End
+Valakut, the Molten Pinnacle
 Viashino Weaponsmith
 Vibranium Strike Gauntlets
 Viridian Revel
@@ -348,6 +371,9 @@ Witch's Vengeance
 Witches' Eye
 Worldly Counsel
 Wrap in Flames
+Wreck and Rebuild
+Wrecking Ball
+Writhing Chrysalis
 Yarok's Fenlurker
 Yoke of the Damned
 Yuan Shao's Infantry

@@ -1,12 +1,22 @@
 A-Exhibition Magician
 Abyssal Specter
 Acolyte of Xathrid
+Acridian
+Akki Raider
 Alchemist's Vial
+Alert Shu Infantry
+Ambitious Aetherborn
+Anthroplasm
 Aphetto Alchemist
+Apothecary Initiate
+Arc Blade
+Argothian Opportunist
 Argothian Treefolk
 Arisen Gorgon
 Ashes to Ashes
 Atzocan Archer
+Aven Initiate
+Axebane Beast
 Balduvian Dead
 Balduvian Horde
 Battering Craghorn
@@ -14,24 +24,35 @@ Bearscape
 Belbe's Armor
 Benevolent Bodyguard
 Benthicore
+Blade of the Sixth Pride
 Blessed Light
+Blighted Gorge
+Blightstep Pathway
 Blood Pet
+Bonders' Enclave
 Bonesplitter Sliver
 Brazen Freebooter
+Brine Seer
+Call of the Death-Dweller
 Caller of the Claw
 Callous Dismissal
 Captain Ripley Vance
 Captain of the Watch
 Carnage Altar
+Celestial Gatekeeper
+Chainflinger
 Chameleon Spirit
 Chosen of Markov
 Chronomaton
 Citizen's Crowbar
+Colossus Hammer
 Constricting Sliver
 Copper Longlegs
+Coppercoat Vanguard
 Corrupted Harvester
 Curse of the Nightly Hunt
 Dance of the Skywise
+Dark Inquiry
 Dark Tutelage
 Darkslick Shores
 Darksteel Juggernaut
@@ -41,7 +62,9 @@ Defiler of Souls
 Detained by Legionnaires
 Devoted Paladin
 Dinosaur Stampede
+Distract
 Domri's Nodorog
+Dreamscape Artist
 Dregscape Zombie
 Dress Down
 Dromoka Captain
@@ -56,50 +79,86 @@ Elite Javelineer
 Elspeth, Undaunted Hero
 Elven Palisade
 Elvish Dreadlord
+Ethereal Elk
 Eviscerator
 Farhaven Elf
+Fearless Halberdier
 Feign Death
 Felidar Guardian
 Fendeep Summoner
+Fiery Conclusion
+Fight to the Death
 Finale of Devastation
 Fire Snake
 Fires of Undeath
 Flailing Soldier
 Flame Slash
+Flare of Faith
 Flash Flood
 Fledgling Dragon
 Forest
 Foundry Helix
 Frozen Shade
+Fíli and Kíli, Joyous
 Garbage Elemental
+Garna, the Bloodflame
 Garruk Wildspeaker
+General's Kabuto
+Ghitu War Cry
+Gideon's Phalanx
 Gleam of Authority
 Gloomdrifter
+Goblin Hero
 Goldenhide Ox
 Great Hart
+Grinning Demon
 Guardian Augmenter
 Haazda Officer
+Hag of Death's Legion
+Haze of Pollen
 Heart Sliver
+Heartbeat of Spring
 Hellfire Mongrel
+Herald of Kozilek
 Herald of Secret Streams
 Herald of War
 Hero's Demise
+Hidden Guerrillas
 Hua Tuo, Honored Physician
 Hungry Spriggan
+Hunter's Insight
+Icatian Town
+Ikiral Outrider
 Initiate's Companion
+Inquisition of Kozilek
 Iron Lad, Young Avenger
+Ironclad Slayer
 Island
+Jawbone Skulkin
 Jewel-Eyed Cobra
 Joust
 Jund Panorama
+Kavu Aggressor
+Keldon Arsonist
 Keldon Necropolis
+Keldon Vandals
+Kiku, Night's Flower
+King Harald's Revenge
 Kraul Raider
 Laser Screwdriver
+Lawbringer
 Lightning Reaver
+Lonely Sandbar
+Lowland Giant
+Loxodon Sergeant
+Magus of the Order
 March of the Drowned
+Marrow Bats
 Martyr for the Cause
 Mercurial Pretender
 Meteor Storm
+Moaning Spirit
+Mole Module
 Molten Ravager
 Monk Idealist
 Mountain
@@ -111,24 +170,39 @@ Nebelgast Herald
 Necrogen Censer
 Nezumi Graverobber
 Nightmare's Thirst
+Nimblewright Schematic
 Ninja of the Deep Hours
+Niveous Wisps
 Nyxathid
+Obelisk of Bant
 Ogre Jailbreaker
 Ogre Warrior
 Omenspeaker
 Onulet
+Personal Sanctuary
 Phantom Centaur
 Phyrexian Defiler
+Pilfering Imp
 Plains
 Polymorphist's Jest
 Quicksilver, Pietro Maximoff
 Quirion Ranger
+Rancid Rats
 Rankle, Master of Pranks
+Rath's Edge
+Rathi Intimidator
+Razorfield Rhino
 Reckless Fireweaver
 Redcap Heelslasher
 Redwood Treefolk
 Regenerate
+Regress
+Remote Isle
+Repeal
+Respite
 Reverent Hunter
+Righteous Confluence
+River Darter
 Rootbreaker Wurm
 Safehold Sentry
 Sanctum of Tranquil Light
@@ -138,49 +212,80 @@ Scattershot
 Scoria Cat
 Seasoned Pyromancer
 Second Breakfast
+Seekers' Squire
+Sensory Deprivation
 Shambling Remains
 Shatterskull Charger
+Shield of Duty and Reason
+Shivan Raptor
+Signpost Scarecrow
 Silverglade Pathfinder
 Sister Hospitaller
 Skarrgan Skybreaker
 Sky Skiff
 Smothering Abomination
+Sol Grail
 Sorin's Vengeance
 Soul of Shandalar
 Soulcage Fiend
 Soulmender
 Sovereign's Bite
+Spare Supplies
+Spectator Seating
 Spoils of Evil
 Stasis Cell
+Steel-Plume Marshal
 Stew the Coneys
+Stitch Together
 Storm of Steel
+Stormchaser Chimera
 Stronghold Overseer
+Succumb to Temptation
 Sunbathing Rootwalla
+Surgehacker Mech
 Swamp
 Sylvan Scrying
 Séance
 Telekinetic Sliver
 Tempestra, Dame of Games
+Territorial Roc
+Thallid Soothsayer
 The Antiquities War
 The Immortal Weapons
 Thoughtflare
 Thrashing Wumpus
 Thrun, the Last Troll
+Thud
 Tormented Thoughts
 Toski, Bearer of Secrets
+Toucan-Puffin
+Toxic Abomination
+Trading Post
+Trailtracker Scout
+Tundra Fumarole
+Undercity's Embrace
+Untamed Kavu
 Utility Knife
 Vampire Bats
 Vampire of the Dire Moon
+Vedalken Mesmerist
 Vengeful Reaper
+Verdant Catacombs
+Volatile Arsonist
 Voracious Vacuum
 Wake of Vultures
+Warhost's Frenzy
+Weakstone
 Welding Sparks
 Whispers of Emrakul
 Willow Elf
 Winged Hive Tyrant
+Wings of Velis Vel
 Withstand Death
+Wizard's Staff
 Wriggling Grub
 Wu Elite Cavalry
 Yargle and Multani
 Yotian Medic
 Zhang He, Wei General
+Zombie Mob

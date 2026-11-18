@@ -46,6 +46,7 @@ Bound in Silence
 Braids, Cabal Minion
 Bramble Armor
 Brass Squire
+Breaking Point
 Breath of Fire
 Briarknit Kami
 Bridgeworks Battle
@@ -55,6 +56,7 @@ Buccaneer's Bravado
 Bulwark
 Bygone Bishop
 Cabal Executioner
+Call the Skybreaker
 Campus Renovation
 Capsize
 Celestial Crusader
@@ -68,6 +70,7 @@ Clear Shot
 Clear the Land
 Clever Lumimancer
 Clockwork Drawbridge
+Cloud Cover
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
@@ -88,7 +91,9 @@ Crush Dissent
 Cryptothrall
 Crystal Carapace
 Cyclopean Snare
+Dakmor Salvage
 Damning Verdict
+Darksteel Citadel
 Dawnstrike Paladin
 Deadeye Brawler
 Deadly Visit
@@ -111,6 +116,7 @@ Duergar Hedge-Mage
 Dust Elemental
 Eerie Procession
 Eiganjo Uprising
+Eiganjo, Seat of the Empire
 Elvish Eulogist
 Elvish Vanguard
 Ember Beast
@@ -133,6 +139,7 @@ Fen Hauler
 Festering Newt
 Fiery Confluence
 Fire Drake
+Firehoof Cavalry
 Flicker of Fate
 Flowstone Infusion
 Fogwalker
@@ -364,6 +371,7 @@ Soaring Hope
 Somberwald Stag
 Song of Serenity
 Soul Feast
+Spawning Pool
 Spined Megalodon
 Spreading Rot
 Springmantle Cleric
@@ -384,6 +392,7 @@ Surge Conductor
 Surveilling Sprite
 Swamp
 Sweet Oblivion
+Sword of Truth and Justice
 Sylvan Safekeeper
 Sylvan Shepherd
 Syphon Sliver
@@ -402,6 +411,7 @@ The Triumph of Anax
 Thermal Blast
 Thran Golem
 Thunderscape Familiar
+Tiana, Ship's Caretaker
 Tidehollow Sculler
 Tireless Provisioner
 Tocatli Honor Guard
@@ -409,7 +419,9 @@ Tome Shredder
 Torbran, Thane of Red Fell
 Trailblazer
 Transgress the Mind
+Tropical Island
 Trynn, Champion of Freedom
+Turbulent Moor
 Twisted Justice
 Tyvar Kell
 Ulgrotha Charm
@@ -431,12 +443,14 @@ Vraan, Executioner Thane
 Vraska's Stoneglare
 Wall of Essence
 Wall of Torches
+Wandering Fumarole
 Wandering Wolf
 Warden of the First Tree
 Wax
 Wei Ambush Force
 Wild Beastmaster
 Wilson, Refined Grizzly
+Wintermoon Mesa
 Wirewood Symbiote
 Wit's End
 Wizard Class
