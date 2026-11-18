@@ -692,6 +692,11 @@ var specialPositiveTokenSet = state.NewNameSet(
 	"equipped",
 	"enchanted",
 	"Enchanted",
+	// modified is matchPositive's third attachment predicate: its CR 700.9
+	// body reads the attachment kinds through the bound layer-4 snapshot
+	// (the same read equipped/enchanted make), which the legacy predFn
+	// signature cannot carry.
+	"modified",
 )
 
 var typePredicateTokenSet = state.NewNameSet(
