@@ -126,6 +126,19 @@ func (s *State) toLibraryThird(k *prep, in *kop.Instr) {
 	if o == NoObj || s.tokenLeftBattlefield(o) {
 		return
 	}
+	// A leaves trigger's referent that moved on since the trigger fired is a
+	// new object the ability has no relation to (CR 400.7): a
+	// leaves-the-battlefield ability checks for the card only in the first
+	// zone it went to (CR 603.6c), so a God-Eternal flickered straight back
+	// to the battlefield stays there ("If an effect exiles the God and
+	// immediately returns it to the battlefield, its last ability triggers
+	// but will have no effect"). gorge drops the moved-on referent before any
+	// per-move replacement runs (effects.dropTriggerRememberedMoved), so this
+	// gate precedes the commander one (trig_objmoved.go).
+	if e := &s.res.e; in.Obj == kop.RefTriggerObj && e.kind == seTrigger &&
+		s.trigObjMoved(k, e, &s.objs[o]) {
+		return
+	}
 	z, bottom := kop.ZoneLibrary, false
 	if s.cmdZoneReplace(k, o, &z, &bottom) {
 		return // a CR 903.9b commander move parked before it happens
