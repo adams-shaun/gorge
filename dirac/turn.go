@@ -1180,6 +1180,26 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	}
 }
 
+// legendName is sl's CR 704.5j name: the printed name of nameCardAt's card
+// (Table.CardName: a token card's script Name: line, whose Name is its stem),
+// "" for a face-down permanent (nameCardAt NoCard; CR 708.2, no name) and
+// for a face-down group's legCard (NoCard; gorge e.Name reads both as "").
+func (s *State) legendName(k *prep, sl Slot) string {
+	if c := s.nameCardAt(sl); c != NoCard {
+		return k.t.CardName(c)
+	}
+	return ""
+}
+
+// legendGroupName is the legend ask's group name (legendName over the
+// group's first member's name card, s.legCard).
+func (s *State) legendGroupName(k *prep) string {
+	if s.legCard == NoCard {
+		return ""
+	}
+	return k.t.CardName(s.legCard)
+}
+
 // legendRule finds a player controlling two or more legendary permanents
 // with the same name (CR 704.5j); it poses the keep choice (ctlLegend) and
 // reports true, or reports false when there is none.
@@ -1201,6 +1221,7 @@ func (s *State) legendGroup(k *prep, peek bool) bool {
 		// perm.ts is that list's order (zones.go joined); slots are reused,
 		// so slot order alone can differ from the entry order.
 		var seen [MaxPerm]CardID
+		var names [MaxPerm]string
 		var dup [MaxPerm]bool
 		var ord [MaxPerm]Slot
 		cand := s.ctrlM[p].and(s.legM)
@@ -1214,10 +1235,13 @@ func (s *State) legendGroup(k *prep, peek bool) bool {
 			if s.typesAt(k, sl)&kop.TLegendary == 0 {
 				continue
 			}
-			c := s.nameCardAt(sl) // by name: Witness Protection renames (CR 704.5j; pair 28)
+			nm := s.legendName(k, sl) // by name: Witness Protection renames (CR 704.5j; pair 28);
+			// token cards of different scripts that print the same name are one
+			// name too (gorge e.Name reads the script's Name: line; pair 150:
+			// Mass Production's artifact Soldier tokens beside a w_1_1_soldier's)
 			dupe := false
 			for j := 0; j < n; j++ {
-				if seen[j] == c {
+				if names[j] == nm {
 					dup[j] = true
 					dupe = true
 					break
@@ -1226,7 +1250,8 @@ func (s *State) legendGroup(k *prep, peek bool) bool {
 			if dupe {
 				continue
 			}
-			seen[n] = c
+			seen[n] = s.nameCardAt(sl)
+			names[n] = nm
 			n++
 		}
 		for i := 0; i < n; i++ {
@@ -1247,12 +1272,13 @@ func (s *State) legendOwed(k *prep) bool { return s.legendGroup(k, true) }
 
 func (s *State) legendOptions(k *prep, d *Decision) {
 	d.Kind, d.Sub, d.Player = DkChoose, ChLegend, s.legP
+	group := s.legendGroupName(k)
 	// battlefield scan order, as gorge asks the keep options (g.ids)
 	var ord [MaxPerm]Slot
 	no := s.battlefieldOrder(s.legP, s.ctrlM[s.legP], ord[:], 0)
 	for i := 0; i < no; i++ {
 		sl := ord[i]
-		if s.nameCardAt(sl) == s.legCard && s.typesAt(k, sl)&kop.TLegendary != 0 {
+		if s.typesAt(k, sl)&kop.TLegendary != 0 && s.legendName(k, sl) == group {
 			d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 		}
 	}
@@ -1271,10 +1297,11 @@ func (s *State) applyLegend(k *prep, a Action) {
 		s.ceaseTokensGen()
 	}
 	keep := Obj(a.Source())
+	group := s.legendGroupName(k)
 	var out slotMask
 	for m := s.ctrlM[s.legP]; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.perms[sl].obj != keep && s.nameCardAt(sl) == s.legCard && s.typesAt(k, sl)&kop.TLegendary != 0 {
+		if s.perms[sl].obj != keep && s.typesAt(k, sl)&kop.TLegendary != 0 && s.legendName(k, sl) == group {
 			out = out.with(sl)
 		}
 	}

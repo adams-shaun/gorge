@@ -492,6 +492,7 @@ func (cb *cardBuilder) record() error {
 	c := cb.c
 	d := &cb.out.def
 	d.Name = c.Name
+	d.FaceName = c.printed // a token's or face entry's printed name (Name is the pool key)
 	costErr := error(nil)
 	var err error
 	if d.Cost, err = manaCostOf(c.Cost); err != nil {
