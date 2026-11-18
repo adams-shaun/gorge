@@ -46,46 +46,19 @@ const (
 
 // playerThanYouCmp is one parsed comparison. The hasFewer family keeps its
 // raw property (prop) — its parse lives in restrictions.go and is shared
-// verbatim; the board-count forms carry the type code; lifeLTCount the
-// nested count expression; controlsPermanent the full object spec.
+// verbatim; the board-count forms carry the singular permanent-type word
+// (typ, from the shared permanentTypeWords vocabulary — the corpus's
+// measured population is Lands/Creatures only, and a word outside the
+// vocabulary is unmodelled, so its head stays unresolvable and
+// unregistered); lifeLTCount the nested count expression; controlsPermanent
+// the full object spec.
 type playerThanYouCmp struct {
 	kind playerThanYouKindCode
-	typ  playerThanYouTypeCode
+	typ  string
 	prop string
 	n    int32
 	rhs  string
 	spec string
-}
-
-// playerThanYouTypeCode is the battlefield type word the MoreType and
-// AtLeastNMoreType forms count. The corpus's measured population is
-// Lands/Creatures only (Oreskos Explorer, Surveyor's Scope, Stoic Farmer,
-// Priest of the Blessed Graf, Heidegger, Shinra Executive); any other type
-// word is unmodelled, so its head stays unresolvable and unregistered.
-type playerThanYouTypeCode uint16
-
-const (
-	playerThanYouTypeLand playerThanYouTypeCode = iota + 1
-	playerThanYouTypeCreature
-)
-
-var playerThanYouTypeCodes = state.NewStrCodes(
-	state.StrEntry[playerThanYouTypeCode]{Key: "Land", Val: playerThanYouTypeLand},
-	state.StrEntry[playerThanYouTypeCode]{Key: "Creature", Val: playerThanYouTypeCreature},
-)
-
-// playerThanYouTypeWord is the type word the zone counts read through
-// unlessDefenderTypeCount (a permanent a type-changing effect made a
-// creature counts, CR 613.1d — the same layer-aware read Goblin Toady's
-// restriction makes).
-func playerThanYouTypeWord(code playerThanYouTypeCode) string {
-	switch code {
-	case playerThanYouTypeLand:
-		return "Land"
-	case playerThanYouTypeCreature:
-		return "Creature"
-	}
-	return ""
 }
 
 // parsePlayerThanYouCmp parses ONE comparison property (no HasProperty
@@ -160,18 +133,15 @@ func parsePlayerThanYouCmp(prop string) (playerThanYouCmp, bool) {
 }
 
 // playerThanYouPluralType reads the plural type word between the comparison
-// verb and ThanYou ("Lands" -> Land, "Creatures" -> Creature). An unknown
-// type word is unmodelled.
-func playerThanYouPluralType(word string) (playerThanYouTypeCode, bool) {
+// verb and ThanYou ("Lands" -> Land, "Creatures" -> Creature) and admits it
+// only from the CR 205.2 permanent-type vocabulary the battlefield counts
+// read. An unknown type word is unmodelled.
+func playerThanYouPluralType(word string) (string, bool) {
 	singular, ok := strings.CutSuffix(word, "s")
-	if !ok {
-		return 0, false
+	if !ok || !permanentTypeWords[singular] {
+		return "", false
 	}
-	switch playerThanYouTypeCodes.Code(singular) {
-	case playerThanYouTypeLand, playerThanYouTypeCreature:
-		return playerThanYouTypeCodes.Code(singular), true
-	}
-	return 0, false
+	return singular, true
 }
 
 // playerThanYouHolds evaluates one parsed comparison for the candidate
@@ -188,9 +158,8 @@ func playerThanYouHolds(h Host, g *state.Game, c *Ctx, cmp playerThanYouCmp, mem
 	case playerThanYouFewerTypeIn:
 		return hasFewerThanYouHolds(g, cmp.prop, member, you, sc)
 	case playerThanYouMoreType, playerThanYouAtLeastNMoreType:
-		word := playerThanYouTypeWord(cmp.typ)
-		mine := unlessDefenderTypeCount(g, state.ZBattlefield, member, word, sc)
-		yours := unlessDefenderTypeCount(g, state.ZBattlefield, you, word, sc)
+		mine := unlessDefenderTypeCount(g, state.ZBattlefield, member, cmp.typ, sc)
+		yours := unlessDefenderTypeCount(g, state.ZBattlefield, you, cmp.typ, sc)
 		if cmp.kind == playerThanYouMoreType {
 			return mine > yours, true
 		}
@@ -297,7 +266,10 @@ func evalCountBodyPlayerProperty(h Host, c *Ctx, g *state.Game, head, arg string
 		return 0, false, false
 	}
 	group, prop, hasProp := strings.Cut(rest, "$")
-	if !hasProp || strings.TrimSpace(prop) != "Amount" || strings.TrimSpace(arg) != "" {
+	// The property is Forge's Amount (1 per qualifying member) — read
+	// through the cov3 per-player-property table that owns the word, never a
+	// fresh string compare.
+	if !hasProp || cov3PlayerPropCodes.Code(strings.TrimSpace(prop)) != cov3PlayerPropAmount || strings.TrimSpace(arg) != "" {
 		return 0, false, true
 	}
 	cmp, ok := parsePlayerThanYouCmp(strings.TrimSpace(group))
