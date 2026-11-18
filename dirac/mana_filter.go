@@ -880,6 +880,12 @@ type filtKey struct {
 	art    uint8
 	typed  [kop.NumManaKinds]uint8 // the artifact-typed units by colour (the slots of art, a typed restricted batch)
 	tapped slotMask
+	// bf: the payer's permanents. gorge's key lists every own battlefield
+	// object (scriptStateKey), so a sacrificed token, which ceases to exist
+	// and leaves no graveyard card, is a new state beside the one it was
+	// sacrificed from: an Eldrazi Spawn's {C} spent into a filter's fee leaves
+	// the pool and every tapped bit as they were.
+	bf slotMask
 	// ctr: the counters of the counter-cost gaps (Vivid Meadow's charge
 	// counters): gorge's key reads every own permanent's counters
 	// (scriptStateKey), so Meadow's {W} made by removing a counter is a new
@@ -1290,7 +1296,8 @@ func (fs *filtSearch) stateKey(k *prep, t *State) filtKey {
 			}
 		}
 	}
-	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
+	key.bf = t.ctrlM[SeatIx(p)].and(t.occ)
+	for b := key.bf; b.any(); b = b.rest() {
 		if sl := b.first(); t.perms[sl].flags&pfTapped != 0 {
 			key.tapped = key.tapped.with(sl)
 		}
