@@ -2259,7 +2259,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 					// answer; the exhausted walk left path[] at the last ones, and the
 					// callers replay the script from path
 					clear(path[:m])
-					return m, true // a shorter prefix, resolved, leaves the payer alive (mana_tapsdefer_partial.go)
+					return m, true // a shorter prefix, resolved, leaves the payer alive (mana_tapspartial.go)
 				}
 				if stall != 0 {
 					// every line failed and one ran into a rule gap the kernel
