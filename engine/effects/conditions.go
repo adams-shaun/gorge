@@ -1058,6 +1058,12 @@ func conditionBareMet(h Host, c *Ctx, bare, optionalPaid string) (bool, bool) {
 	case strings.EqualFold(bare, "Kicked"):
 		o := h.Game().Obj(c.Source)
 		return o != nil && o.CastFlags&state.FlagKicked != 0, true
+	case strings.EqualFold(bare, "Awakened"):
+		// CR 702.113a: the rider kwAwaken (engine/cards/kw_awaken.go) mints --
+		// "if you cast this spell for its awaken cost". The altAwaken cast
+		// mode stamps FlagAltCostPaid, which on a face printing K:Awaken names
+		// that keyword's cost (altCostKeywordPaid).
+		return altCostKeywordPaid(h.Game().Obj(c.Source), "Awaken"), true
 	case strings.EqualFold(bare, "Bargain"):
 		// CR 702.166: the "if this spell was bargained" gate (Beseech the
 		// Mirror's DBPlay, Thunderous Debut's DBPutBattlefield, Torch the

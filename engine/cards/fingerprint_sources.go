@@ -49,6 +49,7 @@ import "embed"
 //go:embed kw_amplify.go
 //go:embed kw_annihilator.go
 //go:embed kw_backup.go
+//go:embed kw_awaken.go
 //go:embed kw_battle_cry.go
 //go:embed kw_bushido.go
 //go:embed kw_champion.go
