@@ -123,6 +123,27 @@ func (s *State) phyCastGateAffords(k *prep, p uint8, cav *avail, cost *kop.ManaC
 	return w.affords(cost, pipMaskOf(cost), 0)
 }
 
+// phyHalfPlanned reports whether gorge's planner prices plain cast a's Phyrexian
+// cost over the printed sources: it prices the cost's pip-free mana half alone
+// (pay.PlanManaHalf; the pips are answered after it, CR 601.2b), so the autopay
+// surface keeps a cast whose half the printed sources pay even when the whole
+// cost needs a census gap's unit (a Saruli Caretaker's relaxed any-colour unit
+// for the fifth mana of {4}{G/P}{G/P} at two life). The prefix search then
+// decides the cast like any other potential play.
+func (s *State) phyHalfPlanned(k *prep, p uint8, a Action) bool {
+	cost := k.cards[s.objs[Obj(a.Source())].card].cost
+	if !cost.Phyrexian() {
+		return false
+	}
+	h := phyPlanHalf(cost)
+	saved := s.g.availX
+	s.g.availX = availWalk
+	var av avail
+	s.availFor(k, p, &av)
+	s.g.availX = saved
+	return av.affords(&h, pipMaskOf(&h), 0)
+}
+
 // phyAbilityMana pays a Phyrexian activation: the plan for the cost its pips
 // settled, armed on the mana half; the manual window when none exists
 // (mana_phyrexian.go). It reports whether the payment settled. A cost the
