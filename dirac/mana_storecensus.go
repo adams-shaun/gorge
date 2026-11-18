@@ -9,13 +9,17 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // SubCounter<X> cost shape (castWindowSourceExcluded's paidCostShape), so the
 // census is incomplete and a pool-short target menu keeps its candidates
 // (affordableTargetCandidates' fallback, CR 601.2c, 601.2h). A battery the
-// build committed (withheld from s.occ) is no census source.
+// build committed (withheld from s.occ) is no census source. A battery with a
+// plain first mana ability beside it (ctrSecond: Mage-Ring Network's {T}: Add
+// {C}) is no gap: gorge prices that plain unit, so castWindowCensusComplete's
+// priced arm never reaches the exclusion.
 func (s *State) storeCensusGap(k *prep, p uint8) bool {
 	if !k.ctrMana {
 		return false
 	}
 	for b := s.scriptCtrIdle(k, p, true).and(s.occ); b.any(); b = b.rest() {
-		if kop.StoreManaAb(k.ctrAbOf(s.cardAt(b.first()))) {
+		c := s.cardAt(b.first())
+		if kop.StoreManaAb(k.ctrAbOf(c)) && !k.ctrSecond(c) {
 			return true
 		}
 	}
