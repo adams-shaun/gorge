@@ -37,7 +37,13 @@ func (lc *lowerCtx) splitProtGrant(kw string, st *lStatic) (string, error) {
 			// and red spellings as the KwProtBlack / KwProtRed bits the kernel
 			// reads (Mystic Familiar's creature) and refuses the rest, as it
 			// always has.
-			if !hostOK {
+			//
+			// Protection from black and from red keep their bits on every
+			// host (Akroma's Memorial, as before the colour clauses): gorge
+			// spells the granted keyword on the creature, and the feature
+			// encoder reads it from the bit (feat.KeywordNames), which a
+			// quality clause does not carry.
+			if !hostOK || c == "B" || c == "R" {
 				rest = append(rest, k)
 				continue
 			}
