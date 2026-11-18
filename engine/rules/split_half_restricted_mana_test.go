@@ -28,9 +28,11 @@ func TestSplitHalfRestrictedManaReadsTheCastHalf(t *testing.T) {
 		d.FaceIdx = faceIdx
 		return pay.RestrictValidMatches(asPayer(e), 0, d, "Spell.MultiColor", 0)
 	}
+	e.pricingFused = true
 	if !match(0) {
-		t.Fatal("precondition: the split card in hand, no half chosen, is multicolored")
+		t.Fatal("precondition: the split card in hand, read as the fused spell, is multicolored")
 	}
+	e.pricingFused = false
 	if match(2) {
 		t.Fatal("Away cast alone is mono-black: multicolor-only mana can't pay for it")
 	}
