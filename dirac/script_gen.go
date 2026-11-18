@@ -629,10 +629,11 @@ func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.Num
 		c := s.cardAt(sl)
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
 		col := bits.TrailingZeros8(uint8(ab.ManaColors))
-		if !s.floatRestrAb(k, p, sl, ab, col, max(ab.ManaN, 1)) {
+		n := s.restrAbN(k, sl, ab) // an evaluated amount (Vhal's toughness), not kgen's placeholder 1
+		if !s.floatRestrAb(k, p, sl, ab, col, n) {
 			s.capFull(StallRestrSrc) // never a silent spill
 		}
-		held[col] += max(ab.ManaN, 1)
+		held[col] += n
 		return
 	}
 	s.eachProduce(k, p, sl, s.eachDefaultAns(k, p, sl)) // (a fee-paid each-colour gap: mana_eachfee.go)

@@ -1184,7 +1184,7 @@ func (s *State) windowGapAnyColour(k *prep, p uint8, sl Slot, cost, useful *kop.
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
-	if !s.floatRestrAb(k, p, sl, ab, col, max(ab.ManaN, 1)) {
+	if !s.floatRestrAb(k, p, sl, ab, col, s.restrAbN(k, sl, ab)) {
 		s.capFull(StallRestrSrc)
 	}
 	return true
@@ -2092,7 +2092,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 		s.tapGap(k, p, sl, restr, &held)
 		if restr.has(sl) && s.rb[SeatIx(p)] == rb && !k.gen.has(s.cardAt(sl), gfDeferred) {
 			a := &cd.Abilities[k.gen.restr(s.cardAt(sl))]
-			spill[bits.TrailingZeros8(uint8(a.ManaColors))] += max(a.ManaN, 1)
+			spill[bits.TrailingZeros8(uint8(a.ManaColors))] += s.restrAbN(k, sl, a)
 		}
 		return
 	}
