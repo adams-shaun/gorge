@@ -346,6 +346,6 @@ func (s *State) roomAltNeedsEmptyStack(k *prep, a Action) bool {
 	if !roomDef(k, c) {
 		return false
 	}
-	f := k.t.Cards[c].Faces[a.Target()&1]
+	f := k.t.Cards[c].Faces[a.Target()]
 	return !k.cards[f].instant && !s.castFlash(k, s.prio, f)
 }
