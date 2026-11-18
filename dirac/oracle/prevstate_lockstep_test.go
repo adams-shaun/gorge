@@ -186,12 +186,6 @@ func kriaDecks() [2][]cardset.Entry {
 // event log, the Phyrexian Mite tokens: deck 1 holds no other token maker, so
 // each Mite is Ria's rider run.
 //
-// It also declines a Relentless Assault cast in a turn that has already
-// granted an extra phase: a second cast-grant resolving beside a pending one
-// is an interleaving the kernel's addPhaseGrant does not model (a pre-existing
-// lowering gap of the AddPhase pool, reached only by casting two in one
-// phase), and the random pick would reach it.
-//
 // With bias it prefers the active player's Ria Ivor as every target (the
 // kbtssProbe shape): a 3/4 survives being blocked, so her rider record is the
 // one an unspent first combat leaves into the extra combat Relentless Assault
@@ -205,7 +199,6 @@ func kriaPolicy(mites *atomic.Int64, bias bool) func(uint64) Policy {
 	return func(seed uint64) Policy {
 		rnd := RandomPolicy(seed)
 		seen := 0
-		grants := 0 // extra-phase grants since the turn began
 		return PolicyFunc(func(c *PickCtx) Canon {
 			if bias && c.D.Kind == DBlockers && c.G != nil && c.G.E.G.CombatsThisTurn > 1 {
 				for _, a := range c.D.Options {
@@ -229,12 +222,6 @@ func kriaPolicy(mites *atomic.Int64, bias bool) func(uint64) Policy {
 				for ; seen < len(evs); seen++ {
 					e := &evs[seen]
 					switch e.Kind {
-					case events.TurnChange:
-						grants = 0
-					case events.ExtraPhase:
-						if e.Amount > 0 {
-							grants++
-						}
 					case events.TokenCreate:
 						if mites != nil && strings.Contains(e.Text, "phyrexian_mite") {
 							mites.Add(1)
@@ -249,13 +236,6 @@ func kriaPolicy(mites *atomic.Int64, bias bool) func(uint64) Policy {
 					if bias && a.Kind() == ActAttack && c.G != nil && c.G.E.G.CombatsThisTurn <= 1 &&
 						refCardName(c.G, a.Src()) == "Ria Ivor, Bane of Bladehold" {
 						continue // the carrier sits the first combat out, untapped for the later ones
-					}
-					if a.Kind() == ActCast && grants > 0 && c.G != nil {
-						if o, ok := c.G.GorgeOption(a); ok {
-							if ob := c.G.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil && ob.Face().Name == "Relentless Assault" {
-								continue
-							}
-						}
 					}
 					buf = append(buf, a)
 				}
@@ -394,7 +374,7 @@ func TestRiaIvorEndCombatMutation(t *testing.T) {
 		polf := kriaPolicy(&mites, true)
 		pol := polf(seed)
 		if seed%8 == 0 {
-			pol = polf(seed ^ 0x9e3779b97f4a7c15) // a different line: see kriaPolicy's grant gate
+			pol = polf(seed ^ 0x9e3779b97f4a7c15) // a different line
 		}
 		res := Lockstep(m, seed, k, pol, RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
 		CloseSide(k)
