@@ -314,7 +314,7 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 		o := decision.Option{Kind: "cast", Obj: card.ID, Mode: altMode(altMadness)}
 		verdict := func() PaymentPlanOutcome { return e.potentialModeCastPlan(card.Owner, o) }
 		got := verdict()
-		if creditless && got.Plan == nil && got.Reason == "unsupported" && got.Detail == "cost:credit" {
+		if creditless && got.Plan == nil && got.Reason == pay.ReasonUnsupported && got.Detail == pay.DetailCostCredit {
 			got.Reason = pay.ReasonInsufficient
 		}
 		if got.Plan != nil || got.Reason != pay.ReasonInsufficient {
