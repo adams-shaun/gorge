@@ -794,6 +794,11 @@ func (rs *tapXSearch) anyDifferentStep(k *prep, t *State, sl Slot) (found, handl
 		// source once)
 		return false, false
 	}
+	if !t.anyDifferentAt(k, sl) {
+		// tapped by an earlier step of the path: its {T} is spent, the
+		// mask is the root's (CR 602.2b; gorge's gaps are read live)
+		return false, false
+	}
 	if !rs.tick() { // the colour ask
 		return false, true
 	}
