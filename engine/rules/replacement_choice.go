@@ -427,21 +427,17 @@ func (e *Engine) askReplacementChoiceIn(p state.PlayerID, fromEmit bool) events.
 		indices = rc.applicable
 	case replChoiceManaColor:
 		d.Prompt = "Choose the colour of the replacement mana."
+		indices = nil // the colour options below are the whole list
 		for i, color := range []string{"W", "U", "B", "R", "G"} {
 			d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: rc.cands[rc.selected].id,
 				Label: "Add " + color, ManaSymbol: color})
 		}
-		e.ask(d)
-		return events.Event{}
 	case replChoicePhaseOrder:
 		d.Prompt = "Several replacement effects would change this step: choose which applies first."
 		indices = rc.applicable
 	case replChoicePhaseOptional:
 		m := rc.cands[rc.selected]
-		name := "this replacement effect"
-		if so := e.G.Obj(m.id); so != nil && so.Face() != nil && so.Face().Name != "" {
-			name = so.Face().Name
-		}
+		name := objFaceNameOr(e.G, m.id, "this replacement effect")
 		d.Prompt = "Apply " + name + "'s optional replacement and skip this step?"
 		d.Options = []decision.Option{
 			{Index: 0, Kind: "apply", Obj: m.id, Label: "Yes — skip this step"},
@@ -451,10 +447,7 @@ func (e *Engine) askReplacementChoiceIn(p state.PlayerID, fromEmit bool) events.
 		return events.Event{}
 	case replChoiceDraw:
 		m := rc.cands[rc.selected]
-		name := "this replacement effect"
-		if o := e.G.Obj(m.id); o != nil && o.Face() != nil && o.Face().Name != "" {
-			name = o.Face().Name
-		}
+		name := objFaceNameOr(e.G, m.id, "this replacement effect")
 		d.Prompt = "Apply " + name + "'s optional draw replacement?"
 		applyLabel := "Yes — skip that draw"
 		declineLabel := "No — draw the card"
@@ -475,10 +468,7 @@ func (e *Engine) askReplacementChoiceIn(p state.PlayerID, fromEmit bool) events.
 		return events.Event{}
 	case replChoiceFaceUp:
 		m := rc.cands[rc.selected]
-		name := "this replacement effect"
-		if o := e.G.Obj(m.id); o != nil && o.Face() != nil && o.Face().Name != "" {
-			name = o.Face().Name
-		}
+		name := objFaceNameOr(e.G, m.id, "this replacement effect")
 		d.Prompt = "Apply " + name + "'s optional turn-face-up replacement?"
 		d.Options = []decision.Option{{Index: 0, Kind: "apply", Obj: m.id, Label: "Yes — apply this replacement"},
 			{Index: 1, Kind: "decline", Obj: m.id, Label: "No — do not apply this replacement"}}
@@ -493,16 +483,10 @@ func (e *Engine) askReplacementChoiceIn(p state.PlayerID, fromEmit bool) events.
 		e.ask(d)
 		return events.Event{}
 	case replChoiceUntap:
-		name := "this object"
-		if o := e.G.Obj(rc.ev.Obj); o != nil && o.Face() != nil && o.Face().Name != "" {
-			name = o.Face().Name
-		}
+		name := objFaceNameOr(e.G, rc.ev.Obj, "this object")
 		d.Prompt = "Several replacement effects would change how " + name + " untaps: choose which applies first."
 	default:
-		name := "this object"
-		if o := e.G.Obj(rc.ev.Obj); o != nil && o.Face() != nil && o.Face().Name != "" {
-			name = o.Face().Name
-		}
+		name := objFaceNameOr(e.G, rc.ev.Obj, "this object")
 		prompt := "Several replacement effects would change how " + name + " moves: choose which applies first."
 		if rc.life {
 			what := "life gain"
@@ -550,14 +534,25 @@ func (e *Engine) askReplacementChoiceIn(p state.PlayerID, fromEmit bool) events.
 	// pose takes the plain ask and creates no record at all. A recomputation
 	// ask already owns a resume point; pose it directly without overwriting
 	// the original continuation.
-	if e.resolvingObj != 0 || e.applyingReplacement {
-		// Under the resolution kernel the order is answered in place:
-		// the chosen replacement applies at the
-		// point of the competing event, not after the rest of the chain.
-		// fromEmit hands the landed event back to the emitting primitive
-		// waiting on it; every other served answer discards the value.
-		if in, ok := parkTapeAnswer(e, d); ok {
-			return e.handleReplacement(d, in, fromEmit)
+	if e.resolvingObj != 0 || e.applyingReplacement || e.tapeWindowAsking {
+		// Under the resolution kernel the order is answered in place: the
+		// chosen replacement applies at the point of the competing event, not
+		// after the rest of the chain. fromEmit hands the landed event back to
+		// the emitting primitive waiting on it; every other served answer
+		// discards the value. Raised inside a payment window's off-stack mana
+		// frame (a mana ability the window activated, whose ProduceMana event
+		// meets the competition) the frame is open by design, as it is for the
+		// ability's own colour ask (askOffStackMana), so the ask is served
+		// there too instead of reaching the ask choke point unserved.
+		var landed events.Event
+		served := false
+		holdFlag(&e.tapeOffStackAsking, e.tapeWindowAsking && e.offStackMana != nil, func() {
+			if in, ok := parkTapeAnswer(e, d); ok {
+				landed, served = e.handleReplacement(d, in, fromEmit), true
+			}
+		})
+		if served {
+			return landed
 		}
 	}
 	e.ask(d)
@@ -1074,4 +1069,12 @@ func addCounterUnapplied(rc replChoice) []int {
 		}
 	}
 	return out
+}
+
+// objFaceNameOr is the printed name of object id, or def when it has none.
+func objFaceNameOr(g *state.Game, id state.ObjID, def string) string {
+	if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name != "" {
+		return o.Face().Name
+	}
+	return def
 }
