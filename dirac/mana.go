@@ -490,6 +490,13 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 			}
 			continue
 		}
+		if withDeferred && s.g.availX&3 != 0 && s.splitDeferred(k, sl) && s.splitUsable(k, sl) && s.planDeferred(k, p, sl) {
+			// a Condition-split source (River of Tears) is a script gap the
+			// gaps mode counts below (scriptTapsDefer, one relaxed unit): its
+			// ordinary unit here would count the one tap twice, and the trigger
+			// X cap (availForCapped) would offer one X past gorge's census
+			continue
+		}
 		if deferSkip && deferGap.has(sl) && s.planDeferred(k, p, sl) {
 			if dual && s.grantIdx(k, sl) >= 0 {
 				// its granted ability is a census gap of its own, which the
