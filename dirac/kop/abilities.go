@@ -405,6 +405,22 @@ func FeeOnlyManaAb(a *Ability) bool {
 	return false
 }
 
+// FeeDynManaAb reports whether mana ability a is "{N}, {T}: Add <one fixed
+// colour> for each <thing>" (Cabal Coffers' {B} for each Swamp you control):
+// a generic-only fee and {T}, a dynamic amount (AfManaDynamic, ManaV) of one
+// WUBRG colour, unrestricted, no rider or program. It is a filter whose fee
+// is paid from other mana (FilterManaAb): gorge's census gap, relaxed to the
+// evaluated amount of its colour (rules/potential_plan.go
+// paymentPlanRelaxedAlternatives).
+func FeeDynManaAb(a *Ability) bool {
+	m, c := &a.Cost.Mana, a.ManaColors
+	return a.Kind == AbMana && a.Cost.Flags == CostTap && m.Generic != 0 && m.X == 0 && m.Hyb == ([4]ColorMask{}) && m.Tb == 0 &&
+		m.Pips == ([NumManaKinds]uint8{}) && a.AFlags == AfManaDynamic && c != 0 && c&^ColAny == 0 && c&(c-1) == 0 &&
+		a.ManaN <= 1 && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && !a.ManaEach && !a.ManaDeferred && a.ManaRider == ManaRiderNone &&
+		len(a.Prog) == 0 && a.Gate.Ctr == 0 && a.Trig.Cond == 0 && a.SplitGate == SplitGateNone &&
+		(a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
 // FilterManaAb reports whether mana ability a is a filter the kernel models
 // as a card's first mana ability: a fee-only one (FeeOnlyManaAb), a generic-only fee,
 // {1} once each turn (ActivationLimit$ 1) or {1}, {T}, one unrestricted
@@ -422,6 +438,9 @@ func FilterManaAb(a *Ability) bool {
 		return true
 	}
 	if _, ok := PipFeeManaAb(a); ok {
+		return true
+	}
+	if FeeDynManaAb(a) {
 		return true
 	}
 	m := &a.Cost.Mana
@@ -629,8 +648,14 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 // (dirac mana_pain.go prepPainOnlyLife).
 func SoleLifeManaAb(cd *CardDef, j int) bool {
 	a := &cd.Abilities[j]
-	if a.Kind != AbMana || a.AFlags != 0 || a.ManaRestrict != 0 || a.ManaRestrictAb != 0 || len(a.Prog) != 0 || a.ManaEach ||
+	if a.Kind != AbMana || a.ManaRestrict != 0 || a.ManaRestrictAb != 0 || len(a.Prog) != 0 || a.ManaEach ||
 		a.Cost.Flags != CostTap|CostPayLife || a.Cost.N < 1 || a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 || a.ManaN > 1 || a.ManaColors == 0 {
+		return false
+	}
+	// a colour choice of two or three (the Horizon lands' "Add {G} or {W}",
+	// Produced$ Combo): gorge prices each colour as the same last-resort
+	// Consequence{Life: N} alternative Mana Confluence's any colour is
+	if a.AFlags != 0 && (a.AFlags != AfManaChoice || a.ManaColors&^ColAny != 0 || a.ManaColors&(a.ManaColors-1) == 0) {
 		return false
 	}
 	for i := range cd.Abilities {
@@ -748,6 +773,19 @@ func plainFixedTapAb(a *Ability) bool {
 	c := a.ManaColors
 	return a.Cost.Flags == CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && a.AFlags == 0 && a.ManaRestrict == 0 &&
 		c != 0 && c&(c-1) == 0 && a.ManaN <= 1 && len(a.Prog) == 0
+}
+
+// FeeComboAnyManaAb reports whether mana ability a is "{cost}, {T}: Add X mana
+// in any combination of colors" (Selvala, Heart of the Wilds' {G}, {T}): a
+// Combo Any production (a dynamic amount or at least two mana of any colour,
+// AfManaChoice with ColAny) whose cost holds mana besides the {T}. The
+// kernel's combination search (dirac mana_comboany.go) has no fee-funded
+// form: a Combo Any source beside a filter stalls the table (StallComboAnyMix),
+// so kgen refuses the card.
+func FeeComboAnyManaAb(a *Ability) bool {
+	return a.Kind == AbMana && a.AFlags&(AfManaChoice|AfLatent|AfManaEachColor|AfManaChosen|AfManaReflect) == AfManaChoice &&
+		a.ManaColors == ColAny && (a.AFlags&AfManaDynamic != 0 || a.ManaN >= 2) && a.Cost.Flags == CostTap &&
+		(a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0)
 }
 
 // ManaCostShape names the cost shape of a mana ability, for the census and

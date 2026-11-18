@@ -217,6 +217,12 @@ func buildCard(pt *poolTables, c *lCard) built {
 				// enumerates no colour for the production)
 				why = "mana ability cost " + kop.ManaCostShape(a) + ": a dead mana-ability census gap the kernel does not model here (the production names no colour; gorge's gap is unrelaxable and its activation adds no mana)"
 			}
+			if kop.FeeComboAnyManaAb(a) {
+				// the combination search has no fee-funded form: a Combo Any
+				// source beside the filter its fee is stalls the table
+				// (dirac mana_comboany.go, StallComboAnyMix)
+				why = "mana ability cost " + kop.ManaCostShape(a) + ": a fee-funded Combo Any production (X mana in any combination of colors); the kernel's combination search (mana_comboany.go) has no fee-funded form and a Combo Any source beside a filter stalls the table (StallComboAnyMix)"
+			}
 			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit mana ability",
 				Reason: why})
 			cb.out.def.Abilities = nil
