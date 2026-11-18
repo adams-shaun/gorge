@@ -53,6 +53,13 @@ func (s *State) ProjectChars(p *Projection) {
 				cd := &k.t.Cards[s.cardAt(sl)]
 				c.Types, c.Colors, c.Kw = cd.Types&^kop.TToken, cd.Colors&^kop.ColC, cd.Keywords
 				c.Subs, c.AllSub = cd.Subtypes, cd.AllCreatureTypes
+				if f := &cd.CDAFace; f.Folded {
+					// the CDA kgen folded into the record is one of its
+					// statics, which gorge does not apply while it is
+					// phased out (rules/layers.go)
+					c.Types, c.Colors = f.Types&^kop.TToken, f.Colors&^kop.ColC
+					c.Subs, c.AllSub = cd.PrintedSubtypes, f.AllCreatureTypes
+				}
 			}
 			c.Types = s.phasedTypes(k, sl, c.Types)
 			if s.fxM.has(sl) {
