@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -3290,10 +3288,6 @@ func (s *State) lowerTargetDepCostCast(k *prep, e *stackEntry) {
 //go:noinline
 func (s *State) manaStep(k *prep) bool {
 	e := &s.bld().e
-	if f, err := os.OpenFile("/tmp/tfs.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
-		fmt.Fprintf(f, "MANASTEP kind %d card %s\n", e.kind, k.t.Cards[e.card].Name)
-		f.Close()
-	}
 	// A plan cut stays cut for the rest of the build: the plan stopped at a
 	// decision (a Treasure's sacrifice behind a replacement ask), so every
 	// later re-entry pays through the manual window too. Clearing the bit
@@ -3460,11 +3454,12 @@ func (s *State) manaStep(k *prep) bool {
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			}
 		} else {
-			if f, err := os.OpenFile("/tmp/tfs.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
-				fmt.Fprintf(f, "PLAINARM card %s cost %v\n", k.t.Cards[e.card].Name, cost)
-				f.Close()
-			}
-			cost = s.restrAdmShortCost(k, e, cost)
+			// the unshortened cost: tapForSpellPlain's planner arms take what
+			// the admitted restricted mana leaves themselves (restrAdmShortCost,
+			// pay.PlanPool), and its window fallback must settle through
+			// windowSpellSettled, which discounts the admitted floating batches
+			// itself — handed the shortened cost it would count that mana twice
+			// (as the seAbility branch's restrShortAdm note below)
 			if s.tapForSpellPlain(k, e, &cost, anyColor, &saved) {
 				return true
 			}
