@@ -315,13 +315,13 @@ func (s *State) offerTurnUpSl(k *prep, d *Decision, p uint8, sl Slot) {
 			if s.cloaked(sl) {
 				mode = 2
 			}
-			if turnUpHybOK(&cost) && s.turnUpListed(k, p, &cost, turnUpSpecial(mode, cd.MorphFamily), sl, false) {
+			if turnUpHybOK(&cost) && s.turnUpListed(k, p, &cost, turnUpSpecial(mode, cd.MorphFamily), sl, false, mode) {
 				d.add(MakeAction(AkTurnFaceUp, TCode(pm.obj), 0, mode))
 			}
 		}
 		if fam := cd.MorphFamily; fam != 0 {
 			cost := s.morphCostAt(k, sl)
-			if turnUpHybOK(&cost) && s.turnUpListed(k, p, &cost, turnUpSpecial(fam+2, cd.MorphFamily), sl, true) {
+			if turnUpHybOK(&cost) && s.turnUpListed(k, p, &cost, turnUpSpecial(fam+2, cd.MorphFamily), sl, true, fam+2) {
 				d.add(MakeAction(AkTurnFaceUp, TCode(pm.obj), 0, fam+2))
 			}
 		}
@@ -331,7 +331,7 @@ func (s *State) offerTurnUpSl(k *prep, d *Decision, p uint8, sl Slot) {
 		return
 	}
 	cost := s.morphCostAt(k, sl)
-	if !turnUpHybOK(&cost) || !s.turnUpListed(k, p, &cost, turnUpSpecial(0, cd.MorphFamily), sl, true) {
+	if !turnUpHybOK(&cost) || !s.turnUpListed(k, p, &cost, turnUpSpecial(0, cd.MorphFamily), sl, true, 0) {
 		return
 	}
 	d.add(MakeAction(AkTurnFaceUp, TCode(pm.obj), 0, 0))
@@ -364,7 +364,7 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 		return
 	}
 	sp := turnUpSpecial(mode, k.t.Cards[s.cardAt(sl)].MorphFamily)
-	if !turnUpHybOK(&cost) || !s.turnUpListed(k, p, &cost, sp, sl, kw) {
+	if !turnUpHybOK(&cost) || !s.turnUpListed(k, p, &cost, sp, sl, kw, mode) {
 		return
 	}
 	if !s.turnUpOffered(k, p, &cost, sp, sl, kw) {
@@ -376,6 +376,9 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 		c0 := cost.AtX(0)
 		if s.turnUpRiderOnly(k, p, &c0, sp, sl) {
 			s.tapTurnUpRiders(k, p, &c0) // face_turnfaceup.go: a depletion land's activation
+		} else if s.turnUpFilterOnly(k, p, &c0, sp, sl, mode) {
+			s.playTurnUpFilter(k, p, o, mode) // face_turnupfilter.go: a first-and-only filter's activation
+			s.tapForTurnUp(k, p, &c0, sp, o)  // the planner taps what its mana leaves owed
 		} else {
 			s.tapForTurnUp(k, p, &c0, sp, o)
 		}
