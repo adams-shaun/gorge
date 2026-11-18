@@ -415,6 +415,17 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	if body, ok := strings.CutPrefix(expr, "Sacrificed$"); ok {
 		return evalSacrificedOK(h, c, strings.TrimSpace(body))
 	}
+	// DungeonsCompleted$Amount: how many dungeons the resolving controller has
+	// completed (CR 309.7; events.DungeonComplete folds Player.CompletedDungeons).
+	// Undermountain Adventurer's "if you've completed a dungeon, add six {G}
+	// instead" reads it through Count$Compare. Any other property stays
+	// unmodelled (false), as before.
+	if body, ok := strings.CutPrefix(expr, "DungeonsCompleted$"); ok && strings.TrimSpace(body) == "Amount" {
+		if c.Controller < 0 || int(c.Controller) >= len(h.Game().Players) {
+			return 0, true
+		}
+		return h.Game().Players[c.Controller].CompletedDungeons, true
+	}
 	if body, ok := strings.CutPrefix(expr, "ReplacedCardLKI$"); ok {
 		return evalReplacedCardLKIOK(h, c, body, depth)
 	}
