@@ -9,9 +9,12 @@ Bellowing Mauler	2ec1ef0e67623cc7	4	1/1		0/1	ix:resp
 Blind Creeper	cc217a03311a41f2	10	1/1		1/1	
 Blood Fountain	34806907d5b35fe2	3	2/2		0/1	ix:resp
 Bloodbond Vampire	18198bcc3ae1bbfc	4	1/1		1/1	
+Bloodcrazed Neonate	2040c9e4b81762e4	4	1/1		0/1	ix:resp
 Bone Devourer	30b714e3648dd0ef	9	1/1		0/1	ix:resp
 Boneknitter	02e50dfe73e41cf4	8	1/1		2/3	cast/alt:morphed
 Bonepicker Skirge	3162b64f4b546dc4	8	0/0		0/0	
+Brackwater Elemental	9144ebf6cd3b0bbb	3	3/3		0/1	ix:resp
+Cabal Patriarch	5d155d23688e0733	3	2/2		1/1	
 Cabaretti Courtyard	35be59e842d3db99	14	1/1		0/1	ix:resp
 Cao Cao, Lord of Wei	c9c28c0f7395f113	8	1/1		0/1	ix:resp
 Continue?	98902ea995c0af08	8	0/0		2/2	
@@ -20,16 +23,22 @@ Dawning Angel	25fc8287ece95c98	7	1/1		1/1
 Demon's Disciple	b542ff135c11a3e0	8	1/1		1/1	
 Desolate Mire	27c413ad855cebb6	9	1/1		0/1	ix:resp
 Devouring Light	3d885059f5cae683	8	0/0		1/2	ix:resp
+Dina, Soul Steeper	991b6133f6a91023	3	2/2		0/1	ix:resp
+Dragon-Scarred Bear	e805e7430bb795aa	3	1/1		1/1	
 Dream Thief	43f190c64da0149e	5	1/1		0/1	ix:resp
+Dreamshackle Geist	4fea8c641525f079	5	1/1		0/1	ix:resp
 Drillworks Mole	3e28842be3313a86	4	1/1		0/1	ix:resp
 Drossclaw	45681f91bd582e35	10	3/3		1/1	
+Eccentric Pestfinder	73e419f8bdb04084	4	1/1		1/2	ix:resp
 Elvish Dreadlord	607c679ef1a3cd99	6	2/2		0/1	ix:resp
+Erstwhile Trooper	4de71381fff33796	4	1/1		0/1	ix:resp
 Farewell	60cbd609044c3546	6	0/0		2/2	
 Fateful Showdown	16712446c3ddc5d1	5	0/0		1/2	ix:resp
 Fetid Imp	ea1ab007dfd1789d	7	1/1		1/1	
 Fiendslayer Paladin	68edba6adbfbd593	11	0/0		0/0	
 Flare of Denial	92ddcf63dca7c7fa	4	0/0		1/2	ix:resp
 Gift of Fangs	49cc6cc04d154a07	4	0/0		2/2	
+Goblin Deathraiders	a2f8bdec89dbd670	6	0/0		0/0	
 Great Defender	a82248cd82c9c7cd	4	0/0		1/2	ix:resp
 Greater Harvester	67536f9bd0946c68	11	2/2		1/1	
 Grim Tutor	3c205ffe7a0c8491	3	0/0		2/2	
@@ -41,6 +50,7 @@ Incisor Steed	b63c79756c62d52d	12	0/0		0/0
 Jade Idol	2bdcbfab3f7d428f	4	1/1		0/1	ix:resp
 Jalum Tome	3f04bd5cefa63fcd	6	1/1		1/1	
 Khenra Eternal	bbfaac847623256e	9	1/1		1/1	
+Leyline of Punishment	a208ab9103b24afb	4	0/0		0/0	
 Lightwielder Paladin	51c47c5f3b89f4eb	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Lost in the Spirit World	ff870131f7c9ca10	4	0/0		2/2	
 Magma Vein	6e94436e204467e7	4	1/1		1/1	
@@ -48,9 +58,11 @@ Manalith	10e562077c0eb5e6	4	1/1		0/1	ix:resp
 Mardu Woe-Reaper	5366c241abe69207	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Markov Patrician	265ed96835478435	4	0/0		0/0	
 Masked Blackguard	a8a142ebd47fd68d	7	1/1		1/1	
+Mobile Fort	8fb50bf5e67964bd	3	1/1		0/1	ix:resp
 Mox Tantalite	149b5f504ed2bfc3	4	1/1		2/3	cast/alt:none
 Mystic Skull	e5c2c5d6f020d251	7	2/2		0/1	ix:resp
 Nakaya Shade	77d4ecf82513a3d3	8	1/1		1/1	
+Nivix Barrier	bfe1295cb15e1924	4	1/1		0/1	ix:resp
 Obelisk of Grixis	69966ddbffaee50e	4	1/1		0/1	ix:resp
 Ogre Taskmaster	e40b726704d6de3b	4	0/0		0/0	
 Ondu Knotmaster	6e03f4db0a7c93ce	9	1/1		2/2	
@@ -74,6 +86,7 @@ Show of Valor	10ccdfccdcd3f3f7	6	0/0		2/2
 Shrine Keeper	f4babd7d591c7662	9	0/0		0/0	
 Sigil of Valor	77ef8191582ea2b0	6	2/2		1/1	
 Sinkhole	b9a86d0c7cb78d9b	12	0/0		1/2	ix:resp
+Skyclave Shadowcat	659463bf08448761	5	2/2		0/1	ix:resp
 Slagwoods Bridge	2878f997b5a11611	4	1/1		0/1	ix:resp
 Songstitcher	07f782d03a8a7056	14	1/1		1/1	
 Soulmender	dc0f19e97ad76507	10	1/1		0/1	ix:resp
@@ -81,8 +94,10 @@ Spirit Shackle	ee8844432927de00	9	1/1		2/2
 Spirited Companion	02235b86b60a6f7d	4	1/1		0/1	ix:resp
 Spiteful Squad	9f673f527e4ce775	9	1/1		1/1	
 Sultai Emissary	6bc1390b0e128231	7	1/1		0/1	ix:resp
+Surge Engine	69682ba7a799aa16	8	3/3		1/1	
 Swarm Surge	d7fa16679eca28fa	3	0/0		1/2	ix:resp
 Sword of the Animist	7f2ad10e57426a0e	7	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Tempestra, Dame of Games	1818e85c0ea1f3e0	3	1/1		0/1	ix:resp
 Timin, Youthful Geist	0491e6f40d3d4d37	3	2/2		0/1	ix:resp
 Tomebound Lich	b74b2889d01f7ff6	6	2/2		1/1	
 Trailblazing Historian	476f0bee39e5ea06	4	1/1		0/1	ix:resp

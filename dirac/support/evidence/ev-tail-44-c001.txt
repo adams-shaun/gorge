@@ -40,6 +40,7 @@ Blur of Blades
 Bond of Insight
 Bone Sabres
 Bonepicker Skirge
+Bookwurm
 Boros Locket
 Brain Gorgers
 Burrenton Shield-Bearers
@@ -375,6 +376,7 @@ Wings of the Guard
 Wirewood Pride
 Witch's Cauldron
 Wolfkin Outcast
+Wolverine Pack
 Woodland Mystic
 Worldly Tutor
 Zephyr Sprite

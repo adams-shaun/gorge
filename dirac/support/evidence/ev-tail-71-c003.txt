@@ -1,4 +1,5 @@
 A-Armory Veteran
+A-Dokuchi Silencer
 A-The Meathook Massacre
 Academy Elite
 Alchemist's Gift
@@ -8,6 +9,7 @@ Ambulatory Edifice
 Ancient Carp
 Angel's Tomb
 Angelic Quartermaster
+Arcane Spyglass
 Arrow Volley Trap
 Aven of Enduring Hope
 Awe for the Guilds
@@ -26,6 +28,7 @@ Bone Splinters
 Bower Passage
 Braingeyser
 Bull Rush
+Burning Earth
 Burning Wish
 Callous Dismissal
 Canyon Lurkers
@@ -35,21 +38,28 @@ Cathedral Sanctifier
 Caustic Caterpillar
 Cerebral Eruption
 Cleaving Skyrider
+Collected Conjuring
 Commando Raid
 Coordinated Barrage
 Cordial Vampire
 Cosmic Hunger
 Cruel Sadist
 Crumbling Necropolis
+Crypt Cobra
 Crystal Chimes
+Cut Your Losses
 D'Avenant Archer
 Daggerclaw Imp
+Dalek Drone
 Dangerous Wager
 Deadbridge Shaman
 Defy Death
+Desperate Charge
 Detective of the Month
 Dire Fleet Poisoner
+Dispel
 Dockside Chef
+Doomed Necromancer
 Doomed Traveler
 Double Trouble
 Dragon-Cursed Halls
@@ -71,15 +81,18 @@ Ferrovore
 Feywild Visitor
 Field Research
 Fire Servant
+Fire Shrine Keeper
 Firescreamer
 Flamekin Spitfire
 Flow of Knowledge
+Flowstone Shambler
 Forest
 Frenzied Saddlebrute
 Garbage Elemental
 Gargoyle Flock
 Garruk's Warsteed
 Giant Inheritance
+Glint
 Goblin Archaeologist
 Goblin Dirigible
 Goretusk Firebeast
@@ -120,14 +133,19 @@ Lumberknot
 Maned Serval
 Manhole Cover
 Marked by Honor
+Mask of Memory
+Mechanical Glider
 Meldweb Strider
+Mephitic Ooze
 Metastatic Evangel
 Militia Rallier
+Mind Rot
 Mine Worker
 Moku, Meandering Drummer
 Molderhulk
 Momentary Blink
 Monk Idealist
+Morbid Opportunist
 Mountain
 Mukotai Ambusher
 Myth Realized
@@ -143,6 +161,7 @@ Nylea's Disciple
 Nylea, God of the Hunt
 Ob Nixilis's Cruelty
 Ob Nixilis, the Hate-Twisted
+Ogre Slumlord
 Overwhelming Remorse
 Pact of Negation
 Palace Sentinels
@@ -159,6 +178,7 @@ Recruit the Worthy
 Regenesis
 Release the Ants
 Renegade Warlord
+Retribution of the Meek
 Revolutionary Rebuff
 Revolutionist
 Riptide Mangler
@@ -167,6 +187,8 @@ Rummaging Goblin
 Sanctifier of Souls
 Scalding Salamander
 Scaled Behemoth
+Scarab Feast
+Scion Summoner
 Scoria Wurm
 Season of Growth
 Serene Heart
@@ -177,6 +199,7 @@ Shu Farmer
 Skarrgan Skybreaker
 Skatewing Spy
 Sky Crier
+Slagstone Refinery
 Slinking Skirge
 Sly Instigator
 Snowfield Sinkhole
@@ -184,8 +207,10 @@ Sonic Seizure
 Soulcatcher
 Spikefield Hazard
 Spined Thopter
+Splatter Goblin
 Starlit Sanctum
 Steel Golem
+Steelclad Spirit
 Storm Seeker
 Striking Sliver
 Strongarm Thug
@@ -202,20 +227,24 @@ Thunderous Might
 Time Bomb
 Tormod's Crypt
 Torture
+Tragic Fall
 Treasure Mage
 Twisted Justice
 Ukkima, Stalking Shadow
 Undead Butler
 Unseal the Necropolis
 Utvara Scalper
+Vantress Paladin
 Vapor Snag
 Vent Sentinel
 Viashino Firstblade
 Vodalian Soldiers
 Voltaic Brawler
 Weight of Memory
+Weldfast Wingsmith
 Whirlermaker
 Wing Shards
+Withdraw
 Witherbloom Command
 Wizards of Thay
 Wolfcaller's Howl

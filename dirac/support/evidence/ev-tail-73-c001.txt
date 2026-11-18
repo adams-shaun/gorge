@@ -393,6 +393,7 @@ Skyshroud Blessing
 Skyshroud Falcon
 Skyshroud Vampire
 Skysnare Spider
+Sliver Hive
 Sly Spy
 Smogsteed Rider
 Snake Pit

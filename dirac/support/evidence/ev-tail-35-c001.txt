@@ -66,6 +66,7 @@ Dauthi Embrace
 Dauthi Mercenary
 Dawn Charm
 Daxos, Blessed by the Sun
+Dead Reveler
 Death Pits of Rath
 Decimator Web
 Deekah, Fractal Theorist
@@ -307,6 +308,7 @@ Vibranium Strike Gauntlets
 Viridian Revel
 Vitalizing Cascade
 Vraska's Fall
+Watcher in the Mist
 Watchful Giant
 Watchwolf
 Wave Elemental

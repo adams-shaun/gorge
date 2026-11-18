@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Adaptive Snapjaw	d8e9ac7800ebbf21	10	1/1		1/1	
+Agent of Stromgald	2d2a89ff44157d86	32	1/1		0/1	ix:resp
 Akroan Sergeant	98aadf40896b9c36	13	1/1		1/1	
 Alluring Suitor	c503c57f1ac7d6b7	13	3/3		0/1	ix:resp
 Alpha Tyrranax	7b22476b7f3cfc03	15	0/0		0/0	
@@ -23,6 +24,7 @@ Clever Concealment	f33eb1d68b307d5f	17	0/0		1/2	ix:resp
 Clock of Omens	85fe8d2ab09070f1	7	1/1		1/1	
 Confidence from Strength	d8ee0960aa604c31	13	0/0		2/2	
 Containment Construct	b1f0981c6060ed47	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Crashing Boars	b53e3740e63efb60	9	1/1		0/1	ix:resp
 Dawn Evangel	bae08b4d97535f33	16	1/1		0/1	ix:resp
 Dawnbringer Charioteers	c70b1a98771d3122	13	1/1		0/1	ix:resp
 Djeru's Resolve	69352f4c386acf71	6	1/1		2/2	

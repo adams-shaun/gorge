@@ -8,6 +8,7 @@ Aladdin
 Amass the Components
 Amrou Seekers
 Ancient Spider
+Angel's Mercy
 Arbalest Engineers
 Archangel of Thune
 Ardent Electromancer
@@ -40,25 +41,32 @@ Caravan Hurda
 Catapult Fodder
 Chandra's Defeat
 Chasm Guide
+Cinder Hellion
 Cinderclasm
 Cirith Ungol Patrol
 Cogwork Spy
 Collateral Damage
 Composer of Spring
+Consign to the Pit
 Containment Breach
 Council's Judgment
+Cunning Lethemancer
 Curate
 Curious Pair
 Curse of Verbosity
 Dauthi Warlord
 Dega Sanctuary
 Desert Nomads
+Desert of the True
 Dig Up
+Dismiss into Dream
 Dispersal Technician
 Doomed Artisan
+Doomed Traveler
 Dragonlair Spider
 Drogskol Shieldmate
 Drossforge Bridge
+Earthen Goo
 Eerie Soultender
 Elves of Deep Shadow
 Elvish Warrior
@@ -66,6 +74,7 @@ Emergence Zone
 Emiel the Blessed
 Enthralling Victor
 Environmental Sciences
+Erkenbrand, Lord of Westfold
 Escape Protocol
 Esper Cormorants
 Ethereal Whiskergill
@@ -79,6 +88,7 @@ Fin-Clade Fugitives
 Fists of the Anvil
 Flayer Husk
 Fledgling Djinn
+Fledgling Imp
 Fleet-Footed Monk
 Font of Fortunes
 Font of Return
@@ -98,6 +108,7 @@ Gimli's Reckless Might
 Glacial Grasp
 Go-Shintai of Ancient Wars
 Goatnapper
+Goblin Outlander
 Goblin Piledriver
 Goblin Ruinblaster
 Golden Demise
@@ -108,6 +119,7 @@ Graypelt Refuge
 Great Furnace
 Greataxe
 Greenbelt Rampager
+Grotesque Mutation
 Headless Rider
 Heaven
 Heckling Fiends
@@ -132,6 +144,7 @@ Iron-Heart Chimera
 Ironclaw Buzzardiers
 Island
 Juniper Order Advocate
+Juniper Order Rootweaver
 Kavu Runner
 Kazandu Stomper
 Keeper of the Lens
@@ -152,6 +165,7 @@ Lay Down Arms
 Lazotep Chancellor
 Life Chisel
 Liliana's Elite
+Lin Sivvi, Defiant Hero
 Liu Bei, Lord of Shu
 Looming Shade
 Lurking Nightstalker
@@ -166,6 +180,7 @@ Might of the Old Ways
 Mirran Bardiche
 Moderation
 Moira, Urborg Haunt
+Moldgraf Monstrosity
 Mosscoat Goriak
 Mountain
 Natural Reclamation
@@ -174,11 +189,13 @@ Nightguard Patrol
 Nimble Mongoose
 Noble Steeds
 Norn's Inquisitor
+Obelisk of Naya
 Ojutai, Soul of Winter
 Ollenbock Escort
 Ondu Inversion
 Opal Acrolith
 Open Fire
+Oran-Rief Hydra
 Orim's Prayer
 Pallid Mycoderm
 Panacea
@@ -189,6 +206,7 @@ Peel from Reality
 Peregrine Drake
 Phantom General
 Phyrexian Gremlins
+Plague Engineer
 Plague Fiend
 Plague Sliver
 Plains
@@ -205,9 +223,11 @@ Rage Nimbus
 Ratchet Bomb
 Rathi Intimidator
 Ray of Erasure
+Razorfoot Griffin
 Redemption Choir
 Renegade Demon
 Renegade Wheelsmith
+Renewed Solidarity
 Restrain
 Rift Bolt
 Roc of Kher Ridges
@@ -220,6 +240,7 @@ Rush of Adrenaline
 Ruthless Disposal
 Sacred Mesa
 Sai, Master Thopterist
+Sands of Delirium
 Sandstone Warrior
 Sangrite Surge
 Sapphire Drake
@@ -253,6 +274,7 @@ Sphinx's Tutelage
 Splendid Agony
 Stingmoggie
 Stingscourger
+Storm Fleet Negotiator
 Storm of Memories
 Street Riot
 Street Urchin
@@ -272,6 +294,7 @@ The Binding of the Titans
 The Immortal Weapons
 Thriving Isle
 Throne of Empires
+Tibalt, Rakish Instigator
 Timberpack Wolf
 Tooth and Claw
 Torsten Von Ursus
@@ -279,6 +302,7 @@ Tower of Calamities
 Treasure Mage
 Twilight's Call
 Undead Augur
+Updraft Elemental
 Valduk, Keeper of the Flame
 Vessel of Malignity
 Veteran Cavalier
@@ -292,4 +316,6 @@ Winding Wurm
 Winged Portent
 Witness the Future
 You Are Already Dead
+Ziatora's Proving Ground
 Zombie Cutthroat
+Zombie Master

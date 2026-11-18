@@ -6,6 +6,7 @@ Aether Poisoner	009e64c845c79d1d	6	2/2		1/1
 Aethergeode Miner	f085ed898a2ec3d9	8	2/2		0/1	ix:resp
 Aetheric Amplifier	e2d85382be8e91a9	12	2/2		1/1	
 Aethermage's Touch	ecf4c5d6c5d9987d	4	0/0		1/2	ix:resp
+Ageless Sentinels	82954f96e56db2bc	8	1/1		0/1	ix:resp
 Akki Underling	5a61a1d2adaa9e73	4	0/0		0/0	
 Alpine Meadow	c9b9959f80f366f1	10	2/2		0/1	ix:resp
 Amaranthine Wall	eec54eb58dcc189f	6	1/1		1/1	
@@ -22,6 +23,7 @@ Basal Thrull	312503660680638f	5	1/1		1/1
 Bearer of Memory	6751bbd2a75470aa	5	1/1		0/1	ix:resp
 Behemoth Sledge	48f930522ba440cb	4	1/1		0/1	ix:resp
 Bitterthorn, Nissa's Animus	03761b45ddf4a7b3	4	3/3		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Blastfire Bolt	f568d46737c866ac	10	0/0		1/2	ix:resp
 Blighted Shaman	6c8d32fa85adb283	6	2/2		0/1	ix:resp
 Blood Reckoning	0f5c89771dc300f0	3	1/1		1/1	
 Blood on the Snow	e4ca85f3c99a2e8d	6	0/0		2/2	
@@ -58,8 +60,10 @@ Eladamri, Lord of Leaves	cca46b31a3937bda	4	0/0		0/0
 Electrickery	a940da22b81a3c0b	6	0/0		3/4	ix:resp
 Elvish Archers	ad5faa487da23234	4	0/0		0/0	
 Embersmith	c8d9c549faaed074	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Engineered Might	cd8bf71448649a38	3	0/0		2/2	
 Errant and Giada	af5bfd5675ae4a95	4	0/0		0/0	
 Erratic Mutation	1a058d30a2e5a279	10	0/0		1/2	ix:resp
+Escarpment Fortress	c4aeed1bf611dccd	4	1/1		1/1	
 Eternal Witness	da383c8b58390ae8	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Ethereal Haze	74d371acd35aeead	4	0/0		1/2	ix:resp
 Eyeblight Assassin	0aaa81f93c3f20e0	5	1/1		1/1	
@@ -69,6 +73,7 @@ Faith's Reward	0ee415c8dcb4a172	4	0/0		1/2	ix:resp
 Fated Intervention	3851144eafb59ad8	6	0/0		2/2	
 Fencer Clique	efa180fb2eee3f53	4	1/1		0/1	ix:resp
 Feral Deceiver	a42dfac07bb862fc	4	2/2		1/1	
+Ferocious Tigorilla	ca661a68b2361ad5	6	0/0		0/0	
 Festergloom	6a6fe34e9880b9a4	7	0/0		2/2	
 Fey Steed	a878f8025d50a204	19	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Fill with Fright	832397b7f9ac8ed1	5	0/0		1/2	ix:resp
@@ -79,6 +84,7 @@ Flamecast Wheel	90076d90dc9ad525	4	1/1		0/1	ix:resp
 Followed Footsteps	385536b901ec526c	5	1/1		1/2	ix:resp
 Fractal Summoning	b303325111043b48	5	0/0		3/4	f0/s/x0
 Freyalise, Llanowar's Fury	7ef9bdd8a5df298f	7	3/3		1/1	
+Furious Resistance	de8146f56ebace75	4	0/0		1/2	ix:resp
 Gem of Becoming	2f4c4f44b17f69a3	11	1/1		0/1	ix:resp
 Ghastly Demise	93edfdf772643617	5	0/0		2/2	
 Ghitu Slinger	dde45058a81cc81e	7	2/2		1/1	
@@ -127,6 +133,7 @@ Needle Spires	fe8450cc216b1051	30	2/2		1/1
 Niblis of the Urn	2647fbed5d781a4b	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Nyxborn Eidolon	be230cd5ec9ae165	4	0/0		2/2	
 Oashra Cultivator	d4374217f1672ea5	6	1/1		0/1	ix:resp
+Omen	f7414b8047791be8	4	0/0		1/2	ix:resp
 Ominous Cemetery	996995997a1aa707	16	2/2		0/1	ix:resp
 Ornate Kanzashi	03d624c83a597293	6	1/1		1/1	
 Oxidda Scrapmelter	1b82c76ea4b86ef2	5	1/1		0/1	ix:resp
@@ -147,8 +154,10 @@ Rustrazor Butcher	922e521e8cafa0d4	6	0/0		0/0
 Sangrophage	e0a40f792ef609a3	11	1/1		0/1	ix:resp
 Saryth, the Viper's Fang	dcf284d9c90defbd	4	1/1		0/1	ix:resp
 Scaled Herbalist	9501a2d0dfc3f7ec	8	1/1		1/1	
+Scaled Hulk	dc8b3f535a95de1d	3	1/1		0/1	ix:resp
 Scarred Vinebreeder	7e109dc76489a754	5	1/1		0/1	ix:resp
 Scrapper Champion	8d1b1958b8e9337a	6	2/2		0/1	ix:resp
+Sea Gate Oracle	22b5ef54d75339bc	4	1/1		0/1	ix:resp
 Sentinel Sliver	d1ce10c0d51e6ae2	4	0/0		0/0	
 Serene Offering	92269d308464f074	4	0/0		2/2	
 Shambling Ghoul	16d4e88f09773ce9	12	0/0		0/0	
@@ -158,6 +167,8 @@ Shivan Harvest	0318cc0d2821b07d	8	1/1		0/1	ix:resp
 Short Sword	42fc37b2d71e1b8e	12	1/1		0/1	ix:resp
 Silburlind Snapper	91afe6f9eb171bfc	3	0/0		0/0	
 Silvar, Devourer of the Free	b3035775aea462ff	4	2/2		1/1	
+Silverglade Pathfinder	eac006eef0ebde9c	6	1/1		1/1	
+Slaughterhouse Bouncer	bb935baf4cdedd4f	5	1/1		0/1	ix:resp
 Snag	09fe7dcf37106f58	4	0/0		2/2	
 Soulhunter Rakshasa	b12c6978b715a01c	5	1/1		1/1	
 Soulstealer Axe	fc17bcc220fe55c9	10	2/2		1/1	
@@ -175,6 +186,7 @@ Surrakar Banisher	3db4384891050a12	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Suture Priest	3b5edc1e58af34e8	4	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Swift Spinner	6d964d6c0ba7b1fa	8	0/0		0/0	
 Sword of Once and Future	4f1c98e109ac405b	7	2/2		0/1	ix:resp
+Tangleclaw Werewolf	1634187c2ab1f459	4	1/1		1/1	
 Tarfire	2ef02cf8835a40c1	4	0/0		1/2	ix:resp
 Tattered Mummy	2ffc12333f65081b	10	1/1		0/1	ix:resp
 Tel-Jilad Justice	daea90cf35250d65	4	0/0		2/2	
@@ -193,6 +205,7 @@ Valiant Veteran	ab9d15679da72848	6	1/1		1/1
 Vampiric Tutor	e15d65631d40059f	8	0/0		2/2	
 Wanderlust	e5ad99aa9baf59ae	7	1/1		2/2	
 Weatherseed Elf	bbc6a61334133dad	4	1/1		1/1	
+White Shield Crusader	7c1f951d332b99ef	4	2/2		0/1	ix:resp
 Windrider Wizard	a314be276c17d4a6	10	1/1		1/1	
 Wolfbriar Elemental	c6198db0d16b7b87	3	1/1		3/3	
 Wooden Sphere	66b6a1bc28939ec6	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp

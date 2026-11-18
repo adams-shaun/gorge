@@ -37,12 +37,14 @@ Cephalid Vandal
 Charging Paladin
 Cinder Giant
 Cliffhaven Vampire
+Clockwork Vorrac
 Clot Sliver
 Cloudreader Sphinx
 Clutch of the Undercity
 Colorful Feiyi Sparrow
 Coral Net
 Corpulent Corpse
+Crater's Claws
 Crushing Disappointment
 Crystal Ball
 Curse of Bounty
@@ -62,6 +64,7 @@ Eladamri, Lord of Leaves
 Eldrazi Displacer
 Electrickery
 Elvish Archers
+Errant and Giada
 Erratic Mutation
 Escarpment Fortress
 Eternal Witness
@@ -80,7 +83,9 @@ Fill with Fright
 Finale of Eternity
 Fire Tempest
 Fire of Orthanc
+Flameborn Viron
 Flamecast Wheel
+Followed Footsteps
 Forest
 Fractal Summoning
 Freyalise, Llanowar's Fury
@@ -109,8 +114,10 @@ Isolate
 James, Wandering Dad
 Jarad's Orders
 Jeskai Runemark
+Joven
 Kasmina's Transmutation
 Keeper of Fables
+Kobold Taskmaster
 Kongming, "Sleeping Dragon"
 Labyrinth Adversary
 Legion Vanguard
@@ -135,6 +142,7 @@ Oashra Cultivator
 Omen
 Ominous Cemetery
 Ornate Kanzashi
+Oxidda Scrapmelter
 Phantasmal Dragon
 Plains
 Plummet
@@ -155,6 +163,7 @@ Rustrazor Butcher
 Sangrophage
 Saryth, the Viper's Fang
 Scaled Herbalist
+Scaled Hulk
 Sea Gate Oracle
 Sentinel Sliver
 Serene Offering
@@ -182,6 +191,7 @@ Stratozeppelid
 Stronghold Discipline
 Sun Ce, Young Conquerer
 Sunrise Seeker
+Surrak and Goreclaw
 Surrakar Banisher
 Suture Priest
 Swamp

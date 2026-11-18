@@ -14,6 +14,7 @@ Arbor Armament
 Arboreal Alliance
 Arcade Cabinet
 Arcane Encyclopedia
+Arcbound Reclaimer
 Archivist of Oghma
 Argivian Find
 Armor of Faith
@@ -85,6 +86,7 @@ Courier's Capsule
 Cowl Prowler
 Crack the Earth
 Creeping Trailblazer
+Crimson Wisps
 Crovax the Cursed
 Crown of Flames
 Crush Dissent
@@ -303,6 +305,7 @@ Phthisis
 Phyrexian Metamorph
 Phyrexian Monitor
 Phyrexian Rebirth
+Plagon, Lord of the Beach
 Plains
 Plated Wurm
 Plundering Barbarian
