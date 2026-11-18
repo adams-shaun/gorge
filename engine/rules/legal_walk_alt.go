@@ -501,7 +501,10 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 		if !w.spellTimingOK(p, id, af, sorcery) {
 			continue
 		}
-		if !e.castTargetsAvailable(p, id, af.SpellAbility()) {
+		// The targets are judged with the object showing the aftermath half
+		// the cast flips to (CR 702.127a, 709.3): a red Ruin cannot target
+		// a creature with protection from red that the green front could.
+		if !e.offerAsFace(id, af, func() bool { return e.castTargetsAvailable(p, id, af.SpellAbility()) }) {
 			continue
 		}
 		if w.offerCastableAsFace(p, id, af, pay.WithSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope("")) {
