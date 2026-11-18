@@ -1,0 +1,14 @@
+# a restricted mana source cannot fund a filter's activation fee, and a
+# granted unrestricted {T} beside it is one unit, not fee funding
+# (dirac/mana_restricted_filterfee_cast_test.go)
+# Somberwald Sage's creature-spell-only {G} cannot pay the {1} of Mossfire
+# Valley's activated mana ability (CR 106.6), so the Stag is one Forest short
+# -- a second Forest makes it castable. Jiang Yanggu, Wildcrafter grants the
+# Sage (wearing a +1/+1 counter) an unrestricted {T}: add one mana, an
+# alternative to its three, still no fee funding.
+Axebane Stag
+Mossfire Valley
+Somberwald Sage
+Island
+Jiang Yanggu, Wildcrafter
+Forest
