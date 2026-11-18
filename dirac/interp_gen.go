@@ -200,7 +200,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDemonstrate:
 		return s.demonstrate(k, in), true
 	case kop.OpNinjutsu:
-		s.handEntryResolve(k, in.C != 0) // CR 702.49b (kw_ninjutsu.go)
+		return !s.handEntryResolve(k, in.C != 0), true // CR 702.49b (kw_ninjutsu.go)
 	case kop.OpRepeatWhile:
 		// gorge effRepeat with RepeatCheckSVar$: MaxRepeat$ evaluated once
 		// as the cap, the gate re-evaluated after every pass (loopBack)
