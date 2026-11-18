@@ -196,7 +196,7 @@ func (s *State) trigOK(k *prep, l trigListener, a *kop.Ability) bool {
 	if k.gen.anyGameOnce && a.Trig.Flags3&kop.Tf3GameOnce != 0 && s.gameOnceUsed(l) {
 		return false // GameActivationLimit$ 1 (trig_params.go)
 	}
-	if a.Trig.Flags&kop.TfOncePerTurn != 0 && s.usedThisTurn(l.obj, l.ab) {
+	if a.Trig.Flags&kop.TfOncePerTurn != 0 && s.usedThisTurnBy(l.obj, l.ab, l.host) {
 		return false
 	}
 	if a.Trig.Cond != 0 && !s.condEval(k, a.Trig.Cond, evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}) {
@@ -213,7 +213,7 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 		return // ResolvedLimit$: the source's limited lines resolved this turn (act_support.go)
 	}
 	if a.Trig.Flags&kop.TfOncePerTurn != 0 {
-		s.markUsed(l.obj, l.ab)
+		s.markUsedBy(l.obj, l.ab, l.host)
 	}
 	if a.Trig.Flags2&kop.Tf2FirstTime != 0 && firstTimeLatchEvent(a) {
 		s.markCounterFirst(k, l, a) // trig_counterfirst.go

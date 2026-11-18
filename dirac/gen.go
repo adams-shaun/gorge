@@ -1968,6 +1968,12 @@ type usedRec struct {
 	obj Obj
 	ab  uint8
 	ver uint8 // the object's ver (CR 400.7: a new object has used nothing)
+	// host is the granting permanent plus one for a granted trigger line (0:
+	// the object's own line). A granted line's ab is its granter card's index,
+	// so without it the line and the granted-on permanent's own printed line
+	// at the same index would share one record; gorge keys a limit by
+	// {Source, Idx, Grantor} (trigger_match.go triggerKey). Taken from rsv.
+	host Obj
 }
 
 // xTargets are the objects of a stack entry's multi-object target slots
@@ -2449,12 +2455,14 @@ type genState struct {
 }
 
 const (
-	maxImp      = 16
-	prevColN    = 3        // genState.prevCol records
-	prevXBytes  = prevColN // genState.prevX, taken from rsv
-	turnFBytes  = 1        // genState.turnF, taken from rsv
-	dmgAmtN     = 4        // genState.dmgAmt: reader-card records (value_dmgamount.go)
-	dmgAmtBytes = dmgAmtN * int(unsafe.Sizeof(dmgAmtRec{}))
+	maxImp     = 16
+	prevColN   = 3        // genState.prevCol records
+	prevXBytes = prevColN // genState.prevX, taken from rsv
+	turnFBytes = 1        // genState.turnF, taken from rsv
+	// usedHostBytes: usedRec.host across the pool, taken from rsv
+	usedHostBytes = maxUsed * int(unsafe.Sizeof(Obj(0)))
+	dmgAmtN       = 4 // genState.dmgAmt: reader-card records (value_dmgamount.go)
+	dmgAmtBytes   = dmgAmtN * int(unsafe.Sizeof(dmgAmtRec{}))
 	// rsvN pads the reserved block to 80 bytes (genState's tail padding
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
@@ -2462,7 +2470,7 @@ const (
 	// in the class. The redirect records (redirBytes) grow the block by a
 	// whole cache line (64) in every seat class, so the phase holds: rsvN is
 	// what is left of that line after them.
-	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) + 64 - redirBytes - prevXBytes
+	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) + 64 - redirBytes - prevXBytes - usedHostBytes
 )
 
 // dmgAmtRec is one genState.dmgAmt record: the reader card's object+1 (0

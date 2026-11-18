@@ -87,8 +87,13 @@ func (s *State) exileAnyDest(k *prep, o Obj, from kop.Zone) kop.Zone {
 	if k.gen.anyRepl&rbGraveLib != 0 && s.graveRedirect(k, ob.card, kop.ZoneGraveyard, from) == kop.ZoneLibrary {
 		n++
 	}
-	if n > 1 && !s.takeAnswered(o) {
-		s.capFull(StallReplLeave)
+	if n > 1 {
+		// two or more effects compete: a stall, or settled by the ask, whose
+		// answer applyExileOrder stamps the counter of (not a re-scan here)
+		if !s.takeAnswered(o) {
+			s.capFull(StallReplLeave)
+		}
+		ctr = 0
 	}
 	if ctr != 0 {
 		// the move is to exile: place the counter anchored one bump back, the

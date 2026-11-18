@@ -487,11 +487,28 @@ func (s *State) exileOrderOptions(k *prep, d *Decision) {
 	}
 }
 
+// chosenExileCounter is the counter the order answer (mode) leaves on the
+// exiled card: none when a mark was chosen, else the chosen source's own
+// ReplExileOnLeave counter. The source's card is read from its Obj record, so a
+// source that has left since the ask still counts (last known information).
+func (s *State) chosenExileCounter(k *prep, r parkedMove, mode int) (kop.CounterKind, uint8) {
+	i := mode - maxExMarks
+	if i < 0 || i >= r.nsrc() || k.gen == nil || k.gen.exileOnLeave == nil {
+		return 0, 0
+	}
+	c := s.objs[r.src[i]].card
+	if int(c) >= len(k.gen.exileOnLeave) {
+		return 0, 0
+	}
+	return exileCounterKind(k.t, c, k.gen.exileOnLeave[c])
+}
+
 // applyExileOrder records the answer and runs the parked move, leaving the
 // creature only the mark answered. After a state-based move the next pass moves
 // what has come to die meanwhile, then asks for the next.
 func (s *State) applyExileOrder(k *prep, a Action) {
 	r := s.cold.parked[0]
+	ctr, ctrN := s.chosenExileCounter(k, r, int(a.Mode()))
 	if ob := &s.objs[r.obj]; ob.zone == kop.ZoneBattlefield {
 		s.settleExileMarks(ob.slot, int(a.Mode()))
 	}
@@ -506,8 +523,18 @@ func (s *State) applyExileOrder(k *prep, a Action) {
 			resumePay = true
 		}
 	}
+	wasExiled := s.objs[r.obj].zone == kop.ZoneExile
 	s.runParked(k, r)
 	s.takeAnswered(r.obj)
+	if !wasExiled && s.objs[r.obj].zone == kop.ZoneExile {
+		// the answered effect alone applied, so only its counter lands: the
+		// settled move itself stamps none (dieZone, exileAnyDest). Done after the
+		// move, which has cleared the record of the version it left
+		s.clearExileCounter(r.obj)
+		if ctr != 0 {
+			s.stampExileCounterMoved(r.obj, ctr, int(ctrN))
+		}
+	}
 	if r.kind == parkDread {
 		// the manifest dread window goes on after the answer: the next window
 		// (when Amount$ is >1) is asked with the other card now moved
