@@ -51,6 +51,7 @@ func originAlternativeZones(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, 
 }
 
 func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.Zone, zones []state.Zone) {
+	defer bindPreAskTargets(c, sa, cz.fetch())()
 	players := searchPlayersFor(h, c, cz.fetch(), targetedGateGroup(c, sa))
 	if c.Forget.Ready {
 		players = c.Forget.Owners
@@ -428,27 +429,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 			d.Min = int(max)
 			d.AllowNone = true
 		}
-		// The prompt is built here, AFTER the Mandatory$ clamp and the EACH
-		// branch's own bounds, so its stated count always matches the decision's
-		// final Min/Max -- a mandatory leg with Min == Max == 1 must not advertise
-		// "up to 1 card(s)". SelectPrompt$ (Forge's ChangeZoneEffect prompt,
-		// already read on the sibling hidden-pick path in effHiddenPick) replaces
-		// the generic text when the SA carries it: Cultivate's legs name their own
-		// "Select a card to put onto the battlefield".
-		if sp := cz.SelectPrompt; sp != "" {
-			d.Prompt = sp
-		} else if d.AllowNone {
-			d.Prompt = "Search a library: choose exactly " + strconv.Itoa(d.Max) + " card(s), or none"
-		} else if d.Min == d.Max {
-			d.Prompt = "Search a library: choose " + strconv.Itoa(d.Max) + " card(s)"
-		} else {
-			d.Prompt = "Search a library: choose up to " + strconv.Itoa(d.Max) + " card(s)"
-		}
-		// EACH's own prompt was only a placeholder for the counted forms; the
-		// override above already replaced it when SelectPrompt$ is absent.
-		if eachStructured && cz.SelectPrompt == "" {
-			d.Prompt = "Search a library: choose one card of each listed type"
-		}
+		d.Prompt = searchPrompt(d, cz, eachStructured)
 		// The shared ask boundary (effects.Ask) refuses to post a decision whose
 		// only legal answer is the empty one -- with zero eligible cards max
 		// clamps to 0 and a stated-quality search's Min is already 0, so that is
@@ -543,6 +524,32 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 		applyLibrarySearch(h, c, sa, cz, owner, to, picked, zones)
 	}
 	endForgetOtherSnapshot(c)
+}
+
+// searchPrompt is the search choose's prompt, built AFTER the Mandatory$ clamp
+// and the EACH branch's own bounds, so its stated count always matches the
+// decision's final Min/Max -- a mandatory leg with Min == Max == 1 must not
+// advertise "up to 1 card(s)". SelectPrompt$ (Forge's ChangeZoneEffect prompt,
+// already read on the sibling hidden-pick path in effHiddenPick) replaces the
+// generic text when the SA carries it: Cultivate's legs name their own
+// "Select a card to put onto the battlefield". The structured EACH shape's own
+// placeholder prompt ("choose one card of each listed type", set when its
+// bounds are) is replaced here too for the counted forms; SelectPrompt$ wins
+// over it.
+func searchPrompt(d *decision.Decision, cz *ChangeZoneParams, eachStructured bool) string {
+	if sp := cz.SelectPrompt; sp != "" {
+		return sp
+	}
+	if eachStructured {
+		return "Search a library: choose one card of each listed type"
+	}
+	if d.AllowNone {
+		return "Search a library: choose exactly " + strconv.Itoa(d.Max) + " card(s), or none"
+	}
+	if d.Min == d.Max {
+		return "Search a library: choose " + strconv.Itoa(d.Max) + " card(s)"
+	}
+	return "Search a library: choose up to " + strconv.Itoa(d.Max) + " card(s)"
 }
 
 // libraryFetch is one owner and the direct-library objects moved for them.
@@ -1010,6 +1017,33 @@ func searchChooser(h Host, c *Ctx, cz *ChangeZoneParams, owner state.PlayerID) s
 // Defined$ fetcher, only ValidTgts$.
 func searchTargetedOwner(sel fetchSelectors) bool {
 	return sel.DefinedPlayer.Text == "" && sel.Defined.Text == "" && sel.ValidTgts.Text != ""
+}
+
+// bindPreAskTargets seats a link's cast-time pre-asked answer on Ctx.Targets
+// for the body about to run, and returns its restore. The cast flow asks the
+// whole SubAbility$ chain's targets before payment (CR 601.2c) and the answer
+// is read back through Ctx.SubPreAsk keyed by the link's Line -- the channel
+// effChangeZone's object-path ask (changeZoneChosenTargetsFor) consumes. The
+// two hidden-origin walkers do NOT run that ask (they return from
+// effChangeZone before it) and read whose cards the pick offers straight from
+// Ctx.Targets (searchPlayersFor's targeted-owner branch), so a targeted
+// search announced under an untargeted root (Life's Finale's "search target
+// opponent's library" beneath its DestroyAll root) arrived with an empty
+// Ctx.Targets and that read fell back to the caster's own library. The same
+// shape linkConditionMet binds for condition reads. A resolution whose
+// Ctx.Targets already hold a target set (the root's own offered targeting,
+// Bribery's shape) is left alone -- an inherited target set is the
+// pre-existing read.
+func bindPreAskTargets(c *Ctx, sa *cards.SA, sel fetchSelectors) func() {
+	if !searchTargetedOwner(sel) || len(c.Targets) > 0 || c.SubPreAsk == nil {
+		return func() {}
+	}
+	ts, ok := c.SubPreAsk[sa.Line]
+	if !ok {
+		return func() {}
+	}
+	c.Targets = ts
+	return func() { c.Targets = nil }
 }
 
 // searchKnownTo reports whether player p has already legitimately learned the

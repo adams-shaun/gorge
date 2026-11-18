@@ -21,6 +21,7 @@ import (
 // never offers a hidden card by name, and a public-origin pick never
 // shuffles (Forge's shuffle condition needs Library in the origin).
 func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.Zone, originZones []state.Zone, originAll bool, originValid bool, from string) {
+	defer bindPreAskTargets(c, sa, cz.fetch())()
 	hiddenPickOriginNote(h, c, originValid, from)
 	players := hiddenPickPlayers(h, c, cz.fetch(), targetedGateGroup(c, sa))
 	if c.Forget.Ready {
