@@ -121,3 +121,112 @@ func TestGrantSubsumeCtrGapPrune(t *testing.T) {
 		t.Fatalf("the prefix floated %v, want {G}{G}{U}{U}{U}{U} (the printed {B} floats beside)", p)
 	}
 }
+
+// TestGrantSubsumeTapsDeferPlainRun: the Taps-deferred branch's colour-ask
+// prune is a subsume-run prune. gorge's subsumeAnswers narrows a run's mana
+// asks only in the subsume run (rules/potential_script.go scriptSearch.visit:
+// sr.subsume); its plain prefix search branches on every ask whole. A
+// Taps-deferred rider gap whose one activation is a colour ask (a deplete
+// rider whose production is one mana of any colour, no plain first ability:
+// riderPlainFirst false) beside a grant, with a play the rider's colour
+// answer completes: the plain grant-search run must walk that ask's answers,
+// or it drops a play gorge's plain run prices, returns false un-limited, and
+// grantSubsume then refuses it (!g.limited, mana_grantsubsume.go) — the
+// kernel withholds a cast gorge offers, with no subsume run to save it. A
+// prune left ungated on the run does exactly that: the plain run's costCol is
+// all zero (grantSearchRun sets it only for the subsume one), so
+// subsumeKeeps is false for every colour and the branch keeps no answer.
+//
+// Two granted-{G} hosts beside a "{T}, Remove a depletion counter: Add one
+// mana of any color" land and a {G}{G}{U} play: the plain run pays in three
+// steps (the two grants, then the rider's first answer — the play's need
+// hoists {G} or {U} to the ask's front). Two counters on the land keep its
+// last deplete rider from sacrificing it mid-payment.
+func TestGrantSubsumeTapsDeferPlainRun(t *testing.T) {
+	tbl := *v.Table
+	tbl.Cards = append([]kop.CardDef(nil), v.Table.Cards...)
+	tbl.Filters = append([]kop.Filter(nil), v.Table.Filters...)
+	tbl.Subtypes = append([]string(nil), v.Table.Subtypes...)
+	tbl.Conds = []kop.Cond{} // a generated table (prepareGen's gate)
+	hostSub := uint8(len(tbl.Subtypes))
+	tbl.Subtypes = append(tbl.Subtypes, "Subsume Host")
+	hostF := kop.FilterID(len(tbl.Filters))
+	tbl.Filters = append(tbl.Filters, kop.Filter{Types: kop.TLand, Sub: hostSub + 1, Ctrl: kop.CtrlYou})
+	grantCard := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Subsume Grant", Types: kop.TEnchantment, Abilities: []kop.Ability{
+		{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatContinuous, Filter: hostF, Grant: 2}},
+		{Kind: kop.AbMana, AFlags: kop.AfLatent, Cost: kop.Cost{Flags: kop.CostTap}, ManaColors: kop.ColG, ManaN: 1},
+	}})
+	host := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Subsume Host", Types: kop.TLand, Subtypes: kop.SubMask{}.With(int(hostSub))})
+
+	rid := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Subsume Deplete Land", Types: kop.TLand, Abilities: []kop.Ability{
+		{Kind: kop.AbMana, ManaRider: kop.ManaRiderDeplete, ManaRiderCtr: kop.CtrDepletion,
+			Cost:       kop.Cost{Flags: kop.CostTap | kop.CostRemoveCtr, N: 1, Ctr: kop.CtrDepletion},
+			ManaColors: kop.ColAny, ManaN: 1}, // one mana of any color: a five-answer colour ask
+	}})
+	play := kop.CardDef{Name: "Subsume Play", Types: kop.TSorcery,
+		Cost: kop.ManaCost{Pips: [kop.NumManaKinds]uint8{kop.G: 2, kop.U: 1}}}
+	playid := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, play)
+
+	sc := newScenTableLib(t, &tbl, v.Plains, Config{NoElide: true})
+	s, k := sc.s, sc.k
+	sc.perm(grantCard, 0)
+	ho := sc.perm(host, 0)
+	sc.perm(host, 0)
+	ro := sc.perm(rid, 0)
+	if !sc.s.perms[sc.slot(ro)].setCtrN(s, int(kop.CtrDepletion), 2) {
+		t.Fatal("the deplete land did not take its depletion counters")
+	}
+	playObj := sc.hand(playid, 0)
+	a := MakeAction(AkCast, TCode(playObj), 0, 0)
+	cost, ex, need, ok := s.grantPlayCost(k, 0, a, true)
+	if !ok {
+		t.Fatal("grantPlayCost refused the cast")
+	}
+	d := s.grantPayDesc(k, a)
+	// PRECONDITION: the printed sources cannot pay — the hosts hold no printed
+	// mana and the land is planner-deferred (its first mana ability is the
+	// rider, riderDeferred), so a prefix has to float the pips.
+	if s.affordsUngrantedPlay(k, 0, a, &cost, ex, d) {
+		t.Fatal("the printed sources price the play; the scenario needs the prefix")
+	}
+	// PRECONDITION: the hosts hold the live grant and the land is the
+	// Taps-deferred rider gap the branch walks, its activation a five-answer
+	// colour ask.
+	var gi [maxGrants]int16
+	if n := s.grantIdxs(k, sc.slot(ho), &gi); n != 1 {
+		t.Fatalf("the host holds %d grants, want the live granted {G}", n)
+	}
+	if !s.scriptTapsDefer(k, 0).has(sc.slot(ro)) {
+		t.Fatal("the deplete land is not a Taps-deferred gap")
+	}
+	if ra, ok2 := s.riderAbilityOf(k, sc.slot(ro)); !ok2 || ra.ManaEach || s.riderPlainFirst(k, sc.slot(ro)) {
+		t.Fatal("the deplete land's rider is not the rider-only gap shape")
+	}
+	if n := s.deferGapAnswers(k, sc.slot(ro)); n != 5 {
+		t.Fatalf("the rider gap poses %d colour answers, want the five of any color", n)
+	}
+	// The plain run: gorge's plain prefix search branches on the rider's
+	// colour ask whole, so it pays {G}{G}{U} in three steps inside the budget,
+	// never reaching the subsume run.
+	var g grantSrch
+	if !s.grantSearch(k, 0, &cost, ex, d, need, &g) {
+		t.Fatalf("grantSearch refused the play (limited %v, %d nodes, funding %d, stall %d, np %d)", g.limited, g.nodes, g.funding, g.stall, g.np)
+	}
+	if g.subsume {
+		t.Fatalf("the subsume run paid the play, want the plain run (gorge's plain prefix search branches on the ask whole); %d steps", g.np)
+	}
+	if g.np < 3 {
+		t.Fatalf("the paying prefix has %d steps, want the two grants and the rider", g.np)
+	}
+	if g.nodes >= potentialScriptNodes {
+		t.Fatalf("the plain run reached the budget (%d nodes); the scenario wants a small tree so grantSubsume is no saver", g.nodes)
+	}
+	s.grantApply(k, &g)
+	if p := s.pl[0].pool; p[kop.G] != 2 || p[kop.U] != 1 {
+		t.Fatalf("the prefix floated %v, want {G}{G}{U}", p)
+	}
+}

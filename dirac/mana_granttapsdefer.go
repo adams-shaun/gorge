@@ -48,17 +48,21 @@ func (g *grantSrch) tapsDeferBranch(t *State, i int, sl Slot) bool {
 	// a rider-only source's activation is its own colour ask. A rider beside
 	// its plain first ability is one ask whose plain option names no symbol
 	// (scriptManaUnits), and a source whose answers are fixed productions of
-	// several abilities asks no colour: both asks stay whole.
+	// several abilities asks no colour: both asks stay whole. The plain run's
+	// asks stay whole too (gorge's subsumeAnswers runs only in the subsume
+	// one, scriptSearch.visit's sr.subsume gate): a prune here would drop the
+	// play a plain run's tree within the budget prices, and grantSubsume then
+	// refuses the un-limited refusal (TestGrantSubsumeTapsDeferPlainRun).
 	var order [kop.NumManaKinds]uint8
 	plain, prunes := 0, false
 	if n > 1 {
 		if t.restrCensusTapsGapShape(g.k, sl) {
 			ab := &g.k.t.Cards[t.cardAt(sl)].Abilities[g.k.gen.restrRecOf(t.cardAt(sl)).ab]
 			plain = 1
-			prunes = n > 2 // the colour ask behind the float: more than one answer
+			prunes = g.subsume && n > 2 // the colour ask behind the float: more than one answer
 			t.deferGapColourOrder(g.k, g.d.play, uint8(ab.ManaColors&kop.ColAny), &order)
 		} else if rA, ok := t.riderAbilityOf(g.k, sl); ok && !t.riderPlainFirst(g.k, sl) && !rA.ManaEach {
-			prunes = true
+			prunes = g.subsume
 			t.deferGapColourOrder(g.k, g.d.play, uint8(rA.ManaColors), &order)
 		}
 	}
