@@ -30,7 +30,7 @@ func diesLeavesMerged(k *prep) bool {
 func (s *State) fireDiesLeaves(k *prep, evSl Slot, evObj Obj, evCtrl uint8, leaveAmt int16) {
 	m := s.subs[kop.TrigDies].or(s.subs[kop.TrigLeaves]).and(s.occ)
 	m = s.grantTrigHosts(k, m)
-	if k.gen.anyBatch {
+	if k.gen.anyBatch || k.gen.anyPanharm {
 		s.g.batchLatch |= batchGrave // as fireLeavesBatched: the destination is a graveyard
 	}
 	var ord [MaxPerm]Slot

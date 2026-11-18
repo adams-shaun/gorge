@@ -684,8 +684,8 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 		}
 	}
 	if !merged && (s.subs[kop.TrigLeaves].any() || k.gen != nil && k.gen.embObjEv&(1<<kop.TrigLeaves) != 0) {
-		if k.gen != nil && k.gen.anyBatch {
-			s.fireLeavesBatched(k, sl, z)
+		if k.gen != nil && (k.gen.anyBatch || k.gen.anyPanharm) {
+			s.fireLeavesBatched(k, sl, z) // also latches a death for panharmDies
 		} else {
 			s.fireObj(k, kop.TrigLeaves, sl, p.obj, p.ctrl, czAmt(k, z))
 		}
