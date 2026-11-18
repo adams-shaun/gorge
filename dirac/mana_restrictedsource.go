@@ -814,10 +814,13 @@ func (s *State) filtRestrMask(k *prep, sl Slot) uint8 {
 		return 0
 	}
 	rec := k.gen.restrRecOf(c)
-	if rec == nil || rec.kind == rkDyn || !s.restrUsable(k, sl) {
+	if rec == nil || !s.restrUsable(k, sl) {
 		return 0
 	}
 	ab := &k.t.Cards[c].Abilities[rec.ab]
+	if rec.kind == rkDyn && s.dynManaN(k, ab, sl) <= 0 {
+		return 0
+	}
 	m := uint8(ab.ManaColors) & 0x3f
 	if ab.ManaEach {
 		// an all-at-once ability (Troyan's {G}{U}) is one activation with no
@@ -834,7 +837,12 @@ func (s *State) filtRestrDo(k *prep, p uint8, st filtStep) {
 	c := s.cardAt(st.sl)
 	rec := k.gen.restrRecOf(c)
 	ab := &k.t.Cards[c].Abilities[rec.ab]
-	if !s.floatRestrAb(k, p, st.sl, ab, int(st.ans), max(ab.ManaN, 1)) {
+	n := max(ab.ManaN, 1)
+	if rec.kind == rkDyn {
+		// an evaluated amount (Vhal's toughness of {C}) floats whole (CR 106.4)
+		n = uint8(min(s.dynManaN(k, ab, st.sl), maxDynMana))
+	}
+	if !s.floatRestrAb(k, p, st.sl, ab, int(st.ans), n) {
 		s.capFull(StallRestrSrc) // every batch is taken: never a silent spill
 	}
 }
