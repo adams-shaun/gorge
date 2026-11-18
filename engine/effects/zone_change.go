@@ -1326,8 +1326,9 @@ func changeZoneChosenTargetsFor(h Host, c *Ctx, sa *cards.SA, cz *changeZoneTarg
 // changeZoneAttachedTo, which runs after the move, finds it already attached
 // (or not on the battlefield) and leaves it. AttachedTo$'s filter spelling
 // names a class rather than one bearer, so its legal candidates are resolved
-// here and the resolving controller chooses one when there is more than one
-// (CR 303.4f); the chosen bearer is the named set the gate attaches. Anything
+// here and ride the entry (events.MarkChooseAttachEntry): the gate keeps the
+// ones the Aura can legally enchant and its controller chooses one when there
+// is more than one (CR 303.4f). Anything
 // else (an Equipment, a face-down entry) is not marked and keeps the post-move
 // rider. Every ChangeZone mover that follows its move with
 // changeZoneAttachedTo calls this first; engine/rules/aura_entry_census_test.go
@@ -1344,17 +1345,17 @@ func markChangeZoneAttach(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, ev
 	if cz.AttachedTo != "" && changeZoneAttachIsFilter(h, c, cz.AttachedTo) {
 		// AttachedTo$'s filter spelling names a class of legal bearers, not
 		// one bearer: CR 303.4f has the player putting the Aura onto the
-		// battlefield choose among them, so ask before marking the one the
-		// entry gate will attach. The Aura's own Enchant restriction is part
-		// of "legal" (CR 303.4f), and with a single answer there is nothing
-		// to choose -- the same strict-superset convention every as-enters
-		// election keeps.
+		// battlefield choose among them. The class narrowed by the Aura's own
+		// Enchant restriction rides the entry, and the entry gate -- the one
+		// reader of protection (CR 702.16c) -- keeps the bearers it can legally
+		// enchant and poses the choice (a single answer is no choice).
 		targets = changeZoneAttachLegal(h, c, ev.Obj, targets)
-		if picked := changeZoneAttachChoose(h, c, sa, targets); picked != 0 {
-			targets = []state.Target{{Obj: picked}}
-		} else {
-			targets = nil
+		class := make([]state.ObjID, 0, len(targets))
+		for _, t := range targets {
+			class = append(class, t.Obj)
 		}
+		events.MarkChooseAttachEntry(ev, class)
+		return
 	}
 	named := make([]state.ObjID, 0, len(targets))
 	for _, t := range targets {

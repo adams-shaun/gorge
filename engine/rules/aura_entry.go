@@ -202,6 +202,12 @@ func auraEntryCandidates(e *Engine, o *state.Object, f *cards.Face, ev *events.E
 	e.auraEntryCands = cands
 	named, ok := events.NamedAttachEntry(ev)
 	if !ok {
+		// A choose-marked entry (a filter spelling) keeps the class's members
+		// the Aura can legally enchant, protection included, and the controller
+		// chooses among them as for an unmarked entry.
+		if class, isClass := events.ChooseAttachEntry(ev); isClass {
+			return filterAuraCandidates(cands, class), false
+		}
 		return cands, false
 	}
 	return filterAuraCandidates(cands, named), true

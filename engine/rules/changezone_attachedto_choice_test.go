@@ -27,9 +27,12 @@ func TestChangeZoneAttachedToFilterAsksController(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		card string
+		// ask is the ResumeKind of the attach choice: an Aura's is the entry
+		// gate's as-enters election, an Equipment's the post-move rider's.
+		ask string
 	}{
-		{"aura", "Holy Strength"},
-		{"equipment", "Bonesplitter"},
+		{"aura", "Holy Strength", "etb"},
+		{"equipment", "Bonesplitter", "changezone_attach"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("two creatures asks and takes the chosen one", func(t *testing.T) {
@@ -54,9 +57,9 @@ func TestChangeZoneAttachedToFilterAsksController(t *testing.T) {
 				castOneLastJobAttachMode(t, e, card)
 
 				d := passPriorityUntilNonPriority(t, e)
-				if d.Kind != decision.KChoose || d.ResumeKind != "changezone_attach" {
-					t.Fatalf("ask after resolution = %s/%q, want the ChangeZone attach choice: %+v",
-						d.Kind, d.ResumeKind, d)
+				if d.Kind != decision.KChoose || d.ResumeKind != tc.ask {
+					t.Fatalf("ask after resolution = %s/%q, want the ChangeZone attach choice %q: %+v",
+						d.Kind, d.ResumeKind, tc.ask, d)
 				}
 				if d.Player != 0 {
 					t.Fatalf("attach choice posed to seat %d, want the controller (0)", d.Player)
