@@ -629,6 +629,13 @@ type Game struct {
 	// list keeps the card too, and validity is evaluated against the object
 	// wherever it now lives.
 	Entered []ZoneEntry
+	// EnteredLastTurn is the PREVIOUS turn's Entered list: the TurnChange
+	// fold rotates g.Entered into it before clearing, so a "last turn"
+	// entry read (effects' Count$LastTurnEntered_* heads, Ephara's upkeep
+	// gate) answers from the same per-add entries a replay folds. One turn
+	// of history -- the next TurnChange replaces it with the just-ended
+	// turn's entries.
+	EnteredLastTurn []ZoneEntry
 }
 
 // ZoneEntry is one zone entry made this turn: the object that moved, the
@@ -1156,6 +1163,9 @@ func (g *Game) CloneIntoDirty(objs []Object, dirty int) *Game {
 	// backing array would let either evolve and corrupt the other (the same
 	// rule as Delayed below and Stack above).
 	c.Entered = append([]ZoneEntry(nil), g.Entered...)
+	// EnteredLastTurn is appended to at every TurnChange, so a clone owns
+	// its own copy -- the same rule as Entered just above.
+	c.EnteredLastTurn = append([]ZoneEntry(nil), g.EnteredLastTurn...)
 	c.ExcessDamageVictims = append([]ExcessDamageVictim(nil), g.ExcessDamageVictims...)
 	// Delayed is written in place (append on registration, remove on firing),
 	// so a clone must own its own registrations -- sharing the live one's
