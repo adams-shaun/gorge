@@ -365,6 +365,7 @@ default	field	genPrep.graveETB	59	1
 default	field	genPrep.graveSac	60	1
 default	field	genPrep.anyCastProv	61	1
 default	field	genPrep.anyCastBF	62	1
+default	field	genPrep.anyRad	63	1
 default	field	genPrep.flags	64	24
 default	field	genPrep.smallRecs	88	24
 default	field	genPrep.leyline	112	1

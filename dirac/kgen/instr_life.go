@@ -11,6 +11,7 @@ func init() {
 	instrOp("GainEnergy", (*instrCtx).opGainEnergy)
 	instrOp("DrainMana", (*instrCtx).opDrainMana)
 	instrOp("Poison", (*instrCtx).opPoison)
+	instrOp("Radiation", (*instrCtx).opRadiation)
 	instrOp("Blight", (*instrCtx).opBlight)
 	instrOp("Extort", (*instrCtx).opExtort)
 	instrOp("SetLife", (*instrCtx).opSetLife)
@@ -44,6 +45,17 @@ func (ic *instrCtx) opDrainMana() error {
 func (ic *instrCtx) opPoison() error {
 	ki := &ic.ki
 	ki.Op = kop.OpPoison
+	return nil
+}
+
+// opRadiation builds OpExt ExtRadiation: Obj the player(s), B the amount.
+func (ic *instrCtx) opRadiation() error {
+	ki := &ic.ki
+	v, err := ic.cb.value(ic.in.A)
+	if err != nil {
+		return err
+	}
+	ki.Op, ki.A, ki.B = kop.OpExt, kop.Const(int(kop.ExtRadiation)), v
 	return nil
 }
 
