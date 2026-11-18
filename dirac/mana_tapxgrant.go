@@ -20,26 +20,10 @@ import (
 // holder that has no mana ability of its own; any other grant keeps the
 // tap-another search pricing the printed sources alone.
 
-// tapXPairLive: p has a live two-permanent tap-another source (Birchlore
-// Rangers' "Tap two untapped Elves"), which the grant search does not
-// activate (grantTapXGaps takes one-permanent costs): gorge's one prefix
-// search takes it and the grant holders in battlefield order, so the
-// tap-another search takes the holders as gaps of its own, for a cast as
-// for an activation (CR 601.2g-h).
-func (s *State) tapXPairLive(k *prep, p uint8) bool {
-	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		if a := k.tapXAbOf(s.cardAt(b.first())); a != nil && a.Cost.N == 2 && !kop.SacXMana(a) {
-			return true
-		}
-	}
-	return false
-}
-
 // tapXGrantBoard: play a is an activation of p on a board with a live
-// sacrifice-any source, or any play on one with a live two-permanent
-// tap-another source, and a plain granted mana ability.
+// sacrifice-any source and a plain granted mana ability.
 func (s *State) tapXGrantBoard(k *prep, p uint8, a Action) bool {
-	if !k.tapMana || !(a.Kind() == AkActivate && s.sacXLive(k, p) || s.tapXPairLive(k, p)) {
+	if a.Kind() != AkActivate || !k.tapMana || !s.sacXLive(k, p) {
 		return false
 	}
 	_, ok := s.tapXGrantGaps(k, p, slotMask{})
