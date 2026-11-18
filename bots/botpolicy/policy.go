@@ -1144,13 +1144,11 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// player is Option.Player. Assign the bot's own seat to the first
 			// group and every other seat to the last, the engine's no-host
 			// stand-in. Any answer is legal (Min 1 Max 1 over the options).
-			if d.ResumeKind == "assigngroup" {
-				pick := d.Options[len(d.Options)-1]
-				if d.Options[0].Player == d.Player {
-					pick = d.Options[0]
-				}
-				in.Choices = []int{pick.Index}
+			pick := d.Options[len(d.Options)-1]
+			if d.Options[0].Player == d.Player {
+				pick = d.Options[0]
 			}
+			in.Choices = []int{pick.Index}
 		case "search":
 			// A budgeted search (WithTotalCMC$, so d.MaxSum > 0) mirrors its
 			// no-host stand-in, which picks greedy[:min]: for a quantity-only

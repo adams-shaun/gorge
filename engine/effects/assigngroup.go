@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"slices"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -34,7 +36,7 @@ func effAssignGroup(h Host, c *Ctx, sa *cards.SA) {
 	loud := func(text string) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "unimplemented AssignGroup shape: " + text})
 	}
-	if ap.Chooser != "" && ap.Chooser != "You" {
+	if !slices.Contains([]string{"", "You"}, ap.Chooser) {
 		loud("Chooser$ " + ap.Chooser)
 		return
 	}

@@ -26,7 +26,7 @@ type AssignGroupParams struct {
 func compileAssignGroup(sa *cards.SA) *AssignGroupParams {
 	p := &AssignGroupParams{
 		Chooser:     strings.TrimSpace(sa.ParamStr(cards.PKChooser)),
-		FriendOrFoe: strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKAILogic)), "FriendOrFoe"),
+		FriendOrFoe: strings.Contains(sa.ParamStr(cards.PKAILogic), "FriendOrFoe"),
 	}
 	for name := range strings.SplitSeq(sa.ParamStr(cards.PKChoices), ",") {
 		if name = strings.TrimSpace(name); name != "" {
