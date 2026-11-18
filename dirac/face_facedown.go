@@ -184,12 +184,28 @@ func (s *State) offerFaceDown(k *prep, d *Decision, p uint8, o Obj, fam uint8) {
 	}
 	cost := kop.ManaCost{Generic: 3}
 	if s.statM.any() || k.gen != nil {
-		cost = s.adjustCost(k, p, c, o, cost)
+		cost = s.adjustCostFaceDown(k, p, c, o, cost)
 	}
 	if !s.poolPays(p, &cost) && !s.poolPaysRestr(k, p, c, o, &cost) {
 		return
 	}
 	d.add(MakeAction(AkCast, TCode(o), 0, castFaceDown))
+}
+
+// adjustCostFaceDown is adjustCost for a face-down cast priced from the
+// card's pre-cast zone. The cast's own pricing (buildCostPreRaw) reads the
+// spell on the stack with slotFaceDownSpell set, so a cost static's filter
+// sees a colourless creature spell with no subtypes (CR 708.4; Stonybrook
+// Banneret's Merfolk/Wizard reduction doesn't reach it, Conduit of Ruin's
+// creature-spell reduction does). The offer prices the same way: o wears
+// that mark for the call and gets its zone and slot back.
+func (s *State) adjustCostFaceDown(k *prep, p uint8, c CardID, o Obj, cost kop.ManaCost) kop.ManaCost {
+	ob := &s.objs[o]
+	zone, slot := ob.zone, ob.slot
+	ob.zone, ob.slot = kop.ZoneStack, slotFaceDownSpell
+	cost = s.adjustCost(k, p, c, o, cost)
+	ob.zone, ob.slot = zone, slot
+	return cost
 }
 
 // poolPaysRestr is poolPays with the restricted mana p's cast of card c may
