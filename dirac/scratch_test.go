@@ -22,6 +22,10 @@ func scratchLive(s *State) (n int, names string) {
 		n++
 		names += " resolution"
 	}
+	if s.scrAtkLive() {
+		n++
+		names += " attackers"
+	}
 	return n, names
 }
 

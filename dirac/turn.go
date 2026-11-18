@@ -234,6 +234,7 @@ func (s *State) beginStep(k *prep) {
 		s.lastPick = NoSlot
 		s.declareMustAttack(k)
 		if s.anyAttacker(k) {
+			s.atkArm().poseMask = s.attackingMask() // armAttackers: the pose's declared set
 			s.ctl = ctlAttackers
 		} else if s.nAttackers > 0 {
 			s.finishAttacks(k)
