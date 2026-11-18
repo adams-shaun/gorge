@@ -4,22 +4,28 @@ Ashen Monstrosity
 Bathe in Dragonfire
 Belligerent Sliver
 Black Widow, Intel Expert
+Bloodcrazed Neonate
 Bloodmark Mentor
+Bloodthirsty Adversary
 Bond of Insight
 Bonehoard
+Boneknitter
 Brandywine Farmer
 Burning Fields
 Chaotic Backlash
 Clip Wings
+Dawning Angel
 Death's Shadow
 Deepwood Wolverine
 Drainpipe Vermin
+Drillworks Mole
 Dune Mover
 Evolving Adaptive
 Faerie Noble
 Ferocious Zheng
 Fireblade Charger
 Fissure
+Flatman
 Forest
 Gift of Paradise
 Glimmervoid
@@ -32,16 +38,19 @@ Herd Gnarr
 Howl of the Night Pack
 Huatli, Radiant Champion
 Hurloon Battle Hymn
+Imaginary Pet
 Island
 Jace's Erasure
 Kayla's Reconstruction
 Kazandu Tuskcaller
+Khenra Eternal
 Kher Keep
 Kjeldoran Outrider
 Lys Alana Huntmaster
 Magnify
 Malanthrope
 Mana Vault
+Masked Blackguard
 Mass Calcify
 Metathran Elite
 Mountain
@@ -62,17 +71,24 @@ Rooftop Nuisance
 Sage Aven
 Sanctum of Stone Fangs
 School of Piranha
+Scour All Possibilities
 Seething Pathblazer
+Shaman of Spring
 Skyline Cascade
+Songstitcher
 Sunscorched Desert
+Surge Engine
 Swamp
+Swarm Surge
 Swarm of Rats
 Tectonic Edge
 Threnody Singer
+Thrilling Encore
 Thundersteel Colossus
 Tui and La, Moon and Ocean
 Venomous Changeling
 Verdant Sun's Avatar
+Voyager Staff
 Wizard Replica
 Woodland Stream
 Zap

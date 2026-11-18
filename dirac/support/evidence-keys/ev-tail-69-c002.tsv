@@ -11,8 +11,10 @@ Clamavus	af134366970fbb98	29	0/0		0/0
 Colossapede	18ad43cf5266d3a8	10	0/0		0/0	
 Council of Advisors	8f1c2a47d34afdd1	43	1/1		0/1	ix:resp
 Countless Gears Renegade	d9bcd48798ae9be9	12	1/1		1/1	
+Crab Umbra	a0eb7a92af735d8e	8	1/1		2/2	
 Curse of Obsession	716ca63a80c517ab	21	2/2		2/2	
 Deeproot Warrior	5f07a3d4e10e10f0	8	1/1		0/1	ix:resp
+Demonspine Whip	a4ffcf214363c83e	8	2/2		1/1	
 Duskdale Wurm	8cf42bbc1e1304e1	12	0/0		0/0	
 Earthshaker	b6608c5560e91c05	28	1/1		1/1	
 Elvish Farmer	0b002eb010fc278f	8	3/3		0/1	ix:resp
@@ -24,6 +26,7 @@ Faerie Swarm	635d32a341839dd5	23	0/0		0/0
 Falcon and Redwing	9395df4e1860cc72	40	1/1		1/1	
 Fetid Gargantua	1b9499bdc7055df1	41	2/2		1/1	
 Foul Watcher	34c19bf13b614a4a	3	1/1		0/1	ix:resp
+Fulminator Mage	b9bf185e1248c261	3	1/1		0/1	ix:resp
 Fyndhorn Brownie	468ea46cdaf3e3bb	51	1/1		1/1	
 Garruk Wildspeaker	3493ff5336d68c0c	8	3/3		0/1	ix:resp
 Gauntlet of Might	69deeb76877f5348	4	1/1		0/1	ix:resp
@@ -44,6 +47,7 @@ Iroas's Champion	270d83ba494ed0f3	18	0/0		0/0
 Iron Lance	aea84959046668e3	74	1/1		1/1	
 Jolene, the Plunder Queen	a2cbab5d10d1dda9	4	2/2		0/1	ix:resp
 Jump	cb548ef0ee8bf639	52	0/0		2/2	
+Kami of the Waning Moon	0a5fa5279aa74084	4	1/1		0/1	ix:resp
 Lounge	d6d032a1df7e850c	8	2/2		0/1	ix:resp
 Mana Leak	dff236b6dfb2471f	33	0/0		2/2	
 Marsh Goblins	d27e819e89b7271a	6	0/0		0/0	
@@ -58,6 +62,7 @@ Phyrexian Walker	a2eb3772ad986c41	52	0/0		0/0
 Planar Bridge	7458bd2b3987d21e	15	1/1		0/1	ix:resp
 Primetime Suspect	9eb72f4768bd9525	17	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Protean Thaumaturge	da000ff0ff6266a8	47	1/1		0/1	ix:resp
+Putrefy	0552ca326cdb5069	4	0/0		1/2	ix:resp
 Redeem the Lost	a7ee522a30bc1392	12	0/0		2/2	
 Replication Technique	9a0eb5d277a02284	4	1/1		2/2	
 Ring of Kalonia	26c9b2b3c93603d7	7	2/2		1/1	
@@ -78,6 +83,7 @@ Tavern Swindler	8a1b28b175477f68	4	1/1		1/1
 Thirst for Meaning	6ff3a103797a4749	88	0/0		2/2	
 Throne of Geth	661ac625c14fe905	8	1/1		0/1	ix:resp
 Triangle of War	c3e95bf4d28362a8	63	1/1		1/1	
+Undermountain Adventurer	4910ce625e993c2f	7	2/2		0/1	ix:resp
 Unholy Indenture	f7649101ea9761e4	5	1/1		1/2	ix:resp
 Venser's Sliver	63f79430395a7b26	54	0/0		0/0	
 Voracious Typhon	233a4f0c7871f466	18	0/0		1/2	cast/alt:escaped

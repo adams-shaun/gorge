@@ -15,11 +15,14 @@ Black Widow, Intel Expert
 Blind Creeper
 Blood Fountain
 Bloodbond Vampire
+Bloodcrazed Neonate
 Bone Devourer
 Boneknitter
 Bonepicker Skirge
 Bound in Silence
+Brackwater Elemental
 Burning Fields
+Cabal Patriarch
 Cabaretti Courtyard
 Cao Cao, Lord of Wei
 Chaotic Backlash
@@ -32,12 +35,17 @@ Demon's Disciple
 Desolate Mire
 Desynchronize
 Devouring Light
+Dina, Soul Steeper
+Dragon-Scarred Bear
 Dream Thief
+Dreamshackle Geist
 Drifting Shade
 Drillworks Mole
 Drossclaw
 Dune Mover
+Eccentric Pestfinder
 Elvish Dreadlord
+Erstwhile Trooper
 Evolving Adaptive
 Falkenrath Marauders
 Farewell
@@ -51,6 +59,7 @@ Gift of Fangs
 Gift of Paradise
 Glimmervoid
 Gnarled Effigy
+Goblin Deathraiders
 Great Defender
 Greater Harvester
 Grim Tutor
@@ -70,6 +79,7 @@ Khenra Eternal
 Khenra Spellspear
 Kher Keep
 Krark-Clan Grunt
+Leyline of Punishment
 Lightning-Rig Crew
 Lightwielder Paladin
 Lost in the Spirit World
@@ -81,10 +91,12 @@ Markov Patrician
 Masked Blackguard
 Mass Mutiny
 Mindwrack Harpy
+Mobile Fort
 Mountain
 Mox Tantalite
 Mystic Skull
 Nakaya Shade
+Nivix Barrier
 Nyx-Fleece Ram
 Obelisk of Grixis
 Ogre Taskmaster
@@ -120,6 +132,7 @@ Shrine Keeper
 Siege Dragon
 Sigil of Valor
 Sinkhole
+Skyclave Shadowcat
 Skyline Cascade
 Slagwoods Bridge
 Songstitcher
@@ -131,10 +144,12 @@ Spitebellows
 Spiteful Squad
 Sultai Emissary
 Sunscorched Desert
+Surge Engine
 Swamp
 Swarm Surge
 Sword of the Animist
 Tectonic Edge
+Tempestra, Dame of Games
 Thundersteel Colossus
 Timin, Youthful Geist
 Tomebound Lich

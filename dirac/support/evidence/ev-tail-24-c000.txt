@@ -385,6 +385,7 @@ Spectral Cloak
 Sphere Grid
 Sphinx of Uthuun
 Spike Breeder
+Spinal Graft
 Spinal Parasite
 Spirit of the Hearth
 Springjaw Trap
