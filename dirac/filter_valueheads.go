@@ -27,6 +27,8 @@ func (s *State) exprKvf(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return v
 	case kop.ExSrcRemCounters:
 		return s.srcRemCounters(x.Ctr, ctx) // zone_tokrem.go
+	case kop.ExStaticExileKw:
+		return s.countExileKw(k, x, ctx) // value_exilekw.go
 	case kop.ExEnergyOf:
 		// Count$YourCountersEnergy: the energy counters of the referenced
 		// player (the resolving controller for the "pay {E}" ChooseNumber
