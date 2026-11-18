@@ -41,9 +41,11 @@ func paymentPlanReflectedAlt(e *Engine, p state.PlayerID, id state.ObjID, ma *ca
 // paymentPlanProductions is pay.PaymentPlanProductions with a reflected
 // ability's production read from the census (paymentPlanReflectedAlt): a
 // ManaReflected body has no Produced$, so the pay read names no production
-// and no tap trigger (Overgrowth's additional {G}{G} beside a Reflecting Pool)
-// was ever matched against its tap. Each candidate colour is one production,
-// the choices the planner expands the unit into.
+// and the bound never added a tap trigger's extra mana (Overgrowth's
+// additional {G}{G} beside a Reflecting Pool, CR 605.1b) to it. Each
+// candidate colour is one production, the choices the planner expands the
+// unit into. The source-interference verdict keeps the pay read: a reflected
+// source stays an ordinary unit beside an unvetted Taps watcher.
 func paymentPlanProductions(e *Engine, p state.PlayerID, id state.ObjID, ma *cards.SA) []string {
 	if alt, ok := paymentPlanReflectedAlt(e, p, id, ma, 1); ok {
 		var out []string
