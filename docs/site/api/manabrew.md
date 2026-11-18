@@ -51,6 +51,35 @@ HTTP reply and is also pushed on any open stream. Its code is one of the protoco
 | `stalePrompt`, `wrongPlayer` | 409 |
 | `wrongPromptType`, `unknownActionId`, `invalidShape` | 400 |
 
+## Skipping to your next turn
+
+gorge stops at every priority window, so a seat gets several times the `chooseAction` prompts it gets from ManaBrew:
+one for each step and each stack change, on every player's turn. gorge changes nothing about where it stops. A client skips the stops it
+doesn't want with the protocol's own `pass` output, whose `until` clause installs an auto-pass rule on the connection. The rule is gorge's
+alone: the server answers each of your later priority prompts with a pass, and sends you none of them, until your clause is met.
+
+To pass through everything up to your next turn, answer the `chooseAction` prompt with `pass` and `until` your own player id at the
+`upkeep` step. Your player id is the `decidingPlayerId` on the prompt. This is the whole `send` body, with `22` the prompt's `promptId`
+and `player-0` your player id:
+
+```json
+{"kind":"response","promptId":22,"action":{"type":"pass","output":{"type":"pass","exhaustStack":false,"until":{"playerId":"player-0","phase":"upkeep"}}}}
+```
+
+The next prompt the seat sees is the first priority window in your own upkeep, where the active player always has priority, and the prompt after it comes at
+your next stop as usual. Everything the rule passes through is an ordinary pass in the match log.
+
+The rule stops, and the seat gets its prompt again, at the first of these:
+
+- the active player is the `until` player and the step is the `until` phase. If that is already true at the next window (you pass in your
+  own upkeep and a trigger is on the stack), the rule stops there;
+- any prompt that isn't a priority prompt, such as a block, a target or a payment. That prompt is shown, and the rule ends;
+- an undo (`restoreSnapshot`), which clears it.
+
+`"exhaustStack": true` is the other rule: pass until the stack is empty, or stop early when an object appears that wasn't on the stack when
+you passed. It can be combined with `until`. A plain `pass` (`"exhaustStack": false`, no `until`) installs no rule and passes once. A
+`playerId` that isn't one gorge minted, or an empty `phase`, is `invalidShape`.
+
 ## What gorge adds and limits
 
 - **`x_gorge_own_deck_v1`** on every state's `gameView` is the seat's own starting deck as name and count rows, the same data as the
