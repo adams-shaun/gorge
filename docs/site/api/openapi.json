@@ -801,11 +801,23 @@
           "bot_policy": {
             "type": "string"
           },
+          "decks": {
+            "description": "Decks supplies a ManaBrew deck (the https://docs.manabrew.app/protocol/deck/ JSON) for the seats that name one; every other seat is dealt from the server's pool as before (or from human_deck / bot_deck at two seats). The server re-checks each deck for format, legality and engine support.",
+            "items": {
+              "$ref": "#/components/schemas/SeatDeck"
+            },
+            "type": "array"
+          },
           "format": {
             "type": "string"
           },
           "human_deck": {
             "type": "string"
+          },
+          "humans": {
+            "description": "Humans is how many seats are people, taking seats 0..Humans-1 and a token each; the rest are bots. Omitted is 1.",
+            "format": "int64",
+            "type": "integer"
           },
           "mulligans": {
             "description": "Mulligans is the optional London mulligan allowance for the created game (without it a play-vs-bot game could mulligan exactly once, with no knob at any layer). It is a pointer so 0 — \"0 disables the pre-game round\" — is distinguishable from an omitted field, which keeps the server default.",
@@ -815,6 +827,11 @@
           "paired_bot": {
             "description": "PairedBot chooses the table's paired bot: a name from GET /api/capabilities, or \"off\" for none. Omitted takes the server's default (gorged -paired-bot).",
             "type": "string"
+          },
+          "seats": {
+            "description": "Seats is the table's seat count, 2..4; omitted is 2. More than two needs format commander (a Commander pod).",
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -840,6 +857,13 @@
           "seat": {
             "format": "int64",
             "type": "integer"
+          },
+          "seats": {
+            "description": "Seats lists every human seat's token and join path, lowest seat first: one entry per human, the first repeating Seat/Token/Join. A pod's other humans each take their own entry.",
+            "items": {
+              "$ref": "#/components/schemas/SeatGrant"
+            },
+            "type": "array"
           },
           "seed": {
             "format": "uint64",
@@ -3694,6 +3718,44 @@
           }
         ],
         "description": "An undo rolled the live match back in place: discard everything past `body.head`, then apply the body like a snapshot."
+      },
+      "SeatDeck": {
+        "description": "SeatDeck is one seat's submitted deck. Deck is the ManaBrew Deck JSON, kept raw here: the wire type lives in server/protocol/manabrew, which this package must not depend on, and the builder that imports it owns the parsing.",
+        "properties": {
+          "deck": {},
+          "seat": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "deck",
+          "seat"
+        ],
+        "type": "object",
+        "x-go-type": "github.com/adams-shaun/gorge/server/host/httpapi.SeatDeck"
+      },
+      "SeatGrant": {
+        "description": "SeatGrant is one human seat's hand-off in a CreateGameResponse.",
+        "properties": {
+          "join": {
+            "type": "string"
+          },
+          "seat": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "join",
+          "seat",
+          "token"
+        ],
+        "type": "object",
+        "x-go-type": "github.com/adams-shaun/gorge/server/host/httpapi.SeatGrant"
       },
       "SeatInfo": {
         "description": "SeatInfo names a seat for the identity bars; Colour is the seat colour the client keeps consistent from overview to focused view. Human marks a seat played by a real person (TableConfig.Humans): additive and omitempty (old sidecars and every bot seat omit it), it is what tells a client whether an undo control may be offered — the registry refuses an undo on any table whose human seats are not all the requester, so a seat that can see two humans on the wire can know its UNDO button would be refused see two humans on the wire can know its UNDO button would be refused.",
