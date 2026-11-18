@@ -876,13 +876,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpClearChosen:
 		s.g.nchosen = 0
 	case kop.OpDoubleCounters:
-		if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
-			s.doubleCountersRemembered(k, in)
-		} else if sl := s.objRef(k, in.Obj); sl != NoSlot {
-			s.doubleCountersAt(k, sl, in.C)
-		} else if in.Obj == kop.RefController {
-			s.doublePlayerCounters(k, in) // ctr_doubleplayer.go
-		}
+		s.doubleCountersOp(k, in) // ctr_doubleplayer.go
 	case kop.OpRemoveCounterRem:
 		s.g.remCnt = 0
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
