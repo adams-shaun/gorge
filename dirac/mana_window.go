@@ -276,7 +276,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			return false, held
 		}
 		if gap {
-			if s.windowCtrGapTap(k, p, sl, census) {
+			if s.windowLifeCtrGapTap(k, p, sl, cost, census) {
 				continue
 			}
 			if a, ok := s.riderAbilityOf(k, sl); ok && (s.scriptTapsDefer(k, p).has(sl) ||
@@ -479,18 +479,10 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
-		if k.gen != nil && k.gen.anyManaRider {
-			c := s.cardAt(o)
-			if a, ok := s.riderAbilityOf(k, o); ok && (int(k.cards[c].manaAb) == int(k.riderAbOf(c)) || s.riderPlainWindow(k, o, a)) && s.riderWindowable(k, p, o, a, census) {
-				mask := uint8(a.ManaColors)
-				if a.ManaEach {
-					mask = uint8(kop.ColAny)
-				}
-				if decided && mask&want == 0 {
-					continue // the clamp reads colours the cost still owes
-				}
-				return o, true
-			}
+		if hit, skip := s.windowRiderPick(k, p, o, decided, want, census); skip {
+			continue // the clamp reads colours the cost still owes
+		} else if hit {
+			return o, true
 		}
 		if census && s.ctrCensusOffer(k, p, o) {
 			return o, true // the unless census's fixed counter-fee source (ctrCensusOffer)
@@ -520,6 +512,9 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 				return o, false
 			}
 		}
+		if s.windowLifeGapListed(k, p, o, decided, want) {
+			return o, true // a life-only source: its life pays, its mana floats (mana_lifegap.go)
+		}
 		if s.windowGapListed(k, p, o) {
 			c := s.cardAt(o)
 			if decided && k.gen.flags[c]&gfRestr != 0 && uint8(k.t.Cards[c].Abilities[k.gen.restr(c)].ManaColors)&want == 0 {
@@ -535,6 +530,27 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		}
 	}
 	return NoSlot, false
+}
+
+// windowRiderPick: o is a bounded rider source gorge's window lists (hit); skip
+// when the clamp keeps none of its colours.
+func (s *State) windowRiderPick(k *prep, p uint8, o Slot, decided bool, want uint8, census bool) (hit, skip bool) {
+	if k.gen == nil || !k.gen.anyManaRider {
+		return false, false
+	}
+	c := s.cardAt(o)
+	a, ok := s.riderAbilityOf(k, o)
+	if !ok || !(int(k.cards[c].manaAb) == int(k.riderAbOf(c)) || s.riderPlainWindow(k, o, a)) || !s.riderWindowable(k, p, o, a, census) {
+		return false, false
+	}
+	mask := uint8(a.ManaColors)
+	if a.ManaEach {
+		mask = uint8(kop.ColAny)
+	}
+	if decided && mask&want == 0 {
+		return false, true
+	}
+	return true, false
 }
 
 // windowCanTap is canTapForMana for the window's walk: a source whose only

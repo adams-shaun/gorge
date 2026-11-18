@@ -227,6 +227,11 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	if k.gen != nil && k.gen.anyComboAny && s.g.availX&3 == 0 {
 		s.availCA(k, p, a)
 	}
+	// A life-only source (Treasonous Ogre's "Pay 3 life: Add {R}") is a census
+	// gap too, and the window activates it (mana_lifegap.go).
+	if k.gen != nil && k.gen.uses.has(useLifeGap) && s.g.availX&3 == 0 {
+		s.availLifeGap(k, p, a)
+	}
 	// A counter-rider or Taps-deferred source (Twitching Doll's "{T}: Add one
 	// mana of any color. Put a nest counter on this", a Taps watcher's Defer
 	// source) is deferred by the planner the same way, and CR 601.2g's window
