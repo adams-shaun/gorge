@@ -37,7 +37,9 @@ var DebugNoActCount bool
 // the activation is pushed, so the one being offered is not in it). kgen
 // lowers it only on a printed battlefield ability that is its card's one
 // non-mana activated ability, where the per-object census is the ability's
-// own count (dirac/kgen/lower_activationlimitn.go).
+// own count (dirac/kgen/lower_activationlimitn.go). The census also counts a
+// granted ability's activations, which gorge keeps under that grant's own
+// count, so those (act_grantledger.go) come off.
 func (s *State) activationsOfSource(ctx evalCtx) int {
 	if ctx.src == NoObj {
 		return 0
@@ -46,5 +48,5 @@ func (s *State) activationsOfSource(ctx evalCtx) int {
 	if ob.zone != kop.ZoneBattlefield {
 		return 0
 	}
-	return int(ob.activations())
+	return int(ob.activations()) - s.grantActsOf(ctx.src)
 }
