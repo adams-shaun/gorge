@@ -30,6 +30,14 @@ priority_rules:
           - head~=^hotfix/
     priority: high
     allow_checks_interruption: true
+  # Evidence-loop PRs (evl/*) go into the next batch ahead of ordinary PRs (operator 11-18: evidence is P0), but never
+  # cancel a running batch: on 11-18 eight evl PRs waited behind red batches, were dequeued or conflicted, and none merged.
+  # Medium is 2000 (the default), high 3000; 2500 sits between them.
+  - name: evidence next
+    conditions:
+      - head~=^evl/
+    priority: 2500
+    allow_checks_interruption: false
 
 pull_request_rules:
   # Mergify recommends the queue over the merge action (batching, the combined-result check), so every PR to main is
