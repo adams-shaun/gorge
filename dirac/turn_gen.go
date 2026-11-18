@@ -363,6 +363,28 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				s.g.pre.state = 0
 				continue
 			}
+			if kind == akColor && s.entryAskOutstanding() {
+				// gorge's one-at-a-time entry path (engine/rules/replacement_etb.go)
+				// queues only the CR 303.4f Aura choice behind another decision;
+				// every other as-enters ask keeps the pre-existing path, so while
+				// a decision is outstanding the entry happens unasked and the
+				// recorded colour is the deterministic first colour of the
+				// option list (engine/effects/choose.go's first-WUBRG fallback).
+				// The queue's parked and queued asks are decisions gorge has
+				// already posed: it poses the entry ask at the entry boundary,
+				// mid-batch, and the later asks of the batch fall back.
+				s.touchSl(sl)
+				ex := uint8(in.C) & 31 // the op's Exclude$ colours (W U B R G = bits 0..4)
+				fb := uint8(5)
+				for cv := uint8(0); cv < 5; cv++ {
+					if ex&(1<<cv) == 0 {
+						fb = cv
+						break
+					}
+				}
+				s.perms[sl].chosen = objWord(fb)
+				continue
+			}
 			s.queueAskAt(sl, kind, c, ab, uint8(i+1))
 			if !saved.active {
 				s.res = saved
@@ -402,6 +424,16 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 	if !saved.active {
 		s.res = saved
 	}
+}
+
+// entryAskOutstanding reports a decision gorge has pending while an enters
+// program's as-enters choice arises: a posed ask (res.ask), a parked one
+// (preAsk -- gorge poses it at the entry boundary, mid-batch), or a queued
+// one (the ask queue gorge drains before the next priority). gorge's
+// one-at-a-time entry path makes a non-enchant as-enters choice unasked
+// against all of them (engine/rules/replacement_etb.go).
+func (s *State) entryAskOutstanding() bool {
+	return s.res.ask != raNone || s.g.pre.state != 0 || s.g.nask > 0
 }
 
 // queueAsk queues an as-enters choice for the permanent at sl (no program
