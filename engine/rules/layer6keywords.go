@@ -21,11 +21,22 @@ import (
 // Grizzly Bears that Ajani's -3 had given flying. Entries are copies (the
 // Derived keyword stream is a scratch buffer), objects in battlefield seat
 // order; nil on the common board where nothing differs, and nil while a
-// layer walk is in progress (the printed read stands, as before).
+// layer walk is in progress (the printed read stands, as before) -- except
+// inside a layer-7 amount read (CR 613.4c reads the finished layer-6 keywords,
+// CR 613.1f): Pride of the Clouds' "+1/+1 for each other creature with
+// flying" counted only printed flyers in the full walk while the scalar P/T
+// read counted a granted one, so Derived(id).Power and Power(id) parted. The
+// table is built once per derivation (KWTableBuilding stops the nested
+// layer-7 reads of the objects it derives from rebuilding it).
 func (e *Engine) EffectiveKeywords() []effects.ObjectKeywords {
-	if e.activeDepth != 0 || e.charsWalk.Depth != 0 {
+	if e.activeDepth != 0 || e.charsWalk.KWTableBuilding {
 		return nil
 	}
+	if e.charsWalk.Depth != 0 && len(e.charsWalk.PTFrames) == 0 {
+		return nil
+	}
+	e.charsWalk.KWTableBuilding = true
+	defer func() { e.charsWalk.KWTableBuilding = false }()
 	var out []effects.ObjectKeywords
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
