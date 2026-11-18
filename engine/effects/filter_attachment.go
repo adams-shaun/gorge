@@ -1252,3 +1252,29 @@ var enchantedByQualCodes = state.NewStrCodes(
 	state.StrEntry[enchantedByQualCode]{Key: "Other", Val: enchantedByQualOther},
 	state.StrEntry[enchantedByQualCode]{Key: "YouCtrl", Val: enchantedByQualOther},
 )
+
+// matchAttachmentPredicate evaluates the attachment predicate tokens of
+// matchPositive: equipped, enchanted and modified. ok is false for any other
+// token.
+//
+// equipped / enchanted (CR 301.5a / 303.4) are the creature an Equipment
+// (Aura) is attached to. modified (CR 700.9) is counters, equipped, or an Aura
+// the candidate's controller controls. The attachment's kind is a layer-4
+// type (CR 613.1d): The Irencrag transformed into Everflame is an Equipment,
+// and a Convulsing Licid its Animate has turned into an Aura is an Aura, only
+// through the derived type line, so each scan reads the bound layer-4
+// snapshot rather than the printed face predicates["equipped"] tests;
+// modifiedPermanent keeps the printed-face fallback for callers without a
+// SpecContext.
+func matchAttachmentPredicate(g *state.Game, p string, o *state.Object, sc *SpecContext) (result, ok bool) {
+	if p == "equipped" {
+		return hasAttachmentOfKindCtx(g, o.ID, "Equipment", sc), true
+	}
+	if p == "enchanted" || p == "Enchanted" {
+		return hasAttachmentOfKindCtx(g, o.ID, "Aura", sc), true
+	}
+	if p == "modified" {
+		return modifiedPermanentCtx(g, o, sc), true
+	}
+	return false, false
+}
