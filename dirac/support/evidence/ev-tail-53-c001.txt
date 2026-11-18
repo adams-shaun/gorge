@@ -3,8 +3,10 @@ A-Death-Priest of Myrkul
 A-Geological Appraiser
 A-Glittermonger
 A-Midnight Assassin
+Access Tunnel
 Adrix and Nev, Twincasters
 Aegis of the Heavens
+Aerith, Last Ancient
 Aeromunculus
 Aeronaut Tinkerer
 Aether Helix
@@ -21,6 +23,7 @@ Araumi of the Dead Tide
 Archers' Parapet
 Arcum Dagsson
 Argothian Swine
+Arjun, the Shifting Flame
 Artifact Blast
 Artisan of Kozilek
 Asgardian Inspiration
@@ -37,12 +40,14 @@ Beloved Princess
 Big Play
 Bladed Bracers
 Blasphemous Act
+Blazing Archon
 Blessed Respite
 Blood Host
 Bloodroot Apothecary
 Boggart Trawler
 Branching Evolution
 Brass Herald
+Bred for the Hunt
 Breeding Pit
 Brilliant Plan
 Brimaz, Blight of Oreskos
@@ -62,6 +67,7 @@ Captivating Unicorn
 Cat Burglar
 Challenger Troll
 Chandra's Pyrohelix
+Chilling Grasp
 Chlorophant
 Cinder Shade
 Cinder Wall
@@ -72,6 +78,7 @@ Colossodon Yearling
 Commune with Dinosaurs
 Conquering Manticore
 Contract Hero
+Converter Beast
 Coordinated Charge
 Corrupted Zendikon
 Cosmic Crucible
@@ -129,9 +136,11 @@ Fists of the Demigod
 Flailing Ogre
 Flame Discharge
 Flame of Anor
+Flesh Allergy
 Flicker
 Flow of Ideas
 Forbidden Alchemy
+Foreboding Landscape
 Forest
 Foster
 Fugue
@@ -161,6 +170,7 @@ Heat Ray
 Hekma Sentinels
 Hellrider
 Herald of the Sun
+Highland Weald
 Hillcomber Giant
 Hunting Cheetah
 Ichor Explosion
@@ -168,6 +178,7 @@ Iconic Shield
 Increasing Savagery
 Incubation
 Infiltrator il-Kor
+Inspiring Statuary
 Insufferable Balladeer
 Inventor's Apprentice
 Island
@@ -194,6 +205,7 @@ Liability
 Lightbringer
 Liliana's Caress
 Llanowar Empath
+Lobber Crew
 Lose Hope
 Lost Leonin
 Loxodon Stalwart
@@ -212,9 +224,12 @@ Merchant of Truth
 Mindbreak Trap
 Mine Bearer
 Mirozel
+Mobilized District
 Molten Blast
 Moonring Island
 Moonsnare Specialist
+Moorland Drifter
+Mordor on the March
 Morgul-Knife Wound
 Mossdog
 Mountain
@@ -261,6 +276,7 @@ Plated Sliver
 Plundering Predator
 Pouncing Jaguar
 Precognition
+Predict
 Prosperous Bandit
 Psionic Snoop
 Psychic Miasma
@@ -269,7 +285,10 @@ Pyreswipe Hawk
 Pyroceratops
 Queen's Bay Soldier
 Rage Reflection
+Raggadragga, Goreguts Boss
+Rally for the Throne
 Ranger's Path
+Rebuild
 Recalibrate
 Renewal
 Rescue, Pepper Potts
@@ -282,6 +301,7 @@ Rumbling Baloth
 Rush of Vitality
 Rust Monster
 Savage Surge
+Savvy Hunter
 Scattered Thoughts
 Scavenging Harpy
 Scepter of Dominance
@@ -293,6 +313,7 @@ Second Sight
 Sedraxis Alchemist
 Segovian Leviathan
 Selvala, Explorer Returned
+Servant of Tymaret
 Sewerdreg
 Shanna, Sisay's Legacy
 Shared Summons
@@ -328,6 +349,7 @@ Swooping Lookout
 Sylvan Yeti
 Syndicate Messenger
 Tahngarth's Rage
+Taiga Stadium
 Tail Swipe
 Tattered Apparition
 Tempest Caller
@@ -353,6 +375,7 @@ Unnatural Endurance
 Unyaro Bees
 Upheaval
 Urban Daggertooth
+Urborg Volcano
 Utvara Hellkite
 Vampire of the Dire Moon
 Vigilant Drake
@@ -379,6 +402,7 @@ Wild Wanderer
 Winter Sky
 Witherbloom Apprentice
 Wizard's Lightning
+Wooded Ridgeline
 World-Weary
 Worm Harvest
 Wrecking Ogre

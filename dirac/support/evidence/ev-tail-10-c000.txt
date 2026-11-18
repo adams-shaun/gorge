@@ -130,6 +130,7 @@ Elvish Lookout
 Ember Shot
 Enervate
 Enlistment Officer
+Entrancing Lyre
 Esper Sentinel
 Exalted Flamer of Tzeentch
 Excavation Explosion
@@ -247,6 +248,7 @@ Magmaquake
 Mahamoti Djinn
 Maja, Bretagard Protector
 Majestic Genesis
+Mana Vortex
 Mangara's Blessing
 Marang River Skeleton
 Marsh Flitter

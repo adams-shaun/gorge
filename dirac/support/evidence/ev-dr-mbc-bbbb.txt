@@ -53,8 +53,10 @@ Irenicus's Vile Duplication
 Island
 Jolene, the Plunder Queen
 Kavu Predator
+Lively Dirge
 Lunar Frenzy
 Manabond
+Mannichi, the Fevered Dream
 Mindbreak Trap
 Mischievous Mystic
 Moan of the Unhallowed
@@ -98,6 +100,7 @@ The Rack
 Think Twice
 Thwart
 Tolabow, Loch Rascal
+Touch the Spirit Realm
 Treasure Dredger
 Undo
 Vile Requiem

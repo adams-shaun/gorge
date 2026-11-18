@@ -23,6 +23,7 @@ Arcane Denial
 Archmage Emeritus
 Armed Assailant
 Armored Skaab
+Armory Paladin
 Arvad of the Weatherlight
 Asgardian Inspiration
 Ashen Rider
@@ -31,14 +32,17 @@ Atlas, Sizable Stooge
 Augury Raven
 Aura Blast
 Aven Fleetwing
+Axgard Braggart
 Aysen Bureaucrats
 Baffling End
 Bag of Holding
 Ballista Watcher
 Bane of Progress
 Basalt Gargoyle
+Battering Craghorn
 Berserkers of Blood Ridge
 Black Panther, Claws of Bast
+Bladewing the Risen
 Blaze
 Bloodsky Berserker
 Bloodtallow Candle
@@ -63,6 +67,7 @@ Child of Thorns
 Citizen's Arrest
 Clinging Mists
 Cobblebrute
+Commander Eesha
 Commune with Spirits
 Consign to the Pit
 Contemplation
@@ -93,13 +98,17 @@ Disturbed Burial
 Dive Bomber
 Diversionary Tactics
 Diviner's Lockbox
+Doomskar Oracle
 Dreadhorde Invasion
+Drivnod, Carnage Dominus
 Drove of Elves
 Drown in Dreams
 Drunau Corpse Trawler
 Dusk Feaster
+Duskmantle, House of Shadow
 Dutiful Return
 Earth Tremor
+Ecologist's Terrarium
 Efficient Construction
 Elvish Pioneer
 Emissary of Hope
@@ -134,6 +143,7 @@ Fume Spitter
 Fungus Sliver
 Furious Spinesplitter
 Gaea's Skyfolk
+Genju of the Fields
 Gerrard's Command
 Ghirapur Osprey
 Ghost Warden
@@ -151,6 +161,7 @@ Goblin Champion
 Goblin Lookout
 Goblin Wardriver
 Golden-Tail Disciple
+Grasp of the Hieromancer
 Green Goblin, Nemesis
 Grindclock
 Groundskeeper
@@ -197,6 +208,8 @@ Izzet Cluestone
 Jedit's Dragoons
 Jerrard of the Closed Fist
 Jin-Gitaxias, Progress Tyrant
+Jinxed Ring
+Jwari Shapeshifter
 Kagemaro, First to Suffer
 Kamahl, Pit Fighter
 Kami's Flare
@@ -214,6 +227,7 @@ Lead the Stampede
 Leafcrown Dryad
 Lembas
 Liliana's Scorn
+Liliana, Waker of the Dead
 Living Totem
 Lizard Blades
 Lock and Load
@@ -255,9 +269,12 @@ Old Stickfingers
 Ominous Sphinx
 Omnath, Locus of Rage
 One Dozen Eyes
+Oran-Rief, the Vastwood
+Order of the Golden Cricket
 Order of the Mirror
 Order of the White Shield
 Ordered Migration
+Origin of Iron Man
 Orim, Samite Healer
 Oviya Pashiri, Sage Lifecrafter
 Owlin Spiralmancer
@@ -294,7 +311,9 @@ Rat King, Pale Piper
 Reaper from the Abyss
 Recruitment Officer
 Redress Fate
+Refuse to Yield
 Relic Putrescence
+Resistance Fighter
 Retrieve
 Rhox Pummeler
 Rift Sower
@@ -305,6 +324,7 @@ Rolling Temblor
 Rot Shambler
 Rubbleback Rhino
 Rubblebelt Rioters
+Runic Shot
 Rupture
 Ruthless Waterbender
 Ryusei, the Falling Star
@@ -312,6 +332,7 @@ Sabertooth Alley Cat
 Sanctum Custodian
 Saprazzan Cove
 Scent of Ivy
+Scourge of the Throne
 Scourge of the Undercity
 Sea Legs
 Seachrome Coast
@@ -320,6 +341,7 @@ Sejiri Steppe
 Sharpened Pitchfork
 Shattering Pulse
 Shield of Kaldra
+Shivan Meteor
 Shower of Coals
 Sickle Dancer
 Silent Departure
@@ -357,9 +379,11 @@ Sun-Crested Pterodon
 Surrakar Marauder
 Swamp
 Sword of the Paruns
+Tainted Field
 Tazeem Raptor
 Tenacious Dead
 Tervigon
+The Dross Pits
 The Scorpion God
 Thopter Assembly
 Thopter Spy Network
@@ -373,8 +397,10 @@ Titanium Man
 Tocatli Honor Guard
 Tome Shredder
 Toolcraft Exemplar
+Toothy, Imaginary Friend
 Towering Gibbon
 Trained Jackal
+Traitorous Greed
 Tribute to Urborg
 Triton Waverider
 Typhoid Rats
@@ -409,6 +435,7 @@ Welkin Tern
 Westgate Regent
 Whisper of the Dross
 Wight of Precinct Six
+Wind-Kin Raiders
 Woebringer Demon
 Wolfir Avenger
 Wolverine Riders

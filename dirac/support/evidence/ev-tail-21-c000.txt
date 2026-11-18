@@ -163,6 +163,7 @@ General Marhault Elsdragon
 Genesis Ultimatum
 Ghitu Slinger
 Gift of Compleation
+Glade Gnarr
 Glimmerdust Nap
 Glimpse the Sun God
 Glittering Wish
@@ -171,6 +172,7 @@ Goblin Kaboomist
 Goblin Tunneler
 Goblin War Buggy
 Golden-Tail Trainer
+Golgari Longlegs
 Graf Harvest
 Grand Arbiter Augustin IV
 Grateful Apparition
@@ -271,6 +273,7 @@ Mothdust Changeling
 Mountain
 Mounted Dreadknight
 Murderer's Axe
+Myojin of Night's Reach and Grim Betrayal
 Naban, Dean of Iteration
 Necra Sanctuary
 Nested Ghoul
@@ -335,6 +338,7 @@ Righteous Valkyrie
 Roadside Reliquary
 Roast
 Robot Chicken
+Rogue Class
 Rot Hulk
 Run for Your Life
 Rush the Room
@@ -415,6 +419,7 @@ The Dross Pits
 The Howling Commandos
 The Mending of Dominaria
 The Roaring Toeclaws
+Thoughtbound Phantasm
 Thraben Watcher
 Thunder Totem
 Timberpack Wolf
@@ -427,6 +432,7 @@ Torpid Moloch
 Tower Worker
 Trench Gorger
 Tri-Sentinel, Act of Vengeance
+Triassic Egg
 Trigon of Mending
 Trumpeting Herd
 Tuktuk Scrapper

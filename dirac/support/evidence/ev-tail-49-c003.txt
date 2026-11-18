@@ -1,80 +1,124 @@
+A-Druidic Ritual
 Absorbing Man and Titania
+Accursed Marauder
 Aether Flash
 Ainok Tracker
 Akroan Hoplite
 Amphin Pathmage
 Angelic Curator
+Ant-Man, Scott Lang
+Arc Mage
+Arc Spitter
+Argivian Restoration
 Aria of Flame
+Armageddon
 Artifact Ward
 Ashling the Pilgrim
+Ashling, the Extinguisher
+Augmenting Automaton
 Augur of Bolas
 Avaricious Dragon
 Bad Moon
+Barbarian Outcast
+Batroc the Leaper
 Batterbone
+Battle Mammoth
 Blightbeetle
 Blistering Barrier
+Bloodthrone Vampire
 Blurred Mongoose
 Bog Initiate
 Boon Reflection
+Boros Swiftblade
 Brand
+Briarhorn
 Briarpack Alpha
 Broodbirth Viper
 Butcher's Cleaver
+Call the Cavalry
+Call the Scions
+Captain America, Steve Rogers
+Carrion Wurm
 Centaur Glade
 Centaur Peacemaker
 Cephalid Broker
+Chandra's Outburst
 Change of Fortune
+Changeling Outcast
 Chapel Geist
 Charge Across the Araba
 Checkpoint Officer
 Chieftain en-Dal
 Chimeric Coils
 Citadel Gate
+Citanul Centaurs
 Citanul Flute
 Clan Crafter
 Cloakwood Swarmkeeper
 Cobblebrute
 Coiling Oracle
+Connive
 Corpse Connoisseur
 Countryside Crusher
 Crash
 Cultist of the Absolute
+Damping Matrix
+Daredevil's Billy Club
 Dark Bargain
+Darksteel Myr
 Dauntless Aven
 Dauntless Unity
+Death Cloud
+Denying Wind
 Depala, Pilot Exemplar
 Desert of the Indomitable
 Dimir Signet
+Disciple of Perdition
 Disentomb
 Dismember
+Domri, City Smasher
 Double Trouble
 Dragon Whelp
 Drake Haven
+Dregs of Sorrow
+Druid's Deliverance
 Electrify
 Elemental Uprising
 Elenda, the Dusk Rose
 Elixir of Immortality
+Elvish Piper
+Elvish Promenade
 Elvish Scrapper
 Elvish Visionary
+Emmara, Soul of the Accord
 Enduring Bondwarden
 Enlightened Ascetic
 Ent's Fury
+Escape Velocity
+Eternity Vessel
 Ever After
+Exhaustion
 Extinguish the Light
 Faerie Duelist
+Fallowsage
 Farid, Enterprising Salvager
 Fate Foretold
+Fencing Ace
 Feral Appetite
 Ferocious Pup
 Fevered Strength
 Feywild Visitor
 Fiery Mantle
+Fireball
+Fissure Wizard
 Flamecore Elemental
 Flames of the Firebrand
 Forest
 Fortified Rampart
+Fountain of Youth
 Frost Trickster
 Fungal Rebirth
+Gainsay
 Garruk's Companion
 Garruk, Cursed Huntsman
 Geistblast
@@ -84,13 +128,18 @@ Gibbering Barricade
 Glimmering Angel
 Gnat Alley Creeper
 Goblin Skycutter
+Goldmeadow Lookout
 Graceful Restoration
 Great Desert Prospector
 Greater Good
+Greater Mossdog
+Greenwarden of Murasa
 Hagra Constrictor
 Havengul Vampire
 Hell Swarm
+Hellion Eruption
 Heroic Charge
+Hewed Stone Retainers
 Hobblefiend
 Hookhand Mariner
 Horizon Scholar
@@ -98,86 +147,135 @@ Howling Golem
 Humongulus
 Hunted Dragon
 Incriminate
+Inferno Fist
 Inspired Fire
+Invigorating Boon
 Island
 Island of Wak-Wak
+Jadecraft Artisan
 Jaya, Venerated Firemage
 Kayla's Command
 Kazandu Blademaster
+Kessig Wolfrider
 Kiln Walker
+Kiss of Death
+Kor Cartographer
 Kor Entanglers
+Kor Outfitter
+Kor Scythemaster
+Krosan Druid
 Kuldotha Rebirth
+Lantern Spirit
+Lantern of Revealing
 Lantern of the Lost
 Lapis Lazuli Talisman
+Lawmage's Binding
 Library
 Life
 Living Wish
+Long-Finned Skywhale
+Lu Su, Wu Advisor
 Magistrate's Veto
 Maned Serval
 Manic Scribe
 Manifold Key
 Manta Riders
+Mark of the Vampire
 Mask of Law and Grace
 Mass Hysteria
+Masticore
+Maze Skullbomb
 Merciless Eternal
 Merfolk Observer
+Metamorphic Wurm
 Mightstone's Animation
 Mindmelter
 Misery Charm
 Misery's Shadow
+Moldgraf Scavenger
 Monologue Tax
 Moonwing Moth
 Motivated Pony
 Mountain
+Myr Convert
 Naiad of Hidden Coves
+Nantuko Tracer
 Nico Minoru, Runaway
 Night Incarnate
 Nightshade Seer
 Nim Grotesque
+Nylea's Forerunner
+Oath of Nissa
+Oblivion Strike
 Ocular Halo
 Ogre Gatecrasher
+Orochi Hatchery
 Outland Colossus
+Pallid Mycoderm
 Part the Veil
+Passionate Archaeologist
 Patagia Golem
+Patch Up
+Peace Strider
 Perilous Forays
 Perilous Research
 Pillaging Horde
 Pillarfield Ox
+Pip-Boy 3000
 Plains
 Poison Arrow
 Pooling Venom
 Prison Term
+Prodigy's Prototype
 Prowling Pangolin
 Psychomancer
 Pyknite
 Quantum Entanglement
 Quicksilver Fisher
 RMS Titanic
+Radha, Heart of Keld
 Rain of Salt
+Raise Dead
 Raking Claws
 Rampaging Cyclops
+Raptor Companion
 Ray of Dissolution
 Razorgrass Ambush
+Razortide Bridge
 Reaping the Rewards
+Reaver Titan
 Red Death, Shipwrecker
 Refocus
 Relentless Rats
 Renari, Merchant of Marvels
 Resplendent Mentor
+Response
 Reverent Hoplite
 Rhystic Shield
+Righteous Cause
 Righteous Fury
+Riptide Pilferer
+Rishkar's Expertise
 Roc Charger
+Rock Basilisk
 Rocksteady, Mutant Marauder
 Rogue's Gloves
+Rootbreaker Wurm
+Rubble Slinger
 Runebound Wolf
 Runner's Bane
+Rustvine Cultivator
 Sacred Fire
 Sage of Epityr
+Salt Road Quartermasters
+Sanctum of Stone Fangs
 Sandstorm Eidolon
 Sarpadian Simulacrum
 Saruman the White
+Sauroform Hybrid
+Savai Crystal
 Saw It Coming
+Scale Blessing
 Scapeshift
 Scout the Borders
 Scroll of the Masters
@@ -185,35 +283,50 @@ Search the Premises
 Sedge Scorpion
 Seething Pathblazer
 Selesnya Sanctuary
+Sentry Oak
 Serendib Efreet
 Serpent-Blade Assailant
+Shadowmage Infiltrator
 Shalai, Voice of Plenty
 Shape the Sands
+Shower of Coals
+Shriekmaw
 Sigarda, Heron's Grace
+Sigiled Paladin
 Silverquill Command
+Simic Ascendancy
 Skemfar Elderhall
+Skinshifter
+Slaughterhorn
+Sleeper Agent
 Slippery Bogle
 Smelt
 So Shiny
+Soratami Savant
 Soulshriek
 Spawn-Gang Commander
 Spire Garden
 Squadron Hawk
 Squallmonger
+Squirrel Sanctuary
 Stinging Hivemaster
 Stone Catapult
+Stone Rain
 Stoneforge Acolyte
 Stonefury
 Storm Fleet Sprinter
+Storm Shaman
 Stormchaser Mage
 Stormfront Pegasus
 Stump Stomp
 Sunken City
 Supply Caravan
 Supreme Will
+Surgical Skullbomb
 Survivor of the Unseen
 Swamp
 Swarm of Bloodflies
+Swat
 Swell of Growth
 Symbiotic Elf
 Synod Sanctum
@@ -221,32 +334,42 @@ Sythis, Harvest's Hand
 Tallyman of Nurgle
 Tamiyo's Logbook
 Tar Pitcher
+Taunting Arbormage
 Teeterpeak Ambusher
+Terrain Elemental
 Terror Ballista
 Teysa, Envoy of Ghosts
 The Rack
+Thorncaster Sliver
 Thought Collapse
 Thundercloud Shaman
 Tide Skimmer
+Tidings
 Torment
 Touch of Brilliance
 Towering-Wave Mystic
 Tranquil Thicket
+Turn
 Twisted Embrace
 Ultimate Magic: Holy
 Undertaker
 Underworld Coinsmith
+Unraveling Mummy
+Untamed Might
 Vagrant Plowbeasts
 Vanquish the Weak
 Vault Guardsman
 Vector Asp
 Vengeful Dead
+Vengeful Rebirth
 Verix Bladewing
 Viridian Harvest
 Viscerid Armor
+Vitu-Ghazi Guildmage
 Voracious Fell Beast
 Vorrac Battlehorns
 Wake Thrasher
+Wall of Corpses
 Wall of Essence
 Wall of Reverence
 Warlock Class
@@ -266,6 +389,8 @@ Woodland Wanderer
 Woodwraith Strangler
 Wose Pathfinder
 Wu Longbowman
+Xathrid Slyblade
 Xun Yu, Wei Advisor
+Yeva, Nature's Herald
 Zephyr Charge
 Zoologist

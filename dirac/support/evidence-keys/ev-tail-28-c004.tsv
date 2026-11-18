@@ -1,0 +1,38 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Celestial Regulator	220196ced0bfbd63	27	1/1		1/1	
+Basilica Guards	df604e5bd25e938a	10	1/1		0/1	ix:resp
+Bone Shards	c0ab5d30c539457c	32	0/0		2/2	
+Breath of Fire	f5cd46838f49d639	30	0/0		2/2	
+Bull Cerodon	5358b7dba508692a	11	0/0		0/0	
+Carrion Grub	df51286d573ce789	17	1/1		1/1	
+Chasm Guide	6fd2ae12ec9aea38	23	1/1		1/1	
+Dematerialize	ea892e51d7ce4140	65	0/0		4/4	
+Disperse	5e2a2942602ca9bc	11	0/0		2/2	
+Distorted Curiosity	cb2e0eac4e458f84	16	0/0		2/2	
+Dying Wish	257b2c4dd99fc25f	12	1/1		1/2	ix:resp
+Exclude	2a164347f5b33b61	8	0/0		2/2	
+Fervent Cathar	0b96cdaf91d95684	23	1/1		0/1	ix:resp
+Ghostfire Slice	418949423e4b473e	25	0/0		2/2	
+Giant Spectacle	c09c5b27e137685a	24	0/0		2/2	
+Giant's Ire	6fe88438e423fb05	26	0/0		2/2	
+Hellraiser Goblin	c1f325ead8645b47	34	0/0		0/0	
+Herald of the Sun	2b12594c01daa799	14	1/1		0/1	ix:resp
+Hypervolt Grasp	4b2a41869b9d71f0	24	1/1		2/2	
+Inspired Sprite	37dbe1e7ae6498e0	11	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Keen Glidemaster	e56a3f63ed2c01e8	22	1/1		1/1	
+Kiss of the Amesha	289000487cd2a9ac	35	0/0		2/2	
+Krark-Clan Ogre	6fa1920bf87c69b0	7	1/1		1/1	
+Merchant of Truth	4636b865278ddf25	10	1/1		1/1	
+Mesa Unicorn	d0f0a272a7f64e45	47	0/0		0/0	
+Mind Sludge	8e1a132715ac4137	24	0/0		2/2	
+Resistance Skywarden	dabefd58bb318d98	23	0/0		0/0	
+Sleeping Potion	3cd6a173d520cd7b	21	2/2		2/2	
+Spectacle Mage	7d034858f7aca851	12	0/0		0/0	
+Stone Golem	9b75943b940a2bfa	11	0/0		0/0	
+Urza's Science Fair Project	f0bfa3736c4c7775	41	1/1		1/1	
+Vigilante Justice	02cb0c067ea92625	12	1/1		0/1	ix:resp
+Vodalian Hypnotist	86b4626f7f7a5e99	69	1/1		1/1	
+Vow of Torment	8b6f1681de8e9f02	19	0/0		2/2	
+Wei Infantry	bdac5666619788d7	44	0/0		0/0	
+Worldgorger Dragon	8562634021a0132b	20	2/2		0/1	ix:resp
+Wu Infantry	f3461659282df738	74	0/0		0/0	

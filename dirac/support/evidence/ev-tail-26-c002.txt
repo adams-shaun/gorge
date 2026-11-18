@@ -2,6 +2,7 @@ A-Stimulus Package
 Accursed Centaur
 Act on Impulse
 Advance Scout
+Akroan Hoplite
 Amrou Scout
 Ancient Runes
 Angelic Overseer
@@ -11,10 +12,13 @@ Ardbert, Warrior of Darkness
 Armor of Shadows
 Armorcraft Judge
 Arno Dorian
+Asceticism
 Aura Shards
 Auspicious Ancestor
 Baloth Prime
 Barrel Down Sokenzan
+Birchlore Rangers
+Birthing Pod
 Blade of the Bloodchief
 Bloodscale Prowler
 Boros Mastiff
@@ -39,6 +43,7 @@ Cutthroat Negotiator
 Cyclopean Snare
 Cyclops Superconductor
 Cystbearer
+Dark Temper
 Deadly Dispute
 Death of a Thousand Stings
 Declare Dominance
@@ -58,6 +63,7 @@ Fast Forward
 Feast of Dreams
 Fencing Ace
 Flowstone Crusher
+Force of Savagery
 Forest
 Foul-Tongue Shriek
 Frantic Inventory
@@ -68,12 +74,15 @@ Gideon's Lawkeeper
 Glimpse of Freedom
 Gloom Pangolin
 Goblin Firebug
+Graceful Cat
+Grappling Sundew
 Grave Betrayal
 Greenseeker
 Grizzly Ghoul
 Gruul Guildmage
 Harrow
 Hermes, Overseer of Elpis
+Hero of Precinct One
 Hesitation
 Island
 Junk Golem
@@ -86,14 +95,19 @@ Kithkin Mourncaller
 Knight of Dawn's Light
 Lava Axe
 Leela, Sevateem Warrior
+Legion Leadership
 Lightning Prowess
+Living Lands
 Lord of Extinction
 Lulu, Stern Guardian
 Magma Rift
+Make Your Mark
+Makeshift Battalion
 Markov Enforcer
 Merrow Bonegnawer
 Mizzium Skin
 Molting Harpy
+Monster Manual
 Moss Kami
 Mountain
 Necra Sanctuary
@@ -103,9 +117,11 @@ Niall Silvain
 Nighthawk Scavenger
 Nightmarish End
 Noble Panther
+Nullmage Advocate
 Nyxborn Hydra
 Oblivion Ring
 Open the Vaults
+Orochi Soul-Reaver
 Orzhov Racketeers
 Paradise Mantle
 Patriot, Young Avenger
@@ -118,8 +134,10 @@ Polluted Bonds
 Portal to Phyrexia
 Possessed Aven
 Pyretic Charge
+Quandrix Pledgemage
 Quickening Licid
 Rally the Ranks
+Rampaging Aetherhood
 Ransack
 Reality Ripple
 Reckless Air Strike
@@ -131,24 +149,32 @@ Sacred Cat
 Saltfield Recluse
 Satyr Grovedancer
 Savage Swipe
+Scarwood Treefolk
 Scathe Zombies
 Serpent Warrior
 Shessra, Death's Whisper
 Shrieking Affliction
 Silent Specter
+Sivriss, Nightmare Speaker
 Skulltap
 Skyhunter Cub
+Skyway Sniper
 Slate Street Ruffian
+Slip Through Space
 Sparkspitter
+Spellbook
 Spined Fluke
 Spontaneous Combustion
 Steadfast Unicorn
 Stitched Drake
+Stony Strength
 Sunscape Master
 Sunset Revelry
 Sunspire Griffin
 Swamp
 Swift Warden
+Taranika, Akroan Veteran
+Tel-Jilad Chosen
 Tenth District Guard
 The Wretched
 Thundering Spineback
@@ -164,6 +190,7 @@ Warthog
 Watchful Blisterzoa
 Wei Night Raiders
 Whirler Rogue
+Wicked Guardian
 Wight of Precinct Six
 Winter Soldier, Bucky Barnes
 Wishful Merfolk

@@ -113,6 +113,7 @@ Dire Fleet Warmonger
 Disciple of Malice
 Disciple of the Vault
 Divine Smite
+Djeru's Resolve
 Doomskar Titan
 Dragon-Cursed Halls
 Dread Slaver
@@ -124,6 +125,7 @@ Eidolon of Inspiration
 Elfhame Palace
 Elvish Ranger
 Ember Hauler
+Embermaw Hellion
 Emergency Weld
 Endless Sands
 Energy Storm
@@ -202,6 +204,7 @@ Helm of the Host
 Herald of Anguish
 Here Comes a New Hero!
 High Seas
+Hindervines
 Holdout Settlement
 Horizon Explorer
 Horn of Gondor
@@ -466,6 +469,7 @@ Weldfast Engineer
 Wellspring
 Whisper Agent
 Wild Celebrants
+Wildwood Escort
 Wings of Hope
 Wolf's Quarry
 Woodland Bellower

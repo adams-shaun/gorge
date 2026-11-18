@@ -1,52 +1,103 @@
+Abyssal Nocturnus
 Aether Figment
 Aether Rift
 Aid the Fallen
 Akoum Hellhound
+Alpha Kavu
 Angelic Chorus
 Animate Land
 Aspiring Aeronaut
 Assault
 Aveline de Grandpré
+Azusa, Lost but Seeking
 Balance of Power
 Baleful Force
+Bartolomé del Presidio
 Beanstalk Giant
+Beast Mode
+Bessie, the Doctor's Roadster
+Black Dragon Gate
+Bladeback Sliver
 Blinding Drone
+Blitz Leech
 Bob, Reluctant HYDRA Agent
+Bonded Fetch
 Bow of Nylea
 Breathstealer
 Brilliant Halo
+Builder's Blessing
+Burst of Energy
 Bygone Bishop
+Cackling Counterpart
+Citanul Stalwart
 Cliff Threader
+Collective Voyage
 Colossal Badger
+Consul's Shieldguard
+Corrupt Eunuchs
 Courage in Crisis
 Crater Hellion
 Cryptic Serpent
 Crystal Chimes
 Crystalline Sliver
+Cyclical Evolution
+Daring Piracy
 Day of Destiny
 Dazzling Lights
+Deadly Rollick
 Demonic Bargain
+Demotion
+Desecration Plague
 Dictate of Karametra
 Disperse
 Doom's Servo-Guards
 Dragon's Presence
+Draining Whelk
 Drake-Skull Cameo
+Dusk Imp
 Eliminate
+Elven Riders
+Emancipation Angel
+End Hostilities
 Environmental Sciences
 Escape Protocol
 Ethrimik, Imagined Fiend
 Evolution Witness
 Excommunicate
+Exiled Boggart
+Expose to Daylight
 Eyeless Watcher
 Ezio, Brash Novice
+Falcon, Joaquin Torres
+Falkenrath Exterminator
 Fallen Ideal
+Final Revels
+Firescreamer
+Fleetfoot Panther
+Flora Colossus
+Flowstone Surge
+Flowstone Wall
+Flusterstorm
+Fodder Tosser
+For the Family
 Forest
 Foul Watcher
+Frontier Guide
+Fry
+Gateway Plaza
 Gelatinous Genesis
+Ghoulish Procession
 Gnoll Hunter
+Goblin Piledriver
+Golgari Thug
+Gorehorn Minotaurs
+Greatsword
 Green Sun's Zenith
+Gruesome Scourger
 Hall Monitor
 Hanged Executioner
+Harmonic Convergence
+Heavenly Qilin
 Hedron Crab
 Hexavus
 Hexgold Hoverwings
@@ -54,29 +105,47 @@ Highland Game
 Hookblade
 Hope-Ender Coatl
 Humble Naturalist
+Hurl Through Hell
 Illusionary Forces
+Impatience
 Imperial Outrider
+Imperial Recovery Unit
 Increasing Savagery
 Indoctrination Attendant
 Inquisition of Kozilek
+Insidious Bookworms
+Iron Tusk Elephant
 Island
+Juzám Djinn
 Karplusan Wolverine
 Killmonger, Ruthless Usurper
+Kingpin's Pet
 Knight of Obligation
+Kor Hookmaster
+Kragma Butcher
 Krark-Clan Shaman
+Kura, the Boundless Sky
 Lantern of the Lost
+Lifelink
 Liliana's Reaver
 Living Lies of Loki
 Living Plane
 Loathsome Chimera
+Loch Korrigan
 Lorehold Pledgemage
+Lurking Crocodile
 Mage Slayer
 Malevolent Rumble
+Markov Purifier
+Marsh Boa
 Mausoleum Secrets
 Maze Behemoth
+Mercenary Informer
 Merfolk Mesmerist
 Michelangelo, the Heart
+Midnight Charm
 Militant Monk
+Mirran Crusader
 Mountain
 Munda, Ambush Leader
 Natural Selection
@@ -85,8 +154,12 @@ Neck Snap
 Night
 Nim Lasher
 Nine-Ringed Bo
+Olivia's Dragoon
 Order of Leitbur
+Order of the Ebon Hand
 Oswald Fiddlebender
+Patron of the Arts
+Pile On
 Plains
 Plated Wurm
 Polluted Dead
@@ -94,18 +167,36 @@ Primeval Herald
 Profit
 Ragavan, Nimble Pilferer
 Ral, Storm Conduit
+Ravenous Lindwurm
+Reckless Racer
+Reconnaissance
+Resolute Watchdog
+Resurgent Belief
 Rishadan Pawnshop
+Robaran Mercenaries
+Rootbound Crag
+Roterothopter
+Ruin Crab
+Runed Stalactite
 Rushwood Legate
 Saber Ants
 Scarwood Bandits
 Scent of Cinder
+Scepter of Fugue
 Scissors Lizard
+Scorch the Fields
 Screeching Drake
+Sea Kings' Blessing
 Seismic Stomp
 Shield-Wall Sentinel
 Shipwreck Moray
+Shockmaw Dragon
 Shu Yun, the Silent Tempest
+Sigil of Distinction
 Silvanus's Invoker
+Silverflame Ritual
+Singer of Swift Rivers
+Siren Song Lyre
 Skirsdag Flayer
 Skyboon Evangelist
 Snooping Newsie
@@ -113,12 +204,16 @@ Song of the Worldsoul
 Spark Harvest
 Squirrel Mob
 Steeple Creeper
+Stone Haven Pilgrim
 Stoneshock Giant
+Sun Clasp
+Sunken Field
 Swamp
 Swamp Mosquito
 Szarekh, the Silent King
 Terra Eternal
 The Mightstone and Weakstone
+Thoughtseize
 Tiger Claws
 Tilonalli's Crown
 Topan Ascetic
@@ -126,7 +221,15 @@ Trestle Troll
 Tunneling Geopede
 Two-Headed Dragon
 Ulcerate
+Ulvenwald Oddity
 Unruly Mob
 Urza's Command
 Vance's Blasting Cannons
 Vedalken Infuser
+Veinwitch Coven
+Vexing Devil
+Virulent Swipe
+Wall of Tears
+Warchanter Skald
+Windbrisk Heights
+Zuberi, Golden Feather

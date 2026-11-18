@@ -19,12 +19,14 @@ Auriok Sunchaser
 Auspicious Ancestor
 Baloth Prime
 Barrel Down Sokenzan
+Birthing Pod
 Blade of the Bloodchief
 Blood Knight
 Bloodhall Priest
 Bloodscale Prowler
 Blue Scarab
 Boros Mastiff
+Boulder Salvo
 Brimstone Dragon
 Brindle Shoat
 Bringer of the Blue Dawn
@@ -50,6 +52,7 @@ Crossroads Candleguide
 Curse of Shallow Graves
 Cutthroat Negotiator
 Cyclopean Snare
+Cyclops Superconductor
 Cystbearer
 Dark Temper
 Deadly Dispute
@@ -58,10 +61,12 @@ Declare Dominance
 Despondent Killbot
 Dirty Rat
 Divebomber Griffin
+Domri's Ambush
 Dragon Bell Monk
 Dragon Hatchling
 Dralnu's Crusade
 Eel-Hounds
+Elven Bow
 Empty the Warrens
 Empyrial Armor
 Enigma Eidolon
@@ -69,6 +74,7 @@ Faithless Looting
 Fast Forward
 Feast of Dreams
 Fencing Ace
+Festering Wound
 Flowstone Crusher
 Force of Savagery
 Forest
@@ -85,6 +91,7 @@ Goblin Firebug
 Graceful Cat
 Grappling Sundew
 Grave Betrayal
+Gravity Well
 Greenseeker
 Grizzly Ghoul
 Harrow
@@ -97,9 +104,11 @@ Jhessian Infiltrator
 Junk Golem
 Kami of False Hope
 Kami of Fire's Roar
+Karakas
 Kavu Chameleon
 Killer Bees
 King Crab
+Kithkin Mourncaller
 Knight of Dawn's Light
 Lava Axe
 Leela, Sevateem Warrior
@@ -122,6 +131,7 @@ Monster Manual
 Moss Kami
 Mountain
 Necra Sanctuary
+Necroblossom Snarl
 Necrogen Spellbomb
 Necrosquito
 Nested Shambler
@@ -133,6 +143,7 @@ Noble Panther
 Nullmage Advocate
 Nyxborn Hydra
 Open the Vaults
+Orochi Soul-Reaver
 Orzhov Racketeers
 Paradise Mantle
 Pardic Arsonist
@@ -148,6 +159,7 @@ Portal to Phyrexia
 Possessed Aven
 Psionic Blast
 Pyretic Charge
+Quandrix Pledgemage
 Quickening Licid
 Rally the Ranks
 Ransack
@@ -171,6 +183,7 @@ Shambling Goblin
 Shessra, Death's Whisper
 Shrieking Affliction
 Silent Specter
+Sivriss, Nightmare Speaker
 Skulltap
 Skyhunter Cub
 Skyhunter Prowler
@@ -187,6 +200,7 @@ Spontaneous Combustion
 Steadfast Unicorn
 Stitched Drake
 Stony Strength
+Storm of Memories
 Sunset Revelry
 Sunspire Griffin
 Swamp

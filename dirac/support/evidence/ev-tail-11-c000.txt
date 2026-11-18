@@ -40,6 +40,7 @@ Aven Heartstabber
 Azami, Lady of Scrolls
 Azusa's Many Journeys
 Bag End Porter
+Baku Altar
 Bane Alley Blackguard
 Barbarian Lunatic
 Barrenton Cragtreads
@@ -211,6 +212,7 @@ Hideous Visage
 Highland Weald
 Hithlain Knots
 Hovermyr
+Icequake
 Icy Prison
 Idyllic Beachfront
 Ikiral Outrider
@@ -359,6 +361,7 @@ Sanctum Weaver
 Sanguine Statuette
 Sanity Gnawers
 Scouring Sands
+Scrapyard Recombiner
 Seachrome Coast
 Secrets of the Key
 Seedcradle Witch
@@ -440,6 +443,7 @@ Thicket Crasher
 Thrash
 Three Dreams
 Tibalt, Rakish Instigator
+Tidebinder Mage
 Tidepool Turtle
 Timid Drake
 Tomakul Honor Guard
@@ -457,12 +461,14 @@ True Conviction
 True Polymorph
 Trueheart Duelist
 Tune the Narrative
+Ugin's Conjurant
 Ugin's Construct
 Ulamog, the Ceaseless Hunger
 Ulcerate
 Unagi's Spray
 Unconventional Tactics
 Unnatural Speed
+Usher of the Fallen
 Vampire Opportunist
 Vermiculos
 Viashino Sandstalker
@@ -473,9 +479,11 @@ Voice of Law
 Voidmage Prodigy
 Voracious Vampire
 Vorstclaw
+Walking Sponge
 Wall of Limbs
 Wash Out
 Waste Away
+Watcher of Hours
 Weapons Trainer
 Welding Jar
 Welkin Hawk

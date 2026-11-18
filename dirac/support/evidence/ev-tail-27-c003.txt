@@ -2,32 +2,47 @@ A-Blood Artist
 A-Umara Mystic
 Alpine Watchdog
 Amarant Coral
+Ancient Crab
 Apex Hawks
 Arc Runner
+Argothian Wurm
 Arrogant Outlaw
+Arrows of Justice
 Avatar of Woe
 Azorius First-Wing
 Barbed Lightning
 Bee Sting
+Bident of Thassa
 Blasphemous Act
 Blight Keeper
 Boros Recruit
 Boseiju Reaches Skyward
+Brink of Disaster
+Broken Ambitions
 Bronzebeak Moa
 Brotherhood Outcast
 Brushstrider
+Buried Alive
 Burning Sands
+Canopy Dragon
+Captured Sunlight
+Cathar's Shield
+Conclave Naturalists
 Crimson Fleet Commodore
 Crimson Muckwader
 Damnation
 Deal Gone Bad
 Deathforge Shaman
+Deft Duelist
 Demonic Taskmaster
+Dispersing Orb
 Douser of Lights
 Drana's Chosen
+Dwarven Lieutenant
 Edea, Possessed Sorceress
 Elemental Uprising
 Elven Warhounds
+Elvish Hunter
 Entomber Exarch
 Erratic Cyclops
 Evolved Sleeper
@@ -37,39 +52,51 @@ Ferropede
 Finishing Blow
 Flameborn Hellion
 Flaring Flame-Kin
+Flowstone Giant
 Font of Vigor
 Forest
 Frogtosser Banneret
 Frondland Felidar
+Fruition
 Gaea's Might
 Geistflame
 Giant Ladybug
 Glint-Horn Buccaneer
 Glistening Deluge
+Goblin Dark-Dwellers
 Goblin Razerunners
 Goblin Trailblazer
+God-Favored General
+Gossamer Phantasm
 Guul Draz Specter
+Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
+High Alert
 Hobgoblin Dragoon
 Hollowsage
 Hornet Queen
 Hungry Ridgewolf
 Hypnotic Cloud
+Ichorclaw Myr
 Idyllic Tutor
+Increasing Confusion
 Infectious Horror
 Inflame
 Inquisitive Puppet
 Invoke Despair
 Island
 Joven
+Kangee, Sky Warden
 Lagac Lizard
 Lamentation
 Maestros Initiate
 Major Teroh
+Marauding Raptor
 Mardu Blazebringer
 Marker Beetles
 Mary Read and Anne Bonny
+Metallic Sliver
 Mishra's Bauble
 Mobilization
 Monstrous Growth
@@ -78,9 +105,11 @@ Mountain
 Natural Reclamation
 Nirkana Assassin
 Offalsnout
+Old Ghastbark
 Overload
 Pangosaur
 Paradise Druid
+Pardic Collaborator
 Phoenix of Ash
 Phyrexian Pegasus
 Pilgrim of the Ages
@@ -93,6 +122,7 @@ Rise of the Hobgoblins
 Rite of Flame
 Rogue Elephant
 Rotlung Reanimator
+Sarcomite Myr
 Scorch Spitter
 Seashell Cameo
 Selesnya Signet
@@ -106,6 +136,7 @@ Staff of the Flame Magus
 Sticky Fingers
 Stinging Hivemaster
 Storm-Kiln Artist
+Stormcloud Spirit
 Stun
 Stunning Shot
 Survivor of Korlis
@@ -116,6 +147,7 @@ Sylvok Explorer
 Thallid Shell-Dweller
 The Locust God
 Third Path Iconoclast
+Thirsting Roots
 Three Tragedies
 Thrull Retainer
 Tonic Peddler

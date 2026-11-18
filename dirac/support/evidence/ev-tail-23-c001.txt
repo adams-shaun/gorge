@@ -68,6 +68,7 @@ Celestial Force
 Ceremonial Knife
 Charging Slateback
 Chrome Steed
+Cinder Glade
 Cleon, Merry Champion
 Clockwork Condor
 Cloud Sprite
@@ -256,6 +257,7 @@ Niall Silvain
 Night Market Lookout
 Nimbleclaw Adept
 Nivix Barrier
+No One Left Behind
 Obscura Storefront
 Okina, Temple to the Grandfathers
 Ondu Greathorn
@@ -318,6 +320,7 @@ Serpentine Ambush
 Serra's Guardian
 Shared Trauma
 Shattering Pulse
+Shivan Branch-Burner
 Shuri, the Black Panther
 Sidewinder Naga
 Siege Mastodon
@@ -383,6 +386,7 @@ Valor of the Worthy
 Vampirism
 Vebulid
 Vengeful Devil
+Venomous Fangs
 Verdant Sun's Avatar
 Viashino Branchrider
 Vincent, Vengeful Atoner

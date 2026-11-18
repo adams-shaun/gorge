@@ -1,0 +1,46 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Abzan Falconer	a0f199954fd3e226	8	1/1		0/1	ix:resp
+Alchemax Slayer-Bots	d827af28804e1fe4	4	1/1		0/1	ix:resp
+Aura Thief	4584dd11fa27ddcb	4	1/1		1/1	
+Banshee's Blade	0b1c2071444199c5	5	2/2		0/1	ix:resp
+Bayek of Siwa	9433e5f51f27a989	6	0/0		1/2	cast/alt:disguised
+Bloom Hulk	c14ecbd34044674a	6	1/1		0/1	ix:resp
+Brain Freeze	bef0b57812d4cb10	4	1/1		2/2	
+Breya's Apprentice	6dc170bc8e54ccc5	4	2/2		0/1	ix:resp
+Chaotic Backlash	e10cc29357eaea99	4	0/0		1/2	ix:resp
+Charging Cinderhorn	0042b8398b255635	4	1/1		0/1	ix:resp
+Clash of Realities	5b918c44a14b0c89	4	0/0		0/0	
+Cloudheath Drake	30e3026b0d155100	5	1/1		1/1	
+Corridor Monitor	38b50d69d84e0c61	4	1/1		1/1	
+Deathless Angel	e7560bdd645bfe5f	4	1/1		0/1	ix:resp
+Depart the Realm	9deb347bcfb33f4a	12	0/0		3/4	cast/alt:foretold
+Desert of the Mindful	f3a4c9b575ad5863	4	2/2		0/1	ix:resp
+Dread Tiller	3b5452932aaa562f	4	2/2		0/1	ix:resp
+Dross Golem	aa2864928562dd53	6	0/0		0/0	
+Farsight Adept	73f147e94773f0c3	4	1/1		0/1	ix:resp
+Fever Charm	1d3b63ea2d79fd23	4	0/0		1/2	ix:resp
+Foul Familiar	ae8477deb8c1fa38	8	1/1		1/1	
+Furtive Homunculus	167dd328f5abbaa6	4	0/0		0/0	
+Gimli, Mournful Avenger	8073f8570f10a969	6	1/1		0/1	ix:resp
+Goblin War Strike	c5d7dddbd2c4dc57	4	0/0		1/2	ix:resp
+Immaculate Magistrate	7b35619da69bd083	4	1/1		1/1	
+Instill Energy	0559ba0e3f853fae	4	1/1		2/2	
+Memory Lapse	f368eef37c2781dd	4	0/0		1/2	ix:resp
+Mystic Subdual	6caff732b1189b29	9	0/0		1/2	ix:resp
+Nahiri's Stoneblades	881fa453ae426509	4	0/0		1/2	ix:resp
+Paladin's Shield	0c5fb7698b248897	4	2/2		0/1	ix:resp
+Pegasus Stampede	8d7db600b84e774b	4	0/0		4/4	
+Pore Over the Pages	bf4c7ebc562bb68e	8	0/0		1/2	ix:resp
+Priest of the Wakening Sun	40d32e1367aab109	18	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Reflexes	57e404b27650ff38	4	0/0		1/2	ix:resp
+Ruinous Gremlin	d0431fd9dcedb291	3	1/1		1/1	
+Salt Flats	faa18ceb25543d24	8	2/2		0/1	ix:resp
+Shivan Wumpus	6126a86608ac7cfe	20	1/1		0/1	ix:resp
+Siege Modification	51e769347a9543a8	4	0/0		1/2	ix:resp
+Stony Silence	4131058f50ed83c7	5	0/0		0/0	
+Tangle Angler	69b15cf2474baa0a	30	1/1		1/1	
+Thriving Grove	08e9a3f74bc9d816	8	1/1		0/1	ix:resp
+Triumphant Surge	628f30175dc29144	4	0/0		1/2	ix:resp
+Vigilance	13056580731387a3	4	0/0		1/2	ix:resp
+Void Snare	7a8125648e9e1d03	10	0/0		2/2	
+Woodweaver's Puzzleknot	e837bdd1e9fe7008	4	2/2		0/1	ix:resp

@@ -48,9 +48,11 @@ Blood Curdle
 Blood Servitor
 Bloodcrazed Paladin
 Bloodfire Expert
+Bloodtithe Harvester
 Body of Knowledge
 Boiling Seas
 Bonded Horncrest
+Book Burning
 Book of Mazarbul
 Brain Maggot
 Brassclaw Orcs
@@ -147,6 +149,7 @@ Forest
 Foundry of the Consuls
 Fountain of Ichor
 Francisco, Fowl Marauder
+Freyalise's Radiance
 Frillscare Mentor
 Frostwind Invoker
 Gaea's Avenger
@@ -173,6 +176,7 @@ Growth Spasm
 Guardian of Cloverdell
 Guma
 Gurgling Anointer
+Gutter Grime
 HONK!
 Hada Freeblade
 Hagra Sharpshooter
@@ -184,6 +188,7 @@ Hematite Golem
 Hexgold Slith
 Hidden Ancients
 Hijack
+Holy Mantle
 Hope Against Hope
 Hope Charm
 Hopping Automaton
@@ -257,6 +262,7 @@ Necromancer's Assistant
 Needleshot Gourna
 Needletooth Raptor
 Nemesis of Mortals
+Nerd Rage
 Nesting Wurm
 Netherborn Altar
 Nimble Pilferer

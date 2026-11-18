@@ -29,6 +29,7 @@ Assimilate Essence
 Atreus, Impulsive Son
 Aven Gagglemaster
 Awesome Presence
+Azorius Skyguard
 Back to Basics
 Back to Nature
 Baleful Beholder
@@ -49,6 +50,7 @@ Blessing
 Bloated Toad
 Bloodrage Vampire
 Bloodtracker
+Boar Umbra
 Boros Cluestone
 Boros Reckoner
 Brackwater Elemental
@@ -134,6 +136,7 @@ Dáin's Company
 Eagle of Deliverance
 Earth Servant
 Earth-Origin Yak
+Echoing Decay
 Elemental Appeal
 Elixir of Immortality
 Elvish Warrior
@@ -147,11 +150,13 @@ Epicenter
 Essence Infusion
 Eternal Flame
 Etherium Sculptor
+Ethersworn Sphinx
 Excise
 Excise the Imperfect
 Execute
 Exemplar of Strength
 Expedition Champion
+Experiment Kraj
 Extract the Truth
 Eyes of the Wisent
 Ezio, Blade of Vengeance
@@ -251,6 +256,7 @@ Knowledge Is Power
 Kokusho, the Evening Star
 Koskun Falls
 Krav, the Unredeemed
+Krile Baldesion
 Kruphix's Insight
 Landscaper Colos
 Lava Hounds
@@ -329,11 +335,13 @@ Oketra's Last Mercy
 One with the Machine
 Onslaught
 Opportunity
+Orchard Strider
 Otarian Juggernaut
 Outnumber
 Overgrown Battlement
 Pact of the Titan
 Path of Discovery
+Pearl Lake Ancient
 Phase Dolphin
 Phyrexian Ironworks
 Phyrexian Walker
@@ -346,6 +354,7 @@ Planar Cleansing
 Poison the Blade
 Power Plant Worker
 Power of Fire
+Priest of the Haunted Edge
 Pyrohemia
 Qarsi High Priest
 Quagmire Druid
@@ -402,6 +411,7 @@ Serum Snare
 Setessan Battle Priest
 Setessan Training
 Shard of the Nightbringer
+Sigil of the Nayan Gods
 Sigiled Starfish
 Silent Specter
 Silver Erne
@@ -438,8 +448,10 @@ Stun Sniper
 Sudden Insight
 Sulfurous Blast
 Sultai Skullkeeper
+Sumala Rumblers
 Sun Ce, Young Conquerer
 Swamp
+Sword of Fire and Ice and War and Peace
 Sylvok Explorer
 Syphon Flesh
 Tainted Strike
@@ -478,6 +490,7 @@ Tymora's Invoker
 Uktabi Efreet
 Uncontrollable Anger
 Undead Slayer
+Undergrowth Champion
 Unfathomable Truths
 Unliving Psychopath
 Urza's Rage

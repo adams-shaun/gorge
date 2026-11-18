@@ -44,6 +44,7 @@ Feral Shadow
 Fiery Impulse
 Firewing Phoenix
 Flame Slash
+Footbottom Feast
 Forest
 Gaea's Gift
 Geist of the Moors
@@ -79,6 +80,7 @@ Orthion, Hero of Lavabrink
 Orzhov Enforcer
 Overwhelming Encounter
 Pawn of Ulamog
+Phantom Tiger
 Plains
 Plated Crusher
 Porcelain Legionnaire
@@ -115,12 +117,14 @@ Thraben Watcher
 Thrull Parasite
 Tinder Wall
 Tura Kennerüd, Skyknight
+Turtleshell Changeling
 Tyvar's Stand
 Tyvar, the Pummeler
 Unbounded Potential
 Unsubstantiate
 Urborg Uprising
 Wave-Wing Elemental
+Wickerbough Elder
 Wildheart Invoker
 Windstorm Drake
 Wood Elves

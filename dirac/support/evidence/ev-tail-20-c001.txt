@@ -1,10 +1,12 @@
 A-Sprouting Goblin
+Aesthir Glider
 Airborne Aid
 Akoum Stonewaker
 Ambitious Assault
 Amrou Seekers
 Anafenza, Kin-Tree Spirit
 Annex
+Annihilate
 Appeal
 Arbaaz Mir
 Archdemon of Paliano
@@ -21,101 +23,168 @@ Blisterpod
 Blood Hound
 Blood Petal Celebrant
 Bloodstained Mire
+Break of Day
 Breya's Apprentice
+Briarbridge Tracker
+Brilliant Wings
+Broadside Bombardiers
 Bruse Tarl, Boorish Herder
+Burrowing Razormaw
 Bushmeat Poacher
+Callaphe, Beloved of the Sea
 Captain America, Unbowed
+Capture Sphere
+Carapace
 Careful Consideration
+Carnivorous Plant
+Catacomb Slug
 Catalyst Elemental
 Celestial Gatekeeper
 Chalice of the Void
 Chance-Met Elves
 Chandler
 Chatter of the Squirrel
+Chieftain en-Dal
 Childhood Horror
 Cleansing Wildfire
 Cloak of Feathers
+Coffin Purge
+Combat Courier
 Conclave Naturalists
 Connive
+Consuming Corruption
+Cosmos Elixir
 Counsel of the Soratami
 Cranial Plating
 Crossbow Ambush
 Crowd of Cinders
+Crypt Champion
 Curse of Inertia
 Daily Bugle Newspaper
+Dance of Many
 Danitha Capashen, Paragon
+Daring Saboteur
+Dawnstrike Paladin
 Deathbellow War Cry
+Deem Inferior
 Deluge
 Dematerialize
+Demonic Gifts
+Deserted Temple
 Devastation
 Devout Witness
 Diregraf Scavenger
+Dirtcowl Wurm
+Doc Ock, Evil Inventor
 Doomsday
+Dragon Egg
 Dreamcatcher
 Drifting Djinn
+Drownyard Lurker
+Druid Lyrist
 Dusk
 Duskrider Falcon
+Dust Bowl
 Eidolon of the Great Revel
+Eiganjo Free-Riders
+Elder Gargaroth
 Elder of Laurels
+Eldritch Evolution
 Embereth Skyblazer
+Envelop
 Excavation Technique
+Expansion
+Extraction Specialist
 Falkenrath Perforator
 Fallowsage
 False Memories
+False Prophet
 Field of Reality
 Fire Nation's Conquest
 Flay
 Folk Medicine
 Forest
 Frenzied Fugue
+Frogmyr Enforcer
+Frost Augur
+Frost Walker
 Fulminator Mage
+Gadwick, the Wizened
 Gallant Cavalry
 Galvanic Bombardment
+Gate to Phyrexia
+Gearsmith Guardian
 Geistcatcher's Rig
 Ghosts of the Damned
 Giant Strength
+Gisa and Geralf
 Gisa's Bidding
 Glimmerbell
 Goblin Cohort
 Goblin Piker
+Gold-Forged Thopteryx
+Grappler Spider
 Grasslands
+Gravitational Shift
 Green Goblin, Nemesis
 Greenhilt Trainee
+Grumgully, the Generous
 Guardian of Pilgrims
+Guardian of the Ages
 Gudul Lurker
+Guiding Bolt
 Hapatra's Mark
+Haunter of Nightveil
 Healer of the Pride
+Herald of Dromoka
 Hero's Blade
+Hero's Demise
 Hexplate Golem
+Hissing Miasma
 Hit-Monkey
+Honed Khopesh
 Hornet Cannon
 Huatli, the Sun's Heart
 Hulking Goblin
+Hunted Horror
 Hypnotic Grifter
+Ichorspit Basilisk
 Implement of Examination
 Increasing Vengeance
 Infected Defector
 Infernal Idol
+Invasion of Shandalar
 Irenicus's Vile Duplication
 Island
+Isolation Zone
 Isperia, Supreme Judge
+Istvan, Butcher of Eln
+Jeska's Will
 Jet Medallion
 Jokulhaups
 Jolrael's Favor
+Kingfisher
 Kitesail
 Kithkin Zealot
+Knight-Captain of Eos
 Kor Firewalker
+Kor Line-Slinger
 Kragma Warcaller
 Lathnu Sailback
 Ledev Guardian
 Life Finds a Way
 Lightning Prowess
 Lightning Talons
+Liliana's Mastery
+Livewire Lash
 Loyal Fire Sage
+Lurking Predators
 Ma Chao, Western Warrior
 Madrush Cyclops
 Majestic Heliopterus
 Manic Vandal
+Mark of Asylum
+Matsu-Tribe Decoy
 Maw of the Obzedat
 Merrow Wavebreakers
 Mind Control
@@ -123,17 +192,24 @@ Mindclaw Shaman
 Mindcrank
 Mine Bearer
 Minotaur Aggressor
+Mirri's Guile
 Mise
 Mizzium Meddler
 Mogis's Favor
 Mons's Goblin Raiders
 Moonglove Extract
+Mortarpod
 Mountain
 Mourning Thrull
+Mystic Repeal
+Nardole, Resourceful Cyborg
+Nature's Claim
+Needle Specter
 Nether Void
 Nightmares and Daydreams
 Nissa's Encouragement
 Null Rod
+Oaken Brawler
 Oath of Gideon
 Oculus
 Off Balance
@@ -144,87 +220,148 @@ Onyx Goblet
 Oran-Rief Hydra
 Orcish Oriflamme
 Original Skullclamp
+Orzhov Locket
+Panharmonicon
+Pardic Swordsmith
 Patagia Golem
+Patrician's Scorn
+Peach Garden Oath
 Phantom Ninja
+Phyrexian Bloodstock
 Phyrexian Espionage
 Pilfered Plans
+Pious Kitsune
 Plains
+Planequake
+Plate Armor
+Popular Entertainer
 Precision Bolt
 Predator's Rapport
+Presence of the Wise
 Princess Lucrezia
 Prohibit
+Prowling Caracal
 Rathi Dragon
 Reflections of Littjara
 Reforge the Soul
 Revered Dead
 Rhox Charger
+Riddlemaster Sphinx
 Rishadan Port
+Rite of Harmony
 River Boa
+Riverwheel Aerialists
+Roaming Ghostlight
 Roar of the Wurm
+Rolling Stones
 Rootless Yew
 Rowan, Fearless Sparkmage
 Rummaging Wizard
+Runechanter's Pike
 Runed Crown
+Rushwood Dryad
 Sacred Knight
+Sakura-Tribe Springcaller
+Scab-Clan Mauler
 Scavenger Grounds
 Scour the Laboratory
 Scourgemark
 Scroll of Griselbrand
 Seasoned Marshal
+Second Harvest
+Seize the Initiative
 Selhoff Occultist
+Senate Guildmage
 Sentry Bot
 Serene Heart
 Servo Schematic
+Shadow Alley Denizen
 Shield of the Ages
 Shinechaser
 Shower of Arrows
 Shriekhorn
 Silent Submersible
 Silkwing Scout
+Silver Raven
 Silverbluff Bridge
+Sinstriker's Will
+Skeletal Changeling
 Skyclaw Thrash
+Skyshroud Archer
 Slaughter-Priest of Mogis
 Sleeper Dart
 Snapsail Glider
 Solphim, Mayhem Dominus
 Soothsayer Adept
+Spatial Contortion
 Spikeshot Elder
 Spite of Mogis
 Spitting Sliver
+Spoils of Blood
 Squad Captain
 Staff of the Death Magus
 Starnheim Memento
+Steady Aim
+Stirring Bard
 Stone Spirit
+Stonehands
+Stonehorn Chanter
 Storm God's Oracle
 Structural Assault
+Sundial of the Infinite
 Sungrass Egg
 Swamp
 Swiftgear Drake
 Sylvan Might
 Syndicate Enforcer
 Tezzeret's Touch
+Thassa's Bounty
 The Blackstaff of Waterdeep
 Thraxodemon
+Time of Need
+Titania's Chosen
 Titanic Ultimatum
 Tramway Station
 Transmogrifying Licid
 Traproot Kami
 True Love's Kiss
 Trumpet Blast
+Trusty Retriever
 Turtle-Seals
+Undead Hand Ninja
 Undead Slayer
+Underworld Breach
+Unlikely Aid
 Urza's Incubator
 Utrom Monitor
+Vastwood Surge
+Vectis Agents
 Vigorspore Wurm
+Vivien, Champion of the Wilds
+Volatile Fjord
 Vulturous Aven
+Wakestone Gargoyle
 Wall of Lost Thoughts
 Wall of Spears
 Warren Weirding
 Waste Not
 Weapon Rack
+Weatherseed Treefolk
+Wee Dragonauts
+Wei Scout
+Weirding Wood
+Wellgabber Apothecary
 Whetstone
 Whimwader
+Whiteout
+Whitesun's Passage
 Wild Instincts
+Wildwood Patrol
+Wings of Hope
 Winter Eladrin
 Wintermoon Mesa
+Wonder
+Wretched Anurid
+Yavimaya Barbarian
 Zealous Inquisitor
+Zodiac Goat

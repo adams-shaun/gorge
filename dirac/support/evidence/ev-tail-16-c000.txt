@@ -25,10 +25,12 @@ Auriok Edgewright
 Automated Assembly Line
 Aven Trooper
 Awakened Awareness
+Awe Strike
 Baral's Expertise
 Barge In
 Barkchannel Pathway
 Barren Moor
+Battershield Warrior
 Battle Mammoth
 Beloved Chaplain
 Benthic Djinn
@@ -69,6 +71,7 @@ Chrome Prowler
 Claws of Wirewood
 Clay Statue
 Clergy en-Vec
+Cloaked Cadet
 Cloud Dragon
 Coastal Hornclaw
 Coercive Impetus
@@ -87,6 +90,7 @@ Dark Revenant
 Darkblade Agent
 Darkbore Pathway
 Darkness
+Daru Sanctifier
 Dauntless Survivor
 Dauntless Unity
 Dawntreader Elk
@@ -167,6 +171,7 @@ Garrison Cat
 Gathering Throng
 Ghirapur Gearcrafter
 Giant-Man, Gargantuan Genius
+Gladewalker Ritualist
 Glissa, the Traitor
 Glowrider
 Gluttonous Cyclops
@@ -305,9 +310,11 @@ Parish-Blade Trainee
 Peer into the Abyss
 Permission Denied
 Pestilent Cauldron
+Phantasmal Image
 Phantom Whelp
 Phyrexian Scriptures
 Pillardrop Warden
+Plague Boiler
 Plague Sliver
 Plains
 Priest of the Crossing
@@ -401,6 +408,7 @@ Sunspire Griffin
 Suntail Hawk
 Survey the Wreckage
 Swamp
+Sword of Body and Mind
 Sylvan Paradise
 Sylvan Reclamation
 Synchronized Spellcraft

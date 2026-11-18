@@ -1,0 +1,5 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Inside Out	096d7df4f6366849	19	0/0		2/2	
+Into the North	896ac07cf125c5b6	42	0/0		2/2	
+Laccolith Rig	3498a0eace1cb592	23	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
+Rust Tick	4907e82ccff4ab39	4	1/1		0/1	ix:resp

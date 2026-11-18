@@ -1,19 +1,26 @@
 A-Elderleaf Mentor
 A-Nael, Avizoa Aeronaut
+A-You Come to a River
+Absolute Law
 Abundant Countryside
 Acidic Sliver
 Adeliz, the Cinder Wind
+Aeolipile
+Aerial Boost
 Aether Spike
 Akki Rockspeaker
 Alchemist's Refuge
+Alibou, Ancient Witness
 Amass the Components
 Annex
 Arcane Denial
 Archmage's Charm
 Arlinn, Voice of the Pack
 Atraxa's Skitterfang
+Ballynock Trapper
 Beacon of Unrest
 Bedevil
+Benevolent Bodyguard
 Biogenic Ooze
 Black Widow, Natasha Romanoff
 Blade of Selves
@@ -29,9 +36,15 @@ Bramble Armor
 Branching Bolt
 Brazen Borrower
 Bright Reprisal
+Brood Sliver
 Brute Force
+Call to the Feast
 Cathar's Shield
 Cathedral Acolyte
+Celestial Enforcer
+Centaur Archer
+Cephalid Sage
+Chandra's Magmutt
 Chasm Skulker
 Choose Your Weapon
 Claws of Valakut
@@ -39,10 +52,16 @@ Cloaked Siren
 Codex Shredder
 Convolute
 Crovax, Ascendant Hero
+Cryoclasm
+Cunning Survivor
 Curse of Disturbance
+Cursebreak
+Darkmoss Bridge
 Dauthi Embrace
+Dauthi Mercenary
 Dawn Charm
 Daxos, Blessed by the Sun
+Death Pits of Rath
 Decimator Web
 Defabricate
 Destiny Spinner
@@ -53,6 +72,8 @@ Divination
 Divine Light
 Drake Familiar
 Dreamshackle Geist
+Dwarven Thaumaturgist
+Ebonblade Reaper
 Elder Druid
 Elder Gargaroth
 Elite Vanguard
@@ -60,34 +81,60 @@ Enchantmentize
 Encrust
 Energy Chamber
 Esper Panorama
+Expedition Diviner
 Faerie Impostor
+False Peace
 Fate Forgotten
+Fiend Hunter
+Flatline
 Footlight Fiend
 Forest
+Forsake the Worldly
 Foundry Assembler
+Foxfire
 Frantic Confrontation
 Fraying Omnipotence
+Frost Breath
+Fugitive Druid
 Gamble
 Gerrard's Battle Cry
+Ghost-Lit Warder
 Ghostly Changeling
 Giant Ankheg
 Gimli, Counter of Kills
+Gingerbehemoth
 Glint-Nest Crane
+Goatnapper
 Goblin Lore
 Graaz, Unstoppable Juggernaut
+Granger Guildmage
+Gravel Slinger
 Grayscaled Gharial
+Griselbrand
+Gruul Cluestone
 Hag of Noxious Nightmares
+Harmonic Sliver
+Hazerider Drake
 Hearth Kami
+Herald of War
 Herbology Instructor
+Hoofprints of the Stag
 Hookblade
+Hypnotic Grifter
 Hyrax Tower Scout
+Impaler Shrike
+In Oketra's Name
 Infantry Veteran
 Infernal Pet
 Inferno
+Inspiring Bard
 Iraxxa, Empress of Mars
+Iridescent Blademaster
+Iron-Craw Crusher
 Island
 Jadecraft Artisan
 Jeskai Barricade
+Jet Medallion
 Junktown
 Kaito's Pursuit
 Karlach, Fury of Avernus
@@ -96,19 +143,32 @@ Keeper of the Accord
 Killmonger, Ruthless Usurper
 Lab Rats
 Lady Spider, Maybelle Reilly
+Leaf Gilder
+Leery Fogbeast
 Leonin Armorguard
+Leyline of the Meek
 Linvala, the Preserver
+Living Lightning
 Longbow Archer
 Loyal Warhound
+Lu Meng, Wu General
+Lullmage's Familiar
+Lulu, Loyal Hollyphant
 Lush Growth
 Mace of the Valiant
 Magus of the Bazaar
+Marshal's Anthem
+Meatsqueak, Hoard Lord
 Megantic Sliver
+Meltdown
 Mindlash Sliver
+Mishra's Groundbreaker
 Mizzium Meddler
 Moira Brown, Guide Author
 Monoskelion
+Moonlit Wake
 Morale
+Morality Shift
 Mountain
 Mountain Valley
 Myojin of Cleansing Fire
@@ -117,76 +177,127 @@ Mystic Zealot
 Nantuko Tracer
 Nezumi Cutthroat
 Nine-Tail White Fox
+No-Dachi
+Oath of Ajani
 Obsidian Obelisk
+Olog-hai Crusher
 Opal Acrolith
 Order of Leitbur
 Ori, Plate Stacker
 Otherworldly Outburst
 Overwhelm
 Pain Distributor
+Pain Seer
+Patriarch's Desire
+Pest Rescuer
 Plains
+Planar Birth
 Predatory Wurm
+Primal Order
 Prohibit
+Reach of Branches
 Rebuke
 Reinforced Bulwark
+Reject Imperfection
 Repopulate
 Repulsor Rays
+Research Thief
+Reservoir Walker
 Rile
 Royal Talon Fighter Jet
+Sacred Rites
 Sadistic Obsession
 Samite Healer
+Saprazzan Raider
 Scout the Wilderness
 Scouting Hawk
 Sea Monster
+Seasoned Hallowblade
+Secretkeeper
 Seer of the Last Tomorrow
 Seething Song
 Selhoff Entomber
+Serra's Embrace
+Shaleskin Bruiser
+Shanodin Dryads
 She-Hulk, Attorney-at-Law
 Silence
+Silhana Starfletcher
 Silverquill Silencer
 Siren's Ruse
 Skyshroud Forest
+Sleeper Dart
 Slithery Stalker
 Smoldering Spires
+Snapping Sailback
 Soaring Hope
 Soul Stair Expedition
 Spellkeeper Weird
 Sphere Grid
 Sphinx of Enlightenment
 Spikeshot Goblin
+Spiketail Drake
 Spireside Infiltrator
 Spirit of Malevolence
 Spirit of the Night
 Spitting Hydra
 Sprouting Renewal
+Stave Off
+Stensia Uprising
 Stone Haven Pilgrim
 Storm Caller
+Stratadon
+Striped Bears
+Subterranean Shambler
+Sumala Woodshaper
 Swamp
 Swarmborn Giant
+Syphon Essence
 Syphon Mind
 Tablet of Epityr
+Tainted Aether
+Tectonic Fiend
+Tel-Jilad Outrider
+The Biblioplex
+The Blue Spirit
+The Falcon, Sam Wilson
 The Lady of Otaria
 Thorn of the Black Rose
+Thriving Grubs
+Thriving Rhino
 Thundering Ceratok
+Tidal Kraken
 Tiller of Flesh
+Titan of Eternal Fire
 Tor Wauki the Younger
 Tranquil Frillback
+Tree Monkey
 Tribal Flames
 Triclopean Sight
+Triton Waverider
 Twenty-Toed Toad
+Uktabi Drake
 Uncovered Clues
+Undercity Troll
 Unifying Theory
 Unwavering Initiate
 Utter End
+Valakut, the Molten Pinnacle
+Vibranium Strike Gauntlets
+Viridian Revel
 Vitalizing Cascade
 Vraska's Fall
 Watchful Giant
 Watchwolf
 Wave Elemental
 Weakstone's Subjugation
+Weathered Wayfarer
 Whip-Spine Drake
 Whisper, Blood Liturgist
 Wilt
+Witch's Vengeance
+Witches' Eye
+Worldly Counsel
 Wrap in Flames
 Wreck and Rebuild
 Wrecking Ball

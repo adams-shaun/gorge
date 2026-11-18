@@ -42,6 +42,7 @@ Big Mother Mouser
 Black Sun's Zenith
 Blessed Hippogriff
 Blighted Cataract
+Blind Obedience
 Blizzard Elemental
 Bloodgift Demon
 Blue Sun's Twilight
@@ -78,6 +79,7 @@ Coral Helm
 Court of Ambition
 Crashing Drawbridge
 Curious Killbot
+Curse of Stalked Prey
 Daze
 Death Pit Offering
 Deathbringer Thoctar
@@ -88,6 +90,7 @@ Diamond City
 Diamond Valley
 Dig Up the Body
 Dinosaur Egg
+Dinosaurs on a Spaceship
 Disperse
 Distorted Curiosity
 Diversionary Tactics
@@ -102,6 +105,7 @@ Dragonsguard Elite
 Dramatic Reversal
 Dream Thrush
 Dromoka Warrior
+Duskwielder
 Dying Wish
 Earth Rift
 Earthquake
@@ -199,6 +203,7 @@ Inspired Sprite
 Invasion of Xerex
 Invoke Despair
 Island
+Isu the Abominable
 Ith, High Arcanist
 Jacked Rabbit
 Jasconian Isle
@@ -279,6 +284,7 @@ Pearled Unicorn
 Pensive Minotaur
 Perish
 Petals of Insight
+Phantasmal Fiend
 Pippin's Bravery
 Plains
 Plated Crusher
@@ -325,6 +331,7 @@ Scurry Oak
 Scurry of Squirrels
 Scytheclaw
 Sealock Monster
+Search for Glory
 Searing Spear
 Secure Detention
 Seething Landscape

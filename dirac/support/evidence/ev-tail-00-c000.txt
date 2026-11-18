@@ -51,7 +51,9 @@ Celebrity Fencer
 Cephalid Broker
 Chain to Memory
 Chainwhip Cyclops
+Chandra, Acolyte of Flame
 Charging Rhino
+Charisma
 Chief of the Scale
 Chimney Goyf
 Chronomaton
@@ -64,6 +66,7 @@ Conviction
 Corrupted Harvester
 Crackling Club
 Crashing Centaur
+Cruel Reality
 Cryptic Pursuit
 Dampening Pulse
 Darkling Stalker
@@ -229,10 +232,12 @@ Light 'Em Up
 Light of Hope
 Llanowar Knight
 Loch Dragon
+Locthwain Paladin
 Lost in the Woods
 Lotho, Corrupt Shirriff
 Loyal Pegasus
 Magebane Armor
+Magma Opus
 Make Obsolete
 Malakir Familiar
 Mana Matrix
@@ -308,6 +313,7 @@ Retreat to Emeria
 Ridge Rannet
 Righteous Avengers
 Rishadan Footpad
+Rot Farm Skeleton
 Rule of Law
 Rush of Knowledge
 Russet Wolves
@@ -377,6 +383,7 @@ Sylvan Caryatid
 Sylvan Messenger
 Syphon Flesh
 Séance
+Taborax, Hope's Demise
 Talons of Falkenrath
 Taste of Death
 Tattered Haunter

@@ -5,9 +5,14 @@ Accursed Horde
 Adaptive Snapjaw
 Aerial Engineer
 Aether Adept
+Aether Inspector
 Aethersnipe
+Akroan Sergeant
 Alluring Suitor
+Alpha Tyrranax
+Anodet Lurker
 Answered Prayers
+Ant Queen
 Anurid Barkripper
 Arachnoform
 Arc Trail
@@ -38,23 +43,28 @@ Burning Hands
 Captain's Hook
 Carnage Wurm
 Carrion Call
+Cascade Seer
 Cessation
 Chaos Terminator Lord
 Cinder Barrens
 Claws of Valakut
 Cleanse
+Cleric of Chill Depths
 Clever Concealment
 Cloak and Dagger
+Clock of Omens
 Cone of Flame
 Confidence from Strength
 Conqueror's Pledge
 Consuming Corruption
+Containment Construct
 Corpse Cur
 Corrupted Resolve
 Crooked Custodian
 Cruel Witness
 Cystbearer
 Dark Prophecy
+Dawn Evangel
 Delraich
 Dire Fleet Warmonger
 Disciple of the Vault
@@ -67,17 +77,21 @@ Emergency Weld
 Enigmatic Incarnation
 Entropic Specter
 Essence Depleter
+Evolution Sage
 Exemplar of Strength
+Fervent Champion
 Fireflux Squad
 Fissure
 Fissure Vent
 Flaming Fist
 Flatten
+Fledgling Osprey
 Fleshpulper Giant
 Fling
 Flywheel Racer
 Forerunner of Slaughter
 Forest
+Forked Bolt
 Franklin Richards, Ascendant
 From Beyond
 Fungus Elemental
@@ -85,6 +99,7 @@ Furnace Spirit
 Gala Greeters
 Galvanic Juggernaut
 Gauntlet of Might
+Gaze of Justice
 Ghoulsteed
 Gleeful Demolition
 Glimpse the Unthinkable
@@ -93,11 +108,14 @@ Go for the Throat
 Gobland
 Goblin Diplomats
 Goblin Matron
+Goblin Mountaineer
 Goblin Scouts
+Goblin Sledder
 God-Eternal Bontu
 Goreclaw, Terror of Qal Sisma
 Grasp of Darkness
 Greater Auramancy
+Green Scarab
 Guardian Scalelord
 Hammerhead, Maggia Boss
 Hangarback Walker
@@ -106,7 +124,9 @@ Haunted Cadaver
 Heavyweight Demolisher
 Helm of the Host
 Herald of Anguish
+Here Comes a New Hero!
 High-Rise Sawjack
+Hindervines
 Horn of Gondor
 Hornet Sting
 Hovermyr
@@ -122,16 +142,22 @@ Invasion of Xerex
 Ishai, Ojutai Dragonspeaker
 Island
 Izzet Signet
+Jedit Ojanen, Mercenary
+Jousting Dummy
+Junk Winder
 Kamahl's Desire
 Kill-Zone Acrobat
 Kindly Customer
 Krosan Archer
 Leadership Vacuum
+Leaping Lizard
 Leonin of the Lost Pride
+Leyline of Sanctity
 Living Lands
 Loamcrafter Faun
 Looter il-Kor
 Lucid Dreams
+Lurebound Scarecrow
 Lurking Nightstalker
 Lys Alana Huntmaster
 Lyzolda, the Blood Witch
@@ -141,12 +167,15 @@ Manipulate Fate
 Marauding Looter
 Mardu Runemark
 Meteoric Mace
+Mishra's Command
+Mite Overseer
 Mogg Alarm
 Morkrut Banshee
 Mossbeard Ancient
 Mosstodon
 Mountain
 Mugging
+Myr Adapter
 Naru Meha, Master Wizard
 Nectar Faerie
 Needlethorn Drake
@@ -169,9 +198,12 @@ Pelakka Predation
 Perimeter Captain
 Petravark
 Petrifying Meddler
+Phantasmal Dreadmaw
 Phenomenon Investigators
 Pheres-Band Centaurs
 Phyrexian Denouncer
+Phyrexian Totem
+Piety
 Plains
 Polluted Mire
 Priests of Norn
@@ -181,17 +213,23 @@ Psychic Impetus
 Ral's Dispersal
 Reality Heist
 Reborn Hope
+Recall
 Resplendent Griffin
 Ridgescale Tusker
+Roilmage's Trick
 Sabertooth Outrider
 Sacred Armory
+Sage's Dousing
+Samite Archer
 Samut's Sprint
 Sandstorm
+Satyr Nyx-Smith
 Savai Sabertooth
 Scalding Devil
 Scholar of Athreos
 Scythecat Cub
 Separatist Voidmage
+Serene Steward
 Severed Legion
 Sewer Rats
 Shadow of Mortality
@@ -203,6 +241,7 @@ Shriek of Dread
 Silt Crawler
 Silver Raven
 Silverquill Lecturer
+Silverwing Squadron
 Simic Sky Swallower
 Singing Tree
 Skyshroud Lookout
@@ -227,6 +266,7 @@ Swamp
 Sweatworks Brawler
 Swelter
 Tajuru Stalwart
+Tatyova, Steward of Tides
 Temperamental Oozewagg
 Temporal Manipulation
 Thalia's Lancers
@@ -236,6 +276,7 @@ Thrummingbird
 Thunderscape Familiar
 Tidal Surge
 Tidepool Turtle
+Tome Raider
 Tracker's Instincts
 Traitor's Clutch
 Trench Stalker
@@ -250,6 +291,7 @@ Unbreathing Horde
 Undead Warchief
 Unicycle
 Unraveling Mummy
+Ursine Champion
 Urza's Guilt
 Viashino Firstblade
 Viashino Shanktail
@@ -262,8 +304,10 @@ Welder Automaton
 Weldfast Engineer
 Wings of Aesthir
 Wings of Hope
+Wolf's Quarry
 Wrangle
 Wrenn's Resolve
 Wyluli Wolf
 Yavimaya Scion
+Zephyr Scribe
 Zirilan of the Claw

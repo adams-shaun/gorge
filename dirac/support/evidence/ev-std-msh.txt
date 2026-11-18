@@ -118,6 +118,7 @@ Kree Commandos
 Kree Sentinel
 Lightning Strike
 Loki Laufeyson
+Loki, God of Mischief
 Los Diablos Missile Base
 Luke Cage, Power Man
 M.O.D.O.K.
@@ -202,6 +203,7 @@ The Ten Rings
 The Thing, Ben Grimm
 The Unbeatable Squirrel Girl
 The Vision
+The Wondrous Wasp
 Thirst for Knowledge
 Thor Odinson
 Thor, God of Thunder

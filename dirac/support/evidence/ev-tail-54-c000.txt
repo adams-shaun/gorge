@@ -53,6 +53,7 @@ Chaplain's Blessing
 Chill of Foreboding
 Chimeric Egg
 Cho-Arrim Legate
+Chronic Flooding
 City of Death
 Clarion Cathars
 Cloak of the Bat
@@ -71,6 +72,7 @@ Culling Sun
 Cultivator Colossus
 Cursed Land
 Cyclone Summoner
+Dark Depths
 Dark-Dweller Oracle
 Deathgreeter
 Deep Dish Pizza
@@ -85,6 +87,7 @@ Divination
 Djeru, With Eyes Open
 Downhill Charge
 Dramatic Rescue
+Drooling Ogre
 Drowner of Hope
 Earth Surge
 Earthblighter
@@ -233,6 +236,7 @@ Meteor Shower
 Mindstab Thrull
 Miss Highwater
 Mistcutter Hydra
+Momo's Heist
 Moonbow Illusionist
 Moonglove Winnower
 Moss Viper
@@ -321,6 +325,7 @@ Scalding Tarn
 Scarwood Bandits
 Scatter Ray
 Search Warrant
+Searing Barrage
 Secure the Wastes
 Seismic Spike
 Sengir Connoisseur
@@ -358,6 +363,7 @@ Solid Ground
 Soltari Visionary
 Soul of the Harvest
 Soul's Attendant
+Sphere of Annihilation
 Sphinx of New Prahv
 Spirit Bonds
 Spirit Weaver
@@ -394,6 +400,7 @@ Temple Bell
 Terra Ravager
 The Alright Henge
 The Duke, Rebel Sentry
+The Eldest Reborn
 Thornado
 Thousand-Year Elixir
 Thundermare
@@ -425,6 +432,7 @@ Vodalian Merchant
 Volcanic Spray
 Vraan, Executioner Thane
 Wall of Hope
+Wanderbrine Rootcutters
 War Priest of Thune
 Warhost's Frenzy
 Watercourser

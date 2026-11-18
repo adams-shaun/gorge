@@ -8,6 +8,7 @@ Aether Adept
 Aether Inspector
 Aethersnipe
 Akoum Refuge
+Alluring Suitor
 Angelic Gift
 Angler Turtle
 Answered Prayers
@@ -41,9 +42,11 @@ Boggart Forager
 Boil
 Bonded Construct
 Boon of Boseiju
+Bountiful Harvest
 Brawl-Bash Ogre
 Breaching Hippocamp
 Brimstone Volley
+Burning Fields
 Burning Hands
 Captain's Hook
 Carnage Wurm
@@ -53,7 +56,9 @@ Chaos Terminator Lord
 Choking Restraints
 Cinder Barrens
 Claws of Valakut
+Cleric of Chill Depths
 Cloak and Dagger
+Clock of Omens
 Clone
 Cloudheath Drake
 Coldsteel Heart
@@ -75,6 +80,7 @@ Disciple of the Vault
 Divine Smite
 Doomskar Titan
 Dragon-Cursed Halls
+Dread Slaver
 Dream Pillager
 Dross Crocodile
 Drownyard Explorers
@@ -85,6 +91,7 @@ Elfhame Palace
 Elvish Ranger
 Ember Hauler
 Emergency Weld
+Endless Sands
 Energy Bolt
 Enigmatic Incarnation
 Entrails Feaster
@@ -93,17 +100,20 @@ Essence Depleter
 Exemplar of Strength
 Faerie Swarm
 Fiddlehead Kami
+Fireflux Squad
 Fissure
 Fissure Vent
 Flaming Fist
 Flatten
 Fledgling Mawcor
+Fling
 Flusterstorm
 Flutterfox
 Flywheel Racer
 Forced Worship
 Forerunner of Slaughter
 Forest
+Forked Bolt
 Franklin Richards, Ascendant
 From Beyond
 Furnace Spirit
@@ -123,6 +133,7 @@ Goblin Diplomats
 Goblin Mountaineer
 Goblin Scouts
 God-Eternal Bontu
+Gold-Forged Sentinel
 Goreclaw, Terror of Qal Sisma
 Grasp of Darkness
 Grenzo, Havoc Raiser
@@ -133,6 +144,7 @@ Harvest Wurm
 Haunted Cadaver
 Havoc Devils
 Helm of the Host
+Hindervines
 Horizon Explorer
 Horn of Gondor
 Horned Stoneseeker
@@ -140,6 +152,7 @@ Hornet Sting
 Hovermyr
 Icatian Store
 Idle Thoughts
+Ill-Gotten Inheritance
 Illustrious Wanderglyph
 Immolating Souleater
 Imoti, Celebrant of Bounty
@@ -168,7 +181,9 @@ Liquify
 Living Lands
 Loamcrafter Faun
 Lucid Dreams
+Lurking Nightstalker
 Lys Alana Huntmaster
+Lyzolda, the Blood Witch
 Mage-Ring Network
 Mana Short
 Manipulate Fate
@@ -181,6 +196,7 @@ Mishra's Command
 Mite Overseer
 Mogg Alarm
 Moonlit Wake
+Mossbeard Ancient
 Mosstodon
 Motivated Pony
 Mountain
@@ -200,8 +216,10 @@ Oni of Wild Places
 Organ Grinder
 Ornithopter
 Overload
+Pack's Betrayal
 Painful Lesson
 Painwracker Oni
+Paradox Zone
 Park Heights Pegasus
 Pelakka Predation
 Penumbra Wurm
@@ -235,10 +253,12 @@ Sandstorm
 Satyr Hoplite
 Scalding Devil
 Scholar of Athreos
+School of the Unseen
 Scythecat Cub
 Separatist Voidmage
 Serene Steward
 Setessan Starbreaker
+Severed Legion
 Sewer Rats
 Shadow Summoning
 Shadow of Mortality
@@ -271,6 +291,7 @@ Steelfin Whale
 Stolen Grain
 Stolen Vitality
 Strength from the Fallen
+Sunbringer's Touch
 Sunken Hope
 Swamp
 Sweatworks Brawler
@@ -294,6 +315,7 @@ Traitor's Clutch
 Treetop Bracers
 Trench Stalker
 Tribute to Horobi
+Trigon of Corruption
 Trostani's Summoner
 Trufflesnout
 Tunneler Wurm
@@ -321,6 +343,7 @@ Wanderer's Intervention
 War Report
 War-Torch Goblin
 Water Servant
+Weatherlight
 Weight of the Underworld
 Welder Automaton
 Weldfast Engineer
@@ -330,6 +353,7 @@ White Sun's Zenith
 Wild Celebrants
 Wings of Aesthir
 Wings of Hope
+Wolf's Quarry
 Woodland Bellower
 Wrangle
 Wrenn's Resolve

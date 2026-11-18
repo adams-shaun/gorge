@@ -1,3 +1,4 @@
+A-Celestial Regulator
 A-Falcon Abomination
 A-Manticore
 A-Ready to Rumble
@@ -16,98 +17,152 @@ Aspect of Gorgon
 Azorius Cluestone
 Balshan Beguiler
 Barrage Ogre
+Basilica Guards
+Beckon Apparition
+Big Mother Mouser
 Blessed Hippogriff
+Bola Slinger
 Bonds of Faith
+Bone Shards
 Brazen Wolves
+Breath of Fire
+Bringer of the Black Dawn
 Bringer of the Blue Dawn
 Broodstar
 Burning Cloak
+Caress of Phyrexia
+Carrion Grub
+Cast into Darkness
 Cateran Kidnappers
+Cavalier of Flame
 Consulate Turret
 Coral Helm
+Deathbringer Thoctar
+Deathforge Shaman
+Dematerialize
 Dig Up the Body
+Dinosaur Egg
+Disperse
 Diversionary Tactics
 Dominating Licid
 Doomed Dissenter
 Drag to the Bottom
 Dragon Arch
+Dying Wish
 Earthquake
 Eidolon of Astral Winds
 Elven Rite
+Embrace the Unknown
+Exclude
+Exotic Curse
 Expendable Lackey
 Explosive Apparatus
 Faith Unbroken
 Farfinder
 Fen Stalker
+Fervent Cathar
 Fever Charm
 Fleeting Memories
 Flickerwisp
 Forest
 Forest Bear
 Foundry Inspector
+Frogify
 Ganax, Astral Hunter
 Geist of the Moors
 Ghitu Chronicler
+Ghostfire Slice
+Gift of the Deity
 Gigapede
 Gravecrawler
 Hammerhead, Maggia Boss
 Harbor Serpent
 Harrier Griffin
+Hellraiser Goblin
 Herald of Dromoka
 Heron-Blessed Geist
 Hormagaunt Horde
 Hydrosurge
 Illness in the Ranks
+Inspired Sprite
+Invoke Despair
 Island
+Isu the Abominable
 Ith, High Arcanist
+Keen Glidemaster
 Keep Safe
 Keldon Halberdier
 Kinjalli's Caller
+Kiss of the Amesha
+Kodama of the West Tree
 Lava Coil
+Lavastep Raider
 Leering Gargoyle
 Lifecrafter's Bestiary
+Lithatog
+Lodestone Golem
 Lunarch Mantle
+Marker Beetles
 Masterwork of Ingenuity
+Maw of the Mire
 Melancholy
+Merchant of Truth
 Merciless Repurposing
+Mesa Unicorn
+Midnight Assassin
 Mikaeus, the Lunarch
+Mind Sludge
 Misers' Cage
+Mold Folk
 Mountain
 Murmuring Mystic
+Night of Souls' Betrayal
 Nip Gwyllion
 Oblivion Strike
 Orazca Raptor
 Ordeal of Purphoros
+Origin of the Hidden Ones
 Orim's Touch
 Pensive Minotaur
+Perish
 Pippin's Bravery
 Plains
 Plated Crusher
 Power of Fire
 Prakhata Club Security
+Precognition
+Professor's Warning
 Psychosis Crawler
 Puppet Master
 Pure Reflection
+Pursued Whale
 Raise the Palisade
 Rapid Decay
 Recruiter of the Guard
 Return Upon the Tide
 Revitalize
+Reyhan, Last of the Abzan
 Ridgescale Tusker
 Roots of Wisdom
 Runeboggle
+Sacellum Archers
 Scoria Elemental
 Scrapper Champion
 Searing Spear
 Sigiled Sentinel
 Silverquill Pledgemage
 Skybind
+Sleeping Potion
+Slinking Serpent
+Slippery Scoundrel
+Spectacle Mage
 Spectral Grasp
 Spelltithe Enforcer
 Sphere of Safety
 Spite of Mogis
 Stifle
 Stoke the Flames
+Stone Golem
 Stonybrook Schoolmaster
 Surrakar Spellblade
 Swamp
@@ -115,18 +170,28 @@ Taunting Elf
 Teroh's Vanguard
 Terror of Towashi
 Thistledown Liege
+Thraben Valiant
+Transmogrifying Wand
 Tromokratis
 Ultimate Alliance
 Unnatural Endurance
+Urza's Science Fair Project
 Vampire Aristocrat
+Vigilante Justice
 Viridian Joiner
 Virtuous Variant
 Vitality Charm
+Vodalian Hypnotist
 Voice of Grace
+Vow of Torment
 Warrior's Charge
 Wild Griffin
 Wilderness Reclamation
 Wintermoor Commander
 Wipe Away
+Woodcutter's Grit
+Worldgorger Dragon
+Wu Infantry
 Yeva, Nature's Herald
 Zodiac Monkey
+Zombie Apocalypse

@@ -1,0 +1,111 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Aboshan's Desire	f81bf3d1bcc1ff9a	4	0/0		1/2	ix:resp
+Aether Mutation	d0c5e63dffa1371e	7	0/0		2/2	
+Alms of the Vein	ae5e9ae4fa1bd025	4	0/0		1/2	ix:resp
+Ambitious Farmhand	19c2c74aaf777c0e	36	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Araba Mothrider	79e7d61b231112f0	46	2/2		0/1	ix:resp
+Archangel's Light	07393533216f0f67	6	0/0		1/2	ix:resp
+Archmage of Echoes	20b5ecc2299fe225	27	2/2		1/1	
+Ardent Militia	f1cff3c9d9902327	4	0/0		0/0	
+Aura Mutation	45cb9713ee9c83ce	4	0/0		2/2	
+Bala Ged Recovery	401dd68eb61297e2	13	1/1		2/2	
+Battle Angels of Tyr	a689afca4fb83792	4	2/2		1/1	
+Belbe's Percher	b84ecdc7ad352072	9	0/0		0/0	
+Billiard Room	682c8acf7b85ad96	146	2/2		1/1	
+Blackcleave Cliffs	5290ffc390e8beb0	106	1/1		0/1	ix:resp
+Blisterspit Gremlin	0507d0496de16707	16	2/2		1/1	
+Botanical Plaza	1412c9c4a0f7601b	124	2/2		1/1	
+Bottle-Cap Blast	116d7c74137c9f2b	4	0/0		1/2	ix:resp
+Breath Weapon	6c72fcf95e6c8301	5	0/0		1/2	ix:resp
+Brutal Nightstalker	1897205843323e73	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Bushmeat Poacher	04c0b5564a227308	4	1/1		0/1	ix:resp
+Ceta Sanctuary	5a376aab91a4ef6b	4	1/1		0/1	ix:resp
+Charix, the Raging Isle	414e86cbf2df4ac5	38	1/1		1/1	
+Chosen by Heliod	1bdac22cea7a3c77	4	1/1		1/2	ix:resp
+Clear the Mind	235f1d7b2472568d	8	0/0		1/2	ix:resp
+Conjurer's Mantle	2d1d6a410eb60a1e	53	2/2		1/1	
+Conversion	a42a844cb2bb5fe2	3	1/1		1/1	
+Cowl Prowler	05ae4194008e303a	9	0/0		0/0	
+Crystalline Nautilus	2c3e8e42f65858fb	4	1/1		1/3	cast/alt:bestowed,ix:resp
+Cynette, Jelly Drover	0303cedd43138e16	19	2/2		1/1	
+Death-Priest of Myrkul	920fe7fd716042c6	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Devious Cover-Up	ed7f2da9b625f962	7	0/0		2/2	
+Disappearing Act	3da9dabaeefbc705	3	0/0		1/2	ix:resp
+Eidolon of Blossoms	0b762ec0fc912194	10	1/1		0/1	ix:resp
+Elminster's Simulacrum	0c1a18b47c9739e5	4	0/0		2/2	
+Era of Innovation	6faf958ca167ef65	20	2/2		0/1	ix:resp
+Experimental Augury	253df2b0d1557e59	44	0/0		2/2	
+Feeling of Dread	241a982a8cdc587a	8	0/0		3/4	ix:resp
+Gaea's Gift	3336d9ed890d5cfd	3	0/0		1/2	ix:resp
+Ghost Quarter	ca09fdf61aed907a	116	2/2		1/1	
+Goreclaw, Terror of Qal Sisma	a23def3dc0c69956	7	1/1		0/1	ix:resp
+Grim Haruspex	ddfe9b290e4c7638	8	1/1		1/3	cast/alt:morphed,ix:resp
+Hapatra, the Desert Fang	89e030171ffc9c77	4	1/1		0/1	ix:resp
+Heartstone	417546d6e4ecb6bd	26	0/0		0/0	
+Herald of Serra	a564b75196026c1d	29	1/1		1/1	
+Hoverguard Observer	8ced4638aedbc09b	8	0/0		0/0	
+Invasion of Tarkir	c21d35b737585aa4	17	2/2		0/1	ix:resp
+Jace's Phantasm	bf47f871eee1cc32	6	0/0		0/0	
+Joraga Auxiliary	7e589c25a61ff5bd	4	1/1		0/1	ix:resp
+Jwari Scuttler	70501809c4814686	8	0/0		0/0	
+Kobold Drill Sergeant	2049c9e6f1cb0bc1	6	0/0		0/0	
+Krosan Avenger	deabe1ea76b57596	7	1/1		0/1	ix:resp
+Launch Mishap	abaaf3b3125e11c0	31	0/0		2/2	
+Lionheart Maverick	3a433069f3e79093	64	1/1		1/1	
+Lost Legion	5fbee4a9869e52ef	6	1/1		0/1	ix:resp
+Loxodon Warhammer	8f3a4d0d46f3dd63	60	1/1		1/1	
+Loyal Cathar	bf5e95081352064c	32	1/1		1/1	
+Lurking Arynx	ed64482f5f63363f	18	1/1		1/1	
+Mana Seism	2ec5efd0fe527406	6	0/0		1/2	ix:resp
+Mantle of the Wolf	e3b91b0829f0dda5	4	1/1		1/2	ix:resp
+Marsh Lurker	28e25b261d594595	4	1/1		0/1	ix:resp
+Maze Sentinel	69cf53e69eccbf32	33	0/0		0/0	
+Miara, Thorn of the Glade	8380b84c9e164401	4	1/1		0/1	ix:resp
+Mirari	0798ce9a833d7a44	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Morinfen	12187672f4170e1b	6	1/1		0/1	ix:resp
+Muck Rats	8bb462cea17f2348	4	0/0		0/0	
+Naga Oracle	3435162dc3dc6d1b	18	1/1		1/1	
+Nezumi Bladeblesser	2ed2e62c9aadeabe	4	0/0		0/0	
+Nightwing Shade	c18b9b41dfd36af7	11	1/1		1/1	
+Nissa's Chosen	9b3b58514151f257	3	0/0		0/0	
+Nissa's Renewal	1ba65c1494ffa31a	3	0/0		1/2	ix:resp
+Numbing Dose	b565153b63a19de2	38	1/1		2/2	
+Oboro Breezecaller	ab6c8717f5e9e17a	6	1/1		0/1	ix:resp
+Paladin Danse, Steel Maverick	a1735ac996e00df3	47	1/1		1/1	
+Pearl Dragon	daa859625f1f6c80	3	1/1		1/1	
+Perilous Myr	ad9494cd24ee8830	3	1/1		0/1	ix:resp
+Platoon Dispenser	b39d233af17c0f10	32	3/3		1/1	
+Power Armor	ebbc323253c36081	12	1/1		1/1	
+Pull from Tomorrow	8521a054d14f422f	4	0/0		2/4	f0/s/x0,ix:resp
+Pyretic Prankster	2ff78fa0b0ad3b0b	3	2/2		0/1	ix:resp
+Quilled Wolf	c370c0510cb3bd8d	9	1/1		0/1	ix:resp
+Quirion Sentinel	e25ee8e986b04c46	6	1/1		0/1	ix:resp
+Rampaging Ferocidon	eda74882b2d7b0a2	4	1/1		0/1	ix:resp
+Ringskipper	ffd3b94828592736	145	1/1		1/1	
+Rolling Hamsphere	d12f4c5417a44406	13	2/2		1/1	
+Seeker of Skybreak	9202f7947cccb024	7	1/1		0/1	ix:resp
+Serra Advocate	7be94ef9e1606366	41	1/1		0/1	ix:resp
+Serum Visions	ea85da7f4b2f9e4f	18	0/0		2/2	
+Sever the Bloodline	829d8106a7d5c97d	4	0/0		2/4	cast/alt:flashback,ix:resp
+Shu General	9d82c170ea89508e	4	0/0		0/0	
+Snooping Newsie	3267d22994a8c85a	3	1/1		0/1	ix:resp
+Sound the Call	608255c46696829a	8	0/0		2/2	
+Spire Owl	c6f68e3c09cfbef1	5	1/1		0/1	ix:resp
+Spitting Dilophosaurus	a1a7478a0c8e0c02	6	2/2		0/1	ix:resp
+Spring Cleaning	218606804d21f2eb	3	0/0		2/2	
+Staff of the Wild Magus	8773cc31b1583863	3	2/2		0/1	ix:resp
+Storm Fleet Sprinter	8d2eba06897c9f40	3	0/0		0/0	
+Subterranean Spirit	9d0fbd4400ee2fb0	6	1/1		0/1	ix:resp
+Sylvia Brightspear	527d771e76259f2e	4	1/1		0/1	ix:resp
+Tangle Hulk	5a7d5ae3e890e59f	7	1/1		1/1	
+Thief of Existence	e32b079e2e9b3a12	5	1/1		1/1	
+Treacherous Link	607546a8a4cdbc1a	6	0/0		1/2	ix:resp
+Ulamog's Crusher	b22fd6b4d0b1da13	7	1/1		1/1	
+Undercity Necrolisk	e9e27229d758fc3f	6	1/1		0/1	ix:resp
+Unknown Shores	2683b7c693b35487	29	2/2		0/1	ix:resp
+Vault of the Archangel	e1b51cf4d24117e3	39	2/2		0/1	ix:resp
+Venerable Monk	84f3a878d25902cc	3	1/1		0/1	ix:resp
+Viashino Outrider	9f9300824da35b7c	4	1/1		0/1	ix:resp
+Viral Drake	c731900da2230776	6	1/1		0/1	ix:resp
+Vodalian Arcanist	8ab6689805e5dadd	16	1/1		0/1	ix:resp
+Wild Ox	74a34628104805d7	6	0/0		0/0	

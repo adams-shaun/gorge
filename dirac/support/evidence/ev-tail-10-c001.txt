@@ -19,6 +19,7 @@ Angelic Benediction
 Angelic Rocket
 Aquus Steed
 Arch of Orazca
+Architects of Will
 Argent Dais
 Armillary Sphere
 Armored Wolf-Rider
@@ -122,6 +123,7 @@ Elvish Lookout
 Ember Shot
 Enervate
 Enlistment Officer
+Entrancing Lyre
 Esper Sentinel
 Exalted Flamer of Tzeentch
 Excavation Explosion
@@ -235,6 +237,7 @@ Magmaquake
 Mahamoti Djinn
 Maja, Bretagard Protector
 Majestic Genesis
+Mana Vortex
 Marang River Skeleton
 Marsh Flitter
 Marsh Threader

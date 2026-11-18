@@ -1,109 +1,201 @@
 A-Imperial Subduer
+A-Kargan Warleader
 Abzan Kin-Guard
 Aeronaut Tinkerer
+Aether Tunnel
+Aethershield Artificer
 Akki Ronin
 Akoum Hellkite
 Anaba Spirit Crafter
+Ancestral Vengeance
 Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
+Armored Cancrix
 Armored Skaab
 Artistic Refusal
 Astarion, the Decadent
 Avacyn and Griselbrand
 Awaken the Sky Tyrant
+Balm of Restoration
+Baloth Pup
 Bandage
 Barbary Apes
 Barl's Cage
 Basilisk Gate
+Bathe in Dragonfire
 Beacon of Creation
+Benalish Knight
 Big Mother Mouser
 Blade-Blizzard Kitsune
+Blessed Spirits
 Blood Lust
 Bog Badger
 Boros Elite
 Borrowing 100,000 Arrows
 Brass Man
+Breaching Hippocamp
 Brood Weaver
+Brotherhood Patriarch
 Brought Back
 Burning-Yard Trainer
 Cacophodon
 Caldera Lake
 Callous Deceiver
+Canyon Minotaur
+Cartographer
+Cavalier of Dawn
 Ceremonial Knife
+Chandra, Novice Pyromancer
 Circuit Mender
 Cloudfin Raptor
+Cloudshredder Sliver
 Cloudthresher
 Conscripted Infantry
+Coral Helm
+Court of Embereth
 Crosstown Courier
+Crown of Skemfar
+Crucible of Fire
+Cruel Grimnarch
 Cutthroat Negotiator
+Cylian Elf
+Dawnglare Invoker
 Dawnhart Wardens
+Deadeye Quartermaster
+Death Stroke
 Deathbloom Gardener
 Deb Thomas
+Decorated Griffin
 Decree of Savagery
+Diminish
+Dimir Cluestone
+Diregraf Scavenger
+Disorient
+Dora Milaje Elite
 Dramatic Entrance
+Dreamdrinker Vampire
+Dwarven Pony
 Eldrazi Mimic
+Elvish Rejuvenator
 Embodiment of Fury
+Empty-Shrine Kannushi
 Enraged Ceratok
+Epicenter
+Explosive Entry
+Eye of Vecna
 Eye of Yawgmoth
 Faerie Seer
 Fight as One
 Firebrand Ranger
+Flailing Manticore
+Flaming Gambit
 Flow of Knowledge
+Flutterfox
 Forest
+Founding of Omashu
 Freed from the Real
+Frenzied Rage
 Fry
 Fugitive Wizard
+Gaea's Balance
 Galadhrim Guide
+Gift of Growth
+Gift of the Woods
+Glacial Wall
+Glamorous Grapplers
+Gleeful Demolition
 Gluttonous Troll
+Glyph of Life
+Goblin Digging Team
+Goblin King
+Goblin Wizardry
 Gold-Forged Thopteryx
 Golem's Heart
+Golgari Keyrune
 Golgari Raiders
 Graviton, Fundamental Force
 Great Defender
 Halo Scarab
+Halt Order
+Heliod's Punishment
+Hell Swarm
+Hell's Caretaker
 Helm of the Ghastlord
 Hobgoblin Bandit Lord
+Honor the Fallen
 Hornet Nest
+Hot Springs
 Illusionary Informant
 Illusory Angel
 Imperious Oligarch
 Innocent Blood
 Invoke the Divine
+Iron-Heart Chimera
 Island
 Jaddi Offshoot
 Jeering Homunculus
 Jewel Thief
 Jolted Awake
+Jovial Evil
 Juntu Stakes
 Kaseto, Orochi Archmage
 Kavu Howler
+Kezzerdrix
 Kiora, Behemoth Beckoner
 Krovikan Whispers
 Kyoshi Warrior Exemplars
 Lagonna-Band Elder
+Last-Ditch Effort
+Launch Party
+Lazotep Behemoth
 Leaf Gilder
+Leafcrown Dryad
+Lesser Masticore
 Leyline of Vitality
 Lightning Surge
+Long Road Home
 Lost Soul
 Loxodon Warhammer
+Luminesce
+Magnetic Mine
 Magus of the Bridge
 Mammoth Spider
 Mantle of Webs
 Marang River Skeleton
 Marsh Boa
 Mascot Exhibition
+Master Healer
+Master's Call
+Merchant Raiders
+Merrow Wavebreakers
+Midnight Guard
+Mindwhip Sliver
+Minotaur Sureshot
 Molten Vortex
+Mortivore
 Mountain
 Mystic Melting
 Nezahal, Primal Tide
+Nomad Mythmaker
 Noosegraf Mob
 Nuka-Cola Vending Machine
 Nylea's Disciple
+Oath of Druids
+Obstinate Gargoyle
 On Serra's Wings
+Onward
+Oona's Grace
+Ordruun Veteran
 Outnumber
+Outrider of Jhess
 Overwhelmed Apprentice
+Owlbear
+Ox of Agonas
+Pardic Firecat
+Pariah
 Peek
+Pensive Minotaur
 Phyrexian Marauder
 Plains
 Poison-Tip Archer
@@ -112,37 +204,64 @@ Pre-War Formalwear
 Press the Advantage
 Primal Whisperer
 Prison Sentence
+Pull from the Deep
 Pulse of the Tangle
 Putrefax
+Quantum Misalignment
+RMS Titanic
+Rakdos Pit Dragon
 Rats of Rath
+Ray of Enfeeblement
 Reality Anchor
 Reconnaissance Mission
+Recoup
+Recuperate
 Reflex Sliver
 Renewing Dawn
 Return to the Earth
+Revenge of Ravens
 Rhizome Lurcher
 Root Snare
+Rosemane Centaur
+Rotten Reunion
 Rule of Law
 Runeclaw Bear
 Sacred Armory
 Sailors' Bane
 Sanctum of Shattered Heights
 Saprazzan Bailiff
+Sarkhan's Triumph
+Scale the Heights
+Second Thoughts
+Selhoff Entomber
 Servant of Volrath
 Shamble Back
+Shepherd of Heroes
+Shinen of Stars' Light
 Silent Observer
 Simic Keyrune
 Sire of the Storm
 Skarrg Goliath
+Skirk Ridge Exhumer
+Smoldering Werewolf
+Snapping Thragg
+Soot Imp
+Soratami Mirror-Guard
+Soul Link
 Soul's Grace
+Spectral Prison
 Spellbound Dragon
 Spontaneous Artist
 Spore Swarm
 Steel Dromedary
 Strangle
+Sudden Spoiling
 Sungrace Pegasus
 Suntail Hawk
+Supply-Line Cranes
+Suture Spirit
 Swamp
+Sword of Feast and Famine
 Sylvan Bounty
 Take to the Streets
 Tatyova, Steward of Tides
@@ -150,28 +269,42 @@ Teferi's Ageless Insight
 Teleportation Circle
 Teller of Tales
 Thalakos Scout
+Thassa, God of the Sea
 The Antiquities War
+The Brute
+The First Eruption
 The Modern Age
 The One Ring
+Thickest in the Thicket
 Thorn of Amethyst
+Thraben Gargoyle
 Thran Lens
 Thunderhawk Gunship
+Tiller of Flesh
 Toggo, Goblin Weaponsmith
 Trapfinder's Trick
+Traproot Kami
+Traverse the Ulvenwald
 Tremble
 Turn
 Ultimate Magic: Holy
 Underdark Basilisk
 Undergrowth Scavenger
+Urborg Repossession
 Valorous Steed
+Vampire Sovereign
+Vault 75: Middle School
 Venser, Shaper Savant
 Vindictive Triumph
+Vizier of Remedies
 Wall of Kelp
 Wandering Wolf
 Whispersilk Cloak
+Wild Defiance
 Wildwood Rebirth
 Winged Sliver
 Wirewood Pride
+Witch's Oven
 Wolfsbane, Highland Hero
 Wooden Sphere
 Wrenn and Realmbreaker

@@ -14,6 +14,7 @@ Agoraphobia
 Ajani, Strength of the Pride
 Akroma's Will
 Alabaster Mage
+Algae Gharial
 Alpine Guide
 Anarchy
 Anax and Cymede
@@ -38,7 +39,9 @@ Bag End Porter
 Baku Altar
 Bane Alley Blackguard
 Barbarian Lunatic
+Barrenton Cragtreads
 Battle Frenzy
+Battlewise Hoplite
 Belbe's Percher
 Bellowing Aegisaur
 Benthicore
@@ -70,6 +73,7 @@ Canyon Minotaur
 Captain's Call
 Carnophage
 Cartouche of Ambition
+Cephalopod Sentry
 Cerulean Drake
 Chainbreaker
 Charnel Troll
@@ -135,6 +139,7 @@ Extinguish All Hope
 Fable of Wolf and Owl
 Faerie Noble
 Faerie Trickery
+Fall of the Gavel
 Feast of Worms
 Feral Roar
 Feral Shadow
@@ -192,6 +197,7 @@ Hideous Visage
 Highland Weald
 Hithlain Knots
 Hovermyr
+Icequake
 Icy Prison
 Ikiral Outrider
 Ill-Tempered Cyclops
@@ -254,6 +260,7 @@ Maul Splicer
 Max, the Daredevil
 Mer Man
 Metathran Transport
+Midsummer Revel
 Minas Tirith
 Mind Knives
 Mindculling
@@ -276,6 +283,7 @@ Murder of Crows
 Myojin of Infinite Rage
 Myr Propagator
 Nantuko Blightcutter
+Naya Hushblade
 Naya Panorama
 Nekrataal
 Nema Siltlurker
@@ -379,9 +387,11 @@ Splendid Agony
 Sporeweb Weaver
 Squealing Devil
 Stampede Driver
+Stand
 Star Pupil
 Starfall
 Steel Sabotage
+Stirring Wildwood
 Stormrider Spirit
 Striding Shotcaller
 Subterranean Tremors
@@ -409,6 +419,7 @@ Thicket Crasher
 Thrash
 Three Dreams
 Tibalt, Rakish Instigator
+Tidebinder Mage
 Tidepool Turtle
 Timid Drake
 Tomakul Honor Guard
@@ -425,6 +436,7 @@ Triangle of War
 True Polymorph
 Trueheart Duelist
 Tune the Narrative
+Ugin's Conjurant
 Ugin's Construct
 Ulamog, the Ceaseless Hunger
 Ulcerate

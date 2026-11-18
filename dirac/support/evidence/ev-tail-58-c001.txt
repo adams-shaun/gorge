@@ -32,12 +32,14 @@ Blitz of the Thunder-Raptor
 Bloodfire Infusion
 Bogardan Firefiend
 Boggart Forager
+Bonded Construct
 Bonds of Quicksilver
 Break of Day
 Briarhorn
 Bronze Cudgels
 Brood Weaver
 Calamity's Wake
+Candelabra of Tawnos
 Casting of Bones
 Cat Warriors
 Ceremonious Rejection
@@ -53,6 +55,7 @@ Concentrate
 Contagious Vorrac
 Council of Advisors
 Covert Technician
+Coveted Peacock
 Cruel Fate
 Dapper Shieldmate
 Dauthi Horror
@@ -73,6 +76,7 @@ Drownyard Explorers
 Druid of the Anima
 Dungrove Elder
 Dusk Feaster
+Dwarfhold Champion
 Dwarven Strike Force
 Early Frost
 Eccentric Farmer
@@ -89,6 +93,7 @@ Favorable Winds
 Festival Crasher
 Fists of Ironwood
 Flameborn Viron
+Flood of Tears
 Forest
 Fragmentize
 From Beyond
@@ -96,7 +101,10 @@ Frost Marsh
 Funeral Pyre
 Funeral Rites
 Garenbrig Carver
+Gate Hound
+Gate of the Black Dragon
 General's Enforcer
+Ghirapur Aether Grid
 Giant Dustwasp
 Glint-Nest Crane
 Goblin Engineer
@@ -113,6 +121,7 @@ Guma
 Hamato Ninpō
 Harbor Bandit
 Haunted Crossroads
+Heavy Arbalest
 Hellfire
 Hellkite Punisher
 Hog-Monkey Rampage
@@ -123,7 +132,9 @@ House Guildmage
 Hunger of the Nim
 Icingdeath, Frost Tyrant
 Illustrious Historian
+Incite
 Infernal Captor
+Inquisitor Exarch
 Inspired Insurgent
 Inspired Sphinx
 Involuntary Cooldown
@@ -142,7 +153,9 @@ Kujar Seedsculptor
 Kurgadon
 Lambholt Harrier
 Lawless Broker
+Lazotep Plating
 Lembas
+Leopard-Spotted Jiao
 Lethal Exploit
 Lightning Dragon
 Lightning Talons
@@ -152,12 +165,15 @@ Lucky Offering
 Marionette Master
 Mass Diminish
 Master Splicer
+Meletis Astronomer
 Mesmeric Fiend
 Mesmeric Orb
 Might of Murasa
 Minds Aglow
 Minion's Return
 Mire Triton
+Mishra's Research Desk
+Moldervine Cloak
 Molting Snakeskin
 Moria Marauder
 Mortal Obstinacy
@@ -165,6 +181,7 @@ Mountain
 Mox Diamond
 Murder of Crows
 Mystic Compass
+Mystic Meditation
 Natural Obsolescence
 Nether Void
 Netherborn Altar
@@ -184,15 +201,18 @@ Oreskos Sun Guide
 Overflowing Basin
 Peat Bog
 Peema Aether-Seer
+Pegasus Courser
 Phantatog
 Pheres-Band Tromper
 Plague Beetle
 Plague Witch
 Plains
+Power Plant Worker
 Prognostic Sphinx
 Prophet of Distortion
 Pyrostatic Pillar
 Quarrel's End
+Quasiduplicate
 Rainbow Crow
 Rakdos Ickspitter
 Rampaging Classmate
@@ -200,12 +220,16 @@ Ranger's Longbow
 Rank Officer
 Ransack the Lab
 Rat King, Pale Piper
+Rebuke
 Reckless One
 Relic Runner
 Reshape the Earth
 Resolute Blademaster
+Riddlesmith
 Ring of Renewal
+Rishadan Airship
 Rith's Grove
+Riveteers Initiate
 Rooftop Bypass
 Rootwater Diver
 Rumbleweed
@@ -216,20 +240,25 @@ Sanctuary Cat
 Sandstone Deadfall
 Sanguinary Priest
 Saprazzan Bailiff
+Scornful Aether-Lich
 Screaming Seahawk
 Sengir Bats
 Serpent of the Endless Sea
 Serra's Boon
 Setessan Oathsworn
 Shadowborn Demon
+Shambling Vent
 Shard Volley
 Shriekdiver
+Shrieking Grotesque
 Silverwing Squadron
 Simian Brawler
 Simic Charm
+Sinew Sliver
 Skittering Horror
 Skyhunter Cub
 Skystrike Officer
+Slith Ascendant
 Snow-Covered Island
 Soul Rend
 Soul of Innistrad
@@ -246,6 +275,7 @@ Storm Shaman
 Sudden Strength
 Summit Apes
 Summit Prowler
+Sunder
 Suspended Sentence
 Swamp
 Tainted Strike
@@ -254,6 +284,7 @@ Telepathy
 Tempered Veteran
 Temple Thief
 Tendershoot Dryad
+Terminal Moraine
 The Magic Mirror
 Theater of Horrors
 Thoughts of Ruin
@@ -263,27 +294,34 @@ Thunder Spirit
 Thundersong Trumpeter
 Tiamat's Fanatics
 Ticked Off
+Tomb Fortress
 Touch of Death
 Traverse the Outlands
 Treacherous Blessing
 Tuinvale Treefolk
+Turbulent Springs
 Umbral Mantle
 Unbender Tine
 Universal Solvent
 Urbis Protector
+Urza's Armor
 Vebulid
 Vedalken Blademaster
 Veiled Apparition
 Vela the Night-Clad
+Vengeful Warchief
 Vessel of Paramnesia
 Viashino Grappler
 Vigilance
 Vinelasher Kudzu
+Visions of Brutality
 Vivify
 Voidslime
+Voltaic Construct
 Vraska's Stoneglare
 Vryn Wingmare
 Wailing Ghoul
+Wall of Kelp
 Wheel of Fortune
 Whipcorder
 Wishcoin Crab

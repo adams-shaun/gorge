@@ -44,13 +44,16 @@ Big Game Hunter
 Big Score
 Birthing Hulk
 Black Panther, Claws of Bast
+Bladehold War-Whip
 Blessed Respite
 Blood-Chin Fanatic
+Body of Research
 Bog Smugglers
 Bonds of Mortality
 Bottomless Vault
 Branchsnap Lorian
 Brigone, Soldier of Meletis
+Browbeat
 Burly Breaker
 Burrenton Shield-Bearers
 Butcher of Malakir
@@ -80,6 +83,7 @@ Containment Breach
 Contingency Plan
 Coral Eel
 Council's Judgment
+Cowardice
 Cragplate Baloth
 Crushing Pain
 Cunning Lethemancer
@@ -120,9 +124,11 @@ Environmental Sciences
 Erkenbrand, Lord of Westfold
 Errant Doomsayers
 Escape Protocol
+Esper Cormorants
 Ethereal Whiskergill
 Etherium Abomination
 Evil Presence
+Extract
 Exuberant Firestoker
 Exuberant Fuseling
 Exultant Skymarcher
@@ -164,11 +170,13 @@ Gimli's Reckless Might
 Glacial Grasp
 Go-Shintai of Ancient Wars
 Goatnapper
+Goblin Outlander
 Goblin Piledriver
 Goblin Ruinblaster
 Golden Demise
 Gorging Vulture
 Grafted Growth
+Gravepurge
 Graypelt Refuge
 Great Furnace
 Greataxe
@@ -196,6 +204,7 @@ Imp's Mischief
 In the Web of War
 Iname, Death Aspect
 Ingenious Smith
+Innocence Kami
 Insatiable Appetite
 Invasion of Zendikar
 Invisible Woman
@@ -242,6 +251,7 @@ Lunk Errant
 Lurking Nightstalker
 Mad Dog
 Magus of the Order
+Mahadi, Emporium Master
 Manifold Key
 March of the Drowned
 Martyrs' Tomb
@@ -254,6 +264,7 @@ Mirran Bardiche
 Mitotic Slime
 Moderation
 Moira, Urborg Haunt
+Moldgraf Monstrosity
 Mortivore
 Mosscoat Goriak
 Moth Herb Elixir
@@ -272,9 +283,13 @@ Oakhame Adversary
 Obelisk of Naya
 Ogre Siegebreaker
 Ojutai, Soul of Winter
+Ollenbock Escort
 Ondu Inversion
 Opal Acrolith
 Open Fire
+Oran-Rief Hydra
+Orbs of Warding
+Orchard Warden
 Orcish Spy
 Orim's Prayer
 Owl Familiar
@@ -286,6 +301,8 @@ Passwall Adept
 Peel from Reality
 Peregrine Drake
 Phantom General
+Phyrexian Gremlins
+Plague Dogs
 Plague Engineer
 Plague Fiend
 Plague Sliver
@@ -331,6 +348,7 @@ Sacred Mesa
 Sagu Mauler
 Sai, Master Thopterist
 Salvager of Secrets
+Sand Strangler
 Sands of Delirium
 Sandstone Warrior
 Sangrite Surge
@@ -350,6 +368,7 @@ Shagrat, Loot Bearer
 Shambleshark
 Shard of the Void Dragon
 Shatter
+Shimmering Barrier
 Sigarda, Font of Blessings
 Sigiled Behemoth
 Silvos, Rogue Elemental
@@ -367,6 +386,7 @@ Snarespinner
 Sorin, Imperious Bloodlord
 Soul Swallower
 Specter of the Fens
+Sphere of Duty
 Sphinx's Tutelage
 Splendid Agony
 Stingmoggie

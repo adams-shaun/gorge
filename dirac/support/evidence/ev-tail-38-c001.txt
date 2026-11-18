@@ -4,11 +4,13 @@ Ajani's Influence
 Akki Drillmaster
 Alabaster Dragon
 Amoeboid Changeling
+An-Havva Constable
 Ancient Ooze
 Angelsong
 Animating Faerie
 Anticipate
 Aphetto Grifter
+Apprentice Sorcerer
 Armed Response
 Armix, Filigree Thrasher
 Aspect of Wolf
@@ -17,6 +19,8 @@ Auriok Bladewarden
 Avatar of Slaughter
 Awaken the Bear
 Awakening of Vitu-Ghazi
+Axebane Guardian
+Axgard Armory
 Ayumi, the Last Visitor
 Baloth Cage Trap
 Bane Alley Blackguard
@@ -33,18 +37,27 @@ Boldwyr Intimidator
 Bone to Ash
 Brass Secretary
 Breach
+Bristling Boar
 Bushmaster, Coiled Henchman
 Captain of Umbar
 Cast into Darkness
 Cathartic Operation
 Caustic Hound
 Cavalcade of Calamity
+Chance-Met Elves
+Chandra's Defeat
+Charge Through
 Charity Extractor
+Chevill, Bane of Monsters
 Choking Tethers
+Cleaving Skyrider
 Cloud Pirates
+Clowning Around
 Coma Veil
 Commander's Authority
 Consecrated Sphinx
+Crack Open
+Crash the Ramparts
 Crimson Roc
 Crumbling Ashes
 Cultivator of Blades
@@ -63,12 +76,16 @@ Distorted Curiosity
 Doomskar Oracle
 Doomwake Giant
 Dovin's Dismissal
+Dragon Whisperer
+Draugr Recruiter
 Dread Slag
 Dual Strike
 Dusk Urchins
 Dwarven Armory
 Easterling Vanguard
 Edge of the Divinity
+Elephant Resurgence
+Elves of Deep Shadow
 Emerald Dragonfly
 Entomb
 Ephara's Enlightenment
@@ -87,10 +104,12 @@ Flameshadow Conjuring
 Flourishing Hunter
 Forest
 Fortify
+Fumulus, the Infestation
 Furor of the Bitten
 Future Sight
 Gargoyle Sentinel
 Garrison Cat
+Gate to Manorborn
 Gavony Unhallowed
 Gelectrode
 Geothermal Kami
@@ -100,10 +119,15 @@ Gigantiform
 Gigantomancer
 Gitaxian Raptor
 Gixian Skullflayer
+Glimmervoid
 Glissa's Courier
+Glitterfang
+Glory Seeker
+Glóin the Mighty
 Goblin Spelunkers
 Goblin Turncoat
 God-Favored General
+Golden Hind
 Gothmog, Morgul Lieutenant
 Great Teacher's Decree
 Griffin Canyon
@@ -114,56 +138,77 @@ Hazoret's Monument
 Heal the Scars
 Heavy Infantry
 Henchfiend of Ukor
+Herd Gnarr
 Hibernation Sliver
+Hissing Quagmire
 Hook Swords
+Horizon Seed
 Hussar Patrol
 Ignite the Future
 Impulse
+Inertia Bubble
 Infectious Host
 Inkling Summoning
+Insatiable Appetite
 Into Thin Air
 Invasion of Kaladesh
 Island
+Jace's Archivist
 Jolted Awake
 Juniper Order Druid
 Kaervek's Hex
 Kalemne's Captain
 Kamahl's Sledge
+Kayla's Reconstruction
 Komodo Rhino
 Kothophed, Soul Hoarder
+Krosan Grip
 Laboratory Drudge
 Labyrinth Minotaur
+Leave in the Dust
 Lena, Selfless Champion
 Leonin Lightbringer
 Lifecraft Cavalry
 Liliana's Reaver
 Lion Sash
+Living Airship
 Loyal Gryff
+Loyal Retainers
+Lunar Avenger
 Lure
 Magnetic Flux
 Malachite Golem
 Malakir Familiar
 Manaforce Mace
+Master of Arms
 Mechanical Glider
 Megatherium
+Memorial to War
 Mesmerizing Benthid
 Minamo Sightbender
 Mindclaw Shaman
+Mines of Moria
 Mirrorworks
 Mizzium Tank
+Molten Lavamancer
+Most Wanted
 Mountain
 Mournful Zombie
+Myojin of Life's Web
 Myr Servitor
 Mystic Crusader
+Nema Siltlurker
 Nephalia Seakite
 Nettle Swine
 Nightmare
 Norwood Ranger
 Noxious Hatchling
 Odunos River Trawler
+Ojutai Exemplars
 Omen of the Sun
 One With the Wind
 Orgg
+Orzhov Basilica
 Panic Spellbomb
 Paradise Plume
 Perish
@@ -177,12 +222,15 @@ Pitchburn Devils
 Plague Mare
 Plains
 Poisonbelly Ogre
+Precise Strike
 Predatory Hunger
 Primevals' Glorious Rebirth
+Prize Pig
 Psionic Sliver
 Puncture Blast
 Purple Worm
 Quiet Purity
+Ragefire Hellkite
 Rallying Roar
 Rampaging Aetherhood
 Ravenous Demon
@@ -191,12 +239,16 @@ Reckless Racer
 Recover
 Relearn
 Render Inert
+Renegade Freighter
 Renegade's Getaway
 Respite
 Revel Ruiner
 Ring of Gix
+Riven Turnbull and Princess Lucrezia
 Roar of the Kha
 Saiba Cryptomancer
+Samut's Sprint
+Sandals of Abdallah
 Scaldkin
 Scare Tactics
 Scatter the Seeds
@@ -206,8 +258,10 @@ Scourge Wolf
 Scrap Mastery
 Scrapskin Drake
 Seacoast Drake
+Seal of Fire
 Seluma, Light of Aysen
 Serpentine Curve
+Serrated Biskelion
 Serum Visionary
 Shambling Ghoul
 Shauku's Minion
@@ -216,6 +270,7 @@ Shimmer Myr
 Shrieking Drake
 Shrine Steward
 Shu Farmer
+Silverback Elder
 Siren Reaver
 Slayer's Plate
 Snapback
@@ -225,27 +280,36 @@ Soldevi Sage
 Soulknife Spy
 Soulless One
 Spark Harvest
+Spell Snuff
 Spellrune Painter
 Spined Wurm
+Spire Monitor
 Spiritual Asylum
 Spitfire Handler
 Squash
 Squirrel Mob
 Stalking Bloodsucker
+Steadfastness
 Steamcore Weird
 Stoic Star-Captain
 Stone Idol Generator
 Stunning Shot
+Super Mutant Scavenger
 Suture Spirit
 Swamp
+Swashbuckling
 Sweatworks Brawler
 Synth Infiltrator
 Tandem Tactics
+Tangle Mantis
 Tar Snare
 Telim'Tor's Darts
+Terashi's Cry
+Terravore
 Thalia, Heretic Cathar
 That's Rough Buddy
 Thaumaturge's Familiar
+The Gaffer
 The One Ring
 The Restoration of Eiganjo
 Thriving Rats
@@ -254,6 +318,7 @@ Throttle
 Thunder Dragon
 Thunderclap Wyvern
 Tidal Force
+Tidal Visionary
 Tireless Missionaries
 Toll of the Invasion
 Torrent of Fire
@@ -262,11 +327,16 @@ Trailblazing Historian
 Tranquil Grove
 Transmogrifying Wand
 Traumatic Visions
+Triumph of Ferocity
 Tropical Island
+Turbulent Wetlands
+Twisted Reflection
+Uglúk of the White Hand
 Unbender Tine
 Undercity's Embrace
 Unified Strike
 Unyielding Krumar
+Valiant Guard
 Vedalken Orrery
 Veil of Birds
 Vent Sentinel
@@ -275,6 +345,7 @@ Vile Consumption
 Village Bell-Ringer
 Vines of the Recluse
 Vineshaper Prodigy
+Vintara Elephant
 Viridian Harvest
 Viridian Joiner
 Viridian Lorebearers
@@ -283,10 +354,13 @@ Virulent Wound
 Vodalian Soldiers
 Voracious Vacuum
 Wall of Razors
+Wall of Wood
 Warren Pilferers
 Wasp Lancer
 Wave of Indifference
+Whirlwind
 Wild-Field Scarecrow
+Wildfire
 Windborne Charge
 Windbrisk Heights
 Wing Snare

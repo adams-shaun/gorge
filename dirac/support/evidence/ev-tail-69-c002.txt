@@ -1,5 +1,6 @@
 A-Sewer Crocodile
 A-Steadfast Unicorn
+A-Young Blue Dragon
 Accomplished Automaton
 Accorder's Shield
 Afterlife Insurance
@@ -17,6 +18,7 @@ Balduvian Bears
 Baneful Omen
 Bard, Heir of Girion
 Barrin's Codex
+Battle at the Helvault
 Battlefield Raptor
 Baxter, Fly in the Ointment
 Bishop of Rebirth
@@ -35,8 +37,10 @@ Cackling Counterpart
 Captain America's Motorcycle
 Cavern Lampad
 Chamber of Manipulation
+Chandra's Flame Wave
 Change of Fortune
 Chime of Night
+Clamavus
 Claws of Gix
 Clearwater Goblet
 Cliffhaven Kitesail
@@ -44,24 +48,31 @@ Compulsory Rest
 Conifer Strider
 Contagious Vorrac
 Corrupt
+Countless Gears Renegade
 Crackdown
 Crypt Ripper
+Curse of Obsession
 Dakmor Plague
 Dark Offering
 Daru Healer
 Dauntless River Marshal
 Dauthi Mercenary
 Davriel's Shadowfugue
+Deeproot Warrior
 Demogorgon's Clutches
 Depart the Realm
 Diabolical Salvation
 Dispeller's Capsule
 Drannith Magistrate
 Dreadful Apathy
+Earthshaker
 Echoing Return
 Ecstatic Awakener
 Elephant Grass
 Elspeth, Knight-Errant
+Elvish Farmer
+Emerald Charm
+Empyrial Plate
 Envoy of the Ancestors
 Epistolary Librarian
 Escape Routes
@@ -73,18 +84,26 @@ Explosive Shot
 Eyeblight Massacre
 Face of Fear
 Faerie Bladecrafter
+Faerie Swarm
+Falcon and Redwing
+Fetid Gargantua
 Filigree Crawler
 Filter Out
 Forest
 Foriysian Brigade
 Forsake the Worldly
+Foul Watcher
 Frightcrawler
+Fyndhorn Brownie
 Galvanic Blast
+Garruk Wildspeaker
 Geistflame
+Ghostly Wings
 Giant Harbinger
 Gift of Granite
 Glass Golem
 Gleeful Arsonist
+Glimmer Lens
 Gnoll War Band
 Go Blank
 Goblin Recruiter
@@ -93,6 +112,8 @@ Gorgon's Head
 Grab the Reins
 Granulate
 Grasp of Phantoms
+Grasping Giant
+Greed
 Gust-Skimmer
 Gut, True Soul Zealot
 Hanweir Militia Captain
@@ -104,22 +125,29 @@ Hidden Ancients
 Hidden Stockpile
 Highspire Artisan
 Holdout Settlement
+Honey Mammoth
 Honored Hierarch
 Hot Soup
 How to Keep an Izzet Mage Busy
 Hunter's Insight
 Hypnotic Cloud
 Icatian Moneychanger
+Ice-Fang Coatl
 Illusory Demon
 Impending Disaster
+Indrik Umbra
 Ingenuity Engine
+Insatiable Souleater
 Invisible Force Field
+Iroas's Champion
+Iron Lance
 Island
 Ivory Charm
 Jagged-Scar Archers
 Javelin of Lightning
 Jeskai Sage
 Jeweled Torque
+Jolene, the Plunder Queen
 Jungle Wurm
 Killer Bees
 Kithkin Zealot
@@ -131,10 +159,12 @@ Labyrinth Raptor
 Lantern Scout
 Lightning Cloud
 Lokhust Heavy Destroyer
+Lounge
 Maggot Therapy
 Magmatic Channeler
 Magmatic Chasm
 Make Disappear
+Mana Leak
 Matt Murdock, Justice Seeker
 Memory's Journey
 Mephidross Vampire
@@ -143,6 +173,7 @@ Mindsplice Apparatus
 Mindwrack Demon
 Mire Triton
 Mishra, Excavation Prodigy
+Molten Influence
 Molten Lavamancer
 Moon-Circuit Hacker
 Mountain
@@ -150,6 +181,7 @@ Mox Amber
 Nantuko Elder
 Natural Spring
 Nature's Resurgence
+Necropouncer
 Necrotic Fumes
 Nightshade Harvester
 Nimana Skitter-Sneak
@@ -157,10 +189,12 @@ Noxious Revival
 Nyxborn Seaguard
 Ob Nixilis, the Ascended
 Obscura Storefront
+Oculus
 Ogre Shaman
 Orah, Skyclave Hierophant
 Orcish Artillery
 Organ Grinder
+Orthion, Hero of Lavabrink
 Otherworldly Journey
 Outmaneuver
 Overmaster
@@ -169,9 +203,11 @@ Paladin of Atonement
 Paragon of Fierce Defiance
 Phantom Beast
 Phyrexian Ironworks
+Phyrexian Walker
 Pia and Kiran Nalaar
 Plains
 Political Triumph
+Protean Thaumaturge
 Pyre-Sledge Arsonist
 Pyreswipe Hawk
 Quickling
@@ -182,22 +218,31 @@ Reckless Embermage
 Reconstruction
 Red XIII, Proud Warrior
 Regent's Authority
+Replication Technique
 Research Thief
 Restore the Peace
 Reviving Dose
 Rites of Initiation
 Ritual Guardian
+Root Out
 Rotting Fensnake
 Rough
 Rubble Reading
 Rushwood Herbalist
+Rust Goliath
+Sailor of Means
 Salvage Scout
+Sarulf's Packmate
 Scale the Heights
+Scarecrow
+Seal of Removal
 Searchlight Geist
+Sergeant John Benton
 Serra Avenger
 Shard Convergence
 Shattering Blow
 Shepherd of the Lost
+Shielding Plax
 Shining Aerosaur
 Shivan Emissary
 Shu Elite Companions
@@ -207,6 +252,7 @@ Singing Bell Strike
 Skirk Commando
 Sky Spirit
 Sky Theater Strix
+So Shiny
 Sparkmage's Gambit
 Spectral Shield
 Spellshock
@@ -216,11 +262,14 @@ Stone Spirit
 Stream Hopper
 Structural Assault
 Sunhome Guildmage
+Surge Conductor
 Swamp
+Sylvan Anthem
 Tales of Master Seshiro
 Tel-Jilad Exile
 Tempest Drake
 Temple Bell
+Thirst for Meaning
 Thriving Ibex
 Thunderfoot Baloth
 Titania's Boon
@@ -232,26 +281,32 @@ Tortoise Formation
 Training Grounds
 Traitorous Blood
 Treasure Hunt
+Triangle of War
 Trollbred Guardian
 Underworld Connections
 Unhinge
 Unwind
 Urza's Filter
 Vampire's Bite
+Venser's Sliver
 Vex
 Vibranium Mining Mech
 Vigilant Sentry
 Volcanic Torrent
+Voracious Typhon
+Vraska's Contempt
 Wall of Blossoms
 War-Wing Siren
 Warm Welcome
 Watcher Sliver
 Wayfaring Temple
+Wedding Announcement
 Whirlwind Adept
 White Scarab
 Wolfir Avenger
 World Breaker
 Wrath of the Skies
 Wreak Havoc
+You Meet in a Tavern
 Youthful Scholar
 Zodiac Ox

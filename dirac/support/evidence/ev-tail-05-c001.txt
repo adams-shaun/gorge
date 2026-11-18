@@ -1,45 +1,63 @@
 Abzan Battle Priest
+Abzan Falconer
 Accursed Spirit
 Aeronaut Admiral
 Aether Poisoner
 Aetherstream Leopard
 Akoum Boulderfoot
+Alchemax Slayer-Bots
 Amazing Spider-Girl
 Ampryn Tactician
 April O'Neil, Live on the Scene
 Arborback Stomper
 Armored Ascension
 Arvad the Cursed
+Aura Thief
 Bamboozle
 Banishment
+Banshee's Blade
 Baru, Wurmspeaker
 Battle Angels of Tyr
+Bayek of Siwa
 Beaming Defiance
 Beasts of Bogardan
 Besmirch
 Bladetusk Boar
 Blistering Firecat
 Bloodstone Cameo
+Bloom Hulk
+Brain Freeze
 Breaker of Armies
+Breya's Apprentice
 Bushmaster, Coiled Henchman
 Cackling Imp
 Carmen, Cruel Skymarcher
 Chandra's Spitfire
 Changeling Sentinel
+Chaotic Backlash
+Charging Cinderhorn
+Clash of Realities
+Cloudheath Drake
 Coercion
 Colossapede
 Concerted Defense
 Conch Horn
+Corridor Monitor
 Crypt Champion
 Cultist of the Absolute
 Dark Remedy
 Darkheart Sliver
 Deadeye Quartermaster
+Deathless Angel
 Deep-Sea Serpent
+Depart the Realm
+Desert of the Mindful
 Dovin's Acuity
+Dread Tiller
 Dreadfeast Demon
 Dream Prowler
 Dream's Grip
+Dross Golem
 Elite Cat Warrior
 Elvish Branchbender
 Epicure of Blood
@@ -48,19 +66,25 @@ Eternal of Harsh Truths
 Eternity Snare
 Everett K. Ross, Hapless Attaché
 Fading Hope
+Farsight Adept
 Fetid Horror
+Fever Charm
 Followed Footsteps
 Forest
 Forging the Anchor
+Foul Familiar
 Frenzied Rage
+Furtive Homunculus
 Futurist Sentinel
 Gaea's Touch
 Genasi Enforcers
 Giant Killer
 Giltgrove Stalker
+Gimli, Mournful Avenger
 Glistener Seer
 Goblin Fireslinger
 Goblin Gathering
+Goblin War Strike
 Graveyard Marshal
 Guided Strike
 Halsin, Emerald Archdruid
@@ -72,8 +96,10 @@ Hildibrand Manderville
 Hold for Questioning
 Ichor Shade
 Illusionist's Stratagem
+Immaculate Magistrate
 Indrik Stomphowler
 Inkfathom Divers
+Instill Energy
 Invasion of Mercadia
 Invasion of Shandalar
 Irencrag Pyromancer
@@ -97,6 +123,7 @@ Marble Titan
 Marching Duodrone
 Mardu Scout
 Masticore
+Memory Lapse
 Merciless Resolve
 Michelangelo, the Heart
 Mina and Denn, Wildborn
@@ -109,6 +136,8 @@ Monstrous Vortex
 Morbid Curiosity
 Mountain
 Myriad Landscape
+Mystic Subdual
+Nahiri's Stoneblades
 Nezumi Prowler
 Oakhame Ranger
 Old Gnawbone
@@ -116,8 +145,10 @@ Oreskos Sun Guide
 Orim's Cure
 Orzhov Enforcer
 Owlin Shieldmage
+Paladin's Shield
 Paper Tiger
 Parasitic Impetus
+Pegasus Stampede
 Phantasmal Bear
 Plague Belcher
 Plague Stinger
@@ -125,7 +156,9 @@ Plains
 Planar Birth
 Plant Elemental
 Plate Armor
+Pore Over the Pages
 Pressure Point
+Priest of the Wakening Sun
 Prismatic Ending
 Prized Griffin
 Prophecy
@@ -133,11 +166,14 @@ Radjan Spirit
 Razorfield Rhino
 Reckless Cohort
 Reclusive Artificer
+Reflexes
 Regal Sliver
 Reyhan, Last of the Abzan
 Roiling Regrowth
 Rookie Mistake
+Ruinous Gremlin
 Sage's Dousing
+Salt Flats
 Saradoc, Master of Buckland
 Sarcomite Myr
 Satyr Grovedancer
@@ -145,6 +181,8 @@ Screeching Harpy
 Sengir Nosferatu
 Sentinel of the Eternal Watch
 Serpent of Yawning Depths
+Shivan Wumpus
+Siege Modification
 Silklash Spider
 Skymarcher Aspirant
 Skywise Teachings
@@ -158,28 +196,34 @@ Springing Tiger
 Springleaf Parade
 Static Prison
 Sterling Grove
+Stony Silence
 Stormfist Crusader
 Sunken Field
 Swamp
 Sylvan Basilisk
 Tablet of Compleation
 Tainted Observer
+Tangle Angler
 Territorial Hammerskull
 Thalisse, Reverent Medium
 The Bear Force Pilot
+Thriving Grove
 Tideforce Elemental
 Tower of Fortunes
 Toxic Iguanar
 Treetop Village
 Trigon of Thought
 Trinket Mage
+Triumphant Surge
 Ultron the Annihilator
 Unspeakable Symbol
 Unyielding Krumar
 Updraft Elemental
 Urborg Elf
 Urza's Tome
+Vigilance
 Vine Dryad
+Void Snare
 Volcanic Hammer
 Vraska the Unseen
 Vryn Wingmare
@@ -189,4 +233,5 @@ Wall of Resistance
 Wall of Water
 Warthog
 Wight of the Reliquary
+Woodweaver's Puzzleknot
 Zhalfirin Decoy

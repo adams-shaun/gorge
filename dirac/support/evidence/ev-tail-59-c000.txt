@@ -38,6 +38,7 @@ Bane of Progress
 Barbarian Riftcutter
 Barbed Sliver
 Barrage of Boulders
+Barreling Attack
 Battle Brawler
 Battle Plan
 Battlefield Medic
@@ -68,6 +69,7 @@ Cavalier of Dawn
 Cephalid Retainer
 Chandra's Triumph
 Chandra, Legacy of Fire
+Chimeric Sphere
 Chimney Rabble
 Cho-Manno's Blessing
 Cho-Manno, Revolutionary
@@ -207,6 +209,7 @@ Gutless Ghoul
 HONK!
 Hag of Syphoned Breath
 Hair-Strung Koto
+Hallowed Ground
 Hamza, Guardian of Arashin
 Hapato's Might
 Haunted Library
@@ -431,6 +434,7 @@ Soul Strings
 Soulless One
 Spawning Pit
 Spear Spewer
+Spirit of the Aldergard
 Spiritual Guardian
 Spitting Hydra
 Splitting Headache
@@ -472,6 +476,7 @@ Threaten
 Thriving Turtle
 Thunder Spirit
 Thundering Giant
+Titan's Revenge
 Titanic Brawl
 Tolaria West
 Tomakul Scrapsmith

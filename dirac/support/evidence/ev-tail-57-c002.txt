@@ -1,171 +1,329 @@
 A-Deal Gone Bad
+Akki Battle Squad
 Alaborn Veteran
 Altar of the Goyf
+Ambuscade
+Angelic Ascension
+Archaeomancer
+Archaeomender
 Arm the Cathars
+Arwen's Gift
 Aspect of Mongoose
 Asphyxiate
+Aura of Dominion
+Auriok Transfixer
+Aven Flock
+Azorius Charm
 Baboon Spirit
+Banehound
+Bar the Door
 Barbarian General
+Battalion Foot Soldier
 Bayou Dragonfly
+Become the Avalanche
+Bedlam
+Beguiler of Wills
 Beledros Witherbloom
 Belle of the Brawl
 Bitter Downfall
 Blazing Sunsteel
 Blessed Orator
+Blight-Breath Catoblepas
 Blood Servitor
+Bloodcrazed Paladin
 Bloodfire Expert
 Boiling Seas
 Bonded Horncrest
+Book Burning
 Book of Mazarbul
 Brain Maggot
+Brassclaw Orcs
 Bretagard Stronghold
 Brushwagg
 Cadira, Caller of the Small
+Caldera Kavu
+Captain Sisay
 Careless Celebrant
 Carnophage
+Carrion Crow
 Celestial Purge
 Cephalid Looter
+Chandra's Phoenix
 Charging Tuskodon
+Circular Logic
 Civil Servant
 Clay Statue
 Clinging Anemones
 Cloudreach Cavalry
 Coastal Piracy
+Combat Research
+Consuming Bonfire
 Coralhelm Guide
 Corpse Harvester
 Counterintelligence
 Court Homunculus
 Cradle Clearcutter
+Cruel Bargain
+Dark Favor
+Dark Remedy
+Daybreak Combatants
+Deathmask Nezumi
 Deathpact Angel
 Deer-Dog
+Desecrated Earth
 Desperate Plea
 Despoiler of Souls
 Devout Harpist
 Diligent Excavator
+Dissenter's Deliverance
+Doorkeeper
+Draco
+Dragon-Style Twins
+Dragonloft Idol
 Drogskol Captain
+Dromoka Captain
 Drowned Rusalka
+Dusk Legion Dreadnought
+Dutiful Return
+Duty-Bound Dead
+Earthshape
 Ebon Dragon
+Efficient Construction
 Elas il-Kor, Sadistic Pilgrim
+Eldrazi Linebreaker
+Elspeth's Devotee
+Emblem of the Warmind
+Enraged Revolutionary
 Escarpment Fortress
+Essence of Orthodoxy
 Fabricate
 Fangren Pathcutter
+Far Wanderings
+Fen Stalker
+Fervor
 Festergloom
+Filthy Cur
+Final Reward
 Flamekin Herald
+Flaming Sword
+Fledgling Griffin
+Flip the Switch
 Floriferous Vinewall
 Foil
 Fool's Demise
 Forest
+Foundry of the Consuls
+Francisco, Fowl Marauder
+Freyalise's Radiance
+Frillscare Mentor
 Frostwind Invoker
 Gaea's Avenger
+Gamma Grotesque
+Geistcatcher's Rig
 Giant Fly
 Gilt-Leaf Winnower
 Glademuse
 Gnathosaur
+Goblin Elite Infantry
+Goblin Firestarter
 Goring Ceratops
 Grappler Spider
+Grassland Crusader
 Gravelighter
 Greenwood Sentinel
+Grenzo's Ruffians
 Guardian of Cloverdell
 Guma
 Gurgling Anointer
 Hada Freeblade
 Hagra Sharpshooter
 Hall of Tagsin
+Hand of Justice
+Harbinger of Night
+Haunted Guardian
 Hematite Golem
+Hexgold Slith
 Hijack
+Hopping Automaton
 Howling Wolf
+Huatli, the Sun's Heart
+Hurly-Burly
+Impending Flux
+Iname, Death Aspect
 Infiltrator's Magemark
 Ingenious Thief
 Invigorating Surge
 Island
+Ivy Lane Denizen
+Jaya, Venerated Firemage
 Jovial Evil
 Keening Apparition
+Kessig Flamebreather
 Koma's Faithful
 Kraken of the Straits
+Kytheon's Irregulars
 Life and Limb
 Lifeblood Hydra
+Lightfoot Rogue
+Lilting Refrain
 Lotus Field
+Makindi Patrol
 Malakir Cullblade
+Manakin
 Mardu Woe-Reaper
+Marsh Gas
+Merchant Scroll
 Merfolk Looter
+Midnight Banshee
+Mind Burst
 Minotaur Tactician
 Mirran Spy
 Mistral Singer
 Monastery Mentor
+Moonwing Moth
+Mortarion, Daemon Primarch
 Mortician Beetle
 Mountain
+Narwhal
 Nature's Chant
 Necromancer's Assistant
 Needleshot Gourna
 Needletooth Raptor
 Nemesis of Mortals
+Nerd Rage
+Nesting Wurm
+Netherborn Altar
 Nimble Pilferer
 Nylea's Emissary
+Obliterate
 One with the Stars
+Ooze Garden
+Orc General
 Orochi Leafcaller
 Otarian Juggernaut
+Oxidda Golem
 Paradoxical Outcome
 Paragon of New Dawns
+Pelargir Survivor
 Petrified Field
 Petrified Wood-Kin
+Phantasmal Shieldback
 Piety
 Plains
+Powerstone Engineer
 Prizefighter Construct
 Qarsi High Priest
 Quantum Misalignment
+Quicksmith Genius
 Racecourse Fury
 Raffine's Silencer
+Rage Weaver
 Rain of Thorns
+Raven Familiar
+Ravenous Intruder
+Ray Fillet, Wave Warrior
 Reckless Imp
+Reduce to Memory
+Renegade Reaper
 Repulse
 Restoration Specialist
+Revenant
 Rewards of Diversity
+Rhox Veteran
+Ridgeline Rager
+Riot Ringleader
+Rowan's Stalwarts
 Ruthless Sniper
+Salt Road Patrol
 Sanctum Seeker
+Sandbar Serpent
+Sanguine Praetor
+Scatter Arc
+Scavenging Ghoul
+Scroll of Avacyn
 Sculpting Steel
+Searing Touch
+See Red
+Seething Song
+Serpent Generator
+Sever Soul
 Shalai, Voice of Plenty
 Shifting Sliver
 Short Sword
+Shuri, the Black Panther
 Sigardian Savior
+Silver Bolt
+Silverquill Command
 Skittering Heartstopper
+Skyknight Legionnaire
+Skysovereign, Consul Flagship
 Slumbering Waterways
 Snowfield Sinkhole
 Soaring Show-Off
 Sorin's Thirst
+Soul Feast
 Soul of New Phyrexia
+Soulcage Fiend
 Soulsurge Elemental
+Spikeshot Goblin
 Spine of Ish Sah
 Spined Karok
+Spiteful Blow
 Spreading Insurrection
 Springsage Ritual
+Stalking Tiger
 Standstill
+Start Your Engines
+Stifle
 Stormcloud Djinn
 Strategic Planning
 Stromkirk Mentor
 Sunscorch Regent
 Swamp
 Symbiosis
+Tel-Jilad Stylus
+Telim'Tor's Edict
 Tentative Connection
+Terashi's Grasp
 Testament of Faith
+Teysa, Orzhov Scion
+Thermal Blast
+Thieves' Guild Enforcer
+Thorn Thallid
+Thoughtbind
 Thunderbreak Regent
 Thundermaw Hellkite
+Tocasia's Onulet
+Tormod's Cryptkeeper
 Toxic Scorpion
 Trostani's Judgment
 Trygon Prime
 Twilight Drover
+Tyranid Invasion
+Tyrant Guard
+Ulrich's Kindred
+Unnatural Predation
+Valor in Akros
+Vanquish the Foul
+Vedalken Entrancer
 Veiled Apparition
 Vengeant Vampire
 Vexing Gull
 Victory's Envoy
 Vile Requiem
+Violet Pall
 Vulshok Refugee
 Wall of Omens
 Wall of Wood
 Wandering Goblins
 War Behemoth
 Warped Tusker
+Warrior en-Kor
+Warriors' Lesson
 Wee Dragonauts
+Welcome the Dead
 Wheel of Fortune
+Will-Forged Golem
 Windstorm Drake
 Winterthorn Blessing
 Withstand

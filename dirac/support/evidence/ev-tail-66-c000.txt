@@ -9,6 +9,7 @@ Academy Wall
 Accelerate
 Advent of the Wurm
 Aethersphere Harvester
+Afiya Grove
 Against All Odds
 Akki Blizzard-Herder
 Akki Ronin
@@ -91,6 +92,7 @@ Cunning Wish
 Cut Your Losses
 Dagger Caster
 Dawn Elemental
+Dead of Winter
 Defy Death
 Delighted Killbot
 Delirium Skeins
@@ -118,6 +120,7 @@ Fain, the Broker
 Faultgrinder
 Feign Death
 Field Marshal
+Fiend Artisan
 Fiery Finish
 Filth
 Fireblade Artist
@@ -150,6 +153,7 @@ Golem's Heart
 Goma Fada Vanguard
 Granite Gargoyle
 Grave Venerations
+Gravebane Zombie
 Grazilaxx, Illithid Scholar
 Greater Good
 Grim Bounty
@@ -193,6 +197,7 @@ Izzet Chronarch
 Jace's Phantasm
 Jackal Pup
 Jeskai Barricade
+Jester's Cap
 Kalemne's Captain
 Karoo Meerkat
 Kavu Monarch
@@ -230,6 +235,7 @@ Metropolis Reformer
 Michelangelo, On the Scene
 Mind Flayer
 Minister of Inquiries
+Mirror Golem
 Mirrorworks
 Mischievous Poltergeist
 Mise
@@ -276,6 +282,7 @@ Recruiter of the Guard
 Regathan Firecat
 Regrowth
 Reign of Terror
+Resounding Wave
 Revelsong Horn
 Rhox Veteran
 Rite of Consumption

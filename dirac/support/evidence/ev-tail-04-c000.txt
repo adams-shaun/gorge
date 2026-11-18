@@ -4,6 +4,7 @@ A-Speakeasy Server
 A-Stitched Assistant
 A-Sunbathing Rootwalla
 Advanced Stitchwing
+Ajani, Inspiring Leader
 Akiri, Line-Slinger
 Alchemist's Retrieval
 Alley Evasion
@@ -42,13 +43,17 @@ Bewilder
 Big Bertha
 Birds of Paradise
 Bituminous Blast
+Blazing Salvo
 Blessed Hippogriff
 Blight Mound
 Bloated Contaminator
 Blood Servitor
 Blood Tithe
+Bloodline Pretender
 Bloodline Shaman
+Bloodstoke Howler
 Blossoming Bogbeast
+Bog Hoodlums
 Bog Rats
 Borrowed Grace
 Bramble Creeper
@@ -94,6 +99,7 @@ Deadly Wanderings
 Death-Greeter's Champion
 Deathbloom Ritualist
 Deathbloom Thallid
+Decree of Pain
 Deepwood Drummer
 Dega Disciple
 Demonic Collusion
@@ -189,6 +195,7 @@ Hulkbuster Armor
 Hungry Flames
 Icefall Regent
 Icy Manipulator
+Iizuka the Ruthless
 Imperial Ceratops
 Indomitable Ancients
 Inferno of the Star Mounts
@@ -223,7 +230,9 @@ Layla Hassan
 Leeching Licid
 Legion's Judgment
 Leyline Dowser
+Life's Finale
 Light of Day
+Liliana Vess
 Llanowar Loamspeaker
 Loathsome Chimera
 Locust Swarm
@@ -233,10 +242,12 @@ Luminous Angel
 Lurching Rotbeast
 Lyse Hext
 Mage Duel
+Malakir Blood-Priest
 Man-o'-War
 Mana Tithe
 March from the Tomb
 Marvelous Melee
+Mazirek, Kraul Death Priest
 Merciless Repurposing
 Metallic Sliver
 Might Sliver
@@ -260,10 +271,12 @@ Necklace of Girion
 Necrotic Wound
 Nim Replica
 Ninja of the New Moon
+Niv-Mizzet, Parun
 Nova Cleric
 Okiba Reckoner Raid
 One Thousand Lashes
 Onyx Talisman
+Opal Guardian
 Open the Armory
 Orazca Raptor
 Order
@@ -282,6 +295,7 @@ Pestilent Syphoner
 Phantom Wurm
 Pharaoh Rama-Tut
 Phyrexian Broodstar
+Phyrexian Splicer
 Pilgrim of the Ages
 Pit Scorpion
 Placid Rottentail
@@ -289,6 +303,7 @@ Plains
 Planar Gate
 Prakhata Pillar-Bug
 Pride Guardian
+Prismari Pledgemage
 Prize Pig
 Profane Prayers
 Promise of Aclazotz
@@ -306,6 +321,7 @@ Raging Ravine
 Raiders' Spoils
 Rakdos Ragemutt
 Ramosian Commander
+Rampaging War Mammoth
 Rathi Dragon
 Ravenous Daggertooth
 Ravenous Gigamole
@@ -422,6 +438,7 @@ Terror of Towashi
 Thassa's Devourer
 The Blackstaff of Waterdeep
 The Thanos-Copter
+Thieving Amalgam
 Think Tank
 Third Path Iconoclast
 Thran Foundry
@@ -453,6 +470,7 @@ Viashino Warrior
 Victual Sliver
 Village Elder
 Vindictive Triumph
+Vodalian Knights
 Vodalian Serpent
 Voice of the Provinces
 Volcanic Salvo

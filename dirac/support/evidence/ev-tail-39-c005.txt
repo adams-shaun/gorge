@@ -13,6 +13,7 @@ Beastmaster Ascension
 Benalish Veteran
 Berserkers of Blood Ridge
 Blood Pact
+Bloodvial Purveyor
 Chaos Channeler
 Chill
 Cling to Dust
@@ -42,6 +43,7 @@ Fast
 Feral Deceiver
 Forest
 Forked Bolt
+Ghostflame Sliver
 Glacial Grasp
 HYDRA Disintegrator
 Hidden Guerrillas
@@ -71,6 +73,7 @@ Paroxysm
 Plains
 Power Fist
 Priest of Gix
+Primeval Shambler
 Quandrix Campus
 Rack and Ruin
 Rage of Purphoros
@@ -82,6 +85,7 @@ Riverwheel Aerialists
 Ronin Warclub
 Rotten Reunion
 Ruinous Minotaur
+Sanctum Spirit
 Scourge of Fleets
 Scurry of Squirrels
 Sentinels of Glen Elendra

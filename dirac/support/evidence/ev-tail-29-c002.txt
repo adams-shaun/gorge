@@ -1,8 +1,23 @@
+A-Forge Boss
 Akki Avalanchers
+Akoum Battlesinger
+Alexi's Cloak
+Amoeboid Changeling
+Angelheart Protector
 Bastion Mastodon
 Binding the Old Gods
+Blood Cultist
+Bone Pit Brute
+Capricious Sorcerer
+Carnivorous Canopy
+Cavern Thoctar
 Chakra Meditation
 Chorus of the Tides
+Cliffhaven Sell-Sword
+Cradle of Safety
+Deal Gone Bad
+Decisive Denial
+Deep Spawn
 Devastation
 Dispersal Shield
 Drafna, Founder of Lat-Nam
@@ -19,48 +34,89 @@ Favored of Iroas
 Fiery Cannonade
 Filter Out
 Firemind's Foresight
+Foggy Nelson, On Retainer
 Forest
+Fracturing Gust
 Frost Lynx
 Gloomhunter
 Grimgrin, Corpse-Born
+Gruul Signet
+Havengul Runebinder
 Hawkeye, Trick Shot
 Heaven Sent
+Hieromancer's Cage
 High Ground
+Hindering Touch
 Ideas Unbound
 Ingenious Infiltrator
 Island
 Jhoira, Weatherlight Captain
 Knight Paladin
+Kodama of the North Tree
+Leonardo, Worldly Warrior
 Leyline Phantom
 Liliana's Spoils
 Ludevic's Test Subject
 Magma Jet
+Mental Journey
 Merrow Grimeblotter
 Midnight Scavengers
+Mind Games
 Mountain
+Myr Battlesphere
+Nahiri's Binding
+Need for Speed
+Octomancer
 Omnispell Adept
+Pendrell Mists
 Phantom Wings
 Plains
+Plow Through Reito
 Polyraptor
+Prickly Marmoset
+Priest of Titania
 Princess Lucrezia
 Psemilla, Meletian Poet
+Ramosian Lieutenant
+River's Favor
 Road
+Sea Sprite
+Seshiro the Anointed
+Shadow, Mysterious Assassin
 Sinister Strength
+Skullmead Cauldron
+Skyshroud Claim
+Slaughter-Priest of Mogis
 Solar Blast
+Soul of the Rapids
 Spiraling Embers
 Spirit en-Kor
+Squeeze
+Stabbing Pain
 Staff of the Flame Magus
+Stampede
 Stealer of Secrets
 Strider, Ranger of the North
 Sturmgeist
 Swamp
 Swarm of Rats
+Talisman of Resilience
+Thalakos Drifters
+Thornscape Familiar
 Thundering Raiju
+Tibalt's Rager
 Totally Lost
 Touch of Invisibility
+Triumph of Cruelty
+Turtle-Seals
 Vengeful Firebrand
 Violent Impact
 Viscera Dragger
+Voldaren Epicure
+Wall of Earth
+Watchwolf
+Whip Vine
 Wild Leotau
 Wind Zendikon
 Wing Commando
+Woodland Guidance

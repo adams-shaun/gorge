@@ -46,6 +46,7 @@ Belligerent Hatchling
 Blast Zone
 Blighted Agent
 Blightreaper Thallid
+Blinkmoth Nexus
 Blistering Dieflyn
 Blood Divination
 Blood Speaker
@@ -84,6 +85,7 @@ Coordinated Barrage
 Cordial Vampire
 Crawl from the Cellar
 Creakwood Ghoul
+Creative Outburst
 Cruel Cut
 Cruel Deceiver
 Culmination of Studies
@@ -197,6 +199,7 @@ Honor's Reward
 Horrific Assault
 Howling Fury
 Hurloon Shaman
+Hyena Umbra
 Illustrious Historian
 Incite
 Indulgent Tormentor
@@ -318,6 +321,7 @@ Relentless Advance
 Remember the Fallen
 Rending Volley
 Renounce
+Research the Deep
 Reverent Hunter
 Rewind
 Rhys the Redeemed
@@ -350,6 +354,7 @@ Selesnya Sagittars
 Sharktocrab
 Shattered Dreams
 Shepherd of Rot
+Shinen of Fear's Chill
 Showstopping Surprise
 Shred Memory
 Shredded Sails
@@ -362,6 +367,7 @@ Sivitri Scarzam
 Skizzik Surger
 Skyclave Relic
 Skyreaping
+Slave of Bolas
 Sling-Gang Lieutenant
 Smoldering Efreet
 Smuggler's Copter
@@ -377,6 +383,7 @@ Spore Cloud
 Square Up
 Stamina
 Stensia Uprising
+Stonework Packbeast
 Streetwise Negotiator
 Striped Bears
 Striped Riverwinder
@@ -401,6 +408,7 @@ Tin-Wing Chimera
 Tolsimir, Friend to Wolves
 Tower of Champions
 Towering Thunderfist
+Toxrill, the Corrosive
 Trained Armodon
 Trained Jackal
 Tranquil Path

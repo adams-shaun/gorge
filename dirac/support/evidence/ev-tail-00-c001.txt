@@ -45,7 +45,9 @@ Cave People
 Cephalid Broker
 Chain to Memory
 Chainwhip Cyclops
+Chandra, Acolyte of Flame
 Charging Rhino
+Charisma
 Chief of the Scale
 Chimney Goyf
 Chronomaton
@@ -58,6 +60,7 @@ Conviction
 Corrupted Harvester
 Crackling Club
 Crashing Centaur
+Cruel Reality
 Cryptic Pursuit
 Dampening Pulse
 Darkling Stalker
@@ -206,6 +209,7 @@ Light 'Em Up
 Light of Hope
 Llanowar Knight
 Loch Dragon
+Locthwain Paladin
 Lost in the Woods
 Lotho, Corrupt Shirriff
 Loyal Pegasus
@@ -237,8 +241,11 @@ Nezumi Cutthroat
 Nightmare Lash
 Nim Mongoose
 Nimbus Wings
+Nine-Fingers Keene
 Noble Purpose
 Obelisk Spider
+Offering to Asha
+Olivia, Crimson Bride
 Order of Whiteclay
 Order of the Stars
 Paladin of Predation
@@ -277,6 +284,7 @@ Restoration Gearsmith
 Retreat to Emeria
 Righteous Avengers
 Rishadan Footpad
+Rot Farm Skeleton
 Rule of Law
 Rush of Knowledge
 Russet Wolves
@@ -338,6 +346,7 @@ Swarmyard Massacre
 Sylvan Caryatid
 Sylvan Messenger
 Séance
+Taborax, Hope's Demise
 Talons of Falkenrath
 Taste of Death
 Tattered Haunter
@@ -351,6 +360,7 @@ Thought Harvester
 Thran Temporal Gateway
 Thranduil the Strategist
 Thriving Grove
+Thunderclap Wyvern
 Thundering Chariot
 Thundersong Trumpeter
 Tightening Coils
@@ -358,6 +368,7 @@ Time Walk
 Time of Heroes
 Tinker
 Titania's Chosen
+Tobias, Doomed Conqueror
 Tolarian Emissary
 Tormented Soul
 Toxic Stench
@@ -397,5 +408,6 @@ Wing Commando
 Wolfrider's Saddle
 Woolly Loxodon
 Wu Warship
+Yarok, the Desecrated
 Yoshimaru, Ever Faithful
 Zhang Liao, Hero of Hefei
