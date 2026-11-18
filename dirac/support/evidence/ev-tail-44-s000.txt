@@ -1,23 +1,36 @@
 Abundant Harvest
 Acid Rain
 Adaptive Training Post
+Ankh of Mishra
+Aradara Express
 Arcbound Crusher
 Archers of Qarsi
+Artificer's Intuition
+Ascendant Acolyte
 Assimilate Essence
 Barrin, Tolarian Archmage
+Bassara Tower Archer
 Beacon Behemoth
+Blossoming Wreath
 Bond of Insight
+Bookwurm
 Boros Locket
 Cavalier of Thorns
 Copper Carapace
 Core Prowler
+Cragplate Baloth
 Cranial Plating
+Creeping Tar Pit
 Curious Obsession
 Deconstruct
+Diabolic Machine
+Dizzy Spell
 Elanor Gardner
 Entrancing Melody
+Equilibrium
 Fa'adiyah Seer
 Fable of Wolf and Owl
+Fin-Clade Fugitives
 Finale of Devastation
 Five Hundred Year Diary
 Floodbringer
@@ -31,6 +44,9 @@ Jace Beleren
 Joyous Respite
 Keep Safe
 Keeper of Keys
+Limestone Golem
+Lord of Change
+Lumbering Falls
 Madame Vastra
 Make a Wish
 Matsu-Tribe Birdstalker
@@ -39,38 +55,55 @@ Mist Raven
 Mistblade Shinobi
 Monastery Flock
 Mystic Redaction
+Mythic Proportions
 Navigator's Ruin
 Nephalia Moondrakes
 Neurok Invisimancer
+Ninja of the Deep Hours
 Nomadic Elf
 Oko's Accomplices
 Ovinize
 Pact of Negation
+Pangosaur
 Paperfin Rascal
 Part the Veil
 Pewter Golem
 Phyrexian Soulgorger
 Pinion Feast
+Planar Portal
 Plaxmanta
+Praetor's Counsel
+Rakdos Keyrune
 Replication Specialist
 Rise of Eagles
 Saddle of the Cavalier
 Savage Punch
+Selesnya Keyrune
 Shapers of Nature
+Silumgar Sorcerer
 Silver Erne
+Skyscanner
+Sliversmith
 Solarion
+Soldevi Steam Beast
+Spitting Image
 Starved Rusalka
 Sudden Strength
 Summoner's Pact
+Svogthos, the Restless Tomb
 Sylvan Awakening
 Tajuru Snarecaster
+Tangletrove Kelp
 Thunder Drake
 Totem Speaker
+Transguild Promenade
 Twitch
 Uninvited Geist
 Utrom Monitor
+Vessel of Nascency
 Vulshok Battlegear
 Wall of Frost
+Wild Nacatl
 Windreader Sphinx
 Wirewood Pride
 Wolfkin Outcast

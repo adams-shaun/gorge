@@ -5,9 +5,12 @@ Adaptive Omnitool
 Aerial Modification
 Aerial Volley
 Agoraphobia
+Ancient Copper Dragon
 Angler Drake
+April O'Neil, Human Element
 Ardent Soldier
 Asha's Favor
+Audacity
 Aven Eternal
 Awaken the Bear
 Azorius Signet
@@ -28,6 +31,7 @@ Bloodcrusher of Khorne
 Bloodfire Dwarf
 Bloodrage Brawler
 Blossoming Calm
+Blue Elemental Blast
 Body of Knowledge
 Boing!
 Bojuka Brigand
@@ -37,6 +41,7 @@ Boom
 Boompile
 Branching Bolt
 Branchloft Pathway
+Breath of Darigaaz
 Bronze Walrus
 Burning Sun's Avatar
 Calming Verse
@@ -54,6 +59,7 @@ Compleated Huntmaster
 Conjurer's Mantle
 Conqueror's Flail
 Contaminated Aquifer
+Contentious Plan
 Court Hussar
 Crimson Caravaneer
 Crooked Custodian
@@ -69,6 +75,7 @@ Dauntless Onslaught
 Dawn of Hope
 Demonic Dread
 Deranged Hermit
+Deserter's Quarters
 Devastation Tide
 Dictate of Karametra
 Didgeridoo
@@ -76,12 +83,14 @@ Die Young
 Dissipate
 Dragon Mask
 Draugr Necromancer
+Draugr's Helm
 Dross Hopper
 Drowner Initiate
 Drumbellower
 Dune Beetle
 Dwarven Nomad
 Déjà Vu
+Eidolon of Astral Winds
 Emerald Medallion
 Emrakul's Hatcher
 Enthralling Victor
@@ -97,6 +106,7 @@ Feral Instinct
 Filigree Familiar
 Firebreathing
 Flame Discharge
+Flame Sweep
 Flameblade Adept
 Flare
 Flicker
@@ -127,14 +137,17 @@ Goldenglow Moth
 Golgari Rotwurm
 Gore Swine
 Grafted Wargear
+Grove of the Guardian
 Guardians' Pledge
 Hammerhand
 Hammerhead Shark
 Hangarback Walker
 Heirs of Stromkirk
+Hero of the Pride
 Highland Lake
 Hinterland Drake
 Hoodwink
+Hornet Cobra
 Hour of Promise
 Imotekh the Stormlord
 Imperial Lancer
@@ -153,6 +166,7 @@ Kami of the Waning Moon
 Kazandu Refuge
 Kindred Boon
 Kird Chieftain
+Kitesail Skirmisher
 Knight of Dusk's Shadow
 Krosan Wayfarer
 Lance
@@ -168,6 +182,7 @@ Lorthos, the Tidemaker
 Lotleth Giant
 Mage-Ring Bully
 Magnify
+Magus of the Moon
 Malevolent Whispers
 Malicious Intent
 Masked Blackguard
@@ -175,6 +190,7 @@ Merchant of the Vale
 Mesmerizing Dose
 Michiko Konda, Truth Seeker
 Militia Rallier
+Mind Unbound
 Mindstab Thrull
 Mogg War Marshal
 Moodmark Painter
@@ -191,6 +207,7 @@ Old Ghastbark
 On Wings of Gold
 Oracle of Tragedy
 Ornithopter
+Owlbear Shepherd
 Paragon of Open Graves
 Patron of the Arts
 Patron of the Vein
@@ -204,8 +221,10 @@ Pistus Strike
 Pith Driller
 Plains
 Plated Onslaught
+Pox
 Profane Memento
 Prologue to Phyresis
+Protomatter Powder
 Pteron Ghost
 Pyretic Charge
 Pyroceratops
@@ -224,6 +243,7 @@ Relentless Assault
 Remand
 Resupply
 Rime Transfusion
+Rite of the Raging Storm
 Rush of Inspiration
 Rusted Sentinel
 Sacred Guide
@@ -238,12 +258,14 @@ Searing Light
 Seismic Stomp
 Seller of Songbirds
 Sentinel
+Separatist Voidmage
 Sergeant-at-Arms
 Serra's Blessing
 Serrated Scorpion
 Setessan Griffin
 Shadowfeed
 Shimmerdrift Vale
+Shinewend
 Shrink
 Silverbeak Griffin
 Simian Grunts
@@ -271,6 +293,7 @@ Split-Tail Miko
 Sprouting Goblin
 Squee, Goblin Nabob
 Stampede
+Steel Leaf Champion
 Step Through
 Stingscourger
 Stronghold Overseer
@@ -301,6 +324,7 @@ Thorn Mammoth
 Thunder Spirit
 Tibalt, the Fiend-Blooded
 Time of Need
+Tin Street Hooligan
 Tolarian Sentinel
 Topiary Stomper
 Torch Courier
@@ -313,6 +337,7 @@ Unchained Berserker
 Unlicensed Hearse
 Vandalize
 Vault Skyward
+Vesper Ghoul
 Vicious Offering
 Village Rites
 Virtus the Veiled

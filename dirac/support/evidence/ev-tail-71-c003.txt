@@ -1,44 +1,75 @@
+A-Armory Veteran
 A-The Meathook Massacre
+Academy Elite
+Alchemist's Gift
 All Is Dust
 Alluring Suitor
 Ambulatory Edifice
+Ancient Carp
 Angel's Tomb
 Angelic Quartermaster
 Arrow Volley Trap
 Aven of Enduring Hope
+Awe for the Guilds
+Baton of Courage
 Battlefield Raptor
+Battleground Geist
+Beacon of Destruction
 Bladebrand
 Blazing Volley
+Blind with Anger
 Blood Pet
+Bloodfire Expert
 Bloodvial Purveyor
 Bola Warrior
 Bone Splinters
 Bower Passage
 Braingeyser
+Bull Rush
+Burning Wish
 Callous Dismissal
 Canyon Lurkers
+Captivating Gyre
+Cat Oven
 Cathedral Sanctifier
+Caustic Caterpillar
 Cerebral Eruption
 Cleaving Skyrider
 Commando Raid
+Coordinated Barrage
 Cordial Vampire
+Cosmic Hunger
 Cruel Sadist
+Crumbling Necropolis
+Crystal Chimes
 D'Avenant Archer
+Daggerclaw Imp
+Dangerous Wager
+Deadbridge Shaman
 Defy Death
 Detective of the Month
+Dire Fleet Poisoner
 Dockside Chef
 Doomed Traveler
 Double Trouble
+Dragon-Cursed Halls
+Dragonscale General
+Dune Chanter
 Earthshaker Giant
 Eccentric Farmer
 Elvish Piper
+Embereth Paladin
+Enduring Victory
 Ensnare
 Expedition Envoy
 Extract from Darkness
 Fall of the Thran
+Fallaji Chaindancer
 Fanatical Devotion
 Fatal Frenzy
 Ferrovore
+Feywild Visitor
+Field Research
 Fire Servant
 Firescreamer
 Flamekin Spitfire
@@ -47,36 +78,52 @@ Forest
 Frenzied Saddlebrute
 Garbage Elemental
 Gargoyle Flock
+Garruk's Warsteed
+Giant Inheritance
+Goblin Archaeologist
+Goblin Dirigible
+Goretusk Firebeast
 Granite Gargoyle
 Growth Cycle
+Guardian Automaton
 Guardian Lions
 Gut, True Soul Zealot
 Harnessed Lightning
+Hateflayer
 Haze of Pollen
+Hidden Gibbons
+Hideous End
 Hold for Questioning
 Humble
 Hydrolash
 Imposing Visage
 Inescapable Brute
 Inspirit
+Invincible Hymn
+Iron Star
 Island
 Jawbone Duelist
 Jeska, Warrior Adept
 Jhessian Balmgiver
 Journey for the Elixir
+Junk Jet
 Keepsake Gorgon
 Keldon Warcaller
 Kessig Naturalist
+Kin-Tree Warden
 Knight of the Tusk
 Kor Scythemaster
 Kyoshi Warrior Guard
 Lightning Spear
 Llanowar Cavalry
+Lumberknot
 Maned Serval
 Manhole Cover
 Marked by Honor
 Meldweb Strider
+Metastatic Evangel
 Militia Rallier
+Mine Worker
 Moku, Meandering Drummer
 Molderhulk
 Momentary Blink
@@ -84,56 +131,96 @@ Monk Idealist
 Mountain
 Mukotai Ambusher
 Myth Realized
+Nefashu
 Nexus of Fate
+Nezumi Graverobber
 Nightmare Shepherd
+Nightmare Void
 Nimble Mongoose
 Nissa's Zendikon
+Nuka-Cola Vending Machine
 Nylea's Disciple
+Nylea, God of the Hunt
+Ob Nixilis's Cruelty
 Ob Nixilis, the Hate-Twisted
+Overwhelming Remorse
 Pact of Negation
 Palace Sentinels
 Phyrexian Missionary
 Piston Sledge
 Plains
+Primal Boost
 Prized Elephant
 Psychic Overload
 Pyrogoyf
 Rampaging Monument
 Reckless Reveler
+Recruit the Worthy
 Regenesis
 Release the Ants
 Renegade Warlord
+Revolutionary Rebuff
+Revolutionist
 Riptide Mangler
 Rising Populace
 Rummaging Goblin
 Sanctifier of Souls
+Scalding Salamander
 Scaled Behemoth
+Scoria Wurm
+Season of Growth
+Serene Heart
+Serum Sovereign
+Shield Mate
 Shocker
 Shu Farmer
+Skarrgan Skybreaker
+Skatewing Spy
 Sky Crier
+Slinking Skirge
 Sly Instigator
+Snowfield Sinkhole
 Sonic Seizure
 Soulcatcher
 Spikefield Hazard
 Spined Thopter
+Starlit Sanctum
+Steel Golem
 Storm Seeker
+Striking Sliver
+Strongarm Thug
 Sungrace Pegasus
 Swamp
 Swathcutter Giant
+Tattermunge Witch
 Tezzeret's Gambit
+The Cauldron of Eternity
+Thornwatch Scarecrow
 Threnody Singer
 Throne of the God-Pharaoh
+Thunderous Might
 Time Bomb
+Tormod's Crypt
+Torture
+Treasure Mage
 Twisted Justice
 Ukkima, Stalking Shadow
 Undead Butler
 Unseal the Necropolis
+Utvara Scalper
 Vapor Snag
 Vent Sentinel
+Viashino Firstblade
+Vodalian Soldiers
 Voltaic Brawler
+Weight of Memory
+Whirlermaker
 Wing Shards
 Witherbloom Command
+Wizards of Thay
+Wolfcaller's Howl
 Wrath of Marit Lage
 Wyleth, Soul of Steel
+Xathrid Necromancer
 Yisan, the Wanderer Bard
 Yomiji, Who Bars the Way

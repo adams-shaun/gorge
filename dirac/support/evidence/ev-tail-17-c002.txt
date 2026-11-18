@@ -1,5 +1,7 @@
+A-Asari Captain
 Acquisition Octopus
 Aether Vial
+Aggression
 Agonizing Demise
 Akroma's Devoted
 Aladdin
@@ -9,14 +11,17 @@ Ancient Spider
 Arbalest Engineers
 Archangel of Thune
 Ardent Electromancer
+Armored Griffin
 Arni Slays the Troll
 Arrogant Poet
 Audacious Infiltrator
 Aura of Dominion
 Awaken the Sky Tyrant
 Barbed Shocker
+Barrow Witches
 Basilica Skullbomb
 Basking Broodscale
+Bazaar Trader
 Bedlam
 Belbe's Armor
 Beskir Shieldmate
@@ -31,9 +36,11 @@ Burrenton Shield-Bearers
 Canopy Claws
 Canopy Spider
 Canyon Wildcat
+Caravan Hurda
 Catapult Fodder
 Chandra's Defeat
 Chasm Guide
+Cinderclasm
 Cirith Ungol Patrol
 Cogwork Spy
 Collateral Damage
@@ -47,6 +54,7 @@ Dauthi Warlord
 Dega Sanctuary
 Desert Nomads
 Dig Up
+Dispersal Technician
 Doomed Artisan
 Dragonlair Spider
 Drogskol Shieldmate
@@ -59,13 +67,17 @@ Emiel the Blessed
 Enthralling Victor
 Environmental Sciences
 Escape Protocol
+Esper Cormorants
+Ethereal Whiskergill
 Exultant Skymarcher
 Facet Reader
+Faerie Conclave
 Far Wanderings
 Festercreep
 Fevered Convulsions
 Fin-Clade Fugitives
 Fists of the Anvil
+Flayer Husk
 Fledgling Djinn
 Fleet-Footed Monk
 Font of Fortunes
@@ -73,24 +85,32 @@ Font of Return
 Forced Adaptation
 Forest
 Foul Imp
+Freyalise Supplicant
+Freyalise's Charm
+Gaea's Avenger
 Galvanic Blast
 Garruk's Harbinger
 Gate of the Black Dragon
 Gearsmith Prodigy
 Geosurge
+Gift of Tusks
+Gimli's Reckless Might
 Glacial Grasp
 Go-Shintai of Ancient Wars
 Goatnapper
 Goblin Piledriver
+Goblin Ruinblaster
 Golden Demise
 Gorging Vulture
 Grafted Growth
 Gravepurge
 Graypelt Refuge
+Great Furnace
 Greataxe
 Greenbelt Rampager
 Headless Rider
 Heaven
+Heckling Fiends
 Heliod's Emissary
 Herbal Poultice
 Heronblade Elite
@@ -98,6 +118,7 @@ Hidden Footblade
 Highland Berserker
 Hollowhenge Beast
 Horn of Greed
+Hostile Minotaur
 Howlpack Resurgence
 Immersturm Raider
 Imp's Mischief
@@ -105,6 +126,7 @@ In the Web of War
 Iname, Death Aspect
 Ingenious Smith
 Insatiable Appetite
+Invisible Woman
 Iron Man, Titan of Innovation
 Iron-Heart Chimera
 Ironclaw Buzzardiers
@@ -112,10 +134,12 @@ Island
 Juniper Order Advocate
 Kavu Runner
 Kazandu Stomper
+Keeper of the Lens
 Kefnet's Last Word
 Key to the City
 Kiln Walker
 Kithkin Greatheart
+Kithkin Harbinger
 Kitsune Riftwalker
 Kodama of the South Tree
 Kragma Butcher
@@ -128,15 +152,18 @@ Lay Down Arms
 Lazotep Chancellor
 Life Chisel
 Liliana's Elite
+Liu Bei, Lord of Shu
 Looming Shade
 Lurking Nightstalker
 Mad Dog
+Manifold Key
 March of the Drowned
 Masked Blackguard
 Melancholy
 Metal Fatigue
 Meteoric Mace
 Might of the Old Ways
+Mirran Bardiche
 Moderation
 Moira, Urborg Haunt
 Mosscoat Goriak
@@ -149,7 +176,9 @@ Noble Steeds
 Norn's Inquisitor
 Ojutai, Soul of Winter
 Ollenbock Escort
+Ondu Inversion
 Opal Acrolith
+Open Fire
 Orim's Prayer
 Pallid Mycoderm
 Panacea
@@ -168,7 +197,10 @@ Pollenbright Druid
 Portable Hole
 Preemptive Strike
 Primal Command
+Prismatic Vista
 Provoke
+Quest for the Goblin Lord
+Radiant Essence
 Rage Nimbus
 Ratchet Bomb
 Rathi Intimidator
@@ -177,13 +209,16 @@ Redemption Choir
 Renegade Demon
 Renegade Wheelsmith
 Restrain
+Rift Bolt
 Roc of Kher Ridges
 Rockslide Ambush
 Rolling Thunder
+Romana II
 Ruin Raider
 Rumor Gatherer
 Rush of Adrenaline
 Ruthless Disposal
+Sacred Mesa
 Sai, Master Thopterist
 Sandstone Warrior
 Sangrite Surge
@@ -192,16 +227,22 @@ Scorching Missile
 Scour from Existence
 Scrapwork Rager
 Scrivener
+Sea Drake
 Searchlight Geist
 Selvala's Enforcer
 Serra Avenger
 Shadow Rift
 Shagrat, Loot Bearer
+Shard of the Void Dragon
 Shatter
+Shimmering Barrier
 Sigarda, Font of Blessings
+Sigiled Behemoth
 Siren Lookout
+Sisay's Ring
 Skull of Orm
 Skyclave Sentinel
+Sleep Paralysis
 Smell Fear
 Smog Elemental
 Snarespinner
@@ -210,6 +251,7 @@ Soul Swallower
 Specter of the Fens
 Sphinx's Tutelage
 Splendid Agony
+Stingmoggie
 Stingscourger
 Storm of Memories
 Street Riot
@@ -217,6 +259,7 @@ Street Urchin
 Strike It Rich
 Suki, Kyoshi Captain
 Summary Judgment
+Sunscape Familiar
 Superior Numbers
 Swamp
 Tactical Advantage
@@ -224,11 +267,13 @@ Take into Custody
 Talara's Battalion
 Tapestry of the Ages
 Tectonic Rift
+Thalia's Lancers
 The Binding of the Titans
 The Immortal Weapons
 Thriving Isle
 Throne of Empires
 Timberpack Wolf
+Tooth and Claw
 Torsten Von Ursus
 Tower of Calamities
 Treasure Mage
@@ -236,8 +281,10 @@ Twilight's Call
 Undead Augur
 Valduk, Keeper of the Flame
 Vessel of Malignity
+Veteran Cavalier
 Village Cannibals
 Virulent Plague
+Wayward Giant
 Wetland Sambar
 Wild Leotau
 Wild Shape

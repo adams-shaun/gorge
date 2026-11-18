@@ -46,6 +46,7 @@ Bounty of Might
 Bower Passage
 Braingeyser
 Bull Rush
+Burning Earth
 Burning Wish
 Callous Dismissal
 Campaign of Vengeance
@@ -97,6 +98,7 @@ Elvish Visionary
 Embereth Paladin
 Emerald Medallion
 Enduring Victory
+Ensnare
 Eutropia the Twice-Favored
 Evolution Charm
 Expedition Envoy
@@ -106,6 +108,7 @@ Fatal Frenzy
 Fated Infatuation
 Ferrovore
 Feywild Visitor
+Field Research
 Field of Souls
 Fire Servant
 Fire Shrine Keeper
@@ -289,6 +292,7 @@ Slinking Skirge
 Slurrk, All-Ingesting
 Sly Instigator
 Smell Fear
+Snowfield Sinkhole
 Soaring Thought-Thief
 Sonic Seizure
 Soulcatcher

@@ -1,9 +1,12 @@
+A-Mishra, Excavation Prodigy
+A-Ready to Rumble
 Accursed Duneyard
 Acid Web Spider
 Adamaro, First to Desire
 Aether Poisoner
 Aethergeode Miner
 Aetheric Amplifier
+Aethermage's Touch
 Akki Underling
 Akroan Jailer
 Alpine Meadow
@@ -16,8 +19,11 @@ Assault Griffin
 Auriok Bladewarden
 Auriok Steelshaper
 Azorius Locket
+Barbarian Bully
 Barrowgoyf
 Basal Thrull
+Bearer of Memory
+Behemoth Sledge
 Bitterthorn, Nissa's Animus
 Blighted Shaman
 Blood Reckoning
@@ -27,6 +33,8 @@ Brokers Hideout
 Bull Cerodon
 Cabal Therapist
 Captain America's Motorcycle
+Captain Lannery Storm
+Cateran Brute
 Cavern Harpy
 Cephalid Vandal
 Charging Paladin
@@ -36,9 +44,11 @@ Clockwork Vorrac
 Clot Sliver
 Cloudreader Sphinx
 Clutch of the Undercity
+Cold Storage
 Colorful Feiyi Sparrow
 Coral Net
 Corpulent Corpse
+Crater's Claws
 Crushing Disappointment
 Crystal Ball
 Curse of Bounty
@@ -66,6 +76,7 @@ Erratic Visionary
 Eternal Witness
 Ethereal Haze
 Experimental Overload
+Eyeblight Assassin
 Fade into Antiquity
 Faerie Guidemother
 Faith's Reward
@@ -75,12 +86,17 @@ Feral Deceiver
 Festergloom
 Fey Steed
 Fill with Fright
+Finale of Eternity
 Fire of Orthanc
 Flameborn Viron
 Flamecast Wheel
+Followed Footsteps
 Forest
 Fractal Summoning
+Freyalise, Llanowar's Fury
+Gem of Becoming
 Ghastly Demise
+Ghitu Slinger
 Ghostfire
 Gilacorn
 Gnawing Zombie
@@ -96,7 +112,9 @@ Honden of Seeing Winds
 Horobi, Death's Wail
 Hound of the Farbogs
 Howling Fury
+Hulking Bugbear
 Hushwing Gryff
+Inspired Charge
 Intruder Alarm
 Isao, Enlightened Bushi
 Island
@@ -114,6 +132,7 @@ Labyrinth Adversary
 Lazotep Reaver
 Legion Vanguard
 Ley Weaver
+Living Death
 Loam Dryad
 Lorehold Command
 Lorescale Coatl
@@ -121,10 +140,12 @@ Malakir Bloodwitch
 Malleable Impostor
 Matt Murdock, Justice Seeker
 Matter Reshaper
+Maul Splicer
 Mausoleum Secrets
 Miasmic Mummy
 Misery's Shadow
 Mist-Syndicate Naga
+Mogg Flunkies
 Monstrify
 Moonblade Shinobi
 Mother Kangaroo
@@ -161,12 +182,15 @@ Rogue Refiner
 Rupture Spire
 Rustrazor Butcher
 Sangrophage
+Saryth, the Viper's Fang
 Scaled Herbalist
+Scarred Vinebreeder
 Scrapper Champion
 Sentinel Sliver
 Serene Offering
 Shambling Ghoul
 Shefet Dunes
+Shelinda, Yevon Acolyte
 Shivan Harvest
 Short Sword
 Silburlind Snapper
@@ -174,11 +198,14 @@ Silvar, Devourer of the Free
 Sledding Otter-Penguin
 Slither Blade
 Snag
+Soulhunter Rakshasa
 Soulstealer Axe
 Spark Jolt
 Spider-Man 2099, Miguel O'Hara
 Spined Fluke
 Spiraling Duelist
+Sporemound
+Squirrel Wrangler
 Stinkweed Imp
 Stitcher's Apprentice
 Stormscape Master
@@ -186,12 +213,16 @@ Strangling Soot
 Strangling Spores
 Stratozeppelid
 Stronghold Discipline
+Sunrise Seeker
 Surrakar Banisher
 Suture Priest
 Swamp
 Swift Spinner
+Sword of Once and Future
+Tarfire
 Tattered Mummy
 Tel-Jilad Justice
+Terra Eternal
 The Whizzer, Classic Speedster
 Think Tank
 Thirst
@@ -211,6 +242,7 @@ Wanderlust
 Weatherseed Elf
 Whispering Wizard
 Windrider Wizard
+Wolfbriar Elemental
 Wooden Sphere
 Yavimaya Elder
 Yavimaya Granger

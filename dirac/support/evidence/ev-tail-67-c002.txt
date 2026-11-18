@@ -28,6 +28,7 @@ Bastion Inventor
 Battlefield Medic
 Bayek of Siwa
 Beast Attack
+Biting Rain
 Blade Splicer
 Blight Sickle
 Blisterspit Gremlin
@@ -175,6 +176,7 @@ Mirror of Galadriel
 Mise
 Mogg Sentry
 Mogis's Warhound
+Moonblade Shinobi
 Moonglove Changeling
 Morkrut Necropod
 Mortal's Ardor
@@ -195,6 +197,7 @@ Obscura Initiate
 Oceanus Dragon
 Onulet
 Orcish Bowmasters
+Organ Hoarder
 Orim's Touch
 Paradox Engine
 Path of Anger's Flame
@@ -211,6 +214,7 @@ Protector of Gondor
 Prowling Pangolin
 Psychic Spear
 Psychotrope Thallid
+Pulse of the Grid
 Purifying Dragon
 Python
 Rage Weaver
@@ -270,7 +274,9 @@ Tale of Momo
 Talons of Falkenrath
 Talons of Wildwood
 Task Force
+Tawnos's Wand
 Temmet, Vizier of Naktamun
+Temporal Cascade
 Tenza, Godo's Maul
 Territorial Allosaurus
 The Bears of Littjara

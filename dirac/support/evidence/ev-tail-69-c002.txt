@@ -107,6 +107,7 @@ Frightcrawler
 Fyndhorn Brownie
 Galvanic Blast
 Garruk Wildspeaker
+Gauntlet of Might
 Geistflame
 Ghostly Wings
 Giant Harbinger
@@ -313,6 +314,7 @@ Triangle of War
 Trollbred Guardian
 Underworld Connections
 Unhinge
+Unholy Indenture
 Unwind
 Urza's Filter
 Vampire's Bite
@@ -327,6 +329,7 @@ Wall of Blossoms
 War-Wing Siren
 Warm Welcome
 Watcher Sliver
+Waterfront District
 Wayfaring Temple
 Wedding Announcement
 Whirlwind Adept
@@ -338,4 +341,5 @@ Wrath of the Skies
 Wreak Havoc
 You Meet in a Tavern
 Youthful Scholar
+Zagoth Triome
 Zodiac Ox

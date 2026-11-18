@@ -24,6 +24,8 @@ Barrin's Codex
 Battle Sliver
 Benalish Marshal
 Benalish Missionary
+Bequeathal
+Black Market Tycoon
 Blind-Spot Giant
 Blizzard Strix
 Blood Divination
@@ -65,8 +67,10 @@ Death Speakers
 Death Wind
 Death's Duet
 Denizen of the Deep
+Devil's Play
 Devouring Deep
 Diamond Knight
+Disposal Mummy
 Divest
 Djinn of Infinite Deceits
 Domestication
@@ -118,6 +122,7 @@ Gust of Wind
 Hag of Inner Weakness
 Hag of Noxious Nightmares
 Hallowed Haunting
+Halvar, God of Battle
 Hammerheim Deadeye
 Headless Specter
 Henrika Domnathi
@@ -130,12 +135,14 @@ Horizon Explorer
 Hornet Nest
 Hour of Revelation
 Hunter's Edge
+Hyperion Blacksmith
 Ilysian Caryatid
 Improbable Alliance
 Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
 Inspiring Cleric
+Invasion of Theros
 Iron Fist, Hero for Hire
 Iron Verdict
 Ishai, Ojutai Dragonspeaker
@@ -146,6 +153,7 @@ Jukai Trainee
 Kaervek's Torch
 Kavu Howler
 Keeper of the Cadence
+Kjeldoran Frostbeast
 Kolaghan Warmonger
 Krazy Kow
 Last Breath
@@ -153,6 +161,7 @@ Last Kiss
 Lat-Nam Adept
 Lesser Werewolf
 Liliana's Triumph
+Living Totem
 Lone Missionary
 Loxodon Mystic
 Lucky the Pizza Dog
@@ -176,6 +185,7 @@ Mogg Squad
 Moldering Karok
 Moonsilver Key
 Moroii
+Mortal's Resolve
 Mountain
 Mystic Restraints
 Nature's Wrath
@@ -209,6 +219,7 @@ Ral's Outburst
 Rally at the Hornburg
 Rat Colony
 Ratcatcher
+Red XIII, Proud Warrior
 Relentless Rats
 Reverent Mantra
 Riddle Gate Gargoyle
@@ -257,6 +268,7 @@ Steel Wall
 Stonewood Invocation
 Storm Fleet Aerialist
 Sublime Archangel
+Summon Undead
 Summon: Kujata
 Sunlit Marsh
 Suspicious Bookcase
@@ -307,10 +319,12 @@ Water Elemental
 Wayward Soul
 Weakness
 White Widow, Yelena Belova
+Willow Elf
 Winds of Rath
 Wingmate Roc
 Wormhole Serpent
 Wydwen, the Biting Gale
 Yavimaya Enchantress
 You Meet in a Tavern
+Yukora, the Prisoner
 Zhang Fei, Fierce Warrior

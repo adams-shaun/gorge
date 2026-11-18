@@ -1,8 +1,10 @@
+A-Kona, Rescue Beastie
 Absorb
 Agility Bobblehead
 Air Servant
 Akoum Refuge
 Alabaster Potion
+Alrund's Epiphany
 Ancestral Blade
 Ancient Gold Dragon
 Anointer Priest
@@ -13,9 +15,11 @@ Artificer Class
 Ashen Monstrosity
 Attune with Aether
 Avatar of Growth
+Aven Fogbringer
 Azure Drake
 Back in Town
 Banishment
+Barkhide Troll
 Barrow Witches
 Basilica Skullbomb
 Belligerent Sliver
@@ -23,16 +27,19 @@ Big Boa Constrictor
 Black Widow, Intel Expert
 Black Widow, Natasha Romanoff
 Blind Creeper
+Blood Fountain
 Bloodbond Vampire
 Bloodcrazed Neonate
 Bloodmark Mentor
 Bloodthirsty Adversary
+Blustersquall
 Bond of Insight
 Bonehoard
 Bound in Silence
 Bountiful Promenade
 Brackwater Elemental
 Brandywine Farmer
+Bugenhagen, Wise Elder
 Cabal Patriarch
 Cabaretti Courtyard
 Captive Weird
@@ -54,6 +61,7 @@ Deepwood Wolverine
 Demon's Disciple
 Dense Foliage
 Deputized Protester
+Deranged Assistant
 Desert of the Indomitable
 Desolate Mire
 Desynchronize
@@ -62,11 +70,13 @@ Devouring Swarm
 Dina, Essence Brewer
 Doom Whisperer
 Double Negative
+Dragon-Scarred Bear
 Drainpipe Vermin
 Dread Tiller
 Dream Thief
 Dreamshackle Geist
 Drillworks Mole
+Drossclaw
 Drown in Dreams
 Dualcaster Mage
 Dune Mover
@@ -78,16 +88,21 @@ Faerie Noble
 Falkenrath Marauders
 Farewell
 Fateful Showdown
+Feral Instinct
 Ferocious Zheng
+Fetid Imp
 Fiendslayer Paladin
 Fissure
+Flatman
 Flowstone Charger
 Forest
+Foxfire Oak
 Gift of Paradise
 Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
 Great Defender
+Greater Harvester
 Grixis Slavedriver
 Guardian of the Guildpact
 Guul Draz Mucklord
@@ -99,30 +114,42 @@ Hibernation
 Honden of Life's Web
 Howl of the Night Pack
 Huatli, Radiant Champion
+Hulk, Brutal Brawler
 Hurloon Battle Hymn
+Imaginary Pet
 Immortal Phoenix
 Incisor Steed
+Inspire Awe
 Island
 Jace's Erasure
+Jade Idol
 Jalum Tome
+Jolrael, Voice of Zhalfir
 Judith, the Scourge Diva
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
 Khenra Eternal
 Kher Keep
 Kjeldoran Outrider
+Kodama's Reach
 Launch
 Leyline of Punishment
 Lightning-Rig Crew
 Lightwielder Paladin
+Liliana of the Veil
 Lorthos, the Tidemaker
 Lost in the Mist
+Lost in the Spirit World
 Magma Vein
 Magmatic Insight
+Malcator's Watcher
+Mammoth Spider
 Mana Vault
 Manalith
+Marauding Boneslasher
 Mardu Woe-Reaper
 Mark of the Oni
+Markov Patrician
 Masked Blackguard
 Master of Winds
 Master the Way
@@ -168,6 +195,7 @@ Portent of Betrayal
 Power of Persuasion
 Pyrrhic Blast
 Quest for Renewal
+Quirion Explorer
 Radstorm
 Rageblood Shaman
 Rally the Peasants
@@ -198,6 +226,7 @@ Shrine Keeper
 Sigil of Valor
 Silent Extraction
 Simian Brawler
+Sinkhole
 Sizzle
 Skyline Cascade
 Slagwoods Bridge
@@ -206,6 +235,7 @@ Sonic Screwdriver
 Sootstoke Kindler
 Soulmender
 Spectacle Mage
+Spike Breeder
 Spirited Companion
 Spitebellows
 Spitfire Handler
@@ -228,6 +258,8 @@ Thoughtweft Gambit
 Threnody Singer
 Thrilling Encore
 Thundersteel Colossus
+Timbermaw Larva
+Timin, Youthful Geist
 Tomebound Lich
 Trail of Evidence
 Trailblazing Historian
@@ -238,16 +270,20 @@ Ugin's Insight
 Undead Servant
 Unholy Hunger
 Urza's Rebuff
+Urza, Powerstone Prodigy
 Veiling Oddity
 Venomous Changeling
 Verdant Sun's Avatar
 Viscerid Deepwalker
+Viscid Lemures
 Volcanic Torrent
 Volcanic Upheaval
 Voyager Staff
 Wall of Vines
 Warmonger Hellkite
+Waterknot
 Whiptail Moloch
+Will-o'-the-Wisp
 Winding Canyons
 Wingsteed Rider
 Wizard Replica
@@ -256,3 +292,4 @@ Yoshimaru, Ever Faithful
 Zap
 Zealot's Conviction
 Zendikar Farguide
+Zuran Enchanter

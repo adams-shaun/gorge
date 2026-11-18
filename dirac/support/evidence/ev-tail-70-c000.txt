@@ -109,6 +109,7 @@ Elvish Bard
 Elvish Soultiller
 Emergent Growth
 Enlisted Wurm
+Essence Backlash
 Etherium Sculptor
 Ethersworn Shieldmage
 Experimental Overload

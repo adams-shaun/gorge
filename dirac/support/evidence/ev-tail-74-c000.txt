@@ -232,6 +232,7 @@ Lignify
 Liliana's Defeat
 Liliana's Elite
 Liliana's Standard Bearer
+Loamdragger Giant
 Loathsome Troll
 Lokhust Heavy Destroyer
 Lotus Blossom

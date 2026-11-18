@@ -127,6 +127,7 @@ Fatal Push
 Fated Intervention
 Fervent Champion
 Firefist Adept
+Firemind's Foresight
 Fit of Rage
 Flaming Fist Officer
 Floodgate
@@ -266,6 +267,7 @@ Plated Geopede
 Plated Spider
 Polymorphist's Jest
 Power Sink
+Practical Research
 Precognition Field
 Primeval Titan
 Pyre Hound
@@ -280,6 +282,7 @@ Ray of Distortion
 Razaketh, the Foulblooded
 Razormane Masticore
 Reaper of Flight Moonsilver
+Reclusive Artificer
 Red Elemental Blast
 Rending Volley
 Reservoir Walker

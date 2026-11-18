@@ -104,9 +104,11 @@ Double Trouble
 Dragon-Cursed Halls
 Dragonscale General
 Drake Familiar
+Dune Chanter
 Dying Wail
 Earthshaker Giant
 Eccentric Farmer
+Elven Cache
 Elvish Piper
 Elvish Visionary
 Embereth Paladin
@@ -240,6 +242,7 @@ Moku, Meandering Drummer
 Molten Ravager
 Momentary Blink
 Monk Idealist
+Morbid Opportunist
 Morningtide
 Mountain
 Murasa Ranger
@@ -366,6 +369,7 @@ Tezzeret's Gambit
 The Archimandrite
 The Cauldron of Eternity
 The Thing
+Thornwatch Scarecrow
 Thragtusk
 Threnody Singer
 Throne of the God-Pharaoh
@@ -396,17 +400,21 @@ Voltaic Brawler
 Wanderer's Twig
 Wandering Ones
 Wave of Terror
+Webspinner Cuff
 Weight of Memory
 Weldfast Wingsmith
 Whirlermaker
 Wing Shards
 Winged Coatl
+Withdraw
 Witherbloom Command
 Wizards of Thay
+Wolfcaller's Howl
 Wormwood Dryad
 Wrath of Marit Lage
 Wyleth, Soul of Steel
 Xathrid Necromancer
+Yawgmoth Demon
 Yisan, the Wanderer Bard
 Yomiji, Who Bars the Way
 Yotian Tactician

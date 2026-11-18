@@ -15,6 +15,7 @@ Alpha Tyrranax
 Angelic Exaltation
 Angelic Gift
 Angler Turtle
+Anodet Lurker
 Answered Prayers
 Ant Queen
 Anurid Barkripper
@@ -111,6 +112,7 @@ Eidolon of Inspiration
 Elfhame Palace
 Elvish Ranger
 Ember Hauler
+Embermaw Hellion
 Emergency Weld
 Endless Sands
 Energy Bolt
@@ -242,6 +244,7 @@ Mite Overseer
 Mogg Alarm
 Moonlit Wake
 Mordant Dragon
+Morkrut Banshee
 Mossbeard Ancient
 Mosstodon
 Motivated Pony
@@ -330,6 +333,7 @@ Shamble Back
 Shapers' Sanctuary
 Shard of the Nightbringer
 Shauku's Minion
+Shoulder to Shoulder
 Shriek of Dread
 Shu Cavalry
 Silt Crawler
@@ -422,6 +426,7 @@ Wellspring
 Whisper Agent
 White Sun's Zenith
 Wild Celebrants
+Wildwood Escort
 Wings of Aesthir
 Wings of Hope
 Wolf's Quarry

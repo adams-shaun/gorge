@@ -1,89 +1,152 @@
+A-Master of Winds
 Afterlife
 Agility Bobblehead
 Akoum Refuge
 Ancestral Blade
+Archwing Dragon
 Attune with Aether
 Backfire
 Banishment
+Basilica Skullbomb
 Bathe in Dragonfire
 Belligerent Sliver
+Bellowing Mauler
 Black Widow, Intel Expert
 Blind Creeper
+Blood Fountain
+Bloodbond Vampire
+Bone Devourer
+Boneknitter
+Bonepicker Skirge
 Bound in Silence
 Burning Fields
+Cabaretti Courtyard
+Cao Cao, Lord of Wei
 Chaotic Backlash
 Clip Wings
 Continue?
+Curiosity Crafter
 Dawning Angel
 Death's Shadow
+Demon's Disciple
 Desolate Mire
 Desynchronize
+Devouring Light
+Dream Thief
 Drifting Shade
 Drillworks Mole
 Drossclaw
 Dune Mover
+Elvish Dreadlord
 Evolving Adaptive
 Falkenrath Marauders
+Farewell
+Fateful Showdown
+Fetid Imp
 Fiendslayer Paladin
 Fissure
+Flare of Denial
 Forest
+Gift of Fangs
 Gift of Paradise
 Glimmervoid
 Gnarled Effigy
+Great Defender
+Greater Harvester
+Grim Tutor
 Haazda Officer
 Harmless Assault
 Hero of the Dunes
 Hurloon Battle Hymn
+Illicit Shipment
+Imaginary Pet
+Incisor Steed
 Island
+Jade Idol
+Jalum Tome
 Judith, the Scourge Diva
 Kazandu Tuskcaller
+Khenra Eternal
 Khenra Spellspear
 Kher Keep
 Krark-Clan Grunt
 Lightning-Rig Crew
 Lightwielder Paladin
+Lost in the Spirit World
+Magma Vein
 Mana Vault
+Manalith
 Mardu Woe-Reaper
+Markov Patrician
 Masked Blackguard
 Mass Mutiny
 Mindwrack Harpy
 Mountain
 Mox Tantalite
+Mystic Skull
 Nakaya Shade
 Nyx-Fleece Ram
+Obelisk of Grixis
+Ogre Taskmaster
+Ondu Knotmaster
+One-Eyed Scarecrow
 Order of the Sacred Torch
+Paradigm Shift
 Patrol Hound
 Peregrine Mask
+Personal Tutor
 Plains
 Precinct Captain
 Quest for Renewal
 Rally the Peasants
+Rampaging Cyclops
 Reckless Barbarian
 Reclaim the Wastes
+Reduce in Stature
+Return from Extinction
+Return of the Nightstalkers
+Rimewood Falls
+Rout
 Rune-Cervin Rider
+Sacred Prey
 Sailor of Means
 Sanctify
 Sanctum of Stone Fangs
 Seething Pathblazer
+Selhoff Occultist
+Shimmer of Possibility
 Show of Valor
 Shrine Keeper
 Siege Dragon
 Sigil of Valor
 Sinkhole
 Skyline Cascade
+Slagwoods Bridge
+Songstitcher
 Soulmender
 Spectacle Mage
+Spirit Shackle
 Spirited Companion
 Spitebellows
+Spiteful Squad
+Sultai Emissary
 Sunscorched Desert
 Swamp
+Swarm Surge
 Sword of the Animist
 Tectonic Edge
 Thundersteel Colossus
+Timin, Youthful Geist
+Tomebound Lich
+Trailblazing Historian
 Twiddle
 Twilight's Call
 Unholy Hunger
+Viscid Lemures
 Voyager Staff
+Wall of Vines
+Waterknot
+Will-o'-the-Wisp
 Wingsteed Rider
 Wizard Replica
 Woodland Stream

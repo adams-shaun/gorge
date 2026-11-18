@@ -1,6 +1,8 @@
 A-Elven Bow
 A-Glittermonger
 A-Mishra, Excavation Prodigy
+A-Ready to Rumble
+Aang's Defense
 Abyssal Horror
 Adamaro, First to Desire
 Aether Poisoner
@@ -59,6 +61,7 @@ Courier's Capsule
 Creeping Trailblazer
 Crushing Disappointment
 Crystal Ball
+Curse of Bounty
 Curse of Shallow Graves
 Daring Apprentice
 Daring Fiendbonder
@@ -77,6 +80,7 @@ Empty the Laboratory
 Engineered Might
 Erratic Mutation
 Erratic Visionary
+Escarpment Fortress
 Eternal Witness
 Ethereal Champion
 Ethereal Haze
@@ -91,7 +95,9 @@ Fated Intervention
 Fencer Clique
 Feral Deceiver
 Feral Lightning
+Ferocious Tigorilla
 Festergloom
+Fey Steed
 Fill with Fright
 Finale of Eternity
 Fire Tempest
@@ -99,6 +105,7 @@ Fire of Orthanc
 Firebird, Blazing Ranger
 Flamecast Wheel
 Flow of Ideas
+Followed Footsteps
 Forest
 Freyalise, Llanowar's Fury
 Furious Resistance
@@ -118,8 +125,10 @@ Grave Peril
 Gruesome Discovery
 Hallowed Spiritkeeper
 Hanabi Blast
+Heavy Infantry
 Hedge Troll
 Highland Forest
+Hollowsage
 Honden of Seeing Winds
 Horobi, Death's Wail
 Howling Fury
@@ -135,6 +144,7 @@ Isolate
 Jace's Scrutiny
 James, Wandering Dad
 Jarad's Orders
+Jeskai Runemark
 Joven
 Kamahl's Druidic Vow
 Karvanista, Loyal Lupari
@@ -143,6 +153,7 @@ Keeper of Fables
 Kobold Taskmaster
 Kongming, "Sleeping Dragon"
 Kor Skyfisher
+Krovikan Sorcerer
 Labyrinth Adversary
 Leather Armor
 Legion Vanguard
@@ -158,6 +169,7 @@ Lorescale Coatl
 Lull
 Malachite Talisman
 Malakir Bloodwitch
+Malleable Impostor
 Manamorphose
 Marwyn, the Nurturer
 Matt Murdock, Justice Seeker
@@ -180,6 +192,7 @@ Oashra Cultivator
 Omen
 Ominous Cemetery
 Onyx Talisman
+Ornate Kanzashi
 Oxidda Scrapmelter
 Penumbra Bobcat
 Phantasmal Dragon
@@ -192,8 +205,11 @@ Pollywog Prodigy
 Priest of Gix
 Prosperous Bandit
 Proud Pack-Rhino
+Psychic Strike
+Radha, Coalition Warlord
 Rakdos Ragemutt
 Ranging Raptors
+Rashka the Slayer
 Rathi Assassin
 Ravenous Intruder
 Ray of Erasure
@@ -233,6 +249,7 @@ Slither Blade
 Snag
 Sol Grail
 Solid Footing
+Soul of Eternity
 Soulhunter Rakshasa
 Soulstealer Axe
 Spark Jolt
@@ -242,6 +259,7 @@ Spider-Man 2099, Miguel O'Hara
 Spiraling Duelist
 Sporemound
 Squirrel Wrangler
+Stinkweed Imp
 Stitcher's Apprentice
 Stormbind
 Strangling Soot
@@ -255,15 +273,18 @@ Surrakar Banisher
 Suture Priest
 Swamp
 Swift Spinner
+Sword of Once and Future
 Tangleclaw Werewolf
 Tarfire
 Tattered Mummy
+Tel-Jilad Justice
 Terra Eternal
 The Whizzer, Classic Speedster
 Think Tank
 Thirst
 Thunderous Might
 Tishana's Wayfinder
+Tolsimir Wolfblood
 Tower of Eons
 Tranquil Path
 Trespasser il-Vec
