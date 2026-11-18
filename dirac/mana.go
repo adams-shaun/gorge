@@ -1377,6 +1377,29 @@ func (s *State) planHandDemand(k *prep, p uint8, pk *planner, exclude Obj) {
 	}
 }
 
+// castPaySpellBuild reports whether this planner pass prices a spell's
+// cast payment. A cast's payment never prices a dynamic {T}, sacrifice
+// source (Lotus Blossom): gorge's payment planner cannot price an
+// evaluated-amount source whose cost sacrifices it (the probe needs a
+// TapOnly shape), so its cast payment leaves the source untouched and its
+// census leaves it out of a cast's offer (availForMode's dynSac gate).
+// This planner is a separate pass from that census: plan's pass-2 dynamic
+// layer would tap and sacrifice the source to complete a cast the pool
+// and the ordinary sources cannot pay (tail-74 pairs 31, 47). An
+// activated ability keeps it: its offer is priced by the dynSac census
+// (avail.dynSac) and funded by the prefix float (lowerDynSacGap) or the
+// pass.
+func (s *State) castPaySpellBuild(k *prep) bool {
+	return k.gen != nil && s.buildLive() && s.bld().e.kind == seSpell
+}
+
+// planCastDynSacSkip reports whether the unit is a dynamic {T}, sacrifice
+// source a cast's payment leaves untouched (castPaySpellBuild;
+// availForMode's dynSac gate, tail-74 pairs 31, 47).
+func planCastDynSacSkip(castPay bool, pc *pcard) bool {
+	return castPay && pc.manaDyn && pc.manaSac
+}
+
 func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// units: fixed-production sources in battlefield (entry) order, then
 	// choice-shaped sources (any colour, a choice of colours) in battlefield
@@ -1417,18 +1440,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	if pk.maxN == 0 {
 		pk.maxN = 1
 	}
-	// A cast's payment never prices a dynamic {T}, sacrifice source (Lotus
-	// Blossom): gorge's payment planner cannot price an evaluated-amount
-	// source whose cost sacrifices it (the probe needs a TapOnly shape), so
-	// its cast payment leaves the source untouched and its census leaves it
-	// out of a cast's offer (availForMode's dynSac gate). This planner is a
-	// separate pass from that census: its pass-2 dynamic layer below would
-	// tap and sacrifice the source to complete a cast the pool and the
-	// ordinary sources cannot pay (tail-74 pairs 31, 47). An activated
-	// ability keeps it: its offer is priced by the dynSac census
-	// (avail.dynSac) and funded by the prefix float (lowerDynSacGap) or
-	// this pass.
-	castPay := k.gen != nil && s.buildLive() && s.bld().e.kind == seSpell
+	// A cast's payment never prices a dynamic {T}, sacrifice source: see
+	// castPaySpellBuild for gorge's shape and the class (tail-74 pairs 31, 47).
+	castPay := s.castPaySpellBuild(k)
 	// phase 1: normal sources only; phase 2 (only when phase 1 proves no
 	// plan) adds the last-resort tap-and-sacrifice sources (Treasure),
 	// ranked by irreversible cost (gorge plancost.go:160-179, plan.go:104),
@@ -1586,8 +1600,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 						continue
 					}
 				}
-				if castPay && pc.manaDyn && pc.manaSac {
-					continue // a cast's payment leaves the dynamic {T}, sacrifice source untouched (availForMode's dynSac gate)
+				if planCastDynSacSkip(castPay, pc) {
+					continue // a cast's payment leaves the dynamic {T}, sacrifice source untouched
 				}
 				if pc.manaDyn && !fixedGrant {
 					if pass != 2 {
