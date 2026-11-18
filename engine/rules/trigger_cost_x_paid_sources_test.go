@@ -12,7 +12,7 @@ import (
 
 const xPaidForest = "Name:Paid Forest\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ G\nOracle:x\n"
 
-const xPaidLake = "Name:Paid Lake\nTypes:Land\nA:AB$ Mana | Cost$ 1 T | Produced$ U R | SpellDescription$ Add {U}{R}.\nOracle:x\n"
+const xPaidLake = "Name:Paid Lake\nTypes:Land\nA:AB$ Mana | Produced$ U R | Cost$ 1 T\nOracle:Tap and pay one for two.\n"
 
 // TestTriggeredCostXOfferCountsAFeeSourceNet: a mana ability with a literal fee and a
 // bigger production (Ferrous Lake) is outside the payment-window census, but the
