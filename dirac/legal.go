@@ -2013,13 +2013,21 @@ const potentialOpenUnits = 2 * trigXCap
 // production there is no unit, so mergeTap is noted neither (a note over a
 // record that is not there would re-record a widened unit carrying the
 // refused production's colours).
-func (s *State) censusOpenTap(k *prep, sl Slot, pc *pcard, boundedAny bool, add func(Slot, uint8, uint8), painDrop uint8, cen *potCensus) {
+// A pain-only source whose damage reaches p's life is no unit of gorge's
+// planner either (potentialTapUnit's lethal guard: City of Brass at 1 life,
+// CR 119.4; its damage is a trigger, so painDrop never sees it): the
+// over-bound keeps it, the census does not.
+func (s *State) censusOpenTap(k *prep, p uint8, sl Slot, pc *pcard, boundedAny bool, add, fold func(Slot, uint8, uint8), painDrop uint8, cen *potCensus) {
 	mask := s.srcMaskAt(pc, sl)
 	if mask == 0 {
 		return
 	}
 	n := s.srcYieldAt(k, sl, pc)
 	if n == 0 {
+		return
+	}
+	if !boundedAny && pc.painOnly && int(pc.painN) >= int(s.pl[p].life) {
+		fold(sl, mask, n)
 		return
 	}
 	if !boundedAny {
@@ -2184,7 +2192,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		}
 		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
 			if len(units) != 0 {
-				s.censusOpenTap(k, sl, pc, boundedAny, painAdd, painDrop, &cen)
+				s.censusOpenTap(k, p, sl, pc, boundedAny, painAdd, fold, painDrop, &cen)
 			}
 			open = s.potentialAnyColourUnit(k, sl, pc, boundedAny, painAdd, &anyFree) || open
 			continue
