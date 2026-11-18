@@ -13,6 +13,9 @@ import (
 var (
 	ErrUnmapped    = errors.New("manabrew: decision kind is not mapped yet")
 	errNilDecision = errors.New("manabrew: nil decision")
+	// errSeqExhausted: a decision.Seq at or past MaxDecisionSeq has no u32-safe
+	// promptId; refusing beats wrapping into the synthetic id space.
+	errSeqExhausted = errors.New("manabrew: decision seq has no u32 promptId")
 )
 
 // CardText is the card-text seam:
@@ -72,6 +75,9 @@ func (t *Translator) Prompt(d *decision.Decision, v *view.View) (mb.PromptMessag
 func (t *Translator) PromptFlagged(d *decision.Decision, v *view.View) (mb.PromptMessage, bool, error) {
 	if d == nil {
 		return mb.PromptMessage{}, false, errNilDecision
+	}
+	if uint64(d.Seq) >= MaxDecisionSeq {
+		return mb.PromptMessage{}, false, errSeqExhausted
 	}
 	return t.dispatch(d, v)
 }

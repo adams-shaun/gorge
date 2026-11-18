@@ -56,9 +56,32 @@ func payActionID(id string) string {
 	return "pay-" + id
 }
 
+// The promptId space. The published protocol types promptId as u32, so every
+// id on the wire is in [0, 2^32). The range splits three ways, disjoint by
+// construction:
+//
+//   - ordinary decision prompts: decision.Seq, in [0, MaxDecisionSeq);
+//   - synthetic ack-only prompts (synthetic.go): counting down from
+//     SyntheticPromptIDTop, never below SyntheticPromptIDFloor;
+//   - the terminal gameOver prompt: GameOverPromptID, the top of the range.
+//
+// MaxDecisionSeq is the first Seq with no id; PromptFlagged returns
+// errSeqExhausted for it rather than wrapping into the synthetic range.
+const (
+	// PromptIDLimit is one past the largest promptId a u32 carries.
+	PromptIDLimit int64 = 1 << 32
+	// MaxDecisionSeq is the exclusive bound on a decision.Seq that mints an id.
+	MaxDecisionSeq uint64 = 1 << 31
+	// SyntheticPromptIDFloor is the lowest id the synthetic space may mint;
+	// it equals MaxDecisionSeq, so the two spaces cannot meet.
+	SyntheticPromptIDFloor int64 = int64(MaxDecisionSeq)
+	// SyntheticPromptIDTop is the first synthetic id (event seq 0).
+	SyntheticPromptIDTop int64 = PromptIDLimit - 2
+)
+
 // promptID mints a ManaBrew promptId from the decision's Seq:
 // stable across reconnect and caretaker, and a stale answer is simply a
-// different Seq. A gorge Seq is far below 2^53 (a JS safe integer).
+// different Seq. PromptFlagged guarantees d.Seq < MaxDecisionSeq.
 func promptID(d *decision.Decision) int64 { return int64(d.Seq) }
 
 // The exported aliases below are the SAME mints, re-exposed for the mbtest

@@ -13,6 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/host/httpapi"
 	"github.com/adams-shaun/gorge/server/host/manabrewhttp"
+	"github.com/adams-shaun/gorge/server/manabrew"
 	"github.com/adams-shaun/gorge/server/manabrew/mbtest"
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
@@ -158,7 +159,7 @@ func (s *ManaBrewSession) read(seat int) []byte {
 				s.asked, s.prompt = seat, &pm
 			}
 		default:
-			if pm.PromptID < 0 {
+			if pm.PromptID >= manabrew.SyntheticPromptIDFloor {
 				s.acknowledge(seat, pm)
 				continue
 			}

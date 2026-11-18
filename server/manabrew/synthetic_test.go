@@ -57,8 +57,8 @@ func TestSyntheticReveal(t *testing.T) {
 	if pm.DecidingPlayerID != "player-0" {
 		t.Fatalf("decidingPlayerId = %s, want player-0 (the connected viewer)", pm.DecidingPlayerID)
 	}
-	if pm.PromptID != syntheticPromptID(101, 0) {
-		t.Fatalf("promptId = %d, want %d", pm.PromptID, syntheticPromptID(101, 0))
+	if pm.PromptID != mustSynthID(t, 101) {
+		t.Fatalf("promptId = %d, want %d", pm.PromptID, mustSynthID(t, 101))
 	}
 
 	ack := mb.ClientMessage{Value: mb.ClientResponse{Kind: "response", PromptID: pm.PromptID,
@@ -152,8 +152,8 @@ func TestSyntheticDice(t *testing.T) {
 	if roll.PlayerID != "player-1" {
 		t.Fatalf("playerId = %s, want player-1", roll.PlayerID)
 	}
-	if pm.PromptID != syntheticPromptID(12, 0) {
-		t.Fatalf("promptId = %d, want %d (the closing batch Note's Seq)", pm.PromptID, syntheticPromptID(12, 0))
+	if pm.PromptID != mustSynthID(t, 12) {
+		t.Fatalf("promptId = %d, want %d (the closing batch Note's Seq)", pm.PromptID, mustSynthID(t, 12))
 	}
 
 	ack := mb.ClientMessage{Value: mb.ClientResponse{Kind: "response", PromptID: pm.PromptID,
@@ -193,4 +193,13 @@ func TestSyntheticNilViewFallsBackToActor(t *testing.T) {
 	if pm.DecidingPlayerID != "player-1" {
 		t.Fatalf("decidingPlayerId = %s, want player-1 (nil view falls back to the actor)", pm.DecidingPlayerID)
 	}
+}
+
+func mustSynthID(t *testing.T, seq uint64) int64 {
+	t.Helper()
+	id, ok := syntheticPromptID(seq)
+	if !ok {
+		t.Fatalf("syntheticPromptID(%d) refused", seq)
+	}
+	return id
 }
