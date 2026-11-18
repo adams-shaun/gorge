@@ -11,7 +11,21 @@ import "testing"
 // tail-42 autopay game, pair 2).
 // The recording is pooled custom (the table its own decks need): the synthetic
 // bucket it was found on re-cuts whenever the lowered card set moves.
+//
+// CR 605.3a with CR 605.3b: with one Swamp untapped, Dauthi Embrace's {B}{B}
+// is payable only through School of the Unseen's {2},{T} filter, and gorge
+// leaves it unpriced and unoffered: its 160-node prefix search spends the
+// budget on funding lines before the two-Mountain one, because Karplusan
+// Forest's mana ask lists {C}, {R} and {G} (the painful ability is no cost).
+// The kernel funded with Karplusan's {C} alone, reached the paying line and
+// offered the third activation (decision 1157 of the tail-42 full game, pair
+// 97, seed 569004; act_filter_search_budget_pain_ask).
 func TestMBCDauthiEmbraceReprosLockstep(t *testing.T) {
 	t.Parallel()
-	stdReproNamed(t, "dyn_restricted_mana_keeps_its_colours")
+	for _, name := range []string{
+		"dyn_restricted_mana_keeps_its_colours",
+		"act_filter_search_budget_pain_ask",
+	} {
+		t.Run(name, func(t *testing.T) { stdReproNamed(t, name) })
+	}
 }

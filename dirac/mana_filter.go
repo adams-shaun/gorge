@@ -1349,7 +1349,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			if free {
 				pc := t.manaPCGen(k, sl)
-				mask := t.srcMaskAt(pc, sl)
+				mask := t.fundMaskAt(k, pc, sl) // a painland asks its painful colours too (mana_filtpain.go)
 				if bits.OnesCount8(mask) > 1 && !fs.tick() {
 					return false // the colour ask
 				}
