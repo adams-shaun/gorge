@@ -77,3 +77,38 @@ func triggeredCostXPaidNet(w paidSourceWindow, p state.PlayerID, supply int32, u
 	}
 	return total - supply
 }
+
+// triggeredCostXFeeFree is units with every alternative whose activation costs
+// mana left out, and a unit left with none dropped. The payment-plan census
+// lists a fixed-production ability whose cost is more than a bare tap at its
+// gross production (Viridescent Bog's "{1}, {T}: Add {B}{G}" as two mana),
+// which triggeredCostXSupply would count in full though the fee comes out of
+// mana the other sources supply. Left out of the units, such a source is priced
+// at its net by triggeredCostXPaidNet instead (CR 605.3b, 601.2b: an announced
+// X must be one the payment can settle). A cost with no mana part (a
+// self-sacrifice "Sac<1/CARDNAME>: Add {C}") stays in the units at its gross.
+func triggeredCostXFeeFree(w paidSourceWindow, p state.PlayerID, units []pay.WindowUnit) []pay.WindowUnit {
+	out := make([]pay.WindowUnit, 0, len(units))
+	for _, u := range units {
+		var keep []pay.WindowAlt
+		for _, a := range u.Alts {
+			if a.Ma != nil {
+				cost := w.feeCost(p, u.ID, a.Ma).Cost
+				fee := cost.Generic
+				for _, n := range cost.Colored {
+					fee += n
+				}
+				if fee > 0 {
+					continue
+				}
+			}
+			keep = append(keep, a)
+		}
+		if len(keep) == 0 {
+			continue
+		}
+		u.Alts = keep
+		out = append(out, u)
+	}
+	return out
+}
