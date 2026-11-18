@@ -41,6 +41,17 @@ func (s *State) planHoldsOnStack(k *prep, p uint8, o Obj, cost *kop.ManaCost) bo
 	var pk planner
 	pk.try = true // an unpayable cost taps nothing and is no plan
 	c := *cost
+	if s.cfg&cfgGorgeLowering != 0 {
+		// the cast planner's census leaves a dynamic {T}, sacrifice source
+		// out (availFor's default, gen.go dynamicManaCost): a cast only that
+		// source pays has no plan, and on the lowering surface gorge reaches
+		// it as a potential play (the oracle taps the witness at priority)
+		var av avail
+		s.availFor(k, p, &av)
+		if !av.affords(&c, pipMaskOf(&c), 0) {
+			return false
+		}
+	}
 	t.tapForPK(k, p, &c, 0, o, false, false, &pk)
 	for m := s.ctrlM[seat]; m.any(); m = m.rest() {
 		sl := m.first()
