@@ -1,0 +1,10 @@
+# the plain RepeatEach-over-cards pool: Balan, Wandering Knight (RepeatEach
+# without ChangeZoneTable$: attach each Equipment you control, one per pass),
+# vanilla Equipment and basics, for the oracle's constructed lockstep
+# (dirac/oracle/repeateachcards_loop_lockstep_test.go)
+Balan, Wandering Knight
+Short Sword
+Bonesplitter
+Leonin Scimitar
+Vulshok Morningstar
+Plains

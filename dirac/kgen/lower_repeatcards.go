@@ -13,9 +13,9 @@ import (
 // (cc.Remembered = [card]). Lowered as OpRepeatEach (act_repeatcards.go) for
 // the one body the kernel loops: a single Token whose AttachedTo$ Remembered
 // names the repeated card (the WOE Roles: Asinine Antics, Become Brutes,
-// Twisted Sewer-Witch), read as RefEach. The loop runs inside one zone batch,
-// so ChangeZoneTable$ True is required (it is what the kernel does); every
-// other rider (ChooseOrder$, DamageMap$, a body of any other shape, a
+// Twisted Sewer-Witch), read as RefEach. That loop runs inside one zone batch
+// under ChangeZoneTable$ True; without it the loop is a plain per-card one
+// over a one-instruction body (repeatEachCardsLoop); every other rider (ChooseOrder$, DamageMap$, a body of any other shape, a
 // nested loop) refuses by name. The one other body is a DealDamage by the
 // repeated card to its controller under DamageMap$ True
 // (repeatEachCardsDamage), which moves no card, so it reads no
@@ -37,9 +37,8 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 	if b := cards.ResolveSVar(lc.face.SVars, ps.peek("RepeatSubAbility")); b != nil && b.API == "DealDamage" && b.Sub == nil && ps.peek("DamageMap") == "True" {
 		dmgBody = true
 	}
-	if !dmgBody && !ps.is("ChangeZoneTable", "True") {
-		return refuse("RepeatEach cards without ChangeZoneTable$ True")
-	}
+	// no ChangeZoneTable$: a plain per-card loop (repeatEachCardsLoop)
+	table := dmgBody || ps.is("ChangeZoneTable", "True")
 	if z := strings.TrimSpace(ps.str("Zone")); z != "" && z != "Battlefield" {
 		return refuse("RepeatEach cards Zone$ %q", z)
 	}
@@ -79,8 +78,11 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 	if dmgBody {
 		return lc.repeatEachCardsDamage(ps, in, body) // lower_repeatcardsdamage.go
 	}
+	if !table {
+		return lc.repeatEachCardsLoop(in, body) // lower_repeatcardsloop.go
+	}
 	if body.API != "Token" || body.Sub != nil {
-		return refuse("RepeatEach cards body %s (only a lone Token)", body.API)
+		return refuse("RepeatEach cards ChangeZoneTable$ True body %s (only a lone Token: gorge batches the moves)", body.API)
 	}
 	at, nt := len(lc.ab.Prog), len(lc.ab.Targets)
 	lc.emit(in)
