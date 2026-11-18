@@ -41,7 +41,7 @@ func wardIsGrantedLife(amt int16) bool {
 // ob) that entry e targeted, when the table has a granted ward.
 //
 //go:noinline
-func (s *State) wardGranted(k *prep, sl Slot, ob *object, e *stackEntry, disguise bool) {
+func (s *State) wardGranted(k *prep, sl Slot, ob *object, e *stackEntry, disguise bool, nb uint8) {
 	p := &s.perms[sl]
 	cd := &k.t.Cards[s.cardAt(sl)]
 	var printed int16
@@ -57,6 +57,7 @@ func (s *State) wardGranted(k *prep, sl Slot, ob *object, e *stackEntry, disguis
 		np := s.npend
 		s.enqueueWard(e, p.obj, ob.ver, s.cardAt(sl), p.ctrl, e.ctrl, printed)
 		s.panharmKeyword(k, sl, kop.TrigBecomesTarget, e.obj, np)
+		s.wardBeforeGranted(k, p.obj, nb, np)
 	}
 	lts, lost := s.lossAt(k, sl)
 	// the granted instances in gorge's derived keyword order: the layer-6
@@ -120,3 +121,38 @@ var DebugNoWardGrant bool
 // DebugDropLifeWard drops the printed "ward--pay N life" trigger (the
 // pre-fix behaviour). The ward life lockstep's mutation test flips it.
 var DebugDropLifeWard bool
+
+// wardBeforeGranted moves the printed ward trigger(s) queued at pend[np:npend]
+// ahead of the permanent's own granted BecomesTarget triggers (Kira, Great
+// Glass-Spinner's) queued by this targeting's walk at pend[nb:np]. gorge lists
+// a permanent's face triggers, the printed ward among them, before the
+// triggers granted to it (the same face-then-granted walk slotTriggers
+// reproduces), so the trigger-order ask offers the ward first; the kernel
+// queues the keyword ward after the whole BecomesTarget walk.
+func (s *State) wardBeforeGranted(k *prep, obj Obj, nb, np uint8) {
+	if s.npend <= np {
+		return
+	}
+	at := np
+	for i := nb; i < np; i++ {
+		pt := &s.pend[i]
+		abs := k.t.Cards[pt.card].Abilities
+		if pt.obj == obj && int(pt.ab) < len(abs) && abs[pt.ab].AFlags&kop.AfLatent != 0 {
+			at = i
+			break
+		}
+	}
+	if at == np {
+		return
+	}
+	// rotate pend[at:npend] left by np-at: the ward block first, the granted
+	// triggers (and whatever the walk queued after them) behind it
+	rev := func(lo, hi uint8) {
+		for ; lo+1 < hi; lo, hi = lo+1, hi-1 {
+			s.pend[lo], s.pend[hi-1] = s.pend[hi-1], s.pend[lo]
+		}
+	}
+	rev(at, np)
+	rev(np, s.npend)
+	rev(at, s.npend)
+}
