@@ -584,7 +584,9 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 	if d.Kind != decision.KPriority {
 		// An ask the activation poses: branch over its answers.
 		answers := scriptAnswers(d)
-		answers = scriptOrderAnswers(d, answers, sr.need)
+		if scriptManaAskHoists(c.manaActivation, p, d) {
+			answers = scriptOrderAnswers(d, answers, sr.need)
+		}
 		if len(answers) == 0 {
 			sr.approx = true
 		}
@@ -942,6 +944,14 @@ func scriptStepNeed(steps []decision.PaymentActivation, next int) [state.MC + 1]
 // plans it reaches, and so which plan it finds. A W U B R G colour ask
 // otherwise spends its nodes proving every colour the cost does not name dead
 // before the first one it does.
+//
+// The reorder never applies to a plain mana-ability ask (scriptManaAskHoists
+// false): there the
+// kernel walks the ask's own option order, the source's ability order -- the
+// free printed ability before a pay-life one (Haunted Screen's {W}/{B} before
+// its {G}/{U}/{R}), the pain-free {C} of a painland before its painful
+// colours (Scabland) -- so the script must branch in that same order or the
+// prefix it writes takes a life the kernel does not spend.
 func scriptOrderAnswers(d *decision.Decision, answers []decision.Intent, need [state.MC + 1]bool) []decision.Intent {
 	any := false
 	for _, b := range need {
@@ -983,6 +993,34 @@ func scriptOrderAnswers(d *decision.Decision, answers []decision.Intent, need [s
 		}
 	}
 	return append(first, rest...)
+}
+
+// scriptManaAskHoists reports whether the needed-colour reorder keeps its
+// place at the mana-ability ask ma is posing (the engine nils it the moment
+// it is answered): the source's own choice among its mana abilities.
+//
+// A source with no granted ability beside its printed ones is paid by the
+// kernel's ordinary mana walk, which takes the printed ability order, the
+// free bare-{T} ability before a pay-life one (a painland's {C} before its
+// damaging colours), so the script branches in the ask's own order there: a
+// needed-colour reorder would take a life the kernel does not spend
+// (script_pain_colour_first). A source holding a granted ability beside its
+// printed ones is paid by the kernel's granted-mana prefix search, which
+// mirrors this ask and this search's reorder node for node
+// (dirac/mana_grantpain.go painAskOrder) -- there the reorder stays.
+func scriptManaAskHoists(ma *manaActivation, p state.PlayerID, d *decision.Decision) bool {
+	if ma == nil || ma.player != p || ma.source != d.Source || len(d.Options) == 0 {
+		return true // not a mana-ability ask: the reorder applies
+	}
+	grants := false
+	for i := range d.Options {
+		o := &d.Options[i]
+		if o.Kind != "mana" {
+			return true // a granted ability's stage-2 or another ask shape: the reorder applies
+		}
+		grants = grants || o.Granted
+	}
+	return grants
 }
 
 // scriptStateKey identifies a payer state for the search's dedup: every
