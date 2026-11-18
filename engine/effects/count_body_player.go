@@ -7,8 +7,9 @@ import (
 )
 
 // evalCountBodyPlayer evaluates the player-counter and PlayerCount* head
-// family (YourCounters, PlayerCountPlayers/Opponents/HasLost/Defined*/
-// PropertyYou, OppGreatestLifeTotal, StartingPlayer.) claimed next.
+// family (YourCounters, DungeonsCompleted, PlayerCountPlayers/Opponents/
+// HasLost/Defined*/PropertyYou, OppGreatestLifeTotal, StartingPlayer.)
+// claimed next.
 func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth int) (int32, bool, bool) {
 	// Count$YourCounters<KIND> — the resolving controller's own player
 	// counters of KIND (Forge's Count$YourCounters* family, measured 31
