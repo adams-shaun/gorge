@@ -12,8 +12,8 @@ import (
 // of one tap (CR 602.2b, 107.5): the sacrifice ability cannot be activated
 // after the source has already tapped, so the most the land makes is 2.
 const cwTapSacLand = "Name:Fixture Crystal Vein\nTypes:Land\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\n" +
-	"A:AB$ Mana | Cost$ T Sac<1/CARDNAME> | Produced$ C | Amount$ 2 | SpellDescription$ Add {C}{C}.\n" +
+	"A:AB$ Mana | Produced$ C | Cost$ T | SpellDescription$ Add one colourless mana.\n" +
+	"A:AB$ Mana | Produced$ C | Amount$ 2 | Cost$ T Sac<1/CARDNAME> | SpellDescription$ Add two colourless mana.\n" +
 	"Oracle:x\n"
 
 // cwTapSacExtraArtifact carries a no-tap self-sacrifice extra beside both a
@@ -21,15 +21,15 @@ const cwTapSacLand = "Name:Fixture Crystal Vein\nTypes:Land\n" +
 // tap (1+1 = 2), never the "{1}, {T}, Sacrifice this" activation, which has
 // already consumed the source (CR 602.2b).
 const cwTapSacExtraArtifact = "Name:Fixture Double Sac\nTypes:Artifact\n" +
-	"A:AB$ Mana | Cost$ 1 T Sac<1/CARDNAME> | Produced$ C | Amount$ 3 | SpellDescription$ Add {C}{C}{C}.\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\n" +
-	"A:AB$ Mana | Cost$ Sac<1/CARDNAME> | Produced$ C | SpellDescription$ Add {C}.\n" +
+	"A:AB$ Mana | Produced$ C | Amount$ 3 | Cost$ 1 T Sac<1/CARDNAME> | SpellDescription$ Add three colourless mana.\n" +
+	"A:AB$ Mana | Produced$ C | Cost$ T | SpellDescription$ Add one colourless mana.\n" +
+	"A:AB$ Mana | Produced$ C | Cost$ Sac<1/CARDNAME> | SpellDescription$ Add one colourless mana.\n" +
 	"Oracle:x\n"
 
 // cwPlainLand funds the artifact's {1} fee without contributing a second
 // activation of its own.
 const cwPlainLand = "Name:Fixture Forest\nTypes:Basic Land Forest\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Add {G}.\nOracle:x\n"
+	"A:AB$ Mana | Produced$ G | Cost$ T | SpellDescription$ Add one green mana.\nOracle:x\n"
 
 // cwXSpell is a bare {X} sink: its announcement ceiling is exactly what the
 // sources can pay, so an over-counted source shows up as a too-large X offer.
