@@ -29,7 +29,9 @@ func TestRetraceGrantBarredAdditionalCosts(t *testing.T) {
 		mut  func(cd *kop.CardDef)
 	}{
 		{"none", func(*kop.CardDef) {}},
-		{"kicker", func(cd *kop.CardDef) { cd.Keywords |= kop.KwKicker }},
+		// (kicker is not here: a kicked cast is a hand-only offer, so a Kicker
+		// card's retrace cast is the plain one in both engines --
+		// TestRetraceGrantKickerNotBarred)
 		{"warp", func(cd *kop.CardDef) { cd.HasWarp = true }},
 		{"plot", func(cd *kop.CardDef) { cd.HasPlot = true }},
 		{"sneak", func(cd *kop.CardDef) { cd.HasSneak = true }},

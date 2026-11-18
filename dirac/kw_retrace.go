@@ -116,9 +116,14 @@ func (s *State) retraceLive(k *prep, o Obj) bool {
 // neither: it applies to the spell on the stack whatever zone it was cast
 // from (CR 702.66a), so offerRetraceCasts prices its graveyard credit as the
 // other graveyard walks do and the cast build's bsDelve stage asks it.
+// Kicker is neither either: a kicked cast is a hand-only offer (gorge
+// legal_walk_hand.go, cast.go's hand walk; the kicker cost folds only in
+// gorge's castModeKicked), so a Kicker card's retrace cast is the plain one in
+// both engines -- the printed base plus the discard, the kicker unpaid, and
+// neither engine offers a kicked retrace cast.
 func retraceGrantBarred(k *prep, c CardID) bool {
 	cd := &k.t.Cards[c]
-	return cd.Keywords&(kop.KwFlashback|kop.KwKicker) != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp || cd.Escape ||
+	return cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp || cd.Escape ||
 		cd.Convoke || cd.Improvise || cd.Cost.X != 0 ||
 		cd.HasWarp || cd.HasPlot || cd.HasSneak || cd.Impending != 0 || cd.HasBestow ||
 		cd.SpellCost.Flags != 0 || cd.HasAltAdd || cd.Offspring || cd.Gift || cd.MorphCost != (kop.ManaCost{}) ||
