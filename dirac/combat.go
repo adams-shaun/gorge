@@ -128,7 +128,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 	// gorge's attackOffersCompute saw them.
 	served := s.liftAttackPicks()
 	m := s.ctrlM[s.active]
-	def := s.nextSeat(s.active) // read on the two-seat path only (MaxSeats > 2 offers attackOffersN)
+	def := s.nextSeat(s.active) // read on the two-seat path only (a pod offers attackOffersN)
 	// one attacker's offers are at most the player and every other
 	// permanent (its walkers, any attackable battle)
 	room := MaxOptions - 1 - (MaxSeats - 1 + s.occ.count())

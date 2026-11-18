@@ -2417,9 +2417,9 @@ type genState struct {
 	linkImp uint8
 	embF    [MaxSeats]uint8 // bit i: player p's emblem i (UntilEndOfNextTurn) has begun a turn since creation (static_emblemdurations.go)
 	embR    [MaxSeats][maxEmb]Obj
-	nseat   uint8                             // seats in this game, set by InitN; read only when MaxSeats > 2 (nSeats)
+	nseat   uint8                             // seats in this game, set by InitN; read by nSeats and duel
 	poolTre [MaxSeats][kop.NumManaKinds]uint8 // per player and colour, the floating units a Treasure produced (mana_artifact.go artTag/treSync)
-	blkDef  uint8                             // the defending player declaring blockers; read only when MaxSeats > 2 (blockDef)
+	blkDef  uint8                             // the defending player declaring blockers; read only in a pod (blockDef)
 	ul      [maxUntapLock]untapLock           // source-bound untap locks (act_untaplock.go)
 	nul     uint8
 	dmk     [dmkBytes]uint8 // per-player damage-doubling marks, a bit per (controller, player) (repl_dmgmark.go)
