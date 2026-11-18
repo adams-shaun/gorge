@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/adams-shaun/gorge/bots"
+	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/host/httpapi"
@@ -36,6 +37,16 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 	return func(req httpapi.CreateGameOptions) (httpapi.CreateGameResponse, error) {
 		mu.Lock()
 		defer mu.Unlock()
+		seats, humans := req.Seats, req.Humans
+		if seats == 0 {
+			seats = 2
+		}
+		if humans == 0 {
+			humans = 1
+		}
+		if err := c.checkPodShape(req, seats, humans); err != nil {
+			return httpapi.CreateGameResponse{}, err
+		}
 		// An omitted policy takes the server's -bot-policy, not the
 		// vocabulary's own default, so a demo can change who you play.
 		name := req.BotPolicy
@@ -67,11 +78,12 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			return httpapi.CreateGameResponse{}, fmt.Errorf("bot policy %q is not offered on this server (offered: %s)", policy, strings.Join(c.botPolicies, ", "))
 		}
 		entry, _ := bots.Lookup(policy)
-		// A vs-bot table is always two seats, so a policy that cannot seat
-		// two could never play the game the request asked for: name the gap
-		// rather than building a table the host would then refuse.
-		if entry.MaxSeats > 0 && entry.MaxSeats < 2 {
-			return httpapi.CreateGameResponse{}, fmt.Errorf("bot policy %q seats at most %d, want >= 2", policy, entry.MaxSeats)
+		// A policy that cannot seat the requested table (two seats unless the
+		// request asks for a pod) could never play the game the request asked
+		// for: name the gap rather than building a table the host would then
+		// refuse.
+		if entry.MaxSeats > 0 && entry.MaxSeats < seats {
+			return httpapi.CreateGameResponse{}, fmt.Errorf("bot policy %q seats at most %d, want >= %d", policy, entry.MaxSeats, seats)
 		}
 		// The policy must play the requested format: offering a constructed-
 		// only search entry on a commander request would compile a seat that
@@ -102,7 +114,11 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		if hasPool {
 			pool, otherPool = reservedPool, nil
 		}
-		if len(pool) == 0 {
+		if err := checkReservedPool(req, policy, hasPool); err != nil {
+			return httpapi.CreateGameResponse{}, err
+		}
+		// A pod in which every seat submits a deck deals nothing from the pool.
+		if len(pool) == 0 && len(req.Decks) < seats {
 			return httpapi.CreateGameResponse{}, fmt.Errorf("no %s deck is available to deal (decks dir supplies none)", req.Format)
 		}
 		for _, pick := range []struct {
@@ -129,25 +145,40 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			}
 			return httpapi.CreateGameResponse{}, fmt.Errorf("unknown %s deck %q", pick.role, pick.id)
 		}
+		// A submitted deck is checked before anything is minted or added, so a
+		// refusal leaves no table, token or stored deck behind.
+		submitted, err := c.importSeatDecks(req)
+		if err != nil {
+			return httpapi.CreateGameResponse{}, err
+		}
 		seed, err := randomSeed()
 		if err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
 		shuffled := host.SeededShuffle(seed, pool)
-		decks := shuffled
-		if req.HumanDeck != "" || req.BotDeck != "" {
-			human, bot := req.HumanDeck, req.BotDeck
-			if human == "" {
-				human = randomOpponent(shuffled, bot)
-			}
-			if bot == "" {
-				bot = randomOpponent(shuffled, human)
-			}
-			// Match 1 rotates TableConfig.Decks by one: with this two-item
-			// order seat 0 receives human and seat 1 receives bot.
-			decks = []string{bot, human}
-		}
 		id := host.NextGameID(r)
+		decks := shuffled
+		var imported []string
+		if seats == 2 && len(submitted) == 0 {
+			if req.HumanDeck != "" || req.BotDeck != "" {
+				human, bot := req.HumanDeck, req.BotDeck
+				if human == "" {
+					human = randomOpponent(shuffled, bot)
+				}
+				if bot == "" {
+					bot = randomOpponent(shuffled, human)
+				}
+				// Match 1 rotates TableConfig.Decks by one: with this two-item
+				// order seat 0 receives human and seat 1 receives bot.
+				decks = []string{bot, human}
+			}
+		} else {
+			want, ids, err := podDecks(req, shuffled, submitted, id, seats)
+			if err != nil {
+				return httpapi.CreateGameResponse{}, err
+			}
+			decks, imported = rotateForMatchOne(want), ids
+		}
 		// The request may set its own London allowance; an omitted field keeps the server
 		// default. host.TableConfig.Validate still rejects a negative, so a
 		// caller that skips the handler's 0..6 cap fails at AddTable.
@@ -155,25 +186,40 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		if req.Mulligans != nil {
 			mulligans = *req.Mulligans
 		}
+		if len(submitted) > 0 {
+			if err := c.imports.putAll(imported, submitted); err != nil {
+				return httpapi.CreateGameResponse{}, err
+			}
+		}
 		cfg := host.TableConfig{
-			ID: id, Name: fmt.Sprintf("Play vs bot (%s)", req.Format), Seats: 2, Decks: decks,
-			Seed: seed, PlayerNames: []string{"You", "Bot"}, Mulligans: mulligans,
-			Spectator: vis, Perpetual: false, Humans: []int{0}, Format: req.Format,
+			ID: id, Name: podTableName(req.Format, seats), Seats: seats, Decks: decks,
+			Seed: seed, PlayerNames: podPlayerNames(seats, humans), Mulligans: mulligans,
+			Spectator: vis, Perpetual: false, Humans: humanSeats(humans), Format: req.Format,
 			BotPolicy: policy, BotAutoPayMana: c.botAutoPayMana, BotCommonSense: c.botCommonSense, AutoMana: c.autoMana, OnDemand: true, Engine: c.engine, PairedBot: req.PairedBot,
+			AllowPairedBot: humans > 1 && c.pairedBotShared,
 		}
 		if err := r.AddTable(cfg); err != nil {
+			c.imports.drop(imported...)
 			return httpapi.CreateGameResponse{}, err
 		}
 		// After AddTable, so a refused request leaves no token behind.
-		tok, err := gate.mint(id, 0)
-		if err != nil {
-			return httpapi.CreateGameResponse{}, err
+		grants := make([]httpapi.SeatGrant, humans)
+		for seat := range grants {
+			tok, err := gate.mint(id, state.PlayerID(seat))
+			if err != nil {
+				return httpapi.CreateGameResponse{}, err
+			}
+			grants[seat] = httpapi.SeatGrant{Seat: seat, Token: tok, Join: fmt.Sprintf("/t/%s?seat=%d&token=%s", id, seat, tok)}
 		}
 		if err := r.Start(id); err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
-		return httpapi.CreateGameResponse{Table: string(id), Match: 1, Seed: seed, Seat: 0,
-			Token: tok, Join: fmt.Sprintf("/t/%s?seat=0&token=%s", id, tok), BotPolicy: policy}, nil
+		resp := httpapi.CreateGameResponse{Table: string(id), Match: 1, Seed: seed, Seat: 0,
+			Token: grants[0].Token, Join: grants[0].Join, BotPolicy: policy}
+		if seats > 2 || humans > 1 || len(submitted) > 0 {
+			resp.Seats = grants
+		}
+		return resp, nil
 	}
 }
 
