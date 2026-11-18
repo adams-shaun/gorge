@@ -268,12 +268,15 @@ func (s *State) tapXRiderGaps(k *prep, p uint8) slotMask {
 	return s.riderDeferMask(k, p)
 }
 
-// tapXActivatable reports whether the untapped source sl's activatable mana
-// ability is its tapXType one and its tap-another part has enough untapped
-// candidates to pay right now: the ability is activatable (gorge
-// untappedManaSource reads the ability's payability gate, pay.ManaTapsPayable,
-// so such a source is an untapped mana source the CR 601.2g window may tap).
-// An X-form tap (Cost.N 0) is affordable at X=0 and never falls short; a card
+// tapXActivatable reports whether the source sl's activatable mana ability is
+// its tapXType one and its tap-another part has enough untapped candidates to
+// pay right now: the ability is activatable (gorge untappedManaSource reads
+// the ability's payability gate, pay.ManaTapsPayable, so such a source is an
+// untapped mana source the CR 601.2g window may tap). The source's own lock is
+// keyed on the cost's {T}, as tapXSources' gates are: a cost with no {T} needs
+// neither an untapped nor an unsick source (gorge mana_available.go rejects
+// only mf.Tap && o.Tapped; pay.TapFlagsSick gates the ability's own tap). An
+// X-form tap (Cost.N 0) is affordable at X=0 and never falls short; a card
 // whose usable ability is a plain one is canTapForMana's, not this read.
 func (s *State) tapXActivatable(k *prep, p uint8, sl Slot) bool {
 	c := s.cardAt(sl)
@@ -288,7 +291,8 @@ func (s *State) tapXActivatable(k *prep, p uint8, sl Slot) bool {
 	if pc.manaAb < 0 || k.tapXAb[c] != pc.manaAb {
 		return false // the card's usable ability is a plain one
 	}
-	if s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl) ||
+	if ab.Cost.Flags&kop.CostTap != 0 &&
+		(s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl)) ||
 		k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 		return false // the source's lock only (tapXSources' gates)
 	}

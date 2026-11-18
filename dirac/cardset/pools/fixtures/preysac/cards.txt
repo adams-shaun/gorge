@@ -1,0 +1,17 @@
+# Dragon's Prey's target-dependent raise, Twin Bolt and Kolaghan's Command
+# beside a tapped sacrifice-only mana source (Blood Vassal) and a tapped
+# tap-another one with no {T} of its own (Birchlore Rangers: "Tap two untapped
+# Elves you control: Add one mana of any color", beside two plain Elves): the
+# CR 601.2g window's untapped-source gate reads every available mana ability,
+# so a no-tap cost makes its source one however tapped the permanent is
+# (dirac/raise_target_notap_sources_test.go)
+Dragon's Prey
+Twin Bolt
+Kolaghan's Command
+Blood Vassal
+Birchlore Rangers
+Elvish Warrior
+Elvish Visionary
+Ornithopter
+Scavenger Regent
+Lasyd Prowler
