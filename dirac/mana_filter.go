@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -1199,6 +1200,9 @@ func poolTotal(pl *player) int {
 
 // try plays st on a copy of t and continues the search there.
 func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bool) bool {
+	if DebugGrantTrace {
+		fmt.Printf("  KTRACE fstr n=%d sl=%d ans=%d gap=%v funded=%d gapUsed=%v life=%d pool=%v\n", fs.n, st.sl, st.ans, st.gap, funded, gapUsed, t.pl[fs.p].life, t.pl[fs.p].pool)
+	}
 	if fs.n == maxFiltPath {
 		return false
 	}
@@ -1214,10 +1218,15 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	if lifeBefore > 0 && c.pl[SeatIx(fs.p)].life <= 0 {
 		// the step's own pain killed the payer: gorge's scriptSearch.visit
 		// ends the line at the game over (CR 104.3a, 704.5a), whatever the
-		// pool then pays
+		// pool then pays. The dead child is still a visited node of the
+		// budget there (sr.nodes charges before the game-over check), so the
+		// step costs its node: a search that walked lethal answers for free
+		// reached lines gorge's budget spent on them first (Karplusan
+		// Forest's painful {R} or {G} at one life)
 		if life {
 			fs.lifeUsed = fs.lifeUsed.without(st.sl)
 		}
+		fs.tick()
 		return false
 	}
 	fs.path[fs.n] = st
@@ -1352,6 +1361,15 @@ func (fs *filtSearch) restrictedAnswers(k *prep, t *State, sl Slot, rm uint8, fu
 func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	if !fs.tick() {
 		return false
+	}
+	if int(t.pl[0].life) <= 0 || int(t.pl[1].life) <= 0 {
+		// gorge's c.G.Over: a player died on the path (a lethal pain or life
+		// step, CR 119.4, 704.5a) and the game is over — no continuation
+		// offers the play
+		return false
+	}
+	if DebugGrantTrace {
+		fmt.Printf("  KTRACE filtvisit fs.n=%d pool=%v life=%d funded=%d gapUsed=%v\n", fs.n, t.pl[fs.p].pool, t.pl[fs.p].life, funded, gapUsed)
 	}
 	p := fs.p
 	key := fs.stateKey(k, t)

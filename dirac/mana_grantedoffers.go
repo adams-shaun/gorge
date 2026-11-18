@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
 	"sync/atomic"
 
@@ -1335,9 +1336,22 @@ func (s *State) grantFirstGaps(k *prep, p uint8) bool {
 // is found when the pool and the printed sources pay it (gorge
 // offered / priced); else each untapped candidate is activated in turn,
 // its answers branched on in gorge's order, each payer state once.
+// DebugGrantTrace is a temporary trace of the grant search (a scratch test
+// sets it), to be removed before commit.
+var DebugGrantTrace bool
+
 func (g *grantSrch) visit(t *State) bool {
 	g.stallOf(t) // (the stall the step into this node latched on its fork; the node's own probes are the root's too)
+	if DebugGrantTrace {
+		fmt.Printf("  KTRACE visit n=%d pool=%v gapN=%d n=%d funding=%d cost=%v\n", g.nodes, t.pl[SeatIx(g.p)].pool, g.gapN, g.n, g.funding, g.cost)
+	}
 	if !g.node() {
+		return false
+	}
+	if int(t.pl[0].life) <= 0 || int(t.pl[1].life) <= 0 {
+		// gorge's c.G.Over: a player died on the path (a lethal pain or life
+		// step, CR 119.4, 704.5a) and the game is over — no continuation
+		// offers the play
 		return false
 	}
 	if g.playSourceGone(t) {
@@ -1387,10 +1401,16 @@ func (g *grantSrch) visit(t *State) bool {
 	fk := key.folded()
 	for i := 0; i < g.nseen; i++ {
 		if g.seen[i].folded() == fk {
+			if DebugGrantTrace {
+				fmt.Printf("  KTRACE seen n=%d\n", g.nodes)
+			}
 			return g.seenPays(t, &cost, cheap)
 		}
 	}
 	if g.leafPays(t, &cost, cheap) {
+		if DebugGrantTrace {
+			fmt.Printf("  KTRACE leafpays n=%d\n", g.nodes)
+		}
 		return true
 	}
 	g.remember(key)
@@ -1422,7 +1442,17 @@ func (g *grantSrch) visit(t *State) bool {
 				return true
 			}
 			if !(fok && t.filtUsable(g.k, sl)) {
-				continue // (a summoning-sick Changeling's filter stays: only its granted {T} ability is out, CR 302.6)
+				// the printed ability's answer of the ask, the fee-carrying one
+				// not activatable (printedGapStep): a summoning-sick
+				// Changeling's filter stays out either way, only its granted
+				// {T} ability being out (CR 302.6)
+				if DebugGrantTrace {
+					fmt.Printf("  KTRACE gap i=%d sl=%d fok=false printed\n", i, sl)
+				}
+				if g.printedGapStep(t, i, sl) {
+					return true
+				}
+				continue
 			}
 		}
 		// several abilities (its own beside a grant, two grants): the
@@ -1460,8 +1490,14 @@ func (g *grantSrch) visit(t *State) bool {
 			return true
 		}
 		if !grants {
-			if fok && g.filtBranch(t, i, sl) {
+			if !tx && g.printedGapStep(t, i, sl) { // the printed ability's answer, before the fee-carrying one (printedGapStep)
 				return true
+			}
+			if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
+				return true
+			}
+			if DebugGrantTrace {
+				fmt.Printf("  KTRACE gap i=%d sl=%d fok=%v done\n", i, sl, fok)
 			}
 			continue
 		}
@@ -1742,6 +1778,27 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 	ok := g.branchSel(t, i, sl, gi, mask, n, ask, sel)
 	g.sel = sel
 	return ok
+}
+
+// printedGapStep is a non-granted gap's printed ability's step: gorge's ask
+// lists the printed answer before the fee-carrying one (scriptOrderAnswers:
+// an any-colour option names no colour, so it waits for pass 2), whether or
+// not the filter's fee is in the pool — School of the Unseen's {T}: Add {C}
+// beside its {2} filter is a step of the search either way, and it spends the
+// source the way gorge's phase-0 option does (CR 605.1a, 106.6).
+func (g *grantSrch) printedGapStep(t *State, i int, sl Slot) bool {
+	if !g.dual[i] || t.ownRestrAb(g.k, sl) != nil {
+		return false
+	}
+	ppc := t.manaPCGen(g.k, sl)
+	if !t.canTapForManaPC(g.k, sl, ppc) {
+		return false
+	}
+	mask, n := t.srcMaskAt(ppc, sl), ppc.manaN
+	if mask == 0 {
+		return false
+	}
+	return g.branch(t, i, sl, -1, mask, n, mask&(mask-1) != 0)
 }
 
 // needPass reports whether source i (slot sl) with several mana abilities
