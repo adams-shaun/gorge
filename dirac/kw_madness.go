@@ -76,6 +76,12 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 		// the offer silently (tapXScript's shape)
 		ok, stall = s.windowAffords(k, p, &cost)
 	}
+	if !ok && k.gen != nil && k.gen.anyCondSplit {
+		// gorge prices the madness cast against the potential pool too, which
+		// counts a Condition-split source (River of Tears) the census defers
+		// (mana_condsplit.go); without one the census and window say the same
+		ok = s.potentialAffords(k, p, o, &cost)
+	}
 	if !ok {
 		if stall != 0 {
 			s.capFull(stall)
@@ -130,10 +136,7 @@ func (s *State) keywordCastAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) 
 	if ok {
 		return true
 	}
-	spell := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
-	var pa avail
-	s.availPotentialFor(k, p, &pa, &spell, false)
-	if pa.affords(cost, pipMaskOf(cost), 0) {
+	if s.potentialAffords(k, p, o, cost) {
 		return true
 	}
 	if stall != 0 {
@@ -143,6 +146,15 @@ func (s *State) keywordCastAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) 
 		s.capFull(stall)
 	}
 	return false
+}
+
+// potentialAffords: cost fits the payment's potential pool for card o's cast
+// (gorge offerCastablePotential's over-bound).
+func (s *State) potentialAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
+	spell := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
+	var pa avail
+	s.availPotentialFor(k, p, &pa, &spell, false)
+	return pa.affords(cost, pipMaskOf(cost), 0)
 }
 
 // ctrWindowAffords: gorge's potential search for the madness cast activates a
