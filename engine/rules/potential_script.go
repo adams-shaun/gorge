@@ -1010,7 +1010,8 @@ func witnessSelfTargetsLast(d *decision.Decision, p state.PlayerID, answers []de
 	self := func(in decision.Intent) bool {
 		for _, ch := range in.Choices {
 			for i := range d.Options {
-				if o := &d.Options[i]; o.Index == ch && o.Kind == "player" && o.Player == p {
+				// (a player option names no object)
+				if o := &d.Options[i]; o.Index == ch && o.Obj == 0 && o.Player == p {
 					return true
 				}
 			}
