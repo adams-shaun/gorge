@@ -315,6 +315,19 @@ func changeZoneSourceGone(h Host, c *Ctx, cz *ChangeZoneParams, o *state.Object)
 		o.Zone == state.ZBattlefield && o.Incarnation != ro.PushSourceIncarnation
 }
 
+// imprintSourceGone reports that the resolving ability's source returned to the
+// battlefield as a new object since the ability went on the stack (CR 400.7):
+// Phyrexian Ingester's enters trigger resolving after Blur exiled and returned
+// it. The card the ability exiles is linked to the old object (CR 607.2a), so
+// the new permanent's imprint list stays empty.
+func imprintSourceGone(h Host, c *Ctx) bool {
+	if c.ResolvingObj == 0 {
+		return false
+	}
+	ro := h.Game().Obj(c.ResolvingObj)
+	return ro != nil && ro.Source == c.Source && SourceIsNewObject(h.Game(), ro)
+}
+
 // SourceIsNewObject reports that ro, an ability on the stack, has a source on the
 // battlefield that left and returned since ro went on the stack: a new object the
 // ability has no relation to (CR 400.7), not "this creature", and "another creature"
@@ -1125,7 +1138,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if cz.Haunt {
 		emitHaunt(h, c, moved)
 	}
-	if len(imprinted) > 0 {
+	if len(imprinted) > 0 && !imprintSourceGone(h, c) {
 		if cz.ImprintLast {
 			clearChangeZoneImprint(h, c)
 			imprinted = imprinted[len(imprinted)-1:]
@@ -2147,7 +2160,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, 
 	// shares; the two inlined movers that predate it (the object-target loop
 	// and applyLibrarySearch's library-origin branch) keep their own
 	// collection and do not call through here, so nothing is recorded twice.
-	if cz.Imprint && c.Source != 0 {
+	if cz.Imprint && c.Source != 0 && !imprintSourceGone(h, c) {
 		if o := h.Game().Obj(id); o != nil && o.Zone == to && !o.IsToken {
 			if cz.ImprintLast {
 				clearChangeZoneImprint(h, c)
