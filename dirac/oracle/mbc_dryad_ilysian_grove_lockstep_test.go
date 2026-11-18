@@ -17,8 +17,8 @@ const dryadIlysianGroveRepro = "dryad_ilysian_grove_grant_over_a_storage_counter
 // single production (static_landtype.go blgPlain: stall landgrant, tail-08
 // pair 11). The grant card is refused by name as Blanket of Night is, and the
 // recorded game still shows the stall with it implicated.
-// dryadIlysianGroveRefused is a step of TestMBCTail08ReprosLockstep (the pool's one
-// test, which the brief names).
+// dryadIlysianGroveRefused is a step of TestMBCTail08ReprosLockstep, the pool's
+// one test.
 func dryadIlysianGroveRefused(t *testing.T) {
 	t.Helper()
 	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))

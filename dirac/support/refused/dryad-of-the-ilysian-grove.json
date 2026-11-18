@@ -10,5 +10,11 @@
     "policy": "random",
     "mulligans": 0,
     "file": "dryad_ilysian_grove_grant_over_a_storage_counter_land_unmodelled"
-  }
+  },
+  "evidence": [
+    "ev-tail-08-c000",
+    "ev-tail-08-c006",
+    "ev-tail-08-c007",
+    "ev-tail-69-c025"
+  ]
 }
