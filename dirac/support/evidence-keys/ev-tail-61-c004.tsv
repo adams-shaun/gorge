@@ -1,0 +1,53 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+An-Havva Inn	d77d5492d44dc5e1	4	0/0		1/2	ix:resp
+Ballroom	8751c26304cd6171	12	2/2		0/1	ix:resp
+Bootleggers' Stash	75b5a07aaa6eca86	6	0/0		0/0	
+Cartouche of Knowledge	8cb24379910756af	6	1/1		1/2	ix:resp
+Charity Extractor	53ec04d96dc36c53	6	0/0		0/0	
+Concord with the Kami	bbe13543ee348442	6	1/1		0/1	ix:resp
+Covert Operative	8380f3330f8fa4a4	9	0/0		0/0	
+Crested Herdcaller	9580d51fd54ab725	4	1/1		1/1	
+Dreadmalkin	f44ce98c32b738c8	16	1/1		1/1	
+Drumhunter	92f6bd0c70eff24d	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+False Mourning	03790b6fe8423d8b	6	0/0		1/2	ix:resp
+Frontier Mastodon	b6afcac01791014f	4	0/0		0/0	
+Glistening Extractor	1cc03a1f20d04169	4	1/1		0/1	ix:resp
+Goblin Champion	9fc07f38c302164a	6	1/1		0/1	ix:resp
+Goblin Goon	28646cb1bcb0215c	4	0/0		0/0	
+Goldnight Commander	36e236bd55a5f133	3	1/1		1/1	
+Heartless Pillage	9b87700dbb54534d	6	0/0		1/2	ix:resp
+Heron's Grace Champion	97c3bbba2dc53da7	4	1/1		1/1	
+High Score	453d855d72eb9ce0	8	1/1		0/1	ix:resp
+Incubation Sac	b593d8f8a96e1373	4	1/1		0/1	ix:resp
+Indicate	ef1c064712e2c983	4	0/0		1/2	ix:resp
+Irradiate	1b9040ae5e285f0a	12	0/0		2/2	
+Jade Guardian	42898c050f4cbfb0	3	1/1		1/1	
+Just the Wind	9d9bd38171f106e1	4	0/0		2/2	
+Karn's Bastion	98a6081c501e9670	16	2/2		0/1	ix:resp
+Koth's Courier	2b8f5704c3cb2d1b	4	0/0		0/0	
+Nissa, Resurgent Animist	c3ba7cb88fc9cbd0	6	1/1		1/1	
+Opposition	f543427bdfa6ad3f	6	1/1		1/1	
+Orazca Relic	238259f37324f721	10	2/2		1/1	
+Phyresis	d5fb2fbfd4930794	5	0/0		1/2	ix:resp
+Pincer Spider	44d62b335ecde8f0	3	0/0		1/2	cast/alt:kicked
+Planar Atlas	4e0f6300b1759c80	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Possessed Centaur	f4726bf12327a9ab	4	0/0		0/0	
+Prescient Chimera	42911beebb74e090	3	1/1		0/1	ix:resp
+Prince Imrahil the Fair	f20af11bec664ce9	4	1/1		0/1	ix:resp
+Rogue Refiner	8c65b973d01c2a8f	6	1/1		1/1	
+Security Bypass	e89db1b0398e7e77	4	0/0		1/2	ix:resp
+Skull Raid	8ca66909036a042c	10	0/0		2/4	cast/alt:foretold,ix:resp
+Steam Spitter	06abe3e636386faa	4	1/1		0/1	ix:resp
+Steppe Lynx	c21a4037f95a0a9d	4	1/1		0/1	ix:resp
+Struggle for Skemfar	4c8d1011a102b213	3	0/0		2/4	cast/alt:foretold,ix:resp
+Sunweb	e78de795fc8ef5e3	4	0/0		0/0	
+Swordwise Centaur	77cdf0f946eb8a47	6	0/0		0/0	
+Tectonic Rift	4d38ed4c42eec8a7	5	0/0		1/2	ix:resp
+The Falcon, Airship Restored	ecbce2bddc8699e6	8	3/3		1/1	
+Timber Protector	6fb28d3475d2d7e7	8	0/0		0/0	
+Trigon of Thought	25e35f5ecbe0826c	4	2/2		1/1	
+Triumph of the Hordes	bc04a07654e449f7	4	0/0		1/2	ix:resp
+Vizier of the Scorpion	4d12eb1e9c976a21	6	1/1		0/1	ix:resp
+Wall of Limbs	69b64208b30076cb	10	2/2		0/1	ix:resp
+Wildest Dreams	44f94149c2d4f52b	3	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
+Wrong Turn	9bbe71d52570827d	4	0/0		1/2	ix:resp

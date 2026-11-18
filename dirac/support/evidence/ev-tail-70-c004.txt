@@ -2,20 +2,27 @@ Act of Treason
 Aerial Guide
 Aether Swooper
 Akoum Warrior
+Amazing Spider-Girl
 Angelic Skirmisher
 Apprentice Necromancer
 Artful Takedown
 Assault on Osgiliath
+Aurochs Herd
+Bayou Groff
 Blood-Chin Rager
 Boon of Erebos
 Carrion Feeder
 Cathartic Reunion
 Centaur Omenreader
 Charge
+Cloak of Confusion
 Cloud Djinn
 Cloud Manta
+Conviction
+Corpsejack Menace
 Court of Ardenvale
 Court of Cunning
+Crown of Flames
 Cultist's Staff
 Dawnstrider
 Deface
@@ -23,20 +30,28 @@ Demonic Vigor
 Disciple of the Old Ways
 Dockside Chef
 Dreamscape Artist
+Dusk Urchins
 Dwarven Reinforcements
 Dying Wail
+Edgar's Awakening
 Eldrazi Aggressor
+Elephant Ambush
 Elesh Norn, Grand Cenobite
+Elusive Tormentor
 Elvish Bard
 Elvish Soultiller
 Emergent Growth
+Ethersworn Shieldmage
+Faceless Devourer
 Famished Ghoul
 Far Traveler
 Fast Forward
 Feed the Clan
 Final Reward
 Final Strike
+Fire Bowman
 Flamecore Elemental
+Flamekin Brawler
 Forest
 Ghostblade Eidolon
 Gix's Caress
@@ -57,26 +72,41 @@ Insolent Neonate
 Island
 Ivory Guardians
 Jolrael's Favor
+Juri, Master of the Revue
 Keeper of Progenitus
+Kitsune Loreweaver
 Kor Cartographer
 Leaf Dancer
 Legion Loyalist
+Lion Vulture
 Loxodon Smiter
 Mage-Ring Responder
 Managorger Hydra
+Mesmeric Trance
+Metropolis Angel
 Minotaur Sureshot
 Mountain
 Mutilate
+Myconid Spore Tender
 Nature's Spiral
+Necrotic Fumes
+Old Rutstein
+Old Stickfingers
 Ooze Garden
 Oran-Rief Invoker
 Patagia Viper
+Phyrexian Reclamation
 Plains
+Plated Onslaught
+Primal Frenzy
+Radiant Purge
 Rallying Roar
 Return of the Mole Man
 Rishadan Airship
 Roaring Primadox
 Ruination Rioter
+Rush of Blood
+Ruthless Knave
 Samut, Vizier of Naktamun
 Savageborn Hydra
 Saving Grasp
@@ -86,18 +116,33 @@ Sentinel of the Eternal Watch
 Settle Beyond Reality
 Shatterskull Giant
 Shu Grain Caravan
+Sickle Dancer
+Silverflame Squire
+Skull Rend
+Smelt-Ward Ignus
 Song of Serenity
+Soul Net
+Souldrinker
 Spectral Hunt-Caller
+Star Whale
+Steel of the Godhead
+Stonecloaker
+Stormbound Geist
 Summer Bloom
 Swamp
+Syndicate Guildmage
 Thraben Heretic
+Timely Hordemate
 Titania's Command
 Tormented Angel
 Totem-Guide Hartebeest
+Tourach, Dread Cantor
 Tradewind Rider
 Undead Butler
 Uproot
 Vampiric Spirit
+Vexing Beetle
 Viashino Spearhunter
+Village Cannibals
 War Horn
 Xanthic Statue

@@ -17,6 +17,7 @@ Ana Sanctuary
 Angel of Condemnation
 Angelic Renewal
 Apostle of Invasion
+Arcbound Shikari
 Arch of Orazca
 Arm with Aether
 Armory Veteran
@@ -93,6 +94,7 @@ Dispeller's Capsule
 Doctor Doom, Unrivaled
 Drannith Magistrate
 Dread Return
+Dreadbore
 Dreadwurm
 Drizzt Do'Urden
 Dusk Legion Zealot
@@ -113,6 +115,7 @@ Evie Frye
 Eviscerator
 Evolution Sage
 Expedition Skulker
+Exploding Borders
 Eye Gouge
 Faerie Macabre
 Fallaji Archaeologist
@@ -185,6 +188,7 @@ Impeccable Timing
 In the Trenches
 Indestructibility
 Inescapable Blaze
+Inevitable Betrayal
 Infuse with the Elements
 Ingenious Thief
 Inkling Summoning
@@ -197,6 +201,7 @@ Ironclaw Orcs
 Island
 Ivora, Insatiable Heir
 Ivy Elemental
+Izzet Locket
 Jace's Sanctum
 Jade Mage
 Jaheira, Friend of the Forest
@@ -212,14 +217,17 @@ Kelsinko Ranger
 Kinsbaile Cavalier
 Kiora's Dambreaker
 Kitesail Cleric
+Konda's Hatamoto
 Krenko's Enforcer
 Kuldotha Rebirth
 Kumena's Awakening
 Kyoki, Sanity's Eclipse
 Lapse of Certainty
+Lash Out
 Learn from the Past
 Legion Guildmage
 Legions to Ashes
+Leyline Prowler
 Life and Limb
 Lightning Blast
 Lightning-Rig Crew
@@ -249,6 +257,8 @@ Merfolk Skydiver
 Merry, Warden of Isengard
 Midnight Charm
 Midnight Haunting
+Migratory Route
+Mina and Denn, Wildborn
 Mindleech Ghoul
 Miscast
 Mishra's Factory
@@ -273,6 +283,7 @@ Norwood Warrior
 Obelisk of Grixis
 Obelisk of Jund
 Ogre Recluse
+Opaline Sliver
 Ordeal of Thassa
 Order of the Mirror
 Outland Boar
@@ -321,6 +332,7 @@ Rustvale Bridge
 Ruthless Invasion
 Sanguine Spy
 Sarkhan's Dragonfire
+Savage Smash
 Savage Thallid
 Scourge Servant
 Screeching Bat
@@ -370,6 +382,7 @@ Swamp
 Swarm of Bloodflies
 Swift Justice
 Syndicate Enforcer
+T-45 Power Armor
 Tainted Pact
 Tainted Peak
 Temperamental Oozewagg
@@ -380,6 +393,7 @@ Thaumatic Compass
 The Crafter
 The Rack
 The Reality Chip
+The Weaver King
 Thorn of Amethyst
 Thought Harvester
 Thresher Lizard
@@ -424,6 +438,7 @@ Weldfast Monitor
 Whiptongue Hydra
 White Knight
 Wild Aesthir
+Windreaver
 Windrider Wizard
 Witness of the Ages
 Wurmcoil Larva

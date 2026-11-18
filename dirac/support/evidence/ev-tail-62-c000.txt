@@ -16,6 +16,7 @@ Ambition's Cost
 An-Zerrin Ruins
 Ancient Hydra
 Ancient Ooze
+Angel of Serenity
 Angel of the Dire Hour
 Angelic Guardian
 Anointed Procession
@@ -23,6 +24,7 @@ Arborea Pegasus
 Archetype of Aggression
 Ardent Electromancer
 Argivian Blacksmith
+Armed
 Artifact Mutation
 Ashen Monstrosity
 Ashnod, Flesh Mechanist
@@ -83,6 +85,7 @@ Court Street Denizen
 Crashing Footfalls
 Cremate
 Crested Sunmare
+Crookclaw Transmuter
 Crow Storm
 Cruel Cut
 Cruel Tutor
@@ -100,11 +103,13 @@ Desert of the True
 Desmond Miles
 Devilthorn Fox
 Devoted Hero
+Dig Through Time
 Diligent Farmhand
 Dimir Charm
 Dire Tactics
 Disowned Ancestor
 Disruption Protocol
+Drach'Nyen
 Dragon Arch
 Dragon Moose
 Dragonlair Spider
@@ -204,6 +209,7 @@ Keening Apparition
 Keepsake Gorgon
 Kinsbaile Skirmisher
 Kirtar's Desire
+Kitsune Ace
 Knighthood
 Komodo Rhino
 Kor Bladewhirl
@@ -227,6 +233,7 @@ Maggot Carrier
 Magistrate's Veto
 Mammoth Growth
 Mardu Runemark
+Martyr's Soul
 Mass Manipulation
 Massive Raid
 Matoc, Lavamancer
@@ -260,6 +267,7 @@ Necrogoyf
 New Benalia
 Nimbus of the Isles
 Nissa's Pilgrimage
+Nivix Cyclops
 Noble Panther
 Nocturnal Feeder
 Oakenform

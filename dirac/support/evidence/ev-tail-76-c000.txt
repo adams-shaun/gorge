@@ -46,14 +46,18 @@ Crowd Favorites
 Cruel Edict
 Crush Contraband
 Crystal, Inhuman Princess
+Dark Heart of the Wood
 Daru Cavalier
 Dauthi Cutthroat
 Deathcurse Ogre
+Deepwood Legate
 Defiant Khenra
+Desert's Hold
 Diabolic Intent
 Dingus Egg
 Diregraf Horde
 Draconic Muralists
+Drift of the Dead
 Dromoka, the Eternal
 Drowned Secrets
 Dutiful Attendant
@@ -73,6 +77,7 @@ Feral Prowler
 Fiery Impulse
 First Volley
 Flamekin Herald
+Floral Spuzzem
 Folk of the Pines
 Forest
 Frazzle
@@ -85,6 +90,7 @@ Gavony Trapper
 Gladecover Scout
 Glademuse
 Glasses of Urza
+Gleancrawler
 Goblin Fire Fiend
 Goblin War Party
 Goldmeadow Harrier
@@ -129,6 +135,7 @@ Merciless Javelineer
 Merciless Resolve
 Mercurial Kite
 Meteor Shower
+Mind Rake
 Mizzium Mortars
 Moment of Defiance
 Mountain
@@ -171,6 +178,7 @@ Rishadan Footpad
 Rockcaster Platoon
 Ruins of Oran-Rief
 Sage Owl
+Saiba Syphoner
 Salvager of Ruin
 Savage Gorilla
 Scapegoat

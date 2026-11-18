@@ -30,6 +30,7 @@ Balm of Restoration
 Banehound
 Banish from Edoras
 Banisher Priest
+Barktooth Warbeard
 Basal Sliver
 Batterskull
 Bearscape
@@ -39,12 +40,15 @@ Bewilder
 Big Bertha
 Birds of Paradise
 Bituminous Blast
+Blazing Salvo
 Blessed Hippogriff
 Blight Mound
 Bloated Contaminator
 Blood Servitor
 Blood Tithe
+Bloodline Pretender
 Blossoming Bogbeast
+Bog Hoodlums
 Borrowed Grace
 Bramble Creeper
 Brood Monitor
@@ -63,6 +67,7 @@ Charging Griffin
 Childhood Horror
 Chimeric Idol
 Chorus of Might
+Chromatic Lantern
 Chrome Prowler
 Churning Eddy
 Cleanfall
@@ -86,6 +91,7 @@ Deathbloom Thallid
 Deepwood Drummer
 Dega Disciple
 Demonic Collusion
+Deputy of Acquittals
 Despark
 Desperate Castaways
 Devotee of Strength
@@ -97,11 +103,13 @@ Distract
 Divine Arrow
 Doomfall
 Doomsday Specter
+Double Negative
 Douser of Lights
 Dragon Hatchling
 Dragonlord Dromoka
 Dragonspeaker Shaman
 Duskshell Crawler
+Dwell on the Past
 Edgar's Awakening
 Eidolon of Philosophy
 Elenda, the Dusk Rose
@@ -112,6 +120,7 @@ Ephara's Dispersal
 Evolutionary Leap
 Expose Evil
 Exultant Cultist
+False Summoning
 Fantastic Elasticity
 Feast of Flesh
 Feebleness
@@ -121,6 +130,7 @@ Fire
 Flame Blitz
 Flitterstep Eidolon
 Flood
+Flowstone Strike
 Forest
 Frilled Sea Serpent
 Gaea's Anthem
@@ -153,15 +163,20 @@ Hatchery Spider
 Haunted Angel
 Havoc Devils
 Headlong Rush
+Hearthcage Giant
 Herd Baloth
 Hidden Path
+Honor the God-Pharaoh
 Hua Tuo, Honored Physician
 Hungry Flames
+Icefall Regent
 Icy Manipulator
+Iizuka the Ruthless
 Imperial Ceratops
 Indomitable Ancients
 Inferno of the Star Mounts
 Inner-Flame Igniter
+Inspired Sphinx
 Iron Will
 Island
 Jade Idol
@@ -176,6 +191,8 @@ Keskit, the Flesh Sculptor
 Kessig Prowler
 Kithkin Rabble
 Knickknack Ouphe
+Knight of Dusk
+Krark-Clan Shaman
 Krovikan Mist
 Kurgadon
 Kykar, Wind's Fury
@@ -199,6 +216,7 @@ Mage Duel
 Malakir Blood-Priest
 Mana Tithe
 March from the Tomb
+Marvelous Melee
 Mazirek, Kraul Death Priest
 Merciless Repurposing
 Metallic Sliver
@@ -208,6 +226,8 @@ Minamo, School at Water's Edge
 Minion Reflector
 Mitotic Slime
 Moldgraf Millipede
+Molten Primordial
+Moon-Boy, Dino Rider
 Mortality Spear
 Mortiphobia
 Mountain
@@ -223,10 +243,12 @@ Niv-Mizzet, Parun
 Nova Cleric
 Okiba Reckoner Raid
 One Thousand Lashes
+Onyx Talisman
 Open the Armory
 Orazca Raptor
 Order
 Order of Midnight
+Ornery Dilophosaur
 Otawara, Soaring City
 Outrider of Jhess
 Overcharged Amalgam
@@ -238,12 +260,14 @@ Peach Garden Oath
 Pest Summoning
 Pestilent Syphoner
 Phantom Wurm
+Pharaoh Rama-Tut
 Pilgrim of the Ages
 Pit Scorpion
 Placid Rottentail
 Plains
 Planar Gate
 Prakhata Pillar-Bug
+Prismari Pledgemage
 Prize Pig
 Profane Prayers
 Promise of Aclazotz
@@ -259,6 +283,7 @@ Racecourse Fury
 Radha, Heart of Keld
 Raging Ravine
 Ramosian Commander
+Rampaging War Mammoth
 Rathi Dragon
 Ravenous Daggertooth
 Ravenous Gigamole
@@ -273,6 +298,7 @@ Rescue, Pepper Potts
 Retreat to Coralhelm
 Return the Past
 Riddleform
+Righteousness
 Ring of Valkas
 Riot Control
 Riparian Tiger
@@ -289,9 +315,11 @@ Sadistic Slash
 Sanctuary Cat
 Sarkhan's Scorn
 Scavenged Blade
+Scepter of Insight
 Scoria Cat
 Scourge of Geier Reach
 Screaming Fury
+Screaming Shield
 Seismic Elemental
 Selenia, Dark Angel
 Sentinel's Eyes
@@ -331,6 +359,7 @@ Sphinx's Revelation
 Spinehorn Minotaur
 Splendid Reclamation
 Spoils of Evil
+Spreading Insurrection
 Squirrel Sanctuary
 Stall for Time
 Star Whale
@@ -357,6 +386,7 @@ Terror of Towashi
 Thassa's Devourer
 The Blackstaff of Waterdeep
 The Thanos-Copter
+Thieving Amalgam
 Think Tank
 Third Path Iconoclast
 Thran Foundry
@@ -394,6 +424,7 @@ Voracious Null
 Wall of Runes
 Wall of Tombstones
 Warpath Ghoul
+Wasteland Viper
 Watcher Sliver
 Watchful Automaton
 Weakstone's Subjugation

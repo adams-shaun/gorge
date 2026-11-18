@@ -1,3 +1,4 @@
+A-Celestial Regulator
 A-Cobbled Lancer
 A-Falcon Abomination
 A-Manticore
@@ -12,6 +13,7 @@ Air Servant
 Alisaie Leveilleur
 Allied Teamwork
 Alora, Merry Thief
+Alphinaud Leveilleur
 Altar's Light
 Ancient Lumberknot
 Ancient Runes
@@ -19,6 +21,7 @@ Angel of the Dire Hour
 Angelic Overseer
 Annihilate
 Apostle of Purifying Light
+Archetype of Imagination
 Archfiend of Despair
 Aspect of Gorgon
 Aven of Enduring Hope
@@ -55,8 +58,10 @@ Caress of Phyrexia
 Carrion Grub
 Cast into Darkness
 Cateran Kidnappers
+Cavalier of Flame
 Chasm Guide
 Chief of the Scale
+Chilling Apparition
 Clan Crafter
 Cloudkin Seer
 Colossal Majesty
@@ -74,17 +79,21 @@ Dematerialize
 Demon's Disciple
 Diamond Valley
 Dig Up the Body
+Dinosaur Egg
 Disperse
+Distorted Curiosity
 Diversionary Tactics
 Divert
 Divine Favor
 Dominating Licid
 Doomed Dissenter
+Doomgape
 Drag to the Bottom
 Dragon Arch
 Dragonsguard Elite
 Dream Thrush
 Dromoka Warrior
+Duskwielder
 Dying Wish
 Earth Rift
 Earthquake
@@ -104,6 +113,7 @@ Expedition Lookout
 Expendable Lackey
 Explosive Apparatus
 Fabled Hero
+Faerie Trickery
 Faith Unbroken
 Falthis, Shadowcat Familiar
 Fangblade Brigand
@@ -173,7 +183,10 @@ Infernal Tribute
 Inferno Titan
 Initiate's Companion
 Inspired Sprite
+Invasion of Xerex
+Invoke Despair
 Island
+Isu the Abominable
 Ith, High Arcanist
 Jacked Rabbit
 Jasconian Isle
@@ -217,6 +230,7 @@ Meekstone
 Melancholy
 Merchant of Truth
 Merciless Repurposing
+Merrow Reejerey
 Mesa Unicorn
 Midnight Assassin
 Mikaeus, the Lunarch
@@ -252,6 +266,7 @@ Pearled Unicorn
 Pensive Minotaur
 Perish
 Petals of Insight
+Phantasmal Fiend
 Pippin's Bravery
 Plains
 Plated Crusher
@@ -276,6 +291,7 @@ Ratchet Bomb
 Reality Strobe
 Reconstruction
 Recruiter of the Guard
+Reflective Golem
 Resistance Skywarden
 Return Upon the Tide
 Reyhan, Last of the Abzan
@@ -294,10 +310,12 @@ Scurry Oak
 Scurry of Squirrels
 Scytheclaw
 Sealock Monster
+Search for Glory
 Searing Spear
 Secure Detention
 Seething Landscape
 Shackles
+Shadows of the Past
 Sigiled Sentinel
 Silvergill Douser
 Skittering Skirge
@@ -331,8 +349,10 @@ Stone Golem
 Stony Strength
 Stonybrook Schoolmaster
 Storm Strike
+Stratus Dancer
 Sunlit Hoplite
 Surrakar Spellblade
+Survivor of the Unseen
 Swamp
 Swarming of Moria
 Swift Spinner

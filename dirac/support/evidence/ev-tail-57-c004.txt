@@ -14,6 +14,7 @@ Brain Maggot
 Bretagard Stronghold
 Cadira, Caller of the Small
 Carnophage
+Carrion Crow
 Cephalid Looter
 Clinging Anemones
 Coastal Piracy
@@ -21,6 +22,8 @@ Coralhelm Guide
 Corpse Harvester
 Court Homunculus
 Cradle Clearcutter
+Cruel Bargain
+Deathmask Nezumi
 Desperate Plea
 Despoiler of Souls
 Diligent Excavator
@@ -31,6 +34,7 @@ Ebon Dragon
 Elas il-Kor, Sadistic Pilgrim
 Fangren Pathcutter
 Festergloom
+Firestorm Hellkite
 Flamekin Herald
 Floriferous Vinewall
 Forest
@@ -55,14 +59,18 @@ Island
 Koma's Faithful
 Malakir Cullblade
 Mardu Woe-Reaper
+Marsh Gas
 Mauhúr, Uruk-hai Captain
 Merfolk Looter
+Midnight Banshee
 Mistral Singer
 Mountain
 Necromancer's Assistant
+Netherborn Altar
 Nimble Pilferer
 Nylea's Emissary
 One with the Stars
+Ooze Garden
 Orochi Leafcaller
 Paradoxical Outcome
 Petrified Field
@@ -72,15 +80,19 @@ Prizefighter Construct
 Qarsi High Priest
 Raffine's Silencer
 Reckless Imp
+Renegade Reaper
 Restoration Specialist
+Revenant
 Rewards of Diversity
 Ruthless Sniper
 Sanctum Seeker
 Sculpting Steel
+Seething Song
 Shifting Sliver
 Short Sword
 Sigardian Savior
 Skittering Heartstopper
+Skyknight Legionnaire
 Slumbering Waterways
 Snowfield Sinkhole
 Soaring Show-Off
@@ -95,10 +107,12 @@ Stromkirk Mentor
 Sunscorch Regent
 Swamp
 Symbiosis
+Syndicate Infiltrator
 Tentative Connection
 Testament of Faith
 Toxic Scorpion
 Twilight Drover
+Undermine
 Veiled Apparition
 Vengeant Vampire
 Vexing Gull
@@ -107,6 +121,7 @@ Vile Requiem
 Wall of Omens
 Wandering Goblins
 War Behemoth
+Warrior en-Kor
 Wheel of Fortune
 Windstorm Drake
 Wizard's Retort

@@ -32,6 +32,7 @@ Font of Progress
 Forest
 Fortress Cyclops
 Gift of Granite
+Goblin Champion
 Goblin Chariot
 Goblin Chieftain
 Goblin War Drums
@@ -41,6 +42,7 @@ Hawkeye, Trick Shot
 Hellcarver Demon
 Howlpack Wolf
 Hunted Ghoul
+Imaginary Friends
 Infuriate
 Irregular Cohort
 Island
@@ -51,6 +53,7 @@ Klothys's Design
 Kranioceros
 Leech Gauntlet
 Lingering Phantom
+Makindi Aeronaut
 Mana Prism
 Merfolk Observer
 Mirkwood Channeler
@@ -100,4 +103,5 @@ Viashino Runner
 Volcanic Spite
 Vrock
 Walking Skyscraper
+Wall of Limbs
 Whiptail Wurm

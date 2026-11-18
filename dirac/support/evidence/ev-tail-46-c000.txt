@@ -176,6 +176,7 @@ Gloomdrifter
 Gnarled Mass
 Goblin Gaveleer
 Goblin Skycutter
+Goblins of the Flarg
 Goldenhide Ox
 Grasping Scoundrel
 Gray Harbor Merfolk
@@ -223,6 +224,7 @@ Kessig Wolf
 Kokusho, the Evening Star
 Lagonna-Band Elder
 Launch Mishap
+Lava Blister
 Leaping Master
 Ledev Guardian
 Lesser Gargadon
@@ -239,6 +241,7 @@ Lowland Oaf
 Lumengrid Gargoyle
 Mad Dog
 Magma Giant
+Mammoth Umbra
 Marshal of Zhalfir
 Master Symmetrist
 Match the Odds
@@ -373,6 +376,7 @@ Sower of Temptation
 Spark Spray
 Sparksmith
 Spatial Contortion
+Spawn of Rix Maadi
 Spawn of Thraxes
 Spectral Grasp
 Spike Soldier
@@ -407,6 +411,7 @@ Talas Air Ship
 Talas Explorer
 Talas Merchant
 Talon of Pain
+Tanglesap
 Tempered Sliver
 Tempest Harvester
 Terra Stomper

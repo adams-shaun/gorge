@@ -10,6 +10,7 @@ Alaborn Grenadier
 Altar of the Brood
 Ancient Craving
 Ancient Den
+Angel of Deliverance
 Angel of Retribution
 Arcane Investigator
 Armory of Iroas
@@ -27,6 +28,7 @@ Baloth Woodcrasher
 Balshan Beguiler
 Barrage Tyrant
 Bat Whisperer
+Battered Golem
 Battle Hymn
 Belligerent Whiptail
 Berserk Murlodont
@@ -39,6 +41,7 @@ Bloodmark Mentor
 Blunt the Assault
 Bone Saw
 Boneshard Slasher
+Boomerang
 Boon Reflection
 Borborygmos Enraged
 Botanical Plaza
@@ -51,6 +54,7 @@ Brinebarrow Intruder
 Broken Concentration
 Broodbirth Viper
 Broodhunter Wurm
+Bull Aurochs
 Burning Oil
 By Invitation Only
 Byway Courier
@@ -61,12 +65,14 @@ Capricious Sliver
 Careful Study
 Catalog
 Cathartic Adept
+Celestial Ancient
 Celestial Kirin
 Cemetery Reaper
 Centaur Peacemaker
 Cephalid Broker
 Certain Death
 Chandra's Fury
+Chandra's Revolution
 Chartooth Cougar
 Chillbringer
 Chitinous Cloak
@@ -81,6 +87,7 @@ Cloven Casting
 Cold-Eyed Selkie
 Combat Research
 Condemn
+Conifer Wurm
 Converter Beast
 Corpse Connoisseur
 Crackling Club
@@ -90,6 +97,7 @@ Crisis of Conscience
 Cyclops of Eternal Fury
 Cyclops of One-Eyed Pass
 Dark Heart of the Wood
+Dawn of the Dead
 Death Cloud
 Death Pit Offering
 Descendant of Masumaro
@@ -97,6 +105,7 @@ Deviant Glee
 Dina, Essence Brewer
 Donatello's Science Lesson
 Doom Whisperer
+Double Vision
 Dovin's Veto
 Draconic Disciple
 Dragon Mantle
@@ -121,6 +130,7 @@ Evolution Charm
 Excavation Mole
 Explosive Impact
 Expressive Iteration
+Extra Arms
 Falkenrath Pit Fighter
 Fandaniel, Telophoroi Ascian
 Fang Dragon
@@ -137,6 +147,7 @@ Frost Trickster
 Fully Grown
 Furious Reprisal
 Furnace Hellkite
+Fyndhorn Bow
 Galvanic Discharge
 Garrison Sergeant
 Garruk's Companion
@@ -156,6 +167,7 @@ Grasping Scoundrel
 Grave Betrayal
 Grey Havens Navigator
 Grim Physician
+Grim Reaper's Scythe
 Grizzled Angler
 Gruul Nodorog
 Guardians' Pledge
@@ -194,6 +206,7 @@ Jungle Wayfinder
 Kaijin of the Vanishing Touch
 Karplusan Forest
 Kavu Lair
+Kei Takahashi
 Kessig Flamebreather
 Khorvath Brightflame
 Kithkin Greatheart
@@ -208,6 +221,7 @@ Latulla, Keldon Overseer
 Lead by Example
 Ledger Shredder
 Library
+Lithomantic Barrage
 Living Hive
 Lochmere Serpent
 Loki's Scepter
@@ -224,16 +238,20 @@ Mardu Warshrieker
 Merfolk Traders
 Mesa Cavalier
 Metallic Mimic
+Mind Drain
 Mindblaze
 Moldering Karok
 Monastery Swiftspear
+Moorland Inquisitor
 Morbid Plunder
 Morningtide
 Mother of Runes
 Mountain
 Mox Sapphire
+Murasa Rootgrazer
 Natural Affinity
 Nature's Ruin
+Needle Drop
 Neurok Replica
 Nightwind Glider
 Noble Hierarch
@@ -243,8 +261,10 @@ Novablast Wurm
 Nurturing Licid
 Oath of Mages
 Oathsworn Giant
+Obelisk of Undoing
 Ochran Assassin
 Ogre's Cleaver
+Oil-Gorger Troll
 Ondu Champion
 Orcish Hellraiser
 Outpost Siege
@@ -253,17 +273,21 @@ Parch
 Perilous Research
 Petrified Wood-Kin
 Phyrexian Broodstar
+Phyrexian Gargantua
 Plaguemaw Beast
 Plains
 Plunder
 Polluted Mire
 Prava of the Steel Legion
+Primal Empathy
 Prime Speaker Vannifar
 Prodigy's Prototype
 Prophetic Ravings
 Protection Magic
 Proud Mentor
+Prowler's Helm
 Prowling Pangolin
+Puncture Blast
 Pygmy Pyrosaur
 Pyre Charger
 Rainbow Efreet
@@ -282,6 +306,7 @@ Reverent Hoplite
 Revive the Shire
 Revoke Existence
 Rhythmic Water Vortex
+Righteous War
 Riptide
 Riverglide Pathway
 Robe of Mirrors
@@ -290,12 +315,15 @@ Roil Elemental
 Ronin Houndmaster
 Roving Harper
 Rulik Mons, Warren Chief
+Runaway Trash-Bot
 Runed Servitor
 Rushwood Elemental
 Sabertooth Alley Cat
 Sagu Archer
 Sandstone Bridge
 Savage Twister
+Scaretiller
+Scrapwork Rager
 Scrapyard Steelbreaker
 Scrollshift
 Segmented Wurm
@@ -313,6 +341,7 @@ Sigarda, Champion of Light
 Silkenfist Order
 Skeleton Crew
 Skirk Outrider
+Skirsdag High Priest
 Skull Catapult
 Sky Scourer
 Skyrider Patrol
@@ -330,6 +359,7 @@ Spider-Man, New Champion
 Spiked Baloth
 Spitting Slug
 Squadron Hawk
+Static Prison
 Steamclaw
 Stern Proctor
 Stonefury
@@ -358,11 +388,13 @@ Temporal Machinations
 Teysa, Envoy of Ghosts
 Thalia's Lieutenant
 The Rack
+Their Name Is Death
 Thirsting Bloodlord
 Thopter Squadron
 Thor, Asgard's Avenger
 Tide Skimmer
 Tivadar of Thorn
+Tolarian Academy
 Touch of Brilliance
 Towering-Wave Mystic
 Traitor's Clutch
@@ -380,21 +412,27 @@ Vat Emergence
 Vectis Silencers
 Verdant Automaton
 Vessel of Ephemera
+Veteran Warleader
 Veteran of the Depths
 Village Bell-Ringer
 Vindictive Mob
+Virtuous Charge
 Vivid Flying Fish
+Volcanic Rush
 Voldaren Ambusher
 Voldaren Epicure
 Vulshok War Boar
 Wake Thrasher
 Wall of Ice
 Wandering Goblins
+Wanted Scoundrels
 Warden of the Woods
 Warlock Class
 Warpath
 Wary Okapi
+Watchful Radstag
 Wave-Wing Elemental
+Wayward Guide-Beast
 Wicker Witch
 Wild Guess
 Wildwood Geist

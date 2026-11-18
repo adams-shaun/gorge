@@ -1,4 +1,5 @@
 A-Goma Fada Vanguard
+A-Knockout Blow
 A-Prosperous Thief
 A-The One Ring
 Aether Gale
@@ -11,6 +12,7 @@ Angelic Benediction
 Angler Turtle
 Anoint with Affliction
 Arcane Encyclopedia
+Arcbound Fiend
 Archghoul of Thraben
 Archon of Justice
 Arm the Cathars
@@ -22,9 +24,12 @@ Automated Assembly Line
 Avacyn and Griselbrand
 Aven Trooper
 Awakened Awareness
+Awe Strike
 Baral's Expertise
 Barge In
 Barkchannel Pathway
+Barren Moor
+Battershield Warrior
 Battle Mammoth
 Beloved Chaplain
 Benthic Djinn
@@ -61,6 +66,7 @@ Chastise
 Chittering Skitterling
 Chrome Prowler
 Clay Statue
+Cloaked Cadet
 Cloud Dragon
 Coastal Hornclaw
 Coercive Impetus
@@ -69,6 +75,7 @@ Conduit of Ruin
 Consecrated Sphinx
 Contagious Nim
 Courtly Provocateur
+Cradle of the Accursed
 Crazed Skirge
 Crippling Chill
 D'Avenant Archer
@@ -114,6 +121,7 @@ Enchanted Carriage
 Enchantress's Presence
 Encroaching Wastes
 Encrust
+Endure
 Errant Ephemeron
 Ertai's Scorn
 Evasive Action
@@ -132,8 +140,10 @@ Fierce Retribution
 Fight to the Death
 Final Payment
 Fire Drake
+Fire Nation Ambushers
 Fires of Undeath
 Fleet-Footed Monk
+Flickering Spirit
 Flickerwisp
 Font of Ire
 Forced Adaptation
@@ -168,6 +178,7 @@ Goblin Roughrider
 Goblin Shortcutter
 Goblin Swine-Rider
 Golden Egg
+Goremand
 Goring Warplow
 Graf Harvest
 Grandmother Goby
@@ -178,7 +189,9 @@ Gryff's Boon
 Guardian Zendikon
 Guardian of Solitude
 Guardians of Koilos
+Hagi Mob
 Hagra Crocodile
+Hashep Oasis
 Haunted Guardian
 Havoc Demon
 Heart-Piercer Manticore
@@ -232,10 +245,12 @@ Lethal Protection
 Light of Promise
 Lorehold Campus
 Madame Vastra
+Malevolent Noble
 Mana-Charged Dragon
 Mantle of the Wolf
 March from the Black Gate
 Marsh Lurker
+Martial Impetus
 Martyrs' Tomb
 Merfolk Branchwalker
 Merrow Commerce
@@ -248,6 +263,7 @@ Mindshrieker
 Mirkwood Spider
 Mirror Entity
 Misshapen Fiend
+Molten Tributary
 Mosscoat Goriak
 Mountain
 Mox Emerald
@@ -261,6 +277,7 @@ Necromancer's Assistant
 Nevinyrral's Disk
 Niambi, Esteemed Speaker
 Niblis of Dusk
+Nimble Hobbit
 Nyxborn Brute
 Oakhame Adversary
 Oblivion's Hunger
@@ -275,13 +292,16 @@ Orcish Oriflamme
 Ordruun Commando
 Origin Spellbomb
 Oriq Loremage
+Orzhov Cluestone
 Orzhov Racketeers
 Parish-Blade Trainee
 Peer into the Abyss
 Permission Denied
+Phantasmal Image
 Phantom Whelp
 Phyrexian Scriptures
 Pillardrop Warden
+Plague Boiler
 Plague Sliver
 Plains
 Priest of the Crossing
@@ -301,6 +321,7 @@ Renegade Firebrand
 Resolute Archangel
 Rishadan Brigand
 Ritual of the Machine
+Rivendell
 Rock Slide
 Rockslide Ambush
 Rogue's Gloves
@@ -344,6 +365,7 @@ Slip Through Space
 Smite the Monstrous
 Soaring Show-Off
 Soltari Lancer
+Soul Summons
 Soul of Migration
 Soul of Shandalar
 Soulsurge Elemental
@@ -374,9 +396,11 @@ Sunspire Griffin
 Suntail Hawk
 Survey the Wreckage
 Swamp
+Sword of Body and Mind
 Sylvan Paradise
 Synchronized Spellcraft
 Taigam's Strike
+Tainted Wood
 Tarkir Charm
 Tarpan
 Tenth District Legionnaire
@@ -402,6 +426,7 @@ Trickster's Talisman
 Tropical Storm
 Turbulent Springs
 Turn to Slag
+Uncle's Musings
 Unesh, Criosphinx Sovereign
 Unyaro Bees
 Vampiric Dragon
@@ -431,6 +456,7 @@ Wily Goblin
 Windfall
 Winged Boots
 Wishful Merfolk
+Woodland Mystic
 Wu Light Cavalry
 Wydwen, the Biting Gale
 You're Ambushed on the Road

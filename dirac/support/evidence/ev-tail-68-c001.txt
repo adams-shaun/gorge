@@ -1,15 +1,25 @@
 A-Elven Bow
 A-Glittermonger
+A-Mishra, Excavation Prodigy
 Abyssal Horror
+Adamaro, First to Desire
 Aether Poisoner
+Aethergeode Miner
 Akki Underling
 Alpine Meadow
+Amaranthine Wall
 Ammit Eternal
 Angel's Feather
 Angelic Purge
 Angelic Wall
+Anointed Procession
+Assault Griffin
+Auriok Bladewarden
+Auriok Steelshaper
 Awakener Druid
 Azimaet Drake
+Azorius Locket
+Barbarian Bully
 Basal Thrull
 Bearer of Memory
 Behemoth Sledge
@@ -17,18 +27,27 @@ Bitterthorn, Nissa's Animus
 Blastfire Bolt
 Blight Grenade
 Blighted Shaman
+Blood on the Snow
 Boros Guildmage
 Brokers Hideout
 Bull Cerodon
 Buried Alive
+Cabal Therapist
 Captain America's Motorcycle
+Captain Lannery Storm
+Cateran Brute
+Cavern Harpy
 Cephalid Vandal
 Chakram Slinger
 Charging Paladin
+Cinder Giant
 Cinder Storm
+Citadel Castellan
 Cliffhaven Vampire
 Clot Sliver
+Cloudreader Sphinx
 Cogwork Assembler
+Cold Storage
 Colorful Feiyi Sparrow
 Courier Hawk
 Courier's Capsule
@@ -38,11 +57,14 @@ Crystal Ball
 Curse of Shallow Graves
 Daring Apprentice
 Daring Fiendbonder
+Deeptread Merrow
 Devotee of Strength
 Didgeridoo
 Dimir Locket
+Djeru's Renunciation
 Eladamri, Lord of Leaves
 Electrickery
+Elvish Archers
 Embersmith
 Empty the Laboratory
 Engineered Might
@@ -50,10 +72,12 @@ Erratic Mutation
 Erratic Visionary
 Eternal Witness
 Ethereal Champion
+Ethereal Haze
 Ethereal Usher
 Experimental Overload
 Faerie Guidemother
 Faith Healer
+Faith's Reward
 Fated Intervention
 Fencer Clique
 Feral Deceiver
@@ -62,11 +86,15 @@ Festergloom
 Fill with Fright
 Fire of Orthanc
 Firebird, Blazing Ranger
+Flamecast Wheel
 Flow of Ideas
 Forest
+Furious Resistance
 Gargadon
 Gem of Becoming
 Geth's Grimoire
+Ghastly Demise
+Ghostfire
 Giant Tortoise
 Gilacorn
 Gitaxian Anatomist
@@ -74,12 +102,15 @@ Glory Bearers
 Gnawing Zombie
 Grave Peril
 Gruesome Discovery
+Hallowed Spiritkeeper
 Hanabi Blast
 Hedge Troll
 Highland Forest
 Honden of Seeing Winds
 Howling Fury
 Hulking Bugbear
+Hushwing Gryff
+Inspired Charge
 Intrepid Ace
 Intruder Alarm
 Iroas's Champion
@@ -93,12 +124,14 @@ Karvanista, Loyal Lupari
 Kasmina's Transmutation
 Kobold Taskmaster
 Kor Skyfisher
+Labyrinth Adversary
 Leather Armor
 Legion Vanguard
 Ley Weaver
 Lightning Spear
 Lightning-Core Excavator
 Liliana's Influence
+Living Death
 Loam Dryad
 Lone Rider
 Lorehold Command
@@ -107,20 +140,25 @@ Malachite Talisman
 Malakir Bloodwitch
 Manamorphose
 Marwyn, the Nurturer
+Matt Murdock, Justice Seeker
+Miasmic Mummy
 Mogg Flunkies
 Monstrify
 Moss Monster
 Mother Kangaroo
 Mountain
+Mysterio's Mirage
 Nagging Thoughts
 Nardole, Resourceful Cyborg
 Needle Spires
 Niblis of the Urn
 Norn's Disassembly
+Nyxborn Eidolon
 Oashra Cultivator
 Omen
 Ominous Cemetery
 Onyx Talisman
+Oxidda Scrapmelter
 Penumbra Bobcat
 Phantasmal Dragon
 Plains
@@ -148,14 +186,21 @@ Rustrazor Butcher
 Samite Archer
 Sandcrafter Mage
 Sangrophage
+Scaled Herbalist
 Scrapper Champion
+Sea Gate Oracle
 Searing Barb
 Sentinel Sliver
+Serene Offering
 Serra Paladin
 Shambling Ghoul
 Shefet Dunes
+Shelinda, Yevon Acolyte
 Shivan Harvest
+Short Sword
+Silburlind Snapper
 Silverglade Pathfinder
+Slaughterhouse Bouncer
 Sledding Otter-Penguin
 Slither Blade
 Snag
@@ -163,39 +208,57 @@ Sol Grail
 Solid Footing
 Soulhunter Rakshasa
 Soulstealer Axe
+Spark Jolt
 Spark Mage
 Sparring Collar
 Spider-Man 2099, Miguel O'Hara
 Spiraling Duelist
 Sporemound
+Squirrel Wrangler
 Stitcher's Apprentice
 Stormbind
 Strangling Soot
+Strangling Spores
 Stratozeppelid
+Stronghold Discipline
 Sun Ce, Young Conquerer
 Sunrise Seeker
 Surrak and Goreclaw
 Surrakar Banisher
+Suture Priest
 Swamp
 Swift Spinner
 Tangleclaw Werewolf
+Tattered Mummy
+Terra Eternal
 The Whizzer, Classic Speedster
+Thirst
 Thunderous Might
+Tishana's Wayfinder
+Tower of Eons
 Tranquil Path
+Trespasser il-Vec
 Treva's Ruins
 Troublesome Spirit
 Tune the Narrative
 Twin-Silk Spider
 Tyrant of Kher Ridges
+Valiant Veteran
+Valor
 Vampiric Tutor
 Wanderlust
 Warkite Marauder
 Wasp Lancer
 Weatherseed Elf
 Whispering Wizard
+White Shield Crusader
 Wildfire Cerberus
+Wolfbriar Elemental
+Wooden Sphere
+Yavimaya Elder
 Yavimaya Granger
 Yavimaya Sapherd
 Yotian Frontliner
+Zephyr Falcon
 Zephyr Gull
 Zhalfirin Shapecraft

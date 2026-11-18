@@ -1,6 +1,8 @@
 A-Briar Hydra
 A-Dokuchi Silencer
+A-Most Wanted
 A-Rockslide Sorcerer
+A-Umara Mystic
 Aerial Assault
 Aethershield Artificer
 Against All Odds
@@ -18,6 +20,8 @@ Aven Trailblazer
 Axebane Guardian
 Black Market
 Blade Splicer
+Blight Sickle
+Blossom Dryad
 Boldwyr Intimidator
 Buccaneer's Bravado
 Burn the Impure
@@ -25,29 +29,46 @@ Burning Palm Efreet
 Burst of Speed
 Butcher Ghoul
 Cacophony Scamp
+Caldera Pyremaw
+Caravan Escort
+Case the Joint
+Castle
 Chain Lightning
+Clackbridge Troll
 Claim the Firstborn
+Cling to Dust
 Cogwork Assembler
 Commissar Severina Raine
 Common Iguana
+Company Commander
 Conclave Guildmage
+Confront the Unknown
 Conservator
 Corpse Knight
 Courier's Capsule
+Crackling Triton
 Crop Rotation
 Culling Mark
+Daily Bugle Newspaper
 Daring Fiendbonder
 Dauntless Survivor
 Deadshot
+Death Rattle
+Death's-Head Buzzard
 Deathless Angel
 Deep Reconnaissance
 Deepwood Ghoul
 Deft Dismissal
 Demon's Grasp
 Demonic Rising
+Despise
+Diligent Excavator
+Dismantling Blow
 Dragon's Approach
+Dwarven Vigilantes
 Dyfed, the Guiding Hand
 Earthen Goo
+Eidolon of Rhetoric
 Ekthi, Contaminator Priest
 Erratic Visionary
 Essence Warden
@@ -56,6 +77,7 @@ Ethereal Champion
 Ethereal Usher
 Explosive Welcome
 Fain, the Broker
+Femeref Healer
 Firebird, Blazing Ranger
 Flashfires
 Floodhound
@@ -64,7 +86,9 @@ Flux Channeler
 Forest
 Fungal Sprouting
 Furnace Celebration
+Galvanic Iteration
 Gluttonous Zombie
+Goblin Glider
 Goblin Racketeer
 Grim Monolith
 Hanna, Ship's Navigator
@@ -75,7 +99,9 @@ Hooting Mandrills
 Horizon Chimera
 Horseshoe Crab
 Hound of the Farbogs
+Idol of Oblivion
 Independent Troops
+Indigo Faerie
 Infernal Pet
 Inkrise Infiltrator
 Inspiring Refrain
@@ -87,24 +113,33 @@ Ironclad Krovod
 Island
 Jackalope Herd
 Keen-Eyed Raven
+Kor Castigator
+Lagrella, the Magpie
 Leafkin Druid
 Lightning Hounds
 Lightning Reaver
 Liliana's Influence
+Liliana's Steward
 Lodestone Myr
 Longtusk Cub
+Lucas, the Sharpshooter
 Lush Growth
+Lyla, Holographic Assistant
 MJ, Rising Star
+Mana Matrix
 Manaforce Mace
 Manamorphose
 Manticore Eternal
 Mausoleum Secrets
 Metropolis Reformer
+Might Weaver
 Mirror of Galadriel
 Mise
 Mogg Sentry
 Mogis's Warhound
+Mortal's Ardor
 Moss Monster
+Mother of Runes
 Mothrider Patrol
 Mountain
 Nagging Thoughts
@@ -114,18 +149,27 @@ Nemesis of Reason
 Nezumi Bladeblesser
 Norn's Disassembly
 Oblation
+Obscura Initiate
+Orcish Bowmasters
+Orim's Touch
 Path of Anger's Flame
 Pentarch Ward
 Pernicious Deed
 Pilfering Imp
 Plains
 Pollywog Prodigy
+Preeminent Captain
 Primeval Force
+Prizefighter Construct
+Progenitor Mimic
 Prosper, Tome-Bound
 Prosperous Innkeeper
+Protector of Gondor
+Prowling Pangolin
 Python
 Quest for Pure Flame
 Rage Weaver
+Rally to Battle
 Ravos, Soultender
 Ray of Erasure
 Reality Ripple
@@ -139,46 +183,72 @@ Rogue Refiner
 Rolling Thunder
 Sandcrafter Mage
 Savra, Queen of the Golgari
+Scepter of Celebration
 Scion of Vitu-Ghazi
 Searing Barb
 Searing Blood
+Secure the Scene
+Selective Memory
 Sentinel Sliver
+Shadowspear
 Shake the Foundations
 Shepherd of the Lost
+Shore Keeper
+Simic Keyrune
 Skitter of Lizards
+Sky Terror
 Slinking Giant
 Sol Grail
 Solid Footing
+Spearbreaker Behemoth
+Spectral Shepherd
+Spellweaver Eternal
 Spined Fluke
+Spirit Weaver
 Squee's Embrace
 Steam Blast
+Streetbreaker Wurm
+Sultai Scavenger
 Swamp
 Tale of Momo
 Talons of Falkenrath
 Talons of Wildwood
+Task Force
 Temmet, Vizier of Naktamun
+Tenza, Godo's Maul
 Territorial Allosaurus
 The Bears of Littjara
+The Bloodsky Massacre
 The Whizzer, Classic Speedster
 Thorn Thallid
+Thrull Retainer
 Thrór's Map
+Thundering Sparkmage
 Thwart the Grave
+Tibor and Lumia
 Titan's Strength
 Tormod's Cryptkeeper
+Transcendent Master
+Trigon of Rage
 Trueheart Duelist
 Umbris, Fear Manifest
 Undercity Scavenger
 Undying Rage
 Unholy Hunger
+Unwilling Ingredient
 Viashino Fangtail
 Vine Trellis
 Warped Devotion
 Way of the Thief
 Weight of the Underworld
 Welder Automaton
+Well-Laid Plans
 Whispering Wizard
+Windgrace Acolyte
 Wirecat
 Wrath of Oko
+Writhing Necromass
 You Look Upon the Tarrasque
+Young Blue Dragon
 Zephyr Falcon
 Zodiac Ox

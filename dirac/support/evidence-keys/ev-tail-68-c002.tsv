@@ -1,0 +1,110 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Aethergeode Miner	f085ed898a2ec3d9	8	2/2		0/1	ix:resp
+Aetheric Amplifier	e2d85382be8e91a9	12	2/2		1/1	
+Akki Underling	5a61a1d2adaa9e73	4	0/0		0/0	
+Alpine Meadow	c9b9959f80f366f1	10	2/2		0/1	ix:resp
+Amaranthine Wall	eec54eb58dcc189f	6	1/1		1/1	
+Angelic Wall	ef2967b7189b41b0	12	0/0		0/0	
+Anointed Procession	bc7acbd672ff423a	5	0/0		0/0	
+Assault Griffin	f9e9e0ff73ebf178	3	0/0		0/0	
+Auriok Bladewarden	5ee791f847cbbf89	3	1/1		1/1	
+Auriok Steelshaper	dcfb29ce340ad19e	8	0/0		0/0	
+Azorius Locket	112de24bf87528b2	6	2/2		0/1	ix:resp
+Bitterthorn, Nissa's Animus	03761b45ddf4a7b3	4	3/3		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Brokers Hideout	0ab895aa3f67784c	6	1/1		0/1	ix:resp
+Cabal Therapist	5afb106547c996ef	4	1/1		0/1	ix:resp
+Cephalid Vandal	380c5869318fa6f0	8	1/1		1/1	
+Charging Paladin	54be109f98c15e63	4	1/1		0/1	ix:resp
+Citadel Castellan	48757c6a081155f2	8	1/1		0/1	ix:resp
+Clockwork Vorrac	50e3055c48039ef7	15	3/3		1/1	
+Cloudreader Sphinx	fb2bcd0878faccaf	4	1/1		0/1	ix:resp
+Colorful Feiyi Sparrow	5dc530d002e516d5	11	0/0		0/0	
+Coral Net	ccf08d44668a615a	10	0/0		1/2	ix:resp
+Corpulent Corpse	8320faf393691ca4	4	0/0		1/2	cast/alt:none
+Curse of Bounty	00b8eaa363c4c2a7	4	1/1		1/2	ix:resp
+Daring Apprentice	8f686511b92702b6	6	1/1		0/1	ix:resp
+Deeptread Merrow	b58d4a44dbbb319e	3	1/1		1/1	
+Devotee of Strength	060d8661e6db78ea	5	1/1		0/1	ix:resp
+Didgeridoo	9e47e4064717ecfd	6	1/1		0/1	ix:resp
+Disrupt	3b750210181ef79d	5	0/0		1/2	ix:resp
+Elvish Archers	ad5faa487da23234	4	0/0		0/0	
+Embersmith	c8d9c549faaed074	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Errant and Giada	af5bfd5675ae4a95	4	0/0		0/0	
+Erratic Mutation	1a058d30a2e5a279	10	0/0		1/2	ix:resp
+Eternal Witness	da383c8b58390ae8	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Ethereal Haze	74d371acd35aeead	4	0/0		1/2	ix:resp
+Fade into Antiquity	c66d4c070f836cbe	4	0/0		1/2	ix:resp
+Faerie Guidemother	f3a103b7c899cc3d	11	0/0		2/2	
+Fated Intervention	3851144eafb59ad8	6	0/0		2/2	
+Fill with Fright	832397b7f9ac8ed1	5	0/0		1/2	ix:resp
+Flamecast Wheel	90076d90dc9ad525	4	1/1		0/1	ix:resp
+Fractal Summoning	b303325111043b48	5	0/0		3/4	f0/s/x0
+Ghostfire	d2876616dc4f7e2c	34	0/0		2/2	
+Gnawing Zombie	640dbf934fed92e0	6	1/1		1/1	
+Hallowed Spiritkeeper	151bceeb29bb01fc	4	1/1		0/1	ix:resp
+Heavy Infantry	83568dff5bea66c8	8	1/1		1/1	
+Hedge Troll	53feff380aa28644	7	1/1		1/1	
+Highland Forest	e6a0e1934d7776d3	29	2/2		0/1	ix:resp
+Honden of Seeing Winds	39dc3a0c3dc18a2e	4	1/1		1/1	
+Horobi, Death's Wail	ce1ec6af0e999a52	48	1/1		0/1	ix:resp
+Hushwing Gryff	e851a42d7ab74def	6	0/0		0/0	
+Isao, Enlightened Bushi	47fa571c316a0a07	6	3/3		1/1	
+Isolate	85b27f825f1f5045	4	0/0		1/2	ix:resp
+James, Wandering Dad	c6b25f52feef29b8	3	1/1		1/4	f1/s/x+,f1/s/x0,ix:resp
+Jeskai Runemark	7e93faa587b1e846	4	0/0		1/2	ix:resp
+Kasmina's Transmutation	482288852286f6db	4	0/0		1/2	ix:resp
+Keeper of Fables	1c50645a3972a758	10	1/1		1/1	
+Kongming, "Sleeping Dragon"	de2e2016de255bf6	8	0/0		0/0	
+Labyrinth Adversary	733e139b6a676359	4	1/1		0/1	ix:resp
+Ley Weaver	d42c2e021e9b3a08	4	2/2		1/1	
+Loam Dryad	f9dd4fed4af23345	4	1/1		1/1	
+Matt Murdock, Justice Seeker	2e848ab551c50d98	9	1/1		1/1	
+Miasmic Mummy	9300d7dae7d504e4	3	1/1		0/1	ix:resp
+Mist-Syndicate Naga	ce81c1e8b3e1d393	3	2/2		0/1	ix:resp
+Monstrify	9f819425a9ddd5ff	4	0/0		1/2	ix:resp
+Mother Kangaroo	6bcb90addeeb15b3	4	1/1		0/1	ix:resp
+Needle Spires	fe8450cc216b1051	30	2/2		1/1	
+Oashra Cultivator	d4374217f1672ea5	6	1/1		0/1	ix:resp
+Ominous Cemetery	996995997a1aa707	16	2/2		0/1	ix:resp
+Ornate Kanzashi	03d624c83a597293	6	1/1		1/1	
+Plummet	cacc79b5e1319fa9	4	0/0		0/2	f0/s,ix:resp
+Proud Pack-Rhino	4c06287d8b7e3d48	4	1/1		0/1	ix:resp
+Rakdos Ragemutt	d35c34b5511c963e	4	0/0		0/0	
+Ranging Raptors	163f887da385add5	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Recalibrate	edf6bf2194b8a4a2	8	0/0		1/2	ix:resp
+Reckoner Bankbuster	622e47b09b8af6f8	4	2/2		1/1	
+Rending Vines	3fdad9859faaa1b3	4	0/0		2/2	
+Restless Dead	37f02dd84434bdc5	12	1/1		1/1	
+Reveille Squad	98545554383fd78a	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Revitalize	9564d5d54633b487	6	0/0		1/2	ix:resp
+Rupture Spire	364284f67ca6123b	21	2/2		0/1	ix:resp
+Rustrazor Butcher	922e521e8cafa0d4	6	0/0		0/0	
+Sangrophage	e0a40f792ef609a3	11	1/1		0/1	ix:resp
+Scaled Herbalist	9501a2d0dfc3f7ec	8	1/1		1/1	
+Scrapper Champion	8d1b1958b8e9337a	6	2/2		0/1	ix:resp
+Shefet Dunes	65b930acffa7fd95	18	3/3		0/1	ix:resp
+Short Sword	42fc37b2d71e1b8e	12	1/1		0/1	ix:resp
+Snag	09fe7dcf37106f58	4	0/0		2/2	
+Soulstealer Axe	fc17bcc220fe55c9	10	2/2		1/1	
+Spark Jolt	e11dba7ffa3ce4c6	4	0/0		1/2	ix:resp
+Spiraling Duelist	1bdf14266eab7e9d	4	0/0		0/0	
+Stratozeppelid	236d9ba14e2d5cee	4	0/0		0/0	
+Suture Priest	3b5edc1e58af34e8	4	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Tel-Jilad Justice	daea90cf35250d65	4	0/0		2/2	
+Think Tank	58978ed7fd8bcc45	4	1/1		0/1	ix:resp
+Tishana's Wayfinder	ade189359bee5083	3	1/1		0/1	ix:resp
+Treva's Ruins	e666e851f21f52b7	18	2/2		0/1	ix:resp
+Tune the Narrative	3e0728ddf5067c30	4	0/0		1/2	ix:resp
+Twin-Silk Spider	4c34c76a9e4ee5c4	5	1/1		0/1	ix:resp
+Urgoros, the Empty One	ca84e07d4e9ff130	6	1/1		0/1	ix:resp
+Valiant Veteran	ab9d15679da72848	6	1/1		1/1	
+Vampiric Tutor	e15d65631d40059f	8	0/0		2/2	
+Wanderlust	e5ad99aa9baf59ae	7	1/1		2/2	
+Weatherseed Elf	bbc6a61334133dad	4	1/1		1/1	
+Windrider Wizard	a314be276c17d4a6	10	1/1		1/1	
+Wooden Sphere	66b6a1bc28939ec6	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Yavimaya Elder	82da0285ba66f29f	6	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Yavimaya Granger	7f607854453c4f21	3	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Yotian Frontliner	ea945e709cd14a31	9	2/2		0/1	ix:resp
+Zephyr Falcon	5f728c53612fe90c	6	0/0		0/0	
+Zephyr Gull	45a30ac1490a2637	5	0/0		0/0	
