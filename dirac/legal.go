@@ -1884,6 +1884,17 @@ func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n uint8) bool {
 	return true
 }
 
+// recStore records a storage battery's further tap ability in the census,
+// merging into the source's plain tap unit when there is one (mergeTapN) and
+// recording a fresh unit of the battery's colours otherwise (a battery whose
+// source has no tap unit, Dwarven Hold).
+func (c *potCensus) recStore(sl Slot, ab *kop.Ability, n int) {
+	m := uint8(min(n, 255))
+	if !c.mergeTapN(sl, ab, m) {
+		c.rec(uint8(ab.ManaColors), m)
+	}
+}
+
 // censusDynamicAb is the census's read of a further dynamic-amount ability: at
 // what the source makes now (an Everflowing Chalice holding no charge counter
 // makes nothing), the planner's natural amount, while the over-bound pool
@@ -2154,9 +2165,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 							// a battery that taps beside the source's plain {T}: {C}
 							// (Mage-Ring Network) is the same tap, so its counters
 							// replace that unit's one mana instead of adding to it
-							if !cen.mergeTapN(sl, ab, uint8(min(n, 255))) {
-								cen.rec(uint8(ab.ManaColors), uint8(min(n, 255)))
-							}
+							cen.recStore(sl, ab, n)
 						}
 						open = s.storePotential(open, sl, ab, d, fold)
 						continue
