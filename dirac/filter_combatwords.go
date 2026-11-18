@@ -283,13 +283,25 @@ func (s *State) execMcombat(k *prep, in *kop.Instr) (ok, done bool) {
 		// it attacks the trigger's own controller, whom gorge's
 		// TriggeredDefender.Opponent names nobody for (an attacker the
 		// controller does not control: Mage Slayer on a stolen creature)
-		if sl := s.objRef(k, kop.RefTriggerObj); sl == NoSlot || isObjTarget(s.perms[sl].atk) || s.atkSeat(k, sl) == s.res.e.ctrl {
+		if sl := s.objRef(k, kop.RefTriggerObj); sl == NoSlot || in.C&kop.AtkPWHit == 0 && isObjTarget(s.perms[sl].atk) || s.atkSeat(k, sl) == s.res.e.ctrl {
 			s.capFull(StallDefenderPW)
 		}
 	default:
 		return s.execUnread(k, in) // act_mayask.go
 	}
 	return true, true
+}
+
+// attackedObjOr is code, or the planeswalker/battle the trigger object is
+// attacking when it attacks one (OpDealDamage B.N DmgAtkedObj behind
+// OpAtkPWGuard C AtkPWHit; gorge's Valid Planeswalker.TriggeredDefender arm).
+func (s *State) attackedObjOr(k *prep, code TCode) TCode {
+	if sl := s.objRef(k, kop.RefTriggerObj); sl != NoSlot {
+		if a := s.perms[sl].atk; isObjTarget(a) {
+			return a
+		}
+	}
+	return code
 }
 
 // tokenAttacks is TokAttacking: the token just minted at sl, controlled by

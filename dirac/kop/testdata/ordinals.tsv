@@ -39,6 +39,7 @@ AggPermTypes	untyped int	12
 AggSumCounters	untyped int	11
 AggSumMV	untyped int	5
 AggSumToughness	untyped int	4
+AtkPWHit	untyped int	1
 AttToCreature	untyped int	1
 AttToLand	untyped int	2
 AttToOther	untyped int	4
@@ -308,6 +309,7 @@ DiscoverRemBottom	untyped int	241
 DivLKIP1P1	untyped int	255
 DivMaxV	untyped int	254
 DivValue	untyped int	253
+DmgAtkedObj	untyped int	1
 DmgDivideEvenly	untyped int	64
 DmgEQ	DmgCmp	3
 DmgExileIfDealt	untyped int	16
