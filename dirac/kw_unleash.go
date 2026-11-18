@@ -101,7 +101,19 @@ func (s *State) unleashAnswer(k *prep, ask askRec, a Action) {
 }
 
 // unleashNoBlock reports whether the blocker at b is refused by its Unleash
-// keyword: it carries the printed keyword and at least one +1/+1 counter.
+// keyword: it carries the printed keyword and at least one +1/+1 counter. The
+// refusal is the keyword's own CantBlock static (Forge lowers it as one, Mode$
+// CantBlock beside the keyword), so a lose-all-abilities effect that removes
+// the printed keyword lifts it: the counter stays, the creature blocks (CR
+// 613.1f; gorge combat/block.go reads the derived keyword list the same way).
+// Unleash has no KwMask bit and a granted Unleash is refused at lowering, so
+// no layer-6 grant can bring the refusal back.
 func (s *State) unleashNoBlock(k *prep, b Slot) bool {
-	return k.t.Cards[s.cardAt(b)].Unleash && s.perms[b].ctrN(s, int(kop.CtrP1P1)) > 0
+	if !k.t.Cards[s.cardAt(b)].Unleash || s.perms[b].ctrN(s, int(kop.CtrP1P1)) == 0 {
+		return false
+	}
+	if _, lost := s.lossAt(k, b); lost {
+		return false // Stasis Field: the printed Unleash is gone with all abilities
+	}
+	return true
 }
