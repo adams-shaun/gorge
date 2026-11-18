@@ -32,8 +32,13 @@ func lureBlockers(t *testing.T, e *Engine, lured state.ObjID) (d *decision.Decis
 		t.Fatalf("precondition: no blockers decision: %#v", d)
 	}
 	for _, b := range blockers {
-		if findBlockOption(d, b, plain) == nil || findBlockOption(d, b, lured) == nil {
-			t.Fatalf("precondition: blocker %d is not offered both attackers: %+v", b, d.Options)
+		if findBlockOption(d, b, lured) == nil {
+			t.Fatalf("precondition: blocker %d is not offered the lure attacker: %+v", b, d.Options)
+		}
+		// CR 509.1c: the lure hosts every able blocker, so a pair against the
+		// plain attacker sits in no legal declaration and is not offered.
+		if o := findBlockOption(d, b, plain); o != nil {
+			t.Fatalf("precondition: blocker %d is offered the plain attacker beside the lure: %+v", b, o)
 		}
 	}
 	return d, plain, blockers
@@ -58,8 +63,12 @@ func lureVerdicts(t *testing.T, e *Engine, d *decision.Decision, lured, plain st
 	if err := e.validateBlockers(d, intent()); err == nil {
 		t.Fatal("empty declaration accepted despite the lure")
 	}
-	if err := e.validateBlockers(d, intent(opt(blockers[0], lured), opt(blockers[1], plain))); err == nil {
-		t.Fatal("one block on the lure and one on the plain attacker accepted")
+	// The lure hosts every able blocker, so the one-block-on-the-plain-
+	// attacker half of the old fixture sits in no legal declaration and is
+	// not offered; the same one-unit shortfall a lone lure block leaves is
+	// pinned by the singleton instead.
+	if err := e.validateBlockers(d, intent(opt(blockers[0], lured))); err == nil {
+		t.Fatal("one block on the lure accepted")
 	}
 	if err := e.validateBlockers(d, intent(opt(blockers[0], lured), opt(blockers[1], lured))); err != nil {
 		t.Fatalf("both creatures on the lure rejected: %v", err)
