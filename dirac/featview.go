@@ -659,6 +659,11 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 	}
 	if k.gen != nil && (s.g.mayPlayAny || mode&castMayPlay != 0 && s.mayPlayAnyType(k, p, o) || s.convAnyType(k, SeatIx(p), o)) {
 		cost = anyTypePips(cost) // gorge's planner funds these pips as generic (pay.PlanManaUnderRider)
+	} else if k.gen != nil && mode&castMayPlay != 0 && mode&castFree == 0 && s.mayPlayIgnoreColor(k, p, o) {
+		// an any-colour may-play cast: gorge's potential planner prices its
+		// coloured pips generic too (pay.PlanManaUnderRider,
+		// potentialPinnedColourPlan; CR 609.4b), {C} stays colourless-only
+		cost = planUnderRider(cost, false, true)
 	}
 	if lifted && !s.improviseSourcesPay(k, p, o, reserved, &cost) {
 		return kop.ManaCost{}, false // "cost:credit": the greedy credit is no proof, the manual window pays
