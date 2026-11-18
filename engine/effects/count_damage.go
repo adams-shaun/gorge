@@ -8,8 +8,7 @@ import (
 
 func evalDamageHistory(h Host, c *Ctx, g *state.Game, head, arg string) (int32, bool, bool) {
 	code := evalCountBodyCostCodes.Code(head)
-	if code != evalCountBodyCostMaxCombatDamageThisTurn && code != evalCountBodyCostNumDamageThisTurn &&
-		code != evalCountBodyCostNonCombatDamageThisTurn && code != evalCountBodyCostNumCombatDamageThisTurn {
+	if !isDamageHistoryCode(code) {
 		return 0, false, false
 	}
 	if code == evalCountBodyCostMaxCombatDamageThisTurn {
@@ -156,6 +155,9 @@ func damageRecipientMatches(g *state.Game, spec string, hit state.DamageDealtRec
 // shape this build does not model, so fail the head's own verdict.
 func evalBloodthirstAmount(h Host, c *Ctx, g *state.Game, arg string) (int32, bool, bool) {
 	if strings.TrimSpace(arg) != "" {
+		return 0, false, true
+	}
+	if c == nil {
 		return 0, false, true
 	}
 	return damageToOppsThisTurn(h, g, c.Controller), true, true

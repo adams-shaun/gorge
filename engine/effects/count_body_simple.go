@@ -167,8 +167,10 @@ func evalCountBodySimple(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 		// else the live battlefield (see evalCastBattlefieldCount).
 		return evalCastBattlefieldCount(h, c, g, arg, depth)
 	case evalCountBodyCostLastStateBattlefield:
-		// The battlefield as the spell was cast, from its frozen snapshot,
-		// with NO current-battlefield fallback (see evalLastStateBattlefield).
+		// The battlefield as the spell was cast, from its frozen snapshot
+		// while the source is on the battlefield; a snapshot-less source
+		// (reanimated, flickered) scans the live battlefield (see
+		// evalLastStateBattlefield).
 		return evalLastStateBattlefield(h, c, g, arg, depth)
 	case evalCountBodyCostBloodthirstAmount:
 		// Bloodthirst's damage-to-opponents read (see evalBloodthirstAmount).

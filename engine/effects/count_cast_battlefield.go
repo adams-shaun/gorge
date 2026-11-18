@@ -7,8 +7,10 @@ import (
 )
 
 // castBattlefieldHead is the Count$ head spelling whose carriers read the
-// battlefield as it stood when the spell was cast.
-const castBattlefieldHead = "LastStateBattlefield"
+// battlefield as it stood when the spell was cast. It carries the "Count$"
+// prefix so a Defined$ ...LastStateBattlefieldLKICopy body (Miss Highwater)
+// never matches.
+const castBattlefieldHead = "Count$LastStateBattlefield"
 
 // SVarsReadCastBattlefield reports whether any SVar body counts the as-cast
 // battlefield (Count$LastStateBattlefield or Count$LastStateBattlefieldWithFallback),
