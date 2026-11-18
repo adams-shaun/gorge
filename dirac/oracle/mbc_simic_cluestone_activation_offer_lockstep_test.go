@@ -11,4 +11,7 @@ import "testing"
 func TestMBCSimicCluestoneReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "simic_cluestone_activation_offer")
+	// tail-45 pair 80, decision 548: the opposite split. The kernel offered the
+	// same draw and gorge offered only pass.
+	stdReproNamed(t, "mana_filter_twice_funds_activation")
 }

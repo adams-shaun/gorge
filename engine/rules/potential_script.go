@@ -700,6 +700,14 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 			if sr.ownTapSource(c, opt.Obj) {
 				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
 			}
+			if !gap && !c.windowSourceYields(p, opt.Obj) {
+				// A covered source whose every mana ability provably adds
+				// nothing (Bag End Banquet with no Food) cannot fund a fee:
+				// tapping it only changes the tapped bit, and each such step
+				// spends a node, and every node under it, of the budget
+				// (the kernel's funding pass never taps it).
+				continue
+			}
 			next := funded
 			if !gap {
 				next++
