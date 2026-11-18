@@ -316,6 +316,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if s.castHeldOut(o) {
 			continue // reversed twice in a row (Eaten Alive's unpayable part, pair 2359)
 		}
+		if s.cfg&cfgGorgeUnpriced != 0 && s.contribPays(k, p, c, o, false) && !s.FeatPoolPays(p, o, 2) {
+			continue // gorge's potential planner declines a flashback cast carrying a credit ("cost:credit"): only the floating pool casts it (Inspiring Statuary's improvise)
+		}
 		if !s.flashbackPartsDisjoint(k, p, c, fc) {
 			continue
 		}
