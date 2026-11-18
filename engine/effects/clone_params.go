@@ -165,7 +165,7 @@ var cloneKnownKeys = [...]string{
 	"Choices", "ChooseFromList", "ClassBand", "ClearImprinted", "CloneTarget", "CloneZone",
 	"Condition", "ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
-	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
+	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerContains", "ConditionPlayerDefined", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionTargetValidTargeting", "ConditionTargetsSingleTarget", "ConditionZone", "CopyCard", "CopyFromChosenName", "Cost", "CostDesc", "Defined",
 	"DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Duration", "EffectOwner", "Embalm", "Exclude", "ExcludeChosen", "Execute", "Exhaust", "ExileOnMoved", "FaceDown", "ForgetCounter", "ForgetOnCast", "ForgetOnMoved", "ForgetOnPhasedIn", "ForgetOtherTargets", "FromDesc", "GainThisAbility", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
 	"ImprintCards", "ImprintOnHost", "ImprintPlayed", "InstantSpeed", "IntoPlayTapped", "IsCurse",

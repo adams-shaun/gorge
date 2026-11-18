@@ -60,6 +60,16 @@ func foldSkipPhase(g *state.Game, e *Event) {
 	}
 }
 
+// foldReverseTurnOrder folds Kind ReverseTurnOrder into state: each event
+// toggles the game's turn order (state.Game.ReverseTurnOrder), which the ONE
+// next-player helpers (state.Game.NextAlive/AliveFrom) read, so the turn
+// advance, the priority pass order and every APNAP order follow the reversed
+// direction. Two activations restore the original order, which is why the
+// fold toggles rather than sets.
+func foldReverseTurnOrder(g *state.Game, e *Event) {
+	g.ReverseTurnOrder = !g.ReverseTurnOrder
+}
+
 // foldStepChange folds Kind StepChange into state.
 func foldStepChange(g *state.Game, e *Event) {
 	// "Until end of combat, you don't lose this mana as steps and phases

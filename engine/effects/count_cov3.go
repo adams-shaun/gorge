@@ -1009,12 +1009,14 @@ const (
 	cov3PlayerPropAmount cov3PlayerPropCode = iota + 1
 	cov3PlayerPropValid
 	cov3PlayerPropLifeLostThisTurn
+	cov3PlayerPropTiedForHighestLife
 )
 
 var cov3PlayerPropCodes = state.NewStrCodes(
 	state.StrEntry[cov3PlayerPropCode]{Key: "Amount", Val: cov3PlayerPropAmount},
 	state.StrEntry[cov3PlayerPropCode]{Key: "Valid", Val: cov3PlayerPropValid},
 	state.StrEntry[cov3PlayerPropCode]{Key: "LifeLostThisTurn", Val: cov3PlayerPropLifeLostThisTurn},
+	state.StrEntry[cov3PlayerPropCode]{Key: "TiedForHighestLife", Val: cov3PlayerPropTiedForHighestLife},
 )
 
 type cov3PlayerScalarCode uint16

@@ -468,6 +468,15 @@ type Game struct {
 	// TurnChange -- an extra phase is spliced into the CURRENT turn only and
 	// never survives into the next one. Empty when no extra phase is pending.
 	ExtraPhases []ExtraPhase
+	// ReverseTurnOrder is the game's reversed turn order (Forge's
+	// ReverseTurnOrderEffect, Aeon Engine): false walks seats forward
+	// 0,1,2,..., true walks them backward 0,N-1,N-2,.... It is folded only by
+	// events.ReverseTurnOrder (each event toggles), and the ONE next-player
+	// helpers -- NextAlive and AliveFrom below -- are its only readers, so
+	// the turn advance (rules turn.go's NextAlive), the priority pass order
+	// and every APNAP order (every AliveFrom scan) follow the reversed
+	// direction together.
+	ReverseTurnOrder bool
 	// CombatsThisTurn counts the combat phases BEGUN this turn (one per
 	// BeginCombat StepChange, folded in engine/events/apply.go's StepChange case,
 	// reset at TurnChange): 1 through the ordinary combat, 2 through an extra
@@ -1251,18 +1260,28 @@ func (g *Game) CloneIntoDirty(objs []Object, dirty int) *Game {
 	}
 	c.ExtraTurnQueue = append([]ExtraTurn(nil), g.ExtraTurnQueue...)
 	c.ExtraPhases = append([]ExtraPhase(nil), g.ExtraPhases...)
+	c.ReverseTurnOrder = g.ReverseTurnOrder
 	return &c
 }
 
-// AliveFrom lists surviving seats in APNAP order starting at start.
-// The seat index advances by one and wraps by a compare, not a per-seat
-// modulo: this is inlined into dozens of per-event scans.
+// AliveFrom lists surviving seats in APNAP order starting at start. The seat
+// index advances by one and wraps by a compare, not a per-seat modulo: this
+// is inlined into dozens of per-event scans. A reversed turn order
+// (g.ReverseTurnOrder, folded from events.ReverseTurnOrder) walks the seats
+// BACKWARD from start instead -- the same APNAP order, one turn order CR
+// 101.4's "in turn order" reads -- so every AliveFrom scan follows the
+// reversal with no per-caller change.
 func (g *Game) AliveFrom(start PlayerID) []PlayerID {
 	n := PlayerID(len(g.Players))
 	out := make([]PlayerID, 0, n)
 	for i := PlayerID(0); i < n; i++ {
-		// (start+i)%n, dividing only once the sum has passed n.
+		// (start+i)%n, dividing only once the sum has passed n. The reversed
+		// walk is (start-i)%n, computed as (start+n-i) so the seat arithmetic
+		// never underflows.
 		p := start + i
+		if g.ReverseTurnOrder {
+			p = start + n - i
+		}
 		if p >= n {
 			p %= n
 		}
@@ -1337,10 +1356,20 @@ func (g *Game) IsStartingPlayer(p PlayerID) bool {
 }
 
 // NextAlive returns the next surviving seat after p, or p itself if none is.
+// A reversed turn order (g.ReverseTurnOrder) walks BACKWARD from p: the same
+// single direction as AliveFrom's, so every "next player in turn order" read
+// follows the reversal.
 func (g *Game) NextAlive(p PlayerID) PlayerID {
 	n := PlayerID(len(g.Players))
 	for i := PlayerID(1); i <= n; i++ {
-		q := (p + i) % n
+		q := p + i
+		if g.ReverseTurnOrder {
+			// (p-i)%n, computed as (p+n-i) so the seat arithmetic never
+			// underflows; at i == n this is p itself, the same last resort
+			// the forward walk's (p+n)%n lands on.
+			q = p + n - i
+		}
+		q %= n
 		if !g.Players[q].Lost {
 			return q
 		}

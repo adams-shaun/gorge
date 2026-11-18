@@ -124,7 +124,7 @@ var attachKnownKeys = [...]string{
 	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent",
 	"ConditionOpponentTurn", "ConditionOptionalPaid",
 	"ConditionPhases",
-	"ConditionPlayerTurn",
+	"ConditionPlayerContains", "ConditionPlayerDefined", "ConditionPlayerTurn",
 	"ConditionPresent",
 	"ConditionPresent2",
 	"ConditionSVarCompare",
