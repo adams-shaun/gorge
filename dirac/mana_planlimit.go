@@ -188,6 +188,9 @@ func (s *State) limitPlan(k *prep, pk *planner) {
 func (ls *limitSearch) census(k *prep, s *State) {
 	pk := &ls.pk
 	for u := 0; u < pk.nu; u++ {
+		if pk.types[pk.utyp[u]].inert {
+			continue // a classless census position (planInertGrant): no alternatives, never chosen
+		}
 		var alts [planLimitAlts]lsAlt
 		na := s.unitAlts(k, pk, u, &alts, ls.granted)
 		ci := -1

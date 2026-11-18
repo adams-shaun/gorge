@@ -815,6 +815,9 @@ type utype struct {
 	flex    uint8
 	avail   uint8
 	k       uint8 // chosen count (search scratch)
+	// inert: a census position only, no production (planInertGrant); the
+	// walk never selects it
+	inert bool
 	// pain: the damage one activation deals its controller (a painful
 	// last-resort alternative, mana_pain.go); pair: 1 + the
 	// index of the other type of the same sources (a painland's {C} and
@@ -1574,10 +1577,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				sl := order[i]
 				pc := pcs[i]
 				if phase < 2 && granted[i] && rk[i] == 0 { // (an admitted restricted printed ability stays a census unit)
-					// one whose mana ability an effect grants (gorge's census
-					// holds printed abilities only: Imprisoned in the Moon's
-					// land)
 					hasGrant = true
+					s.planInertGrant(k, pk, i, sl, pc, pass) // its census position alone (gorge's classless unit)
 					continue
 				}
 				if k.painMana && pc.painCol != 0 && phase == 0 {
@@ -2067,6 +2068,9 @@ func (pk *planner) dfs(t int, prod int, creat int) {
 	}
 	ty := &pk.types[t]
 	lim := int(ty.avail)
+	if ty.inert {
+		lim = 0 // a manaless step only worsens the rank keys
+	}
 	if pk.pairs && ty.alt {
 		lim -= int(pk.types[ty.pair-1].k) // the primary {C} type is counted first (painUnit)
 	}
