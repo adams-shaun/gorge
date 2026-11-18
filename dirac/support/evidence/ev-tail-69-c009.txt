@@ -6,17 +6,24 @@ Chime of Night
 Claws of Gix
 Clearwater Goblet
 Corrupt
+Dakmor Plague
+Demogorgon's Clutches
 Dukhara Peafowl
+Echoing Return
+Elephant Grass
 Elven Warhounds
 Essence Extraction
 Fairgrounds Patrol
 Filter Out
 Forest
+Foul Watcher
 Hesitation
 Infectious Host
+Insatiable Souleater
 Island
 Knightly Valor
 Krovikan Scoundrel
+Miscalculation
 Moon-Circuit Hacker
 Mountain
 Nantuko Elder
@@ -30,9 +37,11 @@ Shard Convergence
 Skeletal Crocodile
 Structural Assault
 Swamp
+Thirst for Meaning
 Toolcraft Exemplar
 Tortoise Formation
 Trollbred Guardian
 Vampire Hexmage
+Vogar, Necropolis Tyrant
 Watcher Sliver
 Whetstone

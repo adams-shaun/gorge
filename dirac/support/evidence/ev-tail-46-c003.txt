@@ -3,12 +3,21 @@ A-Haywire Mite
 A-Oran-Rief Ooze
 A-Revel Ruiner
 Aether Spellbomb
+Akroan Skyguard
 Alpha Tyrranax
+Ambush Paratrooper
 Anaconda
+Anarchist
+Anowon, the Ruin Sage
 Aphetto Alchemist
+Arcane Teachings
+Archfiend of Despair
 Argothian Opportunist
 Argothian Treefolk
+Armory Veteran
 Auriok Transfixer
+Ayara, First of Locthwain
+Battle Hurda
 Battlefront Krushok
 Blaring Recruiter
 Blessed Wine
@@ -16,24 +25,37 @@ Blight Pile
 Blistering Barrier
 Blood Funnel
 Bloodrite Invoker
+Bola Warrior
 Bounding Wolf
 Brain Weevil
 Brazen Buccaneers
+Brink of Madness
 Brood Monitor
 Bygone Marvels
 Cackling Imp
+Capashen Templar
+Castigate
 Cenn's Enlistment
 Champion of the Perished
+Chandler
+Chaos Charm
 Chatterstorm
 Children of Korlis
+Chivalric Alliance
 Citizen's Crowbar
 Clay Revenant
+Cleaver Riot
 Colossal Growth
+Combat Medic
 Council's Judgment
 Crocodile of the Crossing
 Death-Hood Cobra
+Deathcap Cultivator
 Debt to the Kami
+Defense of the Heart
+Demolish
 Demolition Stomper
+Desert Drake
 Dire Fleet Interloper
 Doombot Harbinger
 Doorkeeper
@@ -43,11 +65,14 @@ Dragonscale Boon
 Dread Return
 Drudge Sentinel
 Drudge Skeletons
+Dwarven Reinforcements
+Dwarven Song
 Earsplitting Rats
 Elite Guardmage
 Empress Galina
 Endless Ranks of the Dead
 Esper Sentinel
+Essence Pulse
 Everythingamajig
 Eviscerator
 Falcon Abomination
@@ -60,37 +85,56 @@ Feral Animist
 Ferocity of the Wilds
 Fire Sprites
 Floral Evoker
+Flowstone Wyvern
 Forest
+Foul-Tongue Shriek
 Frozen Shade
 Gaea's Embrace
 Gaea's Skyfolk
 Garruk's Gorehorn
 Geistlight Snare
+Geode Golem
 Gnarled Mass
+Goblin Gaveleer
 Goldenhide Ox
+Grisly Survivor
 Heir of the Wilds
 Herald of Secret Streams
+Howl of the Horde
+Immolation
+Intimidator Initiate
 Introduction to Prophecy
 Irontread Crusher
 Island
+Joraga Bard
 Jukai Trainee
+Kalonian Twingrove
+Karplusan Wolverine
 Karstoderm
+Kessig Wolf
 Kokusho, the Evening Star
 Lagonna-Band Elder
+Lava Blister
+Leaping Master
+Lesser Gargadon
 Level Up
 Leyline of the Meek
 Lifeline
 Lightning Blow
+Longshot, Rebel Bowman
 Lorehold Pledgemage
 Lost in the Woods
 Lumengrid Gargoyle
 Marshal of Zhalfir
 Master Symmetrist
+Meditation Puzzle
 Merfolk Branchwalker
 Midnight Guard
 Might of Old Krosa
 Mind Peel
+Minion of the Mighty
 Mirrodin Avenged
+Mogg Salvage
 Moss Diamond
 Mossfire Egg
 Mountain
@@ -99,15 +143,25 @@ Mycoid Shepherd
 N'Yami-Class Mother Ship
 Nihil Spellbomb
 Nurturing Presence
+One with Death
+Ordeal of Heliod
+Orim, Samite Healer
 Orochi Eggwatcher
+Phalanx Tactics
+Phyrexian Vault
 Pit Imp
+Placid Rottentail
 Plains
 Priest of the Blood Rite
+Prophecy
 Qasali Slingers
 Quicksilver Wall
 Raise the Alarm
+Rally Maneuver
 Rank Officer
+Reave Soul
 Resolute Watchdog
+Robber Fly
 Root Cage
 Rosethorn Acolyte
 Rout
@@ -115,42 +169,63 @@ Rushwood Grove
 Rusted Slasher
 Sanctum of Tranquil Light
 Saproling Migration
+Scion of Darkness
 Scoria Cat
 Scythe Tiger
 Second Breakfast
+Senate Courier
+Sentry of the Underworld
 Shadow Stinger
 Shadow in the Warp
+Sharpshooter Elf
 Shu General
+Sidisi's Pet
 Siege Wurm
 Sisters of the Flame
 Skeletal Snake
+Skittering Cicada
 Sky Skiff
+Skyclave Geopede
 Skywinder Drake
 Slith Predator
 Snare Thopter
 Sorin's Vengeance
 Soulcage Fiend
+Sower of Temptation
+Spark Spray
 Spike Soldier
+Splinter Twin
 Spontaneous Generation
 Spore Frog
 Squallmonger
+Stab Wound
 Stitcher's Graft
 Storm Strike
+Strength of Solidarity
 Summer Bloom
 Survive the Night
 Swamp
+Talon of Pain
 Tempered Sliver
 Tempest Harvester
 Terra Stomper
 Tethered Skirge
+Thallid Devourer
+Thunderbreak Regent
+Thundercloud Shaman
 Tireless Hauler
+Topple the Statue
 Treefolk Harbinger
 Trenchpost
 Tura Kennerüd, Skyknight
 Twisted Experiment
+Unexplained Disappearance
 Urborg Stalker
 Verdant Field
+Vessel of Malignity
+Victory's Envoy
 Viridian Shaman
+Vulpine Harvester
 Walking Wall
 Wanderer's Twig
 Warbriar Blessing
@@ -159,6 +234,8 @@ Wellwisher
 Whipcorder
 Whirler Virtuoso
 White Tiger, Amulet Keeper
+Wing It
+Witness the End
 Yahenni, Undying Partisan
 Yavimaya Elder
 Yotian Medic

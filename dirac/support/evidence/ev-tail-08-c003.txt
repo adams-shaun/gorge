@@ -1,47 +1,104 @@
+A-Ochre Jelly
+A-Warm Welcome
+Abbey Griffin
 Aberrant Return
 Age of Ultron
+Ana Disciple
 Ancestral Recall
 Angel of Glory's Rise
 Anurid Barkripper
 Archghoul of Thraben
+Ashiok's Skulker
 Assassin Initiate
+Aura of Silence
 Aven Gagglemaster
+Azami, Lady of Scrolls
+Banewhip Punisher
+Bankrupt in Blood
 Barrenton Cragtreads
 Barrin's Codex
 Battle Sliver
+Benalish Marshal
 Benalish Missionary
+Bequeathal
+Bestial Menace
+Black Market Tycoon
+Blood Age General
+Blood Glutton
+Blood Seeker
+Blur Sliver
+Bounty Agent
+Bronze Sword
+Bronze Walrus
+Brush with Death
+Cadira, Caller of the Small
+Call to Glory
+Call to the Netherworld
+Calming Verse
 Captain America, Liberator
+Certain Death
+Chakram Retriever
+Chill to the Bone
 Clockwork Fox
 Coercive Impetus
+Corrosive Mentor
 Courier Griffin
 Courtly Provocateur
 Cover of Darkness
 Crash Landing
+Crisis of Conscience
+Crystal Golem
+Cyclops Tyrant
 Death Speakers
 Death Wind
+Death's Duet
+Deathbringer Liege
+Devouring Deep
+Diamond Knight
+Disposal Mummy
 Divest
 Domestication
+Drana's Emissary
+Dread Specter
+Dream Prowler
 Dromoka's Gift
 Drudge Reavers
 Duergar Mine-Captain
 Dusk Legion Dreadnought
 Dwarven Recruiter
+Eagle of Deliverance
 Electrify
+Elite Javelineer
 Elvish Hunter
 Energy Arc
 Enfeeblement
+Engulf the Shore
 Eyeblight's Ending
 Faerie Macabre
+False Demise
+Feast of the Unicorn
 Feast or Famine
 Fetid Gargantua
+Fists of Flame
 Flare
+Flay
 Flowstone Mauler
 Forest
+Foundry Inspector
+Frenetic Efreet
+Fruit of Tizerus
+Funnel-Web Recluse
+Ghost-Lit Nourisher
+Glarewielder
+Glimpse the Future
 Go-Shintai of Shared Purpose
+Goblin Heelcutter
 Goblin Sky Raider
 Goblin Soothsayer
+Goggles of Night
 Grid Monitor
 Hag of Noxious Nightmares
+Hallowed Haunting
 Hammerheim Deadeye
 Hazardous Conditions
 Henrika Domnathi
@@ -51,76 +108,123 @@ Homicidal Seclusion
 Honor-Worn Shaku
 Honored Crop-Captain
 Horizon Explorer
+Hornet Nest
 Hour of Revelation
 Hunter's Edge
+Hyperion Blacksmith
 Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
+Inspiring Cleric
+Iron Verdict
 Island
 Jeskai Elder
+Juju Bubble
+Jukai Trainee
+Juvenile Gloomwidow
 Kavu Howler
 Keeper of the Cadence
+Kjeldoran Frostbeast
 Kolaghan Warmonger
 Krazy Kow
 Last Breath
 Last Kiss
+Lat-Nam Adept
+Lesser Werewolf
+Liliana's Triumph
 Lone Missionary
+Loxodon Mystic
+Lynx
+M.O.D.O.K., Evil Intellect
 Magmaroth
 Mardu Hateblade
 Marsh Casualties
 Mass Appeal
+Mass Diminish
 Military Discipline
+Militia Bugler
 Mind Slash
 Mogg Maniac
+Moldering Karok
+Moroii
 Mother Kangaroo
 Mountain
+Nature's Wrath
 Necropede
 Nether Spirit
 Network Terminal
+Nomads en-Kor
+Okiba-Gang Shinobi
+Orim's Thunder
 Overtaker
 Paradise Druid
 Pearled Unicorn
+Pernicious Deed
+Pierce Strider
 Pious Wayfarer
+Pitchburn Devils
 Plains
 Portable Hole
+Possessed Barbarian
 Precinct Captain
+Primal Adversary
 Propagator Drone
 Protector of the Wastes
 Queen's Agent
+Quietus Spike
+Rain of Filth
 Rain of Revelation
 Ral's Outburst
 Rally at the Hornburg
 Ratcatcher
+Red XIII, Proud Warrior
 Regisaur Alpha
+Relic Bind
 Reverent Mantra
+Riddle Gate Gargoyle
+Righteous Charge
 Righteous Fury
+Rob the Archives
+Rustspore Ram
+Rustwing Falcon
+Ruthless Deathfang
 Scourge of the Nobilis
 Screeching Drake
 Selesnya Charm
+Selfless Cathar
 Selfless Savior
 Sell-Sword Brute
+Serra's Boon
 Serum Tank
 Shared Triumph
 Sifter of Skulls
 Silkbind Faerie
+Six-Sided Die
+Skyblade's Boon
 Skyhunter Patrol
 Slimy Piper
 Sorcerer's Strongbox
 Soulblade Djinn
 Spectral Flight
+Sphere of Reason
 Spore Crawler
 Stalwart Aven
 Stand
 Static Net
+Staunch Shieldmate
 Stonewood Invocation
 Storm Fleet Aerialist
 Sublime Archangel
+Sunlit Marsh
 Suspicious Bookcase
 Swamp
 Sylvia Brightspear
 Talas Researcher
+Talisman of Unity
 Tangle Asp
 Taunting Arbormage
+Tempest of Light
+Territorial Maro
 Teval's Judgment
 Thalia's Lieutenant
 That Which Was Taken
@@ -128,24 +232,36 @@ Thopter Mechanic
 Thraben Valiant
 Thran War Machine
 Tor Giant
+Treasure Trove
 Treespring Lorian
 Troubled Healer
 Troublesome Spirit
+True Polymorph
 Trusty Packbeast
 Tukatongue Thallid
+Tyranid Prime
 Uktabi Wildcats
 Unbreakable Formation
 Uncontrollable Anger
 Underhanded Designs
 Updraft
+Urborg Drake
 Valko Indorian
+Valorous Steed
 Vampire Outcasts
+Vampire Slayer
+Vampiric Sliver
 Veilborn Ghoul
+Venerable Warsinger
 Vengeful Vampire
 Vexilus Praetor
+Victory's Herald
 Victual Sliver
+Vrock
 Vulpine Goliath
+Wall of Opposition
 War Falcon
+Warlord's Elite
 Water Elemental
 Wayward Soul
 Weakness
@@ -154,5 +270,7 @@ Winds of Rath
 Wu Scout
 Wyluli Wolf
 Yarok's Wavecrasher
+Yavimaya Enchantress
 You Meet in a Tavern
+Yukora, the Prisoner
 Zhang Fei, Fierce Warrior
