@@ -1284,7 +1284,9 @@ func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
 			matches := false
 			switch t.ModeKind() {
 			case cards.TriggerSpellCast:
-				matches = trigmatch.SpellCastEval(boardOf(e), t, src, ev)
+				// CR 601.2h: spell-only -- an activation's AbilityPush carries the
+				// ability's source permanent in Obj, which would satisfy a ValidCard$.
+				matches = ev.Kind == events.PutOnStack && trigmatch.SpellCastEval(boardOf(e), t, src, ev)
 			case cards.TriggerSpellAbilityCast:
 				matches = trigmatch.SpellAbilityCastMatches(boardOf(e), t, src, ev, lki)
 			}
