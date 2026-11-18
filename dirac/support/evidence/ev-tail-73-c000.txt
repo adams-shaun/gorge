@@ -73,6 +73,7 @@ Chasm Drake
 Chimney Imp
 Cinder Barrens
 Cinder Wall
+Claws of Wirewood
 Cleansing Ray
 Cleaving Sliver
 Cleon, Merry Champion
@@ -517,6 +518,7 @@ Warhorn Blast
 Wei Strike Force
 Wicked Slumber
 Will of the All-Hunter
+Windcaller Aven
 Windstorm
 Wispweaver Angel
 Witch's Web

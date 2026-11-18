@@ -162,6 +162,7 @@ Glint Raker
 Gloomwidow's Feast
 Gnathosaur
 Go for the Throat
+Go-Shintai of Life's Origin
 Gobland
 Goblin Diplomats
 Goblin Matron
@@ -187,6 +188,7 @@ Haunted Cadaver
 Havoc Devils
 Heavyweight Demolisher
 Helm of the Host
+Herald of Anguish
 Here Comes a New Hero!
 High Seas
 Hindervines
@@ -199,10 +201,12 @@ Hovermyr
 Icatian Store
 Idle Thoughts
 Ill-Gotten Inheritance
+Illusory Angel
 Illustrious Wanderglyph
 Immolating Souleater
 Imoti, Celebrant of Bounty
 Imperial Cosmographer
+In Garruk's Wake
 Incremental Growth
 Intrepid Hero
 Invasion of Xerex
@@ -211,7 +215,9 @@ Island
 Izzet Signet
 Jedit Ojanen, Mercenary
 Jousting Dummy
+Junk Winder
 Kamahl's Desire
+Karplusan Forest
 Kill-Zone Acrobat
 Kindly Customer
 King of the Pride
@@ -229,10 +235,12 @@ Living Lands
 Loamcrafter Faun
 Looter il-Kor
 Lucid Dreams
+Lurebound Scarecrow
 Lurking Nightstalker
 Lys Alana Huntmaster
 Lyzolda, the Blood Witch
 Maga, Traitor to Mortals
+Mage's Guile
 Mage-Ring Network
 Mana Short
 Manipulate Fate
@@ -284,6 +292,7 @@ Perennial Behemoth
 Perimeter Captain
 Petravark
 Petrifying Meddler
+Phantasmal Dreadmaw
 Phenomenon Investigators
 Pheres-Band Centaurs
 Phyrexian Colossus
@@ -295,6 +304,7 @@ Polluted Mire
 Predatory Sliver
 Priests of Norn
 Prismatic Strands
+Protective Bubble
 Psychic Impetus
 Rakdos Carnarium
 Ral's Dispersal
@@ -334,6 +344,7 @@ Shaman of the Pack
 Shamble Back
 Shapers' Sanctuary
 Shard of the Nightbringer
+Shared Discovery
 Shauku's Minion
 Shoulder to Shoulder
 Shriek of Dread
@@ -402,6 +413,7 @@ Unbreathing Horde
 Undead Warchief
 Unicycle
 Unraveling Mummy
+Ureni's Counsel
 Ursine Champion
 Urza's Guilt
 Vedalken Orrery

@@ -91,6 +91,7 @@ Gravity Well
 Greenseeker
 Grizzly Ghoul
 Gruul Guildmage
+Hammer Mage
 Harrow
 Hermes, Overseer of Elpis
 Hero of Precinct One

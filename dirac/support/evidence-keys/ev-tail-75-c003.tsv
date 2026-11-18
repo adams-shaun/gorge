@@ -22,16 +22,19 @@ Bloodthirsty Adversary	99ab8fe44f7adf6f	170	1/1		1/1
 Blustersquall	6b2c0f6eafbe531a	8	0/0		4/4	
 Bone Devourer	30b714e3648dd0ef	6	1/1		1/1	
 Boneknitter	02e50dfe73e41cf4	4	1/1		2/3	cast/alt:morphed
+Bonepicker Skirge	3162b64f4b546dc4	4	0/0		0/0	
 Bountiful Promenade	e157ecf950a69f95	220	1/1		0/1	ix:resp
 Brackwater Elemental	9144ebf6cd3b0bbb	8	3/3		1/1	
 Bugenhagen, Wise Elder	030e85a7bac8ffed	8	2/2		0/1	ix:resp
 Cabal Patriarch	5d155d23688e0733	3	2/2		0/1	ix:resp
 Cabaretti Courtyard	35be59e842d3db99	251	1/1		0/1	ix:resp
+Cao Cao, Lord of Wei	c9c28c0f7395f113	3	1/1		0/1	ix:resp
 Captive Weird	acb1cc832b9b3e9b	4	2/2		0/1	ix:resp
 Chainweb Aracnir	b94e2058321f5191	3	1/1		1/3	cast/alt:escaped,ix:resp
 Change the Equation	51e8a8ba90be7b99	8	0/0		1/2	ix:resp
 Chaos Lord	259d959328a52801	74	1/1		1/1	
 Clear a Path	be8b82eaf388b973	66	0/0		1/2	ix:resp
+Colossal Dreadmaw and Storm Crow	d11c67c8096d61df	4	0/0		0/0	
 Continue?	98902ea995c0af08	150	0/0		2/2	
 Crackling Drake	0b288d2cb9bcfacf	4	1/1		0/1	ix:resp
 Crosstown Courier	7e69ce8231238c8a	13	1/1		1/1	
@@ -53,15 +56,20 @@ Drillworks Mole	3e28842be3313a86	3	1/1		0/1	ix:resp
 Drossclaw	45681f91bd582e35	3	3/3		0/1	ix:resp
 Drown in Dreams	b22d28d3873f7812	30	0/0		3/4	f0/s/x0
 Dualcaster Mage	99286be00be1230f	149	1/1		1/1	
+Elvish Dreadlord	607c679ef1a3cd99	3	2/2		0/1	ix:resp
+Emperor Crocodile	5a8629a1e375ce45	7	1/1		0/1	ix:resp
 Enrage	a1bf4a862082a501	95	0/0		3/4	f0/s/x0
+Erstwhile Trooper	4de71381fff33796	4	1/1		0/1	ix:resp
 Farewell	60cbd609044c3546	67	0/0		2/2	
 Fateful Showdown	16712446c3ddc5d1	157	0/0		2/2	
 Feral Instinct	02ccc1ae5fb769a2	5	0/0		2/2	
 Fetid Imp	ea1ab007dfd1789d	5	1/1		1/1	
 Fiendslayer Paladin	68edba6adbfbd593	140	0/0		0/0	
+Flare of Denial	92ddcf63dca7c7fa	6	0/0		1/2	ix:resp
 Flatman	e606e0b81146a517	4	1/1		0/1	ix:resp
 Flowstone Charger	82844a5a5c4e2da4	138	1/1		1/1	
 Foxfire Oak	d7c598193f362cc2	6	1/1		1/1	
+Gift of Fangs	49cc6cc04d154a07	3	0/0		2/2	
 Gingerbread Cabin	d4e8fb080b7c2502	16	2/2		0/1	ix:resp
 Great Defender	a82248cd82c9c7cd	209	0/0		2/2	
 Greater Harvester	67536f9bd0946c68	3	2/2		1/1	
@@ -131,12 +139,14 @@ Sanctify	2eb6f8c724bf7475	135	0/0		2/2
 Scalding Devil	94e641cef9ffd015	159	1/1		1/1	
 Scour All Possibilities	688e3f59f6a2a933	6	0/0		4/4	
 Selhoff Occultist	309c7a6070690319	4	1/1		1/1	
+Shaman of Spring	0d649dc9d8e3be34	4	1/1		1/1	
 Shimmer of Possibility	279f339085382206	5	0/0		2/2	
 Show of Valor	10ccdfccdcd3f3f7	180	0/0		2/2	
 Shrine Keeper	f4babd7d591c7662	156	0/0		0/0	
 Sigil of Valor	77ef8191582ea2b0	146	2/2		1/1	
 Silent Extraction	ba90d82bb5842ae3	4	0/0		1/2	ix:resp
 Simian Brawler	618504ef98d989a4	3	1/1		0/1	ix:resp
+Singing Tree	46c1b97590f04e40	3	1/1		0/1	ix:resp
 Sinkhole	b9a86d0c7cb78d9b	3	0/0		1/2	ix:resp
 Skyclave Shadowcat	659463bf08448761	5	2/2		0/1	ix:resp
 Slagwoods Bridge	2878f997b5a11611	235	1/1		0/1	ix:resp
@@ -179,6 +189,7 @@ Whiptail Moloch	a967abda94d124df	93	1/1		0/1	ix:resp
 Will-o'-the-Wisp	cd445fa01cff0f02	11	1/1		1/1	
 Winding Canyons	a84f2042f7d681ba	228	2/2		1/1	
 Wingsteed Rider	e6db7dd507207bea	150	1/1		1/1	
+Wolfwillow Haven	a509f4b6ecdab8a3	4	2/2		1/2	ix:resp
 Yoshimaru, Ever Faithful	14668ac55e175b70	169	1/1		1/1	
 Zealot's Conviction	c407e402be3771ac	122	0/0		2/2	
 Zuran Enchanter	a2f171098b78c241	6	1/1		0/1	ix:resp

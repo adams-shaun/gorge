@@ -39,6 +39,7 @@ Bond of Insight
 Bone Devourer
 Bonehoard
 Boneknitter
+Bonepicker Skirge
 Bound in Silence
 Bountiful Promenade
 Brackwater Elemental
@@ -46,6 +47,7 @@ Brandywine Farmer
 Bugenhagen, Wise Elder
 Cabal Patriarch
 Cabaretti Courtyard
+Cao Cao, Lord of Wei
 Captive Weird
 Catacomb Sifter
 Chainweb Aracnir
@@ -54,6 +56,7 @@ Chaos Lord
 Chaotic Backlash
 Clear a Path
 Clip Wings
+Colossal Dreadmaw and Storm Crow
 Continue?
 Crackling Drake
 Creeping Corrosion
@@ -88,7 +91,10 @@ Drown in Dreams
 Dualcaster Mage
 Dune Mover
 Easy Prey
+Elvish Dreadlord
+Emperor Crocodile
 Enrage
+Erstwhile Trooper
 Ethereal Investigator
 Evolving Adaptive
 Faerie Noble
@@ -100,10 +106,12 @@ Ferocious Zheng
 Fetid Imp
 Fiendslayer Paladin
 Fissure
+Flare of Denial
 Flatman
 Flowstone Charger
 Forest
 Foxfire Oak
+Gift of Fangs
 Gift of Paradise
 Gingerbread Cabin
 Glimmervoid
@@ -231,12 +239,14 @@ Scour All Possibilities
 Sedgemoor Witch
 Seething Pathblazer
 Selhoff Occultist
+Shaman of Spring
 Shimmer of Possibility
 Show of Valor
 Shrine Keeper
 Sigil of Valor
 Silent Extraction
 Simian Brawler
+Singing Tree
 Sinkhole
 Sizzle
 Skyclave Shadowcat
@@ -303,6 +313,7 @@ Will-o'-the-Wisp
 Winding Canyons
 Wingsteed Rider
 Wizard Replica
+Wolfwillow Haven
 Woodland Stream
 Yoshimaru, Ever Faithful
 Zap

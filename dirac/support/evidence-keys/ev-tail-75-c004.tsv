@@ -7,11 +7,13 @@ Alabaster Potion	a4528db6d164240f	5	0/0		2/4	f0/s/x0,ix:resp
 Alrund's Epiphany	d3a7386952084ecc	3	0/0		3/4	cast/alt:foretold
 Apprentice Sharpshooter	24fbc7cf7330dd90	4	1/1		1/1	
 Artificer Class	302c5045449dec8d	6	4/4		0/1	ix:resp
+Avatar of Discord	b9f1150a034aa0d7	3	1/1		1/1	
 Aven Fogbringer	e6719a86221d38d3	5	1/1		1/1	
 Baloth Null	8101dc1a6af1be62	3	1/1		0/1	ix:resp
 Banishment	b9774dc62ffa1ac0	6	1/1		1/1	
 Barkhide Troll	acdfc5521f82217a	5	1/1		0/1	ix:resp
 Bellowing Mauler	2ec1ef0e67623cc7	6	1/1		0/1	ix:resp
+Black Widow, Natasha Romanoff	bdc71b51f1d6bcb1	3	0/0		0/0	
 Blind Creeper	cc217a03311a41f2	3	1/1		1/1	
 Blood Fountain	34806907d5b35fe2	4	2/2		0/1	ix:resp
 Bloodbond Vampire	18198bcc3ae1bbfc	3	1/1		1/1	
@@ -34,6 +36,7 @@ Clear a Path	be8b82eaf388b973	3	0/0		1/2	ix:resp
 Continue?	98902ea995c0af08	3	0/0		1/2	ix:resp
 Creakwood Liege	024ea4ddbe311bb9	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Crookclaw Elder	61876b6ed079823e	4	2/2		0/1	ix:resp
+Crosstown Courier	7e69ce8231238c8a	4	1/1		0/1	ix:resp
 Daggersail Aeronaut	0bec55c4e284cd91	3	0/0		0/0	
 Dawning Angel	25fc8287ece95c98	4	1/1		1/1	
 Delraich	75a0cbeee13ff685	3	0/0		0/0	
@@ -51,6 +54,7 @@ Drillworks Mole	3e28842be3313a86	9	1/1		1/1
 Drossclaw	45681f91bd582e35	4	3/3		1/1	
 Dualcaster Mage	99286be00be1230f	3	1/1		0/1	ix:resp
 Elvish Dreadlord	607c679ef1a3cd99	3	2/2		0/1	ix:resp
+Emperor Crocodile	5a8629a1e375ce45	5	1/1		0/1	ix:resp
 Enrage	a1bf4a862082a501	3	0/0		2/4	f0/s/x0,ix:resp
 Erstwhile Trooper	4de71381fff33796	4	1/1		0/1	ix:resp
 Fateful Showdown	16712446c3ddc5d1	3	0/0		2/2	
@@ -78,11 +82,13 @@ Khenra Eternal	bbfaac847623256e	9	1/1		1/1
 Launch	0cbbba5fa13fc0f8	5	1/1		1/2	ix:resp
 Leyline of Punishment	a208ab9103b24afb	4	0/0		0/0	
 Lightwielder Paladin	51c47c5f3b89f4eb	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Lost in the Mist	2a67f1a6b7605b8f	3	0/0		2/2	
 Lost in the Spirit World	ff870131f7c9ca10	5	0/0		2/2	
 Magma Vein	6e94436e204467e7	5	1/1		0/1	ix:resp
 Magmatic Insight	7901a11ab195cae6	5	0/0		1/2	ix:resp
 Malcator's Watcher	d42856a10f0dca0c	4	1/1		0/1	ix:resp
 Malicious Advice	92186ea8b2d06baa	5	0/0		3/4	f0/s/x0
+Manalith	10e562077c0eb5e6	12	1/1		1/1	
 Marauding Boneslasher	383717ee901563ee	6	0/0		0/0	
 Mardu Woe-Reaper	5366c241abe69207	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Markov Patrician	265ed96835478435	4	0/0		0/0	
@@ -104,6 +110,7 @@ Paradigm Shift	fd549080f8f56349	7	0/0		2/2
 Patrol Hound	6e56df4436bb59e9	4	1/1		1/1	
 Personal Tutor	30dea40740b71bfc	3	0/0		2/2	
 Pillage	61d9eb3c157b9818	4	0/0		2/2	
+Port Inspector	2f98da0bf5ec62eb	4	1/1		0/1	ix:resp
 Psychic Frog	91af151d2d51e669	5	3/3		1/1	
 Quirion Explorer	a3c1cbfd3451cdd8	5	1/1		0/1	ix:resp
 Radstorm	d418cc331f3b27c6	4	1/1		2/2	
@@ -130,6 +137,8 @@ Slagwoods Bridge	2878f997b5a11611	9	1/1		0/1	ix:resp
 Songstitcher	07f782d03a8a7056	8	1/1		0/1	ix:resp
 Soulmender	dc0f19e97ad76507	4	1/1		0/1	ix:resp
 Spike Breeder	709b8664e1a15f2b	6	2/2		1/1	
+Spindrift Drake	c5b0a202a94045cd	4	1/1		0/1	ix:resp
+Spiteful Squad	9f673f527e4ce775	4	1/1		0/1	ix:resp
 Sultai Emissary	6bc1390b0e128231	4	1/1		0/1	ix:resp
 Surge Engine	69682ba7a799aa16	4	3/3		1/1	
 Swarm Surge	d7fa16679eca28fa	3	0/0		2/2	
@@ -141,17 +150,20 @@ Territorial Boar	9a060b463d675af0	6	1/1		1/1
 Thirst for Discovery	4f2561b8d54e5c24	3	0/0		1/2	ix:resp
 Thopter Mechanic	5fa4deadd10769ec	4	2/2		0/1	ix:resp
 Thrilling Encore	53c365c97c426094	3	0/0		1/2	ix:resp
+Timbermaw Larva	515bc614f12d368b	3	1/1		0/1	ix:resp
 Timin, Youthful Geist	0491e6f40d3d4d37	5	2/2		1/1	
 Tomebound Lich	b74b2889d01f7ff6	10	2/2		1/1	
 Trail of Evidence	f3e2493fcdd81f53	6	1/1		0/1	ix:resp
 Trailblazing Historian	476f0bee39e5ea06	5	1/1		0/1	ix:resp
 Twilight's Call	3ebfc346cf090897	3	0/0		1/2	ix:resp
+Ugin's Insight	c7186ec54a5b0811	5	0/0		2/2	
 Unholy Hunger	c9c256c518622049	4	0/0		2/2	
 Urza's Rebuff	6a688924dc26caf4	3	0/0		1/2	ix:resp
 Urza, Powerstone Prodigy	4cba175f9f6d36d4	4	2/2		1/1	
 Veiling Oddity	a17321c17a72d6a0	5	1/1		3/3	
 Viscid Lemures	da8829643a0efa36	7	1/1		1/1	
 Volcanic Torrent	f70a594d1f3f6854	5	0/0		2/2	
+Volcanic Upheaval	d97388eadf6ec52e	6	0/0		2/2	
 Voyager Staff	77b389b2300f95bd	4	1/1		0/1	ix:resp
 Wall of Vines	6774bb37bbfe991d	7	0/0		0/0	
 Waterknot	05167c17b6f76869	3	1/1		1/2	ix:resp
