@@ -1182,6 +1182,9 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 	if in.Op == kop.OpTap && k.gen.anyTapAll {
 		defer s.tapBatchClose(s.tapBatchOpen(k)) // one Tap resolution is one tapping action (trig_tapall.go)
 	}
+	if in.Op == kop.OpPutCounter {
+		defer s.ctrAllBatchClose(s.ctrAllBatchOpen()) // gorge's effPutCounter brackets the targets as one action (trig_counteraddedall.go)
+	}
 	var hr holdRec
 	carry := returnToBattlefield(in)
 	if carry || in.Op == kop.OpCopyAsTokenEx {
