@@ -227,6 +227,12 @@ func (s *State) availFilt(k *prep, p uint8, a *avail) {
 			}
 		}
 		addFiltUnits(a, s.filtAb(k, b.first()), uint8(units))
+		xv := s.filtExtra(k, b.first()) // the TapsForMana extra its {T} brings (Wolfwillow Haven on a Desolate Mire)
+		for c, v := range xv {
+			if v != 0 {
+				a.addUnits(1<<c, v)
+			}
+		}
 		a.total -= fee
 	}
 }
