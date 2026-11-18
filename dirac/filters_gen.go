@@ -392,13 +392,14 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	if !bound {
 		return true
 	}
-	var pot avail
+	var pot, px avail
+	var pu [maxPotUnits]potUnit
 	if src == NoSlot {
 		// gorge prices each announced X against the spell's own payment: a
 		// source whose RestrictValid$ refuses the spell (Ancient Ziggurat's
 		// creature-only mana under Dominate) adds nothing at any X (CR 106.6)
 		d := payDesc{class: pdSpell, card: c, src: NoSlot, og: restrOrigin{from: kop.ZoneHand}}
-		s.availPotentialBoundedFor(k, p, &pot, &d)
+		s.availPotentialFor(k, p, &pot, &d, true, &pu)
 	} else {
 		// An activation's announced X is priced against the activation's own
 		// payment too: a source whose RestrictValid$ refuses the ability
@@ -409,8 +410,13 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		// prices each announced X with offerCastableUsing and the ability's
 		// payment descriptor).
 		d := payDesc{class: pdAct, card: s.cardAt(src), src: src, instant: a.Cost.Flags&kop.CostSorcery == 0}
-		s.availPotentialBoundedFor(k, p, &pot, &d)
+		s.availPotentialFor(k, p, &pot, &d, true, &pu)
 	}
+	// The over-bound fold prices a fixed-choice production once per colour;
+	// gorge's planner pays one mana per tap (CR 118.3c), so a Vernal Fen
+	// beside four other lands funds X=4 for {X}{R}, never X=5. A record the
+	// walk could not keep whole leaves the over-bound answer.
+	exact := potUnitsAvail(&px, &pu)
 	s.g.probe = probe{kind: probeAbility, src: src, ctrl: p}
 	if src == NoSlot {
 		s.g.probe = probe{kind: probeSpell, src: NoSlot, card: c, ctrl: p}
@@ -418,7 +424,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	ok := false
 	for x := costXMin(&a.Cost); !ok && x < 255; x++ { // from the floor (cost_sacx.go)
 		cx := cost.AtX(x)
-		if !pot.affords(&cx, pipMaskOf(&cx), 0) {
+		if !pot.affords(&cx, pipMaskOf(&cx), 0) || exact && !px.affords(&cx, pipMaskOf(&cx), 0) {
 			break
 		}
 		s.g.probe.x = uint8(x + 1)
