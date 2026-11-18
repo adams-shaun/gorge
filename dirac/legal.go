@@ -2074,7 +2074,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			// "{T}: Add two mana of any one color") counts on its own, as
 			// gorge's walk admits each of a source's abilities
 			var gi [maxGrants]int16
-			for i, ng := 0, s.grantIdxs(k, sl, &gi); i < ng; i++ {
+			for i, ng := 0, s.potentialGrants(k, sl, &gi, d); i < ng; i++ {
 				gv := s.grantView(k.gen, gi[i], sl)
 				if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
 					open = s.potentialGrantedUnit(gv, sl, boundedAny, add, &anyFree) || open
@@ -2173,6 +2173,19 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		*units[0] = cen.units
 	}
 	return open
+}
+
+// potentialGrants lists the mana abilities granted to sl that a payment d
+// may spend: a restricted grant d refuses makes no potential mana (CR 106.6;
+// gorge potentialRestrictionAdmits). A nil d is no payment, nothing refused.
+//
+//go:noinline
+func (s *State) potentialGrants(k *prep, sl Slot, gi *[maxGrants]int16, d *payDesc) int {
+	ng := s.grantIdxs(k, sl, gi)
+	if d == nil {
+		return ng
+	}
+	return s.grantsAdmitted(k, sl, gi, ng, d)
 }
 
 // anyTapP reports whether ab is a further fixed any-colour tap production the
