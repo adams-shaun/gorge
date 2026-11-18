@@ -1264,6 +1264,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		s.prevNextNC() // repl_prevnext.go
+		s.spNC()       // a static prevention's picks: the damage left is what the event deals (repl_staticprevent.go)
 		s.g.ro.replHdr = replHdr{}
 		s.dealNC(k)
 		if s.g.dmgSeqOn {
