@@ -1796,7 +1796,13 @@ func (s *State) availPotentialBoundedFor(k *prep, p uint8, a *avail, d *payDesc)
 // potUnit is one production of the potential walk as a real plan pays it:
 // n taps or activations, each making one mana of any of mask's colours (a
 // "Combo U B" dual's choice, CR 118.3c). The over-bound fold prices the same
-// production once per colour.
+// production once per colour. pick marks the same-pick shape a reflected
+// TapsForMana extra gives a fixed several-colour tap: ONE tap makes n mana
+// all in one colour of mask (the pick), not n independent units -- the extra
+// is one more OF THE PICK (CR 605.3b, kgen's StTapReflect doc; gorge
+// planalts.go addTapExtra adds it per declared production), so
+// potUnitsAvail prices such a unit as a one-colour source beside its wide
+// backing.
 type potUnit struct {
 	mask uint8
 	n    uint8
@@ -1804,6 +1810,12 @@ type potUnit struct {
 	// per-tap read caps the unit's count at what the lethal guard lets one
 	// plan take (potUnitsAvail)
 	pain uint8
+	// pick marks a one-tap unit of n mana all in one colour of mask (a
+	// reflected extra over a several-colour production, growTap). It never
+	// merges with another record (two picks price two taps, not one tap of
+	// the sum) and potUnitsAvail skips the pain count cap for it (a one-tap
+	// unit's count is one, not n).
+	pick bool
 }
 
 // maxPotUnits bounds the units availPotentialFor records for
@@ -1814,9 +1826,9 @@ type potUnit struct {
 const maxPotUnits = 32
 
 // recordPotUnit appends mask/n, merging into the unit of the same mask and
-// pain; the full record (more productions than fit) is the overflow marker
-// units[0] with a zero count.
-func recordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt, pain uint8) {
+// pain when both are unpicked; the full record (more productions than fit) is
+// the overflow marker units[0] with a zero count.
+func recordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt, pain uint8, pick bool) {
 	if units[0].n == 0 && units[0].mask != 0 {
 		return // already overflowed: keep the marker
 	}
@@ -1824,7 +1836,7 @@ func recordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt, pain ui
 		return
 	}
 	for i := 0; i < *n; i++ {
-		if units[i].mask == mask && units[i].pain == pain {
+		if units[i].mask == mask && units[i].pain == pain && !units[i].pick && !pick {
 			if s := int(units[i].n) + int(cnt); s < 256 {
 				units[i].n = uint8(s)
 			} else {
@@ -1837,19 +1849,19 @@ func recordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt, pain ui
 		*units = [maxPotUnits]potUnit{{mask: 1}} // the overflow marker
 		return
 	}
-	units[*n] = potUnit{mask: mask, n: cnt, pain: pain}
+	units[*n] = potUnit{mask: mask, n: cnt, pain: pain, pick: pick}
 	*n++
 }
 
 // unrecordPotUnit takes cnt of mask's taps back out of the record (a source's
 // tap production the caller folds into a wider one, tapUnit); an overflowed
 // record keeps its marker and a unit left empty is dropped.
-func unrecordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt, pain uint8) {
+func unrecordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt, pain uint8, pick bool) {
 	if units[0].n == 0 && units[0].mask != 0 {
 		return // overflowed: the record is incomplete anyway
 	}
 	for i := 0; i < *n; i++ {
-		if units[i].mask != mask || units[i].pain != pain {
+		if units[i].mask != mask || units[i].pain != pain || units[i].pick != pick {
 			continue
 		}
 		if units[i].n > cnt {
@@ -1881,7 +1893,7 @@ type potCensus struct {
 
 func (c *potCensus) rec(mask, n uint8) {
 	if c.on {
-		recordPotUnit(&c.units, &c.n, mask, n, c.pain)
+		recordPotUnit(&c.units, &c.n, mask, n, c.pain, false)
 	}
 }
 
@@ -1952,19 +1964,22 @@ func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n, drop uint8) bool {
 	if !c.on || ab.Cost.Flags&kop.CostTap == 0 || t.mask == 0 {
 		return false
 	}
-	unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain)
+	unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
 	// the widened unit keeps the cheaper pain: the over-bound the census is
 	// (a tap makes one mana through whichever of its abilities is cheapest)
-	t = potUnit{mask: t.mask | uint8(ab.ManaColors)&^drop, n: max(t.n, n), pain: min(t.pain, c.pain)}
-	recordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain)
+	t = potUnit{mask: t.mask | uint8(ab.ManaColors)&^drop, n: max(t.n, n), pain: min(t.pain, c.pain), pick: t.pick}
+	recordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
 	c.tap[sl] = t
 	return true
 }
 
 // growTap widens sl's recorded tap unit by r more mana of the same pick (a
 // reflected TapsForMana extra over a several-type production: one tap makes
-// one mana of the pick plus r more of it). The record is marked incomplete
-// when sl has no unit to grow.
+// one mana of the pick plus r more of it). The unit keeps its union mask but
+// is marked pick: one tap makes t.n+r mana all in one colour of it, so
+// potUnitsAvail prices the record as a one-colour source (a plain widened
+// record would be t.n+r independent units, an {R}{G} mix one tap cannot
+// make). The record is marked incomplete when sl has no unit to grow.
 func (c *potCensus) growTap(sl Slot, r uint8) {
 	if !c.on {
 		return
@@ -1974,9 +1989,10 @@ func (c *potCensus) growTap(sl Slot, r uint8) {
 		c.gap()
 		return
 	}
-	unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain)
+	unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
 	t.n += r
-	recordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain)
+	t.pick = true
+	recordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, true)
 	c.tap[sl] = t
 }
 
@@ -2027,11 +2043,24 @@ func potUnitsAvail(a *avail, units *[maxPotUnits]potUnit, life int) bool {
 		if u.mask == 0 {
 			break
 		}
-		if u.pain > 0 {
+		if u.pain > 0 && !u.pick {
 			u.n = uint8(max(0, min(int(u.n), (life-1)/int(u.pain))))
 		}
 		if u.n > 0 {
 			a.addUnits(u.mask, u.n)
+			if u.pick {
+				// the same-pick unit is one tap making u.n mana all in one
+				// colour of mask: a one-colour entry beside its wide backing
+				// (oneColourPays takes the backing out and prices the pick,
+				// as gorge's planner prices the tap, planalts.go
+				// addTapExtra), not u.n independent units of the union
+				if int(a.nOne) == len(a.one) {
+					return false // more same-pick sources than fit: no exact view
+				}
+				a.one[a.nOne], a.oneMask[a.nOne] = u.n, u.mask
+				a.oneAltMask[a.nOne], a.oneAltN[a.nOne] = 0, 0
+				a.nOne++
+			}
 		}
 	}
 	return true
@@ -2389,9 +2418,11 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 // a repeatable filter's {2} fee (CR 605.3a, 106.1). The per-tap census records
 // it too (cen): gorge's planner prices the tap at its mana plus the extra
 // (pay addTapExtra), so a Mountain under Keeper of Progenitus is one unit of
-// {R}{R} (CR 605.3b, 106.1) and an X-bound cast's sweep reads it. The caller
-// has checked k.gen.anyTapExtra, the lethal guard's refusal and the pain-only
-// face.
+// {R}{R} (CR 605.3b, 106.1) and an X-bound cast's sweep reads it. A fixed
+// several-colour tap's reflected extra grows the tap unit as a same-pick
+// record (growTap): one tap makes the grown mana of the pick alone. The
+// caller has checked k.gen.anyTapExtra, the lethal guard's refusal and the
+// pain-only face.
 func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold func(Slot, uint8, uint8), cen *potCensus) {
 	xv := s.srcExtra(k, sl, pc)
 	for c, v := range xv {
