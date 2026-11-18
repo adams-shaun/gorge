@@ -263,10 +263,12 @@ func applyKind(g *state.Game, e *Event) {
 		// (the Clue token mint) is its own TokenCreate event that preceded
 		// this one, and the record is what trig:Investigated matches. Player
 		// is the investigating seat, Obj the resolving source permanent.
-	case AbilityTriggered:
-		// Pure marker: the TriggerPush just before it minted the ability;
-		// this record only carries the causing trigger's mode for
-		// trig:AbilityTriggered.
+	case AbilityTriggered, Countered, AbilityResolved:
+		// Pure markers: AbilityTriggered follows the TriggerPush that minted
+		// the ability and carries the causing trigger's mode for
+		// trig:AbilityTriggered; Countered and AbilityResolved carry the
+		// provenance trig:Countered / trig:AbilityResolves read. None folds
+		// state.
 	case CastBattlefield:
 		foldCastBattlefield(g, e)
 	case SearchedLibrary:

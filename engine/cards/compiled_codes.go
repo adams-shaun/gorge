@@ -677,7 +677,7 @@ var triggerModeInterests = func() (t [TriggerModeCount]TriggerInterest) {
 			t[m] = v
 		}
 	}
-	set(TriggerInterestZoneChange, TriggerChangesZone, TriggerSacrificed, TriggerDiscarded, TriggerDiscardedAll, TriggerLandPlayed, TriggerCycled, TriggerMilled, TriggerMilledAll)
+	set(TriggerInterestZoneChange, TriggerChangesZone, TriggerSacrificed, TriggerDiscarded, TriggerDiscardedAll, TriggerLandPlayed, TriggerCycled, TriggerMilled, TriggerMilledAll, TriggerMilledOnce)
 	set(TriggerInterestStackPut, TriggerSpellCast)
 	set(TriggerInterestAbilityPush, TriggerAbilityCast)
 	// The spell-or-activate union (targetsvalid1): the activation arm
