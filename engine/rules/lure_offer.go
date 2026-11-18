@@ -25,6 +25,17 @@ func lureExtraBlocker(b combat.Board, defender state.PlayerID) bool {
 	return false
 }
 
+// lureOfferFilter is askBlockers' offer predicate for one defender: every
+// pair is offered unless a plain lure is in play (no other block duty
+// a must-be-blocked attacker, a MustBlock duty, no creature with a second block) and the pair sits outside every
+// legal declaration.
+func lureOfferFilter(b combat.Board, scope *blockPairScope, defender state.PlayerID, lure map[state.ObjID]bool, otherDuty bool) func(bid, aid state.ObjID) bool {
+	if len(lure) == 0 || otherDuty || lureExtraBlocker(b, defender) {
+		return func(bid, aid state.ObjID) bool { return true }
+	}
+	return lurePairFilter(b, scope, defender, lure)
+}
+
 // lurePairFilter derives askBlockers' lure offer predicate for one defender:
 // which (blocker, attacker) pairs some legal declaration still contains. The
 // lure duty binds a creature that may declare a block against a lure

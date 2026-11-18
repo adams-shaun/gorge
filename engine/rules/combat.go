@@ -1238,10 +1238,7 @@ func (e *Engine) askBlockers() {
 		// plain lure only. Package dirac's blockerOptionsLure mirrors the
 		// same rules pick by pick, so the one ask gorge poses and the picks
 		// the lockstep poses publish the same pairs.
-		var lureOfferable func(bid, aid state.ObjID) bool
-		if len(lure) > 0 && len(mustBeBlocked) == 0 && len(mustBeBlockedTwo) == 0 && len(requiredBlockers) == 0 && !lureExtraBlocker(asBoard(e), defender) {
-			lureOfferable = lurePairFilter(asBoard(e), &scope, defender, lure)
-		}
+		lureOfferable := lureOfferFilter(asBoard(e), &scope, defender, lure, len(mustBeBlocked)+len(mustBeBlockedTwo)+len(requiredBlockers) > 0)
 		for _, bid := range e.G.Zone(state.ZBattlefield, defender) {
 			for _, aid := range scope.attackers {
 				if !e.admissiblePair(&scope, defender, bid, aid) {
@@ -1257,7 +1254,7 @@ func (e *Engine) askBlockers() {
 				if !charge.zero() && !e.blockChargeAffordable(defender, charge, map[state.ObjID]bool{bid: true}, nil) {
 					continue
 				}
-				if lureOfferable != nil && !lureOfferable(bid, aid) {
+				if !lureOfferable(bid, aid) {
 					continue
 				}
 				// Group is the exclusivity marker on the wire: every option
