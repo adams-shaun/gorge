@@ -927,6 +927,30 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	if sacXCost(spellAddCost(k, c)) {
 		return false // an announced Sac<X/Spec>: the potential planner's composition declines it too, so only the floating pool offers it (cost_sacx.go)
 	}
+	if ac := spellAddCost(k, c); discardXCost(ac) && cd.Cost.X == 0 {
+		// an announced Discard<X/Spec> beside no printed {X} (Vengeful Dreams,
+		// Nostalgic Dreams): gorge's cast planner declines the shape
+		// ("shape:additional_cost", planDeclinesAddCost) and its potential
+		// composition prices the composed cost at X = 0
+		// (potentialPlayVerdictShared), whose census is the printed sources
+		// and the pool -- no script gaps, and every activation's own cost
+		// payable from the pool as it stands (a {1}, {T} signet beside a
+		// floating pool of 0 prices W W insufficient: gorge's plan never
+		// chains one source's float into another's activation cost). So the
+		// cast is lowered only when the planner census pays the mana, and
+		// only the floating pool offers it beside that
+		// (cost_discardfiltered.go's shape, pay.PlanNonManaAdmissible's
+		// "cost:discard" decline).
+		cost := s.featCost(k, p, c, o, k.cards[c].cost)
+		if s.g.mayPlayAny {
+			cost = anyType(cost)
+		}
+		wasX := s.g.availX
+		s.g.availX &= ^(availGaps | availAny)
+		ok := s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
+		s.g.availX = wasX
+		return ok || mayPlay && s.mayPlayPrefixPays(k, p, c, o)
+	}
 	if cd.HasAltAdd {
 		cost := s.altAddPlanCost(k, p, c, o)
 		if s.g.availX&availGaps != 0 {
