@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -268,4 +269,113 @@ func TestEDHCountHeadsABosssChauffeur(t *testing.T) {
 		t.Fatalf("+1/+1 counters = %d, want 3 (two other creatures you control, plus one)", got)
 	}
 	replayCheck(t, e, cfg)
+}
+
+// TestEDHCountHeadsABosssChauffeurUncast: Boss's Chauffeur put onto the
+// battlefield without being cast (Zombify from the graveyard) has no cast
+// snapshot, so its last-known battlefield is the live one: it still enters
+// with one plus the number of other creatures you control (3 here).
+func TestEDHCountHeadsABosssChauffeurUncast(t *testing.T) {
+	t.Parallel()
+	e, cfg, _ := altCostEngine(t, 9426, []string{"Grizzly Bears", "Elvish Mystic", "Boss's Chauffeur", "Zombify"}, nil, nil)
+	findCardObj(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	findCardObj(t, e, 0, "Elvish Mystic", state.ZBattlefield)
+	chauffeur := findCardObj(t, e, 0, "Boss's Chauffeur", state.ZGraveyard)
+	zombify := findCardObj(t, e, 0, "Zombify", state.ZHand)
+	if o := e.G.Obj(chauffeur); o == nil || o.CastBattlefield != nil {
+		t.Fatalf("precondition: the Chauffeur must carry no cast snapshot: %+v", o)
+	}
+	addMana(t, e, 0, "BBBB")
+	castObjTargeting(t, e, zombify, chauffeur)
+	passUntilStackEmpty(t, e, 20)
+	o := e.G.Obj(chauffeur)
+	if o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Boss's Chauffeur not on the battlefield after Zombify (%v)", o)
+	}
+	if got := o.Counter("P1P1"); got != 3 {
+		t.Fatalf("+1/+1 counters = %d, want 3 (two other creatures you control, plus one, on the live battlefield)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestEDHCountHeadsAImpactResonanceSingleMax: Count$SingleMaxDamageThisTurn is
+// the greatest amount of damage a source dealt to ONE permanent or player: a
+// source that dealt 3 to a player and 2 to a creature reads 3 (not 5), and
+// two hits on the same recipient add.
+func TestEDHCountHeadsAImpactResonanceSingleMax(t *testing.T) {
+	t.Parallel()
+	e, ids := pcdrEngine(t, "Impact Resonance", "Grizzly Bears", "Elvish Mystic")
+	body := corpusCardOrFatal(t, "Impact Resonance").Faces[0].SVars["X"]
+	if body != "Count$SingleMaxDamageThisTurn" {
+		t.Fatalf("precondition: Impact Resonance SVar X = %q", body)
+	}
+	ctx := &effects.Ctx{Controller: 0, Source: ids["Impact Resonance"]}
+	if got := effects.EvalCount(e, ctx, body); got != 0 {
+		t.Fatalf("no damage dealt yet: X = %d, want 0", got)
+	}
+	bears, mystic := ids["Grizzly Bears"], ids["Elvish Mystic"]
+	damageCountEvent(e, bears, 0, 1, 3, true)
+	damageCountEvent(e, bears, mystic, 0, 2, true)
+	if got := effects.EvalCount(e, ctx, body); got != 3 {
+		t.Fatalf("X = %d, want 3 (a source's 3 to a player and 2 to a creature are separate recipients)", got)
+	}
+	damageCountEvent(e, bears, 0, 1, 2, false)
+	if got := effects.EvalCount(e, ctx, body); got != 5 {
+		t.Fatalf("X = %d, want 5 (two hits on the same player add)", got)
+	}
+}
+
+// TestEDHCountHeadsAExcessNumCombatDamage: Excess's X is the number of
+// creatures you controlled that dealt COMBAT damage to a player this turn
+// (Count$NumCombatDamageThisTurn Creature.YouCtrl Player): noncombat damage,
+// damage to a creature and an opposing source do not count.
+func TestEDHCountHeadsAExcessNumCombatDamage(t *testing.T) {
+	t.Parallel()
+	e, ids := pcdrEngine(t, "Indulge", "Grizzly Bears", "Elvish Mystic", "Llanowar Elves")
+	body := corpusCardOrFatal(t, "Indulge").Faces[1].SVars["X"]
+	if body != "Count$NumCombatDamageThisTurn Creature.YouCtrl Player" {
+		t.Fatalf("precondition: Excess SVar X = %q", body)
+	}
+	ctx := &effects.Ctx{Controller: 0, Source: ids["Indulge"]}
+	bears, mystic, elves := ids["Grizzly Bears"], ids["Elvish Mystic"], ids["Llanowar Elves"]
+	foe := onBoardCard(t, e, 1, corpusCardOrFatal(t, "Grizzly Bears"))
+	if got := effects.EvalCount(e, ctx, body); got != 0 {
+		t.Fatalf("no damage yet: X = %d, want 0", got)
+	}
+	damageCountEvent(e, bears, 0, 1, 2, true)      // counts
+	damageCountEvent(e, mystic, 0, 1, 1, true)     // counts
+	damageCountEvent(e, elves, 0, 1, 1, false)     // noncombat: no
+	damageCountEvent(e, elves, mystic, 0, 1, true) // to a creature: no
+	damageCountEvent(e, foe, 0, 0, 2, true)        // opposing source: no
+	if got := effects.EvalCount(e, ctx, body); got != 2 {
+		t.Fatalf("X = %d, want 2 (Bears and Mystic dealt combat damage to a player)", got)
+	}
+}
+
+// TestEDHCountHeadsAEpharaLastTurnEntered: Ephara's upkeep trigger is gated on
+// Count$LastTurnEntered_Battlefield_Creature.YouCtrl+Other: a creature that
+// entered under your control on the previous turn draws you a card at the next
+// upkeep, and with no such entry it does not.
+func TestEDHCountHeadsAEpharaLastTurnEntered(t *testing.T) {
+	t.Parallel()
+	run := func(t *testing.T, seed uint64, bearsEnter bool) (before, after int) {
+		e, _, _ := altCostEngine(t, seed, []string{"Ephara, God of the Polis", "Grizzly Bears"}, nil, nil)
+		findCardObj(t, e, 0, "Ephara, God of the Polis", state.ZBattlefield)
+		if bearsEnter {
+			findCardObj(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+		}
+		turn := e.G.Turn
+		before = handSize(e, 0)
+		passUntilTurn(t, e, turn+1)
+		passUntilStackEmpty(t, e, 30)
+		return before, handSize(e, 0)
+	}
+	b, a := run(t, 9427, true)
+	if a != b+1 {
+		t.Fatalf("hand %d -> %d, want one Ephara draw (a creature entered last turn)", b, a)
+	}
+	b, a = run(t, 9427, false)
+	if a != b {
+		t.Fatalf("hand %d -> %d, want no draw (no other creature entered last turn)", b, a)
+	}
 }
