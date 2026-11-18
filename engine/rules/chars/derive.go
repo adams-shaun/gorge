@@ -301,7 +301,7 @@ type Layer4 struct {
 // depth and board; rules' verify mode holds every served answer to a fresh
 // walk.
 func ComputeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4) effects.Chars {
-	return computeWith(b, s, id, atStack, pre, false)
+	return computeWith(b, s, id, atStack, pre, false, false)
 }
 
 // ComputeColors is the object's layer-5 colour letters and nothing later: the
@@ -312,10 +312,26 @@ func ComputeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 // would re-enter that walk. It binds no scratch buffers, so it cannot disturb
 // a borrowed Derived list.
 func ComputeColors(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4) string {
-	return computeWith(b, s, id, atStack, pre, true).Colors
+	return computeWith(b, s, id, atStack, pre, true, false).Colors
 }
 
-func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4, colorsOnly bool) effects.Chars {
+// ComputeKeywords is the object's finished layer-6 keyword list and nothing
+// later: the walk ComputeWith runs to the CR 613.1f CantHaveKeyword$ filter,
+// returned before layer 7, so no layer-7 P/T amount is evaluated. CR 613's
+// layers are strictly ordered (no layer-7 result feeds a layer-5 or layer-6
+// characteristic, and the caller binds kw read-only into layer 7 -- PT's own
+// comment), so this prefix answers exactly what ComputeWith's Keywords
+// answers. A keyword-table reader inside a layer-7 walk (rules'
+// effectiveKeywordsInWalk, Pride of the Clouds' "+1/+1 for each other creature
+// with flying") calls this instead of Compute, which would re-enter the
+// walking object's own layer-7 CDA for every candidate -- each nested CDA
+// count re-deriving the board again. Like ComputeColors it binds no scratch
+// buffers.
+func ComputeKeywords(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4) effects.Chars {
+	return computeWith(b, s, id, atStack, pre, false, true)
+}
+
+func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4, colorsOnly, keywordsOnly bool) effects.Chars {
 	o := b.Game().Obj(id)
 	if o == nil || o.Face() == nil {
 		return effects.Chars{}
@@ -340,7 +356,7 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 	s.Depth++
 	kw := s.KW
 	ty := s.Types
-	if s.Depth > 1 || s.Borrowed > 0 || colorsOnly {
+	if s.Depth > 1 || s.Borrowed > 0 || colorsOnly || keywordsOnly {
 		// Re-entrant (a nested Derived mid-build), or a finished build's lists
 		// are bound into a match still running: own private buffers rather
 		// than overwrite the backing arrays another reader holds. Same guard
@@ -550,19 +566,15 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 	// CR 613.1f / Forge Card.updateKeywords: a CantHaveKeyword$ prohibition is
 	// a final filter after every layer-6 grant. It suppresses printed keywords,
 	// marker-counter grants and later AddKeyword$ grants alike.
-	for _, prohibited := range cantHaveKeywords {
-		kept := kw[:0]
-		for _, k := range kw {
-			if !containsKeywordHead(prohibited, k) {
-				kept = append(kept, k)
-			}
-		}
-		kw = kept
-	}
+	kw = applyKeywordProhibitions(kw, cantHaveKeywords)
 	colors := col.String()
 	if colorsOnly {
 		s.Depth--
 		return effects.Chars{Colors: colors}
+	}
+	if keywordsOnly {
+		s.Depth--
+		return effects.Chars{Keywords: kw, Colors: colors}
 	}
 	if s.Depth <= 1 && s.Borrowed == 0 {
 		// Keep the grown buffers on the scratch for the next build; a re-entrant
@@ -587,6 +599,26 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 	return effects.Chars{Power: power, Toughness: toughness, BasePower: basePower, BaseToughness: baseToughness,
 		Keywords: kw, Types: ty, AllCreatureTypes: allCreatureTypes, Name: name, NameSet: nameSet, Text: text,
 		Colors: colors, Controller: b.ControllerOf(id)}
+}
+
+// applyKeywordProhibitions is CR 613.1f's final CantHaveKeyword$ filter,
+// applied after every layer-6 grant: it suppresses printed keywords,
+// marker-counter grants and later AddKeyword$ grants alike, in the order the
+// prohibitions were collected. A keyword is matched by its HEAD
+// (containsKeywordHead), so a parameterised print is suppressible by name.
+// The filter reuses kw's backing array (the walk owns it at this point; a
+// re-entrant build's private buffer is discarded on return).
+func applyKeywordProhibitions(kw []string, prohibited [][]string) []string {
+	for _, names := range prohibited {
+		kept := kw[:0]
+		for _, k := range kw {
+			if !containsKeywordHead(names, k) {
+				kept = append(kept, k)
+			}
+		}
+		kw = kept
+	}
+	return kw
 }
 
 // Name is Derived(id).Name without the rest of the walk. The name is

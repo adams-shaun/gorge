@@ -636,7 +636,7 @@ func (e *Engine) staticAmountOn(ce *ContinuousEffect, expr string, anchor state.
 	// the printed read: Derived(Pride) came out one short of Power(Pride)
 	// whenever another flier's flying was granted (Wings of Hope).
 	if e.charsWalk.Depth != 0 && e.activeDepth == 0 && staticAmountReadsKeywords(expr, svars[expr]) {
-		ctx.Layers.DerivedKeywords = effectiveKeywordsInWalk(e.G, &e.charsWalk, e)
+		ctx.Layers.DerivedKeywords = effectiveKeywordsInWalk(asChars(e), e.G, &e.charsWalk)
 	}
 	return effects.Num(e, ctx, sa, "Amount", 0)
 }
