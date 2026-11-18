@@ -209,7 +209,40 @@ func (s *State) turnUpListed(k *prep, p uint8, cost *kop.ManaCost, sp kop.Specia
 		return false
 	}
 	c0 := cost.AtX(0)
-	return s.sourcesPay(k, p, &c0) || s.turnUpRestrPays(k, p, &c0, sp, sl)
+	return s.sourcesPay(k, p, &c0) || s.turnUpRestrPays(k, p, &c0, sp, sl) || s.turnUpRiderPays(k, p, &c0)
+}
+
+// turnUpRiderPays: gorge's potential walk counts a depletion land's whole
+// production (Sandstone Needle's {R}{R}, potentialGapCost) beside the
+// planner's sources, so the keyword turn-up is a potential play the sources
+// and that rider's activation pay together. The window's walk prices it on a
+// fork (windowAffords), as a cast's gap prefix is.
+//
+//go:noinline
+func (s *State) turnUpRiderPays(k *prep, p uint8, cost *kop.ManaCost) bool {
+	if k.gen == nil {
+		return false
+	}
+	ok, _ := s.windowAffords(k, p, cost)
+	return ok
+}
+
+// turnUpRiderOnly: neither the planner's sources nor a restricted source pay
+// the turn-up's cost, only the window's walk with a depletion land does, so
+// the planner has no plan to tap (tapForTurnUp would find none).
+//
+//go:noinline
+func (s *State) turnUpRiderOnly(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot) bool {
+	return !s.sourcesPay(k, p, cost) && !s.turnUpRestrPays(k, p, cost, sp, sl) && s.turnUpRiderPays(k, p, cost)
+}
+
+// tapTurnUpRiders taps the sources the window's walk takes for cost, the
+// depletion lands' activations among them, once the planner's sources fall
+// short (turnUpRiderPays).
+//
+//go:noinline
+func (s *State) tapTurnUpRiders(k *prep, p uint8, cost *kop.ManaCost) {
+	s.windowTapWalk(k, p, cost, cost, false, false, false, false, false, false)
 }
 
 // turnUpRestrPays: the turn-up's potential witness counts the restricted mana
