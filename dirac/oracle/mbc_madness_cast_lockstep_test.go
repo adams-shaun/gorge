@@ -8,5 +8,5 @@ import "testing"
 // yes and no while dirac offered only no (decision 311, pool tail-61-c001).
 func TestMBCInsatiableGorgersMadnessOfferReprosLockstep(t *testing.T) {
 	t.Parallel()
-	stdReproNamed(t, "madness_cast_offer")
+	stdReproNamed(t, "madness_cast_offer_gorgers")
 }
