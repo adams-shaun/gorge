@@ -144,8 +144,54 @@ func (s *State) bestowSacWitness(k *prep, p uint8, c CardID, o Obj, cost *kop.Ma
 		if tmp.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, o, &buf) == 0 {
 			return false // the witness ate the bestowed spell's only target
 		}
+		if !k.cards[c].instant && !tmp.castFlash(k, p, c) && tmp.counterPayEatsPool(k, n0, pk.needT) {
+			// The eat only ends the play gorge takes the script route for:
+			// a cost the planner's own census prices (no granted source, a
+			// granted ability is no census source; the pool and the printed
+			// sources are) is offered with the witness replay searching the
+			// trigger's may answer, which declines it and keeps the pool
+			// what the plan predicts (witnessReachesMode's answer search). A
+			// cost only a granted source completes is priced by the prefix
+			// script's completion probe, which lowers with the botpolicy's
+			// answers (the may is played as a do) and never reaches the cast.
+			var ug avail
+			s.availUngranted(k, p, &ug)
+			if !ug.affords(cost, pipMaskOf(cost), 0) {
+				return false
+			}
+		}
 	}
 	return !s.subs[kop.TrigSacrificed].any() || int(tmp.npend)-int(n0) <= witnessWaits
+}
+
+// counterPayEatsPool reports whether a trigger the witness stacked from n0
+// asks an OpIfPaid mana may-pay when it resolves. gorge's lowering waits for
+// the stacked trigger to resolve before the cast (payexec: the play waits for
+// the stack), the botpolicy's answer plays the may as a do whenever the pool
+// covers the cost, and the pool is then no longer what the plan predicts --
+// payexec's pool check (ReasonPoolMismatch) ends the witness and the play is
+// never offered (the planner's script dead-ends on its completion probe). A
+// may whose cost the plan's production could not cover is declined and eats
+// nothing: the pool stays what the plan predicts and the play completes.
+func (s *State) counterPayEatsPool(k *prep, n0 uint8, needT int) bool {
+	for i := int(n0); i < int(s.npend); i++ {
+		pt := &s.pend[i]
+		if int(pt.card) >= len(k.t.Cards) {
+			continue
+		}
+		cd := &k.t.Cards[pt.card]
+		if int(pt.ab) >= len(cd.Abilities) {
+			continue
+		}
+		a := &cd.Abilities[pt.ab]
+		if a.Kind != kop.AbTriggered || len(a.Prog) == 0 {
+			continue
+		}
+		if p0 := a.Prog[0]; p0.Op == kop.OpIfPaid && p0.C&0xF == kop.PayMana && int(p0.A.N) <= needT {
+			return true
+		}
+	}
+	return false
 }
 
 // offerBestowIfPrinted is offerBestowHand for a card printed with bestow.
