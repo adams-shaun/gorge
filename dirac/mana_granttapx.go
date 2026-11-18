@@ -1,11 +1,6 @@
 package dirac
 
-import (
-	"fmt"
-	"os"
-
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
+import "github.com/adams-shaun/gorge/dirac/kop"
 
 // A tap-another-permanent source beside a granted mana ability (Gene
 // Pollinator's "{T}, Tap an untapped permanent you control: Add one mana of
@@ -146,9 +141,6 @@ func (s *State) grantTapXLive(k *prep, p uint8) bool {
 		return false
 	}
 	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
-		if dbgGrantOn {
-			fmt.Fprintf(os.Stderr, "DBG gtx sl=%d may=%v\n", m.first(), s.grantMay(k, m.first()))
-		}
 		if !s.grantMay(k, m.first()) {
 			continue
 		}
@@ -156,9 +148,6 @@ func (s *State) grantTapXLive(k *prep, p uint8) bool {
 		for i, n := 0, s.grantIdxs(k, m.first(), &gi); i < n; i++ {
 			r := k.gen.grantOf[gi[i]]
 			a := &k.t.Cards[r.card].Abilities[r.ab]
-			if dbgGrantOn {
-				fmt.Fprintf(os.Stderr, "DBG gtx gi=%d card=%s ab=%d flags=%d\n", gi[i], k.t.Cards[r.card].Name, r.ab, a.Cost.Flags)
-			}
 			if a.Cost.Flags&kop.CostTapX != 0 && a.Cost.Flags&kop.CostTap == 0 {
 				return true
 			}

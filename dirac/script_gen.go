@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -801,8 +799,6 @@ func (s *State) grantGapLive(k *prep, p uint8) bool {
 	return false
 }
 
-var dbgGrantOn = os.Getenv("GRANTCAP_DBG") != ""
-
 func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 	if !s.grantGapLive(k, p) {
 		return
@@ -843,10 +839,6 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 	}
 	relaxCensus := s.scriptRelax(k, p, gateFilt,
 		k.gen.anyComboAny && s.caBoard(k, p) || k.tapMana && s.tapXTwoLive(k, p) || sacOpen || s.grantTapXLive(k, p))
-	if dbgGrantOn {
-		fmt.Fprintf(os.Stderr, "DBG relaxCensus=%v grantTapXLive=%v twoLive=%v k.tapMana=%v\n",
-			relaxCensus, s.grantTapXLive(k, p), s.tapXTwoLive(k, p), k.tapMana)
-	}
 	n := 0
 	var g grantSrch
 	// A play the offer lists on the join of a source's own and granted
@@ -1002,18 +994,6 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			// battery, whose counters the builder's units leave out
 			// (mana_grantstore.go), except a plain cast under the autopay
 			// surface, which gorge reaches only by that script and drops
-			if dbgGrantOn {
-				fmt.Fprintf(os.Stderr, "DBG add kind=%d card=%s relaxCensus=%v contrib=%v objPart=%v cost=%v n=%d\n",
-					a.Kind(), k.t.Cards[s.objs[a.Source()].card].Name, relaxCensus, s.contribCast(k, p, a), s.objPartCast(k, a), cost, g.n)
-				for i := 0; i < g.n; i++ {
-					fmt.Fprintf(os.Stderr, "DBG   step cobj=%s dual=%v tapx=%v sacx=%v filt=%v ng=%v\n",
-						k.t.Cards[s.objs[g.cobj[i]].card].Name, g.dual[i], g.tapx[i], g.sacx[i], g.filt[i], g.ng[i])
-					for j := 0; j < int(g.ng[i]); j++ {
-						gr := k.gen.grantOf[g.gi[i][j]]
-						fmt.Fprintf(os.Stderr, "DBG     grant j=%d from card=%s ab=%d\n", j, k.t.Cards[gr.card].Name, gr.ab)
-					}
-				}
-			}
 			d.add(a)
 		}
 	}
