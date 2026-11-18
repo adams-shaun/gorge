@@ -263,6 +263,7 @@ Latch Seeker
 Lathnu Hellion
 Leaf-Crowned Visionary
 Legacy Weapon
+Legacy's Allure
 Let the Galaxy Burn
 Leveler
 Leyline Invocation
@@ -469,6 +470,7 @@ Strength in Numbers
 Strider Harness
 Stronghold Assassin
 Summit Apes
+Summoning Station
 Sun Droplet
 Sunscape Apprentice
 Supernatural Stamina
@@ -504,6 +506,7 @@ Tivadar's Crusade
 Tormented Hero
 Touch of Brilliance
 Tourach's Canticle
+Tovolar's Huntmaster
 Treetop Warden
 Tresserhorn Sinks
 Tuktuk Rubblefort
@@ -535,6 +538,7 @@ Warbeast of Gorgoroth
 Warbriar Blessing
 Wayward Soul
 Weldfast Engineer
+Wickerbough Elder
 Wight
 Wild Growth
 Wind-Kin Raiders

@@ -13,6 +13,7 @@ Amy Rose
 Ancient Amphitheater
 Angelic Blessing
 Anje's Ravager
+Apex Devastator
 Aphelia, Viper Whisperer
 Archfiend of Ifnir
 Arctic Aven
@@ -39,6 +40,7 @@ Blood-Chin Fanatic
 Bloodfire Mentor
 Board the Weatherlight
 Body Dropper
+Boggart Ram-Gang
 Bolt of Keranos
 Bond of Revival
 Boneclad Necromancer
@@ -150,6 +152,7 @@ Gateway Plaza
 Gauntlet of Might
 Geistflame
 Genju of the Fields
+Ghor-Clan Rampager
 Ghostly Wings
 Giant Harbinger
 Gift of Granite
@@ -203,6 +206,7 @@ Illicit Shipment
 Illusory Demon
 Impending Disaster
 In Bolas's Clutches
+Indrik Umbra
 Ingenuity Engine
 Insatiable Souleater
 Interceptor, Shadow's Hound

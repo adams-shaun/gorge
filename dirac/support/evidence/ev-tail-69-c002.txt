@@ -181,6 +181,7 @@ Magmatic Channeler
 Magmatic Chasm
 Make Disappear
 Mana Leak
+Marsh Goblins
 Matt Murdock, Justice Seeker
 Memory's Journey
 Mephidross Vampire
@@ -238,11 +239,13 @@ Razorfield Thresher
 Reckless Embermage
 Reconstruction
 Red XIII, Proud Warrior
+Redeem the Lost
 Regent's Authority
 Replication Technique
 Research Thief
 Restore the Peace
 Reviving Dose
+Ring of Kalonia
 Rites of Initiation
 Ritual Guardian
 Root Out
@@ -251,6 +254,7 @@ Rough
 Rubble Reading
 Rushwood Herbalist
 Rust Goliath
+Saiba Cryptomancer
 Sailor of Means
 Salvage Scout
 Saprazzan Heir
@@ -288,11 +292,13 @@ Surge Conductor
 Swamp
 Sylvan Anthem
 Tales of Master Seshiro
+Tavern Swindler
 Tel-Jilad Exile
 Tempest Drake
 Temple Bell
 Thirst for Meaning
 Thriving Ibex
+Throne of Geth
 Thunderfoot Baloth
 Titania's Boon
 Toolcraft Exemplar

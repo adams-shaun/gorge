@@ -16,6 +16,7 @@ Araña, Heart of the Spider
 Arbor Colossus
 Avacyn's Memorial
 Barbtooth Wurm
+Base Camp
 Bastion Mastodon
 Battlegrace Angel
 Bellowing Tanglewurm
@@ -26,6 +27,7 @@ Boggart Birth Rite
 Bonds of Faith
 Bone Pit Brute
 Brain Maggot
+Brightclimb Pathway
 Broken Bond
 Burn the Accursed
 Canopy Baloth
@@ -126,6 +128,7 @@ Island
 Jalira, Master Polymorphist
 Jhoira, Weatherlight Captain
 Jousting Lance
+Kabira Crossroads
 Knight Paladin
 Kodama of the North Tree
 Krovikan Elementalist
@@ -207,6 +210,7 @@ Skyshroud Claim
 Slaughter-Priest of Mogis
 Smoldering Egg
 Smothering Tithe
+Soaring Seacliff
 Solar Blast
 Sootfeather Flock
 Soul of the Rapids
@@ -226,6 +230,7 @@ Stormchaser Drake
 Stormcloud Djinn
 Strategic Planning
 Strider, Ranger of the North
+Study
 Sturmgeist
 Swamp
 Swarm of Rats

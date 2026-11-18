@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Aggression	8c46acf3d08d8fbe	21	1/1		1/2	ix:resp
 Akroma's Devoted	42b183634dd87104	5	0/0		0/0	
+Amass the Components	4958fd104981fb12	6	0/0		2/2	
 Archangel of Thune	a2147c41c5e74f13	26	1/1		1/1	
 Armored Griffin	96acece1a673a0cf	30	0/0		0/0	
 Arrogant Poet	a97164781b2debea	12	1/1		0/1	ix:resp
@@ -32,7 +33,11 @@ Earthen Goo	ee748ae7aa39d4e4	20	1/1		1/1
 Elemental Bond	15aa5bc4ac4acb26	10	1/1		0/1	ix:resp
 Environmental Sciences	56325db22c183970	16	0/0		1/2	ix:resp
 Ethereal Whiskergill	f985b557ec0eb12e	31	0/0		0/0	
+Etherium Abomination	3bf19f678c9511de	3	1/1		0/1	ix:resp
+Extract	474257b5f7cf9bf6	5	0/0		2/2	
 Exuberant Fuseling	4517b4dc92e3193b	18	2/2		1/1	
+Faerie Conclave	0928db5002307465	17	2/2		1/1	
+Fated Infatuation	ce39ac3e096643de	4	0/0		1/2	ix:resp
 Fell Flagship	2c87926e50541f34	57	2/2		1/1	
 Flayer Husk	5cc1da319e9f3f1a	6	2/2		0/1	ix:resp
 Fledgling Djinn	c10157a1a803663a	11	1/1		1/1	
@@ -42,9 +47,12 @@ Freyalise Supplicant	035044717905f167	5	1/1		0/1	ix:resp
 Freyalise's Charm	a9a5ef23c672f73c	30	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Gaea's Avenger	529901a0d9e2a435	53	0/0		0/0	
 Giant Cockroach	e39243d5c2d12849	10	0/0		0/0	
+Gift of Tusks	2972ed6eb76e33c9	4	0/0		1/2	ix:resp
 Gimli's Reckless Might	f9481b1216f642a6	25	1/1		1/1	
 Glacial Grasp	7a65c1472b1b1baf	16	0/0		2/2	
 Goblin Ruinblaster	1bd0d6849ee394fb	14	1/1		3/3	
+Gravepurge	69a852869535d27e	10	0/0		1/2	ix:resp
+Great Furnace	9e196dbe92d1831b	8	1/1		0/1	ix:resp
 Greataxe	e4956932b137469a	7	1/1		0/1	ix:resp
 Greenbelt Rampager	300890c83e1dc8a9	40	1/1		0/1	ix:resp
 Grotesque Mutation	37efc3f7c164a880	3	0/0		1/2	ix:resp
@@ -57,6 +65,7 @@ Horn of Greed	88f02f42e449c843	61	1/1		1/1
 Howlpack Resurgence	25c60d2f5d5f2ab8	4	0/0		0/0	
 Ingenious Smith	16b3b5a1ff7682d6	19	2/2		1/1	
 Invisible Woman	b369c6470bfb09c4	3	2/2		0/1	ix:resp
+Ior Ruin Expedition	6eb39403cc167f76	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Jolrael, Mwonvuli Recluse	926b3a2148858268	13	2/2		0/1	ix:resp
 Juniper Order Advocate	1101bd89c959798a	32	0/0		0/0	
 Juniper Order Rootweaver	337d1993111d5677	30	1/1		3/3	
@@ -90,6 +99,8 @@ Phyrexian Gremlins	58318eaa5c37ccfc	36	1/1		1/1
 Plague Dogs	ac92d583eb4f69b3	5	2/2		0/1	ix:resp
 Plague Engineer	fbbd5aee6cbbef4e	8	0/0		0/0	
 Plagued Rusalka	607eb12755943a9d	6	1/1		0/1	ix:resp
+Primal Command	6c4b6b9622045612	5	0/0		2/2	
+Prismatic Vista	aaf1a59f2978176e	10	1/1		0/1	ix:resp
 Radiant Essence	a857719a8e3e47b3	26	0/0		0/0	
 Ray of Erasure	63420c0472503190	61	0/0		2/2	
 Razorfoot Griffin	d2c968d504048208	29	0/0		0/0	
@@ -122,9 +133,11 @@ Storm Fleet Negotiator	d5083686dab65708	8	1/1		0/1	ix:resp
 Sunscape Familiar	b1fe50a915ae032a	20	0/0		0/0	
 The Stasis Coffin	1d48a6742cab949b	3	1/1		0/1	ix:resp
 Throne of Empires	73735a02a4cb33a1	9	1/1		0/1	ix:resp
+Tibalt, Rakish Instigator	f822b641316334b3	4	1/1		0/1	ix:resp
 Tooth and Claw	c8917e6fb21447d1	10	1/1		0/1	ix:resp
 Toph, Greatest Earthbender	2d8d6068cb9d35ae	7	1/1		1/1	
 Torsten Von Ursus	ce6ec83fda2bc5a4	10	0/0		0/0	
+Updraft Elemental	4830bc1eebd39408	5	0/0		0/0	
 Valduk, Keeper of the Flame	d7c3e2d9235134d7	27	1/1		1/1	
 Vithian Renegades	d7ec005873b940c0	22	1/1		1/1	
 Wild Leotau	1cf036314bb94ddc	4	1/1		0/1	ix:resp

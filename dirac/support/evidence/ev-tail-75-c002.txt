@@ -2,10 +2,12 @@ A-Kona, Rescue Beastie
 Absorb
 Aether Spellbomb
 Afterlife
+Agility Bobblehead
 Akoum Refuge
 Ancestral Blade
 Ancient Gold Dragon
 Anointer Priest
+Apprentice Sharpshooter
 Arachnus Web
 Archwing Dragon
 Ardent Elementalist
@@ -14,6 +16,8 @@ Aspect of Lamprey
 Attune with Aether
 Avatar of Growth
 Back in Town
+Baloth Null
+Banishment
 Barkhide Troll
 Barrow Witches
 Belligerent Sliver
@@ -33,13 +37,16 @@ Bountiful Promenade
 Brandywine Farmer
 Burning Fields
 Cabaretti Courtyard
+Captive Weird
 Catacomb Sifter
+Chainweb Aracnir
 Choking Sands
 Clear a Path
 Clip Wings
 Colossal Dreadmaw and Storm Crow
 Continue?
 Crackling Drake
+Crosstown Courier
 Cunning Survivor
 Daggersail Aeronaut
 Death's Shadow
@@ -47,10 +54,13 @@ Dense Foliage
 Desert of the Indomitable
 Desolate Mire
 Devouring Swarm
+Dina, Soul Steeper
 Doom Whisperer
 Double Negative
+Dragon-Scarred Bear
 Drainpipe Vermin
 Dream Thief
+Dreamshackle Geist
 Drifting Shade
 Drossclaw
 Dualcaster Mage
@@ -65,6 +75,7 @@ Fateful Showdown
 Feral Instinct
 Ferocious Zheng
 Fetid Imp
+Fiendslayer Paladin
 Fireblade Charger
 Fissure
 Flare of Denial
@@ -77,7 +88,9 @@ Gild
 Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
+Great Defender
 Griffin Aerie
+Grim Tutor
 Grixis Slavedriver
 Guardian of the Guildpact
 Guul Draz Mucklord
@@ -85,7 +98,9 @@ Haazda Officer
 Harbinger of Night
 Herd Gnarr
 Hibernation
+Honden of Life's Web
 Howl of the Night Pack
+Hulk, Brutal Brawler
 Hurloon Battle Hymn
 Imaginary Pet
 Immortal Phoenix
@@ -102,8 +117,10 @@ Kher Keep
 Kodama's Reach
 Lightning-Rig Crew
 Lorthos, the Tidemaker
+Lost in the Spirit World
 Magmatic Insight
 Malcator's Watcher
+Mammoth Spider
 Mana Vault
 Manalith
 Mardu Woe-Reaper
@@ -121,6 +138,7 @@ Mindwrack Harpy
 Mobile Fort
 Momentum Rumbler
 Mortal Wound
+Mossbridge Troll
 Mountain
 Mox Tantalite
 Muck Rats
@@ -135,7 +153,9 @@ Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper
 Obelisk of Grixis
+Order of the Sacred Torch
 Panic Attack
+Paradigm Shift
 Patrol Hound
 Peregrine Mask
 Perimeter Captain
@@ -148,16 +168,19 @@ Portent of Betrayal
 Power of Persuasion
 Precinct Captain
 Pyrrhic Blast
+Quirion Explorer
 Radstorm
 Rageblood Shaman
 Rally the Peasants
 Raugrin Triome
 Reckless Barbarian
 Reclaim the Wastes
+Reduce in Stature
 Rimewood Falls
 Rishkar's Expertise
 Riven Turnbull
 Rooftop Nuisance
+Rune-Cervin Rider
 Sacred Prey
 Sage Aven
 Sage of Fables
@@ -167,6 +190,11 @@ Sanctum of Stone Fangs
 School of Piranha
 Scour All Possibilities
 Seething Pathblazer
+Selhoff Occultist
+Shaman of Spring
+Shield of the Oversoul
+Shrine Keeper
+Sigil of Valor
 Singing Tree
 Sinkhole
 Sizzle
@@ -180,30 +208,37 @@ Spike Breeder
 Spirit Shackle
 Spitebellows
 Spitfire Handler
+Sultai Emissary
 Sunscorched Desert
 Surge Engine
 Swamp
 Swarm Surge
 Swarm of Rats
 Sword of the Animist
+Sygg, River Guide
 Tamiyo's Immobilizer
 Tamiyo's Safekeeping
 Tectonic Edge
 Tempestra, Dame of Games
+Thirst for Discovery
 Thopter Assembly
+Thopter Mechanic
 Thoughtweft Gambit
 Threnody Singer
 Thundersteel Colossus
 Timin, Youthful Geist
+Tomebound Lich
 Trail of Evidence
 Trailblazing Historian
 Trained Caracal
 Tui and La, Moon and Ocean
 Twiddle
+Twilight's Call
 Ugin's Insight
 Undead Servant
 Urza's Rebuff
 Urza, Powerstone Prodigy
+Veiling Oddity
 Venomous Changeling
 Verdant Sun's Avatar
 Viscerid Deepwalker
@@ -217,6 +252,7 @@ Will-o'-the-Wisp
 Winding Canyons
 Wingsteed Rider
 Wizard Replica
+Wolfwillow Haven
 Woodland Stream
 Zap
 Zealot's Conviction

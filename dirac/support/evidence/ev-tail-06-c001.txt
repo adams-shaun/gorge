@@ -71,6 +71,7 @@ Chandra, Novice Pyromancer
 Changeling Outcast
 Chimeric Staff
 Circuit Mender
+Claustrophobia
 Cleansing Screech
 Cloudfin Raptor
 Cloudshredder Sliver
@@ -294,6 +295,7 @@ Prison Sentence
 Pull from the Deep
 Pulse of the Tangle
 Putrefax
+Quantum Misalignment
 RMS Titanic
 Ragefire Hellkite
 Raging Swordtooth

@@ -1,26 +1,38 @@
+Afterlife
+Agility Bobblehead
 Akoum Refuge
 Ancestral Blade
 Attune with Aether
 Backfire
+Banishment
 Bathe in Dragonfire
 Belligerent Sliver
 Black Widow, Intel Expert
+Blind Creeper
 Bound in Silence
 Burning Fields
 Chaotic Backlash
 Clip Wings
+Continue?
+Dawning Angel
 Death's Shadow
+Desolate Mire
 Desynchronize
 Drifting Shade
+Drillworks Mole
+Drossclaw
 Dune Mover
 Evolving Adaptive
 Falkenrath Marauders
+Fiendslayer Paladin
 Fissure
 Forest
 Gift of Paradise
 Glimmervoid
 Gnarled Effigy
 Haazda Officer
+Harmless Assault
+Hero of the Dunes
 Hurloon Battle Hymn
 Island
 Judith, the Scourge Diva
@@ -29,11 +41,18 @@ Khenra Spellspear
 Kher Keep
 Krark-Clan Grunt
 Lightning-Rig Crew
+Lightwielder Paladin
 Mana Vault
+Mardu Woe-Reaper
+Masked Blackguard
 Mass Mutiny
 Mindwrack Harpy
 Mountain
+Mox Tantalite
+Nakaya Shade
 Nyx-Fleece Ram
+Order of the Sacred Torch
+Patrol Hound
 Peregrine Mask
 Plains
 Precinct Captain
@@ -41,18 +60,33 @@ Quest for Renewal
 Rally the Peasants
 Reckless Barbarian
 Reclaim the Wastes
+Rune-Cervin Rider
 Sailor of Means
+Sanctify
 Sanctum of Stone Fangs
 Seething Pathblazer
+Show of Valor
+Shrine Keeper
 Siege Dragon
+Sigil of Valor
+Sinkhole
 Skyline Cascade
+Soulmender
 Spectacle Mage
+Spirited Companion
 Spitebellows
 Sunscorched Desert
 Swamp
+Sword of the Animist
 Tectonic Edge
 Thundersteel Colossus
 Twiddle
+Twilight's Call
+Unholy Hunger
+Voyager Staff
+Wingsteed Rider
 Wizard Replica
 Woodland Stream
+Yoshimaru, Ever Faithful
 Zap
+Zealot's Conviction

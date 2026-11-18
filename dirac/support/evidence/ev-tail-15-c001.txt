@@ -34,6 +34,7 @@ Blessed Spirits
 Blinding Radiance
 Bloodflow Connoisseur
 Boon of Emrakul
+Boonweaver Giant
 Bramble Wurm
 Brightclimb Pathway
 Brilliant Restoration
@@ -68,6 +69,7 @@ Curse of Wizardry
 Cursed Totem
 Cyclone Summoner
 Dark Triumph
+Dauthi Voidwalker
 Dawnfeather Eagle
 Deadeye Rig-Hauler
 Deathbloom Ritualist
@@ -86,6 +88,7 @@ Dingus Staff
 Diplomacy of the Wastes
 Dire Fleet Hoarder
 Displace
+Dogged Hunter
 Domri, Anarch of Bolas
 Dowsing Shaman
 Dreadhorde Arcanist
@@ -135,6 +138,7 @@ Fungus Elemental
 Furious Assault
 Galina's Knight
 Gert and Old Lace, Runaways
+Ghastbark Twins
 Giant Fly
 Giant Strength
 Gixian Skullflayer
@@ -175,6 +179,7 @@ Inner Calm, Outer Strength
 Innocuous Researcher
 Inside Out
 Inspired Inventor
+Into the North
 Into the Time Vortex
 Inviolability
 Island
@@ -231,6 +236,7 @@ Mary Read and Anne Bonny
 Mask of the Jadecrafter
 Mending Hands
 Messenger Drake
+Metrognome
 Michiko's Reign of Truth
 Midnight Covenant
 Mind Knives
@@ -261,6 +267,7 @@ Novellamental
 Null Elemental Blast
 Nyxborn Marauder
 Obelisk of Esper
+Ochre Jelly
 Ogre Gatecrasher
 Ogre Sentry
 Oji, the Exquisite Blade
@@ -291,6 +298,7 @@ Ragged Veins
 Raise the Draugr
 Rakdos Ickspitter
 Ransom Note
+Rapid Hybridization
 Raven Familiar
 Ray of Revelation
 Reaver Drone
@@ -306,6 +314,7 @@ Retreat to Hagra
 Ring of Evos Isle
 Rise Again
 Roadside Reliquary
+Roil Cartographer
 Rolling Hamsphere
 Romana II
 Roving Harper
@@ -327,6 +336,7 @@ Seraph of New Capenna
 Serene Steward
 Shaper Guildmage
 Shared Trauma
+Shark Typhoon
 Shimmerscale Drake
 Shrieking Drake
 Shrouded Serpent
@@ -381,6 +391,7 @@ Talisman of Resilience
 Teething Wurmlet
 Territory Culler
 Teyo's Lightshield
+Teysa Karlov
 The Prydwen, Steel Flagship
 The Wasp, Winsome Avenger
 Thornhide Wolves

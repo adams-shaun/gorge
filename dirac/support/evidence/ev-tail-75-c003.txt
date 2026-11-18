@@ -6,8 +6,10 @@ Alabaster Potion
 Ancestral Blade
 Ancient Gold Dragon
 Anointer Priest
+Apprentice Sharpshooter
 Archwing Dragon
 Ardent Elementalist
+Artificer Class
 Ashen Monstrosity
 Attune with Aether
 Avatar of Growth
@@ -20,6 +22,8 @@ Belligerent Sliver
 Big Boa Constrictor
 Black Widow, Intel Expert
 Black Widow, Natasha Romanoff
+Blind Creeper
+Bloodbond Vampire
 Bloodcrazed Neonate
 Bloodmark Mentor
 Bloodthirsty Adversary
@@ -27,21 +31,28 @@ Bond of Insight
 Bonehoard
 Bound in Silence
 Bountiful Promenade
+Brackwater Elemental
 Brandywine Farmer
+Cabal Patriarch
 Cabaretti Courtyard
+Captive Weird
 Catacomb Sifter
+Chainweb Aracnir
 Chaos Lord
 Chaotic Backlash
 Clear a Path
 Clip Wings
 Continue?
 Creeping Corrosion
+Crosstown Courier
 Cunning Survivor
 Daggersail Aeronaut
 Daunting Defender
 Dawning Angel
 Death's Shadow
 Deepwood Wolverine
+Demon's Disciple
+Dense Foliage
 Deputized Protester
 Desert of the Indomitable
 Desolate Mire
@@ -53,6 +64,10 @@ Doom Whisperer
 Double Negative
 Drainpipe Vermin
 Dread Tiller
+Dream Thief
+Dreamshackle Geist
+Drillworks Mole
+Drown in Dreams
 Dualcaster Mage
 Dune Mover
 Easy Prey
@@ -69,6 +84,7 @@ Fissure
 Flowstone Charger
 Forest
 Gift of Paradise
+Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
 Great Defender
@@ -80,6 +96,7 @@ Harbinger of Night
 Harmless Assault
 Herd Gnarr
 Hibernation
+Honden of Life's Web
 Howl of the Night Pack
 Huatli, Radiant Champion
 Hurloon Battle Hymn
@@ -91,17 +108,22 @@ Jalum Tome
 Judith, the Scourge Diva
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
+Khenra Eternal
 Kher Keep
 Kjeldoran Outrider
+Launch
 Leyline of Punishment
 Lightning-Rig Crew
 Lightwielder Paladin
+Lorthos, the Tidemaker
+Lost in the Mist
 Magma Vein
 Magmatic Insight
 Mana Vault
 Manalith
 Mardu Woe-Reaper
 Mark of the Oni
+Masked Blackguard
 Master of Winds
 Master the Way
 Maze Rusher
@@ -113,54 +135,69 @@ Minotaur, Roxxon CEO
 Mobile Fort
 Mold Demon
 Momentum Rumbler
+Mortal Wound
+Mossbridge Troll
 Mountain
 Mox Tantalite
 Muck Rats
 Myrel, Shield of Argive
 Mystic Skull
+Nakaya Shade
 Nebelgast Herald
 Neonate's Rush
 Nezumi Freewheeler
 Nightveil Predator
+Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper
 Obelisk of Grixis
 Ogre Taskmaster
 One-Eyed Scarecrow
 Panic Attack
+Paradigm Shift
 Parallel Lives
 Patrol Hound
 Peregrine Mask
+Personal Tutor
 Phantasmal Dreadmaw
 Pillage
 Plains
 Plasmancer
+Port Inspector
 Portent of Betrayal
 Power of Persuasion
 Pyrrhic Blast
 Quest for Renewal
+Radstorm
 Rageblood Shaman
 Rally the Peasants
 Rampaging Cyclops
 Raugrin Triome
 Reclaim the Wastes
+Reduce in Stature
 Reverberate
 Rimewood Falls
+Rishadan Cutpurse
 Rishkar's Expertise
 Rockshard Elemental
 Rout
 Rune-Cervin Rider
+Sacred Prey
 Sage Aven
 Sailor of Means
 Sanctify
 Sanctum of Stone Fangs
 Scalding Devil
 School of Piranha
+Scour All Possibilities
 Sedgemoor Witch
 Seething Pathblazer
+Shimmer of Possibility
 Show of Valor
 Shrine Keeper
 Sigil of Valor
+Silent Extraction
+Simian Brawler
 Sizzle
 Skyline Cascade
 Slagwoods Bridge
@@ -169,30 +206,46 @@ Sonic Screwdriver
 Sootstoke Kindler
 Soulmender
 Spectacle Mage
+Spirited Companion
 Spitebellows
 Spitfire Handler
+Sultai Emissary
 Sunscorched Desert
 Surge Engine
 Swamp
+Swarm Surge
 Swarm of Rats
 Sword of the Animist
+Sygg, River Guide
+Tamiyo's Immobilizer
+Tamiyo's Safekeeping
 Tectonic Edge
 Tempestra, Dame of Games
+Thirst for Discovery
 Thopter Assembly
+Thopter Mechanic
 Thoughtweft Gambit
 Threnody Singer
+Thrilling Encore
 Thundersteel Colossus
+Tomebound Lich
+Trail of Evidence
 Trailblazing Historian
 Trained Caracal
 Turntimber Grove
 Twiddle
+Ugin's Insight
 Undead Servant
+Unholy Hunger
+Urza's Rebuff
+Veiling Oddity
 Venomous Changeling
 Verdant Sun's Avatar
 Viscerid Deepwalker
 Volcanic Torrent
 Volcanic Upheaval
 Voyager Staff
+Wall of Vines
 Warmonger Hellkite
 Whiptail Moloch
 Winding Canyons

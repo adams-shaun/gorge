@@ -1,4 +1,5 @@
 A-Druidic Ritual
+Aberrant
 Accursed Marauder
 Aether Flash
 Ainok Tracker
@@ -284,6 +285,7 @@ Pillarfield Ox
 Pip-Boy 3000
 Plains
 Poison Arrow
+Pooling Venom
 Prison Term
 Prodigy's Prototype
 Prowling Pangolin
@@ -335,6 +337,7 @@ Sarpadian Simulacrum
 Sauroform Hybrid
 Savai Crystal
 Saw It Coming
+Scald
 Scale Blessing
 Scapeshift
 Scout the Borders

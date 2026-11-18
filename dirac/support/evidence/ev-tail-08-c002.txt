@@ -1,6 +1,7 @@
 Abbey Griffin
 Aberrant Return
 Acceptable Losses
+Aerial Caravan
 Age of Ultron
 Agent of Stromgald
 Akoum Hellkite
@@ -10,8 +11,10 @@ Ana Disciple
 Ancestral Recall
 Angel of Glory's Rise
 Archghoul of Thraben
+Arrester's Admonition
 Ashiok's Skulker
 Assassin Initiate
+Aura of Silence
 Aven Gagglemaster
 Azami, Lady of Scrolls
 Banewhip Punisher
@@ -26,6 +29,7 @@ Blizzard Strix
 Blood Divination
 Blood Glutton
 Blood Seeker
+Blur Sliver
 Boggart Trawler
 Bolt of Keranos
 Bounty Agent
@@ -65,6 +69,7 @@ Devouring Deep
 Diamond Knight
 Divest
 Djinn of Infinite Deceits
+Domestication
 Drana's Emissary
 Dread Specter
 Dream Prowler
@@ -159,6 +164,7 @@ Malakir Bloodwitch
 Mardu Hateblade
 Marionette Apprentice
 Marsh Casualties
+Mascot Exhibition
 Mass Appeal
 Mass Diminish
 Midnight Ritual
@@ -179,6 +185,7 @@ Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
 O'aka, Traveling Merchant
+Okiba-Gang Shinobi
 Orim's Thunder
 Overtaker
 Paradise Druid
@@ -236,6 +243,7 @@ Soul Channeling
 Soulblade Djinn
 Spectral Flight
 Sphere of Reason
+Sphinx of Clear Skies
 Spontaneous Artist
 Spore Crawler
 Sprinting Warbrute
@@ -281,6 +289,7 @@ Updraft
 Urborg Drake
 Valorous Steed
 Vampire Outcasts
+Vampiric Sliver
 Vectis Silencers
 Veilborn Ghoul
 Venerable Warsinger
@@ -288,6 +297,7 @@ Vengeful Vampire
 Vexilus Praetor
 Victory's Herald
 Victual Sliver
+Vrock
 Vulpine Goliath
 Wall of Opposition
 War Falcon
@@ -301,5 +311,6 @@ Winds of Rath
 Wingmate Roc
 Wormhole Serpent
 Wydwen, the Biting Gale
+Yavimaya Enchantress
 You Meet in a Tavern
 Zhang Fei, Fierce Warrior

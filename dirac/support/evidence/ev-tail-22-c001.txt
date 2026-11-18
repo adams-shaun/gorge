@@ -21,6 +21,7 @@ Animal Sanctuary
 Arashin Cleric
 Arborback Stomper
 Arcade Gannon
+Arcanist's Owl
 Arcbound Lancer
 Architect of the Untamed
 Argivian Phalanx
@@ -93,6 +94,7 @@ Desolate Mire
 Destructive Revelry
 Diregraf Captain
 Dismantling Wave
+Dissatisfied Customer
 Doric, Nature's Warden
 Dramatic Rescue
 Dreadbringer Lampads
@@ -145,6 +147,7 @@ Goblin Recruiter
 Goblin Swine-Rider
 Goblin Taskmaster
 Gorma, the Gullet
+Grafted Exoskeleton
 Grave Defiler
 Gravedigger
 Gravity Well
@@ -403,6 +406,7 @@ Toll of the Invasion
 Treacherous Werewolf
 Treefolk Seedlings
 Treetop Warden
+Triton Wavebreaker
 Trumpeting Herd
 Tymaret, the Murder King
 Ultron's Auxiliary

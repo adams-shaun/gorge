@@ -1,0 +1,80 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Pseudodragon Familiar	3dfafeb37d8887f4	6	1/1		0/1	ix:resp
+A-The One Ring	fcad32f87e23d1cc	7	3/3		1/1	
+Alaborn Veteran	4ae53ebce03a6f4b	5	1/1		0/1	ix:resp
+Benalish Heralds	a3cf18ef19462f87	4	1/1		0/1	ix:resp
+Capashen Standard	dacbb2a756b79937	8	1/1		2/2	
+Collector's Case	20a3806daa7967d1	6	2/2		0/1	ix:resp
+Daybreak Chimera	9bb3bb265fa04ee5	8	0/0		0/0	
+Deflection	ec02c4c2e1692860	4	0/0		2/2	
+Depth Charge Colossus	1823b5c7676d87d9	4	1/1		3/3	
+Dimir Guildmage	a1d95be7e457b021	3	2/2		0/1	ix:resp
+Doomsday	61600771264e0427	4	0/0		1/2	ix:resp
+Dredge	468d46873f0f2067	7	0/0		2/2	
+Drinker of Sorrow	3fcdc327eed71f8d	7	1/1		0/1	ix:resp
+Durkwood Boars	439bdebf641f419a	4	0/0		0/0	
+Elite Skirmisher	f9d1b68860271881	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Exalted Flamer of Tzeentch	460736bf78d405d1	8	2/2		0/1	ix:resp
+Expel from Orazca	5ff12c5253e99f2a	7	0/0		1/2	ix:resp
+Flamespeaker's Will	8019f468c6feef16	6	1/1		1/2	ix:resp
+Forest	6d0466c30f825dba	12	1/1		0/1	ix:resp
+Grapeshot	f690522f9ed3d805	11	1/1		2/2	
+Griffin Dreamfinder	f3e646194d188a35	4	1/1		0/1	ix:resp
+Grixis Panorama	b8a43c71cc074418	24	2/2		0/1	ix:resp
+Gruesome Realization	30cc1a7820551d1a	3	0/0		1/2	ix:resp
+Hedgewitch's Mask	da182d7af62c3339	8	1/1		0/1	ix:resp
+Hero of Bladehold	c75b8e7babeffb74	4	2/2		1/1	
+Heroic Teamwork	041797ecb4c36717	7	0/0		1/2	ix:resp
+Imperial Subduer	2393e0cc81ca67af	10	1/1		1/1	
+Infectious Horror	1643ca0f7a6a2db9	3	1/1		0/1	ix:resp
+Island	763c67ef7a27eaf5	206	1/1		0/1	ix:resp
+Jace's Ingenuity	5e339ef0fdec6602	11	0/0		2/2	
+Jackdaw	9a83a285bcd161e1	5	2/2		0/1	ix:resp
+Jade Avenger	3985399fadb81f35	4	2/2		0/1	ix:resp
+Key to the City	ae64df69731eaa36	4	2/2		0/1	ix:resp
+Khalni Garden	681b12adebbad71f	24	2/2		0/1	ix:resp
+Konda, Lord of Eiganjo	1014f9c5176bab32	6	2/2		0/1	ix:resp
+Lampad of Death's Vigil	beee552d67f54569	5	1/1		0/1	ix:resp
+Last Word	041f0cfaef2280a7	7	0/0		2/2	
+Maritime Guard	5406704e4ba297fb	4	0/0		0/0	
+Mountain	9e71388353e907ed	31	1/1		0/1	ix:resp
+Mycologist	041a52db69eab698	5	3/3		0/1	ix:resp
+Necromantic Summons	c15af0fbac4646a7	8	0/0		2/2	
+Oath of the Grey Host	6c8c0cac12fbe004	7	0/0		0/0	
+Octoprophet	9324f5f3d9ef71a5	3	1/1		0/1	ix:resp
+Plains	82d63a695487e567	81	1/1		0/1	ix:resp
+Pouncing Lynx	9b941cbcbd76c6c0	4	0/0		0/0	
+Psionic Entity	5f8ea3f34cf4ff07	5	1/1		0/1	ix:resp
+Puppeteer Clique	dc15ff16c0d32551	3	2/2		0/1	ix:resp
+Reckless Reveler	5f14c764198cbd44	4	1/1		0/1	ix:resp
+Referee Squad	128f900a98dc12b0	5	1/1		0/1	ix:resp
+Risen Riptide	8747be55672d6b71	57	1/1		0/1	ix:resp
+Rooftop Nuisance	81b475785397a5ab	4	0/0		1/2	ix:resp
+Sage of Lat-Nam	429efa7aafd70479	4	1/1		0/1	ix:resp
+Sandblast	190ac2061201e02b	9	0/0		2/2	
+Sejiri Steppe	4782f00e1511a1cc	37	2/2		0/1	ix:resp
+Sinister Possession	9f0284a0a2acb664	3	2/2		1/2	ix:resp
+Skaab Wrangler	5b3daa42e36e50a4	6	1/1		0/1	ix:resp
+Sky Tether	1ec3b977311a238f	4	0/0		1/2	ix:resp
+Skyblade of the Legion	c707699d1ad3585c	7	0/0		0/0	
+Skyline Predator	b998519d867c4deb	8	0/0		0/0	
+Sneaky Homunculus	c85379f71e0fecca	6	0/0		0/0	
+Soldevi Machinist	0a0c2857d2b384a0	7	1/1		0/1	ix:resp
+Solve the Equation	6ceb9ee7c1408e2e	6	0/0		1/2	ix:resp
+Sorcerer's Strongbox	d39e51335ab71860	5	1/1		0/1	ix:resp
+Soul Transfer	9c3a787a51f38d1c	6	0/0		2/2	
+Springjaw Trap	07cc707239146567	3	1/1		0/1	ix:resp
+Suspension Field	a5be5b3c102a6cd6	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Swamp	342b413902f441c3	70	1/1		0/1	ix:resp
+Sword of the Chosen	54397b8c8428b014	13	1/1		0/1	ix:resp
+Telepathic Spies	990c00d98bd29588	9	1/1		0/1	ix:resp
+Telling Time	83fdaabc1a2b81e1	7	0/0		2/2	
+The Keeper of the Yellow Hat	e12818d12d8e9259	3	1/1		1/1	
+Thraben Sentry	956aec4e611336cd	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Tidewater Minion	cdbf5fee8af402ac	6	2/2		1/1	
+Time Wipe	9be2bb939727e9ad	3	0/0		1/2	ix:resp
+Turn into a Pumpkin	6fbf0afd749f917e	3	0/0		1/2	ix:resp
+Vile Deacon	9af9afe468d7da3c	5	1/1		1/1	
+Vivid Crag	43df72df6db79a6f	26	2/2		0/1	ix:resp
+Vodalian Serpent	d133bae625cd9623	61	0/0		2/2	
+Yoked Ox	1594f1c3bfd6a031	8	0/0		0/0	

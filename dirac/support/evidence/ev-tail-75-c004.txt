@@ -1,3 +1,4 @@
+Afterlife
 Air Servant
 Akoum Refuge
 Ali Baba
@@ -14,92 +15,157 @@ Black Widow, Intel Expert
 Bloodmark Mentor
 Bond of Insight
 Bonehoard
+Boneknitter
 Bound in Silence
+Brackwater Elemental
 Brandywine Farmer
+Cabal Patriarch
+Captive Weird
 Catacomb Sifter
+Chainweb Aracnir
 Chaotic Backlash
+Clear a Path
+Continue?
+Crookclaw Elder
 Death's Shadow
 Deepwood Wolverine
+Dense Foliage
+Deputized Protester
+Deranged Assistant
+Desolate Mire
 Desynchronize
 Drainpipe Vermin
+Dream Thief
 Drifting Shade
 Dune Mover
 Ethereal Investigator
 Evolving Adaptive
 Faerie Noble
 Falkenrath Marauders
+Fateful Showdown
+Feral Instinct
 Ferocious Zheng
+Fiendslayer Paladin
 Fireblade Charger
 Fissure
+Flare of Denial
 Forest
 Geralf's Mindcrusher
 Gift of Paradise
 Gild
+Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
 Grixis Slavedriver
 Guul Draz Mucklord
 Haazda Officer
 Harbinger of Night
+Harmless Assault
 Herd Gnarr
+Hero of the Dunes
 Hibernation
 Howl of the Night Pack
+Hulk, Brutal Brawler
 Hurloon Battle Hymn
+Imaginary Pet
 Incarnation Technique
+Incisor Steed
 Island
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
 Kher Keep
 Kjeldoran Outrider
 Leapfrog
+Lost in the Spirit World
+Magmatic Insight
+Malcator's Watcher
 Mana Vault
+Mardu Woe-Reaper
 Mass Calcify
 Mindwrack Harpy
 Minotaur, Roxxon CEO
 Momentum Rumbler
+Mossbridge Troll
 Mountain
 Muck Rats
 Neonate's Rush
+Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper
+Order of the Sacred Torch
+Paradigm Shift
 Peregrine Mask
+Personal Tutor
 Phantasmal Dreadmaw
+Pillage
 Plains
 Plasmancer
 Portent of Betrayal
 Privileged Position
+Psychic Frog
 Pyrrhic Blast
 Quest for Renewal
+Quirion Explorer
+Radstorm
 Rally the Peasants
 Reclaim the Wastes
+Reduce in Stature
+Rishadan Cutpurse
 Rooftop Nuisance
+Rune-Cervin Rider
 Sage Aven
 Sailor of Means
+Sanctify
 Sanctum of Stone Fangs
 Scab-Clan Mauler
+Scalding Devil
 Sedgemoor Witch
 Seething Pathblazer
+Show of Valor
+Shrine Keeper
+Sigil of Valor
 Sizzle
 Skyline Cascade
 Sonic Screwdriver
 Sootstoke Kindler
 Spitebellows
 Spitfire Handler
+Sultai Emissary
 Sunscorched Desert
 Swamp
+Swarm Surge
 Swarm of Rats
+Sword of the Animist
+Tamiyo's Immobilizer
+Tamiyo's Safekeeping
 Tectonic Edge
+Tempestra, Dame of Games
+Thirst for Discovery
 Thopter Assembly
+Thopter Mechanic
 Threnody Singer
+Thrilling Encore
 Thundersteel Colossus
+Trail of Evidence
 Trained Caracal
 Twiddle
+Twilight's Call
 Undead Servant
+Unholy Hunger
 Ursine Champion
+Urza's Rebuff
+Urza, Powerstone Prodigy
+Veiling Oddity
 Venomous Changeling
+Voyager Staff
+Wall of Vines
 Warmonger Hellkite
+Waterknot
 Wizard Replica
+Wolfwillow Haven
 Woodland Stream
 Yawgmoth Demon
 Zap
+Zealot's Conviction
 Zendikar Farguide
+Zuran Enchanter

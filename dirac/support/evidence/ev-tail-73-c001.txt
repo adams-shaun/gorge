@@ -33,6 +33,7 @@ Bala Ged Scorpion
 Bankrupt in Blood
 Barrin, Master Wizard
 Beacon Behemoth
+Bedlam Reveler
 Bionic Blow
 Black Market Tycoon
 Blight Grenade
@@ -130,6 +131,7 @@ Feiyi Snake
 Feral Invocation
 Festering Evil
 Fevered Suspicion
+Fierce Witchstalker
 Fiery Confluence
 Fire Urchin
 Fireforger's Puzzleknot
@@ -291,6 +293,7 @@ Nomad Decoy
 Norwood Priestess
 Null Caller
 Nylea's Huntmaster
+Oathsworn Knight
 Oathsworn Vampire
 Ogre Errant
 Old Rutstein

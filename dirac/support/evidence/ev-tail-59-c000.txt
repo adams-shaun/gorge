@@ -73,6 +73,7 @@ Chimeric Sphere
 Chimney Rabble
 Cho-Manno's Blessing
 Cho-Manno, Revolutionary
+Cid, Freeflier Pilot
 Citanul Hierophants
 Civic Stalwart
 Cleric of the Forward Order
@@ -133,6 +134,7 @@ Dragon's Desire
 Dragonsoul Knight
 Dramatic Finale
 Dread Drone
+Dread Linnorm
 Dress Down
 Drudge Spell
 Drumhunter
