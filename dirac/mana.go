@@ -1413,6 +1413,26 @@ func planCastDynSacSkip(castPay bool, pc *pcard) bool {
 	return castPay && pc.manaDyn && pc.manaSac
 }
 
+// planSourceUsable reports whether source sl joins the payment plan's order
+// (plan): a tap, a sacrifice-only one, a usable restricted view, a granted
+// tap-and-sacrifice, or -- on the autopay surface, whose planner prices the
+// relaxed census -- a payable life-only census gap (mana_lifegap.go; on the
+// lowering surface the ability is no planner unit, the recorded life-gap
+// repros' shape).
+func (s *State) planSourceUsable(k *prep, p uint8, sl Slot, rd *payDesc) bool {
+	return s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) ||
+		k.restrSrc && s.restrOnlyUsable(k, p, sl, rd) || s.planTapGrantSacNow(k, sl) ||
+		s.cfg&cfgGorgeAutopay != 0 && s.isLifeGapAt(k, p, sl)
+}
+
+// planLastResort reports whether plan leaves source sl to phase 1: a
+// sacrificing or non-untapping source, or an autopay surface's life-only
+// census gap's unit, whose life cost is a disclosed consequence
+// (mana_lifegap.go).
+func (s *State) planLastResort(k *prep, p uint8, sl Slot, sac, noUntap bool) bool {
+	return lastResortUnit(sac, noUntap) || s.cfg&cfgGorgeAutopay != 0 && s.isLifeGapAt(k, p, sl)
+}
+
 func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// units: fixed-production sources in battlefield (entry) order, then
 	// choice-shaped sources (any colour, a choice of colours) in battlefield
@@ -1432,7 +1452,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
-		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) || s.planTapGrantSacNow(k, sl) {
+		if s.planSourceUsable(k, p, sl, &rd) {
 			if deferSkip && s.planDeferred(k, p, sl) {
 				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
 			}
@@ -1562,7 +1582,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				sacOnly := s.canSacOnlyForMana(k, sl, pc)
 				sac := pc.manaSac || sacOnly
 				noUntap := k.cards[s.cardAt(sl)].noUntap != 0 // last resort too (unitIrr)
-				if phase == 0 && lastResortUnit(sac, noUntap) {
+				// a life-only census gap's unit is a last-resort one: the life
+				// it costs is a disclosed consequence (mana_lifegap.go)
+				if phase == 0 && s.planLastResort(k, p, sl, sac, noUntap) {
 					hasSac = true // last resort: a sacrificing or non-untapping source
 					continue
 				}
@@ -1792,7 +1814,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		}
 		ty := &pk.types[pk.bestTy[i]]
 		col := int(cols[i])
-		if !ty.sacOnly {
+		// a life-only census gap's unit pays its life, not a tap (mana_lifegap.go)
+		if !s.lifeGapPlanCost(k, p, sl) && !ty.sacOnly {
 			s.perms[sl].flags |= pfTapped
 			s.touchSl(sl)
 			s.manaTapped(k, sl)

@@ -27,6 +27,27 @@ func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.
 	if s.phyCastGateAffords(k, p, cav, cost) {
 		return true
 	}
+	// On the autopay surface a life-only census gap's unit (Treasonous Ogre's
+	// "Pay 3 life: Add {R}") funds the cast in gorge's planner -- the relaxed
+	// census it prices the play over (paymentPlanRelaxedAlternatives), which
+	// the kernel's gaps census holds (availScript's life arm, mana_lifegap.go).
+	// The plain census leaves it out, and the hand-cast gate dropped the play
+	// (Noose Constrictor's {1}{G} beside a Forest and the Ogre: pair 97, pool
+	// dr-mbc-bbbb, the options lockstep). On the lowering surface the cast
+	// stays the script route's (the recorded life-gap repros: gorge lowers the
+	// potential play; the planner has no unit for the ability there). Not in the
+	// scripted any-colour and gaps walks (scriptOffers): their censuses count
+	// the life units on their own (availScript), and a play they list is
+	// gorge's potential play, which its prefix search prices, not the planner
+	// (Hollow Marauder beside the Ogre: the Ogre repro, decision 198).
+	if s.cfg&cfgGorgeAutopay != 0 && s.g.availX&(availAny|availGaps) == 0 && k.gen != nil && k.gen.uses.has(useLifeGap) && s.lifeGapMask(k, p).any() {
+		var t avail
+		t = *cav
+		s.availLifeGaps(k, p, &t)
+		if t.affords(cost, pipMaskOf(cost), 0) {
+			return true
+		}
+	}
 	return (s.rbAny(p) || k.restrSrc) && s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav)
 }
 
