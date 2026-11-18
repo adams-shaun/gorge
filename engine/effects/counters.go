@@ -147,6 +147,12 @@ func splitCounterKinds(raw string) []string {
 // and the poison-loss SBA observe both placement and removal.
 func effRadiation(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "Num", 1)
+	// Radiation's amount is a "gets a number ... equal to" count, so a
+	// negative one (Feral Ghoul dying with negative power) counts as zero by
+	// CR 107.1b -- unlike effPoison, whose signed Num$ removes poison.
+	if n < 0 {
+		n = 0
+	}
 	g := h.Game()
 	for _, t := range Defined(h, c, sa) {
 		if !t.IsPlayer {

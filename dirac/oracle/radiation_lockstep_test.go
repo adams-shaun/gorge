@@ -17,7 +17,8 @@ import (
 // counter. The projection compares every seat's rad count at every decision,
 // so the per-card removal is checked, not inferred. Thrummingbird
 // proliferates a player's rad counters. A Ghoul the Fallout kills dies with
-// negative power, and gorge's signed amount then removes rad counters.
+// negative power; CR 107.1b treats the negative amount as zero, so both
+// sides give nothing and every seat's rad count stays as it was.
 func kradDecks() [2][]cardset.Entry {
 	d := []cardset.Entry{
 		{Name: "Feral Ghoul", Count: 4},
@@ -70,7 +71,7 @@ func TestRadiationLockstep(t *testing.T) {
 		return
 	}
 	st := &dirac.RadiationStats
-	gained, drains, milled, nonland, neg := st.Gained.Load(), st.Drains.Load(), st.Milled.Load(), st.Nonland.Load(), st.Negative.Load()
+	gained, drains, milled, nonland := st.Gained.Load(), st.Drains.Load(), st.Milled.Load(), st.Nonland.Load()
 	probe := &kradProbe{}
 	policy := func(seed uint64) Policy {
 		base := castFirstPolicy(seed)
@@ -96,7 +97,6 @@ func TestRadiationLockstep(t *testing.T) {
 		{st.Drains.Load() - drains, "drain triggers queued"},
 		{st.Nonland.Load() - nonland, "nonland cards drained (life and a counter each)"},
 		{st.Milled.Load() - milled - (st.Nonland.Load() - nonland), "lands milled by a drain (no life, no counter)"},
-		{st.Negative.Load() - neg, "negative amounts (a Ghoul dying with negative power removes rad counters, as gorge's signed event does)"},
 		{int64(probe.ghoulRad), "Feral Ghoul rad triggers on gorge's stack"},
 		{int64(probe.drain), "drain triggers on gorge's stack"},
 	} {
