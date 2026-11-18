@@ -91,8 +91,8 @@ func compareHash(p *Projection) uint64 {
 	q := *p
 	q.Priority = 0
 	// Chars are read through a kernel table's vocabulary, and a replay has no table. The
-	// lockstep compares them.
-	for i := range q.Cards {
+	// lockstep compares them. Cards[NInst:] are unbound, with no Chars.
+	for i := range min(int(q.NInst), MaxInst) {
 		q.Cards[i].Chars = CharsProj{}
 	}
 	if q.Over {

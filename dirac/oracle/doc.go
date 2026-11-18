@@ -142,7 +142,8 @@
 //
 // # Projection
 //
-// Projection (project.go) is compared with == and diffed field by field:
+// Projection (project.go) is compared as == would (Projection.equal reads
+// only the bound Cards[:NInst]) and diffed field by field:
 // per instance its front-face name hash, deck table index, zone (ZoneCeased
 // for a token that left), owner, controller, library position from the top,
 // flags (tapped, summoning sick, attacking, blocking, face down, token,

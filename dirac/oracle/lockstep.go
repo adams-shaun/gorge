@@ -403,7 +403,7 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 			if pr.Over && pk.Over && pr.Winner == pk.Winner && pr.Life == pk.Life {
 				pr = pk // local patch: a finished game compares by result only
 			}
-			if pr != pk {
+			if !pr.equal(&pk) {
 				diff := DiffProjection(&pr, &pk)
 				if os.Getenv("KFEAT_DEBUG") != "" {
 					fmt.Printf("  at the projection divergence: ref %v p%d %v, kernel %v p%d %v\n", dr.Kind, dr.Player, actionStrings(dr.Options), dk.Kind, dk.Player, actionStrings(dk.Options))
