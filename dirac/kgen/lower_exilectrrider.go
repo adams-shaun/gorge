@@ -41,6 +41,99 @@ func exileCounterRider(w *cards.SA) bool {
 	return strings.EqualFold(strings.TrimSpace(bp.str("RememberChanged")), "True")
 }
 
+// exileMoveHead reports whether w is a ChangeZone of ReplacedCard to Exile
+// from the battlefield (or no origin), the head every dies-to-exile body
+// shares, and returns its parameters.
+func exileMoveHead(w *cards.SA) (*params, bool) {
+	if w == nil || w.API != "ChangeZone" {
+		return nil, false
+	}
+	bp := newParams(w.Params)
+	if bp.str("Defined") != "ReplacedCard" || bp.str("Destination") != "Exile" {
+		return nil, false
+	}
+	switch bp.str("Origin") {
+	case "", "All", "Battlefield":
+	default:
+		return nil, false
+	}
+	return bp, true
+}
+
+// exileTokenRider reports whether w is the dies-to-exile move of ReplacedCard
+// whose linked sub-ability chain is exactly one DB$ Token node for the
+// replacing permanent's controller (Kalitas's Zombie): a single token from a
+// script, no amount, no counters on the exiled card. It returns the Token
+// node. The kernel runs the node's prog after the exile move
+// (dirac/repl_exilerider.go).
+func exileTokenRider(w *cards.SA) (*cards.SA, bool) {
+	bp, ok := exileMoveHead(w)
+	if !ok || w.Sub == nil {
+		return nil, false
+	}
+	if _, ok := bp.get("WithCountersType"); ok {
+		return nil, false
+	}
+	if _, ok := bp.get("WithCountersAmount"); ok {
+		return nil, false
+	}
+	if h, ok := bp.get("Hidden"); ok && !strings.EqualFold(h, "True") {
+		return nil, false
+	}
+	bp.consume("Defined", "Destination", "Origin", "Hidden", "SubAbility")
+	if len(bp.unread()) != 0 {
+		return nil, false
+	}
+	t := w.Sub
+	if t.API != "Token" || t.Sub != nil {
+		return nil, false
+	}
+	tp := newParams(t.Params)
+	script := strings.TrimSpace(tp.str("TokenScript"))
+	if script == "" || strings.Contains(script, ",") || tp.str("TokenOwner") != "You" {
+		return nil, false
+	}
+	if _, ok := tp.get("TokenAmount"); ok {
+		return nil, false
+	}
+	return t, true
+}
+
+// exileRiderClaim classifies a dies-to-exile body exileBody rejected.
+// claimed is false when the body is no rider shape and the caller falls
+// through to the other Moved-to-Graveyard lowerings. A claimed body is either
+// the token rider (token true, err nil) or refused by name: the counter
+// riders without a lowering and any other sub-ability chain name their first
+// node, never the generic "Moved to Graveyard shape".
+func exileRiderClaim(w *cards.SA) (token, claimed bool, err error) {
+	if exileCounterRider(w) {
+		return false, true, refuse("repl-hard: dies-to-exile counter rider")
+	}
+	if _, ok := exileTokenRider(w); ok {
+		return true, true, nil
+	}
+	if _, ok := exileMoveHead(w); ok && w.Sub != nil {
+		return false, true, refuse("repl-hard: dies-to-exile rider %s", w.Sub.API)
+	}
+	return false, false, nil
+}
+
+// exileRiderProg lowers the token rider's chain into rl.Prog: a latent
+// ability the kernel runs after the exile move, the replacing permanent's
+// controller as "You" and the exiled card as ReplacedCard. The any-zone path
+// has no runtime hook, so it is refused by name.
+func (lc *lowerCtx) exileRiderProg(w *cards.SA, anyZone bool, rl *lRepl) error {
+	if anyZone {
+		return refuse("repl-hard: dies-to-exile rider on the any-zone path")
+	}
+	ab := &lAbility{Kind: akLatent}
+	if err := lc.withAbility(ab, func() error { return lc.chain(w.Sub, nil) }); err != nil {
+		return err
+	}
+	rl.Prog = ab.Prog
+	return nil
+}
+
 // exileCounterChainBody lowers the RememberChanged$ chain form of the
 // dies-to-exile counter rider (Ravenloft Adventurer): the plain exile move of
 // ReplacedCard with RememberChanged$ True, a PutCounter of one counter on
