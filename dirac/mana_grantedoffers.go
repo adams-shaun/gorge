@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
 	"sync/atomic"
 
@@ -1345,6 +1346,7 @@ func (s *State) grantFirstGaps(k *prep, p uint8) bool {
 // offered / priced); else each untapped candidate is activated in turn,
 // its answers branched on in gorge's order, each payer state once.
 func (g *grantSrch) visit(t *State) bool {
+	g.dbgTrace(t, "visit")
 	g.stallOf(t) // (the stall the step into this node latched on its fork; the node's own probes are the root's too)
 	if !g.node() {
 		return false
@@ -2047,6 +2049,8 @@ func (s *State) grantPayDescOf(k *prep, a Action) payDesc {
 // caller declares it only where it finally drops the play (mana_tapanother.go
 // tapXScript).
 //
+var dbgGrantSrch struct{ nodes, np int; found bool; trace []string }
+
 //go:noinline
 func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, need [kop.NumManaKinds]bool, g *grantSrch) bool {
 	*g = grantSrch{k: k, p: p, cost: *cost, ex: ex, d: d, sp0: s.sp, tapsLive: k.gen.manaTaps, need: need}
@@ -2064,6 +2068,8 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 		}
 	}
 	g.candidates(s)
+	dbgGrantSrch.nodes, dbgGrantSrch.np, dbgGrantSrch.found = g.nodes, g.np, false
+	dbgGrantSrch.trace = dbgGrantSrch.trace[:0]
 	if g.n == 0 {
 		// no candidate to tap: the offered check still stands (the pool alone
 		// pays a Power-up play's reduced charge, offerPays)
@@ -2075,7 +2081,15 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 	}
 	t := s.fork()
 	defer s.unfork()
-	return g.visit(t)
+	ok := g.visit(t)
+	dbgGrantSrch.nodes, dbgGrantSrch.np, dbgGrantSrch.found = g.nodes, g.np, ok
+	return ok
+}
+
+func (g *grantSrch) dbgTrace(t *State, tag string) {
+	if len(dbgGrantSrch.trace) < 200 {
+		dbgGrantSrch.trace = append(dbgGrantSrch.trace, fmt.Sprintf("%s n=%d np=%d tap=%v pool=%v", tag, g.nodes, g.np, t.tappedOf(g.p), t.pl[SeatIx(g.p)].pool))
+	}
 }
 
 // stallOf records the stall a node's fork latched (capFull) while the line ran
