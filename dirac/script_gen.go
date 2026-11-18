@@ -387,7 +387,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			continue
 		}
 		searched++
-		if s.autopayDropsPlainCast(a) && !s.lifePlanned(k, p, life, &lifeWalk, &lifeBuilt, a) {
+		if s.autopayDropsPlainCast(a) && !s.lifePlanned(k, p, life, &lifeWalk, &lifeBuilt, a) && !s.phyHalfPlanned(k, p, a) {
 			continue // a plain cast: dropped by the autopay surface unless gorge's planner prices it with a life-only source (mana_lifeplan.go)
 		}
 		if dh {
