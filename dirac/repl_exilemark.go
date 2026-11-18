@@ -276,6 +276,9 @@ func (s *State) park(k *prep, o Obj, kind parkKind, x uint8) bool {
 	if n > maxParkSrc {
 		return false
 	}
+	if s.exileRiderAmong(k, src[:n]) {
+		return false // a rider never sits in an answered order (repl_exilerider.go)
+	}
 	for i := range s.cold.parked {
 		if r := &s.cold.parked[i]; r.kind == parkNone {
 			*r = parkedMove{obj: o, kind: kind, x: x}

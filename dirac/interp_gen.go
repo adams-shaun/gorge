@@ -1511,8 +1511,10 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 	exileN := 0
 	var ctr kop.CounterKind
 	var ctrN uint8
+	src := NoSlot
+	s.exileRiderReset(k, sl) // repl_exilerider.go
 	if k.gen != nil && k.gen.anyRepl&rbExileOnLeave != 0 {
-		exileN, ctr, ctrN = s.exileOnLeaveN(k, sl)
+		exileN, ctr, ctrN, src = s.exileOnLeaveN(k, sl)
 	}
 	// a mark lasts whatever the object is by then: a planeswalker with no
 	// loyalty dies too (CR 700.4; gorge registerReplaceDying matches any object)
@@ -1554,6 +1556,7 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 			o := s.perms[sl].obj
 			s.stampExileCounter(o, ctr, int(ctrN))
 		}
+		s.exileRiderMark(k, sl, exileN, src)
 		return kop.ZoneExile
 	}
 	return kop.ZoneGraveyard
