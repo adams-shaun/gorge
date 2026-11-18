@@ -63,3 +63,28 @@ func (s *State) boardRaiseTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
 	})
 	return hit
 }
+
+// windowPoolPipsFirst is the second path targetWindowShort tries when the
+// window's battlefield-order walk falls short: the floating pool pays its own
+// pips of cost first (held aside, so a filter source's {1} fee cannot spend a
+// unit a pip needs), then the window pays the rest. gorge's
+// affordableTargetCandidates asks castWindowReachable, which finds this order
+// whenever it exists: Might of Alara's floating {G} under Icefall Regent's
+// {2} tax, with a Mountain and a Darkwater Catacombs ({1},{T}: add {U}{B}),
+// pays {2}{G} though the walk taps the Catacombs first and spends the {G} on
+// its fee. A hybrid, snow, X or any-colour cost keeps the walk's answer.
+func (s *State) windowPoolPipsFirst(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) bool {
+	if anyColor || cost.X != 0 || cost.Snow != 0 || cost.Hyb[0] != 0 {
+		return false
+	}
+	rest := *cost
+	var held [kop.NumManaKinds]uint8
+	pool := &s.pl[p].pool
+	for c := range rest.Pips {
+		held[c] = min(rest.Pips[c], pool[c])
+		rest.Pips[c] -= held[c]
+		pool[c] -= held[c]
+	}
+	ok, _ := s.windowTapRider(k, p, &rest, false, false)
+	return ok
+}
