@@ -39,7 +39,10 @@ values fitted from simulated games; decks filtered by win-rate bucket.
 
 MTGJSON. draft/limited/setdata/mtgjson and draft/limited/setdata/sets are trimmed
 from MTGJSON (https://mtgjson.com, MIT, copyright Zachary Halpern); see
-draft/limited/setdata/mtgjson/LICENSE-MTGJSON.txt.
+draft/limited/setdata/mtgjson/LICENSE-MTGJSON.txt. The Commander precon decks in
+dirac/oracle/testdata/slices/edh and the card list dirac/cardset/pools/edh/cards.txt
+derive from MTGJSON's precon deck lists (same licence). Changes: card copies the
+dirac kernel does not lower replaced by basic lands.
 
 XMage. engine/rules/testdata/sets and dirac/cardset/setlists list card names taken
 from manifests derived from XMage (MIT, https://github.com/magefree/mage); see
