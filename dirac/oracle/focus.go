@@ -61,6 +61,40 @@ func ParseFocus(b []byte) ([]FocusCard, error) {
 	return out, nil
 }
 
+// focusInfo is what FocusPoolWith keeps of a playable card: its pip colours and its kind.
+type focusInfo struct {
+	mask uint8
+	kind synthKind
+}
+
+// focusPlayable lists the cards of set a focus deck can hold: every supported, lowered
+// nonbasic spell or land, with its colours, and the spell and land names apart.
+func focusPlayable(reg *cards.Registry, set cardset.Set, pool string) (map[string]focusInfo, []string, []string, error) {
+	plays := set.Supported()
+	playable := map[string]focusInfo{}
+	var spells, lands []string
+	for i, name := range set.Names()[:set.NumCards()] {
+		if set.Status(i) == cardset.StatusNotLowered || !plays[i] || cardset.IsSynthBasic(name) {
+			continue
+		}
+		c, ok := reg.Lookup(name)
+		if !ok {
+			return nil, nil, nil, fmt.Errorf("focus %s: card %q is not in the corpus", pool, name)
+		}
+		k := kindOf(c)
+		switch k {
+		case synthSpell:
+			spells = append(spells, name)
+		case synthLand:
+			lands = append(lands, name)
+		default:
+			continue
+		}
+		playable[name] = focusInfo{mask: pipMask(c), kind: k}
+	}
+	return playable, spells, lands, nil
+}
+
 // FocusPool is FocusPoolWith over a set with no cards from other pools.
 func FocusPool(reg *cards.Registry, set cardset.Set, pool string, focus []FocusCard, perDeck int, seed uint64, nDecks int) ([]PoolDeck, map[string]deck.File, error) {
 	return FocusPoolWith(reg, set, nil, pool, focus, perDeck, seed, nDecks)
@@ -84,31 +118,9 @@ func FocusPoolWith(reg *cards.Registry, set cardset.Set, extra map[string]bool, 
 	if perDeck < 1 {
 		perDeck = 1
 	}
-	plays := set.Supported()
-	type info struct {
-		mask uint8
-		kind synthKind
-	}
-	playable := map[string]info{}
-	var spells, lands []string
-	for i, name := range set.Names()[:set.NumCards()] {
-		if set.Status(i) == cardset.StatusNotLowered || !plays[i] || cardset.IsSynthBasic(name) {
-			continue
-		}
-		c, ok := reg.Lookup(name)
-		if !ok {
-			return nil, nil, fmt.Errorf("focus %s: card %q is not in the corpus", pool, name)
-		}
-		k := kindOf(c)
-		switch k {
-		case synthSpell:
-			spells = append(spells, name)
-		case synthLand:
-			lands = append(lands, name)
-		default:
-			continue
-		}
-		playable[name] = info{mask: pipMask(c), kind: k}
+	playable, spells, lands, err := focusPlayable(reg, set, pool)
+	if err != nil {
+		return nil, nil, err
 	}
 	// the filler lists are the main pool's: drop the cards another pool lent
 	spells = slices.DeleteFunc(spells, func(n string) bool { return extra[n] })
