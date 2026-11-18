@@ -119,19 +119,20 @@ func (s *State) xDelveCredit(k *prep, e *stackEntry) int {
 }
 
 // xDelveWithinMx reports whether the announced X = x is payable once its delve
-// credit is spent, given mx, the largest X the window's sources pay with no
-// credit: each generic the credit covers is one the sources need not make, so
-// the pool owes x less that credit (CR 702.66a; gorge xAsk prices every X
-// through castWindowPays at the credited generic). It reaches what the plain
-// pool read (xReducedPays) cannot, a filter's fee paid in the window (CR
-// 605.3b): mx already counts the filter's mana.
-func (s *State) xDelveWithinMx(k *prep, e *stackEntry, x, mx int) bool {
+// credit is spent through a filter's fee paid in the window (CR 605.3b), which
+// the plain pool read (xReducedPays) cannot see: gorge's xAsk prices every X
+// through castWindowPays at the credited generic (CR 702.66a). It prices the
+// credited cost at X = x itself, in generic mana, through the same filter walk
+// that bounds the ask (filtMaxX): comparing x with that walk's largest
+// uncredited X would mix units of {X} with generic (a cost with two {X}) and
+// read its -1 "unpayable at X = 0" as a count.
+func (s *State) xDelveWithinMx(k *prep, e *stackEntry, x int, av *avail, anyColor bool) bool {
 	if k.gen == nil || !k.gen.anyFilt || s.xDelveCredit(k, e) == 0 {
 		return false
 	}
 	c := s.xHypoCost(k, x).AtX(x)
-	credit := int(c.Generic - s.delveOfferCredit(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl), c).Generic)
-	return x-credit <= mx
+	c = s.delveOfferCredit(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl), c)
+	return s.filtMaxX(k, e.ctrl, &c, av, anyColor) >= 0 // c has no {X} left: 0 pays it, -1 does not
 }
 
 // delveTargetAbort reports whether the delve cast being built can no longer be
