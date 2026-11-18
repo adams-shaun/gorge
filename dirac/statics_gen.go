@@ -426,18 +426,24 @@ func abIndex(k *prep, c CardID, a *kop.Ability) int {
 	return 255
 }
 
-func (s *State) usedThisTurn(o Obj, ab uint8) bool {
+func (s *State) usedThisTurn(o Obj, ab uint8) bool { return s.usedThisTurnBy(o, ab, 0) }
+
+func (s *State) markUsed(o Obj, ab uint8) { s.markUsedBy(o, ab, 0) }
+
+// usedThisTurnBy / markUsedBy are the used pool keyed by the granting
+// permanent plus one too (a trigListener's host; 0 for the object's own line).
+func (s *State) usedThisTurnBy(o Obj, ab uint8, host Obj) bool {
 	for i := 0; i < int(s.g.nused); i++ {
-		if s.g.used[i].obj == o && s.g.used[i].ab == ab && (o >= MaxObj || s.g.used[i].ver == s.objs[o].ver) {
+		if s.g.used[i].obj == o && s.g.used[i].ab == ab && s.g.used[i].host == host && (o >= MaxObj || s.g.used[i].ver == s.objs[o].ver) {
 			return true
 		}
 	}
 	return false
 }
 
-func (s *State) markUsed(o Obj, ab uint8) {
+func (s *State) markUsedBy(o Obj, ab uint8, host Obj) {
 	if int(s.g.nused) < maxUsed {
-		s.g.used[s.g.nused] = usedRec{obj: o, ab: ab, ver: s.objVer(o)}
+		s.g.used[s.g.nused] = usedRec{obj: o, ab: ab, ver: s.objVer(o), host: host}
 		s.g.nused++
 	} else {
 		s.capFull(StallUsed)

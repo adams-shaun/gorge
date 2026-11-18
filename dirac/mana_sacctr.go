@@ -21,12 +21,13 @@ import (
 // pick, as before.
 
 // sacCtrManaAb reports whether mana ability a is that shape: {T} and a
-// sacrifice of the source, no mana, one fixed colour, as many as the counters
-// of one kind on the source.
+// sacrifice of the source, no mana, as many mana as the counters of one kind
+// on the source, of one fixed colour or (Lotus Blossom: "Add X mana of any one
+// color") of one colour its activation asks (ctrAnyColour).
 func sacCtrManaAb(a *kop.Ability) bool {
 	return a != nil && a.Kind == kop.AbMana && a.Cost.Flags == kop.CostTap|kop.CostSacSelf &&
 		a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && a.AFlags == kop.AfManaDynamic &&
-		a.ManaV.K == kop.VCountersSelf && a.ManaColors != 0 && a.ManaColors&(a.ManaColors-1) == 0 &&
+		a.ManaV.K == kop.VCountersSelf && a.ManaColors != 0 && (a.ManaColors&(a.ManaColors-1) == 0 || a.ManaColors&^kop.ColAny == 0) &&
 		a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && !a.ManaEach && !a.ManaDeferred &&
 		a.ManaRider == kop.ManaRiderNone && len(a.Prog) == 0 && a.Trig.Cond == 0
 }
@@ -62,8 +63,9 @@ func (s *State) sacCtrUnits(sl Slot, a *kop.Ability) int {
 // is the same either way). It always runs the activation's trigger passes
 // (manaTapped, fireSac): the shape is no grant-search candidate
 // (mana_grantedoffers.go), so ctrGapDo's fire false fork-side branch never
-// reaches it and there is no deferred grantApply pass to leave them to.
-func (s *State) sacCtrGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
+// reaches it and there is no deferred grantApply pass to leave them to. ask is
+// an any-colour ability's colour answer (-1: the lowest colour).
+func (s *State) sacCtrGap(k *prep, p uint8, sl Slot, a *kop.Ability, ask int) {
 	pm := &s.perms[sl]
 	if pm.flags&pfTapped != 0 {
 		return
@@ -73,6 +75,9 @@ func (s *State) sacCtrGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
 	col := bits.TrailingZeros8(uint8(a.ManaColors) & 0x3f)
+	if ctrAnyColour(a) && ask >= 0 {
+		col = ask // the colour ask's answer (ctrAnsCol); the lowest colour when none
+	}
 	if n > 0 {
 		s.poolAdd(SeatIx(p), col, n)
 		s.artTag(k, p, sl, col)

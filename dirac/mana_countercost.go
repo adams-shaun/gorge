@@ -352,7 +352,7 @@ func (s *State) ctrGapDo(k *prep, p uint8, sl Slot, col int, fire bool) {
 		return
 	}
 	if sacCtrManaAb(a) {
-		s.sacCtrGap(k, p, sl, a) // mana_sacctr.go: no fork-side branch reaches it
+		s.sacCtrGap(k, p, sl, a, col) // mana_sacctr.go: no fork-side branch reaches it
 		return
 	}
 	if deadCtrAb(a) {
