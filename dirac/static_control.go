@@ -512,11 +512,14 @@ func (s *State) ctrlRegister(k *prep) bool {
 	return true
 }
 
-// ctrlMoved reports whether any slot with a control record changed hands
-// during the pass (the record table is the same size but a bearer moved, so
-// the next pass must re-derive the wants that read it).
+// ctrlMoved reports whether any occupied slot changed hands during the pass
+// (the record table is the same size but a bearer moved, so the next pass must
+// re-derive the wants that read it). It reads every occupied slot, not just
+// those still in fxM: ctrlExpire rebuilds fxM from the surviving records
+// before its revert moves the controller, so a slot whose only record ended
+// this pass has left fxM by the time it is compared.
 func (s *State) ctrlMoved(prev *[MaxPerm]uint8) bool {
-	for m := s.fxM; m.any(); m = m.rest() {
+	for m := s.occ; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.perms[sl].ctrl != prev[sl] {
 			return true
