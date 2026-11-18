@@ -78,9 +78,21 @@ func (e *Engine) sourceCharSnapshotOf(src state.ObjID) sourceCharSnapshot {
 // toughness and counters (CR 113.7a / 608.2h). It does nothing for an ability whose source never left, so those
 // read live as before.
 func (e *Engine) bindSourceLKI(tc *effects.TriggerContext, id, source state.ObjID) {
-	snap, ok := e.sourceCharLKI[id]
-	if !ok || source == 0 {
+	if source == 0 {
 		return
+	}
+	snap, ok := e.sourceCharLKI[id]
+	if !ok {
+		// A dies trigger of the source itself ("it deals damage equal to its
+		// power") exists only after the departure, so no snapshot was taken
+		// while it waited: its own zone-change LKI is the source (CR 603.10a).
+		held, has := e.triggerLKI[id]
+		if !has {
+			return
+		}
+		if snap, ok = e.sourceCharLKIFor(id, source, held.object, held.power, held.toughness, held.ptValid); !ok {
+			return
+		}
 	}
 	tc.SourceLKIValid = true
 	tc.SourceChosenType, tc.SourceChosenColor = snap.chosenType, snap.chosenColor
