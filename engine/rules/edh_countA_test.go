@@ -379,3 +379,27 @@ func TestEDHCountHeadsAEpharaLastTurnEntered(t *testing.T) {
 		t.Fatalf("hand %d -> %d, want no draw (no other creature entered last turn)", b, a)
 	}
 }
+
+// TestEDHCountHeadsACastBattlefieldNeedle pins which SVar bodies freeze the
+// as-cast battlefield: only a Count$LastStateBattlefield read (either
+// spelling). Miss Highwater's Defined$ TriggeredLastStateBattlefieldLKICopy
+// body names the substring but reads neither head, so casting her must not
+// retain a battlefield snapshot.
+func TestEDHCountHeadsACastBattlefieldNeedle(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		body string
+		want bool
+	}{
+		{"plain", "Count$LastStateBattlefield Artifact.YouCtrl", true},
+		{"withFallback", "Count$LastStateBattlefieldWithFallback Land.OppCtrl", true},
+		{"missHighwaterLKICopy", "DB$ CopyPermanent | Defined$ TriggeredLastStateBattlefieldLKICopy.Creature+ControlledBy TriggeredPlayer,Artifact+ControlledBy TriggeredPlayer", false},
+		{"unrelated", "Count$Valid Creature.YouCtrl", false},
+	}
+	for _, tc := range cases {
+		if got := effects.SVarsReadCastBattlefield(map[string]string{"S": tc.body}); got != tc.want {
+			t.Errorf("%s: SVarsReadCastBattlefield = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
