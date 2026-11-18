@@ -1414,6 +1414,18 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		return false
 	}
 	p := fs.p
+	// Price the node before the visited set, as gorge's scriptSearch.visit
+	// offers before it dedups: the colour-only key cannot tell a restricted
+	// unit from a filter's converted one, so a priced node can key equal to an
+	// earlier unpriced sibling.
+	if gapUsed {
+		var d Decision
+		t.restrOptions(k, &d, p) // (restricted mana floating is priced as ordinary: the search reads no restriction)
+		t.capGrantOvercounts(k, &d, p)
+		if hasOption(&d, fs.a) && !t.grantRefusedPrices(k, p, fs.a) && !fs.witnessEats(k, t) {
+			return true
+		}
+	}
 	key := fs.stateKey(k, t)
 	for i := 0; i < fs.nseen; i++ {
 		if fs.seen[i] == key {
@@ -1423,14 +1435,6 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	if fs.nseen < len(fs.seen) {
 		fs.seen[fs.nseen] = key
 		fs.nseen++
-	}
-	if gapUsed {
-		var d Decision
-		t.restrOptions(k, &d, p) // (restricted mana floating is priced as ordinary: the search reads no restriction)
-		t.capGrantOvercounts(k, &d, p)
-		if hasOption(&d, fs.a) && !t.grantRefusedPrices(k, p, fs.a) && !fs.witnessEats(k, t) {
-			return true
-		}
 	}
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.ctrlM[SeatIx(p)].and(t.occ), order[:], 0)
