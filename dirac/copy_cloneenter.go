@@ -126,6 +126,8 @@ func (s *State) rerunReturn(k *prep) {
 		if s.rerunMove(k, in) {
 			return // suspended again
 		}
+	case kop.OpNinjutsu:
+		s.handEntryResolve(k, in.C != 0) // the hand entry's election is answered (kw_ninjutsu.go)
 	case kop.OpReturnEx:
 		// the parked card itself, not the op's reference read afresh: the target the
 		// card was named by is a bad one now that it stands in exile
