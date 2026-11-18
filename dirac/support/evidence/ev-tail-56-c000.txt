@@ -369,6 +369,7 @@ Skorpekh Destroyer
 Skullport Merchant
 Skyfisher Spider
 Skyshaper
+Slipstream Serpent
 Snow Devil
 Soltari Priest
 Somber Hoverguard

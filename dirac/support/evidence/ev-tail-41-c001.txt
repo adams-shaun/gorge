@@ -29,6 +29,7 @@ Bloodforged Battle-Axe
 Bloody Betrayal
 Blossoming Bogbeast
 Bond of Discipline
+Bone Splinters
 Bonesplitter
 Borne Upon a Wind
 Borrowed Time
@@ -55,8 +56,10 @@ Chivalric Alliance
 Cindervines
 Cloak of the Bat
 Clockwork Vorrac
+Coercion
 Collateral Damage
 Colos Yearling
+Colossus of Sardia
 Combat Thresher
 Commissar Severina Raine
 Conjurer's Bauble
@@ -111,7 +114,10 @@ Eye Gouge
 Faceless Devourer
 Faerie Invaders
 Faerie Vandal
+Fantastic Bounce
 Farrel's Zealot
+Fatal Push
+Fellwar Stone
 Femeref Archers
 Fiend Binder
 Firefist Striker
@@ -120,6 +126,7 @@ Flaxen Intruder
 Flood of Recollection
 Flowstone Overseer
 Flutterfox
+Foreboding Fruit
 Foresight
 Forest
 Forgeborn Oreads
@@ -145,6 +152,7 @@ Goblin War Party
 Godtoucher
 Griffin Canyon
 Grounded
+Halo Forager
 Hand of Silumgar
 Hangarback Walker
 Heirs of Stromkirk
@@ -187,6 +195,7 @@ Leyline of Vitality
 Lightning Dart
 Lightning Diadem
 Lochmere Serpent
+Locthwain Lancer
 Lonis, Genetics Expert
 Loxodon Lifechanter
 Mage-Ring Responder
@@ -229,8 +238,10 @@ Multani's Acolyte
 Multiversal Recruitment
 Murderous Compulsion
 Myojin of Blooming Dawn
+Myojin of Roaring Blades
 Nacatl Savage
 Necrobite
+Necroduality
 Necroplasm
 Nephalia Seakite
 Night
@@ -280,10 +291,12 @@ Reinforced Ronin
 Reito Lantern
 Remove Soul
 Renowned Weaponsmith
+Rescind
 Retributive Wand
 Returned Centaur
 Revive the Fallen
 Rhythmic Water Vortex
+Rimeshield Frost Giant
 Rimrock Knight
 Riptide Laboratory
 River of Tears
@@ -308,6 +321,7 @@ Searchlight Companion
 Seascape Aerialist
 Secret Passage
 Secrets of the Golden City
+Seedguide Ash
 Selesnya Eulogist
 Senate Guildmage
 Sengir Vampire
@@ -319,6 +333,7 @@ Shadow-Rite Priest
 Shamanic Revelation
 Shard of Broken Glass
 Sheltering Light
+Shred Memory
 Shrieking Mogg
 Sigil of Myrkul
 Signal Pest
@@ -334,6 +349,7 @@ Slithery Stalker
 Sly Requisitioner
 Smoke Bomb
 Soul Swallower
+Spawnbed Protector
 Spear Spewer
 Spectral Hunt-Caller
 Spire Barrage
@@ -373,6 +389,7 @@ Thornling
 Thrummingbird
 Thunder Strike
 Thunderscape Familiar
+Tidehollow Strix
 Timberwatch Elf
 Timetwister
 Torch Slinger
@@ -407,6 +424,7 @@ Warped Physique
 Warren Soultrader
 Weaponize the Monsters
 Weirding Shaman
+Where Ancients Tread
 Whispering Shade
 Wild Colos
 Wild Onslaught

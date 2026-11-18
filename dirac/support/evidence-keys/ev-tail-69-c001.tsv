@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Accomplished Automaton	acf5125569525d0f	8	1/1		1/1	
 Ancient Amphitheater	5b49df9c646cfb9e	59	1/1		0/1	ix:resp
+Aphelia, Viper Whisperer	bf9efd9a443cf4df	29	2/2		1/1	
 Arctic Flats	910f4bd012607376	89	1/1		0/1	ix:resp
 Balduvian Conjurer	89057392610de9d3	11	1/1		1/1	
 Blood-Chin Fanatic	cd4f331a6bc25d14	16	1/1		1/1	
@@ -12,8 +13,10 @@ Curse of Obsession	716ca63a80c517ab	8	2/2		1/2	ix:resp
 Deeproot Warrior	5f07a3d4e10e10f0	9	1/1		0/1	ix:resp
 Demonspine Whip	a4ffcf214363c83e	8	2/2		1/1	
 Duskdale Wurm	8cf42bbc1e1304e1	4	0/0		0/0	
+Errant Ephemeron	3577fde3f151d2f2	22	0/0		2/2	
 Foul Watcher	34c19bf13b614a4a	13	1/1		0/1	ix:resp
 Garruk Wildspeaker	3493ff5336d68c0c	4	3/3		0/1	ix:resp
+Gauntlet of Might	69deeb76877f5348	34	1/1		1/1	
 Ghostly Wings	55376e45c07a7477	8	1/1		2/2	
 Gigantiform	b6d87d97c7f133a7	3	1/1		3/6	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Gnoll War Band	1740fbbbffadda32	3	1/1		1/1	
@@ -31,16 +34,21 @@ Lounge	d6d032a1df7e850c	76	2/2		1/1
 Mana Leak	dff236b6dfb2471f	17	0/0		2/2	
 Molten Influence	8e454f73e6dd4873	6	0/0		1/2	ix:resp
 Nullhide Ferox	2ca37245491d32e6	6	1/1		1/1	
+Orthion, Hero of Lavabrink	28cadd58ee31ceeb	27	2/2		0/1	ix:resp
 Peema Outrider	a08fe7ed3793fea4	6	1/1		0/1	ix:resp
 Phyrexian Walker	a2eb3772ad986c41	16	0/0		0/0	
 Primetime Suspect	9eb72f4768bd9525	6	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Protean Thaumaturge	da000ff0ff6266a8	20	1/1		0/1	ix:resp
+Rakdos Drake	8c2bf3c50c10506d	20	0/0		0/0	
+Read the Tides	635eccde506b635c	30	0/0		2/2	
 Redeem the Lost	a7ee522a30bc1392	10	0/0		1/2	ix:resp
 Restore the Peace	0cf62a4c515eba46	4	0/0		1/2	ix:resp
 Root Out	a9f84aa519f39d4a	6	0/0		1/2	ix:resp
+Rust Goliath	a98a1281872fb8d2	9	0/0		2/2	
 Sailor of Means	96018a20dd8c5283	21	1/1		1/1	
 Saprazzan Heir	7d6b836317867668	22	1/1		0/1	ix:resp
 Scarecrow	11377e56f9ee9efb	18	1/1		1/1	
+Shielding Plax	a9bd7ab919a4ff98	11	1/1		2/2	
 Sky Spirit	436a7b7b921eae61	12	0/0		0/0	
 So Shiny	fc07ed2618b128c0	10	1/1		2/2	
 Spectral Shield	e19e1d61261e87d5	3	0/0		1/2	ix:resp

@@ -10,6 +10,7 @@ Ancient Den
 Arrester's Admonition
 Ashiok's Skulker
 Assassin Initiate
+Aura of Silence
 Aven Gagglemaster
 Awaken the Woods
 Azami, Lady of Scrolls
@@ -80,6 +81,7 @@ Dusk Legion Dreadnought
 Dwarven Recruiter
 Dwarven Trader
 Eagle of Deliverance
+Electrify
 Elite Javelineer
 Elvish Hunter
 Energy Arc
@@ -96,9 +98,11 @@ Fetid Gargantua
 Fists of Flame
 Flare
 Flay
+Flourishing Strike
 Flowstone Mauler
 Forest
 Foundry Inspector
+Frenetic Efreet
 Fruit of Tizerus
 Fyndhorn Elder
 Garruk's Horde
@@ -115,14 +119,17 @@ Goblin Soothsayer
 Goggles of Night
 Grid Monitor
 Hag of Noxious Nightmares
+Hallowed Haunting
 Hammerheim Deadeye
 Hazardous Conditions
 Henrika Domnathi
 Hillcomber Giant
 Hobbit's Sting
 Homicidal Seclusion
+Honor-Worn Shaku
 Honored Crop-Captain
 Horizon Explorer
+Hornet Nest
 Hour of Revelation
 Hunter's Edge
 Hyperion Blacksmith
@@ -280,6 +287,7 @@ Talisman of Unity
 Talruum Champion
 Tangle Asp
 Tek
+Tempest of Light
 Territorial Maro
 Thalia's Lieutenant
 That Which Was Taken
@@ -306,6 +314,7 @@ Updraft
 Urborg Drake
 Valorous Steed
 Vampire Outcasts
+Vampiric Sliver
 Vectis Silencers
 Veilborn Ghoul
 Vengeful Vampire
@@ -316,11 +325,13 @@ Wall of Opposition
 War Falcon
 Wardscale Crocodile
 Warlord's Elite
+Warped Tusker
 Water Elemental
 Wayward Servant
 Wayward Soul
 Weakness
 White Widow, Yelena Belova
+Willow Elf
 Winds of Rath
 Wormhole Serpent
 Wu Scout
