@@ -16,7 +16,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // DkChoose + ChGenReplOrder over s.g.ro. A dig's or a search's found land (a
 // DigUntil, a Dig, a library search) is asked the same way with the card still
 // in its zone when exactly one tap and one untap compete (entryParkDig,
-// entryParkFound); a longer competition there, and every other route that
+// entryParkFound); a copy token of a resolving copy op is asked the same way
+// while it waits outside every zone, when exactly one tap and one untap compete
+// (repl_entrycopy.go). A longer competition there, and every other route that
 // meets a pair, stalls (StallEntryOrder), so nothing ever applies a fixed
 // order.
 
@@ -25,7 +27,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 var DebugEntryOrderTapLast bool
 
 // StallEntryOrder: a tap and an untap body compete over a permanent entering
-// by a route that cannot pose the order ask (a token, a clone, a spell
+// by a route that cannot pose the order ask (a token not minted by a copy op, a clone, a spell
 // resolving, a dig or search placement, a self enters program in the
 // competition, a body this ask cannot class).
 const StallEntryOrder = 65
@@ -532,6 +534,10 @@ func (s *State) applyEntryLand(k *prep, a Action) {
 
 // applyEntryResolve answers a resolving program's order ask.
 func (s *State) applyEntryResolve(k *prep, a Action) {
+	if s.entryCopyParked() {
+		s.entryCopyAnswer(k, a) // repl_entrycopy.go: a copy token's ask
+		return
+	}
 	switch s.entryOrderPick(k, a) {
 	case entAsk:
 		return
