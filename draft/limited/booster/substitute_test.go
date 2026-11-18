@@ -117,9 +117,13 @@ func TestBoosterMBCPodDealsOnlyPlayableCards(t *testing.T) {
 		}
 		swaps += len(log)
 	}
-	// About one pack in four draws an unplayable card (a colour sheet's
-	// unsupported mechanics, a new commander, a Future Sight card).
-	if swaps < 30 || swaps > 150 {
-		t.Errorf("%d swaps over 300 packs, want about 70", swaps)
+	// The swap count follows the substitute list, which shrinks with every
+	// card gorge and dirac learn to play (11-18: two PRs that each made MBC
+	// cards playable took it from ~70 to 28 and under a fixed floor of 30,
+	// reddening a merge-queue batch). So no floor that support growth breaks:
+	// a non-empty list swaps at least once in 300 packs, and never more than
+	// about half the packs (the list is a minority of every sheet).
+	if swaps == 0 || swaps > 150 {
+		t.Errorf("%d swaps over 300 packs with %d substitute cards, want between 1 and 150", swaps, len(spec.Unplayable))
 	}
 }
