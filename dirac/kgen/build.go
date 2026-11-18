@@ -2395,6 +2395,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vMonarch:            kop.ExMonarch,    // lower_monarch.go
 	vBlessing:           kop.ExBlessing,   // dirac/kw_ascend.go
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
+	vExileKw:            kop.ExStaticExileKw,
 	vCmdGreatestMV:      kop.ExCmdGreatestMV,
 	vDmgOppsTaken:       kop.ExDmgOppsTaken,   // lower_bloodthirst.go
 	vSrcRemCounters:     kop.ExSrcRemCounters, // lower_tokenrem.go
@@ -2418,6 +2419,9 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 	}
 	if v.Kind == vExileTypes {
 		e.N = 1 // ExCountExile N 1: the distinct card types, not the count
+	}
+	if v.Kind == vExileKw {
+		e.N = int16(v.N) // the keyword bit, or 32 + the protection colour (kop.ExileKwProtN)
 	}
 	if v.Kind == vPWTypes {
 		e.N = 1 // ExCount N 1: the distinct planeswalker subtypes, not the count
@@ -2468,7 +2472,7 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 			if v.N == 1 {
 				zone = kop.ZoneLibrary // Count$ValidLibrary
 			}
-		case vCountExile, vExileTypes:
+		case vCountExile, vExileTypes, vExileKw:
 			zone = kop.ZoneExile
 		case vThisTurnCastSpec, vRefCount, vPlExtreme:
 			zone = kop.ZoneNone // the object wherever it now lives
