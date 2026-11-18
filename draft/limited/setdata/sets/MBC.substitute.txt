@@ -4,7 +4,6 @@ Emerald Collector
 Euru, Acorn Scrounger
 Hogaak, Arisen Necropolis
 Jet Collector
-Light Up the Stage
 Oracle of the Alpha
 Out of Bounds
 Overcooked
@@ -13,7 +12,6 @@ Perforator Crocodile
 Reset
 Ruby Collector
 Sapphire Collector
-Skewer the Critics
 Skullmulcher
 The Crowd Goes Wild
 Whtz, the Bibliophile
