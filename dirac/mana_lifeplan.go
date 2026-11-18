@@ -52,3 +52,24 @@ func (s *State) lifePlanned(k *prep, p uint8, life slotMask, walk *Decision, bui
 	}
 	return hasOption(walk, a)
 }
+
+// lifePlannedPlay reports whether gorge's planner prices play a with p's
+// life-only sources on the autopay surface (its phase 2, mana_lifeplan.go),
+// so no prefix search runs for it: the verdict is "sufficient" and the plan
+// pays the play. A scripted gap that would also pay it (a depletion land's
+// counter mana, listed before the life-only unit in battlefield order) is not
+// the payment gorge's plan makes. The plain cast the autopay surface keeps is
+// already on the plain walk (castGateAffordable); this is the play beside it
+// whose own gate reads the plain census alone (an adventure face, a flashback
+// or cycling cost, an activation: CR 601.2g, 118.3).
+func (s *State) lifePlannedPlay(k *prep, p uint8, a Action) bool {
+	if s.cfg&cfgGorgeAutopay == 0 || !s.lifeGapMask(k, p).any() {
+		return false
+	}
+	if a.Kind() == AkCast && !s.lifeGapShaped(k, p, Obj(a.Source())) {
+		return false // a cast the planner never prices (an {X} cost)
+	}
+	var d Decision
+	s.plainOptions(k, &d, availLife)
+	return hasOption(&d, a)
+}

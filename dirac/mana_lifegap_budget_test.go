@@ -88,7 +88,7 @@ func TestLifeGapAnyColourAnswerFollowsPlayNeed(t *testing.T) {
 	ogre := sc.perm(id["Treasonous Ogre"], 0)
 	bears := sc.hand(id["Rancor"], 0)
 	s, k := sc.s, sc.k
-	s.pl[0].life = 3
+	s.pl[0].life = 4 // above the Ogre's 3: a payment to 0 life is no script (lifeGapSurvives)
 	sl := sc.slot(ogre)
 	if a, ok := s.lifeGapSource(k, sl); !ok || a.ManaColors != kop.ColAny {
 		t.Fatalf("precondition: the rewritten Ogre is not an any-colour life gap (ok %v)", ok)
