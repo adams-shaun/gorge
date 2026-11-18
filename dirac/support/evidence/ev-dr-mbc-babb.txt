@@ -14,12 +14,14 @@ Court of Embereth
 Dauthi Embrace
 Debt to the Deathless
 Demand Answers
+Demonic Consultation
 Desperate Lunge
 Destroy Evil
 Diplomatic Escort
 Doomsday
 Elven Bow
 Exhaustion
+Exquisite Huntmaster
 Extract from Darkness
 Fangren Marauder
 Fatestitcher
@@ -66,6 +68,7 @@ Pick Your Poison
 Plains
 Rampant Growth
 Reconnaissance
+Saryth, the Viper's Fang
 Scourge Devil
 Seal of Removal
 Shadowcloak Vampire
@@ -73,10 +76,12 @@ Shimmercreep
 Shoreline Looter
 Silver Knight
 Snap
+Spin into Myth
 Sting-Slinger
 Stinging Barrier
 Stir the Sands
 Strands of Night
+Street Wraith
 Stronghold Rats
 Surge of Salvation
 Swamp

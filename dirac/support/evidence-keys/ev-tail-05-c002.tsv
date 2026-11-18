@@ -1,0 +1,37 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Agent of Shauku	d3718fa889bc5e22	4	1/1		0/1	ix:resp
+Archetype of Finality	605a028a9191e1a1	4	0/0		0/0	
+Balshan Collaborator	f446a8a30e2200dd	4	1/1		0/1	ix:resp
+Banshee	748b6e4c92d6ceef	4	1/1		0/1	ix:resp
+Banshee's Blade	0b1c2071444199c5	4	2/2		0/1	ix:resp
+Boarded Window	8a8af6e2a0c34b05	4	1/1		0/1	ix:resp
+Brain Freeze	bef0b57812d4cb10	4	1/1		2/2	
+Breya's Apprentice	6dc170bc8e54ccc5	10	2/2		0/1	ix:resp
+Charging Cinderhorn	0042b8398b255635	7	1/1		0/1	ix:resp
+Cloudheath Drake	30e3026b0d155100	4	1/1		0/1	ix:resp
+Depart the Realm	9deb347bcfb33f4a	4	0/0		2/4	cast/alt:foretold,ix:resp
+Embercleave	0a6988afb7272d41	10	2/2		1/1	
+Falkenrath Reaver	f9e6fc118aa7c5ed	11	0/0		0/0	
+Foul Familiar	ae8477deb8c1fa38	4	1/1		0/1	ix:resp
+Gimli's Fury	a2cdc06047f67597	4	0/0		1/2	ix:resp
+Gimli, Mournful Avenger	8073f8570f10a969	10	1/1		0/1	ix:resp
+Go Forth	6379a644993c1a43	4	0/0		1/2	ix:resp
+Goblin War Strike	c5d7dddbd2c4dc57	4	0/0		1/2	ix:resp
+Hijack	0e447e548f616a28	4	0/0		1/2	ix:resp
+Howlpack Wolf	304c450192bef580	8	0/0		0/0	
+Insatiable Harpy	21d383044de1b7e9	4	0/0		0/0	
+Memory Lapse	f368eef37c2781dd	4	0/0		1/2	ix:resp
+Nahiri's Stoneblades	881fa453ae426509	10	0/0		2/2	
+Paladin's Shield	0c5fb7698b248897	4	2/2		1/1	
+Private Research	75afe8ce8c829c26	6	2/2		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Prowling Felidar	8f875d0a044df872	4	1/1		0/1	ix:resp
+Reflexes	57e404b27650ff38	8	0/0		2/2	
+Salt Flats	faa18ceb25543d24	10	2/2		0/1	ix:resp
+Student of Ojutai	2d53932b899701da	4	1/1		0/1	ix:resp
+Stump Stomp	eac8d54b8ac1bdd1	6	1/1		1/2	ix:resp
+Thermokarst	06f872f7315d71fa	35	0/0		1/2	ix:resp
+Thriving Grove	08e9a3f74bc9d816	4	1/1		0/1	ix:resp
+Toxic Iguanar	7f581f020d8e01a4	10	0/0		0/0	
+Triumphant Surge	628f30175dc29144	4	0/0		2/2	
+Venomous Changeling	4f31fc50278268f6	4	0/0		0/0	
+Voodoo Doll	06beec6f725882c9	3	3/3		1/1	

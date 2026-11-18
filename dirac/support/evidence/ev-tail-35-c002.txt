@@ -1,10 +1,13 @@
 A-Elderleaf Mentor
+A-You Come to a River
 Absolute Law
+Aeolipile
 Akki Rockspeaker
 Alchemist's Refuge
 Amass the Components
 Arlinn, Voice of the Pack
 Atraxa's Skitterfang
+Ballynock Trapper
 Balthor the Stout
 Barkhide Mauler
 Battlewing Mystic
@@ -13,8 +16,10 @@ Biogenic Ooze
 Blade of Selves
 Blessing of Belzenlok
 Blinding Souleater
+Blinding Spray
 Blitz of the Thunder-Raptor
 Bloodhunter Bat
+Blue Marvel, Adam Brashear
 Bontu's Last Reckoning
 Bramble Armor
 Branching Bolt
@@ -23,14 +28,20 @@ Bright Reprisal
 Brute Force
 Choose Your Weapon
 Claws of Valakut
+Convolute
+Cunning Survivor
 Dawn Charm
 Daxos, Blessed by the Sun
 Death Pits of Rath
 Decimator Web
+Deekah, Fractal Theorist
+Defabricate
 Divine Light
 Drake Familiar
+Elder Druid
 Elder Gargaroth
 Elite Vanguard
+Esper Battlemage
 Esper Panorama
 Faerie Impostor
 Forest
@@ -38,28 +49,40 @@ Foundry Assembler
 Frantic Confrontation
 Frenetic Raptor
 Gerrard's Battle Cry
+Ghost-Lit Warder
 Ghostly Changeling
 Giant Ankheg
+Gingerbehemoth
 Glint-Nest Crane
 Goblin Lore
 Graaz, Unstoppable Juggernaut
 Gravel Slinger
+Grayscaled Gharial
 Gruul Cluestone
 Guardian of Solitude
+Gulf Squid
 Hag of Noxious Nightmares
 Herald of War
 Hideous Visage
 Hookblade
 Hoverguard Observer
+Impaler Shrike
+In Oketra's Name
 Inferno
+Inspiring Bard
+Iron-Craw Crusher
 Island
 Jeskai Barricade
+Jet Medallion
 Kaito's Pursuit
 Karlach, Fury of Avernus
 Keeper of the Accord
 Lady Spider, Maybelle Reilly
 Leonin Armorguard
+Lush Growth
+Marshal's Anthem
 Mindlash Sliver
+Mishra's Groundbreaker
 Monoskelion
 Moonlit Wake
 Mountain
@@ -69,44 +92,67 @@ Myr Galvanizer
 Necrogenesis
 Nezumi Cutthroat
 Night Market Aeronaut
+No-Dachi
 Opal Acrolith
 Order of Leitbur
 Ori, Plate Stacker
 Otherworldly Outburst
 Pain Distributor
+Pain Seer
+Pest Rescuer
 Phalanx Leader
 Plains
+Prey's Vengeance
 Prohibit
+Raugrin Crystal
+Reach of Branches
 Rebuke
+Reject Imperfection
 Repulsor Rays
+Research Thief
 Sacred Rites
 Samite Healer
+Saprazzan Raider
 Scouting Hawk
 Sea Monster
+Secretkeeper
 Seething Song
 Selhoff Entomber
 Shivan Emissary
 Skyshroud Forest
+Sleeper Dart
 Spikeshot Goblin
+Spiketail Drake
 Spirit of Malevolence
 Spitting Hydra
 Stone Haven Pilgrim
 Storm Caller
+Stratadon
+Striped Bears
 Swamp
 Swarmyard Massacre
 Syphon Mind
 Tablet of Epityr
 Tezzeret the Schemer
+The Blue Spirit
+Tidal Kraken
 Tiller of Flesh
+Tree Monkey
 Tribal Flames
 Twenty-Toed Toad
+Uktabi Drake
 Uncovered Clues
+Undercity Troll
+Unifying Theory
 Utter End
 Victory's Herald
+Viridian Revel
 Vitalizing Cascade
 Void Squall
 Vraska's Fall
 Wash Out
+Witch's Vengeance
+Worldly Counsel
 Wrap in Flames
 Wrecking Ball
 Yarok's Fenlurker

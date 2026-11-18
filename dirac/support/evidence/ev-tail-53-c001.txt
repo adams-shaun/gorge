@@ -3,8 +3,10 @@ A-Death-Priest of Myrkul
 A-Geological Appraiser
 A-Glittermonger
 A-Midnight Assassin
+Access Tunnel
 Adrix and Nev, Twincasters
 Aegis of the Heavens
+Aerith, Last Ancient
 Aeromunculus
 Aeronaut Tinkerer
 Aether Helix
@@ -21,28 +23,33 @@ Araumi of the Dead Tide
 Archers' Parapet
 Arcum Dagsson
 Argothian Swine
+Arjun, the Shifting Flame
 Artifact Blast
 Artisan of Kozilek
 Asgardian Inspiration
 Astrid Peth
 Augury Adept
 Auratog
+Auriok Windwalker
 Aurora Eidolon
 Avenging Arrow
 Balduvian Bears
 Basalt Gargoyle
 Battle-Rage Blessing
+Bear Umbra
 Befuddle
 Beloved Princess
 Big Play
 Bladed Bracers
 Blasphemous Act
+Blazing Archon
 Blessed Respite
 Blood Host
 Bloodroot Apothecary
 Boggart Trawler
 Branching Evolution
 Brass Herald
+Bred for the Hunt
 Breeding Pit
 Brilliant Plan
 Brimaz, Blight of Oreskos
@@ -62,6 +69,7 @@ Captivating Unicorn
 Cat Burglar
 Challenger Troll
 Chandra's Pyrohelix
+Chilling Grasp
 Chlorophant
 Cinder Shade
 Cinder Wall
@@ -70,8 +78,10 @@ Coastal Piracy
 Colossal Dreadmaw and Storm Crow
 Colossodon Yearling
 Commune with Dinosaurs
+Compelling Argument
 Conquering Manticore
 Contract Hero
+Converter Beast
 Coordinated Charge
 Corrupted Zendikon
 Cosmic Crucible
@@ -80,6 +90,7 @@ Cranial Ram
 Crowded Crypt
 Cryptbreaker
 Cunning Wish
+Curiosity
 Cut the Earthly Bond
 Dalek Squadron
 Daring Archaeologist
@@ -129,11 +140,14 @@ Fists of the Demigod
 Flailing Ogre
 Flame Discharge
 Flame of Anor
+Flesh Allergy
 Flicker
 Flow of Ideas
 Forbidden Alchemy
+Foreboding Landscape
 Forest
 Foster
+Frost Giant
 Fugue
 Fungal Infection
 Garruk's Packleader
@@ -161,6 +175,7 @@ Heat Ray
 Hekma Sentinels
 Hellrider
 Herald of the Sun
+Highland Weald
 Hillcomber Giant
 Hunting Cheetah
 Ichor Explosion
@@ -168,6 +183,7 @@ Iconic Shield
 Increasing Savagery
 Incubation
 Infiltrator il-Kor
+Inspiring Statuary
 Insufferable Balladeer
 Inventor's Apprentice
 Island
@@ -194,6 +210,7 @@ Liability
 Lightbringer
 Liliana's Caress
 Llanowar Empath
+Lobber Crew
 Lose Hope
 Lost Leonin
 Loxodon Stalwart
@@ -207,14 +224,18 @@ Man-o'-War
 Marauder's Axe
 Master of the Pearl Trident
 Mausoleum Wanderer
+Measure of Wickedness
 Megatog
 Merchant of Truth
 Mindbreak Trap
 Mine Bearer
 Mirozel
+Mobilized District
 Molten Blast
 Moonring Island
 Moonsnare Specialist
+Moorland Drifter
+Mordor on the March
 Morgul-Knife Wound
 Mossdog
 Mountain
@@ -261,6 +282,7 @@ Plated Sliver
 Plundering Predator
 Pouncing Jaguar
 Precognition
+Predict
 Prosperous Bandit
 Psionic Snoop
 Psychic Miasma
@@ -269,7 +291,10 @@ Pyreswipe Hawk
 Pyroceratops
 Queen's Bay Soldier
 Rage Reflection
+Raggadragga, Goreguts Boss
+Rally for the Throne
 Ranger's Path
+Rebuild
 Recalibrate
 Renewal
 Rescue, Pepper Potts
@@ -282,6 +307,7 @@ Rumbling Baloth
 Rush of Vitality
 Rust Monster
 Savage Surge
+Savvy Hunter
 Scattered Thoughts
 Scavenging Harpy
 Scepter of Dominance
@@ -293,6 +319,7 @@ Second Sight
 Sedraxis Alchemist
 Segovian Leviathan
 Selvala, Explorer Returned
+Servant of Tymaret
 Sewerdreg
 Shanna, Sisay's Legacy
 Shared Summons
@@ -317,6 +344,7 @@ Spiteflame Witch
 Spore Flower
 Squall
 Squirrel Nest
+Sram's Expertise
 Stitched Drake
 Strength of Arms
 Strength of the Coalition
@@ -327,7 +355,9 @@ Swamp
 Swooping Lookout
 Sylvan Yeti
 Syndicate Messenger
+Synod Centurion
 Tahngarth's Rage
+Taiga Stadium
 Tail Swipe
 Tattered Apparition
 Tempest Caller
@@ -353,6 +383,7 @@ Unnatural Endurance
 Unyaro Bees
 Upheaval
 Urban Daggertooth
+Urborg Volcano
 Utvara Hellkite
 Vampire of the Dire Moon
 Vigilant Drake
@@ -370,6 +401,7 @@ Wall of Heat
 Wanderlight Spirit
 War Oracle
 War Priest of Thune
+Warchanter of Mogis
 Watchwing Scarecrow
 Weathered Bodyguards
 Westfold Rider
@@ -379,6 +411,7 @@ Wild Wanderer
 Winter Sky
 Witherbloom Apprentice
 Wizard's Lightning
+Wooded Ridgeline
 World-Weary
 Worm Harvest
 Wrecking Ogre

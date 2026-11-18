@@ -1,3 +1,4 @@
+Abigale, Eloquent First-Year
 Adept Watershaper
 Ajani, Outland Chaperone
 Appeal to Eirdu
@@ -34,6 +35,7 @@ Champions of the Perfect
 Champions of the Shoal
 Changeling Wayfinder
 Chaos Spewer
+Chitinous Graspling
 Chomping Changeling
 Chronicle of Victory
 Cinder Strike
@@ -48,14 +50,19 @@ Dawn's Light Archer
 Dawn-Blessed Pennant
 Dawnhand Dissident
 Dawnhand Eulogist
+Deceit
+Deepchannel Duelist
+Deepway Navigator
 Disruptor of Currents
 Dose of Dawnglow
+Dream Harvest
 Dream Seizer
 Dundoolin Weaver
 Eclipsed Boggart
 Eclipsed Flamekin
 Eclipsed Realms
 Elder Auntie
+Emptiness
 Encumbered Reejerey
 End-Blaze Epiphany
 Enraged Flamecaster
@@ -82,6 +89,7 @@ Glamer Gifter
 Glamermite
 Glen Elendra Guardian
 Glen Elendra's Answer
+Glister Bairn
 Gloom Ripper
 Gnarlbark Elm
 Goatnap
@@ -107,6 +115,7 @@ Kinscaer Sentry
 Kirol, Attentive First-Year
 Kithkeeper
 Kulrath Mystic
+Kulrath Zealot
 Lasting Tarfire
 Lavaleaper
 Liminal Hold
@@ -117,6 +126,7 @@ Lys Alana Informant
 Meanders Guide
 Midnight Tilling
 Mirrormind Crown
+Mischievous Sneakling
 Mistmeadow Council
 Moon-Vigil Adherents
 Moonglove Extractor
@@ -127,6 +137,7 @@ Mountain
 Mudbutton Cursetosser
 Mutable Explorer
 Nameless Inversion
+Nightmare Sower
 Noggle Robber
 Noggle the Mind
 Overgrown Tomb
@@ -135,6 +146,7 @@ Personify
 Pestered Wellguard
 Pitiless Fists
 Plains
+Prideful Feastling
 Prismabasher
 Prismatic Undercurrents
 Protective Response
@@ -142,11 +154,13 @@ Puca's Eye
 Pummeler for Hire
 Pyrrhic Strike
 Raiding Schemes
+Reaping Willow
 Reckless Ransacking
 Reluctant Dounguard
 Requiting Hex
 Retched Wretch
 Rime Chill
+Rimefire Torque
 Rimekin Recluse
 Riverguard's Reflexes
 Rooftop Percher
@@ -183,6 +197,7 @@ Sunderflock
 Surly Farrier
 Swamp
 Swat Away
+Tam, Mindful First-Year
 Tanufel Rimespeaker
 Temple Garden
 Temporal Cleansing
@@ -202,9 +217,12 @@ Unwelcome Sprite
 Vibrance
 Vinebred Brawler
 Virulent Emissary
+Voracious Tome-Skimmer
 Wanderbrine Preacher
 Wanderbrine Trapper
 Wanderwine Distracter
+Wanderwine Farewell
 Warren Torchmaster
 Wild Unraveling
 Wildvine Pummeler
+Wistfulness

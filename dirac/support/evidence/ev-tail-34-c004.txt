@@ -1,15 +1,22 @@
 A-Mentor's Guidance
+Aboshan's Desire
+Aether Mutation
+Ageless Guardian
 Angel's Mercy
 Angelic Wall
+Appeal
 Arcane Flight
+Aura Mutation
 Aven Trailblazer
 Avenging Arrow
+Bala Ged Recovery
 Bar the Door
 Bast, Panther Goddess
 Bazaar Krovod
 Boon of Safety
 Brawn
 Bringer of the Black Dawn
+Butterbur, Bree Innkeeper
 Calix, Guided by Fate
 Cartouche of Zeal
 Cathartic Adept
@@ -26,11 +33,15 @@ Dewdrop Spy
 Dirty Rat
 Drelnoch
 Dwarven Patrol
+Edric, Spymaster of Trest
+Eidolon of Blossoms
 Electric Revelation
 Electrozoa
 Elegant Entourage
 Embersmith
 Encase in Ice
+Era of Innovation
+Exoskeletal Armor
 First Volley
 Flip the Switch
 Forest
@@ -38,20 +49,28 @@ Fungal Bloom
 Generous Pup
 Glimmer of Genius
 Godhunter Octopus
+Goreclaw, Terror of Qal Sisma
 Gossamer Phantasm
+Grazing Kelpie
 Grim Guardian
+Ground Seal
 Harsh Scrutiny
 Hawkeye, Clint Barton
 Hired Poisoner
 Hoard Hauler
+Hydroid Krasis
 Imperial Recovery Unit
 Inspiration
 Invasion of Ergamon
 Island
+Joraga Auxiliary
 Kitesail Apprentice
+Kronch Wrangler
+Krosan Avenger
 Leyline of Anticipation
 Lightfoot Rogue
 Loran's Escape
+Mantle of the Wolf
 Master of the Pearl Trident
 Merciless Javelineer
 Ministrant of Obligation
@@ -64,17 +83,22 @@ Nurturer Initiate
 Obsidian Obelisk
 Ogre Jailbreaker
 Pharika's Chosen
+Pillar of Light
 Plains
 Press into Service
+Quilled Wolf
 Quirion Explorer
+Quirion Sentinel
 Rain of Rust
 Ramosian Sergeant
 Reclusive Wight
 Retreat to Coralhelm
+Revenge of the Hunted
 Rile
 Rising of the Day
 Ruin Crab
 Rukh Egg
+Serum Visions
 Shadow Rift
 Siegecraft
 Silkbind Faerie
@@ -82,6 +106,8 @@ Slate of Ancestry
 Slinza, the Spiked Stampede
 Soltari Trooper
 Spike-Tailed Ceratops
+Spire Owl
+Sprite Dragon
 Squelching Leeches
 Sunder Shaman
 Swamp
@@ -90,6 +116,7 @@ Tempting Witch
 The Roaring Toeclaws
 The Thanos-Copter
 Their Number Is Legion
+Thief of Existence
 Thrull Surgeon
 Thumbscrews
 Tombfire
@@ -102,4 +129,6 @@ Voice of All
 Vortex Runner
 Warpath Ghoul
 Wasp, Shrinking Savior
+Wasteful Harvest
+Winds of Qal Sisma
 Witness the End

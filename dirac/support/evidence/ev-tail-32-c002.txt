@@ -39,6 +39,7 @@ Essence Flare
 Evangel of Synthesis
 Eviscerator's Insight
 Expedition Diviner
+Farm
 Feral Ridgewolf
 Flamespeaker's Will
 Fleeting Aven
@@ -103,6 +104,7 @@ Oashra Cultivator
 Obliterate
 Ogre Berserker
 Ondu Cleric
+Overrule
 Pestermite
 Pillar of Light
 Plains

@@ -19,6 +19,7 @@ Anaba Spirit Crafter
 Angler Drake
 Anointed Chorister
 Apex Hawks
+Aquamoeba
 Aquatic Incursion
 Archangel Avacyn
 Archon of Sun's Grace
@@ -104,6 +105,7 @@ Disciple of Malice
 Discombobulate
 Distortion Strike
 Divine Sacrament
+Dormant Gomazoa
 Doubtless One
 Dragon Tempest
 Dralnu's Crusade
@@ -132,6 +134,7 @@ Fall to Earth
 Fallen Cleric
 Fang Dragon
 Fangren Hunter
+Fell Shepherd
 Fencing Ace
 Festive Funeral
 Fire-Omen Crane
@@ -147,6 +150,7 @@ Fungusaur
 Furious Reprisal
 Future Flight
 Galestrike
+Gargos, Vicious Watcher
 Gate Hound
 Generous Patron
 Ghost Ship
@@ -159,6 +163,7 @@ Goblin Striker
 Gods' Hall Guardian
 Golgari Cluestone
 Gone Missing
+Gorilla Pack
 Griffin Sentinel
 Guardian Idol
 Guardian Kirin
@@ -184,6 +189,8 @@ Hyperion, Supreme Hero
 Hypnotic Sprite
 Ichor Synthesizer
 Illusions of Grandeur
+Insidious Dreams
+Inversion Behemoth
 Iron League Steed
 Island
 Ixalli's Keeper
@@ -275,6 +282,7 @@ Planar Incision
 Plundering Barbarian
 Polluted Dead
 Pouncing Cheetah
+Power Taint
 Prickly Boggart
 Pride Sovereign
 Primeval Protector

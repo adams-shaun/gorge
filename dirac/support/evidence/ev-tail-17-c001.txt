@@ -3,7 +3,9 @@ Acquisition Octopus
 Act on Impulse
 Aerial Responder
 Aether Vial
+Aggression
 Agonizing Demise
+Akroma's Devoted
 Al-abara's Carpet
 Aladdin
 Ancient Spider
@@ -11,8 +13,11 @@ Angel's Mercy
 Angelic Ascension
 Ant-Man, Reformed Rogue
 Arbalest Engineers
+Archangel of Thune
 Ardent Electromancer
 Arlinn, Voice of the Pack
+Armored Griffin
+Arrogant Poet
 Astarion, the Decadent
 Atarka Monument
 Audacious Infiltrator
@@ -20,92 +25,145 @@ Aura of Dominion
 Avarice Amulet
 Awaken the Sky Tyrant
 Baird, Argivian Recruiter
+Barrow Witches
 Basking Broodscale
+Bazaar Trader
 Bedlam
+Belbe's Armor
 Beskir Shieldmate
 Big Game Hunter
 Big Score
 Black Panther, Claws of Bast
 Blessed Respite
 Blood-Chin Fanatic
+Body of Research
+Bog Smugglers
+Bonds of Mortality
+Bottomless Vault
 Branchsnap Lorian
 Brigone, Soldier of Meletis
 Burrenton Shield-Bearers
+Butcher of Malakir
 Canopy Claws
+Canopy Spider
 Canyon Wildcat
+Caravan Hurda
 Catapult Fodder
 Caustic Tar
 Chandra's Defeat
+Chandra's Pyreling
 Chasm Guide
 Cinder Hellion
+Cinderclasm
 Cirith Ungol Patrol
 Cogwork Spy
 Collateral Damage
 Coma Veil
 Composer of Spring
+Consign to the Pit
 Containment Breach
+Coral Eel
+Council's Judgment
 Cragplate Baloth
+Cunning Lethemancer
 Curate
 Curious Pair
 Curse of Verbosity
+Damnable Pact
+Daraja Griffin
+Dark Hatchling
 Dauthi Warlord
 Dega Sanctuary
+Delete
 Desert Nomads
+Desert of the True
+Dig Up
+Dismiss into Dream
 Doomed Artisan
+Doomed Traveler
 Dragonlair Spider
 Drogskol Shieldmate
 Drossforge Bridge
 Drowned
 Duke Ulder Ravengard
+Earthen Goo
 Eerie Soultender
+Elemental Bond
 Elves of Deep Shadow
 Elvish Scout
 Elvish Warrior
 Emergence Zone
 Enthralling Victor
+Environmental Sciences
 Erkenbrand, Lord of Westfold
 Errant Doomsayers
+Ethereal Whiskergill
 Evil Presence
+Exuberant Fuseling
 Exultant Skymarcher
 Facet Reader
 Fantastic Bounce
 Far Wanderings
+Fell Flagship
 Ferrous Lake
 Festercreep
 Fevered Convulsions
 Fin-Clade Fugitives
 Fists of the Anvil
+Flayer Husk
+Fledgling Djinn
+Fledgling Imp
 Fleet-Footed Monk
 Font of Fortunes
+Font of Return
 Forced Adaptation
 Forest
 Foul Imp
 Fractal Harness
+Freyalise Supplicant
+Freyalise's Charm
+Gaea's Avenger
 Galvanic Blast
 Gate of the Black Dragon
 Gearsmith Prodigy
 Geosurge
+Giant Cockroach
 Giant Scorpion
 Gift of Estates
+Gimli's Reckless Might
+Glacial Grasp
 Go-Shintai of Ancient Wars
 Goatnapper
 Goblin Piledriver
+Goblin Ruinblaster
 Golden Demise
 Gorging Vulture
 Grafted Growth
 Graypelt Refuge
+Greataxe
+Greenbelt Rampager
+Grotesque Mutation
 Groundling Pouncer
+Grove Rumbler
+Havengul Vampire
 Headless Rider
 Heaven
+Heckling Fiends
+Heliod's Emissary
 Herald of Torment
 Herbal Poultice
 Hidden Footblade
 Highland Berserker
+Hollowhenge Beast
+Horn of Greed
 Hostile Minotaur
+Howlpack Resurgence
 Immersturm Raider
 In the Web of War
+Ingenious Smith
 Insatiable Appetite
 Invasion of Zendikar
+Invisible Woman
 Iron Bully
 Iron Man, Titan of Innovation
 Iron-Heart Chimera
@@ -113,48 +171,81 @@ Ironclaw Buzzardiers
 Island
 Jagged Lightning
 Join the Maestros
+Jolrael, Mwonvuli Recluse
+Juniper Order Advocate
+Juniper Order Rootweaver
+Junkyo Bell
+Kari Zev's Expertise
 Kazandu Stomper
+Keeper of the Lens
 Kefnet's Last Word
 Key to the City
 Kiln Walker
 Kithkin Greatheart
+Kithkin Harbinger
 Kitsune Riftwalker
 Kragma Butcher
 Krosan Colossus
 Kytheon's Irregulars
+Lab Rats
 Landbind Ritual
 Landroval, Horizon Witness
 Larder Zombie
 Lavafume Invoker
 Lay Down Arms
 Life Chisel
+Liliana's Elite
 Liu Bei, Lord of Shu
 Looming Shade
+Lunk Errant
 Lurking Nightstalker
 Mad Dog
 Magus of the Order
+Manifold Key
+March of the Drowned
 Masked Blackguard
+Melancholy
+Metal Fatigue
 Meteoric Mace
 Might of the Old Ways
 Mirran Bardiche
 Mitotic Slime
 Moira, Urborg Haunt
+Moldgraf Monstrosity
 Mountain
 Natural Reclamation
 Nav Squad Commandos
 Needle Specter
 Night of Souls' Betrayal
+Nightguard Patrol
+Nimble Mongoose
+Nirkana Cutthroat
+Noble Steeds
 Norn's Inquisitor
 Oakhame Adversary
+Obelisk of Naya
+Ollenbock Escort
+Ondu Inversion
+Opal Acrolith
 Open Fire
+Oran-Rief Hydra
+Orbs of Warding
+Orim's Prayer
 Owl Familiar
 Pallid Mycoderm
+Panacea
 Park Heights Maverick
+Passwall Adept
 Peel from Reality
 Peregrine Drake
+Phantom General
 Phantom Whelp
+Phyrexian Gremlins
+Plague Dogs
+Plague Engineer
 Plague Fiend
 Plague Sliver
+Plagued Rusalka
 Plains
 Planar Cleansing
 Planar Despair
@@ -163,35 +254,63 @@ Plundering Predator
 Pollenbright Druid
 Portable Hole
 Quest for the Goblin Lord
+Radiant Essence
 Raffine's Informant
 Rage Nimbus
 Ratchet Bomb
 Rathi Intimidator
+Ray of Erasure
+Razorfoot Griffin
+Redemption Choir
 Renegade Demon
 Renegade Wheelsmith
+Renewed Solidarity
 Restrain
+Rift Bolt
 Roc of Kher Ridges
 Rockslide Ambush
+Romana II
+Roughshod Mentor
+Ruin Raider
+Ruination
 Rumor Gatherer
+Runewing
 Rush of Adrenaline
 Ruthless Disposal
+Sacred Mesa
 Sage of the Unknowable
 Sagu Mauler
 Sai, Master Thopterist
 Sand Strangler
+Sands of Delirium
 Sandstone Warrior
+Sangrite Surge
 Sapphire Drake
 Scorching Missile
 Scour from Existence
 Scrapwork Rager
 Scrivener
+Sea Drake
 Searchlight Geist
+Selvala's Enforcer
+Seraph of the Suns
 Serra Avenger
+Shadow Rift
+Shambleshark
+Shard of the Void Dragon
 Shatter
+Shimmering Barrier
+Sigarda, Font of Blessings
+Sigiled Behemoth
+Siren Lookout
 Skull of Orm
+Skyclave Sentinel
 Slith Bloodletter
+Slurrk, All-Ingesting
 Smell Fear
+Smog Elemental
 Snarespinner
+Sorin, Imperious Bloodlord
 Soul Swallower
 Specter of the Fens
 Sphere of Duty
@@ -201,12 +320,14 @@ Stingmoggie
 Stingscourger
 Stoic Champion
 Stonebound Mentor
+Storm Fleet Negotiator
 Street Urchin
 Strike It Rich
 Stronghold Zeppelin
 Suki, Kyoshi Captain
 Summary Judgment
 Sunfire Balm
+Sunscape Familiar
 Superior Numbers
 Swamp
 Sygg, River Guide
@@ -218,25 +339,36 @@ Tenement Crasher
 Thalia's Lancers
 The Binding of the Titans
 The Immortal Weapons
+The Stasis Coffin
 Thriving Isle
+Throne of Empires
 Timberpack Wolf
+Tooth and Claw
+Toph, Greatest Earthbender
+Torsten Von Ursus
 Tower of Calamities
 Tree of Tales
 Triskaidekaphile
 Undead Augur
 Utopia Tree
+Valduk, Keeper of the Flame
 Valiant Changeling
 Vedalken Engineer
 Vedalken Outlander
 Vessel of Malignity
 Veteran Cavalier
 Virulent Plague
+Vithian Renegades
 Wayward Giant
 Wetland Sambar
+Wild Leotau
+Wild Shape
 Winding Wurm
 Winged Portent
+Witch Hunter
 Witching Well
 Witness the Future
 Yavimaya Ants
 You Are Already Dead
 Zombie Cutthroat
+Zombie Master

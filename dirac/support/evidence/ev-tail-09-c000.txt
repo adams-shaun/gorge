@@ -19,6 +19,7 @@ Argothian Pixies
 Arisen Gorgon
 Ark of Blight
 Arms of Hadar
+Arni Brokenbrow
 Arwen's Gift
 Assembly-Worker
 Auspicious Ancestor
@@ -42,6 +43,7 @@ Broodbirth Viper
 Bull Rush
 Canal Monitor
 Carrion
+Carrion Rats
 Castle Ardenvale
 Cateran Slaver
 Ceaseless Conflict
@@ -132,6 +134,7 @@ Glasswing Grace
 Glimpse the Unthinkable
 Glinting Creeper
 Gloom Sower
+Gloomfang Mauler
 Goblin Berserker
 Goblin Grenadiers
 Goblin Machinist
@@ -164,6 +167,7 @@ Ixalli's Diviner
 Jhovall Queen
 Jinx
 Jinxed Ring
+Jubilant Skybonder
 Jungle Wurm
 Kazarov, Sengir Pureblood
 Kelsinko Ranger
@@ -239,6 +243,7 @@ Rhox Pikemaster
 Ribbons of the Reikai
 Ridged Kusite
 Rishadan Cutpurse
+Risk Factor
 Rites of Initiation
 Rogue Kavu
 Royal Assassin
@@ -258,6 +263,7 @@ Seizures
 Serenity
 Serra's Embrace
 Shadowstorm
+Shambling Shell
 Shoreline Salvager
 Sidisi's Faithful
 Silkwrap

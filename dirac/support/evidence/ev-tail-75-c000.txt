@@ -107,6 +107,7 @@ Demon's Disciple
 Dense Foliage
 Depth Charge Colossus
 Deputized Protester
+Deranged Assistant
 Desert of the Indomitable
 Desolate Mire
 Desynchronize
@@ -122,10 +123,12 @@ Dread Tiller
 Dream Thief
 Dreamshackle Geist
 Drifting Shade
+Drillworks Mole
 Drossclaw
 Drown in Dreams
 Dualcaster Mage
 Dune Mover
+Duplicant
 Dust Corona
 Dwarven Hold
 Easy Prey
@@ -135,6 +138,7 @@ Echoing Calm
 Eiganjo Castle
 Elvish Dreadlord
 Ember-Fist Zubera
+Emperor Crocodile
 Enrage
 Erstwhile Trooper
 Etched Monstrosity
@@ -156,6 +160,7 @@ Fire Ambush
 Fireblade Charger
 Fissure
 Flare of Denial
+Flatman
 Flowstone Charger
 Forest
 Foxfire Oak
@@ -233,6 +238,7 @@ Lightwielder Paladin
 Liliana of the Veil
 Liliana's Elite
 Liliana's Standard Bearer
+Linessa, Zephyr Mage
 Lingering Mirage
 Lonis, Genetics Expert
 Lorthos, the Tidemaker
@@ -367,6 +373,7 @@ Sedgemoor Witch
 Seething Pathblazer
 Selhoff Occultist
 Shaman of Spring
+Shield of the Oversoul
 Shimmer of Possibility
 Show of Valor
 Shrine Keeper
@@ -428,6 +435,7 @@ Thopter Assembly
 Thopter Mechanic
 Thraben Standard Bearer
 Threnody Singer
+Thrilling Encore
 Thundercloud Elemental
 Thundersteel Colossus
 Timbermaw Larva
@@ -450,6 +458,7 @@ Urabrask the Hidden
 Ursine Champion
 Urza's Rebuff
 Urza, Powerstone Prodigy
+Veiling Oddity
 Venomous Changeling
 Verdant Sun's Avatar
 Vilis, Broker of Blood
