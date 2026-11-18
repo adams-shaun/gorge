@@ -2239,6 +2239,21 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		// painAdd is cenMaskAdd when the lethal guard refuses the printed ability's production
 		s.potentialTapUnit(p, sl, pc, mask, painAdd, fold, painRefused, &cen)
 		cen.pain = 0 // the gate pair's and the granted units are priced unpainted
+		if k.gen != nil && k.gen.anyTapExtra && !painRefused && !pc.painOnly {
+			// a TapsForMana carrier's extra (Heartbeat of Spring: one more mana
+			// of the type the land made) is part of the tap's production in
+			// gorge's potential pool: one Forest funds a repeatable filter's {2}
+			// fee (CR 605.3a, 106.1). Only the over-bound pool takes it.
+			xv := s.srcExtra(k, sl, pc)
+			for c, v := range xv {
+				if v > 0 {
+					fold(sl, 1<<c, v)
+				}
+			}
+			if r := s.srcReflectPick(k, sl, pc); r > 0 {
+				fold(sl, mask, r)
+			}
+		}
 		if n := gatePairPotential(pc); n != 0 {
 			add(sl, uint8(pc.wideCol), n) // gorge's walk sums both listed abilities of a gate-on pair
 		}
