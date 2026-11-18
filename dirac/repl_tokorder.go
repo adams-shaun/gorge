@@ -97,11 +97,19 @@ func (s *State) tokCands(k *prep, p uint8, tok CardID, t *tokOrd) (rew, copyN in
 				}
 			case kop.ReplCopyFirstToken:
 				// the election is asked for a token the replacement applies
-				// to now (its gate holds and its source is attached)
-				if _, ok := s.tokCopyApplies(k, b, a, p); !ok {
+				// to now (its gate holds and its source is attached). A gate
+				// that holds while the source is attached to nothing on the
+				// battlefield (its bearer left mid-resolution: no state-based
+				// pass has run since, CR 704.3, and noteLastBear parked the
+				// bearer, CR 608.2h) is still a competition candidate gorge's
+				// order ask offers -- tokenReplApplies reads the body, not the
+				// host -- but its election has no Card.EnchantedBy candidate
+				// to name and is consumed without an ask (tokWalk).
+				if _, ok := s.tokCopyApplies(k, b, a, p); ok {
+					copyN++
+				} else if !s.tokCopyGate(k, b, a, p) {
 					continue
 				}
-				copyN++
 			default:
 				continue
 			}
@@ -196,6 +204,15 @@ func (s *State) tokWalk(k *prep, ask bool) bool {
 			return true
 		}
 		if s.tokAbility(k, first).Repl.Kind == kop.ReplCopyFirstToken {
+			if _, ok := s.tokCopyApplies(k, s.objs[t.cand[first]].slot, s.tokAbility(k, first), t.p); !ok {
+				// no election to pose: the source's bearer left (CR 608.2h)
+				// or its gate closed since. gorge's election for it finds no
+				// Card.EnchantedBy candidate and skips the match silently
+				// (poseChosenTokenReplacement's len(cands) == 0): consume it
+				// and go on, an accepted or declined election's outcome alike.
+				t.used |= 1 << first
+				continue
+			}
 			if ask {
 				t.setCopyJ(first)
 				t.setCopyDue(true)
@@ -287,13 +304,15 @@ func (s *State) tokPose(k *prep) bool {
 	t.acc = 0
 	// A copy-instead gate is read at every token event: the first token that
 	// enters closes it for the rest of the creation (gorge reads CheckSVar$ at
-	// each TokenCreate event, not once at the op).
+	// each TokenCreate event, not once at the op). The gate alone, not the
+	// live host: a source whose bearer left (CR 704.3, CR 608.2h) stays an
+	// offered candidate while its gate holds (tokCands).
 	for j := 0; j < int(t.nc); j++ {
 		a := s.tokAbility(k, j)
 		if a.Repl.Kind != kop.ReplCopyFirstToken {
 			continue
 		}
-		if _, ok := s.tokCopyApplies(k, s.objs[t.cand[j]].slot, a, t.p); !ok {
+		if !s.tokCopyGate(k, s.objs[t.cand[j]].slot, a, t.p) {
 			t.used |= 1 << j
 		}
 	}
