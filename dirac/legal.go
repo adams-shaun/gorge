@@ -2092,7 +2092,17 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					// recorded unit, so admitting it would double-count
 					// (White Lotus Hideout's {1},{T} filter). The over-bound
 					// pool beside the census keeps the paid abilities.
-					continue
+					if !boundedAny {
+						continue
+					}
+					// The X-bound sweep's over-bound pool is that pool: it keeps
+					// the paid ability (Artifact Unknown Shores' "{1},{T}: Add one
+					// mana of any color" funds Killing Glare's {B}, CR 601.2g,
+					// 605.3a), and the census it reads beside the pool leaves the
+					// ability out, so its record is incomplete (the overflow
+					// marker) and the sweep keeps the over-bound answer: gorge's
+					// relaxed proof can still pay what the census cannot.
+					cen.units = [maxPotUnits]potUnit{{mask: 1}}
 				}
 				if !open && !potentialCovers(&others, &ab.Cost.Mana) {
 					continue
