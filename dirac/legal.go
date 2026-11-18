@@ -332,6 +332,21 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				continue
 			}
 		}
+		if s.cfg&cfgGorgeAutopay != 0 && !s.FeatPoolPays(p, o, 2) && s.contribPays(k, p, c, o, false) {
+			// the autopay surface's credit class: a convoke, improvise or delve
+			// contribution live for the cast (Inspiring Statuary's improvise
+			// grant on Krosan Reclamation's {1}{G} flashback) is one gorge's
+			// potential planner withholds -- "flashback" is no alternative-cost
+			// row, so potentialModeCredit keeps the old unknown verdict and the
+			// potential play is dropped ("cost:credit"), while gorge's own walk
+			// prices the cast from the floating pool alone. The ordinary
+			// castAffordsR above prices the sources too, so without this gate
+			// the kernel offered the cast gorge does not list (tail-53 pair 2,
+			// seed 142735). A pool that pays the composed flashback cost needs
+			// no credit and stays offered (gorge's walk lists it), and the
+			// lowering surface keeps the plain offer (the scripts route).
+			continue
+		}
 		d.add(MakeAction(AkCast, TCode(o), 0, 2))
 	}
 	if k.gen != nil && k.gen.anyHarmonize {
