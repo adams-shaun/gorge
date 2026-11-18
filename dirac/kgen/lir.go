@@ -238,6 +238,7 @@ const (
 	vEnergyOf            // energy counters of player Ref (Count$YourCountersEnergy)
 	vPlExtreme           // the highest, over a player group, of the member's filtered count in the named zones (PlayerCountPlayers/Opponents$HighestValid<zones>)
 	vJoinForces          // the resolution's join-forces total (kop.ExJoinForces; lower_storesvar.go)
+	vExileKw             // exiled cards matching F that print the keyword N names (kop.ExStaticExileKw; lower_sharedkw.go)
 	vRemEachOwnNonLand   // the remembered cards that are nonland and owned by the repeated player (Remembered$Valid Card.nonLand+RememberedPlayerOwn, a RepeatEach body's ConditionCheckSVar$ gate)
 	vDmgOppsTaken        // the damage the living opponents were dealt this turn (Count$DamageOppsTakenThisTurn; bloodthirst)
 	vCmdGreatestMV       // the greatest mana value among the controller's commanders on the battlefield or in the command zone (kop.ExCmdGreatestMV; value_cmdmv.go)
@@ -355,6 +356,7 @@ var valNames = [...]string{
 	vEnergyOf:            "EnergyOf",
 	vPlExtreme:           "PlExtreme",
 	vJoinForces:          "JoinForces",
+	vExileKw:             "ExileKw",
 	vRemEachOwnNonLand:   "RemEachOwnNonLand",
 	vDmgOppsTaken:        "DmgOppsTaken",
 	vCmdGreatestMV:       "CmdGreatestMV",
