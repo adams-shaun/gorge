@@ -1,0 +1,14 @@
+# the Mode$ TurnFaceUp ValidCause$ SpellAbility.YouCtrl pool: Growing Dread
+# is the watcher; Manifest Dread and the Disguise/Morph carriers (Dog Walker,
+# Warbreak Trumpeter) make face-down permanents the special action turns up;
+# Priest of Urabrask floats the {R}{R}{R} that funds a special-action turn-up
+# (dirac/oracle/turnfaceup_validcause_lockstep_test.go)
+Growing Dread
+Manifest Dread
+Dog Walker
+Warbreak Trumpeter
+Priest of Urabrask
+Forest
+Mountain
+Plains
+Island

@@ -8,7 +8,7 @@ const shrineOfBoundlessGrowthRepro = "shrine_of_boundless_growth_potential_offer
 // artifact: Add {C} for each charge counter on it" funds Resurrection Orb's
 // Equip {4} through gorge's potential walk. The kernel now prices the dynamic
 // {T}, sacrifice ability as a varPC variant for an activated-ability offer
-// (avail.dynSac) while a cast offer still leaves it out, so the Equip is
+// (avail.dynSac; the autopay surface drops such a plain cast), so the Equip is
 // offered with the Shrine's mana (tail-34 pair 1, decision 579).
 func TestMBCResurrectionOrbReprosLockstep(t *testing.T) {
 	t.Parallel()

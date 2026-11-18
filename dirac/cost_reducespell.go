@@ -153,6 +153,8 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 			base = s.altBaseMana(k) // the cast pays its own alternative cost (gorge prices the probe with the cast's scope)
 		} else if fb, ok := s.flashbackBase(k, e); ok {
 			base = fb // a flashback cast prices each target at its flashback cost, not the printed one (Charix over Sever the Bloodline)
+		} else if e.trigPl == trigPlMiracle && cd.HasMiracle {
+			base = cd.MiracleCost // a miracle cast prices each target at its miracle cost (Charix over Revenge of the Hunted)
 		}
 		cost := s.adjustCostGen(k, e.ctrl, e.card, e.obj, base)
 		if e.flags&sfAnyMana != 0 {

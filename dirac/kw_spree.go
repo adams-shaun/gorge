@@ -72,7 +72,8 @@ func (s *State) spreeModeAffordable(k *prep, m int) bool {
 	c := s.buildCost(k)
 	e.mode = saved
 	var av avail
-	s.availPotential(k, e.ctrl, &av)
+	d := s.payDescNow(NoObj) // pdSpell with the entry's origin (mana_restrictedsource.go)
+	s.availPotentialFor(k, e.ctrl, &av, &d, false)
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 

@@ -60,7 +60,10 @@ func (s *State) turnUpByEffect(k *prep, sl Slot) {
 		return // face_turnfaceup.go: the CantHappen replacement prevents it
 	}
 	pm := &s.perms[sl]
-	s.turnUpFlip(k, sl, pm.obj, pm.ctrl, 0) // face_facedown.go
+	// The turn-up event's actor is the resolving effect's controller, not the
+	// permanent's: CR 603.2's ValidCause$ SpellAbility.YouCtrl reads that
+	// controller (gorge turnFaceUpCauseAdmits's InResolution/ActionCause arm).
+	s.turnUpFlip(k, sl, pm.obj, s.res.e.ctrl, 0) // face_facedown.go
 }
 
 // transformPickOK is gorge setStateObjWouldChange's Transform arm for a

@@ -1208,24 +1208,10 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vDmgOppsTaken}, nil
 	case "RememberedSize":
 		return lValue{Kind: vRememberedCount}, nil
+	case "ImprintedSize":
+		return lc.imprintedSizeValue()
 	case "RememberedNumber":
-		if lc.flipTallyAb != nil && lc.flipTallyAb == lc.ab {
-			// gorge: a FlipCoin RememberNumber$ tally (Ctx.FlipMemory), not
-			// the remembered-object count this head lowers to below
-			return lValue{}, fmt.Errorf("Count$RememberedNumber of a FlipCoin RememberNumber$ tally")
-		}
-		// gorge count_body_paid.go evalCountBodyPaidRememberedNumber: the
-		// resolution's capture-excluded remembered count, the list
-		// Remembered$Amount reads (its ExchangeLife / FlipCoin bindings are ops
-		// kgen never pairs with it; RememberCounteredCMC's is lowered below).
-		// S marks the ctx-only read for refuseCtxRememberedCount.
-		if lc.counterCMCWriter() { // lower_counterspell.go
-			// a Counter RememberCounteredCMC$ bound the countered spell's mana
-			// value: the number lands in resCtx.remLK (refuseRemLKIPT pairs it)
-			lc.remLKN++
-			return lValue{Kind: vRemLKIPT, N: 2}, nil
-		}
-		return lValue{Kind: vRememberedCount, S: "ctx"}, nil
+		return lc.rememberedNumberValue()
 	case "ThisTurnEntered_Graveyard_from_Battlefield_Creature":
 		// The one exact ThisTurnEntered spelling: creatures put into a
 		// graveyard from the battlefield this turn. genState.died is a
@@ -1665,6 +1651,41 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: kind, F: f}, nil
 	}
 	return lValue{}, fmt.Errorf("Count$%s", rest)
+}
+
+// imprintedSizeValue lowers Count$ImprintedSize: gorge
+// count_body_simple.go evalCountBodyCostImprintedSize reads the source's
+// persistent Imprinted list (Imprint$/ImprintCards$; the kernel's rImprinted
+// ref, seeded from the source's kept records on its own resolution and read
+// from the store in another ability). The head is exact only for a face that
+// keeps its list on the source.
+func (lc *lowerCtx) imprintedSizeValue() (lValue, error) {
+	if !lc.impPersist {
+		return lValue{}, refuse("Count$ImprintedSize outside the persist shape")
+	}
+	return lValue{Kind: vRefCount, Ref: lRef{Kind: rImprinted}}, nil
+}
+
+// rememberedNumberValue lowers Count$RememberedNumber: gorge
+// count_body_paid.go evalCountBodyPaidRememberedNumber, the resolution's
+// capture-excluded remembered count, the list Remembered$Amount reads (its
+// ExchangeLife / FlipCoin bindings are ops kgen never pairs with it;
+// RememberCounteredCMC's is lowered here too). S marks the ctx-only read for
+// refuseCtxRememberedCount. A FlipCoin's own RememberNumber$ tally is not this
+// head.
+func (lc *lowerCtx) rememberedNumberValue() (lValue, error) {
+	if lc.flipTallyAb != nil && lc.flipTallyAb == lc.ab {
+		// gorge: a FlipCoin RememberNumber$ tally (Ctx.FlipMemory), not
+		// the remembered-object count this head lowers to below
+		return lValue{}, fmt.Errorf("Count$RememberedNumber of a FlipCoin RememberNumber$ tally")
+	}
+	if lc.counterCMCWriter() { // lower_counterspell.go
+		// a Counter RememberCounteredCMC$ bound the countered spell's mana
+		// value: the number lands in resCtx.remLK (refuseRemLKIPT pairs it)
+		lc.remLKN++
+		return lValue{Kind: vRemLKIPT, N: 2}, nil
+	}
+	return lValue{Kind: vRememberedCount, S: "ctx"}, nil
 }
 
 // cmpSpec parses a compare spec such as "GE3", "EQ1", "GTY" (Y an SVar).
