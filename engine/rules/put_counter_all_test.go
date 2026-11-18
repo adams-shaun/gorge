@@ -255,13 +255,13 @@ func TestPutCounterAllSecondBatchPlacesBothKinds(t *testing.T) {
 
 // TestPutCounterAllExoticShapesStayLoud: registering the API removes the
 // generic unimplemented-API fallback, so the shapes the core sweep cannot
-// express -- Placer$ (who places), and a ValidZone$ naming a zone other than
+// express -- AmountByChosenMap$, and a ValidZone$ naming a zone other than
 // the battlefield (the two suspended-TIME carriers) -- must emit an explicit
 // unimplemented-shape Note and place NOTHING, never go silent.
 func TestPutCounterAllExoticShapesStayLoud(t *testing.T) {
 	t.Parallel()
 	placerSrc := "Name:Placer\nManaCost:2 U\nTypes:Creature Wizard\nPT:2/2\n" +
-		"A:AB$ PutCounterAll | Cost$ 1 | Placer$ Controller | ValidCards$ Creature | CounterType$ P1P1 | CounterNum$ 1 | SpellDescription$ x\nOracle:x\n"
+		"A:AB$ PutCounterAll | Cost$ 1 | AmountByChosenMap$ Chosen | ValidCards$ Creature | CounterType$ P1P1 | CounterNum$ 1 | SpellDescription$ x\nOracle:x\n"
 	zoneSrc := "Name:Timekeeper\nManaCost:2 U\nTypes:Creature Wizard\nPT:2/2\n" +
 		"A:AB$ PutCounterAll | Cost$ 1 | ValidCards$ Card | CounterType$ TIME | CounterNum$ 2 | ValidZone$ Exile | SpellDescription$ x\nOracle:x\n"
 	e, cfg, _ := newFixtureDeck(t, 220, placerSrc, zoneSrc, counterBear("Loud Bear"))
@@ -269,14 +269,14 @@ func TestPutCounterAllExoticShapesStayLoud(t *testing.T) {
 	bear := putCreature(t, e, 0, counterBear("Loud Bear"))
 	timekeeper := moveSeeded(t, e, 0, zoneSrc, state.ZBattlefield)
 
-	// Placer$ shape: offered, payable, then loud and inert.
+	// AmountByChosenMap$ shape: offered, payable, then loud and inert.
 	addMana(t, e, 0, "UU")
 	e.Advance()
 	opt := abilityOption(t, e, placer, 0)
 	submitChoices(t, e, opt.Index)
 	passUntilStackEmpty(t, e, 20)
 	if !hasNote(e, "unimplemented PutCounterAll shape") {
-		t.Fatal("no unimplemented-shape note for the Placer$ sweep")
+		t.Fatal("no unimplemented-shape note for the AmountByChosenMap$ sweep")
 	}
 
 	// ValidZone$ Exile shape: same contract.
