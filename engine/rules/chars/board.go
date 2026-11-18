@@ -114,6 +114,11 @@ type Scratch struct {
 	ColorsSet bool
 	ColorsID  state.ObjID
 	Colors    string
+	// KWTableBuilding is set while rules' EffectiveKeywords derives the
+	// layer-6 keyword table, so a layer-7 amount read that arrives inside
+	// that derivation sees the printed read instead of recursing into a
+	// second table build.
+	KWTableBuilding bool
 }
 
 // InProgress returns the innermost active layer-7 frame for id; unlike
