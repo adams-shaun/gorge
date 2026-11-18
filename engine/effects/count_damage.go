@@ -163,24 +163,29 @@ func evalBloodthirstAmount(h Host, c *Ctx, g *state.Game, arg string) (int32, bo
 
 // evalSingleMaxDamageThisTurn is the bare Count$SingleMaxDamageThisTurn head
 // (Impact Resonance's "X is the greatest amount of damage dealt by a source
-// to a permanent or player this turn"): the largest per-source total, summed
-// over each source's DamageDealtThisTurn records -- the same fold rules'
-// maxDamageBySingleSourceThisTurn answers Dragon Cultist's gate with, minus
-// its controller filter (Impact Resonance reads ANY source, whoever
-// controlled it when the hit landed). Recipients are permanents or players;
-// both live in the same record. A bare head; an argument is a shape this
-// build does not model, so fail the head's own verdict.
+// to a permanent or player this turn"): the largest per-(source, recipient)
+// total over each source's DamageDealtThisTurn records. A trampler that dealt
+// 3 to a blocker and 2 to a player reads 3, not 5. No controller filter
+// (Impact Resonance reads ANY source, whoever controlled it when the hit
+// landed). The reduction is a max, so the walk order reaches nothing. A bare
+// head; an argument is a shape this build does not model, so fail the head's
+// own verdict.
 func evalSingleMaxDamageThisTurn(g *state.Game, arg string) (int32, bool, bool) {
 	if strings.TrimSpace(arg) != "" {
 		return 0, false, true
 	}
 	var best int32
 	for i := range g.Objs {
-		var sum int32
-		for _, hit := range g.Objs[i].DamageDealtThisTurn {
-			sum += hit.Amount
+		hits := g.Objs[i].DamageDealtThisTurn
+		for j := range hits {
+			var sum int32
+			for k := range hits {
+				if hits[k].Recipient == hits[j].Recipient {
+					sum += hits[k].Amount
+				}
+			}
+			best = max(best, sum)
 		}
-		best = max(best, sum)
 	}
 	return best, true, true
 }
