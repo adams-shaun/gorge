@@ -84,7 +84,9 @@ func (g *grantSrch) sacXBranch(t *State, i int, sl Slot) bool {
 		u.tapXDo(g.k, g.p, tapXStep{sl: sl, cand: cs[j], cand2: NoSlot, kind: tapXAct})
 		g.path[g.np] = grantStep{i: uint8(i), gi: stepSacX, sl: sl, cand: cs[j]}
 		g.np++
-		ok := g.next(u, sl) // (the sacrifice queues its dies triggers, mana_granttapsdefer.go)
+		sv := g.refreshGrants(u) // (a sacrificed grant holder's grants are gone below the step: mana_grantlive.go)
+		ok := g.next(u, sl)      // (the sacrifice queues its dies triggers, mana_granttapsdefer.go)
+		g.restoreGrants(&sv)
 		t.unfork()
 		if ok {
 			return true
