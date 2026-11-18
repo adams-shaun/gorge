@@ -209,7 +209,7 @@ func (s *State) turnUpListed(k *prep, p uint8, cost *kop.ManaCost, sp kop.Specia
 		return false
 	}
 	c0 := cost.AtX(0)
-	return s.sourcesPay(k, p, &c0) || s.turnUpRestrPays(k, p, &c0, sp, sl) || s.turnUpRiderPays(k, p, &c0)
+	return s.sourcesPay(k, p, &c0) || s.turnUpRestrPays(k, p, &c0, sp, sl) || s.turnUpRiderPays(k, p, &c0) || s.turnUpPlannerPays(k, p, &c0)
 }
 
 // turnUpRiderPays: gorge's potential walk counts a depletion land's whole
@@ -225,6 +225,29 @@ func (s *State) turnUpRiderPays(k *prep, p uint8, cost *kop.ManaCost) bool {
 	}
 	ok, _ := s.windowAffords(k, p, cost)
 	return ok
+}
+
+// turnUpPlannerPays: the payment planner plans the turn-up's cost beside the
+// floating pool (a Combo Any source's activation among its census units,
+// mana_comboanyplan.go), the census neither sourcesPay's plain walk nor the
+// window's gap kinds cover. gorge's turn-up witness is that planner's
+// (potential_plan.go optTurnFaceUp: planComposedCost under the procedure's
+// special action, which priced Exploding Barrel's any-colour activation into
+// a {5}{G}{G} morph turn-up), so the offer matches it. The probe is dry
+// (pk.dry): it selects the plan without tapping, and the action's payment
+// re-taps through tapForTurnUp, the planner that plans the same units.
+//
+//go:noinline
+func (s *State) turnUpPlannerPays(k *prep, p uint8, cost *kop.ManaCost) bool {
+	if k.gen == nil || cost.Hyb[0] != 0 {
+		// a hybrid pip's printed alternative stays the availability routes'
+		// (gorge's own hybrid witness is planHybridCost's, not this one's)
+		return false
+	}
+	var pk planner
+	pk.dry = true
+	s.tapPlanNeed(k, p, cost, 0, NoObj, false, false, &pk)
+	return pk.needT > 0 && pk.found
 }
 
 // turnUpRiderOnly: neither the planner's sources nor a restricted source pay
