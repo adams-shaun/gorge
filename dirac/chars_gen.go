@@ -1117,13 +1117,48 @@ func (s *State) ownGrants(k *prep, sl Slot, c CardID, ab uint8) bool {
 	return false
 }
 
+// cardGrantsStatic reports whether the permanent at sl carries its current
+// card c's Continuous static granting ab, live (Vigilant Sentry's threshold
+// pump on a copy of it): the grant grantedAbilities resolved (c, ab) from,
+// which is no override record, so ownGrants cannot see it.
+func (s *State) cardGrantsStatic(k *prep, sl Slot, c CardID, ab uint8) bool {
+	cd := &k.t.Cards[c]
+	any := false
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.Grant != ab+1 {
+			continue
+		}
+		any = true
+		break
+	}
+	if !any {
+		return false
+	}
+	lts, lost := s.lossAt(k, sl)
+	if lost && s.layerTs(sl) < lts {
+		return false // CR 613.7: a grant older than the grantee's own ability loss no longer reaches it
+	}
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.Grant != ab+1 {
+			continue
+		}
+		st := statSrc{a: a, sl: sl, ctrl: s.perms[sl].ctrl, obj: s.perms[sl].obj}
+		if s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, sl, layerKw) {
+			return true
+		}
+	}
+	return false
+}
+
 // grantCardAt is the card whose ability ab a granted activation (mode
 // 0x80|ab) hosted by the battlefield permanent at sl names: sl's current
 // card, or, on a copy, the card of the as-enters grant record that grants sl
 // that ability when no record of the current card does (selfGrantHost).
 func (s *State) grantCardAt(k *prep, sl Slot, ab uint8) CardID {
 	c := s.cardAt(sl)
-	if !s.ownGrants(k, sl, c, ab) {
+	if !s.ownGrants(k, sl, c, ab) && !s.cardGrantsStatic(k, sl, c, ab) {
 		// also on a permanent whose printed card is the one it shows: a
 		// Grizzly Bears turned into a copy of a Pretender copy by a permanent
 		// copy effect holds the Pretender's grant (copyGrantsAdd)
