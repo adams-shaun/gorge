@@ -1,30 +1,43 @@
+A-Kona, Rescue Beastie
 Akoum Refuge
 Anointer Priest
+Apprentice Sharpshooter
+Archwing Dragon
+Artificer Class
 Ashen Monstrosity
 Aspect of Lamprey
 Bathe in Dragonfire
 Belligerent Sliver
 Black Widow, Intel Expert
+Black Widow, Natasha Romanoff
 Bloodcrazed Neonate
 Bloodmark Mentor
 Bloodthirsty Adversary
 Blustersquall
 Bond of Insight
+Bone Devourer
 Bonehoard
 Boneknitter
+Brackwater Elemental
 Brandywine Farmer
+Bugenhagen, Wise Elder
 Burning Fields
+Chainweb Aracnir
 Chaotic Backlash
 Clip Wings
+Creakwood Liege
 Crosstown Courier
 Dawning Angel
 Death's Shadow
 Deepwood Wolverine
+Deputized Protester
 Drainpipe Vermin
+Dreamshackle Geist
 Drillworks Mole
 Drossclaw
 Dualcaster Mage
 Dune Mover
+Erstwhile Trooper
 Evolving Adaptive
 Faerie Noble
 Fateful Showdown
@@ -32,6 +45,7 @@ Ferocious Zheng
 Fetid Imp
 Fireblade Charger
 Fissure
+Flare of Denial
 Flatman
 Forest
 Gift of Paradise
@@ -42,6 +56,7 @@ Guul Draz Mucklord
 Haazda Officer
 Harbinger of Night
 Herd Gnarr
+Honden of Life's Web
 Howl of the Night Pack
 Huatli, Radiant Champion
 Hurloon Battle Hymn
@@ -54,9 +69,14 @@ Kazandu Tuskcaller
 Khenra Eternal
 Kher Keep
 Kjeldoran Outrider
+Leyline of Punishment
+Lost in the Spirit World
 Lys Alana Huntmaster
+Magma Vein
+Magmatic Insight
 Magnify
 Malanthrope
+Malcator's Watcher
 Mana Vault
 Markov Patrician
 Masked Blackguard
@@ -70,26 +90,38 @@ Nakaya Shade
 Nezumi Freewheeler
 Nyx-Fleece Ram
 Oak Street Innkeeper
+Ogre Taskmaster
+Panic Attack
+Paradigm Shift
 Parallel Lives
+Patrol Hound
 Peregrine Mask
+Personal Tutor
 Plains
 Precinct Captain
 Privileged Position
 Rageblood Shaman
 Rally the Peasants
+Rampaging Cyclops
 Reclaim the Wastes
+Reduce in Stature
 Rishkar's Expertise
 Rooftop Nuisance
 Rune-Cervin Rider
+Sacred Prey
 Sage Aven
+Sanctify
 Sanctum of Stone Fangs
 School of Piranha
 Scour All Possibilities
 Seething Pathblazer
 Shaman of Spring
+Shield of the Oversoul
 Simian Brawler
 Skyline Cascade
 Songstitcher
+Spindrift Drake
+Sultai Emissary
 Sunscorched Desert
 Surge Engine
 Swamp
@@ -101,10 +133,15 @@ Threnody Singer
 Thrilling Encore
 Thundersteel Colossus
 Tui and La, Moon and Ocean
+Urza's Rebuff
 Urza, Powerstone Prodigy
 Venomous Changeling
 Verdant Sun's Avatar
 Voyager Staff
+Waterknot
+Will-o'-the-Wisp
 Wizard Replica
+Wolfwillow Haven
 Woodland Stream
 Zap
+Zealot's Conviction

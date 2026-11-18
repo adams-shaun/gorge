@@ -12,12 +12,22 @@ Apex Devastator
 Armillary Sphere
 Arrows of Justice
 Artful Maneuver
+Augury Owl
 Aven Brigadier
+Azor's Elocutors
+Bamboo Grove Archer
+Basri's Aegis
+Bayou Dragonfly
+Beacon of Immortality
 Bedeck
+Bird Admirer
+Black Widow, Agile Avenger
 Blazing Rootwalla
 Blinding Radiance
 Bloodflow Connoisseur
 Bloodied Ghost
+Boonweaver Giant
+Bramble Wurm
 Brightclimb Pathway
 Brimstone Mage
 Buoyancy
@@ -29,6 +39,7 @@ Child of Night
 Chrome Cat
 Cleanse
 Colossus Hammer
+Conclave's Blessing
 Copperhoof Vorrac
 Corpse Hauler
 Courier Griffin
@@ -39,6 +50,7 @@ Dawnfeather Eagle
 Deathbloom Ritualist
 Deb Thomas
 Declare Dominance
+Defy Gravity
 Deluge of Doom
 Desecration Elemental
 Despoiler of Souls
@@ -46,14 +58,20 @@ Dihada's Ploy
 Dingus Staff
 Diplomacy of the Wastes
 Dire Fleet Hoarder
+Dogged Hunter
 Dowsing Shaman
 Drossclaw
+Dusk
+Duskshell Crawler
+Dáin of the Ancient Halls
 Dúnedain Blade
 Ebon Drake
 Eerie Interlude
 Efreet Flamepainter
 Elemental Bond
 Eliminate the Competition
+Elspeth Tirel
+Elvish Scout
 Engineered Plague
 Enthrall
 Ephara's Warden
@@ -63,6 +81,7 @@ Ethereal Ambush
 Evil Eye of Urborg
 Executioner's Hood
 Eyes of the Watcher
+Faithful Pikemaster
 Falkenrath Marauders
 Fanatical Fever
 Fanged Flames
@@ -71,14 +90,19 @@ Femeref Scouts
 Festival of the Guildpact
 First-Sphere Gargantua
 Flameshot
+Floodwater Dam
 Flowstone Strike
 Forest
+Foundry Street Denizen
 Furious Assault
+Galina's Knight
+Ghastbark Twins
 Giant Fly
 Goblin Electromancer
 Goblin Gang Leader
 Goblin Matron
 Goblin Warchief
+Goliath Spider
 Grandmother Sengir
 Great Hall of Starnheim
 Greenseeker
@@ -87,33 +111,50 @@ Grey Knight Paragon
 Grim Feast
 Grim Guardian
 Grip of Desolation
+Gustha Ebbasdotter
 Gutter Skulk
 Haazda Snare Squad
 Headlong Rush
+Healing Leaves
 Helionaut
 Highspire Infusion
 Hope Against Hope
 Human Frailty
 Imoti, Celebrant of Bounty
 Inner Calm, Outer Strength
+Inside Out
 Inspired Inventor
 Into the Time Vortex
+Inviolability
 Island
+Jace's Erasure
 Jackal Familiar
 Josu Vess, Lich Knight
 Kami of Whispered Hopes
 Kathari Screecher
 Kenrith's Transformation
+King Cheetah
+Kitchen Finks
 Knight Watch
+Knight of New Benalia
 Kraken Hatchling
+Kyoshi Warrior Exemplars
+Lady Caleria
 Learn from the Past
+Leeching Bite
+Leonin Battlemage
 Leshrac's Sigil
+Lifespring Druid
 Lightning Blast
 Lose Calm
+Lumengrid Warden
 Lychguard
+Madame Hydra, Reanimated
+Magic Missile
 Mana Flare
 Mana Skimmer
 Manriki-Gusari
+Map the Wastes
 Maralen of the Mornsong
 Marsh Viper
 Marshmist Titan
@@ -123,6 +164,8 @@ Michiko's Reign of Truth
 Mind Knives
 Mindwarper
 Minion of Tevesh Szat
+Mirari's Wake
+Mire Boa
 Misery Charm
 Morkrut Behemoth
 Mountain
@@ -136,11 +179,14 @@ Nimble Pilferer
 Nissa's Triumph
 Novellamental
 Obelisk of Esper
+Ochre Jelly
 Ogre Gatecrasher
 Ogre Sentry
+Oji, the Exquisite Blade
 Otherworld Atlas
 Oxidize
 Ozox, the Clattering King
+Palladium Myr
 Parasitic Grasp
 Path of Peril
 Pawn of Ulamog
@@ -154,6 +200,8 @@ Psychic Impetus
 Pulsating Illusion
 Pyre Hound
 Quagmire Lamprey
+Quirion Druid
+Radiant's Judgment
 Ragged Veins
 Rain of Salt
 Raise the Draugr
@@ -161,34 +209,47 @@ Ransom Note
 Raven Familiar
 Ray of Revelation
 Reckless Amplimancer
+Reckless Scholar
+Regisaur Alpha
 Release to Memory
 Relic of Progenitus
+Remove Soul
 Retreat to Hagra
 Rhox Bodyguard
+Rise Again
+Roil Cartographer
 Romana II
 Roving Harper
 Rust Tick
+Sacred Nectar
+Saddleback Lagac
 Sanguine Glorifier
 Saprazzan Outrigger
 Sea's Claim
 Seal of Fire
 Seer's Vision
+Selesnya Evangel
+Seraph of New Capenna
+Shardless Outlander
 Shared Trauma
 Shrieking Drake
 Shrouded Serpent
 Sibsig Host
 Sigardian Priest
+Sign in Blood
 Sindbad
 Sip of Hemlock
 Skirsdag Cultist
 Skullslither Worm
 Skyclave Pick-Axe
 Skyfisher Spider
+Skyshroud Ranger
 Slagwurm Armor
 Smitten Swordmaster
 Sorcerer's Wand
 Soulblade Corrupter
 Spawning Grounds
+Spiketail Drakeling
 Spiraling Embers
 Spirit of the Hearth
 Spiteful Bully
@@ -197,6 +258,7 @@ Spoils of Blood
 Steady Aim
 Steal Strength
 Steelbane Hydra
+Steeple Roc
 Stolen Strategy
 Stone Calendar
 Stormwatch Eagle
@@ -209,7 +271,10 @@ Swift Response
 Sylvan Tutor
 TVA Bureaucrat
 Talisman of Resilience
+Territory Culler
 Teyo's Lightshield
+Teysa Karlov
+The Prydwen, Steel Flagship
 Thornhide Wolves
 Thought Scour
 Thundering Raiju
@@ -222,7 +287,11 @@ Two-Headed Giant of Foriys
 Two-Headed Zombie
 Uktabi Orangutan
 Umbral Mantle
+Valeron Outlander
+Valley Dasher
 Vertigo Spawn
+Vine Trellis
+Viridian Acolyte
 Vulshok Splitter
 Wake the Reflections
 Wall of Omens
@@ -231,11 +300,15 @@ Warhorn Blast
 Waterknot
 Whipflare
 Whirlermaker
+Whisperer of the Wilds
+Wind Sail
+Wintermoor Commander
 Woeleecher
 Wound Reflection
 Wrack with Madness
 Xun Yu, Wei Advisor
 Yawgmoth, Thran Physician
+Yew Spirit
 Zephyr Boots
 Ziatora's Proving Ground
 Zodiac Rat

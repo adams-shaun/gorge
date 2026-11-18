@@ -5,6 +5,7 @@ Aid the Fallen
 Akoum Hellhound
 Alpha Kavu
 Angelic Chorus
+Angrath's Rampage
 Animate Land
 Aspiring Aeronaut
 Assault
@@ -56,6 +57,7 @@ Dark Revenant
 Day of Destiny
 Dazzling Lights
 Deadly Rollick
+Deathgrip
 Demonic Bargain
 Demotion
 Desecration Plague
@@ -65,6 +67,7 @@ Divine Light
 Doom's Servo-Guards
 Dragon's Presence
 Draining Whelk
+Drake Haven
 Drake-Skull Cameo
 Dusk Imp
 Eliminate
@@ -101,6 +104,7 @@ Gelatinous Genesis
 Ghost-Lit Redeemer
 Ghoulish Procession
 Gideon's Sacrifice
+Gift of Strength
 Gnoll Hunter
 Goblin Piledriver
 Golgari Thug
@@ -121,6 +125,7 @@ Highland Game
 Hookblade
 Hope-Ender Coatl
 Humble Naturalist
+Hunted Phantasm
 Hurl Through Hell
 Illusionary Forces
 Impatience
@@ -135,6 +140,7 @@ Inspiring Roar
 Iron Tusk Elephant
 Island
 Jaddi Offshoot
+Jin-Gitaxias, Progress Tyrant
 Juzám Djinn
 Karplusan Wolverine
 Killmonger, Ruthless Usurper
@@ -163,6 +169,7 @@ Markov Purifier
 Marsh Boa
 Mausoleum Secrets
 Maze Behemoth
+Memory Plunder
 Mercenary Informer
 Merfolk Mesmerist
 Michelangelo, the Heart
@@ -194,6 +201,7 @@ Plated Wurm
 Polluted Dead
 Primeval Herald
 Profit
+Pseudodragon Familiar
 Ragavan, Nimble Pilferer
 Ral, Storm Conduit
 Ravenous Lindwurm
@@ -205,9 +213,11 @@ Rishadan Pawnshop
 Robaran Mercenaries
 Rootbound Crag
 Roterothopter
+Rubble Reading
 Ruin Crab
 Runed Stalactite
 Rushwood Legate
+Ryusei, the Falling Star
 Saber Ants
 Scale Up
 Scarwood Bandits
@@ -248,7 +258,9 @@ Swamp
 Swamp Mosquito
 Szarekh, the Silent King
 Terra Eternal
+Thalakos Deceiver
 The Mightstone and Weakstone
+Theft of Dreams
 Thoughtseize
 Tiger Claws
 Tilonalli's Crown
@@ -261,6 +273,7 @@ Ulvenwald Oddity
 Unruly Mob
 Urza's Command
 Vance's Blasting Cannons
+Vandalize
 Vastwood Zendikon
 Vedalken Infuser
 Veinwitch Coven
@@ -268,6 +281,9 @@ Vexing Devil
 Virulent Swipe
 Wall of Tears
 Warchanter Skald
+Waterlogged Teachings
 Windbrisk Heights
+You Come to a River
+Yuki-Onna
 Zodiac Rat
 Zuberi, Golden Feather

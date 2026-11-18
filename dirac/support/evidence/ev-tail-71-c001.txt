@@ -54,6 +54,7 @@ Bounty of Might
 Bower Passage
 Braingeyser
 Bull Rush
+Burning Earth
 Burning Wish
 Callous Dismissal
 Campaign of Vengeance
@@ -352,6 +353,7 @@ Splatter Goblin
 Squee's Toy
 Staff of the Sun Magus
 Stampede Rider
+Starlit Sanctum
 Steal Artifact
 Steel Golem
 Steelclad Spirit
@@ -400,6 +402,7 @@ Vent Sentinel
 Viashino Firstblade
 Vodalian Soldiers
 Voltaic Brawler
+Wakeroot Elemental
 Wanderer's Twig
 Wandering Ones
 Wave of Terror

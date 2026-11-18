@@ -181,6 +181,7 @@ Gloom Sower
 Goblin Trailblazer
 Golden-Scale Aeronaut
 Golgari Signet
+Greater Tanuki
 Greenwood Sentinel
 Grid Monitor
 Griffin Sentinel
@@ -410,6 +411,7 @@ Skillful Lunge
 Skirk Drill Sergeant
 Skull Fracture
 Skyshroud Sentinel
+Smaug the Impenetrable
 Smoldering Werewolf
 Social Climber
 Spectacular Showdown

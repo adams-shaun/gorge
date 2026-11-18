@@ -30,8 +30,10 @@ Chaotic Backlash
 Clip Wings
 Continue?
 Curiosity Crafter
+Daunting Defender
 Dawning Angel
 Death's Shadow
+Delraich
 Demon's Disciple
 Desolate Mire
 Desynchronize
@@ -151,6 +153,7 @@ Swarm Surge
 Sword of the Animist
 Tectonic Edge
 Tempestra, Dame of Games
+Thrilling Encore
 Thundersteel Colossus
 Timin, Youthful Geist
 Tomebound Lich

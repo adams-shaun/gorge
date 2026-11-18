@@ -43,6 +43,7 @@ Fling	9d20f0d52f8b4d82	26	0/0		1/2	ix:resp
 Forked Bolt	8aa0b253c6f03664	26	0/0		1/2	ix:resp
 Fungus Elemental	18f32842aa4731e5	13	1/1		0/1	ix:resp
 Gaze of Justice	85aa9c59273f0fd5	7	0/0		3/4	ix:resp
+Go-Shintai of Life's Origin	f8a59cbe6fbc1f24	9	2/2		0/1	ix:resp
 Goblin Matron	044fa9d455b77eb9	19	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Goblin Ringleader	4a9e4b7c5ba48507	7	1/1		0/1	ix:resp
 Goblin Sledder	916ea42dd12803df	20	1/1		1/1	
@@ -53,16 +54,23 @@ Grizzled Angler	be42a55b9a027acb	14	2/2		1/1
 Gwenna, Eyes of Gaea	7fc193932dfb9621	18	2/2		0/1	ix:resp
 Hammerhead, Maggia Boss	a4eada396afd033f	21	1/1		0/1	ix:resp
 Heavyweight Demolisher	e160e865a5aca2d7	9	2/2		1/1	
+Herald of Anguish	dae64ef96c022079	20	2/2		0/1	ix:resp
 Here Comes a New Hero!	f21a99d1b54b0e9f	11	0/0		3/4	f0/s/x0
 High Seas	f1123eda4632ee30	15	0/0		0/0	
 Hindervines	2e4d8cc012bb3e19	12	0/0		2/2	
 Holdout Settlement	32d454acbc3831c1	106	2/2		0/1	ix:resp
 Ill-Gotten Inheritance	f2e8915bcd6a271f	11	2/2		1/1	
+Illusory Angel	ba5704acb630b05e	13	0/0		0/0	
+In Garruk's Wake	9cff94b50dc2b039	11	0/0		1/2	ix:resp
 Jedit Ojanen, Mercenary	553ea3777b5c9491	4	1/1		0/1	ix:resp
+Junk Winder	12f53802239fffad	25	1/1		1/1	
+Karplusan Forest	4647017997969183	251	2/2		0/1	ix:resp
 Looter il-Kor	3d0636bb9f7d7e4e	14	1/1		0/1	ix:resp
+Lurebound Scarecrow	7e3b70fe43469e81	28	1/1		1/1	
 Lurking Nightstalker	641458ced6a07a84	4	1/1		0/1	ix:resp
 Lyzolda, the Blood Witch	2a8f5907d6e153f3	24	1/1		1/1	
 Maga, Traitor to Mortals	0d5d319f01a883a7	5	1/1		0/1	ix:resp
+Mage's Guile	18ebd821350f4c67	8	1/1		1/2	ix:resp
 Mordant Dragon	d5ec805145f7ea96	10	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Morkrut Banshee	282d6cbba8eb8e52	14	1/1		0/1	ix:resp
 Mossbeard Ancient	a38a9e151ab55a4a	5	1/1		0/1	ix:resp
@@ -74,8 +82,10 @@ Pack's Betrayal	646a2002d25cf1f2	4	0/0		1/2	ix:resp
 Paradox Zone	2d6c3aeac737de93	4	1/1		0/1	ix:resp
 Perimeter Captain	91c3661c5d7f043f	12	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Petrifying Meddler	fe9d4bd38235685a	11	1/1		1/1	
+Phantasmal Dreadmaw	751771b46709f950	32	1/1		0/1	ix:resp
 Phenomenon Investigators	2a8d3be85c715925	35	0/0		0/0	
 Pheres-Band Centaurs	79258945ce0db37b	11	0/0		0/0	
+Protective Bubble	7c1d6dd06263abbd	33	0/0		2/2	
 Rakdos Carnarium	5dba9a367e40dae4	83	2/2		0/1	ix:resp
 Reality Heist	4a292cfa1371d8c6	18	0/0		2/2	
 Recall	dc8ab56f9f3ea426	12	0/0		2/4	f0/s/x0,ix:resp
@@ -87,6 +97,7 @@ Savai Sabertooth	dcc9b53cef65053d	7	0/0		0/0
 School of the Unseen	4221ff0ac5efe1dd	8	2/2		0/1	ix:resp
 Scuttling Doom Engine	10518d2582184a79	8	1/1		1/1	
 Severed Legion	d62e805d823dffca	4	0/0		0/0	
+Shared Discovery	dd21626e9de72408	3	0/0		1/2	ix:resp
 Shoulder to Shoulder	aa808ac62763ad11	12	0/0		1/2	ix:resp
 Soulblade Djinn	22dd2a49ca0a68e0	10	1/1		0/1	ix:resp
 Spider Spawning	17f214091484bd53	10	0/0		4/4	
@@ -96,6 +107,7 @@ Suppression Bonds	9d531f97d7065b17	14	0/0		1/2	ix:resp
 Temporal Manipulation	628500a0f9fb7738	15	0/0		2/2	
 Trigon of Corruption	599a98f6ec879dab	10	2/2		0/1	ix:resp
 Turntimber Ranger	f2b02e0f53eb67c2	7	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Ureni's Counsel	2ae493b7cb0f582c	11	0/0		2/4	cast/alt:harmonize,ix:resp
 Viashino Shanktail	5b29cb4a39a2f06b	13	1/1		0/1	ix:resp
 Waking the Trolls	b7ba0e72b20561c6	13	0/0		0/0	
 Weatherlight	89330c06251c97f5	17	2/2		1/1	

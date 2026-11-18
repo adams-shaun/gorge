@@ -13,8 +13,10 @@ Arbor Armament
 Arboreal Alliance
 Arcade Cabinet
 Arcane Encyclopedia
+Arcbound Reclaimer
 Archivist of Oghma
 Argivian Find
+Armor of Faith
 Armored Pegasus
 Assault Zeppelid
 Auriok Salvagers
@@ -28,12 +30,15 @@ Befriending the Moths
 Bitter Reunion
 Blade Banish
 Blessings of Nature
+Bloodpyre Elemental
 Bloody Betrayal
 Bontu's Monument
 Borderland Minotaur
 Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
+Bramble Armor
+Breaking Point
 Briarknit Kami
 Brightmare
 Brushwagg
@@ -90,9 +95,11 @@ Drawn from Dreams
 Drift of Phantasms
 Duergar Hedge-Mage
 Dust Elemental
+Eerie Procession
 Eiganjo Uprising
 Elvish Eulogist
 Elvish Vanguard
+Ember Beast
 Enchantress's Presence
 Enclave Elite
 Endless One
@@ -104,6 +111,7 @@ Ethercaste Knight
 Excise
 Extravagant Spirit
 Falkenrath Celebrants
+Falkenrath Pit Fighter
 Fauna Shaman
 Fen Hauler
 Festering Newt
@@ -113,6 +121,7 @@ Flowstone Infusion
 Fogwalker
 Font of Mythos
 Forest
+Forked Lightning
 Frenetic Ogre
 Fruitcake Elemental
 Fumarole
@@ -124,6 +133,7 @@ Gather the Pack
 Gaze of Adamaro
 Geology Enthusiast
 Githzerai Monk
+Glaring Fleshraker
 Glyph Elemental
 Gnarlwood Dryad
 Gnat Alley Creeper
@@ -158,6 +168,8 @@ Hunt the Hunter
 Impale
 Implement of Malice
 In Too Deep
+Innocent Blood
+Inspired Tinkering
 Invincible Hymn
 Iridescent Angel
 Island
@@ -170,6 +182,7 @@ Kami of Restless Shadows
 Karplusan Strider
 Katilda, Dawnhart Prime
 Kazarov, Sengir Pureblood
+Kiln Fiend
 Knighthood
 Kor Castigator
 Kraul Raider
@@ -200,6 +213,7 @@ Mishra's Self-Replicator
 Mistford River Turtle
 Misthollow Griffin
 Mnemonic Sliver
+Molten Gatekeeper
 Moor Fiend
 Mountain
 Mox Tantalite
@@ -214,8 +228,10 @@ Nesting Dragon
 Nezumi Bone-Reader
 Nightmare Shepherd
 Nimble Birdsticker
+Nissa, Vastwood Seer
 Noxious Ghoul
 Nymris, Oona's Trickster
+Nyxborn Rollicker
 Oakgnarl Warrior
 Ollenbock Escort
 Oona's Blackguard
@@ -232,15 +248,19 @@ Phthisis
 Phyrexian Rebirth
 Plains
 Plated Wurm
+Plundering Barbarian
 Predator, Flagship
 Prismatic Strands
 Profit
+Prosperous Partnership
 Psychic Allergy
 Puppet Conjurer
 Raging Spirit
+Raise the Palisade
 Rakdos Signet
 Raphael, Fiendish Savior
 Reap What Is Sown
+Reshape
 Reshape the Earth
 Revoke Existence
 Rigging Runner
@@ -303,6 +323,7 @@ Thatcher Revolt
 The Battle of Bywater
 The Covert Blue Mage
 Thran Golem
+Thunderscape Familiar
 Tiana, Ship's Caretaker
 Tidehollow Sculler
 Tireless Provisioner
@@ -333,7 +354,9 @@ Warden of the First Tree
 Wax
 Wei Ambush Force
 Wilson, Refined Grizzly
+Wintermoon Mesa
 Wirewood Symbiote
+Wizard Class
 Wolfcaller's Howl
 Word of Binding
 Yawgmoth's Vile Offering

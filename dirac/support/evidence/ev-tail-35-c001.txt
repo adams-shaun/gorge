@@ -18,6 +18,7 @@ Arcane Denial
 Archmage's Charm
 Arlinn, Voice of the Pack
 Atraxa's Skitterfang
+Auntie Blyte, Bad Influence
 Ballynock Trapper
 Beacon of Unrest
 Bedevil
@@ -126,6 +127,7 @@ Hag of Noxious Nightmares
 Harmonic Sliver
 Hazerider Drake
 Hearth Kami
+Helldozer
 Herald of War
 Herbology Instructor
 Hoofprints of the Stag
