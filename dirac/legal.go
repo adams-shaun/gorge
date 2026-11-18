@@ -1070,7 +1070,7 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	if cd.BeholdExile || (cd.HasMultikicker || cd.HasEscalate) && !mayPlay || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
 		return s.optCostCastLowers(k, p, c, o, mayPlay)
 	}
-	if cd.HasModeCost && !mayPlay && !modalFloorZero(k, c) {
+	if cd.HasModeCost && !mayPlay && !s.modalFloorFree(k, p, c) {
 		// a Spree or Tiered face whose cheapest mode still costs mana: the
 		// cast planner declines the shape ("shape:modal_cost") and the
 		// potential composition prices the cast only at its printed cost
