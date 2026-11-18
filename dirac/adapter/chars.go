@@ -28,7 +28,8 @@ func (g *Game) objFacts(i canon.Ref, id state.ObjID) {
 	f.keywords = f.keywords[:0]
 	ob := dirac.Obj(i)
 	f.name, f.effective = "", ""
-	if face := g.face(po.Card); face != nil {
+	face := g.face(po.Card)
+	if face != nil {
 		f.name = face.Name
 		f.power, f.tough = int32(face.Power()), int32(face.Toughness())
 		f.keywords = append(f.keywords, face.Keywords...)
@@ -39,6 +40,13 @@ func (g *Game) objFacts(i canon.Ref, id state.ObjID) {
 		}
 		granted, rep := g.s.FeatGrantedOffRep(ob)
 		f.keywords = appendGranted(f.keywords, granted, &rep)
+		// a keyword with no KwMask bit granted off the battlefield
+		// (Six's graveyard retrace; kw_offkwgrant.go)
+		f.keywords = append(f.keywords, g.s.FeatOffKwNames(ob)...)
+		// an off-zone subtype grant (Leyline of Transformation)
+		if types, subs, all, setSub, ok := g.s.FeatViewTypes(ob); ok && face != nil {
+			g.setTypeWords(f, face, types, subs, all, setSub)
+		}
 		if po.Zone == kop.ZoneHand {
 			f.effective = g.handCost(ob, po)
 		}
@@ -114,6 +122,12 @@ func (g *Game) retype(i canon.Ref, f *objFacts) {
 	if face == nil {
 		return
 	}
+	g.setTypeWords(f, face, types, subs, all, setSub)
+}
+
+// setTypeWords records a derived type line: the printed words still true,
+// then what the effect added.
+func (g *Game) setTypeWords(f *objFacts, face *cards.Face, types kop.TypeMask, subs kop.SubMask, all, setSub bool) {
 	cardTypes := [...]struct {
 		mask kop.TypeMask
 		word string

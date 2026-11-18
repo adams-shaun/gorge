@@ -1,0 +1,18 @@
+# the off-battlefield Continuous statics pool (dirac/kgen/lower_offzone.go):
+# Six (AffectedZone$ Graveyard AddKeyword$ Retrace, the granted graveyard cast
+# kw_offkwgrant.go and kw_retrace.go), Leyline of Transformation
+# (AffectedZone$ All AddType$ ChosenType) and Ashes of the Fallen
+# (AffectedZone$ Graveyard AddType$ ChosenType) beside the rituals, vanilla
+# creatures and basic lands the lockstep decks play (dirac/oracle/affectedzone_lockstep_test.go).
+Six
+Leyline of Transformation
+Ashes of the Fallen
+Raging Goblin
+Ornithopter
+Hill Giant
+Grizzly Bears
+Rite of Flame
+Seething Song
+Forest
+Mountain
+Island

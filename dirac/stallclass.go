@@ -126,6 +126,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallDredge,            // a draw-replacement body (repl_draw.go) or another unresumable draw path meets a dredge candidate: gorge asks, the kernel cannot suspend there (kw_dredge.go)
 	StallPrevScopeCopy,     // a filtered scoped prevention resolving from a copy of its card: the record cannot find its filters again from the copier's object (repl_prevscopefilter.go)
 	StallGainsOf,           // a gained (GainsAbilitiesOf$) mana, limited, once-each-turn, loyalty, exhaust, host-cost or off-battlefield ability, or one past index 63 (static_gainsof.go)
+	StallRetraceGrant,      // a granted retrace offer the retrace walk does not price: gorge offers the cast, the kernel withholds it (kw_retrace.go)
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its
