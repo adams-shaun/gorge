@@ -92,15 +92,20 @@ func TestPaymentPlanInterferenceOpponentPermanentsLeaveIslandPlan(t *testing.T) 
 // Manabarbs' TapsForMana trigger (ValidCard$ Land, no Activator$) matches a
 // tap of ANY player's land, so it defers every land -- seat 0's included --
 // by name, while a non-land source of seat 0 still funds the plan: the
-// trigger's filter, not its presence, decides.
+// trigger's filter, not its presence, decides. The watcher is a triggered
+// ability resolving after the spell is on the stack (CR 601.2g, 405.6c), so a
+// cast only the deferred land can fund is the census gap's second pass
+// (pay.paymentPlanGapGate), the kernel's own Taps-deferred route
+// (TestTapsForManaLockstep); a ProduceMana replacement acts on the payment and
+// stays unfundable (the Mana Reflection test below).
 func TestPaymentPlanInterferenceManabarbsDefersOnlyWhatItMatches(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9902, interferenceBlueInstant)
 	island := onBoard(t, e, 0, interferenceIsland)
 	onBoardCard(t, e, 1, corpusCard(t, "Manabarbs"))
 	got := e.PlanCastPayment(0, paymentCast(spell))
-	if got.Plan != nil || got.Reason != "insufficient" || !strings.Contains(got.Detail, "Manabarbs") {
-		t.Fatalf("Island under Manabarbs = %+v, want insufficient naming Manabarbs", got)
+	if srcs := interferencePlanSources(got); len(srcs) != 1 || srcs[0] != island {
+		t.Fatalf("Island under Manabarbs = %+v (sources %v), want the second pass to fund it with the Island %d", got, srcs, island)
 	}
 	if tier, _, detail := interferenceTier(t, e, island); tier != pay.TierDeferred || !strings.Contains(detail, "Manabarbs") {
 		t.Fatalf("Island tier = %d %q, want deferred naming Manabarbs", tier, detail)

@@ -101,6 +101,10 @@ func (e *Engine) paymentPlanManaConvertName(p state.PlayerID) string {
 	return "ManaConvert"
 }
 
+// tapMode reports whether a trigger mode watches a tap (Taps) or a tap for
+// mana (TapsForMana).
+func tapMode(mode string) bool { return mode == "Taps" || mode == "TapsForMana" }
+
 // paymentPlanSourceInterference classifies what can act on activating ma on
 // source id: pay.TierNormal when nothing does, pay.TierLastResort with
 // the source's own fully determined consequence, or pay.TierDeferred with
@@ -108,13 +112,29 @@ func (e *Engine) paymentPlanManaConvertName(p state.PlayerID) string {
 // replacement would apply. A choice-shaped production is checked for every
 // colour it can be planned as, so a trigger restricted to one colour defers
 // the whole source rather than one alternative.
-func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pay.Tier, pay.Consequence, string) {
+//
+// watcher (meaningful for a deferred verdict) reports that every deferring
+// object only watches the tap: a trigger is not a mana ability, so per CR
+// 601.2g with 405.6c it is queued while the spell is announced and resolves
+// only after it is on the stack, and cannot alter the payment. A ProduceMana
+// replacement (Mana Reflection, Contamination), a replacement on a folded
+// trigger's mana, a Static$ True (triggered mana ability) trigger, a mana-adding registration (Bubbling Muck) or an unvetted
+// own Untap replacement acts on the payment itself, so it is not a watcher.
+// The census-gap second pass funds only a watcher-deferred source
+// (pay.paymentPlanGapGate). The verdict and its name are the first deferral
+// in walk order; the walk continues past it only to classify the rest.
+func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pay.Tier, pay.Consequence, string, bool) {
 	src := e.G.Obj(id)
 	if src == nil || src.Face() == nil || ma == nil {
-		return pay.TierDeferred, pay.Consequence{}, "source:interference"
+		return pay.TierDeferred, pay.Consequence{}, "source:interference", false
 	}
-	deferredBy := func(obj state.ObjID) (pay.Tier, pay.Consequence, string) {
-		return pay.TierDeferred, pay.Consequence{}, "source:interference:" + pay.PaymentPlanObjName(asPayer(e), obj)
+	var first state.ObjID
+	deferred, acts := false, false
+	deferBy := func(obj state.ObjID, actsOnPay bool) {
+		if !deferred {
+			first, deferred = obj, true
+		}
+		acts = acts || actsOnPay
 	}
 	var c pay.Consequence
 	// The source's own "doesn't untap during your untap step". An Untap
@@ -125,7 +145,7 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 			continue
 		}
 		if !pay.PaymentPlanNoUntapShape(r) {
-			return deferredBy(id)
+			return pay.TierDeferred, pay.Consequence{}, "source:interference:" + pay.PaymentPlanObjName(asPayer(e), id), false
 		}
 		c.NoUntap = true
 	}
@@ -133,9 +153,9 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 	cost := e.abilityCompiledCost(ma).Cost
 	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
 		if cost.Tap {
-			dmg, _, by, ok := e.paymentPlanTapObservers(id, controller, produced, false)
+			dmg, _, by, ok, actsOnPay := e.paymentPlanTapObservers(id, controller, produced, true)
 			if !ok {
-				return deferredBy(by)
+				deferBy(by, actsOnPay)
 			}
 			// One activation fires the trigger once whichever colour it
 			// takes: the consequence is the largest, not the sum.
@@ -148,13 +168,16 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 			amount = e.manaEffectAmount(controller, id, ma, nil, pay.GainedManaRef{})
 		}
 		if by, ok := e.paymentPlanProductionReplaced(id, controller, produced, amount, cost.Tap); ok {
-			return deferredBy(by)
+			deferBy(by, true)
 		}
 	}
-	if c != (pay.Consequence{}) {
-		return pay.TierLastResort, c, "source:last_resort"
+	if deferred {
+		return pay.TierDeferred, pay.Consequence{}, "source:interference:" + pay.PaymentPlanObjName(asPayer(e), first), !acts
 	}
-	return pay.TierNormal, pay.Consequence{}, ""
+	if c != (pay.Consequence{}) {
+		return pay.TierLastResort, c, "source:last_resort", false
+	}
+	return pay.TierNormal, pay.Consequence{}, "", false
 }
 
 // paymentPlanTapExtraMana is the additional mana the deterministic static
@@ -169,14 +192,14 @@ func (e *Engine) paymentPlanTapExtraMana(id state.ObjID, produced string) state.
 	if src == nil {
 		return state.Mana{}
 	}
-	_, extra, _, _ := e.paymentPlanTapObservers(id, src.Controller, produced, true)
+	_, extra, _, _, _ := e.paymentPlanTapObservers(id, src.Controller, produced, true)
 	return extra
 }
 
 // manaProductionAltered reports whether a tap trigger or a replacement would change
 // what id's activation of ma adds to the pool.
 func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
-	if tier, _, _ := e.paymentPlanSourceInterference(id, ma); tier == pay.TierDeferred {
+	if tier, _, _, _ := e.paymentPlanSourceInterference(id, ma); tier == pay.TierDeferred {
 		return true
 	}
 	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
@@ -200,7 +223,7 @@ func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
 // checkFaceTriggers walks them -- and leaves the zone question to the real
 // zoneGate. Granted-trigger statics that observe a Tap are walked over the
 // battlefield recipients their Affected$ admits.
-func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerID, produced string, whole bool) (damage uint32, extra state.Mana, by state.ObjID, ok bool) {
+func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerID, produced string, whole bool) (damage uint32, extra state.Mana, by state.ObjID, ok, acts bool) {
 	// The synchronous context emitManaTap/emitTap establish around the Tap
 	// event, restored before return: this is matcher scratch, not game state.
 	savedObj, savedPlayer, savedEntering := e.tapObj, e.tapPlayer, e.tapEntering
@@ -221,7 +244,14 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 		}
 		return !whole
 	}
-	tapMode := func(mode string) bool { return mode == "Taps" || mode == "TapsForMana" }
+	// actsBy is deferBy for an object that acts on the payment itself (a
+	// ProduceMana replacement on a folded trigger's mana, a delayed
+	// registration that adds mana) rather than watching the tap: acts reports
+	// that class beside the first deferring object (paymentPlanSourceInterference's watcher verdict).
+	actsBy := func(obj state.ObjID) bool {
+		acts = true
+		return deferBy(obj)
+	}
 	for _, oid := range pay.PaymentPlanInterferenceCarriers(asPayer(e)) {
 		o := e.G.Obj(oid)
 		if o == nil || o.PhasedOut || o.Face() == nil || e.printedAbilitiesGone(o) || !pay.PaymentPlanAlive(asPayer(e), o) {
@@ -257,8 +287,8 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 				}
 				if folds && (tm.ToTapped || o.Controller == activator) {
 					if rby, replaced := e.paymentPlanExtraReplaced(oid, activator, tm.Mana); replaced {
-						if deferBy(rby) {
-							return 0, state.Mana{}, by, false
+						if actsBy(rby) {
+							return 0, state.Mana{}, by, false, true
 						}
 						continue
 					}
@@ -291,8 +321,20 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 				if pay.PaymentPlanTapDestroySelfTrigger(fc.face, t) {
 					continue
 				}
+				// A Static$ True trigger is a triggered mana ability (CR 605.1b):
+				// it resolves during the tap and its mana joins the payment, so
+				// one the planner cannot fold acts on the payment -- except the
+				// foldable body only its gate keeps from folding (the kernel's
+				// gated extra, floated at the tap). Any other trigger only
+				// watches the tap and is queued after the cast.
+				if pay.PaymentPlanUnfoldableStaticTapTrigger(fc.face, t) {
+					if actsBy(oid) {
+						return 0, state.Mana{}, by, false, true
+					}
+					continue
+				}
 				if deferBy(oid) {
-					return 0, state.Mana{}, by, false
+					return 0, state.Mana{}, by, false, acts
 				}
 			}
 		}
@@ -335,19 +377,19 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 				}
 				for i, t := range granted {
 					if e.triggerMatchesWithSVars(t, rid, ev, nil, svars[i]) && deferBy(ce.Source) {
-						return 0, state.Mana{}, by, false
+						return 0, state.Mana{}, by, false, acts
 					}
 				}
 			}
 		}
 	}
-	if dby, seen := e.paymentPlanDelayedTapObserver(id, ev); seen && deferBy(dby) {
-		return 0, state.Mana{}, by, false
+	if dby, seen := e.paymentPlanDelayedTapObserver(id, ev); seen && actsBy(dby) {
+		return 0, state.Mana{}, by, false, true
 	}
 	if !ok {
-		return 0, extra, by, false
+		return 0, extra, by, false, acts
 	}
-	return damage, extra, 0, true
+	return damage, extra, 0, true, acts
 }
 
 // paymentPlanExtraReplaced reports the first ProduceMana replacement that
