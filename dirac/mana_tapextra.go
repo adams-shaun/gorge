@@ -380,17 +380,27 @@ func (s *State) srcYieldAt(k *prep, sl Slot, pc *pcard) uint8 {
 	return srcYield(pc) + s.srcReflectPick(k, sl, pc)
 }
 
-// addReflectOne registers the one-colour limit of a plain any-colour source
-// under a reflect carrier (Roxanne over a Meteorite): its tap is srcYieldAt mana
-// of the ONE colour picked (CR 106.12a), not independent units of any colour.
-// manaOne sources already registered theirs. Registering srcYieldAt keeps
-// removeSrc's dropOneColour matching the census. A several-colour source that
-// is not ColAny (a dual under Mana Flare) is left as independent units.
+// addReflectOne registers the one-colour limit of a source whose tap a
+// reflected StatTapExtra carrier widens: its tap is srcYieldAt mana of the ONE
+// colour picked (CR 106.12a; gorge's planner prices the extra into each
+// declared production, pay planalts.go addTapExtra, and the census prices the
+// widened unit as a one-colour record beside its backing, legal.go
+// potUnitsAvail), not independent units of the union. The entry rides the
+// group srcMaskAt names, so removeSrc's remove of that group at srcYieldAt
+// drops it (mana.go dropOneColour), as it does for the census's record.
+// manaOne sources already registered theirs. A mask with the {C} bit keeps the
+// independent read: the one-colour entries price coloured picks only (ColAny's
+// own limit, mana.go addOneColour), so an entry over a {C}-bearing mask would
+// drop the pick the independent units still make.
 func (s *State) addReflectOne(k *prep, a *avail, sl Slot, pc *pcard) {
-	if pc.manaOne || s.srcReflectPick(k, sl, pc) == 0 || s.srcMaskAt(pc, sl) != uint8(kop.ColAny) {
+	if pc.manaOne || s.srcReflectPick(k, sl, pc) == 0 {
 		return
 	}
-	s.addOneColour(a, s.srcYieldAt(k, sl, pc))
+	m := s.srcMaskAt(pc, sl)
+	if m&(m-1) == 0 || m&^uint8(kop.ColAny) != 0 {
+		return // one fixed colour: the carrier's extra is a fixed vector (srcExtra)
+	}
+	s.addOneColourMask(a, m, s.srcYieldAt(k, sl, pc))
 }
 
 // addExtra floats the extra mana of sl's tap in p's pool. A reflected extra of
