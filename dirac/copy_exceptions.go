@@ -246,7 +246,7 @@ func copyExcFlags(t *kop.Table) (pt, sub, col, nocost, ty, rmLeg bool) {
 		pt = pt || o.HasPT
 		sub = sub || o.AddSub != (kop.SubMask{}) || o.AllCreatureTypes
 		col = col || o.HasColors || o.AddColors != 0
-		ty = ty || o.AddTypes != 0 || o.RemoveLegendary
+		ty = ty || o.AddTypes != 0 || o.HasTypes || o.RemoveLegendary
 		rmLeg = rmLeg || o.RemoveLegendary
 		nocost = nocost || o.NoCost
 	}
