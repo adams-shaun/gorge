@@ -363,6 +363,15 @@ func (f *Face) CharacteristicDefining() bool { return f.characteristicDefining }
 // does not set it — grants stay in the rules layer walk.
 func (f *Face) AllCreatureTypesCDA() bool { return f.allCreatureTypesCDA }
 
+// CDAAddTypes is the type words the face's own characteristic-defining
+// AddType$ static adds, in the static's word order (Veteran Adventurer's
+// "CARDNAME is also a Cleric, Rogue, Warrior, and Wizard" →
+// [Cleric Rogue Warrior Wizard]), nil when it prints none. CR 613.4a: the
+// ability works in every zone, so the type filter's intrinsic tail
+// (effects' hasType, which the rules layer walk's published table does not
+// serve off the battlefield) reads the list. Derived once at load.
+func (f *Face) CDAAddTypes() []string { return f.cdaAddTypes }
+
 // Colour identity is a bitmask over the five colours packed into one byte. A
 // bitmask is the natural representation: identity is used as a set-membership
 // question ("commander identity must be a superset of this card's identity")
@@ -432,6 +441,7 @@ func (f *Face) copyPrintedFrom(src *Face) {
 func (f *Face) derive() {
 	f.power, f.toughness, f.characteristicDefining = parsePT(f.PT)
 	f.allCreatureTypesCDA = cdaAllCreatureTypes(f.Statics)
+	f.cdaAddTypes = cdaAddTypes(f.Statics)
 	f.cmc = cmcFromManaCost(f.ManaCost)
 	f.cmcSrc, f.cmcBound = f.ManaCost, true
 	if f.manaCostSlot == nil {
@@ -530,6 +540,45 @@ func cdaAllCreatureTypes(sts []Static) bool {
 		return true
 	}
 	return false
+}
+
+// cdaAddTypes is cdaAllCreatureTypes' sibling for the AddType$ spelling: the
+// type words of every unconditional characteristic-defining Continuous
+// static affecting the card itself, deduplicated in static order (Veteran
+// Adventurer's "Cleric & Rogue & Warrior & Wizard"). A CONDITIONAL static
+// (Karn's "During your turn ... is a 3/4 Ninja creature") is refused: the
+// intrinsic read cannot evaluate its condition, so it stays the rules layer
+// walk's, which evaluates it on the battlefield — the fail-closed direction
+// the rest of the type grammar takes.
+func cdaAddTypes(sts []Static) []string {
+	var out []string
+	for _, s := range sts {
+		if s.Mode != "Continuous" || !strings.EqualFold(strings.TrimSpace(s.ParamStr(PKCharacteristicDefining)), "True") {
+			continue
+		}
+		add := strings.TrimSpace(s.ParamStr(PKAddType))
+		if add == "" {
+			continue
+		}
+		for k := range s.Params {
+			if strings.HasPrefix(k, "Condition") {
+				add = ""
+				break
+			}
+		}
+		if add == "" {
+			continue
+		}
+		if aff := strings.TrimSpace(s.ParamStr(PKAffected)); aff != "" && !strings.Contains(aff, "Self") {
+			continue
+		}
+		for _, w := range strings.Split(add, "&") {
+			if w = strings.TrimSpace(w); w != "" && !slices.Contains(out, w) {
+				out = append(out, w)
+			}
+		}
+	}
+	return out
 }
 
 // CommanderColourChoiceCDA reports whether the face carries the CR 903.4b
