@@ -186,14 +186,13 @@ func parseThisTurnEnteredSpec(rest string) (dest state.Zone, origin *state.Zone,
 	return d, nil, v, true
 }
 
-// countEntered folds the per-add entry list over one destination zone (and
+// countEnteredOver folds an explicit entry list -- g.Entered for the
+// this-turn window (evalThisTurnEnteredAs), g.EnteredLastTurn for the
+// previous turn's (evalLastTurnEntered) -- over one destination zone (and
 // optionally one origin zone): the entries whose object matches valid from
 // the resolving controller's perspective are counted, or -- when prop names a
 // modelled sum property -- their values are summed through objectProperty
 // (the Genesis of the Daleks total-power form).
-// countEnteredOver is countEnteredAs over an explicit entry list: g.Entered
-// for the this-turn window (evalThisTurnEnteredAs), g.EnteredLastTurn for
-// the previous turn's (evalLastTurnEntered).
 func countEnteredOver(g *state.Game, c *Ctx, you state.PlayerID, entries []state.ZoneEntry, dest state.Zone, origin *state.Zone, valid, prop string) (int32, bool) {
 	if valid == "" {
 		return 0, false
