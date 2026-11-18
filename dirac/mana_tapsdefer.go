@@ -536,6 +536,9 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 	pc := s.manaPCGen(k, sl)
 	if s.splitDeferred(k, sl) {
 		pc = s.splitCensusPC(k, sl) // the root's production plus the arm's while its gate holds (mana_condsplit.go)
+		if av.pipWin {
+			pc = s.splitWindowPC(k, sl) // a pip ask prices the window's census (announceFeasible), the arm's alone while its gate holds
+		}
 	}
 	mask := s.srcMaskAt(pc, sl)
 	if col, ok := tapsDeferPainCol(k, pc, mask); ok {

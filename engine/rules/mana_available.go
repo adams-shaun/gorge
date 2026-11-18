@@ -187,10 +187,18 @@ func (e *Engine) windowManaUnitsWith(p state.PlayerID, only []state.ObjID, pre [
 			}
 			free++
 			amt := mf.Amount
+			counts, any := mf.Counts, mf.Any
+			// A Condition-split ability whose own gate fails makes its sub's
+			// mana instead (River of Tears after a land drop: {B}, not {U};
+			// mana_condsplit.go), so the unit prices the sub's production.
+			if sub := condSplitLiveSub(e, p, id, ma); condSplitRootSuperseded(e, p, id, ma, sub) {
+				if sm := effects.ManaOf(sub); !sm.NeedsChosen {
+					amt, counts, any = availableAmount(sub), sm.Counts, sm.CountsAny
+				}
+			}
 			if amt <= 0 {
 				continue
 			}
-			counts, any := mf.Counts, mf.Any
 			total := int32(0)
 			for _, n := range counts {
 				total += n

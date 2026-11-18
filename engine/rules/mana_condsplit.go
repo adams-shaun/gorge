@@ -48,3 +48,20 @@ func condSplitLiveSub(h condSplitHost, p state.PlayerID, id state.ObjID, ma *car
 	}
 	return nil
 }
+
+// condSplitRootSuperseded reports whether ma's own Condition* gate provably
+// fails on the live board while its Condition-split sub (sub, from
+// condSplitLiveSub) is the one that makes the mana: River of Tears after a
+// land drop makes {B} INSTEAD of {U} (CR 605.1a), so the root's {U} must not
+// be counted. An undecidable root gate stays counted (an upper bound).
+func condSplitRootSuperseded(h condSplitHost, p state.PlayerID, id state.ObjID, ma, sub *cards.SA) bool {
+	if sub == nil {
+		return false
+	}
+	ctx := h.manaAmountCtx(p, id)
+	if o := h.Game().Obj(id); o != nil && o.Face() != nil {
+		effects.SetSVars(ctx, o.Face().SVars)
+	}
+	met, resolved := effects.ConditionMet(h, ctx, ma)
+	return resolved && !met
+}
