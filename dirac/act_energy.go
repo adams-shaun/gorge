@@ -47,6 +47,12 @@ func (s *State) plCtrPtr(p uint8, kind int) *uint8 {
 		}
 		return nil
 	}
+	if kind == kop.PlCtrDungeons {
+		if c := s.dDoneCold(); int(p) < len(c) {
+			return &c[p] // completed dungeons (act_initiative.go)
+		}
+		return nil
+	}
 	return &s.g.energy[p]
 }
 

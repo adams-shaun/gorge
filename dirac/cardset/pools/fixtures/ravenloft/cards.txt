@@ -1,0 +1,23 @@
+# the initiative pool with Ravenloft Adventurer (dirac/oracle/init_ravenloft_test.go): the venture
+# completes dungeons, the replacement exiles with a hit counter, the attack reads both
+# six other TakeInitiative carriers on both sides, the Undercity's nine
+# rooms, creatures to connect (dirac/oracle/init_test.go)
+Avenging Hunter
+Bloodboil Sorcerer
+Stirring Bard
+Dungeoneer's Pack
+Goliath Paladin
+Underdark Explorer
+Aarakocra Sneak
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Walking Corpse
+Elite Vanguard
+Shock
+Forest
+Mountain
+Plains
+Swamp
+Island
+Ravenloft Adventurer

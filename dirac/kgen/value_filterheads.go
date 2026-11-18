@@ -63,6 +63,9 @@ func (lc *lowerCtx) kvfHead(head, rest string) (lValue, error) {
 		}
 		return lValue{Kind: vPoisonOf, Ref: lRef{Kind: rTargetController, N: t}}, nil
 	case "TriggeredDefendingPlayer":
+		if spec, ok := strings.CutPrefix(rest, "ValidExile "); ok {
+			return lc.defendingExileValue(spec) // below
+		}
 		if rest != "CardsInHand" {
 			break
 		}
@@ -91,6 +94,44 @@ func (lc *lowerCtx) kvfHead(head, rest string) (lValue, error) {
 		return lValue{Kind: vLifeOf, Ref: lRef{Kind: rTriggeredPlayer}}, nil
 	}
 	return lValue{}, fmt.Errorf("%s$%s", head, rest)
+}
+
+// defendingExileValue lowers TriggeredDefendingPlayer$ValidExile <spec>: the
+// exiled cards matching spec with the defending player as the spec's You
+// (Ravenloft Adventurer's "each card they own in exile with a hit counter").
+// Dirac is two-seat, so the defending player of the controller's own attack
+// is the controller's one opponent: YouOwn rebinds to OppOwn and the count is
+// ExCountExile (every exile, the Owner property narrows). Any other player
+// word in a spec alternative would bind to the controller's side, so it
+// refuses. Gorge's defaultRefPropertyModelled does not read this head for
+// TriggeredDefendingPlayer yet (it counts 0): see the ticket
+// engine-dungeons-completed-and-defending-validexile-heads.
+func (lc *lowerCtx) defendingExileValue(spec string) (lValue, error) {
+	if !lc.ownAttackTrigger() {
+		return lValue{}, refuse("TriggeredDefendingPlayer$ValidExile outside an attack trigger of the controller's own attack")
+	}
+	lc.twoSeat("TriggeredDefendingPlayer read as the one opponent")
+	alts := strings.Split(strings.TrimSpace(spec), ",")
+	for i, alt := range alts {
+		typ, props, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		kept := []string{}
+		for _, p := range strings.Split(props, "+") {
+			switch {
+			case p == "YouOwn":
+				kept = append(kept, "OppOwn")
+			case strings.Contains(p, "You") || strings.Contains(p, "Opp") || strings.Contains(p, "Own") || strings.Contains(p, "Ctrl") || strings.Contains(p, "Player"):
+				return lValue{}, refuse("TriggeredDefendingPlayer$ValidExile %q: player word %q", spec, p)
+			default:
+				kept = append(kept, p)
+			}
+		}
+		alts[i] = typ + "." + strings.Join(kept, "+")
+	}
+	f, err := lc.filter(strings.Join(alts, ","))
+	if err != nil {
+		return lValue{}, err
+	}
+	return lValue{Kind: vCountExile, F: f}, nil
 }
 
 // metalcraftValue lowers Count$Metalcraft.<yes>.<no> (gorge
