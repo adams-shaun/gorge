@@ -1919,6 +1919,21 @@ func (c *potCensus) gap() {
 	}
 }
 
+// recPickDrop records sl's tap as one same-pick unit of n mana all in one
+// colour of mask (a reflected extra over an open production, born grown:
+// potUnitsAvail prices it as a one-colour source) and notes it for mergeTap.
+// A lethal-guard refusal's drop colours price at nothing, as recTapDrop's.
+func (c *potCensus) recPickDrop(sl Slot, mask, n, drop uint8) {
+	if !c.on || n == 0 {
+		return
+	}
+	if mask &^= drop; mask == 0 {
+		return
+	}
+	recordPotUnit(&c.units, &c.n, mask, n, c.pain, true)
+	c.tap[sl] = potUnit{mask: mask, n: n, pain: c.pain, pick: true}
+}
+
 // tapRec notes sl's tap production (already recorded) for mergeTap.
 func (c *potCensus) tapRec(sl Slot, mask, n uint8) {
 	if c.on && mask != 0 && n > 0 {
@@ -2103,12 +2118,31 @@ func (s *State) censusOpenTap(k *prep, p uint8, sl Slot, pc *pcard, boundedAny b
 		fold(sl, mask, n)
 		return
 	}
+	if s.censusPickOwns(k, sl, pc, cen) {
+		// a reflected extra over the open tap: the grown amount is one tap's
+		// mana all of the pick (CR 605.3b), so the census records it as a
+		// same-pick unit (recPickDrop) in either mode; the walk's fold keeps
+		// the grown amount (potentialAnyColourUnit folds it in bounded mode)
+		if !boundedAny {
+			fold(sl, mask, n)
+		}
+		cen.recPickDrop(sl, mask, n, painDrop)
+		return
+	}
 	if !boundedAny {
 		add(sl, mask, n)
 	}
 	if painDrop == 0 {
 		cen.tapRec(sl, mask, n) // mergeTap's note, either mode
 	}
+}
+
+// censusPickOwns reports whether censusOpenTap records sl's open tap in the
+// census as a same-pick unit: the census is on and a reflected TapsForMana
+// extra (srcReflectPick) reaches the tap, so potentialAnyColourUnit must fold
+// the production into the over-bound pool alone.
+func (s *State) censusPickOwns(k *prep, sl Slot, pc *pcard, cen *potCensus) bool {
+	return cen.on && s.srcReflectPick(k, sl, pc) > 0
 }
 
 // potentialTapUnit records a source's tap production in availPotentialFor: a
@@ -2286,7 +2320,11 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			if len(units) != 0 {
 				s.censusOpenTap(k, p, sl, pc, boundedAny, painAdd, fold, painDrop, &cen)
 			}
-			open = s.potentialAnyColourUnit(k, sl, pc, boundedAny, painAdd, &anyFree) || open
+			anyAdd := painAdd
+			if s.censusPickOwns(k, sl, pc, &cen) {
+				anyAdd = fold // censusOpenTap recorded the same-pick unit
+			}
+			open = s.potentialAnyColourUnit(k, sl, pc, boundedAny, anyAdd, &anyFree) || open
 			continue
 		}
 		mask := s.srcMaskAt(pc, sl)
