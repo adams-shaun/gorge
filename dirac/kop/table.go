@@ -767,6 +767,14 @@ type CardDef struct {
 	// replacement parameter; dirac/kgen textreach.go). Set only in a table
 	// that holds an ExtChangeText, so every other table is unchanged.
 	TextWords uint16
+	// FaceName is a token's or face entry's printed name (its script's
+	// Name: line, "Soldier Token"; lCard.printed): the table Name is the
+	// pool key (the script stem, "w_1_1_soldier"), and the legend rule
+	// (CR 704.5j) and gorge e.Name group by the printed name, so two token
+	// scripts that print the same name are one name (dirac/turn.go
+	// legendGroup). Blank when Name already is the printed name (a real
+	// card; Table.CardName).
+	FaceName string
 }
 
 // CardDef.MorphFamily values: the face-down keyword the card was printed with.
@@ -880,6 +888,17 @@ func (t *Table) Filter(f FilterID) *Filter { return &t.Filters[f] }
 // TapPays reports whether the card's cast announces tapped permanents toward
 // its mana cost (printed Convoke or Improvise; dirac/kw_convoke.go).
 func (c *CardDef) TapPays() bool { return c.Convoke || c.Improvise }
+
+// CardName is card c's printed name: FaceName (a token's or face entry's
+// script Name: line) when set, else Name (a real card's name; a token's Name
+// is its script stem). CR 704.5j's legend rule and gorge e.Name compare these.
+func (t *Table) CardName(c CardID) string {
+	cd := &t.Cards[c]
+	if cd.FaceName != "" {
+		return cd.FaceName
+	}
+	return cd.Name
+}
 
 // AndNot is m without the members of o.
 func (m SubMask) AndNot(o SubMask) SubMask { return SubMask{m[0] &^ o[0], m[1] &^ o[1], m[2] &^ o[2]} }
