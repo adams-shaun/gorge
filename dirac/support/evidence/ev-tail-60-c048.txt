@@ -13,7 +13,6 @@ Marionette Apprentice
 Mountain
 Plains
 Silent Specter
-Smiting Helix
 Spectral Guardian
 Spider Spawning
 Swamp

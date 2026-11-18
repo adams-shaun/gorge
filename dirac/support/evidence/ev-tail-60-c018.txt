@@ -18,7 +18,6 @@ Mistmeadow Skulk
 Mountain
 Plains
 Silent Specter
-Smiting Helix
 Swamp
 Tenacity
 Trench Wurm
