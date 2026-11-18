@@ -235,7 +235,7 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 						}
 					}
 					if tapExtra {
-						e.addPotentialTapExtra(&out, id, ma)
+						e.addPotentialTapExtra(&out, p, id, ma)
 					}
 				}
 			}
@@ -340,8 +340,8 @@ func (e *Engine) tapExtraTriggerOnBoard() bool {
 // trigger once whichever colour it takes, so the bound takes the largest
 // extra per colour over the colours the ability can produce, and an ability
 // that does not tap adds none.
-func (e *Engine) addPotentialTapExtra(m *state.Mana, id state.ObjID, ma *cards.SA) {
-	most := e.potentialTapExtra(id, ma)
+func (e *Engine) addPotentialTapExtra(m *state.Mana, p state.PlayerID, id state.ObjID, ma *cards.SA) {
+	most := e.potentialTapExtra(p, id, ma)
 	for i, n := range most {
 		if n > 0 {
 			m[i] = saturatingPotentialMana(m[i], n)
@@ -350,14 +350,22 @@ func (e *Engine) addPotentialTapExtra(m *state.Mana, id state.ObjID, ma *cards.S
 }
 
 // potentialTapExtra is the largest extra per colour the static TapsForMana
-// triggers add when id taps for ma, over the colours ma can produce; zero for
-// an ability that does not tap.
-func (e *Engine) potentialTapExtra(id state.ObjID, ma *cards.SA) state.Mana {
+// triggers add when id taps for ma, over the colours ma or its live
+// Condition-split sub can produce (mana_condsplit.go: the sub's production
+// is what the tap makes when its gate holds, so a Mana Flare beside a
+// River of Tears after a land drop reflects the {B} the sub adds, not only
+// the root's {U}); zero for an ability that does not tap.
+func (e *Engine) potentialTapExtra(p state.PlayerID, id state.ObjID, ma *cards.SA) state.Mana {
 	var most state.Mana
 	if !e.abilityCompiledCost(ma).Cost.Tap {
 		return most
 	}
-	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
+	payer := asPayer(e)
+	productions := pay.PaymentPlanProductions(payer, id, ma)
+	if sub := condSplitLiveSub(e, p, id, ma); sub != nil {
+		productions = append(slices.Clone(productions), pay.PaymentPlanProductions(payer, id, sub)...)
+	}
+	for _, produced := range productions {
 		x := e.paymentPlanTapExtraMana(id, produced)
 		for i := range most {
 			most[i] = max(most[i], x[i])
