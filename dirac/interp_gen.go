@@ -880,6 +880,8 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.doubleCountersRemembered(k, in)
 		} else if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			s.doubleCountersAt(k, sl, in.C)
+		} else if in.Obj == kop.RefController {
+			s.doublePlayerCounters(k, in) // ctr_doubleplayer.go
 		}
 	case kop.OpRemoveCounterRem:
 		s.g.remCnt = 0
