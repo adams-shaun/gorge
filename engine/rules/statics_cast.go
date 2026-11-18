@@ -322,10 +322,15 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 		}
 		if e.castRestrictionMatches(spec, id, sc, as) &&
 			castLimitBinds(e.L.Events, sv, p, castInFlight(e.G, id), func(oid state.ObjID) bool {
-				if len(sv.Remembered) == 0 {
-					return e.matchesSpec(countSpec, oid, e.staticSpecCtx(sv))
-				}
+				// A cast is history, not a permanent (CR 702.26b hides a
+				// phased-out permanent from a battlefield read, not a spell
+				// already cast this turn): the ledger's own rule
+				// (spellsCastThisTurnMatching).
 				sc := e.staticSpecCtx(sv)
+				sc.WithPhasedOut = true
+				if len(sv.Remembered) == 0 {
+					return e.matchesSpec(countSpec, oid, sc)
+				}
 				for _, rid := range sv.Remembered {
 					sc.Remembered = append(sc.Remembered, state.Target{Obj: rid})
 				}

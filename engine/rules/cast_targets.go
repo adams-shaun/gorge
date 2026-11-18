@@ -1613,10 +1613,13 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 				spec := castValidCardSpec(sv)
 				if e.matchesSpec(spec, pc.card, sc) &&
 					castLimitBinds(e.L.Events, sv, pc.player, pc.card, func(oid state.ObjID) bool {
-						if len(sv.Remembered) == 0 {
-							return e.matchesSpec(spec, oid, e.staticSpecCtx(sv))
-						}
+						// a cast is history: a phased-out permanent still
+						// counts (CR 702.26b; the offer's closure, statics_cast.go)
 						sc := e.staticSpecCtx(sv)
+						sc.WithPhasedOut = true
+						if len(sv.Remembered) == 0 {
+							return e.matchesSpec(spec, oid, sc)
+						}
 						for _, rid := range sv.Remembered {
 							sc.Remembered = append(sc.Remembered, state.Target{Obj: rid})
 						}
