@@ -64,6 +64,7 @@ func main() {
 	deckDir := flag.String("deckdir", "", "read each -decks name from <deckdir>/<name>.json instead of the embedded repo decks")
 	shape := flag.String("shape", "", "write a JSON game-shape census to this file (game rows, then one aggregate)")
 	coverage := flag.String("coverage", "", "append per-card coverage rows (seed card key used offered clean) to this file")
+	record := flag.String("record", "", "write each game's gorge-match-1 match record (<n>-seed<S>.match.json.gz) into this directory, verifiable with matchrecord.VerifyChance; a record holds every hidden card, so never commit one")
 	coverageCtx := flag.String("coverage-ctx", "", "free-text context written to the -coverage header (e.g. cmdr4, cmdr2, c60)")
 	// -schedule: a line replays alone as `mtgsim <the mapped single-game
 	// flags>` (see runSchedule), so the hunt's REPRO: lines stay valid.
@@ -101,7 +102,7 @@ func main() {
 	o := simOptions{
 		Schedule: *schedule, Decks: *decksFlag, Seats: *seats, Seed: *seed, Games: *games,
 		Verify: *verify, Verbose: *verbose, Dir: *dir,
-		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Mulligans: *mulligans, Shape: *shape, DeckDir: *deckDir, Coverage: *coverage, CoverageCtx: *coverageCtx,
+		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Mulligans: *mulligans, Shape: *shape, DeckDir: *deckDir, Coverage: *coverage, CoverageCtx: *coverageCtx, Record: *record,
 	}
 	if *policies != "" {
 		o.Policies = strings.Split(*policies, ",")
@@ -166,6 +167,9 @@ type simOptions struct {
 	// one game a line, each played as its own single-game run in this one
 	// process. It excludes Decks, Seed, Games, PolicyA, PolicyB and Policies.
 	Schedule string
+	// Record, when non-empty, is the directory every game's match record is
+	// written into (record.go). Without it nothing is written.
+	Record string
 }
 
 func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, verbose bool, dir, policyA, policyB string, sbAgents []string, out io.Writer) error {
@@ -273,6 +277,10 @@ func runSim(o simOptions, out io.Writer) error {
 		defer c.f.Close()
 		cov = c
 	}
+	rec, err := openRecorder(o.Record, dir)
+	if err != nil {
+		return err
+	}
 
 	failures := 0
 	for g := 0; g < games; g++ {
@@ -281,7 +289,7 @@ func runSim(o simOptions, out io.Writer) error {
 		if shapes != nil {
 			sg = &shapeGame{}
 		}
-		if !playOne(out, gameSeed, names, decks, reg, verify, policies, format, cmds, o.Mulligans, sg, cov) {
+		if !playOne(out, gameSeed, names, decks, reg, verify, policies, format, cmds, o.Mulligans, sg, cov, rec) {
 			failures++
 		}
 		if cov != nil && cov.err != nil {
@@ -411,7 +419,9 @@ func gameConfig(seed uint64, names []string, decks [][]*cards.Card, reg *cards.R
 // the replay outcome. It returns false for anything counted as
 // failure: non-termination, a replay error or a chain divergence. shape,
 // when non-nil, observes every decision and records the game's final shape.
-func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policies []string, format rules.Format, cmds [][]int, mulligans int, shape *shapeGame, cov *covRun) (ok bool) {
+// rec, when non-nil, writes the record of every game the drive loop ended
+// cleanly (finished or out of intents).
+func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policies []string, format rules.Format, cmds [][]int, mulligans int, shape *shapeGame, cov *covRun, rec *recorder) (ok bool) {
 	cfg := gameConfig(seed, names, decks, reg, format, cmds, mulligans)
 	// The default object cap, the same volume bound the shared drive
 	// loop arms: a degenerate token storm here ends as a LIVELOCK failure
@@ -505,6 +515,11 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 		}
 		finish(n, status)
 		reportDriveFailure(out, seed, len(names), n, err)
+		return false
+	}
+	if err := rec.write(seed, cfg, e, policies); err != nil {
+		finish(n, "failed")
+		fmt.Fprintf(out, "seed %d: %d seats, %6d intents -- FAILED: %v\n", seed, len(names), n, err)
 		return false
 	}
 
