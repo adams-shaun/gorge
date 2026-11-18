@@ -2352,7 +2352,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					cen.anyAddAb(sl, ab, mask, n, abDrop, addAb, fold)
 				}
 				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, len(units) != 0, anyAdd, &anyFree, &open) {
-					cen.addOrMerge(sl, ab, abDrop, addAb, fold)
+					s.addOrMergeRepeat(&cen, sl, ab, d, abDrop, addAb, fold)
 				}
 			}
 		}
