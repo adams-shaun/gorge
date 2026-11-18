@@ -9,15 +9,23 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // prices a pip against the sources the window can activate (CR 605.3a), so the
 // colour face is offered when only such a source pays it. An activation whose
 // {T} cost taps the source itself cannot also tap it for mana, as
-// excludeTapSource has it.
+// excludeTapSource has it. A bounded rider source whose ability costs more
+// than its tap (Remote Farm's depletion counter) is no unit: the window's
+// census reads only free-cost abilities (windowManaUnitsWith, FreeCost), so
+// gorge's announce never prices a face with it.
 func (s *State) addPipTapsDefer(k *prep, e *stackEntry, av *avail) {
 	own := NoSlot
 	if e.kind == seAbility && k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostTap != 0 {
 		own = s.srcSlot()
 	}
 	for b := s.scriptTapsDefer(k, e.ctrl); b.any(); b = b.rest() {
-		if sl := b.first(); sl != own {
-			s.addTapsDeferUnits(k, sl, av)
+		sl := b.first()
+		if sl == own {
+			continue
 		}
+		if a, ok := s.riderAbilityOf(k, sl); ok && (a.Cost.Flags != kop.CostTap || a.Cost.Mana.MV() != 0) {
+			continue
+		}
+		s.addTapsDeferUnits(k, sl, av)
 	}
 }
