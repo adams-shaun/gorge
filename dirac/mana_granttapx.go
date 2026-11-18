@@ -131,31 +131,6 @@ func (g *grantSrch) tapXPairBranch(t *State, i int, sl Slot, cs *[MaxPerm]Slot, 
 	return false
 }
 
-// grantTapXLive: p holds a live granted mana ability whose cost taps
-// permanents without {T} (Joraga Treespeaker's level-1 "Tap an untapped Elf
-// you control: Add {G}{G}", granted by its own level counter). Its cost is
-// repeatable and no bounded tap part, so gorge's census is unrelaxable like a
-// printed two-permanent source's (mana_tapanother.go tapXTwoLive).
-func (s *State) grantTapXLive(k *prep, p uint8) bool {
-	if k.gen == nil || len(k.gen.grantPC) == 0 {
-		return false
-	}
-	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
-		if !s.grantMay(k, m.first()) {
-			continue
-		}
-		var gi [maxGrants]int16
-		for i, n := 0, s.grantIdxs(k, m.first(), &gi); i < n; i++ {
-			r := k.gen.grantOf[gi[i]]
-			a := &k.t.Cards[r.card].Abilities[r.ab]
-			if a.Cost.Flags&kop.CostTapX != 0 && a.Cost.Flags&kop.CostTap == 0 {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 // tapXOffGrant: p has a live tap-another source the grant search does not
 // activate (a cost of three or more permanents): only the tap-another search prices
 // a play it pays. A source the grant search covers is tried in gorge's one

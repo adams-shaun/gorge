@@ -830,15 +830,17 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 	// gaps walk's plays (mana_tapanother.go tapXSacAnyBound, script_gen.go
 	// potentialBoundLists), which the searches below mirror; a play only the
 	// separate gap units pay is searched and offered beside a relaxable
-	// census alone, where gorge's one prefix search prices it
-	// (potential_plan.go potentialPlayVerdict).
+	// census and a live tap-another source alone (gorge runs its prefix
+	// search only on an incomplete census, potential_plan.go
+	// potentialPlayVerdict; a granted ability beside none is priced by the
+	// census, Joraga Treespeaker's own level ability).
 	_, sacOpen := s.tapXSacAnyBound(k, p)
 	var gateFilt slotMask
 	if k.gen.anyFilt {
 		gateFilt = s.scriptFilt(k, p)
 	}
 	relaxCensus := s.scriptRelax(k, p, gateFilt,
-		k.gen.anyComboAny && s.caBoard(k, p) || k.tapMana && s.tapXTwoLive(k, p) || sacOpen || s.grantTapXLive(k, p))
+		k.gen.anyComboAny && s.caBoard(k, p) || k.tapMana && s.tapXTwoLive(k, p) || sacOpen)
 	n := 0
 	var g grantSrch
 	// A play the offer lists on the join of a source's own and granted
@@ -976,7 +978,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 				capSpent.add(a)
 			}
 		} else if !hasOption(d, a) && (g.cheaper || g.storeStep() && !s.autopayScriptedCast(a) ||
-			s.cfg&cfgGorgeAutopay == 0 && relaxCensus) {
+			s.cfg&cfgGorgeAutopay == 0 && relaxCensus && s.tapXCensusGap(k, p).any()) {
 			// gorge's potential planner offers every play its one prefix search
 			// pays (potentialPlayVerdict): the offer builder's census prices a
 			// source's own and granted abilities as one join unit (availGrant),
