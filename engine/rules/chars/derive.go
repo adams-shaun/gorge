@@ -566,15 +566,7 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 	// CR 613.1f / Forge Card.updateKeywords: a CantHaveKeyword$ prohibition is
 	// a final filter after every layer-6 grant. It suppresses printed keywords,
 	// marker-counter grants and later AddKeyword$ grants alike.
-	for _, prohibited := range cantHaveKeywords {
-		kept := kw[:0]
-		for _, k := range kw {
-			if !containsKeywordHead(prohibited, k) {
-				kept = append(kept, k)
-			}
-		}
-		kw = kept
-	}
+	kw = applyKeywordProhibitions(kw, cantHaveKeywords)
 	colors := col.String()
 	if colorsOnly {
 		s.Depth--
@@ -607,6 +599,26 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 	return effects.Chars{Power: power, Toughness: toughness, BasePower: basePower, BaseToughness: baseToughness,
 		Keywords: kw, Types: ty, AllCreatureTypes: allCreatureTypes, Name: name, NameSet: nameSet, Text: text,
 		Colors: colors, Controller: b.ControllerOf(id)}
+}
+
+// applyKeywordProhibitions is CR 613.1f's final CantHaveKeyword$ filter,
+// applied after every layer-6 grant: it suppresses printed keywords,
+// marker-counter grants and later AddKeyword$ grants alike, in the order the
+// prohibitions were collected. A keyword is matched by its HEAD
+// (containsKeywordHead), so a parameterised print is suppressible by name.
+// The filter reuses kw's backing array (the walk owns it at this point; a
+// re-entrant build's private buffer is discarded on return).
+func applyKeywordProhibitions(kw []string, prohibited [][]string) []string {
+	for _, names := range prohibited {
+		kept := kw[:0]
+		for _, k := range kw {
+			if !containsKeywordHead(names, k) {
+				kept = append(kept, k)
+			}
+		}
+		kw = kept
+	}
+	return kw
 }
 
 // Name is Derived(id).Name without the rest of the walk. The name is
