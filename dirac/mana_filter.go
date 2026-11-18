@@ -1332,6 +1332,25 @@ func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap bool) bool {
 	return life
 }
 
+// deadFunder: sl is a dropped any-colour restricted gap (Gwenna beside a
+// planeswalker cast: its creature-only mana is spendable by no part of the
+// play) still untapped and activatable at this node. gorge's one prefix
+// search keeps it among the plain activations (scriptSpendableGaps removes it
+// from the census gaps only; the funding pass walks every option whose
+// source yields mana), so it is a funding step of the search that floats
+// mana the play refuses, charged to the node budget but never paying a fee.
+func (fs *filtSearch) deadFunder(k *prep, t *State, sl Slot) bool {
+	return fs.dead.has(sl) && sl != fs.own && t.scriptAnyR(k, fs.p).has(sl)
+}
+
+// deadFund branches dropped gap sl's answers as a funding activation: the
+// same asks the gap's own branch poses (anyRGap), one funded step each.
+func (fs *filtSearch) deadFund(k *prep, t *State, sl Slot, funded int, gapUsed bool) bool {
+	return fs.anyRGap(k, t, sl, func(o otherStep) bool {
+		return fs.try(k, t, filtStep{sl: sl, other: o}, funded+1, gapUsed)
+	})
+}
+
 // lifePass activates one life-only gap of the node's order: the last resort,
 // after the gaps and the funding sources (gorge pays a filter's fee from a
 // land before it pays life).
@@ -1411,6 +1430,12 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		}
 		for i := 0; i < n; i++ {
 			sl := order[i]
+			if !gap && fs.deadFunder(k, t, sl) {
+				if fs.deadFund(k, t, sl, funded, gapUsed) {
+					return true
+				}
+				continue
+			}
 			if fs.skipSlot(k, t, sl, gap) {
 				continue
 			}
@@ -1496,25 +1521,30 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 		}
 	}
-	if t.sp > fs.sp0 && fs.n < maxFiltPath {
-		// a trigger a step caused: let it resolve, the pool floats (gorge
-		// scriptSearch.visit, the last resort at a node; a sorcery-speed play
-		// waits for it, waitsForStack)
-		pass := MakeAction(AkPass, 0, 0, 0)
-		c := t.fork()
-		c.Apply(pass)
-		fs.path[fs.n] = filtStep{sl: NoSlot, other: otherStep{kind: otherPass}, act: pass}
-		fs.n++
-		ok := fs.settle(k, c, funded, true)
-		if !ok {
-			fs.stallOf(c)
-		}
-		t.unfork()
-		if ok {
-			return true
-		}
-		fs.n--
+	return fs.passTrigger(k, t, funded)
+}
+
+// passTrigger: a trigger a step caused: let it resolve, the pool floats (gorge
+// scriptSearch.visit, the last resort at a node; a sorcery-speed play waits
+// for it, waitsForStack).
+func (fs *filtSearch) passTrigger(k *prep, t *State, funded int) bool {
+	if t.sp <= fs.sp0 || fs.n >= maxFiltPath {
+		return false
 	}
+	pass := MakeAction(AkPass, 0, 0, 0)
+	c := t.fork()
+	c.Apply(pass)
+	fs.path[fs.n] = filtStep{sl: NoSlot, other: otherStep{kind: otherPass}, act: pass}
+	fs.n++
+	ok := fs.settle(k, c, funded, true)
+	if !ok {
+		fs.stallOf(c)
+	}
+	t.unfork()
+	if ok {
+		return true
+	}
+	fs.n--
 	return false
 }
 
