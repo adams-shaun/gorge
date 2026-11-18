@@ -71,7 +71,9 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	// really pay.
 	if !open && mx < cap {
 		var one avail
+		one.xd, one.xdOn = other, true // a restricted grant the trigger's own payment may not spend adds no unit (CR 106.6)
 		s.availForCapped(k, p, &one)
+		one.xdOn = false
 		if k.restrSrc {
 			if t, _, nm := s.restrSrcAvailD(k, p, other, &one, NoSlot, false); nm == 0 {
 				one = t // the restricted sources a non-spell payment may spend count once each too
