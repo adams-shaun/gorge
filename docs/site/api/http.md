@@ -222,7 +222,7 @@ The stream has its own page: [The event stream](sse.md).
 
 | Method | Path | What | Auth | Statuses |
 |---|---|---|---|---|
-| `POST` | `/api/games` | Start a play-vs-bot game (`CreateGameRequest` in, `CreateGameResponse` out, including the seat token and join path). `paired_bot` chooses its paired bot: a name from `paired_bots`, or `off` for none; omitted, the server's default. Any other name is a 400. | none | 200, 400, 404 |
+| `POST` | `/api/games` | Start a play-vs-bot game (`CreateGameRequest` in, `CreateGameResponse` out, including the seat token and join path). `paired_bot` chooses its paired bot: a name from `paired_bots`, or `off` for none; omitted, the server's default. Any other name is a 400. `seats` (2 to 4), `humans` and `decks` seat a Commander pod: seats 0 to `humans`-1 are people, each with a token in `seats` of the response, and the rest bots; `decks` gives a ManaBrew deck per seat, which the server resolves, checks for format, legality and engine support, and refuses with a 400 naming the cards. A pod is refused under `-engine dirac`. | none | 200, 400, 404 |
 | `POST` | `/api/feedback` | A bug report, as `multipart/form-data` with fields `text` (required), `url`, `table`, `seat`, `screenshot` (PNG) and `client.json`. Answers `201 {"id": …}`. | none | 201, 400, 500 |
 | `GET` | `/art/named?exact=NAME` | Card art reference, Scryfall-shaped: `{name, image_uris: {normal}}` | none | 200, 400, 404, 502, 503 |
 | `GET` | `/art/token?exact=NAME&types=…&ppt=P/T` | Token art reference, same shape | none | 200, 400, 404, 502, 503 |
