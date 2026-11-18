@@ -49,12 +49,13 @@ const relaxedPaidLimit = 3
 // Prism) is kop.FilterManaAb's (mana_filterfirst.go).
 func filterTapMana(cd *kop.CardDef, a *kop.Ability) bool {
 	m := &a.Cost.Mana
-	_, pip := fixedPipFilt(a) // a gated one-pip fixed-colour filter (mana_filterpip.go)
+	_, pip := fixedPipFilt(a)        // a gated one-pip fixed-colour filter (mana_filterpip.go)
+	hyb := kop.HybridFilterManaAb(a) // a one-hybrid-pip fee, two of one chosen colour (mana_filterhybrid.go)
 	if a.Kind != kop.AbMana || a.AFlags&^(kop.AfManaDynamic|kop.AfManaChoice) != 0 || a.ManaRestrict != 0 || a.Cost.Flags != kop.CostTap ||
-		m.X != 0 || m.Hyb[0] != 0 || a.ManaN == 0 {
+		m.X != 0 || m.Hyb[0] != 0 && !hyb || a.ManaN == 0 {
 		return false
 	}
-	if !pip && (m.Generic == 0 || m.Pips != ([kop.NumManaKinds]uint8{}) || a.ManaColors != kop.ColAny || a.ManaN > 1 && (a.AFlags&kop.AfManaChoice == 0 || !comboFiltAb(a))) {
+	if !pip && !hyb && (m.Generic == 0 || m.Pips != ([kop.NumManaKinds]uint8{}) || a.ManaColors != kop.ColAny || a.ManaN > 1 && (a.AFlags&kop.AfManaChoice == 0 || !comboFiltAb(a))) {
 		return false
 	}
 	f := firstManaAb(cd)
@@ -164,6 +165,9 @@ func (s *State) filtFee(k *prep, sl Slot) int {
 	if _, ok := s.filtPip(k, sl); ok {
 		return 1 // the pip: a generic reducer cannot lower it
 	}
+	if _, _, ok := s.filtHyb(k, sl); ok {
+		return 1 // the hybrid pip: a generic reducer cannot lower it either
+	}
 	if s.filtRepeat(k, sl) {
 		return s.filtRepeatFee(k, sl) // a fee-only one: its pip and its reduced generic part
 	}
@@ -182,6 +186,9 @@ func (s *State) filtUnits(k *prep, sl Slot) int {
 	if comboFiltAb(a) {
 		return int(a.ManaN)
 	}
+	if kop.HybridFilterManaAb(a) {
+		return int(a.ManaN) // two of the one colour chosen
+	}
 	if a.ManaEach {
 		n := 0
 		for _, v := range filtEachVec(a) {
@@ -199,7 +206,7 @@ func (s *State) filtUnits(k *prep, sl Slot) int {
 // relaxedPaidLimit, each dynamic amount at least one and at most six
 // (rules/potential_plan.go paymentPlanRelaxedAlternatives).
 func (s *State) filtRelaxable(k *prep, f slotMask) bool {
-	if f.count() > relaxedPaidLimit || s.filtRepeatIn(k, f) { // (a repeatable one has no relaxed alternative: gorge once=false)
+	if f.count() > relaxedPaidLimit || s.filtRepeatIn(k, f) || s.filtHybIn(k, f) { // (a hybrid fee or a repeatable one has no relaxed alternative: mana_filterhybrid.go, gorge once=false)
 		return false
 	}
 	for ; f.any(); f = f.rest() {
@@ -621,6 +628,10 @@ func (s *State) windowFiltUseful(k *prep, p uint8, sl Slot, want uint8) bool {
 	}
 	if col, ok := s.filtRepeatPip(k, sl); ok && s.pl[SeatIx(p)].pool[col] < 1 {
 		return false
+	}
+	if a, b, ok := s.filtHyb(k, sl); ok {
+		pl := &s.pl[SeatIx(p)]
+		return pl.pool[a] >= 1 || pl.pool[b] >= 1 // the plain pool, as the pip arm above reads it
 	}
 	return poolTotal(&s.pl[SeatIx(p)]) >= s.filtFee(k, sl)
 }
@@ -1095,6 +1106,9 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		} else if col, ok := s.filtRepeatPip(k, st.sl); ok {
 			s.filtPayPip(k, p, st.sl, col) // a fee-only filter's pip first, then its generic part
 			fee--
+		} else if a, b, ok := s.filtHyb(k, st.sl); ok {
+			s.filtPayHyb(k, p, st.sl, a, b) // the hybrid pip, in its first printed colour when held
+			fee = 0
 		}
 		fee -= s.filtFeeRestr(k, p, st.sl, fee)
 		for _, c := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {

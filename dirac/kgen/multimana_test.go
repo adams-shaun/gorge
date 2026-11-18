@@ -15,10 +15,11 @@ func TestMultiManaShapes(t *testing.T) {
 		"Ifnir Deadlands": true, // {T}, Pay 1 life beside {C} (kernel painLife)
 		"Baxter Building": true, // {4},{T}: four mana in any combination (kernel filtCombo)
 		"Haunted Screen":  true, // {W} or {B}, then {G}, {U} or {R} for 1 life (kernel painLife)
-		"Vivid Crag":      true} // {T}, remove a charge counter: one mana of any colour (kernel counter gap)
+		"Vivid Crag":      true, // {T}, remove a charge counter: one mana of any colour (kernel counter gap)
+		"Cascade Bluffs":  true} // {U/R}, {T}: Add {U}{U}, {U}{R} or {R}{R} (kernel hybrid-fee filter, mana_filterhybrid.go)
 	refuse := map[string]bool{"Nightshade Dryad": true, "Abandoned Outpost": true, "An-Havva Township": true,
 		"Eye of Ramos": true, "Crystal Vein": true,
-		"Cascade Bluffs": true, "Cabal Stronghold": true, "Tournament Grounds": true}
+		"Cabal Stronghold": true, "Tournament Grounds": true}
 	var names []string
 	for n := range accept {
 		names = append(names, n)
