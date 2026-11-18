@@ -607,6 +607,19 @@ func (s *State) targetWindowShort(k *prep, e *stackEntry, cost *kop.ManaCost, hi
 		}
 	}
 	s.occ = s.occ.andNot(hide)
+	// gorge's affordableTargetCandidates prices the CR 601.2g window only
+	// while the payer holds an untapped mana source (cast_pricing.go
+	// probeManaShort): a cost the pool alone cannot pay with no untapped
+	// mana source to tap can only end in the payment's abort (CR 601.2h), so
+	// the ask withholds it. hasUntappedMana reads every available mana
+	// ability with its payability gate: a tap-another one with no candidate
+	// is no source (gorge untappedManaSource -> manaCostPayable), and an
+	// ability whose cost needs no tap is a source however tapped the
+	// permanent is (mana_available.go rejects only mf.Tap && o.Tapped).
+	if !s.windowSpellSettled(k, e.ctrl, cost, s.bld().bfl&bflAnyColor != 0) && !s.hasUntappedMana(k, e.ctrl) {
+		s.CopyFrom(saved)
+		return true
+	}
 	// gorge's affordableTargetCandidates prices the window from its census;
 	// any source the census cannot price (a tap-another one with no creature
 	// to tap, a restricted mana ability the payment admits but the probe does

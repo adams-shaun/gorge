@@ -287,3 +287,23 @@ func (fs *eachSearch) stallOf(c *State) {
 		fs.stall = c.g.stalled
 	}
 }
+
+// eachColLive reports whether untapped slot sl's each-colour ability (Bloom
+// Tender) is an available mana ability now: its tap produces one of each
+// colour among the filter's permanents, and a fee-paid one only while the
+// pool holds its fee (its activation gate, eachFeePayable). gorge's
+// hasUntappedManaSource counts the ability through its payability gate; the
+// gap mask's own gates (gapMask: a summoning-sick or genLost source, a
+// CantBeActivated lock) are the source's lock.
+func (s *State) eachColLive(k *prep, p uint8, sl Slot) bool {
+	if k.gen == nil || k.gen.eachCol(s.cardAt(sl)) < 0 {
+		return false
+	}
+	if s.activationSick(k, sl) || s.genLost(k, sl) || k.gen.anyCantAct && s.actForbidden(k, sl, true) {
+		return false
+	}
+	if fee := s.eachFee(k, sl); fee > 0 && !s.eachFeePayable(k, p, sl, fee) {
+		return false
+	}
+	return s.eachColorOut(k, p, sl) != 0
+}
