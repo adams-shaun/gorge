@@ -46,6 +46,7 @@ Bottomless Vault
 Branchsnap Lorian
 Brigone, Soldier of Meletis
 Browbeat
+Burly Breaker
 Burrenton Shield-Bearers
 Butcher of Malakir
 Canopy Claws
@@ -137,6 +138,7 @@ Foul Imp
 Fractal Harness
 Freyalise Supplicant
 Freyalise's Charm
+Frostburn Weird
 Gaea's Avenger
 Galvanic Blast
 Gate of the Black Dragon

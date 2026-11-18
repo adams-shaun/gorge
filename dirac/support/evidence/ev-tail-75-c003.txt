@@ -36,6 +36,7 @@ Bloodmark Mentor
 Bloodthirsty Adversary
 Blustersquall
 Bond of Insight
+Bone Devourer
 Bonehoard
 Boneknitter
 Bound in Silence
@@ -123,6 +124,7 @@ Howl of the Night Pack
 Huatli, Radiant Champion
 Hulk, Brutal Brawler
 Hurloon Battle Hymn
+Illicit Shipment
 Imaginary Pet
 Immortal Phoenix
 Incisor Steed
@@ -247,6 +249,7 @@ Soulmender
 Spectacle Mage
 Spike Breeder
 Spindrift Drake
+Spirit Shackle
 Spirited Companion
 Spitebellows
 Spitfire Handler

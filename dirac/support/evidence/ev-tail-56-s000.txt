@@ -1,33 +1,54 @@
+A-Nezumi Prowler
 Abiding Grace
 Adorable Kitten
+Aerie Worshippers
 Aethertide Whale
+Agate Instigator
+Ageless Entity
 Alarum
+Anchor to the Aether
 Angelic Gift
 Arachnogenesis
+Archon of Cruelty
+Ascendant Packleader
 Aura Fracture
+Aven Smokeweaver
 Avian Changeling
 Awaken the Ancient
 Barbed Battlegear
+Bee Sting
 Belligerent Brontodon
+Berserk Murlodont
 Big Boa Constrictor
 Bladetusk Boar
+Blanchwood Prowler
 Blistering Firecat
+Brass Gnat
 Brave the Sands
 Briar Shield
 Burn Bright
 Burning-Tree Emissary
+Cartographer's Survey
+Cathedral of War
 Champion of Dusk
 Citywide Bust
 Cleansing Meditation
+Clear
 Close Quarters
 Coiled Tinviper
+Cult of the Waxing Moon
 Dai Li Censor
+Darigaaz's Caldera
 Dauthi Slayer
 Demon of Dark Schemes
+Destructive Tampering
 Dimir Signet
 Dingus Staff
 Disruptive Student
+Drifter il-Dal
 Duskmantle Prowler
+Earthcraft
+Echo Inspector
 Elderfang Disciple
 Elven Lyre
 Enhanced Awareness
@@ -49,13 +70,16 @@ Goblin Spy
 Goldmaw Champion
 Golgari Guildmage
 Great Teacher's Decree
+Grey Host Reinforcements
 Griffin Rider
 Gruesome Deformity
 Gruul Charm
 Gyome, Master Chef
 Haazda Exonerator
+Halo Scarab
 Hotshot Mechanic
 Hound of Griselbrand
+Howling Golem
 Hulking Devil
 Hurloon Minotaur
 Ignite Disorder
@@ -73,6 +97,7 @@ Kin-Tree Invocation
 Kindercatch
 Kor Celebrant
 Lay Bare the Heart
+Leafdrake Roost
 Life Finds a Way
 Lightning Runner
 Marchesa's Emissary
@@ -89,6 +114,7 @@ Moriok Replica
 Mountain
 Mudbrawler Cohort
 Myrkul's Edict
+Necrogen Censer
 Necrogen Scudder
 Necrosynthesis
 Nightbird's Clutches
@@ -98,6 +124,8 @@ Oblation
 Oracle of Nectars
 Ozolith, the Shattered Spire
 Palisade Giant
+Parasitic Impetus
+Phase Dolphin
 Pheres-Band Brawler
 Pheres-Band Raiders
 Phyrexian Vatmother
@@ -105,6 +133,7 @@ Pinpoint Avalanche
 Plaguemaw Beast
 Plains
 Poison-Blade Mentor
+Power Fist
 Prizefight
 Psychic Allergy
 Rabid Wombat
@@ -117,16 +146,21 @@ Reprisal
 Returned Phalanx
 Revive the Shire
 Rocky Tar Pit
+Rousing Read
+Sandstone Deadfall
 Sawback Manticore
 Scouting Hawk
 Seasoned Dungeoneer
 Seismic Assault
 Servant of Nefarox
 Shaper Apprentice
+Shapers' Sanctuary
 Shattered Angel
 Shepherd of the Flock
 Silkwrap
 Skorpekh Destroyer
+Snow Devil
+Somber Hoverguard
 Somberwald Alpha
 Soulsworn Jury
 Spellrune Painter
@@ -134,6 +168,7 @@ Spidersilk Net
 Squall Drifter
 Startling Development
 Statute of Denial
+Stormtide Leviathan
 Sunmane Pegasus
 Swamp
 Swan Song
@@ -143,11 +178,15 @@ Tasseled Dromedary
 Terminus
 Testament of Faith
 Thoughtrender Lamia
+Tightening Coils
 Tithebearer Giant
 Tolarian Winds
 Treetop Bracers
+Treetop Sentinel
 Tribal Flames
 Tsabo's Decree
+Tusked Colossodon
+Upriser Renegade
 Viashino Racketeer
 Vintara Snapper
 Volrath's Stronghold
@@ -158,3 +197,4 @@ Xorn
 Yarok's Wavecrasher
 Young Wei Recruits
 Zhentarim Bandit
+Zodiac Rooster

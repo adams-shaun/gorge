@@ -541,7 +541,6 @@ Arid Mesa
 Arisen Gorgon
 Ark of Hunger
 Arlinn's Wolf
-Arlinn, Voice of the Pack
 Arm-Mounted Anchor
 Armaggon, Future Shark
 Armament Corps
@@ -1402,7 +1401,6 @@ Burdened Stoneback
 Bureau Headmaster
 Burgeoning
 Buried Treasure
-Burly Breaker
 Burn, Burn, Tree and Fern
 Burner Rocket
 Burning Anger
@@ -1749,7 +1747,6 @@ Cid, Timeless Artificer
 Cinder Storm
 Cinder Strike
 Cinder Wall
-Cinderhaze Wretch
 Cindering Cutthroat
 Cinderslash Ravager
 Circle of Dreams Druid
@@ -2165,7 +2162,6 @@ Cunning Strike
 Cunning Wish
 Curator of Mysteries
 Curator of Sun's Creation
-Curator's Ward
 Curfew
 Curious Altisaur
 Curious Cadaver
@@ -3180,7 +3176,6 @@ Evershrike's Gift
 Everything Pizza
 Evidence Examiner
 Evie Frye
-Evil Presence
 Evil Reawakened
 Eviscerate
 Eviscerator's Insight
@@ -3726,7 +3721,6 @@ Frost Trickster
 Frostbite Pyromental
 Frostboil Snarl
 Frostbridge Guard
-Frostburn Weird
 Frostveil Ambush
 Frostwind Invoker
 Frozen Aether
@@ -4448,7 +4442,6 @@ Harvest Season
 Harvest Wurm
 Harvester of Misery
 Harvestrite Host
-Hasran Ogress
 Haste Magic
 Hatchery Spider
 Haughty Djinn
@@ -4848,7 +4841,6 @@ Impact Tremors
 Impale
 Impassioned Orator
 Impede Momentum
-Imperial Ceratops
 Imperial Lancer
 Imperial Outrider
 Imperial Recruiter
@@ -6703,7 +6695,6 @@ Nimble Thopterist
 Nimble Trapfinder
 Nimbus Champion
 Nimbus Swimmer
-Nimbus of the Isles
 Nine-Ringed Bo
 Nine-Tail White Fox
 Ninja of the Hand
@@ -7370,7 +7361,6 @@ Predatory Nightstalker
 Predictive Preparations
 Prehistoric Pet
 Prepare
-Presence of Gond
 Press the Advantage
 Pressure Point
 Preston Garvey, Minuteman
@@ -7648,7 +7638,6 @@ Rakdos, the Muscle
 Rakeclaw Gargantuan
 Raking Canopy
 Rakish Crew
-Rakka Mar
 Rakshasa's Bargain
 Ral's Reinforcements
 Ral, Caller of Storms
@@ -8282,7 +8271,6 @@ Salt Road Skirmish
 Salt Vampire
 Saltfield Recluse
 Salvage
-Salvager of Secrets
 Salvaging Station
 Salvation Engine
 Salvation Swan
@@ -8554,7 +8542,6 @@ Sek'Kuar, Deathkeeper
 Sela, Tal Shiar Paradox
 Selesnya Cluestone
 Selesnya Evangel
-Selesnya Guildmage
 Selesnya Sagittars
 Self-Inflicted Wound
 Selfcraft Mechan
@@ -9804,7 +9791,6 @@ Symbiotic Beast
 Symmetry Matrix
 Symmetry Sage
 Synapse Necromage
-Synapse Sliver
 Synchronized Charge
 Syncopate
 Syndic of Tithes
@@ -10613,7 +10599,6 @@ Twining Twins
 Twinmaw Stormbrood
 Twinned Vision
 Twins of Maurer Estate
-Twinshot Sniper
 Twist Reality
 Twisted Abomination
 Twisted Embrace
@@ -11028,7 +11013,6 @@ Visage of Dread
 Visara the Dreadful
 Viscerid Armor
 Vision of Love
-Visionary's Dance
 Visions of Villainy
 Vitalizing Cascade
 Vitalizing Wind
@@ -11170,7 +11154,6 @@ War Effort
 War Elemental
 War Falcon
 War Flare
-War Machine, James Rhodes
 War Machine, Legacy of Iron
 War Squeak
 War-Spike Changeling

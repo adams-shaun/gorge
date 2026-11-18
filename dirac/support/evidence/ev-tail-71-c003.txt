@@ -6,6 +6,7 @@ Alchemist's Gift
 All Is Dust
 Alluring Suitor
 Ambulatory Edifice
+Anaconda
 Ancient Carp
 Angel's Tomb
 Angelic Quartermaster
@@ -13,6 +14,7 @@ Arcane Spyglass
 Arrow Volley Trap
 Aven of Enduring Hope
 Awe for the Guilds
+Basilica Shepherd
 Baton of Courage
 Battlefield Raptor
 Battleground Geist
@@ -38,6 +40,7 @@ Cathedral Sanctifier
 Caustic Caterpillar
 Cerebral Eruption
 Cleaving Skyrider
+Clinging Darkness
 Collected Conjuring
 Commando Raid
 Coordinated Barrage
@@ -87,6 +90,7 @@ Flamekin Spitfire
 Flow of Knowledge
 Flowstone Shambler
 Forest
+Freewind Falcon
 Frenzied Saddlebrute
 Garbage Elemental
 Gargoyle Flock
@@ -97,6 +101,7 @@ Goblin Archaeologist
 Goblin Dirigible
 Goretusk Firebeast
 Granite Gargoyle
+Gristleback
 Growth Cycle
 Guardian Automaton
 Guardian Lions
@@ -109,6 +114,7 @@ Hideous End
 Hold for Questioning
 Humble
 Hydrolash
+Imperial Ceratops
 Imposing Visage
 Inescapable Brute
 Inspirit
@@ -165,6 +171,7 @@ Ogre Slumlord
 Overwhelming Remorse
 Pact of Negation
 Palace Sentinels
+Pathmaker Initiate
 Phyrexian Missionary
 Piston Sledge
 Plains
@@ -191,11 +198,13 @@ Scarab Feast
 Scion Summoner
 Scoria Wurm
 Season of Growth
+Season of Renewal
 Serene Heart
 Serum Sovereign
 Shield Mate
 Shocker
 Shu Farmer
+Sighted-Caste Sorcerer
 Skarrgan Skybreaker
 Skatewing Spy
 Sky Crier
@@ -229,6 +238,7 @@ Tormod's Crypt
 Torture
 Tragic Fall
 Treasure Mage
+Trespassing Souleater
 Twisted Justice
 Ukkima, Stalking Shadow
 Undead Butler

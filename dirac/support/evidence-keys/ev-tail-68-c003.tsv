@@ -4,6 +4,7 @@ Aang's Defense	eadc97a335c3dc16	6	0/0		2/2
 Adamaro, First to Desire	3ef8994658b24d07	4	0/0		0/0	
 Aether Poisoner	009e64c845c79d1d	11	2/2		1/1	
 Aetheric Amplifier	e2d85382be8e91a9	4	2/2		0/1	ix:resp
+Aethermage's Touch	ecf4c5d6c5d9987d	4	0/0		1/2	ix:resp
 Akki Underling	5a61a1d2adaa9e73	4	0/0		0/0	
 Alpine Meadow	c9b9959f80f366f1	17	2/2		0/1	ix:resp
 Amaranthine Wall	eec54eb58dcc189f	4	1/1		1/1	
@@ -54,6 +55,7 @@ Djeru's Renunciation	96767945eed07122	4	1/1		1/2	ix:resp
 Eladamri, Lord of Leaves	cca46b31a3937bda	4	0/0		0/0	
 Electrickery	a940da22b81a3c0b	4	0/0		2/4	cast/alt:overloaded,ix:resp
 Elvish Archers	ad5faa487da23234	4	0/0		0/0	
+Embersmith	c8d9c549faaed074	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Errant and Giada	af5bfd5675ae4a95	4	0/0		0/0	
 Erratic Mutation	1a058d30a2e5a279	6	0/0		2/2	
 Escarpment Fortress	c4aeed1bf611dccd	5	1/1		0/1	ix:resp
@@ -78,6 +80,7 @@ Flamecast Wheel	90076d90dc9ad525	4	1/1		0/1	ix:resp
 Followed Footsteps	385536b901ec526c	4	1/1		2/2	
 Fractal Summoning	b303325111043b48	3	0/0		2/4	f0/s/x0,ix:resp
 Freyalise, Llanowar's Fury	7ef9bdd8a5df298f	3	3/3		0/1	ix:resp
+Furious Resistance	de8146f56ebace75	3	0/0		1/2	ix:resp
 Gem of Becoming	2f4c4f44b17f69a3	4	1/1		0/1	ix:resp
 Ghastly Demise	93edfdf772643617	3	0/0		2/2	
 Ghitu Slinger	dde45058a81cc81e	8	2/2		1/1	
@@ -120,6 +123,7 @@ Maul Splicer	2673862a62ebce5e	3	1/1		1/1
 Mist-Syndicate Naga	ce81c1e8b3e1d393	9	2/2		0/1	ix:resp
 Mogg Flunkies	2a64b753ae74147f	4	0/0		0/0	
 Monstrify	9f819425a9ddd5ff	4	0/0		1/2	ix:resp
+Mother Kangaroo	6bcb90addeeb15b3	6	1/1		0/1	ix:resp
 Needle Spires	fe8450cc216b1051	21	2/2		1/1	
 Niblis of the Urn	2647fbed5d781a4b	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Nyxborn Eidolon	be230cd5ec9ae165	10	0/0		1/2	cast/alt:bestowed
@@ -184,6 +188,7 @@ Think Tank	58978ed7fd8bcc45	4	1/1		1/1
 Thirst	b0b50ac8f73267bf	6	2/2		2/2	
 Tishana's Wayfinder	ade189359bee5083	4	1/1		1/1	
 Tower of Eons	52d67c8a9a7d16bc	7	1/1		0/1	ix:resp
+Traumatize	b5cb696f1e085666	10	0/0		2/2	
 Trespasser il-Vec	8f62e44d23354069	3	1/1		1/1	
 Treva's Ruins	e666e851f21f52b7	6	2/2		0/1	ix:resp
 Tune the Narrative	3e0728ddf5067c30	4	0/0		1/2	ix:resp
@@ -198,6 +203,7 @@ White Shield Crusader	7c1f951d332b99ef	4	2/2		1/1
 Windrider Wizard	a314be276c17d4a6	6	1/1		0/1	ix:resp
 Wingmate Roc	817d099e60f23dcf	10	2/2		1/1	
 Wolfbriar Elemental	c6198db0d16b7b87	3	1/1		2/3	cast/alt:multikicked
+Wooden Sphere	66b6a1bc28939ec6	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Yavimaya Granger	7f607854453c4f21	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Yotian Frontliner	ea945e709cd14a31	6	2/2		1/1	
 Zephyr Falcon	5f728c53612fe90c	4	0/0		0/0	
