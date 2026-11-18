@@ -854,7 +854,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 			// stack even though the sacrifice finds nothing (CR 701.3b,
 			// 400.7). The token's own Dies trigger is unaffected
 			// (CR 700.4).
-			if k.gen != nil && s.unattachedFires(k, q) {
+			if s.detachBearerFires(k, sl, q) {
 				s.fireUnattached(k, q, sl)
 			}
 			qp.attached = NoSlot
