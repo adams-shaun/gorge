@@ -64,7 +64,7 @@ func (s *State) chosenPairPrefix(k *prep, a Action, p uint8) {
 	var path [MaxPerm]uint8
 	var av avail
 	var ms modalSet
-	s.ungrAvail(k, p, ex, &av, &ms)
+	s.ungrAvail(k, p, ex, &av, &ms, slotMask{})
 	s.chosenPairWalk(k, a, p, &cost, ex, d, order[:n], path[:], &av, &ms)
 	for i, sl := range order[:n] {
 		switch path[i] {

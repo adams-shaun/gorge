@@ -180,7 +180,8 @@ func (s *State) plannerPaysCast(k *prep, p uint8, c CardID, o Obj) bool {
 	if s.g.mayPlayAny {
 		cost = anyType(cost) // a may-play under the any-type rider (rules potentialModeCastPlan)
 	}
-	return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
+	return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}) &&
+		!s.dhWithholdsCast(k, p, o, &cost) // the Diamonds alone fund the hand cast: gorge's planner prices no plan (census_incomplete)
 }
 
 // availXWindow is what CR 601.2g's window can make for an X announcement: availFor,
