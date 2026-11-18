@@ -23,6 +23,13 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	// controller" read -- effects.TriggeredCardController -- sees it.
 	if lki != nil && lki.ID == ev.Obj && leftBattlefield(ev) {
 		c.TriggerCardController = player(lki.Controller)
+	} else if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield && ev.From != state.ZBattlefield {
+		// CR 603.10a / 608.2h: an entering permanent's trigger that is sacrificed
+		// or otherwise gone before it resolves still reads the controller the
+		// permanent had when it entered, not its owner's after it left.
+		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield {
+			c.TriggerCardController = player(o.Controller)
+		}
 	}
 	switch t.ModeKind() {
 	case cards.TriggerRolledDie, cards.TriggerRolledDieOnce:

@@ -236,9 +236,9 @@ type TriggerContext struct {
 	AttackedTarget   state.Target
 	TriggerActivator state.Target
 	// TriggerCardController is the controller the triggering card had as it
-	// LEFT the battlefield (CR 603.10a), recorded when the trigger fires and
+	// LEFT the battlefield or entered it (CR 603.10a), recorded when the trigger fires and
 	// carried with the ability onto the stack. It is absent for every other
-	// event: an entering or cast card's controller is its current one.
+	// event: a cast card's controller is its current one.
 	TriggerCardController state.Target
 	// TriggerMana is the fixed-order WUBRGC set of mana types produced by
 	// the mana ability that caused a TapsForMana trigger. ManaReflected's
