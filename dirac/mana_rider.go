@@ -279,8 +279,12 @@ func (s *State) riderGap(k *prep, p uint8, sl Slot, answer int) bool {
 // riderPlainGap activates a riderPlainFirst source for the script search's
 // answer c: the source's mana ask offers the plain first ability's
 // production before the rider's colours (engine order), and gorge's
-// scriptSearch stably reorders those answers by the play's needed pips
-// (scriptOrderAnswers). c indexes that reordered list; the chosen plain
+// scriptSearch reorders those answers by the play's needed pips
+// (scriptOrderAnswers). A plain mana-ability ask keeps that reorder: the
+// needed-colour drop-out holds only where an option costs the payer life as
+// it resolves (CR 605.3b, 118.3, 119.4), and these riders never do — a Grove
+// rider gives its controller's opponents life, a deplete rider sacrifices
+// the source. c indexes that list; the chosen plain
 // production taps without the rider, a chosen rider production runs it.
 func (s *State) riderPlainGap(k *prep, p uint8, a Action, sl Slot, c int) bool {
 	if !s.riderPlainFirst(k, sl) {
