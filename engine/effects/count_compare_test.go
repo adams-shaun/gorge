@@ -197,7 +197,10 @@ func TestPlayerCountPropertyYouHasPropertyActive(t *testing.T) {
 	for _, head := range []string{
 		"PlayerCountPropertyYou$AttractionsVisitedThisTurn",
 		"PlayerCountPropertyOpponent$HasPropertyActive",
-		"PlayerCountPropertywithAtLeast2MoreLandsThanYou$Amount",
+		// An At-least-0 comparison is no property (the PlayerCount
+		// comparison family parses N >= 1 only), so it stays unresolvable;
+		// the N >= 1 spellings resolve (TestEDHPlayerCompare*).
+		"PlayerCountPropertywithAtLeast0MoreLandsThanYou$Amount",
 	} {
 		if got, ok := EvalCountOK(h, c, head); ok {
 			t.Errorf("%s resolved to %d, want unresolvable (0, false)", head, got)

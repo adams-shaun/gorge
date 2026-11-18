@@ -94,6 +94,9 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 		if n, ok2 := playerCountCondition(h, g, c, g.AliveFrom(0), rest, arg); ok2 {
 			return n, true, true
 		}
+		if n, ok2 := playerCountThanYou(h, g, c, g.AliveFrom(0), rest, arg, depth); ok2 {
+			return n, true, true
+		}
 		av, aok := playerCountExtreme(h, g, c, g.AliveFrom(0), rest, arg)
 		return av, aok, true
 	}
@@ -124,7 +127,7 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 		return av, aok, true
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
-		return evalPlayerCountOpponents(h, c, g, rest, arg)
+		return evalPlayerCountOpponents(h, c, g, rest, arg, depth)
 	}
 	// PlayerCountHasLost$<Property> — Forge's group of players who have LOST
 	// the game (CR 104.2-3; a concession counts). `Amount` counts them, so
@@ -260,6 +263,19 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 		return 0, false, true
 	}
 
+	// PlayerCountProperty<Group>$<Property> — the bare-family arm whose
+	// group token is itself a comparison property (Oreskos Explorer's and
+	// Surveyor's Scope's PlayerCountPropertywithAtLeast<N>MoreLandsThanYou
+	// $Amount). The comparison grammar is parsePlayerThanYouCmp's, shared
+	// with the group arms above; the You-group spellings were claimed by the
+	// PlayerCountPropertyYou$ arm before this point. Anything unrecognised
+	// here is CLAIMED and fail-closed (0, false) — never handed to a later
+	// phase, so an unmodelled spelling of the family cannot be laundered
+	// into another head's verdict.
+	if v, ok, matched := evalCountBodyPlayerProperty(h, c, g, head, arg, depth); matched {
+		return v, ok, true
+	}
+
 	// ThisTurnCast_<spec> is handled ABOVE the head/space split — a spec
 	// can carry a space; see the comment at the top of this function.
 
@@ -279,7 +295,7 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 // evalCountBodyPlayer (the same group-property chain the Players$ arm runs,
 // with the group the opponent set) — extracted verbatim so the evaluator
 // stays under its ceiling; the shared family comment lives at the call site.
-func evalPlayerCountOpponents(h Host, c *Ctx, g *state.Game, rest, arg string) (int32, bool, bool) {
+func evalPlayerCountOpponents(h Host, c *Ctx, g *state.Game, rest, arg string, depth int) (int32, bool, bool) {
 	if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
 		return n, true, true
 	}
@@ -312,6 +328,9 @@ func evalPlayerCountOpponents(h Host, c *Ctx, g *state.Game, rest, arg string) (
 		return n, true, true
 	}
 	if n, ok2 := playerCountCondition(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
+		return n, true, true
+	}
+	if n, ok2 := playerCountThanYou(h, g, c, opponentGroup(g, c), rest, arg, depth); ok2 {
 		return n, true, true
 	}
 	av, aok := playerCountExtreme(h, g, c, opponentGroup(g, c), rest, arg)
