@@ -399,9 +399,19 @@ func (s *State) addIdentityCensus(k *prep, sl Slot, pc *pcard, a *avail) {
 // trigger X announcement's one-tap cap reads it, because the potential walk
 // above counts a deferred source's tap (a Taps watcher, a mana rider, a
 // Condition split) while the planner census leaves it out. Each source still
-// counts once, at its largest production.
+// counts once, at its largest production. The walk's census reads the script
+// gaps too (its fixpoint admits a counter-cost or life-cost shape whose cost
+// taps nothing, potentialGapCost), so the cap runs in the gaps mode: gorge's
+// payment-window census lists every mana ability whose cost is no bare tap,
+// tapped or not (paymentPlanManaUnitsOnlyCompute's CR 602.2b note), and its
+// trigger X supply counts those units (triggeredCostXSupply) -- a cycled
+// Decree of Justice's "you may pay {X}" beside a Wall of Roots must offer X
+// past the Forest's tap.
 func (s *State) availForCapped(k *prep, p uint8, a *avail) {
+	m := s.g.availX
+	s.g.availX = m | availGaps
 	s.availForMode(k, p, a, slotMask{}, true)
+	s.g.availX = m
 }
 
 // availForExcluding is availFor over the battlefield sources except the
