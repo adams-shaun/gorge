@@ -245,8 +245,17 @@ func effPutCounterAll(h Host, c *Ctx, sa *cards.SA) {
 	// of its caller's action without closing that outer boundary.
 	defer beginActionBatch(h)()
 	var exotic []string
-	if strings.TrimSpace(sa.ParamStr(cards.PKPlacer)) != "" {
-		exotic = append(exotic, "Placer$")
+	// Placer$ names who puts the counters (CR 122.6: the replacement
+	// effects that key on the placing player read it, as PutCounter's
+	// Placer$ does through the in-flight counter adder). A selector this
+	// resolver cannot name stays loud.
+	var placer *state.PlayerID
+	if v := strings.TrimSpace(sa.ParamStr(cards.PKPlacer)); v != "" {
+		if p, ok := putCounterPlacerFor(h, c, v); ok {
+			placer = &p
+		} else {
+			exotic = append(exotic, "Placer$")
+		}
 	}
 	if TargetsOf(sa).Has(TgtUniqueSet) {
 		exotic = append(exotic, "TargetUnique$")
@@ -269,20 +278,20 @@ func effPutCounterAll(h Host, c *Ctx, sa *cards.SA) {
 			Text: "unimplemented PutCounterAll shape: " + strings.Join(exotic, ", ")})
 		return
 	}
-	putCounterAllSweep(h, c, sa, sa.ParamStr(cards.PKValidCards), sa.ParamStr(cards.PKCounterType), Num(h, c, sa, "CounterNum", 1))
+	putCounterAllSweep(h, c, sa, placer, sa.ParamStr(cards.PKValidCards), sa.ParamStr(cards.PKCounterType), Num(h, c, sa, "CounterNum", 1))
 	validCards2 := strings.TrimSpace(sa.ParamStr(cards.PKValidCards2))
 	counterType2 := strings.TrimSpace(sa.ParamStr(cards.PKCounterType2))
 	if validCards2 != "" || counterType2 != "" {
 		if validCards2 == "" {
 			validCards2 = sa.ParamStr(cards.PKValidCards)
 		}
-		putCounterAllSweep(h, c, sa, validCards2, counterType2, Num(h, c, sa, "CounterNum2", 1))
+		putCounterAllSweep(h, c, sa, placer, validCards2, counterType2, Num(h, c, sa, "CounterNum2", 1))
 	}
 }
 
 // putCounterAllSweep is one PutCounterAll batch: filter spec, counter kind
 // and count already resolved from their literal Params keys.
-func putCounterAllSweep(h Host, c *Ctx, sa *cards.SA, spec, kind string, n int32) {
+func putCounterAllSweep(h Host, c *Ctx, sa *cards.SA, placer *state.PlayerID, spec, kind string, n int32) {
 	if kind == "" {
 		kind = "P1P1"
 	}
@@ -325,7 +334,14 @@ func putCounterAllSweep(h Host, c *Ctx, sa *cards.SA, spec, kind string, n int32
 			}
 			t := state.Target{Obj: id}
 			before := putCounterHeld(g, t)
-			h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: n})
+			ev := events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: n}
+			if placer != nil {
+				previous := h.SetCounterAdder(*placer)
+				h.Emit(ev)
+				h.SetCounterAdder(previous)
+			} else {
+				h.Emit(ev)
+			}
 			if rememberAmount {
 				// RememberAmount$: one entry per counter that landed across the
 				// whole sweep, so Count$RememberedNumber reads the total.
