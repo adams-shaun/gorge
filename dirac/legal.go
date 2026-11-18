@@ -1927,6 +1927,12 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			// own faces alone.
 			if potentialOpenProduction(pc, payment) {
 				open = true
+				// the planner's census leaves a dynamic any-colour source
+				// out (a gap source, no proof against a play it could
+				// fund), so the per-tap view counts it at the amount it
+				// makes now (Lotus Blossom's petals, CR 601.2g); recTap is
+				// a no-op when the census is off
+				cen.recTap(sl, s.srcMaskAt(pc, sl), srcYield(pc))
 			} else if cen.on {
 				// the census reads the source at the amount it makes now, the
 				// planner's natural one (an Everflowing Chalice holding no
