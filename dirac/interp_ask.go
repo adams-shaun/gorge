@@ -207,11 +207,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	if kind == kop.PayMana && skip&pfModes == 0 && s.res.e.kind == seTrigger && kop.PayManaHybN(in.F) != 0 {
 		return s.startPayPips(p, skip, amt) // a trigger's own hybrid cost announces its pips first (cost_trighybrid.go)
 	}
-	stackSelfGone := kind == kop.PayExileGrave && in.B.N == kop.PayBSubStackSelf && s.objs[s.res.e.obj].zone != kop.ZoneStack
-	if stackSelfGone || !s.canPayGen(k, p, kind, amt, pips, in.F) && !s.windowPays(k, p, kind, skip, amt, pips) &&
-		!s.trigCostPotentialPays(k, p, kind, skip, amt, pips, in.F) {
-		skip |= pfNoPay // still asked, decline only (gorge poses it)
-	}
+	skip = s.payAnswerGate(k, in, p, kind, skip, amt, pips)
 	s.g.pickF = skip
 	s.g.pickZ = uint8(kind)
 	if kind == kop.PaySac && in.B.N == kop.PayBSubBlight {
@@ -223,6 +219,35 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	s.g.pickP = p
 	s.res.ask, s.res.askP = raGenPay, p
 	return false
+}
+
+// payAnswerGate adds pfNoPay to skip when the cost cannot be paid (the ask is
+// still posed, decline only: gorge poses it), declaring the rule-gap stall a
+// failed window probe's fork latched once that drop is final.
+func (s *State) payAnswerGate(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, amt int, pips int16) uint16 {
+	stackSelfGone := kind == kop.PayExileGrave && in.B.N == kop.PayBSubStackSelf && s.objs[s.res.e.obj].zone != kop.ZoneStack
+	noPay := stackSelfGone
+	var stall uint8
+	if !stackSelfGone {
+		ok := s.canPayGen(k, p, kind, amt, pips, in.F)
+		if !ok {
+			ok, stall = s.windowPays(k, p, kind, skip, amt, pips)
+		}
+		if !ok {
+			ok = s.trigCostPotentialPays(k, p, kind, skip, amt, pips, in.F)
+		}
+		noPay = !ok
+	}
+	if !noPay {
+		return skip
+	}
+	if !stackSelfGone && stall != 0 {
+		// the drop is final (decline only) and a failed window probe's fork
+		// latched a rule gap the kernel stalls by name: declare it, not a
+		// silent unpayable cost (tapXScript's shape)
+		s.capFull(stall)
+	}
+	return skip | pfNoPay
 }
 
 // trigCostPotentialPays mirrors gorge's trigger-cost offer gate. gorge asks
@@ -1524,7 +1549,29 @@ func (s *State) payWardN(k *prep, n uint8, pay bool) {
 	// gorge does: it taps the plain sources and asks which permanent to tap. A
 	// Firemind Vessel is one too: its two distinct colours pay the ward
 	// (mana_distinctcolours.go).
-	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c) || s.windowFiltAffords(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c) || s.windowTapXLive(k, r.e.trigPl).any() || s.anyDifferentOpen(k, r.e.trigPl)) {
+	c := kop.ManaCost{Generic: n}
+	ok := false
+	var stall uint8
+	if pay {
+		ok = k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c) || s.windowTapXLive(k, r.e.trigPl).any() || s.anyDifferentOpen(k, r.e.trigPl)
+		if !ok {
+			// the failed window probes report their forks' latched stalls; the
+			// drop below declares the first one only where every route failed
+			// (a probe must not pre-empt the siblings that can price the ward)
+			var wstall, fstall uint8
+			ok, wstall = s.windowAffords(k, r.e.trigPl, &c)
+			if !ok {
+				ok, fstall = s.windowFiltAffords(k, r.e.trigPl, &c)
+			}
+			if !ok {
+				stall = wstall
+				if stall == 0 {
+					stall = fstall
+				}
+			}
+		}
+	}
+	if ok {
 		paused, short := s.payWindowAsk(k, r.e.trigPl, &c, winWard)
 		if paused {
 			return // a tap-another source's pick (mana_windowtapx.go)
@@ -1537,6 +1584,12 @@ func (s *State) payWardN(k *prep, n uint8, pay bool) {
 			s.tapAllForMana(k, r.e.trigPl) // gorge taps what it has, then can't pay
 		}
 		s.wardCounterAt(k, idx)
+		if stall != 0 {
+			// every route failed and a failed window probe's fork latched a
+			// rule gap the kernel stalls by name: declare it, not a modelled
+			// "not paid" the kernel's rules cannot back (tapXScript's shape)
+			s.capFull(stall)
+		}
 	}
 	s.finishResolve(k, false)
 }

@@ -273,7 +273,8 @@ func (g *grantSrch) sacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, mas
 		var ok bool
 		switch {
 		case u.over:
-			g.node() // the game ended: gorge's node finds nothing
+			g.stallOf(u) // (a core's stall ends the game at the capFull)
+			g.node()     // the game ended: gorge's node finds nothing
 		case u.npend != 0:
 			ok = g.settle(u)
 		default:
@@ -417,7 +418,8 @@ func (g *grantSrch) costBranch(t *State, i int, sl Slot, gi int16, pc *pcard, ma
 		g.np++
 		var ok bool
 		if u.pl[SeatIx(g.p)].life <= 0 {
-			g.node() // the payment ends the game before the next priority (CR 704.5a): gorge's node finds nothing
+			g.stallOf(u) // (a step's stall the node latched after visit's entry; a core's stall ends the game at the capFull)
+			g.node()     // the payment ends the game before the next priority (CR 704.5a): gorge's node finds nothing
 		} else {
 			ok = g.next(u, sl)
 		}
