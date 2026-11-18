@@ -60,22 +60,27 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	}
 	// The potential walk folds every face of a multi-ability source (Quirion
 	// Elves' {G} and chosen-colour taps) so no colour is lost, which
-	// overstates what one tap can pay. When the bound sits below the
-	// walk's cap (the defensive cap, or a lower XMax$), cap it by
-	// availForCapped's per-source census (each source once, at its largest
-	// production, including a source the planner defers or a ColorIdentity
-	// source its units omit), as gorge's triggeredCostXSupply caps the
-	// payment-aware bound. At the walk's cap the correction is skipped: the
-	// census is narrower than the walk (a storage land's counters, an open or
-	// granted source), so narrowing there could drop a value the payment can
-	// really pay.
-	if !open && mx < cap {
+	// overstates what one tap can pay. When the bound sits below the walk's
+	// cap, cap it by availForCapped's per-source census (each source once, at
+	// its largest production, including a source the planner defers or a
+	// ColorIdentity source its units omit), as gorge's triggeredCostXSupply
+	// caps the payment-aware bound. At the walk's cap the correction still
+	// applies when the cap is a real one (an XMax$ the payer's life or the
+	// body names): a walk that saturated it may have folded one source's
+	// faces into two values (Volcanic Island's {U} and {R} at an XMax$ cap of
+	// 2), and the census reads the board once per source, so the old skip
+	// offered X past what the sources fund. Only the defensive cap (64)
+	// skips it there: the walk may still be growing and the shapes whose
+	// census is narrower than the walk -- a storage land's counters, an open
+	// or granted source -- report open themselves, so a non-open walk at 64
+	// is one the census could drop a really-payable value from.
+	if !open && (mx < cap || cap < trigXCap) {
 		// gorge's potentialManaFor prices a tap's extra mana (Mana Flare's) in
 		// the bound, so the walk's count grows by it before the census below
 		// caps it (CR 605.1b)
 		mx = min(cap, mx+s.trigXTapExtras(k, p))
 	}
-	if !open && mx < cap {
+	if !open && (mx < cap || cap < trigXCap) {
 		var one avail
 		one.xd, one.xdOn = other, true // a restricted grant the trigger's own payment may not spend adds no unit (CR 106.6)
 		s.availForCapped(k, p, &one)
