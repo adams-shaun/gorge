@@ -2240,37 +2240,12 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		s.potentialTapUnit(p, sl, pc, mask, painAdd, fold, painRefused, &cen)
 		cen.pain = 0 // the gate pair's and the granted units are priced unpainted
 		if k.gen != nil && k.gen.anyTapExtra && !painRefused && !pc.painOnly {
-			// a TapsForMana carrier's extra (Heartbeat of Spring: one more mana
-			// of the type the land made) is part of the tap's production in
-			// gorge's potential pool: one Forest funds a repeatable filter's {2}
-			// fee (CR 605.3a, 106.1). Only the over-bound pool takes it.
-			xv := s.srcExtra(k, sl, pc)
-			for c, v := range xv {
-				if v > 0 {
-					fold(sl, 1<<c, v)
-				}
-			}
-			if r := s.srcReflectPick(k, sl, pc); r > 0 {
-				fold(sl, mask, r)
-			}
+			s.potentialTapExtra(k, sl, pc, mask, fold)
 		}
 		if n := gatePairPotential(pc); n != 0 {
 			add(sl, uint8(pc.wideCol), n) // gorge's walk sums both listed abilities of a gate-on pair
 		}
-		if k.gen != nil && len(k.gen.grantPC) != 0 && s.grantMay(k, sl) && s.ownManaUsable(k, sl) {
-			// a mana ability granted beside the source's own one (an aura's
-			// "{T}: Add two mana of any one color") counts on its own, as
-			// gorge's walk admits each of a source's abilities
-			var gi [maxGrants]int16
-			for i, ng := 0, s.potentialGrants(k, sl, &gi, d); i < ng; i++ {
-				gv := s.grantView(k.gen, gi[i], sl)
-				if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
-					open = s.potentialGrantedUnit(gv, sl, boundedAny, add, &anyFree) || open
-					continue
-				}
-				add(sl, s.srcMaskAt(gv, sl), gv.manaN)
-			}
-		}
+		s.potentialGrantedExtra(k, sl, d, boundedAny, add, &open, &anyFree)
 	}
 	for progressed := k.gen != nil; progressed; {
 		progressed = false
@@ -2372,6 +2347,43 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		*units[0] = cen.units
 	}
 	return open
+}
+
+// potentialTapExtra folds a TapsForMana carrier's extra (Heartbeat of Spring:
+// one more mana of the type the land made) into the over-bound pool: it is
+// part of the tap's production in gorge's potential pool, so one Forest funds
+// a repeatable filter's {2} fee (CR 605.3a, 106.1). Only the over-bound pool
+// takes it. The caller has checked k.gen.anyTapExtra, the lethal guard's
+// refusal and the pain-only face.
+func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold func(Slot, uint8, uint8)) {
+	xv := s.srcExtra(k, sl, pc)
+	for c, v := range xv {
+		if v > 0 {
+			fold(sl, 1<<c, v)
+		}
+	}
+	if r := s.srcReflectPick(k, sl, pc); r > 0 {
+		fold(sl, mask, r)
+	}
+}
+
+// potentialGrantedExtra admits the mana abilities granted to sl beside its own
+// one (an aura's "{T}: Add two mana of any one color"): each counts on its own,
+// as gorge's walk admits each of a source's abilities. A source with no usable
+// grant leaves open and anyFree alone.
+func (s *State) potentialGrantedExtra(k *prep, sl Slot, d *payDesc, boundedAny bool, add func(Slot, uint8, uint8), open *bool, anyFree *int) {
+	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || !s.ownManaUsable(k, sl) {
+		return
+	}
+	var gi [maxGrants]int16
+	for i, ng := 0, s.potentialGrants(k, sl, &gi, d); i < ng; i++ {
+		gv := s.grantView(k.gen, gi[i], sl)
+		if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
+			*open = s.potentialGrantedUnit(gv, sl, boundedAny, add, anyFree) || *open
+			continue
+		}
+		add(sl, s.srcMaskAt(gv, sl), gv.manaN)
+	}
 }
 
 // potentialGrants lists the mana abilities granted to sl that a payment d
