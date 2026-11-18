@@ -2168,6 +2168,10 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 	// {4} roll from Gemhide Sliver's and Mothdust Changeling's granted mana
 	// and Skerry's {U}{U} (CR 605.1a, 601.2g-h).
 	noGrant := a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
+	// post: the node is revisited once its children are exhausted (gorge's
+	// visit runs the pass that lets the queued triggers resolve only after
+	// every deeper activation failed, mana_scriptpost.go)
+	post := false
 	for {
 		replay := true
 		if depth > 0 {
@@ -2216,7 +2220,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			// script. The walk mirrors that, on the copy resolvePrefixStack
 			// runs (mana_sacsource.go).
 			resolve := t.playNeedsEmptyStack(k, a)
-			found := replay && hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve) && !t.foreignPendAsks(k, p, resolve)
+			found := replay && hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve || post) && !t.foreignPendAsks(k, p, resolve)
 			if found && t.npend != 0 {
 				t.resolvePrefixPlay(k, a, p, t.sp, resolve)
 				if t.over {
@@ -2242,11 +2246,12 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			}
 			s.unfork()
 		}
-		if replay && depth < len(order) { // the node's first child
+		if replay && depth < len(order) && !post { // the node's first child
 			path[depth] = 0
 			depth++
 			continue
 		}
+		post = false
 		for { // a leaf: the deepest gap with an answer left, else done
 			if depth == 0 {
 				if stall != 0 {
@@ -2282,6 +2287,9 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 				break
 			}
 			depth--
+			if post = s.scriptPostNode(k, a, depth, len(order)); post {
+				break
+			}
 		}
 	}
 }
