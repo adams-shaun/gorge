@@ -1,0 +1,22 @@
+# The mana-ability cost shapes beyond a plain {T}: "{T}, Pay 1 life: Add {G}
+# or {W}" (the Horizon lands: a sole life ability with a colour choice,
+# kop.SoleLifeManaAb, gorge's last-resort Consequence{Life: 1} per colour) and
+# a fee-funded evaluated amount ("{2}, {T}: Add {B} for each Swamp you control",
+# Cabal Coffers). Decks play them in dirac/oracle/lifefeemana_lockstep_test.go.
+Horizon Canopy
+Fiery Islet
+Cabal Coffers
+Swamp
+Forest
+Plains
+Island
+Mountain
+Serra Angel
+Air Elemental
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Llanowar Elves
+Lightning Bolt
+Shock
+Mana Leak

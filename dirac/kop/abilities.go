@@ -629,8 +629,14 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 // (dirac mana_pain.go prepPainOnlyLife).
 func SoleLifeManaAb(cd *CardDef, j int) bool {
 	a := &cd.Abilities[j]
-	if a.Kind != AbMana || a.AFlags != 0 || a.ManaRestrict != 0 || a.ManaRestrictAb != 0 || len(a.Prog) != 0 || a.ManaEach ||
+	if a.Kind != AbMana || a.ManaRestrict != 0 || a.ManaRestrictAb != 0 || len(a.Prog) != 0 || a.ManaEach ||
 		a.Cost.Flags != CostTap|CostPayLife || a.Cost.N < 1 || a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 || a.ManaN > 1 || a.ManaColors == 0 {
+		return false
+	}
+	// a colour choice of two or three (the Horizon lands' "Add {G} or {W}",
+	// Produced$ Combo): gorge prices each colour as the same last-resort
+	// Consequence{Life: N} alternative Mana Confluence's any colour is
+	if a.AFlags != 0 && (a.AFlags != AfManaChoice || a.ManaColors&^ColAny != 0 || a.ManaColors&(a.ManaColors-1) == 0) {
 		return false
 	}
 	for i := range cd.Abilities {
