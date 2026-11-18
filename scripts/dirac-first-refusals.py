@@ -571,6 +571,24 @@ def write_evidence(top, out, pools=None):
     print(f"evidence: {len(set(n for v in lists.values() for n in v))} cards in {len(lists)} lists")
     with open(os.path.join(top, EVIDENCE_GAMES), "w") as f:
         f.writelines(l + "\n" for l in lines)
+    # A card this write gave a sidecar row is no longer legacy: rewrite LEGACY.txt with the rows (11-18: two
+    # evidence-loop PRs, #1450 and #1556, keyed hundreds of LEGACY.txt cards and left them listed, and
+    # TestEvidenceCoverageRatchet failed "stale legacy entry" in their merge-queue batches).
+    prune_legacy(top, {c for rows in side.values() for c in (r.split("\t", 1)[0] for r in rows[1:])})
+
+
+def prune_legacy(top, keyed):
+    """Drop from LEGACY.txt the names that now have a sidecar row; never add one (a card with no row stays as listed)."""
+    path = os.path.join(top, KEYS_DIR, "LEGACY.txt")
+    if not os.path.exists(path):
+        return
+    with open(path) as f:
+        names = [n for n in f.read().splitlines() if n]
+    kept = [n for n in names if n not in keyed]
+    if len(kept) != len(names):
+        with open(path, "w") as f:
+            f.writelines(n + "\n" for n in kept)
+        print(f"evidence: {len(names) - len(kept)} names left LEGACY.txt")
 
 
 def games_per_run(out):
