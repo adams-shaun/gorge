@@ -1263,6 +1263,13 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	if gapUsed {
 		var d Decision
 		t.restrOptions(k, &d, p) // (restricted mana floating is priced as ordinary: the search reads no restriction)
+		if k.gen != nil && k.gen.anyContGrant {
+			// a granted mana ability counts beside its source's printed or
+			// restricted one in the walk (one tap makes one of them, CR 605.1a): the
+			// root's offer prunes those overcounts with the grant search
+			var capSpent Decision
+			t.grantCap(k, &d, p, &capSpent)
+		}
 		if hasOption(&d, fs.a) && !t.grantRefusedPrices(k, p, fs.a) {
 			return true
 		}
