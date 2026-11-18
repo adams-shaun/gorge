@@ -277,6 +277,9 @@ func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
 			// CR 601.2f fixed before that sacrifice (gorge witnessReachesMode
 			// lists the cast only when the pool pays it)
 			reaches = (ab == 255 || t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 0xff)) && t.FeatPoolPays(p, o, 0)
+			if reaches && t.witnessEndsGameLost(k, p, c, n0) {
+				reaches = false // the sacrifices' triggers end the game against p before the cast (Pain Distributor's damage per Treasure)
+			}
 		}
 		for m := 0; ab != 255 && cd.HasModeCost && m < int(cd.Abilities[ab].NModes); m++ {
 			if t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 1<<m) {
@@ -294,4 +297,20 @@ func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
 	s.availFor(k, p, &av)
 	s.ctrlM[p] = s.ctrlM[p].or(held)
 	return !av.affords(&cost, pipMaskOf(&cost), 0)
+}
+
+// witnessEndsGameLost: the witness fork t (taken before the cast's pre-cast
+// triggers resolve) queued sacrifice triggers from n0 that, resolved as gorge's
+// lowering lets them resolve, end the game with p out of it. gorge's
+// witnessReachesMode replays the witness on a clone and leaves at once on a
+// finished game unless p won (winOK), so the witness does not reach the play
+// and targetPaidNeedsPlannedPayment plans the cast at the printed cost. An
+// instant-speed cast is offered with the triggers still on the stack, below it.
+func (t *State) witnessEndsGameLost(k *prep, p uint8, c CardID, n0 uint8) bool {
+	instant := k.cards[c].instant || t.castFlash(k, p, c)
+	if instant || t.npend <= n0 {
+		return false
+	}
+	t.resolveLowerCounterTriggers(k, n0, false)
+	return t.over && t.pl[SeatIx(p)].lost
 }
