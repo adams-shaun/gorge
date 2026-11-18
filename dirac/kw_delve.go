@@ -148,8 +148,10 @@ func (s *State) delveTargetAbort(k *prep) bool {
 		!s.hasCastDelve(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl)) {
 		return false
 	}
-	cost := xFolded(s.buildCost(k), int(e.x))
-	return s.targetWindowShort(k, e, &cost, false)
+	// a harmonize or convoke pick pays generic too and its creature is withheld
+	// from the window, as convokeTargetAbort prices them (no-ops without picks)
+	cost := s.convokeApplyPicks(k, xFolded(s.buildCost(k), int(e.x)))
+	return s.targetWindowShort(k, e, &cost, true)
 }
 
 // delvePickCount counts the announced delve picks.

@@ -18,7 +18,7 @@ import (
 func delveXFilterChoices(t *testing.T, gy int, mutate func(c *kop.ManaCost)) string {
 	t.Helper()
 	deck := []cardset.Entry{{Name: "Logic Knot", Count: 1}, {Name: "Island", Count: 8}, {Name: "Izzet Signet", Count: 1}}
-	tbl, da, _, err := cardsettest.Synth(t, "tail-47").Matchup(deck, deck)
+	tbl, da, _, err := cardsettest.Set(t, "delvexfilter").Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
