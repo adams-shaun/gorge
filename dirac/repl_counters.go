@@ -71,12 +71,15 @@ func ctrKindKw(k uint16) kop.KwMask {
 // Exile, and the kernel has no death order ask, so dieZone stalls. The
 // second and third results are the counter a matching source leaves on the
 // exiled card (0 when none): dieZone reads them only when one source applies.
-func (s *State) exileOnLeaveN(k *prep, sl Slot) (int, kop.CounterKind, uint8) {
+// The fourth is the last matching source's slot (the one source when n is 1;
+// NoSlot when none): its rider runs after the move (repl_exilerider.go).
+func (s *State) exileOnLeaveN(k *prep, sl Slot) (int, kop.CounterKind, uint8, Slot) {
 	g := k.gen
 	if g == nil || g.exileOnLeave == nil || g.anyRepl&rbExileOnLeave == 0 {
-		return 0, 0, 0
+		return 0, 0, 0, NoSlot
 	}
 	n := 0
+	src := NoSlot
 	var ctr kop.CounterKind
 	var ctrN uint8
 	for m := s.statM; m.any(); m = m.rest() {
@@ -90,6 +93,7 @@ func (s *State) exileOnLeaveN(k *prep, sl Slot) (int, kop.CounterKind, uint8) {
 		}
 		if s.matchPerm(k, g.exileOnLeave[s.cardAt(b)], sl, s.perms[b].ctrl, b) {
 			n++
+			src = b
 			if kind, amount := exileCounterKind(k.t, s.cardAt(b), g.exileOnLeave[s.cardAt(b)]); kind != 0 {
 				ctr, ctrN = kind, amount
 			}
@@ -98,7 +102,7 @@ func (s *State) exileOnLeaveN(k *prep, sl Slot) (int, kop.CounterKind, uint8) {
 	if n > 0 && g.anyExileAny && s.isCreature(k, sl) {
 		exileAnyDied() // repl_exileonleave.go
 	}
-	return n, ctr, ctrN
+	return n, ctr, ctrN, src
 }
 
 // entryCounterSource reports whether the AddCounter replacement sourced at

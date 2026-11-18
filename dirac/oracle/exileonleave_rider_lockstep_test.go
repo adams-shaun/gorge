@@ -14,7 +14,7 @@ import (
 // counter keys the may-play static over exile. The check proves the games
 // reach the exiled counter, so a run that never lowers the rider cannot pass
 // vacuously.
-var exileOnLeaveRiderDecks = [3][2][]cardset.Entry{
+var exileOnLeaveRiderDecks = [4][2][]cardset.Entry{
 	{
 		{
 			{Name: "Dauthi Voidwalker", Count: 4}, {Name: "Doom Blade", Count: 4},
@@ -47,6 +47,34 @@ var exileOnLeaveRiderDecks = [3][2][]cardset.Entry{
 			{Name: "Swamp", Count: 8}, {Name: "Forest", Count: 16},
 		},
 	},
+	// Kalitas: a dies-to-exile replacement whose rider mints a Zombie token
+	// for Kalitas's controller after the exile move
+	{
+		{
+			{Name: "Kalitas, Traitor of Ghet", Count: 4}, {Name: "Doom Blade", Count: 4},
+			{Name: "Grizzly Bears", Count: 10}, {Name: "Swamp", Count: 22},
+		},
+		{
+			{Name: "Grizzly Bears", Count: 12}, {Name: "Doom Blade", Count: 4},
+			{Name: "Swamp", Count: 8}, {Name: "Forest", Count: 16},
+		},
+	},
+}
+
+// kalitasZombies counts the 2/2 black Zombie tokens player p controls on
+// gorge's battlefield.
+func kalitasZombies(g *state.Game, p state.PlayerID) int {
+	n := 0
+	for _, o := range g.Zone(state.ZBattlefield, p) {
+		ob := g.Obj(o)
+		if !ob.IsToken || ob.Card == nil || len(ob.Card.Faces) == 0 {
+			continue
+		}
+		if f := ob.Card.Faces[0]; f.Name == "Zombie Token" && f.PT == "2/2" && f.Colors == "black" {
+			n++
+		}
+	}
+	return n
 }
 
 func TestExileOnLeaveRiderLockstep(t *testing.T) {
@@ -59,6 +87,7 @@ func TestExileOnLeaveRiderLockstep(t *testing.T) {
 		{"dauthi", exileOnLeaveRiderDecks[0], "VOID"},
 		{"draugr", exileOnLeaveRiderDecks[1], "ICE"},
 		{"both", exileOnLeaveRiderDecks[2], "VOID"},
+		{"kalitas", exileOnLeaveRiderDecks[3], ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			reg, set, gd := lockstepPool(t, "exileonleavectr", tc.decks)
@@ -79,10 +108,17 @@ func TestExileOnLeaveRiderLockstep(t *testing.T) {
 					t.Fatal(err)
 				}
 				saw, played := false, false
+				zombies := 0
 				prev := map[state.ObjID]*cards.Card{}
 				rc := RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 30}
 				rc.Check = func(ref *GorgeSide, _ Side) *Divergence {
 					g := ref.E.G
+					if tc.kind == "" {
+						if z := kalitasZombies(g, 0) + kalitasZombies(g, 1); z > zombies {
+							zombies, saw = z, true
+						}
+						return nil
+					}
 					cur := map[state.ObjID]*cards.Card{}
 					for p := state.PlayerID(0); p < 2; p++ {
 						for _, o := range g.Zone(state.ZExile, p) {
@@ -126,6 +162,13 @@ func TestExileOnLeaveRiderLockstep(t *testing.T) {
 				if played {
 					playedSeeds++
 				}
+			}
+			if seen == 0 && tc.kind == "" {
+				t.Fatal("no seed minted a Zombie token from Kalitas's replacement")
+			}
+			if tc.kind == "" {
+				t.Logf("%d of 60 seeds minted a Zombie token", seen)
+				return
 			}
 			if seen == 0 {
 				t.Fatalf("no seed reached an exiled %s counter", tc.kind)
