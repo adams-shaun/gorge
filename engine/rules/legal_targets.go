@@ -520,14 +520,29 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 	// in every slot (potential.go), so one Treasure Token can "pay" an X the
 	// seat cannot: one mana of any colour is one unit, not one per colour.
 	// priceExactly confirms an announcement with the payment planner, whose
-	// insufficient verdict is a proof. A ValidTarget$ cost static can reduce
+	// insufficient verdict is a proof only over a complete source census
+	// (insufficient below: the planner prices only the mana abilities its
+	// source census covers, so over an incomplete census the verdict proves
+	// nothing unless a relaxation of the abilities it misses still cannot pay,
+	// paymentPlanRelaxProof: a {T}, remove-a-counter source (Gemstone Mine's
+	// "one mana of any color") the planner cannot execute can still make the
+	// owed colour, CR 601.2g). A ValidTarget$ cost static can reduce
 	// the price for one legal target choice (offerCastableUsing's
 	// potential-target retry), so an unpayable untargeted composition retries
 	// each potential target's composition; an unsupported shape is not a proof
 	// either way and keeps the bound's answer.
 	priceExactly := func(cost Cost) bool {
 		insufficient := func(composed Cost) bool {
-			return e.planComposedCost(p, id, composed, ability, ability).Reason == pay.ReasonInsufficient
+			// bound is the potential pool the census reads.
+			verdict := func() PaymentPlanOutcome { return e.planComposedCost(p, id, composed, ability, ability) }
+			if verdict().Reason != pay.ReasonInsufficient {
+				return false
+			}
+			e.beginDerivedMemo()
+			defer e.endDerivedMemo()
+			defer pay.PaymentPlanQueryEnd(asPayer(e), pay.PaymentPlanQueryBegin(asPayer(e)))
+			census := e.paymentPlanCensusOf(p, &bound)
+			return census.complete || census.relaxable && e.paymentPlanRelaxProof(census, verdict).Reason == pay.ReasonInsufficient
 		}
 		if !insufficient(e.offerCostForUsing(statics, p, id, cost, scope)) {
 			return true
