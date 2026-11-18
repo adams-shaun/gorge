@@ -1,0 +1,12 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Champion of Arashin	a0bcdb7eee58786e	18	0/0		0/0	
+Fearsome Awakening	b4b120e394ef71fd	4	0/0		1/2	ix:resp
+Happy Hogan, Bodyguard	fbe84e00983b8a7f	6	1/1		0/1	ix:resp
+Monk Realist	66713c7d51a12a32	11	1/1		0/1	ix:resp
+Phantom Beast	1d168804d910f418	17	1/1		0/1	ix:resp
+Sunken Hope	95949950c33d16e8	6	1/1		1/1	
+Thalakos Sentry	e74c6f712711d6a4	9	0/0		0/0	
+Venarian Gold	12c487eb6f620c6e	3	2/2		2/4	f0/s/x0,ix:resp
+Venerable Lammasu	ad00e1814f5e1764	5	0/0		0/0	
+Venerated Rotpriest	e52440d38537a1bc	20	1/1		0/1	ix:resp
+Wind Spirit	ec48b444a042297c	6	0/0		0/0	

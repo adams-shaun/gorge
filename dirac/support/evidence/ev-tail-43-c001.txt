@@ -253,6 +253,7 @@ Purestrain Genestealer
 Purify the Grave
 Putrefax
 Quag Vampires
+Quarry Hauler
 Raised by Wolves
 Ramunap Ruins
 Raven Clan War-Axe
@@ -343,6 +344,7 @@ Triton Shorestalker
 Tsabo's Decree
 Tuktuk Grunts
 Turntimber Ascetic
+Turntimber Basilisk
 Twisted Landscape
 Ukud Cobra
 Uncovered Clues

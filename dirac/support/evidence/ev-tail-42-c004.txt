@@ -1,38 +1,54 @@
+A-Cori-Steel Cutter
 A-Meria's Outrider
+Adaptive Snapjaw
 Aethersnipe
 Alluring Suitor
 Alpha Tyrranax
 Answered Prayers
 Ant Queen
 Arc Trail
+Armored Ascension
 Aven Mindcensor
 Awakened Awareness
 Barrage Tyrant
 Barrowgoyf
 Besmirch
 Bewilder
+Bloodline Culling
+Bolshack Dragon
 Brimstone Volley
 Burning Hands
 Burning Oil
 Carnage Wurm
 Carrion Call
+Cascade Seer
 Cessation
 Chaos Terminator Lord
 Claws of Valakut
+Clock of Omens
 Coldsteel Heart
 Consuming Corruption
+Corpse Cur
+Crooked Custodian
 Cruel Witness
 Dark Prophecy
+Dauthi Embrace
 Disciple of the Vault
+Djeru's Resolve
+Dread Slaver
 Dross Crocodile
 Echoing Ruin
 Emergency Weld
+Essence Depleter
 Exemplar of Strength
 Fireflux Squad
 Fissure
+Fissure Vent
 Flatten
 Flawless Maneuver
 Fledgling Mawcor
+Fledgling Osprey
+Fling
 Flusterstorm
 Forest
 From Beyond
@@ -40,10 +56,16 @@ Gaze of Justice
 Ghoulsteed
 Glimpse the Unthinkable
 Gloomwidow's Feast
+Go for the Throat
+Goblin Matron
 Goblin Mountaineer
+Goblin Ringleader
 God-Eternal Bontu
 Grasp of Darkness
 Grenzo, Havoc Raiser
+Grizzled Angler
+Herald of Anguish
+High Seas
 Horizon Explorer
 Horn of Gondor
 Hovermyr
@@ -53,14 +75,22 @@ Immolating Souleater
 Invasion of Xerex
 Ishai, Ojutai Dragonspeaker
 Island
+Jousting Dummy
+Junk Winder
 Kamahl's Desire
 Kill-Zone Acrobat
+Looter il-Kor
+Lurking Nightstalker
 Lyzolda, the Blood Witch
+Maga, Traitor to Mortals
 Mana Short
 Mardu Runemark
 Master Transmuter
+Meteoric Mace
+Mishra's Command
 Mite Overseer
 Mordant Dragon
+Morkrut Banshee
 Mountain
 Mugging
 Nectar Faerie
@@ -71,35 +101,50 @@ Oni of Wild Places
 Orcish Veteran
 Overload
 Pack's Betrayal
+Painwracker Oni
 Pelakka Predation
+Phenomenon Investigators
 Piety
 Plains
 Priests of Norn
+Protective Bubble
 Psychic Impetus
 Ral's Dispersal
 Recall
 Resplendent Griffin
+Sabertooth Outrider
+Sacred Armory
 Sage's Reverie
 Samut's Sprint
+Satyr Hoplite
 Satyr Nyx-Smith
+Savai Sabertooth
+Scuttling Doom Engine
 Scytheclaw
 Sea Drake
 Seek the Horizon
 Serene Steward
+Severed Legion
 Sewer Rats
 Shadow of Mortality
 Shaman of the Pack
 Shamble Back
+Smother
 Stolen Vitality
+Strength of Isolation
+Suppression Bonds
 Swamp
 Sweatworks Brawler
 Swelter
 Thran Spider
 Thrummingbird
 Thunderscape Familiar
+Trench Stalker
 Twitch
+Umbilicus
 Unbreathing Horde
 Urza's Guilt
+Vedalken Orrery
 Votary of the Conclave
 Wakanda Forever!
 Water Servant

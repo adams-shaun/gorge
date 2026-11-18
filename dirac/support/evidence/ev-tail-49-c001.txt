@@ -10,6 +10,7 @@ Angrath's Fury
 Ant-Man, Scott Lang
 Arc Mage
 Arc Spitter
+Argivian Restoration
 Aria of Flame
 Armageddon
 Artifact Ward
@@ -20,10 +21,13 @@ Augur of Bolas
 Avaricious Dragon
 Aven Sunstriker
 Bad Moon
+Balan, Wandering Knight
+Barbarian Outcast
 Batroc the Leaper
 Batterbone
 Battle Mammoth
 Battlefly Swarm
+Benthic Behemoth
 Berserk Murlodont
 Biomathematician
 Black Widow, Deadly Hunter
@@ -45,6 +49,7 @@ Cacophony Unleashed
 Call the Cavalry
 Call the Scions
 Captain America, Steve Rogers
+Carrion Wurm
 Casting of Bones
 Catalog
 Centaur Glade
@@ -70,6 +75,7 @@ Cradle Clearcutter
 Crash
 Crimson Cowl, Master of Evil
 Crushing Disappointment
+Cultist of the Absolute
 Curse of Bounty
 Cyberdrive Awakener
 Damping Matrix
@@ -77,6 +83,7 @@ Dance with Devils
 Daredevil's Billy Club
 Dark Bargain
 Darksteel Myr
+Daru Encampment
 Dauntless Aven
 Dauntless Unity
 Death Cloud
@@ -88,10 +95,13 @@ Dimir Signet
 Disciple of Perdition
 Disentomb
 Dismember
+Domri, City Smasher
 Double Trouble
 Dragon Whelp
 Drake Haven
+Dregs of Sorrow
 Druid's Deliverance
+Dryad Arbor
 Electrify
 Elemental Uprising
 Elenda, the Dusk Rose
@@ -126,7 +136,9 @@ Ferocious Pup
 Fevered Strength
 Feywild Visitor
 Fiery Mantle
+Fireball
 Fissure Wizard
+Fistful of Force
 Flamecore Elemental
 Flames of the Firebrand
 Fleeting Spirit
@@ -134,6 +146,7 @@ Flesh-Eater Imp
 Forest
 Fortified Rampart
 Fountain of Youth
+Frenzied Gorespawn
 Frost Trickster
 Fungal Rebirth
 Gainsay
@@ -146,6 +159,7 @@ Ghitu Encampment
 Gibbering Barricade
 Glimmering Angel
 Glistener Elf
+Gloomdrifter
 Gluttonous Guest
 Gnat Alley Creeper
 Goblin Marshal
@@ -158,6 +172,7 @@ Gravetiller Wurm
 Great Desert Prospector
 Greater Auramancy
 Greater Good
+Greater Mossdog
 Greenwarden of Murasa
 Hagra Constrictor
 Havengul Vampire
@@ -180,6 +195,7 @@ Island
 Island of Wak-Wak
 Jadecraft Artisan
 Jaya, Venerated Firemage
+Jetting Glasskite
 Junktroller
 Kaldra Compleat
 Karn, Silver Golem
@@ -187,8 +203,11 @@ Kayla's Command
 Kazandu Blademaster
 Kessig Wolfrider
 Kiln Walker
+Kiri-Onna
+Kiss of Death
 Kor Cartographer
 Kor Entanglers
+Kor Outfitter
 Kor Scythemaster
 Krosan Druid
 Kuldotha Rebirth
@@ -198,6 +217,7 @@ Lantern of the Lost
 Lapis Lazuli Talisman
 Laquatus's Creativity
 Last Caress
+Lavamancer's Skill
 Lawmage's Binding
 Library
 Life
@@ -211,8 +231,10 @@ Maned Serval
 Manic Scribe
 Manifold Key
 Manta Riders
+Mark of the Vampire
 Mask of Law and Grace
 Mass Hysteria
+Masticore
 Maze Skullbomb
 Merciless Eternal
 Merfolk Observer
@@ -220,6 +242,7 @@ Metamorphic Wurm
 Mightstone's Animation
 Mindmelter
 Misery Charm
+Misery's Shadow
 Moldgraf Scavenger
 Monologue Tax
 Moonwing Moth
@@ -233,8 +256,10 @@ Nico Minoru, Runaway
 Nightshade Seer
 Nim Grotesque
 Noose Constrictor
+Numot, the Devastator
 Nylea's Colossus
 Nylea's Forerunner
+Oath of Nissa
 Oblivion Strike
 Ocular Halo
 Ogre Gatecrasher
@@ -242,6 +267,7 @@ Omnath, Locus of Rage
 Orochi Hatchery
 Outland Colossus
 Overflowing Basin
+Oversold Cemetery
 Pallid Mycoderm
 Part the Veil
 Passionate Archaeologist
@@ -265,6 +291,8 @@ Quicksilver Fisher
 RMS Titanic
 Radha, Heart of Keld
 Rain of Salt
+Raise Dead
+Rakdos Cackler
 Raking Claws
 Rampaging Cyclops
 Raptor Companion
@@ -311,6 +339,7 @@ Search the Premises
 Sedge Scorpion
 Seething Pathblazer
 Selesnya Sanctuary
+Sentry Oak
 Serendib Efreet
 Serpent-Blade Assailant
 Serra Ascendant
@@ -319,9 +348,11 @@ Shalai, Voice of Plenty
 Shao Jun
 Shape the Sands
 Shower of Coals
+Shriekmaw
 Sigarda, Heron's Grace
 Sigiled Paladin
 Silverquill Command
+Simic Ascendancy
 Skinshifter
 Slaughterhorn
 Sleeper Agent
@@ -332,6 +363,8 @@ So Shiny
 Soratami Savant
 Soulshriek
 Spawn-Gang Commander
+Spine of Ish Sah
+Sprouting Thrinax
 Squadron Hawk
 Squirrel Sanctuary
 Stinging Hivemaster
@@ -347,6 +380,7 @@ Stump Stomp
 Sunken City
 Supply Caravan
 Supreme Will
+Surgical Skullbomb
 Survivor of the Unseen
 Swamp
 Swarm of Bloodflies
@@ -370,10 +404,13 @@ Tidings
 Torment
 Touch of Brilliance
 Towering-Wave Mystic
+Tranquil Expanse
 Tranquil Thicket
 Turn
 Twisted Embrace
 Ultimate Magic: Holy
+Undertaker
+Unraveling Mummy
 Untamed Might
 Vanquish the Weak
 Vault Guardsman
@@ -382,6 +419,7 @@ Vector Asp
 Vengeful Dead
 Vengeful Firebrand
 Vengeful Rebirth
+Vihaan, Goldwaker
 Viridian Harvest
 Virtue's Ruin
 Vitu-Ghazi Guildmage
@@ -393,6 +431,7 @@ Wall of Essence
 Wall of Reverence
 Warlock Class
 Warpath
+Warteye Witch
 Watcher of the Spheres
 Wave-Wing Elemental
 Whip Silk

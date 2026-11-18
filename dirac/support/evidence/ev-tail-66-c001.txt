@@ -5,11 +5,14 @@ Abiding Grace
 Academy Drake
 Academy Wall
 Aethersphere Harvester
+Afiya Grove
 Akki Ronin
 Ambuscade Shaman
 Amok
 Ancient Craving
 And They Shall Know No Fear
+Apprentice Wizard
+Arcane Melee
 Archetype of Courage
 Ardbert, Warrior of Darkness
 Argivian Avenger
@@ -19,9 +22,11 @@ Atarka Beastbreaker
 Avatar Kyoshi, Earthbender
 Axebane Guardian
 Ayara, First of Locthwain
+Azra Bladeseeker
 Balduvian Atrocity
 Balshan Griffin
 Balustrade Spy
+Bant Panorama
 Bartered Cow
 Beast Whisperer
 Betrothed of Fire
@@ -32,19 +37,26 @@ Bloodfire Mentor
 Bloodshot Cyclops
 Blossom Prancer
 Bog Raiders
+Bomber Corps
 Bond Beetle
 Bone Harvest
 Boomer Scrapper
 Boon Reflection
 Bringer of the Red Dawn
 Bumi's Feast Lecture
+Call to the Grave
 Carrion Ants
 Carrion Imp
 Celestial Regulator
 Centaur Healer
+Cephalid Coliseum
+Ceremonial Guard
 Chains of Custody
 Chakra Meditation
+Chameleon Spirit
 Chant of the Skifsang
+Charred Graverobber
+Chittering Rats
 Cloudkill
 Collected Company
 Commissar Severina Raine
@@ -58,11 +70,14 @@ Cruel Revival
 Crusading Knight
 Crypt Ghast
 Cryptic Annelid
+Crystal Skull, Isu Spyglass
 Cunning Wish
 Dawn Elemental
+Dead of Winter
 Defiant Salvager
 Defy Death
 Delighted Killbot
+Delirium Skeins
 Deviant Skytech
 Diabolic Intent
 Dimir Informant
@@ -78,15 +93,19 @@ Elspeth, Sun's Nemesis
 Elvish Hexhunter
 Elvish Reclaimer
 Elvish Vanguard
+Etherium Astrolabe
 Explosive Welcome
 Extortion
+Extractor Demon
 Faultgrinder
 Feign Death
 Field Marshal
+Fiend Artisan
 Fiery Finish
 Fireblade Artist
 Fireblast
 Flametongue Kavu
+Flamewave Invoker
 Flaring Flame-Kin
 Fledgling Mawcor
 Floral Evoker
@@ -98,10 +117,13 @@ Funeral Rites
 Gathering Throng
 General Leo Cristophe
 Ghitu Fire-Eater
+Ghoul's Feast
 Gilacorn
 Gixian Puppeteer
 Glissa's Scorn
 Gnarlid Pack
+Gnarlroot Pallbearer
+Gnawing Vermin
 Goblin Bird-Grabber
 Goblin Diplomats
 Goblin Glory Chaser
@@ -109,8 +131,10 @@ Godhunter Octopus
 Golem's Heart
 Goma Fada Vanguard
 Granite Gargoyle
+Gravebane Zombie
 Greater Good
 Grim Bounty
+Grim Strider
 Grizzly Fate
 Gruul Keyrune
 Guise of Fire
@@ -145,6 +169,7 @@ Jace's Phantasm
 Jackal Pup
 Jan Jansen, Chaos Crafter
 Jeskai Barricade
+Jester's Cap
 Kalemne's Captain
 Karoo Meerkat
 Kavu Monarch
@@ -156,6 +181,7 @@ Kozilek's Unsealing
 Krosan Reclamation
 Kuon, Ogre Ascendant
 Kyren Sniper
+Littjara Mirrorlake
 Lotus Field
 Lotus-Eye Mystics
 Manamorphose
@@ -166,20 +192,25 @@ Mardu Banner
 Mark of Mutiny
 Mask of Immolation
 Master of Death
+Maulfist Squad
 Maze of Ith
 Meloku the Clouded Mirror
 Mentor's Guidance
 Merfolk Secretkeeper
+Michelangelo, On the Scene
 Mind Flayer
 Minister of Inquiries
+Mirror Golem
 Mirrorworks
 Mischievous Poltergeist
 Mise
 Mist Dancer
+Mistfire Weaver
 Mithril Coat
 Moriok Rigger
 Mountain
 Mukotai Ambusher
+Najal, the Storm Runner
 Narrow Escape
 Nemata, Grove Guardian
 Nezumi Bone-Reader
@@ -189,7 +220,9 @@ Noose Constrictor
 Noxious Field
 Nullmage Shepherd
 Oath of Chandra
+Oggyar Battle-Seer
 Ominous Parcel
+Pariah's Shield
 Passionate Archaeologist
 Pentarch Ward
 Phylath, World Sculptor
@@ -200,6 +233,7 @@ Primordial Ooze
 Prized Griffin
 Prophet of Distortion
 Psychic Overload
+Purraj of Urborg
 Radiant, Archangel
 Rage-Scarred Berserker
 Raging Minotaur
@@ -208,9 +242,12 @@ Raven's Run Dragoon
 Recruiter of the Guard
 Regathan Firecat
 Regrowth
+Reign of Terror
 Rekindling Phoenix
 Revelsong Horn
 Rhox Veteran
+Rite of Consumption
+Rite of the Serpent
 Rolling Temblor
 Rotting Fensnake
 Rowan Treefolk
@@ -220,18 +257,24 @@ Sacrifice
 Sage of Epityr
 Sage of Mysteries
 Savage Gorger
+Savai Triome
 Scaled Wurm
 Scavenging Harpy
+Scion of Stygia
 Scourge of Kher Ridges
 Scouring Sands
 Scrapyard Salvo
 Screeching Harpy
 Seeker of Skybreak
 Sentinel Sliver
+Serpentine Kavu
+Serum Snare
 Shadowcloak Vampire
+Shatterskull Minotaur
 She-Hulk, Wallbreaker
 Sheoldred, the Apocalypse
 Shivan Wurm
+Shocking Grasp
 Shreds of Sanity
 Shunt
 Sick and Tired
@@ -241,6 +284,7 @@ Silverstrike
 Slash the Ranks
 Slime Molding
 Slobad, Goblin Tinkerer
+Slumbering Waterways
 Snuff Out
 Sol Talisman
 Soltari Crusader
@@ -258,6 +302,7 @@ Spined Sliver
 Spirit of Malevolence
 Sporeback Wolf
 Squee's Embrace
+Staff of Compleation
 Staggering Insight
 Stampede Rider
 Standing Troops
@@ -274,6 +319,7 @@ Sylvan Paradise
 Taigam's Scheming
 Talons of Wildwood
 Tanazir Quandrix
+Taste of Blood
 Temmet, Vizier of Naktamun
 Territorial Allosaurus
 Territorial Baloth
@@ -295,8 +341,10 @@ Twilight Drover
 Tymora's Invoker
 Tyvar, Jubilant Brawler
 Ulvenwald Mysteries
+Unbounded Potential
 Undertaker
 Unhallowed Pact
+Unmake the Graves
 Unyaro Bee Sting
 Ursine Fylgja
 Urza's Cave
@@ -318,6 +366,7 @@ Welder Automaton
 Wind Drake
 Wing Splicer
 Wirecat
+Witherbloom Campus
 Xathrid Demon
 Yavimaya Iconoclast
 You Look Upon the Tarrasque

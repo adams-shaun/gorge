@@ -17,6 +17,7 @@ Breya's Apprentice
 Bruse Tarl, Boorish Herder
 Bushmeat Poacher
 Captain America, Unbowed
+Capture Sphere
 Careful Consideration
 Catalyst Elemental
 Celestial Gatekeeper
@@ -28,6 +29,7 @@ Cloak of Feathers
 Conclave Naturalists
 Connive
 Counsel of the Soratami
+Coursers' Accord
 Creakwood Liege
 Crossbow Ambush
 Crowd of Cinders
@@ -44,6 +46,7 @@ Eidolon of the Great Revel
 Elder of Laurels
 Excavation Technique
 Fallowsage
+Fang of Shigeki
 Femeref Healer
 Flay
 Folk Medicine
@@ -102,6 +105,7 @@ Plains
 Predator's Rapport
 Preeminent Captain
 Rathi Dragon
+Return to Nature
 Revered Dead
 Rhox Charger
 Rishadan Port
@@ -120,6 +124,7 @@ Shield of the Ages
 Shinechaser
 Shower of Arrows
 Shriekhorn
+Sick and Tired
 Sigil Blessing
 Silverbluff Bridge
 Skyclaw Thrash
@@ -153,6 +158,7 @@ Vulturous Aven
 Wall of Lost Thoughts
 Warren Weirding
 Waste Not
+Weatherseed Treefolk
 Whimwader
 Wild Instincts
 Wintermoon Mesa

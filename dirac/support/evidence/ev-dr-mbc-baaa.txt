@@ -25,6 +25,8 @@ Disruptive Stormbrood
 Dragon Sniper
 Dread Drone
 Electrostatic Field
+Endrek Sahr, Master Breeder
+Fanning the Flames
 Festercreep
 Flametongue Kavu
 Forest
@@ -45,14 +47,17 @@ Hunter's Talent
 Imodane's Recruiter
 Indulgent Tormentor
 Injector Crocodile
+Ire Shaman
 Island
 Istvan, Butcher of Eln
 Kiln Fiend
+Kira, Great Glass-Spinner
 Kitsa, Otterball Elite
 Liliana's Devotee
 Liliana's Specter
 Master Splicer
 Merchant of the Vale
+Merfolk Thaumaturgist
 Meria's Outrider
 Meteor Golem
 Military Intelligence
