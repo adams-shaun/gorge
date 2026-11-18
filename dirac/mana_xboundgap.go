@@ -32,14 +32,21 @@ func (d *payDesc) gapNote(sl Slot, j, fee int) bool {
 
 // paidGapProbe is availPotentialFor's read of a mana ability's paid fee: paid
 // reports a fee-bearing ability while the per-tap census runs, skip that the
-// walk leaves it out. The census (units) is the planner-shaped bound: gorge's
+// walk leaves it out, repeat that its cost has no tap, sacrifice-self or
+// once-only limit. The census (units) is the planner-shaped bound: gorge's
 // relaxed proof charges a paid ability's fee as generic on top of the play's
 // cost (paymentPlanRelaxProof), while the pool mana that covers the fee here
 // is already a recorded unit, so admitting it would double-count (White Lotus
 // Hideout's {1},{T} filter). The over-bound pool beside the census keeps the
 // paid abilities (boundedAny false skips them here); the X-bound sweep's
-// probe (d.gapTrack) names each one so the subsets can be priced.
-func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, fee *kop.ManaCost) (paid, skip bool) {
+// probe (d.gapTrack) names each one so the subsets can be priced. repeat is
+// only the flags read: it marks d.gapRepeats (mana_restrictedsource.go) at
+// the ability's admission, past availPotentialFor's fundability gate, because
+// gorge's once gate reads the census's admitted abilities alone — a gap whose
+// fee nothing covers never reaches it (Nomadic Elf's {1}{G} beside white
+// mana, engine/rules/potential_plan.go's paymentPlanCensusOf).
+func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, ab *kop.Ability) (paid, skip, repeat bool) {
+	fee := &ab.Cost.Mana
 	paid = census && fee.MV() != 0
 	switch {
 	case !paid:
@@ -47,8 +54,9 @@ func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, fee *kop
 		skip = true
 	case d != nil && d.gapTrack:
 		skip = d.gapNote(sl, j, fee.MV())
+		repeat = ab.Cost.Flags&(kop.CostTap|kop.CostSacSelf|kop.CostOncePerTurn|kop.CostOncePerGame) == 0
 	}
-	return paid, skip
+	return paid, skip, repeat
 }
 
 // gapSubsets prices an X-bound target's announcement the way gorge's relaxed
@@ -73,10 +81,14 @@ type gapSubset struct {
 func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 	var pu [maxPotUnits]potUnit
 	var av avail
-	d.gapTrack, d.gapSkip, d.gapN = true, 0, 0
+	d.gapTrack, d.gapSkip, d.gapN, d.gapRepeats = true, 0, 0, false
 	s.availPotentialFor(k, p, &av, &d, true, &pu)
 	n := int(d.gapN)
-	if n == 0 || n > paidGapMax {
+	if n == 0 || n > paidGapMax || d.gapRepeats {
+		// a repeatable gap (Crossroads Candleguide's "{2}: Add one mana of any
+		// color") makes gorge's census non-relaxable: its relaxed proof never
+		// runs, so no subset pricing refuses the announcement and the
+		// over-bound stands (paymentPlanCensusOf's once gate, CR 605.3b)
 		return
 	}
 	fees := d.gapFee
