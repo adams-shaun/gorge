@@ -522,6 +522,9 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 	if s.g.availX&3 != 0 {
 		s.availScript(k, p, a)
 	}
+	if s.g.availX&availLife != 0 {
+		s.availLifeGaps(k, p, a) // the planner's phase 2 life-only units (mana_lifeplan.go)
+	}
 }
 
 // affords reports whether a can pay cost plus extra generic.

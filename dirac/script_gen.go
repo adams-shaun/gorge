@@ -333,6 +333,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		cand[j], key[j] = a, kk
 		nc++
 	}
+	var lifeWalk Decision
+	lifeBuilt := false
 	searched := 0
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
@@ -343,8 +345,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			continue
 		}
 		searched++
-		if s.autopayDropsPlainCast(a) {
-			continue // a plain cast: dropped by the autopay surface
+		if s.autopayDropsPlainCast(a) && !s.lifePlanned(k, p, life, &lifeWalk, &lifeBuilt, a) {
+			continue // a plain cast: dropped by the autopay surface unless gorge's planner prices it with a life-only source (mana_lifeplan.go)
 		}
 		if dh {
 			if !s.dhScript(k, a, p, false) {
