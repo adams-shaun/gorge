@@ -32,14 +32,20 @@ func (d *payDesc) gapNote(sl Slot, j, fee int) bool {
 
 // paidGapProbe is availPotentialFor's read of a mana ability's paid fee: paid
 // reports a fee-bearing ability while the per-tap census runs, skip that the
-// walk leaves it out. The census (units) is the planner-shaped bound: gorge's
+// walk leaves it out, repeat that its cost has no tap, sacrifice-self or
+// once-only limit. The census (units) is the planner-shaped bound: gorge's
 // relaxed proof charges a paid ability's fee as generic on top of the play's
 // cost (paymentPlanRelaxProof), while the pool mana that covers the fee here
 // is already a recorded unit, so admitting it would double-count (White Lotus
 // Hideout's {1},{T} filter). The over-bound pool beside the census keeps the
 // paid abilities (boundedAny false skips them here); the X-bound sweep's
-// probe (d.gapTrack) names each one so the subsets can be priced.
-func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, ab *kop.Ability) (paid, skip bool) {
+// probe (d.gapTrack) names each one so the subsets can be priced. repeat is
+// only the flags read: it marks d.gapRepeats (mana_restrictedsource.go) at
+// the ability's admission, past availPotentialFor's fundability gate, because
+// gorge's once gate reads the census's admitted abilities alone — a gap whose
+// fee nothing covers never reaches it (Nomadic Elf's {1}{G} beside white
+// mana, engine/rules/potential_plan.go's paymentPlanCensusOf).
+func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, ab *kop.Ability) (paid, skip, repeat bool) {
 	fee := &ab.Cost.Mana
 	paid = census && fee.MV() != 0
 	switch {
@@ -48,11 +54,9 @@ func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, ab *kop.
 		skip = true
 	case d != nil && d.gapTrack:
 		skip = d.gapNote(sl, j, fee.MV())
-		if ab.Cost.Flags&(kop.CostTap|kop.CostSacSelf|kop.CostOncePerTurn|kop.CostOncePerGame) == 0 {
-			d.gapRepeats = true
-		}
+		repeat = ab.Cost.Flags&(kop.CostTap|kop.CostSacSelf|kop.CostOncePerTurn|kop.CostOncePerGame) == 0
 	}
-	return paid, skip
+	return paid, skip, repeat
 }
 
 // gapSubsets prices an X-bound target's announcement the way gorge's relaxed

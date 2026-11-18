@@ -103,7 +103,9 @@ type payDesc struct {
 	gapN     uint8
 	gapID    [paidGapMax]uint16
 	gapFee   [paidGapMax]uint8
-	// gapRepeats: a tracked gap is repeatable (no tap, sacrifice or once-only limit)
+	// gapRepeats: an admitted tracked gap is repeatable (no tap, sacrifice or
+	// once-only limit); a gap the fundability gate skipped is out of gorge's
+	// census and marks nothing (paidGapProbe)
 	gapRepeats bool
 }
 
