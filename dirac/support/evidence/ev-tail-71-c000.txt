@@ -58,6 +58,7 @@ Bounty of Might
 Bower Passage
 Braingeyser
 Bull Rush
+Burning Earth
 Burning Wish
 Cabal Slaver
 Cabal Surgeon
@@ -76,6 +77,7 @@ Chronomancer
 Cleaving Skyrider
 Clinging Darkness
 Cloud Djinn
+Collected Conjuring
 Commando Raid
 Conquer
 Coordinated Barrage
@@ -112,6 +114,7 @@ Dragon-Cursed Halls
 Dragonscale General
 Drake Familiar
 Duelist's Flame
+Dune Chanter
 Dying Wail
 Earthshaker Giant
 Eccentric Farmer
@@ -119,6 +122,7 @@ Electropotence
 Elven Cache
 Elvish Piper
 Elvish Visionary
+Embereth Paladin
 Emerald Medallion
 Enduring Victory
 Ensnare
@@ -165,6 +169,7 @@ Ghostly Wings
 Giant Inheritance
 Glint
 Gnarled Sage
+Goblin Archaeologist
 Goblin Cratermaker
 Goblin Dirigible
 Goblin Spy
@@ -181,6 +186,7 @@ Gut, True Soul Zealot
 Gwaihir the Windlord
 Hallowed Healer
 Hanna, Ship's Navigator
+Harbinger of the Seas
 Harnessed Lightning
 Harsh Sustenance
 Hateflayer
@@ -281,6 +287,7 @@ Nylea, God of the Hunt
 Ob Nixilis's Cruelty
 Ogre Resister
 Ogre Slumlord
+Ohran Yeti
 Overwhelming Remorse
 Pact of Negation
 Palace Sentinels
@@ -312,6 +319,7 @@ Raving Oni-Slave
 Reckless Reveler
 Recruit the Worthy
 Regenesis
+Release the Ants
 Remorseful Cleric
 Renegade Krasis
 Renegade Warlord
@@ -326,6 +334,7 @@ Rise of the Witch-king
 Rishkar, Peema Renegade
 Rising Populace
 Rites of Refusal
+River Serpent
 Roc Hatchling
 Rummaging Goblin
 Sanctifier of Souls
@@ -382,6 +391,7 @@ Starlit Sanctum
 Starnheim Courser
 Steal Artifact
 Steel Golem
+Steelclad Spirit
 Stensia Bloodhall
 Stony Silence
 Storm Seeker
@@ -393,6 +403,7 @@ Sungrace Pegasus
 Sunmane Pegasus
 Surrakar Banisher
 Swamp
+Swarm Shambler
 Tattermunge Witch
 Tavern Ruffian
 Terminal Agony
@@ -422,6 +433,7 @@ Undead Minotaur
 Unseal the Necropolis
 Utvara Scalper
 Valduk, Keeper of the Flame
+Vantress Paladin
 Vapor Snag
 Vectis Dominator
 Veiled Sentry
@@ -442,6 +454,7 @@ Whirlermaker
 Wing Shards
 Winged Coatl
 Wistful Selkie
+Withdraw
 Witherbloom Command
 Wizards of Thay
 Wolfcaller's Howl

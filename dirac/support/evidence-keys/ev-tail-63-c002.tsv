@@ -1,0 +1,134 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Aether Membrane	2c04434088e66f9c	37	1/1		1/1	
+Affa Guard Hound	487d829331a5397a	62	1/1		1/1	
+Amrou Kithkin	8a803f8c6559d754	37	0/0		0/0	
+Apocalypse Demon	a53b05fb51c12492	18	1/1		1/1	
+Apothecary Geist	77442e586ae7c53e	37	1/1		0/1	ix:resp
+Arcbound Prototype	ddd9467578ee4dd5	45	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Armed Assailant	498bdb0d56410390	45	0/0		0/0	
+Atmosphere Surgeon	7f33b113d668d517	88	2/2		1/1	
+Aven Wind Guide	771d84ef2b3550c2	7	1/1		0/1	ix:resp
+Barbed Shocker	0631153cb836a431	36	1/1		0/1	ix:resp
+Bartizan Bats	6e52dfe39bc201f8	67	0/0		0/0	
+Belle of the Brawl	7ff688b8114dcd4d	34	1/1		0/1	ix:resp
+Black Vise	a92f10037b12437d	52	1/1		1/1	
+Blindblast	a39d11a4b4aa4492	60	0/0		2/2	
+Bloodhaze Wolverine	91792d7e03f82b27	57	1/1		0/1	ix:resp
+Bonebreaker Giant	5aeeafde2f9a5b8c	24	0/0		0/0	
+Butcher Ghoul	805b696c82ec2024	102	1/1		1/1	
+Caregiver	7587dcd2e3488157	27	1/1		1/1	
+Celestial Unicorn	3e40e5a6e19fff07	41	1/1		0/1	ix:resp
+Champion of the Flame	eb76479a4b58bad2	75	0/0		0/0	
+Changeling Sentinel	1974d21c326c48e3	53	0/0		0/0	
+Citadel Gate	9ff7879809d04e3a	219	1/1		0/1	ix:resp
+Civilized Scholar	82bbef674e3ee373	72	2/2		1/1	
+Cunning Evasion	ed03ff62d6232366	76	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Cyclops of Eternal Fury	e4b3a8b04c632e4e	39	0/0		0/0	
+Daemogoth Titan	f1b1ca4d5929afa4	9	2/2		0/1	ix:resp
+Danitha, New Benalia's Light	5bee0bc490232829	26	0/0		0/0	
+Darklit Gargoyle	2986469a90f21411	61	1/1		0/1	ix:resp
+Deadeye Rig-Hauler	4847ea6c450aa8a1	56	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Deathbellow Raider	188e029120271921	77	1/1		1/1	
+Delayed Blast Fireball	1a696c449689605c	51	0/0		3/4	cast/alt:foretold
+Dovin's Dismissal	b92a3fb15a4683ab	17	0/0		2/2	
+Dragon Whelp	2ce7556a209bc9f1	39	1/1		1/1	
+Dread Charge	6b1e6415fbd591e9	30	0/0		1/2	ix:resp
+Durkwood Baloth	a7ca52badda895ef	16	0/0		2/2	
+Elder Land Wurm	ef05d44e1b0fcca6	16	1/1		0/1	ix:resp
+Energy Arc	fa2c007f80f7eb7f	19	0/0		2/2	
+Epistolary Librarian	fe3873d80d8f00ea	13	1/1		0/1	ix:resp
+Ether Well	cec46f936b091be1	64	0/0		2/2	
+Ethereal Champion	ae19ce31aa7cfb90	15	1/1		1/1	
+Ethereal Usher	8bbd73297ef6b473	17	2/2		0/1	ix:resp
+Excavated Wall	738efec843cd3aa3	96	1/1		1/1	
+Feast of Sanity	39c7823fc33fd877	33	1/1		1/1	
+Firebrand Ranger	cbb43feb73d18ad5	51	1/1		1/1	
+Flameborn Hellion	d2f593259ed92cc7	32	0/0		0/0	
+Forge Armor	d9b5500e8bdeb006	53	0/0		2/2	
+Gaea's Courser	b4335b4e860716f9	20	1/1		1/1	
+Gideon Blackblade	5df264fcff642f48	20	2/2		0/1	ix:resp
+Goblin Medics	89fe84df9cd9b759	66	1/1		1/1	
+Goblin Pyromancer	41eefb78137175a8	78	2/2		1/1	
+Graviton, Fundamental Force	303ad5abb913997b	29	1/1		0/1	ix:resp
+Grizzlegom, Hurloon Hero	64ae7147ec58e895	21	1/1		1/1	
+Groundling Pouncer	f9ebb4f9945b5893	8	1/1		1/1	
+Guilty Conscience	6a1c814de9125bcf	30	1/1		2/2	
+Hag of Syphoned Breath	ac7927baea9a41b3	60	1/1		1/1	
+Hand of Cruelty	bb5c5c8b69edb5dc	26	2/2		0/1	ix:resp
+High Sentinels of Arashin	350663f346249ec0	27	1/1		0/1	ix:resp
+Homestead Courage	a4efc00355473861	59	0/0		4/4	
+Hulking Ogre	46bd3c6943eba469	99	0/0		0/0	
+Ice Storm	60305d3d2f197fdf	39	0/0		2/2	
+Inkwell Leviathan	8ecbadf4cbfece73	10	0/0		0/0	
+Inner-Chamber Guard	f57c634c73262955	44	2/2		1/1	
+Ironsoul Enforcer	74b4faa12b814de2	41	1/1		1/1	
+Jaya's Immolating Inferno	9d7af137ef4195b9	5	0/0		2/4	f0/s/x0,ix:resp
+Jubilation	73bb13dcca1750b2	17	2/2		1/1	
+Jwar Isle Avenger	375f2329ab01de83	68	0/0		2/2	
+Kaldra Compleat	bc214c4f0811d5cc	17	2/2		0/1	ix:resp
+Kinetic Augur	e4a302e488d0c83a	59	1/1		1/1	
+Knight of the Skyward Eye	99802d9c3c111e23	41	1/1		1/1	
+Lathnu Hellion	f2f4c9667c6eb69d	48	2/2		1/1	
+Loxodon Convert	738ffa42a078066c	25	0/0		0/0	
+Lurking Skirge	076dd6a78587c6b0	75	1/1		1/1	
+Mardu Scout	56f87f8926e4feed	109	0/0		2/2	
+Mesa Enchantress	269ece48381f596b	31	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Misthoof Kirin	0b155e19eb539d80	24	0/0		1/2	cast/alt:megamorphed
+Netcaster Spider	cf9eabe6c93eecd2	58	1/1		1/1	
+Nils, Discipline Enforcer	cd5b8557d70e634a	32	1/1		1/1	
+Omen of the Forge	f9096367cf2d8ce5	38	2/2		0/1	ix:resp
+Owlin Shieldmage	4699347ae8091050	8	1/1		0/1	ix:resp
+Palace Siege	932b9814f244cf6c	45	0/0		0/0	
+Paper Tiger	0201aff0bfc75d72	51	0/0		0/0	
+Pillarfield Ox	1bab2e321b3f2786	21	0/0		0/0	
+Pin to the Earth	d62abc917201bb47	77	0/0		2/2	
+Prismatic Boon	f12ac3c99e0f9b99	13	0/0		3/4	f0/s/x0
+Psionic Gift	8c3ae3cc7bf04c52	77	0/0		2/2	
+Puncturing Light	8e71c0e33b231234	26	0/0		2/2	
+Quagmire Druid	a550737a1f4d0a81	53	1/1		1/1	
+Radiant Destiny	feec0e063c093cb2	35	0/0		0/0	
+Ring of Renewal	d7220937d4fdad4a	49	1/1		1/1	
+Scout the Wilderness	7b1c0cb0b554a541	36	0/0		3/4	cast/alt:kicked
+Searing Barb	f093754a6c7865fd	58	0/0		1/2	ix:resp
+Selesnya Charm	dba82bded541000b	16	0/0		1/2	ix:resp
+Seluma, Light of Aysen	93aa785236912957	40	1/1		1/1	
+Sergeant-at-Arms	86ec78a208f7e8c3	29	1/1		3/3	
+Shadewing Laureate	05ee2f011737622d	6	1/1		0/1	ix:resp
+Shimmerwing Chimera	4ef77b40296b3f4e	43	1/1		1/1	
+Shredded Sails	6c5829541728d1a2	21	1/1		1/2	ix:resp
+Singe	333b3c1c77967be7	86	0/0		2/2	
+Sky-Blessed Samurai	ce0f3fb937c63d8b	18	0/0		0/0	
+Sparring Mummy	bafe30c97a7d0bec	31	1/1		1/1	
+Spire Golem	30746638b54259b1	46	0/0		0/0	
+Startle	08365891d95cf2b3	58	0/0		2/2	
+Steel Exemplar	2a66c28bcbe1b173	24	0/0		0/0	
+Stitcher's Graft	e57dcf959c492130	61	3/3		1/1	
+Stone Haven Medic	287cda4d8479e28f	29	1/1		1/1	
+Stormblood Berserker	c6014266d543b730	52	0/0		0/0	
+Strands of Night	81a498df6049aedd	59	1/1		1/1	
+Straw Soldiers	e2eed9613a04fed7	59	0/0		0/0	
+Stronghold Zeppelin	5e6d9b53a2e28f3e	34	0/0		0/0	
+Student of Warfare	f22362065cdd3ffa	38	1/1		1/1	
+Stupor	13e82146871af7f6	34	0/0		1/2	ix:resp
+Sunhome Enforcer	954d665c1c4a44d7	21	2/2		1/1	
+Swooping Protector	eec05445f3f247be	24	0/0		0/0	
+Tabaxi Toucaneers	198bd1b066134383	13	1/1		0/1	ix:resp
+Throes of Chaos	04047dc8e4baf2e9	61	0/0		2/2	
+Time Elemental	8789076abaeff70d	44	3/3		1/1	
+Tower of Fortunes	198879bcc40f78e3	43	1/1		1/1	
+Towering Viewpoint	c6e3bec8d9e36848	43	1/1		1/1	
+Triskelavus	ab17b01ed03b6a18	20	1/1		1/1	
+Urbis Protector	6f4508b3d696411d	14	1/1		1/1	
+Urborg Justice	0172d9971ab4a9a9	44	0/0		2/2	
+Vastwood Animist	07ebac74107c0ebb	17	1/1		1/1	
+Viashino Spearhunter	8ca9a4bf1d4754a7	53	0/0		0/0	
+Vicious Kavu	2871e8cf43492622	34	1/1		1/1	
+Volcanic Fallout	87de9b4f75d2d166	67	0/0		2/2	
+War Machine, Avenging Arsenal	e386cd7f2e6922b9	31	1/1		1/1	
+Warbreak Trumpeter	ab9c25ca37b1a658	12	1/1		1/3	cast/alt:none,ix:resp
+Weapon Surge	f779d43cdaa6ee92	44	0/0		4/4	
+Windseeker Centaur	ce3e0d0595f6bcce	57	0/0		0/0	
+Wojek Halberdiers	34b556e0712a1749	26	1/1		0/1	ix:resp
+Young Wolf	c83665296a954082	56	1/1		1/1	
+Zirilan of the Claw	7da030b7e7b195d9	43	1/1		1/1	
+Éowyn, Lady of Rohan	594531f98441a1cd	33	1/1		1/1	

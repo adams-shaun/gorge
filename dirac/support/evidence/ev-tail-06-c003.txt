@@ -1,59 +1,92 @@
 A-Imperial Subduer
 Adeline, Resplendent Cathar
 Aeronaut Tinkerer
+Aether Tunnel
 Akoum Hellkite
 Alley Strangler
+Anaba Spirit Crafter
 Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
 Armored Cancrix
 Armored Skaab
+Astarion, the Decadent
+Avacyn and Griselbrand
 Awaken the Sky Tyrant
 Bandage
 Barbary Apes
 Barl's Cage
 Basilisk Gate
+Bathe in Dragonfire
 Beckon Apparition
+Benalish Knight
 Boros Elite
 Borrowing 100,000 Arrows
 Brass Man
+Breaching Hippocamp
 Brood Weaver
 Brought Back
 Burning-Yard Trainer
+Cartographer
 Cathar's Call
 Cement Shoes
 Champion of Dusk
 Chimeric Staff
 Cleansing Screech
 Cloudfin Raptor
+Coral Helm
 Corpse Churn
+Court of Embereth
+Crucible of Fire
 Cutthroat Negotiator
+Cylian Elf
 Deb Thomas
+Decaying Time Loop
+Diminish
+Dimir Cluestone
+Dora Milaje Elite
 Dream Trawler
 Drizzt Do'Urden
+Dwarven Demolition Team
+Ebony Charm
 Eldrazi Mimic
+Elvish Rejuvenator
 Emberwilde Caliph
 Embodiment of Fury
+Empty-Shrine Kannushi
+Epicenter
+Ethereal Absolution
 Experimental Armor
+Explosive Entry
 Eye of Yawgmoth
 Faerie Seer
 Falconer Adept
 Fight as One
 Firebrand Ranger
+Flailing Manticore
 Flow of Knowledge
 Forest
+Founding of Omashu
 Freed from the Real
 Frenzied Devils
+Frenzied Rage
 Fugitive Wizard
+Gaea's Balance
+Glacial Wall
 Glamorous Grapplers
 Gluttonous Troll
+Goblin Wizardry
 Gold-Forged Thopteryx
 Golem's Heart
+Golgari Keyrune
 Golgari Raiders
 Graviton, Fundamental Force
 Great Defender
 Halo Scarab
+Heliod's Punishment
+Honor the Fallen
 Hornet Nest
+Hot Springs
 Hymn to Tourach
 Illusionary Informant
 Innocent Blood
@@ -64,43 +97,79 @@ Jeering Homunculus
 Jewel Thief
 Jolted Awake
 Kaseto, Orochi Archmage
+Last-Ditch Effort
+Launch Party
 Leaf Gilder
+Leafcrown Dryad
+Lesser Masticore
+Leyline of Vitality
 Lightning Surge
 Lost Soul
 Loxodon Warhammer
+Luminesce
 Mantle of Webs
+Marang River Skeleton
 Marsh Boa
+Master Healer
+Master's Call
+Merchant Raiders
+Merrow Wavebreakers
 Molten Vortex
+Mortivore
 Mountain
 Mystic Melting
 Nim Shambler
 Nirkana Revenant
 Nuka-Cola Vending Machine
+Onward
+Oona's Grace
+Ordruun Veteran
 Outnumber
 Overwhelmed Apprentice
+Owlbear
 Ox of Agonas
+Pardic Firecat
 Peek
 Pemmin's Aura
+Pensive Minotaur
+Pestilence Demon
 Phyrexian Battleflies
+Phyrexian Marauder
 Plague Mare
 Plains
 Pounce
 Pre-War Formalwear
+Pull from the Deep
 Putrefax
+Quantum Misalignment
+Rakdos Pit Dragon
 Rats of Rath
 Ray of Enfeeblement
+Reckless Ogre
+Recoup
 Renewing Dawn
+Return to the Earth
 Rhizome Lurcher
+Rosemane Centaur
+Rotten Reunion
 Rule of Law
 Sanctum of Shattered Heights
+Sarkhan's Triumph
+Scale the Heights
+Scurrilous Sentry
 Seraph of the Masses
 Shadowheart, Dark Justiciar
 Shamble Back
 Simic Keyrune
 Sire of the Storm
+Skirk Ridge Exhumer
+Smoldering Werewolf
 Soot Imp
+Soratami Mirror-Guard
 Soul Collector
+Soul Link
 Soul's Grace
+Spectral Prison
 Spellbound Dragon
 Splinter, the Mentor
 Spore Swarm
@@ -108,22 +177,40 @@ Strangle
 Stronghold Taskmaster
 Sungrace Pegasus
 Suntail Hawk
+Supply-Line Cranes
 Swamp
+Sword of Feast and Famine
 Teferi's Ageless Insight
 Teleportation Circle
 Thalakos Scout
+The Brute
+The First Eruption
 The Modern Age
 The One Ring
+Thickest in the Thicket
+Thraben Gargoyle
+Tiller of Flesh
 Toggo, Goblin Weaponsmith
+Traproot Kami
+Traverse the Ulvenwald
 Tremble
 Turn
 Ultimate Magic: Holy
+Undergrowth Scavenger
 Valorous Steed
+Vampiric Spirit
 Venser, Shaper Savant
+Viashino Slaughtermaster
 Vindictive Triumph
+Vizier of Remedies
 Wall of Kelp
 Warlord's Fury
 Whispersilk Cloak
+Wild Defiance
 Winged Sliver
 Wirewood Pride
+Witch's Familiar
+Witch's Oven
+Yawgmoth's Edict
+Zarichi Tiger
 Zombie Cannibal

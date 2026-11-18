@@ -1,8 +1,14 @@
 A-Exhibition Magician
 Abyssal Specter
 Acolyte of Xathrid
+Acridian
+Akki Raider
 Alchemist's Vial
+Alert Shu Infantry
 Aphetto Alchemist
+Apothecary Initiate
+Arc Blade
+Argothian Opportunist
 Argothian Treefolk
 Arisen Gorgon
 Ashes to Ashes
@@ -15,23 +21,30 @@ Belbe's Armor
 Benevolent Bodyguard
 Benthicore
 Blessed Light
+Blighted Gorge
+Blightstep Pathway
 Blood Pet
+Bonders' Enclave
 Bonesplitter Sliver
 Brazen Freebooter
+Call of the Death-Dweller
 Caller of the Claw
 Callous Dismissal
 Captain Ripley Vance
 Captain of the Watch
 Carnage Altar
+Chainflinger
 Chameleon Spirit
 Chosen of Markov
 Chronomaton
 Citizen's Crowbar
+Colossus Hammer
 Constricting Sliver
 Copper Longlegs
 Corrupted Harvester
 Curse of the Nightly Hunt
 Dance of the Skywise
+Dark Inquiry
 Dark Tutelage
 Darkslick Shores
 Darksteel Juggernaut
@@ -41,6 +54,7 @@ Defiler of Souls
 Detained by Legionnaires
 Devoted Paladin
 Dinosaur Stampede
+Distract
 Domri's Nodorog
 Dregscape Zombie
 Dress Down
@@ -58,48 +72,72 @@ Elven Palisade
 Elvish Dreadlord
 Eviscerator
 Farhaven Elf
+Fearless Halberdier
 Feign Death
 Felidar Guardian
 Fendeep Summoner
+Fiery Conclusion
+Fight to the Death
 Finale of Devastation
 Fire Snake
 Fires of Undeath
 Flailing Soldier
 Flame Slash
+Flare of Faith
 Flash Flood
 Fledgling Dragon
 Forest
 Foundry Helix
 Frozen Shade
 Garbage Elemental
+Garna, the Bloodflame
 Garruk Wildspeaker
+General's Kabuto
 Gleam of Authority
 Gloomdrifter
+Goblin Hero
 Goldenhide Ox
 Great Hart
+Grinning Demon
 Guardian Augmenter
 Haazda Officer
+Hag of Death's Legion
+Haze of Pollen
 Heart Sliver
+Heartbeat of Spring
 Hellfire Mongrel
+Herald of Kozilek
 Herald of Secret Streams
 Herald of War
 Hero's Demise
+Hidden Guerrillas
 Hua Tuo, Honored Physician
 Hungry Spriggan
+Hunter's Insight
+Ikiral Outrider
 Initiate's Companion
+Inquisition of Kozilek
 Iron Lad, Young Avenger
 Island
+Jawbone Skulkin
 Jewel-Eyed Cobra
 Joust
 Jund Panorama
+Kavu Aggressor
+Keldon Arsonist
 Keldon Necropolis
+Keldon Vandals
 Kraul Raider
 Laser Screwdriver
 Lightning Reaver
+Lonely Sandbar
+Lowland Giant
 March of the Drowned
+Marrow Bats
 Martyr for the Cause
 Mercurial Pretender
 Meteor Storm
+Mole Module
 Molten Ravager
 Monk Idealist
 Mountain
@@ -111,24 +149,33 @@ Nebelgast Herald
 Necrogen Censer
 Nezumi Graverobber
 Nightmare's Thirst
+Nimblewright Schematic
 Ninja of the Deep Hours
 Nyxathid
+Obelisk of Bant
 Ogre Jailbreaker
 Ogre Warrior
 Omenspeaker
 Onulet
 Phantom Centaur
 Phyrexian Defiler
+Pilfering Imp
 Plains
 Polymorphist's Jest
 Quicksilver, Pietro Maximoff
 Quirion Ranger
 Rankle, Master of Pranks
+Rath's Edge
+Rathi Intimidator
+Razorfield Rhino
 Reckless Fireweaver
 Redcap Heelslasher
 Redwood Treefolk
 Regenerate
+Repeal
 Reverent Hunter
+Righteous Confluence
+River Darter
 Rootbreaker Wurm
 Safehold Sentry
 Sanctum of Tranquil Light
@@ -138,42 +185,64 @@ Scattershot
 Scoria Cat
 Seasoned Pyromancer
 Second Breakfast
+Seekers' Squire
+Sensory Deprivation
 Shambling Remains
 Shatterskull Charger
+Shield of Duty and Reason
+Shivan Raptor
+Signpost Scarecrow
 Silverglade Pathfinder
 Sister Hospitaller
 Skarrgan Skybreaker
 Sky Skiff
 Smothering Abomination
+Sol Grail
 Sorin's Vengeance
 Soul of Shandalar
 Soulcage Fiend
 Soulmender
 Sovereign's Bite
+Spare Supplies
+Spectator Seating
 Spoils of Evil
 Stasis Cell
+Steel-Plume Marshal
 Stew the Coneys
+Stitch Together
 Storm of Steel
+Stormchaser Chimera
 Stronghold Overseer
+Succumb to Temptation
 Sunbathing Rootwalla
+Surgehacker Mech
 Swamp
 Sylvan Scrying
 Séance
 Telekinetic Sliver
 Tempestra, Dame of Games
+Territorial Roc
 The Antiquities War
 The Immortal Weapons
 Thoughtflare
 Thrashing Wumpus
 Thrun, the Last Troll
+Thud
 Tormented Thoughts
 Toski, Bearer of Secrets
+Toucan-Puffin
+Tundra Fumarole
+Undercity's Embrace
+Untamed Kavu
 Utility Knife
 Vampire Bats
 Vampire of the Dire Moon
 Vengeful Reaper
+Verdant Catacombs
 Voracious Vacuum
 Wake of Vultures
+Warhost's Frenzy
+Weakstone
 Welding Sparks
 Whispers of Emrakul
 Willow Elf
@@ -184,3 +253,4 @@ Wu Elite Cavalry
 Yargle and Multani
 Yotian Medic
 Zhang He, Wei General
+Zombie Mob

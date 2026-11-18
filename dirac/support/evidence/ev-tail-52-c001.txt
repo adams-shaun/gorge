@@ -31,11 +31,13 @@ Battlewing Mystic
 Bay Falcon
 Believe in the Cleave
 Benalish Trapper
+Berg Strider
 Betrayal of Flesh
 Blaze
 Blessed Respite
 Blessing of Belzenlok
 Bola Slinger
+Bonecrusher Giant
 Boros Keyrune
 Boulderfall
 Breath of Malfegor
@@ -191,6 +193,7 @@ Lightning Stormkin
 Lithomantic Barrage
 Llanowar Dead
 Llanowar Elite
+Longhorn Firebeast
 Lord Jyscal Guado
 Lord of the Void
 Loxodon Partisan
@@ -228,6 +231,7 @@ Noggle Bandit
 Oak Street Innkeeper
 Occult Epiphany
 Ondu Champion
+Overwhelm
 P-Joven and Chandler
 Palinchron
 Papercraft Decoy
@@ -248,6 +252,7 @@ Pouncing Cheetah
 Power Matrix
 Practical Research
 Predatory Hunger
+Priest of Fell Rites
 Priest of Iroas
 Prime Speaker Vannifar
 Purge
@@ -278,6 +283,7 @@ Revelation of Power
 Revelsong Horn
 Rionya, Fire Dancer
 Rock Badger
+Ronom Serpent
 Root Maze
 Rootless Yew
 Rotted Hystrix

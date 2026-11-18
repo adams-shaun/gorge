@@ -25,7 +25,9 @@ Astarion's Thirst
 Auriok Transfixer
 Ayara, First of Locthwain
 Back in Town
+Banishing Stroke
 Battle Hurda
+Beast of Burden
 Benalish Trapper
 Blessed Wine
 Blight Pile
@@ -41,6 +43,7 @@ Brain Weevil
 Brassclaw Orcs
 Brazen Buccaneers
 Breaker of Armies
+Brink of Madness
 Bygone Marvels
 Cackling Imp
 Cagemail
@@ -116,18 +119,23 @@ Feedback Bolt
 Feral Animist
 Fire Snake
 Floral Evoker
+Flowstone Wyvern
 Foot Soldiers
 Forerunner of Slaughter
 Forest
+Foul-Tongue Shriek
 Gaea's Embrace
 Gaea's Skyfolk
 Gandalf, Shadow's Foe
 Garruk's Gorehorn
 Geistlight Snare
+Geode Golem
 Gerrard's Command
 Gloomdrifter
 Goblin Gaveleer
 Goblin Skycutter
+Goblins of the Flarg
+Grisly Survivor
 Gustcloak Sentinel
 Hammer of Purphoros
 Heir of the Ancient Fang
@@ -157,6 +165,7 @@ Kessig Wolf
 Kokusho, the Evening Star
 Lagonna-Band Elder
 Launch Mishap
+Lava Blister
 Leaping Master
 Ledev Guardian
 Lesser Gargadon
@@ -177,6 +186,7 @@ Meditation Puzzle
 Merfolk Branchwalker
 Midnight Guard
 Might of Old Krosa
+Millicent, Restless Revenant
 Mind Peel
 Minion of the Mighty
 Mirrodin Avenged
@@ -184,6 +194,7 @@ Mogg Salvage
 Moss Diamond
 Mossfire Egg
 Mountain
+Mu Yanling, Celestial Wind
 Murasa Rootgrazer
 Muscle Sliver
 N'Yami-Class Mother Ship
@@ -202,6 +213,7 @@ Panther Robot
 Phalanx Leader
 Phalanx Tactics
 Phyrexian Rager
+Phyrexian Vault
 Pit Imp
 Placid Rottentail
 Plains
@@ -224,6 +236,7 @@ Resolute Watchdog
 Revenge of the Drowned
 Ring of Valkas
 Ritual of Hope
+Robber Fly
 Robe of Mirrors
 Root Cage
 Rosethorn Acolyte
@@ -244,6 +257,7 @@ Second Breakfast
 Secure Detention
 Seek the Wilds
 Seizan, Perverter of Truth
+Senate Courier
 Sentry of the Underworld
 Shadow Stinger
 Shadow in the Warp
@@ -285,6 +299,7 @@ Steelgaze Griffin
 Steward of Solidarity
 Storm Strike
 Stormwing Entity
+Strength of Solidarity
 Strength of the Harvest
 Sudden Insight
 Summer Bloom
@@ -306,12 +321,14 @@ Thunderbreak Regent
 Thundercloud Shaman
 Tireless Hauler
 Tolarian Geyser
+Tome of the Guildpact
 Topple the Statue
 Torens, Fist of the Angels
 Toski, Bearer of Secrets
 Trained Orgg
 Treefolk Harbinger
 Trenchpost
+Tromell, Seymour's Butler
 Tura Kennerüd, Skyknight
 Twisted Experiment
 Unexpected Windfall
@@ -330,6 +347,7 @@ Wanderer's Twig
 Warbriar Blessing
 Warden of Geometries
 Warmth
+Warrant
 Weldfast Wingsmith
 Wellwisher
 Whipcorder
@@ -340,4 +358,5 @@ Witness the End
 Yahenni, Undying Partisan
 Yavimaya Elder
 Yotian Medic
+Zombie Infestation
 Éomer of the Riddermark

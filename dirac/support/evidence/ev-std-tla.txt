@@ -33,6 +33,7 @@ Bumi Bash
 Bumi, King of Three Trials
 Buzzard-Wasp Colony
 Callous Inspector
+Canyon Crawler
 Cat-Gator
 Cat-Owl
 Combustion Man
@@ -97,6 +98,7 @@ Hakoda, Selfless Commander
 Haru, Hidden Talent
 Heartless Act
 Hei Bai, Spirit of Balance
+Hermitic Herbalist
 Hog-Monkey
 Honest Work
 How to Start a Riot
@@ -105,6 +107,7 @@ Invasion Reinforcements
 Invasion Submersible
 Invasion Tactics
 Iroh's Demonstration
+Iroh, Grand Lotus
 Iroh, Tea Master
 Island
 It'll Quench Ya!

@@ -1,9 +1,11 @@
 A-Sewer Crocodile
+A-Steadfast Unicorn
 Anje's Ravager
 Arctic Aven
 Auriok Sunchaser
 Baloth Null
 Baxter, Fly in the Ointment
+Blessed Orator
 Body Dropper
 Bond of Revival
 Bootleggers' Stash
@@ -13,11 +15,14 @@ Chamber of Manipulation
 Claws of Gix
 Corrupt
 Cranial Ram
+Dakmor Plague
 Darling of the Masses
+Daru Healer
 Dauthi Mercenary
 Depart the Realm
 Desert Twister
 Diabolic Vision
+Echoing Return
 Elspeth, Knight-Errant
 Escape Routes
 Essence Extraction
@@ -26,12 +31,15 @@ Falkenrath Torturer
 Favor of the Woods
 Forest
 Forsake the Worldly
+Geistflame
 Gorgon's Head
 Grab the Reins
 Heir of the Wilds
 Hesitation
 Hidden Ancients
 Infectious Host
+Insatiable Souleater
+Invisible Force Field
 Island
 Jagged-Scar Archers
 Jungle Wurm
@@ -39,6 +47,7 @@ Killer Bees
 Krovikan Scoundrel
 Lantern Scout
 Maggot Therapy
+Magmatic Channeler
 Make Disappear
 Master of Death
 Mindsplice Apparatus
@@ -62,13 +71,19 @@ Razorfield Thresher
 Research Thief
 Reviving Dose
 Rites of Initiation
+Ritual Guardian
 Rubble Reading
 Ruric Thar, the Unbowed
 Rushwood Herbalist
 Scale the Heights
+Scarecrow
 Shard Convergence
 Shattering Blow
+Shu Elite Companions
+Silent-Chant Zubera
+Sky Spirit
 Sky Theater Strix
+Starnheim Aspirant
 Structural Assault
 Sulfurous Blast
 Swamp
@@ -83,10 +98,12 @@ Tortoise Formation
 Training Grounds
 Unwind
 Vex
+Vigilant Sentry
 Wanted Scoundrels
 Watcher Sliver
 Whetstone
 Whirlwind Adept
+White Scarab
 World Breaker
 Wreak Havoc
 Youthful Scholar

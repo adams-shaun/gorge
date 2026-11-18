@@ -188,6 +188,7 @@ Imperial Subduer
 Impetuous Sunchaser
 Indrik Stomphowler
 Infectious Horror
+Inferno Elemental
 Insubordination
 Invisibility
 Iron Man, Futurist Paragon
@@ -213,6 +214,7 @@ Last Word
 Lava Spike
 Lethargy Trap
 Liability
+Life from the Loam
 Lightning Bolt
 Lightning Stormkin
 Linvala, Keeper of Silence
@@ -428,6 +430,7 @@ Transguild Promenade
 Traxos, Scourge of Kroog
 Trollhide
 Tuknir Deathlock
+Turn into a Pumpkin
 Tymaret, the Murder King
 Underworld Dreams
 Underworld Rage-Hound

@@ -6,6 +6,7 @@ Aang, Air Nomad
 Abbey Gargoyles
 Adrix and Nev, Twincasters
 Aerie Auxiliary
+Aeromoeba
 Aether Adept
 Aggressive Urge
 Aid the Fallen
@@ -13,11 +14,14 @@ Akki Scrapchomper
 Alabaster Kirin
 Albino Troll
 Amateur Hero
+Ancestral Blade
 Ancient Grudge
 Angelfire Ignition
+Animal Sanctuary
 Arashin Cleric
 Arborback Stomper
 Arcade Gannon
+Arcbound Lancer
 Architect of the Untamed
 Argivian Phalanx
 Army of the Damned
@@ -28,6 +32,7 @@ Aven Brigadier
 Aven Fleetwing
 Awakener Druid
 Baleful Ammit
+Banishing Slash
 Bash to Bits
 Battle Rampart
 Baxter, Fly in the Ointment
@@ -37,6 +42,7 @@ Benalish Sleeper
 Bereavement
 Birthing Ritual
 Bladed Ambassador
+Blanka, Ferocious Friend
 Blightbeetle
 Bloodcrazed Paladin
 Boil
@@ -45,9 +51,11 @@ Bomat Bazaar Barge
 Bravado
 Brazen Borrower
 Breakneck Berserker
+Brood of Cockroaches
 Brushfire Elemental
 Burgeoning
 Burning-Yard Trainer
+Campfire
 Canal Dredger
 Candlelit Cavalry
 Canoptek Spyder
@@ -79,6 +87,7 @@ Deadly Dispute
 Deceive the Messenger
 Deem Inferior
 Demonic Gifts
+Depopulate
 Desecrated Tomb
 Desolate Mire
 Destructive Revelry
@@ -104,6 +113,7 @@ Eron the Relentless
 Erratic Portal
 Escape Artist
 Essence Warden
+Everglades
 Excavation Explosion
 Exile into Darkness
 Expanding Ooze
@@ -118,6 +128,7 @@ Field-Tested Frying Pan
 Fists of Ironwood
 Fleeting Image
 Flesh Carver
+Fleshformer
 Floodwaters
 Forbidden Alchemy
 Forerunner of the Coalition
@@ -190,14 +201,17 @@ Krosan Restorer
 Krosan Verge
 Lacerate Flesh
 Lash of Malice
+Last Laugh
 Lavafume Invoker
 Lead-Belly Chimera
 Lena, Selfless Champion
+Lightning Blow
 Lightwielder Paladin
 Living Lightning, Charged Up
 Llanowar Empath
 Loxodon Anchorite
 Loyal Warhound
+Luminous Wake
 Lynx
 Maddening Wind
 Maggot Carrier
@@ -210,6 +224,7 @@ Masked Admirers
 Master of Etherium
 Melira, the Living Cure
 Melt Terrain
+Memorial to Genius
 Mending Touch
 Mental Note
 Mesa Enchantress
@@ -219,6 +234,7 @@ Minister of Pain
 Minotaur Explorer
 Mirri the Cursed
 Mirror Wall
+Mirrorpool
 Misdirection
 Mist Dancer
 Mob
@@ -236,6 +252,7 @@ Necrotic Sliver
 Needlepeak Spider
 Neurok Prodigy
 Nezumi Shadow-Watcher
+Nicol Bolas, the Ravager
 Nightsquad Commando
 Nihil Spellbomb
 Nim Shrieker
@@ -283,6 +300,7 @@ Rapacious Guest
 Ratadrabik of Urborg
 Ravaging Blaze
 Ravaging Horde
+Ravenform
 Ravenous Baloth
 Regal Unicorn
 Relic Golem
@@ -292,6 +310,7 @@ Revolutionary Rebuff
 Righteous Blow
 Rites of Spring
 Root Greevil
+Rootborn Defenses
 Roots of Wisdom
 Rootwire Amalgam
 Rot-Tide Gargantua
@@ -309,6 +328,7 @@ See Red
 See the Unwritten
 Seer's Vision
 Seismic Assault
+Sejiri Refuge
 Shackles of Treachery
 Shifting Wall
 Shivan Zombie
@@ -320,6 +340,7 @@ Skyshroud Behemoth
 Slag Fiend
 Slaughterhorn
 Slinking Giant
+Sol'kanar the Swamp King
 Soldier of Fortune
 Soldier of the Grey Host
 Soratami Mirror-Mage
@@ -353,6 +374,7 @@ Surge of Strength
 Surly Badgersaur
 Survivors' Bond
 Swamp
+Sword Coast Serpent
 Sword of the Chosen
 Symbiotic Wurm
 Tabaxi Toucaneers

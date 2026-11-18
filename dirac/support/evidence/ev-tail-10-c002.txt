@@ -18,6 +18,7 @@ Angelic Rocket
 Aquus Steed
 Argent Dais
 Armillary Sphere
+Armored Wolf-Rider
 Artifact Unknown Shores
 Auramancer
 Aven Fisher
@@ -45,11 +46,14 @@ Blot Out the Sky
 Bog Elemental
 Bog Imp
 Bogardan Dragonheart
+Boggart Sprite-Chaser
 Bonehoard
+Brash Taunter
 Bronze Sable
 Bruna, the Fading Light
 Brutalizer Exarch
 Cacophodon
+Call of the Conclave
 Canopy Claws
 Carrier Thrall
 Carrion Feeder
@@ -58,6 +62,7 @@ Caustic Wasps
 Celestial Archon
 Ceremonious Rejection
 Chandra, Pyrogenius
+Chandra, the Firebrand
 Child of the Pack
 Chosen of Markov
 Chromescale Drake
@@ -69,6 +74,7 @@ Commander Sofia Daguerre
 Coral Atoll
 Cosmic Larva
 Counsel of the Soratami
+Cragcrown Pathway
 Crazed Goblin
 Crushing Canopy
 Cunning Geysermage
@@ -121,6 +127,7 @@ Felhide Spiritbinder
 Fend Off
 Festering Evil
 Festering Goblin
+Fire Snake
 Flowstone Shambler
 Forest
 Forget
@@ -140,9 +147,11 @@ Goblin Gardener
 Goblin Picker
 Goblin Shrine
 Goblin War Paint
+Golgari Rot Farm
 Grapeshot Catapult
 Grasping Thrull
 Grim Monolith
+Gwafa Hazid, Profiteer
 Halo Forager
 Halo Hopper
 Hapatra's Mark
@@ -216,6 +225,7 @@ Marsh Flitter
 Marsh Threader
 Mascot Interception
 Master of Arms
+Mauhúr, Uruk-hai Captain
 Merfolk Windrobber
 Might of the Masses
 Mightstone's Animation
@@ -238,6 +248,7 @@ Mystic Zealot
 Narcissism
 Need for Speed
 Neurok Stealthsuit
+Nightscape Master
 Nim Grotesque
 Nim Mongoose
 Nim Replica
@@ -262,6 +273,7 @@ Patrician's Scorn
 Pegasus Guardian
 People of the Woods
 Perplexing Test
+Phantom Nishoba
 Phyrexian Broodlings
 Phyrexian Denouncer
 Phyrexian Pegasus
@@ -270,6 +282,7 @@ Pointed Discussion
 Pontiff of Blight
 Prison Realm
 Prodigal Sorcerer
+Prophetic Flamespeaker
 Prophetic Ravings
 Proteus Staff
 Radiant Purge
@@ -295,6 +308,7 @@ Riot Devils
 Riot Gear
 Ripjaw Raptor
 Ritual of Restoration
+Roil Eruption
 Root-Kin Ally
 Rorix Bladewing
 Royal Trooper
@@ -311,6 +325,7 @@ Seahunter
 Seal from Existence
 Searing Flesh
 Selective Memory
+Senator Peacock
 Seraph of the Scales
 Servant of Nefarox
 Seton's Desire
@@ -322,6 +337,7 @@ Shields of Velis Vel
 Shimmering Grotto
 Shivan Oasis
 Sigil of the New Dawn
+Silumgar Assassin
 Silverback Ape
 Skarrg, the Rage Pits
 Skeletal Changeling
@@ -361,6 +377,7 @@ Swamp
 Swirling Sandstorm
 Sword of Hours
 Tainted Indulgence
+Teferi, Time Raveler
 Temporal Fissure
 Tempting Witch
 Terror of the Fairgrounds
@@ -371,9 +388,11 @@ Torch Gauntlet
 Transcendent Envoy
 Trapfinder's Trick
 Traveling Minister
+Trostani, Selesnya's Voice
 Twigwalker
 Tymaret Calls the Dead
 Tyrranax Rex
+Unblinking Bleb
 Undercity Scavenger
 Undercity Scrounger
 Underdark Basilisk
@@ -386,6 +405,7 @@ Vedalken Blademaster
 Vexing Beetle
 Vicious Battlerager
 Village Elder
+Vivien's Talent
 Vivisurgeon's Insight
 Vizier of Tumbling Sands
 Vulshok Heartstoker
@@ -399,6 +419,7 @@ Westfold Rider
 Whispergear Sneak
 Whispers of the Muse
 Wildfire Cerberus
+Witchstalker
 Withered Wretch
 Wizards of Thay
 Yanling's Harbinger

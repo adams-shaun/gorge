@@ -1,5 +1,8 @@
 A-Goma Fada Vanguard
+A-Knockout Blow
+A-Prosperous Thief
 Afterlife
+Aftershock
 Alert Heedbonder
 Ambuscade
 Angel of Mercy
@@ -7,16 +10,22 @@ Angler Turtle
 Anoint with Affliction
 Arboreal Alliance
 Arcane Encyclopedia
+Arcbound Fiend
+Archon of Justice
+Arm the Cathars
 Armory of Iroas
 Artisan's Sorrow
 Asari Captain
+Atarka Monument
 Avacyn and Griselbrand
 Aven Trooper
 Awakened Awareness
+Baral's Expertise
 Barkchannel Pathway
 Barren Moor
 Battle Mammoth
 Beloved Chaplain
+Benthic Djinn
 Bhaal's Invoker
 Black Cat
 Black Lotus
@@ -36,6 +45,7 @@ Call of the Herd
 Call the Bloodline
 Canal Monitor
 Cantivore
+Cathartic Reunion
 Caustic Tar
 Chandra's Spitfire
 Charmbreaker Devils
@@ -44,18 +54,25 @@ Chittering Skitterling
 Chrome Prowler
 Clay Statue
 Clergy en-Vec
+Cloaked Cadet
 Coastal Hornclaw
 Coercive Impetus
+Colossal Whale
 Conduit of Ruin
+Consecrated Sphinx
 Contagious Nim
 Courtly Provocateur
 Crippling Chill
+D'Avenant Archer
 Daggerback Basilisk
 Dakmor Scorpion
 Darba
 Dark Revenant
+Darkblade Agent
 Darkness
+Daru Sanctifier
 Dauntless Survivor
+Dauntless Unity
 Dawntreader Elk
 Daxos, Blessed by the Sun
 Deadeye Brawler
@@ -64,28 +81,39 @@ Defensive Stance
 Demon's Horn
 Descend upon the Sinful
 Desert Sandstorm
+Didn't Say Please
 Dimir Cluestone
 Dimir House Guard
+Draconic Lore
 Dragon Tyrant
+Dragonfly Suit
+Dromar, the Banisher
 Dunland Crebain
 Dusk's Landing
+Ebon Praetor
 Electrostatic Bolt
 Elvish Lyrist
 Emiel the Blessed
 Enchanted Carriage
 Encroaching Wastes
 Encrust
+Endure
 Ethereal Ambush
 Exhume
 Eye Collector
 Ezzaroot Channeler
+Faerie Formation
+Fall of the Hammer
 Family's Favor
 Fathom Fleet Captain
 Favor of the Woods
 Ferocious Charge
+Ferocity of the Wilds
 Fierce Retribution
 Fight to the Death
+Final Payment
 Fire Drake
+Fire Nation Ambushers
 Fires of Undeath
 Fleet-Footed Monk
 Flickerwisp
@@ -98,6 +126,7 @@ Fountain of Renewal
 Frenzied Raptor
 Frilled Sea Serpent
 Furnace Strider
+Furtive Analyst
 Garrison Cat
 Gathering Throng
 Ghirapur Gearcrafter
@@ -105,11 +134,17 @@ Giant-Man, Gargantuan Genius
 Glissa, the Traitor
 Glowrider
 Gluttonous Cyclops
+Goblin Anarchomancer
 Goblin Assault Team
 Goblin Cadets
+Goblin Cavaliers
+Goblin Cratermaker
+Goblin Gathering
 Goblin Roughrider
 Goblin Shortcutter
+Goblin Swine-Rider
 Golden Egg
+Goremand
 Goring Warplow
 Grave Exchange
 Groundbreaker
@@ -119,6 +154,7 @@ Guardian Zendikon
 Guardian of Solitude
 Guardians of Koilos
 Hagra Crocodile
+Hashep Oasis
 Haunted Guardian
 Havoc Demon
 Heart-Piercer Manticore
@@ -131,9 +167,11 @@ Hobble
 Hollowhenge Overlord
 Hope Charm
 Hunter's Prowess
+Icy Blast
 Incursion Specialist
 Inner Fire
 Inquisitor's Ox
+Instrument of the Bards
 Iron Bully
 Iron-Barb Hellion
 Island
@@ -142,23 +180,32 @@ Jayemdae Tome
 Jokulhaups
 Jor Kadeen, the Prevailer
 Juniper Order Ranger
+Junk Diver
 Kaito's Pursuit
+Karlov of the Ghost Council
 Karoo
 Kazandu Nectarpot
 Keldon Necropolis
+Kemba's Banner
+Kiora's Dambreaker
 Knight Errant
 Kor Sky Climber
 Krenko, Tin Street Kingpin
 Krosan Cloudscraper
 Lavaborn Muse
+Lethal Protection
+Light of Promise
 Lorehold Campus
 Madame Vastra
+Malevolent Noble
 Mana-Charged Dragon
 Mantle of the Wolf
 March from the Black Gate
 Marsh Lurker
+Martial Impetus
 Martyrs' Tomb
 Merfolk Branchwalker
+Merrow Commerce
 Mesmeric Trance
 Methods of the Mighty
 Metropolis Reformer
@@ -167,10 +214,16 @@ Mind Shatter
 Mindleech Ghoul
 Mindshrieker
 Mirkwood Spider
+Mirror Entity
+Molten Tributary
 Mosscoat Goriak
 Mountain
+Mox Emerald
 Munitions Expert
 Myrel, Shield of Argive
+Nacatl Outlander
+Nebelgast Beguiler
+Necromancer's Assistant
 Nevinyrral's Disk
 Niambi, Esteemed Speaker
 Niblis of Dusk
@@ -178,24 +231,32 @@ Nimble Hobbit
 Oakhame Adversary
 Oblivion's Hunger
 Oboro Envoy
+Obsessive Search
 Octomancer
 Ogre Errant
 Oketra's Last Mercy
+Omnibian
 Orcish Bloodpainter
 Orcish Oriflamme
 Ordruun Commando
 Origin Spellbomb
+Oriq Loremage
+Orzhov Cluestone
 Orzhov Racketeers
 Parish-Blade Trainee
 Peer into the Abyss
 Permission Denied
 Pestilent Cauldron
+Phantasmal Image
 Phyrexian Scriptures
+Pillardrop Warden
 Plains
 Priest of the Crossing
+Primeval Protector
 Provoke
 Puncture Bolt
 Quicken
+Ramroller
 Rancor
 Raven Clan War-Axe
 Recumbent Bliss
@@ -208,6 +269,8 @@ Rock Slide
 Rogue's Gloves
 Rolling Thunder
 Rubblebelt Maaka
+Rubblebelt Raiders
+Ruthless Winnower
 Sai, Master Thopterist
 Sandblast
 Scab-Clan Berserker
@@ -218,9 +281,12 @@ Scrapyard Mongrel
 Sea Hag
 Search Party Captain
 Secret Rendezvous
+Seedborn Muse
 Selvala's Charge
+Shard Convergence
 Shield Wall
 Siege Zombie
+Siegfried, Famed Swordsman
 Sigarda, Champion of Light
 Silent Sentinel
 Silumgar Sorcerer
@@ -231,9 +297,14 @@ Sin Collector
 Sinister Starfish
 Skalla Wolf
 Skylasher
+Sleep
 Slip Through Space
 Smite the Monstrous
 Soaring Show-Off
+Soltari Lancer
+Soul Summons
+Soul of Migration
+Soul of Shandalar
 Soulsurge Elemental
 Sparktongue Dragon
 Sparring Construct
@@ -241,6 +312,7 @@ Spearbreaker Behemoth
 Specter's Shroud
 Spell Crumple
 Spell Syphon
+Sphinx Mindbreaker
 Spire Tracer
 Spore Cloud
 Sprouting Vines
@@ -257,45 +329,64 @@ Sunspire Griffin
 Suntail Hawk
 Survey the Wreckage
 Swamp
+Sword of Body and Mind
 Sylvan Paradise
+Synchronized Spellcraft
 Taigam's Strike
 Tarkir Charm
 Tarpan
 Thalakos Seer
 Thassa's Emissary
 The Marvelous Scientist
+The Shire
 Thermal Glider
 Thought Erasure
 Thranduil the Strategist
+Thrash of Raptors
 Thrull Parasite
+Thunder of Hooves
 Thunderfoot Baloth
 Tilonalli's Knight
+Time Ebb
 Titan Hunter
 Towashi Songshaper
 Trelasarra, Moon Dancer
 Tribute to Horobi
 Trickster's Talisman
 Tropical Storm
+Turn to Slag
 Tuya Bearclaw
+Uncle's Musings
 Unesh, Criosphinx Sovereign
+Unyaro Bees
+Vampirism
 Vanguard of Brimaz
 Venerable Knight
+Village Pillagers
+Violent Eruption
 Viper, Cruel Conspirator
 Visage of Bolas
 Vivify
+Vodalian Illusionist
 Voidwielder
+Vona, Butcher of Magan
 Voracious Wurm
 Vraska's Scorn
 Wall of Tanglecord
 War-Spike Changeling
+Warden of the Chained
 Warning
 Waterfront Bouncer
 Welkin Guide
+Whirlwind Adept
 Wildest Dreams
 Wily Goblin
+Windfall
 Winged Boots
 Wishful Merfolk
 Woodland Mystic
 World Shaper
+Wu Light Cavalry
+Wydwen, the Biting Gale
 You're Ambushed on the Road
 Young Wei Recruits

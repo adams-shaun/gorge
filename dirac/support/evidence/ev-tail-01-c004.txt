@@ -3,18 +3,24 @@ A-Urza, Powerstone Prodigy
 Ammit Eternal
 Angelic Voices
 Arc Spitter
+Bail Out
 Balance of Power
+Balduvian Dead
 Balefire Dragon
 Barkchannel Pathway
 Batterhorn
 Battleflight Eagle
+Black Market Connections
 Blinding Mage
 Blitz Automaton
+Bloodchief's Thirst
 Blossoming Calm
 Bonded Herdbeast
 By Invitation Only
+Cadaver Imp
 Carrion Howler
 Celebrate the Harvest
+Chambered Nautilus
 Clear
 Coastal Tower
 Confidence from Strength
@@ -22,7 +28,10 @@ Costly Plunder
 Crabapple Cohort
 Crafty Pathmage
 Darklit Gargoyle
+Demon's Grasp
 Disciple of the Vault
+Doomskar Titan
+Dread Reaper
 Eastfarthing Farmer
 Eddytrail Hawk
 Executioner's Hood
@@ -30,35 +39,58 @@ Eyes in the Skies
 False Mourning
 Flamekin Brawler
 Flashfires
+Fleeting Spirit
+Flowstone Embrace
 Font of Fertility
 Forest
 Gaea's Cradle
 Generous Stray
+Ghoulcaller's Chant
+Goblin Assault
 Goblin Heelcutter
+Grendel, Spawn of Knull
 Guardian of the Great Conduit
 Guild Artisan
+Haazda Marshal
 Hasran Ogress
 Hatred
+Hero of the Games
+Hoard-Smelter Dragon
 Homarid Shaman
 Homarid Spawning Bed
+Ichthyomorphosis
 Implement of Examination
+Incendiary
+Inundate
+Ire of Kaminari
 Island
 Khabál Ghoul
 Kithkin Shielddare
+Knight of the Pilgrim's Road
+Kozilek's Sentinel
+Living Lies of Loki
 Locked in the Cemetery
 Lotus Path Djinn
 Lu Su, Wu Advisor
+Magus of the Disk
 Mana Geode
 Mana Severance
+Maniacal Rage
 Marble Chalice
+Mark of Fury
 Meekstone
+Meneldor, Swift Savior
+Merfolk Seer
 Mogg Flunkies
 Mordor Muster
 Mountain
 Nightguard Patrol
 Nimbus Wings
 Notorious Assassin
+Nyx Herald
+Overwhelming Victory
 Palace Familiar
+Peer into the Abyss
 Penumbra Kavu
 Pestilence Rats
 Plagued Rusalka
@@ -66,9 +98,15 @@ Plains
 Polluted Delta
 Pride of the Perfect
 Profaner of the Dead
+Pull Under
 Rakdos Carnarium
 Recollect
+Recycla-bird
+Reef Shaman
+River Hoopoe
 Roc Egg
+Rumbling Crescendo
+Rummaging Wizard
 Rupture Spire
 Rush of Battle
 Ruthless Instincts
@@ -76,27 +114,42 @@ Sandstone Bridge
 Seeds of Strength
 Seer of the Last Tomorrow
 Selfless Cathar
+Shady Traveler
 Shock Troops
 Short Circuit
 Skaab Wrangler
 Skeletal Snake
+Skulking Ghost
 Sleek Schooner
+Sophic Centaur
 Soul Snuffers
 Spire Mangler
 Stoic Champion
+Stonebrow, Krosan Hero
 Stormfront Pegasus
+Stymied Hopes
 Sumala Woodshaper
 Swamp
 Tear Asunder
 Tenza, Godo's Maul
+The Modern Age
+Thrasios, Triton Hero
 Thrilling Discovery
+Tizerus Charger
 Torch Gauntlet
+Trained Caracal
 Transcendent Master
 Twisted Spider-Clone
 Undersea Invader
+Urban Evolution
 Vault of Whispers
+Vesperlark
 Viridescent Wisps
+Voracious Fell Beast
+Walk the Plank
 Warg Rider
+Watcher for Tomorrow
+Wind Dancer
 Wind Shear
 Wing It
 Woodcutter's Grit

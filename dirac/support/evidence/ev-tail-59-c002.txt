@@ -2,43 +2,72 @@ A-Civil Servant
 Aerial Responder
 Aetherwind Basker
 Affa Protector
+Agent Frank Horrigan
 Akki War Paint
 Aligned Hedron Network
 Amateur Hero
 Ambitious Farmhand
+Angel of Despair
 Ant Queen
 Aquus Steed
 Arashin Foremost
+Archangel Elspeth
 Artificer's Dragon
+Artillerize
+Assassin Den
 Assassin's Ink
 Back to Basics
 Bad River
 Baloth Woodcrasher
 Barbarian Riftcutter
+Barbed Sliver
 Barrage of Boulders
+Barreling Attack
 Battle Brawler
+Battle Plan
+Battlefield Medic
+Belonging
 Benthic Behemoth
+Binding Grasp
 Blaring Captain
+Blighted Bat
+Bloodbraid Challenger
+Boa Constrictor
 Boggart Shenanigans
 Boiling Seas
 Brackwater Elemental
 Branchblight Stalker
 Brawn
 Brightling
+Brittle Effigy
+Brotherhood's End
 Builder's Blessing
 Burning-Tree Emissary
+Canyon Drake
+Captive Flame
 Cavalier of Dawn
 Cephalid Retainer
 Chandra's Triumph
+Chimeric Sphere
 Chimney Rabble
 Cho-Manno, Revolutionary
+Cid, Freeflier Pilot
+Civic Stalwart
+Cleric of the Forward Order
+Cloudskate
+Commune with Lava
 Commune with the Gods
 Control Win Condition
 Convolute
 Copy Artifact
 Cradle of Safety
 Creeping Crystal Coating
+Crossbow Ambush
+Crovax the Cursed
 Crowd's Favor
+Crush Dissent
+Crusher Zendikon
+Cryptwailing
 Crystal Golem
 Curious Altisaur
 Daggerback Basilisk
@@ -47,99 +76,164 @@ Dawn of the Dead
 Dawnhart Rejuvenator
 Death Bomb
 Death Wind
+Death's Caress
 Death-Greeter's Champion
+Debt to the Deathless
 Decision Paralysis
+Defacing Duskmage
 Dehydration
+Demonic Appetite
 Demonlord of Ashmouth
 Deploy to the Front
 Desperate Farmer
+Devastating Summons
 Die Young
+Dimir Infiltrator
+Disease Carriers
 Displacer Kitten
+Distorting Lens
 Divine Offering
 Dogpile
+Down
+Drag to the Bottom
 Dragon Bell Monk
+Dragon's Desire
+Dragonsoul Knight
 Dread Drone
 Dress Down
 Drumhunter
 Duchess, Wayward Tavernkeep
 Durable Coilbug
 Duskworker
+Eager Beaver
 Eagle of Deliverance
+Eiganjo Dynastorian
+Eladamri's Call
+Elite Scaleguard
+Elvish Herder
+Elvish Pioneer
+Emergent Woodwurm
+Ent's Fury
 Epicenter
 Essence Filter
+Excavation Elephant
 Expedition Healer
 Experiment One
 Ezuri's Archers
 Fade from History
+Feast of Succession
 Festering Mummy
 Fetid Horror
 Fiery Cannonade
 Fire Sprites
+Flame Jet
 Flinthoof Boar
 Flowstone Kavu
 Fogwell's Gym
 Forest
+Fraying Omnipotence
 Frenzied Fugue
+Frilled Mystic
 Frost Ogre
+Frostfist Strider
+Fuel for the Cause
+Furious Strength
 Giant Mantis
+Glasswing Grace
 Gnottvold Slumbermound
 Goliath Sphinx
+Goliath Truck
+Gorgon Recluse
 Grasp of Darkness
 Grave Pact
+Gravelgill Axeshark
+Gray Ogre
 Greenweaver Druid
 Grim Initiate
+Grim Wanderer
+Guardian's Magemark
 Gutless Ghoul
 HONK!
 Hag of Syphoned Breath
 Hair-Strung Koto
+Hallowed Ground
 Hamza, Guardian of Arashin
 Hapato's Might
 Heavy Mattock
 Hellspark Elemental
+Hostile Realm
 Hunters' Feast
 Hydra Omnivore
 Hydroform
 Icatian Scout
 Impetuous Sunchaser
+In Too Deep
 Inundate
 Iridescent Drake
 Island
 Izzet Boilerworks
+Jace, Arcane Strategist
+Jangling Automaton
+Jhovall Rider
 Join the Maestros
 Judge of Currents
+Kalonian Hydra
 Kappa Cannoneer
 Kavu Lair
+Keeper of Progenitus
 Keeper of the Lens
+Kinsbaile Balloonist
+Kiora Bests the Sea God
 Kitchen Imp
 Kitesail Cleric
 Knowledge Is Power
 Kokusho, the Evening Star
 Krakilin
 Krav, the Unredeemed
+Kulrath Knight
 Lattice-Blade Mantis
 Lazotep Plating
 Leafkin Druid
+Leech Gauntlet
+Leyline of Singularity
+Lightning Surge
 Lily Bowen, Raging Grandma
 Living Armor
+Locked in the Cemetery
 Loran, Disciple of History
+Lord of the Pit
 Lorehold Archivist
+Lyse Hext
 Magmaroth
 Malachite Talisman
+Malicious Affliction
 Marionette Apprentice
+Mascot Interception
+Mass Production
 Maverick Thopterist
+Merfolk Skyscout
+Merrow Levitator
+Metathran Zombie
+Militant Monk
+Mistral Singer
 Mold Shambler
 Molder Beast
 Momir Vig, Simic Visionary
+Monstrous Hound
 Monstrous Onslaught
+Moon Sprite
 Mordor Muster
 Mountain
 Murasa Ranger
+Naktamun Lorespinner
+Necra Disciple
 Needlebug
 Niblis of Frost
 Nightmarish End
 Nimble Hobbit
 Nimbleclaw Adept
 Nine-Ringed Bo
+Nothic
 Notion Rain
 Null Rod
 Nulldrifter
@@ -154,21 +248,34 @@ Pest Infestation
 Phase Dolphin
 Pheres-Band Warchief
 Phyrexian Boon
+Phyrexian Debaser
+Phyrexian Ornithopter
+Phyrexian Triniform
 Phyrexian Walker
 Plains
 Plated Seastrider
+Plea for Guidance
 Porcelain Legionnaire
 Power Conduit
 Power Plant Worker
+Practiced Tactics
+Psychotic Fury
 Pyrotechnics
+Quicksilver Behemoth
+Quiet Contemplation
 Rakdos Cluestone
 Raven's Crime
+Reach Through Mists
 Rebel Informer
+Reckless Assault
 Reckless Handling
 Redemption Arc
+Reliquary Monk
+Resurrection
 Returned Phalanx
 Reveka, Wizard Savant
 Riptide Chimera
+Rise of the Dread Marn
 Rith's Grove
 Rod of Ruin
 Rupture
@@ -176,34 +283,58 @@ Ruthless Instincts
 Sacred Peaks
 Sandsteppe War Riders
 Satyr Rambler
+Sauron, the Lidless Eye
 Sautekh Immortal
+Savage Lands
+Savai Thundermane
+Scholar of Combustion
 Screaming Fury
 Seal of Cleansing
 Search Warrant
 Second Wind
 Secure the Scene
+Self-Assembler
 Sequence Engine
+Serpent of Yawning Depths
 Serum Snare
+Seton's Scout
 Shield Wall
+Shifting Ceratops
 Shoal Serpent
 Shoreline Raider
 Shuko
 Siani, Eye of the Storm
 Sight Beyond Sight
 Silent Specter
+Simic Fluxmage
 Skeletal Wurm
 Skemfar Elderhall
 Skull Prophet
 Slimebind
+Smash
+Snapping Creeper
+Soldevi Simulacrum
+Song of the Worldsoul
+Soul Stair Expedition
+Soul Strings
 Soulless One
+Spawning Pit
+Spirit of the Aldergard
+Spiritual Guardian
 Spitting Hydra
+Splitting Headache
+Spreading Flames
 Squee, Goblin Nabob
+Starfield Mystic
+Stasis Cocoon
 Steadfast Guard
 Stone Golem
 Stormbound Geist
 Stratus Walk
+Straw Golem
 Strength Bobblehead
 Stun Sniper
+Stupefying Touch
 Sunseed Nurturer
 Sunset Revelry
 Supply Drop
@@ -211,27 +342,40 @@ Svyelunite Priest
 Swamp
 Sylvan Messenger
 Talas Lookout
+Talon Sliver
 Tandem Tactics
 The Terror of Serpent's Pass
 The Thing
+The Underworld Cookbook
+Thistledown Liege
 Thraben Foulbloods
 Thriving Turtle
+Thundering Giant
+Titan's Revenge
 Titanic Brawl
+Tomakul Scrapsmith
 Topiary Stomper
 Tragic Fall
 Travel Preparations
 Treebeard, Gracious Host
 Trench Wurm
+Trolls of Tel-Jilad
 Trophy Hunter
 Trostani, Selesnya's Voice
 Trufflesnout
 Tumble Magnet
 Twenty-Toed Toad
+Twilight Panther
 Uncontrollable Anger
+Underworld Connections
 Unliving Psychopath
+Unmake
 Ursapine
+Uthden Troll
 Vanish into Eternity
+Venomous Vines
 Victor Timely, Wily Tycoon
+Village Watch
 Vivid Flying Fish
 Vizzerdrix
 Voice of Reason
@@ -241,10 +385,16 @@ Wall of Ice
 Weakstone
 Welcome the Dead
 Welding Sparks
+Wheel of Fate
+Whisk Away
 Wild Ox
 Witch's Web
+Withstand
 Wizard Replica
 Wonder
 Words of Wisdom
 Workshop Elders
+Yoke of the Damned
 Zhou Yu, Chief Commander
+Zodiac Monkey
+Éomer, Marshal of Rohan
