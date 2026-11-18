@@ -925,12 +925,15 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		if s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) {
 			continue // priced by the printed sources, restricted ones the play may spend included
 		}
-		if s.contribCast(k, p, a) || s.twobridPotentialCast(k, a) {
+		if s.contribCast(k, p, a) && !s.improviseAloneCast(k, p, a) || s.twobridPotentialCast(k, a) {
 			// a convoke, improvise or delve cast (Dazzling Theater's granted
 			// convoke): gorge's potential planner refuses the shape
 			// ("shape:contribution") before any prefix search, so the printed
 			// sources did not price it and it is not offered (CR 702.51a); so
-			// is a twobrid one ("cost:twobrid", mana_twobrid.go)
+			// is a twobrid one ("cost:twobrid", mana_twobrid.go). An improvise
+			// cast that credits no artifact is no contribution (improviseAloneCast):
+			// gorge plans it plainly and its prefix search taps the granted source
+			// (Organic Extinction beside Brightcap Badger's Saprolings)
 			d.remove(a)
 			capSpent.add(a)
 			continue
@@ -1017,6 +1020,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 // a scripted one, and the oracle's priorityVocabulary leaves it out)
 func (s *State) grantSearchAdds(k *prep, p uint8, a Action, d *Decision, g *grantSrch, relaxCensus bool) bool {
 	return !hasOption(d, a) && (g.cheaper && !s.autopayScriptedCast(a) || g.storeStep() && !s.autopayScriptedCast(a) ||
+		g.np != 0 && s.improviseAloneCast(k, p, a) && !s.autopayScriptedCast(a) ||
 		s.cfg&cfgGorgeAutopay == 0 && relaxCensus && s.tapXCensusGap(k, p).any())
 }
 
