@@ -352,7 +352,13 @@ func planUnderRider(c kop.ManaCost, anyMana, anyColor bool) kop.ManaCost {
 
 // hybridGeneric turns each hybrid pip of c into one generic: the pips left
 // after a face was chosen, paid by mana of any type, are payable by any mana.
+// A twobrid or Phyrexian cost has no two-colour hybrid pip: its Hyb bytes are
+// the HybTwobrid/HybPhyrexian markers, and its Tb pips stay, as gorge's
+// pay.PlanManaUnderRider keeps Twobrid and Phyrexian (CR 107.4e, 107.4f).
 func hybridGeneric(c kop.ManaCost) kop.ManaCost {
+	if c.Hyb[0] == kop.HybTwobrid {
+		return c
+	}
 	for i := range c.Hyb {
 		if c.Hyb[i] != 0 && c.Hyb[i] != kop.HybTwobrid {
 			c.Generic++
