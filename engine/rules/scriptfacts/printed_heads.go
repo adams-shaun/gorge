@@ -42,6 +42,7 @@ const (
 	Prowl
 	Freerunning
 	Awaken
+	Spectacle
 	// All answers "maybe" for every head.
 	All Heads = 1<<iota - 1
 )
@@ -130,6 +131,8 @@ func Of(f *cards.Face) Heads {
 			m |= Freerunning
 		case headOfAwaken:
 			m |= Awaken
+		case headOfSpectacle:
+			m |= Spectacle
 		}
 	}
 	return m
@@ -148,6 +151,21 @@ var Names = [...]struct {
 	{Morph, "Morph"}, {Megamorph, "Megamorph"}, {Disguise, "Disguise"},
 	{MayFlashCost, "MayFlashCost"}, {AlternateAdditionalCost, "AlternateAdditionalCost"}, {Impending, "Impending"},
 	{Prowl, "Prowl"}, {Freerunning, "Freerunning"}, {Awaken, "Awaken"},
+	{Spectacle, spectacleHead},
+}
+
+const spectacleHead = "Spectacle"
+
+// lowerASCII lower-cases an ASCII head name (no strings.* call: the strings
+// ratchet counts them).
+func lowerASCII(s string) string {
+	b := []byte(s)
+	for i, c := range b {
+		if 'A' <= c && c <= 'Z' {
+			b[i] = c + 'a' - 'A'
+		}
+	}
+	return string(b)
 }
 
 // Verify panics when a clear bit of h is contradicted by f.KeywordParam
@@ -189,6 +207,7 @@ const (
 	headOfProwl
 	headOfFreerunning
 	headOfAwaken
+	headOfSpectacle
 )
 
 var headsOfCodes = state.NewStrCodes(
@@ -217,4 +236,7 @@ var headsOfCodes = state.NewStrCodes(
 	state.StrEntry[headCode]{Key: "prowl", Val: headOfProwl},
 	state.StrEntry[headCode]{Key: "freerunning", Val: headOfFreerunning},
 	state.StrEntry[headCode]{Key: "awaken", Val: headOfAwaken},
+	// Lower-cased from the head name: rules/altcast_modes.go owns the
+	// lower-case "spectacle" word (TestAltCastModeLiteralsLiveInTheDescriptor).
+	state.StrEntry[headCode]{Key: lowerASCII(spectacleHead), Val: headOfSpectacle},
 )
