@@ -8,12 +8,14 @@ import (
 
 // castBattlefieldHead is the Count$ head spelling whose carriers read the
 // battlefield as it stood when the spell was cast.
-const castBattlefieldHead = "LastStateBattlefieldWithFallback"
+const castBattlefieldHead = "LastStateBattlefield"
 
 // SVarsReadCastBattlefield reports whether any SVar body counts the as-cast
-// battlefield (Count$LastStateBattlefieldWithFallback), i.e. whether casting
-// the spell owning these SVars must freeze the battlefield. The map is only
-// scanned for membership, so its iteration order reaches nothing.
+// battlefield (Count$LastStateBattlefield or Count$LastStateBattlefieldWithFallback),
+// i.e. whether casting the spell owning these SVars must freeze the
+// battlefield. The WithFallback spelling contains the plain one, so one
+// substring covers both. The map is only scanned for membership, so its
+// iteration order reaches nothing.
 func SVarsReadCastBattlefield(svars map[string]string) bool {
 	for _, body := range svars {
 		if strings.Contains(body, castBattlefieldHead) {
@@ -70,4 +72,30 @@ func evalCastBattlefieldCount(h Host, c *Ctx, g *state.Game, arg string, depth i
 		}
 	}
 	return evalCountBodyZone(h, c, g, "Valid", arg, depth)
+}
+
+// evalLastStateBattlefield is Count$LastStateBattlefield: the Valid scan of
+// arg over the battlefield AS THE SOURCE WAS CAST, from the same frozen
+// snapshot evalCastBattlefieldCount reads -- but with NO fallback. Forge's
+// getLastStateBattlefield has no current-battlefield half: a source with no
+// frozen battlefield (a bare context, an uncast source) reads an empty scan,
+// a modelled zero. The corpus's two carriers (Boss's Chauffeur, Aeve,
+// Progenitor Ooze) both read it in their own etbCounter bodies, where the
+// cast's snapshot is present on the source; the read is
+// evalCountBodyZone itself run against the frozen game, so the filter
+// grammar, $Property folds and extreme reductions cannot drift from
+// Count$Valid. An empty filter is not a body this build can count, so it
+// fails the head's own verdict.
+func evalLastStateBattlefield(h Host, c *Ctx, g *state.Game, arg string, depth int) (int32, bool, bool) {
+	if arg == "" {
+		return 0, false, true
+	}
+	if c != nil {
+		if src := g.Obj(c.Source); src != nil && src.CastBattlefield != nil &&
+			(src.Zone == state.ZStack || src.Zone == state.ZBattlefield) {
+			snap := src.CastBattlefield
+			return evalCountBodyZone(frozenHost{Host: h, snap: snap}, c, snap.Game, "Valid", arg, depth)
+		}
+	}
+	return 0, true, true
 }

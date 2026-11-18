@@ -71,8 +71,8 @@ type altCastMode struct {
 	mode string
 	// head is the printed K: keyword whose parameter is the cost.
 	head string
-	// flag is the pay-time CastFlags bit modeFlags records (0: none --
-	// madness's provenance rides the discard trigger, not a flag).
+	// flag is the pay-time CastFlags bit modeFlags records (0: none -- a
+	// row with no provenance bit of its own; spectacle today).
 	flag uint64
 	cost altCastCostKind
 	// ph gates the hand walk's offer loop; handLoop/cmdLoop name the rows
@@ -118,9 +118,18 @@ var altCastModes = [altCastCount]altCastMode{
 	altOverload:  {id: altOverload, mode: "overloaded", head: "Overload", flag: state.FlagOverloaded, ph: phOverload, handLoop: true, cmdLoop: true, untargeted: true, potential: true},
 	altWarp:      {id: altWarp, mode: "warped", head: "Warp", flag: state.FlagWarped, ph: phWarp, handLoop: true, potential: true},
 	altImpending: {id: altImpending, mode: "impended", head: "Impending", flag: state.FlagImpending, ph: phImpending, handLoop: true, cmdLoop: true, potential: true},
-	altMadness:   {id: altMadness, mode: "madness", head: "Madness", potential: true},
-	altBestow:    {id: altBestow, mode: "bestowed", head: "Bestow", flag: state.FlagBestowed, cost: altCostBestow, potential: true},
-	altBlitz:     {id: altBlitz, mode: "blitzed", head: "Blitz", flag: state.FlagBlitzed, cost: altCostBlitzInstance},
+	// Madness stamps FlagAltCostPaid like prowl and awaken: on a face
+	// carrying K:Madness that bit reads "this spell's madness cost was paid"
+	// (altCostKeywordPaid), the provenance the Count$Madness fork heads and
+	// the `madness` filter predicate read. The corpus's three Madness faces
+	// (Avacyn's Judgment, From Under the Floorboards, Welcome to the Fold)
+	// carry no other flagless alternative-cost row, so the bit is
+	// unambiguous on one; a copy -- never cast (CR 707.10) -- keeps the bit
+	// but resolves with no paid X, and FlagAltCostPaid is deliberately NOT a
+	// CastProvenanceFlag (CR 707.10 copies the alternative costs paid).
+	altMadness: {id: altMadness, mode: "madness", head: "Madness", flag: state.FlagAltCostPaid, potential: true},
+	altBestow:  {id: altBestow, mode: "bestowed", head: "Bestow", flag: state.FlagBestowed, cost: altCostBestow, potential: true},
+	altBlitz:   {id: altBlitz, mode: "blitzed", head: "Blitz", flag: state.FlagBlitzed, cost: altCostBlitzInstance},
 	// Prowl and freerunning have no CastFlags bit of their own (the word is
 	// full): each stamps FlagAltCostPaid, the bit for "an alternative cost
 	// with no bit of its own was paid" (CR 118.9a allows one per cast). On a
@@ -137,7 +146,7 @@ var altCastModes = [altCastCount]altCastMode{
 	// unambiguous on one.
 	altAwaken: {id: altAwaken, mode: "awakened", head: "Awaken", flag: state.FlagAltCostPaid, ph: phAwaken, handLoop: true, cmdLoop: true, potential: true, gate: altGateAwaken},
 	// Spectacle has no CastFlags bit (the word is full) and no cast-time
-	// provenance here; madness is the flagless precedent.
+	// provenance here; it is the family's one flagless row.
 	altSpectacle: {id: altSpectacle, mode: "spectacle", head: "Spectacle", flag: 0, ph: phSpectacle, handLoop: true, potential: true, gate: altGateSpectacle},
 }
 

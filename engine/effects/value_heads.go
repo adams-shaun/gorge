@@ -237,6 +237,17 @@ var modelledValueHeads = []string{
 	"wasCastFromYourHand",
 	"wasCastFromYourHandByYou",
 	"xPaid",
+	// The edh-countA class: the as-cast battlefield without a fallback, the
+	// madness-cost provenance, bloodthirst's damage-to-opponents, the
+	// initiative designation, last turn's battlefield entries, the
+	// greatest single-source damage and the combat-damage source count.
+	"LastStateBattlefield",
+	"Madness",
+	"BloodthirstAmount",
+	"Initiative",
+	"LastTurnEntered",
+	"SingleMaxDamageThisTurn",
+	"NumCombatDamageThisTurn",
 }
 
 // ModelledValueHeads returns a copy of the modelled count-head list.
