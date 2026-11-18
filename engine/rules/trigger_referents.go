@@ -45,6 +45,15 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		}
 	case cards.TriggerFacesDilemma:
 		c.TriggerPlayer = player(ev.Player)
+	case cards.TriggerCountered:
+		// The countered object is the triggered card.
+		c.TriggerCard = ev.Obj
+	case cards.TriggerAbilityResolves:
+		// The resolving ability's source (the Saga) is both the triggered card
+		// and the TriggerAbility referent Narci's TriggeredSpellAbility$CardManaCost
+		// reads ("that Saga's mana value").
+		c.TriggerCard = ev.Obj
+		c.TriggerAbility = ev.Obj
 	case cards.TriggerBecomesTarget, cards.TriggerBecomesTargetOnce:
 		// ev.Obj is the targeting spell/ability. TriggerTarget is the TARGETED
 		// object the trigger matched (CR 603.3d), which for a ValidTarget$
@@ -220,7 +229,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// An unbatched event is a batch of one; closeZoneBatch overrides the
 		// amount with the batch's moved count (TriggerCount$Amount).
 		c.TriggerAmount = 1
-	case cards.TriggerMilled, cards.TriggerMilledAll:
+	case cards.TriggerMilled, cards.TriggerMilledAll, cards.TriggerMilledOnce:
 		// The milled card is ev.Obj (what ValidCard$ matched) and the player
 		// whose library was milled is ev.Player (what ValidPlayer$ matched),
 		// so TriggerPlayer names whose mill this was. One milled card is one
