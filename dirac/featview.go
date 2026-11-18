@@ -556,6 +556,12 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 	if (len(k.gen.grantPC) != 0 || k.gen.anyComboDyn && s.comboDynLive(k, p)) && !s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
 		return false // payable only with a granted mana ability (the V1 exclusion above) or a Combo Any of an evaluated amount (mana_combodyn.go)
 	}
+	if s.dhWithholdsCast(k, p, o, &cost) {
+		// the Diamonds alone fund the hand cast and the census prices no
+		// Diamond: gorge's planner leaves it census_incomplete and its prefix
+		// search never funds a hand play (mana_discardhand.go)
+		return false
+	}
 	return s.planHoldsOnStack(k, p, o, &cost) // cast_planholdsonstack.go
 }
 
@@ -819,7 +825,7 @@ func (s *State) activationReduced(k *prep, a *kop.Ability, o Obj) kop.ManaCost {
 func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc) bool {
 	var av avail
 	var ms modalSet
-	s.ungrAvail(k, p, ex, &av, &ms)
+	s.ungrAvail(k, p, ex, &av, &ms, slotMask{})
 	return s.affordsUngrantedAv(k, p, cost, ex, d, &av, &ms)
 }
 
@@ -852,9 +858,9 @@ func (s *State) affordsUngrantedAv(k *prep, p uint8, cost *kop.ManaCost, ex Slot
 }
 
 // ungrAvail fills av (and ms) with p's pool and untapped printed mana sources
-// other than ex: the planner's census, without the mana abilities effects
-// grant.
-func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
+// other than ex and the slots in skip: the planner's census, without the mana
+// abilities effects grant.
+func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, skip slotMask) {
 	pl := &s.pl[SeatIx(p)]
 	if k.phyMana {
 		av.life = pl.life // a Phyrexian pip's two-life face (CR 107.4f; availExt)
@@ -868,7 +874,7 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if sl == ex || s.grantMay(k, sl) && s.manaGranted(k, sl) {
+		if sl == ex || skip.has(sl) || s.grantMay(k, sl) && s.manaGranted(k, sl) {
 			continue
 		}
 		if defer_ && s.planDeferred(k, p, sl) {
@@ -922,7 +928,7 @@ func (s *State) affordsUngrantedPlayAv(k *prep, p uint8, a Action, cost *kop.Man
 	if av == nil {
 		var a2 avail
 		var m2 modalSet
-		s.ungrAvail(k, p, ex, &a2, &m2)
+		s.ungrAvail(k, p, ex, &a2, &m2, slotMask{})
 		av, ms = &a2, &m2
 	}
 	if a.Kind() != AkActivate || k.t == nil {

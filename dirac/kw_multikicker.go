@@ -124,7 +124,8 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
 		aff = s.kickedPotentialPays(k, p, c, o, &kc, &spell)
 	}
-	if aff && s.kickedChainFeasible(k, c, p) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+	if aff && s.kickedChainFeasible(k, c, p) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) &&
+		!s.dhWithholdsCast(k, p, o, &kc) { // a hand cast the Diamonds alone fund: gorge's planner prices no plan (census_incomplete, mana_discardhand.go)
 		d.add(MakeAction(AkCast, TCode(o), 0, 1))
 	}
 }
