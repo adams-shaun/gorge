@@ -7,9 +7,8 @@ import (
 )
 
 // evalCountBodyPlayer evaluates the player-counter and PlayerCount* head
-// family (YourCounters, DungeonsCompleted, PlayerCountPlayers/Opponents/
-// HasLost/Defined*/PropertyYou, OppGreatestLifeTotal, StartingPlayer.)
-// claimed next.
+// family (YourCounters, PlayerCountPlayers/Opponents/HasLost/Defined*/
+// PropertyYou, OppGreatestLifeTotal, StartingPlayer.) claimed next.
 func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth int) (int32, bool, bool) {
 	// Count$YourCounters<KIND> — the resolving controller's own player
 	// counters of KIND (Forge's Count$YourCounters* family, measured 31
@@ -38,13 +37,6 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 			}
 		}
 		return n, true, true
-	}
-
-	// DungeonsCompleted$Amount — the resolving controller's completed-dungeon
-	// count (CR 309.7, the DungeonComplete fold); see the helper below for
-	// the read's scope and its fail-closed verdicts.
-	if v, ok, matched := evalCountBodyDungeonsCompleted(g, c, head); matched {
-		return v, ok, matched
 	}
 
 	// PlayerCount<Players|Opponents|RegisteredOpponents>$<Property> — per-
@@ -142,7 +134,23 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 			return n, true, true
 		}
 		if rest == "HasPropertycontrolsCreature.powerGE4" && arg == "" {
-			return opponentsControlsCreaturePowerGE4(h, g, c), true, true
+			// Yojimbo's chapter IV counts opponents, not creatures. Read the
+			// battlefield and derived power (including continuous effects).
+			seen := make(map[state.PlayerID]bool)
+			for i := range g.Objs {
+				o := &g.Objs[i]
+				if o.Zone == state.ZBattlefield && o.Controller != c.Controller &&
+					h.IsCreature(o.ID) && h.Power(o.ID) >= 4 {
+					seen[o.Controller] = true
+				}
+			}
+			var n int32
+			for _, p := range opponentGroup(g, c) {
+				if seen[p] {
+					n++
+				}
+			}
+			return n, true, true
 		}
 		if n, ok2 := hasPropertyStateBacked(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
 			return n, true, true
@@ -302,29 +310,6 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 	return 0, false, false
 }
 
-// opponentsControlsCreaturePowerGE4 is the PlayerCountOpponents$
-// HasPropertycontrolsCreature.powerGE4 read (Yojimbo's chapter IV counts
-// OPPONENTS, not creatures): how many of the resolving controller's living
-// opponents control a battlefield creature whose derived power — continuous
-// effects included — is 4 or greater.
-func opponentsControlsCreaturePowerGE4(h Host, g *state.Game, c *Ctx) int32 {
-	seen := make(map[state.PlayerID]bool)
-	for i := range g.Objs {
-		o := &g.Objs[i]
-		if o.Zone == state.ZBattlefield && o.Controller != c.Controller &&
-			h.IsCreature(o.ID) && h.Power(o.ID) >= 4 {
-			seen[o.Controller] = true
-		}
-	}
-	var n int32
-	for _, p := range opponentGroup(g, c) {
-		if seen[p] {
-			n++
-		}
-	}
-	return n
-}
-
 // playerMaxSpeedProperty is the PlayerCountPropertyYou$HasPropertyMaxSpeed
 // read (effects.EvalCountOK's evaluator, reached by a CheckSVar$ raw body):
 // 1 when the controller's speed is max speed (CR 702.179e), else 0. Hazoret,
@@ -342,28 +327,6 @@ func playerMaxSpeedProperty(g *state.Game, controller state.PlayerID) (int32, bo
 		return 1, true, true
 	}
 	return 0, true, true
-}
-
-// evalCountBodyDungeonsCompleted is the DungeonsCompleted$ head arm
-// (Ravenloft Adventurer's CheckSVar$ X), extracted from evalCountBodyPlayer
-// so the dispatch stays inside its line budget. The read is
-// controller-scoped like YourCounters and event-backed through the same
-// fold; a controller out of range reads 0 (the modelled zero) and any other
-// property fails closed to not-evaluated — the head has no other corpus
-// spelling (measured: the only card carrying it is ravenloft_adventurer at
-// the pin).
-func evalCountBodyDungeonsCompleted(g *state.Game, c *Ctx, head string) (int32, bool, bool) {
-	rest, ok := strings.CutPrefix(head, "DungeonsCompleted$")
-	if !ok {
-		return 0, false, false
-	}
-	if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
-		return 0, true, true
-	}
-	if strings.TrimSpace(rest) == "Amount" {
-		return g.Players[c.Controller].CompletedDungeons, true, true
-	}
-	return 0, false, true
 }
 
 type evalCountBodyPlayerCode uint16
