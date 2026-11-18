@@ -787,7 +787,11 @@ func (rs *tapXSearch) stallOf(c *State) {
 // distinct colours; handled reports that the gap was one (found is the
 // branch's result).
 func (rs *tapXSearch) anyDifferentStep(k *prep, t *State, sl Slot) (found, handled bool) {
-	if !rs.anyDiff.has(sl) {
+	if !rs.anyDiff.has(sl) || !t.anyDifferentAt(k, sl) {
+		// rs.anyDiff is the root's mask: a Vessel an earlier node of this
+		// line tapped is no gap any more, and activating it again would float
+		// its colours a second time (CR 602.2b; gorge's search visits each
+		// source once)
 		return false, false
 	}
 	if !rs.tick() { // the colour ask
