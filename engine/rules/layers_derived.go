@@ -180,16 +180,6 @@ func (e *Engine) derivedComputeFresh(id state.ObjID, atStack state.Zone) Derived
 	return chars.Compute(asChars(e), &e.charsWalk, id, atStack)
 }
 
-// DerivedKeywords is the object's current layer-derived keyword list without
-// the rest of the walk (chars.ComputeKeywords, the same prefix Derived's walk
-// runs, returned before layer 7). CR 613's layers are strictly ordered, so it
-// names exactly what Derived(id).Keywords names; unlike Derived it never
-// evaluates a layer-7 P/T amount, so a keyword table built for a layer-7
-// amount's count (Pride of the Clouds' "+1/+1 for each other creature with
-// flying") does not re-enter each candidate's own CDA -- each of those nested
-// counts re-derived the board again, and the walks multiplied. The returned
-// slice aliases scratch storage exactly as Derived's does: a caller that keeps
-// it across another characteristics query copies it.
 // derivedKeywords is the object's current layer-derived keyword list without
 // the rest of the walk (chars.ComputeKeywords, the same prefix Derived's walk
 // runs, returned before layer 7). CR 613's layers are strictly ordered, so it
