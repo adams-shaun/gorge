@@ -169,10 +169,11 @@ func (s *State) ctrBesideGrant(k *prep, p uint8) bool {
 
 // grantBesideTapXGaps reports whether gorge's one search beside the grants
 // prices play a on a board whose tap-another script (scriptOffers) found
-// nothing: a tap-another second ability or a counter-cost gap among the
+// nothing: a tap-another second ability, a two-permanent tap-another source or
+// a counter-cost gap among the
 // grants (mana_granttapx.go, ctrBesideGrant), the grant search listing both.
 func (s *State) grantBesideTapXGaps(k *prep, a Action, p uint8) bool {
-	return (s.tapXSecondLive(k, p) || s.ctrBesideGrant(k, p)) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)
+	return (s.tapXSecondLive(k, p) || s.tapXPairLive(k, p) || s.ctrBesideGrant(k, p)) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)
 }
 
 // availCtr adds p's counter-cost sources' mana to the gaps walk.
