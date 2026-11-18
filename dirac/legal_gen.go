@@ -243,6 +243,22 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		if !av.tbLeafCredited(&pc.cost) {
 			cost = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, cost)
 		}
+		if s.cfg&cfgGorgeUnpriced != 0 && s.g.availX&availWalk == 0 && s.creditOfferLive(k, p, c, o, s.objs[o].zone == kop.ZoneHand) &&
+			!s.windowPoolPays(p, &cost, anyColor) {
+			// gorge's planners price no permission cast carrying a credit
+			// ("cost:credit": potentialModeCredit withholds the potential
+			// play for any live convoke, improvise or delve, and a
+			// may-play/face/warp form keeps the contribution shape,
+			// improviseAloneCast): only the floating pool casts it, whose
+			// walk prices the convoke and delve credits itself
+			// (castOfferBase), so a pool that pays the priced cost keeps the
+			// offer and one that does not drops it (legal.go's flashback
+			// gate, tail-53 pair 2; Black Widow's dig grant over the exiled
+			// Improvise-carrying Futurist Forge, pair 341). The potential
+			// walks keep the read: their hyp bound is the census gorge's own
+			// potential walk prices the cast against.
+			return
+		}
 		s.g.mayPlayAny = anyMana
 		offers := s.gorgeOffersMay(p, o, anyColor)
 		s.g.mayPlayAny = false

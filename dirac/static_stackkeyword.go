@@ -139,6 +139,51 @@ func (s *State) grantImprovise(k *prep, p uint8, c CardID, o Obj, fromHand bool)
 	return n > 0
 }
 
+// creditOfferLive reports a convoke, improvise or delve credit live for
+// p's offered cast of card c (object o): the printed keyword or a granted
+// one the announcement reaches. At the offer the candidate is still in its
+// zone, not on the stack, so the grant read stackKwN makes answers a
+// wasCast Affected$ clause through the spell-entry reader (wasCastSpell)
+// and finds none: a grant whose filter carries it (Ironheart, Clever
+// Champion's "Noncreature spells you cast have improvise") is missed. The
+// announcement-time read gorge's planners make (hasCastConvoke and friends,
+// derivedWith's stack override) matches that clause for the offered cast,
+// so the grant loop here answers it the way the CantBeCast offer read does
+// (matchSpellCardOffer: the origin the cast would come from). The keyword
+// reads above stay: their callers already agree with gorge where their
+// grants carry no wasCast clause.
+func (s *State) creditOfferLive(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
+	if s.hasConvoke(k, p, c, o, fromHand) || s.hasCastDelve(k, p, c, o, fromHand) || s.isImprovise(k, p, c, o, fromHand) {
+		return true
+	}
+	if k.gen == nil || !k.gen.anyStackKw || s.objs[o].zone == kop.ZoneBattlefield {
+		return false // a permanent on the battlefield is never a spell being cast (kw_delve.go)
+	}
+	live := false
+	s.eachStatic(k, func(st statSrc) bool {
+		a := st.a
+		if live || a.Kind != kop.AbStatic || a.Static.Kind != kop.StatStackKw || st.ctrl != p {
+			return true
+		}
+		switch a.Static.A {
+		case kop.StackKwConvoke, kop.StackKwImprovise, kop.StackKwDelve:
+		default:
+			return true
+		}
+		if a.Static.Zone == kop.ZoneHand && !fromHand {
+			return true
+		}
+		if a.Static.Cond2 != 0 && !s.statCond(k, st) {
+			return true
+		}
+		if s.matchSpellCardOffer(k, a.Static.Filter, c, p, p, o, st.sl, st.emb) {
+			live = true
+		}
+		return true
+	})
+	return live
+}
+
 // grantDelve: a live StatStackKw Delve grant reaches p's spell card c
 // (object o). Behind genPrep.anyDelve.
 func (s *State) grantDelve(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
