@@ -1935,6 +1935,21 @@ func (s *State) censusOpenTap(k *prep, sl Slot, pc *pcard, boundedAny bool, add 
 	cen.tapRec(sl, mask, n) // mergeTap's note, either mode
 }
 
+// potentialTapUnit records a source's tap production in availPotentialFor: a
+// unit of both views. A pain-only source whose own damage or life reaches the
+// payer's life is no unit of gorge's planner (the lethal guard: pay's
+// PlanRemainingPain, PlanLastResortChoices' one-step guard): the potential
+// walk's over-bound still lists it, the per-tap census does not (Cabal Pit at
+// 1 life; CR 119.4).
+func (s *State) potentialTapUnit(p uint8, sl Slot, pc *pcard, mask uint8, add, fold func(Slot, uint8, uint8), cen *potCensus) {
+	if pc.painOnly && int(pc.painN) >= int(s.pl[p].life) {
+		fold(sl, mask, pc.manaN)
+		return
+	}
+	add(sl, mask, pc.manaN)
+	cen.tapRec(sl, mask, pc.manaN)
+}
+
 // availPotentialFor is availPotential; payment prices one mana payment (gorge
 // potentialManaFor with a descriptor, a trigger's own cost): an ability whose
 // RestrictValid$ refuses it adds nothing and a chosen colour is exact (CR 106.6).
@@ -2064,8 +2079,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		if pc.manaMulti && k.gen != nil && done[sl] != ^uint16(0) && pc.manaAb >= 0 {
 			mask = s.potentialFirstMask(k, sl, pc) // the walk below admits its other abilities, each once
 		}
-		add(sl, mask, pc.manaN)
-		cen.tapRec(sl, mask, pc.manaN)
+		s.potentialTapUnit(p, sl, pc, mask, add, fold, &cen)
 		if n := gatePairPotential(pc); n != 0 {
 			add(sl, uint8(pc.wideCol), n) // gorge's walk sums both listed abilities of a gate-on pair
 		}
