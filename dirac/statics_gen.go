@@ -644,6 +644,11 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 	if s.windowUnpricedOpen(k, e) {
 		return n // a source the window census cannot price may close the gap: gorge keeps every candidate
 	}
+	if s.windowCensusComplete(k, e) && !s.targetWindowShort(k, e, &full, false) {
+		// the plain sources fall short, but the complete census's window reaches the unreduced cost
+		// (castWindowReachable; a planner-deferred River of Tears): every candidate stays payable
+		return n
+	}
 	m := 0
 	for i := 0; i < n; i++ {
 		if c := buf[i]; s.costTargetMatch(k, f, e.ctrl, c) {
