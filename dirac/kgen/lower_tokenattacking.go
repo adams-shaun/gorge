@@ -2,6 +2,8 @@ package kgen
 
 import (
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // The MTGA combat-props family: combat referents and
@@ -10,21 +12,17 @@ import (
 // triggeredDefenderOrPW is Raid Bombardment's damage recipient, "the player
 // or planeswalker that creature is attacking". gorge (effects/context.go
 // definedSpec) splits it on " & ": TriggeredDefender.Opponent is the
-// Attacks event's DefendingPlayer -- the defending SEAT, also when the
-// attacker attacks a planeswalker -- and Valid Planeswalker.TriggeredDefender
-// is an unknown predicate there (UnknownPredicates), matching nothing. So
-// gorge damages the defending player in every case; that is the card only
-// when the attacker attacks a player. The lowering is the defending player
-// (two-player: the controller's opponent; past two seats the seat of the
-// Attacks event that queued the trigger, stackEntry.defSeat: seat-exact) behind
-// OpAtkPWGuard, which stalls
-// the game when the attacker attacks a planeswalker or battle (or left):
-// the kernel never copies the planeswalker case. Any Attacks trigger reads
-// it (Mage Slayer's equipped creature, whoever controls it): the guard also
-// stalls when the attacker attacks the trigger's controller, where gorge's
-// .Opponent qualifier names nobody, and elsewhere the defending seat is an
-// opponent of the controller (two seats: the one opponent; past two the
-// event's defSeat).
+// Attacks event's DefendingPlayer -- the defending SEAT -- and, attacking a
+// planeswalker or battle, Valid Planeswalker.TriggeredDefender is that object
+// (DefenderObj, bound per instance as the trigger is queued) while the
+// .Opponent arm names nobody; the damage hits the attacked object then. The
+// lowering is a DealDamage on the defending player (two-player: the
+// controller's opponent; past two seats the seat of the Attacks event that
+// queued the trigger, stackEntry.defSeat: seat-exact) marked DmgAtkedObj, behind
+// OpAtkPWGuard C AtkPWHit, which stalls the game when the attacker left, or
+// attacks the trigger's controller, where gorge's .Opponent qualifier names
+// nobody. DealDamageFrom (Mage Slayer's DamageSource$) has no planeswalker
+// recipient: dmgSrcPlayers adds a plain guard that stalls on one.
 const triggeredDefenderOrPW = "TriggeredDefender.Opponent & Valid Planeswalker.TriggeredDefender"
 
 func (lc *lowerCtx) triggeredDefenderOrPW(v string) (lRef, error) {
@@ -32,8 +30,8 @@ func (lc *lowerCtx) triggeredDefenderOrPW(v string) (lRef, error) {
 	if tr == nil || tr.Event != "Attacks" {
 		return lRef{}, refuse("Defined$ %q outside an Attacks trigger", v)
 	}
-	lc.emit(lInstr{Op: "AtkPWGuard", Note: "the attacker attacks a player (else the game stalls)"})
-	return lRef{Kind: rDefending}, nil
+	lc.emit(lInstr{Op: "AtkPWGuard", C: kop.AtkPWHit, Note: "the attacker attacks a player or planeswalker/battle (else the game stalls)"})
+	return lRef{Kind: rDefending, N: 1}, nil // N 1: damage reaches the attacked planeswalker/battle (opDealDamage)
 }
 
 // tokenAttackingRemembered is Adeline's TokenAttacking$ inside a RepeatEach

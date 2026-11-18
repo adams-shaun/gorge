@@ -769,6 +769,17 @@ const RepeatEachSeatOrder = 2
 // card body: Rakdos Charm). B.N 1 is the trigger-object player mode.
 const DmgFromEachCtrl = 2
 
+// AtkPWHit is OpAtkPWGuard's C bit 1: an attacker attacking a planeswalker
+// or battle does not stall the game, because the DealDamage that follows
+// (B.N DmgAtkedObj) hits that object (gorge's Valid Planeswalker.TriggeredDefender
+// arm, Raid Bombardment, Fathom Fleet Swordjack).
+const AtkPWHit = 1
+
+// DmgAtkedObj is OpDealDamage's B.N (Obj RefDefendingPlayer, in an Attacks
+// trigger behind OpAtkPWGuard C AtkPWHit): the damage goes to the planeswalker
+// or battle the trigger object is attacking, else to the defending player.
+const DmgAtkedObj = 1
+
 // OpPumpAllEach's Obj bits: the amount read per creature from its own
 // derived power / toughness (NumAtt$ Double / NumDef$ Double).
 const (

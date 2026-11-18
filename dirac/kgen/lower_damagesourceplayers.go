@@ -27,6 +27,10 @@ func (lc *lowerCtx) dmgSrcPlayers(ps *params, dmgSrc, obj lRef, n lValue) error 
 		return refuse("DamageSource$ %s to %s", dmgSrc, obj)
 	}
 	if obj.Kind == rDefending {
+		if obj.N == 1 {
+			// DealDamageFrom has no planeswalker recipient: its guard keeps stalling
+			lc.emit(lInstr{Op: "AtkPWGuard", Note: "the attacker attacks a player (else the game stalls)"})
+		}
 		lc.emit(lInstr{Op: "DealDamageFrom", Obj: dmgSrc, A: n, C: 0, CS: "defending", Note: "trigger object deals A to the defending player"})
 		return nil
 	}

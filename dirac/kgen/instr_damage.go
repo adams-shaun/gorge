@@ -32,6 +32,9 @@ func (ic *instrCtx) opDealDamage() error {
 	cb := ic.cb
 	fl := ic.fl
 	ki.Op = kop.OpDealDamage
+	if in.Obj.Kind == rDefending && in.Obj.N == 1 {
+		ki.B = kop.Const(kop.DmgAtkedObj) // lower_tokenattacking.go: the attacked planeswalker/battle too
+	}
 	if in.F != nil {
 		if err := ic.objFilter(zBattlefield); err != nil {
 			return err
@@ -62,6 +65,9 @@ func (ic *instrCtx) opDealDamage() error {
 	if strings.HasPrefix(in.Note, "damage map") || cb.inDamageMap {
 		c |= kop.DmgMapped
 		cb.inDamageMap = true
+	}
+	if c != 0 && ki.B.N == kop.DmgAtkedObj {
+		return refuse("damage to the defender or attacked planeswalker with a DealDamageEx flag")
 	}
 	if c != 0 {
 		ki.Op, ki.C = kop.OpDealDamageEx, int16(c)

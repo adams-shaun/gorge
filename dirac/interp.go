@@ -26,6 +26,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			break
 		}
 		code := s.refCode(k, in.Obj)
+		if in.B.N == kop.DmgAtkedObj && in.Obj == kop.RefDefendingPlayer {
+			code = s.attackedObjOr(k, code) // filter_combatwords.go
+		}
 		if code != NoTarget {
 			s.damageTo(k, code, s.value(k, in.A))
 		}
