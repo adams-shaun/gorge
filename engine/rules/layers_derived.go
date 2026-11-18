@@ -180,6 +180,33 @@ func (e *Engine) derivedComputeFresh(id state.ObjID, atStack state.Zone) Derived
 	return chars.Compute(asChars(e), &e.charsWalk, id, atStack)
 }
 
+// DerivedKeywords is the object's current layer-derived keyword list without
+// the rest of the walk (chars.ComputeKeywords, the same prefix Derived's walk
+// runs, returned before layer 7). CR 613's layers are strictly ordered, so it
+// names exactly what Derived(id).Keywords names; unlike Derived it never
+// evaluates a layer-7 P/T amount, so a keyword table built for a layer-7
+// amount's count (Pride of the Clouds' "+1/+1 for each other creature with
+// flying") does not re-enter each candidate's own CDA -- each of those nested
+// counts re-derived the board again, and the walks multiplied. The returned
+// slice aliases scratch storage exactly as Derived's does: a caller that keeps
+// it across another characteristics query copies it.
+func (e *Engine) DerivedKeywords(id state.ObjID) []string {
+	return chars.ComputeKeywords(asChars(e), &e.charsWalk, id, 0, nil).Keywords
+}
+
+// keywordsForTable is the keyword list a keyword-table builder publishes: the
+// memo scope's entry when one is live (derivedWith's rules), else the
+// keyword-only walk -- never an uncached full walk, which inside a layer walk
+// would re-enter layer 7 (DerivedKeywords's comment).
+func (e *Engine) keywordsForTable(id state.ObjID) []string {
+	if e.derivedMemoDepth > 0 && e.derivedMemoUsable() {
+		if d := e.derivedMemoRef(id, 0); d != nil {
+			return d.Keywords
+		}
+	}
+	return e.DerivedKeywords(id)
+}
+
 // derivedName is Derived(id).Name and .NameSet without the rest of the walk
 // (chars.Name): it applies exactly the CR 709.5 Room rule and layer-3
 // SetName$ effects the full walk would, with the same bindings, so it names

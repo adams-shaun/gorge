@@ -44,7 +44,7 @@ func (e *Engine) EffectiveKeywords() []effects.ObjectKeywords {
 			if o == nil || o.Face() == nil {
 				continue
 			}
-			derived := e.Derived(id).Keywords
+			derived := e.keywordsForTable(id)
 			if keywordsMatchPrinted(o, derived) {
 				continue
 			}
@@ -58,8 +58,14 @@ func (e *Engine) EffectiveKeywords() []effects.ObjectKeywords {
 // walk (a layer-7 amount counting creatures by keyword): it derives each
 // battlefield object nested, as Derived documents is allowed, and leaves out
 // the objects whose own walk is in progress, which keep the printed read (the
-// walk cannot re-enter them). Same order and entries as EffectiveKeywords.
-func effectiveKeywordsInWalk(g *state.Game, s *chars.Scratch, d interface{ Derived(state.ObjID) Derived }) []effects.ObjectKeywords {
+// walk cannot re-enter them). The nested read is the keyword-only walk
+// (Engine.DerivedKeywords) rather than a full Derived: only the keywords
+// layer 6 left are published, and a full walk would evaluate each candidate's
+// own layer-7 CDA -- for Pride of the Clouds a CDA whose count built another
+// keyword table over the whole board, the walks multiplying in the number of
+// Prides (CR 613's strict ordering keeps the keywords exact). Same order and
+// entries as EffectiveKeywords.
+func effectiveKeywordsInWalk(g *state.Game, s *chars.Scratch, d interface{ DerivedKeywords(state.ObjID) []string }) []effects.ObjectKeywords {
 	var out []effects.ObjectKeywords
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
@@ -70,7 +76,7 @@ func effectiveKeywordsInWalk(g *state.Game, s *chars.Scratch, d interface{ Deriv
 			if _, busy := s.InProgress(id); busy {
 				continue
 			}
-			derived := d.Derived(id).Keywords
+			derived := d.DerivedKeywords(id)
 			if keywordsMatchPrinted(o, derived) {
 				continue
 			}

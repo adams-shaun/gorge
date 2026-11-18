@@ -301,7 +301,7 @@ type Layer4 struct {
 // depth and board; rules' verify mode holds every served answer to a fresh
 // walk.
 func ComputeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4) effects.Chars {
-	return computeWith(b, s, id, atStack, pre, false)
+	return computeWith(b, s, id, atStack, pre, false, false)
 }
 
 // ComputeColors is the object's layer-5 colour letters and nothing later: the
@@ -312,10 +312,26 @@ func ComputeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 // would re-enter that walk. It binds no scratch buffers, so it cannot disturb
 // a borrowed Derived list.
 func ComputeColors(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4) string {
-	return computeWith(b, s, id, atStack, pre, true).Colors
+	return computeWith(b, s, id, atStack, pre, true, false).Colors
 }
 
-func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4, colorsOnly bool) effects.Chars {
+// ComputeKeywords is the object's finished layer-6 keyword list and nothing
+// later: the walk ComputeWith runs to the CR 613.1f CantHaveKeyword$ filter,
+// returned before layer 7, so no layer-7 P/T amount is evaluated. CR 613's
+// layers are strictly ordered (no layer-7 result feeds a layer-5 or layer-6
+// characteristic, and the caller binds kw read-only into layer 7 -- PT's own
+// comment), so this prefix answers exactly what ComputeWith's Keywords
+// answers. A keyword-table reader inside a layer-7 walk (rules'
+// effectiveKeywordsInWalk, Pride of the Clouds' "+1/+1 for each other creature
+// with flying") calls this instead of Compute, which would re-enter the
+// walking object's own layer-7 CDA for every candidate -- each nested CDA
+// count re-deriving the board again. Like ComputeColors it binds no scratch
+// buffers.
+func ComputeKeywords(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4) effects.Chars {
+	return computeWith(b, s, id, atStack, pre, false, true)
+}
+
+func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4, colorsOnly, keywordsOnly bool) effects.Chars {
 	o := b.Game().Obj(id)
 	if o == nil || o.Face() == nil {
 		return effects.Chars{}
@@ -340,7 +356,7 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 	s.Depth++
 	kw := s.KW
 	ty := s.Types
-	if s.Depth > 1 || s.Borrowed > 0 || colorsOnly {
+	if s.Depth > 1 || s.Borrowed > 0 || colorsOnly || keywordsOnly {
 		// Re-entrant (a nested Derived mid-build), or a finished build's lists
 		// are bound into a match still running: own private buffers rather
 		// than overwrite the backing arrays another reader holds. Same guard
@@ -563,6 +579,10 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 	if colorsOnly {
 		s.Depth--
 		return effects.Chars{Colors: colors}
+	}
+	if keywordsOnly {
+		s.Depth--
+		return effects.Chars{Keywords: kw, Colors: colors}
 	}
 	if s.Depth <= 1 && s.Borrowed == 0 {
 		// Keep the grown buffers on the scratch for the next build; a re-entrant
