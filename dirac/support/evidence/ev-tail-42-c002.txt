@@ -20,6 +20,7 @@ Arc Trail
 Ardent Soldier
 Armored Ascension
 Ashiok's Adept
+Assemble the Legion
 Attended Healer
 Avatar of Woe
 Aven Mindcensor
@@ -68,15 +69,18 @@ Cruel Witness
 Cystbearer
 Dark Prophecy
 Dawn Evangel
+Dawnbringer Charioteers
 Delraich
 Dire Fleet Warmonger
 Disciple of the Vault
 Djeru's Resolve
 Dread Slaver
 Dross Crocodile
+Duergar Mine-Captain
 Echoing Ruin
 Elfhame Palace
 Ember Hauler
+Embermaw Hellion
 Emergency Weld
 Energy Storm
 Enigmatic Incarnation
@@ -103,6 +107,7 @@ From Beyond
 Fungus Elemental
 Furnace Spirit
 Gala Greeters
+Galadhrim Bow
 Galvanic Juggernaut
 Gauntlet of Might
 Gaze of Justice
@@ -138,6 +143,7 @@ Here Comes a New Hero!
 High Seas
 High-Rise Sawjack
 Hindervines
+Horizon Explorer
 Horn of Gondor
 Hornet Sting
 Hovermyr
@@ -254,6 +260,7 @@ Shamble Back
 Shapers' Sanctuary
 Shared Discovery
 Shauku's Minion
+Shoulder to Shoulder
 Shriek of Dread
 Silt Crawler
 Silver Raven
@@ -305,6 +312,7 @@ Trostani's Summoner
 Trufflesnout
 Turntimber Ranger
 Twitch
+Tyrranax
 Ultimate Price
 Unbreathing Horde
 Undead Warchief
@@ -329,6 +337,7 @@ Wildwood Escort
 Wings of Aesthir
 Wings of Hope
 Wolf's Quarry
+Woodland Bellower
 Wrangle
 Wrenn's Resolve
 Wyluli Wolf

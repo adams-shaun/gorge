@@ -5,6 +5,7 @@ Alpha Tyrranax	7b22476b7f3cfc03	5	0/0		0/0
 Angelic Exaltation	e5f94b01be3a78b9	23	1/1		1/1	
 Anodet Lurker	64edfdf478754f5a	15	1/1		0/1	ix:resp
 Ant Queen	7d930c77b357768b	3	1/1		0/1	ix:resp
+Assemble the Legion	c8269c80861a9041	6	1/1		0/1	ix:resp
 Aven Mindcensor	d43751ce5416fac6	11	0/0		0/0	
 Bloodshed Fever	8370063c8e59acfe	14	0/0		1/2	ix:resp
 Cascade Seer	0d8a741eeafbaaf5	13	1/1		1/1	
@@ -12,13 +13,17 @@ Cleric of Chill Depths	352a9ce3336e51d1	16	1/1		0/1	ix:resp
 Clock of Omens	85fe8d2ab09070f1	9	1/1		1/1	
 Containment Construct	b1f0981c6060ed47	21	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Dawn Evangel	bae08b4d97535f33	4	1/1		0/1	ix:resp
+Dawnbringer Charioteers	c70b1a98771d3122	5	1/1		0/1	ix:resp
 Djeru's Resolve	69352f4c386acf71	3	1/1		2/2	
+Duergar Mine-Captain	cb74c6c6095e9139	6	1/1		0/1	ix:resp
+Embermaw Hellion	c38ab3b9ed83c40d	17	0/0		0/0	
 Energy Storm	d871160d365cbb04	4	1/1		0/1	ix:resp
 Evolution Sage	b6a032f9f6ebc84c	12	1/1		1/1	
 Fell the Pheasant	6da1b2d5a033f863	6	0/0		2/2	
 Fervent Champion	75bd556d6f9a2992	11	1/1		0/1	ix:resp
 Fledgling Osprey	7a050eea3606d573	8	0/0		0/0	
 Forked Bolt	8aa0b253c6f03664	9	0/0		2/2	
+Galadhrim Bow	1231e588572f0eab	14	2/2		1/1	
 Gaze of Justice	85aa9c59273f0fd5	7	0/0		4/4	
 Gnathosaur	7459b17468fdfb79	8	1/1		0/1	ix:resp
 Goblin Mountaineer	63140892d22c643f	16	0/0		0/0	
@@ -30,6 +35,7 @@ Grizzled Angler	be42a55b9a027acb	15	2/2		1/1
 Here Comes a New Hero!	f21a99d1b54b0e9f	5	0/0		2/4	f0/s/x0,ix:resp
 High Seas	f1123eda4632ee30	15	0/0		0/0	
 Hindervines	2e4d8cc012bb3e19	14	0/0		1/2	ix:resp
+Horizon Explorer	e9db3c549bda8685	4	1/1		0/1	ix:resp
 In Garruk's Wake	9cff94b50dc2b039	5	0/0		1/2	ix:resp
 Jedit Ojanen, Mercenary	553ea3777b5c9491	8	1/1		1/1	
 Jousting Dummy	63ce63c50ec523fc	8	1/1		1/1	
@@ -54,11 +60,13 @@ Satyr Nyx-Smith	70735b7e994f2239	3	1/1		1/1
 Scuttling Doom Engine	10518d2582184a79	5	1/1		0/1	ix:resp
 Serene Steward	e687fbe1aa6d8889	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Shauku's Minion	7b5f3cbf58da464a	70	1/1		1/1	
+Shoulder to Shoulder	aa808ac62763ad11	17	0/0		1/2	ix:resp
 Silverwing Squadron	4ab1f199db90358e	11	1/1		0/1	ix:resp
 Spike Weaver	1fddeff5e55fd148	17	2/2		1/1	
 Tatyova, Steward of Tides	e9045dbb56e63567	6	1/1		0/1	ix:resp
 Thran Spider	ba3ddbdface16c4c	26	2/2		1/1	
 Tome Raider	0bf0428aa3ec6432	15	1/1		0/1	ix:resp
+Tyrranax	45bcf5c9a37ba41a	3	1/1		0/1	ix:resp
 Ursine Champion	96e821cce6778655	12	1/1		0/1	ix:resp
 Vedalken Orrery	393d504da030f65c	5	0/0		0/0	
 Venser, the Sojourner	94c723a532664d3b	67	3/3		1/1	
@@ -66,4 +74,5 @@ Waking the Trolls	b7ba0e72b20561c6	3	0/0		0/0
 Weatherlight	89330c06251c97f5	3	2/2		0/1	ix:resp
 Wildwood Escort	05e695b80cc05692	6	1/1		0/1	ix:resp
 Wolf's Quarry	37a6a57fbb093a53	5	0/0		1/2	ix:resp
+Woodland Bellower	55d59a87307f6e89	14	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Zephyr Scribe	6ec93496eef5868c	11	2/2		1/1	

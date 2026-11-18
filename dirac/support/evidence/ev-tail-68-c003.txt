@@ -3,25 +3,42 @@ Aang's Defense
 Adamaro, First to Desire
 Adaptive Snapjaw
 Aether Charge
+Aether Poisoner
+Aetheric Amplifier
 Akki Underling
 Alpine Meadow
 Amaranthine Wall
+Ammit Eternal
+Angel's Feather
 Angelic Purge
 Angelic Wall
 Anointed Procession
+Assault Griffin
 Auriok Bladewarden
 Auriok Steelshaper
 Balefire Liege
+Basal Thrull
 Bitterthorn, Nissa's Animus
 Blastfire Bolt
+Blighted Shaman
+Blood on the Snow
 Boros Guildmage
+Brokers Hideout
 Bull Cerodon
+Cabal Therapist
 Captain America's Motorcycle
 Captain Lannery Storm
+Cateran Brute
+Cavern Harpy
 Cephalid Vandal
+Charging Paladin
+Cinder Giant
 Cliffhaven Vampire
+Clot Sliver
 Cloudreader Sphinx
 Colorful Feiyi Sparrow
+Coral Net
+Corpulent Corpse
 Crushing Disappointment
 Crystal Ball
 Curse of Bounty
@@ -32,56 +49,80 @@ Dark Temper
 Deeptread Merrow
 Devotee of Strength
 Didgeridoo
+Dimir Locket
+Disrupt
 Dredge
 Drowner of Secrets
 Eladamri, Lord of Leaves
 Eldrazi Displacer
+Electrickery
+Elvish Archers
 Erratic Mutation
 Escarpment Fortress
 Eyeblight Assassin
+Fade into Antiquity
 Faerie Guidemother
+Faith's Reward
 Fated Intervention
+Fencer Clique
 Feral Deceiver
 Ferocious Tigorilla
+Festergloom
 Fey Steed
 Fill with Fright
+Finale of Eternity
 Fire Tempest
 Fire of Orthanc
 Flamecast Wheel
 Forest
 Fractal Summoning
 Freyalise, Llanowar's Fury
+Ghastly Demise
 Ghitu Slinger
 Ghostfire
 Gilacorn
+Gnawing Zombie
 Grapple with the Past
 Grave Peril
 Hallowed Spiritkeeper
+Heavy Infantry
 Hedge Troll
 Highland Forest
+Hollowsage
 Honden of Seeing Winds
 Howling Fury
 Hushwing Gryff
+Isao, Enlightened Bushi
 Island
 Isolate
 James, Wandering Dad
 Jeskai Runemark
 Kasmina's Transmutation
+Keeper of Fables
 Kongming, "Sleeping Dragon"
+Labyrinth Adversary
+Legion Vanguard
 Ley Weaver
 Lita, Mechanical Engineer
 Living Death
+Loam Dryad
 Malleable Impostor
 Matt Murdock, Justice Seeker
+Maul Splicer
 Mogg Flunkies
 Mountain
 Nagging Thoughts
 Needle Spires
 Niblis of the Urn
+Oashra Cultivator
 Omen
 Ominous Cemetery
 Phantasmal Dragon
 Plains
+Plummet
+Priest of Gix
+Proud Pack-Rhino
+Rakdos Ragemutt
 Ranging Raptors
 Rathi Assassin
 Recalibrate
@@ -97,22 +138,31 @@ Sea Gate Oracle
 Sentinel Sliver
 Serene Offering
 Serra Paladin
+Shambling Ghoul
 Shefet Dunes
+Shivan Harvest
 Short Sword
+Shuri's Fabricator
 Silburlind Snapper
 Silvar, Devourer of the Free
 Silverglade Pathfinder
 Snag
+Soulhunter Rakshasa
 Soulstealer Axe
 Spark Jolt
 Spiraling Duelist
 Spreading Rot
 Squirrel Wrangler
+Stinkweed Imp
+Strangling Spores
+Stratozeppelid
 Sun Ce, Young Conquerer
 Sunrise Seeker
 Surrakar Banisher
+Suture Priest
 Swamp
 Swift Spinner
+Sword of Once and Future
 Tangleclaw Werewolf
 Tarfire
 Tel-Jilad Justice
@@ -121,13 +171,19 @@ Think Tank
 Thirst
 Tishana's Wayfinder
 Tower of Eons
+Trespasser il-Vec
 Treva's Ruins
+Tune the Narrative
 Twin-Silk Spider
+Urgoros, the Empty One
+Valiant Veteran
 Vampiric Tutor
 Weatherseed Elf
 Whispering Wizard
+Windrider Wizard
 Wingmate Roc
 Wolfbriar Elemental
 Yavimaya Granger
 Yotian Frontliner
+Zephyr Falcon
 Zephyr Gull

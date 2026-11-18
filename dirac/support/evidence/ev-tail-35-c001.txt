@@ -24,7 +24,9 @@ Benevolent Bodyguard
 Biogenic Ooze
 Black Widow, Natasha Romanoff
 Blade of Selves
+Blessing of Belzenlok
 Blinding Souleater
+Blinding Spray
 Blitz of the Thunder-Raptor
 Blockade Runner
 Blood-Chin Rager
@@ -44,6 +46,7 @@ Cathedral Acolyte
 Celestial Enforcer
 Centaur Archer
 Cephalid Sage
+Chained Brute
 Chandra's Magmutt
 Chasm Skulker
 Choose Your Weapon
@@ -63,6 +66,7 @@ Dawn Charm
 Daxos, Blessed by the Sun
 Death Pits of Rath
 Decimator Web
+Deeproot Historian
 Defabricate
 Destiny Spinner
 Discontinuity
@@ -112,6 +116,7 @@ Gravel Slinger
 Grayscaled Gharial
 Griselbrand
 Gruul Cluestone
+Gulf Squid
 Hag of Noxious Nightmares
 Harmonic Sliver
 Hazerider Drake
@@ -157,6 +162,7 @@ Lulu, Loyal Hollyphant
 Lush Growth
 Mace of the Valiant
 Magus of the Bazaar
+Manticore of the Gauntlet
 Marshal's Anthem
 Meatsqueak, Hoard Lord
 Megantic Sliver
@@ -176,6 +182,7 @@ Myr Galvanizer
 Mystic Zealot
 Nantuko Tracer
 Nezumi Cutthroat
+Night Market Aeronaut
 Nine-Tail White Fox
 No-Dachi
 Oath of Ajani
@@ -193,8 +200,10 @@ Pest Rescuer
 Plains
 Planar Birth
 Predatory Wurm
+Prey's Vengeance
 Primal Order
 Prohibit
+Rapid Decay
 Reach of Branches
 Rebuke
 Reinforced Bulwark
@@ -204,6 +213,7 @@ Repulsor Rays
 Research Thief
 Reservoir Walker
 Rile
+Rise from the Tides
 Royal Talon Fighter Jet
 Sacred Rites
 Sadistic Obsession
@@ -227,6 +237,7 @@ Silverquill Silencer
 Siren's Ruse
 Skyshroud Forest
 Sleeper Dart
+Sleeper's Robe
 Slithery Stalker
 Smoldering Spires
 Snapping Sailback
@@ -256,8 +267,10 @@ Syphon Essence
 Syphon Mind
 Tablet of Epityr
 Tainted Aether
+Tears of Valakut
 Tectonic Fiend
 Tel-Jilad Outrider
+Thassa's Oracle
 The Biblioplex
 The Blue Spirit
 The Falcon, Sam Wilson
@@ -275,6 +288,7 @@ Tree Monkey
 Tribal Flames
 Triclopean Sight
 Triton Waverider
+Turtleshell Changeling
 Twenty-Toed Toad
 Uktabi Drake
 Uncovered Clues

@@ -51,6 +51,7 @@ Dawnbringer Charioteers
 Disciple of the Vault
 Dross Crocodile
 Echoing Ruin
+Embermaw Hellion
 Essence Depleter
 Evolution Sage
 Exemplar of Strength
@@ -72,6 +73,7 @@ Galadhrim Bow
 Gauntlet of Might
 Ghoulsteed
 Glimpse the Unthinkable
+Gnathosaur
 Goblin Matron
 Goblin Mountaineer
 Goblin Ringleader
@@ -129,6 +131,7 @@ Mugging
 Myr Adapter
 Mystic Snake
 Needlethorn Drake
+Nest Robber
 Nether Horror
 Night Market Aeronaut
 Nova Flame
@@ -138,6 +141,7 @@ Overload
 Pack's Betrayal
 Pelakka Predation
 Perimeter Captain
+Petravark
 Phantasmal Dreadmaw
 Phyrexian Denouncer
 Piety

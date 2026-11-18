@@ -6,10 +6,12 @@ Aerial Modification
 Aerial Volley
 Agoraphobia
 Angler Drake
+Ardent Soldier
 Asha's Favor
 Aven Eternal
 Awaken the Bear
 Azorius Signet
+Balduvian Barbarians
 Bane's Invoker
 Baneslayer Angel
 Banishing Stroke
@@ -17,6 +19,7 @@ Battle Mastery
 Beastmaster Ascension
 Bellowing Elk
 Benevolent Blessing
+Beregond of the Guard
 Bessie, the Doctor's Roadster
 Bituminous Blast
 Bladebrand
@@ -26,11 +29,14 @@ Bloodfire Dwarf
 Bloodrage Brawler
 Blossoming Calm
 Body of Knowledge
+Boing!
 Bojuka Brigand
 Bold Defense
 Bond of Passion
 Boom
 Boompile
+Branching Bolt
+Branchloft Pathway
 Bronze Walrus
 Burning Sun's Avatar
 Calming Verse
@@ -42,11 +48,14 @@ Charcoal Diamond
 Citadel Castellan
 Claim the Firstborn
 Cloakwood Hermit
+Cloudseeder
 Colossal Might
+Compleated Huntmaster
 Conjurer's Mantle
 Conqueror's Flail
 Contaminated Aquifer
 Court Hussar
+Crimson Caravaneer
 Crooked Custodian
 Crossover Collaboration
 Crosswinds
@@ -56,13 +65,18 @@ Dagger Caster
 Daring Piracy
 Dark Favor
 Darksteel Mutation
+Dauntless Onslaught
 Dawn of Hope
 Demonic Dread
 Deranged Hermit
+Devastation Tide
 Dictate of Karametra
 Didgeridoo
 Die Young
+Dissipate
 Dragon Mask
+Draugr Necromancer
+Dross Hopper
 Drowner Initiate
 Drumbellower
 Dune Beetle
@@ -71,8 +85,12 @@ Déjà Vu
 Emerald Medallion
 Emrakul's Hatcher
 Enthralling Victor
+Escaped Experiment
+Executioner's Capsule
+Extinguish the Light
 Extus, Oriq Overlord
 Exultant Skymarcher
+Falcon Abomination
 Fallaji Archaeologist
 Fallow Earth
 Feral Instinct
@@ -100,14 +118,22 @@ Glimpse of Nature
 Glorious Charge
 Gobhobbler Rats
 Goblin Bully
+Goblin Burrows
+Goblin Scouts
+Goblin Trashmaster
 Goblin Warchief
+Gods Willing
 Goldenglow Moth
 Golgari Rotwurm
 Gore Swine
 Grafted Wargear
 Guardians' Pledge
+Hammerhand
 Hammerhead Shark
+Hangarback Walker
+Heirs of Stromkirk
 Highland Lake
+Hinterland Drake
 Hoodwink
 Hour of Promise
 Imotekh the Stormlord
@@ -116,8 +142,12 @@ Increasing Ambition
 Inferno Project
 Infinity Formula
 Innocent Traveler
+Inordinate Rage
+Inventor's Axe
 Invisible Force Field
 Island
+Jace's Sentinel
+Jodah's Codex
 Johnny, Combo Player
 Kami of the Waning Moon
 Kazandu Refuge
@@ -126,6 +156,7 @@ Kird Chieftain
 Knight of Dusk's Shadow
 Krosan Wayfarer
 Lance
+Lava Flow
 Lava Hounds
 Lavaborn Muse
 Leonin Abunas
@@ -134,12 +165,14 @@ Llanowar Augur
 Loam Dryad
 Loam Larva
 Lorthos, the Tidemaker
+Lotleth Giant
 Mage-Ring Bully
 Magnify
 Malevolent Whispers
 Malicious Intent
 Masked Blackguard
 Merchant of the Vale
+Mesmerizing Dose
 Michiko Konda, Truth Seeker
 Militia Rallier
 Mindstab Thrull
@@ -176,9 +209,11 @@ Prologue to Phyresis
 Pteron Ghost
 Pyretic Charge
 Pyroceratops
+Quandrix Campus
 Quilled Sliver
 Raging Minotaur
 Rain of Blades
+Rakdos Signet
 Raphael, the Muscle
 Raptor Companion
 Ravenous Vampire
@@ -193,15 +228,18 @@ Rush of Inspiration
 Rusted Sentinel
 Sacred Guide
 Said
+Savage Offensive
 Sawblade Slinger
 Scent of Jasmine
 Screaming Seahawk
 Seal Away
 Seal of Strength
 Searing Light
+Seismic Stomp
 Seller of Songbirds
 Sentinel
 Sergeant-at-Arms
+Serra's Blessing
 Serrated Scorpion
 Setessan Griffin
 Shadowfeed
@@ -211,6 +249,7 @@ Silverbeak Griffin
 Simian Grunts
 Sinister Gnarlbark
 Skarrgan Pit-Skulk
+Skirk Prospector
 Skyline Cascade
 Skyline Scout
 Slith Strider
@@ -218,11 +257,13 @@ Sliver Hive
 Slumbering Dragon
 Solidarity
 Soratami Cloudskater
+Soul Rend
 Soul's Might
 Soulquake
 Spawn-Gang Commander
 Spectral Rider
 Spell Swindle
+Spellbound Dragon
 Sphere of Resistance
 Spined Karok
 Spiteful Prankster
@@ -241,6 +282,8 @@ Swashbuckling
 Sword of Forge and Frontier
 Syr Faren, the Hengehammer
 Tajuru Blightblade
+Take Inventory
+Tattered Apparition
 Taunting Elf
 Taunting Sliver
 Tavern Brawler
@@ -248,6 +291,7 @@ Telethopter
 Tempered Veteran
 Tenured Oilcaster
 Thalakos Dreamsower
+The Fair Basilica
 The Juzam Master
 The Reaver Cleaver
 Then, Dreadmaws Ate Everyone
@@ -259,6 +303,7 @@ Tibalt, the Fiend-Blooded
 Time of Need
 Tolarian Sentinel
 Topiary Stomper
+Torch Courier
 Treva's Ruins
 Triceraton Regenta
 Tuktuk Scrapper
@@ -274,6 +319,7 @@ Virtus the Veiled
 Voltaic Construct
 Wall of Denial
 Wall of Hope
+Warlord's Fury
 Warped Landscape
 Watcher in the Mist
 White Dragon
@@ -282,7 +328,10 @@ Wily Goblin
 Winding Way
 Windrider Patrol
 Winged Portent
+Witty Roastmaster
 You Hear Something on Watch
+Young Pyromancer
 Zamriel, Seraph of Steel
+Zenith Seeker
 Zulaport Enforcer
 Zuri, Warrior of Wakanda

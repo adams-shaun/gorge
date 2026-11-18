@@ -36,6 +36,7 @@ Ascendant Evincar
 Assassin Initiate
 Astral Steel
 Atalan Jackal
+Aurification
 Aven Heartstabber
 Azami, Lady of Scrolls
 Azusa's Many Journeys
@@ -116,6 +117,7 @@ Day of the Dragons
 Deadeye Harpooner
 Defiant Falcon
 Deglamer
+Demonic Consultation
 Depopulate
 Desmond Miles
 Destined
@@ -126,6 +128,7 @@ Diabolic Revelation
 Disfigure
 Dismiss
 Divine Verdict
+Domesticated Hydra
 Dominating Vampire
 Downsize
 Dragon Mask

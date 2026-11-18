@@ -13,6 +13,7 @@ Anara, Wolvid Familiar
 Anthroplasm
 Aphetto Alchemist
 Apothecary Initiate
+Arc Blade
 Arc Lightning
 Archon of Redemption
 Argothian Opportunist
@@ -67,6 +68,7 @@ Copper Longlegs
 Coppercoat Vanguard
 Corrupted Harvester
 Court Archers
+Crag Saurian
 Crossroads Consecrator
 Culling Mark
 Curse of the Nightly Hunt
@@ -195,6 +197,7 @@ Keldon Necropolis
 Keldon Vandals
 Kiku, Night's Flower
 King Harald's Revenge
+Koll, the Forgemaster
 Kraul Raider
 Lantern Kami
 Laser Screwdriver
@@ -250,6 +253,7 @@ Pitiless Gorgon
 Plains
 Pollenbright Druid
 Polymorphist's Jest
+Pyreheart Wolf
 Quicksilver, Pietro Maximoff
 Quirion Ranger
 Raking Canopy
@@ -365,6 +369,7 @@ Toxic Abomination
 Trading Post
 Trailtracker Scout
 Trenchpost
+Tundra Fumarole
 Undercity's Embrace
 Untamed Kavu
 Utility Knife

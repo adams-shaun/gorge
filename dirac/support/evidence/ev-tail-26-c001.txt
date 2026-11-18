@@ -1,5 +1,6 @@
 A-Riveteers Initiate
 A-Stimulus Package
+A-Tyvar Kell
 Accursed Centaur
 Acid Rain
 Act on Impulse
@@ -68,6 +69,7 @@ Dragon Bell Monk
 Dragon Hatchling
 Dralnu's Crusade
 Dramatist's Puppet
+Drider
 Eel-Hounds
 Elven Bow
 Empty the Warrens
@@ -218,6 +220,7 @@ Steadfast Unicorn
 Stitched Drake
 Stony Strength
 Storm of Memories
+Sunscape Master
 Sunset Revelry
 Sunspire Griffin
 Swamp

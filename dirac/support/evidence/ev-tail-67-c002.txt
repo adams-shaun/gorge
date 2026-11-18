@@ -32,6 +32,7 @@ Blade Splicer
 Blight Sickle
 Blisterspit Gremlin
 Blossom Dryad
+Boldwyr Intimidator
 Buccaneer's Bravado
 Bull Cerodon
 Buried Alive
@@ -49,6 +50,7 @@ Champion's Helm
 Clackbridge Troll
 Claim the Firstborn
 Cling to Dust
+Clutch of Undeath
 Cogwork Assembler
 Commissar Severina Raine
 Common Iguana
@@ -56,6 +58,7 @@ Company Commander
 Conclave Guildmage
 Confront the Unknown
 Conservator
+Consuming Vapors
 Contagion
 Corpse Knight
 Corrupted Zendikon
@@ -83,6 +86,7 @@ Dragon's Approach
 Dwarven Vigilantes
 Eidolon of Rhetoric
 Ekthi, Contaminator Priest
+Elspeth, Undaunted Hero
 Emerge Unscathed
 Enslaved Dwarf
 Erratic Visionary
@@ -132,6 +136,7 @@ Implement of Ferocity
 Independent Troops
 Indigo Faerie
 Infernal Pet
+Infested Fleshcutter
 Inspiring Refrain
 Intrepid Ace
 Invasion of Tolvada
@@ -171,6 +176,7 @@ Mise
 Mogg Sentry
 Mogis's Warhound
 Moonglove Changeling
+Morkrut Necropod
 Mortal's Ardor
 Moss Monster
 Mother of Runes
@@ -183,12 +189,14 @@ Natural Emergence
 Necrobite
 Nemesis of Reason
 Norn's Disassembly
+Novice Dissector
 Oblation
 Obscura Initiate
 Oceanus Dragon
 Onulet
 Orcish Bowmasters
 Orim's Touch
+Paradox Engine
 Path of Anger's Flame
 Pennon Blade
 Phyrexian Etchings
@@ -199,6 +207,8 @@ Preeminent Captain
 Primeval Force
 Prizefighter Construct
 Prosper, Tome-Bound
+Protector of Gondor
+Prowling Pangolin
 Psychic Spear
 Psychotrope Thallid
 Purifying Dragon
@@ -211,6 +221,8 @@ Ray of Erasure
 Reckless Charge
 Reckless Handling
 Reduce to Ashes
+Renewed Faith
+Reparations
 Replenish
 Revelation of Power
 Rhox Oracle
@@ -219,6 +231,7 @@ Samite Pilgrim
 Sandcrafter Mage
 Savage Conception
 Savra, Queen of the Golgari
+Scepter of Celebration
 Scion of Oona
 Scion of Vitu-Ghazi
 Sculpted Perfection
@@ -281,6 +294,7 @@ Trigon of Rage
 Trueheart Duelist
 Umbris, Fear Manifest
 Undercity Scavenger
+Undying Rage
 Unholy Hunger
 Unwilling Ingredient
 Vampire Lacerator

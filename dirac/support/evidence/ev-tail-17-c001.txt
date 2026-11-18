@@ -8,6 +8,7 @@ Agonizing Demise
 Akroma's Devoted
 Al-abara's Carpet
 Aladdin
+Amass the Components
 Ancient Spider
 Angel's Mercy
 Angelic Ascension
@@ -98,12 +99,16 @@ Environmental Sciences
 Erkenbrand, Lord of Westfold
 Errant Doomsayers
 Ethereal Whiskergill
+Etherium Abomination
 Evil Presence
+Extract
 Exuberant Fuseling
 Exultant Skymarcher
 Facet Reader
+Faerie Conclave
 Fantastic Bounce
 Far Wanderings
+Fated Infatuation
 Fell Flagship
 Ferrous Lake
 Festercreep
@@ -130,6 +135,7 @@ Geosurge
 Giant Cockroach
 Giant Scorpion
 Gift of Estates
+Gift of Tusks
 Gimli's Reckless Might
 Glacial Grasp
 Go-Shintai of Ancient Wars
@@ -139,7 +145,9 @@ Goblin Ruinblaster
 Golden Demise
 Gorging Vulture
 Grafted Growth
+Gravepurge
 Graypelt Refuge
+Great Furnace
 Greataxe
 Greenbelt Rampager
 Grotesque Mutation
@@ -164,6 +172,7 @@ Ingenious Smith
 Insatiable Appetite
 Invasion of Zendikar
 Invisible Woman
+Ior Ruin Expedition
 Iron Bully
 Iron Man, Titan of Innovation
 Iron-Heart Chimera
@@ -253,6 +262,8 @@ Plover Knights
 Plundering Predator
 Pollenbright Druid
 Portable Hole
+Primal Command
+Prismatic Vista
 Quest for the Goblin Lord
 Radiant Essence
 Raffine's Informant
@@ -342,6 +353,7 @@ The Immortal Weapons
 The Stasis Coffin
 Thriving Isle
 Throne of Empires
+Tibalt, Rakish Instigator
 Timberpack Wolf
 Tooth and Claw
 Toph, Greatest Earthbender
@@ -350,6 +362,7 @@ Tower of Calamities
 Tree of Tales
 Triskaidekaphile
 Undead Augur
+Updraft Elemental
 Utopia Tree
 Valduk, Keeper of the Flame
 Valiant Changeling

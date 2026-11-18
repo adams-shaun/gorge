@@ -48,6 +48,7 @@ Cavalier of Dawn
 Ceremonial Knife
 Chandra, Novice Pyromancer
 Circuit Mender
+Claustrophobia
 Cloudfin Raptor
 Cloudshredder Sliver
 Cloudthresher
@@ -154,6 +155,7 @@ Kiora, Behemoth Beckoner
 Krovikan Whispers
 Kyoshi Warrior Exemplars
 Lagonna-Band Elder
+Landslide
 Last-Ditch Effort
 Launch Party
 Lazotep Behemoth
@@ -179,6 +181,7 @@ Merchant Raiders
 Merrow Harbinger
 Merrow Wavebreakers
 Midnight Guard
+Mind Twist
 Mindwhip Sliver
 Minotaur Sureshot
 Molten Vortex
@@ -222,6 +225,7 @@ Rakdos Pit Dragon
 Rats of Rath
 Ray of Enfeeblement
 Reality Anchor
+Reckless Ogre
 Reconnaissance Mission
 Recoup
 Recuperate
@@ -324,6 +328,7 @@ Wolfsbane, Highland Hero
 Wooden Sphere
 Wrenn and Realmbreaker
 Yawgmoth's Edict
+You Find Some Prisoners
 Yuna's Decision
 Zarichi Tiger
 Zombie Cannibal

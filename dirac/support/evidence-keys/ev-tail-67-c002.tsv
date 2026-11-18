@@ -9,17 +9,21 @@ Azorius Ploy	9c7b7b4c208b0cac	27	0/0		2/2
 Bastion Inventor	af56413740c59913	36	0/0		0/0	
 Beast Attack	26212472d9149b66	26	0/0		4/4	
 Blossom Dryad	8af86815052638c7	7	1/1		1/1	
+Boldwyr Intimidator	04cde492aad58e36	6	2/2		1/1	
 Burning Palm Efreet	a124a3e95d87454b	29	1/1		1/1	
 Caravan Escort	4ea3d5efd4fb1f1d	4	1/1		0/1	ix:resp
 Case the Joint	fe67e10ff42b98c6	9	0/0		2/2	
 Clackbridge Troll	212b01c55c3d7779	7	2/2		1/1	
+Clutch of Undeath	892157b3eb04fe49	29	0/0		2/2	
 Company Commander	a13a9f47cb7aae86	4	2/2		0/1	ix:resp
+Consuming Vapors	c83f01583ff9e220	46	0/0		2/2	
 Corrupting Licid	63508a3b6371f137	4	1/1		0/1	ix:resp
 Crypt Incursion	26651cf26a7e40c3	73	0/0		2/2	
 Daily Bugle Newspaper	257150d1bbbbb46a	23	1/1		1/1	
 Diligent Excavator	f62959d44623c18d	8	1/1		0/1	ix:resp
 Dragon's Approach	bb64e3df4047f807	8	0/0		2/2	
 Dwarven Vigilantes	794af72b66324574	34	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Elspeth, Undaunted Hero	8b9ca6ad3bfddcd5	5	3/3		0/1	ix:resp
 Emerge Unscathed	7bbf4f768539fe25	13	0/0		2/2	
 Essence Feed	ae27113ec5bc8d48	4	0/0		2/2	
 Faerie Mastermind	1443f6fc8449d5e5	19	2/2		1/1	
@@ -33,18 +37,27 @@ Gray Merchant of Asphodel	6acf3c57d9c1a96c	29	1/1		1/1
 Hana Kami	6b59d73e37336d59	47	1/1		1/1	
 Idol of Oblivion	028a282dc5e0ebfa	78	2/2		1/1	
 Indigo Faerie	5a93545a79599469	4	1/1		1/1	
+Infested Fleshcutter	f04b5704bad4ea4a	4	2/2		0/1	ix:resp
 Kor Castigator	465c9bb276e94804	14	0/0		0/0	
 Lattice Library	0a3723713c04c691	19	2/2		1/1	
 Liliana's Steward	22240af609010c06	12	1/1		1/1	
 Lucas, the Sharpshooter	a721a5a1ac39c102	46	1/1		1/1	
 Lyla, Holographic Assistant	26184d855c63ee37	3	1/1		1/1	
 Might Weaver	84cf9afe434c065e	59	1/1		1/1	
+Morkrut Necropod	ec955e86e9b55b75	9	2/2		0/1	ix:resp
 Mortal's Ardor	1945c394c93c5fa4	15	0/0		2/2	
 Mother of Runes	980010c5a3abbb75	27	1/1		1/1	
+Novice Dissector	256c9c0c86285e4a	43	1/1		1/1	
 Orcish Bowmasters	a50b2aa31d289afd	18	2/2		1/1	
+Paradox Engine	55ad8d4c92278732	36	1/1		1/1	
 Phyrexian Etchings	6748596d16a13291	64	3/3		1/1	
 Phyrexian Obliterator	95dcb6a8a8a9e8ba	29	1/1		1/1	
+Protector of Gondor	e0e575c6407e0e46	10	1/1		1/1	
+Prowling Pangolin	2aa62652a21f2b9f	25	1/1		0/1	ix:resp
 Psychic Spear	7dd0c7bc09ddd05f	58	0/0		2/2	
+Renewed Faith	5061e68f7979ff7d	4	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
+Reparations	3d88111cda8f06e1	21	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Scepter of Celebration	b9fd15a3f2b8dd7d	30	2/2		1/1	
 Scion of Oona	11b97b36b823bc68	95	0/0		0/0	
 Selective Memory	75cd0507b773e2b3	17	0/0		2/2	
 Sheoldred	e2f7955e83dc042d	31	2/2		1/1	
@@ -57,6 +70,7 @@ Spellweaver Eternal	23c9e8a67bac3365	17	2/2		1/1
 Thundering Sparkmage	d2640051049ba9dd	5	1/1		0/1	ix:resp
 Tibor and Lumia	ba4382482e9246f2	3	2/2		1/1	
 Tranquil Frillback	771a4b82caf0eba5	3	1/1		0/1	ix:resp
+Undying Rage	b21bdcc2d116d761	38	1/1		2/2	
 Unwilling Ingredient	f5972371134e7e6d	4	1/1		0/1	ix:resp
 Venomcrawler	9337f283dc8c0715	52	1/1		1/1	
 Well-Laid Plans	ec50d8aae541990f	6	0/0		0/0	

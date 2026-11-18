@@ -1,5 +1,7 @@
+A-Master of Winds
 Aether Spellbomb
 Afterlife
+Agility Bobblehead
 Akoum Refuge
 Ancestral Blade
 Ancient Gold Dragon
@@ -39,17 +41,21 @@ Bonehoard
 Bonepicker Skirge
 Bound in Silence
 Bountiful Promenade
+Brackwater Elemental
 Brandywine Farmer
 Burning Fields
 Cabaretti Courtyard
 Captive Weird
 Catacomb Sifter
 Chainweb Aracnir
+Chaos Lord
 Chaotic Backlash
+Clear a Path
 Clip Wings
 Colossal Dreadmaw and Storm Crow
 Crackling Drake
 Crookclaw Elder
+Crosstown Courier
 Cunning Survivor
 Daunting Defender
 Death's Shadow
@@ -65,15 +71,18 @@ Dragon-Scarred Bear
 Dragonlord Silumgar
 Drainpipe Vermin
 Dread Tiller
+Dream Thief
 Dreamshackle Geist
 Drillworks Mole
 Drossclaw
 Drown in Dreams
+Dualcaster Mage
 Dune Mover
 Duplicant
 Dust Corona
 Easy Prey
 Emperor Crocodile
+Enrage
 Ethereal Investigator
 Falkenrath Marauders
 Fateful Showdown
@@ -114,6 +123,7 @@ Jade Idol
 Jalum Tome
 Jolrael, Voice of Zhalfir
 Kayla's Reconstruction
+Khenra Eternal
 Khenra Spellspear
 Kher Keep
 Kjeldoran Outrider
@@ -124,6 +134,7 @@ Lorthos, the Tidemaker
 Lost in the Mist
 Magma Vein
 Magmatic Insight
+Malcator's Watcher
 Mana Vault
 Marauding Boneslasher
 Mardu Woe-Reaper
@@ -162,6 +173,7 @@ Perimeter Captain
 Personal Tutor
 Pillage
 Plains
+Port Inspector
 Portent of Betrayal
 Power of Persuasion
 Precinct Captain
@@ -172,7 +184,9 @@ Quirion Explorer
 Radstorm
 Rageblood Shaman
 Rally the Peasants
+Rampaging Cyclops
 Raugrin Triome
+Reduce in Stature
 Return from Extinction
 Rimewood Falls
 Rishadan Cutpurse
@@ -192,6 +206,7 @@ Seething Pathblazer
 Selhoff Occultist
 Shaman of Spring
 Shield of the Oversoul
+Shimmer of Possibility
 Show of Valor
 Shrine Keeper
 Sibsig Muckdraggers
@@ -204,6 +219,7 @@ Sizzle
 Skyclave Shadowcat
 Skyline Cascade
 Slagwoods Bridge
+Songstitcher
 Sonic Screwdriver
 Soulmender
 Spectacle Mage
@@ -219,6 +235,7 @@ Sunscorched Desert
 Swamp
 Swarm Surge
 Swarm of Rats
+Sword of the Animist
 Sygg, River Guide
 Tamiyo's Immobilizer
 Tamiyo's Safekeeping
@@ -230,6 +247,8 @@ Thopter Assembly
 Threnody Singer
 Thundersteel Colossus
 Timbermaw Larva
+Timin, Youthful Geist
+Trail of Evidence
 Trailblazing Historian
 Trained Caracal
 Tui and La, Moon and Ocean
@@ -237,6 +256,7 @@ Twiddle
 Twilight's Call
 Ugin's Insight
 Undead Servant
+Urza's Rebuff
 Urza, Powerstone Prodigy
 Venomous Changeling
 Viscerid Deepwalker
@@ -247,6 +267,7 @@ Voyager Staff
 Wall of Vines
 Warmonger Hellkite
 Waterknot
+Whiptail Moloch
 Will-o'-the-Wisp
 Winding Canyons
 Winged Shepherd

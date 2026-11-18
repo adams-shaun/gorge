@@ -5,6 +5,8 @@ Abyssal Horror
 Adamaro, First to Desire
 Aether Poisoner
 Aethergeode Miner
+Aetheric Amplifier
+Ageless Sentinels
 Akki Underling
 Alpine Meadow
 Amaranthine Wall
@@ -27,6 +29,7 @@ Bitterthorn, Nissa's Animus
 Blastfire Bolt
 Blight Grenade
 Blighted Shaman
+Blood Reckoning
 Blood on the Snow
 Boros Guildmage
 Brokers Hideout
@@ -49,6 +52,8 @@ Cloudreader Sphinx
 Cogwork Assembler
 Cold Storage
 Colorful Feiyi Sparrow
+Coral Net
+Corpulent Corpse
 Courier Hawk
 Courier's Capsule
 Creeping Trailblazer
@@ -61,8 +66,10 @@ Deeptread Merrow
 Devotee of Strength
 Didgeridoo
 Dimir Locket
+Disrupt
 Djeru's Renunciation
 Eladamri, Lord of Leaves
+Elderwood Scion
 Electrickery
 Elvish Archers
 Embersmith
@@ -75,6 +82,7 @@ Ethereal Champion
 Ethereal Haze
 Ethereal Usher
 Experimental Overload
+Eyeblight Assassin
 Fade into Antiquity
 Faerie Guidemother
 Faith Healer
@@ -85,12 +93,14 @@ Feral Deceiver
 Feral Lightning
 Festergloom
 Fill with Fright
+Finale of Eternity
 Fire Tempest
 Fire of Orthanc
 Firebird, Blazing Ranger
 Flamecast Wheel
 Flow of Ideas
 Forest
+Freyalise, Llanowar's Fury
 Furious Resistance
 Gargadon
 Gem of Becoming
@@ -103,6 +113,7 @@ Gilacorn
 Gitaxian Anatomist
 Glory Bearers
 Gnawing Zombie
+Grapple with the Past
 Grave Peril
 Gruesome Discovery
 Hallowed Spiritkeeper
@@ -110,6 +121,7 @@ Hanabi Blast
 Hedge Troll
 Highland Forest
 Honden of Seeing Winds
+Horobi, Death's Wail
 Howling Fury
 Hulking Bugbear
 Hushwing Gryff
@@ -117,15 +129,19 @@ Inspired Charge
 Intrepid Ace
 Intruder Alarm
 Iroas's Champion
+Isao, Enlightened Bushi
 Island
 Isolate
 Jace's Scrutiny
 James, Wandering Dad
 Jarad's Orders
+Joven
 Kamahl's Druidic Vow
 Karvanista, Loyal Lupari
 Kasmina's Transmutation
+Keeper of Fables
 Kobold Taskmaster
+Kongming, "Sleeping Dragon"
 Kor Skyfisher
 Labyrinth Adversary
 Leather Armor
@@ -139,12 +155,15 @@ Loam Dryad
 Lone Rider
 Lorehold Command
 Lorescale Coatl
+Lull
 Malachite Talisman
 Malakir Bloodwitch
 Manamorphose
 Marwyn, the Nurturer
 Matt Murdock, Justice Seeker
+Maul Splicer
 Miasmic Mummy
+Mist-Syndicate Naga
 Mogg Flunkies
 Monstrify
 Moss Monster
@@ -174,12 +193,14 @@ Priest of Gix
 Prosperous Bandit
 Proud Pack-Rhino
 Rakdos Ragemutt
+Ranging Raptors
 Rathi Assassin
 Ravenous Intruder
 Ray of Erasure
 Raze to the Ground
 Recalibrate
 Reckoner Bankbuster
+Rending Vines
 Restless Dead
 Reveille Squad
 Revitalize
@@ -189,7 +210,9 @@ Rustrazor Butcher
 Samite Archer
 Sandcrafter Mage
 Sangrophage
+Saryth, the Viper's Fang
 Scaled Herbalist
+Scarred Vinebreeder
 Scrapper Champion
 Sea Gate Oracle
 Searing Barb
@@ -201,6 +224,7 @@ Shefet Dunes
 Shelinda, Yevon Acolyte
 Shivan Harvest
 Short Sword
+Shuri's Fabricator
 Silburlind Snapper
 Silverglade Pathfinder
 Slaughterhouse Bouncer
@@ -236,6 +260,7 @@ Tarfire
 Tattered Mummy
 Terra Eternal
 The Whizzer, Classic Speedster
+Think Tank
 Thirst
 Thunderous Might
 Tishana's Wayfinder
@@ -247,6 +272,7 @@ Troublesome Spirit
 Tune the Narrative
 Twin-Silk Spider
 Tyrant of Kher Ridges
+Urgoros, the Empty One
 Valiant Veteran
 Valor
 Vampiric Tutor
@@ -257,6 +283,7 @@ Weatherseed Elf
 Whispering Wizard
 White Shield Crusader
 Wildfire Cerberus
+Windrider Wizard
 Wolfbriar Elemental
 Wooden Sphere
 Yavimaya Elder

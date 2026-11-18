@@ -45,6 +45,7 @@ Jolene, the Plunder Queen	a2cbab5d10d1dda9	4	2/2		0/1	ix:resp
 Jump	cb548ef0ee8bf639	52	0/0		2/2	
 Lounge	d6d032a1df7e850c	8	2/2		0/1	ix:resp
 Mana Leak	dff236b6dfb2471f	33	0/0		2/2	
+Marsh Goblins	d27e819e89b7271a	6	0/0		0/0	
 Molten Influence	8e454f73e6dd4873	6	0/0		1/2	ix:resp
 Naru Meha, Master Wizard	a9de7e9dfa64f88b	59	1/1		1/1	
 Necropouncer	b15ec03e74f29726	23	2/2		1/1	
@@ -56,9 +57,12 @@ Phyrexian Walker	a2eb3772ad986c41	52	0/0		0/0
 Planar Bridge	7458bd2b3987d21e	15	1/1		0/1	ix:resp
 Primetime Suspect	9eb72f4768bd9525	17	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Protean Thaumaturge	da000ff0ff6266a8	47	1/1		0/1	ix:resp
+Redeem the Lost	a7ee522a30bc1392	12	0/0		2/2	
 Replication Technique	9a0eb5d277a02284	4	1/1		2/2	
+Ring of Kalonia	26c9b2b3c93603d7	7	2/2		1/1	
 Root Out	a9f84aa519f39d4a	15	0/0		2/2	
 Rust Goliath	a98a1281872fb8d2	4	0/0		1/2	cast/alt:none
+Saiba Cryptomancer	413a2a36ffc3a533	4	1/1		0/1	ix:resp
 Sailor of Means	96018a20dd8c5283	47	1/1		0/1	ix:resp
 Saprazzan Heir	7d6b836317867668	47	1/1		0/1	ix:resp
 Sarulf's Packmate	dc66a9c112c2768c	26	1/1		1/3	cast/alt:foretold,ix:resp
@@ -69,7 +73,9 @@ Shielding Plax	a9bd7ab919a4ff98	7	1/1		1/2	ix:resp
 So Shiny	fc07ed2618b128c0	3	1/1		1/2	ix:resp
 Surge Conductor	50844efaba6b48a8	46	1/1		1/1	
 Sylvan Anthem	6e260811fc15690a	12	1/1		1/1	
+Tavern Swindler	8a1b28b175477f68	4	1/1		1/1	
 Thirst for Meaning	6ff3a103797a4749	88	0/0		2/2	
+Throne of Geth	661ac625c14fe905	8	1/1		0/1	ix:resp
 Triangle of War	c3e95bf4d28362a8	63	1/1		1/1	
 Venser's Sliver	63f79430395a7b26	54	0/0		0/0	
 Voracious Typhon	233a4f0c7871f466	18	0/0		1/2	cast/alt:escaped
