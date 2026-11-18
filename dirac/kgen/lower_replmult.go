@@ -365,7 +365,9 @@ func isCopyFirstBody(w *cards.SA) bool {
 // closes the gate, so a creation of several tokens makes one copy and plain
 // tokens after it. The gate lowers to the replacement's Repl.Cond.
 // The Crown's IsPresent$ Card.Self+AttachedTo Creature is the attachment the
-// copy source needs (an Equipment attaches to creatures only).
+// copy source needs (an Equipment attaches to creatures only): it lowers to
+// Repl.C = kop.ReplCopyFirstAttached, so an unattached Crown is never a
+// candidate of gorge's CR 616.1 order ask.
 func (lc *lowerCtx) tokenCopyFirst(rp *params, w *cards.SA, rl *lRepl) error {
 	vc := strings.TrimSpace(w.Params["ValidChoices"])
 	if !withIs(w, "ReplaceToken", map[string]string{"Type": "ReplaceToken", "ValidChoices": w.Params["ValidChoices"], "TokenScript": w.Params["TokenScript"]}) {
@@ -384,6 +386,9 @@ func (lc *lowerCtx) tokenCopyFirst(rp *params, w *cards.SA, rl *lRepl) error {
 		if vc != "Card.EquippedBy" || strings.TrimSpace(ip) != "Card.Self+AttachedTo Creature" {
 			return refuse("repl-hard: CreateToken copy IsPresent %q", ip)
 		}
+		// gorge reads the presence test at every match: a Crown on no
+		// creature is no candidate at all (Repl.C, kop.ReplCopyFirstAttached)
+		rl.Bits = kop.ReplCopyFirstAttached
 	}
 	cs, ok := rp.get("CheckSVar")
 	if !ok || strings.TrimSpace(cs) != "X" || strings.TrimSpace(lc.face.SVars["X"]) != copyFirstGate || strings.TrimSpace(rp.str("SVarCompare")) != "EQ0" {
