@@ -291,6 +291,15 @@ func (s *State) kickWitness(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCos
 	if !pk.found {
 		return true
 	}
+	if chk := (planner{dry: true, noGrant: true}); plannerConsumesSac(&pk) && !s.tapForPKFound(k, p, cost, &chk) {
+		// only a granted source (Rain of Filth's sacrifice-only land) completes the
+		// plan: gorge's planner never sees it, so the play is the prefix search's
+		// (potentialPrefixScript sets Script, leaving Plan nil), and that path takes
+		// no witness; the grant's sacrifices resolve their triggers in the prefix,
+		// outside the wait budget (Caligo Skin-Witch kicked: five Treasures and two
+		// lands beside Havoc Jester)
+		return true
+	}
 	if ab := spellAb(k, c); ab != 255 && plannerConsumesSac(&pk) && !tmp.abilityTargetsFeasible(k, &k.t.Cards[c].Abilities[ab], p, NoSlot, 0xff) {
 		return tmp.witnessEndsGameWon(k, p, c, n0)
 	}
@@ -303,6 +312,13 @@ func (s *State) kickWitness(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCos
 		return true
 	}
 	return tmp.witnessEndsGameWon(k, p, c, n0)
+}
+
+// tapForPKFound plans cost for p into pk (a dry planner: nothing is tapped) and
+// reports whether it found a plan.
+func (s *State) tapForPKFound(k *prep, p uint8, cost *kop.ManaCost, pk *planner) bool {
+	s.tapForPK(k, p, cost, 0, NoObj, false, false, pk)
+	return pk.found
 }
 
 // witnessEndsGameWon: the witness fork t (taken before the cast's pre-cast
