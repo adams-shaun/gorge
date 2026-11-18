@@ -5,9 +5,11 @@ package rules
 // player, that player exiles cards from the top of their library until they
 // exile a nonland card; if Black Widow's controller declines the optional
 // +1/+1 counter, they may cast the exiled nonland card until end of turn and
-// mana of any type can be spent to cast that spell. The scratch phase
-// reproduces the std-msh pair-341 divergence (gorge offered no cast of the
-// exiled Futurist Forge the kernel offered).
+// mana of any type can be spent to cast that spell. The two tests pin the
+// offer read the std-msh pair-341 divergence priced against (gorge posed no
+// cast of the exiled Futurist Forge the kernel posed): the floating pool
+// alone casts the granted card, so an empty pool offers nothing and a pool
+// that pays the rider-converted cost offers the cast.
 
 import (
 	"slices"
@@ -42,7 +44,14 @@ func forgeToLibraryTop(t *testing.T, e *Engine, forge state.ObjID) {
 	}
 }
 
-func TestScratchBlackWidowDigGrant(t *testing.T) {
+// TestBlackWidowDigGrantOffer walks the real dig: the trigger exiles seat 0's
+// Forge (a nonland card, so the dig stops), the counter ask is declined, and
+// seat 1 holds the cast permission. At priority in seat 1's own main 2 the
+// exiled Forge is NOT offered while the floating pool is empty -- gorge's
+// may-play offer gate (mayPlayAffordable: castable over the floating pool,
+// the rider inside its feasibility read) prices no source but the pool -- and
+// the pool that pays the rider-converted {1}{U} offers it.
+func TestBlackWidowDigGrantOffer(t *testing.T) {
 	e, cfg, widow, forge, _ := widowGame(t)
 	mpRiderDrive(t, e, 4, 1, state.StepMain1)
 	// Seat 0 has drawn past its other cards by now: seat the Forge on top of
@@ -126,19 +135,28 @@ func TestScratchBlackWidowDigGrant(t *testing.T) {
 		t.Fatalf("Forge left exile: %s", c.Zone)
 	}
 
-	// Seat 1 at priority in its own main 2: the exiled Forge must be offered
-	// (a sorcery-speed cast of an artifact).
+	// Seat 1 at priority in its own main 2, the floating pool empty: the
+	// granted cast is priced against the pool alone, so only the ordinary
+	// actions are offered -- no cast of the exiled Forge.
 	mpRiderDrive(t, e, 4, 1, state.StepMain2)
+	if ianOffers(e, forge) {
+		t.Fatalf("empty pool offered the exiled Forge: %v", mpRiderLabels(e))
+	}
+	// The pool that pays the rider-converted {1}{U} (Island's {U} plus
+	// Training Compound's {C}) offers the cast: the pool alone casts it.
+	addManaQuiet(t, e, 1, "UC")
+	e.priorityRound()
 	if !ianOffers(e, forge) {
-		t.Fatalf("exiled Forge not offered: %v", mpRiderLabels(e))
+		t.Fatalf("floated {U}{C} still withheld the exiled Forge: %v", mpRiderLabels(e))
 	}
 	replayCheck(t, e, cfg)
 }
 
-// TestScratchBlackWidowHandGrant checks the enumeration half: the grant as
-// DBEffect would register it, added by hand over the same exiled Forge, must
-// itself offer the cast.
-func TestScratchBlackWidowHandGrant(t *testing.T) {
+// TestBlackWidowDigGrantHandGrant checks the same read on the grant as
+// DBEffect would register it, added by hand over the same exiled Forge: the
+// empty pool offers nothing (and the plain hand casts beside it neither),
+// and the pool that pays the rider-converted cost offers the cast.
+func TestBlackWidowDigGrantHandGrant(t *testing.T) {
 	e, cfg, widow, forge, gg := widowGame(t)
 	var ls state.ObjID
 	for _, id := range e.G.Zone(state.ZHand, 1) {
@@ -155,42 +173,22 @@ func TestScratchBlackWidowHandGrant(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: forge, From: state.ZHand, To: state.ZExile, Player: 0, Counter: "exiled_by"})
 	e.AddContinuous(state.ContinuousEffect{
 		Source: widow, Controller: 1, UntilEOT: true,
-		Affects:      "Card.nonLand+IsRemembered", AffectedZone: "Exile",
-		MayPlay:      true, MayPlayIgnoreType: true,
-		Remembered:   []state.ObjID{forge},
-		Duration:     "",
+		Affects: "Card.nonLand+IsRemembered", AffectedZone: "Exile",
+		MayPlay: true, MayPlayIgnoreType: true,
+		Remembered: []state.ObjID{forge},
+		Duration:   "",
 	})
 	e.priorityRound()
-	t.Logf("empty pool: offered=%v labels=%v", ianOffers(e, forge), mpRiderLabels(e))
-	if !ianOffers(e, forge) {
-		t.Logf("mayPlaySpellIds(1) = %+v", e.mayPlaySpellIds(1))
-		t.Logf("MayPlayRider(1,forge) = %+v", asEval(e).MayPlayRider(1, forge))
-	} else {
-		t.Fatalf("probe: empty pool already offered: %v", mpRiderLabels(e))
+	if ianOffers(e, forge) || ianOffers(e, gg) || ianOffers(e, ls) {
+		t.Fatalf("empty pool offered a cast (forge=%v, hand We Say Thee Nay=%v, hand Cerulean Drake=%v): %v",
+			ianOffers(e, forge), ianOffers(e, gg), ianOffers(e, ls), mpRiderLabels(e))
 	}
-	// Contrast: a plain hand cast with the same empty floating pool.
-	t.Logf("empty pool: hand We Say Thee Nay offered=%v", ianOffers(e, gg))
-	t.Logf("empty pool: hand Cerulean Drake offered=%v", ianOffers(e, ls))
-	// Gate probes on the empty-pool state: the may-play route's castable vs
-	// the hand route's offerCastableUsing.
-	base := e.castOfferBase(1, forge)
-	hbase := e.castOfferBase(1, ls)
-	t.Logf("gates at empty pool: may-play castable=%v (base %+v), hand-cerulean offerCastableUsing=%v (base %+v)",
-		e.castable(1, forge, base, false), base,
-		e.offerCastableUsing(e.collectCostStatics(), 1, ls, &hbase, spellScope(""), false, nil), hbase)
-	// Float {U}{C} (Island + Training Compound's tap mana): the cast must be
-	// offered once the floating pool alone pays it.
+	// Float {U}{C} (Island + Training Compound's tap mana): the granted cast
+	// is offered once the floating pool alone pays it.
 	addManaQuiet(t, e, 1, "UC")
 	e.priorityRound()
-	t.Logf("floated UC: offered=%v labels=%v", ianOffers(e, forge), mpRiderLabels(e))
-	pl, mu, bl, sn := e.mayPlayKinds(1, forge)
-	t.Logf("mayPlayKinds plain=%v mutate=%v blitz=%v sneak=%v plainGrant=%v freeCast=%v",
-		pl, mu, bl, sn, e.mayPlayPlainGrant(1, forge), e.mayPlayFreeCast(1, forge))
-	if ianOffers(e, forge) {
-		t.Logf("probe: floated {U}{C} offered the cast: %v", mpRiderLabels(e))
-	} else {
-		t.Fatalf("probe: floated {U}{C} still withheld: %v", mpRiderLabels(e))
+	if !ianOffers(e, forge) {
+		t.Fatalf("floated {U}{C} still withheld the granted cast: %v", mpRiderLabels(e))
 	}
-	t.Fatalf("probe done")
 	replayCheck(t, e, cfg)
 }

@@ -146,12 +146,15 @@ func (s *State) grantImprovise(k *prep, p uint8, c CardID, o Obj, fromHand bool)
 // wasCast Affected$ clause through the spell-entry reader (wasCastSpell)
 // and finds none: a grant whose filter carries it (Ironheart, Clever
 // Champion's "Noncreature spells you cast have improvise") is missed. The
-// announcement-time read gorge's planners make (hasCastConvoke and friends,
-// derivedWith's stack override) matches that clause for the offered cast,
-// so the grant loop here answers it the way the CantBeCast offer read does
-// (matchSpellCardOffer: the origin the cast would come from). The keyword
-// reads above stay: their callers already agree with gorge where their
-// grants carry no wasCast clause.
+// planner read gorge's potential plan makes for the cast (potentialModeCredit
+// over hasCastConvoke and friends, derivedWith's stack override) matches that
+// clause for the offered cast -- for ANY live grant, the grant's controller
+// standing in as the filter's "you" and no caster check: an opponent's
+// Ironheart over p's exiled nonland card is a credit to that read too. So the
+// grant loop here answers it the way the CantBeCast offer read does
+// (matchSpellCardOffer: the origin the cast would come from) per live static,
+// without the caster filter. The keyword reads above stay: their callers
+// already agree with gorge where their grants carry no wasCast clause.
 func (s *State) creditOfferLive(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
 	if s.hasConvoke(k, p, c, o, fromHand) || s.hasCastDelve(k, p, c, o, fromHand) || s.isImprovise(k, p, c, o, fromHand) {
 		return true
@@ -162,7 +165,7 @@ func (s *State) creditOfferLive(k *prep, p uint8, c CardID, o Obj, fromHand bool
 	live := false
 	s.eachStatic(k, func(st statSrc) bool {
 		a := st.a
-		if live || a.Kind != kop.AbStatic || a.Static.Kind != kop.StatStackKw || st.ctrl != p {
+		if live || a.Kind != kop.AbStatic || a.Static.Kind != kop.StatStackKw {
 			return true
 		}
 		switch a.Static.A {
@@ -176,7 +179,10 @@ func (s *State) creditOfferLive(k *prep, p uint8, c CardID, o Obj, fromHand bool
 		if a.Static.Cond2 != 0 && !s.statCond(k, st) {
 			return true
 		}
-		if s.matchSpellCardOffer(k, a.Static.Filter, c, p, p, o, st.sl, st.emb) {
+		// the static's own controller is the filter's "you": gorge's derived
+		// read resolves it against the offered card, never the caster (the
+		// dig grant's cast of another seat's exiled card, pair 341)
+		if s.matchSpellCardOffer(k, a.Static.Filter, c, st.ctrl, st.ctrl, o, st.sl, st.emb) {
 			live = true
 		}
 		return true
