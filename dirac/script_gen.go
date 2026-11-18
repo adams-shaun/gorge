@@ -799,6 +799,19 @@ func (s *State) grantGapLive(k *prep, p uint8) bool {
 	return false
 }
 
+// capGrantOvercounts is a filter-search gap node's cut of the root offer's
+// grant cap (legal.go grantCap call): a granted mana ability counts beside its
+// source's printed or restricted one in the walk (one tap makes one of them,
+// CR 605.1a), so the restricted options the node's census overcounts are
+// pruned with the same grant search the root's offer runs.
+func (s *State) capGrantOvercounts(k *prep, d *Decision, p uint8) {
+	if k.gen == nil || !k.gen.anyContGrant {
+		return
+	}
+	var capSpent Decision // (the node keeps no capSpent: its options reprice at the deeper nodes)
+	s.grantCap(k, d, p, &capSpent)
+}
+
 func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 	if !s.grantGapLive(k, p) {
 		return
