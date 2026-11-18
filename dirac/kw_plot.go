@@ -214,11 +214,15 @@ func (s *State) payAndExile(k *prep, p uint8, o Obj, cost kop.ManaCost) {
 // rules legal_walk_alt.go exileCastsWalk's "plot_cast"): only on a later
 // turn than the plot action, only at sorcery speed whatever the face's
 // type, and only while the DurPlot record is live (same object, still
-// exiled).
-func (s *State) offerPlotCasts(k *prep, d *Decision, p uint8, sorc bool) {
+// exiled). The free cast still pays the cost statics' increases (CR
+// 601.2f, 118.9d: Thalia's {1}); gorge's planner prices no plot_cast, so the
+// floating pool must pay what it owes (the free permission cast's rule,
+// legal_gen.go).
+func (s *State) offerPlotCasts(k *prep, d *Decision, p uint8, sorc bool, av *avail) {
 	if !sorc && !DebugPlotSameTurn {
 		return
 	}
+	have := false
 	pl := &s.pl[p]
 	for i := 0; i < int(pl.exileN); i++ {
 		o := pl.exile[i]
@@ -234,6 +238,15 @@ func (s *State) offerPlotCasts(k *prep, d *Decision, p uint8, sorc bool) {
 		// while a creature can be sacrificed for it (CR 601.2h).
 		if !s.spellCostsFeasible(k, c, p, o) || !s.spellTargetsFeasible(k, c, p) {
 			continue
+		}
+		if s.freeOwes(k) {
+			if !have {
+				s.availFor(k, p, av)
+				have = true
+			}
+			if cost := s.adjustCostGen(k, p, c, o, kop.ManaCost{}); cost != (kop.ManaCost{}) && (!s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) || !s.windowPoolPays(p, &cost, false)) {
+				continue
+			}
 		}
 		d.add(MakeAction(AkCast, TCode(o), 0, castPlotted))
 	}
