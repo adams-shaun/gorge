@@ -925,7 +925,7 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		return false
 	}
 	if cd.Cost.X != 0 {
-		return s.xWitnessOffered(k, p, c, o)
+		return s.xCostLowers(k, p, c, o)
 	}
 	if sacXCost(spellAddCost(k, c)) {
 		return false // an announced Sac<X/Spec>: the potential planner's composition declines it too, so only the floating pool offers it (cost_sacx.go)
@@ -1044,6 +1044,27 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		return s.ungrantedPaysNoDH(k, p, c, o, &cost) // the Diamonds alone fund it: gorge's planner prices no plan for a hand play
 	}
 	return s.plainHandPlayLowers(k, p, c, o)
+}
+
+// xCostLowers is gorgeLowersRider's {X}-cost arm. An additional-cost shape's
+// plain cast is declined first when the composition's census read says no:
+// gorge's potential planner declines the shape ("shape:additional_cost",
+// paymentPlanCastShapeDetail's PlanNonManaAdmissible arms) and prices the
+// composition only on its census -- the printed sources and the pool, never a
+// gap -- so an insufficient one drops the play and no prefix search runs for
+// it (potentialPlayVerdictShared). The census pays the cheapest announcement
+// X = 0, as the fixed additional-cost arms below do.
+func (s *State) xCostLowers(k *prep, p uint8, c CardID, o Obj) bool {
+	if addCostShapeUnscripted(k, c) {
+		cost := s.featCost(k, p, c, o, k.cards[c].cost)
+		if s.g.mayPlayAny {
+			cost = anyType(cost)
+		}
+		if !s.ungrantedPaysNoDH(k, p, c, o, &cost) {
+			return false
+		}
+	}
+	return s.xWitnessOffered(k, p, c, o)
 }
 
 // optCostCastLowers is gorgeLowersRider for a Behold / Multikicker / Escalate /
