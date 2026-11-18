@@ -313,7 +313,12 @@ func hybridGeneric(c kop.ManaCost) kop.ManaCost {
 
 // castFlagsGen applies a cast's generated mode bits to the entry being
 // built and consumes the once-per-turn static that permitted it.
-func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
+func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) { s.castFlagsGenTgt(k, o, mode, 0) }
+
+// castFlagsGenTgt is castFlagsGen for the cast action whose target byte is
+// tgt: a {0} alternative's marker (cast_mayzeroalt.go) says the cast went
+// through that static, whose once-per-turn mark it spends.
+func (s *State) castFlagsGenTgt(k *prep, o Obj, mode, tgt uint8) {
 	s.g.raiseB = 0 // a spent surcharge record sets it again (spendMayKind)
 	if s.bld().e.kind == seSpell && s.convAnyType(k, s.bld().e.ctrl, o) {
 		s.bld().e.flags |= sfAnyMana // mana_convertcreature.go
@@ -341,8 +346,8 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 	}
 	s.bld().e.flags |= sfMayPlay
 	p := s.bld().e.ctrl
-	if mode&castFree != 0 && k.gen.anyZeroAlt && s.spendZeroAlt(k, o, p) {
-		mode &^= castFree // the {0} alternative: the plain cast's permission is spent below (cast_mayzeroalt.go)
+	if mode == castMayPlay|castFree && FeatIsZeroAltTgt(tgt) && k.gen.anyZeroAlt && s.spendZeroAlt(k, o, p) && tgt == zeroAltTgt {
+		mode &^= castFree // the {0} alternative beside a priced plain cast: that cast's permission is spent below (cast_mayzeroalt.go)
 	}
 	// a permission record is spent; a once-per-turn static is marked
 	if k.gen.anyMayKind && s.spendMayKind(k, o, p, mode) {
