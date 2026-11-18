@@ -744,6 +744,9 @@ func (e *Encoder) mkCard(s *dirac.State, ob *dirac.ProjObj, o dirac.Obj, z uint8
 		if e.spelledReps(&rep, reps) {
 			c.kwRep = reps
 		}
+		if ty, subs, all, setSub, ok := s.FeatViewTypes(o); ok {
+			c.tyv = e.typeLine(c.c, ty, subs, all, setSub) // an off-zone subtype grant (Leyline of Transformation)
+		}
 		c.sick = s.FeatSickOff(o)
 		if c.c.creature {
 			// a card's own characteristic-defining P/T applies in any zone

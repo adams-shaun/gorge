@@ -2033,6 +2033,16 @@ const StatAnyColorSpells StaticKind = 70
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
 const StatNoCombatDamage StaticKind = 71
 
+// StaticKind (dirac/manifest/StaticKind/StatOffZoneGrant)
+//
+// StatOffZoneGrant is a Continuous static's AffectedZone$ Hand/Graveyard/Library/All grant of subtypes (AddType$ ChosenType or a known subtype) or simple KwMask keywords (kgen lower_offzone.go): Filter matches the card in Zone (ZoneAny for All), AddSub/AddChosen/Kw are the grant. It is not a StatContinuous, so no battlefield reader (the layer walks, the keyword and subtype matchers) sees it; only the off-battlefield projection reads it live (featview.go featViewTypesOff, FeatGrantedOffRep).
+const StatOffZoneGrant StaticKind = 72
+
+// StaticKind (dirac/manifest/StaticKind/StatRetraceGrant)
+//
+// StatRetraceGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Retrace grant (Six, Deeproot Historian, Wrenn and Six's emblem; CR 702.81a): Filter matches the card in the graveyard and the ability's own Cost is the retrace additional cost (Discard<1/Land>). The kernel reads it live: the graveyard retrace offer and cast (kw_offkwgrant.go, kw_retrace.go) and the keyword projection.
+const StatRetraceGrant StaticKind = 73
+
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52
 
