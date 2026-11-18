@@ -183,16 +183,17 @@ func (s *State) prolifApply(k *prep, o TCode) {
 // for those, as for a putCountersFrom copy. A Saga's chapters hear only lore,
 // so a creature with a +1/+1 and a lifelink counter beside a Saga does not stall.
 func (s *State) prolifOrderObservable(k *prep, sl Slot) bool {
+	putter := s.res.e.ctrl // the proliferating player puts the counters: a "whenever you put" line on the other seat hears nothing
 	var heard [ctrSlots + 1 + maxCtrOver]kop.CounterKind
 	n := 0
 	var held ctrHeld
 	for _, c := range held[:s.perms[sl].heldKinds(s, &held)] {
-		if kop.IsCounterKind(int(c)) && s.ctrAddedHeard(k, kop.CounterKind(c)) {
+		if n0, _, _ := s.ctrAddedListenerBy(k, kop.CounterKind(c), putter); kop.IsCounterKind(int(c)) && n0 > 0 {
 			heard[n] = kop.CounterKind(c)
 			n++
 		}
 	}
-	return n > 1 && s.ctrOrderObservable(k, heard[:n])
+	return n > 1 && s.ctrOrderObservableBy(k, heard[:n], putter)
 }
 
 // fireProliferate fires "whenever <Whose> proliferates" (TrigProliferate:
