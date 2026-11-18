@@ -2339,6 +2339,9 @@ func (s *State) copyTokensRun(k *prep, in *kop.Instr, c CardID, n int) bool {
 		}
 		t := s.newToken(c, e.ctrl)
 		s.objs[t].of |= ofCopy
+		if host == NoSlot && s.entryParkCopy(k, t, e.ctrl, n-i-1) {
+			return true // repl_entrycopy.go: the CR 616.1 order ask before it enters
+		}
 		s.copyTokenEnter(k, in, t, host, &eb)
 		s.res.flags |= rfCopyGrp
 		s.res.lastTok = t // the copy a following RefLastCreated op reads (Encore's attack duty)
