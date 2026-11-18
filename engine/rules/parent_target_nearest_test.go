@@ -127,11 +127,18 @@ func TestHomesicknessStunsTheTappedCreatures(t *testing.T) {
 // SubAbility$ link. Forge resolves the referent to the nearest targeting
 // parent (SpellAbility.getParentTargetingCard), so these links read that
 // link's targets, not the root's: effects.parentLinkTargets. Measured
-// 2026-10-03 at FORGE_REF.
+// 2026-10-03 at FORGE_REF; the 15 Awaken spells (kwAwaken's land-animating
+// rider: Animate reading ParentTarget after the targeting PutCounter) joined
+// with the Awaken keyword.
 var parentTargetLinkCarriers = []string{
 	"Barbarian Guides",
+	"Boiling Earth",
 	"Chandra's Revolution",
+	"Clutch of Currents",
+	"Coastal Discovery",
 	"Cruel Entertainment",
+	"Earthen Arms",
+	"Encircling Fissure",
 	"Fight for the Throne",
 	"Flourishing Grapple",
 	"Glyph of Delusion",
@@ -139,8 +146,18 @@ var parentTargetLinkCarriers = []string{
 	"Intruder's Inquisition",
 	"Mind Spiral",
 	"Mindblaze",
+	"Mire's Malice",
+	"Ondu Rising",
 	"Panther Pounce",
+	"Part the Waterveil",
+	"Planar Outburst",
 	"Rhino, Terrible Trampler",
+	"Rising Miasma",
+	"Roil Spout",
+	"Ruinous Path",
+	"Rush of Ice",
+	"Scatter to the Winds",
+	"Sheer Drop",
 	"Skyshroud Ambush",
 	"Stolen Uniform",
 	"Stunning Shot",
