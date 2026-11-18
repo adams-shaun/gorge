@@ -1,0 +1,14 @@
+{
+  "card": "Lotus Blossom",
+  "class": "options-options",
+  "why": "its \"{T}, Sacrifice this artifact: Add X mana of any one color, X the petal counters on it\" is a counter-scaled sacrifice source (CR 605.1a, 106.4) that gorge's prefix search activates to price a cast from the floating mana, choosing the colour that pays; the kernel models that shape for one fixed colour only (mana_sacctr.go sacCtrManaAb), so with one petal and a Mountain it never offers Lotus Blossom or Novellamental ({1}{U}) that gorge offers (tail-74-c000 pair 5, decision 86)",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "lotus_blossom_any_colour_counter_scaled_sacrifice_mana_unmodelled"
+  }
+}
