@@ -1721,6 +1721,21 @@ func (s *State) restrShortAdm(p, m uint8, cost kop.ManaCost) kop.ManaCost {
 	return c
 }
 
+// restrAdmShortCost is the cast's cost less the restricted mana its payment
+// spends first: a rider plan that tapped a wide restricted source floated its
+// mana (State.rb), and the payment spends the batches this cast admits first
+// (payRestrSpend), so the plan taps only for what the admitted restricted
+// mana leaves (gorge pay.PlanPool, pay/plancost.go).
+func (s *State) restrAdmShortCost(k *prep, e *stackEntry, cost kop.ManaCost) kop.ManaCost {
+	if !s.rbAny(e.ctrl) {
+		return cost
+	}
+	if m := s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)); m != 0 {
+		return s.restrShortAdm(e.ctrl, m, cost)
+	}
+	return cost
+}
+
 // restrShortLeft is restrShortAdm returning the leftover L: the restricted
 // units it could not fold into the cost's pips or generic. They may still pay
 // any part of the cost, {X} included (CR 106.6), so an {X} witness credits
@@ -3393,25 +3408,11 @@ func (s *State) manaStep(k *prep) bool {
 					return true
 				}
 			} else {
-				if s.rbAny(e.ctrl) {
-					// the plan taps only for what the admitted restricted mana
-					// leaves (pay.PlanPool), as the plain branch below does
-					if m := s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)); m != 0 {
-						cost = s.restrShortAdm(e.ctrl, m, cost)
-					}
-				}
+				cost = s.restrAdmShortCost(k, e, cost)
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			}
 		} else {
-			if s.rbAny(e.ctrl) {
-				// a rider plan that tapped a wide restricted source floated its
-				// mana (State.rb): the payment spends the batches this cast admits
-				// first (payRestrSpend), so the plan taps only for what the
-				// restricted mana leaves (gorge pay.PlanPool, pay/plancost.go)
-				if m := s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)); m != 0 {
-					cost = s.restrShortAdm(e.ctrl, m, cost)
-				}
-			}
+			cost = s.restrAdmShortCost(k, e, cost)
 			if s.tapForSpellPlain(k, e, &cost, anyColor, &saved) {
 				return true
 			}
@@ -3498,24 +3499,14 @@ func (s *State) manaStep(k *prep) bool {
 			// through the manual CR 601.2g window, which lists the source in
 			// its battlefield place (mana_windowtapx.go). A pick it pauses on
 			// re-enters here with the walk's mana already floating.
-			ok := s.windowTapHeldOK(k, e.ctrl, &cost)
-			if !s.winPaused() {
-				s.bld().bfl &^= bflMsDone
-				if !ok {
-					s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
-					return true
-				}
+			if s.gapWindowReverse(k, e, &cost, &saved, hostSl, sl, selfUntapped) {
+				return true
 			}
 		case s.equipGapWindowPays(k, e, &cost):
 			// a target-gated equip the printed sources cannot pay: the gaps
 			// (Selesnya Signet's fee) fund it through the manual CR 601.2g window
-			ok := s.windowTapHeldOK(k, e.ctrl, &cost)
-			if !s.winPaused() {
-				s.bld().bfl &^= bflMsDone
-				if !ok {
-					s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
-					return true
-				}
+			if s.gapWindowReverse(k, e, &cost, &saved, hostSl, sl, selfUntapped) {
+				return true
 			}
 		default:
 			s.tapFor(k, e.ctrl, &cost, int(e.x), NoObj)
@@ -3528,6 +3519,24 @@ func (s *State) manaStep(k *prep) bool {
 			s.perms[sl].flags &^= pfTapped
 		}
 		s.releaseCostTaps(k, &saved)
+	}
+	return false
+}
+
+// gapWindowReverse runs the manual CR 601.2g window an activation the planner
+// cannot price pays through (sacXWindowPays, equipGapWindowPays above): a
+// dry, unpaused window reverses the activation, keeping its taps, and the
+// caller returns early; a paused window waits on its pick and the step's
+// epilogue runs.
+func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
+	ok := s.windowTapHeldOK(k, e.ctrl, cost)
+	if s.winPaused() {
+		return false
+	}
+	s.bld().bfl &^= bflMsDone
+	if !ok {
+		s.reverseActivation(k, saved, hostSl, sl, selfUntapped)
+		return true
 	}
 	return false
 }
