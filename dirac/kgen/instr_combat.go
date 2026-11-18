@@ -186,6 +186,7 @@ func (ic *instrCtx) opSkipNextUntap() error {
 func (ic *instrCtx) opAtkPWGuard() error {
 	ki := &ic.ki
 	ki.Op = kop.OpAtkPWGuard
+	ki.C = int16(ic.in.C)
 	return nil
 }
 
