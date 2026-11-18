@@ -963,7 +963,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		}
 		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) {
 			found, stall := false, uint8(0)
-			if s.tapXOffGrant(k, p) || s.sacXAutopayActivate(k, p, a) {
+			if s.tapXOffGrant(k, p) {
 				found, stall = s.tapXScript(k, a, p, false)
 			}
 			if !found && !s.ctrGapsOutsideGrantSearch(k, p) {
