@@ -1201,6 +1201,8 @@ const ExtOpenAttraction ExtOp = 24
 func init() { extOpNames[ExtOpenAttraction] = "OpenAttraction" }
 
 // api Radiation (dirac/manifest/ExtOp/ExtRadiation)
+//
+// ExtRadiation: Radiation (gorge effRadiation): each player Obj names gets B rad counters (coldRad); the precombat-main drain is a source-less trigger (gorge RadiationDrain) that mills the rad count and, per nonland card milled, loses 1 life and removes a rad counter. dirac/act_radiation.go.
 const ExtRadiation ExtOp = 25
 
 func init() { extOpNames[ExtRadiation] = "Radiation" }

@@ -221,6 +221,7 @@ func (s *State) beginStep(k *prep) {
 		if k.anySaga && s.step == kop.StepMain1 {
 			s.advanceSagas(k) // CR 505.4 / 714.3c
 		}
+		s.radMain1(k) // CR 728.1 (act_radiation.go)
 		s.openPriority()
 	case kop.StepBeginCombat:
 		s.firePhase(k, kop.StepBeginCombat)
@@ -1125,6 +1126,10 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	}
 	if monarchTrig(e) {
 		s.resolveMonarchTrig(k, e) // the monarch's draw or steal (act_monarch.go)
+		return
+	}
+	if radTrig(e) {
+		s.resolveRadTrig(k, e) // the rad drain (act_radiation.go)
 		return
 	}
 	if k.gen != nil && e.trigAmt == opLeaveReturn {

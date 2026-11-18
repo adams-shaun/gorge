@@ -25,6 +25,7 @@ type genPrep struct {
 	graveSac    bool     // some graveyard trigger is a Sacrificed (Curious Cadaver; act_sweeps.go)
 	anyCastProv bool     // some trigger reads a spell's cast provenance (Tf2CastFromHand, Tf2Convoked): pushBuild records stackEntry.prov (trig_gravedrawn.go)
 	anyCastBF   bool     // some card reads Count$LastStateBattlefieldWithFallback (CardDef.CastBF): beginCast freezes the count into the spell entry's trigMV (value_castbattlefield.go)
+	anyRad      bool     // some line gives rad counters: the cold buffer holds each seat's count (act_radiation.go); in the padding before flags
 	// flags and the sparse small values (cardflags.go): the
 	// eleven per-card bools and the dense int8/int16 sentinel arrays this
 	// struct used to carry are one uint32 per card plus a record per card
@@ -1669,6 +1670,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.anyTWTap = g.anyTWTap || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.N == kop.TrigNTeamworkTap
 			g.anyAtkLast = g.anyAtkLast || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigDamageDone && a.Trig.Flags5&kop.Tf5DmgAttackedYouLastTurn != 0
 			g.anyContract = g.anyContract || contractLine(a) // ctr_contract.go
+			g.anyRad = g.anyRad || radLine(a)                // act_radiation.go
 			if a.Kind == kop.AbTriggered && a.Trig.Flags3&kop.Tf3GameOnce != 0 {
 				if j >= 0x3E {
 					panic("kernel: GameActivationLimit on ability index >= 62") // usedRec.ab packs 0x40|ab

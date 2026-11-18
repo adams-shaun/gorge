@@ -373,6 +373,7 @@ func (r *realSide) Project(p *Projection) {
 		*sp.room = r.s.DungeonRoom(uint8(s))
 		*sp.life = int32(kp.Life[s])
 		*sp.poison = int16(r.s.Poison(uint8(s))) // infect / toxic (kw_infect.go)
+		*sp.rad = uint16(r.s.Rad(uint8(s)))      // rad counters (act_radiation.go)
 		if s < 2 {
 			// the kernel packs speed for two seats; a further seat's stays zero
 			*sp.speed = uint8(r.s.Speed(uint8(s))) // CR 702.179 (kw_speed.go)

@@ -4,4 +4,5 @@ value: 25
 forge: Radiation
 census: api Radiation all=22 std=0 mbc=0 sole=6
 state: player 2 (rad)
-status: reserved
+status: active
+doc: ExtRadiation: Radiation (gorge effRadiation): each player Obj names gets B rad counters (coldRad); the precombat-main drain is a source-less trigger (gorge RadiationDrain) that mills the rad count and, per nonland card milled, loses 1 life and removes a rad counter. dirac/act_radiation.go.
