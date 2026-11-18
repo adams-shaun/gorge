@@ -149,8 +149,13 @@ type Face struct {
 	toughness              int32
 	characteristicDefining bool
 	allCreatureTypesCDA    bool
-	cmc                    int32
-	manaProduction         ManaProduction
+	// cdaAddTypes is the type words the face's own unconditional
+	// characteristic-defining AddType$ static adds (Veteran Adventurer's
+	// "CARDNAME is also a Cleric, Rogue, Warrior, and Wizard"), nil when it
+	// prints none. Derived once at load; see CDAAddTypes.
+	cdaAddTypes    []string
+	cmc            int32
+	manaProduction ManaProduction
 
 	// colourIdentity is the face's colour identity, a bitmask over the five
 	// colours (see ColourIdentity in face.go), derived once at load from the

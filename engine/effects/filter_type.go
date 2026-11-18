@@ -28,6 +28,9 @@ func hasTypeID(o *state.Object, t string, id cards.TypeWordID) bool {
 	if d != typeUndecided {
 		return d == typeYes
 	}
+	if cdaAddTypeHas(o, t) {
+		return true
+	}
 	// Intrinsic type-defining abilities, answered in every zone (CR 613.4a):
 	// Changeling's keyword and the characteristic-defining
 	// AddAllCreatureTypes$ True static (Mistform Ultimus). Both go through
@@ -35,6 +38,31 @@ func hasTypeID(o *state.Object, t string, id cards.TypeWordID) bool {
 	// Alara, Ajani) can never leak, and neither materialises subtypes into
 	// the derived type list.
 	return IntrinsicAllCreatureTypes(o) && changelingType(t)
+}
+
+// cdaAddTypeHas is the intrinsic tail's AddType$ CDA member: the face's own
+// unconditional characteristic-defining AddType$ static (Veteran
+// Adventurer's "CARDNAME is also a Cleric, Rogue, Warrior, and Wizard") names
+// exactly its listed words, and CR 613.4a answers it in every zone — a hand
+// card's types are what its printed text and its characteristic-defining
+// abilities say, not the battlefield layer walk's. A face-down permanent has
+// no abilities (CR 708.2), and the layer walk's published list (which
+// evaluates the same static on the battlefield, conditions included) is
+// authoritative where it exists, so the fallback never outranks it.
+func cdaAddTypeHas(o *state.Object, t string) bool {
+	if o == nil || o.FaceDownHidden() {
+		return false
+	}
+	f := o.Face()
+	if f == nil {
+		return false
+	}
+	for _, x := range f.CDAAddTypes() {
+		if strings.EqualFold(x, t) {
+			return true
+		}
+	}
+	return false
 }
 
 // hasTypeSub is hasType with changelingType(t) supplied precomputed as sub
@@ -45,6 +73,9 @@ func hasTypeSub(o *state.Object, t string, id cards.TypeWordID, sub bool) bool {
 	d, _ := hasTypePrinted(o, t, id)
 	if d != typeUndecided {
 		return d == typeYes
+	}
+	if cdaAddTypeHas(o, t) {
+		return true
 	}
 	return sub && IntrinsicAllCreatureTypes(o)
 }
