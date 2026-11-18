@@ -20,7 +20,6 @@ Mogg Mob
 Mountain
 Plains
 Silent Specter
-Smiting Helix
 Swamp
 Tenacity
 Tragic Fall
