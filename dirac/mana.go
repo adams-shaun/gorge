@@ -1626,12 +1626,12 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				// in battlefield order (paymentPlanManaUnitsOnlyCompute)
 				choice = choice || sac
 				// a grant of fixed production (Rok-Tahk's {G}{G} to a creature,
-				// Rishkar's {G} to a creature with a counter) makes the source's
-				// census unit in the shared census, at its battlefield position;
-				// its own choice-shaped or evaluated-amount ability joins that unit
-				// (pay.AppendUnitAlt: Ilysian Caryatid's two of one colour, pairs
-				// 231, 1120)
-				fixedGrant := (choice || pc.manaDyn) && !sac && k.gen != nil && len(k.gen.grantPC) > 0 && s.grantMay(k, sl) && s.grantsFixedMana(k, sl)
+				// Rishkar's {G} to a creature with a counter, Jaheira's {T}: Add
+				// {G} to a token) makes the source's census unit in the shared
+				// census, at its battlefield position, whatever shape its own
+				// ability has: its own choice-shaped, evaluated-amount or
+				// tap-and-sacrifice ability joins that unit (pay.AppendUnitAlt)
+				fixedGrant := (choice || pc.manaDyn) && k.gen != nil && len(k.gen.grantPC) > 0 && s.grantMay(k, sl) && s.grantsFixedMana(k, sl)
 				if fixedGrant {
 					choice = false
 				}
@@ -2312,7 +2312,13 @@ func (pk *planner) seqCols(tys *[maxUnits]uint8, n int, col *[maxUnits]uint8) {
 }
 
 // lexLeast builds, for count vector kv, the unit choice whose ObjID
-// sequence in unit order is lexicographically least. Returns its length.
+// sequence in unit order is lexicographically least, as gorge's witness
+// defines it (pay materialize): each step is the smallest-ID unit of one
+// type drawn from that type's not-yet-passed members up to its limit — the
+// latest position that still leaves the type's remaining need enough later
+// members — and no type steps past the second-smallest limit's
+// predecessor, so one type cannot leap over another type's forced member.
+// Returns its length.
 func (pk *planner) lexLeast(kv *[maxTypes]uint8, out *[maxUnits]uint8) int {
 	var need [maxTypes]int
 	total := 0
@@ -2327,49 +2333,55 @@ func (pk *planner) lexLeast(kv *[maxTypes]uint8, out *[maxUnits]uint8) int {
 			need[t] = 0
 		}
 	}
-	// rem: units of each type at positions >= pos (a running suffix count:
-	// no per-position table to zero)
-	var rem [maxTypes]uint8
-	for i := 0; i < pk.nu; i++ {
-		rem[pk.utyp[i]]++
+	// each type's members in unit order (gorge's class members), with a
+	// per-type cursor of the members no step has passed yet
+	var mem [maxTypes][maxUnits]uint8
+	var memN, next [maxTypes]int
+	for u := 0; u < pk.nu; u++ {
+		t := pk.utyp[u]
+		mem[t][memN[t]] = uint8(u)
+		memN[t]++
 	}
 	n := 0
-	pos := 0
 	for n < total {
-		bestU := -1
-		cur := rem // the suffix after u, as u advances
-		for u := pos; u < pk.nu; u++ {
-			t := pk.utyp[u]
-			cur[t]--
+		low1, low2, lowT := pk.nu, pk.nu, -1
+		for t := 0; t < pk.nt; t++ {
 			if need[t] == 0 {
 				continue
 			}
-			// feasible: after u, the remaining needs fit
-			ok := true
-			for tt := 0; tt < pk.nt; tt++ {
-				r := need[tt]
-				if tt == int(t) {
-					r--
-				}
-				if r > int(cur[tt]) {
-					ok = false
-					break
-				}
+			if l := int(mem[t][memN[t]-need[t]]); l < low1 {
+				low1, low2, lowT = l, low1, t
+			} else if l < low2 {
+				low2 = l
 			}
-			if !ok {
+		}
+		bestU, bestT := -1, -1
+		for t := 0; t < pk.nt; t++ {
+			if need[t] == 0 {
 				continue
 			}
-			if bestU < 0 || pk.uobj[u] < pk.uobj[bestU] {
-				bestU = u
+			upper := int(mem[t][memN[t]-need[t]])
+			other := low1
+			if t == lowT {
+				other = low2
+			}
+			if other != pk.nu {
+				upper = min(upper, other-1)
+			}
+			for j := next[t]; j < memN[t] && int(mem[t][j]) <= upper; j++ {
+				if u := int(mem[t][j]); bestU < 0 || pk.uobj[u] < pk.uobj[bestU] {
+					bestU, bestT = u, t
+				}
 			}
 		}
 		out[n] = uint8(bestU)
 		n++
-		need[pk.utyp[bestU]]--
-		for u := pos; u <= bestU; u++ {
-			rem[pk.utyp[u]]--
+		need[bestT]--
+		for t := 0; t < pk.nt; t++ {
+			for next[t] < memN[t] && int(mem[t][next[t]]) <= bestU {
+				next[t]++
+			}
 		}
-		pos = bestU + 1
 	}
 	return n
 }
