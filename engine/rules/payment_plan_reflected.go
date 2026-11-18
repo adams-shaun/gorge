@@ -38,6 +38,25 @@ func paymentPlanReflectedAlt(e *Engine, p state.PlayerID, id state.ObjID, ma *ca
 	return windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Any: true}, true
 }
 
+// paymentPlanReflectedProductions is a reflected ability's productions read
+// from its census alternative (paymentPlanReflectedAlt) in place of
+// pay.PaymentPlanProductions: a ManaReflected body has no Produced$, so the
+// pay read names no production and the bound never added a tap trigger's
+// extra mana (Overgrowth's additional {G}{G} beside a Reflecting Pool, CR
+// 605.1b) to it. Each candidate colour is one production, the choices the
+// planner expands the unit into. The source-interference verdict keeps the
+// pay read: a reflected source stays an ordinary unit beside an unvetted Taps
+// watcher.
+func paymentPlanReflectedProductions(alt windowManaAlt) []string {
+	var out []string
+	for i, n := range alt.Counts {
+		if n > 0 {
+			out = append(out, string(cards.ManaSymbol(i)))
+		}
+	}
+	return out
+}
+
 // addPotentialReflected folds a pay.PaymentPlanReflectedShape ability into
 // PotentialMana's bound as the colours the payment-plan census offers for it
 // (each candidate colour at the ability's amount), and reports whether it
