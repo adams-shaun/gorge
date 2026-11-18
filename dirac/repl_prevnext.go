@@ -44,7 +44,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // ExileOnMoved$ Battlefield, and a creature that comes back is a new object) or
 // at the turn change. It never competes: beside a second shield or anything
 // prevNextCompetes reports, the kernel stalls StallPrevNext (a bounded pool
-// stalls at 255 too, so no real pool can look like the sentinel).
+// stalls at 255 too, so no real pool can look like the sentinel). Two or more
+// unbounded shields with no rider alone on one recipient (Wellgabber Apothecary
+// activated twice) are bare full preventions: no order ask, the first applies
+// (pnxBare, barePrevOnly).
 //
 // Ria Ivor's form adds riders to the unbounded shield: kop.PrevNextPlayers
 // matches a player recipient only, kop.PrevNextEndCombat ends the record with
@@ -145,6 +148,28 @@ func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
 	s.capFull(StallPrevCol) // loud: never drop an effect
 }
 
+// pnxBare reports whether record i is an unbounded shield with no rider and no
+// source key: gorge's bare "prevent all damage to it" Effect line (Wellgabber
+// Apothecary, Shielded Passage). It prevents the whole event and is never
+// spent, so beside another bare prevention the order is unobservable and gorge
+// poses no CR 616.1 ask (barePrevOnly).
+func (s *State) pnxBare(i int) bool {
+	r := &s.g.prevCol[i]
+	return r.sc&prevNextSc != 0 && r.col == prevNextAll && s.g.prevX[i]&(pxFrom|pxRider) == 0
+}
+
+// pnxBareMask is the bits of pnx (the candidates that are shield records, whose
+// cand entry holds the record's index) that are bare unbounded shields.
+func (s *State) pnxBareMask(cand *[4]Obj, pnx uint8) uint8 {
+	var b uint8
+	for j := range cand {
+		if pnx&(1<<j) != 0 && s.pnxBare(int(cand[j])) {
+			b |= 1 << j
+		}
+	}
+	return b
+}
+
 // pnxLive reports whether any depleting shield has damage left.
 func (s *State) pnxLive() bool {
 	for i := range s.g.prevCol {
@@ -186,11 +211,14 @@ func (s *State) pnxMatches(i int, code TCode, srcSl Slot, combat bool) bool {
 // applied; false leaves the event to the other prevention and replacement
 // arms.
 func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, rcp uint8, sl Slot, combat bool, n int) (int, bool) {
-	hit, at, rider, tokRider := 0, -1, false, false
+	hit, bare, at, rider, tokRider := 0, 0, -1, false, false
 	for i := range s.g.prevCol {
 		if s.pnxMatches(i, code, srcSl, combat) {
 			hit++
 			at = i
+			if s.pnxBare(i) {
+				bare++
+			}
 			if s.g.prevX[i]&(pxFrom|pxRidGain) == pxFrom|pxRidGain {
 				rider = true // a gain rider: gorge runs the body (repl_prevx.go)
 			}
@@ -225,7 +253,7 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 		s.capFull(StallPrevRider)
 		return n, false
 	}
-	if hit > 1 || s.prevNextCompetes(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
+	if hit > 1 && bare < hit || s.prevNextCompetes(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
 		if rider {
 			s.capFull(StallPrevRider) // a body is never a bare prevention: gorge asks the order
 		} else {
@@ -378,10 +406,12 @@ func (s *State) prevNextCands(k *prep, code TCode, srcSl Slot, combat bool, cand
 		s.capFull(StallPrevRider) // loud: a body is never a bare prevention, gorge asks the order
 		return -1
 	}
-	for j := start; c-start > 1 && j < c; j++ {
-		if s.g.prevCol[cand[j]].col == prevNextAll {
-			s.capFull(StallPrevNext) // an unbounded shield and another on one recipient: no order ask
-			return -1
+	if c-start > 1 && s.pnxBareMask(cand, uint8((1<<c-1)&^(1<<start-1))) != uint8((1<<c-1)&^(1<<start-1)) {
+		for j := start; j < c; j++ {
+			if s.g.prevCol[cand[j]].col == prevNextAll {
+				s.capFull(StallPrevNext) // an unbounded shield and a depleting one on one recipient: no order ask
+				return -1
+			}
 		}
 	}
 	if c > start && start > 0 && uint8((1<<start)-1)&^prevMask != 0 {
