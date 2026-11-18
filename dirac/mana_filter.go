@@ -714,10 +714,13 @@ func sacOnlyManaAb(a *kop.Ability) bool {
 // registersGapOther: mana ability j of c (a) is a census gap of its own, for
 // gfGapOther. Not Quirion Elves' chosen {T}, which prepMultiMana folds into the
 // source's unit (registering it as a gap would keep a filter beside it off the
-// filtScript path), and not a sacrifice-only one, a census unit in the
-// last-resort tier (a filter beside it stays filter-only).
+// filtScript path), not a sacrifice-only one, a census unit in the
+// last-resort tier (a filter beside it stays filter-only), and not a sole
+// life-only one, the planner's last-resort Consequence{Life} alternative the
+// pain unit prepSoleLifeMana classifies (mana_pain.go).
 func registersGapOther(c *kop.CardDef, a *kop.Ability, j int) bool {
-	return censusGapMana(a) && !lifePainLandAb(c, a) && !kop.ChosenSecondManaAb(c, firstManaAb(c), j) && !sacOnlyManaAb(a)
+	return censusGapMana(a) && !lifePainLandAb(c, a) && !kop.ChosenSecondManaAb(c, firstManaAb(c), j) && !sacOnlyManaAb(a) &&
+		!kop.SoleGapLifeManaAb(c, j)
 }
 
 // filtOnly: p's census gaps are filters alone (no other activatable source
