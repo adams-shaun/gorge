@@ -55,6 +55,11 @@ var addedAfterTheSplit = []string{
 	// "When CARDNAME becomes renowned" (Relic Seeker) and "Whenever you
 	// complete a dungeon" (Varis), matching the Renowned mark and DungeonComplete.
 	"BecomeRenowned", "DungeonCompleted",
+	// "Whenever a spell or ability you control counters a spell" (Baral), "whenever a
+	// player mills one or more creature cards" (Zellix) and "whenever the final
+	// chapter ability of a Saga you control resolves" (Tom Bombadil, Narci); the
+	// first and last read marker Kinds appended for them.
+	"Countered", "MilledOnce", "AbilityResolves",
 	// rolled-die-trigger: "Whenever you roll a die ..." (CR 706; Mr. House,
 	// Celebr-8000, Feywild Trickster). RolledDie fires once per die, each with
 	// its own result, and its sibling RolledDieOnce fires once per roll action

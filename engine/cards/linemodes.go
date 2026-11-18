@@ -149,7 +149,12 @@ const (
 	// DayTimeChanges ("whenever day becomes night or night becomes day",
 	// Brimstone Vandal), appended so every earlier ordinal is unchanged.
 	TriggerDayTimeChanges TriggerMode = 106
-	TriggerModeCount                  = 107 // one past the last; sizes a dense per-TriggerMode array
+	// Countered (Baral), MilledOnce (Zellix) and AbilityResolves (Tom Bombadil,
+	// Narci), appended so every earlier ordinal is unchanged.
+	TriggerCountered       TriggerMode = 107
+	TriggerMilledOnce      TriggerMode = 108
+	TriggerAbilityResolves TriggerMode = 109
+	TriggerModeCount                   = 110 // one past the last; sizes a dense per-TriggerMode array
 )
 
 var triggerModeNames = [TriggerModeCount]string{
@@ -259,6 +264,9 @@ var triggerModeNames = [TriggerModeCount]string{
 	TriggerBecomeRenowned:             "BecomeRenowned",
 	TriggerDungeonCompleted:           "DungeonCompleted",
 	TriggerDayTimeChanges:             "DayTimeChanges",
+	TriggerCountered:                  "Countered",
+	TriggerMilledOnce:                 "MilledOnce",
+	TriggerAbilityResolves:            "AbilityResolves",
 }
 
 var triggerModeCodes = func() StrCodes[TriggerMode] {
