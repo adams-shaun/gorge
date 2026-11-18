@@ -23,6 +23,7 @@ const (
 	sclsWarpG                      // StatWarpGrant (kw_warpgrant.go)
 	sclsEscapeG                    // StatEscapeGrant (kw_escape.go)
 	sclsGyCont                     // the card's own StatContinuous that works from its graveyard (static_gycont.go)
+	sclsOffKwG                     // StatOffZoneGrant or StatRetraceGrant, an off-zone grant (kw_offkwgrant.go)
 )
 
 // prepOverrideLandwalk (called from prepStaticClasses, once per table; kw_evasion.go landwalkPumped reads it) sets genPrep.anyLandwalk when any override record of
@@ -86,6 +87,8 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 				m |= sclsWarpG
 			case kop.StatEscapeGrant:
 				m |= sclsEscapeG
+			case kop.StatOffZoneGrant, kop.StatRetraceGrant:
+				m |= sclsOffKwG
 			}
 		}
 		g.sCls[i] = m

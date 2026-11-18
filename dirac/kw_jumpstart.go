@@ -28,7 +28,7 @@ package dirac
 
 // jumpStartEntry reports whether the spell entry e is a jump-start cast.
 func jumpStartEntry(k *prep, e *stackEntry) bool {
-	return e.kind == seSpell && k.t.Cards[e.card].JumpStart && retraceEntry(&k.t.Cards[e.card], e)
+	return e.kind == seSpell && k.t.Cards[e.card].JumpStart && retraceEntry(e)
 }
 
 // DebugJumpStartNoExile skips the exile stamp (TestMBCJumpStartExileMutation:
