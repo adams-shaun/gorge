@@ -927,6 +927,9 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	if sacXCost(spellAddCost(k, c)) {
 		return false // an announced Sac<X/Spec>: the potential planner's composition declines it too, so only the floating pool offers it (cost_sacx.go)
 	}
+	if ac := spellAddCost(k, c); discardXCost(ac) && cd.Cost.X == 0 {
+		return s.discardXLowers(k, p, c, o, mayPlay) // cost_discardxl.go
+	}
 	if cd.HasAltAdd {
 		cost := s.altAddPlanCost(k, p, c, o)
 		if s.g.availX&availGaps != 0 {
