@@ -1034,11 +1034,15 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 			cost := s.featCost(k, p, c, o, k.cards[c].cost)
 			s.g.noTgtRed = false
 			cost = s.mayRiderCost(cost, anyColor)
+			if !several {
+				// gorge's potential planner declines the target-dependent cast's
+				// prefix search (potentialTargetPriced), so only its census pays:
+				// no granted source, as the hand arm below (Song of Freyalise's
+				// creature mana beside Esior's raise, Arrow Storm from exile)
+				return s.ungrantedPaysNoDH(k, p, c, o, &cost)
+			}
 			if s.offerSourcesAfford(k, p, c, o, &cost) {
 				return true
-			}
-			if !several {
-				return false
 			}
 			cost = s.featCost(k, p, c, o, k.cards[c].cost)
 			cost = s.mayRiderCost(cost, anyColor)
