@@ -1,7 +1,10 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Radha's Firebrand	9bb8826a82a6fd15	51	2/2		1/1	
+A-Radha, Coalition Warlord	dd8f458c6e956fb0	6	2/2		0/1	ix:resp
 A-Sepulcher Ghoul	d6bf4570b4f377f2	4	1/1		0/1	ix:resp
 Aerial Maneuver	6d789a24a5db71d1	8	0/0		2/2	
 Afflict	3c5dbdec69877f16	8	0/0		1/2	ix:resp
+Amarant Coral	2897229113dccc17	18	1/1		0/1	ix:resp
 Ampryn Tactician	78393dfa814ff9b0	4	1/1		0/1	ix:resp
 Anointed Chorister	a1a4a8e30cc6fdf0	12	1/1		1/1	
 Anurid Murkdiver	e860ed1a2064e238	5	0/0		0/0	
@@ -18,7 +21,9 @@ Black Widow, Agile Avenger	6aa34680b81ddc9f	20	1/1		1/1
 Bloodflow Connoisseur	ea91caa4bafa6b7b	4	1/1		0/1	ix:resp
 Boonweaver Giant	0b5c662b200fc9aa	32	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bramble Wurm	972b7169d0a0bb11	15	2/2		1/1	
+By Force	cc9582497b51a685	34	0/0		4/4	
 Char	87e447d24c46247d	8	0/0		2/2	
+Chishiro, the Shattered Blade	bb0d8769ddd3e10f	8	2/2		0/1	ix:resp
 Chrome Cat	019954283153ccf8	3	1/1		0/1	ix:resp
 Conclave's Blessing	5af9dfb31f932465	8	0/0		2/2	
 Corpse Hauler	27ecc9234ab3e274	4	1/1		0/1	ix:resp
@@ -58,6 +63,7 @@ Inspired Inventor	074d78e9432dd201	4	1/1		0/1	ix:resp
 Into the Time Vortex	76c61f7caf6cc378	4	0/0		2/2	
 Inviolability	12b773b06004b6ae	15	0/0		1/2	ix:resp
 Jace's Erasure	6594167cb3eb0284	32	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Kappa Tech-Wrecker	ad554dd291449691	29	2/2		1/1	
 Kathari Screecher	26f530fe193c5391	15	1/1		0/1	ix:resp
 King Cheetah	ab770006fdaefd98	22	0/0		0/0	
 Kitchen Finks	a010b7b4dc47f0ab	12	2/2		1/1	
@@ -76,6 +82,8 @@ Magic Missile	21c55cd784c607f7	32	0/0		2/2
 Manriki-Gusari	7ffd80d40df8fa90	4	1/1		0/1	ix:resp
 Map the Wastes	0bf7aba59b8f8d3e	18	0/0		1/2	ix:resp
 Marsh Viper	283d0ef14fbad099	3	1/1		1/1	
+Mary Read and Anne Bonny	abef3ea4180dd477	27	2/2		1/1	
+Mask of the Jadecrafter	3647839288e508f1	104	2/2		1/1	
 Mending Hands	73cceaa8dddf6c9f	3	0/0		1/2	ix:resp
 Metrognome	91c948c9b45b79b3	4	2/2		1/1	
 Mindwarper	17459aef9f8c5f7c	8	1/1		0/1	ix:resp
@@ -84,6 +92,7 @@ Mire Boa	7c3347c5ed2d4321	10	1/1		1/1
 Morkrut Behemoth	d17c32024be85eac	6	0/0		0/0	
 Mounted Dreadknight	b2a92285d200376c	4	0/0		0/0	
 Multiform Wonder	9b53cdbcb2f74226	7	3/3		1/1	
+Nefarox, Overlord of Grixis	a9aacbfe586ae325	39	2/2		1/1	
 Nightscape Familiar	5c488d18479da3b1	14	1/1		1/1	
 Nightshade Assassin	25e10d5dbf513315	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Nimble Pilferer	953b62840166e05e	5	0/0		0/0	
@@ -104,7 +113,9 @@ Raise the Draugr	3a6bce1aceecb102	7	0/0		1/2	ix:resp
 Reckless Scholar	1d8b8c1f92a50bee	42	1/1		1/1	
 Regisaur Alpha	79143c56fe1c40a8	21	1/1		0/1	ix:resp
 Remove Soul	ce5a10b69c1a1774	26	0/0		2/2	
+Rending Flame	121e4f1a1a8c8243	69	0/0		2/2	
 Retreat to Hagra	4ec8e3c5565ef945	8	1/1		0/1	ix:resp
+Ring of Evos Isle	9bff8204f5d902c6	106	3/3		1/1	
 Rise Again	015fe9e41594ddcf	18	0/0		1/2	ix:resp
 Roil Cartographer	4fe4a0de4ab7a1b5	38	2/2		1/1	
 Roving Harper	0c1aebdec205843b	4	1/1		0/1	ix:resp
@@ -136,11 +147,13 @@ Territory Culler	bcfb8b06542b5550	24	1/1		1/1
 Teyo's Lightshield	8c2093fd7e4e7451	5	1/1		1/1	
 Teysa Karlov	cf7ead8791572676	16	0/0		0/0	
 The Prydwen, Steel Flagship	23535f5b61730bec	29	2/2		1/1	
+The Wasp, Winsome Avenger	79bad488e13c5f6a	62	2/2		1/1	
 Tidal Wave	a63e7bf9dac65c88	10	0/0		2/2	
 Treachery	3ce0072feacef208	3	1/1		1/2	ix:resp
 Trokin High Guard	7063ae8de6d1272e	4	0/0		0/0	
 Two-Headed Giant of Foriys	97fe9df449f4a528	16	0/0		0/0	
 Two-Headed Zombie	334a74a5250e0791	8	0/0		0/0	
+Urza's Rage	ce7960b72f854a29	91	0/0		3/4	cast/alt:kicked
 Valeron Outlander	d9d5231f2346cbaa	11	0/0		0/0	
 Valley Dasher	6ba9aba7bd8ce257	38	0/0		0/0	
 Vine Trellis	6abdc8240bf3189d	38	1/1		1/1	

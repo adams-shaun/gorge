@@ -1,5 +1,6 @@
 A-Hobbling Zombie
 A-Skyclave Shadowcat
+Act of Aggression
 Adric, Mathematical Genius
 Aegis Automaton
 Aerie Worshippers
@@ -102,6 +103,7 @@ Eidolon of Blossoms
 Eiganjo Uprising
 Eladamri's Call
 Elder Cathar
+Elderfang Venom
 Elderleaf Mentor
 Elvish Ranger
 Emerald Oryx
@@ -201,10 +203,12 @@ Mindless Automaton
 Mindstatic
 Mirror Wall
 Mob
+Moltensteel Dragon
 Monk Realist
 Morbid Plunder
 Mountain
 Mystifying Maze
+Navigation Orb
 Nearheath Chaplain
 Niambi, Faithful Healer
 Nishoba Brawler
@@ -319,6 +323,7 @@ Tangle Mantis
 Tangle Spider
 Tangled Islet
 Target Minotaur
+Tattermunge Duo
 Temur Runemark
 Tenth District Veteran
 Tergrid's Shadow

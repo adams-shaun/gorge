@@ -15,6 +15,7 @@ Angel of the Dire Hour
 Angelic Overseer
 Annihilate
 Apostle of Purifying Light
+Aquastrand Spider
 Archfiend of Despair
 Arnjlot's Ascent
 Aspect of Gorgon
@@ -28,10 +29,12 @@ Beacon of Creation
 Beckon Apparition
 Big Mother Mouser
 Blessed Hippogriff
+Blind Obedience
 Blue Sun's Twilight
 Bola Slinger
 Bonds of Faith
 Bone Shards
+Bottle Gnomes
 Brazen Wolves
 Breath of Fire
 Brightling
@@ -48,10 +51,12 @@ Cateran Kidnappers
 Cavalier of Flame
 Chasm Guide
 Chief of the Scale
+Cloudkin Seer
 Colossal Majesty
 Combo Attack
 Consulate Turret
 Coral Helm
+Crashing Drawbridge
 Daze
 Deathbringer Thoctar
 Deathforge Shaman
@@ -68,9 +73,12 @@ Drag to the Bottom
 Dragon Arch
 Dragonsguard Elite
 Dramatic Reversal
+Dromoka Warrior
 Dying Wish
+Earth Rift
 Earthquake
 Eidolon of Astral Winds
+Elemental Appeal
 Elven Rite
 Embrace the Unknown
 Emergent Growth
@@ -80,12 +88,14 @@ Exclude
 Exotic Curse
 Expendable Lackey
 Explosive Apparatus
+Fabled Hero
 Faith Unbroken
 Farfinder
 Fen Stalker
 Feral Krushok
 Fervent Cathar
 Fever Charm
+Fire Urchin
 Fleeting Memories
 Flickerwisp
 Forced Worship
@@ -147,12 +157,15 @@ Lifecrafter's Gift
 Lithatog
 Llanowar Envoy
 Lodestone Golem
+Lost in Memories
 Loxodon Punisher
 Lunar Mystic
 Lunarch Mantle
+Mana Vault
 Marker Beetles
 Masterwork of Ingenuity
 Maw of the Mire
+Meekstone
 Melancholy
 Merchant of Truth
 Merciless Repurposing
@@ -185,6 +198,7 @@ Pearled Unicorn
 Pensive Minotaur
 Perish
 Petals of Insight
+Phantasmal Fiend
 Pippin's Bravery
 Plains
 Plated Crusher
@@ -198,6 +212,7 @@ Pure Reflection
 Purple-Crystal Crab
 Pursued Whale
 Raging Cougar
+Raging Poltergeist
 Raise the Palisade
 Rakalite
 Rapid Decay
@@ -210,6 +225,7 @@ Ridgescale Tusker
 Roots of Wisdom
 Runeboggle
 Sacellum Archers
+Sacred Guide
 Scoria Elemental
 Scrapper Champion
 Scurry Oak
@@ -218,9 +234,11 @@ Sealock Monster
 Search for Glory
 Searing Spear
 Secure Detention
+Shackles
 Shadows of the Past
 Sigiled Sentinel
 Silverquill Pledgemage
+Skittering Skirge
 Skybind
 Slashing Tiger
 Sleeping Potion
@@ -231,6 +249,7 @@ Spectral Grasp
 Spelltithe Enforcer
 Sphere of Safety
 Spite of Mogis
+Spread the Sickness
 Star of Extinction
 Stifle
 Stoke the Flames
@@ -266,6 +285,7 @@ Vitality Charm
 Vodalian Hypnotist
 Voice of Grace
 Vow of Torment
+Wall of Granite
 Warden of the Beyond
 Warrior's Charge
 Watchful Automaton
