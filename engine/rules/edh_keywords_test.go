@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -65,5 +66,65 @@ func TestEDHKeywordsRampagePumpsPerExtraBlocker(t *testing.T) {
 	e2.resolveTop()
 	if e2.Power(alone) != 4 || e2.Toughness(alone) != 6 {
 		t.Fatalf("single blocker after resolution = %d/%d, want 4/6", e2.Power(alone), e2.Toughness(alone))
+	}
+}
+
+// TestEDHKeywordsTransfigureTutorsSameManaValue plays Fleshwrither's printed
+// Transfigure 1BB (CR 702.71) as a real activation: the cost sacs the
+// creature and the search offers exactly the mana-value-four creatures from
+// the library, the chosen one entering the battlefield.
+func TestEDHKeywordsTransfigureTutorsSameManaValue(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	fleshwrither, ok := reg.Lookup("Fleshwrither")
+	if !ok {
+		t.Fatal("Fleshwrither not in the corpus")
+	}
+	if got, ok := fleshwrither.Faces[0].KeywordParam("Transfigure"); !ok || got != "1 B B" {
+		t.Fatalf("Fleshwrither keyword param = %q (%v), want Transfigure 1 B B", got, ok)
+	}
+	e := handEngine(t, fleshwrither)
+	fw := e.G.Zone(state.ZHand, 0)[0]
+	placeOnBattlefield(t, e, fw)
+	// handEngine's library is all Mountains (mana value zero, not creatures),
+	// so the search would correctly find nothing unmodified. Seed a
+	// mana-value-four creature for it to find.
+	mv4 := card(t, "Name:Mannequin Giant\nManaCost:2 B B\nTypes:Creature Giant\nPT:4/4\nOracle:x\n")
+	sObj := e.G.AddObject(mv4, 0)
+	e.G.SetZone(state.ZLibrary, 0, append([]state.ObjID{sObj.ID}, e.G.Zone(state.ZLibrary, 0)...))
+	wanted := sObj.ID
+	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MB] = 1, 2
+	var opt decision.Option
+	for _, o := range e.legalActions(0) {
+		if o.Kind == "ability" && o.Obj == fw {
+			opt = o
+			break
+		}
+	}
+	if opt.Kind != "ability" {
+		t.Fatal("Fleshwrither Transfigure activation not offered")
+	}
+	e.beginActivation(0, opt)
+	if e.G.Obj(fw).Zone != state.ZGraveyard {
+		t.Fatalf("Transfigure sacrifice zone=%s", e.G.Obj(fw).Zone)
+	}
+	e.pending = nil // the kernel probe serves asks only with no decision posed
+	e.resolveTop()
+	d := e.Pending()
+	choice := -1
+	if d != nil {
+		for i, o := range d.Options {
+			if o.Obj == wanted {
+				choice = i
+				break
+			}
+		}
+	}
+	if choice < 0 {
+		t.Fatalf("Transfigure did not offer the mana-value-four library card: %+v", d)
+	}
+	submitChoices(t, e, choice)
+	if e.G.Obj(wanted).Zone != state.ZBattlefield {
+		t.Fatalf("Transfigure target zone=%s, want battlefield", e.G.Obj(wanted).Zone)
 	}
 }

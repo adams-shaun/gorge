@@ -92,6 +92,13 @@ func init() {
 		// TestRadicalIdeaJumpstartCastsDiscardsAndExiles.
 		"kw:Jump-start",
 		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling",
+		// kw:Transfigure: CR 702.71, the creature's own sorcery-speed
+		// battlefield activation (engine/cards/kw_transfigure.go): the printed
+		// cost plus a sacrifice of itself buys a library search for a creature
+		// card with the same printed mana value put onto the battlefield --
+		// proved by TestEDHKeywordsTransfigureTutorsSameManaValue. It was
+		// never registered, so the coverage ratchet read it as a gap.
+		"kw:Transfigure",
 		// kw:Cascade: CR 702.85, the cast trigger read directly off the K:
 		// line (no keyword expansion — the printed K:Cascade and every
 		// layer-6 AddKeyword$ Cascade grant reach hasCastCascade through the
