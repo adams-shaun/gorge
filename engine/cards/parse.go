@@ -422,3 +422,68 @@ func (t *Trigger) ValidTargetOffBattlefield(spec string) string {
 	out, _ := offBattlefieldTargetSpec(spec)
 	return out
 }
+
+// TrigSAHead is the head word of a trigger's ValidSA$ / ValidSpellAbility$ /
+// ValidCause$ spec, resolved once so the matchers compare codes, not words.
+type TrigSAHead uint8
+
+const (
+	TrigSAHeadOther TrigSAHead = iota
+	TrigSAHeadSpell
+	TrigSAHeadAbility
+	TrigSAHeadSpellAbility
+	TrigSAHeadTriggered
+)
+
+// TrigSAQual is the set of qualifiers a TrigSASpec carries; TrigSAQualOther
+// marks a qualifier the matchers do not know.
+type TrigSAQual uint8
+
+const (
+	TrigSAQualYouCtrl TrigSAQual = 1 << iota
+	TrigSAQualOppCtrl
+	TrigSAQualLastChapter
+	TrigSAQualOther
+)
+
+// TrigSASpec is a parsed "<Head>[.<qual>[+<qual>...]]" spec. Rest is the raw
+// text after the head's first dot (Spell.Creature+wasCastByYou reads it as a
+// card filter), Quals the known qualifiers within it.
+type TrigSASpec struct {
+	Head  TrigSAHead
+	Quals TrigSAQual
+	Rest  string
+}
+
+// ParseTrigSASpec parses a ValidSA$-style spec. An unknown head is
+// TrigSAHeadOther and an unknown qualifier sets TrigSAQualOther.
+func ParseTrigSASpec(spec string) TrigSASpec {
+	head, rest, _ := strings.Cut(spec, ".")
+	s := TrigSASpec{Rest: rest}
+	switch head {
+	case "Spell":
+		s.Head = TrigSAHeadSpell
+	case "Ability":
+		s.Head = TrigSAHeadAbility
+	case "SpellAbility":
+		s.Head = TrigSAHeadSpellAbility
+	case "Triggered":
+		s.Head = TrigSAHeadTriggered
+	}
+	if rest == "" {
+		return s
+	}
+	for q := range strings.SplitSeq(rest, "+") {
+		switch q {
+		case "YouCtrl":
+			s.Quals |= TrigSAQualYouCtrl
+		case "OppCtrl":
+			s.Quals |= TrigSAQualOppCtrl
+		case "LastChapter":
+			s.Quals |= TrigSAQualLastChapter
+		default:
+			s.Quals |= TrigSAQualOther
+		}
+	}
+	return s
+}

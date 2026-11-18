@@ -45,6 +45,8 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		}
 	case cards.TriggerFacesDilemma:
 		c.TriggerPlayer = player(ev.Player)
+	case cards.TriggerCountered, cards.TriggerAbilityResolves:
+		counterResolveReferents(&c, t.ModeKind(), ev)
 	case cards.TriggerBecomesTarget, cards.TriggerBecomesTargetOnce:
 		// ev.Obj is the targeting spell/ability. TriggerTarget is the TARGETED
 		// object the trigger matched (CR 603.3d), which for a ValidTarget$
@@ -220,7 +222,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// An unbatched event is a batch of one; closeZoneBatch overrides the
 		// amount with the batch's moved count (TriggerCount$Amount).
 		c.TriggerAmount = 1
-	case cards.TriggerMilled, cards.TriggerMilledAll:
+	case cards.TriggerMilled, cards.TriggerMilledAll, cards.TriggerMilledOnce:
 		// The milled card is ev.Obj (what ValidCard$ matched) and the player
 		// whose library was milled is ev.Player (what ValidPlayer$ matched),
 		// so TriggerPlayer names whose mill this was. One milled card is one
@@ -812,4 +814,16 @@ func (e *Engine) becomesTargetReferent(t cards.Trigger, source state.ObjID, ev e
 		return state.Target{Player: ev.Player, IsPlayer: true}
 	}
 	return state.Target{Obj: source}
+}
+
+// counterResolveReferents binds the roles of Mode$ Countered and Mode$
+// AbilityResolves. The countered object is the triggered card. The resolving
+// ability's source (the Saga) is both the triggered card and the TriggerAbility
+// referent Narci's TriggeredSpellAbility$CardManaCost reads ("that Saga's mana
+// value").
+func counterResolveReferents(c *effects.TriggerContext, k cards.TriggerMode, ev events.Event) {
+	c.TriggerCard = ev.Obj
+	if k == cards.TriggerAbilityResolves {
+		c.TriggerAbility = ev.Obj
+	}
 }

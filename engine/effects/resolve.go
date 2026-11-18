@@ -495,6 +495,21 @@ func counterStopped(h Host, c *Ctx, o *state.Object) bool {
 	return false
 }
 
+// emitCountered records that c's source countered stack object id (see
+// events.Countered), only while a battlefield permanent watches Mode$
+// Countered so every other game keeps its chain.
+func emitCountered(h Host, c *Ctx, id state.ObjID, spell bool) {
+	if !AnyBattlefieldTriggerMode(h.Game(), cards.TriggerCountered) {
+		return
+	}
+	var amount int32
+	if spell {
+		amount = 1
+	}
+	h.Emit(events.Event{Kind: events.Countered, Obj: id, Player: c.Controller,
+		Amount: amount, IDs: []state.ObjID{c.Source}})
+}
+
 func effCounter(h Host, c *Ctx, sa *cards.SA) {
 	remember := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberCountered)), "True") ||
 		strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberCounteredSA)), "True")
@@ -558,6 +573,7 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 				From: state.ZStack, To: state.ZExile, Text: "countered"})
+			emitCountered(h, c, o.ID, false)
 			continue
 		}
 		// Destination$ (Remand's "into its owner's hand instead of into that
@@ -612,6 +628,7 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZStack, To: to, Text: "countered"})
+		emitCountered(h, c, o.ID, true)
 		if libraryDest {
 			// MoveZone kept the card's owner and appended it at the bottom;
 			// place it from there (top form reorders, bottom form is already

@@ -200,7 +200,7 @@ func modeTrigKinds(mode cards.TriggerMode) trigKinds {
 //	Taps, TapsForMana             trigmatch.tapsMatches: Tap
 //	Sacrificed                    events.IsSacrifice: MoveZone
 //	Discarded, DiscardedAll       events.IsDiscard: MoveZone
-//	Milled, MilledAll             events.IsMill: MoveZone
+//	Milled, MilledAll, MilledOnce events.IsMill: MoveZone
 //	LandPlayed                    trigmatch.landPlayedMatches: MoveZone
 //	Explores                      trigmatch.exploresMatches: Explore
 //	BecomeMonarch                 trigmatch.BecomeMonarchMatches: MonarchChange
@@ -508,6 +508,7 @@ var modeRejectsHighKindsTab = [cards.TriggerModeCount]bool{
 	cards.TriggerDiscardedAll:               true,
 	cards.TriggerMilled:                     true,
 	cards.TriggerMilledAll:                  true,
+	cards.TriggerMilledOnce:                 true,
 	cards.TriggerLandPlayed:                 true,
 	cards.TriggerExplores:                   true,
 	cards.TriggerBecomeMonarch:              true,
