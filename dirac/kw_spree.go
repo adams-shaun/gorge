@@ -74,6 +74,12 @@ func (s *State) spreeModeAffordable(k *prep, m int) bool {
 	var av avail
 	d := s.payDescNow(NoObj) // pdSpell with the entry's origin (mana_restrictedsource.go)
 	s.availPotentialFor(k, e.ctrl, &av, &d, false)
+	if k.tapMana {
+		// gorge's PotentialMana counts a tap-another or sacrifice-another
+		// source (Krark-Clan Ironworks' {C}{C}) the CR 601.2g window could
+		// activate; the potential walk above leaves it a census gap.
+		s.availTapX(k, e.ctrl, &av)
+	}
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 
