@@ -573,6 +573,47 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) (bool, uint8)
 	return true, 0
 }
 
+// witnessReaches is visit's gapUsed acceptance' witness for the plan a node's
+// options offer for p's plain cast (gorge's scriptSearch.priced runs the same
+// question, potential_witness_targets.go witnessAnnouncesBeforePaying): a
+// spell payable only by paying with a target it announced has no witness, so
+// the node is no terminal. When poolOnly is false the planner prices what the
+// floating pool lacks on a fork — kickWitness's arm: a plan that prices no
+// plan, consumes no sacrifice, or leaves every mandatory target leaves the
+// node as the options read it, and one whose sacrifices' triggers end the
+// game in p's favour is still taken (witnessEndsGameWon, gorge's winOK
+// fallback). A pool-only plan is the steps and the floating pool: their
+// sacrifices are the steps' own, read off this state.
+func (rs *tapXSearch) witnessReaches(k *prep, t *State, poolOnly bool) bool {
+	o := Obj(rs.a.Source())
+	if t.objs[o].zone != kop.ZoneHand {
+		return true // a graveyard or exile cast announces its targets from the stack (spellTargetsFeasibleFrom)
+	}
+	c := t.objs[o].card
+	ab := spellAb(k, c)
+	if ab == 255 || !t.anySacSource(k, rs.p) {
+		return true // no mandatory target the plan could strand, no source the plan could sacrifice
+	}
+	abp := &k.t.Cards[c].Abilities[ab]
+	if !t.abilityTargetsFeasible(k, abp, rs.p, NoSlot, 0xff) {
+		return false // the plan's steps ate a target candidate
+	}
+	if poolOnly {
+		return true // the plan is the steps and the floating pool: no payment left to eat one
+	}
+	f := t.fork()
+	defer t.unfork()
+	cost := f.featCost(k, rs.p, c, o, k.cards[c].cost)
+	n0 := f.npend
+	var pk planner
+	pk.try = true
+	f.tapForPK(k, rs.p, &cost, 0, NoObj, false, false, &pk)
+	if !pk.found || !plannerConsumesSac(&pk) || f.abilityTargetsFeasible(k, abp, rs.p, NoSlot, 0xff) {
+		return true
+	}
+	return f.witnessEndsGameWon(k, rs.p, c, n0)
+}
+
 // tapXNext runs t to p's next decision, passing for the other player while a
 // trigger of the path resolves (gorge scriptSearch.visit assumes they pass),
 // and reports whether there is one. Priority is not offered with the script
@@ -1097,7 +1138,12 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		t.restrOptions(k, &d, p)
 		offered = hasOption(&d, rs.a)
 		if offered && rs.a.Kind() == AkCast && rs.a.Mode()&^3 == 0 && t.FeatPoolPays(p, Obj(rs.a.Source()), rs.a.Mode()&3) {
-			return true
+			if rs.witnessReaches(k, t, true) {
+				return true
+			}
+			offered = false // the witness does not reach the pool-only plan: the node is no terminal, the search branches on
+		} else if offered && rs.a.Kind() == AkCast && rs.a.Mode()&^3 == 0 && !rs.witnessReaches(k, t, false) {
+			offered = false // nor the planned one (the branch below): the node is no terminal, the search branches on
 		}
 	}
 	pl := &t.pl[SeatIx(p)]
