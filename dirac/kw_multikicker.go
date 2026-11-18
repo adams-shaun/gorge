@@ -206,7 +206,7 @@ func (s *State) kickedPotentialPays(k *prep, p uint8, c CardID, o Obj, kc *kop.M
 	if !pa.affords(kc, pipMaskOf(kc), 0) {
 		return false
 	}
-	if !potUnitsAvail(&px, &pu) {
+	if !potUnitsAvail(&px, &pu, int(s.pl[SeatIx(p)].life)) {
 		if open {
 			return false // no bounded census beside an unbounded fold
 		}
