@@ -102,9 +102,10 @@ func (t *Translator) TranslateResponse(msg mb.ClientMessage, p *Pending, seat st
 // priority decision.
 func (t *Translator) translateDirective(d mb.ClientDirective, p *Pending, seat state.PlayerID) Outcome {
 	if d.Directive.Type != "concede" {
-		// Unreachable through the decoder (DirectiveInput accepts only
-		// "concede"); kept as defence so a hand-built value cannot queue.
-		return Outcome{Err: errCode(mb.CodeInvalidShape, "unknown directive "+d.Directive.Type, nil)}
+		// The decoder also accepts the documented-but-unsupported types
+		// (startRecording, stopRecording, requestRepeat, repeatVote), so this
+		// is the refusal for those, and the defence for a hand-built value.
+		return Outcome{Err: errCode(mb.CodeInvalidShape, "directive "+d.Directive.Type+" is not supported by gorge", nil)}
 	}
 	if p != nil && p.Decision != nil && p.Decision.Kind == decision.KPriority && p.Decision.Player == seat {
 		intent, err := ConcedeIntent(p.Decision)
