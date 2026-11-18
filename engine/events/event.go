@@ -1347,10 +1347,34 @@ const (
 	// exile is its own preceding MoveZone event. Appended after SkipPhase so
 	// every earlier ordinal, hash chain and golden replay is unchanged.
 	Haunt
+	// Countered records that a spell or ability countered a stack object (CR
+	// 701.6a; Forge Mode$ Countered): Obj is the countered object, Player the
+	// countering ability's controller, IDs[0] the countering source and Amount 1
+	// when the countered object was a spell (0 an ability). A pure marker,
+	// emitted right after the countered object's MoveZone and only while a
+	// battlefield permanent carries a Mode$ Countered line, so games without
+	// one keep their chains. Appended after Haunt so every earlier ordinal,
+	// hash chain and golden replay is unchanged.
+	Countered
+	// AbilityResolved records that an ability on the stack began to resolve
+	// (Forge Mode$ AbilityResolves): Obj is the ability's source permanent,
+	// Player its controller and Amount the AbilityResolved* flag bits. A pure
+	// marker, emitted with the ability's Resolve event and only while a
+	// battlefield permanent carries a Mode$ AbilityResolves line. Appended
+	// after Countered so every earlier ordinal is unchanged.
+	AbilityResolved
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(Haunt) + 1
+	NumKinds = int(AbilityResolved) + 1
+)
+
+// AbilityResolved's Amount bits: the resolved ability is a triggered one, a
+// Saga chapter ability, and the final chapter's.
+const (
+	AbilityResolvedTriggered int32 = 1 << iota
+	AbilityResolvedChapter
+	AbilityResolvedLastChapter
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving

@@ -12,7 +12,7 @@ import (
 // matching recipients accumulate their counter amount and object referent.
 func batchTriggerAlreadyQueued(open bool, idxMap *map[triggerKey]int, log *[]millBatchEntry, pendingCount int, t cards.Trigger, key triggerKey, ev *events.Event) bool {
 	mode := t.ModeKind()
-	if !open || mode != cards.TriggerMilledAll && mode != cards.TriggerTapAll &&
+	if !open || mode != cards.TriggerMilledAll && mode != cards.TriggerMilledOnce && mode != cards.TriggerTapAll &&
 		mode != cards.TriggerUntapAll && mode != cards.TriggerCounterAddedAll &&
 		mode != cards.TriggerCounterTypeAddedAll {
 		return false

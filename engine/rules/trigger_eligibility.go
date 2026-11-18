@@ -283,6 +283,12 @@ var triggerModeEventRows = [...]struct {
 	{cards.TriggerLandPlayed, 1 << events.MoveZone},
 	{cards.TriggerMilled, 1 << events.MoveZone},
 	{cards.TriggerMilledAll, 1 << events.MoveZone},
+	{cards.TriggerMilledOnce, 1 << events.MoveZone},
+	// Countered and AbilityResolves read marker Kinds (events.Countered,
+	// events.AbilityResolved) past the 64-bit mask's reach: admitted through
+	// the fail-open path and gated by the full matchers (trigmatch).
+	{cards.TriggerCountered, 0},
+	{cards.TriggerAbilityResolves, 0},
 	{cards.TriggerCycled, 1 << events.MoveZone},
 	{cards.TriggerExplores, 1 << events.Explore},
 	// The marker Kind's ordinal is past the 64-bit mask's reach, the
