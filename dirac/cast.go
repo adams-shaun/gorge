@@ -1847,7 +1847,8 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 		s.g.isCast[e.ctrl]++
 	}
 	var pm slotMask
-	if !pc.creature && pc.types&kop.TLand == 0 && !e.faceDown() { // a face-down spell is a creature spell (CR 708.4)
+	// a face-down spell is a creature spell (CR 708.4); a bestowed one is an Aura spell (CR 702.103b)
+	if (!pc.creature || e.bestowedEntry()) && pc.types&kop.TLand == 0 && !e.faceDown() {
 		for m := s.ctrlM[e.ctrl].and(s.occ); m.any(); m = m.rest() {
 			sl := m.first()
 			// a printed prowess is the card's own SpellCast trigger; the
