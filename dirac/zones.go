@@ -890,7 +890,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if k.gen != nil {
 		s.leaveGen(k, sl, o)
 	}
-	if rider != NoSlot {
+	if rider.src != 0 {
 		s.exileRiderRun(k, rider, o)
 	}
 }
