@@ -100,7 +100,14 @@ func (k *prep) ctrSecond(c CardID) bool {
 // whose cost taps it must be untapped and, a creature, not sick), a slot mask.
 //
 //go:noinline
-func (s *State) scriptCtr(k *prep, p uint8) slotMask {
+func (s *State) scriptCtr(k *prep, p uint8) slotMask { return s.scriptCtrIdle(k, p, false) }
+
+// scriptCtrIdle is scriptCtr; idle also lists a storage battery holding no
+// counters (its X is 0: the {T} alone, no mana), the shape gorge's activation
+// ask still offers on a grant holder (grantStoreIdleGaps).
+//
+//go:noinline
+func (s *State) scriptCtrIdle(k *prep, p uint8, idle bool) slotMask {
 	var m slotMask
 	if !k.ctrMana || DebugNoCtrMana {
 		return m
@@ -134,7 +141,7 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 			// A storage battery: the announced X is the counters it holds, so
 			// with none there is no activation. Its {T} is read here, not
 			// through canTapForManaPC (whose plain unit prices one mana, not X).
-			if s.perms[sl].ctrN(s, int(a.Cost.Ctr)) <= 0 {
+			if s.perms[sl].ctrN(s, int(a.Cost.Ctr)) <= 0 && !idle {
 				continue
 			}
 			if a.Cost.Flags&kop.CostTap != 0 && (s.perms[sl].flags&pfTapped != 0 || s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.activationSick(k, sl)) {
@@ -753,6 +760,7 @@ func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
 	pm := &s.perms[sl]
 	n := pm.ctrN(s, int(a.Cost.Ctr))
 	if n <= 0 {
+		s.storeIdleTap(k, sl, a)
 		return
 	}
 	if n > 255 {
