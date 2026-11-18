@@ -5,6 +5,7 @@ package manabrew
 import (
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -18,9 +19,9 @@ const upstreamVersion = "6.4.1"
 // It is written independently of gorge's own types so a kind upstream adds
 // and gorge never heard of fails the census instead of passing it.
 var upstreamCatalogue = map[string][]string{
-	"engineMessage": {"state", "prompt", "engineDirective", "error"},
+	"engineMessage": {"state", "stateDelta", "display", "prompt", "engineDirective", "error"},
 	"clientMessage": {"response", "directive"},
-	"directive":     {"concede", "startRecording", "stopRecording", "requestRepeat", "repeatVote"},
+	"directive":     {"concede", "startRecording", "stopRecording", "requestRepeat", "requestRestore", "repeatVote"},
 	"prompt": {"chooseNumber", "chooseCards", "chooseColor", "chooseBoolean", "chooseFromSelection",
 		"revealCards", "scry", "reorder", "diceRolled", "chooseAction", "payManaCost", "mulligan",
 		"mulliganPutBack", "chooseAttackers", "chooseBlockers", "chooseDamageAssignmentOrder",
@@ -41,7 +42,7 @@ func parseCensus(data string) (version string, rows []censusRow, errs []string) 
 		}
 		f := strings.Split(line, "\t")
 		if len(f) != 5 {
-			errs = append(errs, "line "+itoa(i+1)+": want 5 tab-separated columns")
+			errs = append(errs, "line "+strconv.Itoa(i+1)+": want 5 tab-separated columns")
 			continue
 		}
 		r := censusRow{f[0], f[1], f[2], f[3], f[4]}
@@ -60,17 +61,6 @@ func parseCensus(data string) (version string, rows []censusRow, errs []string) 
 		rows = append(rows, r)
 	}
 	return version, rows, errs
-}
-
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	s := ""
-	for ; n > 0; n /= 10 {
-		s = string(rune('0'+n%10)) + s
-	}
-	return s
 }
 
 // censusProblems is the whole census check, over a TSV text, so the test can
@@ -194,19 +184,27 @@ func TestSchemaCensusMatchesCodecs(t *testing.T) {
 }
 
 // TestDocsManabrewPageNamesOnlyWhatGorgeSends keeps docs/site/api/manabrew.md
-// off the engine kinds gorge never emits.
+// off the engine kinds gorge never emits. It reads the whole paragraph that
+// starts "Engine messages are", however the lines are wrapped.
 func TestDocsManabrewPageNamesOnlyWhatGorgeSends(t *testing.T) {
 	b, err := os.ReadFile("../../../docs/site/api/manabrew.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, line := range strings.Split(string(b), "\n") {
-		if strings.HasPrefix(line, "Engine messages are") {
-			if strings.Contains(line, "stateDelta") || strings.Contains(line, "display") {
-				t.Errorf("the engine-message line names a kind gorge never sends: %s", line)
-			}
-			return
+	for _, para := range strings.Split(string(b), "\n\n") {
+		if !strings.HasPrefix(para, "Engine messages are") {
+			continue
 		}
+		para = strings.ReplaceAll(para, "\n", " ")
+		if !strings.Contains(para, "gorge sends") {
+			t.Errorf("the engine-message paragraph does not say what gorge sends: %s", para)
+		}
+		for _, bad := range []string{"`stateDelta`,", "`display`,", "`display` and"} {
+			if strings.Contains(para, bad) {
+				t.Errorf("the engine-message paragraph lists a kind gorge never sends (%s): %s", bad, para)
+			}
+		}
+		return
 	}
-	t.Error("docs/site/api/manabrew.md has no 'Engine messages are' line")
+	t.Error("docs/site/api/manabrew.md has no 'Engine messages are' paragraph")
 }
