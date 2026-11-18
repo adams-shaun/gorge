@@ -14,14 +14,14 @@ import (
 // {C}), the other gaps are its otherGap steps: their answers branched on in
 // gorge's order, their asks charged to the node budget.
 
-const availNoWide uint8 = 16 // the gaps walk without a wide source's mana (availAnyR)
+const availNoWide uint16 = 16 // the gaps walk without a wide source's mana (availAnyR)
 
 // availNoFilt is the gaps walk with no filter activated: gorge's relaxed proof
 // (paymentPlanRelaxProof) accepts any subset of the paid gaps, the empty one
 // included, while the gaps walk charges every filter's fee. A fee that
 // exceeds its filter's production (School of the Unseen's {2},{T}: one mana
 // of any color) costs a play the other sources pay on their own.
-const availNoFilt uint8 = 32
+const availNoFilt uint16 = 256
 
 const (
 	otherNone uint8 = iota
