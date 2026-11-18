@@ -20,11 +20,14 @@ func (s *State) aloneAtk(k *prep, sl Slot) bool {
 }
 
 // alonePartner reports whether another of the active player's creatures
-// than sl is attacking or could be declared as an attacker.
+// than sl is attacking or could be declared as an attacker: one every
+// attack pair forbids (Varchild's Survivors against its controller,
+// combat_cantattack.go) is no partner, as gorge's validator finds no valid
+// declaration holding it.
 func (s *State) alonePartner(k *prep, sl Slot) bool {
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
 		q := m.first()
-		if q != sl && (s.perms[q].flags&pfAttacking != 0 || s.canAttack(k, q)) {
+		if q != sl && (s.perms[q].flags&pfAttacking != 0 || s.canAttack(k, q) && !s.cantAtkEveryPair(k, q)) {
 			return true
 		}
 	}
