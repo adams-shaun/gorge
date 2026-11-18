@@ -256,6 +256,7 @@ Night of Souls' Betrayal
 Nikko-Onna
 Nip Gwyllion
 Norn's Wellspring
+Nylea's Emissary
 Oblivion Strike
 Ondu Spiritdancer
 Opaline Unicorn
@@ -309,6 +310,7 @@ Sacred Guide
 Salivating Gremlins
 Saruli Caretaker
 Savage Offensive
+Savra, Queen of the Golgari
 Scoria Elemental
 Scrapper Champion
 Scurry Oak
@@ -361,6 +363,7 @@ Survivor of the Unseen
 Swamp
 Swarming of Moria
 Swift Spinner
+Sylvok Battle-Chair
 Tail Swipe
 Tajuru Blightblade
 Tales of Master Seshiro
@@ -415,6 +418,7 @@ Warrior's Charge
 Watchful Automaton
 Wei Infantry
 Wei Night Raiders
+Well of Lost Dreams
 Wild Griffin
 Wilderness Reclamation
 Wilt

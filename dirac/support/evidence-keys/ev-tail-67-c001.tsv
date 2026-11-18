@@ -1,7 +1,9 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Briar Hydra	95f7199a316561f5	19	1/1		1/1	
 A-Rockslide Sorcerer	80c1dd5898a0e48f	27	1/1		1/1	
+Alela, Cunning Conqueror	14711425a257b3a8	41	2/2		1/1	
 Animate Land	ca96eda71bd0e7e8	33	0/0		2/2	
+Archon of Absolution	00883525e009a507	3	0/0		0/0	
 Asphodel Wanderer	dddb88ef0a12584b	19	1/1		1/1	
 Azorius Ploy	9c7b7b4c208b0cac	6	0/0		2/2	
 Bastion Inventor	af56413740c59913	4	0/0		0/0	
@@ -49,6 +51,7 @@ Pulse of the Grid	662b4710c42c788a	20	0/0		2/2
 Reparations	3d88111cda8f06e1	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Scion of Oona	11b97b36b823bc68	18	0/0		0/0	
 Scuttling Butler	0e27484fbb4b4881	4	1/1		1/1	
+Seal from Existence	5fcd9f50007d11ee	25	2/2		0/1	ix:resp
 Selective Memory	75cd0507b773e2b3	3	0/0		1/2	ix:resp
 Settle the Score	be02feab1c11d4e3	10	0/0		2/2	
 Shadowspear	69a2db86f43c128a	20	2/2		1/1	
@@ -67,3 +70,4 @@ Tidal Bore	e1941b586b593dd3	29	0/0		2/2
 Tranquil Frillback	771a4b82caf0eba5	18	1/1		0/1	ix:resp
 Trigon of Rage	e338cc69305a890d	13	2/2		1/1	
 Whack	320835820407e3b6	9	0/0		2/2	
+Zulaport Chainmage	02cceafba63d1571	28	1/1		1/1	

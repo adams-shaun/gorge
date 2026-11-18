@@ -15,6 +15,7 @@ Amulet of Kroog
 Annoyed Altisaur
 Apprentice Sorcerer
 Arashin Sovereign
+Arcbound Hybrid
 Archfiend of Sorrows
 Arctic Treeline
 Arena Athlete
@@ -126,6 +127,7 @@ Forest
 Forget
 Foul Orchard
 Fourth Bridge Prowler
+Frogtosser Banneret
 Frontline Devastator
 Frostweb Spider
 Gaea's Embrace
@@ -242,6 +244,7 @@ Penance Stare
 Pest Infestation
 Pestermite
 Phantasmal Sphere
+Phoenix Chick
 Pillar of Light
 Pious Evangel
 Pious Wayfarer
@@ -256,6 +259,7 @@ Psychic Spear
 Pygmy Pyrosaur
 Quicksilver Dagger
 Radiant Fountain
+Raging Spirit
 Raiding Nightstalker
 Rakka Mar
 Rakshasa's Secret
@@ -314,10 +318,12 @@ Strandwalker
 Strength of Arms
 Strike It Rich
 Sunblade Angel
+Sure-Footed Infiltrator
 Surreal Memoir
 Swamp
 Tail Slash
 Telim'Tor's Edict
+Territorial Aetherkite
 Tervigon
 Tezzeret's Touch
 The Prydwen, Steel Flagship
@@ -345,6 +351,7 @@ Unwavering Initiate
 Valkyrior Skyrider
 Value Town
 Vaporkin
+Veilborn Ghoul
 Venomous Vines
 Vexing Sphinx
 Viashivan Dragon

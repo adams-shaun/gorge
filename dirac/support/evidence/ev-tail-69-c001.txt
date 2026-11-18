@@ -12,6 +12,7 @@ Amy Rose
 Ancient Amphitheater
 Angelic Blessing
 Anje's Ravager
+Aphelia, Viper Whisperer
 Archangel of Thune
 Arctic Aven
 Arctic Flats
@@ -110,6 +111,7 @@ Empyrial Plate
 Entropic Specter
 Envoy of the Ancestors
 Epistolary Librarian
+Errant Ephemeron
 Escape Routes
 Essence Extraction
 Etherium Pteramander
@@ -138,6 +140,7 @@ Fyndhorn Brownie
 Galvanic Blast
 Garruk Wildspeaker
 Gateway Plaza
+Gauntlet of Might
 Geistflame
 Genju of the Fields
 Ghostly Wings
@@ -265,6 +268,7 @@ On the Trail
 Orah, Skyclave Hierophant
 Orcish Artillery
 Organ Grinder
+Orthion, Hero of Lavabrink
 Otherworldly Journey
 Outmaneuver
 Overmaster
@@ -290,9 +294,11 @@ Pyre-Sledge Arsonist
 Pyreswipe Hawk
 Quickling
 Rage-Scarred Berserker
+Rakdos Drake
 Ranger's Guile
 Raze the Effigy
 Razorfield Thresher
+Read the Tides
 Reckless Embermage
 Reconstruction
 Redeem the Lost
@@ -311,6 +317,7 @@ Rotting Fensnake
 Rough
 Rubble Reading
 Rushwood Herbalist
+Rust Goliath
 Saiba Cryptomancer
 Sailor of Means
 Salvage Scout
@@ -327,6 +334,7 @@ Serum-Core Chimera
 Shard Convergence
 Shattering Blow
 Shepherd of the Lost
+Shielding Plax
 Shining Aerosaur
 Shivan Emissary
 Shu Elite Companions
