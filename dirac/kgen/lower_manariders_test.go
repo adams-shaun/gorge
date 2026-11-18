@@ -31,8 +31,9 @@ var manaRiderCards = []struct {
 	// its own kind and the payment stamps the spell (dirac mana_nocounter.go)
 	{"Cavern of Souls", ""},
 	{"Delighted Halfling", ""},
-	// AddsNoCounter$ !Permanent with no restriction and a life cost: no carrier
-	{"Boseiju, Who Shelters All", "AddsNoCounter$ !Permanent"},
+	// AddsNoCounter$ !Permanent: a legendary deferred {C} source that pays 2
+	// life (dirac mana_deferred.go, mana_nocounter.go)
+	{"Boseiju, Who Shelters All", ""},
 	// TapsForMana: a colour chosen at tap time (a KChoose the tap-extra
 	// model cannot pose)
 	{"Fertile Ground", "TapsForMana extra of any colour"},

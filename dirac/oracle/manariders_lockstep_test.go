@@ -65,6 +65,22 @@ var manaRidersDecks = []fixtureDecks{{
 		{Name: "Grizzly Bears", Count: 10}, {Name: "Plains", Count: 3}, {Name: "Forest", Count: 14},
 	},
 }, {
+	// AddsNoCounter$ !Permanent: Boseiju's {C} (a prefix script or the mana
+	// window taps it, paying 2 life) pays the generic part of burn spells,
+	// which the counterspell deck must not counter; Grizzly Bears (a permanent
+	// spell) paid with it stay counterable
+	{
+		{Name: "Boseiju, Who Shelters All", Count: 6}, {Name: "Searing Spear", Count: 10}, {Name: "Lava Axe", Count: 4},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Mountain", Count: 12}, {Name: "Plains", Count: 4},
+	},
+	manaRidersCounters,
+}, {
+	manaRidersCounters,
+	{
+		{Name: "Boseiju, Who Shelters All", Count: 6}, {Name: "Searing Spear", Count: 10}, {Name: "Lava Axe", Count: 4},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Mountain", Count: 12}, {Name: "Plains", Count: 4},
+	},
+}, {
 	// Utopia Sprawl: the enchanted Forest taps for its Forest mana and the
 	// chosen colour (red: Goblins and burn beside a few Mountains)
 	{
@@ -89,6 +105,7 @@ var manaRidersCounters = []cardset.Entry{
 var manaRidersWatch = map[string]bool{
 	"Star Compass": true, "Reflecting Pool": true, "Gond Gate": true, "Shock": true, "Lightning Bolt": true, "Isamaru, Hound of Konda": true,
 	"Goblin Piker": true, "Utopia Sprawl": true, "Goblin Roughrider": true, "Mogg Fanatic": true, "Delighted Halfling": true, "Savannah Lions": true,
+	"Boseiju, Who Shelters All": true, "Searing Spear": true, "Lava Axe": true,
 }
 
 func TestManaRidersLockstep(t *testing.T) {
@@ -96,7 +113,7 @@ func TestManaRidersLockstep(t *testing.T) {
 		return
 	}
 	dirac.DebugUncounterStats = true
-	dirac.NoCounterHeld = 0
+	dirac.NoCounterHeld, dirac.DeferNoCounterStamped = 0, 0
 	defer func() { dirac.DebugUncounterStats = false }()
 	run := runFixtureLockstep(t, "manariders", manaRidersDecks, manaRidersWatch, 400, true, nil)
 	t.Logf("%d games, %d divergences, %d stalls, casts %v, counters stopped by AddsNoCounter$ mana %d", run.games, run.divs, run.stalls, run.casts, dirac.NoCounterHeld)
@@ -105,6 +122,9 @@ func TestManaRidersLockstep(t *testing.T) {
 	}
 	if run.casts["Utopia Sprawl"] < 20 {
 		t.Errorf("only %d Utopia Sprawl casts: the enchanted Forest's chosen-colour extra never ran", run.casts["Utopia Sprawl"])
+	}
+	if dirac.DeferNoCounterStamped < 10 {
+		t.Errorf("only %d spells were paid with Boseiju's AddsNoCounter$ !Permanent mana: its deferred source never paid an instant or sorcery", dirac.DeferNoCounterStamped)
 	}
 	if dirac.NoCounterHeld < 10 {
 		t.Errorf("only %d Counters met a spell paid with AddsNoCounter$ mana: the Cavern / Halfling matchups never exercised the stamp", dirac.NoCounterHeld)
@@ -119,6 +139,16 @@ func TestManaRidersLockstepNoCounterMutation(t *testing.T) {
 	defer func() { dirac.DebugNoCounterOff = false }()
 	run := runFixtureLockstep(t, "manariders", manaRidersDecks, manaRidersWatch, 400, false, nil)
 	run.requireDivergence(t, "an AddsNoCounter$ spell is countered")
+}
+
+// TestManaRidersLockstepBoseijuMutation: Boseiju's deferred source stamps no
+// spell, so the kernel counters a burn spell paid with its {C} where gorge
+// stops the Counter. It must diverge.
+func TestManaRidersLockstepBoseijuMutation(t *testing.T) {
+	dirac.DebugNoCounterDeferOff = true
+	defer func() { dirac.DebugNoCounterDeferOff = false }()
+	run := runFixtureLockstep(t, "manariders", manaRidersDecks[6:8], manaRidersWatch, 400, false, nil)
+	run.requireDivergence(t, "a Boseiju-paid instant is countered")
 }
 
 // TestManaRidersLockstepMutation: the switch reads no colours, so the

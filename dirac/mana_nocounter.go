@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // AddsNoCounter$ True on a restricted any-colour mana ability (Cavern of
 // Souls, Delighted Halfling; CR 106.6): "Spend this mana only to cast ... and
 // that spell can't be countered". gorge floats the unit in a restriction
@@ -33,22 +35,55 @@ var NoCounterHeld int
 // DebugNoCounterOff drops the stamp (mutation test only).
 var DebugNoCounterOff bool
 
+// DebugNoCounterDeferOff drops the deferred source's stamp alone (Boseiju;
+// mutation test only); DeferNoCounterStamped counts, for the tests
+// (DebugUncounterStats set), the spells it stamped.
+var DebugNoCounterDeferOff bool
+var DeferNoCounterStamped int
+
 // noCounterSpent stamps the spell being cast when a payment spent mana of
 // restricted batch kind kind and that kind is an AddsNoCounter$ source's.
 //
 //go:noinline
 func (s *State) noCounterSpent(p, kind uint8) {
 	g := s.k().gen
-	if g == nil || kind == 0 || g.restrV[(kind-1)%restrKinds]&restrVarNoCtr == 0 || DebugNoCounterOff || !s.buildLive() {
+	if g == nil || kind == 0 || g.restrV[(kind-1)%restrKinds]&restrVarNoCtr == 0 {
 		return
+	}
+	s.stampNoCounter(false)
+}
+
+// stampNoCounter stamps the spell being cast (the one a payment is paying
+// for, already pushed) as uncounterable. instSorc: only an instant or sorcery
+// takes the stamp (Boseiju's AddsNoCounter$ !Permanent: gorge
+// addsNoCounterHolds, a !IsPermanent test on the spell's face).
+func (s *State) stampNoCounter(instSorc bool) bool {
+	if DebugNoCounterOff || !s.buildLive() {
+		return false
 	}
 	b := s.bld()
 	if b.bfl&bflPushed == 0 || s.sp == 0 || b.e.kind != seSpell {
-		return
+		return false
 	}
 	if e := &s.stack[s.sp-1]; e.kind == seSpell && e.obj == b.e.obj {
+		if instSorc && s.k().cards[e.card].types&(kop.TInstant|kop.TSorcery) == 0 {
+			return false
+		}
 		e.remVer |= spellNoCounter
 		b.e.remVer |= spellNoCounter // a later syncBuild keeps it
+		return true
+	}
+	return false
+}
+
+// deferredNoCounter: the payment spent the deferred source at sl's mana (Boseiju,
+// kop.Ability.ManaDeferred beside ManaNoCounter, mana_deferred.go); an instant
+// or sorcery spell it paid for can't be countered.
+func (s *State) deferredNoCounter(k *prep, sl Slot) {
+	if a := k.deferAb(s.cardAt(sl)); a != nil && a.ManaNoCounter && !DebugNoCounterDeferOff {
+		if s.stampNoCounter(true) && DebugUncounterStats {
+			DeferNoCounterStamped++
+		}
 	}
 }
 
