@@ -10,7 +10,6 @@ Island
 Marionette Apprentice
 Mountain
 Plains
-Smiting Helix
 Swamp
 Tragic Fall
 Trench Wurm
