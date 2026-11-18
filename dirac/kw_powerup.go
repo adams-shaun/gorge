@@ -225,9 +225,26 @@ func (g *grantSrch) offerPays(t *State) bool {
 	return g.hasOffer && t.floatPaysPlay(g.k, g.p, &g.offer, g.d) && !g.waitsForStack(t)
 }
 
+// seenPays is a seen grant-search node's success: gorge's offered check
+// comes before its seen check (scriptSearch.visit: offered, then seen, then
+// priced), and a node folded equal to a seen one can still differ in what
+// its pool spends (a ghost unit the play cannot spend, restrFloatAdmits), so
+// the reduced charge is offered again here, then the pool alone at the
+// node's price.
+func (g *grantSrch) seenPays(t *State, cost *kop.ManaCost, cheap bool) bool {
+	if g.offerPays(t) {
+		g.cheaper = true
+		return true
+	}
+	if t.floatPaysPlay(g.k, g.p, cost, g.d) && !g.waitsForStack(t) {
+		g.cheaper = cheap
+		return true
+	}
+	return false
+}
+
 // leafPays is a fresh grant-search node's success: gorge's offered check
-// (offerPays; it precedes gorge's seen check, but a seen node has this pool
-// and stack, so its offered check already failed), then the planner's price
+// (offerPays, as seenPays does at a seen node), then the planner's price
 // from the pool and the printed sources. cheap marks a repriced leaf.
 func (g *grantSrch) leafPays(t *State, cost *kop.ManaCost, cheap bool) bool {
 	if g.offerPays(t) {

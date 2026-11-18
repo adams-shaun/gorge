@@ -1375,11 +1375,7 @@ func (g *grantSrch) visit(t *State) bool {
 	fk := key.folded()
 	for i := 0; i < g.nseen; i++ {
 		if g.seen[i].folded() == fk {
-			if t.floatPaysPlay(g.k, g.p, &cost, g.d) && !g.waitsForStack(t) {
-				g.cheaper = cheap
-				return true
-			}
-			return false
+			return g.seenPays(t, &cost, cheap)
 		}
 	}
 	if g.leafPays(t, &cost, cheap) {
@@ -2042,6 +2038,12 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 	}
 	g.candidates(s)
 	if g.n == 0 {
+		// no candidate to tap: the offered check still stands (the pool alone
+		// pays a Power-up play's reduced charge, offerPays)
+		if g.offerPays(s) {
+			g.cheaper = true
+			return true
+		}
 		return s.affordsUngrantedFor(k, p, cost, ex, d)
 	}
 	t := s.fork()
