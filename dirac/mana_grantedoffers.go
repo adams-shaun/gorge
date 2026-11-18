@@ -2505,6 +2505,14 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			}
 			return cost, ex, need, true
 		}
+		if c := s.objs[a.Source()].card; a.Kind() == AkCast && a.Mode() == 2 && k.t.Cards[c].Keywords&kop.KwFlashback != 0 && k.t.Cards[c].AltCost.X != 0 &&
+			k.t.Cards[c].AltCost.Hyb[0] == 0 && !k.t.Cards[c].HasAltAdd && k.t.Cards[c].FbCost.Flags == 0 && !k.t.Cards[c].FbBehold {
+			// an {X} flashback cast (Devil's Play's {X}{R}{R}{R}): gorge's
+			// potentialModeCastPlan prices the flashback cost at the largest X the
+			// sources pay, insufficient when they cannot pay X = 0, so the prefix
+			// search runs on the fixed part as an {X} hand cast's does (above)
+			return s.featCost(k, SeatIx(p), c, Obj(a.Source()), k.t.Cards[c].AltCost), ex, need, true
+		}
 		if c := s.objs[a.Source()].card; a.Kind() == AkCast && a.Mode() == 0 && a.Target() == 0 && k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.X == 0 && !s.contribPays(k, p, c, Obj(a.Source()), s.objs[a.Source()].zone == kop.ZoneHand) {
 			// an either-or additional cost: the planner prices the spell with the part
 			// gorgeLowers prices, so the search funds that (Deadly Precision's {B})
