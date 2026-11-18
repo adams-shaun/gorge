@@ -803,9 +803,10 @@ func scriptStepOf(d *decision.Decision, in decision.Intent) ScriptStep {
 
 // scriptAnswers enumerates the answers to an activation's ask that
 // validate: every single option (and the empty answer when Min is 0), for a
-// Min == Max == n object election every n-combination of its options, or for
-// a Min == Max == n unit-major colour allocation every per-unit combination
-// (each at most 64).
+// Min == Max == n object election every n-combination of its options, for a
+// Min == Max == n unit-major colour allocation every per-unit combination,
+// and for a range ask (Min < Max, e.g. "return up to two target ... cards")
+// the combinations of every size from Min to Max (each at most 64).
 func scriptAnswers(d *decision.Decision) []decision.Intent {
 	var out []decision.Intent
 	mk := func(ch []int) decision.Intent { return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: ch} }
@@ -818,7 +819,7 @@ func scriptAnswers(d *decision.Decision) []decision.Intent {
 			out = append(out, mk([]int{o.Index}))
 		}
 	case d.Min == d.Max && !scriptManaUnits(d):
-		out = scriptSubsets(d, mk)
+		out = scriptSubsets(d, d.Min, mk)
 	case d.Min == d.Max && len(d.Options)%d.Min == 0:
 		n, per := d.Min, len(d.Options)/d.Min
 		idx := make([]int, n)
@@ -838,6 +839,14 @@ func scriptAnswers(d *decision.Decision) []decision.Intent {
 			if u < 0 {
 				break
 			}
+		}
+	case d.Min < d.Max && !scriptManaUnits(d):
+		// A range ask ("up to two target ... cards", CR 601.2c): the
+		// combinations of every size the ask admits, each capped at 64. A
+		// unit-major colour allocation is not a subset shape -- its sizes
+		// mix units -- so it keeps today's (empty) answer set.
+		for n := d.Min; n <= d.Max; n++ {
+			out = append(out, scriptSubsets(d, n, mk)...)
 		}
 	}
 	valid := out[:0]
@@ -870,8 +879,8 @@ func scriptManaUnits(d *decision.Decision) bool {
 // lexicographic order, mapping each position to that option's Index, capped
 // at 64 answers (the colour allocation's cap). It returns nil when n > the
 // option count.
-func scriptSubsets(d *decision.Decision, mk func([]int) decision.Intent) []decision.Intent {
-	n, k := d.Min, len(d.Options)
+func scriptSubsets(d *decision.Decision, n int, mk func([]int) decision.Intent) []decision.Intent {
+	k := len(d.Options)
 	if n > k {
 		return nil
 	}
