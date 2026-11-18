@@ -1335,7 +1335,9 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 			r = hybridGeneric(anyTypePips(r)) // the pips still to announce are payable by any mana too
 		}
 		rx := r.AtX(int(e.x))
-		if s.faceReachable(k, e.ctrl, &av, &rx, 0) || hybGateMutation(s.bld().pipN) {
+		// the may-play any-colour rider (CR 609.4b) lets a coloured unit pay a
+		// face of another colour: gorge's announceFeasible prices the face under it
+		if s.faceReachable(k, e.ctrl, &av, &rx, 0) || s.bld().bfl&bflAnyColor != 0 && av.affordsAnyColor(&rx, 0) || hybGateMutation(s.bld().pipN) {
 			d.add(MakeAction(AkChoose, 0, 0, uint8(c)))
 		}
 	}
