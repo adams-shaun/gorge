@@ -11,4 +11,5 @@ import "testing"
 func TestMBCTail08ReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "bolster_elects_an_earthbent_land")
+	dryadIlysianGroveRefused(t)
 }
