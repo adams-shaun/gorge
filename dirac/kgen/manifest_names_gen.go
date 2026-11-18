@@ -818,6 +818,9 @@ func init() { enum[kop.ExprKind]("kop.ExXColorPaid", kop.ExXColorPaid) }
 // dirac/manifest/ExprKind/ExSrcRemCounters
 func init() { enum[kop.ExprKind]("kop.ExSrcRemCounters", kop.ExSrcRemCounters) }
 
+// dirac/manifest/ExprKind/ExStaticExileKw
+func init() { enum[kop.ExprKind]("kop.ExStaticExileKw", kop.ExStaticExileKw) }
+
 // dirac/manifest/KwID/KwStickerSheet
 func init() { enum[kop.KwID]("kop.KwStickerSheet", kop.KwStickerSheet) }
 
