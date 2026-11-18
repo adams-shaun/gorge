@@ -112,7 +112,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// like the warp cast, and before the non-instant timing gate
 			// (a plot card is usually a sorcery or creature)
 			if !haveAv {
-				s.availFor(k, p, &av)
+				s.availTapsDeferIn(k, p, &av)
 				haveAv = true
 			}
 			s.offerPlotHand(k, d, p, o, c, &av) // kw_plot.go
@@ -128,7 +128,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// declare-blockers step (CR 702.190a): before the non-instant
 			// timing gate, which also tests castForbidden after it
 			if !haveAv {
-				s.availFor(k, p, &av)
+				s.availTapsDeferIn(k, p, &av)
 				haveAv = true
 			}
 			s.offerSneakHand(k, d, p, o, c, &av) // kw_sneak.go
@@ -138,7 +138,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				// the timing gate refused the plain cast: the may-flash
 				// cast is the one option it adds (kw_mayflash.go)
 				if !haveAv {
-					s.availFor(k, p, &av)
+					s.availTapsDeferIn(k, p, &av)
 					haveAv = true
 				}
 				s.offerMayFlashHand(k, d, p, o, c, &av)
@@ -149,7 +149,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			continue
 		}
 		if !haveAv {
-			s.availFor(k, p, &av)
+			s.availTapsDeferIn(k, p, &av)
 			haveAv = true
 		}
 		if k.gen != nil && k.gen.anyWarp && (k.t.Cards[c].HasWarp || k.gen.anyWarpGrant) {
@@ -261,7 +261,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	}
 	if s.cfg&cfgCommander != 0 {
 		if !haveAv {
-			s.availFor(k, p, &av)
+			s.availTapsDeferIn(k, p, &av)
 			haveAv = true
 		}
 		s.offerCommanderCast(k, d, p, &av)
@@ -284,7 +284,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			continue
 		}
 		if !haveAv {
-			s.availFor(k, p, &av)
+			s.availTapsDeferIn(k, p, &av)
 			haveAv = true
 		}
 		fc := k.t.Cards[c].AltCost
@@ -435,7 +435,7 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 				continue
 			}
 			if !haveAv {
-				s.availFor(k, p, av)
+				s.availTapsDeferIn(k, p, av)
 				haveAv = true
 			}
 			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
