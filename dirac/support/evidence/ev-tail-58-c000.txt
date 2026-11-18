@@ -85,6 +85,7 @@ Daxiver, Izzet Electromancer
 Death Ward
 Deathbonnet Sprout
 Debtor's Pulpit
+Defender of the Order
 Deluge
 Disciple of Freyalise
 Disciple of Grace
@@ -324,6 +325,7 @@ Serenity
 Serpent of the Endless Sea
 Serra's Boon
 Setessan Oathsworn
+Shade's Form
 Shadowborn Demon
 Shambling Vent
 Shard Volley

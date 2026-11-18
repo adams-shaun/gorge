@@ -105,6 +105,7 @@ Finale of Eternity
 Fire Tempest
 Fire of Orthanc
 Firebird, Blazing Ranger
+Flameborn Viron
 Flamecast Wheel
 Flow of Ideas
 Followed Footsteps
@@ -245,6 +246,7 @@ Shivan Harvest
 Short Sword
 Shuri's Fabricator
 Silburlind Snapper
+Silvar, Devourer of the Free
 Silverglade Pathfinder
 Slaughterhouse Bouncer
 Sledding Otter-Penguin

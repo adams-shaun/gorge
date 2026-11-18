@@ -209,6 +209,7 @@ Loyal Fire Sage
 MACH-1, Swooping Scoundrel
 Macabre Mockery
 Mad Auntie
+Magus of the Coffers
 Mana Confluence
 Manaplasm
 Mantle of Leadership
@@ -296,6 +297,7 @@ Restoration Angel
 Retrofitter Foundry
 Revel of the Fallen God
 Reverse Engineer
+Ria Ivor, Bane of Bladehold
 Rise to the Challenge
 Rishadan Pawnshop
 Rix Maadi, Dungeon Palace

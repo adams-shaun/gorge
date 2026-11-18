@@ -213,6 +213,7 @@ Nullhide Ferox
 Nyxborn Seaguard
 Ob Nixilis, the Ascended
 Obscura Storefront
+Obzedat's Aid
 Oculus
 Ogre Shaman
 Orah, Skyclave Hierophant
@@ -239,6 +240,7 @@ Putrefy
 Pyre-Sledge Arsonist
 Pyreswipe Hawk
 Quickling
+Rakdos Drake
 Ranger's Guile
 Raze the Effigy
 Razorfield Thresher
@@ -329,6 +331,7 @@ Venser's Sliver
 Vex
 Vibranium Mining Mech
 Vigilant Sentry
+Vogar, Necropolis Tyrant
 Volcanic Torrent
 Voracious Typhon
 Vraska's Contempt

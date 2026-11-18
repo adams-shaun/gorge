@@ -12,6 +12,7 @@ Anointer Priest
 Apprentice Sharpshooter
 Artificer Class
 Attune with Aether
+Avatar of Discord
 Avatar of Growth
 Aven Fogbringer
 Back in Town
@@ -24,6 +25,7 @@ Belligerent Sliver
 Bellowing Mauler
 Big Boa Constrictor
 Black Widow, Intel Expert
+Black Widow, Natasha Romanoff
 Blind Creeper
 Blood Fountain
 Bloodbond Vampire
@@ -53,6 +55,7 @@ Clear a Path
 Continue?
 Creakwood Liege
 Crookclaw Elder
+Crosstown Courier
 Daggersail Aeronaut
 Dawning Angel
 Death's Shadow
@@ -76,6 +79,7 @@ Drossclaw
 Dualcaster Mage
 Dune Mover
 Elvish Dreadlord
+Emperor Crocodile
 Enrage
 Erstwhile Trooper
 Ethereal Investigator
@@ -131,12 +135,14 @@ Launch
 Leapfrog
 Leyline of Punishment
 Lightwielder Paladin
+Lost in the Mist
 Lost in the Spirit World
 Magma Vein
 Magmatic Insight
 Malcator's Watcher
 Malicious Advice
 Mana Vault
+Manalith
 Marauding Boneslasher
 Mardu Woe-Reaper
 Markov Patrician
@@ -171,6 +177,7 @@ Phantasmal Dreadmaw
 Pillage
 Plains
 Plasmancer
+Port Inspector
 Portent of Betrayal
 Privileged Position
 Psychic Frog
@@ -214,7 +221,9 @@ Sonic Screwdriver
 Sootstoke Kindler
 Soulmender
 Spike Breeder
+Spindrift Drake
 Spitebellows
+Spiteful Squad
 Spitfire Handler
 Sultai Emissary
 Sunscorched Desert
@@ -234,6 +243,7 @@ Thopter Mechanic
 Threnody Singer
 Thrilling Encore
 Thundersteel Colossus
+Timbermaw Larva
 Timin, Youthful Geist
 Tomebound Lich
 Trail of Evidence
@@ -241,6 +251,7 @@ Trailblazing Historian
 Trained Caracal
 Twiddle
 Twilight's Call
+Ugin's Insight
 Undead Servant
 Unholy Hunger
 Ursine Champion
@@ -250,6 +261,7 @@ Veiling Oddity
 Venomous Changeling
 Viscid Lemures
 Volcanic Torrent
+Volcanic Upheaval
 Voyager Staff
 Wall of Vines
 Warmonger Hellkite
