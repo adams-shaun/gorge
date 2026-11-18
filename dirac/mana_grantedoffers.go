@@ -357,6 +357,52 @@ func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, sl Slot, gt *pcard,
 	}
 }
 
+// planInertGrant registers, in phases 0 and 1, the census unit of a source
+// whose only mana ability an effect grants. gorge's shared census prices a
+// fixed grant like a printed ability (windowManaUnitsWith appends the
+// deterministic alternative, the source becomes a unit at its battlefield
+// position) before pay.PlanAlts drops the granted alternative (PaymentAbility's
+// V1 exclusion): the unit has no search class and is never selectable, but it
+// keeps its position, and a class's materialize limit counts every unit before
+// its members (search.go materialize's limit(k)). The kernel has no
+// anchor-only unit, so the position is registered as a zero-production type
+// that dfs never selects (utype.inert). Only a fixed unrestricted tap grant
+// has a deterministic alternative in gorge's walk, and only a source that can
+// tap now: a tapped or summoning-sick source leaves the walk without the
+// unit. Phase 2 registers the grant as payable (planGrantUnit's ordinary loop
+// pass), so this is the deterministic pass 0 of phases 0 and 1 only.
+func (s *State) planInertGrant(k *prep, pk *planner, i int, sl Slot, pc *pcard, pass int) {
+	if pass != 0 || pk.nu >= maxUnits || !s.grantsFixedMana(k, sl) || !s.canTapForManaPC(k, sl, pc) {
+		return
+	}
+	ti := -1
+	for t := 0; t < pk.nt; t++ {
+		if pk.types[t].inert {
+			ti = t
+			break
+		}
+	}
+	if ti < 0 {
+		if pk.nt == maxTypes {
+			return // no room for another shape (no pool board reaches it)
+		}
+		ti = pk.nt
+		pk.nt++
+		pk.types[ti] = utype{inert: true}
+	}
+	pk.types[ti].avail++
+	pk.units[pk.nu] = sl
+	if pk.bfl {
+		pk.uobj[pk.nu] = Obj(i) // battlefield order (plan's hybrid census)
+	} else {
+		pk.uobj[pk.nu] = s.perms[sl].obj
+	}
+	pk.utyp[pk.nu] = uint8(ti)
+	pk.rkind[pk.nu] = 0
+	pk.rAb[pk.nu] = -1 // planGrantUnit's: the grant's ability number names nothing on sl's own card
+	pk.nu++
+}
+
 // ownManaUsable reports whether sl's own card has a usable tap mana
 // planGrantSacUnit (called from plan's phase 2, beside planGrantUnit; gorge's
 // planner never sees a granted ability, so a plan with one is the kernel's,
