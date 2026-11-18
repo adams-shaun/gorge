@@ -143,16 +143,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	// counts each source's unit independently of the shared life total, an
 	// over-count a potential walk may make: scriptDFS fails an activation a
 	// path has made unpayable and backtracks, so no offer survives it.
-	for b := s.lifeGapMask(k, p); b.any(); b = b.rest() {
-		sl := b.first()
-		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.gapOther(s.cardAt(sl))]
-		n := max(ab.ManaN, 1)
-		if ab.ManaColors == kop.ColAny {
-			a.addUnits(0x1f, n)
-			continue
-		}
-		a.addUnits(1<<bits.TrailingZeros8(uint8(ab.ManaColors)), n)
-	}
+	s.availLifeGap(k, p, a)
 	// a restricted source (Giada): the prefix search prices with its mana
 	// as with any gap's (the restriction is not read there), and an Angel
 	// spell may then spend it (scriptDeadEnd decides)
