@@ -234,6 +234,11 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 		if o.Obj == 0 && (o.Kind == "player" || o.Kind == "primary" || o.Kind == "destination" || o.Kind == "divide" || o.Kind == "proliferate") {
 			tgt = pl(o.Player)
 		}
+		if o.Obj == 0 && o.Kind == "enchant" {
+			// a player-enchanting Aura's as-enters pick (CR 303.4f): the
+			// kernel's ChGenEnchant names the seat in the source slot
+			src = pl(o.Player)
+		}
 		var mode int
 		switch o.Kind {
 		case "gift_promise":
