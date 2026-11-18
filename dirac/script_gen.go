@@ -1012,9 +1012,11 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 // builder left off; so does a prefix that activates a storage
 // battery, whose counters the builder's units leave out
 // (mana_grantstore.go), except a plain cast under the autopay
-// surface, which gorge reaches only by that script and drops
+// surface, which gorge reaches only by that script and drops: the repriced
+// leaf's cast too (a cast whose root price no prefix-free payment meets is
+// a scripted one, and the oracle's priorityVocabulary leaves it out)
 func (s *State) grantSearchAdds(k *prep, p uint8, a Action, d *Decision, g *grantSrch, relaxCensus bool) bool {
-	return !hasOption(d, a) && (g.cheaper || g.storeStep() && !s.autopayScriptedCast(a) ||
+	return !hasOption(d, a) && (g.cheaper && !s.autopayScriptedCast(a) || g.storeStep() && !s.autopayScriptedCast(a) ||
 		s.cfg&cfgGorgeAutopay == 0 && relaxCensus && s.tapXCensusGap(k, p).any())
 }
 
