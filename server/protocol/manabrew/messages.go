@@ -279,14 +279,33 @@ func (m ClientMessage) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m.Value)
 }
 
-// DirectiveInput is an out-of-band client directive. The published spec shows
-// only {type:"concede"}; anything else is rejected as an unknown discriminator.
+// DirectiveInput is an out-of-band client directive. The public protocol
+// documents concede, startRecording, stopRecording, requestRepeat and
+// repeatVote; the codec accepts those five types (the type alone, no other
+// field is modelled) and rejects anything else as an unknown discriminator.
+// Only concede is supported by gorge: the other four decode so the server can
+// refuse them with a ProtocolError (see IsRefusedDirective).
 type DirectiveInput struct {
 	Type string `json:"type"`
 }
 
+// refusedDirectiveTypes are the documented directive types gorge does not
+// support.
+var refusedDirectiveTypes = map[string]bool{
+	"startRecording": true,
+	"stopRecording":  true,
+	"requestRepeat":  true,
+	"repeatVote":     true,
+}
+
+// IsRefusedDirective reports whether t is a documented directive type that
+// gorge does not support.
+func IsRefusedDirective(t string) bool { return refusedDirectiveTypes[t] }
+
+func directiveTypeKnown(t string) bool { return t == "concede" || IsRefusedDirective(t) }
+
 func (d DirectiveInput) MarshalJSON() ([]byte, error) {
-	if d.Type != "concede" {
+	if !directiveTypeKnown(d.Type) {
 		return nil, unknownDiscriminator("type", d.Type)
 	}
 	type plain DirectiveInput
@@ -299,7 +318,7 @@ func (d *DirectiveInput) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &v); err != nil {
 		return err
 	}
-	if v.Type != "concede" {
+	if !directiveTypeKnown(v.Type) {
 		return unknownDiscriminator("type", v.Type)
 	}
 	*d = DirectiveInput(v)

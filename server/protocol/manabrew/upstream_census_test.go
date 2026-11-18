@@ -173,8 +173,11 @@ func TestSchemaCensusMatchesCodecs(t *testing.T) {
 		case "directive":
 			var m ClientMessage
 			_, err := Decode([]byte(`{"kind":"directive","directive":{"type":"`+r.name+`"}}`), &m)
-			if (err == nil) != mapped {
-				t.Errorf("directive %s: census says %s, decode err = %v", r.name, r.status, err)
+			// A refused row decodes when the server refuses it with a protocol
+			// error (invalidShape); a bad_request row fails in the decoder.
+			decodes := mapped || r.code == string(CodeInvalidShape)
+			if (err == nil) != decodes {
+				t.Errorf("directive %s: census says %s %s, decode err = %v", r.name, r.status, r.code, err)
 			}
 		}
 	}
