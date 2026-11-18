@@ -165,6 +165,7 @@ var ChooseKinds = []string{
 	"changetext_to",    // and its "to" word pick
 	"aor_remove",       // AddOrRemoveCounter's remove arm (gorge "aor_remove:<kind>"; the mode is the counter kind)
 	"aor_put",          // AddOrRemoveCounter's put arm (gorge "aor_put:<kind>")
+	"unleash",          // CR 702.86a: gorge unleashOptions' counter election (the repeat's ordinal is the mode)
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.
