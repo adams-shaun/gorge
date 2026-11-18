@@ -20,8 +20,8 @@ func TestPlainCastOfferJudgesTargetsWithTheCardOnTheStack(t *testing.T) {
 		onBoard(t, e, 0, "Name:Plains\nTypes:Basic Land Plains\nOracle:x\n")
 	}
 	onBoard(t, e, 0, "Name:Hand Glory\nManaCost:W\nTypes:Enchantment\n"+
-		"S:Mode$ Continuous | Affected$ Creature.OppCtrl | AddPower$ X | Description$ x\n"+
-		"SVar:X:Count$ValidHand Card.YouOwn\nOracle:x\n")
+		"S:Mode$ Continuous | Affected$ Creature.OppCtrl | AddPower$ HandN | Description$ x\n"+
+		"SVar:HandN:Count$ValidHand Card.YouOwn\nOracle:x\n")
 	onBoard(t, e, 1, "Name:Target Dummy\nManaCost:1\nTypes:Creature Test\nPT:0/1\nOracle:x\n")
 	n := len(e.G.Zone(state.ZHand, 0)) + 2
 	bolt := func(name string, ge int) state.ObjID {
