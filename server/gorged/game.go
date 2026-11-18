@@ -114,7 +114,11 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		if hasPool {
 			pool, otherPool = reservedPool, nil
 		}
-		if len(pool) == 0 {
+		if err := checkReservedPool(req, policy, hasPool); err != nil {
+			return httpapi.CreateGameResponse{}, err
+		}
+		// A pod in which every seat submits a deck deals nothing from the pool.
+		if len(pool) == 0 && len(req.Decks) < seats {
 			return httpapi.CreateGameResponse{}, fmt.Errorf("no %s deck is available to deal (decks dir supplies none)", req.Format)
 		}
 		for _, pick := range []struct {
@@ -182,9 +186,9 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		if req.Mulligans != nil {
 			mulligans = *req.Mulligans
 		}
-		for i, deckID := range imported {
-			if deckID != "" {
-				c.imports.put(deckID, submitted[i])
+		if len(submitted) > 0 {
+			if err := c.imports.putAll(imported, submitted); err != nil {
+				return httpapi.CreateGameResponse{}, err
 			}
 		}
 		cfg := host.TableConfig{
