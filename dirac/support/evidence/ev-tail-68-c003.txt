@@ -16,11 +16,14 @@ Anointed Procession
 Assault Griffin
 Auriok Bladewarden
 Auriok Steelshaper
+Azorius Locket
 Balefire Liege
 Basal Thrull
+Bearer of Memory
 Bitterthorn, Nissa's Animus
 Blastfire Bolt
 Blighted Shaman
+Blood Reckoning
 Blood on the Snow
 Boros Guildmage
 Brokers Hideout
@@ -36,6 +39,7 @@ Cinder Giant
 Cliffhaven Vampire
 Clot Sliver
 Cloudreader Sphinx
+Clutch of the Undercity
 Colorful Feiyi Sparrow
 Coral Net
 Corpulent Corpse
@@ -51,6 +55,7 @@ Devotee of Strength
 Didgeridoo
 Dimir Locket
 Disrupt
+Djeru's Renunciation
 Dredge
 Drowner of Secrets
 Eladamri, Lord of Leaves
@@ -59,6 +64,8 @@ Electrickery
 Elvish Archers
 Erratic Mutation
 Escarpment Fortress
+Eternal Witness
+Ethereal Haze
 Eyeblight Assassin
 Fade into Antiquity
 Faerie Guidemother
@@ -77,6 +84,7 @@ Flamecast Wheel
 Forest
 Fractal Summoning
 Freyalise, Llanowar's Fury
+Gem of Becoming
 Ghastly Demise
 Ghitu Slinger
 Ghostfire
@@ -84,6 +92,7 @@ Gilacorn
 Gnawing Zombie
 Grapple with the Past
 Grave Peril
+Gruesome Discovery
 Hallowed Spiritkeeper
 Heavy Infantry
 Hedge Troll
@@ -91,11 +100,14 @@ Highland Forest
 Hollowsage
 Honden of Seeing Winds
 Howling Fury
+Hulking Bugbear
 Hushwing Gryff
+Inspired Charge
 Isao, Enlightened Bushi
 Island
 Isolate
 James, Wandering Dad
+Jarad's Orders
 Jeskai Runemark
 Kasmina's Transmutation
 Keeper of Fables
@@ -106,17 +118,23 @@ Ley Weaver
 Lita, Mechanical Engineer
 Living Death
 Loam Dryad
+Lull
+Malakir Bloodwitch
 Malleable Impostor
 Matt Murdock, Justice Seeker
 Maul Splicer
+Mist-Syndicate Naga
 Mogg Flunkies
+Monstrify
 Mountain
 Nagging Thoughts
 Needle Spires
 Niblis of the Urn
+Nyxborn Eidolon
 Oashra Cultivator
 Omen
 Ominous Cemetery
+Ornate Kanzashi
 Phantasmal Dragon
 Plains
 Plummet
@@ -124,6 +142,7 @@ Priest of Gix
 Proud Pack-Rhino
 Rakdos Ragemutt
 Ranging Raptors
+Rashka the Slayer
 Rathi Assassin
 Recalibrate
 Reckoner Bankbuster
@@ -134,6 +153,8 @@ Revitalize
 Rupture Spire
 Rustrazor Butcher
 Sangrophage
+Saryth, the Viper's Fang
+Scaled Herbalist
 Sea Gate Oracle
 Sentinel Sliver
 Serene Offering
@@ -146,6 +167,7 @@ Shuri's Fabricator
 Silburlind Snapper
 Silvar, Devourer of the Free
 Silverglade Pathfinder
+Slaughterhouse Bouncer
 Snag
 Soulhunter Rakshasa
 Soulstealer Axe
@@ -154,8 +176,10 @@ Spiraling Duelist
 Spreading Rot
 Squirrel Wrangler
 Stinkweed Imp
+Strangling Soot
 Strangling Spores
 Stratozeppelid
+Stronghold Discipline
 Sun Ce, Young Conquerer
 Sunrise Seeker
 Surrakar Banisher
@@ -165,6 +189,7 @@ Swift Spinner
 Sword of Once and Future
 Tangleclaw Werewolf
 Tarfire
+Tattered Mummy
 Tel-Jilad Justice
 Terra Eternal
 Think Tank
@@ -175,11 +200,14 @@ Trespasser il-Vec
 Treva's Ruins
 Tune the Narrative
 Twin-Silk Spider
+Tyrant of Kher Ridges
 Urgoros, the Empty One
 Valiant Veteran
 Vampiric Tutor
+Wanderlust
 Weatherseed Elf
 Whispering Wizard
+White Shield Crusader
 Windrider Wizard
 Wingmate Roc
 Wolfbriar Elemental
@@ -187,3 +215,4 @@ Yavimaya Granger
 Yotian Frontliner
 Zephyr Falcon
 Zephyr Gull
+Zhalfirin Shapecraft

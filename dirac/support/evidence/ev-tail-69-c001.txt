@@ -17,6 +17,7 @@ Archangel of Thune
 Arctic Aven
 Arctic Flats
 Atrocious Experiment
+Aura Finesse
 Auriok Sunchaser
 Aven Skirmisher
 Bala Ged Scorpion
@@ -57,6 +58,7 @@ Cathartic Pyre
 Cavern Lampad
 Celestial Colonnade
 Chamber of Manipulation
+Chandra Nalaar
 Chandra's Flame Wave
 Change of Fortune
 Clamavus
@@ -71,6 +73,7 @@ Corpse Traders
 Corrupt
 Council of Advisors
 Countless Gears Renegade
+Crab Umbra
 Crackdown
 Cranial Ram
 Criminal Enterprise
@@ -136,6 +139,7 @@ Forsake the Worldly
 Foul Watcher
 Fretwork Colony
 Frightcrawler
+Fulminator Mage
 Fyndhorn Brownie
 Galvanic Blast
 Garruk Wildspeaker

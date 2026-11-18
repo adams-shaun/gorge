@@ -26,11 +26,14 @@ Basilisk Gate
 Bathe in Dragonfire
 Beacon of Creation
 Benalish Knight
+Big Apple, 3 a.m.
 Big Mother Mouser
 Blade-Blizzard Kitsune
 Blessed Spirits
+Blighted Fen
 Blood Lust
 Bog Badger
+Borderland Ranger
 Boros Elite
 Borrowing 100,000 Arrows
 Brass Man
@@ -49,6 +52,7 @@ Ceremonial Knife
 Chandra, Novice Pyromancer
 Circuit Mender
 Claustrophobia
+Cleansing Screech
 Cloudfin Raptor
 Cloudshredder Sliver
 Cloudthresher
@@ -68,6 +72,7 @@ Deadeye Quartermaster
 Death Stroke
 Deathbloom Gardener
 Deb Thomas
+Decaying Time Loop
 Decorated Griffin
 Decree of Savagery
 Diminish
@@ -125,6 +130,7 @@ Great Defender
 Halo Scarab
 Halt Order
 Heliod's Punishment
+Heliod, God of the Sun
 Heliophial
 Hell Swarm
 Hell's Caretaker
@@ -134,6 +140,7 @@ Hobgoblin Bandit Lord
 Honor the Fallen
 Hornet Nest
 Hot Springs
+Hunger of the Howlpack
 Illusionary Informant
 Illusory Angel
 Imperious Oligarch
@@ -141,6 +148,7 @@ Innocent Blood
 Invoke the Divine
 Iron-Heart Chimera
 Island
+Izzet Boilerworks
 Jaddi Offshoot
 Jamuraan Lion
 Jeering Homunculus
@@ -208,6 +216,7 @@ Pardic Firecat
 Pariah
 Peek
 Pensive Minotaur
+Pestilence Demon
 Phyrexian Marauder
 Plains
 Poison-Tip Archer
@@ -245,6 +254,7 @@ Sanctum of Shattered Heights
 Saprazzan Bailiff
 Sarkhan's Triumph
 Scale the Heights
+Scurrilous Sentry
 Second Thoughts
 Selhoff Entomber
 Servant of Volrath
@@ -258,6 +268,7 @@ Sire of the Storm
 Skarrg Goliath
 Skirk Ridge Exhumer
 Smoldering Werewolf
+Snake Umbra
 Snapping Thragg
 Soot Imp
 Soratami Mirror-Guard
@@ -327,6 +338,7 @@ Witch's Oven
 Wolfsbane, Highland Hero
 Wooden Sphere
 Wrenn and Realmbreaker
+Yavimaya Coast
 Yawgmoth's Edict
 You Find Some Prisoners
 Yuna's Decision

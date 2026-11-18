@@ -1,4 +1,5 @@
 Abbey Griffin
+Aberrant Return
 Acceptable Losses
 Aerial Caravan
 Aether Herder
@@ -68,7 +69,9 @@ Darkwater Catacombs
 Davvol, Evincar of Rath
 Dead
 Death Speakers
+Death Wind
 Death's Duet
+Deathbringer Liege
 Denizen of the Deep
 Devil's Play
 Devouring Deep
@@ -113,6 +116,7 @@ Funnel-Web Recluse
 Fyndhorn Elder
 Garruk's Horde
 Geralf's Messenger
+Ghost Council of Orzhova
 Ghost-Lit Nourisher
 Ghost-Lit Raider
 Giant Inheritance
@@ -148,6 +152,7 @@ Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
 Inspiring Cleric
+Invasion of Theros
 Iron Fist, Hero for Hire
 Iron Verdict
 Ishai, Ojutai Dragonspeaker
@@ -203,6 +208,7 @@ Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
 O'aka, Traveling Merchant
+Okiba-Gang Shinobi
 Orim's Thunder
 Otherworld Atlas
 Overtaker
@@ -302,6 +308,7 @@ Tangle Asp
 Tek
 Tempest of Light
 Territorial Maro
+Teysa, Envoy of Ghosts
 Thalia's Lieutenant
 That Which Was Taken
 The Terror of Serpent's Pass

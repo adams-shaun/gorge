@@ -153,6 +153,7 @@ Niall Silvain
 Nighthawk Scavenger
 Nightmarish End
 Nikya of the Old Ways
+Nissa, Voice of Zendikar
 No Escape
 Noble Panther
 Nullmage Advocate
@@ -223,8 +224,10 @@ Spellbook
 Spined Fluke
 Spite
 Spontaneous Combustion
+Sporeback Troll
 Steadfast Unicorn
 Stitched Drake
+Stone Haven Outfitter
 Stony Strength
 Storm of Memories
 Strategic Intervention
@@ -244,6 +247,7 @@ Tide Drifter
 Tigereye Cameo
 Titania, Nature's Force
 Tower of Calamities
+Triad of Fates
 Turbulent Dreams
 Twins of Maurer Estate
 Unholy Strength
@@ -262,6 +266,7 @@ Wasp, Shrinking Savior
 Watchful Blisterzoa
 Wei Night Raiders
 Whirler Rogue
+Wicked Guardian
 Wight of Precinct Six
 Winter Soldier, Bucky Barnes
 Wishful Merfolk

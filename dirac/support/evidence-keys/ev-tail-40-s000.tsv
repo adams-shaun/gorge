@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Kenku Artificer	45a0fa4ae1c2a4af	15	1/1		0/1	ix:resp
+A-Moon-Circuit Hacker	9190601830499ecd	18	2/2		0/1	ix:resp
 Adder-Staff Boggart	611791edc63cbfd2	14	1/1		1/1	
 Agadeem Occultist	16f00c49e23b5e56	12	1/1		1/1	
 Aggravated Assault	7341854a89e1070f	10	1/1		1/1	
@@ -18,6 +19,7 @@ Bloodthorn Taunter	87a1e4631f8c0d35	14	1/1		1/1
 Blor the Impervious	0dd832e69a286a31	8	0/0		0/0	
 Bogardan Rager	313057c63c59c211	4	1/1		1/1	
 Broken Visage	ee4cf6fd347276f4	8	0/0		1/2	ix:resp
+Bubble Matrix	8aeb846d222d6335	8	0/0		0/0	
 Bull's Strength	3e8b5ee13983a06d	6	0/0		2/2	
 Cankerbloom	ad61dda464e4db9b	4	1/1		0/1	ix:resp
 Carnage Altar	0cb14dda256213a2	6	1/1		0/1	ix:resp
@@ -94,6 +96,7 @@ Jokulmorder	dda74de9d69a67e7	4	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Kabira Outrider	242c87876c643300	8	1/1		0/1	ix:resp
 Kardur, Doomscourge	b16b4fc9f308a001	5	2/2		1/1	
 Knight of Infamy	fa1e6587f4d6be2f	12	1/1		1/1	
+Knowledge and Power	e1ac2bb9a38bae5e	6	1/1		1/1	
 Kolaghan Forerunners	aed5a4ea0af95dc8	24	0/0		2/2	
 Land Grant	b40bf4b2dab7c17c	7	0/0		1/2	ix:resp
 Legion Lieutenant	3b77094c8232b151	4	0/0		0/0	
@@ -143,6 +146,7 @@ Repercussion	a8d4de2a906d511f	15	1/1		1/1
 Rescue	0917bbec9504a533	12	0/0		1/2	ix:resp
 Restore	0d0e28562429b882	6	0/0		1/2	ix:resp
 Riot Spikes	cda5ef8bc40c77c0	8	0/0		1/2	ix:resp
+Sanguine Bond	d3319a4d34ae3887	8	1/1		0/1	ix:resp
 Seaside Haven	fee1faffd744fee9	56	2/2		0/1	ix:resp
 Second Breakfast	c9ef464a00b556cc	4	0/0		1/2	ix:resp
 Sentinel's Eyes	96c6910bcc780e12	18	0/0		2/4	cast/alt:escaped,ix:resp
@@ -162,6 +166,7 @@ Snarling Warg	a72ae8a73a140ddc	4	0/0		0/0
 Soltari Crusader	f1f4e5bed7c91881	17	1/1		1/1	
 Spellskite	d24082ecabebd4a2	16	1/1		1/1	
 Spire Mangler	2b5abdbf7454a6b2	14	1/1		0/1	ix:resp
+Sprouting Renewal	1f6ceb02c28e7df3	10	0/0		2/2	
 Stoneshaker Shaman	d00380e936859b6f	11	1/1		0/1	ix:resp
 Stormcrag Elemental	5e45af24d676f640	10	0/0		1/2	cast/alt:megamorphed
 Strafe	96f7af5ea1d84f38	10	0/0		1/2	ix:resp

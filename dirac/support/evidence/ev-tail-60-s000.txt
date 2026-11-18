@@ -1,10 +1,14 @@
 Accumulated Knowledge
 Act of Treason
 Affa Protector
+Ainok Tracker
 Akroan Crusader
 Alaborn Trooper
+Altar's Reap
 Ancestral Statue
 Argentum Armor
+Argothian Elder
+Arixmethes, Slumbering Isle
 Arm with Aether
 Artful Maneuver
 Aven Gagglemaster
@@ -12,6 +16,7 @@ Azorius Skyguard
 Battlegrowth
 Bellowing Aegisaur
 Biblioplex Assistant
+Birds of Paradise
 Bladestitched Skaab
 Bloodrage Vampire
 Bloodtracker
@@ -21,22 +26,29 @@ Boros Reckoner
 Brave the Elements
 Briar Hydra
 Bridgeworks Battle
+Bringer of the Red Dawn
 Broodhatch Nantuko
+Cabal Initiate
 Call the Gatewatch
 Canyon Jerboa
+Centaur Battlemaster
 Charnel Serenade
 Chief of the Edge
+Choking Miasma
 Cliffside Lookout
 Cogworker's Puzzleknot
+Collective Nightmare
 Combat Thresher
 Coral Merfolk
 Counterspell
 Court Cleric
 Crenellated Wall
 Crimson Fleet Commodore
+Curse of Wizardry
 Dark Salvation
 Dauntless Cathar
 Dead
+Deep Dish Pizza
 Demon of Wailing Agonies
 Disruptive Pitmage
 Doctor Strange, Surgeon
@@ -45,12 +57,16 @@ Drift of Phantasms
 Drowner of Hope
 Earth Servant
 Earth-Origin Yak
+Echoing Decay
 Elixir of Immortality
 Enthusiastic Mechanaut
 Eternal Flame
 Ethersworn Sphinx
+Execute
 Expedition Champion
+Experiment Kraj
 Extract the Truth
+Ezio, Blade of Vengeance
 Faithless Looting
 Fallaji Dragon Engine
 Felhide Brawler
@@ -59,6 +75,7 @@ Fleetfeather Cockatrice
 Flickering Ward
 Foil
 Forest
+Forsaken City
 Gild
 Goblin Arsonist
 Goblin Kaboomist
@@ -71,6 +88,7 @@ Haazda Snare Squad
 Hagra Diabolist
 Hamlet Vanguard
 Hammer Helper
+Hammers of Moradin
 Hardened Scales
 Harmattan Efreet
 Harnessed Lightning
@@ -81,18 +99,24 @@ Heightened Reflexes
 Hellhole Rats
 Hulk, Always Angry
 Hulk, Strongest There Is
+Hungry Mist
 Ichor Wellspring
+Illness in the Ranks
 Implement of Combustion
 Indentured Oaf
 Invasion of Eldraine
 Ironclaw Buzzardiers
 Island
+Island of Wak-Wak
 Ivory Crane Netsuke
 Jadelight Ranger
 Janjeet Sentry
+Journey of Discovery
 Journey to Eternity
 Kamahl, Heart of Krosa
+Kami of Whispered Hopes
 Kargan Dragonlord
+Karoo
 Kemba's Skyguard
 Knight of Sorrows
 Koskun Falls
@@ -102,11 +126,14 @@ Leechridden Swamp
 Lightning-Core Excavator
 Lithophage
 Llanowar Stalker
+Loathsome Catoblepas
 Lockjaw Snapper
 Lore Broker
 Lorehold Excavation
 Marble Chalice
 Mardu Blazebringer
+Mardu Shadowspear
+Mark of the Oni
 Markov Waltzer
 Master Thief
 Maw of Kozilek
@@ -115,13 +142,17 @@ Mer-Ek Nightblade
 Midnight Clock
 Mind Harness
 Mind Maggots
+Mind Ravel
 Mind Sculpt
+Minotaur, Roxxon CEO
 Mirror-Sigil Sergeant
 Mischief and Mayhem
 Mist Leopard
 Mist-Cloaked Herald
 Moria Marauder
+Mortuary
 Mountain
+Murkfiend Liege
 Nezahal, Primal Tide
 Ochran Assassin
 Ohran Frostfang
@@ -132,8 +163,10 @@ Onslaught
 Opportunity
 Otarian Juggernaut
 Outnumber
+Overgrown Battlement
 Path of Discovery
 Pearl Lake Ancient
+Phyrexian Ironfoot
 Pillardrop Rescuer
 Pinnacle Monk
 Pir, Imaginative Rascal
@@ -144,6 +177,7 @@ Power of Fire
 Priest of the Haunted Edge
 Qarsi High Priest
 Quiet Disrepair
+Rabid Rats
 Rakdos Guildmage
 Rambunctious Mutt
 Ramosian Captain
@@ -151,23 +185,29 @@ Rampage of the Valkyries
 Ramunap Hydra
 Ravenous Baloth
 Razor Golem
+Razortooth Rats
 Refresh
+Restoration Gearsmith
 Retreat to Kazandu
 Reviving Dose
+Ricochet Trap
 Rofellos's Gift
 Ronom Unicorn
 Rootgrapple
 Rootwalla
 Sardian Cliffstomper
 Sawtooth Thresher
+Scatter the Seeds
 Scion of Ugin
 Sculpted Perfection
 Scuttling Sliver
 Secluded Glen
 Sengir Nosferatu
+Shaleskin Plower
 Sigiled Starfish
 Silverstorm Samurai
 Sixth Sense
+Skeletal Grimace
 Soltari Emissary
 Spawn of Thraxes
 Split-Tail Miko
@@ -183,22 +223,30 @@ Sultai Skullkeeper
 Sumala Rumblers
 Sun Ce, Young Conquerer
 Swamp
+Sword of Fire and Ice and War and Peace
 Sylvok Explorer
+Syphon Flesh
 Tainted Strike
 Tarkir Charm
 Tek
+Terrain Generator
 The Bears of Littjara
+Thornscape Master
 Those Who Serve
 Thran Dynamo
 Thrill-Kill Assassin
 Thunderstaff
 Tombfire
+Touch of Darkness
 Towashi Guide-Bot
+Treacherous Werewolf
 Triton Shorestalker
 Undead Slayer
 Undergrowth Champion
 Unfathomable Truths
 Vapor Snare
+Venomous Hierophant
+Vestige of Emrakul
 Viridian Claw
 Volcanic Rambler
 Voldaren Pariah

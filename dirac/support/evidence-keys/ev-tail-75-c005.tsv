@@ -1,35 +1,98 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Master of Winds	ec2fa152a6a5e379	4	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Afterlife	e15f7bc71c352041	6	0/0		1/2	ix:resp
 Agility Bobblehead	bb9b53c64f0a88f9	4	2/2		0/1	ix:resp
+Archwing Dragon	0a78094c510428b0	4	1/1		0/1	ix:resp
 Banishment	b9774dc62ffa1ac0	4	1/1		0/1	ix:resp
+Basilica Skullbomb	3b6f81df31f2ec46	7	2/2		0/1	ix:resp
+Bellowing Mauler	2ec1ef0e67623cc7	4	1/1		0/1	ix:resp
 Blind Creeper	cc217a03311a41f2	10	1/1		1/1	
+Blood Fountain	34806907d5b35fe2	3	2/2		0/1	ix:resp
+Bloodbond Vampire	18198bcc3ae1bbfc	4	1/1		1/1	
+Bone Devourer	30b714e3648dd0ef	9	1/1		0/1	ix:resp
+Boneknitter	02e50dfe73e41cf4	8	1/1		2/3	cast/alt:morphed
+Bonepicker Skirge	3162b64f4b546dc4	8	0/0		0/0	
+Cabaretti Courtyard	35be59e842d3db99	14	1/1		0/1	ix:resp
+Cao Cao, Lord of Wei	c9c28c0f7395f113	8	1/1		0/1	ix:resp
 Continue?	98902ea995c0af08	8	0/0		2/2	
+Curiosity Crafter	a4da71997a7b3da3	4	1/1		1/1	
 Dawning Angel	25fc8287ece95c98	7	1/1		1/1	
+Demon's Disciple	b542ff135c11a3e0	8	1/1		1/1	
 Desolate Mire	27c413ad855cebb6	9	1/1		0/1	ix:resp
+Devouring Light	3d885059f5cae683	8	0/0		1/2	ix:resp
+Dream Thief	43f190c64da0149e	5	1/1		0/1	ix:resp
 Drillworks Mole	3e28842be3313a86	4	1/1		0/1	ix:resp
 Drossclaw	45681f91bd582e35	10	3/3		1/1	
+Elvish Dreadlord	607c679ef1a3cd99	6	2/2		0/1	ix:resp
+Farewell	60cbd609044c3546	6	0/0		2/2	
+Fateful Showdown	16712446c3ddc5d1	5	0/0		1/2	ix:resp
+Fetid Imp	ea1ab007dfd1789d	7	1/1		1/1	
 Fiendslayer Paladin	68edba6adbfbd593	11	0/0		0/0	
+Flare of Denial	92ddcf63dca7c7fa	4	0/0		1/2	ix:resp
+Gift of Fangs	49cc6cc04d154a07	4	0/0		2/2	
+Great Defender	a82248cd82c9c7cd	4	0/0		1/2	ix:resp
+Greater Harvester	67536f9bd0946c68	11	2/2		1/1	
+Grim Tutor	3c205ffe7a0c8491	3	0/0		2/2	
 Harmless Assault	224f5a7b744103fe	4	0/0		1/2	ix:resp
 Hero of the Dunes	8380f47d67a5b93b	34	1/1		1/1	
+Illicit Shipment	a1846b2f905e5094	3	0/0		1/2	ix:resp
+Imaginary Pet	0e7501875523b3a8	24	1/1		1/1	
+Incisor Steed	b63c79756c62d52d	12	0/0		0/0	
+Jade Idol	2bdcbfab3f7d428f	4	1/1		0/1	ix:resp
+Jalum Tome	3f04bd5cefa63fcd	6	1/1		1/1	
+Khenra Eternal	bbfaac847623256e	9	1/1		1/1	
 Lightwielder Paladin	51c47c5f3b89f4eb	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Lost in the Spirit World	ff870131f7c9ca10	4	0/0		2/2	
+Magma Vein	6e94436e204467e7	4	1/1		1/1	
+Manalith	10e562077c0eb5e6	4	1/1		0/1	ix:resp
 Mardu Woe-Reaper	5366c241abe69207	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Markov Patrician	265ed96835478435	4	0/0		0/0	
 Masked Blackguard	a8a142ebd47fd68d	7	1/1		1/1	
 Mox Tantalite	149b5f504ed2bfc3	4	1/1		2/3	cast/alt:none
+Mystic Skull	e5c2c5d6f020d251	7	2/2		0/1	ix:resp
 Nakaya Shade	77d4ecf82513a3d3	8	1/1		1/1	
+Obelisk of Grixis	69966ddbffaee50e	4	1/1		0/1	ix:resp
+Ogre Taskmaster	e40b726704d6de3b	4	0/0		0/0	
+Ondu Knotmaster	6e03f4db0a7c93ce	9	1/1		2/2	
+One-Eyed Scarecrow	9669377b038f6ce4	3	0/0		0/0	
 Order of the Sacred Torch	20352d2e79268215	9	1/1		0/1	ix:resp
+Paradigm Shift	fd549080f8f56349	6	0/0		2/2	
 Patrol Hound	6e56df4436bb59e9	10	1/1		1/1	
+Personal Tutor	30dea40740b71bfc	4	0/0		2/2	
+Rampaging Cyclops	a138ac690caa5681	4	0/0		0/0	
+Reduce in Stature	bd3b48374957e827	8	0/0		1/2	ix:resp
+Return from Extinction	5a81b19e7096c54d	3	0/0		1/2	ix:resp
+Return of the Nightstalkers	ae076966896c28c5	5	0/0		1/2	ix:resp
+Rimewood Falls	b8d8696df1812ae6	16	2/2		0/1	ix:resp
+Rout	997bf004717e1754	4	0/0		1/2	ix:resp
 Rune-Cervin Rider	e0097db62c3e1ef5	4	1/1		1/1	
+Sacred Prey	6d70d4fc5e353f8a	4	1/1		0/1	ix:resp
 Sanctify	2eb6f8c724bf7475	4	0/0		1/2	ix:resp
+Selhoff Occultist	309c7a6070690319	3	1/1		1/1	
+Shimmer of Possibility	279f339085382206	10	0/0		2/2	
 Show of Valor	10ccdfccdcd3f3f7	6	0/0		2/2	
 Shrine Keeper	f4babd7d591c7662	9	0/0		0/0	
 Sigil of Valor	77ef8191582ea2b0	6	2/2		1/1	
 Sinkhole	b9a86d0c7cb78d9b	12	0/0		1/2	ix:resp
+Slagwoods Bridge	2878f997b5a11611	4	1/1		0/1	ix:resp
+Songstitcher	07f782d03a8a7056	14	1/1		1/1	
 Soulmender	dc0f19e97ad76507	10	1/1		0/1	ix:resp
+Spirit Shackle	ee8844432927de00	9	1/1		2/2	
 Spirited Companion	02235b86b60a6f7d	4	1/1		0/1	ix:resp
+Spiteful Squad	9f673f527e4ce775	9	1/1		1/1	
+Sultai Emissary	6bc1390b0e128231	7	1/1		0/1	ix:resp
+Swarm Surge	d7fa16679eca28fa	3	0/0		1/2	ix:resp
 Sword of the Animist	7f2ad10e57426a0e	7	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Timin, Youthful Geist	0491e6f40d3d4d37	3	2/2		0/1	ix:resp
+Tomebound Lich	b74b2889d01f7ff6	6	2/2		1/1	
+Trailblazing Historian	476f0bee39e5ea06	4	1/1		0/1	ix:resp
 Twilight's Call	3ebfc346cf090897	4	0/0		1/2	ix:resp
 Unholy Hunger	c9c256c518622049	4	0/0		1/2	ix:resp
+Viscid Lemures	da8829643a0efa36	4	1/1		1/1	
 Voyager Staff	77b389b2300f95bd	7	1/1		1/1	
+Wall of Vines	6774bb37bbfe991d	4	0/0		0/0	
+Waterknot	05167c17b6f76869	3	1/1		2/2	
+Will-o'-the-Wisp	cd445fa01cff0f02	3	1/1		1/1	
 Wingsteed Rider	e6db7dd507207bea	10	1/1		1/1	
 Yoshimaru, Ever Faithful	14668ac55e175b70	4	1/1		0/1	ix:resp
 Zealot's Conviction	c407e402be3771ac	6	0/0		2/2	

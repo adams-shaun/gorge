@@ -1,12 +1,19 @@
+Aerial Volley
 Ambition's Cost
 Ancient Copper Dragon
+Angler Drake
+April O'Neil, Human Element
 Arcbound Javelineer
 Ardent Soldier
 Asha's Favor
+Audacity
 Avatar of Might
+Aven Eternal
 Awaken the Bear
+Azorius Signet
 Baird, Steward of Argive
 Balduvian Barbarians
+Baneslayer Angel
 Beastmaster Ascension
 Beregond of the Guard
 Bladebrand
@@ -14,32 +21,42 @@ Bloodfire Dwarf
 Bloodrage Brawler
 Blossoming Calm
 Blue Elemental Blast
+Boing!
 Bold Defense
 Boom
 Boompile
 Boros Elite
 Borrowing 100,000 Arrows
 Branching Bolt
+Branchloft Pathway
+Breath of Darigaaz
 Brinelin, the Moon Kraken
 Burning Sun's Avatar
+Cacophony Unleashed
 Capital Guard
 Carnage Interpreter
 Champion Lancer
 Charcoal Diamond
 Cloakwood Hermit
+Cloudseeder
 Colossal Might
+Compleated Huntmaster
 Consecrated by Blood
 Contaminated Aquifer
 Contentious Plan
 Crimson Caravaneer
 Crossover Collaboration
 Crosswinds
+Cut of the Profits
+Dagger Caster
 Dauntless Onslaught
 Deranged Hermit
+Deserter's Quarters
 Desolation Twin
 Devastation Tide
 Dictate of Karametra
 Dissipate
+Dragon Mask
 Draugr Necromancer
 Draugr's Helm
 Dross Hopper
@@ -47,6 +64,7 @@ Dune Beetle
 Dwarven Nomad
 Déjà Vu
 Eidolon of Astral Winds
+Emerald Medallion
 Emrakul's Hatcher
 Enthralling Victor
 Escaped Experiment
@@ -54,12 +72,15 @@ Executioner's Capsule
 Extinguish the Light
 Falcon Abomination
 Falconer Adept
+Feral Invocation
+Fiery Fall
 Filigree Familiar
 Firebreathing
 Flame Discharge
 Flame Sweep
 Flameblade Adept
 Fog
+Foratog
 Force of Vigor
 Forest
 Frostling
@@ -67,31 +88,44 @@ Glass of the Guildpact
 Glorious Charge
 Gobhobbler Rats
 Goblin Bully
+Goblin Burrows
 Goblin Scouts
 Goblin Trashmaster
 Gods Willing
 Goldenglow Moth
+Grove of the Guardian
+Guardians' Pledge
 Hammerhand
+Hangarback Walker
 Heirs of Stromkirk
+Hero of the Pride
+Highland Lake
 Hinterland Drake
+Hoodwink
 Hornet Cobra
 Hour of Promise
+Imperial Oath
 Increasing Ambition
 Inordinate Rage
 Inventor's Axe
 Iron Lad, Young Avenger
 Island
 Jace's Sentinel
+Jodah's Codex
 Johnny, Combo Player
 Jushi Apprentice
+Kazandu Refuge
 Kird Chieftain
 Kitesail Skirmisher
 Lance
+Lava Flow
 Lava Hounds
 Leonin Abunas
+Llanowar Augur
 Loam Larva
 Lookout's Dispersal
 Lotleth Giant
+Mage-Ring Bully
 Magnify
 Magus of the Moon
 Malicious Intent
@@ -106,25 +140,35 @@ On Wings of Gold
 Ornithopter
 Owlbear Shepherd
 Pain
+Paragon of Open Graves
 Pillar of War
 Pistus Strike
+Pith Driller
 Plains
 Pox
+Profane Memento
 Protomatter Powder
 Pteron Ghost
 Quandrix Campus
 Raging Minotaur
 Rain of Blades
+Rakdos Signet
 Ravenous Vampire
+Rebuff the Wicked
 Refurbished Familiar
+Relentless Assault
 Remand
 Renegade Tactics
+Rime Transfusion
+Rite of the Raging Storm
 Roiling Regrowth
 Rusted Sentinel
 Ruthless Sniper
+Sage-Eye Avengers
 Savage Offensive
 Sawblade Slinger
 Scent of Jasmine
+Screaming Seahawk
 Seal of Strength
 Searing Light
 Seasoned Marshal
@@ -133,6 +177,7 @@ Separatist Voidmage
 Serra's Blessing
 Shinewend
 Shriekdiver
+Shrink
 Sigardian Savior
 Sinister Gnarlbark
 Skirk Prospector
@@ -141,21 +186,27 @@ Skyline Scout
 Soul Rend
 Spectral Rider
 Spellbound Dragon
+Sphere of Resistance
 Spined Karok
 Steel Leaf Champion
 Stingscourger
 Stronghold Overseer
 Swamp
 Swarmborn Giant
+Sword of Forge and Frontier
 Syr Faren, the Hengehammer
+Tajuru Blightblade
 Take Inventory
 Tattered Apparition
 Taunting Elf
+Taunting Sliver
 Tavern Brawler
 Tempered Veteran
 Thalakos Dreamsower
+The Fair Basilica
 The Frightful Four
 The Juzam Master
+The Reaver Cleaver
 Thopter Arrest
 Thor, Asgard's Avenger
 Thorn Mammoth
@@ -170,8 +221,11 @@ Unlicensed Hearse
 Vesper Ghoul
 Virtus the Veiled
 Wall of Hope
+Warlord's Fury
+Warped Landscape
 Winding Way
 Winged Portent
+Witty Roastmaster
 Young Pyromancer
 Zenith Seeker
 Zulaport Enforcer

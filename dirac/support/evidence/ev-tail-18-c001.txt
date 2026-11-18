@@ -41,6 +41,7 @@ Bloodrage Brawler
 Blossoming Calm
 Blue Elemental Blast
 Body of Knowledge
+Boing!
 Bojuka Brigand
 Bold Defense
 Bond of Passion
@@ -344,6 +345,7 @@ Solidarity
 Soratami Cloudskater
 Soul Rend
 Soul's Might
+Soulquake
 Soulstealer Axe
 Spawn-Gang Commander
 Spectral Rider

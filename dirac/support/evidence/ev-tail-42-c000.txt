@@ -97,6 +97,7 @@ Containment Construct
 Contraband Kingpin
 Corpse Cur
 Corrupted Resolve
+Crashing Boars
 Cremate
 Crenellated Wall
 Crooked Custodian
@@ -375,6 +376,7 @@ Shapers' Sanctuary
 Shard of the Nightbringer
 Shared Discovery
 Shauku's Minion
+Shoulder to Shoulder
 Shrewd Negotiation
 Shriek of Dread
 Shu Cavalry
@@ -412,6 +414,7 @@ Swamp
 Sweatworks Brawler
 Swelter
 Swift Response
+Sylvan Reclamation
 Tajuru Stalwart
 Talon Gates of Madara
 Tatyova, Steward of Tides
@@ -453,7 +456,9 @@ Ursine Champion
 Urza's Guilt
 Vedalken Orrery
 Venerable Knight
+Venser, the Sojourner
 Verduran Emissary
+Vhal, Candlekeep Researcher
 Viashino Firstblade
 Viashino Shanktail
 Villainous Ogre

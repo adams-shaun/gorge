@@ -29,6 +29,7 @@ Avenging Hunter
 Awakening Zone
 Azra Smokeshaper
 Bad Deal
+Ballroom
 Baloth Gorger
 Barbtooth Wurm
 Basilica Screecher
@@ -207,6 +208,7 @@ Meriadoc Brandybuck
 Mesa Unicorn
 Metathran Soldier
 Mindeye Drake
+Minotaur Illusionist
 Mirkwood Channeler
 Moira, Urborg Haunt
 Monastery Flock
@@ -217,6 +219,7 @@ Mysterious Tome
 Nagao, Bound by Honor
 Najal, the Storm Runner
 Narstad Scrapper
+Necrotic Ooze
 Needlepeak Spider
 Nekrataal
 Nettle Drone
@@ -378,6 +381,7 @@ Trigon of Thought
 Triumph of the Hordes
 Tromp the Domains
 Turn Aside
+Turret Ogre
 Twincast
 Unbreakable Formation
 Unstable Frontier

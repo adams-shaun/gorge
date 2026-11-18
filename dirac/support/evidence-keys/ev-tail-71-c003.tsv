@@ -1,37 +1,124 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Armory Veteran	b8519bf0a57c7b86	3	1/1		0/1	ix:resp
+Academy Elite	4321891ab13e4da9	8	1/1		0/1	ix:resp
+Alchemist's Gift	a45c2e153ae0aa99	4	0/0		2/2	
+Ancient Carp	3c92e8e05adc50e3	10	0/0		0/0	
+Awe for the Guilds	49f88e15347f2f65	4	0/0		2/2	
+Baton of Courage	37af939224f8a158	3	1/1		0/1	ix:resp
+Battleground Geist	02f029d75fa8cee9	3	0/0		0/0	
+Beacon of Destruction	d5f2a1d616d6904f	8	0/0		1/2	ix:resp
+Blind with Anger	7ed8feea5be08fa5	8	0/0		1/2	ix:resp
+Bloodfire Expert	238de0276a100009	5	1/1		1/1	
+Bull Rush	68e3a52613fa0366	13	0/0		2/2	
+Burning Wish	44e90b4985484e8c	3	0/0		1/2	ix:resp
+Captivating Gyre	751ced8b3f0cef38	8	0/0		1/2	ix:resp
+Cat Oven	210d257086168745	4	2/2		0/1	ix:resp
 Cathedral Sanctifier	6e88945b3c139963	6	1/1		0/1	ix:resp
+Caustic Caterpillar	58b166706c71a64f	3	1/1		0/1	ix:resp
 Cerebral Eruption	599d4b7beb3a208d	8	0/0		1/2	ix:resp
+Coordinated Barrage	223fa21c1388d50e	14	0/0		2/2	
+Cosmic Hunger	e69ea5b8f38ee29a	5	0/0		2/2	
+Crumbling Necropolis	bb729a8be7ee18b1	25	1/1		0/1	ix:resp
+Crystal Chimes	1c68cdef4a82f241	7	1/1		0/1	ix:resp
+Daggerclaw Imp	cfda2ba1ab6dec09	4	0/0		0/0	
+Dangerous Wager	a440a8401fe2ab7e	10	0/0		2/2	
+Deadbridge Shaman	395dc3f31781c408	5	1/1		0/1	ix:resp
 Detective of the Month	50ace7d4bfcc439e	6	1/1		0/1	ix:resp
+Dire Fleet Poisoner	494217c759b9f7db	4	1/1		0/1	ix:resp
+Dragon-Cursed Halls	cc6ff18c5ac11773	23	2/2		0/1	ix:resp
+Dragonscale General	7a6aaaa43d0eef3b	4	1/1		0/1	ix:resp
+Dune Chanter	824dab577edd4813	4	1/1		0/1	ix:resp
 Eccentric Farmer	0b956e7d6920c29d	4	1/1		0/1	ix:resp
+Embereth Paladin	d30b91f1917c7291	4	0/0		0/0	
+Enduring Victory	8819a503a0d14628	6	0/0		1/2	ix:resp
 Ensnare	865fa0c454464cc9	3	0/0		1/2	ix:resp
+Fallaji Chaindancer	cf33b39a650da41f	3	1/1		1/1	
 Ferrovore	aaf4dee6ab217519	3	1/1		0/1	ix:resp
+Feywild Visitor	0a693b3ea8ce6368	6	0/0		0/0	
+Field Research	0d45e226e971b5eb	4	0/0		2/4	cast/alt:kicked,ix:resp
 Flamekin Spitfire	00b461886483da7c	6	1/1		0/1	ix:resp
 Flow of Knowledge	e54e374a40d23a13	5	0/0		1/2	ix:resp
 Frenzied Saddlebrute	b25ae395e2962792	4	0/0		0/0	
 Garbage Elemental	740235df3463a3d4	3	0/0		0/0	
+Garruk's Warsteed	4efb3e2512ce310e	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Giant Inheritance	0d4aeb029b4db490	6	1/1		2/2	
+Goblin Archaeologist	991499adcecf2508	6	1/1		0/1	ix:resp
+Goblin Dirigible	f0903e30cbc7ff04	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Goretusk Firebeast	a1432fe2ac872975	3	1/1		0/1	ix:resp
 Granite Gargoyle	bd80eb07da6ddbb0	4	1/1		1/1	
 Growth Cycle	4e59359cccd30e0f	6	0/0		1/2	ix:resp
+Guardian Automaton	32962fdc2ba8ecf5	4	1/1		0/1	ix:resp
 Guardian Lions	156437887363f7f1	3	0/0		0/0	
+Hateflayer	543f2562a59dcee9	19	1/1		1/1	
+Hidden Gibbons	a48f2cedf3b09f86	3	1/1		0/1	ix:resp
+Hideous End	02b7ede3b85df9fb	3	0/0		1/2	ix:resp
 Hold for Questioning	1771706b6cd7930e	4	1/1		1/2	ix:resp
 Hydrolash	8336575e8fde4582	5	0/0		1/2	ix:resp
 Inspirit	139f244df7f5bc15	3	0/0		1/2	ix:resp
+Invincible Hymn	787dcba5371f0758	3	0/0		1/2	ix:resp
+Iron Star	2d0f63aa01df1805	3	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Jawbone Duelist	a7a7734ab1192fc2	5	0/0		0/0	
 Jeska, Warrior Adept	ac90e9e64b8a1341	4	1/1		0/1	ix:resp
+Junk Jet	bfd9369c70a2d13e	4	3/3		1/1	
 Keldon Warcaller	7656ac91cc2589ec	7	1/1		0/1	ix:resp
 Kessig Naturalist	a13882d347a8fbb5	4	2/2		0/1	ix:resp
+Kin-Tree Warden	37dfc91b4bc21323	4	1/1		1/3	cast/alt:morphed,ix:resp
 Kyoshi Warrior Guard	8be6691bb87008d2	4	0/0		0/0	
 Lightning Spear	5f77b304c1313075	5	2/2		0/1	ix:resp
+Lumberknot	d93dfb7b0641d744	4	1/1		0/1	ix:resp
 Meldweb Strider	a4fa726a29c85cf4	7	2/2		1/1	
+Metastatic Evangel	40609102f9a6fc56	4	1/1		0/1	ix:resp
 Militia Rallier	908f293be3f39bbe	3	1/1		0/1	ix:resp
+Mine Worker	b2c79d3bc115d848	4	1/1		1/1	
+Nefashu	585199bf13e9ecec	4	1/1		0/1	ix:resp
 Nexus of Fate	178e6f3f2c93c53c	3	0/0		1/2	ix:resp
+Nezumi Graverobber	009f1970d78fa551	3	2/2		1/1	
+Nightmare Void	512676295db8a7ed	22	0/0		1/2	ix:resp
+Nuka-Cola Vending Machine	3bd998c64eab26ce	4	2/2		1/1	
+Nylea, God of the Hunt	81e4fda765f7fac7	3	1/1		0/1	ix:resp
+Ob Nixilis's Cruelty	a232d2e710971164	4	0/0		1/2	ix:resp
+Overwhelming Remorse	02440e4fce36be77	3	0/0		1/2	ix:resp
 Piston Sledge	c82ecf9a3595fd46	4	2/2		0/1	ix:resp
+Primal Boost	feb8116f0288acf3	5	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
 Pyrogoyf	91f9e5534b0f9bb4	6	1/1		0/1	ix:resp
+Recruit the Worthy	f7e9a66721df085c	4	0/0		3/4	ix:resp
 Release the Ants	b9d20c74029a1d32	91	0/0		2/2	
+Revolutionary Rebuff	c1b196d9d6c83645	4	0/0		1/2	ix:resp
+Revolutionist	d4870f58c58ea065	5	1/1		0/1	ix:resp
+Scalding Salamander	e36590bb5b634519	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Scoria Wurm	9c941a33cfa8aee7	4	1/1		0/1	ix:resp
+Season of Growth	66316655539797b2	6	2/2		1/1	
+Serene Heart	3f6244b660d3b2c1	9	0/0		1/2	ix:resp
+Serum Sovereign	01b5c07f5840ed2c	3	2/2		0/1	ix:resp
+Shield Mate	99a7af629a48fbc3	4	1/1		0/1	ix:resp
 Shocker	267a5c994b859d5a	6	1/1		0/1	ix:resp
+Skarrgan Skybreaker	94b6af3d2b08a56d	3	1/1		0/1	ix:resp
+Skatewing Spy	f03b9e2d66c6d48f	3	1/1		0/1	ix:resp
+Slinking Skirge	5be59eb00639e08a	4	1/1		0/1	ix:resp
 Sly Instigator	ddbd0bf39ca096ab	5	1/1		1/1	
+Snowfield Sinkhole	e742a047403e7354	22	2/2		0/1	ix:resp
 Sonic Seizure	dc3bac815150ef73	5	0/0		2/2	
 Spikefield Hazard	0c1fd064e357cc76	11	1/1		1/2	ix:resp
+Starlit Sanctum	5a9514fc69aa7c6c	16	3/3		0/1	ix:resp
+Steel Golem	49a26297facaed5b	4	0/0		0/0	
+Striking Sliver	c74821365ac04b26	6	0/0		0/0	
+Strongarm Thug	5e0e17b333ac2e2e	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Tattermunge Witch	a06b55e8aba53cd7	3	1/1		1/1	
+The Cauldron of Eternity	7013e700c01a0de4	4	2/2		0/1	ix:resp
+Thornwatch Scarecrow	35fa37f0528020f9	6	0/0		0/0	
 Threnody Singer	597e8166ed861121	4	1/1		0/1	ix:resp
+Thunderous Might	d1117f8754afa33a	4	1/1		2/2	
+Tormod's Crypt	4b6e7b1b4e574562	4	1/1		1/1	
+Torture	2975ed8810399cb2	4	1/1		1/2	ix:resp
+Treasure Mage	1373097106ea2ba8	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Utvara Scalper	d7116086984c3503	4	0/0		0/0	
+Viashino Firstblade	468549dfc788e0b1	4	1/1		0/1	ix:resp
+Vodalian Soldiers	a71e76be34f94445	6	0/0		0/0	
 Voltaic Brawler	e05c42c1c622026c	4	2/2		1/1	
+Weight of Memory	c0538f988aeb8bd0	6	0/0		1/2	ix:resp
+Whirlermaker	baa90d61ef0bed8f	3	1/1		0/1	ix:resp
+Wizards of Thay	623b81456d259fde	4	1/1		0/1	ix:resp
+Wolfcaller's Howl	1b365156ee2c0eaa	4	1/1		0/1	ix:resp
 Wrath of Marit Lage	a44bca058ea09a5b	7	1/1		0/1	ix:resp
 Wyleth, Soul of Steel	29c8d316a09be3d5	4	1/1		0/1	ix:resp
+Xathrid Necromancer	7dcd1058a139ab13	4	1/1		1/1	

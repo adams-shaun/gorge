@@ -1,3 +1,4 @@
+A-Kona, Rescue Beastie
 A-Master of Winds
 Aether Spellbomb
 Afterlife
@@ -20,6 +21,7 @@ Azure Drake
 Backfire
 Baloth Null
 Banishment
+Barkhide Troll
 Barrow Witches
 Bathe in Dragonfire
 Battle of Hoover Dam
@@ -38,26 +40,33 @@ Bond of Flourishing
 Bond of Insight
 Bone Devourer
 Bonehoard
+Boneknitter
 Bonepicker Skirge
 Bound in Silence
 Bountiful Promenade
 Brackwater Elemental
 Brandywine Farmer
 Burning Fields
+Cabal Patriarch
 Cabaretti Courtyard
 Captive Weird
 Catacomb Sifter
 Chainweb Aracnir
+Change the Equation
 Chaos Lord
 Chaotic Backlash
 Clear a Path
 Clip Wings
 Colossal Dreadmaw and Storm Crow
 Crackling Drake
+Creakwood Liege
 Crookclaw Elder
 Crosstown Courier
 Cunning Survivor
+Curiosity Crafter
+Daggersail Aeronaut
 Daunting Defender
+Dawning Angel
 Death's Shadow
 Demon's Disciple
 Dense Foliage
@@ -66,6 +75,7 @@ Desolate Mire
 Desynchronize
 Devouring Light
 Devouring Swarm
+Dina, Soul Steeper
 Double Negative
 Dragon-Scarred Bear
 Dragonlord Silumgar
@@ -81,10 +91,13 @@ Dune Mover
 Duplicant
 Dust Corona
 Easy Prey
+Eccentric Pestfinder
 Emperor Crocodile
 Enrage
+Erstwhile Trooper
 Ethereal Investigator
 Falkenrath Marauders
+Farewell
 Fateful Showdown
 Feral Instinct
 Ferocious Zheng
@@ -92,7 +105,9 @@ Fetid Imp
 Fiendslayer Paladin
 Fireblade Charger
 Flare of Denial
+Flatman
 Forest
+Foxfire Oak
 Gift of Fangs
 Gift of Paradise
 Gild
@@ -103,6 +118,7 @@ Goblin Deathraiders
 Great Defender
 Greater Harvester
 Griffin Aerie
+Grim Tutor
 Guul Draz Mucklord
 Haazda Officer
 Harmless Assault
@@ -112,6 +128,7 @@ Hibernation
 Honden of Life's Web
 Howl of the Night Pack
 Huatli, Radiant Champion
+Hulk, Brutal Brawler
 Hurloon Battle Hymn
 Imaginary Pet
 Immortal Phoenix
@@ -127,21 +144,28 @@ Khenra Eternal
 Khenra Spellspear
 Kher Keep
 Kjeldoran Outrider
+Kodama's Reach
 Launch
 Leapfrog
 Leyline of Punishment
+Lightwielder Paladin
 Lorthos, the Tidemaker
 Lost in the Mist
+Lost in the Spirit World
 Magma Vein
 Magmatic Insight
 Malcator's Watcher
+Mammoth Spider
 Mana Vault
+Manalith
 Marauding Boneslasher
 Mardu Woe-Reaper
 Markov Patrician
+Masked Blackguard
 Mass Mutiny
 Master of Winds
 Master the Way
+Maze Rusher
 Metathran Elite
 Mijae Djinn
 Mind Over Matter
@@ -157,6 +181,7 @@ Nakaya Shade
 Nebelgast Herald
 Neonate's Rush
 Nezumi Freewheeler
+Niv-Mizzet, the Firemind
 Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper
@@ -178,6 +203,7 @@ Portent of Betrayal
 Power of Persuasion
 Precinct Captain
 Privileged Position
+Psychic Frog
 Pyrrhic Blast
 Quest for Renewal
 Quirion Explorer
@@ -228,6 +254,7 @@ Spindrift Drake
 Spirit Shackle
 Spirited Companion
 Spitebellows
+Spiteful Squad
 Spitfire Handler
 Stormscape Apprentice
 Sultai Emissary
@@ -245,9 +272,11 @@ Territorial Boar
 Thirst for Discovery
 Thopter Assembly
 Threnody Singer
+Thrilling Encore
 Thundersteel Colossus
 Timbermaw Larva
 Timin, Youthful Geist
+Tomebound Lich
 Trail of Evidence
 Trailblazing Historian
 Trained Caracal
@@ -276,3 +305,4 @@ Woodland Stream
 Zap
 Zealot's Conviction
 Zendikar Farguide
+Zuran Enchanter

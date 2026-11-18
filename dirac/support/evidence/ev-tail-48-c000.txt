@@ -347,6 +347,7 @@ Thalakos Deceiver
 The Mightstone and Weakstone
 Theft of Dreams
 Thopter Squadron
+Thorntooth Witch
 Thoughtseize
 Tiger Claws
 Tilonalli's Crown
@@ -361,6 +362,7 @@ Ulvenwald Oddity
 Unchained Berserker
 Unruly Mob
 Urza's Command
+Vance's Blasting Cannons
 Vandalize
 Vastwood Zendikon
 Vedalken Infuser
