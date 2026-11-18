@@ -1315,6 +1315,7 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 	if e.kind == seSpell {
 		s.addDeferredUnits(k, e.ctrl, &av) // mana_deferred.go
 	}
+	s.addPipTapsDefer(k, e, &av)
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenPip, e.ctrl
 	if cost.Hyb[0] == kop.HybTwobrid {
 		s.pipOptionsTb(k, d, cost, &av)
