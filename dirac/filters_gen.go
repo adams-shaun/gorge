@@ -490,8 +490,10 @@ func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, src Slot, layer ui
 		return s.hasSubGen(k, sl, uint8(n))
 	case kop.PredNamed:
 		// the name card (gorge sharesName reads EffectiveNames: a layer-3
-		// rename counts, CR 707.2); face-down is NoCard (CR 708.2: no name)
-		return s.nameCardAt(sl) == s.nameKey(CardID(n))
+		// rename counts, CR 707.2); face-down is NoCard (CR 708.2: no name).
+		// n < 0 is a name no object of this matchup prints: it matches
+		// nothing, and CardID(-1) is NoCard, which a face-down permanent reads.
+		return n >= 0 && s.nameCardAt(sl) == s.nameKey(CardID(n))
 	case kop.PredToughnessGE, kop.PredHasXCost, kop.PredPowerLTToughness:
 		return s.predPermStats(k, fl, sl)
 	case kop.PredMultiColor, kop.PredHistoric, kop.PredEquipped, kop.PredEnchanted:
