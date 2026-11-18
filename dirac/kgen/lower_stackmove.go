@@ -6,6 +6,16 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// isStackTargetMove reports an Origin$ Stack ChangeZone that names a stack
+// object: a TargetType$, a Card.inZoneStack ValidTgts$, or a TgtZone$ Stack.
+func isStackTargetMove(ps *params) bool {
+	if ps.str("Origin") != "Stack" {
+		return false
+	}
+	_, tt := ps.m["TargetType"]
+	return tt || ps.str("ValidTgts") == "Card.inZoneStack" || ps.str("TgtZone") == "Stack"
+}
+
 // stackToZone lowers ChangeZone Origin$ Stack TargetType$ Spell (gorge
 // effChangeZone's targeted stack arm: Hullbreaker Horror's "return target
 // spell you don't control to its owner's hand", Mindbreak Trap's "exile any
