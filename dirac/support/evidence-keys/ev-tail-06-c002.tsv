@@ -1,12 +1,16 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Kargan Warleader	0940b2de7fc34c06	5	1/1		0/1	ix:resp
+A-Syndicate Infiltrator	0d0505017a736f97	7	1/1		0/1	ix:resp
 Aether Tunnel	6da46ff9d61ce1b8	4	0/0		1/2	ix:resp
 Aethershield Artificer	7018f2adf77c8474	14	1/1		0/1	ix:resp
+Ancestral Mask	478cb7e708ffc9a5	3	0/0		1/2	ix:resp
 Ancestral Vengeance	1b9c432425f68abf	4	1/1		2/2	
 Armored Cancrix	bee7694793b21185	9	0/0		0/0	
+Artisan of Forms	2ece83d9e9c534a0	4	1/1		0/1	ix:resp
 Balm of Restoration	a2822540c3dc467a	6	1/1		0/1	ix:resp
 Baloth Pup	e2db6f2e093cd52f	6	0/0		0/0	
 Bathe in Dragonfire	662e4e767748140c	4	0/0		1/2	ix:resp
+Behold the Unspeakable	e4d7c2a0c6ab1c16	4	0/0		0/0	
 Benalish Knight	a67d948ea1e6f939	16	0/0		0/0	
 Big Apple, 3 a.m.	c500e13e72b11b90	7	2/2		0/1	ix:resp
 Blessed Spirits	099a77f93ebd3199	10	1/1		0/1	ix:resp
@@ -55,6 +59,7 @@ Flutterfox	ef85a3cafc8dc210	23	0/0		0/0
 Founding of Omashu	692e05afc971001f	19	0/0		0/0	
 Frenzied Rage	715458ce8828465a	10	0/0		2/2	
 Gaea's Balance	d0daed88c8985fc0	4	0/0		1/2	ix:resp
+Gargoyle Castle	a9d9a72e48b40037	14	2/2		0/1	ix:resp
 Gift of Growth	5bc343023657dd47	12	0/0		3/4	ix:resp
 Gift of the Woods	585e226d16029628	13	2/2		2/2	
 Glacial Wall	091af2eb191d5d2e	12	0/0		0/0	
@@ -75,11 +80,13 @@ Herald of Hadar	0eec731282bd1c44	3	1/1		0/1	ix:resp
 Honor the Fallen	8bf3538f7293a309	16	0/0		2/2	
 Hot Springs	80e0b43e0a9321af	15	0/0		1/2	ix:resp
 Hunger of the Howlpack	74e7fc40ad3aabd2	10	0/0		1/2	ix:resp
+Ice Floe	7238e5a4eee73648	14	1/1		0/1	ix:resp
 Iron-Heart Chimera	1bd49c09b12456b0	16	1/1		0/1	ix:resp
 Izzet Boilerworks	5dc9e723f7ac6fd4	36	2/2		0/1	ix:resp
 Jamuraan Lion	b26b5f7a63c6a658	7	1/1		1/1	
 Jovial Evil	bd45bb4172d826ab	15	0/0		1/2	ix:resp
 Kezzerdrix	b5c3d18b3ba59288	10	1/1		0/1	ix:resp
+Kiki-Jiki, Mirror Breaker	42d819f3c63dfb61	3	1/1		1/1	
 Landslide	a4eaf305f5c25a7e	7	0/0		2/2	
 Last-Ditch Effort	27b8a354bc0744fa	19	0/0		2/2	
 Launch Party	d479c94261de88c1	12	0/0		1/2	ix:resp
@@ -87,6 +94,7 @@ Lazotep Behemoth	67f04a7bb0d03581	13	0/0		0/0
 Leafcrown Dryad	74bf0d948b5d0de0	8	0/0		2/2	
 Lesser Masticore	8e6b2d0d3a9d627c	25	2/2		1/2	ix:resp
 Long Road Home	1cade38c0d07384a	9	0/0		1/2	ix:resp
+Looming Spires	30a2a2b92249acdb	12	2/2		0/1	ix:resp
 Luminesce	1cd98c6e217709c2	5	0/0		1/2	ix:resp
 Magnetic Mine	8c2efdd331780a75	12	1/1		0/1	ix:resp
 Master Healer	27226f822ab5ed26	9	1/1		0/1	ix:resp
@@ -99,6 +107,7 @@ Mind Twist	48115f2b745c0da7	4	0/0		2/4	f0/s/x0,ix:resp
 Mindwhip Sliver	c6a8c28cc53cdf4a	8	0/0		0/0	
 Minotaur Sureshot	86cc30139afb9893	12	1/1		1/1	
 Mortivore	60e0f5d0791933c3	5	1/1		0/1	ix:resp
+Mothdust Changeling	b417968044716945	4	1/1		1/1	
 Nomad Mythmaker	4c0cc99de3532940	8	1/1		0/1	ix:resp
 Oath of Druids	2d208a3cbe6a6051	8	1/1		0/1	ix:resp
 Obstinate Gargoyle	0ccf333e045d3797	9	1/1		0/1	ix:resp
@@ -117,6 +126,7 @@ Quantum Misalignment	aca104c67f046dc5	19	0/0		2/2
 RMS Titanic	fc72d65297bba6f7	23	2/2		1/1	
 Rakdos Pit Dragon	ab113f2242b9bef3	18	2/2		1/1	
 Ray of Enfeeblement	51e0e7c254aa951c	16	0/0		2/2	
+Reality Strobe	e43c8a22793befec	3	0/0		3/4	ix:resp
 Reckless Ogre	cfb574aaab9b093e	4	1/1		0/1	ix:resp
 Recoup	80f9224a9fa91b3b	4	0/0		2/4	cast/alt:flashback,ix:resp
 Recuperate	7ce5df37299dc5f9	10	0/0		2/2	
@@ -131,6 +141,7 @@ Selhoff Entomber	d065004c4dcd2872	14	1/1		1/1
 Shadowheart, Dark Justiciar	652b5c0cf30a285e	4	1/1		0/1	ix:resp
 Shepherd of Heroes	861694d2920567de	3	1/1		0/1	ix:resp
 Shinen of Stars' Light	1b3cda9c968d7fa3	14	1/1		0/1	ix:resp
+Shinka, the Bloodsoaked Keep	281b03ec1f8d0881	8	2/2		0/1	ix:resp
 Skirk Ridge Exhumer	3cc109eee1bbae21	4	1/1		0/1	ix:resp
 Smoldering Werewolf	184def3dacc71907	21	3/3		1/1	
 Snake Umbra	a28446c942e166d3	4	0/0		1/2	ix:resp
@@ -158,6 +169,7 @@ Urborg Repossession	0187c6f697368994	6	0/0		2/4	cast/alt:kicked,ix:resp
 Vampire Sovereign	f75ebda158ca529d	6	1/1		0/1	ix:resp
 Vampiric Spirit	202a45b1006aca8f	3	1/1		1/1	
 Vault 75: Middle School	829c372fb2d12d78	8	0/0		0/0	
+Viashino Slaughtermaster	9b4c44630bd4ab16	5	1/1		1/1	
 Vizier of Remedies	ec613eed8a5a6f16	8	0/0		0/0	
 Wild Defiance	0d4fea1a805ba685	10	1/1		0/1	ix:resp
 Witch's Familiar	8bfdae66ceb73a94	6	0/0		0/0	

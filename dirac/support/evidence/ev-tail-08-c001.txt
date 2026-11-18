@@ -75,6 +75,7 @@ Deathbringer Liege
 Denizen of the Deep
 Devil's Play
 Devouring Deep
+Diamond Knight
 Disposal Mummy
 Divest
 Djinn of Infinite Deceits
@@ -129,6 +130,7 @@ Goblin Sky Raider
 Goblin Soothsayer
 Goggles of Night
 Grid Monitor
+Guardian of Faith
 Hag of Noxious Nightmares
 Hallowed Haunting
 Halvar, God of Battle
@@ -157,6 +159,7 @@ Iron Fist, Hero for Hire
 Iron Verdict
 Ishai, Ojutai Dragonspeaker
 Island
+Joiner Adept
 Jolting Merfolk
 Juju Bubble
 Jukai Trainee
@@ -184,6 +187,7 @@ Marsh Casualties
 Mascot Exhibition
 Mass Appeal
 Mass Diminish
+Mawloc
 Mercurial Pretender
 Midnight Ritual
 Military Discipline
@@ -219,6 +223,7 @@ Pearled Unicorn
 Pernicious Deed
 Pestilent Wolf
 Pharaoh Rama-Tut
+Pierce Strider
 Pious Wayfarer
 Pitchburn Devils
 Plains
@@ -230,6 +235,7 @@ Primal Adversary
 Promise of Tomorrow
 Propagator Drone
 Protector of the Wastes
+Quakefoot Cyclops
 Quickbeam, Upstart Ent
 Quietus Spike
 Rain of Filth
@@ -245,6 +251,7 @@ Reverent Mantra
 Riddle Gate Gargoyle
 Righteous Charge
 Righteous Fury
+Rilsa Rael, Kingpin
 Rob the Archives
 Rustspore Ram
 Rustwing Falcon

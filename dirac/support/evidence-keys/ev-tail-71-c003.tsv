@@ -1,8 +1,10 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Armory Veteran	b8519bf0a57c7b86	3	1/1		0/1	ix:resp
+A-Dokuchi Silencer	bbaaec6381c7fc5f	13	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Academy Elite	4321891ab13e4da9	8	1/1		0/1	ix:resp
 Alchemist's Gift	a45c2e153ae0aa99	4	0/0		2/2	
 Ancient Carp	3c92e8e05adc50e3	10	0/0		0/0	
+Arcane Spyglass	09824fc3050d1297	3	2/2		0/1	ix:resp
 Awe for the Guilds	49f88e15347f2f65	4	0/0		2/2	
 Baton of Courage	37af939224f8a158	3	1/1		0/1	ix:resp
 Battleground Geist	02f029d75fa8cee9	3	0/0		0/0	
@@ -10,21 +12,29 @@ Beacon of Destruction	d5f2a1d616d6904f	8	0/0		1/2	ix:resp
 Blind with Anger	7ed8feea5be08fa5	8	0/0		1/2	ix:resp
 Bloodfire Expert	238de0276a100009	5	1/1		1/1	
 Bull Rush	68e3a52613fa0366	13	0/0		2/2	
+Burning Earth	d81f436e123f6c82	4	1/1		1/1	
 Burning Wish	44e90b4985484e8c	3	0/0		1/2	ix:resp
 Captivating Gyre	751ced8b3f0cef38	8	0/0		1/2	ix:resp
 Cat Oven	210d257086168745	4	2/2		0/1	ix:resp
 Cathedral Sanctifier	6e88945b3c139963	6	1/1		0/1	ix:resp
 Caustic Caterpillar	58b166706c71a64f	3	1/1		0/1	ix:resp
 Cerebral Eruption	599d4b7beb3a208d	8	0/0		1/2	ix:resp
+Collected Conjuring	a4302db8c0ac76b6	4	0/0		1/2	ix:resp
 Coordinated Barrage	223fa21c1388d50e	14	0/0		2/2	
 Cosmic Hunger	e69ea5b8f38ee29a	5	0/0		2/2	
 Crumbling Necropolis	bb729a8be7ee18b1	25	1/1		0/1	ix:resp
+Crypt Cobra	cd3fb2d6b9dc60cf	9	1/1		0/1	ix:resp
 Crystal Chimes	1c68cdef4a82f241	7	1/1		0/1	ix:resp
+Cut Your Losses	4ea15243b0295558	5	0/0		2/2	
 Daggerclaw Imp	cfda2ba1ab6dec09	4	0/0		0/0	
+Dalek Drone	41cdbe52c3e6f154	5	1/1		0/1	ix:resp
 Dangerous Wager	a440a8401fe2ab7e	10	0/0		2/2	
 Deadbridge Shaman	395dc3f31781c408	5	1/1		0/1	ix:resp
+Desperate Charge	0314d060c760dbad	8	0/0		1/2	ix:resp
 Detective of the Month	50ace7d4bfcc439e	6	1/1		0/1	ix:resp
 Dire Fleet Poisoner	494217c759b9f7db	4	1/1		0/1	ix:resp
+Dispel	3f6b9f97fe866b83	5	0/0		1/2	ix:resp
+Doomed Necromancer	9865f32d33699aa5	4	1/1		0/1	ix:resp
 Dragon-Cursed Halls	cc6ff18c5ac11773	23	2/2		0/1	ix:resp
 Dragonscale General	7a6aaaa43d0eef3b	4	1/1		0/1	ix:resp
 Dune Chanter	824dab577edd4813	4	1/1		0/1	ix:resp
@@ -36,12 +46,15 @@ Fallaji Chaindancer	cf33b39a650da41f	3	1/1		1/1
 Ferrovore	aaf4dee6ab217519	3	1/1		0/1	ix:resp
 Feywild Visitor	0a693b3ea8ce6368	6	0/0		0/0	
 Field Research	0d45e226e971b5eb	4	0/0		2/4	cast/alt:kicked,ix:resp
+Fire Shrine Keeper	36debb46b9a96af1	4	1/1		0/1	ix:resp
 Flamekin Spitfire	00b461886483da7c	6	1/1		0/1	ix:resp
 Flow of Knowledge	e54e374a40d23a13	5	0/0		1/2	ix:resp
+Flowstone Shambler	42d7bdedbce5c6de	10	1/1		1/1	
 Frenzied Saddlebrute	b25ae395e2962792	4	0/0		0/0	
 Garbage Elemental	740235df3463a3d4	3	0/0		0/0	
 Garruk's Warsteed	4efb3e2512ce310e	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Giant Inheritance	0d4aeb029b4db490	6	1/1		2/2	
+Glint	88e207df5f2d6150	4	0/0		2/2	
 Goblin Archaeologist	991499adcecf2508	6	1/1		0/1	ix:resp
 Goblin Dirigible	f0903e30cbc7ff04	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Goretusk Firebeast	a1432fe2ac872975	3	1/1		0/1	ix:resp
@@ -66,10 +79,15 @@ Kin-Tree Warden	37dfc91b4bc21323	4	1/1		1/3	cast/alt:morphed,ix:resp
 Kyoshi Warrior Guard	8be6691bb87008d2	4	0/0		0/0	
 Lightning Spear	5f77b304c1313075	5	2/2		0/1	ix:resp
 Lumberknot	d93dfb7b0641d744	4	1/1		0/1	ix:resp
+Mask of Memory	04785a8ce89bb6cc	6	2/2		0/1	ix:resp
+Mechanical Glider	94e7423797d80a8b	6	2/2		0/1	ix:resp
 Meldweb Strider	a4fa726a29c85cf4	7	2/2		1/1	
+Mephitic Ooze	7a4438c642c28747	6	1/1		0/1	ix:resp
 Metastatic Evangel	40609102f9a6fc56	4	1/1		0/1	ix:resp
 Militia Rallier	908f293be3f39bbe	3	1/1		0/1	ix:resp
+Mind Rot	64e80926a698fe7f	6	0/0		1/2	ix:resp
 Mine Worker	b2c79d3bc115d848	4	1/1		1/1	
+Morbid Opportunist	24722ae9947e36da	4	1/1		0/1	ix:resp
 Nefashu	585199bf13e9ecec	4	1/1		0/1	ix:resp
 Nexus of Fate	178e6f3f2c93c53c	3	0/0		1/2	ix:resp
 Nezumi Graverobber	009f1970d78fa551	3	2/2		1/1	
@@ -77,15 +95,19 @@ Nightmare Void	512676295db8a7ed	22	0/0		1/2	ix:resp
 Nuka-Cola Vending Machine	3bd998c64eab26ce	4	2/2		1/1	
 Nylea, God of the Hunt	81e4fda765f7fac7	3	1/1		0/1	ix:resp
 Ob Nixilis's Cruelty	a232d2e710971164	4	0/0		1/2	ix:resp
+Ogre Slumlord	83ce40f711352da0	8	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Overwhelming Remorse	02440e4fce36be77	3	0/0		1/2	ix:resp
 Piston Sledge	c82ecf9a3595fd46	4	2/2		0/1	ix:resp
 Primal Boost	feb8116f0288acf3	5	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
 Pyrogoyf	91f9e5534b0f9bb4	6	1/1		0/1	ix:resp
 Recruit the Worthy	f7e9a66721df085c	4	0/0		3/4	ix:resp
 Release the Ants	b9d20c74029a1d32	91	0/0		2/2	
+Retribution of the Meek	f3150ac00cdbd5a1	4	0/0		1/2	ix:resp
 Revolutionary Rebuff	c1b196d9d6c83645	4	0/0		1/2	ix:resp
 Revolutionist	d4870f58c58ea065	5	1/1		0/1	ix:resp
 Scalding Salamander	e36590bb5b634519	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Scarab Feast	eca3d263be66e9dc	3	1/1		1/2	ix:resp
+Scion Summoner	226cba92fd23e5b0	4	1/1		1/1	
 Scoria Wurm	9c941a33cfa8aee7	4	1/1		0/1	ix:resp
 Season of Growth	66316655539797b2	6	2/2		1/1	
 Serene Heart	3f6244b660d3b2c1	9	0/0		1/2	ix:resp
@@ -94,13 +116,16 @@ Shield Mate	99a7af629a48fbc3	4	1/1		0/1	ix:resp
 Shocker	267a5c994b859d5a	6	1/1		0/1	ix:resp
 Skarrgan Skybreaker	94b6af3d2b08a56d	3	1/1		0/1	ix:resp
 Skatewing Spy	f03b9e2d66c6d48f	3	1/1		0/1	ix:resp
+Slagstone Refinery	6e83c6c30491f4a6	4	1/1		0/1	ix:resp
 Slinking Skirge	5be59eb00639e08a	4	1/1		0/1	ix:resp
 Sly Instigator	ddbd0bf39ca096ab	5	1/1		1/1	
 Snowfield Sinkhole	e742a047403e7354	22	2/2		0/1	ix:resp
 Sonic Seizure	dc3bac815150ef73	5	0/0		2/2	
 Spikefield Hazard	0c1fd064e357cc76	11	1/1		1/2	ix:resp
+Splatter Goblin	81d14be7962331a9	6	1/1		0/1	ix:resp
 Starlit Sanctum	5a9514fc69aa7c6c	16	3/3		0/1	ix:resp
 Steel Golem	49a26297facaed5b	4	0/0		0/0	
+Steelclad Spirit	716fa428e426e102	4	1/1		0/1	ix:resp
 Striking Sliver	c74821365ac04b26	6	0/0		0/0	
 Strongarm Thug	5e0e17b333ac2e2e	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Tattermunge Witch	a06b55e8aba53cd7	3	1/1		1/1	
@@ -110,13 +135,17 @@ Threnody Singer	597e8166ed861121	4	1/1		0/1	ix:resp
 Thunderous Might	d1117f8754afa33a	4	1/1		2/2	
 Tormod's Crypt	4b6e7b1b4e574562	4	1/1		1/1	
 Torture	2975ed8810399cb2	4	1/1		1/2	ix:resp
+Tragic Fall	81c28691707e6a56	6	0/0		2/2	
 Treasure Mage	1373097106ea2ba8	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Utvara Scalper	d7116086984c3503	4	0/0		0/0	
+Vantress Paladin	03d4db0fce57330d	3	0/0		0/0	
 Viashino Firstblade	468549dfc788e0b1	4	1/1		0/1	ix:resp
 Vodalian Soldiers	a71e76be34f94445	6	0/0		0/0	
 Voltaic Brawler	e05c42c1c622026c	4	2/2		1/1	
 Weight of Memory	c0538f988aeb8bd0	6	0/0		1/2	ix:resp
+Weldfast Wingsmith	b9938309dc9fe321	13	1/1		0/1	ix:resp
 Whirlermaker	baa90d61ef0bed8f	3	1/1		0/1	ix:resp
+Withdraw	f40e2709e84df597	4	0/0		1/2	ix:resp
 Wizards of Thay	623b81456d259fde	4	1/1		0/1	ix:resp
 Wolfcaller's Howl	1b365156ee2c0eaa	4	1/1		0/1	ix:resp
 Wrath of Marit Lage	a44bca058ea09a5b	7	1/1		0/1	ix:resp

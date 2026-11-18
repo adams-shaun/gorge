@@ -13,6 +13,7 @@ Aven Fogbringer	e6719a86221d38d3	4	1/1		0/1	ix:resp
 Baloth Null	8101dc1a6af1be62	3	1/1		0/1	ix:resp
 Banishment	b9774dc62ffa1ac0	7	1/1		1/1	
 Barkhide Troll	acdfc5521f82217a	5	1/1		0/1	ix:resp
+Basilica Skullbomb	3b6f81df31f2ec46	9	2/2		1/1	
 Bellowing Mauler	2ec1ef0e67623cc7	3	1/1		0/1	ix:resp
 Black Widow, Natasha Romanoff	bdc71b51f1d6bcb1	6	0/0		0/0	
 Blind Creeper	cc217a03311a41f2	5	1/1		0/1	ix:resp
@@ -42,6 +43,7 @@ Dina, Soul Steeper	991b6133f6a91023	9	2/2		0/1	ix:resp
 Dragon-Scarred Bear	e805e7430bb795aa	23	1/1		1/1	
 Dream Thief	43f190c64da0149e	3	1/1		0/1	ix:resp
 Dreamshackle Geist	4fea8c641525f079	6	1/1		1/1	
+Drillworks Mole	3e28842be3313a86	10	1/1		0/1	ix:resp
 Drossclaw	45681f91bd582e35	3	3/3		0/1	ix:resp
 Dualcaster Mage	99286be00be1230f	8	1/1		0/1	ix:resp
 Enrage	a1bf4a862082a501	3	0/0		2/4	f0/s/x0,ix:resp
@@ -117,6 +119,7 @@ Scour All Possibilities	688e3f59f6a2a933	8	0/0		3/4	ix:resp
 Selhoff Occultist	309c7a6070690319	5	1/1		0/1	ix:resp
 Shaman of Spring	0d649dc9d8e3be34	4	1/1		0/1	ix:resp
 Shield of the Oversoul	f4fc36cf05ef7866	4	0/0		1/2	ix:resp
+Shimmer of Possibility	279f339085382206	4	0/0		1/2	ix:resp
 Show of Valor	10ccdfccdcd3f3f7	4	0/0		1/2	ix:resp
 Shrine Keeper	f4babd7d591c7662	4	0/0		0/0	
 Sigil of Valor	77ef8191582ea2b0	7	2/2		1/1	
@@ -126,6 +129,7 @@ Sinkhole	b9a86d0c7cb78d9b	5	0/0		1/2	ix:resp
 Slagwoods Bridge	2878f997b5a11611	8	1/1		0/1	ix:resp
 Soulmender	dc0f19e97ad76507	8	1/1		1/1	
 Spike Breeder	709b8664e1a15f2b	5	2/2		0/1	ix:resp
+Spindrift Drake	c5b0a202a94045cd	7	1/1		0/1	ix:resp
 Spirit Shackle	ee8844432927de00	5	1/1		1/2	ix:resp
 Sultai Emissary	6bc1390b0e128231	5	1/1		1/1	
 Surge Engine	69682ba7a799aa16	4	3/3		1/1	
@@ -135,6 +139,7 @@ Sygg, River Guide	4268288383d6cfc9	3	1/1		1/1
 Tamiyo's Immobilizer	514bf77414e6d8bb	3	1/1		0/1	ix:resp
 Tamiyo's Safekeeping	fa01c64cc04388d8	8	0/0		2/2	
 Tempestra, Dame of Games	1818e85c0ea1f3e0	5	1/1		1/1	
+Territorial Boar	9a060b463d675af0	4	1/1		0/1	ix:resp
 Thirst for Discovery	4f2561b8d54e5c24	6	0/0		1/2	ix:resp
 Thopter Mechanic	5fa4deadd10769ec	8	2/2		0/1	ix:resp
 Timin, Youthful Geist	0491e6f40d3d4d37	5	2/2		1/1	
@@ -143,6 +148,7 @@ Trail of Evidence	f3e2493fcdd81f53	3	1/1		0/1	ix:resp
 Trailblazing Historian	476f0bee39e5ea06	9	1/1		0/1	ix:resp
 Twilight's Call	3ebfc346cf090897	4	0/0		1/2	ix:resp
 Ugin's Insight	c7186ec54a5b0811	3	0/0		1/2	ix:resp
+Unholy Hunger	c9c256c518622049	3	0/0		1/2	ix:resp
 Urza's Rebuff	6a688924dc26caf4	4	0/0		1/2	ix:resp
 Urza, Powerstone Prodigy	4cba175f9f6d36d4	9	2/2		1/1	
 Veiling Oddity	a17321c17a72d6a0	3	1/1		2/3	cast/alt:none
@@ -150,6 +156,7 @@ Volcanic Torrent	f70a594d1f3f6854	3	0/0		2/2
 Volcanic Upheaval	d97388eadf6ec52e	6	0/0		2/2	
 Voyager Staff	77b389b2300f95bd	3	1/1		0/1	ix:resp
 Wall of Vines	6774bb37bbfe991d	6	0/0		0/0	
+Waterknot	05167c17b6f76869	7	1/1		1/2	ix:resp
 Whiptail Moloch	a967abda94d124df	9	1/1		1/1	
 Will-o'-the-Wisp	cd445fa01cff0f02	3	1/1		1/1	
 Winding Canyons	a84f2042f7d681ba	6	2/2		0/1	ix:resp

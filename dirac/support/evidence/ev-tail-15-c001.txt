@@ -7,6 +7,7 @@ Aerial Maneuver
 Afflict
 Alexi's Cloak
 Amarant Coral
+Ampryn Tactician
 Angelheart Protector
 Angelheart Vial
 Anointed Chorister
@@ -91,6 +92,7 @@ Displace
 Dogged Hunter
 Domri, Anarch of Bolas
 Dowsing Shaman
+Dragon's Smile
 Dreadhorde Arcanist
 Drossclaw
 Dusk

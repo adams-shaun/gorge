@@ -272,7 +272,6 @@ Al Bhed Salvagers
 Al-abara's Carpet
 Alabaster Host Intercessor
 Alabaster Mage
-Alaborn Grenadier
 Alacrian Armory
 Alacrian Jaguar
 Aladdin
@@ -382,7 +381,6 @@ Angel of Renewal
 Angel of Sanctions
 Angel of the Dire Hour
 Angel of the God-Pharaoh
-Angel's Mercy
 Angel's Tomb
 Angelfire Crusader
 Angelfire Ignition
@@ -1381,7 +1379,6 @@ Broodspinner
 Brotherhood Vertibird
 Brought Back
 Bruce Banner
-Bruse Tarl, Boorish Herder
 Brush Off
 Brushfire Elemental
 Brutal Expulsion
@@ -1664,7 +1661,6 @@ Chandra's Pyrohelix
 Chandra's Triumph
 Chandra, Chill of Compliance
 Chandra, Hope's Beacon
-Chandra, Legacy of Fire
 Chandra, Pyrogenius
 Chandra, Spark Hunter
 Changeling Wayfinder
@@ -1750,7 +1746,6 @@ Chronicle of Victory
 Chronicler of Heroes
 Chupacabra Echo
 Cid, Timeless Artificer
-Cinder Hellion
 Cinder Storm
 Cinder Strike
 Cinder Wall
@@ -1814,7 +1809,6 @@ Clive, Ifrit's Dominant
 Cloak and Phaser
 Cloak of Feathers
 Cloak of Mists
-Cloak of the Bat
 Cloaked Siren
 Clockwork Condor
 Clockwork Dragon
@@ -1887,7 +1881,6 @@ Colleen Wing, Street Samurai
 Collision Course
 Colorstorm Stallion
 Colossadactyl
-Colossal Dreadmaw
 Colossal Growth
 Colossal Majesty
 Colossal Skyturtle
@@ -2570,7 +2563,6 @@ Disentomb
 Disfigure
 Dismantling Wave
 Dismiss
-Dismissive Denial
 Dismissive Pyromancer
 Disowned Ancestor
 Dispatch
@@ -2694,7 +2686,6 @@ Dragon Tyrant
 Dragon's Eye Sentry
 Dragon's Presence
 Dragon's Prey
-Dragon's Smile
 Dragonback Assault
 Dragonback Lancer
 Dragonclaw Strike
@@ -2911,7 +2902,6 @@ Edgewall Inn
 Edgewall Pack
 Eerie Gravestone
 Eerie Interference
-Eerie Interlude
 Eerie Soultender
 Efflorescence
 Effortless Master
@@ -2968,7 +2958,6 @@ Elite Interceptor
 Elite Vanguard
 Elixir
 Elixir of Vitality
-Ellie, Vengeful Hunter
 Elsha, Threefold Master
 Elspeth Tirel
 Elspeth, Sun's Nemesis
@@ -3075,7 +3064,6 @@ Enervate
 Enforcer Griffin
 Engine Rat
 Engineered Explosives
-Engineered Might
 Engineered Plague
 Engulfing Eruption
 Enigma Eidolon
@@ -3129,7 +3117,6 @@ Eriette's Lullaby
 Eriette's Tempting Apple
 Eriette's Whisper
 Eris, Roar of the Storm
-Erkenbrand, Lord of Westfold
 Erode
 Eroded Canyon
 Eron the Relentless
@@ -3171,7 +3158,6 @@ Etched Familiar
 Etchings of the Chosen
 Eternal Isolation
 Eternal Student
-Eternal Warrior
 Ethereal Armor
 Ethereal Investigator
 Etherium Spinner
@@ -4898,7 +4884,6 @@ Increasing Savagery
 Incriminate
 Incriminating Impetus
 Indatha Triome
-Indebted Samurai
 Indelicate Healer
 Indomitable Ancients
 Indomitable Will
@@ -5261,7 +5246,6 @@ Kami of Restless Shadows
 Kami of Tattered Shoji
 Kami of Twisted Reflection
 Kami of the Hunt
-Kami of the Waning Moon
 Kami's Flare
 Kang, Temporal Tyrant
 Kapow!
@@ -5311,7 +5295,6 @@ Kazandu Stomper
 Kazuul Warlord
 Kazuul's Toll Collector
 Kederekt Creeper
-Kederekt Leviathan
 Kederekt Parasite
 Keen Buccaneer
 Keen-Eyed Archers
@@ -5752,7 +5735,6 @@ Lilypad Village
 Lilysplash Mentor
 Lim-Dûl's High Guard
 Liminal Hold
-Lin Sivvi, Defiant Hero
 Lindblum, Industrial Regency
 Lingering Mirage
 Lingering Souls
@@ -6092,7 +6074,6 @@ Marshals' Pathcruiser
 Martial Glory
 Martok, Hero of the Empire
 Martyr of Dusk
-Martyrs' Tomb
 Marwyn, the Clearcutter
 Marwyn, the Preserver
 Mary Jane Watson
@@ -6131,7 +6112,6 @@ Maular, the Next Evolution
 Mausoleum Secrets
 Mausoleum Wanderer
 Mawcor
-Mawloc
 Maximum Carnage
 Maximum Overdrive
 Mayael the Anima
@@ -6392,7 +6372,6 @@ Mockingbird, Ace Agent
 Mockingbird, Bobbi Morse
 Moderation
 Mogg Conscripts
-Mogg Raider
 Moggcatcher
 Mogis's Favor
 Moira Brown, Guide Author
@@ -6437,7 +6416,6 @@ Monk's Fist
 Monoist Circuit-Feeder
 Monoist Sentry
 Monologue Tax
-Monster Mashup
 Monstrous Carabid
 Monstrous Rage
 Monument to Endurance
@@ -6489,7 +6467,6 @@ Mosswood Dreadknight
 Mosswort Bridge
 Most Decrepit Old Bird
 Most Valuable Slayer
-Mothdust Changeling
 Mothrider Patrol
 Mountain Bandit
 Mountain Valley
@@ -6508,7 +6485,6 @@ Mr. Orfeo, the Boulder
 Mr. Spock, Science Officer
 Ms. Marvel, Elastic Ally
 Ms. Marvel, Kamala Khan
-Mtenda Griffin
 Mtenda Lion
 Mu Yanling, Sky Dancer
 Mu Yanling, Wind Rider
@@ -7300,7 +7276,6 @@ Pitiless Vizier
 Pixie Illusionist
 Pixie Queen
 Pizza Face, Gastromancer
-Plagon, Lord of the Beach
 Plague Beetle
 Plague Spitter
 Plague Spores
@@ -7570,7 +7545,6 @@ Quag Vampires
 Quagmire Lamprey
 Quake, Agent of S.H.I.E.L.D.
 Quakebringer
-Quakefoot Cyclops
 Quaketusk Boar
 Quandrix Charm
 Quandrix, the Proof
@@ -8415,7 +8389,6 @@ Scalding Viper
 Scaldkin
 Scale of Chiss-Goria
 Scaled Behemoth
-Scaled Hulk
 Scaled Wurm
 Scales of Shale
 Scalestorm Summoner
@@ -8541,7 +8514,6 @@ Seaside Citadel
 Season of Gathering
 Season of Loss
 Seasoned Consultant
-Seasoned Pyromancer
 Seasoned Warrenguard
 Secluded Steppe
 Secret Identity
@@ -8659,7 +8631,6 @@ Shadowstorm
 Shadowstorm Vizier
 Shadowy Backstreet
 Shady Informant
-Shaggy Camel
 Shalai and Hallar
 Shalai's Acolyte
 Shaman of the Great Hunt
@@ -9031,7 +9002,6 @@ Slith Predator
 Slither Blade
 Slithering Cryptid
 Sliver Construct
-Sliver Hive
 Sliver Hivelord
 Sliver Legion
 Sliver Queen
@@ -9298,7 +9268,6 @@ Spiketail Hatchling
 Spin Out
 Spinal Centipede
 Spinal Parasite
-Spindrift Drake
 Spined Megalodon
 Spined Sliver
 Spined Thopter
@@ -9767,7 +9736,6 @@ Surgical Precision
 Surgical Suite
 Surly Farrier
 Surrak Dragonclaw
-Surrak and Goreclaw
 Surrak, Elusive Hunter
 Surreal Memoir
 Surtland Frostpyre
@@ -10664,7 +10632,6 @@ Two-Headed Sliver
 Ty Lee, Artful Acrobat
 Ty Lee, Chi Blocker
 Tymaret Calls the Dead
-Tymaret, Chosen from Death
 Tymna the Weaver
 Type-03 Borg Vessel
 Type-2 Phaser
@@ -11256,7 +11223,6 @@ Waste Not
 Wastes
 Wastewood Verge
 Watcher Sliver
-Watcher in the Mist
 Watcher of the Spheres
 Watcher of the Wayside
 Watchful Automaton
@@ -11640,8 +11606,6 @@ Zhang Liao, Hero of Hefei
 Zhao, Ruthless Admiral
 Zhuge Jin, Wu Strategist
 Zhur-Taa Ancient
-Zhur-Taa Swine
-Ziatora's Proving Ground
 Zimone, All-Questioning
 Zimone, Mystery Unraveler
 Zodiac Dog
