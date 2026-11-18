@@ -197,10 +197,9 @@ const (
 	// attacking a player: attacking a planeswalker or battle, or gone, the
 	// game stalls at its next step (StallDefenderPW), as it does when the
 	// attacker attacks the trigger's controller (gorge's .Opponent
-	// qualifier names nobody there). gorge's
-	// TriggeredDefender reads the defending seat only (its planeswalker
-	// arm, Valid Planeswalker.TriggeredDefender, matches nothing), so the
-	// kernel copies it only where it is right (Raid Bombardment).
+	// qualifier names nobody there). C AtkPWHit lets a planeswalker or
+	// battle through: the OpDealDamage behind it (B.N DmgAtkedObj) hits it
+	// (gorge's Valid Planeswalker.TriggeredDefender arm; Raid Bombardment).
 	OpAtkPWGuard
 
 	// OpMayAsk: the resolving controller is asked yes/no (gorge's yes/no
