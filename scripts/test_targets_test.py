@@ -323,7 +323,8 @@ def test_a_source_change_reaching_the_oracle_replays_every_recording():
     res, _ = tt.plan({"dirac/state.go": None}, NDIRMAP, NDEPS, lambda p: [])
     rx = dict((p, rx) for _, p, rx in res)["./dirac/oracle"]
     for name in ("TestMBCDominateReprosLockstep", "TestMBCSpellBurstReprosLockstep", "TestStdSetReprosLockstep",
-                 "TestRefusedEntriesStillDiverge"):
+                 "TestRefusedEntriesStillDiverge", "TestManaRiderDepletionReprosReach", "TestStaggerReproReaches",
+                 "TestReproGreenSunsZenithReach"):
         assert re.search(rx, name), name
     assert not re.search(rx, "TestShieldReplacementCollision")  # whole-game lockstep stays in the batch
     # an engine change the oracle imports replays them too
