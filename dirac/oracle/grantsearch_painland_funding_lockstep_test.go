@@ -1,10 +1,8 @@
 package oracle
 
 import (
-	"os"
 	"testing"
 
-	dirac "github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
@@ -36,12 +34,6 @@ var grantSearchPainlandSeeds = []uint64{10, 14, 21, 23, 41, 59, 145, 170, 218}
 // budget ran out before.
 func TestGrantSearchPainlandFundingLockstep(t *testing.T) {
 	t.Parallel()
-	if os.Getenv("GORGE_GRANT_DIAG") != "" {
-		os.Setenv("KFEAT_DEBUG", "1")
-		defer os.Unsetenv("KFEAT_DEBUG")
-		dirac.DebugGrantTrace = true
-		defer func() { dirac.DebugGrantTrace = false }()
-	}
 	reg := synthReg(t)
 	var names [2][]string
 	var gd [2][]*cards.Card

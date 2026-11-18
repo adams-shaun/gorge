@@ -1,7 +1,6 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -1200,9 +1199,6 @@ func poolTotal(pl *player) int {
 
 // try plays st on a copy of t and continues the search there.
 func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bool) bool {
-	if DebugGrantTrace {
-		fmt.Printf("  KTRACE fstr n=%d sl=%d ans=%d gap=%v funded=%d gapUsed=%v life=%d pool=%v\n", fs.n, st.sl, st.ans, st.gap, funded, gapUsed, t.pl[fs.p].life, t.pl[fs.p].pool)
-	}
 	if fs.n == maxFiltPath {
 		return false
 	}
@@ -1361,15 +1357,6 @@ func (fs *filtSearch) restrictedAnswers(k *prep, t *State, sl Slot, rm uint8, fu
 func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	if !fs.tick() {
 		return false
-	}
-	if int(t.pl[0].life) <= 0 || int(t.pl[1].life) <= 0 {
-		// gorge's c.G.Over: a player died on the path (a lethal pain or life
-		// step, CR 119.4, 704.5a) and the game is over — no continuation
-		// offers the play
-		return false
-	}
-	if DebugGrantTrace {
-		fmt.Printf("  KTRACE filtvisit fs.n=%d pool=%v life=%d funded=%d gapUsed=%v\n", fs.n, t.pl[fs.p].pool, t.pl[fs.p].life, funded, gapUsed)
 	}
 	p := fs.p
 	key := fs.stateKey(k, t)
