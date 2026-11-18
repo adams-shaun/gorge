@@ -584,7 +584,7 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 	if d.Kind != decision.KPriority {
 		// An ask the activation poses: branch over its answers.
 		answers := scriptAnswers(d)
-		if scriptManaAskHoists(c.manaActivation, p, d) {
+		if scriptManaAskHoists(asPayer(c), c.manaActivation, p, d) {
 			answers = scriptOrderAnswers(d, answers, sr.need)
 		}
 		if len(answers) == 0 {
@@ -945,13 +945,13 @@ func scriptStepNeed(steps []decision.PaymentActivation, next int) [state.MC + 1]
 // otherwise spends its nodes proving every colour the cost does not name dead
 // before the first one it does.
 //
-// The reorder never applies to a plain mana-ability ask (scriptManaAskHoists
-// false): there the
-// kernel walks the ask's own option order, the source's ability order -- the
-// free printed ability before a pay-life one (Haunted Screen's {W}/{B} before
-// its {G}/{U}/{R}), the pain-free {C} of a painland before its painful
-// colours (Scabland) -- so the script must branch in that same order or the
-// prefix it writes takes a life the kernel does not spend.
+// The reorder never applies to a plain mana-ability ask whose options cost
+// the payer life (scriptManaAskHoists false): there the kernel walks the
+// ask's own option order, the source's ability order -- the free printed
+// ability before a pay-life one (Haunted Screen's {W}/{B} before its
+// {G}/{U}/{R}), the pain-free {C} of a painland before its painful colours
+// (Scabland) -- so the script must branch in that same order or the prefix
+// it writes takes a life the kernel does not spend.
 func scriptOrderAnswers(d *decision.Decision, answers []decision.Intent, need [state.MC + 1]bool) []decision.Intent {
 	any := false
 	for _, b := range need {
@@ -999,16 +999,27 @@ func scriptOrderAnswers(d *decision.Decision, answers []decision.Intent, need [s
 // place at the mana-ability ask ma is posing (the engine nils it the moment
 // it is answered): the source's own choice among its mana abilities.
 //
-// A source with no granted ability beside its printed ones is paid by the
-// kernel's ordinary mana walk, which takes the printed ability order, the
-// free bare-{T} ability before a pay-life one (a painland's {C} before its
-// damaging colours), so the script branches in the ask's own order there: a
-// needed-colour reorder would take a life the kernel does not spend
-// (script_pain_colour_first). A source holding a granted ability beside its
-// printed ones is paid by the kernel's granted-mana prefix search, which
-// mirrors this ask and this search's reorder node for node
-// (dirac/mana_grantpain.go painAskOrder) -- there the reorder stays.
-func scriptManaAskHoists(ma *manaActivation, p state.PlayerID, d *decision.Decision) bool {
+// The ask's own order is kept only where one of its options costs the payer
+// something as the ability resolves -- a painland's damaging colours
+// (CR 605.3b: the damage is dealt with the mana) or Haunted Screen's pay-life
+// colours (CR 118.3, 119.4) -- and no granted ability stands beside the
+// printed ones. Such a source is a last-resort unit (pay.PaymentPlanAbilityTier
+// discloses the Damage or Life consequence), and the kernel's ordinary mana
+// walk takes it in printed order, the free bare-{T} ability before the painful
+// one, so a needed-colour reorder would write a prefix that takes a life the
+// kernel does not spend (script_pain_colour_first).
+//
+// Every other plain ask keeps the reorder. A rider that touches no payer
+// life -- Grove of the Burnwillows' {R}/{G} that gives each opponent a life,
+// planner-deferred as "source:rider" beside a priced {C} -- is a prefix gap
+// the kernel's taps-deferred route (dirac/mana_tapsdefer.go scriptTapsDefer)
+// fills with the needed colour itself; branching on {C} first floats a mana
+// the kernel never taps (mana_rider_grove_gives_each_opponent_a_life). A
+// source holding a granted ability beside its printed ones is paid by the
+// kernel's granted-mana prefix search, which mirrors this ask and this
+// search's reorder node for node (dirac/mana_grantpain.go painAskOrder) --
+// there the reorder stays even for a pain source.
+func scriptManaAskHoists(pe pay.Engine, ma *manaActivation, p state.PlayerID, d *decision.Decision) bool {
 	if ma == nil || ma.player != p || ma.source != d.Source || len(d.Options) == 0 {
 		return true // not a mana-ability ask: the reorder applies
 	}
@@ -1020,7 +1031,26 @@ func scriptManaAskHoists(ma *manaActivation, p state.PlayerID, d *decision.Decis
 		}
 		grants = grants || o.Granted
 	}
-	return grants
+	if grants {
+		return true
+	}
+	for i := range d.Options {
+		if o := &d.Options[i]; o.Ability >= 0 && o.Ability < len(ma.abilities) && scriptManaAbilityCostsPayer(pe, p, d.Source, ma.abilities[o.Ability]) {
+			return false // a pain or pay-life option: the ask's own order
+		}
+	}
+	return true
+}
+
+// scriptManaAbilityCostsPayer reports whether mana ability ab of source costs
+// its payer p life as it resolves: a last-resort unit whose disclosed
+// consequence is damage to the payer or a life payment.
+func scriptManaAbilityCostsPayer(pe pay.Engine, p state.PlayerID, source state.ObjID, ab *cards.SA) bool {
+	if ab == nil {
+		return false
+	}
+	tier, c, _ := pay.PaymentPlanAbilityTier(pe, p, source, ab)
+	return tier == pay.TierLastResort && (c.Damage != 0 || c.Life != 0)
 }
 
 // scriptStateKey identifies a payer state for the search's dedup: every

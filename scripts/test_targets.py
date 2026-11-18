@@ -57,7 +57,9 @@ REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|^TestStd[
 # dirac/filters_gen.go's X-target offer, its `fast` ran the oracle's census only and was green, and its batch
 # went red on TestMBCDominateReprosLockstep and TestMBCSpellBurstReprosLockstep; nothing before the batch ran
 # them), and when a recording changes.
-REPLAYS = "^Test[A-Za-z0-9_]*Repros?[A-Za-z0-9_]*Lockstep[A-Za-z0-9_]*$|^TestRefusedEntriesStillDiverge$"
+# Not only the *Lockstep names: ~110 replays are named *ReprosReach, *ReproReaches, *Repro, Repro*Reach (11-18:
+# TestManaRiderDepletionReprosReach went red on main and neither fast nor the batch ran it; ~22 s for all of them).
+REPLAYS = "^Test[A-Za-z0-9_]*Repro[A-Za-z0-9_]*$|^TestRefusedEntriesStillDiverge$"
 REPRO_TESTS = REPRO_TESTS + "|" + REPLAYS
 # Pinned$..OnlyGrows: the pin and registration ratchets whose names carry none of the words before them (11-17:
 # #611 registered kw:Modular, left its pin in granted-keyword-gaps.txt, and TestGrantedKeywordHeadsAreRegisteredOrPinned
