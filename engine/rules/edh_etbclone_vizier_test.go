@@ -1,9 +1,11 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -75,6 +77,11 @@ func TestEDHETBCloneRidersVizierEmbalmedToken(t *testing.T) {
 	if f := e.G.Obj(tpl).Face(); f.ManaCost != "1 G" {
 		t.Fatalf("the template's mana cost moved to %q", f.ManaCost)
 	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "RemoveCost$") {
+			t.Fatalf("the embalmed token's applied no-mana-cost exception was noted unread: %q", ev.Text)
+		}
+	}
 	replayCheck(t, e, cfg)
 
 	// The cast route: a hard-cast Vizier enters as a plain copy of the
@@ -93,5 +100,10 @@ func TestEDHETBCloneRidersVizierEmbalmedToken(t *testing.T) {
 	}
 	if f, tf := o.Face(), e2.G.Obj(tpl2).Face(); f.ManaCost != tf.ManaCost {
 		t.Fatalf("the hard-cast copy mana cost %q, want the template's %q", f.ManaCost, tf.ManaCost)
+	}
+	for _, ev := range e2.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "RemoveCost$") {
+			t.Fatalf("the hard-cast Vizier's declined-by-card-text rider was noted unread: %q", ev.Text)
+		}
 	}
 }

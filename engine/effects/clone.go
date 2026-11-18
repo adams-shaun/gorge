@@ -404,10 +404,14 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	}
 	// Unknown rider values stay loud rather than pretending to apply.
 	var unread []string
-	if cp.RemoveCostPresent && !noManaCost {
+	if cp.RemoveCostPresent && (!cp.NoManaCost || !cp.Embalm) {
 		// RemoveCost$ without the Embalm$ gate (a standalone route; the ETB
 		// whitelist holds that shape off) or a spelling other than True: one
-		// loud Note, never a silently dropped mana-cost rewrite.
+		// loud Note, never a silently dropped mana-cost rewrite. A gated
+		// rider whose Embalm$ provenance answers "not the token" is NOT this
+		// case -- the card's own clause ("except if CARDNAME was embalmed")
+		// declines it, and the per-become-object suppression below is the
+		// correct plain copy, never a dropped rider.
 		unread = append(unread, "RemoveCost$ (not an Embalm$ token's no-mana-cost exception)")
 	}
 	var lostSVars, lostTriggers []string
