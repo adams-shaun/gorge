@@ -159,7 +159,7 @@ func ktvRun(t *testing.T, seeds uint64, stopAtDiv bool) (tally *ktvTally, games,
 		if seed%8 == 0 {
 			pol = RandomPolicy(seed)
 		}
-		res := Lockstep(m, seed, k, pol, RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40, Check: tally.check})
+		res := Lockstep(m, seed, k, ktvSlotCap(pol), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40, Check: tally.check})
 		CloseSide(k)
 		games++
 		if strings.HasPrefix(res.Stall, KernelStallPrefix) {
@@ -179,6 +179,43 @@ func ktvRun(t *testing.T, seeds uint64, stopAtDiv bool) (tally *ktvTally, games,
 		}
 	}
 	return
+}
+
+// ktvSlotCap is pol that finishes an "any number" target run (a Done beside
+// the targets) once it holds eight objects, the most a multi-object slot holds
+// (maxXTgt): a random pick of a ninth would stall StallXTgt, loudly. Coveted
+// Falcon's donation ("any number of target permanents you control") reaches
+// that since gorge offers its turn-up from untapped lands; a seed that never
+// runs that long plays exactly as pol does.
+func ktvSlotCap(pol Policy) Policy {
+	streak := 0
+	return PolicyFunc(func(c *PickCtx) Canon {
+		var done Canon
+		var haveDone, haveTgt bool
+		for _, a := range c.D.Options {
+			switch a.Kind() {
+			case ActDone:
+				done, haveDone = a, true
+			case ActTarget:
+				haveTgt = true
+			}
+		}
+		if !haveDone || !haveTgt {
+			streak = 0
+			return pol.Pick(c)
+		}
+		if streak >= 8 {
+			streak = 0
+			return done
+		}
+		a := pol.Pick(c)
+		if a.Kind() == ActTarget {
+			streak++
+		} else {
+			streak = 0
+		}
+		return a
+	})
 }
 
 func TestTgtmaxvarLockstep(t *testing.T) {
