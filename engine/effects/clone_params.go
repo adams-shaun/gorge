@@ -290,10 +290,10 @@ func compileClone(sa *cards.SA, dr *DefinedParams) *CloneParams {
 	p.AttachedTo = strings.TrimSpace(sa.ParamStr(cards.PKAttachedTo))
 	p.FaceDown = strings.EqualFold(sa.ParamStr(cards.PKFaceDown), "True")
 	p.KeepFacedownFalse = strings.EqualFold(rawParamText(sa, "KeepFacedown").Text, "False")
-	p.Embalm = isTrue(rawParamText(sa, "Embalm").Text)
-	if rt := rawParamText(sa, "RemoveCost"); rt.Present {
+	p.Embalm = isTrue(sa.ParamStr(cards.PKEmbalm))
+	if rt, ok := sa.Param(cards.PKRemoveCost); ok {
 		p.RemoveCostPresent = true
-		p.NoManaCost = isTrue(rt.Text)
+		p.NoManaCost = isTrue(rt)
 	}
 
 	p.ETBShapeOK = cloneETBShapeOK(sa, p)
@@ -420,10 +420,10 @@ func cloneETBShapeOK(sa *cards.SA, p *CloneParams) bool {
 	// without the Embalm$ gate stays withheld: an unconditional "no mana
 	// cost" rider on an as-enters copy would rewrite a hard-cast carrier's
 	// mana cost, the wrong copy the whitelist exists to prevent.
-	if _, ok := sa.Params["Embalm"]; ok && !p.Embalm {
+	if _, ok := sa.Param(cards.PKEmbalm); ok && !p.Embalm {
 		return false
 	}
-	if _, ok := sa.Params["RemoveCost"]; ok && (!p.NoManaCost || !p.Embalm) {
+	if p.RemoveCostPresent && (!p.NoManaCost || !p.Embalm) {
 		return false
 	}
 	// Cursed Mirror's "until end of turn": the copy unit rides the ordinary

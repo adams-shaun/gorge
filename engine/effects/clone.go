@@ -348,13 +348,6 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	addTypes := cp.TypeAdds
 	nonLegendary := cp.NonLegendary
 	removeSubTypes := cp.RemoveSubTypes
-	// RemoveCost$ rides the Embalm$ gate (Vizier of Many Faces): "it has no
-	// mana cost" is one of the CR 707.9b clause's token exceptions, applied
-	// only when the become object is the card's own embalm token. A body
-	// carrying RemoveCost$ without the Embalm$ gate never reaches an ETB
-	// resolution (cloneETBShapeOK holds it), and on a standalone route the
-	// ungated rider is one loud Note below, never a silent drop.
-	noManaCost := cp.NoManaCost && cp.Embalm
 	// Resolve the named grants against the resolving face before replacing its
 	// copy basis. A copied object's SVar table is not the grantor's table.
 	grantTable, grantSVars := cloneGrantSVars(c, g, cp.AddSVars)
@@ -403,17 +396,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	// Unknown rider values stay loud rather than pretending to apply.
-	var unread []string
-	if cp.RemoveCostPresent && (!cp.NoManaCost || !cp.Embalm) {
-		// RemoveCost$ without the Embalm$ gate (a standalone route; the ETB
-		// whitelist holds that shape off) or a spelling other than True: one
-		// loud Note, never a silently dropped mana-cost rewrite. A gated
-		// rider whose Embalm$ provenance answers "not the token" is NOT this
-		// case -- the card's own clause ("except if CARDNAME was embalmed")
-		// declines it, and the per-become-object suppression below is the
-		// correct plain copy, never a dropped rider.
-		unread = append(unread, "RemoveCost$ (not an Embalm$ token's no-mana-cost exception)")
-	}
+	unread := cloneRemoveCostUnread(cp)
 	var lostSVars, lostTriggers []string
 	for _, name := range cp.AddSVars {
 		if _, ok := grantSVars[name]; !ok {
@@ -535,7 +518,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		removeCreatureTypes: removeCreatureTypes || cp.SetCreatureTypes, removeSubTypes: removeSubTypes,
 		removeLegendary: nonLegendary, setColors: setColors, setColorsPresent: setColorPresent,
 		addColors: addColorsL, setPower: setPower, setPowerPresent: setPowerPresent,
-		setToughness: setTough, setToughnessPresent: setToughPresent, noManaCost: noManaCost}
+		setToughness: setTough, setToughnessPresent: setToughPresent, noManaCost: cp.NoManaCost && cp.Embalm}
 	var changeling []string
 	for _, k := range addKeywords {
 		if cards.KeywordHeadIDOf(k) == cards.KeywordHeadIDOf("Changeling") {
@@ -576,13 +559,8 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		if obj == nil || obj.Zone != state.ZBattlefield {
 			continue
 		}
-		// The Embalm$ gate (CR 707.9b's "if CARDNAME was embalmed"), read
-		// BEFORE the ClonePermanent fold replaces the become object's basis
-		// face with the copied one: the token's own copiable face is what
-		// carries the mint's no-mana-cost mark, and the gated exceptions
-		// apply only when the become object is the card's own embalm token --
-		// a hard-cast carrier enters as a plain copy.
-		embalmSuppressed := cp.Embalm && !cloneEmbalmProvenance(obj)
+		// The Embalm$ gate, read before the ClonePermanent fold replaces obj's face.
+		pairExc := cloneEmbalmGate(exc, cp, obj)
 		// One ClonePermanent event per (source, become) pair; the fold
 		// snapshots the source's printed face onto the become object.
 		ev := events.Event{Kind: events.ClonePermanent, Obj: b.Obj,
@@ -618,12 +596,6 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		}
 		for _, raw := range staticBodies {
 			h.Emit(events.Event{Kind: events.CloneStatic, Obj: b.Obj, Text: raw})
-		}
-		// The gated exceptions settle per become object (see embalmSuppressed
-		// above): the gated riders apply only to the card's own embalm token.
-		pairExc := exc
-		if embalmSuppressed {
-			pairExc.addTypes, pairExc.setColors, pairExc.setColorsPresent, pairExc.noManaCost = nil, nil, false, false
 		}
 		exceptText := ""
 		if x := copyExceptions(g.Obj(b.Obj), pairExc); !x.Empty() {
@@ -715,6 +687,37 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			CloneAbilityIndex: cloneAbilityIndex, CloneTriggerIndex: cloneTriggerIndex,
 			CloneExcept: exceptText})
 	}
+}
+
+// cloneRemoveCostUnread is the RemoveCost$ half of effClone's loud unread
+// riders. RemoveCost$ rides the Embalm$ gate (Vizier of Many Faces): "it has
+// no mana cost" is one of the CR 707.9b clause's token exceptions, applied
+// (exc.noManaCost) only when the become object is the card's own embalm
+// token. RemoveCost$ without the Embalm$ gate (a standalone route; the ETB
+// whitelist, cloneETBShapeOK, holds that shape off) or a spelling other than
+// True is one loud Note, never a silently dropped mana-cost rewrite. A gated
+// rider whose Embalm$ provenance answers "not the token" is NOT this case --
+// the card's own clause ("except if CARDNAME was embalmed") declines it, and
+// cloneEmbalmGate's per-become-object suppression is the correct plain copy,
+// never a dropped rider.
+func cloneRemoveCostUnread(cp *CloneParams) []string {
+	if cp.RemoveCostPresent && (!cp.NoManaCost || !cp.Embalm) {
+		return []string{"RemoveCost$ (not an Embalm$ token's no-mana-cost exception)"}
+	}
+	return nil
+}
+
+// cloneEmbalmGate settles the Embalm$ gate (CR 707.9b's "if CARDNAME was
+// embalmed") for one become object: the gated exceptions (AddTypes$,
+// SetColor$, RemoveCost$) apply only when obj is the card's own embalm token,
+// so a hard-cast carrier enters as a plain copy. It must be read BEFORE the
+// ClonePermanent fold replaces obj's basis face with the copied one: the
+// token's own copiable face is what carries the mint's no-mana-cost mark.
+func cloneEmbalmGate(exc copyExceptSpec, cp *CloneParams, obj *state.Object) copyExceptSpec {
+	if cp.Embalm && !cloneEmbalmProvenance(obj) {
+		exc.addTypes, exc.setColors, exc.setColorsPresent, exc.noManaCost = nil, nil, false, false
+	}
+	return exc
 }
 
 // cloneEmbalmProvenance reports whether o, an Embalm$-gated Clone body's
