@@ -89,14 +89,14 @@ func (s *State) blockPairOK(k *prep, b, a Slot) bool {
 // lureFloorMet reports whether a non-lure attacker a with a block floor (menace's
 // two, a Min$) still has that many free blockers when b blocks it: a duty
 // blocker is committed to a lure (gorge's most-requirements rule rejects
-// pulling it off), so only the blockers without a lure pair count. Without a
-// floor above one it is vacuously met.
+// pulling it off), so only the blockers without a lure pair count, beside the
+// blockers a already has. Without a floor above one it is vacuously met.
 func (s *State) lureFloorMet(k *prep, duty slotMask, b, a Slot) bool {
 	need := s.minBlockers(k, a)
 	if need < 2 {
 		return true
 	}
-	n := 1 // b itself
+	n := 1 + int(s.perms[a].nblock) // b itself, and the creatures already declared blocking a
 	for bm := s.ctrlM[s.blockDef()]; bm.any(); bm = bm.rest() {
 		b2 := bm.first()
 		if b2 != b && !duty.has(b2) && s.blockerReady(k, b2) && s.blockPairOK(k, b2, a) {
