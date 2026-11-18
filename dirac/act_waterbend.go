@@ -638,7 +638,12 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 			cd := &k.t.Cards[s.cardAt(sl)]
 			for j := range cd.Abilities {
 				a := &cd.Abilities[j]
-				if a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && s.restrSrcAdmits(k, e.ctrl, sl, a, &d) &&
+				// a latent line is another permanent's: Resonating Lute's granted
+				// {T} lives on the lands its Continuous static reaches, so the
+				// untapped artifact itself is no restricted source the census
+				// fails to price (kop.AfLatent; the same gate sacAnyManaGap reads)
+				if a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 &&
+					(a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && s.restrSrcAdmits(k, e.ctrl, sl, a, &d) &&
 					!s.windowPricesRestr(k, sl, a) {
 					return false
 				}
