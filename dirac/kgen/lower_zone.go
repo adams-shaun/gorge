@@ -52,7 +52,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if done, err := lc.stackExileOptional(ps); done || err != nil {
 		return err // lower_stackexile.go
 	}
-	if _, tt := ps.m["TargetType"]; (tt || ps.str("ValidTgts") == "Card.inZoneStack") && ps.str("Origin") == "Stack" {
+	if _, tt := ps.m["TargetType"]; (tt || ps.str("ValidTgts") == "Card.inZoneStack" || ps.str("TgtZone") == "Stack") && ps.str("Origin") == "Stack" {
 		return lc.stackToZone(ps) // lower_modecost.go
 	}
 	if lc.breachStage == 1 {

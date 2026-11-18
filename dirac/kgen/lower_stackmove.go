@@ -13,11 +13,13 @@ import (
 // kop.CtrDestMove, so a spell that can't be countered still moves. Hand takes
 // one target; Exile takes the any-number shape only, so a one-target stack
 // exile (Gale's Redirection, which also carries RememberChanged) keeps its
-// earlier refusal. A ValidTgts$ Card.inZoneStack with no TargetType$ names
-// the same stack object (gorge SpecTargetsStack; Take It Back).
+// earlier refusal. A TgtZone$ Stack with no TargetType$ names the same stack
+// object (gorge targetZoneDecl: the zone decides, the default type tokens are
+// spells; Take It Back's Card.inZoneStack, A-Hullbreaker Horror's
+// Card.YouDontCtrl).
 func (lc *lowerCtx) stackToZone(ps *params) error {
 	dest := map[string]int{"Hand": kop.CtrDestHand, "Exile": kop.CtrDestExile}[ps.str("Destination")]
-	if tt := ps.str("TargetType"); tt != "Spell" && (tt != "" || ps.str("ValidTgts") != "Card.inZoneStack") || ps.str("TgtZone") != "Stack" || dest == 0 {
+	if tt := ps.str("TargetType"); tt != "Spell" && tt != "" || ps.str("TgtZone") != "Stack" || dest == 0 {
 		return refuse("ChangeZone Origin$ Stack shape")
 	}
 	ps.consume("Origin", "Destination", "TgtZone", "TargetType", "TgtPrompt")
