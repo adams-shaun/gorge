@@ -999,6 +999,11 @@ type grantSrch struct {
 	// pver is the play's own object's version at the root (Obj.ver): the play
 	// stands only while its card has not changed zones (waitsForStack)
 	pver uint8
+	// limited: a node was refused for the spent budget (gorge's
+	// scriptSearch.limited); subsume: this is the subsume run, whose colour
+	// asks keep only the colours costCol still lacks (mana_grantsubsume.go)
+	limited, subsume bool
+	costCol          [kop.NumManaKinds]uint8
 }
 
 // grantKey identifies a payer state (gorge scriptStateKey: the pool and
@@ -1270,6 +1275,7 @@ func (s *State) bfObjKey(p uint8) uint64 {
 // node charges one search node; false when the budget is spent.
 func (g *grantSrch) node() bool {
 	if g.nodes >= potentialScriptNodes {
+		g.limited = true
 		return false
 	}
 	g.nodes++
@@ -1830,7 +1836,7 @@ func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8,
 	if named {
 		needFirst(order[:no], g.need)
 	}
-	cols := order[:no]
+	cols := g.subsumeCols(t, order[:no], ask, named)
 	if sel != 0 {
 		cols = g.selColours(cols, mask, sel, named)
 	}
@@ -2045,11 +2051,21 @@ func (s *State) grantPayDescOf(k *prep, a Action) payDesc {
 // already do. On false, g.stall is the first rule-gap stall a failed line's
 // fork latched (stallOf, StallNone none): the search declares nothing — the
 // caller declares it only where it finally drops the play (mana_tapanother.go
-// tapXScript).
+// tapXScript). A plain search the budget cut short is followed by gorge's
+// subsume run (grantSubsume, mana_grantsubsume.go).
+func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, need [kop.NumManaKinds]bool, g *grantSrch) bool {
+	return s.grantSearchRun(k, p, cost, ex, d, need, g, nil) || s.grantSubsume(k, p, cost, ex, d, need, g)
+}
+
+// grantSearchRun is one run of grantSearch: the plain one (sub nil) or the
+// subsume one, whose colour asks keep only the colours *sub still lacks.
 //
 //go:noinline
-func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, need [kop.NumManaKinds]bool, g *grantSrch) bool {
+func (s *State) grantSearchRun(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, need [kop.NumManaKinds]bool, g *grantSrch, sub *[kop.NumManaKinds]uint8) bool {
 	*g = grantSrch{k: k, p: p, cost: *cost, ex: ex, d: d, sp0: s.sp, tapsLive: k.gen.manaTaps, need: need}
+	if sub != nil {
+		g.subsume, g.costCol = true, *sub
+	}
 	if d.hasPlay {
 		if full, ok := s.grantWaterbendFull(k, d.play); ok {
 			g.full, g.dyn = full, true
@@ -2586,17 +2602,27 @@ func (s *State) xFlashbackPlanCost(k *prep, p uint8, a Action) (cost kop.ManaCos
 // same set. The card's printed cost is read unreduced (CR 601.2b announces
 // the printed pip colours).
 func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
+	if m, _, ok := s.playBaseCost(k, a); ok {
+		need = grantNeedColours(m)
+	}
+	return need
+}
+
+// playBaseCost is the cost play a's printed base announces (gorge's
+// scriptPlayBaseCost), with the cost's flags (an ability's; none for a cast):
+// ok is false for a play whose base gorge does not read (see playNeed).
+func (s *State) playBaseCost(k *prep, a Action) (m kop.ManaCost, f kop.CostFlags, ok bool) {
 	switch a.Kind() {
 	case AkActivate:
 		if !isGainedMode(a.Mode()) && a.Mode()&0x80 == 0 { // a gained or granted ability names no own index
-			need = s.abilityNeed(k, Obj(a.Source()), a.Mode())
+			return s.abilityBaseCost(k, Obj(a.Source()), a.Mode())
 		}
 	case AkCast:
 		if a.Mode() == 0 && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt && a.Target() != castSurgeTgt && a.Target() != castCleaveTgt {
-			need = grantNeedColours(k.cards[s.objs[a.Source()].card].cost)
+			return k.cards[s.objs[a.Source()].card].cost, 0, true
 		}
 	}
-	return need
+	return m, 0, false
 }
 
 // grantNeedColours reports the colours m's symbols name, gorge's
@@ -2613,10 +2639,10 @@ func grantNeedColours(m kop.ManaCost) (need [kop.NumManaKinds]bool) {
 	return need
 }
 
-// abilityNeed is the printed ability ab of object o's colours for
+// abilityBaseCost is the printed ability ab of object o's cost for
 // grantPlayCost's need set (gorge's scriptNeedColours prices a printed
 // ability's compiled cost), read from the card's printed cost, unreduced.
-func (s *State) abilityNeed(k *prep, o Obj, ab uint8) [kop.NumManaKinds]bool {
+func (s *State) abilityBaseCost(k *prep, o Obj, ab uint8) (kop.ManaCost, kop.CostFlags, bool) {
 	ob := &s.objs[o]
 	card := ob.card
 	if ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
@@ -2624,9 +2650,9 @@ func (s *State) abilityNeed(k *prep, o Obj, ab uint8) [kop.NumManaKinds]bool {
 	}
 	abs := k.t.Cards[card].Abilities
 	if int(ab) < len(abs) {
-		return grantNeedColours(abs[ab].Cost.Mana)
+		return abs[ab].Cost.Mana, abs[ab].Cost.Flags, true
 	}
-	return [kop.NumManaKinds]bool{}
+	return kop.ManaCost{}, 0, false
 }
 
 // needFirst stably reorders the colours of order so the ones need names
