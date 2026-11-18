@@ -23,6 +23,24 @@ func (e *Engine) splitCastTargetsAvailable(p state.PlayerID, id state.ObjID, f *
 	return e.targetsAvailable(p, id, id, f.SpellAbility(), xPending)
 }
 
+// splitFrontHalfRead reports whether o, a split card at its front face off
+// the stack, is read as its front half alone when probed as a spell (CR
+// 709.3a): always, except while the fused cast is priced (fused).
+func splitFrontHalfRead(o *state.Object, fused bool) bool {
+	_, combined := o.SplitHalves()
+	return combined && !fused
+}
+
+// offerFusedCastable is offerCastable for the fused cast's combined cost
+// (CR 702.102c), priced with the split card read as both halves (CR
+// 702.102b): a RestrictValid$ "multicolored spell" source may pay for it.
+func (w *legalWalk) offerFusedCastable(p state.PlayerID, id state.ObjID, cost Cost) bool {
+	prev := w.e.pricingFused
+	w.e.pricingFused = true
+	defer func() { w.e.pricingFused = prev }()
+	return w.offerCastable(p, id, cost, spellScope(""), false)
+}
+
 // fusedTimingOK reports whether a Fuse cast (mode "fuse") may be announced
 // now. A fused spell is one spell whose characteristics are both halves, so
 // it can be cast at instant speed only when BOTH halves are castable at

@@ -61,6 +61,10 @@ type engineScratch struct {
 	// planKeepSources makes a potential cast's plan refuse a step that
 	// sacrifices or returns its source (potentialWitnessKeeping).
 	planKeepSources bool `clone:"reset"`
+	// pricingFused marks the fused-cast offer's pricing (offerFusedCastable):
+	// a split card in hand read as the spell it would be is then both halves
+	// (CR 702.102b), where every other cast is the one half (CR 709.3a).
+	pricingFused bool `clone:"reset"`
 	// planXCap bounds a potential cast's composed X search from above
 	// (potential_plan.go's smaller-X witness); planXCapOn says it applies,
 	// and is cleared on entry so a nested plan composes uncapped.
