@@ -115,7 +115,7 @@ func (s *State) panharmEchoes(k *prep, l trigListener, ev kop.TrigEvent, tobj Ob
 // matches the dies-form static a's cause filter (static controlled by ctrl at
 // slot sl): gorge doubles any ChangesZone-mode trigger of such a move, and only
 // of one whose origin is the battlefield (Origin$ Battlefield). The kernel's
-// events for it are TrigDies, or TrigLeaves whose object ended in the graveyard
+// events for it are TrigDies, or TrigLeaves whose object ended (or, latched, is ending) in the graveyard
 // (a leave to exile is not a death). TrigToGraveyard is never one: it is the
 // family for a card put into a graveyard from anywhere BUT the battlefield
 // (trig_tograve.go), and a graveyard leave's TrigLeaves is kept out by
@@ -127,7 +127,10 @@ func (s *State) panharmDies(k *prep, a *kop.Ability, ev kop.TrigEvent, tobj Obj,
 	switch ev {
 	case kop.TrigDies:
 	case kop.TrigLeaves:
-		if s.objs[tobj].zone != kop.ZoneGraveyard {
+		// a Leaves line is checked before the move (fireLeave), so a dying
+		// object is still on the battlefield, its death latched
+		// (batchGrave); a graveyard leave's object is already there
+		if z := s.objs[tobj].zone; z != kop.ZoneGraveyard && (z != kop.ZoneBattlefield || s.g.batchLatch&batchGrave == 0) {
 			return false
 		}
 	default:
