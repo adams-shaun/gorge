@@ -1389,7 +1389,8 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 // mana_granttapsdefer.go, mana_countercost.go).
 func (s *State) grantFirstGaps(k *prep, p uint8) bool {
 	return s.deferBesideGrant(k, p) || s.eachBesideGrant(k, p) || s.wideBesideGrant(k, p) ||
-		s.tdBesideGrant(k, p) || s.ctrBesideGrant(k, p) || s.storeBesideGrant(k, p)
+		s.tdBesideGrant(k, p) || s.ctrBesideGrant(k, p) || s.storeBesideGrant(k, p) ||
+		s.sacXBesideGrant(k, p) // gorge's one search taps the granted lands after the sacrifice too (mana_grantsacx.go, mana_grantlive.go)
 }
 
 // visit is one payer priority of the search on working copy t: the play
