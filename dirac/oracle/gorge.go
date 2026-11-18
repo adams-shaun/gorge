@@ -1303,13 +1303,21 @@ func (g *GorgeSide) searchSharesLandType(d *decision.Decision, chosen []int) boo
 // required blockers, so a pair of b's that obeys none can join no valid
 // answer. It makes the completability search exact there, where its budget
 // would otherwise turn optimistic on a wide board (Prized Unicorn).
-func blockDutyFull(d *decision.Decision, b state.ObjID) bool {
+//
+// A blocker of one pair takes only required pairs whatever else is on the
+// board (a menace-like floor on another attacker changes nothing for it); a
+// blocker of two attackers may also take a free second pair, which the kernel
+// offers only when a floor keeps its duty-full flag down (mbQuota's full), so
+// floors counts them for such a blocker (floors: b's cap is above one). Hematite
+// Golem beside a lure and Trueheart Duelist: the ten lure pairs of the plain
+// blockers are all that is left of them, where the search ran out of budget.
+func blockDutyFull(d *decision.Decision, b state.ObjID, floors bool) bool {
 	req, bReq := 0, false
 	var seen []state.ObjID
 	for i := range d.Options {
 		o := &d.Options[i]
 		if !(o.BlockMust || o.Required) || o.BlockMustAll || o.AttackMust || o.MinBlockers > 1 {
-			if o.BlockMustAll || o.AttackMust || o.MinBlockers > 1 {
+			if o.BlockMustAll || o.AttackMust || o.MinBlockers > 1 && (floors || o.BlockMust || o.Required) {
 				return false // the other requirement shapes: leave it to the search
 			}
 			continue
@@ -1516,7 +1524,7 @@ func (g *GorgeSide) admissible(fr *frame, chosen []int, i int) bool {
 	if len(chosen) >= d.Max {
 		return false
 	}
-	if d.Kind == decision.KBlockers && !o.BlockMust && !o.Required && blockDutyFull(d, o.Obj) {
+	if d.Kind == decision.KBlockers && !o.BlockMust && !o.Required && blockDutyFull(d, o.Obj, d.GroupCapFor(o.Group) >= 2) {
 		return false
 	}
 	if d.Kind == decision.KBlockers && o.MaxBlockers > 0 {
