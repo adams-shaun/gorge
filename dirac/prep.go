@@ -101,6 +101,7 @@ type pcard struct {
 type prep struct {
 	nsub     uint8 // len(t.Subtypes): the first outside-type code (chars_gen.go outsideSub)
 	t        *kop.Table
+	nameRep  []CardID // printed-name representative per card (nameRepOf); nil when every printed name is unique
 	cards    []pcard
 	gen      *genPrep // generated-table extension (gen.go); nil for hand-written tables
 	gyCont   bool     // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
@@ -287,6 +288,7 @@ func prepare(t *kop.Table) *prep {
 	}
 	p := &prep{t: t, nsub: uint8(len(t.Subtypes)), cards: make([]pcard, len(t.Cards)), selfCast: prepSelfCast(t), eachPay: prepEachPay(t), tapXAb: make([]int8, len(t.Cards)), ctrAb: make([]int8, len(t.Cards)), riderAb: make([]int8, len(t.Cards))}
 	p.w8 = tableWord8(t) // filter_props.go
+	p.nameRep = nameRepOf(t)
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
 	p.ascend = tableHasAscend(t)
