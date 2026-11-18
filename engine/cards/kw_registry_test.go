@@ -204,6 +204,13 @@ var expandedHeads = []string{
 	// appended to the spell ability (engine/cards/kw_awaken.go). Added after
 	// the split.
 	"Awaken",
+	// Transfigure (CR 702.71): the printed K:Transfigure:<cost> line expanded
+	// into the creature's own sorcery-speed battlefield activation -- Cost$
+	// <mana> Sac<1/CARDNAME>, a library search for a creature card with the
+	// source's printed mana value put onto the battlefield
+	// (engine/cards/kw_transfigure.go). Added after the split; the pre-split
+	// switch never expanded it.
+	"Transfigure",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
