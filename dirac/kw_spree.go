@@ -41,6 +41,31 @@ func modalFloorZero(k *prep, c CardID) bool {
 	return false
 }
 
+// modalFloorFree is modalFloorZero for the board p holds: a mode that adds
+// nothing must also be one the cast can announce, so its targets must have a
+// candidate (gorge potentialModalCastFreeMode reads modeTargetsAvailable on
+// each free mode, X pending). Cloud's Limit Break with no tapped creature has
+// no legal Cross-Slash ({0}); Blade Beam ({1}) still casts with no targets,
+// but a cast whose cheapest legal mode costs extra is priced at its printed
+// cost alone and gets no prefix search through a storage battery's X.
+func (s *State) modalFloorFree(k *prep, p uint8, c CardID) bool {
+	if !modalFloorZero(k, c) {
+		return false
+	}
+	cd := &k.t.Cards[c]
+	ab := &cd.Abilities[spellAb(k, c)]
+	n := int(ab.NModes)
+	if n > len(cd.ModeCost) {
+		n = len(cd.ModeCost)
+	}
+	for m := 0; m < n; m++ {
+		if mc := cd.ModeCost[m]; mc.MV() == 0 && mc.X == 0 && s.abilityTargetsFeasible(k, ab, p, NoSlot, 1<<m) {
+			return true
+		}
+	}
+	return false
+}
+
 // spreeCost adds the chosen modes' costs to c.
 func spreeCost(cd *kop.CardDef, mode uint8, c kop.ManaCost) kop.ManaCost {
 	if DebugTieredNoModeCost {
