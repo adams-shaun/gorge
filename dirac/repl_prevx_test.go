@@ -13,6 +13,7 @@ import (
 type prevXScen struct {
 	*scen
 	chant, bear, burn CardID
+	eoc, scope        CardID
 	emb               uint8
 }
 
@@ -30,6 +31,12 @@ func newPrevXScen(t *testing.T) *prevXScen {
 		ids.chant = add(kop.CardDef{Name: "Test Chant", Types: kop.TInstant, Abilities: []kop.Ability{{Prog: []kop.Instr{in}}}})
 		ids.bear = add(kop.CardDef{Name: "Test Bear", Types: kop.TCreature, Power: 2, Toughness: 2})
 		ids.burn = add(kop.CardDef{Name: "Test Burn", Types: kop.TInstant})
+		eocIn := kop.ExtInstr(kop.ExtPreventDamageScope)
+		eocIn.C = int16(kop.PrevScopePlayer | kop.PrevScopeCombat | kop.PrevScopeEndCombat)
+		ids.eoc = add(kop.CardDef{Name: "Test EOC Scope", Types: kop.TInstant, Abilities: []kop.Ability{{Prog: []kop.Instr{eocIn}}}})
+		scIn := kop.ExtInstr(kop.ExtPreventDamageScope)
+		scIn.C = int16(kop.PrevScopePlayer | kop.PrevScopeCombat)
+		ids.scope = add(kop.CardDef{Name: "Test Scope", Types: kop.TInstant, Abilities: []kop.Ability{{Prog: []kop.Instr{scIn}}}})
 	})
 	ids.scen = sc
 	return &ids
@@ -40,6 +47,14 @@ func (f *prevXScen) resolveChant() {
 	e := &f.s.res.e
 	e.kind, e.obj, e.ctrl, e.card = seSpell, f.obj(f.chant, 0), 0, f.chant
 	f.s.prevScopeAdd(f.k, &f.k.t.Cards[f.chant].Abilities[0].Prog[0])
+}
+
+// resolveScopeCard registers the scoped-prevention instant id of seat 0 as its
+// resolution does.
+func (f *prevXScen) resolveScopeCard(id CardID) {
+	e := &f.s.res.e
+	e.kind, e.obj, e.ctrl, e.card = seSpell, f.obj(id, 0), 0, id
+	f.s.prevScopeAdd(f.k, &f.k.t.Cards[id].Abilities[0].Prog[0])
 }
 
 // creatureSrc makes a creature of seat 1 the resolving source of the damage.
@@ -135,6 +150,47 @@ func TestPrevXGainScope(t *testing.T) {
 		}
 		if s.pl[0].life != life[0] || s.pl[1].life != life[1] {
 			t.Fatalf("life %d/%d from %d/%d: want no gain", s.pl[0].life, s.pl[1].life, life[0], life[1])
+		}
+	})
+}
+
+// TestPrevXEndCombat: the scoped record whose instruction carries
+// kop.PrevScopeEndCombat (Suppressor Skyguard's Duration$ UntilEndOfCombat
+// prevention) is dropped on the transition out of the end-of-combat step,
+// the record beside it survives, the freed slot is reused by the next
+// resolution, and DebugNoPrevEndCombat keeps the record.
+func TestPrevXEndCombat(t *testing.T) {
+	t.Run("dropped at end of combat", func(t *testing.T) {
+		f := newPrevXScen(t)
+		s := f.s
+		f.resolveScopeCard(f.eoc)
+		f.resolveScopeCard(f.scope)
+		if s.g.prevX[0]&pxEOC == 0 || s.g.prevX[1] != 0 {
+			t.Fatalf("precondition: prevX %#x/%#x, want the end-of-combat rider in slot 0 alone", s.g.prevX[0], s.g.prevX[1])
+		}
+		keep := s.g.prevCol[1]
+		s.step = kop.StepEndCombat
+		s.advance(f.k)
+		if s.g.prevCol[0] != (prevRec{}) || s.g.prevX[0] != 0 {
+			t.Fatalf("the end-of-combat record survived: %+v prevX %#x", s.g.prevCol[0], s.g.prevX[0])
+		}
+		if s.g.prevCol[1] != keep {
+			t.Fatalf("the plain record moved: %+v from %+v", s.g.prevCol[1], keep)
+		}
+		f.resolveScopeCard(f.eoc)
+		if s.g.prevCol[0].sc == 0 || s.g.prevX[0]&pxEOC == 0 {
+			t.Fatalf("the freed slot was not reused: %+v prevX %#x", s.g.prevCol[0], s.g.prevX[0])
+		}
+	})
+	t.Run("mutation", func(t *testing.T) {
+		DebugNoPrevEndCombat = true
+		defer func() { DebugNoPrevEndCombat = false }()
+		f := newPrevXScen(t)
+		f.resolveScopeCard(f.eoc)
+		f.s.step = kop.StepEndCombat
+		f.s.advance(f.k)
+		if f.s.g.prevCol[0].sc == 0 || f.s.g.prevX[0]&pxEOC == 0 {
+			t.Fatalf("the record was dropped under DebugNoPrevEndCombat: %+v prevX %#x", f.s.g.prevCol[0], f.s.g.prevX[0])
 		}
 	})
 }
