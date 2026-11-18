@@ -67,6 +67,9 @@ type config struct {
 	diracSets string
 	// refusedDecks says why -engine dirac cannot play each deck it refuses.
 	refusedDecks map[string]string
+	// imports holds the decks POST /api/games submitted (podimport.go); nil
+	// refuses a request that carries one.
+	imports *deckImports
 	// formatsRaw is the -format flag: a comma-separated table-format list,
 	// table i taking formats[(i-1) mod n]. "constructed" (the default) and
 	// "commander" are the two names — the smallest thing that lets a person
@@ -657,6 +660,8 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	for _, a := range c.nets {
 		load = reservedLoader(reg, load, a.decks, c.policyPools[a.policy])
 	}
+	c.imports = newDeckImports(reg)
+	load = c.imports.loader(load)
 	// -events chains the event store's deck loader in front of the ordinary
 	// loaders and hands serve the relay the registry's OnMatchEnd will run
 	// through. Built before host.New because the registry's deck loader must

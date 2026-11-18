@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -424,7 +425,13 @@ func (h *handler) undo(w http.ResponseWriter, r *http.Request) {
 
 // decodeBody reads a small JSON body; anything malformed is a 400.
 func decodeBody(w http.ResponseWriter, r *http.Request, into any) bool {
-	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10))
+	return decodeBodyMax(w, r, into, 64<<10)
+}
+
+// decodeBodyMax is decodeBody with the body cap named: a request that carries
+// decklists (POST /api/games) outgrows the 64 KiB every other body fits in.
+func decodeBodyMax(w http.ResponseWriter, r *http.Request, into any, max int64) bool {
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, max))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(into); err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", "malformed JSON body: "+err.Error())
@@ -502,7 +509,30 @@ type CreateGameRequest struct {
 	// GET /api/capabilities, or "off" for none. Omitted takes the server's
 	// default (gorged -paired-bot).
 	PairedBot string `json:"paired_bot,omitempty"`
+	// Seats is the table's seat count, 2..4; omitted is 2. More than two
+	// needs format commander (a Commander pod).
+	Seats int `json:"seats,omitempty"`
+	// Humans is how many seats are people, taking seats 0..Humans-1 and a
+	// token each; the rest are bots. Omitted is 1.
+	Humans int `json:"humans,omitempty"`
+	// Decks supplies a ManaBrew deck (the https://docs.manabrew.app/protocol/deck/
+	// JSON) for the seats that name one; every other seat is dealt from the
+	// server's pool as before (or from human_deck / bot_deck at two seats).
+	// The server re-checks each deck for format, legality and engine support.
+	Decks []SeatDeck `json:"decks,omitempty"`
 }
+
+// SeatDeck is one seat's submitted deck. Deck is the ManaBrew Deck JSON,
+// kept raw here: the wire type lives in server/protocol/manabrew, which this
+// package must not depend on, and the builder that imports it owns the
+// parsing.
+type SeatDeck struct {
+	Seat int             `json:"seat"`
+	Deck json.RawMessage `json:"deck"`
+}
+
+// maxCreateGameBody bounds POST /api/games: up to four decklists.
+const maxCreateGameBody = 2 << 20
 
 // CreateGameOptions is the validated request handed across Options.CreateGame.
 // A struct keeps this public-ish seam extensible without another positional
@@ -520,6 +550,21 @@ type CreateGameOptions struct {
 	// PairedBot is the request's choice, unchecked: the registry refuses a
 	// table naming a bot it does not offer.
 	PairedBot string
+	// Seats is the validated seat count (2..4) and Humans the validated number
+	// of human seats (1..Seats); the handler always sets both, a hand-built
+	// option struct that leaves them zero means 2 and 1.
+	Seats  int
+	Humans int
+	// Decks is the submitted per-seat decks, seats in range and distinct, each
+	// Deck non-empty JSON the builder has yet to parse and check.
+	Decks []SeatDeck
+}
+
+// SeatGrant is one human seat's hand-off in a CreateGameResponse.
+type SeatGrant struct {
+	Seat  int    `json:"seat"`
+	Token string `json:"token"`
+	Join  string `json:"join"`
 }
 
 // CreateGameResponse is what a successful POST /api/games returns: the new
@@ -538,6 +583,44 @@ type CreateGameResponse struct {
 	// Join is the base-relative path the human opens to sit in the seat,
 	// carrying the seat and its token: /t/<table>?seat=N&token=….
 	Join string `json:"join"`
+	// Seats lists every human seat's token and join path, lowest seat first:
+	// one entry per human, the first repeating Seat/Token/Join. A pod's other
+	// humans each take their own entry.
+	Seats []SeatGrant `json:"seats,omitempty"`
+}
+
+// validatePodRequest checks the seats/humans/decks shape of a create-game
+// request against the resolved format and returns the normalized counts, or a
+// message for the 400.
+func validatePodRequest(req CreateGameRequest, format host.Format) (seats, humans int, msg string) {
+	seats, humans = req.Seats, req.Humans
+	if seats == 0 {
+		seats = 2
+	}
+	if humans == 0 {
+		humans = 1
+	}
+	switch {
+	case seats < 2 || seats > 4:
+		return 0, 0, "seats must be 2, 3 or 4"
+	case seats > 2 && format != host.FormatCommander:
+		return 0, 0, "a table of more than two seats needs format commander"
+	case humans < 1 || humans > seats:
+		return 0, 0, fmt.Sprintf("humans must be between 1 and seats (%d)", seats)
+	}
+	seen := map[int]bool{}
+	for _, d := range req.Decks {
+		switch {
+		case d.Seat < 0 || d.Seat >= seats:
+			return 0, 0, fmt.Sprintf("decks: seat %d is outside the table's %d seats", d.Seat, seats)
+		case seen[d.Seat]:
+			return 0, 0, fmt.Sprintf("decks: seat %d is given a deck twice", d.Seat)
+		case len(bytes.TrimSpace(d.Deck)) == 0 || string(bytes.TrimSpace(d.Deck)) == "null":
+			return 0, 0, fmt.Sprintf("decks: seat %d has no deck", d.Seat)
+		}
+		seen[d.Seat] = true
+	}
+	return seats, humans, ""
 }
 
 // games serves POST /api/games: it decodes the format, hands the request to
@@ -553,7 +636,7 @@ func (h *handler) games(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req CreateGameRequest
-	if !decodeBody(w, r, &req) {
+	if !decodeBodyMax(w, r, &req, maxCreateGameBody) {
 		return
 	}
 	format := host.FormatConstructed
@@ -564,6 +647,11 @@ func (h *handler) games(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		format = f
+	}
+	seats, humans, msg := validatePodRequest(req, format)
+	if msg != "" {
+		writeError(w, http.StatusBadRequest, "bad_request", msg)
+		return
 	}
 	if req.Mulligans != nil && (*req.Mulligans < 0 || *req.Mulligans > 6) {
 		writeError(w, http.StatusBadRequest, "bad_request",
@@ -581,6 +669,7 @@ func (h *handler) games(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, err := h.opts.CreateGame(CreateGameOptions{
 		Format: format, HumanDeck: req.HumanDeck, BotDeck: req.BotDeck, BotPolicy: req.BotPolicy, Mulligans: req.Mulligans, PairedBot: req.PairedBot,
+		Seats: seats, Humans: humans, Decks: req.Decks,
 	})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
