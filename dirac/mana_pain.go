@@ -115,6 +115,59 @@ func prepPainOnlyLife(c *kop.CardDef, pc *pcard) bool {
 	return true
 }
 
+// prepSoleLifeMana prices a card whose only mana ability is a life-only one
+// ("Pay N life: Add <mana>", no {T}: Treasonous Ogre, kop.SoleGapLifeManaAb)
+// as the same pain-only source: gorge's last-resort Consequence{Life: N}
+// (pay.PaymentPlanShapeTierOf prices a life cost with no {T} the same tier),
+// so its unit joins the plain census and the planner's phase 2. Its cost taps
+// nothing, so manaTap stays false: the shape test lifeOnlyPain (painLife with
+// no tap) identifies it, and the source prices usable tapped and summoning
+// sick alike (CR 605.1a; the census extends it tapped or not, mana_sacsource.go).
+// It reports whether it did.
+func prepSoleLifeMana(c *kop.CardDef, pc *pcard) bool {
+	if pc.manaAb < 0 || pc.painCol != 0 || !kop.SoleGapLifeManaAb(c, int(pc.manaAb)) {
+		return false
+	}
+	a := &c.Abilities[pc.manaAb]
+	pc.painCol, pc.painN, pc.painOnly, pc.painLife = a.ManaColors, a.Cost.N, true, true
+	return true
+}
+
+// lifeOnlyPain reports whether pc is prepSoleLifeMana's pain unit: a painLife
+// one with no tap, the one pain shape whose activation taps nothing. Every
+// other painLife class (Mana Confluence, a painland, a grant view, a
+// self-Taps rider) carries manaTap.
+func lifeOnlyPain(pc *pcard) bool {
+	return pc.painLife && pc.painCol != 0 && !pc.manaTap && !pc.manaSac && !pc.manaSacOnly
+}
+
+// windowNoTapPain: the manual window's view pc is a life-only pain ability
+// (Treasonous Ogre, prepSoleLifeMana): the walk pays its life where a tap is
+// skipped. windowDry's probe restores pools but not life, so its plain census
+// cannot model the cost and stops unknown at the source — the treatment a
+// sacrifice-only source gets (windowSacOnly), with the real walk's pain arm
+// paying the life (mana_window.go).
+func windowNoTapPain(k *prep, pc *pcard) bool {
+	return k.painMana && lifeOnlyPain(pc)
+}
+
+// canLifeOnlyMana is the census and planner admission of sl's life-only pain
+// unit: the ability's cost taps nothing and needs no untapped, unsick source
+// (the census extends it tapped or not, mana_sacsource.go), only an ability
+// the board still gives p and a life total that pays the fee -- gorge's
+// planner withholds a last-resort alternative whose pain reaches the payer's
+// life (pay.PlanLastResortChoices, CR 119.4).
+func (s *State) canLifeOnlyMana(k *prep, sl Slot, p uint8) bool {
+	pc := s.manaPCAt(k, sl)
+	if !lifeOnlyPain(pc) || s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
+		return false
+	}
+	if k.gen != nil && (s.genLost(k, sl) || k.gen.anyCantAct && s.actForbidden(k, sl, true)) {
+		return false
+	}
+	return int(s.pl[p].life) > int(pc.painN)
+}
+
 // prepPainMana sets pc's pain alternative: the card's mana abilities are a
 // plain {T} normal alternative ({C}, one WUBRG colour, or a two-colour
 // choice; kgen primaryMana) and a painful {T} ability of one or more colours
@@ -283,6 +336,33 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 // Town, Hashep Oasis: painLife, not painOnly) joins its normal ability, so a
 // later source sees less.
 func (s *State) painAvailMaskAt(k *prep, sl Slot, pc *pcard, p uint8) uint8 {
+	// The offer walk (neither window's availX) sums a life-only unit's cost
+	// across the census, as gorge's planner phase 2 does (a plan whose summed
+	// life reaches the payer's life is never a plan, CR 119.4): a life-only
+	// source's colour is offered only while life - the earlier life-only
+	// units' committed costs > its own. The tap-pain units' summed guard is
+	// painTight's (this loop cannot read which ability a plan would tap a
+	// painland for); the windows run their own loop below, whose
+	// paid-life membership is the window census's.
+	if s.g.availX&(availWin|availWinCol) == 0 && lifeOnlyPain(pc) {
+		var ord [MaxPerm]Slot
+		n := s.battlefieldOrder(p, s.ctrlM[p], ord[:], 0)
+		committed := 0
+		for _, x := range ord[:n] {
+			if x == sl {
+				break
+			}
+			xp := s.manaPCAt(k, x)
+			if !lifeOnlyPain(xp) || !s.canLifeOnlyMana(k, x, p) {
+				continue
+			}
+			committed += int(xp.painN)
+		}
+		if int(s.pl[p].life)-committed <= int(pc.painN) {
+			return 0
+		}
+		return uint8(pc.painCol) & 0x3f
+	}
 	// The cast window (availWinCol) keeps painAvailMask's own life guard; only
 	// the unless / ward window counts a painland's paid-life colour.
 	if s.g.availX&(availWin|availWinCol) == 0 || !pc.painLife ||
@@ -295,7 +375,7 @@ func (s *State) painAvailMaskAt(k *prep, sl Slot, pc *pcard, p uint8) uint8 {
 	paid := false
 	for _, x := range ord[:n] {
 		xp := s.manaPCAt(k, x)
-		if !xp.painLife || xp.painCol == 0 || !s.canTapForManaPC(k, x, xp) {
+		if !xp.painLife || xp.painCol == 0 || !(s.canTapForManaPC(k, x, xp) || s.canLifeOnlyMana(k, x, p)) {
 			continue
 		}
 		ok := int(s.pl[p].life)-committed > int(xp.painN)
@@ -399,7 +479,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 			// colour the plan picks (gorge addTapExtra per alternative)
 			n += r
 		}
-		pk.types[t] = utype{mask: mask, dmask: mask, n: n, creat: cr, flex: fl, pain: pain, alt: alt, irr: 3 * pain, nocol: pain != 0}
+		pk.types[t] = utype{mask: mask, dmask: mask, n: n, creat: cr, flex: fl, pain: pain, alt: alt, irr: 3 * pain, nocol: pain != 0, sacOnly: lifeOnlyPain(pc)}
 		if pain != 0 {
 			pk.types[t].xv, pk.types[t].xmask, pk.types[t].xt = xp, xmp, xtp
 		} else {
@@ -414,11 +494,14 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 		return t
 	}
 	// a painful type: its colours, the source kind and creature-ness name it
-	// (every pool card with painful colours has its own pair of colours)
+	// (every pool card with painful colours has its own pair of colours); a
+	// life-only unit (lifeOnlyPain) shares no type with a {T} one — the type's
+	// activation taps or not (utype.sacOnly), so the shape is part of the key
 	findP := func() int {
 		for t := 0; t < pk.nt; t++ {
 			ty := &pk.types[t]
-			if ty.pain != 0 && ty.mask == pm && ty.creat == cr && ty.alt == !pc.painOnly && ty.xv == xp {
+			if ty.pain != 0 && ty.mask == pm && ty.creat == cr && ty.alt == !pc.painOnly && ty.xv == xp &&
+				ty.sacOnly == lifeOnlyPain(pc) {
 				return t
 			}
 		}
