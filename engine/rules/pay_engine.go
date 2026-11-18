@@ -258,11 +258,12 @@ func (pe *payer) MatchesSpellFrom(spec string, id state.ObjID, you state.PlayerI
 	e := (*Engine)(pe)
 	sc := e.specCtx(source, you)
 	sc.PreparedSpell = e.preparedSpellOf(id)
-	// A split card in hand probed as one half (FaceIdx != 0, the offer's
-	// alternate-face cast) is the spell that half would be: on the stack it
-	// has only that half's characteristics (CR 709.3b), so Pillar of the
-	// Paruns' "multicolored spell" mana can't pay for Away alone.
-	if o := e.G.Obj(id); o != nil && o.FaceIdx != 0 && o.Zone != state.ZStack {
+	// A split card in hand probed as a spell is the spell its half would be:
+	// on the stack it has only that half's characteristics (CR 709.3a/709.3b),
+	// so Pillar of the Paruns' "multicolored spell" mana can't pay for Away
+	// (FaceIdx != 0, the alternate-face cast) or Far (the front half) alone.
+	// Only the fused offer (pricingFused) reads both halves (CR 702.102b).
+	if o := e.G.Obj(id); o != nil && o.Zone != state.ZStack && (o.FaceIdx != 0 || splitFrontHalfRead(o, e.pricingFused)) {
 		sc.AsSpellHalf = true
 	}
 	return e.matchesSpec(spec, id, sc)
