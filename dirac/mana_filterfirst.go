@@ -285,12 +285,20 @@ func (s *State) filtUse(k *prep, sl Slot) {
 // the fee plus the filter's output can pay a ward cost the census (availFor:
 // no filter is a unit) prices short. The walk payWindow runs is simulated on
 // a copy (CR 605.3a, 702.21: the ward cost is paid through the mana window).
-func (s *State) windowFiltAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
+// The second return is the first rule-gap stall a failed walk's fork latched
+// (StallNone none): the probe declares nothing — the caller may still price
+// the play through a sibling route, and the drop site declares the stall only
+// where every route failed (payWardN; tapXScript's shape).
+func (s *State) windowFiltAffords(k *prep, p uint8, cost *kop.ManaCost) (bool, uint8) {
 	if k.gen == nil || !k.gen.anyFiltFirst || !s.scriptFilt(k, p).any() {
-		return false
+		return false, 0
 	}
 	t := s.fork()
 	defer s.unfork()
 	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, true, false, true, false)
-	return ok
+	stall := uint8(0)
+	if !ok {
+		stall = t.g.stalled
+	}
+	return ok, stall
 }

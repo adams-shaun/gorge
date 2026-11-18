@@ -100,7 +100,19 @@ func (s *State) applyWardManaLife(k *prep, a Action) {
 	n, l := wardML(r.e.trigAmt)
 	p := r.e.trigPl
 	c := kop.ManaCost{Generic: uint8(n)}
-	if a.Mode() == 1 && int(s.pl[p].life) >= l && (k.gen == nil || s.affordsFor(k, p, &c) || s.windowAffords(k, p, &c) || s.anyDifferentOpen(k, p)) {
+	pay := a.Mode() == 1 && int(s.pl[p].life) >= l
+	var stall uint8
+	if pay && k.gen != nil {
+		ok := s.affordsFor(k, p, &c) || s.anyDifferentOpen(k, p)
+		if !ok {
+			// the failed window probe reports its fork's latched stall; the
+			// drop below declares it only where every route failed (the probe
+			// must not pre-empt the siblings that can price the play)
+			ok, stall = s.windowAffords(k, p, &c)
+		}
+		pay = ok
+	}
+	if pay {
 		if _, short := s.payWindow(k, p, &c, false); short {
 			if idx >= 0 {
 				s.wardCounterAt(k, idx) // the colours taken left the mana unpaid, so the life is not
@@ -113,6 +125,12 @@ func (s *State) applyWardManaLife(k *prep, a Action) {
 			s.tapAllForMana(k, p) // gorge's window taps what it has, then can't pay
 		}
 		s.wardCounterAt(k, idx)
+		if stall != 0 {
+			// every route failed and a failed window probe's fork latched a
+			// rule gap the kernel stalls by name: declare it, not a modelled
+			// "not paid" the kernel's rules cannot back (tapXScript's shape)
+			s.capFull(stall)
+		}
 	}
 	s.finishResolve(k, false)
 }

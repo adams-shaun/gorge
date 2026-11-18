@@ -3316,3 +3316,12 @@ var nonCreatureSubtype = map[string]bool{
 	"Ajani": true, "Liliana": true, "Vivien": true, "Chandra": true, "Kaito": true, "Kiora": true,
 	"Jace": true, "Garruk": true, "Elspeth": true, "Nissa": true, "Gideon": true, "Teferi": true,
 }
+
+// capStall declares why when a failed search's fork latched one (0 = none): the
+// call site's drop is final, so the rule gap the kernel stalls by name is
+// declared rather than the play silently dropped.
+func (s *State) capStall(why uint8) {
+	if why != 0 {
+		s.capFull(why)
+	}
+}
