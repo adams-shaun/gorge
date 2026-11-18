@@ -712,10 +712,12 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 // the returning card (OpReturnEx) or the pending token copy.
 func (s *State) enchantingCard(k *prep) CardID { return s.objs[s.enchantingObj(k)].card }
 
-// enchantingObj is the Aura an enchant ask is about.
+// enchantingObj is the Aura an enchant ask is about: during a parked
+// many-object return walk the current object (the walk's rem[retAt-1],
+// returnRemembered's returnAura answer arm), else the instruction's object.
 func (s *State) enchantingObj(k *prep) Obj {
 	if in := &s.prog(k)[s.res.pc]; in.Op == kop.OpReturnEx || in.Op == kop.OpReturn {
-		return s.objRefObj(in.Obj)
+		return s.returningObj(in)
 	} else if in.Op == kop.OpChooseMove || in.Op == kop.OpSearchEx {
 		return s.resArm().look[0] // the move's parked Aura (handAuraEnter)
 	}
@@ -723,13 +725,15 @@ func (s *State) enchantingObj(k *prep) Obj {
 }
 
 // enchantReturnObj is the Aura a pending enchant ask of a return (OpReturn,
-// OpReturnEx) is about; NoObj for any other enchant ask.
+// OpReturnEx) is about; NoObj for any other enchant ask. A parked
+// many-object return walk names the walk's current object, which the
+// instruction's ref no longer resolves to.
 func (s *State) enchantReturnObj(k *prep) Obj {
 	if !s.res.active {
 		return NoObj
 	}
 	if in := &s.prog(k)[s.res.pc]; in.Op == kop.OpReturnEx || in.Op == kop.OpReturn {
-		return s.objRefObj(in.Obj)
+		return s.returningObj(in)
 	}
 	return NoObj
 }
