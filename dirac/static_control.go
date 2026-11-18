@@ -426,21 +426,44 @@ func (s *State) ctrlCleanup(k *prep) {
 //
 //go:noinline
 func (s *State) ctrlSBA(k *prep) {
+	// The battlefield's controllers at entry: a pass that moves one changes
+	// the affected set of every controller-keyed static (a global override
+	// static like Ashaya's "nontoken creatures you control are Forest
+	// lands"), whose cached override-derived types refreshTy must recompute
+	// before the ask the caller poses next is projected. The baseline is over
+	// every occupied slot, not just the record bearers: a pass can register a
+	// bearer's FIRST-EVER control record (a control Aura on an unclaimed
+	// permanent), and such a move ends at the baseline controller 0 for half
+	// the steals, where a bearer-only baseline reads as no move (zero is also
+	// a real controller). Control moves are rare, so the refresh is paid only
+	// when one happened.
+	var start [MaxPerm]uint8
+	for m := s.occ; m.any(); m = m.rest() {
+		sl := m.first()
+		start[sl] = s.perms[sl].ctrl
+	}
 	var prev [MaxPerm]uint8
 	for pass := 0; pass <= maxFx; pass++ {
 		nfx := s.g.nfx
-		for m := s.fxM; m.any(); m = m.rest() {
-			prev[m.first()] = s.perms[m.first()].ctrl
+		for m := s.occ; m.any(); m = m.rest() {
+			sl := m.first()
+			prev[sl] = s.perms[sl].ctrl
 		}
 		if nfx > 0 {
 			s.ctrlExpire(k, false)
 		}
 		if !s.ctrlRegister(k) {
+			// StallTables: the table filled and s.stall ended the game, so
+			// no ask follows and the refresh is dead work (the stalled path
+			// stays as it was before the refresh gate existed).
 			return
 		}
 		if s.g.nfx == nfx && !s.ctrlMoved(&prev) {
-			return
+			break
 		}
+	}
+	if s.ctrlMoved(&start) {
+		s.refreshTy(k)
 	}
 }
 
@@ -489,11 +512,14 @@ func (s *State) ctrlRegister(k *prep) bool {
 	return true
 }
 
-// ctrlMoved reports whether any slot with a control record changed hands
-// during the pass (the record table is the same size but a bearer moved, so
-// the next pass must re-derive the wants that read it).
+// ctrlMoved reports whether any occupied slot changed hands during the pass
+// (the record table is the same size but a bearer moved, so the next pass must
+// re-derive the wants that read it). It reads every occupied slot, not just
+// those still in fxM: ctrlExpire rebuilds fxM from the surviving records
+// before its revert moves the controller, so a slot whose only record ended
+// this pass has left fxM by the time it is compared.
 func (s *State) ctrlMoved(prev *[MaxPerm]uint8) bool {
-	for m := s.fxM; m.any(); m = m.rest() {
+	for m := s.occ; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.perms[sl].ctrl != prev[sl] {
 			return true
