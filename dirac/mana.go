@@ -112,6 +112,8 @@ type avail struct {
 	xdOn bool
 	// xPlain: set by availXWindow on the plain configuration: a source with its own ability counts that ability only, the one the planner taps (a grant-only source still counts, plan's phase 2 taps it)
 	xPlain bool
+	// pipWin: set by addPipTapsDefer: a hybrid or Phyrexian pip ask prices a Condition-split source by gorge's window census (mana_condsplit.go splitWindowPC), not the relaxed play census
+	pipWin bool
 	// delve: the graveyard credit a granted-delve cast prices its twobrid
 	// faces against (gorge FeasibleAny's delve argument): the payer's
 	// graveyard size while the cast carries the granted keyword, else 0. Set
