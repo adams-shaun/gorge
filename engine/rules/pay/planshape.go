@@ -569,12 +569,51 @@ func PaymentPlanFoldableTapMana(f *cards.Face, t cards.Trigger) (PlanTapMana, bo
 	return out, true
 }
 
+// PaymentPlanGatedFoldableTapMana reports whether a `Mode$ TapsForMana |
+// Static$ True` trigger the planner cannot fold only because of its
+// IsPresent$ gate (Rikala, Homarid King's tide-counter gate) has a foldable
+// body: the kernel's gated tap-extra, which floats at the tap itself and
+// which the census-gap second pass funds. Any other static trigger the
+// planner cannot fold is a triggered mana ability of unknown effect.
+func PaymentPlanGatedFoldableTapMana(f *cards.Face, t cards.Trigger) bool {
+	if _, gated := t.Param(cards.PKIsPresent); !gated {
+		return false
+	}
+	stripped := t
+	stripped.Params = maps.Clone(t.Params)
+	delete(stripped.Params, "IsPresent")
+	_, ok := PaymentPlanFoldableTapMana(f, stripped)
+	return ok
+}
+
+// PaymentPlanUnfoldableStaticTapTrigger reports whether a Taps/TapsForMana
+// trigger is a Static$ True triggered mana ability (CR 605.1b) the planner
+// cannot fold and that is not merely gate-foldable (Rikala's IsPresent$ gate,
+// PaymentPlanGatedFoldableTapMana): its mana joins the payment at the tap, so
+// it acts on the payment rather than only watching the tap. The Static$ flag
+// is read through paymentPlanStaticTrigger, not a strings comparison
+// re-spelled at each use site.
+func PaymentPlanUnfoldableStaticTapTrigger(f *cards.Face, t cards.Trigger) bool {
+	return paymentPlanStaticTrigger(t) && !PaymentPlanGatedFoldableTapMana(f, t)
+}
+
+// paymentPlanStaticTrigger reports whether a trigger line is Static$ True:
+// the flag read once here, by the byte compare the pay package's label reads
+// use (interferenceDetail) rather than a strings call the ratchets count.
+func paymentPlanStaticTrigger(t cards.Trigger) bool {
+	v := strings.TrimSpace(t.ParamStr(cards.PKStatic))
+	if len(v) != 4 {
+		return false
+	}
+	return v[0]|0x20 == 't' && v[1]|0x20 == 'r' && v[2]|0x20 == 'u' && v[3]|0x20 == 'e'
+}
+
 // paymentPlanStaticTapManaBody is the body of a `Mode$ TapsForMana |
 // Static$ True` battlefield trigger of face f whose parameters are all in the
 // closed world paymentPlanTapManaTriggerCodes names and whose body is one api
 // ability with no SubAbility$, or nil.
 func paymentPlanStaticTapManaBody(f *cards.Face, t cards.Trigger, api string) *cards.SA {
-	if t.Mode != "TapsForMana" || !strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKStatic)), "True") {
+	if t.Mode != "TapsForMana" || !paymentPlanStaticTrigger(t) {
 		return nil
 	}
 	if v, ok := t.Param(cards.PKTriggerZones); ok && strings.TrimSpace(v) != "Battlefield" {
