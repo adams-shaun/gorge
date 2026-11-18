@@ -314,16 +314,12 @@ func run() int {
 		delete(explicit, "kernel")
 	}
 	if *synth != "" {
-		if err := checkSynthFlags(explicit); err != nil {
+		if err := checkSynthFlags(explicit, *synthWith, *focusPath); err != nil {
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
 			return 2
 		}
 		*kernel = "fdn"
-		if explicit["synth-with"] && (*synthWith == "" || *focusPath == "") {
-			fmt.Fprintln(os.Stderr, "kfuzz: -synth-with needs a pool list and -focus")
-			return 2
-		}
-	} else if explicit["synth-decks"] || explicit["reach"] || explicit["focus"] || explicit["focus-per-deck"] || explicit["only"] || explicit["synth-with"] {
+	} else if needsSynth(explicit) {
 		fmt.Fprintln(os.Stderr, "kfuzz: -synth-decks, -reach, -focus, -only and -synth-with need -synth")
 		return 2
 	}

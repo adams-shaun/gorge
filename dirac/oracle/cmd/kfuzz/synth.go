@@ -17,13 +17,26 @@ import (
 var synthConflicts = []string{"kernel", "set", "decks", "pool", "split", "v2"}
 
 // checkSynthFlags refuses -synth beside a flag that names another pool.
-func checkSynthFlags(explicit map[string]bool) error {
+func checkSynthFlags(explicit map[string]bool, with, focusPath string) error {
+	if explicit["synth-with"] && (with == "" || focusPath == "") {
+		return fmt.Errorf("-synth-with needs a pool list and -focus")
+	}
 	for _, name := range synthConflicts {
 		if explicit[name] {
 			return fmt.Errorf("-synth deals its own pool: it cannot be used with -%s", name)
 		}
 	}
 	return nil
+}
+
+// needsSynth reports whether a flag that only a -synth run reads was given.
+func needsSynth(explicit map[string]bool) bool {
+	for _, name := range []string{"synth-decks", "reach", "focus", "focus-per-deck", "only", "synth-with"} {
+		if explicit[name] {
+			return true
+		}
+	}
+	return false
 }
 
 // synthWithExtras is the cards a -synth-with run's union holds from other pools; nil
