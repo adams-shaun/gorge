@@ -502,6 +502,24 @@ func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *c
 		e.xBoundTargetPayable(p, id, excludeSelf, ab, cost, abilityScope(ab), true)
 }
 
+// planVerdictProvesUnpayable reports whether verdict's "insufficient" is a
+// proof the cost cannot be paid. The planner prices only the mana abilities
+// its source census covers, so over an incomplete census the verdict proves
+// nothing unless a relaxation of the abilities it misses still cannot pay
+// (paymentPlanRelaxProof): a {T}, remove-a-counter source (Gemstone Mine's
+// "one mana of any color") the planner cannot execute can still make the
+// owed colour (CR 601.2g). hyp is the potential pool the census reads.
+func planVerdictProvesUnpayable(e *Engine, p state.PlayerID, hyp *state.Mana, verdict func() PaymentPlanOutcome) bool {
+	if verdict().Reason != pay.ReasonInsufficient {
+		return false
+	}
+	e.beginDerivedMemo()
+	defer e.endDerivedMemo()
+	defer pay.PaymentPlanQueryEnd(asPayer(e), pay.PaymentPlanQueryBegin(asPayer(e)))
+	census := e.paymentPlanCensusOf(p, hyp)
+	return census.complete || census.relaxable && e.paymentPlanRelaxProof(census, verdict).Reason == pay.ReasonInsufficient
+}
+
 // xBoundTargetPayable reports whether some announcement of base's {X} both pays,
 // from the pool plus every untapped source, and leaves sa a legal target (CR
 // 601.2b, 601.2c, 601.2h). A target bounded by an {X} cost is otherwise judged
@@ -520,14 +538,16 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 	// in every slot (potential.go), so one Treasure Token can "pay" an X the
 	// seat cannot: one mana of any colour is one unit, not one per colour.
 	// priceExactly confirms an announcement with the payment planner, whose
-	// insufficient verdict is a proof. A ValidTarget$ cost static can reduce
+	// insufficient verdict is a proof only over a complete source census
+	// (planVerdictProvesUnpayable). A ValidTarget$ cost static can reduce
 	// the price for one legal target choice (offerCastableUsing's
 	// potential-target retry), so an unpayable untargeted composition retries
 	// each potential target's composition; an unsupported shape is not a proof
 	// either way and keeps the bound's answer.
 	priceExactly := func(cost Cost) bool {
 		insufficient := func(composed Cost) bool {
-			return e.planComposedCost(p, id, composed, ability, ability).Reason == pay.ReasonInsufficient
+			verdict := func() PaymentPlanOutcome { return e.planComposedCost(p, id, composed, ability, ability) }
+			return planVerdictProvesUnpayable(e, p, &bound, verdict)
 		}
 		if !insufficient(e.offerCostForUsing(statics, p, id, cost, scope)) {
 			return true
