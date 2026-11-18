@@ -47,10 +47,31 @@ func (d *deckImports) loader(next func(string) (host.Deck, error)) func(string) 
 	}
 }
 
-func (d *deckImports) put(id string, deck host.Deck) {
+// maxStoredImports bounds how many submitted decks the process holds: tables
+// are process-scoped, so a deck is never evicted, and POST /api/games is open
+// to any client. A full store refuses a request that would add to it.
+const maxStoredImports = 512
+
+// putAll stores the submitted decks under ids (parallel to decks by seat, ""
+// where a seat has none), or stores nothing when that would pass the cap.
+func (d *deckImports) putAll(ids []string, decks map[int]host.Deck) error {
 	d.mu.Lock()
-	d.decks[id] = deck
-	d.mu.Unlock()
+	defer d.mu.Unlock()
+	add := 0
+	for _, id := range ids {
+		if id != "" {
+			add++
+		}
+	}
+	if len(d.decks)+add > maxStoredImports {
+		return fmt.Errorf("this server already holds %d submitted decks, the most it keeps: use a deck from its pool", len(d.decks))
+	}
+	for i, id := range ids {
+		if id != "" {
+			d.decks[id] = decks[i]
+		}
+	}
+	return nil
 }
 
 func (d *deckImports) drop(ids ...string) {
@@ -189,6 +210,17 @@ func (c config) checkPodShape(req httpapi.CreateGameOptions, seats, humans int) 
 		return fmt.Errorf("deck import is not enabled on this server")
 	case seats > 2 && (req.HumanDeck != "" || req.BotDeck != ""):
 		return fmt.Errorf("human_deck and bot_deck name the two seats of a two-seat table; a %d-seat pod takes decks per seat in decks", seats)
+	}
+	return nil
+}
+
+// checkReservedPool refuses a submitted deck at a table whose bot policy has a
+// reserved pool: that policy plays only the decks its network was trained on,
+// at every seat, exactly as for human_deck and bot_deck. It is the one home of
+// that rule for the decks field and runs before any deck is read.
+func checkReservedPool(req httpapi.CreateGameOptions, policy string, hasPool bool) error {
+	if hasPool && len(req.Decks) > 0 {
+		return fmt.Errorf("bot policy %q plays only the decks it was trained on, not a submitted deck: leave decks out", policy)
 	}
 	return nil
 }
