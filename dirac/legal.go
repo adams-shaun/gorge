@@ -1830,6 +1830,32 @@ func potUnitsAvail(a *avail, units *[maxPotUnits]potUnit) bool {
 // than any cost the kernel prices, and within an avail's uint8 count.
 const potentialOpenUnits = 2 * trigXCap
 
+// censusOpenTap records an open (any-colour or chosen-colour) source's natural
+// production once, modal, in availPotentialFor's census: gorge's planner prices
+// the tap at one mana of one of the source's colours (its relaxed census bounds
+// each gap source the same way, paymentPlanRelaxedAlternatives' per-production
+// alternatives), so the per-tap view is no unbounded fold. Who records depends
+// on the mode: with boundedAny the sweep's potentialAnyColourUnit adds the tap
+// (and counts it in anyFree), so the walk records nothing here and would
+// otherwise double-count (three any-colour taps as six wildcard units, an
+// X-bound-target cast gorge's planner refuses off three mana); without it the
+// multikicker arm's census records here, because potentialAnyColourUnit reports
+// open and adds nothing.
+func (s *State) censusOpenTap(k *prep, sl Slot, pc *pcard, boundedAny bool, add func(Slot, uint8, uint8), cen *potCensus) {
+	mask := s.srcMaskAt(pc, sl)
+	if mask == 0 {
+		return
+	}
+	n := s.srcYieldAt(k, sl, pc)
+	if n == 0 {
+		return
+	}
+	if !boundedAny {
+		add(sl, mask, n)
+	}
+	cen.tapRec(sl, mask, n) // mergeTap's note, either mode
+}
+
 // availPotentialFor is availPotential; payment prices one mana payment (gorge
 // potentialManaFor with a descriptor, a trigger's own cost): an ability whose
 // RestrictValid$ refuses it adds nothing and a chosen colour is exact (CR 106.6).
@@ -1947,28 +1973,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		}
 		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
 			if len(units) != 0 {
-				// the census (units) records an open source's natural
-				// production once, modal: gorge's planner prices the tap at
-				// one mana of one of the source's colours (its relaxed
-				// census bounds each gap source the same way,
-				// paymentPlanRelaxedAlternatives' per-production
-				// alternatives), so the per-tap view is no unbounded fold.
-				// Who records depends on the mode: with boundedAny the
-				// sweep's potentialAnyColourUnit below adds the tap (and
-				// counts it in anyFree), so the walk records nothing here and
-				// would otherwise double-count (three any-colour taps as six
-				// wildcard units, an X-bound-target cast gorge's planner
-				// refuses off three mana); without it the multikicker arm's
-				// census records here, because potentialAnyColourUnit
-				// reports open and adds nothing
-				if mask := s.srcMaskAt(pc, sl); mask != 0 {
-					if n := s.srcYieldAt(k, sl, pc); n > 0 {
-						if !boundedAny {
-							add(sl, mask, n)
-						}
-						cen.tapRec(sl, mask, n) // mergeTap's note, either mode
-					}
-				}
+				s.censusOpenTap(k, sl, pc, boundedAny, add, &cen)
 			}
 			open = s.potentialAnyColourUnit(k, sl, pc, boundedAny, add, &anyFree) || open
 			continue
