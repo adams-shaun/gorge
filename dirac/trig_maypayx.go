@@ -70,6 +70,12 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	// granted source), so narrowing there could drop a value the payment can
 	// really pay.
 	if !open && mx < cap {
+		// gorge's potentialManaFor prices a tap's extra mana (Mana Flare's) in
+		// the bound, so the walk's count grows by it before the census below
+		// caps it (CR 605.1b)
+		mx = min(cap, mx+s.trigXTapExtras(k, p))
+	}
+	if !open && mx < cap {
 		var one avail
 		one.xd, one.xdOn = other, true // a restricted grant the trigger's own payment may not spend adds no unit (CR 106.6)
 		s.availForCapped(k, p, &one)
@@ -87,6 +93,25 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	s.g.pickP = p
 	s.res.ask, s.res.askP = raTrigX, p
 	return false
+}
+
+// trigXTapExtras is the mana the controller's tap triggers add across every
+// source that can tap for mana, each counted once (mana_tapextra.go srcExtra).
+func (s *State) trigXTapExtras(k *prep, p uint8) (n int) {
+	if k.gen == nil || !k.gen.anyTapExtra {
+		return 0
+	}
+	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+		sl := m.first()
+		pc := s.manaPCGen(k, sl)
+		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 {
+			continue
+		}
+		for _, v := range s.srcExtra(k, sl, pc) {
+			n += int(v)
+		}
+	}
+	return n
 }
 
 // askOptionsTrigX lists X = 0..pickLeft (the tail of askOptionsHide).
