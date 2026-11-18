@@ -13,6 +13,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //   - the SBA pass, after the others (gorge checkStateBased's last check):
 //     with neither, a daybound permanent makes it day, else a nightbound
 //     one night (CR 702.145d/g); with a designation the faces are re-synced.
+//   - a pass with casualties picks the designation before they apply
+//     (dnBatch), faces turning on the next pass (gorge's same batch).
 //   - a designation change turns every face-up transforming permanent
 //     whose face disagrees (CR 702.145c/f), player 0's battlefield list
 //     first: a transform (FlipFace), so "transforms" triggers see it.
@@ -119,6 +121,17 @@ func (s *State) dnSBA(k *prep) bool {
 	if s.g.dayNight&3 != 0 {
 		return s.dnSync(k)
 	}
+	d := s.dnPick(k)
+	if d == 0 {
+		return false
+	}
+	s.dnSet(k, d)
+	return true
+}
+
+// dnPick is CR 702.145d/g's designation with neither: dnDay with a daybound
+// permanent, else dnNight with a nightbound one, else 0.
+func (s *State) dnPick(k *prep) uint8 {
 	day, night := false, false
 	for m := s.occ; m.any(); m = m.rest() {
 		d, n := s.dnKw(k, m.first())
@@ -126,13 +139,23 @@ func (s *State) dnSBA(k *prep) bool {
 	}
 	switch {
 	case day:
-		s.dnSet(k, dnDay)
+		return dnDay
 	case night:
-		s.dnSet(k, dnNight)
-	default:
-		return false
+		return dnNight
 	}
-	return true
+	return 0
+}
+
+// dnBatch is CR 702.145d/g ahead of an SBA pass's casualties: the check is
+// "any time", not a state-based action, so a daybound creature dying in the
+// pass (0 toughness under Elesh Norn, Grand Cenobite) still makes it day.
+// gorge's dayNightStateCheck queues the designation in the same batch as the
+// deaths and turns the faces on the next pass, so nothing is synced here:
+// the next pass's dnSBA does it.
+func (s *State) dnBatch(k *prep) {
+	if k.anyDayNight && s.g.dayNight&3 == 0 {
+		s.g.dayNight |= s.dnPick(k)
+	}
 }
 
 // dnEnter turns a daybound front face entering at night to its back.
