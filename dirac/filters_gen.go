@@ -424,7 +424,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	// verdict when they are recorded (one mana per tap, CR 118.3c;
 	// potUnitsAvail): an incomplete record has no bounded view and keeps the
 	// over-bound answer.
-	exactKnown := potUnitsAvail(&ex, &pu)
+	exactKnown := potUnitsAvail(&ex, &pu, int(s.pl[SeatIx(p)].life))
 	ok := false
 	for x := costXMin(&a.Cost); !ok && x < 255; x++ { // from the floor (cost_sacx.go)
 		cx := cost.AtX(x)

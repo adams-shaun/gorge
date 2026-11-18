@@ -1775,6 +1775,10 @@ func (s *State) availPotentialBoundedFor(k *prep, p uint8, a *avail, d *payDesc)
 type potUnit struct {
 	mask uint8
 	n    uint8
+	// pain is one activation's life-plus-damage (abPainOf), saturated; the
+	// per-tap read caps the unit's count at what the lethal guard lets one
+	// plan take (potUnitsAvail)
+	pain uint8
 }
 
 // maxPotUnits bounds the units availPotentialFor records for
@@ -1784,10 +1788,10 @@ type potUnit struct {
 // keeps the over-bound answer).
 const maxPotUnits = 32
 
-// recordPotUnit appends mask/n, merging into the unit of the same mask; the
-// full record (more productions than fit) is the overflow marker units[0]
-// with a zero count.
-func recordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt uint8) {
+// recordPotUnit appends mask/n, merging into the unit of the same mask and
+// pain; the full record (more productions than fit) is the overflow marker
+// units[0] with a zero count.
+func recordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt, pain uint8) {
 	if units[0].n == 0 && units[0].mask != 0 {
 		return // already overflowed: keep the marker
 	}
@@ -1795,7 +1799,7 @@ func recordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt uint8) {
 		return
 	}
 	for i := 0; i < *n; i++ {
-		if units[i].mask == mask {
+		if units[i].mask == mask && units[i].pain == pain {
 			if s := int(units[i].n) + int(cnt); s < 256 {
 				units[i].n = uint8(s)
 			} else {
@@ -1808,19 +1812,19 @@ func recordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt uint8) {
 		*units = [maxPotUnits]potUnit{{mask: 1}} // the overflow marker
 		return
 	}
-	units[*n] = potUnit{mask: mask, n: cnt}
+	units[*n] = potUnit{mask: mask, n: cnt, pain: pain}
 	*n++
 }
 
 // unrecordPotUnit takes cnt of mask's taps back out of the record (a source's
 // tap production the caller folds into a wider one, tapUnit); an overflowed
 // record keeps its marker and a unit left empty is dropped.
-func unrecordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt uint8) {
+func unrecordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt, pain uint8) {
 	if units[0].n == 0 && units[0].mask != 0 {
 		return // overflowed: the record is incomplete anyway
 	}
 	for i := 0; i < *n; i++ {
-		if units[i].mask != mask {
+		if units[i].mask != mask || units[i].pain != pain {
 			continue
 		}
 		if units[i].n > cnt {
@@ -1844,11 +1848,29 @@ type potCensus struct {
 	n     int
 	units [maxPotUnits]potUnit
 	tap   [MaxPerm]potUnit
+	// pain is the activation pain of the ability the walk is recording
+	// (abPainOf, saturated; 0 for the floats and a production the walk does
+	// not price): every unit rec records carries it.
+	pain uint8
 }
 
 func (c *potCensus) rec(mask, n uint8) {
 	if c.on {
-		recordPotUnit(&c.units, &c.n, mask, n)
+		recordPotUnit(&c.units, &c.n, mask, n, c.pain)
+	}
+}
+
+// recDrop is rec for a production whose paid activation the planner's
+// lethal guard refuses: drop's colours price at nothing (an activation
+// whose own life or damage reaches the payer's life is never a plan, so
+// the production is no unit of the planner-shaped per-tap bound), the
+// fold keeps it (gorge's potentialManaFor admits the ability, as
+// potentialAdmits' life >= cost read and painAvailMask's window read do).
+func (c *potCensus) recDrop(sl Slot, mask, n, drop uint8) {
+	if c.on {
+		if m := mask &^ drop; m != 0 {
+			c.rec(m, n)
+		}
 	}
 }
 
@@ -1863,7 +1885,7 @@ func (c *potCensus) gap() {
 // tapRec notes sl's tap production (already recorded) for mergeTap.
 func (c *potCensus) tapRec(sl Slot, mask, n uint8) {
 	if c.on && mask != 0 && n > 0 {
-		c.tap[sl] = potUnit{mask: mask, n: n}
+		c.tap[sl] = potUnit{mask: mask, n: n, pain: c.pain}
 	}
 }
 
@@ -1875,23 +1897,41 @@ func (c *potCensus) recTap(sl Slot, mask, n uint8) {
 	}
 }
 
+// recTapDrop is recTap for a production the lethal guard refuses
+// (availPotentialFor's painDrop, cenPainOf's read): drop's colours record no
+// census unit, the fold keeps the production whole, and when drop swallows
+// the whole production nothing is noted for mergeTap either (no unit to
+// widen).
+func (c *potCensus) recTapDrop(sl Slot, mask, n, drop uint8) {
+	if drop != 0 {
+		if m := mask &^ drop; m != 0 {
+			c.recTap(sl, m, n)
+		}
+		return
+	}
+	c.recTap(sl, mask, n)
+}
+
 // mergeTap widens sl's recorded tap unit by the further {T} ability ab and
 // reports it handled; false when ab is no tap ability or sl has no unit.
-func (c *potCensus) mergeTap(sl Slot, ab *kop.Ability) bool {
-	return c.mergeTapN(sl, ab, max(ab.ManaN, 1))
+// The widening colours a lethal-guard refusal drops are withheld (drop).
+func (c *potCensus) mergeTap(sl Slot, ab *kop.Ability, drop uint8) bool {
+	return c.mergeTapN(sl, ab, max(ab.ManaN, 1), drop)
 }
 
 // mergeTapN is mergeTap for a further {T} ability making n mana in one tap (a
 // storage battery's counters, one mana each): the source's unit grows to n
 // when n exceeds its own tap's production, never to the sum of the two.
-func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n uint8) bool {
+func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n, drop uint8) bool {
 	t := c.tap[sl]
 	if !c.on || ab.Cost.Flags&kop.CostTap == 0 || t.mask == 0 {
 		return false
 	}
-	unrecordPotUnit(&c.units, &c.n, t.mask, t.n)
-	t = potUnit{mask: t.mask | uint8(ab.ManaColors), n: max(t.n, n)}
-	c.rec(t.mask, t.n)
+	unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain)
+	// the widened unit keeps the cheaper pain: the over-bound the census is
+	// (a tap makes one mana through whichever of its abilities is cheapest)
+	t = potUnit{mask: t.mask | uint8(ab.ManaColors)&^drop, n: max(t.n, n), pain: min(t.pain, c.pain)}
+	recordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain)
 	c.tap[sl] = t
 	return true
 }
@@ -1900,10 +1940,10 @@ func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n uint8) bool {
 // merging into the source's plain tap unit when there is one (mergeTapN) and
 // recording a fresh unit of the battery's colours otherwise (a battery whose
 // source has no tap unit, Dwarven Hold).
-func (c *potCensus) recStore(sl Slot, ab *kop.Ability, n int) {
+func (c *potCensus) recStore(sl Slot, ab *kop.Ability, n int, drop uint8) {
 	m := uint8(min(n, 255))
-	if !c.mergeTapN(sl, ab, m) {
-		c.rec(uint8(ab.ManaColors), m)
+	if !c.mergeTapN(sl, ab, m, drop) {
+		c.recDrop(sl, uint8(ab.ManaColors), m, drop)
 	}
 }
 
@@ -1911,12 +1951,12 @@ func (c *potCensus) recStore(sl Slot, ab *kop.Ability, n int) {
 // what the source makes now (an Everflowing Chalice holding no charge counter
 // makes nothing), the planner's natural amount, while the over-bound pool
 // keeps the unbounded fold. It reports it handled.
-func (s *State) censusDynamicAb(k *prep, sl Slot, ab *kop.Ability, c *potCensus, fold func(Slot, uint8, uint8)) bool {
+func (s *State) censusDynamicAb(k *prep, sl Slot, ab *kop.Ability, c *potCensus, fold func(Slot, uint8, uint8), drop uint8) bool {
 	if !c.on || ab.AFlags&kop.AfManaDynamic == 0 || ab.ManaColors == kop.ColAny || ab.AFlags&kop.AfManaEachColor != 0 || anyDifferentTapAb(ab) {
 		return false
 	}
 	fold(sl, uint8(ab.ManaColors), potentialOpenUnits)
-	c.recTap(sl, uint8(ab.ManaColors), uint8(min(s.dynManaN(k, ab, sl), 255)))
+	c.recTapDrop(sl, uint8(ab.ManaColors), uint8(min(s.dynManaN(k, ab, sl), 255)), drop) // a lethal-guard refusal records no unit
 	return true
 }
 
@@ -1928,15 +1968,27 @@ func (s *State) censusDynamicAb(k *prep, sl Slot, ab *kop.Ability, c *potCensus,
 // board makes 3 mana (Submerged Boneyard beside two Forests). ok is false
 // when the record is incomplete (the overflow marker) and the caller keeps
 // the over-bound answer.
-func potUnitsAvail(a *avail, units *[maxPotUnits]potUnit) bool {
+//
+// life is the payer's life: gorge's payment search cuts every plan whose
+// summed pain reaches it and caps a pain-bearing class at (life-1)/pain
+// activations (pay/search.go walk), so a unit's count is capped there. Several
+// pain-bearing units that together exceed the budget keep their individual
+// caps (an over-bound; the planner's joint choice is unmodelled).
+func potUnitsAvail(a *avail, units *[maxPotUnits]potUnit, life int) bool {
 	if units[0].mask != 0 && units[0].n == 0 {
 		return false // the overflow marker: the record is incomplete
 	}
 	for i := 0; i < maxPotUnits; i++ {
-		if units[i].mask == 0 {
+		u := units[i]
+		if u.mask == 0 {
 			break
 		}
-		a.addUnits(units[i].mask, units[i].n)
+		if u.pain > 0 {
+			u.n = uint8(max(0, min(int(u.n), (life-1)/int(u.pain))))
+		}
+		if u.n > 0 {
+			a.addUnits(u.mask, u.n)
+		}
 	}
 	return true
 }
@@ -1956,7 +2008,12 @@ const potentialOpenUnits = 2 * trigXCap
 // X-bound-target cast gorge's planner refuses off three mana); without it the
 // multikicker arm's census records here, because potentialAnyColourUnit reports
 // open and adds nothing.
-func (s *State) censusOpenTap(k *prep, sl Slot, pc *pcard, boundedAny bool, add func(Slot, uint8, uint8), cen *potCensus) {
+// painDrop is the printed ability's lethal-guard refusal drop the caller's
+// add cenMasks the census record with (cenMaskAdd's): when it swallows the
+// production there is no unit, so mergeTap is noted neither (a note over a
+// record that is not there would re-record a widened unit carrying the
+// refused production's colours).
+func (s *State) censusOpenTap(k *prep, sl Slot, pc *pcard, boundedAny bool, add func(Slot, uint8, uint8), painDrop uint8, cen *potCensus) {
 	mask := s.srcMaskAt(pc, sl)
 	if mask == 0 {
 		return
@@ -1968,7 +2025,9 @@ func (s *State) censusOpenTap(k *prep, sl Slot, pc *pcard, boundedAny bool, add 
 	if !boundedAny {
 		add(sl, mask, n)
 	}
-	cen.tapRec(sl, mask, n) // mergeTap's note, either mode
+	if painDrop == 0 {
+		cen.tapRec(sl, mask, n) // mergeTap's note, either mode
+	}
 }
 
 // potentialTapUnit records a source's tap production in availPotentialFor: a
@@ -1977,13 +2036,18 @@ func (s *State) censusOpenTap(k *prep, sl Slot, pc *pcard, boundedAny bool, add 
 // PlanRemainingPain, PlanLastResortChoices' one-step guard): the potential
 // walk's over-bound still lists it, the per-tap census does not (Cabal Pit at
 // 1 life; CR 119.4).
-func (s *State) potentialTapUnit(p uint8, sl Slot, pc *pcard, mask uint8, add, fold func(Slot, uint8, uint8), cen *potCensus) {
+//
+// add is the walk's painAdd (cenMaskAdd when the printed ability's own pain
+// reaches the life); painRefused withholds the mergeTap note then.
+func (s *State) potentialTapUnit(p uint8, sl Slot, pc *pcard, mask uint8, add, fold func(Slot, uint8, uint8), painRefused bool, cen *potCensus) {
 	if pc.painOnly && int(pc.painN) >= int(s.pl[p].life) {
 		fold(sl, mask, pc.manaN)
 		return
 	}
 	add(sl, mask, pc.manaN)
-	cen.tapRec(sl, mask, pc.manaN)
+	if !painRefused {
+		cen.tapRec(sl, mask, pc.manaN)
+	}
 }
 
 // availPotentialFor is availPotential; payment prices one mana payment (gorge
@@ -2033,8 +2097,14 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		cen.rec(mask, n)
 		fold(sl, mask, n)
 	}
+	// life is the payer's life: a mana ability whose activation pain reaches
+	// it is no unit of the census (potCensus.painGate), while the fold keeps
+	// it (gorge's potentialManaFor admits the ability, as potentialAdmits'
+	// life >= cost read and painAvailMask's window read do).
+	life := int(s.pl[SeatIx(p)].life)
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
+		cen.pain = 0
 		pc := &k.cards[s.cardAt(sl)]
 		if k.gen != nil {
 			pc = s.manaPCGen(k, sl)
@@ -2048,7 +2118,8 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					// once, an any-colour or all-at-once one is unbounded
 					// (gorge potentialUnbounded; the Deplete land's is fixed)
 					if a, ok := s.riderAbilityOf(k, sl); ok {
-						open = s.potentialRiderUnit(a, sl, boundedAny, add, &anyFree) || open
+						_, radd := cen.painGate(abPainOf(a), life, uint8(a.ManaColors), add, fold) // a rider's lethal-guard refusal records no unit
+						open = s.potentialRiderUnit(a, sl, boundedAny, radd, &anyFree) || open
 					}
 					// counted here, so the fixpoint below must not admit the same
 					// ability again (potentialGapCost's Deplete arm): gorge counts it once
@@ -2063,6 +2134,14 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		if pc.manaAb >= 0 {
 			done[sl] = 1 << pc.manaAb
 		}
+		// the printed ability's own activation pain: when it reaches the
+		// life its production is no census unit, the fold keeps it (a
+		// pain-only source makes nothing there, a paid face beside a normal
+		// one keeps the normal face's colours alone)
+		pain := s.printedAbPain(k, sl, pc)
+		cen.pain = uint8(min(pain, 255)) // the units below carry it (potUnitsAvail's cap)
+		painDrop, painAdd := cen.painGate(pain, life, s.srcMaskAt(pc, sl), add, fold)
+		painRefused := painDrop != 0
 		if payment && pc.manaChosen && s.perms[sl].chosen > 4 {
 			// a Produced$ Chosen source whose colour is not chosen yet: gorge's
 			// exact handler (potential.go addPotentialChosenColour) declines
@@ -2086,8 +2165,10 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				// out (a gap source, no proof against a play it could
 				// fund), so the per-tap view counts it at the amount it
 				// makes now (Lotus Blossom's petals, CR 601.2g); recTap is
-				// a no-op when the census is off
-				cen.recTap(sl, s.srcMaskAt(pc, sl), srcYield(pc))
+				// a no-op when the census is off. A lethal-guard refusal
+				// drops the production's colours out of that unit too
+				// (recTapDrop).
+				cen.recTapDrop(sl, s.srcMaskAt(pc, sl), srcYield(pc), painDrop)
 			} else if cen.on {
 				// the census reads the source at the amount it makes now, the
 				// planner's natural one (an Everflowing Chalice holding no
@@ -2095,17 +2176,17 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				// the unbounded fold
 				mask := s.srcMaskAt(pc, sl)
 				fold(sl, mask, potentialOpenUnits)
-				cen.recTap(sl, mask, srcYield(pc))
+				cen.recTapDrop(sl, mask, srcYield(pc), painDrop)
 			} else {
-				add(sl, s.srcMaskAt(pc, sl), potentialOpenUnits)
+				painAdd(sl, s.srcMaskAt(pc, sl), potentialOpenUnits)
 			}
 			continue
 		}
 		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
 			if len(units) != 0 {
-				s.censusOpenTap(k, sl, pc, boundedAny, add, &cen)
+				s.censusOpenTap(k, sl, pc, boundedAny, painAdd, painDrop, &cen)
 			}
-			open = s.potentialAnyColourUnit(k, sl, pc, boundedAny, add, &anyFree) || open
+			open = s.potentialAnyColourUnit(k, sl, pc, boundedAny, painAdd, &anyFree) || open
 			continue
 		}
 		mask := s.srcMaskAt(pc, sl)
@@ -2115,7 +2196,9 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		if pc.manaMulti && k.gen != nil && done[sl] != ^uint16(0) && pc.manaAb >= 0 {
 			mask = s.potentialFirstMask(k, sl, pc) // the walk below admits its other abilities, each once
 		}
-		s.potentialTapUnit(p, sl, pc, mask, add, fold, &cen)
+		// painAdd is cenMaskAdd when the lethal guard refuses the printed ability's production
+		s.potentialTapUnit(p, sl, pc, mask, painAdd, fold, painRefused, &cen)
+		cen.pain = 0 // the gate pair's and the granted units are priced unpainted
 		if n := gatePairPotential(pc); n != 0 {
 			add(sl, uint8(pc.wideCol), n) // gorge's walk sums both listed abilities of a gate-on pair
 		}
@@ -2145,6 +2228,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			}
 			for j := range cd.Abilities {
 				ab := &cd.Abilities[j]
+				cen.pain = 0
 				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, j, ab, d) {
 					continue
 				}
@@ -2174,6 +2258,13 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				}
 				done[sl] |= 1 << j
 				progressed = true
+				// the ability's own activation pain: when it reaches the
+				// life its production is no census unit, the fold keeps it
+				// (a pain-only source makes nothing there, a paid face
+				// beside a normal one keeps the normal face's colours alone)
+				abPain := abPainOf(ab)
+				cen.pain = uint8(min(abPain, 255)) // the units below carry it (potUnitsAvail's cap)
+				abDrop, addAb := cen.painGate(abPain, life, uint8(ab.ManaColors), add, fold)
 				if kop.StoreManaAb(ab) {
 					// A storage battery's announced X (Count$xPaid) is indeterminate to
 					// gorge's potentialAmount, which folds it unbounded in every
@@ -2191,19 +2282,19 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 							// a battery that taps beside the source's plain {T}: {C}
 							// (Mage-Ring Network) is the same tap, so its counters
 							// replace that unit's one mana instead of adding to it
-							cen.recStore(sl, ab, n)
+							cen.recStore(sl, ab, n, abDrop)
 						}
 						open = s.storePotential(open, sl, ab, d, fold)
 						continue
 					}
-					open = s.storePotential(open, sl, ab, d, add)
+					open = s.storePotential(open, sl, ab, d, addAb)
 					continue
 				}
 				if ab.ManaIdentityPotential {
-					open = s.identityPotentialAdd(k, sl, ab, d, open, add)
+					open = s.identityPotentialAdd(k, sl, ab, d, open, addAb)
 					continue
 				}
-				if s.censusDynamicAb(k, sl, ab, &cen, fold) {
+				if s.censusDynamicAb(k, sl, ab, &cen, fold, abDrop) {
 					continue
 				}
 				// anyAdd is add, with the census's one-mana any-colour
@@ -2213,10 +2304,10 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				// second mana (CR 605.3b; gorge's census makes one mana per
 				// tap). The over-bound pool keeps the fold.
 				anyAdd := func(sl Slot, mask, n uint8) {
-					cen.anyAddAb(sl, ab, mask, n, add, fold)
+					cen.anyAddAb(sl, ab, mask, n, abDrop, addAb, fold)
 				}
 				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, len(units) != 0, anyAdd, &anyFree, &open) {
-					cen.addOrMerge(sl, ab, add, fold)
+					cen.addOrMerge(sl, ab, abDrop, addAb, fold)
 				}
 			}
 		}
@@ -2257,9 +2348,10 @@ func (c *potCensus) anyTapP(ab *kop.Ability) bool {
 // Core's "{T}, Remove a charge counter: Add one mana of any color" beside its
 // {T}: {C}) widens that unit's colours instead of adding a second mana, the
 // source tapping once (CR 605.3b; gorge's census makes one mana per tap). The
-// over-bound pool keeps the fold.
-func (c *potCensus) anyAddAb(sl Slot, ab *kop.Ability, mask, n uint8, add, fold func(Slot, uint8, uint8)) {
-	if c.anyTapP(ab) && c.mergeTap(sl, ab) {
+// over-bound pool keeps the fold. drop is the widening colours a lethal-guard
+// refusal prices at nothing (cenPainDrop's).
+func (c *potCensus) anyAddAb(sl Slot, ab *kop.Ability, mask, n, drop uint8, add, fold func(Slot, uint8, uint8)) {
+	if c.anyTapP(ab) && c.mergeTap(sl, ab, drop) {
 		fold(sl, mask, n)
 		return
 	}
@@ -2268,13 +2360,15 @@ func (c *potCensus) anyAddAb(sl Slot, ab *kop.Ability, mask, n uint8, add, fold 
 
 // addOrMerge adds ab's fixed production as a unit of its own, or, when the census
 // merges a repeat tap source into one already counted (mergeTap), folds it into
-// the pool alone, so it counts once as gorge's census does.
-func (c *potCensus) addOrMerge(sl Slot, ab *kop.Ability, add, fold func(Slot, uint8, uint8)) {
-	if c.mergeTap(sl, ab) {
+// the pool alone, so it counts once as gorge's census does. drop is the colours
+// a lethal-guard refusal prices at nothing (cenPainDrop's).
+func (c *potCensus) addOrMerge(sl Slot, ab *kop.Ability, drop uint8, add, fold func(Slot, uint8, uint8)) {
+	if c.mergeTap(sl, ab, drop) {
 		fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
 		return
 	}
-	add(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
+	c.recDrop(sl, uint8(ab.ManaColors), max(ab.ManaN, 1), drop)
+	fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
 }
 
 // identityPotentialAdd prices a Produced$ ColorIdentity source a rider or a cost
