@@ -28,7 +28,7 @@ const mbcChangeTextPool = "mbcchangetext"
 
 var mbcChangeTextDecks = [2][]cardset.Entry{
 	{
-		{Name: "Mind Bend", Count: 8}, {Name: "Whim of Volrath", Count: 4}, {Name: "Grizzly Bears", Count: 6}, {Name: "Pacifism", Count: 2},
+		{Name: "Mind Bend", Count: 12}, {Name: "Grizzly Bears", Count: 6}, {Name: "Pacifism", Count: 2},
 		{Name: "Island", Count: 14}, {Name: "Forest", Count: 6},
 	},
 	{
