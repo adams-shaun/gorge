@@ -908,6 +908,16 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, sk
 			}
 		}
 	}
+	// On the autopay surface a life-only census gap's unit (Treasonous Ogre's
+	// "Pay 3 life: Add {R}") is one of the planner's relaxed census units
+	// (paymentPlanRelaxedAlternatives; mana_lifegap.go): the planner prices
+	// the payment over it, so the ungranted read counts it too (Noose
+	// Constrictor's {1}{G} beside a Forest and the Ogre, pair 97, pool
+	// dr-mbc-bbbb). On the lowering surface the ability is no planner unit
+	// (the recorded life-gap repros' shape): the script route prices it.
+	if s.cfg&cfgGorgeAutopay != 0 && k.gen != nil && k.gen.uses.has(useLifeGap) {
+		s.availLifeGaps(k, p, av)
+	}
 }
 
 // affordsUngrantedPlay is affordsUngrantedFor for play a: an activated

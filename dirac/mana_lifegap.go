@@ -64,6 +64,22 @@ func (s *State) isLifeGapAt(k *prep, p uint8, sl Slot) bool {
 	return ok
 }
 
+// lifeGapPlanCost is the payment plan's life arm (mana.go plan): a unit whose
+// source is a payable life-only census gap pays its life cost and does not
+// tap (a life cost is no {T} cost, lifeGapDo). The arm is the autopay
+// surface's: on the lowering surface the ability is no planner unit (the
+// recorded life-gap repros' shape), so the plan pays the life only there.
+func (s *State) lifeGapPlanCost(k *prep, p uint8, sl Slot) bool {
+	if s.cfg&cfgGorgeAutopay == 0 {
+		return false
+	}
+	if a, ok := s.lifeGapAt(k, p, sl); ok {
+		s.payLifeCost(k, p, &a.Cost, 0)
+		return true
+	}
+	return false
+}
+
 // lifeGapMask: p's life-only census gaps whose life cost is payable now. The
 // source stays usable tapped and summoning-sick (only a lost ability or a
 // can't-be-activated static takes it out), unlike gapMask's {T} sources.
