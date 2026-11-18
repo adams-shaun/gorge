@@ -663,6 +663,12 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 					if in.Ext() == kop.ExtCopyNamed {
 						in.B.N = int16(id[int(in.B.N)]) // the named card's entry, a table token
 					}
+					if in.Ext() == kop.ExtPreventNext && in.C&kop.PrevNextTokens != 0 {
+						// the rider's token (prevTokInstr, repl_prevnext.go):
+						// B is the pool token index kgen stored (instr_damage.go
+						// opPreventNext), which the kernel mints as a CardID
+						in.B.N = int16(id[int(in.B.N)])
+					}
 				}
 			}
 		}
