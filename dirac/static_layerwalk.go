@@ -321,7 +321,7 @@ func (s *State) charsFx(k *prep, sl Slot, upTo uint8, fx *[maxLfx]lfx, np *int) 
 	// its exceptions still apply over them (CR 707.2, 707.9b)
 	exc := !fd || s.blankCopy(sl)
 	if exc && k.gen.cpxTy && s.fxM.has(sl) {
-		c.types |= s.copyExcTypes(k, sl) // layer 1: a copy's added types
+		c.types = s.copyExcTy(k, sl, c.types) // layer 1: a copy's type-line exceptions
 		if k.gen.cpxNoLeg && s.copyExcNoLegendary(k, sl) {
 			c.types &^= kop.TLegendary // NonLegendary$ (copy_nonlegendary.go)
 		}
