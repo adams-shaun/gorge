@@ -67,6 +67,18 @@ func (s *State) isLifeGapAt(k *prep, p uint8, sl Slot) bool {
 	return ok
 }
 
+// lifeGapSurvives reports whether activating life gap sl leaves its payer above
+// 0 life: the lethal guard of gorge's planner (pay/search.go walk: a plan whose
+// summed life reaches the payer's life is never a plan) and of its prefix
+// search (a branch that ends the game is no node, scriptSearch.visit), CR
+// 119.4, 104.3b. A payment to 0 life is payable (lifeGapAt) but no plan and no
+// script: the plan falls to the next last-resort source (a Treasure's
+// sacrifice) and the search offers no play only that payment funds.
+func (s *State) lifeGapSurvives(k *prep, p uint8, sl Slot) bool {
+	a, ok := s.lifeGapAt(k, p, sl)
+	return ok && int(s.pl[SeatIx(p)].life) > int(a.Cost.N)
+}
+
 // lifeGapPlanCost is the payment plan's life arm (mana.go plan): a unit whose
 // source is a payable life-only census gap pays its life cost and does not
 // tap (a life cost is no {T} cost, lifeGapDo). The arm is the autopay
