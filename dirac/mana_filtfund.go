@@ -23,6 +23,20 @@ import (
 // A painland's ask lists its plain ability's colours ({C} included) before
 // its painful ability's, and nothing is moved first (mana_filtpain.go).
 func (fs *filtSearch) fundOrder(k *prep, t *State, sl Slot, pc *pcard, mask uint8, out *[kop.NumManaKinds]uint8) int {
+	n := fundColourOrder(k, t, sl, pc, mask, out)
+	if !painFunds(k, pc) {
+		// (a painland's ask keeps its own order: gorge's scriptManaAskHoists
+		// is false for an ask with a pain option, so no needed colour is hoisted
+		// past the pain-free {C})
+		needFirst(out[:n], fs.need)
+	}
+	return n
+}
+
+// fundColourOrder is fundOrder before the needed colours move first: the
+// answers of funding source sl's ask in gorge's listing order, shared by the
+// filter search and the grant search (grantSrch.fundPainBranch).
+func fundColourOrder(k *prep, t *State, sl Slot, pc *pcard, mask uint8, out *[kop.NumManaKinds]uint8) int {
 	n := 0
 	var seen uint8
 	if cd := &k.t.Cards[t.cardAt(sl)]; pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) {
@@ -45,12 +59,6 @@ func (fs *filtSearch) fundOrder(k *prep, t *State, sl Slot, pc *pcard, mask uint
 	for m := mask &^ seen; m != 0 && n < len(out); m &= m - 1 {
 		out[n] = uint8(bits.TrailingZeros8(m))
 		n++
-	}
-	if !painFunds(k, pc) {
-		// (a painland's ask keeps its own order: gorge's scriptManaAskHoists
-		// is false for an ask with a pain option, so no needed colour is hoisted
-		// past the pain-free {C})
-		needFirst(out[:n], fs.need)
 	}
 	return n
 }
