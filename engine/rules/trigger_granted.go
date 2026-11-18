@@ -900,7 +900,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 				if !observer.triggerMatchesWithSVars(t, id, ev, objLKI, gf.Face.SVars) {
 					continue
 				}
-				if !e.grantedDamageBatchAdmits(t, &gf.Face.Triggers[ti], triggerKey{Source: id, Idx: ti}, ce.Timestamp, id, ev) {
+				if !e.grantedDamageBatchAdmits(t, &gf.Face.Triggers[ti], &gf.Face.Triggers[ti], triggerKey{Source: id, Idx: ti}, ce.Timestamp, id, ev) {
 					continue
 				}
 				limitKey := grantedLimitKey(id, gf.Obj)
@@ -999,7 +999,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 			continue
 		}
 		key := triggerKey{Source: id, Idx: -1}
-		if !e.grantedDamageBatchAdmits(t, ce.AddTrigger, key, ce.Timestamp, id, ev) {
+		if !e.grantedDamageBatchAdmits(t, ce.AddTrigger, nil, key, ce.Timestamp, id, ev) {
 			continue
 		}
 		// "This ability triggers only once each turn" on a granted line
@@ -1110,8 +1110,11 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 // grantedDamageBatchAdmits gives a granted line the damage batch gate a printed
 // line gets (CR 603.2): "when this creature deals combat damage" is one trigger
 // for a batch however many creatures the damage was split among. A line of any
-// other mode passes.
-func (e *Engine) grantedDamageBatchAdmits(t cards.Trigger, line *cards.Trigger, key triggerKey, stamp uint32, id state.ObjID, ev events.Event) bool {
+// other mode passes. ident is the line's stable address when it has one (a
+// gained face's trigger); an AddTrigger$ line is re-parsed whenever the active
+// effects are rebuilt, so its address differs per event and the latch tells its
+// bodies apart by Execute$ instead.
+func (e *Engine) grantedDamageBatchAdmits(t cards.Trigger, line, ident *cards.Trigger, key triggerKey, stamp uint32, id state.ObjID, ev events.Event) bool {
 	mk := t.ModeKind()
 	switch mk {
 	case cards.TriggerDamageDealtOnce, cards.TriggerDamageDoneOnce, cards.TriggerDamageAll, cards.TriggerExcessDamageAll:
@@ -1122,7 +1125,7 @@ func (e *Engine) grantedDamageBatchAdmits(t cards.Trigger, line *cards.Trigger, 
 	if amount <= 0 {
 		return false
 	}
-	return e.latchDamageBatch(t, line, mk, key, grantedLine{stamp: stamp, line: line}, id, ev, amount)
+	return e.latchDamageBatch(t, line, mk, key, grantedLine{stamp: stamp, line: ident, exec: t.ParamStr(cards.PKExecute)}, id, ev, amount)
 }
 
 // grantedTriggerStaticsFor returns, in active()'s order, pointers to the
