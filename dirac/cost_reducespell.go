@@ -151,6 +151,7 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 		at = min(int(s.bld().ti), kop.MaxTargets-1)
 	}
 	nt, saved := e.nt, e.tgt
+	picks := !free && s.bld().pickN > 0 && s.tapPaysEntry(k, e) // a convoke cast with creatures already announced
 	m := 0
 	for i := 0; i < n; i++ {
 		e.nt, e.tgt[at] = uint8(at+1), buf[i]
@@ -174,6 +175,17 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 			cost = addCost(cost, cd.Kicker)
 		}
 		cost = cost.AtX(int(e.x))
+		if picks {
+			// the announced convoke creatures pay their share of the taxed cost and are withheld from the
+			// window, as at payment (convokeTargetAbort): Stoke the Flames with three picks owes {1} plus
+			// Syr Elenora's {2}, not {4}{R}{R}
+			cost = s.convokeApplyPicks(k, cost)
+			if !s.targetWindowShort(k, e, &cost, true) {
+				buf[m] = buf[i]
+				m++
+			}
+			continue
+		}
 		ok := av.affords(&cost, pipMaskOf(&cost), 0)
 		if s.bld().bfl&bflAnyColor != 0 {
 			ok = av.affordsAnyColor(&cost, 0) // the may-play any-colour rider prices each target too (CR 609.4b)
