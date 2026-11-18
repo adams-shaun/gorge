@@ -1,8 +1,6 @@
 package trigmatch
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -31,28 +29,25 @@ func counteredMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Ev
 		return false
 	}
 	ctrl := e.ControllerOf(source)
-	if v := t.ParamStr(cards.PKValidCause); v != "" && !causeMatches(v, ev.Player, ctrl) {
+	if v := t.ParamStr(cards.PKValidCause); len(v) > 0 && !causeMatches(v, ev.Player, ctrl) {
 		return false
 	}
-	if v := t.ParamStr(cards.PKValidSA); v != "" {
-		kind, quals, _ := strings.Cut(v, ".")
-		switch kind {
-		case "Spell":
-			if ev.Amount != 1 {
+	if v := t.ParamStr(cards.PKValidSA); len(v) > 0 {
+		sa := cards.ParseTrigSASpec(v)
+		switch sa.Head {
+		case cards.TrigSAHeadSpell:
+			if ev.Amount != 1 || len(sa.Rest) > 0 && !e.MatchesSpec("Card."+sa.Rest, ev.Obj, source, ctrl, SpecOpts{}) {
 				return false
 			}
-			if quals != "" && !e.MatchesSpec("Card."+quals, ev.Obj, source, ctrl, SpecOpts{}) {
-				return false
-			}
-		case "Ability":
-			if ev.Amount != 0 || quals != "" {
+		case cards.TrigSAHeadAbility:
+			if ev.Amount != 0 || len(sa.Rest) > 0 {
 				return false
 			}
 		default:
 			return false
 		}
 	}
-	if v := t.ParamStr(cards.PKValidCard); v != "" && !e.MatchesSpec(v, ev.Obj, source, ctrl, SpecOpts{}) {
+	if v := t.ParamStr(cards.PKValidCard); len(v) > 0 && !e.MatchesSpec(v, ev.Obj, source, ctrl, SpecOpts{}) {
 		return false
 	}
 	return true
@@ -61,26 +56,13 @@ func counteredMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Ev
 // causeMatches reads a "SpellAbility[.YouCtrl|.OppCtrl]" cause spec against
 // the countering controller; any other base or qualifier is false.
 func causeMatches(spec string, causer, ctrl state.PlayerID) bool {
-	base, quals, _ := strings.Cut(spec, ".")
-	if base != "SpellAbility" {
+	c := cards.ParseTrigSASpec(spec)
+	const known = cards.TrigSAQualYouCtrl | cards.TrigSAQualOppCtrl
+	switch {
+	case c.Head != cards.TrigSAHeadSpellAbility, c.Quals&^known != 0:
 		return false
-	}
-	if quals == "" {
-		return true
-	}
-	for q := range strings.SplitSeq(quals, "+") {
-		switch q {
-		case "YouCtrl":
-			if causer != ctrl {
-				return false
-			}
-		case "OppCtrl":
-			if causer == ctrl {
-				return false
-			}
-		default:
-			return false
-		}
+	case c.Quals&cards.TrigSAQualYouCtrl != 0 && causer != ctrl, c.Quals&cards.TrigSAQualOppCtrl != 0 && causer == ctrl:
+		return false
 	}
 	return true
 }

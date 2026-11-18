@@ -1,8 +1,6 @@
 package trigmatch
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -24,28 +22,17 @@ func abilityResolvesMatches(e Board, t cards.Trigger, source state.ObjID, ev eve
 	if ev.Kind != events.AbilityResolved {
 		return false
 	}
-	if v := t.ParamStr(cards.PKValidSource); v != "" &&
+	if v := t.ParamStr(cards.PKValidSource); len(v) > 0 &&
 		!e.MatchesSpec(v, ev.Obj, source, e.ControllerOf(source), SpecOpts{}) {
 		return false
 	}
-	if v := t.ParamStr(cards.PKValidSpellAbility); v != "" {
-		base, quals, _ := strings.Cut(v, ".")
-		switch base {
-		case "Ability", "SpellAbility":
-		case "Triggered":
-			if ev.Amount&events.AbilityResolvedTriggered == 0 {
-				return false
-			}
-		default:
+	if v := t.ParamStr(cards.PKValidSpellAbility); len(v) > 0 {
+		sa := cards.ParseTrigSASpec(v)
+		switch {
+		case sa.Head == cards.TrigSAHeadOther, sa.Quals&^cards.TrigSAQualLastChapter != 0:
 			return false
-		}
-		switch quals {
-		case "":
-		case "LastChapter":
-			if ev.Amount&events.AbilityResolvedLastChapter == 0 {
-				return false
-			}
-		default:
+		case sa.Head == cards.TrigSAHeadTriggered && ev.Amount&events.AbilityResolvedTriggered == 0,
+			sa.Quals&cards.TrigSAQualLastChapter != 0 && ev.Amount&events.AbilityResolvedLastChapter == 0:
 			return false
 		}
 	}
