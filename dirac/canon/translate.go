@@ -1060,7 +1060,16 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		}
 		v := NameValue(r.GName[mode])
 		var earlier []string
-		if r.Tbl != nil {
+		if offered := r.D.Options[:r.D.N]; r.D.N > 0 {
+			// gorge counts over the options it offers, so an ask narrowed to
+			// a subset of the table (Alhammarret's revealed nonland names)
+			// counts the same names here
+			for _, o := range offered {
+				if c := int(o.Mode()); c < int(mode) && c < len(r.GName) {
+					earlier = append(earlier, r.GName[c])
+				}
+			}
+		} else if r.Tbl != nil {
 			names := r.Tbl.NameCards
 			if r.D.N > 0 && len(r.Tbl.NameCardsAny) > 0 && len(r.D.Options[:r.D.N]) == len(r.Tbl.NameCardsAny) {
 				names = r.Tbl.NameCardsAny // the any-card ask's list (lands included)
