@@ -8,7 +8,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Layout of the byte:
 //
 //	bits 0-1  pxRider: the rider kind (pxRidGain, pxRidTok); 0 is a bare prevention
-//	bit  2    pxEOC:     reserved for a later rider
+//	bit  2    pxEOC:     the record ends with the combat (Duration$
+//	             UntilEndOfCombat: Suppressor Skyguard); repl_prevscope.go's
+//	             prevEndCombat drops it on the way out of the end-of-combat step
 //	bit  3    pxFrom:    reserved for a later rider
 //	bit  4    pxPlayers: reserved for a later rider
 //	bits 5-7  the rider's player (pxSeatShift)
@@ -38,6 +40,28 @@ func init() { stallNames[StallPrevRider] = "prevrider" }
 // DebugNoPrevRider (the rider lockstep mutation): the rider is skipped, and
 // the prevention still applies.
 var DebugNoPrevRider bool
+
+// DebugNoPrevEndCombat (the lockstep mutation): an end-of-combat scoped
+// record is not dropped on the way out of the end-of-combat step.
+var DebugNoPrevEndCombat bool
+
+// prevEndCombat drops every scoped record whose rider byte carries pxEOC
+// (kop.PrevScopeEndCombat, Duration$ UntilEndOfCombat): gorge's
+// expireUntilEndOfCombat runs on the transition that leaves StepEndCombat
+// (CR 511.2/511.3; turn.go advance), so a second combat phase in the turn
+// starts without it. It frees the slot, it does not spend it, so the next
+// combat's record can reuse it.
+func (s *State) prevEndCombat() {
+	if DebugNoPrevEndCombat {
+		return
+	}
+	for i := range s.g.prevCol {
+		if s.g.prevX[i]&pxEOC != 0 {
+			s.g.prevCol[i] = prevRec{}
+			s.g.prevX[i] = 0
+		}
+	}
+}
 
 // prevXAny reports whether any record carries a rider.
 func (s *State) prevXAny() bool {

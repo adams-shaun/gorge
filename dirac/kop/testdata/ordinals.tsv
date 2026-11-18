@@ -1061,6 +1061,7 @@ PrevScopeAnyPlayer	untyped int	16384
 PrevScopeColourShift	untyped int	8
 PrevScopeCombat	untyped int	16
 PrevScopeCreatures	untyped int	2
+PrevScopeEndCombat	untyped int	128
 PrevScopeFiltered	untyped int	32
 PrevScopeGain	untyped int	64
 PrevScopeOppPlayer	untyped int	8192

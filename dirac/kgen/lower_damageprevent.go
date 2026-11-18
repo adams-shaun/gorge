@@ -47,7 +47,7 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 		return lc.effectDmgRedirectNext(ps) // lower_effectredirect.go
 	}
 	if _, ok := ps.get("Duration"); ok {
-		return lc.effectDurationPrevent(ps) // lower_effectemblemprevent.go: Ajani's Permanent emblem, else refuses
+		return lc.effectPreventDuration(ps)
 	}
 	if ok, err := lc.effectPreventScoped(ps); ok || err != nil {
 		return err
@@ -112,15 +112,32 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	return nil
 }
 
+// effectPreventDuration lowers a prevention Effect that carries a Duration$.
+// Duration$ UntilEndOfCombat is the scoped prevention that ends with the combat
+// (Suppressor Skyguard); an out-of-shape line keeps the Effect replacement
+// Duration$ refusal (Ria Ivor's remembered source is prevstate-04). Every other
+// Duration$ goes to lower_effectemblemprevent.go (Ajani's Permanent emblem,
+// else refuses).
+func (lc *lowerCtx) effectPreventDuration(ps *params) error {
+	if ps.is("Duration", "UntilEndOfCombat") {
+		if ok, err := lc.effectPreventScoped(ps); ok || err != nil {
+			return err
+		}
+	}
+	return lc.effectDurationPrevent(ps)
+}
+
 // effectPreventScoped tries the two this-turn scoped-prevention arms in turn:
 // the bodyless Prevent$ True line (effectPreventScope) and the gain-rider form
-// (effectPreventRider, lower_preventrider.go). It keeps effectPrevent under the
-// complexity ceiling.
+// (effectPreventRider, lower_preventrider.go). A Duration$ UntilEndOfCombat on
+// the Effect ends the record with the combat (kop.PrevScopeEndCombat) instead
+// of the turn. It keeps effectPrevent under the complexity ceiling.
 func (lc *lowerCtx) effectPreventScoped(ps *params) (bool, error) {
-	if ok, err := lc.effectPreventScope(ps); ok || err != nil {
+	eoc := ps.is("Duration", "UntilEndOfCombat")
+	if ok, err := lc.effectPreventScope(ps, eoc); ok || err != nil {
 		return ok, err
 	}
-	return lc.effectPreventRider(ps)
+	return lc.effectPreventRider(ps, eoc)
 }
 
 // effectPreventScope lowers the this-turn prevention Effect that names no
@@ -130,9 +147,10 @@ func (lc *lowerCtx) effectPreventScoped(ps *params) (bool, error) {
 // or none (any recipient: Ethereal Haze), with ValidSource$ Creature.
 // inZoneBattlefield, a Card.<Colour> list (Surge of Salvation) or none, and
 // IsCombat$ True (combat damage only: Loyal Unicorn) or none (combat and
-// noncombat alike). One OpExt PreventDamageScope. It reports false for any
-// other shape so effectPrevent's own arms read it.
-func (lc *lowerCtx) effectPreventScope(ps *params) (bool, error) {
+// noncombat alike). eoc (Duration$ UntilEndOfCombat: Suppressor Skyguard)
+// marks the record kop.PrevScopeEndCombat. One OpExt PreventDamageScope. It
+// reports false for any other shape so effectPrevent's own arms read it.
+func (lc *lowerCtx) effectPreventScope(ps *params, eoc bool) (bool, error) {
 	if _, ok := ps.get("RememberObjects"); ok {
 		return false, nil
 	}
@@ -181,6 +199,11 @@ func (lc *lowerCtx) effectPreventScope(ps *params) (bool, error) {
 		// Surge of Salvation: it ends the Effect when its remembered card is
 		// lost, and a scope Effect remembers nothing (gorge reads no ExileOnLost$)
 		ps.consume("ExileOnLost")
+	}
+	if eoc {
+		// Suppressor Skyguard: the record ends with the combat, not the turn
+		bits |= kop.PrevScopeEndCombat
+		ps.consume("Duration", "UntilEndOfCombat")
 	}
 	ps.consume("ReplacementEffects", "AILogic")
 	in := lInstr{Op: "PreventDamageScope", C: bits, F: sf, F2: tf, Note: "prevent the damage the controller and their creatures would take this turn"}
