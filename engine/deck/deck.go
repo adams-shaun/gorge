@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -440,7 +441,13 @@ func (f File) ValidateCommander(r *cards.Registry) error {
 	for _, e := range f.Cards {
 		c := byName[cards.NormalizeName(e.Name)]
 		basic := isBasicLand(c)
-		if e.Count > 1 && !basic && !AnyNumberAllowed(c) {
+		if limit := DeckLimitOf(c); limit > 0 {
+			// CR 100.2a's DeckLimit replaces the singleton rule for the named
+			// card with its own count.
+			if e.Count > limit {
+				errs = append(errs, fmt.Sprintf("card %q appears %d times; a deck can have up to %d cards named it (CR 100.2a)", e.Name, e.Count, limit))
+			}
+		} else if e.Count > 1 && !basic && !AnyNumberAllowed(c) {
 			errs = append(errs, fmt.Sprintf("card %q appears %d times; a Commander deck is singleton except basic lands", e.Name, e.Count))
 		}
 		if IsCommanderBanned(c) {
@@ -600,6 +607,38 @@ func AnyNumberAllowed(c *cards.Card) bool {
 		}
 	}
 	return false
+}
+
+// DeckLimitKeyword is the head of the deck-construction keyword line Nazgûl
+// and Seven Dwarves print (CR 100.2a's bounded variant of the any-number
+// exception): "K:DeckLimit:9:A deck can have up to nine cards named CARDNAME."
+// The line's shape is head:count:sentence, so the allowed count is the text
+// between the first and second colon.
+const DeckLimitKeyword = "DeckLimit"
+
+// DeckLimitOf reports how many cards named c the deck-construction keyword
+// DeckLimit allows, or 0 when c does not carry it. Only the front face
+// counts, as AnyNumberAllowed does. A line whose count segment does not
+// parse imposes no limit — the two corpus carriers (Nazgûl 9, Seven Dwarves 7)
+// both carry a plain number.
+func DeckLimitOf(c *cards.Card) int {
+	if len(c.Faces) == 0 {
+		return 0
+	}
+	for _, k := range c.Faces[0].Keywords {
+		if cards.KeywordHead(k) != DeckLimitKeyword {
+			continue
+		}
+		rest := k[len(DeckLimitKeyword)+1:]
+		if i := strings.IndexByte(rest, ':'); i >= 0 {
+			rest = rest[:i]
+		}
+		n, err := strconv.Atoi(strings.TrimSpace(rest))
+		if err == nil {
+			return n
+		}
+	}
+	return 0
 }
 
 // isBasicLand reports whether a card is a basic land — the singleton rule's
