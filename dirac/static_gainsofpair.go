@@ -16,9 +16,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Mercenaries, Necrotic Ooze, Thranduil, Dark Impostor, Patchwork Crawler)
 // or Foods (Hazel's Brewmaster), whose abilities the walk models.
 
-// prepGainsOfPair marks a table with both halves of the GainsOf refusal.
-func prepGainsOfPair(t *kop.Table, g *genPrep) {
-	g.gainsOfPair = cardsWith(t, func(c *kop.CardDef) bool { return hasBroadGainsOf(t, c) }) &&
+// gainsOfPairOn: t holds both halves of the GainsOf refusal (prep.gainsOfPair).
+func gainsOfPairOn(t *kop.Table) bool {
+	return cardsWith(t, func(c *kop.CardDef) bool { return hasBroadGainsOf(t, c) }) &&
 		cardsWith(t, gainsOfUnmodelledCreature)
 }
 
