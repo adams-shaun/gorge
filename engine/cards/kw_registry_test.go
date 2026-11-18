@@ -211,6 +211,12 @@ var expandedHeads = []string{
 	// (engine/cards/kw_transfigure.go). Added after the split; the pre-split
 	// switch never expanded it.
 	"Transfigure",
+	// Recover (CR 702.59): the printed K:Recover:<cost> line expanded into a
+	// graveyard-living ChangesZone trigger whose DB$ Recover body is the
+	// rules-side pay-or-exile election (engine/cards/kw_recover.go,
+	// engine/rules/recover.go). Added after the split; the pre-split switch
+	// never expanded it.
+	"Recover",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

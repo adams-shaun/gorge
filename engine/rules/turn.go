@@ -1804,6 +1804,9 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	case chooseEcho:
 		// kw:Echo's pay-or-sacrifice election (engine/rules/echo.go) was answered.
 		e.echoAnswer(chosen)
+	case chooseRecover:
+		// kw:Recover's pay-or-exile election (engine/rules/recover.go) was answered.
+		e.recoverAnswer(chosen)
 	case chooseDamageDivision:
 		// The combat damage step's controller
 		// damage-division decision (CR 510.1c) was answered.
