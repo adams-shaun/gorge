@@ -40,5 +40,9 @@ func init() {
 		// CR 702.38 Amplify: engine/cards/kw_amplify.go's enters replacement
 		// reveals and counts (TestAmplifyEntersWithCounters).
 		"kw:Amplify",
+		// CR 702.23 Rampage: engine/cards/kw_rampage.go's becomes-blocked
+		// trigger pumping +N/+N per blocker beyond the first
+		// (TestEDHKeywordsRampagePumpsPerExtraBlocker).
+		"kw:Rampage",
 	)
 }
