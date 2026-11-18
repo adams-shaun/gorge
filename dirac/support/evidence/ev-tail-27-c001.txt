@@ -29,6 +29,7 @@ Avatar of Woe
 Aven Wind Mage
 Azure Drake
 Barbed Lightning
+Battery Bearer
 Bee Sting
 Belligerent Hatchling
 Bident of Thassa
@@ -41,6 +42,7 @@ Bottomless Pit
 Bounding Krasis
 Bountiful Landscape
 Brink of Disaster
+Broken Ambitions
 Bronzebeak Moa
 Brotherhood Outcast
 Brushstrider
@@ -136,6 +138,7 @@ Gruul Locket
 Guul Draz Specter
 Gyre Engineer
 Harsh Deceiver
+Harvestguard Alseids
 Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
@@ -146,6 +149,7 @@ High Priest of Penance
 Hollowsage
 Honorable Scout
 Hornet Queen
+Huatli, Dinosaur Knight
 Hulking Cyclops
 Hungry Ridgewolf
 Hypnotic Cloud
@@ -202,10 +206,12 @@ Nyxborn Wolf
 Offalsnout
 Old Ghastbark
 Onyx Goblet
+Orcish Squatters
 Ornery Goblin
 Orzhov Keyrune
 Out of the Way
 Overload
+Owen Grady, Raptor Trainer
 Pangosaur
 Paradise Druid
 Pardic Collaborator
@@ -213,6 +219,7 @@ Pause for Reflection
 Phoenix of Ash
 Phyrexian Pegasus
 Plains
+Pretender's Claim
 Promise of Power
 Pygmy Kavu
 Python
@@ -247,6 +254,7 @@ Shreds of Sanity
 Silent Attendant
 Silt Crawler
 Silumgar Monument
+Skeletal Swarming
 Skinrender
 Skyclave Plunder
 Skyshroud Poacher
@@ -274,6 +282,7 @@ Swamp
 Swiftgear Drake
 Swooping Lookout
 Sword of Sinew and Steel
+Sword of War and Peace
 Sylvok Explorer
 Syphon Life
 Tail Slash

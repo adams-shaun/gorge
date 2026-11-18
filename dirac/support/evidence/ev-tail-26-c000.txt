@@ -1,6 +1,7 @@
 A-Kenku Artificer
 A-Riveteers Initiate
 A-Stimulus Package
+A-Tyvar Kell
 Accursed Centaur
 Act on Impulse
 Advance Scout
@@ -66,6 +67,7 @@ Divebomber Griffin
 Domri's Ambush
 Dragon Hatchling
 Dralnu's Crusade
+Dramatist's Puppet
 Drider
 Eel-Hounds
 Elven Bow
@@ -87,6 +89,7 @@ Frantic Inventory
 Furnace Scamp
 Galadhrim Ambush
 Gate Hound
+Gate to the Afterlife
 Gerrard's Irregulars
 Gideon's Lawkeeper
 Glimpse of Freedom
@@ -99,6 +102,7 @@ Gravity Well
 Greenseeker
 Grizzly Ghoul
 Gruul Guildmage
+Hammer Mage
 Harrow
 Henge of Ramos
 Hermes, Overseer of Elpis
@@ -115,6 +119,7 @@ Killer Bees
 King Crab
 Kithkin Mourncaller
 Knight of Dawn's Light
+Laccolith Grunt
 Lava Axe
 Leela, Sevateem Warrior
 Legion Leadership
@@ -134,6 +139,7 @@ Merrow Bonegnawer
 Mizzium Skin
 Moat Piranhas
 Mogg Sentry
+Molten Frame
 Molting Harpy
 Monster Manual
 Moss Kami
@@ -153,6 +159,7 @@ Nullmage Advocate
 Nyxborn Hydra
 Oblivion Ring
 Open the Vaults
+Orochi Soul-Reaver
 Orzhov Racketeers
 Paradise Mantle
 Pardic Arsonist
@@ -200,6 +207,7 @@ Shambling Goblin
 Shessra, Death's Whisper
 Shrieking Affliction
 Silent Specter
+Sivriss, Nightmare Speaker
 Skulltap
 Skyhunter Cub
 Skyhunter Prowler
@@ -236,12 +244,14 @@ Tide Drifter
 Tigereye Cameo
 Titania, Nature's Force
 Tower of Calamities
+Turbulent Dreams
 Twins of Maurer Estate
 Unholy Strength
 Urabrask's Anointer
 Urza's Filter
 Vapor Snag
 Verduran Emissary
+Vivien's Arkbow
 Volcanic Dragon
 Volcanic Rush
 Wall of Faith

@@ -1,15 +1,37 @@
+A-Cori-Steel Cutter
+Aerial Engineer
+Agent of Stromgald
+Akroan Sergeant
+Alluring Suitor
+Answered Prayers
+Ant Queen
 Arc Trail
+Auton Soldier
 Basic Conjuration
 Bastion Enforcer
+Besmirch
 Beyeen Veil
+Bloodshed Fever
 Boggart Forager
 Breaching Hippocamp
+Captain's Hook
+Cascade Seer
 Centaur Healer
+Chaos Terminator Lord
+Clock of Omens
+Coldsteel Heart
+Confidence from Strength
 Consuming Corruption
 Cruel Witness
 Dark Prophecy
+Emergency Weld
+Evolution Sage
+Fissure
+Fissure Vent
 Forerunner of Slaughter
 Forest
+Go for the Throat
+Goblin Sledder
 Graveyard Trespasser
 Grenzo, Havoc Raiser
 Horned Kavu
@@ -17,26 +39,51 @@ Hovermyr
 Imoti, Celebrant of Bounty
 Intrepid Hero
 Island
+Jedit Ojanen, Mercenary
+Junk Winder
+Leyline of Sanctity
 Lifelink
+Looter il-Kor
 Lucid Dreams
 Master Transmuter
+Meteoric Mace
 Mountain
+Mugging
 Nectar Faerie
+Nest Robber
 Night Market Aeronaut
 Nirkana Cutthroat
 Oni of Wild Places
+Painwracker Oni
+Pelakka Predation
+Petrifying Meddler
 Plains
 Prismatic Strands
+Protective Bubble
 Resurrection Orb
+Sacred Armory
+Samite Archer
 Samut's Sprint
+Saprazzan Outrigger
 Seek the Horizon
+Serene Steward
 Shadow Summoning
+Shard of the Nightbringer
 Silver Raven
+Stolen Vitality
+Suppression Bonds
 Swamp
+Tatyova, Steward of Tides
+Thran Spider
 Thrasher Brute
 Ultimate Price
+Umbilicus
+Vedalken Orrery
+Viashino Shanktail
 Wakandan Shield Guard
 Wanderer's Intervention
 Water Servant
 Wellspring
+Wings of Aesthir
+Wyluli Wolf
 Yavimaya Scion

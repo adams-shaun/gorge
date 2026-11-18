@@ -49,6 +49,7 @@ Captain's Call
 Carrier Thrall
 Cartographer
 Cateran Kidnappers
+Cauldron's Gift
 Celestine, the Living Saint
 Centaur Omenreader
 Chain of Plasma
@@ -147,6 +148,7 @@ Gravewaker
 Grizzlegom, Hurloon Hero
 Groundshaker Sliver
 Grunn, the Lonely King
+Gustcloak Skirmisher
 Hapatra, the Desert Frost
 Harried Artisan
 Haughty Djinn
@@ -194,6 +196,7 @@ Knighted Myr
 Kor Skyfisher
 Korlessa, Scale Singer
 Krosan Beast
+Lavaclaw Reaches
 Lead the Stampede
 Leadership Vacuum
 Lifebane Zombie
@@ -256,6 +259,7 @@ Pestilent Syphoner
 Pillar of War
 Plains
 Planar Collapse
+Planar Void
 Poison the Blade
 Pol Jamaar, Illusionist
 Press the Advantage
@@ -321,6 +325,7 @@ Soltari Visionary
 Soul of Eternity
 Sparring Golem
 Spawning Pit
+Spell Snip
 Sphere of Truth
 Spindrift Drake
 Spined Megalodon

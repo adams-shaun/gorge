@@ -1,66 +1,212 @@
+A-Elven Bow
+A-Forge Boss
+Accorder's Shield
 Akki Avalanchers
+Akoum Battlesinger
+Alexi's Cloak
+Amber Prison
+Amoeboid Changeling
+Angelheart Protector
+Arbor Colossus
+Barbtooth Wurm
 Bastion Mastodon
+Battlegrace Angel
 Binding the Old Gods
+Bird Maiden
+Blood Cultist
+Boggart Birth Rite
+Bonds of Faith
+Bone Pit Brute
+Brain Maggot
+Broken Bond
+Burn the Accursed
+Canopy Baloth
+Capricious Sorcerer
+Carnivorous Canopy
+Casey Jones, Asphalt Hooligan
+Cast into the Fire
+Cavern Thoctar
 Chakra Meditation
+Children of Korlis
 Chorus of the Tides
+Chub Toad
+Cliffhaven Sell-Sword
+Coast Watcher
+Communal Brewing
+Conclave Sledge-Captain
+Court Hussar
+Cradle of Safety
+Dawnhart Disciple
+Dawnhart Rejuvenator
+Deal Gone Bad
+Decisive Denial
+Deep Spawn
 Devastation
+Dirty Wererat
 Dispersal Shield
+District Guide
 Drafna, Founder of Lat-Nam
+Dragon Throne of Tarkir
 Drake Hatchling
+Dread Cacodemon
+Dread of Night
 Dreadhorde Butcher
+Drelnoch
 Durable Handicraft
+Eldrazi Monument
 Emberwilde Augur
 Empty the Laboratory
 Epic Confrontation
 Exert Influence
+Expel
 Ezio, Blade of Vengeance
 Fairgrounds Patrol
+False Cure
 Favored of Iroas
 Fiery Cannonade
 Filter Out
+Firefist Adept
 Firemind's Foresight
+Foggy Nelson, On Retainer
 Forest
+Foulmire Knight
+Fracturing Gust
 Frost Lynx
+Galestrike
+Garruk's Lost Wolf
+Gatekeeper Gargoyle
+Ghoulcaller Gisa
 Gloomhunter
+Goblin Replica
+Green Goblin, Back for More
 Grimgrin, Corpse-Born
+Gruul Signet
+Hammerheim Deadeye
+Havengul Runebinder
 Hawkeye, Trick Shot
+Heated Debate
 Heaven Sent
+Hieromancer's Cage
 High Ground
+Hindering Touch
+Howling Banshee
+Icatian Scout
 Ideas Unbound
 Ingenious Infiltrator
+Intrusive Packbeast
 Island
 Jhoira, Weatherlight Captain
+Jousting Lance
 Knight Paladin
+Kodama of the North Tree
+Krovikan Elementalist
+Leonardo, Worldly Warrior
 Leyline Phantom
 Liliana's Spoils
+Littjara Glade-Warden
+Living Wall
 Ludevic's Test Subject
 Magma Jet
+Master of Diversion
+Mental Journey
 Merrow Grimeblotter
 Midnight Scavengers
+Mind Games
+Mistford River Turtle
+Moku, Meandering Drummer
 Mountain
+Mudhole
+Myr Battlesphere
+Mystic of the Hidden Way
+Nahiri's Binding
+Need for Speed
+Noxious Groodion
+Nykthos Paragon
+Nyxborn Brute
+Nyxborn Shieldmate
+Octomancer
 Omnispell Adept
+Ornamental Courage
+Pendrell Mists
 Phantom Wings
+Plague Sliver
 Plains
+Plow Through Reito
 Polyraptor
+Press into Service
+Prickly Marmoset
+Priest of Titania
 Princess Lucrezia
+Prowling Serpopard
 Psemilla, Meletian Poet
+Purge the Profane
+Quill-Slinger Boggart
+Ramosian Lieutenant
+Return of the Mole Man
+Revoke Demise
+River's Favor
 Road
+Sai of the Shinobi
+Saltwater Stalwart
+Scavenging Scarab
+Sea Sprite
+Sentinel's Mark
+Sequence Engine
+Seshiro the Anointed
+Shadow, Mysterious Assassin
 Sinister Strength
+Skullmead Cauldron
+Skyshroud Claim
+Slaughter-Priest of Mogis
 Solar Blast
+Sootfeather Flock
+Soul of the Rapids
+Speakeasy Server
+Spectral Lynx
+Spiderwig Boggart
 Spiraling Embers
 Spirit en-Kor
+Squeeze
+Stabbing Pain
 Staff of the Flame Magus
+Stampede
 Stealer of Secrets
+Steelshaper Apprentice
+Strategic Planning
 Strider, Ranger of the North
 Sturmgeist
 Swamp
 Swarm of Rats
+Talisman of Resilience
+Tar Pit Warrior
+Thalakos Drifters
+Thornscape Familiar
 Thundering Raiju
+Tibalt's Rager
+Titan Forge
 Totally Lost
 Touch of Invisibility
+Tracker's Instincts
+Treason of Isengard
+Triumph of Cruelty
+Turtle-Seals
+Vat of Rebirth
 Vengeful Firebrand
+Vigorspore Wurm
+Villainous Syndication
 Violent Impact
 Viscera Dragger
+Voice of Duty
+Voldaren Epicure
+Wall of Earth
+Warping Wail
+Watchwolf
+Whip Vine
+Whispersilk Cloak
 Wild Leotau
+Wildsize
 Wind Zendikon
 Wing Commando
+Woodland Guidance
+Yellow Scarves Cavalry
+Zodiac Pig

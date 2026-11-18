@@ -9,7 +9,9 @@ Ambition's Cost
 Ancient Copper Dragon
 Angler Drake
 April O'Neil, Human Element
+Arcbound Javelineer
 Ardent Soldier
+Arrow Storm
 Asha's Favor
 Audacity
 Avatar of Might
@@ -29,6 +31,7 @@ Bellowing Elk
 Benevolent Blessing
 Beregond of the Guard
 Bessie, the Doctor's Roadster
+Biomass Mutation
 Bituminous Blast
 Bladebrand
 Blood-Toll Harpy
@@ -60,6 +63,7 @@ Capital Guard
 Carnage Interpreter
 Cast into the Fire
 Caustic Hound
+Challenger Troll
 Champion Lancer
 Charcoal Diamond
 Citizen V, Helmut Zemo
@@ -83,11 +87,13 @@ Cut of the Profits
 Dagger Caster
 Daring Piracy
 Dark Favor
+Darksteel Mutation
 Dauntless Onslaught
 Dawn of Hope
 Demonic Dread
 Deranged Hermit
 Desert Cerodon
+Deserter's Quarters
 Desolation Twin
 Devastation Tide
 Diabolic Tutor
@@ -98,7 +104,9 @@ Dire Wolf Prowler
 Dissipate
 Dragon Engine
 Dragon Mask
+Draugr Necromancer
 Draugr's Helm
+Dross Hopper
 Drumbellower
 Dune Beetle
 Dwarven Nomad
@@ -120,19 +128,23 @@ Falconer Adept
 Fallaji Archaeologist
 Fallow Earth
 Feral Instinct
+Feral Invocation
 Fervent Denial
 Fiery Fall
 Filigree Familiar
 Firebreathing
+Firja, Judge of Valor
 Flame Discharge
 Flame Sweep
 Flameblade Adept
 Flare
 Flicker
 Fodder Cannon
+Fog
 Foratog
 Force of Vigor
 Forest
+Forsaken Wastes
 Foul Play
 Frostling
 Galerider Sliver
@@ -166,6 +178,7 @@ Heirs of Stromkirk
 Hero of the Pride
 Highland Lake
 Hinterland Drake
+Hoodwink
 Hooting Mandrills
 Hornet Cobra
 Hour of Promise
@@ -174,6 +187,7 @@ Howling Moon
 Imperial Lancer
 Imperial Oath
 Increasing Ambition
+Infernal Caretaker
 Inferno Project
 Infinity Formula
 Innocent Traveler
@@ -192,6 +206,7 @@ Kitesail Skirmisher
 Knight of Dusk's Shadow
 Krovikan Fetish
 Lance
+Lava Flow
 Lava Hounds
 Lavaborn Muse
 Leonin Abunas
@@ -204,6 +219,7 @@ Lord of the Pit
 Lotleth Giant
 Mage-Ring Bully
 Magnify
+Magus of the Moon
 Malevolent Whispers
 Malicious Intent
 Masked Blackguard
@@ -250,6 +266,7 @@ Pitiless Vizier
 Plains
 Plated Onslaught
 Portable Hole
+Profane Memento
 Prologue to Phyresis
 Protomatter Powder
 Psychic Spiral
@@ -261,24 +278,31 @@ Quandrix Campus
 Quilled Sliver
 Raging Minotaur
 Rain of Blades
+Rakdos Signet
 Raphael, the Muscle
 Raptor Companion
 Ravenous Vampire
 Rebuff the Wicked
+Recoil
 Reef Shaman
+Refurbished Familiar
 Relentless Assault
 Remand
 Renegade Tactics
 Resolute Archangel
 Resupply
+Rime Transfusion
 Rite of the Raging Storm
+Roiling Regrowth
 Rootwire Amalgam
 Rush of Inspiration
 Rusted Sentinel
 Ruthless Sniper
 Sabertooth Wyvern
 Sacred Guide
+Safewright Quest
 Sage-Eye Avengers
+Saheeli Rai
 Said
 Sandstorm Eidolon
 Sanguine Guard
@@ -306,6 +330,7 @@ Shriekdiver
 Shrink
 Sigardian Savior
 Silverbeak Griffin
+Silverquill Pledgemage
 Simian Grunts
 Sinister Gnarlbark
 Skarrgan Pit-Skulk
@@ -333,6 +358,7 @@ Stampede
 Steadfastness
 Steel Leaf Champion
 Stingscourger
+Stir the Sands
 Stronghold Overseer
 Summon Undead
 Sundering Eruption
@@ -341,6 +367,7 @@ Svyelunite Priest
 Swamp
 Swarm Surge
 Swarmborn Giant
+Sword of Forge and Frontier
 Syr Faren, the Hengehammer
 Tajuru Blightblade
 Take Inventory
@@ -351,6 +378,7 @@ Tavern Brawler
 Telethopter
 Tempered Veteran
 Tenured Oilcaster
+Thalakos Dreamsower
 The Fair Basilica
 The Frightful Four
 The Juzam Master
@@ -363,6 +391,7 @@ Thoughtrender Lamia
 Thunder Spirit
 Tibalt, the Fiend-Blooded
 Time of Need
+Tin Street Hooligan
 Tolarian Sentinel
 Topiary Stomper
 Torch Courier
@@ -380,11 +409,13 @@ Vault Skyward
 Vedalken Dismisser
 Vedalken Mesmerist
 Venomous Brutalizer
+Vernal Sovereign
 Vesper Ghoul
 Vexing Bauble
 Vicious Offering
 Village Rites
 Virtus the Veiled
+Vizkopa Guildmage
 Volley of Boulders
 Voltaic Construct
 Voltaic Whip

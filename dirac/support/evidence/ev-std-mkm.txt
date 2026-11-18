@@ -5,6 +5,7 @@ Agency Coroner
 Agency Outfitter
 Agrus Kos, Spirit of Justice
 Airtight Alibi
+Alley Assailant
 Analyze the Pollen
 Anzrag, the Quake-Mole
 Archdruid's Charm
@@ -21,6 +22,7 @@ Benthic Criminologists
 Bite Down on Crime
 Blood Spatter Analysis
 Bolrac-Clan Basher
+Branch of Vitu-Ghazi
 Bubble Smuggler
 Burden of Proof
 Call a Surprise Witness
@@ -48,6 +50,7 @@ Crime Novelist
 Crimestopper Sprite
 Crowd-Control Warden
 Cryptic Coat
+Culvert Ambusher
 Curious Cadaver
 Curious Inquiry
 Deadly Complication
@@ -64,7 +67,9 @@ Due Diligence
 Elegant Parlor
 Eliminate the Impossible
 Escape Tunnel
+Essence of Antiquity
 Evidence Examiner
+Exit Specialist
 Expedited Inheritance
 Expose the Culprit
 Extract a Confession
@@ -73,9 +78,11 @@ Fae Flight
 Fanatical Strength
 Felonious Rage
 Festerleech
+Flourishing Bloom-Kin
 Forensic Gadgeteer
 Forensic Researcher
 Forest
+Fugitive Codebreaker
 Furtive Courier
 Galvanize
 Gearbane Orangutan
@@ -135,6 +142,7 @@ Mountain
 Murder
 Museum Nightwatch
 Neighborhood Guardian
+Nervous Gardener
 Nightdrinker Moroii
 No More Lies
 No Witnesses
@@ -145,6 +153,7 @@ Officious Interrogation
 On the Job
 Out Cold
 Outrageous Robbery
+Perimeter Enforcer
 Person of Interest
 Persuasive Interrogators
 Pick Your Poison
@@ -154,6 +163,7 @@ Pompous Gadabout
 Presumed Dead
 Private Eye
 Proft's Eidetic Memory
+Projektor Inspector
 Public Thoroughfare
 Pyrotechnic Performer
 Rakdos, Patron of Chaos
@@ -196,6 +206,7 @@ The Pride of Hull Clade
 They Went This Way
 Thinking Cap
 Thundering Falls
+Tin Street Gossip
 Topiary Panther
 Torch the Witness
 Toxin Analysis
@@ -214,6 +225,7 @@ Vannifar, Evolved Enigma
 Vein Ripper
 Vengeful Creeper
 Vengeful Tracker
+Vitu-Ghazi Inspector
 Warleader's Call
 Wispdrinker Vampire
 Wojek Investigator

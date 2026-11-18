@@ -6,13 +6,16 @@ Abnormal Endurance
 Abrupt Decay
 Abzan Beastmaster
 Abzan Kin-Guard
+Acorn Catapult
 Adarkar Sentinel
 Agent of Acquisitions
 Alluring Scent
 Ancient Brontodon
 Anoint
 Anointer of Champions
+Anvilwrought Raptor
 Aragorn and Arwen, Wed
+Arcbound Stinger
 Archangel Avacyn
 Archnemesis
 Arctic Wolves
@@ -33,6 +36,7 @@ Boros Garrison
 Boros Signet
 Bosco, Just a Bear
 Bosh, Iron Golem
+Bosk Banneret
 Braids, Cabal Minion
 Brainbite
 Breath of the Sleepless
@@ -53,6 +57,7 @@ Circle of Flame
 Coal Stoker
 Coerced Confession
 Collective Voyage
+Conclave Tribunal
 Corpse Cur
 Crimson Mage
 Cruel Edict
@@ -64,6 +69,7 @@ Dementia Bat
 Demonmail Hauberk
 Desperate Castaways
 Devious Cover-Up
+Devout Lightcaster
 Diplomacy of the Wastes
 Dragonspeaker Shaman
 Dreadwurm
@@ -71,13 +77,16 @@ Drogskol Cavalry
 Drowner of Hope
 Eidolon of the Great Revel
 Eiganjo Exemplar
+Eldritch Immunity
 Electrolyze
 Ellyn Harbreeze, Busybody
 Elven Fortress
+Enchanted Prairie
 Endless Ranks of the Dead
 Enlightened Maniac
 Ephara's Radiance
 Epiphany Storm
+Esquire of the King
 Eternal Thirst
 Ethereal Investigator
 Ethrimik, Imagined Fiend
@@ -93,6 +102,7 @@ Fate Unraveler
 Fearsome Awakening
 Feed the Clan
 Feral Maaka
+Ferocity
 Fervent Paincaster
 Fiddlehead Kami
 Fire Ants
@@ -101,6 +111,7 @@ Fireborn Knight
 Firemane Avenger
 Firemane Commando
 Fireslinger
+Firewake Sliver
 Flame Sweep
 Flame-Blessed Bolt
 Flaming Gambit
@@ -120,6 +131,7 @@ Geomancer's Gambit
 Ghost-Lit Redeemer
 Ghostfire Blade
 Gimli's Axe
+Glaciers
 Glory Bearers
 Gnaw to the Bone
 Goblin Bomb
@@ -130,6 +142,7 @@ Grim Physician
 Grizzly Bears
 Gruul Charm
 Guardian Gladewalker
+Guardian of the Forgotten
 Gust of Wind
 Hag Hedge-Mage
 Hall of Triumph
@@ -146,12 +159,15 @@ Hidden Footblade
 Highborn Ghoul
 Huang Zhong, Shu General
 Hunger of the Nim
+Ifnir Deadlands
 Ignite the Future
 Immersturm Skullcairn
 Invasion of Dominaria
+Invigorating Hot Spring
 Ironwright's Cleansing
 Island
 Jiang Yanggu
+Joraga Treespeaker
 Journey to Nowhere
 Kabira Vindicator
 Katilda, Dawnhart Prime
@@ -161,7 +177,9 @@ Kiku's Shadow
 Kill Shot
 King Macar, the Gold-Cursed
 Kinsbaile Borderguard
+Kirtar's Wrath
 Kitchen
+Knight Errant
 Laboratory Brute
 Lava Storm
 Liliana's Specter
@@ -176,6 +194,8 @@ Match the Odds
 Mausoleum Harpy
 Mercy Killing
 Merfolk Trickster
+Military Discipline
+Mindmoil
 Mistcutter Hydra
 Momentum
 Monk Realist
@@ -186,6 +206,7 @@ Multani's Harmony
 Mwonvuli Acid-Moss
 Nacatl Savage
 Natural Selection
+Night Market Guard
 Nightshade Assassin
 Nimana Skitter-Sneak
 Nissa, Resurgent Animist
@@ -222,6 +243,7 @@ Radioactive Man
 Raging Gorilla
 Rain of Tears
 Ravenous Rats
+Razor Hippogriff
 Rebel Salvo
 Reckless Cohort
 Regress
@@ -237,6 +259,7 @@ Samut, Tyrant Smasher
 Sarkhan Vol
 Scale of Chiss-Goria
 Scion of Calamity
+Seraph Sanctuary
 Serpent Assassin
 Seven-Tail Mentor
 Sever Soul
@@ -255,8 +278,10 @@ Skyfisher Spider
 Slimefoot, the Stowaway
 Slingbow Trap
 Slith Bloodletter
+Smash to Dust
 Snubhorn Sentry
 Soaring Seacliff
+Sokka's Sword Training
 Soul Channeling
 Soul Kiss
 Sparksmith
@@ -267,17 +292,21 @@ Stampeding Serow
 Staunch Throneguard
 Stensia Innkeeper
 Stern Scolding
+Subtle Strike
 Sultai Charm
 Sunken Hope
 Swamp
+Sword of Fire and Ice
 Taj-Nar Swordsmith
 Talonrend
+Targ Nar, Demon-Fang Gnoll
 Tattered Drake
 Telekinetic Sliver
 Tenacious Hunter
 Terra Ravager
 Thalakos Sentry
 The Surgical Bay
+Thopter Engineer
 Thorncaster Sliver
 Thought Monitor
 Thoughts of Ruin
@@ -287,10 +316,13 @@ Torch Fiend
 Touch of Invisibility
 Twigwalker
 Tyrant's Scorn
+Ultimate Price
 Urborg Stalker
+Valkyrie Harbinger
 Vandalblast
 Venarian Gold
 Venerable Lammasu
+Venerated Rotpriest
 Vengeant Vampire
 Verix Bladewing
 Veteran Cavalier
@@ -304,10 +336,14 @@ Vodalian Zombie
 Vulshok Berserker
 Wall of Bone
 Wave Goodbye
+Web
+Whip Silk
 Whiptongue Hydra
+Whisper Squad
 Whitewater Naiads
 Wild Might
 Wind Spirit
+Witch Enchanter
 Yawgmoth's Agenda
 Your Temple Is Under Attack
 Zephyr Sentinel

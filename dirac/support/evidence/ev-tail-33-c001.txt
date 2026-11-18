@@ -8,6 +8,7 @@ Abzan Advantage
 Accursed Horde
 Acrobatic Maneuver
 Advanced Stitchwing
+Aesi, Tyrant of Gyre Strait
 Aether Chaser
 Aether Vial
 Afterlife Insurance
@@ -41,6 +42,7 @@ Bag End Porter
 Battlefront Krushok
 Belligerent Brontodon
 Belligerent Hatchling
+Blast Zone
 Blighted Agent
 Blistering Dieflyn
 Blood Divination
@@ -77,6 +79,7 @@ Coordinated Assault
 Cordial Vampire
 Crawl from the Cellar
 Creakwood Ghoul
+Creative Outburst
 Cruel Cut
 Cruel Deceiver
 Culmination of Studies
@@ -112,10 +115,12 @@ Dragonwing Glider
 Drawn from Dreams
 Dread Warlock
 Drelnoch
+Drill-Skimmer
 Dripping Dead
 Dross Golem
 Dross Prowler
 Dross Skullbomb
+Duggan, Private Detective
 Dwarven Forge-Chanter
 Dwarven Priest
 Dwarven Weaponsmith
@@ -147,6 +152,7 @@ Flawless Maneuver
 Flip the Switch
 Flourishing Hunter
 Flumph
+Forbidding Watchtower
 Force Spike
 Forceful Cultivator
 Forest
@@ -208,6 +214,7 @@ Kjeldoran Javelineer
 Kor Line-Slinger
 Kozilek's Unsealing
 Krark-Clan Grunt
+Kydele, Chosen of Kruphix
 Land Grant
 Lava Coil
 Leaden Fists
@@ -219,6 +226,7 @@ Liliana's Influence
 Llanowar Dead
 Long-Forgotten Gohei
 Looming Altisaur
+Lotus Petal
 Lumengrid Sentinel
 Lunk Errant
 Mace of the Valiant
@@ -236,6 +244,7 @@ Military Intelligence
 Mimic
 Mindless Conscription
 Ministrant of Obligation
+Mjölnir's Might
 Mogg Conscripts
 Mogg Jailer
 Monastery Mentor
@@ -253,6 +262,7 @@ Nebelgast Beguiler
 Necrosynthesis
 Necrotic Sliver
 Never
+Nezumi Freewheeler
 Noxious Grasp
 Nyxathid
 Obelisk of Naya
@@ -296,6 +306,7 @@ Relentless Advance
 Remember the Fallen
 Rending Volley
 Renounce
+Research the Deep
 Reverent Hunter
 Rewind
 Rhys the Redeemed
@@ -311,6 +322,7 @@ Sabertooth Mauler
 Sage's Knowledge
 Sage's Row Savant
 Saltblast
+Samut, Tyrant Smasher
 Sanguine Glorifier
 Saruman the White
 Scab-Clan Charger
@@ -339,6 +351,7 @@ Sivitri Scarzam
 Skizzik Surger
 Skyclave Relic
 Skyreaping
+Slave of Bolas
 Sling-Gang Lieutenant
 Smoldering Efreet
 Smuggler's Copter
@@ -352,8 +365,10 @@ Spiteful Sliver
 Spore Cloud
 Stamina
 Stensia Uprising
+Stonework Packbeast
 Streetwise Negotiator
 Striped Bears
+Striped Riverwinder
 Subversion
 Swamp
 Sylvan Hierophant
@@ -415,6 +430,7 @@ Warmonger's Chariot
 Warren Instigator
 Wave Goodbye
 Wayward Swordtooth
+Weatherlight Compleated
 Weatherseed Totem
 Wei Infantry
 Weird Harvest

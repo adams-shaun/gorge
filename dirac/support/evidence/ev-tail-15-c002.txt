@@ -1,33 +1,52 @@
 A-Buy Your Silence
+A-Sepulcher Ghoul
+Aerial Maneuver
+Afflict
 Alexi's Cloak
+Ampryn Tactician
 Angelheart Protector
 Angelheart Vial
+Anointed Chorister
+Anurid Murkdiver
 Apex Devastator
+Armillary Sphere
 Arrows of Justice
 Artful Maneuver
 Aven Brigadier
+Bedeck
 Blazing Rootwalla
 Blinding Radiance
+Bloodflow Connoisseur
 Bloodied Ghost
 Brightclimb Pathway
 Brimstone Mage
 Buoyancy
 Burden of Guilt
 Canopy Tactician
+Char
 Chatterstorm and Awaken the Woods
 Child of Night
+Chrome Cat
 Cleanse
 Colossus Hammer
 Copperhoof Vorrac
+Corpse Hauler
 Courier Griffin
 Crimson Roc
 Cursed Totem
 Cyclone Summoner
 Dawnfeather Eagle
 Deathbloom Ritualist
+Deb Thomas
 Declare Dominance
 Deluge of Doom
+Desecration Elemental
+Despoiler of Souls
+Dihada's Ploy
 Dingus Staff
+Diplomacy of the Wastes
+Dire Fleet Hoarder
+Dowsing Shaman
 Drossclaw
 Dúnedain Blade
 Ebon Drake
@@ -37,13 +56,17 @@ Elemental Bond
 Eliminate the Competition
 Engineered Plague
 Enthrall
+Ephara's Warden
 Erebos's Emissary
 Eternal Skylord
 Ethereal Ambush
 Evil Eye of Urborg
+Executioner's Hood
 Eyes of the Watcher
+Falkenrath Marauders
 Fanatical Fever
 Fanged Flames
+Fated Conflagration
 Femeref Scouts
 Festival of the Guildpact
 First-Sphere Gargantua
@@ -51,84 +74,130 @@ Flameshot
 Flowstone Strike
 Forest
 Furious Assault
+Giant Fly
 Goblin Electromancer
 Goblin Gang Leader
 Goblin Matron
+Goblin Warchief
 Grandmother Sengir
 Great Hall of Starnheim
 Greenseeker
 Grenzo's Cutthroat
 Grey Knight Paragon
 Grim Feast
+Grim Guardian
 Grip of Desolation
+Gutter Skulk
 Haazda Snare Squad
 Headlong Rush
 Helionaut
 Highspire Infusion
 Hope Against Hope
 Human Frailty
+Imoti, Celebrant of Bounty
 Inner Calm, Outer Strength
+Inspired Inventor
+Into the Time Vortex
 Island
 Jackal Familiar
 Josu Vess, Lich Knight
 Kami of Whispered Hopes
+Kathari Screecher
 Kenrith's Transformation
 Knight Watch
 Kraken Hatchling
+Learn from the Past
 Leshrac's Sigil
 Lightning Blast
+Lose Calm
+Lychguard
 Mana Flare
 Mana Skimmer
+Manriki-Gusari
 Maralen of the Mornsong
+Marsh Viper
 Marshmist Titan
+Mending Hands
+Metrognome
 Michiko's Reign of Truth
 Mind Knives
+Mindwarper
 Minion of Tevesh Szat
 Misery Charm
+Morkrut Behemoth
 Mountain
+Mounted Dreadknight
+Multiform Wonder
 Nessian Game Warden
+Nightscape Familiar
+Nightshade Assassin
 Nightstalker Engine
+Nimble Pilferer
 Nissa's Triumph
 Novellamental
 Obelisk of Esper
+Ogre Gatecrasher
+Ogre Sentry
 Otherworld Atlas
 Oxidize
+Ozox, the Clattering King
 Parasitic Grasp
+Path of Peril
+Pawn of Ulamog
 Perimeter Patrol
 Phthisis
 Plains
 Plated Rootwalla
+Poxwalkers
+Primal Bellow
 Psychic Impetus
+Pulsating Illusion
 Pyre Hound
 Quagmire Lamprey
 Ragged Veins
 Rain of Salt
+Raise the Draugr
 Ransom Note
 Raven Familiar
 Ray of Revelation
 Reckless Amplimancer
 Release to Memory
 Relic of Progenitus
+Retreat to Hagra
 Rhox Bodyguard
 Romana II
+Roving Harper
+Rust Tick
 Sanguine Glorifier
 Saprazzan Outrigger
+Sea's Claim
 Seal of Fire
+Seer's Vision
 Shared Trauma
 Shrieking Drake
 Shrouded Serpent
 Sibsig Host
+Sigardian Priest
 Sindbad
 Sip of Hemlock
+Skirsdag Cultist
 Skullslither Worm
+Skyclave Pick-Axe
+Skyfisher Spider
+Slagwurm Armor
+Smitten Swordmaster
 Sorcerer's Wand
 Soulblade Corrupter
+Spawning Grounds
 Spiraling Embers
 Spirit of the Hearth
 Spiteful Bully
+Splinter, the Mentor
 Spoils of Blood
 Steady Aim
 Steal Strength
+Steelbane Hydra
+Stolen Strategy
 Stone Calendar
 Stormwatch Eagle
 Stupefying Touch
@@ -136,25 +205,38 @@ Summon: Kujata
 Suncrusher
 Sunder from Within
 Swamp
+Swift Response
+Sylvan Tutor
 TVA Bureaucrat
 Talisman of Resilience
+Teyo's Lightshield
 Thornhide Wolves
 Thought Scour
 Thundering Raiju
+Tidal Wave
+Treachery
 Treasure Hunter
+Trokin High Guard
 Turbulent Wetlands
+Two-Headed Giant of Foriys
+Two-Headed Zombie
 Uktabi Orangutan
 Umbral Mantle
 Vertigo Spawn
 Vulshok Splitter
 Wake the Reflections
+Wall of Omens
 Wanderlust
 Warhorn Blast
 Waterknot
 Whipflare
 Whirlermaker
 Woeleecher
+Wound Reflection
 Wrack with Madness
+Xun Yu, Wei Advisor
+Yawgmoth, Thran Physician
+Zephyr Boots
 Ziatora's Proving Ground
 Zodiac Rat
 Zuran Orb

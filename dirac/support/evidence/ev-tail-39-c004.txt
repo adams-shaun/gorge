@@ -9,6 +9,7 @@ Archway Commons
 Argothian Wurm
 Armguard Familiar
 Assemble the Entmoot
+Audacious Thief
 Battering Krasis
 Beastmaster Ascension
 Benalish Veteran
@@ -45,6 +46,7 @@ Fast
 Forest
 Forked Bolt
 Glacial Grasp
+Gleaming Overseer
 Glenn, the Voice of Calm
 Glorious Charge
 Hangar Scrounger
@@ -106,6 +108,7 @@ Solemn Recruit
 Soul Transfer
 Spell Rupture
 Spellweaver Eternal
+Spider Umbra
 Splitting Slime
 Springmane Cervin
 Squire's Devotion
@@ -120,6 +123,7 @@ Taoist Hermit
 Taste of Death
 Tatterkite
 Tempered Sliver
+Tetsuo, Imperial Champion
 The Falcon, Airship Restored
 Tin Street Cadet
 Tivadar's Crusade

@@ -16,6 +16,7 @@ Belbe's Percher
 Blade of Selves
 Blood Money
 Bloodtracker
+Brainbite
 Brash Taunter
 Breaching Leviathan
 Brood of Cockroaches
@@ -38,6 +39,7 @@ Crested Herdcaller
 Cryptolith Rite
 Dauthi Warlord
 Deglamer
+Destined
 Destructive Revelry
 Dismiss
 Downsize
@@ -47,9 +49,11 @@ Dragonstorm
 Electrostatic Field
 Enlightened Ascetic
 Ephara's Warden
+Eternity Snare
 Execute
 Fable of Wolf and Owl
 Faerie Trickery
+Feral Shadow
 Fireflux Squad
 Florian, Voldaren Scion
 Flowstone Embrace
@@ -68,6 +72,7 @@ Grave Strength
 Grotesque Demise
 Henge Guardian
 Hideous End
+Hideous Visage
 Highland Weald
 Hostile Takeover
 Ill-Tempered Cyclops
@@ -76,6 +81,7 @@ Incendiary Sabotage
 Incremental Growth
 Insight
 Island
+Judith, the Scourge Diva
 Kamahl's Desire
 Kami of Ancient Law
 Kjeldoran Dead
@@ -89,17 +95,23 @@ Loxodon Punisher
 Lunar Avenger
 Machinate
 Makindi Aeronaut
+Malakir Rebirth
+Mana Cannons
 Mana Confluence
 Many Partings
 Marauding Raptor
 Master of Diversion
+Max, the Daredevil
 Mindculling
 Mire Kavu
 Mishra's Factory
 Moment of Defiance
+Monstrous Growth
+Morgue Burst
 Mountain
 Mtenda Lion
 Murder of Crows
+Naya Hushblade
 Nighthowler
 Ob Nixilis's Cruelty
 Ojutai's Breath
@@ -108,7 +120,9 @@ Phyrexian Fleshgorger
 Plains
 Promise of Power
 Proteus Staff
+Proud Mentor
 Psionic Blast
+Pygmy Kavu
 Radiant Epicure
 Raid Bombardment
 Razaketh's Rite
@@ -118,6 +132,7 @@ Righteous Charge
 Rotting Giant
 Runes of the Deus
 Scouring Sands
+Secrets of the Key
 Seer's Lantern
 Seize the Initiative
 Shiv's Embrace

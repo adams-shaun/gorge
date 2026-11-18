@@ -1,0 +1,105 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Stimulus Package	797c774e5fd5ffec	10	2/2		0/1	ix:resp
+Accursed Centaur	dbfcc9cf8bacfeb2	8	1/1		1/1	
+Act on Impulse	4904f59abbd44bb1	26	0/0		2/2	
+Armor of Shadows	d850601e01af06ad	18	0/0		1/2	ix:resp
+Arno Dorian	83ef5f9c3a5cc87c	39	0/0		1/2	cast/alt:disguised
+Ashcoat Bear	b6dacf4265c24577	11	0/0		0/0	
+Birthing Pod	534d8b3d8c76d316	8	1/1		0/1	ix:resp
+Bloodhall Priest	3d9fe149b2ed6e8f	8	2/2		1/1	
+Brindle Shoat	aa390a23235e5bc3	18	1/1		1/1	
+Bringer of the Blue Dawn	0be2e3715ce4b357	10	1/1		1/1	
+Butch DeLoria, Tunnel Snake	19ef0c59002c5bed	4	2/2		0/1	ix:resp
+Colossal Badger	5ab467cf8d4241ae	10	1/1		1/2	ix:resp
+Contract Killing	77d4cee444c54eb0	13	0/0		2/2	
+Crossroads Candleguide	20500eceb07e5960	16	2/2		1/1	
+Curse of Shallow Graves	39978c4057570ffd	16	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
+Cyclopean Snare	fc05cac2ea7b1068	128	1/1		1/1	
+Cyclops Superconductor	b26ab3369c04ba19	22	3/3		1/1	
+Cystbearer	c4e584bf5817644d	4	0/0		0/0	
+Death of a Thousand Stings	5b1a21c835eb1e7f	17	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
+Dirty Rat	8b49bc4923f4e8f3	4	1/1		0/1	ix:resp
+Domri's Ambush	9d16eafb12090741	4	0/0		1/2	ix:resp
+Drider	1f1b4a19a145954a	4	1/1		1/1	
+Eel-Hounds	dbb38d85fb225073	16	1/1		0/1	ix:resp
+Elven Bow	abea579c56d067d1	27	2/2		0/1	ix:resp
+Empty the Warrens	3d0f76364fe5b459	14	1/1		2/2	
+Excogitator Sphinx	84ea505a705fac68	7	2/2		0/1	ix:resp
+Fast Forward	8f85875617cf69bf	7	0/0		1/2	ix:resp
+Feast of Dreams	8256e05754353571	16	0/0		1/2	ix:resp
+Festering Wound	74fb522f683a9491	18	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
+Force of Savagery	77e5e06b68d11c0a	7	0/0		0/0	
+Furnace Scamp	c59dc01382c2b42e	20	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Galadhrim Ambush	c1cd128b881eb66e	5	0/0		2/2	
+Gerrard's Irregulars	b0187d0403f07e53	16	0/0		0/0	
+Gloom Pangolin	560f4d89fb670db1	16	0/0		0/0	
+Graceful Cat	eec039cca980e648	10	1/1		1/1	
+Grappling Sundew	6cc6c7d51cd6e7ca	12	1/1		0/1	ix:resp
+Grave Betrayal	b60a05c364345486	5	1/1		0/1	ix:resp
+Greenseeker	7c56743477c45b10	9	1/1		0/1	ix:resp
+Grizzly Ghoul	0c03cf95f0e62c4e	14	0/0		0/0	
+Gruul Guildmage	08b0228ca4f4464a	3	2/2		0/1	ix:resp
+Jewel-Eyed Cobra	8c8a668126d22d7b	14	1/1		1/1	
+Kithkin Mourncaller	e1e7e6a9d92c6e10	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Knight of Dawn's Light	1963e52855b18884	12	1/1		1/1	
+Leela, Sevateem Warrior	5ea8e5251c46a463	4	1/1		0/1	ix:resp
+Lightning Prowess	8bae026b8bd4b86f	11	0/0		1/2	ix:resp
+Living Lands	28b004316ff7c0e7	6	0/0		0/0	
+Lord of Extinction	0f701c7def071ae4	23	0/0		0/0	
+Makeshift Battalion	e2b092d86759b278	15	1/1		0/1	ix:resp
+Merrow Bonegnawer	4408282ebaeadb23	22	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Mizzium Skin	9cee740f6b19fd8c	12	0/0		3/4	ix:resp
+Molting Harpy	72b35d88c2c000cb	18	1/1		0/1	ix:resp
+Monster Manual	6edc892ed8f9e367	24	1/1		1/2	ix:resp
+Moss Kami	4f587929acaef555	4	0/0		0/0	
+Necra Sanctuary	330e46f6fca276a3	12	1/1		0/1	ix:resp
+Necrosquito	f2277571b13b7b5b	16	1/1		0/1	ix:resp
+Nested Shambler	32b5503f7b20aecb	8	1/1		0/1	ix:resp
+Nightmarish End	297fa992c03d24df	4	0/0		1/2	ix:resp
+Nikya of the Old Ways	c28d9d0f51a940b2	5	1/1		0/1	ix:resp
+No Escape	e2e4d0f63775b8a9	15	0/0		2/2	
+Nullmage Advocate	942c672d50e1d673	9	1/1		0/1	ix:resp
+Orochi Soul-Reaver	b62782590171b697	9	2/2		1/1	
+Orzhov Racketeers	ef7b9ebd273c593c	6	2/2		0/1	ix:resp
+Phyrexian Ghoul	081f36285285a099	8	1/1		0/1	ix:resp
+Pit Imp	cc8ac7a84b204cb1	4	1/1		0/1	ix:resp
+Pit Keeper	73f5a1db523ed703	20	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Polluted Bonds	5dab41432e0e461a	14	1/1		0/1	ix:resp
+Possessed Aven	ba673f941d9eb76a	4	0/0		0/0	
+Quest for Ancient Secrets	853340017d65bdfa	5	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Rampaging Aetherhood	48e495bbf40026fa	14	2/2		1/1	
+Rhox Brute	8168d2e1054b098b	5	0/0		0/0	
+Riptide Crab	9fbc7547a4500d5a	10	1/1		1/1	
+Rise from the Nether	5695e5c11e012554	18	0/0		1/2	ix:resp
+Rootwater Diver	9d0c90bdbb522ec9	14	1/1		1/1	
+Satyr Grovedancer	a94be47cb23b353f	10	1/1		0/1	ix:resp
+Savage Swipe	be730a16a10f56dc	11	0/0		1/2	ix:resp
+Scarwood Treefolk	1d946806f022a43c	6	0/0		0/0	
+Sentinel	8c752872c913e614	11	1/1		1/1	
+Shambling Goblin	48fd099eae5dd257	10	1/1		0/1	ix:resp
+Shessra, Death's Whisper	0ed754e51501df99	14	2/2		0/1	ix:resp
+Shrieking Affliction	0e6f9dae75f85e6e	16	1/1		1/1	
+Silent Specter	6d028a575ede377b	7	1/1		1/3	cast/alt:morphed,ix:resp
+Sivriss, Nightmare Speaker	0da0707a21da6064	24	1/1		1/1	
+Skulltap	72f43bbd7de0922c	8	0/0		2/2	
+Skyway Sniper	575df0501f6ef38d	24	1/1		1/1	
+Slate Street Ruffian	3ba8f2fbdf1265ec	24	1/1		1/1	
+Slip Through Space	63487c7045c11f55	34	0/0		2/2	
+Spellbook	eab3c58a902a6202	24	0/0		0/0	
+Spined Fluke	f00cfd6912921064	22	2/2		1/1	
+Spontaneous Combustion	e7072421b1236be8	10	0/0		1/2	ix:resp
+Stony Strength	2c7873006fef53aa	8	0/0		2/2	
+Sunspire Griffin	6a191c3fb6763f35	4	0/0		0/0	
+Swift Maneuver	c6a23621a5a0d75f	22	0/0		1/2	ix:resp
+Swift Warden	f673c76f3985cd47	12	1/1		1/1	
+Taranika, Akroan Veteran	f104099656526995	39	1/1		1/1	
+Tel-Jilad Chosen	b6f03872b7343465	4	0/0		0/0	
+The Wretched	2ccb0446b5c3d50b	12	1/1		0/1	ix:resp
+Thundering Spineback	ecdd8ebd31090abe	3	1/1		0/1	ix:resp
+Unholy Strength	6fe7eaa816264168	17	0/0		2/2	
+Urabrask's Anointer	1919380e199a755f	7	1/1		1/1	
+Warthog	611d27d1290c64ce	10	0/0		0/0	
+Watchful Blisterzoa	024afccd0a79ca07	21	1/1		1/1	
+Wei Night Raiders	9e66489b8fb51061	8	1/1		1/1	
+Wishful Merfolk	150efb6d3b0dd2d4	7	1/1		1/1	
+Zodiac Snake	5242ac6a0ae8d17e	4	0/0		0/0	
