@@ -80,7 +80,7 @@ var conditionUnmodelledDefined = newConditionNames(
 // conditionSupportedBare is every bare Condition$ value conditionMetCore
 // evaluates (the case-insensitive switch in its bare branch).
 var conditionSupportedBare = newConditionNames(
-	"Kicked", "Bargain", "Foretold", "Revolt", "Delirium", "Metalcraft", "Blessing",
+	"Kicked", "Awakened", "Bargain", "Foretold", "Revolt", "Delirium", "Metalcraft", "Blessing",
 	"OptionalCost", "EnduringStory", "Threshold",
 )
 

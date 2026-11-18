@@ -200,6 +200,10 @@ var expandedHeads = []string{
 	// Duration$ UntilHostLeavesPlay (engine/cards/kw_champion.go). Added after
 	// the split.
 	"Champion",
+	// Awaken (CR 702.113a): the Condition$ Awakened land-animating rider chain
+	// appended to the spell ability (engine/cards/kw_awaken.go). Added after
+	// the split.
+	"Awaken",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

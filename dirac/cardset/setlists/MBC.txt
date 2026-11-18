@@ -580,6 +580,7 @@ Dwarven Hammer
 Dwarven Miner
 Dyfed, the Guiding Hand
 Dynacharge
+Earthen Arms
 Earthquake
 Eater of the Dead
 Ebony Fly
@@ -614,6 +615,7 @@ Empty the Warrens
 Empty-Shrine Kannushi
 Emrakul's Messenger
 Encampment Keeper
+Encircling Fissure
 Enclave Cryptologist
 End the Festivities
 Endless Scream
