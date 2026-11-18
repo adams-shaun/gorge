@@ -215,18 +215,11 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 	col := s.windowTapXCol(k, p, &cost, sl, false, true)
 	s.tapXDo(k, p, tapXStep{sl: sl, cand: cand, cand2: cand2, col: col})
 	if s.g.winMode == winTrig {
-		// the trigger's window taps on, then charges the cost when what it
-		// floated pays it, as trigWindowPays does (a tap-another source's
-		// white paying {W}); a window that stops short fails the charge
+		// the trigger's window taps on and charges what it floated, as payReplanned's does
 		if s.trigWindowTap(k, p, &cost) {
 			return true
 		}
-		need := s.restrShortNonSpell(k, p, cost)
-		paid := s.poolPays(p, &need)
-		if paid {
-			s.payTrigPool(k, p, &cost)
-		}
-		s.payDone(k, paid)
+		s.payDone(k, s.trigWindowCharge(k, p, &cost))
 		return true
 	}
 	paused, short := s.payWindow(k, p, &cost, s.g.winMode == winPay && s.g.pickF&pfWard == 0)

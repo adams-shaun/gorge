@@ -194,6 +194,13 @@ func (s *State) trigWindowPays(k *prep, p uint8, c *kop.ManaCost) bool {
 	if s.trigWindowTap(k, p, c) {
 		return false
 	}
+	return s.trigWindowCharge(k, p, c)
+}
+
+// trigWindowCharge charges the trigger's cost when what its window floated pays
+// it: the settle of trigWindowPays, which a tap-another pick's answer runs once
+// the window has walked on (applyAskWinTap).
+func (s *State) trigWindowCharge(k *prep, p uint8, c *kop.ManaCost) bool {
 	if need := s.restrShortNonSpell(k, p, *c); !s.poolPays(p, &need) {
 		return false
 	}
