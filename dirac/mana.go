@@ -479,7 +479,7 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		if !grantOK && k.gen != nil && s.manaGranted(k, sl) {
 			continue // a source whose only mana ability is granted: grantCap/grantPrefix's search, not another gap's
 		}
-		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) && !(dual && s.grantSacLive(sl, pc)) {
+		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) && !(dual && s.grantSacLive(sl, pc)) && !(k.painMana && s.canLifeOnlyMana(k, sl, p)) {
 			if dual {
 				s.availGrantSacOnly(k, sl, a) // a tapped source's granted sacrifice-only ability (mana_grantcost.go)
 			}
@@ -806,7 +806,7 @@ type utype struct {
 	n       uint8 // mana per tap
 	creat   bool
 	sac     bool // a tap-and-sacrifice source (last resort)
-	sacOnly bool // a sacrifice-only source (last resort; no tap)
+	sacOnly bool // a no-tap last-resort unit: a sacrifice-only source, or a life-only one (prepSoleLifeMana, mana_pain.go)
 	flex    uint8
 	avail   uint8
 	k       uint8 // chosen count (search scratch)
@@ -1414,7 +1414,8 @@ func planCastDynSacSkip(castPay bool, pc *pcard) bool {
 }
 
 // planSourceUsable reports whether source sl joins the payment plan's order
-// (plan): a tap, a sacrifice-only one, a usable restricted view, a granted
+// (plan): a tap, a no-tap cost (a sacrifice-only source, or a sole life-only
+// pain unit, mana_pain.go), a usable restricted view, a granted
 // tap-and-sacrifice, or -- on the autopay surface, whose planner prices the
 // relaxed census -- a payable life-only census gap (mana_lifegap.go; on the
 // lowering surface the ability is no planner unit, the recorded life-gap
@@ -1422,6 +1423,7 @@ func planCastDynSacSkip(castPay bool, pc *pcard) bool {
 func (s *State) planSourceUsable(k *prep, p uint8, sl Slot, rd *payDesc) bool {
 	return s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) ||
 		k.restrSrc && s.restrOnlyUsable(k, p, sl, rd) || s.planTapGrantSacNow(k, sl) ||
+		k.painMana && s.canLifeOnlyMana(k, sl, p) ||
 		s.cfg&cfgGorgeAutopay != 0 && s.isLifeGapAt(k, p, sl)
 }
 
