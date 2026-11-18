@@ -138,7 +138,7 @@ func divisionTotals(d *decision.Decision, n int) (int, bool) {
 	}
 	total := -1
 	for _, o := range d.Options {
-		amts, ok := parseDivisionLabel(o.Label, n)
+		amts, ok := ParseDivisionLabel(o.Label, n)
 		if !ok {
 			return 0, false
 		}
@@ -155,14 +155,17 @@ func divisionTotals(d *decision.Decision, n int) (int, bool) {
 	return total, true
 }
 
-// parseDivisionLabel reads one option label the engine's divisionOptions
+// ParseDivisionLabel reads one option label the engine's divisionOptions
 // prints: n comma-joined "N to <name>" segments, segment i naming recipient
 // i. Each later segment starts at a comma followed by a digit — that is how
 // a card name containing its own comma ("Nissa, Who Shakes the World") is
 // skipped — and the whole label must be consumed, so an extra segment cannot
 // hide in the last name. A label that does not parse exactly is false, which
 // both the prompt builder and the answer parser treat as "not this shape".
-func parseDivisionLabel(label string, n int) ([]int, bool) {
+// Exported because the wire-side answer builders outside this package
+// (mbtest's reach bot, reach.go) need the same label→vector read the
+// in-package parser uses.
+func ParseDivisionLabel(label string, n int) ([]int, bool) {
 	if n <= 0 || label == "" {
 		return nil, false
 	}
@@ -259,7 +262,7 @@ func (t *Translator) parseDamageAssignment(out mb.PromptOutputValue, p *Pending)
 	}
 	idx := -1
 	for _, o := range d.Options {
-		if amts, ok := parseDivisionLabel(o.Label, len(vec)); ok && slices.Equal(amts, vec) {
+		if amts, ok := ParseDivisionLabel(o.Label, len(vec)); ok && slices.Equal(amts, vec) {
 			idx = o.Index
 			break
 		}
