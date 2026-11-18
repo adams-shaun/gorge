@@ -333,3 +333,19 @@ func (s *State) fireUnlockDoor(k *prep, sl Slot, o Obj, fi uint8) {
 
 // FeatRoomUnlock is the AkUnlock kind for the oracle.
 const FeatRoomUnlock = AkUnlock
+
+// roomAltNeedsEmptyStack reports whether the Room door cast a is sorcery-speed
+// and so offered only with the stack empty: gorge's script search prices the
+// door ("room_alt") as unsupported / witness_not_offered while the prefix's
+// triggers (Manabarbs' per-tap damage) wait on the stack, and works on through
+// the gaps and the resolutions, as it does a plain cast (castNeedsEmptyStack).
+// A Room is an enchantment: no door is an instant, and flash is read off the
+// door cast (CR 307.1, 117.1a).
+func (s *State) roomAltNeedsEmptyStack(k *prep, a Action) bool {
+	c := s.objs[Obj(a.Source())].card
+	if !roomDef(k, c) {
+		return false
+	}
+	f := k.t.Cards[c].Faces[a.Target()]
+	return !k.cards[f].instant && !s.castFlash(k, s.prio, f)
+}
