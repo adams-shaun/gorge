@@ -118,6 +118,39 @@ func (s *State) xDelveCredit(k *prep, e *stackEntry) int {
 	return int(s.pl[SeatIx(e.ctrl)].graveN)
 }
 
+// xDelveWithinMx reports whether the announced X = x is payable once its delve
+// credit is spent, given mx, the largest X the window's sources pay with no
+// credit: each generic the credit covers is one the sources need not make, so
+// the pool owes x less that credit (CR 702.66a; gorge xAsk prices every X
+// through castWindowPays at the credited generic). It reaches what the plain
+// pool read (xReducedPays) cannot, a filter's fee paid in the window (CR
+// 605.3b): mx already counts the filter's mana.
+func (s *State) xDelveWithinMx(k *prep, e *stackEntry, x, mx int) bool {
+	if k.gen == nil || !k.gen.anyFilt || s.xDelveCredit(k, e) == 0 {
+		return false
+	}
+	c := s.xHypoCost(k, x).AtX(x)
+	credit := int(c.Generic - s.delveOfferCredit(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl), c).Generic)
+	return x-credit <= mx
+}
+
+// delveTargetAbort reports whether the delve cast being built can no longer be
+// paid: the cost less the announced delve picks is unpayable from the pool and
+// the CR 601.2g window. The ask lets the caster exile fewer cards than the
+// shortfall (gorge delveAsk, Min 0), and gorge's affordableTargetCandidates
+// then withholds every candidate of the short cast, so a required target
+// reverses it ("cast aborted: no legal target", CR 733.1) with no further
+// ask; the convoke arm (convokeTargetAbort) reads the same census.
+func (s *State) delveTargetAbort(k *prep) bool {
+	e := &s.bld().e
+	if k.gen == nil || !k.gen.anyDelve || e.kind != seSpell || e.flags&sfFree != 0 || s.bld().bfl&bflLowered != 0 ||
+		!s.hasCastDelve(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl)) {
+		return false
+	}
+	cost := xFolded(s.buildCost(k), int(e.x))
+	return s.targetWindowShort(k, e, &cost, false)
+}
+
 // delvePickCount counts the announced delve picks.
 func (s *State) delvePickCount() int {
 	n := 0

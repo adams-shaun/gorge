@@ -746,7 +746,7 @@ func (s *State) freePlayCast() bool {
 // required target reverses the cast, an up-to target asks nothing and
 // payCast reverses it in the window.
 func (s *State) targetStageAborts(k *prep, t *kop.TargetSpec, e *stackEntry) bool {
-	return s.playTargetGateAborts(k, t, e) || s.convokeTargetAbort(k) || s.altAddTargetAbort(k) ||
+	return s.playTargetGateAborts(k, t, e) || s.convokeTargetAbort(k) || s.delveTargetAbort(k) || s.altAddTargetAbort(k) ||
 		s.addCostTargetAbort(k) || s.paidXTargetAbort(k) || s.copyCastTargetWindowShort(k) || s.copyCastXTargetAbort(k, t)
 }
 
