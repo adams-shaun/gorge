@@ -7,7 +7,6 @@ Island
 Marionette Apprentice
 Mountain
 Plains
-Smiting Helix
 Swamp
 Tawnos's Wand
 Thallid Omnivore
