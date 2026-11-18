@@ -115,16 +115,20 @@ type prep struct {
 	// embPrev: some emblem carries a static damage prevention
 	// (tableEmbHasStaticPrev, repl_staticprevent_emblem.go); on prep, not
 	// genPrep, so the pinned fixed-State inventory is unchanged
-	embPrev  bool
-	cda      bool // some card has a characteristic-defining P/T (StatCDAPT)
-	casualty bool // some card has Casualty (kw_casualty.go): guards the casualty cast offer
-	mayhem   bool // some card has Mayhem (kw_mayhem.go): guards the discard mark, the cast mark and the graveyard offer
-	escape   bool // some card has Escape (kw_escape.go): guards the escape cast mark and the graveyard offer
-	retrace  bool // some card has Retrace (kw_retrace.go): guards the graveyard offer
-	bargain  bool // some card has Bargain (kw_bargain.go): guards the bargained cast offer
-	entwine  bool // some card has Entwine (kw_entwine.go): guards the entwined cast's charm pick count
-	teamwork bool // some card has Teamwork (kw_teamwork.go): guards the teamworked cast offer and the charm pick count
-	gift     bool // some card has Gift (kw_gift.go): guards the gift paths on the hot cast/trigger path
+	embPrev bool
+	cda     bool // some card has a characteristic-defining P/T (StatCDAPT)
+	// gainsOfPair: a GainsAbilitiesOf$ static beside a creature ability its
+	// walk does not model (static_gainsofpair.go): StallGainsOf; on prep, not
+	// genPrep, so the pinned fixed-State inventory is unchanged
+	gainsOfPair bool
+	casualty    bool // some card has Casualty (kw_casualty.go): guards the casualty cast offer
+	mayhem      bool // some card has Mayhem (kw_mayhem.go): guards the discard mark, the cast mark and the graveyard offer
+	escape      bool // some card has Escape (kw_escape.go): guards the escape cast mark and the graveyard offer
+	retrace     bool // some card has Retrace (kw_retrace.go): guards the graveyard offer
+	bargain     bool // some card has Bargain (kw_bargain.go): guards the bargained cast offer
+	entwine     bool // some card has Entwine (kw_entwine.go): guards the entwined cast's charm pick count
+	teamwork    bool // some card has Teamwork (kw_teamwork.go): guards the teamworked cast offer and the charm pick count
+	gift        bool // some card has Gift (kw_gift.go): guards the gift paths on the hot cast/trigger path
 	// bargainRed: some card carries a StBargained cost static
 	// (cost_reducespell.go): guards the bargained pricing
 	bargainRed bool
