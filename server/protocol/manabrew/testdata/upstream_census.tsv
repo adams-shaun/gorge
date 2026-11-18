@@ -1,0 +1,37 @@
+# upstream protocol version: 6.4.1
+# class	name	status	code	note
+engineMessage	state	mapped		full gameView only; gorge sends no patch
+engineMessage	prompt	mapped		
+engineMessage	error	mapped		
+engineMessage	engineDirective	n/a		gorge emits no recording or repeat status; the decoder rejects the kind
+clientMessage	response	mapped		
+clientMessage	directive	mapped		only concede is modelled; see the directive rows
+directive	concede	mapped		
+directive	startRecording	refused	bad_request	decoder rejects an unknown directive type; the HTTP reply is bad_request, not one of the five protocol codes
+directive	stopRecording	refused	bad_request	decoder rejects an unknown directive type; the HTTP reply is bad_request, not one of the five protocol codes
+directive	requestRepeat	refused	bad_request	decoder rejects an unknown directive type; the HTTP reply is bad_request, not one of the five protocol codes
+directive	repeatVote	refused	bad_request	decoder rejects an unknown directive type; the HTTP reply is bad_request, not one of the five protocol codes
+prompt	chooseNumber	mapped		
+prompt	chooseCards	mapped		
+prompt	chooseColor	mapped		
+prompt	chooseBoolean	mapped		
+prompt	chooseFromSelection	mapped		
+prompt	revealCards	mapped		
+prompt	scry	mapped		
+prompt	reorder	mapped		
+prompt	diceRolled	mapped		
+prompt	chooseAction	mapped		
+prompt	payManaCost	mapped		
+prompt	mulligan	mapped		
+prompt	mulliganPutBack	mapped		
+prompt	chooseAttackers	mapped		
+prompt	chooseBlockers	mapped		
+prompt	chooseDamageAssignmentOrder	mapped		
+prompt	chooseCombatDamageAssignment	mapped		
+prompt	chooseBoardTargets	mapped		
+prompt	gameOver	mapped		
+errorCode	stalePrompt	mapped		
+errorCode	wrongPlayer	mapped		
+errorCode	wrongPromptType	mapped		
+errorCode	unknownActionId	mapped		
+errorCode	invalidShape	mapped		

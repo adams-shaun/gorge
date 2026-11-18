@@ -43,7 +43,8 @@ $ curl -s -H "Authorization: Bearer $TOKEN" $GORGE/api/manabrew/v0/tables/g2/mat
  {"kind":"prompt","promptId":22,"decidingPlayerId":"player-0","input":{"handCardIds":["o28", …],"mulliganCount":0,"type":"mulligan"}}]
 ```
 
-Engine messages are `{"kind": …}` objects: `state`, `stateDelta`, `display`, `prompt` and `error`. A rejected `send` comes back in its
+Engine messages are `{"kind": …}` objects: gorge sends `state` (always a full `gameView`, never a patch), `prompt` and `error`. It sends no
+`engineDirective`, and it refuses the recording and repeat directives. The census against upstream protocol 6.4.1 is `server/protocol/manabrew/testdata/upstream_census.tsv`. A rejected `send` comes back in its
 HTTP reply and is also pushed on any open stream. Its code is one of the protocol's five:
 
 | Code | Status |
