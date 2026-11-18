@@ -149,6 +149,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Undying":             "gorge kwUndying's dies trigger (kgen expandedKeywords; compared through the zone moves and the +1/+1 counters)",
 	"Persist":             "gorge kwPersist's dies trigger (CR 702.77, kgen expandedKeywords; compared through the zone moves and the -1/-1 counters)",
 	"Modular":             "gorge kwModular's entering-counters replacement and dies trigger (CR 702.43a, kgen expandedKeywords; compared through the +1/+1 counters and the zone moves)",
+	"Graft":               "gorge kwGraft's entering-counters replacement and another creature's enters trigger moving a +1/+1 counter (CR 702.58a, kgen expandedKeywords; compared through the +1/+1 counters and the trigger on the stack)",
 	"Rampage":             "gorge kwRampage's attacker-blocked trigger (CR 702.23a, kgen expandedKeywords; compared through the pump on the stack and P/T)",
 	"Dredge":              "CardDef.Dredge, a replacement of the controller's draw read at every draw (CR 702.52a, kgen lower_dredge.go; compared through the dredge choice, the mill and the graveyard return), no battlefield characteristic",
 	"Umbra armor":         "CardDef.UmbraArmor, a destroy replacement read at every destruction (CR 702.89a, kgen lower_umbraarmor.go, kernel kw_umbraarmor.go; compared through the destroy, the damage and deathtouch clears and the Aura's move to the graveyard), no battlefield characteristic",
