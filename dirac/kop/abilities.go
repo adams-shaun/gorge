@@ -775,6 +775,19 @@ func plainFixedTapAb(a *Ability) bool {
 		c != 0 && c&(c-1) == 0 && a.ManaN <= 1 && len(a.Prog) == 0
 }
 
+// FeeComboAnyManaAb reports whether mana ability a is "{cost}, {T}: Add X mana
+// in any combination of colors" (Selvala, Heart of the Wilds' {G}, {T}): a
+// Combo Any production (a dynamic amount or at least two mana of any colour,
+// AfManaChoice with ColAny) whose cost holds mana besides the {T}. The
+// kernel's combination search (dirac mana_comboany.go) has no fee-funded
+// form: a Combo Any source beside a filter stalls the table (StallComboAnyMix),
+// so kgen refuses the card.
+func FeeComboAnyManaAb(a *Ability) bool {
+	return a.Kind == AbMana && a.AFlags&(AfManaChoice|AfLatent|AfManaEachColor|AfManaChosen|AfManaReflect) == AfManaChoice &&
+		a.ManaColors == ColAny && (a.AFlags&AfManaDynamic != 0 || a.ManaN >= 2) && a.Cost.Flags == CostTap &&
+		(a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0)
+}
+
 // ManaCostShape names the cost shape of a mana ability, for the census and
 // kgen's refusal reason ("T+TapX", "Sac", "T+PayLife+Mana").
 func ManaCostShape(a *Ability) string {

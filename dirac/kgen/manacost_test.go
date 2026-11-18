@@ -102,15 +102,18 @@ func TestManaCostShapesAcceptedAndRefused(t *testing.T) {
 		"Gene Pollinator", "Jaspera Sentinel", "Loam Dryad", "Black Lotus", "Wall of Roots", "Llanowar Elves", "Baylen, the Haymaker", "Birchlore Rangers",
 		"Three Tree Mascot", "Abzan Devotee", "Prophetic Prism", "Giant's Boulder", "Omni-Cheese Pizza", // (the last five: kop.FilterManaAb)
 		"Jeskai Devotee", "Mardu Devotee", "Sultai Devotee", "Temur Devotee", // (kop.Ability.ManaColOrd)
-		"Mana Confluence",                        // (a sole {T}, Pay N life ability: kop.SoleLifeManaAb)
+		"Mana Confluence", "Horizon Canopy", // (a sole {T}, Pay N life ability: kop.SoleLifeManaAb, a colour choice too)
+		"Cabal Coffers",                          // ({2}, {T}: Add {B} for each Swamp: kop.FeeDynManaAb)
 		"Agent of Stromgald",                     // ({R}: Add {B}: kop.FeeOnlyManaAb, a repeatable filter)
 		"Ashnod's Altar", "Krark-Clan Ironworks"} // (no-{T} "Sacrifice a <spec>: Add one fixed colour": kop.SacAnyManaAb)
 	refuse := map[string]string{
 		"Heritage Druid": "TapX",
-		"Cabal Coffers":  "T+Mana", "Gilded Goose": "T+Sac", "Druids' Repository": "RemoveCtr",
+		"Gilded Goose":   "T+Sac", "Druids' Repository": "RemoveCtr",
 		"Moonsnare Prototype": "T+TapX",
 	}
-	named := map[string]string{}
+	named := map[string]string{ // (the reason names a measured cause beyond the cost shape)
+		"Selvala, Heart of the Wilds": "mana ability cost T+Mana: a fee-funded Combo Any production",
+	}
 	names := append([]string(nil), accept...)
 	for n := range refuse {
 		names = append(names, n)

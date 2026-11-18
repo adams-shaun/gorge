@@ -17,8 +17,8 @@ var klifeFeeManaDecks = [2][]cardset.Entry{
 	{
 		{Name: "Horizon Canopy", Count: 5}, {Name: "Fiery Islet", Count: 3},
 		{Name: "Cabal Coffers", Count: 4}, {Name: "Swamp", Count: 7}, {Name: "Forest", Count: 2}, {Name: "Serra Angel", Count: 3},
-		{Name: "Air Elemental", Count: 3}, {Name: "Grizzly Bears", Count: 4}, {Name: "Hill Giant", Count: 3},
-		{Name: "Sengir Vampire", Count: 2}, {Name: "Gurmag Angler", Count: 1}, {Name: "Llanowar Elves", Count: 3},
+		{Name: "Air Elemental", Count: 3}, {Name: "Grizzly Bears", Count: 3}, {Name: "Hill Giant", Count: 2},
+		{Name: "Sengir Vampire", Count: 2}, {Name: "Gurmag Angler", Count: 1}, {Name: "Magus of the Coffers", Count: 2}, {Name: "Llanowar Elves", Count: 3},
 	},
 	{
 		{Name: "Plains", Count: 8}, {Name: "Island", Count: 5}, {Name: "Mountain", Count: 6},
@@ -28,10 +28,12 @@ var klifeFeeManaDecks = [2][]cardset.Entry{
 }
 
 // tapCount counts the projections in which a battlefield permanent named by
-// hash is tapped.
+// hash is tapped and the board satisfies when.
 type tapCount struct {
-	hash uint32
-	n    atomic.Int64
+	label string
+	hash  uint32
+	when  func(p *Projection) bool
+	n     atomic.Int64
 }
 
 // tappedSeen is a kernel side that counts them: a Horizon land or Cabal
@@ -46,7 +48,7 @@ func (s tappedSeen) Project(p *Projection) {
 	s.realSide.Project(p)
 	for _, tc := range s.counts {
 		for i := 0; i < int(p.NInst); i++ {
-			if c := &p.Cards[i]; c.NameHash == tc.hash && c.Zone == ZoneBattlefield && c.Flags&FTapped != 0 {
+			if c := &p.Cards[i]; c.NameHash == tc.hash && c.Zone == ZoneBattlefield && c.Flags&FTapped != 0 && (tc.when == nil || tc.when(p)) {
 				tc.n.Add(1)
 				break
 			}
@@ -54,23 +56,35 @@ func (s tappedSeen) Project(p *Projection) {
 	}
 }
 
+// swampsOut is the Swamps seat 0 controls on the battlefield.
+func swampsOut(p *Projection) int {
+	n, h := 0, nameHash("Swamp")
+	for i := 0; i < int(p.NInst); i++ {
+		if c := &p.Cards[i]; c.NameHash == h && c.Zone == ZoneBattlefield && c.Controller == 0 {
+			n++
+		}
+	}
+	return n
+}
+
 func TestLifeAndFeeManaLockstep(t *testing.T) {
 	t.Parallel()
-	seen := map[string]*tapCount{}
-	var counts []*tapCount
-	for _, n := range []string{"Horizon Canopy", "Fiery Islet", "Cabal Coffers"} {
-		tc := &tapCount{hash: nameHash(n)}
-		seen[n] = tc
-		counts = append(counts, tc)
+	counts := []*tapCount{
+		{label: "Horizon Canopy tapped", hash: nameHash("Horizon Canopy")},
+		{label: "Horizon Canopy tapped at 1 life or less", hash: nameHash("Horizon Canopy"), when: func(p *Projection) bool { return p.Life[0] <= 1 }},
+		{label: "Fiery Islet tapped", hash: nameHash("Fiery Islet")},
+		{label: "Cabal Coffers tapped", hash: nameHash("Cabal Coffers")},
+		{label: "Cabal Coffers tapped with three Swamps out", hash: nameHash("Cabal Coffers"), when: func(p *Projection) bool { return swampsOut(p) >= 3 }},
+		{label: "Magus of the Coffers tapped", hash: nameHash("Magus of the Coffers")},
 	}
 	wrap := func(s Side) Side { return tappedSeen{s.(*realSide), counts} }
 	if d := lockstepRunSide(t, "lifefeemana", klifeFeeManaDecks, 300, true, nil, wrap); d != 0 {
 		t.Fatalf("%d divergent games", d)
 	}
-	for n, tc := range seen {
+	for _, tc := range counts {
 		if tc.n.Load() == 0 {
-			t.Errorf("%s was never tapped for mana: the pool does not play the mechanism", n)
+			t.Errorf("%s in no projection: the pool does not play the mechanism", tc.label)
 		}
-		t.Logf("%s tapped in %d projections", n, tc.n.Load())
+		t.Logf("%s in %d projections", tc.label, tc.n.Load())
 	}
 }
