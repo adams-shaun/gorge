@@ -495,6 +495,13 @@ type Game struct {
 	// War's BeforeFirstPostCombatMainEnd$ True reads. The same event-folded,
 	// replay-exact shape CombatsThisTurn uses, so no new event is needed.
 	MainPhasesThisTurn int32
+	// UpkeepsThisTurn counts the upkeep steps BEGUN this turn (one per
+	// StepUpkeep StepChange, folded in engine/events/apply_turn.go, reset at
+	// TurnChange): 1 in the ordinary upkeep, 2 once an api:AddPhase-spliced
+	// extra upkeep begins. It backs the trigger-side FirstUpkeep$ True gate
+	// (Paradox Haze), the CombatsThisTurn/FirstCombat$ shape, so an extra
+	// upkeep cannot re-fire the trigger that granted it.
+	UpkeepsThisTurn int32
 	// ResolvedThisTurn counts, per resolving ability, how many times THAT
 	// ability has resolved this turn, INCLUDING the resolution whose tally is
 	// being read. It backs Forge's Count$ResolvedThisTurn (Sephiroth, Fabled

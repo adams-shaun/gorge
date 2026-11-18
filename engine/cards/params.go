@@ -552,6 +552,7 @@ const (
 	PKFirstCardInDrawStep
 	PKFirstCombat
 	PKFirstExtraCardDrawnThisTurn
+	PKFirstUpkeep
 	PKForCost
 	PKForEachShard
 	PKHellbent
@@ -1488,6 +1489,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKFirstAttack:                      "FirstAttack",
 	PKFirstCardInDrawStep:              "FirstCardInDrawStep",
 	PKFirstCombat:                      "FirstCombat",
+	PKFirstUpkeep:                      "FirstUpkeep",
 	PKFirstExtraCardDrawnThisTurn:      "FirstExtraCardDrawnThisTurn",
 	PKForCost:                          "ForCost",
 	PKForEachShard:                     "ForEachShard",

@@ -158,6 +158,11 @@ func foldStepChange(g *state.Game, e *Event) {
 	if e.Step.Valid() && (e.Step == state.StepMain1 || e.Step == state.StepMain2) {
 		g.MainPhasesThisTurn++
 	}
+	// The per-turn upkeep count: one increment per Upkeep ENTRY, so an
+	// api:AddPhase-spliced extra upkeep counts again (FirstUpkeep$).
+	if e.Step.Valid() && e.Step == state.StepUpkeep {
+		g.UpkeepsThisTurn++
+	}
 }
 
 // advancePhaseSkips moves the phase skips to the turn beginning for seat: the
@@ -282,6 +287,7 @@ func foldTurnChange(g *state.Game, e *Event) {
 		g.EndStepsThisTurn = 0
 		// The per-turn main-phase count is dropped with them.
 		g.MainPhasesThisTurn = 0
+		g.UpkeepsThisTurn = 0
 		// The per-ability resolution tally is a per-turn fact (CR 608.2m
 		// counts resolutions in the turn), so it is dropped at the turn
 		// boundary exactly as CombatsThisTurn is. Clearing (rather than
