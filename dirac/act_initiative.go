@@ -189,7 +189,7 @@ func (s *State) initVentureTrig(p uint8) {
 // later in the same check is still in the game when the heir is chosen. At two
 // seats a loss ends the game and the call folds away.
 func (s *State) initLeft(k *prep, p uint8) {
-	if MaxSeats > 2 && k.gen != nil && k.anyInit && s.g.initH == p+1 {
+	if !s.duel() && k.gen != nil && k.anyInit && s.g.initH == p+1 {
 		s.initHandoff(k, p)
 	}
 }
@@ -231,8 +231,8 @@ func (s *State) initUpkeep(k *prep) {
 //go:noinline
 func (s *State) initCombat(k *prep, r *dmgRec) {
 	var def uint8
-	if MaxSeats == 2 {
-		def = NextSeat(s.active)
+	if s.duel() {
+		def = s.nextSeat(s.active)
 		if s.g.initH != def+1 || DebugNoInitSteal {
 			return
 		}

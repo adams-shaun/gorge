@@ -2,24 +2,24 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// Seat helpers. The kernel plays two seats today; these name what raw seat
-// arithmetic (1-p, p&1, PlayerTarget0+p) means, in terms that stay true at
-// MaxSeats seats, and compile to the raw form at MaxSeats == 2. Use them in
-// place of the raw spellings; TestSeatArithmeticOnlyShrinks counts what is
-// left.
+// Seat helpers. The kernel holds MaxSeats seats and plays a duel or a pod;
+// these name what raw seat arithmetic (1-p, p&1, PlayerTarget0+p) means, in
+// terms that stay true at every seat count, and take the raw form in a duel
+// (duel). Use them in place of the raw spellings;
+// TestSeatArithmeticOnlyShrinks counts what is left.
 //
 // "The opponent" has no helper on purpose: at more than two seats the kernel
 // must choose among opponents (target opponent, defending player) or visit
 // each of them, and those are decisions still to be designed.
 
-// NextSeat is the seat after p in turn order (CR 101.4: APNAP order runs in
+// nextSeat is the seat after p in turn order (CR 101.4: APNAP order runs in
 // turn order from the active player; CR 102.1: the turn passes in seating
 // order).
-func NextSeat(p uint8) uint8 {
-	if MaxSeats == 2 {
+func (s *State) nextSeat(p uint8) uint8 {
+	if s.duel() {
 		return 1 - p
 	}
-	return (p + 1) % MaxSeats
+	return (p + 1) % s.nSeats()
 }
 
 // IsOpponent reports whether seat q is an opponent of seat p (CR 102.2: in a
@@ -45,13 +45,13 @@ func isPlayerOrNone(c TCode) bool { return c >= PlayerTarget0 }
 // isPlayerTarget.
 func CodeSeat(c TCode) uint8 { return uint8(c - PlayerTarget0) } // code-ok: a seat, below MaxSeats
 
-// nSeats is the number of seats in this game. The default build plays two
-// and never reads the byte; the multiplayer build reads what InitN set.
+// nSeats is the number of seats in this game, as InitN set it: two in a duel
+// (and in a State never initialised).
 func (s *State) nSeats() uint8 {
-	if MaxSeats == 2 {
-		return 2
+	if n := s.g.nseat; n > 2 {
+		return n
 	}
-	return s.g.nseat
+	return 2
 }
 
 // NumSeats is the number of seats in this game, departed seats included
@@ -75,7 +75,7 @@ func mullOrderFrom(p, n uint8) [MaxSeats]uint8 {
 // out reports whether seat p has left the game (CR 800.4a). At two seats a
 // loss ends the game, so no live-seat walk ever meets a departed seat.
 func (s *State) out(p uint8) bool {
-	if MaxSeats == 2 {
+	if s.duel() {
 		return false
 	}
 	return s.pl[SeatIx(p)].lost
@@ -84,7 +84,7 @@ func (s *State) out(p uint8) bool {
 // nextAlive is the first seat after p in turn order that is still in the
 // game, or p when no other is (gorge state.Game.NextAlive).
 func (s *State) nextAlive(p uint8) uint8 {
-	if MaxSeats == 2 {
+	if s.duel() {
 		return 1 - p
 	}
 	n := s.nSeats()
@@ -105,7 +105,7 @@ func (s *State) nextAlive(p uint8) uint8 {
 // state.Game.AliveCount): a round of priority passes by each of them
 // resolves or advances (CR 117.4).
 func (s *State) aliveCount() uint8 {
-	if MaxSeats == 2 {
+	if s.duel() {
 		return 2
 	}
 	c := uint8(0)
@@ -121,7 +121,7 @@ func (s *State) aliveCount() uint8 {
 // defending player declares; gorge asks them one at a time, askBlockers).
 // At two seats it is the active player's one opponent.
 func (s *State) blockDef() uint8 {
-	if MaxSeats == 2 {
+	if s.duel() {
 		return 1 - s.active
 	}
 	return s.g.blkDef
@@ -130,7 +130,7 @@ func (s *State) blockDef() uint8 {
 // oppsM is the permanents p's opponents control: at two seats the other
 // seat's, at more the union of every other seat's.
 func (s *State) oppsM(p uint8) slotMask {
-	if MaxSeats == 2 {
+	if s.duel() {
 		return s.ctrlM[1-p]
 	}
 	var m slotMask
@@ -147,7 +147,7 @@ func (s *State) oppsM(p uint8) slotMask {
 // protector of the attacked battle (CR 310.8). A walker that has left
 // leaves its attacker with no defending player here, noSeat.
 func (s *State) atkSeat(k *prep, a Slot) uint8 {
-	if MaxSeats == 2 {
+	if s.duel() {
 		return 1 - s.active
 	}
 	t := s.perms[a].atk
@@ -168,7 +168,7 @@ func (s *State) atkSeat(k *prep, a Slot) uint8 {
 // attacking the defender declaring blockers now; at two seats every one.
 func (s *State) blockAtkM(k *prep) slotMask {
 	m := s.ctrlM[s.active]
-	if MaxSeats == 2 {
+	if s.duel() {
 		return m
 	}
 	for x := m; x.any(); x = x.rest() {
@@ -232,7 +232,7 @@ func (q *seatSeq) add(p uint8) {
 // aliveFrom is every seat still in the game in turn order from p (gorge
 // state.Game.AliveFrom): "each player" from the resolving controller.
 func (s *State) aliveFrom(p uint8) seatSeq {
-	if MaxSeats == 2 {
+	if s.duel() {
 		return seatSeq{s: [MaxSeats]uint8{p, 1 - p}, n: 2}
 	}
 	var q seatSeq
@@ -252,7 +252,7 @@ func (s *State) aliveFrom(p uint8) seatSeq {
 // oppsFrom is p's opponents still in the game, in turn order after p (gorge
 // reads "each opponent" as AliveFrom(p) without p; CR 102.3).
 func (s *State) oppsFrom(p uint8) seatSeq {
-	if MaxSeats == 2 {
+	if s.duel() {
 		return seatSeq{s: [MaxSeats]uint8{1 - p}, n: 1}
 	}
 	q := s.aliveFrom(p)
@@ -325,13 +325,13 @@ func (s *State) dmgSeat(rcp TCode, srcCtrl uint8) uint8 {
 	if isPlayerTarget(rcp) {
 		return CodeSeat(rcp)
 	}
-	if MaxSeats == 2 {
+	if s.duel() {
 		return 1 - srcCtrl
 	}
 	if isObjTarget(rcp) && s.objs[rcp].zone == kop.ZoneBattlefield {
 		return s.perms[s.objs[rcp].slot].ctrl
 	}
-	return NextSeat(srcCtrl)
+	return s.nextSeat(srcCtrl)
 }
 
 // oppDamaged reports whether damage mask plM (bit q: seat q was dealt
@@ -342,3 +342,9 @@ func oppDamaged(plM, p uint8) bool {
 	}
 	return plM&^(1<<p) != 0
 }
+
+// duel reports whether this game has two seats. A duel runs the two-seat
+// paths, which gorge's two-player rules read (the one opponent, the one
+// defending player); a pod runs the paths past two seats. A State that was
+// never initialised (nseat 0) counts as a duel.
+func (s *State) duel() bool { return s.g.nseat <= 2 }

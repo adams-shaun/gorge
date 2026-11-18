@@ -16,7 +16,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 	switch in.Op {
 	case kop.OpNop:
 	case kop.OpDealDamage:
-		if MaxSeats > 2 && in.Obj == kop.RefEachOpponent {
+		if !s.duel() && in.Obj == kop.RefEachOpponent {
 			// each opponent in turn, AliveFrom(controller) without it
 			q := s.oppsFrom(e.ctrl)
 			n := s.value(k, in.A)
@@ -147,7 +147,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// Defined$ Player loop; act_eachdiscard.go)
 			return s.startEachDiscard(k, in, s.res.e.ctrl)
 		}
-		if MaxSeats > 2 && in.Obj == kop.RefEachOpponent && in.F == 0 && in.C == kop.ChooseSelf {
+		if !s.duel() && in.Obj == kop.RefEachOpponent && in.F == 0 && in.C == kop.ChooseSelf {
 			// each opponent discards (gorge effDiscard over Defined$
 			// Opponent, AliveFrom(controller) without it): every opponent
 			// chooses in turn, then the cards move at once. At two seats the

@@ -972,7 +972,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			p = e.ctrl
 		}
 		if DebugChooseCardAmount2 {
-			p = NextSeat(p) // TestKchoosecardparamsMutation: another player picks
+			p = s.nextSeat(p) // TestKchoosecardparamsMutation: another player picks
 		}
 		// gorge cardChoices' filter tier reads You as the ACTIVATOR, never the
 		// chooser (engine/effects/choose_control.go cardChoicesIn: Demonic
@@ -1312,7 +1312,7 @@ func (s *State) eachPlayers(k *prep, r kop.Ref) seatSeq {
 
 // inAliveOrder reorders seats q as AliveFrom(controller) visits them.
 func (s *State) inAliveOrder(q seatSeq) seatSeq {
-	if MaxSeats == 2 {
+	if s.duel() {
 		if q.n == 2 && q.s[0] != s.res.e.ctrl && q.s[1] == s.res.e.ctrl {
 			q.s[0], q.s[1] = q.s[1], q.s[0]
 		}

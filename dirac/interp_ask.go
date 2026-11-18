@@ -2899,13 +2899,13 @@ func (s *State) pileMove(o Obj, z kop.Zone) {
 // player target (gorge's Targeted reads the targets' players in order). At
 // two seats it is the controller's opponent, the one player it can target.
 func (s *State) targetedExiler(ctrl uint8) uint8 {
-	if MaxSeats == 2 {
-		return NextSeat(ctrl)
+	if s.duel() {
+		return s.nextSeat(ctrl)
 	}
 	for i := range s.res.e.tgt {
 		if t := s.tgtCode(i); isPlayerTarget(t) {
 			return CodeSeat(t)
 		}
 	}
-	return NextSeat(ctrl)
+	return s.nextSeat(ctrl)
 }

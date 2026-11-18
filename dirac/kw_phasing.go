@@ -160,7 +160,7 @@ func (s *State) phaseOut(k *prep, sl Slot, indirect bool) {
 		s.nAttackers--
 	}
 	s.occ.clr(sl)
-	if MaxSeats == 2 {
+	if s.duel() {
 		s.ctrlM[0].clr(sl)
 		s.ctrlM[1].clr(sl)
 	} else {

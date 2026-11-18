@@ -22,7 +22,7 @@ const (
 )
 
 // noObj is no object. The encoders hold objects at the kernel's object
-// width (dirac.Obj: a byte),
+// width (dirac.Obj: nine bits),
 // so every object a position can hold has its own name.
 const noObj = dirac.NoObj
 
