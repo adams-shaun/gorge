@@ -2170,7 +2170,12 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 				continue
 			}
 			out.complete = false
-			out.gapGains = out.gapGains || !manaFeeNetsNoMana(e.manaAbilityCC(p, id, ma).Cost, effects.ManaOf(ma), e.potentialTapExtra(p, id, ma))
+			gcost, gmp, gextra := e.manaAbilityCC(p, id, ma).Cost, effects.ManaOf(ma), e.potentialTapExtra(p, id, ma)
+			best := int32(0)
+			for _, a := range alts {
+				best = max(best, int32(a.Mana.Total()))
+			}
+			out.gapGains = out.gapGains || !(manaFeeNetsNoMana(gcost, gmp, gextra) || manaTapAbilityNetsNoMore(gcost, gmp, gextra, best))
 			if !slices.Contains(out.gaps, id) {
 				out.gaps = append(out.gaps, id)
 			}
