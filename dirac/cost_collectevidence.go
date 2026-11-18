@@ -274,6 +274,9 @@ func (s *State) unpushActivation(k *prep) {
 	if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield && ob.activations() > 0 {
 		s.touch(e.obj)
 		ob.acts--
+		if e.trigObj != NoObj && s.grantActOn() {
+			s.dropGrantAct(e.obj)
+		}
 	}
 }
 

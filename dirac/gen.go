@@ -1827,6 +1827,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepChoosePlayer(t, g) // repl_chooseplayer.go
 	prepTokListAdd(t, g)   // repl_toklistadd.go
 	prepCold(g, &p.cold)
+	prepGrantAct(t, p) // act_grantledger.go
 	return g
 }
 
