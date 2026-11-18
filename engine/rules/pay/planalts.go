@@ -95,7 +95,7 @@ func PaymentPlanAbilityTier(e Engine, p state.PlayerID, id state.ObjID, ma *card
 	if tier == TierLastResort && c == (Consequence{}) {
 		return TierDeferred, Consequence{}, "source:last_resort"
 	}
-	switch it, ic, idetail, _ := e.Eval().SourceInterference(id, ma, ""); it {
+	switch it, ic, idetail, _, _ := e.Eval().SourceInterference(id, ma, ""); it {
 	case TierDeferred:
 		return it, ic, idetail
 	case TierLastResort:
@@ -194,47 +194,11 @@ func appendUnitAlternatives(e Engine, dst []Alt, u WindowUnit) (grown, alts []Al
 		default:
 			continue
 		}
-		ab, ok := PaymentAbility(e.Game(), u.ID, alt.Ma)
-		if !ok {
-			continue
-		}
 		if !sourceRead {
 			sourceRead = true
 			zoneSeq, creature = PaymentSourceZoneSeq(e, u.ID), slices.Contains(e.Chars().DerivedTypes(u.ID), "Creature")
 		}
-		if PlanAltOK(alt) {
-			m := alt.Mana()
-			produced := params.ManaOf(alt.Ma).Produced
-			if mp := params.ManaOf(alt.Ma); mp.CountsAny {
-				produced = altSymbol(m)
-			}
-			m = addTapExtra(e, u.ID, alt.Ma, produced, m)
-			if out == nil {
-				out = make([]Alt, 0, len(u.Alts))
-			}
-			out = append(out, Alt{Activation: decision.PaymentActivation{
-				Source: u.ID, SourceZoneSeq: zoneSeq, Ability: ab, Produces: ManaAmount(m)},
-				Mana: m, Creature: creature, Ma: alt.Ma, Tier: tier, Consequence: consequence})
-			continue
-		}
-		if !alt.Any || alt.Amt <= 0 {
-			continue
-		}
-		for _, col := range planAltChoiceColours(e, u.ID, alt) {
-			i := strings.IndexByte("WUBRG", col[0])
-			if i < 0 {
-				continue
-			}
-			var m state.Mana
-			m[i] = alt.Amt
-			m = addTapExtra(e, u.ID, alt.Ma, col, m)
-			if out == nil {
-				out = make([]Alt, 0, len(u.Alts))
-			}
-			out = append(out, Alt{Activation: decision.PaymentActivation{
-				Source: u.ID, SourceZoneSeq: zoneSeq, Ability: ab, Produces: ManaAmount(m)},
-				Mana: m, Creature: creature, Ma: alt.Ma, ExecProduced: col, Tier: tier, Consequence: consequence})
-		}
+		out = appendUnitAltRows(e, out, u, alt, tier, consequence, zoneSeq, creature)
 	}
 	// Preserve flexible sources: rank each selected source by every eligible
 	// outcome it could have supplied, rather than by only the outcome the
@@ -267,6 +231,47 @@ func appendUnitAlternatives(e Engine, dst []Alt, u WindowUnit) (grown, alts []Al
 	return grown, out
 }
 
+// appendUnitAltRows appends one census alternative's rows into dst with the
+// tier and consequence the caller's classification gave: the fixed production
+// as one row, or -- for the finite-choice shapes (Produced$ Any, an amount-1
+// Combo/Chosen/ColorIdentity) -- one row per producible colour, carrying the
+// selected colour in ExecProduced. It is the ONE home of that conversion, so
+// the census's rows and the second pass's gap rows (plandeferred.go) cannot
+// drift.
+func appendUnitAltRows(e Engine, dst []Alt, u WindowUnit, wa WindowAlt, tier Tier, c Consequence, zoneSeq uint64, creature bool) []Alt {
+	ab, ok := PaymentAbility(e.Game(), u.ID, wa.Ma)
+	if !ok {
+		return dst
+	}
+	if PlanAltOK(wa) {
+		m := wa.Mana()
+		produced := params.ManaOf(wa.Ma).Produced
+		if mp := params.ManaOf(wa.Ma); mp.CountsAny {
+			produced = altSymbol(m)
+		}
+		m = addTapExtra(e, u.ID, wa.Ma, produced, m)
+		return append(dst, Alt{Activation: decision.PaymentActivation{
+			Source: u.ID, SourceZoneSeq: zoneSeq, Ability: ab, Produces: ManaAmount(m)},
+			Mana: m, Creature: creature, Ma: wa.Ma, Tier: tier, Consequence: c})
+	}
+	if !wa.Any || wa.Amt <= 0 {
+		return dst
+	}
+	for _, col := range planAltChoiceColours(e, u.ID, wa) {
+		i := strings.IndexByte("WUBRG", col[0])
+		if i < 0 {
+			continue
+		}
+		var m state.Mana
+		m[i] = wa.Amt
+		m = addTapExtra(e, u.ID, wa.Ma, col, m)
+		dst = append(dst, Alt{Activation: decision.PaymentActivation{
+			Source: u.ID, SourceZoneSeq: zoneSeq, Ability: ab, Produces: ManaAmount(m)},
+			Mana: m, Creature: creature, Ma: wa.Ma, ExecProduced: col, Tier: tier, Consequence: c})
+	}
+	return dst
+}
+
 // PaymentPlanStepAlternative resolves one witness step to the exact
 // alternative the planner offers for its source: the one whose ability
 // identity AND production both equal the step's. Identity alone is not
@@ -294,7 +299,11 @@ func PaymentPlanStepAlternative(e Engine, units []WindowUnit, pa decision.Paymen
 			}
 		}
 	}
-	return Alt{}, false
+	// Not a census step: it may be a second pass's gap step (plandeferred.go),
+	// whose alternative the census's own rows never listed. The primary lookup
+	// above answers first, so a step the census now admits (the watcher that
+	// deferred the source left) is never read off the gap cache.
+	return PaymentPlanGapStep(e, pa)
 }
 
 // PaymentSourceZoneSeq is the existing log sequence of this object's current
@@ -346,7 +355,7 @@ func addTapExtra(e Engine, id state.ObjID, ma *cards.SA, produced string, m stat
 	if produced == "" {
 		return m
 	}
-	_, _, _, extra := e.Eval().SourceInterference(id, ma, produced)
+	_, _, _, extra, _ := e.Eval().SourceInterference(id, ma, produced)
 	for i := range m {
 		m[i] += extra[i]
 	}
