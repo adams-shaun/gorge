@@ -153,6 +153,61 @@ func attachedHasKind(s *state.Object, kind string, table []ObjectTypes) bool {
 	return s.Face() != nil && hasType(s, kind)
 }
 
+// attachmentKindTable is the attachment-kind read hasAttachmentOfKindCtx
+// makes: the layer walk's bound snapshot when it has one, else the published
+// layer-4 table.
+func attachmentKindTable(sc *SpecContext) []ObjectTypes {
+	if sc == nil {
+		return nil
+	}
+	table := sc.AttachmentTypes
+	if table == nil {
+		table = sc.Layers.DerivedTypes
+	}
+	return table
+}
+
+// modifiedPermanentCtx is the CR 700.9 `modified` body for a caller holding
+// a SpecContext (matchPositive's pre-map branch): the attachment halves read
+// their kind through attachmentKindTable, the same layer-4 snapshot the
+// neighbouring equipped/enchanted branch reads (CR 613.1d) -- a Convulsing
+// Licid its Animate has turned into an Aura carries the word only on its
+// derived type line, never on the printed face modifiedPermanent's fallback
+// tests, so the map's legacy body must not answer a context-aware caller.
+// The counter half and CR 700.9's Aura controller condition are unchanged.
+func modifiedPermanentCtx(g *state.Game, o *state.Object, sc *SpecContext) bool {
+	if o == nil {
+		return false
+	}
+	for _, c := range o.Counters {
+		// The engine's internal status markers ("Shield", "Deathtouched") ride
+		// Object.Counters but are not counters (CR 122.1), so they do not make
+		// a permanent modified (CR 700.9).
+		if c.N > 0 && !state.InternalCounterMarker(c.Kind) {
+			return true
+		}
+	}
+	if hasAttachmentOfKindCtx(g, o.ID, "Equipment", sc) {
+		return true
+	}
+	table := attachmentKindTable(sc)
+	for _, p := range g.AliveFrom(0) {
+		for _, sid := range g.Zone(state.ZBattlefield, p) {
+			s := g.Obj(sid)
+			if s == nil || s.AttachedTo != o.ID {
+				continue
+			}
+			if s.Controller != o.Controller {
+				continue
+			}
+			if attachedHasKind(s, "Aura", table) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // modifiedPermanent is the CR 700.9 body for the `modified` CardProperty: a
 // permanent is modified if it has one or more counters of any kind on it, is
 // equipped, or is enchanted by an Aura its controller also controls. The

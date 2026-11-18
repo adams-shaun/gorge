@@ -2250,6 +2250,16 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		}
 		return hasAttachmentOfKindCtx(g, o.ID, kind, &sc), true
 	}
+	if p == "modified" {
+		// CR 700.9: counters, equipped, or an Aura the candidate's controller
+		// controls. The attachment kinds are layer-4 types (CR 613.1d) -- a
+		// Convulsing Licid its Animate has turned into an Aura is an Aura only
+		// through its derived type line -- so the context-aware body reads the
+		// bound snapshot the equipped branch above reads, exactly why that
+		// branch bypasses predicates["equipped"]; modifiedPermanent keeps the
+		// printed-face fallback for callers without a SpecContext.
+		return modifiedPermanentCtx(g, o, &sc), true
+	}
 	if p == "token$DifferentCardNames" {
 		// Forge's token$DifferentCardNames set-level qualifier (Sandsteppe
 		// War Riders, Gimbal Gremlin Prodigy, Audience with Trostani, Neriv
