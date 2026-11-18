@@ -112,11 +112,14 @@ func (s *State) retraceLive(k *prep, o Obj) bool {
 // beside these; a granted one lands on any nonland permanent card in the
 // graveyard, so the same refusal list is applied to the granted card here
 // (buildPickCost's retrace branch returns the discard alone, so a spell's own
-// additional parts would be dropped). Keep the two lists in step.
+// additional parts would be dropped). Keep the two lists in step. Delve is
+// neither: it applies to the spell on the stack whatever zone it was cast
+// from (CR 702.66a), so offerRetraceCasts prices its graveyard credit as the
+// other graveyard walks do and the cast build's bsDelve stage asks it.
 func retraceGrantBarred(k *prep, c CardID) bool {
 	cd := &k.t.Cards[c]
 	return cd.Keywords&(kop.KwFlashback|kop.KwKicker) != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp || cd.Escape ||
-		cd.Convoke || cd.Improvise || cd.Delve || cd.Cost.X != 0 ||
+		cd.Convoke || cd.Improvise || cd.Cost.X != 0 ||
 		cd.HasWarp || cd.HasPlot || cd.HasSneak || cd.Impending != 0 || cd.HasBestow ||
 		cd.SpellCost.Flags != 0 || cd.HasAltAdd || cd.Offspring || cd.Gift || cd.MorphCost != (kop.ManaCost{}) ||
 		cd.Casualty != 0 || cd.Bargain || cd.OptCost.Flags != 0 || cd.Teamwork != 0 || cd.HasModeCost || cd.HasMadness ||
@@ -158,6 +161,10 @@ func (s *State) offerRetraceCasts(k *prep, d *Decision, p uint8, sorc bool, av *
 			have = true
 		}
 		fc := s.adjustCost(k, p, c, o, cd.Cost)
+		av.delve = s.tbDelveCredit(k, p, c, o, false) // the faces' credit (CR 702.66a)
+		if !av.tbLeafCredited(&fc) {
+			fc = s.delveOfferCredit(k, p, c, o, false, fc) // gorge's choke point credits the generic at this walk too
+		}
 		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, av) || !s.spellTargetsFeasibleFrom(k, c, p, o) || !s.spellCostsFeasible(k, c, p, o) {
 			continue
 		}
