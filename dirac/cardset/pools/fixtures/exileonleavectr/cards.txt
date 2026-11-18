@@ -1,9 +1,12 @@
 # the counters-on-exiled-cards pool (dirac/oracle/exileonleave_rider_lockstep_test.go):
 # Dauthi Voidwalker and Draugr Necromancer exile a dying card with a VOID or
 # ICE counter, and read the counter in exile (a filtered ChooseCard and a
-# may-play static), beside removal, a vanilla creature and basics.
+# may-play static), beside removal, a vanilla creature and basics. Kalitas,
+# Traitor of Ghet exiles an opponent's dying creature and mints a Zombie token
+# after the move (the replacement's rider prog, dirac/repl_exilerider.go).
 Dauthi Voidwalker
 Draugr Necromancer
+Kalitas, Traitor of Ghet
 Grizzly Bears
 Doom Blade
 Swamp
