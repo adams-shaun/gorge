@@ -328,7 +328,7 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 	// cannot absorb is rejected (gorge xAsk, convokeAbsorbs with xOpen false).
 	pays := func(x int) bool {
 		if !picks && !wbX {
-			return x <= mx || s.xReducedPays(k, av, x)
+			return x <= mx || s.xReducedPays(k, av, x) || s.xDelveWithinMx(k, e, x, av, anyColor)
 		}
 		c := base
 		if k.gen != nil && s.statM.any() {
