@@ -2200,6 +2200,7 @@ Yume, Chronicler of Valor
 Zada, Hedron Grinder
 Zagorka, Mother of Sanctum
 Zara, Renegade Recruiter
+Zellix, Sanity Flayer
 Zephid's Embrace
 Zombie Cutthroat
 Zombie Master

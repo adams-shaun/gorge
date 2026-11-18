@@ -207,6 +207,9 @@ type TriggerContext struct {
 	// card list does. rules sets it; resolvedRemembered and hostRemembered
 	// read it.
 	Chapter bool
+	// ChapterLast marks the Saga's final chapter ability (rules' checkChapterTriggers);
+	// trig:AbilityResolves' LastChapter reads it when the ability resolves.
+	ChapterLast bool
 	// RememberWriterAbove marks a chain walk past a link that remembers objects
 	// (RememberChanged$ and its family). The capture is then no fallback for
 	// Defined$ Remembered: the body named its memory, and a link that wrote

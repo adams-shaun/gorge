@@ -237,8 +237,10 @@ var kindInfo = [NumKinds]KindInfo{
 	EndCombatPhase:        {Name: "end_combat_phase", Trigger: TriggerNone, Describe: "The combat phase ends"},                                    // CR 724.2
 	ManaAbilityActivation: {Name: "mana_ability_activation", Trigger: TriggerAbilityPush, Describe: "{player} activates a mana ability of {obj}"}, // CR 605.1a marker: AbilityCast/SpellAbilityCast observe it, no stack object
 	ExileTurnFaceUp:       {Name: "exile_turn_face_up", Trigger: TriggerNone, Describe: "{obj} is turned face up in exile"},
-	SkipPhase:             {Name: "skip_phase", Trigger: TriggerNone, Describe: "{player} will skip a phase"}, // CR 614.10 bookkeeping read back through state.Game.PhaseSkips
-	Haunt:                 {Name: "haunt", Trigger: TriggerNone, Describe: "{obj} haunts a creature"},         // CR 702.55b bookkeeping read back through state.Object.Haunting
+	SkipPhase:             {Name: "skip_phase", Trigger: TriggerNone, Describe: "{player} will skip a phase"},          // CR 614.10 bookkeeping read back through state.Game.PhaseSkips
+	Haunt:                 {Name: "haunt", Trigger: TriggerNone, Describe: "{obj} haunts a creature"},                  // CR 702.55b bookkeeping read back through state.Object.Haunting
+	Countered:             {Name: "countered", Trigger: TriggerFullMatch, Describe: "{obj} is countered"},              // CR 701.6a marker read by trig:Countered
+	AbilityResolved:       {Name: "ability_resolved", Trigger: TriggerFullMatch, Describe: "{obj}'s ability resolves"}, // marker read by trig:AbilityResolves
 }
 
 // Info returns k's descriptor; ok is false for a value past the enum.

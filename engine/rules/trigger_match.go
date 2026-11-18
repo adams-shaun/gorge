@@ -656,7 +656,10 @@ var actionTriggerModes = map[string]bool{
 	// closed. MilledAll's once-per-turn cadence is its own batch latch (the
 	// mill entry), not this map; the map only makes ActivationLimit$ count
 	// the batch's single queue slot.
-	"Milled": true, "MilledAll": true,
+	"Milled": true, "MilledAll": true, "MilledOnce": true,
+	// Countered and AbilityResolves are event modes over their own marker Kinds, so
+	// ActivationLimit$ (Tom Bombadil's once each turn) and PlayerTurn$ apply.
+	"Countered": true, "AbilityResolves": true,
 	// DiscardedAll joins them for the same reason: it is an event mode
 	// registered from the start (trigmatch.discardedAllMatches over the discard MoveZone marker), so the trigger-level parameters
 	// Forge scopes to every event mode apply from day one -- ActivationLimit$
