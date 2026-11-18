@@ -1214,10 +1214,15 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	if lifeBefore > 0 && c.pl[SeatIx(fs.p)].life <= 0 {
 		// the step's own pain killed the payer: gorge's scriptSearch.visit
 		// ends the line at the game over (CR 104.3a, 704.5a), whatever the
-		// pool then pays
+		// pool then pays. The dead child is still a visited node of the
+		// budget there (sr.nodes charges before the game-over check), so the
+		// step costs its node: a search that walked lethal answers for free
+		// reached lines gorge's budget spent on them first (Karplusan
+		// Forest's painful {R} or {G} at one life)
 		if life {
 			fs.lifeUsed = fs.lifeUsed.without(st.sl)
 		}
+		fs.tick()
 		return false
 	}
 	fs.path[fs.n] = st
