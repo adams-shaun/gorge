@@ -1157,11 +1157,12 @@ const (
 	// order and Pairs[i] the layer-derived {power, toughness} of IDs[i] (each
 	// int32 carried as its uint32 bit pattern in an ObjID slot). The fold
 	// deep-copies those permanents from the live game into Object.
-	// CastBattlefield, which Count$LastStateBattlefieldWithFallback reads in
-	// place of the resolution-time battlefield. An event with no IDs freezes
+	// CastBattlefield, which Count$LastStateBattlefield and
+	// Count$LastStateBattlefieldWithFallback read in place of the
+	// resolution-time battlefield. An event with no IDs freezes
 	// an authoritative EMPTY battlefield. Emitted only for a spell whose
-	// script reads that head, so every other game keeps its chain. Appended
-	// after AbilityTriggered so every earlier ordinal is unchanged.
+	// script reads one of those heads, so every other game keeps its chain.
+	// Appended after AbilityTriggered so every earlier ordinal is unchanged.
 	CastBattlefield
 	// DrawBatchProposal is the synthetic pre-action proposal for one draw
 	// instruction's batch: Player is the player about to draw and Amount the
