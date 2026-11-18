@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -33,6 +34,32 @@ func (e *Engine) EffectiveKeywords() []effects.ObjectKeywords {
 				continue
 			}
 			derived := e.Derived(id).Keywords
+			if keywordsMatchPrinted(o, derived) {
+				continue
+			}
+			out = append(out, effects.ObjectKeywords{ID: id, Keywords: append([]string{}, derived...)})
+		}
+	}
+	return out
+}
+
+// effectiveKeywordsInWalk is EffectiveKeywords for a read made inside a layer
+// walk (a layer-7 amount counting creatures by keyword): it derives each
+// battlefield object nested, as Derived documents is allowed, and leaves out
+// the objects whose own walk is in progress, which keep the printed read (the
+// walk cannot re-enter them). Same order and entries as EffectiveKeywords.
+func effectiveKeywordsInWalk(g *state.Game, s *chars.Scratch, d interface{ Derived(state.ObjID) Derived }) []effects.ObjectKeywords {
+	var out []effects.ObjectKeywords
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			o := g.Obj(id)
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			if _, busy := s.InProgress(id); busy {
+				continue
+			}
+			derived := d.Derived(id).Keywords
 			if keywordsMatchPrinted(o, derived) {
 				continue
 			}
