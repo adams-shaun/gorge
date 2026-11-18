@@ -2062,6 +2062,25 @@ func (s *State) potentialTapUnit(p uint8, sl Slot, pc *pcard, mask uint8, add, f
 		fold(sl, mask, pc.manaN)
 		return
 	}
+	if xvMask(pc) != 0 {
+		// An all-at-once source's tap makes manaN mana of EACH colour in its
+		// production (Everglades' {C}{B}; gorge's planner adds each symbol),
+		// so the census records one unit per colour: the union unit would
+		// price the tap at ONE mana of one of its colours -- the choose-one
+		// semantics a Combo dual's unit carries -- and strand an X-bound-target
+		// announcement the source funds (Molder's {2}{G} off an Everglades and
+		// a Forest, xBoundPayable's sweep). The over-bound fold below adds n
+		// per colour either way. mergeTap's note stays empty: the note widens
+		// one unit, and an all-at-once tap's units are one per colour, so a
+		// further tap ability records its own unit.
+		if !painRefused {
+			for m := mask; m != 0; m &= m - 1 {
+				cen.rec(m&-m, pc.manaN)
+			}
+		}
+		fold(sl, mask, pc.manaN)
+		return
+	}
 	add(sl, mask, pc.manaN)
 	if !painRefused {
 		cen.tapRec(sl, mask, pc.manaN)
