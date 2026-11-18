@@ -222,12 +222,12 @@ func (e *Engine) targetChoiceFeasible(sa *cards.SA, candidates []targetCandidate
 // the same target census castModeAsk uses after the spell reaches the stack.
 // A mode whose target count depends on an announcement remains offerable.
 func (e *Engine) charmTargetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, xPending bool) bool {
-	return e.charmTargetsAvailableAt(p, id, excludeSelf, sa, 0, xPending)
+	return charmTargetsAvailableAt(e, p, id, excludeSelf, sa, 0, xPending)
 }
 
 // charmTargetsAvailableAt is charmTargetsAvailable judged at the announced X
 // x (xPending false), the census xBoundTargetPayable walks per candidate X.
-func (e *Engine) charmTargetsAvailableAt(p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, x int32, xPending bool) bool {
+func charmTargetsAvailableAt(e *Engine, p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, x int32, xPending bool) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return true
@@ -510,7 +510,7 @@ func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *c
 
 // charmModeXBound reports whether some mode of the Choices$ charm sa declares a
 // target bounded by the announced {X}.
-func (e *Engine) charmModeXBound(id state.ObjID, sa *cards.SA) bool {
+func charmModeXBound(e *Engine, id state.ObjID, sa *cards.SA) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return false
@@ -532,7 +532,7 @@ func (e *Engine) charmModeXBound(id state.ObjID, sa *cards.SA) bool {
 // reads the paid X breaks the price's monotony and is not judged here.
 func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, base Cost, scope costScope, ability bool) bool {
 	charm := sa != nil && sa.API == "Charm" && effects.CharmOf(sa).HasChoices
-	if base.X <= 0 || !(charm && e.charmModeXBound(id, sa) || !charm && effects.TargetsOf(sa).Has(effects.TgtValidXBound)) || costAnnouncesPaidX(base) {
+	if base.X <= 0 || !(charm && charmModeXBound(e, id, sa) || !charm && effects.TargetsOf(sa).Has(effects.TgtValidXBound)) || costAnnouncesPaidX(base) {
 		return true
 	}
 	bound := e.PotentialMana(p)
@@ -598,7 +598,7 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 		var hasTarget bool
 		if charm {
 			// Confront the Past: the X bound sits on a mode's target, not on the Charm.
-			hasTarget = e.charmTargetsAvailableAt(p, id, excludeSelf, sa, x, false)
+			hasTarget = charmTargetsAvailableAt(e, p, id, excludeSelf, sa, x, false)
 		} else {
 			hasTarget = e.targetSAAvailable(p, id, excludeSelf, sa, x, false)
 		}
