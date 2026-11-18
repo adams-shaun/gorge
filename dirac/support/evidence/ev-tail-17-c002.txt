@@ -1,42 +1,64 @@
 Acquisition Octopus
 Aether Vial
+Agonizing Demise
+Akroma's Devoted
 Aladdin
+Amass the Components
+Amrou Seekers
 Ancient Spider
 Arbalest Engineers
+Archangel of Thune
 Ardent Electromancer
 Arni Slays the Troll
+Arrogant Poet
+Audacious Infiltrator
 Aura of Dominion
 Awaken the Sky Tyrant
 Barbed Shocker
 Basilica Skullbomb
 Basking Broodscale
 Bedlam
+Belbe's Armor
 Beskir Shieldmate
 Big Game Hunter
 Big Score
 Black Panther, Claws of Bast
+Bladehold War-Whip
+Bog Smugglers
+Bonds of Mortality
 Brigone, Soldier of Meletis
 Burrenton Shield-Bearers
+Canopy Claws
+Canopy Spider
 Canyon Wildcat
 Catapult Fodder
 Chandra's Defeat
 Chasm Guide
+Cirith Ungol Patrol
 Cogwork Spy
 Collateral Damage
 Composer of Spring
 Containment Breach
+Council's Judgment
+Curate
+Curious Pair
 Curse of Verbosity
+Dauthi Warlord
 Dega Sanctuary
 Desert Nomads
+Dig Up
 Doomed Artisan
 Dragonlair Spider
 Drogskol Shieldmate
 Drossforge Bridge
 Eerie Soultender
 Elves of Deep Shadow
+Elvish Warrior
 Emergence Zone
 Emiel the Blessed
 Enthralling Victor
+Environmental Sciences
+Escape Protocol
 Exultant Skymarcher
 Facet Reader
 Far Wanderings
@@ -44,8 +66,10 @@ Festercreep
 Fevered Convulsions
 Fin-Clade Fugitives
 Fists of the Anvil
+Fledgling Djinn
 Fleet-Footed Monk
 Font of Fortunes
+Font of Return
 Forced Adaptation
 Forest
 Foul Imp
@@ -54,87 +78,134 @@ Garruk's Harbinger
 Gate of the Black Dragon
 Gearsmith Prodigy
 Geosurge
+Glacial Grasp
 Go-Shintai of Ancient Wars
 Goatnapper
 Goblin Piledriver
 Golden Demise
 Gorging Vulture
 Grafted Growth
+Gravepurge
 Graypelt Refuge
+Greataxe
+Greenbelt Rampager
 Headless Rider
 Heaven
+Heliod's Emissary
+Herbal Poultice
 Heronblade Elite
 Hidden Footblade
+Highland Berserker
+Hollowhenge Beast
+Horn of Greed
+Howlpack Resurgence
+Immersturm Raider
 Imp's Mischief
 In the Web of War
 Iname, Death Aspect
+Ingenious Smith
 Insatiable Appetite
 Iron Man, Titan of Innovation
 Iron-Heart Chimera
 Ironclaw Buzzardiers
 Island
+Juniper Order Advocate
 Kavu Runner
 Kazandu Stomper
 Kefnet's Last Word
 Key to the City
+Kiln Walker
+Kithkin Greatheart
 Kitsune Riftwalker
 Kodama of the South Tree
 Kragma Butcher
 Kytheon's Irregulars
+Lab Rats
 Landroval, Horizon Witness
 Larder Zombie
+Lavafume Invoker
 Lay Down Arms
 Lazotep Chancellor
 Life Chisel
+Liliana's Elite
 Looming Shade
 Lurking Nightstalker
 Mad Dog
+March of the Drowned
 Masked Blackguard
+Melancholy
+Metal Fatigue
 Meteoric Mace
 Might of the Old Ways
 Moderation
 Moira, Urborg Haunt
 Mosscoat Goriak
 Mountain
+Natural Reclamation
 Needle Specter
+Nightguard Patrol
+Nimble Mongoose
+Noble Steeds
 Norn's Inquisitor
 Ojutai, Soul of Winter
+Ollenbock Escort
+Opal Acrolith
+Orim's Prayer
 Pallid Mycoderm
+Panacea
 Parch
 Park Heights Maverick
+Passwall Adept
 Peel from Reality
 Peregrine Drake
+Phantom General
+Phyrexian Gremlins
 Plague Fiend
 Plague Sliver
 Plains
 Plover Knights
 Pollenbright Druid
 Portable Hole
+Preemptive Strike
+Primal Command
 Provoke
 Rage Nimbus
 Ratchet Bomb
 Rathi Intimidator
+Ray of Erasure
+Redemption Choir
 Renegade Demon
+Renegade Wheelsmith
 Restrain
 Roc of Kher Ridges
 Rockslide Ambush
 Rolling Thunder
+Ruin Raider
 Rumor Gatherer
 Rush of Adrenaline
 Ruthless Disposal
 Sai, Master Thopterist
+Sandstone Warrior
+Sangrite Surge
 Sapphire Drake
 Scorching Missile
 Scour from Existence
 Scrapwork Rager
 Scrivener
 Searchlight Geist
+Selvala's Enforcer
 Serra Avenger
+Shadow Rift
 Shagrat, Loot Bearer
 Shatter
+Sigarda, Font of Blessings
+Siren Lookout
 Skull of Orm
+Skyclave Sentinel
 Smell Fear
+Smog Elemental
 Snarespinner
+Sorin, Imperious Bloodlord
 Soul Swallower
 Specter of the Fens
 Sphinx's Tutelage
@@ -146,6 +217,7 @@ Street Urchin
 Strike It Rich
 Suki, Kyoshi Captain
 Summary Judgment
+Superior Numbers
 Swamp
 Tactical Advantage
 Take into Custody
@@ -153,16 +225,22 @@ Talara's Battalion
 Tapestry of the Ages
 Tectonic Rift
 The Binding of the Titans
+The Immortal Weapons
 Thriving Isle
+Throne of Empires
 Timberpack Wolf
+Torsten Von Ursus
 Tower of Calamities
 Treasure Mage
 Twilight's Call
 Undead Augur
+Valduk, Keeper of the Flame
 Vessel of Malignity
 Village Cannibals
 Virulent Plague
 Wetland Sambar
+Wild Leotau
+Wild Shape
 Winding Wurm
 Winged Portent
 Witness the Future

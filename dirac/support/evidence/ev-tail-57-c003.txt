@@ -5,6 +5,7 @@ Arm the Cathars
 Aspect of Mongoose
 Baboon Spirit
 Barbarian General
+Basim Ibn Ishaq
 Bayou Dragonfly
 Beledros Witherbloom
 Belle of the Brawl
@@ -34,6 +35,8 @@ Corpse Harvester
 Counterintelligence
 Court Homunculus
 Cradle Clearcutter
+Cruel Bargain
+Deathmask Nezumi
 Deathpact Angel
 Deer-Dog
 Desperate Plea
@@ -80,6 +83,7 @@ Lifeblood Hydra
 Lotus Field
 Malakir Cullblade
 Mardu Woe-Reaper
+Marsh Gas
 Mauhúr, Uruk-hai Captain
 Mayael's Aria
 Merfolk Looter
@@ -91,9 +95,11 @@ Mountain
 Nature's Chant
 Necromancer's Assistant
 Needleshot Gourna
+Netherborn Altar
 Nimble Pilferer
 Nylea's Emissary
 One with the Stars
+Ooze Garden
 Orochi Leafcaller
 Otarian Juggernaut
 Paradoxical Outcome
@@ -117,11 +123,13 @@ Rootwater Diver
 Ruthless Sniper
 Sanctum Seeker
 Sculpting Steel
+Seething Song
 Shalai, Voice of Plenty
 Shifting Sliver
 Short Sword
 Skarrg Guildmage
 Skittering Heartstopper
+Skyknight Legionnaire
 Slumbering Waterways
 Snowfield Sinkhole
 Soaring Show-Off
@@ -158,6 +166,7 @@ Wall of Wood
 Wandering Goblins
 War Behemoth
 Warped Tusker
+Warrior en-Kor
 Wee Dragonauts
 Wheel of Fortune
 Windstorm Drake

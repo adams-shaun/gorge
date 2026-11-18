@@ -1,28 +1,42 @@
+A-Exhibition Magician
 A-Guide of Souls
 A-Plate Armor
 A-Social Climber
 A-Teferi, Time Raveler
 Aang, Airbending Master
+Abhorrent Overlord
 Abomination, World Ravager
 Absorb
 Abzan Runemark
+Aim for the Head
 Ajani's Mantra
 Aku Djinn
+Alchemist's Greeting
 Alley Grifters
 Angelic Purge
 Aphotic Wisps
+Arashin Sovereign
+Armorer Guildmage
 Assassin Gauntlet
 Assault Strobe
 Astarion's Thirst
+Auriok Edgewright
 Avatar of Growth
 Aven Trooper
 Aven Windreader
+Azimaet Drake
+Azure Mage
 Barricade Breaker
 Battleflight Eagle
 Bearer of Memory
 Beastmaster's Magemark
+Bellows Lizard
+Benevolent Blessing
 Betrayal
+Big Game Hunter
 Black Sun's Twilight
+Blackbloom Rogue
+Blightwidow
 Blindblast
 Blinding Mage
 Blood Vassal
@@ -34,7 +48,10 @@ Brainsurge
 Bramblecrush
 Bronze Guardian
 Brood Sliver
+Calculated Dismissal
 Capashen Unicorn
+Cartouche of Solidarity
+Casey Jones, Back Alley Brute
 Cephalid Illusionist
 Chain Lightning
 Chaos Maw
@@ -46,119 +63,172 @@ Cinder Pyromancer
 City of Brass
 Civic Guildmage
 Cleopatra, Exiled Pharaoh
+Clickslither
+Cloudkill
 Colossal Dreadmaw
 Concordant Crossroads
+Condemn
 Confessor
 Constable of the Realm
 Constricting Tendrils
 Contortionist Troupe
+Corrupt
+Creature Bond
 Curse of Predation
+Cursed Totem
 Daemogoth Titan
 Danitha Capashen, Paragon
+Darksteel Brute
 Dauntless Bodyguard
 Deadly Insect
+Deadly Wanderings
 Death Speakers
 Deathleaper, Terror Weapon
 Debtor's Pulpit
 Defenestrate
+Deft Dismissal
 Descendant of Kiyomaro
+Despondency
+Devil Dinosaur
 Devoted Retainer
 Devouring Swarm
+Dire Fleet Interloper
 Disciple of Freyalise
 Divine Smite
 Doom's Servo-Guards
 Dragonborn Looter
 Dread Tiller
+Drudge Reavers
+Dwarven Recruiter
+Earthquake
 Easterling Vanguard
 Ebony Treefolk
 Echoing Calm
 Eiganjo Castle
 Eldrazi Mimic
+Elenda's Hierophant
 Ember-Fist Zubera
 Emeria Angel
 Encroaching Wastes
 Endless Wurm
 Entish Restoration
 Esika's Chariot
+Eternal of Harsh Truths
 Euroakus
+Fact or Fiction
 Fanatical Fever
 Feeding Frenzy
 Feldon, Ronom Excavator
 Ferocious Charge
+Fevered Strength
 Field Marshal
+Finale of Glory
 Fire Ambush
+Fire Prophecy
 Firemaw Kavu
 Flameskull
 Forest
+Forge, Neverwinter Charlatan
 Frightcrawler
 From the Rubble
 Frontier Mastodon
 Fumarole
+Fume Spitter
 Gaea's Bounty
+Gamekeeper
+Gang of Devils
 Gaze of Granite
 Ghalma's Warden
 Ghoulcaller's Bell
+Giant Scorpion
 Gift of Paradise
+Gimli's Axe
+Gixian Infiltrator
 Glittering Wish
 Gloomhunter
 Go-Shintai of Hidden Cruelty
 Goblin Arsonist
 Goblin Bushwhacker
+Goblin Commando
 Goblin Tinkerer
 God-Eternal Rhonas
+Goldnight Redeemer
+Goldwarden's Helm
+Gridlock
 Griptide
 Grismold, the Dreadsower
 Gruul Keyrune
 Guardian of the Guildpact
 Guul Draz Assassin
 Halberdier
+Hanweir Garrison
 Hardened Scales
 Haunted Crossroads
+Hell's Thunder
+Hellkite Igniter
 Hero's Resolve
+Hollow Dogs
 Horned Cheetah
 Horned Helm
 Hornet Cannon
 Hornet Cobra
 Hulk, Always Angry
+Idyllic Tutor
 Immortal Phoenix
+Incurable Ogre
 Inferno Fist
 Insidious Bookworms
 Involuntary Cooldown
 Island
 Jhoira's Familiar
 Jinxed Idol
+Keldon Strike Team
 Khenra Charioteer
+Kindle
 Kjeldoran Pride
 Knights of Dol Amroth
 Kor Blademaster
+Kraken of the Straits
+Kuldotha Flamefiend
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
 Late to Dinner
 Lava Axe
+Leonin Squire
 Lignify
 Liliana's Defeat
 Liliana's Elite
 Liliana's Standard Bearer
 Lokhust Heavy Destroyer
 MACH-1, Swooping Scoundrel
+Mad Auntie
 Magmatic Core
+Malach of the Dawn
 Malevolent Awakening
 Malicious Advice
 Maniacal Rage
+Maraxus of Keld
 Markov Dreadknight
+Marsh Hulk
 Marshaling Cry
 Master the Way
 Mayael the Anima
 Meadowboon
+Mega Flare
 Meng Huo, Barbarian King
 Merciless Executioner
+Metallic Mastery
+Midnight Duelist
 Mighty Emergence
 Millstone
 Mind Ravel
 Mist-Syndicate Naga
+Mistwalker
 Mold Folk
+Moldervine Reclamation
 Momentum Rumbler
+Monastery Swiftspear
 Moonveil Dragon
 Mountain
 Mulch
@@ -175,29 +245,40 @@ Novellamental
 Oran-Rief Ooze
 Orazca Frillback
 Oreskos Swiftclaw
+Outbreak
 Painwracker Oni
 Paladin Danse, Steel Maverick
 Pathbreaker Ibex
 Patient Rebuilding
 Peggy Carter, Secret Agent
+Phyrexian Prowler
 Plague Fiend
 Plains
+Planar Incision
 Planar Portal
 Pool Resources
 Portent of Betrayal
 Precision Bolt
+Preening Champion
+Preordain
 Prey Upon
+Priest of Ancient Lore
+Protect
 Psychotic Haze
 Pull from Tomorrow
 Purple Pentapus
 Putrid Imp
 Pyromantic Pilgrim
+Queen's Agent
+Quicksilver Wall
 Quilled Slagwurm
+Rabbit Battery
 Rag Dealer
 Raging Kavu
 Rakshasa's Disdain
 Rally Maneuver
 Rancid Rats
+Razorfin Abolisher
 Razortooth Rats
 Reaper of the Wilds
 Reaping the Rewards
@@ -206,6 +287,7 @@ Rekindled Flame
 Relief Captain
 Return to the Earth
 Reveille Squad
+Revel in Riches
 Reverent Mantra
 Riddlekeeper
 Ring of Three Wishes
@@ -213,18 +295,24 @@ Roar of the Crowd
 Roaring Slagwurm
 Roc Hunter
 Rockshard Elemental
+Ruby Medallion
+Rukh Egg
 Rundvelt Hordemaster
 Runeclaw Bear
+Ruthless Disposal
 Sabertooth Nishoba
 Sacred Cat
 Saheeli's Artistry
 Samurai Enforcers
 Sanctify
+Sandsteppe Mastodon
 Sapphire Dragon
 Savai Thundermane
 Scoria Wurm
 Scrapwork Cohort
 Scrivener
+Scroll of the Masters
+Search Party Captain
 Seismic Mage
 Selfless Spirit
 Shagrat, Loot Bearer
@@ -233,17 +321,22 @@ Shu Yun, the Silent Tempest
 Sigarda's Summons
 Sign in Blood
 Silent Sentinel
+Silver Knight
 Silverflame Squire
 Silverskin Armor
 Skirsdag Flayer
 Skizzik Surger
+Skyshaper
 Sleeper Agent
 Smash to Dust
 Smoldering Crater
 Snow-Covered Forest
+Sorcerous Sight
+Soul Salvage
 Speakeasy Server
 Spectral Rider
 Spitfire Handler
+Sporocyst
 Spurnmage Advocate
 Stampeding Rhino
 Steel Leaf Paladin
@@ -256,14 +349,21 @@ Sunstrike Legionnaire
 Sunweb
 Surrakar Marauder
 Swamp
+Sweep the Skies
 Sword of the Animist
 Talisman of Unity
+Tawnos's Tinkering
+Temporal Adept
+Tethered Griffin
 The Blue Spirit
 The Indomitable
 The Shattered States Era
 The Stasis Coffin
 Thopter Assembly
+Thought Collapse
 Thunder Totem
+Thunderbolt
+Thunderhead Squadron
 Tiller Engine
 Topaz Dragon
 Towering Indrik
@@ -271,6 +371,7 @@ Treetop Rangers
 Treetop Scout
 Triceraton Regenta
 Tuktuk Rubblefort
+Tuktuk the Explorer
 Tuya Bearclaw
 Twinshot Sniper
 Two-Headed Zombie
@@ -279,22 +380,36 @@ Unholy Indenture
 Unquestioned Authority
 Urza, Powerstone Prodigy
 Vagrant Plowbeasts
+Vampire Envoy
+Vengeful Vampire
 Venom, Eddie Brock
 Venser's Journal
+Verdant Touch
 Verge Rangers
+Veteran Bodyguard
 Vhati il-Dal
+Viashino Bladescout
+Vilis, Broker of Blood
 Vineweft
 Vintara Snapper
 Viridian Longbow
 Vital Splicer
 Vulshok Replica
+Walking Atlas
 Wall of Heat
 Warmonger Hellkite
+Warren Weirding
+Warren-Scourge Elf
 Waterkin Shaman
 Weapon Rack
+Weaver of Lightning
 Wei Scout
 Weirding Shaman
 Western Paladin
+Whispers of the Muse
+Wildfire Eternal
 Willow-Wind
 Woodland Liege
+Word of Seizing
 Zhalfirin Shapecraft
+Zuko, Firebending Master

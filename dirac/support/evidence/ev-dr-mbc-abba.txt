@@ -24,14 +24,17 @@ Chomping Changeling
 Citanul Woodreaders
 Cliffgate
 Cloudgoat Ranger
+Collective Resistance
 Colossal Skyturtle
 Commune with Nature
 Compulsion
 Conclave Evangelist
+Crimson Wisps
 Curiosity
 Curse of Disturbance
 Daring Demolition
 Disturbed Burial
+Dread Linnorm
 Dust to Dust
 Eater of the Dead
 Emiel the Blessed
@@ -64,6 +67,8 @@ Kiki-Jiki, Mirror Breaker
 Kitesail Skirmisher
 Lava Hounds
 Lord of the Accursed
+Meeting of Minds
+Mikokoro, Center of the Sea
 Miner's Bane
 Miss Highwater
 Mountain
@@ -77,6 +82,7 @@ Pentarch Ward
 Penumbra Kavu
 Plains
 Pore Over the Pages
+Power Word Kill
 Predator's Strike
 Price of Fame
 Price of Glory
@@ -93,6 +99,7 @@ Rush of Vitality
 Scale Up
 Shepherd of Rot
 Sifa Grent
+Spectral Procession
 Spidersilk Armor
 Staggershock
 Storm-Kiln Artist

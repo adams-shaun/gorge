@@ -5,18 +5,24 @@ Amarant Coral
 Apex Hawks
 Arc Runner
 Arrogant Outlaw
+Arrows of Justice
 Avatar of Woe
 Azorius First-Wing
 Barbed Lightning
 Bee Sting
+Bident of Thassa
 Blight Keeper
 Blowfly Infestation
 Boros Recruit
 Boseiju Reaches Skyward
+Brink of Disaster
+Broken Ambitions
 Bronzebeak Moa
 Brotherhood Outcast
 Brushstrider
+Buried Alive
 Burning Sands
+Cathar's Shield
 Crimson Fleet Commodore
 Crimson Muckwader
 Damnation
@@ -26,6 +32,7 @@ Demonic Taskmaster
 Douser of Lights
 Draining Whelk
 Duergar Hedge-Mage
+Dwarven Lieutenant
 Elemental Uprising
 Entomber Exarch
 Erratic Cyclops
@@ -35,24 +42,32 @@ Ferropede
 Finishing Blow
 Flameborn Hellion
 Flaring Flame-Kin
+Flowstone Giant
 Font of Vigor
 Forest
 Frogtosser Banneret
+Fruition
 Gaea's Might
 Geistflame
 Giant Ladybug
 Glint-Horn Buccaneer
 Glistening Deluge
+Goblin Dark-Dwellers
 Goblin Razerunners
 Goblin Trailblazer
+God-Favored General
+Gossamer Phantasm
 Guul Draz Specter
+Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
 Hobgoblin Dragoon
 Hollowsage
 Hornet Queen
+Huatli, Dinosaur Knight
 Humbler of Mortals
 Hungry Ridgewolf
+Ichorclaw Myr
 Infectious Horror
 Inflame
 Inquisitive Puppet
@@ -62,8 +77,10 @@ Lagac Lizard
 Lamentation
 Lull
 Major Teroh
+Marauding Raptor
 Marker Beetles
 Mary Read and Anne Bonny
+Metallic Sliver
 Mishra's Bauble
 Monstrous Growth
 Moon-Blessed Cleric
@@ -74,6 +91,7 @@ Overload
 Pain Kami
 Pangosaur
 Paradise Druid
+Pardic Collaborator
 Phoenix of Ash
 Phyrexian Pegasus
 Pilgrim of the Ages
@@ -103,6 +121,7 @@ Swooping Lookout
 Sylvok Explorer
 Thallid Shell-Dweller
 Third Path Iconoclast
+Thirsting Roots
 Three Tragedies
 Thrull Retainer
 Tonic Peddler

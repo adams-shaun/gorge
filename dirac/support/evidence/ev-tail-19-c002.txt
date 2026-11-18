@@ -11,6 +11,7 @@ Alena, Kessig Trapper
 Angel of Glory's Rise
 Armory Guard
 Attended Knight
+Avoid Fate
 Ballista Watcher
 Befoul
 Bellowing Saddlebrute
@@ -24,8 +25,10 @@ Buoyancy
 Cavern Crawler
 Cheering Fanatic
 Chief of the Foundry
+Civic Wayfinder
 Clash of Wills
 Conquering Manticore
+Constant Mists
 Copper Myr
 Coppercoat Vanguard
 Cradle to Grave
@@ -46,6 +49,7 @@ Disciple of the Ring
 Dreadhound
 Dreadlight Monstrosity
 Drowner Initiate
+Druid of Horns
 Drumbellower
 Dual Shot
 Dustin, Gadget Genius
@@ -53,6 +57,7 @@ Efreet Flamepainter
 Electrosiphon
 Elemental Augury
 Ellivere of the Wild Court
+Epiphany at the Drownyard
 Essence Infusion
 Everbark Shaman
 Evie Frye
@@ -85,6 +90,7 @@ Gonti, Lord of Luxury
 Grave Peril
 Graveblade Marauder
 Gravity Sphere
+Great Oak Guardian
 Grizzled Leotau
 Guardians of Oboro
 Halberdier
@@ -100,7 +106,9 @@ Infuriate
 Iona's Judgment
 Island
 Izzet Keyrune
+Jilt
 Karvanista, Loyal Lupari
+Kashi-Tribe Warriors
 Kazuul Warlord
 Keeper of Secrets
 Keldon Mantle
@@ -127,13 +135,17 @@ Mindculling
 Misers' Cage
 Mob Justice
 Molten Echoes
+Mortipede
 Mountain
 Murasa Brute
 Myr Sire
 Márton Stromgald
+Neheb, the Eternal
 Nimble Innovator
+Norwood Archers
 Obelisk of Alara
 Origin of Black Widow
+Orochi Sustainer
 Orzhov Signet
 Pang Tong, "Young Phoenix"
 Pearl Medallion
@@ -146,6 +158,7 @@ Pincer Spider
 Pinnacle of Rage
 Plains
 Predator's Rapport
+Pyrrhic Revival
 Quicksilver Amulet
 Rampant Rejuvenator
 Ransom Note
@@ -170,8 +183,10 @@ Shatterskull Smashing
 Shield-Wall Sentinel
 Shimmering Wings
 Shinechaser
+Shinen of Life's Roar
 Sif's Spearmaster
 Silas Renn, Seeker Adept
+Skeletal Wurm
 Sky Diamond
 Sky Theater Strix
 Soldier Replica
@@ -209,18 +224,23 @@ Vampiric Fury
 Vampiric Sliver
 Vedalken Aethermage
 Vendetta
+Vengeful Dreams
+Vengeful Reaper
 Visage of Bolas
 Vizkopa Vampire
 Wake the Dragon
 Wake the Past
 Walker of the Grove
+Wall of Roots
 Warlock Class
+Weaver of Harmony
 Where We're Going . . .
 Whetwheel
 Wind Dancer
 Winterflame
 Wirewood Herald
 Woodlot Crawler
+Yavimaya Sapherd
 You Hear Something on Watch
 You're Ambushed on the Road
 Zephyr Net

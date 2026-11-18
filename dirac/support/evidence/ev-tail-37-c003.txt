@@ -1,6 +1,7 @@
 A-Hobbling Zombie
 A-Skyclave Shadowcat
 Aerie Worshippers
+Aeronaut Cavalry
 Aether Sting
 Agent of Acquisitions
 Air Bladder
@@ -13,122 +14,194 @@ Atog
 Atrocious Experiment
 Automated Artificer
 Avalanche Riders
+Aven Reedstalker
 Barricade Breaker
 Beast Whisperer
+Big Wheel
 Blightreaper Thallid
 Blitz Leech
 Bog Tatters
 Bogstomper
+Boseiju Reaches Skyward
 Bountiful Promenade
 Brotherhood Vertibird
 Built to Last
 Cabal Executioner
+Calamity of Cinders
 Carnivorous Canopy
+Cave-In
 Centaur's Herald
 Chain of Plasma
 Champion's Drake
 Chief of the Edge
 Chrome Host Seedshark
+Citizen V, Helmut Zemo
 Clairvoyance
 Cliff Threader
+Cloudreach Cavalry
 Cloudseeder
 Conclave Evangelist
+Concordia Pegasus
 Conductor of Cacophony
 Constant Mists
 Controlled Instincts
+Crawling Chorus
+Crimson Kobolds
 Crumbling Ashes
 Crusher Zendikon
 Culling Ritual
+Damn
 Darkness
 Deadbridge Shaman
 Deal Broker
 Deathbringer Regent
+Deer-Dog
+Delightful Discovery
 Demon of Wailing Agonies
 Deploy the Gatewatch
 Despondency
 Deviant Skytech
 Dire Mimic
+Drag to the Underworld
 Dragon Moose
 Drogskol Cavalry
+Dusk's Landing
+Duskrider Falcon
 Earth-Cult Elemental
 Eidolon of Blossoms
 Eladamri's Call
 Elenda's Hierophant
 Elusive Krasis
+Emerald Oryx
 Enlisted Wurm
 Esper Cormorants
+Exultant Cultist
+Fading Hope
 Fallaji Excavation
+Fate Forgotten
+Flame Slash
 Flame of Anor
+Flameshot
 Fleshbag Marauder
+Flowstone Slide
 Force of Despair
 Forest
 Fractal Summoning
 Frogmite
+Frozen Shade
+Ghostfire Blade
 Goblin Patrol
 God-Eternal Rhonas
+Gore Swine
+Grave Venerations
 Gray Merchant of Asphodel
 Great Sable Stag
 Greatsword
+Guard Gomazoa
+Halo Hopper
+Hand of Silumgar
 Harmonic Prodigy
 Heartbeat of Spring
+Herald of Slaanesh
 Honor the God-Pharaoh
 Hooded Hydra
 Icatian Crier
+Icatian Priest
 In the Trenches
+Incubator Drone
 Infiltrate
 Infused Arrows
 Island
+Jhessian Lookout
+Jungle Delver
 Juzám Djinn
 Kabira Takedown
 Karlach, Fury of Avernus
+Kasimir the Lone Wolf
 Kavu Climber
+Kavu Glider
+King's Assassin
+Knight of Cliffhaven
+Kolaghan Monument
 Lazotep Reaver
 Lieutenant Kirtar
 Lightning Axe
 Llanowar Stalker
 Looter il-Kor
+Loxodon Anchorite
+Loxodon Gatekeeper
 Lumithread Field
+Lux Cannon
 Malevolent Rumble
 Marionette Master
+Markov Blademaster
 Master Apothecary
+Meishin, the Mind Cage
 Midnight Scavengers
+Millennial Gargoyle
+Mindstatic
 Mirror Wall
 Mob
 Monk Realist
+Morbid Plunder
 Mountain
 Mystifying Maze
+Navigation Orb
+Nearheath Chaplain
+Niambi, Faithful Healer
+Off Balance
 Organ Hoarder
+Orochi Merge-Keeper
 Paralyzing Grasp
 Pestilent Souleater
 Phyrexian Etchings
 Plains
 Pradesh Gypsies
+Prakhata Club Security
 Presence of Gond
 Presence of the Master
 Primal Empathy
+Professor Hulk
 Protomatter Powder
+Psionic Sliver
+Pulse of the Tangle
 Pumpkin Bombs
+Qilin's Blessing
 Quarrel's End
 Quest for Pure Flame
+Quicksilver Gargantuan
 Quirion Sentinel
+Ral's Outburst
 Ravenous Skirge
 Reach of Branches
+Reduce to Dreams
 Rhox Oracle
+Riptide
 Robot Chicken
 Rootwater Commando
 Rubblebelt Runner
 Ruby Medallion
 Sandstorm Charger
+Scalding Tongs
+Scorch Spitter
 Scrubland
+Sea Legs
 Sejiri Shelter
+Shadowfeed
 Shatterstorm
 Shimmering Mirage
 Shrieking Mogg
+Sickle Ripper
 Silkguard
+Silundi Vision
 Skyway Sniper
 Snapping Voidcraw
+Soratami Rainshaper
 Sorin's Vengeance
 Soul Reap
+Spellheart Chimera
+Spineless Thug
+Stand Firm
 Staunch Defenders
 Steadfast Paladin
 Steel Overseer
@@ -137,23 +210,40 @@ Subira, Tulzidi Caravanner
 Supply Runners
 Swamp
 Swarm Guildmage
+Tainted Adversary
 Tainted Indulgence
 Tangle Mantis
+Tangled Islet
 Target Minotaur
+Tenth District Veteran
+Tergrid's Shadow
+Terminal Agony
 The Brute
+The Meathook Massacre
 The Torment of Gollum
+Thraben Inspector
 Tithebearer Giant
 Towashi Guide-Bot
+Tradewind Rider
+Twilight Prophet
+Undead Butler
 Undergrowth Scavenger
 Vanquish the Foul
 Voices from the Void
+Wakedancer
 Walking Archive
+Walking Corpse
+Warped Physique
+Wei Elite Companions
 Whisper Squad
 Wicker Witch
+Wielding the Green Dragon
 Wildfire Emissary
 Will-o'-the-Wisp
 Witch's Cauldron
 Wizard's Lightning
 Worry Beads
+Wring Flesh
+Zealot of the God-Pharaoh
 Zephyr Boots
 Zuran Spellcaster

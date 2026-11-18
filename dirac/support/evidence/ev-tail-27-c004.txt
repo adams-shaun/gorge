@@ -2,21 +2,35 @@ A-Blood Artist
 A-Umara Mystic
 Alpine Watchdog
 Amarant Coral
+Ancient Crab
 Apex Hawks
 Arc Runner
 Archmage of Echoes
+Argothian Wurm
 Arrogant Outlaw
+Arrows of Justice
 Avatar of Woe
 Barbed Lightning
 Bee Sting
+Bident of Thassa
 Blasphemous Act
 Blight Keeper
 Blowfly Infestation
 Boseiju Reaches Skyward
+Bottomless Pit
+Bounding Krasis
+Brink of Disaster
+Broken Ambitions
 Bronzebeak Moa
 Brotherhood Outcast
 Brushstrider
+Buried Alive
 Burning Sands
+Canopy Dragon
+Captain of the Mists
+Captured Sunlight
+Cathar's Shield
+Conclave Naturalists
 Crimson Fleet Commodore
 Crimson Muckwader
 Damnation
@@ -24,7 +38,11 @@ Deal Gone Bad
 Deathforge Shaman
 Demonic Taskmaster
 Didn't Say Please
+Dispersing Orb
+Dwarven Lieutenant
+Electrosiphon
 Elemental Uprising
+Elvish Hunter
 Entomber Exarch
 Erratic Cyclops
 Evolved Sleeper
@@ -37,18 +55,26 @@ Flowstone Giant
 Font of Vigor
 Forest
 Frogtosser Banneret
+Fruition
 Gaea's Might
 Geistflame
 Ghor-Clan Bloodscale
 Giant Ladybug
 Glint-Horn Buccaneer
+Goblin Dark-Dwellers
 Goblin Razerunners
 Goblin Trailblazer
+God-Favored General
+Gossamer Phantasm
 Guul Draz Specter
+Gyre Engineer
+Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
 Hornet Queen
 Hypnotic Cloud
+Ichorclaw Myr
+Increasing Confusion
 Infectious Horror
 Inflame
 Inquisitive Puppet
@@ -57,12 +83,16 @@ Island
 Joven
 Lagac Lizard
 Lamentation
+Legolas Greenleaf
 Lull
 Maestros Initiate
 Major Teroh
+Marauding Looter
+Marauding Raptor
 Mardu Blazebringer
 Marker Beetles
 Mary Read and Anne Bonny
+Metallic Sliver
 Mishra's Bauble
 Monstrous Growth
 Moon-Blessed Cleric
@@ -70,22 +100,28 @@ Mountain
 Natural Reclamation
 Nirkana Assassin
 Offalsnout
+Old Ghastbark
 Overload
 Pangosaur
 Paradise Druid
+Pardic Collaborator
 Phoenix of Ash
 Phyrexian Pegasus
 Pilgrim of the Ages
 Plains
 Pygmy Kavu
+Rakdos the Defiler
 Realm Seekers
+Red Ghost, Intangible Genius
 Ripscale Predator
 Rite of Flame
 Rogue Elephant
 Rotlung Reanimator
+Sarcomite Myr
 Scorch Spitter
 Scuttling Sentinel
 Seashell Cameo
+Sedraxis Alchemist
 Selesnya Signet
 Shreds of Sanity
 Sigiled Contender
@@ -96,6 +132,7 @@ Southern Paladin
 Splatter Goblin
 Sticky Fingers
 Storm-Kiln Artist
+Stormcloud Spirit
 Stun
 Stunning Shot
 Swamp
@@ -104,15 +141,19 @@ Swooping Lookout
 Sylvok Explorer
 Thallid Shell-Dweller
 Third Path Iconoclast
+Thirsting Roots
 Three Tragedies
 Thrull Retainer
 Tonic Peddler
 Troubled Healer
 Twinferno
 Ulvenwald Oddity
+Unwind
 Valiant Guard
 Viconia, Drow Apostate
+Vodalian Hexcatcher
 Voracious Cobra
 Weatherlight
 Will-Forged Golem
 Woodborn Behemoth
+Zuri, Warrior of Wakanda

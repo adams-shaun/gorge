@@ -1,3 +1,4 @@
+Abandon Reason
 Alena, Kessig Trapper
 Arctic Merfolk
 Argent Mutation
@@ -6,7 +7,10 @@ Aspect of Manticore
 Autumn Willow, Harmony
 Aven Reedstalker
 Battlefly Swarm
+Battlewise Valor
+Blessed Defiance
 Blinding Souleater
+Brion Stoutarm
 Burning Wish
 Cackling Fiend
 Campfire
@@ -15,22 +19,33 @@ Clackbridge Troll
 Consulate Skygate
 Coordinated Assault
 Coral Commando
+Court of Ardenvale
 Cursed Minotaur
 Dark Privilege
 Delayed Blast Fireball
 Devoted Paladin
+Disciple of Kangee
 Emissary of Hope
 Ertai Resurrected
+Excoriate
 Eyeblight Massacre
 Falkenrath Pit Fighter
 Fanatic of Mogis
 Fell Stinger
 Final-Sting Faerie
 Forest
+Gemhide Sliver
+General Thunderbolt Ross
 Gift of Growth
+Gilded Assault Cart
+Goblin Battle Jester
 Goblin Sharpshooter
 Gorilla Chieftain
+Grazing Whiptail
+Grim Poppet
+Guide of Souls
 Guul Draz Overseer
+Halo Hunter
 Heedless One
 Hell Mongrel
 Hellraiser Goblin
@@ -40,13 +55,18 @@ Hulking Ogre
 Impetuous Protege
 Industrial Advancement
 Island
+Jackhammer
 Jousting Lance
 Kalonian Twingrove
 Kaya's Ghostform
 Kessig Dire Swine
+Kitsune Bonesetter
 Latch Seeker
 Legacy Weapon
 Leveler
+Life Chisel
+Life Insurance
+Light of Hope
 Lightning Elemental
 Long-Lost Lances
 Loxodon Mystic
@@ -57,33 +77,51 @@ Moldgraf Millipede
 Mountain
 Mwonvuli Ooze
 Noble Steeds
+Ox Drover
+Pestilence Rats
 Plains
 Plunder
 Pouncing Cheetah
 Psionic Snoop
 Purraj of Urborg
+Quick-Draw Dagger
 Rage Thrower
 Rain of Embers
+Ravages of War
 Raven Wings
 Rejuvenating Springs
+Requiem Angel
 Resolute Blademaster
 Rigging Runner
+Risona, Asari Commander
+Royal Falcon
+Sadistic Obsession
 Sandsteppe War Riders
+Sarkhan's Catharsis
 Screams of the Damned
+Shambling Remains
 Skyblinder Staff
+Smashing Spree
 Snapping Thragg
 Soul Barrier
 Soul-Strike Technique
 Spidersilk Net
 Spitemare
 Stabbing Pain
+Start from Scratch
+Steelform Sliver
 Stir the Pride
 Stonybrook Angler
+Strider Harness
 Stronghold Assassin
 Sun Droplet
 Swamp
 Swift Maneuver
 The Spike Cactus
+Tivadar's Crusade
 Tresserhorn Sinks
+Unholy Officiant
 Valeria Richards, Precocious
+Wall of Blood
 Wight
+Wooden Cane

@@ -1,118 +1,251 @@
+A-Circuit Mender
+Abzan Battle Priest
 Agility Bobblehead
+Akuta, Born of Ash
+Ambulatory Edifice
 Ancient Stirrings
+Assault Strobe
+Automated Artificer
+Avenging Huntbonder
+Barrin, Master Wizard
+Bedlam Reveler
+Blight Grenade
+Blood Lust
+Blood Money
+Bold Impaler
+Bone Dragon
+Bonesplitter
+Borrowed Malevolence
 Bottle Gnomes
 Brass Gnat
+Bristling Hydra
 Cabal Evangel
+Canopy Stalker
+Celestial Force
+Chandra, Bold Pyromancer
 Chaplain's Blessing
 Chariot of the Sun
 Chasm Drake
 Chorus of the Tides
 Cinder Wall
+Cleansing Ray
 Cleaving Sliver
 Cleon, Merry Champion
+Clockwork Beetle
+Cold-Eyed Selkie
 Continue?
+Cryptothrall
+Crystal Dragon
+Cunning Geysermage
 Curio Vendor
+Curse of Verbosity
 Dauntless Bodyguard
+Deathspore Thallid
+Deep-Sea Terror
+Deepglow Skate
 Delusions of Mediocrity
+Deny Existence
 Depose
+Devastate
 Dimir Aqueduct
+Diver Skaab
+Dogpile
+Dreamstone Hedron
+Drey Keeper
 Drownyard Temple
 Elite Vanguard
 Embereth Shieldbreaker
+End-Raze Forerunners
+Ephara's Dispersal
 Excommunicate
+Expedition Raptor
 Eye of Nowhere
 Faithbearer Paladin
 Fatal Attraction
+Feiyi Snake
 Feral Invocation
 Fevered Suspicion
+Fierce Witchstalker
 Fire Urchin
 Flameshadow Conjuring
 Flatten
+Flowstone Kavu
+For the Emperor!
 Forest
 Forgotten Cave
 Fortitude
+Fortress Crab
+Frilled Sandwalla
+Funeral March
 Furtive Analyst
+Geosurge
+Gerrard Capashen
+Giant Solifuge
 Gladecover Scout
 Goblin Morningstar
 Goblin Roughrider
+Grave-Shell Scarab
+Greater Basilisk
 Ground Rift
 Guild Thief
+Gust-Skimmer
+Guul Draz Mucklord
 Hardened-Scale Armor
 Headless Horseman
 Hellkite Charger
 Hieromancer's Cage
 Holy Armor
 Honor Troll
+Humble Defector
+Illusionary Armor
 Increasing Devotion
 Infectious Inquiry
+Inner Struggle
 Iroas's Blessing
 Island
 Ivy Seer
 Jalira, Master Polymorphist
+Jeering Homunculus
+Jhessian Thief
+Jodah's Avenger
 Judge of Currents
+Jund Battlemage
 Jungle Barrier
 Jungle Basin
 Kapsho Kitefins
+Kenrith, the Returned King
+Kithkin Healer
+Kithkin Spellduster
+Koma's Faithful
+Lifesmith
 Lord of Change
+Lord of the Accursed
 Lore Seeker
+Malanthrope
+Malevolent Awakening
+Malevolent Whispers
+Malfunction
+Malignant Growth
+Mana Severance
 Maniacal Rage
+Masumaro, First to Live
 Memorial to Folly
 Mental Note
 Mightstone
+Mindbreak Trap
+Mindshrieker
 Mirri's Guile
 Misguided Rage
 Morphling
 Mountain
+Mountain Goat
+Mox Diamond
 Murasa Behemoth
+Necropolis Regent
 Neurok Replica
+Null Caller
 Ogre Errant
 Oppressive Will
+Orgg
+Pack Rat
 Paradise Mantle
+Pestilent Cauldron
 Pheres-Band Warchief
+Phyrexian Crusader
 Plains
 Primal Whisperer
+Puppet's Verdict
+Puppeteer
+Quirion Trailblazer
+Rage Thrower
+Ransack
 Reclaim
+Rhystic Study
 Rocksteady, Mutant Marauder
+Roiling Waters
 Rotted Hystrix
+Rotting Legion
 Ruin Raider
+Saddled Rimestag
 Sagu Archer
+Sandstorm Charger
+Scab-Clan Charger
+Scour the Laboratory
+Scourge of Numai
+Screams of the Damned
 Searing Blood
 Senate Courier
+Serra Aviary
 Shuri's Fabricator
+Sibsig Host
+Sidewinder Naga
+Silkguard
+Simic Slaw
+Sivvi's Ruse
 Skittish Kavu
 Skulking Ghost
+Skullslither Worm
 Skyboon Evangelist
+Skyshroud Blessing
+Skyshroud Vampire
 Skysnare Spider
 Sly Spy
+Smogsteed Rider
+Snapback
 Snow-Covered Plains
+Soratami Mirror-Mage
 Sorcerous Sight
 Southern Paladin
 Spara's Headquarters
+Spawning Kraken
+Spider-Man, Peter Parker
+Spirit Cairn
 Spiritual Sanctuary
 Spore Frog
+Starlit Mantle
 Steelform Sliver
 Steppe Glider
 Stern Dismissal
 Stoneshaker Shaman
 Stoneskin
+Stonybrook Schoolmaster
 Storm the Seedcore
 Strip Mine
+Sulfur Elemental
 Sun-Collared Raptor
+Sunken City
 Swamp
 Sword of the Animist
 Sylvan Ranger
+TVA Bureaucrat
+Tallyman of Nurgle
+Tectonic Break
 Thraben Charm
+Threads of Disloyalty
+Thunderous Wrath
+Thunderscape Apprentice
 Tideshaper Mystic
+Timid Drake
+Touch of the Eternal
+Tower Geist
 Tranquil Grove
 Traumatize
 Treefolk Healer
 Tyrant's Familiar
 Unholy Officiant
+Union of the Third Path
+Unleash Fury
 Unwilling Ingredient
+Veteran Brawlers
 Viashino Outrider
 Void Helix
 Voidmage Prodigy
 Volcano Imp
 Wall of Lava
+Wanderer's Intervention
+Wanderer's Strike
+Warclamp Mastiff
 Wei Strike Force
+Wispweaver Angel
 Witch's Web
+Yellow Scarves General
