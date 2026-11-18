@@ -2254,6 +2254,13 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 		post = false
 		for { // a leaf: the deepest gap with an answer left, else done
 			if depth == 0 {
+				if m, ok := s.scriptPartialResolve(k, a, p, order, ctr, restr, anyR, tapsDef, ca, dead); ok {
+					// the fallback validated every gap of the prefix with its first
+					// answer; the exhausted walk left path[] at the last ones, and the
+					// callers replay the script from path
+					clear(path[:m])
+					return m, true // a shorter prefix, resolved, leaves the payer alive (mana_tapspartial.go)
+				}
 				if stall != 0 {
 					// every line failed and one ran into a rule gap the kernel
 					// stalls by name: declare it, not "no payment" (tapXScript's
