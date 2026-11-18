@@ -167,8 +167,8 @@ func (s *State) ctrBesideGrant(k *prep, p uint8) bool {
 	}
 	for b := m; b.any(); b = b.rest() {
 		a := k.ctrAbOf(s.cardAt(b.first()))
-		if !deadCtrAb(a) && !kop.StoreManaAb(a) && !sacCtrManaAb(a) {
-			return true // the grant search lists only the plain shapes (candidates)
+		if !deadCtrAb(a) && !kop.StoreManaAb(a) {
+			return true // the grant search lists the plain and counter-scaled sacrifice shapes (candidates)
 		}
 	}
 	return false
@@ -357,9 +357,9 @@ func (s *State) ctrGap(k *prep, p uint8, sl Slot, col int) {
 // (ctrTry): like the other branches' forks (eachTry) it taps plainly and
 // leaves the tap's trigger passes to grantApply, so the search does not see
 // a trigger of its own step pending (waitsForStack would dead-end the
-// branch). The dead, storage and counter-scaled sacrifice shapes are no
-// grant-search candidates (candidates, mana_grantedoffers.go), so fire
-// reaches only the plain path.
+// branch). The dead and storage shapes are no
+// grant-search candidates (candidates, mana_grantedoffers.go); the
+// counter-scaled sacrifice shape is one, and always fires.
 func (s *State) ctrGapDo(k *prep, p uint8, sl Slot, col int, fire bool) {
 	c := s.cardAt(sl)
 	a := k.ctrAbOf(c)
@@ -368,7 +368,7 @@ func (s *State) ctrGapDo(k *prep, p uint8, sl Slot, col int, fire bool) {
 		return
 	}
 	if sacCtrManaAb(a) {
-		s.sacCtrGap(k, p, sl, a, col) // mana_sacctr.go: no fork-side branch reaches it
+		s.sacCtrGap(k, p, sl, a, col) // mana_sacctr.go: it always fires, the search's step too
 		return
 	}
 	if deadCtrAb(a) {

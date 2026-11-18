@@ -18,8 +18,9 @@ import (
 // chain's step taps it, adds that much mana and sacrifices it (ctrGapDo). It
 // is no gap at all while it holds no counter: its amount then resolves to
 // zero, so gorge's census drops it (manaAbilityYieldsNothing) and no prefix
-// activates it. It is no grant-search candidate and no ward or unless window
-// pick, as before.
+// activates it. It is a grant-search candidate (a Gift of Paradise's two mana beside
+// a Lotus Blossom's petals pay one cast: gorge's one prefix search activates
+// both) and no ward or unless window pick.
 
 // sacCtrManaAb reports whether mana ability a is that shape: {T} and a
 // sacrifice of the source, no mana, as many mana as the counters of one kind
@@ -62,7 +63,7 @@ func (s *State) sacCtrUnits(sl Slot, a *kop.Ability) int {
 // {T}, then the mana its counters count, then the sacrifice (gorge pays the
 // cost first and the amount reads the source's last known counters; the pool
 // is the same either way). It always runs the activation's trigger passes
-// (manaTapped, fireSac): the shape is no grant-search candidate
+// (manaTapped, fireSac): the grant search's step runs them at once too
 // (mana_grantedoffers.go), so ctrGapDo's fire false fork-side branch never
 // reaches it and there is no deferred grantApply pass to leave them to. ask is
 // an any-colour ability's colour answer (-1: the lowest colour).
