@@ -528,16 +528,47 @@ func (f *Face) deriveColourIdentity() uint8 {
 // must not set the intrinsic flag).
 func cdaAllCreatureTypes(sts []Static) bool {
 	for _, s := range sts {
-		if s.Mode != "Continuous" || !strings.EqualFold(strings.TrimSpace(s.ParamStr(PKCharacteristicDefining)), "True") {
+		if s.Mode != "Continuous" || !paramTrue(s, PKCharacteristicDefining) {
 			continue
 		}
-		if !strings.EqualFold(strings.TrimSpace(s.ParamStr(PKAddAllCreatureTypes)), "True") {
+		if !paramTrue(s, PKAddAllCreatureTypes) {
 			continue
 		}
-		if aff := strings.TrimSpace(s.ParamStr(PKAffected)); aff != "" && !strings.Contains(aff, "Self") {
-			continue
+		if affSelf(s) {
+			return true
 		}
-		return true
+	}
+	return false
+}
+
+// paramTrue reads key k as the True flag the printed-CDAs gates share
+// (cdaAllCreatureTypes, cdaAddTypes): one trim-and-compare, defined once so
+// the strings ratchet (internal/codeshape/strings_ratchet_test.go) holds.
+func paramTrue(s Static, k ParamKey) bool {
+	return strings.EqualFold(strings.TrimSpace(s.ParamStr(k)), "True")
+}
+
+// affSelf reports whether the static's Affected$ scopes it to its own card:
+// an empty Affected$ counts as self-scoped for a printed CDA (an
+// Affected$ Card.Self line names it); a static that affects OTHER
+// permanents — Maskwood Nexus's Affected$ Creature.YouCtrl grant, handled by
+// the rules layer walk — is not the card's own type.
+func affSelf(s Static) bool {
+	aff := strings.TrimSpace(s.ParamStr(PKAffected))
+	return aff == "" || strings.Contains(aff, "Self")
+}
+
+// conditionalStatic reports whether the static carries any Condition$
+// parameter: the intrinsic every-zone read cannot evaluate a condition, so
+// a conditional static stays the rules layer walk's (fail closed). The raw
+// parameter keys are scanned byte-wise — the map is read once at load and
+// the strings ratchet (internal/codeshape/strings_ratchet_test.go) holds the
+// package's strings.* call count.
+func conditionalStatic(s Static) bool {
+	for k := range s.Params {
+		if len(k) >= 9 && k[:9] == "Condition" {
+			return true
+		}
 	}
 	return false
 }
@@ -553,23 +584,11 @@ func cdaAllCreatureTypes(sts []Static) bool {
 func cdaAddTypes(sts []Static) []string {
 	var out []string
 	for _, s := range sts {
-		if s.Mode != "Continuous" || !strings.EqualFold(strings.TrimSpace(s.ParamStr(PKCharacteristicDefining)), "True") {
+		if s.Mode != "Continuous" || !paramTrue(s, PKCharacteristicDefining) {
 			continue
 		}
-		add := strings.TrimSpace(s.ParamStr(PKAddType))
-		if add == "" {
-			continue
-		}
-		for k := range s.Params {
-			if strings.HasPrefix(k, "Condition") {
-				add = ""
-				break
-			}
-		}
-		if add == "" {
-			continue
-		}
-		if aff := strings.TrimSpace(s.ParamStr(PKAffected)); aff != "" && !strings.Contains(aff, "Self") {
+		add := s.ParamStr(PKAddType)
+		if add == "" || conditionalStatic(s) || !affSelf(s) {
 			continue
 		}
 		for _, w := range strings.Split(add, "&") {
