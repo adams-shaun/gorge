@@ -253,11 +253,8 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// gorge definedSpecEquipped reads all three
 		return lRef{Kind: rEquipped}, nil
 	case "Remembered", "RememberedLKI", "RememberedCard":
-		if v == "Remembered" && lc.remOppLink() {
-			return lRef{Kind: rEachOpp}, nil // lower_remembered.go
-		}
-		if ref, ok := lc.capturedTriggerRef(v); ok {
-			return ref, nil // lower_effeottrig.go
+		if r, ok := lc.rememberedAlias(v); ok {
+			return r, nil
 		}
 		// RememberedCard: gorge definedSpecRememberedCard,
 		// the non-player entries of the remembered list, which is all the
