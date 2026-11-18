@@ -1,7 +1,7 @@
 {
   "card": "Ugin, Eye of the Storms",
-  "class": "unmodelled-tokatkask",
-  "why": "gorge does something the kernel does not model here (stall tokatkask); 11 games in the corpus",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards[].Zone: after the ward counter moved Ugin's cast trigger's target off the stack, gorge's stack is empty and the kernel still holds the trigger with its target; 1 game in the sweep",
   "repro": {
     "pool": "custom",
     "surface": "full",
@@ -9,6 +9,6 @@
     "pair": 0,
     "policy": "random",
     "mulligans": 0,
-    "file": "ugin_eye_of_the_storms_token_attack_unmodelled"
+    "file": "ugin_eye_of_the_storms_cast_trigger_after_ward_counter"
   }
 }
