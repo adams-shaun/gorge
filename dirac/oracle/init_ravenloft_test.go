@@ -25,8 +25,8 @@ var kravenDecks = func() [2][]cardset.Entry {
 // (DungeonsCompleted$Amount, genState's coldDDone), as the card reads, and
 // pays by the defender-owned exile count
 // (TriggeredDefendingPlayer$ValidExile Card.YouOwn+counters_GE1_HIT). Gorge
-// reads both heads (engine/effects count_body_player.go's DungeonsCompleted$
-// arm, count_ref_property.go's TriggeredDefendingPlayer Valid-family widening),
+// reads both heads (engine/effects count.go's DungeonsCompleted$
+// head, count_ref_property.go's TriggeredDefendingPlayer Valid-family widening),
 // so the pool is strict lockstep like TestInitLockstep.
 func TestRavenloftLockstep(t *testing.T) {
 	t.Parallel()

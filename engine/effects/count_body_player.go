@@ -124,42 +124,7 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 		return av, aok, true
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
-		if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
-			return n, true, true
-		}
-		if n, ok2 := lifeExtreme(g, opponentGroup(g, c), rest); ok2 {
-			return n, true, true
-		}
-		if n, ok2 := hasPropertyLostLifeCount(h, opponentGroup(g, c), rest); ok2 {
-			return n, true, true
-		}
-		if rest == "HasPropertycontrolsCreature.powerGE4" && arg == "" {
-			// Yojimbo's chapter IV counts opponents, not creatures. Read the
-			// battlefield and derived power (including continuous effects).
-			seen := make(map[state.PlayerID]bool)
-			for i := range g.Objs {
-				o := &g.Objs[i]
-				if o.Zone == state.ZBattlefield && o.Controller != c.Controller &&
-					h.IsCreature(o.ID) && h.Power(o.ID) >= 4 {
-					seen[o.Controller] = true
-				}
-			}
-			var n int32
-			for _, p := range opponentGroup(g, c) {
-				if seen[p] {
-					n++
-				}
-			}
-			return n, true, true
-		}
-		if n, ok2 := hasPropertyStateBacked(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
-			return n, true, true
-		}
-		if n, ok2 := playerCountCondition(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
-			return n, true, true
-		}
-		av, aok := playerCountExtreme(h, g, c, opponentGroup(g, c), rest, arg)
-		return av, aok, true
+		return evalPlayerCountOpponents(h, c, g, rest, arg)
 	}
 	// PlayerCountHasLost$<Property> — Forge's group of players who have LOST
 	// the game (CR 104.2-3; a concession counts). `Amount` counts them, so
@@ -308,6 +273,49 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 		return dotBranch(h, c, branches, g.IsStartingPlayer(c.Controller), depth), true, true
 	}
 	return 0, false, false
+}
+
+// evalPlayerCountOpponents is the PlayerCountOpponents$<Property> arm of
+// evalCountBodyPlayer (the same group-property chain the Players$ arm runs,
+// with the group the opponent set) — extracted verbatim so the evaluator
+// stays under its ceiling; the shared family comment lives at the call site.
+func evalPlayerCountOpponents(h Host, c *Ctx, g *state.Game, rest, arg string) (int32, bool, bool) {
+	if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
+		return n, true, true
+	}
+	if n, ok2 := lifeExtreme(g, opponentGroup(g, c), rest); ok2 {
+		return n, true, true
+	}
+	if n, ok2 := hasPropertyLostLifeCount(h, opponentGroup(g, c), rest); ok2 {
+		return n, true, true
+	}
+	if rest == "HasPropertycontrolsCreature.powerGE4" && arg == "" {
+		// Yojimbo's chapter IV counts opponents, not creatures. Read the
+		// battlefield and derived power (including continuous effects).
+		seen := make(map[state.PlayerID]bool)
+		for i := range g.Objs {
+			o := &g.Objs[i]
+			if o.Zone == state.ZBattlefield && o.Controller != c.Controller &&
+				h.IsCreature(o.ID) && h.Power(o.ID) >= 4 {
+				seen[o.Controller] = true
+			}
+		}
+		var n int32
+		for _, p := range opponentGroup(g, c) {
+			if seen[p] {
+				n++
+			}
+		}
+		return n, true, true
+	}
+	if n, ok2 := hasPropertyStateBacked(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
+		return n, true, true
+	}
+	if n, ok2 := playerCountCondition(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
+		return n, true, true
+	}
+	av, aok := playerCountExtreme(h, g, c, opponentGroup(g, c), rest, arg)
+	return av, aok, true
 }
 
 // playerMaxSpeedProperty is the PlayerCountPropertyYou$HasPropertyMaxSpeed
