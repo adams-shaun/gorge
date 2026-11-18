@@ -250,12 +250,22 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 		// CardDto has no controller field); the prompt's Title carries the
 		// card's own VoteMessage ("for a nonland permanent you don't control").
 		in = t.chooseCardsInput(d, v, pres)
-	case "damage_split", "division":
+	case "damage_split":
 		options := make([]mb.SelectionOption, 0, len(d.Options))
 		for _, o := range d.Options {
 			options = append(options, mb.SelectionOption{Label: o.Label, Weight: 1, CanRepeat: d.Repeatable})
 		}
 		in = mb.ChooseFromSelectionInput{PromptBase: pres, Options: options, MinTotal: d.Min, MaxTotal: d.Max}
+	case "division":
+		// The combat damage-division ask (engine/rules/combat.go's
+		// askNextDivision, CR 510.1c) carries the ManaBrew protocol's own
+		// dedicated prompt: chooseCombatDamageAssignment, answered by
+		// combatDamageAssignmentDecision. Whenever the seat's view cannot
+		// resolve the ask's recipients the mapping falls back to the generic
+		// label selection instead of posing a prompt the client could not
+		// answer (the same never-unanswerable contract the rest of this
+		// switch holds); prompt_damage_assign.go carries the mapping.
+		return t.promptDamageAssignment(d, v)
 	case "enlist", "proliferate":
 		// engine/rules/enlist.go askNextEnlist's CR 702.160a may-election (Min 0,
 		// Max 1) and engine/effects/counters.go effProliferate's CR 701.27

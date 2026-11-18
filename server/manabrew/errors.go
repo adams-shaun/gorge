@@ -211,6 +211,14 @@ func (t *Translator) translateResponse(r mb.ClientResponse, p *Pending, seat sta
 				fmt.Sprintf("prompt chooseFromSelection does not take a %s response", out.OutputType()), idPtr(cur))}
 		}
 		return t.parseChooseFromSelection(out, p)
+	case "chooseCombatDamageAssignment":
+		// The combat damage-division ask's dedicated prompt
+		// (prompt_damage_assign.go): the answer is a combatDamageAssignmentDecision.
+		if _, ok := out.(mb.DamageAssignmentDecision); !ok {
+			return Outcome{Err: errCode(mb.CodeWrongPromptType,
+				fmt.Sprintf("prompt chooseCombatDamageAssignment does not take a %s response", out.OutputType()), idPtr(cur))}
+		}
+		return t.parseDamageAssignment(out, p)
 	case "scry":
 		if _, ok := out.(mb.ScryDecision); !ok {
 			return Outcome{Err: errCode(mb.CodeWrongPromptType,
