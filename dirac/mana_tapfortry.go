@@ -23,11 +23,19 @@ func (s *State) tapForTry(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 // cast is reversed (CR 733.1) where the plan would find none. Every other cast
 // keeps tapForRider and its panic, for a cost the offer priced.
 func (s *State) tapForSpellPlain(k *prep, e *stackEntry, cost *kop.ManaCost, anyColor bool, saved *[len(build{}.picks)]uint8) bool {
+	// the planner arms tap for what the admitted restricted mana leaves
+	// (pay.PlanPool); the caller hands us the unshortened cost, because the
+	// window fallback below must not take the shortened one: its settle
+	// (windowSpellSettled) discounts the admitted floating batches itself, as
+	// the seAbility branch's paymentStranded does, and handed the shortened
+	// cost it would count that mana twice and tap short a payment the window
+	// funds (as the k.phyMana arm keeps phyPay unshortened).
+	short := s.restrAdmShortCost(k, e, *cost)
 	if s.raisePerTargetCharge(e.card, e.ctrl) == 0 {
-		s.tapForRider(k, e.ctrl, cost, int(e.x), e.obj, anyColor)
+		s.tapForRider(k, e.ctrl, &short, int(e.x), e.obj, anyColor)
 		return false
 	}
-	if s.tapForTry(k, e.ctrl, cost, int(e.x), e.obj, anyColor) {
+	if s.tapForTry(k, e.ctrl, &short, int(e.x), e.obj, anyColor) {
 		return false
 	}
 	// the planner has no witness for the taxed cost: the CR 601.2g window pays it when its sources do

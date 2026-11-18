@@ -3463,7 +3463,12 @@ func (s *State) manaStep(k *prep) bool {
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			}
 		} else {
-			cost = s.restrAdmShortCost(k, e, cost)
+			// the unshortened cost: tapForSpellPlain's planner arms take what
+			// the admitted restricted mana leaves themselves (restrAdmShortCost,
+			// pay.PlanPool), and its window fallback must settle through
+			// windowSpellSettled, which discounts the admitted floating batches
+			// itself — handed the shortened cost it would count that mana twice
+			// (as the seAbility branch's restrShortAdm note below)
 			if s.tapForSpellPlain(k, e, &cost, anyColor, &saved) {
 				return true
 			}
