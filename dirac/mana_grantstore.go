@@ -39,14 +39,51 @@ func (s *State) grantStoreGaps(k *prep, p uint8) slotMask {
 	return m
 }
 
+// grantStoreIdleGaps is p's storage batteries holding no counters whose {T} is
+// free: gorge's census lists none of them (Amount$ X resolves to zero with no X
+// announced, manaAbilityYieldsNothing), but one that holds a granted ability is
+// a gap through the grant, and its activation ask lists the printed storage
+// ability first: X is 0, so the {T} is paid and no mana is added (CR 107.3,
+// 602.2). The search takes that answer before the grant's, then goes on.
+func (s *State) grantStoreIdleGaps(k *prep, p uint8) slotMask {
+	var m slotMask
+	if !k.ctrMana {
+		return m
+	}
+	for b := s.scriptCtrIdle(k, p, true).andNot(s.scriptCtr(k, p)); b.any(); b = b.rest() {
+		sl := b.first()
+		c := s.cardAt(sl)
+		if kop.StoreManaAb(k.ctrAbOf(c)) && !k.ctrSecond(c) {
+			m = m.with(sl)
+		}
+	}
+	return m
+}
+
+// storeIdleTap pays an idle storage battery's {T} (X = 0): the tap, no counters
+// removed and no mana added.
+func (s *State) storeIdleTap(k *prep, sl Slot, a *kop.Ability) {
+	pm := &s.perms[sl]
+	if a.Cost.Flags&kop.CostTap == 0 || pm.flags&pfTapped != 0 {
+		return
+	}
+	pm.flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	s.tapExtraStall(k, sl)
+}
+
 // storeBranch activates the battery candidate i (slot sl) on a copy of t: a
 // fixed colour and an X at the bound, so no ask node (gorge's non-interactive
-// SubCounter stage).
+// SubCounter stage). An idle battery (no counters) pays its {T} alone.
 func (g *grantSrch) storeBranch(t *State, i int, sl Slot) bool {
 	a := g.k.ctrAbOf(t.cardAt(sl))
 	n := t.perms[sl].ctrN(t, int(a.Cost.Ctr))
-	if n <= 0 || a.Cost.Flags&kop.CostTap != 0 && t.perms[sl].flags&pfTapped != 0 || g.np >= len(g.path) {
+	if a.Cost.Flags&kop.CostTap != 0 && t.perms[sl].flags&pfTapped != 0 || g.np >= len(g.path) {
 		return false
+	}
+	if n <= 0 && a.Cost.Flags&kop.CostTap == 0 {
+		return false // nothing to pay and nothing made: no step
 	}
 	u := t.fork()
 	u.storeGap(g.k, g.p, sl, a)
@@ -87,7 +124,7 @@ func (s *State) storeBesideGrant(k *prep, p uint8) bool {
 // the play the prefix pays (CR 601.2g-h).
 func (g *grantSrch) storeStep() bool {
 	for i := 0; i < g.np; i++ {
-		if g.path[i].kind == stepAct && g.path[i].gi == stepStore {
+		if g.path[i].kind == stepAct && g.path[i].gi == stepStore && g.path[i].n > 0 {
 			return true
 		}
 	}

@@ -1067,7 +1067,8 @@ func (g *grantSrch) candidates(s *State) {
 	xm := s.tapsDeferGrantGaps(g.k, g.p, &g.d) // (mana_granttapsdefer.go)
 	cm := s.scriptCtr(g.k, g.p)                // (mana_countercost.go)
 	sm := s.grantStoreGaps(g.k, g.p)           // (mana_grantstore.go)
-	am := s.grantSacXGaps(g.k, g.p)            // (mana_grantsacx.go)
+	si := s.grantStoreIdleGaps(g.k, g.p)
+	am := s.grantSacXGaps(g.k, g.p) // (mana_grantsacx.go)
 	g.n = 0
 	holders := 0
 	plain := g.d.hasPlay && gapFilteredPlay(g.d.play)
@@ -1078,7 +1079,11 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
-		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl) && !cm.has(sl) && !sm.has(sl) && !am.has(sl) {
+		smi := sm
+		if ng > 0 && si.has(sl) {
+			smi = sm.with(sl) // an idle battery beside its grant: the printed ask answer first
+		}
+		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl) && !cm.has(sl) && !smi.has(sl) && !am.has(sl) {
 			continue
 		}
 		if ng > 0 {
@@ -1093,7 +1098,7 @@ func (g *grantSrch) candidates(s *State) {
 			dropped = dropped.with(sl) // (nor a funding source: it makes no mana the play spends)
 			continue
 		}
-		g.gapFlags(s, g.n, sl, ng, fm, tm, dm, em, wm, xm, cm, sm, am)
+		g.gapFlags(s, g.n, sl, ng, fm, tm, dm, em, wm, xm, cm, smi, am)
 		g.gap[g.n] = true
 		if fm.has(sl) {
 			g.funding += s.filtFee(g.k, sl)
