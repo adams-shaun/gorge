@@ -1204,6 +1204,8 @@ func copyChainDeclarations(e *Engine, o *state.Object) []*cards.SA {
 		probe.mode = "kicked"
 	case o.CastFlags&state.FlagOptionalCostPaid != 0:
 		probe.mode = "optionalcost"
+	case awakenedCopy(o):
+		probe.mode = altMode(altAwaken)
 	}
 	var out []*cards.SA
 	for _, root := range copyChainRoots(e, o) {
