@@ -219,6 +219,43 @@ func (s *State) scriptRelax(k *prep, p uint8, filt slotMask, unrelax bool) bool 
 	return !unrelax && !s.scriptGaps(k, p).any() && s.filtRelaxable(k, filt) && !s.deadCtrMask(k, p).any()
 }
 
+// addCostShapeUnscripted reports whether the plain cast of card c carries a
+// mandatory additional-cost shape gorge prices only on its census: the cast
+// planner declines it ("shape:additional_cost", paymentPlanCastShapeDetail's
+// PlanNonManaAdmissible arms) and the composition is its only witness, an
+// insufficient one dropped with no prefix search for it
+// (potentialPlayVerdictShared). The scriptable exceptions keep their plays:
+// an either-or part (AlternateAdditionalCost), fixed-count tapXType extras
+// (spellExtrasAreFixedTaps) and an announced PayLife<X> alone
+// (spellExtrasAreAnnouncedLife); the announced Sac<X> keeps its pool arm
+// (cost_sacx.go).
+func addCostShapeUnscripted(k *prep, c CardID) bool {
+	ac := spellAddCost(k, c)
+	if sacXCost(ac) || !planDeclinesAddCost(k, c) {
+		return false
+	}
+	cd := &k.t.Cards[c]
+	return !cd.HasAltAdd && !spellFixedTapsOnly(k, c) &&
+		!(lifeXCost(ac) && ac.Flags == kop.CostPayLife && manaEmpty(&ac.Mana))
+}
+
+// plainCastUnsearched is the script walk's two plain-cast drops: the printed
+// sources pay the cast but its largest-X witness eats a target (gorge's
+// verdict is "witness_unreachable", mana_sacsource.go), and the spell's own
+// Cost$ carries an additional-cost shape gorge prices only on its census, an
+// insufficient one dropped and never scripted (potentialPlayVerdictShared);
+// the announced Sac<X> keeps its pool arm (cost_sacx.go).
+func (s *State) plainCastUnsearched(k *prep, p uint8, a Action) bool {
+	if a.Kind() != AkCast || a.Mode()&3 != 0 || a.Mode()&(castMayPlay|castFace|castWarp) != 0 {
+		return false
+	}
+	if s.xWitnessUnreachable(k, p, Obj(a.Source())) {
+		return true
+	}
+	c := s.objs[Obj(a.Source())].card
+	return addCostShapeUnscripted(k, c)
+}
+
 // scriptOffers adds to d the plays a scripted prefix pays.
 func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
@@ -301,8 +338,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && hasOption(&real, a) {
 			continue // priced by the printed sources: gorge's planner finds it sufficient and runs no prefix search for it
 		}
-		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && s.xWitnessUnreachable(k, p, Obj(a.Source())) {
-			continue // the printed sources pay it but the witness eats a target: gorge's verdict is witness_unreachable, no prefix search (mana_sacsource.go)
+		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && s.plainCastUnsearched(k, p, a) {
+			continue // gorge runs no prefix search for it: the printed sources pay it but the witness eats a target (witness_unreachable, mana_sacsource.go), or the shape is additional_cost and the composition is its only witness, an insufficient one dropped (potentialPlayVerdictShared)
 		}
 		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (s.spellTgtDep(k, p, s.objs[Obj(a.Source())].card, Obj(a.Source())) || cd.HasModeCost && a.Mode()&castMayPlay == 0 && !modalFloorZero(k, s.objs[Obj(a.Source())].card)) {
 			continue // gorge searches no prefix for a target-priced cost, nor for a modal one whose cheapest mode still costs mana (a may-play cast is priced at its printed cost: potentialPlayVerdictShared's mayplay arm)

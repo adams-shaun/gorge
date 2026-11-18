@@ -922,6 +922,22 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		return false
 	}
 	if cd.Cost.X != 0 {
+		if addCostShapeUnscripted(k, c) {
+			// gorge's potential planner declines the shape ("shape:additional_cost",
+			// paymentPlanCastShapeDetail's PlanNonManaAdmissible arms) and prices the
+			// composition only on its census: an insufficient one drops the play and
+			// no prefix search runs for it (potentialPlayVerdictShared). The census --
+			// the printed sources and the pool, never a gap -- pays the cheapest
+			// announcement X = 0, so the census read answers it, as the fixed
+			// additional-cost arms below do.
+			cost := s.featCost(k, p, c, o, k.cards[c].cost)
+			if s.g.mayPlayAny {
+				cost = anyType(cost)
+			}
+			if !s.ungrantedPaysNoDH(k, p, c, o, &cost) {
+				return false
+			}
+		}
 		return s.xWitnessOffered(k, p, c, o)
 	}
 	if sacXCost(spellAddCost(k, c)) {
