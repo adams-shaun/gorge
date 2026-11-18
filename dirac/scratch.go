@@ -1,6 +1,10 @@
 package dirac
 
-import "unsafe"
+import (
+	"unsafe"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // the decision scratch that is never live together
 // shares one word array, genState.scr. Go has no unions, so each arm is a
@@ -24,6 +28,10 @@ import "unsafe"
 //   - armAttackers: a declare-attackers declaration in progress (poseMask,
 //     the attackers declared before the ask). Live in ctlAttackers; written
 //     whole at the pose (turn.go).
+//   - armBlockers: a declare-blockers declaration in progress (poseMask,
+//     the blockers declared before the ask, earlier defenders' included).
+//     Live in ctlBlockers; written whole at the pose (turn.go, combat.go
+//     blockRound).
 //
 // The discriminants (ctl, ro.on / n, dmgSeqOn / N / I / Pl, dmgBOn / dmgBn, divA / divI /
 // divRem / divFirst) are outside scr; DecisionHash reads an arm only under
@@ -74,8 +82,23 @@ type armAttackers struct {
 	poseMask slotMask
 }
 
+// armBlockers is the declare-blockers declaration in progress. poseMask is
+// the pfBlocking mask as the declaration was posed: an earlier defender's
+// declaration (blockRound, CR 802.4) and nothing of the ask's own. CR 509.1b
+// checks the declaration's restrictions while none of its chosen creatures
+// is blocking yet (CR 509.2 makes the chosen creatures blocking after the
+// checks), and gorge computes the whole option list at the pose, so the
+// static blocking-state reads (filters_gen.go's FBlocking /
+// FAttackingOrBlocking, filter_props.go's W7NotBlocking, matchCurOne,
+// matchPerm) treat a pick served so far -- its mark lies beyond poseMask --
+// as not blocking (blkLifted). Live only in ctlBlockers; written whole at
+// the pose.
+type armBlockers struct {
+	poseMask slotMask
+}
+
 const (
-	scrBytes = max(unsafe.Sizeof(armCombat{}), unsafe.Sizeof(build{}), unsafe.Sizeof(armRes{}), unsafe.Sizeof(armEvidence{}))
+	scrBytes = max(unsafe.Sizeof(armCombat{}), unsafe.Sizeof(build{}), unsafe.Sizeof(armRes{}), unsafe.Sizeof(armEvidence{}), unsafe.Sizeof(armAttackers{}), unsafe.Sizeof(armBlockers{}))
 	scrWords = (scrBytes + 7) / 8
 )
 
@@ -86,6 +109,7 @@ var (
 	_ = [scrWords*8 - unsafe.Sizeof(armRes{})]struct{}{}
 	_ = [scrWords*8 - unsafe.Sizeof(armEvidence{})]struct{}{}
 	_ = [scrWords*8 - unsafe.Sizeof(armAttackers{})]struct{}{}
+	_ = [scrWords*8 - unsafe.Sizeof(armBlockers{})]struct{}{}
 )
 
 // the words are 8-aligned: no arm needs more
@@ -94,11 +118,13 @@ var (
 	_ = [8 - unsafe.Alignof(build{})]struct{}{}
 	_ = [8 - unsafe.Alignof(armRes{})]struct{}{}
 	_ = [8 - unsafe.Alignof(armAttackers{})]struct{}{}
+	_ = [8 - unsafe.Alignof(armBlockers{})]struct{}{}
 )
 
 func (s *State) combatArm() *armCombat { return (*armCombat)(unsafe.Pointer(&s.g.scr)) }
 func (s *State) resArm() *armRes       { return (*armRes)(unsafe.Pointer(&s.g.scr)) }
 func (s *State) atkArm() *armAttackers { return (*armAttackers)(unsafe.Pointer(&s.g.scr)) }
+func (s *State) blkArm() *armBlockers  { return (*armBlockers)(unsafe.Pointer(&s.g.scr)) }
 
 // evPicks is the evidence ask's picks in answer order, bounded by evSel.
 func (s *State) evPicks() *[MaxDeck]Obj { return &(*armEvidence)(unsafe.Pointer(&s.g.scr)).picks }
@@ -122,6 +148,54 @@ func (s *State) scrResLive() bool {
 
 // scrAtkLive: the attackers arm holds a declaration in progress.
 func (s *State) scrAtkLive() bool { return s.ctl == ctlAttackers }
+
+// scrBlkLive: the blockers arm holds a declaration in progress.
+func (s *State) scrBlkLive() bool { return s.ctl == ctlBlockers }
+
+// DebugBlkLiftOff is a test-only mutation: it turns the blocker-pose lift
+// off, so mid-declaration blocking marks reach the static reads again (the
+// oracle's blockpose mutation must diverge).
+var DebugBlkLiftOff bool
+
+// blkLifted reports whether the pfBlocking mark of sl, if it is set, is one
+// the pose board never carried: a pick served so far (its mark lies beyond
+// the pose's mask, armBlockers), or a blocker an earlier defender declared
+// past the pose captured for this defender's round (blockRound). The static
+// blocking-state reads -- filters_gen.go matchPermOne's FBlocking and
+// FAttackingOrBlocking, filter_props.go's W7NotBlocking, static_layerwalk.go
+// matchCurOne's and chars.go matchPerm's -- treat such a permanent as not
+// blocking, so every pick's option reads see the board as it stood at the
+// pose (CR 509.1b: the declaration's restrictions are checked while none of
+// its chosen creatures is blocking yet; CR 509.2 makes the chosen creatures
+// blocking after the checks, and gorge computes the whole option list at the
+// pose). The pick-progression reads that count the marks directly
+// (blockerReady, blockDeclared, nblock) are not lifted: they are the kernel's
+// emulation of the answer's own validation, not of the pose. Live only in
+// ctlBlockers.
+func (s *State) blkLifted(sl Slot) bool {
+	if DebugBlkLiftOff {
+		return false
+	}
+	return s.ctl == ctlBlockers && !s.blkArm().poseMask.has(sl)
+}
+
+// blkNotShown reports sl's blocking mark as the pose board carried it
+// (CR 509.1b): unset, or one the pose never showed (blkLifted). The
+// blocking-state reads' shared predicate.
+func (s *State) blkNotShown(sl Slot, p *perm) bool {
+	return p.flags&pfBlocking == 0 || s.blkLifted(sl)
+}
+
+// blkMarkFail is matchPermOne's and matchCurOne's blocking-state read: fl
+// demands a blocking creature (FBlocking, or FAttackingOrBlocking of one
+// that is not attacking) and sl's mark is not one the pose board carried
+// (blkNotShown), so the read fails. Live only in ctlBlockers.
+func (s *State) blkMarkFail(fl *kop.Filter, sl Slot, p *perm) bool {
+	if fl.Flags&kop.FBlocking != 0 && s.blkNotShown(sl, p) {
+		return true
+	}
+	return fl.Flags&kop.FAttackingOrBlocking != 0 && p.flags&pfAttacking == 0 && s.blkNotShown(sl, p)
+}
 
 // scrResEnter starts a resolution's scratch afresh (resolveTop): the
 // scalars that bound every read of armRes (nlook, lookSel, dmgSeq*) are
