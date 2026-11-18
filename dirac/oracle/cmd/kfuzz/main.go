@@ -239,6 +239,7 @@ func run() int {
 		focusPath  = flag.String("focus", "", "-synth: deal a focus pool instead: every deck holds -focus-per-deck cards of this list (one card a line, enablers after a tab, ';'-separated) beside the enablers they name; the run is named after the file (fx-dsk.txt: fx-dsk)")
 		focusPer   = flag.Int("focus-per-deck", oracle.FocusPerDeck, "-focus: focus cards per deck")
 		onlyPath   = flag.String("only", "", "-synth: play the supported cards and, of the unverified ones, only those this file names (one a line): a targeted evidence run deals the cards it owes evidence among cards that have it")
+		synthWith  = flag.String("synth-with", "", "-synth with -focus: pools (comma-separated) to take enablers from when the focus file names one the -synth pool lacks, dealt beside their focus card only, never as filler; evloop's scripted decks need snow basics, Gates, Cartouches that sit in other tail pools. The first pool holding the card wins; a pair whose cards need more subtypes than one table holds is refused")
 		reachPath  = flag.String("reach", "", "-synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games")
 		v2RandFull = flag.Bool("v2-rand-full", false, "-v2 transcript: no-op (a rand game is always compared whole; the flag keeps the old spelling working)")
 		cpuProf    = flag.String("cpuprofile", "", "write a CPU profile here")
@@ -313,13 +314,13 @@ func run() int {
 		delete(explicit, "kernel")
 	}
 	if *synth != "" {
-		if err := checkSynthFlags(explicit); err != nil {
+		if err := checkSynthFlags(explicit, *synthWith, *focusPath); err != nil {
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
 			return 2
 		}
 		*kernel = "fdn"
-	} else if explicit["synth-decks"] || explicit["reach"] || explicit["focus"] || explicit["focus-per-deck"] || explicit["only"] {
-		fmt.Fprintln(os.Stderr, "kfuzz: -synth-decks, -reach, -focus and -only need -synth")
+	} else if needsSynth(explicit) {
+		fmt.Fprintln(os.Stderr, "kfuzz: -synth-decks, -reach, -focus, -only and -synth-with need -synth")
 		return 2
 	}
 	*kernel, *setName, *decksDir, err = resolveKernel(*kernel, *setName, *decksDir, explicit)
@@ -407,7 +408,7 @@ func run() int {
 	case *synth != "":
 		// As -evidence: unverified cards play and decks are dealt without the refused
 		// ones, unless -play-refused asks for the games a settling run needs.
-		if set, err = cardset.SynthByName(*synth); err == nil && !*refusedIn {
+		if set, err = synthSetOf(*synth, *synthWith, *focusPath, *cardsDir); err == nil && !*refusedIn {
 			if *onlyPath != "" {
 				var names map[string]bool
 				if names, err = readNames(*onlyPath); err == nil {
