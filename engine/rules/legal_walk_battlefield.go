@@ -932,7 +932,7 @@ func (w *legalWalk) stationOffers() {
 		// The resolving body every station shares (Keyword$ Station) is what
 		// a ValidSA$ scope reads; build it once for the pass.
 		if stationSA == nil {
-			stationSA = cards.KeywordPushAbility(e.stationKeywordLine(id))
+			stationSA = cards.KeywordPushAbility(stationKeywordLine(o))
 		}
 		if stationSA != nil && w.abilityRestricted(p, id, stationSA) {
 			continue
