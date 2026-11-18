@@ -1224,6 +1224,21 @@ func (e *Engine) askBlockers() {
 				lure[aid] = true
 			}
 		}
+		// CR 509.1c's lure binds every creature able to block the lure
+		// attacker, so a pair no legal declaration contains is not offered:
+		// while the lure attackers host every duty blocker, a duty blocker is
+		// offered only its lure blocks; a blocker the capacity leaves out
+		// (its removal keeps the maximum) keeps its plain pairs; and a
+		// non-lure attacker with a blocker floor of two or more (menace, a
+		// Min$) is offered a pair only while the creatures outside the duty
+		// still field the floor. The duties' own paths -- a must-be-blocked
+		// attacker, a MustBlock duty, a blocker that may block two attackers
+		// -- reach their maximum through the same required-team search that
+		// reads the whole option list, so this offer filter holds beside a
+		// plain lure only. Package dirac's blockerOptionsLure mirrors the
+		// same rules pick by pick, so the one ask gorge poses and the picks
+		// the lockstep poses publish the same pairs.
+		lureOfferable := lureOfferFilter(asBoard(e), &scope, defender, lure, len(mustBeBlocked)+len(mustBeBlockedTwo)+len(requiredBlockers) > 0)
 		for _, bid := range e.G.Zone(state.ZBattlefield, defender) {
 			for _, aid := range scope.attackers {
 				if !e.admissiblePair(&scope, defender, bid, aid) {
@@ -1237,6 +1252,9 @@ func (e *Engine) askBlockers() {
 				// declaration and gates the payment, so the three cannot
 				// disagree about what is payable.
 				if !charge.zero() && !e.blockChargeAffordable(defender, charge, map[state.ObjID]bool{bid: true}, nil) {
+					continue
+				}
+				if !lureOfferable(bid, aid) {
 					continue
 				}
 				// Group is the exclusivity marker on the wire: every option
