@@ -62,6 +62,31 @@ func (s *State) copyExcTypes(k *prep, sl Slot) (m kop.TypeMask) {
 	return
 }
 
+// copyExcTy is base (a card's printed types) through slot sl's copy
+// exceptions in order (CR 707.9b): a type-line replacement (Dino DNA's "6/6
+// green Dinosaur creature", HasTypes) drops the copied card's types but the
+// supertypes and token mark a replacement keeps, then the exception's added
+// types join.
+//
+//go:noinline
+func (s *State) copyExcTy(k *prep, sl Slot, base kop.TypeMask) kop.TypeMask {
+	if DebugCopyRidersNoTypes {
+		return base
+	}
+	t := base
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc {
+			o := &k.t.Overrides[r.r.idx-1]
+			if o.HasTypes {
+				const keep = kop.TLegendary | kop.TBasic | kop.TToken
+				t = t&(keep|o.KeepTypes) | o.SetTypes
+			}
+			t |= o.AddTypes
+		}
+	}
+	return t
+}
+
 // copyExcTySlots is the slots whose copy exceptions add a card type: their
 // types ride perm.gty (refreshTy).
 //
@@ -72,7 +97,7 @@ func (s *State) copyExcTySlots(k *prep) (m slotMask) {
 		if r.kind != fxCopyExc {
 			continue
 		}
-		if o := &k.t.Overrides[r.r.idx-1]; o.AddTypes != 0 || o.RemoveLegendary {
+		if o := &k.t.Overrides[r.r.idx-1]; o.AddTypes != 0 || o.HasTypes || o.RemoveLegendary {
 			m.set(r.sl)
 		}
 	}
