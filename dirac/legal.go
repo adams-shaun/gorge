@@ -969,8 +969,9 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	}
 	if ac := spellAddCost(k, c); ac.Flags&costObjFlags != 0 || discardXCost(ac) || k.gen != nil && k.gen.anyEvTargets && spellEvidenceTargets(cd) {
 		// an exile / forage / return / blight / collect-evidence part, or an announced
-		// Discard<X/Spec> (Restless Dreams; its counter-cost source, Tendo Ice Bridge's, is a
-		// census gap no prefix search taps): the cast
+		// Discard<X/Spec> (Nostalgic Dreams; PlanNonManaAdmissible's Announced arm; Restless
+		// Dreams, its counter-cost source, Tendo Ice Bridge's, is a census gap no prefix
+		// search taps): the cast
 		// planner declines the shape, and the potential planner prices it only
 		// when the printed sources pay the mana (potentialPlayVerdictShared), with
 		// no prefix search for a granted source beside it (Abhorrent Oculus'
