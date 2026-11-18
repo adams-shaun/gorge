@@ -324,6 +324,22 @@ func manaGapModelled(first, a *lAbility) bool {
 		// its prefix search activates (the kernel's tap-another gap kind,
 		// read at the card's tapX ability, mana_tapanother.go tapXAb)
 		return a.Mana.Colors == "WUBRG" && !a.Mana.Choice && unrestrictedOne(a) && len(first.Mana.Colors) == 1 && !first.Mana.Choice
+	case tapXOneGapMana(a):
+		// tap an untapped permanent you control with no {T}: one mana of any
+		// colour, unrestricted, beside a plain {T} first ability of one colour
+		// or any (Relic of Legends): gorge's census leaves it an unrelaxable
+		// gap bounded by the untapped candidates (kop.SecondTapXOneManaAb;
+		// the kernel's tap-another gap kind, mana_tapanother.go)
+		return a.Mana.Colors == "WUBRG" && !a.Mana.Choice && unrestrictedOne(a) &&
+			(len(first.Mana.Colors) == 1 || first.Mana.Colors == "WUBRG") && !first.Mana.Choice
+	case sacTapGapMana(a):
+		// {T}, sacrifice a permanent: a fixed colour of ManaN mana,
+		// unrestricted, beside a plain fixed {T} first ability (Phyrexian
+		// Tower's {B}{B}): gorge's census leaves it a relaxable once-only
+		// gap whose prefix search activates the source, answers the ability
+		// ask, then the sacrifice (the kernel's tap-another gap kind,
+		// kop.SecondSacTapManaAb, mana_tapanother.go)
+		return len(first.Mana.Colors) == 1 && !first.Mana.Choice && unrestrictedOne(first)
 	case ctrTapGapMana(a):
 		// {T}, remove N counters from this: a fixed colour of ManaN mana,
 		// unrestricted, beside a plain {T} first ability of one colour or
@@ -392,6 +408,33 @@ func tapXGapMana(a *lAbility) bool {
 	b := *a
 	b.Cost.TapN, b.Cost.TapF = 0, nil
 	return plainTapMana(&b, false)
+}
+
+// tapXOneGapMana: a is a mana ability whose cost taps exactly one untapped
+// permanent the controller controls and has no {T} of its own, otherwise plain
+// (kop.TapXManaOne).
+func tapXOneGapMana(a *lAbility) bool {
+	if a.Cost.Tap || a.Cost.TapN != 1 || a.Cost.TapPowN != 0 {
+		return false
+	}
+	b := *a
+	b.Cost.TapN, b.Cost.TapF, b.Cost.Tap = 0, nil, true
+	return plainTapMana(&b, false)
+}
+
+// sacTapGapMana: a is a {T} ability whose cost also sacrifices exactly one
+// permanent (not its source) and makes a literal amount of one fixed colour,
+// unrestricted (kop.SacTapFixedManaAb).
+func sacTapGapMana(a *lAbility) bool {
+	c := &a.Cost
+	m := a.Mana
+	if c.Sac == nil || c.SacSelf || c.SacN != 1 || c.SacX || c.SacExile {
+		return false
+	}
+	b := *a
+	b.Cost.Sac, b.Cost.SacN = nil, 0
+	return plainTapMana(&b, false) && !m.Choice && !m.Each && m.Restrict == nil && m.RestrictAb == nil && !m.NonSpell &&
+		m.Amount.isConst() && m.Amount.N >= 1 && m.Amount.N <= maxEachMana && len(m.Colors) == 1
 }
 
 // ctrTapGapMana: a is a {T} ability whose cost also removes counters from its
