@@ -134,7 +134,7 @@ dirac/oracle FeatScenarios	200	67
 dirac/oracle LockstepLed	200	54
 dirac/oracle project	235	81
 dirac/oracle/cmd/kfuzz report	212	62
-dirac/oracle/cmd/kfuzz run	518	145
+dirac/oracle/cmd/kfuzz run	518	149
 dirac/search (*Searcher).Search	231	76
 dirac/search (*Searcher).buildPoint	129	59
 dirac/search/hbot (*combatScratch).chooseBlockers	161	52

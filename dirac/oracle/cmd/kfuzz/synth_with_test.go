@@ -15,6 +15,10 @@ import (
 func TestFuzzSynthWithFlag(t *testing.T) {
 	cardsettest.Synth(t, "tail-00")
 	cardsettest.Synth(t, "tail-52")
+	// run() stores -coverage in package globals; a later test's report() would write to
+	// this test's removed temp dir and exit 1.
+	oldCov, oldEv, oldBr := coveragePath, evidencePath, branchesPath
+	t.Cleanup(func() { coveragePath, evidencePath, branchesPath = oldCov, oldEv, oldBr })
 	dir := t.TempDir()
 	focus := filepath.Join(dir, "f.txt")
 	only := filepath.Join(dir, "o.txt")
