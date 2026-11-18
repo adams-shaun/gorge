@@ -9,11 +9,11 @@ import (
 	"os"
 
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/server/matchrecord"
 )
 
 // ChanceDraw is one forced random outcome: the engine's IntN(Bound) returns
@@ -302,29 +302,17 @@ func Replay(reg *cards.Registry, g *KernelGame) (res ReplayResult) {
 // verifyLog re-runs gorge's log of a re-execution through engine/replay:
 // Replay itself for a seeded game; for forced outcomes (which
 // engine/replay's Config-only randomness cannot express) the same intents
-// on rules.NewHypothetical, compared by replay.FirstDivergence.
+// on rules.NewHypothetical, compared by replay.FirstDivergence
+// (matchrecord.ReplayChance, the replay a chance-carrying match record
+// verifies through).
 func verifyLog(m *Matchup, seed uint64, chance []rules.ChanceDraw, l *events.Log) error {
 	cfg := m.Config(seed)
 	if len(chance) == 0 {
 		_, err := replay.Replay(l, cfg)
 		return err
 	}
-	e, err := rules.NewHypothetical(cfg, chance)
-	if err != nil {
-		return err
-	}
-	if err := e.AdvanceHypothetical(); err != nil {
-		return err
-	}
-	for i, in := range l.Intents {
-		if err := e.SubmitHypothetical(decision.CloneIntent(in)); err != nil {
-			return fmt.Errorf("replay: intent %d rejected: %w", i, err)
-		}
-	}
-	if d := replay.FirstDivergence(l.Events, e.L.Events); d != nil {
-		return d
-	}
-	return nil
+	_, err := matchrecord.ReplayChance(l, cfg, chance)
+	return err
 }
 
 // RecordChance builds a GorgeSide whose engine records its random outcomes

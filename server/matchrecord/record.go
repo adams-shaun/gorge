@@ -21,7 +21,7 @@
 // artifact: never commit one. Tests generate theirs in a temp dir.
 //
 // Layering contract: this is a server-tier leaf. Its only gorge imports are
-// engine packages (cards, events, replay, rules); host, bots and testkit
+// engine packages (cards, decision, events, replay, rules); host, bots and testkit
 // are forbidden, so a bench driver, cmd/repro and the review server can all
 // depend on it without a cycle. Nothing here reads a clock or ranges over a
 // map whose order can reach output.
@@ -35,6 +35,7 @@ import (
 	"path/filepath"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
@@ -61,10 +62,12 @@ type Record struct {
 	// Head is the chain head over every logged event, what Verify's replay
 	// must reproduce.
 	Head string `json:"head"`
-	// Chance is the chance transcript of a kernel-sourced game. Gorge never
-	// writes it; Verify refuses a record that
-	// carries one, since the ordinary replay implements Config-only
-	// randomness.
+	// Chance is the chance transcript of a chance-planned game (one built by
+	// rules.NewHypothetical or its planned variants, e.g. a game that adopted
+	// another engine's shuffles): every bounded draw the engine consumed, in
+	// order, as rules.Engine.ChanceTranscript returns it. Verify refuses a
+	// record that carries one, since the ordinary replay implements
+	// Config-only randomness; VerifyChance replays it.
 	Chance []rules.ChanceDraw `json:"chance,omitempty"`
 	// Explain is the per-intent decision sidecar (design §3): empty, or one
 	// entry per Log.Intents entry, JSON null where nothing was noted. An
@@ -211,4 +214,67 @@ func Verify(r *Record, cfg rules.Config) error {
 		return fmt.Errorf("matchrecord: verify: replayed head %s, recorded %s", got, r.Head)
 	}
 	return nil
+}
+
+// VerifyChance is Verify for a record that may carry a chance transcript.
+// A record without one is Verify's. A record with one replays as pure gorge:
+// the Log's intents on rules.NewHypothetical with the transcript as its
+// forced prefix (ReplayChance), which must reproduce every recorded event,
+// the recorded head, and consume the whole transcript -- a draw the replay
+// never asked for is a transcript that does not belong to this game.
+//
+// Limit: the hypothetical constructor has no CR 103.1 winner-chooses ask, so
+// a chance-planned game is a toss game; a log that recorded the ask
+// diverges at it.
+func VerifyChance(r *Record, cfg rules.Config) error {
+	if r == nil || r.Log == nil {
+		return fmt.Errorf("matchrecord: verify: record has no log")
+	}
+	if len(r.Chance) == 0 {
+		return Verify(r, cfg)
+	}
+	if want := r.Log.HeadAt(len(r.Log.Events)); want != r.Head {
+		return fmt.Errorf("matchrecord: verify: recorded head %q does not match the log's own event chain %q", r.Head, want)
+	}
+	e, err := ReplayChance(r.Log, cfg, r.Chance)
+	if err != nil {
+		return fmt.Errorf("matchrecord: verify: %w", err)
+	}
+	if got := e.L.Head(); got != r.Head {
+		return fmt.Errorf("matchrecord: verify: replayed head %s, recorded %s", got, r.Head)
+	}
+	if got := len(e.ChanceTranscript()); got < len(r.Chance) {
+		return fmt.Errorf("matchrecord: verify: the replay consumed %d of the record's %d chance draws", got, len(r.Chance))
+	}
+	return nil
+}
+
+// ReplayChance re-runs l's intents on a hypothetical engine whose random
+// outcomes are forced from chance, then cfg's seed (replaced by the log's,
+// as replay.Replay does), and compares the events it emits against l's with
+// replay.FirstDivergence. engine/replay's Config-only randomness cannot
+// express forced outcomes; this is the same intents on rules.NewHypothetical
+// instead. A *replay.Divergence stays reachable through errors.As. The
+// engine is returned whenever it was built, for the caller's own checks.
+func ReplayChance(l *events.Log, cfg rules.Config, chance []rules.ChanceDraw) (*rules.Engine, error) {
+	if l == nil {
+		return nil, fmt.Errorf("replay: nil log")
+	}
+	cfg.Seed = l.Seed
+	e, err := rules.NewHypothetical(cfg, chance)
+	if err != nil {
+		return nil, err
+	}
+	if err := e.AdvanceHypothetical(); err != nil {
+		return e, err
+	}
+	for i, in := range l.Intents {
+		if err := e.SubmitHypothetical(decision.CloneIntent(in)); err != nil {
+			return e, fmt.Errorf("replay: intent %d rejected: %w", i, err)
+		}
+	}
+	if d := replay.FirstDivergence(l.Events, e.L.Events); d != nil {
+		return e, d
+	}
+	return e, nil
 }

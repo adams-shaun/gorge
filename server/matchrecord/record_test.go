@@ -14,6 +14,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
+	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/matchrecord"
 )
@@ -225,5 +226,117 @@ func TestMatchConfigRoundTrip(t *testing.T) {
 	m.Format = "vintage"
 	if _, err := m.Config(reg, nil); err == nil {
 		t.Fatal("Config accepted an unknown format")
+	}
+}
+
+// playChanceFixture plays up to n intents of the fixture game on a
+// chance-planned hypothetical engine: every library shuffle is dealt in
+// reverse library order by the planner rather than drawn from the seed, so
+// the game is one the seed alone does not reproduce.
+func playChanceFixture(t *testing.T, reg *cards.Registry, n int) (rules.Config, *rules.Engine) {
+	t.Helper()
+	cfg := rules.Config{
+		Seed: 99, Names: []string{"a", "b"}, PlayerNames: []string{"Ann", "Bo"},
+		Decks: [][]*cards.Card{fixtureDeck(t, reg), fixtureDeck(t, reg)}, Mulligans: 1,
+	}
+	reverse := func(ctx rules.ShuffleContext) ([]state.ObjID, error) {
+		ids := make([]state.ObjID, len(ctx.Library))
+		for i, c := range ctx.Library {
+			ids[len(ids)-1-i] = c.ID
+		}
+		return ids, nil
+	}
+	e, err := rules.NewHypotheticalChancePlanned(cfg, nil, reverse, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.AdvanceHypothetical(); err != nil {
+		t.Fatal(err)
+	}
+	bots := []*heuristic.Bot{heuristic.NewBot(1), heuristic.NewBot(2)}
+	for i := 0; i < n && !e.G.Over && e.Pending() != nil; i++ {
+		d := e.Pending()
+		in, err := bots[d.Player].Decide(context.Background(), view.Project(e.G, e, d.Player, d), *d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := e.SubmitHypothetical(in); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return cfg, e
+}
+
+// TestVerifyChance is the chance-aware record: a chance-planned game,
+// recorded with its chance transcript, replays as pure gorge through
+// VerifyChance, where the ordinary Verify refuses it and the same record
+// without its transcript diverges. A doctored transcript fails.
+func TestVerifyChance(t *testing.T) {
+	reg := fixtureRegistry(t)
+	cfg, e := playChanceFixture(t, reg, 400)
+	if len(e.L.Intents) < 20 {
+		t.Fatalf("fixture game logged only %d intents", len(e.L.Intents))
+	}
+	rec, err := matchrecord.New(cfg, e.L, matchrecord.Producer{Tool: "unit"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec.Chance = e.ChanceTranscript()
+	if len(rec.Chance) == 0 {
+		t.Fatal("the chance-planned game recorded no chance transcript")
+	}
+	path := filepath.Join(t.TempDir(), "c"+matchrecord.Ext)
+	if err := matchrecord.Write(path, rec); err != nil {
+		t.Fatal(err)
+	}
+	back, rcfg, err := matchrecord.Load(path, reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = matchrecord.Verify(back, rcfg)
+	t.Logf("Verify: %v", err)
+	if err == nil {
+		t.Fatal("Verify accepted a chance-planned record")
+	}
+	// Without its transcript the seed alone deals another game.
+	plain := *back
+	plain.Chance = nil
+	err = matchrecord.Verify(&plain, rcfg)
+	t.Logf("Verify without the transcript: %v", err)
+	if err == nil {
+		t.Fatal("the chance-planned game replayed from its seed alone; the fixture plans nothing")
+	}
+
+	err = matchrecord.VerifyChance(back, rcfg)
+	t.Logf("VerifyChance: %v", err)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A doctored transcript: the toss flipped.
+	bad := *back
+	bad.Chance = append([]rules.ChanceDraw(nil), back.Chance...)
+	bad.Chance[0].Value = (bad.Chance[0].Value + 1) % bad.Chance[0].Bound
+	err = matchrecord.VerifyChance(&bad, rcfg)
+	t.Logf("VerifyChance, doctored toss: %v", err)
+	if err == nil {
+		t.Fatal("VerifyChance accepted a doctored chance transcript")
+	}
+	// A transcript with a tail the replay never consumes.
+	bad.Chance = append(append([]rules.ChanceDraw(nil), back.Chance...), rules.ChanceDraw{Bound: 3, Value: 1})
+	err = matchrecord.VerifyChance(&bad, rcfg)
+	t.Logf("VerifyChance, unconsumed tail: %v", err)
+	if err == nil {
+		t.Fatal("VerifyChance accepted a transcript the replay never consumed in full")
+	}
+	// An ordinary record still verifies through VerifyChance.
+	ocfg, oe := playFixture(t, reg, 400)
+	orec, err := matchrecord.New(ocfg, oe.L, matchrecord.Producer{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := matchrecord.VerifyChance(orec, ocfg); err != nil {
+		t.Fatalf("VerifyChance on an ordinary record: %v", err)
 	}
 }
