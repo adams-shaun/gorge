@@ -103,6 +103,8 @@ type payDesc struct {
 	gapN     uint8
 	gapID    [paidGapMax]uint16
 	gapFee   [paidGapMax]uint8
+	// gapRepeats: a tracked gap is repeatable (no tap, sacrifice or once-only limit)
+	gapRepeats bool
 }
 
 // restrRec is one restricted mana ability of the table: card c's ability

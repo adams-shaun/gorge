@@ -39,7 +39,8 @@ func (d *payDesc) gapNote(sl Slot, j, fee int) bool {
 // Hideout's {1},{T} filter). The over-bound pool beside the census keeps the
 // paid abilities (boundedAny false skips them here); the X-bound sweep's
 // probe (d.gapTrack) names each one so the subsets can be priced.
-func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, fee *kop.ManaCost) (paid, skip bool) {
+func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, ab *kop.Ability) (paid, skip bool) {
+	fee := &ab.Cost.Mana
 	paid = census && fee.MV() != 0
 	switch {
 	case !paid:
@@ -47,6 +48,9 @@ func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, fee *kop
 		skip = true
 	case d != nil && d.gapTrack:
 		skip = d.gapNote(sl, j, fee.MV())
+		if ab.Cost.Flags&(kop.CostTap|kop.CostSacSelf|kop.CostOncePerTurn|kop.CostOncePerGame) == 0 {
+			d.gapRepeats = true
+		}
 	}
 	return paid, skip
 }
@@ -73,10 +77,14 @@ type gapSubset struct {
 func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 	var pu [maxPotUnits]potUnit
 	var av avail
-	d.gapTrack, d.gapSkip, d.gapN = true, 0, 0
+	d.gapTrack, d.gapSkip, d.gapN, d.gapRepeats = true, 0, 0, false
 	s.availPotentialFor(k, p, &av, &d, true, &pu)
 	n := int(d.gapN)
-	if n == 0 || n > paidGapMax {
+	if n == 0 || n > paidGapMax || d.gapRepeats {
+		// a repeatable gap (Crossroads Candleguide's "{2}: Add one mana of any
+		// color") makes gorge's census non-relaxable: its relaxed proof never
+		// runs, so no subset pricing refuses the announcement and the
+		// over-bound stands (paymentPlanCensusOf's once gate, CR 605.3b)
 		return
 	}
 	fees := d.gapFee

@@ -2274,7 +2274,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, j, ab, d) {
 					continue
 				}
-				paidGap, skip := d.paidGapProbe(len(units) != 0, boundedAny, sl, j, &ab.Cost.Mana)
+				paidGap, skip := d.paidGapProbe(len(units) != 0, boundedAny, sl, j, ab)
 				if skip {
 					continue
 				}
