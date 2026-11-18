@@ -17,12 +17,8 @@ import (
 func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) effects.TriggerContext {
 	var c effects.TriggerContext
 	player := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
-	// CR 603.10a: a card that left the battlefield keeps, for this trigger,
-	// the controller it had there. Recorded here so it travels with the
-	// ability onto the stack (triggerContexts) and every "that card's
-	// controller" read -- effects.TriggeredCardController -- sees it.
-	if lki != nil && lki.ID == ev.Obj && leftBattlefield(ev) {
-		c.TriggerCardController = player(lki.Controller)
+	if cc, ok := triggerCardControllerCapture(e.G, ev, lki); ok {
+		c.TriggerCardController = cc
 	}
 	switch t.ModeKind() {
 	case cards.TriggerRolledDie, cards.TriggerRolledDieOnce:
@@ -572,6 +568,41 @@ func (e *Engine) abilityCastStackObject(perm state.ObjID) state.ObjID {
 		return o.ID
 	}
 	return 0
+}
+
+// battlefieldObjReader is the slice of the game triggerCardControllerCapture needs.
+type battlefieldObjReader interface {
+	Obj(state.ObjID) *state.Object
+}
+
+// triggerCardControllerCapture binds TriggerCardController, the controller that
+// every "that card's controller" read -- effects.TriggeredCardController --
+// sees for this trigger. Recorded here at fire time so it travels with the
+// ability onto the stack (triggerContexts). Two shapes, both CR 603.10a:
+//
+//   - the triggering card left the battlefield to fire (lki is its LKI): it
+//     keeps, for this trigger, the controller it had there;
+//   - the trigger is on an entering permanent (a MoveZone into the battlefield
+//     from elsewhere; battlefield-to-battlefield moves, e.g. phasing shapes,
+//     are excluded by From) that is sacrificed or otherwise gone before it
+//     resolves (CR 603.10a / 608.2h): it still reads the controller the
+//     permanent had when it entered, not its owner's after it left.
+//
+// The second arm guards on the object still being on the battlefield: a gone
+// object keeps the old absent-role fallback. Nothing is added to the event
+// schema: replay discovers the same binding from the same event.
+func triggerCardControllerCapture(g battlefieldObjReader, ev events.Event, lki *state.Object) (state.Target, bool) {
+	if lki != nil && lki.ID == ev.Obj && leftBattlefield(ev) {
+		return state.Target{Player: lki.Controller, IsPlayer: true}, true
+	}
+	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || ev.From == state.ZBattlefield {
+		return state.Target{}, false
+	}
+	o := g.Obj(ev.Obj)
+	if o == nil || o.Zone != state.ZBattlefield {
+		return state.Target{}, false
+	}
+	return state.Target{Player: o.Controller, IsPlayer: true}, true
 }
 
 // specResolveEnv is targetSpecContext's Resolve closure state.
