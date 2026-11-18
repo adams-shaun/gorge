@@ -841,18 +841,25 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		// wrote nothing still meets the gate on an earlier resolution's write
 		// (Nezahal, Primal Tide's second discard-three activation,
 		// Aetherling's: the first exile's memory stands on the host). OR in
-		// the persistent mark for the default present compare; a written
-		// ConditionCompare$ keeps today's lowering. The mark is a bare
+		// the persistent mark for the GE1 present compare. A written
+		// ConditionCompare$ that lowers to GE1 (Tevesh Szat, Doom of Fools'
+		// draw chain: ConditionCompare$ GE1) is the same gate: Forge's
+		// presentCompare default is "GE1" (SpellAbilityVariables), so
+		// spellPresentCondition compares the identical group with the
+		// identical op, and the written spelling used to keep today's
+		// per-resolution lowering -- which parted from gorge at the second
+		// activation of the same source: no sacrifice this resolution, but
+		// the host's first activation's memory stands, gorge draws and the
+		// kernel refused the gate (dr-mbc-bbba pair 26). The mark is a bare
 		// non-empty test, so it is ORed in only when the present filter
 		// restricts nothing: a typed gate (Soul-Shackled Zombie's
-		// ConditionPresent$ Card.Creature over an instant it remembered)
+		// ConditionPresent$ Card.Creature over an instant it remembered, or
+		// the draw-another-if-commander tail of the same Tevesh Szat chain)
 		// stays at today's per-resolution lowering.
 		if c.Kind == cRefMatches && c.Ref.Kind == rRemembered &&
 			c.Op == opGE && c.A.Kind == vConst && c.A.N == 1 && !c.Neg &&
 			filterAnyCard(c.F) {
-			if _, hasCmp := ps.get("ConditionCompare"); !hasCmp {
-				c = orCond(c, lCond{Kind: cRemMark})
-			}
+			c = orCond(c, lCond{Kind: cRemMark})
 		}
 		// ConditionCheckSVar$ beside the present check is a conjunction
 		// (gorge conditionMetCore: a denying SVar skips, a passing one leaves
