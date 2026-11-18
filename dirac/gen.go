@@ -433,8 +433,6 @@ type genPrep struct {
 	// gap), so any other can only defer a granted mana ability's tap
 	// (act_waterbend.go windowCensusComplete).
 	anySelfTaps bool
-	// anyDynZero: some card has a plain {T} dynamic-amount mana ability (mana_dyncensus.go)
-	anyDynZero bool
 	// anyDiscHand: some card carries gfDiscHand (mana_discardhand.go).
 	anyDiscHand bool
 	// anyComboAny: some card carries gfComboAny (mana_comboany.go).
@@ -963,7 +961,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyCantTgt = tableHasStatic(t, kop.StatCantTarget)
 	g.anyMaxBlk = tableHasStatic(t, kop.StatMaxBlockers)
 	g.anyUntapOther = tableHasStatic(t, kop.StatUntapOther)
-	g.anyDynZero = prepDynZero(t)                                     // mana_dyncensus.go
 	g.anyTapExtra = tableHasStatic(t, kop.StatTapExtra) || p.manaEach // an all-at-once source's own extra (mana_eachcolour.go)
 	g.anyTurnF = tableHasStatic(t, kop.StatFlipCoinMod) || tableHasStatic(t, kop.StatActivationLimit)
 	for i := range t.Exprs {
