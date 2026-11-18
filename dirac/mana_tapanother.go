@@ -175,11 +175,17 @@ func (s *State) tapXSacAnyLive(k *prep, p uint8) bool {
 }
 
 // availSacAny adds each live sacrifice-any source's fixed production once to
-// av: gorge's PotentialMana bound admits the ability a single time, and the
-// potential walk (potentialAdmits) leaves it to this fold.
-func (s *State) availSacAny(k *prep, p uint8, av *avail) {
+// av, the potential census for payment d: gorge's PotentialMana bound admits
+// the ability a single time. When the census already counted it -- the printed
+// sacrifice-mana arm potentialGapCost admits while the sacrifice has its
+// candidates, as gorge's walk does -- adding it again would count gorge's one
+// admission twice (Skirk Prospector beside two Mountains priced Stingscourger's
+// echo {3}{R} payable on a third {R}).
+func (s *State) availSacAny(k *prep, p uint8, av *avail, d *payDesc) {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		if ab := k.tapXAbOf(s.cardAt(b.first())); kop.SacAnyManaAb(ab) {
+		sl := b.first()
+		if ab := k.tapXAbOf(s.cardAt(sl)); kop.SacAnyManaAb(ab) &&
+			!s.potentialAdmits(k, p, sl, int(k.tapXAb[s.cardAt(sl)]), ab, d) {
 			addTapXUnits(av, ab)
 		}
 	}
@@ -1428,18 +1434,7 @@ func (s *State) sacPotPays(k *prep, p uint8, a Action) bool {
 	var pot avail
 	d := s.grantPayDesc(k, a)
 	s.availPotentialFor(k, p, &pot, &d, false)
-	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		// the bound admits each sacrifice-any ability once (its fixed
-		// production); when the census above already counted it -- the
-		// printed sacrifice-mana arm potentialGapCost admits while the
-		// sacrifice has its candidates, as gorge's walk does -- adding it
-		// again would count gorge's one PotentialMana admission twice
-		sl := b.first()
-		if ab := k.tapXAbOf(s.cardAt(sl)); kop.SacAnyManaAb(ab) &&
-			!s.potentialAdmits(k, p, sl, int(k.tapXAb[s.cardAt(sl)]), ab, &d) {
-			addTapXUnits(&pot, ab)
-		}
-	}
+	s.availSacAny(k, p, &pot, &d) // the bound admits each sacrifice-any ability once
 	return pot.affords(&cost, pipMaskOf(&cost), 0)
 }
 

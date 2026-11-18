@@ -280,7 +280,7 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	s.announcedHyb(&c)
 	var av avail
 	s.availPotentialFor(k, p, &av, &other, false)
-	s.availSacAny(k, p, &av)
+	s.availSacAny(k, p, &av, &other)
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 
