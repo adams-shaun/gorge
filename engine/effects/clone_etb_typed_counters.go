@@ -195,6 +195,9 @@ func applyCloneETBTypedCounters(h Host, c *Ctx, link *cards.SA) bool {
 	}
 	sc := c.TableSpecContext(c.Controller)
 	for _, r := range rider {
+		// The gate is a bare type word (layer 4, always published); the bind
+		// is the shared text-to-tables rule, so a wider gate reads its layer.
+		bindSpecLayerTables(h, &sc.Layers, r.Type, false)
 		if MatchesSpecCtx(g, r.Type, c.Source, sc) {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: c.Source, Counter: r.Kind, Amount: r.N})
 		}
