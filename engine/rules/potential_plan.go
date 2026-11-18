@@ -1054,12 +1054,13 @@ func (e *Engine) planWitnessOffersNeeded(f *cards.Face, plan decision.PaymentPla
 }
 
 // potentialAltAddSacrificePlan prices an either-or additional cost none of
-// whose mana-free parts is free of a sacrifice (Dusk Rose Reliquary's artifact
-// or creature; Stir Up Trouble's, beside its {4}) with the sacrifice beside the
-// spell's mana, as an ordinary sacrifice cost is priced: the permanent given up
-// is not also a source of the mana that pays the spell (CR 601.2b, 601.2g,
-// 601.2h). decided is false when a part that costs neither mana nor a
-// sacrifice exists, so the mana witness alone stands for that part.
+// whose mana-free parts is free of a sacrifice or a tap (Dusk Rose Reliquary's
+// artifact or creature; Stir Up Trouble's, beside its {4}; Disruption
+// Protocol's untapped artifact) with that part beside the spell's mana, as an
+// ordinary sacrifice or tapXType cost is priced: the permanent given up or
+// tapped is not also a source of the mana that pays the spell (CR 601.2b,
+// 601.2g, 601.2h). decided is false when a part that costs neither mana, a
+// sacrifice nor a tap exists, so the mana witness alone stands for that part.
 func (e *Engine) potentialAltAddSacrificePlan(p state.PlayerID, o decision.Option, base Cost, parts []string) (PaymentPlanOutcome, bool) {
 	var sacs []Cost
 	for _, part := range parts {
@@ -1067,7 +1068,7 @@ func (e *Engine) potentialAltAddSacrificePlan(p state.PlayerID, o decision.Optio
 		if c.HasManaPayment() {
 			continue
 		}
-		if len(c.Sac) == 0 {
+		if len(c.Sac) == 0 && len(c.TapPermanent) == 0 {
 			return PaymentPlanOutcome{}, false
 		}
 		sacs = append(sacs, c)
