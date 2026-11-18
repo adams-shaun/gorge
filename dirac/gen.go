@@ -100,7 +100,6 @@ type genPrep struct {
 	anyEvTargets    bool // a spell's CollectEvidence<X> is the targets' total mana value (kop.EvidenceTargetsMV; cost_collectevidencex.go)
 	anyOptCost      bool // a card has an OptionalCost part (CardDef.OptCost/OptBehold; cost_optional.go)
 	equipAnim       bool // an Equip ability and a Creature-adding override: an Equipment can be a creature (CR 704.5p sba arm; static_equipanimated.go)
-	gainsOfAttach   bool // a GainsAbilitiesOf$ static and an Equip ability: a non-attachment can gain Equip and attach itself (CR 704.5p sba arm; static_unattachcreature.go)
 	tyPost          bool // anyBestow || anyImpending: typesGen's switches after the overrides (kw_impending.go)
 	anyDiscAll      bool // some trigger is Mode$ DiscardedAll (trig_discardedall.go)
 	anyAbilityCast  bool // some trigger is Mode$ AbilityCast (trig_abilitycast.go)
@@ -1828,7 +1827,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	}
 	g.tyPost = g.anyBestow || g.anyImpending || g.anyReconfigure
 	prepEquipAnim(t, g)     // static_equipanimated.go
-	prepGainsOfAttach(t, g) // static_unattachcreature.go
+	prepGainsOfAttach(t, p) // static_unattachcreature.go
 	prepTrigAtk(t, g)       // trig_attackers.go
 	prepBatchPool(t, g)     // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty

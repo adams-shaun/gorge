@@ -15,7 +15,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Its other half is modelled too: an attachment whose derived types lost Equipment,
 // by becoming a copy of another artifact (Shuri, Wakandan Inventor).
 //
-// Its other reach is a gains-of Equip grant (genPrep.gainsOfAttach,
+// Its other reach is a gains-of Equip grant (prep.gainsOfAttach,
 // prepGainsOfAttach below): a permanent that is not an attachment gains an
 // activated Equip ability (Marvin, Murderous Mimic) and attaches itself. The
 // creature arm unattaches it; a noncreature recipient is left attached (gorge
@@ -36,7 +36,7 @@ var DebugAttachedCreatureStays bool
 // per-permanent loop is done, as gorge's attachmentSBAs runs after the pass's
 // casualties: a permanent or bearer that leaves in this pass (all) is left to
 // the bearer-left handling. It reports whether an Equipment became unattached
-// (gorge's changed pass). Reached only under genPrep.equipAnim, so the hot
+// (gorge's changed pass). Reached only under genPrep.equipAnim or prep.gainsOfAttach, so the hot
 // per-permanent loop carries none of it.
 //
 //go:noinline
@@ -78,7 +78,7 @@ func (s *State) sbaAttachedCreature(k *prep, sl Slot, t kop.TypeMask) bool {
 			// type whose derived types lost it (a copy of a plain artifact),
 			// so the grant carve-out does not apply and the attachment is
 			// illegal (CR 704.5p arm 2, CR 301.5c).
-		} else if k.gen != nil && k.gen.gainsOfAttach && s.grantedEquipKeyword(k, sl) {
+		} else if k.gainsOfAttach && s.grantedEquipKeyword(k, sl) {
 			return false // gorge's grantedAttachKeyword carve-out (grantedEquipKeyword)
 		}
 	}
@@ -109,7 +109,7 @@ func (s *State) sbaAttachedCreature(k *prep, sl Slot, t kop.TypeMask) bool {
 // attachedKindIllegal's grantedAttachKeyword (derivedKeywordParam Equip), whose
 // carve-out keeps such a non-attachment attached; only the gains-of grant is
 // lowered (kop has no Fortify flag), so the check runs only under
-// genPrep.gainsOfAttach. Cold, and read only from sbaAttachedCreature.
+// prep.gainsOfAttach. Cold, and read only from sbaAttachedCreature.
 func (s *State) grantedEquipKeyword(k *prep, sl Slot) bool {
 	if s.genLost(k, sl) {
 		return false // a recipient that lost all abilities gains nothing (static_gainsof.go)
@@ -150,14 +150,14 @@ func (s *State) grantedEquipKeyword(k *prep, sl Slot) bool {
 	return false
 }
 
-// prepGainsOfAttach sets genPrep.gainsOfAttach: the CR 704.5p arm is reachable
+// prepGainsOfAttach sets prep.gainsOfAttach: the CR 704.5p arm is reachable
 // also when a permanent that is not itself an attachment type can gain an Equip
 // ability — a GainsAbilitiesOf$ static (kop.Static.GainsOf) granting an
 // activated AfEquip ability lets its recipient attach itself (Marvin, Murderous
 // Mimic activating a manifested Equipment's Equip). The arm then unattaches the
 // recipient when it is a creature; a noncreature recipient is left attached
 // (sbaAttachedCreature's granted-keyword carve-out).
-func prepGainsOfAttach(t *kop.Table, g *genPrep) {
+func prepGainsOfAttach(t *kop.Table, p *prep) {
 	gainsOf, equip := false, false
 	for i := range t.Cards {
 		c := &t.Cards[i]
@@ -170,7 +170,7 @@ func prepGainsOfAttach(t *kop.Table, g *genPrep) {
 				equip = true
 			}
 			if gainsOf && equip {
-				g.gainsOfAttach = true
+				p.gainsOfAttach = true
 				return
 			}
 		}
