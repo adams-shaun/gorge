@@ -2140,7 +2140,7 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 				continue
 			}
 			out.complete = false
-			out.gapGains = out.gapGains || !manaFeeNetsNoMana(e.manaAbilityCC(p, id, ma).Cost, effects.ManaOf(ma), e.potentialTapExtra(id, ma))
+			out.gapGains = out.gapGains || !manaFeeNetsNoMana(e.manaAbilityCC(p, id, ma).Cost, effects.ManaOf(ma), e.potentialTapExtra(p, id, ma))
 			if !slices.Contains(out.gaps, id) {
 				out.gaps = append(out.gaps, id)
 			}
@@ -2314,7 +2314,7 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 	// The tap fires the static TapsForMana triggers whichever colour it takes,
 	// so each relaxed production carries the largest extra they add (CR 605.4a):
 	// a relaxation may only over-produce.
-	extra := e.potentialTapExtra(id, ma)
+	extra := e.potentialTapExtra(p, id, ma)
 	var out []pay.Alt
 	add := func(m state.Mana) {
 		for i := range m {
