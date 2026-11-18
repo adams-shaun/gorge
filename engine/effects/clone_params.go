@@ -121,6 +121,21 @@ type CloneParams struct {
 	// FaceDown is FaceDown$ True; KeepFacedownFalse is KeepFacedown$ False.
 	FaceDown          bool
 	KeepFacedownFalse bool
+	// Embalm is Embalm$ True: the body's exception riders (RemoveCost$,
+	// SetColor$, AddTypes$) are the CR 707.9b clause "except if CARDNAME was
+	// embalmed, the token has no mana cost, it's white, and it's a Zombie in
+	// addition to its other types" (Vizier of Many Faces), so they apply only
+	// when the become object is the card's own embalm token -- a predicate the
+	// compile cannot know and the resolution derives from the token's own
+	// copiable face (effClone's cloneEmbalmProvenance). A hard-cast carrier
+	// enters as a plain copy.
+	Embalm bool
+	// NoManaCost is RemoveCost$ True, "it has no mana cost"; under Embalm$ it
+	// is one of the gated token exceptions and rides CopyExcept's NoManaCost.
+	// RemoveCostPresent reports the key's presence, so a spelling other than
+	// True (silently dropped by the compile) is loud at the resolution.
+	NoManaCost        bool
+	RemoveCostPresent bool
 
 	// ETBShapeOK is the text half of rules' ETB copy whitelist
 	// (etbCloneWhitelist): every key inside the supported set, a Choices$
@@ -152,7 +167,7 @@ var cloneKnownKeys = [...]string{
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionTargetValidTargeting", "ConditionTargetsSingleTarget", "ConditionZone", "CopyCard", "CopyFromChosenName", "Cost", "CostDesc", "Defined",
-	"DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Duration", "EffectOwner", "Exclude", "ExcludeChosen", "Execute", "Exhaust", "ExileOnMoved", "FaceDown", "ForgetCounter", "ForgetOnCast", "ForgetOnMoved", "ForgetOnPhasedIn", "ForgetOtherTargets", "FromDesc", "GainThisAbility", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
+	"DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Duration", "EffectOwner", "Embalm", "Exclude", "ExcludeChosen", "Execute", "Exhaust", "ExileOnMoved", "FaceDown", "ForgetCounter", "ForgetOnCast", "ForgetOnMoved", "ForgetOnPhasedIn", "ForgetOtherTargets", "FromDesc", "GainThisAbility", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
 	"ImprintCards", "ImprintOnHost", "ImprintPlayed", "InstantSpeed", "IntoPlayTapped", "IsCurse",
 	"IsPresent", "KW", "KeepFacedown", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "Name", "NewController", "NewName",
@@ -160,7 +175,7 @@ var cloneKnownKeys = [...]string{
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "PrimaryPrompt", "PumpDuration", "PumpKeywords", "RandomNumTargets", "ReduceAmount",
 	"ReduceCost", "RememberAnimated", "RememberCloneOrigin", "RememberCostMana", "RememberLKI", "RememberObjects", "RememberTargets", "RemoveCardTypes",
-	"RemoveCreatureTypes", "RemoveSubTypes", "ReplaceColor", "ReplaceGraveyard",
+	"RemoveCost", "RemoveCreatureTypes", "RemoveSubTypes", "ReplaceColor", "ReplaceGraveyard",
 	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType", "ReplacementEffects", "ReturnAbility", "ReturnValid", "SVarCompare",
 	"SelectPrompt", "SetChosenMode", "SetChosenNumber", "SetColor", "SetCreatureTypes", "SetPower",
 	"SetToughness", "ShowCards", "SorcerySpeed", "SpellDescription", "StackDescription",
@@ -275,6 +290,11 @@ func compileClone(sa *cards.SA, dr *DefinedParams) *CloneParams {
 	p.AttachedTo = strings.TrimSpace(sa.ParamStr(cards.PKAttachedTo))
 	p.FaceDown = strings.EqualFold(sa.ParamStr(cards.PKFaceDown), "True")
 	p.KeepFacedownFalse = strings.EqualFold(rawParamText(sa, "KeepFacedown").Text, "False")
+	p.Embalm = isTrue(rawParamText(sa, "Embalm").Text)
+	if rt := rawParamText(sa, "RemoveCost"); rt.Present {
+		p.RemoveCostPresent = true
+		p.NoManaCost = isTrue(rt.Text)
+	}
 
 	p.ETBShapeOK = cloneETBShapeOK(sa, p)
 	p.Unread = unreadKeys(sa, cloneKnownKeys[:])
@@ -390,6 +410,22 @@ func cloneETBShapeOK(sa *cards.SA, p *CloneParams) bool {
 	if p.RemoveSubTypesPresent && !p.RemoveSubTypes {
 		return false
 	}
+	// The Embalm$ gate (Vizier of Many Faces): the body's RemoveCost$/
+	// SetColor$/AddTypes$ exceptions are the CR 707.9b clause "except if
+	// CARDNAME was embalmed", applying only when the become object is the
+	// card's own embalm token -- a predicate the compile cannot know, so the
+	// resolution derives it from the token's own copiable face (effClone's
+	// cloneEmbalmProvenance) and a hard-cast carrier enters as a plain copy.
+	// An Embalm$ spelling other than True fails closed, and a RemoveCost$
+	// without the Embalm$ gate stays withheld: an unconditional "no mana
+	// cost" rider on an as-enters copy would rewrite a hard-cast carrier's
+	// mana cost, the wrong copy the whitelist exists to prevent.
+	if _, ok := sa.Params["Embalm"]; ok && !p.Embalm {
+		return false
+	}
+	if _, ok := sa.Params["RemoveCost"]; ok && (!p.NoManaCost || !p.Embalm) {
+		return false
+	}
 	// Cursed Mirror's "until end of turn": the copy unit rides the ordinary
 	// UntilEOT lifetime (effClone). Every other spelling (UntilFacedown, an
 	// event duration) needs its own expiry route and stays withheld.
@@ -438,6 +474,9 @@ var cloneETBShapeKeys = state.NewNameSet(
 	"AddStaticAbilities", "IntoPlayTapped", "AddTriggers", "AddSVars", "AddAbilities", "SubAbility",
 	"SetPower", "SetToughness", "SetColor", "AddColors", "NonLegendary",
 	"ChoiceZone", "NewName", "ChoiceTitle", "RememberCloneOrigin",
+	// The Embalm$ gate keys: RemoveCost$ is admitted only beside an
+	// Embalm$ True (cloneETBShapeOK's value checks), the gated-token clause.
+	"Embalm", "RemoveCost",
 )
 
 // cloneETBShapeExtraKeys are the keys the implemented as-enters Clone shape
