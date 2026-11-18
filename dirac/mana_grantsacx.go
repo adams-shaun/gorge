@@ -19,16 +19,18 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // and the Taps-deferred one (mana_granttapsdefer.go): the permanent to
 // sacrifice (pay.ManaSacrificeCandidates' ask, only with two or more
 // candidates, battlefield order; the source itself a candidate of
-// kop.SacAnyManaAb, Krark-Clan Ironworks among them), then its fixed
-// production, no colour ask (tapXUnit), as the tap-another search's
-// sacrifice branch does (mana_tapanother.go visit). A grant holder whose own
+// kop.SacAnyManaAb, Krark-Clan Ironworks among them), then the colour of an
+// any-colour production (kop.SacXAnyColour) or its fixed production with no
+// colour ask (tapXUnit), as the tap-another search's sacrifice branch does
+// (mana_tapanother.go sacStep). A grant holder whose own
 // ability is a sacrifice-another shape stays on the grant side: its granted
-// abilities branch first (visit), and its sacrifice shape is modelled on no
-// board in the corpus.
+// abilities' ask lists its printed abilities first, the sacrifice among them
+// (printedXFirst; Phyrexian Tower under Abundant Growth: {C}, the sacrifice,
+// then the grant).
 
 // stepSacX is the gi of a prefix step that activates a candidate's
-// sacrifice-another mana ability (cand the permanent it sacrifices; the
-// production is fixed, no colour).
+// sacrifice-another mana ability (cand the permanent it sacrifices, col the
+// colour an any-colour production was asked).
 const stepSacX int16 = -10
 
 // grantSacXGaps: p's sacrifice-another mana sources the tap-another search
@@ -58,16 +60,35 @@ func (s *State) sacXBesideGrant(k *prep, p uint8) bool {
 }
 
 // sacXBranch activates candidate i's (slot sl) sacrifice-another mana ability
-// on copies of t: each permanent its cost may sacrifice (the ask only with
-// two or more candidates, battlefield order), its fixed production.
+// on copies of t: a second-ability source's ability ask first (its plain {T}
+// ability the first answer, Phyrexian Tower's {C}: sacXPlain), then each
+// permanent its cost may sacrifice (the ask only with two or more candidates,
+// battlefield order), then the colour of an any-colour production (Phyrexian
+// Altar, Gilded Goose: W U B R G with the play's announced colours first, as
+// gorge's scriptOrderAnswers orders the ask); a fixed production asks none.
 func (g *grantSrch) sacXBranch(t *State, i int, sl Slot) bool {
+	if !g.sacXLive(t, i, sl) {
+		return false
+	}
+	if found, stop := g.sacXPlain(t, i, sl); stop {
+		return found
+	}
+	return g.sacXAct(t, i, sl)
+}
+
+// sacXLive: candidate i (slot sl) is still on the battlefield and its
+// sacrifice-another ability has a permanent to sacrifice.
+func (g *grantSrch) sacXLive(t *State, i int, sl Slot) bool {
 	if !t.occ.has(sl) || t.perms[sl].obj != g.cobj[i] {
 		return false // sacrificed by an earlier step (mana_grantcost.go)
 	}
+	return g.k.tapXAbOf(t.cardAt(sl)) != nil && t.scriptTapX(g.k, g.p).has(sl) // (tapped or its candidates gone since the root)
+}
+
+// sacXAct is sacXBranch's activation of the sacrifice-another ability: the
+// sacrifice ask, then the colour ask of an any-colour production.
+func (g *grantSrch) sacXAct(t *State, i int, sl Slot) bool {
 	ab := g.k.tapXAbOf(t.cardAt(sl))
-	if ab == nil || !t.scriptTapX(g.k, g.p).has(sl) {
-		return false // tapped or its candidates gone since the root
-	}
 	var cs [MaxPerm]Slot
 	nc := t.sacXCands(g.k, g.p, sl, ab, &cs)
 	if nc == 0 {
@@ -76,22 +97,76 @@ func (g *grantSrch) sacXBranch(t *State, i int, sl Slot) bool {
 	if nc > 1 && !g.node() { // the sacrifice ask
 		return false
 	}
+	// the colour ask's answers: W U B R G, the play's announced colours first
+	// (gorge's scriptOrderAnswers, needFirst); a fixed production asks none
+	order, ncol := [5]uint8{0, 1, 2, 3, 4}, 1
+	anyCol := kop.SacXAnyColour(ab)
+	if anyCol {
+		ncol = 5
+		needFirst(order[:], g.need)
+	}
 	for j := 0; j < nc; j++ {
-		if g.np >= len(g.path) {
+		if anyCol && !g.node() { // the colour ask
 			return false
 		}
-		u := t.fork()
-		u.tapXDo(g.k, g.p, tapXStep{sl: sl, cand: cs[j], cand2: NoSlot, kind: tapXAct})
-		g.path[g.np] = grantStep{i: uint8(i), gi: stepSacX, sl: sl, cand: cs[j]}
-		g.np++
-		sv := g.refreshGrants(u) // (a sacrificed grant holder's grants are gone below the step: mana_grantlive.go)
-		ok := g.next(u, sl)      // (the sacrifice queues its dies triggers, mana_granttapsdefer.go)
-		g.restoreGrants(&sv)
-		t.unfork()
-		if ok {
-			return true
+		for _, col := range order[:ncol] {
+			if g.np >= len(g.path) {
+				return false
+			}
+			u := t.fork()
+			u.tapXDo(g.k, g.p, tapXStep{sl: sl, cand: cs[j], cand2: NoSlot, col: col, kind: tapXAct})
+			g.path[g.np] = grantStep{i: uint8(i), col: col, gi: stepSacX, sl: sl, cand: cs[j]}
+			g.np++
+			sv := g.refreshGrants(u) // (a sacrificed grant holder's grants are gone below the step: mana_grantlive.go)
+			ok := g.next(u, sl)      // (the sacrifice queues its dies triggers, mana_granttapsdefer.go)
+			g.restoreGrants(&sv)
+			t.unfork()
+			if ok {
+				return true
+			}
+			g.np--
 		}
-		g.np--
 	}
 	return false
+}
+
+// sacXPlain is sacXBranch's ability ask of a second-ability source
+// (kop.SecondSacTapManaAb, Phyrexian Tower): one node, its plain {T} ability
+// tried first, as the tap-another search's tapXAbilityAsk does. stop:
+// sacXBranch returns found (an answer paid, or the budget ran out on the ask),
+// else it goes on to the sacrifice ability.
+func (g *grantSrch) sacXPlain(t *State, i int, sl Slot) (found, stop bool) {
+	if !g.k.tapXSecond(t.cardAt(sl)) || !t.canTapForMana(g.k, sl) {
+		return false, false
+	}
+	if !g.node() { // the ability ask
+		return false, true
+	}
+	ppc := t.manaPCGen(g.k, sl)
+	if g.branch(t, i, sl, -1, t.srcMaskAt(ppc, sl), ppc.manaN, false) {
+		return true, true
+	}
+	return false, false
+}
+
+// printedXFirst is visit's branch of a grant holder's printed tap- or
+// sacrifice-another ability, the answers gorge's "choose a mana ability" ask
+// lists before the grants: a second-ability source's plain {T} ability first
+// (mana_tapanother.go tapXPlainDo; Phyrexian Tower's {C} under Chromatic
+// Lantern), then the tap-another ability (mana_granttapx.go) or the
+// sacrifice-another one (Gilded Goose under Cryptolith Rite: no plain ability,
+// its sacrifice the ask's first answer).
+func (g *grantSrch) printedXFirst(t *State, i int, sl Slot) bool {
+	if g.k.tapXSecond(t.cardAt(sl)) && g.dual[i] && t.canTapForMana(g.k, sl) {
+		// (a no-{T} second ability, Relic of Legends', stays live once its plain
+		// {T} ability has tapped the source: that answer is gone)
+		ppc := t.manaPCGen(g.k, sl)
+		if g.branch(t, i, sl, -1, t.srcMaskAt(ppc, sl), ppc.manaN, false) {
+			return true
+		}
+	}
+	if g.sacx[i] {
+		return g.sacXLive(t, i, sl) && g.sacXAct(t, i, sl)
+	}
+	return g.tapXBranch(t, i, sl)
 }

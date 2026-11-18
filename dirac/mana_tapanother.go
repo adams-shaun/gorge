@@ -148,7 +148,7 @@ func (s *State) sacXLive(k *prep, p uint8) bool {
 //go:noinline
 func (s *State) tapXTwoLive(k *prep, p uint8) bool {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		if ab := k.tapXAbOf(s.cardAt(b.first())); ab.Cost.Flags&kop.CostTap == 0 && !kop.SacAnyManaAb(ab) {
+		if ab := k.tapXAbOf(s.cardAt(b.first())); ab.Cost.Flags&kop.CostTap == 0 && !kop.BoundedOnceManaAb(ab) {
 			return true
 		}
 	}
@@ -167,7 +167,7 @@ func (s *State) tapXTwoLive(k *prep, p uint8) bool {
 //go:noinline
 func (s *State) tapXSacAnyLive(k *prep, p uint8) bool {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		if kop.SacAnyManaAb(k.tapXAbOf(s.cardAt(b.first()))) {
+		if kop.BoundedOnceManaAb(k.tapXAbOf(s.cardAt(b.first()))) {
 			return true
 		}
 	}
@@ -184,7 +184,7 @@ func (s *State) tapXSacAnyLive(k *prep, p uint8) bool {
 func (s *State) availSacAny(k *prep, p uint8, av *avail, d *payDesc) {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
-		if ab := k.tapXAbOf(s.cardAt(sl)); kop.SacAnyManaAb(ab) &&
+		if ab := k.tapXAbOf(s.cardAt(sl)); kop.BoundedOnceManaAb(ab) &&
 			!s.potentialAdmits(k, p, sl, int(k.tapXAb[s.cardAt(sl)]), ab, d) {
 			addTapXUnits(av, ab)
 		}
@@ -962,7 +962,7 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		return
 	}
 	if k.sacXOf(s.cardAt(st.sl)) {
-		s.sacXDo(k, p, st.sl, st.cand)
+		s.sacXDo(k, p, st.sl, st.cand, st.col)
 		return
 	}
 	tb := s.tapBatchOpen(k) // the ability's elected taps are one tapping action (gorge mana_activation.go; trig_tapall.go)
@@ -999,7 +999,7 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 // sacrifice (its Sacrificed and dies triggers queue), then every colour of the
 // production. The script returns to priority after the step, so the SBAs and
 // the queued triggers settle before the next node (as ctrGap's step does).
-func (s *State) sacXDo(k *prep, p uint8, sl, cand Slot) {
+func (s *State) sacXDo(k *prep, p uint8, sl, cand Slot, colour uint8) {
 	ab := k.tapXAbOf(s.cardAt(sl))
 	if ab.Cost.Flags&kop.CostTap != 0 { // (Krark-Clan Ironworks has no {T})
 		s.perms[sl].flags |= pfTapped
@@ -1008,6 +1008,9 @@ func (s *State) sacXDo(k *prep, p uint8, sl, cand Slot) {
 	}
 	s.sacFilterSource(k, cand)
 	cols, n := tapXUnit(ab)
+	if kop.SacXAnyColour(ab) {
+		cols = 1 << colour // the activation asked the colour after the sacrifice
+	}
 	for col := 0; col < kop.NumManaKinds; col++ {
 		if cols&(1<<col) != 0 {
 			s.poolAdd(p, col, int(n))
@@ -1293,17 +1296,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		var cs [MaxPerm]Slot
 		nc := t.tapXCands(k, p, sl, &cs)
 		if k.sacXOf(t.cardAt(sl)) {
-			// a sacrifice-another source: the "sacrifice" ask only with two or
-			// more candidates, in battlefield order, and no colour ask (the
-			// production is fixed). An answer that takes the play's own
-			// source is tried: the next node ends it (leftOwnZone)
-			if nc > 1 && !rs.tick() {
-				return false
-			}
-			for ci := 0; ci < nc; ci++ {
-				if rs.try(k, t, tapXStep{sl: sl, cand: cs[ci], cand2: NoSlot}) {
-					return true
-				}
+			if found, stop := rs.sacStep(k, t, sl, &cs, nc, &cols); stop {
+				return found
 			}
 			continue
 		}
@@ -1325,17 +1319,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			if rs.tapXOwnAnswer(cand, NoSlot) {
 				continue // a forced tap of the play's own {T} source (CR 602.2b)
 			}
-			if !rs.tick() { // the colour ask
-				return false
-			}
-			for i := 0; i < 5; i++ {
-				c := cols[i]
-				if debugTapXMutate == 1 {
-					c = 0
-				}
-				if rs.try(k, t, tapXStep{sl: sl, cand: cand, cand2: NoSlot, col: c}) {
-					return true
-				}
+			if found, stop := rs.colourStep(k, t, sl, cand, &cols); stop {
+				return found
 			}
 		}
 	}
@@ -1359,6 +1344,55 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		rs.n--
 	}
 	return false
+}
+
+// colourStep asks the colour of source sl's activation after its permanent
+// pick cand and tries each answer, the play's announced colours first; a
+// fixed production asks none. stop: visit returns found (an answer paid, or the
+// node budget ran out on the ask), else it goes on to the next candidate.
+func (rs *tapXSearch) colourStep(k *prep, t *State, sl, cand Slot, cols *[5]uint8) (found, stop bool) {
+	if fc, ok := kop.TapXFixedColour(k.tapXAbOf(t.cardAt(sl))); ok {
+		f := rs.try(k, t, tapXStep{sl: sl, cand: cand, cand2: NoSlot, col: uint8(fc)})
+		return f, f
+	}
+	if !rs.tick() { // the colour ask
+		return false, true
+	}
+	for i := 0; i < 5; i++ {
+		c := cols[i]
+		if debugTapXMutate == 1 {
+			c = 0
+		}
+		if rs.try(k, t, tapXStep{sl: sl, cand: cand, cand2: NoSlot, col: c}) {
+			return true, true
+		}
+	}
+	return false, false
+}
+
+// sacStep is visit's branch for a sacrifice-another source sl with nc
+// candidates cs: the "sacrifice" ask only with two or more, in battlefield
+// order, then the colour ask of an any-colour one (the announced colours
+// first, as the tap-another cost's); a fixed or all-at-once production asks
+// none. An answer that takes the play's own source is tried: the next node ends
+// it (leftOwnZone). stop: visit returns found.
+func (rs *tapXSearch) sacStep(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, nc int, cols *[5]uint8) (found, stop bool) {
+	if nc > 1 && !rs.tick() {
+		return false, true
+	}
+	anyCol := kop.SacXAnyColour(k.tapXAbOf(t.cardAt(sl)))
+	for ci := 0; ci < nc; ci++ {
+		if anyCol {
+			if f, st := rs.colourStep(k, t, sl, cs[ci], cols); st {
+				return f, true
+			}
+			continue
+		}
+		if rs.try(k, t, tapXStep{sl: sl, cand: cs[ci], cand2: NoSlot}) {
+			return true, true
+		}
+	}
+	return false, false
 }
 
 // riderStep is visit's branch for a planner-deferred rider source sl (a
