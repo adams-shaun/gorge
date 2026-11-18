@@ -20,6 +20,14 @@ fi
 if ! "${cap[@]}" go test -timeout 3m -run '^TestPublicBoundary$|^TestNoVerbatimForgeLines$' ./internal/archtest >"$log" 2>&1; then
   cat "$log"; fail "public boundary: $(grep -m1 -E 'holds a line of|private|verbatim' "$log" | sed 's/^[[:space:]]*//' | cut -c1-200)"
 fi
+# The wall-clock ratchet in ./testkit/testutil scans every _test.go file, and no affected-package rule selects it.
+# On 11-18, #1705 added a 5 ms poll sleep in server/gorged and failed its batch's test (2) on
+# TestNoNewSubSecondWallClockThresholdInTests.
+if grep -q '_test\.go$' <<<"$changed"; then
+  if ! "${cap[@]}" go test -timeout 3m -run '^TestNoNewSubSecondWallClockThresholdInTests$' ./testkit/testutil >"$log" 2>&1; then
+    cat "$log"; fail "wall-clock ratchet: $(grep -m1 -E 'holds [0-9]+ sub-second' "$log" | sed 's/^[[:space:]]*//' | cut -c1-200)"
+  fi
+fi
 if grep -q '^dirac/' <<<"$changed"; then
   # The support ledger's own checks (dirac/kgen/support_test.go): a refusal against evidence main credited since the
   # branch cut fails TestEvidenceAndRefusedAreDisjoint though the PR touches neither test (#503, 11-17).
