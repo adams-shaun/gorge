@@ -1,0 +1,18 @@
+{
+  "card": "Whim of Volrath",
+  "class": "lockstep",
+  "why": "Whim of Volrath changes a basic land's type word until end of turn; the kernel has no per-permanent text, so where gorge rewrites the land the kernel stalls textchange (unmodelled), tail-02 pair 1",
+  "repro": {
+    "pool": "tail-02",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1,
+    "policy": "random",
+    "mulligans": 0
+  },
+  "evidence": [
+    "ev-tail-02-c000",
+    "ev-tail-02-c001",
+    "ev-tail-52-c002"
+  ]
+}
