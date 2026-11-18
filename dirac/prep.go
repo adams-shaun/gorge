@@ -407,7 +407,7 @@ func prepare(t *kop.Table) *prep {
 						// in the fixed-production census pass
 						pc.manaChosen, pc.manaFixedChosen = true, true
 					}
-					if p.tapXAb[i] < 0 && kop.SecondTapXManaAb(c, int(pc.manaAb), j) {
+					if p.tapXAb[i] < 0 && kop.SecondTapAnotherManaAb(c, int(pc.manaAb), j) {
 						p.tapMana = true // a second tap-another ability: the card's tapX gap (mana_tapanother.go)
 						p.tapXAb[i] = int8(j)
 					}
