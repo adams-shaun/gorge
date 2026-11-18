@@ -822,6 +822,15 @@ func init() {
 	// from the shared decision repair (decision.Decision.FitAlone), never by
 	// the per-pair AttackBlocked/BlockRestricted oracles.
 	effects.RegisterNonAPI("kw:CantAttackAlone", "kw:CantBlockAlone", "kw:CantAttackOrBlockAlone")
+	// kw:OnlyAttackAlone -- CR 506.5's inverse polarity (Master of
+	// Cruelties' "CARDNAME can only attack alone."): the creature may be
+	// declared as an attacker only when it is the whole attacker
+	// declaration. Printed K: lines are canonicalised to this head by
+	// engine/cards/hiddenkeyword.go; combat.OnlyAttackAloneKeyword is read
+	// by validateAloneDeclaration and published as Option.OnlyAloneRestricted
+	// so the shared repair derives its rule from the same fact. Proof test:
+	// TestEDHKeywordsOnlyAttackAloneSoleAttacker.
+	effects.RegisterNonAPI("kw:OnlyAttackAlone")
 }
 
 // manaSlotSymbols indexes the pool slot order (state.MW..state.MC) to its

@@ -257,6 +257,7 @@ func optionEqual(a, b *decision.Option) bool {
 		a.Required == b.Required &&
 		a.BlockMust == b.BlockMust &&
 		a.AloneRestricted == b.AloneRestricted &&
+		a.OnlyAloneRestricted == b.OnlyAloneRestricted &&
 		a.BlockMustAll == b.BlockMustAll &&
 		a.AttackMust == b.AttackMust && a.AttackMustTwo == b.AttackMustTwo &&
 		a.MinBlockers == b.MinBlockers &&

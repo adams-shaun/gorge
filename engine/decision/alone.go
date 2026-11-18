@@ -20,8 +20,10 @@ func (d *Decision) aloneKind() bool {
 
 // AloneLegal reports whether the choices satisfy CR 506.5: an option marked
 // AloneRestricted (its creature can't attack alone / can't block alone) may be
-// chosen only together with at least one other option in the same answer.
-// Out-of-range indices are ignored (Validate rejects them separately).
+// chosen only together with at least one other option in the same answer, and
+// an option marked OnlyAloneRestricted (its creature can only attack alone)
+// may be chosen only as the whole KAttackers answer. Out-of-range indices are
+// ignored (Validate rejects them separately).
 func (d *Decision) AloneLegal(choices []int) bool {
 	if !d.aloneKind() {
 		return true
@@ -43,17 +45,35 @@ func (d *Decision) AloneLegal(choices []int) bool {
 			return false
 		}
 	}
+	if d.Kind != KAttackers {
+		return true
+	}
+	for _, c := range choices {
+		if c < 0 || c >= len(d.Options) {
+			continue
+		}
+		if d.Options[c].OnlyAloneRestricted && len(choices) > 1 {
+			return false
+		}
+	}
 	return true
 }
 
 // validateAlone is the wire half: Decision.Validate refuses an answer that
-// declares a restricted creature alone.
+// declares a restricted creature alone (or an only-attack-alone creature
+// beside another attacker).
 func (d *Decision) validateAlone(choices []int) error {
 	if d.AloneLegal(choices) {
 		return nil
 	}
 	for _, c := range choices {
-		if c >= 0 && c < len(d.Options) && d.Options[c].AloneRestricted {
+		if c < 0 || c >= len(d.Options) {
+			continue
+		}
+		if d.Options[c].OnlyAloneRestricted {
+			return fmt.Errorf("creature %d can only attack alone", d.Options[c].Obj)
+		}
+		if d.Options[c].AloneRestricted {
 			return fmt.Errorf("creature %d can't %s alone", d.Options[c].Obj, d.aloneVerb())
 		}
 	}
@@ -112,8 +132,20 @@ func (d *Decision) FitAlone(choices []int) []int {
 	}
 	out := make([]int, 0, len(choices))
 	for _, c := range choices {
-		restricted := c >= 0 && c < len(d.Options) && d.Options[c].AloneRestricted
-		if restricted && len(choices) == 1 {
+		o := c >= 0 && c < len(d.Options)
+		// Drop the creature whose restriction the whole answer disobeys: a
+		// can't-attack-alone creature is illegal as the lone answer, an
+		// only-attack-alone creature is illegal beside any other attacker
+		// (dropping it leaves the others, which are unrestricted). To
+		// declare nothing at all is always legal -- the restriction
+		// constrains HOW the creature may be declared, never that it must
+		// be -- and the answer handed back is the empty set whenever the
+		// lone drop happens, which is exactly the shape AloneLegal
+		// re-checks.
+		if o && d.Options[c].AloneRestricted && len(choices) == 1 {
+			continue
+		}
+		if o && d.Options[c].OnlyAloneRestricted && len(choices) > 1 {
 			continue
 		}
 		out = append(out, c)

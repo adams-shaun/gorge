@@ -51,6 +51,9 @@ var canonicalKeywordHeads = map[string]string{
 	"cardname can't attack or block alone.":                      "CantAttackOrBlockAlone",
 	"cardname can't attack alone.":                               "CantAttackAlone",
 	"cardname can't block alone.":                                "CantBlockAlone",
+	// CR 506.5's inverse polarity (Master of Cruelties): the creature may
+	// attack only when it is the WHOLE attacker declaration.
+	"cardname can only attack alone.": "OnlyAttackAlone",
 }
 
 // HiddenUntapNextStepKeyword is the EXACT Forge sentence a Pump/PumpAll `KW$
@@ -135,6 +138,7 @@ const (
 	HiddenKeywordCantBlockAlone
 	HiddenKeywordAllMustBlock
 	HiddenKeywordMustBeBlockedByTwo
+	HiddenKeywordOnlyAttackAlone
 	HiddenKeywordCount
 )
 
@@ -162,6 +166,8 @@ var hiddenKeywordHeadCodes = NewStrCodes(
 	StrEntry[HiddenKeyword]{Key: "all creatures able to block cardname do so.", Val: HiddenKeywordAllMustBlock},
 	StrEntry[HiddenKeyword]{Key: "mustbeblockedbytwo", Val: HiddenKeywordMustBeBlockedByTwo},
 	StrEntry[HiddenKeyword]{Key: "cardname must be blocked by two or more creatures if able.", Val: HiddenKeywordMustBeBlockedByTwo},
+	StrEntry[HiddenKeyword]{Key: "onlyattackalone", Val: HiddenKeywordOnlyAttackAlone},
+	StrEntry[HiddenKeyword]{Key: "cardname can only attack alone.", Val: HiddenKeywordOnlyAttackAlone},
 )
 
 // HiddenKeywordOf resolves one keyword line to its HiddenKeyword code,
