@@ -265,6 +265,9 @@ type reflSearch struct {
 	n     int
 	path  [maxReflPath]reflStep
 	dead  bool
+	// stall: the first stall a failed line's fork latched (stallOf), StallNone
+	// none; reflScript declares it when the whole search fails
+	stall uint8
 }
 
 // reflBoard reports whether p's census gaps are anyR sources alone (the
@@ -286,6 +289,12 @@ func (s *State) reflScript(k *prep, a Action, p uint8, apply bool) (found, dead 
 	defer s.unfork()
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	if !rs.visit(k, t, false) || rs.n == 0 {
+		if rs.stall != 0 {
+			// every line failed and one ran into a rule gap the kernel stalls
+			// by name: declare it, not "no payment" (tapXScript's stall; a
+			// found path is not this, its apply replays it on s)
+			s.capFull(rs.stall)
+		}
 		return false, false
 	}
 	if apply {
@@ -337,8 +346,19 @@ func (rs *reflSearch) try(k *prep, t *State, st reflStep) bool {
 	if rs.visit(k, c, true) {
 		return true
 	}
+	rs.stallOf(c) // the line failed; the fork may have latched a stall
 	rs.n--
 	return false
+}
+
+// stallOf records the stall a failed line's fork latched (capFull) while the
+// line ran to it, the first one, so reflScript declares it on the real state
+// instead of dropping the play as unpayable: the fork cannot go on (its next
+// stepGen ends the game), but the play could have been payable along it.
+func (rs *reflSearch) stallOf(c *State) {
+	if rs.stall == 0 {
+		rs.stall = c.g.stalled
+	}
 }
 
 func (rs *reflSearch) visit(k *prep, t *State, gapUsed bool) bool {

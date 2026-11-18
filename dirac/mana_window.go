@@ -1146,8 +1146,12 @@ func (s *State) windowGapAnyColour(k *prep, p uint8, sl Slot, cost, useful *kop.
 }
 
 // windowAffords: gorge's mana window pays cost from p's sources counting
-// the Tenders' mana (availFor does not), simulated on a copy.
-func (s *State) windowAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
+// the Tenders' mana (availFor does not), simulated on a copy. The second
+// return is the first rule-gap stall the simulated walk latched (StallNone
+// none): the probe declares nothing — a caller that keeps searching may still
+// price the play, and the drop site declares the stall only where every route
+// failed (windowPays, payWardN, applyWardManaLife, the madness gates).
+func (s *State) windowAffords(k *prep, p uint8, cost *kop.ManaCost) (bool, uint8) {
 	return s.windowAffordsTake(k, p, cost, false, false)
 }
 
@@ -1222,20 +1226,29 @@ func (s *State) unlessTapsDeferred(k *prep, p uint8) bool {
 // pay is offered (CR 118.3, 605.3b). So does it tap a fixed counter-fee
 // source the census prices (unlessCtrGaps, Weather Maker), whose activation
 // the windowPick census arm takes (ctrCensusOffer).
-func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred, unless bool) bool {
+func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred, unless bool) (bool, uint8) {
 	s.setUnlessWin(unless)
 	defer s.setUnlessWin(false)
 	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || s.riderOfferable(k, p, takeDeferred)) {
-		return false
+		return false, 0
 	}
 	t := s.fork()
 	defer s.unfork()
 	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, false, false, takeDeferred, takeDeferred)
-	return ok
+	stall := uint8(0)
+	if !ok {
+		// the walk's taps and sacrifices latched a rule-gap stall (its next
+		// stepGen ends the game). A caller that keeps searching may still price
+		// the play through a sibling route, so the probe declares nothing: the
+		// drop site declares the stall where every route failed (windowPays,
+		// payWardN, applyWardManaLife, the madness gates; tapXScript's shape).
+		stall = t.g.stalled
+	}
+	return ok, stall
 }
 
 // windowAffordsN is windowAffords for an unless cost of amt with pips.
-func (s *State) windowAffordsN(k *prep, p uint8, amt int, pips int16, unless bool) bool {
+func (s *State) windowAffordsN(k *prep, p uint8, amt int, pips int16, unless bool) (bool, uint8) {
 	c := manaOf(amt, pips)
 	return s.windowAffordsTake(k, p, &c, true, unless)
 }
@@ -1251,21 +1264,27 @@ func restrTapMana(a *kop.Ability) bool {
 }
 
 // windowPays: execPay's unless / ward mana cost that gorge's window pays
-// with a Tender's mana (windowAffords), out of line.
+// with a Tender's mana (windowAffords), out of line. The second return is the
+// first rule-gap stall a failed probe's fork latched (StallNone none): the
+// caller declares it only where every route failed (tapXScript's shape).
 //
 //go:noinline
-func (s *State) windowPays(k *prep, p uint8, kind int, skip uint16, amt int, pips int16) bool {
+func (s *State) windowPays(k *prep, p uint8, kind int, skip uint16, amt int, pips int16) (bool, uint8) {
 	if kind != kop.PayMana || skip&(pfWard|pfModes) == 0 {
-		return false
+		return false, 0
 	}
-	if s.windowAffordsN(k, p, amt, pips, skip&pfWard == 0) {
-		return true
+	if ok, stall := s.windowAffordsN(k, p, amt, pips, skip&pfWard == 0); ok {
+		return true, 0
+	} else {
+		// An unless cost is no spell's payment: restricted mana whose restriction
+		// admits a non-spell payment (a Powerstone's {C}, CR 106.6) pays it, as it
+		// pays a ward (nonSpellRestrAffords).
+		c := manaOf(amt, pips)
+		if s.nonSpellRestrAffords(k, p, &c) {
+			return true, 0
+		}
+		return false, stall
 	}
-	// An unless cost is no spell's payment: restricted mana whose restriction
-	// admits a non-spell payment (a Powerstone's {C}, CR 106.6) pays it, as it
-	// pays a ward (nonSpellRestrAffords).
-	c := manaOf(amt, pips)
-	return s.nonSpellRestrAffords(k, p, &c)
 }
 
 // restrKinds is how many distinct spend restrictions a table's restricted
@@ -2075,6 +2094,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 	life := s.lifeGapMask(k, p) // a life-only gap among the order (mana_lifegap.go)
 	depth := 0                  // gaps tapped at this node: order[:depth], answers path[:depth]
 	nodes := 0
+	stall := uint8(0) // the first stall a node's fork latched (t.g.stalled), StallNone none
 	// An activation's granted mana is the grant search's only for a play its
 	// walk lists (grantCap). A play the walk leaves off -- it needs a
 	// Taps-deferred or counter-cost gap (Saprazzan Skerry), which is no unit
@@ -2089,6 +2109,13 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 		replay := true
 		if depth > 0 {
 			if nodes++; (ctr.any() || ca.any() || life.any()) && nodes > potentialScriptNodes { // gorge's search budget: no script past it (the counter, Combo Any and life gaps' answers multiply)
+				if stall != 0 {
+					// the drop is final (scriptDeadEndAny's callers drop the
+					// play) and one node's fork ran into a rule gap the kernel
+					// stalls by name: declare it, not "no payment" (tapXScript's
+					// stall; a found path is not this, its replay latches on s)
+					s.capFull(stall)
+				}
 				return 0, false
 			}
 			t := s.fork()
@@ -2102,6 +2129,9 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 					replay = false
 					break
 				}
+			}
+			if stall == 0 {
+				stall = t.g.stalled // the chain taps may have latched a stall
 			}
 			t.hideDeferred(k, p, a, tapsDef)
 			t.restrOptions(k, &d, p)
@@ -2133,6 +2163,9 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 					found = hasOption(&d, a)
 				}
 			}
+			if !found && stall == 0 {
+				stall = t.g.stalled // the node's own options build or resolution may have latched one
+			}
 			if found {
 				*dead = false
 				if t.rbAny(SeatIx(p)) || spill != ([kop.NumManaKinds]uint8{}) {
@@ -2153,6 +2186,12 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 		}
 		for { // a leaf: the deepest gap with an answer left, else done
 			if depth == 0 {
+				if stall != 0 {
+					// every line failed and one ran into a rule gap the kernel
+					// stalls by name: declare it, not "no payment" (tapXScript's
+					// stall; a found path is not this, its replay latches on s)
+					s.capFull(stall)
+				}
 				return 0, false
 			}
 			j := depth - 1
@@ -3083,9 +3122,11 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 	c := cost.AtX(x)
 	tb := s.buildCost0(k).Hyb[0] == kop.HybTwobrid
 	ok, known := s.windowDry(k, p, &c, anyColor)
+	stall := uint8(0) // the probe's latched stall, StallNone none; a route the planner prices past is not the game's
 	if !known {
 		probe := s.fork() // a gap or sacrificed source: the rare full probe
 		ok, _ = probe.windowTapRider(k, p, &c, true, anyColor)
+		stall = probe.g.stalled
 		s.unfork()
 	}
 	if ok {
@@ -3106,13 +3147,21 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 		// strand a later pip only it could make (Frontier Bivouac's {U}
 		// leaves a {R} pip no source makes); gorge reverses the cast and
 		// keeps the tap and its mana (CR 601.2g-h, 733.1), so the kernel
-		// does too.
+		// does too. A stall the probe latched is the strand's reason when the
+		// walk would have paid: declare it, not a reversed cast (the
+		// strand's drop is final).
+		if stall != 0 {
+			s.capFull(stall)
+		}
 		return s.hybStrand(k, p, &c, anyColor)
 	}
 	var pk planner
 	pk.bfl, pk.try = true, true
 	s.tapForPK(k, p, cost, x, exclude, false, anyColor, &pk)
 	if pk.needT > 0 && !pk.found {
+		if stall != 0 {
+			s.capFull(stall) // (as above: the strand's drop is final)
+		}
 		return s.hybStrand(k, p, &c, anyColor)
 	}
 	return true
@@ -3504,7 +3553,15 @@ func (s *State) paymentStrandedPlan(k *prep, e *stackEntry, cost *kop.ManaCost, 
 		defer s.unfork()
 		c := *cost
 		ok, _ = s.windowTapRider(k, e.ctrl, &c, false, anyColor)
+		stall := s.g.stalled // (read before CopyFrom puts the saved state back)
 		s.CopyFrom(saved)
+		if !ok && stall != 0 {
+			// the walk's taps and sacrifices latched a rule-gap stall: the
+			// real walk on s would latch the same at the payment — declare it,
+			// not a "stranded" reversal the kernel's rules cannot back
+			// (tapXScript's stall)
+			s.capFull(stall)
+		}
 		return !ok
 	}
 	if dead && k.gen.anyFilt && s.scriptFilt(k, e.ctrl).any() {

@@ -872,6 +872,9 @@ type filtSearch struct {
 	// State.rb holds (a restriction past restrKinds), unrestricted: the
 	// script the search found is not one gorge's planner would price
 	spill uint8
+	// stall: the first stall a failed line's fork latched (stallOf), StallNone
+	// none; filtScript declares it when the whole search fails
+	stall uint8
 	// need is the colours the play's printed base announces (playNeed, the
 	// set the grant search reads too): the filter's colour ask tries one of
 	// those first, the mirror of gorge's scriptOrderAnswers on the same ask.
@@ -934,6 +937,12 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	if !fs.visit(k, t, 0, false) {
+		if fs.stall != 0 {
+			// every line failed and one ran into a rule gap the kernel stalls by
+			// name: declare it, not "no payment" (tapXScript's stall; a found
+			// path is not this, its stall is fs.spill's below)
+			s.capFull(fs.stall)
+		}
 		return false
 	}
 	if fs.spill != 0 {
@@ -1164,8 +1173,19 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	if life {
 		fs.lifeUsed = fs.lifeUsed.without(st.sl)
 	}
+	fs.stallOf(c) // the line failed; the fork may have latched a stall (c is live until the deferred unfork)
 	fs.n--
 	return false
+}
+
+// stallOf records the stall a failed line's fork latched (capFull) while the
+// line ran, the first one, so filtScript declares it on the real state instead
+// of dropping the play as unpayable: the fork cannot go on (its next stepGen
+// ends the game), but the play could have been payable along it.
+func (fs *filtSearch) stallOf(c *State) {
+	if fs.stall == 0 {
+		fs.stall = c.g.stalled
+	}
 }
 
 // stateKey is the visited-state key of node t.
@@ -1358,6 +1378,9 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		fs.path[fs.n] = filtStep{sl: NoSlot, other: otherStep{kind: otherPass}, act: pass}
 		fs.n++
 		ok := fs.settle(k, c, funded, true)
+		if !ok {
+			fs.stallOf(c)
+		}
 		t.unfork()
 		if ok {
 			return true
@@ -1389,10 +1412,15 @@ var DebugFiltNoTrigSettle bool
 func (fs *filtSearch) settle(k *prep, t *State, funded int, gapUsed bool) bool {
 	var d Decision
 	if !t.tapXNext(fs.p, &d) {
+		fs.stallOf(t)
 		return false
 	}
 	if d.Kind == DkPriority {
-		return fs.visit(k, t, funded, gapUsed)
+		if fs.visit(k, t, funded, gapUsed) {
+			return true
+		}
+		fs.stallOf(t)
+		return false
 	}
 	if !fs.tick() { // the ask
 		return false
@@ -1409,6 +1437,9 @@ func (fs *filtSearch) settle(k *prep, t *State, funded int, gapUsed bool) bool {
 		fs.path[fs.n] = filtStep{sl: NoSlot, other: otherStep{kind: otherAnswer}, act: d.Options[i]}
 		fs.n++
 		ok := fs.settle(k, c, funded, gapUsed)
+		if !ok {
+			fs.stallOf(c)
+		}
 		t.unfork()
 		if ok {
 			return true

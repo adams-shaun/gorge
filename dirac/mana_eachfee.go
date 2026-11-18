@@ -152,6 +152,9 @@ type eachSearch struct {
 	seen  [potentialScriptNodes]eachKey
 	path  [maxEachGaps]eachStep
 	np    int
+	// stall: the first stall a failed line's fork latched (stallOf), StallNone
+	// none; eachScript declares it when the whole search fails
+	stall uint8
 }
 
 // tick counts one visited node; false once the budget is spent.
@@ -235,6 +238,7 @@ func (fs *eachSearch) try(k *prep, t *State, i int, ans uint8, d *Decision) bool
 	fs.np++
 	found := fs.visit(k, c, d)
 	if !found {
+		fs.stallOf(c) // the line failed; the fork may have latched a stall
 		fs.np--
 	}
 	t.unfork()
@@ -255,6 +259,12 @@ func (s *State) eachScript(k *prep, a Action, p uint8, apply bool) bool {
 	fs.n = min(s.battlefieldOrder(p, s.scriptGaps(k, p), fs.order[:], 0), maxEachGaps)
 	var d Decision
 	if !fs.visit(k, s, &d) {
+		if fs.stall != 0 {
+			// every line failed and one ran into a rule gap the kernel stalls
+			// by name: declare it, not "no payment" (tapXScript's stall; a
+			// found path is not this, its apply replays it on s)
+			s.capFull(fs.stall)
+		}
 		return false
 	}
 	if apply {
@@ -266,4 +276,14 @@ func (s *State) eachScript(k *prep, a Action, p uint8, apply bool) bool {
 		}
 	}
 	return true
+}
+
+// stallOf records the stall a failed line's fork latched (capFull) while the
+// line ran to it, the first one, so eachScript declares it on the real state
+// instead of dropping the play as unpayable: the fork cannot go on (its next
+// stepGen ends the game), but the play could have been payable along it.
+func (fs *eachSearch) stallOf(c *State) {
+	if fs.stall == 0 {
+		fs.stall = c.g.stalled
+	}
 }
