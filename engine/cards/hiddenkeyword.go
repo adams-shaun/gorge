@@ -46,6 +46,9 @@ import "strings"
 var canonicalKeywordHeads = map[string]string{
 	"cardname must be blocked if able.":                          "MustBlock",
 	"cardname must be blocked by two or more creatures if able.": "MustBeBlockedByTwo",
+	// CR 509.1c's exactly-one variant (Nacatl War-Pride): the MustBlock duty
+	// beside a one-blocker ceiling.
+	"cardname must be blocked by exactly one creature if able.": "MustBeBlockedByExactlyOne",
 	"all creatures able to block cardname do so.":                "AllMustBlock",
 	"cardname can't attack or block.":                            "CantAttackOrBlock",
 	"cardname can't attack or block alone.":                      "CantAttackOrBlockAlone",
@@ -138,6 +141,7 @@ const (
 	HiddenKeywordCantBlockAlone
 	HiddenKeywordAllMustBlock
 	HiddenKeywordMustBeBlockedByTwo
+	HiddenKeywordMustBeBlockedByExactlyOne
 	HiddenKeywordOnlyAttackAlone
 	HiddenKeywordCount
 )
@@ -166,6 +170,8 @@ var hiddenKeywordHeadCodes = NewStrCodes(
 	StrEntry[HiddenKeyword]{Key: "all creatures able to block cardname do so.", Val: HiddenKeywordAllMustBlock},
 	StrEntry[HiddenKeyword]{Key: "mustbeblockedbytwo", Val: HiddenKeywordMustBeBlockedByTwo},
 	StrEntry[HiddenKeyword]{Key: "cardname must be blocked by two or more creatures if able.", Val: HiddenKeywordMustBeBlockedByTwo},
+	StrEntry[HiddenKeyword]{Key: "mustbeblockedbyexactlyone", Val: HiddenKeywordMustBeBlockedByExactlyOne},
+	StrEntry[HiddenKeyword]{Key: "cardname must be blocked by exactly one creature if able.", Val: HiddenKeywordMustBeBlockedByExactlyOne},
 	StrEntry[HiddenKeyword]{Key: "onlyattackalone", Val: HiddenKeywordOnlyAttackAlone},
 	StrEntry[HiddenKeyword]{Key: "cardname can only attack alone.", Val: HiddenKeywordOnlyAttackAlone},
 )

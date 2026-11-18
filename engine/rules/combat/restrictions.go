@@ -40,6 +40,14 @@ type HiddenKeywordFlags struct {
 	// blocker obeys none of it; it is a separate unit from MustBlock, which
 	// the same attacker usually carries too.
 	MustBeBlockedByTwo bool
+	// MustBeBlockedByExactlyOne is CR 509.1c's exactly-one variant (Nacatl
+	// War-Pride): the MustBlock duty beside a one-blocker ceiling. The duty
+	// half is read by askBlockers beside MustBlock/MustBeBlockedByTwo; the
+	// ceiling half is folded into the published pair bounds by
+	// blockPairScopeFor (the Menace floor's fold) and re-checked by
+	// validateBlockers, so the offer, the wire fence and the engine guard
+	// cannot disagree.
+	MustBeBlockedByExactlyOne bool
 	// OnlyAttackAlone is CR 506.5's inverse polarity (Master of Cruelties):
 	// the creature may be declared as an attacker only when it is the WHOLE
 	// attacker declaration. Like CantAttackAlone it is a property of the
@@ -102,6 +110,11 @@ func ParseHiddenKeyword(k string) HiddenKeywordFlags {
 		return HiddenKeywordFlags{AllMustBlock: true}
 	case cards.HiddenKeywordMustBeBlockedByTwo:
 		return HiddenKeywordFlags{MustBeBlockedByTwo: true}
+	case cards.HiddenKeywordMustBeBlockedByExactlyOne:
+		// CR 509.1c's exactly-one variant: the duty and the ceiling travel
+		// together -- one blocker obeys both, none obeys the duty only when
+		// no legal blocker exists ("if able", decided by the offer).
+		return HiddenKeywordFlags{MustBlock: true, MustBeBlockedByExactlyOne: true}
 	case cards.HiddenKeywordOnlyAttackAlone:
 		// CR 506.5's inverse polarity: the lone declaration is the ONLY legal
 		// one. Blocking is unrestricted.
@@ -126,6 +139,7 @@ func DerivedHiddenFlags(b Board, id state.ObjID) HiddenKeywordFlags {
 		f.CantBlockAlone = f.CantBlockAlone || g.CantBlockAlone
 		f.AllMustBlock = f.AllMustBlock || g.AllMustBlock
 		f.MustBeBlockedByTwo = f.MustBeBlockedByTwo || g.MustBeBlockedByTwo
+		f.MustBeBlockedByExactlyOne = f.MustBeBlockedByExactlyOne || g.MustBeBlockedByExactlyOne
 		f.OnlyAttackAlone = f.OnlyAttackAlone || g.OnlyAttackAlone
 	}
 	return f

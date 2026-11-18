@@ -190,3 +190,76 @@ func TestEDHKeywordsOnlyAttackAloneSoleAttacker(t *testing.T) {
 	submitAttackersOnly(t, e2, alone)
 	drainCombatPriority(t, e2)
 }
+
+// TestEDHKeywordsMustBeBlockedByExactlyOne plays Nacatl War-Pride's printed
+// "CARDNAME must be blocked by exactly one creature if able." (CR 509.1c)
+// through a real declare-blockers step: one blocker is the only blocking
+// declaration, two are refused, and with no able blocker the attack is
+// simply unblocked.
+func TestEDHKeywordsMustBeBlockedByExactlyOne(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	nacatl, ok := reg.Lookup("Nacatl War-Pride")
+	if !ok {
+		t.Fatal("Nacatl War-Pride not in the corpus")
+	}
+	const bear = "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	e := combatEngine(t)
+	atk := onBoardCard(t, e, 0, nacatl)
+	e.G.Obj(atk).SummonSick = false
+	b1 := onBoard(t, e, 1, bear)
+	b2 := onBoard(t, e, 1, bear)
+	e.askAttackers()
+	submitAttackersOnly(t, e, atk)
+	drainCombatPriority(t, e)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KBlockers {
+		t.Fatalf("expected a blockers decision, got %+v", d)
+	}
+	for _, o := range d.Options {
+		if o.Attacker == atk && o.MaxBlockers != 1 {
+			t.Fatalf("pair option publishes MaxBlockers %d, want 1: %+v", o.MaxBlockers, o)
+		}
+		if o.Attacker == atk && !o.AttackMust {
+			t.Fatalf("pair option does not publish the block duty: %+v", o)
+		}
+	}
+	// Two blockers are refused by the wire fence the published bound drives.
+	b1Idx, b2Idx := -1, -1
+	for _, o := range d.Options {
+		if o.Obj == b1 {
+			b1Idx = o.Index
+		}
+		if o.Obj == b2 {
+			b2Idx = o.Index
+		}
+	}
+	if b1Idx < 0 || b2Idx < 0 {
+		t.Fatalf("block options not offered: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{b1Idx, b2Idx}}); err == nil {
+		t.Fatal("blocking Nacatl War-Pride with two creatures was accepted")
+	}
+	// Exactly one is legal.
+	e2 := combatEngine(t)
+	atk2 := onBoardCard(t, e2, 0, nacatl)
+	e2.G.Obj(atk2).SummonSick = false
+	blk := onBoard(t, e2, 1, bear)
+	e2.askAttackers()
+	submitAttackersOnly(t, e2, atk2)
+	drainCombatPriority(t, e2)
+	if d := e2.Pending(); d == nil || d.Kind != decision.KBlockers {
+		t.Fatalf("expected a blockers decision, got %+v", d)
+	}
+	submitBlockersOnly(t, e2, blk)
+	// No able blocker: the attack is simply unblocked ("if able").
+	e3 := combatEngine(t)
+	atk3 := onBoardCard(t, e3, 0, nacatl)
+	e3.G.Obj(atk3).SummonSick = false
+	e3.askAttackers()
+	submitAttackersOnly(t, e3, atk3)
+	drainCombatPriority(t, e3)
+	if d := e3.Pending(); d != nil && d.Kind == decision.KBlockers && len(d.Options) != 0 {
+		t.Fatalf("no-blocker engine still offered pairs: %+v", d.Options)
+	}
+}
