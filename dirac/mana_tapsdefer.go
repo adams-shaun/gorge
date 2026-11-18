@@ -558,6 +558,20 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 	}
 }
 
+// tapsDeferGapOwn reports whether the Taps-deferred source sl's census gap is
+// a production of its own that availForMode's loop does not count (a
+// restricted or rider ability's), against the ordinary tap it counts once.
+// The trigger X announcement's capped census (availForCapped) counts the
+// ordinary tap in the loop, so adding addTapsDeferUnits' as well would count
+// a Condition-split source's mana twice (gorge's census lists it once).
+func (s *State) tapsDeferGapOwn(k *prep, sl Slot) bool {
+	if s.restrCensusTapsGapShape(k, sl) || s.restrTapsGapShape(k, sl) {
+		return true
+	}
+	_, rider := s.riderAbilityOf(k, sl)
+	return rider
+}
+
 // deferGapAnswers is how many colour answers a Taps-deferred gap's
 // activation poses: one per colour its production names (gorge's search
 // branches on the mana ask's options, manaChoiceColours W U B R G), plus
