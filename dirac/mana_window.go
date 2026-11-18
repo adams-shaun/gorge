@@ -1279,7 +1279,10 @@ func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDefe
 	}
 	t := s.fork()
 	defer s.unfork()
+	was := t.pool.census
+	t.pool.census = takeDeferred
 	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, false, false, takeDeferred, takeDeferred)
+	t.pool.census = was
 	stall := uint8(0)
 	if !ok {
 		// the walk's taps and sacrifices latched a rule-gap stall (its next
@@ -1347,16 +1350,20 @@ const restrVars = 6
 // restriction from the bare "Spell.Artifact" of another source (CR 106.6).
 // Read-only; a half past restrVars, or one never registered, reads as 0.
 func (g *genPrep) restrVarOf(a *kop.Ability) uint8 {
+	var nc uint8
+	if a.ManaNoCounter {
+		nc = restrVarNoCtr // AddsNoCounter$: its own batch kind (mana_nocounter.go)
+	}
 	ab, ns := a.ManaRestrictAb, a.AFlags&kop.AfManaNonSpell != 0
 	if ab == 0 && !ns {
-		return 0
+		return nc
 	}
 	for i := range g.restrVar {
 		if g.restrVar[i].ab == ab && g.restrVar[i].ns == ns && (ab != 0 || ns) {
-			return uint8(i) + 1
+			return uint8(i) + 1 | nc
 		}
 	}
-	return 0
+	return nc
 }
 
 // regRestrVar registers the activated half of mana ability a.
@@ -1423,7 +1430,7 @@ func (g *genPrep) restrKindV(f kop.FilterID, v uint8) (uint8, bool) {
 	}
 	if v == 0 {
 		for i := range g.restrF {
-			if g.restrF[i] == f && f != 0 {
+			if g.restrF[i] == f && f != 0 && g.restrV[i]&restrVarNoCtr == 0 {
 				return uint8(i) + 1, true
 			}
 		}

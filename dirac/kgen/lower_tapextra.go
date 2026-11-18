@@ -206,14 +206,16 @@ func (lc *lowerCtx) tapExtraGated(t cards.Trigger, cond lCond) error {
 	return nil
 }
 
-// tapExtraChosen refuses a `DB$ Mana | Produced$ Chosen` body whose mana goes
+// tapExtraChosen lowers a `DB$ Mana | Produced$ Chosen` body whose mana goes
 // to the tapped permanent's controller (Utopia Sprawl, Shimmerwilds Growth).
 // The extra's colour is the source's as-enters choice, so it poses no tap-time
 // ask; but gorge's planner never folds a Produced$ Chosen body
 // (pay.PaymentPlanFoldableTapMana), so it defers the enchanted source to the
 // manual window and its potential bound reads the source without the extra.
-// The kernel's potential surface cannot mirror that deferral (a lockstep game
-// offered casts gorge did not), so the card keeps refusing with this reason.
+// The kernel models exactly that as the gated tap-extra does: a StatTapExtra
+// static flagged StTapChosen that the planner's pricing readers skip and that
+// floats the chosen colour at the tap, beside a class-only Taps line that
+// defers the source.
 // handled is false for any other trigger, so the foldable/reflected
 // classifiers run.
 func (lc *lowerCtx) tapExtraChosen(t cards.Trigger) (handled bool, err error) {
@@ -243,14 +245,39 @@ func (lc *lowerCtx) tapExtraChosen(t cards.Trigger) (handled bool, err error) {
 	if tp.str("Produced") != "" || tp.str("Activator") != "" { // a tap gate, or the trigger controller's taps
 		return false, nil
 	}
-	if tp.str("ValidCard") == "" {
+	vc := strings.TrimSpace(tp.str("ValidCard"))
+	if vc == "" {
 		return false, nil
 	}
 	tp.consume("ValidCard")
 	if len(tp.unread()) != 0 {
 		return false, nil // an unmodelled trigger parameter: the generic refusal names it
 	}
-	return true, refuse("TapsForMana extra of the source's chosen colour: gorge defers a Produced$ Chosen body and the kernel's potential bound cannot mirror it")
+	f, err := lc.filter(vc)
+	if err != nil {
+		return true, err
+	}
+	amt := 1
+	if mp.AmountTrim != "" {
+		amt = mp.AmountLit
+	}
+	// The extra is the tapped permanent's controller's (TapAnyPlayer) in the
+	// source's chosen colour (TapChosen). gorge defers the enchanted source
+	// (its planner never folds the body), so the line pairs the static with a
+	// class-only Taps watcher of the same filter, as the gated tap-extra does
+	// (tapExtraGated): the kernel's static is skipped by the planner's pricing
+	// readers and floats at the tap (mana_tapextra.go addGatedExtra).
+	lc.out.Statics = append(lc.out.Statics, lStatic{Kind: "TapExtra", Flags: []string{"TapAnyPlayer", "TapChosen"}, F: f, TapAmt: uint8(amt)})
+	tr := &lTrigger{
+		Event:       "Taps",
+		F:           f,
+		Whose:       whoAny,
+		Zone:        zBattlefield,
+		TapPlan:     uint8(kop.TapPlanDefer),
+		TapsForMana: true,
+	}
+	lc.out.Abilities = append(lc.out.Abilities, &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities), Trigger: tr})
+	return true, nil
 }
 
 // tapExtraAnyColour reports whether t is a TapsForMana extra whose DB$ Mana

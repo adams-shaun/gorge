@@ -29,6 +29,9 @@ func (lc *lowerCtx) manaSpentRiders(ps *params, ab *lAbility, m *lMana) error {
 	if _, ok := ps.m["AddsCounters"]; ok {
 		return refuseAddsCounters()
 	}
+	if v, ok := ps.m["AddsNoCounter"]; ok {
+		return lc.manaNoCounter(ps, ab, m, strings.TrimSpace(v))
+	}
 	plain := ab.Kind == akMana && !ab.Loyalty && plainTapCost(ab.Cost) && m.Restrict == nil && m.RestrictAb == nil &&
 		!m.NonSpell && m.Special == "" && !m.Choice && len(m.Colors) == 1 && m.Amount.isConst() && m.Amount.N == 1
 	if !plain {
@@ -68,4 +71,37 @@ func (lc *lowerCtx) manaSpentRiders(ps *params, ab *lAbility, m *lMana) error {
 // casts the reference did not).
 func refuseAddsCounters() error {
 	return refuse("AddsCounters$ mana rider: gorge's planner defers the source (pay.PlanHasSpecialProductionParam: autopay never taps it, only a prefix script or the manual mana window does) and the kernel's deferred-source gap models only Pyromancer's Goggles' typed {R}, not an any-colour or fee-paying source whose spent unit tags a creature spell's entry counters")
+}
+
+// manaNoCounter reads AddsNoCounter$ True beside a spell restriction (Cavern
+// of Souls, Delighted Halfling; CR 106.6): the {T}, any-colour mana that may
+// pay only a matching spell and makes that spell uncounterable. gorge floats
+// the unit in a restriction batch tagged AddsNoCounter; a payment that carves
+// it for a spell sets the spell's can't-be-countered flag (pay
+// emitRestrictedManaSpend, FlagNoCounter). The kernel floats it in its own
+// batch kind (kop.Ability.ManaNoCounter) and stamps the spell its payment
+// spent it on (dirac mana_nocounter.go). gorge's planner defers every source
+// carrying the parameter; the kernel's restricted any-colour census gap
+// (Secluded Courtyard's shape) is that deferral.
+//
+// Boseiju's "!Permanent" (a source with no restriction and a life cost) has
+// no kernel carrier: its mana floats unrestricted beside a condition on the
+// spell's face, and the source is a deferred {C} source of a shape
+// mana_deferred.go does not vet.
+func (lc *lowerCtx) manaNoCounter(ps *params, ab *lAbility, m *lMana, v string) error {
+	if v != "True" {
+		return refuse("AddsNoCounter$ %s: the unit's can't-be-countered condition (a !Permanent test on the spell's face, no spend restriction) has no kernel carrier: the restricted batch records the spell it paid for, not a face test, and gorge's planner defers the source (pay.PlanHasSpecialProductionParam), a {T}+PayLife deferred {C} source the kernel's deferred model does not vet", v)
+	}
+	if ab.Kind != akMana || ab.Loyalty || !plainTapCost(ab.Cost) || m.Restrict == nil || m.RestrictAb != nil || m.NonSpell ||
+		m.Special != "" || m.Choice || m.Colors != "WUBRG" || !m.Amount.isConst() || m.Amount.N != 1 {
+		return refuse("AddsNoCounter$ True beside a mana ability that is not a plain {T} one-mana any-colour source restricted to spells")
+	}
+	for _, k := range []string{"AddsCounters", "TriggersWhenSpent", "PersistentMana", "AddsKeywords"} {
+		if _, ok := ps.m[k]; ok {
+			return refuse("AddsNoCounter$ beside another mana-spend rider (%s)", k)
+		}
+	}
+	m.NoCounter = true
+	ps.consume("AddsNoCounter")
+	return nil
 }

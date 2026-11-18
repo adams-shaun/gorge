@@ -145,7 +145,10 @@ type restrData struct {
 // restrSrcAb: a is a plain tap mana ability with a spend restriction that
 // gorge's planner counts per payment (not a reflected one).
 func restrSrcAb(a *kop.Ability) bool {
-	return a.Kind == kop.AbMana && a.ManaRestrict != 0 && !restrWideAnyMana(a) &&
+	// AddsNoCounter$ (Cavern of Souls): gorge's planner defers the ability
+	// (pay.PlanHasSpecialProductionParam), so it is no planner unit: the
+	// census gap of restrAnyTapMana (mana_nocounter.go)
+	return a.Kind == kop.AbMana && a.ManaRestrict != 0 && !a.ManaNoCounter && !restrWideAnyMana(a) &&
 		a.AFlags&^(kop.AfManaNonSpell|kop.AfManaDynamic|kop.AfManaChoice|kop.AfManaChosen) == 0 &&
 		a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
 		(a.ManaColors&0x3f != 0 || a.AFlags&kop.AfManaChosen != 0)
