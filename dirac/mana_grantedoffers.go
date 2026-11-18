@@ -779,6 +779,7 @@ func (s *State) castGrantAvail(k *prep, p uint8, o Obj, av, fav *avail) *avail {
 	if k.gen == nil || !k.gen.anyTapExtra || !k.gen.anyGrantRestr() {
 		return av
 	}
+	fav.dynSac = av.dynSac // the rebuilt census keeps a dynamic {T}, sacrifice source the offer counts
 	s.walkHandAvail(k, p, s.grantPayDescOf(k, MakeAction(AkCast, TCode(o), 0, 0)), fav)
 	fav.delve = av.delve
 	return fav
