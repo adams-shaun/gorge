@@ -1,7 +1,7 @@
 package oracle
 
 import (
-	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -13,30 +13,26 @@ const dominateRepro = "dominate_x_bound_target_offered_past_a_dual_land"
 // or less) is castable only while some X the sources can pay leaves it a legal
 // target. The recorded game holds Island, Island and Witherbloom Campus untapped
 // with only a mana value 1 and a mana value 3 creature in play: three mana, so X
-// is 0 and no creature qualifies. gorge's X-bound target sweep prices X = 1
+// is 0 and no creature qualifies. gorge's X-bound target sweep used to price X = 1
 // against the potential-mana over-bound (the Campus counted in both of its
-// colours) and offers the cast; its payment planner then floats only
-// {U}{U}{G} and the cast is gone (tail-66 pair 1). Bounding the sweep by the
-// planner is gorge's hot legal walk plus a dirac mirror past the 200-line
-// refusal line, so the card is refused by name and the recorded game still shows
-// the divergence with it implicated.
+// colours) and offer the cast; the X-sweep now bounds it by the payment planner
+// on both sides, so the recorded game replays clean and the card is unrefused.
 func TestMBCDominateReprosLockstep(t *testing.T) {
-	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
+	t.Parallel()
+	r, err := ReadRepro(filepath.Join("testdata", "repro", dominateRepro+".repro.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := range entries {
-		e := &entries[i]
-		if e.Card != "Dominate" {
-			continue
-		}
-		if e.Repro.Pool != "custom" || e.Repro.File != dominateRepro {
-			t.Fatalf("Dominate's entry replays %s/%s, want custom/%s", e.Repro.Pool, e.Repro.File, dominateRepro)
-		}
-		checkRefusedRepro(t, e)
-		return
+	pol := &ScriptPolicy{Actions: r.Actions}
+	res := replayDecodedScript(t, synthReg(t), cardset.Raw(printedDelveSet(t, r.Cards)), r, pol)
+	// The recording ends on the X = 1 cast both engines used to offer; neither
+	// offers it now, so exactly that last action goes unserved.
+	if pol.next != len(r.Actions) || pol.Skipped != 1 || pol.firstSkipAt != len(r.Actions)-1 {
+		t.Fatalf("recording served %d of %d actions (%d skipped, first at %d): want only the last, the unpayable Dominate cast, skipped", pol.next, len(r.Actions), pol.Skipped, pol.firstSkipAt)
 	}
-	t.Fatal("Dominate has no dirac/support/refused entry: its X-bound target is offered at an over-counted X")
+	if !res.Clean() {
+		t.Fatalf("Dominate's recorded game no longer replays clean: div %+v, stall %q", res.Div, res.Stall)
+	}
 }
 
 // CR 700.8: Cascade Seer (a Wizard) beside Game-Trail Changeling (every
