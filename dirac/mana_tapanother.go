@@ -1313,8 +1313,14 @@ func (s *State) sacPotPays(k *prep, p uint8, a Action) bool {
 	d := s.grantPayDesc(k, a)
 	s.availPotentialFor(k, p, &pot, &d, false)
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		// the bound admits each sacrifice-any ability once (its fixed production)
-		if ab := k.tapXAbOf(s.cardAt(b.first())); kop.SacAnyManaAb(ab) {
+		// the bound admits each sacrifice-any ability once (its fixed
+		// production); when the census above already counted it -- the
+		// printed sacrifice-mana arm potentialGapCost admits while the
+		// sacrifice has its candidates, as gorge's walk does -- adding it
+		// again would count gorge's one PotentialMana admission twice
+		sl := b.first()
+		if ab := k.tapXAbOf(s.cardAt(sl)); kop.SacAnyManaAb(ab) &&
+			!s.potentialAdmits(k, p, sl, int(k.tapXAb[s.cardAt(sl)]), ab, &d) {
 			addTapXUnits(&pot, ab)
 		}
 	}
