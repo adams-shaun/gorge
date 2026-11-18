@@ -193,7 +193,7 @@ func (s *State) turnUpOffered(k *prep, p uint8, cost *kop.ManaCost, sp kop.Speci
 // the same action without a float. The action's turnFaceUp then taps that
 // witness's sources. A manifested or cloaked card's printed-cost procedure
 // stays pool-only, matching the oracle's keyword-only projection.
-func (s *State) turnUpListed(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot, kw bool) bool {
+func (s *State) turnUpListed(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot, kw bool, mode uint8) bool {
 	if s.turnUpOffered(k, p, cost, sp, sl, kw) {
 		return true
 	}
@@ -209,7 +209,7 @@ func (s *State) turnUpListed(k *prep, p uint8, cost *kop.ManaCost, sp kop.Specia
 		return false
 	}
 	c0 := cost.AtX(0)
-	return s.sourcesPay(k, p, &c0) || s.turnUpRestrPays(k, p, &c0, sp, sl) || s.turnUpRiderPays(k, p, &c0) || s.turnUpPlannerPays(k, p, &c0)
+	return s.sourcesPay(k, p, &c0) || s.turnUpRestrPays(k, p, &c0, sp, sl) || s.turnUpRiderPays(k, p, &c0) || s.turnUpPlannerPays(k, p, &c0) || s.turnUpFilterPays(k, p, sl, mode)
 }
 
 // turnUpRiderPays: gorge's potential walk counts a depletion land's whole
