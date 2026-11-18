@@ -271,7 +271,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			var pot avail
 			other := payDesc{class: pdOther}
 			s.availPotentialFor(k, p, &pot, &other, false)
-			s.availSacAny(k, p, &pot) // a sacrifice-any source's fixed production, once (trigCostPotentialPays)
+			s.availSacAny(k, p, &pot, &other) // a sacrifice-any source's fixed production, once (trigCostPotentialPays)
 			if !pot.affords(cost, pipMaskOf(cost), 0) {
 				return false, held
 			}
