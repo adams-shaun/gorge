@@ -2274,7 +2274,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, j, ab, d) {
 					continue
 				}
-				paidGap, skip := d.paidGapProbe(len(units) != 0, boundedAny, sl, j, &ab.Cost.Mana)
+				paidGap, skip, repeat := d.paidGapProbe(len(units) != 0, boundedAny, sl, j, ab)
 				if skip {
 					continue
 				}
@@ -2290,6 +2290,16 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					// 601.2g). The record is incomplete (no bounded view) and
 					// the over-bound pool takes the filter.
 					cen.gap()
+					if repeat {
+						// an admitted repeatable gap is one of gorge's
+						// census's non-once abilities: its census is not
+						// relaxable, so no subset pricing refuses the
+						// announcement and the over-bound stands
+						// (paymentPlanCensusOf's once gate, CR 605.3b). A gap
+						// the gate skipped above — a fee nothing covers, out
+						// of gorge's census entirely — marks nothing.
+						d.gapRepeats = true
+					}
 				}
 				done[sl] |= 1 << j
 				progressed = true
