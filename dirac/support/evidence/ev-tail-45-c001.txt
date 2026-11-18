@@ -71,6 +71,7 @@ Court Archers
 Crag Saurian
 Crossroads Consecrator
 Culling Mark
+Curator's Ward
 Curse of the Nightly Hunt
 Cursed Wombat
 Dakkon, Shadow Slayer
@@ -150,6 +151,7 @@ Gleam of Authority
 Gloomdrifter
 Goblin Hero
 Golgari Signet
+Grakk the Pacifist
 Great Hart
 Grinning Demon
 Guardian Augmenter
@@ -370,6 +372,7 @@ Trading Post
 Trailtracker Scout
 Trenchpost
 Tundra Fumarole
+Twinshot Sniper
 Undercity's Embrace
 Untamed Kavu
 Utility Knife

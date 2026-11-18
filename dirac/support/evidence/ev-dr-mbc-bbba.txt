@@ -30,6 +30,7 @@ Dead
 Deepchannel Mentor
 Descent into Avernus
 Dreadmalkin
+Dreampod Druid
 Ebony Fly
 Electrickery
 Encampment Keeper
@@ -97,6 +98,7 @@ Rite of Consumption
 Roar of Challenge
 Rootborn Defenses
 Sandstone Needle
+Saprazzan Skerry
 Scrapwork Mutt
 Searing Spear
 Shambling Ghast

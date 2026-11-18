@@ -24,6 +24,7 @@ Boggart Arsonists
 Book of Rass
 Brand
 Brood Birthing
+Bull Hippo
 Cast Down
 Castaway's Despair
 Cateran Enforcer
@@ -139,6 +140,7 @@ Purifying Dragon
 Quicksilver Dagger
 Raging Spirit
 Raiding Nightstalker
+Rakka Mar
 Raving Oni-Slave
 Razorjaw Oni
 Reckless Imp

@@ -206,6 +206,7 @@ Pest Rescuer
 Plains
 Planar Birth
 Predatory Wurm
+Presence of Gond
 Prey's Vengeance
 Primal Order
 Prohibit
@@ -269,6 +270,7 @@ Subterranean Shambler
 Sumala Woodshaper
 Swamp
 Swarmborn Giant
+Synapse Sliver
 Syphon Essence
 Syphon Mind
 Tablet of Epityr

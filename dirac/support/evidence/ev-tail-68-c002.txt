@@ -42,6 +42,7 @@ Cephalid Vandal
 Charging Paladin
 Cinder Giant
 Citadel Castellan
+Cliffhaven Vampire
 Clockwork Vorrac
 Clot Sliver
 Cloudreader Sphinx
@@ -134,12 +135,14 @@ Keeper of Fables
 King Harald's Revenge
 Kobold Taskmaster
 Kongming, "Sleeping Dragon"
+Krovikan Sorcerer
 Labyrinth Adversary
 Lazotep Reaver
 Legion Vanguard
 Ley Weaver
 Living Death
 Loam Dryad
+Lone Rider
 Lorehold Command
 Lorescale Coatl
 Malakir Bloodwitch
@@ -249,6 +252,7 @@ Tune the Narrative
 Twin-Silk Spider
 Urgoros, the Empty One
 Valiant Veteran
+Valor
 Vampiric Tutor
 Wanderlust
 Weatherseed Elf

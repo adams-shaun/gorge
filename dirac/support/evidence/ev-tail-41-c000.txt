@@ -334,6 +334,7 @@ Secret Passage
 Secrets of the Golden City
 Seedguide Ash
 Selesnya Eulogist
+Selesnya Guildmage
 Senate Guildmage
 Sensor Splicer
 Separatist Voidmage

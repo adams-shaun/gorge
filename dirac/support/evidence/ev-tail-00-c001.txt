@@ -62,6 +62,7 @@ Crackling Club
 Crashing Centaur
 Cruel Reality
 Cryptic Pursuit
+Cytoplast Manipulator
 Dampening Pulse
 Darkling Stalker
 Dauthi Ghoul
@@ -316,6 +317,7 @@ Shrink
 Shrivel
 Sickle Ripper
 Silence
+Simic Initiate
 Sinuous Vermin
 Skull Collector
 Skyclave Apparition

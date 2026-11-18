@@ -52,6 +52,7 @@ Bladed Sentinel
 Blaze Commando
 Blight Titan
 Blister Beetle
+Blood Moon
 Blood Price
 Blood Reckoning
 Bloodline Shaman
