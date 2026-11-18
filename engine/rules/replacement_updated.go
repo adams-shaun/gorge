@@ -40,15 +40,15 @@ func applyInheritedEntryReplacements(e inheritedEntryEngine, g *state.Game, ev e
 	rebased := false
 	for i := range f.Repls {
 		r := &f.Repls[i]
-		if !replacementEventNameMatches(r.Event, "Moved") ||
-			!r.IsCopyLayer() || r.With == nil {
+		if !replacementEventNameMatches(r.Event, "Moved") || r.With == nil ||
+			!(r.IsCopyLayer() || inheritedEntryModeChoice(r)) {
 			continue
 		}
 		m := replMatch{id: ev.Obj, face: f, repl: r}
 		if !e.replacementMatches(*r, ev.Obj, ev) {
 			continue
 		}
-		if !rebased && effects.IsGenericChoiceAPI(r.With) {
+		if !rebased && r.IsCopyLayer() && effects.IsGenericChoiceAPI(r.With) {
 			// The copied card's previous application of this SAME as-enters
 			// replacement lives on the copy basis (Primal Plasma's chosen
 			// 1/6 with defender). Re-base the entry onto the printed card the
@@ -59,6 +59,15 @@ func applyInheritedEntryReplacements(e inheritedEntryEngine, g *state.Game, ev e
 		}
 		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, r.With, nil)
 	}
+}
+
+// inheritedEntryModeChoice reports whether r is a printed "As this enters,
+// choose <mode>" keyword replacement (K:ETBReplacement:Other: a GenericChoice
+// with SetChosenMode, Phenomenon Investigators). It is part of the copiable
+// values a copy enters with (CR 707.2, 614.12), so the copy makes the choice
+// as it enters; it has no earlier application on the copy basis to re-base.
+func inheritedEntryModeChoice(r *cards.Repl) bool {
+	return r.IsETBReplacementKeyword() && effects.IsGenericChoiceAPI(r.With)
 }
 
 // inheritedEntryEngine is the narrow set of engine operations the inherited
