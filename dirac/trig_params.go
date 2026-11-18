@@ -58,11 +58,11 @@ func twTapOK(a *kop.Ability, amt int16) bool {
 
 // gameOnceUsed / markGameOnce: the source object's game record.
 func (s *State) gameOnceUsed(l trigListener) bool {
-	return !DebugGameOnceOff && s.usedThisTurn(l.obj, gameOnceMark|l.ab)
+	return !DebugGameOnceOff && s.usedThisTurnBy(l.obj, gameOnceMark|l.ab, l.host)
 }
 
 func (s *State) markGameOnce(l trigListener) {
-	s.markUsed(l.obj, gameOnceMark|l.ab)
+	s.markUsedBy(l.obj, gameOnceMark|l.ab, l.host)
 }
 
 // keepGameOnce is the turn reset of the used pool when a GameOnce line
@@ -109,22 +109,22 @@ func (s *State) dropPendingRange(k *prep, from, hi uint8) {
 			continue
 		}
 		if k.gen != nil && k.gen.anyGameOnce && a.Trig.Flags3&kop.Tf3GameOnce != 0 {
-			s.unmarkUsed(pt.obj, gameOnceMark|pt.ab)
+			s.unmarkUsedBy(pt.obj, gameOnceMark|pt.ab, Obj(pt.remVer))
 		}
 		if a.Trig.Flags&kop.TfOncePerTurn != 0 {
-			s.unmarkUsed(pt.obj, pt.ab)
+			s.unmarkUsedBy(pt.obj, pt.ab, Obj(pt.remVer))
 		}
 	}
 	n := copy(s.pend[from:], s.pend[hi:s.npend])
 	s.npend = from + uint8(n)
 }
 
-// unmarkUsed removes the newest once-per-turn record for (o, ab) — the one
+// unmarkUsedBy removes the newest once-per-turn record for (o, ab, host) — the one
 // queueTrig appended when the dropped entry was queued (usedThisTurn reads
 // the pool linearly, so record order is not observable).
-func (s *State) unmarkUsed(o Obj, ab uint8) {
+func (s *State) unmarkUsedBy(o Obj, ab uint8, host Obj) {
 	for i := int(s.g.nused) - 1; i >= 0; i-- {
-		if s.g.used[i].obj == o && s.g.used[i].ab == ab {
+		if s.g.used[i].obj == o && s.g.used[i].ab == ab && s.g.used[i].host == host {
 			copy(s.g.used[i:], s.g.used[i+1:s.g.nused])
 			s.g.used[s.g.nused-1] = usedRec{}
 			s.g.nused--
