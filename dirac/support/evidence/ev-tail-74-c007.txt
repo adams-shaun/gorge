@@ -1,8 +1,10 @@
+A-Exhibition Magician
 A-Guide of Souls
 A-Plate Armor
 A-Social Climber
 A-Teferi, Time Raveler
 Ajani's Mantra
+Alchemist's Greeting
 Astarion's Thirst
 Avatar of Growth
 Aven Trooper
@@ -10,9 +12,12 @@ Black Sun's Twilight
 Blindblast
 Boiling Blood
 Boulderfall
+Bounty of the Luxa
 Brainsurge
 Brimstone Trebuchet
 Captured by Lagacs
+Casey Jones, Back Alley Brute
+Cephalid Illusionist
 Chain Lightning
 Chicken Egg
 Chill of the Grave
@@ -23,6 +28,7 @@ Cinder Pyromancer
 City of Brass
 Civic Guildmage
 Civilized Scholar
+Clickslither
 Colossal Dreadmaw
 Concordant Crossroads
 Confessor
@@ -41,6 +47,7 @@ Eloise, Nephalia Sleuth
 Ember-Fist Zubera
 Encroaching Wastes
 Euroakus
+Fact or Fiction
 Field Marshal
 Fire Ambush
 Flameskull
@@ -50,6 +57,7 @@ Frontier Mastodon
 Gaea's Bounty
 Ghoulcaller's Bell
 Gloomhunter
+Go-Shintai of Hidden Cruelty
 Goblin Arsonist
 Goblin Bushwhacker
 Goblin Tinkerer
@@ -58,22 +66,30 @@ Gruesome Fate
 Gruul Keyrune
 Guardian of the Guildpact
 Halberdier
+Hanweir Garrison
 Harpoon Sniper
+Hellkite Igniter
+Hollow Dogs
 Horned Helm
 Hornet Cobra
 Hulk, Always Angry
+Incurable Ogre
 Inferno Fist
 Insidious Bookworms
 Island
 Jhoira's Familiar
 Khenra Charioteer
+Kjeldoran Pride
 Kor Blademaster
 Laquatus's Creativity
 Lava Axe
 Lightning Coils
 Liliana's Elite
 Liliana's Standard Bearer
+Loamdragger Giant
 MACH-1, Swooping Scoundrel
+Mad Auntie
+Magmatic Core
 Malevolent Awakening
 Master the Way
 Meadowboon
@@ -83,16 +99,20 @@ Mind Ravel
 Mist-Syndicate Naga
 Mob Justice
 Mold Folk
+Monastery Swiftspear
 Moonveil Dragon
 Mountain
 Multiform Wonder
+Nature's Chant
 Navigation Orb
 Necromancer's Familiar
 Nexus of Fate
 Nomads' Assembly
+Norn's Inquisitor
 Nylea's Huntmaster
 Orazca Frillback
 Oreskos Swiftclaw
+Outbreak
 Oversold Cemetery
 Painwracker Oni
 Peggy Carter, Secret Agent
@@ -103,8 +123,10 @@ Portent of Betrayal
 Precision Bolt
 Purple Pentapus
 Putrid Imp
+Quicksilver Wall
 Rag Dealer
 Raging Kavu
+Rakshasa's Disdain
 Rancid Rats
 Razortooth Rats
 Reaver Ambush
@@ -120,8 +142,11 @@ Runeclaw Bear
 Sacred Cat
 Saheeli's Artistry
 Sanctify
+Sarinth Greatwurm
 Scoria Wurm
 Scrapwork Cohort
+Seismic Mage
+She-Hulk, Jennifer Walters
 Sheltering Landscape
 Silverflame Squire
 Silverskin Armor
@@ -134,7 +159,9 @@ Spurnmage Advocate
 Steel Leaf Paladin
 Steelform Sliver
 Stenchskipper
+String of Disappearances
 Strip Mine
+Suncrusher
 Sunweb
 Surrakar Marauder
 Swamp
@@ -148,16 +175,20 @@ The Stasis Coffin
 Thopter Assembly
 Tideshaper Mystic
 Tiller Engine
+Topaz Dragon
 Treetop Rangers
 Treetop Scout
 Triceraton Regenta
 Tuktuk Rubblefort
+Tuktuk the Explorer
+Tuya Bearclaw
 Two-Headed Zombie
 Unholy Officiant
 Unquestioned Authority
 Urza, Powerstone Prodigy
 Venser's Journal
 Verge Rangers
+Viashino Bladescout
 Vineweft
 Violet Pall
 Viridian Longbow

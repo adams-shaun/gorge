@@ -3,39 +3,68 @@ A-Galvanic Discharge
 A-Urza's Command
 Adaptive Omnitool
 Agoraphobia
+Angler Drake
+April O'Neil, Human Element
 Aven Cloudchaser
+Aven Eternal
+Awaken the Bear
+Balduvian Barbarians
 Banishing Stroke
 Battle Mastery
+Beastmaster Ascension
 Befoul
 Bellowing Elk
 Bessie, the Doctor's Roadster
 Blacklance Paragon
+Bladebrand
 Bloodcrusher of Khorne
+Bloodfire Dwarf
+Bloodrage Brawler
 Body of Knowledge
 Bond of Passion
 Bronze Walrus
 Bronzeplate Boar
+Carnage Interpreter
 Cast into the Fire
 Claim the Firstborn
+Cloudseeder
+Compleated Huntmaster
 Conjurer's Mantle
+Contentious Plan
 Court Hussar
+Crimson Caravaneer
+Crossover Collaboration
+Crosswinds
 Cryptbreaker
 Cunning Advisor
+Dagger Caster
 Daring Piracy
 Dark Favor
 Dawn of Hope
+Deranged Hermit
+Dictate of Karametra
 Didgeridoo
 Die Young
 Domineer
 Dragon Engine
+Draugr's Helm
 Drowner Initiate
 Drumbellower
+Déjà Vu
+Emerald Medallion
+Emrakul's Hatcher
+Escaped Experiment
 Ezuri, Claw of Progress
 Fallaji Archaeologist
 Fallow Earth
 Fervent Denial
+Filigree Familiar
+Firebreathing
+Flame Discharge
+Flameblade Adept
 Flare
 Fodder Cannon
+Force of Vigor
 Forest
 Foul Play
 Galerider Sliver
@@ -47,7 +76,10 @@ Goblin Warchief
 Gore Swine
 Grafted Wargear
 Grim Return
+Grove of the Guardian
+Hammerhand
 Hammerhead Shark
+Hangarback Walker
 Howling Giant
 Howling Moon
 Imperial Lancer
@@ -55,17 +87,27 @@ Inferno Project
 Infinity Formula
 Innocent Traveler
 Island
+Jace's Sentinel
 Karmic Guide
+Kird Chieftain
+Kitesail Skirmisher
 Knight of Dusk's Shadow
 Lavaborn Muse
 Lightning Runner
+Loam Larva
+Lookout's Dispersal
 Lorthos, the Tidemaker
+Magnify
+Magus of the Moon
 Malevolent Whispers
 Masked Blackguard
 Mephitic Vapors
 Merchant of the Vale
+Mesmerizing Dose
 Michiko Konda, Truth Seeker
 Militia Rallier
+Mogg War Marshal
+Moodmark Painter
 Mortarpod
 Mountain
 Mox Jet
@@ -76,37 +118,51 @@ Nulldrifter
 Numbing Dose
 Ogre Arsonist
 Oracle of Tragedy
+Ornithopter
 Patron of the Arts
 Patron of the Vein
 Peace of Mind
 Penance Stare
 Penumbra Spider
+Pistus Strike
 Plains
 Plated Onslaught
+Profane Memento
 Prologue to Phyresis
 Psychotic Haze
 Pyretic Charge
 Pyroceratops
 Quilled Sliver
+Raging Minotaur
 Raphael, the Muscle
 Raptor Companion
 Reef Shaman
+Refurbished Familiar
 Resolute Archangel
 Resupply
+Rime Transfusion
+Roiling Regrowth
 Rush of Inspiration
+Rusted Sentinel
 Sacred Guide
 Said
 Sanguine Guard
+Savage Offensive
+Sawblade Slinger
 Sea Sprite
+Seal of Strength
 Seller of Songbirds
 Sentinel
 Sergeant-at-Arms
 Serpentine Kavu
 Serrated Scorpion
 Shadowfeed
+Shriekdiver
 Silverbeak Griffin
 Simian Grunts
+Sinister Gnarlbark
 Skarrgan Pit-Skulk
+Skirk Prospector
 Slith Strider
 Slumbering Dragon
 Solidarity
@@ -115,37 +171,59 @@ Soul's Might
 Soulstealer Axe
 Spawn-Gang Commander
 Spell Swindle
+Spellbound Dragon
+Sphere of Resistance
+Spined Karok
 Spiteful Prankster
 Split-Tail Miko
 Sprouting Goblin
 Squee, Goblin Nabob
 Stampede
+Stingscourger
+Stronghold Overseer
 Summon Undead
 Sundering Eruption
 Sunscape Master
 Svyelunite Priest
 Swamp
+Taunting Elf
+Tavern Brawler
 Telethopter
+Tempered Veteran
 Tezzeret, Artifice Master
+Thalakos Dreamsower
+The Juzam Master
 Then, Dreadmaws Ate Everyone
 Thirst
+Thor, Asgard's Avenger
+Thorn Mammoth
 Thoughtrender Lamia
 Threads of Disloyalty
+Tin Street Hooligan
 Treasury Thrull
 Tuktuk Scrapper
 Tyrant's Machine
 Unchained Berserker
+Unlicensed Hearse
 Vandalize
 Vault Skyward
+Vesper Ghoul
 Vicious Offering
 Village Rites
+Virtus the Veiled
 Volley of Boulders
 Voltaic Construct
 Wall of Denial
+Warlord's Fury
 Watcher in the Mist
 Whirlwind
 White Dragon
+Wight of the Reliquary
 Wily Goblin
+Winding Way
 Windrider Patrol
+Winged Portent
+Witty Roastmaster
 Xathrid Necromancer
 Zamriel, Seraph of Steel
+Zulaport Enforcer

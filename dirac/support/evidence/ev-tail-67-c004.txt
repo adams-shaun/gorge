@@ -1,4 +1,5 @@
 A-Dokuchi Silencer
+A-Umara Mystic
 Aethershield Artificer
 Against All Odds
 Air Nomad Student
@@ -9,30 +10,45 @@ Alms Beast
 Angelic Renewal
 Aquatic Incursion
 Archaeomender
+Asphodel Wanderer
 Avatar of the Resolute
 Axebane Guardian
 Blacksmith's Skill
 Blade Splicer
 Blazing Hellhound
+Blight Sickle
+Blossom Dryad
 Buried Alive
+Burst of Speed
+Case the Joint
+Cling to Dust
 Cogwork Assembler
 Commissar Severina Raine
+Confront the Unknown
 Conservator
 Corpse Knight
 Courier's Capsule
+Crackling Triton
 Crop Rotation
 Culling Mark
 Cyclops Superconductor
 Daring Fiendbonder
 Dauntless Survivor
+Deadshot
+Death's-Head Buzzard
 Deathless Angel
 Deep Reconnaissance
 Deepwood Ghoul
 Demon's Grasp
 Demonic Rising
+Despise
+Diligent Excavator
+Dismantling Blow
 Drag Down
 Dyfed, the Guiding Hand
+Eidolon of Rhetoric
 Erratic Visionary
+Essence Feed
 Essence Warden
 Eternal Witness
 Ethereal Champion
@@ -40,15 +56,24 @@ Ethereal Usher
 Expansion
 Fain, the Broker
 Firebird, Blazing Ranger
+Floodhound
+Fog of Gnats
 Forest
 Fungal Sprouting
+Furnace Celebration
+Galvanic Iteration
 Gluttonous Zombie
+Gnome-Made Engine
+Goblin Glider
 Grim Monolith
 Hanna, Ship's Navigator
 Hemlock Vial
+Heroes of the Revel
 Honed Khopesh
 Horizon Chimera
 Hound of the Farbogs
+Independent Troops
+Infested Fleshcutter
 Inkrise Infiltrator
 Inspiring Refrain
 Iron Suitcase
@@ -62,11 +87,13 @@ Lightning Reaver
 Liliana's Influence
 Lodestone Myr
 Longtusk Cub
+Lucas, the Sharpshooter
 Lush Growth
 Manaforce Mace
 Mardu Strike Leader
 Mausoleum Secrets
 Metropolis Reformer
+Mirror of Galadriel
 Mise
 Mogis's Warhound
 Moss Monster
@@ -78,49 +105,73 @@ Nemesis of Reason
 Neurok Familiar
 Norn's Disassembly
 Oblation
+Obscura Initiate
+Orcish Bowmasters
+Orim's Touch
+Path of Anger's Flame
 Pentarch Ward
 Phantasmal Dragon
+Phyrexian Obliterator
 Pilfering Imp
 Plains
 Pollywog Prodigy
 Primeval Force
+Prizefighter Construct
 Prosperous Innkeeper
+Protector of Gondor
+Prowling Pangolin
 Python
 Rage Weaver
+Rally to Battle
 Ravos, Soultender
 Ray of Erasure
 Reality Ripple
 Relic Barrier
 Revelation of Power
 Rogue Refiner
+Samite Pilgrim
 Sandcrafter Mage
 Scion of Vitu-Ghazi
+Searing Blood
+Selective Memory
+Shake the Foundations
 Shepherd of the Lost
+Skitter of Lizards
+Skullscorch
 Sol Grail
 Solid Footing
 Soul of Theros
 Spined Fluke
+Spirit Weaver
 Squee's Embrace
 Swamp
 Tale of Momo
 Talons of Wildwood
+Task Force
 Temmet, Vizier of Naktamun
 The Bears of Littjara
 The Whizzer, Classic Speedster
 Thorn Thallid
+Thrull Retainer
 Thrór's Map
 Thunder Drake
 Thwart the Grave
+Tibor and Lumia
 Tormod's Cryptkeeper
 Trueheart Duelist
 Undercity Scavenger
 Unholy Hunger
+Unwilling Ingredient
 Vine Trellis
+Voice of the Provinces
 Warped Devotion
 Way of the Thief
+Well-Laid Plans
 Whispering Wizard
+Windgrace Acolyte
 Wirecat
 Wrath of Oko
 You Look Upon the Tarrasque
+Young Blue Dragon
 Zephyr Falcon
 Zodiac Ox

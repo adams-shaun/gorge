@@ -23,6 +23,7 @@ Araumi of the Dead Tide
 Archers' Parapet
 Arcum Dagsson
 Argothian Swine
+Arjun, the Shifting Flame
 Artifact Blast
 Artisan of Kozilek
 Asgardian Inspiration
@@ -34,8 +35,10 @@ Aurora Eidolon
 Avenging Arrow
 Balduvian Bears
 Basalt Gargoyle
+Bear Umbra
 Befuddle
 Beloved Princess
+Beta Ray Bill
 Big Play
 Big Wheel
 Bladed Bracers
@@ -145,6 +148,7 @@ Forbidden Alchemy
 Foreboding Landscape
 Forest
 Foster
+Frost Giant
 Fugue
 Fungal Infection
 Garruk's Packleader
@@ -199,6 +203,7 @@ Kelpie Guide
 Khabál Ghoul
 Kitchen Imp
 Knight of Meadowgrain
+Knollspine Invocation
 Krosan Reclamation
 Kuldotha Forgemaster
 Lava Dart
@@ -288,6 +293,8 @@ Pyreswipe Hawk
 Pyroceratops
 Queen's Bay Soldier
 Rage Reflection
+Raggadragga, Goreguts Boss
+Rally for the Throne
 Ranger's Path
 Rebuild
 Recalibrate
@@ -302,6 +309,7 @@ Rumbling Baloth
 Rush of Vitality
 Rust Monster
 Savage Surge
+Savvy Hunter
 Scattered Thoughts
 Scavenging Harpy
 Scepter of Dominance
@@ -351,6 +359,7 @@ Swamp
 Swooping Lookout
 Sylvan Yeti
 Syndicate Messenger
+Synod Centurion
 Tahngarth's Rage
 Taiga Stadium
 Tail Swipe

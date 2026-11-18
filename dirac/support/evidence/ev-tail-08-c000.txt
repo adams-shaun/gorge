@@ -1,3 +1,4 @@
+A-Ochre Jelly
 A-Warm Welcome
 Abbey Griffin
 Aberrant Return
@@ -68,6 +69,7 @@ Ceremonial Guard
 Certain Death
 Chakram Retriever
 Chase Stein, Runaway
+Chill to the Bone
 Clockwork Fox
 Coercive Impetus
 Commanding Presence
@@ -135,6 +137,7 @@ Excavated Wall
 Executioner's Swing
 Eyeblight's Ending
 False Demise
+Fearless Liberator
 Feast of the Unicorn
 Feast or Famine
 Feedback
@@ -196,6 +199,7 @@ Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
 Inspiring Cleric
+Invasion of Theros
 Iron Fist, Hero for Hire
 Iron Verdict
 Ishai, Ojutai Dragonspeaker
@@ -255,6 +259,7 @@ Mogg Squad
 Moldering Karok
 Mona Lisa, Ever Adaptable
 Moonsilver Key
+Moroii
 Mortal's Resolve
 Mother Kangaroo
 Mountain
@@ -324,6 +329,7 @@ Screeching Bat
 Screeching Drake
 Scrib Nibblers
 Scroll Thief
+Scroll of Fate
 Secluded Steppe
 Selesnya Charm
 Selfless Cathar
@@ -335,6 +341,7 @@ Serum Tank
 Shared Triumph
 Shield Sphere
 Shivan Hellkite
+Shrine of the Forsaken Gods
 Sifter of Skulls
 Silkbind Faerie
 Sinstriker's Will
@@ -404,6 +411,7 @@ True Polymorph
 True-Faith Censer
 Trusty Packbeast
 Tukatongue Thallid
+Tyranid Harridan
 Tyranid Prime
 Uktabi Wildcats
 Umara Wizard
@@ -416,6 +424,7 @@ Urborg Drake
 Valko Indorian
 Valorous Steed
 Vampire Outcasts
+Vampire Slayer
 Vampiric Sliver
 Vectis Silencers
 Veilborn Ghoul

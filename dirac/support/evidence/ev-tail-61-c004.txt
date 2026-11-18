@@ -5,6 +5,7 @@ Agonizing Syphon
 Ajani's Influence
 Amazing Alliance
 Ambush
+An-Havva Inn
 Aragorn and Arwen, Wed
 Argivian Blacksmith
 Asha's Favor
@@ -15,18 +16,25 @@ Aura Blast
 Awakening Zone
 Azra Smokeshaper
 Bad Deal
+Ballroom
 Barbtooth Wurm
 Basilica Screecher
 Beetleback Chief
 Benthic Biomancer
+Bootleggers' Stash
 Bottle-Cap Blast
 Briarbridge Tracker
 Broken Fall
 Carrion Ants
+Cartouche of Knowledge
+Charity Extractor
 Chimney Goyf
 Clattering Augur
+Concord with the Kami
 Confound
 Contingency Plan
+Covert Operative
+Crested Herdcaller
 Crimson Hellkite
 Daemogoth Woe-Eater
 Daredevil, Fearless Fighter
@@ -37,8 +45,11 @@ Death's Duet
 Deeproot Waters
 Diminish
 Disturbed Burial
+Dreadmalkin
+Drumhunter
 Etherium Abomination
 Exuberant Wolfbear
+False Mourning
 Fangren Hunter
 Farmstead
 Feast of Succession
@@ -46,23 +57,38 @@ Filigree Crawler
 Force of Vigor
 Forest
 Freyalise, Llanowar's Fury
+Frontier Mastodon
 Gift of Wrath
+Glistening Extractor
 Gobbling Ooze
+Goblin Champion
 Goblin Chariot
 Goblin Chieftain
+Goblin Goon
 Goblin War Drums
+Goldnight Commander
 Gravel-Hide Goblin
 Grimdancer
 Hawkeye, Trick Shot
+Heartless Pillage
+Heron's Grace Champion
+High Score
 Howlpack Wolf
 Huatli's Raptor
 Hunted Ghoul
 Ifh-Bíff Efreet
+Incubation Sac
+Indicate
 Infuriate
+Irradiate
 Irregular Cohort
 Island
+Jade Guardian
 Jagwasp Swarm
+Just the Wind
+Karn's Bastion
 Kessig Wolfrider
+Koth's Courier
 Kranioceros
 Leech Gauntlet
 Liliana's Scorn
@@ -77,18 +103,27 @@ Mwonvuli Acid-Moss
 Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
+Nissa, Resurgent Animist
 One with Nature
 Onslaught
+Opposition
+Orazca Relic
 Outbreak
 Panic Attack
 Patriarch's Desire
 Pegasus Courser
+Phyresis
 Pianna, Nomad Captain
 Pillar Tombs of Aku
+Pincer Spider
 Plague Spores
 Plains
+Planar Atlas
+Possessed Centaur
 Pouncing Lynx
+Prescient Chimera
 Primordial Sage
+Prince Imrahil the Fair
 Putrid Leech
 Ravenous Lindwurm
 Razor Swine
@@ -97,14 +132,17 @@ Relic Robber
 Resistance Reunited
 Reverberate
 Rhystic Study
+Rogue Refiner
 Sage's Row Denizen
 Sandstorm
+Security Bypass
 Shaman of the Pack
 Shapeshifter
 Sheltering Light
 Sigardian Priest
 Sigiled Paladin
 Skirk Commando
+Skull Raid
 Sky-Blessed Samurai
 Skyship Stalker
 Slith Firewalker
@@ -115,27 +153,41 @@ Sootfeather Flock
 Spiketail Drake
 Spotter Thopter
 Staff of the Storyteller
+Steam Spitter
+Steppe Lynx
 Stern Scolding
+Struggle for Skemfar
 Stupor
 Summon the School
+Sunweb
 Swamp
+Swordwise Centaur
 Tarfire
 Tavern Swindler
+Tectonic Rift
 Teetering Peaks
 Tenth District Veteran
 Thanos, Death's Consort
+The Falcon, Airship Restored
 Thrash of Raptors
+Timber Protector
 Titans' Vanguard
 Towering Viewpoint
 Trading Post
+Trigon of Thought
+Triumph of the Hordes
 Vampire Revenant
 Verdant Rebirth
 Veteran's Sidearm
 Viashino Runner
 Viridian Corrupter
+Vizier of the Scorpion
 Volcanic Spite
 Vrock
+Wall of Limbs
 Waterlogged Teachings
 Whelming Wave
 Whiptail Wurm
+Wildest Dreams
 Wretched Anurid
+Wrong Turn

@@ -49,17 +49,20 @@ Cathartic Operation
 Caustic Hound
 Cavalcade of Calamity
 Chandra's Defeat
+Channeled Force
 Charge Through
 Charity Extractor
 Chevill, Bane of Monsters
 Choking Tethers
 Cleaving Skyrider
 Cloud Pirates
+Clowning Around
 Coma Veil
 Commander's Authority
 Consecrated Sphinx
 Crack Open
 Crash the Ramparts
+Crimson Roc
 Crumbling Ashes
 Cultivator of Blades
 Cunning Breezedancer
@@ -78,6 +81,7 @@ Doomskar Oracle
 Doomwake Giant
 Dovin's Dismissal
 Dragon Whisperer
+Draugr Recruiter
 Dread Slag
 Dual Strike
 Dusk Urchins
@@ -95,6 +99,7 @@ Faith Unbroken
 False Demise
 Fear of Death
 Fearless Halberdier
+Fecundity
 Feral Ferocity
 Feral Thallid
 Festering March
@@ -188,11 +193,13 @@ Mechanical Glider
 Megatherium
 Memorial to War
 Mesmerizing Benthid
+Migration Path
 Minamo Sightbender
 Mindclaw Shaman
 Mines of Moria
 Mirrorworks
 Mizzium Tank
+Molten Lavamancer
 Most Wanted
 Mountain
 Mournful Zombie
@@ -206,6 +213,7 @@ Nightmare
 Norwood Ranger
 Noxious Hatchling
 Oakhame Ranger
+Oblivion Stone
 Ojutai Exemplars
 Omen of the Sun
 One With the Wind
@@ -228,6 +236,7 @@ Plains
 Poisonbelly Ogre
 Precise Strike
 Predatory Hunger
+Primevals' Glorious Rebirth
 Prize Pig
 Psionic Sliver
 Puncture Blast
@@ -251,6 +260,7 @@ Roar of the Kha
 Rumbling Slum
 Saiba Cryptomancer
 Samut's Sprint
+Sandals of Abdallah
 Scaldkin
 Scare Tactics
 Scatter the Seeds
@@ -265,6 +275,7 @@ Seal of Fire
 Segmented Wurm
 Seluma, Light of Aysen
 Serpentine Curve
+Serrated Biskelion
 Serum Visionary
 Shadow in the Warp
 Shambling Ghoul
@@ -335,6 +346,7 @@ Transmogrifying Wand
 Triumph of Ferocity
 Tropical Island
 Turbulent Wetlands
+Twisted Reflection
 Uglúk of the White Hand
 Undercity's Embrace
 Unified Strike

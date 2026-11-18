@@ -1,10 +1,13 @@
 A-Deal Gone Bad
+A-Skemfar Elderhall
+Aetherflux Conduit
 Air Bladder
 Akki Battle Squad
 Alaborn Veteran
 All Is Dust
 Altar of the Goyf
 Ambuscade
+Ambush Viper
 Ancient Animus
 Angelic Ascension
 Apocalypse Hydra
@@ -15,6 +18,8 @@ Arwen's Gift
 Aspect of Mongoose
 Aura of Dominion
 Auriok Transfixer
+Aven Flock
+Azorius Charm
 Baboon Spirit
 Banehound
 Bar the Door
@@ -38,6 +43,7 @@ Bloodfire Expert
 Body of Knowledge
 Boiling Seas
 Bonded Horncrest
+Book Burning
 Book of Mazarbul
 Brain Maggot
 Brassclaw Orcs
@@ -55,6 +61,7 @@ Cephalid Looter
 Chandra's Phoenix
 Charging Tuskodon
 Circular Logic
+City of Brass
 Civil Servant
 Clay Statue
 Clinging Anemones
@@ -63,6 +70,7 @@ Cloudpost
 Cloudreach Cavalry
 Coastal Piracy
 Cogwork Assembler
+Combat Research
 Consuming Bonfire
 Containment Breach
 Coralhelm Guide
@@ -88,6 +96,7 @@ Draco
 Dragon-Style Twins
 Dragonloft Idol
 Drogskol Captain
+Dromoka Captain
 Drowned Rusalka
 Duke Ulder Ravengard
 Dusk Legion Dreadnought
@@ -98,10 +107,12 @@ Ebon Dragon
 Efficient Construction
 Elas il-Kor, Sadistic Pilgrim
 Eldrazi Linebreaker
+Elspeth's Devotee
 Elvish Hexhunter
 Emblem of the Warmind
 Enraged Revolutionary
 Escarpment Fortress
+Essence of Orthodoxy
 Experiment One
 Fabricate
 Fangren Pathcutter
@@ -114,6 +125,9 @@ Final Reward
 Firestorm Hellkite
 Flamekin Herald
 Flaming Sword
+Fledgling Griffin
+Flip the Switch
+Flooded Strand
 Floriferous Vinewall
 Flumph
 Foil
@@ -123,6 +137,7 @@ Forest
 Foundry of the Consuls
 Fountain of Ichor
 Francisco, Fowl Marauder
+Freyalise's Radiance
 Frillscare Mentor
 Frostwind Invoker
 Gaea's Avenger
@@ -142,24 +157,31 @@ Grassland Crusader
 Gravelighter
 Greenwood Sentinel
 Grenzo's Ruffians
+Grim Feast
 Growth Spasm
 Guardian of Cloverdell
 Guma
 Gurgling Anointer
+Gutter Grime
 HONK!
 Hada Freeblade
 Hagra Sharpshooter
 Hall of Tagsin
+Hand of Justice
 Harbinger of Night
+Haunted Guardian
 Hematite Golem
 Hexgold Slith
 Hidden Ancients
 Hijack
+Holy Mantle
 Hope Against Hope
 Hope Charm
 Hopping Automaton
 Horizon Chimera
+Hound Tamer
 Howling Wolf
+Huatli, the Sun's Heart
 Hurly-Burly
 Impede Momentum
 Impending Flux
@@ -170,6 +192,7 @@ Inspired Skypainter
 Invigorating Surge
 Island
 Ivy Lane Denizen
+Jace, the Living Guildpact
 Jaya, Venerated Firemage
 Jovial Evil
 Keening Apparition
@@ -200,6 +223,7 @@ Maze of Ith
 Merchant Scroll
 Merfolk Looter
 Midnight Banshee
+Mightstone
 Mind Burst
 Mindless Automaton
 Minotaur Tactician
@@ -212,10 +236,12 @@ Mortician Beetle
 Mountain
 Mystic Retrieval
 Nacre Talisman
+Narwhal
 Necromancer's Assistant
 Needleshot Gourna
 Needletooth Raptor
 Nemesis of Mortals
+Nerd Rage
 Nesting Wurm
 Netherborn Altar
 Nimble Pilferer
@@ -229,6 +255,7 @@ Otarian Juggernaut
 Oxidda Golem
 Paradoxical Outcome
 Paragon of New Dawns
+Pelargir Survivor
 Petrified Field
 Petrified Wood-Kin
 Phantasmal Shieldback
@@ -243,6 +270,7 @@ Prizefighter Construct
 Prophetic Bolt
 Qarsi High Priest
 Quantum Misalignment
+Queen of Ice
 Quicksmith Genius
 Racecourse Fury
 Raffine's Silencer
@@ -269,7 +297,9 @@ Rootwater Diver
 Rowan's Stalwarts
 Ruthless Sniper
 Sakiko, Mother of Summer
+Salt Road Patrol
 Sanctum Seeker
+Sandbar Serpent
 Sanguine Praetor
 Scatter Arc
 Scavenging Ghoul
@@ -289,11 +319,13 @@ Sigardian Savior
 Silklash Spider
 Silver Bolt
 Silverquill Command
+Sisay, Weatherlight Captain
 Sisterhood of Karn
 Skarrg Guildmage
 Skittering Heartstopper
 Skyknight Legionnaire
 Skysovereign, Consul Flagship
+Sleuth Instructor
 Slumbering Waterways
 Snowfield Sinkhole
 Soaring Show-Off
@@ -313,9 +345,11 @@ Squadron Hawk
 Stalking Tiger
 Standstill
 Start Your Engines
+Stifle
 Stormcloud Djinn
 Strategic Planning
 Stromkirk Mentor
+Student of Elements
 Sunscorch Regent
 Sutina, Speaker of the Tajuru
 Swamp
@@ -336,6 +370,7 @@ Thermal Blast
 Thieves' Guild Enforcer
 Thorn Thallid
 Thoughtbind
+Thriving Bluff
 Thunderbreak Regent
 Thundermaw Hellkite
 Tocasia's Onulet
@@ -344,11 +379,14 @@ Towering-Wave Mystic
 Toxic Scorpion
 Trostani's Judgment
 Trygon Prime
+Tsunami
 Tyranid Invasion
 Tyrant Guard
 Ulrich's Kindred
+Undermine
 Unnatural Predation
 Unyaro Griffin
+Urborg Elf
 Valor in Akros
 Vanquish the Foul
 Vedalken Entrancer
@@ -360,6 +398,8 @@ Victory's Envoy
 Vile Requiem
 Violet Pall
 Virtuous Variant
+Vitu-Ghazi, the City-Tree
+Volcanic Island
 Vulshok Refugee
 Wall of Brambles
 Wall of Mulch
@@ -375,6 +415,7 @@ Wee Dragonauts
 Welcome the Dead
 Well of Discovery
 Wheel of Fortune
+Will-Forged Golem
 Windstorm Drake
 Winterthorn Blessing
 Wizard's Retort

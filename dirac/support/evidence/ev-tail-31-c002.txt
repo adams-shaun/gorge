@@ -1,4 +1,6 @@
 A-Warm Welcome
+Abrupt Decay
+Accelerated Mutation
 Adanto Vanguard
 Agent of Horizons
 Alora, Merry Thief
@@ -18,12 +20,15 @@ Battered Golem
 Blighted Bat
 Blitz Hellion
 Bloodcurdling Scream
+Boromir, Gondor's Hope
 Brightmare
 Burlfist Oak
+Cabal Surgeon
 Charge Through
 Circle of Dreams Druid
 Claim of Erebos
 Clinging Darkness
+Combine Chrysalis
 Conclave Phalanx
 Consuming Sinkhole
 Crack Open
@@ -38,16 +43,21 @@ Dust Stalker
 Ebony Rhino
 Epic Proportions
 Era of Enlightenment
+Eternal Scourge
 Ettercap
 Eyes of Gitaxias
+Festival of the Guildpact
 Fists of Flame
 Flame Rift
+Fleeting Memories
 Flickering Ward
 Flight of Fancy
 Flood
 Fodder Tosser
 Forest
+Fork in the Road
 Fortress Crab
+Frenzied Tilling
 Frenzy Sliver
 Galadhrim Bow
 Ghoulish Procession
@@ -73,6 +83,7 @@ Integrity
 Inventor's Axe
 Island
 Jiang Yanggu
+Jungle Creeper
 Justice Strike
 Kaysa
 Keen Glidemaster
@@ -88,6 +99,7 @@ Moon Heron
 Mountain
 Murderous Rider
 Nacre Talisman
+Natural Order
 Nettlecyst
 Nightbird's Clutches
 Nightmare Lash
@@ -101,18 +113,22 @@ Parcel Myr
 Patriot, Young Avenger
 Phyrexian Vivisector
 Plains
+Purify the Grave
+Putrid Leech
 Rancor
 Reckless Rage
 Revive
 Rite of Consumption
 Rite of Harmony
 Ronom Unicorn
+Rubblebelt Runner
 Saprazzan Raider
 Sarah Jane Smith
 Savage Stomp
 Scale Up
 Scrapheap Scrounger
 Scurrid Colony
+Scuttlegator
 Scuttletide
 Seedborn Muse
 Shadow Glider
@@ -127,6 +143,7 @@ Soul Link
 Spectral Reserves
 Spined Basher
 Stirring Address
+Stolen Goods
 Stone Kavu
 Strix Serenade
 Stromkirk Patrol
@@ -141,13 +158,21 @@ Tidal Courier
 Tobias, Doomed Conqueror
 Tower Geist
 Trained Cheetah
+Training Grounds
 Trudge Garden
+Twiddle
+Valeria Richards, Precocious
+Vedalken Outlander
 Vicious Hunger
 Vindictive Vampire
 Viridian Emissary
 Viridian Scout
 Voice of Truth
+Vulshok Morningstar
 Wall of Vines
+Wary Okapi
 White Scarab
 Wild Growth
 Wu Light Cavalry
+Zendikar Incarnate
+Zephyr Net

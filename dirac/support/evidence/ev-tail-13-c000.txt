@@ -36,6 +36,7 @@ Augury Raven
 Aura Blast
 Aven Battle Priest
 Aven Fleetwing
+Axgard Braggart
 Aysen Bureaucrats
 Baffling End
 Bag of Holding
@@ -79,6 +80,7 @@ Corpulent Corpse
 Covert Technician
 Crackling Triton
 Cryptwailing
+Crystallization
 Curse of the Restless Dead
 Cursed Minotaur
 Daring Escape
@@ -107,6 +109,7 @@ Diversionary Tactics
 Diviner's Lockbox
 Doomskar Oracle
 Dreadhorde Invasion
+Drivnod, Carnage Dominus
 Drove of Elves
 Drown in Dreams
 Drunau Corpse Trawler
@@ -175,6 +178,7 @@ Groundskeeper
 Guardian Lions
 Gulping Scraptrap
 Gustrider Exuberant
+Guttural Response
 Hanweir Militia Captain
 Haradrim Spearmaster
 Harvester Troll
@@ -282,6 +286,7 @@ Order of the Golden Cricket
 Order of the Mirror
 Order of the White Shield
 Ordered Migration
+Origin of Iron Man
 Orim, Samite Healer
 Oviya Pashiri, Sage Lifecrafter
 Owlin Spiralmancer
@@ -344,6 +349,7 @@ Sanctum Custodian
 Saprazzan Cove
 Scarecrone
 Scent of Ivy
+Scourge of the Throne
 Scourge of the Undercity
 Sea Legs
 Seachrome Coast
@@ -375,6 +381,7 @@ Space Marine Scout
 Spark of Creativity
 Spawning Grounds
 Spectral Flight
+Spell Blast
 Spelleater Wolverine
 Sphinx's Disciple
 Spike Rogue
@@ -388,6 +395,7 @@ Stoic Star-Captain
 Storm Entity
 Strength-Testing Hammer
 Stromkirk Patrol
+Sudden Disappearance
 Sun-Crested Pterodon
 Surrakar Marauder
 Swamp

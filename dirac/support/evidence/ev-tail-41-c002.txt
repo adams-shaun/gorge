@@ -1,4 +1,6 @@
+A-Goggles of Night
 A-Luminarch Aspirant
+Adarkar Wastes
 Akroan Jailer
 Akroma's Memorial
 Alabaster Host Sanctifier
@@ -9,18 +11,25 @@ Antagonize
 Arachnoform
 Ashcoat Bear
 Assassin's Ink
+Attended Socialite
 Aurora Griffin
+Avalanche
+Azorius Chancery
 Barbed Field
 Basri's Aegis
 Battle Cry Goblin
 Blessed Sanctuary
 Blinkmoth Well
+Blood Mist
 Blood Rites
 Bloodcrazed Neonate
+Bloodforged Battle-Axe
+Bloody Betrayal
 Blossoming Bogbeast
 Bond of Discipline
 Bone Splinters
 Bonesplitter
+Borne Upon a Wind
 Borrowed Time
 Brotherhood Outcast
 Canoptek Spyder
@@ -31,97 +40,173 @@ Caustic Crawler
 Celestial Regulator
 Cephalid Retainer
 Charging Monstrosaur
+Chill of the Grave
 Chivalric Alliance
 Cloak of the Bat
+Coercion
+Collateral Damage
+Colos Yearling
+Colossus of Sardia
 Commissar Severina Raine
+Conqueror's Flail
+Consult the Necrosages
+Courage in Crisis
 Courier Hawk
 Court of Garenbrig
 Crack the Earth
+Criminal Enterprise
+Crypt Sliver
+Curse of Marit Lage
+Dakmor Ghoul
 Darksteel Axe
 Dauntless Cathar
 Dawn Gryff
 Daybreak Chaplain
+Deadeye Tracker
 Death Frenzy
+Dimensional Infiltrator
+Dive Bomber
 Divine Sacrament
 Drag Down
+Dread Drone
 Dross Scorpion
 Dryad Sophisticate
 ED-E, Lonesome Eyebot
 Eerie Interlude
 Elanor Gardner
 Empyreal Voyager
+Energy Flux
 Eternal Warrior
 Evolutionary Escalation
 Excavation Mole
+Exsanguinator Cavalry
 Eye Gouge
 Faerie Invaders
+Fantastic Bounce
+Farrel's Zealot
+Fatal Push
+Fellwar Stone
+Firefist Striker
 Flaxen Intruder
 Flowstone Overseer
 Flutterfox
+Foreboding Fruit
+Foresight
 Forest
 Gaea's Revenge
 Gallifrey Stands
+Gamble
 Ghirapur Guide
+Giant Ambush Beetle
 Giant Ox
+Giant Tortoise
 Goblin Diplomats
 Goblin General
 Goblin War Party
+Godtoucher
+Griffin Canyon
 Grounded
+Halo Forager
 Heirs of Stromkirk
 Hill Giant Herdgorger
+Homarid Explorer
 Horned Sliver
 Hungry Megasloth
 Hunter's Bow
 Indebted Samurai
 Indomitable Archangel
 Infernal Grasp
+Intangible Virtue
+Inventor's Apprentice
 Isamaru, Hound of Konda
 Island
 Jungle Delver
 Justiciar's Portal
+Karametra's Favor
 Karok Wrangler
+Kels, Fight Fixer
+Knight Paladin
 Knight of Glory
 Kor Sky Climber
 Kris Mage
+Lambholt Raconteur
+Leather Armor
 Legion Conquistador
 Leyline of Vitality
+Lightning Dart
 Lochmere Serpent
+Locthwain Lancer
 Loxodon Lifechanter
+Mage-Ring Responder
 Magus of the Moat
+Mana Flare
+Manakin and Millikin
 Manic Scribe
 Marble Diamond
 Marked by Honor
 Matsu-Tribe Sniper
 Meria's Outrider
 Mesa Lynx
+Metropolis Sprite
 Mindwrack Liege
 Minister of Pain
 Misfortune's Gain
+Mogg Fanatic
 Morale
 Morbid Hunger
 Mountain
 Mountain Bandit
+Mournwhelk
 Mudbutton Torchrunner
+Multiversal Recruitment
 Murderous Compulsion
 Nacatl Savage
+Necrobite
+Necroduality
+Necroplasm
+Nephalia Seakite
 Omen of the Dead
 Oread of Mountain's Blaze
+Osai Vultures
 Overwhelming Stampede
+Pact of the Titan
 Panic Spellbomb
 Panicked Bystander
 Perimeter Patrol
+Permafrost Trap
+Phantom Whelp
+Phyrexian Lens
 Plains
 Potion of Healing
+Power of Persuasion
+Pradesh Gypsies
 Propeller Pioneer
+Prying Eyes
+Pteramander
 Pure Reflection
 Pyroclastic Elemental
 Raksha Golden Cub
 Rakshasa Deathdealer
 Rampaging Ferocidon
 Rank and File
+Reap the Seagraf
 Reckless Abandon
 Reito Lantern
+Rescind
+Retributive Wand
+Returned Centaur
+Revive the Fallen
+Rimeshield Frost Giant
+Rimrock Knight
+Riptide Laboratory
+River of Tears
+Rockslide Ambush
+Rograkh, Son of Rohgahh
+Rosethorn Halberd
+Rousing Refrain
+Runaway Carriage
 Sagittars' Volley
+Salvage Slasher
 Samite Pilgrim
 Sanctified Charge
 Scent of Ivy
@@ -129,23 +214,38 @@ Scouting Trek
 Seal of Doom
 Searchlight Companion
 Seascape Aerialist
+Secret Passage
+Secrets of the Golden City
 Seedguide Ash
 Selesnya Eulogist
 Sensor Splicer
 Separatist Voidmage
+Shabraz, the Skyshark
 Shadow Glider
 Shamanic Revelation
+Shard of Broken Glass
 Sheltering Light
 Shred Memory
+Shrieking Mogg
+Sigil of Myrkul
+Signal Pest
 Silver-Inlaid Dagger
+Silversmote Ghoul
 Skittering Monstrosity
 Skulltap
+Skywinder Drake
 Skywing Aven
 Slaughter Pact
+Slithery Stalker
 Smoke Bomb
 Soul Swallower
+Spara's Headquarters
+Spawnbed Protector
+Spear Spewer
+Spectral Hunt-Caller
 Spell Contortion
 Spire Barrage
+Splatter Thug
 Spontaneous Flight
 Springmantle Cleric
 Staunch Defenders
@@ -154,14 +254,18 @@ Stone Retrieval Unit
 Storm Fleet Swashbuckler
 Strength of Night
 Striking Sliver
+Submerge
+Sulfurous Mire
 Sungold Barrage
 Survival of the Fittest
 Swamp
 Swift Justice
 Swift Response
+Synod Artificer
 Taoist Hermit
 Tattered Haunter
 Teachings of the Kirin
+Tectonic Edge
 Tel-Jilad Archers
 Temmet, Vizier of Naktamun
 Teroh's Vanguard
@@ -172,21 +276,36 @@ Thornling
 Thrummingbird
 Thunder Strike
 Thunderscape Familiar
+Tidehollow Strix
 Timberwatch Elf
+Timetwister
 Torch Slinger
 Tormod's Crypt
 Tracker's Instincts
 Trustworthy Scout
 Tunneler Wurm
+Twinscroll Shaman
 Tymaret, Chosen from Death
+Uncle Istvan
+Undercity Scrounger
 Unexpected Fangs
+Unleash Shell
+Valiant Knight
 Vampire's Zeal
 Venomthrope
 Venser, Visionary Traveler
 Verdant Field
+Verdant Rebirth
 Violent Impact
+Wall of Lost Thoughts
 Warfire Javelineer
 Warren Soultrader
+Weaponize the Monsters
+Weirding Shaman
+Where Ancients Tread
+Whispering Shade
 Wild Colos
 Wild Onslaught
+Wretched Confluence
+Xander's Lounge
 Zhao, the Seething Flame
