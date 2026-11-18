@@ -560,7 +560,7 @@ func (s *State) removeTightPain(k *prep, a *avail, sl Slot, pc *pcard, m uint8) 
 		ec = s.painExtraC(k, sl, pc)
 	}
 	for g := uint8(0); g < pa.n; g++ {
-		if pa.mask[g] != pm || pa.prim[g] != prim || pa.only>>g&1 != ob || pa.ec[g] != ec || pa.cnt[g] == 0 {
+		if pa.mask[g] != pm || pa.prim[g] != prim || pa.only>>g&1 != ob || pa.ec[g] != ec || pa.w[g] != pc.painN || pa.cnt[g] == 0 {
 			continue
 		}
 		pa.cnt[g]--
