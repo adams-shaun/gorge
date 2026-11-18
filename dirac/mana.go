@@ -490,11 +490,7 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 			}
 			continue
 		}
-		if withDeferred && s.g.availX&3 != 0 && s.splitDeferred(k, sl) && s.splitUsable(k, sl) && s.planDeferred(k, p, sl) {
-			// a Condition-split source (River of Tears) is a script gap the
-			// gaps mode counts below (scriptTapsDefer, one relaxed unit): its
-			// ordinary unit here would count the one tap twice, and the trigger
-			// X cap (availForCapped) would offer one X past gorge's census
+		if withDeferred && s.censusSplitGap(k, p, sl) {
 			continue
 		}
 		if deferSkip && deferGap.has(sl) && s.planDeferred(k, p, sl) {
@@ -537,6 +533,14 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 	if s.g.availX&availLife != 0 {
 		s.availLifeGaps(k, p, a) // the planner's phase 2 life-only units (mana_lifeplan.go)
 	}
+}
+
+// censusSplitGap reports a Condition-split source (River of Tears) the gaps
+// mode counts as a script gap (scriptTapsDefer, one relaxed unit): the capped
+// census's ordinary unit would count its one tap twice, and the trigger X cap
+// (availForCapped) would offer one X past gorge's census.
+func (s *State) censusSplitGap(k *prep, p uint8, sl Slot) bool {
+	return s.g.availX&3 != 0 && s.splitDeferred(k, sl) && s.splitUsable(k, sl) && s.planDeferred(k, p, sl)
 }
 
 // affords reports whether a can pay cost plus extra generic.
