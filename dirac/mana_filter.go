@@ -1159,7 +1159,17 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	if life {
 		fs.lifeUsed = fs.lifeUsed.with(st.sl) // once per path (gorge's gap list)
 	}
+	lifeBefore := c.pl[SeatIx(fs.p)].life
 	c.filtDo(k, fs.p, st)
+	if lifeBefore > 0 && c.pl[SeatIx(fs.p)].life <= 0 {
+		// the step's own pain killed the payer: gorge's scriptSearch.visit
+		// ends the line at the game over (CR 104.3a, 704.5a), whatever the
+		// pool then pays
+		if life {
+			fs.lifeUsed = fs.lifeUsed.without(st.sl)
+		}
+		return false
+	}
 	fs.path[fs.n] = st
 	fs.n++
 	var ok bool
