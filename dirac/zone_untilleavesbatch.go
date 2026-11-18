@@ -149,6 +149,15 @@ func (s *State) resumeReturns(k *prep) bool {
 	return false
 }
 
+// resumeEntryBatch resumes after a return completed an entry batch: it poses
+// the next parked return's ask (CR 610.3d) or finishes the frame the leaving
+// source opened (leaveGen, turn_gen.go). It runs for a paying return too —
+// without it the batch's held enters checks never fire. True means the caller
+// stops resolving: the batch's next return asks its host.
+func (s *State) resumeEntryBatch(k *prep) bool {
+	return s.resumeReturns(k)
+}
+
 // finishHeldFrame closes the departure frame a parked return kept open: the
 // held enters checks fire together, in entry order, then the batch closes.
 func (s *State) finishHeldFrame(k *prep) {

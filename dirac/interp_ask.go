@@ -1352,7 +1352,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				sl := s.enterLinkRet(k, o, s.objs[o].owner(), from)
 				s.attachedTo(k, sl, host)
 			}
-			if !paying && s.resumeReturns(k) {
+			if s.resumeEntryBatch(k) {
 				return // the batch's next return asks its host
 			}
 			if paying {
@@ -1386,7 +1386,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.enterLinkRet(k, o, s.objs[o].owner(), from) // the enters program reads the choice
 		}
 		s.g.pre = preAsk{}
-		if !paying && s.resumeReturns(k) {
+		if s.resumeEntryBatch(k) {
 			return // the batch's next return asks its host
 		}
 		if paying {

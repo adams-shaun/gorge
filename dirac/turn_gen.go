@@ -529,7 +529,17 @@ func (s *State) leaveGen(k *prep, sl Slot, o Obj) {
 	if s.g.batchLatch&batchHeld != 0 {
 		s.holdReturns(sl, o)
 	} else {
-		s.returnLinked(k, s.perms[sl].ctrl, o) // the controller read before a returning card takes the slot
+		// An until-leaves return outside an open departure frame is still one
+		// entry batch (CR 603.6a, gorge's zone batch): the frame is opened and
+		// closed around the return itself, so its cards' enters checks wait for
+		// the last one to be back — a newcomer's "whenever another ... enters"
+		// sees every other card of the return (Oreplate Pangolin returning
+		// beside two other artifacts when Pinnacle Starcage leaves). A return
+		// that parks an ask keeps the frame open across it, as holdClose's
+		// retHold does for an op-opened frame.
+		hr := s.holdEntries()
+		s.holdReturns(sl, o)
+		s.holdClose(k, hr) // flushReturns returns the source; nothing is held when it has no live link
 	}
 	s.refreshTy(k)
 }
