@@ -36,6 +36,7 @@ Blistergrub
 Blistering Barrier
 Bloodthrone Vampire
 Blurred Mongoose
+Bog Initiate
 Boneyard Wurm
 Boon Reflection
 Boros Swiftblade
@@ -88,6 +89,7 @@ Dauntless Aven
 Dauntless Unity
 Death Cloud
 Demon's Jester
+Denying Wind
 Depala, Pilot Exemplar
 Deputized Protester
 Desert of the Indomitable
@@ -175,6 +177,7 @@ Greater Good
 Greater Mossdog
 Greenwarden of Murasa
 Hagra Constrictor
+Hatching Plans
 Havengul Vampire
 Hell Swarm
 Hellion Eruption
@@ -330,6 +333,7 @@ Sanctum of Stone Fangs
 Sandstorm Eidolon
 Sarpadian Simulacrum
 Sauroform Hybrid
+Savai Crystal
 Saw It Coming
 Scale Blessing
 Scapeshift
@@ -395,6 +399,7 @@ Tar Pitcher
 Taunting Arbormage
 Teeterpeak Ambusher
 Terrain Elemental
+Terror Ballista
 The Rack
 Thorncaster Sliver
 Thought Collapse

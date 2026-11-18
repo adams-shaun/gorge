@@ -32,6 +32,7 @@ Avatar of Growth
 Aven Redeemer
 Ayumi, the Last Visitor
 Bad Deal
+Balduvian War-Makers
 Banshee of the Dread Choir
 Batterbone
 Battering Krasis
@@ -49,6 +50,7 @@ Bonds of Mortality
 Bounty Hunter
 Branchsnap Lorian
 Brushland
+Bulette
 Burgeoning
 Callous Bloodmage
 Captured by Lagacs
@@ -123,6 +125,7 @@ Exalted Angel
 Explosive Shot
 Exsanguinator Cavalry
 Fact or Fiction
+Fain, the Broker
 Fallow Earth
 Fast
 Fencer's Magemark
@@ -175,6 +178,7 @@ Heartmender
 Herald of Hadar
 Hermes, Overseer of Elpis
 Hero's Resolve
+Heroes Remembered
 Hewed Stone Retainers
 Hidden Guerrillas
 Highspire Infusion
@@ -202,6 +206,7 @@ Kazuul's Fury
 Kessig Dire Swine
 Kher Keep
 Kill Shot
+Knightly Valor
 Koala-Sheep
 Krovikan Plague
 Kyren Sniper
@@ -235,6 +240,7 @@ Mobile Fort
 Molten Monstrosity
 Monologue Tax
 Moonstone Eulogist
+Moonveil Dragon
 Mountain
 Mudbrawler Raiders
 Mulldrifter
@@ -242,6 +248,7 @@ Mystic Retrieval
 Nagging Thoughts
 Nameless One
 Narcissism
+Necrite
 Nemesis Mask
 Nether Horror
 Night Out in Vegas
@@ -308,6 +315,7 @@ Second Wind
 Segovian Angel
 Sentinels of Glen Elendra
 Serene Sunset
+Shadowblood Egg
 Shambling Ghast
 Shardless Agent
 Sheltering Boughs
@@ -387,6 +395,7 @@ Vengevine
 Victor Mancha, Runaway
 Victor Timely, Wily Tycoon
 Viridescent Wisps
+Vitality Hunter
 Vraska, Swarm's Eminence
 Wakening Sun's Avatar
 Wall of Fire

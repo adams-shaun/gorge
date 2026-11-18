@@ -8,9 +8,12 @@ Avalanche	0de1350c2e0de465	8	0/0		3/4	f0/s/x0
 Azorius Chancery	de2f58dbdc90fabb	14	2/2		0/1	ix:resp
 Bloodforged Battle-Axe	e2d5036ece3e89f7	5	2/2		1/1	
 Bloody Betrayal	bb490616508f8caa	4	0/0		1/2	ix:resp
+Bone Splinters	503598597fdaad0f	18	0/0		2/2	
 Borne Upon a Wind	51ecfffee7f03912	12	0/0		1/2	ix:resp
 Chill of the Grave	ded5d73997d39c04	5	0/0		1/2	ix:resp
 Cindervines	35500c5fd2c0890b	4	2/2		0/1	ix:resp
+Coercion	3a9682d132b1fc04	35	0/0		2/2	
+Colossus of Sardia	c8e762245d0631ea	4	1/1		0/1	ix:resp
 Conqueror's Flail	ddc3034c8c9ba0d9	14	1/1		0/1	ix:resp
 Consult the Necrosages	bd52fefc64455e00	8	0/0		1/2	ix:resp
 Crypt Sliver	4235122259f4119c	6	0/0		0/0	
@@ -22,13 +25,18 @@ Dread Drone	c0c47f741d87b0a0	6	1/1		0/1	ix:resp
 Dryad Sophisticate	171adb184a1a9b6e	4	0/0		0/0	
 Empyreal Voyager	b8154794fb97479d	3	1/1		0/1	ix:resp
 Exsanguinator Cavalry	a591282d94146b3a	4	1/1		0/1	ix:resp
+Fantastic Bounce	7a89fd4fd92397fd	8	0/0		1/2	ix:resp
 Farrel's Zealot	2dee496f22ca3d6d	39	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Fatal Push	7cdafa526f371ff7	19	0/0		2/2	
+Fellwar Stone	582e6e1183bf3d78	39	1/1		0/1	ix:resp
 Firefist Striker	106cdb4cc350a2af	12	1/1		0/1	ix:resp
 Flaxen Intruder	1cf7ccef8118c297	4	1/1		1/2	ix:resp
+Foreboding Fruit	440890d5de2acf7f	9	0/0		2/2	
 Genestealer Patriarch	e444426196880e5b	20	2/2		1/1	
 Giant Ambush Beetle	9d14d242e7f3ed87	12	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Godtoucher	6e22a9f53a72e1df	8	1/1		0/1	ix:resp
 Griffin Canyon	707c69f105ee669c	15	2/2		0/1	ix:resp
+Halo Forager	92a9fe3eee13132c	22	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Hill Giant Herdgorger	aed46ccc4d91a885	5	1/1		0/1	ix:resp
 Homarid Explorer	f7b83c3aa74f3b0d	10	1/1		0/1	ix:resp
 Hunter's Bow	4f7b4defff8b0f1d	8	2/2		0/1	ix:resp
@@ -37,6 +45,7 @@ Knight Paladin	7b0e0777480a28e4	16	2/2		1/1
 Knight of Glory	9489ca8bb2f8b4ff	7	1/1		0/1	ix:resp
 Leather Armor	6461c97f470d0f45	10	1/1		0/1	ix:resp
 Lochmere Serpent	1170cf61932dd977	18	3/3		1/1	
+Locthwain Lancer	7e19d14f2a580d26	10	1/1		0/1	ix:resp
 Mage-Ring Responder	f0b832527aef78c1	6	2/2		0/1	ix:resp
 Mana Flare	0fb77b26ab6e7d9e	3	1/1		1/1	
 Manakin and Millikin	37595c936961865a	16	1/1		1/1	
@@ -46,6 +55,8 @@ Mindwrack Liege	502a15536848cd68	5	1/1		1/1
 Mogg Fanatic	814bc88db3edfa9b	4	1/1		0/1	ix:resp
 Morbid Hunger	9cb5a22bbf233ca4	4	0/0		2/4	cast/alt:flashback,ix:resp
 Murderous Compulsion	d28a5c663122b1fd	8	0/0		1/2	ix:resp
+Myojin of Roaring Blades	43fb368f5e3d05c0	11	1/1		1/1	
+Necroduality	1b56fa2fd20f4239	9	1/1		1/1	
 Necroplasm	21f5c2802eecefa2	9	2/2		1/1	
 Nephalia Seakite	22ca8ffcab366997	3	0/0		0/0	
 Osai Vultures	3736eb02b88a1874	24	2/2		1/1	
@@ -62,7 +73,9 @@ Pteramander	0a09cd8e81a817eb	8	1/1		0/1	ix:resp
 Rakshasa Deathdealer	d306773a2749e75f	10	2/2		1/1	
 Rank and File	1af8931352c314b0	11	1/1		0/1	ix:resp
 Reap the Seagraf	1e16cb910bcd05c0	27	0/0		4/4	
+Rescind	2a0123f94e30750d	8	1/1		2/2	
 Revive the Fallen	c014488582f8d447	17	0/0		1/2	ix:resp
+Rimeshield Frost Giant	68da5d32464b2ba9	12	1/1		0/1	ix:resp
 Riptide Laboratory	1998c80136b4a39a	10	2/2		0/1	ix:resp
 River of Tears	3a712d1008f6ade1	10	1/1		0/1	ix:resp
 Rograkh, Son of Rohgahh	d0e9e97bf4de816f	12	0/0		0/0	
@@ -71,12 +84,15 @@ Scent of Ivy	1098959bf8e855f1	4	0/0		2/2
 Scouting Trek	2ffe686bb91bee10	3	0/0		1/2	ix:resp
 Secret Passage	eb6858c7e2f99c04	7	2/2		0/1	ix:resp
 Secrets of the Golden City	5160d9ef3b24f891	8	0/0		1/2	ix:resp
+Seedguide Ash	3504eff292af21f5	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Selesnya Eulogist	e70bf7852e867655	14	1/1		1/1	
 Shadow Glider	c63c4cc62d39e6d1	6	0/0		0/0	
 Sheltering Light	c68cf0cbe86ee8e9	10	0/0		2/2	
+Shred Memory	8f4edd7a75ae5ea0	27	1/1		1/2	ix:resp
 Sigil of Myrkul	7ec4d2648d06eb5e	3	1/1		0/1	ix:resp
 Signal Pest	0be60c7ac07ebb92	6	1/1		0/1	ix:resp
 Silversmote Ghoul	42084e1f7625275b	9	2/2		1/1	
+Spawnbed Protector	40ac6f26e66a3ab9	10	1/1		1/1	
 Spectral Hunt-Caller	1fbbafdbb38ad04b	6	1/1		1/1	
 Splatter Thug	f611d87b4a6032ac	32	0/0		0/0	
 Springmantle Cleric	2b33941c57a97887	3	0/0		0/0	
@@ -86,10 +102,12 @@ Synod Artificer	474c61b4d441fe56	8	2/2		0/1	ix:resp
 Taoist Hermit	7bc6b707d8893376	3	0/0		0/0	
 Tectonic Edge	2cab1e61243093ae	14	2/2		0/1	ix:resp
 Tel-Jilad Archers	514fc8e610ab51c1	3	0/0		0/0	
+Tidehollow Strix	343fb74f791385f8	32	0/0		0/0	
 Timetwister	1deac510127e6df8	4	0/0		1/2	ix:resp
 Trustworthy Scout	fb8ace2233041c72	6	1/1		1/1	
 Venomthrope	8132ed680ab3a341	8	0/0		0/0	
 Verdant Field	db9f6aa345482306	9	0/0		2/2	
 Weirding Shaman	e34053a6ef6b2c49	10	1/1		1/1	
+Where Ancients Tread	bcd9449c5db5ebdf	14	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Whispering Shade	8377000dde624060	29	1/1		1/1	
 Xander's Lounge	8dd391b76bd72c1f	11	4/4		1/1	

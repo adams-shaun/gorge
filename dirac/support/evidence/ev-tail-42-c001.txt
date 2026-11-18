@@ -3,15 +3,20 @@ A-Dragonborn Looter
 A-Meria's Outrider
 A-Ominous Parcel
 Accursed Horde
+Adaptive Snapjaw
 Aerial Engineer
 Aether Adept
 Aether Inspector
 Aethersnipe
 Akoum Refuge
+Akroan Sergeant
 Alluring Suitor
+Alpha Tyrranax
+Angelic Exaltation
 Angelic Gift
 Angler Turtle
 Answered Prayers
+Ant Queen
 Anurid Barkripper
 Anurid Murkdiver
 Arc Trail
@@ -19,8 +24,11 @@ Ardent Soldier
 Armored Ascension
 Armory Guard
 Ashiok's Adept
+Astral Dragon
 Attended Healer
 Audacious Infiltrator
+Auton Soldier
+Avatar of Woe
 Aven Mindcensor
 Awakened Awareness
 Baloth Prime
@@ -31,6 +39,7 @@ Bastion Enforcer
 Besmirch
 Bewilder
 Beyeen Veil
+Big Score
 Blistercoil Weird
 Blood Burglar
 Bloodbraid Elf
@@ -49,23 +58,30 @@ Breaching Hippocamp
 Brimstone Volley
 Burning Fields
 Burning Hands
+Burning Oil
 Captain's Hook
 Carnage Wurm
 Carrion Call
+Cascade Seer
 Cessation
 Chaos Terminator Lord
 Choking Restraints
 Cinder Barrens
+Cinder Elemental
 Claws of Valakut
+Cleanse
 Cleric of Chill Depths
+Clever Concealment
 Cloak and Dagger
 Clock of Omens
 Clone
 Cloudheath Drake
 Coldsteel Heart
 Cone of Flame
+Confidence from Strength
 Conqueror's Pledge
 Consuming Corruption
+Containment Construct
 Corpse Cur
 Corrupted Resolve
 Crenellated Wall
@@ -74,6 +90,8 @@ Cruel Witness
 Cystbearer
 Dark Prophecy
 Dauthi Embrace
+Dawn Evangel
+Dawnbringer Charioteers
 Delraich
 Desperate Charge
 Dire Fleet Warmonger
@@ -95,12 +113,17 @@ Ember Hauler
 Emergency Weld
 Endless Sands
 Energy Bolt
+Energy Storm
 Enigmatic Incarnation
 Entrails Feaster
 Entropic Specter
 Essence Depleter
+Evolution Sage
 Exemplar of Strength
 Faerie Swarm
+Fathom Trawl
+Fell the Pheasant
+Fervent Champion
 Fiddlehead Kami
 Fireflux Squad
 Fissure
@@ -108,6 +131,7 @@ Fissure Vent
 Flaming Fist
 Flatten
 Fledgling Mawcor
+Fledgling Osprey
 Fleshpulper Giant
 Fling
 Flusterstorm
@@ -119,11 +143,13 @@ Forest
 Forked Bolt
 Franklin Richards, Ascendant
 From Beyond
+Fungus Elemental
 Furnace Spirit
 Gala Greeters
 Galadhrim Bow
 Galvanic Juggernaut
 Gauntlet of Might
+Gaze of Justice
 Ghoulsteed
 Gleeful Demolition
 Glimpse the Unthinkable
@@ -135,21 +161,31 @@ Gobland
 Goblin Diplomats
 Goblin Matron
 Goblin Mountaineer
+Goblin Ringleader
 Goblin Scouts
+Goblin Sledder
 God-Eternal Bontu
 Gold-Forged Sentinel
 Goreclaw, Terror of Qal Sisma
 Grasp of Darkness
 Greater Auramancy
+Green Scarab
 Grenzo, Havoc Raiser
 Griffin Dreamfinder
+Grizzled Angler
 Guardian Scalelord
+Gwenna, Eyes of Gaea
+Hammerhead, Maggia Boss
 Hangarback Walker
 Harvest Wurm
 Haunted Cadaver
 Havoc Devils
+Heavyweight Demolisher
 Helm of the Host
+Here Comes a New Hero!
+High Seas
 Hindervines
+Holdout Settlement
 Horizon Explorer
 Horn of Gondor
 Horned Stoneseeker
@@ -186,10 +222,12 @@ Lifelink
 Liquify
 Living Lands
 Loamcrafter Faun
+Looter il-Kor
 Lucid Dreams
 Lurking Nightstalker
 Lys Alana Huntmaster
 Lyzolda, the Blood Witch
+Maga, Traitor to Mortals
 Mage-Ring Network
 Mana Short
 Manipulate Fate
@@ -214,9 +252,11 @@ Naru Meha, Master Wizard
 Nature's Will
 Nectar Faerie
 Needlethorn Drake
+Nest Robber
 Nether Horror
 Nimbus Champion
 Nirkana Cutthroat
+Nostalgic Dreams
 Nova Flame
 Nyxborn Triton
 Ob Nixilis, the Fallen
@@ -235,7 +275,11 @@ Penumbra Wurm
 Peppersmoke
 Peregrine Griffin
 Perennial Behemoth
+Perimeter Captain
 Petravark
+Petrifying Meddler
+Phenomenon Investigators
+Pheres-Band Centaurs
 Phyrexian Colossus
 Phyrexian Denouncer
 Phyrexian Totem
@@ -246,23 +290,32 @@ Predatory Sliver
 Priests of Norn
 Prismatic Strands
 Psychic Impetus
+Rakdos Carnarium
 Ral's Dispersal
+Reality Heist
 Reborn Hope
+Recall
 Renegade Reaper
 Resplendent Griffin
 Resurrection Orb
 Ridgescale Tusker
+Roilmage's Trick
 Sabertooth Outrider
 Sacred Armory
+Sage's Dousing
 Sage's Reverie
 Samite Archer
 Samut's Sprint
 Sandsteppe Scavenger
 Sandstorm
+Saprazzan Outrigger
 Satyr Hoplite
+Satyr Nyx-Smith
+Savai Sabertooth
 Scalding Devil
 Scholar of Athreos
 School of the Unseen
+Scuttling Doom Engine
 Scythecat Cub
 Separatist Voidmage
 Serene Steward
@@ -290,8 +343,10 @@ Skymark Roc
 Skyshroud Lookout
 Smoke Bomb
 Smother
+Soulblade Djinn
 Spell Contortion
 Spellbook
+Spider Spawning
 Spiderwig Boggart
 Spike Drone
 Spike Weaver
@@ -300,6 +355,7 @@ Steelfin Whale
 Stolen Grain
 Stolen Vitality
 Strength from the Fallen
+Strength of Isolation
 Sunbringer's Touch
 Sunken Hope
 Suppression Bonds
@@ -310,6 +366,7 @@ Swift Response
 Sylvan Reclamation
 Tatyova, Steward of Tides
 Temperamental Oozewagg
+Temporal Manipulation
 Thalia's Lancers
 The Odd Acorn Gang
 Thoughtcutter Agent
@@ -329,6 +386,7 @@ Trigon of Corruption
 Trostani's Summoner
 Trufflesnout
 Tunneler Wurm
+Turntimber Ranger
 Twitch
 Tyrranax
 Ultimate Price
@@ -343,6 +401,7 @@ Vedalken Orrery
 Verduran Emissary
 Vhal, Candlekeep Researcher
 Viashino Firstblade
+Viashino Shanktail
 Villainous Ogre
 Volcanic Fallout
 Votary of the Conclave
@@ -370,4 +429,5 @@ Wrangle
 Wrenn's Resolve
 Wyluli Wolf
 Yavimaya Scion
+Zephyr Scribe
 Zirilan of the Claw
