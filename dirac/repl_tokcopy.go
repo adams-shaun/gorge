@@ -84,6 +84,21 @@ func (s *State) tokCopyHostStalls(k *prep, host Slot) bool {
 		k.gen.anyBecomeCopy && s.cloneAskKind(k, c) != 0
 }
 
+// tokCopyHostsStall is tokCopyHostStalls over every copy-instead candidate of
+// the collected creation that applies now (two elections each name a host).
+func (s *State) tokCopyHostsStall(k *prep, t *tokOrd, p uint8) bool {
+	for j := 0; j < int(t.nc); j++ {
+		a := s.tokAbilityOf(k, t, j)
+		if a.Repl.Kind != kop.ReplCopyFirstToken {
+			continue
+		}
+		if h, ok := s.tokCopyApplies(k, s.objs[t.cand[j]].slot, a, p); ok && s.tokCopyHostStalls(k, h) {
+			return true
+		}
+	}
+	return false
+}
+
 // tokCopyOptions builds the election's options: decline, then the host.
 func (s *State) tokCopyOptions(d *Decision) {
 	d.Sub = ChGenTokCopy
@@ -99,6 +114,7 @@ func (s *State) tokCopyAnswer(k *prep, a Action) {
 	t := &s.g.tok
 	if a.Mode() == 1 {
 		t.setCopyTaken(true)
+		t.acc = uint8(t.copyJ()) + 1
 	}
 	if t.nc == 0 {
 		s.res.ask = raNone
