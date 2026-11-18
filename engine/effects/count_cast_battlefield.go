@@ -7,13 +7,17 @@ import (
 )
 
 // castBattlefieldHead is the Count$ head spelling whose carriers read the
-// battlefield as it stood when the spell was cast.
-const castBattlefieldHead = "LastStateBattlefieldWithFallback"
+// battlefield as it stood when the spell was cast. It carries the "Count$"
+// prefix so a Defined$ ...LastStateBattlefieldLKICopy body (Miss Highwater)
+// never matches.
+const castBattlefieldHead = "Count$LastStateBattlefield"
 
 // SVarsReadCastBattlefield reports whether any SVar body counts the as-cast
-// battlefield (Count$LastStateBattlefieldWithFallback), i.e. whether casting
-// the spell owning these SVars must freeze the battlefield. The map is only
-// scanned for membership, so its iteration order reaches nothing.
+// battlefield (Count$LastStateBattlefield or Count$LastStateBattlefieldWithFallback),
+// i.e. whether casting the spell owning these SVars must freeze the
+// battlefield. The WithFallback spelling contains the plain one, so one
+// substring covers both. The map is only scanned for membership, so its
+// iteration order reaches nothing.
 func SVarsReadCastBattlefield(svars map[string]string) bool {
 	for _, body := range svars {
 		if strings.Contains(body, castBattlefieldHead) {
@@ -65,6 +69,31 @@ func evalCastBattlefieldCount(h Host, c *Ctx, g *state.Game, arg string, depth i
 	}
 	if c != nil {
 		if src := g.Obj(c.Source); src != nil && src.Zone == state.ZStack && src.CastBattlefield != nil {
+			snap := src.CastBattlefield
+			return evalCountBodyZone(frozenHost{Host: h, snap: snap}, c, snap.Game, "Valid", arg, depth)
+		}
+	}
+	return evalCountBodyZone(h, c, g, "Valid", arg, depth)
+}
+
+// evalLastStateBattlefield is Count$LastStateBattlefield: the Valid scan of
+// arg over the last-known battlefield at the effect. When the source was cast
+// (it carries a frozen battlefield and is on the stack or battlefield) that is
+// the battlefield as the spell was cast, from the same snapshot
+// evalCastBattlefieldCount reads. A source that entered without being cast
+// (reanimation, flicker, put onto the battlefield) has no snapshot, and its
+// last-known state is the live battlefield, so the scan runs over the current
+// game; Forge keeps no separate cast snapshot. The read is evalCountBodyZone
+// itself, so the filter grammar, $Property folds and extreme reductions cannot
+// drift from Count$Valid. An empty filter is not a body this build can count,
+// so it fails the head's own verdict.
+func evalLastStateBattlefield(h Host, c *Ctx, g *state.Game, arg string, depth int) (int32, bool, bool) {
+	if arg == "" {
+		return 0, false, true
+	}
+	if c != nil {
+		if src := g.Obj(c.Source); src != nil && src.CastBattlefield != nil &&
+			(src.Zone == state.ZStack || src.Zone == state.ZBattlefield) {
 			snap := src.CastBattlefield
 			return evalCountBodyZone(frozenHost{Host: h, snap: snap}, c, snap.Game, "Valid", arg, depth)
 		}
