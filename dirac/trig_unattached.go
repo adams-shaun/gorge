@@ -50,6 +50,20 @@ func (s *State) unattachedFires(k *prep, sl Slot) bool {
 	return s.typesAt(k, sl)&kop.TEquipment != 0
 }
 
+// detachBearerFires is removePerm's bearer-left gate: whether the attachment
+// at q fires its Mode$ Unattached abilities now that its bearer at sl left.
+// q's own leave may have fired in this same simultaneous departure
+// (God-Eternal Bontu's "sacrifice any number" picks an Equipment beside the
+// creature it equipped): then fireLeave's own-departure arm already fired
+// this very detach — the bearer it names is this very sl, qp.attached == sl —
+// and gorge publishes it once, at the CR 603.10a look-back walk (its pending
+// arm publishes only for attachments still on the battlefield). pfBatchGone
+// marks exactly that window (fireLeave sets it, the member's own removePerm
+// clears it), so the detach loop skips the re-fire and only clears the attach.
+func (s *State) detachBearerFires(k *prep, sl, q Slot) bool {
+	return k.gen != nil && s.perms[q].flags&pfBatchGone == 0 && s.unattachedFires(k, q)
+}
+
 // fireUnattached queues the TrigUnattached abilities of the attachment at
 // sl, which just became unattached from the permanent at bearer (dead or
 // alive), RefTriggerObj that bearer. Mirrors fireAttached: no slot
