@@ -378,7 +378,7 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 	case kop.W7AttackingEnchTrig:
 		ans = s.attackingEnchTrig(k, sl, src) // filter_attackenchanted.go
 	case kop.W7NotBlocking:
-		ans = s.perms[sl].flags&pfBlocking == 0 || s.blkLifted(sl)
+		ans = s.blkNotShown(sl, &s.perms[sl])
 	case kop.W7BlockingTrigObj:
 		ans = s.blockingTrigObj(sl)
 	case kop.W7BlockingSrc:

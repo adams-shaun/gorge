@@ -1,6 +1,10 @@
 package dirac
 
-import "unsafe"
+import (
+	"unsafe"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // the decision scratch that is never live together
 // shares one word array, genState.scr. Go has no unions, so each arm is a
@@ -173,6 +177,24 @@ func (s *State) blkLifted(sl Slot) bool {
 		return false
 	}
 	return s.ctl == ctlBlockers && !s.blkArm().poseMask.has(sl)
+}
+
+// blkNotShown reports sl's blocking mark as the pose board carried it
+// (CR 509.1b): unset, or one the pose never showed (blkLifted). The
+// blocking-state reads' shared predicate.
+func (s *State) blkNotShown(sl Slot, p *perm) bool {
+	return p.flags&pfBlocking == 0 || s.blkLifted(sl)
+}
+
+// blkMarkFail is matchPermOne's and matchCurOne's blocking-state read: fl
+// demands a blocking creature (FBlocking, or FAttackingOrBlocking of one
+// that is not attacking) and sl's mark is not one the pose board carried
+// (blkNotShown), so the read fails. Live only in ctlBlockers.
+func (s *State) blkMarkFail(fl *kop.Filter, sl Slot, p *perm) bool {
+	if fl.Flags&kop.FBlocking != 0 && s.blkNotShown(sl, p) {
+		return true
+	}
+	return fl.Flags&kop.FAttackingOrBlocking != 0 && p.flags&pfAttacking == 0 && s.blkNotShown(sl, p)
 }
 
 // scrResEnter starts a resolution's scratch afresh (resolveTop): the

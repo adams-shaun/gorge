@@ -109,11 +109,8 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 		if fl.Flags&kop.FAttacking != 0 && p.flags&pfAttacking == 0 || fl.Flags&kop.FNotAttacking != 0 && p.flags&pfAttacking != 0 {
 			return false
 		}
-		if fl.Flags&kop.FBlocking != 0 && (p.flags&pfBlocking == 0 || s.blkLifted(sl)) {
-			return false
-		}
-		if fl.Flags&kop.FAttackingOrBlocking != 0 && p.flags&pfAttacking == 0 && (p.flags&pfBlocking == 0 || s.blkLifted(sl)) {
-			return false
+		if s.blkMarkFail(fl, sl, p) {
+			return false // scratch.go
 		}
 	}
 	if fl.Types != 0 || fl.NotTypes != 0 {
