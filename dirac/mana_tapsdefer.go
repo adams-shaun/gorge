@@ -521,6 +521,9 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 		return
 	}
 	if a, ok := s.riderAbilityOf(k, sl); ok {
+		if a.Cost.Flags&kop.CostTap != 0 {
+			s.riderExtraUnits(k, sl, av) // the tap's StatTapExtra mana (mana_riderextra.go)
+		}
 		n := max(a.ManaN, 1)
 		if a.ManaEach {
 			for col := 0; col < kop.NumManaKinds; col++ {
