@@ -14,11 +14,11 @@ import (
 // so the seven-mana Axebane Stag is not castable; with a second Forest it is.
 func TestRestrictedSageDoesNotFundFilterFee(t *testing.T) {
 	names := []string{"Axebane Stag", "Mossfire Valley", "Somberwald Sage", "Island", "Jiang Yanggu, Wildcrafter"}
-	set := cardsettest.Synth(t, "tail-23")
+	set := cardsettest.Set(t, "restrfilterfee")
 	var deck []cardset.Entry
 	for _, n := range names {
 		if i, ok := set.Lookup(n); !ok || !set.Supported()[i] {
-			t.Fatalf("%s not in the tail-23 table", n)
+			t.Fatalf("%s not in the restrfilterfee table", n)
 		}
 		deck = append(deck, cardset.Entry{Name: n, Count: 1})
 	}
