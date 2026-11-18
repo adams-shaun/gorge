@@ -41,12 +41,51 @@ func (g *grantSrch) tapsDeferBranch(t *State, i int, sl Slot) bool {
 	if n > 1 && !g.node() {
 		return false
 	}
+	// The subsume run's colour ask keeps only the colours the pool still
+	// lacks (subsumeKeeps, the pool read before the step's mana floats in):
+	// the restricted census shape's answers after its plain float's place are
+	// the restricted ability's colour ask (restrCensusDeferGap's order), and
+	// a rider-only source's activation is its own colour ask. A rider beside
+	// its plain first ability is one ask whose plain option names no symbol
+	// (scriptManaUnits), and a source whose answers are fixed productions of
+	// several abilities asks no colour: both asks stay whole.
+	var order [kop.NumManaKinds]uint8
+	plain, prunes := 0, false
+	if n > 1 {
+		if t.restrCensusTapsGapShape(g.k, sl) {
+			ab := &g.k.t.Cards[t.cardAt(sl)].Abilities[g.k.gen.restrRecOf(t.cardAt(sl)).ab]
+			plain = 1
+			prunes = n > 2 // the colour ask behind the float: more than one answer
+			t.deferGapColourOrder(g.k, g.d.play, uint8(ab.ManaColors&kop.ColAny), &order)
+		} else if rA, ok := t.riderAbilityOf(g.k, sl); ok && !t.riderPlainFirst(g.k, sl) && !rA.ManaEach {
+			prunes = true
+			t.deferGapColourOrder(g.k, g.d.play, uint8(rA.ManaColors), &order)
+		}
+	}
 	for c := uint8(0); c < n; c++ {
+		if prunes && int(c) >= plain && !g.subsumeKeeps(t, order[c-uint8(plain)]) {
+			continue // a covered colour pays nothing more, so the line through it is dominated
+		}
 		if g.tapsDeferTry(t, i, sl, c) {
 			return true
 		}
 	}
 	return false
+}
+
+// deferGapColourOrder is the colour ask's answers a Taps-deferred gap's
+// activation walks for play a: the mask's colours W U B R G, the play's
+// announced colours first (scriptEngineAnswer's and restrCensusDeferGap's
+// needFirst hoist of scriptOrderAnswers).
+func (s *State) deferGapColourOrder(k *prep, a Action, mask uint8, out *[kop.NumManaKinds]uint8) (n int) {
+	for col := uint8(0); col < kop.NumManaKinds; col++ {
+		if mask&(1<<col) != 0 {
+			out[n] = col
+			n++
+		}
+	}
+	needFirst(out[:n], s.playNeed(k, a))
+	return n
 }
 
 // tapsDeferTry activates candidate i for answer ans on a copy of t and
