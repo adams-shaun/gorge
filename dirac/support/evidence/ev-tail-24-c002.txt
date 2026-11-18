@@ -11,6 +11,7 @@ Angel of Mercy
 Angel's Tomb
 Angrath's Rampage
 Annex Sentry
+Arc Trail
 Archdemon of Unx
 Archivist
 Armored Pegasus
@@ -26,6 +27,7 @@ Bastion Inventor
 Battlegrace Angel
 Bazaar Trademage
 Bedevil
+Benalish Heralds
 Binding the Old Gods
 Biolume Egg
 Blinding Light
@@ -34,6 +36,7 @@ Bone Devourer
 Boreal Druid
 Boss Uramon, Shadow's Reach
 Box of Free-Range Goblins
+Brandywine Farmer
 Braulios of Pheres Band
 Brutal Nightstalker
 Brute Force
@@ -55,6 +58,7 @@ Crush
 Crux of Fate
 Crypt Creeper
 Daggerclaw Imp
+Dauntless Dourbark
 Davvol, Evincar of Rath
 Daybreak Chimera
 Death Watch
@@ -85,7 +89,9 @@ Emberwilde Caliph
 Ensoul Artifact
 Entropic Eidolon
 Estwald Shieldbasher
+Ethersworn Adjudicator
 Executioner's Swing
+Expel from Orazca
 Fade from Memory
 Fae of Wishes
 Fallen Angel
@@ -110,8 +116,10 @@ Glint-Sleeve Artisan
 Gluttonous Troll
 Gnarlid Pack
 Go Blank
+Goblin Motivator
 Goblin Ringleader
 Golden Bear
+Grapeshot
 Griffin Dreamfinder
 Grim Hireling
 Grisly Spectacle
@@ -133,9 +141,11 @@ Hungry for More
 Hunting Grounds
 Ice Cage
 Ignoble Hierarch
+Imperial Subduer
 Impetuous Sunchaser
 Indrik Stomphowler
 Infectious Horror
+Inferno Elemental
 Insubordination
 Invisibility
 Iron Man, Futurist Paragon
@@ -146,6 +156,7 @@ Jackdaw
 Jackhammer
 Jade Avenger
 Jedit Ojanen
+Jedit's Dragoons
 Jori En, Ruin Diver
 Key to the City
 Khalni Garden
@@ -156,19 +167,23 @@ Lash of the Balrog
 Last Word
 Lava Spike
 Lethargy Trap
+Life from the Loam
 Lightning Bolt
 Lightning Stormkin
+Linvala, Keeper of Silence
 Llanowar Augur
 Llanowar Scout
 Long Road Home
 Lucas, the Sharpshooter
 Luke Cage, Hero for Hire
+Luminarch Aspirant
 Magefire Wings
 Maraxus of Keld
 Mardu Strike Leader
 Maritime Guard
 Marsh Viper
 Mass Manipulation
+Master Skald
 Mausoleum Harpy
 Minamo Sightbender
 Mind Peel
@@ -225,7 +240,9 @@ Sage of the Unknowable
 Saheeli's Silverwing
 Sanctuary Raptor
 Sanctum Gargoyle
+Sandblast
 Sanguinary Priest
+Sanguine Sacrament
 Satyr Piper
 Scryb Ranger
 Sealock Monster
@@ -236,6 +253,7 @@ Selfless Samurai
 Serra Ascendant
 Serra's Liturgy
 Shady Traveler
+Shattered Crypt
 Shorecomber Crab
 Shroofus Sproutsire
 Siegehorn Ceratops
@@ -267,6 +285,7 @@ Steadfast Paladin
 Stitched Assistant
 Stomp and Howl
 Stonehoof Chieftain
+Storm Fleet Arsonist
 Strangleroot Geist
 Strider Harness
 Sunblade Elf
@@ -274,6 +293,7 @@ Sunlance
 Suntouched Myr
 Supply Drop
 Surge of Thoughtweft
+Survival Cache
 Suspension Field
 Swamp
 Sword of the Chosen
@@ -292,6 +312,7 @@ Telling Time
 Tenth District Guard
 Territorial Scythecat
 The Keeper of the Yellow Hat
+The Wanderer
 Thopter Spy Network
 Thraben Sentry
 Thriving Skyclaw

@@ -1,9 +1,11 @@
+A-Cabaretti Charm
 A-Gnarlid Colony
 A-Kenku Artificer
 A-Moon-Circuit Hacker
 A-Young Blue Dragon
 Abattoir Ghoul
 Aberrant
+Adder-Staff Boggart
 Aegis Automaton
 Agadeem Occultist
 Agent of Masks
@@ -66,6 +68,7 @@ Cenn's Heir
 Chainer's Edict
 Chandra's Fury
 Charcoal Diamond
+Charitable Levy
 Charmbreaker Devils
 Charmed Stray
 Charnel Troll
@@ -91,6 +94,7 @@ Creeping Mold
 Crescendo of War
 Crimson Hellkite
 Crumbling Colossus
+D'Avenant Healer
 Dalek Drone
 Daraja Griffin
 Daxos of Meletis
@@ -111,6 +115,7 @@ Drannith Ruins
 Dreadwaters
 Drover of the Mighty
 Dungeoneer's Pack
+Dwarven Scorcher
 Dynacharge
 E. Honda, Sumo Champion
 Elvish Harbinger
@@ -190,6 +195,7 @@ Jokulmorder
 Kabira Outrider
 Kardur, Doomscourge
 Kargan Dragonlord
+Karona, False God
 Killian, Ink Duelist
 Knight of Infamy
 Knowledge and Power
@@ -217,12 +223,14 @@ Manabond
 Manglehorn
 Mardu Banner
 Maw of the Obzedat
+Mech Hangar
 Megrim
 Meldweb Curator
 Meng Huo, Barbarian King
 Mental Discipline
 Mental Misstep
 Merchant Scroll
+Merchant Ship
 Miasmic Mummy
 Mind Burst
 Minion of the Mighty
@@ -234,6 +242,7 @@ Moment of Heroism
 Monstrous Onslaught
 Morgue Theft
 Mortal's Ardor
+Mothrider Samurai
 Mountain
 Mountain Bandit
 Mournful Zombie
@@ -244,6 +253,7 @@ Needlebug
 Nephalia Drownyard
 Nightveil Sprite
 Nimraiser Paladin
+No Rest for the Wicked
 Noggle Bridgebreaker
 Noxious Toad
 Oasis
@@ -272,6 +282,7 @@ Primordial Ooze
 Prophetic Flamespeaker
 Protector of the Crown
 Qasali Pridemage
+Quintorius, History Chaser
 Rakdos Cluestone
 Ravenous Baboons
 Ravenous Bloodseeker
@@ -287,6 +298,7 @@ Ring of Three Wishes
 Ringwarden Owl
 Riot Spikes
 Rip Apart
+Ronin Cliffrider
 Rooting Kavu
 Roughshod Mentor
 Rousing of Souls
@@ -348,6 +360,7 @@ Strafe
 Strength of Night
 Structural Distortion
 Stunted Growth
+Sultai Ascendancy
 Sumala Rumblers
 Sunhome Guildmage
 Survival Cache

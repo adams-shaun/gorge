@@ -56,6 +56,7 @@ Cacophony Scamp
 Caldera Pyremaw
 Call to the Grave
 Caravan Escort
+Case the Joint
 Castle
 Chain Lightning
 Chakram Slinger
@@ -109,6 +110,7 @@ Domri, Anarch of Bolas
 Dragon's Approach
 Dramatic Reversal
 Drifting Meadow
+Dwarven Vigilantes
 Dynavolt Tower
 Earthen Goo
 Ecstatic Electromancer
@@ -165,9 +167,11 @@ Gray Merchant of Asphodel
 Grazilaxx, Illithid Scholar
 Grim Monolith
 Guardian Kirin
+Gwendlyn Di Corci
 Hadran, Naya Sunseeder
 Hail Storm
 Hall
+Hana Kami
 Hanabi Blast
 Hanna, Ship's Navigator
 Haunting Hymn
@@ -179,6 +183,7 @@ Heroes' Podium
 Hidden Blade
 Honed Khopesh
 Hooting Mandrills
+Horde of Notions
 Horizon Chimera
 Horseshoe Crab
 Hound of the Farbogs
@@ -198,6 +203,7 @@ Iron Bully
 Iron Suitcase
 Island
 Jackalope Herd
+Kaito Shizuki
 Keen-Eyed Raven
 Ken, Burning Brawler
 Khalni Gem
@@ -207,6 +213,7 @@ Knight of the Keep
 Knights of the Black Rose
 Kor Castigator
 Kor Skyfisher
+Lagrella, the Magpie
 Lattice Library
 Leafkin Druid
 Leather Armor
@@ -267,6 +274,7 @@ Paradox Engine
 Path of Anger's Flame
 Pentarch Ward
 Phyrexian Etchings
+Phyrexian Obliterator
 Pilfering Imp
 Plains
 Plaxmanta
@@ -299,6 +307,7 @@ Reduce in Stature
 Reduce to Ashes
 Relic Barrier
 Renewed Faith
+Reparations
 Replenish
 Revelation of Power
 Rhox Oracle
@@ -334,6 +343,8 @@ Simic Keyrune
 Simplify
 Skitter of Lizards
 Skullknocker Ogre
+Skullscorch
+Sky Terror
 Sky Weaver
 Slab Hammer
 Slinking Giant

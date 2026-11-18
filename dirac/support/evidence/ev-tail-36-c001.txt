@@ -1,7 +1,9 @@
 A-Cosmos Elixir
+A-Esika's Chariot
 A-Prosperous Thief
 Abandon Reason
 Aberrant Return
+Abuna Acolyte
 Adanto Vanguard
 Aetherflux Car
 Aggressive Sabotage
@@ -10,26 +12,32 @@ Alaborn Cavalier
 Alert Heedbonder
 Aligned Hedron Network
 Alloy Animist
+Anathemancer
 Angelic Page
 Anodet Lurker
 Apostle of Invasion
 Appetite for Brains
 Archetype of Aggression
+Argivian Archaeologist
 Arrow Volley Trap
 Assault Intercessor
 Atzocan Archer
 Auriok Steelshaper
+Aviation Pioneer
 Azra Oddsmaker
 Baleful Ammit
 Balthor the Stout
 Barishi
 Battlewise Aven
+Belltower Sphinx
 Benalish Emissary
 Big Play
 Black Oak of Odunos
+Blademane Baku
 Bladewing's Thrall
 Blessed Reversal
 Blightspeaker
+Blizzard Elemental
 Bloodshot Cyclops
 Bond of Agony
 Braidwood Cup
@@ -53,7 +61,10 @@ Charge of the Mites
 Collar the Culprit
 Collision
 Combat Professor
+Conclave Equenaut
+Conduit Goblin
 Corrupt Eunuchs
+Corrupted Conscience
 Cower in Fear
 Crackling Drake
 Craterize
@@ -66,6 +77,7 @@ Death Denied
 Defile
 Descendant of Kiyomaro
 Dismantling Blow
+Downpour
 Dowsing Shaman
 Drumbellower
 Dwarven Berserker
@@ -80,8 +92,11 @@ Epitaph Golem
 Erdwal Ripper
 Essence Harvest
 Etherium-Horn Sorcerer
+Exotic Disease
 Failed Inspection
 Fairgrounds Warden
+Faithful Watchdog
+False Defeat
 Fire Servant
 Firefiend Elemental
 Fleshbag Marauder
@@ -94,10 +109,13 @@ General's Kabuto
 Ghitu Amplifier
 Ghitu War Cry
 Gift of Tusks
+Gilt-Leaf Seer
+Glare of Heresy
 Glitch Interpreter
 Golden-Tail Trainer
 Goldnight Commander
 Goliath Sphinx
+Graceful Adept
 Great Desert Prospector
 Great Whale
 Grixis Illusionist
@@ -117,23 +135,31 @@ Hunted Troll
 Hurricane
 Hymn to Tourach
 Hypochondria
+Illuminator Virtuoso
 Insolent Neonate
 Inspired Fire
+Iron Apprentice
 Isamaru and Yoshimaru
 Island
 It's Clobberin' Time!
 Jace's Ruse
+Jace's Triumph
 Jackdaw
 Jugan, the Rising Star
 Jungleborn Pioneer
 Juniper Order Druid
 Jwari Shapeshifter
 Kamahl's Sledge
+Kami of the Crescent Moon
+Kargan Warleader
 Kathari Remnant
+Kaya's Onslaught
 Keensight Mentor
 Kirtar's Desire
 Kor Sanctifiers
 Kraul Warrior
+Krosan Warchief
+Lae'zel, Vlaakith's Champion
 Leech Fanatic
 Leonin Snarecaster
 Leyline of Abundance
@@ -145,6 +171,7 @@ Longtusk Cub
 Loxodon Mender
 Luminarch Aspirant
 Lurking Deadeye
+Luxa River Shrine
 Magmatic Scorchwing
 Malefic Scythe
 Mardu Hordechief
@@ -153,6 +180,7 @@ Mass Mutiny
 Mending Hands
 Mesmerizing Dose
 Mikaeus, the Lunarch
+Mike, the Dungeon Master
 Militia Bugler
 Mind Warp
 Mindstab
@@ -161,10 +189,13 @@ Mobilization
 Mona Lisa, Ever Adaptable
 Morbid Hunger
 Mountain
+Myr Scrapling
 Necrogen Mists
 Necrosquito
+Netherborn Phalanx
 Network Terminal
 Neurok Hoversail
+Nightmare Incursion
 Nightwind Glider
 Nimble Innovator
 Null Brooch
@@ -199,18 +230,22 @@ Rhox Faithmender
 Righteous Cause
 Rogue Kavu
 Rookie Mistake
+Rootwater Alligator
 Rootwater Mystic
 Rot-Tide Gargantua
 Rousing Read
 Rumor Gatherer
 Ruthless Cullblade
 Sacred Wolf
+Sadistic Sacrament
 Samite Herbalist
 Sanctum Seeker
 Sanguimancy
 Sanitarium Skeleton
 Scepter of Dominance
 Scorched Rusalka
+Scour from Existence
+Seer's Lantern
 Segovian Angel
 Seize the Storm
 Setessan Skirmisher
@@ -229,6 +264,7 @@ Skyblade of the Legion
 Skyshroud Ridgeback
 Slimefoot's Survey
 Smitten Swordmaster
+Snow-Covered Wastes
 Somberwald Spider
 Soul Partition
 Soul of Ravnica
@@ -236,22 +272,29 @@ Spawnwrithe
 Specter's Shroud
 Spike Worker
 Splinterfright
+Spreading Seas
+Springleaf Parade
 Staff of Domination
 Staff of the Mind Magus
 Steel Exemplar
 Storm, Queen of Wakanda
 Stream of Unconsciousness
 Sultai Banner
+Sundering Vitae
 Surge Node
 Svyelun of Sea and Sky
 Swamp
+Sword of Kaldra
 Tall as a Beanstalk
+Telethopter
 Tendershoot Dryad
 Tezzeret's Gatebreaker
 Thicket Crasher
+Thought Scour
 Thran Spider
 Three Visits
 Thrill of the Hunt
+Throwing Knife
 Thundersteel Colossus
 Thunderwave
 Titanic Bulvox
@@ -259,13 +302,19 @@ Transcendent Envoy
 Travel Preparations
 Tri-Sentinel, Act of Vengeance
 Triplicate Spirits
+Triumphant Reckoning
+Twilight Shepherd
 Urza's Chalice
 Veteran Explorer
 Veteran of the Depths
+Vex
 Vitalizing Wind
+Walking Ballista
 Wanda's Vision
 Wandering Stream
+War Mammoth
 Warren-Scourge Elf
+Well of Ideas
 Wheel and Deal
 Wild Beastmaster
 Wild Hunger

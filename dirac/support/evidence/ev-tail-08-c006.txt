@@ -1,25 +1,50 @@
+Aberrant Return
+Acceptable Losses
+Aether Herder
+Akoum Hellkite
 Anathemancer
 Ancestral Recall
 Aven Gagglemaster
 Awaken the Woods
 Ballynock Trapper
+Bequeathal
+Bestial Menace
 Blind-Spot Giant
+Bronze Sword
+Bronze Walrus
 Cabal Inquisitor
 Carnage Tyrant
+Corrosive Mentor
+Cover of Darkness
+Crisis of Conscience
+Crystal Golem
 Darien, King of Kjeldor
+Devouring Deep
+Diamond Knight
+Disposal Mummy
+Dread Specter
 Drudge Reavers
+Dryad of the Ilysian Grove
 Energy Arc
+Engulf the Shore
 Executioner's Swing
 Eyeblight's Ending
 Faerie Macabre
 Feast or Famine
+Flare
 Forest
+Foundry Inspector
+Frenetic Efreet
 Gavony Silversmith
 Geralf's Messenger
 Ghost-Lit Raider
+Glarewielder
 Go-Shintai of Shared Purpose
+Goblin Heelcutter
 Goblin Sky Raider
+Goblin Soothsayer
 Grid Monitor
+Honor-Worn Shaku
 Honored Crop-Captain
 Horizon Explorer
 Hunter's Edge
@@ -27,26 +52,36 @@ Imperial Oath
 Indulgent Tormentor
 Innocuous Researcher
 Island
+Juju Bubble
+Kjeldoran Frostbeast
 Krazy Kow
 Last Kiss
+Lat-Nam Adept
 Lone Missionary
+Loxodon Mystic
 Malakir Bloodwitch
 Mardu Hateblade
 Maw of Kozilek
 Military Discipline
+Militia Bugler
 Minions' Murmurs
 Moaning Wall
 Mogg Maniac
 Mother Kangaroo
 Mountain
 Mystic Restraints
+Necropede
 Network Terminal
 Night Terrors
+Paradise Druid
 Paradox Engine
 Pashalik Mons
 Pearled Unicorn
+Pernicious Deed
 Pious Wayfarer
 Plains
+Portable Hole
+Primal Adversary
 Promise of Tomorrow
 Protector of the Wastes
 Ratadrabik of Urborg
@@ -57,13 +92,18 @@ Scent of Nightshade
 Scrap Mastery
 Screeching Drake
 Selesnya Charm
+Selfless Savior
 Sell-Sword Brute
 Serum Tank
+Shared Triumph
 Shivan Hellkite
 Sinstriker's Will
+Six-Sided Die
 Skyhunter Patrol
 Slimy Piper
 Sorcerer's Strongbox
+Sphinx of Clear Skies
+Sprinting Warbrute
 Stalwart Aven
 Strafe
 Sustainer of the Realm
@@ -77,7 +117,11 @@ Tor Giant
 Treespring Lorian
 Updraft
 Vengeful Vampire
+Vexilus Praetor
 Vulpine Goliath
 War Falcon
+Wardscale Crocodile
+Warlord's Elite
 Water Elemental
 Wayward Servant
+Yavimaya Enchantress

@@ -1,3 +1,4 @@
+A-Hullbreaker Horror
 A-Orcish Bowmasters
 A-Speakeasy Server
 A-Stitched Assistant
@@ -138,6 +139,7 @@ Hatchery Spider
 Havoc Devils
 Headlong Rush
 Herd Baloth
+Honor the God-Pharaoh
 Hua Tuo, Honored Physician
 Hungry Flames
 Imperial Ceratops
@@ -147,6 +149,7 @@ Inner-Flame Igniter
 Iron Will
 Island
 Jilt
+Jon Irenicus, the Exile
 Jump
 Juvenile Gloomwidow
 Kami of Old Stone
@@ -174,6 +177,7 @@ Lumengrid Sentinel
 Luminous Angel
 Lyse Hext
 Mage Duel
+Malakir Blood-Priest
 Mana Tithe
 March from the Tomb
 Mazirek, Kraul Death Priest
@@ -319,6 +323,7 @@ Tendrils of Corruption
 The Blackstaff of Waterdeep
 The Thanos-Copter
 Think Tank
+Third Path Iconoclast
 Thran Foundry
 Thundercloud Elemental
 Tidal Wave
@@ -336,6 +341,7 @@ Turn the Earth
 Twisted Experiment
 Underdark Explorer
 Unhallowed Phalanx
+Vampiric Feast
 Vault 87: Forced Evolution
 Viashino Warrior
 Victual Sliver

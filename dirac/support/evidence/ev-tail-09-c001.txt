@@ -16,6 +16,7 @@ Argothian Pixies
 Arisen Gorgon
 Ark of Blight
 Arms of Hadar
+Arni Brokenbrow
 Arwen's Gift
 Assembly-Worker
 Axelrod Gunnarson
@@ -39,6 +40,7 @@ Broodbirth Viper
 Bull Rush
 Canal Monitor
 Carrion
+Carrion Rats
 Castle Ardenvale
 Cateran Slaver
 Ceaseless Conflict
@@ -70,6 +72,7 @@ Detective of the Month
 Disciple of Tevesh Szat
 Dolmen Gate
 Donate
+Dormant Volcano
 Dragon Blood
 Dragon Engine
 Dragon Tempest
@@ -86,6 +89,7 @@ Etched Monstrosity
 Everythingamajig
 Evincar's Justice
 Explore
+Fae Offering
 Fallen Ferromancer
 Far
 Farmstead
@@ -134,9 +138,11 @@ Goblin Wizardry
 Gorilla Titan
 Gravelighter
 Grenzo's Cutthroat
+Grim Giganotosaurus
 Grim Initiate
 Grotag Night-Runner
 Guul Draz Vampire
+Hand of the Praetors
 Harpoon Sniper
 Hissing Miasma
 Hoarding Recluse
@@ -235,6 +241,7 @@ Rhox Pikemaster
 Ribbons of the Reikai
 Ridged Kusite
 Rishadan Cutpurse
+Risk Factor
 Rites of Initiation
 Rogue Kavu
 Royal Assassin
@@ -254,6 +261,8 @@ Seizures
 Serenity
 Serra's Embrace
 Shadowstorm
+Shambling Shell
+Shoreline Salvager
 Sidisi's Faithful
 Sima Yi, Wei Field Marshal
 Sisterhood of Karn

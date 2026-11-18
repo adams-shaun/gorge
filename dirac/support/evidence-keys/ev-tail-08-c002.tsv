@@ -1,0 +1,94 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Acceptable Losses	f7d19de8f3cb12da	14	0/0		1/2	ix:resp
+Amnesia	1f8e40d137e355a7	10	0/0		1/2	ix:resp
+Ashiok's Skulker	8e486d5d78619a86	20	1/1		1/1	
+Azami, Lady of Scrolls	3ba50878453ee230	4	1/1		1/1	
+Bankrupt in Blood	91ca4491618b56c0	3	0/0		2/2	
+Blizzard Strix	c29d3360abd2e8ee	62	1/1		1/1	
+Blood Seeker	488e1bccb1e47e11	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Bronze Sword	70fcf76a2a03f600	6	1/1		0/1	ix:resp
+Bronze Walrus	9711c43fdd1b1fbc	9	2/2		0/1	ix:resp
+Brush with Death	d5a4c8cdaf408f03	9	0/0		3/4	cast/alt:buyback
+Call to the Netherworld	b52b868aaf8fba78	4	0/0		1/2	ix:resp
+Calming Verse	20f956aaf878f52b	17	0/0		2/2	
+Certain Death	545289d30bbfd585	5	0/0		1/2	ix:resp
+Chakram Retriever	3df15a928a26f2ca	17	2/2		1/1	
+Chill to the Bone	42fce76aa14cc97f	8	0/0		1/2	ix:resp
+Commence the Endgame	084f0d60749c8da4	23	0/0		2/2	
+Concordant Crossroads	3d61bc0b0b2b4181	14	0/0		0/0	
+Containment Protocol	af633dbcfece2ba8	14	1/1		2/2	
+Corrosive Mentor	442b0bc5ce316b31	8	0/0		0/0	
+Crystal Golem	9baffb74578b56b7	4	1/1		0/1	ix:resp
+Death's Duet	ab69d1205960c10d	4	0/0		1/2	ix:resp
+Denizen of the Deep	0100507157527215	6	1/1		1/1	
+Devouring Deep	1700f61f0a9542af	17	0/0		0/0	
+Diamond Knight	bde0bfba7910254a	19	1/1		0/1	ix:resp
+Divest	931d1a738c02feb2	10	0/0		1/2	ix:resp
+Djinn of Infinite Deceits	ae1906bf66253971	3	1/1		0/1	ix:resp
+Dream Prowler	1774f31e70ea87c2	4	0/0		0/0	
+Eagle of Deliverance	61dcc0ba80d302c3	6	1/1		1/1	
+Elite Javelineer	d786df8370f927db	10	1/1		0/1	ix:resp
+Engulf the Shore	454b898bf485ef85	4	0/0		1/2	ix:resp
+False Demise	cf715abaf80af88e	8	1/1		2/2	
+Feast of the Unicorn	b7d7909b92925769	4	0/0		1/2	ix:resp
+Fists of Flame	e41591b5e089b2d4	6	0/0		1/2	ix:resp
+Flourishing Strike	6ca6b646d38f16db	4	0/0		1/2	ix:resp
+Foundry Inspector	2e4f1b595fdda667	16	0/0		0/0	
+Garruk's Horde	f773a437b74be249	5	0/0		0/0	
+Ghost Council of Orzhova	b18f97c19d6dc918	13	2/2		1/1	
+Glimpse the Future	00263b11d0f556c2	4	0/0		1/2	ix:resp
+Goblin Heelcutter	0985148ad319b657	5	1/1		2/3	ix:resp
+Goggles of Night	d8838bbe55722e40	6	2/2		0/1	ix:resp
+Hornet Nest	6addaf8a489213f9	11	1/1		0/1	ix:resp
+Ilysian Caryatid	b668c21dc0c9f1d7	19	1/1		0/1	ix:resp
+Improbable Alliance	ff1267220b636ebc	4	2/2		0/1	ix:resp
+Iron Verdict	51e98a5b1e0040d5	4	0/0		2/4	cast/alt:foretold,ix:resp
+Joiner Adept	cd942cd03dc15865	5	0/0		0/0	
+Jukai Trainee	7ebb26d3795b8588	4	2/2		0/1	ix:resp
+Last Breath	9765cec350508ba5	6	0/0		2/2	
+Lat-Nam Adept	521b24cae5c89268	4	1/1		0/1	ix:resp
+Lesser Werewolf	e7d3dce047207e25	6	1/1		1/1	
+Loxodon Mystic	7a3b19a5c8eb29b7	4	1/1		0/1	ix:resp
+Lynx	dafb34074ff927a5	27	0/0		0/0	
+Mass Diminish	51d404a449d80d02	4	0/0		3/4	ix:resp
+Militia Bugler	22c10cc12bcc0f05	4	1/1		0/1	ix:resp
+Mind Slash	eb204d68b0d40d0f	7	1/1		0/1	ix:resp
+Moldering Karok	0b156a26a6195eb1	6	0/0		0/0	
+Moonsilver Key	9360f48f98bf74a2	16	1/1		0/1	ix:resp
+Nature's Wrath	9ebc4138951e157a	7	3/3		0/1	ix:resp
+Necropede	13f68649b239334c	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Orim's Thunder	db00461199bddbea	3	0/0		2/4	cast/alt:kicked,ix:resp
+Paradise Druid	5e15417a7ccc740b	6	1/1		0/1	ix:resp
+Pestilent Wolf	aac997a8b181ffa3	8	1/1		0/1	ix:resp
+Possessed Barbarian	54f87b6572fd0cce	5	0/0		0/0	
+Primal Adversary	c1f7908b4a2fe6f6	4	1/1		0/1	ix:resp
+Propagator Drone	c24127f420fd493c	4	1/1		0/1	ix:resp
+Quietus Spike	7b739e57d0c81c44	17	2/2		1/1	
+Rat Colony	c5ebae585bd2408c	12	0/0		0/0	
+Relentless Rats	520193e0175f24ec	5	0/0		0/0	
+Righteous Charge	0ccd123a379c89b6	5	0/0		1/2	ix:resp
+Rustspore Ram	d26cb89a1ba142c4	4	1/1		0/1	ix:resp
+Rustwing Falcon	c3e1ca2297a1b401	4	0/0		0/0	
+Scroll of Fate	5e4b50a04a101645	40	1/1		1/1	
+Selfless Cathar	b54f6149c5dd4db3	6	1/1		0/1	ix:resp
+Six-Sided Die	2c51e57d10b3cd0d	8	0/0		1/2	ix:resp
+Slingshot Goblin	1c6aa1c248d448a0	10	1/1		1/1	
+Snarespinner	8cfe4b15ddac0163	18	1/1		0/1	ix:resp
+Soul Channeling	c14ca46acdd56d4f	6	1/1		2/2	
+Sphere of Reason	185b34203c181d44	4	0/0		0/0	
+Square Up	e0fadcf16f4cec76	19	0/0		2/2	
+Staunch Throneguard	4f56b5bc2f27f0e7	19	1/1		0/1	ix:resp
+Stonewood Invocation	27c15f198850c8e0	3	0/0		1/2	ix:resp
+Summon: Kujata	c8efa9aafb301fc0	3	0/0		0/0	
+Sunlit Marsh	c671eaffb7e4ba94	18	2/2		0/1	ix:resp
+Talisman of Unity	b7203c0f73ec1ed6	8	2/2		0/1	ix:resp
+Tempest of Light	4412304336f1c41f	4	0/0		1/2	ix:resp
+True Polymorph	94a50941e4752451	17	0/0		1/2	ix:resp
+Tyranid Harridan	a9ee50e1e1dc038f	18	2/2		1/1	
+Tyranid Prime	341bb3dcb9fd1d51	17	1/1		1/1	
+Underhanded Designs	f53313c307c4de09	8	2/2		0/1	ix:resp
+Valorous Steed	c0242b513d6cac83	4	1/1		0/1	ix:resp
+Vectis Silencers	e8c51798a55a3018	34	1/1		1/1	
+Victory's Herald	b971eeb6bd83a389	6	1/1		1/1	
+Warlord's Elite	d1353e9b1bb7a28a	4	0/0		1/2	ix:resp
+Warped Tusker	785707a4e74b3195	3	3/3		1/1	

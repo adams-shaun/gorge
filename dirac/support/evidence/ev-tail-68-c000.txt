@@ -10,6 +10,7 @@ Aether Poisoner
 Aethergeode Miner
 Aetheric Amplifier
 Aethermage's Touch
+Ageless Sentinels
 Air Nomad Student
 Akki Underling
 Akroan Jailer
@@ -27,6 +28,7 @@ Auriok Bladewarden
 Auriok Steelshaper
 Azorius Locket
 Balefire Liege
+Barbarian Bully
 Barrowgoyf
 Basal Thrull
 Bearer of Memory
@@ -37,6 +39,7 @@ Blastfire Bolt
 Blight Grenade
 Blighted Shaman
 Blood Reckoning
+Blood on the Snow
 Brokers Hideout
 Cabal Therapist
 Captain America's Motorcycle
@@ -97,11 +100,13 @@ Experimental Overload
 Eyeblight Assassin
 Fade into Antiquity
 Faerie Guidemother
+Faith's Reward
 Fated Intervention
 Fencer Clique
 Feral Deceiver
 Ferocious Tigorilla
 Festergloom
+Fey Steed
 Fill with Fright
 Finale of Eternity
 Fire Tempest
@@ -119,6 +124,7 @@ Gem of Becoming
 Geth's Grimoire
 Ghastly Demise
 Ghitu Slinger
+Ghostfire
 Gilacorn
 Gitaxian Anatomist
 Gnawing Zombie
@@ -205,6 +211,7 @@ Pir, Imaginative Rascal
 Plains
 Plaxmanta
 Plummet
+Polis Crusher
 Pollywog Prodigy
 Priest of Gix
 Proud Pack-Rhino
@@ -272,12 +279,14 @@ Surrakar Banisher
 Suture Priest
 Swamp
 Swift Spinner
+Sword of Once and Future
 Tangleclaw Werewolf
 Tarfire
 Tasigur, the Golden Fang
 Tattered Mummy
 Team Transmitter
 Tel-Jilad Justice
+Temur Charm
 Terra Eternal
 Thaumaturge's Familiar
 Think Tank
@@ -302,6 +311,7 @@ Viashino Cutthroat
 Voice of Resurgence
 Wanderlust
 Warkite Marauder
+Weatherseed Elf
 Whispering Wizard
 White Shield Crusader
 Windrider Wizard

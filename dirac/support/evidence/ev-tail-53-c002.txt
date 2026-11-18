@@ -1,46 +1,72 @@
 A Little Chat
 A-Death-Priest of Myrkul
+A-Geological Appraiser
 A-Glittermonger
 A-Midnight Assassin
 Aegis of the Heavens
 Aeromunculus
 Aeronaut Tinkerer
+Aether Helix
 Affa Guard Hound
 Agony Warp
 Akroma's Vengeance
+Allied Reinforcements
 Ancient Carp
 Aqueous Form
+Araumi of the Dead Tide
 Archers' Parapet
 Arcum Dagsson
+Argothian Swine
+Arjun, the Shifting Flame
+Artifact Blast
 Artisan of Kozilek
 Asgardian Inspiration
+Augury Adept
 Auratog
+Auriok Windwalker
+Aurora Eidolon
+Avenging Arrow
 Basalt Gargoyle
 Battle-Rage Blessing
 Befuddle
 Beloved Princess
 Big Play
+Blazing Archon
 Blood Host
 Bloodroot Apothecary
 Boggart Trawler
 Branching Evolution
+Bred for the Hunt
 Breeding Pit
 Brimaz, Blight of Oreskos
 Brimstone Mage
+Burning Sands
 Cabal Evangel
+Cage of Hands
 Calamity's Wake
 Canopy Cover
 Cao Ren, Wei Commander
+Capenna Express
+Captivating Crew
 Captivating Unicorn
 Cat Burglar
 Challenger Troll
 Chandra's Pyrohelix
 Chlorophant
 Cinder Shade
+Cleanup Crew
 Colossodon Yearling
+Converter Beast
+Coordinated Charge
+Cosmic Crucible
 Cranial Ram
+Cryptbreaker
 Cunning Wish
 Cut the Earthly Bond
+Dalek Squadron
+Daring Archaeologist
+Daring Leap
+Dark Banishing
 Deadly Designs
 Deathgreeter
 Deathsprout
@@ -51,24 +77,39 @@ Despotic Scepter
 Devour in Flames
 Discordant Piper
 Divination
+Domineer
 Drag Under
+Dream Fracture
+Dregscape Zombie
 Drowned Secrets
+Eager First-Year
+Earth Elemental
 Earthshaker Giant
 Earthshaking Si
+Elemental Summoning
 Elturgard Ranger
 Embraal Gear-Smasher
 Enraging Licid
 Etherium Spinner
 Evolved Sleeper
 Fa'adiyah Seer
+Faerie Seer
+Famine
+Fangren Pathcutter
 Faramir, Steward of Gondor
 Field Creeper
 Field Surgeon
+Flailing Ogre
+Flame of Anor
+Flesh Allergy
 Flicker
 Flow of Ideas
 Forest
+Foster
+Fugue
 Fungal Infection
 Garruk's Packleader
+Geist of the Moors
 Geistwave
 Geralf's Messenger
 Ghoulcaller's Accomplice
@@ -76,19 +117,26 @@ Glimmer Bairn
 Glintwing Invoker
 Gluntch, the Bestower
 Gnottvold Recluse
+Goblin War Paint
 God-Pharaoh's Faithful
 Goldmeadow Lookout
 Greed
 Grizzled Wolverine
+Grond, the Gatebreaker
 Gruesome Realization
 Hapatra, Vizier of Poisons
+Headhunter
 Hellrider
 Herald of the Sun
+Hillcomber Giant
 Ichor Explosion
 Increasing Savagery
+Incubation
 Infiltrator il-Kor
+Insufferable Balladeer
 Island
 Jagged Poppet
+Jarl of the Forsaken
 Jinxed Choker
 Joint Exploration
 Juniper Order Rootweaver
@@ -101,22 +149,32 @@ Kuldotha Forgemaster
 Lava Dart
 Leaf Dancer
 Leyline Binding
+Lightbringer
 Llanowar Empath
+Lobber Crew
 Lose Hope
 Loxodon Stalwart
 Lu Xun, Scholar General
+Magma Spray
+Magus of the Wheel
 Makeshift Munitions
 Man-o'-War
 Marauder's Axe
+Master of the Pearl Trident
 Mausoleum Wanderer
+Megatog
 Merchant of Truth
 Mindbreak Trap
 Mine Bearer
 Mirozel
+Molten Blast
 Moonsnare Specialist
+Moorland Drifter
 Morgul-Knife Wound
+Mossdog
 Mountain
 Murasa Pyromancer
+Myojin of Towering Might
 Myr Sire
 Mystical Dispute
 Naiad of Hidden Coves
@@ -126,7 +184,9 @@ Nature's Revolt
 Necromancer's Familiar
 Never
 Niblis of the Breath
+Nightmare Unmaking
 Nimana Skydancer
+Nirkana Revenant
 Noble Benefactor
 Noble Templar
 Nyxborn Courser
@@ -136,39 +196,56 @@ Oketra's Monument
 Okiba Salvage
 Ondu Knotmaster
 Ondu War Cleric
+Ophiomancer
 Oracle of Mul Daya
 Ordeal of Thassa
 Ornithopter of Paradise
 Phyrexian Digester
 Phyrexian Juggernaut
+Phyrexian Tribute
+Pillaging Horde
+Pit Raptor
 Pit Trap
 Plains
 Plated Sliver
 Precognition
+Prosperous Bandit
 Psionic Snoop
 Psychic Miasma
 Pulsemage Advocate
+Queen's Bay Soldier
+Rage Reflection
 Ranger's Path
+Rebuild
 Recalibrate
 Rescue, Pepper Potts
+Resolute Rider
 River's Favor
 Roil Elemental
 Ruinous Intrusion
 Rush of Vitality
+Savage Surge
+Savvy Hunter
 Scattered Thoughts
 Scavenging Harpy
 Scepter of Dominance
 Scourge of Valkas
+Scrabbling Claws
 Sea Gate Banneret
 Seascape Aerialist
+Second Sight
 Segovian Leviathan
 Selvala, Explorer Returned
+Servant of Tymaret
 Sewerdreg
 Shanna, Sisay's Legacy
 Shared Summons
 Sigil of the Empty Throne
+Silverclaw Griffin
 Sinew Sliver
+Skull Catapult
 Skyblinder Staff
+Skywhaler's Shot
 Slagwoods Bridge
 Smoke Bomb
 Sneaky Homunculus
@@ -178,36 +255,61 @@ Soulcatcher
 Sparring Golem
 Spore Flower
 Squall
+Squirrel Nest
+Sram's Expertise
 Stitched Drake
+Strength of Arms
 Strength of the Coalition
 Submerge
 Sunblast Angel
 Sunspring Expedition
 Swamp
+Swooping Lookout
 Sylvan Yeti
 Syndicate Messenger
+Tahngarth's Rage
 Tail Swipe
 Tattered Apparition
 Tempest Caller
 The Gaffer
+Tidal Courier
 Timberland Guide
 Timberwatch Elf
+Titania, Proud Pummeler
 To Arms!
 Torch Drake
 Torpor Dust
+Treetop Ambusher
+Tribute to Urborg
+Trickster Mage
 Triton Cavalry
 Umara Entangler
+Underworld Coinsmith
 Unyaro Bees
 Upheaval
 Urban Daggertooth
 Vampire of the Dire Moon
 Vigilant Drake
 Viral Drake
+Viscera Seer
 Voice of the Blessed
 Vraska's Finisher
+Vug Lizard
+Vulshok Splitter
 Waking Nightmare
+Wall of Heat
+Wanderlight Spirit
+War Oracle
+Warchanter of Mogis
 Watchwing Scarecrow
+Weathered Bodyguards
+Westfold Rider
+Whisper, Blood Liturgist
+White Dragon
+Winter Sky
 Witherbloom Apprentice
+Wizard's Lightning
 Worm Harvest
+Wrecking Ogre
 Yavimaya Wurm
 Zephyr Gull

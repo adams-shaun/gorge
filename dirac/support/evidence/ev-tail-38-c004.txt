@@ -6,6 +6,7 @@ Anticipate
 Assault
 Auriok Bladewarden
 Awaken the Bear
+Axgard Armory
 Ayumi, the Last Visitor
 Baloth Cage Trap
 Bearded Axe
@@ -13,18 +14,23 @@ Bitterbow Sharpshooters
 Blessed Reversal
 Bloodbond Vampire
 Boldwyr Intimidator
+Brass Secretary
 Captain of Umbar
 Cast into Darkness
 Cavalcade of Calamity
+Charge Through
 Charity Extractor
 Commander's Authority
 Consecrated Sphinx
 Crash the Ramparts
+Crimson Roc
 Cultivator of Blades
 Custodi Lich
+Darksteel Axe
 Dauntless River Marshal
 Deepcavern Imp
 Deepwater Hypnotist
+Deface
 Demonlord Belzenlok
 Distorted Curiosity
 Doomwake Giant
@@ -43,12 +49,17 @@ Festering March
 Fiery Intervention
 Flourishing Hunter
 Forest
+Furor of the Bitten
 Future Sight
 Garrison Cat
+Gate to Manorborn
 Gelectrode
+Geothermal Kami
 Ghost Warden
 Gigantiform
 Gitaxian Raptor
+Glimmervoid
+Glory Seeker
 Goblin Spelunkers
 Goblin Turncoat
 God-Favored General
@@ -56,8 +67,11 @@ Gothmog, Morgul Lieutenant
 Great Teacher's Decree
 Haunt of the Dead Marshes
 Hazoret's Monument
+Heal the Scars
 Heavy Infantry
+Hissing Quagmire
 Impulse
+Inertia Bubble
 Into Thin Air
 Island
 Juniper Order Druid
@@ -68,6 +82,7 @@ Kothophed, Soul Hoarder
 Krond the Dawn-Clad
 Laboratory Drudge
 Labyrinth Minotaur
+Leave in the Dust
 Leonin Lightbringer
 Lifecraft Cavalry
 Liliana's Reaver
@@ -75,6 +90,7 @@ Lure
 Magnetic Flux
 Megatherium
 Minamo Sightbender
+Mines of Moria
 Mirrorworks
 Mountain
 Mountain Yeti
@@ -87,9 +103,11 @@ One With the Wind
 Paradise Plume
 Perish
 Phyrexian Prowler
+Pia Nalaar
 Pit Raptor
 Pit Scorpion
 Plains
+Precise Strike
 Psionic Sliver
 Puncture Blast
 Purple Worm
@@ -99,24 +117,31 @@ Relearn
 Render Inert
 Respite
 Saiba Cryptomancer
+Samut's Sprint
 Scaldkin
 Scatter the Seeds
+Scattershot
 Scrapskin Drake
 Seacoast Drake
 Seluma, Light of Aysen
 Serpentine Curve
+Serrated Biskelion
+Serum Visionary
 Shambling Ghoul
 Shimmer Myr
 Siren Reaver
 Snapback
 Snare the Skies
+Sneaking Guide
 Soldevi Sage
+Soulknife Spy
 Soulless One
 Spellrune Painter
 Spined Wurm
 Stone Idol Generator
 Suture Spirit
 Swamp
+Swashbuckling
 Sweatworks Brawler
 Synth Infiltrator
 Tar Snare
@@ -125,12 +150,17 @@ The Restoration of Eiganjo
 Thunderclap Wyvern
 Tireless Missionaries
 Trailblazing Historian
+Twisted Reflection
 Unbender Tine
 Undercity's Embrace
 Veil of Birds
+Vineshaper Prodigy
 Viridian Harvest
 Vodalian Soldiers
+Wall of Wood
 Warren Pilferers
+Wild-Field Scarecrow
+Wildfire
 Windborne Charge
 Wing Snare
 Wither and Bloom

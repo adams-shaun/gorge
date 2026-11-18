@@ -36,6 +36,7 @@ Battlefly Swarm
 Battlewise Valor
 Benthic Giant
 Black Dragon
+Bladewing, Deathless Tyrant
 Blessed Defiance
 Blinding Souleater
 Blood Pact
@@ -74,6 +75,7 @@ Converter Beast
 Coordinated Assault
 Coral Commando
 Court of Ardenvale
+Covetous Dragon
 Crash the Party
 Craven Giant
 Crippling Fear
@@ -171,10 +173,12 @@ Gimli, Counter of Kills
 Glacial Crasher
 Glint-Sleeve Siphoner
 Gnarled Effigy
+Goblin Bangchuckers
 Goblin Battle Jester
 Goblin Brigand
 Goblin Masons
 Goblin Sharpshooter
+Goblin Vandal
 Golgari Longlegs
 Goliath Paladin
 Gorilla Chieftain
@@ -212,6 +216,7 @@ Hill Giant
 Horncaller's Chant
 Hound Tamer
 Hulking Ogre
+Hunding Gjornersen
 Ichor Explosion
 Ideas Unbound
 Impetuous Protege
@@ -287,6 +292,7 @@ Mishra's Research Desk
 Misshapen Fiend
 Mistblade Shinobi
 Moldgraf Millipede
+Mole Worms
 Monastery Swiftspear
 Morbid Plunder
 Morphling
@@ -335,6 +341,7 @@ Plague Beetle
 Plaguemaw Beast
 Plains
 Plunder
+Possessed Skaab
 Pouncing Cheetah
 Prava of the Steel Legion
 Presence of the Wise
@@ -358,6 +365,7 @@ Ranger-Captain of Eos
 Ravages of War
 Raven Wings
 Ravenous Sailback
+Rayne, Academy Chancellor
 Reconstructed Thopter
 Regathan Firecat
 Regent's Authority
@@ -408,6 +416,7 @@ Shambling Strider
 Sheoldred
 Sheoldred, Whispering One
 Shield Mate
+Shielded Passage
 Shielded by Faith
 Shocker
 Show of Confidence
@@ -440,6 +449,7 @@ Sphere of Purity
 Sphinx's Insight
 Spidersilk Net
 Spire Golem
+Spreading Algae
 Spring
 Springsage Ritual
 Stabbing Pain
@@ -519,6 +529,7 @@ Vulshok War Boar
 Wall Off
 Wall of Blood
 Wall of Mist
+Wand of Orcus
 Warbeast of Gorgoroth
 Warbriar Blessing
 Wayward Soul
