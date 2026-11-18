@@ -903,7 +903,13 @@ type grantSrch struct {
 	// discarding a Lesson into the graveyard, CR 601.2f): grantCap offers the
 	// walk play the root price refused (grantCostCheaper)
 	cheaper bool
-	ex      Slot // the play's own {T} source (an activation's), never tapped
+	// offer is a Power-up activation's charge when CR 702.193b lowers it
+	// under the planner's price cost (hasOffer): gorge's search succeeds at a
+	// node whose own priority walk offers the play, and that walk prices the
+	// reduced charge against the floating pool (powerUpOffer)
+	offer    kop.ManaCost
+	hasOffer bool
+	ex       Slot // the play's own {T} source (an activation's), never tapped
 	// d is the payment the play makes, read by a granted source's spend
 	// restriction (Mm'menon's Spell.!wasCastFromYourHand): the payment read,
 	// the cast's origin known and the spell on the stack when paid
@@ -1381,15 +1387,10 @@ func (g *grantSrch) visit(t *State) bool {
 	fk := key.folded()
 	for i := 0; i < g.nseen; i++ {
 		if g.seen[i].folded() == fk {
-			if t.floatPaysPlay(g.k, g.p, &cost, g.d) && !g.waitsForStack(t) {
-				g.cheaper = cheap
-				return true
-			}
-			return false
+			return g.seenPays(t, &cost, cheap)
 		}
 	}
-	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && g.witnessKeeps(t, &cost) {
-		g.cheaper = cheap
+	if g.leafPays(t, &cost, cheap) {
 		return true
 	}
 	g.remember(key)
@@ -2043,9 +2044,18 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 		if o := Obj(d.play.Source()); o != NoObj && int(o) < len(s.objs) {
 			g.pver = s.objs[o].ver
 		}
+		if oc, ok := s.powerUpOffer(k, d.play); ok && oc != *cost {
+			g.offer, g.hasOffer = oc, true
+		}
 	}
 	g.candidates(s)
 	if g.n == 0 {
+		// no candidate to tap: the offered check still stands (the pool alone
+		// pays a Power-up play's reduced charge, offerPays)
+		if g.offerPays(s) {
+			g.cheaper = true
+			return true
+		}
 		return s.affordsUngrantedFor(k, p, cost, ex, d)
 	}
 	t := s.fork()
