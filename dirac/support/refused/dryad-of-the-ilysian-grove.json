@@ -1,0 +1,14 @@
+{
+  "card": "Dryad of the Ilysian Grove",
+  "class": "unmodelled-landgrant",
+  "why": "gorge offers the intrinsic mana abilities of every basic land type beside a land's own (CR 305.6) and the kernel's one-ability pcard holds a single production: a Dwarven Hold ({T}, remove X storage counters: Add {R} for each) under the every-basic-type grant stalls landgrant, tail-08 pair 11 (stall landgrant, static_landtype.go blgPlain)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "dryad_ilysian_grove_grant_over_a_storage_counter_land_unmodelled"
+  }
+}
