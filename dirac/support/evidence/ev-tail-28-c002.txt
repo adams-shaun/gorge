@@ -2,6 +2,7 @@ A-Celestial Regulator
 A-Falcon Abomination
 A-Manticore
 A-Ready to Rumble
+A-Tenured Inkcaster
 Aardvark Sloth
 Abattoir Ghoul
 Acceptable Losses
@@ -23,6 +24,7 @@ Bargain
 Barrage Ogre
 Basilica Guards
 Battering Krasis
+Beacon of Creation
 Beckon Apparition
 Big Mother Mouser
 Blessed Hippogriff
@@ -32,17 +34,21 @@ Bonds of Faith
 Bone Shards
 Brazen Wolves
 Breath of Fire
+Brightling
 Brindle Boar
 Bringer of the Black Dawn
 Bringer of the Blue Dawn
 Broodstar
+Bull Cerodon
 Burning Cloak
 Caress of Phyrexia
 Carrion Grub
 Cast into Darkness
 Cateran Kidnappers
 Cavalier of Flame
+Chasm Guide
 Chief of the Scale
+Colossal Majesty
 Combo Attack
 Consulate Turret
 Coral Helm
@@ -60,6 +66,7 @@ Dominating Licid
 Doomed Dissenter
 Drag to the Bottom
 Dragon Arch
+Dragonsguard Elite
 Dramatic Reversal
 Dying Wish
 Earthquake
@@ -89,9 +96,11 @@ Foundry Inspector
 Frogify
 Fyndhorn Elder
 Ganax, Astral Hunter
+Gatecreeper Vine
 Geist of the Moors
 Ghitu Chronicler
 Ghostfire Slice
+Giant Spectacle
 Gift of the Deity
 Gigapede
 Gravecrawler
@@ -104,11 +113,14 @@ Herald of Dromoka
 Heron-Blessed Geist
 Hormagaunt Horde
 Howling Moon
+Huang Zhong, Shu General
 Hydrosurge
+Hypervolt Grasp
 Illness in the Ranks
 Illuminate History
 Illumination
 Infernal Tribute
+Inferno Titan
 Initiate's Companion
 Inspired Sprite
 Invoke Despair
@@ -116,12 +128,15 @@ Island
 Isu the Abominable
 Ith, High Arcanist
 Kathari Remnant
+Kazuul's Toll Collector
 Keen Glidemaster
 Keep Safe
 Keldon Halberdier
 Kinjalli's Caller
 Kiss of the Amesha
+Knight of the New Coalition
 Kodama of the West Tree
+Kris Mage
 Lancers en-Kor
 Lava Coil
 Lavastep Raider
@@ -184,6 +199,7 @@ Purple-Crystal Crab
 Pursued Whale
 Raging Cougar
 Raise the Palisade
+Rakalite
 Rapid Decay
 Recruiter of the Guard
 Resistance Skywarden
@@ -215,6 +231,7 @@ Spectral Grasp
 Spelltithe Enforcer
 Sphere of Safety
 Spite of Mogis
+Star of Extinction
 Stifle
 Stoke the Flames
 Stone Golem
@@ -226,8 +243,11 @@ Swamp
 Taunting Elf
 Teroh's Vanguard
 Terror of Towashi
+The Hive
 Thistledown Liege
+Thoughtpicker Witch
 Thraben Valiant
+Thran Vigil
 Thundering Tanadon
 Titania's Command
 Transmogrifying Wand
@@ -246,7 +266,9 @@ Vitality Charm
 Vodalian Hypnotist
 Voice of Grace
 Vow of Torment
+Warden of the Beyond
 Warrior's Charge
+Watchful Automaton
 Wei Infantry
 Wild Griffin
 Wilderness Reclamation
@@ -256,5 +278,6 @@ Woodcutter's Grit
 Worldgorger Dragon
 Wu Infantry
 Yeva, Nature's Herald
+Zamriel, Seraph of Steel
 Zodiac Monkey
 Zombie Apocalypse

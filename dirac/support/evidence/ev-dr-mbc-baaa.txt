@@ -21,6 +21,7 @@ Counterbalance
 Court of Grace
 Dance of the Tumbleweeds
 Death's Shadow
+Direct Current
 Disruptive Stormbrood
 Dragon Sniper
 Dread Drone
@@ -28,6 +29,7 @@ Electrostatic Field
 Endrek Sahr, Master Breeder
 Fanning the Flames
 Festercreep
+Flame Wave
 Flametongue Kavu
 Forest
 Foulmire Knight
@@ -45,6 +47,7 @@ Haywire Mite
 Hordeling Outburst
 Hunter's Talent
 Imodane's Recruiter
+Incinerate
 Indulgent Tormentor
 Injector Crocodile
 Ire Shaman

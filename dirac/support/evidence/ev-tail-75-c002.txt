@@ -1,10 +1,12 @@
 A-Kona, Rescue Beastie
+A-Master of Winds
 Absorb
 Aether Spellbomb
 Afterlife
 Agility Bobblehead
 Akoum Refuge
 Alabaster Potion
+Alrund's Epiphany
 Ancestral Blade
 Ancient Gold Dragon
 Anointer Priest
@@ -37,11 +39,13 @@ Bloodmark Mentor
 Bloodthirsty Adversary
 Blustersquall
 Bond of Insight
+Bone Devourer
 Bonehoard
 Boneknitter
 Bonepicker Skirge
 Bound in Silence
 Bountiful Promenade
+Brackwater Elemental
 Brandywine Farmer
 Bugenhagen, Wise Elder
 Burning Fields
@@ -49,6 +53,7 @@ Cabaretti Courtyard
 Captive Weird
 Catacomb Sifter
 Chainweb Aracnir
+Chaos Lord
 Choking Sands
 Clear a Path
 Clip Wings
@@ -136,6 +141,7 @@ Lightning-Rig Crew
 Lightwielder Paladin
 Lorthos, the Tidemaker
 Lost in the Spirit World
+Magma Vein
 Magmatic Insight
 Malcator's Watcher
 Mammoth Spider
@@ -257,6 +263,7 @@ Thoughtweft Gambit
 Threnody Singer
 Thrilling Encore
 Thundersteel Colossus
+Timbermaw Larva
 Timin, Youthful Geist
 Tomebound Lich
 Trail of Evidence

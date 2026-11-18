@@ -1,4 +1,5 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Dueling Coach	12893c29e4ec4e51	22	2/2		0/1	ix:resp
 Aetherling	dde72ac586d59c15	42	4/4		1/1	
 Agent of Erebos	c234bd8f186b0d6a	3	1/1		0/1	ix:resp
 Akroan Mastiff	658680ac84b11368	83	1/1		1/1	
@@ -7,6 +8,7 @@ Angelic Captain	d1cd6567de77f61c	37	1/1		1/1
 Aven Fateshaper	b414b11b35b3fa86	4	2/2		0/1	ix:resp
 Bail Out	6946f53cae2f1d71	71	0/0		4/4	
 Balduvian Dead	543bfb9442223e6e	49	1/1		1/1	
+Black Market Connections	9e670f9b3acf1bea	29	1/1		1/1	
 Blighted Agent	b49f88d0e8ee737e	20	0/0		0/0	
 Bloated Contaminator	c63c51219c421145	15	1/1		0/1	ix:resp
 Blockade Runner	b86f582ab64cf611	8	1/1		1/1	
@@ -40,12 +42,17 @@ Depths of Desire	5dc7073d1f4e6e1c	9	0/0		1/2	ix:resp
 Doomskar Titan	8cf7439f2e72e14c	4	1/1		1/3	cast/alt:foretold,ix:resp
 Doubtless One	8b275e10ace696b6	105	1/1		1/1	
 Dragonshift	58fa433aa0139f60	8	0/0		2/4	cast/alt:overloaded,ix:resp
+Dread Reaper	30b72f7c68bcdbf5	10	1/1		0/1	ix:resp
+Duskfang Mentor	882e5e0ee3057853	21	2/2		1/1	
 Dwarven Driller	458c3d3c60d34384	51	1/1		1/1	
 ED-E, Lonesome Eyebot	3f8e6061633946c5	31	2/2		1/1	
 Earthblighter	6f598d25f1ac3d4c	78	1/1		1/1	
+Escape Routes	a5cbbbc537af9a4e	25	1/1		1/1	
 Exuberant Wolfbear	6f779dcb6a8c3242	58	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Fangren Firstborn	e2ec6e7bc40deb71	38	1/1		1/1	
+Farmstead Gleaner	af16600b3a809d46	43	1/1		1/1	
 Fascination	27bf44720d1901cd	3	0/0		2/4	f0/s/x0,ix:resp
+Felhide Petrifier	ae253cfcb6462568	20	0/0		0/0	
 Fervent Denial	11400443d72f1f62	33	0/0		4/4	
 Filigree Angel	56ceda607931d047	38	1/1		0/1	ix:resp
 Flowstone Embrace	3783de364c382bcd	22	1/1		2/2	
@@ -56,6 +63,7 @@ Genesis Chamber	b17b8bb7429dace6	96	1/1		1/1
 Get the Point	ce708615adf2a9c7	8	0/0		2/2	
 Ghitu Amplifier	2de13f10d918e459	22	2/2		2/3	ix:resp
 Ghitu Fire-Eater	989fe8237dcd0857	8	1/1		1/1	
+Ghostly Flicker	04dd5fb3424d36bf	4	0/0		1/2	ix:resp
 Ghoulcaller's Chant	4ebbdcfe24452fbb	6	0/0		1/2	ix:resp
 Giant Adephage	394f389747e0b176	28	1/1		1/1	
 Gibbering Fiend	840f46697381311c	82	2/2		1/1	
@@ -66,6 +74,7 @@ Grendel, Spawn of Knull	aa336db940770411	19	0/0		0/0
 Grotag Siege-Runner	1597c2d9625a147e	6	1/1		0/1	ix:resp
 Guardian Naga	af616cebb82ce6ec	149	0/0		2/2	
 Hard Evidence	995dc58c3c9f9f9b	34	0/0		1/2	ix:resp
+Headless Specter	3311cf6498c5d6a2	29	1/1		1/1	
 Heavy Ballista	6c551715a9293cc1	8	1/1		0/1	ix:resp
 Hero of the Games	10dc8b755c3fad28	14	1/1		0/1	ix:resp
 Hoard-Smelter Dragon	30bcf4acb9e52935	5	1/1		0/1	ix:resp
@@ -78,18 +87,22 @@ Improvised Weaponry	c5f4f99c63759283	27	0/0		1/2	ix:resp
 Incendiary	7ade24e5543188c7	15	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
 Ingot Chewer	8448f93c163f6ac9	22	1/1		1/3	cast/alt:none,ix:resp
 Inner Calm, Outer Strength	874f9d30ca734668	63	0/0		2/2	
+Inundate	fb80b558f584e811	8	0/0		1/2	ix:resp
 Ire of Kaminari	737eed8f78b60aa4	15	0/0		1/2	ix:resp
 Ith, High Arcanist	a617668dd29cc7c7	30	1/1		3/3	
 Jasmine Boreal	a06332051935f0e7	4	0/0		0/0	
 Kefnet's Monument	8196d09279231e1e	73	1/1		1/1	
 Kessig Prowler	33ef871771ffb03b	8	1/1		0/1	ix:resp
+Killian, Decisive Mentor	d6f009bd34e559d6	45	2/2		1/1	
 Knight of the Pilgrim's Road	75b4a44a600a6586	103	1/1		1/1	
 Kozilek's Sentinel	6d79bf66c5bbc497	16	1/1		1/1	
+Lagonna-Band Trailblazer	489f0bf0edd4c5f5	52	1/1		1/1	
 Legion's Landing	91638856e25fe24f	32	4/4		1/1	
 Life Goes On	99c18a6b45b5b573	35	0/0		1/2	ix:resp
 Living Lies of Loki	95b3570a8bfe4844	35	1/1		1/1	
 Lu Bu, Master-at-Arms	3cca70b87b01534f	12	0/0		0/0	
 Lurking Roper	9ea3cd3963ca8bbc	12	1/1		0/1	ix:resp
+Magus of the Disk	703d375127a8f7b9	43	1/1		1/1	
 Maniacal Rage	274bb5e3cf00ad35	20	0/0		1/2	ix:resp
 Manipulate Fate	0c8c84d2dec2d220	5	0/0		1/2	ix:resp
 Mark of Fury	23d65b1fbefcfc16	41	1/1		2/2	
@@ -99,27 +112,34 @@ Mavren Fein, Dusk Apostle	9e98edc1c3efef41	13	1/1		0/1	ix:resp
 Maze Behemoth	2c26c38e24bf18e7	10	0/0		0/0	
 Meneldor, Swift Savior	a677d4d97af535f9	63	1/1		1/1	
 Merfolk Seer	998d7b5b21b70ac9	6	1/1		0/1	ix:resp
+Minion of Tevesh Szat	3114ef4749f2bae4	10	2/2		1/1	
 Mire Kavu	3055cd686039178e	18	0/0		0/0	
 Monstrous Vortex	64e7e9606b773cdc	37	1/1		0/1	ix:resp
 Neglected Heirloom	88d7d4f6ee1f806e	51	3/3		1/1	
 Nissa's Triumph	3e7cfc293ad82ebe	20	0/0		2/2	
 Nyx Herald	02c0ba866c2bf446	4	1/1		0/1	ix:resp
 Open the Graves	24cb6083f1cdb960	37	1/1		1/1	
+Ossuary Rats	9ce7860457b2b7e7	13	1/1		1/1	
 Overwhelming Victory	0b700a199f5702df	47	0/0		2/2	
 Peer into the Abyss	d09c6fd792f4314e	33	0/0		2/2	
 Polygoyf	f8134dd0ae2c2989	6	1/1		0/1	ix:resp
 Pondering Mage	d4dbbeae4356f37f	5	1/1		0/1	ix:resp
+Primaris Eliminator	43775bde7cf26fd4	30	1/1		1/1	
 Psychic Spiral	e2a4c6d239b2a931	8	0/0		2/2	
+Pull Under	6bdaec5e966474a3	24	0/0		2/2	
+Pyrite Spellbomb	e78035cf01a93a7c	40	2/2		0/1	ix:resp
 Raka Sanctuary	df07c62143c838e1	10	1/1		0/1	ix:resp
 Rally	2d58e1d7a978bb11	88	0/0		2/2	
 Rathi Trapper	bcbfe78b64a1c2c1	52	1/1		1/1	
 Ravnica at War	49de350e7478d060	82	0/0		1/2	ix:resp
 Recycla-bird	207026f62ab95f04	32	1/1		1/1	
 Reef Shaman	404aca3d427d8f44	20	1/1		1/1	
+Restless Dreams	6a15410e911e0f87	21	0/0		2/2	
 River Hoopoe	e5231fa080a81cce	14	1/1		0/1	ix:resp
 Robobrain War Mind	2fad414141dff190	10	2/2		1/1	
 Roil's Retribution	93bc47af05eae790	7	0/0		1/2	ix:resp
 Rosnakht, Heir of Rohgahh	dbdccaf2ea71fac6	10	2/2		0/1	ix:resp
+Ruin Rat	4d17b41a97e84f03	37	1/1		1/1	
 Rumbling Crescendo	9880a23fdd09fd1c	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Rummaging Wizard	ccabd188006b5176	18	1/1		0/1	ix:resp
 Rune Snag	fb953d391ae07949	7	0/0		1/2	ix:resp
@@ -129,14 +149,20 @@ Seafloor Oracle	adfd29796959d68c	15	1/1		1/1
 Seal of Doom	39f9d82105be2bec	7	1/1		0/1	ix:resp
 Sewer Crocodile	b1314cfb3f35ce00	20	1/1		1/1	
 Shady Traveler	e6cd33efaacbace2	64	0/0		0/0	
+Shambling Suit	18f1c1c5c151516e	57	0/0		0/0	
 Sheltering Boughs	0445a518f98174c5	24	1/1		2/2	
+Shichifukujin Dragon	52f3e2e1eb206713	6	1/1		0/1	ix:resp
 Shielded by Faith	1e81387295ffd866	8	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
 Shimmering Mirage	9f126d9531fc5443	82	0/0		2/2	
+Skulking Ghost	4a571f83eb81e325	40	1/1		0/1	ix:resp
+Skull Prophet	ab645aa20f791797	12	2/2		0/1	ix:resp
+Skyhunter Patrol	a30a7e03164b7a45	35	0/0		0/0	
 Smokespew Invoker	e938bf6a086fad78	7	1/1		0/1	ix:resp
 Sophic Centaur	4ff82100c2dddbe7	13	1/1		0/1	ix:resp
 Spare Dagger	e3e63787263e0f2e	15	1/1		0/1	ix:resp
 Specimen Collector	3a426794eccd8e8e	7	2/2		1/1	
 Spellbinding Soprano	1829052e81ae45a9	30	2/2		0/1	ix:resp
+Spiked Pit Trap	1c6dc70e171b5ae7	77	1/1		1/1	
 Spitting Gourna	016ff13d016ede86	13	0/0		1/2	cast/alt:morphed
 Squire's Devotion	e628c480ac0765a3	94	1/1		2/2	
 Stonebrow, Krosan Hero	0522f4fe2eba8e68	15	1/1		1/1	
@@ -157,24 +183,30 @@ Thraben Standard Bearer	81a2a041fbb4966e	102	1/1		1/1
 Thrasios, Triton Hero	b1d703346fec15c1	5	1/1		0/1	ix:resp
 Thraxodemon	8b9f3531b6d4e263	14	1/1		0/1	ix:resp
 Thriving Skyclaw	a7ca056b06488cb7	7	2/2		0/1	ix:resp
+Tithe Drinker	18f8beff4370d274	33	1/1		0/1	ix:resp
 Tizerus Charger	6621347f156abc5b	63	0/0		1/2	cast/alt:escaped
 Toshiro Umezawa	9775d4f5c375ad13	10	3/3		0/1	ix:resp
+Trailblazer's Boots	df26d304bee53251	47	1/1		1/1	
 Trained Caracal	945612173367b5ea	4	0/0		0/0	
 Tyrranax Atrocity	8e617753c310fa7a	14	0/0		0/0	
 Unforgiving One	bdccda61456f36df	53	1/1		1/1	
 Urban Evolution	46827b241e8c50c3	3	0/0		2/2	
 Vampiric Touch	befd0dfa2e2ca33e	14	0/0		1/2	ix:resp
 Vault Skirge	10e29079b248ec5a	14	0/0		0/0	
+Venomous Dragonfly	d752dd2dc112f0df	22	2/2		1/1	
 Verdurous Gearhulk	bdf2eaf4fc968024	8	1/1		1/1	
 Vesperlark	4e8d1ca1521f1626	4	1/1		2/3	ix:resp
 Veteran Armorsmith	b1e75fdea83dfd36	23	0/0		0/0	
 Vicious Shadows	5d3c8988f86c4c5f	8	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Vodalian Merchant	90787c76f604fe47	14	1/1		1/1	
+Voracious Fell Beast	58669ad3be815545	29	1/1		1/1	
 Vow of Wildness	3c3b59fbd1250410	9	0/0		2/2	
+Walk the Plank	1c782fde252a08ad	13	0/0		1/2	ix:resp
 War Screecher	ecc5d287c5e28ea5	43	1/1		1/1	
 Weaver of Blossoms	f30242c05e480360	26	2/2		1/1	
 Wind Dancer	1749bdccc39b89a0	15	1/1		1/1	
 Wing Puncture	9df6a6de6f5c9d2e	24	0/0		1/2	ix:resp
 Wing Snare	cc24a3626293e7f0	8	0/0		2/2	
+Woodland Changeling	91d97ba155ce29de	38	0/0		0/0	
 Zealots en-Dal	bd377f1a988bb467	79	1/1		1/1	
 Zenith Festival	9081cd616855d53f	16	0/0		4/6	cast/alt:harmonize,f0/s/x0
