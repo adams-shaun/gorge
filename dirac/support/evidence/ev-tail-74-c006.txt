@@ -1,7 +1,9 @@
+A-Exhibition Magician
 A-Guide of Souls
 A-Plate Armor
 Absorb
 Ajani's Mantra
+Alchemist's Greeting
 Avatar of Growth
 Aven Trooper
 Barricade Breaker
@@ -15,6 +17,8 @@ Bramblecrush
 Brood Sliver
 Captain's Hook
 Captured by Lagacs
+Casey Jones, Back Alley Brute
+Cephalid Illusionist
 Chaos Maw
 Chicken Egg
 Chilling Trap
@@ -36,34 +40,42 @@ Eiganjo Castle
 Ember-Fist Zubera
 Enclave Cryptologist
 Encroaching Wastes
+Fact or Fiction
 Feral Maaka
 Ferocious Charge
 Field Marshal
 Fire Ambush
 Flameskull
 Forest
+Fortress Cyclops
 Frightcrawler
 Gaea's Bounty
 Ghoulcaller's Bell
 Gloomhunter
+Go-Shintai of Hidden Cruelty
 Goblin Arsonist
 Goblin Bushwhacker
 Goblin Tinkerer
 Gruul Keyrune
 Guardian of the Guildpact
 Halberdier
+Hanweir Garrison
 Hardened Scales
 Harpoon Sniper
+Hollow Dogs
 Horned Helm
 Hulk, Always Angry
 Immortal Phoenix
+Incurable Ogre
 Insidious Bookworms
 Island
 Jhoira's Familiar
 Kazandu Mammoth
 Khenra Charioteer
+Kjeldoran Pride
 Kongming, "Sleeping Dragon"
 Kor Blademaster
+Kratos, Stoic Father
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
@@ -72,6 +84,8 @@ Liliana's Elite
 Liliana's Standard Bearer
 Lore Seeker
 MACH-1, Swooping Scoundrel
+Mad Auntie
+Magmatic Core
 Malevolent Awakening
 Master the Way
 Meadowboon
@@ -80,15 +94,19 @@ Millstone
 Mist-Syndicate Naga
 Mold Folk
 Momentum Rumbler
+Monastery Swiftspear
 Moonveil Dragon
 Mountain
 Multiform Wonder
 Nantuko Mentor
+Nature's Chant
 Navigation Orb
 Necromancer's Familiar
 Nexus of Fate
+Norn's Inquisitor
 Orazca Frillback
 Oreskos Swiftclaw
+Outbreak
 Pathbreaker Ibex
 Peggy Carter, Secret Agent
 Plains
@@ -100,8 +118,10 @@ Pull from Tomorrow
 Purple Pentapus
 Putrid Imp
 Pyrrhic Blast
+Quicksilver Wall
 Rag Dealer
 Raging Kavu
+Rakshasa's Disdain
 Rancid Rats
 Reaver Ambush
 Return to the Earth
@@ -114,6 +134,8 @@ Sacred Cat
 Sanctify
 Scoria Wurm
 Scurry Oak
+Seismic Mage
+She-Hulk, Jennifer Walters
 Silverflame Squire
 Silverskin Armor
 Skirsdag Flayer
@@ -126,7 +148,9 @@ Spurnmage Advocate
 Stampeding Rhino
 Stenchskipper
 Storm Fleet Pyromancer
+String of Disappearances
 Strip Mine
+Suncrusher
 Sunstrike Legionnaire
 Sunweb
 Swamp
@@ -135,10 +159,12 @@ The Indomitable
 The Shattered States Era
 Thopter Assembly
 Thoughtweft Gambit
+Topaz Dragon
 Towering Indrik
 Traumatize
 Triceraton Regenta
 Tuktuk Rubblefort
+Tuktuk the Explorer
 Two-Headed Zombie
 Unholy Indenture
 Unquestioned Authority
@@ -146,6 +172,7 @@ Urabrask the Hidden
 Urza, Powerstone Prodigy
 Venser's Journal
 Verge Rangers
+Viashino Bladescout
 Vineweft
 Violet Pall
 Viridian Longbow

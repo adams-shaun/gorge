@@ -1,6 +1,8 @@
+Abominable Treefolk
 Act of Treason
 Aerial Guide
 Aether Swooper
+Aether Tradewinds
 Akoum Warrior
 Alpha Authority
 Amazing Spider-Girl
@@ -27,6 +29,7 @@ Carrion Feeder
 Cathartic Reunion
 Cavalry Drillmaster
 Chain Devil
+Champion's Drake
 Charge
 Chrome Host Seedshark
 Cloud Manta
@@ -45,6 +48,7 @@ Desperate Plea
 Disciple of the Old Ways
 Dockside Chef
 Donald Blake, Guise of Thor
+Donatello, Rad Scientist
 Dreamscape Artist
 Dusk Urchins
 Dwarven Reinforcements
@@ -56,6 +60,9 @@ Elephant Ambush
 Elephant-Rat
 Elusive Tormentor
 Emergent Growth
+Etherium Sculptor
+Experimental Overload
+Faceless Devourer
 Fall of the Thran
 Far Traveler
 Fast Forward
@@ -83,6 +90,7 @@ Gift of Compleation
 Gnaw to the Bone
 Goblin Burrows
 Goblin Guide
+Goblin Tinkerer
 Grave Titan
 Growth Cycle
 Gryff Vanguard
@@ -94,6 +102,7 @@ Hythonia the Cruel
 Ignite Disorder
 Ilysian Caryatid
 Imposing Sovereign
+Indoctrination Attendant
 Indulgent Aristocrat
 Infected Vermin
 Infectious Bite
@@ -105,6 +114,7 @@ Juri, Master of the Revue
 Jwari Disruption
 Kargan Warleader
 Kathari Bomber
+Kird Ape
 Kitsune Loreweaver
 Kor Cartographer
 Koth's Courier
@@ -134,6 +144,7 @@ Okiba Reckoner Raid
 Old Rutstein
 Old Stickfingers
 Oran-Rief Invoker
+Orcish Captain
 Orcish Veteran
 Overmaster
 Patagia Viper
@@ -183,7 +194,9 @@ Slavering Nulls
 Smelt-Ward Ignus
 Smothering Abomination
 Soilshaper
+Somnophore
 Soratami Seer
+Soul Net
 Souldrinker
 Spectral Hunt-Caller
 Spellshock
@@ -201,6 +214,7 @@ Syndicate Guildmage
 Take Possession
 Tapestry of the Ages
 Tenacious Hunter
+Terra Ravager
 The Juzam Master
 Thought-Knot Seer
 Thraben Heretic

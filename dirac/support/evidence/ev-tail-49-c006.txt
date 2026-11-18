@@ -1,21 +1,31 @@
 Akroan Hoplite
 Amphin Pathmage
+Angelic Curator
+Ant-Man, Scott Lang
 Arcanist's Owl
+Armageddon
+Artifact Ward
 Ashling the Pilgrim
 Augur of Bolas
 Avaricious Dragon
+Batterbone
+Blistering Barrier
 Boon Reflection
+Briarhorn
 Broodbirth Viper
 Butcher's Cleaver
 Cacophony Unleashed
+Call the Cavalry
 Catalog
 Celestial Kirin
 Cephalid Broker
+Chandra's Outburst
 Change of Fortune
 Chapel Geist
 Charge Across the Araba
 Chieftain en-Dal
 Citadel Gate
+Citanul Centaurs
 Crimson Cowl, Master of Evil
 Dark Bargain
 Dauntless Unity
@@ -23,20 +33,33 @@ Demon's Jester
 Depala, Pilot Exemplar
 Desert of the Indomitable
 Disentomb
+Druid's Deliverance
+Elemental Uprising
 Elenda, the Dusk Rose
 Elixir of Immortality
+Elvish Piper
+Elvish Scrapper
 Enduring Bondwarden
 Ever After
+Exhaustion
 Faerie Duelist
+Fallen Shinobi
+Fencing Ace
+Ferocious Pup
 Fevered Strength
+Flamecore Elemental
 Fleeting Spirit
 Forest
 Fortified Rampart
 Frost Trickster
+Fungal Rebirth
 Gate to Phyrexia
+Gnat Alley Creeper
 Goblin Marshal
 Goblin Skycutter
+Goldmeadow Lookout
 Greater Good
+Greenwarden of Murasa
 Hagra Constrictor
 Havengul Vampire
 Hell Swarm
@@ -47,55 +70,87 @@ Humongulus
 Inspired Fire
 Island
 Island of Wak-Wak
+Jadecraft Artisan
 Jaya, Venerated Firemage
 Kiln Walker
+Kiri-Onna
+Kor Entanglers
+Kor Scythemaster
+Lantern of Revealing
+Lantern of the Lost
+Laquatus's Creativity
 Last Caress
 Library
 Long-Finned Skywhale
+Magistrate's Veto
+Manic Scribe
 Manifold Key
 Manta Riders
 Monologue Tax
 Moonwing Moth
+Motivated Pony
 Mountain
 Naiad of Hidden Coves
+Nantuko Tracer
 Nico Minoru, Runaway
+Nightshade Seer
+Nylea's Forerunner
 Ocular Halo
 Ogre Gatecrasher
+Outland Colossus
+Pallid Mycoderm
 Part the Veil
+Passionate Archaeologist
 Patagia Golem
 Perilous Research
 Pillarfield Ox
 Plains
 Prison Term
+Pyknite
+Raptor Companion
+Razorgrass Ambush
 Renari, Merchant of Marvels
 Reverent Hoplite
 Righteous Fury
+Rootbreaker Wurm
+Rustvine Cultivator
 Sacred Fire
 Saruman the White
+Sauroform Hybrid
 Saw It Coming
+Scapeshift
 Scroll of the Masters
 Search the Premises
 Secluded Glen
+Sedge Scorpion
+Seething Pathblazer
 Selesnya Sanctuary
 Serendib Efreet
 Silverquill Command
+Skinshifter
+Slippery Bogle
 So Shiny
+Soratami Savant
 Soulshriek
+Squirrel Sanctuary
 Storm Fleet Sprinter
 Sunken City
 Supply Caravan
 Survivor of the Unseen
 Swamp
 Swarm of Bloodflies
+Symbiotic Elf
 Synod Sanctum
 Tar Pitcher
 Teeterpeak Ambusher
+Terrain Elemental
 The Rack
 Thought Collapse
 Tide Skimmer
 Touch of Brilliance
 Towering-Wave Mystic
 Tranquil Thicket
+Ultimate Magic: Holy
 Vault Guardsman
 Vector Asp
 Vengeful Dead
@@ -110,3 +165,4 @@ Willow Faerie
 Wu Longbowman
 Xun Yu, Wei Advisor
 Zealous Guardian
+Zoologist

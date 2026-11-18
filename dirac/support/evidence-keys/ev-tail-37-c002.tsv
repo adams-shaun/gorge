@@ -1,0 +1,58 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Aegis Automaton	81c732e48b9ca8b3	8	1/1		0/1	ix:resp
+Ancient Tomb	42f5c795ecacc422	10	1/1		0/1	ix:resp
+Avatar of the Resolute	1a32e475d29eda93	9	0/0		0/0	
+Back to Nature	3a821f1b09b66712	8	0/0		1/2	ix:resp
+Calamity of Cinders	01425dbbb10b23f7	4	0/0		1/2	ix:resp
+Cave-In	eaca251af87f5862	4	0/0		1/2	ix:resp
+Crimson Kobolds	0f2d01aca3491bb1	10	0/0		0/0	
+Curse of Chaos	54a67c97267c9e84	42	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Drownyard Temple	f4ee78b5d9d08c3d	9	2/2		0/1	ix:resp
+Elderleaf Mentor	79f5f120f89e875e	4	1/1		0/1	ix:resp
+Emerald Oryx	2aca3d70e59b2d4b	4	0/0		0/0	
+Fading Hope	7f8dc48daa026482	11	0/0		1/2	ix:resp
+Faerie Impostor	7074de8b2720e73b	44	1/1		0/1	ix:resp
+Flame Slash	795949e4ed008946	4	0/0		1/2	ix:resp
+Fledgling Dragon	7877ceb76496ad0a	78	0/0		0/0	
+Flowstone Slide	bc35de49bf0df8e9	3	0/0		2/4	f0/s/x0,ix:resp
+Gaea's Touch	25a2919f478f79ce	4	2/2		0/1	ix:resp
+Ghostfire Blade	74f8469ad844ecc3	6	1/1		0/1	ix:resp
+Golgari Grave-Troll	7a48bf83164dc3a2	43	1/1		1/1	
+Gornog, the Red Reaper	a62cafcd9699d9d9	36	1/1		1/1	
+Halo Hopper	0168e719f4cf3a98	8	0/0		0/0	
+Indestructible Aura	ce95f0482e21f95c	17	0/0		2/2	
+Isolation Cell	4d350207bfa2e242	4	1/1		1/1	
+Kasimir the Lone Wolf	78c785de3fe378d7	9	0/0		0/0	
+King's Assassin	dfe1fe5e5a471823	4	1/1		0/1	ix:resp
+Kroxa, Titan of Death's Hunger	005736222fb3eccd	796	3/3		2/3	cast/alt:escaped
+Lux Cannon	48ace2ba06f11b1d	3	2/2		0/1	ix:resp
+Maestros Theater	61152b396d3271b3	6	1/1		0/1	ix:resp
+Maulfist Doorbuster	be02558213000e2e	14	2/2		0/1	ix:resp
+Millennial Gargoyle	ce78493f6ee6fe13	10	0/0		0/0	
+Millstone	d863a61d2ffa1f8f	8	1/1		0/1	ix:resp
+Niambi, Faithful Healer	0bbe4dc113bb3863	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Parapet Thrasher	03626b72338c9c51	67	1/1		1/1	
+Pestilent Souleater	bddde1ac915d80ff	35	1/1		1/1	
+Prakhata Club Security	0f9648731fceef0b	4	0/0		0/0	
+Primaris Chaplain	31795420bead5686	8	2/2		1/1	
+Prismari Campus	2e095a319fbba3f9	38	2/2		0/1	ix:resp
+Pulse of the Tangle	30e49bdb6fef2594	4	0/0		1/2	ix:resp
+Rekindled Flame	2fbffa295953bf2e	55	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
+Reviving Melody	a652f6374013f66b	5	0/0		1/2	ix:resp
+Rime Dryad	861bfa87d5f54517	20	0/0		0/0	
+Riptide	23324485de5e0002	18	0/0		1/2	ix:resp
+Savage Stomp	f8410989f1904fd7	3	0/0		2/2	
+Scorch Spitter	4665654d638d2244	4	1/1		0/1	ix:resp
+Selesnya Signet	4c6244e3932adfbc	6	1/1		0/1	ix:resp
+Shivan Oasis	9000af410e02b07e	8	1/1		0/1	ix:resp
+Siege Smash	6371abd9e36f54d9	38	0/0		1/2	ix:resp
+Skred	cd2215a4865b1dca	33	0/0		2/2	
+Snap	7b3f2663850bbe4b	26	0/0		2/2	
+Spawning Breath	6ad259446ceb1de7	9	0/0		2/2	
+Stormrider Rig	5f9e46797ad291cd	26	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Tangle Spider	a72958c3167ac5ee	4	0/0		0/0	
+Tangled Islet	1a416ce4b38875bb	10	2/2		0/1	ix:resp
+Thornglint Bridge	7981b1a8edcf74ca	13	1/1		0/1	ix:resp
+Warped Physique	db3735d652034c6c	14	0/0		1/2	ix:resp
+Yorvo, Lord of Garenbrig	54025e5a863ba9c1	4	1/1		0/1	ix:resp
+Zealot of the God-Pharaoh	af009b4dbae36a94	11	1/1		0/1	ix:resp

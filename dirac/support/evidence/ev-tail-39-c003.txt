@@ -1,13 +1,22 @@
+A-Buy Your Silence
 A-Esika's Chariot
 A-Gnarlid Colony
 A-Pyre-Sledge Arsonist
+Abuna's Chant
 Accursed Marauder
+Aetherstream Leopard
+Aim High
 Ajani's Sunstriker
+Alabaster Kirin
+Ancestral Vision
 Ancient Ziggurat
+Angel of Fury
+Angelic Reward
 Ant-Man, Elusive Avenger
 Archon of Emeria
 Archway Commons
 Assemble the Entmoot
+Audacious Thief
 Banshee of the Dread Choir
 Battering Krasis
 Beastmaster Ascension
@@ -15,6 +24,8 @@ Benalish Veteran
 Berserkers of Blood Ridge
 Blood Pact
 Boros Keyrune
+Bulette
+Captured by Lagacs
 Carrion Crow
 Cavern Harpy
 Chaos Channeler
@@ -25,47 +36,73 @@ Clockwork Beetle
 Colorful Feiyi Sparrow
 Common Iguana
 Congregate
+Corrupted Roots
 Courageous Outrider
 Court Cleric
+Creeperhulk
+Crowned Ceratok
 Crypt Cobra
 Crypt Rats
 Curse of Vitality
 Dark Triumph
+Darksteel Pendant
 Dauntless Onslaught
 Dauthi Trapper
 Dawnbringer Cleric
+Dawnfeather Eagle
 Demogorgon's Clutches
 Dense Foliage
+Devkarin Dissident
+Dread Presence
 Dromoka Dunecaster
 Dry Spell
 Elvish Mystic
 Envoy of the Ancestors
+Erratic Cyclops
+Ethereal Guidance
+Exalted Angel
 Exsanguinator Cavalry
 Fact or Fiction
 Fast
 Fervent Paincaster
 Forest
 Forked Bolt
+Frontline Rebel
+Fungal Sprouting
+Gallows Warden
+Gerrard's Battle Cry
 Ghost Lantern
 Ghost Quarter
 Ghoul's Feast
+Giggling Skitterspike
 Glacial Grasp
+Glint Hawk Idol
+Glittermonger
 Goblin Deathraiders
 HYDRA Disintegrator
 Hangar Scrounger
+Heartmender
 Hellion Crucible
 Hidden Guerrillas
 Hydromorph Guardian
+Instill Furor
 Instill Infection
+Invasion of Ixalan
 Invasive Species
 Island
 Jade Bearer
+Kamigawa Charm
+Kazandu Mammoth
+Koala-Sheep
+Laccolith Warrior
 Late to Dinner
 Lavabelly Sliver
 Leonin Bladetrap
 Lord of the Accursed
 Manalith
 Mark of the Vampire
+Marshal of Zhalfir
+Marwyn, the Nurturer
 Mind Whip
 Mobile Fort
 Moonstone Eulogist
@@ -84,24 +121,32 @@ Phantom Wings
 Plains
 Power Fist
 Priest of Gix
+Primeval Shambler
+Prized Elephant
 Quandrix Campus
 Rack and Ruin
 Rage of Purphoros
 Ragged Recluse
 Rakka Mar
 Rally at the Hornburg
+Ravenous Necrotitan
 Reconstruct History
 Renewed Faith
+Resistance Reunited
 Rhystic Shield
+Rime Tender
 Riot Piker
 Riverwheel Aerialists
 Ronin Warclub
 Rotten Reunion
 Ruinous Minotaur
 Safeguard
+Sanctum Spirit
 Scaldkin
 Scourge of Fleets
+Segovian Angel
 Sentinels of Glen Elendra
+Serene Sunset
 Shambling Ghast
 Sheltering Boughs
 Shriek of Dread
@@ -109,11 +154,14 @@ Sigil of Distinction
 Signal Pest
 Silburlind Snapper
 Sink into Takenuma
+Sky Crier
 Skyshroud Elite
 Slayer's Plate
 Sleeper's Guile
+Snapping Drake
 Soaring Thought-Thief
 Solemn Recruit
+Soltari Monk
 Soul Transfer
 Spartan Veteran
 Spell Rupture
@@ -123,6 +171,7 @@ Splitting Slime
 Springmane Cervin
 Squire's Devotion
 Stalking Vengeance
+Star-Crowned Stag
 Stasis Field
 Storm's Wrath
 Swamp
@@ -131,6 +180,7 @@ Tajuru Snarecaster
 Takenuma Bleeder
 Talas Scout
 Taoist Hermit
+Tar Snare
 Tempered Sliver
 The Balrog, Flame of Udûn
 The Falcon, Airship Restored
@@ -142,11 +192,14 @@ Tooth and Nail
 Trophy Hunter
 Ugin's Construct
 Ulasht, the Hate Seed
+Underdark Explorer
 Underworld Sentinel
+Unmask
 Urborg Drake
 Victor Mancha, Runaway
 Wakening Sun's Avatar
 Wall of Fire
+Warped Devotion
 Warped Landscape
 Warriors of Wakanda
 Welcoming Vampire

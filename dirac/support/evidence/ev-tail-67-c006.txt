@@ -3,17 +3,22 @@ Alms Beast
 Aquatic Incursion
 Archaeomender
 Blisterspit Gremlin
+Boldwyr Intimidator
 Burn the Impure
 Charging Bandits
 Compound Fracture
 Conservator
 Corpse Knight
+Corrupting Licid
 Crop Rotation
 Deathless Angel
 Demon's Grasp
+Despise
+Dismantling Blow
 Flow of Ideas
 Forest
 Fungal Sprouting
+Goblin Glider
 Hanabi Blast
 Inkrise Infiltrator
 Iroas's Champion
@@ -21,14 +26,18 @@ Island
 Jackalope Herd
 Kirtar's Wrath
 Leafkin Druid
+Lightning Hounds
 Lightning Reaver
 Lightning-Core Excavator
 Longtusk Cub
+Lyla, Holographic Assistant
+Mana Matrix
 Metropolis Reformer
 Mise
 Mogis's Warhound
 Moonblade Shinobi
 Moonlight Hunt
+Mortal's Ardor
 Mountain
 Oblation
 Plains
@@ -40,9 +49,12 @@ Savra, Queen of the Golgari
 Scavenged Blade
 Searing Barb
 Sigrid, God-Favored
+Skullscorch
 Stormcrag Elemental
 Swamp
 Temple Elder
+Thrull Retainer
 Thrór's Map
+Thundering Sparkmage
 Vine Trellis
 Way of the Thief

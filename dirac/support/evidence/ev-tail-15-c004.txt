@@ -1,4 +1,6 @@
 A-Buy Your Silence
+A-Radha's Firebrand
+Aerial Maneuver
 Alexi's Cloak
 Angelheart Protector
 Arrows of Justice
@@ -9,13 +11,16 @@ Aven Eternal
 Blazing Rootwalla
 Blessed Spirits
 Blinding Radiance
+Boon of Emrakul
 Brightclimb Pathway
 Brimstone Mage
 Buoyancy
 Burden of Guilt
 Chatterstorm and Awaken the Woods
 Child of Night
+Chrome Cat
 Colossus Hammer
+Conclave's Blessing
 Copperhoof Vorrac
 Courier Griffin
 Crimson Roc
@@ -25,6 +30,7 @@ Declare Dominance
 Delightful Discovery
 Deluge of Doom
 Dingus Staff
+Dreadhorde Arcanist
 Drossclaw
 Dúnedain Blade
 Ebon Drake
@@ -35,6 +41,8 @@ Enthrall
 Erebos's Emissary
 Eternal Skylord
 Ethereal Ambush
+Executioner's Hood
+Fae of Wishes
 Fanged Flames
 Femeref Scouts
 Festival of the Guildpact
@@ -45,6 +53,7 @@ Furious Assault
 Gixian Skullflayer
 Goblin Gang Leader
 Goblin Matron
+Goblin Warchief
 Grandmother Sengir
 Great Hall of Starnheim
 Greenseeker
@@ -52,22 +61,29 @@ Grenzo's Cutthroat
 Grey Knight Paragon
 Grip of Desolation
 Headlong Rush
+Healing Leaves
 Highspire Infusion
 Hope Against Hope
 Horizon Seed
 Horror of Horrors
 Human Frailty
+Ill-Tempered Cyclops
+Inside Out
 Island
 Jackal Familiar
 Kami of Whispered Hopes
 Kenrith's Transformation
 Kraken Hatchling
 Krark-Clan Engineers
+Learn from the Past
+Leonin Battlemage
 Leyline of Punishment
 Lightning Blast
+Lose Calm
 Mana Flare
 Maralen of the Mornsong
 Maro
+Mary Read and Anne Bonny
 Mind Knives
 Misery Charm
 Moonfolk Puzzlemaker
@@ -78,6 +94,7 @@ Nightstalker Engine
 Nissa's Triumph
 Novellamental
 Obelisk of Esper
+Ogre Gatecrasher
 Otherworld Atlas
 Oxidize
 Pheres-Band Brawler
@@ -104,11 +121,15 @@ Shrieking Drake
 Shrouded Serpent
 Sindbad
 Sip of Hemlock
+Skyclave Pick-Axe
+Smitten Swordmaster
 Soratami Seer
 Sorcerer's Wand
 Sphinx's Insight
+Spiketail Drakeling
 Spiraling Embers
 Spiteful Bully
+Splinter, the Mentor
 Spoils of Blood
 Stand United
 Steady Aim
@@ -123,7 +144,10 @@ Swamp
 Thornhide Wolves
 Thought Scour
 Thundering Raiju
+Titan's Strength
+Tormentor's Trident
 Treasure Hunter
+Trokin High Guard
 Turbulent Wetlands
 Turret Ogre
 Two-Headed Sliver
@@ -131,6 +155,8 @@ Uktabi Orangutan
 Ulamog's Crusher
 Umbral Mantle
 Urza's Science Fair Project
+Viridian Acolyte
+Volcanic Spray
 Vulshok Splitter
 Wake the Reflections
 Wanderlust

@@ -74,6 +74,7 @@ Cryptic Serpent
 Crystal Chimes
 Cyclical Evolution
 Daring Piracy
+Dark Impostor
 Dark Revenant
 Dawning Angel
 Day of Destiny
@@ -144,6 +145,7 @@ Glamorous Grapplers
 Gnoll Hunter
 Goblin Masons
 Goblin Piledriver
+Golgari Thug
 Gorehorn Minotaurs
 Grave Upheaval
 Gravedig
@@ -154,6 +156,7 @@ Gruesome Scourger
 Hagra Sharpshooter
 Hall Monitor
 Hanged Executioner
+Harmonic Convergence
 Heavenly Qilin
 Hedron Crab
 Hellkite Charger
@@ -233,6 +236,7 @@ Moment of Heroism
 Monk of the Open Hand
 Mountain
 Munda, Ambush Leader
+Murderous Cut
 Myr Galvanizer
 Mystic Crusader
 Naban, Dean of Iteration
@@ -277,6 +281,7 @@ Resolute Watchdog
 Resurgent Belief
 Righteous Confluence
 Rishadan Pawnshop
+Robaran Mercenaries
 Rootbound Crag
 Roterothopter
 Rubble Reading
@@ -307,6 +312,7 @@ Shu Yun, the Silent Tempest
 Siegfried, Famed Swordsman
 Sigil of Distinction
 Silvanus's Invoker
+Silverflame Ritual
 Singer of Swift Rivers
 Singing Bell Strike
 Sire of the Storm
@@ -358,6 +364,7 @@ Vandalize
 Vastwood Zendikon
 Vedalken Infuser
 Veinwitch Coven
+Vexing Devil
 Virulent Swipe
 Vodalian Wave-Knight
 Wall of Tears

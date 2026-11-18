@@ -1,12 +1,24 @@
+A Little Chat
+A-Glittermonger
 A-Midnight Assassin
+Aegis of the Heavens
+Aerith, Last Ancient
 Aeromunculus
+Aeronaut Tinkerer
 Affa Guard Hound
+Allied Reinforcements
+Argothian Swine
 Armored Whirl Turtle
 Ashnod's Harvester
+Auriok Windwalker
+Avenging Arrow
 Basalt Gargoyle
 Battle-Rage Blessing
 Befuddle
+Blazing Archon
+Bloodroot Apothecary
 Burning Prophet
+Cage of Hands
 Canopy Cover
 Captivating Unicorn
 Cat Burglar
@@ -16,81 +28,137 @@ Cinder Shade
 Colossal Dreadmaw and Storm Crow
 Conquering Manticore
 Contract Hero
+Coordinated Charge
 Crumbling Necropolis
+Dalek Squadron
 Deadly Designs
 Deathgreeter
+Deathsprout
 Despotic Scepter
 Devour in Flames
 Divination
 Domri's Ambush
+Elturgard Ranger
 Embraal Gear-Smasher
+Evolved Sleeper
 Fa'adiyah Seer
+Faerie Seer
+Famine
+Field Creeper
+Field Surgeon
 Flame Discharge
+Flow of Ideas
 Forest
 Fungal Infection
 Geistwave
 Geomancer's Gambit
+Glimmer Bairn
 Gluntch, the Bestower
 Gnottvold Recluse
 God-Pharaoh's Faithful
 Golem Foundry
+Grond, the Gatebreaker
+Hapatra, Vizier of Poisons
 Harbor Bandit
 Hazoret the Fervent
+Headhunter
 Hellrider
+Hillcomber Giant
+Infiltrator il-Kor
 Island
+Jarl of the Forsaken
+Jinxed Choker
 Joint Exploration
 Juniper Order Rootweaver
 Junk Winder
 Kabuto Moth
 Kitchen Imp
+Knight of Meadowgrain
 Lava Dart
+Leaf Dancer
 Leyline Binding
+Liability
 Llanowar Dead
+Llanowar Empath
 Lose Hope
+Loxodon Stalwart
 Man-o'-War
 Marauder's Axe
 Merchant of Truth
 Mindbreak Trap
+Mine Bearer
 Moonsnare Specialist
+Moorland Drifter
+Mossdog
 Mountain
 Murasa Pyromancer
+Myojin of Towering Might
 Myr Sire
+Nath of the Gilt-Leaf
 Naya Hushblade
 Never
+Niblis of the Breath
 Nyxborn Courser
 Of One Mind
 Ornithopter of Paradise
 Phyrexian Juggernaut
 Plains
+Pouncing Jaguar
 Precognition
+Psionic Snoop
+Pulsemage Advocate
 Pyreswipe Hawk
+Ranger's Path
+Rebuild
 Recalibrate
+Resolute Rider
 River's Favor
+Roil Elemental
 Ruinous Intrusion
 Rush of Vitality
 Scattered Thoughts
 Scavenging Harpy
 Scourge of Valkas
 Sea Gate Banneret
+Second Sight
 Selvala, Explorer Returned
 Shanna, Sisay's Legacy
 Shellshock
 Sifa Grent
+Skittering Heartstopper
 Skullmead Cauldron
+Skywhaler's Shot
 Slagwoods Bridge
 Sneaky Homunculus
 Snow Day
+Squirrel Nest
+Sram's Expertise
+Strength of Arms
 Strength of the Coalition
 Submerge
+Sunblast Angel
 Swamp
 Syndicate Messenger
+Synod Centurion
 Tail Swipe
 Tattered Apparition
 Tempest Caller
 The Gaffer
+Tidal Courier
+Timberland Guide
 To Arms!
+Torch Drake
+Treetop Ambusher
+Trickster Mage
+Umara Entangler
 Upheaval
 Viral Drake
+Voice of the Blessed
 Vraska's Finisher
 Walking Ballista
+Wanderlight Spirit
+War Oracle
 Watchwing Scarecrow
+Weathered Bodyguards
+Westfold Rider
+Worm Harvest

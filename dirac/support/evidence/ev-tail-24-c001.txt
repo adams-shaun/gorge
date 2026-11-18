@@ -8,6 +8,7 @@ Aeromunculus
 Aggressive Crag
 Air Nomad Student
 Alaborn Veteran
+Ally Encampment
 Ambassador Laquatus
 Amulet of Kroog
 Ancestral Mask
@@ -129,6 +130,7 @@ Fortuitous Find
 Fracture
 Fungus Sliver
 Gallantry
+Gallows at Willow Hill
 Generous Visitor
 Getaway Car
 Ghoultree
@@ -317,6 +319,7 @@ Shady Traveler
 Shaggy Camel
 Shattered Crypt
 Shorecomber Crab
+Showdown of the Skalds
 Shroofus Sproutsire
 Siegehorn Ceratops
 Sightless Ghoul
@@ -405,6 +408,7 @@ Vile Deacon
 Vito, Thorn of the Dusk Rose
 Vivid Crag
 Vodalian Serpent
+Volley of Boulders
 Voyage's End
 Wall of Tears
 Warmth

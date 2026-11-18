@@ -42,13 +42,16 @@ Bewilder
 Big Bertha
 Birds of Paradise
 Bituminous Blast
+Blazing Salvo
 Blessed Hippogriff
 Blight Mound
 Bloated Contaminator
 Blood Servitor
 Blood Tithe
+Bloodline Pretender
 Bloodline Shaman
 Blossoming Bogbeast
+Bog Hoodlums
 Borrowed Grace
 Breakthrough
 Brood Monitor
@@ -183,6 +186,7 @@ Hulkbuster Armor
 Hungry Flames
 Icefall Regent
 Icy Manipulator
+Iizuka the Ruthless
 Imperial Ceratops
 Indomitable Ancients
 Inferno of the Star Mounts
@@ -225,6 +229,7 @@ Lumengrid Sentinel
 Luminous Angel
 Lyse Hext
 Mage Duel
+Malakir Blood-Priest
 Man-o'-War
 Mana Tithe
 March from the Tomb
@@ -258,6 +263,7 @@ Nova Cleric
 Okiba Reckoner Raid
 One Thousand Lashes
 Onyx Talisman
+Opal Guardian
 Open the Armory
 Orazca Raptor
 Order
@@ -282,6 +288,7 @@ Plains
 Planar Gate
 Prakhata Pillar-Bug
 Pride Guardian
+Prismari Pledgemage
 Profane Prayers
 Promise of Aclazotz
 Promise of Tomorrow
@@ -295,6 +302,7 @@ Racecourse Fury
 Raging Ravine
 Rakdos Ragemutt
 Ramosian Commander
+Rampaging War Mammoth
 Rathi Dragon
 Ravenous Daggertooth
 Ravenous Vampire
@@ -399,10 +407,12 @@ Terror of Towashi
 Thassa's Devourer
 The Blackstaff of Waterdeep
 The Thanos-Copter
+Thieving Amalgam
 Think Tank
 Third Path Iconoclast
 Thran Foundry
 Thundercloud Elemental
+Ticking Gnomes
 Tidal Wave
 Tishana's Wayfinder
 Tomb Robber
