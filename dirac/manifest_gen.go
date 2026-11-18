@@ -700,6 +700,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.putContract(k, in) // ctr_contract.go
 	case kop.ExtPutCounterChoice:
 		return s.putCounterChoice(k, in) // ctr_choice.go
+	case kop.ExtRadiation:
+		return s.radiationExt(k, in) // act_radiation.go
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }

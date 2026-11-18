@@ -107,7 +107,8 @@ type Projection struct {
 	Cards  [MaxInst]CardProj
 	Life   [2]int32
 	Poison [2]int16
-	Speed  [2]uint8 // CR 702.179
+	Rad    [2]uint16 // rad counters (CR 122.1; dirac/act_radiation.go)
+	Speed  [2]uint8  // CR 702.179
 	// Initiative is the initiative's holder, -1 nobody (CR 726)
 	Initiative int8
 	// DayNight is the CR 731 designation: 0 neither, 1 day, 2 night
@@ -163,7 +164,7 @@ func (p *Projection) reset() {
 	}
 	// Every field but Cards (TestProjectionResetClearsEveryField).
 	p.NInst = 0
-	p.Life, p.Poison, p.Speed = [2]int32{}, [2]int16{}, [2]uint8{}
+	p.Life, p.Poison, p.Rad, p.Speed = [2]int32{}, [2]int16{}, [2]uint16{}, [2]uint8{}
 	p.Initiative, p.DayNight = 0, 0
 	p.Room, p.LandsPlayed = [2]uint8{}, [2]uint8{}
 	p.Pool = [2][6]int16{}
@@ -188,7 +189,7 @@ func (p *Projection) equal(q *Projection) bool {
 		}
 	}
 	// Every field but NInst and Cards (TestProjectionEqualReadsEveryField).
-	return p.Life == q.Life && p.Poison == q.Poison && p.Speed == q.Speed &&
+	return p.Life == q.Life && p.Poison == q.Poison && p.Rad == q.Rad && p.Speed == q.Speed &&
 		p.Initiative == q.Initiative && p.DayNight == q.DayNight &&
 		p.Room == q.Room && p.LandsPlayed == q.LandsPlayed && p.Pool == q.Pool &&
 		p.HandCount == q.HandCount && p.LibCount == q.LibCount &&
@@ -213,6 +214,7 @@ type SeatsProj struct {
 type SeatProj struct {
 	Life        int32
 	Poison      int16
+	Rad         uint16
 	Speed       uint8
 	Room        uint8
 	LandsPlayed uint8
@@ -547,6 +549,9 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 			if ct.Kind == "POISON" {
 				*sp.poison += int16(ct.N)
 			}
+			if ct.Kind == "RAD" {
+				*sp.rad += uint16(ct.N)
+			}
 		}
 		lib := g.Zone(state.ZLibrary, state.PlayerID(s))
 		*sp.lib = uint8(len(lib))
@@ -639,6 +644,7 @@ func grantedTriggerAt(m *Matchup, g *state.Game, o *state.Object, ab uint8) bool
 type seatFields struct {
 	life               *int32
 	poison             *int16
+	rad                *uint16
 	speed, room, lands *uint8
 	pool               *[6]int16
 	hand, lib, casts   *uint8
@@ -648,10 +654,10 @@ type seatFields struct {
 // past them.
 func (p *Projection) seat(s int) seatFields {
 	if s < 2 {
-		return seatFields{&p.Life[s], &p.Poison[s], &p.Speed[s], &p.Room[s], &p.LandsPlayed[s], &p.Pool[s], &p.HandCount[s], &p.LibCount[s], &p.CmdCasts[s]}
+		return seatFields{&p.Life[s], &p.Poison[s], &p.Rad[s], &p.Speed[s], &p.Room[s], &p.LandsPlayed[s], &p.Pool[s], &p.HandCount[s], &p.LibCount[s], &p.CmdCasts[s]}
 	}
 	m := &p.Seats.More[s-2]
-	return seatFields{&m.Life, &m.Poison, &m.Speed, &m.Room, &m.LandsPlayed, &m.Pool, &m.HandCount, &m.LibCount, &m.CmdCasts}
+	return seatFields{&m.Life, &m.Poison, &m.Rad, &m.Speed, &m.Room, &m.LandsPlayed, &m.Pool, &m.HandCount, &m.LibCount, &m.CmdCasts}
 }
 
 // cmdDamage is the combat damage seat s was dealt by seat q's commander: the
