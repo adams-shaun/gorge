@@ -860,6 +860,11 @@ func colorsOf(f *cards.Face) string {
 				set["WUBRG"[i]] = true
 			}
 		}
+		if strings.TrimSpace(lower) == "all" { // Forge's "Colors:all" token (CR 105.1)
+			for i := 0; i < 5; i++ {
+				set["WUBRG"[i]] = true
+			}
+		}
 		src = ""
 	}
 	for _, tok := range strings.Fields(src) {
