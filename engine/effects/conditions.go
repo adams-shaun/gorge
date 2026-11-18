@@ -124,7 +124,8 @@ import (
 // raw inline Count$-style expression is evaluated with EvalCountOK and
 // compared under cmp ("<op><threshold>", e.g. GE11 — the threshold may also
 // be an SVar name or an inline expression, resolved the same way). No cmp
-// means "nonzero" (Forge's default truthiness read).
+// is Forge's field default GE1 (SpellAbilityVariables sVarOperator/sVarOperand,
+// StaticAbility's getParamOrDefault("SVarCompare", "GE1")).
 func CheckSVarHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) {
 	return CheckSVarCompare(h, c, check, CompareOf(cmp))
 }
@@ -175,7 +176,14 @@ func CheckSVarCompare(h Host, c *Ctx, check string, cmp Compare) (holds, evaluat
 		val = v
 	}
 	if cmp.Text == "" {
-		return val != 0, true
+		// Forge's field default for a gate with no ConditionSVarCompare$ /
+		// SVarCompare$ (SpellAbilityVariables: sVarOperator "GE",
+		// sVarOperand "1"; StaticAbility's getParamOrDefault("SVarCompare",
+		// "GE1") reads the same): the gate holds at one or more. Tithe's
+		// "If target opponent controls more lands than you" gate (X = target
+		// lands - yours) must not hold at X < 0, and a "nonzero" reading
+		// would offer that optional search when the opponent controls fewer.
+		return val >= 1, true
 	}
 	if len(cmp.Text) < 3 {
 		return false, false
