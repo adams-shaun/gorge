@@ -62,6 +62,10 @@ type engineParked struct {
 	// resolving echo keyword trigger. Same plain-data class as the two
 	// above; Clone-copied.
 	echo *echoFlow `clone:"deep"`
+	// recover (engine/rules/recover.go, kw:Recover): the pay-or-exile
+	// election of a resolving recover keyword trigger. Same plain-data class
+	// as echo above; Clone-copied.
+	recover *recoverFlow `clone:"deep"`
 
 	// attackPay holds the declare-attackers attack-cost payment window
 	// (engine/rules/attack_cost.go): the answered KAttackers declaration, its payer

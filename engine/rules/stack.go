@@ -306,6 +306,13 @@ func (e *Engine) resolveTop() {
 			e.startEcho(id, o.Source, o.Ability)
 			return
 		}
+		// Recover (kw:Recover, CR 702.59) is the same keyword-expansion shape:
+		// an ordinary ChangesZone trigger whose DB$ Recover body needs rules'
+		// payment window and the pay-or-exile election (engine/rules/recover.go).
+		if o.Ability.API == "Recover" {
+			e.startRecover(id, o.Source, o.Ability)
+			return
+		}
 		if _, triggered := e.triggerForAbilityObject(id, o); triggered &&
 			e.triggerBodyNeedsCostWindow(o.Ability) {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)

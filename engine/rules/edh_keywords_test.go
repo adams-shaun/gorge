@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -262,4 +263,140 @@ func TestEDHKeywordsMustBeBlockedByExactlyOne(t *testing.T) {
 	if d := e3.Pending(); d != nil && d.Kind == decision.KBlockers && len(d.Options) != 0 {
 		t.Fatalf("no-blocker engine still offered pairs: %+v", d.Options)
 	}
+}
+
+// TestEDHKeywordsRecoverPaysToHandOrExiles plays Icefall's printed Recover
+// {R}{R} (CR 702.59) through real deaths: paying the cost returns the card
+// from the graveyard to the hand, declining exiles it.
+func TestEDHKeywordsRecoverPaysToHandOrExiles(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	icefall, ok := reg.Lookup("Icefall")
+	if !ok {
+		t.Fatal("Icefall not in the corpus")
+	}
+	if got, ok := icefall.Faces[0].KeywordParam("Recover"); !ok || got != "R R" {
+		t.Fatalf("Icefall keyword param = %q (%v), want Recover R R", got, ok)
+	}
+	const bear = "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	// (a) pay: the pool can pay {R}{R} outright, so the election offers pay
+	// first and the pay arm returns Icefall to hand.
+	e := handEngine(t, icefall, card(t, bear))
+	id := e.G.Zone(state.ZHand, 0)[0]
+	bearID := e.G.Zone(state.ZHand, 0)[1]
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZGraveyard})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bearID, From: state.ZHand, To: state.ZBattlefield})
+	e.G.Players[0].Pool[state.MR] = 2
+	e.emit(events.Event{Kind: events.Damage, Obj: bearID, Amount: 3})
+	e.checkStateBased()
+	e.priorityRound()
+	driveUntilRecoverAsk(t, e)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("expected the recover election, got %+v", d)
+	}
+	if len(d.Options) != 2 || d.Options[0].Kind != "recover_pay" || d.Options[1].Kind != "recover_exile" {
+		t.Fatalf("recover election = %+v", d.Options)
+	}
+	submitChoices(t, e, 0)
+	if o := e.G.Obj(id); o.Zone != state.ZHand {
+		t.Fatalf("paid recover but Icefall is in %s", o.Zone)
+	}
+	if o := e.G.Obj(bearID); o.Zone != state.ZGraveyard {
+		t.Fatalf("the bear is in %s, want graveyard", o.Zone)
+	}
+
+	// (b) decline: no pool, so the funding route rides first and the exile
+	// option sits between it and the manual one; choosing exile moves the
+	// card to exile.
+	e2 := handEngine(t, icefall, card(t, bear))
+	id2 := e2.G.Zone(state.ZHand, 0)[0]
+	bear2 := e2.G.Zone(state.ZHand, 0)[1]
+	e2.emit(events.Event{Kind: events.MoveZone, Obj: id2, From: state.ZHand, To: state.ZGraveyard})
+	e2.emit(events.Event{Kind: events.MoveZone, Obj: bear2, From: state.ZHand, To: state.ZBattlefield})
+	e2.emit(events.Event{Kind: events.Damage, Obj: bear2, Amount: 3})
+	e2.checkStateBased()
+	e2.priorityRound()
+	driveUntilRecoverAsk(t, e2)
+	d2 := e2.Pending()
+	if d2 == nil || d2.Kind != decision.KChoose {
+		t.Fatalf("expected the recover election, got %+v", d2)
+	}
+	exile := -1
+	for _, o := range d2.Options {
+		if o.Kind == "recover_exile" {
+			exile = int(o.Index)
+		}
+	}
+	if exile < 0 {
+		t.Fatalf("no exile option in the election: %+v", d2.Options)
+	}
+	submitChoices(t, e2, exile)
+	if o := e2.G.Obj(id2); o.Zone != state.ZExile {
+		t.Fatalf("declined recover but Icefall is in %s, want exile", o.Zone)
+	}
+
+	// (c) Garza's Assassin's life spelling: half your life, rounded up.
+	garza, ok := reg.Lookup("Garza's Assassin")
+	if !ok {
+		t.Fatal("Garza's Assassin not in the corpus")
+	}
+	e3 := handEngine(t, garza, card(t, bear))
+	id3 := e3.G.Zone(state.ZHand, 0)[0]
+	bear3 := e3.G.Zone(state.ZHand, 0)[1]
+	e3.emit(events.Event{Kind: events.MoveZone, Obj: id3, From: state.ZHand, To: state.ZGraveyard})
+	e3.emit(events.Event{Kind: events.MoveZone, Obj: bear3, From: state.ZHand, To: state.ZBattlefield})
+	e3.G.Players[0].Life = 20
+	e3.emit(events.Event{Kind: events.Damage, Obj: bear3, Amount: 3})
+	e3.checkStateBased()
+	e3.priorityRound()
+	driveUntilRecoverAsk(t, e3)
+	d3 := e3.Pending()
+	if d3 == nil || d3.Kind != decision.KChoose {
+		t.Fatalf("expected the recover election, got %+v", d3)
+	}
+	pay := -1
+	for _, o := range d3.Options {
+		if o.Kind == "recover_pay" {
+			pay = int(o.Index)
+		}
+	}
+	if pay < 0 {
+		t.Fatalf("no pay option in the election: %+v", d3.Options)
+	}
+	submitChoices(t, e3, pay)
+	if o := e3.G.Obj(id3); o.Zone != state.ZHand {
+		t.Fatalf("paid recover but Garza's Assassin is in %s", o.Zone)
+	}
+	if e3.G.Players[0].Life != 10 {
+		t.Fatalf("life after recover = %d, want 10 (half of 20, rounded up)", e3.G.Players[0].Life)
+	}
+}
+
+// driveUntilRecoverAsk drains priority passes and stack resolutions until the
+// recover election is the pending decision (the passUntilStackEmpty shape,
+// stopping at the non-priority ask instead of refusing it).
+func driveUntilRecoverAsk(t *testing.T, e *Engine) {
+	t.Helper()
+	for i := 0; i < 40; i++ {
+		d := e.Pending()
+		if d != nil && d.Kind == decision.KChoose {
+			for _, o := range d.Options {
+				if o.Kind == "recover_pay" || o.Kind == "recover_exile" {
+					return
+				}
+			}
+		}
+		if d == nil {
+			if len(e.G.Stack) == 0 {
+				t.Fatal("stack drained without posing the recover election")
+			}
+			e.resolveTop()
+			continue
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+			t.Fatalf("pass priority: %v", err)
+		}
+	}
+	t.Fatal("recover election never posed")
 }
