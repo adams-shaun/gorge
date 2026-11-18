@@ -421,6 +421,15 @@ func (s *State) projRest(p *Projection, lib bool) {
 			p.Stack[i].NExtra = x.n
 			p.Stack[i].Extra = x.code
 			p.Stack[i].ExtraSlot = x.slot
+			if k.gen != nil && k.gen.anyStackTgt {
+				// an extra stack-ability target projects like a slot one: its
+				// live index, or StackTargetGone once it left (tgt_stackability.go)
+				for j := uint8(0); j < x.n && j < maxXTgt; j++ {
+					if c := p.Stack[i].Extra[j]; isStackTarget(c) {
+						p.Stack[i].Extra[j] = s.stackTgtProj(c, x.ver[j])
+					}
+				}
+			}
 		}
 	}
 	p.Turn, p.Step, p.Active, p.Prio = s.turn, s.step, s.active, s.prio
