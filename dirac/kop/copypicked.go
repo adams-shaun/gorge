@@ -7,8 +7,8 @@ package kop
 // NonRemCtrl bits are never set. Unlike OpCopyAsTokenEx on an empty Obj it
 // still registers the AtEOT$ riders' delayed trigger when nothing was
 // picked (CpSacAtEndDly, CpExileAtEnd: gorge scheduleAtEOTNone, CR 603.7).
-// An Aura or a card with an as-enters choice or a clone election stalls
-// (StallCopyAllAsk) rather than ask. dirac/copy_picked.go.
+// An Aura (its host ask) or a card with an as-enters choice or a clone
+// election parks the resolution as any token copy does. dirac/copy_picked.go.
 const ExtCopyPicked ExtOp = 316
 
 // CopyAttacking: ExtCopyPicked B.N bit 14 (the bit CopyPumpEOT is beside a
