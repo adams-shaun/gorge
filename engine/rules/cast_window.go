@@ -306,6 +306,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 			free := pay.ManaFreeCost(cost)
 			freeTap := free && cost.Tap
 			post := false
+			selfSac := false
 			switch {
 			case free:
 				// windowManaUnits already counted a free PLAIN literal
@@ -325,6 +326,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				// from floating mana, so this is the cast window's own paid
 				// layer.
 				genericCost, coloredCost = cost.Generic, cost.Colored
+				selfSac = true
 			default:
 				// The PayLife<N> and self-sacrifice arms are the paid-cost
 				// census layer's shared shape test (paid_mana_census.go).
@@ -338,7 +340,11 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				// makes its mana, then the sacrifice makes its own. It is
 				// never the alternative that replaces the tap, so it joins
 				// the unit's Extras when the unit already has a tap alt.
-				post = pay.CastWindowSelfSacCost(asPayer(e), p, id, cost)
+				// A "{T}, Sacrifice this" activation is NOT that shape: its
+				// own tap is part of the one activation, so it stays an
+				// ordinary alternative (CR 602.2b, 107.5).
+				selfSac = pay.CastWindowSelfSacCost(asPayer(e), p, id, cost)
+				post = selfSac && !cost.Tap
 			}
 			amt, ok := e.castWindowAmount(p, id, o, ma)
 			if !ok {
@@ -390,7 +396,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 					}
 					var single [6]int32
 					single[colour] = 1
-					alt := windowManaAlt{Ma: ma, Counts: single, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: coloredCost, FreeTap: freeTap}
+					alt := windowManaAlt{Ma: ma, Counts: single, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: coloredCost, FreeTap: freeTap, SelfSac: selfSac}
 					if post {
 						postAlts = append(postAlts, alt)
 					} else {
@@ -399,7 +405,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				}
 				continue
 			}
-			alt := windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: coloredCost, FreeTap: freeTap}
+			alt := windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: coloredCost, FreeTap: freeTap, SelfSac: selfSac}
 			if post {
 				postAlts = append(postAlts, alt)
 			} else {
@@ -740,7 +746,10 @@ func addCastWindowPostAlts(units []windowManaUnit, id state.ObjID, postAlts []wi
 // tap-required activation that leaves the source on the battlefield, so a
 // no-tap self-sacrifice is a legal second activation beside it. A tap that
 // also sacrifices the source (Omni-Cheese Pizza's fee shape) is not: the
-// sacrifice would already have removed it.
+// sacrifice would already have removed it. A tap carrying any OTHER non-free
+// cost (a granted "{T}, Pay 2 life: Add {C}") is not a FreeTap either, so its
+// no-tap sacrifice stays an ordinary alternative and the window under-counts
+// rather than promising an activation it cannot complete (fail closed).
 func castWindowUnitFreeTap(u windowManaUnit) bool {
 	for _, a := range u.Alts {
 		if a.FreeTap {
@@ -961,7 +970,7 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 				used[i] = true
 				spentMask |= 1 << uint(i&63)
 				tryFee := func(afterFee, afterFeeSnow state.Mana) bool {
-					return castWindowTryAlternative(ordered[i].Extras, rec,
+					return castWindowTryAlternative(ordered[i].Extras, a.SelfSac, rec,
 						pool, spellSnow, activationPool, activationSnow, produced,
 						lifeLeft-a.Life, next, remaining-1, afterFee, afterFeeSnow)
 				}
@@ -1005,11 +1014,13 @@ func castWindowUnitBest(u windowManaUnit) int32 {
 }
 
 // castWindowTryAlternative runs one unit alternative through the reach walk:
-// the activation's production, then (when the unit has them) each no-tap
-// self-sacrifice EXTRA activation that may follow it (CR 602.2b, 605.1a). The
-// extras are one-shot and free (the probe collects only self-sacrifice alts),
-// so each adds its production and one activation.
-func castWindowTryAlternative(extras []windowManaAlt,
+// the activation's production, then (when the unit has them and the main
+// alternative did not sacrifice the source) each no-tap self-sacrifice EXTRA
+// activation that may follow it (CR 602.2b, 605.1a). The extras are one-shot
+// and free (the probe collects only self-sacrifice alts), so each adds its
+// production and one activation; a main alternative that already sacrificed
+// the source (WindowAlt.SelfSac) can have none.
+func castWindowTryAlternative(extras []windowManaAlt, mainSelfSac bool,
 	rec func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree, remaining int) bool,
 	pool, spellSnow, activationPool, activationSnow, produced state.Mana, lifeLeft int32,
 	next, remaining int, afterFee, afterFeeSnow state.Mana) bool {
@@ -1019,6 +1030,9 @@ func castWindowTryAlternative(extras []windowManaAlt,
 	nextActivation := pay.ManaAdd(afterFee, produced)
 	if rec(nextPool, manaSub(spellSnow, snowSpent), nextActivation, afterFeeSnow, lifeLeft, next, remaining) {
 		return true
+	}
+	if mainSelfSac {
+		return false
 	}
 	for _, x := range extras {
 		if x.Fee() != 0 || x.Life != 0 {

@@ -96,6 +96,11 @@ type WindowAlt struct {
 	// source on the battlefield and a no-tap self-sacrifice ability may
 	// follow it (cast_window.go's Extras).
 	FreeTap bool
+	// SelfSac marks an activation whose cost sacrifices the source itself
+	// (with or without its {T}). The source is gone afterwards, so the walk
+	// must not follow this alternative with a no-tap sacrifice Extra
+	// (cast_window.go's castWindowTryAlternative).
+	SelfSac bool
 }
 
 // Fee is the alt's activation fee as one mana count, generic and coloured.
