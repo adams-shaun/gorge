@@ -894,13 +894,7 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("zone"), RefNone, RefNone, mode), true // gorge's originAlternativeZones pick: the option index
 	case dirac.ChGenBranch:
 		// gorge lists only the payable choices, indexed densely
-		n := uint8(0)
-		for _, o := range r.D.Options[:r.D.N] {
-			if o.Mode() < mode {
-				n++
-			}
-		}
-		return Pack(ActMode, RefNone, RefNone, n), true
+		return Pack(ActMode, RefNone, RefNone, denseIndex(r.D.Options[:r.D.N], mode)), true
 	case dirac.ChGenCastFree:
 		// gorge's modes over the castable cards, in object order, an index
 		// kept after a cast
@@ -1037,13 +1031,7 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge indexes its colour options densely: with an Exclude$
 		// colour dropped (Citadel Gate) the index is the colour's rank
 		// among the offered ones (identity over all five)
-		n := uint8(0)
-		for _, o := range r.D.Options[:r.D.N] {
-			if o.Mode() < mode {
-				n++
-			}
-		}
-		return Pack(kind("color"), RefNone, RefNone, n), true
+		return Pack(kind("color"), RefNone, RefNone, denseIndex(r.D.Options[:r.D.N], mode)), true
 	case dirac.ChGenManaChoice:
 		// a resolving Mana effect's colour pick (Chandra, Hope's
 		// Beacon): gorge's "mana" option, valued by its colour
@@ -1059,29 +1047,8 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return 0, false
 		}
 		v := NameValue(r.GName[mode])
-		var earlier []string
-		if offered := r.D.Options[:r.D.N]; r.D.N > 0 {
-			// gorge counts over the options it offers, so an ask narrowed to
-			// a subset of the table (Alhammarret's revealed nonland names)
-			// counts the same names here
-			for _, o := range offered {
-				if c := int(o.Mode()); c < int(mode) && c < len(r.GName) {
-					earlier = append(earlier, r.GName[c])
-				}
-			}
-		} else if r.Tbl != nil {
-			names := r.Tbl.NameCards
-			if r.D.N > 0 && len(r.Tbl.NameCardsAny) > 0 && len(r.D.Options[:r.D.N]) == len(r.Tbl.NameCardsAny) {
-				names = r.Tbl.NameCardsAny // the any-card ask's list (lands included)
-			}
-			for _, c := range names {
-				if int(c) < int(mode) {
-					earlier = append(earlier, r.GName[c])
-				}
-			}
-		}
 		src := RefNone
-		if n := NameOrdinal(v, earlier); n > 0 {
+		if n := NameOrdinal(v, r.nameEarlier(mode)); n > 0 {
 			src = Ref(n) // two names that hash alike stay two options
 		}
 		return Pack(kind("name"), src, Ref(v>>8), uint8(v)), true
@@ -1118,6 +1085,46 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("card"), Ref(src), RefNone, uint8(a.Target())), true
 	}
 	return clashCanon(r.D.Sub, src, mode) // translate_clash.go
+}
+
+// denseIndex counts the offered options whose mode sorts before mode: gorge
+// numbers a densely indexed choice (its payable branches, its colour options)
+// over the options it offers, so the kernel's carrier mode becomes that count.
+func denseIndex(opts []dirac.Action, mode uint8) uint8 {
+	n := uint8(0)
+	for _, o := range opts {
+		if o.Mode() < mode {
+			n++
+		}
+	}
+	return n
+}
+
+// nameEarlier collects the names a choose-name ask offers before the kernel's
+// chosen CardID (the mode): gorge counts a name option's hash-alike ordinal
+// over the options it offers (CR 201.4), so an ask narrowed to a subset of the
+// table (Alhammarret's revealed nonland names) counts the same names here;
+// without offered options, the matchup's name table is the list.
+func (r *Translator) nameEarlier(mode uint8) []string {
+	var earlier []string
+	if offered := r.D.Options[:r.D.N]; r.D.N > 0 {
+		for _, o := range offered {
+			if c := int(o.Mode()); c < int(mode) && c < len(r.GName) {
+				earlier = append(earlier, r.GName[c])
+			}
+		}
+	} else if r.Tbl != nil {
+		names := r.Tbl.NameCards
+		if r.D.N > 0 && len(r.Tbl.NameCardsAny) > 0 && len(r.D.Options[:r.D.N]) == len(r.Tbl.NameCardsAny) {
+			names = r.Tbl.NameCardsAny // the any-card ask's list (lands included)
+		}
+		for _, c := range names {
+			if int(c) < int(mode) {
+				earlier = append(earlier, r.GName[c])
+			}
+		}
+	}
+	return earlier
 }
 
 // aorChoice is the kernel side of gorge's "aor_elect" option: the arm is the
