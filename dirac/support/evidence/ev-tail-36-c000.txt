@@ -46,6 +46,7 @@ Balthor the Stout
 Barishi
 Basilica Guards
 Battlewise Aven
+Belltower Sphinx
 Benalish Emissary
 Biolume Egg
 Black Dragon Gate
@@ -184,6 +185,7 @@ Hunted Troll
 Hurricane
 Hymn to Tourach
 Hypochondria
+Illuminator Virtuoso
 Impending Disaster
 Independent Troops
 Insolent Neonate
@@ -222,6 +224,7 @@ Leonin Snarecaster
 Leyline of Abundance
 Lich's Caress
 Lingering Death
+Lion Umbra
 Liturgy of Blood
 Loch Korrigan
 Lone Missionary
@@ -257,6 +260,7 @@ Netherborn Phalanx
 Network Terminal
 Neurok Hoversail
 Nicol Bolas, Planeswalker
+Nightmare Incursion
 Nightwind Glider
 Nimble Innovator
 Niv-Mizzet, the Firemind
@@ -307,6 +311,7 @@ Rumor Gatherer
 Rust Elemental
 Ruthless Cullblade
 Sacred Wolf
+Sadistic Sacrament
 Sam, Loyal Attendant
 Samite Herbalist
 Sanctum Seeker
@@ -367,6 +372,7 @@ Supply Runners
 Surge Node
 Svyelun of Sea and Sky
 Swamp
+Sword of Kaldra
 Take Down
 Tall as a Beanstalk
 Telethopter
@@ -390,6 +396,7 @@ Travel Preparations
 Tri-Sentinel, Act of Vengeance
 Triplicate Spirits
 Triumphant Reckoning
+Twilight Shepherd
 Ulamog's Dreadsire
 Urza's Chalice
 Veteran Explorer

@@ -1,18 +1,24 @@
 A-Imperial Subduer
+A-Kargan Warleader
 A-Radha's Firebrand
+A-Syndicate Infiltrator
 Abzan Kin-Guard
 Adeline, Resplendent Cathar
 Aeronaut Tinkerer
+Aethershield Artificer
 Akki Ronin
 Akoum Hellkite
 Akroma, Angel of Wrath
 Alley Strangler
+An-Zerrin Ruins
 Anaba Spirit Crafter
 Ancestral Vengeance
 Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
+Armored Cancrix
 Armored Skaab
+Artisan of Forms
 Artistic Refusal
 Atomize
 Augur of Skulls
@@ -20,62 +26,94 @@ Awaken the Sky Tyrant
 Azorius Chancery
 Balduvian Hydra
 Balm of Restoration
+Baloth Pup
 Bandage
 Barbary Apes
 Barl's Cage
 Basilisk Gate
+Bathe in Dragonfire
 Beacon of Creation
+Benalish Knight
+Big Apple, 3 a.m.
 Big Mother Mouser
+Blessed Spirits
+Blighted Fen
 Blood Lust
 Bloodfire Infusion
 Boarding Party
 Bog Badger
+Borderland Ranger
 Boros Elite
 Borrowed Malevolence
 Borrowing 100,000 Arrows
 Brass Man
+Breaching Hippocamp
 Brood Weaver
+Brotherhood Patriarch
 Brothers of Fire
 Brought Back
+Budoka Gardener
 Burning-Yard Trainer
 Cacophodon
 Caldera Lake
 Callous Deceiver
+Canyon Minotaur
+Cartographer
 Cathar's Call
 Cavalier of Dawn
 Cement Shoes
+Ceremonial Knife
 Champion of Dusk
 Changeling Outcast
 Chimeric Staff
+Circuit Mender
+Cleansing Screech
 Cloudfin Raptor
+Cloudshredder Sliver
 Cloudthresher
 Conscripted Infantry
 Control of the Court
+Coral Helm
 Corpse Churn
 Court of Embereth
 Crosstown Courier
+Crown of Skemfar
 Crucible of Fire
+Cruel Grimnarch
 Cutthroat Negotiator
+Cylian Elf
+Dawnglare Invoker
 Dawnhart Wardens
+Dead Man's Chest
+Deadeye Quartermaster
 Death Stroke
 Deathbloom Gardener
 Deb Thomas
+Decaying Time Loop
 Decorated Griffin
 Decree of Savagery
+Diminish
 Diregraf Scavenger
 Dramatic Entrance
 Dream Trawler
 Dreamdrinker Vampire
 Drizzt Do'Urden
+Dwarven Demolition Team
+Ebony Charm
 Edge of Autumn
 Eldrazi Mimic
+Elvish Rejuvenator
 Emberwilde Caliph
 Embodiment of Fury
+Emiel the Blessed
+Empty-Shrine Kannushi
 Enraged Ceratok
+Epicenter
 Erdwal Ripper
 Evil Eye of Urborg
 Experimental Armor
 Explosive Entry
+Eye of Vecna
 Eye of Yawgmoth
 Faerie Seer
 Falconer Adept
@@ -83,9 +121,11 @@ Fate Unraveler
 Felhide Minotaur
 Fight as One
 Firebrand Ranger
+Flailing Manticore
 Flamewave Invoker
 Flaming Gambit
 Flow of Knowledge
+Flutterfox
 Forest
 Founding of Omashu
 Freed from the Real
@@ -96,12 +136,20 @@ Fugitive Wizard
 Gaea's Balance
 Galadhrim Guide
 Galvanic Arc
+Gargoyle Castle
 Gift of Growth
+Gift of the Woods
+Glacial Wall
+Glamorous Grapplers
+Gleeful Demolition
 Gluttonous Troll
+Goblin Digging Team
+Goblin King
 Goblin Wizardry
 Gold-Forged Thopteryx
 Golem's Heart
 Golgari Germination
+Golgari Keyrune
 Golgari Raiders
 Graviton, Fundamental Force
 Great Defender
@@ -110,21 +158,31 @@ Grinning Demon
 Griselbrand
 Hagra Diabolist
 Halo Scarab
+Heliod's Punishment
 Heliod, God of the Sun
+Heliophial
+Hell Swarm
+Hell's Caretaker
 Herald of Hadar
 Hobgoblin Bandit Lord
 Honor the Fallen
 Hornet Nest
 Hot Springs
 Humiliate
+Hunger of the Howlpack
 Hymn to Tourach
+Ice Floe
 Iceman and Firestar
 Illusionary Informant
 Illusory Angel
+Imperious Oligarch
 Innocent Blood
 Invoke the Divine
+Iron-Heart Chimera
 Island
+Izzet Boilerworks
 Jaddi Offshoot
+Jamuraan Lion
 Jeering Homunculus
 Jewel Thief
 Jolted Awake
@@ -132,10 +190,17 @@ Juntu Stakes
 Kaseto, Orochi Archmage
 Kavu Howler
 Kemba, Kha Enduring
+Kezzerdrix
+Kiki-Jiki, Mirror Breaker
 King Darien XLVIII
 Kiora, Behemoth Beckoner
+Krovikan Whispers
 Kyoshi Warrior Exemplars
 Lagonna-Band Elder
+Landslide
+Last-Ditch Effort
+Launch Party
+Lazotep Behemoth
 Leaf Gilder
 Leafcrown Dryad
 Lesser Masticore
@@ -143,6 +208,7 @@ Leyline of Vitality
 Lightning Surge
 Locthwain Lancer
 Long Road Home
+Looming Spires
 Lost Soul
 Loxodon Warhammer
 Luminesce
@@ -150,32 +216,52 @@ Luminous Angel
 Magnetic Mine
 Magus of the Bridge
 Mammoth Spider
+Manifestation Sage
 Manor Skeleton
 Mantle of Webs
 Marang River Skeleton
 Marsh Boa
 Mascot Exhibition
+Master Healer
 Master's Call
+Merchant Raiders
+Merrow Wavebreakers
+Midnight Guard
 Minds Aglow
 Mindstab
+Mindwhip Sliver
+Minotaur Sureshot
 Moan of the Unhallowed
 Molten Vortex
+Mortivore
 Mothdust Changeling
 Mountain
 Mystic Melting
+Nev, the Practical Dean
 Nezahal, Primal Tide
 Nim Shambler
 Nirkana Revenant
+Niv-Mizzet, Dracogenius
+Nomad Mythmaker
 Noosegraf Mob
 Nuka-Cola Vending Machine
 Nylea's Disciple
 Obstinate Gargoyle
 On Serra's Wings
+Onward
+Oona's Grace
 Order of the Ebon Hand
+Ordruun Veteran
 Outnumber
+Outrider of Jhess
 Overwhelmed Apprentice
+Owlbear
+Ox of Agonas
 P-Joven and Chandler
+Pardic Firecat
+Pariah
 Peek
+Pensive Minotaur
 Phyrexian Battleflies
 Phyrexian Bloodstock
 Phyrexian Debaser
@@ -187,20 +273,30 @@ Pounce
 Pre-War Formalwear
 Press the Advantage
 Prison Sentence
+Pull from the Deep
 Pulse of the Tangle
 Putrefax
 RMS Titanic
 Ragefire Hellkite
 Raging Swordtooth
+Rakdos Pit Dragon
 Rats of Rath
+Ray of Enfeeblement
 Reality Anchor
+Reality Strobe
 Reckless Embermage
+Reckless Ogre
 Reconnaissance Mission
+Recoup
+Recuperate
+Reflex Sliver
 Renewing Dawn
 Return to Battle
 Return to the Earth
+Revenge of Ravens
 Rhizome Lurcher
 Ricochet Trap
+Ritual of the Machine
 Root Snare
 Rosemane Centaur
 Rotten Reunion
@@ -209,24 +305,33 @@ Runeclaw Bear
 Sacred Armory
 Sailors' Bane
 Sanctum of Shattered Heights
+Sand Golem
 Saprazzan Bailiff
 Sarkhan's Triumph
+Scale the Heights
 Scaled Behemoth
+Second Thoughts
 Sentinel's Mark
 Seraph of the Masses
 Servant of Volrath
 Shadowheart, Dark Justiciar
 Shamble Back
+Shinka, the Bloodsoaked Keep
 Silent Observer
 Silent-Chant Zubera
 Simic Keyrune
 Sire of the Storm
 Skarrg Goliath
+Skirk Ridge Exhumer
 Skullport Merchant
+Smoldering Werewolf
+Snapping Thragg
 Soltari Lancer
 Soot Imp
+Soratami Mirror-Guard
 Soul Collector
 Soul's Grace
+Spectral Prison
 Spellbound Dragon
 Spirit Link
 Splinter, the Mentor
@@ -240,7 +345,9 @@ Sudden Spoiling
 Sungrace Pegasus
 Suntail Hawk
 Supply-Line Cranes
+Suture Spirit
 Swamp
+Sword of Feast and Famine
 Sylvan Bounty
 Take to the Streets
 Talara's Battalion
@@ -251,36 +358,51 @@ Teller of Tales
 Thalakos Scout
 Thassa, Deep-Dwelling
 The Antiquities War
+The Brute
+The First Eruption
 The Modern Age
 The One Ring
+Thickest in the Thicket
 Thopter Engineer
 Thorn of Amethyst
+Thraben Gargoyle
 Thran Lens
 Thunderhawk Gunship
+Tiller of Flesh
 Toggo, Goblin Weaponsmith
 Towering Indrik
 Trapfinder's Trick
+Traproot Kami
 Traverse the Ulvenwald
 Tremble
 Turn
 Ultimate Magic: Holy
 Underdark Basilisk
 Undergrowth Scavenger
+Urborg Repossession
 Valorous Steed
+Vampire Sovereign
 Vampiric Spirit
 Vault 75: Middle School
 Venser, Shaper Savant
 Vessel of Endless Rest
+Viashino Slaughtermaster
+Vizier of Remedies
 Wall of Kelp
 Wandering Wolf
 Warlord's Fury
 Whispersilk Cloak
+Wild Defiance
 Wildwood Rebirth
 Winged Sliver
 Wirewood Pride
+Witch's Familiar
+Witch's Oven
 Wolfsbane, Highland Hero
 Wooden Sphere
 Wrenn and Realmbreaker
+Yavimaya Coast
 Yawgmoth's Edict
 Yuna's Decision
 Zarichi Tiger
+Zombie Cannibal

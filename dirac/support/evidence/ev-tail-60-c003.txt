@@ -1,61 +1,97 @@
 Acridian
+Act of Treason
+Affa Protector
 Alabaster Mage
+Alaborn Trooper
 Algorithmic Ferocity
 Anaba Shaman
+Ancestral Statue
 Ant Queen
 Arachnus Web
+Argentum Armor
 Armored Wolf-Rider
+Artful Maneuver
 Assimilate Essence
 Atreus, Impulsive Son
 Back to Nature
 Baloth Gorger
 Bastion Protector
 Batterskull
+Battlegrowth
 Beast Hunt
 Befriending the Moths
 Binding Grasp
+Bladestitched Skaab
 Blessing
+Boros Cluestone
+Brave the Elements
 Breach
+Briar Hydra
+Bridgeworks Battle
 Brightstone Ritual
+Bringer of the Red Dawn
 Builder's Blessing
 Burning-Tree Emissary
+Call the Gatewatch
 Candlegrove Witch
 Canopy Stalker
+Canyon Jerboa
 Captain America, Skybound
 Catacomb Crocodile
 Centaur Nurturer
 Cerulean Wisps
 Chambered Nautilus
+Charnel Serenade
+Chief of the Edge
 Child of Gaea
 Cho-Manno, Revolutionary
+Cliffside Lookout
 Clone Legion
+Collective Nightmare
+Combat Thresher
 Cosmic Hunger
+Court Cleric
+Crenellated Wall
+Curse of Wizardry
 Dawnhart Rejuvenator
 Death Bomb
+Deep Dish Pizza
 Dehydration
 Demotion
 Deserted Temple
 Desperate Farmer
 Dingus Egg
+Doctor Strange, Surgeon
+Dreadfeast Demon
 Dross Harvester
 Dryad Greenseeker
 Dueling Coach
 Durkwood Baloth
 Dwarven Bloodboiler
 Dáin's Company
+Earth Servant
+Earth-Origin Yak
+Elixir of Immortality
 Elvish Warrior
 Ember Beast
 Emeria Angel
 End the Festivities
 Essence Infusion
+Eternal Flame
 Etherium Sculptor
+Execute
 Exemplar of Strength
+Expedition Champion
+Extract the Truth
 Fallaji Vanguard
 Familiar Ground
+Festival of Trokin
 Five Hundred Year Diary
 Flesh-Eater Imp
+Flickering Ward
 Flowstone Kavu
 Forest
+Forsaken City
 Frenetic Raptor
 Frenzied Fugue
 Genju of the Spires
@@ -63,33 +99,62 @@ Gird for Battle
 Glorifier of Dusk
 Glory of Warfare
 Gnottvold Slumbermound
+Goblin Kaboomist
 Goblin Replica
 Goblin Tunneler
 Golden Wish
 Goldmeadow Dodger
 Grindstone
+Guardians of Akrasa
+Haazda Snare Squad
 Hag of Syphoned Breath
+Hamlet Vanguard
+Hardened Scales
 Harrow
+Hawkeye, Bowslinger
 Healing Salve
+Heartwood Treefolk
 Hopeful Eidolon
+Hulk, Strongest There Is
+Hungry Mist
 Icatian Scout
+Illness in the Ranks
 Impostor of the Sixth Pride
 Island
+Island of Wak-Wak
+Ivory Crane Netsuke
+Jadelight Ranger
+Kami of Whispered Hopes
 Keeper of the Lens
+Kemba's Skyguard
 Kill! Maim! Burn!
+Leechridden Swamp
 Life's Legacy
+Lightning-Core Excavator
+Lithophage
 Littjara Glade-Warden
 Livonya Silone
+Llanowar Stalker
+Loathsome Catoblepas
+Lockjaw Snapper
 Lorehold Archivist
 Mahadi, Emporium Master
+Marble Chalice
 Marionette Apprentice
+Mark of the Oni
 Markov Warlord
 Matsu-Tribe Birdstalker
+Maw of Kozilek
 Maximize Velocity
+Menagerie Liberator
+Mer-Ek Nightblade
 Metastatic Evangel
 Minamo, School at Water's Edge
+Mind Maggots
 Mire Shade
 Mirozel
+Mischief and Mayhem
+Mist Leopard
 Mistmeadow Skulk
 Molder Slug
 Monstrify
@@ -100,20 +165,39 @@ Namora, the Sea Queen
 Narwhal
 Needle Storm
 Obsessive Skinner
+Ohran Frostfang
 One with the Machine
+Onslaught
+Otarian Juggernaut
 Pact of the Titan
+Path of Discovery
+Pillardrop Rescuer
 Plains
+Poison the Blade
 Power Plant Worker
+Quiet Disrepair
 Quirion Trailblazer
+Ramosian Captain
+Ravenous Baloth
+Razor Golem
+Refresh
 Repudiate
+Retreat to Kazandu
 Retrieval Agent
+Reviving Dose
 Riptide Chimera
 Roast
+Rofellos's Gift
+Ronom Unicorn
+Rootgrapple
+Rootwalla
 Rotting Rats
 Rowan Treefolk
 Scrounger of Souls
+Secluded Glen
 Secrets of the Golden City
 Seismic Tutelage
+Sengir Nosferatu
 Serene Sunset
 Silent Specter
 Skin Invasion
@@ -121,29 +205,47 @@ Skinwing
 Sky Terror
 Skyreach Manta
 Smiting Helix
+Soltari Emissary
 Spectral Guardian
 Spider Spawning
+Split-Tail Miko
+Spurnmage Advocate
+Stenchskipper
 Stun Sniper
+Sulfurous Blast
 Swamp
+Sylvok Explorer
 Tawnos's Wand
+Tek
 Tenacity
+Terrain Generator
 Thallid Omnivore
+Those Who Serve
 Thousand-Year Elixir
+Thran Dynamo
 Thriving Moor
+Thunderstaff
 Timbermaw Larva
 Toe-Breaking Helmet
+Towashi Guide-Bot
 Toxic Abomination
 Tragic Fall
+Treacherous Werewolf
 Treebeard, Gracious Host
 Trench Wurm
 Tymaret, Chosen from Death
 Uktabi Efreet
 Veiled Shade
+Venomous Hierophant
 Vesper Ghoul
 Vexilus Praetor
 Voice of Duty
+Volcanic Rambler
+Warrior's Honor
 Watertrap Weaver
 White Shield Crusader
+Wicker Warcrawler
+Wight
 Windbrisk Raptor
 Wreck and Rebuild
 Yellow Scarves Troops

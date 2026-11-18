@@ -28,6 +28,7 @@ Battlewise Valor
 Benthic Giant
 Black Dragon
 Blade Historian
+Bladewing, Deathless Tyrant
 Blessed Defiance
 Blood Pact
 Bloodchief's Thirst
@@ -52,11 +53,13 @@ Cavalier of Flame
 Celestial Archon
 Charnel Serenade
 Cinder Hellion
+Consulate Dreadnought
 Converter Beast
 Coordinated Assault
 Coral Commando
 Court of Ardenvale
 Crash the Party
+Crippling Fear
 Crumble
 Curse of Vitality
 Cursed Minotaur
@@ -64,6 +67,7 @@ Cut Down
 Cyclops of One-Eyed Pass
 Daring Escape
 Dark Privilege
+Darkslick Drake
 Darksteel Forge
 Darksteel Ingot
 Daughter of the Deep
@@ -102,6 +106,7 @@ Equestrian Skill
 Erkenbrand, Lord of Westfold
 Errand-Rider of Gondor
 Ertai Resurrected
+Essence Extraction
 Eternal Isolation
 Evasive Action
 Eviscerator's Insight
@@ -114,6 +119,7 @@ Famine
 Fell Stinger
 Final-Sting Faerie
 Firefly
+Flames of the Firebrand
 Forest
 Fountain Watch
 Freewind Equenaut
@@ -125,13 +131,16 @@ Gideon's Battle Cry
 Gift of Growth
 Glint-Sleeve Siphoner
 Gnarled Effigy
+Goblin Bangchuckers
 Goblin Battle Jester
 Goblin Brigand
 Goblin Masons
 Goblin Sharpshooter
+Goblin Vandal
 Grazing Whiptail
 Grim Hireling
 Grim Poppet
+Grizzly Bears
 Guardian Augmenter
 Guide of Souls
 Guild Thief
@@ -141,16 +150,19 @@ Gyre Sage
 Halo Hunter
 Headless Skaab
 Headstrong Brute
+Heap Gate
 Heiko Yamazaki, the General
 Hell Mongrel
 Hellraiser Goblin
 Hibernation Sliver
+Hidden Dragonslayer
 Highland Giant
 Highspire Mantis
 Hill Giant
 Horncaller's Chant
 Hound Tamer
 Hulking Ogre
+Ichor Explosion
 Ideas Unbound
 Impetuous Protege
 Industrial Advancement
@@ -158,6 +170,7 @@ Inescapable Brute
 Infantry Veteran
 Inhumaniac
 Innistrad Charm
+Ipnu Rivulet
 Island
 Isolation Cell
 Ivory Charm
@@ -166,6 +179,7 @@ Jackhammer
 Jodah's Codex
 Jousting Lance
 Joven and Chandler
+Junktown
 Kalonian Twingrove
 Kaya's Ghostform
 Keen Sense
@@ -178,16 +192,19 @@ Kobolds of Kher Keep
 Kolaghan Aspirant
 Korozda Gorgon
 Kraul Foragers
+Lady Zhurong, Warrior Queen
 Latch Seeker
 Lathnu Hellion
 Let the Galaxy Burn
 Leveler
+Life Chisel
 Life Insurance
 Light of Hope
 Lightning Elemental
 Living Wish
 Loathsome Curator
 Long-Lost Lances
+Machine Over Matter
 Magus of the Future
 Make Mischief
 Mass Appeal
@@ -198,6 +215,7 @@ Mire in Misery
 Mirror of Galadriel
 Mishra's Research Desk
 Moldgraf Millipede
+Mole Worms
 Monastery Swiftspear
 Mosstodon
 Most Wanted
@@ -216,6 +234,7 @@ Nissa's Judgment
 Noble Purpose
 Noble Steeds
 Nomad Mythmaker
+Obsidian Battle-Axe
 Olivia, Mobilized for War
 One-Clown Band
 Onyx Mage
@@ -234,6 +253,7 @@ Plague Beetle
 Plaguemaw Beast
 Plains
 Plunder
+Possessed Skaab
 Pouncing Cheetah
 Prava of the Steel Legion
 Presence of the Wise
@@ -253,6 +273,7 @@ Raven Wings
 Regent's Authority
 Reject
 Rejuvenating Springs
+Remote Farm
 Repentant Vampire
 Requiem Angel
 Retreat to Valakut
@@ -263,6 +284,7 @@ Risona, Asari Commander
 River Merfolk
 Roar of Reclamation
 Robber Fly
+Ronin Cavekeeper
 Rorix Bladewing
 Rosecot Knight
 Rotting Giant
@@ -325,8 +347,10 @@ Stir the Pride
 Straw Soldiers
 Street Spasm
 Strength in Numbers
+Strider Harness
 Stronghold Assassin
 Summit Apes
+Summoning Station
 Sun Droplet
 Sunscape Apprentice
 Supernatural Stamina
@@ -346,7 +370,9 @@ The Spike Cactus
 The Third Doctor
 Theoretical Duplication
 Thermal Navigator
+Thor, Guardian of Midgard
 Thornscape Apprentice
+Throat Slitter
 Thundering Tanadon
 Thunderous Wrath
 Thunderwolf Cavalry
@@ -355,8 +381,10 @@ Tivadar's Crusade
 Tormented Hero
 Touch of Brilliance
 Tourach's Canticle
+Tovolar's Huntmaster
 Treetop Warden
 Tresserhorn Sinks
+Tuktuk Rubblefort
 Ulrich's Kindred
 Undercover Butler
 Unexpected Windfall
@@ -370,6 +398,7 @@ Veiled Apparition
 Wall Off
 Wall of Blood
 Wall of Mist
+Wand of Orcus
 Warbeast of Gorgoroth
 Warbriar Blessing
 Wayward Soul

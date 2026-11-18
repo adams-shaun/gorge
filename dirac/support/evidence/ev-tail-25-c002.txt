@@ -16,6 +16,7 @@ Anointed Chorister
 Aquatic Incursion
 Argivian Avenger
 Army of Allah
+Arterial Flow
 Ashen-Skin Zubera
 Augur of Skulls
 Autonomous Assembler
@@ -23,6 +24,7 @@ Aven Fisher
 Bitterblossom
 Bladed Battle-Fan
 Blaze Commando
+Blood Petal Celebrant
 Blur Sliver
 Boss Uramon, Shadow's Reach
 Brutal Nightstalker
@@ -42,11 +44,13 @@ Cloistered Youth
 Collector Ouphe
 Commune with the Gods
 Congregation at Dawn
+Cragsmasher Yeti
 Crater's Claws
 Craven Giant
 Crippling Blight
 Crook of Condemnation
 Cudgel Troll
+Cyclonic Rift
 Dark Hatchling
 Dark Privilege
 Dark Supplicant
@@ -54,6 +58,7 @@ Darkest Hour
 Daybreak Chaplain
 Deathbringer Thoctar
 Deathknell Berserker
+Deepfathom Skulker
 Deeproot Champion
 Defiant Falcon
 Demonic Rising
@@ -69,12 +74,15 @@ Dunland Crebain
 Ebony Owl Netsuke
 Eidolon of Philosophy
 Eldrazi Devastator
+Electropotence
 Enchanted Evening
 Ephemeron
 Erebos, Bleak-Hearted
 Etherium Spinner
 Everflame Eidolon
 Expedition Skulker
+Fable of the Mirror-Breaker
+Failed Conversion
 Fallen Cleric
 Fang Dragon
 Fangren Hunter
@@ -83,8 +91,10 @@ Fire-Omen Crane
 Fireslinger
 Forest
 Forge Devil
+Forging the Anchor
 Fractal Harness
 Frantic Inventory
+Fresh Volunteers
 Fungusaur
 Furious Reprisal
 Future Flight
@@ -98,31 +108,38 @@ Gods' Hall Guardian
 Gone Missing
 Griffin Sentinel
 Guardian Kirin
+Hada Freeblade
 Harrowing Journey
 Hawkeye's Shot
 Healing Salve
 Heroes' Reunion
 Horror of the Dim
+Howling Gale
 Hulk, Strongest There Is
 Humble Defector
 Hungry for More
 Ichor Synthesizer
 Illusions of Grandeur
+Inversion Behemoth
 Iron League Steed
 Island
 Ixalli's Keeper
 Jeska, Warrior Adept
 Joraga Bard
+Jori En, Ruin Diver
 Journey for the Elixir
 Junk Golem
 Junk Jet
 Kamber, the Plunderer
 Keiga, the Tide Star
+Kjeldoran Gargoyle
 Kudo, King Among Bears
 Labyrinth of Skophos
 Lapis Lazuli Talisman
+Leeching Sliver
 Lulu, Stern Guardian
 Lurking Green Dragon
+Magnus the Red
 Makindi Stampede
 Malefic Scythe
 Marble Gargoyle
@@ -130,7 +147,10 @@ Marsh Flitter
 Mass of Ghouls
 Mawcor
 Mayhem Devil
+Memory Erosion
 Might Sliver
+Miner's Bane
+Minister of Impediments
 Mogg Sentry
 Moldgraf Monstrosity
 Momo, Rambunctious Rascal
@@ -141,10 +161,13 @@ Necron Deathmark
 Necropede
 Necrotic Hex
 Nesting Dovehawk
+Nexus Wardens
+Nightveil Predator
 Noble Stand
 Nyxborn Eidolon
 Omen of the Hunt
 Open the Gates
+Orb of Dreams
 Ostiary Thrull
 Overgrowth
 Overgrowth Elemental
@@ -153,12 +176,15 @@ Patrol Signaler
 Pearl Medallion
 Persist
 Phantasmagorian
+Phantom Nomad
 Phoenix of Ash
 Plains
 Planar Incision
 Polluted Dead
 Pouncing Cheetah
+Power Taint
 Prickly Boggart
+Prophet of Kruphix
 Prowler, Misguided Mentor
 Psychic Corrosion
 Putrefaction
@@ -174,10 +200,13 @@ Rejuvenating Springs
 Repulse
 Resolute Rider
 Response
+Return Upon the Tide
+Revered Unicorn
 Ripjaw Raptor
 Rot Shambler
 Rotting Mastodon
 Sage of the Falls
+Sally Sparrow
 Salt Road Patrol
 Saltfield Recluse
 Satyr's Cunning
@@ -191,11 +220,13 @@ Shrapnel Blast
 Siege Smash
 Siege-Gang Commander
 Silverglade Elemental
+Sire of Insanity
 Skillful Lunge
 Skophos Warleader
 Skyclave Shadowcat
 Snapping Drake
 Snapping Sailback
+Song-Mad Treachery
 Soot Imp
 Soratami Rainshaper
 Sorin, Imperious Bloodlord
@@ -208,11 +239,13 @@ Sporecrown Thallid
 Staff of Titania
 Stampeding Elk Herd
 Steadfast Armasaur
+Steelgaze Griffin
 Steward of Solidarity
 Stonerise Spirit
 Striding Shotcaller
 Stromkirk Mentor
 Sun Clasp
+Svyelun of Sea and Sky
 Swamp
 Sword Coast Serpent
 Tajuru Beastmaster
@@ -225,13 +258,16 @@ The Spear of Leonidas
 The Underworld Cookbook
 Thieves' Tools
 Thirsting Shade
+Thorin, King of Durin's Folk
 Thrummingbird
+Thrun, Breaker of Silence
 Tibor and Lumia
 Tide Drifter
 Titan of Industry
 Treacherous Vampire
 Twin-Silk Spider
 Undercity Necrolisk
+Undersea Invader
 Undying Rage
 Unholy Strength
 Unleash Fury
@@ -241,17 +277,23 @@ Vapor Snare
 Venomous Hierophant
 Vessel of Paramnesia
 Viashino Sandscout
+Vigilant Drake
 Voda Sea Scavenger
 Voice of the Blessed
+Voices from the Void
 Volcanic Vision
 Voracious Wurm
+Wake of Destruction
 Wall of Granite
 Wall of Swords
 Wall of Tombstones
 Wayward Swordtooth
+Weaver of Currents
+Whitemane Lion
 Wild Ceratok
 Wild Onslaught
 Will of the Mardu
+Windgrace's Judgment
 Witch's Cottage
 Wrong Turn
 Wurmcalling

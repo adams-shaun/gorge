@@ -15,11 +15,13 @@ Alpha Deathclaw
 Angel of Glory's Rise
 Ankh of Mishra
 Arc Mage
+Arcbound Worker
 Armor of Faith
 Armory Guard
 Ashling, the Extinguisher
 Attended Knight
 Autumn Willow, Harmony
+Avoid Fate
 Ballista Watcher
 Bartolomé del Presidio
 Beast Mode
@@ -32,6 +34,7 @@ Bladehold War-Whip
 Blood Funnel
 Bonesplitter Sliver
 Boots of Speed
+Borborygmos
 Brainspoil
 Bristling Hydra
 Buoyancy
@@ -41,6 +44,7 @@ Buy Your Silence
 Cavern Crawler
 Cephalid Aristocrat
 Chief of the Foundry
+Civic Wayfinder
 Clash of Wills
 Clip Wings
 Commander Mustard
@@ -174,6 +178,7 @@ Luminescent Rain
 Maraleaf Pixie
 Marble Titan
 Massacre
+Mastery of the Unseen
 Melira's Keepers
 Mental Misstep
 Messenger's Speed
@@ -182,6 +187,7 @@ Mindculling
 Miracle Worker
 Misers' Cage
 Mob Justice
+Mortipede
 Mountain
 Murasa Brute
 Myojin of Infinite Rage
@@ -210,6 +216,7 @@ Pinnacle of Rage
 Plains
 Popular Entertainer
 Predator's Rapport
+Pyrrhic Revival
 Quicksilver Amulet
 Rampant Rejuvenator
 Ransom Note
@@ -246,6 +253,7 @@ Shatterskull Smashing
 Shield-Wall Sentinel
 Shimmering Wings
 Shinechaser
+Shinen of Life's Roar
 Sif's Spearmaster
 Silas Renn, Seeker Adept
 Skeletal Wurm
@@ -286,6 +294,7 @@ Thornwatch Scarecrow
 Titanium Man
 Tolarian Entrancer
 Tortured Existence
+Transguild Courier
 Traveling Philosopher
 Treasure Vault
 Trench Gorger
@@ -324,7 +333,9 @@ Wirewood Elf
 Wirewood Herald
 Wolf Cove Villager
 Woodlot Crawler
+Wrenn and Realmbreaker
 Wyrm's Crossing Patrol
+Yavimaya Sapherd
 You Hear Something on Watch
 You're Ambushed on the Road
 Zephyr Net

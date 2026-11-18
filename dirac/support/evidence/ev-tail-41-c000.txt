@@ -2,6 +2,7 @@ A-Goggles of Night
 A-Luminarch Aspirant
 Adarkar Wastes
 Agonizing Memories
+Agrus Kos, Wojek Veteran
 Akroan Jailer
 Akroma's Memorial
 Alabaster Host Sanctifier
@@ -20,6 +21,7 @@ Ashcoat Bear
 Assassin's Ink
 Attended Socialite
 Aurora Griffin
+Avalanche
 Azorius Chancery
 Barbed Field
 Basri's Aegis
@@ -91,6 +93,7 @@ Deadeye Tracker
 Death Frenzy
 Death's Presence
 Defense of the Heart
+Depala, Pilot Exemplar
 Digsite Engineer
 Dimensional Infiltrator
 Dive Bomber
@@ -119,6 +122,7 @@ Faceless Devourer
 Faerie Invaders
 Faerie Vandal
 Fantastic Bounce
+Farrel's Zealot
 Fatal Push
 Fellwar Stone
 Femeref Archers
@@ -129,6 +133,7 @@ Flaxen Intruder
 Flood of Recollection
 Flowstone Overseer
 Flutterfox
+Foreboding Fruit
 Forerunner of Slaughter
 Foresight
 Forest
@@ -140,6 +145,7 @@ Gainsay
 Galvanic Discharge
 Gamble
 General Marhault Elsdragon
+Genestealer Patriarch
 Ghirapur Guide
 Ghost Tactician
 Giant Ox
@@ -148,6 +154,7 @@ Goblin Diplomats
 Goblin General
 Goblin Outlander
 Goblin War Party
+Godtoucher
 Griffin Canyon
 Grounded
 Halo Forager
@@ -203,6 +210,7 @@ Magma Rift
 Magus of the Moat
 Mammoth Growth
 Mana Flare
+Manakin and Millikin
 Manic Scribe
 Marble Diamond
 Mardu Heart-Piercer
@@ -240,6 +248,7 @@ Myojin of Roaring Blades
 Nacatl Savage
 Necrobite
 Necroduality
+Necroplasm
 Nephalia Seakite
 Night
 Nightveil Sprite
@@ -283,6 +292,7 @@ Rampaging Ferocidon
 Rank and File
 Ravenous Baboons
 Reap the Seagraf
+Rebuking Ceremony
 Reckless Abandon
 Reinforced Ronin
 Reito Lantern
@@ -291,6 +301,7 @@ Renowned Weaponsmith
 Rescind
 Retributive Wand
 Returned Centaur
+Revive the Fallen
 Rhythmic Water Vortex
 Rimeshield Frost Giant
 Rimrock Knight
@@ -313,6 +324,7 @@ Scent of Ivy
 Scepter of Celebration
 Scourglass
 Scouting Trek
+Scurry of Gremlins
 Sea Kings' Blessing
 Seal of Doom
 Searchlight Companion

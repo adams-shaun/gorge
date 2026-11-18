@@ -28,6 +28,8 @@ Apothecary Geist
 Arborea Pegasus
 Arcane Proxy
 Arcbound Condor
+Arcbound Prototype
+Arcbound Ravager
 Arch of Orazca
 Armed Assailant
 Arrester's Zeal
@@ -212,6 +214,7 @@ Hulking Ogre
 Ice Storm
 Ichor Drinker
 Illusory Demon
+Imperial Hellkite
 Imperial Subduer
 Inkwell Leviathan
 Inner-Chamber Guard
@@ -263,6 +266,7 @@ Midnight Charm
 Mindless Null
 Mindswipe
 Minion Reflector
+Mistform Ultimus
 Misthoof Kirin
 Mistvault Bridge
 Mold Demon
@@ -311,6 +315,7 @@ Priest of Urabrask
 Primal Surge
 Primal Visitation
 Prismatic Boon
+Protection of the Hekma
 Psionic Gift
 Puncturing Light
 Purge the Profane
@@ -440,6 +445,7 @@ Titanic Pelagosaur
 Toil
 Toil to Renown
 Tomakul Honor Guard
+Tomb Tyrant
 Tomb of the Spirit Dragon
 Topplegeist
 Tower of Fortunes

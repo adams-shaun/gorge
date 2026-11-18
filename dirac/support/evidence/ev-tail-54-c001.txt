@@ -13,6 +13,7 @@ Avarice Amulet
 Bag of Holding
 Balefire Liege
 Barbed Field
+Basal Sliver
 Battlefield Butcher
 Bazaar Krovod
 Bearded Axe
@@ -54,6 +55,7 @@ Deathgreeter
 Deep Dish Pizza
 Deep Reconnaissance
 Demon's Due
+Demystify
 Destructive Tampering
 Devout Chaplain
 Dinosaur Stampede
@@ -70,6 +72,7 @@ Enatu Golem
 Energy Bolt
 Esior, Wardwing Familiar
 Esper Panorama
+Euroakus
 Explosive Welcome
 Fade from History
 Festercreep
@@ -100,6 +103,7 @@ Great Furnace
 Grond, the Gatebreaker
 Harbor Bandit
 Harsh Sustenance
+Harvester of Souls
 Haunter of Nightveil
 Haunting Figment
 Heartwood Treefolk
@@ -114,9 +118,11 @@ Honeymoon Hearse
 Honor Troll
 Hungry Spriggan
 Hystrodon
+Icatian Javelineers
 Ich-Tekik, Salvage Splicer
 Immersturm Raider
 Implement of Combustion
+Imps' Taunt
 Infested Fleshcutter
 Inquisitive Puppet
 Insight Engine
@@ -158,6 +164,7 @@ Mandroid Squadron
 Massive Might
 Mindstab Thrull
 Miss Highwater
+Momo's Heist
 Moonbow Illusionist
 Moonglove Winnower
 Moss Viper
@@ -195,6 +202,7 @@ Plated Rootwalla
 Poison-Blade Mentor
 Pridemalkin
 Prologue to Phyresis
+Promise of Aclazotz
 Protocol Knight
 Pyromancer's Swath
 Pyrrhic Blast
@@ -227,6 +235,7 @@ Scarwood Bandits
 Scatter Ray
 Secure the Wastes
 Seismic Spike
+Sengir Connoisseur
 Sensor Splicer
 Setessan Champion
 Shadow of Mortality
@@ -234,6 +243,7 @@ Shivan Fire
 Shivan Phoenix
 Shock Troops
 Shower of Sparks
+Shrieking Specter
 Shu Elite Infantry
 Shunt
 Silent Artisan
@@ -268,6 +278,7 @@ Summon: Ixion
 Sunblast Angel
 Sunfall
 Suq'Ata Assassin
+Surge of Salvation
 Survivors' Encampment
 Swamp
 Switcheroo

@@ -134,6 +134,7 @@ Djeru and Hazoret
 Double Trouble
 Dragonspark Reactor
 Drake Familiar
+Drake Umbra
 Dromad Purebred
 Dromar's Cavern
 Drown in Shapelessness
@@ -183,6 +184,7 @@ Galadriel, Gift-Giver
 Galvanic Key
 Gandalf the Grey
 Gargoyle Flock
+Gatherer of Graces
 Geist of the Archives
 Gelectrode
 Geothermal Kami
@@ -225,6 +227,7 @@ Horn of Gondor
 Hostile Minotaur
 Hulking Goblin
 Hurloon Minotaur
+Ichneumon Druid
 Iconic Shield
 Imotekh the Stormlord
 Imperial Lancer
@@ -334,6 +337,7 @@ Overwhelming Instinct
 Overwhelming Victory
 Oxidda Daredevil
 Pact of Negation
+Paralyze
 Paranoid Parish-Blade
 Pardic Wanderer
 Patron of the Valiant
@@ -345,6 +349,7 @@ Pheres-Band Warchief
 Phyrexian Revoker
 Pieces of the Puzzle
 Pillar of the Paruns
+Piracy Charm
 Piranha Marsh
 Plague Rats
 Plains
@@ -415,12 +420,14 @@ Screeching Sliver
 Scroll of Origins
 Scythecat Cub
 Seafloor Oracle
+Seafloor Stalker
 Searing Spear
 Secure the Wastes
 Seed of Hope
 Seer's Sundial
 Selfless Spirit
 Senate Courier
+Serendib Djinn
 Serendib Sorcerer
 Serra's Sanctum
 Servant of Volrath
@@ -487,6 +494,7 @@ Terminal Agony
 The Battle of Bywater
 The Lady of Otaria
 The Lady of the Mountain
+The Magic Mirror
 The Monumental Facade
 The Spear of Leonidas
 The Wasp, Janet Van Dyne

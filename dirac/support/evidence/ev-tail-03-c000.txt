@@ -13,6 +13,7 @@ Arbor Armament
 Arboreal Alliance
 Arcade Cabinet
 Arcane Encyclopedia
+Arcbound Reclaimer
 Archivist of Oghma
 Argivian Find
 Armor of Faith
@@ -44,6 +45,8 @@ Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
 Bramble Armor
+Brass Squire
+Breaking Point
 Breath of Fire
 Briarknit Kami
 Bridgeworks Battle
@@ -67,6 +70,7 @@ Clear Shot
 Clear the Land
 Clever Lumimancer
 Clockwork Drawbridge
+Cloud Cover
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
@@ -85,6 +89,7 @@ Crown of Flames
 Cryptothrall
 Crystal Carapace
 Cyclopean Snare
+Dakmor Salvage
 Damning Verdict
 Darksteel Citadel
 Dawnstrike Paladin
@@ -358,6 +363,7 @@ Snow-Covered Swamp
 Soaring Hope
 Song of Serenity
 Soul Feast
+Spawning Pool
 Spined Megalodon
 Spreading Rot
 Springmantle Cleric
@@ -377,6 +383,7 @@ Sunlance
 Surge Conductor
 Surveilling Sprite
 Swamp
+Sword of Truth and Justice
 Sylvan Safekeeper
 Sylvan Shepherd
 Syphon Sliver
@@ -426,6 +433,7 @@ Vraan, Executioner Thane
 Vraska's Stoneglare
 Wall of Essence
 Wall of Torches
+Wandering Fumarole
 Wandering Wolf
 Warden of the First Tree
 Wax

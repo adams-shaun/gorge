@@ -68,6 +68,7 @@ Ceremonial Guard
 Certain Death
 Chakram Retriever
 Chase Stein, Runaway
+Chill to the Bone
 Clockwork Fox
 Coercive Impetus
 Commanding Presence
@@ -196,6 +197,7 @@ Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
 Inspiring Cleric
+Invasion of Theros
 Iron Fist, Hero for Hire
 Iron Verdict
 Ishai, Ojutai Dragonspeaker
@@ -255,6 +257,7 @@ Mogg Squad
 Moldering Karok
 Mona Lisa, Ever Adaptable
 Moonsilver Key
+Moroii
 Mortal's Resolve
 Mother Kangaroo
 Mountain
@@ -324,6 +327,7 @@ Screeching Bat
 Screeching Drake
 Scrib Nibblers
 Scroll Thief
+Scroll of Fate
 Secluded Steppe
 Selesnya Charm
 Selfless Cathar

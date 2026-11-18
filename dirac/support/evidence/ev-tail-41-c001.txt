@@ -1,4 +1,6 @@
+A-Goggles of Night
 A-Luminarch Aspirant
+Adarkar Wastes
 Akroan Jailer
 Akroma's Memorial
 Alabaster Host Sanctifier
@@ -7,20 +9,27 @@ Angelic Gift
 Anje's Ravager
 Antagonize
 Aphetto Vulture
+Arachnoform
 Arcade Cabinet
 Arcane Laboratory
 Armor Sliver
 Ashcoat Bear
+Assassin's Ink
+Attended Socialite
 Aurora Griffin
+Azorius Chancery
 Barbed Field
 Basri's Aegis
 Battle Cry Goblin
 Blessed Sanctuary
 Blightbelly Rat
 Blood Mist
+Bloodforged Battle-Axe
+Bloody Betrayal
 Blossoming Bogbeast
 Bond of Discipline
 Bonesplitter
+Borne Upon a Wind
 Borrowed Time
 Boundless Realms
 Bring Low
@@ -41,6 +50,7 @@ Chaos Harlequin
 Charging Monstrosaur
 Chilling Grasp
 Chivalric Alliance
+Cindervines
 Cloak of the Bat
 Clockwork Vorrac
 Collateral Damage
@@ -48,6 +58,7 @@ Colos Yearling
 Combat Thresher
 Commissar Severina Raine
 Conjurer's Bauble
+Conqueror's Flail
 Coral Atoll
 Courage in Crisis
 Courier Hawk
@@ -57,20 +68,25 @@ Crack the Earth
 Criminal Enterprise
 Cruel Bargain
 Crypt Ghast
+Crypt Sliver
 Curse of Death's Hold
+Curse of Marit Lage
 Dakmor Ghoul
 Darksteel Axe
 Dauntless Cathar
 Dawn Gryff
 Daybreak Chaplain
+Deadeye Tracker
 Death's Presence
 Defense of the Heart
 Digsite Engineer
 Dihada's Ploy
+Dimensional Infiltrator
 Dive Bomber
 Divine Sacrament
 Diving Griffin
 Drag Down
+Dread Drone
 Drifter il-Dal
 Dross Scorpion
 Dungeon Shade
@@ -88,9 +104,12 @@ Eye Gouge
 Faceless Devourer
 Faerie Invaders
 Faerie Vandal
+Farrel's Zealot
 Femeref Archers
 Fiend Binder
+Firefist Striker
 Flare of Duplication
+Flaxen Intruder
 Flood of Recollection
 Flowstone Overseer
 Flutterfox
@@ -105,27 +124,34 @@ Gallifrey Stands
 Galvanic Discharge
 Gamble
 General Marhault Elsdragon
+Genestealer Patriarch
 Genju of the Realm
 Ghirapur Guide
 Ghost Tactician
+Giant Ambush Beetle
 Giant Ox
 Giant Tortoise
 Goblin Diplomats
 Goblin General
 Goblin Outlander
 Goblin War Party
+Godtoucher
+Griffin Canyon
 Grounded
 Hand of Silumgar
 Hangarback Walker
 Heirs of Stromkirk
 High-Rise Sawjack
 Hollow Trees
+Homarid Explorer
 Horned Sliver
 Hungry Megasloth
+Hunter's Bow
 Indebted Samurai
 Indomitable Archangel
 Infernal Grasp
 Intangible Virtue
+Inventor's Apprentice
 Iron Tusk Elephant
 Isamaru, Hound of Konda
 Island
@@ -137,6 +163,7 @@ Karametra's Favor
 Karok Wrangler
 Kels, Fight Fixer
 Kinsbaile Courier
+Knight of Glory
 Kor Sky Climber
 Kris Mage
 Krosan Cloudscraper
@@ -144,16 +171,21 @@ Kruphix's Insight
 Lambholt Raconteur
 Lancers en-Kor
 Lead-Belly Chimera
+Leather Armor
 Leatherhead, Iron Gator
 Legion Conquistador
 Leyline of Vitality
 Lightning Dart
 Lightning Diadem
+Lochmere Serpent
 Lonis, Genetics Expert
 Loxodon Lifechanter
+Mage-Ring Responder
 Magma Rift
 Magus of the Moat
 Mammoth Growth
+Mana Flare
+Manakin and Millikin
 Manic Scribe
 Marble Diamond
 Mardu Heart-Piercer
@@ -164,13 +196,17 @@ Maw of the Mire
 Merfolk Sovereign
 Meria's Outrider
 Mesa Lynx
+Metropolis Sprite
 Midnight Haunting
+Mindwrack Liege
 Minion of the Mighty
 Minister of Pain
 Misfortune's Gain
 Mister Fantastic
+Mogg Fanatic
 Moorland Drifter
 Morale
+Morbid Hunger
 Morkrut Necropod
 Moss Kami
 Mossbeard Ancient
@@ -181,9 +217,12 @@ Mu Yanling, Sky Dancer
 Mudbutton Torchrunner
 Multani's Acolyte
 Multiversal Recruitment
+Murderous Compulsion
 Myojin of Blooming Dawn
 Nacatl Savage
 Necrobite
+Necroplasm
+Nephalia Seakite
 Night
 Nightveil Sprite
 Niveous Wisps
@@ -192,6 +231,7 @@ Nylea, God of the Hunt
 Oath of the Grey Host
 Omen of the Dead
 Oread of Mountain's Blaze
+Osai Vultures
 Overcharged Amalgam
 Overcome
 Overwhelming Encounter
@@ -199,10 +239,20 @@ Overwhelming Stampede
 Pact of the Titan
 Panic Spellbomb
 Pegasus Charger
+Perimeter Patrol
+Permafrost Trap
+Phantom Whelp
 Pharika's Cure
+Photon, Mighty Marvel
 Phyrexian Lens
 Plains
 Potion of Healing
+Power of Persuasion
+Pradesh Gypsies
+Priest of Iroas
+Propeller Pioneer
+Prying Eyes
+Pteramander
 Pure Reflection
 Pyroclastic Elemental
 Quicksilver Geyser
@@ -211,7 +261,9 @@ Rage Forger
 Raksha Golden Cub
 Rally the Ranks
 Rampaging Ferocidon
+Rank and File
 Ravenous Baboons
+Reap the Seagraf
 Reckless Abandon
 Reinforced Ronin
 Reito Lantern
@@ -221,31 +273,45 @@ Retributive Wand
 Returned Centaur
 Rhythmic Water Vortex
 Rimrock Knight
+Riptide Laboratory
+River of Tears
 Rockslide Ambush
+Rograkh, Son of Rohgahh
 Root Snare
 Rosethorn Halberd
 Rottenheart Ghoul
 Rousing Refrain
 Runaway Carriage
+Sagittars' Volley
 Salvage Slasher
 Samite Pilgrim
 Sanctified Charge
+Scent of Ivy
 Scepter of Celebration
 Scourglass
+Scouting Trek
 Sea Kings' Blessing
 Seal of Doom
 Searchlight Companion
 Seascape Aerialist
+Secret Passage
+Secrets of the Golden City
+Selesnya Eulogist
 Senate Guildmage
 Sengir Vampire
 Separatist Voidmage
 Shabraz, the Skyshark
+Shadow Glider
 Shadow Prophecy
 Shadow-Rite Priest
 Shamanic Revelation
 Shard of Broken Glass
+Sheltering Light
 Shrieking Mogg
+Sigil of Myrkul
+Signal Pest
 Silver-Inlaid Dagger
+Silversmote Ghoul
 Skittering Monstrosity
 Skulltap
 Skywinder Drake
@@ -258,6 +324,8 @@ Smoke Bomb
 Soul Swallower
 Spear Spewer
 Spire Barrage
+Splatter Thug
+Springmantle Cleric
 Stature, Young Avenger
 Staunch Defenders
 Staunch-Hearted Warrior
@@ -269,13 +337,16 @@ Striking Sliver
 Sturmgeist
 Submerge
 Subtle Strike
+Sulfurous Mire
 Sultai Runemark
 Sungold Barrage
 Survival Cache
 Swamp
 Swift Justice
+Synod Artificer
 Tattered Haunter
 Teachings of the Kirin
+Tectonic Edge
 Temmet, Vizier of Naktamun
 Teroh's Vanguard
 The Art of Tea
@@ -287,10 +358,12 @@ Thrummingbird
 Thunder Strike
 Thunderscape Familiar
 Timberwatch Elf
+Timetwister
 Torch Slinger
 Tormod's Crypt
 Torsten, Founder of Benalia
 Tracker's Instincts
+Trustworthy Scout
 Twinscroll Shaman
 Tymaret, Chosen from Death
 Uncage the Menagerie
@@ -307,6 +380,7 @@ Vampire Envoy
 Vampire's Zeal
 Vastwood Gorger
 Venser, Visionary Traveler
+Verdant Field
 Verdant Rebirth
 Volunteer Militia
 Wall of Lost Thoughts
@@ -315,6 +389,7 @@ Warlord's Elite
 Warped Physique
 Warren Soultrader
 Weaponize the Monsters
+Weirding Shaman
 Wild Colos
 Wild Onslaught
 Woodland Sleuth

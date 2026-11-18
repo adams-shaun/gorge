@@ -1,56 +1,240 @@
+A-Dragonborn Looter
+A-Sewer Crocodile
 Aboshan, Cephalid Emperor
 Acclaimed Contender
 Adorable Kitten
 Alabaster Host Sanctifier
 Alarum
+Albino Troll
+Ambush Commander
+Ancestor's Chosen
+Angel of Retribution
 Archmage's Charm
+Artificer's Epiphany
+Atreus, Impulsive Son
+Axegrinder Giant
+Bant Battlemage
+Battle of Frost and Fire
+Bay Falcon
 Benalish Trapper
+Blaze
 Blessed Respite
+Boros Keyrune
 Brainstone
+Cabal Torturer
 Calming Licid
+Capashen Knight
+Captain of Umbar
+Cenn's Enlistment
+Cephalid Looter
+Cliffgate
+Cliffrunner Behemoth
+Coastal Bulwark
+Codex Shredder
+Cogwork Librarian
+Commander Sofia Daguerre
+Cruel Finality
+Crush
+Crystal Rod
 Curse of the Forsaken
+Cursed Ronin
+Customs Depot
+Cutthroat Centurion
+Cyclops Electromancer
+Dark Bargain
+Dark Tutelage
 Daybreak Chimera
+Deadly Insect
+Deathrender
+Demon of Catastrophes
+Deny Reality
+Dictate of Erebos
 Diviner's Lockbox
+Doctor Spectrum
 Dogged Hunter
+Doom Blade
 Dragon-Scarred Bear
+Dragonborn Looter
+Dream Cache
+Dusk Legion Zealot
 Elspeth, Sun's Nemesis
+Emeria Captain
 Emissary of Sunrise
 Excoriate
+Felhide Minotaur
+Fendeep Summoner
+Ferocious Zheng
+Fervent Strike
+Fists of the Anvil
 Forest
+Frightful Delusion
+Frilled Oculus
+Frost Marsh
 Funeral March
+Furnace Skullbomb
 Geomancer's Gambit
+Ghirapur Guide
 Gift of Growth
+Gitaxian Probe
 Glistening Dawn
 Glorious Anthem
+Goblin Bruiser
+Goblin Offensive
+Goblin Shortcutter
+Goblin War Wagon
+Grand Arbiter Augustin IV
+Graverobber Spider
+Graveyard Shovel
+Greenside Watcher
 Grim Affliction
+Hanged Executioner
+Hardened-Scale Armor
+Hate Weaver
+Headwater Sentries
+Healing Hands
+Herald of Torment
+Hysterical Blindness
+Imperial Aerosaur
 Instill Energy
+Intrepid Provisioner
 Island
+Jeskai Banner
 Join the Ranks
+Junk Golem
+Kalastria Healer
+Kapsho Kitefins
+Keeper of the Cadence
+Kobold Overlord
+Kor Blademaster
 Law-Rune Enforcer
+Lead Golem
 Leery Fogbeast
+Lethal Exploit
+Lightning Stormkin
 Llanowar Vanguard
+Lord of the Void
+Loxodon Partisan
+Lunarch Mantle
+Mana Skimmer
 Mandroid Squadron
 Mask of Avacyn
+Megatherium
+Mental Agony
 Meriadoc Brandybuck
+Meteor Storm
+Momo, Rambunctious Rascal
+Moonveil Regent
+Morgul-Knife Wound
 Mountain
+Myr Turbine
+Mystical Dispute
+Naya Battlemage
+Necromaster Dragon
+Neurok Commando
+Nezumi Ronin
 Niambi, Faithful Healer
+Noggle Bandit
+Oak Street Innkeeper
+Occult Epiphany
+Ondu Champion
+P-Joven and Chandler
+Palinchron
+Parasitic Bond
+Pestermite
+Phantasmal Dragon
 Phantom General
+Pit Trap
 Plains
+Plated Slagwurm
+Priest of Fell Rites
+Prime Speaker Vannifar
+Purge
+Quandrix Apprentice
 Quiet Disrepair
+Radical Idea
+Rag Dealer
 Rakdos Pit Dragon
+Rakish Heir
+Rally of Wings
+Rampart Crawler
+Razor Swine
+Razortip Whip
 Reborn Hero
+Reclaim
+Relearn
+Release to Memory
+Relic Retriever
+Relief Captain
+Return of the Wildspeaker
+Revelation of Power
+Rionya, Fire Dancer
 Rock Badger
+Root Maze
+Rotted Hystrix
+Royal Talon Fighter Jet
 Russet Wolves
+Sacred Fire
+Sadistic Hypnotist
+Salvage Titan
+Sanctum of Tranquil Light
+Sandsteppe Outcast
+Saprazzan Breaker
 Scavenger Drake
 Scion of the Wild
 Scourge of Valkas
+Sea God's Revenge
+Select for Inspection
+Serpent Skin
+Serpent Warrior
 Shambling Suit
+Shatterstorm
+Sigarda's Summons
 Simic Growth Chamber
+Sinister Sabotage
+Skaab Ruinator
+Skinwing
+Skyrider Patrol
+Skyswirl Harrier
 Slaughter Drone
+Snare the Skies
+Snow-Covered Island
+Solidarity
+Solstice Zealot
 Soratami Savant
+Specter of the Fens
+Spectral Cloak
+Spell Syphon
+Sphinx's Revelation
+Splitting the Powerstone
+Stampeding Rhino
+Steamclaw
+Stirge
+Storm of Steel
+Sultai Runemark
+Sungrass Prairie
+Sunscorched Desert
 Swamp
 Syndicate Infiltrator
+Take to the Streets
+Talas Researcher
+Tenured Inkcaster
 The Falcon, Sam Wilson
+Thing Swing
+Thorn Lieutenant
+Thrór's Map
+Timber Gorge
+Tireless Tribe
+Titanium Golem
+Urza's Guilt
 Varchild, Betrayer of Kjeldor
+Venser, Shaper Savant
 Verdant Confluence
+Viashino Grappler
+Visions of Beyond
+Voldaren Duelist
+Vona's Hunger
+Vraska's Scorn
 Where Ancients Tread
+Wild Ceratok
+Witness the Future
+Woe Strider

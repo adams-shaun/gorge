@@ -36,6 +36,7 @@ Belbe's Armor
 Benevolent Bodyguard
 Blade of the Sixth Pride
 Blessed Light
+Blighted Gorge
 Blightstep Pathway
 Blood Pet
 Boa Constrictor
@@ -88,6 +89,7 @@ Distract
 Djinn of the Lamp
 Dragonshift
 Dreamscape Artist
+Dreamspoiler Witches
 Dregscape Zombie
 Dress Down
 Dromoka Captain
@@ -198,6 +200,7 @@ Laser Screwdriver
 Lawbringer
 Leatherback Baloth
 Lightning Reaver
+Lonely Sandbar
 Looming Hoverguard
 Lowland Giant
 Loxodon Sergeant
@@ -220,6 +223,7 @@ Mountain
 Ms. Marvel, Elastic Ally
 Mudhole
 Murasa Pyromancer
+Nath's Elite
 Nebelgast Herald
 Necrogen Censer
 Nest Invader
@@ -240,6 +244,7 @@ Outland Liberator
 Owlin Spiralmancer
 Personal Sanctuary
 Phantom Centaur
+Pilfering Imp
 Pitiless Gorgon
 Plains
 Pollenbright Druid
@@ -249,6 +254,7 @@ Quirion Ranger
 Raking Canopy
 Rancid Rats
 Rankle, Master of Pranks
+Rath's Edge
 Rathi Intimidator
 Razorclaw Bear
 Razorfield Rhino
@@ -258,9 +264,11 @@ Redcap Heelslasher
 Redwood Treefolk
 Regenerate
 Regress
+Remote Isle
 Renata, Called to the Hunt
 Repeal
 Repentant Blacksmith
+Resounding Roar
 Respite
 Reverent Hunter
 Righteous Confluence
@@ -275,6 +283,7 @@ Safehold Sentry
 Samut, the Tested
 Sanctum Weaver
 Sanctum of Tranquil Light
+Saproling Burst
 Saproling Migration
 Saw It Coming
 Scalebane's Elite
@@ -287,7 +296,9 @@ Sensory Deprivation
 Serum-Core Chimera
 Shaman of the Great Hunt
 Shambling Remains
+Shield of Duty and Reason
 Shivan Devastator
+Shivan Raptor
 Signpost Scarecrow
 Silverglade Pathfinder
 Simic Cluestone
@@ -304,6 +315,7 @@ Soulcage Fiend
 Soulmender
 Sovereign's Bite
 Spare Supplies
+Spectator Seating
 Spider-Man, Miles Morales
 Spire Winder
 Splinterfright

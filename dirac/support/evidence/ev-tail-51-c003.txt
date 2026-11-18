@@ -1,4 +1,6 @@
 A-Celestial Regulator
+Abandon Reason
+Acquisition Octopus
 Alena, Kessig Trapper
 Arctic Merfolk
 Argent Mutation
@@ -11,6 +13,8 @@ Battlefly Swarm
 Bladewing, Deathless Tyrant
 Blinding Souleater
 Bogbrew Witch
+Bolrac-Clan Crusher
+Breakneck Berserker
 Brinebarrow Intruder
 Brion Stoutarm
 Burning Wish
@@ -27,9 +31,13 @@ Curse of Vitality
 Cursed Minotaur
 Daring Escape
 Dark Privilege
+Decimate
 Delayed Blast Fireball
 Devoted Paladin
+Devour in Flames
 Douse in Gloom
+Dungeon Shade
+Electrodominance
 Emissary of Hope
 Equestrian Skill
 Errand-Rider of Gondor
@@ -39,26 +47,36 @@ Fanatic of Mogis
 Fell Stinger
 Final-Sting Faerie
 Firefly
+Flames of the Firebrand
 Forest
 Freewind Equenaut
 Gift of Growth
+Gilded Assault Cart
+Goblin Bangchuckers
 Goblin Battle Jester
 Goblin Brigand
+Goblin Masons
+Grim Poppet
 Guide of Souls
 Guul Draz Overseer
+Headstrong Brute
 Heedless One
 Heiko Yamazaki, the General
 Hellraiser Goblin
+Hibernation Sliver
 Highspire Mantis
 Hulking Ogre
 Impetuous Protege
 Industrial Advancement
+Inescapable Brute
 Island
 Ivory Charm
 Jace Beleren
 Jackhammer
 Jousting Lance
+Joven and Chandler
 Kaya's Ghostform
+Keldon Warlord
 Kessig Dire Swine
 Kitsune Bonesetter
 Leveler
@@ -71,33 +89,49 @@ Nighthawk, Dark Defender
 Noble Steeds
 Olivia, Mobilized for War
 One-Clown Band
+Oona's Gatewarden
 Ox Drover
 Patron Wizard
+Phylath, World Sculptor
 Piru, the Volatile
 Plains
 Plunder
+Possessed Skaab
 Presence of the Wise
 Psionic Snoop
 Purraj of Urborg
+Quick-Draw Dagger
 Rage Thrower
 Rain of Embers
+Rain of Rust
 Raven Wings
 Ravenous Sailback
 Rejuvenating Springs
+Requiem Angel
 Resolute Blademaster
 Reveka, Wizard Savant
 Riddle Gate Gargoyle
 Rigging Runner
+Risona, Asari Commander
 Robber Fly
+Ronin Cavekeeper
 Rorix Bladewing
 Royal Falcon
+Rubblebelt Boar
+Sarkhan's Catharsis
+Satyr's Cunning
 Screams of the Damned
+Shambling Remains
 Sheoldred, Whispering One
+Shielded Passage
 Shocker
 Sigiled Skink
 Skyblinder Staff
+Smashing Spree
+Sootwalkers
 Soul Barrier
 Soul-Strike Technique
+Sphere of Purity
 Spidersilk Net
 Spire Golem
 Spitemare
@@ -107,11 +141,22 @@ Stir the Pride
 Stronghold Assassin
 Sun Droplet
 Swamp
+Swirling Sandstorm
 Talas Warrior
+Tavern Ruffian
 Tegan Jovanka
 Thunderous Wrath
+Tivadar's Crusade
 Tresserhorn Sinks
+Tuktuk Rubblefort
+Undercover Butler
 Unholy Officiant
+Unity of Purpose
+Unstoppable Ogre
 Vaultbreaker
+Wall of Blood
+Wall of Mist
 Warbeast of Gorgoroth
+Weldfast Engineer
 Wooden Cane
+Write into Being

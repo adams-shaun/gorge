@@ -46,6 +46,7 @@ Bound in Silence
 Braids, Cabal Minion
 Bramble Armor
 Brass Squire
+Breaking Point
 Breath of Fire
 Briarknit Kami
 Bridgeworks Battle
@@ -55,6 +56,7 @@ Buccaneer's Bravado
 Bulwark
 Bygone Bishop
 Cabal Executioner
+Call the Skybreaker
 Campus Renovation
 Capsize
 Celestial Crusader
@@ -68,6 +70,7 @@ Clear Shot
 Clear the Land
 Clever Lumimancer
 Clockwork Drawbridge
+Cloud Cover
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
@@ -88,6 +91,7 @@ Crush Dissent
 Cryptothrall
 Crystal Carapace
 Cyclopean Snare
+Dakmor Salvage
 Damning Verdict
 Dawnstrike Paladin
 Deadeye Brawler
@@ -133,6 +137,7 @@ Fen Hauler
 Festering Newt
 Fiery Confluence
 Fire Drake
+Firehoof Cavalry
 Flicker of Fate
 Flowstone Infusion
 Fogwalker
@@ -384,6 +389,7 @@ Surge Conductor
 Surveilling Sprite
 Swamp
 Sweet Oblivion
+Sword of Truth and Justice
 Sylvan Safekeeper
 Sylvan Shepherd
 Syphon Sliver
@@ -402,6 +408,7 @@ The Triumph of Anax
 Thermal Blast
 Thran Golem
 Thunderscape Familiar
+Tiana, Ship's Caretaker
 Tidehollow Sculler
 Tireless Provisioner
 Tocatli Honor Guard
@@ -410,6 +417,7 @@ Torbran, Thane of Red Fell
 Trailblazer
 Transgress the Mind
 Trynn, Champion of Freedom
+Turbulent Moor
 Twisted Justice
 Tyvar Kell
 Ulgrotha Charm
@@ -437,6 +445,7 @@ Wax
 Wei Ambush Force
 Wild Beastmaster
 Wilson, Refined Grizzly
+Wintermoon Mesa
 Wirewood Symbiote
 Wit's End
 Wizard Class

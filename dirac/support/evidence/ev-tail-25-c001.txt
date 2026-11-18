@@ -13,6 +13,7 @@ Alpine Guide
 Anaba Spirit Crafter
 Anointed Chorister
 Apex Hawks
+Aquamoeba
 Aquatic Incursion
 Argivian Avenger
 Armored Warhorse
@@ -60,18 +61,21 @@ Congregation at Dawn
 Consuming Blob
 Containment Membrane
 Court of Bounty
+Cragsmasher Yeti
 Crater's Claws
 Craven Giant
 Crippling Blight
 Crook of Condemnation
 Crushing Pain
 Cudgel Troll
+Curious Homunculus
 Cyclonic Rift
 Daemogoth Woe-Eater
 Dark Hatchling
 Dark Privilege
 Darkest Hour
 Daybreak Chaplain
+Deadly Designs
 Deathbringer Thoctar
 Deathknell Berserker
 Deepfathom Skulker
@@ -86,6 +90,7 @@ Diamond Valley
 Discombobulate
 Distortion Strike
 Divine Sacrament
+Dormant Gomazoa
 Doubtless One
 Dream Fracture
 Dromoka Monument
@@ -124,6 +129,7 @@ Fungusaur
 Furious Reprisal
 Future Flight
 Galestrike
+Gargos, Vicious Watcher
 Generous Patron
 Ghost Ship
 Giant Harbinger
@@ -155,9 +161,11 @@ Howling Gale
 Hulk, Strongest There Is
 Humble Defector
 Hungry for More
+Hyperion, Supreme Hero
 Hypnotic Sprite
 Ichor Synthesizer
 Illusions of Grandeur
+Insidious Dreams
 Iron League Steed
 Island
 Ixalli's Keeper
@@ -264,6 +272,7 @@ Rise from the Nether
 Rot Shambler
 Rotting Mastodon
 Sachi, Daughter of Seshiro
+Safehold Elite
 Sage of the Falls
 Sally Sparrow
 Salt Road Patrol
@@ -303,6 +312,7 @@ Soratami Rainshaper
 Sorin, Imperious Bloodlord
 Spellgorger Barbarian
 Spire Owl
+Spirit of Resistance
 Spiritual Sanctuary
 Spitebellows
 Spore Crawler
@@ -340,8 +350,10 @@ Thorin, King of Durin's Folk
 Thornhide Wolves
 Thrummingbird
 Thrun, Breaker of Silence
+Thundering Rebuke
 Tide Drifter
 Titan of Industry
+Treacherous Vampire
 Turn to Dust
 Twin-Silk Spider
 Undercity Necrolisk
@@ -365,6 +377,7 @@ Voices from the Void
 Volcanic Vision
 Voracious Wurm
 Wake of Destruction
+Wall of Air
 Wall of Granite
 Wall of Swords
 Wall of Tombstones
