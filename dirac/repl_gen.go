@@ -594,7 +594,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 			code = TCode(s.perms[fe.dst].obj)
 		}
 		ro.pnx = 0
-		if n = s.prevNextCands(k, code, true, &ro.cand, n, &ro.pnx, ro.prev); n < 0 {
+		if n = s.prevNextCands(k, code, fsl, true, &ro.cand, n, &ro.pnx, ro.prev); n < 0 {
 			return 0
 		}
 		ro.prev &^= ro.pnx
@@ -1356,7 +1356,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	var pnx uint8
 	if g.anyRepl&rbPrevCol != 0 {
 		// Ext PreventNext's shields on the recipient (repl_prevnext.go)
-		if c = s.prevNextCands(k, code, false, &cand, c, &pnx, prev); c < 0 {
+		if c = s.prevNextCands(k, code, srcSl, false, &cand, c, &pnx, prev); c < 0 {
 			return false
 		}
 		prev &^= pnx

@@ -127,17 +127,22 @@ func (lc *lowerCtx) effectPreventDuration(ps *params) error {
 	return lc.effectDurationPrevent(ps)
 }
 
-// effectPreventScoped tries the two this-turn scoped-prevention arms in turn:
-// the bodyless Prevent$ True line (effectPreventScope) and the gain-rider form
-// (effectPreventRider, lower_preventrider.go). A Duration$ UntilEndOfCombat on
-// the Effect ends the record with the combat (kop.PrevScopeEndCombat) instead
-// of the turn. It keeps effectPrevent under the complexity ceiling.
+// effectPreventScoped tries the three this-turn scoped-prevention arms in
+// turn: the bodyless Prevent$ True line (effectPreventScope), the gain-rider
+// form (effectPreventRider, lower_preventrider.go) and Awe Strike's
+// remembered-source form (effectPreventRiderFrom, also
+// lower_preventrider.go). A Duration$ UntilEndOfCombat on the Effect ends the
+// record with the combat (kop.PrevScopeEndCombat) instead of the turn. It
+// keeps effectPrevent under the complexity ceiling.
 func (lc *lowerCtx) effectPreventScoped(ps *params) (bool, error) {
 	eoc := ps.is("Duration", "UntilEndOfCombat")
 	if ok, err := lc.effectPreventScope(ps, eoc); ok || err != nil {
 		return ok, err
 	}
-	return lc.effectPreventRider(ps, eoc)
+	if ok, err := lc.effectPreventRider(ps, eoc); ok || err != nil {
+		return ok, err
+	}
+	return lc.effectPreventRiderFrom(ps)
 }
 
 // effectPreventScope lowers the this-turn prevention Effect that names no

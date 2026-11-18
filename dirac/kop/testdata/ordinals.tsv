@@ -1056,6 +1056,13 @@ PredWasCastEnter	Pred	248
 PredWasCastSpell	Pred	247
 PredWithPowerLEX	Pred	10
 PredWord7	Pred	241
+PrevNextAll	untyped int	2
+PrevNextCombat	untyped int	1
+PrevNextEndCombat	untyped int	32
+PrevNextFrom	untyped int	4
+PrevNextGain	untyped int	8
+PrevNextPlayers	untyped int	64
+PrevNextTokens	untyped int	16
 PrevScopeAll	untyped int	8
 PrevScopeAnyPlayer	untyped int	16384
 PrevScopeColourShift	untyped int	8

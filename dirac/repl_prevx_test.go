@@ -13,7 +13,7 @@ import (
 type prevXScen struct {
 	*scen
 	chant, bear, burn CardID
-	eoc, scope        CardID
+	eoc, scope, awe   CardID
 	emb               uint8
 }
 
@@ -31,6 +31,10 @@ func newPrevXScen(t *testing.T) *prevXScen {
 		ids.chant = add(kop.CardDef{Name: "Test Chant", Types: kop.TInstant, Abilities: []kop.Ability{{Prog: []kop.Instr{in}}}})
 		ids.bear = add(kop.CardDef{Name: "Test Bear", Types: kop.TCreature, Power: 2, Toughness: 2})
 		ids.burn = add(kop.CardDef{Name: "Test Burn", Types: kop.TInstant})
+		aweIn := kop.ExtInstr(kop.ExtPreventNext)
+		aweIn.C = int16(kop.PrevNextAll | kop.PrevNextFrom | kop.PrevNextGain)
+		aweIn.Obj = kop.RefTarget0
+		ids.awe = add(kop.CardDef{Name: "Test Awe", Types: kop.TInstant, Abilities: []kop.Ability{{Prog: []kop.Instr{aweIn}}}})
 		eocIn := kop.ExtInstr(kop.ExtPreventDamageScope)
 		eocIn.C = int16(kop.PrevScopePlayer | kop.PrevScopeCombat | kop.PrevScopeEndCombat)
 		ids.eoc = add(kop.CardDef{Name: "Test EOC Scope", Types: kop.TInstant, Abilities: []kop.Ability{{Prog: []kop.Instr{eocIn}}}})
@@ -68,6 +72,21 @@ func (f *prevXScen) creatureSrc() {
 func (f *prevXScen) burnSrc() {
 	e := &f.s.res.e
 	e.kind, e.obj, e.card, e.ctrl = seSpell, f.obj(f.burn, 1), f.burn, 1
+}
+
+// resolveAwe registers the Awe-Strike-shaped instant of seat 0 as its
+// resolution does, with bear as its remembered target.
+func (f *prevXScen) resolveAwe(bear Obj) {
+	e := &f.s.res.e
+	e.kind, e.obj, e.ctrl, e.card = seSpell, f.obj(f.awe, 0), 0, f.awe
+	e.tgt[0] = TCode(bear)
+	f.s.prevNextAdd(f.k, &f.k.t.Cards[f.awe].Abilities[0].Prog[0])
+}
+
+// bearSrc makes an already-entered bear the resolving source of the damage.
+func (f *prevXScen) bearSrc(bear Obj) {
+	e := &f.s.res.e
+	e.kind, e.obj, e.srcVer, e.card, e.ctrl = seAbility, bear, f.s.objs[bear].ver, f.bear, 1
 }
 
 // TestPrevXGainScope: Chant's scoped record prevents the damage creatures
@@ -150,6 +169,114 @@ func TestPrevXGainScope(t *testing.T) {
 		}
 		if s.pl[0].life != life[0] || s.pl[1].life != life[1] {
 			t.Fatalf("life %d/%d from %d/%d: want no gain", s.pl[0].life, s.pl[1].life, life[0], life[1])
+		}
+	})
+}
+
+// TestPrevXFromNext: the source-keyed PreventNext shield (kop.PrevNextFrom,
+// Awe Strike) prevents the first damage event the remembered creature deals
+// and its controller gains that much, the record is spent (the Effect exiles
+// itself), a second event from the creature and damage TO the creature are
+// dealt, the record is spent when the creature leaves the battlefield first
+// (prevAllLeft, gorge's ExileOnMoved$ Battlefield), and under a
+// can't-prevent static, or beside a second shield on the same event, the
+// kernel stalls StallPrevRider.
+func TestPrevXFromNext(t *testing.T) {
+	t.Run("prevented and gained", func(t *testing.T) {
+		f := newPrevXScen(t)
+		s := f.s
+		bear := f.perm(f.bear, 1)
+		f.resolveAwe(bear)
+		if x := s.g.prevX[0]; x&(pxFrom|pxRidGain) != pxFrom|pxRidGain || x>>pxSeatShift != 0 {
+			t.Fatalf("prevX[0] = %#x, want a seat-0 gain rider keyed on the source", x)
+		}
+		if r := s.g.prevCol[0]; r.ctl != TCode(bear) || r.col != 255 || r.sc&prevNextSc == 0 {
+			t.Fatalf("record %+v, want ctl the bear, the unbounded pool and the shield bit", r)
+		}
+		f.bearSrc(bear)
+		life := [2]int16{s.pl[0].life, s.pl[1].life}
+		if n := s.damageTo(f.k, PlayerCode(1), 3); n != 0 {
+			t.Fatalf("damageTo dealt %d, want 0 (prevented)", n)
+		}
+		if s.pl[1].life != life[1] || s.pl[0].life != life[0]+3 {
+			t.Fatalf("life %d/%d from %d/%d: want the victim unharmed and the caster +3", s.pl[0].life, s.pl[1].life, life[0], life[1])
+		}
+		if s.g.prevCol[0].col != 0 {
+			t.Fatalf("the record was not spent: col %d", s.g.prevCol[0].col)
+		}
+		if s.StallReason() != 0 {
+			t.Fatalf("stalled %s", StallName(s.StallReason()))
+		}
+	})
+	t.Run("second event dealt", func(t *testing.T) {
+		f := newPrevXScen(t)
+		s := f.s
+		bear := f.perm(f.bear, 1)
+		f.resolveAwe(bear)
+		f.bearSrc(bear)
+		life := [2]int16{s.pl[0].life, s.pl[1].life}
+		if n := s.damageTo(f.k, PlayerCode(1), 3); n != 0 {
+			t.Fatalf("the first event dealt %d, want 0 (prevented)", n)
+		}
+		if n := s.damageTo(f.k, PlayerCode(1), 2); n != 2 {
+			t.Fatalf("the second event dealt %d, want 2", n)
+		}
+		if s.pl[1].life != life[1]-2 || s.pl[0].life != life[0]+3 {
+			t.Fatalf("life %d/%d from %d/%d: want the second event dealt and no second gain", s.pl[0].life, s.pl[1].life, life[0], life[1])
+		}
+	})
+	t.Run("damage to the creature dealt", func(t *testing.T) {
+		f := newPrevXScen(t)
+		s := f.s
+		bear := f.perm(f.bear, 1)
+		f.resolveAwe(bear)
+		f.burnSrc()
+		if n := s.damageTo(f.k, TCode(bear), 3); n != 3 {
+			t.Fatalf("damage dealt %d, want 3 (the shield never matches its recipient)", n)
+		}
+		if s.g.prevCol[0].col != 255 {
+			t.Fatalf("the record moved: col %d, want the unbounded pool", s.g.prevCol[0].col)
+		}
+	})
+	t.Run("spent when the creature leaves", func(t *testing.T) {
+		f := newPrevXScen(t)
+		s := f.s
+		bear := f.perm(f.bear, 1)
+		f.resolveAwe(bear)
+		if !s.pnxLive() {
+			t.Fatal("precondition: the shield is live")
+		}
+		s.removePerm(f.k, f.slot(bear), kop.ZoneGraveyard, false)
+		if s.g.prevCol[0].col != 0 {
+			t.Fatalf("the record survived the creature leaving: col %d, want spent (ExileOnMoved$)", s.g.prevCol[0].col)
+		}
+	})
+	t.Run("can't be prevented", func(t *testing.T) {
+		f := newPrevXScen(t)
+		bear := f.perm(f.bear, 1)
+		f.resolveAwe(bear)
+		f.bearSrc(bear)
+		embDurPut(f.scen, 0, NoObj, f.emb)
+		if !f.s.noPrev(f.k, false) {
+			t.Fatal("precondition: the can't-prevent static is not in force")
+		}
+		f.s.damageTo(f.k, PlayerCode(1), 3)
+		if got := f.s.StallReason(); got != StallPrevRider {
+			t.Fatalf("stall = %s, want %s", StallName(got), StallName(StallPrevRider))
+		}
+	})
+	t.Run("second shield", func(t *testing.T) {
+		f := newPrevXScen(t)
+		bear := f.perm(f.bear, 1)
+		f.resolveAwe(bear)
+		f.resolveAwe(bear)
+		if f.s.g.prevCol[1].col == 0 || f.s.g.prevCol[1].ctl != TCode(bear) {
+			t.Fatal("precondition: a second shield on the creature")
+		}
+		f.bearSrc(bear)
+		f.s.damageTo(f.k, PlayerCode(1), 3)
+		if got := f.s.StallReason(); got != StallPrevRider {
+			t.Fatalf("stall = %s, want %s", StallName(got), StallName(StallPrevRider))
 		}
 	})
 }
