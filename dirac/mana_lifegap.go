@@ -138,3 +138,20 @@ func (fs *filtSearch) lifeGap(k *prep, t *State, sl Slot, funded int, try func(o
 	}
 	return false
 }
+
+// availLifeGap adds each life-only source's census unit to a: one of its fixed
+// colour, or of any. availScript's gaps walk and the X ask's window
+// (availXWindow: gorge's xAsk pays an announced X through the cast window,
+// which activates the source) both count it.
+func (s *State) availLifeGap(k *prep, p uint8, a *avail) {
+	for b := s.lifeGapMask(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.gapOther(s.cardAt(sl))]
+		n := max(ab.ManaN, 1)
+		if ab.ManaColors == kop.ColAny {
+			a.addUnits(0x1f, n)
+			continue
+		}
+		a.addUnits(1<<bits.TrailingZeros8(uint8(ab.ManaColors)), n)
+	}
+}
