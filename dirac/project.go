@@ -318,6 +318,17 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 
 }
 
+// projExtraStackTgts projects an entry's extra stack-ability targets like
+// slot ones: the live index, or StackTargetGone once the object left
+// (tgt_stackability.go).
+func (s *State) projExtraStackTgts(e *ProjStack, x *xTargets) {
+	for j := uint8(0); j < x.n && j < maxXTgt; j++ {
+		if c := e.Extra[j]; isStackTarget(c) {
+			e.Extra[j] = s.stackTgtProj(c, x.ver[j])
+		}
+	}
+}
+
 // projRest writes the zone positions (library positions only with lib)
 // and the non-object fields.
 func (s *State) projRest(p *Projection, lib bool) {
@@ -421,6 +432,9 @@ func (s *State) projRest(p *Projection, lib bool) {
 			p.Stack[i].NExtra = x.n
 			p.Stack[i].Extra = x.code
 			p.Stack[i].ExtraSlot = x.slot
+			if k.gen != nil && k.gen.anyStackTgt {
+				s.projExtraStackTgts(&p.Stack[i], x)
+			}
 		}
 	}
 	p.Turn, p.Step, p.Active, p.Prio = s.turn, s.step, s.active, s.prio
