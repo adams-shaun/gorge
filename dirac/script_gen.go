@@ -881,6 +881,9 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 	}
 	for i := 0; i < int(walk.N); i++ {
 		a := walk.Options[i]
+		if isEscapeCastAction(a) {
+			continue // gorge's planner prices no escape mode ("unsupported shape", kw_escape.go): no prefix search, so no storage-battery step offers it
+		}
 		if s.objPartCast(k, a) {
 			// gorge's potential planner refuses the shape before any prefix
 			// search (potentialPlayVerdictShared, "shape:additional_cost"), so

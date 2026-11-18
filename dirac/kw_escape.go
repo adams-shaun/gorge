@@ -225,3 +225,11 @@ func (s *State) offerEscapeCasts(k *prep, d *Decision, p uint8, sorc bool, av *a
 		d.add(MakeAction(AkCast, TCode(o), TCode(tgt), 2)) // code-ok: an escape-cast marker, not a code
 	}
 }
+
+// isEscapeCastAction reports whether a is a graveyard cast for an escape cost,
+// printed (castPrintedEscapeTgt) or granted (castEscapeTgt): the mode-2 cast
+// gorge lists as an "escape" option, which its planner prices as "unsupported
+// shape" and so never searches a mana prefix for (scriptOffers).
+func isEscapeCastAction(a Action) bool {
+	return a.Kind() == AkCast && a.Mode()&2 != 0 && (a.Target() == TCode(castPrintedEscapeTgt) || a.Target() == TCode(castEscapeTgt))
+}
