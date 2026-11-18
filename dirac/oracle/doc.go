@@ -149,7 +149,7 @@
 // flags (tapped, summoning sick, attacking, blocking, face down, token,
 // copy, phased out, monstrous), damage, counters (+1/+1, -1/-1, loyalty,
 // other), layer-applied power/toughness of battlefield creatures,
-// attached-to and the attacker it blocks; per seat life, poison, lands
+// attached-to and the attacker it blocks; per seat life, poison, rad counters, lands
 // played (the active player's only), mana pool WUBRGC, hand and library sizes; the stack bottom first
 // (kind spell/activated/triggered, source, ability index -- Face.Abilities
 // i or 0x80|Face.Triggers i --, controller, up to four targets); turn, step

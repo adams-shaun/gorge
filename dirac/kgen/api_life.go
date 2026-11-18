@@ -13,6 +13,7 @@ func init() {
 	apiOp("SetLife", (*lowerCtx).apiSetLife)
 	apiOp("Extort", (*lowerCtx).apiExtort)
 	apiOp("Poison", (*lowerCtx).apiPoison)
+	apiOp("Radiation", (*lowerCtx).apiRadiation)
 	apiOp("Blight", (*lowerCtx).apiBlight)
 }
 
@@ -117,6 +118,31 @@ func (lc *lowerCtx) apiPoison(sa *cards.SA, ps *params) error {
 		return err
 	}
 	lc.emit(lInstr{Op: "Poison", Obj: who, A: n})
+	return nil
+}
+
+func (lc *lowerCtx) apiRadiation(sa *cards.SA, ps *params) error {
+	// gorge effRadiation: each Defined$ player gets Num$ rad counters (a
+	// PlayerCounterChange "RAD"); the precombat-main drain they feed is the
+	// kernel's own source-less trigger (dirac/act_radiation.go)
+	who, err := lc.objOrTarget(ps, "You", zNone)
+	if err != nil {
+		return err
+	}
+	switch who.Kind {
+	case rYou, rEachOpp, rEachPlayer, rTriggeredPlayer, rDefending, rTargetController:
+	case rTarget:
+		if t := lc.ab.Targets[who.N]; t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 {
+			return refuse("Radiation of a non-player target")
+		}
+	default:
+		return refuse("Radiation of %s", who)
+	}
+	n, err := lc.amount(ps, "Num", 1)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "Radiation", Obj: who, A: n})
 	return nil
 }
 
