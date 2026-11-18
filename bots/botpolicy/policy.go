@@ -1376,6 +1376,23 @@ func (b Board) castHelperChoices(d *decision.Decision) []int {
 	for _, n := range pips {
 		generic -= n
 	}
+	if c := d.ContributionCost; c != nil {
+		// The ask publishes the outstanding requirement the announcement
+		// must reduce -- the same total the engine's absorb gate walks. It
+		// is the CR 601.2f composition (cost reductions folded in), which
+		// the printed cost above is not: Herald of the Pantheon's {1} less
+		// on an enchantment spell lives here and not in ManaCost, so printed
+		// pricing over-selects past the real cost and the ask's Max clamp
+		// then slices a pip off an already over-long answer the gate
+		// rejects (mtgsim seed 777: "announcement reduces nothing"). The
+		// colourless slot (Mana[5]) is never a creature contribution
+		// (CR 702.51a): only the five coloured slots are matchable.
+		pips = [5]int32{}
+		for slot := 0; slot < 5; slot++ {
+			pips[slot] = int32(c.Mana[slot])
+		}
+		generic = int32(c.Generic)
+	}
 	if b.manaReaches(pips, generic) {
 		return nil
 	}
