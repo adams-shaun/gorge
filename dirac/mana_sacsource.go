@@ -275,7 +275,9 @@ func (s *State) xWitnessUnreachable(k *prep, p uint8, o Obj) bool {
 // most four stacked triggers resolve before it gives up (potential_script.go's
 // wait budget), so a plan whose sacrifices trigger more than four abilities
 // is not offered. The plan is executed on a copy of the state, and a kicker that
-// sacrifices is payable there or not offered.
+// sacrifices is payable there or not offered. A witness refused for any of
+// those reasons is still taken when its sacrifices' triggers end the game in
+// p's favour (witnessEndsGameWon, gorge's winOK fallback).
 func (s *State) kickWitness(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
 	if !s.anySacSource(k, p) {
 		return true // no source the plan could sacrifice
@@ -290,14 +292,36 @@ func (s *State) kickWitness(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCos
 		return true
 	}
 	if ab := spellAb(k, c); ab != 255 && plannerConsumesSac(&pk) && !tmp.abilityTargetsFeasible(k, &k.t.Cards[c].Abilities[ab], p, NoSlot, 0xff) {
-		return false
+		return tmp.witnessEndsGameWon(k, p, c, n0)
 	}
 	// the plan's mana abilities are activated before the kicker's cost is paid (CR 601.2g-h): a
 	// Treasure the plan sacrificed is no longer there for a kicker that sacrifices an artifact
 	if kc := &k.t.Cards[c].KickerCost; kc.Flags&kop.CostSac != 0 && plannerConsumesSac(&pk) && !tmp.pickCostPayable(k, p, kc, o) {
+		return tmp.witnessEndsGameWon(k, p, c, n0)
+	}
+	if !s.subs[kop.TrigSacrificed].any() || int(tmp.npend)-int(n0) <= witnessWaits {
+		return true
+	}
+	return tmp.witnessEndsGameWon(k, p, c, n0)
+}
+
+// witnessEndsGameWon: the witness fork t (taken before the cast's pre-cast
+// triggers resolve) queued sacrifice triggers from n0 that, resolved as gorge's
+// witness lets them resolve (at most witnessWaits of them, one pass each), end
+// the game in p's favour. gorge's potentialPlans takes that witness when the
+// plain one does not reach the play and no plan keeps the sources
+// (potential_plan.go's witnessReachesMode winOK fallback): Voyager Drake's
+// multikicked cast paid by five Treasures beside Havoc Jester, the opponent at
+// 2 life. An instant-speed cast is offered with the triggers still stacked.
+func (t *State) witnessEndsGameWon(k *prep, p uint8, c CardID, n0 uint8) bool {
+	if k.cards[c].instant || t.castFlash(k, p, c) || t.npend <= n0 {
 		return false
 	}
-	return !s.subs[kop.TrigSacrificed].any() || int(tmp.npend)-int(n0) <= witnessWaits
+	if int(t.npend)-int(n0) > witnessWaits {
+		t.npend = n0 + witnessWaits // the wait budget: the rest stay stacked (t is a fork)
+	}
+	t.resolveLowerCounterTriggers(k, n0, false)
+	return t.over && !t.pl[SeatIx(p)].lost
 }
 
 // canSacOnlyForMana reports whether the autopay planner may price sl as a
