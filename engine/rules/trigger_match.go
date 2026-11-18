@@ -385,7 +385,8 @@ type damageBatchKey struct {
 // of one "AddTrigger$ A & B". The zero value is a printed line.
 type grantedLine struct {
 	stamp uint32
-	line  *cards.Trigger
+	line  *cards.Trigger // a stable address only; nil for an AddTrigger$ line (re-parsed per event)
+	exec  string         // Execute$ name: separates the bodies of one "AddTrigger$ A & B"
 }
 
 // damageBatchEntry records one (trigger, referent) pair already queued inside
