@@ -94,7 +94,12 @@ func cryoshatterCases() []effectLongCase {
 // with it still enchanted by them all, untapped and on the battlefield --
 // the offer the census gap decides.
 func cryoshatterDorkPriority(g *GorgeSide, dork string, auras int) bool {
-	host := map[state.ObjID]state.ObjID{} // Cryoshatter -> enchanted dork
+	return attachedTapsDorkPriority(g, "Cryoshatter", dork, auras)
+}
+
+// attachedTapsDorkPriority is cryoshatterDorkPriority over any named aura.
+func attachedTapsDorkPriority(g *GorgeSide, aura, dork string, auras int) bool {
+	host := map[state.ObjID]state.ObjID{} // aura -> enchanted dork
 	tapped := map[state.ObjID]bool{}
 	ready := map[state.ObjID]bool{} // enchanted enough when the current turn began
 	var active state.PlayerID
@@ -115,7 +120,7 @@ func cryoshatterDorkPriority(g *GorgeSide, dork string, auras int) bool {
 				break
 			}
 			a, h := g.E.G.Obj(e.Obj), g.E.G.Obj(e.IDs[0])
-			if a != nil && a.Face() != nil && a.Face().Name == "Cryoshatter" &&
+			if a != nil && a.Face() != nil && a.Face().Name == aura &&
 				h != nil && h.Face() != nil && h.Face().Name == dork {
 				host[e.Obj] = e.IDs[0]
 			}
