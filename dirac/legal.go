@@ -1860,15 +1860,33 @@ func (c *potCensus) recTap(sl Slot, mask, n uint8) {
 // mergeTap widens sl's recorded tap unit by the further {T} ability ab and
 // reports it handled; false when ab is no tap ability or sl has no unit.
 func (c *potCensus) mergeTap(sl Slot, ab *kop.Ability) bool {
+	return c.mergeTapN(sl, ab, max(ab.ManaN, 1))
+}
+
+// mergeTapN is mergeTap for a further {T} ability making n mana in one tap (a
+// storage battery's counters, one mana each): the source's unit grows to n
+// when n exceeds its own tap's production, never to the sum of the two.
+func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n uint8) bool {
 	t := c.tap[sl]
 	if !c.on || ab.Cost.Flags&kop.CostTap == 0 || t.mask == 0 {
 		return false
 	}
 	unrecordPotUnit(&c.units, &c.n, t.mask, t.n)
-	t = potUnit{mask: t.mask | uint8(ab.ManaColors), n: max(t.n, max(ab.ManaN, 1))}
+	t = potUnit{mask: t.mask | uint8(ab.ManaColors), n: max(t.n, n)}
 	c.rec(t.mask, t.n)
 	c.tap[sl] = t
 	return true
+}
+
+// recStore records a storage battery's further tap ability in the census,
+// merging into the source's plain tap unit when there is one (mergeTapN) and
+// recording a fresh unit of the battery's colours otherwise (a battery whose
+// source has no tap unit, Dwarven Hold).
+func (c *potCensus) recStore(sl Slot, ab *kop.Ability, n int) {
+	m := uint8(min(n, 255))
+	if !c.mergeTapN(sl, ab, m) {
+		c.rec(uint8(ab.ManaColors), m)
+	}
 }
 
 // censusDynamicAb is the census's read of a further dynamic-amount ability: at
@@ -2152,7 +2170,10 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 						// a battery holding no counter makes nothing there
 						// (Dwarven Hold beside a kicked Flourishing Strike)
 						if n := s.perms[sl].ctrN(s, int(ab.Cost.Ctr)); n > 0 {
-							cen.rec(uint8(ab.ManaColors), uint8(min(n, 255)))
+							// a battery that taps beside the source's plain {T}: {C}
+							// (Mage-Ring Network) is the same tap, so its counters
+							// replace that unit's one mana instead of adding to it
+							cen.recStore(sl, ab, n)
 						}
 						open = s.storePotential(open, sl, ab, d, fold)
 						continue
