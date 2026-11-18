@@ -2632,6 +2632,7 @@ const (
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
 	StallRedirOrder    = 184 // a damage event a redirect record and another replacement both match, or a redirect the kernel does not model (infect, a combat pass already in an order ask; repl_dmgredirect.go)
+	StallExileRider    = 115 // a dies-to-exile replacement's rider (Kalitas's Zombie token) that cannot run exactly: it competes with another replacement in a CR 616.1 order, its source left before the exile move, or its prog asked or parked (repl_exilerider.go)
 	StallRedirCap      = 185 // a fifth redirect record in one turn (genState.redir; repl_dmgredirect.go)
 	NumStall           = 194 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
 )

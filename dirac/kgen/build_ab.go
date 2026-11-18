@@ -2843,7 +2843,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 	case "DestroyRegenerate":
 		rp.Kind = kop.ReplDestroyRegenerate // lower_destroyregen.go
 	case "ExileOnLeave":
-		if err := buildExileOnLeave(cb, r, rp); err != nil {
+		if err := buildExileOnLeave(cb, r, rp, &ka); err != nil {
 			return ka, err
 		}
 	case "OnePoison":
@@ -2947,9 +2947,16 @@ func flagsOf(cs string) map[string]string {
 // buildExileOnLeave builds a dies-to-exile replacement: the filter has no
 // zone gate either way (ZoneBattlefield compiles to Zone none), C 1 is the
 // any-zone flag read by exileAnyN, and A carries the counter the exiled card
-// gets (kind in the low byte, count above it; dirac/repl_exilectr.go).
-func buildExileOnLeave(cb *cardBuilder, r lRepl, rp *kop.Repl) error {
+// gets (kind in the low byte, count above it; dirac/repl_exilectr.go). The
+// rider prog (r.Prog) rides the ability.
+func buildExileOnLeave(cb *cardBuilder, r lRepl, rp *kop.Repl, ka *kop.Ability) error {
 	rp.Kind = kop.ReplExileOnLeave
+	if len(r.Prog) != 0 { // the rider that runs after the exile move (lower_exilectrrider.go)
+		var err error
+		if ka.Prog, err = cb.prog(r.Prog); err != nil {
+			return err
+		}
+	}
 	f, err := cb.filter(r.F, kop.ZoneBattlefield)
 	if err != nil {
 		return err

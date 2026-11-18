@@ -470,11 +470,13 @@ func (lc *lowerCtx) exileOnLeave(rp *params, w *cards.SA, rl *lRepl) (bool, erro
 		return false, nil // other self replacements Progenitus, the library forms
 	}
 	ctr, ctrN, bodyOK := exileBody(w)
+	tokRider := false
 	if !bodyOK {
-		if exileCounterRider(w) { // lower_exilectrrider.go
-			return true, refuse("repl-hard: dies-to-exile counter rider")
+		var claimed bool
+		var err error
+		if tokRider, claimed, err = exileRiderClaim(w); err != nil || !claimed { // lower_exilectrrider.go
+			return err != nil, err
 		}
-		return false, nil
 	}
 	if az := rp.str("ActiveZones"); az != "" && az != "Battlefield" {
 		return true, refuse("repl-hard: dies-to-exile ActiveZones %q", az)
@@ -522,6 +524,11 @@ func (lc *lowerCtx) exileOnLeave(rp *params, w *cards.SA, rl *lRepl) (bool, erro
 		}
 		rl.AnyZone = true
 	}
+	if tokRider {
+		if err := lc.exileRiderProg(w, anyZone, rl); err != nil {
+			return true, err
+		}
+	}
 	rl.Kind = "ExileOnLeave"
 	rl.F = f
 	rl.Ctr, rl.CtrN = ctr, int(ctrN)
@@ -537,10 +544,15 @@ func (lc *lowerCtx) exileOnLeave(rp *params, w *cards.SA, rl *lRepl) (bool, erro
 func (lc *lowerCtx) selfExile(rp *params, w *cards.SA, rl *lRepl) (bool, error) {
 	ctr, ctrN, bodyOK := exileBody(w)
 	if !bodyOK {
-		if exileCounterRider(w) { // lower_exilectrrider.go
-			return true, refuse("repl-hard: dies-to-exile counter rider")
+		tok, claimed, err := exileRiderClaim(w) // lower_exilectrrider.go
+		if err != nil || !claimed {
+			return err != nil, err
 		}
-		return false, nil
+		if tok {
+			// the rider runs from the replacing permanent, which here is the
+			// dying card itself and is gone when the prog runs
+			return true, refuse("repl-hard: dies-to-exile rider on a self replacement")
+		}
 	}
 	az := rp.str("ActiveZones")
 	if az != "" && az != "Battlefield" {
