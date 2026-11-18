@@ -1961,6 +1961,25 @@ func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n, drop uint8) bool {
 	return true
 }
 
+// growTap widens sl's recorded tap unit by r more mana of the same pick (a
+// reflected TapsForMana extra over a several-type production: one tap makes
+// one mana of the pick plus r more of it). The record is marked incomplete
+// when sl has no unit to grow.
+func (c *potCensus) growTap(sl Slot, r uint8) {
+	if !c.on {
+		return
+	}
+	t := c.tap[sl]
+	if t.mask == 0 || int(t.n)+int(r) > 255 {
+		c.gap()
+		return
+	}
+	unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain)
+	t.n += r
+	recordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain)
+	c.tap[sl] = t
+}
+
 // recStore records a storage battery's further tap ability in the census,
 // merging into the source's plain tap unit when there is one (mergeTapN) and
 // recording a fresh unit of the battery's colours otherwise (a battery whose
@@ -2252,7 +2271,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		s.potentialTapUnit(p, sl, pc, mask, painAdd, fold, painRefused, &cen)
 		cen.pain = 0 // the gate pair's and the granted units are priced unpainted
 		if k.gen != nil && k.gen.anyTapExtra && !painRefused && !pc.painOnly {
-			s.potentialTapExtra(k, sl, pc, mask, fold)
+			s.potentialTapExtra(k, sl, pc, mask, fold, &cen)
 		}
 		if n := gatePairPotential(pc); n != 0 {
 			add(sl, uint8(pc.wideCol), n) // gorge's walk sums both listed abilities of a gate-on pair
@@ -2367,10 +2386,13 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 // potentialTapExtra folds a TapsForMana carrier's extra (Heartbeat of Spring:
 // one more mana of the type the land made) into the over-bound pool: it is
 // part of the tap's production in gorge's potential pool, so one Forest funds
-// a repeatable filter's {2} fee (CR 605.3a, 106.1). Only the over-bound pool
-// takes it. The caller has checked k.gen.anyTapExtra, the lethal guard's
-// refusal and the pain-only face.
-func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold func(Slot, uint8, uint8)) {
+// a repeatable filter's {2} fee (CR 605.3a, 106.1). The per-tap census records
+// it too (cen): gorge's planner prices the tap at its mana plus the extra
+// (pay addTapExtra), so a Mountain under Keeper of Progenitus is one unit of
+// {R}{R} (CR 605.3b, 106.1) and an X-bound cast's sweep reads it. The caller
+// has checked k.gen.anyTapExtra, the lethal guard's refusal and the pain-only
+// face.
+func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold func(Slot, uint8, uint8), cen *potCensus) {
 	xv := s.srcExtra(k, sl, pc)
 	for c, v := range xv {
 		// srcExtra holds the source's own all-at-once rest (pcard.manaXv),
@@ -2378,10 +2400,12 @@ func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold 
 		// is folded here (a stall returns nothing, so the subtraction floors)
 		if own := pc.manaXv[c]; v > own {
 			fold(sl, 1<<c, v-own)
+			cen.rec(1<<c, v-own)
 		}
 	}
 	if r := s.srcReflectPick(k, sl, pc); r > 0 {
 		fold(sl, mask, r)
+		cen.growTap(sl, r)
 	}
 }
 
