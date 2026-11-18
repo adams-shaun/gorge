@@ -778,3 +778,17 @@ func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
 		s.tapExtraStall(k, sl)
 	}
 }
+
+// ctrGapsOutsideGrantSearch reports whether p has an activatable counter-cost
+// gap the grant search does not already cover: a storage battery that holds
+// counters is one of the grant search's own candidates (mana_grantstore.go,
+// gorge's one prefix search lists every gap), so a play its budget gave up on
+// is dropped, not left to the counter-gap search that cannot price the grants.
+func (s *State) ctrGapsOutsideGrantSearch(k *prep, p uint8) bool {
+	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
+		if a := k.ctrAbOf(s.cardAt(b.first())); !kop.StoreManaAb(a) {
+			return true
+		}
+	}
+	return false
+}
