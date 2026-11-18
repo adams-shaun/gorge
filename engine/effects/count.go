@@ -346,6 +346,29 @@ func EvalCountOK(h Host, c *Ctx, expr string) (int32, bool) {
 // would otherwise be the only unbounded recursion in this evaluator.
 const maxCountDepth = 8
 
+// evalLKIOrDungeonsHeadOK dispatches the two small heads evalCountExprOK
+// keeps out of line (it sits at the codeshape complexity ceiling): the
+// ReplacedCardLKI$ family, and DungeonsCompleted$Amount -- how many dungeons
+// the resolving controller has completed (CR 309.7; events.DungeonComplete
+// folds Player.CompletedDungeons), which Undermountain Adventurer's "if you've
+// completed a dungeon, add six {G} instead" reads through Count$Compare. A
+// DungeonsCompleted$ property other than Amount stays unmodelled
+// (handled=false), as before.
+func evalLKIOrDungeonsHeadOK(h Host, c *Ctx, expr string, depth int) (n int32, ok, handled bool) {
+	if body, found := strings.CutPrefix(expr, "ReplacedCardLKI$"); found {
+		n, ok = evalReplacedCardLKIOK(h, c, body, depth)
+		return n, ok, true
+	}
+	body, found := strings.CutPrefix(expr, "DungeonsCompleted$")
+	if !found || strings.TrimSpace(body) != "Amount" {
+		return 0, false, false
+	}
+	if c.Controller < 0 || int(c.Controller) >= len(h.Game().Players) {
+		return 0, true, true
+	}
+	return h.Game().Players[c.Controller].CompletedDungeons, true, true
+}
+
 // evalCountExprOK is EvalCountOK's body plus the recursion depth; see the
 // EvalCountOK doc for the verdict's meaning.
 func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
@@ -415,8 +438,8 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	if body, ok := strings.CutPrefix(expr, "Sacrificed$"); ok {
 		return evalSacrificedOK(h, c, strings.TrimSpace(body))
 	}
-	if body, ok := strings.CutPrefix(expr, "ReplacedCardLKI$"); ok {
-		return evalReplacedCardLKIOK(h, c, body, depth)
+	if n, ok, handled := evalLKIOrDungeonsHeadOK(h, c, expr, depth); handled {
+		return n, ok
 	}
 	if n, ok := evalRefProperty(h, c, expr, depth); ok {
 		return n, true
