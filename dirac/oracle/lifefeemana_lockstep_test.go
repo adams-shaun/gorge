@@ -16,9 +16,9 @@ import (
 var klifeFeeManaDecks = [2][]cardset.Entry{
 	{
 		{Name: "Horizon Canopy", Count: 5}, {Name: "Fiery Islet", Count: 3},
-		{Name: "Swamp", Count: 10}, {Name: "Forest", Count: 3}, {Name: "Serra Angel", Count: 3},
+		{Name: "Cabal Coffers", Count: 4}, {Name: "Swamp", Count: 7}, {Name: "Forest", Count: 2}, {Name: "Serra Angel", Count: 3},
 		{Name: "Air Elemental", Count: 3}, {Name: "Grizzly Bears", Count: 4}, {Name: "Hill Giant", Count: 3},
-		{Name: "Gray Ogre", Count: 3}, {Name: "Llanowar Elves", Count: 3},
+		{Name: "Sengir Vampire", Count: 2}, {Name: "Gurmag Angler", Count: 1}, {Name: "Llanowar Elves", Count: 3},
 	},
 	{
 		{Name: "Plains", Count: 8}, {Name: "Island", Count: 5}, {Name: "Mountain", Count: 6},
@@ -58,7 +58,7 @@ func TestLifeAndFeeManaLockstep(t *testing.T) {
 	t.Parallel()
 	seen := map[string]*tapCount{}
 	var counts []*tapCount
-	for _, n := range []string{"Horizon Canopy", "Fiery Islet"} {
+	for _, n := range []string{"Horizon Canopy", "Fiery Islet", "Cabal Coffers"} {
 		tc := &tapCount{hash: nameHash(n)}
 		seen[n] = tc
 		counts = append(counts, tc)

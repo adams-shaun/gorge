@@ -405,6 +405,22 @@ func FeeOnlyManaAb(a *Ability) bool {
 	return false
 }
 
+// FeeDynManaAb reports whether mana ability a is "{N}, {T}: Add <one fixed
+// colour> for each <thing>" (Cabal Coffers' {B} for each Swamp you control):
+// a generic-only fee and {T}, a dynamic amount (AfManaDynamic, ManaV) of one
+// WUBRG colour, unrestricted, no rider or program. It is a filter whose fee
+// is paid from other mana (FilterManaAb): gorge's census gap, relaxed to the
+// evaluated amount of its colour (rules/potential_plan.go
+// paymentPlanRelaxedAlternatives).
+func FeeDynManaAb(a *Ability) bool {
+	m, c := &a.Cost.Mana, a.ManaColors
+	return a.Kind == AbMana && a.Cost.Flags == CostTap && m.Generic != 0 && m.X == 0 && m.Hyb == ([4]ColorMask{}) && m.Tb == 0 &&
+		m.Pips == ([NumManaKinds]uint8{}) && a.AFlags == AfManaDynamic && c != 0 && c&^ColAny == 0 && c&(c-1) == 0 &&
+		a.ManaN <= 1 && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && !a.ManaEach && !a.ManaDeferred && a.ManaRider == ManaRiderNone &&
+		len(a.Prog) == 0 && a.Gate.Ctr == 0 && a.Trig.Cond == 0 && a.SplitGate == SplitGateNone &&
+		(a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
 // FilterManaAb reports whether mana ability a is a filter the kernel models
 // as a card's first mana ability: a fee-only one (FeeOnlyManaAb), a generic-only fee,
 // {1} once each turn (ActivationLimit$ 1) or {1}, {T}, one unrestricted
@@ -422,6 +438,9 @@ func FilterManaAb(a *Ability) bool {
 		return true
 	}
 	if _, ok := PipFeeManaAb(a); ok {
+		return true
+	}
+	if FeeDynManaAb(a) {
 		return true
 	}
 	m := &a.Cost.Mana
