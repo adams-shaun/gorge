@@ -427,6 +427,7 @@ func (e *Engine) askReplacementChoiceIn(p state.PlayerID, fromEmit bool) events.
 		indices = rc.applicable
 	case replChoiceManaColor:
 		d.Prompt = "Choose the colour of the replacement mana."
+		indices = nil // the colour options below are the whole list
 		for i, color := range []string{"W", "U", "B", "R", "G"} {
 			d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: rc.cands[rc.selected].id,
 				Label: "Add " + color, ManaSymbol: color})
