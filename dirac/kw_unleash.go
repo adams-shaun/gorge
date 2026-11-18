@@ -15,7 +15,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // generated ask queue (akUnleash, posed at the next priority like the other
 // as-enters asks) and, on "yes", puts the counter the way the entry
 // counters are put (placeEntryCounters: the would-enter-board settlement,
-// CR 614.12). The two options are gorge's, in its order: "yes" first (its
+// CR 614.12). A cast creature spell is asked earlier: gorge poses the choice
+// at the spell's resolution with the spell still on the stack, so
+// unleashPreKind makes it a pre-entry ask (s.g.pre, like the colour and type
+// elections) and the entry applies the answer. The two options are gorge's, in its order: "yes" first (its
 // option 0, the counter), then "no".
 //
 // The can't-block half: canBlock refuses a blocker whose card carries
@@ -53,16 +56,35 @@ func tableHasUnleash(t *kop.Table) bool {
 // priority, before the entrant's ETB triggers resolve.
 func (s *State) unleashEntryAsk(k *prep, sl Slot, o Obj) {
 	if k.unleash && k.t.Cards[s.objs[o].card].Unleash {
+		if p := &s.g.pre; p.state == 2 && p.kind == akUnleash && p.obj == o {
+			// a cast creature's election was asked with the spell still on the
+			// stack (unleashPreKind); the answer lands as the entry counter
+			if p.val == 1 {
+				s.placeEntryCounters(k, sl, int(kop.CtrP1P1), 1, s.perms[sl].ctrl)
+			}
+			return
+		}
 		s.queueAskAt(sl, akUnleash, NoCard, 0, 0)
 	}
+}
+
+// unleashPreKind is akUnleash when card c prints Unleash: gorge asks a cast
+// creature's counter election at the spell's resolution, with the spell still
+// on the stack (the same as-enters shape as the colour and type elections,
+// CR 614.12), so the kernel poses it through the pre-entry ask (preAskFor)
+// instead of queueing it after the entry; 0 otherwise.
+func (s *State) unleashPreKind(k *prep, c CardID) uint8 {
+	if k.unleash && k.t.Cards[c].Unleash {
+		return akUnleash
+	}
+	return 0
 }
 
 // unleashOptions fills the queued as-enters ask: the counter election over
 // the entering permanent, gorge's two options in its order ("counter" is
 // option 0, the deterministic bot's answer).
-func (s *State) unleashOptions(d *Decision, ask askRec) {
+func (s *State) unleashOptions(d *Decision, o Obj) {
 	d.Sub = ChGenUnleash
-	o := s.perms[ask.sl].obj
 	d.add(MakeAction(AkChoose, TCode(o), 0, 1)) // enter with a +1/+1 counter
 	d.add(MakeAction(AkChoose, TCode(o), 0, 0)) // enter without one
 }
