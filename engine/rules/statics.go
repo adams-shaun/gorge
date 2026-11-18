@@ -831,6 +831,12 @@ func init() {
 	// so the shared repair derives its rule from the same fact. Proof test:
 	// TestEDHKeywordsOnlyAttackAloneSoleAttacker.
 	effects.RegisterNonAPI("kw:OnlyAttackAlone")
+	// kw:MustBeBlockedByExactlyOne -- CR 509.1c's exactly-one variant
+	// (Nacatl War-Pride): the MustBlock duty beside a one-blocker ceiling,
+	// the Menace floor's mirror (blockPairScopeFor folds the published Max$
+	// 1, validateBlockers re-checks it, the parse arms the duty).
+	// Proof test: TestEDHKeywordsMustBeBlockedByExactlyOne.
+	effects.RegisterNonAPI("kw:MustBeBlockedByExactlyOne")
 }
 
 // manaSlotSymbols indexes the pool slot order (state.MW..state.MC) to its

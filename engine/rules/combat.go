@@ -1048,6 +1048,11 @@ func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) erro
 		if byAttacker[o.Attacker] == 1 && e.hasKeywordH(o.Attacker, kwhMenace) {
 			return fmt.Errorf("attacker %d with menace must be blocked by at least two creatures", o.Attacker)
 		}
+		// CR 509.1c's exactly-one ceiling (Nacatl War-Pride), re-checked with
+		// the same oracle the published bound folded.
+		if byAttacker[o.Attacker] > 1 && combat.DerivedHiddenFlags(asBoard(e), o.Attacker).MustBeBlockedByExactlyOne {
+			return fmt.Errorf("attacker %d must be blocked by exactly one creature (declared %d)", o.Attacker, byAttacker[o.Attacker])
+		}
 		if err := combat.ValidateMinMaxBlockers(asBoard(e), o.Attacker, byAttacker[o.Attacker], d.Player); err != nil {
 			return err
 		}
@@ -1095,6 +1100,16 @@ func (e *Engine) blockPairScopeFor(defender state.PlayerID) blockPairScope {
 		// two legal blockers) is never offered at all.
 		if !all && e.hasKeywordH(aid, kwhMenace) && (!minOK || min < 2) {
 			min, minOK = 2, true
+		}
+		// CR 509.1c's exactly-one ceiling (Nacatl War-Pride's "must be
+		// blocked by exactly one creature if able."): the same
+		// whole-declaration bound shape as Menace's floor, a Max$ 1 instead
+		// of a Min$ 2, folded into the published bound so a client sees the
+		// ceiling on the option instead of re-deriving the keyword. The duty
+		// half travels the MustBlock flag the parse arms, so the offer's
+		// "if able" decision covers both halves.
+		if !all && combat.DerivedHiddenFlags(asBoard(e), aid).MustBeBlockedByExactlyOne && (!maxOK || max > 1) {
+			max, maxOK = 1, true
 		}
 		var b [2]int
 		if minOK {
