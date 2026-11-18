@@ -86,6 +86,10 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		// An invalidated optional template means the entering object simply
 		// enters as itself, never as a copy of an object from a former zone.
 		if !cloneETBTemplateLegal(g, c, cp, h) {
+			// The copy is not made (CR 614.1c): the riders that ride this
+			// body's chain read the same election, so clearing it keeps every
+			// rider off the object that now enters as itself (CR 707.9b).
+			c.CloneEnter.ChoiceValid = false
 			return
 		}
 	}
@@ -346,18 +350,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	removeSubTypes := cp.RemoveSubTypes
 	// Resolve the named grants against the resolving face before replacing its
 	// copy basis. A copied object's SVar table is not the grantor's table.
-	grantTable := c.SVars
-	if grantTable == nil {
-		if original := g.Obj(c.Source); original != nil && original.Face() != nil {
-			grantTable = original.Face().SVars
-		}
-	}
-	grantSVars := make(map[string]string)
-	for _, name := range cp.AddSVars {
-		if raw, ok := grantTable[name]; ok {
-			grantSVars[name] = raw
-		}
-	}
+	grantTable, grantSVars := cloneGrantSVars(c, g, cp.AddSVars)
 	addKeywords := cp.AddKeywords
 	// PumpKeywords$ is the Clone sibling of CopyPermanent's temporary-keyword
 	// rider: the copy gains the named keywords for the PumpDuration$ window,
@@ -539,6 +532,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			exc.svars = append(exc.svars, [2]string{name, raw})
 		}
 	}
+	exc.svars = append(exc.svars, cloneETBTapLockSVars(sa, grantTable, c.CloneEnter.ETB)...)
 	for _, name := range cp.AddTriggers {
 		if raw, ok := grantTable[name]; ok {
 			if _, ok := cards.ParseTriggerLine(raw); ok {
