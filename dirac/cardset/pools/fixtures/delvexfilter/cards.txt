@@ -1,0 +1,5 @@
+# the delve X filter pool: Logic Knot ({X}{U}{U}, delve) beside Izzet Signet
+# (a filter whose fee the window pays) and basics (dirac/kw_delve_xfilter_test.go)
+Logic Knot
+Izzet Signet
+Island
