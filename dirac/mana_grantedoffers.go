@@ -2498,7 +2498,7 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			// gorgeLowers prices, so the search funds that (Deadly Precision's {B})
 			return s.altAddPlanCost(k, p, c, Obj(a.Source())), ex, need, true
 		}
-		if c := s.objs[a.Source()].card; a.Kind() == AkCast && a.Mode() == 0 && a.Target() == 0 && modalFloorZero(k, c) {
+		if c := s.objs[a.Source()].card; a.Kind() == AkCast && a.Mode() == 0 && a.Target() == 0 && s.modalFloorFree(k, p, c) {
 			// a Spree or Tiered face: the cast planner declines the shape
 			// ("shape:modal_cost"), so gorge's potential planner prices the printed
 			// cost from its census and the prefix search taps a granted source the
