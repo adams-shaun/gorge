@@ -231,6 +231,23 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		// plain one is left out (pair 8638: Grow from the Ashes paid only
 		// through the imprisoned lands)
 		plainOK := tgtOK && s.gorgeOffers(p, o, 0) && (cost.X == 0 || s.spellXBoundPayable(k, c, p, cost))
+		if plainOK && cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid && !cost.Phyrexian() && !s.FeatPoolPays(p, o, 0) {
+			// gorge's payment builder classifies the composed cost before it
+			// plans (payment_plan.go paymentPlanCastShapeDetailScoped, CR 601.2b:
+			// choosing a hybrid face is a choice made as the spell is
+			// announced) and declines it "cost:hybrid", so beside the
+			// pool-priced walk the priority list carries the cast only through
+			// gorge's potential payment planner: a colouring witness that
+			// reaches the play — a plan that consumes nothing, or one whose
+			// sacrifices leave the spell a legal target set (potential_plan.go's
+			// post-check; the targets are announced before the mana abilities
+			// run, CR 601.2b-c). The census alone must not offer it (Shattering
+			// Blow's {1}{R/W} beside the Treasure that is also its only
+			// artifact target: decision 190 of 190 withholds; with a second
+			// Treasure the witness leaves it as the target and gorge offers at
+			// 194, pool tail-07-c000, seed 256884)
+			plainOK = s.castWitnessReaches(k, p, c, cost)
+		}
 		if plainOK {
 			d.add(MakeAction(AkCast, TCode(o), 0, 0))
 		}
