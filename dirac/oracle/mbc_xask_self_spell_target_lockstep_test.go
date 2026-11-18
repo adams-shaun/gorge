@@ -11,7 +11,14 @@ import "testing"
 // X = 1 beside X = 2 (gorge excludes the cast's card from its own targets,
 // xAsk's targetsAnnounceableAt; decision 329, pair 36 of tail-66's ev-tail-66
 // focus run).
+//
+// CR 107.3 with CR 601.2b: the offer gate must also agree on whether any
+// payable X has a legal target. With three mana and a lone three-mana
+// Ferropede on the stack, Spell Blast needs X = 3 ({3}{U}) and is not
+// castable; dirac offered it anyway (decision 634, pair 35 of tail-13's
+// tail-13-c000 run).
 func TestMBCSpellBlastReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "xask_self_spell_target")
+	stdReproNamed(t, "spell_blast_x_target_unpayable")
 }
