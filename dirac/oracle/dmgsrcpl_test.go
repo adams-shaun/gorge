@@ -101,17 +101,25 @@ func kdmgsrcplScan(g *GorgeSide) kdmgsrcplCounts {
 	return c
 }
 
-// kdmgsrcplPolicy takes a turn-face-up special action whenever offered
-// (Pyrotechnic Performer's trigger needs one; both it and a face-down cast are
+// kdmgsrcplPolicy takes a turn-face-up special action whenever offered with
+// mana floating (Pyrotechnic Performer's trigger needs one; a face-down cast is
 // paid from floating mana only, which a Priest of Urabrask supplies), else a
-// face-down cast, else a Priest, else
-// castFirstPolicy's casts and activations, else random.
+// face-down cast, else a Priest, else castFirstPolicy's casts and activations,
+// else random. gorge also prices the turn-up from untapped lands (the potential
+// walk's turn_face_up witness); the policy never takes that one, so the lands
+// stay up for the Shock it holds for a response, which is what makes a trigger
+// object leave first (the pool's point).
 func kdmgsrcplPolicy(seed uint64) Policy {
 	rnd := RandomPolicy(seed)
-	var up, down, priest, shock, buf []Canon
+	var up, down, priest, shock, buf, rest []Canon
 	return PolicyFunc(func(c *PickCtx) Canon {
-		up, down, priest, shock, buf = up[:0], down[:0], priest[:0], shock[:0], buf[:0]
+		up, down, priest, shock, buf, rest = up[:0], down[:0], priest[:0], shock[:0], buf[:0], rest[:0]
+		floats := kdmgsrcplFloats(c)
 		for _, a := range c.D.Options {
+			if a.Kind() == ActSpecial && a.Mode()&15 == kfacedownTurnUp && !floats {
+				continue // a land-funded turn-up
+			}
+			rest = append(rest, a)
 			switch k := a.Kind(); {
 			case k == ActSpecial && a.Mode()&15 == kfacedownTurnUp:
 				up = append(up, a)
@@ -140,12 +148,28 @@ func kdmgsrcplPolicy(seed uint64) Policy {
 			pool = priest
 		}
 		if len(pool) == 0 {
-			return rnd.Pick(c)
+			if len(rest) == len(c.D.Options) {
+				return rnd.Pick(c)
+			}
+			pool = rest
 		}
 		d := *c.D
 		d.Options = pool
 		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
 	})
+}
+
+// kdmgsrcplFloats reports whether the deciding player has mana floating on
+// gorge's side (true with no gorge view to read).
+func kdmgsrcplFloats(c *PickCtx) bool {
+	if c.G == nil {
+		return true
+	}
+	d := c.G.E.Pending()
+	if d == nil || int(d.Player) >= len(c.G.E.G.Players) {
+		return true
+	}
+	return c.G.E.G.Players[d.Player].Pool.Total() > 0
 }
 
 // kdmgsrcplRun plays seeds 1..seeds (decks swapped on odd seeds) and returns
