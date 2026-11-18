@@ -714,9 +714,13 @@ func prepGrantTrig(g *genPrep, ga *kop.Ability, pc *pcard) {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 // dynamicManaCost reports whether a's Cost$ is a shape the dynamic variants
 // (varPC) price: a bare {T}, or {T} plus sacrificing the source (Lotus
-// Blossom's "Add X mana of any one color"). Any other cost stays off the
-// autopay census.
+// Blossom's "Add X mana of any one color"), with no mana in it (Cabal
+// Coffers' {2}, {T} is a paid filter, mana_filterfirst.go). Any other cost
+// stays off the autopay census.
 func dynamicManaCost(a *kop.Ability) bool {
+	if a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 {
+		return false
+	}
 	switch a.Cost.Flags {
 	case kop.CostTap, kop.CostTap | kop.CostSacSelf:
 		return true
