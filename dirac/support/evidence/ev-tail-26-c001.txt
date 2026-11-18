@@ -20,6 +20,7 @@ Auspicious Ancestor
 Ayula, Queen Among Bears
 Baloth Prime
 Barrel Down Sokenzan
+Birchlore Rangers
 Birthing Pod
 Blade of the Bloodchief
 Blood Knight
@@ -99,6 +100,7 @@ Grave Betrayal
 Gravity Well
 Greenseeker
 Grizzly Ghoul
+Gruul Guildmage
 Harrow
 Henge of Ramos
 Hermes, Overseer of Elpis
@@ -115,11 +117,13 @@ Killer Bees
 King Crab
 Kithkin Mourncaller
 Knight of Dawn's Light
+Laccolith Grunt
 Lava Axe
 Leela, Sevateem Warrior
 Legion Leadership
 Leisure Bicycle
 Lightning Prowess
+Living Lands
 Lord of Extinction
 Lulu, Stern Guardian
 Magma Rift
@@ -127,6 +131,7 @@ Make Your Mark
 Makeshift Battalion
 Mana Geyser
 Markov Enforcer
+Mercadian Bazaar
 Merrow Bonegnawer
 Mizzium Skin
 Moat Piranhas
@@ -140,6 +145,7 @@ Necroblossom Snarl
 Necrogen Spellbomb
 Necrosquito
 Nested Shambler
+Niall Silvain
 Nighthawk Scavenger
 Nightmarish End
 Nikya of the Old Ways
@@ -168,6 +174,7 @@ Quandrix Pledgemage
 Quest for Ancient Secrets
 Quickening Licid
 Rally the Ranks
+Rampaging Aetherhood
 Ransack
 Reality Ripple
 Reckless Air Strike
@@ -196,6 +203,7 @@ Sivriss, Nightmare Speaker
 Skulltap
 Skyhunter Cub
 Skyhunter Prowler
+Skyway Sniper
 Slate Street Ruffian
 Slate of Ancestry
 Slip Through Space
@@ -223,6 +231,7 @@ The Wretched
 Thundering Spineback
 Tide Drifter
 Tigereye Cameo
+Titania, Nature's Force
 Tower of Calamities
 Triad of Fates
 Turbulent Dreams

@@ -398,6 +398,7 @@ Town Gossipmonger
 Trading Post
 Trigon of Thought
 Triumph of the Hordes
+Turn Aside
 Turret Ogre
 Twincast
 Unbreakable Formation

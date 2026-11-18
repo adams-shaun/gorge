@@ -311,7 +311,6 @@ Alchemist's Refuge
 Alchemist's Retrieval
 Alchemist's Vial
 Alela, Artful Provocateur
-Alela, Cunning Conqueror
 Alena, Kessig Trapper
 Alesha's Legacy
 Algorithmic Ferocity
@@ -423,7 +422,6 @@ Angel of Sanctions
 Angel of the Dawn
 Angel of the Dire Hour
 Angel of the God-Pharaoh
-Angel of the Ruins
 Angel's Feather
 Angel's Mercy
 Angel's Tomb
@@ -709,7 +707,6 @@ Attuma, Atlantean Warlord
 Attune with Aether
 Attuned Hunter
 Atzocan Archer
-Atzocan Seer
 Audacity
 Audience with Trostani
 Augur of Autumn
@@ -727,7 +724,6 @@ Aurelia, the Law Above
 Aurification
 Auriok Champion
 Auriok Glaivemaster
-Auriok Salvagers
 Auron's Inspiration
 Aurora Champion
 Aurora Griffin
@@ -1272,7 +1268,6 @@ Body of Knowledge
 Bofur, Reliable Guardian
 Bog Badger
 Bog Glider
-Bog Initiate
 Bog Naughty
 Bog Rats
 Bog Tatters
@@ -1314,7 +1309,6 @@ Bone Flute
 Bone Miser
 Bone Saw
 Bone Shredder
-Bone Splinters
 Bonebind Orator
 Bonecache Overseer
 Bonecaller Cleric
@@ -1550,7 +1544,6 @@ Burn, Burn, Tree and Fern
 Burner Rocket
 Burning Anger
 Burning Curiosity
-Burning Oil
 Burning Prophet
 Burning Sun Cavalry
 Burning Sun's Fury
@@ -1971,7 +1964,6 @@ Clay Revenant
 Clay Statue
 Clay-Fired Bricks
 Cleanfall
-Cleanse
 Cleansing Nova
 Clear the Land
 Clear the Stage
@@ -1982,7 +1974,6 @@ Cleon, Merry Champion
 Cleopatra, Exiled Pharaoh
 Cleric of Life's Bond
 Cleveland Booker, Empath
-Clever Concealment
 Cliffhaven Kitesail
 Clifftop Lookout
 Clifftop Retreat
@@ -2530,7 +2521,6 @@ Dawn Gryff
 Dawn's Light Archer
 Dawn's Truce
 Dawn-Blessed Pennant
-Dawnbringer Charioteers
 Dawnhand Dissident
 Dawnhand Eulogist
 Dawnhart Wardens
@@ -3229,7 +3219,6 @@ Eldrazi Ravager
 Eldrazi Repurposer
 Electric Eel
 Electric Revelation
-Electrify
 Electro's Bolt
 Electrostatic Infantry
 Electrostatic Pummeler
@@ -4086,7 +4075,6 @@ Frilled Sparkshooter
 Frodo, Determined Hero
 Frog Butler
 Frog Tongue
-Frogtosser Banneret
 Frolicking Familiar
 From Father to Son
 From the Rubble
@@ -4125,7 +4113,6 @@ Fungal Fortitude
 Fungal Infection
 Fungal Plots
 Fungal Shambler
-Fungus Elemental
 Fungus Sliver
 Fungusaur
 Furious Bellow
@@ -4302,7 +4289,6 @@ Ghalta, Stampede Tyrant
 Ghastbark Twins
 Ghastly Death Tyrant
 Ghave, Guru of Spores
-Ghen, Arcanum Weaver
 Ghirapur Gearcrafter
 Ghired, Mirror of the Wilds
 Ghitu Journeymage
@@ -4671,7 +4657,6 @@ Greater Werewolf
 Greatsword of Tyr
 Greedy Freebooter
 Greel's Caress
-Greel, Mind Raker
 Green Goblin, Revenant
 Green Sun's Zenith
 Greenbelt Guardian
@@ -4803,7 +4788,6 @@ Guul Draz Vampire
 Guy in the Chair
 Gwaihir, Greatest of the Eagles
 Gwen Stacy
-Gwenna, Eyes of Gaea
 Gwenom, Remorseless
 Gwyllion Hedge-Mage
 Gwyndala, the Progeny
@@ -4845,7 +4829,6 @@ Hamlet Captain
 Hamlet Glutton
 Hammer of Nazahn
 Hammerfist Giant
-Hammerhead, Maggia Boss
 Hammers of Moradin
 Hampering Snare
 Hamza, Guardian of Arashin
@@ -5019,7 +5002,6 @@ Hero of the Winds
 Hero's Blade
 Hero's Heirloom
 Hero's Resolve
-Heroes Remembered
 Heroes' Hangout
 Heroes' Reunion
 Heroic Charge
@@ -5099,7 +5081,6 @@ Hobgoblin Dragoon
 Hobgoblin, Mantled Marauder
 Hog-Monkey
 Hold the Line
-Holdout Settlement
 Hollow Marauder
 Hollow One
 Hollow Scavenger
@@ -5367,7 +5348,6 @@ Increasing Devotion
 Increasing Savagery
 Incriminate
 Incriminating Impetus
-Indatha Crystal
 Indatha Triome
 Indebted Samurai
 Indelicate Healer
@@ -5969,7 +5949,6 @@ Knight of the Stampede
 Knight's Pledge
 Knighted Myr
 Knightfisher
-Knightly Valor
 Knights of Dol Amroth
 Knights' Charge
 Knockout Blow
@@ -6006,7 +5985,6 @@ Korlash, Heir to Blackblade
 Korlessa, Scale Singer
 Kormus Bell
 Korok, Liberated Rage
-Korozda Gorgon
 Korozda Guildmage
 Korvold and the Noble Thief
 Korvold, Fae-Cursed King
@@ -6308,7 +6286,6 @@ Lilysplash Mentor
 Lim-Dûl's High Guard
 Limestone Golem
 Liminal Hold
-Limits of Solidarity
 Lin Sivvi, Defiant Hero
 Lindblum, Industrial Regency
 Lingering Mirage
@@ -6535,7 +6512,6 @@ Mage Tower Referee
 Mage il-Vec
 Mage's Attendant
 Mage's Guile
-Mage-Ring Network
 Magebane Lizard
 Magefire Wings
 Mageta the Lion
@@ -6784,7 +6760,6 @@ Mental Modulation
 Mephidross Vampire
 Mephitic Draught
 Mer Man
-Mercadian Bazaar
 Merchant of Many Hats
 Merchant of Venom
 Merchant of the Vale
@@ -7076,7 +7051,6 @@ Moonshaker Cavalry
 Moonstone Eulogist
 Moonstone Harbinger
 Moonstone, Harsh Mistress
-Moonveil Dragon
 Moopsy
 Moor Fiend
 Morbid Opportunist
@@ -7191,7 +7165,6 @@ Mycosynth Golem
 Mycosynth Wellspring
 Myojin of Cryptic Dreams
 Myojin of Infinite Rage
-Myojin of Roaring Blades
 Myr Galvanizer
 Myr Matrix
 Myr Mindservant
@@ -7217,7 +7190,6 @@ Mystic Skyfish
 Mystic Speculation
 Mystic Visionary
 Mystical Tether
-Mystifying Maze
 Myth Realized
 Mythic Proportions
 Márton Stromgald
@@ -7843,7 +7815,6 @@ Peak Eruption
 Pearl Medallion
 Pearl of Wisdom
 Pearl-Ear, Imperial Advisor
-Peat Bog
 Peculiar Lighthouse
 Pedal to the Metal
 Peema Aether-Seer
@@ -7879,7 +7850,6 @@ Perilous Voyage
 Perils of the Past
 Perimeter Sergeant
 Permission Denied
-Perplex
 Perplexing Test
 Persecute
 Persist
@@ -7927,7 +7897,6 @@ Phantom Wurm
 Pharika's Chosen
 Phelddagrif
 Phlox, Unorthodox Doctor
-Phoenix Chick
 Phoenix Down
 Phoenix of Ash
 Photon Blast Barrage
@@ -8366,7 +8335,6 @@ Racers' Scoreboard
 Rack and Ruin
 Radagast of Rhosgobel
 Radha, Coalition Warlord
-Radha, Heir to Keld
 Radiant Flames
 Radiant Kavu
 Radiant Strike
@@ -8412,7 +8380,6 @@ Raised by Giants
 Raised by Wolves
 Raka Disciple
 Rakalite
-Rakdos Carnarium
 Rakdos Cluestone
 Rakdos Guildmage
 Rakdos Headliner
@@ -8897,7 +8864,6 @@ Robot Chicken
 Robotics Mastery
 Roc Hunter
 Roc of Kher Ridges
-Rocco, Cabaretti Caterer
 Rock Badger
 Rock Lobster
 Rock Slide
@@ -8976,7 +8942,6 @@ Roughshod Duo
 Rover Blades
 Roving Keep
 Rowan's Grim Search
-Rowan, Fearless Sparkmage
 Rowan, Scion of War
 Rowdy Research
 Rowdy Snowballers
@@ -9344,7 +9309,6 @@ Sea Spirit
 Sea of Clouds
 Seachrome Coast
 Seahunter
-Seal from Existence
 Seal of Cleansing
 Seal of Primordium
 Seam Rip
@@ -9375,7 +9339,6 @@ Sedraxis Specter
 Seed of Hope
 Seedcradle Witch
 Seedglaive Mentor
-Seedguide Ash
 Seedpod Squire
 Seedship Agrarian
 Seedship Broodtender
@@ -9490,7 +9453,6 @@ Shadow Stinger
 Shadow Summoning
 Shadow Urchin
 Shadow of Mortality
-Shadow-Rite Priest
 Shadowbeast Sighting
 Shadowborn Demon
 Shadowstorm
@@ -9572,7 +9534,6 @@ Shields of Velis Vel
 Shifting Grift
 Shifting Wall
 Shiko, Paragon of the Way
-Shilgengar, Sire of Famine
 Shimmer Dragon
 Shimmer Myr
 Shimmer of Possibility
@@ -9625,7 +9586,6 @@ Shower of Sparks
 Showstopper
 Shrapnel Blast
 Shrapnel Slinger
-Shred Memory
 Shredder's Armor
 Shredder's Revenge
 Shredder's Technique
@@ -9683,7 +9643,6 @@ Sight of the Scalelords
 Sighted-Caste Sorcerer
 Sightless Ghoul
 Sigil Blessing
-Sigil of the New Dawn
 Sigiled Contender
 Sigiled Sentinel
 Sigiled Skink
@@ -10054,7 +10013,6 @@ Soul Transfer
 Soul Warden
 Soul of Eternity
 Soul of Innistrad
-Soul of Magma
 Soul of Mirrodin
 Soul of Ravnica
 Soul of Theros
@@ -10063,7 +10021,6 @@ Soul of the Harvest
 Soul's Attendant
 Soul's Grace
 Soul-Strike Technique
-Soulblade Djinn
 Soulblade Renewer
 Soulbound Guardians
 Soulbright Seeker
@@ -10385,7 +10342,6 @@ Stasis Cell
 Statecraft
 Static Snare
 Station Monitor
-Stature, Size Shifter
 Staunch Crewmate
 Staunch-Hearted Warrior
 Stay Hidden, Stay Silent
@@ -10521,7 +10477,6 @@ Stormshriek Feral
 Stormsplitter
 Stormwatch Eagle
 Stormwing Entity
-Storvald, Frost Giant Jarl
 Story Seeker
 Storyteller Pixie
 Strands of Undeath
@@ -10700,7 +10655,6 @@ Supreme Phantom
 Supreme Verdict
 Suq'Ata Assassin
 Suq'Ata Firewalker
-Sure-Footed Infiltrator
 Sureshot Sower
 Surge Node
 Surge of Brilliance
@@ -10782,7 +10736,6 @@ Sylvan Reclamation
 Sylvan Safekeeper
 Sylvan Yeti
 Sylvia Tilly, Joy of Discovery
-Sylvok Battle-Chair
 Sylvok Lifestaff
 Sylvok Replica
 Symbiosis
@@ -11010,7 +10963,6 @@ Terrapact Intimidator
 Terrasymbiosis
 Terrian, World Tyrant
 Terrific Team-Up
-Territorial Aetherkite
 Territorial Boar
 Territorial Bruntar
 Territorial Hammerskull
@@ -11983,7 +11935,6 @@ Vedalken Infuser
 Vedalken Plotter
 Veil of Birds
 Veil of Summer
-Veilborn Ghoul
 Veiled Apparition
 Veiled Sentry
 Vein Ripper
@@ -12433,7 +12384,6 @@ Weldfast Monitor
 Welding Sparks
 Welkin Hawk
 Well of Discovery
-Well of Lost Dreams
 Well-Worn Spatula
 Wellspring
 Wellwisher
@@ -12529,7 +12479,6 @@ Will Riker, First in the Field
 Will of the All-Hunter
 Will of the Mardu
 Will, Scion of Peace
-Willow Elf
 Willow Geist
 Willow-Wind
 Willowrush Verge

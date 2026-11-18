@@ -405,6 +405,7 @@ Roar of Challenge
 Rob the Archives
 Rocksteady, Mutant Marauder
 Rotted Hystrix
+Rowan, Fearless Sparkmage
 Rumbling Slum
 Rush of Vitality
 Rushwood Elemental
@@ -433,6 +434,7 @@ Serendib Sorcerer
 Serra's Sanctum
 Servant of Volrath
 Setessan Petitioner
+Shadow-Rite Priest
 Shepherd of the Cosmos
 Shield Sphere
 Shizo, Death's Storehouse

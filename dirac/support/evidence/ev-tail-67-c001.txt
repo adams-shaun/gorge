@@ -13,12 +13,14 @@ Against All Odds
 Akki Underminer
 Akrasan Squire
 Akroan Crusader
+Alela, Cunning Conqueror
 Angelic Field Marshal
 Angelic Renewal
 Animate Land
 Appa, the Vigilant
 Aquatic Incursion
 Archaeomender
+Archon of Absolution
 Armor Thrull
 Asphodel Wanderer
 Augury Adept
@@ -293,6 +295,7 @@ Scepter of Celebration
 Scion of Oona
 Scion of Vitu-Ghazi
 Scuttling Butler
+Seal from Existence
 Searing Barb
 Searing Blood
 Secure the Scene
@@ -391,3 +394,4 @@ Young Blue Dragon
 Zenith Festival
 Zephyr Falcon
 Zodiac Ox
+Zulaport Chainmage

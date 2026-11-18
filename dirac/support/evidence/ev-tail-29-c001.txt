@@ -133,6 +133,7 @@ Leonardo, Worldly Warrior
 Leonin Bladetrap
 Leyline Phantom
 Liliana's Spoils
+Limits of Solidarity
 Littjara Glade-Warden
 Living Wall
 Lossarnach Captain
@@ -199,6 +200,7 @@ Sequence Engine
 Seshiro the Anointed
 Shadow, Mysterious Assassin
 Shiny Impetus
+Sigil of the New Dawn
 Sinister Strength
 Skullmead Cauldron
 Skyshroud Claim
@@ -220,6 +222,7 @@ Staff of the Flame Magus
 Stampede
 Stealer of Secrets
 Steelshaper Apprentice
+Stormchaser Drake
 Stormcloud Djinn
 Strategic Planning
 Strider, Ranger of the North
@@ -251,6 +254,7 @@ Voldaren Epicure
 Wall of Earth
 Warping Wail
 Watchwolf
+Whip Vine
 Whispersilk Cloak
 Wild Aesthir
 Wildsize

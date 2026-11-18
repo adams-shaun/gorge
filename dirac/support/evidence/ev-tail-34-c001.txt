@@ -40,6 +40,7 @@ Blockade Runner
 Blockbuster
 Blood Clock
 Bloodboil Sorcerer
+Bloodied Ghost
 Bloodrock Cyclops
 Boarding Party
 Boggart Arsonists
@@ -67,6 +68,7 @@ Charix, the Raging Isle
 Child of Thorns
 Chosen by Heliod
 Clear the Mind
+Cleaving Sliver
 Cloud Djinn
 Company Commander
 Condescend
@@ -75,6 +77,7 @@ Consulate Turret
 Conversion
 Copperline Gorge
 Cowl Prowler
+Crackle with Power
 Crash
 Crash the Party
 Crash the Ramparts
@@ -164,6 +167,7 @@ Hythonia the Cruel
 Ichorclaw Myr
 Imperial Recovery Unit
 Implement of Malice
+Indatha Crystal
 Indulgent Aristocrat
 Infest
 Inspiration
@@ -179,6 +183,7 @@ Jwari Scuttler
 Kazandu Refuge
 Keeper of the Accord
 Keldon Halberdier
+Killian, Ink Duelist
 Kitesail Apprentice
 Kitsune Dawnblade
 Knotvine Paladin
@@ -187,6 +192,7 @@ Kolaghan Skirmisher
 Kronch Wrangler
 Krosan Avenger
 Launch Mishap
+Leaf-Crowned Visionary
 Leave in the Dust
 Leeching Bite
 Leonin Armorguard
@@ -263,6 +269,7 @@ Raise the Alarm
 Rakdos Riteknife
 Ramosian Sergeant
 Rampaging Ferocidon
+Rapacious One
 Reality Hemorrhage
 Reduce
 Repulsor Rays
@@ -288,6 +295,7 @@ Scouting Hawk
 Seagraf Skaab
 See the Unwritten
 Seeker of Skybreak
+Senseless Rage
 Serra Advocate
 Serum Visions
 Sever the Bloodline

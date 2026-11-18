@@ -164,6 +164,7 @@ Gale Force
 Galvanic Key
 General Marhault Elsdragon
 Genesis Ultimatum
+Geth, Lord of the Vault
 Ghitu Slinger
 Gift of Compleation
 Glade Gnarr
@@ -324,6 +325,7 @@ Pyroconvergence
 Queen's Commission
 Quilled Slagwurm
 Rabid Elephant
+Radha, Heir to Keld
 Rageblood Shaman
 Raging Kronch
 Raging Regisaur
@@ -370,6 +372,7 @@ Serra Zealot
 Servo Exhibition
 Shalai and Hallar
 Shared Summons
+Shilgengar, Sire of Famine
 Shining Armor
 Siege Modification
 Silent Submersible
@@ -405,6 +408,7 @@ Steelshaper Apprentice
 Stinging Scorpion
 Stone of Erech
 Stormcaller's Boon
+Storvald, Frost Giant Jarl
 Subdue
 Subterranean Scout
 Sulfurous Springs

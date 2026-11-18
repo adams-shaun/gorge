@@ -1,36 +1,96 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Adaptive Snapjaw	d8e9ac7800ebbf21	10	1/1		1/1	
+Akroan Sergeant	98aadf40896b9c36	13	1/1		1/1	
 Alluring Suitor	c503c57f1ac7d6b7	13	3/3		0/1	ix:resp
+Alpha Tyrranax	7b22476b7f3cfc03	15	0/0		0/0	
+Angelic Exaltation	e5f94b01be3a78b9	10	1/1		1/1	
+Ant Queen	7d930c77b357768b	6	1/1		1/1	
+Astral Dragon	a4740b50ad704f83	6	1/1		0/1	ix:resp
+Auton Soldier	2358c7c65f0f06ae	6	0/0		0/0	
+Avatar of Woe	f2069a4859f9034d	3	1/1		1/1	
+Big Score	eccfb3854b2a9db8	21	0/0		2/2	
 Bolshack Dragon	692d6f07df1398f1	16	0/0		0/0	
 Bountiful Harvest	f0782ff67c529b91	12	0/0		1/2	ix:resp
 Burning Fields	a77ea5b07bf5d429	22	0/0		1/2	ix:resp
+Burning Oil	49edbc456af240d5	31	0/0		4/4	
+Cascade Seer	0d8a741eeafbaaf5	15	1/1		0/1	ix:resp
+Cinder Elemental	8127b696be375344	10	1/1		0/1	ix:resp
+Cleanse	e1d24efa3ddd1a89	6	0/0		1/2	ix:resp
 Cleric of Chill Depths	352a9ce3336e51d1	4	1/1		0/1	ix:resp
+Clever Concealment	f33eb1d68b307d5f	17	0/0		1/2	ix:resp
 Clock of Omens	85fe8d2ab09070f1	7	1/1		1/1	
+Confidence from Strength	d8ee0960aa604c31	13	0/0		2/2	
+Containment Construct	b1f0981c6060ed47	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Dawn Evangel	bae08b4d97535f33	16	1/1		0/1	ix:resp
+Dawnbringer Charioteers	c70b1a98771d3122	13	1/1		0/1	ix:resp
 Djeru's Resolve	69352f4c386acf71	6	1/1		2/2	
 Dread Slaver	8247ea6ab03f37a0	14	1/1		1/1	
 Endless Sands	7f8f894c9122e140	4	3/3		0/1	ix:resp
+Energy Storm	d871160d365cbb04	4	1/1		0/1	ix:resp
+Evolution Sage	b6a032f9f6ebc84c	13	1/1		0/1	ix:resp
+Fathom Trawl	efaa02b97736a05f	4	0/0		1/2	ix:resp
+Fell the Pheasant	6da1b2d5a033f863	7	0/0		1/2	ix:resp
+Fervent Champion	75bd556d6f9a2992	16	1/1		1/1	
 Fireflux Squad	d3dc74e7d4b70ef6	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Fledgling Osprey	7a050eea3606d573	21	0/0		0/0	
 Fleshpulper Giant	59f6552b5c1d66f0	5	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Fling	9d20f0d52f8b4d82	26	0/0		1/2	ix:resp
 Forked Bolt	8aa0b253c6f03664	26	0/0		1/2	ix:resp
+Fungus Elemental	18f32842aa4731e5	13	1/1		0/1	ix:resp
+Gaze of Justice	85aa9c59273f0fd5	7	0/0		3/4	ix:resp
 Goblin Matron	044fa9d455b77eb9	19	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Goblin Ringleader	4a9e4b7c5ba48507	7	1/1		0/1	ix:resp
+Goblin Sledder	916ea42dd12803df	20	1/1		1/1	
 Gold-Forged Sentinel	4974f4120d90d64a	5	0/0		0/0	
 Greater Auramancy	3ee56a41131c7e83	5	0/0		0/0	
+Green Scarab	18d0543b3f5647ed	20	0/0		2/2	
+Grizzled Angler	be42a55b9a027acb	14	2/2		1/1	
+Gwenna, Eyes of Gaea	7fc193932dfb9621	18	2/2		0/1	ix:resp
+Hammerhead, Maggia Boss	a4eada396afd033f	21	1/1		0/1	ix:resp
+Heavyweight Demolisher	e160e865a5aca2d7	9	2/2		1/1	
+Here Comes a New Hero!	f21a99d1b54b0e9f	11	0/0		3/4	f0/s/x0
+High Seas	f1123eda4632ee30	15	0/0		0/0	
 Hindervines	2e4d8cc012bb3e19	12	0/0		2/2	
+Holdout Settlement	32d454acbc3831c1	106	2/2		0/1	ix:resp
 Ill-Gotten Inheritance	f2e8915bcd6a271f	11	2/2		1/1	
 Jedit Ojanen, Mercenary	553ea3777b5c9491	4	1/1		0/1	ix:resp
+Looter il-Kor	3d0636bb9f7d7e4e	14	1/1		0/1	ix:resp
 Lurking Nightstalker	641458ced6a07a84	4	1/1		0/1	ix:resp
 Lyzolda, the Blood Witch	2a8f5907d6e153f3	24	1/1		1/1	
+Maga, Traitor to Mortals	0d5d319f01a883a7	5	1/1		0/1	ix:resp
 Mordant Dragon	d5ec805145f7ea96	10	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Mossbeard Ancient	a38a9e151ab55a4a	5	1/1		0/1	ix:resp
+Nest Robber	8ae89be93e217c4e	13	0/0		0/0	
+Nostalgic Dreams	a4b322b4a8193ab5	6	0/0		2/2	
 Nova Flame	092d38df366e8e8b	9	0/0		2/4	f0/s/x0,ix:resp
 Orcish Veteran	7a3db27d4a712303	10	1/1		1/1	
 Pack's Betrayal	646a2002d25cf1f2	4	0/0		1/2	ix:resp
 Paradox Zone	2d6c3aeac737de93	4	1/1		0/1	ix:resp
+Perimeter Captain	91c3661c5d7f043f	12	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Petrifying Meddler	fe9d4bd38235685a	11	1/1		1/1	
+Phenomenon Investigators	2a8d3be85c715925	35	0/0		0/0	
+Pheres-Band Centaurs	79258945ce0db37b	11	0/0		0/0	
+Rakdos Carnarium	5dba9a367e40dae4	83	2/2		0/1	ix:resp
+Reality Heist	4a292cfa1371d8c6	18	0/0		2/2	
+Recall	dc8ab56f9f3ea426	12	0/0		2/4	f0/s/x0,ix:resp
+Roilmage's Trick	c772666c8958cf6b	16	0/0		2/2	
+Sage's Dousing	922939751293a027	13	0/0		1/2	ix:resp
+Saprazzan Outrigger	6a7ea80d2e2cb92e	29	2/2		1/1	
+Satyr Nyx-Smith	70735b7e994f2239	12	1/1		0/1	ix:resp
+Savai Sabertooth	dcc9b53cef65053d	7	0/0		0/0	
 School of the Unseen	4221ff0ac5efe1dd	8	2/2		0/1	ix:resp
+Scuttling Doom Engine	10518d2582184a79	8	1/1		1/1	
 Severed Legion	d62e805d823dffca	4	0/0		0/0	
+Soulblade Djinn	22dd2a49ca0a68e0	10	1/1		0/1	ix:resp
+Spider Spawning	17f214091484bd53	10	0/0		4/4	
+Strength of Isolation	a6c64bffb27c18de	11	0/0		2/2	
 Sunbringer's Touch	a622b0872b2609f9	6	0/0		1/2	ix:resp
 Suppression Bonds	9d531f97d7065b17	14	0/0		1/2	ix:resp
+Temporal Manipulation	628500a0f9fb7738	15	0/0		2/2	
 Trigon of Corruption	599a98f6ec879dab	10	2/2		0/1	ix:resp
+Turntimber Ranger	f2b02e0f53eb67c2	7	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Viashino Shanktail	5b29cb4a39a2f06b	13	1/1		0/1	ix:resp
 Waking the Trolls	b7ba0e72b20561c6	13	0/0		0/0	
 Weatherlight	89330c06251c97f5	17	2/2		1/1	
 Wolf's Quarry	37a6a57fbb093a53	6	0/0		1/2	ix:resp
+Zephyr Scribe	6ec93496eef5868c	16	2/2		0/1	ix:resp

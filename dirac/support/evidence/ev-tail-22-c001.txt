@@ -164,6 +164,7 @@ Homarid Warrior
 Honor the Fallen
 Hookhand Mariner
 Humbler of Mortals
+Hundroog
 Hunted Ghoul
 Hunter of Eyeblights
 Hunter's Mark
@@ -274,6 +275,7 @@ Peak Eruption
 Penumbra Spider
 Perilous Shadow
 Phantom Nantuko
+Pillar of Origins
 Pillardrop Rescuer
 Pin to the Earth
 Plains
@@ -305,6 +307,7 @@ Ravenous Baloth
 Regal Unicorn
 Relic Golem
 Render Inert
+Restoration Specialist
 Retract
 Revolutionary Rebuff
 Righteous Blow

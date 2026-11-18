@@ -5,9 +5,11 @@ Angelic Reward	af6b728213b16cec	9	0/0		2/2
 Audacious Thief	691873168b45c17f	11	1/1		0/1	ix:resp
 Auger Spree	b27b6da719010fef	6	0/0		1/2	ix:resp
 Avatar of Growth	e59650bd50c6ffd3	8	1/1		1/1	
+Balduvian War-Makers	89f1edc06dcaa057	10	1/1		1/1	
 Belbe's Portal	c417c87bcbcb3204	19	1/1		1/1	
 Bounty Hunter	96f419e5b4fb6814	4	2/2		0/1	ix:resp
 Brushland	8f1984ec6962cc09	9	2/2		0/1	ix:resp
+Bulette	d7590953df42e85c	9	1/1		0/1	ix:resp
 Caves of Koilos	27f3acb38c81fa43	17	2/2		0/1	ix:resp
 Corrupted Roots	fe4c9501483521b9	6	1/1		1/2	ix:resp
 Crocanura	d87ce3640df111c5	4	1/1		0/1	ix:resp
@@ -18,6 +20,7 @@ Deceive the Messenger	37b012fa8485ebae	21	0/0		2/2
 Devkarin Dissident	61d80809c0e91eba	13	1/1		0/1	ix:resp
 Drakewing Krasis	92eedacbd037db68	6	0/0		0/0	
 Dread Presence	612f3e57a1876936	6	1/1		1/1	
+Fain, the Broker	12ab8cd51273c884	9	4/4		0/1	ix:resp
 Fevered Convulsions	39f56b6804b85d59	8	1/1		0/1	ix:resp
 Florian, Voldaren Scion	e772cb7b3210deb9	4	1/1		1/1	
 Fowl Play	6f8cb6ff05c69de7	11	0/0		2/2	
@@ -40,6 +43,7 @@ Hall of Tagsin	68c8e5b6f354de30	9	3/3		0/1	ix:resp
 Hammerhead Tyrant	9219e0f4c4814a52	6	1/1		1/1	
 Heartmender	1679248399ba308f	4	2/2		1/1	
 Hermes, Overseer of Elpis	ddadc3c43b923397	4	2/2		0/1	ix:resp
+Heroes Remembered	b2f994d76c9cf750	6	0/0		3/4	cast/alt:none
 Highspire Infusion	a0cd0fd50aac81c8	6	0/0		1/2	ix:resp
 Imperial Cosmographer	dd6177835ce9685b	21	1/1		1/1	
 Invert	2930185369275ba5	20	0/0		2/3	f1/s
@@ -48,6 +52,7 @@ Junkyard Genius	191bf128f13e41e5	7	2/2		0/1	ix:resp
 Kazandu Mammoth	85df0d9d8bebe5af	23	2/2		1/1	
 Kazuul's Fury	4ec22259c2b45f2b	10	1/1		2/2	
 Kher Keep	0be582274c589fec	15	2/2		1/1	
+Knightly Valor	31ad6c62a2b01d99	16	1/1		2/2	
 Koala-Sheep	7b646b135385d59a	18	1/1		0/1	ix:resp
 Labyrinth Guardian	48462c061ff3b196	13	2/2		0/1	ix:resp
 Laccolith Warrior	a13c01148034f632	9	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -57,7 +62,9 @@ Lifegift	1aac82579127f10b	32	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Marching Duodrone	2411e925c08419bb	36	1/1		1/1	
 Marwyn, the Nurturer	4618d17c4c8d32ff	19	2/2		1/1	
 Master's Rebuke	af2233382bb4b503	28	0/0		2/2	
+Moonveil Dragon	0054ae6c56118bd5	7	1/1		1/1	
 Nagging Thoughts	17415f6ee07c0a22	11	0/0		1/2	ix:resp
+Necrite	5c711b2d44249fe5	14	1/1		0/1	ix:resp
 Night Out in Vegas	2b8be86bdee00dcb	5	1/1		1/1	
 Nissa's Defeat	77f4496ac146677f	4	0/0		1/2	ix:resp
 Oyobi, Who Split the Heavens	a52cda785c5971d2	5	1/1		0/1	ix:resp
@@ -73,6 +80,7 @@ Riftwing Cloudskate	47d921af48aef8a2	10	1/1		3/3
 Rime Tender	08974da2ce55e24a	26	1/1		1/1	
 Scavenger Grounds	5bbe1bdc6b522a6e	15	2/2		0/1	ix:resp
 Segovian Angel	2113694601af1c12	13	0/0		0/0	
+Shadowblood Egg	e830faae7b92f779	33	1/1		1/1	
 Shivan Gorge	6296bc2173e683f5	9	2/2		0/1	ix:resp
 Siren Reaver	240f9ef70f9eefd6	3	0/0		0/0	
 Sky Crier	9f0229289ccbb45a	8	1/1		0/1	ix:resp
@@ -86,6 +94,7 @@ Towering Baloth	3e94970d91f2d179	8	0/0		1/2	cast/alt:morphed
 Tuskeri Firewalker	e71760152ef79694	4	1/1		0/1	ix:resp
 Tyrite Sanctum	b4b1ca8a8ad2d5bc	4	3/3		0/1	ix:resp
 Underdark Explorer	6f50c901ddb6e476	4	1/1		0/1	ix:resp
+Vitality Hunter	3cddf1d390f6e5cd	182	2/2		1/1	
 Vraska, Swarm's Eminence	e809b365efdcb9ec	9	2/2		0/1	ix:resp
 Warped Devotion	2c34adc9421d483d	6	1/1		0/1	ix:resp
 Wash Away	b1233101f152467a	6	0/0		1/2	ix:resp

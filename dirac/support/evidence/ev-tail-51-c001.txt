@@ -178,6 +178,7 @@ Hill Giant
 Horncaller's Chant
 Hound Tamer
 Hulking Ogre
+Hunding Gjornersen
 Ichor Explosion
 Ideas Unbound
 Impetuous Protege
@@ -210,6 +211,7 @@ Knight Exemplar
 Knight of Sorrows
 Kobolds of Kher Keep
 Kolaghan Aspirant
+Korozda Gorgon
 Kratos, Stoic Father
 Kraul Foragers
 Krenko, Tin Street Kingpin

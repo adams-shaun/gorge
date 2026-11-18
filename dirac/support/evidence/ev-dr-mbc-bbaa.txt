@@ -27,11 +27,14 @@ Control of the Court
 Corpse Harvester
 Crashing Drawbridge
 Darksteel Mutation
+Deceiver Exarch
 Decree of Justice
 Dreadhound
 Dynacharge
+Eldrazi Skyspawner
 Engineered Explosives
 Evangel of Heliod
+Expunge
 Exsanguinate
 Fae Offering
 Faerie Mechanist
@@ -40,11 +43,13 @@ Feral Hydra
 Flock Impostor
 Forest
 Generous Gift
+Giant Spider
 Gloom Sower
 Goblinslide
 Goldlust Triad
 Goldmeadow Harrier
 Guardian of Faith
+Halimar Depths
 Healer's Hawk
 Hieroglyphic Illumination
 Imperious Perfect
@@ -67,6 +72,7 @@ Molten Birth
 Mountain
 Muddle the Mixture
 Myth Realized
+Nature's Way
 Neheb, the Eternal
 Nephilim Epochal
 Nevermaker
@@ -77,6 +83,7 @@ Prosperous Pirates
 Pyrohemia
 Quest for Pure Flame
 Quest for the Gravelord
+Quirion Elves
 Ramosian Rally
 Reality Shift
 Recross the Paths
@@ -88,6 +95,7 @@ Sage's Reverie
 Scholar of the Ages
 Sea Gate
 Sea Gate Oracle
+Sejiri Merfolk
 Send in the Pest
 Set Adrift
 Sheoldred, Whispering One
