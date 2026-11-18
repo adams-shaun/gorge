@@ -586,8 +586,10 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		// still fails closed to (0, false).
 		// The modelled property set is defaultRefPropertyModelled's: LifeTotal
 		// and DamageToOppsThisTurn for every such ref, plus CardsInHand and
-		// the Valid-family heads for TriggeredTarget only. Every other
-		// ref/property still fails closed to (0, false).
+		// the Valid-family heads for TriggeredTarget, and CardsInHand and the
+		// Valid-family heads for TriggeredDefendingPlayer (Mr. Foxglove's
+		// hand count, Ravenloft Adventurer's defender-owned exile count).
+		// Every other ref/property still fails closed to (0, false).
 		if !defaultRefPropertyModelled(ref, prop) {
 			return 0, false
 		}
@@ -745,9 +747,12 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 // and the Valid-family heads
 // are modelled ONLY for TriggeredTarget -- the damaged player of a DamageDone
 // trigger reads Battle Angels of Tyr's NumInHand, NumLands, sword-of-war-and-
-// peace-style damage and friends -- and CardsInHand also for
-// TriggeredDefendingPlayer (Mr. Foxglove), so the widening cannot spread to
-// TriggeredPlayer or any other ref's unmodelled property. A Valid head is recognised exactly like the property switch below
+// peace-style damage and friends -- and CardsInHand and the Valid-family
+// heads also for
+// TriggeredDefendingPlayer (Mr. Foxglove's hand count; Ravenloft Adventurer's
+// `TriggeredDefendingPlayer$ValidExile Card.YouOwn+counters_GE1_HIT`, the
+// defender-owned exile count its body pays by), so the widening cannot spread
+// to TriggeredPlayer or any other ref's unmodelled property. A Valid head is recognised exactly like the property switch below
 // reads it: the word before the first space satisfies countZone.
 func defaultRefPropertyModelled(ref, prop string) bool {
 	if prop == "LifeTotal" || prop == "DamageToOppsThisTurn" {
@@ -756,8 +761,19 @@ func defaultRefPropertyModelled(ref, prop string) bool {
 	if ref == "TriggeredDefendingPlayer" {
 		// Mr. Foxglove's "cards in defending player's hand": the attacked
 		// player's hand size (Forge's player-property count resolves the
-		// defining ref to its players, whichever the ref)
-		return prop == "CardsInHand"
+		// defining ref to its players, whichever the ref), and the
+		// Valid-family heads over the defender's zones -- Ravenloft
+		// Adventurer's `TriggeredDefendingPlayer$ValidExile
+		// Card.YouOwn+counters_GE1_HIT` reads the cards the DEFENDER owns in
+		// exile (the referenced player is the filter's You, the same
+		// SpecContext(p) binding every sibling ref's Valid head takes).
+		// TriggeredTarget keeps the property set below.
+		if prop == "CardsInHand" {
+			return true
+		}
+		head, _, _ := strings.Cut(prop, " ")
+		_, ok := countZone(head)
+		return ok
 	}
 	if ref != "TriggeredTarget" {
 		return false
