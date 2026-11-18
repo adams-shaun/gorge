@@ -661,6 +661,9 @@ const castTimingNeutral uint8 = 1<<0 | 1<<1 | castMayPlay | castFree
 // while the prefix's trigger is on the stack until the play is offered
 // (potential_script.go waitsForStack), so the trigger resolves first.
 func (s *State) castNeedsEmptyStack(k *prep, a Action) bool {
+	if a.Kind() == AkCast && a.Mode()&^(castTimingNeutral|castFace) == 0 && a.Mode()&castFace != 0 {
+		return s.roomAltNeedsEmptyStack(k, a) // face_rooms.go
+	}
 	if a.Kind() != AkBestow && (a.Kind() != AkCast || a.Mode()&^castTimingNeutral != 0) {
 		// (a bestowed, kicked, flashback, permission or free cast is timed as its card: CR 702.103a, 702.34a, 307.1, 117.1a)
 		return false
