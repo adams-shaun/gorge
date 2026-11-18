@@ -164,10 +164,20 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallBlkTax // combat_blocktax.go prepBlkTax
 	case g.chPlOrder:
 		return StallChoosePlayerOrder // repl_chooseplayer.go prepChoosePlayer
-	case g.gainsOfPair:
-		return StallGainsOf // static_gainsofpair.go prepGainsOfPair
 	case g.tokListAdd:
 		return StallTokRewrite // repl_toklistadd.go prepTokListAdd
+	}
+	return StallNone
+}
+
+// initStall is genPrep.initStall plus the stall flags that live on prep (the
+// fixed-State inventory is pinned, so a new flag cannot join genPrep).
+func (p *prep) initStall(nseat uint8) uint8 {
+	if why := p.gen.initStall(nseat); why != StallNone {
+		return why
+	}
+	if p.gainsOfPair {
+		return StallGainsOf // static_gainsofpair.go gainsOfPairOn
 	}
 	return StallNone
 }
@@ -196,7 +206,7 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 	if g == nil {
 		return nil
 	}
-	why := g.initStall(uint8(nseat))
+	why := pp.initStall(uint8(nseat))
 	if why == StallNone {
 		return nil
 	}
