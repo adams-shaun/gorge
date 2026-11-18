@@ -310,7 +310,7 @@ func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
 	p := &s.perms[sl]
 	t := k.cards[s.cardAt(sl)].types
 	if k.gen.cpxTy && s.fxM.has(sl) {
-		t |= s.copyExcTypes(k, sl) // layer 1: a copy's added types
+		t = s.copyExcTy(k, sl, t) // layer 1: a copy's type-line exceptions
 		if k.gen.cpxNoLeg && s.copyExcNoLegendary(k, sl) {
 			t &^= kop.TLegendary // NonLegendary$ (copy_nonlegendary.go)
 		}
