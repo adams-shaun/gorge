@@ -1,0 +1,33 @@
+# the mana-rider class (dirac/oracle/manariders_lockstep_test.go): Star Compass
+# and Gond Gate, "{T}: Add one mana of any color that a basic land / a Gate you
+# control could produce" (ReflectProperty$ Produce over the controller's own
+# permanents).
+Star Compass
+Reflecting Pool
+Wastes
+Gond Gate
+Command Tower
+Isamaru, Hound of Konda
+Grizzly Bears
+Savannah Lions
+Shock
+Lightning Bolt
+Plains
+Island
+Swamp
+Mountain
+Forest
+Cackling Prowler
+# AddsNoCounter$ (Cavern of Souls, Delighted Halfling) against a counterspell deck
+Cavern of Souls
+Delighted Halfling
+Goblin Piker
+Goblin Roughrider
+Mogg Fanatic
+Counterspell
+Essence Scatter
+Mana Leak
+Cancel
+Wind Drake
+# Utopia Sprawl: an Aura whose enchanted Forest adds the chosen colour (StTapChosen)
+Utopia Sprawl

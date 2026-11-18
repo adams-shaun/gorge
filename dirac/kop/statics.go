@@ -675,6 +675,16 @@ const StTapReflect = StAnyManaType
 // Lavaleaper), not only for its controller's taps.
 const StTapAnyPlayer = StWithoutManaCost
 
+// StTapChosen (aliases StFunctionsInGraveyard, a MayPlayFrom-only bit) on a
+// StatTapExtra static: the extra is B mana of the colour its source chose as it
+// entered (DB$ Mana | Produced$ Chosen: Utopia Sprawl, Shimmerwilds Growth),
+// not of colour A. gorge's planner never folds such a body
+// (pay.PaymentPlanFoldableTapMana), so the static is gated as Rikala's is: the
+// planner's pricing readers skip it and the extra floats at the tap itself
+// (dirac mana_tapextra.go addGatedExtra); a class-only Taps line defers the
+// enchanted source.
+const StTapChosen = StFunctionsInGraveyard
+
 // StNoPrevCombat (aliases StOncePerTurn, a MayPlayFrom-only bit) on a
 // StatCantPreventDamage static: only combat damage can't be prevented
 // (IsCombat$ True: Frenzied Baloth; gorge cantPreventDamage reads it against

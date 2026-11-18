@@ -1057,6 +1057,7 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	}
 	ka.ManaEach = m.Each
 	ka.ManaDeferred = m.Deferred
+	ka.ManaNoCounter = m.NoCounter
 	ka.ManaIdentityPotential = m.IdentityPotential
 	ka.ManaRider = uint8(m.Rider)
 	if m.RiderCtr != "" {
@@ -2177,6 +2178,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StTapReflect
 			case "TapAnyPlayer":
 				st.StFlags |= kop.StTapAnyPlayer
+			case "TapChosen":
+				st.StFlags |= kop.StTapChosen
 			default:
 				return ka, nil, fmt.Errorf("tap extra flag %q", fl)
 			}

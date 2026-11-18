@@ -241,6 +241,10 @@ func (s *State) srcExtraPick(k *prep, sl Slot, pc *pcard, col int) (xv [kop.NumM
 	return xv
 }
 
+// DebugTapChosenOff drops the Produced$ Chosen extra (Utopia Sprawl) at the tap
+// (mutation test only).
+var DebugTapChosenOff bool
+
 // tapExtraReaches reports whether st is a StatTapExtra static that adds its
 // mana when the permanent at sl, controlled by ctl, taps for mana: its
 // controller's own taps, or every player's under StTapAnyPlayer (the extra
@@ -255,7 +259,7 @@ func (s *State) srcExtraPick(k *prep, sl Slot, pc *pcard, col int) (xv [kop.NumM
 func (s *State) tapExtraReaches(k *prep, st statSrc, sl Slot, ctl uint8) bool {
 	a := &st.a.Static
 	if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot ||
-		a.Cond2 != 0 ||
+		a.Cond2 != 0 || a.StFlags&kop.StTapChosen != 0 ||
 		st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
 		return false
 	}
@@ -278,7 +282,8 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 	}
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
-		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot || a.Cond2 == 0 ||
+		chosen := a.StFlags&kop.StTapChosen != 0 // Produced$ Chosen: gated like a Cond2 static, in the source's colour
+		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot || a.Cond2 == 0 && !chosen ||
 			st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
 			return true
 		}
@@ -289,11 +294,22 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 		if !s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull) {
 			return true
 		}
-		if !s.condEval(k, a.Cond2, evalCtx{src: s.perms[st.sl].obj, srcSl: st.sl, ctrl: st.ctrl}) {
+		if chosen && (DebugTapChosenOff || s.pool != nil && s.pool.census) {
+			return true // an unless / ward window's census prices the deferred source's own mana, never the trigger's extra (gorge unlessWindowUnits)
+		}
+		if a.Cond2 != 0 && !s.condEval(k, a.Cond2, evalCtx{src: s.perms[st.sl].obj, srcSl: st.sl, ctrl: st.ctrl}) {
 			return true // the gate holds only while the condition does
 		}
 		s.tapExtraEchoStall(k, st)
-		s.pl[p].pool[a.A] += uint8(a.B)
+		col := int(a.A)
+		if chosen {
+			if ch := s.perms[st.sl].chosen; ch < 5 {
+				col = int(ch)
+			} else {
+				return true // no colour was chosen: gorge's Produced$ Chosen adds nothing
+			}
+		}
+		s.pl[p].pool[col] += uint8(a.B)
 		return true
 	})
 }
