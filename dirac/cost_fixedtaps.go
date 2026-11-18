@@ -39,7 +39,7 @@ func (s *State) fixedTapsCast(k *prep, a Action) bool {
 func (s *State) affordsUngrantedReserving(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, c *kop.Cost, src Slot) bool {
 	var av avail
 	var ms modalSet
-	s.ungrAvail(k, p, ex, &av, &ms)
+	s.ungrAvail(k, p, ex, &av, &ms, slotMask{})
 	return s.affordsReservingAv(k, p, cost, ex, d, c, src, &av, &ms)
 }
 

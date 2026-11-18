@@ -73,6 +73,45 @@ func (s *State) dhAmount(k *prep, sl Slot) uint8 {
 	return 1
 }
 
+// ungrAvailDH is ungrAvail without the Diamond gaps: the planner's census
+// prices no Diamond (its activation carries the discard-hand part the planner
+// cannot execute, so gorge's census leaves it a gap), and a hand play whose
+// price the rest of the census cannot pay is no plan of gorge's planner, whose
+// prefix search over the Diamonds never completes for one -- the activation's
+// cost discards the play's own hand card. gorge's verdict for it is
+// census_incomplete with no script (potential_plan.go), so the autopay surface
+// drops it.
+func (s *State) ungrAvailDH(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
+	s.ungrAvail(k, p, ex, av, ms, s.dhGaps(k, p))
+}
+
+// dhWithholdsCast reports whether the hand spell o's cast, priced at cost, is
+// payable only through the board's Diamonds: gorge's planner census holds no
+// Diamond unit and its prefix search never funds a hand play, so the planner
+// prices no plan and the surface drops the cast. A cast whose origin is not
+// the hand (a commander-zone or may-play one) survives the discard, so its
+// script can fund it and the census read stands; beside a gap of another kind
+// (dhBoard false) the prefix search runs its own route, so nothing is
+// withheld here either.
+func (s *State) dhWithholdsCast(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
+	if k.gen == nil || !k.gen.anyDiscHand || s.objs[o].zone != kop.ZoneHand || !s.dhBoard(k, p) {
+		return false
+	}
+	var av avail
+	var ms modalSet
+	s.ungrAvailDH(k, p, NoSlot, &av, &ms)
+	d := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
+	return !s.affordsUngrantedAv(k, p, cost, NoSlot, d, &av, &ms)
+}
+
+// ungrantedPaysNoDH reports whether the planner's census (no granted source)
+// pays the hand spell o's cast at cost and the Diamonds are not the only
+// thing that does (dhWithholdsCast).
+func (s *State) ungrantedPaysNoDH(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
+	return s.affordsUngrantedFor(k, p, cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}) &&
+		!s.dhWithholdsCast(k, p, o, cost)
+}
+
 // dhActivate activates the Diamond at sl for colour col: p's whole hand is
 // discarded in hand order, then the Diamond is sacrificed (gorge pays the
 // discard before the sacrifice), then the mana is added.
