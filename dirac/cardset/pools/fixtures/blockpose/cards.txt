@@ -1,0 +1,20 @@
+# the blocker-pose pool: a blocking-keyed pump (Crescendo of War's
+# "blocking creatures you control get +1/+0") beside a blocker power cap
+# (Delney's CantBlockBy: power-3-or-greater blockers can't block a power-2-or-
+# less attacker) and a menace floor (Rograkh, Goblin Champion and Goblin
+# Arsonist the small attackers), so a served blocker's power crosses the cap
+# between gorge's one blockers pose and the kernel's per-pick options, for the
+# constructed lockstep in dirac/oracle/blockpose_test.go
+Crescendo of War
+Delney, Streetwise Lookout
+Forest
+Goblin Arsonist
+Goblin Champion
+Grizzly Bears
+Hill Giant
+Mountain
+Wall of Blossoms
+Plains
+Rakdos Trumpeter
+Swamp
+Rograkh, Son of Rohgahh

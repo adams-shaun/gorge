@@ -594,11 +594,8 @@ func (s *State) matchCurOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Sl
 		if fl.Flags&kop.FAttacking != 0 && p.flags&pfAttacking == 0 || fl.Flags&kop.FNotAttacking != 0 && p.flags&pfAttacking != 0 {
 			return false
 		}
-		if fl.Flags&kop.FBlocking != 0 && p.flags&pfBlocking == 0 {
-			return false
-		}
-		if fl.Flags&kop.FAttackingOrBlocking != 0 && p.flags&(pfAttacking|pfBlocking) == 0 {
-			return false
+		if s.blkMarkFail(fl, sl, p) {
+			return false // scratch.go
 		}
 	}
 	if fl.Types != 0 && cur.types&fl.Types == 0 || cur.types&fl.NotTypes != 0 {
