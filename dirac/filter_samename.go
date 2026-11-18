@@ -58,7 +58,7 @@ func (s *State) sharesNameSelf(src Slot, srcObj Obj, sl Slot, c CardID, o Obj, f
 	} else if srcObj != NoObj {
 		sn = s.objName(srcObj)
 	}
-	cn := c
+	cn := s.nameKey(c)
 	if sl != NoSlot {
 		cn = s.nameCardAt(sl)
 	} else if o != NoObj {
@@ -77,7 +77,7 @@ func (s *State) objName(o Obj) CardID {
 	if s.objs[o].zone == kop.ZoneBattlefield {
 		return s.nameCardAt(s.objs[o].slot)
 	}
-	return s.objs[o].card
+	return s.nameKey(s.objs[o].card)
 }
 
 // sameNameT0Card is PredSameNameT0 for the card c at object o off the
@@ -102,5 +102,5 @@ func (s *State) sameNameT0Card(predN int16, c CardID, o Obj, fd bool) bool {
 	if Obj(t) == o {
 		return true
 	}
-	return !fd && s.objs[t].card == c
+	return !fd && s.nameKey(s.objs[t].card) == s.nameKey(c)
 }

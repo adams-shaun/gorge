@@ -189,13 +189,9 @@ func (s *State) sharesColorRem(k *prep, o Obj, mine kop.ColorMask) bool {
 // the battlefield reads its layer-3 name (a rename/copy counts, CR 707.2),
 // otherwise its card.
 func (s *State) sharesNameRem(o Obj, c CardID, fd bool) bool {
-	nm := c
+	nm := s.nameKey(c)
 	if o != NoObj {
-		if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield {
-			nm = s.nameCardAt(ob.slot)
-		} else {
-			nm = ob.card
-		}
+		nm = s.objName(o)
 	}
 	if fd || nm == NoCard {
 		return false
@@ -205,12 +201,7 @@ func (s *State) sharesNameRem(o Obj, c CardID, fd bool) bool {
 		if r == o {
 			continue
 		}
-		var rn CardID
-		if s.objs[r].zone == kop.ZoneBattlefield {
-			rn = s.nameCardAt(s.objs[r].slot)
-		} else {
-			rn = s.objs[r].card
-		}
+		rn := s.objName(r)
 		if rn != NoCard && rn == nm {
 			return true
 		}
@@ -500,7 +491,7 @@ func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, src Slot, layer ui
 	case kop.PredNamed:
 		// the name card (gorge sharesName reads EffectiveNames: a layer-3
 		// rename counts, CR 707.2); face-down is NoCard (CR 708.2: no name)
-		return int(s.nameCardAt(sl)) == n
+		return s.nameCardAt(sl) == s.nameKey(CardID(n))
 	case kop.PredToughnessGE, kop.PredHasXCost, kop.PredPowerLTToughness:
 		return s.predPermStats(k, fl, sl)
 	case kop.PredMultiColor, kop.PredHistoric, kop.PredEquipped, kop.PredEnchanted:
@@ -530,7 +521,7 @@ func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, src Slot, layer ui
 		// NamedCard; repl_namecard.go). A face-down permanent has no name
 		// (CR 708.2).
 		if n := s.chosenNameCard(nil); n != NoCard {
-			return s.nameCardAt(sl) == n
+			return s.nameCardAt(sl) == s.nameKey(n)
 		}
 		return false
 	}
@@ -538,16 +529,51 @@ func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, src Slot, layer ui
 }
 
 // nameCardAt is the card whose name the permanent at sl has: an override's
-// name card (Witness Protection), else its own. A face-down permanent has
-// no name (CR 708.2), so it reads as NoCard.
+// name card (Witness Protection), else its own, as nameKey's representative
+// (two token scripts printing one name are one name). A face-down permanent
+// has no name (CR 708.2), so it reads as NoCard.
 func (s *State) nameCardAt(sl Slot) CardID {
 	if s.perms[sl].gty&gtyFaceDown != 0 {
 		return NoCard
 	}
 	if nc, ok := s.FeatNameCard(s.perms[sl].obj); ok {
-		return nc
+		return s.nameKey(nc)
 	}
-	return s.cardAt(sl)
+	return s.nameKey(s.cardAt(sl))
+}
+
+// nameRepOf maps each card to the lowest CardID printing its name
+// (Table.CardName: a token script's Name: line, whose table Name is its
+// stem), so name equality over CardIDs matches gorge's e.Name string
+// compare. nil when no two cards print one name.
+func nameRepOf(t *kop.Table) []CardID {
+	first := make(map[string]CardID, len(t.Cards))
+	var rep []CardID
+	for i := range t.Cards {
+		n := t.CardName(CardID(i))
+		r, ok := first[n]
+		if !ok {
+			first[n] = CardID(i)
+			continue
+		}
+		if rep == nil {
+			rep = make([]CardID, len(t.Cards))
+			for j := range rep {
+				rep[j] = CardID(j)
+			}
+		}
+		rep[i] = r
+	}
+	return rep
+}
+
+// nameKey is card c's name identity: the lowest CardID with c's printed
+// name (nameRepOf); NoCard and a table with unique names read as c.
+func (s *State) nameKey(c CardID) CardID {
+	if rep := s.k().nameRep; rep != nil && int(c) < len(rep) {
+		return rep[c]
+	}
+	return c
 }
 
 // cmcPerm is sl's mana value for a filter: a face-down permanent has none

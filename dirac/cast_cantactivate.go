@@ -77,7 +77,7 @@ func (s *State) actForbiddenBy(k *prep, sl Slot, p uint8, mana, loyal bool) bool
 		}
 		if st.A&kop.CantActNamed != 0 {
 			// Sorcerous Spyglass: only a source with the static source's chosen name
-			if c, ok := s.chosenNameOf(stc.sl); !ok || s.nameCardAt(sl) != c {
+			if c, ok := s.chosenNameOf(stc.sl); !ok || s.nameCardAt(sl) != s.nameKey(c) {
 				return true
 			}
 		}

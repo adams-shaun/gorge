@@ -230,7 +230,7 @@ func (s *State) nameTwinPerm(nm CardID, skip Slot, p uint8) bool {
 func (s *State) nameInGrave(nm CardID, p uint8) bool {
 	pl := &s.pl[p]
 	for i := 0; i < int(pl.graveN); i++ {
-		if s.objs[pl.grave[i]].card == nm {
+		if s.nameKey(s.objs[pl.grave[i]].card) == nm {
 			return true
 		}
 	}
@@ -267,7 +267,7 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 	if fl.PredN&0xff == kop.W7NoNameTwinGrave {
 		// off the battlefield the card has no other self to skip; in the
 		// evaluating controller's graveyard it shares a name with itself
-		return (fd || !s.nameTwinPerm(c, NoSlot, ctrl) && !s.nameInGrave(c, ctrl)) != DebugWord7Flip
+		return (fd || !s.nameTwinPerm(s.nameKey(c), NoSlot, ctrl) && !s.nameInGrave(s.nameKey(c), ctrl)) != DebugWord7Flip
 	}
 	if fl.PredN&0xff >= kop.W7WithWarp {
 		return s.wordCard3(k, fl, c, fd) // filter_props.go
@@ -293,7 +293,7 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 		if !fd {
 			for m := s.occ; m.any(); m = m.rest() {
 				q := m.first()
-				if s.perms[q].ctrl == ctrl && s.nameCardAt(q) == c {
+				if s.perms[q].ctrl == ctrl && s.nameCardAt(q) == s.nameKey(c) {
 					ans = false
 					break
 				}
@@ -303,7 +303,7 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 		if !fd {
 			for m := s.occ; m.any(); m = m.rest() {
 				q := m.first()
-				if s.nameCardAt(q) == c && s.typesGen(k, q)&kop.TLegendary != 0 {
+				if s.nameCardAt(q) == s.nameKey(c) && s.typesGen(k, q)&kop.TLegendary != 0 {
 					ans = true
 					break
 				}
