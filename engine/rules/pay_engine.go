@@ -258,6 +258,13 @@ func (pe *payer) MatchesSpellFrom(spec string, id state.ObjID, you state.PlayerI
 	e := (*Engine)(pe)
 	sc := e.specCtx(source, you)
 	sc.PreparedSpell = e.preparedSpellOf(id)
+	// A split card in hand probed as one half (FaceIdx != 0, the offer's
+	// alternate-face cast) is the spell that half would be: on the stack it
+	// has only that half's characteristics (CR 709.3b), so Pillar of the
+	// Paruns' "multicolored spell" mana can't pay for Away alone.
+	if o := e.G.Obj(id); o != nil && o.FaceIdx != 0 && o.Zone != state.ZStack {
+		sc.AsSpellHalf = true
+	}
 	return e.matchesSpec(spec, id, sc)
 }
 func (pe *payer) CastProvenanceAdmitsPending(spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
