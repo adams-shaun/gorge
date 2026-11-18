@@ -27,7 +27,12 @@ import (
 //     accepted event and closeMillBatch patches the total into the queued
 //     trigger's TriggerAmount.
 //
-// Shared parameters, both matched here:
+// Mode$ MilledOnce (Zellix's "whenever a player mills one or more creature
+// cards") is the same once-per-mill-action cadence as MilledAll, so it shares
+// the batch latch and this matcher: the ValidCard$ filter only counts the
+// matching cards, and the line fires once for the action if any matched.
+//
+// Shared parameters, matched here:
 //
 //   - ValidPlayer$ names whose mill counts. ev.Player is the player whose
 //     library was milled (events.Mill's player), and "you" is the trigger
@@ -62,7 +67,8 @@ func milledMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 func init() {
 	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return milledMatches(e, t, source, ev)
-	}, "Milled", "MilledAll")
+	}, "Milled", "MilledAll", "MilledOnce")
 	effects.RegisterNonAPI("trig:Milled")
 	effects.RegisterNonAPI("trig:MilledAll")
+	effects.RegisterNonAPI("trig:MilledOnce")
 }
