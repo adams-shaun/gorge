@@ -594,6 +594,9 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 	if k.tapMana && s.tapXCensusGap(k, e.ctrl).and(s.occ).any() {
 		return false // its tapXType cost is no shape the census prices (gorge castWindowSourceExcluded)
 	}
+	if s.storeCensusGap(k, e.ctrl) {
+		return false // a storage battery's SubCounter<X> cost is no shape the census prices (mana_storecensus.go)
+	}
 	if !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR && !k.gen.anyTapExtra && !k.gen.anyEachCol &&
 		!k.gen.anyTapsDefer && !k.gen.anySelfTaps {
 		return true
