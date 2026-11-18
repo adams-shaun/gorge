@@ -31,6 +31,7 @@ Battleground Geist
 Beacon of Destruction
 Ben-Ben, Akki Hermit
 Benalish Honor Guard
+Bennie Bracks, Zoologist
 Bident of Thassa
 Bladebrand
 Blazing Volley
@@ -165,6 +166,7 @@ Imposing Visage
 Inspirit
 Invasion of Segovia
 Invincible Hymn
+Iron Star
 Island
 Jawbone Duelist
 Jeska, Warrior Adept

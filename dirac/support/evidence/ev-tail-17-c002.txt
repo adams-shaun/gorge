@@ -1,4 +1,5 @@
 A-Asari Captain
+Abomination of Llanowar
 Acquisition Octopus
 Aether Vial
 Aggression
@@ -12,6 +13,7 @@ Angel's Mercy
 Arbalest Engineers
 Archangel of Thune
 Ardent Electromancer
+Arlinn, Voice of the Pack
 Armored Griffin
 Arni Slays the Troll
 Arrogant Poet
@@ -32,6 +34,7 @@ Black Panther, Claws of Bast
 Bladehold War-Whip
 Bog Smugglers
 Bonds of Mortality
+Bottomless Vault
 Brigone, Soldier of Meletis
 Burrenton Shield-Bearers
 Canopy Claws
@@ -39,7 +42,9 @@ Canopy Spider
 Canyon Wildcat
 Caravan Hurda
 Catapult Fodder
+Cerulean Sphinx
 Chandra's Defeat
+Chandra's Pyreling
 Chasm Guide
 Cinder Hellion
 Cinderclasm
@@ -54,6 +59,7 @@ Cunning Lethemancer
 Curate
 Curious Pair
 Curse of Verbosity
+Dark Hatchling
 Dauthi Warlord
 Dega Sanctuary
 Desert Nomads
@@ -78,10 +84,13 @@ Erkenbrand, Lord of Westfold
 Escape Protocol
 Esper Cormorants
 Ethereal Whiskergill
+Evil Presence
 Exultant Skymarcher
 Facet Reader
 Faerie Conclave
 Far Wanderings
+Fated Infatuation
+Fell Flagship
 Festercreep
 Fevered Convulsions
 Fin-Clade Fugitives
@@ -120,6 +129,7 @@ Great Furnace
 Greataxe
 Greenbelt Rampager
 Grotesque Mutation
+Havengul Vampire
 Headless Rider
 Heaven
 Heckling Fiends
@@ -145,6 +155,8 @@ Ironclaw Buzzardiers
 Island
 Juniper Order Advocate
 Juniper Order Rootweaver
+Junkyo Bell
+Kari Zev's Expertise
 Kavu Runner
 Kazandu Stomper
 Keeper of the Lens
@@ -206,6 +218,7 @@ Peel from Reality
 Peregrine Drake
 Phantom General
 Phyrexian Gremlins
+Plague Dogs
 Plague Engineer
 Plague Fiend
 Plague Sliver
@@ -235,11 +248,14 @@ Rockslide Ambush
 Rolling Thunder
 Romana II
 Ruin Raider
+Ruination
 Rumor Gatherer
+Runewing
 Rush of Adrenaline
 Ruthless Disposal
 Sacred Mesa
 Sai, Master Thopterist
+Salvager of Secrets
 Sands of Delirium
 Sandstone Warrior
 Sangrite Surge

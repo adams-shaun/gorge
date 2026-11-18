@@ -5,6 +5,7 @@ Adaptive Snapjaw
 Aether Charge
 Aether Poisoner
 Aetheric Amplifier
+Aethermage's Touch
 Akki Underling
 Alpine Meadow
 Amaranthine Wall
@@ -64,6 +65,7 @@ Eladamri, Lord of Leaves
 Eldrazi Displacer
 Electrickery
 Elvish Archers
+Embersmith
 Errant and Giada
 Erratic Mutation
 Escarpment Fortress
@@ -89,6 +91,7 @@ Followed Footsteps
 Forest
 Fractal Summoning
 Freyalise, Llanowar's Fury
+Furious Resistance
 Gem of Becoming
 Ghastly Demise
 Ghitu Slinger
@@ -133,6 +136,7 @@ Maul Splicer
 Mist-Syndicate Naga
 Mogg Flunkies
 Monstrify
+Mother Kangaroo
 Mountain
 Nagging Thoughts
 Needle Spires
@@ -206,6 +210,7 @@ Think Tank
 Thirst
 Tishana's Wayfinder
 Tower of Eons
+Traumatize
 Trespasser il-Vec
 Treva's Ruins
 Tune the Narrative
@@ -221,6 +226,7 @@ White Shield Crusader
 Windrider Wizard
 Wingmate Roc
 Wolfbriar Elemental
+Wooden Sphere
 Yavimaya Granger
 Yotian Frontliner
 Zephyr Falcon

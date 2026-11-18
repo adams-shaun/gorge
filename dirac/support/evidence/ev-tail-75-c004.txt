@@ -204,6 +204,7 @@ Shrine Keeper
 Sigil of Valor
 Simian Brawler
 Singing Tree
+Sinkhole
 Sizzle
 Skyclave Shadowcat
 Skyline Cascade
@@ -253,6 +254,7 @@ Voyager Staff
 Wall of Vines
 Warmonger Hellkite
 Waterknot
+Whiptail Moloch
 Whiptail Wurm
 Will-o'-the-Wisp
 Wingsteed Rider
