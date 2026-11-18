@@ -2490,28 +2490,8 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			}
 			return cost, ex, need, true
 		}
-		if c := s.objs[a.Source()].card; a.Kind() == AkCast && (a.Mode() == 0 || a.Mode() == castMayPlay) && k.t.Cards[c].Cost.X != 0 && !k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.Hyb[0] == 0 {
-			// an {X} cast: gorge's potentialModeCastPlan prices it at the
-			// largest X the sources pay, insufficient when they cannot
-			// pay X = 0, so the prefix search runs on the fixed part and
-			// the witness (lowerWitness) then pays the largest X from the
-			// pool and the printed sources. A may-play one too (Worldsoul's
-			// Rage from Outrageous Robbery's exile), its pips generic under
-			// an any-type rider (pay.PlanManaUnderRider, CR 609.4b): the
-			// search's first colour then pays it (CR 601.2g-h)
-			cost := s.featCost(k, SeatIx(p), c, Obj(a.Source()), k.cards[c].cost)
-			if a.Mode() == castMayPlay && (s.g.mayPlayAny || s.mayPlayAnyType(k, p, Obj(a.Source()))) {
-				cost = anyTypePips(cost)
-			}
-			return cost, ex, need, true
-		}
-		if c := s.objs[a.Source()].card; a.Kind() == AkCast && a.Mode() == 2 && k.t.Cards[c].Keywords&kop.KwFlashback != 0 && k.t.Cards[c].AltCost.X != 0 &&
-			k.t.Cards[c].AltCost.Hyb[0] == 0 && !k.t.Cards[c].HasAltAdd && k.t.Cards[c].FbCost.Flags == 0 && !k.t.Cards[c].FbBehold {
-			// an {X} flashback cast (Devil's Play's {X}{R}{R}{R}): gorge's
-			// potentialModeCastPlan prices the flashback cost at the largest X the
-			// sources pay, insufficient when they cannot pay X = 0, so the prefix
-			// search runs on the fixed part as an {X} hand cast's does (above)
-			return s.featCost(k, SeatIx(p), c, Obj(a.Source()), k.t.Cards[c].AltCost), ex, need, true
+		if xc, ok := s.xCastPlanCost(k, p, a); ok {
+			return xc, ex, need, true
 		}
 		if c := s.objs[a.Source()].card; a.Kind() == AkCast && a.Mode() == 0 && a.Target() == 0 && k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.X == 0 && !s.contribPays(k, p, c, Obj(a.Source()), s.objs[a.Source()].zone == kop.ZoneHand) {
 			// an either-or additional cost: the planner prices the spell with the part
@@ -2544,6 +2524,47 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 		return cost, ex, need, ok
 	}
 	return cost, ex, need, false
+}
+
+// xCastPlanCost is the grant prefix search's price of an {X} cast: the fixed
+// part of the cost, the witness (lowerWitness) then paying the largest X. ok is
+// false for any other play.
+func (s *State) xCastPlanCost(k *prep, p uint8, a Action) (cost kop.ManaCost, ok bool) {
+	if a.Kind() != AkCast {
+		return cost, false
+	}
+	c := s.objs[a.Source()].card
+	if (a.Mode() == 0 || a.Mode() == castMayPlay) && k.t.Cards[c].Cost.X != 0 && !k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.Hyb[0] == 0 {
+		// an {X} cast: gorge's potentialModeCastPlan prices it at the
+		// largest X the sources pay, insufficient when they cannot
+		// pay X = 0, so the prefix search runs on the fixed part and
+		// the witness (lowerWitness) then pays the largest X from the
+		// pool and the printed sources. A may-play one too (Worldsoul's
+		// Rage from Outrageous Robbery's exile), its pips generic under
+		// an any-type rider (pay.PlanManaUnderRider, CR 609.4b): the
+		// search's first colour then pays it (CR 601.2g-h)
+		cost = s.featCost(k, SeatIx(p), c, Obj(a.Source()), k.cards[c].cost)
+		if a.Mode() == castMayPlay && (s.g.mayPlayAny || s.mayPlayAnyType(k, p, Obj(a.Source()))) {
+			cost = anyTypePips(cost)
+		}
+		return cost, true
+	}
+	return s.xFlashbackPlanCost(k, p, a)
+}
+
+// xFlashbackPlanCost is the grant prefix search's price of an {X} flashback cast
+// (Devil's Play's {X}{R}{R}{R}): gorge's potentialModeCastPlan prices the
+// flashback cost at the largest X the sources pay, insufficient when they cannot
+// pay X = 0, so the prefix search runs on the fixed part as an {X} hand cast's
+// does. ok is false for any other play.
+func (s *State) xFlashbackPlanCost(k *prep, p uint8, a Action) (cost kop.ManaCost, ok bool) {
+	c := s.objs[a.Source()].card
+	cd := &k.t.Cards[c]
+	if a.Kind() != AkCast || a.Mode() != 2 || cd.Keywords&kop.KwFlashback == 0 || cd.AltCost.X == 0 ||
+		cd.AltCost.Hyb[0] != 0 || cd.HasAltAdd || cd.FbCost.Flags != 0 || cd.FbBehold {
+		return cost, false
+	}
+	return s.featCost(k, SeatIx(p), c, Obj(a.Source()), cd.AltCost), true
 }
 
 // playNeed is the colours play a's printed base announces (gorge's
