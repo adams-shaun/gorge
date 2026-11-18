@@ -50,7 +50,10 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	mx := 0
 	for x := 1; x <= cap; x++ {
 		c := manaOf(x, 0)
-		if !av.affords(&c, 0, 0) {
+		// a restricted source whose restriction admits a non-spell payment (the
+		// Powerstone's {C}, CR 106.6) funds the trigger's cost too: gorge's
+		// potentialManaFor prices it in the bound
+		if !av.affords(&c, 0, 0) && !(k.restrSrc && s.restrSrcAffords(k, p, other, &c, &av, NoSlot, 0)) {
 			break
 		}
 		mx = x
@@ -69,6 +72,11 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	if !open && mx < cap {
 		var one avail
 		s.availForCapped(k, p, &one)
+		if k.restrSrc {
+			if t, _, nm := s.restrSrcAvailD(k, p, other, &one, NoSlot, false); nm == 0 {
+				one = t // the restricted sources a non-spell payment may spend count once each too
+			}
+		}
 		mx = min(mx, one.total)
 	}
 	s.g.pickF = skip
