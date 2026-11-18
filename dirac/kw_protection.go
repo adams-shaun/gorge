@@ -139,7 +139,7 @@ func protColKwOf(k *prep, f kop.FilterID) kop.ColorMask {
 // permanent; a resolving or probed spell as its card with ITS controller as
 // the owner (gorge judges a live source object's controller against a
 // player-relative quality, protection.go's player-relative arm). A departed
-// source matches nothing: gorge's arm needs g.Obj(source) != nil.
+// source with no object (a ceased token) matches nothing: gorge's arm needs g.Obj(source) != nil.
 func (s *State) protOvMatch(k *prep, f kop.FilterID, sl, srcSl Slot, srcCard CardID) bool {
 	p := s.perms[sl].ctrl
 	if srcSl != NoSlot && s.occ.has(srcSl) {
@@ -150,6 +150,13 @@ func (s *State) protOvMatch(k *prep, f kop.FilterID, sl, srcSl Slot, srcCard Car
 	}
 	if s.g.probe.kind == probeSpell && s.g.probe.card == srcCard {
 		return s.matchCardGen(k, f, srcCard, s.g.probe.ctrl, p, NoObj)
+	}
+	// an ability whose source card left the battlefield (Seven-Tail Mentor's
+	// death trigger) still has a source object in its new zone: gorge reads its
+	// characteristics there (CR 702.16b); a token that ceased to exist has
+	// none, which matchCardGen reads as no match
+	if e := s.curEntry(); e != nil && e.kind != seSpell && e.card == srcCard && e.obj != NoObj {
+		return s.matchCardGen(k, f, srcCard, e.ctrl, p, e.obj)
 	}
 	return false
 }
