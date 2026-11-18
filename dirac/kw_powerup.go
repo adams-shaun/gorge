@@ -183,3 +183,44 @@ func PowerUpCost(s *State, o Obj) (int, kop.ManaCost, bool) {
 	}
 	return 0, kop.ManaCost{}, false
 }
+
+// powerUpOffer is the charge gorge's priority walk prices Power-up
+// activation play at (legal_walk_battlefield.go: ownReduceCostOffer, then
+// powerUpReduceCost, then the cost statics; CR 702.193b, 601.2f), which the
+// floating pool alone pays to offer it. ok is false for any other play.
+func (s *State) powerUpOffer(k *prep, play Action) (kop.ManaCost, bool) {
+	if k.gen == nil || !k.gen.anyPowerUp || play.Kind() != AkActivate || isGainedMode(play.Mode()) || play.Mode()&0x80 != 0 {
+		return kop.ManaCost{}, false
+	}
+	o := Obj(play.Source())
+	if o == NoObj || int(o) >= len(s.objs) || s.objs[o].zone != kop.ZoneBattlefield || s.objs[o].slot == NoSlot {
+		return kop.ManaCost{}, false
+	}
+	sl := s.objs[o].slot
+	abs := k.t.Cards[s.cardAt(sl)].Abilities
+	if int(play.Mode()) >= len(abs) || abs[play.Mode()].Cost.Flags&kop.CostPowerUp == 0 {
+		return kop.ManaCost{}, false
+	}
+	a := &abs[play.Mode()]
+	ctrl := s.perms[sl].ctrl
+	m := a.Cost.Mana
+	if k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
+		m = s.ownReducedBF(k, a, sl, ctrl)
+	}
+	m = s.powerUpReduced(k, o, m)
+	if k.gen.anyAbReduce {
+		m = s.abReduced(k, a, sl, ctrl, m)
+	}
+	return m, true
+}
+
+// offerPays reports gorge's offered check at a grant-search node for a
+// Power-up play whose reduced charge differs from the planner's price
+// (scriptSearch.visit: the node's priority options list the play): the
+// floating pool pays the reduced charge, as the offer gate's poolPays does
+// (legal.go). Gorge's planner prices the printed cost, so the leaf pricing
+// alone would miss it (Goliath, Mass Manipulator's {4}{G} at {3} from three
+// lands Wrenn and Realmbreaker's grant tapped).
+func (g *grantSrch) offerPays(t *State) bool {
+	return g.hasOffer && t.floatPaysPlay(g.k, g.p, &g.offer, g.d) && !g.waitsForStack(t)
+}

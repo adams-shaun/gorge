@@ -903,7 +903,13 @@ type grantSrch struct {
 	// discarding a Lesson into the graveyard, CR 601.2f): grantCap offers the
 	// walk play the root price refused (grantCostCheaper)
 	cheaper bool
-	ex      Slot // the play's own {T} source (an activation's), never tapped
+	// offer is a Power-up activation's charge when CR 702.193b lowers it
+	// under the planner's price cost (hasOffer): gorge's search succeeds at a
+	// node whose own priority walk offers the play, and that walk prices the
+	// reduced charge against the floating pool (powerUpOffer)
+	offer    kop.ManaCost
+	hasOffer bool
+	ex       Slot // the play's own {T} source (an activation's), never tapped
 	// d is the payment the play makes, read by a granted source's spend
 	// restriction (Mm'menon's Spell.!wasCastFromYourHand): the payment read,
 	// the cast's origin known and the spell on the stack when paid
@@ -1345,6 +1351,10 @@ func (g *grantSrch) visit(t *State) bool {
 			cost = fc
 			cheap = true
 		}
+	}
+	if g.offerPays(t) {
+		g.cheaper = true // gorge's offered check, before the seen one: the node's walk lists the play
+		return true
 	}
 	pl := &t.pl[SeatIx(g.p)]
 	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(g.p)}
@@ -2030,6 +2040,9 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 	if d.hasPlay {
 		if o := Obj(d.play.Source()); o != NoObj && int(o) < len(s.objs) {
 			g.pver = s.objs[o].ver
+		}
+		if oc, ok := s.powerUpOffer(k, d.play); ok && oc != *cost {
+			g.offer, g.hasOffer = oc, true
 		}
 	}
 	g.candidates(s)
