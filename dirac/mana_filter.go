@@ -1521,25 +1521,30 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 		}
 	}
-	if t.sp > fs.sp0 && fs.n < maxFiltPath {
-		// a trigger a step caused: let it resolve, the pool floats (gorge
-		// scriptSearch.visit, the last resort at a node; a sorcery-speed play
-		// waits for it, waitsForStack)
-		pass := MakeAction(AkPass, 0, 0, 0)
-		c := t.fork()
-		c.Apply(pass)
-		fs.path[fs.n] = filtStep{sl: NoSlot, other: otherStep{kind: otherPass}, act: pass}
-		fs.n++
-		ok := fs.settle(k, c, funded, true)
-		if !ok {
-			fs.stallOf(c)
-		}
-		t.unfork()
-		if ok {
-			return true
-		}
-		fs.n--
+	return fs.passTrigger(k, t, funded)
+}
+
+// passTrigger: a trigger a step caused: let it resolve, the pool floats (gorge
+// scriptSearch.visit, the last resort at a node; a sorcery-speed play waits
+// for it, waitsForStack).
+func (fs *filtSearch) passTrigger(k *prep, t *State, funded int) bool {
+	if t.sp <= fs.sp0 || fs.n >= maxFiltPath {
+		return false
 	}
+	pass := MakeAction(AkPass, 0, 0, 0)
+	c := t.fork()
+	c.Apply(pass)
+	fs.path[fs.n] = filtStep{sl: NoSlot, other: otherStep{kind: otherPass}, act: pass}
+	fs.n++
+	ok := fs.settle(k, c, funded, true)
+	if !ok {
+		fs.stallOf(c)
+	}
+	t.unfork()
+	if ok {
+		return true
+	}
+	fs.n--
 	return false
 }
 
