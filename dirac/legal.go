@@ -2050,7 +2050,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if s.censusDynamicAb(k, sl, ab, &cen, fold) {
 					continue
 				}
-				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, len(units) != 0, add, &anyFree, &open) {
+				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, len(units) != 0, cen.anyTapAdd(ab, add, fold), &anyFree, &open) {
 					cen.addOrMerge(sl, ab, add, fold)
 				}
 			}
@@ -2061,6 +2061,25 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		*units[0] = cen.units
 	}
 	return open
+}
+
+// anyTapAdd is the add addAnyDifferentOrOpen's one-mana any-colour unit goes
+// through: a further {T} ability of a source already holding a tap unit
+// (Mirrodin's Core's "{T}, Remove a charge counter: Add one mana of any
+// color" beside its {T}: {C}) widens that unit's colours instead of adding a
+// second mana, the source tapping once (CR 605.3b; gorge's census makes one
+// mana per tap). The over-bound pool keeps the fold.
+func (c *potCensus) anyTapAdd(ab *kop.Ability, add, fold func(Slot, uint8, uint8)) func(Slot, uint8, uint8) {
+	if !c.on || ab.ManaColors != kop.ColAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor|kop.AfManaChoice) != 0 || anyDifferentTapAb(ab) {
+		return add
+	}
+	return func(sl Slot, mask, n uint8) {
+		if c.mergeTap(sl, ab) {
+			fold(sl, mask, n)
+			return
+		}
+		add(sl, mask, n)
+	}
 }
 
 // addOrMerge adds ab's fixed production as a unit of its own, or, when the census
