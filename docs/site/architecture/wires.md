@@ -28,6 +28,7 @@ replays in `TestFoundPairs` for good.
 | gorge / native / http-agent | The Python and Java agents each play a complete game | `scripts/examples-smoke.sh` | commit nightly pr |
 | gorge / manabrew / harness | Two sessions agree through `/state` and `/send`; a moved life total and a missing action are caught; the normaliser removes only its documented fields | `TestManaBrewConformanceGorgeSelf`, `TestManaBrewNormaliserLines`, `TestManaBrewCatchesAWrongLife`, `TestManaBrewCatchesAMissingAction` | commit nightly pr |
 | gorge / manabrew / bot | A bot through the wire reaches the native chain head, in process and over HTTP; state parity; no leak; every option reachable; nothing unmapped | `server/manabrew/mbtest`, `server/host/manabrewhttp` | nightly |
+| gorge / manabrew / commander | A 4-seat Commander game over the wire reaches the native chain head; the `KCommanderZone` ask, a card in the command zone, the commander tax and commander damage all cross it | `TestParityCommanderFourSeat`, `TestCensusCommanderFourSeat` | nightly |
 | gorge / manabrew / fuzz | No failure over 2,000 fuzzed-deck games on a rolling seed | `cardfuzz -manabrew` | nightly |
 | gorge / v2 / harness | Goldens, chain heads over `/api/sbv2`, an empty native-only census, privacy | `server/spellbench/...`, `server/host/sbv2http` | nightly |
 | gorge / v2 / stdio-agent | An agent plays to the end over the frozen wire | `TestV2AgentSeatPlaysGorgeAgent`, `TestSpellbenchSeatAppliesAgentPick`, `TestSpellbenchSeatAnswersUnposableDecisionWithFallback` | nightly |
