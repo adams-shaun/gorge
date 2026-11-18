@@ -61,6 +61,81 @@ func kchantPolicy(gains *atomic.Int64) func(uint64) Policy {
 	}
 }
 
+// kaweDecks is the Awe Strike lockstep (dirac/repl_prevnext.go's
+// source-keyed shield, kop.PrevNextFrom): the next damage the remembered
+// creature deals is prevented and its controller gains life equal to the
+// damage prevented (gorge damageReplacementPreventsWithRider runs the
+// GainLife body, the Effect exiles itself). The expected answer at every
+// decision is gorge's: the life totals are in the projection, so a missed,
+// extra or early gain diverges. The first deck is mostly Savannah Lions, so
+// the cast Awe Strikes have small creatures to target; neither deck has
+// another source of life gain, so each positive life change of the games is
+// an Awe Strike's rider run.
+func kaweDecks() [2][]cardset.Entry {
+	return [2][]cardset.Entry{
+		{
+			{Name: "Awe Strike", Count: 8}, {Name: "Savannah Lions", Count: 12},
+			{Name: "Plains", Count: 20},
+		},
+		kprevscopeDecks[1],
+	}
+}
+
+// kawePolicy is kchantPolicy for Awe Strike: it casts an Awe Strike whenever
+// gorge offers one and counts the life gains from gorge's event log.
+func kawePolicy(gains *atomic.Int64) func(uint64) Policy {
+	return func(seed uint64) Policy {
+		inner := castFirstPolicy(seed)
+		seen := 0
+		return PolicyFunc(func(c *PickCtx) Canon {
+			if c.G != nil && c.G.E != nil && c.G.E.L != nil {
+				evs := c.G.E.L.Events
+				for ; seen < len(evs); seen++ {
+					if evs[seen].Kind == events.LifeChange && evs[seen].Amount > 0 {
+						gains.Add(1)
+					}
+				}
+			}
+			if c.G != nil && c.D.Kind == DPriority {
+				for _, a := range c.D.Options {
+					if o, ok := c.G.GorgeOption(a); ok && a.Kind() == ActCast {
+						if ob := c.G.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil && ob.Face().Name == "Awe Strike" {
+							return a
+						}
+					}
+				}
+			}
+			return inner.Pick(c)
+		})
+	}
+}
+
+// TestAweStrikeLockstep proves the source-keyed shield's rider runs: the
+// games agree with gorge and Awe Strike gains life in them.
+func TestAweStrikeLockstep(t *testing.T) {
+	t.Parallel()
+	var gains atomic.Int64
+	lockstepRunPolicy(t, "prevstate", kaweDecks(), 900, true, nil, nil, kawePolicy(&gains))
+	if gains.Load() == 0 {
+		t.Fatal("Awe Strike never gained life in the games; the lockstep proves nothing")
+	}
+	t.Logf("Awe Strike life gains: %d", gains.Load())
+}
+
+// TestAweStrikeMutation proves the pool gains the prevented life: with the
+// rider skipped (the prevention still applying), some seed diverges.
+func TestAweStrikeMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	dirac.DebugNoPrevRider = true
+	defer func() { dirac.DebugNoPrevRider = false }()
+	var gains atomic.Int64
+	if lockstepRunPolicy(t, "prevstate", kaweDecks(), 900, false, nil, nil, kawePolicy(&gains)) == 0 {
+		t.Fatal("no seed diverged with the rider skipped: the pool never has damage prevented by Awe Strike")
+	}
+}
+
 func TestChantLockstep(t *testing.T) {
 	t.Parallel()
 	var gains atomic.Int64

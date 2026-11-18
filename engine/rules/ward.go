@@ -114,9 +114,16 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 		case beginWardPaymentBlight:
 			// Blight's cost is "a creature you control gets -N/-N"; unlike
 			// Waterbend and a tap cost it does not require that creature to be
-			// untapped (Auntie Ool, Cursewretch).
-			return e.askWardObjects(rp, ctx, payer, "ward_blight", "Choose a creature to blight", 1, 1,
-				e.wardPermanents(payer, ctx.Source, "Creature", false))
+			// untapped (Auntie Ool, Cursewretch). A payer controlling no
+			// creature cannot pay it: like every arm below, decline before
+			// asking -- asking would pose a Min 1 ask with zero options, the
+			// unanswerable shape no seat can answer (CR 702.22: an unpaid
+			// ward cost counters the warded spell).
+			ids := e.wardPermanents(payer, ctx.Source, "Creature", false)
+			if len(ids) == 0 {
+				return false, false
+			}
+			return e.askWardObjects(rp, ctx, payer, "ward_blight", "Choose a creature to blight", 1, 1, ids)
 		case beginWardPaymentCollectEvidence:
 			ids := append([]state.ObjID(nil), e.G.Zone(state.ZGraveyard, payer)...)
 			if wardManaValue(e.G, ids) < int32(n) {

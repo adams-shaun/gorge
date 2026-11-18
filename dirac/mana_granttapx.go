@@ -15,15 +15,17 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // candidates, battlefield order), then the colour (W U B R G), as tapXSearch
 // does (mana_tapanother.go). A second tap-another ability beside a plain
 // first (Scene of the Crime) is a candidate too: its ability ask lists the
-// plain {C} first, then the tap-another ability. A two-permanent cost (Baylen)
-// is not modelled here: it stays out of the grant search, priced by the
-// tap-another search alone (tapXOffGrant).
+// plain {C} first, then the tap-another ability. A two-permanent cost
+// (Supportive Parents's "Tap two untapped creatures you control: Add one mana
+// of any color", Baylen) is a candidate too: its pair of permanents is an ask
+// with more than two candidates (every pair in lexicographic order, 64 at
+// most, tapXPairAt), then the colour, as the tap-another search's pairAsk does.
 
 // stepTapX is the gi of a prefix step that activates a candidate's
 // tap-another-permanent ability (cand the permanent it taps, col its colour).
 const stepTapX int16 = -3
 
-// grantTapXGaps: p's one-permanent tap-another sources on a board whose
+// grantTapXGaps: p's one- and two-permanent tap-another sources on a board whose
 // census gaps the tap-another search models (scriptTapXModelled). A
 // sacrifice-another source is not one: beside a granted mana ability the
 // grant search activates it as a candidate of its own (grantSacXGaps,
@@ -36,7 +38,11 @@ func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
 		c := s.cardAt(sl)
-		if a := k.tapXAbOf(c); a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 && !kop.SacXMana(a) {
+		a := k.tapXAbOf(c)
+		if kop.SacXMana(a) {
+			continue
+		}
+		if a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 || a.Cost.N == 2 {
 			m = m.with(sl)
 		}
 	}
@@ -48,6 +54,9 @@ func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 func (g *grantSrch) tapXBranch(t *State, i int, sl Slot) bool {
 	var cs [MaxPerm]Slot
 	nc := t.tapXCands(g.k, g.p, sl, &cs)
+	if g.k.tapXAbOf(t.cardAt(sl)).Cost.N == 2 {
+		return g.tapXPairBranch(t, i, sl, &cs, nc)
+	}
 	if nc > 1 && !g.node() { // the creature ask
 		return false
 	}
@@ -64,7 +73,7 @@ func (g *grantSrch) tapXBranch(t *State, i int, sl Slot) bool {
 			}
 			u := t.fork()
 			u.tapXDo(g.k, g.p, tapXStep{sl: sl, cand: cs[j], cand2: NoSlot, col: col, kind: tapXAct})
-			g.path[g.np] = grantStep{i: uint8(i), col: col, gi: stepTapX, sl: sl, cand: cs[j]}
+			g.path[g.np] = grantStep{i: uint8(i), col: col, gi: stepTapX, sl: sl, cand: cs[j], cand2: NoSlot}
 			g.np++
 			var ok bool
 			if g.tapsLive {
@@ -82,8 +91,48 @@ func (g *grantSrch) tapXBranch(t *State, i int, sl Slot) bool {
 	return false
 }
 
+// tapXPairBranch is tapXBranch for a two-permanent cost: two candidates are
+// tapped with no ask, more are asked as one "choose 2" (every pair of its
+// candidates, tapXPairLimit), then the colour.
+func (g *grantSrch) tapXPairBranch(t *State, i int, sl Slot, cs *[MaxPerm]Slot, nc int) bool {
+	if nc > 2 && !g.node() { // the pair ask
+		return false
+	}
+	for pi, npair := 0, tapXPairLimit(nc); pi < npair; pi++ {
+		x, y := tapXPairAt(nc, pi)
+		a, b := cs[x], cs[y]
+		if tapXOwnAnswer(g.ex, a, b) {
+			continue // it would tap the play's own {T} source (CR 602.2b)
+		}
+		if !g.node() { // the colour ask
+			return false
+		}
+		for col := uint8(0); col < 5; col++ {
+			if g.np >= len(g.path) {
+				return false
+			}
+			u := t.fork()
+			u.tapXDo(g.k, g.p, tapXStep{sl: sl, cand: a, cand2: b, col: col, kind: tapXAct})
+			g.path[g.np] = grantStep{i: uint8(i), col: col, gi: stepTapX, sl: sl, cand: a, cand2: b}
+			g.np++
+			var ok bool
+			if g.tapsLive {
+				ok = g.settle(u)
+			} else {
+				ok = g.visit(u)
+			}
+			t.unfork()
+			if ok {
+				return true
+			}
+			g.np--
+		}
+	}
+	return false
+}
+
 // tapXOffGrant: p has a live tap-another source the grant search does not
-// activate (a two-permanent cost, Baylen): only the tap-another search prices
+// activate (a cost of three or more permanents): only the tap-another search prices
 // a play it pays. A source the grant search covers is tried in gorge's one
 // prefix search beside the grants, whose budget the granted gaps spend
 // (rules scriptSearch.visit), so the tap-another search alone, which skips
@@ -99,6 +148,17 @@ func (s *State) tapXOffGrant(k *prep, p uint8) bool {
 func (s *State) tapXSecondLive(k *prep, p uint8) bool {
 	for b := s.grantTapXGaps(k, p); b.any(); b = b.rest() {
 		if k.tapXSecond(s.cardAt(b.first())) {
+			return true
+		}
+	}
+	return false
+}
+
+// tapXPairLive: p has a live two-permanent tap-another source (Supportive
+// Parents), which the grant search activates beside the grants.
+func (s *State) tapXPairLive(k *prep, p uint8) bool {
+	for b := s.grantTapXGaps(k, p); b.any(); b = b.rest() {
+		if k.tapXAbOf(s.cardAt(b.first())).Cost.N == 2 {
 			return true
 		}
 	}

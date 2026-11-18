@@ -34,13 +34,13 @@ func costSpareCapacity(c Cost) (string, bool) {
 //     into the shared backing array,
 //   - a face with no current sidecar still parses (the fallback).
 //
-// The probe face carries all ten rows, one of them (Blitz) with a
+// The probe face carries all eleven rows, one of them (Blitz) with a
 // spare-capacity Sac slice, so the freeze assertion is not vacuous.
 func TestAltCastFaceCostSidecar(t *testing.T) {
 	c := card(t, "Name:AltCost Sidecar Probe\nManaCost:2 R\nTypes:Creature Test\nPT:2/2\n"+
 		"K:Evoke:1 R\nK:Dash:2 R\nK:Overload:3 R\nK:Warp:4 R\nK:Impending:3:5 R\n"+
 		"K:Bestow:6 R\nK:Blitz:1 R Sac<1/Creature> Sac<1/Creature> Sac<1/Creature>\n"+
-		"K:Madness:8 R\nK:Prowl:9 R\nK:Freerunning:10 R\nOracle:x\n")
+		"K:Madness:8 R\nK:Prowl:9 R\nK:Freerunning:10 R\nK:Awaken:4:11 R\nOracle:x\n")
 	e := New(Config{Names: []string{"you"}, Decks: [][]*cards.Card{{c}}})
 	f := c.Faces[0]
 
@@ -167,7 +167,7 @@ func TestWalkFaceFactsAltCostSidecarIsSparse(t *testing.T) {
 	allRows := card(t, "Name:AltCost Sparse AllRows\nManaCost:1 G\nTypes:Creature Test\nPT:1/1\n"+
 		"K:Evoke:1 R\nK:Dash:2 R\nK:Overload:3 R\nK:Warp:4 R\nK:Impending:3:5 R\n"+
 		"K:Bestow:6 R\nK:Blitz:1 R Sac<1/Creature> Sac<1/Creature> Sac<1/Creature>\n"+
-		"K:Madness:8 R\nK:Prowl:9 R\nK:Freerunning:10 R\nOracle:x\n")
+		"K:Madness:8 R\nK:Prowl:9 R\nK:Freerunning:10 R\nK:Awaken:4:11 R\nOracle:x\n")
 	e := New(Config{Names: []string{"you"}, Decks: [][]*cards.Card{{plain, allRows}}})
 
 	pf := e.walkFaceFactsOf(plain.Faces[0])
@@ -182,7 +182,7 @@ func TestWalkFaceFactsAltCostSidecarIsSparse(t *testing.T) {
 	if af == nil || !af.keywordsCurrent(allRows.Faces[0]) {
 		t.Fatal("precondition: no current facts for the all-rows face")
 	}
-	// Precondition: the all-rows face really carries all ten rows, so the
+	// Precondition: the all-rows face really carries all eleven rows, so the
 	// sparse-length assertion below is not vacuous.
 	if want := uint16(1<<altCastCount - 1); af.altCostMask != want {
 		t.Fatalf("precondition: all-rows face mask=%#x, want %#x", af.altCostMask, want)

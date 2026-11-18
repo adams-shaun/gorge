@@ -42,6 +42,7 @@ const (
 	phImpending               = printedHeads(scriptfacts.Impending)
 	phProwl                   = printedHeads(scriptfacts.Prowl)
 	phFreerunning             = printedHeads(scriptfacts.Freerunning)
+	phAwaken                  = printedHeads(scriptfacts.Awaken)
 	phAll                     = printedHeads(scriptfacts.All)
 )
 

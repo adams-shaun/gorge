@@ -51,7 +51,7 @@ func originAlternativeZones(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, 
 }
 
 func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.Zone, zones []state.Zone) {
-	players := searchPlayersFor(h, c, cz.fetch())
+	players := searchPlayersFor(h, c, cz.fetch(), targetedGateGroup(c, sa))
 	if c.Forget.Ready {
 		players = c.Forget.Owners
 	}
@@ -921,13 +921,13 @@ func searchSameNames(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owner s
 // searchPlayers resolves whose zones are searched. DefinedPlayer$ takes
 // precedence over Defined$; targeted players come next, then the controller.
 func searchPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
-	return searchPlayersFor(h, c, fetchSelectorsParam(sa))
+	return searchPlayersFor(h, c, fetchSelectorsParam(sa), targetedGateGroup(c, sa))
 }
 
 // searchPlayersFor is searchPlayers over compiled fetch selectors.
-func searchPlayersFor(h Host, c *Ctx, sel fetchSelectors) []state.PlayerID {
+func searchPlayersFor(h Host, c *Ctx, sel fetchSelectors, group []state.Target) []state.PlayerID {
 	if searchTargetedOwner(sel) {
-		return hiddenPickPlayers(h, c, sel)
+		return hiddenPickPlayers(h, c, sel, group)
 	}
 	spec, explicit := sel.DefinedPlayer.Text, sel.DefinedPlayer.Present
 	if !explicit {
@@ -1054,15 +1054,17 @@ func searchLibraryWindow(h Host, c *Ctx, cz *ChangeZoneParams, lib []state.ObjID
 // pick's analogue of searchPlayers: DefinedPlayer$ through the shared
 // selector grammar first, then the targeted PLAYERS (Forge's
 // getFirstTargetedPlayer for a usesTargeting effect), then the source
-// controller -- Forge's getDefinedPlayers(null) defaults to "You".
-func hiddenPickPlayers(h Host, c *Ctx, sel fetchSelectors) []state.PlayerID {
+// controller -- Forge's getDefinedPlayers(null) defaults to "You". group is the
+// SA's own target group (targetedGateGroup): a chained sub's cast-time answer
+// lives in Ctx.SubPreAsk, not Ctx.Targets (Life's Finale's search sub).
+func hiddenPickPlayers(h Host, c *Ctx, sel fetchSelectors, group []state.Target) []state.PlayerID {
 	if sel.DefinedPlayer.Text != "" {
-		return searchPlayersFor(h, c, sel)
+		return searchPlayersFor(h, c, sel, group)
 	}
 	if sel.ValidTgts.Present {
 		var out []state.PlayerID
-		seen := make(map[state.PlayerID]bool, len(c.Targets))
-		for _, t := range c.Targets {
+		seen := make(map[state.PlayerID]bool, len(group))
+		for _, t := range group {
 			if !t.IsPlayer {
 				continue
 			}

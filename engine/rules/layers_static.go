@@ -629,7 +629,22 @@ func (e *Engine) staticAmountOn(ce *ContinuousEffect, expr string, anchor state.
 		e.refreshDerivedTypes()
 		ctx.Layers.DerivedTypes = e.EffectiveTypes()
 	}
+	// CR 613.1f before 613.4c: a layer-7 amount that counts creatures by a
+	// keyword (Pride of the Clouds's +1/+1 per other flier) reads the keywords
+	// layer 6 left on them, a granted flying included. The published table is
+	// nil inside a layer walk (EffectiveKeywords), which left this count on
+	// the printed read: Derived(Pride) came out one short of Power(Pride)
+	// whenever another flier's flying was granted (Wings of Hope).
+	if e.charsWalk.Depth != 0 && e.activeDepth == 0 && staticAmountReadsKeywords(expr, svars[expr]) {
+		ctx.Layers.DerivedKeywords = effectiveKeywordsInWalk(e.G, &e.charsWalk, e)
+	}
 	return effects.Num(e, ctx, sa, "Amount", 0)
+}
+
+// staticAmountReadsKeywords reports whether a static's amount expression (or
+// the SVar it names) can name a with<Keyword>/hasKeyword<Keyword> filter.
+func staticAmountReadsKeywords(expr, body string) bool {
+	return effects.SpecReadsKeywords(expr) || effects.SpecReadsKeywords(body)
 }
 
 // statKeywords parses AddKeyword$ through the shared Forge keyword-list

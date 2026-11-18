@@ -41,6 +41,7 @@ const (
 	Impending
 	Prowl
 	Freerunning
+	Awaken
 	// All answers "maybe" for every head.
 	All Heads = 1<<iota - 1
 )
@@ -127,6 +128,8 @@ func Of(f *cards.Face) Heads {
 			m |= Prowl
 		case headOfFreerunning:
 			m |= Freerunning
+		case headOfAwaken:
+			m |= Awaken
 		}
 	}
 	return m
@@ -144,7 +147,7 @@ var Names = [...]struct {
 	{Mutate, "Mutate"}, {Buyback, "Buyback"}, {Suspend, "Suspend"}, {Plot, "Plot"},
 	{Morph, "Morph"}, {Megamorph, "Megamorph"}, {Disguise, "Disguise"},
 	{MayFlashCost, "MayFlashCost"}, {AlternateAdditionalCost, "AlternateAdditionalCost"}, {Impending, "Impending"},
-	{Prowl, "Prowl"}, {Freerunning, "Freerunning"},
+	{Prowl, "Prowl"}, {Freerunning, "Freerunning"}, {Awaken, "Awaken"},
 }
 
 // Verify panics when a clear bit of h is contradicted by f.KeywordParam
@@ -185,6 +188,7 @@ const (
 	headOfImpending
 	headOfProwl
 	headOfFreerunning
+	headOfAwaken
 )
 
 var headsOfCodes = state.NewStrCodes(
@@ -212,4 +216,5 @@ var headsOfCodes = state.NewStrCodes(
 	state.StrEntry[headCode]{Key: "impending", Val: headOfImpending},
 	state.StrEntry[headCode]{Key: "prowl", Val: headOfProwl},
 	state.StrEntry[headCode]{Key: "freerunning", Val: headOfFreerunning},
+	state.StrEntry[headCode]{Key: "awaken", Val: headOfAwaken},
 )

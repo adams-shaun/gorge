@@ -326,6 +326,9 @@ func (s *State) advance(k *prep) {
 		return
 	case kop.StepEndCombat:
 		s.clearCombat()
+		if k.gen != nil && k.gen.anyRepl&rbPrevCol != 0 {
+			s.prevEndCombat() // repl_prevx.go: the Duration$ UntilEndOfCombat scoped records end here
+		}
 	case kop.StepCleanup:
 		// a cleanup priority round (triggers) ends: another cleanup step
 		next = kop.StepCleanup

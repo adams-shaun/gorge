@@ -122,12 +122,12 @@ type avail struct {
 	// other caller prices exactly as before.
 	delve int
 	// dynSac: this census includes a dynamic {T}, sacrifice source (Lotus
-	// Blossom, gen.go dynamicManaCost). A cast offer's census includes it on
-	// the full surface, where gorge's script route prices the play (gorge.go
-	// priorityVocabulary); the autopay surface drops a scripted plain cast
-	// (script_gen.go autopayDropsPlainCast), so the cast walk leaves it out.
-	// An activated-ability offer prices it on either surface. Carried on the
-	// census, not in genState.availX: that byte's eight mode bits are all
+	// Blossom, gen.go dynamicManaCost). Only an activated-ability offer's
+	// does: gorge's activated-ability planner activates such a source while
+	// paying, and a cast it funds is the counter-cost gap's (mana_sacctr.go),
+	// which taps and sacrifices it at priority as gorge's script route does;
+	// a plain census cast would tap the printed sources instead. Carried on
+	// the census, not in genState.availX: that byte's eight mode bits are all
 	// taken (availWinCol's, mana_pain.go painAvailMask).
 	dynSac bool
 }
@@ -399,9 +399,19 @@ func (s *State) addIdentityCensus(k *prep, sl Slot, pc *pcard, a *avail) {
 // trigger X announcement's one-tap cap reads it, because the potential walk
 // above counts a deferred source's tap (a Taps watcher, a mana rider, a
 // Condition split) while the planner census leaves it out. Each source still
-// counts once, at its largest production.
+// counts once, at its largest production. The walk's census reads the script
+// gaps too (its fixpoint admits a counter-cost or life-cost shape whose cost
+// taps nothing, potentialGapCost), so the cap runs in the gaps mode: gorge's
+// payment-window census lists every mana ability whose cost is no bare tap,
+// tapped or not (paymentPlanManaUnitsOnlyCompute's CR 602.2b note), and its
+// trigger X supply counts those units (triggeredCostXSupply) -- a cycled
+// Decree of Justice's "you may pay {X}" beside a Wall of Roots must offer X
+// past the Forest's tap.
 func (s *State) availForCapped(k *prep, p uint8, a *avail) {
+	m := s.g.availX
+	s.g.availX = m | availGaps
 	s.availForMode(k, p, a, slotMask{}, true)
+	s.g.availX = m
 }
 
 // availForExcluding is availFor over the battlefield sources except the
@@ -458,7 +468,7 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 			pc = &k.cards[s.cardAt(sl)]
 		}
 		if pc.manaDyn && pc.manaSac && !a.dynSac {
-			continue // a dynamic {T}, sacrifice source joins only a census that prices it (avail.dynSac)
+			continue // a dynamic {T}, sacrifice source prices only an activated-ability offer (avail.dynSac)
 		}
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 {
 			if withDeferred && pc.manaIdent && pm.flags&pfTapped == 0 && !s.activationSick(k, sl) {
@@ -1377,6 +1387,29 @@ func (s *State) planHandDemand(k *prep, p uint8, pk *planner, exclude Obj) {
 	}
 }
 
+// castPaySpellBuild reports whether this planner pass prices a spell's
+// cast payment. A cast's payment never prices a dynamic {T}, sacrifice
+// source (Lotus Blossom): gorge's payment planner cannot price an
+// evaluated-amount source whose cost sacrifices it (the probe needs a
+// TapOnly shape), so its cast payment leaves the source untouched and its
+// census leaves it out of a cast's offer (availForMode's dynSac gate).
+// This planner is a separate pass from that census: plan's pass-2 dynamic
+// layer would tap and sacrifice the source to complete a cast the pool
+// and the ordinary sources cannot pay (tail-74 pairs 31, 47). An
+// activated ability keeps it: its offer is priced by the dynSac census
+// (avail.dynSac) and funded by the prefix float (lowerDynSacGap) or the
+// pass.
+func (s *State) castPaySpellBuild(k *prep) bool {
+	return k.gen != nil && s.buildLive() && s.bld().e.kind == seSpell
+}
+
+// planCastDynSacSkip reports whether the unit is a dynamic {T}, sacrifice
+// source a cast's payment leaves untouched (castPaySpellBuild;
+// availForMode's dynSac gate, tail-74 pairs 31, 47).
+func planCastDynSacSkip(castPay bool, pc *pcard) bool {
+	return castPay && pc.manaDyn && pc.manaSac
+}
+
 func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// units: fixed-production sources in battlefield (entry) order, then
 	// choice-shaped sources (any colour, a choice of colours) in battlefield
@@ -1417,6 +1450,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	if pk.maxN == 0 {
 		pk.maxN = 1
 	}
+	// A cast's payment never prices a dynamic {T}, sacrifice source: see
+	// castPaySpellBuild for gorge's shape and the class (tail-74 pairs 31, 47).
+	castPay := s.castPaySpellBuild(k)
 	// phase 1: normal sources only; phase 2 (only when phase 1 proves no
 	// plan) adds the last-resort tap-and-sacrifice sources (Treasure),
 	// ranked by irreversible cost (gorge plancost.go:160-179, plan.go:104),
@@ -1573,6 +1609,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					if s.painUnit(k, sl, pc, pass, pk, i, want) {
 						continue
 					}
+				}
+				if planCastDynSacSkip(castPay, pc) {
+					continue // a cast's payment leaves the dynamic {T}, sacrifice source untouched
 				}
 				if pc.manaDyn && !fixedGrant {
 					if pass != 2 {

@@ -169,10 +169,11 @@ func (s *State) ctrBesideGrant(k *prep, p uint8) bool {
 
 // grantBesideTapXGaps reports whether gorge's one search beside the grants
 // prices play a on a board whose tap-another script (scriptOffers) found
-// nothing: a tap-another second ability or a counter-cost gap among the
+// nothing: a tap-another second ability, a two-permanent tap-another source or
+// a counter-cost gap among the
 // grants (mana_granttapx.go, ctrBesideGrant), the grant search listing both.
 func (s *State) grantBesideTapXGaps(k *prep, a Action, p uint8) bool {
-	return (s.tapXSecondLive(k, p) || s.ctrBesideGrant(k, p)) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)
+	return (s.tapXSecondLive(k, p) || s.tapXPairLive(k, p) || s.ctrBesideGrant(k, p)) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)
 }
 
 // availCtr adds p's counter-cost sources' mana to the gaps walk.
@@ -189,6 +190,9 @@ func (s *State) availCtr(k *prep, p uint8, av *avail) {
 		if sacCtrManaAb(a) {
 			if n := s.sacCtrUnits(sl, a); n > 0 {
 				av.addUnits(uint8(a.ManaColors)&0x3f, uint8(n)) // its live counters (mana_sacctr.go)
+				if ctrAnyColour(a) && n > 1 {
+					s.addOneColour(av, uint8(n)) // X of any ONE colour (CR 106.4): the Hall bound must not read them as independent
+				}
 			}
 			continue
 		}

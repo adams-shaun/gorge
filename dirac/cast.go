@@ -503,6 +503,7 @@ func (s *State) beginActivate(k *prep, o Obj, ab uint8) {
 	s.bld().stage = stageFirst[seAbility]
 	s.ctl = ctlBuild
 	s.lowerHybridOnly(k, ab)
+	s.lowerDynSacGap(k) // gorge's prefix script floats a dynamic {T}, sacrifice source before the play (mana_dynsacgap.go)
 }
 
 // buildAbility returns the ability being built (nil for a permanent spell).

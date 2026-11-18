@@ -382,7 +382,7 @@ func (s *State) tapXPrefix(k *prep, a Action, p uint8) bool {
 	}
 	var d Decision
 	s.plainOptions(k, &d, 0)
-	if !hasOption(&d, a) {
+	if !hasOption(&d, a) || s.dynSacScriptPriced(k, a, p) {
 		s.tapXScript(k, a, p, true)
 	}
 	return true

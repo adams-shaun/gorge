@@ -21,6 +21,8 @@ func init() {
 		// hand/command-zone alternative casts gated on a combat hit on a
 		// player this turn (altProwl, altFreerunning; combatHitThisTurn).
 		"kw:Prowl", "kw:Freerunning",
+		// kw:Awaken (CR 702.113a): the altAwaken row plus cards.kwAwaken's rider.
+		"kw:Awaken",
 		// kw:Mayhem (the Doom Prevails keyword): the graveyard recast and
 		// the bare parameterless land-play form are read directly off the
 		// K: line (engine/rules/legal.go's offers, engine/rules/cast.go's charge,

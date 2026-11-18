@@ -118,6 +118,14 @@ var quietCoveredSections = map[string]bool{
 	// possibly offering a face-up action (and qbBadObject fails closed on one),
 	// so the section is covered by the same blocker the inline loop used.
 	"turnFaceUpOffers": true,
+	// stationOffers is the Spacecraft's station special-action loop
+	// (kw:Station, CR 702.184a). It only ever narrows the battlefield
+	// blocker's over-approximation: qbBattlefieldFace already treats a
+	// permanent as possibly offering a station action, and the section only
+	// withholds the offer (sorcery window, no tap candidate, CantBeActivated
+	// on the carrier, CR 602.5), never adds one, so it is covered by the same
+	// blocker the inline loop used.
+	"stationOffers": true,
 	// autoPayOffer (the paid-cost census, legal_walk_autopay.go) offers a
 	// pool-short printed ability the planner can pay by tapping sources. The
 	// proof's ability blocker prices against the seat's whole mana ceiling

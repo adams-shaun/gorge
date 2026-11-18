@@ -1085,6 +1085,8 @@ func castSubTargetsOwed(pc *pendingCast, sub *cards.SA) bool {
 		return modeIsKicked(pc.mode) || (pc.multikickSet && pc.multikickTimes > 0)
 	case strings.EqualFold(cond, "OptionalCost"):
 		return pc.mode == "optionalcost"
+	case castSubCondition(sub) == castCondAwakened:
+		return altCastIs(pc.mode, altAwaken)
 	}
 	return true
 }
