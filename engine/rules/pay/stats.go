@@ -29,6 +29,11 @@ const (
 	// census covers every mana ability the seat could activate (or a
 	// relaxation of the ones it misses still cannot pay), and no plan exists.
 	ReasonInsufficient = "insufficient"
+	// ReasonUnsupported is the planner's "cannot prove" verdict; Detail names why.
+	ReasonUnsupported = "unsupported"
+	// DetailCostCredit marks an unsupported verdict whose cost carries a
+	// convoke/improvise/delve credit the planner does not price.
+	DetailCostCredit = "cost:credit"
 )
 
 // The spec §6 PaymentFallback vocabulary. It is closed: a plan that stops
