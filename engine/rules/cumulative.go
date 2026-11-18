@@ -1070,7 +1070,14 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 			pool := pay.AvailableFor(asPayer(e), tc.player, desc).Pool.Total()
 			win := paidSourceWindow{e.G, e.castWindowProbeAbilities, e.manaAbilityCC, e.castWindowAmount}
 			units := triggeredCostXFeeFree(win, tc.player, pay.PaymentPlanQueryUnits(asPayer(e), tc.player))
-			supply := triggeredCostXSupply(pool, units, admits)
+			// a tap trigger's mana (Mana Flare's, Forsaken Monument's) is part of
+			// what each source's tap makes (CR 605.1b), as the cast window counts
+			// it; the census is shared, so the extras go on a copy
+			supplyUnits := units
+			if len(pay.PaymentPlanInterferenceCarriers(asPayer(e))) > 0 {
+				supplyUnits = e.windowTapExtras(slices.Clone(units))
+			}
+			supply := triggeredCostXSupply(pool, supplyUnits, admits)
 			supply += triggeredCostXPaidNet(win, tc.player, supply, units, admits)
 			if supply < bound {
 				bound = supply
