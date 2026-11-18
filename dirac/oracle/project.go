@@ -144,6 +144,61 @@ type Projection struct {
 	Monarch uint8
 }
 
+// unboundCard is an unused instance's CardProj: every projection leaves
+// Cards[NInst:] so.
+var unboundCard = CardProj{Card: NoCardIndex, Zone: ZoneNone, Pos: 255, AttachedTo: RefNone, Blocks: RefNone}
+
+// reset readies p for a projection: every field but Cards is zeroed and every
+// card is unboundCard, as `*p = Projection{}` and a whole-array fill would
+// leave it. A projected p's Cards[NInst:] are already unbound, so when p's
+// last card is unbound only Cards[:NInst] are rewritten: the cost follows the
+// cards in play, not MaxInst. Any other p (a zero Projection) is filled whole.
+func (p *Projection) reset() {
+	dirty := MaxInst
+	if p.Cards[MaxInst-1] == unboundCard {
+		dirty = min(int(p.NInst), MaxInst)
+	}
+	for i := range dirty {
+		p.Cards[i] = unboundCard
+	}
+	// Every field but Cards (TestProjectionResetClearsEveryField).
+	p.NInst = 0
+	p.Life, p.Poison, p.Speed = [2]int32{}, [2]int16{}, [2]uint8{}
+	p.Initiative, p.DayNight = 0, 0
+	p.Room, p.LandsPlayed = [2]uint8{}, [2]uint8{}
+	p.Pool = [2][6]int16{}
+	p.HandCount, p.LibCount = [2]uint8{}, [2]uint8{}
+	p.NStack, p.Stack = 0, [MaxStack]StackProj{}
+	p.Turn, p.Step, p.Active, p.Priority = 0, 0, 0, 0
+	p.RNGDraws, p.Over, p.Winner = 0, false, 0
+	p.CmdCasts, p.CmdDamage = [2]uint8{}, [2][2]uint8{}
+	p.Seats, p.Monarch = SeatsProj{}, 0
+}
+
+// equal is *p == *q for projections whose Cards[NInst:] are unbound (every
+// projection's, reset): it compares Cards[:NInst] only, so the lockstep's
+// per-decision compare follows the cards in play, not MaxInst.
+func (p *Projection) equal(q *Projection) bool {
+	if p.NInst != q.NInst {
+		return false
+	}
+	for i := range min(int(p.NInst), MaxInst) {
+		if p.Cards[i] != q.Cards[i] {
+			return false
+		}
+	}
+	// Every field but NInst and Cards (TestProjectionEqualReadsEveryField).
+	return p.Life == q.Life && p.Poison == q.Poison && p.Speed == q.Speed &&
+		p.Initiative == q.Initiative && p.DayNight == q.DayNight &&
+		p.Room == q.Room && p.LandsPlayed == q.LandsPlayed && p.Pool == q.Pool &&
+		p.HandCount == q.HandCount && p.LibCount == q.LibCount &&
+		p.NStack == q.NStack && p.Stack == q.Stack &&
+		p.Turn == q.Turn && p.Step == q.Step && p.Active == q.Active && p.Priority == q.Priority &&
+		p.RNGDraws == q.RNGDraws && p.Over == q.Over && p.Winner == q.Winner &&
+		p.CmdCasts == q.CmdCasts && p.CmdDamage == q.CmdDamage &&
+		p.Seats == q.Seats && p.Monarch == q.Monarch
+}
+
 // SeatsProj is the per-seat state of seats 2 and up, and every seat's loss.
 type SeatsProj struct {
 	NSeat uint8
@@ -338,11 +393,8 @@ func nameHash(s string) uint32 {
 func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr string) {
 	g := e.G
 	id.sync(g)
-	*p = Projection{}
+	p.reset()
 	p.NInst = dirac.Obj(len(id.obj))
-	for i := range p.Cards {
-		p.Cards[i] = CardProj{Card: NoCardIndex, Zone: ZoneNone, Pos: 255, AttachedTo: RefNone, Blocks: RefNone}
-	}
 	nDeck := 0
 	if m != nil {
 		nDeck = id.gen
