@@ -1671,6 +1671,7 @@ func (g *grantSrch) settle(t *State) bool {
 	var d Decision
 	if !t.tapXNext(g.p, &d) {
 		g.stallOf(t) // a latched stall ends the fork's line here
+		g.node()     // gorge's visit charges the clone before it finds no decision of the payer's: each answer of a loot's discard ask (Gran-Gran) is a node
 		return false
 	}
 	if d.Kind == DkPriority {
