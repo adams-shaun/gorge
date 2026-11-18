@@ -207,6 +207,15 @@ func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint
 		fl.Pred = kop.PredNone
 		return named != NoCard && named == c && s.matchCardOne(k, &fl, c, owner, ctrl, o)
 	}
+	if src != NoSlot && fl.Flags2&kop.F2ChosenColor != 0 {
+		// the static source's own as-enters colour (Iona, Shield of
+		// Emeria; gorge reads the source's ChosenColor), not a
+		// resolution's ChooseColor answer (matchCardOne's reading)
+		if ch := s.perms[src].chosen; ch > 4 || k.t.Cards[c].Colors&(kop.ColW<<ch) == 0 {
+			return false
+		}
+		fl.Flags2 &^= kop.F2ChosenColor
+	}
 	if src != NoSlot && fl.Flags2&kop.F2ChosenType != 0 {
 		ch, ok := s.chosenTypeSub(src)
 		cd := &k.t.Cards[c]
