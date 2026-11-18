@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -799,6 +801,8 @@ func (s *State) grantGapLive(k *prep, p uint8) bool {
 	return false
 }
 
+var dbgGrantOn = os.Getenv("GRANTCAP_DBG") != ""
+
 func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 	if !s.grantGapLive(k, p) {
 		return
@@ -824,6 +828,24 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			walk.Options[j], key[j] = walk.Options[j-1], key[j-1]
 		}
 		walk.Options[j], key[j] = a, kk
+	}
+	// gorge's offer set on an unrelaxable census (a live sacrifice-any or
+	// two-permanent tap-another source, a Combo Any gap) is the bound's and
+	// gaps walk's plays (mana_tapanother.go tapXSacAnyBound, script_gen.go
+	// potentialBoundLists), which the searches below mirror; a play only the
+	// separate gap units pay is searched and offered beside a relaxable
+	// census alone, where gorge's one prefix search prices it
+	// (potential_plan.go potentialPlayVerdict).
+	_, sacOpen := s.tapXSacAnyBound(k, p)
+	var gateFilt slotMask
+	if k.gen.anyFilt {
+		gateFilt = s.scriptFilt(k, p)
+	}
+	relaxCensus := s.scriptRelax(k, p, gateFilt,
+		k.gen.anyComboAny && s.caBoard(k, p) || k.tapMana && s.tapXTwoLive(k, p) || sacOpen || s.grantTapXLive(k, p))
+	if dbgGrantOn {
+		fmt.Fprintf(os.Stderr, "DBG relaxCensus=%v grantTapXLive=%v twoLive=%v k.tapMana=%v\n",
+			relaxCensus, s.grantTapXLive(k, p), s.tapXTwoLive(k, p), k.tapMana)
 	}
 	n := 0
 	var g grantSrch
@@ -961,16 +983,37 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 				// price it again on a second budget.
 				capSpent.add(a)
 			}
-		} else if (g.cheaper || g.storeStep() && !s.autopayScriptedCast(a)) && !hasOption(d, a) {
-			// gorge's planner prices the play again at every search node
-			// (potentialPlayVerdict, mana_grantedoffers.go visit): a trigger the
-			// found prefix answered lowered the cost under the root price the
-			// offer builder priced the play with (Gran-Gran's loot discarding a
-			// Lesson into the graveyard, CR 601.2f, 106.4), so gorge's walk
-			// lists what the builder left off; so does a prefix that activates a
-			// storage battery, whose counters the builder's units leave out
+		} else if !hasOption(d, a) && (g.cheaper || g.storeStep() && !s.autopayScriptedCast(a) ||
+			s.cfg&cfgGorgeAutopay == 0 && relaxCensus) {
+			// gorge's potential planner offers every play its one prefix search
+			// pays (potentialPlayVerdict): the offer builder's census prices a
+			// source's own and granted abilities as one join unit (availGrant),
+			// so a play only the separate gap units pay -- a land's granted
+			// any-colour ability beside its printed one with the granting
+			// source tapped out (Peema Outrider's {2}{G}{G} beside a tapped
+			// Chromatic Lantern's lands and a Jaspera Sentinel; CR 611.3c,
+			// 601.2g-h) -- is searched here and added. gorge's planner prices
+			// the play again at every search node (potentialPlayVerdict,
+			// mana_grantedoffers.go visit): a trigger the found prefix answered
+			// lowered the cost under the root price the offer builder priced
+			// the play with (Gran-Gran's loot discarding a Lesson into the
+			// graveyard, CR 601.2f, 106.4), so gorge's walk lists what the
+			// builder left off; so does a prefix that activates a storage
+			// battery, whose counters the builder's units leave out
 			// (mana_grantstore.go), except a plain cast under the autopay
 			// surface, which gorge reaches only by that script and drops
+			if dbgGrantOn {
+				fmt.Fprintf(os.Stderr, "DBG add kind=%d card=%s relaxCensus=%v contrib=%v objPart=%v cost=%v n=%d\n",
+					a.Kind(), k.t.Cards[s.objs[a.Source()].card].Name, relaxCensus, s.contribCast(k, p, a), s.objPartCast(k, a), cost, g.n)
+				for i := 0; i < g.n; i++ {
+					fmt.Fprintf(os.Stderr, "DBG   step cobj=%s dual=%v tapx=%v sacx=%v filt=%v ng=%v\n",
+						k.t.Cards[s.objs[g.cobj[i]].card].Name, g.dual[i], g.tapx[i], g.sacx[i], g.filt[i], g.ng[i])
+					for j := 0; j < int(g.ng[i]); j++ {
+						gr := k.gen.grantOf[g.gi[i][j]]
+						fmt.Fprintf(os.Stderr, "DBG     grant j=%d from card=%s ab=%d\n", j, k.t.Cards[gr.card].Name, gr.ab)
+					}
+				}
+			}
 			d.add(a)
 		}
 	}

@@ -1,6 +1,11 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"fmt"
+	"os"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A tap-another-permanent source beside a granted mana ability (Gene
 // Pollinator's "{T}, Tap an untapped permanent you control: Add one mana of
@@ -126,6 +131,37 @@ func (g *grantSrch) tapXPairBranch(t *State, i int, sl Slot, cs *[MaxPerm]Slot, 
 				return true
 			}
 			g.np--
+		}
+	}
+	return false
+}
+
+// grantTapXLive: p holds a live granted mana ability whose cost taps
+// permanents without {T} (Joraga Treespeaker's level-1 "Tap an untapped Elf
+// you control: Add {G}{G}", granted by its own level counter). Its cost is
+// repeatable and no bounded tap part, so gorge's census is unrelaxable like a
+// printed two-permanent source's (mana_tapanother.go tapXTwoLive).
+func (s *State) grantTapXLive(k *prep, p uint8) bool {
+	if k.gen == nil || len(k.gen.grantPC) == 0 {
+		return false
+	}
+	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
+		if dbgGrantOn {
+			fmt.Fprintf(os.Stderr, "DBG gtx sl=%d may=%v\n", m.first(), s.grantMay(k, m.first()))
+		}
+		if !s.grantMay(k, m.first()) {
+			continue
+		}
+		var gi [maxGrants]int16
+		for i, n := 0, s.grantIdxs(k, m.first(), &gi); i < n; i++ {
+			r := k.gen.grantOf[gi[i]]
+			a := &k.t.Cards[r.card].Abilities[r.ab]
+			if dbgGrantOn {
+				fmt.Fprintf(os.Stderr, "DBG gtx gi=%d card=%s ab=%d flags=%d\n", gi[i], k.t.Cards[r.card].Name, r.ab, a.Cost.Flags)
+			}
+			if a.Cost.Flags&kop.CostTapX != 0 && a.Cost.Flags&kop.CostTap == 0 {
+				return true
+			}
 		}
 	}
 	return false
