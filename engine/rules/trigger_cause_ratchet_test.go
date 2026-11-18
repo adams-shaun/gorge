@@ -30,6 +30,7 @@ var causeQualifiersRead = map[string]bool{
 	"BecomesTargetOnce ValidCause":     true, // trigmatch.becomesTargetOnceMatches
 	"LifeLost ValidCause":              true, // trigmatch.lifeLostMatches
 	"ChangesZoneAll ValidCause":        true, // trigmatch.ZoneChangeMatchesWithCapture (not Terramancer's InvertValidCause LandAbility line)
+	"Countered ValidCause":             true, // trigmatch.counteredMatches
 }
 
 // causeQualifiersResidue is the exact set of pairs no matcher reads yet, with
@@ -37,9 +38,6 @@ var causeQualifiersRead = map[string]bool{
 // landed; an entry whose cards moved is stale.
 var causeQualifiersResidue = map[string][]string{
 	"ChangesZone ValidCause": {"Sacred Ground"},
-	// Mode$ Countered has no matcher at all: these cards are loud-unsupported,
-	// not over-triggering.
-	"Countered ValidCause": {"Baral, Chief of Compliance", "Lullmage Mentor", "Summoning Trap"},
 }
 
 // TestTriggerCauseQualifiersAreRead walks every corpus trigger line (T: lines
