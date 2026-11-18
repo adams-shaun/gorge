@@ -145,7 +145,7 @@ func TestCoverageRows(t *testing.T) {
 		t.Fatalf("openCoverage: %v", err)
 	}
 	var failedOut bytes.Buffer
-	if playOne(&failedOut, 4, names, decks, reg, false, []string{"coverage-test-no-such-policy"}, rules.FormatConstructed, nil, 0, nil, cov) {
+	if playOne(&failedOut, 4, names, decks, reg, false, []string{"coverage-test-no-such-policy"}, rules.FormatConstructed, nil, 0, nil, cov, nil) {
 		t.Fatal("forced failure: playOne returned ok")
 	}
 	if !strings.Contains(failedOut.String(), "FAILED") {

@@ -27,6 +27,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-memprofile` | string | none | write an allocation profile here and print the run's allocation totals |
 | `-mulligans` | int | `0` | London mulligans each seat may take before turn 1 (default 0, none) |
 | `-policies` | string | none | comma-separated bot policy per seat, from seat 0; "-" or empty keeps a seat's default heuristic; overrides -a/-b |
+| `-record` | string | none | write each game's gorge-match-1 match record (<n>-seed<S>.match.json.gz) into this directory, verifiable with matchrecord.VerifyChance; a record holds every hidden card, so never commit one |
 | `-sb-agent` | string | repeatable | register a SpellBench v2 stdio agent: name=/path/to/agent (repeatable) |
 | `-schedule` | string | none | play the games of this file in one process, one a line, tab-separated: seed format seats decks policies mulligans (# and blank lines skipped; policies as -policies, - keeps the default); a line replays alone as: mtgsim -format F -seats N -decks D -policies P -mulligans M -games 1 -seed S (plus this run's -dir, -deckdir, -verify, -coverage); excludes -decks, -seed, -games, -a, -b, -policies |
 | `-seats` | int | `4` | number of seats |

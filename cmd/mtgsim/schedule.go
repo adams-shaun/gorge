@@ -235,6 +235,10 @@ func runSchedule(o simOptions, out io.Writer) error {
 		defer c.f.Close()
 		cov = c
 	}
+	rec, err := openRecorder(o.Record, o.Dir)
+	if err != nil {
+		return err
+	}
 	cache := &deckCache{o: o, reg: reg, files: map[string]deck.File{}, cards: map[string][]*cards.Card{}, validated: map[string]error{}}
 
 	failed, total := 0, 0
@@ -257,7 +261,7 @@ func runSchedule(o simOptions, out io.Writer) error {
 			failed++
 			continue
 		}
-		if !playOne(out, line.seed, g.names, g.decks, reg, o.Verify, g.policies, g.format, g.cmds, line.mull, nil, cov) {
+		if !playOne(out, line.seed, g.names, g.decks, reg, o.Verify, g.policies, g.format, g.cmds, line.mull, nil, cov, rec) {
 			failed++
 		}
 		if cov != nil && cov.err != nil {
