@@ -179,7 +179,11 @@ func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
 	if tier, _, _ := e.paymentPlanSourceInterference(id, ma); tier == pay.TierDeferred {
 		return true
 	}
-	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
+	productions := pay.PaymentPlanProductions(asPayer(e), id, ma)
+	if alt, ok := paymentPlanReflectedAlt(e, e.G.Obj(id).Controller, id, ma, 1); ok {
+		productions = paymentPlanReflectedProductions(alt)
+	}
+	for _, produced := range productions {
 		if e.paymentPlanTapExtraMana(id, produced) != (state.Mana{}) {
 			return true
 		}
