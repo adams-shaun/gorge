@@ -1819,6 +1819,14 @@ func (c *potCensus) rec(mask, n uint8) {
 	}
 }
 
+// gap marks the record incomplete (the overflow marker): a paid mana ability the
+// census cannot price stands outside it, so potUnitsAvail reports no exact view.
+func (c *potCensus) gap() {
+	if c.on {
+		c.units = [maxPotUnits]potUnit{{mask: 1}}
+	}
+}
+
 // tapRec notes sl's tap production (already recorded) for mergeTap.
 func (c *potCensus) tapRec(sl Slot, mask, n uint8) {
 	if c.on && mask != 0 && n > 0 {
@@ -2075,7 +2083,8 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, j, ab, d) {
 					continue
 				}
-				if len(units) != 0 && ab.Cost.Mana.MV() != 0 {
+				paidGap := len(units) != 0 && ab.Cost.Mana.MV() != 0
+				if paidGap && !boundedAny {
 					// the census (units) is the planner-shaped bound: gorge's
 					// relaxed proof charges a paid ability's fee as generic on
 					// top of the play's cost (paymentPlanRelaxProof), while
@@ -2087,6 +2096,16 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				}
 				if !open && !potentialCovers(&others, &ab.Cost.Mana) {
 					continue
+				}
+				if paidGap {
+					// the sweep's per-tap view cannot price that filter:
+					// gorge's planner leaves it a census gap, so its
+					// "insufficient" is no proof against an X the relaxed
+					// census pays (Unknown Shores' {1},{T} beside Plains and
+					// Radiant Grove for Killing Glare, X=1; CR 605.3b,
+					// 601.2g). The record is incomplete (no bounded view) and
+					// the over-bound pool takes the filter.
+					cen.gap()
 				}
 				done[sl] |= 1 << j
 				progressed = true
