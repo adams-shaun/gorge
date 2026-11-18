@@ -8,14 +8,17 @@ import (
 )
 
 // An either-or additional cost whose mana-free part taps an untapped artifact
-// (Disruption Protocol's tapXType<1/Artifact>, or {1}) is paid beside the
-// spell's mana (CR 601.2b, 601.2g, 601.2h): when the only artifact is also one of
-// the two sources of {U}{U}, tapping it for the cost leaves one mana and the {1}
-// part needs three, so the cast cannot be completed and has no witness.
+// (Disruption Protocol's shape: tap an untapped artifact you control, or pay a
+// generic amount) is paid beside the spell's mana (CR 601.2b, 601.2g, 601.2h):
+// when the only artifact is also one of the two sources of {U}{U}, paying the
+// spell's mana taps it, so nothing is left to tap for the cost part and the cast
+// cannot be completed. The fixture's alternative is {2}, not the card's {1}:
+// the geometry below never pays that part, and a verbatim script line may not
+// be committed.
 func TestAltAddTapPartIsNotAlsoTheManaSource(t *testing.T) {
 	t.Parallel()
 	const (
-		spellSrc = "Name:Tap Share Spell\nManaCost:U U\nTypes:Instant\nK:AlternateAdditionalCost:tapXType<1/Artifact>:1\nA:SP$ Draw | NumCards$ 1\nOracle:x\n"
+		spellSrc = "Name:Tap Share Spell\nManaCost:U U\nTypes:Instant\nK:AlternateAdditionalCost:tapXType<1/Artifact>:2\nA:SP$ Draw | NumCards$ 1\nOracle:x\n"
 		rockSrc  = "Name:Tap Share Rock\nManaCost:3\nTypes:Artifact\nA:AB$ Mana | Cost$ T | Produced$ U\nOracle:x\n"
 		landSrc  = "Name:Tap Share Island\nManaCost:no cost\nTypes:Basic Land Island\nOracle:x\n"
 	)
