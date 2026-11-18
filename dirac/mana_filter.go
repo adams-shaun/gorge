@@ -942,14 +942,16 @@ type filtSearch struct {
 }
 
 // filtFunded reports whether gorge's census funds the fees of the filter gaps f:
-// an unrelaxable census (or a live tap-X pair) pays none, so no search funds one.
+// an unrelaxable census (or a live tap-X pair, or a live no-{T} sacrifice
+// source: Skirk Prospector's "Sacrifice a Goblin: Add {R}", whose cost is not
+// once-only) pays none, so no search funds one.
 // A live storage battery (Subterranean Hangar's "{T}, Remove X storage
 // counters: Add {B} for each") makes the census unrelaxable: its announced X
 // has no once-only relaxed alternative (paymentPlanRelaxedAlternatives), so a
 // School of the Unseen beside it is funded by nothing (potential_plan.go
 // paymentPlanCensus.fees).
 func (s *State) filtFunded(k *prep, p uint8, f slotMask) bool {
-	return s.filtRelaxable(k, f) && !(k.tapMana && s.tapXTwoLive(k, p)) && !s.storeGapLive(k, p)
+	return s.filtRelaxable(k, f) && !(k.tapMana && (s.tapXTwoLive(k, p) || s.tapXSacAnyLive(k, p))) && !s.storeGapLive(k, p)
 }
 
 // storeGapLive reports whether p controls an activatable storage battery: a
