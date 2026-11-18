@@ -31,8 +31,10 @@ Cateran Enforcer
 Cavalry Pegasus
 Celestial Purge
 Clot Sliver
+Cloud Elemental
 Cold Storage
 Colossus of Akros
+Conclave Mentor
 Consuming Sinkhole
 Copper Myr
 Court of Grace
@@ -45,6 +47,7 @@ Drana, Liberator of Malakir
 Dryad Greenseeker
 Dwarven Warriors
 Dwell on the Past
+Elas il-Kor, Sadistic Pilgrim
 Elite Scaleguard
 Elspeth Tirel
 Encroach
@@ -57,6 +60,7 @@ Eye of Nowhere
 Facevaulter
 Farm
 Fault Riders
+Feral Abomination
 Feral Ridgewolf
 Flamekin Harbinger
 Flamespeaker's Will
@@ -131,6 +135,7 @@ Oashra Cultivator
 Obliterate
 Ogre Berserker
 Ondu Cleric
+Ovalchase Daredevil
 Pestermite
 Pillar of Light
 Plains
@@ -172,6 +177,7 @@ Sporocyst
 Star of Extinction
 Steel Golem
 Steeple Roc
+Strandwalker
 Strength of Arms
 Strike It Rich
 Sunblade Angel

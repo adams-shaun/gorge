@@ -2,9 +2,13 @@ A-Armory Veteran
 A-Dokuchi Silencer
 A-The Meathook Massacre
 Academy Elite
+Aerial Guide
+Aerie Mystics
+Alandra, Sky Dreamer
 Alchemist's Gift
 All Is Dust
 Alluring Suitor
+Altar of the Goyf
 Ambulatory Edifice
 Anaconda
 Ancient Carp
@@ -12,6 +16,7 @@ Angel's Tomb
 Angelic Quartermaster
 Arcane Spyglass
 Arrow Volley Trap
+Ashnod's Altar
 Aven of Enduring Hope
 Awe for the Guilds
 Basilica Shepherd
@@ -19,14 +24,18 @@ Baton of Courage
 Battlefield Raptor
 Battleground Geist
 Beacon of Destruction
+Ben-Ben, Akki Hermit
+Benalish Honor Guard
 Bladebrand
 Blazing Volley
 Blind with Anger
 Blood Pet
 Bloodfire Expert
 Bloodvial Purveyor
+Bogbrew Witch
 Bola Warrior
 Bone Splinters
+Bounty of Might
 Bower Passage
 Braingeyser
 Bull Rush
@@ -83,6 +92,7 @@ Fatal Frenzy
 Ferrovore
 Feywild Visitor
 Field Research
+Field of Souls
 Fire Servant
 Fire Shrine Keeper
 Firescreamer
@@ -97,6 +107,7 @@ Gargoyle Flock
 Garruk's Warsteed
 Giant Inheritance
 Glint
+Gnarled Sage
 Goblin Archaeologist
 Goblin Dirigible
 Goretusk Firebeast
@@ -112,6 +123,7 @@ Haze of Pollen
 Hidden Gibbons
 Hideous End
 Hold for Questioning
+Huatli's Snubhorn
 Humble
 Hydrolash
 Imperial Ceratops
@@ -135,6 +147,7 @@ Kor Scythemaster
 Kyoshi Warrior Guard
 Lightning Spear
 Llanowar Cavalry
+Llanowar Vanguard
 Lumberknot
 Maned Serval
 Manhole Cover
@@ -152,8 +165,10 @@ Molderhulk
 Momentary Blink
 Monk Idealist
 Morbid Opportunist
+Morningtide
 Mountain
 Mukotai Ambusher
+Myojin of Blooming Dawn
 Myth Realized
 Nefashu
 Nexus of Fate
@@ -175,6 +190,7 @@ Pathmaker Initiate
 Phyrexian Missionary
 Piston Sledge
 Plains
+Planar Despair
 Primal Boost
 Prized Elephant
 Psychic Overload
@@ -204,6 +220,7 @@ Serum Sovereign
 Shield Mate
 Shocker
 Shu Farmer
+Sibsig Icebreakers
 Sighted-Caste Sorcerer
 Skarrgan Skybreaker
 Skatewing Spy
@@ -261,5 +278,6 @@ Wolfcaller's Howl
 Wrath of Marit Lage
 Wyleth, Soul of Steel
 Xathrid Necromancer
+Yawgmoth Demon
 Yisan, the Wanderer Bard
 Yomiji, Who Bars the Way

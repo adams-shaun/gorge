@@ -6,6 +6,7 @@ Aerie Worshippers
 Aeronaut Cavalry
 Aether Sting
 Agent of Acquisitions
+Aggressive Urge
 Air Bladder
 Air-Cult Elemental
 Aladdin's Ring
@@ -273,6 +274,7 @@ Sea Legs
 Sejiri Shelter
 Selesnya Signet
 Selkie Hedge-Mage
+Shadow Lance
 Shadowfeed
 Shatterstorm
 Shimmering Mirage

@@ -3,15 +3,21 @@ A-Knockout Blow	a17f6cd44465f85e	3	0/0		1/2	ix:resp
 A-Prosperous Thief	922ce0d352e10966	29	2/2		1/1	
 Aftershock	8053b6f8ebdb819e	20	0/0		1/2	ix:resp
 Arcbound Fiend	24c6d79edfa05966	28	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
+Archghoul of Thraben	09d61ad81db9a1d2	4	1/1		1/1	
 Archon of Justice	3ce3e4f5f894ca0b	34	1/1		1/1	
 Arm the Cathars	ff8f921669ebd31b	59	0/0		2/2	
 Atarka Monument	5d944609f368619e	96	2/2		1/1	
+Automated Assembly Line	f95364b7fa08270c	93	2/2		1/1	
+Awe Strike	0cc1ed4a4c521f44	43	0/0		2/2	
 Baral's Expertise	e8ad39238d2100c1	23	0/0		2/2	
+Battershield Warrior	3cbc3714053fb65c	52	1/1		1/1	
 Benthic Djinn	170a57b5514ff16d	25	1/1		1/1	
 Cathartic Reunion	704ca519b9d113db	7	0/0		1/2	ix:resp
+Caves of Chaos Adventurer	6a9a180d3ca67687	12	2/2		0/1	ix:resp
 Cloaked Cadet	c1f170bebd1d3c8c	27	2/2		1/1	
 Colossal Whale	0a7ffbc8ee2d083e	25	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Consecrated Sphinx	25cf72211a9a5c9e	38	1/1		1/1	
+Cradle of the Accursed	0cc816db1071128f	10	2/2		0/1	ix:resp
 D'Avenant Archer	ed327f116e3cdb0d	83	1/1		1/1	
 Darkblade Agent	d25483dae789cb02	42	0/0		0/0	
 Daru Sanctifier	2026a3bfd61e13c0	16	1/1		3/3	
@@ -27,6 +33,8 @@ Fall of the Hammer	9611a5bb3aafd9fa	70	0/0		2/2
 Ferocity of the Wilds	43928500d2c1efa6	23	0/0		0/0	
 Final Payment	502299577c07f453	40	0/0		2/2	
 Fire Nation Ambushers	687cc967fcbbb86f	64	0/0		0/0	
+Flickering Spirit	bc00313018941c6c	36	1/1		1/1	
+Frodo, Determined Hero	d836788a2613333c	33	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
 Furtive Analyst	a254b07b95222f4e	54	1/1		1/1	
 Goblin Anarchomancer	cc7cf36ac2506ee7	4	0/0		0/0	
 Goblin Cavaliers	95792df063ba476d	25	0/0		0/0	
@@ -34,6 +42,7 @@ Goblin Cratermaker	24c118e51666eee0	29	1/1		0/1	ix:resp
 Goblin Gathering	afc0065e1af74c33	42	0/0		2/2	
 Goblin Swine-Rider	8b8b962315bdb8ac	31	1/1		0/1	ix:resp
 Goremand	ba9fe8070275284c	25	1/1		2/2	
+Hagi Mob	9f857e2b2254a54d	20	1/1		0/1	ix:resp
 Hashep Oasis	a7b27a5deb7a6d41	284	3/3		0/1	ix:resp
 Icy Blast	06b2c787fb60b58c	37	0/0		3/4	f0/s/x0
 Instrument of the Bards	039f15f5a149613e	33	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -49,6 +58,7 @@ Merrow Commerce	444f25a033fc4854	4	1/1		0/1	ix:resp
 Mirror Entity	0a858fd0818a0023	60	1/1		1/1	
 Molten Tributary	a50ec9606708580b	10	2/2		0/1	ix:resp
 Mox Emerald	8762de173274ac76	92	1/1		1/1	
+Myriad Landscape	9b42c73d63544b4c	231	2/2		1/1	
 Nacatl Outlander	814e76e5efc01e02	14	0/0		0/0	
 Nebelgast Beguiler	f2b4c18b18417674	60	1/1		1/1	
 Necromancer's Assistant	78757d02ed53725e	48	1/1		1/1	
@@ -58,10 +68,14 @@ Oriq Loremage	6e85c9818b2c7847	36	1/1		1/1
 Orzhov Cluestone	cdc4435c7bfb54b6	57	2/2		1/1	
 Phantasmal Image	b7829cbc58622c61	60	0/0		0/0	
 Pillardrop Warden	15f9cc77fb7ad024	3	1/1		0/1	ix:resp
+Plague Boiler	f63cb8ba08926474	4	3/3		1/1	
 Primeval Protector	d378c6b82c5bbc8d	7	1/1		0/1	ix:resp
 Ramroller	615fc33f859a163d	78	0/0		0/0	
+Rivendell	01fcf1741ea6eb3a	201	2/2		1/1	
 Rubblebelt Raiders	1c577fb1fb915f00	6	1/1		0/1	ix:resp
 Ruthless Winnower	d76f6c7ad6a5920b	31	1/1		1/1	
+Scavenged Brawler	f6b0c65c6d5b4de6	49	1/1		1/1	
+Scent of Nightshade	d65ee4b8dafb6d51	4	0/0		2/2	
 Seedborn Muse	d3c8ea3518d80872	26	0/0		0/0	
 Shard Convergence	8dc75635c2b74410	27	0/0		2/2	
 Siegfried, Famed Swordsman	38789962adf6cd38	55	1/1		1/1	
@@ -73,6 +87,7 @@ Soul of Shandalar	bd6e562e5f887d87	19	2/2		0/1	ix:resp
 Sphinx Mindbreaker	b8f199f4c99175cb	4	1/1		0/1	ix:resp
 Sword of Body and Mind	582d12230bcd95d1	68	2/2		1/1	
 Synchronized Spellcraft	e21225c2daad8fcc	26	0/0		2/2	
+Tainted Wood	840e9f366f30515b	238	2/2		0/1	ix:resp
 The Shire	695254ff910902ab	265	2/2		1/1	
 Thrash of Raptors	5cb9179855e2e923	8	0/0		0/0	
 Thunder of Hooves	36e52f953f1e79b4	24	0/0		2/2	
@@ -84,6 +99,7 @@ Vampirism	dc1fd73b76aae9d9	50	1/1		2/2
 Village Pillagers	e192c5a2ef04eee5	5	2/2		0/1	ix:resp
 Violent Eruption	07f8df6292a6dd98	24	0/0		1/2	ix:resp
 Vodalian Illusionist	62a8530dc34eb06c	64	1/1		1/1	
+Voice of the Woods	ad802ed30e3b5149	15	1/1		0/1	ix:resp
 Vona, Butcher of Magan	a8e55bf80662e6ac	28	1/1		1/1	
 Warden of the Chained	ab9fee1a2e927cdd	6	0/0		0/0	
 Whirlwind Adept	2a642b394e863dc8	46	1/1		1/1	
