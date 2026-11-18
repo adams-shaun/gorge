@@ -345,12 +345,27 @@ func riderAnswerBit(mask uint8, col int) int {
 	return 0
 }
 
+// riderPC is the tap for mana the bounded rider activation at sl runs (its
+// {T}: CR 605.3a, 601.2g-h) as the tap-extra read takes it (mana_tapextra.go):
+// the rider ability a's own production, its {T} a plain tap. The rider's own
+// pcard is no plain tap (its cost removes a counter, manaTap false), so
+// srcExtra reads no extra for it; the carriers see one tap all the same. A
+// rider whose cost taps nothing brings no tap, so no carrier reaches it
+// (noManaPC: srcExtra and srcReflectPick read none).
+func (s *State) riderPC(k *prep, sl Slot, a *kop.Ability) *pcard {
+	if a.Cost.Flags&kop.CostTap == 0 {
+		return &noManaPC
+	}
+	return &pcard{manaAb: k.riderAbOf(s.cardAt(sl)), manaCol: a.ManaColors, manaN: max(a.ManaN, 1), manaTap: true}
+}
+
 // manaRiderFloat adds the rider ability a's mana to p's pool: one of a chosen
 // colour, each colour of an all-at-once production, or a fixed colour, its
-// amount a.ManaN. answer selects the colour among the mask's bits.
+// amount a.ManaN. answer selects the colour among the mask's bits. The tap's
+// StatTapExtra carrier mana floats beside it (addTapsDeferUnits counts it).
 func (s *State) manaRiderFloat(k *prep, p uint8, sl Slot, a *kop.Ability, answer int) {
-	if a.Cost.Flags&kop.CostTap != 0 {
-		s.riderExtraFloat(k, p, sl) // the tap's StatTapExtra mana floats beside it (mana_riderextra.go)
+	if pc := s.riderPC(k, sl, a); pc.manaTap {
+		s.addExtra(k, SeatIx(p), sl, pc) // the tap's StatTapExtra mana floats beside it (addTapsDeferUnits)
 	}
 	n := int(a.ManaN)
 	if n == 0 {
