@@ -10,4 +10,10 @@ import "testing"
 func TestMBCTail40ReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "lowering")
+	// CR 701.34a with CR 603.2: seat 1's proliferate puts three kinds on seat
+	// 0's Rimebound Dead while seat 0's Generous Patron ("whenever you put
+	// counters on a creature you don't control") is the only counter-added
+	// listener. Patron hears only its own controller's puts, so the per-kind
+	// order reaches no stack; the kernel stalled on it (StallProlif, pair 68).
+	stdReproNamed(t, "prolif_order_foreign_putter_listener")
 }

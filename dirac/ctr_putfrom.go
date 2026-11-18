@@ -133,6 +133,16 @@ func (s *State) ctrAddedHeard(k *prep, c kop.CounterKind) bool {
 // ctrAddedListener counts the listeners a put of counter kind c has, and
 // returns the only one when it has exactly one.
 func (s *State) ctrAddedListener(k *prep, c kop.CounterKind) (int, trigListener, *kop.Ability) {
+	return s.ctrAddedListenerBy(k, c, noPutter)
+}
+
+// noPutter: the put's player is unknown, so no listener is ruled out by it.
+const noPutter = MaxSeats
+
+// ctrAddedListenerBy is ctrAddedListener for a put by player putter: a
+// listener whose ValidSource$ (Whose) excludes the putter does not hear it
+// (a "whenever you put" line on the other seat's permanent; CR 603.2).
+func (s *State) ctrAddedListenerBy(k *prep, c kop.CounterKind, putter uint8) (int, trigListener, *kop.Ability) {
 	const ev = kop.TrigCounterAddedOnce
 	if !s.subs[ev].any() && (k.gen == nil || (k.gen.embObjEv|k.gen.grantTrigEv)&(1<<ev) == 0) {
 		return 0, trigListener{}, nil
@@ -147,7 +157,7 @@ func (s *State) ctrAddedListener(k *prep, c kop.CounterKind) (int, trigListener,
 		return a.Trig.N == kop.TrigNAnyCounter || kop.CounterKind(a.Trig.N) == c
 	}
 	take := func(l trigListener, a *kop.Ability) {
-		if !heard(a) {
+		if !heard(a) || (putter != noPutter && !whoseOK(a.Trig.Whose, l.ctrl, putter)) {
 			return
 		}
 		n++
@@ -163,7 +173,7 @@ func (s *State) ctrAddedListener(k *prep, c kop.CounterKind) (int, trigListener,
 		cd := &k.t.Cards[s.cardAt(sl)]
 		for i := range cd.Abilities {
 			if a := &cd.Abilities[i]; a.Kind == kop.AbTriggered && a.Trig.Event == ev {
-				take(trigListener{sl: sl}, a)
+				take(trigListener{sl: sl, ctrl: s.perms[sl].ctrl}, a)
 			}
 		}
 	}
@@ -179,10 +189,15 @@ func (s *State) ctrAddedListener(k *prep, c kop.CounterKind) (int, trigListener,
 // same ability fires whichever kind came first (CR 603.3b). A kind heard by
 // no listener is skipped: its position reaches no trigger.
 func (s *State) ctrOrderObservable(k *prep, kinds []kop.CounterKind) bool {
+	return s.ctrOrderObservableBy(k, kinds, noPutter)
+}
+
+// ctrOrderObservableBy is ctrOrderObservable for puts by player putter.
+func (s *State) ctrOrderObservableBy(k *prep, kinds []kop.CounterKind, putter uint8) bool {
 	var sole trigListener
 	have := false
 	for _, c := range kinds {
-		n, l, a := s.ctrAddedListener(k, c)
+		n, l, a := s.ctrAddedListenerBy(k, c, putter)
 		if n == 0 {
 			continue
 		}
