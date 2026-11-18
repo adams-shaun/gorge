@@ -23,6 +23,8 @@ func init() {
 		"kw:Prowl", "kw:Freerunning",
 		// kw:Awaken (CR 702.113a): the altAwaken row plus cards.kwAwaken's rider.
 		"kw:Awaken",
+		// kw:Spectacle (CR 702.137a): the altSpectacle row, gated on opponentLostLifeThisTurn.
+		"kw:Spectacle",
 		// kw:Mayhem (the Doom Prevails keyword): the graveyard recast and
 		// the bare parameterless land-play form are read directly off the
 		// K: line (engine/rules/legal.go's offers, engine/rules/cast.go's charge,
