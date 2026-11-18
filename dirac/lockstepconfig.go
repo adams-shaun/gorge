@@ -200,7 +200,16 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	if k.painMana && !a.xPlain {
 		s.g.availX |= availWinCol
 	}
+	// The window's census counts a dynamic {T}, sacrifice source's evaluated
+	// amount (Lotus Blossom's petals: gorge cast_window.go
+	// castWindowProbeUnits' free dynamic-amount arm) that the planner census
+	// leaves out (availForMode's dynSac gate): the window can activate it, so
+	// the ask counts the unit. The payment plan itself never prices the
+	// source for a cast (plan's castPay gate), so a larger X is paid through
+	// the manual window, as gorge's castWindowPays reads it.
+	a.dynSac = true
 	s.availFor(k, p, a)
+	a.dynSac = false
 	s.g.availX = x
 	a.xdOn, a.xPlain = false, false
 	// A deferred mana source (Pyromancer's Goggles' TriggersWhenSpent$ {R}) is
