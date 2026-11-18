@@ -352,7 +352,7 @@ func (s *State) chosenAskOrder(k *prep, sl Slot, pc *pcard, out *[5]uint8) int {
 
 // restrTapsGapShape: the source at sl is a restricted planner source whose
 // only mana production is one restricted ability of one fixed colour
-// (Hydraulic Helper's artifact-spells {U}): the Taps-deferred gap the script
+// (Hydraulic Helper's artifact-spells {U}, a Powerstone token's {C}): the Taps-deferred gap the script
 // route funds, floating its mana restricted (floatRestrAb). A source with a
 // choice between restricted abilities (Steelswarm Operator) is no such gap.
 func (s *State) restrTapsGapShape(k *prep, sl Slot) bool {
@@ -374,7 +374,7 @@ func (s *State) restrTapsGapShape(k *prep, sl Slot) bool {
 	a := &k.t.Cards[c].Abilities[rec.ab]
 	return a.Kind == kop.AbMana && !a.ManaEach &&
 		a.AFlags&(kop.AfManaChoice|kop.AfManaDynamic|kop.AfManaChosen) == 0 &&
-		oneColour(a.ManaColors&kop.ColAny) &&
+		oneColour(a.ManaColors&colOrC) &&
 		a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 }
 
@@ -448,7 +448,7 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 	}
 	if s.restrTapsGapShape(k, sl) {
 		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab]
-		av.addUnits(uint8(ab.ManaColors&kop.ColAny), max(ab.ManaN, 1))
+		av.addUnits(uint8(ab.ManaColors&colOrC), max(ab.ManaN, 1))
 		return
 	}
 	if a, ok := s.riderAbilityOf(k, sl); ok {
