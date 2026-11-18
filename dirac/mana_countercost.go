@@ -780,15 +780,12 @@ func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
 }
 
 // ctrGapsOutsideGrantSearch reports whether p has an activatable counter-cost
-// gap the grant search does not already cover: a storage battery that holds
-// counters is one of the grant search's own candidates (mana_grantstore.go,
-// gorge's one prefix search lists every gap), so a play its budget gave up on
-// is dropped, not left to the counter-gap search that cannot price the grants.
+// gap the grant search does not already cover: the grant search lists only
+// grantStoreGaps (a storage battery with no plain first mana ability), gorge's
+// one prefix search lists every gap, so a play the search's budget gave up on
+// is dropped for those, not left to the counter-gap search that cannot price
+// the grants. A ctrSecond battery (Mage-Ring Network) is priced only by the
+// counter-gap search, so it still counts as outside.
 func (s *State) ctrGapsOutsideGrantSearch(k *prep, p uint8) bool {
-	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
-		if a := k.ctrAbOf(s.cardAt(b.first())); !kop.StoreManaAb(a) {
-			return true
-		}
-	}
-	return false
+	return s.scriptCtr(k, p).andNot(s.grantStoreGaps(k, p)).any()
 }

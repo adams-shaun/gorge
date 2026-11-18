@@ -886,8 +886,9 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 				// tap-another-permanent gaps and counter-cost mana (Wall of Roots'
 				// counter beside Wrenn and Realmbreaker's grant) alike (CR 605.1a,
 				// 601.2g-h) — so the kernel drops the play only when no route
-				// prices it; a live counter-cost gap leaves the play to
-				// scriptOffers' counter-gap search (scriptDeadEnd).
+				// prices it; a live counter-cost gap outside the grant search's storage
+				// batteries leaves the play to scriptOffers' counter-gap search
+				// (scriptDeadEnd).
 				if g.stall != 0 {
 					// the drop is final — capSpent keeps scriptOffers from
 					// repricing the play — and one of the grant search's lines
