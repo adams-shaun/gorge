@@ -1364,7 +1364,7 @@ func (s *State) modeFeasible(k *prep, a *kop.Ability, m int) bool {
 		if t.UpTo || (a.TgtModes[i] != 0 && a.TgtModes[i]&(1<<m) == 0) {
 			continue
 		}
-		if !s.hasTarget(k, t, s.bld().e.ctrl, s.srcSlot(), s.bld().e.obj) {
+		if !s.modeTargetFeasible(k, t) {
 			return false
 		}
 	}
