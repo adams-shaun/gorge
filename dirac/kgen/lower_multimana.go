@@ -838,7 +838,8 @@ func lifeTapMana(a *lAbility) bool {
 }
 
 // painTapMana: a plain {T} mana ability (amount 1, unrestricted) of one
-// colour or a choice of two, carrying a painland rider (painRider).
+// colour, a choice of two or any colour (Tarnished Citadel, Grand Coliseum),
+// carrying a painland rider (painRider).
 func painTapMana(a *lAbility) bool {
 	if !painRider(a) {
 		return false
@@ -853,6 +854,8 @@ func painTapMana(a *lAbility) bool {
 		return strings.Contains("WUBRG", c.Mana.Colors)
 	case n == 2:
 		return c.Mana.Choice && strings.Contains("WUBRG", c.Mana.Colors[:1]) && strings.Contains("WUBRG", c.Mana.Colors[1:])
+	case n == 5:
+		return c.Mana.Colors == "WUBRG" && !c.Mana.Choice // Produced$ Any
 	}
 	return false
 }
