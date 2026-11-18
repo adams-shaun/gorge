@@ -155,3 +155,42 @@ func (s *State) availLifeGap(k *prep, p uint8, a *avail) {
 		a.addUnits(1<<bits.TrailingZeros8(uint8(ab.ManaColors)), n)
 	}
 }
+
+// windowLifeGapListed: o is a payable life-only source (Treasonous Ogre) that
+// gorge's CR 601.2g cast window lists as an "activate" option in its battlefield
+// place, whose colour the clamp keeps (decided/want: paymentUsefulColours).
+func (s *State) windowLifeGapListed(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
+	if k.gen == nil || !k.gen.uses.has(useLifeGap) {
+		return false
+	}
+	a, ok := s.lifeGapAt(k, p, o)
+	if !ok {
+		return false
+	}
+	return !decided || a.ManaColors == kop.ColAny || uint8(a.ManaColors)&want != 0
+}
+
+// windowLifeGapTap activates the window's life-only pick o: the life is paid
+// and the mana floats. A source of any colour answers the first pip the pool
+// leaves owed, else the lowest colour.
+func (s *State) windowLifeGapTap(k *prep, p uint8, o Slot, cost *kop.ManaCost) {
+	ans := 0
+	for c := 0; c < 5; c++ {
+		if cost.Pips[c] > s.pl[SeatIx(p)].pool[c] {
+			ans = c
+			break
+		}
+	}
+	s.lifeGapDo(k, p, o, ans)
+}
+
+// windowLifeCtrGapTap taps window gap sl when it is a life-only source (the
+// life pays, the mana floats) or a counter-cost one (windowCtrGapTap), and
+// reports whether it did.
+func (s *State) windowLifeCtrGapTap(k *prep, p uint8, sl Slot, cost *kop.ManaCost, census bool) bool {
+	if _, life := s.lifeGapSource(k, sl); life {
+		s.windowLifeGapTap(k, p, sl, cost)
+		return true
+	}
+	return s.windowCtrGapTap(k, p, sl, census)
+}
