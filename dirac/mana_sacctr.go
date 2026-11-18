@@ -7,12 +7,13 @@ import (
 )
 
 // A counter-scaled sacrifice source (Shrine of Boundless Growth: "{T},
-// Sacrifice this: Add {C} for each charge counter on it") is a census gap
-// like a storage battery: gorge's planner does not price a dynamic amount, so
-// its prefix search activates the source and the play is priced from the
-// floating mana (CR 605.1a, 106.4). A plain cast reached only that way is one
-// the autopay surface drops; an alternative cast (Kolaghan Skirmisher's dash)
-// and an activation stay. The kernel lists it among the counter-cost gaps
+// Sacrifice this: Add {C} for each charge counter on it"; Lotus Blossom: the
+// same, one colour it chooses) is a census gap like a storage battery:
+// gorge's planner does not price a dynamic amount, so its prefix search
+// activates the source and the play is priced from the floating mana
+// (CR 605.1a, 106.4). A plain cast reached only that way is one the autopay
+// surface drops; an alternative cast (Kolaghan Skirmisher's dash) and an
+// activation stay. The kernel lists it among the counter-cost gaps
 // (scriptCtr): the gaps walk counts its live counters (availCtr) and the
 // chain's step taps it, adds that much mana and sacrifices it (ctrGapDo). It
 // is no gap at all while it holds no counter: its amount then resolves to
