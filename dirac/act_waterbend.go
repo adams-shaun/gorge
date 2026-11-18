@@ -524,9 +524,19 @@ func (s *State) waterbendTapsNeeded(k *prep, e *stackEntry, part waterbendPart) 
 	for n := 0; n <= min(part.n, int(cost.Generic)); n++ {
 		c := cost
 		c.Generic -= uint8(n)
-		ok, known := s.windowDry(k, e.ctrl, &c, b.bfl&bflAnyColor != 0)
+		anyColor := b.bfl&bflAnyColor != 0
+		ok, known := s.windowDry(k, e.ctrl, &c, anyColor)
 		if !known {
-			return 0
+			// The plain-pool census walk cannot price a source the payment
+			// may still spend: a restricted one whose mana the cost admits
+			// (a Powerstone's generic-only {C}, CR 106.6), or a sacrificed
+			// one. It reporting unknown does not mean the window can pay —
+			// the real walk on a fork decides, as tapForHyb's probe does, so
+			// done is offered only at the picks the window can finish
+			// without.
+			probe := s.fork()
+			ok, _ = probe.windowTapRider(k, e.ctrl, &c, false, anyColor)
+			s.unfork()
 		}
 		if ok {
 			return n
