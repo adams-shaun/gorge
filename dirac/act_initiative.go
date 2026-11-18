@@ -12,7 +12,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // State: genState.initH (0 nobody, else holder+1), genState.room[p] (0: p
 // has no dungeon, else the marker's room index+1) and genState.dObj[p] (p's
 // dungeon object, read only while room[p] != 0): five bytes in the padding
-// before genState.mo, so State does not grow.
+// before genState.mo, so State does not grow. p's completed dungeons (read as
+// DungeonsCompleted$Amount through plCtr) are the cold region coldDDone.
 //
 //   - 726.2/726.3: OpTakeInitiative makes its player the single holder, then
 //     ventures into Undercity (726.5: a holder taking it again ventures too).
@@ -135,14 +136,31 @@ func (s *State) dungeonEnter(k *prep, p uint8) {
 	s.markerEnter(k, p, 0)
 }
 
+// dDoneCold is the per-seat completed-dungeon counts (gorge Player.
+// CompletedDungeons), or nil when the table never ventures (genPrep.anyInit).
+// A cold region: genState has no padding to spare without moving the pinned
+// fixed layout.
+func (s *State) dDoneCold() []uint8 { return coldDDone.of(s) }
+
+var coldDDone = newCold[uint8]("dungeonsDone", func(g *genPrep) int {
+	if g.anyInit {
+		return MaxSeats
+	}
+	return 0
+})
+
 // dungeonRemove completes p's dungeon: its object ceases (gorge
-// DungeonRemove moves it to ZCeased).
+// DungeonRemove moves it to ZCeased) and the completed count grows (gorge
+// DungeonComplete; both callers are completions).
 func (s *State) dungeonRemove(p uint8) {
 	o := s.g.dObj[p]
 	s.touch(o)
 	s.objs[o].zone = kop.ZoneNone
 	s.objs[o].ver++
 	s.g.room[p] = 0
+	if c := s.dDoneCold(); c != nil {
+		c[p] = uint8(min(int(c[p])+1, 255)) // gorge foldDungeonComplete
+	}
 }
 
 // markerEnter moves p's marker to room r and queues its ability (CR 309.4c).
