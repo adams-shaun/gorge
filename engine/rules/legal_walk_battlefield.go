@@ -766,36 +766,9 @@ func (w *legalWalk) battlefieldWalk() {
 		// The offer is gated on the sorcery window (Station only as a sorcery)
 		// and on a legal tap candidate existing, so an unpayable station is
 		// never offered; the tap candidate itself is the KChoose askStation
-		// poses after the option is chosen. Station is an activated ability
-		// (CR 702.184a), so a CantBeActivated static on the spacecraft forbids
-		// it (CR 602.5; Prison Term's "Enchanted creature ... its activated
-		// abilities can't be activated"), the same gate every other ability
-		// offer runs (w.abilityRestricted on the ability's body).
+		// poses after the option is chosen.
 		if sorcery {
-			var stationSA *cards.SA
-			for _, id := range e.G.Zone(state.ZBattlefield, p) {
-				o := e.G.Obj(id)
-				if o == nil || o.Face() == nil || !e.hasKeywordH(id, kwhStation) {
-					continue
-				}
-				if !pay.ExistsOnBattlefield(o) {
-					// CR 702.25b: a phased-out permanent is treated as though it
-					// does not exist, so it cannot be stationed.
-					continue
-				}
-				if len(e.stationCandidates(p, id)) == 0 {
-					continue
-				}
-				// The resolving body every station shares (Keyword$ Station) is
-				// what a ValidSA$ scope reads; build it once for the pass.
-				if stationSA == nil {
-					stationSA = cards.KeywordPushAbility(e.stationKeywordLine(id))
-				}
-				if stationSA != nil && w.abilityRestricted(p, id, stationSA) {
-					continue
-				}
-				w.add("station", "Station "+o.Face().Name, id)
-			}
+			w.stationOffers()
 			// Room unlock (CR 309.5, engine/rules/rooms.go): a room whose second door is
 			// still locked may be unlocked as a sorcery by paying that half's own
 			// mana cost. The gate is the same castable total the cast options
@@ -930,3 +903,40 @@ func (w *legalWalk) battlefieldWalk() {
 // faceDownGrantLabel names a face-down permanent in a granted ability's offer
 // label: the printed name does not exist while it is face down (CR 708.8).
 const faceDownGrantLabel = "Face-down creature"
+
+// stationOffers offers each Spacecraft the player controls the "station"
+// priority option (kw:Station, CR 702.184a, engine/rules/station.go). The
+// offer is gated on a legal tap candidate existing, so an unpayable station
+// is never offered (the tap candidate itself is the KChoose askStation poses
+// after the option is chosen), and on no CantBeActivated static forbidding
+// it: Station is an activated ability (CR 702.184a), so Prison Term's
+// "Enchanted creature ... its activated abilities can't be activated"
+// forbids it (CR 602.5), the same gate every other ability offer runs
+// (w.abilityRestricted on the ability's resolving body).
+func (w *legalWalk) stationOffers() {
+	e, p := w.e, w.p
+	var stationSA *cards.SA
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil || !e.hasKeywordH(id, kwhStation) {
+			continue
+		}
+		if !pay.ExistsOnBattlefield(o) {
+			// CR 702.25b: a phased-out permanent is treated as though it
+			// does not exist, so it cannot be stationed.
+			continue
+		}
+		if len(e.stationCandidates(p, id)) == 0 {
+			continue
+		}
+		// The resolving body every station shares (Keyword$ Station) is what
+		// a ValidSA$ scope reads; build it once for the pass.
+		if stationSA == nil {
+			stationSA = cards.KeywordPushAbility(e.stationKeywordLine(id))
+		}
+		if stationSA != nil && w.abilityRestricted(p, id, stationSA) {
+			continue
+		}
+		w.add("station", "Station "+o.Face().Name, id)
+	}
+}
