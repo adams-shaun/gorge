@@ -13,7 +13,6 @@ Island
 Mountain
 Plains
 Scrounger of Souls
-Smiting Helix
 Swamp
 Tragic Fall
 Trench Wurm

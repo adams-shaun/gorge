@@ -14,7 +14,6 @@ Marionette Apprentice
 Mountain
 Plains
 Silent Specter
-Smiting Helix
 Swamp
 Tragic Fall
 Trench Wurm
