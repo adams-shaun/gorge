@@ -26,7 +26,7 @@ var etbCloneCleanNames = []string{
 	"Glasspool Mimic", "Hulking Metamorph", "Imposter Mech", "Jwari Shapeshifter", "Lazotep Convert", "Machine God's Effigy", "Malleable Impostor", "Masterwork of Ingenuity", "Mercurial Pretender", "Mirror Image", "Mirrorhall Mimic",
 	"Mirrormade", "Mocking Doppelganger", "Mockingbird", "Moritte of the Frost", "Naga Fleshcrafter", "Omni-Changeling",
 	"Phantasmal Image", "Phyrexian Metamorph", "Pirated Copy", "Progenitor Mimic", "Quicksilver Gargantuan", "Sakashima of a Thousand Faces", "Sakashima the Impostor", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel", "Spark Double",
-	"Stunt Double", "Superior Spider-Man", "Surgical Metamorph", "Synth Infiltrator", "The Master, Formed Anew", "Undercover Operative", "Vesuva", "Vesuvan Doppelganger", "Visage Bandit", "Voq, Torchbearer", "Wall of Stolen Identity", "Waxen Shapethief",
+	"Stunt Double", "Superior Spider-Man", "Surgical Metamorph", "Synth Infiltrator", "The Master, Formed Anew", "Undercover Operative", "Vesuva", "Vesuvan Doppelganger", "Visage Bandit", "Vizier of Many Faces", "Voq, Torchbearer", "Wall of Stolen Identity", "Waxen Shapethief",
 }
 
 // TestETBCloneWhitelistCensus walks every ETBReplacement:Copy Repl in the
@@ -96,7 +96,8 @@ func TestETBCloneWhitelistRegressionCarriers(t *testing.T) {
 		{"Vesuva", true},                // IntoPlayTapped$ True now taps the entering copy
 		{"Cursed Mirror", true},         // Duration$ UntilEndOfTurn rides the copy unit
 		{"Mirrorhall Mimic", true},      // ChoiceTitle$ is prompt text only
-		{"Vizier of Many Faces", false}, // SetColor$/AddTypes$ + Embalm$ provenance
+		{"Vizier of Many Faces", true},  // Embalm$-gated exceptions, decided per entering object (edh_etbclone_vizier_test.go)
+		{"Vesuvan Shapeshifter", false}, // still outside the whitelist scope
 		// The CopyExcept exceptions (CR 707.9b): a literal P/T, a parsed
 		// colour and NonLegendary$ True are offered; an entry-time P/T
 		// reader is offered only through the bare SVar-name shape whose body
@@ -136,19 +137,19 @@ func TestETBCloneWhitelistRegressionCarriers(t *testing.T) {
 	}
 }
 
-// TestVizierETBKeepsLoudFallback pins the out-of-scope boundary end to
-// end: a cast of Vizier of Many Faces (an Embalm$ carrier the whitelist declines)
+// TestShapeshifterETBKeepsLoudFallback pins the out-of-scope boundary end to
+// end: a cast of Vesuvan Shapeshifter (a carrier the whitelist declines)
 // with an eligible creature on the battlefield must offer no copy election,
 // must enter as itself, must not copy, and must retain the loud
 // unimplemented-API Clone fallback note.
-func TestVizierETBKeepsLoudFallback(t *testing.T) {
+func TestShapeshifterETBKeepsLoudFallback(t *testing.T) {
 	t.Parallel()
-	e := handEngine(t, corpusAlternativeCard(t, "Vizier of Many Faces"))
+	e := handEngine(t, corpusAlternativeCard(t, "Vesuvan Shapeshifter"))
 	bear := e.G.AddObject(corpusAlternativeCard(t, "Colossal Dreadmaw"), 0)
 	bear.Zone = state.ZBattlefield
 	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{bear.ID})
 	id := e.G.Zone(state.ZHand, 0)[0]
-	e.G.Players[0].Pool[state.MC] = 2
+	e.G.Players[0].Pool[state.MC] = 3
 	e.G.Players[0].Pool[state.MU] = 2
 	castMode(t, e, id, "")
 	if d := e.Pending(); d != nil && d.Kind == decision.KChoose && d.Source == id {
@@ -156,7 +157,7 @@ func TestVizierETBKeepsLoudFallback(t *testing.T) {
 	}
 	finishCast(t, e, id)
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("vizier did not enter as itself: %+v", o)
+		t.Fatalf("shapeshifter did not enter as itself: %+v", o)
 	}
 	if hasEvent(e, events.ClonePermanent, id) {
 		t.Fatal("out-of-scope carrier must not copy")

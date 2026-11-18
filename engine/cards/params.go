@@ -920,6 +920,11 @@ const (
 	// exiled card haunts the announced creature target. Read by effects'
 	// compileChangeZone. Appended: earlier ordinals stay stable.
 	PKHaunt
+	// Embalm$ True and RemoveCost$ True on a Clone (Vizier of Many Faces's
+	// embalm-gated token exceptions). Read by effects' compileClone.
+	// Appended: earlier ordinals stay stable.
+	PKEmbalm
+	PKRemoveCost
 	paramKeyCount
 )
 
@@ -1750,6 +1755,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKDayTime:                          "DayTime",
 	PKForgetObjects:                    "ForgetObjects",
 	PKHaunt:                            "Haunt",
+	PKEmbalm:                           "Embalm",
+	PKRemoveCost:                       "RemoveCost",
 }
 
 // String is the key's Forge text.
