@@ -282,6 +282,52 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 			nodes += search.Nodes
 		}
 	}
+	// Phase 3 (the Taps-deferred census gap, the kernel's second pass, dirac
+	// mana_tapsdefer.go planTiered): only when phase 2 PROVED no plan exists.
+	// The gap units -- sources whose every alternative the tier classifier
+	// deferred for interference (plandeferred.go) -- join the phase table's
+	// rows as census units, planned in battlefield order like any source: the
+	// watcher that deferred them resolves only after the announcement
+	// completes (CR 405.6c), so the payment it watches is ordinary. They carry
+	// no consequence, so the lethal guard cannot drop them, and the phase-2
+	// flexibility (key 5 reads flexAll in the relaxed passes) is theirs too.
+	// The classes are this call's own: the base rows live in the call's
+	// scratch, never in the query cache.
+	if search.Best == nil && !search.Limited {
+		if gap := PaymentPlanGapUnits(e, p); len(gap) > 0 {
+			t3 := make([][]Alt, 0, len(phaseChoices)+len(gap))
+			t3 = append(t3, phaseChoices...)
+			for _, gu := range gap {
+				// The withheld census governs the gap units too (CR
+				// 601.2g-h, planPaymentCostWithout): a source the play's own
+				// cost taps or exiles out is no unit of any phase, and every
+				// gap row taps (paymentPlanGapGate), so both arms drop it;
+				// a kept source's gap row never consumes it, so it stays.
+				if slices.Contains(tapped, gu.ID) || slices.Contains(gone, gu.ID) {
+					continue
+				}
+				at := len(ps.arena)
+				for _, a := range gu.Alts {
+					a.Flex = a.FlexAll
+					ps.arena = append(ps.arena, a)
+				}
+				t3 = append(t3, ps.arena[at:len(ps.arena):len(ps.arena)])
+			}
+			if len(t3) == len(phaseChoices) {
+				// every gap unit is withheld: the phases already proved no
+				// plan over this table, and the tail reports insufficient
+				// over it as before
+				search = &Search{}
+			} else {
+				phaseClasses = ownClasses(p, TierDeferred, t3)
+				rankCtx = NewRankContext(t3, demand)
+				phaseChoices = t3
+				search = SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
+					phaseChoices, phaseClasses, PaymentSearchEnv(e.Verify()))
+				nodes += search.Nodes
+			}
+		}
+	}
 	if search.Best != nil {
 		SacrificesLast(search.Best)
 		if want := e.Session().PlanAltsWant; want > 1 && len(tapped)+len(kept)+len(gone) == 0 && len(e.Session().PaymentPlanRelaxed) == 0 {
