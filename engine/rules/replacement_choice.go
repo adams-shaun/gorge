@@ -555,8 +555,8 @@ func (e *Engine) askReplacementChoiceIn(p state.PlayerID, fromEmit bool) events.
 		// point of the competing event, not after the rest of the chain.
 		// fromEmit hands the landed event back to the emitting primitive
 		// waiting on it; every other served answer discards the value.
-		if in, ok := parkTapeAnswer(e, d); ok {
-			return e.handleReplacement(d, in, fromEmit)
+		if ev, ok := tapeReplacementServed(e, d, fromEmit); ok {
+			return ev
 		}
 	}
 	e.ask(d)

@@ -42,3 +42,44 @@ func TestUnlessWindowManaColorReplacementIsServed(t *testing.T) {
 		t.Fatalf("life change %d, want 5 (the replaced mana paid the unless cost)", got)
 	}
 }
+
+// The same colour ask when the source offers a choice of mana abilities (a
+// painland): the window's activation opens an off-stack mana frame, and the
+// replacement ask raised inside it is served from the tape too.
+func TestUnlessWindowMultiAbilityManaColorReplacementIsServed(t *testing.T) {
+	const gain = "\nSVar:Gain:DB$ GainLife | LifeAmount$ 2 | Defined$ You"
+	const pulse = "Name:Window Pulse\nTypes:Enchantment\n" +
+		"R:Event$ ProduceMana | ValidCard$ Land | ReplaceWith$ AnyHue | ActiveZones$ Battlefield | " +
+		"Description$ Fixture: a land tapped for mana yields one colour of its controller's choice.\n" +
+		"SVar:AnyHue:DB$ ReplaceMana | ReplaceType$ Any\nOracle:x\n"
+	const wastes = "Name:Window Wastes\nTypes:Land\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add one colourless.\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ Combo W U | SubAbility$ Sting | SpellDescription$ Add white or blue; it hurts.\n" +
+		"SVar:Sting:DB$ DealDamage | Defined$ You | NumDmg$ 1\nOracle:x\n"
+	name := "Window Pulse Tithe"
+	src := tapeUnlessSorcery(name,
+		"A:SP$ GainLife | LifeAmount$ 3 | UnlessCost$ 1 | UnlessPayer$ You | UnlessSwitched$ True | SubAbility$ Gain"+gain)
+	asked, abilityPicks := 0, 0
+	var life int32
+	e, _ := runServedScenario(t, 2, 13201, 3, func(t *testing.T, e *Engine) {
+		moveByName(t, e, 0, "Window Pulse", state.ZBattlefield)
+		moveByName(t, e, 0, "Window Wastes", state.ZBattlefield)
+		life = e.G.Players[0].Life
+		pick := tapeUnlessPick(true)
+		tapeUnlessScenario(name, "B", 0, func(d *decision.Decision) []int {
+			if d.Kind == decision.KReplacement {
+				asked++
+			}
+			if d.Kind == decision.KChoose && d.ResumeKind != unlessManaKind {
+				abilityPicks++
+			}
+			return pick(d)
+		})(t, e)
+	}, src, pulse, wastes)
+	if asked == 0 || abilityPicks == 0 {
+		t.Fatalf("precondition: replacement asks %d, ability picks %d; both must be posed", asked, abilityPicks)
+	}
+	if got := e.G.Players[0].Life - life; got != 5 {
+		t.Fatalf("life change %d, want 5 (the replaced mana paid the unless cost)", got)
+	}
+}
