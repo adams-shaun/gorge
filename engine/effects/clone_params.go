@@ -73,10 +73,11 @@ type CloneParams struct {
 	SetCreatureTypes bool
 	// The layer-4 removal flags: NonLegendary$, RemoveSubTypes$,
 	// RemoveCardTypes$ and RemoveCreatureTypes$ True.
-	NonLegendary        bool
-	RemoveSubTypes      bool
-	RemoveCardTypes     bool
-	RemoveCreatureTypes bool
+	NonLegendary          bool
+	RemoveSubTypes        bool
+	RemoveSubTypesPresent bool
+	RemoveCardTypes       bool
+	RemoveCreatureTypes   bool
 	// AddAbilities, AddSVars and AddTriggers are the named grants' SVar
 	// names in printed order; StaticNames are AddStaticAbilities$' names.
 	AddAbilities []string
@@ -143,34 +144,34 @@ var cloneKnownKeys = [...]string{
 	"AIXMax", "Activation", "ActivationAfterBlockers", "ActivationFirstCombat", "ActivationGameTypes",
 	"ActivationLimit", "ActivationPhases", "ActivationZone", "Activator", "AddAbilities", "AddColors",
 	"AddKeywords", "AddSVars", "AddStaticAbilities", "AddTriggers", "AddTypes",
-	"AdditionalDesc", "AdditionalDescription", "Affected", "AiChoiceLogic", "AlternateCost",
-	"AlternativeCost", "Announce", "AnnounceTitle", "AttachedTo", "Boast", "CantCopy", "ChangeNumDesc", "ChangeTypeDesc",
+	"AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
+	"AlternativeCost", "Announce", "AnnounceTitle", "AttachedTo", "Boast", "Boon", "CantCopy", "ChangeNumDesc", "ChangeTypeDesc",
 	"ChangeValidDesc", "CharacteristicDefining", "CheckSVar", "ChoiceDesc", "ChoiceOptional", "ChoiceTitle", "ChoiceTitleAppend", "ChoiceZone",
 	"Choices", "ChooseFromList", "ClassBand", "ClearImprinted", "CloneTarget", "CloneZone",
 	"Condition", "ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionTargetValidTargeting", "ConditionTargetsSingleTarget", "ConditionZone", "CopyCard", "CopyFromChosenName", "Cost", "CostDesc", "Defined",
-	"DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Duration", "Exclude", "ExcludeChosen", "Execute", "Exhaust", "FaceDown", "ForgetOnMoved", "ForgetOtherTargets", "FromDesc", "GainThisAbility", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
-	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IntoPlayTapped", "IsCurse",
+	"DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Duration", "EffectOwner", "Exclude", "ExcludeChosen", "Execute", "Exhaust", "ExileOnMoved", "FaceDown", "ForgetCounter", "ForgetOnCast", "ForgetOnMoved", "ForgetOnPhasedIn", "ForgetOtherTargets", "FromDesc", "GainThisAbility", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
+	"ImprintCards", "ImprintOnHost", "ImprintPlayed", "InstantSpeed", "IntoPlayTapped", "IsCurse",
 	"IsPresent", "KW", "KeepFacedown", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
-	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "NewController", "NewName",
-	"NoPutDesc", "NonBasicSpell", "NonLegendary", "OpponentTurn", "Optional", "Planeswalker", "PlayCost",
+	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "Name", "NewController", "NewName",
+	"NoPutDesc", "NoShuffle", "NonBasicSpell", "NonLegendary", "OpponentTurn", "Optional", "Planeswalker", "PlayCost",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "PrimaryPrompt", "PumpDuration", "PumpKeywords", "RandomNumTargets", "ReduceAmount",
-	"ReduceCost", "RememberAnimated", "RememberCloneOrigin", "RememberCostMana", "RememberObjects", "RememberTargets", "RemoveCardTypes",
+	"ReduceCost", "RememberAnimated", "RememberCloneOrigin", "RememberCostMana", "RememberLKI", "RememberObjects", "RememberTargets", "RemoveCardTypes",
 	"RemoveCreatureTypes", "RemoveSubTypes", "ReplaceColor", "ReplaceGraveyard",
 	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType", "ReplacementEffects", "ReturnAbility", "ReturnValid", "SVarCompare",
-	"SelectPrompt", "SetChosenMode", "SetColor", "SetCreatureTypes", "SetPower",
+	"SelectPrompt", "SetChosenMode", "SetChosenNumber", "SetColor", "SetCreatureTypes", "SetPower",
 	"SetToughness", "ShowCards", "SorcerySpeed", "SpellDescription", "StackDescription",
-	"SubAbility", "TargetMax", "TargetMin", "TargetType", "TargetUnique",
+	"Stackable", "StaticAbilities", "SubAbility", "TargetMax", "TargetMin", "TargetType", "TargetUnique",
 	"TargetValidTargeting", "TargetingPlayer", "TargetingPlayerControls", "TargetsAtRandom",
 	"TargetsForEachPlayer", "TargetsWithControllerProperty", "TargetsWithDefinedController",
 	"TargetsWithDifferentCMC", "TargetsWithDifferentControllers",
 	"TargetsWithDifferentNames", "TargetsWithEqualToughness", "TargetsWithRelatedProperty", "TargetsWithSameCardType",
 	"TargetsWithSameController", "TargetsWithSameCreatureType", "TargetsWithSharedCardType",
 	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "TokenScript", "TriggerController", "TriggerDescription",
-	"Type", "Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
+	"Triggers", "Type", "Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
 	"UnlessSwitched", "ValidAfterStack", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
 	"ValidCounterType", "ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost",
 	"XColor", "XMax", "XMin",
@@ -238,7 +239,10 @@ func compileClone(sa *cards.SA, dr *DefinedParams) *CloneParams {
 		p.SetCreatureTypes = true
 	}
 	p.NonLegendary = isTrue(sa.ParamStr(cards.PKNonLegendary))
-	p.RemoveSubTypes = isTrue(rawParamText(sa, "RemoveSubTypes").Text)
+	if rt := rawParamText(sa, "RemoveSubTypes"); rt.Present {
+		p.RemoveSubTypesPresent = true
+		p.RemoveSubTypes = isTrue(rt.Text)
+	}
 	p.RemoveCardTypes = isTrue(sa.ParamStr(cards.PKRemoveCardTypes))
 	p.RemoveCreatureTypes = isTrue(sa.ParamStr(cards.PKRemoveCreatureTypes))
 	p.AddAbilities = cloneNames(sa.ParamStr(cards.PKAddAbilities))
@@ -295,7 +299,7 @@ func CloneIfNew(sa *cards.SA) []string { return CloneOf(sa).IfNew }
 // iteration order cannot reach an event.
 func cloneETBShapeOK(sa *cards.SA, p *CloneParams) bool {
 	for k := range sa.Params {
-		if !cloneETBShapeKeys.Has(k) {
+		if !cloneETBShapeKeys.Has(k) && !slices.Contains(cloneETBShapeExtraKeys[:], k) {
 			return false
 		}
 	}
@@ -383,7 +387,7 @@ func cloneETBShapeOK(sa *cards.SA, p *CloneParams) bool {
 	if _, ok := sa.Param(cards.PKRemoveCardTypes); ok && !p.RemoveCardTypes {
 		return false
 	}
-	if _, ok := sa.Params["RemoveSubTypes"]; ok && !p.RemoveSubTypes {
+	if p.RemoveSubTypesPresent && !p.RemoveSubTypes {
 		return false
 	}
 	// Cursed Mirror's "until end of turn": the copy unit rides the ordinary
@@ -434,8 +438,11 @@ var cloneETBShapeKeys = state.NewNameSet(
 	"AddStaticAbilities", "IntoPlayTapped", "AddTriggers", "AddSVars", "AddAbilities", "SubAbility",
 	"SetPower", "SetToughness", "SetColor", "AddColors", "NonLegendary",
 	"ChoiceZone", "NewName", "ChoiceTitle", "RememberCloneOrigin",
-	// CR 707.9b exceptions CopyExcept writes (Imposter Mech's "loses all other
-	// card types"), the AI-hint keys no resolver reads, and Duration$ (its
-	// value is held to the until-end-of-turn spelling by cloneETBShapeOK).
-	"RemoveCardTypes", "RemoveSubTypes", "Duration", "AILogic", "AiChoiceLogic",
 )
+
+// cloneETBShapeExtraKeys are the keys the implemented as-enters Clone shape
+// may carry beside cloneETBShapeKeys' vocabulary: the CR 707.9b exceptions
+// CopyExcept writes (Imposter Mech's "loses all other card types"), the
+// AI-hint keys no resolver reads, and Duration$ (its value is held to the
+// until-end-of-turn spelling by cloneETBShapeOK).
+var cloneETBShapeExtraKeys = [...]string{"RemoveCardTypes", "RemoveSubTypes", "Duration", "AILogic", "AiChoiceLogic"}

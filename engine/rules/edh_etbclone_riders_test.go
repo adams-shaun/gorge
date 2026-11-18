@@ -241,3 +241,28 @@ func TestEDHETBCloneRidersWallOfStolenIdentityLocksTheOriginal(t *testing.T) {
 		t.Fatal("the copied creature untapped during its controller's untap step")
 	}
 }
+
+// TestEDHETBCloneRidersWallLockLapsesWhenTheWallLeaves: the lock's
+// Duration$ AsLongAsControl ends when the Wall copy leaves the battlefield,
+// so the creature it held tapped untaps at its controller's next untap step.
+func TestEDHETBCloneRidersWallLockLapsesWhenTheWallLeaves(t *testing.T) {
+	t.Parallel()
+	e, id, tpl := edhCloneCast(t, "Wall of Stolen Identity", "Grizzly Bears", 1,
+		map[int]int32{state.MC: 3, state.MU: 1})
+	e.putTriggersOnStack()
+	for i := 0; i < 8 && len(e.G.Stack) > 0; i++ {
+		resolveTopProbe(e)
+		settleDrain(e)
+	}
+	if !e.G.Obj(tpl).Tapped {
+		t.Fatal("precondition: the copied creature must be tapped by the lock")
+	}
+	// The Wall copy leaves the battlefield: the duration ends.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+	e.G.Active = 1
+	e.setStep(state.StepUntap)
+	e.untapTurnPermanent(tpl)
+	if e.G.Obj(tpl).Tapped {
+		t.Fatal("the creature stayed tapped after the Wall copy left the battlefield")
+	}
+}
