@@ -165,7 +165,7 @@ engine/effects effReveal	425	74
 engine/effects effSacrifice	341	57
 engine/effects effSearchLibrary	494	90
 engine/effects effToken	303	36
-engine/effects evalCountBodyCost	292	66
+engine/effects evalCountBodyCost	292	64
 engine/effects evalCountBodyDotted	320	60
 engine/effects evalCountBodyObjHeads	223	61
 engine/effects evalCountBodyPaid	508	99

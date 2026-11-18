@@ -134,8 +134,7 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	// filtering. Keep the caller's Ctx on the stack for every other count
 	// head (in particular the allocation-free Valid zone scan).
 	code := evalCountBodyCostCodes.Code(head)
-	if code == evalCountBodyCostMaxCombatDamageThisTurn || code == evalCountBodyCostNumDamageThisTurn ||
-		code == evalCountBodyCostNonCombatDamageThisTurn || code == evalCountBodyCostNumCombatDamageThisTurn {
+	if isDamageHistoryCode(code) {
 		damageCtx := *c
 		return evalDamageHistory(h, &damageCtx, g, head, arg)
 	}
@@ -489,3 +488,14 @@ var evalCountBodyCostCodes = state.NewStrCodes(
 	state.StrEntry[evalCountBodyCostCode]{Key: "SingleMaxDamageThisTurn", Val: evalCountBodyCostSingleMaxDamageThisTurn},
 	state.StrEntry[evalCountBodyCostCode]{Key: "NumCombatDamageThisTurn", Val: evalCountBodyCostNumCombatDamageThisTurn},
 )
+
+// isDamageHistoryCode reports whether a count head is one of the per-turn
+// damage-ledger reads evalDamageHistory answers.
+func isDamageHistoryCode(code evalCountBodyCostCode) bool {
+	switch code {
+	case evalCountBodyCostMaxCombatDamageThisTurn, evalCountBodyCostNumDamageThisTurn,
+		evalCountBodyCostNonCombatDamageThisTurn, evalCountBodyCostNumCombatDamageThisTurn:
+		return true
+	}
+	return false
+}
