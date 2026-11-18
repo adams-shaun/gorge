@@ -389,11 +389,16 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		// a one-op program with no ask: the counter, the mill, the life or draw
 		// of a player (a target player gorge's default answer names) and the
 		// damage of a player (Biotech Specialist: 2 damage to target opponent)
+		// or of any target (Havoc Jester's 1 damage to any target beside a
+		// Treasure spent for the cast): gorge's default answer names a player
+		// in seat order (firstPlayerTgt), so an any-target one is aimed there
+		// like a player-targeted one
 		plTgt := a.NTargets == 1 && a.Targets[0].Kind == kop.TgtPlayer
+		aimed := plTgt || a.NTargets == 1 && a.Targets[0].Kind == kop.TgtAny
 		mills := op == kop.OpMill && plTgt && a.Prog[0].C&kop.MvMayMill == 0
 		lifeDraw := (op == kop.OpLoseLife || op == kop.OpGainLife || op == kop.OpDraw) && (a.NTargets == 0 || plTgt)
 		single := len(a.Prog) == 1 && (op == kop.OpPutCounter && a.NTargets == 0 || mills || lifeDraw ||
-			op == kop.OpDealDamage && plTgt)
+			op == kop.OpDealDamage && aimed)
 		// a straight run of life losses, gains and draws, one of them aimed at a target
 		// player gorge's default answer names (Al Bhed Salvagers: target opponent loses
 		// 1 life and you gain 1)
@@ -407,16 +412,17 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		if instant {
 			// the lowering is done as soon as the play is offered, and an
 			// instant-speed cast is offered with the trigger still on the stack
-			// (payexec.priority): the trigger goes on below the spell, a
-			// player-targeted one aimed where gorge's default answer names (Al
+			// (payexec.priority): the trigger goes on below the spell, one with
+			// a player target aimed where gorge's default answer names (Al
 			// Bhed Salvagers' lose-and-gain run, Biotech Specialist's damage:
-			// any trigger with the one player target goes below the cast, as it
-			// only goes on the stack and resolves there)
-			if pt.ab >= abCascade || a.NTargets != 0 && !plTgt {
+			// any trigger with the one player target — or the one any target —
+			// goes below the cast, as it only goes on the stack and resolves
+			// there)
+			if pt.ab >= abCascade || a.NTargets != 0 && !aimed {
 				i++
 				continue
 			}
-			if plTgt {
+			if aimed {
 				e.tgt[0], e.nt = s.firstPlayerTgt(k, &a.Targets[0], pt), 1
 			}
 			s.pushBelowCast(k, e, pt)
@@ -438,7 +444,7 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		case single && op == kop.OpPutCounter:
 			s.putCounterProg(k, &a.Prog[0])
 		case single:
-			if plTgt {
+			if aimed {
 				s.res.e.tgt[0] = s.firstPlayerTgt(k, &a.Targets[0], pt)
 			}
 			s.exec(k, &a.Prog[0])
