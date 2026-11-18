@@ -263,7 +263,7 @@ func (g *grantSrch) sacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, mas
 	var order [kop.NumManaKinds]uint8
 	no := t.stepColours(g.k, sl, gi, mask, &order)
 	needFirst(order[:no], g.need)
-	for _, c := range order[:no] {
+	for _, c := range g.subsumeCols(t, order[:no], ask, t.stepNamed(g.k, sl, gi, mask)) {
 		u := t.fork()
 		u.pl[SeatIx(g.p)].pool[c] += pn
 		u.artTag(g.k, g.p, sl, int(c))
@@ -404,7 +404,7 @@ func (g *grantSrch) costBranch(t *State, i int, sl Slot, gi int16, pc *pcard, ma
 	var order [kop.NumManaKinds]uint8
 	no := t.stepColours(g.k, sl, gi, mask, &order)
 	needFirst(order[:no], g.need)
-	for _, c := range order[:no] {
+	for _, c := range g.subsumeCols(t, order[:no], ask, t.stepNamed(g.k, sl, gi, mask)) {
 		u := t.fork()
 		u.perms[sl].flags |= pfTapped
 		u.pl[SeatIx(g.p)].pool[c] += pn
