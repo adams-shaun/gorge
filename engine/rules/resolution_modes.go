@@ -132,7 +132,11 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 					}
 					for _, sub := range tbms {
 						e.drainAwaitsTarget = true
-						e.askTarget(in.Player, id, sub)
+						// CR 603.3d: the chosen mode body's SubAbility$ links
+						// declare their targets at placement too (Ayula's
+						// fight: "target creature you don't control").
+						e.askTargetChained(in.Player, id, sub, e.triggerChainPreAsks(sub))
+						e.startTriggerSubTargets(id, in.Player, sub)
 						return
 					}
 				}
