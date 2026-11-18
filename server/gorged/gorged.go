@@ -256,6 +256,12 @@ type config struct {
 	// host.Options.ThinkTimeout, applied only while -manabrew is on
 	// (manabrewThinkTimeout) so setting it alone changes nothing.
 	manabrewThink time.Duration
+	// manabrewOriginsRaw is the -manabrew-origins flag: the comma-separated
+	// browser origins allowed to call the ManaBrew routes and POST
+	// /api/games cross-origin. manabrewOrigins is its parsed set
+	// (applyManaBrewOrigins); empty means no CORS handling at all.
+	manabrewOriginsRaw string
+	manabrewOrigins    map[string]struct{}
 	// sbv2 is the -sbv2 flag: mount server/host/sbv2http (sbv2.go) and tap
 	// each two-seat constructed AutoMana human seat with a V2HumanSeat. Off by
 	// default so an unmounted server is byte-identical to today.
@@ -475,6 +481,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.BoolVar(&c.manabrew, "manabrew", false, "mount the ManaBrew protocol adapter (server/host/manabrewhttp) on the main listener; requires -humans or -vsbot")
 	fs.StringVar(&c.manabrewAddr, "manabrew-addr", "", "serve the ManaBrew routes on a separate listen address instead of the main one (implies -manabrew)")
 	fs.DurationVar(&c.manabrewThink, "manabrew-think", 0, "override the human-seat think timeout while -manabrew is on (0 = inherit the server default)")
+	fs.StringVar(&c.manabrewOriginsRaw, "manabrew-origins", "", "comma-separated browser origins (scheme://host[:port], no wildcard) allowed to call the ManaBrew routes and POST /api/games cross-origin (CORS). Empty adds no CORS headers")
 	fs.BoolVar(&c.sbv2, "sbv2", false, "mount the SpellBench v2 human-seat HTTP routes (server/host/sbv2http) on the main listener; requires -humans or -vsbot")
 	fs.BoolVar(&c.events, "events", false, "host 4-seat draft events under /api/events (eventhost; persistence under <dir>/events)")
 	fs.IntVar(&c.maxEvents, "max-events", 4, "maximum draft events not yet COMPLETE")
@@ -575,6 +582,9 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		return fmt.Errorf("-commander-seats %d: want 0 (= -seats) or a seat count", c.commanderSeats)
 	}
 	if err := c.applyManaBrew(); err != nil {
+		return err
+	}
+	if err := c.applyManaBrewOrigins(); err != nil {
 		return err
 	}
 	// -manabrew requires a seat gate (-humans or
@@ -795,7 +805,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		return err
 	}
 	topMux.Handle("/", httpapi.NewHandler(r, opts))
-	srv := &http.Server{Handler: topMux}
+	srv := &http.Server{Handler: c.corsMainHandler(topMux)}
 	errc := make(chan error, 1)
 	go func() { errc <- srv.Serve(ln) }()
 	seatsDesc := fmt.Sprint(c.seats)

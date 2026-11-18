@@ -5,7 +5,9 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/adams-shaun/gorge/server/host"
@@ -95,9 +97,79 @@ func (c config) mountManaBrew(topMux *http.ServeMux, r *host.Registry, gate *sea
 	if err != nil {
 		return nil, nil, fmt.Errorf("manabrew: listening on %s: %w", c.manabrewAddr, err)
 	}
-	srv := &http.Server{Handler: handler}
+	srv := &http.Server{Handler: c.corsHandler(handler, func(string) bool { return true })}
 	errc := make(chan error, 1)
 	go func() { errc <- srv.Serve(ln) }()
 	fmt.Fprintf(os.Stderr, "gorged: manabrew routes served on %s\n", ln.Addr())
 	return srv, errc, nil
+}
+
+// applyManaBrewOrigins parses -manabrew-origins into c.manabrewOrigins. Each
+// entry must be a bare origin (scheme://host[:port], no path, query or
+// userinfo); "*" and "null" are refused so no configuration can answer an
+// arbitrary caller. An empty flag leaves the set nil, which adds no CORS
+// handling anywhere.
+func (c *config) applyManaBrewOrigins() error {
+	c.manabrewOrigins = nil
+	if strings.TrimSpace(c.manabrewOriginsRaw) == "" {
+		return nil
+	}
+	set := map[string]struct{}{}
+	for _, raw := range strings.Split(c.manabrewOriginsRaw, ",") {
+		o := strings.TrimSpace(raw)
+		u, err := url.Parse(o)
+		if o == "" || err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" ||
+			u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || strings.HasSuffix(o, "/") {
+			return fmt.Errorf("-manabrew-origins %q: want scheme://host[:port] (http or https, no wildcard, no path)", raw)
+		}
+		set[o] = struct{}{}
+	}
+	c.manabrewOrigins = set
+	return nil
+}
+
+// corsMainHandler wraps the main listener's mux so the ManaBrew routes and
+// the lobby's POST /api/games answer the origins in -manabrew-origins. Every
+// other route is untouched.
+func (c config) corsMainHandler(next http.Handler) http.Handler {
+	return c.corsHandler(next, func(path string) bool {
+		return path == "/api/games" || strings.HasPrefix(path, manabrewRoutePrefix+"/")
+	})
+}
+
+// corsHandler answers CORS for requests whose path covers() accepts. A request
+// from a listed Origin gets Access-Control-Allow-Origin echoing that origin
+// (never "*"), and a preflight OPTIONS from it is answered 204 here, allowing
+// the Authorization and Content-Type headers. A request from any other
+// origin, or with none, goes to next with no Access-Control header added. With
+// no origins configured it returns next itself, so off changes nothing.
+func (c config) corsHandler(next http.Handler, covers func(path string) bool) http.Handler {
+	if len(c.manabrewOrigins) == 0 {
+		return next
+	}
+	allowed := c.manabrewOrigins
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !covers(r.URL.Path) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Add("Vary", "Origin")
+		origin := r.Header.Get("Origin")
+		if _, ok := allowed[origin]; !ok || origin == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+			h := w.Header()
+			h.Add("Vary", "Access-Control-Request-Method")
+			h.Add("Vary", "Access-Control-Request-Headers")
+			h.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			h.Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+			h.Set("Access-Control-Max-Age", "600")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
