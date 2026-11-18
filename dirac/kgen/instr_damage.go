@@ -317,12 +317,14 @@ func (ic *instrCtx) opPreventNext() error {
 	ki := &ic.ki
 	in := &ic.in
 	cb := ic.cb
-	// OpExt ExtPreventNext on Obj, B the amount, C 1 for combat damage only, C 2 for all damage until the recipient leaves (dirac/repl_prevnext.go)
+	// OpExt ExtPreventNext on Obj, B the amount, C the kop.PrevNext* flag
+	// bits: 1 combat damage only, 2 all damage until the recipient leaves, 4
+	// keyed on the damage source, 8 the gain rider (dirac/repl_prevnext.go)
 	v, err := cb.value(in.A)
 	if err != nil {
 		return err
 	}
-	ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v, int16(in.C&3)
+	ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v, int16(in.C&127)
 	return nil
 }
 
