@@ -317,7 +317,12 @@ func (s *State) kickWitness(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCos
 // pays; the census alone would still offer it (Shattering Blow's {1}{R/W}
 // beside a Zoetic Cavern and the Treasure that is also its only artifact
 // target: the witness eats the target, decision 190 withholds; with a second
-// Treasure it leaves that one as the target and gorge offers at 194). cost is
+// Treasure it leaves that one as the target and gorge offers at 194). A cast
+// the planner prices nothing for keeps its offer — the kernel's census
+// already paid it, and a witness this planner does not model (a storage
+// battery's counters: Jubilant Skybonder's {1}{W/U}{W/U} beside two Plains
+// and an Icatian Store, decision 175 of the skybonder_granted_target_tax
+// repro) is gorge's too, as for faceWitnessReaches and kickWitness. cost is
 // the composed cost the offer prices; the reach and winOK arms read like
 // kickWitness.
 func (s *State) castWitnessReaches(k *prep, p uint8, c CardID, cost *kop.ManaCost) bool {
@@ -327,11 +332,11 @@ func (s *State) castWitnessReaches(k *prep, p uint8, c CardID, cost *kop.ManaCos
 	var pk planner
 	pk.try = true
 	tmp.tapForPK(k, p, cost, 0, NoObj, false, false, &pk)
-	if !pk.found {
-		return false // the planner prices no witness: gorge's potential layer proves nothing
-	}
-	if !plannerConsumesSac(&pk) {
-		return true // a plan that consumes nothing is a proof on its own
+	if !pk.found || !plannerConsumesSac(&pk) {
+		// gorge re-checks the play only when the plan that pays it consumes
+		// a source (potential_plan.go paymentPlanConsumes): a plan that pays
+		// with ordinary mana never withholds the cast.
+		return true
 	}
 	// the plan's mana abilities run before the spell is announced further
 	// (CR 601.2g): a witness whose sacrifices leave the spell no legal target
