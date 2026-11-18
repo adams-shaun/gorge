@@ -6,10 +6,18 @@ package dirac
 // kicked, reads false, as gorge's ValidCard$ Card.kicked reads the cast's
 // provenance. A SpellCast trigger that watches other spells for a kicked one
 // (Merfolk Falconer's "whenever you cast a kicked spell") matches through it.
+// The flag is also the buyback, offspring and entwine paid mark (kw_buyback.go,
+// kw_offspring.go, kw_entwine.go), which gorge flags FlagBuyback /
+// FlagOffspringPaid / nothing, never FlagKicked: such a spell is no kicked one
+// (CR 702.33a: only kicker makes a spell kicked).
 func (s *State) spellKicked(o Obj) bool {
 	if o == NoObj {
 		return false
 	}
 	e := s.spellEntryOf(o)
-	return e != nil && e.flags&sfKicked != 0
+	if e == nil || e.flags&sfKicked == 0 {
+		return false
+	}
+	c := e.card
+	return int(c) >= len(s.k().t.Cards) || !offspringOffer(s.k(), c)
 }
