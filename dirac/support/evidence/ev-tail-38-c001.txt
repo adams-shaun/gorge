@@ -46,6 +46,7 @@ Caustic Hound
 Cavalcade of Calamity
 Chance-Met Elves
 Chandra's Defeat
+Channeled Force
 Charge Through
 Charity Extractor
 Chevill, Bane of Monsters
@@ -95,6 +96,7 @@ Faith Unbroken
 False Demise
 Fear of Death
 Fearless Halberdier
+Fecundity
 Feral Ferocity
 Feral Thallid
 Festering March
@@ -102,6 +104,7 @@ Fiery Intervention
 Flame Spirit
 Flameshadow Conjuring
 Flourishing Hunter
+Flowstone Hellion
 Forest
 Fortify
 Fumulus, the Infestation
@@ -165,6 +168,7 @@ Kothophed, Soul Hoarder
 Krosan Grip
 Laboratory Drudge
 Labyrinth Minotaur
+Leave
 Leave in the Dust
 Lena, Selfless Champion
 Leonin Lightbringer
@@ -262,6 +266,7 @@ Scrap Mastery
 Scrapskin Drake
 Seacoast Drake
 Seal of Fire
+Segmented Wurm
 Seluma, Light of Aysen
 Serpentine Curve
 Serrated Biskelion

@@ -113,6 +113,7 @@ Elite Vanguard
 Embereth Shieldbreaker
 Embrace the Unknown
 Enclave Cryptologist
+End-Raze Forerunners
 Endless Cockroaches
 Engineered Might
 Ephara's Dispersal
@@ -133,6 +134,7 @@ Festering Evil
 Fevered Suspicion
 Fierce Witchstalker
 Fiery Confluence
+Fire Juggler
 Fire Urchin
 Fireforger's Puzzleknot
 Flameshadow Conjuring
@@ -148,6 +150,7 @@ Forest
 Forgotten Cave
 Fortitude
 Fortress Crab
+Frenetic Sliver
 Frilled Sandwalla
 Funeral March
 Fungal Plots
@@ -162,6 +165,7 @@ Gerrard Capashen
 Ghitu Journeymage
 Ghostway
 Giant Solifuge
+Glacial Revelation
 Gladecover Scout
 Goblin Fire Fiend
 Goblin Medics
@@ -289,6 +293,7 @@ Nettle Drone
 Neurok Replica
 Night Out in Vegas
 Nimble Birdsticker
+Nin, the Pain Artist
 Nomad Decoy
 Norwood Priestess
 Null Caller

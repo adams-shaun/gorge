@@ -111,12 +111,15 @@ Envelop
 Excava, the Risen Past
 Excavation Technique
 Expansion
+Exquisite Huntmaster
 Extraction Specialist
+Falkenrath Noble
 Falkenrath Perforator
 Fallowsage
 False Memories
 False Prophet
 Fang of Shigeki
+Fanning the Flames
 Femeref Healer
 Field of Reality
 Fire Nation's Conquest
@@ -176,6 +179,7 @@ Hypnotic Grifter
 Ichorspit Basilisk
 Impale
 Implement of Examination
+Imposing Vantasaur
 Increasing Vengeance
 Infected Defector
 Infernal Idol

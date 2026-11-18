@@ -12,6 +12,7 @@ Akki Rockspeaker
 Alchemist's Refuge
 Alibou, Ancient Witness
 Amass the Components
+Anax, Hardened in the Forge
 Annex
 Arcane Denial
 Archmage's Charm
@@ -48,6 +49,7 @@ Centaur Archer
 Cephalid Sage
 Chained Brute
 Chandra's Magmutt
+Chaos Warp
 Chasm Skulker
 Choose Your Weapon
 Claws of Valakut
@@ -66,6 +68,7 @@ Dawn Charm
 Daxos, Blessed by the Sun
 Death Pits of Rath
 Decimator Web
+Deekah, Fractal Theorist
 Deeproot Historian
 Defabricate
 Destiny Spinner
@@ -98,6 +101,7 @@ Foundry Assembler
 Foxfire
 Frantic Confrontation
 Fraying Omnipotence
+Frenetic Raptor
 Frost Breath
 Fugitive Druid
 Gamble
@@ -185,6 +189,7 @@ Nezumi Cutthroat
 Night Market Aeronaut
 Nine-Tail White Fox
 No-Dachi
+Noble Benefactor
 Oath of Ajani
 Obsidian Obelisk
 Olog-hai Crusher
@@ -297,6 +302,7 @@ Unifying Theory
 Unwavering Initiate
 Utter End
 Valakut, the Molten Pinnacle
+Viashino Weaponsmith
 Vibranium Strike Gauntlets
 Viridian Revel
 Vitalizing Cascade

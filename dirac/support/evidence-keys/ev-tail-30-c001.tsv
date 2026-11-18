@@ -12,6 +12,7 @@ Concerted Defense	c3f3f505f85d3907	13	0/0		2/2
 Echoing Truth	b284e60ab7363595	6	0/0		1/2	ix:resp
 Evangel of Synthesis	4f0ac4cb6b85bff7	4	1/1		0/1	ix:resp
 Faerie Invaders	cd26dfb3df086f67	19	0/0		0/0	
+Firemind's Foresight	73384df97749ea5c	6	0/0		2/2	
 Floodgate	f3544ec848eee252	11	2/2		0/1	ix:resp
 Forestfolk	bedbd20bc2c71ee0	34	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Ghitu Chronicler	4076735e60cef949	59	1/1		3/3	
@@ -32,7 +33,9 @@ Nimbus Naiad	4f75aa63b198f860	36	0/0		2/2
 Ogre Savant	67e8bed4feaff9f5	14	1/1		0/1	ix:resp
 Pia's Revolution	52463877a5816d0f	33	1/1		1/1	
 Polymorphist's Jest	059c59e7487b58a8	3	0/0		1/2	ix:resp
+Practical Research	a196446f803bf053	4	0/0		2/2	
 Raven Guild Master	ed1d81e1c53b0533	12	1/1		2/3	cast/alt:morphed
+Reclusive Artificer	0dd291b25b45feb4	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Red Elemental Blast	981b60fdb772950d	18	0/0		2/2	
 Rending Volley	b0f6ec257dcbf647	7	0/0		2/2	
 Retrieval Agent	524c573d72a8f7b2	4	1/1		1/1	

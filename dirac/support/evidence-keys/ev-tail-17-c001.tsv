@@ -1,7 +1,9 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Abomination of Llanowar	6c44a26b8f7ef01f	7	0/0		0/0	
 Aggression	8c46acf3d08d8fbe	21	1/1		1/2	ix:resp
 Akroma's Devoted	42b183634dd87104	5	0/0		0/0	
 Amass the Components	4958fd104981fb12	6	0/0		2/2	
+Amrou Seekers	668b010f0868faf5	4	0/0		0/0	
 Archangel of Thune	a2147c41c5e74f13	26	1/1		1/1	
 Armored Griffin	96acece1a673a0cf	30	0/0		0/0	
 Arrogant Poet	a97164781b2debea	12	1/1		0/1	ix:resp
@@ -12,14 +14,18 @@ Body of Research	9e52f339f26672df	23	0/0		1/2	ix:resp
 Bog Smugglers	bc63d6cd1ceb6ef1	5	0/0		0/0	
 Bonds of Mortality	13981241ecd12a03	14	2/2		1/1	
 Bottomless Vault	54ec0746063e5f9c	43	2/2		1/1	
+Browbeat	c4408527d68298f1	4	0/0		1/2	ix:resp
 Butcher of Malakir	884cb24300b944ec	6	1/1		1/1	
 Canopy Spider	fefece1dc0a9fef0	10	0/0		0/0	
 Caravan Hurda	8644b55471d567c4	24	0/0		0/0	
+Cerulean Sphinx	95febe8bb8c9b20b	5	1/1		0/1	ix:resp
 Chandra's Pyreling	b04b0b7de7541854	38	1/1		0/1	ix:resp
 Cinderclasm	7d33dc28d511122c	10	0/0		2/4	cast/alt:kicked,ix:resp
 Consign to the Pit	cbafed25e4f9e4f9	3	0/0		1/2	ix:resp
+Contingency Plan	c08e416497b21562	6	0/0		1/2	ix:resp
 Coral Eel	e085aff138d91d63	33	0/0		0/0	
 Council's Judgment	8d13c9b3dda81027	10	0/0		1/2	ix:resp
+Cowardice	8457c3f35278a329	4	1/1		1/1	
 Cunning Lethemancer	83ee495715ec7724	4	1/1		1/1	
 Damnable Pact	9bf50898fa79dc15	3	0/0		2/4	f0/s/x0,ix:resp
 Daraja Griffin	b75db702694f1b83	20	1/1		0/1	ix:resp
@@ -28,10 +34,12 @@ Delete	8f59c4bd5fdec3be	12	0/0		3/4	f0/s/x0
 Desert of the True	878618b715af3b72	30	2/2		0/1	ix:resp
 Dig Up	07aeec06e4ec9047	3	0/0		1/2	ix:resp
 Dismiss into Dream	9f595038d537523d	24	0/0		0/0	
+Dispersal Technician	c4d920631e9767ca	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Doomed Traveler	06b83a26a8100886	42	1/1		1/1	
 Earthen Goo	ee748ae7aa39d4e4	20	1/1		1/1	
 Elemental Bond	15aa5bc4ac4acb26	10	1/1		0/1	ix:resp
 Environmental Sciences	56325db22c183970	16	0/0		1/2	ix:resp
+Esper Cormorants	cc7aefd33431da12	4	0/0		0/0	
 Ethereal Whiskergill	f985b557ec0eb12e	31	0/0		0/0	
 Etherium Abomination	3bf19f678c9511de	3	1/1		0/1	ix:resp
 Extract	474257b5f7cf9bf6	5	0/0		2/2	
@@ -50,6 +58,7 @@ Giant Cockroach	e39243d5c2d12849	10	0/0		0/0
 Gift of Tusks	2972ed6eb76e33c9	4	0/0		1/2	ix:resp
 Gimli's Reckless Might	f9481b1216f642a6	25	1/1		1/1	
 Glacial Grasp	7a65c1472b1b1baf	16	0/0		2/2	
+Goblin Outlander	68467922f4089b5c	4	0/0		0/0	
 Goblin Ruinblaster	1bd0d6849ee394fb	14	1/1		3/3	
 Gravepurge	69a852869535d27e	10	0/0		1/2	ix:resp
 Great Furnace	9e196dbe92d1831b	8	1/1		0/1	ix:resp
@@ -76,6 +85,7 @@ Kithkin Harbinger	762e7d63b8859c67	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Lab Rats	abed9df0e834dfeb	21	0/0		3/4	ix:resp
 Liliana's Elite	b77850e8cba6410a	8	0/0		0/0	
 Lunk Errant	ce19a07ad8229dc0	8	1/1		0/1	ix:resp
+Mahadi, Emporium Master	9983e6c14d8b98e0	4	1/1		0/1	ix:resp
 Manifold Key	1d63b91b1a7d4ef7	20	2/2		0/1	ix:resp
 March of the Drowned	acd2a0cb97d855dd	8	0/0		1/2	ix:resp
 Melancholy	04971487420a5ef9	6	2/2		1/2	ix:resp
@@ -91,6 +101,7 @@ Ondu Inversion	002c036cf20ec99a	36	1/1		0/2	f0/s,ix:resp
 Opal Acrolith	c1c30924404714cc	26	2/2		1/1	
 Oran-Rief Hydra	066fcd446f6265dd	7	1/1		0/1	ix:resp
 Orbs of Warding	af2d487e5c1ed1c4	25	0/0		0/0	
+Orcish Spy	38f5290ace0316d0	5	1/1		0/1	ix:resp
 Orim's Prayer	05a63bc3fb096cc7	23	1/1		0/1	ix:resp
 Panacea	2b20e8eb1cf44b82	4	1/1		0/1	ix:resp
 Passwall Adept	244e2b944140f18b	29	1/1		1/1	
@@ -99,6 +110,7 @@ Phyrexian Gremlins	58318eaa5c37ccfc	36	1/1		1/1
 Plague Dogs	ac92d583eb4f69b3	5	2/2		0/1	ix:resp
 Plague Engineer	fbbd5aee6cbbef4e	8	0/0		0/0	
 Plagued Rusalka	607eb12755943a9d	6	1/1		0/1	ix:resp
+Preemptive Strike	458f7d9d61d3a3a6	4	0/0		1/2	ix:resp
 Primal Command	6c4b6b9622045612	5	0/0		2/2	
 Prismatic Vista	aaf1a59f2978176e	10	1/1		0/1	ix:resp
 Radiant Essence	a857719a8e3e47b3	26	0/0		0/0	
@@ -125,13 +137,16 @@ Shimmering Barrier	080399eb2a5f4595	3	1/1		1/1
 Sigarda, Font of Blessings	e5c920d843adb7b2	3	0/0		0/0	
 Sigiled Behemoth	7abac02dc8090490	17	1/1		1/1	
 Siren Lookout	55f72bc3e27bd971	31	1/1		0/1	ix:resp
+Sisay's Ring	63170b8647e81ad6	4	1/1		0/1	ix:resp
 Skyclave Sentinel	4509d8ca3a67edeb	13	0/0		1/2	cast/alt:kicked
+Sleep Paralysis	fdf3b75c77442d4c	5	1/1		1/2	ix:resp
 Slurrk, All-Ingesting	ac01b02e1c455933	3	1/1		0/1	ix:resp
 Smog Elemental	f70745562a704532	3	0/0		0/0	
 Sorin, Imperious Bloodlord	cfb400849c63dbf0	8	3/3		0/1	ix:resp
 Storm Fleet Negotiator	d5083686dab65708	8	1/1		0/1	ix:resp
 Sunscape Familiar	b1fe50a915ae032a	20	0/0		0/0	
 The Stasis Coffin	1d48a6742cab949b	3	1/1		0/1	ix:resp
+Thoughtcutter Agent	01941d46520025b0	6	1/1		1/1	
 Throne of Empires	73735a02a4cb33a1	9	1/1		0/1	ix:resp
 Tibalt, Rakish Instigator	f822b641316334b3	4	1/1		0/1	ix:resp
 Tooth and Claw	c8917e6fb21447d1	10	1/1		0/1	ix:resp

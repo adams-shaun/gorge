@@ -1,4 +1,5 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Kona, Rescue Beastie	e6db51069b44d1f4	6	1/1		0/1	ix:resp
 A-Master of Winds	ec2fa152a6a5e379	3	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Afterlife	e15f7bc71c352041	3	0/0		1/2	ix:resp
 Agility Bobblehead	bb9b53c64f0a88f9	4	2/2		0/1	ix:resp
@@ -10,27 +11,36 @@ Artificer Class	302c5045449dec8d	6	4/4		0/1	ix:resp
 Aspect of Lamprey	6fc0c557ac1286b4	6	1/1		1/2	ix:resp
 Baloth Null	8101dc1a6af1be62	4	1/1		0/1	ix:resp
 Banishment	b9774dc62ffa1ac0	4	1/1		0/1	ix:resp
+Barkhide Troll	acdfc5521f82217a	4	1/1		0/1	ix:resp
 Black Widow, Natasha Romanoff	bdc71b51f1d6bcb1	16	0/0		0/0	
 Blind Creeper	cc217a03311a41f2	10	1/1		1/1	
 Blood Fountain	34806907d5b35fe2	3	2/2		0/1	ix:resp
 Bloodcrazed Neonate	2040c9e4b81762e4	8	1/1		0/1	ix:resp
 Bloodthirsty Adversary	99ab8fe44f7adf6f	4	1/1		0/1	ix:resp
 Bone Devourer	30b714e3648dd0ef	4	1/1		0/1	ix:resp
+Boneknitter	02e50dfe73e41cf4	4	1/1		1/3	cast/alt:morphed,ix:resp
 Bountiful Promenade	e157ecf950a69f95	9	1/1		0/1	ix:resp
 Brackwater Elemental	9144ebf6cd3b0bbb	10	3/3		0/1	ix:resp
+Cabal Patriarch	5d155d23688e0733	27	2/2		1/1	
 Cabaretti Courtyard	35be59e842d3db99	11	1/1		0/1	ix:resp
 Chainweb Aracnir	b94e2058321f5191	9	1/1		1/3	cast/alt:escaped,ix:resp
+Change the Equation	51e8a8ba90be7b99	3	0/0		1/2	ix:resp
 Chaos Lord	259d959328a52801	3	1/1		1/1	
 Clear a Path	be8b82eaf388b973	18	0/0		2/2	
 Colossal Dreadmaw and Storm Crow	d11c67c8096d61df	4	0/0		0/0	
 Crackling Drake	0b288d2cb9bcfacf	3	1/1		0/1	ix:resp
+Creakwood Liege	024ea4ddbe311bb9	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Crosstown Courier	7e69ce8231238c8a	5	1/1		0/1	ix:resp
+Curiosity Crafter	a4da71997a7b3da3	6	1/1		0/1	ix:resp
+Daggersail Aeronaut	0bec55c4e284cd91	4	0/0		0/0	
 Daunting Defender	d021c9c7280589a8	4	0/0		0/0	
+Dawning Angel	25fc8287ece95c98	4	1/1		0/1	ix:resp
 Demon's Disciple	b542ff135c11a3e0	7	1/1		0/1	ix:resp
 Dense Foliage	da2e1ddb70c32401	4	0/0		0/0	
 Deputized Protester	d2d1977ef7339d0b	4	1/1		0/1	ix:resp
 Desolate Mire	27c413ad855cebb6	25	1/1		0/1	ix:resp
 Devouring Light	3d885059f5cae683	4	0/0		2/2	
+Dina, Soul Steeper	991b6133f6a91023	4	2/2		0/1	ix:resp
 Dragon-Scarred Bear	e805e7430bb795aa	3	1/1		0/1	ix:resp
 Dream Thief	43f190c64da0149e	4	1/1		0/1	ix:resp
 Drillworks Mole	3e28842be3313a86	4	1/1		0/1	ix:resp
@@ -38,19 +48,26 @@ Drossclaw	45681f91bd582e35	8	3/3		1/1
 Drown in Dreams	b22d28d3873f7812	3	0/0		2/4	f0/s/x0,ix:resp
 Dualcaster Mage	99286be00be1230f	4	1/1		0/1	ix:resp
 Duplicant	bbb589d10e319964	29	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Eccentric Pestfinder	73e419f8bdb04084	11	1/1		1/2	ix:resp
 Emperor Crocodile	5a8629a1e375ce45	36	1/1		1/1	
 Enrage	a1bf4a862082a501	4	0/0		4/4	
+Erstwhile Trooper	4de71381fff33796	6	1/1		0/1	ix:resp
+Farewell	60cbd609044c3546	4	0/0		1/2	ix:resp
 Fateful Showdown	16712446c3ddc5d1	6	0/0		1/2	ix:resp
 Feral Instinct	02ccc1ae5fb769a2	3	0/0		1/2	ix:resp
 Fetid Imp	ea1ab007dfd1789d	4	1/1		1/1	
 Fiendslayer Paladin	68edba6adbfbd593	8	0/0		0/0	
+Flatman	e606e0b81146a517	4	1/1		0/1	ix:resp
+Foxfire Oak	d7c598193f362cc2	8	1/1		1/1	
 Gift of Fangs	49cc6cc04d154a07	3	0/0		1/2	ix:resp
 Gingerbread Cabin	d4e8fb080b7c2502	21	2/2		0/1	ix:resp
 Goblin Deathraiders	a2f8bdec89dbd670	3	0/0		0/0	
 Great Defender	a82248cd82c9c7cd	4	0/0		2/2	
 Greater Harvester	67536f9bd0946c68	9	2/2		0/1	ix:resp
+Grim Tutor	3c205ffe7a0c8491	7	0/0		1/2	ix:resp
 Harmless Assault	224f5a7b744103fe	4	0/0		1/2	ix:resp
 Hero of the Dunes	8380f47d67a5b93b	3	1/1		0/1	ix:resp
+Hulk, Brutal Brawler	fc14624be05b6a75	3	1/1		0/1	ix:resp
 Imaginary Pet	0e7501875523b3a8	77	1/1		1/1	
 Immortal Phoenix	47186dba1a240707	3	1/1		0/1	ix:resp
 Incisor Steed	b63c79756c62d52d	7	0/0		0/0	
@@ -58,17 +75,25 @@ Inspire Awe	4ba7bf93e292aa35	5	0/0		2/2
 Jade Idol	2bdcbfab3f7d428f	3	1/1		0/1	ix:resp
 Jolrael, Voice of Zhalfir	d820dbaa78d6c5dd	4	2/2		1/1	
 Khenra Eternal	bbfaac847623256e	8	1/1		1/1	
+Kodama's Reach	d19ff79f49b69152	5	0/0		1/2	ix:resp
 Leyline of Punishment	a208ab9103b24afb	3	0/0		0/0	
+Lightwielder Paladin	51c47c5f3b89f4eb	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Lorthos, the Tidemaker	5cd3c3c9c194785c	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Lost in the Spirit World	ff870131f7c9ca10	3	0/0		2/2	
 Magma Vein	6e94436e204467e7	3	1/1		0/1	ix:resp
 Magmatic Insight	7901a11ab195cae6	7	0/0		1/2	ix:resp
 Malcator's Watcher	d42856a10f0dca0c	6	1/1		0/1	ix:resp
+Mammoth Spider	410d08abdb4992a4	5	0/0		0/0	
+Manalith	10e562077c0eb5e6	3	1/1		0/1	ix:resp
 Marauding Boneslasher	383717ee901563ee	4	0/0		0/0	
 Mardu Woe-Reaper	5366c241abe69207	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Masked Blackguard	a8a142ebd47fd68d	8	1/1		1/1	
+Maze Rusher	a3c81f9a2ec016a3	3	0/0		0/0	
 Mobile Fort	8fb50bf5e67964bd	3	1/1		0/1	ix:resp
 Mox Tantalite	149b5f504ed2bfc3	3	1/1		2/3	cast/alt:none
 Mystic Skull	e5c2c5d6f020d251	8	2/2		0/1	ix:resp
 Nakaya Shade	77d4ecf82513a3d3	3	1/1		0/1	ix:resp
+Niv-Mizzet, the Firemind	8d68d2e5cd5eab0c	5	2/2		1/1	
 Obelisk of Grixis	69966ddbffaee50e	5	1/1		1/1	
 Ogre Taskmaster	e40b726704d6de3b	4	0/0		0/0	
 One-Eyed Scarecrow	9669377b038f6ce4	6	0/0		0/0	
@@ -76,6 +101,7 @@ Order of the Sacred Torch	20352d2e79268215	3	1/1		0/1	ix:resp
 Panic Attack	0a7af9390a6bd1c1	5	0/0		1/2	ix:resp
 Patrol Hound	6e56df4436bb59e9	4	1/1		1/1	
 Port Inspector	2f98da0bf5ec62eb	8	1/1		0/1	ix:resp
+Psychic Frog	91af151d2d51e669	3	3/3		1/1	
 Quirion Explorer	a3c1cbfd3451cdd8	16	1/1		0/1	ix:resp
 Rampaging Cyclops	a138ac690caa5681	6	0/0		0/0	
 Raugrin Triome	39799887a771fa09	9	4/4		0/1	ix:resp
@@ -103,6 +129,7 @@ Songstitcher	07f782d03a8a7056	4	1/1		1/1
 Soulmender	dc0f19e97ad76507	5	1/1		0/1	ix:resp
 Spike Breeder	709b8664e1a15f2b	10	2/2		1/1	
 Spirited Companion	02235b86b60a6f7d	8	1/1		0/1	ix:resp
+Spiteful Squad	9f673f527e4ce775	4	1/1		0/1	ix:resp
 Sultai Emissary	6bc1390b0e128231	6	1/1		0/1	ix:resp
 Swarm Surge	d7fa16679eca28fa	4	0/0		1/2	ix:resp
 Sword of the Animist	7f2ad10e57426a0e	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -111,8 +138,10 @@ Tamiyo's Immobilizer	514bf77414e6d8bb	4	1/1		0/1	ix:resp
 Tamiyo's Safekeeping	fa01c64cc04388d8	6	0/0		1/2	ix:resp
 Tempestra, Dame of Games	1818e85c0ea1f3e0	6	1/1		0/1	ix:resp
 Thirst for Discovery	4f2561b8d54e5c24	4	0/0		1/2	ix:resp
+Thrilling Encore	53c365c97c426094	6	0/0		1/2	ix:resp
 Timbermaw Larva	515bc614f12d368b	13	1/1		0/1	ix:resp
 Timin, Youthful Geist	0491e6f40d3d4d37	3	2/2		0/1	ix:resp
+Tomebound Lich	b74b2889d01f7ff6	4	2/2		0/1	ix:resp
 Trail of Evidence	f3e2493fcdd81f53	4	1/1		0/1	ix:resp
 Trailblazing Historian	476f0bee39e5ea06	11	1/1		1/1	
 Twilight's Call	3ebfc346cf090897	4	0/0		1/2	ix:resp
@@ -126,3 +155,4 @@ Waterknot	05167c17b6f76869	6	1/1		2/2
 Whiptail Moloch	a967abda94d124df	4	1/1		0/1	ix:resp
 Winding Canyons	a84f2042f7d681ba	27	2/2		1/1	
 Zealot's Conviction	c407e402be3771ac	4	0/0		1/2	ix:resp
+Zuran Enchanter	a2f171098b78c241	6	1/1		0/1	ix:resp

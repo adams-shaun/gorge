@@ -1,4 +1,5 @@
 A-Asari Captain
+Abomination of Llanowar
 Acquisition Octopus
 Act on Impulse
 Aerial Responder
@@ -9,6 +10,7 @@ Akroma's Devoted
 Al-abara's Carpet
 Aladdin
 Amass the Components
+Amrou Seekers
 Ancient Spider
 Angel's Mercy
 Angelic Ascension
@@ -43,6 +45,7 @@ Bonds of Mortality
 Bottomless Vault
 Branchsnap Lorian
 Brigone, Soldier of Meletis
+Browbeat
 Burrenton Shield-Bearers
 Butcher of Malakir
 Canopy Claws
@@ -51,6 +54,7 @@ Canyon Wildcat
 Caravan Hurda
 Catapult Fodder
 Caustic Tar
+Cerulean Sphinx
 Chandra's Defeat
 Chandra's Pyreling
 Chasm Guide
@@ -63,8 +67,10 @@ Coma Veil
 Composer of Spring
 Consign to the Pit
 Containment Breach
+Contingency Plan
 Coral Eel
 Council's Judgment
+Cowardice
 Cragplate Baloth
 Cunning Lethemancer
 Curate
@@ -80,6 +86,7 @@ Desert Nomads
 Desert of the True
 Dig Up
 Dismiss into Dream
+Dispersal Technician
 Doomed Artisan
 Doomed Traveler
 Dragonlair Spider
@@ -98,6 +105,7 @@ Enthralling Victor
 Environmental Sciences
 Erkenbrand, Lord of Westfold
 Errant Doomsayers
+Esper Cormorants
 Ethereal Whiskergill
 Etherium Abomination
 Evil Presence
@@ -140,6 +148,7 @@ Gimli's Reckless Might
 Glacial Grasp
 Go-Shintai of Ancient Wars
 Goatnapper
+Goblin Outlander
 Goblin Piledriver
 Goblin Ruinblaster
 Golden Demise
@@ -210,6 +219,7 @@ Lunk Errant
 Lurking Nightstalker
 Mad Dog
 Magus of the Order
+Mahadi, Emporium Master
 Manifold Key
 March of the Drowned
 Masked Blackguard
@@ -239,6 +249,7 @@ Opal Acrolith
 Open Fire
 Oran-Rief Hydra
 Orbs of Warding
+Orcish Spy
 Orim's Prayer
 Owl Familiar
 Pallid Mycoderm
@@ -262,6 +273,7 @@ Plover Knights
 Plundering Predator
 Pollenbright Druid
 Portable Hole
+Preemptive Strike
 Primal Command
 Prismatic Vista
 Quest for the Goblin Lord
@@ -314,8 +326,10 @@ Shimmering Barrier
 Sigarda, Font of Blessings
 Sigiled Behemoth
 Siren Lookout
+Sisay's Ring
 Skull of Orm
 Skyclave Sentinel
+Sleep Paralysis
 Slith Bloodletter
 Slurrk, All-Ingesting
 Smell Fear
@@ -351,6 +365,7 @@ Thalia's Lancers
 The Binding of the Titans
 The Immortal Weapons
 The Stasis Coffin
+Thoughtcutter Agent
 Thriving Isle
 Throne of Empires
 Tibalt, Rakish Instigator
