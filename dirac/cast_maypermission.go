@@ -263,6 +263,25 @@ func (s *State) mayRaiseOwed(k *prep, p uint8, a Action) uint8 {
 	return uint8(s.mayAt(i).turn)
 }
 
+// mayPlayIgnoreColor reports whether a permission record lets p pay the card
+// o's cast with mana of any colour (MayPlayIgnoreColor$ True, Brainstealer
+// Dragon): the record mayPlayAnyType does not price first, whose any-type
+// fold subsumes the any-colour one. The potential planner prices an
+// any-colour may-play cast's coloured pips generic too (pay.PlanManaUnderRider,
+// potentialPinnedColourPlan; CR 609.4b), so grantPlayCost and
+// plannedCastCostOf read this beside mayPlayAnyType.
+func (s *State) mayPlayIgnoreColor(k *prep, p uint8, o Obj) bool {
+	if k.gen == nil || !k.gen.anyMayKind {
+		return false
+	}
+	for i := 0; i < int(s.g.nmay); i++ {
+		if r := *s.mayAt(i); r.obj == o && r.ctrl == p && (r.follows() || r.ver == s.objs[o].ver) && r.kind&kop.MayPlayIgnoreColor != 0 && !s.mayLimitSpent(r) {
+			return true
+		}
+	}
+	return false
+}
+
 // mayPlayAnyType reports whether a permission lets p spend mana of any type on the
 // card o: a record of that kind, or a static (Tinybones).
 func (s *State) mayPlayAnyType(k *prep, p uint8, o Obj) bool {
