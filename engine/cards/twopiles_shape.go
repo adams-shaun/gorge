@@ -64,17 +64,41 @@ func TwoPilesRemembersChosen(sa *SA) bool {
 	return sa != nil && sa.ParamStr(PKRememberChosen) == "True"
 }
 
-// TwoPilesDefinedCardsSupported is the DefinedCards$ card sets the resolver
-// builds: the Remembered/Imprinted/Targeted objects, or the top N cards of the
-// controller's library (Sauron's Ransom's Top_4_OfLibrary). The one home of
-// the list: the resolver reads it through here.
-func TwoPilesDefinedCardsSupported(spec string) bool {
+// TwoPilesSet is the kind of card set a DefinedCards$ value names.
+type TwoPilesSet uint8
+
+// The DefinedCards$ card sets the resolver builds.
+const (
+	TwoPilesSetNone       TwoPilesSet = iota // not a set the resolver builds
+	TwoPilesSetRemembered                    // the Remembered objects
+	TwoPilesSetTargeted                      // the Targeted objects
+	TwoPilesSetImprinted                     // the host's Imprinted objects
+	TwoPilesSetTop                           // the top N of the controller's library
+)
+
+// TwoPilesDefinedCards classifies a DefinedCards$ value; n is the card count
+// of a TwoPilesSetTop (Sauron's Ransom's Top_4_OfLibrary). The one home of the
+// list: the resolver reads it through here.
+func TwoPilesDefinedCards(spec string) (kind TwoPilesSet, n int) {
 	switch spec {
-	case "Remembered", "Targeted", "Imprinted":
-		return true
+	case "Remembered":
+		return TwoPilesSetRemembered, 0
+	case "Targeted":
+		return TwoPilesSetTargeted, 0
+	case "Imprinted":
+		return TwoPilesSetImprinted, 0
 	}
-	_, ok := TwoPilesTopOfLibrary(spec)
-	return ok
+	if n, ok := TwoPilesTopOfLibrary(spec); ok {
+		return TwoPilesSetTop, n
+	}
+	return TwoPilesSetNone, 0
+}
+
+// TwoPilesDefinedCardsSupported reports whether spec is a card set the
+// resolver builds.
+func TwoPilesDefinedCardsSupported(spec string) bool {
+	kind, _ := TwoPilesDefinedCards(spec)
+	return kind != TwoPilesSetNone
 }
 
 // TwoPilesTopOfLibrary parses a "Top_<N>_OfLibrary" DefinedCards$ value

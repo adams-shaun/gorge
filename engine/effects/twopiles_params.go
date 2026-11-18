@@ -47,27 +47,28 @@ func twoPilesRemembersChosen(sa *cards.SA) bool {
 // Targeted, Imprinted, or the top N cards of the controller's library.
 func twoPilesFixedSet(h Host, c *Ctx, spec string) []state.ObjID {
 	g := h.Game()
-	switch spec {
-	case "Imprinted":
+	kind, n := cards.TwoPilesDefinedCards(spec)
+	var set []state.Target
+	switch kind {
+	case cards.TwoPilesSetImprinted:
 		ids, _ := twoPilesPileObjs(h, c, spec)
 		return ids
-	case "Remembered", "Targeted":
-		set := objectsOf(rememberedExcludingCapture(h, c))
-		if spec == "Targeted" {
-			set = objectsOf(c.Targets)
+	case cards.TwoPilesSetTop:
+		lib := zoneOf(g, state.ZLibrary, c.Controller)
+		if len(lib) > n {
+			lib = lib[:n]
 		}
-		ids := make([]state.ObjID, 0, len(set))
-		for _, t := range set {
-			if o := g.Obj(t.Obj); o != nil {
-				ids = append(ids, o.ID)
-			}
+		return append([]state.ObjID(nil), lib...)
+	case cards.TwoPilesSetTargeted:
+		set = objectsOf(c.Targets)
+	default:
+		set = objectsOf(rememberedExcludingCapture(h, c))
+	}
+	ids := make([]state.ObjID, 0, len(set))
+	for _, t := range set {
+		if o := g.Obj(t.Obj); o != nil {
+			ids = append(ids, o.ID)
 		}
-		return ids
 	}
-	n, _ := cards.TwoPilesTopOfLibrary(spec)
-	lib := zoneOf(g, state.ZLibrary, c.Controller)
-	if len(lib) > n {
-		lib = lib[:n]
-	}
-	return append([]state.ObjID(nil), lib...)
+	return ids
 }

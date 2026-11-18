@@ -49,7 +49,7 @@ func effMultiplePiles(h Host, c *Ctx, sa *cards.SA) {
 	// random picks, as the Oracle text sequences them.
 	sets := make([][][]state.ObjID, 0, len(players))
 	for _, p := range players {
-		pool := multiplePilesPool(h, c, shape, p)
+		pool := twoPilesBattlefieldSet(h, c, sa, p)
 		if len(pool) == 0 {
 			sets = append(sets, nil)
 			continue
@@ -63,20 +63,6 @@ func effMultiplePiles(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	twoPilesRunPile(h, c, body, chosen)
-}
-
-// multiplePilesPool is the permanents p controls that the shape's ValidCards$
-// matches, in battlefield order.
-func multiplePilesPool(h Host, c *Ctx, shape cards.MultiplePilesShape, p state.PlayerID) []state.ObjID {
-	g := h.Game()
-	var ids []state.ObjID
-	for _, id := range g.Zone(state.ZBattlefield, p) {
-		if o := g.Obj(id); o != nil && o.Controller == p &&
-			MatchesSpecCtx(g, shape.Valid, id, c.SpecContext(c.Controller)) {
-			ids = append(ids, id)
-		}
-	}
-	return ids
 }
 
 // multiplePilesSeparate asks sep to divide pool into n piles: for each of the
