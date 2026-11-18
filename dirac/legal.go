@@ -1981,7 +1981,7 @@ func (s *State) censusDynamicAb(k *prep, sl Slot, ab *kop.Ability, c *potCensus,
 		return false
 	}
 	fold(sl, uint8(ab.ManaColors), potentialOpenUnits)
-	c.recTapDrop(sl, uint8(ab.ManaColors), uint8(min(s.dynManaN(k, ab, sl), 255)), drop) // a lethal-guard refusal records no unit
+	c.recTapDrop(sl, uint8(ab.ManaColors), uint8(min(max(s.dynManaN(k, ab, sl), 0), 255)), drop) // a lethal-guard refusal records no unit; a negative amount (a Vivi Ornitier shrunk below 0 power) makes nothing, never a wrapped uint8 (CR 107.1b)
 	return true
 }
 
