@@ -51,6 +51,14 @@ ALWAYS = ("./internal/archtest", "./internal/codeshape")
 # tests that glob the directory and the per-pool lockstep replays (about a minute, not the whole package).
 REPRO_DIR = "dirac/oracle/testdata/repro/"
 REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
+# Every committed recording's replay (the Std pool families and the ~540 per-card `TestMBC*Repros*Lockstep`) and
+# the refusal-staleness check: about 2.5 min at 4 cores on ./dirac/oracle (11-18, against >15 min for every
+# *Lockstep test). They run whenever a source change reaches ./dirac/oracle (cause 64, 11-18: #1273 changed
+# dirac/filters_gen.go's X-target offer, its `fast` ran the oracle's census only and was green, and its batch
+# went red on TestMBCDominateReprosLockstep and TestMBCSpellBurstReprosLockstep; nothing before the batch ran
+# them), and when a recording changes.
+REPLAYS = "^Test[A-Za-z0-9_]*Repros?[A-Za-z0-9_]*Lockstep[A-Za-z0-9_]*$|^TestRefusedEntriesStillDiverge$"
+REPRO_TESTS = REPRO_TESTS + "|" + REPLAYS
 # Pinned$..OnlyGrows: the pin and registration ratchets whose names carry none of the words before them (11-17:
 # #611 registered kw:Modular, left its pin in granted-keyword-gaps.txt, and TestGrantedKeywordHeadsAreRegisteredOrPinned
 # failed only in the Mergify batch, three times). About 66 tests in engine/rules and engine/effects, ~5 s.
@@ -410,6 +418,10 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
         if lp not in out or out[lp][0] != "whole":
             if lp not in HEAVY:
                 out[lp] = ("whole", lp, "")
+            elif lp == ORACLE:
+                # a source change the oracle imports can move any recording's replay (REPLAYS above)
+                rx = out[lp][2] if lp in out else CENSUS
+                out[lp] = ("named", lp, rx if REPLAYS in rx else rx + "|" + REPLAYS)
             elif lp not in out:
                 out[lp] = ("census", lp, CENSUS)
     for lp, rx in GUARDS:
