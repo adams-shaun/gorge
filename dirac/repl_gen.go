@@ -542,26 +542,60 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		}
 	}
 	if fe.dst != NoSlot && s.prevCombatTo(k, fe.dst) {
-		if n == len(ro.cand) {
-			s.capFull(StallShield) // loud: never truncate the candidates
-			return n
+		// one candidate per granted Effect record covering the To side (two
+		// Mazes of Ith on one creature are two Effects in gorge, CR 616.1),
+		// then the permanent's own candidate for a printed fact or a
+		// pump/static-granted bit without a record (gorge scans its Effect
+		// candidates before the cards' face replacements)
+		var gs [4]Obj
+		m := s.prevGrantCands(k, fe.dst, false, true, gs[:])
+		for _, o := range gs[:m] {
+			if n == len(ro.cand) {
+				s.capFull(StallShield) // loud: never truncate the candidates
+				return n
+			}
+			ro.cand[n] = o
+			ro.prev |= 1 << n
+			n++
 		}
-		ro.cand[n] = s.perms[fe.dst].obj
-		ro.prev |= 1 << n
-		n++
+		if (m == 0 && s.kwGen(k, fe.dst)&kop.KwPreventCombatDamageTo != 0) ||
+			k.gen != nil && k.gen.replBits[s.cardAt(fe.dst)]&(rbPrevCombatTo|rbPrevDmgTo) != 0 && !s.genLost(k, fe.dst) {
+			if n == len(ro.cand) {
+				s.capFull(StallShield) // loud: never truncate the candidates
+				return n
+			}
+			ro.cand[n] = s.perms[fe.dst].obj
+			ro.prev |= 1 << n
+			n++
+		}
 	}
 	if g.anyPrevFrom && s.prevFromGrant(k, fsl) {
 		// the source's granted prevention (Maze of Ith's Effect, gorge's
 		// bodyless Prevent$ ValidSource$ Card.IsRemembered line) is a
 		// candidate of its own: an Effect, so after the printed and
-		// keyword matches (preventFromGen removes the event once asked)
-		if n == len(ro.cand) {
-			s.capFull(StallReplCands) // loud: never truncate the candidates
-			return n
+		// keyword matches (preventFromGen removes the event once asked) —
+		// one candidate per live Effect record; a pump-granted bit without
+		// a record is one candidate naming the protected source
+		var gs [4]Obj
+		if m := s.prevGrantCands(k, fsl, true, false, gs[:]); m > 0 {
+			for _, o := range gs[:m] {
+				if n == len(ro.cand) {
+					s.capFull(StallReplCands) // loud: never truncate the candidates
+					return n
+				}
+				ro.cand[n] = o
+				ro.prev |= 1 << n
+				n++
+			}
+		} else {
+			if n == len(ro.cand) {
+				s.capFull(StallReplCands) // loud: never truncate the candidates
+				return n
+			}
+			ro.cand[n] = s.perms[fsl].obj
+			ro.prev |= 1 << n
+			n++
 		}
-		ro.cand[n] = s.perms[fsl].obj
-		ro.prev |= 1 << n
-		n++
 	}
 	if g.anyRepl&rbPrevCol != 0 {
 		// Ext PreventColor's effect records (cast_altfree.go)
@@ -774,6 +808,13 @@ func (s *State) replCandLive(k *prep, i int) bool {
 	}
 	if ro.pcol&(1<<i) != 0 {
 		return (ro.askD == NoSlot || s.occ.has(ro.askD)) && !s.noPrev(k, true) // an effect record: it lasts the turn
+	}
+	// a granted Effect record's candidate names the granting object, not the
+	// permanent it protects: it is live while the record is (its protected
+	// slot holds it, the grantor may fall), with the recipient still one
+	if ro.prev&(1<<i) != 0 && ro.shld&(1<<i) == 0 && ro.plus&(1<<i) == 0 &&
+		(s.prevGrantNamed(ro.askS, ro.cand[i]) || ro.askD != NoSlot && s.prevGrantNamed(ro.askD, ro.cand[i])) {
+		return !s.noPrev(k, true) && (ro.askD == NoSlot || s.occ.has(ro.askD))
 	}
 	ob := &s.objs[ro.cand[i]]
 	if ob.zone != kop.ZoneBattlefield || ro.askD != NoSlot && !s.occ.has(ro.askD) {
@@ -1000,19 +1041,11 @@ func (s *State) replOrderOptions(d *Decision) {
 			o := ro.cand[i]
 			if ro.pnx&(1<<i) != 0 {
 				o = s.g.prevCol[o].obj // a shield's option names its source
-			} else if ro.on && ro.prev&(1<<i) != 0 && ro.pcol&(1<<i) == 0 && ro.shld&(1<<i) == 0 {
-				// a granted combat-damage prevention is gorge's Effect: its
-				// option names the granting object, not the protected one
-				if o == s.perms[ro.askS].obj {
-					if gs := s.prevGrantSrc(ro.askS); gs != NoObj {
-						o = gs
-					}
-				} else if ro.askD != NoSlot && o == s.perms[ro.askD].obj {
-					if gs := s.prevGrantSrc(ro.askD); gs != NoObj {
-						o = gs
-					}
-				}
 			}
+			// a granted combat-damage prevention's candidates name the
+			// granting object already (replOrderCandsFz: one per Effect
+			// record, CR 616.1); the printed or pump-granted one without a
+			// record names the permanent it protects, as gorge's does
 			d.add(MakeAction(AkChoose, TCode(o), 0, uint8(i))) // mode: gorge's scan index
 		}
 	}
