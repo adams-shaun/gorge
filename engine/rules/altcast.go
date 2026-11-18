@@ -302,13 +302,22 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 	// still cannot pay (PotentialPaymentPlans' proof). A counter-cost source
 	// the census misses (Vivid Creek's "{T}, remove a charge counter: one mana
 	// of any color") can still make the owed colour (CR 601.2g).
+	// creditless: no convoke or improvise tap exists to take and no delve, so
+	// the printed credit keywords reprice nothing (CR 702.51a, 702.66a, 702.138a)
+	// and the planner's "cost:credit" non-proof is its plain "insufficient".
+	// Set below, once the greedy credit is taken.
+	creditless := false
 	provenUnpayable := func() bool {
 		e.beginDerivedMemo()
 		defer e.endDerivedMemo()
 		defer pay.PaymentPlanQueryEnd(asPayer(e), pay.PaymentPlanQueryBegin(asPayer(e)))
 		o := decision.Option{Kind: "cast", Obj: card.ID, Mode: altMode(altMadness)}
 		verdict := func() PaymentPlanOutcome { return e.potentialModeCastPlan(card.Owner, o) }
-		if got := verdict(); got.Plan != nil || got.Reason != pay.ReasonInsufficient {
+		got := verdict()
+		if creditless && got.Plan == nil && got.Reason == pay.ReasonUnsupported && got.Detail == pay.DetailCostCredit {
+			got.Reason = pay.ReasonInsufficient
+		}
+		if got.Plan != nil || got.Reason != pay.ReasonInsufficient {
 			return false
 		}
 		hyp := e.PotentialMana(card.Owner)
@@ -318,7 +327,7 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 		}
 		// Energy Refractor's "{2}: Add one mana of any color" is a gap with no
 		// relaxation, yet it never raises the mana total: the count proof.
-		credit := e.hasCastConvoke(card.ID) || e.hasCastImprovise(card.ID) || e.hasCastDelve(card.ID, false)
+		credit := !creditless
 		return !census.gapGains && costOutrunsSupply(asPayer(e), card.Owner, int32(e.G.Players[card.Owner].Pool.Total()),
 			e.offerCostFor(card.Owner, card.ID, cost, spellScope(m.mode)), credit)
 	}
@@ -327,7 +336,8 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 	// greedy credit castOfferBase gives a printed-cost cast (the commitment
 	// stays with convokeAsk). Both are the identity on a card without them.
 	offerCost, taps := e.convokeCost(card.Owner, card.ID, cost)
-	offerCost, _ = e.improviseCost(card.Owner, card.ID, offerCost, taps)
+	offerCost, itaps := e.improviseCost(card.Owner, card.ID, offerCost, taps)
+	creditless = len(taps) == 0 && len(itaps) == 0 && !e.hasCastDelve(card.ID, false)
 	if e.offerCastablePotential(card.Owner, card.ID, offerCost, spellScope(m.mode), false) &&
 		!provenUnpayable() &&
 		e.castTargetsAvailable(card.Owner, card.ID, card.Face().SpellAbility()) {

@@ -54,3 +54,29 @@ func costOutrunsSupply(pe pay.Engine, p state.PlayerID, poolMana int32, c Cost, 
 	}
 	return supply < c.CMC()
 }
+
+// manaTapAbilityNetsNoMore reports a mana ability whose whole cost c is {T}
+// and which makes no more mana than best, the most a source of the census
+// already makes from its covered abilities: Chromatic Lantern's granted
+// "{T}: Add one mana of any color" on a Swamp that already taps for {B}. The
+// source taps once (CR 106.1, 605.3b), so the ability swaps one mana for
+// another and never raises the count the census prices. A dynamic Amount$, or
+// a tap trigger that adds mana beside it (extra, CR 605.4a), is not provable.
+func manaTapAbilityNetsNoMore(c costvocab.Cost, mp *effects.ManaParams, extra state.Mana, best int32) bool {
+	want := costvocab.Cost{Tap: c.Tap}
+	if !c.Tap || !c.Equal(&want) || best <= 0 {
+		return false
+	}
+	amt := availableAmountOf(mp)
+	if amt <= 0 {
+		return false
+	}
+	made := amt
+	if !mp.CountsAny {
+		made = 0
+		for _, n := range mp.Counts {
+			made += n * amt
+		}
+	}
+	return made <= best && extra.Total() == 0
+}
