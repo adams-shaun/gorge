@@ -70,6 +70,15 @@ const (
 // ZonePhasedInd).
 func (z Zone) Phased() bool { return z == ZonePhased || z == ZonePhasedInd }
 
+// CDAFace is a CDA-folded card's own colours, card types and changeling
+// bit (CardDef.CDAFace). Folded is false for any other card.
+type CDAFace struct {
+	Folded           bool
+	Types            TypeMask
+	Colors           ColorMask
+	AllCreatureTypes bool
+}
+
 // CardDef is one card's static record.
 type CardDef struct {
 	Name      string // reports only
@@ -322,11 +331,18 @@ type CardDef struct {
 	// type, also one outside the matchup's subtypes (a chosen type).
 	AllCreatureTypes bool
 	// PrintedSubtypes is a changeling's printed subtypes, before kgen adds
-	// every matchup creature type to Subtypes; zero for any other card, whose
-	// Subtypes are its printed ones. gorge lists a creature-type choice's
+	// every matchup creature type to Subtypes, or a CDA-folded card's own
+	// (CDAFace); zero for any other card, whose Subtypes are its printed ones. gorge lists a creature-type choice's
 	// options with the printed types its chooser owns first
 	// (rules.creatureTypeOptions), which the heuristic bot reads.
 	PrintedSubtypes SubMask
+	// CDAFace is the face's own characteristics when kgen folded a
+	// characteristic-defining colour or type static into Colors, Types,
+	// Subtypes and AllCreatureTypes (kgen lower_cdacolortype.go); its
+	// subtypes are then PrintedSubtypes. A phased-out permanent shows them:
+	// gorge applies no static of a phased-out permanent (rules/layers.go,
+	// matchesWithCharsPT; dirac/projchars.go).
+	CDAFace CDAFace
 	// Faces is a multi-face card's faces (CR 712b): each face's
 	// CardID, Faces[0] the front; every face's def carries the same list
 	// and Face is its own index (gorge's Object.FaceIdx). FaceMode is the

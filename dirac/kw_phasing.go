@@ -366,7 +366,12 @@ func (s *State) phasedTypes(k *prep, sl Slot, base kop.TypeMask) kop.TypeMask {
 //
 //go:noinline
 func (s *State) phasedIsCreature(k *prep, sl Slot) bool {
-	return s.phasedTypes(k, sl, k.t.Cards[s.cardAt(sl)].Types&^kop.TToken)&kop.TCreature != 0
+	cd := &k.t.Cards[s.cardAt(sl)]
+	t := cd.Types
+	if cd.CDAFace.Folded {
+		t = cd.CDAFace.Types // its folded CDA does not apply (ProjectChars)
+	}
+	return s.phasedTypes(k, sl, t&^kop.TToken)&kop.TCreature != 0
 }
 
 // phasedPTShown reports whether the projection writes Power/Toughness for

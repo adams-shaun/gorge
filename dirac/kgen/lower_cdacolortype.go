@@ -57,6 +57,10 @@ func (lc *lowerCtx) cdaColorType(sp *params, st *lStatic, aff string) (folded bo
 			subs = append(subs, w)
 		}
 	}
+	if lc.out.CDAFace == nil {
+		lc.out.CDAFace = &lCDAFace{Types: lc.out.Types, Subtypes: append([]string(nil), lc.out.Subtypes...),
+			Colors: lc.out.Colors, Changeling: lc.out.Changeling}
+	}
 	if hasCol {
 		lc.out.Colors = cols
 	}
@@ -74,4 +78,15 @@ func (lc *lowerCtx) cdaColorType(sp *params, st *lStatic, aff string) (folded bo
 		lc.out.Changeling = true
 	}
 	return true, nil
+}
+
+// lCDAFace is a card's own type line, colours and changeling bit as the
+// record held them before cdaColorType's first fold. A phased-out permanent
+// shows them (kop.CardDef.CDAFace): gorge applies no static of a phased-out
+// permanent, its CDA included (rules/layers.go, matchesWithCharsPT).
+type lCDAFace struct {
+	Types      uint16
+	Subtypes   []string
+	Colors     string
+	Changeling bool
 }
