@@ -21,7 +21,10 @@ import (
 type ColourCap struct {
 	need, held state.Mana
 	best       []state.Mana
-	on         bool
+	// extra is each unit's best no-tap second activation (WindowUnit.Extras):
+	// a unit already spent on its main activation can still take it.
+	extra []state.Mana
+	on    bool
 }
 
 // NewColourCap builds the bound for c over units (in the walk's order, the
@@ -40,18 +43,33 @@ func NewColourCap(c cost.Cost, held state.Mana, rider PipRider, conv *Conv, bLif
 	}
 	k.on = true
 	k.best = make([]state.Mana, len(units))
+	k.extra = make([]state.Mana, len(units))
+	mana := func(a WindowAlt) state.Mana {
+		m := a.Mana()
+		if a.Any {
+			// An open choice may come out as any type of mana.
+			t := m.Total()
+			for j := range m {
+				m[j] = t
+			}
+		}
+		return m
+	}
 	for i, u := range units {
 		for _, a := range u.Alts {
-			m := a.Mana()
-			if a.Any {
-				// An open choice may come out as any type of mana.
-				t := m.Total()
-				for j := range m {
-					m[j] = t
-				}
-			}
+			m := mana(a)
 			for j := range m {
 				k.best[i][j] = max(k.best[i][j], m[j])
+			}
+		}
+		// A no-tap self-sacrifice beside the unit's tap is a second
+		// activation, so its colours are reachable too (cast_window.go),
+		// even after the unit's main activation has been spent.
+		for _, a := range u.Extras {
+			m := mana(a)
+			for j := range m {
+				k.best[i][j] = max(k.best[i][j], m[j])
+				k.extra[i][j] = max(k.extra[i][j], m[j])
 			}
 		}
 	}
@@ -75,6 +93,10 @@ func (k *ColourCap) Reaches(pool state.Mana, used []bool) bool {
 			}
 			if !used[i] {
 				have += int64(k.best[i][j])
+			} else {
+				// The main activation is spent; the unit's no-tap extra
+				// (its self-sacrifice) is still activatable.
+				have += int64(k.extra[i][j])
 			}
 		}
 		if have < int64(n) {
