@@ -1,5 +1,6 @@
 Accursed Duneyard
 Acid Web Spider
+Adamaro, First to Desire
 Aether Poisoner
 Aethergeode Miner
 Aetheric Amplifier
@@ -7,6 +8,8 @@ Akki Underling
 Akroan Jailer
 Alpine Meadow
 Amaranthine Wall
+Ammit Eternal
+Angel's Feather
 Angelic Wall
 Anointed Procession
 Assault Griffin
@@ -16,12 +19,15 @@ Azorius Locket
 Barrowgoyf
 Basal Thrull
 Bitterthorn, Nissa's Animus
+Blighted Shaman
 Blood Reckoning
 Blood on the Snow
 Broken Visage
 Brokers Hideout
 Bull Cerodon
 Cabal Therapist
+Captain America's Motorcycle
+Cavern Harpy
 Cephalid Vandal
 Charging Paladin
 Cinder Giant
@@ -29,10 +35,12 @@ Citadel Castellan
 Clockwork Vorrac
 Clot Sliver
 Cloudreader Sphinx
+Clutch of the Undercity
 Colorful Feiyi Sparrow
 Coral Net
 Corpulent Corpse
 Crushing Disappointment
+Crystal Ball
 Curse of Bounty
 Curse of Shallow Graves
 Cursed Wombat
@@ -42,12 +50,14 @@ Daring Fiendbonder
 Deeptread Merrow
 Devotee of Strength
 Didgeridoo
+Dimir Locket
 Disrupt
 Djeru's Renunciation
 Dramatic Reversal
 Dredge
 Drowner of Secrets
 Eladamri, Lord of Leaves
+Electrickery
 Elvish Archers
 Embersmith
 Errant and Giada
@@ -60,8 +70,13 @@ Fade into Antiquity
 Faerie Guidemother
 Faith's Reward
 Fated Intervention
+Fencer Clique
+Feral Deceiver
+Festergloom
 Fey Steed
 Fill with Fright
+Fire of Orthanc
+Flameborn Viron
 Flamecast Wheel
 Forest
 Fractal Summoning
@@ -69,6 +84,8 @@ Ghastly Demise
 Ghostfire
 Gilacorn
 Gnawing Zombie
+Grapple with the Past
+Grave Peril
 Gruesome Discovery
 Hallowed Spiritkeeper
 Heavy Infantry
@@ -86,10 +103,12 @@ Island
 Isolate
 Jace's Scrutiny
 James, Wandering Dad
+Jarad's Orders
 Jeskai Runemark
 Kasmina's Transmutation
 Keeper of Fables
 King Harald's Revenge
+Kobold Taskmaster
 Kongming, "Sleeping Dragon"
 Labyrinth Adversary
 Lazotep Reaver
@@ -99,6 +118,7 @@ Loam Dryad
 Lorehold Command
 Lorescale Coatl
 Malakir Bloodwitch
+Malleable Impostor
 Matt Murdock, Justice Seeker
 Matter Reshaper
 Mausoleum Secrets
@@ -110,6 +130,7 @@ Moonblade Shinobi
 Mother Kangaroo
 Mountain
 Murkfiend Liege
+Mysterio's Mirage
 Nagging Thoughts
 Needle Spires
 Niblis of the Urn
@@ -117,12 +138,15 @@ Nyxborn Eidolon
 Oashra Cultivator
 Ominous Cemetery
 Ornate Kanzashi
+Oxidda Scrapmelter
 Phantasmal Dragon
 Plains
 Plaxmanta
 Plummet
 Pol Jamaar, Illusionist
+Priest of Gix
 Proud Pack-Rhino
+Psychic Strike
 Rakdos Ragemutt
 Ranging Raptors
 Ray of Erasure
@@ -139,10 +163,14 @@ Rustrazor Butcher
 Sangrophage
 Scaled Herbalist
 Scrapper Champion
+Sentinel Sliver
+Serene Offering
 Shambling Ghoul
 Shefet Dunes
+Shivan Harvest
 Short Sword
 Silburlind Snapper
+Silvar, Devourer of the Free
 Sledding Otter-Penguin
 Slither Blade
 Snag
@@ -158,8 +186,10 @@ Strangling Soot
 Strangling Spores
 Stratozeppelid
 Stronghold Discipline
+Surrakar Banisher
 Suture Priest
 Swamp
+Swift Spinner
 Tattered Mummy
 Tel-Jilad Justice
 The Whizzer, Classic Speedster
@@ -169,6 +199,8 @@ Tishana's Wayfinder
 Tokka & Rahzar, Unsupervised
 Tower of Eons
 Tranquil Path
+Traumatize
+Trespasser il-Vec
 Treva's Ruins
 Tune the Narrative
 Twin-Silk Spider
@@ -185,3 +217,4 @@ Yavimaya Granger
 Yotian Frontliner
 Zephyr Falcon
 Zephyr Gull
+Zhalfirin Shapecraft

@@ -234,6 +234,7 @@ Luminarch Aspirant
 Lurking Deadeye
 Luxa River Shrine
 MJ, Rising Star
+Macetail Hystrodon
 Magmaw
 Malefic Scythe
 Mardu Hordechief
@@ -288,6 +289,7 @@ Pulsemage Advocate
 Punish the Enemy
 Pursuit of Flight
 Quest for Pure Flame
+Rakdos Charm
 Rally the Forces
 Ravenous Rats
 Razortip Whip

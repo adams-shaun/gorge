@@ -49,6 +49,7 @@ Bone Pit Brute
 Boomerang
 Boon Satyr
 Boon of Safety
+Bounty of Might
 Bower Passage
 Braingeyser
 Bull Rush
@@ -245,6 +246,7 @@ Murasa Ranger
 Myojin of Blooming Dawn
 Myr Retriever
 Myth Realized
+Nefashu
 Nexus of Fate
 Nezumi Graverobber
 Nightmare Shepherd

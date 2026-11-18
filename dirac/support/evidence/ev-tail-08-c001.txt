@@ -1,4 +1,5 @@
 Abbey Griffin
+Acceptable Losses
 Aerial Caravan
 Aether Herder
 Akoum Hellkite
@@ -25,6 +26,7 @@ Bequeathal
 Black Market Tycoon
 Blind-Spot Giant
 Blood Age General
+Blood Divination
 Blood Glutton
 Blood Seeker
 Blur Sliver
@@ -71,8 +73,11 @@ Denizen of the Deep
 Devil's Play
 Devouring Deep
 Disposal Mummy
+Divest
 Djinn of Infinite Deceits
+Domestication
 Drana's Emissary
+Dread Specter
 Dream Prowler
 Dromoka's Gift
 Drudge Reavers
@@ -104,6 +109,7 @@ Forest
 Foundry Inspector
 Frenetic Efreet
 Fruit of Tizerus
+Funnel-Web Recluse
 Fyndhorn Elder
 Garruk's Horde
 Geralf's Messenger
@@ -112,6 +118,7 @@ Ghost-Lit Raider
 Giant Inheritance
 Glarewielder
 Glimpse the Future
+Gloomlance
 Goblin Brigand
 Goblin Heelcutter
 Goblin Sky Raider
@@ -120,6 +127,7 @@ Goggles of Night
 Grid Monitor
 Hag of Noxious Nightmares
 Hallowed Haunting
+Halvar, God of Battle
 Hammerheim Deadeye
 Hazardous Conditions
 Henrika Domnathi
@@ -167,6 +175,7 @@ Magmaroth
 Magmatic Force
 Mana Leak
 Marionette Apprentice
+Marsh Casualties
 Mascot Exhibition
 Mass Appeal
 Mass Diminish
@@ -181,6 +190,7 @@ Mogg Squad
 Moldering Karok
 Mona Lisa, Ever Adaptable
 Moonsilver Key
+Moroii
 Mortal's Resolve
 Mother Kangaroo
 Mountain
@@ -224,6 +234,7 @@ Rat Colony
 Red XIII, Proud Warrior
 Regisaur Alpha
 Relentless Rats
+Relic Bind
 Reverent Mantra
 Riddle Gate Gargoyle
 Righteous Charge
@@ -231,6 +242,7 @@ Righteous Fury
 Rob the Archives
 Rustspore Ram
 Rustwing Falcon
+Ruthless Deathfang
 Scent of Nightshade
 Scrap Mastery
 Screeching Bat
@@ -269,6 +281,7 @@ Stalwart Aven
 Stand
 Static Net
 Staunch Shieldmate
+Staunch Throneguard
 Stitch in Time
 Stonewood Invocation
 Storm Fleet Aerialist
@@ -304,6 +317,7 @@ True Polymorph
 True-Faith Censer
 Trusty Packbeast
 Tukatongue Thallid
+Tyranid Harridan
 Tyranid Prime
 Umara Wizard
 Unbreakable Formation
@@ -319,6 +333,7 @@ Vectis Silencers
 Veilborn Ghoul
 Vengeful Vampire
 Vexilus Praetor
+Victory's Herald
 Vrock
 Vulpine Goliath
 Wall of Opposition

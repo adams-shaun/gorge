@@ -124,6 +124,7 @@ Fade from Memory
 Fae of Wishes
 Fallen Angel
 Favored of Iroas
+Feral Animist
 Fight Rigging
 Final Flare
 Fire Nation Archers
@@ -210,6 +211,7 @@ Key to the City
 Khalni Garden
 Knotvine Paladin
 Kolaghan, the Storm's Fury
+Konda, Lord of Eiganjo
 Korlessa, Scale Singer
 Lampad of Death's Vigil
 Lash of the Balrog

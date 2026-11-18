@@ -310,6 +310,7 @@ Spore Swarm
 Stalking Assassin
 Stampeding Serow
 Steadfast Sentry
+Steelclaw Lance
 Stirring Address
 Stitch Together
 Storm World
@@ -330,6 +331,7 @@ Tear Asunder
 Temur War Shaman
 Tethmos High Priest
 Thallid Germinator
+The Haunt of Hightower
 The Hunger Tide Rises
 The Restoration of Eiganjo
 Thraben Charm

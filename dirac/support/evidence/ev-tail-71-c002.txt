@@ -3,6 +3,7 @@ A-Dokuchi Silencer
 A-Orcish Bowmasters
 A-Skull Skaab
 A-The Meathook Massacre
+Academy Elite
 Aerial Guide
 Alchemax Slayer-Bots
 Alchemist's Gift
@@ -12,6 +13,7 @@ Altar of the Goyf
 Amateur Auteur
 Ambulatory Edifice
 Anaconda
+Ancient Carp
 Angel of Flight Alabaster
 Angel's Tomb
 Arrow Volley Trap
@@ -33,6 +35,7 @@ Bladebrand
 Blazing Volley
 Blind with Anger
 Blood Pet
+Bloodfire Expert
 Bloodvial Purveyor
 Bogbrew Witch
 Bone Pit Brute
@@ -48,6 +51,7 @@ Callous Dismissal
 Campaign of Vengeance
 Canyon Lurkers
 Captivating Gyre
+Cat Oven
 Cathedral Sanctifier
 Caustic Caterpillar
 Cerebral Eruption
@@ -61,6 +65,7 @@ Coordinated Barrage
 Cordial Vampire
 Cosmic Hunger
 Cruel Sadist
+Crumbling Necropolis
 Crypt Cobra
 Crystal Chimes
 Cut Your Losses
@@ -81,8 +86,10 @@ Dockside Chef
 Doomed Necromancer
 Doomed Traveler
 Double Trouble
+Dragon-Cursed Halls
 Dragonscale General
 Drana, Kalastria Bloodchief
+Dune Chanter
 Eccentric Farmer
 Elven Cache
 Elvish Piper
@@ -94,6 +101,7 @@ Eutropia the Twice-Favored
 Evolution Charm
 Expedition Envoy
 Extract from Darkness
+Fallaji Chaindancer
 Fatal Frenzy
 Fated Infatuation
 Ferrovore
@@ -120,6 +128,7 @@ Ghostly Wings
 Giant Inheritance
 Glint
 Gnarled Sage
+Goblin Archaeologist
 Goblin Dirigible
 Gone Missing
 Goretusk Firebeast
@@ -158,6 +167,7 @@ Jeska, Warrior Adept
 Join the Dance
 Jolrael, Empress of Beasts
 Journey for the Elixir
+Junk Jet
 K-9, Mark I
 Kardur's Vicious Return
 Kashi-Tribe Warriors
@@ -196,6 +206,7 @@ Molderhulk
 Molten Ravager
 Momentary Blink
 Monk Idealist
+Morbid Opportunist
 Morningtide
 Mountain
 Mukotai Ambusher
@@ -225,6 +236,7 @@ Pathmaker Initiate
 Phantatog
 Phyrexian Missionary
 Piranha Marsh
+Piston Sledge
 Plains
 Planar Despair
 Predatory Wurm
@@ -339,6 +351,7 @@ Weldfast Wingsmith
 Whirlermaker
 Wing Shards
 Winged Coatl
+Withdraw
 Witherbloom Command
 Wizards of Thay
 Wolfcaller's Howl

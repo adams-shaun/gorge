@@ -263,6 +263,7 @@ Research Thief
 Reservoir Walker
 Rift Sower
 Rimeshield Frost Giant
+Rise from the Tides
 Roil's Retribution
 Royal Trooper
 Sacred Rites
@@ -344,6 +345,7 @@ Triclopean Sight
 Triton Fortune Hunter
 Triton Waverider
 Tsunami
+Turtleshell Changeling
 Twenty-Toed Toad
 Uktabi Drake
 Uncovered Clues

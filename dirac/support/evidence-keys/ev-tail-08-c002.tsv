@@ -1,16 +1,20 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Abbey Griffin	1eb64f82022f6563	9	0/0		0/0	
 Acceptable Losses	f7d19de8f3cb12da	14	0/0		1/2	ix:resp
+Aerial Caravan	e7e106db2565047d	11	1/1		0/1	ix:resp
 Akoum Hellkite	de74c7ed98b7fb36	12	1/1		0/1	ix:resp
 Amnesia	1f8e40d137e355a7	10	0/0		1/2	ix:resp
 Ana Disciple	928160eba07e4669	8	2/2		1/1	
+Arrester's Admonition	f5a89e795a94e17f	35	0/0		2/2	
 Ashiok's Skulker	8e486d5d78619a86	20	1/1		1/1	
+Aura of Silence	4acf76a0c272458a	28	1/1		0/1	ix:resp
 Azami, Lady of Scrolls	3ba50878453ee230	4	1/1		1/1	
 Banewhip Punisher	84b302f6b9c41595	22	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bankrupt in Blood	91ca4491618b56c0	3	0/0		2/2	
 Benalish Marshal	2b64de3935f51e7d	18	0/0		0/0	
 Blizzard Strix	c29d3360abd2e8ee	62	1/1		1/1	
 Blood Seeker	488e1bccb1e47e11	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Blur Sliver	52faf45be9cc0f3f	11	0/0		0/0	
 Boggart Trawler	7cabd884e77d491e	9	2/2		0/1	ix:resp
 Bounty Agent	8a0f559f8511de4d	13	1/1		0/1	ix:resp
 Bronze Sword	70fcf76a2a03f600	6	1/1		0/1	ix:resp
@@ -35,6 +39,7 @@ Devouring Deep	1700f61f0a9542af	17	0/0		0/0
 Diamond Knight	bde0bfba7910254a	19	1/1		0/1	ix:resp
 Divest	931d1a738c02feb2	10	0/0		1/2	ix:resp
 Djinn of Infinite Deceits	ae1906bf66253971	3	1/1		0/1	ix:resp
+Domestication	0f26e2045a93f353	30	1/1		2/2	
 Dread Specter	bd71d1ae875b8b99	29	2/2		1/1	
 Dream Prowler	1774f31e70ea87c2	4	0/0		0/0	
 Dwarven Trader	7901656a0c7a5384	39	0/0		0/0	
@@ -70,6 +75,7 @@ Lesser Werewolf	e7d3dce047207e25	6	1/1		1/1
 Loxodon Mystic	7a3b19a5c8eb29b7	4	1/1		0/1	ix:resp
 Lynx	dafb34074ff927a5	27	0/0		0/0	
 Marionette Apprentice	d3532fd979c470a6	3	2/2		1/1	
+Mascot Exhibition	d10d162b60c58ca7	4	0/0		1/2	ix:resp
 Mass Diminish	51d404a449d80d02	4	0/0		3/4	ix:resp
 Midnight Ritual	566b5ebce30f18b4	10	0/0		2/4	f0/s/x0,ix:resp
 Militia Bugler	22c10cc12bcc0f05	4	1/1		0/1	ix:resp
@@ -78,6 +84,7 @@ Moldering Karok	0b156a26a6195eb1	6	0/0		0/0
 Moonsilver Key	9360f48f98bf74a2	16	1/1		0/1	ix:resp
 Nature's Wrath	9ebc4138951e157a	7	3/3		0/1	ix:resp
 Necropede	13f68649b239334c	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Okiba-Gang Shinobi	8ca54897872da686	9	2/2		0/1	ix:resp
 Orim's Thunder	db00461199bddbea	3	0/0		2/4	cast/alt:kicked,ix:resp
 Paradise Druid	5e15417a7ccc740b	6	1/1		0/1	ix:resp
 Pestilent Wolf	aac997a8b181ffa3	8	1/1		0/1	ix:resp
@@ -99,6 +106,7 @@ Slingshot Goblin	1c6aa1c248d448a0	10	1/1		1/1
 Snarespinner	8cfe4b15ddac0163	18	1/1		0/1	ix:resp
 Soul Channeling	c14ca46acdd56d4f	6	1/1		2/2	
 Sphere of Reason	185b34203c181d44	4	0/0		0/0	
+Sphinx of Clear Skies	ce238fcea8a72c90	9	2/2		0/1	ix:resp
 Square Up	e0fadcf16f4cec76	19	0/0		2/2	
 Staunch Throneguard	4f56b5bc2f27f0e7	19	1/1		0/1	ix:resp
 Steel Wall	0f8eb08731d917ee	33	0/0		0/0	
@@ -112,8 +120,11 @@ Tyranid Harridan	a9ee50e1e1dc038f	18	2/2		1/1
 Tyranid Prime	341bb3dcb9fd1d51	17	1/1		1/1	
 Underhanded Designs	f53313c307c4de09	8	2/2		0/1	ix:resp
 Valorous Steed	c0242b513d6cac83	4	1/1		0/1	ix:resp
+Vampiric Sliver	29bd51205bc0bf68	21	0/0		0/0	
 Vectis Silencers	e8c51798a55a3018	34	1/1		1/1	
 Victory's Herald	b971eeb6bd83a389	6	1/1		1/1	
+Vrock	aa8a27b47e014106	10	1/1		0/1	ix:resp
 Warlord's Elite	d1353e9b1bb7a28a	4	0/0		1/2	ix:resp
 Warped Tusker	785707a4e74b3195	3	3/3		1/1	
 Wormhole Serpent	06bf056fa91ab379	15	1/1		1/1	
+Yavimaya Enchantress	1cfc978b6e7e811b	8	0/0		0/0	

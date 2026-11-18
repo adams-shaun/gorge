@@ -2,13 +2,16 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Amber Prison	01d30eba56832cda	52	1/1		1/1	
 Angelic Cub	a3e4a18f8f3b87a6	55	1/1		1/1	
 Avacyn's Memorial	eff100239abb159d	7	0/0		0/0	
+Base Camp	e6758dec7d6033d2	10	2/2		0/1	ix:resp
 Brain Maggot	c33f82b8aaf624f7	40	1/1		0/1	ix:resp
+Brightclimb Pathway	5fa00d6e213b8df4	16	2/2		0/1	ix:resp
 Cavern Thoctar	bfb18c260991a4ad	29	1/1		1/1	
 Communal Brewing	c27580abde404f28	21	2/2		0/1	ix:resp
 Deep Spawn	f037bcdff2014a81	8	2/2		1/1	
 Exert Influence	ebe2a8dc8f1a7785	32	0/0		2/2	
 Expel	e87191647094af1a	31	0/0		2/2	
 False Cure	0360245b7b476b01	35	0/0		2/2	
+Kabira Crossroads	98e364a8bacbdac0	22	2/2		0/1	ix:resp
 Krovikan Elementalist	217bf7e7442ce4aa	4	2/2		1/1	
 Limits of Solidarity	99a86826eb7d214f	6	1/1		2/2	
 Mental Journey	61be8e6a1a976acb	34	1/1		2/2	
@@ -18,8 +21,10 @@ Order of Sacred Dusk	be8d137b7d20e21c	6	1/1		0/1	ix:resp
 Princess Lucrezia	9f27039bbb326d32	11	1/1		0/1	ix:resp
 Psemilla, Meletian Poet	66ad1f84bd62c4da	16	2/2		0/1	ix:resp
 Sigil of the New Dawn	cf4a3b32ee00eb50	26	1/1		1/1	
+Soaring Seacliff	69bf89b187e933d1	18	2/2		0/1	ix:resp
 Steelshaper Apprentice	1f07be3cc3f57fe9	10	1/1		0/1	ix:resp
 Stormchaser Drake	8cff0fcada7b655d	42	1/1		1/1	
+Study	6ce255855975db88	27	2/2		1/1	
 Triplicate Titan	cc277ee8a6fbc587	8	1/1		0/1	ix:resp
 Trove Tracker	551d0d4a36a4f988	124	2/2		1/1	
 Whip Vine	4fccb81b34abd67e	13	1/1		0/1	ix:resp
