@@ -56,19 +56,20 @@ func witnessAnnouncesBeforePaying(root, end witnessTargetReader, g *state.Game, 
 	if len(survivors) == 0 {
 		return false
 	}
-	// A reader that is not the engine (the unit test's census) has no
-	// declaration rules to apply: one survivor is enough there.
-	if e, ok := root.(*Engine); ok {
-		return survivorsCanTarget(e, p, o.Obj, sa, survivors)
-	}
-	return true
+	return survivorsCanTarget(root, p, o.Obj, sa, survivors)
 }
 
 // survivorsCanTarget reports whether the candidates left after a payment's
 // sacrifices still admit a legal declaration of sa's targets: its resolved
 // minimum under the cross-target constraints targetChoiceFeasible reads. A
-// minimum that depends on an unannounced X binds nothing here.
-func survivorsCanTarget(e *Engine, p state.PlayerID, id state.ObjID, sa *cards.SA, survivors []targetCandidate) bool {
+// minimum that depends on an unannounced X binds nothing here. A reader that
+// is not the engine (the unit test's census) has no declaration rules to
+// apply: one survivor is enough there.
+func survivorsCanTarget(root witnessTargetReader, p state.PlayerID, id state.ObjID, sa *cards.SA, survivors []targetCandidate) bool {
+	e, ok := root.(*Engine)
+	if !ok {
+		return true
+	}
 	min, dynamic := targetOfferMin(e, p, id, sa, 0, false, nil)
 	return dynamic || e.targetChoiceFeasible(sa, survivors, min)
 }
