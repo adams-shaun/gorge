@@ -2358,8 +2358,11 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold func(Slot, uint8, uint8)) {
 	xv := s.srcExtra(k, sl, pc)
 	for c, v := range xv {
-		if v > 0 {
-			fold(sl, 1<<c, v)
+		// srcExtra holds the source's own all-at-once rest (pcard.manaXv),
+		// which the tap's colour mask already priced; only the carrier's part
+		// is folded here (a stall returns nothing, so the subtraction floors)
+		if own := pc.manaXv[c]; v > own {
+			fold(sl, 1<<c, v-own)
 		}
 	}
 	if r := s.srcReflectPick(k, sl, pc); r > 0 {
