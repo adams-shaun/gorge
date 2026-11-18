@@ -273,7 +273,7 @@ func handMoveOwners(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams) ([]state
 		if _, modelled := definedSpec(h, c, spec); !modelled {
 			return nil, false
 		}
-		return searchPlayersFor(h, c, cz.fetch()), true
+		return searchPlayersFor(h, c, cz.fetch(), targetedGateGroup(c, sa)), true
 	}
 	if plainRememberedSelector(cz.Defined) {
 		// A remembered PLAYER is a legitimate hand owner; the plain family no
