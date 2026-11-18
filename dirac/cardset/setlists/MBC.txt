@@ -1117,6 +1117,7 @@ Lethal Sting
 Ley Weaver
 Lieutenants of the Guard
 Life of the Party
+Light Up the Stage
 Lightning Bolt
 Lightning Greaves
 Lightning Mauler
@@ -1723,6 +1724,7 @@ Six
 Skeletal Changeling
 Skeletal Scrying
 Skeletal Wurm
+Skewer the Critics
 Skinthinner
 Skirge Familiar
 Skittering Crustacean

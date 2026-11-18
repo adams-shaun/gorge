@@ -66,3 +66,15 @@ func freerunningHit(g *state.Game, p state.PlayerID) func([]string, state.ObjID)
 		return slices.Contains(types, "Assassin") || g.CommanderOf(src) != 0
 	}
 }
+
+// opponentLostLifeThisTurn reports whether some living opponent of p lost
+// life this turn: spectacle's gate (CR 702.137a). It reads the
+// Player.LifeLostThisTurn fold, walking AliveFrom(0) in seat order.
+func opponentLostLifeThisTurn(g *state.Game, p state.PlayerID) bool {
+	for _, i := range g.AliveFrom(0) {
+		if i != p && g.Players[i].LifeLostThisTurn > 0 {
+			return true
+		}
+	}
+	return false
+}
