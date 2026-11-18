@@ -22,7 +22,7 @@ import (
 // shuffles (Forge's shuffle condition needs Library in the origin).
 func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.Zone, originZones []state.Zone, originAll bool, originValid bool, from string) {
 	hiddenPickOriginNote(h, c, originValid, from)
-	players := hiddenPickPlayers(h, c, cz.fetch())
+	players := hiddenPickPlayers(h, c, cz.fetch(), targetedGateGroup(c, sa))
 	if c.Forget.Ready {
 		players = c.Forget.Owners
 	}
