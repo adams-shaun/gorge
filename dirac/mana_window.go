@@ -2181,8 +2181,9 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 	// visit runs the pass that lets the queued triggers resolve only after
 	// every deeper activation failed, mana_scriptpost.go)
 	post := false
+	var cutAll [MaxPerm]bool // gap j: every answer tried so far queued another player's ask
 	for {
-		replay := true
+		replay, cut := true, false
 		if depth > 0 {
 			if nodes++; (ctr.any() || ca.any() || life.any()) && nodes > potentialScriptNodes { // gorge's search budget: no script past it (the counter, Combo Any and life gaps' answers multiply)
 				if stall != 0 {
@@ -2229,7 +2230,14 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			// script. The walk mirrors that, on the copy resolvePrefixStack
 			// runs (mana_sacsource.go).
 			resolve := t.playNeedsEmptyStack(k, a)
-			found := replay && hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve || post) && !t.foreignPendAsks(k, p, resolve)
+			foreign := replay && t.foreignPendAsks(k, p, resolve)
+			found := replay && hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve || post) && !foreign
+			// gorge's visit returns false at another player's ask and its
+			// activation loop goes on to the next sibling: the line ends here
+			// (no deeper gap is tapped under it) and a gap whose every answer
+			// ends this way is no continuation of any prefix (cutAll, below)
+			cut = foreign
+			cutAll[depth-1] = cut && (path[depth-1] == 0 || cutAll[depth-1])
 			if found && t.npend != 0 {
 				t.resolvePrefixPlay(k, a, p, t.sp, resolve)
 				if t.over {
@@ -2255,7 +2263,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			}
 			s.unfork()
 		}
-		if replay && depth < len(order) && !post { // the node's first child
+		if replay && !cut && depth < len(order) && !post { // the node's first child
 			path[depth] = 0
 			depth++
 			continue
@@ -2300,6 +2308,20 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			}
 			if path[j]+1 < nch {
 				path[j]++
+				break
+			}
+			if cutAll[j] {
+				// every answer of gap j ends the line at a foreign ask (a
+				// Taps watcher the opponent controls: Relic Bind on a
+				// Walrus): gorge's search tries the other gaps as this
+				// node's children, so the search goes on without j
+				// (mana_foreignask.go). order is the callers' array: the
+				// prefix they replay from path is the shortened one.
+				copy(order[j:], order[j+1:])
+				order = order[:len(order)-1]
+				cutAll[j] = false
+				depth = j
+				post = false
 				break
 			}
 			depth--
