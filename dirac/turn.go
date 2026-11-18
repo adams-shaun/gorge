@@ -887,8 +887,11 @@ func (s *State) enchantLegal(k *prep, sl Slot) bool {
 	if t.Kind != kop.TgtObject {
 		return true
 	}
-	if k.gen != nil && k.gen.anyProtCol && s.protPrinted(k, h)&s.colorsGen(k, sl) != 0 {
-		return false // printed protection from the Aura's colour (CR 702.16c; gorge attachmentSBAs)
+	if k.gen != nil && s.protColFrom(k, h, s.colorsGen(k, sl)) {
+		// protection from the Aura's colour, printed or granted by a static
+		// keyword (Sword of Forge and Frontier's red; CR 702.16c; gorge
+		// attachmentSBAs reads the derived keywords)
+		return false
 	}
 	if k.gen != nil && k.gen.anyProtF && s.protQualityAt(k, h, sl, s.cardAt(sl), true) {
 		return false
