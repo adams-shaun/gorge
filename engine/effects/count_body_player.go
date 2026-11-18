@@ -41,23 +41,10 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 	}
 
 	// DungeonsCompleted$Amount — the resolving controller's completed-dungeon
-	// count (CR 309.7): what Player.CompletedDungeons folds, one per
-	// DungeonComplete event (venture from the bottom room, CR 704.5t). It is
-	// Forge's DungeonsCompleted$Amount property, the SVar the Attacks
-	// trigger's CheckSVar$ X gate reads (Ravenloft Adventurer's "if you've
-	// completed a dungeon"). The read is controller-scoped like
-	// YourCounters, event-backed through the same fold, and a controller out
-	// of range reads 0 (the modelled zero). Any other property fails closed
-	// to not-evaluated — the head has no other corpus spelling (measured: the
-	// only card carrying it is ravenloft_adventurer at the pin).
-	if rest, ok := strings.CutPrefix(head, "DungeonsCompleted$"); ok {
-		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
-			return 0, true, true
-		}
-		if strings.TrimSpace(rest) == "Amount" {
-			return g.Players[c.Controller].CompletedDungeons, true, true
-		}
-		return 0, false, true
+	// count (CR 309.7, the DungeonComplete fold); see the helper below for
+	// the read's scope and its fail-closed verdicts.
+	if v, ok, matched := evalCountBodyDungeonsCompleted(g, c, head); matched {
+		return v, ok, matched
 	}
 
 	// PlayerCount<Players|Opponents|RegisteredOpponents>$<Property> — per-
@@ -348,6 +335,28 @@ func playerMaxSpeedProperty(g *state.Game, controller state.PlayerID) (int32, bo
 		return 1, true, true
 	}
 	return 0, true, true
+}
+
+// evalCountBodyDungeonsCompleted is the DungeonsCompleted$ head arm
+// (Ravenloft Adventurer's CheckSVar$ X), extracted from evalCountBodyPlayer
+// so the dispatch stays inside its line budget. The read is
+// controller-scoped like YourCounters and event-backed through the same
+// fold; a controller out of range reads 0 (the modelled zero) and any other
+// property fails closed to not-evaluated — the head has no other corpus
+// spelling (measured: the only card carrying it is ravenloft_adventurer at
+// the pin).
+func evalCountBodyDungeonsCompleted(g *state.Game, c *Ctx, head string) (int32, bool, bool) {
+	rest, ok := strings.CutPrefix(head, "DungeonsCompleted$")
+	if !ok {
+		return 0, false, false
+	}
+	if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
+		return 0, true, true
+	}
+	if strings.TrimSpace(rest) == "Amount" {
+		return g.Players[c.Controller].CompletedDungeons, true, true
+	}
+	return 0, false, true
 }
 
 type evalCountBodyPlayerCode uint16
