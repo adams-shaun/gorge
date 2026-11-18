@@ -21,7 +21,11 @@ type witnessTargetReader interface {
 // targets the one Eldrazi Spawn the witness sacrifices for {C}: the Spawn is
 // not Confound's target, and the target is chosen before the sacrifice. A cast
 // whose every candidate is consumed stays refused, as does a cast that still
-// has its targets at the end (it is not offered for another reason).
+// has its targets at the end (it is not offered for another reason). The
+// survivors must also make a legal declaration (survivorsCanTarget): Combo
+// Attack's two creatures you control, one of them a sacrificed Spawn, is
+// payable only by paying with a target it announced, which is the planned
+// payment's (targetPaidNeedsPlannedPayment), not a cast the walk reaches.
 func witnessAnnouncesBeforePaying(root, end witnessTargetReader, g *state.Game, p state.PlayerID, o decision.Option, plan decision.PaymentPlan) bool {
 	if o.Kind != "cast" || o.Mode != "" {
 		return false
@@ -43,10 +47,28 @@ func witnessAnnouncesBeforePaying(root, end witnessTargetReader, g *state.Game, 
 			consumed[a.Source] = true
 		}
 	}
+	var survivors []targetCandidate
 	for _, c := range root.legalTargetCandidates(p, o.Obj, o.Obj, sa) {
 		if c.kind == "player" || !consumed[c.obj] {
-			return true
+			survivors = append(survivors, c)
 		}
 	}
-	return false
+	if len(survivors) == 0 {
+		return false
+	}
+	// A reader that is not the engine (the unit test's census) has no
+	// declaration rules to apply: one survivor is enough there.
+	if e, ok := root.(*Engine); ok {
+		return survivorsCanTarget(e, p, o.Obj, sa, survivors)
+	}
+	return true
+}
+
+// survivorsCanTarget reports whether the candidates left after a payment's
+// sacrifices still admit a legal declaration of sa's targets: its resolved
+// minimum under the cross-target constraints targetChoiceFeasible reads. A
+// minimum that depends on an unannounced X binds nothing here.
+func survivorsCanTarget(e *Engine, p state.PlayerID, id state.ObjID, sa *cards.SA, survivors []targetCandidate) bool {
+	min, dynamic := targetOfferMin(e, p, id, sa, 0, false, nil)
+	return dynamic || e.targetChoiceFeasible(sa, survivors, min)
 }
