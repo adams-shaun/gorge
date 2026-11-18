@@ -1,0 +1,12 @@
+# the shared-keywords pool (dirac/oracle/rayami_lockstep_test.go): Rayami,
+# First of the Fallen exiles a dying nontoken creature with a blood counter and
+# shares the printed keywords of such exiled cards (SharedKeywordsZone$ Exile),
+# beside removal, a flyer, a deathtouch creature, a vanilla creature and basics.
+Rayami, First of the Fallen
+Grizzly Bears
+Wind Drake
+Typhoid Rats
+Doom Blade
+Swamp
+Forest
+Island
