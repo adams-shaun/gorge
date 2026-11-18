@@ -68,7 +68,7 @@ func (s *State) resolveMadness(k *prep) {
 func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 	c := s.objs[o].card
 	cost := s.adjustCost(k, p, c, o, s.convokeCredit(k, p, c, o, k.t.Cards[c].MadnessCost))
-	ok := s.affordsFor(k, p, &cost) || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost)
+	ok := s.affordsFor(k, p, &cost) || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost) || s.filterCastAffords(k, p, o, &cost)
 	var stall uint8
 	if !ok {
 		// the failed window probe reports its fork's latched stall; this drop
@@ -97,6 +97,20 @@ func (s *State) restrCastAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) bo
 	s.availWindowFor(k, p, &av)
 	spell := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
 	return s.restrSrcAffords(k, p, spell, cost, &av, NoSlot, 0)
+}
+
+// filterCastAffords: the paid filter sources (Simic Signet's "{1}, {T}: Add
+// {G}{U}") fund the madness cost beside the plain sources, each fee charged
+// from the rest (CR 605.3a, 601.2g-h). gorge's offerCastablePotential prices a
+// madness cast through its potential planner, which weighs a filter that makes
+// more mana than its fee takes; the plain census leaves every filter out. The
+// gaps census (offerSourcesAfford) is the hand cast's read of the same
+// sources, a net-negative filter counting for less, never for more.
+func (s *State) filterCastAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
+	if k.gen == nil || !k.gen.anyFilt {
+		return false
+	}
+	return s.offerSourcesAfford(k, p, s.objs[o].card, o, cost)
 }
 
 // keywordCastAffords: p can pay cost for card o's keyword cast its resolving
