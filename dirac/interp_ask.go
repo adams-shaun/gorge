@@ -154,7 +154,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		kind = payKindTrigNewEvidence // a dies trigger's own triggered-card exile beside evidence (cost_collectevidencex.go)
 	}
 	skip := uint16(in.C >> 4)
-	amt := s.value(k, in.A)
+	amt := max(s.value(k, in.A), 0) // CR 107.1b: a negative cost amount is 0 (gorge UnlessCostResolved; Mausoleum Wanderer shrunk by Torpor Dust)
 	pips := in.B.N
 	if kind == kop.PaySacSelf && pips == kop.PayBSubSacSelfMust && in.Op == kop.OpIfPaid && p != 255 {
 		s.payMandatorySacSelf(k, p, uint8(skip)) // cost_mandatorysac.go

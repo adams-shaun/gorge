@@ -1034,11 +1034,15 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 			cost := s.featCost(k, p, c, o, k.cards[c].cost)
 			s.g.noTgtRed = false
 			cost = s.mayRiderCost(cost, anyColor)
+			if !several {
+				// gorge's potential planner declines the target-dependent cast's
+				// prefix search (potentialTargetPriced), so only its census pays:
+				// no granted source, as the hand arm below (Song of Freyalise's
+				// creature mana beside Esior's raise, Arrow Storm from exile)
+				return s.ungrantedPaysNoDH(k, p, c, o, &cost)
+			}
 			if s.offerSourcesAfford(k, p, c, o, &cost) {
 				return true
-			}
-			if !several {
-				return false
 			}
 			cost = s.featCost(k, p, c, o, k.cards[c].cost)
 			cost = s.mayRiderCost(cost, anyColor)
@@ -2239,23 +2243,13 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		// painAdd is cenMaskAdd when the lethal guard refuses the printed ability's production
 		s.potentialTapUnit(p, sl, pc, mask, painAdd, fold, painRefused, &cen)
 		cen.pain = 0 // the gate pair's and the granted units are priced unpainted
+		if k.gen != nil && k.gen.anyTapExtra && !painRefused && !pc.painOnly {
+			s.potentialTapExtra(k, sl, pc, mask, fold)
+		}
 		if n := gatePairPotential(pc); n != 0 {
 			add(sl, uint8(pc.wideCol), n) // gorge's walk sums both listed abilities of a gate-on pair
 		}
-		if k.gen != nil && len(k.gen.grantPC) != 0 && s.grantMay(k, sl) && s.ownManaUsable(k, sl) {
-			// a mana ability granted beside the source's own one (an aura's
-			// "{T}: Add two mana of any one color") counts on its own, as
-			// gorge's walk admits each of a source's abilities
-			var gi [maxGrants]int16
-			for i, ng := 0, s.potentialGrants(k, sl, &gi, d); i < ng; i++ {
-				gv := s.grantView(k.gen, gi[i], sl)
-				if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
-					open = s.potentialGrantedUnit(gv, sl, boundedAny, add, &anyFree) || open
-					continue
-				}
-				add(sl, s.srcMaskAt(gv, sl), gv.manaN)
-			}
-		}
+		s.potentialGrantedExtra(k, sl, d, boundedAny, add, &open, &anyFree)
 	}
 	for progressed := k.gen != nil; progressed; {
 		progressed = false
@@ -2272,15 +2266,8 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, j, ab, d) {
 					continue
 				}
-				paidGap := len(units) != 0 && ab.Cost.Mana.MV() != 0
-				if paidGap && !boundedAny {
-					// the census (units) is the planner-shaped bound: gorge's
-					// relaxed proof charges a paid ability's fee as generic on
-					// top of the play's cost (paymentPlanRelaxProof), while
-					// the pool mana that covers the fee here is already a
-					// recorded unit, so admitting it would double-count
-					// (White Lotus Hideout's {1},{T} filter). The over-bound
-					// pool beside the census keeps the paid abilities.
+				paidGap, skip := d.paidGapProbe(len(units) != 0, boundedAny, sl, j, &ab.Cost.Mana)
+				if skip {
 					continue
 				}
 				if !open && !potentialCovers(&others, &ab.Cost.Mana) {
@@ -2357,6 +2344,46 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		*units[0] = cen.units
 	}
 	return open
+}
+
+// potentialTapExtra folds a TapsForMana carrier's extra (Heartbeat of Spring:
+// one more mana of the type the land made) into the over-bound pool: it is
+// part of the tap's production in gorge's potential pool, so one Forest funds
+// a repeatable filter's {2} fee (CR 605.3a, 106.1). Only the over-bound pool
+// takes it. The caller has checked k.gen.anyTapExtra, the lethal guard's
+// refusal and the pain-only face.
+func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold func(Slot, uint8, uint8)) {
+	xv := s.srcExtra(k, sl, pc)
+	for c, v := range xv {
+		// srcExtra holds the source's own all-at-once rest (pcard.manaXv),
+		// which the tap's colour mask already priced; only the carrier's part
+		// is folded here (a stall returns nothing, so the subtraction floors)
+		if own := pc.manaXv[c]; v > own {
+			fold(sl, 1<<c, v-own)
+		}
+	}
+	if r := s.srcReflectPick(k, sl, pc); r > 0 {
+		fold(sl, mask, r)
+	}
+}
+
+// potentialGrantedExtra admits the mana abilities granted to sl beside its own
+// one (an aura's "{T}: Add two mana of any one color"): each counts on its own,
+// as gorge's walk admits each of a source's abilities. A source with no usable
+// grant leaves open and anyFree alone.
+func (s *State) potentialGrantedExtra(k *prep, sl Slot, d *payDesc, boundedAny bool, add func(Slot, uint8, uint8), open *bool, anyFree *int) {
+	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || !s.ownManaUsable(k, sl) {
+		return
+	}
+	var gi [maxGrants]int16
+	for i, ng := 0, s.potentialGrants(k, sl, &gi, d); i < ng; i++ {
+		gv := s.grantView(k.gen, gi[i], sl)
+		if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
+			*open = s.potentialGrantedUnit(gv, sl, boundedAny, add, anyFree) || *open
+			continue
+		}
+		add(sl, s.srcMaskAt(gv, sl), gv.manaN)
+	}
 }
 
 // potentialGrants lists the mana abilities granted to sl that a payment d
@@ -2646,7 +2673,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	if ab.Trig.Cond != 0 && !s.condEval(k, ab.Trig.Cond, evalCtx{src: pp.obj, srcSl: sl, ctrl: pp.ctrl}) {
 		return false
 	}
-	if col, ok := pipFilt(ab); ok && k.gen.anyFiltPip && s.filtPipHeld(k, pp.ctrl, sl, col) < 1 {
+	if col, ok := fixedPipFilt(ab); ok && k.gen.anyFiltPip && s.filtPipHeld(k, pp.ctrl, sl, col) < 1 {
 		return false // gorge lists the granted filter only while the live pool pays its pip (mana_filterpip.go)
 	}
 	return d == nil || ab.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, ab, d)

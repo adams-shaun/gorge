@@ -95,6 +95,14 @@ type payDesc struct {
 	// noPair prices the census alone: a chosen-colour widened pair stays its
 	// census unit (mana_chosenprefix.go)
 	noPair bool
+	// gapTrack, gapSkip, gapN, gapID and gapFee are the X-bound sweep's paid-gap
+	// probe (xBoundGapSubsets): availPotentialFor names each fee-bearing mana
+	// ability it meets and leaves out the ones gapSkip's bits select
+	gapTrack bool
+	gapSkip  uint8
+	gapN     uint8
+	gapID    [paidGapMax]uint16
+	gapFee   [paidGapMax]uint8
 }
 
 // restrRec is one restricted mana ability of the table: card c's ability

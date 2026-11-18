@@ -181,7 +181,14 @@ func (s *State) creditOfferLive(k *prep, p uint8, c CardID, o Obj, fromHand bool
 		}
 		// the static's own controller is the filter's "you": gorge's derived
 		// read resolves it against the offered card, never the caster (the
-		// dig grant's cast of another seat's exiled card, pair 341)
+		// dig grant's cast of another seat's exiled card, pair 341). The
+		// grant's "spells you cast" (kgen keeps it as the static's
+		// controller, not a filter clause) reads the card's own controller,
+		// an exiled card's owner: Dazzling Theater does not credit the
+		// other seat's exiled Fear of Burning Alive.
+		if o != NoObj && s.objs[o].owner() != st.ctrl {
+			return true
+		}
 		if s.matchSpellCardOffer(k, a.Static.Filter, c, st.ctrl, st.ctrl, o, st.sl, st.emb) {
 			live = true
 		}

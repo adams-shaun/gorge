@@ -394,11 +394,12 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	}
 	var pot, ex avail
 	var pu [maxPotUnits]potUnit
+	var d payDesc
 	if src == NoSlot {
 		// gorge prices each announced X against the spell's own payment: a
 		// source whose RestrictValid$ refuses the spell (Ancient Ziggurat's
 		// creature-only mana under Dominate) adds nothing at any X (CR 106.6)
-		d := payDesc{class: pdSpell, card: c, src: NoSlot, og: restrOrigin{from: kop.ZoneHand}}
+		d = payDesc{class: pdSpell, card: c, src: NoSlot, og: restrOrigin{from: kop.ZoneHand}}
 		s.availPotentialFor(k, p, &pot, &d, true, &pu)
 	} else {
 		// An activation's announced X is priced against the activation's own
@@ -409,7 +410,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		// an X no usable source could pay (CR 106.6; gorge xBoundTargetPayable
 		// prices each announced X with offerCastableUsing and the ability's
 		// payment descriptor).
-		d := payDesc{class: pdAct, card: s.cardAt(src), src: src, instant: a.Cost.Flags&kop.CostSorcery == 0}
+		d = payDesc{class: pdAct, card: s.cardAt(src), src: src, instant: a.Cost.Flags&kop.CostSorcery == 0}
 		s.availPotentialFor(k, p, &pot, &d, true, &pu)
 	}
 	s.g.probe = probe{kind: probeAbility, src: src, ctrl: p}
@@ -425,13 +426,17 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	// potUnitsAvail): an incomplete record has no bounded view and keeps the
 	// over-bound answer.
 	exactKnown := potUnitsAvail(&ex, &pu, int(s.pl[SeatIx(p)].life))
+	var gs gapSubsets
+	if !exactKnown {
+		s.xBoundGapSubsets(k, p, d, &gs) // the paid gaps' fees, as gorge's relaxed proof charges them (mana_xboundgap.go)
+	}
 	ok := false
 	for x := costXMin(&a.Cost); !ok && x < 255; x++ { // from the floor (cost_sacx.go)
 		cx := cost.AtX(x)
 		if !pot.affords(&cx, pipMaskOf(&cx), 0) {
 			break
 		}
-		if exactKnown && !ex.affords(&cx, pipMaskOf(&cx), 0) {
+		if exactKnown && !ex.affords(&cx, pipMaskOf(&cx), 0) || gs.n != 0 && !gs.affords(&cx) {
 			break
 		}
 		s.g.probe.x = uint8(x + 1)
