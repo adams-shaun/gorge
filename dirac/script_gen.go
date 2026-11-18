@@ -160,6 +160,9 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	// one-mana any/fixed-colour tap it adds (availFor's, which the plain walk
 	// leaves out: mana_tapsdefer.go)
 	for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
+		if a.capped && !s.tapsDeferGapOwn(k, b.first()) {
+			continue // availForCapped's loop counted this tap already: once per source, at its largest production
+		}
 		s.addTapsDeferUnits(k, b.first(), a)
 	}
 	if k.ctrMana {
