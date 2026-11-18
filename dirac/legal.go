@@ -2673,7 +2673,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	if ab.Trig.Cond != 0 && !s.condEval(k, ab.Trig.Cond, evalCtx{src: pp.obj, srcSl: sl, ctrl: pp.ctrl}) {
 		return false
 	}
-	if col, ok := pipFilt(ab); ok && k.gen.anyFiltPip && s.filtPipHeld(k, pp.ctrl, sl, col) < 1 {
+	if col, ok := fixedPipFilt(ab); ok && k.gen.anyFiltPip && s.filtPipHeld(k, pp.ctrl, sl, col) < 1 {
 		return false // gorge lists the granted filter only while the live pool pays its pip (mana_filterpip.go)
 	}
 	return d == nil || ab.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, ab, d)
