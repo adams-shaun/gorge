@@ -1042,6 +1042,16 @@ const (
 	stepAnswer
 )
 
+// exHolds reports whether the play's own {T} source (g.ex) holds a granted mana
+// ability: the candidates loop skips it, so it is the one holder it never counts.
+func (g *grantSrch) exHolds(s *State) bool {
+	if g.ex == NoSlot {
+		return false
+	}
+	var gi [maxGrants]int16
+	return s.grantIdxs(g.k, g.ex, &gi) > 0
+}
+
 // stepFilt is the gi of a prefix step that is a candidate's filter ability (col the
 // colour it makes, its fee paid from the pool).
 const stepFilt int16 = -2
@@ -1105,12 +1115,14 @@ func (g *grantSrch) candidates(s *State) {
 		}
 		g.n++
 	}
-	if holders == 0 && g.n == 0 {
-		// The activation's own source is the only holder (g.ex): its {T}
-		// cannot also make the mana, so no grant funds it. Another gap kind
-		// (a Taps-deferred source, a filter) still can, and gorge's one
-		// prefix search activates it: keep those candidates and fall back to
-		// the printed sources only when no gap survives.
+	if holders == 0 && (g.n == 0 || !g.exHolds(s)) {
+		// No permanent but the excluded one holds a grant. When that is the
+		// activation's own source (g.ex), its {T} cannot also make the mana,
+		// so no grant funds it, but another gap kind (a Taps-deferred source,
+		// a filter) still can, and gorge's one prefix search activates it:
+		// keep those candidates. With no grant held at all this is not the
+		// grant search's board (the filter search plays it), and with no gap
+		// surviving the printed sources pay.
 		g.n, g.gapN = 0, 0
 		return
 	}
