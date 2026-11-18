@@ -30,7 +30,7 @@ func TestGorgeKwMapping(t *testing.T) {
 	}
 	// a gorge keyword with no kernel bit is a projection error, never a
 	// silent drop
-	for _, kw := range []string{"Rampage:2", "Flanking"} {
+	for _, kw := range []string{"Flanking:1", "Flanking"} {
 		if _, ok := gorgeKw(kw); ok {
 			t.Errorf("gorgeKw(%q) mapped; want an error", kw)
 		}
