@@ -436,9 +436,12 @@ func TestTapsForManaTriggerRecord(t *testing.T) {
 }
 
 // TestTapsForManaTriggerDeferralMutation: with the Taps-watcher classification
-// dropped (dirac.DebugNoTapsDefer) the recorded autopay game diverges from
-// gorge, proof the repro exercises Price of Glory's deferral of the
-// opponent's land.
+// dropped (dirac.DebugNoTapsDefer) the recorded Rikala game diverges from
+// gorge, proof the repro exercises the Taps deferral of an Island under the
+// gate. The Price of Glory recordings no longer carry that proof: a plain
+// Taps watcher's land is a census gap gorge's planner funds in its second
+// pass (engine/rules/pay plandeferred.go), so the kernel agrees with or
+// without the classification there.
 func TestTapsForManaTriggerDeferralMutation(t *testing.T) {
 	if isolate(t) {
 		return
@@ -446,7 +449,7 @@ func TestTapsForManaTriggerDeferralMutation(t *testing.T) {
 	dirac.DebugNoTapsDefer = true
 	defer func() { dirac.DebugNoTapsDefer = false }()
 	reg := synthReg(t)
-	c := tapsForManaCases()[1]
+	c := tapsForManaCases()[3]
 	r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
 	if err != nil {
 		t.Fatal(err)
