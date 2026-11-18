@@ -135,8 +135,8 @@ func (s *State) grantedEquipKeyword(k *prep, sl Slot) bool {
 			fn := s.listenerOrder(s.occ, &ford)
 			for fi := 0; fi < fn; fi++ {
 				fs := ford[fi]
-				if !s.matchPermGen(k, a.Static.GainsOf, fs, st.ctrl, st.sl, layerKw) {
-					continue
+				if s.faceDown(k, fs) || !s.matchPermGen(k, a.Static.GainsOf, fs, st.ctrl, st.sl, layerKw) {
+					continue // a face-down source grants nothing (CR 708.2a)
 				}
 				fcd := &k.t.Cards[s.cardAt(fs)]
 				for j := range fcd.Abilities {
