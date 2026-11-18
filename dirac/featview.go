@@ -820,10 +820,16 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 	var av avail
 	var ms modalSet
 	s.ungrAvail(k, p, ex, &av, &ms)
+	return s.affordsUngrantedAv(k, p, cost, ex, d, &av, &ms)
+}
+
+// affordsUngrantedAv is affordsUngrantedFor over a caller-built census
+// (chosenPairPrefix's search: its assignments applied to ungrAvail's).
+func (s *State) affordsUngrantedAv(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, av *avail, ms *modalSet) bool {
 	rm := s.restrFloatAdmits(k, SeatIx(p), &d)
 	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (||).
 	for c := 0; c < 1<<ms.n; c++ {
-		b := ms.modes(av, c)
+		b := ms.modes(*av, c)
 		if b.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, SeatIx(p), d, cost, &b, ex, 0) {
 			return true
 		}
@@ -905,12 +911,26 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 // candidates is no plan: the granted mana is a prefix activated first (CR
 // 601.2g-h), and the printed plan then pays with the candidates still there.
 func (s *State) affordsUngrantedPlay(k *prep, p uint8, a Action, cost *kop.ManaCost, ex Slot, d payDesc) bool {
+	return s.affordsUngrantedPlayAv(k, p, a, cost, ex, d, nil, nil)
+}
+
+// affordsUngrantedPlayAv is affordsUngrantedPlay over a caller-built census
+// (av, ms): chosenPairPrefix's search counts the pair sources' assignments
+// itself, so it hands in ungrAvail's census with its own arithmetic applied.
+// A nil av is built here, as affordsUngrantedPlay always did.
+func (s *State) affordsUngrantedPlayAv(k *prep, p uint8, a Action, cost *kop.ManaCost, ex Slot, d payDesc, av *avail, ms *modalSet) bool {
+	if av == nil {
+		var a2 avail
+		var m2 modalSet
+		s.ungrAvail(k, p, ex, &a2, &m2)
+		av, ms = &a2, &m2
+	}
 	if a.Kind() != AkActivate || k.t == nil {
 		if k.t != nil && s.fixedTapsCast(k, a) {
 			// the composed cost's tap part keeps its candidates apart (cost_fixedtaps.go)
-			return s.affordsUngrantedReserving(k, p, cost, ex, d, spellAddCost(k, s.objs[a.Source()].card), NoSlot)
+			return s.affordsReservingAv(k, p, cost, ex, d, spellAddCost(k, s.objs[a.Source()].card), NoSlot, av, ms)
 		}
-		return s.affordsUngrantedFor(k, p, cost, ex, d)
+		return s.affordsUngrantedAv(k, p, cost, ex, d, av, ms)
 	}
 	o := Obj(a.Source())
 	card := s.objs[o].card
@@ -921,14 +941,14 @@ func (s *State) affordsUngrantedPlay(k *prep, p uint8, a Action, cost *kop.ManaC
 	}
 	ab := int(a.Mode())
 	if ab < 0 || ab >= len(k.t.Cards[card].Abilities) {
-		return s.affordsUngrantedFor(k, p, cost, ex, d)
+		return s.affordsUngrantedAv(k, p, cost, ex, d, av, ms)
 	}
 	ca := &k.t.Cards[card].Abilities[ab]
 	f := ca.Cost.Flags
 	if f&(kop.CostTapX|kop.CostSac) == 0 || f&kop.CostSac != 0 && !k.sacMana {
-		return s.affordsUngrantedFor(k, p, cost, ex, d)
+		return s.affordsUngrantedAv(k, p, cost, ex, d, av, ms)
 	}
-	return s.affordsUngrantedReserving(k, p, cost, ex, d, &ca.Cost, src)
+	return s.affordsReservingAv(k, p, cost, ex, d, &ca.Cost, src, av, ms)
 }
 
 // manaGranted reports whether slot sl's mana ability is one an effect
