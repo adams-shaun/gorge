@@ -349,6 +349,9 @@ func riderAnswerBit(mask uint8, col int) int {
 // colour, each colour of an all-at-once production, or a fixed colour, its
 // amount a.ManaN. answer selects the colour among the mask's bits.
 func (s *State) manaRiderFloat(k *prep, p uint8, sl Slot, a *kop.Ability, answer int) {
+	if a.Cost.Flags&kop.CostTap != 0 {
+		s.riderExtraFloat(k, p, sl) // the tap's StatTapExtra mana floats beside it (mana_riderextra.go)
+	}
 	n := int(a.ManaN)
 	if n == 0 {
 		n = 1
