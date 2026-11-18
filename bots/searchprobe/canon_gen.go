@@ -671,6 +671,19 @@ func (e *canonEncoder) encdecision_Decision(v *decision.Decision) error {
 			}
 		}
 	}
+	if v.ContributionCost == nil {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		if v.ContributionCost == nil {
+			e.buf = append(e.buf, 0)
+		} else {
+			e.buf = append(e.buf, 1)
+			if err := e.encdecision_PaymentCost(v.ContributionCost); err != nil {
+				return err
+			}
+		}
+	}
 	if v.MaxSum == 0 {
 		e.buf = append(e.buf, 0)
 	} else {
@@ -1575,6 +1588,15 @@ func (e *canonEncoder) encdecision_ManaPaymentWindow(v *decision.ManaPaymentWind
 	return nil
 }
 
+func (e *canonEncoder) encdecision_PaymentCost(v *decision.PaymentCost) error {
+	e.buf = binary.AppendUvarint(e.buf, uint64(v.Generic))
+	e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Mana)))
+	for x67 := range v.Mana {
+		e.buf = binary.AppendUvarint(e.buf, uint64(v.Mana[x67]))
+	}
+	return nil
+}
+
 func (e *canonEncoder) encdecision_TargetEffect(v *decision.TargetEffect) error {
 	e.appendString(string(v.API))
 	if v.Damage == nil {
@@ -1612,8 +1634,8 @@ func (e *canonEncoder) encdecision_TargetEffect(v *decision.TargetEffect) error 
 		} else {
 			e.buf = append(e.buf, 1)
 			e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Statics)))
-			for x67 := range v.Statics {
-				e.appendString(string(v.Statics[x67]))
+			for x68 := range v.Statics {
+				e.appendString(string(v.Statics[x68]))
 			}
 		}
 	}
@@ -1645,8 +1667,8 @@ func (e *canonEncoder) encview_Printing(v *view.Printing) error {
 
 func (e *canonEncoder) enccards_ManaProduction(v *cards.ManaProduction) error {
 	e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Colour)))
-	for x68 := range v.Colour {
-		e.buf = binary.AppendVarint(e.buf, int64(v.Colour[x68]))
+	for x69 := range v.Colour {
+		e.buf = binary.AppendVarint(e.buf, int64(v.Colour[x69]))
 	}
 	if v.Any {
 		e.buf = append(e.buf, 1)
@@ -1674,28 +1696,19 @@ func (e *canonEncoder) encdecision_PaymentPlan(v *decision.PaymentPlan) error {
 	} else {
 		e.buf = append(e.buf, 1)
 		e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Activations)))
-		for x69 := range v.Activations {
-			if err := e.encdecision_PaymentActivation(&v.Activations[x69]); err != nil {
+		for x70 := range v.Activations {
+			if err := e.encdecision_PaymentActivation(&v.Activations[x70]); err != nil {
 				return err
 			}
 		}
 	}
 	e.buf = binary.AppendUvarint(e.buf, uint64(len(v.PoolSpend)))
-	for x70 := range v.PoolSpend {
-		e.buf = binary.AppendUvarint(e.buf, uint64(v.PoolSpend[x70]))
+	for x71 := range v.PoolSpend {
+		e.buf = binary.AppendUvarint(e.buf, uint64(v.PoolSpend[x71]))
 	}
 	e.buf = binary.AppendUvarint(e.buf, uint64(len(v.PoolAfter)))
-	for x71 := range v.PoolAfter {
-		e.buf = binary.AppendUvarint(e.buf, uint64(v.PoolAfter[x71]))
-	}
-	return nil
-}
-
-func (e *canonEncoder) encdecision_PaymentCost(v *decision.PaymentCost) error {
-	e.buf = binary.AppendUvarint(e.buf, uint64(v.Generic))
-	e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Mana)))
-	for x72 := range v.Mana {
-		e.buf = binary.AppendUvarint(e.buf, uint64(v.Mana[x72]))
+	for x72 := range v.PoolAfter {
+		e.buf = binary.AppendUvarint(e.buf, uint64(v.PoolAfter[x72]))
 	}
 	return nil
 }

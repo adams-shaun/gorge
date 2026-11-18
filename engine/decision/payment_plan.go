@@ -336,7 +336,7 @@ func (d *Decision) CloneInto(dst *Decision) {
 	unpayablePlays := dst.PotentialUnpayablePlays[:0]
 	potential := dst.PotentialCasts[:0]
 	shapes := dst.PotentialShapeCasts[:0]
-	fb, mp := dst.PaymentFallback, dst.ManaPayment
+	fb, mp, cc := dst.PaymentFallback, dst.ManaPayment, dst.ContributionCost
 	*dst = *d
 	dst.Options, dst.WindowReasons = nil, nil
 	if len(d.Options) > 0 {
@@ -374,6 +374,16 @@ func (d *Decision) CloneInto(dst *Decision) {
 			mp.AutoFill = append(fill, w.AutoFill...)
 		}
 		dst.ManaPayment = mp
+	}
+	// PaymentCost carries no slice, so the struct copy is the whole thing;
+	// the reuse keeps a projecting caller's one allocation per call, as the
+	// other wire-carried sidecars above do.
+	if w := d.ContributionCost; w != nil {
+		if cc == nil {
+			cc = new(PaymentCost)
+		}
+		*cc = *w
+		dst.ContributionCost = cc
 	}
 }
 
