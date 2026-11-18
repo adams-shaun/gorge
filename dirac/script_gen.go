@@ -236,7 +236,21 @@ func addCostShapeUnscripted(k *prep, c CardID) bool {
 	}
 	cd := &k.t.Cards[c]
 	return !cd.HasAltAdd && !spellFixedTapsOnly(k, c) &&
-		!(lifeXCost(ac) && ac.Flags == kop.CostPayLife && manaEmpty(&ac.Mana))
+		!(lifeXCost(ac) && ac.Flags == kop.CostPayLife && manaEmpty(&ac.Mana)) &&
+		!discardXOnlyShape(k, c)
+}
+
+// discardXOnlyShape reports a card with no printed {X} whose spell ability adds
+// nothing to its mana but an announced Discard<X/Spec> (Vengeful, Restless and
+// Nostalgic Dreams). gorge's potential planner keeps the composition's verdict
+// for it (potential_plan.go spellExtrasAreAnnouncedDiscardX), so an insufficient
+// composition goes on to the census and the prefix search like any cast's:
+// X = 0 pays nothing extra and a source a prefix floats pays the mana (CR
+// 601.2b, 601.2g). With a printed {X} the shape stays census-only (Abandon Hope).
+func discardXOnlyShape(k *prep, c CardID) bool {
+	ac := spellAddCost(k, c)
+	return k.t.Cards[c].Cost.X == 0 && discardXCost(ac) &&
+		ac.Flags&^(kop.CostDiscard|kop.CostDiscardFiltered) == 0 && !ac.ExileBf
 }
 
 // plainCastUnsearched is the script walk's two plain-cast drops: the printed

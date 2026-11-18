@@ -357,7 +357,7 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			// cheapest mode would be over-offered (potentialModalCastFreeMode).
 			modalFree := got.Detail == "shape:modal_cost" && e.potentialModalCastFreeMode(p, o.Obj)
 			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
-				got.Detail == "shape:target_dependent_cost" || modalFree || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face()) || e.spellExtrasAreAnnouncedLife(p, o.Obj)) {
+				got.Detail == "shape:target_dependent_cost" || modalFree || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face()) || (spellExtrasAreAnnouncedDiscardX(e.G.Obj(o.Obj).Face()) && e.faceCost(e.G.Obj(o.Obj).Face()).X == 0) || e.spellExtrasAreAnnouncedLife(p, o.Obj)) {
 				// A witness always; a proof only for the shapes the
 				// composition models exactly (the planner declined the
 				// others for a reason the composition may not see).
@@ -462,6 +462,35 @@ func (e *Engine) spellExtrasAreAnnouncedLife(p state.PlayerID, id state.ObjID) b
 	}
 	rest := extras
 	rest.LifeX = nil
+	return rest.IsZero()
+}
+
+// spellExtrasAreAnnouncedDiscardX reports a cast whose face's spell ability adds
+// nothing to the printed mana but an announced Discard<X> (Vengeful Dreams'
+// "Cost$ W W Discard<X/Card/card(s)>"). X is the caster's announcement (CR
+// 601.2b, 107.3), so X = 0 is always payable and the cast costs exactly its
+// mana: the composition's verdict, proof included, stands where the cast planner
+// declines the shape, and an insufficient one goes on to the prefix search like
+// any other cast's when the census misses a source (a signet whose {1} another
+// source's float pays, CR 601.2g). A face with a printed {X} (Abandon Hope) is
+// not this shape (the caller checks it): its composition stays census-only, an insufficient one
+// dropped with no prefix search.
+func spellExtrasAreAnnouncedDiscardX(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	extras := pay.WithSpellAbilityExtras(f, Cost{})
+	if len(extras.Discard) == 0 {
+		return false
+	}
+	for _, part := range extras.Discard {
+		if !part.Announced {
+			return false
+		}
+	}
+	rest := extras
+	rest.Discard = nil
+	rest.Colored, rest.Generic = [6]int32{}, 0 // the Cost$'s mana half is the printed cost
 	return rest.IsZero()
 }
 

@@ -930,9 +930,6 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	if sacXCost(spellAddCost(k, c)) {
 		return false // an announced Sac<X/Spec>: the potential planner's composition declines it too, so only the floating pool offers it (cost_sacx.go)
 	}
-	if ac := spellAddCost(k, c); discardXCost(ac) && cd.Cost.X == 0 {
-		return s.discardXLowers(k, p, c, o, mayPlay) // cost_discardxl.go
-	}
 	if cd.HasAltAdd {
 		cost := s.altAddPlanCost(k, p, c, o)
 		if s.g.availX&availGaps != 0 {
@@ -967,11 +964,8 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
 		return s.ungrantedPaysNoDH(k, p, c, o, &cost) // the Diamonds alone fund it: gorge's planner prices no plan for a hand play
 	}
-	if ac := spellAddCost(k, c); ac.Flags&costObjFlags != 0 || discardXCost(ac) || k.gen != nil && k.gen.anyEvTargets && spellEvidenceTargets(cd) {
-		// an exile / forage / return / blight / collect-evidence part, or an announced
-		// Discard<X/Spec> (Nostalgic Dreams; PlanNonManaAdmissible's Announced arm; Restless
-		// Dreams, its counter-cost source, Tendo Ice Bridge's, is a census gap no prefix
-		// search taps): the cast
+	if ac := spellAddCost(k, c); ac.Flags&costObjFlags != 0 || k.gen != nil && k.gen.anyEvTargets && spellEvidenceTargets(cd) {
+		// an exile / forage / return / blight / collect-evidence part: the cast
 		// planner declines the shape, and the potential planner prices it only
 		// when the printed sources pay the mana (potentialPlayVerdictShared), with
 		// no prefix search for a granted source beside it (Abhorrent Oculus'
