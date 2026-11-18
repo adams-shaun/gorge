@@ -462,6 +462,12 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 		// which every pick's option reads distinguish the served picks by
 		h = hmix(h, s.atkArm().poseMask.lo)
 		h = hmix(h, s.atkArm().poseMask.hi)
+	case ctlBlockers:
+		// the blockers arm of scr (scratch.go): the pose's declared set,
+		// which every pick's static blocking-state read lifts the served
+		// picks by (blkLifted)
+		h = hmix(h, s.blkArm().poseMask.lo)
+		h = hmix(h, s.blkArm().poseMask.hi)
 	}
 	if s.g.on {
 		// a generated table's decision context: the multi-object target

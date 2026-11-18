@@ -189,10 +189,10 @@ func (s *State) matchPerm(k *prep, f kop.FilterID, sl Slot, ctrl uint8, src Slot
 		if fl.Flags&kop.FNotAttacking != 0 && p.flags&pfAttacking != 0 {
 			return false
 		}
-		if fl.Flags&kop.FBlocking != 0 && p.flags&pfBlocking == 0 {
+		if fl.Flags&kop.FBlocking != 0 && (p.flags&pfBlocking == 0 || s.blkLifted(sl)) {
 			return false
 		}
-		if fl.Flags&kop.FAttackingOrBlocking != 0 && p.flags&(pfAttacking|pfBlocking) == 0 {
+		if fl.Flags&kop.FAttackingOrBlocking != 0 && p.flags&pfAttacking == 0 && (p.flags&pfBlocking == 0 || s.blkLifted(sl)) {
 			return false
 		}
 	}

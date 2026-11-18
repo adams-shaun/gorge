@@ -247,6 +247,7 @@ func (s *State) beginStep(k *prep) {
 		if MaxSeats > 2 {
 			s.blockRound(k, s.active)
 		} else if s.anyBlock(k) {
+			s.blkArm().poseMask = s.blockingMask() // armBlockers: the pose's declared set
 			s.ctl = ctlBlockers
 		} else {
 			s.finishBlocks(k)

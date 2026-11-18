@@ -26,6 +26,10 @@ func scratchLive(s *State) (n int, names string) {
 		n++
 		names += " attackers"
 	}
+	if s.scrBlkLive() {
+		n++
+		names += " blockers"
+	}
 	return n, names
 }
 

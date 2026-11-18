@@ -207,6 +207,19 @@ func (s *State) attackingMask() slotMask {
 	return m
 }
 
+// blockingMask is the pfBlocking mask over the battlefield (the blockers
+// declared: an earlier defender's declarations, then the current one's
+// picks). The pose of a blockers decision captures it (armBlockers).
+func (s *State) blockingMask() slotMask {
+	var m slotMask
+	for x := s.occ; x.any(); x = x.rest() {
+		if s.perms[x.first()].flags&pfBlocking != 0 {
+			m = m.with(x.first())
+		}
+	}
+	return m
+}
+
 // liftAttackPicks clears pfAttacking on the current declaration's served
 // picks -- the marked slots beyond the pose's mask (armAttackers) -- so the
 // option reads see the board as it stood at the pose (CR 508.1c: the
@@ -1005,6 +1018,7 @@ func (s *State) blockRound(k *prep, from uint8) {
 		}
 		s.g.blkDef = q
 		if s.anyBlock(k) {
+			s.blkArm().poseMask = s.blockingMask() // armBlockers: the pose's declared set
 			s.ctl = ctlBlockers
 			return
 		}
