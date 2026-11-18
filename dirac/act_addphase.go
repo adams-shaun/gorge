@@ -35,12 +35,11 @@ import (
 // gorge (extraPhaseBoundary, followedByMainBeforeCombat) splices the main
 // phase as a one-step grant that resumes at the ordinary combat; here the
 // entry stays queued with bit 7 set for the main phase and resumes at its
-// splice point's successor. The kind holds the queue to its own entry: any
-// other grant beside it, a grant outside a main phase, or n > 1 is a loud
-// StallLowering (the interleavings of gorge's scan are not reproduced; an
-// unmodelled rule, not a capacity limit), except a second activation in the
-// running additional main phase (addPhaseMayQueue), which appends after the
-// completed grant and is spliced when the walk leaves that main. StallAddPhase
+// splice point's successor. Grants of the kind queue behind one another
+// (addPhaseMayQueue; identical grants merge into one entry's n); a
+// grant of another kind beside it, a grant outside a main phase, or n > 1 in
+// one grant is a loud StallLowering (an interleaving of gorge's scan the kernel
+// does not reproduce; an unmodelled rule, not a capacity limit). StallAddPhase
 // is the queue's capacity alone.
 //
 // The walk is advance's alone (as gorge's is advanceStep's tail): the jumps
@@ -167,24 +166,22 @@ func (s *State) addPhaseGrant(k *prep, in *kop.Instr) {
 	g.nxph++
 }
 
-// addPhaseMayQueue reports whether a CombatMain grant may join the queue. The
-// kind normally holds the queue to its own entry (the interleavings of gorge's
-// scan are not reproduced), with one exception: a completed FollowedBy$ grant's
-// additional main phase is running as the queue's only entry -- consumed, its
-// combat grant spent (n == 0), its follow bit set. Aggravated Assault is a
-// sorcery-speed activation, so a second activation in that main phase appends
-// after it; leaving the main completes that entry (gorge's step 1) before
-// splicing the new one (step 2), which the walk already does.
+// addPhaseMayQueue reports whether a CombatMain grant may join the queue: when
+// every entry already queued is a CombatMain one. The queue then replays
+// gorge's scan exactly: grants at one splice point run newest first (the
+// run-length coded n of a matching last entry), a grant resolving in a running
+// additional main phase takes that splice point before the older entries, and
+// the n left of a completed entry starts its own combat. A grant of another
+// kind beside a CombatMain entry is the interleaving the kernel does not
+// reproduce.
 func (s *State) addPhaseMayQueue() bool {
 	g := &s.g
-	if g.nxph == 0 {
-		return true
+	for i := 0; i < int(g.nxph); i++ {
+		if g.xph[i].at>>4&3 != kop.AddPhaseCombatMain {
+			return false
+		}
 	}
-	if s.step != kop.StepMain2 || g.nxph != 1 {
-		return false
-	}
-	e := &g.xph[0]
-	return e.n == 0 && e.at&xphFollow != 0 && e.at&xphConsumed != 0
+	return true
 }
 
 // addPhaseNext is gorge's extraPhaseBoundary: the step advance enters after
