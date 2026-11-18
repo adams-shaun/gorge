@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/kgen"
 	"github.com/adams-shaun/gorge/dirac/oracle"
 	"github.com/adams-shaun/gorge/engine/deck"
 )
@@ -22,6 +24,98 @@ func checkSynthFlags(explicit map[string]bool) error {
 		}
 	}
 	return nil
+}
+
+// synthWithExtras is the cards a -synth-with run's union holds from other pools; nil
+// without -synth-with. FocusPoolWith keeps them out of the filler.
+var synthWithExtras map[string]bool
+
+// synthWithSet is the set of a -synth run with -synth-with: the pool's own table
+// widened by the enablers the focus file names that the pool lacks, each taken from
+// the first of with that holds it. The union is lowered in this process
+// (kgen.SynthUnionTable) because a table is one pool's filters and expressions, so
+// two pools' tables cannot be laid side by side. It keeps the main pool's name, so
+// the run's verdict and its rows are named as a plain run's are. With no list, or no
+// enabler outside the pool, it is the pool's own table.
+func synthWithSet(pool string, main cardset.Set, with []string, focusPath, cardsDir string) (cardset.Set, error) {
+	b, err := os.ReadFile(focusPath)
+	if err != nil {
+		return nil, err
+	}
+	focus, err := oracle.ParseFocus(b)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", focusPath, err)
+	}
+	held := func(s cardset.Set, n string) (string, bool) {
+		if _, ok := s.Lookup(n); ok {
+			return n, true
+		}
+		f, _, _ := strings.Cut(n, " // ")
+		for _, m := range s.Names()[:s.NumCards()] {
+			if mf, _, _ := strings.Cut(m, " // "); mf == f {
+				return m, true
+			}
+		}
+		return "", false
+	}
+	var pools []cardset.Set
+	for _, w := range with {
+		ws, err := cardset.SynthByName(w)
+		if err != nil {
+			return nil, fmt.Errorf("-synth-with %s: %w", w, err)
+		}
+		pools = append(pools, ws)
+	}
+	extras := map[string]bool{}
+	for _, fc := range focus {
+		for _, n := range fc.With {
+			if _, ok := held(main, n); ok {
+				continue
+			}
+			for _, ws := range pools {
+				if m, ok := held(ws, n); ok {
+					extras[m] = true
+					break
+				}
+			}
+		}
+	}
+	if len(extras) == 0 {
+		return main, nil
+	}
+	names := slices.Clone(main.Names()[:main.NumCards()])
+	for n := range extras {
+		names = append(names, n)
+	}
+	slices.Sort(names)
+	d, err := kgen.SynthUnionTable(names, cardsDir, pool)
+	if err != nil {
+		return nil, err
+	}
+	synthWithExtras = extras
+	return cardset.Raw(cardset.NewDataSet(d)), nil
+}
+
+// synthSetOf is the set a -synth run plays: the pool's table, or with -synth-with
+// the union synthWithSet builds.
+func synthSetOf(pool, with, focusPath, cardsDir string) (cardset.Set, error) {
+	synthWithExtras = nil // a run in this process starts from its own flags
+	set, err := cardset.SynthByName(pool)
+	if err != nil || with == "" {
+		return set, err
+	}
+	if cardsDir == "" {
+		if cardsDir, err = cardset.CorpusDir(); err != nil {
+			return nil, err
+		}
+	}
+	var pools []string
+	for _, w := range strings.Split(with, ",") {
+		if w = strings.TrimSpace(w); w != "" {
+			pools = append(pools, w)
+		}
+	}
+	return synthWithSet(pool, set, pools, focusPath, cardsDir)
 }
 
 // focusName is the focus pool a -focus run deals, which names its verdict; "" otherwise.
@@ -53,7 +147,7 @@ func dealSynth(c *oracle.Corpus, set cardset.Set, seed uint64, nDecks int, reach
 			return nil, nil, fmt.Errorf("%s: %w", focusPath, perr)
 		}
 		focusName = strings.TrimSuffix(filepath.Base(focusPath), ".txt")
-		pool, files, err = oracle.FocusPool(c.Reg, set, focusName, focus, perDeck, seed, nDecks)
+		pool, files, err = oracle.FocusPoolWith(c.Reg, set, synthWithExtras, focusName, focus, perDeck, seed, nDecks)
 	}
 	if err != nil {
 		return nil, nil, err
