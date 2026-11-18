@@ -479,7 +479,7 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		if !grantOK && k.gen != nil && s.manaGranted(k, sl) {
 			continue // a source whose only mana ability is granted: grantCap/grantPrefix's search, not another gap's
 		}
-		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) && !(dual && s.grantSacLive(sl, pc)) {
+		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) && !(dual && s.grantSacLive(sl, pc)) && !(k.painMana && s.canLifeOnlyMana(k, sl, p)) {
 			if dual {
 				s.availGrantSacOnly(k, sl, a) // a tapped source's granted sacrifice-only ability (mana_grantcost.go)
 			}
@@ -806,7 +806,7 @@ type utype struct {
 	n       uint8 // mana per tap
 	creat   bool
 	sac     bool // a tap-and-sacrifice source (last resort)
-	sacOnly bool // a sacrifice-only source (last resort; no tap)
+	sacOnly bool // a no-tap last-resort unit: a sacrifice-only source, or a life-only one (prepSoleLifeMana, mana_pain.go)
 	flex    uint8
 	avail   uint8
 	k       uint8 // chosen count (search scratch)
@@ -1413,6 +1413,16 @@ func planCastDynSacSkip(castPay bool, pc *pcard) bool {
 	return castPay && pc.manaDyn && pc.manaSac
 }
 
+// planUnitUsable: the planner's order lists sl — a tap, a no-tap cost
+// (a sacrifice-only source, or a sole life-only pain unit), a source only the
+// payment's restricted mana can pay, or a granted {T} beside a printed
+// sacrifice.
+func (s *State) planUnitUsable(k *prep, p uint8, sl Slot, rd *payDesc) bool {
+	return s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) ||
+		k.restrSrc && s.restrOnlyUsable(k, p, sl, rd) || s.planTapGrantSacNow(k, sl) ||
+		k.painMana && s.canLifeOnlyMana(k, sl, p)
+}
+
 func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// units: fixed-production sources in battlefield (entry) order, then
 	// choice-shaped sources (any colour, a choice of colours) in battlefield
@@ -1432,7 +1442,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
-		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) || s.planTapGrantSacNow(k, sl) {
+		if s.planUnitUsable(k, p, sl, &rd) {
 			if deferSkip && s.planDeferred(k, p, sl) {
 				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
 			}
