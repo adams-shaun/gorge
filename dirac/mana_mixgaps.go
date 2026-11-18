@@ -265,6 +265,125 @@ func (fs *filtSearch) otherOwnAsk(k *prep, t *State, sl Slot, funded int, try fu
 	return false, false
 }
 
+// tapXGap branches on the tap-another or sacrifice-another gap sl's answers at
+// a priority node: the ability ask of a second-ability source, the permanent
+// to tap or sacrifice, then the colour of an any-colour one.
+func (fs *filtSearch) tapXGap(k *prep, t *State, sl Slot, try func(otherStep) bool) bool {
+	p := fs.p
+	if k.tapXSecond(t.cardAt(sl)) {
+		// its ability ask (tapXAbilityAsk): the plain first ability, then
+		// the tap-another one
+		if !fs.tick() {
+			return false
+		}
+		if try(otherStep{kind: otherTapXPlain}) {
+			return true
+		}
+	}
+	var cs [MaxPerm]Slot
+	nc := t.tapXCands(k, p, sl, &cs)
+	colours := func(a, b Slot) bool {
+		if fc, ok := kop.TapXFixedColour(k.tapXAbOf(t.cardAt(sl))); ok {
+			// a fixed production asks no colour
+			return try(otherStep{kind: otherTapX, ans: uint8(fc), cand: a, cand2: b})
+		}
+		if !fs.tick() { // the colour ask
+			return false
+		}
+		// gorge's scriptOrderAnswers on the same ask: a colour the play
+		// announces first, the rest in engine order
+		var order [5]uint8
+		no := 0
+		for col := uint8(0); col < 5; col++ {
+			if fs.need[col] {
+				order[no] = col
+				no++
+			}
+		}
+		for col := uint8(0); col < 5; col++ {
+			if !fs.need[col] {
+				order[no] = col
+				no++
+			}
+		}
+		for i := 0; i < 5; i++ {
+			if try(otherStep{kind: otherTapX, ans: order[i], cand: a, cand2: b}) {
+				return true
+			}
+		}
+		return false
+	}
+	if k.sacXOf(t.cardAt(sl)) {
+		// A sacrifice-another source asks no colour: its whole production
+		// floats at once (sacXDo, gorge's commit order); only the "which
+		// permanent" ask is a node, with two or more candidates, as the
+		// tap-another search's is (mana_tapanother.go).
+		if nc > 1 && !fs.tick() {
+			return false
+		}
+		for i := 0; i < nc; i++ {
+			if tapXOwnAnswer(fs.own, cs[i], NoSlot) {
+				// The play's own {T} source as the sacrifice: gorge
+				// submits that answer and the node it reaches ends the
+				// line in leftOwnZone (potential_script.go, CR 602.2b),
+				// one node spent, ask or no ask -- the plain tap-another
+				// cost's own answers are skipped before their ask
+				// branches (tapsOwnSource) and cost none there. The
+				// search keeps its budget charged without the fork.
+				if !fs.tick() {
+					return false
+				}
+				continue
+			}
+			if kop.SacXAnyColour(k.tapXAbOf(t.cardAt(sl))) {
+				if colours(cs[i], NoSlot) { // an any-colour one asks its colour after the sacrifice
+					return true
+				}
+				continue
+			}
+			if try(otherStep{kind: otherTapX, cand: cs[i]}) { // otherDo -> tapXDo -> sacXDo
+				return true
+			}
+		}
+		return false
+	}
+	if k.tapXAbOf(t.cardAt(sl)).Cost.N == 2 {
+		// two permanents: no ask for exactly two, else one "choose 2" whose
+		// answers scriptAnswers enumerates as every pair of its candidates
+		// in lexicographic order, 64 at most (tapXSearch.visit)
+		if nc > 2 && !fs.tick() {
+			return false
+		}
+		npair := tapXPairLimit(nc)
+		for pi := 0; pi < npair; pi++ {
+			i, j := tapXPairAt(nc, pi)
+			a, b := cs[i], cs[j]
+			if tapXOwnAnswer(fs.own, a, b) {
+				// A forced tap (no ask: exactly the cost's candidates)
+				// that takes the play's own {T} source is no continuation
+				// (CR 602.2b), as the tap-another search's is skipped.
+				continue
+			}
+			if colours(a, b) {
+				return true
+			}
+		}
+		return false
+	}
+	if nc > 1 && !fs.tick() { // the creature ask
+		return false
+	}
+	for i := 0; i < nc; i++ {
+		if tapXOwnAnswer(fs.own, cs[i], NoSlot) {
+			continue // a forced tap of the play's own {T} source (CR 602.2b)
+		}
+		if colours(cs[i], NoSlot) {
+			return true
+		}
+	}
+	return false
+}
+
 // otherGap branches on gap sl's answers at a priority node of the search.
 func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 	p := fs.p
@@ -278,107 +397,7 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 	case t.scriptAnyR(k, p).has(sl):
 		return fs.anyRGap(k, t, sl, try)
 	case t.scriptTapX(k, p).has(sl):
-		if k.tapXSecond(t.cardAt(sl)) {
-			// its ability ask (tapXAbilityAsk): the plain first ability, then
-			// the tap-another one
-			if !fs.tick() {
-				return false
-			}
-			if try(otherStep{kind: otherTapXPlain}) {
-				return true
-			}
-		}
-		var cs [MaxPerm]Slot
-		nc := t.tapXCands(k, p, sl, &cs)
-		if k.sacXOf(t.cardAt(sl)) {
-			// A sacrifice-another source asks no colour: its whole production
-			// floats at once (sacXDo, gorge's commit order); only the "which
-			// permanent" ask is a node, with two or more candidates, as the
-			// tap-another search's is (mana_tapanother.go).
-			if nc > 1 && !fs.tick() {
-				return false
-			}
-			for i := 0; i < nc; i++ {
-				if tapXOwnAnswer(fs.own, cs[i], NoSlot) {
-					// The play's own {T} source as the sacrifice: gorge
-					// submits that answer and the node it reaches ends the
-					// line in leftOwnZone (potential_script.go, CR 602.2b),
-					// one node spent, ask or no ask -- the plain tap-another
-					// cost's own answers are skipped before their ask
-					// branches (tapsOwnSource) and cost none there. The
-					// search keeps its budget charged without the fork.
-					if !fs.tick() {
-						return false
-					}
-					continue
-				}
-				if try(otherStep{kind: otherTapX, cand: cs[i]}) { // otherDo -> tapXDo -> sacXDo
-					return true
-				}
-			}
-			return false
-		}
-		colours := func(a, b Slot) bool {
-			if !fs.tick() { // the colour ask
-				return false
-			}
-			// gorge's scriptOrderAnswers on the same ask: a colour the play
-			// announces first, the rest in engine order
-			var order [5]uint8
-			no := 0
-			for col := uint8(0); col < 5; col++ {
-				if fs.need[col] {
-					order[no] = col
-					no++
-				}
-			}
-			for col := uint8(0); col < 5; col++ {
-				if !fs.need[col] {
-					order[no] = col
-					no++
-				}
-			}
-			for i := 0; i < 5; i++ {
-				if try(otherStep{kind: otherTapX, ans: order[i], cand: a, cand2: b}) {
-					return true
-				}
-			}
-			return false
-		}
-		if k.tapXAbOf(t.cardAt(sl)).Cost.N == 2 {
-			// two permanents: no ask for exactly two, else one "choose 2" whose
-			// answers scriptAnswers enumerates as every pair of its candidates
-			// in lexicographic order, 64 at most (tapXSearch.visit)
-			if nc > 2 && !fs.tick() {
-				return false
-			}
-			npair := tapXPairLimit(nc)
-			for pi := 0; pi < npair; pi++ {
-				i, j := tapXPairAt(nc, pi)
-				a, b := cs[i], cs[j]
-				if tapXOwnAnswer(fs.own, a, b) {
-					// A forced tap (no ask: exactly the cost's candidates)
-					// that takes the play's own {T} source is no continuation
-					// (CR 602.2b), as the tap-another search's is skipped.
-					continue
-				}
-				if colours(a, b) {
-					return true
-				}
-			}
-			return false
-		}
-		if nc > 1 && !fs.tick() { // the creature ask
-			return false
-		}
-		for i := 0; i < nc; i++ {
-			if tapXOwnAnswer(fs.own, cs[i], NoSlot) {
-				continue // a forced tap of the play's own {T} source (CR 602.2b)
-			}
-			if colours(cs[i], NoSlot) {
-				return true
-			}
-		}
+		return fs.tapXGap(k, t, sl, try)
 	case t.scriptTapsDefer(k, p).has(sl):
 		return fs.tapsDeferGap(k, t, sl, funded)
 	case t.canTapForMana(k, sl):
