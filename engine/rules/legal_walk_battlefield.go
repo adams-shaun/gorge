@@ -766,8 +766,13 @@ func (w *legalWalk) battlefieldWalk() {
 		// The offer is gated on the sorcery window (Station only as a sorcery)
 		// and on a legal tap candidate existing, so an unpayable station is
 		// never offered; the tap candidate itself is the KChoose askStation
-		// poses after the option is chosen.
+		// poses after the option is chosen. Station is an activated ability
+		// (CR 702.184a), so a CantBeActivated static on the spacecraft forbids
+		// it (CR 602.5; Prison Term's "Enchanted creature ... its activated
+		// abilities can't be activated"), the same gate every other ability
+		// offer runs (w.abilityRestricted on the ability's body).
 		if sorcery {
+			var stationSA *cards.SA
 			for _, id := range e.G.Zone(state.ZBattlefield, p) {
 				o := e.G.Obj(id)
 				if o == nil || o.Face() == nil || !e.hasKeywordH(id, kwhStation) {
@@ -779,6 +784,14 @@ func (w *legalWalk) battlefieldWalk() {
 					continue
 				}
 				if len(e.stationCandidates(p, id)) == 0 {
+					continue
+				}
+				// The resolving body every station shares (Keyword$ Station) is
+				// what a ValidSA$ scope reads; build it once for the pass.
+				if stationSA == nil {
+					stationSA = cards.KeywordPushAbility(e.stationKeywordLine(id))
+				}
+				if stationSA != nil && w.abilityRestricted(p, id, stationSA) {
 					continue
 				}
 				w.add("station", "Station "+o.Face().Name, id)
