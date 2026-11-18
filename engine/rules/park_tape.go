@@ -74,3 +74,14 @@ func tapeCastAsk(e *Engine, d *decision.Decision) bool {
 	e.handle(d, ans)
 	return true
 }
+
+// holdFlag raises *flag (when on) for the duration of f and restores it after,
+// panics included.
+func holdFlag(flag *bool, on bool, f func()) {
+	prev := *flag
+	if on {
+		*flag = true
+	}
+	defer func() { *flag = prev }()
+	f()
+}
