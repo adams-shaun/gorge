@@ -1352,10 +1352,6 @@ func (g *grantSrch) visit(t *State) bool {
 			cheap = true
 		}
 	}
-	if g.offerPays(t) {
-		g.cheaper = true // gorge's offered check, before the seen one: the node's walk lists the play
-		return true
-	}
 	pl := &t.pl[SeatIx(g.p)]
 	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(g.p)}
 	if g.k.artMana {
@@ -1386,8 +1382,7 @@ func (g *grantSrch) visit(t *State) bool {
 			return false
 		}
 	}
-	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && g.witnessKeeps(t, &cost) {
-		g.cheaper = cheap
+	if g.leafPays(t, &cost, cheap) {
 		return true
 	}
 	g.remember(key)

@@ -224,3 +224,19 @@ func (s *State) powerUpOffer(k *prep, play Action) (kop.ManaCost, bool) {
 func (g *grantSrch) offerPays(t *State) bool {
 	return g.hasOffer && t.floatPaysPlay(g.k, g.p, &g.offer, g.d) && !g.waitsForStack(t)
 }
+
+// leafPays is a fresh grant-search node's success: gorge's offered check
+// (offerPays; it precedes gorge's seen check, but a seen node has this pool
+// and stack, so its offered check already failed), then the planner's price
+// from the pool and the printed sources. cheap marks a repriced leaf.
+func (g *grantSrch) leafPays(t *State, cost *kop.ManaCost, cheap bool) bool {
+	if g.offerPays(t) {
+		g.cheaper = true // the node's walk lists the play the root price refused
+		return true
+	}
+	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, cost, g.ex, g.d) && g.witnessKeeps(t, cost) {
+		g.cheaper = cheap
+		return true
+	}
+	return false
+}
