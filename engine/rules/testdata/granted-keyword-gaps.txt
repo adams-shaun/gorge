@@ -22,7 +22,6 @@ Protection from cardColors
 Protection from colorsYouCtrl
 Protection from each color
 ProtectionColor
-Rampage
 Ripple
 Shaman's Trance
 UntapAdjust
