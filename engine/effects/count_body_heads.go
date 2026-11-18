@@ -244,6 +244,20 @@ func evalCountBodyObjHeads(h Host, c *Ctx, g *state.Game, head, arg string, dept
 		av, aok := evalThisTurnEntered(g, c, rest[1:])
 		return av, aok, true
 	}
+	// Count$LastTurnEntered_<Dest>[_from_<Origin>]_<Valid> is the ThisTurnEntered
+	// arm's PREVIOUS-turn sibling (Ephara, God of the Polis's upkeep gate
+	// "if another creature entered the battlefield under your control last
+	// turn"): the same parse, matched over state.EnteredLastTurn -- the
+	// entries the TurnChange fold rotated out of state.Entered -- so a
+	// replay folds the identical count and the two spellings cannot drift
+	// in parse or match.
+	if rest, ok := strings.CutPrefix(head, "LastTurnEntered"); ok && strings.HasPrefix(rest, "_") {
+		if arg != "" {
+			rest += " " + arg
+		}
+		av, aok := evalLastTurnEntered(g, c, rest[1:])
+		return av, aok, true
+	}
 	return 0, false, false
 }
 

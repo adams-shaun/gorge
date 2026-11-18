@@ -99,6 +99,14 @@ func evalThisTurnEntered(g *state.Game, c *Ctx, rest string) (int32, bool) {
 	return evalThisTurnEnteredAs(g, c, c.Controller, rest)
 }
 
+// evalLastTurnEntered is evalThisTurnEntered over state.EnteredLastTurn -- the
+// entries the TurnChange fold rotated out of state.Entered -- the previous
+// turn's window Ephara, God of the Polis's upkeep gate reads. The same
+// parse and the same matcher, so the two spellings cannot drift.
+func evalLastTurnEntered(g *state.Game, c *Ctx, rest string) (int32, bool) {
+	return evalThisTurnEnteredOver(g, c, c.Controller, g.EnteredLastTurn, rest)
+}
+
 // evalThisTurnEnteredAs is evalThisTurnEntered with the counted member's own
 // perspective: the spec's You* qualifiers bind to `you`, not the resolving
 // controller. The PlayerCount condition's per-member properties
@@ -106,6 +114,13 @@ func evalThisTurnEntered(g *state.Game, c *Ctx, rest string) (int32, bool) {
 // under THAT opponent's control") need exactly this — the counted member IS
 // the filter's You.
 func evalThisTurnEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, rest string) (int32, bool) {
+	return evalThisTurnEnteredOver(g, c, you, g.Entered, rest)
+}
+
+// evalThisTurnEnteredOver is evalThisTurnEnteredAs over an explicit entry
+// list -- g.Entered for the this-turn window, g.EnteredLastTurn for the
+// previous turn's.
+func evalThisTurnEnteredOver(g *state.Game, c *Ctx, you state.PlayerID, entries []state.ZoneEntry, rest string) (int32, bool) {
 	// The optional trailing `$<Property>` sum form (Genesis of the Daleks'
 	// `Count$ThisTurnEntered_Graveyard_from_Battlefield_Dalek$CardPower` --
 	// "each of your opponents loses life equal to the total power of Daleks
@@ -126,7 +141,7 @@ func evalThisTurnEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, rest strin
 	if !parsed {
 		return 0, false
 	}
-	return countEnteredAs(g, c, you, dest, origin, valid, prop)
+	return countEnteredOver(g, c, you, entries, dest, origin, valid, prop)
 }
 
 // parseThisTurnEnteredSpec splits a ThisTurnEntered_<Dest>[_from_<Origin>]_<Valid>
@@ -176,7 +191,10 @@ func parseThisTurnEnteredSpec(rest string) (dest state.Zone, origin *state.Zone,
 // the resolving controller's perspective are counted, or -- when prop names a
 // modelled sum property -- their values are summed through objectProperty
 // (the Genesis of the Daleks total-power form).
-func countEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, dest state.Zone, origin *state.Zone, valid, prop string) (int32, bool) {
+// countEnteredOver is countEnteredAs over an explicit entry list: g.Entered
+// for the this-turn window (evalThisTurnEnteredAs), g.EnteredLastTurn for
+// the previous turn's (evalLastTurnEntered).
+func countEnteredOver(g *state.Game, c *Ctx, you state.PlayerID, entries []state.ZoneEntry, dest state.Zone, origin *state.Zone, valid, prop string) (int32, bool) {
 	if valid == "" {
 		return 0, false
 	}
@@ -207,7 +225,7 @@ func countEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, dest state.Zone, 
 	// neither left nor entered the battlefield, is matched exactly as before.
 	creatureAlts, otherAlts, splitCreature := splitCreatureBaseAlternatives(valid)
 	var n int32
-	for _, e := range g.Entered {
+	for _, e := range entries {
 		if e.To != dest {
 			continue
 		}

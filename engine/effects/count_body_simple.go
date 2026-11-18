@@ -166,6 +166,17 @@ func evalCountBodySimple(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 		// The battlefield as the spell was cast, from its frozen snapshot,
 		// else the live battlefield (see evalCastBattlefieldCount).
 		return evalCastBattlefieldCount(h, c, g, arg, depth)
+	case evalCountBodyCostLastStateBattlefield:
+		// The battlefield as the spell was cast, from its frozen snapshot,
+		// with NO current-battlefield fallback (see evalLastStateBattlefield).
+		return evalLastStateBattlefield(h, c, g, arg, depth)
+	case evalCountBodyCostBloodthirstAmount:
+		// Bloodthirst's damage-to-opponents read (see evalBloodthirstAmount).
+		return evalBloodthirstAmount(h, c, g, arg)
+	case evalCountBodyCostSingleMaxDamageThisTurn:
+		// The greatest single-source damage this turn (see
+		// evalSingleMaxDamageThisTurn).
+		return evalSingleMaxDamageThisTurn(g, arg)
 	}
 	return 0, false, false
 }

@@ -267,8 +267,11 @@ func foldTurnChange(g *state.Game, e *Event) {
 			}
 			g.Objs[i].ModeChoices = keptModes
 		}
-		// The per-add entry list is per-turn state too.
-		g.Entered = nil
+		// The per-add entry list is per-turn state too. The just-ended
+		// turn's entries rotate into EnteredLastTurn, the ONE turn of
+		// history a "last turn" entry read (effects' Count$LastTurnEntered_*
+		// heads) answers from.
+		g.EnteredLastTurn, g.Entered = g.Entered, nil
 		// Extra phases never survive into the next turn: whatever is still
 		// queued (or mid-extra-phase) at the turn boundary is dropped here,
 		// so a grant whose splice point this turn has already passed is

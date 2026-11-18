@@ -8,7 +8,8 @@ import (
 
 func evalDamageHistory(h Host, c *Ctx, g *state.Game, head, arg string) (int32, bool, bool) {
 	code := evalCountBodyCostCodes.Code(head)
-	if code != evalCountBodyCostMaxCombatDamageThisTurn && code != evalCountBodyCostNumDamageThisTurn && code != evalCountBodyCostNonCombatDamageThisTurn {
+	if code != evalCountBodyCostMaxCombatDamageThisTurn && code != evalCountBodyCostNumDamageThisTurn &&
+		code != evalCountBodyCostNonCombatDamageThisTurn && code != evalCountBodyCostNumCombatDamageThisTurn {
 		return 0, false, false
 	}
 	if code == evalCountBodyCostMaxCombatDamageThisTurn {
@@ -30,11 +31,12 @@ func evalDamageHistory(h Host, c *Ctx, g *state.Game, head, arg string) (int32, 
 		}
 		for _, hit := range source.DamageDealtThisTurn {
 			if !damageSourceMatches(g, sourceSpec, source, hit, c) ||
-				code == evalCountBodyCostNonCombatDamageThisTurn && hit.Combat {
+				code == evalCountBodyCostNonCombatDamageThisTurn && hit.Combat ||
+				code == evalCountBodyCostNumCombatDamageThisTurn && !hit.Combat {
 				continue
 			}
 			if damageRecipientMatches(g, recipientSpec, hit, c) {
-				if code == evalCountBodyCostNumDamageThisTurn {
+				if code == evalCountBodyCostNumDamageThisTurn || code == evalCountBodyCostNumCombatDamageThisTurn {
 					total++ // A source qualifies once, regardless of hits or amount.
 					break
 				}
@@ -138,4 +140,47 @@ func damageRecipientMatches(g *state.Game, spec string, hit state.DamageDealtRec
 		sc.Layers.DerivedTypes = types
 	}
 	return matchesObjectPtr(g, spec, &snapshot, &sc)
+}
+
+// evalBloodthirstAmount is the bare Count$BloodthirstAmount head (Notorious
+// Throng's "X is the damage dealt to your opponents this turn" token count):
+// the total damage that LANDED this turn on the resolving controller's
+// opponents, summed over the per-object DamageDealtThisTurn records the
+// DamageProvenance fold fills -- combat and noncombat, every source, the
+// same ledger maxPlayerCombatDamage folds. The read is
+// damageToOppsThisTurn, the shared helper the PlayerCountPropertyYou$
+// DamageToOppsThisTurn arm and the TriggeredPlayer$-ref arm already answer
+// "damage dealt to your opponents" with, so the three spellings cannot
+// drift; it sums the Host's per-player damage fold over the living seats
+// that are not the resolving controller. A bare head; an argument is a
+// shape this build does not model, so fail the head's own verdict.
+func evalBloodthirstAmount(h Host, c *Ctx, g *state.Game, arg string) (int32, bool, bool) {
+	if strings.TrimSpace(arg) != "" {
+		return 0, false, true
+	}
+	return damageToOppsThisTurn(h, g, c.Controller), true, true
+}
+
+// evalSingleMaxDamageThisTurn is the bare Count$SingleMaxDamageThisTurn head
+// (Impact Resonance's "X is the greatest amount of damage dealt by a source
+// to a permanent or player this turn"): the largest per-source total, summed
+// over each source's DamageDealtThisTurn records -- the same fold rules'
+// maxDamageBySingleSourceThisTurn answers Dragon Cultist's gate with, minus
+// its controller filter (Impact Resonance reads ANY source, whoever
+// controlled it when the hit landed). Recipients are permanents or players;
+// both live in the same record. A bare head; an argument is a shape this
+// build does not model, so fail the head's own verdict.
+func evalSingleMaxDamageThisTurn(g *state.Game, arg string) (int32, bool, bool) {
+	if strings.TrimSpace(arg) != "" {
+		return 0, false, true
+	}
+	var best int32
+	for i := range g.Objs {
+		var sum int32
+		for _, hit := range g.Objs[i].DamageDealtThisTurn {
+			sum += hit.Amount
+		}
+		best = max(best, sum)
+	}
+	return best, true, true
 }
