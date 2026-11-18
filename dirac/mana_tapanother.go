@@ -174,6 +174,17 @@ func (s *State) tapXSacAnyLive(k *prep, p uint8) bool {
 	return false
 }
 
+// availSacAny adds each live sacrifice-any source's fixed production once to
+// av: gorge's PotentialMana bound admits the ability a single time, and the
+// potential walk (potentialAdmits) leaves it to this fold.
+func (s *State) availSacAny(k *prep, p uint8, av *avail) {
+	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+		if ab := k.tapXAbOf(s.cardAt(b.first())); kop.SacAnyManaAb(ab) {
+			addTapXUnits(av, ab)
+		}
+	}
+}
+
 // tapXSacAnyBound splits a live sacrifice-any source (tapXSacAnyLive) by
 // gorge's PotentialMana bound (availPotentialFor). Closed: the bound counts its
 // fixed production once, so the potential walk lists the gaps walk's plays.

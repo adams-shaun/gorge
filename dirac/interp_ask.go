@@ -271,7 +271,8 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 		return true // Sage of the Maze: gorge's potential walk prices a Combo Any production unbounded in every colour (mana_comboany.go)
 	}
 	other := payDesc{class: pdOther, subBound: true}
-	if !s.anyDifferentOpen(k, p) && !s.anyManaSource(k, p, &other) {
+	sacAny := s.tapXSacAnyLive(k, p) // Ashnod's Altar: gorge's potential walk counts its fixed production once
+	if !s.anyDifferentOpen(k, p) && !s.anyManaSource(k, p, &other) && !sacAny {
 		return false
 	}
 	c := s.numTimesCost(k, amt, pips)
@@ -279,6 +280,7 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	s.announcedHyb(&c)
 	var av avail
 	s.availPotentialFor(k, p, &av, &other, false)
+	s.availSacAny(k, p, &av)
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 
