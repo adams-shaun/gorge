@@ -427,7 +427,9 @@ jobs:
       # of Ith, Lotus Blossom), two halves of one fix (Sword Coast Serpent), and #832 drifting 18 recordings under
       # #1138's skip guard. Replay every committed repro here, about 3 min at 4 cores.
       - name: Replay the committed repros
-        run: go test -timeout 12m -run 'ReprosLockstep' ./dirac/oracle
+        # Every test with Repro in its name, the set fast's REPLAYS selects (scripts/test_targets.py): 11-18 a
+        # *ReprosReach replay went red on main because this step ran only *ReprosLockstep.
+        run: go test -timeout 12m -run 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle
       - name: Save the Go cache
         if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/cache/save@v4
