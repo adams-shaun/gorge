@@ -348,7 +348,7 @@ func (s *State) phasedPT(k *prep, sl Slot) (int, int) {
 func (s *State) phasedTypes(k *prep, sl Slot, base kop.TypeMask) kop.TypeMask {
 	t := base
 	if s.fxM.has(sl) {
-		t |= s.copyExcTypes(k, sl)
+		t = s.copyExcTy(k, sl, t)
 		if s.copyExcNoLegendary(k, sl) {
 			t &^= kop.TLegendary
 		}

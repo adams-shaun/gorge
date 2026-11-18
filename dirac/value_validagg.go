@@ -75,10 +75,11 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 			// token copied "except it's an artifact creature" counts the
 			// creature; a face-down permanent has none (CR 708.2)
 			if !s.faceDown(k, sl) {
-				types |= k.t.Cards[s.cardAt(sl)].Types
+				ct := k.t.Cards[s.cardAt(sl)].Types
 				if k.gen.cpxTy && s.fxM.has(sl) {
-					types |= s.copyExcTypes(k, sl)
+					ct = s.copyExcTy(k, sl, ct) // this slot's face only, so slot order never matters
 				}
+				types |= ct
 			}
 			continue
 		case kop.AggCreatureTypes:
