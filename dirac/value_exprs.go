@@ -324,7 +324,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.refNumColors(k, x.Ref, ctx) // trig_colours.go
 	case kop.ExChromaOf:
 		return s.refChroma(k, x.Ref, int(x.N), ctx) // trig_colours.go
-	case kop.ExPoisonOf, kop.ExEnergyOf, kop.ExProduct, kop.ExAttackersAll, kop.ExSrcRemCounters:
+	case kop.ExPoisonOf, kop.ExEnergyOf, kop.ExProduct, kop.ExAttackersAll, kop.ExSrcRemCounters, kop.ExStaticExileKw:
 		return s.exprKvf(k, x, ctx) // filter_valueheads.go
 	}
 	panic("kernel: expr kind not implemented")
