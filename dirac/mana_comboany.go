@@ -278,6 +278,9 @@ type caSearch struct {
 	nodes int
 	path  [MaxPerm]caStep
 	np    int
+	// stall: the first stall a failed line's fork latched (stallOf), StallNone
+	// none; caScript declares it when the whole search fails
+	stall uint8
 }
 
 // visit is scriptSearch.visit at payer priority node t (root: no source used yet,
@@ -308,6 +311,9 @@ func (cs *caSearch) visit(k *prep, t *State, d *Decision, root bool) bool {
 			cs.path[cs.np] = caStep{order[i], uint8(ans)}
 			cs.np++
 			found := cs.visit(k, c, d, false)
+			if !found {
+				cs.stallOf(c) // the line failed; the fork may have latched a stall
+			}
 			t.unfork()
 			if found {
 				return true
@@ -325,6 +331,12 @@ func (s *State) caScript(k *prep, a Action, p uint8, apply bool) bool {
 	cs := caSearch{a: a, p: p, need: s.playNeed(k, a)}
 	var d Decision
 	if !cs.visit(k, s, &d, true) {
+		if cs.stall != 0 {
+			// every line failed and one ran into a rule gap the kernel stalls
+			// by name: declare it, not "no payment" (tapXScript's stall; a
+			// found path is not this, its apply replays it on s)
+			s.capFull(cs.stall)
+		}
 		return false
 	}
 	if apply {
@@ -333,6 +345,16 @@ func (s *State) caScript(k *prep, a Action, p uint8, apply bool) bool {
 		}
 	}
 	return true
+}
+
+// stallOf records the stall a failed line's fork latched (capFull) while the
+// line ran to it, the first one, so caScript declares it on the real state
+// instead of dropping the play as unpayable: the fork cannot go on (its next
+// stepGen ends the game), but the play could have been payable along it.
+func (cs *caSearch) stallOf(c *State) {
+	if cs.stall == 0 {
+		cs.stall = c.g.stalled
+	}
 }
 
 // windowComboTap activates Combo Any source sl in a payment window: the tap,

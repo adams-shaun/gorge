@@ -62,13 +62,21 @@ func TestWeatherMakerUnlessCtrFee(t *testing.T) {
 	sc, sl := build()
 	setCtr(sc, sl, 2)
 	sc = &scen{s: sc.s, k: sc.s.k()}
-	if !sc.s.windowAffordsN(sc.k, 0, 2, 0, true) {
+	waN := func(amt int, pips int16, unless bool) bool {
+		ok, _ := sc.s.windowAffordsN(sc.k, 0, amt, pips, unless)
+		return ok
+	}
+	wa := func(c *kop.ManaCost) bool {
+		ok, _ := sc.s.windowAffords(sc.k, 0, c)
+		return ok
+	}
+	if !waN(2, 0, true) {
 		t.Fatal("unless {2} with Weather Maker holding two charge counters: want the fixed counter-fee source priced")
 	}
-	if sc.s.windowAffordsN(sc.k, 0, 3, 0, true) {
+	if waN(3, 0, true) {
 		t.Fatal("unless {3} with no other source: want decline")
 	}
-	if sc.s.windowAffords(sc.k, 0, &[]kop.ManaCost{manaOf(2, 0)}[0]) {
+	if wa(&[]kop.ManaCost{manaOf(2, 0)}[0]) {
 		t.Fatal("cast probe {2}: want decline (the fee shape is the unless census's, not the shared one's)")
 	}
 
@@ -77,7 +85,7 @@ func TestWeatherMakerUnlessCtrFee(t *testing.T) {
 	sc, sl = build()
 	setCtr(sc, sl, 1)
 	sc = &scen{s: sc.s, k: sc.s.k()}
-	if sc.s.windowAffordsN(sc.k, 0, 2, 0, true) {
+	if waN(2, 0, true) {
 		t.Fatal("unless {2} with one charge counter: want decline (the fee needs two, the plain tap one)")
 	}
 
@@ -87,10 +95,10 @@ func TestWeatherMakerUnlessCtrFee(t *testing.T) {
 	setCtr(sc, sl, 2)
 	sc.perm(id("Plains"), 0)
 	sc = &scen{s: sc.s, k: sc.s.k()}
-	if !sc.s.windowAffordsN(sc.k, 0, 3, 0, false) {
+	if !waN(3, 0, false) {
 		t.Fatal("ward {3} with Weather Maker and one land: want the fee source priced")
 	}
-	if !sc.s.windowAffordsN(sc.k, 0, 2, 0, true) {
+	if !waN(2, 0, true) {
 		t.Fatal("unless {2} beside the land: want payable")
 	}
 
@@ -98,7 +106,7 @@ func TestWeatherMakerUnlessCtrFee(t *testing.T) {
 	// lone land's mana cannot pay {2}.
 	sc.s.perms[sl].flags |= pfTapped
 	sc = &scen{s: sc.s, k: sc.s.k()}
-	if sc.s.windowAffordsN(sc.k, 0, 2, 0, true) {
+	if waN(2, 0, true) {
 		t.Fatal("unless {2} with Weather Maker tapped: want decline")
 	}
 }

@@ -97,6 +97,9 @@ type dhSearch struct {
 	nodes int
 	path  [maxDHGaps]dhStep
 	np    int
+	// stall: the first stall a failed line's fork latched (stallOf), StallNone
+	// none; dhScript declares it when the whole search fails
+	stall uint8
 }
 
 // visit is scriptSearch.visit at payer priority node t (root: no gap used yet,
@@ -128,6 +131,9 @@ func (ds *dhSearch) visit(k *prep, t *State, d *Decision, root bool) bool {
 			ds.path[ds.np] = dhStep{order[i], col}
 			ds.np++
 			found := ds.visit(k, c, d, false)
+			if !found {
+				ds.stallOf(c) // the line failed; the fork may have latched a stall
+			}
 			t.unfork()
 			if found {
 				return true
@@ -145,6 +151,12 @@ func (s *State) dhScript(k *prep, a Action, p uint8, apply bool) bool {
 	needFirst(ds.cols[:], s.playNeed(k, a))
 	var d Decision
 	if !ds.visit(k, s, &d, true) {
+		if ds.stall != 0 {
+			// every line failed and one ran into a rule gap the kernel stalls
+			// by name: declare it, not "no payment" (tapXScript's stall; a
+			// found path is not this, its apply replays it on s)
+			s.capFull(ds.stall)
+		}
 		return false
 	}
 	if apply {
@@ -153,4 +165,14 @@ func (s *State) dhScript(k *prep, a Action, p uint8, apply bool) bool {
 		}
 	}
 	return true
+}
+
+// stallOf records the stall a failed line's fork latched (capFull) while the
+// line ran to it, the first one, so dhScript declares it on the real state
+// instead of dropping the play as unpayable: the fork cannot go on (its next
+// stepGen ends the game), but the play could have been payable along it.
+func (ds *dhSearch) stallOf(c *State) {
+	if ds.stall == 0 {
+		ds.stall = c.g.stalled
+	}
 }
