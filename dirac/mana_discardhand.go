@@ -104,6 +104,14 @@ func (s *State) dhWithholdsCast(k *prep, p uint8, o Obj, cost *kop.ManaCost) boo
 	return !s.affordsUngrantedAv(k, p, cost, NoSlot, d, &av, &ms)
 }
 
+// ungrantedPaysNoDH reports whether the planner's census (no granted source)
+// pays the hand spell o's cast at cost and the Diamonds are not the only
+// thing that does (dhWithholdsCast).
+func (s *State) ungrantedPaysNoDH(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
+	return s.affordsUngrantedFor(k, p, cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}) &&
+		!s.dhWithholdsCast(k, p, o, cost)
+}
+
 // dhActivate activates the Diamond at sl for colour col: p's whole hand is
 // discarded in hand order, then the Diamond is sacrificed (gorge pays the
 // discard before the sacrifice), then the mana is added.
