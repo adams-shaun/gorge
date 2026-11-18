@@ -34,8 +34,9 @@ var cloneETBReflexiveKeys = state.NewNameSet(
 // optionally Superior Spider-Man's reflexive exile (CloneETBReflexiveExileOK)
 // with its trailing Cleanup that clears the remembered set, and
 // Undercover Operative's condition-gated shield-counter rider
-// (cloneETBConditionalCounterOK) as the first link. A body with no SubAbility$ is trivially inside it. Any other chain
-// (Moritte of the Frost's DB$ Effect replacement) fails closed, keeping the
+// (cloneETBConditionalCounterOK) as the first link, or the type-conditional
+// counter rider (Spark Double, Moritte of the Frost: CloneETBTypedCounters). A body with no SubAbility$ is trivially inside it. Any other chain
+// fails closed, keeping the
 // body out of the
 // ETB election. The key scan only answers a boolean, so map order cannot
 // reach an event.
@@ -53,6 +54,12 @@ func CloneETBSubChainOK(sa *cards.SA, svars map[string]string) bool {
 	for link, d := sa.Sub, 0; link != nil; link, d = link.Sub, d+1 {
 		if d >= maxChain {
 			return false
+		}
+		if link.API == "Effect" {
+			// Spark Double's / Moritte of the Frost's type-conditional counter
+			// rider: exactly one link, the chain's last.
+			_, ok := CloneETBTypedCounters(link, svars)
+			return ok && link == sa.Sub
 		}
 		if link.API == "ImmediateTrigger" {
 			// The reflexive exile is the second-to-last link, closed by Cleanup.

@@ -378,6 +378,20 @@ func cloneETBShapeOK(sa *cards.SA, p *CloneParams) bool {
 	if _, ok := sa.Param(cards.PKNonLegendary); ok && !p.NonLegendary {
 		return false
 	}
+	// The removal flags are boolean exceptions: any spelling but True would
+	// be silently dropped by the compile.
+	if _, ok := sa.Param(cards.PKRemoveCardTypes); ok && !p.RemoveCardTypes {
+		return false
+	}
+	if _, ok := sa.Params["RemoveSubTypes"]; ok && !p.RemoveSubTypes {
+		return false
+	}
+	// Cursed Mirror's "until end of turn": the copy unit rides the ordinary
+	// UntilEOT lifetime (effClone). Every other spelling (UntilFacedown, an
+	// event duration) needs its own expiry route and stays withheld.
+	if p.Duration != "" && cloneDurationCodes.Code(strings.ToLower(p.Duration)) != cloneDurationUntilEndOfTurn {
+		return false
+	}
 	return true
 }
 
@@ -420,4 +434,8 @@ var cloneETBShapeKeys = state.NewNameSet(
 	"AddStaticAbilities", "IntoPlayTapped", "AddTriggers", "AddSVars", "AddAbilities", "SubAbility",
 	"SetPower", "SetToughness", "SetColor", "AddColors", "NonLegendary",
 	"ChoiceZone", "NewName", "ChoiceTitle", "RememberCloneOrigin",
+	// CR 707.9b exceptions CopyExcept writes (Imposter Mech's "loses all other
+	// card types"), the AI-hint keys no resolver reads, and Duration$ (its
+	// value is held to the until-end-of-turn spelling by cloneETBShapeOK).
+	"RemoveCardTypes", "RemoveSubTypes", "Duration", "AILogic",
 )
