@@ -8,7 +8,9 @@ Arachnoform
 Assassin's Ink
 Attended Socialite
 Avalanche
+Azorius Chancery
 Blessed Sanctuary
+Blood Mist
 Bloodforged Battle-Axe
 Bloody Betrayal
 Blossoming Bogbeast
@@ -17,18 +19,23 @@ Borne Upon a Wind
 Brotherhood Outcast
 Cathar's Companion
 Chill of the Grave
+Cloak of the Bat
 Coercion
 Collateral Damage
+Colos Yearling
 Colossus of Sardia
 Commissar Severina Raine
 Conqueror's Flail
+Consult the Necrosages
 Courage in Crisis
 Courier Hawk
 Court of Garenbrig
 Criminal Enterprise
+Crypt Sliver
 Curse of Marit Lage
 Dakmor Ghoul
 Daybreak Chaplain
+Deadeye Tracker
 Death Frenzy
 Dimensional Infiltrator
 Dive Bomber
@@ -36,10 +43,15 @@ Divine Sacrament
 Drag Down
 Dread Drone
 Dryad Sophisticate
+Eerie Interlude
 Energy Flux
+Eternal Warrior
 Excavation Mole
+Exsanguinator Cavalry
 Eye Gouge
+Fantastic Bounce
 Farrel's Zealot
+Fatal Push
 Fellwar Stone
 Femeref Archers
 Firefist Striker
@@ -47,14 +59,19 @@ Flaxen Intruder
 Foreboding Fruit
 Foresight
 Forest
+Gaea's Revenge
+Gamble
+Genestealer Patriarch
 Giant Tortoise
 Godtoucher
+Griffin Canyon
 Grounded
 Halo Forager
 Hill Giant Herdgorger
 Homarid Explorer
 Horned Sliver
 Hunter's Bow
+Indebted Samurai
 Infernal Grasp
 Inventor's Apprentice
 Island
@@ -63,24 +80,32 @@ Karametra's Favor
 Kels, Fight Fixer
 Knight Paladin
 Knight of Glory
+Lambholt Raconteur
+Leather Armor
 Leatherhead, Iron Gator
 Legion Conquistador
 Lightning Dart
 Lochmere Serpent
 Locthwain Lancer
 Loxodon Lifechanter
+Mage-Ring Responder
 Magus of the Moat
+Manakin and Millikin
 Marked by Honor
 Matsu-Tribe Sniper
 Metropolis Sprite
 Misfortune's Gain
 Mogg Fanatic
 Morale
+Morbid Hunger
 Mountain
 Mournwhelk
 Mudbutton Torchrunner
 Multiversal Recruitment
+Murderous Compulsion
+Myojin of Roaring Blades
 Necrobite
+Necroplasm
 Nephalia Seakite
 Omen of the Dead
 Osai Vultures
@@ -104,22 +129,30 @@ Radjan Spirit
 Raksha Golden Cub
 Rakshasa Deathdealer
 Rank and File
+Reap the Seagraf
 Rebuking Ceremony
 Returned Centaur
 Revive the Fallen
 Rimeshield Frost Giant
+Rimrock Knight
+Riptide Laboratory
 Rockslide Ambush
+Rograkh, Son of Rohgahh
 Rosethorn Halberd
+Rousing Refrain
 Runaway Carriage
 Sagittars' Volley
+Salvage Slasher
 Sanctified Charge
 Scent of Ivy
 Scouting Trek
 Secrets of the Golden City
+Seedguide Ash
 Selesnya Eulogist
 Sensor Splicer
 Shadow Glider
 Shard of Broken Glass
+Sheltering Light
 Shrieking Mogg
 Sigil of Myrkul
 Signal Pest
@@ -127,14 +160,19 @@ Silversmote Ghoul
 Skywinder Drake
 Soul Swallower
 Spara's Headquarters
+Spawnbed Protector
+Spear Spewer
 Spectral Hunt-Caller
 Splatter Thug
 Spontaneous Flight
 Springmantle Cleric
+Staunch Defenders
 Steam Frigate
+Storm Fleet Swashbuckler
 Submerge
 Survival of the Fittest
 Swamp
+Synod Artificer
 Taoist Hermit
 Teachings of the Kirin
 Tectonic Edge
@@ -146,6 +184,7 @@ Timetwister
 Torch Slinger
 Tunneler Wurm
 Twinscroll Shaman
+Tymaret, Chosen from Death
 Uncle Istvan
 Undercity Scrounger
 Unleash Shell
@@ -155,6 +194,7 @@ Verdant Field
 Verdant Rebirth
 Wall of Lost Thoughts
 Warren Soultrader
+Weaponize the Monsters
 Weirding Shaman
 Whispering Shade
 Wild Colos

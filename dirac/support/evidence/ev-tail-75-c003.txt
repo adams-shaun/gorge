@@ -1,5 +1,6 @@
 A-Kona, Rescue Beastie
 Absorb
+Afterlife
 Agility Bobblehead
 Air Servant
 Akoum Refuge
@@ -23,6 +24,7 @@ Barkhide Troll
 Barrow Witches
 Basilica Skullbomb
 Belligerent Sliver
+Bellowing Mauler
 Big Boa Constrictor
 Black Widow, Intel Expert
 Black Widow, Natasha Romanoff
@@ -35,6 +37,7 @@ Bloodthirsty Adversary
 Blustersquall
 Bond of Insight
 Bonehoard
+Boneknitter
 Bound in Silence
 Bountiful Promenade
 Brackwater Elemental
@@ -45,11 +48,13 @@ Cabaretti Courtyard
 Captive Weird
 Catacomb Sifter
 Chainweb Aracnir
+Change the Equation
 Chaos Lord
 Chaotic Backlash
 Clear a Path
 Clip Wings
 Continue?
+Crackling Drake
 Creeping Corrosion
 Crosstown Courier
 Cunning Survivor
@@ -58,6 +63,7 @@ Daunting Defender
 Dawning Angel
 Death's Shadow
 Deepwood Wolverine
+Delraich
 Demon's Disciple
 Dense Foliage
 Deputized Protester
@@ -103,6 +109,7 @@ Glimmervoid
 Gnarled Effigy
 Great Defender
 Greater Harvester
+Grim Tutor
 Grixis Slavedriver
 Guardian of the Guildpact
 Guul Draz Mucklord
@@ -193,6 +200,7 @@ Plasmancer
 Port Inspector
 Portent of Betrayal
 Power of Persuasion
+Psychic Frog
 Pyrrhic Blast
 Quest for Renewal
 Quirion Explorer
@@ -220,6 +228,7 @@ School of Piranha
 Scour All Possibilities
 Sedgemoor Witch
 Seething Pathblazer
+Selhoff Occultist
 Shimmer of Possibility
 Show of Valor
 Shrine Keeper
@@ -228,6 +237,7 @@ Silent Extraction
 Simian Brawler
 Sinkhole
 Sizzle
+Skyclave Shadowcat
 Skyline Cascade
 Slagwoods Bridge
 Songstitcher
@@ -236,6 +246,7 @@ Sootstoke Kindler
 Soulmender
 Spectacle Mage
 Spike Breeder
+Spindrift Drake
 Spirited Companion
 Spitebellows
 Spitfire Handler
@@ -251,6 +262,7 @@ Tamiyo's Immobilizer
 Tamiyo's Safekeeping
 Tectonic Edge
 Tempestra, Dame of Games
+Territorial Boar
 Thirst for Discovery
 Thopter Assembly
 Thopter Mechanic
@@ -266,6 +278,7 @@ Trailblazing Historian
 Trained Caracal
 Turntimber Grove
 Twiddle
+Twilight's Call
 Ugin's Insight
 Undead Servant
 Unholy Hunger

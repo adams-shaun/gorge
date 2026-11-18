@@ -2,8 +2,11 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Arc Trail	0753543a0fdcc51c	3	0/0		1/2	ix:resp
 Benalish Heralds	a3cf18ef19462f87	4	1/1		0/1	ix:resp
 Brandywine Farmer	57982f6b435d6b0a	4	2/2		0/1	ix:resp
+Bruse Tarl, Boorish Herder	34044137679d8947	3	2/2		0/1	ix:resp
+Chandra, Legacy of Fire	92251013e9ea31bb	4	3/3		0/1	ix:resp
 Dauntless Dourbark	224782ee66af4238	3	0/0		0/0	
 Ethersworn Adjudicator	25357071f555d132	6	2/2		1/1	
+Exalted Flamer of Tzeentch	460736bf78d405d1	3	2/2		0/1	ix:resp
 Expel from Orazca	5ff12c5253e99f2a	4	0/0		1/2	ix:resp
 Goblin Motivator	8b30319a0265377f	4	1/1		0/1	ix:resp
 Grapeshot	f690522f9ed3d805	3	1/1		2/2	
@@ -12,13 +15,21 @@ Inferno Elemental	24e29de2d761e0f0	9	2/2		0/1	ix:resp
 Jedit's Dragoons	e40e86895c73cfcf	4	1/1		0/1	ix:resp
 Jerrard of the Closed Fist	dce20e3e10abb47d	3	0/0		0/0	
 Jungle Troll	1fbd3969e9714344	4	2/2		1/1	
+Kederekt Leviathan	1a8f623dfd99f818	5	2/2		0/1	ix:resp
 Life from the Loam	0fb0b3ac37aab5c1	7	0/0		1/2	ix:resp
 Linvala, Keeper of Silence	fc2f92bbeef9636c	4	0/0		0/0	
 Luminarch Aspirant	167e9cc507c48ac2	4	1/1		0/1	ix:resp
 Master Skald	2350bd244d432424	4	1/1		0/1	ix:resp
+Mogg Raider	80b65b65f8ad0cd5	11	1/1		0/1	ix:resp
+Monster Mashup	6b4313774781afd5	4	0/0		0/0	
+Pyrohemia	ea83acaa6c386b7e	8	2/2		0/1	ix:resp
 Sandblast	190ac2061201e02b	4	0/0		1/2	ix:resp
 Sanguine Sacrament	6d7adf7bbd63c2fc	4	0/0		2/4	f0/s/x0,ix:resp
+Seasoned Pyromancer	ebf0c4cd7619721e	4	2/2		0/1	ix:resp
+Shaggy Camel	8e2f433727dc2a14	4	1/1		0/1	ix:resp
 Shattered Crypt	3d4f4b0b4d242896	6	0/0		2/4	f0/s/x0,ix:resp
 Storm Fleet Arsonist	e97eeeb12004c8ae	7	1/1		0/1	ix:resp
 Survival Cache	fbc15da9aea73320	4	0/0		2/2	
 The Wanderer	f36131d2da7ef9de	3	1/1		0/1	ix:resp
+Turn into a Pumpkin	6fbf0afd749f917e	6	0/0		2/2	
+Tyrannize	fed36b5a9d0b4360	3	0/0		1/2	ix:resp
