@@ -1511,6 +1511,24 @@ export interface Decision {
    */
   mana_payment?: ManaPaymentWindow | null;
   /**
+   * ContributionCost is present only on a cast-payment announcement ask
+   * (the Convoke/Harmonize/Improvise/Waterbend announcement CR 601.2b
+   * builds): the outstanding mana requirement every chosen contribution
+   * must reduce, the same total the engine's absorb gate
+   * (validateCastContributions / convokeAbsorbs) walks in announcement
+   * order. Publishing it is the same shape as MaxSum: a rule input one
+   * decision-level field carries, so a rules-ignorant client -- the bot
+   * policy's helper selection above all -- can pick a legal subset without
+   * recomposing the cost (Herald of the Pantheon's {1} less is inside this
+   * number, not the spell's printed one). Nil on every other decision, and
+   * on an announcement whose cost carries an unfixed {X}: there the generic
+   * requirement is not known yet (CR 601.2b announces Convoke before X) and
+   * the X ask prices the announcement instead, the gate tentatively
+   * allowing a generic against {0} while X is open. omitempty keeps every
+   * existing decision's bytes.
+   */
+  contribution_cost?: PaymentCost | null;
+  /**
    * MaxSum, when > 0, is a cumulative budget over the chosen options' Value
    * fields: the sum of the picked options' Value must not exceed MaxSum.
    * The engine's first user is a Dig's WithTotalCMC$ ("put any number of
