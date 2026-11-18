@@ -35,6 +35,9 @@ func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc b
 	if k.gen == nil || !(k.gen.anyTapsDefer || k.gen.anyTapsPain) || DebugNoTapsDefer {
 		return 0, false
 	}
+	if s.reflTapsUnwatched(k, sl) {
+		return 0, false
+	}
 	for m := s.subs[kop.TrigTaps]; m.any(); m = m.rest() {
 		w := m.first()
 		if !s.occ.has(w) || k.gen.flags[s.cardAt(w)]&(gfTapsDefer|gfTapsPain) == 0 || s.genLost(k, w) {
@@ -108,6 +111,25 @@ func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc b
 		painN = 255
 	}
 	return painN, deferSrc
+}
+
+// DebugNoReflTapsUnwatched drops reflTapsUnwatched (a reflected source's tap
+// is classed by the watchers like any other); tests only.
+var DebugNoReflTapsUnwatched bool
+
+// reflTapsUnwatched reports whether sl's live mana view is a lone AB$
+// ManaReflected ability (pcard.manaRefl: Quirion Explorer, Exotic Orchard,
+// Mox Amber, Chrome Mox), whose tap gorge's planner never runs past the Taps
+// watchers. Its interference walk (rules paymentPlanSourceInterference) visits
+// one production at a time from pay.PaymentPlanProductions, and a reflected
+// ability has no Produced$, so that list is empty and the source stays a
+// TierNormal census unit whatever watches its tap. Quirion Explorer under an
+// opponent's Spirit Shackle ("whenever enchanted creature becomes tapped")
+// therefore prices Dragon-Scarred Bear on gorge's autopay surface. A
+// land-type setter's view clears manaRefl (static_landtypesetter.go): the
+// intrinsic ability it leaves has a production, so its watchers still apply.
+func (s *State) reflTapsUnwatched(k *prep, sl Slot) bool {
+	return !DebugNoReflTapsUnwatched && k.gen.has(s.cardAt(sl), gfManaRefl) && s.manaPCGen(k, sl).manaRefl
 }
 
 // grantedTapsClass classes the granted Taps watchers over sl (tapsWatchClass's
