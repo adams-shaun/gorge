@@ -13,4 +13,7 @@ import (
 func TestMBCSpellBurstReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "spell_burst_priority")
+	// Decision 355 of tail-26-c000 (seed 834125): Spell Burst over Urabrask's
+	// Anointer; the kernel offered an extra cast(Spell Burst,-,0).
+	stdReproNamed(t, "spell_burst_x_cast_offer")
 }
