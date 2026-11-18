@@ -17,7 +17,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //   - bit turnDamagedShift+p: seat p was dealt positive damage this turn
 //     (Needle Drop's wasDealtDamageThisTurn seat arm; plDmgMark).
 //
-// Bits 0-1 hold the flips, 2-3 Exhaust and 4-5 damage dealt (6-7 free).
+// Bits 0-3 hold the flips, 4-7 Exhaust and 8-11 damage dealt; bit 15 is the
+// unless-window walk (turnUnlessWin, mana_window.go), 12-14 stay free.
 const turnFlipShift = 0
 
 func turnFlipMask(p uint8) turnFT {
@@ -68,7 +69,7 @@ func (s *State) setTurnExhaust(p uint8) { s.g.turnF |= turnExhaustMask(p) }
 // rootTurnF is the turn facts of the State s forks from: s's own when s is
 // no live fork of its pool, else what the pool recorded when its outermost
 // fork was taken.
-func (s *State) rootTurnF() uint8 {
+func (s *State) rootTurnF() turnFT {
 	if p := s.pool; p != nil {
 		for i := 0; i < p.depth; i++ {
 			if p.forks[i] == s {
@@ -87,7 +88,7 @@ func (s *State) rootTurnF() uint8 {
 // activated while its cost is paid (CR 602.2b, 601.2g), after its legality was
 // checked, so gorge's prefix search prices it by the planner's payment verdict
 // alone (rules/potential_script.go scriptSearch.priced).
-func (s *State) withRootExhaust(p uint8) uint8 {
+func (s *State) withRootExhaust(p uint8) turnFT {
 	saved := s.g.turnF
 	m := turnExhaustMask(p)
 	s.g.turnF = saved&^m | s.rootTurnF()&m

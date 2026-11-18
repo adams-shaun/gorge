@@ -6,10 +6,13 @@ import (
 )
 
 // A repro's actions go to disk as plain numbers, and the corpus under
-// testdata/repro (and kfuzz's testdata) holds them as the kernel packs a
-// Canon: kind<<24 | source<<16 | target<<8 | mode, one byte per field
-// (repro_wire_default.go reads and writes the Canon as it is). "packing"
-// names any other packing; a file that carries one is refused.
+// testdata/repro (and kfuzz's testdata) holds them as the two-seat build
+// packed a Canon: kind<<24 | source<<16 | target<<8 | mode, one byte per
+// field. That stays the wire form, so every recording replays as it was
+// made: repro_wire_default.go maps the bytes to the kernel's nine-bit refs
+// and back. A game that names a ref no byte can hold (a seat past the
+// second, an instance past 235) is written in the "mp" packing, the Canon
+// as it is, and says so in "packing".
 
 // reproWire is Repro's JSON: the struct itself with its actions as wire words.
 type reproWire struct {

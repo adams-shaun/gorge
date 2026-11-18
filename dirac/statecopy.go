@@ -77,7 +77,7 @@ type ForkPool struct {
 	// that is no fork which forks[i] descends from, as they stood when its
 	// outermost fork was taken: the search root's (static_turnbits.go
 	// rootTurnF).
-	rootF []uint8
+	rootF []turnFT
 	// census: the walk being run is an unless / ward window's affordability
 	// probe (windowAffordsTake), which prices the deferred sources the way
 	// gorge's unlessWindowUnits does: a source's own mana, never a
@@ -90,7 +90,7 @@ const warmForkDepth = 8
 
 // NewForkPool returns a pool that will not allocate for any measured nesting.
 func NewForkPool() *ForkPool {
-	p := &ForkPool{forks: make([]*State, warmForkDepth), rootF: make([]uint8, warmForkDepth)}
+	p := &ForkPool{forks: make([]*State, warmForkDepth), rootF: make([]turnFT, warmForkDepth)}
 	for i := range p.forks {
 		p.forks[i] = &State{pool: p}
 	}

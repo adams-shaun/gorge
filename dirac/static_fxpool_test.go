@@ -89,7 +89,8 @@ func TestFxPoolHashStable(t *testing.T) {
 	digest()
 	lose(w1, false)
 	digest()
-	if want := uint64(fxPoolHashPin); h != want {
+	want := uint64(fxPoolHashPin)
+	if h != want {
 		t.Fatalf("hash digest %#x, want %#x", h, want)
 	}
 }
@@ -100,4 +101,6 @@ func TestFxPoolHashStable(t *testing.T) {
 // perm.ck widened to 16-bit counter kinds: ObjHash reads the permanent whole.
 // It moved again when perm gained atkVer (the declared attack target's
 // version, CR 506.4c): every perm byte is hashed, and nothing else changed.
-const fxPoolHashPin = 0x1dccf39e9f48c5ec
+// It moved again when dirac became one four-seat build: the object and code
+// fields of perm are sixteen bits wide (TestPermSize).
+const fxPoolHashPin = 0xb4b234bddfc5c55c

@@ -1221,10 +1221,10 @@ func (s *State) unlessSkipsRider(a *kop.Ability) bool {
 	return s.g.turnF&turnUnlessWin != 0 && a.ManaRider == kop.ManaRiderDeplete && !riderCensusFree(a)
 }
 
-// turnUnlessWin is genState.turnF's bit 7: the walk is an unless / ward
+// turnUnlessWin is genState.turnF's bit 15: the walk is an unless / ward
 // window (unlessSkipsRider). It lives in turnF's free bits so State's fixed
 // layout does not move.
-const turnUnlessWin uint8 = 1 << 7
+const turnUnlessWin turnFT = 1 << 15
 
 func (s *State) setUnlessWin(on bool) {
 	if on {
