@@ -1269,6 +1269,25 @@ func (fs *filtSearch) lifePass(k *prep, t *State, order []Slot, funded int) bool
 	return false
 }
 
+// restrictedAnswers tries a restricted ability's colour answers (rm) of the
+// source at sl, after the census one's, the play's announced colours first
+// (gorge's scriptOrderAnswers on the same colour ask, CR 601.2b).
+func (fs *filtSearch) restrictedAnswers(k *prep, t *State, sl Slot, rm uint8, funded int, gapUsed bool) bool {
+	var order [kop.NumManaKinds]uint8
+	no := 0
+	for m := rm; m != 0; m &= m - 1 {
+		order[no] = uint8(bits.TrailingZeros8(m))
+		no++
+	}
+	needFirst(order[:no], fs.need)
+	for _, c := range order[:no] {
+		if fs.try(k, t, filtStep{sl: sl, ans: c, restr: true}, funded+1, gapUsed) {
+			return true
+		}
+	}
+	return false
+}
+
 // visit is one priority node of the search.
 func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	if !fs.tick() {
@@ -1390,20 +1409,8 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if bits.OnesCount8(rm) > 1 && !fs.tick() {
 				return false // the restricted ability's colour ask
 			}
-			// the restricted ability's answers, after the census one's, the
-			// play's announced colours first (gorge's scriptOrderAnswers on the
-			// same colour ask, CR 601.2b)
-			var order [kop.NumManaKinds]uint8
-			no := 0
-			for m := rm; m != 0; m &= m - 1 {
-				order[no] = uint8(bits.TrailingZeros8(m))
-				no++
-			}
-			needFirst(order[:no], fs.need)
-			for _, c := range order[:no] {
-				if fs.try(k, t, filtStep{sl: sl, ans: c, restr: true}, funded+1, gapUsed) {
-					return true
-				}
+			if fs.restrictedAnswers(k, t, sl, rm, funded, gapUsed) {
+				return true
 			}
 		}
 	}
