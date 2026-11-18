@@ -93,6 +93,7 @@ row gorge/native/hosted-bots 'commit nightly pr' hosted_bots
 row gorge/native/http-agent 'commit nightly pr' scripts/examples-smoke.sh "$port"
 row gorge/manabrew/harness 'commit nightly pr' tests ./testkit/conformance TestManaBrewConformanceGorgeSelf TestManaBrewNormaliserLines TestManaBrewCatchesAWrongLife TestManaBrewCatchesAMissingAction
 row gorge/manabrew/bot 'nightly' go test -v -tags spellbench,manabrew -timeout 10m ./server/manabrew/mbtest ./server/host/manabrewhttp
+row gorge/manabrew/commander 'nightly' wiretests ./server/manabrew/mbtest TestParityCommanderFourSeat TestCensusCommanderFourSeat
 row gorge/manabrew/fuzz 'nightly' fuzz
 row gorge/v2/harness 'nightly' go test -v -tags spellbench,manabrew -timeout 15m ./server/spellbench/... ./server/host/sbv2http
 row gorge/v2/stdio-agent 'nightly' wiretests ./server/spellbench/seat TestV2AgentSeatPlaysGorgeAgent TestSpellbenchSeatAppliesAgentPick TestSpellbenchSeatAnswersUnposableDecisionWithFallback
