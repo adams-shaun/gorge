@@ -180,6 +180,19 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 		if slots := int(colourSlots + mana.Generic); slots < d.Max {
 			d.Max = slots
 		}
+		// Publish the outstanding requirement the announcement reduces: the
+		// absorb gate (validateCastContributions / convokeAbsorbs) walks this
+		// same total, and the Max above is only its slot count, which cannot
+		// say the per-shape split a legal announcement obeys (at most
+		// mana.Colored[c] pip picks of colour c, at most mana.Generic generic
+		// ones). A client pricing the printed cost instead -- Herald of the
+		// Pantheon's {1} less lives here, not there -- over-selects past the
+		// real cost, and the Max clamp then slices a pip off an
+		// already over-long answer the gate rejects. With an unfixed {X} the
+		// generic requirement is not known yet, so nothing is published and
+		// the X ask prices the announcement instead.
+		wc := WireCost(mana)
+		d.ContributionCost = &wc
 	}
 	if in.Waterbend && !in.Convoke && !in.Harmonize && !in.Improvise && !in.WaterbendOpen && int(in.WaterbendN) < d.Max {
 		// Only waterbend taps are offered: at most the waterbend amount. A
