@@ -9,6 +9,7 @@ Artificer's Epiphany
 Axegrinder Giant
 Balduvian Atrocity
 Balduvian Horde
+Bant Battlemage
 Battlewing Mystic
 Bay Falcon
 Berg Strider
@@ -46,6 +47,7 @@ Dawnhart Wardens
 Deadly Insect
 Deathrender
 Demon of Catastrophes
+Dictate of Erebos
 Doctor Spectrum
 Doom Blade
 Dragonborn Looter
@@ -56,6 +58,7 @@ Emissary of Sunrise
 Fanatic of Mogis
 Felhide Minotaur
 Fendeep Summoner
+Ferocious Zheng
 Fervent Strike
 Fists of the Anvil
 Forest
@@ -119,6 +122,7 @@ Momo, Rambunctious Rascal
 Moonveil Regent
 Morgul-Knife Wound
 Mountain
+Myr Turbine
 Mystical Dispute
 Naya Battlemage
 Neurok Commando
@@ -184,6 +188,7 @@ Sir Shandlar of Eberyn
 Skaab Ruinator
 Skinwing
 Skyrider Patrol
+Skyswirl Harrier
 Snare the Skies
 Snow-Covered Island
 Solidarity
@@ -212,6 +217,7 @@ Thrór's Map
 Timber Gorge
 Tireless Tribe
 Titanium Golem
+Towering Titan
 Tribune of Rot
 Twisted Image
 Utter Insignificance

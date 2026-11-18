@@ -4,6 +4,7 @@ Aether Spellbomb
 Afterlife
 Agility Bobblehead
 Akoum Refuge
+Alabaster Potion
 Ancestral Blade
 Ancient Gold Dragon
 Anointer Priest
@@ -11,10 +12,12 @@ Apprentice Sharpshooter
 Arachnus Web
 Archwing Dragon
 Ardent Elementalist
+Artificer Class
 Ashen Monstrosity
 Aspect of Lamprey
 Attune with Aether
 Avatar of Growth
+Aven Fogbringer
 Back in Town
 Baloth Null
 Banishment
@@ -26,15 +29,20 @@ Big Boa Constrictor
 Black Widow, Intel Expert
 Black Widow, Natasha Romanoff
 Blind Creeper
+Blood Fountain
 Bloodbond Vampire
 Bloodcrazed Neonate
 Bloodmark Mentor
 Bloodthirsty Adversary
+Blustersquall
 Bond of Insight
 Bonehoard
+Boneknitter
+Bonepicker Skirge
 Bound in Silence
 Bountiful Promenade
 Brandywine Farmer
+Bugenhagen, Wise Elder
 Burning Fields
 Cabaretti Courtyard
 Captive Weird
@@ -51,6 +59,7 @@ Cunning Survivor
 Daggersail Aeronaut
 Death's Shadow
 Dense Foliage
+Deranged Assistant
 Desert of the Indomitable
 Desolate Mire
 Devouring Swarm
@@ -65,6 +74,8 @@ Drifting Shade
 Drossclaw
 Dualcaster Mage
 Dune Mover
+Enrage
+Erstwhile Trooper
 Etched Monstrosity
 Ethereal Investigator
 Evolving Adaptive
@@ -81,6 +92,7 @@ Fissure
 Flare of Denial
 Flatman
 Forest
+Foxfire Oak
 Genestealer Locus
 Gift of Fangs
 Gift of Paradise
@@ -110,12 +122,16 @@ Island
 Jace's Erasure
 Jade Idol
 Jalum Tome
+Jolrael, Voice of Zhalfir
 Kayla's Reconstruction
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
 Kher Keep
 Kodama's Reach
+Launch
+Leyline of Punishment
 Lightning-Rig Crew
+Lightwielder Paladin
 Lorthos, the Tidemaker
 Lost in the Spirit World
 Magmatic Insight
@@ -131,6 +147,7 @@ Mass Calcify
 Mass Mutiny
 Master of Winds
 Master the Way
+Maze Rusher
 Metathran Elite
 Mijae Djinn
 Mind Over Matter
@@ -149,10 +166,13 @@ Needlethorn Drake
 Neonate's Rush
 Nezumi Freewheeler
 Nightveil Predator
+Niv-Mizzet, the Firemind
 Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper
 Obelisk of Grixis
+Ogre Taskmaster
+One-Eyed Scarecrow
 Order of the Sacred Torch
 Panic Attack
 Paradigm Shift
@@ -172,6 +192,7 @@ Quirion Explorer
 Radstorm
 Rageblood Shaman
 Rally the Peasants
+Rampaging Cyclops
 Raugrin Triome
 Reckless Barbarian
 Reclaim the Wastes
@@ -179,6 +200,7 @@ Reduce in Stature
 Rimewood Falls
 Rishkar's Expertise
 Riven Turnbull
+Rockshard Elemental
 Rooftop Nuisance
 Rune-Cervin Rider
 Sacred Prey
@@ -187,14 +209,17 @@ Sage of Fables
 Sailor of Means
 Sanctify
 Sanctum of Stone Fangs
+Scalding Devil
 School of Piranha
 Scour All Possibilities
 Seething Pathblazer
 Selhoff Occultist
 Shaman of Spring
 Shield of the Oversoul
+Show of Valor
 Shrine Keeper
 Sigil of Valor
+Simian Brawler
 Singing Tree
 Sinkhole
 Sizzle
@@ -242,6 +267,7 @@ Veiling Oddity
 Venomous Changeling
 Verdant Sun's Avatar
 Viscerid Deepwalker
+Volcanic Torrent
 Volcanic Upheaval
 Voyager Staff
 Wall of Vines

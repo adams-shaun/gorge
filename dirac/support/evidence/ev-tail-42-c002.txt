@@ -7,6 +7,7 @@ Aerial Engineer
 Aether Adept
 Aether Inspector
 Aethersnipe
+Agent of Stromgald
 Akroan Sergeant
 Alluring Suitor
 Alpha Tyrranax
@@ -31,6 +32,7 @@ Basic Conjuration
 Besmirch
 Bewilder
 Beyeen Veil
+Big Score
 Blistercoil Weird
 Blood Burglar
 Bloodline Culling

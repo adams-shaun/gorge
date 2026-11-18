@@ -4,6 +4,7 @@ Absolute Law	eab4d838c675d3f9	6	0/0		0/0
 Aeolipile	56e4ecbe9344b8f1	10	1/1		1/1	
 Aerial Boost	09da50258d6fb356	9	0/0		1/2	ix:resp
 Alibou, Ancient Witness	4e498a1573e5557b	3	1/1		0/1	ix:resp
+Anax, Hardened in the Forge	29f717791fe07aad	4	1/1		1/1	
 Ballynock Trapper	811f5bd97555e6bc	6	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Benevolent Bodyguard	5522cf237f2ee779	6	1/1		0/1	ix:resp
 Blessing of Belzenlok	9d7e43ac994b86b4	8	0/0		1/2	ix:resp
@@ -15,12 +16,14 @@ Centaur Archer	39ef958207ddb09d	5	1/1		1/1
 Cephalid Sage	25c1531e4f6aa52d	7	0/0		0/0	
 Chained Brute	37d290aaf746f2d9	8	1/1		0/1	ix:resp
 Chandra's Magmutt	7757f41a5802a709	4	1/1		0/1	ix:resp
+Chaos Warp	0b9de0035d6cff8f	4	0/0		2/2	
 Cryoclasm	9a9993515c722447	4	0/0		1/2	ix:resp
 Cunning Survivor	13338735196bcb92	3	1/1		1/1	
 Cursebreak	37225a435e154287	14	0/0		1/2	ix:resp
 Darkmoss Bridge	68c961d4d2461616	46	1/1		0/1	ix:resp
 Dauthi Mercenary	f59d2b332b143bb0	3	1/1		0/1	ix:resp
 Death Pits of Rath	1f2743bbd826eada	11	1/1		1/1	
+Deekah, Fractal Theorist	c00eef8634398ce1	4	2/2		1/1	
 Deeproot Historian	31a560d0ef9197c6	3	0/0		0/0	
 Dwarven Thaumaturgist	8ed59c212d4dec6f	26	1/1		1/1	
 Ebonblade Reaper	eaac43afe6f42456	4	2/2		1/3	cast/alt:morphed,ix:resp
@@ -30,6 +33,7 @@ Fiend Hunter	222755bd476849dd	10	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Flatline	04e2f0ba1f7cc386	14	0/0		2/2	
 Forsake the Worldly	f142ea50b3572186	4	1/1		2/2	
 Foxfire	87488ffa2b862a63	12	0/0		1/2	ix:resp
+Frenetic Raptor	7bf7d7232bb21cd3	4	0/0		0/0	
 Frost Breath	c6a6cc36c0c98783	31	0/0		2/2	
 Fugitive Druid	80e405532f0d9e4c	44	1/1		0/1	ix:resp
 Ghost-Lit Warder	c8f493662c337744	18	2/2		1/1	
@@ -67,6 +71,7 @@ Moonlit Wake	7236c0b6e690155f	8	1/1		1/1
 Morality Shift	15f8aeca9585997a	6	0/0		1/2	ix:resp
 Night Market Aeronaut	3cb30788cde2d13d	6	0/0		0/0	
 No-Dachi	ea1094f206fb3be5	8	1/1		1/1	
+Noble Benefactor	34037ab7a3d9b6be	4	1/1		0/1	ix:resp
 Oath of Ajani	41f32997284f9f19	3	1/1		0/1	ix:resp
 Olog-hai Crusher	4412a7a65c1b9150	4	0/0		0/0	
 Pain Seer	9f06d80c744bf57f	6	1/1		0/1	ix:resp
@@ -118,6 +123,7 @@ Turtleshell Changeling	7a664fbb80e73809	6	1/1		0/1	ix:resp
 Uktabi Drake	bea45489967bc1f7	8	1/1		0/1	ix:resp
 Undercity Troll	bf5a8ce65ee073aa	20	2/2		1/1	
 Valakut, the Molten Pinnacle	b4a0d8a8225356d0	14	2/2		0/1	ix:resp
+Viashino Weaponsmith	6816773c87ad0120	3	1/1		1/1	
 Vibranium Strike Gauntlets	0752e20f7b806a4f	6	2/2		0/1	ix:resp
 Viridian Revel	a5660fd55eac9182	16	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Weathered Wayfarer	f0988a337dd5c272	4	1/1		0/1	ix:resp

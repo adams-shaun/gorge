@@ -259,6 +259,7 @@ Overwhelming Encounter
 Overwhelming Stampede
 Pact of the Titan
 Panic Spellbomb
+Panicked Bystander
 Pegasus Charger
 Perimeter Patrol
 Permafrost Trap
@@ -286,6 +287,7 @@ Rampaging Ferocidon
 Rank and File
 Ravenous Baboons
 Reap the Seagraf
+Rebuking Ceremony
 Reckless Abandon
 Reinforced Ronin
 Reito Lantern
@@ -325,6 +327,7 @@ Seedguide Ash
 Selesnya Eulogist
 Senate Guildmage
 Sengir Vampire
+Sensor Splicer
 Separatist Voidmage
 Shabraz, the Skyshark
 Shadow Glider
@@ -349,11 +352,13 @@ Slithery Stalker
 Sly Requisitioner
 Smoke Bomb
 Soul Swallower
+Spara's Headquarters
 Spawnbed Protector
 Spear Spewer
 Spectral Hunt-Caller
 Spire Barrage
 Splatter Thug
+Spontaneous Flight
 Springmantle Cleric
 Stature, Young Avenger
 Staunch Defenders
@@ -397,6 +402,7 @@ Tormod's Crypt
 Torsten, Founder of Benalia
 Tracker's Instincts
 Trustworthy Scout
+Tunneler Wurm
 Twinscroll Shaman
 Tymaret, Chosen from Death
 Uncage the Menagerie

@@ -74,6 +74,7 @@ Cinder Wall
 Cleanup Crew
 Cleaver Riot
 Coastal Piracy
+Colossal Collision
 Colossal Dreadmaw and Storm Crow
 Colossodon Yearling
 Commune with Dinosaurs
@@ -228,6 +229,7 @@ Marauder's Axe
 Master of the Pearl Trident
 Mausoleum Wanderer
 Measure of Wickedness
+Meeting of Minds
 Megatog
 Merchant of Truth
 Mindbreak Trap

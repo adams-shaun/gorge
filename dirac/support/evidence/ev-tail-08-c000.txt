@@ -170,6 +170,7 @@ Goblin Sky Raider
 Goblin Soothsayer
 Goggles of Night
 Grid Monitor
+Guardian of Faith
 Hag of Inner Weakness
 Hag of Noxious Nightmares
 Hallowed Haunting
@@ -319,6 +320,7 @@ Rift Bolt
 Righteous Charge
 Righteous Fury
 Righteous Valkyrie
+Rilsa Rael, Kingpin
 Rob the Archives
 Rustspore Ram
 Rustwing Falcon

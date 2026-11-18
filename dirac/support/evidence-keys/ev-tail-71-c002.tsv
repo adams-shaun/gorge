@@ -16,6 +16,7 @@ Blind with Anger	7ed8feea5be08fa5	6	0/0		1/2	ix:resp
 Bloodfire Expert	238de0276a100009	7	1/1		1/1	
 Bogbrew Witch	32c9fc32864a9145	46	1/1		1/1	
 Bull Rush	68e3a52613fa0366	3	0/0		1/2	ix:resp
+Burning Earth	d81f436e123f6c82	4	1/1		1/1	
 Burning Wish	44e90b4985484e8c	30	0/0		2/2	
 Captivating Gyre	751ced8b3f0cef38	10	0/0		1/2	ix:resp
 Cat Oven	210d257086168745	8	2/2		0/1	ix:resp
@@ -39,9 +40,11 @@ Dune Chanter	824dab577edd4813	4	1/1		0/1	ix:resp
 Eccentric Farmer	0b956e7d6920c29d	35	1/1		0/1	ix:resp
 Embereth Paladin	d30b91f1917c7291	6	0/0		0/0	
 Enduring Victory	8819a503a0d14628	22	0/0		2/2	
+Ensnare	865fa0c454464cc9	9	0/0		1/2	ix:resp
 Fallaji Chaindancer	cf33b39a650da41f	4	1/1		0/1	ix:resp
 Ferrovore	aaf4dee6ab217519	36	1/1		1/1	
 Feywild Visitor	0a693b3ea8ce6368	10	0/0		0/0	
+Field Research	0d45e226e971b5eb	6	0/0		2/4	cast/alt:kicked,ix:resp
 Field of Souls	c3c32d611cbf786a	9	1/1		1/1	
 Fire Shrine Keeper	36debb46b9a96af1	28	1/1		0/1	ix:resp
 Flamekin Spitfire	00b461886483da7c	30	1/1		1/1	
@@ -110,6 +113,7 @@ Skycat Sovereign	c109979bcd1bd441	34	1/1		0/1	ix:resp
 Slagstone Refinery	6e83c6c30491f4a6	37	1/1		1/1	
 Slinking Skirge	5be59eb00639e08a	4	1/1		0/1	ix:resp
 Sly Instigator	ddbd0bf39ca096ab	23	1/1		1/1	
+Snowfield Sinkhole	e742a047403e7354	10	2/2		0/1	ix:resp
 Spikefield Hazard	0c1fd064e357cc76	43	1/1		2/2	
 Spirit Summoning	a03893249e9499e8	19	0/0		2/2	
 Steel Golem	49a26297facaed5b	8	0/0		0/0	

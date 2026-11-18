@@ -1,43 +1,80 @@
+A-Kona, Rescue Beastie
+A-Master of Winds
 Afterlife
 Air Servant
 Akoum Refuge
+Alabaster Potion
 Ali Baba
+Alrund's Epiphany
 Ancient Gold Dragon
 Anointer Priest
+Apprentice Sharpshooter
+Artificer Class
 Attune with Aether
 Avatar of Growth
+Aven Fogbringer
 Back in Town
+Baloth Null
+Banishment
+Barkhide Troll
 Barrow Witches
 Bathe in Dragonfire
 Belligerent Sliver
+Bellowing Mauler
 Big Boa Constrictor
 Black Widow, Intel Expert
+Blind Creeper
+Blood Fountain
+Bloodbond Vampire
+Bloodcrazed Neonate
 Bloodmark Mentor
+Bloodthirsty Adversary
+Blustersquall
 Bond of Insight
+Bone Devourer
 Bonehoard
 Boneknitter
+Bonepicker Skirge
 Bound in Silence
 Brackwater Elemental
 Brandywine Farmer
+Bugenhagen, Wise Elder
 Cabal Patriarch
+Cabaretti Courtyard
+Cao Cao, Lord of Wei
 Captive Weird
 Catacomb Sifter
 Chainweb Aracnir
+Change the Equation
 Chaotic Backlash
+Cinder Shade
 Clear a Path
 Continue?
+Creakwood Liege
 Crookclaw Elder
+Daggersail Aeronaut
+Dawning Angel
 Death's Shadow
 Deepwood Wolverine
+Delraich
+Demon's Disciple
 Dense Foliage
 Deputized Protester
 Deranged Assistant
 Desolate Mire
 Desynchronize
+Devouring Light
+Dragon-Scarred Bear
 Drainpipe Vermin
 Dream Thief
+Dreamshackle Geist
 Drifting Shade
+Drillworks Mole
+Drossclaw
+Dualcaster Mage
 Dune Mover
+Elvish Dreadlord
+Enrage
 Ethereal Investigator
 Evolving Adaptive
 Faerie Noble
@@ -45,17 +82,24 @@ Falkenrath Marauders
 Fateful Showdown
 Feral Instinct
 Ferocious Zheng
+Fetid Imp
 Fiendslayer Paladin
 Fireblade Charger
 Fissure
 Flare of Denial
+Flatman
 Forest
+Foxfire Oak
 Geralf's Mindcrusher
+Gift of Fangs
 Gift of Paradise
 Gild
 Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
+Goblin Deathraiders
+Greater Harvester
+Grim Tutor
 Grixis Slavedriver
 Guul Draz Mucklord
 Haazda Officer
@@ -67,33 +111,54 @@ Hibernation
 Howl of the Night Pack
 Hulk, Brutal Brawler
 Hurloon Battle Hymn
+Illicit Shipment
 Imaginary Pet
+Immortal Phoenix
 Incarnation Technique
 Incisor Steed
+Inspire Awe
 Island
+Jalum Tome
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
+Khenra Eternal
 Kher Keep
 Kjeldoran Outrider
+Launch
 Leapfrog
+Lightwielder Paladin
 Lost in the Spirit World
+Magma Vein
 Magmatic Insight
 Malcator's Watcher
+Malicious Advice
 Mana Vault
+Marauding Boneslasher
 Mardu Woe-Reaper
+Masked Blackguard
 Mass Calcify
+Maze Rusher
+Mijae Djinn
 Mindwrack Harpy
 Minotaur, Roxxon CEO
+Mobile Fort
 Momentum Rumbler
+Mortal Wound
 Mossbridge Troll
 Mountain
 Muck Rats
+Mystic Skull
+Nakaya Shade
 Neonate's Rush
 Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper
+Ogre Taskmaster
+One-Eyed Scarecrow
 Order of the Sacred Torch
+Panic Attack
 Paradigm Shift
+Patrol Hound
 Peregrine Mask
 Personal Tutor
 Phantasmal Dreadmaw
@@ -107,12 +172,17 @@ Pyrrhic Blast
 Quest for Renewal
 Quirion Explorer
 Radstorm
+Rageblood Shaman
 Rally the Peasants
 Reclaim the Wastes
 Reduce in Stature
+Return of the Nightstalkers
+Rimewood Falls
 Rishadan Cutpurse
+Rockshard Elemental
 Rooftop Nuisance
 Rune-Cervin Rider
+Sacred Prey
 Sage Aven
 Sailor of Means
 Sanctify
@@ -121,17 +191,27 @@ Scab-Clan Mauler
 Scalding Devil
 Sedgemoor Witch
 Seething Pathblazer
+Shaman of Spring
+Shimmer of Possibility
 Show of Valor
 Shrine Keeper
 Sigil of Valor
+Simian Brawler
+Singing Tree
 Sizzle
+Skyclave Shadowcat
 Skyline Cascade
+Slagwoods Bridge
+Songstitcher
 Sonic Screwdriver
 Sootstoke Kindler
+Soulmender
+Spike Breeder
 Spitebellows
 Spitfire Handler
 Sultai Emissary
 Sunscorched Desert
+Surge Engine
 Swamp
 Swarm Surge
 Swarm of Rats
@@ -140,13 +220,17 @@ Tamiyo's Immobilizer
 Tamiyo's Safekeeping
 Tectonic Edge
 Tempestra, Dame of Games
+Territorial Boar
 Thirst for Discovery
 Thopter Assembly
 Thopter Mechanic
 Threnody Singer
 Thrilling Encore
 Thundersteel Colossus
+Timin, Youthful Geist
+Tomebound Lich
 Trail of Evidence
+Trailblazing Historian
 Trained Caracal
 Twiddle
 Twilight's Call
@@ -157,10 +241,15 @@ Urza's Rebuff
 Urza, Powerstone Prodigy
 Veiling Oddity
 Venomous Changeling
+Viscid Lemures
+Volcanic Torrent
 Voyager Staff
 Wall of Vines
 Warmonger Hellkite
 Waterknot
+Whiptail Wurm
+Will-o'-the-Wisp
+Wingsteed Rider
 Wizard Replica
 Wolfwillow Haven
 Woodland Stream

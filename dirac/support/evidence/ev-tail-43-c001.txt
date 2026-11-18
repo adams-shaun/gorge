@@ -67,6 +67,7 @@ Curio Vendor
 Cursecatcher
 Custodian of the Trove
 Cyclops of One-Eyed Pass
+Dalakos, Crafter of Wonders
 Dancing Scimitar
 Dangerous Wager
 Darkthicket Wolf
@@ -215,6 +216,7 @@ Nahiri, Storm of Stone
 Nantuko Mentor
 Narset's Reversal
 Nature's Will
+Nevermaker
 Night Market Aeronaut
 Nightfire Giant
 Nirkana Cutthroat

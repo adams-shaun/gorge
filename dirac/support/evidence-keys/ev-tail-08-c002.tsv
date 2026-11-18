@@ -12,6 +12,8 @@ Azami, Lady of Scrolls	3ba50878453ee230	4	1/1		1/1
 Banewhip Punisher	84b302f6b9c41595	22	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bankrupt in Blood	91ca4491618b56c0	3	0/0		2/2	
 Benalish Marshal	2b64de3935f51e7d	18	0/0		0/0	
+Bequeathal	f6625072f167edc1	28	1/1		2/2	
+Black Market Tycoon	fcd4caa4897dd69b	19	2/2		1/1	
 Blizzard Strix	c29d3360abd2e8ee	62	1/1		1/1	
 Blood Seeker	488e1bccb1e47e11	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Blur Sliver	52faf45be9cc0f3f	11	0/0		0/0	
@@ -35,8 +37,10 @@ Crystal Golem	9baffb74578b56b7	4	1/1		0/1	ix:resp
 Death Wind	549e3f93cda0478e	9	0/0		2/4	f0/s/x0,ix:resp
 Death's Duet	ab69d1205960c10d	4	0/0		1/2	ix:resp
 Denizen of the Deep	0100507157527215	6	1/1		1/1	
+Devil's Play	c7e78c0a610e6b0a	17	0/0		5/6	ix:resp
 Devouring Deep	1700f61f0a9542af	17	0/0		0/0	
 Diamond Knight	bde0bfba7910254a	19	1/1		0/1	ix:resp
+Disposal Mummy	cee2f5c13cabe676	6	1/1		0/1	ix:resp
 Divest	931d1a738c02feb2	10	0/0		1/2	ix:resp
 Djinn of Infinite Deceits	ae1906bf66253971	3	1/1		0/1	ix:resp
 Domestication	0f26e2045a93f353	30	1/1		2/2	
@@ -61,17 +65,22 @@ Gloomlance	39803635ea919bd6	7	0/0		2/2
 Goblin Heelcutter	0985148ad319b657	5	1/1		2/3	ix:resp
 Goggles of Night	d8838bbe55722e40	6	2/2		0/1	ix:resp
 Hallowed Haunting	a5ce710f99f291aa	15	1/1		0/1	ix:resp
+Halvar, God of Battle	370b62d7de167454	28	3/3		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Honor-Worn Shaku	7adf63a102d3fbed	20	2/2		1/1	
 Hornet Nest	6addaf8a489213f9	11	1/1		0/1	ix:resp
+Hyperion Blacksmith	c3820513a2907c92	10	1/1		0/1	ix:resp
 Ilysian Caryatid	b668c21dc0c9f1d7	19	1/1		0/1	ix:resp
 Improbable Alliance	ff1267220b636ebc	4	2/2		0/1	ix:resp
+Invasion of Theros	d2727feb4f73a8b4	8	2/2		0/1	ix:resp
 Iron Verdict	51e98a5b1e0040d5	4	0/0		2/4	cast/alt:foretold,ix:resp
 Ishai, Ojutai Dragonspeaker	847aa3f7263802f7	23	1/1		1/1	
 Joiner Adept	cd942cd03dc15865	5	0/0		0/0	
 Jukai Trainee	7ebb26d3795b8588	4	2/2		0/1	ix:resp
+Kjeldoran Frostbeast	1fddbe0556eecbd0	10	1/1		0/1	ix:resp
 Last Breath	9765cec350508ba5	6	0/0		2/2	
 Lat-Nam Adept	521b24cae5c89268	4	1/1		0/1	ix:resp
 Lesser Werewolf	e7d3dce047207e25	6	1/1		1/1	
+Living Totem	93104de022799def	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Loxodon Mystic	7a3b19a5c8eb29b7	4	1/1		0/1	ix:resp
 Lynx	dafb34074ff927a5	27	0/0		0/0	
 Marionette Apprentice	d3532fd979c470a6	3	2/2		1/1	
@@ -82,6 +91,7 @@ Militia Bugler	22c10cc12bcc0f05	4	1/1		0/1	ix:resp
 Mind Slash	eb204d68b0d40d0f	7	1/1		0/1	ix:resp
 Moldering Karok	0b156a26a6195eb1	6	0/0		0/0	
 Moonsilver Key	9360f48f98bf74a2	16	1/1		0/1	ix:resp
+Mortal's Resolve	a502f08a38fba08f	21	0/0		1/2	ix:resp
 Nature's Wrath	9ebc4138951e157a	7	3/3		0/1	ix:resp
 Necropede	13f68649b239334c	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Okiba-Gang Shinobi	8ca54897872da686	9	2/2		0/1	ix:resp
@@ -93,6 +103,7 @@ Primal Adversary	c1f7908b4a2fe6f6	4	1/1		0/1	ix:resp
 Propagator Drone	c24127f420fd493c	4	1/1		0/1	ix:resp
 Quietus Spike	7b739e57d0c81c44	17	2/2		1/1	
 Rat Colony	c5ebae585bd2408c	12	0/0		0/0	
+Red XIII, Proud Warrior	5305cbd1cc28fc75	5	1/1		0/1	ix:resp
 Relentless Rats	520193e0175f24ec	5	0/0		0/0	
 Righteous Charge	0ccd123a379c89b6	5	0/0		1/2	ix:resp
 Rob the Archives	0fb535cdc2e61b15	17	0/0		1/2	ix:resp
@@ -111,6 +122,7 @@ Square Up	e0fadcf16f4cec76	19	0/0		2/2
 Staunch Throneguard	4f56b5bc2f27f0e7	19	1/1		0/1	ix:resp
 Steel Wall	0f8eb08731d917ee	33	0/0		0/0	
 Stonewood Invocation	27c15f198850c8e0	3	0/0		1/2	ix:resp
+Summon Undead	3747f28cc0b6dec9	8	0/0		2/2	
 Summon: Kujata	420152b43063f42c	3	0/0		0/0	
 Sunlit Marsh	c671eaffb7e4ba94	18	2/2		0/1	ix:resp
 Talisman of Unity	b7203c0f73ec1ed6	8	2/2		0/1	ix:resp
@@ -126,5 +138,7 @@ Victory's Herald	b971eeb6bd83a389	6	1/1		1/1
 Vrock	aa8a27b47e014106	10	1/1		0/1	ix:resp
 Warlord's Elite	d1353e9b1bb7a28a	4	0/0		1/2	ix:resp
 Warped Tusker	785707a4e74b3195	3	3/3		1/1	
+Willow Elf	3cf41f0798dd8ca6	22	0/0		0/0	
 Wormhole Serpent	06bf056fa91ab379	15	1/1		1/1	
 Yavimaya Enchantress	1cfc978b6e7e811b	8	0/0		0/0	
+Yukora, the Prisoner	fc89723f7a79e9bd	12	1/1		0/1	ix:resp

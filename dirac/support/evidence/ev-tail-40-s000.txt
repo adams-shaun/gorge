@@ -1,4 +1,5 @@
 A-Kenku Artificer
+A-Moon-Circuit Hacker
 Adder-Staff Boggart
 Agadeem Occultist
 Aggravated Assault
@@ -17,6 +18,7 @@ Bloodthorn Taunter
 Blor the Impervious
 Bogardan Rager
 Broken Visage
+Bubble Matrix
 Bull's Strength
 Cankerbloom
 Carnage Altar
@@ -93,6 +95,7 @@ Jokulmorder
 Kabira Outrider
 Kardur, Doomscourge
 Knight of Infamy
+Knowledge and Power
 Kolaghan Forerunners
 Land Grant
 Legion Lieutenant
@@ -142,6 +145,7 @@ Repercussion
 Rescue
 Restore
 Riot Spikes
+Sanguine Bond
 Seaside Haven
 Second Breakfast
 Sentinel's Eyes
@@ -161,6 +165,7 @@ Snarling Warg
 Soltari Crusader
 Spellskite
 Spire Mangler
+Sprouting Renewal
 Stoneshaker Shaman
 Stormcrag Elemental
 Strafe

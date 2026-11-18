@@ -374,6 +374,7 @@ Setessan Petitioner
 Shadows' Verdict
 Shambling Goblin
 Shifting Sliver
+Shimmering Glasskite
 Shipwreck Looter
 Shore Snapper
 Silent Extraction
@@ -455,6 +456,7 @@ Unbreathing Horde
 Undercellar Myconid
 Unfulfilled Desires
 Unified Front
+Vampiric Dragon
 Vampiric Link
 Vandalblast
 Vanishing Verse
@@ -490,4 +492,5 @@ Wyleth, Soul of Steel
 Yanling's Harbinger
 Zimone, Mystery Unraveler
 Zof Consumption
+Zuko, Seeking Honor
 Zuran Spellcaster

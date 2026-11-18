@@ -2,4 +2,6 @@ Forest
 Island
 Mountain
 Plains
+Skyclave Shade
+Storm Crow
 Swamp

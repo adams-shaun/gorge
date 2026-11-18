@@ -10,6 +10,7 @@ Artificer's Epiphany	903d07f0d10be46f	18	0/0		2/2
 Axegrinder Giant	047eb239134a6028	8	0/0		0/0	
 Balduvian Atrocity	3d2bc1b4dfc115e9	13	1/1		2/3	ix:resp
 Balduvian Horde	324f99eb7c1bd8f1	13	1/1		0/1	ix:resp
+Bant Battlemage	993ec98c138f214c	22	2/2		1/1	
 Battlewing Mystic	fca989b2ad911b7b	21	1/1		2/3	ix:resp
 Bay Falcon	9104e2d88a908ec0	6	0/0		0/0	
 Berg Strider	2b59f618ea8a8b95	12	1/1		1/1	
@@ -47,6 +48,7 @@ Dawnhart Wardens	28754c00f584ab91	15	1/1		0/1	ix:resp
 Deadly Insect	1402b26094c1b513	22	0/0		0/0	
 Deathrender	02190eaaac3fd3c1	29	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Demon of Catastrophes	2cff4b15102cecfa	13	0/0		1/2	ix:resp
+Dictate of Erebos	0d8ee00d426ecb59	35	1/1		1/1	
 Doctor Spectrum	1204c51120945a1f	11	1/1		0/1	ix:resp
 Doom Blade	98713a47e5130443	19	0/0		2/2	
 Dragonborn Looter	a57a3b62b2f05be8	16	1/1		1/1	
@@ -57,6 +59,7 @@ Emissary of Sunrise	72e57a0957b181a5	17	1/1		0/1	ix:resp
 Fanatic of Mogis	4ecac99069c2e95e	5	1/1		0/1	ix:resp
 Felhide Minotaur	0875e8827eb0f555	22	0/0		0/0	
 Fendeep Summoner	d149394aeb420383	22	1/1		0/1	ix:resp
+Ferocious Zheng	9851f47566dda1d1	14	0/0		0/0	
 Fervent Strike	972b66e8c0b24bbe	10	0/0		2/2	
 Fists of the Anvil	e3dd68041ecbe791	21	0/0		2/2	
 Forest	6d0466c30f825dba	1176	1/1		0/1	ix:resp
@@ -120,6 +123,7 @@ Momo, Rambunctious Rascal	871589a56dd7566e	5	1/1		0/1	ix:resp
 Moonveil Regent	27615f56f3411546	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Morgul-Knife Wound	afd2990fd7171874	13	0/0		1/2	ix:resp
 Mountain	9e71388353e907ed	300	1/1		0/1	ix:resp
+Myr Turbine	f289198a1cab72dd	12	2/2		1/1	
 Mystical Dispute	208449345f946047	7	0/0		2/2	
 Naya Battlemage	2d451decdef14837	15	2/2		1/1	
 Neurok Commando	dd42c438fb80ad90	15	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -185,6 +189,7 @@ Sir Shandlar of Eberyn	665a0c85eb9278a5	6	0/0		0/0
 Skaab Ruinator	7afbccd9280a1af9	10	0/0		2/2	
 Skinwing	e3a7f03e7753af65	12	2/2		1/1	
 Skyrider Patrol	4651ea81e29b015c	14	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Skyswirl Harrier	97077bede5513124	9	0/0		0/0	
 Snare the Skies	028a925f8387ee48	30	0/0		2/2	
 Snow-Covered Island	3020b29d96f5b5b9	135	1/1		0/1	ix:resp
 Solidarity	383a149e356e075e	7	0/0		1/2	ix:resp
@@ -213,6 +218,7 @@ Thrór's Map	f813eb094107c564	26	2/2		1/1
 Timber Gorge	06a38e42b25ab7f0	152	1/1		0/1	ix:resp
 Tireless Tribe	3dbee8afdd3a021d	11	1/1		1/1	
 Titanium Golem	c6a9a2e5d0f72608	12	1/1		1/1	
+Towering Titan	512e56becda84f4e	11	1/1		1/1	
 Tribune of Rot	db82980a227adebd	12	1/1		1/1	
 Twisted Image	5d04a4eac85d91e0	20	0/0		2/2	
 Utter Insignificance	3c4cf4ceba6e6067	12	1/1		2/2	
