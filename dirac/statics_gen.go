@@ -512,7 +512,8 @@ func (s *State) abilityAffordableTargets(k *prep, buf *[MaxOptions]TCode, n int)
 	for i := 0; i < n; i++ {
 		tg[ti] = buf[i]
 		c := s.abReducedFor(k, a, sl, e.ctrl, base, &tg, ti+1)
-		if av.affords(&c, pipMaskOf(&c), 0) || s.gapsAfford(k, e.ctrl, &c) {
+		if av.affords(&c, pipMaskOf(&c), 0) || s.gapsAfford(k, e.ctrl, &c) ||
+			s.equipWindowReaches(k, &s.bld().e, &c) {
 			buf[m] = buf[i]
 			m++
 		}
@@ -545,7 +546,16 @@ func (s *State) equipGapWindowPays(k *prep, e *stackEntry, cost *kop.ManaCost) b
 	}
 	var av avail
 	s.availFor(k, e.ctrl, &av)
-	return !av.affords(cost, pipMaskOf(cost), 0) && s.gapsAfford(k, e.ctrl, cost)
+	return !av.affords(cost, pipMaskOf(cost), 0) && (s.gapsAfford(k, e.ctrl, cost) || s.equipWindowReaches(k, e, cost))
+}
+
+// equipWindowReaches: the cost of a target-gated equip is beyond the planner
+// (the pool and the printed sources, a painland held back at a lethal life
+// total) but the complete CR 601.2g window census reaches it, the probe gorge
+// keeps such a target on the menu by (affordableTargetCandidates) and then
+// pays through the manual window, tapping the painland whatever the life.
+func (s *State) equipWindowReaches(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
+	return s.windowCensusComplete(k, e) && !s.targetWindowShort(k, e, cost, false)
 }
 
 // markCostComposition marks a per-target cost reprice of the in-flight cast, so
