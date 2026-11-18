@@ -230,10 +230,7 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			return Pack(ActChoose+chooseOther, RefNone, RefNone, uint8(o.Index)), o.Index < 256
 		}
 		k := ActChoose + CanonKind(code)
-		src, tgt := ref(o.Obj), RefNone
-		if o.Obj == 0 && (o.Kind == "player" || o.Kind == "primary" || o.Kind == "destination" || o.Kind == "divide" || o.Kind == "proliferate") {
-			tgt = pl(o.Player)
-		}
+		src, tgt := chooseSeatSlots(o, ref(o.Obj), pl(o.Player))
 		var mode int
 		switch o.Kind {
 		case "gift_promise":
@@ -309,6 +306,24 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 		return Pack(k, src, tgt, uint8(mode)), true
 	}
 	return 0, false
+}
+
+// chooseSeatSlots is the (source, target) of a KChoose option: the object's
+// ref in the source slot, and a player-bearing option (no object) names its
+// seat in the target slot, except a player-enchanting Aura's as-enters pick
+// (CR 303.4f), whose kernel ChGenEnchant names the seat in the source slot.
+func chooseSeatSlots(o *decision.Option, objRef, seat Ref) (src, tgt Ref) {
+	src, tgt = objRef, RefNone
+	if o.Obj != 0 {
+		return src, tgt
+	}
+	switch o.Kind {
+	case "player", "primary", "destination", "divide", "proliferate":
+		tgt = seat
+	case "enchant":
+		src = seat
+	}
+	return src, tgt
 }
 
 // counterKindMode maps gorge's counter name to the kernel CounterKind index
