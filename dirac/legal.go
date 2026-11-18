@@ -2070,8 +2070,17 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		if pc.manaMulti && k.gen != nil && done[sl] != ^uint16(0) && pc.manaAb >= 0 {
 			mask = s.potentialFirstMask(k, sl, pc) // the walk below admits its other abilities, each once
 		}
-		add(sl, mask, pc.manaN)
-		cen.tapRec(sl, mask, pc.manaN)
+		if pc.painOnly && int(pc.painN) >= int(s.pl[p].life) {
+			// a pain-only source whose own damage or life reaches the payer's
+			// life is no unit of gorge's planner (the lethal guard: pay's
+			// PlanRemainingPain, PlanLastResortChoices' one-step guard): the
+			// potential walk's over-bound still lists it, the per-tap census
+			// does not (Cabal Pit at 1 life; CR 119.4)
+			fold(sl, mask, pc.manaN)
+		} else {
+			add(sl, mask, pc.manaN)
+			cen.tapRec(sl, mask, pc.manaN)
+		}
 		if n := gatePairPotential(pc); n != 0 {
 			add(sl, uint8(pc.wideCol), n) // gorge's walk sums both listed abilities of a gate-on pair
 		}
