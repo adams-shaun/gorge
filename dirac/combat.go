@@ -117,6 +117,16 @@ func (s *State) anyAttacker(k *prep) bool {
 
 func (s *State) attackerOptions(k *prep, d *Decision) bool {
 	d.Kind, d.Player = DkAttackers, s.active
+	// CR 508.1c checks the declaration's restrictions while none of its
+	// chosen creatures is attacking yet (CR 508.2 makes the chosen creatures
+	// attacking after the checks), so every pick's options are the
+	// declaration's pose-time offers minus the picks served: lift the served
+	// picks' pfAttacking marks while the pairs are enumerated (an "attacking
+	// creatures get +1/+0" static reads them) and skip the declared
+	// attackers in the walk. The served set is the marks beyond the pose's
+	// (armAttackers): the pre-declared must-attack attackers stay marked, as
+	// gorge's attackOffersCompute saw them.
+	served := s.liftAttackPicks()
 	m := s.ctrlM[s.active]
 	def := NextSeat(s.active) // read on the two-seat path only (MaxSeats > 2 offers attackOffersN)
 	// one attacker's offers are at most the player and every other
@@ -126,6 +136,9 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
+		if served.has(sl) {
+			continue // picked in this declaration: its pairs are served
+		}
 		if !s.canAttack(k, sl) || s.aloneAtk(k, sl) && !s.alonePartner(k, sl) {
 			continue // CR 506.5: no partner can join it (combat_alone.go)
 		}
@@ -172,13 +185,59 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 			s.addBattleOffers(k, d, o, sl) // CR 310.7
 		}
 	}
-	if (!s.mustAttackAsked() || !s.mustAttackLeft(k)) && !s.loneAloneAttacker(k) {
-		d.add(MakeAction(AkDone, 0, 0, 0))
-	}
 	if atkTaxOn(k) {
 		s.atkTaxFilter(k, d) // combat_attacktax.go
 	}
+	s.restoreAttackPicks(served)
+	if (!s.mustAttackAsked() || !s.mustAttackLeft(k)) && !s.loneAloneAttacker(k) {
+		d.add(MakeAction(AkDone, 0, 0, 0))
+	}
 	return true
+}
+
+// attackingMask is the pfAttacking mask over the battlefield (the attackers
+// declared: the pose's must-attack attackers, then the declaration's picks).
+func (s *State) attackingMask() slotMask {
+	var m slotMask
+	for x := s.occ; x.any(); x = x.rest() {
+		if s.perms[x.first()].flags&pfAttacking != 0 {
+			m = m.with(x.first())
+		}
+	}
+	return m
+}
+
+// liftAttackPicks clears pfAttacking on the current declaration's served
+// picks -- the marked slots beyond the pose's mask (armAttackers) -- so the
+// option reads see the board as it stood at the pose (CR 508.1c: the
+// declaration's restrictions are checked before any of its creatures is
+// attacking, CR 508.2), and returns the lifted set for restoreAttackPicks.
+// Nothing is lifted outside ctlAttackers (the arm reads nothing then).
+func (s *State) liftAttackPicks() slotMask {
+	if !s.scrAtkLive() {
+		return slotMask{}
+	}
+	pose := s.atkArm().poseMask
+	var served slotMask
+	for x := s.occ; x.any(); x = x.rest() {
+		sl := x.first()
+		if s.perms[sl].flags&pfAttacking != 0 && !pose.has(sl) {
+			served = served.with(sl)
+		}
+	}
+	for m := served; m.any(); m = m.rest() {
+		s.perms[m.first()].flags &^= pfAttacking
+	}
+	return served
+}
+
+// restoreAttackPicks puts back the pfAttacking marks liftAttackPicks cleared,
+// so the pick-progression reads (mustAttackLeft, loneAloneAttacker) see the
+// declaration's served picks.
+func (s *State) restoreAttackPicks(served slotMask) {
+	for m := served; m.any(); m = m.rest() {
+		s.perms[m.first()].flags |= pfAttacking
+	}
 }
 
 // mustAttackAsked reports whether a creature that must attack is declared

@@ -21,6 +21,9 @@ import "unsafe"
 //     because the ask runs inside either. Live while evSel is nonzero, its
 //     length evSel's bit count. Only arm A overlaps it, and arm A is not live
 //     beside a build or a resolution.
+//   - armAttackers: a declare-attackers declaration in progress (poseMask,
+//     the attackers declared before the ask). Live in ctlAttackers; written
+//     whole at the pose (turn.go).
 //
 // The discriminants (ctl, ro.on / n, dmgSeqOn / N / I / Pl, dmgBOn / dmgBn, divA / divI /
 // divRem / divFirst) are outside scr; DecisionHash reads an arm only under
@@ -58,6 +61,19 @@ type armEvidence struct {
 	picks [MaxDeck]Obj // the picks in answer order; evSel counts them
 }
 
+// armAttackers is the declare-attackers declaration in progress. poseMask is
+// the pfAttacking mask as the declaration was posed: the must-attack
+// attackers declareMustAttack declared before the ask (turn.go). CR 508.1c
+// checks the declaration's restrictions while none of its chosen creatures
+// is attacking yet (CR 508.2 makes the chosen creatures attacking after the
+// checks), so attackerOptions lifts the picks served so far -- poseMask tells
+// them apart from the pre-declared must-attack attackers -- and enumerates
+// the pairs on the board as it stood at the pose. Live only in ctlAttackers;
+// written whole at the pose.
+type armAttackers struct {
+	poseMask slotMask
+}
+
 const (
 	scrBytes = max(unsafe.Sizeof(armCombat{}), unsafe.Sizeof(build{}), unsafe.Sizeof(armRes{}), unsafe.Sizeof(armEvidence{}))
 	scrWords = (scrBytes + 7) / 8
@@ -69,6 +85,7 @@ var (
 	_ = [scrWords*8 - unsafe.Sizeof(build{})]struct{}{}
 	_ = [scrWords*8 - unsafe.Sizeof(armRes{})]struct{}{}
 	_ = [scrWords*8 - unsafe.Sizeof(armEvidence{})]struct{}{}
+	_ = [scrWords*8 - unsafe.Sizeof(armAttackers{})]struct{}{}
 )
 
 // the words are 8-aligned: no arm needs more
@@ -76,10 +93,12 @@ var (
 	_ = [8 - unsafe.Alignof(armCombat{})]struct{}{}
 	_ = [8 - unsafe.Alignof(build{})]struct{}{}
 	_ = [8 - unsafe.Alignof(armRes{})]struct{}{}
+	_ = [8 - unsafe.Alignof(armAttackers{})]struct{}{}
 )
 
 func (s *State) combatArm() *armCombat { return (*armCombat)(unsafe.Pointer(&s.g.scr)) }
 func (s *State) resArm() *armRes       { return (*armRes)(unsafe.Pointer(&s.g.scr)) }
+func (s *State) atkArm() *armAttackers { return (*armAttackers)(unsafe.Pointer(&s.g.scr)) }
 
 // evPicks is the evidence ask's picks in answer order, bounded by evSel.
 func (s *State) evPicks() *[MaxDeck]Obj { return &(*armEvidence)(unsafe.Pointer(&s.g.scr)).picks }
@@ -100,6 +119,9 @@ func (s *State) scrBuildLive() bool { return s.buildLive() }
 func (s *State) scrResLive() bool {
 	return s.ctl == ctlResolve || s.ctl == ctlGenAsk && s.g.ctlRet == ctlResolve
 }
+
+// scrAtkLive: the attackers arm holds a declaration in progress.
+func (s *State) scrAtkLive() bool { return s.ctl == ctlAttackers }
 
 // scrResEnter starts a resolution's scratch afresh (resolveTop): the
 // scalars that bound every read of armRes (nlook, lookSel, dmgSeq*) are

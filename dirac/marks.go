@@ -457,6 +457,11 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 	case ctlResolve:
 		h = hbytes(h, unsafe.Pointer(&s.res), unsafe.Sizeof(s.res))
 		h = hbytes(h, unsafe.Pointer(s.xtOf(&s.res.e)), unsafe.Sizeof(noXT))
+	case ctlAttackers:
+		// the attackers arm of scr (scratch.go): the pose's declared set,
+		// which every pick's option reads distinguish the served picks by
+		h = hmix(h, s.atkArm().poseMask.lo)
+		h = hmix(h, s.atkArm().poseMask.hi)
 	}
 	if s.g.on {
 		// a generated table's decision context: the multi-object target
