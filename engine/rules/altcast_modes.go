@@ -40,6 +40,9 @@ const (
 	// altAwaken (CR 702.113a): the cost half of K:Awaken:<N>:<cost>; the
 	// rider is cards.kwAwaken's Condition$ Awakened chain.
 	altAwaken
+	// altSpectacle (CR 702.137a): the cost of K:Spectacle:<cost>, offered while
+	// an opponent has lost life this turn (altGateSpectacle).
+	altSpectacle
 	altCastCount
 )
 
@@ -101,6 +104,9 @@ const (
 	// (awaken's "target land you control" is announced on the awakened cast
 	// only, CR 601.2c, so a landless caster cannot choose the mode).
 	altGateAwaken
+	// altGateSpectacle: an opponent of the caster lost life this turn
+	// (CR 702.137a).
+	altGateSpectacle
 )
 
 // altCastModes is the family, indexed by altCastID. Row order is the order
@@ -130,6 +136,9 @@ var altCastModes = [altCastCount]altCastMode{
 	// Count$AltCost (TestAwakenCardsAreSupported pins it), so the bit is
 	// unambiguous on one.
 	altAwaken: {id: altAwaken, mode: "awakened", head: "Awaken", flag: state.FlagAltCostPaid, ph: phAwaken, handLoop: true, cmdLoop: true, potential: true, gate: altGateAwaken},
+	// Spectacle has no CastFlags bit (the word is full) and no cast-time
+	// provenance here; madness is the flagless precedent.
+	altSpectacle: {id: altSpectacle, mode: "spectacle", head: "Spectacle", flag: 0, ph: phSpectacle, handLoop: true, potential: true, gate: altGateSpectacle},
 }
 
 // spellTypeLedger is the layer-4 table a prowl gate reads the spell's
@@ -159,6 +168,8 @@ func (m *altCastMode) gateOpen(g *state.Game, h altGateHost, p state.PlayerID, i
 		return combatHitThisTurn(g, p, freerunningHit(g, p))
 	case altGateAwaken:
 		return awakenLandAvailable(h, g, p, id)
+	case altGateSpectacle:
+		return opponentLostLifeThisTurn(g, p)
 	}
 	return true
 }
