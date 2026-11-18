@@ -2823,6 +2823,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		}
 	case "CopyFirstToken":
 		rp.Kind = kop.ReplCopyFirstToken
+		rp.C = int16(r.Bits) // kop.ReplCopyFirstAttached: the Crown's IsPresent$ attachment
 	case "DoubleCounters":
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":

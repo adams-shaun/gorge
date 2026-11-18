@@ -97,6 +97,13 @@ const (
 	ReplPrevSelfRemoveDmg = 1 << 2
 )
 
+// ReplCopyFirstToken flag (Repl.C): the replacement applies only while its
+// source is attached to a permanent on the battlefield (Mirrormind Crown's
+// IsPresent$ Card.Self+AttachedTo Creature). Without it (Moonlit Meditation,
+// no IsPresent$) gorge matches the replacement on the gate alone, so a source
+// whose bearer left mid-resolution is still a competition candidate.
+const ReplCopyFirstAttached = 1
+
 // ReplDrawMore flags (Repl.C).
 const ReplDrawNotFirst = 1 // NotFirstCardInDrawStep$ True
 
