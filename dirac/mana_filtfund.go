@@ -21,7 +21,7 @@ import (
 // Plaza's Combo G W asks G before W), the colours it does not name after in
 // W U B R G C order, then the play's needed colours moved first (needFirst).
 // A painland's ask lists its plain ability's colours ({C} included) before
-// its painful ability's (mana_filtpain.go).
+// its painful ability's, and nothing is moved first (mana_filtpain.go).
 func (fs *filtSearch) fundOrder(k *prep, t *State, sl Slot, pc *pcard, mask uint8, out *[kop.NumManaKinds]uint8) int {
 	n := 0
 	var seen uint8
@@ -46,7 +46,12 @@ func (fs *filtSearch) fundOrder(k *prep, t *State, sl Slot, pc *pcard, mask uint
 		out[n] = uint8(bits.TrailingZeros8(m))
 		n++
 	}
-	needFirst(out[:n], fs.need)
+	if !painFunds(k, pc) {
+		// (a painland's ask keeps its own order: gorge's scriptManaAskHoists
+		// is false for an ask with a pain option, so no needed colour is hoisted
+		// past the pain-free {C})
+		needFirst(out[:n], fs.need)
+	}
 	return n
 }
 
