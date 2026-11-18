@@ -105,25 +105,42 @@ func (lc *lowerCtx) riderBodyIsGainSub(name string) bool {
 		sub["Origin"] == "Command" && sub["Destination"] == "Exile"
 }
 
-// effectPreventRiderFrom lowers the Awe Strike shape: an Effect on one
-// remembered target creature (ValidTgts$ Creature, RememberObjects$ Targeted,
-// ExileOnMoved$ Battlefield, no Duration$) whose DamageDone replacement is
-// keyed on the source (ValidSource$ Card.IsRemembered, no ValidTarget$, no
-// Prevent$), carries PreventionEffect$ True and ReplaceWith$ <svar>, and
-// whose body is the prevstate-01 GainLife form plus the self-exile sub
-// (riderBodyIsGainSub): "the next time target creature would deal damage
-// this turn, prevent that damage. You gain life equal to the damage
-// prevented this way" (CR 615.5, 615.8). IsCombat$ absent matches combat and
-// noncombat alike; True matches combat only. It emits one Ext PreventNext
-// with kop.PrevNextAll|kop.PrevNextFrom|kop.PrevNextGain (and PrevNextCombat
-// for IsCombat$ True): the source-keyed shield of dirac/repl_prevnext.go,
-// spent by the first event from the creature (the body's self-exile); the
-// creature leaving the battlefield first ends it by ExileOnMoved$ (the
-// unbounded shield's prevAllLeft). A remembered-source line with no
-// self-exile sub (an "every time" form) returns false, nil with nothing
-// consumed.
+// effectPreventRiderFrom lowers the remembered-source shield shapes: an Effect
+// on one remembered target creature (ValidTgts$ Creature, RememberObjects$
+// Targeted, ExileOnMoved$ Battlefield) whose DamageDone replacement is keyed
+// on the source (ValidSource$ Card.IsRemembered, no Prevent$), carries
+// PreventionEffect$ True and ReplaceWith$ <svar>. Two bodies:
+//
+//   - the prevstate-01 GainLife form plus the self-exile sub
+//     (riderBodyIsGainSub, Awe Strike): "the next time target creature would
+//     deal damage this turn, prevent that damage. You gain life equal to the
+//     damage prevented this way" (CR 615.5, 615.8). No Duration$ and no
+//     ValidTarget$ (prevstate-02 routes an end-of-combat duration to the
+//     scoped arm). kop.PrevNextGain.
+//
+//   - the token form plus the self-exile sub (riderBodyIsTokenSub, Ria Ivor,
+//     prevstate-04): "the next time target creature would deal combat damage
+//     to one or more players this combat, prevent that damage. If damage is
+//     prevented this way, create that many <token>s". IsCombat$ absent
+//     matches combat and noncombat alike, True matches combat only
+//     (kop.PrevNextCombat); ValidTarget$ Player matches a player recipient
+//     only (kop.PrevNextPlayers); Duration$ UntilEndOfCombat ends the record
+//     with the combat (kop.PrevNextEndCombat).
+//
+// It emits one Ext PreventNext with kop.PrevNextAll|kop.PrevNextFrom and the
+// rider bits: the source-keyed shield of dirac/repl_prevnext.go, spent by the
+// first event from the creature (the body's self-exile); the creature leaving
+// the battlefield first ends it by ExileOnMoved$ (the unbounded shield's
+// prevAllLeft). The token key goes in the lInstr CS, mapped to the pool index
+// by opPreventNext, and is registered in the card's Tokens so the pool lowers
+// it. A remembered-source line with no self-exile sub (an "every time" form)
+// returns false, nil with nothing consumed; Inkshield's shape stays refused.
 func (lc *lowerCtx) effectPreventRiderFrom(ps *params) (bool, error) {
-	if strings.TrimSpace(ps.peek("ExileOnMoved")) != "Battlefield" || ps.peek("Duration") != "" {
+	eoc := ps.is("Duration", "UntilEndOfCombat")
+	if d := ps.peek("Duration"); d != "" && !eoc {
+		return false, nil
+	}
+	if strings.TrimSpace(ps.peek("ExileOnMoved")) != "Battlefield" {
 		return false, nil
 	}
 	if strings.TrimSpace(ps.peek("ValidTgts")) != "Creature" || ps.peek("RememberObjects") != "Targeted" {
@@ -147,24 +164,44 @@ func (lc *lowerCtx) effectPreventRiderFrom(ps *params) (bool, error) {
 	if _, has := rm["Prevent"]; has || strings.TrimSpace(rm["PreventionEffect"]) != "True" {
 		return false, nil
 	}
+	players := false
 	if _, has := rm["ValidTarget"]; has {
-		return false, nil
+		if strings.TrimSpace(rm["ValidTarget"]) != "Player" {
+			return false, nil
+		}
+		players = true
 	}
 	if vs := strings.TrimSpace(rm["ValidSource"]); vs != "Card.IsRemembered" {
 		return false, nil
 	}
-	bits := kop.PrevNextAll | kop.PrevNextFrom | kop.PrevNextGain
+	bits := kop.PrevNextAll | kop.PrevNextFrom
 	if v, has := rm["IsCombat"]; has {
 		if strings.TrimSpace(v) != "True" {
 			return false, nil
 		}
 		bits |= kop.PrevNextCombat
 	}
-	if !lc.riderBodyIsGainSub(strings.TrimSpace(rm["ReplaceWith"])) {
-		return false, nil
+	body := strings.TrimSpace(rm["ReplaceWith"])
+	var tok string
+	switch {
+	case !eoc && !players && lc.riderBodyIsGainSub(body):
+		bits |= kop.PrevNextGain
+	default:
+		key, ok := lc.riderBodyIsTokenSub(body)
+		if !ok {
+			return false, nil
+		}
+		bits |= kop.PrevNextTokens
+		if eoc {
+			bits |= kop.PrevNextEndCombat
+		}
+		if players {
+			bits |= kop.PrevNextPlayers
+		}
+		tok = key
 	}
 	rp := newParams(rm)
-	rp.consume("Event", "PreventionEffect", "ValidSource", "IsCombat", "ReplaceWith", "Description")
+	rp.consume("Event", "PreventionEffect", "ValidSource", "IsCombat", "ValidTarget", "ReplaceWith", "Description")
 	if left := rp.unread(); len(left) > 0 {
 		return false, nil
 	}
@@ -172,7 +209,68 @@ func (lc *lowerCtx) effectPreventRiderFrom(ps *params) (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	ps.consume("ReplacementEffects", "AILogic", "ValidTgts", "RememberObjects", "ExileOnMoved", "Name")
-	lc.emit(lInstr{Op: "PreventNext", Obj: obj, C: bits, Note: "the next damage the remembered creature deals is prevented and its controller gains that much life"})
+	in := lInstr{Op: "PreventNext", Obj: obj, C: bits, CS: tok,
+		Note: "the next damage the remembered creature deals is prevented and its body runs"}
+	if err := lc.tokRiderAgrees(in); err != nil {
+		return true, err
+	}
+	ps.consume("ReplacementEffects", "AILogic", "ValidTgts", "RememberObjects", "ExileOnMoved", "Name", "Duration")
+	if tok != "" {
+		lc.out.Tokens = append(lc.out.Tokens, tok)
+	}
+	lc.emit(in)
 	return true, nil
+}
+
+// riderBodyIsTokenSub reports whether SVar name is exactly DB$ Token |
+// TokenAmount$ <svar> | TokenScript$ <one script> | TokenOwner$ You |
+// SubAbility$ <sub>, with that SVar exactly ReplaceCount$DamageAmount and the
+// sub exactly the Effect's self-exile (Awe Strike's ExileEffect, DB$
+// ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile): the
+// body runs once and the Effect exiles itself. It reports the script key,
+// which must be in the corpus.
+func (lc *lowerCtx) riderBodyIsTokenSub(name string) (string, bool) {
+	m := etbParams(lc.face.SVars[name])
+	if name == "" || len(m) != 5 || m["DB"] != "Token" || m["TokenOwner"] != "You" {
+		return "", false
+	}
+	amt := m["TokenAmount"]
+	if amt == "" || strings.TrimSpace(lc.face.SVars[amt]) != "ReplaceCount$DamageAmount" {
+		return "", false
+	}
+	script := strings.TrimSpace(m["TokenScript"])
+	if script == "" || strings.Contains(script, ",") {
+		return "", false
+	}
+	if _, ok := lc.p.reg.Token(script); !ok {
+		return "", false
+	}
+	sub := etbParams(lc.face.SVars[m["SubAbility"]])
+	if len(sub) != 4 || sub["DB"] != "ChangeZone" || sub["Defined"] != "Self" ||
+		sub["Origin"] != "Command" || sub["Destination"] != "Exile" {
+		return "", false
+	}
+	return script, true
+}
+
+// tokRiderAgrees refuses a card whose program already holds a token-rider
+// PreventNext that differs from in: the kernel finds a record's token from
+// the Effect's source card (prevTokInstr), so one card carries one token
+// there.
+func (lc *lowerCtx) tokRiderAgrees(in lInstr) error {
+	same := func(o lInstr) bool { return o.C == in.C && o.CS == in.CS }
+	progs := [][]lInstr{lc.ab.Prog}
+	for _, a := range lc.out.Abilities {
+		if a != lc.ab {
+			progs = append(progs, a.Prog)
+		}
+	}
+	for _, p := range progs {
+		for _, o := range p {
+			if o.Op == "PreventNext" && o.C&kop.PrevNextTokens != 0 && !same(o) {
+				return refuse("Effect prevention rider: two token riders")
+			}
+		}
+	}
+	return nil
 }

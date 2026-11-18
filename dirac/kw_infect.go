@@ -28,16 +28,37 @@ func prepInfect(t *kop.Table, g *genPrep) {
 	if !g.anyInfect {
 		return
 	}
-	if g.anyRepl&(rbDblDmg|rbPrevNC|rbPlusDmg|rbPrevCol) != 0 {
-		g.infectStall = true
-	}
+	// rbPrevCol stalls only when some carrier's records can share a
+	// replacement-order ask — an Ext PreventColor, PreventDamageScope or
+	// DmgRedirect, or a PreventNext without the full token-rider shape. A
+	// table whose rbPrevCol carriers are all ExtPreventNext token-rider
+	// shields (kop.PrevNextTokens|From|All, Ria Ivor) is exempt: a rider
+	// record is never a candidate of the ask whose frozen walk would deal the
+	// conversion's damage as plain damage — prevNextCands stalls StallPrevRider
+	// first, ending the game — and its own lone-shield spends prevent the event
+	// before infectCombat reads it (combat.go replCombatGen runs first), so the
+	// conversion orders as gorge's does.
+	ask := false
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
 			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigCounterAddedOnce {
 				g.infectStall = true
 			}
+			for _, in := range a.Prog {
+				switch in.Ext() {
+				case kop.ExtPreventColor, kop.ExtPreventDamageScope, kop.ExtDmgRedirect:
+					ask = true
+				case kop.ExtPreventNext:
+					if in.C&(kop.PrevNextTokens|kop.PrevNextFrom|kop.PrevNextAll) != kop.PrevNextTokens|kop.PrevNextFrom|kop.PrevNextAll {
+						ask = true
+					}
+				}
+			}
 		}
+	}
+	if g.anyRepl&(rbDblDmg|rbPrevNC|rbPlusDmg) != 0 || g.anyRepl&rbPrevCol != 0 && ask {
+		g.infectStall = true
 	}
 }
 

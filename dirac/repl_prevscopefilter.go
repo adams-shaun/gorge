@@ -12,8 +12,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // StallPrevScopeCopy is a filtered scoped prevention resolving from a card
 // other than its object's own (a copy of the permanent or spell: the program is
-// the copied card's, the object's card is the copier's), where the record could
-// not find its filters again from the object.
+// the copied card's, the object's card is the copier's), or a token-rider
+// shield resolving from one (repl_prevnext.go), where the record could not
+// find its filters (or its token) again from the object.
 const StallPrevScopeCopy = 104
 
 func init() { stallNames[StallPrevScopeCopy] = "prevscopecopy" }
