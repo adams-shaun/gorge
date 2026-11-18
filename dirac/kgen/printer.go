@@ -124,6 +124,8 @@ func writeLit(b *strings.Builder, v reflect.Value) {
 		writeArray(b, v, strconv.Itoa(v.Len()))
 	case reflect.Bool:
 		fmt.Fprintf(b, "%v", v.Bool())
+	case reflect.String:
+		fmt.Fprintf(b, "%q", v.String()) // CardDef.FaceName, the token's printed name
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if t.PkgPath() != "" {
 			fmt.Fprintf(b, "%s(%d)", typeName(t), v.Int())
