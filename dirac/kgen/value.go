@@ -787,6 +787,14 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		err = fmt.Errorf("Remembered$%s", rest)
 	case "Imprinted":
 		v, err = lc.imprintedValue(rest)
+	case "DungeonsCompleted":
+		if rest != "Amount" {
+			return lValue{}, fmt.Errorf("value head DungeonsCompleted$%s", rest)
+		}
+		// DungeonsCompleted$Amount: the controller's completed dungeons
+		// (CR 309.7; gorge Player.CompletedDungeons), ExEnergyOf with N
+		// kop.PlCtrDungeons (Ravenloft Adventurer).
+		v = lValue{Kind: vEnergyOf, Ref: lRef{Kind: rYou}, N: kop.PlCtrDungeons}
 	default:
 		err = fmt.Errorf("value head %s$", head)
 	}

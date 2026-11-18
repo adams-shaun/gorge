@@ -984,6 +984,7 @@ PermMarkDealtTurn	untyped int	1
 PermMarkNot	untyped int	16
 PhaseCountCombats	untyped int	0
 PhaseCountEndSteps	untyped int	1
+PlCtrDungeons	untyped int	2
 PlCtrEnergy	untyped int	0
 PlCtrExperience	untyped int	1
 PlExtExile	untyped int	1024

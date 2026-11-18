@@ -387,6 +387,7 @@ const NumCounterKinds3 CounterKind = 242
 const (
 	PlCtrEnergy     = 0 // energy counters (CR 107.14; gorge "ENERGY")
 	PlCtrExperience = 1 // experience counters (gorge "Experience"; Count$YourCountersExperience)
+	PlCtrDungeons   = 2 // completed dungeons (gorge Player.CompletedDungeons; DungeonsCompleted$Amount); read only, never gained
 )
 
 // CtrAll is no counter kind: an ExCountersOn reading it sums every counter
