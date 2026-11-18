@@ -313,6 +313,10 @@ func manaGapModelled(first, a *lAbility) bool {
 		return true
 	case dynamicLargerSameColour(first, a):
 		return true
+	case hybridFilterMana(first, a):
+		// {W/B}, {T}: Add {W}{W}, {W}{B} or {B}{B} beside {T}: Add {C} (Fetid
+		// Heath): the kernel's hybrid-fee filter gap (lower_hybridfilter.go)
+		return true
 	case tapXGapMana(a):
 		// {T}, tap an untapped creature you control: one mana of any
 		// colour, unrestricted, beside a plain {T} first ability (Scene of
