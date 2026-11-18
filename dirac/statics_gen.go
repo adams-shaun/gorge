@@ -512,12 +512,40 @@ func (s *State) abilityAffordableTargets(k *prep, buf *[MaxOptions]TCode, n int)
 	for i := 0; i < n; i++ {
 		tg[ti] = buf[i]
 		c := s.abReducedFor(k, a, sl, e.ctrl, base, &tg, ti+1)
-		if av.affords(&c, pipMaskOf(&c), 0) {
+		if av.affords(&c, pipMaskOf(&c), 0) || s.gapsAfford(k, e.ctrl, &c) {
 			buf[m] = buf[i]
 			m++
 		}
 	}
 	return m
+}
+
+// gapsAfford: the sources pay c once the script gaps are counted (Selesnya
+// Signet's {1},{T} fee ability), as gorge's payment planner prices the equip
+// (offerSourcesAfford reads the same gaps view for a cast).
+func (s *State) gapsAfford(k *prep, p uint8, c *kop.ManaCost) bool {
+	wasX := s.g.availX
+	s.g.availX |= availGaps
+	var av avail
+	s.availFor(k, p, &av)
+	s.g.availX = wasX
+	return av.affords(c, pipMaskOf(c), 0)
+}
+
+// equipGapWindowPays: the chosen target of a target-gated equip (equipTargetPriced)
+// left a cost the printed sources cannot pay but the script gaps can
+// (abilityAffordableTargets kept it), so the activation pays through the manual
+// window as gorge's does.
+func (s *State) equipGapWindowPays(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
+	if _, _, ok := s.equipTargetPriced(k); !ok || cost.X != 0 {
+		return false
+	}
+	if s.bld().bfl&bflMsDone != 0 {
+		return true // a re-entry after the window's own pause
+	}
+	var av avail
+	s.availFor(k, e.ctrl, &av)
+	return !av.affords(cost, pipMaskOf(cost), 0) && s.gapsAfford(k, e.ctrl, cost)
 }
 
 // markCostComposition marks a per-target cost reprice of the in-flight cast, so
