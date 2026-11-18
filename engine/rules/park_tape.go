@@ -14,7 +14,6 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/resolve"
 )
 
@@ -76,22 +75,13 @@ func tapeCastAsk(e *Engine, d *decision.Decision) bool {
 	return true
 }
 
-// tapeReplacementServed answers a CR 616.1 replacement ask from the tape and
-// runs its handler in place (askReplacementChoiceIn's served arm). Raised
-// inside a payment window's off-stack mana frame (a mana ability the window
-// activated, whose ProduceMana event meets the competition) the frame is open
-// by design, as it is for the ability's own colour ask (askOffStackMana), so
-// the ask is served there too instead of reaching the engine's ask choke
-// point as an unserved ask.
-func tapeReplacementServed(e *Engine, d *decision.Decision, fromEmit bool) (events.Event, bool) {
-	if e.tapeWindowAsking && e.offStackMana != nil {
-		prev := e.tapeOffStackAsking
-		e.tapeOffStackAsking = true
-		defer func() { e.tapeOffStackAsking = prev }()
+// holdFlag raises *flag (when on) for the duration of f and restores it after,
+// panics included.
+func holdFlag(flag *bool, on bool, f func()) {
+	prev := *flag
+	if on {
+		*flag = true
 	}
-	in, ok := parkTapeAnswer(e, d)
-	if !ok {
-		return events.Event{}, false
-	}
-	return e.handleReplacement(d, in, fromEmit), true
+	defer func() { *flag = prev }()
+	f()
 }
