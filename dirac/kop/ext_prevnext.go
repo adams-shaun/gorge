@@ -23,8 +23,13 @@ const (
 	// gains life equal to the damage the event it prevents (Awe Strike's
 	// ReplaceWith$ GainLifeInstead body).
 	PrevNextGain = 8
-	// Reserved for the later prevstate tickets; opPreventNext passes them
-	// through and the installer stalls StallLowering on an unpaired use.
+	// PrevNextTokens, PrevNextEndCombat and PrevNextPlayers are the riders of
+	// Ria Ivor's source-keyed shield (repl_prevnext.go): the record's body
+	// mints the instruction's token (the token pool index in B, mapped by
+	// kgen's opPreventNext from the lInstr's CS key) as many as the damage it
+	// prevents; the record ends with the combat; the shield matches a player
+	// recipient only. All three are unpaired without PrevNextFrom, which the
+	// installer stalls StallLowering on.
 	PrevNextTokens    = 16
 	PrevNextEndCombat = 32
 	PrevNextPlayers   = 64

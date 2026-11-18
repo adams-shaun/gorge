@@ -14,10 +14,20 @@ type prevXScen struct {
 	*scen
 	chant, bear, burn CardID
 	eoc, scope, awe   CardID
+	ria, mite, dbl    CardID
 	emb               uint8
 }
 
 func newPrevXScen(t *testing.T) *prevXScen {
+	t.Helper()
+	return newPrevXTokScen(t, false)
+}
+
+// newPrevXTokScen is newPrevXScen with, when dbl, a token doubler in the
+// table, and always with prevstate-04's token-rider cards: a vanilla 1/1
+// Mite token and a creature whose ExtPreventNext carries every rider bit and
+// names the Mite in B.
+func newPrevXTokScen(t *testing.T, dbl bool) *prevXScen {
 	t.Helper()
 	var ids prevXScen
 	sc, _ := newBLBScenTweak(t, []cardset.Entry{{Name: "Plains", Count: 20}}, func(tbl *kop.Table, _ map[string]CardID) {
@@ -41,6 +51,17 @@ func newPrevXScen(t *testing.T) *prevXScen {
 		scIn := kop.ExtInstr(kop.ExtPreventDamageScope)
 		scIn.C = int16(kop.PrevScopePlayer | kop.PrevScopeCombat)
 		ids.scope = add(kop.CardDef{Name: "Test Scope", Types: kop.TInstant, Abilities: []kop.Ability{{Prog: []kop.Instr{scIn}}}})
+		ids.mite = add(kop.CardDef{Name: "Test Mite", Types: kop.TCreature, Power: 1, Toughness: 1})
+		riaIn := kop.ExtInstr(kop.ExtPreventNext)
+		riaIn.C = int16(kop.PrevNextAll | kop.PrevNextFrom | kop.PrevNextCombat | kop.PrevNextPlayers | kop.PrevNextTokens | kop.PrevNextEndCombat)
+		riaIn.B.N = int16(ids.mite)
+		riaIn.Obj = kop.RefTarget0
+		ids.ria = add(kop.CardDef{Name: "Test Ria Rider", Types: kop.TCreature, Power: 2, Toughness: 2,
+			Abilities: []kop.Ability{{Prog: []kop.Instr{riaIn}}}})
+		if dbl {
+			ids.dbl = add(kop.CardDef{Name: "Test Tok Doubler", Types: kop.TEnchantment,
+				Abilities: []kop.Ability{{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: kop.ReplDoubleTokens}}}})
+		}
 	})
 	ids.scen = sc
 	return &ids
@@ -81,6 +102,29 @@ func (f *prevXScen) resolveAwe(bear Obj) {
 	e.kind, e.obj, e.ctrl, e.card = seSpell, f.obj(f.awe, 0), 0, f.awe
 	e.tgt[0] = TCode(bear)
 	f.s.prevNextAdd(f.k, &f.k.t.Cards[f.awe].Abilities[0].Prog[0])
+}
+
+// resolveRiaTok registers the token-rider shield (the Test Ria Rider card's
+// ExtPreventNext) as its resolution does, keyed on bear as the remembered
+// source, resolving from a battlefield Ria of seat p so the record finds the
+// instruction (and its Mite) again from its object's card.
+func (f *prevXScen) resolveRiaTok(bear Obj, p uint8) {
+	e := &f.s.res.e
+	e.kind, e.obj, e.ctrl, e.card = seAbility, f.perm(f.ria, p), p, f.ria
+	e.tgt[0] = TCode(bear)
+	f.s.prevNextAdd(f.k, &f.k.t.Cards[f.ria].Abilities[0].Prog[0])
+}
+
+// mitesOf counts the Mites of card c on the battlefield under seat p.
+func (f *prevXScen) mitesOf(c CardID, p uint8) int {
+	n := 0
+	for o := Obj(0); o < Obj(f.s.nobj); o++ {
+		ob := &f.s.objs[o]
+		if ob.zone == kop.ZoneBattlefield && ob.card == c && f.s.perms[ob.slot].ctrl == p {
+			n++
+		}
+	}
+	return n
 }
 
 // bearSrc makes an already-entered bear the resolving source of the damage.
@@ -318,6 +362,97 @@ func TestPrevXEndCombat(t *testing.T) {
 		f.s.advance(f.k)
 		if f.s.g.prevCol[0].sc == 0 || f.s.g.prevX[0]&pxEOC == 0 {
 			t.Fatalf("the record was dropped under DebugNoPrevEndCombat: %+v prevX %#x", f.s.g.prevCol[0], f.s.g.prevX[0])
+		}
+	})
+}
+
+// TestPrevXFromTokens: the token-rider shield (prevstate-04, Ria Ivor's
+// shape: kop.PrevNextAll|From|Combat|Players|Tokens|EndCombat, B the Mite)
+// prevents the first combat damage the remembered creature deals to a player
+// and its controller mints that many Mites, damage to a blocker is dealt,
+// the record ends with the combat (prevEndCombat), and a token doubler in
+// the table stalls StallPrevRider.
+func TestPrevXFromTokens(t *testing.T) {
+	t.Run("prevented and minted", func(t *testing.T) {
+		f := newPrevXTokScen(t, false)
+		s := f.s
+		bear := f.perm(f.bear, 0)
+		f.resolveRiaTok(bear, 1)
+		if x := s.g.prevX[0]; x != pxFrom|pxRidTok|pxEOC|pxPlayers|1<<pxSeatShift {
+			t.Fatalf("prevX[0] = %#x, want the token rider, end-of-combat and player-recipient bits for seat 1", x)
+		}
+		if r := s.g.prevCol[0]; r.ctl != TCode(bear) || r.col != 255 || r.sc&prevNextSc == 0 {
+			t.Fatalf("record %+v, want ctl the bear, the unbounded pool and the shield bit", r)
+		}
+		life1 := s.pl[1].life
+		f.combat(t, []Obj{bear}, nil) // the bear attacks seat 1 unblocked
+		if s.pl[1].life != life1 {
+			t.Fatalf("life %d from %d: want the bear's 2 damage prevented", s.pl[1].life, life1)
+		}
+		if n := f.mitesOf(f.mite, 1); n != 2 {
+			t.Fatalf("%d Mites under seat 1, want 2 (the damage prevented)", n)
+		}
+		if s.g.prevCol[0].col != 0 {
+			t.Fatalf("the record was not spent: col %d", s.g.prevCol[0].col)
+		}
+		if s.StallReason() != 0 {
+			t.Fatalf("stalled %s", StallName(s.StallReason()))
+		}
+	})
+	t.Run("damage to a blocker dealt", func(t *testing.T) {
+		f := newPrevXTokScen(t, false)
+		s := f.s
+		bear := f.perm(f.bear, 0)
+		blocker := f.perm(f.bear, 1)
+		f.resolveRiaTok(bear, 1)
+		life1 := s.pl[1].life
+		f.combat(t, []Obj{bear}, [][2]Obj{{blocker, bear}})
+		if f.onBF(blocker) || f.onBF(bear) {
+			t.Fatalf("blocker alive=%v bear alive=%v: want the bear's damage dealt to the blocker", f.onBF(blocker), f.onBF(bear))
+		}
+		if s.pl[1].life != life1 {
+			t.Fatalf("life %d from %d: want no player damage", s.pl[1].life, life1)
+		}
+		if n := f.mitesOf(f.mite, 1); n != 0 {
+			t.Fatalf("%d Mites under seat 1, want 0 (the record never matched a creature recipient)", n)
+		}
+	})
+	t.Run("gone at end of combat", func(t *testing.T) {
+		f := newPrevXTokScen(t, false)
+		s := f.s
+		bear := f.perm(f.bear, 0)
+		f.resolveRiaTok(bear, 1)
+		if s.g.prevCol[0].col == 0 || s.g.prevX[0]&pxEOC == 0 {
+			t.Fatal("precondition: the token-rider record is live")
+		}
+		s.step = kop.StepEndCombat
+		s.advance(f.k)
+		if s.g.prevCol[0] != (prevRec{}) || s.g.prevX[0] != 0 {
+			t.Fatalf("the record survived the end of combat: %+v prevX %#x", s.g.prevCol[0], s.g.prevX[0])
+		}
+		f.resolveRiaTok(bear, 1)
+		if s.g.prevCol[0].col == 0 || s.g.prevX[0]&pxRidTok == 0 {
+			t.Fatalf("the freed slot was not reused: %+v prevX %#x", s.g.prevCol[0], s.g.prevX[0])
+		}
+	})
+	t.Run("token doubler stalls", func(t *testing.T) {
+		f := newPrevXTokScen(t, true)
+		s := f.s
+		if f.k.gen.anyRepl&rbDblTok == 0 {
+			t.Fatal("precondition: the token doubler is not in the gen bits")
+		}
+		bear := f.perm(f.bear, 0)
+		f.resolveRiaTok(bear, 1)
+		life1 := s.pl[1].life
+		f.combat(t, []Obj{bear}, nil)
+		if got := s.StallReason(); got != StallPrevRider {
+			t.Fatalf("stall = %s, want %s", StallName(got), StallName(StallPrevRider))
+		}
+		if s.pl[1].life != life1-2 {
+			t.Fatalf("life %d from %d: want the bear's 2 damage dealt (the shield never applied)", s.pl[1].life, life1)
+		}
+		if n := f.mitesOf(f.mite, 1); n != 0 {
+			t.Fatalf("%d Mites under seat 1, want 0 (the mint never ran)", n)
 		}
 	})
 }
