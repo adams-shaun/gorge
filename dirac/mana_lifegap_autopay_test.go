@@ -21,8 +21,9 @@ func TestLifeGapAutopayPlainCastPriced(t *testing.T) {
 		}
 	}
 	sc := newScenTableLib(t, tbl, id["Mountain"], Config{NoElide: true, GorgeLowering: true, GorgeAutopaySurface: true})
+	var ogre Obj
 	for _, n := range []string{"Plains", "Mountain", "Goblin Recruiter", "Plains", "Plains", "Treasonous Ogre"} {
-		sc.perm(id[n], 0)
+		ogre = sc.perm(id[n], 0)
 	}
 	g := sc.hand(id["Ganax, Astral Hunter"], 0)
 	x := sc.hand(id["Lunar Frenzy"], 0)
@@ -35,8 +36,8 @@ func TestLifeGapAutopayPlainCastPriced(t *testing.T) {
 		}
 		return false
 	}
-	if !sc.s.lifeGapMask(sc.k, 0).any() {
-		t.Fatal("precondition: the Ogre is not a payable life gap")
+	if !lifeOnlyPain(sc.s.manaPCAt(sc.k, sc.slot(ogre))) {
+		t.Fatal("precondition: the Ogre is not the life-only pain census unit")
 	}
 	if !offered(g) {
 		t.Fatal("the {4}{R} cast four lands and the Ogre's life pay is not offered: gorge's planner prices it with the Ogre's last-resort unit")

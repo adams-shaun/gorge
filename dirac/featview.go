@@ -886,8 +886,11 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, sk
 		}
 		// a printed sacrifice-only ability (Eldrazi Spawn's {C}) is a last-resort
 		// unit of the census, tapped or not and beside a granted {T} ability
-		// (CR 602.2b; gorge's census admits each printed ability on its own)
-		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) {
+		// (CR 602.2b; gorge's census admits each printed ability on its own);
+		// so is a sole life-only one (a Treasonous Ogre, canLifeOnlyMana's
+		// guard is gorge's CR 119.4 lethal one)
+		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) &&
+			!(k.painMana && s.canLifeOnlyMana(k, sl, SeatIx(p))) {
 			continue
 		}
 		if k.painMana && pc.painCol != 0 {
