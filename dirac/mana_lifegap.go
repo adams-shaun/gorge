@@ -163,6 +163,9 @@ func (s *State) windowLifeGapListed(k *prep, p uint8, o Slot, decided bool, want
 	if k.gen == nil || !k.gen.uses.has(useLifeGap) {
 		return false
 	}
+	if s.genLost(k, o) || k.gen.anyCantAct && s.actForbidden(k, o, true) {
+		return false // a lost ability or a can't-be-activated static (lifeGapMask's gate)
+	}
 	a, ok := s.lifeGapAt(k, p, o)
 	if !ok {
 		return false
@@ -172,11 +175,14 @@ func (s *State) windowLifeGapListed(k *prep, p uint8, o Slot, decided bool, want
 
 // windowLifeGapTap activates the window's life-only pick o: the life is paid
 // and the mana floats. A source of any colour answers the first pip the pool
-// leaves owed, else the lowest colour.
+// leaves owed (the cost less the restricted mana the payment may spend,
+// windowOwedCost), else the lowest colour.
 func (s *State) windowLifeGapTap(k *prep, p uint8, o Slot, cost *kop.ManaCost) {
+	var owed kop.ManaCost
+	s.windowOwedCost(k, p, cost, &owed)
 	ans := 0
 	for c := 0; c < 5; c++ {
-		if cost.Pips[c] > s.pl[SeatIx(p)].pool[c] {
+		if owed.Pips[c] > s.pl[SeatIx(p)].pool[c] {
 			ans = c
 			break
 		}
@@ -184,13 +190,16 @@ func (s *State) windowLifeGapTap(k *prep, p uint8, o Slot, cost *kop.ManaCost) {
 	s.lifeGapDo(k, p, o, ans)
 }
 
-// windowLifeCtrGapTap taps window gap sl when it is a life-only source (the
-// life pays, the mana floats) or a counter-cost one (windowCtrGapTap), and
-// reports whether it did.
+// windowLifeCtrGapTap taps window gap sl when it is a counter-cost source
+// (windowCtrGapTap, which windowPick lists first) or a life-only one (the life
+// pays, the mana floats), and reports whether it did.
 func (s *State) windowLifeCtrGapTap(k *prep, p uint8, sl Slot, cost *kop.ManaCost, census bool) bool {
+	if s.windowCtrGapTap(k, p, sl, census) {
+		return true
+	}
 	if _, life := s.lifeGapSource(k, sl); life {
 		s.windowLifeGapTap(k, p, sl, cost)
 		return true
 	}
-	return s.windowCtrGapTap(k, p, sl, census)
+	return false
 }
