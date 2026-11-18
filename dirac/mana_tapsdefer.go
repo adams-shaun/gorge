@@ -90,10 +90,79 @@ func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc b
 			}
 		}
 	}
+	if k.gen.grantTrigEv&(1<<kop.TrigTaps) != 0 {
+		// A Taps trigger a layer-6 AddTrigger$ static grants (Tale of Katara and
+		// Toph's "creatures you control have 'whenever this creature becomes
+		// tapped for the first time...'") lives on the granting card; its
+		// listener is each granted host (grantTrigHosts, grantedAbilitiesN).
+		// The printed walk above reads only the watchers' own subscriptions and
+		// skips TfSelf lines, so a granted watcher's self line (the recipient's
+		// own tap) never classes the host: the planner tapped it inside a play's
+		// payment, where gorge's planner defers it (pay.PaymentPlanAbilityTier
+		// reads the granted watcher over the recipient) and its prefix search
+		// taps the source before the play, the trigger flushing onto the stack
+		// beneath the play (CR 117.5; repro projection_stack_kind_hall).
+		s.grantedTapsClass(k, sl, p, &painN, &deferSrc)
+	}
 	if painN > 255 {
 		painN = 255
 	}
 	return painN, deferSrc
+}
+
+// grantedTapsClass classes the granted Taps watchers over sl (tapsWatchClass's
+// granted arm): every Taps instance a static in force grants sl, as the
+// runtime fire walk sees them (triggers_gen.go slotTriggers' granted arm). It
+// reads only, and honours DebugNoTapsDefer through tapsWatchClass's gate.
+func (s *State) grantedTapsClass(k *prep, sl Slot, p uint8, painN *int, deferSrc *bool) {
+	s.grantedAbilitiesN(k, sl, func(c CardID, ab uint8, n int) {
+		if k.gen.flags[c]&(gfTapsDefer|gfTapsPain) == 0 {
+			return
+		}
+		a := &k.t.Cards[c].Abilities[ab]
+		// a granted trigger is AfLatent by construction (kgen grantedTrigger);
+		// slotTriggers' granted arm has no latent gate
+		if a.Kind != kop.AbTriggered || a.Trig.Event != kop.TrigTaps ||
+			a.Trig.Zone != kop.ZoneNone && a.Trig.Zone != kop.ZoneBattlefield {
+			return
+		}
+		l := trigListener{obj: s.perms[sl].obj, sl: sl, ctrl: s.perms[sl].ctrl, card: c, ab: ab, host: s.g.grantSrc}
+		for ; n > 0; n-- {
+			if !s.grantedTapsMatch(k, l, a, p) {
+				continue
+			}
+			if a.Trig.TapPlan == kop.TapPlanDefer {
+				*deferSrc = true
+			} else {
+				*painN += int(a.Trig.TapPainN)
+			}
+		}
+	})
+}
+
+// grantedTapsMatch applies the gates the printed arm mirrors of the runtime
+// fire walk (objTrigGen's TrigTaps arm), with the granted listener's
+// referents: the recipient is the tapped slot, its controller "you".
+func (s *State) grantedTapsMatch(k *prep, l trigListener, a *kop.Ability, p uint8) bool {
+	if !s.objEventMatch(k, l, a, l.sl) {
+		return false
+	}
+	if !whoseOK(a.Trig.Whose, l.ctrl, p) {
+		return false
+	}
+	if a.Trig.Flags5&kop.Tf5TapperNonActive != 0 && p == s.active {
+		return false
+	}
+	if a.Trig.Flags2&kop.Tf2FirstTime != 0 && s.mSl(k, mechTappedTurn, l.sl) {
+		return false
+	}
+	if a.Trig.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
+		return false
+	}
+	if a.Trig.Cond != 0 && !s.condEval(k, a.Trig.Cond, evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}) {
+		return false
+	}
+	return true
 }
 
 // tapsDeferred reports whether sl is a source gorge's planner never taps
