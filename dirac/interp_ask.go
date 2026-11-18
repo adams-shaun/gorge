@@ -1352,11 +1352,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				sl := s.enterLinkRet(k, o, s.objs[o].owner(), from)
 				s.attachedTo(k, sl, host)
 			}
-			// paying too: the return completed the entry batch, so resumeReturns
-			// poses the next parked return's ask (CR 610.3d) or finishes the
-			// frame the leaving source opened (leaveGen, turn_gen.go) — without
-			// it the batch's held enters checks never fire.
-			if s.resumeReturns(k) {
+			if s.resumeEntryBatch(k) {
 				return // the batch's next return asks its host
 			}
 			if paying {
@@ -1390,11 +1386,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.enterLinkRet(k, o, s.objs[o].owner(), from) // the enters program reads the choice
 		}
 		s.g.pre = preAsk{}
-		// paying too: the return completed the entry batch, so resumeReturns
-		// poses the next parked return's ask (CR 610.3d) or finishes the frame
-		// the leaving source opened (leaveGen, turn_gen.go) — without it the
-		// batch's held enters checks never fire.
-		if s.resumeReturns(k) {
+		if s.resumeEntryBatch(k) {
 			return // the batch's next return asks its host
 		}
 		if paying {
