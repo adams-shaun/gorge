@@ -649,7 +649,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	if s.prevRiderStall(k, n, fsl, fe.card, prevTgt{rcp, fe.dst}, true) {
 		return 0
 	}
-	if barePrevOnly(n, ro.prev, ro.shld, ro.pnx, ro.plus) {
+	if bp := s.pnxBareMask(&ro.cand, ro.pnx); barePrevOnly(n, ro.prev|bp, ro.shld, ro.pnx&^bp, ro.plus) {
 		return 1 // no order ask (repl_bareprev.go): replCombatGen prevented it
 	}
 	ro.p = rcp
@@ -1413,7 +1413,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	if s.prevRiderStall(k, c, srcSl, srcCard, prevTgt{rcp, sl}, false) {
 		return false
 	}
-	if !parked && barePrevOnly(c, prev, shld, pnx, plus) {
+	if bp := s.pnxBareMask(&cand, pnx); !parked && barePrevOnly(c, prev|bp, shld, pnx&^bp, plus) {
 		return false // no order ask (repl_bareprev.go): replDamage prevents it
 	}
 	if parked {
