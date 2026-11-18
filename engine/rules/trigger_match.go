@@ -3409,6 +3409,10 @@ func init() {
 		// 903.5b): deck.AnyNumberAllowed exempts it from the Commander
 		// singleton check, and nothing in play reads it.
 		"kw:"+deck.AnyNumberKeyword,
+		// DeckLimit (CR 100.2a's bounded variant, Nazgûl / Seven Dwarves) is
+		// DECK CONSTRUCTION too: deck.DeckLimitOf caps the named card's count
+		// in ValidateCommander, and nothing in play reads it.
+		"kw:"+deck.DeckLimitKeyword,
 		// Graft (CR 702.57): the optional move-counter trigger is expanded
 		// from the keyword line in cards/kw_graft.go.
 		"kw:Graft",
