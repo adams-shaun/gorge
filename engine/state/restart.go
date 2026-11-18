@@ -131,7 +131,7 @@ func (g *Game) Restart(life int32, keep []ObjID) {
 	g.DayNight, g.PrevTurnSpells = DayNightNeither, 0
 	g.ControlledBy, g.ControlArmedTurn, g.ControlCombatOnly = nil, nil, nil
 	g.Delayed = nil
-	g.Entered = nil
+	g.Entered, g.EnteredLastTurn = nil, nil
 	// goadsSeen, blockersLive, preparedSources and crewedObjects are
 	// fast-path gates whose stale-high value is always safe (a scan that
 	// finds nothing); they are left as they are.

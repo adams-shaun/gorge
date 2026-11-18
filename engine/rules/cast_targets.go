@@ -69,7 +69,8 @@ func modeFlags(mode string) string {
 		// sacrifice, dash's haste + return, blitz's riders, warp's exile,
 		// impending's counters; resolveTop's bestow substitution). Blitz,
 		// warp and impending are CastProvenanceFlags, so a stack copy does
-		// not inherit them. A row without a flag (madness) records nothing.
+		// not inherit them. A row without a flag (spectacle) records
+		// nothing.
 		if m.flag == 0 {
 			return ""
 		}
