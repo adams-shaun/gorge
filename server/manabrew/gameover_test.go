@@ -37,47 +37,50 @@ func TestGameOverPromptShape(t *testing.T) {
 	}
 }
 
-// TestPromptIDSpacesAreDisjoint pins the id namespaces over the whole
-// reachable id range: an ordinary promptId (a bare decision.Seq, >= 0) can
-// never equal a synthetic promptId (always < 0 for any event seq the shift
-// cannot overflow) or the terminal GameOverPromptID, and the three-way split
-// is exhaustive for every id the transport mints.
+// TestPromptIDSpacesAreDisjoint pins the u32 id namespaces: an ordinary
+// promptId (a bare decision.Seq below MaxDecisionSeq) can never equal a
+// synthetic promptId (counting down from SyntheticPromptIDTop, never below
+// SyntheticPromptIDFloor) or the terminal GameOverPromptID, and every id is
+// in [0, 2^32).
 func TestPromptIDSpacesAreDisjoint(t *testing.T) {
-	// Ordinary decision ids: non-negative by construction.
-	if id := promptID(&decision.Decision{Seq: 1 << 40}); id < 0 {
-		t.Fatalf("ordinary promptId = %d, want >= 0", id)
+	if GameOverPromptID != math.MaxUint32 {
+		t.Fatalf("GameOverPromptID = %d, want 2^32-1", GameOverPromptID)
 	}
-	// Synthetic ids: negative for every event seq the shift cannot overflow
-	// (the doc names 2^55 as the overflow boundary; the reachable magnitude
-	// is far below it), and distinct per (seq, n).
+	if id := promptID(&decision.Decision{Seq: uint64(MaxDecisionSeq - 1)}); id < 0 || id >= SyntheticPromptIDFloor {
+		t.Fatalf("top ordinary promptId = %d, want in [0, %d)", id, SyntheticPromptIDFloor)
+	}
 	seen := map[int64]bool{}
-	for seq := uint64(0); seq < 1<<20; seq += 7919 {
-		for n := 0; n < 8; n++ {
-			id := syntheticPromptID(seq, n)
-			if id >= 0 {
-				t.Fatalf("syntheticPromptID(%d, %d) = %d, want < 0", seq, n, id)
-			}
-			if seen[id] {
-				t.Fatalf("syntheticPromptID(%d, %d) = %d repeats an earlier (seq,n) pair", seq, n, id)
-			}
-			seen[id] = true
+	check := func(seq uint64) {
+		id, ok := syntheticPromptID(seq)
+		if !ok {
+			t.Fatalf("syntheticPromptID(%d) refused inside the range", seq)
 		}
+		if id < SyntheticPromptIDFloor || id >= GameOverPromptID {
+			t.Fatalf("syntheticPromptID(%d) = %d outside [%d, %d)", seq, id, SyntheticPromptIDFloor, GameOverPromptID)
+		}
+		if seen[id] {
+			t.Fatalf("syntheticPromptID(%d) = %d repeats", seq, id)
+		}
+		seen[id] = true
 	}
-	// The boundary the doc names: the shift must not overflow below 2^55.
-	if id := syntheticPromptID(1<<55-1, 0); id >= 0 {
-		t.Fatalf("syntheticPromptID at the top of the non-overflowing range = %d, want < 0", id)
+	for seq := uint64(0); seq < 1<<20; seq += 7919 {
+		check(seq)
 	}
-	// The terminal id is neither a reachable ordinary id nor a reachable
-	// synthetic id: it is outside [0, 2^53) (the safety margin for
-	// ordinary ids) and outside the synthetic range (every synthetic id for a
-	// non-overflowing seq is > -2^55, i.e. bounded far away from MaxInt64).
-	if GameOverPromptID != math.MaxInt64 {
-		t.Fatalf("GameOverPromptID = %d, want math.MaxInt64 (the fixed terminal slot)", GameOverPromptID)
+	last := uint64(SyntheticPromptIDTop-SyntheticPromptIDFloor) - 1
+	check(last)
+	if id, _ := syntheticPromptID(0); id != SyntheticPromptIDTop || id >= GameOverPromptID {
+		t.Fatalf("first synthetic id = %d, want %d below the gameOver id", id, SyntheticPromptIDTop)
 	}
-	if GameOverPromptID < 1<<53 {
-		t.Fatalf("GameOverPromptID = %d collides with the ordinary id range's reachable top", GameOverPromptID)
+	if _, ok := syntheticPromptID(last + 1); ok {
+		t.Fatal("syntheticPromptID past the space must refuse, not wrap")
 	}
-	if id := syntheticPromptID(1<<55-1, 7); id >= GameOverPromptID {
-		t.Fatalf("synthetic id %d can reach the terminal id", id)
+}
+
+// TestPromptIDSeqGuard: a decision.Seq with no u32-safe id is an explicit
+// error, never a wrapped id.
+func TestPromptIDSeqGuard(t *testing.T) {
+	tr := New("t", 1, nil)
+	if _, err := tr.Prompt(&decision.Decision{Seq: MaxDecisionSeq}, nil); err != errSeqExhausted {
+		t.Fatalf("Prompt at MaxDecisionSeq: err = %v, want errSeqExhausted", err)
 	}
 }
