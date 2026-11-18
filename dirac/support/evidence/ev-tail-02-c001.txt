@@ -39,6 +39,7 @@ Callous Giant
 Captain's Call
 Carrier Thrall
 Cateran Kidnappers
+Cauldron's Gift
 Celestine, the Living Saint
 Centaur Omenreader
 Chain of Plasma
@@ -64,6 +65,7 @@ Custody Battle
 Daily Regimen
 Dark Offering
 Daru Lancer
+Dauthi Mindripper
 Deathbonnet Sprout
 Deathreap Ritual
 Demon of Loathing
@@ -105,6 +107,7 @@ Gadrak, the Crown-Scourge
 Gang of Elk
 Gauntlets of Light
 Ghost Tactician
+Giant's Skewer
 Glaze Fiend
 Glimmerdust Nap
 Gods Willing
@@ -216,6 +219,7 @@ Reckless One
 Red Cliffs Armada
 Rewind
 Rikala, Homarid King
+Riptide Turtle
 Rite of Passage
 Roar of the Crowd
 Rumbling Sentry
@@ -235,6 +239,7 @@ Skirsdag Supplicant
 Skittering Precursor
 Skola Grovedancer
 Skyshroud Ridgeback
+Slitherwisp
 Smash to Smithereens
 Snorting Gahr
 Sokenzan Bruiser
@@ -244,6 +249,7 @@ Sparring Golem
 Spawning Pit
 Sphere of Truth
 Spined Megalodon
+Steadfast Unicorn
 Stolen Vitality
 Subterranean Scout
 Swamp
@@ -262,6 +268,7 @@ Tome Raider
 Tormentor Exarch
 Trade Routes
 Tranquilize
+Trapjaw Kelpie
 Trusty Companion
 Unruly Krasis
 Unstable Mutation
@@ -272,6 +279,7 @@ Viashino Heretic
 Vithian Renegades
 Vivid Meadow
 Voltaic Key
+Vulshok Replica
 Wake of Vultures
 Walking Skyscraper
 Wall of Light
@@ -292,5 +300,6 @@ Wistful Thinking
 Worldly Tutor
 Wring Flesh
 Yawning Fissure
+You Are Already Dead
 Zebra Unicorn
 Zodiac Dragon

@@ -10,6 +10,7 @@ Blood Aspirant
 Blood Knight
 Bloodscale Prowler
 Chemister's Insight
+Death of a Thousand Stings
 Demoralize
 Devour Flesh
 Dragon Bell Monk
@@ -30,10 +31,12 @@ Lulu, Stern Guardian
 Mana Geyser
 Mogg Sentry
 Mountain
+Nighthawk Scavenger
 Nyxborn Hydra
 Pharika's Libation
 Plains
 Ransack
+Riptide Crab
 Rubblebelt Recluse
 Saltfield Recluse
 Scathe Zombies
@@ -41,6 +44,7 @@ Serpent Warrior
 Steadfast Unicorn
 Stitched Drake
 Swamp
+Taranika, Akroan Veteran
 Volcanic Dragon
 Volcanic Rush
 Wall of Opposition

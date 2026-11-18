@@ -20,6 +20,7 @@ Bewildering Blizzard
 Bloodfell Caves
 Bloomvine Regent
 Blossoming Sands
+Bone-Cairn Butcher
 Boulderborn Dragon
 Breaching Dragonstorm
 Caustic Exhale
@@ -35,6 +36,8 @@ Corroding Dragonstorm
 Craterhoof Behemoth
 Cruel Truths
 Dalkovan Encampment
+Dalkovan Packbeasts
+Defibrillating Current
 Delta Bloodflies
 Descendant of Storms
 Devoted Duelist
@@ -81,6 +84,7 @@ Host of the Hereafter
 Humbling Elder
 Hundred-Battle Veteran
 Iceridge Serpent
+Inevitable Defeat
 Inspirited Vanguard
 Iridescent Tiger
 Island
@@ -113,6 +117,7 @@ Mystic Monastery
 Naga Fleshcrafter
 Narset's Rebuke
 Nature's Rhythm
+Neriv, Heart of the Storm
 Nightblade Brigade
 Nomad Outpost
 Opulent Palace
@@ -127,6 +132,7 @@ Qarsi Revenant
 Rainveil Rejuvenator
 Rally the Monastery
 Rebellious Strike
+Reigning Victor
 Reputable Merchant
 Rescue Leopard
 Reverberating Summons
@@ -186,6 +192,7 @@ Temur Monument
 Tersa Lightshatter
 The Sibsig Ceremony
 Thornwood Falls
+Thunder of Unity
 Trade Route Envoy
 Tranquil Cove
 Traveling Botanist
@@ -217,3 +224,4 @@ Worthy Cost
 Yathan Roadwatcher
 Yathan Tombguard
 Zurgo's Vanguard
+Zurgo, Thunder's Decree

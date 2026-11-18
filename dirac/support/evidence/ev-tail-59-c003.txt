@@ -1,59 +1,120 @@
+Aetherwind Basker
 Affa Protector
+Agent Frank Horrigan
 Akki War Paint
 Aligned Hedron Network
 Amateur Hero
 Ambitious Farmhand
+Angel of Despair
 Ant Queen
 Artificer's Dragon
+Artillerize
+Assassin Den
 Back to Basics
 Bad River
+Baloth Woodcrasher
 Barbarian Riftcutter
 Barrage of Boulders
 Battle Brawler
+Binding Grasp
+Blighted Bat
+Boa Constrictor
 Boggart Shenanigans
 Boiling Seas
 Brackwater Elemental
+Brawn
 Brightling
 Builder's Blessing
 Burning-Tree Emissary
+Canyon Drake
+Cephalid Retainer
 Cho-Manno, Revolutionary
+Civic Stalwart
+Cloudskate
+Control Win Condition
+Copy Artifact
 Cradle of Safety
+Creeping Crystal Coating
+Crossbow Ambush
+Crovax the Cursed
 Crowd's Favor
+Cryptwailing
 Curious Altisaur
+Daggerback Basilisk
 Darkest Hour
 Dawnhart Rejuvenator
 Death Bomb
 Death Wind
+Death's Caress
 Death-Greeter's Champion
+Debt to the Deathless
+Defacing Duskmage
+Demonic Appetite
 Desperate Farmer
 Die Young
+Dimir Infiltrator
+Disease Carriers
+Displacer Kitten
+Distorting Lens
+Divine Offering
 Dogpile
+Down
+Dragon Bell Monk
 Dress Down
+Drudge Spell
 Durable Coilbug
+Eager Beaver
 Eagle of Deliverance
+Elvish Herder
+Elvish Pioneer
+Emergent Woodwurm
+Ent's Fury
 Epicenter
 Esper Battlemage
+Excavation Elephant
+Expedition Healer
+Feast of Succession
+Fetid Horror
 Fiery Cannonade
 Flinthoof Boar
 Flowstone Kavu
 Forest
+Fraying Omnipotence
 Frenzied Fugue
 Frost Ogre
+Frostfist Strider
+Fuel for the Cause
+Furious Strength
 Giant Mantis
+Glasswing Grace
 Goliath Truck
+Gorgon Recluse
 Grasp of Darkness
+Gravelgill Axeshark
+Gray Ogre
+Greenweaver Druid
 Grim Wanderer
 Guardian of the Forgotten
 Hapato's Might
 Hellspark Elemental
+Hostile Realm
+Hunters' Feast
 Hydra Omnivore
 Hydroform
 Icatian Scout
 Impetuous Sunchaser
+In Too Deep
 Inundate
 Island
+Jangling Automaton
 Join the Maestros
+Judge of Currents
+Kalonian Hydra
+Kavu Lair
+Keeper of Progenitus
 Keeper of the Lens
+Kinsbaile Balloonist
+Kiora Bests the Sea God
 Kitchen Imp
 Kitesail Cleric
 Kokusho, the Evening Star
@@ -62,18 +123,32 @@ Krav, the Unredeemed
 Kulrath Knight
 Lattice-Blade Mantis
 Lazotep Plating
+Leafkin Druid
+Leech Gauntlet
+Lightning Surge
 Lily Bowen, Raging Grandma
+Locked in the Cemetery
 Lord of the Pit
 Magmaroth
 Malachite Talisman
+Malicious Affliction
 Marionette Apprentice
 Maverick Thopterist
+Merfolk Skyscout
+Metathran Zombie
+Mistral Singer
+Mold Shambler
+Molder Beast
+Moon Sprite
 Mordor Muster
 Mountain
 Munda's Vanguard
+Murasa Ranger
+Naktamun Lorespinner
 Narset's Reversal
 Nicol Bolas, the Deceiver
 Nightmarish End
+Nothic
 Notion Rain
 Null Rod
 Opportunist
@@ -81,51 +156,95 @@ Otherworldly Gaze
 Overgrowth Elemental
 Painful Memories
 Pavel Maliki
+Pheres-Band Warchief
+Phyrexian Debaser
+Phyrexian Ornithopter
 Plains
+Plated Seastrider
+Porcelain Legionnaire
+Power Conduit
+Practiced Tactics
 Pyrotechnics
 Rakdos Cluestone
 Rakdos Guildmage
 Ranger's Path
 Raven's Crime
+Reach Through Mists
 Rebel Informer
+Reckless Assault
+Resurrection
 Returned Phalanx
+Reveka, Wizard Savant
+Rise of the Dread Marn
 Rith's Grove
 Rod of Ruin
 Ruthless Instincts
 Sacred Peaks
+Sandsteppe War Riders
 Satyr Rambler
 Sautekh Immortal
 Screaming Fury
 Seal of Cleansing
 Second Wind
+Self-Assembler
 Serum Snare
+Seton's Scout
 Shield Wall
+Shifting Ceratops
 Shoal Serpent
 Shoreline Raider
+Sight Beyond Sight
+Simic Fluxmage
 Skeletal Wurm
+Snapping Creeper
 Sol'kanar the Swamp King
+Soldevi Simulacrum
+Soul Stair Expedition
+Soul Strings
 Soulless One
+Spawning Pit
+Spiritual Guardian
 Spitting Hydra
+Splitting Headache
+Spreading Flames
 Squee, Goblin Nabob
 Stormbound Geist
+Stratus Walk
+Straw Golem
 Strength Bobblehead
+Stupefying Touch
 Sunset Revelry
 Supply Drop
 Svyelunite Priest
 Swamp
 Sylvan Messenger
+Talon Sliver
 Tandem Tactics
 The Terror of Serpent's Pass
+The Underworld Cookbook
+Thundering Giant
 Topiary Stomper
 Tragic Fall
 Travel Preparations
+Trolls of Tel-Jilad
+Trophy Hunter
+Twenty-Toed Toad
+Twilight Panther
 Uncontrollable Anger
 Ursapine
+Venomous Vines
+Village Watch
+Voice of Reason
 Void
 Void Helix
 Voracious Hydra
 Welding Sparks
+Whisk Away
 Wild Ox
+Witch's Web
 Wizard Replica
 Wonder
 Words of Wisdom
+Yoke of the Damned
+Zhou Yu, Chief Commander
+Zodiac Monkey

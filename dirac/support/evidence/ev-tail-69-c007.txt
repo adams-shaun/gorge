@@ -1,81 +1,132 @@
 A-Sewer Crocodile
+A-Steadfast Unicorn
 Afterlife Insurance
 Arctic Aven
+Aura Finesse
 Auriok Sunchaser
 Baloth Null
+Battle at the Helvault
 Bloated Processor
 Board the Weatherlight
 Bond of Revival
 Bootleggers' Stash
 Brindle Shoat
+Brutal Deceiver
+Burden of Guilt
 Cackling Counterpart
 Cavern Lampad
 Chamber of Manipulation
+Change of Fortune
 Chime of Night
+Compulsory Rest
 Contagious Vorrac
 Dark Offering
+Daru Healer
+Dauntless River Marshal
 Dauthi Mercenary
+Demogorgon's Clutches
 Depart the Realm
 Desert Twister
 Diabolic Vision
+Diabolical Salvation
+Dispeller's Capsule
+Dreadful Apathy
+Earthshaker
+Echoing Return
 Ecstatic Awakener
 Elspeth, Knight-Errant
 Elven Warhounds
 Escape Routes
 Essence Extraction
+Everdawn Champion
 Face of Fear
 Faerie Bladecrafter
 Favor of the Woods
 Filter Out
 Forest
+Foriysian Brigade
 Forsake the Worldly
+Foul Watcher
+Galvanic Blast
+Geistflame
+Goblin Recruiter
 Gorgon's Head
 Grab the Reins
+Granulate
+Gut, True Soul Zealot
+Hanweir Militia Captain
 Heir of the Wilds
 Hesitation
 Hidden Ancients
 Hunter's Insight
+Insatiable Souleater
+Invisible Force Field
 Island
 Jagged-Scar Archers
 Jirina, Dauntless General
 Jungle Wurm
 Killer Bees
+Knight of the Tusk
 Knightly Valor
 Krovikan Scoundrel
 Labyrinth Raptor
 Lantern Scout
 Maggot Therapy
+Magmatic Channeler
 Make Disappear
 Master of Death
 Mephidross Vampire
 Molten Frame
 Mountain
+Mu Yanling
 Nantuko Elder
 Nature's Resurgence
 Nightshade Harvester
 Noxious Revival
 Nyxborn Seaguard
+Ob Nixilis, the Ascended
+Ogre Shaman
 On the Trail
+Orcish Artillery
 Paladin of Atonement
 Paragon of Eternal Wilds
 Phyrexian Ghoul
+Phyrexian Ironworks
 Plains
+Political Triumph
 Prodigious Growth
+Pyre-Sledge Arsonist
+Pyreswipe Hawk
 Quickling
 Ranger's Guile
+Raze the Effigy
 Razorfield Thresher
 Research Thief
+Restore the Peace
+Ritual Guardian
 Rubble Reading
 Rushwood Herbalist
 Shard Convergence
+Shivan Emissary
+Shu Elite Companions
+Sigil of the Empty Throne
+Silent-Chant Zubera
 Skeletal Crocodile
 Sky Theater Strix
 Spirit of the Night
+Starnheim Aspirant
+Stensia Innkeeper
+Stone Spirit
+Stream Hopper
 Structural Assault
 Swamp
 Tales of Master Seshiro
+Tempest Drake
+Thirst for Meaning
+Thriving Ibex
 Thunderfoot Baloth
 Toolcraft Exemplar
+Topplegeist
 Tortoise Formation
 Training Grounds
 Trollbred Guardian
@@ -83,9 +134,12 @@ Unhinge
 Unwind
 Vampire Hexmage
 Vex
+Vigilant Sentry
+Vogar, Necropolis Tyrant
 Watcher Sliver
 Whetstone
 Whirlwind Adept
+White Scarab
 Wild Crocodile
 World Breaker
 Youthful Scholar

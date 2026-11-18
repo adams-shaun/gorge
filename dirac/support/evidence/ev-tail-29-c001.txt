@@ -8,10 +8,13 @@ Akki Avalanchers
 Akoum Battlesinger
 Akroma's Memorial
 Alexi's Cloak
+Amber Prison
 Amoeboid Changeling
 Angelheart Protector
+Angelic Cub
 Araña, Heart of the Spider
 Arbor Colossus
+Avacyn's Memorial
 Barbtooth Wurm
 Bastion Mastodon
 Battlegrace Angel
@@ -22,6 +25,7 @@ Blood Cultist
 Boggart Birth Rite
 Bonds of Faith
 Bone Pit Brute
+Brain Maggot
 Broken Bond
 Burn the Accursed
 Canopy Baloth
@@ -31,6 +35,7 @@ Carnivorous Canopy
 Casey Jones, Asphalt Hooligan
 Cast into the Fire
 Cateran Enforcer
+Cavern Thoctar
 Chandra, Hope's Beacon
 Checkpoint Officer
 Children of Korlis
@@ -38,6 +43,7 @@ Chorus of the Tides
 Chub Toad
 Cliffhaven Sell-Sword
 Coast Watcher
+Communal Brewing
 Conclave Sledge-Captain
 Court Hussar
 Cradle of Safety
@@ -49,6 +55,7 @@ Deal Gone Bad
 Deathgazer
 Debtors' Transport
 Decisive Denial
+Deep Spawn
 Dega Sanctuary
 Devastation
 Dirty Wererat
@@ -70,8 +77,11 @@ Electrostatic Pummeler
 Emberwilde Augur
 Empty the Laboratory
 Epic Confrontation
+Exert Influence
+Expel
 Extract Power
 Fairgrounds Patrol
+False Cure
 Favored of Iroas
 Fiery Cannonade
 Filter Out
@@ -118,6 +128,7 @@ Jhoira, Weatherlight Captain
 Jousting Lance
 Knight Paladin
 Kodama of the North Tree
+Krovikan Elementalist
 Leonardo, Worldly Warrior
 Leonin Bladetrap
 Leyline Phantom
@@ -129,6 +140,7 @@ Lost Leonin
 Ludevic's Test Subject
 Magma Jet
 Master of Diversion
+Mental Journey
 Merrow Grimeblotter
 Metalwork Colossus
 Midnight Scavengers
@@ -142,13 +154,16 @@ Myr Battlesphere
 Mystic of the Hidden Way
 Nahiri's Binding
 Need for Speed
+Nissa, Genesis Mage
 Noxious Groodion
 Nykthos Paragon
 Nyxborn Brute
 Nyxborn Shieldmate
 Octomancer
 Odric's Outrider
+Omnispell Adept
 Oppressive Will
+Order of Sacred Dusk
 Ornamental Courage
 Pendrell Mists
 Penregon Strongbull
@@ -161,7 +176,9 @@ Polyraptor
 Press into Service
 Prickly Marmoset
 Priest of Titania
+Princess Lucrezia
 Prowling Serpopard
+Psemilla, Meletian Poet
 Purge the Profane
 Putrefy
 Quill-Slinger Boggart
@@ -202,6 +219,7 @@ Stabbing Pain
 Staff of the Flame Magus
 Stampede
 Stealer of Secrets
+Steelshaper Apprentice
 Stormcloud Djinn
 Strategic Planning
 Strider, Ranger of the North
@@ -220,7 +238,9 @@ Titan Forge
 Totally Lost
 Tracker's Instincts
 Treason of Isengard
+Triplicate Titan
 Triumph of Cruelty
+Trove Tracker
 Turtle-Seals
 Vat of Rebirth
 Vengeful Firebrand
@@ -236,5 +256,7 @@ Wild Aesthir
 Wildsize
 Wind Zendikon
 Wing Commando
+Woodland Guidance
 Yellow Scarves Cavalry
+Zar Ojanen, Scion of Efrava
 Zodiac Pig

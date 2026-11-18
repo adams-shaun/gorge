@@ -1,0 +1,22 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Age of Ultron	c3c818c99dab0579	5	0/0		0/0	
+Bankrupt in Blood	91ca4491618b56c0	4	0/0		1/2	ix:resp
+Blood Glutton	5a5d7d53b1c4bacc	3	0/0		0/0	
+Blood Seeker	488e1bccb1e47e11	9	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Call to the Netherworld	b52b868aaf8fba78	6	0/0		1/2	ix:resp
+Certain Death	545289d30bbfd585	6	0/0		2/2	
+Chase Stein, Runaway	c1bae97e6462bb3a	5	1/1		0/1	ix:resp
+Djinn of Infinite Deceits	ae1906bf66253971	6	1/1		0/1	ix:resp
+Lesser Werewolf	e7d3dce047207e25	12	1/1		0/1	ix:resp
+Lynx	dafb34074ff927a5	17	0/0		0/0	
+Nightstalker Engine	3eec31aaa202b4ba	10	0/0		0/0	
+Primal Adversary	c1f7908b4a2fe6f6	24	1/1		1/1	
+Relentless Rats	520193e0175f24ec	6	0/0		0/0	
+Silkbind Faerie	2478db1c556313e9	4	1/1		0/1	ix:resp
+Sphinx of Clear Skies	ce238fcea8a72c90	5	2/2		1/1	
+Talisman of Unity	b7203c0f73ec1ed6	11	2/2		1/1	
+Tempest of Light	4412304336f1c41f	3	0/0		1/2	ix:resp
+Troublesome Spirit	661981d12a9d3283	5	1/1		0/1	ix:resp
+Tyranid Prime	341bb3dcb9fd1d51	10	1/1		1/1	
+Venerable Warsinger	c83179b9325f247d	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Weakness	35117485d8f34884	7	0/0		1/2	ix:resp

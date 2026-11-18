@@ -8,6 +8,7 @@ Bequeathal
 Blade of the Bloodchief
 Bloodscale Prowler
 Chemister's Insight
+Death of a Thousand Stings
 Decoction Module
 Delete
 Dragon Bell Monk
@@ -24,8 +25,10 @@ Junk Golem
 Kami of False Hope
 Kavu Chameleon
 Lulu, Stern Guardian
+Make Your Mark
 Mogg Sentry
 Mountain
+Nighthawk Scavenger
 Nyxborn Hydra
 Pharika's Libation
 Plains
@@ -35,6 +38,7 @@ Scathe Zombies
 Serpent Warrior
 Steadfast Unicorn
 Swamp
+Taranika, Akroan Veteran
 Tide Drifter
 Volcanic Rush
 Warlord's Axe

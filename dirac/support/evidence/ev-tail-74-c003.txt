@@ -7,15 +7,19 @@ Abzan Runemark
 Ajani's Mantra
 Aku Djinn
 Angelic Purge
+Armorer Guildmage
+Auriok Edgewright
 Aurora Eidolon
 Aven Trooper
 Aven Windreader
+Azimaet Drake
 Barbed Sliver
 Battleflight Eagle
 Bearer of Memory
 Beastmaster's Magemark
 Betrayal
 Black Sun's Twilight
+Blackbloom Rogue
 Blindblast
 Blinding Mage
 Boggart Ram-Gang
@@ -27,6 +31,7 @@ Brood Sliver
 Capashen Unicorn
 Captured by Lagacs
 Cave-In
+Cephalid Illusionist
 Chain Lightning
 Chicken Egg
 Chilling Trap
@@ -51,6 +56,7 @@ Debtor's Pulpit
 Deepwood Tantiv
 Defenestrate
 Descendant of Kiyomaro
+Despondency
 Devil Dinosaur
 Devoted Retainer
 Devouring Swarm
@@ -70,6 +76,7 @@ Entish Restoration
 Esika's Chariot
 Eternal of Harsh Truths
 Euroakus
+Fact or Fiction
 Faithbearer Paladin
 Feeding Frenzy
 Feldon, Ronom Excavator
@@ -100,6 +107,7 @@ Gruul Keyrune
 Guardian of the Guildpact
 Guul Draz Assassin
 Harpoon Sniper
+Haunted Crossroads
 Hero's Resolve
 Horned Cheetah
 Hornet Cannon
@@ -151,6 +159,7 @@ Nomads' Assembly
 Norn's Inquisitor
 Novellamental
 Nylea's Huntmaster
+Omarthis, Ghostfire Initiate
 Orazca Frillback
 Oreskos Swiftclaw
 Painwracker Oni
@@ -160,6 +169,7 @@ Peggy Carter, Secret Agent
 Plague Fiend
 Plains
 Planar Portal
+Plow Under
 Pool Resources
 Portent of Betrayal
 Precision Bolt
@@ -188,8 +198,10 @@ Riddlekeeper
 Ring of Three Wishes
 Roc Hunter
 Rockshard Elemental
+Ruby Medallion
 Rundvelt Hordemaster
 Runeclaw Bear
+Ruthless Disposal
 Sabertooth Nishoba
 Sacred Cat
 Samurai Enforcers
@@ -238,6 +250,7 @@ Topaz Dragon
 Towering Indrik
 Triceraton Regenta
 Tuktuk Rubblefort
+Tuktuk the Explorer
 Two-Headed Zombie
 Undead Executioner
 Unholy Officiant
@@ -258,4 +271,5 @@ Wei Scout
 Weirding Shaman
 Western Paladin
 Whispers of the Muse
+Wildfire Eternal
 Willow-Wind

@@ -1,14 +1,21 @@
+Act on Impulse
 Akki Lavarunner
 Amrou Scout
 Ashenmoor Gouger
 Baloth Prime
 Baral's Expertise
 Barktooth Warbeard
+Birchlore Rangers
 Blade of the Bloodchief
 Blood Knight
 Bloodscale Prowler
+Brindle Shoat
+Bringer of the Blue Dawn
+Celebrity Fencer
 Chemister's Insight
+Colossal Badger
 Cut
+Cystbearer
 Daredevil's Billy Club
 Dragon Bell Monk
 Dralnu's Crusade
@@ -18,30 +25,47 @@ Faithless Salvaging
 Fencing Ace
 Forest
 Foul-Tongue Shriek
+Galadhrim Ambush
 Glimpse of Freedom
+Grizzly Ghoul
 Hermes, Overseer of Elpis
 Island
+Jewel-Eyed Cobra
 Junk Golem
 Kami of False Hope
+Leela, Sevateem Warrior
+Living Lands
+Lord of Extinction
 Lulu, Stern Guardian
 Mana Geyser
 Mogg Sentry
 Mountain
+No Escape
+Nullmage Advocate
 Nyxborn Hydra
 Pharika's Libation
 Plains
 Ransack
+Rootwater Diver
 Rubblebelt Recluse
 Saltfield Recluse
+Satyr Grovedancer
+Savage Swipe
 Scathe Zombies
 Serpent Warrior
+Shessra, Death's Whisper
+Slip Through Space
+Spellbook
 Stitched Drake
 Swamp
+Thundering Spineback
 Tide Drifter
+Triad of Fates
 Volcanic Dragon
 Volcanic Rush
 Wall of Opposition
 Warlord's Axe
+Warthog
 Whirler Rogue
 Wight of Precinct Six
 Wretched Throng
