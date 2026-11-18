@@ -16,9 +16,10 @@ import (
 //   - one target slot whose only remembering write is the Exile of that slot
 //     (RememberChanged$ True), so the set is the targets that left (Hide on
 //     the Ceiling's X targets, Temporal Tribulation's two); or
-//   - no target slot, and the only remembering write of the chain is one
-//     ChangeZoneAll Remember sweep (Planar Guide's "Exile all creatures",
-//     RememberChanged$ True), so the set is everything the sweep moved;
+//   - the only remembering write of the chain is one ChangeZoneAll Remember
+//     sweep (Planar Guide's "Exile all creatures", Sudden Disappearance's
+//     player-scoped sweep beside its player target slot, RememberChanged$
+//     True), so the set is everything the sweep moved;
 //   - a body of one ChangeZone Origin$ Exile, Destination$ Battlefield of
 //     Defined$ DelayTriggerRememberedLKI and nothing else.
 //
@@ -47,15 +48,15 @@ func (lc *lowerCtx) delayedLKIManyShape(exec *cards.SA) string {
 	return delayedLKIReturnBody(exec)
 }
 
-// delayedLKISweepMulti reports whether the chain has no target slot and its
-// only remembering write is one ChangeZoneAll Remember sweep: RememberChanged$
-// remembers every object the sweep moved (Planar Guide's "Exile all
-// creatures"), an unbounded set, so the kernel's one-object delayed record
-// would return only the sweep's first object.
+// delayedLKISweepMulti reports whether the chain's only remembering write is
+// one ChangeZoneAll Remember sweep: RememberChanged$ remembers every object
+// the sweep moved (Planar Guide's "Exile all creatures"), an unbounded set, so
+// the kernel's one-object delayed record would return only the sweep's first
+// object. Target slots do not disqualify: Sudden Disappearance's sweep is
+// scoped to the target player's battlefield, and the remembered set is still
+// everything the sweep moved — a remembering write of a target slot would be
+// a second write and fail the count.
 func (lc *lowerCtx) delayedLKISweepMulti() bool {
-	if len(lc.ab.Targets) != 0 {
-		return false
-	}
 	writes, sweep := 0, false
 	for _, in := range lc.ab.Prog {
 		if !kremWrites(in) {
