@@ -361,7 +361,7 @@ func (e *Engine) potentialTapExtra(p state.PlayerID, id state.ObjID, ma *cards.S
 		return most
 	}
 	payer := asPayer(e)
-	productions := pay.PaymentPlanProductions(payer, id, ma)
+	productions := paymentPlanProductions(e, p, id, ma)
 	if sub := condSplitLiveSub(e, p, id, ma); sub != nil {
 		productions = append(slices.Clone(productions), pay.PaymentPlanProductions(payer, id, sub)...)
 	}

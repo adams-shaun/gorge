@@ -131,7 +131,7 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 	}
 	controller := src.Controller
 	cost := e.abilityCompiledCost(ma).Cost
-	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
+	for _, produced := range paymentPlanProductions(e, controller, id, ma) {
 		if cost.Tap {
 			dmg, _, by, ok := e.paymentPlanTapObservers(id, controller, produced, false)
 			if !ok {
@@ -179,7 +179,7 @@ func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
 	if tier, _, _ := e.paymentPlanSourceInterference(id, ma); tier == pay.TierDeferred {
 		return true
 	}
-	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
+	for _, produced := range paymentPlanProductions(e, e.G.Obj(id).Controller, id, ma) {
 		if e.paymentPlanTapExtraMana(id, produced) != (state.Mana{}) {
 			return true
 		}
