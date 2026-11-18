@@ -2379,6 +2379,12 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 		// Fuss's {R/W} from Outrageous Robbery's exile and no granted
 		// source is tapped first (CR 601.2g-h, 609.4b)
 		cost = planUnderRider(cost, true, false)
+	} else if ok && a.Kind() == AkCast && a.Mode()&castMayPlay != 0 && a.Mode()&castFree == 0 && s.mayPlayIgnoreColor(k, p, Obj(a.Source())) {
+		// an any-colour may-play rider prices the coloured pips generic too
+		// (pay.PlanManaUnderRider, potentialPinnedColourPlan; CR 609.4b), so
+		// the printed lands pay Brainstealer Dragon's {1}{R} Underworld
+		// Breach from its exile (grantCap's walk keeps the offer)
+		cost = planUnderRider(cost, false, true)
 	}
 	return cost, ex, need, ok
 }
