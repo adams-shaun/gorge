@@ -587,8 +587,11 @@ func permanentSpec(vc string) bool {
 // WithCountersAmount$, default 1): Dauthi Voidwalker's VOID, Draugr
 // Necromancer's ICE. ctr is "" when the body puts none.
 func exileBody(w *cards.SA) (ctr string, n uint8, ok bool) {
-	if w == nil || w.API != "ChangeZone" || w.Sub != nil {
+	if w == nil || w.API != "ChangeZone" {
 		return "", 0, false
+	}
+	if w.Sub != nil {
+		return exileCounterChainBody(w) // lower_exilectrrider.go
 	}
 	bp := newParams(w.Params)
 	if bp.str("Defined") != "ReplacedCard" || bp.str("Destination") != "Exile" {
