@@ -142,10 +142,18 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 	}
 	var av avail
 	s.availForBuilt(k, e, &av)
-	nt, t0 := e.nt, e.tgt[0]
+	// gorge prices a later slot's candidate with the targets the earlier
+	// slots chose (cast_pricing.go candidateTargetSets: base + candidate), so
+	// a flyer first target Jubilant Skybonder already taxes {2} counts toward
+	// the second. A multi-pick slot already under way is priced alone.
+	at := 0
+	if mt := &s.g.mt; !(mt.active && mt.picked > 0) {
+		at = min(int(s.bld().ti), kop.MaxTargets-1)
+	}
+	nt, saved := e.nt, e.tgt
 	m := 0
 	for i := 0; i < n; i++ {
-		e.nt, e.tgt[0] = 1, buf[i]
+		e.nt, e.tgt[at] = uint8(at+1), buf[i]
 		base := cd.Cost
 		if free {
 			base = kop.ManaCost{}
@@ -178,7 +186,7 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 			m++
 		}
 	}
-	e.nt, e.tgt[0] = nt, t0
+	e.nt, e.tgt = nt, saved
 	return m
 }
 
