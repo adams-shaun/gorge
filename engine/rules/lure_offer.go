@@ -8,7 +8,7 @@ import (
 // The lure offer filter of askBlockers (CR 509.1c, "All creatures able to
 // block CARDNAME do so."): the pair predicate no legal declaration sits
 // outside, computed once per defender's declare-blockers ask. The rules are
-// package combat's (block_lure.go); these two methods only bind them to the
+// package combat's (block_lure.go); these two functions only bind them to the
 // engine's pair oracle and blocker capacity.
 
 // lureExtraBlocker reports whether any creature the defender controls may be
@@ -16,9 +16,9 @@ import (
 // combat.BlockCapacity). Such a declaration's maximum runs through the
 // required-team search over the whole option list, so the plain-lure offer
 // filter does not apply beside it.
-func (e *Engine) lureExtraBlocker(defender state.PlayerID) bool {
-	for _, id := range e.G.Zone(state.ZBattlefield, defender) {
-		if combat.BlockCapacity(asBoard(e), id) >= 2 {
+func lureExtraBlocker(b combat.Board, defender state.PlayerID) bool {
+	for _, id := range b.Game().Zone(state.ZBattlefield, defender) {
+		if combat.BlockCapacity(b, id) >= 2 {
 			return true
 		}
 	}
@@ -31,10 +31,11 @@ func (e *Engine) lureExtraBlocker(defender state.PlayerID) bool {
 // attacker; the pair admissibility below is the offer's own oracle without
 // the per-pair charge (CR 509.1c: a block needing a cost payment is not
 // required, so the duty reads what CAN be declared, not what is affordable).
-func (e *Engine) lurePairFilter(scope *blockPairScope, defender state.PlayerID, lure map[state.ObjID]bool) func(bid, aid state.ObjID) bool {
-	zone := e.G.Zone(state.ZBattlefield, defender)
-	admissible := func(b, a state.ObjID) bool {
-		return !scope.minImpossible[a] && combat.CanBlock(asBoard(e), b, a)
+func lurePairFilter(b combat.Board, scope *blockPairScope, defender state.PlayerID, lure map[state.ObjID]bool) func(bid, aid state.ObjID) bool {
+	g := b.Game()
+	zone := g.Zone(state.ZBattlefield, defender)
+	admissible := func(blk, a state.ObjID) bool {
+		return !scope.minImpossible[a] && combat.CanBlock(b, blk, a)
 	}
 	var lureIDs []state.ObjID
 	for _, aid := range scope.attackers {
@@ -66,7 +67,7 @@ func (e *Engine) lurePairFilter(scope *blockPairScope, defender state.PlayerID, 
 			return true // no blocker floor above one
 		}
 		declared := 0
-		if o := e.G.Obj(aid); o != nil {
+		if o := g.Obj(aid); o != nil {
 			declared = len(o.BlockedBy)
 		}
 		return combat.LureFloorMet(bound[0], declared, bid, aid, zone, dutySet, admissible)

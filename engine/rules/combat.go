@@ -1239,8 +1239,8 @@ func (e *Engine) askBlockers() {
 		// same rules pick by pick, so the one ask gorge poses and the picks
 		// the lockstep poses publish the same pairs.
 		var lureOfferable func(bid, aid state.ObjID) bool
-		if len(lure) > 0 && len(mustBeBlocked) == 0 && len(mustBeBlockedTwo) == 0 && len(requiredBlockers) == 0 && !e.lureExtraBlocker(defender) {
-			lureOfferable = e.lurePairFilter(&scope, defender, lure)
+		if len(lure) > 0 && len(mustBeBlocked) == 0 && len(mustBeBlockedTwo) == 0 && len(requiredBlockers) == 0 && !lureExtraBlocker(asBoard(e), defender) {
+			lureOfferable = lurePairFilter(asBoard(e), &scope, defender, lure)
 		}
 		for _, bid := range e.G.Zone(state.ZBattlefield, defender) {
 			for _, aid := range scope.attackers {
