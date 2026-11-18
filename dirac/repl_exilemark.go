@@ -465,12 +465,16 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask, askAfter *bo
 	return true
 }
 
-// exileOrderOptions asks the moving object's controller, or its owner off the
-// battlefield. The mode tells a mark, by its index, from a source.
+// exileOrderOptions asks the moving object's controller: a permanent's, a spell
+// on the stack's (its caster, who may not own it), else its owner. The mode
+// tells a mark, by its index, from a source.
 func (s *State) exileOrderOptions(k *prep, d *Decision) {
 	o := s.cold.parked[0].obj
 	ob := &s.objs[o]
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenReplOrder, ob.owner()
+	if e := s.spellEntryOf(o); e != nil && ob.zone == kop.ZoneStack {
+		d.Player = e.ctrl
+	}
 	if ob.zone == kop.ZoneBattlefield {
 		d.Player = s.perms[ob.slot].ctrl
 		for i := range s.cold.exMark {
