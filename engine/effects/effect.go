@@ -112,6 +112,12 @@ func effectChosenCardSuffix(h Host, c *Ctx, body string) string {
 // UntilEOT, dropped at end-of-turn cleanup; an explicit Permanent (and other
 // source-relative durations) persists while its source stays on the battlefield.
 func effEffect(h Host, c *Ctx, sa *cards.SA) {
+	// An as-enters copy's type-conditional counter rider (Spark Double,
+	// Moritte of the Frost) is a placement on the entering copy, not a
+	// registered replacement (clone_etb_typed_counters.go).
+	if applyCloneETBTypedCounters(h, c, sa) {
+		return
+	}
 	// A nested Effect (this body is an Effect-created delayed trigger's own
 	// execution, under its carrier's source-scoped frame): its chain's self-exile idiom names the OUTER carrier, so
 	// the registrations this call makes are spared. See EffectFrame.Spare.

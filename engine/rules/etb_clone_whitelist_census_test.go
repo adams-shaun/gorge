@@ -22,11 +22,11 @@ import (
 // parameter accepted into etbCloneWhitelist) or narrow silently.
 var etbCloneCleanNames = []string{
 	"Activated Sleeper", "Altered Ego", "Auton Soldier", "Body Double", "Callidus Assassin", "Chameleon, Master of Disguise", "Clever Impersonator", "Clone", "Colossal Clone Master", "Copy Artifact", "Copy Enchantment", "Copy Land",
-	"Copycrook", "Dack's Duplicate", "Deceptive Frostkite", "Dominion Saboteur", "Echoing Deeps", "Evil Twin", "Ezri Dax, Newly Joined", "Flesh Duplicate", "Gigantoplasm",
-	"Glasspool Mimic", "Hulking Metamorph", "Jwari Shapeshifter", "Lazotep Convert", "Malleable Impostor", "Masterwork of Ingenuity", "Mercurial Pretender", "Mirror Image", "Mirrorhall Mimic",
-	"Mirrormade", "Mocking Doppelganger", "Mockingbird", "Naga Fleshcrafter", "Omni-Changeling",
-	"Phantasmal Image", "Phyrexian Metamorph", "Pirated Copy", "Progenitor Mimic", "Quicksilver Gargantuan", "Sakashima of a Thousand Faces", "Sakashima the Impostor", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel",
-	"Stunt Double", "Superior Spider-Man", "Surgical Metamorph", "Synth Infiltrator", "The Master, Formed Anew", "Undercover Operative", "Vesuva", "Vesuvan Doppelganger", "Visage Bandit", "Voq, Torchbearer", "Waxen Shapethief",
+	"Copycrook", "Cursed Mirror", "Dack's Duplicate", "Deceptive Frostkite", "Dominion Saboteur", "Echoing Deeps", "Estrid's Invocation", "Evil Twin", "Ezri Dax, Newly Joined", "Flesh Duplicate", "Gigantoplasm",
+	"Glasspool Mimic", "Hulking Metamorph", "Imposter Mech", "Jwari Shapeshifter", "Lazotep Convert", "Machine God's Effigy", "Malleable Impostor", "Masterwork of Ingenuity", "Mercurial Pretender", "Mirror Image", "Mirrorhall Mimic",
+	"Mirrormade", "Mocking Doppelganger", "Mockingbird", "Moritte of the Frost", "Naga Fleshcrafter", "Omni-Changeling",
+	"Phantasmal Image", "Phyrexian Metamorph", "Pirated Copy", "Progenitor Mimic", "Quicksilver Gargantuan", "Sakashima of a Thousand Faces", "Sakashima the Impostor", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel", "Spark Double",
+	"Stunt Double", "Superior Spider-Man", "Surgical Metamorph", "Synth Infiltrator", "The Master, Formed Anew", "Undercover Operative", "Vesuva", "Vesuvan Doppelganger", "Visage Bandit", "Voq, Torchbearer", "Wall of Stolen Identity", "Waxen Shapethief",
 }
 
 // TestETBCloneWhitelistCensus walks every ETBReplacement:Copy Repl in the
@@ -78,9 +78,9 @@ func TestETBCloneWhitelistRegressionCarriers(t *testing.T) {
 		{"Malleable Impostor", true},
 		{"Mirror Image", true},
 		// Moritte's body rides SubAbility$ DBConditionEffect (the "if it's a
-		// creature, it enters with two additional +1/+1 counters" condition),
-		// so despite its plain Choices$ selector it is out of scope.
-		{"Moritte of the Frost", false},
+		// creature, it enters with two additional +1/+1 counters" condition):
+		// the type-conditional counter rider (CloneETBTypedCounters), offered.
+		{"Moritte of the Frost", true},
 		// Mockingbird's cast-spend Y selector is supported; Flesh Duplicate's
 		// AddKeywords$ IfNew Vanishing:3 is the conditional-keyword rider
 		// (CR 707.9b), supported since its inner keyword is a single-word
@@ -94,7 +94,7 @@ func TestETBCloneWhitelistRegressionCarriers(t *testing.T) {
 		// Goad line stays withheld, the whitelist's own value gate.
 		{"Mocking Doppelganger", true},
 		{"Vesuva", true},                // IntoPlayTapped$ True now taps the entering copy
-		{"Cursed Mirror", false},        // Duration$ UntilEndOfTurn
+		{"Cursed Mirror", true},         // Duration$ UntilEndOfTurn rides the copy unit
 		{"Mirrorhall Mimic", true},      // ChoiceTitle$ is prompt text only
 		{"Vizier of Many Faces", false}, // SetColor$/AddTypes$ + Embalm$ provenance
 		// The CopyExcept exceptions (CR 707.9b): a literal P/T, a parsed
@@ -136,27 +136,27 @@ func TestETBCloneWhitelistRegressionCarriers(t *testing.T) {
 	}
 }
 
-// TestCursedMirrorETBKeepsLoudFallback pins the out-of-scope boundary end to
-// end: a cast of Cursed Mirror (a Duration$ carrier the whitelist declines)
+// TestVizierETBKeepsLoudFallback pins the out-of-scope boundary end to
+// end: a cast of Vizier of Many Faces (an Embalm$ carrier the whitelist declines)
 // with an eligible creature on the battlefield must offer no copy election,
 // must enter as itself, must not copy, and must retain the loud
 // unimplemented-API Clone fallback note.
-func TestCursedMirrorETBKeepsLoudFallback(t *testing.T) {
+func TestVizierETBKeepsLoudFallback(t *testing.T) {
 	t.Parallel()
-	e := handEngine(t, corpusAlternativeCard(t, "Cursed Mirror"))
+	e := handEngine(t, corpusAlternativeCard(t, "Vizier of Many Faces"))
 	bear := e.G.AddObject(corpusAlternativeCard(t, "Colossal Dreadmaw"), 0)
 	bear.Zone = state.ZBattlefield
 	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{bear.ID})
 	id := e.G.Zone(state.ZHand, 0)[0]
 	e.G.Players[0].Pool[state.MC] = 2
-	e.G.Players[0].Pool[state.MR] = 1
+	e.G.Players[0].Pool[state.MU] = 2
 	castMode(t, e, id, "")
 	if d := e.Pending(); d != nil && d.Kind == decision.KChoose && d.Source == id {
 		t.Fatalf("out-of-scope carrier must not offer the copy election: %+v", d)
 	}
 	finishCast(t, e, id)
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("mirror did not enter as itself: %+v", o)
+		t.Fatalf("vizier did not enter as itself: %+v", o)
 	}
 	if hasEvent(e, events.ClonePermanent, id) {
 		t.Fatal("out-of-scope carrier must not copy")
