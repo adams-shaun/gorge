@@ -15,19 +15,22 @@ import (
 // per activation, the activating Boimler as the source) and then the
 // filtered replacements of each player's battlefield in entry order.
 //
-// Only the two-candidate competition (one doubler, one plus-N) is modelled:
-// after the pick one candidate is left, so no re-ask follows. With three or
-// more gorge asks again over ALL the candidates, the applied one included
-// (askReplacementChoice lists rc.cands, not what is left), which the kernel
-// does not reproduce; those still stall (StallReplCtr).
+// Only the candidates ctrGather's own classes model are ordered: the
+// battlefield's filtered doublers and plus-N (ReplDoubleCountersOn /
+// ReplAddCountersOn) and the Boimler activations' until-end-of-turn plus-one
+// (plusCtr). The ask is posed over ALL of them when a doubler stands beside a
+// plus (the set does not commute), and re-posed after every pick while the
+// unapplied remainder still holds a doubler beside a plus (gorge
+// driveAddCounterCompetition's re-pose, CR 616.1e); when the remainder
+// commutes (pluses only, doublers only) it applies unasked in scan order.
 //
 // The kernel poses the same ask for an OpPutCounter of a resolving program,
-// before the placement: the resolution pauses on raGenCtrOrder, the answers
-// pick is kept in the order header (s.g.ro), and the same instruction runs
+// before the placement: the resolution pauses on raGenCtrOrder, the answers'
+// picks are kept in the order header (s.g.ro), and the same instruction runs
 // again with the order settled (ctrOrderApply). Every other route, a doubler
 // that is not a filtered battlefield replacement (Doubling Season, Innkeeper's
-// Talent), a minus-N, three or more candidates and Boimler activations from
-// two sources stall (StallReplCtr).
+// Talent), a minus-N and Boimler activations from two sources stall
+// (StallReplCtr).
 
 // DebugCtrOrderIgnore is the mutation switch: the ask is posed but the
 // answers are ignored (the candidates apply in scan order), so a game whose
@@ -143,7 +146,7 @@ func (s *State) ctrOrderPark(k *prep, sl Slot, kind, n int) bool {
 		return false
 	}
 	c := s.ctrGather(k, sl, kind)
-	if !c.ok || c.n != 2 || !c.mixed() {
+	if !c.ok || !c.mixed() {
 		return false
 	}
 	ro.replHdr = replHdr{}
@@ -193,20 +196,51 @@ func (s *State) execPutCounterAt(k *prep, in *kop.Instr) bool {
 	return true
 }
 
-// applyCtrOrder answers the ask: the pick applies first, the other candidate
-// after it; then the same instruction runs again.
+// applyCtrOrder answers the ask: the picked candidate is recorded (gorge
+// applies the picked body as it is picked), and while the unapplied
+// remainder still does not commute the same ask is posed again over it (CR
+// 616.1e); once it commutes, the same instruction runs again with the whole
+// order settled — the picks in answer order, then the remainder in scan
+// order.
 func (s *State) applyCtrOrder(k *prep, a Action) {
 	ro := &s.g.ro
 	i := a.Mode()
 	if i >= ro.n || ro.used&(1<<i) != 0 {
 		return
 	}
-	ro.an, ro.ac, ro.used, ro.fin = int16(i), ctrOrdTag|1, 1<<i, true
+	np := int(ro.ac &^ ctrOrdTag)
+	ro.an |= int16(i) << (2 * np)
+	ro.used |= 1 << i
+	ro.ac = ctrOrdTag | uint8(np+1)
+	if ctrOrderUnsettled(ro) {
+		CtrOrderStats.Asked.Add(1)
+		return // the ask is posed again over the unapplied remainder
+	}
+	ro.fin = true
 	s.res.ask = raNone
 	s.runProg(k) // the same instruction again, the order settled
 	if ro.fin {
 		ro.replHdr = replHdr{} // nothing consumed the answer
 	}
+}
+
+// ctrOrderUnsettled reports whether the unapplied candidates still hold a
+// doubler beside a plus (two or more of them), so gorge asks again over the
+// remainder (driveAddCounterCompetition's re-pose, CR 616.1e); a commuting
+// remainder (pluses only, doublers only) applies unasked.
+func ctrOrderUnsettled(ro *replOrd) bool {
+	dbl, plus := 0, 0
+	for i := 0; i < int(ro.n); i++ {
+		if ro.used&(1<<i) != 0 {
+			continue
+		}
+		if ro.prev&(1<<i) != 0 {
+			dbl++
+		} else {
+			plus++
+		}
+	}
+	return dbl > 0 && plus > 0
 }
 
 // ctrOrderApply is replCtrOnX's stall site: n counters of kind on sl with an
