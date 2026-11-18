@@ -886,6 +886,9 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 			if a.Cost.Flags&kop.CostSorcery != 0 && !sorc {
 				continue
 			}
+			if s.castHeldOut(o) {
+				continue // CR 733.2: reversed twice in a row with no progress (Purple Pentapus), as the battlefield offer reads it
+			}
 			// a restricted source (Heartwood Crafter's {C}) or floating restricted
 			// mana (Boommobile's activated-only units) pays an activated ability
 			// from the graveyard as from the hand (CR 106.6)
