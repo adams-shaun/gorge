@@ -518,10 +518,8 @@ func (cb *cardBuilder) record() error {
 	if cb.out.subs, err = cb.subIndexes(c.Subtypes); err != nil {
 		return err
 	}
-	if c.Changeling {
-		// pool indexes, which a matchup renumbers into d.PrintedSubtypes
-		cb.out.printed = append([]uint8{}, cb.out.subs...)
-		cb.out.subs = changelingSubs(cb.pt, cb.out.subs)
+	if err := cb.printedFace(d, c); err != nil {
+		return err
 	}
 	if d.Keywords, err = kwMask(c.Kw); err != nil {
 		return err
