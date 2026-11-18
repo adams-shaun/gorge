@@ -332,8 +332,72 @@ func TapXManaTwo(a *Ability) bool {
 		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
 }
 
+// TapXManaOne reports whether mana ability a is "Tap an untapped <spec> you
+// control: Add one mana" with no {T} (Urza, Lord High Artificer's {U} for an
+// artifact; Relic of Legends' any colour for a legendary creature): exactly
+// one tapped permanent (the source itself among the candidates when it matches
+// the spec), no mana, one mana of one fixed colour or of any colour,
+// unrestricted. Like Baylen's (TapXManaTwo) its cost is repeatable and not
+// once-only, so gorge's census leaves it an unrelaxable gap bounded by the
+// untapped candidates (paymentPlanRelaxedAlternatives, tapOnlyManaCost).
+func TapXManaOne(a *Ability) bool {
+	c := a.ManaColors
+	return a.Kind == AbMana && a.Cost.Flags == CostTapX && a.Cost.N == 1 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		a.AFlags == 0 && a.ManaRestrict == 0 && (c == ColAny && a.ManaN <= 1 || c != 0 && c&(c-1) == 0 && a.ManaN == 1) && len(a.Prog) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
+// SecondTapXOneManaAb reports whether ability j of cd, a later mana ability
+// than its first (index first), is the TapXManaOne shape beside a plain {T}
+// first one (Relic of Legends' any-colour {T}); the kernel reads it as the
+// card's tap-another gap kind, as SecondTapXManaAb's.
+func SecondTapXOneManaAb(cd *CardDef, first, j int) bool {
+	if first < 0 || j <= first || j >= len(cd.Abilities) || cd.Abilities[j].Kind != AbMana {
+		return false
+	}
+	return TapXManaOne(&cd.Abilities[j]) && plainTapAb(&cd.Abilities[first])
+}
+
+// SecondTapAnotherManaAb reports whether ability j of cd, a later mana ability
+// than its first (index first), is one of the second-ability shapes the
+// kernel's tap-another gap kind reads: SecondTapXManaAb, SecondTapXOneManaAb or
+// SecondSacTapManaAb.
+func SecondTapAnotherManaAb(cd *CardDef, first, j int) bool {
+	return SecondTapXManaAb(cd, first, j) || SecondTapXOneManaAb(cd, first, j) || SecondSacTapManaAb(cd, first, j)
+}
+
 // TapXMana is either tap-other-permanents mana shape.
-func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) }
+func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) || TapXManaOne(a) }
+
+// BoundedOnceManaAb reports whether a is a no-{T} repeatable mana source whose
+// gorge potential bound admits its fixed production once: Krark-Clan
+// Ironworks' sacrifice (SacAnyManaAb) or Urza's tap of an untapped artifact
+// ({U}, TapXManaOne of one fixed colour). Its census is unrelaxable (a
+// repeatable cost that is no bounded tap part for the relaxation's once
+// proof), so every census-incomplete insufficient play takes a search slot,
+// but the plays searched are the gaps walk's.
+func BoundedOnceManaAb(a *Ability) bool {
+	if SacAnyManaAb(a) {
+		return true
+	}
+	_, fixed := TapXFixedColour(a)
+	return fixed && TapXManaOne(a)
+}
+
+// TapXFixedColour is the colour of tap-another ability a's production when it
+// is one fixed colour (Urza's {U}): its activation asks no colour.
+func TapXFixedColour(a *Ability) (col int, ok bool) {
+	c := a.ManaColors
+	if c == 0 || c&(c-1) != 0 {
+		return 0, false
+	}
+	for col := 0; col < NumManaKinds; col++ {
+		if c&(1<<col) != 0 {
+			return col, true
+		}
+	}
+	return 0, false
+}
 
 // PipFeeManaAb reports whether a is a mana ability whose fee is exactly one
 // coloured pip with a {T} and no generic part, and the pip's colour: either
@@ -502,12 +566,56 @@ func SacXEachManaAb(a *Ability) bool {
 func SacAnyManaAb(a *Ability) bool {
 	c := a.ManaColors
 	return a.Kind == AbMana && a.Cost.Flags == CostSac && a.Cost.N == 1 && a.Cost.Filter != 0 && !a.Cost.ExileBf && !a.Cost.DiscardHand &&
+		a.Cost.Mana == (ManaCost{}) && a.ManaRestrict == 0 && !a.ManaEach && (a.ManaN >= 1 && c != 0 && c&(c-1) == 0 || a.ManaN <= 1 && c == ColAny) && a.AFlags == 0 && len(a.Prog) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
+// SacTapAnyManaAb reports whether mana ability a is "{T}, Sacrifice a <spec>:
+// Add one mana of any color" (Gilded Goose's Food): a mana-free {T} plus a
+// sacrifice of exactly one permanent matching Cost.Filter, an unrestricted
+// any-colour unit. gorge's census defers it (a Sac part that is not the
+// source) and relaxes it to a free any-colour alternative, as it does the
+// tap-another cost of TapXManaAb; the kernel activates it in the tap-another
+// search (kernel mana_tapanother.go): the sacrifice ask, then the colour ask.
+func SacTapAnyManaAb(a *Ability) bool {
+	return a.Kind == AbMana && a.Cost.Flags == CostTap|CostSac && a.Cost.N == 1 && a.Cost.Filter != 0 && !a.Cost.ExileBf && !a.Cost.DiscardHand &&
+		a.Cost.Mana == (ManaCost{}) && a.ManaRestrict == 0 && !a.ManaEach && a.ManaN <= 1 && a.ManaColors == ColAny && a.AFlags == 0 && len(a.Prog) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
+// SacTapFixedManaAb reports whether mana ability a is "{T}, Sacrifice a
+// <spec>: Add <one fixed colour>" (Phyrexian Tower's "{T}, Sacrifice a
+// creature: Add {B}{B}"): a mana-free {T} plus a sacrifice of exactly one
+// permanent matching Cost.Filter, ManaN of one fixed unrestricted colour. The
+// kernel honours it only as a later ability beside a plain fixed {T} first one
+// (SecondSacTapManaAb), the card's tap-another gap kind like Scene of the
+// Crime's second ability: gorge's census leaves it a relaxable once-only gap
+// (its {T}), relaxed to one free production of its whole amount.
+func SacTapFixedManaAb(a *Ability) bool {
+	c := a.ManaColors
+	return a.Kind == AbMana && a.Cost.Flags == CostTap|CostSac && a.Cost.N == 1 && a.Cost.Filter != 0 && !a.Cost.ExileBf && !a.Cost.DiscardHand &&
 		a.Cost.Mana == (ManaCost{}) && a.ManaRestrict == 0 && !a.ManaEach && a.ManaN >= 1 && c != 0 && c&(c-1) == 0 && a.AFlags == 0 && len(a.Prog) == 0 &&
 		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
 }
 
+// SecondSacTapManaAb reports whether ability j of cd, a later mana ability
+// than its first (index first), is the SacTapFixedManaAb shape beside a plain
+// fixed-colour {T} first one (plainFixedTapAb: Phyrexian Tower's {C}).
+func SecondSacTapManaAb(cd *CardDef, first, j int) bool {
+	if first < 0 || j <= first || j >= len(cd.Abilities) || cd.Abilities[j].Kind != AbMana {
+		return false
+	}
+	return SacTapFixedManaAb(&cd.Abilities[j]) && plainFixedTapAb(&cd.Abilities[first])
+}
+
 // SacXMana is either sacrifice-another-permanent mana shape.
-func SacXMana(a *Ability) bool { return SacXEachManaAb(a) || SacAnyManaAb(a) }
+func SacXMana(a *Ability) bool {
+	return SacXEachManaAb(a) || SacAnyManaAb(a) || SacTapAnyManaAb(a) || SacTapFixedManaAb(a)
+}
+
+// SacXAnyColour reports whether sacrifice-another mana ability a makes one
+// mana of any colour: its activation asks the colour after the sacrifice.
+func SacXAnyColour(a *Ability) bool { return a.ManaColors == ColAny && SacXMana(a) }
 
 // riderManaCostOK reports whether a's cost is one the kernel's rider
 // activation pays (never a payment witness unit: gorge defers the source):
@@ -629,7 +737,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 		}
 	}
 	if j != first {
-		return f == CostTap || f == CostTap|CostPayLife || SecondTapXManaAb(cd, first, j) || SecondCtrTapManaAb(cd, first, j) ||
+		return f == CostTap || f == CostTap|CostPayLife || SecondTapXManaAb(cd, first, j) || SecondTapXOneManaAb(cd, first, j) || SecondSacTapManaAb(cd, first, j) || SecondCtrTapManaAb(cd, first, j) ||
 			StoreManaAb(a) ||
 			ManaRiderAb(a) && f == CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && plainTapAb(&cd.Abilities[first])
 	}
@@ -639,7 +747,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SoleLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a):
+	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SoleLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a):
 		return true
 	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true
