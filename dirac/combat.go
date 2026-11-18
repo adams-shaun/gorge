@@ -186,7 +186,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		}
 	}
 	if atkTaxOn(k) {
-		s.atkTaxFilter(k, d) // combat_attacktax.go
+		s.atkTaxFilter(k, d, served) // combat_attacktax.go
 	}
 	s.restoreAttackPicks(served)
 	if (!s.mustAttackAsked() || !s.mustAttackLeft(k)) && !s.loneAloneAttacker(k) {
