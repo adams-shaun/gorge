@@ -144,6 +144,9 @@ func (s *State) windowUnpricedOpenIf(k *prep, e *stackEntry, open bool) bool {
 // gorge's untapped-source gate (untappedManaSource) reads every available mana
 // ability, its restriction unread, so Interdimensional Web Watch's exile-cast
 // mana keeps a pool-short candidate on the menu once the census is incomplete.
+// A latent line is never the carrier's own ability -- Resonating Lute's granted
+// {T} lives on the lands its Continuous static reaches (kop.AfLatent), so an
+// untapped Lute beside only tapped lands is no restricted source at all.
 func (s *State) restrManaUntapped(k *prep, sl Slot) bool {
 	pm := &s.perms[sl]
 	if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) || DebugNoRestrManaOpen {
@@ -151,7 +154,8 @@ func (s *State) restrManaUntapped(k *prep, sl Slot) bool {
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
 	for j := range cd.Abilities {
-		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) {
+		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 &&
+			(a.ManaRestrict != 0 || a.ManaRestrictAb != 0) {
 			return true
 		}
 	}
