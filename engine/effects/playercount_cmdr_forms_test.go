@@ -222,7 +222,8 @@ func TestPlayerCountNonTriggeredTargetBattleAngels(t *testing.T) {
 
 // TestTriggeredTargetRefReadsZoneHeads pins the widened default-ref arm:
 // TriggeredTarget reads CardsInHand and the Valid-family zone counts, and
-// TriggeredDefendingPlayer reads CardsInHand (Mr. Foxglove); the widening is
+// TriggeredDefendingPlayer reads CardsInHand (Mr. Foxglove) and the Valid zone
+// family (Ravenloft Adventurer's exile hit-counter count); the widening is
 // confined to those refs (TriggeredPlayer still fails closed for CardsInHand).
 func TestTriggeredTargetRefReadsZoneHeads(t *testing.T) {
 	h := newHost(t, 3)
@@ -257,8 +258,9 @@ func TestTriggeredTargetRefReadsZoneHeads(t *testing.T) {
 		t.Fatalf("TriggeredTarget$Valid Permanent.nonDemon+YouCtrl/HalfUp = (%d,%v), want (2,true)", got, ok)
 	}
 
-	// Mr. Foxglove's defending player reads CardsInHand too (and only that
-	// head: its Valid heads stay unresolvable).
+	// Mr. Foxglove's defending player reads CardsInHand too; its Valid zone
+	// family is readable since the completed_dungeon_gate_unread fix (the
+	// TriggeredTarget arm below pins the same family on the other ref).
 	c.DefendingPlayer = state.Target{Player: 1, IsPlayer: true}
 	if got, ok := EvalCountOK(h, c, "TriggeredDefendingPlayer$CardsInHand"); !ok || got != 4 {
 		t.Fatalf("TriggeredDefendingPlayer$CardsInHand = (%d,%v), want (4,true)", got, ok)
