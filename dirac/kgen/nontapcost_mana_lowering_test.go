@@ -23,6 +23,8 @@ func TestLowerNonTapCostManaAbilities(t *testing.T) {
 		"Meria, Scholar of Antiquity": "Tap an untapped nontoken artifact you control: Add {G} (kop.TapXManaOne)",
 		"Seton, Krosan Protector":     "Tap an untapped Druid you control: Add {G}, a Druid itself (kop.TapXManaOne)",
 		"Relic of Legends":            "a second Tap an untapped legendary creature you control: Add one mana of any color (kop.SecondTapXOneManaAb)",
+		"Tarnished Citadel":           "{T}: any colour, 3 damage to you (f907ff6cf7; dirac/oracle/pain_anycolour_lockstep_test.go)",
+		"Grand Coliseum":              "{T}: any colour, 1 damage to you (f907ff6cf7; dirac/oracle/pain_anycolour_lockstep_test.go)",
 	}
 	// refused: the substring of each refusal measured against the corpus
 	// (kgen -pool edhprobe, 2026-11-18); a card left refused is named here.
@@ -37,8 +39,6 @@ func TestLowerNonTapCostManaAbilities(t *testing.T) {
 		"Pentad Prism":           "mana ability cost RemoveCtr: the kernel's mana walk cannot activate it",
 		"Crystalline Crawler":    "mana ability cost RemoveCtr: the kernel's mana walk cannot activate it",
 		"Runaway Steam-Kin":      "mana ability cost RemoveCtr: the kernel's mana walk cannot activate it",
-		"Tarnished Citadel":      "a cost beyond {T} the kernel's mana walk cannot activate", // {T}: any colour, 3 damage to you: lockstep diverges beside Grand Coliseum (gorge taps the 1-damage source, the kernel the 3-damage one)
-		"Grand Coliseum":         "a cost beyond {T} the kernel's mana walk cannot activate", // the same shape, 1 damage
 	}
 	var names []string
 	for n := range lowered {
