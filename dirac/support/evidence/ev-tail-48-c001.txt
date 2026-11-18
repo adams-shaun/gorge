@@ -1,52 +1,118 @@
+Abyssal Nocturnus
 Aether Figment
 Aether Rift
 Aid the Fallen
 Akoum Hellhound
+Alpha Kavu
 Angelic Chorus
 Animate Land
 Aspiring Aeronaut
 Assault
 Aveline de Grandpré
+Azusa, Lost but Seeking
+Badlands
 Balance of Power
 Baleful Force
+Bartolomé del Presidio
+Basilica Screecher
 Beanstalk Giant
+Beast Mode
+Bessie, the Doctor's Roadster
+Black Dragon Gate
+Bladeback Sliver
 Blinding Drone
+Blitz Leech
+Blowfly Infestation
 Bob, Reluctant HYDRA Agent
+Bonded Fetch
+Boon-Bringer Valkyrie
 Bow of Nylea
 Breathstealer
 Brilliant Halo
+Builder's Blessing
+Burst of Energy
 Bygone Bishop
+Cackling Counterpart
+Carnifex Demon
+Cathars' Crusade
+Chitinous Cloak
+Circle of Affliction
+Citanul Stalwart
+Clavileño, First of the Blessed
 Cliff Threader
+Collective Voyage
 Colossal Badger
+Consul's Shieldguard
+Corrupt Eunuchs
 Courage in Crisis
 Crater Hellion
 Cryptic Serpent
 Crystal Chimes
 Crystalline Sliver
+Cyclical Evolution
+Daring Piracy
+Dark Impostor
+Dark Revenant
 Day of Destiny
 Dazzling Lights
+Deadly Rollick
 Demonic Bargain
+Demotion
+Desecration Plague
 Dictate of Karametra
 Disperse
+Divine Light
 Doom's Servo-Guards
 Dragon's Presence
+Draining Whelk
 Drake-Skull Cameo
+Dusk Imp
 Eliminate
+Elven Riders
+Emancipation Angel
+End Hostilities
 Environmental Sciences
 Escape Protocol
 Ethrimik, Imagined Fiend
 Evolution Witness
 Excommunicate
+Exiled Boggart
+Expose to Daylight
 Eyeless Watcher
 Ezio, Brash Novice
+Falcon, Joaquin Torres
+Falkenrath Exterminator
 Fallen Ideal
+Final Revels
+Firescreamer
+Fleetfoot Panther
+Flora Colossus
+Flowstone Surge
+Flowstone Wall
+Flusterstorm
+Fodder Tosser
+For the Family
 Forest
 Foul Watcher
+Frontier Guide
+Fry
+Gateway Plaza
 Gelatinous Genesis
+Ghost-Lit Redeemer
+Ghoulish Procession
 Gnoll Hunter
+Goblin Piledriver
+Golgari Thug
+Gorehorn Minotaurs
+Greatsword
 Green Sun's Zenith
+Grizzly Fate
+Gruesome Scourger
+Hagra Sharpshooter
 Hall Monitor
 Hanged Executioner
+Harmonic Convergence
+Heavenly Qilin
 Hedron Crab
 Hexavus
 Hexgold Hoverwings
@@ -54,29 +120,56 @@ Highland Game
 Hookblade
 Hope-Ender Coatl
 Humble Naturalist
+Hurl Through Hell
 Illusionary Forces
+Impatience
 Imperial Outrider
+Imperial Recovery Unit
 Increasing Savagery
 Indoctrination Attendant
+Inkrise Infiltrator
 Inquisition of Kozilek
+Insidious Bookworms
+Inspiring Roar
+Iron Tusk Elephant
 Island
+Jaddi Offshoot
+Juzám Djinn
 Karplusan Wolverine
 Killmonger, Ruthless Usurper
+Kingpin's Pet
 Knight of Obligation
+Knight-Errant of Eos
+Kor Hookmaster
+Kragma Butcher
 Krark-Clan Shaman
+Kura, the Boundless Sky
 Lantern of the Lost
+Leering Emblem
+Lifelink
 Liliana's Reaver
 Living Lies of Loki
 Living Plane
 Loathsome Chimera
+Loch Korrigan
 Lorehold Pledgemage
+Lurking Crocodile
+Lys Alana Scarblade
 Mage Slayer
 Malevolent Rumble
+Managorger Hydra
+Markov Purifier
+Marsh Boa
 Mausoleum Secrets
 Maze Behemoth
+Mercenary Informer
 Merfolk Mesmerist
 Michelangelo, the Heart
+Midnight Charm
 Militant Monk
+Mirran Crusader
+Mirri, Cat Warrior
+Molting Skin
 Mountain
 Munda, Ambush Leader
 Natural Selection
@@ -85,8 +178,16 @@ Neck Snap
 Night
 Nim Lasher
 Nine-Ringed Bo
+Noxious Hatchling
+Oath of Gideon
+Oblivion Crown
+Olivia's Dragoon
 Order of Leitbur
+Order of the Ebon Hand
+Order of the Stars
 Oswald Fiddlebender
+Patron of the Arts
+Pile On
 Plains
 Plated Wurm
 Polluted Dead
@@ -94,31 +195,60 @@ Primeval Herald
 Profit
 Ragavan, Nimble Pilferer
 Ral, Storm Conduit
+Ravenous Lindwurm
+Reckless Racer
+Reconnaissance
+Resolute Watchdog
+Resurgent Belief
 Rishadan Pawnshop
+Robaran Mercenaries
+Rootbound Crag
+Roterothopter
+Ruin Crab
+Runed Stalactite
 Rushwood Legate
 Saber Ants
+Scale Up
 Scarwood Bandits
+Scavenged Weaponry
 Scent of Cinder
+Scepter of Fugue
 Scissors Lizard
+Scorch the Fields
 Screeching Drake
+Sea Kings' Blessing
+Search the Premises
 Seismic Stomp
+Sentry Bot
 Shield-Wall Sentinel
 Shipwreck Moray
+Shockmaw Dragon
 Shu Yun, the Silent Tempest
+Sigil of Distinction
 Silvanus's Invoker
+Silverflame Ritual
+Singer of Swift Rivers
+Siren Song Lyre
 Skirsdag Flayer
 Skyboon Evangelist
+Skyclave Relic
 Snooping Newsie
+Sojourner's Companion
 Song of the Worldsoul
 Spark Harvest
+Sprite Noble
 Squirrel Mob
 Steeple Creeper
+Stone Haven Pilgrim
 Stoneshock Giant
+Sun Clasp
+Sunken Field
 Swamp
 Swamp Mosquito
 Szarekh, the Silent King
 Terra Eternal
 The Mightstone and Weakstone
+Thoughtseize
 Tiger Claws
 Tilonalli's Crown
 Topan Ascetic
@@ -126,7 +256,17 @@ Trestle Troll
 Tunneling Geopede
 Two-Headed Dragon
 Ulcerate
+Ulvenwald Oddity
 Unruly Mob
 Urza's Command
 Vance's Blasting Cannons
+Vastwood Zendikon
 Vedalken Infuser
+Veinwitch Coven
+Vexing Devil
+Virulent Swipe
+Wall of Tears
+Warchanter Skald
+Windbrisk Heights
+Zodiac Rat
+Zuberi, Golden Feather

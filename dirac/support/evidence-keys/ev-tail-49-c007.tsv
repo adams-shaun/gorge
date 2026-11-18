@@ -1,0 +1,62 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Angelic Curator	d169ae7bcca1d5c2	50	0/0		0/0	
+Ant-Man, Scott Lang	9342299366173795	13	1/1		1/1	
+Armageddon	9265e1daa23d406b	22	0/0		2/2	
+Artifact Ward	fd4cc8898db2a3c5	9	0/0		1/2	ix:resp
+Batterbone	4702075731be8dd5	41	2/2		1/1	
+Blistering Barrier	c55e15225b70a029	21	0/0		0/0	
+Briarhorn	f5c680fa451f2443	10	1/1		3/3	
+Call the Cavalry	701bfe8135887be0	18	0/0		1/2	ix:resp
+Chandra's Outburst	2dd9a5bc74c899e0	9	0/0		2/2	
+Citanul Centaurs	848afe8f55a6cccc	13	1/1		0/1	ix:resp
+Druid's Deliverance	e48adaa0ef84f3e1	20	0/0		2/2	
+Elemental Uprising	0e97d5400fa9d944	20	0/0		2/2	
+Elvish Piper	8b1d61bd4087900c	17	1/1		1/1	
+Elvish Scrapper	18447dc2698f682b	5	1/1		1/1	
+Exhaustion	5184ca486b79ec49	15	0/0		1/2	ix:resp
+Fallen Shinobi	e3b431e605569b03	8	2/2		1/1	
+Fencing Ace	27cf254e45689a37	24	0/0		0/0	
+Ferocious Pup	3846da2b5f11074e	6	1/1		0/1	ix:resp
+Flamecore Elemental	5bd25b543faa0d78	10	1/1		1/1	
+Fungal Rebirth	2bc997dc2734fdc1	17	0/0		1/2	ix:resp
+Gnat Alley Creeper	78b8cefb6b6acf99	15	0/0		0/0	
+Goldmeadow Lookout	d1caab94516c6fb5	29	1/1		1/1	
+Invigorating Boon	435cd032b9c4cc66	24	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Jadecraft Artisan	139644955077e22b	21	1/1		1/1	
+Kiri-Onna	ee9bb8f29ddb8aaf	14	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Kor Entanglers	4fe122c99a176ae1	17	1/1		0/1	ix:resp
+Kor Scythemaster	c6c366c17a22645a	26	0/0		0/0	
+Lantern of Revealing	c3be36ab6ed24f25	39	2/2		1/1	
+Lantern of the Lost	2b1e16932dc06ce9	42	2/2		1/1	
+Laquatus's Creativity	f3eefe4e90547639	25	0/0		2/2	
+Magistrate's Veto	00311d924eb128b7	16	0/0		0/0	
+Manic Scribe	e24652ff76fb91e3	32	2/2		1/1	
+Motivated Pony	6f2e92aa4f7e40d0	9	1/1		1/1	
+Nantuko Tracer	ab26dddeae7489ed	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Nightshade Seer	2a11e0310d54ca32	19	1/1		0/1	ix:resp
+Nivix Guildmage	99097a3a5681ee42	10	2/2		1/1	
+Nylea's Forerunner	072e5caf319434ee	7	0/0		0/0	
+Outland Colossus	dcd4061dec040dbc	14	1/1		1/1	
+Pallid Mycoderm	b50a4c7124c23600	28	3/3		1/1	
+Passionate Archaeologist	0ed2dbcb834e2f15	22	0/0		0/0	
+Pyknite	df2e2fbfe9e70fa2	9	1/1		0/1	ix:resp
+Raptor Companion	92f4b872ec206aa7	17	0/0		0/0	
+Razorgrass Ambush	b8d3194ba7413c15	17	1/1		1/2	ix:resp
+Rocksteady, Mutant Marauder	f8d398f718fa7dc5	9	2/2		1/1	
+Rootbreaker Wurm	fcf4b727abd13d9a	3	0/0		0/0	
+Rustvine Cultivator	7090b9cb5f15f749	17	2/2		1/1	
+Sauroform Hybrid	46c2ba99d71669a2	9	1/1		0/1	ix:resp
+Scapeshift	d1f478720ca0b873	11	0/0		1/2	ix:resp
+Sedge Scorpion	4671c8bf9b2edd82	15	0/0		0/0	
+Seething Pathblazer	b30161bf759a6fb0	7	1/1		0/1	ix:resp
+Skinshifter	54e2f5ba6534b120	18	1/1		1/1	
+Slaughterhorn	f544d4794bc40caf	12	1/1		0/1	ix:resp
+Slippery Bogle	25c6549814cc3278	7	0/0		0/0	
+Soratami Savant	0a8279ac0ce049ca	19	1/1		1/1	
+Squirrel Sanctuary	d3ef1c31cfc25cff	43	2/2		1/1	
+Symbiotic Elf	f2f999f29d5c9379	9	1/1		1/1	
+Taunting Arbormage	ff799d6e32d954bc	23	1/1		2/3	ix:resp
+Terrain Elemental	415e750e244893ad	20	0/0		0/0	
+Ultimate Magic: Holy	6217bc6adb854124	6	0/0		2/4	cast/alt:foretold,ix:resp
+Viridian Harvest	90e5d4fa693d913d	5	1/1		1/2	ix:resp
+Vitu-Ghazi Guildmage	c0e8a7de4964deb9	11	2/2		1/1	

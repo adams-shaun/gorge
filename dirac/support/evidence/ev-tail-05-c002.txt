@@ -1,48 +1,69 @@
 Abzan Battle Priest
+Agent of Shauku
 Amazing Spider-Girl
 Ampryn Tactician
 Amugaba
+Archetype of Finality
 Armored Ascension
+Balshan Collaborator
 Banishment
+Banshee
+Banshee's Blade
 Battle Angels of Tyr
 Beaming Defiance
 Beasts of Bogardan
 Besmirch
 Bloodstone Cameo
+Boarded Window
+Brain Freeze
 Breaker of Armies
+Breya's Apprentice
 Cackling Imp
 Chandra's Spitfire
 Changeling Sentinel
+Charging Cinderhorn
+Cloudheath Drake
 Coercion
 Crypt Champion
 Death-Priest of Myrkul
+Depart the Realm
 Dovin's Acuity
 Dreadfeast Demon
 Dream's Grip
 Elite Cat Warrior
+Embercleave
 Escape from Orthanc
 Eternal of Harsh Truths
 Everett K. Ross, Hapless Attaché
+Falkenrath Reaver
 Fetid Horror
 Followed Footsteps
 Forest
+Foul Familiar
 Futurist Sentinel
 Genasi Enforcers
 Giant Killer
 Giltgrove Stalker
+Gimli's Fury
+Gimli, Mournful Avenger
 Glistener Seer
+Go Forth
 Goblin Fireslinger
+Goblin War Strike
 Graveyard Marshal
 Guided Strike
 Hapless Researcher
 Hard Cover
 Herald of Serra
 Herald of the Host
+Hijack
 Hildibrand Manderville
+Howlpack Wolf
 Ichor Shade
 Illusionist's Stratagem
 Indrik Stomphowler
 Inkfathom Divers
+Insatiable Harpy
 Invade the City
 Island
 Keen-Eyed Archers
@@ -55,6 +76,7 @@ Marble Titan
 Marching Duodrone
 Mastery of the Unseen
 Masticore
+Memory Lapse
 Merciless Resolve
 Michelangelo, the Heart
 Mina and Denn, Wildborn
@@ -64,11 +86,13 @@ Monstrous Vortex
 Morbid Curiosity
 Mountain
 Myriad Landscape
+Nahiri's Stoneblades
 Oakhame Ranger
 Oreskos Sun Guide
 Orim's Cure
 Orzhov Enforcer
 Owlin Shieldmage
+Paladin's Shield
 Paper Tiger
 Parasitic Impetus
 Phyrexian Totem
@@ -78,13 +102,17 @@ Planar Birth
 Plate Armor
 Possessed Barbarian
 Pressure Point
+Private Research
 Prized Griffin
 Prophecy
+Prowling Felidar
 Razorfield Rhino
 Reckless Cohort
+Reflexes
 Regal Sliver
 Reyhan, Last of the Abzan
 Rookie Mistake
+Salt Flats
 Satsuki, the Living Lore
 Screeching Harpy
 Sengir Nosferatu
@@ -93,18 +121,26 @@ Skywise Teachings
 Sorceress Queen
 Spirit Cairn
 Stormfist Crusader
+Student of Ojutai
+Stump Stomp
 Sunken Field
 Swamp
 Tablet of Compleation
 Territorial Hammerskull
 Thalisse, Reverent Medium
+Thermokarst
+Thriving Grove
+Toxic Iguanar
 Treetop Village
 Trinket Mage
+Triumphant Surge
 Unspeakable Symbol
 Unyielding Krumar
 Urborg Elf
+Venomous Changeling
 Vine Dryad
 Volcanic Hammer
+Voodoo Doll
 Vryn Wingmare
 Walker of the Grove
 Wall of Resistance

@@ -1,8 +1,11 @@
+A-Base Camp
+A-Circuit Mender
 A-Forge Boss
 A-Social Climber
 Abomination of Llanowar
 Aboshan, Cephalid Emperor
 Abzan Battle Priest
+Aetherworks Marvel
 Agent Frank Horrigan
 Agent of Shauku
 Agility Bobblehead
@@ -23,6 +26,7 @@ Ashen Rider
 Aspect of Lamprey
 Assault Strobe
 Atarka, World Render
+Aurochs
 Automated Artificer
 Avenging Huntbonder
 Bala Ged Scorpion
@@ -31,11 +35,14 @@ Barrin, Master Wizard
 Beacon Behemoth
 Bionic Blow
 Black Market Tycoon
+Blight Grenade
 Blood Lust
+Blood Money
 Bold Impaler
 Bone Dragon
 Bonesplitter
 Boneyard Wurm
+Boreal Shelf
 Borrowed Malevolence
 Bottle Gnomes
 Brass Gnat
@@ -52,6 +59,7 @@ Chaplain's Blessing
 Chariot of the Sun
 Chasm Drake
 Chorus of the Tides
+Cinder Barrens
 Cinder Wall
 Cleansing Ray
 Cleaving Sliver
@@ -67,6 +75,7 @@ Conjurer's Closet
 Continue?
 Contraband Livestock
 Copper Gnomes
+Cryptothrall
 Crystal Dragon
 Crystal Slipper
 Cunning Evasion
@@ -89,11 +98,16 @@ Diver Skaab
 Djeru's Renunciation
 Dogpile
 Dragon Mantle
+Dreamstone Hedron
+Drey Keeper
 Dromad Purebred
 Dromoka Dunecaster
 Drownyard Temple
+Durkwood Tracker
 Dust Corona
 Dúnedain Blade
+Earthbending Student
+Ebony Horse
 Elite Vanguard
 Embereth Shieldbreaker
 Embrace the Unknown
@@ -110,6 +124,7 @@ Faerie Guidemother
 Falter
 Fang Skulkin
 Fatal Attraction
+Fatestitcher
 Feast of the Unicorn
 Feiyi Snake
 Feral Invocation
@@ -117,6 +132,7 @@ Festering Evil
 Fevered Suspicion
 Fiery Confluence
 Fire Urchin
+Fireforger's Puzzleknot
 Flameshadow Conjuring
 Flaring Pain
 Flash Counter
@@ -150,12 +166,15 @@ Goblin Medics
 Goblin Morningstar
 Goblin Roughrider
 God-Eternal Bontu
+Goliath Beetle
 Gouged Zealot
 Grapeshot
+Grave-Shell Scarab
 Gravetiller Wurm
 Great Goblin, Foul-Hearted
 Great Hart
 Great Whale
+Greater Basilisk
 Griptide
 Grisly Ritual
 Grotag Siege-Runner
@@ -183,6 +202,7 @@ Humble Defector
 Hunter's Mark
 Hurloon Minotaur
 Hydra's Growth
+Ichorid
 Illusionary Armor
 Impaler Shrike
 Impending Doom
@@ -195,9 +215,11 @@ Iroas's Blessing
 Iron Man, Modern Marvel
 Iron Suitcase
 Island
+Ivy Dancer
 Ivy Seer
 Jade Guardian
 Jalira, Master Polymorphist
+Jeering Homunculus
 Jhessian Thief
 Jodah's Avenger
 Judge of Currents
@@ -216,6 +238,7 @@ Labyrinth Adversary
 Labyrinth Minotaur
 Leafkin Avenger
 Leap
+Lifesmith
 Liliana of the Veil
 Lodestone Myr
 Lord of Change
@@ -230,6 +253,7 @@ Malevolent Whispers
 Malfegor
 Malfunction
 Malignant Growth
+Mana Leech
 Mana Severance
 Maniacal Rage
 Marauder's Axe
@@ -253,6 +277,8 @@ Morphling
 Moss Viper
 Mountain
 Mountain Goat
+Mowu, Loyal Companion
+Mox Diamond
 Murasa Behemoth
 Myrsmith
 Nantuko Mentor
@@ -279,9 +305,11 @@ Oversold Cemetery
 Pack Rat
 Paradise Mantle
 Patagia Tiger
+Penumbra Wurm
 Phantasmal Sphere
 Pheres-Band Warchief
 Phyrexian Crusader
+Pilgrim of the Fires
 Pillage
 Pitfall Trap
 Plague Spitter
@@ -300,6 +328,7 @@ Quirion Trailblazer
 Radiating Lightning
 Rage Thrower
 Raging Bull
+Raging Ravine
 Ramosian Lieutenant
 Ransack
 Raven's Crime
@@ -315,10 +344,12 @@ Rotted Hystrix
 Rotting Legion
 Ruin Raider
 Saber Ants
+Saddled Rimestag
 Sagu Archer
 Samite Alchemist
 Sandstorm Charger
 Scab-Clan Charger
+Scabland
 Scarwood Goblins
 Scavenged Weaponry
 Scour the Laboratory
@@ -331,6 +362,7 @@ Seed the Land
 Selfless Spirit
 Senate Courier
 Serra Aviary
+Shadowblood Ridge
 Shuri's Fabricator
 Sibsig Host
 Sidewinder Naga
@@ -351,6 +383,7 @@ Skyknight Vanguard
 Skyreach Manta
 Skyshroud Blessing
 Skyshroud Falcon
+Skyshroud Vampire
 Skysnare Spider
 Sly Spy
 Smogsteed Rider
@@ -409,6 +442,7 @@ Tireless Hauler
 Touch of the Eternal
 Tower Geist
 Tranquil Grove
+Transmutation
 Traumatize
 Treacherous Vampire
 Treefolk Healer

@@ -123,6 +123,7 @@ Fog on the Barrow-Downs
 Force of Despair
 Foresight
 Forest
+Forever Young
 Funeral Longboat
 Garrison Griffin
 Garruk's Warsteed
@@ -154,6 +155,7 @@ Guardian of Ghirapur
 Gustcloak Harrier
 Gustcloak Savior
 Hag of Death's Legion
+Hallar, the Firefletcher
 Hand of Death
 Heliod's Emissary
 Hexgold Halberd
@@ -197,6 +199,7 @@ Kyren Glider
 Landroval, Horizon Witness
 Last Caress
 Laurine, the Diversion
+Lazotep Chancellor
 Legion Loyalist
 Legions to Ashes
 Leonin Armorguard
@@ -218,6 +221,7 @@ Medicine Bag
 Medusa, Inhuman Queen
 Memory Erosion
 Mephitic Ooze
+Millikin
 Mind's Eye
 Mine Collapse
 Minotaur Tactician
@@ -287,6 +291,7 @@ Repair and Recharge
 Repository Skaab
 Reprocess
 Rescind
+Restless Bones
 Restoration Angel
 Retrofitter Foundry
 Revel of the Fallen God
@@ -302,6 +307,7 @@ Rushwood Herbalist
 Rusting Golem
 Salt Flats
 Sanctifier of Souls
+Sand Squid
 Sandsteppe Mastodon
 Sanguimancy
 Savannah Sage
@@ -348,6 +354,7 @@ Sudden Breakthrough
 Sudden Edict
 Sudden Spinnerets
 Sunhome Enforcer
+Suppressor Skyguard
 Surtland Frostpyre
 Survivors' Bond
 Swamp
@@ -391,6 +398,7 @@ Urza's Rebuff
 Uthros Research Craft
 Uurg, Spawn of Turg
 Vampire Noble
+Veteran's Reflexes
 Vigil for the Lost
 Vindictive Mob
 Viridescent Bog

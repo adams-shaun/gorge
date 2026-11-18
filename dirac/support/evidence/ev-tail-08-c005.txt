@@ -1,10 +1,18 @@
+Age of Ultron
 Ancestral Recall
 Aven Gagglemaster
 Awaken the Woods
+Bankrupt in Blood
 Blind-Spot Giant
+Blood Glutton
+Blood Seeker
+Call to the Netherworld
+Certain Death
+Chase Stein, Runaway
 Cracked Earth Technique
 Crash Landing
 Darien, King of Kjeldor
+Djinn of Infinite Deceits
 Dromoka's Gift
 Drudge Reavers
 Energy Arc
@@ -25,7 +33,9 @@ Ingenious Smith
 Island
 Krazy Kow
 Last Kiss
+Lesser Werewolf
 Lone Missionary
+Lynx
 Malakir Bloodwitch
 Mardu Hateblade
 Military Discipline
@@ -35,6 +45,7 @@ Mother Kangaroo
 Mountain
 Network Terminal
 Night Terrors
+Nightstalker Engine
 Ob Nixilis, the Ascended
 Paradox Engine
 Pashalik Mons
@@ -42,9 +53,11 @@ Pearled Unicorn
 Pharaoh Rama-Tut
 Pious Wayfarer
 Plains
+Primal Adversary
 Promise of Tomorrow
 Protector of the Wastes
 Regisaur Alpha
+Relentless Rats
 Reverent Mantra
 Righteous Valkyrie
 Scent of Nightshade
@@ -55,10 +68,12 @@ Sell-Sword Brute
 Serra's Guardian
 Serum Tank
 Shivan Hellkite
+Silkbind Faerie
 Sinstriker's Will
 Slimy Piper
 Sorcerer's Strongbox
 Spectral Flight
+Sphinx of Clear Skies
 Spore Crawler
 Stalwart Aven
 Stand
@@ -67,13 +82,19 @@ Sustainer of the Realm
 Swamp
 Sylvia Brightspear
 Talas Researcher
+Talisman of Unity
+Tempest of Light
 Thalia's Lieutenant
 Thopter Mechanic
 Thraben Valiant
 Tor Giant
 Treespring Lorian
+Troublesome Spirit
+Tyranid Prime
 Updraft
+Venerable Warsinger
 Vengeful Vampire
 Victual Sliver
 War Falcon
 Water Elemental
+Weakness

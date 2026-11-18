@@ -1,0 +1,48 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Cori-Steel Cutter	06b94fc1920bad41	8	2/2		0/1	ix:resp
+Aerial Engineer	67001f61742732dd	5	0/0		0/0	
+Agent of Stromgald	2d2a89ff44157d86	7	1/1		1/1	
+Akroan Sergeant	98aadf40896b9c36	6	1/1		0/1	ix:resp
+Alluring Suitor	c503c57f1ac7d6b7	16	3/3		1/1	
+Answered Prayers	ebd61ea9f6b46490	8	1/1		0/1	ix:resp
+Ant Queen	7d930c77b357768b	6	1/1		1/1	
+Auton Soldier	2358c7c65f0f06ae	3	0/0		0/0	
+Besmirch	0e826bb5a492a77c	23	0/0		1/2	ix:resp
+Bloodshed Fever	8370063c8e59acfe	6	0/0		1/2	ix:resp
+Captain's Hook	9c7a58e7f5dfff38	11	2/2		1/1	
+Cascade Seer	0d8a741eeafbaaf5	9	1/1		0/1	ix:resp
+Chaos Terminator Lord	43daa3f6f8b2a7f5	9	1/1		0/1	ix:resp
+Clock of Omens	85fe8d2ab09070f1	17	1/1		1/1	
+Coldsteel Heart	41f34b65dcce2e51	8	1/1		1/1	
+Confidence from Strength	d8ee0960aa604c31	4	0/0		1/2	ix:resp
+Emergency Weld	7cb8dda1524e7b28	7	0/0		1/2	ix:resp
+Evolution Sage	b6a032f9f6ebc84c	5	1/1		1/1	
+Fissure	f67592bbfd822080	9	0/0		2/2	
+Fissure Vent	8ad379eed757686c	9	0/0		1/2	ix:resp
+Go for the Throat	b3ce9a098400a815	14	0/0		2/2	
+Goblin Sledder	916ea42dd12803df	6	1/1		0/1	ix:resp
+Jedit Ojanen, Mercenary	553ea3777b5c9491	7	1/1		0/1	ix:resp
+Junk Winder	12f53802239fffad	6	1/1		0/1	ix:resp
+Leyline of Sanctity	647f784661a5cd9d	6	0/0		0/0	
+Looter il-Kor	3d0636bb9f7d7e4e	12	1/1		0/1	ix:resp
+Meteoric Mace	adda9bc43f370da2	5	1/1		1/1	
+Mugging	fbaf1e5e035f24a8	7	0/0		1/2	ix:resp
+Nest Robber	8ae89be93e217c4e	6	0/0		0/0	
+Painwracker Oni	dc41283b6a413e33	3	1/1		0/1	ix:resp
+Pelakka Predation	a964abf877590c68	4	1/1		0/2	f0/s,ix:resp
+Petrifying Meddler	fe9d4bd38235685a	12	1/1		1/1	
+Protective Bubble	7c1d6dd06263abbd	13	0/0		1/2	ix:resp
+Sacred Armory	7e388b2746ec4bae	8	1/1		1/1	
+Samite Archer	498f48192e7f52fd	7	2/2		0/1	ix:resp
+Saprazzan Outrigger	6a7ea80d2e2cb92e	39	2/2		1/1	
+Serene Steward	e687fbe1aa6d8889	14	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Shard of the Nightbringer	285d4ae85d640f83	3	1/1		0/1	ix:resp
+Stolen Vitality	ee9156b3b77a0fd8	11	0/0		2/2	
+Suppression Bonds	9d531f97d7065b17	3	0/0		1/2	ix:resp
+Tatyova, Steward of Tides	e9045dbb56e63567	7	1/1		0/1	ix:resp
+Thran Spider	ba3ddbdface16c4c	3	2/2		0/1	ix:resp
+Umbilicus	44ceed4225b2974d	5	1/1		0/1	ix:resp
+Vedalken Orrery	393d504da030f65c	6	0/0		0/0	
+Viashino Shanktail	5b29cb4a39a2f06b	7	1/1		0/1	ix:resp
+Wings of Aesthir	3fd5ec62f4f3b37a	7	0/0		2/2	
+Wyluli Wolf	6a248f1334fe39e4	8	1/1		0/1	ix:resp

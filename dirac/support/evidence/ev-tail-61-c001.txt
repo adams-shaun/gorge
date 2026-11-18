@@ -1,65 +1,105 @@
 A-Circuit Mender
 A-Jackhammer
 A-Omnath, Locus of Creation
+Abyssal Hunter
+Aeronaut Admiral
 Agonizing Syphon
+Airdrop Condor
 Ajani's Influence
+Alhammarret, High Arbiter
+Aligned Heart
+Altar of Bhaal
 Altar of Bone
 Amazing Alliance
 Ambush
+An-Havva Inn
 Aragorn and Arwen, Wed
 Araña, Heart of the Spider
 Argivian Blacksmith
 Ark of Blight
 Asha's Favor
+Atraxi Warden
 Atsushi, the Blazing Sky
 Attended Knight
 Augur il-Vec
 Aura Blast
+Avenging Hunter
 Awakening Zone
 Azra Smokeshaper
 Bad Deal
 Baloth Gorger
 Barbtooth Wurm
 Basilica Screecher
+Bastion Enforcer
 Beetleback Chief
 Benalish Sleeper
 Benthic Biomancer
 Boon-Bringer Valkyrie
+Bootleggers' Stash
 Bottle-Cap Blast
 Brainwash
 Brawn, Amadeus Cho
 Briarbridge Tracker
 Broken Fall
+Bumbling Pangolin
+Butcher's Glee
+Canopy Gorger
 Carrion Ants
+Cartouche of Knowledge
 Case of the Shifting Visage
+Centaur Garden
 Cerodon Yearling
+Charity Extractor
 Chimney Goyf
 Chittering Skitterling
+Choking Restraints
 Chorus of Might
+Churning Eddy
 Clattering Augur
 Cloakwood Swarmkeeper
+Cogwork Spy
+Concord with the Kami
 Confound
 Consider
+Consign
+Constable of the Realm
 Contingency Plan
+Courier's Briefcase
+Covert Operative
+Crackling Doom
+Crested Herdcaller
+Curious Killbot
 Daggerdrome Imp
 Daredevil, Fearless Fighter
 Daring Apprentice
+Davriel's Shadowfugue
 Dawnhart Geist
+Daxos's Torment
 Death Frenzy
 Death's Duet
 Deeproot Waters
+Defiant Elf
 Demon of Dark Schemes
+Demoralize
 Devouring Deep
 Diminish
 Disappearing Act
 Disturbed Burial
+Doomskar
 Dreadmalkin
+Drumhunter
+Duskworker
+Earthlink
 Elemental Summoning
 Ellyn Harbreeze, Busybody
 Embraal Gear-Smasher
 Empty City Ruse
+Endless Cockroaches
+Entish Restoration
 Etherium Abomination
 Exuberant Wolfbear
+Eyeblight's Ending
+Fallen Ferromancer
 False Mourning
 Fangren Hunter
 Farfinder
@@ -70,87 +110,159 @@ Filigree Crawler
 Filigree Fracture
 Final Revels
 Fire Whip
+Fireblade Artist
 Fires of Victory
+Firewing Phoenix
+Fleetwheel Cruiser
 Font of Progress
 Force of Vigor
 Forest
 Fortress Cyclops
 Freyalise, Llanowar's Fury
 Frontier Mastodon
+Furious Assault
+Genestealer Locus
+Ghost-Lit Raider
 Gift of Granite
 Gift of Wrath
+Gilt-Blade Prowler
+Glistening Extractor
 Gobbling Ooze
+Goblin Artillery
 Goblin Cadets
+Goblin Champion
 Goblin Chariot
 Goblin Chieftain
+Goblin Goon
 Goblin War Drums
+Godsire
+Goldnight Commander
 Gravel-Hide Goblin
 Grimdancer
 Grisly Spectacle
+Grovetender Druids
+Guardian Seraph
+Hanabi Blast
+Harsh Scrutiny
+Harvesttide Sentry
 Hawkeye, Trick Shot
+Heartless Pillage
 Hellcarver Demon
 Heron's Grace Champion
 High Score
 Hog-Monkey Rampage
 Howlpack Wolf
+Humble
 Hunted Ghoul
+Hunting Moa
 Ifh-Bíff Efreet
 Ihsan's Shade
+Imaginary Friends
 Implode
+Incremental Blight
 Incubation Sac
+Indicate
+Infected Vermin
 Infuriate
+Insatiable Gorgers
 Iridescent Angel
+Irradiate
 Irregular Cohort
 Island
+It That Heralds the End
 Izzet Chronarch
+Jade Guardian
 Jagwasp Swarm
 Jon Irenicus, the Exile
+Just the Wind
+K-9, Mark I
+Kaleidoscorch
 Kessig Wolfrider
 Kjeldoran Pride
 Klothys's Design
+Kor Duelist
+Koth's Courier
 Kranioceros
+Krosan Archer
 Kura, the Boundless Sky
 Leech Gauntlet
+Legacy Weapon
 Liliana's Scorn
 Lingering Phantom
+Llawan, Cephalid Empress
+Lumbering Satyr
+Magma Sliver
+Makindi Aeronaut
 Mana Prism
+Manor Gate
+Mardu Outrider
 Maulfist Doorbuster
+Maximize Velocity
+Mending Touch
 Merfolk Observer
 Merfolk of the Depths
+Meriadoc Brandybuck
 Mesa Unicorn
 Metathran Soldier
+Mindeye Drake
 Mirkwood Channeler
+Moira, Urborg Haunt
 Monastery Flock
+Monumental Corruption
 Mountain
 Mwonvuli Acid-Moss
 Mysterious Tome
+Nagao, Bound by Honor
 Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
+Nekrataal
+Nettle Drone
+Nightshade Harvester
+Nightveil Specter
+Nissa, Resurgent Animist
+Novijen, Heart of Progress
 Ogre Menial
 One with Nature
 Ongoing Investigation
 Onslaught
 Opposition
+Orazca Relic
 Outbreak
 Overwhelming Denial
 Panic Attack
 Patriarch's Desire
+Peel from Reality
 Pegasus Courser
+Peppersmoke
+Phalanx Vanguard
 Phantom Warrior
+Pharika's Libation
+Phyresis
+Phyrexian Archivist
 Pianna, Nomad Captain
 Pillar Tombs of Aku
+Pincer Spider
+Plague Rats
 Plains
+Planar Atlas
 Plated Spider
 Possessed Centaur
 Pouncing Lynx
+Power Sink
 Prescient Chimera
 Primordial Sage
+Prince Imrahil the Fair
 Prismari Apprentice
 Protector of Gondor
+Pygmy Troll
+Quench
+Rage Forger
 Ravenous Lindwurm
 Razor Swine
+Reckless Pangolin
 Reforge the Soul
+Relic Barrier
 Relic Robber
 Relic Vial
 Reprobation
@@ -158,70 +270,147 @@ Resistance Reunited
 Resounding Silence
 Returned Pastcaller
 Reverberate
+Rhonas's Monument
+Riders of Rohan
+Roc Egg
+Rogue Refiner
+Safe Haven
+Safehold Sentry
 Sage's Row Denizen
 Sanctuary Smasher
 Sandstorm
+Savage Silhouette
+Scarlet Witch, Wanda Maximoff
 Scouting Trek
+Security Bypass
+Selesnya Locket
+Sengir Autocrat
 Shabraz, the Skyshark
 Shaman of the Pack
 Shaper Apprentice
 Shapeshifter
+Shatterskull Recruit
 Sheltering Light
 Shoreline Ranger
 Sigardian Priest
 Sigiled Paladin
+Silverquill Campus
+Simic Signet
+Sip of Hemlock
 Skirk Commando
 Skittering Crustacean
+Skull Raid
 Sky-Blessed Samurai
 Skyship Stalker
 Skyshroud Claim
 Slinza, the Spiked Stampede
+Sliver Overlord
+Slobad, Goblin Tinkerer
 Smogsteed Rider
+Sokenzan Spellblade
 Solitary Defiance
+Songbird, Sonic Screamer
 Sootfeather Flock
+Soul Snuffers
+Soul's Majesty
 Spiketail Drake
+Spitemare
 Spitting Drake
 Spotter Thopter
 Staff of the Storyteller
 Stalwart Pathlighter
 Star Pupil
+Steam Spitter
 Steely Resolve
+Steppe Lynx
 Stern Scolding
 Stitched Mangler
+Stolen Grain
 Stonewood Invocation
+Stormscape Master
 Stream of Consciousness
+Strength of the Pack
+Strongarm Monk
+Struggle for Skemfar
+Stun Sniper
 Stupor
+Sturdy Hatchling
 Summon the School
 Summon: Good King Mog XII
+Sunweb
+Surge of Righteousness
+Survivor of Korlis
 Sutina, Speaker of the Tajuru
 Swamp
+Swordwise Centaur
+Syndicate Messenger
 Syphon Life
+Talon Gates of Madara
 Tarfire
 Tavern Swindler
+Teardrop Kami
+Tectonic Rift
 Teetering Peaks
+Tempest Owl
 Temporal Eddy
 Tenth District Veteran
+Termagant Swarm
+Teroh's Faithful
+Tezzeret, Artifice Master
 Thalakos Sentry
 Thanos, Death's Consort
 Thassa's Rebuff
 The Falcon, Airship Restored
+The Great Juggernaut
 Thistledown Duo
+Thornscape Apprentice
+Thran Quarry
+Timber Protector
+Timeless Lotus
+Tin Street Cadet
+Tooth of Chiss-Goria
 Towering Viewpoint
+Town Gossipmonger
+Trigon of Thought
+Triumph of the Hordes
 Tromp the Domains
 Turn Aside
+Twincast
+Unbreakable Formation
+Unstable Frontier
 Vampire Revenant
 Verdant Rebirth
 Viashino Runner
 Viridian Corrupter
+Viscerid Deepwalker
+Vizier of the Scorpion
 Voice of the Woods
+Volatile Rig
 Volcanic Spite
+Volcano Imp
+Voracious Cobra
 Vrock
+Wakandan Tusker
 Walking Skyscraper
+Wall of Limbs
+War Chariot
+Ward Sliver
+Watchful Giant
 Waterlogged Teachings
+Wave of Terror
 Werebear
 Whelming Wave
 Whiptail Wurm
 Whirlwind Technique
+Whirlwind, Killer Cyclone
+Wildest Dreams
+Wit's End
 Wizened Cenn
+Woolly Thoctar
+Wrack with Madness
 Wretched Anurid
+Wrong Turn
+Wu Longbowman
+Yeva's Forcemage
+Yore-Tiller Nephilim
 Zulaport Duelist

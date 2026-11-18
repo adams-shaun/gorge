@@ -1,13 +1,21 @@
 A-Celestial Regulator
+Abandon Reason
+Acquisition Octopus
 Arctic Merfolk
 Argent Mutation
+Armada Wurm
 Aspect of Manticore
 Aura Flux
 Aven Reedstalker
 Battlefly Swarm
+Battlewise Valor
 Benthic Giant
+Bladewing, Deathless Tyrant
+Blessed Defiance
 Blinding Souleater
 Bogbrew Witch
+Brion Stoutarm
+Cache Raiders
 Cackling Fiend
 Campfire
 Charnel Serenade
@@ -16,80 +24,147 @@ Clackbridge Troll
 Consulate Skygate
 Coordinated Assault
 Coral Commando
+Court of Ardenvale
 Cursed Minotaur
 Daring Escape
 Dark Privilege
+Darkslick Drake
 Delayed Blast Fireball
+Devour in Flames
+Disciple of Kangee
+Dream Stalker
 Drowsing Tyrannodon
+Early Frost
+Eddytrail Hawk
 Elven Lyre
 Emissary of Hope
 Enduring Victory
 Equestrian Skill
+Excoriate
 Falkenrath Pit Fighter
 Fanatic of Mogis
 Fell Stinger
 Final-Sting Faerie
 Forest
+Gemhide Sliver
+General Thunderbolt Ross
+Generous Pup
+Giant Ox
 Gift of Growth
+Goblin Battle Jester
 Goblin Sharpshooter
 Gorilla Chieftain
+Grazing Whiptail
+Grim Poppet
+Guide of Souls
+Guild Thief
+Halo Hunter
+Headless Skaab
 Heedless One
 Hell Mongrel
 Hellraiser Goblin
+Hibernation Sliver
 Highspire Mantis
 Hound Tamer
 Hulking Ogre
 Impetuous Protege
 Industrial Advancement
 Island
+Ivory Charm
+Jackhammer
 Jousting Lance
 Kalonian Twingrove
 Kaya's Ghostform
+Keldon Warlord
+Kitsune Bonesetter
 Latch Seeker
+Life Chisel
+Life Insurance
+Light of Hope
 Lightning Elemental
 Long-Lost Lances
 Loxodon Mystic
 Lunar Rejection
+Mass Appeal
 Migloz, Maze Crusher
 Mire in Misery
 Mishra's Research Desk
 Moldgraf Millipede
 Mountain
 Mwonvuli Ooze
+Nick Fury, Spymaster
 Noble Steeds
+Oona's Gatewarden
+Oraxid
+Ox Drover
+Parapet Watchers
+Pestilence Rats
+Phantom Flock
 Plains
 Plunder
 Pouncing Cheetah
+Professor of Zoomancy
 Psionic Snoop
 Purraj of Urborg
+Quick-Draw Dagger
 Rage Thrower
 Rain of Embers
+Ravages of War
 Raven Wings
+Reject
 Rejuvenating Springs
+Requiem Angel
 Resolute Blademaster
 Rigging Runner
+Risona, Asari Commander
+River Merfolk
 Rorix Bladewing
+Royal Falcon
+Rubblebelt Boar
+Sadistic Obsession
 Sandsteppe War Riders
+Sarkhan's Catharsis
 Screams of the Damned
 Shocker
+Shrine of Burning Rage
 Skyblinder Staff
+Smashing Spree
+Soramaro, First to Dream
 Soul Barrier
 Soul-Strike Technique
 Sparkhunter Masticore
+Sphere of Purity
+Sphinx's Insight
 Spidersilk Net
 Spire Golem
+Spring
 Stabbing Pain
+Start from Scratch
+Steal Artifact
+Steelform Sliver
 Stir the Pride
 Stonybrook Angler
+Strider Harness
 Stronghold Assassin
 Sun Droplet
 Swamp
 Sword of the Paruns
+Talas Warrior
 The Spike Cactus
+The Third Doctor
+Thor, Guardian of Midgard
 Thornscape Apprentice
 Thunderous Wrath
+Tivadar's Crusade
 Tresserhorn Sinks
+Unholy Officiant
+Unity of Purpose
 Valeria Richards, Precocious
 Vaultbreaker
+Wall of Blood
+Wall of Mist
 Warbeast of Gorgoroth
+Weldfast Engineer
 Wight
+Wooden Cane
+Write into Being

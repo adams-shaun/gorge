@@ -15,27 +15,50 @@ Archfiend of Despair
 Aspect of Gorgon
 Balshan Beguiler
 Barrage Ogre
+Basilica Guards
+Beckon Apparition
 Blessed Hippogriff
 Bonds of Faith
+Bone Shards
 Brazen Wolves
 Bringer of the Blue Dawn
 Broodstar
+Caress of Phyrexia
+Carrion Grub
 Cateran Kidnappers
+Charging Troll
+Chasm Guide
+Chief of the Scale
 Consulate Turret
 Coral Helm
+Deathbringer Thoctar
+Dematerialize
 Dig Up the Body
+Distorted Curiosity
 Diversionary Tactics
 Dominating Licid
 Drag to the Bottom
 Dragon Arch
+Dragonsguard Elite
+Dramatic Reversal
+Dream Thrush
+Dromoka Warrior
+Dying Wish
 Earthquake
 Eidolon of Astral Winds
+Elemental, My Dear
+Entrapment Maneuver
 Expendable Lackey
 Explosive Apparatus
+Faerie Trickery
 Faith Unbroken
+Falthis, Shadowcat Familiar
 Farfinder
+Fell the Profane
 Fen Stalker
+Feral Krushok
 Feral Shadow
+Fervent Cathar
 Fever Charm
 Fleeting Memories
 Flickerwisp
@@ -45,41 +68,60 @@ Foundry Inspector
 Ganax, Astral Hunter
 Geist of the Moors
 Ghastly Death Tyrant
+Ghostfire Slice
+Giant Spectacle
+Gift of the Deity
 Gigapede
 Grafted Butcher
 Gravecrawler
 Hammerhead Tyrant
 Hammerhead, Maggia Boss
+Hand of Emrakul
+Hanna's Custody
 Harbor Serpent
 Harrier Griffin
 Haru-Onna
+Haunting Figment
+Hellraiser Goblin
 Herald of Dromoka
+Herald of the Sun
 Heron-Blessed Geist
 Hormagaunt Horde
+Huang Zhong, Shu General
 Hydrosurge
 Illness in the Ranks
+Invasion of Xerex
 Island
 Ith, High Arcanist
 Jacked Rabbit
+Kathari Remnant
 Keldon Halberdier
 Kinjalli's Caller
+Kodama of the West Tree
+Krark-Clan Ogre
 Lava Coil
 Leering Gargoyle
 Lifecrafter's Bestiary
 Lunarch Mantle
+Mahamoti Djinn
 Masterwork of Ingenuity
 Melancholy
+Merchant of Truth
 Merciless Repurposing
+Mesa Unicorn
 Mikaeus, the Lunarch
+Mind Sludge
 Misers' Cage
 Moldervine Reclamation
 Mountain
 Murmuring Mystic
 Nip Gwyllion
+Nylea's Emissary
 Orazca Raptor
 Ordeal of Purphoros
 Orim's Touch
 Pensive Minotaur
+Phantasmal Fiend
 Pippin's Bravery
 Plains
 Plated Crusher
@@ -94,16 +136,23 @@ Recruiter of the Guard
 Return Upon the Tide
 Roots of Wisdom
 Runeboggle
+Sacred Guide
+Savra, Queen of the Golgari
 Scoria Elemental
 Scrapper Champion
+Search for Glory
 Searing Spear
 Sigiled Sentinel
 Silverquill Pledgemage
 Skybind
+Slinking Serpent
+Slippery Scoundrel
+Spectacle Mage
 Spectral Grasp
 Spelltithe Enforcer
 Sphere of Safety
 Spite of Mogis
+Spread the Sickness
 Start from Scratch
 Stifle
 Stoke the Flames
@@ -118,19 +167,27 @@ Tezzeret's Betrayal
 Thistledown Liege
 Thor, Guardian of Midgard
 Tomebound Lich
+Transluminant
+Transmogrifying Wand
 Tromokratis
 Tyrannize
 Ultimate Alliance
 Unnatural Endurance
+Urza's Science Fair Project
 Vampire Aristocrat
+Vexing Gull
+Village Rites
 Viridian Joiner
 Virtuous Variant
 Vitality Charm
+Vodalian Hypnotist
 Voice of Grace
 Warrior's Charge
+Wei Infantry
 Wild Griffin
 Wilderness Reclamation
 Wintermoor Commander
 Wipe Away
+Wu Infantry
 Yeva, Nature's Herald
 Zodiac Monkey
