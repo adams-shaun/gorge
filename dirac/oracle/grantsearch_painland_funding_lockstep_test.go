@@ -24,10 +24,8 @@ var grantSearchPainlandDecks = [2][]cardset.Entry{
 // grantSearchPainlandSeeds are the games of the 1..300 castFirstPolicy sweep
 // whose first divergence was the kernel offering a play gorge left unpriced
 // (an "options options" divergence) before a painland funded the grant search
-// with its painful colours. Seeds 59 and 145 of the sweep diverge the same way
-// at a land-play priority for another reason (ticket
-// grant-search-painland-cast-offer-residual) and are left out.
-var grantSearchPainlandSeeds = []uint64{10, 14, 21, 23, 41, 170, 218}
+// with its painful colours.
+var grantSearchPainlandSeeds = []uint64{10, 14, 21, 23, 41, 59, 145, 170, 218}
 
 // TestGrantSearchPainlandFundingLockstep: a painland funding a granted-mana
 // prefix search asks its painful colours too (gorge's mana ask for Karplusan
