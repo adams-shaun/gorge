@@ -995,6 +995,39 @@ func scriptOrderAnswers(d *decision.Decision, answers []decision.Intent, need [s
 	return append(first, rest...)
 }
 
+// witnessSelfTargetsLast stably moves, in a target ask the witness replay
+// answers, the answers naming p itself behind the rest. The replay is node
+// budget-capped, and a trigger the witness's sacrifices stacked (Havoc
+// Jester's damage to any target) that p aims at their own last life ends the
+// game against p only when it resolves, after a pass chain per answer: with
+// "p0" listed first, every combination of such answers was proved dead before
+// the first that is not, and the budget ran out before the play was reached.
+// A play the answers p can give reach is one gorge offers (CR 601.2c).
+func witnessSelfTargetsLast(d *decision.Decision, p state.PlayerID, answers []decision.Intent) []decision.Intent {
+	if d.Kind != decision.KTarget {
+		return answers
+	}
+	self := func(in decision.Intent) bool {
+		for _, ch := range in.Choices {
+			for i := range d.Options {
+				if o := &d.Options[i]; o.Index == ch && o.Kind == "player" && o.Player == p {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	var first, rest []decision.Intent
+	for _, in := range answers {
+		if self(in) {
+			rest = append(rest, in)
+		} else {
+			first = append(first, in)
+		}
+	}
+	return append(first, rest...)
+}
+
 // scriptManaAskHoists reports whether the needed-colour reorder keeps its
 // place at the mana-ability ask ma is posing (the engine nils it the moment
 // it is answered): the source's own choice among its mana abilities.
@@ -1148,7 +1181,7 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 		}
 		if d.Kind != decision.KPriority {
 			// the replay answers the step's own colours first (scriptStepNeed)
-			for _, in := range scriptOrderAnswers(d, scriptAnswers(d), scriptStepNeed(steps, next)) {
+			for _, in := range witnessSelfTargetsLast(d, p, scriptOrderAnswers(d, scriptAnswers(d), scriptStepNeed(steps, next))) {
 				child := pool.hypClone(c)
 				ok := child.Submit(in) == nil && visit(child, next, expect, waits)
 				pool.hypRelease(child)
