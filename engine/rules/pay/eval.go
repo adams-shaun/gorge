@@ -42,8 +42,12 @@ type Eval interface {
 	// empty it is the whole verdict (extra is zero); with produced set it
 	// answers only the additional mana the deterministic static TapsForMana
 	// triggers add to one tap declaring that production (Forsaken
-	// Monument), which the verdict already admitted.
-	SourceInterference(id state.ObjID, ma *cards.SA, produced string) (tier Tier, c Consequence, detail string, extra state.Mana)
+	// Monument), which the verdict already admitted. watcher is meaningful
+	// for a deferred verdict: every object deferring the activation only
+	// watches the tap (a trigger resolving after the payment) and none acts on
+	// the payment -- no ProduceMana replacement, no replaced folded mana, no
+	// mana-adding registration.
+	SourceInterference(id state.ObjID, ma *cards.SA, produced string) (tier Tier, c Consequence, detail string, extra state.Mana, watcher bool)
 	// ManaUnits is p's payment-plan source census: one unit per mana
 	// ability activation the planner may schedule.
 	ManaUnits(p state.PlayerID) []WindowUnit
