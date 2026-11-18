@@ -100,14 +100,16 @@ func (s *State) preventCombatEv(k *prep, r *dmgRec, ev *dmgEv) {
 	if ev.n <= 0 {
 		return
 	}
-	r.dealt[ev.src] -= ev.n
+	n := ev.n
+	ev.n = 0 // before the mark is recomputed: this event no longer stands
+	r.dealt[ev.src] -= n
 	if ev.dst == NoSlot {
-		r.dealtPl[ev.src] -= ev.n
+		r.dealtPl[ev.src] -= n
 		if a := s.perms[ev.src].atk; isPlayerOrNone(a) {
-			r.toPl[CodeSeat(a)] -= ev.n
+			r.toPl[CodeSeat(a)] -= n
 		}
 	} else {
-		r.toPerm[ev.dst] -= ev.n
+		r.toPerm[ev.dst] -= n
 		r.dtPerm.clr(ev.dst)
 		for i := 0; i < r.nev; i++ {
 			if e := &r.ev[i]; e.dst == ev.dst && e.n > 0 && s.kw(k, e.src)&kop.KwDeathtouch != 0 {
@@ -115,7 +117,6 @@ func (s *State) preventCombatEv(k *prep, r *dmgRec, ev *dmgEv) {
 			}
 		}
 	}
-	ev.n = 0
 }
 
 // preventFrozenEv syncs the recomputed pass's accounting for a frozen event
