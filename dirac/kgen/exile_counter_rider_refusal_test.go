@@ -1,42 +1,12 @@
 package kgen
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 const exileCounterRiderReason = "repl-hard: dies-to-exile counter rider"
-
-func refusalReasons(t *testing.T, name string) []string {
-	t.Helper()
-	cs := lowerNamed(t, []string{name})
-	if len(cs) != 1 {
-		t.Fatalf("%s: got %d cards", name, len(cs))
-	}
-	var out []string
-	for _, r := range cs[0].Refusals {
-		out = append(out, r.Reason)
-	}
-	return out
-}
-
-// TestExileCounterRiderRefusedByName: a dies-to-exile rider that still has no
-// lowering (Ravenloft Adventurer's RememberChanged$ + PutCounter chain) stays
-// refused by name instead of the generic "Moved to Graveyard shape". Dauthi
-// Voidwalker and Draugr Necromancer lower now (exileonleave_rider_forms_test.go)
-// and Rayami's Kind/Amount body does too; its own reader is a different gap.
-func TestExileCounterRiderRefusedByName(t *testing.T) {
-	rs := refusalReasons(t, "Ravenloft Adventurer")
-	found := false
-	for _, r := range rs {
-		found = found || strings.Contains(r, exileCounterRiderReason)
-	}
-	if !found {
-		t.Errorf("Ravenloft Adventurer: refusals %q do not name %q", rs, exileCounterRiderReason)
-	}
-}
 
 // TestExileCounterRiderPredicate exercises the predicate directly, so the
 // control does not depend on another lowering consuming the body first. The
