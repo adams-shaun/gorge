@@ -1050,26 +1050,86 @@ func (s *State) grantedHost(k *prep, sl Slot, c CardID) Slot {
 }
 
 // selfGrantHost returns sl when a live override record on sl made by sl's
-// own card grants it ability (c, ab) and sl has not lost its abilities
-// (Domesticated Watercourse's "becomes an Equipment with equip {2}"); else
-// NoSlot. A loss in the same record (The Irencrag's Everflame) hosts nothing:
-// gorge offers no equip there.
+// own card grants it ability (c, ab) and no "loses all abilities" effect
+// newer than the record applies to it (Domesticated Watercourse's "becomes
+// an Equipment with equip {2}"); else NoSlot. A loss in the same record (The
+// Irencrag's Everflame) hosts nothing: gorge offers no equip there.
+//
+// The loss verdict is the grant walks', not genLost's: a CR 305.7 land-type
+// setter's loss has no layer-6 timestamp (lossTs), so it suppresses no grant
+// it predates (gorge abilityloss.go's landSetters arm "leaves latest alone",
+// grantLostTo's note) -- Wandering Fumarole's animated {0} switch survives
+// the land Sea Snidd's ability turns it into. A real loss newer than the
+// record still kills it (grantHostGen reads the same way).
 //
 // On a copy, an as-enters copy's AddAbilities$ record (Mercurial Pretender,
 // copy_asenters.go) hosts too, whichever card made it: the Pretender's own
 // copy, and a copy of that copy (CR 707.3), whose ability grantCardAt then
 // reads from the card that made the record.
 func (s *State) selfGrantHost(k *prep, sl Slot, c CardID, ab uint8) Slot {
-	if !s.fxM.has(sl) || s.genLost(k, sl) {
+	if !s.fxM.has(sl) || s.perms[sl].gty&gtyFaceDown != 0 {
 		return NoSlot
 	}
-	if (s.cardAt(sl) == c || s.perms[sl].card == c) && s.ownGrants(k, sl, c, ab) {
+	lts, lost := s.lossAt(k, sl)
+	if (s.cardAt(sl) == c || s.perms[sl].card == c) && s.ownGrantAlive(k, sl, c, ab, lost, lts) {
 		return sl
 	}
-	if own, ok := s.copyGrantCard(k, sl, ab); ok && own == c {
-		return sl
+	if !s.copyGrantAlive(k, sl, ab, lost, lts, c) {
+		return NoSlot
 	}
-	return NoSlot
+	return sl
+}
+
+// ownGrantAlive is ownGrants with the loss verdict: some live override
+// record on sl made by card c grants sl c's ability ab and survives the loss
+// (a record stamped before a real loss's timestamp does not). A record whose
+// own loss of abilities is a real one (not a CR 305.7 land-type setter's)
+// hosts no activation: gorge's selfKeywordGrant requires the granting
+// effect's RemoveAbilities to be false (gorge offers no equip beside The
+// Irencrag's Animate's RemoveAllAbilities$).
+func (s *State) ownGrantAlive(k *prep, sl Slot, c CardID, ab uint8, lost bool, lts uint16) bool {
+	if !s.fxM.has(sl) {
+		return false
+	}
+	for i := 0; i < int(s.g.nfx); i++ {
+		r := &s.g.fx[i]
+		if r.sl != sl || r.kind != fxOverride || r.r.idx == 0 || r.r.src != c {
+			continue
+		}
+		if lost && r.r.ts < lts {
+			continue
+		}
+		ov := &k.t.Overrides[r.r.idx-1]
+		if ov.LoseAbilities && !ov.SetLandSub {
+			continue
+		}
+		for _, g := range ov.Grant {
+			if g == ab+1 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// copyGrantAlive is selfGrantHost's copy arm: some live as-enters copy grant
+// record on sl made by card c grants it ability ab and survives the loss.
+func (s *State) copyGrantAlive(k *prep, sl Slot, ab uint8, lost bool, lts uint16, c CardID) bool {
+	for i := 0; i < int(s.g.nfx); i++ {
+		r := &s.g.fx[i]
+		if r.sl != sl || r.kind != fxOverride || r.r.idx == 0 || !r.r.copyGrant() {
+			continue
+		}
+		if lost && r.r.ts < lts {
+			continue
+		}
+		for _, g := range k.t.Overrides[r.r.idx-1].Grant {
+			if g == ab+1 {
+				return r.r.src == c
+			}
+		}
+	}
+	return false
 }
 
 // copyGrantCard is the card of the first as-enters copy grant record on sl
