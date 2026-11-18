@@ -78,8 +78,13 @@ func (s *State) ninjutsuResolve(k *prep) { s.handEntryResolve(k, false) }
 // mana-only hand ability's "put this card onto the battlefield from your
 // hand" (Talon Gates of Madara): the same entry, with no tap and no attack.
 //
+// It reports true when the entry is parked at the card's as-enters copy
+// election (Sakashima's Student: gorge asks every battlefield entry, the
+// card still in hand; CR 614.12, 707.2); the answer re-runs this op
+// (rerunReturn).
+//
 //go:noinline
-func (s *State) handEntryResolve(k *prep, plain bool) {
+func (s *State) handEntryResolve(k *prep, plain bool) bool {
 	e := &s.res.e
 	o := e.obj
 	ob := &s.objs[o]
@@ -88,17 +93,20 @@ func (s *State) handEntryResolve(k *prep, plain bool) {
 		// sourceReturnedSincePush: a card that entered the battlefield and
 		// came back to the hand is a new object (CR 400.7; enterNF bumps
 		// ver)
-		return
+		return false
 	}
 	if s.occ.full() {
 		s.stall(StallBoard) // the battlefield is full: the capacity draw
-		return
+		return false
 	}
 	ctrl := ob.owner()
+	if s.cloneReturnPark(k, o, ctrl) {
+		return true // copy_cloneenter.go: the election is asked with the card still in hand
+	}
 	from := s.detach(o)
 	sl := s.enter(k, o, ctrl, false, from)
 	if plain {
-		return // put this card onto the battlefield: it enters as it is
+		return false // put this card onto the battlefield: it enters as it is
 	}
 	pp := &s.perms[sl]
 	if pp.flags&pfTapped == 0 {
@@ -109,11 +117,12 @@ func (s *State) handEntryResolve(k *prep, plain bool) {
 		}
 	}
 	if DebugNinjutsuNoAttack || !s.enteringAttackLegal(k, ctrl, e.trigObj) {
-		return
+		return false
 	}
 	pp.flags |= pfAttacking
 	s.setAttackTarget(pp, TCode(e.trigObj))
 	pp.bord = objWord(s.nAttackers)
 	s.nAttackers++
 	s.touchSl(sl)
+	return false
 }
