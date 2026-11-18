@@ -1318,7 +1318,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		var d Decision
 		t.restrOptions(k, &d, p) // (restricted mana floating is priced as ordinary: the search reads no restriction)
 		t.capGrantOvercounts(k, &d, p)
-		if hasOption(&d, fs.a) && !t.grantRefusedPrices(k, p, fs.a) {
+		if hasOption(&d, fs.a) && !t.grantRefusedPrices(k, p, fs.a) && !fs.witnessEats(k, t) {
 			return true
 		}
 	}
@@ -1445,6 +1445,24 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		fs.n--
 	}
 	return false
+}
+
+// witnessEats: the node prices the cast play only by a plan that sacrifices
+// the play's only target (Portent of Betrayal's Catalyst Elemental, the one
+// creature, paying its {R}{R}). gorge's scriptSearch.priced replays a plan that
+// consumes a permanent (witnessReachesFrom) and takes the node only when the
+// play is still offered after it, so the search goes on (CR 601.2c: a target
+// must remain legal). xWitnessEats is that replay for a spell.
+func (fs *filtSearch) witnessEats(k *prep, t *State) bool {
+	if !isCastKind(fs.a.Kind()) || fs.a.Mode() != 0 || !t.anySacSource(k, fs.p) {
+		return false
+	}
+	o := Obj(fs.a.Source())
+	if o == NoObj || int(o) >= len(t.objs) {
+		return false
+	}
+	cost, ok := t.plannedCastCost(k, fs.p, o, 0)
+	return ok && t.xWitnessEats(k, fs.p, t.objs[o].card, &cost, 0, o, 0)
 }
 
 // fundOne taps the one-colour funding source sl for its census ability, then
