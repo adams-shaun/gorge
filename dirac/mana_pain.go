@@ -50,6 +50,26 @@ func manaLifePain(a *kop.Ability) (uint8, bool) {
 	return a.Cost.N, true
 }
 
+// abPainOf is a mana ability's own activation pain: the life its cost pays
+// (lifeCostOwed) PLUS the damage its rider deals (manaPain) — gorge's
+// lethal guard (pay/search.go) sums both when it cuts a plan, never one or
+// the other. The census's lethal read (availPotentialFor's cenPainOf) prices
+// an activation whose own pain reaches the payer's life at no production
+// (censusPainDrop's cenMaskAdd), while the fold keeps it.
+func abPainOf(a *kop.Ability) int {
+	if a == nil {
+		return 0
+	}
+	pain := 0
+	if a.Cost.Flags&kop.CostPayLife != 0 {
+		pain += int(lifeCostOwed(&a.Cost))
+	}
+	if dmg, ok := manaPain(a); ok {
+		pain += int(dmg)
+	}
+	return pain
+}
+
 // primaryTapAb reports whether a is a bare {T} ability for one mana of any
 // colour, {C}, or a colour set (a plain mana ability with no rider, cost
 // part, restriction or flag): the shape a self Pain-class Taps line prices
@@ -837,4 +857,32 @@ func (s *State) painAnyOwed(p uint8, useful *kop.ManaCost, pc *pcard) (int, bool
 		}
 	}
 	return 0, false
+}
+
+// printedAbPain is the activation pain (abPainOf) of the source's printed mana
+// ability pc names; 0 when it has none.
+func (s *State) printedAbPain(k *prep, sl Slot, pc *pcard) int {
+	if pc.manaAb < 0 {
+		return 0
+	}
+	cd := &k.t.Cards[s.cardAt(sl)]
+	if int(pc.manaAb) >= len(cd.Abilities) {
+		return 0
+	}
+	return abPainOf(&cd.Abilities[pc.manaAb])
+}
+
+// painGate is the census's lethal-guard read for a production of colours whose
+// activation costs pain: when pain reaches life the planner never takes the
+// activation, so drop is colours and the returned add records no census unit
+// for them (recDrop) while the fold keeps the production whole; otherwise drop
+// is 0 and add is returned as it came.
+func (c *potCensus) painGate(pain, life int, colors uint8, add, fold func(Slot, uint8, uint8)) (drop uint8, out func(Slot, uint8, uint8)) {
+	if pain <= 0 || pain < life || colors == 0 {
+		return 0, add
+	}
+	return colors, func(sl Slot, mask, n uint8) {
+		c.recDrop(sl, mask, n, colors)
+		fold(sl, mask, n)
+	}
 }
