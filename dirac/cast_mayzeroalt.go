@@ -22,6 +22,33 @@ const StallZeroAltShared = 189
 
 func init() { stallNames[StallZeroAltShared] = "zeroaltshared" }
 
+// The target byte of the {0} alternative's cast action: it tells the
+// alternative from the plain free cast of the same card (a free permission's,
+// castMayPlay|castFree with target 0), whose mode it shares. The apply side
+// spends the static's once-per-turn mark only for a marked cast. The free
+// marker is for an alternative beside a free plain cast, which keeps the
+// plain cast's own permission spend (free); the other beside a priced one.
+const (
+	zeroAltTgt     = 0xfe
+	zeroAltFreeTgt = 0xfd
+)
+
+// FeatIsZeroAltTgt reports whether target byte t marks a {0} alternative cast
+// (the canonical form follows: FeatMayZeroAltCast).
+func FeatIsZeroAltTgt(t uint8) bool { return t == zeroAltTgt || t == zeroAltFreeTgt }
+
+// noteZeroAltCast reads the {0}-alternative marker off a cast action about
+// to begin: it records which one for castFlagsGen and returns the target
+// byte beginCast sees (0, the marker is no target).
+func (s *State) noteZeroAltCast(k *prep, a Action) uint8 {
+	t := uint8(a.Target())
+	if a.Mode() == castMayPlay|castFree && FeatIsZeroAltTgt(t) && k.gen != nil && k.gen.anyZeroAlt {
+		s.g.zeroAlt = t
+		return 0
+	}
+	return t
+}
+
 // zeroAltStatic reports whether MayPlayFrom static st is a {0} alternative:
 // FreeOnly on a zone other than Weftwalking's hand spelling of "All".
 func zeroAltStatic(st *kop.Static) bool {
@@ -58,7 +85,8 @@ func (s *State) FeatMayZeroAltCast(p uint8, o Obj) bool {
 // cast in mode that a permission makes (plain: gorge's mayPlayPlainGrant
 // holds for it, so its walk lists the alternative). A free plain cast, a
 // permission priced its own way, or a second static stalls
-// (StallZeroAltShared). Options already offered are not repeated (two
+// (StallZeroAltShared). Beside a free plain cast the alternative's action
+// carries zeroAltFreeTgt, for the two share a mode. Options already offered are not repeated (two
 // records for one card).
 //
 //go:noinline
@@ -70,17 +98,28 @@ func (s *State) offerZeroAlt(k *prep, d *Decision, p uint8, o Obj, mode uint8, p
 	if n == 0 {
 		return
 	}
-	if n > 1 || !plain || mode&castFree != 0 {
+	if n > 1 || !plain {
 		s.capFull(StallZeroAltShared)
 		return
 	}
-	act := MakeAction(AkCast, TCode(o), 0, castMayPlay|castFree)
+	tgt := TCode(zeroAltTgt)
+	if mode&castFree != 0 {
+		tgt = zeroAltFreeTgt
+	}
+	act := MakeAction(AkCast, TCode(o), tgt, castMayPlay|castFree)
 	for i := 0; i < int(d.N); i++ {
 		if d.Options[i] == act {
 			return
 		}
 	}
+	n0 := int(d.N)
 	s.offerPlay(k, d, p, o, castMayPlay|castFree, sorc, false, false, false, false, av)
+	plainAct := MakeAction(AkCast, TCode(o), 0, castMayPlay|castFree)
+	for i := n0; i < int(d.N); i++ {
+		if d.Options[i] == plainAct {
+			d.Options[i] = act // the cast just offered is the alternative
+		}
+	}
 }
 
 // spendZeroAlt marks the once-per-turn turn of the {0}-alternative static a

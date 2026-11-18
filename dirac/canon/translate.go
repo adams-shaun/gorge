@@ -294,7 +294,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 				idx = 1
 			}
 			cm |= uint8(idx) << 4
-		case mode&0x18 == 0x18 && r.S.FeatMayZeroAltCast(r.D.Player, dirac.Obj(src)):
+		case mode&0x18 == 0x18 && dirac.FeatIsZeroAltTgt(uint8(tgt)) && r.S.FeatMayZeroAltCast(r.D.Player, dirac.Obj(src)):
 			// a non-granting static's {0} alternative (Dragon's Smile, CR
 			// 118.9): gorge's "mayplay" option at AltCostIndex 1 beside the
 			// plain cast (cast_mayzeroalt.go)

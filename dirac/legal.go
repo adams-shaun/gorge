@@ -2588,7 +2588,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Mode()&2 != 0 && a.Target() == TCode(castEscapeTgt) && k.gen != nil && k.gen.anyEscapeGrant {
 			s.g.escapeCast = true // the escape cast the action names (kw_escape.go)
 		}
-		s.beginCast(k, Obj(a.Source()), a.Mode(), uint8(a.Target())) // code-ok: the target field names a retrace cast (kw_retrace.go)
+		s.beginCast(k, Obj(a.Source()), a.Mode(), s.noteZeroAltCast(k, a)) // code-ok: the target field names a retrace cast (kw_retrace.go); a {0} alternative's marker is read off (cast_mayzeroalt.go)
 		if face {
 			s.lowerFaceCast(k, p, Obj(a.Source())) // cast_faceroute.go
 		}

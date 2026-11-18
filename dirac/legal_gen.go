@@ -315,6 +315,8 @@ func hybridGeneric(c kop.ManaCost) kop.ManaCost {
 // built and consumes the once-per-turn static that permitted it.
 func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 	s.g.raiseB = 0 // a spent surcharge record sets it again (spendMayKind)
+	zeroAlt := s.g.zeroAlt
+	s.g.zeroAlt = 0 // read once, below
 	if s.bld().e.kind == seSpell && s.convAnyType(k, s.bld().e.ctrl, o) {
 		s.bld().e.flags |= sfAnyMana // mana_convertcreature.go
 	}
@@ -341,8 +343,8 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 	}
 	s.bld().e.flags |= sfMayPlay
 	p := s.bld().e.ctrl
-	if mode&castFree != 0 && k.gen.anyZeroAlt && s.spendZeroAlt(k, o, p) {
-		mode &^= castFree // the {0} alternative: the plain cast's permission is spent below (cast_mayzeroalt.go)
+	if z := zeroAlt; z != 0 && mode&castFree != 0 && k.gen.anyZeroAlt && s.spendZeroAlt(k, o, p) && z == zeroAltTgt {
+		mode &^= castFree // the {0} alternative beside a priced plain cast: that cast's permission is spent below (cast_mayzeroalt.go)
 	}
 	// a permission record is spent; a once-per-turn static is marked
 	if k.gen.anyMayKind && s.spendMayKind(k, o, p, mode) {
