@@ -506,6 +506,12 @@ func (s *State) restrViewW(k *prep, p uint8, sl Slot, own *pcard, d *payDesc) (v
 			if own.manaAb < 0 || !s.canTapForManaPC(k, sl, own) {
 				continue
 			}
+			if k.gen.landSet && s.landSetLost(k, sl) {
+				// CR 305.7: a land whose types a setter made basic lost its
+				// rules-text abilities, the restricted one with the census
+				// one (own is the intrinsic view, manaAb naming no ability)
+				continue
+			}
 			if !s.restrSrcAdmits(k, p, sl, a, d) {
 				if dmask == 0 {
 					dmask = srcMask(&g.rs.views[rec.view])
