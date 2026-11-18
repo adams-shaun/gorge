@@ -305,52 +305,6 @@ func (s *State) kickWitness(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCos
 	return tmp.witnessEndsGameWon(k, p, c, n0)
 }
 
-// castWitnessReaches mirrors gorge's potential payment planner for a hybrid
-// plain hand cast (planHybridCost's colouring witness read through
-// potential_plan.go's post-check): the planner's plan is a proof while it
-// consumes no source, and one that sacrifices or returns a source is a
-// witness only while potentialWitnessReaches replays it and the cast can
-// still be completed (its target census still meets the resolved minimum on
-// the fork), else potentialWitnessKeeping, else the winOK fallback. The
-// kernel's planner plans its last-resort tap-and-sacrifice sources last
-// (lastResortUnit), so a consuming witness prices only a cast no keeping plan
-// pays; the census alone would still offer it (Shattering Blow's {1}{R/W}
-// beside a Zoetic Cavern and the Treasure that is also its only artifact
-// target: the witness eats the target, decision 190 withholds; with a second
-// Treasure it leaves that one as the target and gorge offers at 194). A cast
-// the planner prices nothing for keeps its offer — the kernel's census
-// already paid it, and a witness this planner does not model (a storage
-// battery's counters: Jubilant Skybonder's {1}{W/U}{W/U} beside two Plains
-// and an Icatian Store, decision 175 of the skybonder_granted_target_tax
-// repro) is gorge's too, as for faceWitnessReaches and kickWitness. cost is
-// the composed cost the offer prices; the reach and winOK arms read like
-// kickWitness.
-func (s *State) castWitnessReaches(k *prep, p uint8, c CardID, cost *kop.ManaCost) bool {
-	tmp := s.fork()
-	defer s.unfork()
-	n0 := tmp.npend
-	var pk planner
-	pk.try = true
-	tmp.tapForPK(k, p, cost, 0, NoObj, false, false, &pk)
-	if !pk.found || !plannerConsumesSac(&pk) {
-		// gorge re-checks the play only when the plan that pays it consumes
-		// a source (potential_plan.go paymentPlanConsumes): a plan that pays
-		// with ordinary mana never withholds the cast.
-		return true
-	}
-	// the plan's mana abilities run before the spell is announced further
-	// (CR 601.2g): a witness whose sacrifices leave the spell no legal target
-	// set does not reach the play, and one that queues more than four
-	// sacrifice triggers loses the walk's wait budget (potential_script.go)
-	if !tmp.spellTargetsFeasible(k, c, p) {
-		return tmp.witnessEndsGameWon(k, p, c, n0)
-	}
-	if !s.subs[kop.TrigSacrificed].any() || int(tmp.npend)-int(n0) <= witnessWaits {
-		return true
-	}
-	return tmp.witnessEndsGameWon(k, p, c, n0)
-}
-
 // witnessEndsGameWon: the witness fork t (taken before the cast's pre-cast
 // triggers resolve) queued sacrifice triggers from n0 that, resolved as gorge's
 // witness lets them resolve (at most witnessWaits of them, one pass each), end
