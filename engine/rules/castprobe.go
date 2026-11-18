@@ -3,6 +3,7 @@ package rules
 import (
 	"slices"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -87,6 +88,15 @@ func (e *Engine) castTargetsAvailableOnStack(p state.PlayerID, id state.ObjID) b
 	sa := o.Face().SpellAbility()
 	if sa == nil || !effects.TargetsOf(sa).Targeted() && sa.API != "Charm" {
 		return true
+	}
+	return e.castFaceTargetsAvailableOnStack(p, id, sa)
+}
+
+// castFaceTargetsAvailableOnStack is castTargetsAvailableOnStack for the spell
+// ability sa the offer in hand is judged by (the cast walk's front face).
+func (e *Engine) castFaceTargetsAvailableOnStack(p state.PlayerID, id state.ObjID, sa *cards.SA) bool {
+	if sa == nil || !effects.TargetsOf(sa).Targeted() && sa.API != "Charm" {
+		return e.castTargetsAvailable(p, id, sa)
 	}
 	return e.offerAsSpellOnStack(id, func() bool { return e.castTargetsAvailable(p, id, sa) })
 }

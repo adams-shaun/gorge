@@ -344,7 +344,10 @@ func (w *legalWalk) handWalk() {
 		taDone, taOK := false, false
 		targetsAvailable := func() bool {
 			if !taDone {
-				taOK, taDone = e.castTargetsAvailable(p, id, f.SpellAbility()), true
+				// The card leaves the hand before its targets are chosen
+				// (CR 601.2a, 601.2c), so a target whose characteristics read
+				// the hand is judged with the card on the stack (castprobe.go).
+				taOK, taDone = e.castFaceTargetsAvailableOnStack(p, id, f.SpellAbility()), true
 			}
 			return taOK
 		}
