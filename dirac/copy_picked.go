@@ -73,7 +73,7 @@ func (s *State) copyPicked(k *prep, in *kop.Instr) bool {
 // the attack trigger's defending player, CR 508.4), unless that player has
 // lost.
 func (s *State) copyEnterAttacking(k *prep, sl Slot, ctrl uint8) {
-	if opp := NextSeat(ctrl); !s.pl[opp].lost {
+	if opp := s.nextSeat(ctrl); !s.pl[opp].lost {
 		s.setEnterAttacker(k, sl, PlayerCode(opp))
 	}
 }

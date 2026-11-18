@@ -118,7 +118,7 @@ func (s *State) eachCommandTrigger(k *prep, ev kop.TrigEvent, f func(l trigListe
 // their count.
 func (s *State) listenerOrder(m slotMask, ord *[MaxPerm]Slot) int {
 	n := s.battlefieldOrder(0, m.and(s.ctrlM[0]), ord[:], 0)
-	if MaxSeats == 2 {
+	if s.duel() {
 		return s.battlefieldOrder(1, m.and(s.ctrlM[1]), ord[:], n)
 	}
 	// every seat's listeners, seat by seat (a third or fourth seat's
@@ -688,7 +688,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 	}
 	if !m.any() {
 		if k.gen.graveDmg && (rl == nil || !rl.agg) { // a batch's aggregate fire is not a damage event
-			s.fireGraveDamage(k, src, s.perms[src].obj, s.perms[src].ctrl, amt, dmgPlayers(toPlayer, s.perms[src].ctrl, rcp), combat, rcp)
+			s.fireGraveDamage(k, src, s.perms[src].obj, s.perms[src].ctrl, amt, s.dmgPlayers(toPlayer, s.perms[src].ctrl, rcp), combat, rcp)
 		}
 		if k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 {
 			s.fireEmblemsDmg(k, src, amt, toPlayer, combat, rcp, false, latch)
@@ -784,7 +784,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 		})
 	}
 	if k.gen.graveDmg && (rl == nil || !rl.agg) { // a batch's aggregate fire is not a damage event
-		s.fireGraveDamage(k, src, srcObj, srcCtrl, amt, dmgPlayers(toPlayer, srcCtrl, rcp), combat, rcp)
+		s.fireGraveDamage(k, src, srcObj, srcCtrl, amt, s.dmgPlayers(toPlayer, srcCtrl, rcp), combat, rcp)
 	}
 	if k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 {
 		s.fireEmblemsDmg(k, src, amt, toPlayer, combat, rcp, true, latch)
@@ -794,14 +794,14 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 // dmgPlayers is the player mask a permanent-source damage event names: the
 // damaged player when rcp is one, else (an aggregate event to players) the
 // source controller's opponent.
-func dmgPlayers(toPlayer bool, srcCtrl uint8, rcp TCode) uint8 {
+func (s *State) dmgPlayers(toPlayer bool, srcCtrl uint8, rcp TCode) uint8 {
 	if !toPlayer {
 		return 0
 	}
 	if pl, ok := recipientPlayer(rcp); ok {
 		return 1 << pl
 	}
-	return 1 << NextSeat(srcCtrl) // the aggregate: dmgSeat's stand-in
+	return 1 << s.nextSeat(srcCtrl) // the aggregate: dmgSeat's stand-in
 }
 
 // dmgPl is the player mask fireDamageSrc takes for one damage target code.

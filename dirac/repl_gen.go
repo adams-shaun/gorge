@@ -1174,7 +1174,7 @@ func (s *State) damageSeqStart(k *prep, hit slotMask, players bool) {
 		s.g.dmgSeqN = uint8(s.battlefieldOrder(p, hit.and(s.ctrlM[p]), s.resArm().dmgSeqOrd[:], int(s.g.dmgSeqN)))
 	}
 	if players {
-		if MaxSeats == 2 {
+		if s.duel() {
 			s.g.dmgSeqPl = 3
 		} else {
 			s.g.dmgSeqPl = seatBits(s.aliveFrom(0))
@@ -1244,7 +1244,7 @@ func (s *State) damageSeqNext(k *prep, n int) {
 			}
 			s.g.dmgSeqPl = 0 // a seat that has left is dealt nothing
 		}
-		if pl := s.g.dmgSeqPl & 3; MaxSeats == 2 && pl != 0 {
+		if pl := s.g.dmgSeqPl & 3; s.duel() && pl != 0 {
 			// bit 0 the active player, bit 1 the other; bit 2 deals the
 			// other first (the controller first off its turn: dmgSeqCtrlFirst)
 			b := uint8(1)
@@ -1254,7 +1254,7 @@ func (s *State) damageSeqNext(k *prep, n int) {
 			s.g.dmgSeqPl &^= b
 			p := s.active
 			if b == 2 {
-				p = NextSeat(s.active)
+				p = s.nextSeat(s.active)
 			}
 			s.damageTo(k, PlayerCode(p), n)
 			if s.g.nc.n != 0 {

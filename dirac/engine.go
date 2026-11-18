@@ -475,7 +475,7 @@ func (s *State) nextBottom() {
 		}
 		p := s.mullOrder[s.mullCur]
 		n := s.pl[p].mulls
-		if MaxSeats > 2 && s.nSeats() > 2 && n > 0 {
+		if !s.duel() && n > 0 {
 			n-- // CR 103.5c: a multiplayer game's first mulligan is free (gorge freeMulligans)
 		}
 		if n > s.pl[p].handN {

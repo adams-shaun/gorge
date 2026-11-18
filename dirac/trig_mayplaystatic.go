@@ -153,7 +153,7 @@ func (s *State) finalityCtr(k *prep, in *kop.Instr) {
 		if e.kind != seSpell || e.obj != o {
 			continue
 		}
-		if MaxSeats > 2 && s.res.e.ctrl > 1 {
+		if !s.duel() && s.res.e.ctrl > 1 {
 			s.capFull(StallFinality) // sid holds two seats' grant counts, 4 bits each
 			return
 		}

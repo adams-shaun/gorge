@@ -37,7 +37,7 @@ func (s *State) damageAllOpp(k *prep, in *kop.Instr, ctrl uint8, n int) {
 	if in.B.N&2 != 0 && MaxSeats != 2 {
 		pl = seatBits(s.oppsFrom(ctrl))
 	} else if in.B.N&2 != 0 {
-		if NextSeat(ctrl) == s.active {
+		if s.nextSeat(ctrl) == s.active {
 			pl = 1
 		} else {
 			pl = 2

@@ -128,7 +128,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 	// gorge's attackOffersCompute saw them.
 	served := s.liftAttackPicks()
 	m := s.ctrlM[s.active]
-	def := NextSeat(s.active) // read on the two-seat path only (MaxSeats > 2 offers attackOffersN)
+	def := s.nextSeat(s.active) // read on the two-seat path only (MaxSeats > 2 offers attackOffersN)
 	// one attacker's offers are at most the player and every other
 	// permanent (its walkers, any attackable battle)
 	room := MaxOptions - 1 - (MaxSeats - 1 + s.occ.count())
@@ -146,7 +146,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 			return s.optionsFull(d)
 		}
 		o := s.perms[sl].obj
-		if MaxSeats > 2 {
+		if !s.duel() {
 			s.attackOffersN(k, d, o, sl, gd && s.goadedAt(k, sl))
 			if k.gen != nil && k.gen.anyBattle {
 				s.addBattleOffers(k, d, o, sl) // CR 310.7
@@ -259,7 +259,7 @@ func (s *State) restoreAttackPicks(served slotMask) {
 // where the requirement leaves the defender to choose (gorge marks every
 // pair of such a creature Required).
 func (s *State) mustAttackAsked() bool {
-	return s.cfg&cfgGorgeMustAttack != 0 || MaxSeats > 2 && s.nSeats() > 2
+	return s.cfg&cfgGorgeMustAttack != 0 || !s.duel()
 }
 
 // attackOffersN appends attacker o's offers at more than two seats: each
@@ -433,7 +433,7 @@ func (s *State) finishAttacks(k *prep) {
 		if k.gen.embCombatEv&(1<<kop.TrigAttackersDeclared) != 0 {
 			n0 := s.npend
 			s.fireEmblemsAttack(k) // gorge: the delayed check after the event's face triggers
-			if MaxSeats > 2 && !DebugDropDefSeat {
+			if !s.duel() && !DebugDropDefSeat {
 				s.stampDefSeat(n0, s.firstAtkSeat(k)) // the declaration's first event's seat
 			}
 		}
@@ -526,11 +526,11 @@ func (s *State) fireAttacksGen(k *prep) {
 			}
 			if ng > 0 {
 				n0 := s.npend
-				if MaxSeats > 2 {
+				if !s.duel() {
 					s.g.atkDef = q + 1
 				}
 				s.fireAtkGroup(k, &ord, n, atk[:na], grp[:ng], first, emb)
-				if MaxSeats > 2 {
+				if !s.duel() {
 					s.g.atkDef = 0
 					if !DebugDropDefSeat {
 						s.stampDefSeat(n0, q)
@@ -966,7 +966,7 @@ func (s *State) applyBlock(k *prep, a Action) {
 		if blkTaxOn(k) && !s.blkTaxPay(k) {
 			s.dropBlockDeclaration(k) // combat_blocktax.go: CR 509.1d, the unpayable declaration is declined
 		}
-		if MaxSeats > 2 {
+		if !s.duel() {
 			s.blockRound(k, s.g.blkDef)
 			return
 		}
@@ -1390,7 +1390,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		s.combatEventsGen(k, &r, false)
 		for pp := uint8(0); pp < MaxSeats; pp++ {
 			if r.poison[pp] > 0 {
-				if MaxSeats == 2 {
+				if s.duel() {
 					s.g.ctrAdder = 2 - pp // the attackers' controller puts them (1-pp, +1)
 				} else {
 					s.g.ctrAdder = s.active + 1 // the attackers' controller puts them
