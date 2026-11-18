@@ -1,16 +1,26 @@
 Akroan Hoplite
+Angelic Curator
+Ant-Man, Scott Lang
+Armageddon
+Artifact Ward
 Ashling the Pilgrim
 Avaricious Dragon
+Batterbone
+Blistering Barrier
 Blurred Mongoose
+Briarhorn
 Briarpack Alpha
 Butcher's Cleaver
 Cacophony Unleashed
+Call the Cavalry
 Catalog
+Chandra's Outburst
 Change of Fortune
 Chapel Geist
 Charge Across the Araba
 Chieftain en-Dal
 Citadel Gate
+Citanul Centaurs
 Countryside Crusher
 Crimson Cowl, Master of Evil
 Dark Bargain
@@ -21,23 +31,35 @@ Desert of the Indomitable
 Dimir Signet
 Disentomb
 Drake Haven
+Druid's Deliverance
 Electrify
+Elemental Uprising
 Elenda, the Dusk Rose
 Elixir of Immortality
+Elvish Piper
+Elvish Scrapper
 Enduring Bondwarden
 Ent's Fury
 Ever After
 Evernight Shade
+Exhaustion
 Extinguish the Light
 Faerie Duelist
+Fallen Shinobi
 Farid, Enterprising Salvager
 Fate Foretold
+Fencing Ace
+Ferocious Pup
 Fevered Strength
+Flamecore Elemental
 Forest
+Fungal Rebirth
 Gates of Istfell
 Glistener Elf
+Gnat Alley Creeper
 Goblin Marshal
 Goblin Skycutter
+Goldmeadow Lookout
 Golgari Death Swarm
 Graceful Restoration
 Greater Good
@@ -48,54 +70,93 @@ Heroic Charge
 Hobblefiend
 Howling Golem
 Inspired Fire
+Invigorating Boon
 Island
 Island of Wak-Wak
+Jadecraft Artisan
 Kaldra Compleat
 Kiln Walker
+Kiri-Onna
+Kor Entanglers
+Kor Scythemaster
+Lantern of Revealing
+Lantern of the Lost
+Laquatus's Creativity
 Last Caress
 Living Wish
+Magistrate's Veto
+Manic Scribe
 Manta Riders
 Mightstone's Animation
 Monologue Tax
 Moonwing Moth
+Motivated Pony
 Mountain
+Nantuko Tracer
+Nightshade Seer
+Nivix Guildmage
 Nylea's Colossus
+Nylea's Forerunner
 Ogre Gatecrasher
+Outland Colossus
+Pallid Mycoderm
 Part the Veil
+Passionate Archaeologist
 Patagia Golem
 Perilous Forays
 Pillaging Horde
 Pillarfield Ox
 Plains
+Pyknite
 Quicksilver Fisher
 RMS Titanic
 Rampaging Cyclops
+Raptor Companion
+Razorgrass Ambush
 Renari, Merchant of Marvels
+Rocksteady, Mutant Marauder
+Rootbreaker Wurm
 Runebound Wolf
+Rustvine Cultivator
 Sacred Fire
 Sarpadian Simulacrum
+Sauroform Hybrid
 Saw It Coming
+Scapeshift
 Scout the Borders
 Scroll of the Masters
 Search the Premises
+Sedge Scorpion
+Seething Pathblazer
 Selesnya Sanctuary
 Serendib Efreet
 Silverquill Command
+Skinshifter
+Slaughterhorn
+Slippery Bogle
+Soratami Savant
 Soulshriek
+Squirrel Sanctuary
 Stump Stomp
 Supply Caravan
 Swamp
 Swarm of Bloodflies
+Symbiotic Elf
 Synod Sanctum
 Tar Pitcher
+Taunting Arbormage
 Teeterpeak Ambusher
+Terrain Elemental
 Thought Collapse
 Thundercloud Shaman
+Ultimate Magic: Holy
 Vagrant Plowbeasts
 Vault Guardsman
 Vector Asp
 Vengeful Dead
 Verix Bladewing
+Viridian Harvest
+Vitu-Ghazi Guildmage
 Voracious Fell Beast
 Vorrac Battlehorns
 Wall of Essence

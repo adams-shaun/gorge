@@ -9,6 +9,7 @@ Aberrant Researcher
 Aether Channeler
 Aether Membrane
 Airborne Aid
+Ajani Steadfast
 Akoum Hellhound
 Alisaie Leveilleur
 Alpine Grizzly
@@ -74,6 +75,7 @@ Centaur Veteran
 Charging Paladin
 Chief Magistrate of Mercadia
 Cinder Giant
+Clambassadors
 Cliffside Lookout
 Clinging Anemones
 Cloaked Siren
@@ -181,6 +183,7 @@ Grayscaled Gharial
 Gruul Ragebeast
 Gryff's Boon
 Hajar, Loyal Bodyguard
+Hallowed Burial
 Hallowed Respite
 Harness Infinity
 Harvester Troll
@@ -298,6 +301,7 @@ Quagmire Lamprey
 Quarantine Field
 Queen's Commission
 Quick-Draw Dagger
+Quiet Speculation
 Rabble-Rouser
 Rabid Bloodsucker
 Raging Regisaur
@@ -368,6 +372,7 @@ Skarrg Goliath
 Skull of Orm
 Slipstream Eel
 Somberwald Spider
+Soulcipher Board
 Spaceshift
 Spark Mage
 Spark Reaper
@@ -455,6 +460,7 @@ Will of the All-Hunter
 Windrider Patrol
 Wolfsbane, Highland Hero
 Woodvine Elemental
+Woolly Mammoths
 Wormhole Serpent
 Wreak Havoc
 Wurm's Tooth

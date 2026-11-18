@@ -6,6 +6,7 @@ Aerie Auxiliary
 Akki Blizzard-Herder
 Alchemist's Gift
 Allied Reinforcements
+Angel of Glory's Rise
 Annihilating Glare
 Armor of Faith
 Ballista Watcher
@@ -17,16 +18,22 @@ Blade Sliver
 Bladehold War-Whip
 Bonesplitter Sliver
 Boots of Speed
+Brainspoil
 Buoyancy
 Cavern Crawler
 Cheering Fanatic
+Civic Wayfinder
 Clash of Wills
 Conquering Manticore
+Constant Mists
+Copper Myr
 Coppercoat Vanguard
 Cosmic Larva
 Court Archers
 Cradle to Grave
+Crashing Footfalls
 Crop Sigil
+Crypt Creeper
 Daru Warchief
 Death's Caress
 Deathmark Prelate
@@ -37,10 +44,13 @@ Diabolic Edict
 Disciple of Grace
 Dragonwing Glider
 Dreadhound
+Dreadlight Monstrosity
 Drowner Initiate
 Dual Shot
+Ellivere of the Wild Court
 Essence Infusion
 Evie Frye
+Extract from Darkness
 Extremis Elite
 Fated Return
 Fearless Fledgling
@@ -51,9 +61,11 @@ Forebear's Blade
 Forest
 Frenzied Devils
 From the Rubble
+Glen Elendra Liege
 Glissa's Courier
 Goblin Barrage
 Goblin Blast-Runner
+Goblin Bushwhacker
 Goblin Locksmith
 Goliath, Mass Manipulator
 Grave Peril
@@ -63,27 +75,37 @@ Grizzled Leotau
 Gruesome Scourger
 Guardians of Oboro
 Halberdier
+Hammerhead Shark
 Harness Infinity
 Hero of Goma Fada
+Hold at Bay
 Horizon Scholar
+Hormagaunt Horde
 Hydromorph Gull
 Infernal Contract
 Infuriate
 Island
+Jilt
 Karvanista, Loyal Lupari
+Kashi-Tribe Warriors
 Kazuul Warlord
 Keeper of Secrets
 Keldon Mantle
+Kraken Hatchling
+Kraum, Ludevic's Opus
 Krenko's Command
 Krovikan Fetish
 Last Kiss
+Lead by Example
 Lightning Javelin
 Lizard Warrior
 Llanowar Sentinel
 Longbow Archer
+Maraleaf Pixie
 Massacre
 Mental Misstep
 Messenger's Speed
+Mindculling
 Misers' Cage
 Mob Justice
 Molten Echoes
@@ -94,6 +116,7 @@ Márton Stromgald
 Nausea
 Obelisk of Alara
 Origin of Black Widow
+Orochi Sustainer
 Phantom Centaur
 Phyrexian Colossus
 Phyrexian Delver
@@ -103,7 +126,9 @@ Pincer Spider
 Pinnacle of Rage
 Plains
 Quicksilver Amulet
+Rampant Rejuvenator
 Ray of Enfeeblement
+Reprieve
 Resupply
 River Kaijin
 Rosethorn Acolyte
@@ -118,23 +143,29 @@ Shatterskull Smashing
 Shield-Wall Sentinel
 Shimmering Wings
 Shinechaser
+Shinen of Life's Roar
 Sif's Spearmaster
+Silas Renn, Seeker Adept
 Sky Diamond
 Sky Theater Strix
 Spitting Sliver
+Squee's Embrace
 Squelching Leeches
 Squirrel Sovereign
 Stern Marshal
+Stick, Fearless Mentor
 Stone Calendar
 Strangle
 Stromkirk Occultist
 Svyelunite Priest
 Swamp
+The Destined Black Mage
 The Mary Janes
 Theros Charm
 Tolarian Academy
 Tolarian Entrancer
 Traveling Philosopher
+Trench Gorger
 Tromokratis
 Two-Headed Sliver
 Tyvar Kell
@@ -143,8 +174,16 @@ Vampire Noble
 Vampiric Fury
 Vampiric Sliver
 Vedalken Aethermage
+Wake the Past
+Weaver of Harmony
 Where We're Going . . .
 Wicked Pact
+Winterflame
+Wirewood Herald
+Woodlot Crawler
 Wyrm's Crossing Patrol
 Yavimaya Gnats
+Yavimaya Sapherd
 You're Ambushed on the Road
+Zhao Zilong, Tiger General
+Zimone, Quandrix Prodigy

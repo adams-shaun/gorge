@@ -24,6 +24,7 @@ Angel of the Dire Hour
 Angelic Overseer
 Annihilate
 Apostle of Purifying Light
+Aquastrand Spider
 Archetype of Imagination
 Archfiend of Despair
 Arnjlot's Ascent
@@ -42,6 +43,7 @@ Big Mother Mouser
 Black Sun's Zenith
 Blessed Hippogriff
 Blighted Cataract
+Blind Obedience
 Blizzard Elemental
 Bloodgift Demon
 Blue Sun's Twilight
@@ -65,6 +67,7 @@ Cast into Darkness
 Cateran Kidnappers
 Cavalier of Flame
 Centaur Peacemaker
+Charging Troll
 Chasm Guide
 Chief of the Scale
 Chilling Apparition
@@ -78,6 +81,7 @@ Coral Helm
 Court of Ambition
 Crashing Drawbridge
 Curious Killbot
+Curse of Stalked Prey
 Daze
 Death Pit Offering
 Deathbringer Thoctar
@@ -88,6 +92,7 @@ Diamond City
 Diamond Valley
 Dig Up the Body
 Dinosaur Egg
+Dinosaurs on a Spaceship
 Disperse
 Distorted Curiosity
 Diversionary Tactics
@@ -102,6 +107,7 @@ Dragonsguard Elite
 Dramatic Reversal
 Dream Thrush
 Dromoka Warrior
+Duskwielder
 Dying Wish
 Earth Rift
 Earthquake
@@ -199,6 +205,7 @@ Inspired Sprite
 Invasion of Xerex
 Invoke Despair
 Island
+Isu the Abominable
 Ith, High Arcanist
 Jacked Rabbit
 Jasconian Isle
@@ -279,6 +286,7 @@ Pearled Unicorn
 Pensive Minotaur
 Perish
 Petals of Insight
+Phantasmal Fiend
 Pippin's Bravery
 Plains
 Plated Crusher
@@ -325,6 +333,7 @@ Scurry Oak
 Scurry of Squirrels
 Scytheclaw
 Sealock Monster
+Search for Glory
 Searing Spear
 Secure Detention
 Seething Landscape

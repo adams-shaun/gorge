@@ -7,6 +7,7 @@ Akki Underling
 Alesha, Who Smiles at Death
 Ancestral Memories
 Angelfire Crusader
+Angelic Skirmisher
 Anoint
 Anurid Brushhopper
 Apprentice Wizard
@@ -14,6 +15,7 @@ Archweaver
 Artificer's Epiphany
 Ascendant Acolyte
 Assassin's Strike
+Atlas, Sizable Stooge
 Auramancer
 Axebane Stag
 Balduvian Barbarians
@@ -23,6 +25,7 @@ Basri's Acolyte
 Bassara Tower Archer
 Belbe's Portal
 Betrothed of Fire
+Black Scarab
 Blight
 Blightwidow
 Bloodline Culling
@@ -33,12 +36,18 @@ Breach the Multiverse
 Breath of Life
 Bull Aurochs
 Bumbling Pangolin
+Burdened Aerialist
 Cemetery Reaper
+Chorus of Woe
 Chromatic Sphere
 Clay Revenant
 Cliffrunner Behemoth
 Collective Defiance
+Commander Greven il-Vec
+Consumptive Goo
+Corpse Knight
 Cursed Flesh
+Deadly Derision
 Decanter of Endless Water
 Decimate
 Deep-Slumber Titan
@@ -47,10 +56,13 @@ Defile
 Demon's Horn
 Deny the Divine
 Devouring Light
+Discordant Piper
 Distemper of the Blood
+Doomwake Giant
 Dragonscale General
 Dungeoneer's Pack
 Echoing Ruin
+Elvish Champion
 Embodiment of Insight
 Empyreal Voyager
 Errand-Rider of Gondor
@@ -63,15 +75,20 @@ Fervent Champion
 Firebolt
 Firefist Adept
 Fit of Rage
+Floodgate
 Foggy Nelson, On Retainer
 Forest
 Frazzle
 Frontline Devastator
 General Kreat, the Boltbringer
 Geralf, Visionary Stitcher
+Ghitu Chronicler
 Ghor-Clan Rampager
 Gibbering Fiend
 Gideon's Lawkeeper
+Gift of Orzhova
+Gloomshrieker
+Glyph Elemental
 Goblin Trenches
 Godo, Bandit Warlord
 Gourmand's Talent
@@ -81,10 +98,12 @@ Hard Evidence
 Haunted Mire
 Hecatomb
 Highborn Ghoul
+Hoard Robber
 Honden of Life's Web
 Hope and Glory
 Howl of the Horde
 Hulk, Brutal Brawler
+Hypnotic Specter
 Indomitable Archangel
 Instill Furor
 Invigorated Rampage
@@ -95,14 +114,18 @@ Kaervek, the Spiteful
 Kessig Naturalist
 Kiora Bests the Sea God
 Knight of Dawn's Light
+Kor Aeronaut
 Kydele, Chosen of Kruphix
 Laid to Rest
 Lancer Sliver
+Legolas, Master Archer
+Levitation
 Liliana's Spoils
 Lunge
 Mage's Attendant
 Makindi Ox
 Malcator's Watcher
+Martyr for the Cause
 Master Trinketeer
 Midnight Angel Armor
 Mind Shatter
@@ -110,14 +133,17 @@ Mind Sludge
 Minotaur Warrior
 Moriok Rigger
 Mountain
+Mourning Thrull
 Naturalize
 Neurok Invisimancer
+Nimbus Naiad
 Ninja of the New Moon
 Origin of Black Widow
 Paladin's Shield
 Pattern of Rebirth
 Perilous Voyage
 Pheres-Band Thunderhoof
+Phyrexian Battleflies
 Plains
 Power Sink
 Precognition Field
@@ -132,9 +158,11 @@ Reservoir Walker
 Revered Unicorn
 Ring of Immortals
 Rockcaster Platoon
+Ronin Warclub
 Rush the Room
 Safe Haven
 Saltwater Stalwart
+Sandcrafter Mage
 Sanguinary Mage
 Sapseep Forest
 Savage Twister
@@ -143,14 +171,18 @@ Seahunter
 Sensory Deprivation
 Shadow Alley Denizen
 Shadow Lance
+Shadowcloak Vampire
 Sheoldred's Restoration
 Shriekmaw
 Silumgar Monument
 Silversmote Ghoul
 Simic Slaw
+Sinuous Vermin
 Skyrider Trainee
 Sleep of the Dead
 Slith Ascendant
+Solid Footing
+Soothsayer Adept
 Soul Sear
 Spellbane Centaur
 Stall for Time
@@ -176,8 +208,11 @@ Thriving Grubs
 Thriving Rhino
 Thundering Djinn
 Tolsimir Wolfblood
+Treasury Thrull
 Treetop Recluse
 Tyrant of Kher Ridges
+Ultimate Alliance
+Undead Leotau
 Unified Strike
 Unsubstantiate
 Uproot
@@ -186,11 +221,14 @@ Urborg Syphon-Mage
 Vashta Nerada
 Venerable Monk
 Veteran Swordsmith
+Vision, Synthezoid Avenger
 Vodalian Hypnotist
 Voice of Law
+Vraska's Finisher
 Wall of Blood
 Wandering Tombshell
 Water Wurm
+White Widow, Yelena Belova
 Wildwood Tracker
 Winding Way
 Writhing Necromass

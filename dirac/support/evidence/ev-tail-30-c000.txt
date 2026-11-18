@@ -19,9 +19,11 @@ Anurid Brushhopper
 Ao, the Dawn Sky
 Apprentice Wizard
 Archweaver
+Arenson's Aura
 Argothian Enchantress
 Artificer's Epiphany
 Ascendant Acolyte
+Ashes of the Fallen
 Assassin Gauntlet
 Assassin's Strike
 Assure
@@ -75,6 +77,7 @@ Cemetery Reaper
 Chain Stasis
 Chalice of Life
 Champion of the Parish
+Champions from Beyond
 Chaos Terminator Lord
 Chariot of the Sun
 Chief Magistrate of Mercadia
@@ -144,6 +147,7 @@ Firemind's Foresight
 Fit of Rage
 Flaming Fist Officer
 Flight of Equenauts
+Floodgate
 Folk Medicine
 Forest
 Forestfolk
@@ -161,6 +165,7 @@ Gideon's Lawkeeper
 Gift of Orzhova
 Gilt-Leaf Winnower
 Glimpse of Freedom
+Gloomshrieker
 Glyph Elemental
 Goblin Morningstar
 Goblin Trenches
@@ -178,12 +183,14 @@ Havoc Jester
 Healer of the Glade
 Healer of the Pride
 Hecatomb
+Hellhole Flailer
 Highborn Ghoul
 Hightide Hermit
 Hoard Robber
 Honden of Life's Web
 Hooded Hydra
 Hope and Glory
+Horizon Seeker
 Howl of the Horde
 Hulk, Brutal Brawler
 Hunted Witness
@@ -277,6 +284,7 @@ Pattern of Rebirth
 Perilous Voyage
 Pheres-Band Thunderhoof
 Phyrexian Battleflies
+Pia's Revolution
 Plains
 Plated Geopede
 Plated Spider
@@ -348,6 +356,7 @@ Silversmote Ghoul
 Simic Slaw
 Sinuous Vermin
 Skullknocker Ogre
+Skyclave Squid
 Skyrider Trainee
 Slayers' Stronghold
 Sleep of the Dead

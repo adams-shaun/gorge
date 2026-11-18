@@ -4,10 +4,15 @@ Abzan Runemark
 Ajani's Mantra
 Aku Djinn
 Angelic Purge
+Arashin Sovereign
+Armorer Guildmage
+Auriok Edgewright
 Aven Trooper
+Azimaet Drake
 Barrel Down Sokenzan
 Betrayal
 Black Sun's Twilight
+Blackbloom Rogue
 Blinding Mage
 Bloodlust Inciter
 Boiling Blood
@@ -23,10 +28,14 @@ City of Brass
 Cleopatra, Exiled Pharaoh
 Colossal Dreadmaw
 Concordant Crossroads
+Constricting Tendrils
 Contortionist Troupe
+Crystal Carapace
 Curse of Predation
+Darksteel Brute
 Death Speakers
 Defenestrate
+Despondency
 Devoted Retainer
 Devouring Swarm
 Echoing Calm
@@ -42,12 +51,14 @@ Fire Ambush
 Firemaw Kavu
 Flameskull
 Forest
+Fortress Cyclops
 Frightcrawler
 Frontier Mastodon
 Gaea's Bounty
 Ghalma's Warden
 Ghoulcaller's Bell
 Gift of Paradise
+Gixian Infiltrator
 Gloomhunter
 Go-Shintai of Hidden Cruelty
 Goblin Arsonist
@@ -60,6 +71,7 @@ Grismold, the Dreadsower
 Guardian of the Guildpact
 Halberdier
 Hamletback Goliath
+Hanweir Garrison
 Hardened Scales
 Harpoon Sniper
 Haunted Crossroads
@@ -70,10 +82,13 @@ Incurable Ogre
 Inferno Fist
 Insidious Bookworms
 Island
+Keldon Strike Team
 Khenra Charioteer
 Kiora's Follower
 Kjeldoran Pride
 Knights of Dol Amroth
+Kraken of the Straits
+Kratos, Stoic Father
 Land Leeches
 Lava Axe
 Liliana's Standard Bearer
@@ -94,12 +109,14 @@ Momentum Rumbler
 Mountain
 Mulch
 Multiform Wonder
+Mystic Enforcer
 Necromancer's Familiar
 Nexus of Fate
 Nomads' Assembly
 Novellamental
 Orazca Frillback
 Oreskos Swiftclaw
+Outbreak
 Painwracker Oni
 Pathbreaker Ibex
 Patient Rebuilding
@@ -110,10 +127,12 @@ Pool Resources
 Portent of Betrayal
 Precision Bolt
 Prey Upon
+Protect
 Psychotic Haze
 Pull from Tomorrow
 Purple Pentapus
 Putrid Imp
+Pyromantic Pilgrim
 Pyrrhic Blast
 Rag Dealer
 Rakshasa's Disdain
@@ -131,7 +150,9 @@ Ring of Three Wishes
 Roar of the Crowd
 Roaring Slagwurm
 Roc Hunter
+Ruby Medallion
 Runeclaw Bear
+Ruthless Disposal
 Sacred Cat
 Samurai Enforcers
 Sanctify
@@ -146,8 +167,10 @@ Shu Yun, the Silent Tempest
 Sigarda's Summons
 Sign in Blood
 Silent Sentinel
+Silver Knight
 Silverflame Squire
 Skizzik Surger
+Skyshaper
 Smoldering Crater
 Snow-Covered Forest
 Spectral Rider
@@ -155,14 +178,17 @@ Spitfire Handler
 Steel Leaf Paladin
 Stenchskipper
 String of Disappearances
+Suncrusher
 Surrakar Marauder
 Swamp
 Sword of the Animist
 Talisman of Unity
 The Shattered States Era
 Thopter Assembly
+Topaz Dragon
 Towering Indrik
 Treetop Scout
+Tuktuk the Explorer
 Tuya Bearclaw
 Two-Headed Zombie
 Unholy Indenture
@@ -178,3 +204,4 @@ Wei Scout
 Weirding Shaman
 Western Paladin
 Whispers of the Muse
+Wildfire Eternal

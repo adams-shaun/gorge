@@ -1,14 +1,21 @@
+A-Luminarch Aspirant
 Antagonize
 Ashcoat Bear
 Barbed Field
 Bring Low
+Brotherhood Outcast
+Cast Out
 Cephalid Retainer
 Ceta Sanctuary
+Commissar Severina Raine
 Coral Atoll
 Covert Operative
 Cruel Bargain
 Defense of the Heart
+Dryad Sophisticate
+Empyreal Voyager
 Faerie Vandal
+Flaxen Intruder
 Forest
 Ghirapur Guide
 Giant Ox
@@ -22,21 +29,32 @@ Mardu Heart-Piercer
 Massive Raid
 Maw of the Mire
 Minion of the Mighty
+Misfortune's Gain
+Morale
 Mountain
 Multani's Acolyte
 Nurturing Licid
 Overcome
 Plains
 Rage Forger
+Raksha Golden Cub
 Rampaging Ferocidon
 Ravenous Baboons
 Reinforced Ronin
 Rhythmic Water Vortex
+Scent of Ivy
 Seal of Doom
 Searchlight Companion
 Seascape Aerialist
 Skywing Aven
+Staunch Defenders
+Storm Fleet Swashbuckler
 Swamp
+Taoist Hermit
+The Art of Tea
 The Mightstone and Weakstone
 Timberwatch Elf
+Unleash Shell
+Valiant Knight
 Warfire Javelineer
+Woodland Sleuth

@@ -194,6 +194,7 @@ Starfighter Pilot
 Starport Security
 Starwinder
 Station Monitor
+Steelswarm Operator
 Stomping Ground
 Sunset Saboteur
 Sunstar Chaplain

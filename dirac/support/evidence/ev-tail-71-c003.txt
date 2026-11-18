@@ -17,42 +17,66 @@ Bower Passage
 Braingeyser
 Callous Dismissal
 Canyon Lurkers
+Cathedral Sanctifier
+Cerebral Eruption
 Cleaving Skyrider
 Commando Raid
 Cordial Vampire
 Cruel Sadist
 D'Avenant Archer
 Defy Death
+Detective of the Month
 Dockside Chef
 Doomed Traveler
 Double Trouble
 Earthshaker Giant
+Eccentric Farmer
 Elvish Piper
+Ensnare
 Expedition Envoy
 Extract from Darkness
 Fall of the Thran
 Fanatical Devotion
 Fatal Frenzy
+Ferrovore
 Fire Servant
 Firescreamer
+Flamekin Spitfire
+Flow of Knowledge
 Forest
+Frenzied Saddlebrute
+Garbage Elemental
 Gargoyle Flock
+Granite Gargoyle
+Growth Cycle
+Guardian Lions
 Gut, True Soul Zealot
 Harnessed Lightning
 Haze of Pollen
+Hold for Questioning
 Humble
+Hydrolash
 Imposing Visage
 Inescapable Brute
+Inspirit
 Island
+Jawbone Duelist
+Jeska, Warrior Adept
 Jhessian Balmgiver
 Journey for the Elixir
 Keepsake Gorgon
+Keldon Warcaller
+Kessig Naturalist
 Knight of the Tusk
 Kor Scythemaster
+Kyoshi Warrior Guard
+Lightning Spear
 Llanowar Cavalry
 Maned Serval
 Manhole Cover
 Marked by Honor
+Meldweb Strider
+Militia Rallier
 Moku, Meandering Drummer
 Molderhulk
 Momentary Blink
@@ -60,6 +84,7 @@ Monk Idealist
 Mountain
 Mukotai Ambusher
 Myth Realized
+Nexus of Fate
 Nightmare Shepherd
 Nimble Mongoose
 Nissa's Zendikon
@@ -68,27 +93,35 @@ Ob Nixilis, the Hate-Twisted
 Pact of Negation
 Palace Sentinels
 Phyrexian Missionary
+Piston Sledge
 Plains
 Prized Elephant
 Psychic Overload
+Pyrogoyf
 Rampaging Monument
 Reckless Reveler
 Regenesis
+Release the Ants
 Renegade Warlord
 Riptide Mangler
 Rising Populace
 Rummaging Goblin
 Sanctifier of Souls
 Scaled Behemoth
+Shocker
 Shu Farmer
 Sky Crier
+Sly Instigator
+Sonic Seizure
 Soulcatcher
+Spikefield Hazard
 Spined Thopter
 Storm Seeker
 Sungrace Pegasus
 Swamp
 Swathcutter Giant
 Tezzeret's Gambit
+Threnody Singer
 Throne of the God-Pharaoh
 Time Bomb
 Twisted Justice
@@ -97,7 +130,10 @@ Undead Butler
 Unseal the Necropolis
 Vapor Snag
 Vent Sentinel
+Voltaic Brawler
 Wing Shards
 Witherbloom Command
+Wrath of Marit Lage
+Wyleth, Soul of Steel
 Yisan, the Wanderer Bard
 Yomiji, Who Bars the Way

@@ -1,119 +1,188 @@
 Absorb
+Agility Bobblehead
 Air Servant
 Akoum Refuge
+Alabaster Potion
 Ancestral Blade
 Ancient Gold Dragon
 Anointer Priest
+Archwing Dragon
+Ardent Elementalist
 Ashen Monstrosity
 Attune with Aether
 Avatar of Growth
 Azure Drake
 Back in Town
+Banishment
 Barrow Witches
+Basilica Skullbomb
 Belligerent Sliver
 Big Boa Constrictor
 Black Widow, Intel Expert
+Black Widow, Natasha Romanoff
+Bloodcrazed Neonate
 Bloodmark Mentor
+Bloodthirsty Adversary
 Bond of Insight
 Bonehoard
 Bound in Silence
+Bountiful Promenade
 Brandywine Farmer
+Cabaretti Courtyard
 Catacomb Sifter
+Chaos Lord
 Chaotic Backlash
+Clear a Path
 Clip Wings
+Continue?
 Creeping Corrosion
 Cunning Survivor
+Daggersail Aeronaut
+Daunting Defender
+Dawning Angel
 Death's Shadow
 Deepwood Wolverine
+Deputized Protester
+Desert of the Indomitable
+Desolate Mire
 Desynchronize
+Devouring Light
 Devouring Swarm
 Dina, Essence Brewer
 Doom Whisperer
 Double Negative
 Drainpipe Vermin
 Dread Tiller
+Dualcaster Mage
 Dune Mover
 Easy Prey
+Enrage
 Ethereal Investigator
 Evolving Adaptive
 Faerie Noble
 Falkenrath Marauders
+Farewell
+Fateful Showdown
 Ferocious Zheng
+Fiendslayer Paladin
 Fissure
+Flowstone Charger
 Forest
 Gift of Paradise
 Glimmervoid
 Gnarled Effigy
+Great Defender
 Grixis Slavedriver
 Guardian of the Guildpact
 Guul Draz Mucklord
 Haazda Officer
 Harbinger of Night
+Harmless Assault
 Herd Gnarr
 Hibernation
 Howl of the Night Pack
 Huatli, Radiant Champion
 Hurloon Battle Hymn
+Immortal Phoenix
+Incisor Steed
 Island
 Jace's Erasure
+Jalum Tome
 Judith, the Scourge Diva
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
 Kher Keep
 Kjeldoran Outrider
+Leyline of Punishment
 Lightning-Rig Crew
+Lightwielder Paladin
+Magma Vein
+Magmatic Insight
 Mana Vault
+Manalith
+Mardu Woe-Reaper
 Mark of the Oni
 Master of Winds
 Master the Way
+Maze Rusher
 Metathran Elite
+Mijae Djinn
 Mind Over Matter
 Mindwrack Harpy
 Minotaur, Roxxon CEO
+Mobile Fort
 Mold Demon
 Momentum Rumbler
 Mountain
+Mox Tantalite
 Muck Rats
 Myrel, Shield of Argive
+Mystic Skull
 Nebelgast Herald
 Neonate's Rush
 Nezumi Freewheeler
 Nightveil Predator
 Nyx-Fleece Ram
 Oak Street Innkeeper
+Obelisk of Grixis
+Ogre Taskmaster
+One-Eyed Scarecrow
+Panic Attack
 Parallel Lives
+Patrol Hound
 Peregrine Mask
 Phantasmal Dreadmaw
+Pillage
 Plains
 Plasmancer
 Portent of Betrayal
 Power of Persuasion
 Pyrrhic Blast
 Quest for Renewal
+Rageblood Shaman
 Rally the Peasants
+Rampaging Cyclops
+Raugrin Triome
 Reclaim the Wastes
+Reverberate
+Rimewood Falls
 Rishkar's Expertise
+Rockshard Elemental
+Rout
+Rune-Cervin Rider
 Sage Aven
 Sailor of Means
+Sanctify
 Sanctum of Stone Fangs
+Scalding Devil
 School of Piranha
 Sedgemoor Witch
 Seething Pathblazer
+Show of Valor
+Shrine Keeper
+Sigil of Valor
 Sizzle
 Skyline Cascade
+Slagwoods Bridge
+Songstitcher
 Sonic Screwdriver
 Sootstoke Kindler
+Soulmender
 Spectacle Mage
 Spitebellows
 Spitfire Handler
 Sunscorched Desert
+Surge Engine
 Swamp
 Swarm of Rats
+Sword of the Animist
 Tectonic Edge
+Tempestra, Dame of Games
 Thopter Assembly
 Thoughtweft Gambit
 Threnody Singer
 Thundersteel Colossus
+Trailblazing Historian
 Trained Caracal
 Turntimber Grove
 Twiddle
@@ -121,8 +190,16 @@ Undead Servant
 Venomous Changeling
 Verdant Sun's Avatar
 Viscerid Deepwalker
+Volcanic Torrent
+Volcanic Upheaval
+Voyager Staff
 Warmonger Hellkite
+Whiptail Moloch
+Winding Canyons
+Wingsteed Rider
 Wizard Replica
 Woodland Stream
+Yoshimaru, Ever Faithful
 Zap
+Zealot's Conviction
 Zendikar Farguide
