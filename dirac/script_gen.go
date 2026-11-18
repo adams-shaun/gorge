@@ -869,7 +869,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			// kw_multikicker.go)
 			continue
 		}
-		if k.gen.anyTapExtra {
+		if s.tapExtraLive(k) {
 			continue // a tap's extra is no part of the walk's units here, yet gorge's relaxed census counts it (mana_tapextra.go)
 		}
 		cost, ex, need, ok := s.grantPlayCost(k, p, a, true)
