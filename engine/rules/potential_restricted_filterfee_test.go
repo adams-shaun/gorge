@@ -48,7 +48,9 @@ func filterFeeBoard(t *testing.T, board, hand []string) *Engine {
 // Hydraulic Helper's {U} (artifact spells only, CR 106.6) still pays the {1}
 // of Unknown Shores' "{1}, {T}: Add one mana of any color", an activated
 // ability and not a spell: Helper -> the land's fee -> {U}, plus three
-// Swamps, casts a {3}{U} spell.
+// Swamps, casts a {3}{U} spell. The census prices the Swamps and misses only
+// the filter land; the prefix script funds the fee from Helper and the
+// planner prices the cast.
 func TestRestrictedSourceFundsAFilterFee(t *testing.T) {
 	t.Parallel()
 	e := filterFeeBoard(t,
@@ -57,21 +59,36 @@ func TestRestrictedSourceFundsAFilterFee(t *testing.T) {
 	strat := boundHandID(t, e, "Trickster's Stratagem")
 	hyp := e.PotentialMana(0)
 	census := e.paymentPlanCensusOf(0, &hyp)
-	t.Errorf("census complete %v relaxable %v gaps %v", census.complete, census.relaxable, boundCensusGapNames(t, e, census))
+	if census.complete {
+		t.Fatal("precondition: the census misses the filter land")
+	}
 	option := boundPlayOption(t, e, strat)
-	_, ok := e.potentialPrefixScript(0, option, census.gaps, census.fees())
-	t.Errorf("prefix script ok=%v", ok)
-	plans := e.PotentialPaymentPlans(0)
-	for i := range plans {
-		if plans[i].Action.Kind == "cast" && plans[i].Action.Obj == strat {
-			t.Errorf("plan reason %q detail %q script %d", plans[i].Reason, plans[i].Detail, len(plans[i].Script))
+	if _, ok := e.potentialPrefixScript(0, option, census.gaps, census.fees()); !ok {
+		t.Fatal("the prefix script funding Unknown Shores' fee from Helper's restricted {U} was not found")
+	}
+	for _, plan := range e.PotentialPaymentPlans(0) {
+		if plan.Action.Kind == "cast" && plan.Action.Obj == strat {
+			if plan.Reason != "" {
+				t.Fatalf("Stratagem plan reason %q detail %q: not priced", plan.Reason, plan.Detail)
+			}
+			return
 		}
 	}
+	t.Fatal("no Stratagem plan in PotentialPaymentPlans")
 }
 
+// The funded cast reaches the priority offer: the canonical list under the
+// full surface includes plain casts gorge reaches by scripting a potential
+// play, as the payment-actions builder's "insufficient but proved payable"
+// path.
 func TestRestrictedSourceFilterFeeOffered(t *testing.T) {
 	t.Parallel()
 	e := filterFeeBoard(t, []string{"Swamp", "Swamp", "Swamp", "Unknown Shores", "Hydraulic Helper", "Rewrite History", "Island", "Project Deathlok Soldier", "Stature, Size Shifter"}, []string{"Trickster's Stratagem"})
 	strat := boundHandID(t, e, "Trickster's Stratagem")
-	t.Errorf("offered casts: %d", len(castOptionsFor(e, strat)))
+	for _, a := range e.EnsurePaymentActions() {
+		if a.Cast.Object == strat && len(a.Plans) > 0 {
+			return
+		}
+	}
+	t.Fatal("no payment action for the Stratagem cast with a plan: the funded cast is not offered")
 }
