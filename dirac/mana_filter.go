@@ -262,8 +262,9 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 			n++
 		}
 	}
+	base := s.restrActFiltAvail(k, p, av)
 	for set := 1; set < 1<<n; set++ {
-		if s.faceReachSet(k, p, r, extra, *av, &filt, 0, n, uint32(set)) {
+		if s.faceReachSet(k, p, r, extra, base, &filt, 0, n, uint32(set)) {
 			return true
 		}
 	}

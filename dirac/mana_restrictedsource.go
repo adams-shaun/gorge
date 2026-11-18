@@ -695,6 +695,25 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 	return t, multi, nm
 }
 
+// restrActFiltAvail is av for a filter walk of the activation being built: the
+// restricted sources its payment may spend (A-Base Camp's any colour for a
+// Warrior's ability, CR 106.6) count as the units they make, beside the filter
+// lands whose fee they can fund and whose coloured mana they can share a pip
+// with (gorge's cast window prices a RestrictValid$ ability its payment admits
+// like any other source, then walks the filters over what it made). A spell's
+// restricted mana floats in the pool, so only an activation widens av.
+//
+//go:noinline
+func (s *State) restrActFiltAvail(k *prep, p uint8, av *avail) avail {
+	if k.restrSrc {
+		if d := s.payDescNow(NoObj); d.class == pdAct {
+			t, _, _ := s.restrSrcAvail(k, p, d, av, d.src)
+			return t
+		}
+	}
+	return *av
+}
+
 // restrWideMask is the colour mask of a widened source's larger alternative:
 // wideCol, or for a chosen-colour one the permanent's chosen colour (and the
 // ability's printed one) at sl (Sunken Citadel).
