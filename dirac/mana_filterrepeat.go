@@ -137,8 +137,8 @@ func (s *State) scriptAnyWalk(k *prep, p uint8, filt slotMask, relax, unrelax bo
 // first, then its generic part from the pool beyond the cost's pips, then any
 // mana; a hybrid pip, an any-type rider or no owed cost fails open.
 func (s *State) windowFeeStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, anyColor bool) bool {
-	if useful == nil || anyColor || useful.Hyb[0] != 0 || !s.filtRepeat(k, sl) {
-		return false
+	if useful == nil || anyColor || useful.Hyb[0] != 0 || s.g.winMode == winTrig || !s.filtRepeat(k, sl) {
+		return false // a trigger's own cost window (winTrig) carries no pending cast, so gorge's paymentSourceUseful clamp never runs: it lists the filter
 	}
 	fee := s.filtRepeatCost(k, sl)
 	ab := s.filtAb(k, sl)
