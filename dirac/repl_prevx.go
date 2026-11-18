@@ -73,9 +73,18 @@ func (s *State) prevXAny() bool {
 	return false
 }
 
-// prevRiderMatch reports whether a rider record matches the damage event.
+// prevRiderMatch reports whether a rider record matches the damage event: a
+// scoped record's gain rider (prevRecHit) or a source-keyed PreventNext
+// shield's (kop.PrevNextFrom, Awe Strike, matched by the source at sl;
+// pnxMatches, which no recipient-keyed record reaches here).
 func (s *State) prevRiderMatch(k *prep, sl Slot, c CardID, t prevTgt, combat bool) bool {
 	for i := range s.g.prevCol {
+		if s.g.prevX[i]&(pxFrom|pxRidGain) == pxFrom|pxRidGain {
+			if s.pnxMatches(i, TCode(NoTarget), sl, combat) {
+				return true
+			}
+			continue
+		}
 		if s.g.prevX[i]&pxRider != 0 && s.prevRecHit(k, i, sl, c, t, combat) {
 			return true
 		}
@@ -114,6 +123,23 @@ func (s *State) pnxOn(code TCode, combat bool) bool {
 	return false
 }
 
+// pnxFromOn reports a live source-keyed PreventNext shield (kop.PrevNextFrom,
+// Awe Strike) on the permanent at srcSl: beside a rider record it is another
+// candidate of the event (gorge asks the CR 616.1 order, and a body is never
+// a bare prevention).
+func (s *State) pnxFromOn(srcSl Slot, combat bool) bool {
+	if srcSl == NoSlot {
+		return false
+	}
+	code := TCode(s.perms[srcSl].obj)
+	for i := range s.g.prevCol {
+		if r := &s.g.prevCol[i]; r.sc&prevNextSc != 0 && r.col != 0 && s.g.prevX[i]&pxFrom != 0 && r.ctl == code && (combat || r.sc&prevNextCmb == 0) {
+			return true
+		}
+	}
+	return false
+}
+
 // prevRiderApply runs the rider of the prevention record that matches a
 // damage event of n (srcCtrl's source, to the recipient code): it gains the
 // prevented life for the record's player. The caller prevents the event as for
@@ -139,7 +165,7 @@ func (s *State) prevRiderApply(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardI
 	if s.protBeforeRepl(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
 		return // prevented before the replacement: no rider
 	}
-	if s.noPrev(k, combat) || s.g.ro.on || s.parkedAny() || hits > 1 || s.pnxOn(code, combat) ||
+	if s.noPrev(k, combat) || s.g.ro.on || s.parkedAny() || hits > 1 || s.pnxOn(code, combat) || s.pnxFromOn(srcSl, combat) ||
 		s.replOthersCompete(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
 		s.capFull(StallPrevRider) // loud: gorge runs the rider where the kernel cannot
 		return

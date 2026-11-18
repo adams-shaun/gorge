@@ -69,9 +69,18 @@ const prevNextCmb uint8 = 1 << 6
 var DebugNoPrevNext bool
 
 // prevNextAdd is Ext PreventNext: it installs the shield on the recipient
-// code Obj names, with the amount B read once.
+// code Obj names, with the amount B read once. A shield whose instruction
+// carries kop.PrevNextFrom (Awe Strike) is keyed on the damage source
+// instead: Obj names the remembered target creature, the record's ctl is its
+// code and the rider byte genState.prevX carries pxFrom (and pxRidGain,
+// kop.PrevNextGain) beside the controller's seat.
 func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
-	all := in.C&2 != 0 // seat-ok: an instruction flag bit
+	all := in.C&kop.PrevNextAll != 0 // seat-ok: an instruction flag bit
+	from := in.C&kop.PrevNextFrom != 0
+	if from && !all {
+		s.capFull(StallLowering) // loud: a source-keyed shield has no amount to spend
+		return
+	}
 	n := prevNextAll
 	if !all {
 		if n = s.value(k, in.B); n <= 0 {
@@ -97,8 +106,14 @@ func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
 		if r := &s.g.prevCol[i]; r.col == 0 && r.sc == 0 {
 			r.obj, r.col, r.sc, r.ctl = s.res.e.obj, kop.ColorMask(n), prevNextSc, code
 			s.g.prevX[i] = 0
-			if in.C&1 != 0 { // seat-ok: an instruction flag bit
+			if in.C&kop.PrevNextCombat != 0 { // seat-ok: an instruction flag bit
 				r.sc |= prevNextCmb
+			}
+			if from { // seat-ok: the resolving controller is the shield's controller
+				s.g.prevX[i] = pxFrom | s.res.e.ctrl<<pxSeatShift
+				if in.C&kop.PrevNextGain != 0 {
+					s.g.prevX[i] |= pxRidGain
+				}
 			}
 			return
 		}
@@ -116,17 +131,39 @@ func (s *State) pnxLive() bool {
 	return false
 }
 
+// pnxMatches reports whether the depleting shield at record i matches a
+// damage event to the recipient code from the permanent at srcSl (NoSlot: a
+// player or a source with no permanent). A shield without kop.PrevNextFrom
+// matches by its recipient; one with it matches only by its source — the
+// record's ctl is the source's code and the recipient is never read, so
+// damage dealt TO the Awe-Struck creature is dealt.
+func (s *State) pnxMatches(i int, code TCode, srcSl Slot, combat bool) bool {
+	r := &s.g.prevCol[i]
+	if r.sc&prevNextSc == 0 || r.col == 0 || !combat && r.sc&prevNextCmb != 0 {
+		return false
+	}
+	if s.g.prevX[i]&pxFrom == 0 {
+		return r.ctl == code
+	}
+	return srcSl != NoSlot && TCode(s.perms[srcSl].obj) == r.ctl
+}
+
 // prevNextTake applies the shield on recipient code (controlled by rcp; the
 // permanent at sl, NoSlot for a player) to a damage event of n from the source
-// at srcSl (card srcCard when it is no permanent) controlled by srcCtrl. It
-// reports the damage left and whether a shield applied; false leaves the
-// event to the other prevention and replacement arms.
+// at srcSl (card srcCard when it is no permanent) controlled by srcCtrl. A
+// shield keyed on the source (kop.PrevNextFrom, Awe Strike) matches by srcSl
+// instead (pnxMatches). It reports the damage left and whether a shield
+// applied; false leaves the event to the other prevention and replacement
+// arms.
 func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, rcp uint8, sl Slot, combat bool, n int) (int, bool) {
-	hit, at := 0, -1
+	hit, at, rider := 0, -1, false
 	for i := range s.g.prevCol {
-		if r := &s.g.prevCol[i]; r.sc&prevNextSc != 0 && r.col != 0 && r.ctl == code && (combat || r.sc&prevNextCmb == 0) {
+		if s.pnxMatches(i, code, srcSl, combat) {
 			hit++
 			at = i
+			if s.g.prevX[i]&(pxFrom|pxRidGain) == pxFrom|pxRidGain {
+				rider = true // a gain rider: gorge runs the body (repl_prevx.go)
+			}
 		}
 	}
 	if hit == 0 || n <= 0 || DebugNoPrevNext {
@@ -140,13 +177,34 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 		return n, false // prevented before the replacements: nothing is spent
 	}
 	if s.noPrev(k, combat) {
+		if rider {
+			s.capFull(StallPrevRider) // loud: gorge runs the rider and keeps the damage
+		}
 		return n, false // CR 615.12: the shield is no candidate
 	}
+	if rider && (s.g.ro.on || s.parkedAny()) {
+		s.capFull(StallPrevRider) // loud: the rider would be run where the kernel cannot
+		return n, false
+	}
 	if hit > 1 || s.prevNextCompetes(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
-		s.capFull(StallPrevNext) // two or more shields on one recipient: only damageTo and a combat pass pose the ask
+		if rider {
+			s.capFull(StallPrevRider) // a body is never a bare prevention: gorge asks the order
+		} else {
+			s.capFull(StallPrevNext) // two or more shields on one recipient: only damageTo and a combat pass pose the ask
+		}
 		return n, false
 	}
 	r := &s.g.prevCol[at]
+	if s.g.prevX[at]&pxFrom != 0 {
+		// a source-keyed shield: the first event from its source is prevented
+		// whole and the record is spent (the Effect exiles itself)
+		m := n
+		r.col = 0
+		if x := s.g.prevX[at]; x&pxRidGain != 0 && !DebugNoPrevRider {
+			s.gainLife(k, x>>pxSeatShift, m)
+		}
+		return n - m, true
+	}
 	if r.col == prevNextAll {
 		return 0, true // unbounded: everything, never spent
 	}
@@ -216,22 +274,24 @@ func (s *State) replOthersCompete(k *prep, srcCtrl uint8, srcSl Slot, srcCard Ca
 	return false
 }
 
-// prevNextCands appends the depleting shields on the recipient code, in
-// registration order, to the candidates of a damage event after its first c
-// (cand holds the record's index, the option names its source), marking them
-// in *pm; the new count, or -1 (a loud stall) when another replacement is also
-// a candidate or the candidates overflow. prevMask marks the c candidates
-// collected so far that prevent the event whole: beside only those the order
-// changes nothing but the shield's spend, which the walk applies as picked, so
-// the ask is posed; beside any other candidate the amounts change and it
-// stalls. With no shield on the recipient, or under CR 615.12, it adds nothing.
-func (s *State) prevNextCands(k *prep, code TCode, combat bool, cand *[4]Obj, c int, pm *uint8, prevMask uint8) int {
+// prevNextCands appends the depleting shields matching a damage event to the
+// recipient code from the permanent at srcSl, in registration order, to the
+// candidates after its first c (cand holds the record's index, the option
+// names its source), marking them in *pm; the new count, or -1 (a loud stall)
+// when another replacement is also a candidate or the candidates overflow.
+// prevMask marks the c candidates collected so far that prevent the event
+// whole: beside only those the order changes nothing but the shield's spend,
+// which the walk applies as picked, so the ask is posed; beside any other
+// candidate the amounts change and it stalls. With no matching shield, or
+// under CR 615.12, it adds nothing.
+func (s *State) prevNextCands(k *prep, code TCode, srcSl Slot, combat bool, cand *[4]Obj, c int, pm *uint8, prevMask uint8) int {
 	if s.noPrev(k, combat) {
 		return c
 	}
 	start := c
+	rider := false
 	for i := range s.g.prevCol {
-		if r := &s.g.prevCol[i]; r.sc&prevNextSc != 0 && r.col != 0 && r.ctl == code && (combat || r.sc&prevNextCmb == 0) {
+		if s.pnxMatches(i, code, srcSl, combat) {
 			if c == len(cand) {
 				s.capFull(StallReplCands) // loud: never truncate the candidates
 				return -1
@@ -239,7 +299,14 @@ func (s *State) prevNextCands(k *prep, code TCode, combat bool, cand *[4]Obj, c 
 			cand[c] = Obj(i)
 			*pm |= 1 << c
 			c++
+			if s.g.prevX[i]&(pxFrom|pxRidGain) == pxFrom|pxRidGain {
+				rider = true // a gain rider: the order's walk cannot run the body
+			}
 		}
+	}
+	if rider && c >= 2 {
+		s.capFull(StallPrevRider) // loud: a body is never a bare prevention, gorge asks the order
+		return -1
 	}
 	for j := start; c-start > 1 && j < c; j++ {
 		if s.g.prevCol[cand[j]].col == prevNextAll {
@@ -259,6 +326,11 @@ func (s *State) prevNextCands(k *prep, code TCode, combat bool, cand *[4]Obj, c 
 func (s *State) prevNextSpend(i int) {
 	ro := &s.g.ro
 	r := &s.g.prevCol[ro.cand[i]]
+	if s.g.prevX[ro.cand[i]]&pxFrom != 0 {
+		r.col = 0 // a source-keyed shield: one event, spent
+		ro.an = 0
+		return
+	}
 	if r.col == prevNextAll {
 		ro.an = 0 // unbounded: everything, never spent
 		return
