@@ -14,10 +14,11 @@ import (
 // carries the counter kind in its low byte and the count above it.
 var exileOnLeaveRiderForms = []struct {
 	card string
-	kind kop.CounterKind
+	kind kop.CounterKind // 0: no counter; the rider is a sub-ability prog (Kalitas's Token)
 }{
 	{card: "Dauthi Voidwalker", kind: kop.CtrVoid},
 	{card: "Draugr Necromancer", kind: kop.CtrIce},
+	{card: "Kalitas, Traitor of Ghet"},
 }
 
 func TestExileOnLeaveRiderForms(t *testing.T) {
@@ -30,10 +31,22 @@ func TestExileOnLeaveRiderForms(t *testing.T) {
 		p := &pool{byName: map[string]*cards.Card{card.Faces[0].Name: card}, nDecks: map[string]int{}, reg: reg}
 		return lowerCard(p, card.Faces[0].Name, card, false)
 	}
-	var lcs []*lCard
+	var lcs, toks []*lCard
 	for _, f := range exileOnLeaveRiderForms {
 		c := lower(f.card)
 		lcs = append(lcs, c)
+		seen := map[string]bool{}
+		for _, ts := range c.Tokens { // the tokens the pool builds with the card (lowerPool)
+			tc, ok := reg.Token(ts)
+			if !ok {
+				t.Fatalf("%s: token %q not in the corpus", f.card, ts)
+			}
+			if !seen[ts] {
+				seen[ts] = true
+				p := &pool{byName: map[string]*cards.Card{}, nDecks: map[string]int{}, reg: reg}
+				toks = append(toks, lowerCard(p, ts, tc, true))
+			}
+		}
 		for _, r := range c.Refusals {
 			t.Errorf("%s: refused: %s", f.card, r.Reason)
 		}
@@ -41,11 +54,14 @@ func TestExileOnLeaveRiderForms(t *testing.T) {
 			t.Errorf("%s: repls = %+v, want one ExileOnLeave", f.card, c.Repls)
 			continue
 		}
-		if c.Repls[0].Ctr == "" {
-			t.Errorf("%s: ExileOnLeave has no counter kind", f.card)
+		if (c.Repls[0].Ctr == "") != (f.kind == 0) {
+			t.Errorf("%s: ExileOnLeave counter kind = %q, want one only for a counter rider", f.card, c.Repls[0].Ctr)
+		}
+		if (len(c.Repls[0].Prog) == 0) != (f.kind != 0) {
+			t.Errorf("%s: ExileOnLeave rider prog len = %d, want one only for a sub-ability rider", f.card, len(c.Repls[0].Prog))
 		}
 	}
-	_, bs, _, err := buildPool(&lowered{cards: lcs})
+	_, bs, _, err := buildPool(&lowered{cards: lcs, tokens: toks})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,6 +78,21 @@ func TestExileOnLeaveRiderForms(t *testing.T) {
 		}
 		if repl == nil {
 			t.Errorf("%s: no built ReplExileOnLeave", f.card)
+			continue
+		}
+		if f.kind == 0 {
+			if repl.A != 0 {
+				t.Errorf("%s: Repl.A = %d, want 0 for a prog rider", f.card, repl.A)
+			}
+			var prog int
+			for j := range bs[i].def.Abilities {
+				if ab := &bs[i].def.Abilities[j]; ab.Kind == kop.AbReplacement && ab.Repl.Kind == kop.ReplExileOnLeave {
+					prog = len(ab.Prog)
+				}
+			}
+			if prog == 0 {
+				t.Errorf("%s: built ReplExileOnLeave ability has no Prog", f.card)
+			}
 			continue
 		}
 		if got := kop.CounterKind(repl.A & 0xff); got != f.kind {
