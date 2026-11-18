@@ -132,6 +132,10 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 				}
 			}
 			return Pack(ActReplacement, ref(o.Obj), RefNone, uint8(occ)), true
+		case "skip_replacement":
+			// the optional damage replacement's "may" declined (Battletide
+			// Alchemist): the kernel's source-less replacement answer
+			return Pack(ActReplacement, RefNone, RefNone, 0), true
 		case "apply":
 			return Pack(ActYes, ref(o.Obj), RefNone, 0), true
 		case "decline":
