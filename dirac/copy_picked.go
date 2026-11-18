@@ -45,8 +45,7 @@ func (s *State) populatePick(k *prep, in *kop.Instr, p uint8) (ok, done bool) {
 	return false, true
 }
 
-// copyPicked is ExtCopyPicked. True when a copy's ask parked the resolution
-// (the shapes that would pose one stall instead, as copyNamed does).
+// copyPicked is ExtCopyPicked. True when a copy's ask parked the resolution.
 func (s *State) copyPicked(k *prep, in *kop.Instr) bool {
 	o := s.objRefObj(in.Obj)
 	if o == NoObj {
@@ -64,11 +63,8 @@ func (s *State) copyPicked(k *prep, in *kop.Instr) bool {
 		c = s.cardAt(s.objs[o].slot)
 	}
 	cin := kop.Instr{Op: kop.OpCopyAsTokenEx, Obj: in.Obj, A: kop.Const(1), B: in.B, C: in.C}
-	if k.cards[c].types&kop.TAura != 0 && k.t.Cards[c].Enchant.Kind == kop.TgtObject || s.enterChoiceKind(k, c) != 0 ||
-		k.gen != nil && k.gen.anyBecomeCopy && s.cloneTokenAsk(k, &cin, c) != 0 {
-		s.stall(StallCopyAllAsk)
-		return false
-	}
+	// an Aura copy's host ask and a copy's as-enters ask park here as any
+	// token copy's do (copyTokensRun; the answer arms resume from this op)
 	return s.copyCardToken(k, &cin, c)
 }
 
