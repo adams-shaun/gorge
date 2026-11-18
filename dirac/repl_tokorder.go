@@ -32,6 +32,7 @@ type tokOrd struct {
 	left   uint8  // tokens of the op still to decide, the current one included
 	nc     uint8  // the candidates
 	used   uint8  // candidates applied to the current token (bit per cand)
+	acc    uint8  // 1 + the candidate whose copy election was last accepted, 0 none
 	tok    CardID // the card the op names
 	card   CardID // the current token's card so far
 	cnt    int16  // how many of it so far
@@ -223,6 +224,20 @@ func (s *State) tokCopyHost(k *prep, t *tokOrd) Obj {
 	return s.perms[h].obj
 }
 
+// tokCopyAccepted is the host the accepted copy election copies: the last one
+// accepted wins (gorge applies each accepted election to the plan in turn), so
+// a later election declined leaves an earlier one's host.
+func (s *State) tokCopyAccepted(k *prep, t *tokOrd) Obj {
+	if t.nc == 0 || t.acc == 0 {
+		return s.tokCopyHost(k, t)
+	}
+	h := s.perms[s.objs[t.cand[t.acc-1]].slot].attached
+	if h == NoSlot || !s.occ.has(h) {
+		return NoObj
+	}
+	return s.perms[h].obj
+}
+
 // tokCopyPose poses the copy-instead election for candidate j: it is consumed
 // either way (decline first, or the permanent it is attached to). False when
 // its gate no longer holds, so the walk goes on with it declined.
@@ -269,6 +284,7 @@ func (s *State) tokPose(k *prep) bool {
 	t.used, t.card, t.cnt = 0, t.tok, 1
 	t.setCopyDue(false)
 	t.setCopyTaken(false)
+	t.acc = 0
 	// A copy-instead gate is read at every token event: the first token that
 	// enters closes it for the rest of the creation (gorge reads CheckSVar$ at
 	// each TokenCreate event, not once at the op).
@@ -325,23 +341,24 @@ func (s *State) replTokensOp(k *prep, in *kop.Instr, p uint8, tok CardID, n int)
 	}
 	if ncopy > 0 {
 		host := s.tokCopyHostOf(k, &t, p)
+		hostsStall := s.tokCopyHostsStall(k, &t, p)
 		_, na, addOver := s.tokAddCards(k, p, tok)
 		if addOver {
 			s.capFull(StallReplCands)
 			return tok, 0, false, false
 		}
-		if t.nc == uint8(ncopy) {
+		if t.nc == uint8(ncopy) && ncopy == 1 {
 			// the copy-instead election is the creation's only replacement
 			return s.tokCopyOp(k, in, p, tok, n, ncopy, host, na) // repl_tokcopy.go
 		}
-		// A copy-instead election beside a multiplier is gorge's CR 616.1
-		// order ask, which the walk below poses. A rewriter beside it, an
+		// A copy-instead election beside a multiplier, or beside another
+		// election (two Auras on one permanent), is gorge's CR 616.1 order
+		// ask, which the walk below poses. A rewriter beside it, an
 		// adder beside it, and a host or rider the copy mint cannot enter
 		// stay the declared stall (repl_tokcopy.go).
 		ro := &s.g.ro
-		if ncopy > 1 || rew > 0 || na > 0 || !tokCopyRiders(in) || n > 255 ||
-			ro.n > 0 || ro.on || ro.nca || s.g.nc.n > 0 || host == NoSlot ||
-			s.tokCopyHostStalls(k, host) ||
+		if rew > 0 || na > 0 || !tokCopyRiders(in) || n > 255 ||
+			ro.n > 0 || ro.on || ro.nca || s.g.nc.n > 0 || host == NoSlot || hostsStall ||
 			in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttach != 0 {
 			s.capFull(StallTokRewrite)
 			return tok, 0, false, false
@@ -462,7 +479,7 @@ func (s *State) execCreateToken(k *prep, in *kop.Instr) (ok, done bool) {
 		// the accepted copy-instead election makes every token the walk's
 		// count names a copy (repl_tokcopy.go)
 		t.setCopyTaken(false)
-		if s.mintTokenCopies(k, in, p, s.tokCopyHost(k, t), int(t.cnt)) {
+		if s.mintTokenCopies(k, in, p, s.tokCopyAccepted(k, t), int(t.cnt)) {
 			return true, true
 		}
 	} else if na > 0 {
