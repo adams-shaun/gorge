@@ -1,0 +1,20 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Birthing Pod	534d8b3d8c76d316	6	1/1		0/1	ix:resp
+Boulder Salvo	1eb52c6d9cd9ccef	7	0/0		3/4	ix:resp
+Cyclops Superconductor	b26ab3369c04ba19	5	3/3		0/1	ix:resp
+Domri's Ambush	9d16eafb12090741	5	0/0		1/2	ix:resp
+Elven Bow	abea579c56d067d1	7	2/2		0/1	ix:resp
+Excogitator Sphinx	84ea505a705fac68	24	2/2		0/1	ix:resp
+Festering Wound	74fb522f683a9491	22	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
+Gravity Well	cdeb9b54c41cc6c3	4	1/1		0/1	ix:resp
+Karakas	136cf132e12205b7	13	2/2		0/1	ix:resp
+Kithkin Mourncaller	e1e7e6a9d92c6e10	10	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Necroblossom Snarl	d5367d8d8bbced04	13	1/1		0/1	ix:resp
+Orochi Soul-Reaver	b62782590171b697	20	2/2		1/1	
+Quandrix Pledgemage	e2413f4c8394f240	3	1/1		1/1	
+Quest for Ancient Secrets	853340017d65bdfa	45	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Scarwood Treefolk	1d946806f022a43c	7	0/0		0/0	
+Sivriss, Nightmare Speaker	0da0707a21da6064	31	1/1		1/1	
+Storm of Memories	acd69b1bb25e077a	4	1/1		2/2	
+The Surgical Bay	65f79fe9ddf681e0	84	2/2		0/1	ix:resp
+Verduran Emissary	75995a179b50d4a0	16	1/1		2/3	ix:resp

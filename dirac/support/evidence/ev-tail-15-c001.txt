@@ -1,5 +1,9 @@
 A-Buy Your Silence
+A-Radha's Firebrand
+A-Radha, Coalition Warlord
 A-Sepulcher Ghoul
+Abundant Growth
+Aerial Maneuver
 Afflict
 Alexi's Cloak
 Amarant Coral
@@ -8,30 +12,42 @@ Angelheart Vial
 Anointed Chorister
 Anurid Murkdiver
 Apex Devastator
+Aphotic Wisps
+Armillary Sphere
 Arrows of Justice
 Artful Maneuver
 Augury Owl
 Avatar of Will
 Aven Brigadier
 Aven Eternal
+Azor's Elocutors
+Bamboo Grove Archer
 Basri's Aegis
+Battle Frenzy
 Bayou Dragonfly
+Beacon of Immortality
 Bedeck
+Bird Admirer
 Black Widow, Agile Avenger
 Blazing Rootwalla
 Blessed Spirits
 Blinding Radiance
 Bloodflow Connoisseur
+Boon of Emrakul
+Bramble Wurm
 Brightclimb Pathway
 Brilliant Restoration
 Brimstone Mage
 Brood Butcher
 Buoyancy
 Burden of Guilt
+By Force
 Cabal Archon
 Carrion Howler
 Catapult Squad
+Char
 Chatterstorm and Awaken the Woods
+Chemister's Insight
 Child of Night
 Chime of Night
 Chrome Cat
@@ -39,8 +55,13 @@ Cleanse
 Colossus Hammer
 Conclave's Blessing
 Copperhoof Vorrac
+Corpse Hauler
+Corrupted Resolve
+Cosmic Epiphany
 Courier Griffin
 Crimson Roc
+Crucible of Worlds
+Cryptolith Rite
 Curse of Wizardry
 Cursed Totem
 Cyclone Summoner
@@ -48,16 +69,28 @@ Dark Triumph
 Dawnfeather Eagle
 Deadeye Rig-Hauler
 Deathbloom Ritualist
+Deb Thomas
 Declare Dominance
+Deep-Sea Serpent
+Defy Gravity
 Delightful Discovery
 Deluge of Doom
+Deny Entry
+Desecration Elemental
+Despoiler of Souls
 Desynchronize
 Dihada's Ploy
 Dingus Staff
 Diplomacy of the Wastes
+Dire Fleet Hoarder
 Displace
 Domri, Anarch of Bolas
+Dowsing Shaman
+Dreadhorde Arcanist
 Drossclaw
+Dusk
+Duskshell Crawler
+Dáin of the Ancient Halls
 Dúnedain Blade
 Ebon Drake
 Eerie Interlude
@@ -65,15 +98,20 @@ Efreet Flamepainter
 Electric Eel
 Elemental Bond
 Elspeth Tirel
+Elvish Scout
 Engineered Plague
 Enthrall
+Ephara's Warden
 Erebos's Emissary
 Erebos, Bleak-Hearted
+Essence Capture
 Eternal Skylord
 Ethereal Ambush
 Everflame Eidolon
 Evil Eye of Urborg
+Executioner's Hood
 Eyes of the Watcher
+Fae of Wishes
 Faithful Pikemaster
 Falkenrath Marauders
 Fanatical Fever
@@ -86,6 +124,7 @@ Filigree Sages
 First-Sphere Gargantua
 Flameshot
 Flanking Troops
+Floodwater Dam
 Flowstone Strike
 Forest
 Foundry Street Denizen
@@ -94,12 +133,15 @@ Fungus Elemental
 Furious Assault
 Galina's Knight
 Gert and Old Lace, Runaways
+Giant Fly
 Giant Strength
 Gixian Skullflayer
 Goblin Electromancer
 Goblin Gang Leader
 Goblin Matron
+Goblin Sharpshooter
 Goblin Shrine
+Goblin Warchief
 Goliath Spider
 Gorma, the Gullet
 Grandmother Sengir
@@ -107,6 +149,7 @@ Great Hall of Starnheim
 Greenseeker
 Grenzo's Cutthroat
 Grey Knight Paragon
+Grim Backwoods
 Grim Feast
 Grim Guardian
 Grip of Desolation
@@ -124,37 +167,54 @@ Horror of Horrors
 Human Frailty
 Ill-Tempered Cyclops
 Imoti, Celebrant of Bounty
+Improvised Club
 Infuse
 Inner Calm, Outer Strength
 Innocuous Researcher
+Inside Out
 Inspired Inventor
 Into the Time Vortex
 Inviolability
 Island
+Jace's Erasure
 Jackal Familiar
 Josu Vess, Lich Knight
+Jungle Basin
 Kalonian Hydra
 Kami of Whispered Hopes
+Kathari Screecher
 Kazuul's Fury
 Kederekt Parasite
 Kenrith's Transformation
+King Cheetah
 Kitchen Finks
 Knight Watch
+Knight of New Benalia
 Kor Duelist
 Kraken Hatchling
 Krark-Clan Engineers
+Kyoshi Warrior Exemplars
 Lady Caleria
+Learn from the Past
+Leeching Bite
 Leinore, Autumn Sovereign
+Leonin Battlemage
 Leshrac's Sigil
 Leyline of Punishment
 Lifespring Druid
 Lightning Blast
+Lithoform Engine
+Llanowar Wastes
+Locus Cobra
 Lose Calm
+Lumengrid Warden
 Lychguard
 Madame Hydra, Reanimated
+Magic Missile
 Magus of the Disk
 Makeshift Mauler
 Mana Flare
+Mana Short
 Mana Skimmer
 Manaform Hellkite
 Manriki-Gusari
@@ -164,6 +224,7 @@ Maro
 Marsh Viper
 Marshmist Titan
 Mary Read and Anne Bonny
+Mask of the Jadecrafter
 Mending Hands
 Messenger Drake
 Michiko's Reign of Truth
@@ -179,20 +240,33 @@ Moan of the Unhallowed
 Moonfolk Puzzlemaker
 Morkrut Behemoth
 Mountain
+Mounted Dreadknight
+Mouth
+Multiform Wonder
 Nael, Avizoa Aeronaut
+Nantuko Monastery
 Nature's Ruin
 Nefarox, Overlord of Grixis
 Nessian Game Warden
+Nightscape Familiar
+Nightshade Assassin
 Nightstalker Engine
+Nimble Pilferer
 Nissa's Triumph
 Novellamental
+Null Elemental Blast
 Nyxborn Marauder
 Obelisk of Esper
+Ogre Gatecrasher
+Ogre Sentry
 Oji, the Exquisite Blade
+Okiba Salvage
 Otherworld Atlas
 Oxidize
 Ozox, the Clattering King
+Palladium Myr
 Parasitic Grasp
+Path of Peril
 Pawn of Ulamog
 Pendrell Mists
 Perimeter Patrol
@@ -201,68 +275,92 @@ Phthisis
 Plains
 Pledge of Unity
 Portcullis Vine
+Poxwalkers
+Primal Bellow
 Psychic Impetus
+Pulsating Illusion
 Putrid Cyclops
 Pyre Hound
 Quagmire Lamprey
+Quirion Druid
 Ragged Veins
 Raise the Draugr
+Rakdos Ickspitter
 Ransom Note
 Raven Familiar
 Ray of Revelation
 Reaver Drone
 Reckless Amplimancer
 Reckless Scholar
+Reclaiming Vines
 Regisaur Alpha
 Release to Memory
 Relic of Progenitus
+Remove Soul
+Rending Flame
 Retreat to Hagra
 Ring of Evos Isle
 Rise Again
+Roadside Reliquary
 Rolling Hamsphere
 Romana II
+Roving Harper
+Rust Tick
 Sacred Nectar
+Saddleback Lagac
 Sand Golem
 Sanguine Glorifier
 Saprazzan Heir
 Saprazzan Outrigger
 Scion of Glaciers
+Screamer-Killer
 Scuttling Sentinel
+Sea's Claim
 Seal of Fire
 Seer's Vision
 Selesnya Evangel
 Seraph of New Capenna
 Serene Steward
+Shaper Guildmage
 Shared Trauma
 Shimmerscale Drake
 Shrieking Drake
 Shrouded Serpent
 Sibsig Host
+Sigardian Priest
 Sign in Blood
 Sindbad
 Sip of Hemlock
 Skeletal Kathari
+Skirsdag Cultist
 Skullslither Worm
+Skyclave Pick-Axe
 Skyfisher Spider
 Skyshroud Ranger
 Slagwurm Armor
+Slippery Karst
 Sludge Monster
 Slum Reaper
 Smitten Swordmaster
 Song of Eärendil
 Soratami Seer
 Sorcerer's Wand
+Soul Sear
 Soulblade Corrupter
 Sphinx's Insight
+Spiketail Drakeling
 Spiraling Embers
 Spirit of the Hearth
 Spiteful Bully
+Spiteful Motives
 Splinter, the Mentor
 Spoils of Blood
 Steady Aim
 Steal Strength
 Stealth Mission
+Steelbane Hydra
 Steeple Roc
+Stolen Strategy
 Stolen by the Fae
 Stone Calendar
 Stormwatch Eagle
@@ -272,17 +370,28 @@ Suncrusher
 Sunder from Within
 Sunscorch Regent
 Swamp
+Swift Response
+Sylvan Tutor
 TVA Bureaucrat
 Talisman of Resilience
 Teething Wurmlet
+Territory Culler
+Teyo's Lightshield
+The Prydwen, Steel Flagship
+The Wasp, Winsome Avenger
 Thornhide Wolves
 Thought Scour
 Thundering Raiju
+Tidal Wave
+Titan's Strength
+Tormentor's Trident
+Treachery
 Treasure Hunter
 Trokin High Guard
 Tui and La, Moon and Ocean
 Turbulent Wetlands
 Turret Ogre
+Two-Headed Giant of Foriys
 Two-Headed Sliver
 Two-Headed Zombie
 Uktabi Orangutan
@@ -290,18 +399,25 @@ Ulamog's Crusher
 Ulvenwald Mysteries
 Umbral Mantle
 Undercity Uprising
+Unstable Obelisk
 Urza's Science Fair Project
 Valeron Outlander
+Valley Dasher
 Vertigo Spawn
 Vine Trellis
+Viridian Acolyte
 Volcanic Spray
 Vulshok Splitter
 Wake the Reflections
+Wall of Omens
 Wanderlust
 Warhorn Blast
 Waterknot
 Whipflare
 Whirlermaker
+Whisperer of the Wilds
+Wild Hunger
+Wind Sail
 Wintermoor Commander
 Woeleecher
 Wound Reflection
@@ -309,6 +425,8 @@ Wrack with Madness
 Xun Yu, Wei Advisor
 Yavimaya Barbarian
 Yawgmoth, Thran Physician
+Yew Spirit
+Zephyr Boots
 Ziatora's Proving Ground
 Zodiac Rat
 Zuko, Seeking Honor

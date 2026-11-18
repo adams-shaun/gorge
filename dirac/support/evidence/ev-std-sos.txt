@@ -120,6 +120,7 @@ Lorehold Charm
 Lumaret's Favor
 Maelstrom Artisan
 Mage Tower Referee
+Magmablood Archaic
 Masterful Flourish
 Mathemagics
 Matterbending Mage
@@ -141,6 +142,7 @@ Old-Growth Educator
 Oracle's Restoration
 Orysa, Tide Choreographer
 Owlin Historian
+Page, Loose Leaf
 Paradox Gardens
 Paradox Surveyor
 Pensive Professor
@@ -252,3 +254,4 @@ Witherbloom, the Balancer
 Withering Curse
 Zaffai and the Tempests
 Zealous Lorecaster
+Zimone's Experiment

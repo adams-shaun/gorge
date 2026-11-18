@@ -1,0 +1,101 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Armory Veteran	b8519bf0a57c7b86	3	1/1		0/1	ix:resp
+A-Dokuchi Silencer	bbaaec6381c7fc5f	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Alchemist's Gift	a45c2e153ae0aa99	9	0/0		1/2	ix:resp
+Altar of the Goyf	dd8c91d6c7562d24	10	1/1		0/1	ix:resp
+Ashnod's Altar	96367fcb33611442	3	1/1		1/1	
+Awe for the Guilds	49f88e15347f2f65	6	0/0		1/2	ix:resp
+Battleground Geist	02f029d75fa8cee9	13	0/0		0/0	
+Bogbrew Witch	32c9fc32864a9145	4	1/1		1/1	
+Braingeyser	1d6070c1873c266b	6	0/0		2/4	f0/s/x+,f0/s/x0
+Caustic Caterpillar	58b166706c71a64f	9	1/1		0/1	ix:resp
+Cerebral Eruption	599d4b7beb3a208d	15	0/0		2/2	
+Collected Conjuring	a4302db8c0ac76b6	26	0/0		2/2	
+Conquer	bf9b3ea3e72ba2a4	4	0/0		1/2	ix:resp
+Coordinated Barrage	223fa21c1388d50e	4	0/0		1/2	ix:resp
+Cosmic Hunger	e69ea5b8f38ee29a	4	0/0		2/2	
+Crypt Cobra	cd3fb2d6b9dc60cf	6	1/1		0/1	ix:resp
+Crystal Chimes	1c68cdef4a82f241	12	1/1		0/1	ix:resp
+Cut Your Losses	4ea15243b0295558	4	0/0		1/2	ix:resp
+Daggerclaw Imp	cfda2ba1ab6dec09	4	0/0		0/0	
+Dalek Drone	41cdbe52c3e6f154	3	1/1		0/1	ix:resp
+Defend the Hearth	a18433f6c81f8fb0	3	0/0		1/2	ix:resp
+Desperate Charge	0314d060c760dbad	4	0/0		1/2	ix:resp
+Dire Fleet Poisoner	494217c759b9f7db	10	1/1		0/1	ix:resp
+Dispel	3f6b9f97fe866b83	5	0/0		2/2	
+Doomed Necromancer	9865f32d33699aa5	3	1/1		0/1	ix:resp
+Eccentric Farmer	0b956e7d6920c29d	3	1/1		0/1	ix:resp
+Enduring Victory	8819a503a0d14628	8	0/0		2/2	
+Ensnare	865fa0c454464cc9	9	0/0		1/2	ix:resp
+Evolution Charm	88c4e685f8c30480	4	0/0		1/2	ix:resp
+Field Research	0d45e226e971b5eb	9	0/0		4/4	
+Fire Shrine Keeper	36debb46b9a96af1	11	1/1		1/1	
+Flamekin Spitfire	00b461886483da7c	15	1/1		0/1	ix:resp
+Frenzied Saddlebrute	b25ae395e2962792	4	0/0		0/0	
+Garruk's Warsteed	4efb3e2512ce310e	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Ghost Hounds	d10a98ddee8ac265	4	2/2		0/1	ix:resp
+Giant Inheritance	0d4aeb029b4db490	7	1/1		2/2	
+Glint	88e207df5f2d6150	8	0/0		1/2	ix:resp
+Gnarled Sage	d2a849f7573e191d	3	0/0		0/0	
+Goblin Archaeologist	991499adcecf2508	38	1/1		1/1	
+Goblin Dirigible	f0903e30cbc7ff04	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Growth Cycle	4e59359cccd30e0f	7	0/0		1/2	ix:resp
+Harbinger of the Seas	d0918137fc04875a	4	0/0		0/0	
+Hateflayer	543f2562a59dcee9	3	1/1		0/1	ix:resp
+Hidden Gibbons	a48f2cedf3b09f86	9	1/1		1/1	
+Hideous End	02b7ede3b85df9fb	6	0/0		2/2	
+Hold for Questioning	1771706b6cd7930e	10	1/1		2/2	
+Hydrolash	8336575e8fde4582	8	0/0		1/2	ix:resp
+Inspirit	139f244df7f5bc15	4	0/0		1/2	ix:resp
+Iron Star	2d0f63aa01df1805	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Jeska, Warrior Adept	ac90e9e64b8a1341	8	1/1		1/1	
+Kessig Naturalist	a13882d347a8fbb5	4	2/2		0/1	ix:resp
+Kin-Tree Warden	37dfc91b4bc21323	7	1/1		2/3	cast/alt:morphed
+Lumberknot	d93dfb7b0641d744	5	1/1		0/1	ix:resp
+Mask of Memory	04785a8ce89bb6cc	6	2/2		0/1	ix:resp
+Mechanical Glider	94e7423797d80a8b	4	2/2		1/1	
+Meldweb Strider	a4fa726a29c85cf4	4	2/2		0/1	ix:resp
+Nexus of Fate	178e6f3f2c93c53c	4	0/0		2/2	
+Nightmare Void	512676295db8a7ed	10	0/0		1/2	ix:resp
+Nim Abomination	26250830a7738e59	4	1/1		1/1	
+Nylea, God of the Hunt	81e4fda765f7fac7	6	1/1		0/1	ix:resp
+Ob Nixilis's Cruelty	a232d2e710971164	7	0/0		1/2	ix:resp
+Ogre Slumlord	83ce40f711352da0	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Overwhelming Remorse	02440e4fce36be77	8	0/0		2/2	
+Planar Despair	7865902e8b8cc4c7	4	0/0		2/2	
+Predator's Strike	cbf3cdd2bde99d4f	7	0/0		1/2	ix:resp
+Pyrogoyf	91f9e5534b0f9bb4	8	1/1		0/1	ix:resp
+Radiant Epicure	557aa499489a326e	4	1/1		1/1	
+Raving Oni-Slave	b5c332280de08f81	4	2/2		0/1	ix:resp
+Release the Ants	b9d20c74029a1d32	8	0/0		2/2	
+Revolutionary Rebuff	c1b196d9d6c83645	4	0/0		1/2	ix:resp
+Rishkar, Peema Renegade	a2f64e3304e2399d	6	1/1		0/1	ix:resp
+Roc Hatchling	018d1b1ab75bedb4	8	1/1		1/1	
+Scarab Feast	eca3d263be66e9dc	8	1/1		2/2	
+Scion Summoner	226cba92fd23e5b0	4	1/1		0/1	ix:resp
+Season of Renewal	3c9363e95359c018	5	0/0		1/2	ix:resp
+Serene Heart	3f6244b660d3b2c1	4	0/0		1/2	ix:resp
+Serum Sovereign	01b5c07f5840ed2c	6	2/2		0/1	ix:resp
+Sibsig Icebreakers	0c37ccd8dd519076	4	1/1		0/1	ix:resp
+Skarrgan Skybreaker	94b6af3d2b08a56d	3	1/1		0/1	ix:resp
+Slinking Skirge	5be59eb00639e08a	16	1/1		1/1	
+Sly Instigator	ddbd0bf39ca096ab	4	1/1		0/1	ix:resp
+Soaring Thought-Thief	ce8da179858e6f4b	3	1/1		0/1	ix:resp
+Sonic Seizure	dc3bac815150ef73	5	0/0		2/2	
+Spawnwrithe	9f56d197be7f7d12	4	1/1		1/1	
+Splatter Goblin	81d14be7962331a9	3	1/1		0/1	ix:resp
+Squee's Toy	d224394b2cda8678	16	1/1		1/1	
+Steel Golem	49a26297facaed5b	4	0/0		0/0	
+Steelclad Spirit	716fa428e426e102	7	1/1		1/1	
+Strongarm Thug	5e0e17b333ac2e2e	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Tattermunge Witch	a06b55e8aba53cd7	3	1/1		1/1	
+Thunderous Might	d1117f8754afa33a	4	1/1		1/2	ix:resp
+Tragic Fall	81c28691707e6a56	3	0/0		1/2	ix:resp
+Trespassing Souleater	c2ffd6987467dbaf	12	1/1		1/1	
+Viashino Firstblade	468549dfc788e0b1	4	1/1		0/1	ix:resp
+Vodalian Soldiers	a71e76be34f94445	6	0/0		0/0	
+Weldfast Wingsmith	b9938309dc9fe321	4	1/1		0/1	ix:resp
+Winged Coatl	097bc16b0c1d640e	3	0/0		0/0	
+Wormwood Dryad	e33121939f744143	4	2/2		0/1	ix:resp
+Wrath of Marit Lage	a44bca058ea09a5b	7	1/1		0/1	ix:resp
+Zopandrel, Hunger Dominus	a5f279926beed4b7	4	2/2		1/1	

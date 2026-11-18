@@ -5,6 +5,7 @@ Advanced Hoverguard
 Adventure Awaits
 Aerial Predation
 Aether Channeler
+Aether Theorist
 Air Marshal
 Akki Coalflinger
 Alchemax Slayer-Bots
@@ -18,6 +19,7 @@ Arcane Laboratory
 Archfiend of the Dross
 Archway Commons
 Artful Dodge
+Astral Wingspan
 Atalan Jackal
 Audacious Thief
 Aven Redeemer
@@ -52,7 +54,9 @@ Chain Stasis
 Chainflinger
 Champion of Lambholt
 Champions from Beyond
+Chandra's Embercat
 Chaplain's Blessing
+Char-Dog
 Charging Badger
 Chromatic Lantern
 Chronomancer
@@ -61,6 +65,7 @@ Clan Defiance
 Cleaving Skyrider
 Cloudchaser Eagle
 Cloudfin Raptor
+Cloudhoof Kirin
 Cobbled Lancer
 Collector's Case
 Combustible Gearhulk
@@ -72,6 +77,7 @@ Coursers' Accord
 Court of Ire
 Cradle of Vitality
 Creeping Tar Pit
+Cult Guildmage
 Custodi Lich
 Cyclops Electromancer
 D'Avenant Archer
@@ -136,6 +142,7 @@ Galvanic Key
 Gandalf the Grey
 Gatherer of Graces
 Geist of the Archives
+Gelectrode
 Geothermal Kami
 Ghostly Wings
 Gideon's Defeat
@@ -172,6 +179,7 @@ Honor Troll
 Horn of Gondor
 Hulking Goblin
 Hunter's Mark
+Ichneumon Druid
 Iconic Shield
 Imperial Lancer
 Implement of Improvement
@@ -183,6 +191,7 @@ Ingenious Skaab
 Inner-Flame Acolyte
 Insidious Will
 Invading Manticore
+Iron Man, Modern Marvel
 Irontread Crusher
 Island
 Ivy Seer
@@ -205,6 +214,7 @@ Kinsbaile Skirmisher
 Kitchen
 Knight of Stromgald
 Kodama of the North Tree
+Kolaghan's Command
 Kozilek's Shrieker
 Kyren Legate
 Labyrinth Adversary
@@ -301,6 +311,7 @@ Raise Dead
 Ramosian Lieutenant
 Ranger of Eos
 Raven's Crime
+Razorfield Ripper
 Reckless Reveler
 Reclaim
 Recruitment Drive
@@ -373,6 +384,7 @@ Spirit Mirror
 Spirit of the Hunt
 Spiteful Motives
 Spore Frog
+Stalking Stones
 Starlight
 Starlit Mantle
 Starnheim Courser
@@ -387,6 +399,7 @@ Surrakar Banisher
 Swamp
 Swathcutter Giant
 Swordsman's Steel
+Tablet of Epityr
 Taeko, the Patient Avalanche
 Targ Nar, Demon-Fang Gnoll
 Tavern Brawler

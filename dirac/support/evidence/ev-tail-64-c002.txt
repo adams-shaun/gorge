@@ -6,132 +6,248 @@ Accorder Paladin
 Aggressive Instinct
 Ahn-Crop Invader
 Airlift Chaplain
+Alive
+All That Glitters
 Alseid of Life's Bounty
 Ambush Paratrooper
 Ana Sanctuary
 Angel of the Dawn
+Angelic Renewal
 Arm with Aether
 Armory Veteran
 Arrester's Zeal
 Azorius Charm
 Bane's Invoker
+Bleed Dry
+Bloodmad Vampire
 Bloodsworn Steward
 Bog Imp
 Bottle Golems
 Bramblesnap
 Brass-Talon Chimera
 Brokers Initiate
+Butcher's Cleaver
+Canopy Cover
+Cerulean Wyvern
 Charging Troll
+Clockwork Gnomes
 Common Bond
 Compelled Duel
+Congregate
+Consuming Aetherborn
+Copperhorn Scout
 Corridor Monitor
 Crookshank Kobolds
 Crow Storm
+Crusading Knight
 Curfew
 Curse Artifact
 Custodi Soulbinders
+Dance of the Skywise
 Danitha, New Benalia's Light
+Daring Demolition
 Dawn to Dusk
 Dawnfluke
+Debilitating Injury
+Desperate Ravings
 Detainment Spell
 Devil Dinosaur
+Dig Up the Body
 Dispeller's Capsule
 Drannith Magistrate
+Dread Return
 Dusk Legion Zealot
 Duskrider Peregrine
 Dwarven Armorer
+Eastern Paladin
 Eladamri, Lord of Leaves
 Empty City Ruse
 Empyrial Plate
 Enclave Elite
+Enlarge
 Ensnare
+Erinis, Gloom Stalker
 Escape Velocity
 Eureka Moment
 Evie Frye
 Expedition Skulker
 Eye Gouge
+Fallaji Archaeologist
+Fatal Frenzy
+Fateful End
+Fell Stinger
 Feral Krushok
+Flame On!
 Flamekin Spitfire
+Fleetfeather Sandals
+Flood of Recollection
 Fog Elemental
 Forest
 Forgehammer Centurion
 Freewind Equenaut
 Gerrard's Irregulars
 Ghitu Firebreathing
+Giant Crab
 Glass of the Guildpact
+Goblin Trailblazer
+Greenwood Sentinel
+Grisly Ritual
 Gruesome Deformity
+Guardian of Cloverdell
+Healing Technique
+Heap Doll
+Hedron Alignment
+Hedron Crab
+Heron of Hope
 Hoard Robber
+Honored Heirloom
+In the Trenches
+Indestructibility
+Infuse with the Elements
+Ingenious Thief
 Innovative Metatect
 Invasion of Dominaria
+Ironclad Krovod
 Island
+Ivora, Insatiable Heir
 Ivy Elemental
+Izzet Locket
 Junk Diver
+Kalonian Tusker
+Karn's Touch
 Kashi-Tribe Reaver
 Keeneye Aven
+Kitesail Cleric
+Krenko's Enforcer
 Kuldotha Rebirth
 Lawmage's Binding
 Learn from the Past
 Legion Guildmage
+Life and Limb
 Light 'Em Up
+Lightning Blast
+Liliana's Standard Bearer
 Lily Bowen, Raging Grandma
 Lionheart Maverick
+Live Fast
 Living Airship
 Mage-Ring Bully
+Manta Riders
+Marang River Prowler
+Marble Diamond
+Marrow-Gnawer
 Master Symmetrist
+Maverick Thopterist
 Merfolk Secretkeeper
 Midnight Charm
+Midnight Haunting
+Mindleech Ghoul
+Miscast
+Mogg Maniac
+Molder Slug
 Mountain
+Muscle Sliver
 Mystic Familiar
 Mystical Tutor
+Nantuko Husk
 Narnam Cobra
 Natural End
+Nebelgast Intruder
 Necrogen Spellbomb
+Needleshot Gourna
 Nevinyrral's Disk
+Norwood Warrior
 Obelisk of Jund
+Ogre Recluse
 Order of the Mirror
 Outland Boar
+Paragon of New Dawns
 Pemmin's Aura
+Pendulum of Patterns
 Phyrexian Lens
 Pitiless Pontiff
 Plains
+Poultice Sliver
+Predators' Hour
 Priest of Urabrask
 Pyknite
 Pyrophobia
+Quickling
+Radha's Firebrand
 Ral's Reinforcements
+Rathi Assassin
 Ray Fillet, Wave Warrior
+Reaver Ambush
+Reckless Rage
 Refocus
+Renegade Krasis
+Repudiate
 Resplendent Griffin
+Retrieve
 Riders of Rohan
+Ritual of Steel
 Rock Lobster
+Root-Kin Ally
 Rootborn Defenses
+Run for Your Life
 Sarkhan's Dragonfire
 Savage Thallid
 Searing Meditation
+Seeker of the Way
+Segmented Krotiq
 Self-Inflicted Wound
+Seraph of Dawn
 Shacklegeist
+Shield of the Ages
+Shu Soldier-Farmers
 Skillful Lunge
+Skull Fracture
 Skyshroud Sentinel
 Smoldering Werewolf
+Social Climber
 Spiked Ripsaw
+Spiteful Bully
+Stinkdrinker Daredevil
+Stitched Mangler
 Stormrider Spirit
 Stratus Walk
 Stromgald Crusader
 Sudden Edict
 Suit Up
 Suspicious Stowaway
+Swaggering Corsair
 Swamp
+Swarm of Bloodflies
+Swift Justice
+Syndicate Enforcer
+T-45 Power Armor
+Temperamental Oozewagg
+Tenacity
 Terravore
+Territorial Allosaurus
 Thaumatic Compass
+The Weaver King
+Thorn of Amethyst
+Thresher Lizard
 Thrun, the Last Troll
 Tidy Conclusion
+Time Reversal
+Time Walk
 Tolarian Winds
 Topplegeist
 Tower Winder
+Tragic Lesson
 Tremor
+Urborg Syphon-Mage
+Valkyrior Skyrider
 Vampiric Tutor
 Wall of Pine Needles
 War Chariot
 Weldfast Monitor
+Whiptongue Hydra
 White Knight
+Windreaver
+Wurmcoil Larva
 Zarichi Tiger
+Zeriam, Golden Wind
 Zof Shade

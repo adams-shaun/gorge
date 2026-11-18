@@ -1,113 +1,197 @@
+A-Celestial Regulator
 A-Falcon Abomination
 A-Manticore
 A-Ready to Rumble
 Aardvark Sloth
+Abattoir Ghoul
 Acceptable Losses
 Act of Aggression
 Allied Teamwork
 Altar's Light
+Ancient Lumberknot
 Ancient Runes
 Angel of the Dire Hour
 Angelic Overseer
 Annihilate
 Apostle of Purifying Light
 Archfiend of Despair
+Arnjlot's Ascent
 Aspect of Gorgon
 Azorius Cluestone
 Balshan Beguiler
 Barrage Ogre
+Basilica Guards
+Beckon Apparition
+Big Mother Mouser
 Blessed Hippogriff
+Blue Sun's Twilight
+Bola Slinger
 Bonds of Faith
+Bone Shards
 Brazen Wolves
+Breath of Fire
+Brindle Boar
+Bringer of the Black Dawn
 Bringer of the Blue Dawn
 Broodstar
 Burning Cloak
+Caress of Phyrexia
+Carrion Grub
+Cast into Darkness
 Cateran Kidnappers
+Cavalier of Flame
+Chief of the Scale
+Combo Attack
 Consulate Turret
 Coral Helm
+Daze
+Deathbringer Thoctar
+Deathforge Shaman
+Dematerialize
 Dig Up the Body
+Dinosaur Egg
+Disperse
+Distorted Curiosity
 Diversionary Tactics
 Dominating Licid
 Doomed Dissenter
 Drag to the Bottom
 Dragon Arch
+Dying Wish
 Earthquake
 Eidolon of Astral Winds
 Elven Rite
+Embrace the Unknown
+Emergent Growth
+Enchantmentize
+Exclude
+Exotic Curse
 Expendable Lackey
 Explosive Apparatus
 Faith Unbroken
 Farfinder
 Fen Stalker
+Feral Krushok
+Fervent Cathar
 Fever Charm
 Fleeting Memories
 Flickerwisp
+Forced Worship
 Forest
 Forest Bear
 Foundry Inspector
+Frogify
 Ganax, Astral Hunter
 Geist of the Moors
 Ghitu Chronicler
+Ghostfire Slice
+Gift of the Deity
 Gigapede
 Gravecrawler
 Hammerhead, Maggia Boss
+Hanna's Custody
 Harbor Serpent
 Harrier Griffin
+Hellraiser Goblin
 Herald of Dromoka
 Heron-Blessed Geist
 Hormagaunt Horde
+Howling Moon
 Hydrosurge
 Illness in the Ranks
+Infernal Tribute
+Initiate's Companion
+Inspired Sprite
+Invoke Despair
 Island
+Isu the Abominable
 Ith, High Arcanist
+Keen Glidemaster
 Keep Safe
 Keldon Halberdier
 Kinjalli's Caller
+Kiss of the Amesha
+Kodama of the West Tree
 Lava Coil
+Lavastep Raider
 Leering Gargoyle
 Lifecrafter's Bestiary
+Lifecrafter's Gift
+Lithatog
+Llanowar Envoy
+Lodestone Golem
+Loxodon Punisher
 Lunarch Mantle
+Marker Beetles
 Masterwork of Ingenuity
+Maw of the Mire
 Melancholy
+Merchant of Truth
 Merciless Repurposing
+Mesa Unicorn
+Midnight Assassin
 Mikaeus, the Lunarch
+Mind Sludge
 Misers' Cage
+Mobilize
+Mold Folk
 Mountain
 Murmuring Mystic
+Night of Souls' Betrayal
 Nip Gwyllion
+Norn's Wellspring
+Nylea's Emissary
 Oblivion Strike
+Ondu Spiritdancer
 Orazca Raptor
 Ordeal of Purphoros
+Origin of the Hidden Ones
 Orim's Touch
+Pearled Unicorn
 Pensive Minotaur
+Perish
 Pippin's Bravery
 Plains
 Plated Crusher
 Power of Fire
 Prakhata Club Security
+Precognition
+Professor's Warning
 Psychosis Crawler
 Puppet Master
 Pure Reflection
+Pursued Whale
 Raise the Palisade
 Rapid Decay
 Recruiter of the Guard
 Return Upon the Tide
 Revitalize
+Reyhan, Last of the Abzan
 Ridgescale Tusker
 Roots of Wisdom
 Runeboggle
+Sacellum Archers
 Scoria Elemental
 Scrapper Champion
+Scurry Oak
+Scytheclaw
+Search for Glory
 Searing Spear
 Sigiled Sentinel
 Silverquill Pledgemage
 Skybind
+Slashing Tiger
+Sleeping Potion
+Slinking Serpent
+Slippery Scoundrel
+Spectacle Mage
 Spectral Grasp
 Spelltithe Enforcer
 Sphere of Safety
 Spite of Mogis
 Stifle
 Stoke the Flames
+Stone Golem
 Stonybrook Schoolmaster
 Surrakar Spellblade
 Swamp
@@ -115,18 +199,32 @@ Taunting Elf
 Teroh's Vanguard
 Terror of Towashi
 Thistledown Liege
+Thraben Valiant
+Thundering Tanadon
+Transmogrifying Wand
+Tribal Unity
 Tromokratis
 Ultimate Alliance
 Unnatural Endurance
+Urza's Science Fair Project
 Vampire Aristocrat
+Vengeance
+Vigilante Justice
 Viridian Joiner
 Virtuous Variant
 Vitality Charm
+Vodalian Hypnotist
 Voice of Grace
+Vow of Torment
 Warrior's Charge
+Wei Infantry
 Wild Griffin
 Wilderness Reclamation
 Wintermoor Commander
 Wipe Away
+Woodcutter's Grit
+Worldgorger Dragon
+Wu Infantry
 Yeva, Nature's Herald
 Zodiac Monkey
+Zombie Apocalypse

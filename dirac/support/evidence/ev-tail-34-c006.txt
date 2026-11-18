@@ -18,6 +18,7 @@ Douse
 Drelnoch
 Dwarven Patrol
 Dwarven Weaponsmith
+Edric, Spymaster of Trest
 Electric Revelation
 Encase in Ice
 Forest
@@ -56,6 +57,7 @@ Siegecraft
 Spike-Tailed Ceratops
 Spiketail Drakeling
 Spitting Hydra
+Spring Cleaning
 Sunder Shaman
 Swamp
 Their Number Is Legion

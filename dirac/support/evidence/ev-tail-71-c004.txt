@@ -1,3 +1,4 @@
+Aerial Guide
 Alchemax Slayer-Bots
 All Is Dust
 Arrow Volley Trap
@@ -6,9 +7,11 @@ Aven of Enduring Hope
 Battlefield Raptor
 Bladebrand
 Blazing Volley
+Blind with Anger
 Bola Warrior
 Boomerang
 Bower Passage
+Burning Wish
 Candelabra of Tawnos
 Canyon Lurkers
 Chain Stasis
@@ -18,19 +21,25 @@ Cordial Vampire
 Defy Death
 Demanding Dragon
 Dockside Chef
+Doomed Necromancer
 Doomed Traveler
 Drake Familiar
 Earthshaker Giant
+Ensnare
 Expedition Envoy
 Extract from Darkness
 Fall of the Thran
 Fanatical Devotion
 Fire Servant
+Flow of Knowledge
 Forest
+Garbage Elemental
 Gather Courage
 Goblin Legionnaire
 Harnessed Lightning
+Hold for Questioning
 Humble
+Hydrolash
 Imposing Visage
 Ingenious Skaab
 Island
@@ -39,6 +48,8 @@ Knight of the Tusk
 Kor Scythemaster
 Llanowar Cavalry
 Manhole Cover
+Metastatic Evangel
+Mind Rot
 Molderhulk
 Molten Ravager
 Momentary Blink
@@ -47,39 +58,55 @@ Mountain
 Murasa Ranger
 Myr Retriever
 Myth Realized
+Nexus of Fate
 Nimble Mongoose
 Nylea's Disciple
 Pact of Negation
 Palace Sentinels
+Piston Sledge
 Plains
+Predatory Wurm
 Prized Elephant
 Psychic Overload
 Quintorius, Field Historian
 Reckless Reveler
 Regenesis
 Renegade Warlord
+Revolutionary Rebuff
 Riptide Mangler
 Rising Populace
 Rummaging Goblin
+Scalding Salamander
 Season of Growth
+Serene Heart
 Shu Farmer
 Shu Grain Caravan
 Sighted-Caste Sorcerer
 Sky Crier
+Sly Instigator
+Sonic Seizure
+Spawnwrithe
 Spined Thopter
+Steelclad Spirit
 Stony Silence
 Storm Seeker
 Sungrace Pegasus
 Surrakar Banisher
 Swamp
 Tezzeret's Gambit
+Threnody Singer
+Tormod's Crypt
+Treasure Mage
 Ukkima, Stalking Shadow
 Undead Butler
 Unseal the Necropolis
+Utvara Scalper
 Valduk, Keeper of the Flame
 Vapor Snag
 Vectis Dominator
 Veiled Sentry
 Vent Sentinel
+Voltaic Brawler
 Witherbloom Command
+Wrath of Marit Lage
 Yisan, the Wanderer Bard

@@ -2,22 +2,29 @@ A-Mentor's Guidance
 A-Midnight Assassin
 A-Vampire Scrivener
 Adarkar Sentinel
+Advent of the Wurm
 Aether Sting
 Alchemist's Vial
 Angelic Reward
 Aphetto Alchemist
 Arboreal Grazer
 Arid Mesa
+Armadillo Cloak
 Atlantean Skirmisher
 Aura Gnarlid
+Avacyn's Collar
 Avengers Quinjet
+Aysen Crusader
 Belligerent Sliver
 Bishop of Wings
+Bishop of the Bloodstained
 Bleeding Edge
+Blessed Wine
 Bloodthirsty Blade
 Bog Glider
 Bosco, Just a Bear
 Brightwood Tracker
+Broodwarden
 Built to Smash
 Burrowing Razormaw
 Calamity Bearer
@@ -31,10 +38,16 @@ Celebrity Fencer
 Cephalid Broker
 Chain to Memory
 Chainwhip Cyclops
+Chandra, Acolyte of Flame
+Charging Rhino
+Charisma
 Chief of the Scale
 Chimney Goyf
+Chronomaton
 Coal Stoker
+Coastline Marauders
 Collector Ouphe
+Colossal Dreadmask
 Conviction
 Corrupted Harvester
 Crackling Club
@@ -54,13 +67,18 @@ Dockside Extortionist
 Drannith Ruins
 Dread Presence
 Dross Harvester
+Dub
 Duchess, Wayward Tavernkeep
 Earthlore
 Egon, God of Death
 Elaborate Firecannon
 Electric Eel
 Electrickery
+Elfhame Wurm
+Elite Instructor
 Ember-Fist Zubera
+Emperor Mihail II
+Energy Chamber
 Erratic Explosion
 Escaped Experiment
 Essence Flux
@@ -70,19 +88,27 @@ Fault Line
 Filigree Familiar
 Filthy Cur
 Flame-Kin War Scout
+Flare of Cultivation
 Flash Flood
 Flowstone Blade
 Flowstone Sculpture
 Fodder Cannon
 Foresee
 Forest
+Forge Boss
+Form of the Dragon
 Foundry of the Consuls
 Fully Grown
 Geist-Honored Monk
 Geth's Grimoire
+Gigapede
 Gilded Sentinel
+Gilder Bairn
+Gird for Battle
 Goblin Caves
 Goblin Dirigible
+Goblin Freerunner
+Goblin Raider
 Goblin Sky Raider
 God-Eternal Oketra
 Gods' Hall Guardian
@@ -91,39 +117,58 @@ Golgari Keyrune
 Goliath Beetle
 Gornog, the Red Reaper
 Graceful Cat
+Grave Birthing
+Grave Bramble
 Greater Werewolf
 Griffin Guide
 Gruul War Chant
+Gryff Rider
+Guardians of Oboro
+Gutless Ghoul
 Gwyllion Hedge-Mage
 HYDRA Disintegrator
 Hamza, Guardian of Arashin
 Haughty Djinn
+Hengegate Pathway
+Heralds of Tzeentch
 Hermetic Study
 High Market
+High-Speed Hoverbike
 Honorable Scout
 Honored Hierarch
 Horn of Deafening
+Humble the Brute
 Hungry Flames
+Hunted Wumpus
+Ichor Shade
 Imperial Seal
 Improvised Club
 Infernal Genesis
+Intelligence Bobblehead
 Iron Verdict
 Iron-Craw Crusher
 Ishi-Ishi, Akki Crackshot
 Island
 Joraga Visionary
 Kalonian Tusker
+Kemba, Kha Regent
 King Crab
+Kodama of the South Tree
 Kor Spiritdancer
 Korozda Guildmage
+Kozilek's Channeler
 Krang, the All-Powerful
+Laboratory Drudge
 Land Leeches
 Let the Galaxy Burn
 Lifebane Zombie
 Light 'Em Up
 Light of Hope
 Loch Dragon
+Lost in the Woods
 Loyal Pegasus
+Magebane Armor
+Make Obsolete
 Mana Matrix
 Masked Vandal
 Megantic Sliver
@@ -141,20 +186,29 @@ Necroblossom Snarl
 Necromantic Thirst
 Nectar Faerie
 Needleverge Pathway
+Nightmare Lash
+Nimbus Wings
 Nimraiser Paladin
 Noble Purpose
+Obelisk Spider
 Ogre Slumlord
+Olivia, Crimson Bride
+Order of Whiteclay
 Order of the Stars
 Paladin of Predation
 Path of Peril
 Peema Trailblazer
+Pennon Blade
 Pewter Golem
+Pharika's Cure
 Phobian Phantasm
 Piety Charm
 Piranha Marsh
 Plains
 Priest of Forgotten Gods
 Prism Ring
+Prismatic Omen
+Prodigious Growth
 Psemilla, Meletian Poet
 Quarry Beetle
 Raiding Nightstalker
@@ -165,15 +219,22 @@ Redcap Raiders
 Refurbished Familiar
 Repulsor Rays
 Retreat to Emeria
+Righteous Avengers
+Rot Farm Skeleton
+Rule of Law
 Rush of Knowledge
 Russet Wolves
 Ruthless Predation
 Sage Owl
+Sam, Loyal Attendant
 Sautekh Immortal
 Scorn Effigy
 Scourge Wolf
+Scourge of Fleets
 Scryb Ranger
 Search for Tomorrow
+Serpent Assassin
+Setessan Battle Priest
 Shackles of Treachery
 Shatter
 Shattered Perception
@@ -185,6 +246,8 @@ Sickle Ripper
 Silence
 Sinuous Vermin
 Skull Collector
+Slayer of the Wicked
+Snakeform
 Soilshaper
 Song-Mad Treachery
 Sorcerer of the Fang
@@ -203,39 +266,51 @@ Sylvan Caryatid
 Sylvan Messenger
 Syphon Flesh
 Séance
+Taborax, Hope's Demise
 Talons of Falkenrath
 Taste of Death
 Tattered Haunter
 Teferi, Timebender
+Tel-Jilad Exile
 Tentative Connection
 The Mary Janes
+Thelonite Druid
 Thermal Glider
 Thought Harvester
+Thran Temporal Gateway
 Thranduil the Strategist
 Thriving Grove
 Thundering Chariot
 Thundersong Trumpeter
 Time Sieve
+Time of Heroes
 Titania's Chosen
 Tolarian Emissary
 Tormented Soul
 Toxic Stench
 Tumble Magnet
+Tundra Wall
 Valor Singer
 Vampiric Fury
 Verdant Embrace
+Vicious Hunger
 Victorious Destruction
 Void Squall
 Voracious Typhon
+Vulshok Sorcerer
 Wand of Vertebrae
 Wandering Ones
+War Report
 Warlord's Axe
 Weave Fate
 Webweaver Changeling
+Wicked Pact
 Wicked Reward
 Wilderness Hypnotist
 Wildwood Rebirth
 Windreaper Falcon
+Windscouter
 Wolfrider's Saddle
+Woolly Loxodon
 Yoshimaru, Ever Faithful
 Zhang Liao, Hero of Hefei

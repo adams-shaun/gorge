@@ -7,6 +7,7 @@ Amazing Spider-Girl
 Angelic Skirmisher
 Apprentice Necromancer
 Assault on Osgiliath
+Aurochs Herd
 Boon of Erebos
 Carrion Feeder
 Cathartic Reunion
@@ -15,8 +16,10 @@ Chain Devil
 Charge
 Cloud Djinn
 Cloud Manta
+Corpsejack Menace
 Court of Cunning
 Craven Knight
+Crown of Flames
 Cultist's Staff
 Demonic Vigor
 Deranged Outcast
@@ -30,6 +33,7 @@ Elephant-Rat
 Elesh Norn, Grand Cenobite
 Emergent Growth
 Eyekite
+Faceless Devourer
 Falcon and Redwing
 Familiar's Ruse
 Famished Ghoul
@@ -65,32 +69,45 @@ Island
 Ivory Guardians
 Jolrael's Favor
 Kargan Warleader
+Kathari Bomber
 Keeper of Progenitus
 Kor Cartographer
 Koth's Courier
 Krosan Grip
 Legion Loyalist
+Lion Vulture
 Loxodon Smiter
 Mage-Ring Responder
 Managorger Hydra
+Marshmist Titan
+Mesmeric Trance
+Metropolis Angel
 Minotaur Sureshot
 Mountain
 Mutilate
+Myconid Spore Tender
 Myr Retriever
 Narnam Renegade
+Nature's Spiral
 Necrotic Fumes
 Oath of Eorl
 Okiba Reckoner Raid
 Old Stickfingers
+Orcish Captain
 Phyrexian Reclamation
+Piercing Light
 Piper of the Swarm
 Plains
+Plated Onslaught
 Plated Slagwurm
+Primal Frenzy
 Rallying Roar
 Return of the Mole Man
 Return to Nature
 Rishadan Airship
 Road of Return
+Rush of Blood
+Ruthless Knave
 Saurian Symbiote
 Savage Swipe
 Savageborn Hydra
@@ -101,10 +118,15 @@ Settle Beyond Reality
 Shatterskull Giant
 Shu Grain Caravan
 Sickle Dancer
+Silverflame Squire
+Skull Rend
 Slaughter Specialist
+Smelt-Ward Ignus
 Sokka and Suki
+Soul Net
 Spectral Hunt-Caller
 Spinal Centipede
+Start
 Stonebound Mentor
 Summer Bloom
 Swamp
@@ -116,6 +138,7 @@ Undead Butler
 Uproot
 Vampiric Spirit
 Veil of Summer
+Vexing Beetle
 Viashino Spearhunter
 Village Cannibals
 Vow of Flight

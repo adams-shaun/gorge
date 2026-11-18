@@ -3,6 +3,8 @@ A-Jackhammer
 Active Volcano
 Agonizing Syphon
 Ajani's Influence
+Alhammarret, High Arbiter
+Aligned Heart
 Amazing Alliance
 Ambush
 Aragorn and Arwen, Wed
@@ -17,6 +19,7 @@ Awakening Zone
 Azra Smokeshaper
 Bad Deal
 Barbtooth Wurm
+Bastion Enforcer
 Beetleback Chief
 Benthic Biomancer
 Bottle-Cap Blast
@@ -24,17 +27,23 @@ Briarbridge Tracker
 Broken Fall
 Carrion Ants
 Cerodon Yearling
+Charity Extractor
 Chorus of Might
 Clattering Augur
+Cogwork Spy
 Confound
 Contingency Plan
+Covert Operative
+Crested Herdcaller
 Crimson Hellkite
+Curious Killbot
 Daredevil, Fearless Fighter
 Daring Apprentice
 Dawnhart Geist
 Death Frenzy
 Death's Duet
 Deeproot Waters
+Defiant Elf
 Demon of Dark Schemes
 Devouring Deep
 Diminish
@@ -42,44 +51,66 @@ Disturbed Burial
 Dreadmalkin
 Elemental Summoning
 Ellyn Harbreeze, Busybody
+Entish Restoration
 Etherium Abomination
 Exuberant Wolfbear
+Eyeblight's Ending
 Fangren Hunter
 Farmstead
 Feast of Succession
 Filigree Crawler
+Fireblade Artist
+Firewing Phoenix
 Font of Progress
 Force of Vigor
 Forest
 Fortress Cyclops
+Furious Assault
 Gift of Granite
 Gift of Wrath
 Gobbling Ooze
 Goblin Chariot
 Goblin Chieftain
 Goblin War Drums
+Goldnight Commander
 Gravel-Hide Goblin
 Grimdancer
 Hatchery Spider
 Hawkeye, Trick Shot
+High Score
 Howlpack Wolf
 Huatli's Raptor
 Hungering Hydra
 Hunted Ghoul
 Ifh-Bíff Efreet
 Ihsan's Shade
+Imaginary Friends
+Implode
+Incremental Blight
+Incubation Sac
+Indicate
 Infuriate
 Iridescent Angel
+Irradiate
 Irregular Cohort
 Island
 Izzet Chronarch
+Jade Guardian
 Jagwasp Swarm
+Just the Wind
+K-9, Mark I
+Kaleidoscorch
+Karn's Bastion
 Kessig Wolfrider
 Klothys's Design
+Kor Duelist
 Kranioceros
+Krosan Archer
 Leech Gauntlet
 Lingering Phantom
+Makindi Aeronaut
 Mana Prism
+Mardu Outrider
 Maulfist Doorbuster
 Mercenary Informer
 Merfolk of the Depths
@@ -94,57 +125,81 @@ Mwonvuli Acid-Moss
 Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
+Ogre Menial
 One with Nature
 Onslaught
 Orcish Vandal
 Overwhelming Denial
 Panic Attack
 Patriarch's Desire
+Peel from Reality
 Pegasus Courser
+Phyresis
 Pilgrim of the Fires
 Pillar Tombs of Aku
+Pirate Ship
 Plains
+Planar Atlas
+Possessed Centaur
 Pouncing Lynx
+Prescient Chimera
 Primordial Sage
 Prismari Apprentice
 Ravenous Lindwurm
 Razor Swine
 Reforge the Soul
 Relic Robber
+Relic Vial
 Reprobation
 Resistance Reunited
 Reverberate
 Rhystic Study
+Rogue Refiner
 Sage's Row Denizen
 Sandstorm
+Savage Silhouette
+Security Bypass
 Shabraz, the Skyshark
 Shaman of the Pack
 Shapeshifter
+Shatterskull Recruit
 Sheltering Light
 Sigardian Priest
 Sigiled Paladin
 Skirk Commando
+Skittering Crustacean
+Skull Raid
 Sky-Blessed Samurai
 Skyship Stalker
 Skyshroud Claim
+Slinza, the Spiked Stampede
 Slith Firewalker
 Smogsteed Rider
 Solitary Defiance
+Songbird, Sonic Screamer
 Sootfeather Flock
+Soul's Majesty
 Spiketail Drake
 Spotter Thopter
 Staff of the Storyteller
+Steely Resolve
 Stern Scolding
 Stitched Mangler
+Strength of the Pack
+Struggle for Skemfar
 Stupor
+Sunweb
 Sutina, Speaker of the Tajuru
 Swamp
 Syphon Life
 Tarfire
 Tavern Swindler
+Teardrop Kami
 Teetering Peaks
 Thalakos Sentry
 Thanos, Death's Consort
+Thassa's Rebuff
+The Falcon, Airship Restored
 Thistledown Duo
 Titans' Vanguard
 Towering Viewpoint
@@ -153,10 +208,15 @@ Uninvited Geist
 Vampire Revenant
 Viashino Runner
 Viridian Corrupter
+Vizier of the Scorpion
 Volcanic Spite
 Vrock
 Waterlogged Teachings
 Whelming Wave
 Whiptail Wurm
 Whirlwind Technique
+Wildest Dreams
 Wretched Anurid
+Wu Longbowman
+Yomiji, Who Bars the Way
+Zulaport Duelist
