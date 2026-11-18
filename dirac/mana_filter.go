@@ -495,6 +495,9 @@ func (w *filtWalk) activate(t avail, st filtPos) int {
 		if st.pass == 0 && units < ownN+fee || t.total-ownN < fee {
 			continue
 		}
+		if col, ok := s.filtFeePip(k, sl); ok && !t.canMake(col) {
+			continue // no mana made so far can be the fee's {c}: another filter may make it first
+		}
 		if pc != nil {
 			s.removeSrc(k, &t, sl, pc)
 		}
@@ -506,6 +509,9 @@ func (w *filtWalk) activate(t avail, st filtPos) int {
 		// filter: its own mana cannot fund its fee. Each way of spending it
 		// is tried; a board with painful units held out of the groups keeps
 		// the total-only reading.
+		if col, ok := s.filtFeePip(k, sl); ok {
+			return w.spendPip(t, st, sl, fee, col) // the fee's {c} needs mana that can be c (CR 107.4)
+		}
 		if fee == 0 || t.pain.on || t.nOne != 0 { // (a one-colour source's group and entry move together or not at all)
 			t.total -= fee
 			return w.activated(t, st, sl)
@@ -516,6 +522,50 @@ func (w *filtWalk) activate(t avail, st filtPos) int {
 		return -1
 	}
 	return t.maxXScore(w.cost, w.anyColor)
+}
+
+// filtFeePip is the coloured pip of the filter at sl's fee, whether it is a
+// printed pip-fee filter (Apprentice Wizard's {U}, {T}) or a repeatable one.
+func (s *State) filtFeePip(k *prep, sl Slot) (int, bool) {
+	if col, ok := s.filtPip(k, sl); ok {
+		return col, true
+	}
+	return s.filtRepeatPip(k, sl)
+}
+
+// canMake: some unit of a can be colour col.
+func (a *avail) canMake(col int) bool {
+	for g := 0; g < a.n; g++ {
+		if a.cnt[g] != 0 && a.mask[g]&(1<<uint(col)) != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// spendPip pays the fee pip of colour col out of a group that can make col
+// (gorge's castWindowPays funds {U} with blue mana, not any mana), each such
+// group tried, then the rest of the fee (fee-1 generic) as spendFee does. It
+// returns -1 when no unit made so far can be col.
+func (w *filtWalk) spendPip(t avail, st filtPos, sl Slot, fee, col int) int {
+	best := -1
+	for g := 0; g < t.n; g++ {
+		if t.cnt[g] == 0 || t.mask[g]&(1<<uint(col)) == 0 {
+			continue
+		}
+		u := t
+		if t.pain.on || t.nOne != 0 {
+			u.total -= fee // the total-only reading, as the generic fee takes (the group and entry move together)
+			return w.activated(u, st, sl)
+		}
+		u.removeWide(u.mask[g], 1)
+		if fee > 1 {
+			best = max(best, w.spendFee(u, st, sl, fee-1, 0))
+		} else {
+			best = max(best, w.activated(u, st, sl))
+		}
+	}
+	return best
 }
 
 // spendFee takes owed more units of the filter's fee out of t's groups, from
