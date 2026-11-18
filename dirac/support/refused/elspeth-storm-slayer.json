@@ -1,7 +1,7 @@
 {
   "card": "Elspeth, Storm Slayer",
-  "class": "unmodelled-tokenpt",
-  "why": "gorge does something the kernel does not model here (stall tokenpt); 26 games in the corpus",
+  "class": "unmodelled-endure",
+  "why": "gorge does something the kernel does not model here (stall endure) with Elspeth a recent source; 1 game in the sweep",
   "repro": {
     "pool": "custom",
     "surface": "autopay",
@@ -9,6 +9,6 @@
     "pair": 0,
     "policy": "random",
     "mulligans": 0,
-    "file": "elspeth_storm_slayer_token_pt_unmodelled"
+    "file": "elspeth_storm_slayer_endure_stall_unmodelled"
   }
 }
