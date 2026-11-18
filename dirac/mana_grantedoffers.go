@@ -858,6 +858,9 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
+		if pc.manaDyn && pc.manaSac {
+			continue // gorge's witness census (paymentPlanManaUnitsOnlyCompute) prices no evaluated-amount source whose cost sacrifices it: the {T} probe needs a TapOnly shape
+		}
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) {
 			continue
 		}
