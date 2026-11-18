@@ -68,7 +68,8 @@ func (s *State) resolveMadness(k *prep) {
 func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 	c := s.objs[o].card
 	cost := s.adjustCost(k, p, c, o, s.convokeCredit(k, p, c, o, k.t.Cards[c].MadnessCost))
-	ok := s.affordsFor(k, p, &cost) || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost) || s.filterCastAffords(k, p, o, &cost)
+	ok := s.affordsFor(k, p, &cost) || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost) || s.filterCastAffords(k, p, o, &cost) ||
+		s.painCastAffords(k, p, &cost)
 	var stall uint8
 	if !ok {
 		// the failed window probe reports its fork's latched stall; this drop
@@ -89,6 +90,21 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 		return false
 	}
 	return s.spellTargetsFeasible(k, c, p)
+}
+
+// painCastAffords: a painland's painful colour funds the madness cost (CR
+// 601.2g: Llanowar Wastes' {B}, its damage not lethal). gorge's
+// offerCastablePotential prices the cast against the potential pool and its
+// planner, which both take that colour; the unless-window census affordsFor
+// reads (availWindowFor, painAvailMask) lists a painland by its {C} alone.
+// The offer walk's census (availFor) is the planner's, lethal guard included.
+func (s *State) painCastAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
+	if !k.painMana {
+		return false
+	}
+	var av avail
+	s.availFor(k, p, &av)
+	return av.affords(cost, pipMaskOf(cost), 0)
 }
 
 // restrCastAffords: the restricted sources the madness cast of card o may
