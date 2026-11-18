@@ -554,15 +554,17 @@ var DebugNoPainDamage bool
 // painAvail is the offer gate's painful units when their summed damage
 // could reach the payer's life: the planner's lethal guard then bounds how
 // many may make a colour, which a per-unit Hall count cannot express.
-// Groups are the distinct (colours, pain-only) shapes of one-damage sources
-// (every pool painland and Elves of Deep Shadow deal 1); a painland's units
-// sit in the base avail as {C} sources, a pain-only source's not at all,
-// and affordsPlain tries each split of the budget over the groups.
+// Groups are the distinct (colours, pain-only, pain) shapes of sources (most
+// painlands and Elves of Deep Shadow deal 1; Staff of Compleation's mana
+// ability pays 2 life); a painland's units sit in the base avail as {C}
+// sources, a pain-only source's not at all, and affordsPlain tries each split
+// of the budget over the groups, each unit of group g spending w[g] of it.
 type painAvail struct {
 	on     bool
 	n      uint8
 	only   uint8    // bit g: group g is pain-only (no normal alternative)
-	budget uint8    // painful activations a plan may take: life - 1
+	budget uint8    // pain a plan may take: life - 1
+	w      [6]uint8 // the pain one unit of the group takes (its painN)
 	mask   [6]uint8 // the group's painful colours
 	prim   [6]uint8 // the group's normal alternative's colours (a painland's {C}, Haunted Screen's {W}{B})
 	cnt    [6]uint8
@@ -595,9 +597,8 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 		if pc.painCol == 0 || !s.canTapForManaPC(k, sl, pc) {
 			continue
 		}
-		if pc.painN != 1 {
-			s.painTightBail(modal)
-			return // a heavier rider: keep the per-unit count
+		if int(pc.painN) >= life {
+			continue // its pain alone is lethal: painAvailMask already withheld its colours
 		}
 		if k.gen != nil && k.gen.anyTapExtra {
 			r, _, stall := s.srcExtraPainPick(k, sl, pc)
@@ -606,7 +607,7 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 			}
 			rpAny = rpAny || r > 0
 		}
-		sum++
+		sum += int(pc.painN)
 		pm := uint8(pc.painCol) & 0x1f
 		prim := uint8(pc.manaCol) & 0x3f
 		var ob uint8
@@ -620,7 +621,7 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 		}
 		g := uint8(0)
 		for ; g < pa.n; g++ {
-			if pa.mask[g] == pm && pa.prim[g] == prim && pa.only>>g&1 == ob && pa.ec[g] == ec {
+			if pa.mask[g] == pm && pa.prim[g] == prim && pa.only>>g&1 == ob && pa.ec[g] == ec && pa.w[g] == pc.painN {
 				break
 			}
 		}
@@ -633,6 +634,7 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 			pa.prim[g] = prim
 			pa.only |= ob << g
 			pa.ec[g] = ec
+			pa.w[g] = pc.painN
 			pa.n++
 		}
 		pa.cnt[g]++
@@ -689,7 +691,7 @@ func (a *avail) painAffords(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 	for {
 		used := 0
 		for g := uint8(0); g < pa.n; g++ {
-			used += int(x[g])
+			used += int(x[g]) * int(pa.w[g])
 		}
 		if used <= int(pa.budget) {
 			t := *a
