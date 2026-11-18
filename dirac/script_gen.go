@@ -359,27 +359,39 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			// search's filter step funds the filter's fee from a granted
 			// sacrifice ability (Rain of Filth's lands; grantSearch's
 			// stepFilt), which the filter-only script skips (grantHasCost).
-			if !s.grantActScript(k, a, p) && !(isCastKind(a.Kind()) && s.filtScript(k, a, p, false)) {
-				continue // no script within gorge's one search's budget (grantActScript)
+			if ga, gstall := s.grantActScript(k, a, p); !ga {
+				if isCastKind(a.Kind()) && s.filtScript(k, a, p, false) {
+					// the filter-only script prices it (grantHasCost)
+				} else {
+					// the drop is final — grantCap ran before scriptOffers
+					// (legal.go) — and one of the grant search's lines ran
+					// into a rule gap the kernel stalls by name: declare
+					// it, not a dropped offer (the search declares
+					// nothing, mana_grantedoffers.go grantSearch)
+					s.capStall(gstall)
+					continue // no script within gorge's one search's budget (grantActScript)
+				}
 			}
 		} else if filt.any() || mix {
 			if !s.filtScript(k, a, p, false) {
 				continue // no script within gorge's search budget
 			}
 		} else if tapsDef.any() && a.Kind() == AkActivate && s.liveGrantGap(k, p) {
-			if !s.grantActScript(k, a, p) {
+			if ga, gstall := s.grantActScript(k, a, p); !ga {
+				// the drop is final and one of the grant search's lines
+				// ran into a rule gap the kernel stalls by name: declare
+				// it, not a dropped offer (the search declares nothing)
+				s.capStall(gstall)
 				continue // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go)
 			}
 		} else if tx.any() && !(tapsDef.any() && !s.tapXRiderGaps(k, p).any()) && s.tapXBoard(k, p) {
 			if offered, stall := s.tapXScriptOffered(k, a, p); !offered {
-				if stall != 0 {
-					// every route gave the play up and one of the search's lines
-					// ran into a rule gap the kernel stalls by name: declare it,
-					// not a dropped offer. The drop is final — grantCap ran
-					// before scriptOffers (legal.go) — and the search itself
-					// declares nothing (mana_tapanother.go tapXScript).
-					s.capFull(stall)
-				}
+				// every route gave the play up and one of the search's lines
+				// ran into a rule gap the kernel stalls by name: declare it,
+				// not a dropped offer. The drop is final — grantCap ran
+				// before scriptOffers (legal.go) — and the search itself
+				// declares nothing (mana_tapanother.go tapXScript).
+				s.capStall(stall)
 				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go, mana_grantsacx.go)
 			}
 		} else if k.gen.anyRefl && s.reflBoard(k, p, restr, anyR) {
@@ -395,7 +407,14 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				continue // no script within gorge's search budget (mana_eachfee.go)
 			}
 		} else if restr.any() || s.scriptCtr(k, p).any() {
-			if s.scriptDeadEnd(k, a, p, restr) {
+			if dead, stall := s.scriptDeadEnd(k, a, p, restr); dead {
+				// the drop is final and one of the counter-cost search's
+				// lines ran into a rule gap the kernel stalls by name:
+				// declare it, not a dropped offer (the search itself
+				// declares nothing: scriptDeadEnd runs ctrScript on a fork,
+				// and unfork discards a declaration made there; tapXScript's
+				// shape)
+				s.capStall(stall)
 				continue // no script within gorge's budget (mana_countercost.go ctrScript; a counter-cost gap alone, no restricted source beside it)
 			}
 		}
@@ -434,8 +453,19 @@ func (s *State) tapXScriptOffered(k *prep, a Action, p uint8) (bool, uint8) {
 	if found {
 		return true, 0
 	}
-	if s.grantBesideTapXGaps(k, a, p) || s.sacXBesideGrant(k, p) && s.grantActScript(k, a, p) {
+	if g, gstall := s.grantBesideTapXGaps(k, a, p); g {
 		return true, 0
+	} else if stall == 0 {
+		stall = gstall // every route failed and the grant search's line latched
+	}
+	if s.sacXBesideGrant(k, p) {
+		f, gstall := s.grantActScript(k, a, p)
+		if f {
+			return true, 0
+		}
+		if stall == 0 {
+			stall = gstall
+		}
 	}
 	return false, stall
 }
@@ -478,7 +508,8 @@ func (s *State) walkKey(a Action, p uint8, i int) uint64 {
 }
 
 // scriptDeadEnd reports whether gorge's prefix search for play a ends in a
-// script the oracle cannot complete. The search (scriptSearch.visit)
+// script the oracle cannot complete, and the first rule-gap stall a failed
+// line's fork latched (StallNone none). The search (scriptSearch.visit)
 // activates the census gaps depth first in priority-option order, which is
 // battlefield order: Bloom Tenders and restricted sources (Giada) alike.
 // The planner prices the play from the floating pool without reading the
@@ -486,8 +517,10 @@ func (s *State) walkKey(a Action, p uint8, i int) uint64 {
 // {2}{W}), so the script is the battlefield-order chain cut where the walk
 // lists a. Played, the planner reads the pool through the restriction, so the
 // oracle offers a only when the walk lists it with the chain's mana floating,
-// else "script dead end" (oracle gorge.go). Evaluated on a copy.
-func (s *State) scriptDeadEnd(k *prep, a Action, p uint8, restr slotMask) bool {
+// else "script dead end" (oracle gorge.go). Evaluated on a copy, so a stall
+// ctrScript latches there is returned for the caller to declare where its drop
+// is final, not declared on the copy.
+func (s *State) scriptDeadEnd(k *prep, a Action, p uint8, restr slotMask) (bool, uint8) {
 	t := s.fork()
 	defer s.unfork()
 	// An activation's granted mana is the grant search's (grantCap's walk),
@@ -503,7 +536,8 @@ func (s *State) scriptDeadEnd(k *prep, a Action, p uint8, restr slotMask) bool {
 	n := t.battlefieldOrder(p, t.scriptGaps(k, p).or(restr).or(ctr), order[:], 0)
 	var path [MaxPerm]uint8
 	_, found, dead := t.ctrScript(k, a, p, order[:n], ctr, restr, path[:], noGrant)
-	return !found || dead
+	stall := t.g.stalled // the failed search declared on this fork; read before the deferred unfork
+	return !found || dead, stall
 }
 
 // restrictedGrantLive: p controls a source whose granted mana ability carries
@@ -791,6 +825,13 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			// spent the node budget before the tap-another line): the
 			// tap-another search alone, which skips the grants, must not
 			// offer it again (scriptOffers)
+			if g.stall != 0 {
+				// the drop is final (capSpent) and one of the search's lines
+				// ran into a rule gap the kernel stalls by name: declare it,
+				// not a dropped offer. The search itself declares nothing
+				// (mana_grantedoffers.go grantSearch, tapXScript's shape).
+				s.capFull(g.stall)
+			}
 			capSpent.add(a)
 		}
 	}
@@ -854,14 +895,20 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 				// 601.2g-h) — so the kernel drops the play only when no route
 				// prices it; a live counter-cost gap leaves the play to
 				// scriptOffers' counter-gap search (scriptDeadEnd).
-				if stall != 0 {
+				if g.stall != 0 {
 					// the drop is final — capSpent keeps scriptOffers from
-					// repricing the play — and one of the tap-another search's
-					// lines ran into a rule gap the kernel stalls by name:
-					// declare it, not a dropped offer (mana_tapanother.go
-					// tapXScript declares nothing).
-					s.capFull(stall)
+					// repricing the play — and one of the grant search's lines
+					// ran into a rule gap the kernel stalls by name: declare
+					// it, not a dropped offer (the search declares nothing;
+					// the grant search ran before the tap-another one, so its
+					// stall is the first named)
+					s.capFull(g.stall)
 				}
+				// ... and one of the tap-another search's lines ran into a
+				// rule gap the kernel stalls by name: declare it, not a
+				// dropped offer (mana_tapanother.go tapXScript declares
+				// nothing).
+				s.capStall(stall)
 				d.remove(a) // no prefix within gorge's node budget (mana_grantedoffers.go)
 				// The play has had gorge's one prefix search (the grant search
 				// covers a grant board's filters with its grants,
@@ -984,13 +1031,20 @@ func (s *State) objPartPrinted(k *prep, p uint8, a Action) bool {
 // grant), so the filter script's funding-first line must not price it
 // (filtScript sets noGrant for an activation). The grant search owns the
 // prefix on such a board (scriptPrefix) and prices the offer too (CR 601.2g-h).
-func (s *State) grantActScript(k *prep, a Action, p uint8) bool {
+// The second return is the failed search's latched stall (grantSearch's
+// g.stall, StallNone none): the caller declares it only where it finally drops
+// the play.
+func (s *State) grantActScript(k *prep, a Action, p uint8) (bool, uint8) {
 	cost, ex, need, ok := s.grantPlayCost(k, p, a, true)
 	if !ok {
-		return s.filtScript(k, a, p, false)
+		// the filter script declares its own failed line's stall (filtScript)
+		return s.filtScript(k, a, p, false), 0
 	}
 	var g grantSrch
-	return s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g)
+	if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) {
+		return true, 0
+	}
+	return false, g.stall
 }
 
 // grantPrefix: gorge's planner census holds printed mana abilities only

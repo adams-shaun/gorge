@@ -68,7 +68,21 @@ func (s *State) resolveMadness(k *prep) {
 func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 	c := s.objs[o].card
 	cost := s.adjustCost(k, p, c, o, s.convokeCredit(k, p, c, o, k.t.Cards[c].MadnessCost))
-	return (s.affordsFor(k, p, &cost) || s.windowAffords(k, p, &cost) || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost)) && s.spellTargetsFeasible(k, c, p)
+	ok := s.affordsFor(k, p, &cost) || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost)
+	var stall uint8
+	if !ok {
+		// the failed window probe reports its fork's latched stall; this drop
+		// is final for the madness cast, so it declares it rather than losing
+		// the offer silently (tapXScript's shape)
+		ok, stall = s.windowAffords(k, p, &cost)
+	}
+	if !ok {
+		if stall != 0 {
+			s.capFull(stall)
+		}
+		return false
+	}
+	return s.spellTargetsFeasible(k, c, p)
 }
 
 // restrCastAffords: the restricted sources the madness cast of card o may
@@ -92,13 +106,29 @@ func (s *State) restrCastAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) bo
 // per counter, at no counters) is open in every colour, so a cost the census
 // cannot fund may still be offered; the census and the window go first.
 func (s *State) keywordCastAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
-	if s.affordsFor(k, p, cost) || s.windowAffords(k, p, cost) {
+	ok := s.affordsFor(k, p, cost)
+	var stall uint8
+	if !ok {
+		// the failed window probe reports its fork's latched stall; the
+		// potential bound below is the sibling that may still price the cast
+		ok, stall = s.windowAffords(k, p, cost)
+	}
+	if ok {
 		return true
 	}
 	spell := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
 	var pa avail
 	s.availPotentialFor(k, p, &pa, &spell, false)
-	return pa.affords(cost, pipMaskOf(cost), 0)
+	if pa.affords(cost, pipMaskOf(cost), 0) {
+		return true
+	}
+	if stall != 0 {
+		// every route failed and the probe's fork latched a rule gap the kernel
+		// stalls by name: declare it, not a dropped keyword cast (tapXScript's
+		// shape)
+		s.capFull(stall)
+	}
+	return false
 }
 
 // ctrWindowAffords: gorge's potential search for the madness cast activates a

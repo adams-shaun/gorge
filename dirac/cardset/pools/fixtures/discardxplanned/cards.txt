@@ -1,0 +1,7 @@
+# an announced Discard<X/Card> additional cost beside no printed {X} (Turbulent
+# Dreams): gorge's payment planner declines it, so the autopay surface offers
+# the cast only from the floating pool; the kernel test is
+# dirac/cost_discardx_planned_test.go
+Turbulent Dreams
+Island
+Mountain

@@ -779,6 +779,7 @@ func (s *State) castGrantAvail(k *prep, p uint8, o Obj, av, fav *avail) *avail {
 	if k.gen == nil || !k.gen.anyTapExtra || !k.gen.anyGrantRestr() {
 		return av
 	}
+	fav.dynSac = av.dynSac // the rebuilt census keeps a dynamic {T}, sacrifice source the offer counts
 	s.walkHandAvail(k, p, s.grantPayDescOf(k, MakeAction(AkCast, TCode(o), 0, 0)), fav)
 	fav.delve = av.delve
 	return fav
@@ -957,6 +958,11 @@ type grantSrch struct {
 	seen    [potentialScriptNodes]grantKey
 	np      int
 	path    [2 * MaxPerm]grantStep
+
+	// stall: the first stall a node of the search latched on its fork
+	// (stallOf), StallNone none; the caller declares it where it finally drops
+	// the play
+	stall uint8
 	// sp0 is the stack at the root: a deeper one is a trigger a prefix step
 	// caused, which gorge's search lets resolve (a pass) once its activations are
 	// spent. tapsLive: a tap can fire such a trigger (Gran-Gran's "whenever this
@@ -1307,6 +1313,7 @@ func (s *State) grantFirstGaps(k *prep, p uint8) bool {
 // offered / priced); else each untapped candidate is activated in turn,
 // its answers branched on in gorge's order, each payer state once.
 func (g *grantSrch) visit(t *State) bool {
+	g.stallOf(t) // (the stall the step into this node latched on its fork; the node's own probes are the root's too)
 	if !g.node() {
 		return false
 	}
@@ -1645,6 +1652,7 @@ func (g *grantSrch) answered() bool {
 func (g *grantSrch) settle(t *State) bool {
 	var d Decision
 	if !t.tapXNext(g.p, &d) {
+		g.stallOf(t) // a latched stall ends the fork's line here
 		return false
 	}
 	if d.Kind == DkPriority {
@@ -2001,7 +2009,10 @@ func (s *State) grantPayDescOf(k *prep, a Action) payDesc {
 // grantSearch runs gorge's prefix search for p's play of cost (ex its own
 // {T} source) on a copy of s: ok is false when no prefix within the node
 // budget makes the pool and the printed sources pay it; np is 0 when they
-// already do.
+// already do. On false, g.stall is the first rule-gap stall a failed line's
+// fork latched (stallOf, StallNone none): the search declares nothing — the
+// caller declares it only where it finally drops the play (mana_tapanother.go
+// tapXScript).
 //
 //go:noinline
 func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, need [kop.NumManaKinds]bool, g *grantSrch) bool {
@@ -2023,6 +2034,20 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 	t := s.fork()
 	defer s.unfork()
 	return g.visit(t)
+}
+
+// stallOf records the stall a node's fork latched (capFull) while the line ran
+// to it, the first one, so the caller declares it on the real state where it
+// finally drops the play instead of reporting "no payment" for one the fork
+// could still have paid along: the fork cannot go on (its next stepGen ends
+// the game), but the play could have been payable along it. The search
+// declares nothing — a caller that keeps searching may still price the play
+// (grantCap's tapXScript, grantPrefix's grantTapXPrefix, tapXScriptOffered's
+// fall-through); the offer walk declares it only where the drop is final.
+func (g *grantSrch) stallOf(t *State) {
+	if g.stall == 0 {
+		g.stall = t.g.stalled
+	}
 }
 
 // grantApply taps the found prefix into p's pool on s (the play's

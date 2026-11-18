@@ -172,8 +172,13 @@ func (s *State) ctrBesideGrant(k *prep, p uint8) bool {
 // nothing: a tap-another second ability, a two-permanent tap-another source or
 // a counter-cost gap among the
 // grants (mana_granttapx.go, ctrBesideGrant), the grant search listing both.
-func (s *State) grantBesideTapXGaps(k *prep, a Action, p uint8) bool {
-	return (s.tapXSecondLive(k, p) || s.tapXPairLive(k, p) || s.ctrBesideGrant(k, p)) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)
+// The second return is the failed search's latched stall (grantActScript's),
+// StallNone none: the caller keeps it only when no route priced the play.
+func (s *State) grantBesideTapXGaps(k *prep, a Action, p uint8) (bool, uint8) {
+	if !(s.tapXSecondLive(k, p) || s.tapXPairLive(k, p) || s.ctrBesideGrant(k, p)) || !s.liveGrantGap(k, p) {
+		return false, 0
+	}
+	return s.grantActScript(k, a, p)
 }
 
 // availCtr adds p's counter-cost sources' mana to the gaps walk.
@@ -646,9 +651,17 @@ func (s *State) ctrScript(k *prep, a Action, p uint8, order []Slot, ctr, restr s
 	var d Decision
 	depth := 0 // gaps tapped at this node: order[:depth], answers path[:depth]
 	nodes := 0
+	stall := uint8(0) // the first stall a node's fork latched (t.g.stalled), StallNone none
 	for {
 		if depth > 0 {
 			if nodes++; nodes > potentialScriptNodes { // gorge's search budget: no script past it
+				if stall != 0 {
+					// the drop is final (scriptDeadEnd's callers drop the
+					// play) and one node's fork ran into a rule gap the kernel
+					// stalls by name: declare it, not "no payment" (tapXScript's
+					// stall; a found path is not this, its replay latches on s)
+					s.capFull(stall)
+				}
 				return 0, false, true
 			}
 			t := s.fork()
@@ -657,11 +670,17 @@ func (s *State) ctrScript(k *prep, a Action, p uint8, order []Slot, ctr, restr s
 			for j := 0; j < depth; j++ {
 				t.ctrChainTap(k, p, a, order[j], ctr, restr, int(path[j]), &held)
 			}
+			if stall == 0 {
+				stall = t.g.stalled // the chain taps may have latched a stall
+			}
 			t.restrOptions(k, &d, p)
 			if hasOption(&d, a) {
 				dead := held != ([kop.NumManaKinds]uint8{}) && !t.scriptCompletes(k, p, a)
 				s.unfork()
 				return depth, true, dead
+			}
+			if stall == 0 {
+				stall = t.g.stalled // the node's own options build may have latched one
 			}
 			s.unfork()
 		}
@@ -672,6 +691,12 @@ func (s *State) ctrScript(k *prep, a Action, p uint8, order []Slot, ctr, restr s
 		}
 		for { // a leaf: the deepest gap with an answer left, else done
 			if depth == 0 {
+				if stall != 0 {
+					// every line failed and one ran into a rule gap the kernel
+					// stalls by name: declare it, not "no payment" (tapXScript's
+					// stall; a found path is not this, its replay latches on s)
+					s.capFull(stall)
+				}
 				return 0, false, true
 			}
 			j := depth - 1
