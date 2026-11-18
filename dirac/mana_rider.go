@@ -280,8 +280,11 @@ func (s *State) riderGap(k *prep, p uint8, sl Slot, answer int) bool {
 // answer c: the source's mana ask offers the plain first ability's
 // production before the rider's colours (engine order), and gorge's
 // scriptSearch reorders those answers by the play's needed pips
-// (scriptOrderAnswers) only beside a granted ability (scriptManaAskHoists);
-// a plain mana-ability ask keeps its own order. c indexes that list; the chosen plain
+// (scriptOrderAnswers). A plain mana-ability ask keeps that reorder: the
+// needed-colour drop-out holds only where an option costs the payer life as
+// it resolves (CR 605.3b, 118.3, 119.4), and these riders never do — a Grove
+// rider gives its controller's opponents life, a deplete rider sacrifices
+// the source. c indexes that list; the chosen plain
 // production taps without the rider, a chosen rider production runs it.
 func (s *State) riderPlainGap(k *prep, p uint8, a Action, sl Slot, c int) bool {
 	if !s.riderPlainFirst(k, sl) {
@@ -300,24 +303,18 @@ func (s *State) riderPlainGap(k *prep, p uint8, a Action, sl Slot, c int) bool {
 			n++
 		}
 	}
-	if s.grantsLive(k) && s.grantGapUsable(k, sl) {
-		// only an ask carrying a granted ability beside the printed ones is
-		// reordered by the play's needed colours (rules scriptManaAskHoists);
-		// a plain mana-ability ask branches in its own order, the plain
-		// ability first, whatever the play needs
-		need := s.playNeed(k, a)
-		for i := 1; i < n; i++ { // needFirst over colours and their productions
-			if !need[cols[i]] {
-				continue
-			}
-			col, r := cols[i], rider[i]
-			j := i
-			for j > 0 && !need[cols[j-1]] {
-				cols[j], rider[j] = cols[j-1], rider[j-1]
-				j--
-			}
-			cols[j], rider[j] = col, r
+	need := s.playNeed(k, a)
+	for i := 1; i < n; i++ { // needFirst over colours and their productions
+		if !need[cols[i]] {
+			continue
 		}
+		col, r := cols[i], rider[i]
+		j := i
+		for j > 0 && !need[cols[j-1]] {
+			cols[j], rider[j] = cols[j-1], rider[j-1]
+			j--
+		}
+		cols[j], rider[j] = col, r
 	}
 	if c >= n {
 		return false
