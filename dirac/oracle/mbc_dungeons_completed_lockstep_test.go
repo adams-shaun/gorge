@@ -11,3 +11,13 @@ func TestMBCJavelinOfLightningReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "dungeons_completed_mana")
 }
+
+// Undermountain Adventurer's "{T}: Add {G}{G}. If you've completed a dungeon,
+// add six {G} instead" reads DungeonsCompleted$Amount (CR 309.7). Gorge's count
+// evaluator had no such head and priced the tap at {G}{G}, so with the Adventurer
+// and five other lands it never offered Orthion, Hero of Lavabrink's
+// {6}{R}{R}{R},{T} ability, which the six {G} pay for (decision 400, tail-69).
+func TestMBCOrthionHeroOfLavabrinkReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReproNamed(t, "dungeons_completed_count_head")
+}
