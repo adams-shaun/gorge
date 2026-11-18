@@ -38,6 +38,7 @@ Boss Uramon, Shadow's Reach
 Box of Free-Range Goblins
 Brandywine Farmer
 Braulios of Pheres Band
+Bruse Tarl, Boorish Herder
 Brutal Nightstalker
 Brute Force
 Capashen Standard
@@ -45,6 +46,7 @@ Carnival of Souls
 Chainer's Edict
 Chakram Retriever
 Chandra's Triumph
+Chandra, Legacy of Fire
 Cleansing Wildfire
 Collector's Case
 Conifer Strider
@@ -90,6 +92,7 @@ Ensoul Artifact
 Entropic Eidolon
 Estwald Shieldbasher
 Ethersworn Adjudicator
+Exalted Flamer of Tzeentch
 Executioner's Swing
 Expel from Orazca
 Fade from Memory
@@ -160,6 +163,7 @@ Jedit's Dragoons
 Jerrard of the Closed Fist
 Jori En, Ruin Diver
 Jungle Troll
+Kederekt Leviathan
 Key to the City
 Khalni Garden
 Knotvine Paladin
@@ -192,8 +196,10 @@ Mind Peel
 Misthollow Griffin
 Mnemonic Wall
 Mobile Garrison
+Mogg Raider
 Moldgraf Scavenger
 Momo, Rambunctious Rascal
+Monster Mashup
 Mother Bear
 Mountain
 Necromantic Summons
@@ -221,6 +227,7 @@ Powerstone Engineer
 Pride Sovereign
 Psionic Entity
 Puppeteer Clique
+Pyrohemia
 Pyromancer's Assault
 Radha's Firebrand
 Rampart Crawler
@@ -248,6 +255,7 @@ Sanguine Sacrament
 Satyr Piper
 Scryb Ranger
 Sealock Monster
+Seasoned Pyromancer
 Seismic Elemental
 Sejiri Steppe
 Selesnya Sagittars
@@ -255,6 +263,7 @@ Selfless Samurai
 Serra Ascendant
 Serra's Liturgy
 Shady Traveler
+Shaggy Camel
 Shattered Crypt
 Shorecomber Crab
 Shroofus Sproutsire
@@ -322,6 +331,8 @@ Tidewater Minion
 Tome Anima
 Traitorous Instinct
 Tuknir Deathlock
+Turn into a Pumpkin
+Tyrannize
 Underworld Dreams
 Underworld Rage-Hound
 Undying Rage

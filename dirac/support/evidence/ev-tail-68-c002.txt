@@ -7,6 +7,7 @@ Aether Poisoner
 Aethergeode Miner
 Aetheric Amplifier
 Aethermage's Touch
+Ageless Sentinels
 Akki Underling
 Akroan Jailer
 Alpine Meadow
@@ -25,6 +26,7 @@ Basal Thrull
 Bearer of Memory
 Behemoth Sledge
 Bitterthorn, Nissa's Animus
+Blastfire Bolt
 Blighted Shaman
 Blood Reckoning
 Blood on the Snow
@@ -70,9 +72,11 @@ Eladamri, Lord of Leaves
 Electrickery
 Elvish Archers
 Embersmith
+Engineered Might
 Errant and Giada
 Erratic Mutation
 Erratic Visionary
+Escarpment Fortress
 Eternal Witness
 Ethereal Haze
 Experimental Overload
@@ -83,6 +87,7 @@ Faith's Reward
 Fated Intervention
 Fencer Clique
 Feral Deceiver
+Ferocious Tigorilla
 Festergloom
 Fey Steed
 Fill with Fright
@@ -94,6 +99,7 @@ Followed Footsteps
 Forest
 Fractal Summoning
 Freyalise, Llanowar's Fury
+Furious Resistance
 Gem of Becoming
 Ghastly Demise
 Ghitu Slinger
@@ -157,6 +163,7 @@ Needle Spires
 Niblis of the Urn
 Nyxborn Eidolon
 Oashra Cultivator
+Omen
 Ominous Cemetery
 Ornate Kanzashi
 Oxidda Scrapmelter
@@ -184,8 +191,10 @@ Rustrazor Butcher
 Sangrophage
 Saryth, the Viper's Fang
 Scaled Herbalist
+Scaled Hulk
 Scarred Vinebreeder
 Scrapper Champion
+Sea Gate Oracle
 Sentinel Sliver
 Serene Offering
 Shambling Ghoul
@@ -195,6 +204,8 @@ Shivan Harvest
 Short Sword
 Silburlind Snapper
 Silvar, Devourer of the Free
+Silverglade Pathfinder
+Slaughterhouse Bouncer
 Sledding Otter-Penguin
 Slither Blade
 Snag
@@ -219,6 +230,7 @@ Suture Priest
 Swamp
 Swift Spinner
 Sword of Once and Future
+Tangleclaw Werewolf
 Tarfire
 Tattered Mummy
 Tel-Jilad Justice
@@ -241,6 +253,7 @@ Vampiric Tutor
 Wanderlust
 Weatherseed Elf
 Whispering Wizard
+White Shield Crusader
 Windrider Wizard
 Wolfbriar Elemental
 Wooden Sphere

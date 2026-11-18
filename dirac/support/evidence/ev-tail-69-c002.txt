@@ -56,6 +56,7 @@ Contagious Vorrac
 Corrupt
 Council of Advisors
 Countless Gears Renegade
+Crab Umbra
 Crackdown
 Crypt Ripper
 Curse of Obsession
@@ -67,6 +68,7 @@ Dauthi Mercenary
 Davriel's Shadowfugue
 Deeproot Warrior
 Demogorgon's Clutches
+Demonspine Whip
 Depart the Realm
 Diabolical Salvation
 Dispeller's Capsule
@@ -104,6 +106,7 @@ Foriysian Brigade
 Forsake the Worldly
 Foul Watcher
 Frightcrawler
+Fulminator Mage
 Fyndhorn Brownie
 Galvanic Blast
 Garruk Wildspeaker
@@ -166,6 +169,7 @@ Jeweled Torque
 Jolene, the Plunder Queen
 Jump
 Jungle Wurm
+Kami of the Waning Moon
 Killer Bees
 Kithkin Zealot
 Knight of Dusk's Shadow
@@ -231,6 +235,7 @@ Planar Bridge
 Political Triumph
 Primetime Suspect
 Protean Thaumaturge
+Putrefy
 Pyre-Sledge Arsonist
 Pyreswipe Hawk
 Quickling
@@ -312,6 +317,7 @@ Traitorous Blood
 Treasure Hunt
 Triangle of War
 Trollbred Guardian
+Undermountain Adventurer
 Underworld Connections
 Unhinge
 Unholy Indenture

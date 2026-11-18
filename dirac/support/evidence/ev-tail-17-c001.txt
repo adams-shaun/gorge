@@ -97,6 +97,7 @@ Duke Ulder Ravengard
 Earthen Goo
 Eerie Soultender
 Elemental Bond
+Ellie, Vengeful Hunter
 Elves of Deep Shadow
 Elvish Scout
 Elvish Warrior
@@ -105,6 +106,7 @@ Enthralling Victor
 Environmental Sciences
 Erkenbrand, Lord of Westfold
 Errant Doomsayers
+Escape Protocol
 Esper Cormorants
 Ethereal Whiskergill
 Etherium Abomination
@@ -222,6 +224,7 @@ Magus of the Order
 Mahadi, Emporium Master
 Manifold Key
 March of the Drowned
+Martyrs' Tomb
 Masked Blackguard
 Melancholy
 Metal Fatigue

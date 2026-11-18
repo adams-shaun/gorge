@@ -42,6 +42,7 @@ Blazing Hope
 Blazing Volley
 Blind with Anger
 Blood Pet
+Bloodfire Expert
 Bloodvial Purveyor
 Bogbrew Witch
 Bola Warrior
@@ -305,6 +306,7 @@ Riptide Mangler
 Rise of the Witch-king
 Rishkar, Peema Renegade
 Rising Populace
+River Serpent
 Roc Hatchling
 Rummaging Goblin
 Sawtooth Ogre
@@ -390,6 +392,7 @@ Undead Butler
 Unseal the Necropolis
 Utvara Scalper
 Valduk, Keeper of the Flame
+Vantress Paladin
 Vapor Snag
 Vectis Dominator
 Veiled Sentry
