@@ -83,6 +83,8 @@ func (s *State) offerBestowHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 	}
 	cd := &k.t.Cards[c]
 	bc := s.adjustCost(k, p, c, o, cd.BestowCost) // the reduction applies to an alternative cost too (CR 601.2f)
+	og := s.restrOriginOfObj(o)
+	og.bestowed = true // an Aura spell: creature-spell-only mana can't pay it (CR 702.103b, 106.6)
 	if len(k.gen.grantPC) != 0 && (s.g.availX&availWalk != 0 || k.gen.anyGrantRestr()) {
 		// gorge's potential walk counts a restricted mana ability only for a
 		// payment its restriction admits (potentialRestrictionAdmits): a
@@ -90,10 +92,10 @@ func (s *State) offerBestowHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 		// bestowed cast on the offer either (grantCap prices plain casts only;
 		// Battery Bearer's {C} beside a nonartifact bestow cost, CR 106.6)
 		var ha avail
-		s.walkHandAvail(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}, &ha)
+		s.walkHandAvail(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: og}, &ha)
 		av = &ha
 	}
-	if !av.affords(&bc, pipMaskOf(&bc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &bc, av)) {
+	if !av.affords(&bc, pipMaskOf(&bc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, og, &bc, av)) {
 		return
 	}
 	if s.castHeldOut(o) {
