@@ -77,6 +77,12 @@ func (lc *lowerCtx) attachObject(ps *params, o string) error {
 			return refuse("Attach Object %q without Defined$ Self", o)
 		}
 		ps.consume("Defined")
+		if lc.repeatCard > 0 {
+			// the repeated card of a RepeatEach over cards: one object per
+			// pass (lower_repeatcardsloop.go; Balan, Wandering Knight)
+			obj, dest = lRef{Kind: rEach}, lRef{Kind: rSelf}
+			break
+		}
 		if !lc.kattremOneWriter() {
 			return refuse("Attach Object Remembered over a multi-object remembered set")
 		}
@@ -86,7 +92,7 @@ func (lc *lowerCtx) attachObject(ps *params, o string) error {
 	}
 	for _, r := range []lRef{obj, dest} {
 		switch r.Kind {
-		case rSelf, rTriggered, rRemembered:
+		case rSelf, rTriggered, rRemembered, rEach:
 		case rTarget:
 			if f := lc.ab.Targets[r.N].F; f == nil || len(f.Clauses) == 0 || lc.ab.Targets[r.N].Zone != zBattlefield {
 				return refuse("Attach Object %q: target slot %d is not a permanent", o, r.N)
