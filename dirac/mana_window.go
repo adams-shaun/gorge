@@ -3365,7 +3365,16 @@ func (s *State) manaStep(k *prep) bool {
 			// (mana_phyrexian.go)
 			half := s.buildCost0(k)
 			half.Tb, half.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
-			if s.phyCastPlanSettles(k, e, half, cost) {
+			// the restricted mana a granted source's prefix tap floated pays
+			// first, as the plain cast's payment spends it (CR 106.6). Only
+			// the plan arm takes the shortened cost: phyPay's manual window
+			// discounts the admitted floating batches itself (windowSpellSettled,
+			// phyWindowReach's restrAvailAdd), so handed the shortened cost it
+			// would count that mana twice and tap short a payment the window
+			// funds (as the seAbility branch's restrShortAdm note above).
+			hs, cs := s.restrAdmShortCost(k, e, half), s.restrAdmShortCost(k, e, cost)
+			if s.phyCastPlanSettles(k, e, hs, cs) {
+				cost = cs
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			} else {
 				s.phyPay(k, e.ctrl, &cost, int(e.x), e.obj)
