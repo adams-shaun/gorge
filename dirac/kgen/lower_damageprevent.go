@@ -108,7 +108,11 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 			return err
 		}
 	}
-	lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(kws, "&")})
+	// A = 1: the grant is gorge's Effect object, which names itself in the
+	// CR 616.1 order option (the kernel records it: recordPrevGrant). A Pump
+	// KW$ grant (Fleeting Flight) is the creature's own keyword, so gorge's
+	// option names the creature, and A stays 0.
+	lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, A: cst(1), CS: strings.Join(kws, "&")})
 	return nil
 }
 
