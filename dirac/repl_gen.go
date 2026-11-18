@@ -494,6 +494,25 @@ func (s *State) replPlusCand(k *prep, b Slot, fsl Slot, srcCard CardID, sc, rcp 
 	return 0, 0, false
 }
 
+// appendPrevGrants appends one prevention candidate per live granted Effect
+// record of sl covering the asked side(s) to ro.cand (from n), and returns
+// the new count and how many records it appended. A full candidate list
+// stalls loudly (never truncates) and returns -(count)-1.
+func (s *State) appendPrevGrants(ro *replOrd, n int, k *prep, sl Slot, from, to bool, stall uint8) (int, int) {
+	var gs [8]Obj
+	m := s.prevGrantCands(k, sl, from, to, gs[:])
+	for _, o := range gs[:m] {
+		if n == len(ro.cand) {
+			s.capFull(stall)
+			return -n - 1, m
+		}
+		ro.cand[n] = o
+		ro.prev |= 1 << n
+		n++
+	}
+	return n, m
+}
+
 // replOrderCandsFz fills s.g.ro's candidates for the frozen combat event fe
 // (its amount before the replacements is fe.n) and returns their number.
 func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
@@ -547,16 +566,9 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		// then the permanent's own candidate for a printed fact or a
 		// pump/static-granted bit without a record (gorge scans its Effect
 		// candidates before the cards' face replacements)
-		var gs [4]Obj
-		m := s.prevGrantCands(k, fe.dst, false, true, gs[:])
-		for _, o := range gs[:m] {
-			if n == len(ro.cand) {
-				s.capFull(StallShield) // loud: never truncate the candidates
-				return n
-			}
-			ro.cand[n] = o
-			ro.prev |= 1 << n
-			n++
+		var m int
+		if n, m = s.appendPrevGrants(&s.g.ro, n, k, fe.dst, false, true, StallShield); n < 0 {
+			return -n - 1
 		}
 		if (m == 0 && s.kwGen(k, fe.dst)&kop.KwPreventCombatDamageTo != 0) ||
 			k.gen != nil && k.gen.replBits[s.cardAt(fe.dst)]&(rbPrevCombatTo|rbPrevDmgTo) != 0 && !s.genLost(k, fe.dst) {
@@ -576,18 +588,11 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		// keyword matches (preventFromGen removes the event once asked) —
 		// one candidate per live Effect record; a pump-granted bit without
 		// a record is one candidate naming the protected source
-		var gs [4]Obj
-		if m := s.prevGrantCands(k, fsl, true, false, gs[:]); m > 0 {
-			for _, o := range gs[:m] {
-				if n == len(ro.cand) {
-					s.capFull(StallReplCands) // loud: never truncate the candidates
-					return n
-				}
-				ro.cand[n] = o
-				ro.prev |= 1 << n
-				n++
-			}
-		} else {
+		var m int
+		if n, m = s.appendPrevGrants(ro, n, k, fsl, true, false, StallReplCands); n < 0 {
+			return -n - 1
+		}
+		if m == 0 {
 			if n == len(ro.cand) {
 				s.capFull(StallReplCands) // loud: never truncate the candidates
 				return n
@@ -813,6 +818,7 @@ func (s *State) replCandLive(k *prep, i int) bool {
 	// permanent it protects: it is live while the record is (its protected
 	// slot holds it, the grantor may fall), with the recipient still one
 	if ro.prev&(1<<i) != 0 && ro.shld&(1<<i) == 0 && ro.plus&(1<<i) == 0 &&
+		ro.cand[i] != s.perms[ro.askS].obj && (ro.askD == NoSlot || ro.cand[i] != s.perms[ro.askD].obj) &&
 		(s.prevGrantNamed(ro.askS, ro.cand[i]) || ro.askD != NoSlot && s.prevGrantNamed(ro.askD, ro.cand[i])) {
 		return !s.noPrev(k, true) && (ro.askD == NoSlot || s.occ.has(ro.askD))
 	}
