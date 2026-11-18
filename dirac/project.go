@@ -232,6 +232,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	if s.res.ask == raGenEnchant && ob.zone != kop.ZoneBattlefield && s.res.askP != ob.owner() && s.enchantReturnObj(k) == i {
 		po.Ctrl = s.res.askP // a GainControl$ return of an Aura asks its host under the new controller (Meathook Massacre II): gorge folds the control onto the card before the move (emitEntryMove, CR 303.4f)
 	}
+	po.Ctrl = s.czBearerCtrl(k, i, po.Ctrl)
 	if ob.zone == kop.ZoneStack {
 		for j := 0; j < int(s.sp); j++ {
 			if s.stack[j].obj == i && s.stack[j].kind == seSpell {
