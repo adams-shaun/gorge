@@ -35,6 +35,34 @@ func (k *prep) deferCol(c CardID) int {
 	return kop.R
 }
 
+// deferAb is card c's deferred mana ability, nil when it has none.
+func (k *prep) deferAb(c CardID) *kop.Ability {
+	for i := range k.t.Cards[c].Abilities {
+		if a := &k.t.Cards[c].Abilities[i]; a.Kind == kop.AbMana && a.ManaDeferred {
+			return a
+		}
+	}
+	return nil
+}
+
+// deferLifeOK: the deferred source at sl can pay its life cost ("{T}, Pay 2
+// life": Boseiju) for p; a source with no life cost always can. A life cost is
+// payable at the life total or less (CR 119.4).
+func (s *State) deferLifeOK(k *prep, p uint8, sl Slot) bool {
+	a := k.deferAb(s.cardAt(sl))
+	return a == nil || a.Cost.Flags&kop.CostPayLife == 0 || int(s.pl[SeatIx(p)].life) >= lifeCostOwed(&a.Cost)
+}
+
+// deferLifeSurvives: the deferred source at sl can pay its life cost and leave
+// p above 0 life. The scripted-prefix search and the X-ask census use this
+// stricter rule (gorge's prefix search drops a branch that ends the game,
+// scriptSearch.visit; CR 119.4, 104.3b, as lifeGapSurvives does for a life
+// gap), while the mana window keeps deferLifeOK (a payment to 0 is payable).
+func (s *State) deferLifeSurvives(k *prep, p uint8, sl Slot) bool {
+	a := k.deferAb(s.cardAt(sl))
+	return a == nil || a.Cost.Flags&kop.CostPayLife == 0 || int(s.pl[SeatIx(p)].life) > lifeCostOwed(&a.Cost)
+}
+
 // floatDeferred adds the deferred source sl's mana to p's pool and remembers
 // the source and its colour (tapGap's deferred arm). A second deferred source
 // floating beside the first would leave the first's spend unattributed: stall
@@ -111,6 +139,7 @@ func (s *State) deferredSpent(k *prep, p uint8, r0, src uint8, col int) {
 		return
 	}
 	s.bld().obsSl = sl + 1
+	s.deferredNoCounter(k, sl)
 }
 
 // scriptDeferred: p's activatable deferred sources, a slot mask (a subset of

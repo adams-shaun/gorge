@@ -31,3 +31,7 @@ Cancel
 Wind Drake
 # Utopia Sprawl: an Aura whose enchanted Forest adds the chosen colour (StTapChosen)
 Utopia Sprawl
+# AddsNoCounter$ !Permanent (Boseiju, Who Shelters All): a deferred {C} source that pays life
+Boseiju, Who Shelters All
+Searing Spear
+Lava Axe

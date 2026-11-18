@@ -256,7 +256,7 @@ func (fs *filtSearch) otherOwnAsk(k *prep, t *State, sl Slot, funded int, try fu
 		return fs.chosenPairGap(t, sl, try), true
 	case k.gen.anyDeferred && k.gen.has(t.cardAt(sl), gfDeferred):
 		// a single fixed {R} ability: no ask node (deferBranch)
-		return t.perms[sl].flags&pfTapped == 0 && try(otherStep{kind: otherDeferred}), true
+		return t.perms[sl].flags&pfTapped == 0 && t.deferLifeSurvives(k, fs.p, sl) && try(otherStep{kind: otherDeferred}), true
 	case t.scriptCtr(k, fs.p).has(sl):
 		return fs.ctrOther(k, t, sl, try), true
 	case t.isLifeGapAt(k, fs.p, sl):
