@@ -6,11 +6,14 @@ package cards
 // as supported (Face.Primitives marks the rest api:TwoPiles.OtherShape).
 //
 // Supported: a ChosenPile$ (and UnchosenPile$, when present) naming an SVar of
-// the face; no LeftRightPile$; FaceDown$ absent or One; and either DefinedPiles$
-// naming two Remembered/Imprinted/Targeted piles (Hostile Negotiations), or a
-// card set that is DefinedCards$ Remembered/Targeted or the battlefield
-// shape (TwoPilesBattlefieldShape). Parameter values are already trimmed by
-// the script parser.
+// the face (ChosenPile$ may be absent when RememberChosen$ True carries the
+// chosen pile on to a later sub-ability: Make an Example); no LeftRightPile$;
+// FaceDown$ absent, One or True (display only: who sees a pile is not
+// modelled); and either DefinedPiles$ naming two Remembered/Imprinted/Targeted
+// piles (Hostile Negotiations), or a card set that is a DefinedCards$ in
+// TwoPilesDefinedCardsSupported or the battlefield shape
+// (TwoPilesBattlefieldShape). Parameter values are already trimmed by the
+// script parser.
 func TwoPilesShapeSupported(sa *SA, f *Face) bool {
 	if sa == nil || sa.API != "TwoPiles" {
 		return true
@@ -28,12 +31,19 @@ func TwoPilesShapeSupported(sa *SA, f *Face) bool {
 		}
 	}
 	switch sa.ParamStr(PKFaceDown) {
-	case "", "One", "one", "ONE":
+	case "", "One", "one", "ONE", "True", "true", "TRUE":
 	default:
 		return false
 	}
 	chosen := sa.ParamStr(PKChosenPile)
-	if chosen == "" || ResolveSVar(f.SVars, chosen) == nil {
+	if chosen == "" {
+		// No pile body: only the RememberChosen$ ride-along shape (the chosen
+		// pile lands in the Remembered set for the next sub-ability), and not
+		// with DefinedPiles$, whose resolver arm always runs a body.
+		if definedPiles || !TwoPilesRemembersChosen(sa) {
+			return false
+		}
+	} else if ResolveSVar(f.SVars, chosen) == nil {
 		return false
 	}
 	if u := sa.ParamStr(PKUnchosenPile); u != "" && ResolveSVar(f.SVars, u) == nil {
@@ -42,13 +52,46 @@ func TwoPilesShapeSupported(sa *SA, f *Face) bool {
 	if definedPiles {
 		return true
 	}
-	switch sa.ParamStr(PKDefinedCards) {
-	case "Remembered", "Targeted":
-		return true
-	case "":
-		return TwoPilesBattlefieldShape(sa)
+	if spec := sa.ParamStr(PKDefinedCards); spec != "" {
+		return TwoPilesDefinedCardsSupported(spec)
 	}
-	return false
+	return TwoPilesBattlefieldShape(sa)
+}
+
+// TwoPilesRemembersChosen is RememberChosen$ True: the chosen pile is added to
+// the resolution's Remembered set.
+func TwoPilesRemembersChosen(sa *SA) bool {
+	return sa != nil && sa.ParamStr(PKRememberChosen) == "True"
+}
+
+// TwoPilesDefinedCardsSupported is the DefinedCards$ card sets the resolver
+// builds: the Remembered/Imprinted/Targeted objects, or the top N cards of the
+// controller's library (Sauron's Ransom's Top_4_OfLibrary). The one home of
+// the list: the resolver reads it through here.
+func TwoPilesDefinedCardsSupported(spec string) bool {
+	switch spec {
+	case "Remembered", "Targeted", "Imprinted":
+		return true
+	}
+	_, ok := TwoPilesTopOfLibrary(spec)
+	return ok
+}
+
+// TwoPilesTopOfLibrary parses a "Top_<N>_OfLibrary" DefinedCards$ value
+// (N a positive decimal number).
+func TwoPilesTopOfLibrary(spec string) (n int, ok bool) {
+	const pre, suf = "Top_", "_OfLibrary"
+	if len(spec) <= len(pre)+len(suf) || spec[:len(pre)] != pre || spec[len(spec)-len(suf):] != suf {
+		return 0, false
+	}
+	digits := spec[len(pre) : len(spec)-len(suf)]
+	for i := 0; i < len(digits); i++ {
+		if digits[i] < '0' || digits[i] > '9' || n > 1000 {
+			return 0, false
+		}
+		n = n*10 + int(digits[i]-'0')
+	}
+	return n, n > 0
 }
 
 // TwoPilesDefinedPiles is DefinedPiles$ split on the FIRST comma (Forge's
@@ -89,34 +132,47 @@ func twoPilesPileSelector(s string) bool {
 	return s == "Remembered" || s == "Imprinted" || s == "Targeted"
 }
 
+// TwoPilesBattlefieldValid is the battlefield shape's ValidCards$ with the
+// redundant .RememberedPlayerCtrl qualifier dropped when the pool player IS the
+// Remembered player (Defined$ Remembered): the pool is already that player's
+// permanents. The one home of that normalisation, shared with the resolver.
+func TwoPilesBattlefieldValid(sa *SA) string {
+	const q = ".RememberedPlayerCtrl"
+	v := sa.ParamStr(PKValidCards)
+	if sa.ParamStr(PKDefined) == "Remembered" && len(v) > len(q) && v[len(v)-len(q):] == q {
+		return v[:len(v)-len(q)]
+	}
+	return v
+}
+
 // TwoPilesBattlefieldShape is the "separate all <permanents> target player
 // controls into two piles" card set: no DefinedCards$, Zone$ Battlefield, a
-// plain card-type ValidCards$ (no qualifier, so none is read relative to a
-// Remembered referent), the pool player named by a ValidTgts$ target (no
-// Defined$) or Defined$ You/TriggeredPlayer, and no RememberChosen$ (the
-// chosen pile is applied through ChosenPile$ only).
+// plain card-type ValidCards$ (the one qualifier is .RememberedPlayerCtrl with
+// Defined$ Remembered: the pool is already that player's permanents), and the
+// pool player named by a ValidTgts$ target (no Defined$) or Defined$
+// You/TriggeredPlayer/Remembered.
 func TwoPilesBattlefieldShape(sa *SA) bool {
-	if sa == nil || sa.ParamStr(PKDefinedCards) != "" || sa.ParamStr(PKZone) != "Battlefield" ||
-		sa.ParamStr(PKRememberChosen) != "" {
+	if sa == nil || sa.ParamStr(PKDefinedCards) != "" || sa.ParamStr(PKZone) != "Battlefield" {
 		return false
 	}
-	switch sa.ParamStr(PKValidCards) {
+	defined := sa.ParamStr(PKDefined)
+	switch TwoPilesBattlefieldValid(sa) {
 	case "Permanent", "Creature", "Land", "Artifact", "Enchantment", "Planeswalker":
 	default:
 		return false
 	}
-	switch sa.ParamStr(PKDefined) {
+	switch defined {
 	case "":
 		if sa.ParamStr(PKValidTgts) == "" {
 			return false
 		}
-	case "You", "TriggeredPlayer":
+	case "You", "TriggeredPlayer", "Remembered":
 	default:
 		return false
 	}
 	for _, k := range []ParamKey{PKSeparator, PKChooser} {
 		switch sa.ParamStr(k) {
-		case "", "You", "Opponent", "TriggeredPlayer":
+		case "", "You", "Opponent", "TriggeredPlayer", "Remembered":
 		default:
 			return false
 		}

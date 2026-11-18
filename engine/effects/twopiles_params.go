@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // twoPilesDefinedPiles is DefinedPiles$ split on the FIRST comma (Forge's
@@ -17,7 +18,7 @@ func twoPilesDefinedPiles(sa *cards.SA) (a, b string, ok bool) {
 // twoPilesValidCards is the battlefield shape's ValidCards$ spec, read once
 // here: the permanents (of the pool player) the piles are made of.
 func twoPilesValidCards(sa *cards.SA) string {
-	return strings.TrimSpace(sa.ParamStr(cards.PKValidCards))
+	return strings.TrimSpace(cards.TwoPilesBattlefieldValid(sa))
 }
 
 // twoPilesDefinedPilesValue is the raw DefinedPiles$ value (empty: the
@@ -33,4 +34,40 @@ func twoPilesChooserSpec(sa *cards.SA) string {
 		return v
 	}
 	return DefinedRefOf(sa).Text
+}
+
+// twoPilesRemembersChosen is RememberChosen$ True: the chosen pile joins the
+// resolution's Remembered set (cards.TwoPilesRemembersChosen).
+func twoPilesRemembersChosen(sa *cards.SA) bool {
+	return cards.TwoPilesRemembersChosen(sa)
+}
+
+// twoPilesFixedSet is the non-battlefield card set a DefinedCards$ spec names,
+// in the deterministic order: Remembered (minus the captured event object),
+// Targeted, Imprinted, or the top N cards of the controller's library.
+func twoPilesFixedSet(h Host, c *Ctx, spec string) []state.ObjID {
+	g := h.Game()
+	switch spec {
+	case "Imprinted":
+		ids, _ := twoPilesPileObjs(h, c, spec)
+		return ids
+	case "Remembered", "Targeted":
+		set := objectsOf(rememberedExcludingCapture(h, c))
+		if spec == "Targeted" {
+			set = objectsOf(c.Targets)
+		}
+		ids := make([]state.ObjID, 0, len(set))
+		for _, t := range set {
+			if o := g.Obj(t.Obj); o != nil {
+				ids = append(ids, o.ID)
+			}
+		}
+		return ids
+	}
+	n, _ := cards.TwoPilesTopOfLibrary(spec)
+	lib := zoneOf(g, state.ZLibrary, c.Controller)
+	if len(lib) > n {
+		lib = lib[:n]
+	}
+	return append([]state.ObjID(nil), lib...)
 }
