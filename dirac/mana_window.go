@@ -1934,14 +1934,14 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 // ability) its counters and mana, the ask's colour (ctrChainTap).
 //
 // It reports whether the tap could be made. The only failure is a life-only
-// gap whose life cost a prefix's earlier activation has already spent: the
-// shared life total is no part of the search's state, so a branch can outrun
-// it. scriptDFS treats that as a failed branch and backtracks; falling
+// gap whose life cost a prefix's earlier activation has already spent, or
+// would take the payer to 0 life (lifeGapSurvives): the shared life total is
+// no part of the search's state, so a branch can outrun it. scriptDFS treats that as a failed branch and backtracks; falling
 // through to the ordinary gap path would tap a source with no census ability
 // (eachFee's each-colour index is -1).
 func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, anyR, tapsDef, ca slotMask, c int, spill *[kop.NumManaKinds]uint8) bool {
 	if _, life := s.lifeGapSource(k, sl); life {
-		if !s.isLifeGapAt(k, p, sl) {
+		if !s.lifeGapSurvives(k, p, sl) {
 			return false
 		}
 		if s.lifeGapAnswers(k, sl) > 1 {
@@ -2300,7 +2300,7 @@ func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDe
 func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr, ca slotMask) {
 	var d Decision
 	s.plainOptions(k, &d, 0)
-	if hasOption(&d, a) {
+	if hasOption(&d, a) || s.lifePlannedPlay(k, p, a) {
 		return
 	}
 	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
