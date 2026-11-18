@@ -321,7 +321,9 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 		// nothing, CR 903.4f: its view is the no-ability one, gorge
 		// manaAbilityYieldsNothing)
 		if c := s.cardAt(sl); k.cards[c].manaAb >= 0 && !(pc.manaAb < 0 && k.t.Cards[c].Abilities[k.cards[c].manaAb].ManaIdentity) {
-			if j := int(k.cards[c].manaAb); s.potentialAdmits(k, p, sl, j, &k.t.Cards[c].Abilities[j], nil) {
+			// a Lion's Eye Diamond's ability is instant-speed only: gorge's untappedManaSourceFor
+			// skips it (pay.InstantSpeedOnly, CR 605.4), so it is no source for a trigger's cost
+			if j := int(k.cards[c].manaAb); !kop.DiscardHandManaAb(&k.t.Cards[c].Abilities[j]) && s.potentialAdmits(k, p, sl, j, &k.t.Cards[c].Abilities[j], nil) {
 				return true
 			}
 		}
