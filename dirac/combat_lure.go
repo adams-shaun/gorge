@@ -106,6 +106,76 @@ func (s *State) lureFloorMet(k *prep, duty slotMask, b, a Slot) bool {
 	return n >= need
 }
 
+// lureMaxSat is the most duty blockers the lure attackers can host: a lure
+// attacker under a Max$ 1 static (combat_maxblockers.go) takes one further
+// blocker, the others any number, and every assignment needs blockPairOK.
+// CR 509.1c's duty binds a blocker only while the lure attacker is still
+// able to take it: past the capacity the surplus blockers are free (gorge's
+// quota -- its requiredQuota is the maximum team), so gorge's completability
+// offers their plain pairs. The kernel mirrors that with this maximum.
+func (s *State) lureMaxSat(k *prep, duty, lure slotMask) int {
+	var single slotMask // lure attackers that host one blocker at most
+	for lm := lure; lm.any(); lm = lm.rest() {
+		if s.maxOneBlocker(k, lm.first()) {
+			single = single.with(lm.first())
+		}
+	}
+	big := lure.andNot(single)
+	free, rest := 0, slotMask{} // duty an unbounded lure attacker takes / the leftovers
+	for dm := duty; dm.any(); dm = dm.rest() {
+		b := dm.first()
+		taken := false
+		for bm := big; bm.any(); bm = bm.rest() {
+			if s.blockPairOK(k, b, bm.first()) {
+				taken = true
+				break
+			}
+		}
+		if taken {
+			free++
+		} else {
+			rest = rest.with(b)
+		}
+	}
+	if free >= duty.count() {
+		return duty.count()
+	}
+	return free + s.lureMatch(k, rest, single)
+}
+
+// lureMatch is the maximum bipartite matching of duty blockers onto
+// one-blocker lure attackers (each edge a blockPairOK pair).
+func (s *State) lureMatch(k *prep, duty, slots slotMask) int {
+	var match [MaxPerm]Slot // slot -> its blocker, NoSlot for none
+	for i := range match {
+		match[i] = NoSlot
+	}
+	n := 0
+	for dm := duty; dm.any(); dm = dm.rest() {
+		var seen slotMask
+		if s.lureAugment(k, dm.first(), slots, &match, &seen) {
+			n++
+		}
+	}
+	return n
+}
+
+// lureAugment is one augmenting-path round of lureMatch.
+func (s *State) lureAugment(k *prep, b Slot, slots slotMask, match *[MaxPerm]Slot, seen *slotMask) bool {
+	for sm := slots; sm.any(); sm = sm.rest() {
+		sl := sm.first()
+		if seen.has(sl) || !s.blockPairOK(k, b, sl) {
+			continue
+		}
+		seen.set(sl)
+		if match[sl] == NoSlot || s.lureAugment(k, match[sl], slots, match, seen) {
+			match[sl] = b
+			return true
+		}
+	}
+	return false
+}
+
 // blockerOptionsLure is blockerOptions with lure attackers in combat.
 //
 //go:noinline
@@ -124,6 +194,20 @@ func (s *State) blockerOptionsLure(k *prep, d *Decision, lure slotMask) bool {
 			}
 		}
 	}
+	// The surplus: when the lure attackers cannot host every duty blocker,
+	// a duty blocker whose removal keeps the maximum is free -- it may be
+	// the one the capacity leaves out (CR 509.1c's "if able"), so its plain
+	// pairs stay offerable (gorge's completability search).
+	maxSat := s.lureMaxSat(k, dutyM, lure)
+	var spill slotMask
+	if maxSat < dutyM.count() {
+		for dm := dutyM; dm.any(); dm = dm.rest() {
+			b := dm.first()
+			if s.lureMaxSat(k, dutyM.without(b), lure) == maxSat {
+				spill = spill.with(b)
+			}
+		}
+	}
 	owed := dutyM.any()
 	for bm := s.ctrlM[def]; bm.any(); bm = bm.rest() {
 		b := bm.first()
@@ -133,7 +217,13 @@ func (s *State) blockerOptionsLure(k *prep, d *Decision, lure slotMask) bool {
 		duty := dutyM.has(b)
 		for am := s.blockAtkM(k); am.any(); am = am.rest() {
 			a := am.first()
-			if duty && !lure.has(a) || !s.blockPairOK(k, b, a) || !duty && !lure.has(a) && !s.lureFloorMet(k, dutyM, b, a) {
+			if duty && !lure.has(a) && !spill.has(b) {
+				continue
+			}
+			if !s.blockPairOK(k, b, a) {
+				continue
+			}
+			if !lure.has(a) && !spill.has(b) && !s.lureFloorMet(k, dutyM, b, a) {
 				continue
 			}
 			if int(d.N) >= MaxOptions-1 {
