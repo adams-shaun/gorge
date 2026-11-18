@@ -344,7 +344,7 @@ func (w *legalWalk) handWalk() {
 		taDone, taOK := false, false
 		targetsAvailable := func() bool {
 			if !taDone {
-				taOK, taDone = e.castTargetsAvailable(p, id, f.SpellAbility()), true
+				taOK, taDone = castFaceTargetsAvailableOnStack(e, p, id, f.SpellAbility()), true
 			}
 			return taOK
 		}
