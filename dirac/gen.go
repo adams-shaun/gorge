@@ -1831,11 +1831,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepTrigAtk(t, g)       // trig_attackers.go
 	prepBatchPool(t, g)     // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
-	prepAtkTax(t, g)       // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
-	prepCantAtkScope(t, g) // combat_cantattack.go: the CantAttack Target$ scope bits
-	prepBlkTax(t, g)       // combat_blocktax.go: the same reads
-	prepChoosePlayer(t, g) // repl_chooseplayer.go
-	prepTokListAdd(t, g)   // repl_toklistadd.go
+	prepAtkTax(t, g)                 // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
+	prepCantAtkScope(t, g)           // combat_cantattack.go: the CantAttack Target$ scope bits
+	prepBlkTax(t, g)                 // combat_blocktax.go: the same reads
+	prepChoosePlayer(t, g)           // repl_chooseplayer.go
+	prepTokListAdd(t, g)             // repl_toklistadd.go
+	p.gainsOfPair = gainsOfPairOn(t) // static_gainsofpair.go; on prep, not genPrep: the pinned fixed-State inventory is unchanged
 	prepCold(g, &p.cold)
 	prepGrantAct(t, p) // act_grantledger.go
 	return g
