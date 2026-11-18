@@ -1383,10 +1383,10 @@ func (s *State) leyCard(k *prep, p, skip uint8) Obj {
 // game. ley[0] is 1 once the starting player is done, ley[1] the current
 // player's declined Leylines.
 func (s *State) nextLeyline(k *prep) {
-	if MaxSeats == 2 {
+	if s.duel() {
 		if s.g.ley[0] == 0 {
 			s.g.ley = [MaxSeats]uint8{1, 0}
-			s.g.leyP = NextSeat(s.startPl)
+			s.g.leyP = s.nextSeat(s.startPl)
 			return
 		}
 	} else if p := s.nextAlive(s.g.leyP); p != s.startPl {

@@ -31,7 +31,7 @@ func TestOffZoneGrantsProject(t *testing.T) {
 	}
 	sc := newScenTableLib(t, tbl, id["Forest"], Config{NoElide: true})
 	ashes := sc.perm(id["Ashes of the Fallen"], 0)
-	sc.s.perms[sc.slot(ashes)].chosen = uint8(goblin)
+	sc.s.perms[sc.slot(ashes)].chosen = objWord(goblin)
 	sc.s.refreshTy(sc.k)
 	grave := sc.grave(id["Grizzly Bears"], 0, 1)[0]
 	hand := sc.hand(id["Hill Giant"], 0)
@@ -42,7 +42,7 @@ func TestOffZoneGrantsProject(t *testing.T) {
 		t.Errorf("Ashes: Hill Giant in hand got Goblin; the grant is graveyard-only")
 	}
 	ley := sc.perm(id["Leyline of Transformation"], 0)
-	sc.s.perms[sc.slot(ley)].chosen = uint8(goblin)
+	sc.s.perms[sc.slot(ley)].chosen = objWord(goblin)
 	sc.s.refreshTy(sc.k)
 	if _, subs, _, _, ok := sc.s.FeatViewTypes(hand); !ok || !subs.Has(goblin) {
 		t.Errorf("Leyline: Hill Giant in hand subs %v ok %v, want Goblin granted", subs, ok)

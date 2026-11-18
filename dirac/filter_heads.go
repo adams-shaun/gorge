@@ -24,7 +24,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     attacks (defendingSeatF2).
 func (s *State) ctrlRoleF2(k *prep, f kop.FilterFlags2, ctrl uint8) bool {
 	if f&kop.F2DefendingCtrl != 0 {
-		if MaxSeats == 2 {
+		if s.duel() {
 			if ctrl == s.active {
 				return false
 			}

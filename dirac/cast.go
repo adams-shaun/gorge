@@ -2154,7 +2154,7 @@ func (s *State) placeTriggers(k *prep, d *Decision) bool {
 		// active player (gorge sortPendingTriggers over AliveFrom(Active))
 		for {
 			p = s.nextAlive(p)
-			if n = s.pendCount(p); n != 0 || MaxSeats == 2 {
+			if n = s.pendCount(p); n != 0 || s.duel() {
 				break
 			}
 		}

@@ -46,8 +46,9 @@ const lkiInfect uint8 = 1 << 5
 // lkiRec is one snapshot: P/T, controller, every counter, and the derived
 // (layered) types, colours and keywords (CR 608.2h in full).
 //
-// The fields run widest first, so the record has no interior padding: 56
-// bytes.
+// The fields run widest first, so the record has no interior padding (the
+// object is two bytes): 64 bytes, where the 16-bit counter
+// kinds (ck, as perm.ck) pushed it one byte past 56.
 type lkiRec struct {
 	// subs is the derived subtype set at the snapshot, for the
 	// Sacrificed$Valid Card/creature-type reads (anySacSub): the 192-bit

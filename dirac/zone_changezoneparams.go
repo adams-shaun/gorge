@@ -109,7 +109,7 @@ func (s *State) askOptionsCzParams(k *prep, d *Decision) bool {
 // bound defending player stalls (enterDefenderFallback); false only reads.
 func (s *State) enterDefenderOptions(k *prep, buf *[MaxOptions]TCode, stall bool) int {
 	n := s.enteringDefenderCands(k, s.res.askP, buf)
-	if MaxSeats > 2 && s.res.e.kind == seTrigger {
+	if !s.duel() && s.res.e.kind == seTrigger {
 		fb, unbound := s.enterDefenderFallbackOf(k, s.res.askP)
 		if unbound && stall {
 			s.capFull(StallDefenderPW)

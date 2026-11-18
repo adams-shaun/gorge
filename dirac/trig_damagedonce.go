@@ -195,8 +195,8 @@ func (s *State) sameReferent(r *dmgRec, ev *dmgEv, rcp TCode) bool {
 // defending player: the player attacker ev.src attacks, CR 510.1).
 func (s *State) combatRcp(k *prep, ev *dmgEv) TCode {
 	if ev.dst == NoSlot {
-		if MaxSeats == 2 {
-			return PlayerCode(NextSeat(s.active))
+		if s.duel() {
+			return PlayerCode(s.nextSeat(s.active))
 		}
 		if p := s.atkSeat(k, ev.src); p != noSeat {
 			return PlayerCode(p)
