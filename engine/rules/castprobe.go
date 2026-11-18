@@ -3,6 +3,7 @@ package rules
 import (
 	"slices"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -87,6 +88,24 @@ func (e *Engine) castTargetsAvailableOnStack(p state.PlayerID, id state.ObjID) b
 	sa := o.Face().SpellAbility()
 	if sa == nil || !effects.TargetsOf(sa).Targeted() && sa.API != "Charm" {
 		return true
+	}
+	return castFaceTargetsAvailableOnStack(e, p, id, sa)
+}
+
+// castOfferProbe is the slice of the Engine castFaceTargetsAvailableOnStack
+// reads, a narrow interface so the helper adds nothing to the Engine surface.
+type castOfferProbe interface {
+	offerAsSpellOnStack(id state.ObjID, fn func() bool) bool
+	castTargetsAvailable(p state.PlayerID, id state.ObjID, sa *cards.SA) bool
+}
+
+// castFaceTargetsAvailableOnStack is castTargetsAvailableOnStack for the spell
+// ability sa the offer in hand is judged by (the cast walk's front face). The
+// card leaves the hand before its targets are chosen (CR 601.2a, 601.2c), so a
+// target whose characteristics read the hand is judged with the card on the stack.
+func castFaceTargetsAvailableOnStack(e castOfferProbe, p state.PlayerID, id state.ObjID, sa *cards.SA) bool {
+	if sa == nil || !effects.TargetsOf(sa).Targeted() && sa.API != "Charm" {
+		return e.castTargetsAvailable(p, id, sa)
 	}
 	return e.offerAsSpellOnStack(id, func() bool { return e.castTargetsAvailable(p, id, sa) })
 }
