@@ -2543,6 +2543,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		s.bld().bfl |= bflAnyColor
 	}
 	var av avail
+	av.dynSac = true // gorge's potential planner evaluates the amount (gen.go varPC): the witness counts a dynamic {T}, sacrifice source
 	s.availFor(k, p, &av)
 	printedPays := false
 	if any != 0 || anyColor {
