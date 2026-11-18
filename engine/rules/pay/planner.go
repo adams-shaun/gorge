@@ -391,12 +391,15 @@ func PaymentPlanQueryBegin(e Engine) QueryTok {
 	if q != nil && q.Owner == e.Session() {
 		e.Session().PlanQueryFree = nil
 		units, alts, classes, arena, plans := q.Units, q.Alts, q.Classes, q.AltArena, q.Plans
+		gaps, gapAlts := q.Gaps, q.GapAlts
 		clear(units)
 		clear(alts)
 		clear(classes)
 		clear(arena)
 		clear(plans)
-		*q = PlanQuery{Owner: e.Session(), Units: units, Alts: alts, Classes: classes, AltArena: arena[:0], Plans: plans[:0]}
+		clear(gaps)
+		clear(gapAlts)
+		*q = PlanQuery{Owner: e.Session(), Units: units, Alts: alts, Classes: classes, AltArena: arena[:0], Plans: plans[:0], Gaps: gaps, GapAlts: gapAlts}
 	} else {
 		q = &PlanQuery{Owner: e.Session()}
 	}

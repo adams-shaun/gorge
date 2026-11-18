@@ -664,6 +664,23 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		return
 	}
 	act := a.Kind() == AkActivate && s.liveGrantGap(k, p)
+	if k.gen != nil && k.gen.anyFilt && !act {
+		if f := s.scriptFilt(k, p); f.any() && (s.mixBoard(k, p) || s.filtOnly(k, p)) {
+			// the filter route owns the prefix, as scriptOffers prices the
+			// play (scriptOffers' filt): a filter gap with no other census
+			// gap beside it -- the Taps-deferred one is an otherGap step of
+			// the one search, mana_filtertapsdefer.go. The taps-deferred
+			// arm below searches the deferred gaps alone and finds nothing
+			// here: the fee-carrying sources are no unit of its walk, while
+			// gorge's search activated the filter.
+			var d Decision
+			s.plainOptions(k, &d, 0)
+			if !hasOption(&d, a) {
+				s.filtScript(k, a, p, true)
+			}
+			return
+		}
+	}
 	if s.mixBoard(k, p) {
 		if !act {
 			var d Decision
