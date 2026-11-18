@@ -1235,9 +1235,12 @@ func (g *grantSrch) candidates(s *State) {
 // before the grant.
 func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, wm, xm, cm, sm, am slotMask) {
 	g.cand[n], g.ng[n], g.cobj[n], g.filt[n], g.tapx[n] = sl, uint8(ng), s.perms[sl].obj, fm.has(sl), tm.has(sl)
-	g.sacx[n] = am.has(sl) && ng == 0 // a holder keeps the grant side (mana_grantsacx.go)
+	// a sacrifice-another source (mana_grantsacx.go): a holder's is an answer
+	// of its ability ask beside the grants (visit), another's its own gap step
+	// (gapBranch)
+	g.sacx[n] = am.has(sl)
 	if ng > 0 {
-		g.dual[n] = (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || s.ownRestrAb(g.k, sl) != nil)
+		g.dual[n] = (!tm.has(sl) && !am.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || s.ownRestrAb(g.k, sl) != nil)
 		// A rider gap beside its grants (Rain of Filth's sacrifice mana on the
 		// rider land): its own production is no planner unit (availGrant counts
 		// the grant alone), so the search taps the rider beside the grants --
@@ -1334,8 +1337,8 @@ func (g *grantSrch) node() bool {
 // elsewhere in visit).
 func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 	switch {
-	case g.sacx[i]:
-		// the sacrifice ask, then the fixed production (mana_grantsacx.go)
+	case g.sacx[i] && g.ng[i] == 0:
+		// the sacrifice ask, then the production (mana_grantsacx.go)
 		if !t.scriptTapX(g.k, g.p).has(sl) {
 			return false, true // tapped, spent or its candidates gone since the root
 		}
@@ -1384,9 +1387,12 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 
 // grantFirstGaps reports the gap kinds beside a grant whose one search runs
 // before the script search (applyPriority): a deferred, each-colour, wide,
-// Taps-deferred or counter-cost gap among the grants is one prefix search in
-// gorge (mana_grantdeferred.go, mana_granteach.go, mana_grantwide.go,
-// mana_granttapsdefer.go, mana_countercost.go).
+// Taps-deferred, counter-cost or sacrifice-another gap among the grants is one
+// prefix search in gorge (mana_grantdeferred.go, mana_granteach.go,
+// mana_grantwide.go, mana_granttapsdefer.go, mana_countercost.go,
+// mana_grantsacx.go: a grant holder before Phyrexian Altar in battlefield
+// order is activated first, which the tap-another search's noGrant walk
+// skips).
 func (s *State) grantFirstGaps(k *prep, p uint8) bool {
 	return s.deferBesideGrant(k, p) || s.eachBesideGrant(k, p) || s.wideBesideGrant(k, p) ||
 		s.tdBesideGrant(k, p) || s.ctrBesideGrant(k, p) || s.storeBesideGrant(k, p) ||
@@ -1473,7 +1479,7 @@ func (g *grantSrch) visit(t *State) bool {
 			}
 			continue
 		}
-		tx := g.tapx[i] && t.scriptTapX(g.k, g.p).has(sl)
+		tx := (g.tapx[i] || g.sacx[i]) && t.scriptTapX(g.k, g.p).has(sl) // (a holder's printed tap- or sacrifice-another ability)
 		if sacd && (!t.occ.has(sl) || t.perms[sl].obj != g.cobj[i]) {
 			continue // sacrificed by an earlier step (mana_grantcost.go)
 		}
@@ -1495,7 +1501,7 @@ func (g *grantSrch) visit(t *State) bool {
 		if grants {
 			alts = t.grantAlts(g.k, g.p, sl, &g.gi[i], int(g.ng[i]))
 		}
-		if g.dual[i] {
+		if g.dual[i] && (!tx || t.canTapForMana(g.k, sl)) { // (a tapped Relic of Legends asks only its tap-another ability)
 			alts++
 			if t.ownManaUsable(g.k, sl) && t.ownRestrAb(g.k, sl) != nil {
 				alts++ // (the restricted printed ability beside the usable one is an answer of the ask)
@@ -1510,15 +1516,7 @@ func (g *grantSrch) visit(t *State) bool {
 		if alts > 1 && !g.node() {
 			return false
 		}
-		if tx && g.k.tapXSecond(t.cardAt(sl)) && g.dual[i] {
-			// a second-ability tap-another source: its plain {T} ability is the
-			// ask's first answer (mana_tapanother.go tapXPlainDo)
-			ppc := t.manaPCGen(g.k, sl)
-			if g.branch(t, i, sl, -1, t.srcMaskAt(ppc, sl), ppc.manaN, false) {
-				return true
-			}
-		}
-		if tx && g.tapXBranch(t, i, sl) { // the printed tap-another ability first (mana_granttapx.go)
+		if tx && g.printedXFirst(t, i, sl) { // the printed tap- or sacrifice-another ability first
 			return true
 		}
 		if !grants {
@@ -2178,10 +2176,11 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			s.tapXDo(k, g.p, tapXStep{sl: sl, cand: st.cand, cand2: st.cand2, col: st.col, kind: tapXAct})
 			continue
 		case stepSacX:
-			// the sacrifice and its fixed production (mana_grantsacx.go); the
-			// sacrifice's dies triggers queue, and the search's settle stacked
-			// them: gorge answers each as its own decision
-			s.tapXDo(k, g.p, tapXStep{sl: sl, cand: st.cand, cand2: NoSlot, kind: tapXAct})
+			// the sacrifice and its production, the asked colour of an
+			// any-colour one (mana_grantsacx.go); the sacrifice's dies
+			// triggers queue, and the search's settle stacked them: gorge
+			// answers each as its own decision
+			s.tapXDo(k, g.p, tapXStep{sl: sl, cand: st.cand, cand2: NoSlot, col: st.col, kind: tapXAct})
 			if g.tapTriggers(s, sl) || s.npend != 0 {
 				passed = true
 				s.tapXNext(g.p, &d)
