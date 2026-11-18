@@ -200,7 +200,12 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 		}
 		for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
 			mf := e.manaStaticFor(p, id, ma)
-			if mf.Amount <= 0 && mf.TapOnly && !mf.RestrictValid && !o.Tapped {
+			// A restricted batch joins the evaluated-amount arm only when its
+			// restriction admits the PurposeOther payment (CR 106.6: Vhal,
+			// Candlekeep Researcher's toughness-sized {C} can't cast a spell
+			// from hand but pays an unless tax).
+			if mf.Amount <= 0 && mf.TapOnly && !o.Tapped && (!mf.RestrictValid ||
+				pay.UnlessRestrictionAdmitsOther(asPayer(e), p, effects.ManaOf(ma).RestrictValid, id)) {
 				if probe == nil {
 					probe = e.paymentPlanTappedProbe(p)
 				}
