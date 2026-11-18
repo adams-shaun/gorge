@@ -308,11 +308,27 @@ def test_narrow_never_runs_the_oracle_whole():
     assert kind == "named"
     for part in ("^TestPinManifest$", "^(TestFastA|TestFastB)$", "ReprosLockstep", "Census", "^TestReproGlobMatchesTable$"):
         assert part in rx
-    # A source change it imports adds the fast tier to the census run; the plain selection does not.
+    # A source change it imports adds every recording replay (cause 64) and the fast tier; the plain selection
+    # adds the replays but not the fast tier.
     kind, rx = narrowed({"dirac/state.go": None})["./dirac/oracle"]
-    assert kind == "census" and rx.endswith("|^(TestFastA|TestFastB)$")
+    assert kind == "named" and tt.REPLAYS in rx and rx.endswith("|^(TestFastA|TestFastB)$")
     res, _ = tt.plan({"dirac/state.go": None}, NDIRMAP, NDEPS, lambda p: [])
-    assert "TestFastA" not in dict((p, rx) for _, p, rx in res)["./dirac/oracle"]
+    kind, rx = dict((p, (k, rx)) for k, p, rx in res)["./dirac/oracle"]
+    assert kind == "named" and tt.REPLAYS in rx and "TestFastA" not in rx
+
+
+def test_a_source_change_reaching_the_oracle_replays_every_recording():
+    # 11-18 cause 64: a dirac source change ran only the oracle's census in `fast`; the per-card MBC replays it
+    # broke first ran in the Mergify batch. The selection's regex must match them and the staleness check.
+    res, _ = tt.plan({"dirac/state.go": None}, NDIRMAP, NDEPS, lambda p: [])
+    rx = dict((p, rx) for _, p, rx in res)["./dirac/oracle"]
+    for name in ("TestMBCDominateReprosLockstep", "TestMBCSpellBurstReprosLockstep", "TestStdSetReprosLockstep",
+                 "TestRefusedEntriesStillDiverge"):
+        assert re.search(rx, name), name
+    assert not re.search(rx, "TestShieldReplacementCollision")  # whole-game lockstep stays in the batch
+    # an engine change the oracle imports replays them too
+    res, _ = tt.plan({"engine/rules/engine.go": None}, NDIRMAP, NDEPS, lambda p: [])
+    assert re.search(dict((p, rx) for _, p, rx in res)["./dirac/oracle"], "TestMBCDominateReprosLockstep")
 
 
 def test_narrow_runs_the_lint_packages_and_skips_the_386_build_unless_go_source_moved():
