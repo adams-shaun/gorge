@@ -51,7 +51,18 @@ func (s *State) tokCopyApplies(k *prep, b Slot, a *kop.Ability, p uint8) (host S
 // counts as a competition candidate while its election is never posed: gorge
 // matched the replacement at the event and its Card.EnchantedBy election scan
 // finds no candidate (poseChosenTokenReplacement's len(cands) == 0 skip).
+//
+// A source whose replacement reads its own attachment (Repl.C
+// kop.ReplCopyFirstAttached: Mirrormind Crown's IsPresent$ Card.Self+AttachedTo
+// Creature) is no candidate while it is attached to nothing: gorge's presence
+// test fails before the match, so an unattached Crown beside an equipped one
+// poses no order ask.
 func (s *State) tokCopyGate(k *prep, b Slot, a *kop.Ability, p uint8) bool {
+	if a.Repl.C&kop.ReplCopyFirstAttached != 0 {
+		if h := s.perms[b].attached; h == NoSlot || !s.occ.has(h) {
+			return false
+		}
+	}
 	return a.Repl.Cond == 0 || s.replCondHolds(k, b, p, a.Repl.Cond)
 }
 
