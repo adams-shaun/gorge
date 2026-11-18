@@ -60,7 +60,7 @@ func CheckPhyrexianDualSourcePricedHalf(t *testing.T, tbl *kop.Table, id map[str
 	cost := a.Cost.Mana
 	kSl := sc.slot(khenra)
 
-	availIn := func(mode uint8) avail {
+	availIn := func(mode uint16) avail {
 		var av avail
 		saved := sc.s.g.availX
 		sc.s.g.availX = mode
@@ -69,7 +69,7 @@ func CheckPhyrexianDualSourcePricedHalf(t *testing.T, tbl *kop.Table, id map[str
 		return av
 	}
 	// The plain priority walk and the gaps walk must both price Hall's {C}.
-	for _, mode := range []uint8{0, availGaps} {
+	for _, mode := range []uint16{0, availGaps} {
 		av := availIn(mode)
 		if !sc.s.phyActAffords(sc.k, kSl, a, 0, cost, &av) {
 			t.Errorf("availX %d: the Phyrexian activation {3}{U/P} is withheld though two Mountains and Hall's priced {C} pay the generic and the two-life face pays the pip", mode)

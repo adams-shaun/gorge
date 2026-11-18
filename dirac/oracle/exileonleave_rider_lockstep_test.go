@@ -14,7 +14,7 @@ import (
 // counter keys the may-play static over exile. The check proves the games
 // reach the exiled counter, so a run that never lowers the rider cannot pass
 // vacuously.
-var exileOnLeaveRiderDecks = [2][2][]cardset.Entry{
+var exileOnLeaveRiderDecks = [3][2][]cardset.Entry{
 	{
 		{
 			{Name: "Dauthi Voidwalker", Count: 4}, {Name: "Doom Blade", Count: 4},
@@ -35,6 +35,18 @@ var exileOnLeaveRiderDecks = [2][2][]cardset.Entry{
 			{Name: "Swamp", Count: 8}, {Name: "Forest", Count: 16},
 		},
 	},
+	// both riders in one deck: with several Draugr in play the exiled card's
+	// may-play grants come from each one, and the kernel offers the one cast
+	{
+		{
+			{Name: "Dauthi Voidwalker", Count: 4}, {Name: "Draugr Necromancer", Count: 4},
+			{Name: "Doom Blade", Count: 4}, {Name: "Grizzly Bears", Count: 6}, {Name: "Swamp", Count: 22},
+		},
+		{
+			{Name: "Grizzly Bears", Count: 12}, {Name: "Doom Blade", Count: 4},
+			{Name: "Swamp", Count: 8}, {Name: "Forest", Count: 16},
+		},
+	},
 }
 
 func TestExileOnLeaveRiderLockstep(t *testing.T) {
@@ -46,6 +58,7 @@ func TestExileOnLeaveRiderLockstep(t *testing.T) {
 	}{
 		{"dauthi", exileOnLeaveRiderDecks[0], "VOID"},
 		{"draugr", exileOnLeaveRiderDecks[1], "ICE"},
+		{"both", exileOnLeaveRiderDecks[2], "VOID"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			reg, set, gd := lockstepPool(t, "exileonleavectr", tc.decks)
