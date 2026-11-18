@@ -1,27 +1,49 @@
+A-Metropolis Angel
 Abyssal Gatekeeper
 Academy Journeymage
+Ajani's Influence
+Akki Drillmaster
+Alabaster Dragon
 Amoeboid Changeling
+An-Havva Constable
 Angelsong
 Anticipate
+Aphetto Grifter
+Apprentice Sorcerer
 Armix, Filigree Thrasher
 Aspect of Wolf
 Awaken the Bear
+Awakening of Vitu-Ghazi
+Axebane Guardian
+Axgard Armory
 Ayumi, the Last Visitor
+Bane Alley Blackguard
 Bearded Axe
 Bitterbow Sharpshooters
 Blessed Reversal
 Bloodbond Vampire
+Bone to Ash
+Brass Secretary
+Breach
+Bristling Boar
+Bushmaster, Coiled Henchman
 Captain of Umbar
 Cast into Darkness
 Cavalcade of Calamity
 Charity Extractor
 Choking Tethers
+Cloud Pirates
 Coma Veil
 Commander's Authority
 Consecrated Sphinx
+Crack Open
 Crash the Ramparts
 Cultivator of Blades
+Cunning Breezedancer
+Custodi Lich
+Darksteel Axe
 Dauntless River Marshal
+Deal Broker
 Deepcavern Imp
 Deepwater Hypnotist
 Demonlord Belzenlok
@@ -34,8 +56,12 @@ Dual Strike
 Dusk Urchins
 Dwarven Armory
 Easterling Vanguard
+Elephant Resurgence
+Elves of Deep Shadow
 Emerald Dragonfly
 Entomb
+Ephara's Enlightenment
+Evacuation
 Experimental Aviator
 False Demise
 Fear of Death
@@ -43,17 +69,25 @@ Feral Ferocity
 Feral Thallid
 Festering March
 Fiery Intervention
+Flame Spirit
 Flourishing Hunter
 Forest
+Fumulus, the Infestation
 Future Sight
+Gargoyle Sentinel
 Gate to Manorborn
 Gelectrode
 Geothermal Kami
+Ghitu Firebreathing
 Ghost Warden
+Gigantomancer
 Gitaxian Raptor
+Glimmervoid
+Glory Seeker
 Goblin Spelunkers
 Goblin Turncoat
 God-Favored General
+Golden Hind
 Gothmog, Morgul Lieutenant
 Great Teacher's Decree
 Gunner Conscript
@@ -61,8 +95,11 @@ Haunt of the Dead Marshes
 Hazoret's Monument
 Heavy Infantry
 Hibernation Sliver
+Hissing Quagmire
 Hussar Patrol
 Impulse
+Inertia Bubble
+Insatiable Appetite
 Into Thin Air
 Island
 Juniper Order Druid
@@ -72,35 +109,51 @@ Kamahl's Sledge
 Kothophed, Soul Hoarder
 Laboratory Drudge
 Labyrinth Minotaur
+Leave in the Dust
 Leonin Lightbringer
 Lifecraft Cavalry
 Liliana's Reaver
+Living Airship
+Loyal Gryff
 Lure
 Magnetic Flux
 Manaforce Mace
 Megatherium
+Memorial to War
+Mesmerizing Benthid
 Minamo Sightbender
+Mindclaw Shaman
+Mines of Moria
 Mirrorworks
 Mishra's Juggernaut
 Mountain
 Mournful Zombie
+Myojin of Life's Web
 Myr Servitor
+Mystic Crusader
 Nephalia Seakite
 Nettle Swine
 Nightmare
+Norwood Ranger
 Noxious Hatchling
 Oakhame Ranger
+Oblivion Stone
+Ojutai Exemplars
 One With the Wind
+Orzhov Basilica
 Paradise Plume
 Perish
+Phantom Monster
 Phyrexian Prowler
 Pit Raptor
 Pit Scorpion
 Plains
 Poisonbelly Ogre
+Precise Strike
 Psionic Sliver
 Puncture Blast
 Purple Worm
+Quiet Purity
 Rallying Roar
 Rampaging Aetherhood
 Razing Snidd
@@ -108,9 +161,12 @@ Relearn
 Render Inert
 Renegade Freighter
 Respite
+Ring of Gix
 Saiba Cryptomancer
+Sandals of Abdallah
 Scaldkin
 Scatter the Seeds
+Scrapskin Drake
 Seacoast Drake
 Seluma, Light of Aysen
 Serpentine Curve
@@ -123,26 +179,47 @@ Snapback
 Snare the Skies
 Soldevi Sage
 Soulless One
+Spell Snuff
 Spined Wurm
+Spire Monitor
+Spiritual Asylum
+Spitfire Handler
+Squirrel Mob
+Stalking Bloodsucker
+Steadfastness
+Steamcore Weird
+Stoic Star-Captain
 Stone Idol Generator
+Super Mutant Scavenger
 Suture Spirit
 Swamp
 Sweatworks Brawler
+Tangle Mantis
 Tar Snare
+Terashi's Cry
 Thalia, Heretic Cathar
 The Restoration of Eiganjo
+Throne of the God-Pharaoh
 Thunder Dragon
 Thunderclap Wyvern
 Tidal Visionary
 Tireless Missionaries
 Trailblazing Historian
+Triumph of Ferocity
 Unbender Tine
 Undercity's Embrace
 Veil of Birds
 Vile Consumption
+Vineshaper Prodigy
 Viridian Harvest
+Viridian Joiner
+Viridian Lorebearers
+Viridian Scout
 Vodalian Soldiers
+Voracious Vacuum
 Warren Pilferers
+Whirlwind
 Wing Snare
 Wither and Bloom
+X-23, Deadly Weapon
 Zendikar Resurgent

@@ -50,6 +50,7 @@ Bloodrage Brawler
 Blossoming Calm
 Blue Elemental Blast
 Body of Knowledge
+Boing!
 Bojuka Brigand
 Bold Defense
 Bond of Passion
@@ -102,11 +103,13 @@ Cut of the Profits
 Dagger Caster
 Daring Piracy
 Dark Favor
+Darksteel Mutation
 Dauntless Onslaught
 Dawn of Hope
 Decimator Beetle
 Demonic Dread
 Deranged Hermit
+Deserter's Quarters
 Desolation Twin
 Devastation Tide
 Diabolic Tutor
@@ -117,6 +120,7 @@ Dissipate
 Domineer
 Dragon Engine
 Dragon Mask
+Draugr Necromancer
 Draugr's Helm
 Dross Hopper
 Drowner Initiate
@@ -135,6 +139,7 @@ Escaped Experiment
 Etched Familiar
 Ether Well
 Executioner's Capsule
+Exocrine
 Extinguish the Light
 Exultant Skymarcher
 Ezuri, Claw of Progress
@@ -161,6 +166,7 @@ Fog
 Foratog
 Force of Vigor
 Forest
+Forsaken Wastes
 Foul Play
 Frostling
 Galerider Sliver
@@ -197,6 +203,7 @@ High Priest of Penance
 Highland Lake
 Hinterland Drake
 Hoodwink
+Hooting Mandrills
 Hornet Cobra
 Hour of Promise
 Howling Giant
@@ -243,6 +250,7 @@ Lorthos, the Tidemaker
 Lotleth Giant
 Mage-Ring Bully
 Magnify
+Magus of the Moon
 Malevolent Whispers
 Malicious Intent
 Masked Blackguard
@@ -322,6 +330,7 @@ Renegade Tactics
 Replenish
 Resolute Archangel
 Resupply
+Rime Transfusion
 Rite of the Raging Storm
 Roiling Regrowth
 Rootwire Amalgam
@@ -392,6 +401,7 @@ Stampede
 Steadfastness
 Steel Leaf Champion
 Stingscourger
+Stir the Sands
 Stronghold Overseer
 Summon Undead
 Sundering Eruption
@@ -400,6 +410,7 @@ Svyelunite Priest
 Swamp
 Swarm Surge
 Swarmborn Giant
+Sword of Forge and Frontier
 Syr Faren, the Hengehammer
 Tajuru Blightblade
 Take Inventory
@@ -410,6 +421,7 @@ Tavern Brawler
 Telethopter
 Tempered Veteran
 Tenured Oilcaster
+Thalakos Dreamsower
 The Cabbage Merchant
 The Fair Basilica
 The Frightful Four
@@ -452,6 +464,7 @@ Vexing Bauble
 Vicious Offering
 Village Rites
 Virtus the Veiled
+Vizkopa Guildmage
 Volley of Boulders
 Voltaic Construct
 Wall of Denial
@@ -468,6 +481,7 @@ Wily Goblin
 Winding Way
 Windrider Patrol
 Winged Portent
+Wisedrafter's Will
 Witty Roastmaster
 Xathrid Necromancer
 You Hear Something on Watch

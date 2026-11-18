@@ -1,75 +1,143 @@
 A-Circuit Mender
 A-Jackhammer
+Aligned Heart
 Aura Blast
 Awakening Zone
+Ballroom
 Barbtooth Wurm
 Beetleback Chief
 Benalish Sleeper
 Boon-Bringer Valkyrie
 Bottle-Cap Blast
 Broken Fall
+Bumbling Pangolin
 Carrion Ants
+Charity Extractor
+Choking Restraints
 Chorus of Might
 Clattering Augur
+Constable of the Realm
 Contingency Plan
+Crackling Doom
+Curious Killbot
 Daring Apprentice
 Death Frenzy
 Death's Duet
+Demoralize
 Dreadmalkin
+Duskworker
 Ellyn Harbreeze, Busybody
+Embraal Gear-Smasher
+Empty City Ruse
+Eyeblight's Ending
+Fallen Ferromancer
+Farfinder
 Feast of Succession
 Filigree Crawler
 Filigree Fracture
+Fireblade Artist
+Firewing Phoenix
 Force of Vigor
 Forest
+Furious Assault
+Goblin Champion
 Goblin Chariot
 Goblin Chieftain
+Goblin Goon
 Goblin War Drums
+Goldnight Commander
 Grimdancer
 Hatchery Spider
 Hawkeye, Trick Shot
+Heartless Pillage
 Hellcarver Demon
 Howlpack Wolf
 Hungering Hydra
 Hunted Ghoul
+Imaginary Friends
+Implode
+Incremental Blight
+Indicate
+Insatiable Gorgers
+Irradiate
 Irregular Cohort
 Island
+Jade Guardian
+Kaleidoscorch
+Karn's Bastion
 Kessig Wolfrider
+Koth's Courier
 Leech Gauntlet
 Lingering Phantom
+Makindi Aeronaut
 Mana Prism
+Mardu Outrider
 Maulfist Doorbuster
+Maximize Velocity
 Mirkwood Channeler
 Mountain
 Mwonvuli Acid-Moss
+Nagao, Bound by Honor
 Narstad Scrapper
 Needlepeak Spider
+Ogre Menial
 One with Nature
 Onslaught
+Opposition
+Orazca Relic
 Outbreak
+Phyresis
+Plague Rats
 Plains
+Planar Atlas
+Prescient Chimera
+Quench
 Reforge the Soul
+Relic Vial
 Resistance Reunited
+Rhonas's Monument
 Sandstorm
 Scouting Trek
 Shapeshifter
+Simic Signet
+Skull Raid
 Skyship Stalker
 Slith Firewalker
+Sokenzan Spellblade
+Songbird, Sonic Screamer
 Splinter Twin
 Spotter Thopter
+Star Pupil
+Steppe Lynx
+Stolen Grain
 Stupor
+Sunweb
+Surge of Righteousness
 Sutina, Speaker of the Tajuru
 Swamp
+Syndicate Messenger
 Syphon Life
 Tarfire
 Tavern Swindler
+Tectonic Rift
 Teetering Peaks
+Teroh's Faithful
 Thanos, Death's Consort
+The Falcon, Airship Restored
+The Great Juggernaut
 Titans' Vanguard
+Town Gossipmonger
+Trigon of Thought
+Unbreakable Formation
 Unity of Purpose
 Vampire Revenant
 Verdant Rebirth
 Viashino Runner
 Viridian Corrupter
+Vizier of the Scorpion
 Volcanic Spite
+Wall of Limbs
+Ward Sliver
 Whelming Wave
+Wit's End
+Yomiji, Who Bars the Way

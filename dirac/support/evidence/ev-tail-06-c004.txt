@@ -12,9 +12,12 @@ Bandage
 Barbary Apes
 Barl's Cage
 Basilisk Gate
+Bathe in Dragonfire
 Beacon of Creation
 Beckon Apparition
+Benalish Knight
 Big Mother Mouser
+Blade-Blizzard Kitsune
 Blood Lust
 Bloodfire Infusion
 Bog Badger
@@ -22,22 +25,36 @@ Boros Elite
 Brass Man
 Brought Back
 Burning-Yard Trainer
+Canyon Minotaur
+Cartographer
 Cathar's Call
 Champion of Dusk
 Cleansing Screech
 Cloudfin Raptor
+Cloudshredder Sliver
 Cloudthresher
 Conscripted Infantry
+Coral Helm
 Corpse Churn
+Crown of Skemfar
+Crucible of Fire
 Cutthroat Negotiator
+Cylian Elf
 Dawnhart Wardens
 Deathbloom Gardener
 Deb Thomas
+Decorated Griffin
+Diregraf Scavenger
+Dreamdrinker Vampire
 Drizzt Do'Urden
 Dwarven Demolition Team
+Ebony Charm
 Eldrazi Mimic
+Elvish Rejuvenator
 Emberwilde Caliph
 Experimental Armor
+Explosive Entry
+Eye of Vecna
 Eye of Yawgmoth
 Faerie Seer
 Falconer Adept
@@ -45,18 +62,25 @@ Feasting Troll King
 Felhide Minotaur
 Fight as One
 Flamewave Invoker
+Flaming Gambit
 Flow of Knowledge
 Forest
 Frenzied Devils
 Fry
 Fugitive Wizard
 Galvanic Arc
+Goblin Wizardry
 Gold-Forged Thopteryx
 Golgari Germination
+Golgari Keyrune
 Graviton, Fundamental Force
 Great Defender
 Halo Scarab
+Heliod's Punishment
+Hell's Caretaker
+Honor the Fallen
 Hornet Nest
+Hot Springs
 Hymn to Tourach
 Iceman and Firestar
 Illusionary Informant
@@ -67,46 +91,75 @@ Jeering Homunculus
 Jewel Thief
 Jolted Awake
 Juntu Stakes
+Kaseto, Orochi Archmage
 Killian, Decisive Mentor
 Kyoshi Warrior Exemplars
+Lagonna-Band Elder
+Last-Ditch Effort
 Leaf Gilder
+Long Road Home
 Loxodon Warhammer
+Luminesce
 Luminous Angel
 Mammoth Spider
 Mantle of Webs
+Marang River Skeleton
 Marsh Boa
+Master's Call
+Merchant Raiders
+Merrow Harbinger
+Merrow Wavebreakers
 Mindwhip Sliver
 Molten Vortex
 Mountain
 Mystic Melting
 Nim Shambler
 Nirkana Revenant
+Nomad Mythmaker
 Nuka-Cola Vending Machine
 Obelisk Spider
 On Serra's Wings
+Onward
+Oona's Grace
+Ordruun Veteran
 Outnumber
+Outrider of Jhess
 Overwhelmed Apprentice
 Peek
+Pensive Minotaur
+Pestilence Demon
+Phyrexian Marauder
 Plains
+Poison-Tip Archer
 Pre-War Formalwear
 Press the Advantage
 Prison Sentence
 Pulse of the Tangle
+Putrefax
 Ragefire Hellkite
 Rakdos Pit Dragon
 Rats of Rath
 Reality Anchor
 Reckless Ogre
+Recoup
+Reflex Sliver
 Renewing Dawn
+Rhizome Lurcher
+Rosemane Centaur
+Rotten Reunion
 Rule of Law
 Sacred Armory
 Sanctum of Shattered Heights
 Scale the Heights
+Scurrilous Sentry
+Second Thoughts
+Selhoff Entomber
 Sentinel's Mark
 Servant of Volrath
 Shamble Back
 Silent-Chant Zubera
 Simic Keyrune
+Smoldering Werewolf
 Snapping Thragg
 Soot Imp
 Soul Collector
@@ -117,6 +170,8 @@ Splinter, the Mentor
 Spontaneous Artist
 Spore Swarm
 Strangle
+Sudden Spoiling
+Sungrace Pegasus
 Suntail Hawk
 Swamp
 Take to the Streets
@@ -124,15 +179,20 @@ Tatyova, Steward of Tides
 Teferi's Ageless Insight
 Teleportation Circle
 Thalakos Scout
+Thassa, God of the Sea
+The Brute
 The Modern Age
 The One Ring
+Thickest in the Thicket
 Thopter Engineer
 Thorn of Amethyst
+Thraben Gargoyle
 Toggo, Goblin Weaponsmith
 Trapfinder's Trick
 Turn
 Ultimate Magic: Holy
 Underdark Basilisk
+Urborg Repossession
 Valorous Steed
 Vault 75: Middle School
 Venser, Shaper Savant
@@ -143,5 +203,7 @@ Whispersilk Cloak
 Wildwood Rebirth
 Winged Sliver
 Wirewood Pride
+Witch's Oven
 Wolfsbane, Highland Hero
 Wooden Sphere
+Yuna's Decision

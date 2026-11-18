@@ -21,6 +21,7 @@ Cloakwood Hermit
 Clock of Omens
 Close Quarters
 Copper Longlegs
+Coppercoat Vanguard
 Dark Tutelage
 Darkslick Shores
 Deadeye Tracker
@@ -62,6 +63,7 @@ Guardian Augmenter
 Haazda Officer
 Herald of Secret Streams
 Hero's Demise
+Hunter's Insight
 Improbable Alliance
 Initiate's Companion
 Island
@@ -109,6 +111,7 @@ Sovereign's Bite
 Sparksmith
 Steel-Plume Marshal
 Stew the Coneys
+Stormchaser Chimera
 Sunbathing Rootwalla
 Swamp
 Swift Warden
@@ -120,7 +123,9 @@ Tempted by the Oriq
 The Immortal Weapons
 Thoughtflare
 Thrashing Wumpus
+Thrun, the Last Troll
 Toski, Bearer of Secrets
+Untamed Kavu
 Utility Knife
 Vampire Bats
 Vampire of the Dire Moon

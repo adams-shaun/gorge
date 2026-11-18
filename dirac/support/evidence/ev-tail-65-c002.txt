@@ -1,64 +1,163 @@
 A-Celebrity Fencer
+A-Geology Enthusiast
+A-Imperial Subduer
 A-Tenured Inkcaster
+A-Uurg, Spawn of Turg
+Absolute Grace
+Abu Ja'far
 Accelerated Mutation
+Aether Figment
 Aether Shockwave
 Akoum Firebird
+Always Watching
+Amulet of Vigor
+Apostle of Purifying Light
+Appetite for the Unnatural
+Arcane Flight
+Arcbound Whelp
 Assault Zeppelid
+Attunement
+Banewasp Affliction
 Bastion Protector
 Battle Cry Goblin
+Battle-Rage Blessing
 Beacon of Immortality
+Blisterstick Shaman
+Blood Burglar
+Bogstomper
 Bolt Hound
+Boss Uramon, Shadow's Reach
+Bounteous Kirin
 Box of Free-Range Goblins
 Brawler's Plate
 Brink of Madness
 Burning Sun's Fury
 Burning-Fist Minotaur
 Catacomb Slug
+Cavalry Pegasus
+Cazur, Ruthless Stalker
+Centaur Nurturer
 Chandra's Outburst
+Chaosphere
+Civil Servant
+Clarion Cathars
+Copperhoof Vorrac
+Corpse Churn
 Corrosive Mentor
+Dakmor Lancer
+Darkblast
+Dawn of Hope
+Deadeye Tormentor
+Death-Rattle Oni
 Debtors' Transport
 Decaying Time Loop
 Deputy of Acquittals
 Devastation Tide
+Devout Witness
 Dictate of Erebos
+Diplomatic Escort
 Dispense Justice
 Distress
+Drifting Shade
+Drooling Groodion
+Dry Spell
+Dwarven Patrol
+Eidolon of Inspiration
+Elvish Branchbender
 Embereth Shieldbreaker
+Embodiment of Fury
 Embraal Bruiser
+Empress Galina
+Era of Enlightenment
+Etched Champion
 Ettercap
 Excise the Imperfect
+Eyeblight Cullers
 Faith Healer
+Falkenrath Celebrants
 Fallaji Excavation
+Fallaji Vanguard
 Field-Tested Frying Pan
 Fire Nation's Conquest
+Flame-Kin Zealot
 Flowstone Infusion
 Font of Fortunes
 Forest
+Formless Genesis
 Fortifying Draught
 Furnace Spirit
+Ghoulraiser
+Gilded Pinions
+Gitaxian Anatomist
 Glimmer of Genius
 Glitterfang
+Glorious Anthem
+Gold Myr
+Golgari Locket
+Grateful Apparition
+Grotag Bug-Catcher
+Gryffwing Cavalry
+Guardian of Vitu-Ghazi
 Guardians of Koilos
 Hedron Detonator
+Herald of the Dreadhorde
+Hero of Leina Tower
+Hibernation
+Homicidal Seclusion
+Hope Tender
 Horned Cheetah
 Horned Helm
+Hungering Hydra
+Hunter's Ambush
+Incursion Specialist
 Inner Sanctum
 Inner Struggle
 Insatiable Gorgers
+Ishkanah, Grafwidow
 Island
+Ixalli's Keeper
+Jagwasp Swarm
+Jhessian Infiltrator
 Jhoira's Toolbox
 Joraga Visionary
+Kabuto Moth
+Kangee's Lieutenant
+Kardur's Vicious Return
+Kazandu Tuskcaller
+Kefnet's Last Word
+Kenku Artificer
 Kheru Bloodsucker
+Kranioceros
 Light of Day
+Lightning Visionary
 Livaan, Cultist of Tiamat
+Losheel, Clockwork Scholar
+Maestros Initiate
+Magma Phoenix
+Makeshift Mauler
+Manacles of Decay
+Merchant of Secrets
+Minor Misstep
+Momentary Blink
+Moon-Circuit Hacker
 Mortis Dogs
+Mother Bear
 Mountain
+Mournwillow
+Murderous Redcap
+Mycoid Shepherd
+Myr Quadropod
 Mystic Snake
 Nimble-Blade Khenra
+Ninth Bridge Patrol
+Norn's Disassembly
+Novice Knight
 Obelisk of Urd
 Obsessive Search
 Ohran Frostfang
+On Thin Ice
 Ore-Scale Guardian
+Oreskos Swiftclaw
 Perilous Forays
 Phyrexian Scriptures
 Pick Up the Pace
@@ -68,35 +167,79 @@ Priests of Norn
 Prison Sentence
 Prodigal Pyromancer
 Professor's Warning
+Proper Burial
+Quest for Renewal
 Radiant Essence
+Rakdos Shred-Freak
 Reach Through Mists
 Reckless Brute
 Reinforced Ronin
+Reptilian Reflection
+Reservoir Kraken
 Resounding Silence
+Restless Apparition
 Rhys the Exiled
+Rogue Elephant
 Rotting Rats
+Run Out of Town
 Ruthless Invasion
+Safeguard
 Sage Aven
 Sarinth Steelseeker
+Satyr Piper
+Scavenger Drake
+Scorched Earth
 Scouring Swarm
+Sculpting Steel
+Seraph of the Sword
+Serpentine Ambush
 Serrated Scorpion
+Shadows' Verdict
+Shang-Chi, Martial Mentor
+Shauku, Endbringer
 Siegecraft
+Skitterskin
 Skybind
 Skyfire Kirin
+Spark of Creativity
 Spectral Force
+Spined Basher
+Spirit of the Spires
 Spontaneous Combustion
+Stark's Ingenuity
 Stern Constable
+Stormclaw Rager
+Stream of Life
+Strength of Lunacy
 Stromgald Crusader
+Sunbathing Rootwalla
 Swamp
+Sworn Defender
 Sylvan Ranger
 Talruum Minotaur
+Throne of Bone
+Tide Skimmer
+Tonic Peddler
 Tormenting Voice
+Trip Noose
+Trophy Mage
 Uktabi Orangutan
+Umara Mystic
 Undercity Informer
+Underworld Hermit
+Underworld Sentinel
 Valor
+Verdant Automaton
+Vorrac Battlehorns
+Vulshok Gauntlets
+Walker of the Wastes
 Wall of Fire
+Whip-Spine Drake
+Wilderness Hypnotist
 Winds of Rebuke
 Winged Words
 Wish Good Luck
+Wishcoin Crab
 Withstand Death
+Wurmcalling
 Zombie Master

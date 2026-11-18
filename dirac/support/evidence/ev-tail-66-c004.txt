@@ -1,79 +1,136 @@
+A-Demon's Due
 A-Radha, Coalition Warlord
 Abiding Grace
+Akki Ronin
 Ancient Craving
 Angel of Fury
 Anje, Maid of Dishonor
 Apothecary Geist
 Argivian Avenger
 Arrester's Admonition
+Ashnod's Harvester
+Atarka Beastbreaker
 Axebane Guardian
 Ayara, First of Locthwain
 Balustrade Spy
 Black Poplar Shaman
+Blossom Prancer
+Bomber Corps
+Bone Harvest
+Boon Reflection
 Boros Swiftblade
+Bumi's Feast Lecture
 Carrion Imp
+Celestial Regulator
+Centaur Healer
 Champion of the Flame
 Cloudkill
+Composer of Spring
 Confront the Assault
 Crop Rotation
+Crypt Ghast
 Cunning Wish
 Cut Your Losses
 Dagger Caster
 Dawn Elemental
+Delighted Killbot
+Deviant Skytech
+Drown in Filth
+Elephant-Mandrill
+Eloise, Nephalia Sleuth
 Elvish Hexhunter
+Elvish Reclaimer
 Explosive Welcome
 Extortion
 Fain, the Broker
 Feign Death
 Flametongue Kavu
 Forest
+Frog-Squirrels
 Gempalm Incinerator
+Ghoul's Feast
+Glissa's Scorn
 Granite Gargoyle
 Grazilaxx, Illithid Scholar
+Greater Good
 Grizzly Fate
+Guise of Fire
+Haru-Onna
+Haunted Angel
 Haunting Hymn
+Heaven Sent
+Hero of Iroas
 Hexgold Halberd
+Horn of the Mark
 Hunger of the Howlpack
 Hydra's Growth
+Hyrax Tower Scout
+Igneous Cur
+Illuminated Wings
 Increasing Confusion
+Insist
 Iron Suitcase
 Island
+Izzet Chronarch
 Jace's Phantasm
 Janjeet Sentry
 Jeskai Barricade
+Karoo Meerkat
 Ken, Burning Brawler
 Knight's Pledge
 Kyren Sniper
 Loyal Gyrfalcon
 Mana Tithe
+Manamorphose
+Manhole Cover
 Marchesa's Infiltrator
 Mardu Banner
+Mark of Mutiny
+Mask of Immolation
 Maze of Ith
+Mentor's Guidance
+Minister of Inquiries
+Mirrorworks
 Mise
 Moriok Reaver
 Mountain
+Nico Minoru, Runaway
+Oggyar Battle-Seer
 Overflowing Insight
+Pariah's Shield
 Pentarch Ward
 Plains
+Primordial Ooze
+Prized Griffin
+Prophet of Distortion
 Radiant, Archangel
 Recantation
+Regathan Firecat
 Regrowth
+Reign of Terror
 Rhox Veteran
 Risen Sanctuary
+Rowan Treefolk
 Saberclaw Golem
 Sacred Rites
 Sacrifice
 Sage of Epityr
 Savage Gorger
 Scaled Wurm
+Scouring Sands
 Scrapyard Salvo
 Seeker of Skybreak
 Sentinel Sliver
+Serpentine Kavu
 Shadowcloak Vampire
 She-Hulk, Wallbreaker
+Shocking Grasp
 Shrine of Burning Rage
 Sick and Tired
+Sidisi, Undead Vizier
+Silverback Shaman
 Slash the Ranks
+Slime Molding
 Slobad, Goblin Tinkerer
 Snuff Out
 Soltari Crusader
@@ -84,26 +141,33 @@ Soul of Theros
 Spellskite
 Spike Worker
 Squee's Embrace
+Staff of Compleation
 Stonewood Invoker
 Strength-Testing Hammer
 Sudden Shock
 Sunastian Falconer
 Sunbeam Spellbomb
 Swamp
+Sylvan Paradise
 Talons of Wildwood
+Tanazir Quandrix
 Territorial Allosaurus
 Territorial Baloth
 Thallid Devourer
 Thrashing Wumpus
+Three Visits
 Throes of Chaos
 Torch Courier
 Torsten Von Ursus
 Tragic Poet
+Tyvar, Jubilant Brawler
 Unyaro Bee Sting
+Ursine Fylgja
 Urza's Cave
 Valeron Outlander
 Vedalken Plotter
 Vine Trellis
+Wakandan Shield Guard
 Wall of Mist
 Wall of Souls
 Wanderlight Spirit

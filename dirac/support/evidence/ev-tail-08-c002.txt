@@ -1,127 +1,222 @@
+Abbey Griffin
 Aberrant Return
+Acceptable Losses
 Age of Ultron
 Agent of Stromgald
+Akoum Hellkite
 Amateur Auteur
+Amnesia
+Ana Disciple
 Ancestral Recall
 Angel of Glory's Rise
 Archghoul of Thraben
+Ashiok's Skulker
 Assassin Initiate
 Aven Gagglemaster
+Azami, Lady of Scrolls
+Banewhip Punisher
+Bankrupt in Blood
 Barrenton Cragtreads
 Barrin's Codex
 Battle Sliver
+Benalish Marshal
 Benalish Missionary
 Blind-Spot Giant
+Blizzard Strix
 Blood Divination
 Blood Glutton
+Blood Seeker
+Boggart Trawler
 Bolt of Keranos
+Bounty Agent
+Bronze Sword
+Bronze Walrus
+Brush with Death
 Cabal Inquisitor
 Cadira, Caller of the Small
+Call to Glory
+Call to the Netherworld
+Calming Verse
 Captain America, Liberator
+Certain Death
+Chakram Retriever
 Chase Stein, Runaway
+Chill to the Bone
 Clockwork Fox
 Coercive Impetus
+Commence the Endgame
+Concordant Crossroads
+Containment Protocol
+Corrosive Mentor
+Counterintelligence
 Courier Griffin
 Courtly Provocateur
 Cover of Darkness
 Crash Landing
 Crisis of Conscience
+Crystal Golem
 Cyclops Tyrant
 Darien, King of Kjeldor
 Death Speakers
+Death Wind
+Death's Duet
+Denizen of the Deep
+Devouring Deep
+Diamond Knight
+Divest
+Djinn of Infinite Deceits
 Drana's Emissary
+Dread Specter
+Dream Prowler
 Dromoka's Gift
 Drudge Reavers
 Drunau Corpse Trawler
 Duergar Mine-Captain
 Dusk Legion Dreadnought
 Dwarven Recruiter
+Dwarven Trader
+Eagle of Deliverance
 Electrify
+Elite Javelineer
 Elvish Hunter
 Energy Arc
 Enfeeblement
+Engulf the Shore
 Eyeblight's Ending
+False Demise
+Fearless Liberator
+Feast of the Unicorn
 Feast or Famine
 Final Payment
+Fists of Flame
 Flare
+Flay
+Flourishing Strike
 Flowstone Mauler
 Forest
+Foundry Inspector
+Frenetic Efreet
 Fruit of Tizerus
+Garruk's Horde
 Gavony Silversmith
+Ghost Council of Orzhova
 Ghost-Lit Raider
 Glarewielder
+Glimpse the Future
+Gloomlance
 Go-Shintai of Shared Purpose
+Goblin Heelcutter
 Goblin Soothsayer
+Goggles of Night
 Grid Monitor
 Gust of Wind
 Hag of Inner Weakness
 Hag of Noxious Nightmares
+Hallowed Haunting
 Hammerheim Deadeye
 Headless Specter
 Henrika Domnathi
 Hillcomber Giant
 Hobbit's Sting
 Homicidal Seclusion
+Honor-Worn Shaku
 Honored Crop-Captain
 Horizon Explorer
+Hornet Nest
 Hour of Revelation
 Hunter's Edge
+Ilysian Caryatid
+Improbable Alliance
 Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
 Inspiring Cleric
 Iron Fist, Hero for Hire
+Iron Verdict
+Ishai, Ojutai Dragonspeaker
 Island
 Jeskai Elder
+Joiner Adept
+Jukai Trainee
 Kaervek's Torch
 Kavu Howler
 Keeper of the Cadence
 Kolaghan Warmonger
 Krazy Kow
+Last Breath
 Last Kiss
+Lat-Nam Adept
+Lesser Werewolf
 Liliana's Triumph
 Lone Missionary
+Loxodon Mystic
 Lucky the Pizza Dog
+Lynx
 M.O.D.O.K., Evil Intellect
 Magmaroth
 Magmatic Force
 Malakir Bloodwitch
 Mardu Hateblade
+Marionette Apprentice
 Marsh Casualties
 Mass Appeal
+Mass Diminish
+Midnight Ritual
 Military Discipline
+Militia Bugler
+Mind Slash
 Minions' Murmurs
 Mogg Squad
+Moldering Karok
+Moonsilver Key
 Moroii
 Mountain
 Mystic Restraints
+Nature's Wrath
+Necropede
 Night Terrors
 Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
 O'aka, Traveling Merchant
+Orim's Thunder
 Overtaker
+Paradise Druid
 Paradox Engine
 Pearled Unicorn
 Pernicious Deed
+Pestilent Wolf
 Pious Wayfarer
 Pitchburn Devils
 Plains
 Portable Hole
+Possessed Barbarian
 Precinct Captain
+Primal Adversary
+Propagator Drone
 Protector of the Wastes
 Queen's Agent
+Quietus Spike
 Rain of Revelation
 Ral's Outburst
 Rally at the Hornburg
+Rat Colony
 Ratcatcher
+Relentless Rats
 Reverent Mantra
 Riddle Gate Gargoyle
+Righteous Charge
 Righteous Fury
+Rob the Archives
+Rustspore Ram
+Rustwing Falcon
 Scent of Nightshade
 Scourge of the Nobilis
+Screeching Bat
 Screeching Drake
+Scroll of Fate
 Selesnya Charm
+Selfless Cathar
 Selfless Savior
 Serra's Boon
 Serum Tank
@@ -130,27 +225,40 @@ Shivan Hellkite
 Silkbind Faerie
 Sinstriker's Will
 Siphon Insight
+Six-Sided Die
 Skyblade's Boon
 Skyhunter Patrol
 Slimy Piper
+Slingshot Goblin
+Snarespinner
 Sorcerer's Strongbox
+Soul Channeling
 Soulblade Djinn
 Spectral Flight
+Sphere of Reason
 Spontaneous Artist
 Spore Crawler
 Sprinting Warbrute
+Square Up
 Stalwart Aven
 Stand
 Static Net
 Staunch Shieldmate
+Staunch Throneguard
+Steel Wall
+Stonewood Invocation
 Storm Fleet Aerialist
 Sublime Archangel
+Summon: Kujata
+Sunlit Marsh
 Suspicious Bookcase
 Swamp
 Sylvia Brightspear
 Talas Researcher
+Talisman of Unity
 Tangle Asp
 Taunting Arbormage
+Tempest of Light
 Teval's Judgment
 Thalia's Lieutenant
 That Which Was Taken
@@ -160,28 +268,38 @@ Tor Giant
 Treespring Lorian
 Troubled Healer
 Troublesome Spirit
+True Polymorph
 Trusty Packbeast
 Tukatongue Thallid
+Tyranid Harridan
+Tyranid Prime
 Uktabi Wildcats
 Unbreakable Formation
 Uncontrollable Anger
+Underhanded Designs
 Updraft
 Urborg Drake
+Valorous Steed
 Vampire Outcasts
+Vectis Silencers
 Veilborn Ghoul
 Venerable Warsinger
 Vengeful Vampire
 Vexilus Praetor
+Victory's Herald
 Victual Sliver
 Vulpine Goliath
 Wall of Opposition
 War Falcon
+Warlord's Elite
+Warped Tusker
 Water Elemental
 Wayward Soul
 Weakness
 White Widow, Yelena Belova
 Winds of Rath
 Wingmate Roc
+Wormhole Serpent
 Wydwen, the Biting Gale
 You Meet in a Tavern
 Zhang Fei, Fierce Warrior

@@ -35,12 +35,14 @@ Cursed Recording
 Cursed Windbreaker
 Cynical Loner
 Daggermaw Megalodon
+Dashing Bloodsucker
 Dazzling Theater
 Defiant Survivor
 Defiled Crypt
 Demonic Counsel
 Derelict Attic
 Dissection Tools
+Disturbing Mirth
 Diversion Specialist
 Don't Make a Sound
 Doomsday Excruciator
@@ -54,6 +56,7 @@ Enduring Tenacity
 Enduring Vitality
 Enter the Enigma
 Entity Tracker
+Erratic Apparition
 Etched Cornfield
 Ethereal Armor
 Exorcise
@@ -92,6 +95,7 @@ Gloomlake Verge
 Grab the Prize
 Grand Entryway
 Grasping Longneck
+Growing Dread
 Hand That Feeds
 Hardened Escort
 Haunted Screen
@@ -105,6 +109,7 @@ Insidious Fungus
 Irreverent Gremlin
 Island
 Jump Scare
+Kaito, Bane of Nightmares
 Keys to the House
 Killer's Mask
 Kona, Rescue Beastie
@@ -129,8 +134,10 @@ Most Valuable Slayer
 Mountain
 Murder
 Murky Sewer
+Nashi, Searcher in the Dark
 Neglected Manor
 Norin, Swift Survivalist
+Oblivious Bookworm
 Omnivorous Flytrap
 Optimistic Scavenger
 Overlord of the Balemurk
@@ -199,6 +206,7 @@ Twist Reality
 Twitching Doll
 Tyvar, the Pummeler
 Unable to Scream
+Undead Sprinter
 Under the Skin
 Underwater Tunnel
 Unholy Annex

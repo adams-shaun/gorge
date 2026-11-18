@@ -26,6 +26,7 @@ Ashiok's Forerunner
 Attrition
 Auriok Glaivemaster
 Aysen Bureaucrats
+Balefire Dragon
 Bandage
 Bastion Inventor
 Battlegrace Angel
@@ -60,6 +61,7 @@ Chandra's Triumph
 Chandra, Legacy of Fire
 Cleansing Wildfire
 Collector's Case
+Conclave Cavalier
 Conifer Strider
 Consulate Crackdown
 Control Win Condition
@@ -188,6 +190,7 @@ Imperial Subduer
 Impetuous Sunchaser
 Indrik Stomphowler
 Infectious Horror
+Inferno Elemental
 Insubordination
 Invisibility
 Iron Man, Futurist Paragon
@@ -196,6 +199,7 @@ Izoni, Thousand-Eyed
 Jace's Ingenuity
 Jackdaw
 Jackhammer
+Jade Avenger
 Jedit Ojanen
 Jedit's Dragoons
 Jerrard of the Closed Fist
@@ -213,6 +217,7 @@ Last Word
 Lava Spike
 Lethargy Trap
 Liability
+Life from the Loam
 Lightning Bolt
 Lightning Stormkin
 Linvala, Keeper of Silence
@@ -294,6 +299,7 @@ Powerstone Engineer
 Pride Sovereign
 Psionic Entity
 Puppeteer Clique
+Pyrohemia
 Pyromancer's Assault
 Radha's Firebrand
 Rampart Crawler
@@ -428,7 +434,9 @@ Transguild Promenade
 Traxos, Scourge of Kroog
 Trollhide
 Tuknir Deathlock
+Turn into a Pumpkin
 Tymaret, the Murder King
+Tyrannize
 Underworld Dreams
 Underworld Rage-Hound
 Undying Rage
