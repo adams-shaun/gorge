@@ -227,6 +227,21 @@ func cov3BranchHolds(h Host, c *Ctx, pred string, depth int) (holds, ok bool) {
 		// CR 702.173a: the resolving source's cast paid its K:Freerunning
 		// cost (altCostKeywordPaid) -- Monastery Raid's Count$Freerunning.X.2.
 		return altCostKeywordPaid(g.Obj(c.Source), "Freerunning"), true
+	case cov3BranchHoldsMadness:
+		// CR 702.35b: the resolving source's cast paid its K:Madness cost
+		// (altCostKeywordPaid, the flagless-row precedent -- madness stamps
+		// state.FlagAltCostPaid like prowl and awaken) -- From Under the
+		// Floorboards' and Avacyn's Judgment's Count$Madness.X.3 forks and
+		// Welcome to the Fold's gate.
+		return altCostKeywordPaid(g.Obj(c.Source), "Madness"), true
+	case cov3BranchHoldsInitiative:
+		// The initiative designation (CR 701.24a): the resolving controller
+		// currently holds it (g.IsInitiative, the same read the TakeInitiative
+		// primitive's holder and the HasPropertyIsMonarch-style player specs
+		// make) -- Sarevok's Tome's Count$Initiative.2.1 mana read. A
+		// designation read off the event-folded Game, so a replay derives the
+		// same branch.
+		return valid && g.IsInitiative(you), true
 	case cov3BranchHoldsLandfall:
 		// A land entered the battlefield under your control this turn
 		// (Groundswell, Tomb Hex): a battlefield entry of a land whose
@@ -926,6 +941,8 @@ const (
 	cov3BranchHoldsLandfall
 	cov3BranchHoldsVoid
 	cov3BranchHoldsFreerunning
+	cov3BranchHoldsMadness
+	cov3BranchHoldsInitiative
 )
 
 var cov3BranchHoldsCodes = state.NewStrCodes(
@@ -938,6 +955,8 @@ var cov3BranchHoldsCodes = state.NewStrCodes(
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Landfall", Val: cov3BranchHoldsLandfall},
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Void", Val: cov3BranchHoldsVoid},
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Freerunning", Val: cov3BranchHoldsFreerunning},
+	state.StrEntry[cov3BranchHoldsCode]{Key: "Madness", Val: cov3BranchHoldsMadness},
+	state.StrEntry[cov3BranchHoldsCode]{Key: "Initiative", Val: cov3BranchHoldsInitiative},
 )
 
 type playerScalarPropertyCode uint16
