@@ -52,6 +52,7 @@ for it. `make deploy-demo` serves the demo (`deploy/demo.env.example`). The guid
 | `-humans` | none | comma-separated slots of table t1 that are real people (e.g. 0,2); t2..tN stay bot tables |
 | `-manabrew` | `false` | mount the ManaBrew protocol adapter (server/host/manabrewhttp) on the main listener; requires -humans or -vsbot |
 | `-manabrew-addr` | none | serve the ManaBrew routes on a separate listen address instead of the main one (implies -manabrew) |
+| `-manabrew-origins` | none | comma-separated browser origins (scheme://host[:port], no wildcard) allowed to call the ManaBrew routes and POST /api/games cross-origin (CORS). Empty adds no CORS headers |
 | `-manabrew-think` | `0s` | override the human-seat think timeout while -manabrew is on (0 = inherit the server default) |
 | `-max-events` | `4` | maximum draft events not yet COMPLETE |
 | `-max-on-demand-tables` | `32` | maximum retained private play-vs-bot tables per process (0 = unlimited) |
