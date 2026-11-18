@@ -24,7 +24,7 @@ const (
 	staticFieldCount   = 5
 	replFieldCount     = 8
 	paramSetFieldCount = 6
-	faceFieldCount     = 52
+	faceFieldCount     = 53
 )
 
 func sliceEq[T comparable](a, b []T) bool {

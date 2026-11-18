@@ -7,21 +7,19 @@ import (
 )
 
 // TestCDAAddTypeIntrinsicEveryZone pins the type filter's intrinsic AddType$
-// CDA tail (filter_type.go's cdaAddTypeHas): Veteran Adventurer's
-// "CARDNAME is also a Cleric, Rogue, Warrior, and Wizard" is a
-// characteristic-defining ability, so CR 613.4a answers it in every zone —
-// off the battlefield (in a hand, library or exile) where the rules layer
-// walk publishes no derived type list, the printed-face fallback plus the
-// intrinsic CDAs are the whole answer, and the printed face alone is not
+// CDA tail (filter_type.go's cdaAddTypeHas): the party card's four-kind
+// characteristic-defining ability is one, so CR 613.4a answers it in every
+// zone — off the battlefield (in a hand, library or exile) where the rules
+// layer walk publishes no derived type list, the printed-face fallback plus
+// the intrinsic CDAs are the whole answer, and the printed face alone is not
 // enough. The read is what a RestrictValid$ Spell.Creature+ChosenType batch
 // (The Ringhart Crest's mana) evaluates the hand card with, so a miss here
 // withheld a cast the restricted mana could have paid (tail-74 pair 127,
 // seed 9802406336505234860, decision 498; the pinned repro is
 // dirac/oracle/testdata/repro/cda_addtype.repro.json).
 func TestCDAAddTypeIntrinsicEveryZone(t *testing.T) {
-	va := mkCard(t, "Name:Veteran Adventurer\nManaCost:5 G\nTypes:Creature Human\nPT:5/5\n"+
-		"S:Mode$ Continuous | Affected$ Card.Self | CharacteristicDefining$ True | AddType$ Cleric & Rogue & Warrior & Wizard | Description$ CARDNAME is also a Cleric, Rogue, Warrior, and Wizard.\n"+
-		"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ X | EffectZone$ All | Description$ This spell costs {1} less to cast for each creature in your party.\n"+
+	va := mkCard(t, "Name:Party Veteran\nManaCost:5 G\nTypes:Creature Human\nPT:5/5\n"+
+		"S:Mode$ Continuous | CharacteristicDefining$ True | Affected$ Card.Self | AddType$ Cleric & Rogue & Warrior & Wizard | Description$ Shares its creature kinds with every party.\n"+
 		"Oracle:x")
 	f := va.Faces[0]
 	// Precondition: the printed face carries only Human, so a pass against a
@@ -56,8 +54,8 @@ func TestCDAAddTypeIntrinsicEveryZone(t *testing.T) {
 	// creature") is fail-closed off the battlefield: the intrinsic read
 	// cannot evaluate the condition, so the static stays the rules layer
 	// walk's.
-	cond := mkCard(t, "Name:Karn\nTypes:Planeswalker Karn\nLoyalty:5\n"+
-		"S:Mode$ Continuous | AffectedDefined$ Self | Condition$ PlayerTurn | AddType$ Creature & Ninja | Description$ During your turn, as long as NICKNAME has one or more loyalty counters on him, he's a 3/4 Ninja creature and has hexproof.\n"+
+	cond := mkCard(t, "Name:Turnbound Shapeshifter\nTypes:Planeswalker Shifter\nLoyalty:5\n"+
+		"S:Mode$ Continuous | Condition$ PlayerTurn | AffectedDefined$ Self | AddType$ Creature & Ninja | Description$ On your turn it becomes a Ninja creature.\n"+
 		"Oracle:x")
 	if got := cond.Faces[0].CDAAddTypes(); len(got) != 0 {
 		t.Fatalf("conditional CDA AddType$ derived intrinsically: %v", got)
@@ -71,8 +69,8 @@ func TestCDAAddTypeIntrinsicEveryZone(t *testing.T) {
 	// A static affecting OTHER permanents (Adaptive Automaton's
 	// Affected$ Creature.YouCtrl AddType$ ChosenType) is a battlefield grant
 	// for the layer walk, never the card's own type.
-	grant := mkCard(t, "Name:Adaptive Automaton\nManaCost:3\nTypes:Artifact Construct\nPT:2/2\n"+
-		"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddType$ ChosenType | Description$ As CARDNAME enters the battlefield, choose a creature type. Creatures you control of the chosen type are the chosen type in addition to their other types.\n"+
+	grant := mkCard(t, "Name:Kindred Cogwork\nManaCost:3\nTypes:Artifact Construct\nPT:2/2\n"+
+		"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddType$ ChosenType | Description$ Grants its chosen kind to your creatures.\n"+
 		"Oracle:x")
 	if got := grant.Faces[0].CDAAddTypes(); len(got) != 0 {
 		t.Fatalf("other-permanents AddType$ derived intrinsically: %v", got)
