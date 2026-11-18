@@ -84,4 +84,85 @@ func TestCDAAddTypeIntrinsicEveryZone(t *testing.T) {
 	if hasType(vaObj, "Rogue") {
 		t.Error("face-down permanent matched a hidden face's CDA type")
 	}
+
+	// A ZONE-GATED CDA (Tidecaller's "As long as CARDNAME isn't on the
+	// battlefield, it's a 1/1 Insect creature", the corpus's
+	// ExcludeZone$ Battlefield shape) is answered against the object's zone:
+	// granted off the battlefield, refused on it — there the static is
+	// excluded and the card is its printed planeswalker self, so the
+	// intrinsic read granting Creature/Insect in every zone was the wrong
+	// direction. The every-zone derived list holds nothing for it; the
+	// tail's zone-gated half evaluates the gate.
+	grist := mkCard(t, "Name:Tidecaller of the Swarm\nManaCost:2 B G\nTypes:Legendary Planeswalker Swarmcaller\nLoyalty:4\n"+
+		"S:Mode$ Continuous | ExcludeZone$ Battlefield | Affected$ Card.Self | SetPower$ 1 | SetToughness$ 1 | AddType$ Creature & Insect | CharacteristicDefining$ True | Description$ Off the battlefield CARDNAME is a 1/1 Insect creature in addition to its other types.\n"+
+		"Oracle:x")
+	gf := grist.Faces[0]
+	// Precondition: the printed face carries neither word, so a pass against
+	// a face that already printed them proves nothing.
+	if gf.TypeLineHas("Creature", 0) || gf.TypeLineHas("Insect", 0) {
+		t.Fatal("precondition: printed face already carries a zone-gated CDA type")
+	}
+	if got := gf.CDAAddTypes(); len(got) != 0 {
+		t.Fatalf("zone-gated CDA AddType$ derived into the every-zone list: %v", got)
+	}
+	og := h.g.AddObject(grist, 1)
+	og.Zone = state.ZBattlefield
+	if hasType(og, "Creature") || hasType(og, "Insect") {
+		t.Error("battlefield misread: zone-gated CDA AddType$ granted a type where its static is excluded")
+	}
+	og.Zone = state.ZHand
+	if !hasType(og, "Creature") || !hasType(og, "Insect") {
+		t.Error("hand card lost its zone-gated characteristic-defining type (CR 613.4a)")
+	}
+	if !hasType(og, "Swarmcaller") {
+		t.Error("the zone-gated CDA read displaced the printed type line")
+	}
+
+	// A gate the intrinsic read cannot evaluate (the Dragonsage's
+	// IsPresent$ loyalty threshold, the corpus's counter-condition shape) is
+	// fail-closed in every zone: the rules layer walk evaluates the
+	// condition on the battlefield, and nothing grants the words anywhere
+	// else.
+	gm := mkCard(t, "Name:Flower Dragonsage\nTypes:Planeswalker Sage\nLoyalty:4\n"+
+		"S:Mode$ Continuous | IsPresent$ Card.Self+counters_GE7_LOYALTY | AddKeyword$ Flying & Indestructible | AddType$ Creature & Dragon & God | SetPower$ 7 | SetToughness$ 7 | CharacteristicDefining$ True | Description$ With seven or more loyalty counters on CARDNAME, it becomes a 7/7 Dragon God creature.\n"+
+		"Oracle:x")
+	if got := gm.Faces[0].CDAAddTypes(); len(got) != 0 {
+		t.Fatalf("counter-conditioned CDA AddType$ derived intrinsically: %v", got)
+	}
+	om := h.g.AddObject(gm, 1)
+	om.Zone = state.ZBattlefield
+	if hasType(om, "Creature") || hasType(om, "Dragon") || hasType(om, "God") {
+		t.Error("battlefield misread: counter-conditioned CDA AddType$ granted a type its condition does not admit")
+	}
+	om.Zone = state.ZHand
+	if hasType(om, "Dragon") || hasType(om, "God") {
+		t.Error("a counter-conditioned CDA's type leaked into the every-zone intrinsic read")
+	}
+
+	// Placeholder words name no card type (the Chosengearwork's ChosenType,
+	// the battery shapes' AllBasicLandType/AllNonBasicLandType): a filter
+	// resolves them to a real word before it queries a type, so the derived
+	// list collects no literal.
+	markers := []struct{ script, word string }{
+		{"Name:Chosengearwork\nManaCost:3\nTypes:Artifact Construct\nPT:2/2\n" +
+			"S:Mode$ Continuous | CharacteristicDefining$ True | Affected$ Card.Self | AddType$ ChosenType | Description$ CARDNAME is also its chosen kind.\n" +
+			"Oracle:x", "ChosenType"},
+		{"Name:Nexus Battery\nTypes:Land\n" +
+			"S:Mode$ Continuous | CharacteristicDefining$ True | Affected$ Card.Self | AddType$ AllNonBasicLandType | Description$ CARDNAME is every nonbasic land kind.\n" +
+			"Oracle:x", "AllNonBasicLandType"},
+		{"Name:Orbital Planet\nTypes:Land\n" +
+			"S:Mode$ Continuous | CharacteristicDefining$ True | Affected$ Card.Self | AddType$ AllBasicLandType & AllNonBasicLandType | Description$ CARDNAME is every basic and nonbasic land kind.\n" +
+			"Oracle:x", "AllBasicLandType"},
+	}
+	for _, m := range markers {
+		c := mkCard(t, m.script)
+		if got := c.Faces[0].CDAAddTypes(); len(got) != 0 {
+			t.Errorf("%s: placeholder word %q derived as a literal list member: %v", m.script[:20], m.word, got)
+		}
+		o2 := h.g.AddObject(c, 1)
+		o2.Zone = state.ZHand
+		if hasType(o2, m.word) {
+			t.Errorf("placeholder word %q answered a type query as a CDA type", m.word)
+		}
+	}
 }
