@@ -1607,12 +1607,14 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				// (rules setPaymentPlanUnitAlt), whatever its colours
 				// (mana_imprint.go)
 				choice := (pc.manaCol == kop.ColAny || bits.OnesCount8(mask) > 1 || pc.manaChosen || pc.manaIdent) && !pc.manaMulti && !pc.manaFixedChosen && !(pc.manaRefl && debugImprintMutate != 2)
-				if choice && k.gen != nil && k.gen.blgOn && pc.manaCol == kop.ColAny && s.blgMask(k, sl) != 0 {
-					// a Produced$ Any land with a granted basic land type
-					// also has the intrinsic abilities, which are
-					// deterministic: gorge's census lists it with the
-					// fixed-production sources, the Any ability appended to
-					// that unit
+				if choice && k.gen != nil && k.gen.blgOn && s.blgMask(k, sl) != 0 {
+					// a Produced$ Any or Combo land with a granted basic
+					// land type also has the intrinsic abilities, which are
+					// deterministic (gorge's dedup keeps a printed ability
+					// only when its Produced$ is exactly the colour): gorge's
+					// census lists it with the fixed-production sources, the
+					// choice ability appended to that unit (Stirring
+					// Wildwood under Yavimaya, Cradle of Growth)
 					choice = false
 				}
 				// a tap-and-sacrifice source of fixed production (Basal
