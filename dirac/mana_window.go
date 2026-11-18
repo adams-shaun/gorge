@@ -3506,6 +3506,17 @@ func (s *State) manaStep(k *prep) bool {
 					return true
 				}
 			}
+		case s.equipGapWindowPays(k, e, &cost):
+			// a target-gated equip the printed sources cannot pay: the gaps
+			// (Selesnya Signet's fee) fund it through the manual CR 601.2g window
+			ok := s.windowTapHeldOK(k, e.ctrl, &cost)
+			if !s.winPaused() {
+				s.bld().bfl &^= bflMsDone
+				if !ok {
+					s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
+					return true
+				}
+			}
 		default:
 			s.tapFor(k, e.ctrl, &cost, int(e.x), NoObj)
 		}
