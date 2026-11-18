@@ -1,7 +1,7 @@
 package oracle
 
 import (
-	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -12,28 +12,25 @@ const lotusBlossomAnyColourSacManaRepro = "lotus_blossom_any_colour_counter_scal
 // CR 605.1a with CR 106.4: Lotus Blossom's "{T}, Sacrifice this artifact: Add X
 // mana of any one color, where X is the number of petal counters on it" is a
 // counter-scaled sacrifice source, which gorge's prefix search activates to
-// price a cast from the floating mana. The kernel models that shape for one
-// fixed colour only (mana_sacctr.go's sacCtrManaAb), so with one petal and a
-// Mountain it never offers Lotus Blossom or Novellamental ({1}{U}, the Blossom's
-// colour chosen) that gorge offers (tail-74-c000 pair 5, decision 86). The
-// any-colour choice, and gorge's pick of it for the prefix, are no bounded
-// kernel change, so the card is refused by name and the recorded game still
-// shows the option difference with it implicated.
+// price a cast from the floating mana. With one petal and a Mountain gorge
+// offers Lotus Blossom and Novellamental ({1}{U}, the Blossom's colour chosen)
+// at decision 86 (tail-74-c000 pair 5). The kernel once modelled the shape for
+// one fixed colour only and offered neither, so the card was refused; it now
+// prices an any-colour counter-scaled sacrifice source for the colour the cast
+// needs (dirac/mana_sacctr.go, be4db3171d), and the recorded game replays clean
+// on a raw table of its own decks' cards, its whole script served.
 func TestMBCLotusBlossomReprosLockstep(t *testing.T) {
-	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
+	t.Parallel()
+	r, err := ReadRepro(filepath.Join("testdata", "repro", lotusBlossomAnyColourSacManaRepro+".repro.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := range entries {
-		e := &entries[i]
-		if e.Card != "Lotus Blossom" {
-			continue
-		}
-		if e.Repro.Pool != "custom" || e.Repro.File != lotusBlossomAnyColourSacManaRepro {
-			t.Fatalf("Lotus Blossom's entry replays %s/%s, want custom/%s", e.Repro.Pool, e.Repro.File, lotusBlossomAnyColourSacManaRepro)
-		}
-		checkRefusedRepro(t, e)
-		return
+	pol := &ScriptPolicy{Actions: r.Actions}
+	res := replayDecodedScript(t, synthReg(t), cardset.Raw(printedDelveSet(t, r.Cards)), r, pol)
+	if pol.next != len(r.Actions) || pol.Skipped != 0 {
+		t.Fatalf("recording served %d of %d actions (%d skipped): its game path has drifted", pol.next, len(r.Actions), pol.Skipped)
 	}
-	t.Fatal("Lotus Blossom has no dirac/support/refused entry: its any-colour counter-scaled sacrifice mana is unmodelled")
+	if !res.Clean() {
+		t.Fatalf("Lotus Blossom's recorded game no longer replays clean: div %+v, stall %q", res.Div, res.Stall)
+	}
 }
