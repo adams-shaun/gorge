@@ -118,6 +118,42 @@ func (s *State) xDelveCredit(k *prep, e *stackEntry) int {
 	return int(s.pl[SeatIx(e.ctrl)].graveN)
 }
 
+// xDelveWithinMx reports whether the announced X = x is payable once its delve
+// credit is spent through a filter's fee paid in the window (CR 605.3b), which
+// the plain pool read (xReducedPays) cannot see: gorge's xAsk prices every X
+// through castWindowPays at the credited generic (CR 702.66a). It prices the
+// credited cost at X = x itself, in generic mana, through the same filter walk
+// that bounds the ask (filtMaxX): comparing x with that walk's largest
+// uncredited X would mix units of {X} with generic (a cost with two {X}) and
+// read its -1 "unpayable at X = 0" as a count.
+func (s *State) xDelveWithinMx(k *prep, e *stackEntry, x int, av *avail, anyColor bool) bool {
+	if k.gen == nil || !k.gen.anyFilt || s.xDelveCredit(k, e) == 0 {
+		return false
+	}
+	c := s.xHypoCost(k, x).AtX(x)
+	c = s.delveOfferCredit(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl), c)
+	return s.filtMaxX(k, e.ctrl, &c, av, anyColor) >= 0 // c has no {X} left: 0 pays it, -1 does not
+}
+
+// delveTargetAbort reports whether the delve cast being built can no longer be
+// paid: the cost less the announced delve picks is unpayable from the pool and
+// the CR 601.2g window. The ask lets the caster exile fewer cards than the
+// shortfall (gorge delveAsk, Min 0), and gorge's affordableTargetCandidates
+// then withholds every candidate of the short cast, so a required target
+// reverses it ("cast aborted: no legal target", CR 733.1) with no further
+// ask; the convoke arm (convokeTargetAbort) reads the same census.
+func (s *State) delveTargetAbort(k *prep) bool {
+	e := &s.bld().e
+	if k.gen == nil || !k.gen.anyDelve || e.kind != seSpell || e.flags&sfFree != 0 || s.bld().bfl&bflLowered != 0 ||
+		!s.hasCastDelve(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl)) {
+		return false
+	}
+	// a harmonize or convoke pick pays generic too and its creature is withheld
+	// from the window, as convokeTargetAbort prices them (no-ops without picks)
+	cost := s.convokeApplyPicks(k, xFolded(s.buildCost(k), int(e.x)))
+	return s.targetWindowShort(k, e, &cost, true)
+}
+
 // delvePickCount counts the announced delve picks.
 func (s *State) delvePickCount() int {
 	n := 0
