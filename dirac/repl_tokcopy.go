@@ -37,10 +37,22 @@ func (s *State) tokCopyApplies(k *prep, b Slot, a *kop.Ability, p uint8) (host S
 	if h == NoSlot || !s.occ.has(h) {
 		return NoSlot, false
 	}
-	if a.Repl.Cond != 0 && !s.replCondHolds(k, b, p, a.Repl.Cond) {
+	if !s.tokCopyGate(k, b, a, p) {
 		return NoSlot, false
 	}
 	return h, true
+}
+
+// tokCopyGate is a ReplCopyFirstToken's gate alone (its Repl.Cond over the
+// per-add entry ledger; the no-tokens-yet-this-turn CheckSVar$): the check a
+// collection and a per-token pre-scan read. It is kept apart from the live
+// host so a source whose bearer left mid-resolution (the state-based pass
+// has not run, CR 704.3; noteLastBear parked the bearer, CR 608.2h) still
+// counts as a competition candidate while its election is never posed: gorge
+// matched the replacement at the event and its Card.EnchantedBy election scan
+// finds no candidate (poseChosenTokenReplacement's len(cands) == 0 skip).
+func (s *State) tokCopyGate(k *prep, b Slot, a *kop.Ability, p uint8) bool {
+	return a.Repl.Cond == 0 || s.replCondHolds(k, b, p, a.Repl.Cond)
 }
 
 // tokCopyOp is replTokensOp where a copy-instead replacement is the creation's
