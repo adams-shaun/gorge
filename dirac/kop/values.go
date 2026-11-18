@@ -639,3 +639,28 @@ const ExEnergyOf ExprKind = 63
 // Count$TotalDamageReceivedThisTurn). A source with no record reads 0.
 // Explicit ordinal, the iota tail stays untouched. Kernel value_dmgamount.go.
 const ExDmgAmountReceived ExprKind = 219
+
+// exileKwColours is the protection-colour order of ExStaticExileKw's N: N 32+i
+// reads the printed protection from exileKwColours[i]; the 32 below it are
+// KwMask bit indexes.
+var exileKwColours = [...]ColorMask{ColW, ColU, ColB, ColR, ColG}
+
+// ExileKwProtN is ExStaticExileKw's N for protection from the colour c, or -1
+// for a mask that is not exactly one of W, U, B, R, G.
+func ExileKwProtN(c ColorMask) int {
+	for i, x := range exileKwColours {
+		if x == c {
+			return 32 + i
+		}
+	}
+	return -1
+}
+
+// ExileKwProtColour is the colour an ExStaticExileKw N of 32 and up names.
+func ExileKwProtColour(n int) (ColorMask, bool) {
+	i := n - 32
+	if i < 0 || i >= len(exileKwColours) {
+		return 0, false
+	}
+	return exileKwColours[i], true
+}

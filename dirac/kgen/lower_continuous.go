@@ -32,6 +32,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		aff = "Card.Self"
 	}
+	if _, ok := sp.m["SharedKeywordsZone"]; ok {
+		return lc.sharedKeywordStatics(sp, st) // lower_sharedkw.go
+	}
 	if kw := sp.str("AddKeyword"); kw == hexproofOwnColorsKW {
 		// Tam, Mindful First-Year's "each other creature you control has
 		// hexproof from each of its colors": the exact Affected$ shape only,
