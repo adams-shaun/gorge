@@ -223,6 +223,9 @@ func (s *State) rbSettle(p uint8, tk *[maxRB][kop.NumManaKinds]uint8, ord, pre *
 			}
 			d := min(spent, n)
 			spent -= d
+			if d != 0 {
+				s.noCounterSpent(p, s.rb[SeatIx(p)][i].kind)
+			}
 			if left := n - d; left != 0 {
 				pl.pool[c] -= left
 				s.rb[SeatIx(p)][i].n[c] += left

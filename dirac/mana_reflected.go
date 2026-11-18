@@ -9,11 +9,14 @@ import (
 // a reflected mana ability (kop.AfManaReflect; AB$ ManaReflected:
 // ReflectProperty$ Is over the controller's own permanents, Plaza of
 // Heroes' "{T}: Add one mana of any color among legendary permanents you
-// control", or ReflectProperty$ Produce over the opponents', every Valid$
+// control", or ReflectProperty$ Produce over the opponents' (every Valid$
 // alternative OppCtrl: Exotic Orchard's "{T}: Add one mana of any color
-// that a land an opponent controls could produce"). kgen admits it only as
-// the third of {T}: Add {C}; {T}: Add one mana of any color (restricted,
-// the Courtyard gap genPrep.anyR); {T}: reflected (dirac/kgen
+// that a land an opponent controls could produce") or the controller's own
+// (every alternative YouCtrl: Gond Gate, Star Compass, and Reflecting Pool's
+// ColorOrType$ Type, whose {C} the kernel's view drops as gorge's census
+// does). kgen admits it alone, as {T}: Add {C}; {T}: reflected, or as the
+// third of {T}: Add {C}; {T}: Add one mana of any color (restricted, the
+// Courtyard gap genPrep.anyR); {T}: reflected (dirac/kgen
 // lower_reflectedmana.go).
 //
 // gorge's planner census (rules paymentPlanManaUnitsOnlyCompute) lists the
@@ -102,8 +105,9 @@ func (s *State) potentialReflNone(k *prep, sl Slot, done *[MaxPerm]uint16) {
 // reflColours is the colours the reflected ability of the source at sl
 // reads: those of its controller's permanents matching ManaAmong (gorge
 // effects.ManaReflectedObjects with ReflectProperty$ Is), or, with
-// M ManaProduce, what the OPPONENTS' matching permanents' mana abilities
-// could produce (ReflectProperty$ Produce: Exotic Orchard, Fellwar Stone;
+// M ManaProduce, what the matching permanents' mana abilities could
+// produce, the opponents' or its own by the filter's control property
+// (ReflectProperty$ Produce: Exotic Orchard, Fellwar Stone, Star Compass;
 // gorge effects.producibleSymbols over Face.ManaAbilities), {C} dropped.
 func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 	cd := &k.t.Cards[c]
@@ -170,12 +174,13 @@ func (s *State) identityColours(k *prep, p uint8) kop.ColorMask {
 // with ReflectProperty$ Produce). The walk is every other seat's permanents
 // in turn order after the source's controller (gorge AliveFrom(0) x zone
 // order, MatchSpec): a union, so the order never reaches a view, an option
-// list or an event. The filter carries CtrlOpp, so the source's controller's
-// own permanents never match.
+// list or an event. Every seat's permanents are walked and the filter's own
+// control property (CtrlOpp: Exotic Orchard; CtrlYou: Gond Gate, Star
+// Compass, "a Gate you control could produce") keeps the other side out.
 func (s *State) produceColours(k *prep, sl Slot, f kop.FilterID) kop.ColorMask {
 	p := s.perms[sl].ctrl
 	var m kop.ColorMask
-	for b := s.oppsM(p); b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)].or(s.oppsM(p)); b.any(); b = b.rest() {
 		o := b.first()
 		if s.matchPerm(k, f, o, p, sl) {
 			m |= k.t.Cards[s.cardAt(o)].ProduceCol

@@ -15,9 +15,7 @@ import (
 // Sylvok Explorer) lowers with no refusal, its mana ability an
 // AfManaReflect one with ManaProduce and a ManaAmong filter, and the pool
 // cards' ProduceCol is the printed mana abilities' produced colours ({C}
-// dropped). A mixed YouCtrl list — gorge's planner admits it
-// (pay/planreflected.go reflectsStableObjects), the kernel's one walk is the
-// opponents' alone — is refused with a true reason.
+// dropped).
 func TestManaReflectedProduceLowers(t *testing.T) {
 	cardsDir := ratchetCards(t)
 	list := filepath.Join(t.TempDir(), "cards.txt")

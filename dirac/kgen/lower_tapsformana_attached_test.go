@@ -17,7 +17,8 @@ import (
 // own reason: an any-colour body asks a colour choice at tap time (Fertile
 // Ground, Verdant Haven, Market Festival, Dawn's Reflection, Buried in the
 // Garden, Blighted Burgeoning, Trace of Abundance, Glittering Frost), and a
-// chosen-colour body is a source gorge's planner defers (Utopia Sprawl).
+// chosen-colour body is a source gorge's planner defers, lowered gated (Utopia Sprawl:
+// a StTapChosen static beside a class-only Taps line; TestLowerManaRiders).
 // Gauntlet of Power's chosen-colour tap gate is a different shape and still
 // refuses generically.
 func TestLowerTapsformanaAttached(t *testing.T) {
