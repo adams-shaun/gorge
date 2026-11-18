@@ -1826,9 +1826,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 	}
 	g.tyPost = g.anyBestow || g.anyImpending || g.anyReconfigure
-	prepEquipAnim(t, g) // static_equipanimated.go
-	prepTrigAtk(t, g)   // trig_attackers.go
-	prepBatchPool(t, g) // trig_batchmembers.go
+	prepEquipAnim(t, g)     // static_equipanimated.go
+	prepGainsOfAttach(t, p) // static_unattachcreature.go
+	prepTrigAtk(t, g)       // trig_attackers.go
+	prepBatchPool(t, g)     // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
 	prepAtkTax(t, g)       // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
 	prepCantAtkScope(t, g) // combat_cantattack.go: the CantAttack Target$ scope bits

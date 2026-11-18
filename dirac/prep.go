@@ -99,14 +99,15 @@ type pcard struct {
 }
 
 type prep struct {
-	nsub     uint8 // len(t.Subtypes): the first outside-type code (chars_gen.go outsideSub)
-	t        *kop.Table
-	nameRep  []CardID // printed-name representative per card (nameRepOf); nil when every printed name is unique
-	cards    []pcard
-	gen      *genPrep // generated-table extension (gen.go); nil for hand-written tables
-	gyCont   bool     // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
-	cold     coldLayout
-	anyNoDmg bool // a card or emblem has a StatNoCombatDamage static (combat.go's combatAmount); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	nsub          uint8 // len(t.Subtypes): the first outside-type code (chars_gen.go outsideSub)
+	t             *kop.Table
+	nameRep       []CardID // printed-name representative per card (nameRepOf); nil when every printed name is unique
+	cards         []pcard
+	gen           *genPrep // generated-table extension (gen.go); nil for hand-written tables
+	gyCont        bool     // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
+	cold          coldLayout
+	gainsOfAttach bool // a GainsAbilitiesOf$ static and an Equip ability: a non-attachment can gain Equip and attach itself (CR 704.5p sba arm; static_unattachcreature.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	anyNoDmg      bool // a card or emblem has a StatNoCombatDamage static (combat.go's combatAmount); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	// dynZero: some card has a plain {T} dynamic-amount mana ability
 	// (mana_dyncensus.go); on prep, not genPrep, so the pinned fixed-State
 	// inventory is unchanged
