@@ -37,18 +37,6 @@ const (
 // (the canonical form follows: FeatMayZeroAltCast).
 func FeatIsZeroAltTgt(t uint8) bool { return t == zeroAltTgt || t == zeroAltFreeTgt }
 
-// noteZeroAltCast reads the {0}-alternative marker off a cast action about
-// to begin: it records which one for castFlagsGen and returns the target
-// byte beginCast sees (0, the marker is no target).
-func (s *State) noteZeroAltCast(k *prep, a Action) uint8 {
-	t := uint8(a.Target())
-	if a.Mode() == castMayPlay|castFree && FeatIsZeroAltTgt(t) && k.gen != nil && k.gen.anyZeroAlt {
-		s.g.zeroAlt = t
-		return 0
-	}
-	return t
-}
-
 // zeroAltStatic reports whether MayPlayFrom static st is a {0} alternative:
 // FreeOnly on a zone other than Weftwalking's hand spelling of "All".
 func zeroAltStatic(st *kop.Static) bool {

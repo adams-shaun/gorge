@@ -140,7 +140,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	typed := s.cfg&(cfgGorgeLowering|cfgGorgeAutopay) != 0 && mode&castMayPlay != 0 && mode&castFree == 0 && !s.FeatMayPlayUntyped(p, o)
 	if k.gen != nil {
 		s.bld().fbGrants = s.fbGrants(k, o)
-		s.castFlagsGen(k, o, mode)
+		s.castFlagsGenTgt(k, o, mode, tgt)
 		if k.gen.anyMayRaise && s.mayRaiseLifeOwed(k) {
 			typed = true // a life raise is no cost the planner prices ("cost:life"): lowered like a typed permission (cost_mayplayraise.go)
 		}
