@@ -850,15 +850,34 @@ func (s *State) filtDeadEnd(k *prep, p uint8, a Action, fs *filtSearch) bool {
 		// search's path does (tapXPlay's trailing tapXNext, grantApply's).
 		var settled Decision
 		if !t.tapXNext(p, &settled) {
-			return true // the replay cannot settle: the play is not offered
+			// the replay cannot settle: the play is not offered. A stall the
+			// replay latched is the reason (its next stepGen ends the game):
+			// declare it, not a dropped offer (the caller's drop is final,
+			// filtScript's apply=false callers)
+			if st := t.g.stalled; st != 0 {
+				s.capFull(st)
+			}
+			return true
 		}
 	}
 	var d Decision
 	if !restr {
 		t.restrOptions(k, &d, p)
-		return !hasOption(&d, a) // priced by mana alone, its own source tapped by the script
+		if !hasOption(&d, a) { // priced by mana alone, its own source tapped by the script
+			if st := t.g.stalled; st != 0 {
+				s.capFull(st) // (as above: the replay's stall, not a plain refusal)
+			}
+			return true
+		}
+		return false
 	}
-	return !t.scriptCompletes(k, p, a)
+	if !t.scriptCompletes(k, p, a) {
+		if st := t.g.stalled; st != 0 {
+			s.capFull(st) // (as above: the replay's stall, not a plain refusal)
+		}
+		return true
+	}
+	return false
 }
 
 // slotNoneUnkicked: target slot t takes no object unless the spell was
