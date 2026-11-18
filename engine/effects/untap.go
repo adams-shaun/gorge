@@ -182,7 +182,15 @@ func effUntap(h Host, c *Ctx, sa *cards.SA) {
 		// corpus Mode$ Untaps trigger is reachable through an entry replacement
 		// (the mode itself is unregistered here), so the event fires nothing.
 		entering := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKETB)), "True")
-		for _, t := range Defined(h, c, sa) {
+		targets := Defined(h, c, sa)
+		if triggeredCardFamilyDefined(DefinedRefOf(sa)) {
+			// An untap of the object a trigger fired for (Captain America,
+			// Living Legend's TriggeredCardLKICopy) never reaches the new
+			// object it became if it changed zones before the trigger
+			// resolved (CR 400.7), so Thor's return-tapped entry stays tapped.
+			targets = dropTriggerRememberedMoved(c, targets)
+		}
+		for _, t := range targets {
 			if t.IsPlayer {
 				continue
 			}
