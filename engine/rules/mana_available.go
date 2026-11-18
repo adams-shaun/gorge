@@ -203,7 +203,7 @@ func (e *Engine) windowManaUnitsWith(p state.PlayerID, only []state.ObjID, pre [
 			} else if total <= 0 {
 				continue
 			}
-			flat = append(flat, windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Any: any})
+			flat = append(flat, windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Any: any, FreeTap: mf.Tap})
 		}
 		if len(flat) == start {
 			continue
