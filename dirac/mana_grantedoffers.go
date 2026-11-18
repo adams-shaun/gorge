@@ -1582,7 +1582,12 @@ func (g *grantSrch) visit(t *State) bool {
 			continue
 		}
 		g.funded++
-		ok := g.branch(t, i, sl, -1, mask, n, mask&(mask-1) != 0)
+		var ok bool
+		if painFunds(g.k, pc) {
+			ok = g.fundPainBranch(t, i, sl, pc) // a painland asks its painful colours too (mana_filtpain.go)
+		} else {
+			ok = g.branch(t, i, sl, -1, mask, n, mask&(mask-1) != 0)
+		}
 		g.funded--
 		if ok {
 			return true
