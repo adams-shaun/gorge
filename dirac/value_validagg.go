@@ -77,7 +77,7 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 			if !s.faceDown(k, sl) {
 				types |= k.t.Cards[s.cardAt(sl)].Types
 				if k.gen.cpxTy && s.fxM.has(sl) {
-					types |= s.copyExcTypes(k, sl)
+					types = s.copyExcTy(k, sl, types)
 				}
 			}
 			continue
