@@ -1015,11 +1015,12 @@ type grantStep struct {
 	sl  Slot
 	// kind: stepAct (a tap), or the pass that lets the trigger a tap caused resolve
 	// and the answer act gives to the ask that trigger poses
-	kind uint8
-	act  Action
-	cand Slot // stepTapX: the permanent its cost taps; stepSacX: the one it sacrifices
-	pain bool // the source's painful printed ability (mana_grantpain.go)
-	sac  bool // a granted sacrifice-only ability: the source was sacrificed (mana_grantcost.go)
+	kind  uint8
+	act   Action
+	cand  Slot // stepTapX: the permanent its cost taps; stepSacX: the one it sacrifices
+	cand2 Slot // stepTapX: the second permanent of a two-permanent cost (NoSlot: none)
+	pain  bool // the source's painful printed ability (mana_grantpain.go)
+	sac   bool // a granted sacrifice-only ability: the source was sacrificed (mana_grantcost.go)
 	// restr: a restricted grant's mana the play may spend, floated into the
 	// pool; a filter's fee spends it only where the restriction admits the
 	// filter's activation (filtBranch)
@@ -2041,7 +2042,7 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		sl := st.sl
 		switch st.gi {
 		case stepTapX:
-			s.tapXDo(k, g.p, tapXStep{sl: sl, cand: st.cand, cand2: NoSlot, col: st.col, kind: tapXAct})
+			s.tapXDo(k, g.p, tapXStep{sl: sl, cand: st.cand, cand2: st.cand2, col: st.col, kind: tapXAct})
 			continue
 		case stepSacX:
 			// the sacrifice and its fixed production (mana_grantsacx.go); the
