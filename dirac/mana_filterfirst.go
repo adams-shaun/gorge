@@ -105,12 +105,11 @@ func (s *State) filtUsable(k *prep, sl Slot) bool {
 
 // filtFirstMask is scriptFilt on a table with a first-only filter: p's
 // usable filters, a first-only one only while other potential mana covers
-// its fee.
+// its fee (filtFirstAdmit).
 //
 //go:noinline
 func (s *State) filtFirstMask(k *prep, p uint8) slotMask {
-	var m slotMask
-	other := -1
+	var m, first slotMask
 	var pot avail
 	havePot := false
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
@@ -125,22 +124,45 @@ func (s *State) filtFirstMask(k *prep, p uint8) slotMask {
 				continue
 			}
 		} else if s.filtFirstOnly(k, sl) {
-			if other < 0 {
-				other = s.filtOtherMana(k, p)
-			}
-			if other+s.filtFeeRestrSrc(k, p, sl) < s.filtFee(k, sl) {
-				continue
-			}
+			first = first.with(sl)
+			continue
 		}
 		m = m.with(sl)
+	}
+	if first.any() {
+		m = m.or(s.filtFirstAdmit(k, p, first))
 	}
 	return m
 }
 
+// filtFirstAdmit is gorge's PotentialMana fixpoint over the first-only
+// filters in pend: one is admitted once the other potential mana covers its
+// fee, and an admitted one's whole production joins that pool for the rest
+// (an upper bound: no fee is taken out, and a source never funds its own
+// fee, CR 605.3a). Viridescent Bog's {B}{G}, its {1} paid by a Mountain,
+// covers Magus of the Coffers' {2}, so both are census gaps and the search
+// can chain them (CR 605.3b).
+func (s *State) filtFirstAdmit(k *prep, p uint8, pend slotMask) slotMask {
+	var in slotMask
+	pool := s.filtOtherMana(k, p)
+	for grew := true; grew; {
+		grew = false
+		for b := pend; b.any(); b = b.rest() {
+			sl := b.first()
+			if pool+s.filtFeeRestrSrc(k, p, sl) < s.filtFee(k, sl) {
+				continue
+			}
+			in, pend = in.with(sl), pend.without(sl)
+			pool += s.filtUnits(k, sl)
+			grew = true
+		}
+	}
+	return in
+}
+
 // filtOtherMana bounds the potential mana a first-only filter's fee may
-// draw on: the pool and every source the plain walk taps (each other
-// first-only filter is admitted to gorge's fixpoint only once these pay its
-// own fee, so it adds nothing a fee of one could need), plus the
+// draw on before any other first-only filter is admitted (filtFirstAdmit
+// adds theirs): the pool and every source the plain walk taps, plus the
 // counter-cost sources.
 func (s *State) filtOtherMana(k *prep, p uint8) int {
 	pl := &s.pl[SeatIx(p)]
