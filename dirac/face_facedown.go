@@ -358,7 +358,11 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 		// turnUpListed has already checked the keyword's life, so this
 		// branch is reached only by an action whose mana the sources pay
 		c0 := cost.AtX(0)
-		s.tapForTurnUp(k, p, &c0, sp, o)
+		if s.turnUpRiderOnly(k, p, &c0, sp, sl) {
+			s.tapTurnUpRiders(k, p, &c0) // face_turnfaceup.go: a depletion land's activation
+		} else {
+			s.tapForTurnUp(k, p, &c0, sp, o)
+		}
 		if !s.turnUpOffered(k, p, &cost, sp, sl, kw) {
 			return
 		}
