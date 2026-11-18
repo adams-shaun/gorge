@@ -3,23 +3,27 @@ An-Havva Inn
 Angel's Mercy
 Angelic Wall
 Arm-Mounted Anchor
+Aura Mutation
 Balthor the Stout
 Bar the Door
 Bast, Panther Goddess
 Blockbuster
 Blood Clock
+Bloodied Ghost
 Brambleweft Behemoth
 Brawn
 Brazen Borrower
 Brindle Boar
 Cartouche of Zeal
 Caustic Caterpillar
+Caustic Tar
 Cave of the Frost Dragon
 Child of Thorns
 Crystal Ball
 Culmination of Studies
 Cult Guildmage
 Dark Salvation
+Death-Priest of Myrkul
 Dwarven Patrol
 Electric Revelation
 First Volley
@@ -28,20 +32,31 @@ Forest
 Ghalma's Warden
 Goblin Freerunner
 Goblin Rabblemaster
+Grazing Kelpie
 Grim Guardian
 Guise of Fire
+Harvest Gwyllion
 Hired Poisoner
 Hoard Hauler
 Imperial Recovery Unit
+Indulgent Aristocrat
+Infest
 Island
+Joraga Auxiliary
+Lidless Gaze
 Lightfoot Rogue
 Loran's Escape
 Malachite Golem
+Mantle of the Wolf
+Marsh Lurker
 Merciless Javelineer
+Miara, Thorn of the Glade
+Moriok Scavenger
 Mountain
 Nefashu
 Night Market Guard
 Nimana Sell-Sword
+Nissa's Chosen
 Nurturer Initiate
 Ogre Jailbreaker
 Painful Memories
@@ -55,6 +70,8 @@ Salvage Slasher
 Shadow Rift
 Sibsig Icebreakers
 Siegecraft
+Silver Myr
+Snooping Newsie
 Spike-Tailed Ceratops
 Spikeshot Goblin
 Swamp
@@ -72,6 +89,7 @@ Undercellar Myconid
 Unlikely Aid
 Veteran's Powerblade
 Vigilant Baloth
+Viral Drake
 Warpath Ghoul
 Witness the End
 Xenk, Paladin Unbroken

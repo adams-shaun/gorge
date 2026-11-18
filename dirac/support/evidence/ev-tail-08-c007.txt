@@ -1,3 +1,5 @@
+Acceptable Losses
+Aether Herder
 Ancestral Recall
 Aven Gagglemaster
 Awaken the Woods
@@ -5,34 +7,52 @@ Barrenton Cragtreads
 Barrin's Codex
 Ben-Ben, Akki Hermit
 Blind-Spot Giant
+Bronze Sword
+Bronze Walrus
+Courier Griffin
+Crystal Golem
 Darien, King of Kjeldor
+Devouring Deep
+Diamond Knight
+Disposal Mummy
 Drudge Reavers
+Dryad of the Ilysian Grove
 Duergar Mine-Captain
 Energy Arc
+Engulf the Shore
 Feast or Famine
 Fetid Gargantua
 Final Death
+Flare
 Forest
+Foundry Inspector
 Ghost-Lit Raider
 Go-Shintai of Shared Purpose
+Goblin Heelcutter
 Goblin Sky Raider
 Grid Monitor
+Honor-Worn Shaku
 Horizon Explorer
 Hunter's Edge
 Imperial Oath
 Ingenious Smith
 Island
+Kjeldoran Frostbeast
 Krazy Kow
 Kronch Wrangler
 Last Kiss
+Lat-Nam Adept
 Lone Missionary
+Loxodon Mystic
 Malakir Bloodwitch
 Military Discipline
+Militia Bugler
 Minions' Murmurs
 Mogg Maniac
 Mother Kangaroo
 Mountain
 Mystic Restraints
+Necropede
 Network Terminal
 Night Terrors
 Paradox Engine
@@ -47,32 +67,42 @@ Righteous Valkyrie
 Scent of Nightshade
 Screeching Drake
 Selesnya Charm
+Selfless Savior
 Sell-Sword Brute
 Serra's Guardian
 Serum Tank
+Shared Triumph
 Shivan Hellkite
 Sinstriker's Will
 Siphon Insight
+Six-Sided Die
 Slimy Piper
 Sorcerer's Strongbox
 Soulblade Djinn
 Spectral Flight
 Spore Crawler
+Sprinting Warbrute
+Square Up
 Stalwart Aven
 Stand
+Static Net
 Strafe
 Sustainer of the Realm
 Swamp
 Sylvia Brightspear
 Talruum Champion
 Tangle Asp
+Tempest of Light
 Thalia's Lieutenant
 Thopter Mechanic
 Thraben Valiant
 Thunderscape Master
 Tor Giant
+Troubled Healer
 Updraft
+Vexilus Praetor
 Victual Sliver
 Vulpine Goliath
 War Falcon
+Warlord's Elite
 Water Elemental

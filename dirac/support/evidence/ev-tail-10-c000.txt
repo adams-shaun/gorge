@@ -54,6 +54,7 @@ Blinking Spirit
 Blinkmoth Well
 Blood Curdle
 Bloodfire Colossus
+Bloodfray Giant
 Blossoming Wreath
 Bog Elemental
 Bog Imp
@@ -68,6 +69,7 @@ Cacophodon
 Call of the Conclave
 Canopy Claws
 Cao Ren, Wei Commander
+Carnival Hellsteed
 Carrier Thrall
 Carrion Feeder
 Case of the Shifting Visage
@@ -130,6 +132,7 @@ Elvish Lookout
 Ember Shot
 Enervate
 Enlistment Officer
+Entrancing Lyre
 Esper Sentinel
 Exalted Flamer of Tzeentch
 Excavation Explosion
@@ -247,6 +250,7 @@ Magmaquake
 Mahamoti Djinn
 Maja, Bretagard Protector
 Majestic Genesis
+Mana Vortex
 Mangara's Blessing
 Marang River Skeleton
 Marsh Flitter
@@ -376,6 +380,7 @@ Shimmering Grotto
 Shinewend
 Shivan Oasis
 Sigil of the New Dawn
+Silumgar Assassin
 Silverback Ape
 Skarrg, the Rage Pits
 Skeletal Changeling
@@ -436,6 +441,7 @@ Turn Aside
 Twigwalker
 Tymaret Calls the Dead
 Tyrranax Rex
+Unblinking Bleb
 Undercity Scavenger
 Undercity Scrounger
 Underdark Basilisk

@@ -1,6 +1,7 @@
 A-Mishra, Excavation Prodigy
 A-Stimulus Package
 Addle
+Adorable Kitten
 Aetherflux Car
 Alchemist's Greeting
 Anchor to the Aether
@@ -11,10 +12,12 @@ Arachnoid Adaptation
 Arashin Foremost
 Arcade Gannon
 Armament Master
+Arrogant Outlaw
 Banefire
 Banishment Decree
 Battlewise Aven
 Beast Attack
+Big Boa Constrictor
 Blink of an Eye
 Blood Tithe
 Bloodmad Vampire
@@ -42,13 +45,16 @@ Desert Drake
 Disruptive Student
 Divine Arrow
 Dockside Extortionist
+Elite Guardmage
 Expanding Ooze
 Explosive Vegetation
 Farewell
 Fathom Fleet Boarder
+Finishing Blow
 Flailing Manticore
 For the Ancestors
 Forest
+Foundry Screecher
 Fresh-Faced Recruit
 Fyndhorn Elves
 Gatecreeper Vine
@@ -69,6 +75,7 @@ Herald of the Dreadhorde
 Hexplate Golem
 Hope-Ender Coatl
 Hover Barrier
+In the Eye of Chaos
 Indatha Crystal
 Infested Roothold
 Infiltrator's Magemark
@@ -79,6 +86,7 @@ Island
 Jasmine Seer
 Jor Kadeen, the Prevailer
 Keen Sense
+Keldon Champion
 Kheru Bloodsucker
 Kor Hookmaster
 Kraul Stinger
@@ -86,15 +94,19 @@ Krosan Adaptation
 Last Rites
 Leonin Warleader
 Lifecrafter's Gift
+Lightning Runner
+Lorehold Command
 Markov Waltzer
 Meatsqueak, Hoard Lord
 Memorial to War
 Merfolk Pupil
+Mind Funeral
 Mind's Eye
 Misdirection
 Mishra's Helix
 Mobilized District
 Mondrak, Glory Dominus
+Moorish Cavalry
 Mothrider Patrol
 Mountain
 Mowu, Loyal Companion
@@ -105,8 +117,10 @@ O'aka, Traveling Merchant
 Olivia's Bloodsworn
 Olivia's Dragoon
 On Wings of Gold
+Pheres-Band Brawler
 Pierce the Sky
 Plains
+Poison-Blade Mentor
 Pore Over the Pages
 Poultrygeist
 Power Conduit
@@ -114,6 +128,8 @@ Pox
 Prismatic Lens
 Pygmy Allosaurus
 Rabid Wombat
+Reclusive Wight
+Red Scarab
 Reduce
 Repel the Darkness
 Repentance
@@ -125,23 +141,31 @@ Sea Hag
 Searing Flesh
 Sedge Scorpion
 Seed of Hope
+Servant of Nefarox
 Shepherd of Rot
 Shrine Steward
 Silent Dart
 Silent Departure
 Simplify
+Snow Devil
 Soldier of the Grey Host
 Sram's Expertise
 Stampeding Wildebeests
 Sunhome, Fortress of the Legion
 Swamp
+Tarpan
 Temur Battle Rage
+Terminus
 The Wasp, Janet Van Dyne
+Thoughtrender Lamia
+Treetop Sentinel
 Uktabi Drake
 Vampire's Kiss
 Vandalblast
 Venarian Glimmer
 Vendetta
 Vexing Sphinx
+Viashino Racketeer
+Weed-Pruner Poplar
 Yasova Dragonclaw
 Zombie Apocalypse

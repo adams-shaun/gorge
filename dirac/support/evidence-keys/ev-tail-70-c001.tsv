@@ -1,0 +1,54 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Abominable Treefolk	fdfca5e07ad72560	12	1/1		1/1	
+Aether Tradewinds	f9156d87b3fe64da	8	0/0		1/2	ix:resp
+Air-Cult Elemental	21774e1c57d67c14	9	1/1		1/1	
+Ancient Hydra	1d6b1f03245622a0	6	2/2		1/1	
+Angrath's Marauders	63e5075f1f3e95e4	6	0/0		0/0	
+Artful Takedown	021ad6348694eb45	10	0/0		1/2	ix:resp
+Augury Raven	d5abcf28315b7c03	10	0/0		1/2	cast/alt:foretold
+Bamboozle	2275a5f4de5e43d2	19	0/0		2/2	
+Blighted Cataract	3d53b345cfd1309b	29	2/2		0/1	ix:resp
+Blood-Chin Rager	6311343e14b75be9	29	1/1		0/1	ix:resp
+Bribery	9fa5348714e62653	7	0/0		1/2	ix:resp
+Champion's Drake	4800a9aacd05f66d	28	0/0		0/0	
+Chandra, Flamecaller	30d74431c617967b	5	3/3		0/1	ix:resp
+Chimney Rabble	3a27fbda0e8f087e	10	1/1		0/1	ix:resp
+Cloak of Confusion	90f656d0d6810a74	4	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Cobbled Lancer	e19902c93301bf53	6	1/1		2/2	
+Contradict	a976bf24425dde79	3	0/0		1/2	ix:resp
+Crown of Flames	a2bacbb0a3e03b45	15	2/2		2/2	
+Donatello, Rad Scientist	ab693b153153e835	11	1/1		0/1	ix:resp
+Essence Backlash	6f29a96d836a278a	15	0/0		2/2	
+Etherium Sculptor	14708d5b63458db7	9	0/0		0/0	
+Ethersworn Shieldmage	da654298061a36fe	20	1/1		1/1	
+Faceless Devourer	d8952091a58701da	7	2/2		0/1	ix:resp
+Fall of the Thran	6c1bc81d0bfa5651	3	0/0		0/0	
+Flamewright	cf3688f6cc1d329d	4	2/2		0/1	ix:resp
+Geistlight Snare	64f8706efe69c4e1	16	0/0		1/2	ix:resp
+Goblin Grenade	23dd094828e1df25	3	0/0		1/2	ix:resp
+Golem Foundry	31acbe414834cc11	24	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Hoof Skulkin	2e8e524a2b9840f7	10	1/1		0/1	ix:resp
+Jace's Scrutiny	56f0c774919c038a	7	0/0		1/2	ix:resp
+Jwar Isle Refuge	caeb684ee0ff9e41	23	2/2		0/1	ix:resp
+Last March of the Ents	089246410bd9a4f5	4	0/0		2/2	
+Madblind Mountain	9916485f3e3ee686	32	2/2		1/1	
+Masterwork of Ingenuity	0f4a39432fa69d5c	5	0/0		0/0	
+Mesmeric Trance	82178162a8edaf99	7	2/2		1/1	
+Moth Herb Elixir	7c29ae5d150ab664	20	2/2		1/1	
+Nettlecyst	2723501372842b79	4	2/2		0/1	ix:resp
+Oath of Scholars	0411bd3d8be2c180	7	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Orcish Captain	57a3ce1af9e986be	12	1/1		0/1	ix:resp
+Price of Glory	f630452a9b3085db	7	1/1		0/1	ix:resp
+Radagast, Wizard of Wilds	60e19d6ec924f2ff	10	2/2		0/1	ix:resp
+Rush of Blood	a682aa256712cbfb	3	0/0		1/2	ix:resp
+Sire of Stagnation	5cb0ecc72ee62c6d	4	1/1		0/1	ix:resp
+Sisay's Ingenuity	b019d621a9cb9c36	6	1/1		1/2	ix:resp
+Somnophore	35f2ddafbd1a6430	5	1/1		0/1	ix:resp
+Sorcerer's Broom	22a56b0bc5e4de74	16	1/1		0/1	ix:resp
+Soul Net	7a0d39d7856c5626	12	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Star Whale	ef83c4b9985527cc	4	0/0		1/2	cast/alt:none
+Stormbound Geist	af59ab6ec6f392f0	5	1/1		0/1	ix:resp
+Tapestry of the Ages	d195c7323b1d5f74	4	1/1		0/1	ix:resp
+The Great Mound	b6ce71e2bbd0ebcb	12	3/3		1/1	
+The Monumental Facade	ea2cb2ed3e4b7ee7	18	2/2		0/1	ix:resp
+Wings of the Guard	92e177dccfcd0010	11	1/1		0/1	ix:resp

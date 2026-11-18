@@ -6,6 +6,7 @@ Abundant Harvest
 Academy Raider
 Accursed Spirit
 Acid Rain
+Adaptive Training Post
 Adeline, Resplendent Cathar
 Aetherflux Conduit
 Aetherwind Basker
@@ -267,6 +268,7 @@ Pact of Negation
 Paired Tactician
 Pale Rider of Trostad
 Pangosaur
+Paperfin Rascal
 Parasitic Strix
 Part the Veil
 Patrolling Peacemaker
@@ -440,6 +442,7 @@ Wings of the Guard
 Wirewood Pride
 Witch's Cauldron
 Wolfkin Outcast
+Wolverine Pack
 Woodland Mystic
 Worldly Tutor
 Xiahou Dun, the One-Eyed

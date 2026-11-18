@@ -3,43 +3,72 @@ Akki Underminer
 Akroan Crusader
 Alms Beast
 Altar of Dementia
+Angelic Field Marshal
 Angelic Renewal
 Archaeomender
+Asphodel Wanderer
+Blight Sickle
 Buried Alive
+Burst of Speed
+Caldera Pyremaw
+Cling to Dust
 Cloud of Faeries
+Clutch of Undeath
 Cogwork Assembler
+Company Commander
+Conclave Guildmage
+Confront the Unknown
 Conservator
+Contagion
 Corpse Knight
 Cosmos Elixir
 Crop Rotation
 Cyclops Superconductor
 Daring Fiendbonder
+Deadshot
+Death's-Head Buzzard
 Deathless Angel
 Deep Reconnaissance
 Deepwood Ghoul
 Demon's Grasp
 Demonic Rising
+Despise
+Diligent Excavator
 Drag Down
 Dyfed, the Guiding Hand
+Eidolon of Rhetoric
+Elspeth, Undaunted Hero
 Erratic Visionary
+Essence Feed
 Ethereal Usher
 Expansion
 Fain, the Broker
+Femeref Healer
+Fog of Gnats
 Forest
 Fungal Sprouting
 Glory Bearers
+Gnome-Made Engine
+Goblin Glider
+Golden Egg
 Hanna, Ship's Navigator
 Hemlock Vial
+Heroes of the Revel
 Hound of the Farbogs
+Infested Fleshcutter
 Inkrise Infiltrator
 Inspiring Refrain
 Island
 Jackalope Herd
+Keen-Eyed Raven
 Kirtar's Wrath
+Knights of the Black Rose
+Kor Castigator
 Leafkin Druid
 Lightning Reaver
 Lightning-Core Excavator
 Liliana's Influence
+Living End
 Longtusk Cub
 MJ, Rising Star
 Mai and Zuko
@@ -50,32 +79,58 @@ Merciless Eviction
 Metropolis Reformer
 Mise
 Mogis's Warhound
+Morkrut Necropod
 Mountain
 Nagging Thoughts
 Natural Emergence
 Necrobite
 Nemesis of Reason
 Oblation
+Obscura Initiate
+Orcish Bowmasters
+Orim's Touch
 Phantasmal Dragon
+Phyrexian Obliterator
 Pilfering Imp
 Plains
 Pollywog Prodigy
+Prizefighter Construct
 Prosper, Tome-Bound
 Prosperous Innkeeper
+Protector of Gondor
+Prowling Pangolin
+Ranger en-Vec
 Ravos, Soultender
 Reality Ripple
+Rolling Thunder
 Rustvine Cultivator
 Samite Archer
+Samite Pilgrim
+Secure the Scene
+Shadowspear
+Shake the Foundations
+Skullscorch
 Slash of Talons
 Slinking Giant
 Spider-Man 2099, Miguel O'Hara
+Steam Blast
+Streetbreaker Wurm
 Swamp
+Tactical Advantage
 Temmet, Vizier of Naktamun
+The Bloodsky Massacre
 The Whizzer, Classic Speedster
 Thrór's Map
 Thunder Drake
+Thundering Sparkmage
+Titan Hunter
 Tormod's Cryptkeeper
+Trenching Steed
+Trigon of Rage
+Viashino Fangtail
 Vine Trellis
+Voice of the Provinces
 Warped Devotion
 Way of the Thief
+Whack
 Whispering Wizard

@@ -1,4 +1,5 @@
 A-Buy Your Silence
+Afflict
 Alexi's Cloak
 Angelheart Protector
 Angelheart Vial
@@ -15,6 +16,8 @@ Buoyancy
 Burden of Guilt
 Chatterstorm and Awaken the Woods
 Child of Night
+Chime of Night
+Chrome Cat
 Cleanse
 Colossus Hammer
 Copperhoof Vorrac
@@ -23,9 +26,11 @@ Crimson Roc
 Cursed Totem
 Cyclone Summoner
 Dawnfeather Eagle
+Deb Thomas
 Declare Dominance
 Delightful Discovery
 Deluge of Doom
+Desecration Elemental
 Dingus Staff
 Drossclaw
 Dúnedain Blade
@@ -35,12 +40,16 @@ Efreet Flamepainter
 Elemental Bond
 Engineered Plague
 Enthrall
+Ephara's Warden
 Erebos's Emissary
 Eternal Skylord
 Evil Eye of Urborg
+Executioner's Hood
 Ezuri, Renegade Leader
+Faithful Pikemaster
 Fanatical Fever
 Fanged Flames
+Fell Specter
 Femeref Scouts
 First-Sphere Gargantua
 Flameshot
@@ -55,12 +64,15 @@ Grandmother Sengir
 Great Hall of Starnheim
 Grey Knight Paragon
 Grim Feast
+Grim Guardian
 Grip of Desolation
 Haazda Snare Squad
 Headlong Rush
+Healing Leaves
 Highspire Infusion
 Hope Against Hope
 Human Frailty
+Ill-Tempered Cyclops
 Inner Calm, Outer Strength
 Island
 Jackal Familiar
@@ -71,8 +83,10 @@ Knight Watch
 Kor Duelist
 Kraken Hatchling
 Leinore, Autumn Sovereign
+Leonin Battlemage
 Leyline of Punishment
 Lightning Blast
+Lychguard
 Magus of the Disk
 Makeshift Mauler
 Mana Flare
@@ -90,6 +104,7 @@ Mountain
 Mystic Enforcer
 Nature's Ruin
 Nessian Game Warden
+Nightscape Familiar
 Obelisk of Esper
 Otherworld Atlas
 Parasitic Grasp
@@ -113,6 +128,7 @@ Seal of Fire
 Shared Trauma
 Sibsig Host
 Sip of Hemlock
+Skeletal Kathari
 Skullslither Worm
 Soratami Seer
 Sorcerer's Wand
@@ -131,6 +147,7 @@ Swamp
 TVA Bureaucrat
 Thought Scour
 Thundering Raiju
+Tormentor's Trident
 Treasure Hunter
 Turret Ogre
 Two-Headed Sliver
@@ -145,6 +162,8 @@ Wanderlust
 Warhorn Blast
 Whipflare
 Whirlermaker
+Wintermoor Commander
 Woeleecher
+Yawgmoth, Thran Physician
 Zodiac Rat
 Zuran Orb

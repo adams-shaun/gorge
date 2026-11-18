@@ -1,49 +1,158 @@
 Accursed Duneyard
 Acid Web Spider
+Aethergeode Miner
+Aetheric Amplifier
+Akki Underling
 Akroan Jailer
+Alpine Meadow
+Amaranthine Wall
+Angelic Wall
+Anointed Procession
+Assault Griffin
+Auriok Bladewarden
+Auriok Steelshaper
+Azorius Locket
 Barrowgoyf
+Bitterthorn, Nissa's Animus
 Broken Visage
+Brokers Hideout
 Bull Cerodon
+Cabal Therapist
+Cephalid Vandal
+Charging Paladin
+Citadel Castellan
+Clockwork Vorrac
+Cloudreader Sphinx
+Colorful Feiyi Sparrow
+Coral Net
+Corpulent Corpse
+Curse of Bounty
 Curse of Shallow Graves
 Cursed Wombat
 Cyclical Evolution
+Daring Apprentice
 Daring Fiendbonder
+Deeptread Merrow
+Devotee of Strength
+Didgeridoo
+Disrupt
 Dramatic Reversal
 Dredge
 Drowner of Secrets
+Elvish Archers
+Embersmith
+Errant and Giada
+Erratic Mutation
 Erratic Visionary
+Eternal Witness
+Ethereal Haze
 Experimental Overload
+Fade into Antiquity
+Faerie Guidemother
+Fated Intervention
+Fill with Fright
+Flamecast Wheel
 Forest
+Fractal Summoning
+Ghostfire
+Gnawing Zombie
+Hallowed Spiritkeeper
+Heavy Infantry
+Hedge Troll
+Highland Forest
+Honden of Seeing Winds
+Horobi, Death's Wail
 Hound of the Farbogs
+Hushwing Gryff
 Intruder Alarm
+Isao, Enlightened Bushi
 Island
+Isolate
 Jace's Scrutiny
+James, Wandering Dad
+Jeskai Runemark
+Kasmina's Transmutation
+Keeper of Fables
 King Harald's Revenge
+Kongming, "Sleeping Dragon"
+Labyrinth Adversary
 Lazotep Reaver
+Ley Weaver
+Loam Dryad
 Lorehold Command
 Lorescale Coatl
+Matt Murdock, Justice Seeker
 Matter Reshaper
 Mausoleum Secrets
+Miasmic Mummy
 Misery's Shadow
+Mist-Syndicate Naga
+Monstrify
 Moonblade Shinobi
+Mother Kangaroo
 Mountain
 Murkfiend Liege
 Nagging Thoughts
+Needle Spires
+Oashra Cultivator
+Ominous Cemetery
+Ornate Kanzashi
 Phantasmal Dragon
 Plains
 Plaxmanta
+Plummet
 Pol Jamaar, Illusionist
+Proud Pack-Rhino
+Rakdos Ragemutt
+Ranging Raptors
 Ray of Erasure
+Recalibrate
+Reckoner Bankbuster
 Reduce in Stature
+Rending Vines
+Restless Dead
+Reveille Squad
+Revitalize
 Rogue Refiner
+Rupture Spire
+Rustrazor Butcher
+Sangrophage
+Scaled Herbalist
+Scrapper Champion
+Shefet Dunes
+Short Sword
 Sledding Otter-Penguin
 Slither Blade
+Snag
+Soulstealer Axe
+Spark Jolt
 Spider-Man 2099, Miguel O'Hara
 Spined Fluke
+Spiraling Duelist
 Stitcher's Apprentice
 Stormscape Master
+Stratozeppelid
+Suture Priest
 Swamp
+Tel-Jilad Justice
 The Whizzer, Classic Speedster
+Think Tank
+Tishana's Wayfinder
 Tokka & Rahzar, Unsupervised
 Tranquil Path
+Treva's Ruins
+Tune the Narrative
+Twin-Silk Spider
+Urgoros, the Empty One
+Valiant Veteran
+Vampiric Tutor
+Wanderlust
+Weatherseed Elf
 Whispering Wizard
+Windrider Wizard
+Wooden Sphere
+Yavimaya Elder
+Yavimaya Granger
+Yotian Frontliner
+Zephyr Falcon
+Zephyr Gull

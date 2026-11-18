@@ -6,6 +6,7 @@ Apex Devastator
 Arrows of Justice
 Artful Maneuver
 Aven Brigadier
+Bedeck
 Blazing Rootwalla
 Blinding Radiance
 Bloodied Ghost
@@ -16,6 +17,7 @@ Burden of Guilt
 Canopy Tactician
 Chatterstorm and Awaken the Woods
 Child of Night
+Chrome Cat
 Cleanse
 Colossus Hammer
 Copperhoof Vorrac
@@ -25,6 +27,7 @@ Cursed Totem
 Cyclone Summoner
 Dawnfeather Eagle
 Deathbloom Ritualist
+Deb Thomas
 Declare Dominance
 Deluge of Doom
 Dingus Staff
@@ -41,7 +44,9 @@ Erebos's Emissary
 Eternal Skylord
 Ethereal Ambush
 Evil Eye of Urborg
+Executioner's Hood
 Eyes of the Watcher
+Falkenrath Marauders
 Fanatical Fever
 Fanged Flames
 Femeref Scouts
@@ -54,6 +59,7 @@ Furious Assault
 Goblin Electromancer
 Goblin Gang Leader
 Goblin Matron
+Goblin Warchief
 Grandmother Sengir
 Great Hall of Starnheim
 Greenseeker
@@ -75,12 +81,14 @@ Kami of Whispered Hopes
 Kenrith's Transformation
 Knight Watch
 Kraken Hatchling
+Learn from the Past
 Leshrac's Sigil
 Lightning Blast
 Mana Flare
 Mana Skimmer
 Maralen of the Mornsong
 Marshmist Titan
+Mending Hands
 Michiko's Reign of Truth
 Mind Knives
 Minion of Tevesh Szat
@@ -111,6 +119,7 @@ Release to Memory
 Relic of Progenitus
 Rhox Bodyguard
 Romana II
+Rust Tick
 Sanguine Glorifier
 Saprazzan Outrigger
 Seal of Fire
@@ -120,7 +129,11 @@ Shrouded Serpent
 Sibsig Host
 Sindbad
 Sip of Hemlock
+Skirsdag Cultist
 Skullslither Worm
+Skyclave Pick-Axe
+Skyfisher Spider
+Smitten Swordmaster
 Sorcerer's Wand
 Soulblade Corrupter
 Spiraling Embers
@@ -129,6 +142,7 @@ Spiteful Bully
 Spoils of Blood
 Steady Aim
 Steal Strength
+Stolen Strategy
 Stone Calendar
 Stormwatch Eagle
 Stupefying Touch

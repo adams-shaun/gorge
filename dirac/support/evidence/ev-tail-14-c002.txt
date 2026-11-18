@@ -24,6 +24,7 @@ Buy Your Silence
 Call to Serve
 Caravan Hurda
 Cartouche of Knowledge
+Cement Shoes
 Cessation
 Chalice of the Void
 Chandra's Firemaw
@@ -31,6 +32,7 @@ Chicken Egg
 Chief Engineer
 Colos Yearling
 Colossal Growth
+Coral Commando
 Core Prowler
 Cradle of Vitality
 Cradle to Grave
@@ -57,6 +59,7 @@ Entrapment Maneuver
 Erebos, God of the Dead
 Erstwhile Trooper
 Essence Drain
+Eunuchs' Intrigues
 Eviscerate
 Experimental Augury
 False Defeat
@@ -68,10 +71,13 @@ Flight
 Flitterstep Eidolon
 Font of Progress
 Foothill Guide
+Force Away
 Force of Nature
 Forest
 Forgotten Sentinel
 Foul Presence
+Frost Bite
+Gaea's Bounty
 Galina's Knight
 Gearsmith Guardian
 Giant Caterpillar
@@ -82,10 +88,12 @@ Goblin Sledder
 Goblin Wardriver
 Gold Myr
 Goretusk Firebeast
+Groffskithur
 Guard Duty
 Guardian Idol
 Gutter Skulk
 Gutwrencher Oni
+Harabaz Druid
 Headsplitter
 Heartless Summoning
 Heliod, God of the Sun
@@ -179,9 +187,12 @@ Setessan Petitioner
 Shadows' Verdict
 Shambling Goblin
 Shifting Sliver
+Shipwreck Looter
+Shore Snapper
 Silent Extraction
 Sinister Possession
 Skeletal Crocodile
+Skrelv, Defector Mite
 Slate Street Ruffian
 Sleep
 Smoldering Butcher
@@ -223,6 +234,9 @@ Vicious Battlerager
 Villainous Ogre
 Void Grafter
 Vraska, Swarm's Eminence
+Wild Cantor
+Wild Celebrants
+Willow Dryad
 Woodcaller Automaton
 Wooden Cane
 Wreath of Geists

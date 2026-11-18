@@ -3,6 +3,7 @@ Acquisition Octopus
 Act on Impulse
 Aerial Responder
 Aether Vial
+Aggression
 Agonizing Demise
 Al-abara's Carpet
 Aladdin
@@ -11,8 +12,10 @@ Angel's Mercy
 Angelic Ascension
 Ant-Man, Reformed Rogue
 Arbalest Engineers
+Archangel of Thune
 Ardent Electromancer
 Arlinn, Voice of the Pack
+Armored Griffin
 Astarion, the Decadent
 Atarka Monument
 Audacious Infiltrator
@@ -20,6 +23,7 @@ Aura of Dominion
 Avarice Amulet
 Awaken the Sky Tyrant
 Baird, Argivian Recruiter
+Barrow Witches
 Basking Broodscale
 Bedlam
 Beskir Shieldmate
@@ -28,14 +32,18 @@ Big Score
 Black Panther, Claws of Bast
 Blessed Respite
 Blood-Chin Fanatic
+Body of Research
+Bog Smugglers
 Branchsnap Lorian
 Brigone, Soldier of Meletis
 Burrenton Shield-Bearers
 Canopy Claws
 Canyon Wildcat
+Caravan Hurda
 Catapult Fodder
 Caustic Tar
 Chandra's Defeat
+Chandra's Pyreling
 Chasm Guide
 Cinder Hellion
 Cirith Ungol Patrol
@@ -44,19 +52,29 @@ Collateral Damage
 Coma Veil
 Composer of Spring
 Containment Breach
+Coral Eel
+Council's Judgment
 Cragplate Baloth
 Curate
 Curious Pair
 Curse of Verbosity
+Damnable Pact
+Daraja Griffin
+Dark Hatchling
 Dauthi Warlord
 Dega Sanctuary
+Delete
 Desert Nomads
+Dig Up
+Dismiss into Dream
 Doomed Artisan
+Doomed Traveler
 Dragonlair Spider
 Drogskol Shieldmate
 Drossforge Bridge
 Drowned
 Duke Ulder Ravengard
+Earthen Goo
 Eerie Soultender
 Elves of Deep Shadow
 Elvish Scout
@@ -65,11 +83,14 @@ Emergence Zone
 Enthralling Victor
 Erkenbrand, Lord of Westfold
 Errant Doomsayers
+Ethereal Whiskergill
 Evil Presence
+Exuberant Fuseling
 Exultant Skymarcher
 Facet Reader
 Fantastic Bounce
 Far Wanderings
+Fell Flagship
 Ferrous Lake
 Festercreep
 Fevered Convulsions
@@ -81,29 +102,40 @@ Forced Adaptation
 Forest
 Foul Imp
 Fractal Harness
+Freyalise Supplicant
+Gaea's Avenger
 Galvanic Blast
 Gate of the Black Dragon
 Gearsmith Prodigy
 Geosurge
 Giant Scorpion
 Gift of Estates
+Gimli's Reckless Might
 Go-Shintai of Ancient Wars
 Goatnapper
 Goblin Piledriver
+Goblin Ruinblaster
 Golden Demise
 Gorging Vulture
 Grafted Growth
 Graypelt Refuge
+Greataxe
 Groundling Pouncer
+Havengul Vampire
 Headless Rider
 Heaven
+Heckling Fiends
+Heliod's Emissary
 Herald of Torment
 Herbal Poultice
 Hidden Footblade
 Highland Berserker
+Hollowhenge Beast
+Horn of Greed
 Hostile Minotaur
 Immersturm Raider
 In the Web of War
+Ingenious Smith
 Insatiable Appetite
 Invasion of Zendikar
 Iron Bully
@@ -113,6 +145,9 @@ Ironclaw Buzzardiers
 Island
 Jagged Lightning
 Join the Maestros
+Juniper Order Advocate
+Juniper Order Rootweaver
+Kari Zev's Expertise
 Kazandu Stomper
 Kefnet's Last Word
 Key to the City
@@ -130,10 +165,12 @@ Lay Down Arms
 Life Chisel
 Liu Bei, Lord of Shu
 Looming Shade
+Lunk Errant
 Lurking Nightstalker
 Mad Dog
 Magus of the Order
 Masked Blackguard
+Metal Fatigue
 Meteoric Mace
 Might of the Old Ways
 Mirran Bardiche
@@ -144,15 +181,27 @@ Natural Reclamation
 Nav Squad Commandos
 Needle Specter
 Night of Souls' Betrayal
+Nightguard Patrol
+Noble Steeds
 Norn's Inquisitor
 Oakhame Adversary
+Ollenbock Escort
+Ondu Inversion
+Opal Acrolith
 Open Fire
+Orbs of Warding
+Orim's Prayer
 Owl Familiar
 Pallid Mycoderm
+Panacea
 Park Heights Maverick
+Passwall Adept
 Peel from Reality
 Peregrine Drake
+Phantom General
 Phantom Whelp
+Phyrexian Gremlins
+Plague Engineer
 Plague Fiend
 Plague Sliver
 Plains
@@ -163,35 +212,56 @@ Plundering Predator
 Pollenbright Druid
 Portable Hole
 Quest for the Goblin Lord
+Radiant Essence
 Raffine's Informant
 Rage Nimbus
 Ratchet Bomb
 Rathi Intimidator
+Ray of Erasure
+Razorfoot Griffin
+Redemption Choir
 Renegade Demon
 Renegade Wheelsmith
+Renewed Solidarity
 Restrain
+Rift Bolt
 Roc of Kher Ridges
 Rockslide Ambush
+Ruin Raider
+Ruination
 Rumor Gatherer
+Runewing
 Rush of Adrenaline
 Ruthless Disposal
+Sacred Mesa
 Sage of the Unknowable
 Sagu Mauler
 Sai, Master Thopterist
 Sand Strangler
+Sands of Delirium
 Sandstone Warrior
+Sangrite Surge
 Sapphire Drake
 Scorching Missile
 Scour from Existence
 Scrapwork Rager
 Scrivener
+Sea Drake
 Searchlight Geist
+Seraph of the Suns
 Serra Avenger
+Shambleshark
+Shard of the Void Dragon
 Shatter
+Shimmering Barrier
+Sigiled Behemoth
+Siren Lookout
 Skull of Orm
 Slith Bloodletter
+Slurrk, All-Ingesting
 Smell Fear
 Snarespinner
+Sorin, Imperious Bloodlord
 Soul Swallower
 Specter of the Fens
 Sphere of Duty
@@ -207,6 +277,7 @@ Stronghold Zeppelin
 Suki, Kyoshi Captain
 Summary Judgment
 Sunfire Balm
+Sunscape Familiar
 Superior Numbers
 Swamp
 Sygg, River Guide
@@ -218,23 +289,32 @@ Tenement Crasher
 Thalia's Lancers
 The Binding of the Titans
 The Immortal Weapons
+The Stasis Coffin
 Thriving Isle
+Throne of Empires
 Timberpack Wolf
+Tooth and Claw
+Toph, Greatest Earthbender
+Torsten Von Ursus
 Tower of Calamities
 Tree of Tales
 Triskaidekaphile
 Undead Augur
 Utopia Tree
+Valduk, Keeper of the Flame
 Valiant Changeling
 Vedalken Engineer
 Vedalken Outlander
 Vessel of Malignity
 Veteran Cavalier
 Virulent Plague
+Vithian Renegades
 Wayward Giant
 Wetland Sambar
+Wild Leotau
 Winding Wurm
 Winged Portent
+Witch Hunter
 Witching Well
 Witness the Future
 Yavimaya Ants

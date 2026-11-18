@@ -1,23 +1,33 @@
+Act on Impulse
 Advance Scout
 Akki Lavarunner
+Akroan Hoplite
 Angelic Overseer
 Arc Lightning
 Army Ants
 Arno Dorian
 Ashenmoor Gouger
 Ashnod, Flesh Mechanist
+Birthing Pod
 Blade of the Bloodchief
 Blood Knight
 Bloodhall Priest
 Bloodscale Prowler
 Brimstone Dragon
+Brindle Shoat
+Bringer of the Blue Dawn
+Celebrity Fencer
 Chase Stein, Runaway
 Chemister's Insight
 Chorus of Woe
+Cyclops Superconductor
 Cystbearer
+Domri's Ambush
 Dragon Hatchling
 Dralnu's Crusade
 Dunes of the Dead
+Eel-Hounds
+Elven Bow
 Empty the Warrens
 Faithless Looting
 Faithless Salvaging
@@ -25,20 +35,32 @@ Fast Forward
 Fencing Ace
 Forest
 Foul-Tongue Shriek
+Galadhrim Ambush
 Goblin Firebug
+Graceful Cat
+Grappling Sundew
 Harrow
 Island
+Jewel-Eyed Cobra
 Junk Golem
 Kami of Fire's Roar
 Lava Axe
+Leela, Sevateem Warrior
 Lightning Prowess
+Living Lands
 Lord of Extinction
 Lulu, Stern Guardian
+Makeshift Battalion
 Markov Enforcer
+Merrow Bonegnawer
 Mogg Sentry
+Monster Manual
 Mountain
+Niall Silvain
+No Escape
 Nullmage Advocate
 Oblivion Ring
+Orochi Soul-Reaver
 Pharika's Libation
 Pit Keeper
 Plains
@@ -46,14 +68,25 @@ Possessed Aven
 Quickening Licid
 Rally the Ranks
 Reality Ripple
+Rhox Brute
+Rootwater Diver
 Saltfield Recluse
+Savage Swipe
+Scarwood Treefolk
 Scathe Zombies
 Serpent Warrior
+Skyway Sniper
+Slip Through Space
 Sparkspitter
+Spellbook
 Spontaneous Combustion
 Steadfast Unicorn
+Stony Strength
 Sunspire Griffin
 Swamp
+Swift Warden
+Tel-Jilad Chosen
+Thundering Spineback
 Tide Drifter
 Triad of Fates
 Unholy Strength
@@ -62,6 +95,8 @@ Volcanic Dragon
 Volcanic Rush
 Wall of Opposition
 Warlord's Axe
+Warthog
+Watchful Blisterzoa
 Whirler Rogue
 Wight of Precinct Six
 Wretched Throng

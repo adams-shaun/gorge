@@ -1,46 +1,76 @@
 A-Mentor's Guidance
+Aboshan's Desire
+Aether Mutation
 Ageless Guardian
 Agent of the Shadow Thieves
+Alms of the Vein
+Ambitious Farmhand
 An-Havva Inn
 Ancient Amphitheater
 Angel's Mercy
 Angelic Wall
+Appeal
+Araba Mothrider
 Arbor Elf
 Arcane Flight
+Archangel's Light
+Archmage of Echoes
 Archon of Redemption
+Ardent Militia
 Arm-Mounted Anchor
+Aura Mutation
 Aven Trailblazer
 Avenging Arrow
+Bala Ged Recovery
 Bar the Door
 Bast, Panther Goddess
+Battle Angels of Tyr
 Bazaar Krovod
+Belbe's Percher
+Billiard Room
 Black Lotus
+Blackcleave Cliffs
 Blighted Steppe
 Blink Dog
+Blisterspit Gremlin
 Blockade Runner
 Blockbuster
 Blood Clock
 Bloodboil Sorcerer
+Bloodrock Cyclops
 Boarding Party
 Boggart Arsonists
 Boggart Brute
 Boon of Safety
 Borrowed Time
+Botanical Plaza
+Bottle-Cap Blast
 Brambleweft Behemoth
 Brawn
 Brazen Borrower
+Breath Weapon
 Brindle Boar
+Brutal Nightstalker
 Bulwark Giant
+Bushmeat Poacher
+Butterbur, Bree Innkeeper
 Cartouche of Zeal
 Cathartic Adept
 Cave of the Frost Dragon
+Ceta Sanctuary
 Champion Lancer
+Charix, the Raging Isle
 Child of Thorns
+Chosen by Heliod
+Clear the Mind
 Cloud Djinn
 Company Commander
 Condescend
+Conjurer's Mantle
 Consulate Turret
+Conversion
 Copperline Gorge
+Cowl Prowler
 Crash
 Crash the Party
 Crash the Ramparts
@@ -49,15 +79,20 @@ Crude Rampart
 Cruel Deceiver
 Crusade
 Crystal Ball
+Crystalline Nautilus
 Cult Guildmage
 Custodian of the Trove
 Cut Down
+Cynette, Jelly Drover
 Dark Inquiry
 Dark Salvation
 Dawn Charm
 Daxos, Blessed by the Sun
+Death-Priest of Myrkul
 Destroy Evil
+Devious Cover-Up
 Dirty Rat
+Disappearing Act
 District Guide
 Douse
 Drelnoch
@@ -67,38 +102,57 @@ Dust Elemental
 Dwarven Patrol
 Earthshape
 Edric, Spymaster of Trest
+Eidolon of Blossoms
 Eldrazi Confluence
 Electric Revelation
 Electrozoa
 Elegant Entourage
+Elminster's Simulacrum
 Embargo
 Embersmith
 Endurance Bobblehead
 Enter the Unknown
+Era of Innovation
 Etherium-Horn Sorcerer
 Evanescent Intellect
+Exoskeletal Armor
+Experimental Augury
+Feeling of Dread
 Feral Ridgewolf
 First Volley
 Folk of An-Havva
 Forest
+Gaea's Gift
 Gerrard Capashen
 Gerrard's Battle Cry
 Ghalma's Warden
+Ghost Quarter
 Glasspool Mimic
 Glimmer of Genius
 Gnottvold Hermit
+Goreclaw, Terror of Qal Sisma
 Gossamer Phantasm
+Grazing Kelpie
 Grim Guardian
+Grim Haruspex
 Grim Return
 Grizzled Outrider
 Ground Seal
 Guise of Fire
+Hapatra, the Desert Fang
+Harvest Gwyllion
 Haunt of the Dead Marshes
 Hawkeye, Clint Barton
+Heartstone
+Henrika Domnathi
+Herald of Serra
 Hired Poisoner
 Hoard Hauler
 Hookblade
+Hoverguard Observer
 Hunter's Edge
+Hydroid Krasis
+Hythonia the Cruel
 Ichorclaw Myr
 Imperial Recovery Unit
 Implement of Malice
@@ -107,64 +161,107 @@ Infest
 Inspiration
 Invasion of Ergamon
 Invasion of Innistrad
+Invasion of Tarkir
 Island
 Ivory Cup
+Jace's Phantasm
 Join Forces
+Joraga Auxiliary
+Jwari Scuttler
 Kazandu Refuge
 Keeper of the Accord
 Kitesail Apprentice
 Kitsune Dawnblade
 Knotvine Paladin
+Kobold Drill Sergeant
 Kolaghan Skirmisher
 Kronch Wrangler
+Krosan Avenger
+Launch Mishap
 Leave in the Dust
 Leeching Bite
 Leonin Armorguard
 Leyline of Anticipation
+Lidless Gaze
 Light the Way
+Lionheart Maverick
 Locthwain Gargoyle
 Loran's Escape
+Lost Legion
 Lothlórien Lookout
+Loxodon Warhammer
+Loyal Cathar
 Luke Cage, Hero for Hire
+Lurking Arynx
 Malachite Golem
+Mana Seism
+Mantle of the Wolf
 Marchesa's Infiltrator
+Marsh Lurker
 Master of the Pearl Trident
+Maze Sentinel
+Miara, Thorn of the Glade
 Midnight Entourage
 Mind Over Matter
 Ministrant of Obligation
+Mirari
+Mogis's Warhound
 Morale
+Morinfen
+Moriok Scavenger
 Mountain
+Muck Rats
+Naga Oracle
 Neurok Stealthsuit
+Nezumi Bladeblesser
 Night Market Guard
+Nightwing Shade
 Nimana Sell-Sword
+Nissa's Chosen
+Nissa's Renewal
 Notorious Assassin
+Numbing Dose
 Nurturer Initiate
+Oboro Breezecaller
 Obsidian Obelisk
 Ogre Jailbreaker
 Olivia's Wrath
 Order of Yawgmoth
 Orzhov Locket
 Otherworldly Outburst
+Paladin Danse, Steel Maverick
 Peace of Mind
+Pearl Dragon
 Pegasus Stampede
+Perilous Myr
 Pharika's Chosen
 Pillar of Light
 Plains
+Platoon Dispenser
+Power Armor
 Press into Service
+Pull from Tomorrow
+Pyretic Prankster
 Quest for the Nihil Stone
+Quilled Wolf
 Quirion Explorer
+Quirion Sentinel
 Rain of Rust
 Raise the Alarm
 Rakdos Riteknife
 Ramosian Sergeant
+Rampaging Ferocidon
 Reduce
 Repulsor Rays
 Resurrection Orb
 Retreat to Coralhelm
 Revenge of the Hunted
 Rile
+Ringskipper
 Riot Piker
+Rise from the Grave
 Rising of the Day
+Rolling Hamsphere
 Ruin Crab
 Ruination
 Rukh Egg
@@ -175,8 +272,15 @@ Sand Silos
 Scorch Rider
 Scouting Hawk
 Seagraf Skaab
+See the Unwritten
+Seeker of Skybreak
+Serra Advocate
+Serum Visions
+Sever the Bloodline
 Shadow Rift
+Shatterskull Giant
 Shifting Wall
+Shu General
 Sibsig Icebreakers
 Siege Zombie
 Siegecraft
@@ -186,48 +290,72 @@ Silver Myr
 Silverchase Fox
 Skittering Invasion
 Slate of Ancestry
+Snooping Newsie
 Sokka's Charge
 Soltari Trooper
 Soul's Might
+Sound the Call
 Sphere of Grace
 Sphinx of Jwar Isle
 Spidersilk Armor
 Spike-Tailed Ceratops
+Spire Owl
+Spitting Dilophosaurus
+Spring Cleaning
 Sprite Dragon
+Staff of the Wild Magus
+Storm Fleet Sprinter
 Storm Sculptor
 Stun
+Subterranean Spirit
 Suffocating Blast
 Summoning Materia
 Sunastian Falconer
 Sunder Shaman
 Swamp
+Sylvia Brightspear
+Tajuru Archer
 Tandem Takedown
+Tangle Hulk
 Teardrop Kami
 The Roaring Toeclaws
 The Thanos-Copter
+Thief of Existence
 Thumbscrews
+Thunder Dragon
 Tide Drifter
 Tilonalli's Crown
 Toil to Renown
 Tombfire
 Touch of Death
 Toxic Scorpion
+Treacherous Link
 Tribal Flames
 Trickster Mage
 Troll-Horn Cameo
 Twilight Panther
 Typhoid Rats
+Ulamog's Crusher
 Ulvenwald Captive
 Umara Wizard
 Undercellar Myconid
+Undercity Necrolisk
+Unhallowed Phalanx
+Unknown Shores
 Unlikely Aid
 Unnatural Growth
 Unwavering Initiate
+Vault of the Archangel
+Venerable Monk
 Venom, Eddie Brock
 Veteran's Powerblade
+Veteran's Voice
+Viashino Outrider
 Viashino Runner
 Vigilant Baloth
+Viral Drake
 Vivisection
+Vodalian Arcanist
 Voice of All
 Void Squall
 Vortex Runner
@@ -240,8 +368,10 @@ Watchwing Scarecrow
 Whisper of the Dross
 Whitesun's Passage
 Wild Elephant
+Wild Ox
 Winds of Qal Sisma
 Witness the End
 Xenk, Paladin Unbroken
 Xerex Strobe-Knight
+Yavimaya Scion
 Young Pyromancer

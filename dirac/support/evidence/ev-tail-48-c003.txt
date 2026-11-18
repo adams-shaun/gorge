@@ -18,18 +18,23 @@ Dreadbore
 Dream Cache
 Ebon Praetor
 Eliminate
+Elven Riders
 Eyeless Watcher
+Ezzaroot Channeler
 Forest
 Foul Watcher
 Gelatinous Genesis
 Gimli's Fury
 Glamorous Grapplers
+Golgari Thug
 Gravedig
 Hedron Crab
 Humble Naturalist
 Illusionary Forces
 Increasing Savagery
+Inkrise Infiltrator
 Inquisition of Kozilek
+Inspiring Roar
 Island
 Jarad's Orders
 Kodama of the West Tree
@@ -68,6 +73,7 @@ Soulreaper of Mogis
 Spark Harvest
 Squirrel Mob
 Steeple Creeper
+Sunken Field
 Swamp
 Topan Ascetic
 Treefolk Harbinger

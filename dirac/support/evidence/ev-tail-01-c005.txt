@@ -2,9 +2,11 @@ A-Pseudodragon Familiar
 A-Tatyova, Steward of Tides
 A-Urza, Powerstone Prodigy
 Aether Mutation
+Aethersnipe
 Aim for the Head
 Ainok Artillerist
 Alaborn Trooper
+Ambush Krotiq
 Ammit Eternal
 Angelic Voices
 Animist's Might
@@ -24,63 +26,83 @@ Blitz Automaton
 Blossoming Calm
 Bonded Herdbeast
 Bone Shards
+Brawn, Amadeus Cho
 By Invitation Only
+Careless Celebrant
 Carrion Howler
 Carrion Locust
 Celebrate the Harvest
 Charred Graverobber
 Choking Fumes
+City of Death
 Clash of Realities
 Clear
 Clickslither
 Coastal Tower
 Cockatrice
+Coiling Woodworm
 Confidence from Strength
+Conversion Chamber
 Corpsehatch
 Costly Plunder
 Court of Garenbrig
 Crabapple Cohort
 Crafty Pathmage
 Crimson Manticore
+Cudgel Troll
 Curator of Mysteries
 Darklit Gargoyle
 Dawnhart Disciple
+Demon's Grasp
 Destructive Force
 Diabolic Machine
 Dig Up
 Disciple of the Vault
 Dispersing Orb
+Doomskar Titan
+Dragonshift
 Eastfarthing Farmer
 Eddytrail Hawk
 Eternity Vessel
+Exuberant Wolfbear
 Eyes in the Skies
 False Mourning
 Fellwar Stone
+Fervent Denial
 Flamekin Brawler
 Flashfires
 Flinthoof Boar
+Flowstone Embrace
 Font of Fertility
 Forest
 Fortifying Draught
 Gaea's Cradle
+Get the Point
+Giant Adephage
+Gibbering Fiend
 Glaze Fiend
 Glorious Dragon-Kin
 Goblin Heelcutter
 Goblin Picker
+Goblin War Drums
 Guardian of the Great Conduit
 Guild Artisan
 Harvest Wurm
 Hasran Ogress
 Hatred
 Helm of Awakening
+Hero of the Games
 Homarid Shaman
 Homarid Spawning Bed
+Hornswoggle
 Hyperion's Atomic Vision
+Ichthyomorphosis
 Implement of Examination
 Infernal Grasp
 Infernal Plunge
 Inspired Tinkering
 Island
+Jasmine Boreal
 Jungle Lion
 Kamigawa Charm
 Kazuul Warlord
@@ -97,9 +119,12 @@ Lu Su, Wu Advisor
 Magnetic Mine
 Mana Geode
 Mana Severance
+Manipulate Fate
 Marble Chalice
 Master of Waves
+Master the Way
 Meekstone
+Merfolk Seer
 Minor Misstep
 Mogg Conscripts
 Mogg Flunkies
@@ -116,6 +141,8 @@ Notorious Assassin
 Omenspeaker
 Orcish Medicine
 Origin Spellbomb
+Overwhelming Victory
+Palace Familiar
 Paradox Zone
 Penumbra Kavu
 Pestilence Rats
@@ -132,9 +159,12 @@ Puppeteer
 Rakdos Carnarium
 Recollect
 Recover
+Reinterpret
 Renowned Weaponsmith
 Rionya, Fire Dancer
+River Hoopoe
 Riverwise Augur
+Robobrain War Mind
 Roc Egg
 Roofstalker Wight
 Royal Warden
@@ -145,24 +175,31 @@ Sage-Eye Harrier
 Sandstone Bridge
 Savage Order
 Scapeshift
+Scar
 Scepter of Fugue
 Seeds of Strength
 Seer of the Last Tomorrow
 Selfless Cathar
+Sheltering Boughs
 Shock Troops
 Short Circuit
 Sinister Strength
 Skaab Wrangler
 Skeletal Snake
 Sleek Schooner
+Sophic Centaur
 Soul Snuffers
 Soul's Majesty
 Spellkeeper Weird
 Spire Mangler
 Spirit of the Hunt
+Spitting Gourna
 Splendid Reclamation
 Spontaneous Mutation
 Stoic Champion
+Stonebrow, Krosan Hero
+Stonefare Crocodile
+Storm Fleet Aerialist
 Stormfront Pegasus
 Stream of Consciousness
 Summoning Materia
@@ -171,6 +208,7 @@ Sylvan Safekeeper
 Tear Asunder
 Tenza, Godo's Maul
 The Revelations of Ezio
+Thrasios, Triton Hero
 Thrilling Discovery
 Tobias Andrion
 Torch Drake
@@ -182,7 +220,9 @@ Turn Against
 Unlikely Alliance
 Vat of Rebirth
 Vault of Whispers
+Venomous Dragonfly
 Venser's Sliver
+Verdurous Gearhulk
 Vessel of Nascency
 Viashino Sandswimmer
 Vibrating Sphere
@@ -190,7 +230,10 @@ Viridescent Wisps
 Volcanic Geyser
 Warg Rider
 Waterwhirl
+Weaver of Blossoms
+Wind Dancer
 Wind Shear
 Wing It
+Wing Snare
 Woodcutter's Grit
 Zhou Yu, Chief Commander
