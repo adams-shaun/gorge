@@ -10,4 +10,8 @@ import "testing"
 func TestMBCIcefallRegentReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "target_tax_filter_land_window")
+	// tail-04-c000 pair 82, decision 322: Might of Alara ({G}) with a floating
+	// {G}, an untapped Mountain and the same Catacombs pays {2}{G} through the
+	// CR 601.2g window, so the Regent stays on its target menu here too.
+	stdReproNamed(t, "raise_target_window_filter_land")
 }

@@ -620,7 +620,12 @@ func (s *State) targetWindowShort(k *prep, e *stackEntry, cost *kop.ManaCost, hi
 		s.CopyFrom(saved)
 		return false
 	}
-	ok, _ := s.windowTapRider(k, e.ctrl, cost, false, s.bld().bfl&bflAnyColor != 0)
+	anyColor := s.bld().bfl&bflAnyColor != 0
+	ok, _ := s.windowTapRider(k, e.ctrl, cost, false, anyColor)
+	if !ok {
+		s.CopyFrom(saved)
+		ok = s.windowPoolPipsFirst(k, e.ctrl, cost, anyColor) // the walk's order is one path; gorge's probe proves any
+	}
 	s.CopyFrom(saved)
 	return !ok
 }
