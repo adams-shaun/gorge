@@ -476,6 +476,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if tr.F, err = readF("ValidCard"); err != nil {
 			return err
 		}
+		if lc.granted != 0 {
+			// A granted self Taps watcher (an AddTrigger$ grant: Tale of Katara
+			// and Toph's "creatures you control have 'whenever this creature
+			// becomes tapped for the first time during each of your turns, put
+			// a +1/+1 counter on it'") fires for each recipient's own tap, not
+			// the granting face's: the tapped source's class is the body's
+			// (tapsPlanClass — gorge's planner classes the recipient,
+			// pay.PaymentPlanAbilityTier), and the granting face's own mana
+			// abilities read nothing for it.
+			tp8, pn := tapsPlanClass(t.Effect)
+			tr.TapPlan, tr.TapPainN = uint8(tp8), pn
+			break
+		}
 		for _, a := range lc.face.Abilities {
 			if a.API == "Mana" || a.API == "ManaReflected" {
 				// The card's own {T} for mana fires its own Taps line (CR 603.2,
