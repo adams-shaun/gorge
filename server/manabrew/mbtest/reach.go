@@ -525,9 +525,9 @@ func booleanSide(d *decision.Decision, opt *decision.Option) (bool, error) {
 	confirm, deny := -1, -1
 	for _, o := range d.Options {
 		switch {
-		case o.Kind == "yes", o.Kind == "command_zone", o.Kind == "apply", o.Mode == decision.ModeUnlessPay:
+		case o.Kind == "yes", o.Kind == "command_zone", o.Kind == "apply", o.Kind == "madness_exile", o.Kind == "trigger_cost_pay", o.Mode == decision.ModeUnlessPay:
 			confirm = o.Index
-		case o.Kind == "no", o.Kind == "leave", o.Kind == "decline", o.Mode == decision.ModeUnlessDecline:
+		case o.Kind == "no", o.Kind == "leave", o.Kind == "decline", o.Kind == "madness_graveyard", o.Kind == "trigger_cost_decline", o.Mode == decision.ModeUnlessDecline:
 			deny = o.Index
 		}
 	}
