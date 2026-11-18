@@ -1259,7 +1259,14 @@ func (fs *filtSearch) stallOf(c *State) {
 
 // stateKey is the visited-state key of node t.
 func (fs *filtSearch) stateKey(k *prep, t *State) filtKey {
-	p := fs.p
+	return t.scriptKey(k, fs.p, fs.other)
+}
+
+// scriptKey is gorge's scriptStateKey of p at node t: the pool by colour, the
+// tapped permanents, the counters of the counter-cost gaps other, and the
+// stack, hand and graveyard sizes. The Combo Any search keys its nodes by it
+// too (caSearch.visit).
+func (t *State) scriptKey(k *prep, p uint8, other slotMask) filtKey {
 	key := filtKey{pool: t.pl[SeatIx(p)].pool, sp: t.sp, hand: t.pl[SeatIx(p)].handN, gy: t.pl[SeatIx(p)].graveN}
 	// gorge's key (scriptStateKey) reads the pool, a restricted unit included,
 	// by colour alone: Pool holds every floating unit, and the restriction
@@ -1295,7 +1302,7 @@ func (fs *filtSearch) stateKey(k *prep, t *State) filtKey {
 			key.tapped = key.tapped.with(sl)
 		}
 	}
-	fs.ctrKey(k, t, &key)
+	t.ctrKey(k, other, &key)
 	return key
 }
 

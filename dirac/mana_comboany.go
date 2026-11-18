@@ -278,6 +278,12 @@ type caSearch struct {
 	nodes int
 	path  [MaxPerm]caStep
 	np    int
+	// seen: the priority nodes visited, by gorge's scriptStateKey: a node whose
+	// pool and tapped set were seen is dead (scriptSearch.visit), so the (W,G)
+	// and (G,W) answers of one source share a subtree and the budget reaches
+	// the all-one-colour line of two sources.
+	nseen int
+	seen  [potentialScriptNodes]filtKey
 	// stall: the first stall a failed line's fork latched (stallOf), StallNone
 	// none; caScript declares it when the whole search fails
 	stall uint8
@@ -295,6 +301,16 @@ func (cs *caSearch) visit(k *prep, t *State, d *Decision, root bool) bool {
 		if hasOption(d, cs.a) {
 			return true
 		}
+	}
+	key := t.scriptKey(k, cs.p, slotMask{})
+	for i := 0; i < cs.nseen; i++ {
+		if cs.seen[i] == key {
+			return false
+		}
+	}
+	if cs.nseen < len(cs.seen) {
+		cs.seen[cs.nseen] = key
+		cs.nseen++
 	}
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(cs.p, t.caGaps(k, cs.p), order[:], 0)
