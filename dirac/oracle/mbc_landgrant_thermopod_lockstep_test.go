@@ -22,6 +22,7 @@ func TestMBCDrMbcBaaaReprosLockstep(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	found := false
 	for i := range entries {
 		e := &entries[i]
 		if e.Card != "Thermopod" {
@@ -31,7 +32,10 @@ func TestMBCDrMbcBaaaReprosLockstep(t *testing.T) {
 			t.Fatalf("Thermopod's entry replays %s/%s, want custom/%s", e.Repro.Pool, e.Repro.File, thermopodGrantRepro)
 		}
 		checkRefusedRepro(t, e)
-		return
+		found = true
 	}
-	t.Fatal("Thermopod has no dirac/support/refused entry: its Ashaya grant stalls landgrant")
+	if !found {
+		t.Fatal("Thermopod has no dirac/support/refused entry: its Ashaya grant stalls landgrant")
+	}
+	replayCompetingExileInsteadReplacements(t)
 }

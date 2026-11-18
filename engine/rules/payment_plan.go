@@ -266,7 +266,21 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 			return pay.PlanPaymentCostWithout(asPayer(e), p, cast, c, d, tapR, nil, keptR)
 		})
 	}
-	return planManaUnderRider(asPayer(e), p, e.G.Players[p].Life, cast, mana, rider, plan)
+	out := planManaUnderRider(asPayer(e), p, e.G.Players[p].Life, cast, mana, rider, plan)
+	if len(cost.Phyrexian) != 0 {
+		// The witness funds only the pip-free mana half (pay.PlanManaHalf),
+		// so a Phyrexian pip the payer's life total cannot pay must take its
+		// colour face out of the window. A plan whose window cannot settle it
+		// strands the cast; it is not an executable payment (CR 107.4f,
+		// 119.4).
+		pc := &pendingCast{player: p, card: cast.Object, mode: cast.CastMode(), ability: -1, cost: cost}
+		desc := paymentForCast(pc, cost)
+		av := pay.AvailableFor(asPayer(e), p, desc)
+		conv := asEval(e).Conv(p, cast.Object, desc.SAKind())
+		out = castPlanPipsOutcome(e, p, cost, pc, e.G.Players[p].Life, e.G.Players[p].Snow,
+			av.Pool, av.Typed, conv, rider, out)
+	}
+	return out
 }
 
 // planManaUnderRider plans a cast's mana half under a may-play pip rider and
@@ -326,6 +340,60 @@ func planPaysManaUnderRider(pe pay.Engine, p state.PlayerID, life int32, plan de
 	pool := pay.ManaAdd(pay.PlanPool(pe, p, desc), produced)
 	_, ok := resolveManaWith(real, pool, state.Mana{}, [8]state.Mana{}, life, false, rider, nil)
 	return ok
+}
+
+// castPlanPipsWindow is the cast payment window's reach: the only engine
+// surface castPlanPipsOutcome needs. The narrow interface keeps the check
+// from widening *Engine (the engineSurface ratchet).
+type castPlanPipsWindow interface {
+	castWindowUnits(pc *pendingCast) []windowManaUnit
+	castWindowCensusComplete(pc *pendingCast, units []windowManaUnit) bool
+	castWindowReachable(p state.PlayerID, cost Cost, spellPool, snow state.Mana,
+		typed [8]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool
+}
+
+// castPlanPipsOutcome withholds a cast plan whose Phyrexian pips the payer's
+// life total cannot all pay. The witness funds only the pip-free mana half
+// (pay.PlanManaHalf); each pip then takes its colour face or its two life in
+// the CR 601.2g-h window (CR 107.4f, 119.4). At a life total below two per
+// pip some pip must take its colour face, which needs mana the half's witness
+// did not fund, so the window's own reach decides whether the plan can still
+// settle it.
+//
+// The plan's activations tap their sources and float their mana, and the
+// window then offers every remaining source (castWindowUnits). The check
+// starts from the plan's production and omits the sources it already used,
+// exactly as the lowering executes. An incomplete census cannot prove the
+// play unpayable, so it keeps the plan (fail open); only a complete census
+// that falls short rejects it.
+func castPlanPipsOutcome(w castPlanPipsWindow, p state.PlayerID, cost Cost, pc *pendingCast,
+	life int32, snow, pool state.Mana, typed [8]state.Mana, conv *manaConv, rider pipRider, out PaymentPlanOutcome) PaymentPlanOutcome {
+	if out.Plan == nil || out.Reason != "" || len(cost.Phyrexian) == 0 ||
+		life >= int32(decision.PhyrexianLife)*int32(len(cost.Phyrexian)) {
+		return out
+	}
+	units := w.castWindowUnits(pc)
+	if !w.castWindowCensusComplete(pc, units) {
+		return out
+	}
+	used := make(map[state.ObjID]bool, len(out.Plan.Activations))
+	var produced state.Mana
+	for _, a := range out.Plan.Activations {
+		used[a.Source] = true
+		for i := range produced {
+			produced[i] += int32(a.Produces[i])
+		}
+	}
+	kept := units[:0]
+	for _, u := range units {
+		if !used[u.ID] {
+			kept = append(kept, u)
+		}
+	}
+	if w.castWindowReachable(p, cost, pay.ManaAdd(pool, produced), snow, typed, life, conv, rider, kept) {
+		return out
+	}
+	return PaymentPlanOutcome{Reason: "insufficient", Detail: "phyrexian_window"}
 }
 
 // prunePlanAltsUnderRider drops the alternative witnesses the folded plan's

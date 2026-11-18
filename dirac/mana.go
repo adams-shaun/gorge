@@ -121,15 +121,14 @@ type avail struct {
 	// credit once at the leaf (CR 702.66a). Zero everywhere else, so every
 	// other caller prices exactly as before.
 	delve int
-	// dynSac: this census is an activated-ability offer's, which prices a
-	// dynamic {T}, sacrifice source (Lotus Blossom, gen.go dynamicManaCost).
-	// gorge's activated-ability planner activates such a source while
-	// paying; its cast planner never plans an indeterminate amount, so a
-	// cast offer leaves it out. Carried on the census, not in genState.availX:
-	// that byte's eight mode bits are all taken, and sharing availWinCol's
-	// made the painland offer gate read the flag as the manual window's
-	// no-lethal-guard mode (mana_pain.go painAvailMask), offering a
-	// self-lethal painland tap at 1 life.
+	// dynSac: this census includes a dynamic {T}, sacrifice source (Lotus
+	// Blossom, gen.go dynamicManaCost). A cast offer's census includes it on
+	// the full surface, where gorge's script route prices the play (gorge.go
+	// priorityVocabulary); the autopay surface drops a scripted plain cast
+	// (script_gen.go autopayDropsPlainCast), so the cast walk leaves it out.
+	// An activated-ability offer prices it on either surface. Carried on the
+	// census, not in genState.availX: that byte's eight mode bits are all
+	// taken (availWinCol's, mana_pain.go painAvailMask).
 	dynSac bool
 }
 
@@ -459,7 +458,7 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 			pc = &k.cards[s.cardAt(sl)]
 		}
 		if pc.manaDyn && pc.manaSac && !a.dynSac {
-			continue // a dynamic {T}, sacrifice source prices only an activated-ability offer (avail.dynSac)
+			continue // a dynamic {T}, sacrifice source joins only a census that prices it (avail.dynSac)
 		}
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 {
 			if withDeferred && pc.manaIdent && pm.flags&pfTapped == 0 && !s.activationSick(k, sl) {

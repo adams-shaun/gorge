@@ -197,6 +197,8 @@ func imprintWriter(in lInstr) bool {
 		return true
 	case "Mill":
 		return strings.Contains(in.CS, "ImprintMove")
+	case "ImprintTriggered":
+		return true
 	}
 	return false
 }

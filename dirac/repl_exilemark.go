@@ -118,6 +118,11 @@ const (
 	// parkNext: a state-based pass parked this move while an earlier pass's asks
 	// were still to come, so gorge's check unattaches before it asks for this one
 	parkNext uint8 = 32
+	// parkChain: a parkSBA move parked beside a pre-sweep casualty (a creature,
+	// walker or other non-Aura move) of its pass, so gorge's sbaChain still
+	// stands at its ask though those casualties have been answered. It shares
+	// parkSacd's bit, which only parkMass moves use.
+	parkChain uint8 = 64
 	// parkSacd: a parkMass move is a sacrifice, emitted with its move (repl_sacbatch.go)
 	parkSacd uint8 = 64
 	// parkBatchEnd: the last parkMass move of a sacrifice batch (with parkSacd),
@@ -282,6 +287,66 @@ func (s *State) park(k *prep, o Obj, kind parkKind, x uint8) bool {
 	return false
 }
 
+// parkNextSorted marks o's fresh parked move as belonging to a later pass than
+// the asks still to come, and seats it among the other later-pass records in
+// gorge's family order (rules/sba.go applySBABatch: creature casualties, then
+// walkers, then unattached Auras, each in seat order; the key sits in x). Gorge
+// builds that pass only after the earlier asks are answered, so a creature
+// found lethal at the fourth answer is asked before an Aura orphaned at the
+// first, though the kernel met the Aura first.
+func (s *State) parkNextSorted(o Obj, chained bool) {
+	p := s.cold.parked
+	at := -1
+	fl := parkNext
+	if chained {
+		fl |= parkChain
+	}
+	for i := range p {
+		if p[i].obj == o && p[i].kind == parkSBA {
+			at = i
+			p[i].fl |= fl
+			break
+		}
+	}
+	for at > 0 && p[at-1].kind == parkSBA && p[at-1].fl&parkNext != 0 && p[at-1].x > p[at].x {
+		p[at-1], p[at] = p[at], p[at-1]
+		at--
+	}
+}
+
+// parkNextFlags sets fl on o's parked state-based move.
+func (s *State) parkNextFlags(o Obj, fl uint8) {
+	for i := range s.cold.parked {
+		if r := &s.cold.parked[i]; r.obj == o && r.kind == parkSBA {
+			r.fl |= fl
+			return
+		}
+	}
+}
+
+// nextBatchBegins refreshes the sources of the later-pass state-based casualties
+// once the pass before them is answered, and ends their wait: gorge computes the
+// next batch's replacements then, so a source an earlier answer exiled is gone
+// from it (a Samurai of the Pale Curtain that died in the first batch).
+func (s *State) nextBatchBegins(k *prep) {
+	if k.gen == nil || k.gen.anyRepl&rbExileOnLeave == 0 {
+		return
+	}
+	for i := range s.cold.parked {
+		r := &s.cold.parked[i]
+		if r.kind != parkSBA || r.fl&parkNext == 0 {
+			continue
+		}
+		r.fl &^= parkNext
+		var src [MaxPerm]Obj
+		if n := s.graveMoveSources(k, r.obj, &src); n <= maxParkSrc {
+			r.src = [maxParkSrc]Obj{}
+			copy(r.src[:], src[:n])
+			r.setNsrc(n)
+		}
+	}
+}
+
 // parkedWaitingOn reports whether o's move is in the queue with its ask to come.
 func (s *State) parkedWaitingOn(o Obj) bool {
 	for i := range s.cold.parked {
@@ -334,25 +399,28 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask, askAfter *bo
 	dw := *die
 	wp := die.or(*pwz)
 	var order [MaxPerm]Slot
+	var key [MaxPerm]uint8
 	n := 0
-	for _, gm := range [4]slotMask{dw, pwz.andNot(dw), aur.andNot(wp), gy.andNot(wp.or(*aur))} {
+	for f, gm := range [4]slotMask{dw, pwz.andNot(dw), aur.andNot(wp), gy.andNot(wp.or(*aur))} {
 		for p := uint8(0); p < MaxSeats; p++ {
-			n = s.battlefieldOrder(p, gm.and(s.ctrlM[p]), order[:], n)
+			m := s.battlefieldOrder(p, gm.and(s.ctrlM[p]), order[:], n)
+			for i := n; i < m; i++ {
+				key[i] = uint8(f)<<3 | p
+			}
+			n = m
 		}
 	}
 	fresh := false
 	busy := s.parkedWaiting()
-	for _, sl := range order[:n] {
+	for i, sl := range order[:n] {
 		o := s.perms[sl].obj
 		was := s.parkedWaitingOn(o)
-		if s.park(k, o, parkSBA, 0) {
+		if s.park(k, o, parkSBA, key[i]) {
 			fresh = fresh || !was
 			if !was && busy {
-				for i := range s.cold.parked {
-					if r := &s.cold.parked[i]; r.obj == o && r.kind == parkSBA {
-						r.fl |= parkNext
-					}
-				}
+				s.parkNextSorted(o, pre.any())
+			} else if !was && pre.any() {
+				s.parkNextFlags(o, parkChain)
 			}
 			*die, *gy, *pwz, *aur = die.without(sl), gy.without(sl), pwz.without(sl), aur.without(sl)
 		}
@@ -386,7 +454,7 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask, askAfter *bo
 	// the casualties first sees them too) and a re-run pose (the recheck
 	// re-queues the waiting casualty, the head, which is still on the
 	// battlefield).
-	if !pre.any() {
+	if h := &s.cold.parked[0]; !pre.any() && !(h.kind == parkSBA && h.fl&parkChain != 0) {
 		s.sbaChainEnd(k)
 		s.ceaseTokensGen()
 	}
@@ -419,11 +487,28 @@ func (s *State) exileOrderOptions(k *prep, d *Decision) {
 	}
 }
 
+// chosenExileCounter is the counter the order answer (mode) leaves on the
+// exiled card: none when a mark was chosen, else the chosen source's own
+// ReplExileOnLeave counter. The source's card is read from its Obj record, so a
+// source that has left since the ask still counts (last known information).
+func (s *State) chosenExileCounter(k *prep, r parkedMove, mode int) (kop.CounterKind, uint8) {
+	i := mode - maxExMarks
+	if i < 0 || i >= r.nsrc() || k.gen == nil || k.gen.exileOnLeave == nil {
+		return 0, 0
+	}
+	c := s.objs[r.src[i]].card
+	if int(c) >= len(k.gen.exileOnLeave) {
+		return 0, 0
+	}
+	return exileCounterKind(k.t, c, k.gen.exileOnLeave[c])
+}
+
 // applyExileOrder records the answer and runs the parked move, leaving the
 // creature only the mark answered. After a state-based move the next pass moves
 // what has come to die meanwhile, then asks for the next.
 func (s *State) applyExileOrder(k *prep, a Action) {
 	r := s.cold.parked[0]
+	ctr, ctrN := s.chosenExileCounter(k, r, int(a.Mode()))
 	if ob := &s.objs[r.obj]; ob.zone == kop.ZoneBattlefield {
 		s.settleExileMarks(ob.slot, int(a.Mode()))
 	}
@@ -438,8 +523,18 @@ func (s *State) applyExileOrder(k *prep, a Action) {
 			resumePay = true
 		}
 	}
+	wasExiled := s.objs[r.obj].zone == kop.ZoneExile
 	s.runParked(k, r)
 	s.takeAnswered(r.obj)
+	if !wasExiled && s.objs[r.obj].zone == kop.ZoneExile {
+		// the answered effect alone applied, so only its counter lands: the
+		// settled move itself stamps none (dieZone, exileAnyDest). Done after the
+		// move, which has cleared the record of the version it left
+		s.clearExileCounter(r.obj)
+		if ctr != 0 {
+			s.stampExileCounterMoved(r.obj, ctr, int(ctrN))
+		}
+	}
 	if r.kind == parkDread {
 		// the manifest dread window goes on after the answer: the next window
 		// (when Amount$ is >1) is asked with the other card now moved
@@ -453,10 +548,14 @@ func (s *State) applyExileOrder(k *prep, a Action) {
 		for i := range s.cold.parked {
 			s.cold.parked[i].fl |= parkLater
 		}
-		if h := &s.cold.parked[0]; h.kind == parkSBA && h.fl&parkNext != 0 && s.g.lingerM.any() {
-			// the answered pass is over and the next one's check unattaches first
-			h.fl &^= parkNext
-			s.lingerDrain(k)
+		if h := &s.cold.parked[0]; h.kind == parkSBA && h.fl&parkNext != 0 {
+			// the answered pass is over: gorge builds the next batch now, so its
+			// sources are the permanents still here
+			s.nextBatchBegins(k)
+			if s.g.lingerM.any() {
+				// the next one's check unattaches first
+				s.lingerDrain(k)
+			}
 		}
 		return
 	}
