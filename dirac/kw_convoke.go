@@ -329,7 +329,9 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 		return false
 	}
 	if cd := &k.t.Cards[e.card]; harmonizeEntry(cd, e) || cd.HasPlot || cd.HasSneak || cd.HasWarp || e.trigPl == trigPlWarpG ||
-		cd.Mayhem || cd.HasWebSling || cd.HasMayFlash {
+		cd.Mayhem && e.trigPl == trigPlMayhem || cd.HasWebSling || cd.HasMayFlash {
+		// A Mayhem card cast from hand at its printed cost is the plain ask
+		// (only a mayhem cast, trigPlMayhem, is the alternative route).
 		// kgen refuses these routes beside a printed Convoke or Improvise, so
 		// a live one is a grant. gorge's convokeAsk offers harmonize and
 		// convoke/improvise picks together, and prices the alternative-cost
