@@ -3,6 +3,7 @@ A-Leyline of Resonance
 A-Pseudodragon Familiar
 A-Tatyova, Steward of Tides
 A-Urza, Powerstone Prodigy
+Abandon Hope
 Aether Mutation
 Aetherling
 Aethersnipe
@@ -106,6 +107,7 @@ Dragon's Smile
 Dragonshift
 Dread Reaper
 Duskfang Mentor
+Dwarven Driller
 ED-E, Lonesome Eyebot
 Earthblighter
 Eastfarthing Farmer
@@ -205,6 +207,7 @@ Kefnet's Monument
 Kessig Prowler
 Khabál Ghoul
 Killer Whale
+Killian, Decisive Mentor
 Kithkin Shielddare
 Kjeldoran Frostbeast
 Knight of the Pilgrim's Road
@@ -291,6 +294,7 @@ Psychic Spiral
 Pull Under
 Puppeteer
 Pyrite Spellbomb
+Quintorius, Field Historian
 Raka Sanctuary
 Rakdos Carnarium
 Raking Canopy
@@ -405,6 +409,8 @@ Tolarian Serpent
 Torch Drake
 Torch Gauntlet
 Torture
+Toshiro Umezawa
+Trailblazer's Boots
 Trained Caracal
 Trained Condor
 Transcendent Master

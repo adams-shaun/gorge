@@ -39,6 +39,7 @@ Avatar of Growth
 Aven Redeemer
 Azra Smokeshaper
 Bad Deal
+Balduvian War-Makers
 Banshee of the Dread Choir
 Battering Krasis
 Beastmaster Ascension
@@ -152,6 +153,7 @@ Flooded Strand
 Florian, Voldaren Scion
 Flowering of the White Tree
 Flowstone Slide
+Fluxcharger
 Forest
 Forked Bolt
 Fowl Play
@@ -171,6 +173,7 @@ Ghostflame Sliver
 Ghostly Touch
 Ghoul's Feast
 Gifted Aetherborn
+Giggling Skitterspike
 Glacial Grasp
 Glaive of the Guildpact
 Gleaming Overseer
@@ -178,6 +181,7 @@ Glenn, the Voice of Calm
 Glint Hawk Idol
 Glittermonger
 Glorious Charge
+Glyph Keeper
 Goblin Flectomancer
 Goblin War Buggy
 Gretchen Titchwillow
@@ -213,6 +217,7 @@ Instill Furor
 Instill Infection
 Invasion of Ixalan
 Invasive Species
+Invert
 Island
 It's Clobberin' Time!
 Jukai Messenger
@@ -232,6 +237,8 @@ Knightly Valor
 Koala-Sheep
 Krovikan Plague
 Kyren Sniper
+Labyrinth Guardian
+Laccolith Warrior
 Lambholt Harrier
 Lance
 Lashwrithe
@@ -274,6 +281,7 @@ Mystic Retrieval
 Nagging Thoughts
 Nameless One
 Narcissism
+Necrite
 Nemesis Mask
 Nether Horror
 Night Out in Vegas
@@ -326,6 +334,7 @@ Rhystic Shield
 Riddle of Lightning
 Ridgetop Raptor
 Riftwing Cloudskate
+Rime Tender
 Riot Piker
 Rip-Clan Crasher
 Riverwheel Aerialists
@@ -362,6 +371,7 @@ Sky Crier
 Skyshroud Elite
 Skystrike Officer
 Slaughterhouse Bouncer
+Slaying Fire
 Sleeper's Guile
 Smokespew Invoker
 Smoldering Tar
@@ -410,6 +420,7 @@ Tooth and Nail
 Towering Baloth
 Tribute to the World Tree
 Trophy Hunter
+Tuskeri Firewalker
 Twinblade Assassins
 Tyrite Sanctum
 Ugin's Construct

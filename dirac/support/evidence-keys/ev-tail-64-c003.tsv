@@ -1,0 +1,78 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Accorder Paladin	ff60f899420cdd73	36	1/1		1/1	
+Binding Agony	60051e8b78349fdc	34	1/1		2/2	
+Bleed Dry	ad4542c0d117b0bc	16	0/0		2/2	
+Blinking Spirit	429de2d3b4e610b5	106	1/1		1/1	
+Canopy Tactician	ae04176da50d9ca1	45	1/1		1/1	
+Cerulean Wyvern	58362a7953563b14	48	0/0		0/0	
+Citizen's Arrest	097aee9da81aa0c7	42	1/1		1/1	
+Copperhorn Scout	ddbd55a3c8906ec2	45	1/1		1/1	
+Culling the Weak	502745d2fa6e453b	24	0/0		2/2	
+Dakmor Bat	7786de75877543e2	16	0/0		0/0	
+Daring Demolition	757a546b9584218c	18	0/0		2/2	
+Dark Betrayal	a343b2aece29068d	25	0/0		1/2	ix:resp
+Destructor Dragon	fc11e7547c977d9d	28	1/1		1/1	
+Dig Up the Body	043b50347035c9ae	36	0/0		2/2	
+Doctor Doom, Unrivaled	e3f868d9ef41dd4b	32	1/1		1/1	
+Dreadwurm	1b2328deda69ab02	12	1/1		1/1	
+Eastern Paladin	451708b0173d42ae	21	1/1		1/1	
+Erinis, Gloom Stalker	4f33dd740561634d	40	1/1		1/1	
+Fallaji Archaeologist	64e0fd47ae30c4ae	46	1/1		1/1	
+Fell Stinger	4efe23c1bf66bac4	17	2/2		1/1	
+Flood of Recollection	ed718b501d22929e	32	0/0		2/2	
+Forsaken Drifters	b465832eb3d75098	36	1/1		1/1	
+Genju of the Spires	560059a60bda5af9	51	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
+Greenwood Sentinel	de09a70abd8a6975	64	0/0		0/0	
+Grisly Ritual	8610bc1170c518e8	16	0/0		2/2	
+Gutwrencher Oni	d1594339239f7b81	23	1/1		0/1	ix:resp
+Healing Technique	d481fafee886d234	31	1/1		2/2	
+Heron of Hope	1dd4ac4e46b5ed0a	39	1/1		1/1	
+Honored Heirloom	2e315b37512514fa	40	2/2		1/1	
+Hydromorph Guardian	b211fba01f03ecb2	36	1/1		1/1	
+Ironclad Krovod	7e11e4df53bd96d1	32	0/0		0/0	
+Jade Mage	3aaf9634d12211c2	50	1/1		1/1	
+Kitesail Cleric	215241f8e38229ca	62	1/1		3/3	
+Lash Out	d97e460fea8dac47	34	0/0		2/2	
+Life and Limb	ca1879db7ce98968	39	0/0		0/0	
+Liliana's Standard Bearer	22726d742d6309da	33	1/1		0/1	ix:resp
+Liliana, Death Wielder	3a54cb73cb99ba29	17	3/3		1/1	
+Live Fast	9500f5378fedd42a	17	0/0		1/2	ix:resp
+March of the Returned	5e175fa7d10cca24	34	0/0		2/2	
+Marrow-Gnawer	3537657784812dcd	9	1/1		0/1	ix:resp
+Maverick Thopterist	b75053f2fd7a852c	20	1/1		1/1	
+Mindleech Ghoul	faa3b37865a73a7e	40	2/2		1/1	
+Miscast	fc32da5ee9b23cfb	20	0/0		2/2	
+Molder Slug	1a45d132baa150d5	14	1/1		1/1	
+Muscle Sliver	e9994c33f4bac520	48	0/0		0/0	
+Myojin of Seeing Winds	a5074b91018c6a69	7	1/1		1/1	
+Nantuko Husk	7b256742bef99644	34	1/1		1/1	
+Needleshot Gourna	8966d36a48d577e3	30	0/0		0/0	
+Norwood Warrior	a936626a4dd07a57	24	1/1		0/1	ix:resp
+Overgrown Armasaur	6b43dd5c0c6d2054	50	1/1		1/1	
+Paragon of New Dawns	7f8af9ed8dc89672	42	1/1		1/1	
+Poultice Sliver	13db0b37edd3930f	45	0/0		0/0	
+Predators' Hour	f3fca684f18e103d	28	0/0		2/2	
+Reaver Ambush	7a08f1aab33c2061	22	0/0		2/2	
+Recantation	f0224d3cfed65960	22	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Renegade Krasis	f9d5cedaf91d4da5	17	2/2		1/1	
+Repentant Vampire	022a6c593ba29f1f	9	1/1		0/1	ix:resp
+Repudiate	0a80f973c947a77a	40	0/0		2/3	f1/s
+Retrieve	cf2fcf899da31f9c	35	0/0		2/2	
+Rouse	2e433fc23273ac2e	26	0/0		2/2	
+Run for Your Life	f1d6c6b678e6b13b	36	0/0		3/4	cast/alt:escaped
+Sanguine Spy	e3c28d41a3cfc4d2	30	2/2		1/1	
+Seeker of the Way	20971ad18fa3f937	68	2/2		1/1	
+Segmented Krotiq	8c1025b2aa7484ac	34	0/0		1/2	cast/alt:megamorphed
+Shiv's Embrace	8e74dde11321ec9e	25	1/1		2/2	
+Shu Soldier-Farmers	410b4574121c676e	37	1/1		1/1	
+Stitched Mangler	b6e6f81aea1eaecd	54	1/1		1/1	
+Tainted Pact	3c77a6df1db891c4	29	0/0		2/2	
+Temperamental Oozewagg	8294f4cbd1039030	41	1/1		1/1	
+Territorial Allosaurus	dd91d180c55925ae	43	1/1		3/3	
+The Weaver King	bfdc992fc43eb914	5	1/1		0/1	ix:resp
+Thresher Lizard	197b60d5686f05cd	28	0/0		0/0	
+Thundering Djinn	894930d128ff4835	19	1/1		1/1	
+Time Reversal	aaae6fdad7898fbf	33	0/0		2/2	
+Time Walk	08c0dd9e7e4d5508	55	0/0		2/2	
+Urborg Syphon-Mage	b6aeb008dbb7a051	14	1/1		0/1	ix:resp
+Vitalize	077dea108b120718	50	0/0		2/2	

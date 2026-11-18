@@ -6,6 +6,7 @@ Ankle Biter
 Archangel of Tithes
 Arid Archway
 Armored Armadillo
+Assimilation Aegis
 At Knifepoint
 Badlands Revival
 Bandit's Haul
@@ -26,6 +27,7 @@ Brimstone Roundup
 Bristlepack Sentry
 Bristling Backwoods
 Bristly Bill, Spine Sower
+Bruse Tarl, Roving Rancher
 Bucolic Ranch
 Cactarantula
 Cactusfolk Sureshot
@@ -36,9 +38,12 @@ Caustic Bronco
 Claim Jumper
 Concealed Courtyard
 Conduit Pylons
+Congregation Gryff
 Consuming Ashes
+Corrupted Conviction
 Creosote Heath
 Cunning Coyote
+Dance of the Tumbleweeds
 Daring Thunder-Thief
 Deadeye Duelist
 Deepmuck Desperado
@@ -63,6 +68,7 @@ Final Showdown
 Fleeting Reflection
 Forest
 Forlorn Flats
+Form a Posse
 Forsaken Miner
 Fortune, Loyal Steed
 Freestrider Commando
@@ -120,6 +126,7 @@ Marauding Sphinx
 Metamorphic Blast
 Mine Raider
 Mirage Mesa
+Miriam, Herd Whisperer
 Mobile Homestead
 Mountain
 Mourner's Surprise
@@ -162,6 +169,7 @@ Razzle-Dazzler
 Reach for the Sky
 Reckless Lackey
 Redrock Sentinel
+Requisition Raid
 Resilient Roadrunner
 Rictus Robber
 Rise of the Varmints
@@ -176,6 +184,8 @@ Satoru, the Infiltrator
 Scalestorm Summoner
 Scorching Shot
 Seize the Secrets
+Selvala, Eager Trailblazer
+Seraphic Steed
 Servant of the Stinger
 Shackle Slinger
 Shepherd of the Clouds
@@ -204,6 +214,7 @@ Stoic Sphinx
 Stop Cold
 Stubborn Burrowfiend
 Swamp
+Take Up the Shield
 Take the Fall
 Terror of the Peaks
 The Key to the Vault
@@ -229,3 +240,4 @@ Voracious Varmint
 Vraska Joins Up
 Wanted Griffin
 Wrangler of the Damned
+Wylie Duke, Atiin Hero

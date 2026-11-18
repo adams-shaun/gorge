@@ -1,0 +1,69 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A Little Chat	b9a3bd56838239c6	23	0/0		1/2	ix:resp
+A-Glittermonger	81219d9297c48685	11	1/1		0/1	ix:resp
+Aegis of the Heavens	028174762fce9b48	4	0/0		1/2	ix:resp
+Aerith, Last Ancient	a7060f28e5999f19	4	1/1		0/1	ix:resp
+Aeronaut Tinkerer	2916b91227c360f8	19	0/0		0/0	
+Allied Reinforcements	f2bf3bfffaab9a35	19	0/0		1/2	ix:resp
+Argothian Swine	5fee795743d357ff	8	0/0		0/0	
+Auriok Windwalker	faac876250644873	26	1/1		1/1	
+Avenging Arrow	15d0bacaa9913646	25	0/0		1/2	ix:resp
+Blazing Archon	81a84500262be321	10	0/0		0/0	
+Bloodroot Apothecary	ebf3d5812e821be9	4	2/2		0/1	ix:resp
+Cage of Hands	718f75ab6a03ff51	18	1/1		2/2	
+Coordinated Charge	e46a48e21a51e938	11	1/1		2/2	
+Dalek Squadron	dc9380917d5dd920	38	1/1		0/1	ix:resp
+Deathsprout	61b2065fe75284e4	15	0/0		2/2	
+Elturgard Ranger	acaf3ecb5f3ed632	21	1/1		1/1	
+Evolved Sleeper	0ba9585e4a83d624	32	3/3		1/1	
+Faerie Seer	3326a32d959662dd	21	1/1		0/1	ix:resp
+Famine	026a6b0b6ab58ce6	11	0/0		1/2	ix:resp
+Field Creeper	1355c5616572f47b	4	0/0		0/0	
+Field Surgeon	3eca18f51628cf9a	20	1/1		1/1	
+Flow of Ideas	4fa1ce64bf95c7cf	11	0/0		2/2	
+Glimmer Bairn	22f904a46e5a222c	29	1/1		0/1	ix:resp
+Grond, the Gatebreaker	01bc1b4ae11f6617	27	1/1		1/1	
+Hapatra, Vizier of Poisons	ca90cecc782308e8	12	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Headhunter	a50497cb0a64c4cd	30	1/1		2/3	cast/alt:morphed
+Hillcomber Giant	4c6c437af952eb7f	20	0/0		0/0	
+Infiltrator il-Kor	4af86af5490a7802	17	0/0		2/2	
+Jarl of the Forsaken	968b3777486682de	4	1/1		1/3	cast/alt:foretold,ix:resp
+Jinxed Choker	aaf2b959a758816b	4	4/4		1/1	
+Knight of Meadowgrain	5822bba0224a19d9	4	0/0		0/0	
+Leaf Dancer	e948371348d57475	8	0/0		0/0	
+Liability	97eeed20f2c7cc77	4	1/1		0/1	ix:resp
+Llanowar Empath	0e1a996f037f73f2	15	1/1		1/1	
+Loxodon Stalwart	66b487ff64626df5	16	1/1		1/1	
+Mine Bearer	83d7deb0766854e3	32	1/1		1/1	
+Moorland Drifter	d1c11696b5ea2d60	33	0/0		0/0	
+Mossdog	b735d7471f6aaf01	10	1/1		1/1	
+Myojin of Towering Might	32a9a059bf241ac3	7	1/1		0/1	ix:resp
+Nath of the Gilt-Leaf	d078d006345f7e62	8	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
+Niblis of the Breath	55ceb652fe9bfb80	42	1/1		1/1	
+Pouncing Jaguar	153b81f6a75a0897	4	1/1		0/1	ix:resp
+Psionic Snoop	2222a5250f95efd9	28	1/1		1/1	
+Pulsemage Advocate	5eb8b071e7e35ea9	28	1/1		0/1	ix:resp
+Ranger's Path	02b718993e49c64e	13	0/0		1/2	ix:resp
+Rebuild	d8f0b9ea49bb4a03	12	1/1		2/2	
+Resolute Rider	add537d5b4a730e3	15	2/2		1/1	
+Roil Elemental	deac33b35dab546b	14	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Second Sight	aedd8e8e32245187	4	0/0		1/2	ix:resp
+Skittering Heartstopper	0b608634529e5ea5	4	1/1		0/1	ix:resp
+Skywhaler's Shot	42f522b4f1ea866d	14	0/0		2/2	
+Squirrel Nest	d6ed77cad288d101	14	0/0		1/2	ix:resp
+Sram's Expertise	3d6f9e1bba259270	40	0/0		2/2	
+Strength of Arms	76e00955475ded60	29	0/0		2/2	
+Sunblast Angel	5c63fd89e17563ca	4	1/1		0/1	ix:resp
+Synod Centurion	c37be8830adf2ea7	30	1/1		1/1	
+Tidal Courier	557216d70d6dee17	7	2/2		1/1	
+Timberland Guide	fec5b8e70608d4c3	10	1/1		0/1	ix:resp
+Torch Drake	cf2df3e8f2e7cc4f	23	1/1		1/1	
+Treetop Ambusher	2f223c522dcb36b9	34	1/1		3/3	
+Trickster Mage	6b04ece329c886a9	35	1/1		1/1	
+Umara Entangler	47d7e17ac7006539	4	1/1		0/1	ix:resp
+Voice of the Blessed	5393da100735409f	31	1/1		1/1	
+Wanderlight Spirit	d756a4a36e40e3d4	25	0/0		0/0	
+War Oracle	5824c6e611190c93	27	1/1		1/1	
+Weathered Bodyguards	4176da90b5231634	13	0/0		1/2	cast/alt:morphed
+Westfold Rider	255b4f62b2c6c9cd	12	1/1		1/1	
+Worm Harvest	c4ff840a8d34a3d9	5	0/0		1/2	ix:resp

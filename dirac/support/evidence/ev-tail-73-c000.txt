@@ -21,7 +21,9 @@ Anara, Wolvid Familiar
 Ancient Stirrings
 Angelic Protector
 Appetite for Brains
+Arcbound Tracker
 Archon of Falling Stars
+Ardenvale Paladin
 Arm-Mounted Anchor
 Arrogant Poet
 Ashen Rider
@@ -45,6 +47,7 @@ Blood Lust
 Blood Money
 Bloodlust Inciter
 Bold Impaler
+Bone Dragon
 Bonesplitter
 Boneyard Wurm
 Boreal Shelf
@@ -85,6 +88,7 @@ Constable of the Realm
 Continue?
 Contraband Livestock
 Copper Gnomes
+Countersquall
 Cryptothrall
 Crystal Dragon
 Crystal Slipper
@@ -122,6 +126,7 @@ Ebony Horse
 Elite Vanguard
 Embrace the Unknown
 Enclave Cryptologist
+End-Raze Forerunners
 Endless Cockroaches
 Engineered Might
 Ephara's Dispersal
@@ -135,16 +140,19 @@ Faithbearer Paladin
 Falter
 Fang Skulkin
 Fatal Attraction
+Fatestitcher
 Feast of the Unicorn
 Feiyi Snake
 Feral Invocation
 Festering Evil
 Fierce Witchstalker
 Fiery Confluence
+Fire Juggler
 Fire Urchin
 Fireforger's Puzzleknot
 Flameshadow Conjuring
 Flaring Pain
+Flash Counter
 Flatten
 Fleeting Image
 Flowstone Kavu
@@ -169,6 +177,7 @@ Gerrard Capashen
 Getaway Car
 Ghostway
 Giant Solifuge
+Glacial Revelation
 Gladecover Scout
 Goblin Fire Fiend
 Goblin Medics
@@ -200,6 +209,7 @@ Heap Doll
 Helica Glider
 Hellspark Elemental
 Hieromancer's Cage
+Hixus, Prison Warden
 Hobgoblin Captain
 Holy Armor
 Holy Light
@@ -209,6 +219,7 @@ Humble Defector
 Hunter's Mark
 Hurloon Minotaur
 Hydra's Growth
+Ichorid
 Illusionary Armor
 Impaler Shrike
 Impending Doom
@@ -216,10 +227,12 @@ Increasing Devotion
 Inferno Fist
 Inner Struggle
 Invading Manticore
+Invasion of Karsus
 Iroas's Blessing
 Iron Man, Modern Marvel
 Iron Suitcase
 Island
+Ivy Dancer
 Ivy Seer
 Jade Guardian
 Jalira, Master Polymorphist
@@ -253,6 +266,7 @@ Malevolent Awakening
 Malevolent Whispers
 Malfunction
 Malignant Growth
+Mana Leech
 Mana Severance
 Maniacal Rage
 Marauder's Axe
@@ -267,6 +281,7 @@ Mindshrieker
 Mirran Mettle
 Mirri the Cursed
 Mirri's Guile
+Mischievous Chimera
 Misguided Rage
 Mist-Cloaked Herald
 Moggcatcher
@@ -288,10 +303,12 @@ Nettle Drone
 Neurok Replica
 Night Out in Vegas
 Nimble Birdsticker
+Nin, the Pain Artist
 Nomad Decoy
 Norwood Priestess
 Null Caller
 Nylea's Huntmaster
+Oathsworn Knight
 Oathsworn Vampire
 Ogre Errant
 Old Rutstein
@@ -321,6 +338,8 @@ Plague Spitter
 Plains
 Poison-Tip Archer
 Primal Whisperer
+Primeval Force
+Primoc Escapee
 Prizefight
 Protective Bubble
 Puca's Covenant
@@ -342,8 +361,10 @@ Reito Lantern
 Relief Captain
 Reprocess
 Reroute
+Reya Dawnbringer
 Rhox Pikemaster
 Rhystic Study
+Roalesk, Apex Hybrid
 Roar of the Crowd
 Roiling Waters
 Rotted Hystrix
@@ -438,6 +459,7 @@ Tar Pit Warrior
 Tarkir Duneshaper
 Taste for Mayhem
 Tectonic Break
+Tezzeret the Schemer
 The Stasis Coffin
 Thing in the Ice
 Thraben Charm
@@ -451,6 +473,7 @@ Tireless Hauler
 Touch of the Eternal
 Tower Geist
 Tranquil Grove
+Transmutation
 Traumatize
 Treacherous Vampire
 Treefolk Healer
@@ -465,6 +488,7 @@ Unleash Fury
 Unnatural Growth
 Unwilling Ingredient
 Urborg Shambler
+Vedalken Ghoul
 Venser's Journal
 Verdant Touch
 Verdurous Gearhulk

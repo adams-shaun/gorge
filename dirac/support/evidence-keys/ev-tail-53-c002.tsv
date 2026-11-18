@@ -1,0 +1,103 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Geological Appraiser	2062d10998a489c2	4	1/1		0/1	ix:resp
+Aether Helix	9bb2cf6c7c3923b4	4	0/0		1/2	ix:resp
+Allied Reinforcements	f2bf3bfffaab9a35	35	0/0		2/2	
+Araumi of the Dead Tide	506046ed94ca55cf	34	1/1		1/1	
+Argothian Swine	5fee795743d357ff	19	0/0		0/0	
+Arjun, the Shifting Flame	436a2de64d7cb82f	15	1/1		1/1	
+Artifact Blast	d9833d4c7fa9b2d7	4	0/0		1/2	ix:resp
+Augury Adept	7f14d68263c20eda	16	1/1		1/1	
+Auriok Windwalker	faac876250644873	38	1/1		0/1	ix:resp
+Aurora Eidolon	e00233e685aef9a2	34	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Avenging Arrow	15d0bacaa9913646	10	0/0		1/2	ix:resp
+Blazing Archon	81a84500262be321	12	0/0		0/0	
+Bred for the Hunt	a5cc862a1baf4fca	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Burning Sands	a5c5d203bc17d844	14	1/1		1/1	
+Cage of Hands	718f75ab6a03ff51	20	1/1		1/2	ix:resp
+Capenna Express	14d12371dd258f48	19	2/2		1/1	
+Captivating Crew	5e4c81cd885534e7	12	1/1		0/1	ix:resp
+Cleanup Crew	c69660e9a28bb4e3	6	1/1		0/1	ix:resp
+Converter Beast	6868c47d95f52022	3	1/1		0/1	ix:resp
+Coordinated Charge	e46a48e21a51e938	3	1/1		2/2	
+Cosmic Crucible	9b7bc3364be69520	9	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Cryptbreaker	0d531480295dcda3	4	2/2		1/1	
+Dalek Squadron	dc9380917d5dd920	32	1/1		0/1	ix:resp
+Daring Archaeologist	38487f129255c05d	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Daring Leap	21e104c9eb1aa4ff	23	0/0		2/2	
+Dark Banishing	b95ad6965a8b7cac	46	0/0		2/2	
+Domineer	ba340fec949aa4e0	10	0/0		1/2	ix:resp
+Dream Fracture	d8c3394345641390	22	0/0		1/2	ix:resp
+Dregscape Zombie	bfd2b60ddff75057	43	1/1		1/1	
+Eager First-Year	8dcc13463ff0b7e8	40	1/1		0/1	ix:resp
+Earth Elemental	26f8ca64a6a95ad5	7	0/0		0/0	
+Elemental Summoning	3dd6af58498aa89b	4	0/0		1/2	ix:resp
+Faerie Seer	3326a32d959662dd	34	1/1		1/1	
+Famine	026a6b0b6ab58ce6	9	0/0		1/2	ix:resp
+Fangren Pathcutter	ff044fe85376af85	4	1/1		0/1	ix:resp
+Flailing Ogre	3005ab69905cd11b	17	2/2		1/1	
+Flame of Anor	c323da0b987b466c	4	0/0		1/2	ix:resp
+Flesh Allergy	ea9cb6ce710e99c3	22	0/0		1/2	ix:resp
+Foster	fffcb4d7e5749fbe	16	1/1		0/1	ix:resp
+Fugue	a1774ee8055a0131	23	0/0		1/2	ix:resp
+Geist of the Moors	0aed5be33427d852	14	0/0		0/0	
+Goblin War Paint	b27dd3840531a456	4	0/0		1/2	ix:resp
+Grond, the Gatebreaker	01bc1b4ae11f6617	34	1/1		1/1	
+Headhunter	a50497cb0a64c4cd	22	1/1		2/3	cast/alt:morphed
+Hillcomber Giant	4c6c437af952eb7f	16	0/0		0/0	
+Incubation	20d776d3fa7384f0	21	0/0		2/3	f1/s
+Insufferable Balladeer	81a1d08c996c167b	8	1/1		0/1	ix:resp
+Jarl of the Forsaken	968b3777486682de	9	1/1		1/3	cast/alt:foretold,ix:resp
+Lightbringer	b69b35382c2de020	26	1/1		0/1	ix:resp
+Lobber Crew	f953cfee1abad26e	26	2/2		0/1	ix:resp
+Magma Spray	83327047ef23f767	34	0/0		2/2	
+Magus of the Wheel	baddf6eb04b8e4b4	6	1/1		0/1	ix:resp
+Master of the Pearl Trident	cd8596ea6c9aa031	4	0/0		0/0	
+Megatog	626103d08b44458e	6	1/1		1/1	
+Molten Blast	71a2dc698d8d3ada	10	0/0		1/2	ix:resp
+Moorland Drifter	d1c11696b5ea2d60	20	0/0		0/0	
+Mossdog	b735d7471f6aaf01	26	1/1		1/1	
+Myojin of Towering Might	32a9a059bf241ac3	4	1/1		0/1	ix:resp
+Nightmare Unmaking	07e6b2c289f53cfe	27	0/0		1/2	ix:resp
+Nirkana Revenant	f8c1b585c5b9e6ba	13	2/2		1/1	
+Ophiomancer	95387e6676bb7752	28	1/1		1/1	
+Phyrexian Tribute	698f4f3d8133c5a9	12	0/0		2/2	
+Pillaging Horde	9a01385247c452ec	7	1/1		0/1	ix:resp
+Pit Raptor	edc4d1337221b1c8	3	1/1		0/1	ix:resp
+Prosperous Bandit	fce44f66f51a4d3e	28	2/2		3/3	
+Queen's Bay Soldier	826476243226586a	4	0/0		0/0	
+Rage Reflection	311208cc8c519c0b	13	0/0		0/0	
+Rebuild	d8f0b9ea49bb4a03	5	1/1		2/2	
+Resolute Rider	add537d5b4a730e3	7	2/2		1/1	
+Savage Surge	bd052708b0cbc992	22	0/0		2/2	
+Savvy Hunter	9144cd6674735fff	27	3/3		0/1	ix:resp
+Scrabbling Claws	6eb3bea6f4aea3e6	6	2/2		0/1	ix:resp
+Second Sight	aedd8e8e32245187	4	0/0		1/2	ix:resp
+Servant of Tymaret	1d9e38f6e49be18e	8	2/2		1/1	
+Silverclaw Griffin	bc0dfcec65b8df5c	6	0/0		0/0	
+Skull Catapult	10e8f4c8fc758bdf	16	1/1		1/1	
+Skywhaler's Shot	42f522b4f1ea866d	44	0/0		2/2	
+Squirrel Nest	d6ed77cad288d101	17	0/0		1/2	ix:resp
+Sram's Expertise	3d6f9e1bba259270	4	0/0		1/2	ix:resp
+Strength of Arms	76e00955475ded60	15	0/0		2/2	
+Swooping Lookout	8ffc621d7bf5fa5a	32	0/0		0/0	
+Tahngarth's Rage	e289075ec25c7fbd	9	0/0		1/2	ix:resp
+Tidal Courier	557216d70d6dee17	22	2/2		1/1	
+Titania, Proud Pummeler	deaa8a16b9e46ec8	18	1/1		0/1	ix:resp
+Treetop Ambusher	2f223c522dcb36b9	45	1/1		2/3	ix:resp
+Tribute to Urborg	bf87a23c83ff38b6	3	0/0		2/4	cast/alt:kicked,ix:resp
+Trickster Mage	6b04ece329c886a9	48	1/1		1/1	
+Underworld Coinsmith	f888186c8c4b4fc8	11	2/2		1/1	
+Viscera Seer	b302889b0943be56	4	1/1		0/1	ix:resp
+Vug Lizard	8b6006d80adf6e8c	10	1/1		1/1	
+Vulshok Splitter	1c5e1615c4bc41ae	7	2/2		1/1	
+Wall of Heat	73974f295fb55641	4	0/0		0/0	
+Wanderlight Spirit	d756a4a36e40e3d4	22	0/0		0/0	
+War Oracle	5824c6e611190c93	10	1/1		0/1	ix:resp
+Warchanter of Mogis	f4575110928f0a11	4	1/1		0/1	ix:resp
+Weathered Bodyguards	4176da90b5231634	21	0/0		1/2	cast/alt:morphed
+Westfold Rider	255b4f62b2c6c9cd	15	1/1		0/1	ix:resp
+Whisper, Blood Liturgist	55d035846411f115	11	1/1		1/1	
+White Dragon	a68526be12e16cee	18	1/1		0/1	ix:resp
+Winter Sky	024a2baf6fbcac12	18	0/0		1/2	ix:resp
+Wizard's Lightning	19e7a7b00567f0d2	8	0/0		1/2	ix:resp
+Wrecking Ogre	1a13f0cb3ef4f041	7	1/1		0/1	ix:resp

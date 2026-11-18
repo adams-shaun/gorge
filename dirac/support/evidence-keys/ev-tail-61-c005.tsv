@@ -1,0 +1,69 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Aligned Heart	ac48147005e691dc	15	1/1		1/1	
+Ballroom	8751c26304cd6171	57	2/2		1/1	
+Bumbling Pangolin	e8e351564e9adaac	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Charity Extractor	53ec04d96dc36c53	10	0/0		0/0	
+Choking Restraints	bd7585c4089a79d9	16	1/1		1/2	ix:resp
+Constable of the Realm	19db6d60af022488	6	2/2		0/1	ix:resp
+Crackling Doom	0ca01fc7a2b24900	20	0/0		2/2	
+Curious Killbot	ad94f791ec91bb5c	31	0/0		0/0	
+Demoralize	8c643af1328a02e4	30	0/0		1/2	ix:resp
+Duskworker	bcdbe10158f077fd	14	2/2		1/1	
+Embraal Gear-Smasher	5e783403bb10ca3b	13	1/1		1/1	
+Empty City Ruse	c92c275b9f310605	31	0/0		2/2	
+Eyeblight's Ending	df15c2d9de9e471a	16	0/0		2/2	
+Fallen Ferromancer	cf25e6a88e068ead	5	1/1		0/1	ix:resp
+Farfinder	71813d96485c26c6	15	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Fireblade Artist	d5aec96de0185bb7	24	1/1		1/1	
+Firewing Phoenix	7070fe7456006d9e	14	1/1		1/1	
+Furious Assault	1e33149c6f74fda9	17	1/1		1/1	
+Goblin Champion	9fc07f38c302164a	44	1/1		1/1	
+Goblin Goon	28646cb1bcb0215c	25	0/0		0/0	
+Goldnight Commander	36e236bd55a5f133	20	1/1		1/1	
+Heartless Pillage	9b87700dbb54534d	8	0/0		1/2	ix:resp
+Imaginary Friends	0e37cd3d9ce42fd9	17	0/0		2/2	
+Implode	786a9b0dee7fea69	11	0/0		1/2	ix:resp
+Incremental Blight	be7f120b6b999009	7	0/0		1/2	ix:resp
+Indicate	ef1c064712e2c983	39	0/0		1/2	ix:resp
+Insatiable Gorgers	c6c8440e88021b16	12	0/0		0/0	
+Irradiate	1b9040ae5e285f0a	25	0/0		2/2	
+Jade Guardian	42898c050f4cbfb0	4	1/1		0/1	ix:resp
+Kaleidoscorch	0c9f3c314590c461	22	0/0		4/4	
+Karn's Bastion	98a6081c501e9670	59	2/2		1/1	
+Koth's Courier	2b8f5704c3cb2d1b	18	0/0		0/0	
+Makindi Aeronaut	449a691455986f62	28	0/0		0/0	
+Mardu Outrider	7e5bf24f180185f7	13	0/0		1/2	ix:resp
+Maximize Velocity	346700ed0380e48b	8	0/0		3/4	cast/alt:jumpstart
+Nagao, Bound by Honor	c963f31e43b98e23	23	3/3		0/1	ix:resp
+Ogre Menial	d243ad0faf12bf89	8	1/1		1/1	
+Opposition	f543427bdfa6ad3f	6	1/1		1/1	
+Orazca Relic	238259f37324f721	25	2/2		1/1	
+Phyresis	d5fb2fbfd4930794	35	0/0		1/2	ix:resp
+Plague Rats	7449453badb85bc8	13	0/0		0/0	
+Planar Atlas	4e0f6300b1759c80	19	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Prescient Chimera	42911beebb74e090	7	1/1		1/1	
+Quench	ad014204c53015fa	3	0/0		1/2	ix:resp
+Relic Vial	135468eae14250bb	14	1/1		1/1	
+Rhonas's Monument	fccc040cfe42c311	35	1/1		0/1	ix:resp
+Simic Signet	cd035891212300a7	62	1/1		1/1	
+Skull Raid	8ca66909036a042c	15	0/0		2/4	cast/alt:foretold,ix:resp
+Sokenzan Spellblade	c1aa33974eed2765	7	3/3		0/1	ix:resp
+Songbird, Sonic Screamer	fd92cb1d9e286f97	25	1/1		1/1	
+Star Pupil	2fda6678e3c83515	20	1/1		1/1	
+Steppe Lynx	c21a4037f95a0a9d	13	1/1		1/1	
+Stolen Grain	6f6ca68d2e959781	5	0/0		2/2	
+Sunweb	e78de795fc8ef5e3	15	0/0		0/0	
+Surge of Righteousness	6d143e2632c0d2d4	7	0/0		1/2	ix:resp
+Syndicate Messenger	c69d9c97d802c895	22	1/1		1/1	
+Tectonic Rift	4d38ed4c42eec8a7	4	0/0		2/2	
+Teroh's Faithful	d7042fac72e476bd	16	1/1		1/1	
+The Falcon, Airship Restored	ecbce2bddc8699e6	24	3/3		1/1	
+The Great Juggernaut	069e3eb557b37192	5	2/2		0/1	ix:resp
+Town Gossipmonger	17f61654f1b790d3	34	2/2		1/1	
+Trigon of Thought	25e35f5ecbe0826c	17	2/2		1/1	
+Unbreakable Formation	877d8d4eb1b192db	8	0/0		1/2	ix:resp
+Vizier of the Scorpion	4d12eb1e9c976a21	19	1/1		1/1	
+Wall of Limbs	69b64208b30076cb	29	2/2		1/1	
+Ward Sliver	678b440aee128df1	8	0/0		0/0	
+Wit's End	9dc4d80b76f5e090	6	0/0		1/2	ix:resp
+Yomiji, Who Bars the Way	f17ffaf1303afa6e	15	1/1		1/1	

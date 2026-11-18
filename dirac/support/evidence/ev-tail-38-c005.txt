@@ -1,87 +1,249 @@
 Abyssal Gatekeeper
 Academy Journeymage
+Ajani's Influence
+Akki Drillmaster
 Amoeboid Changeling
+An-Havva Constable
+Animating Faerie
 Anticipate
 Aphetto Grifter
 Apprentice Sorcerer
+Armed Response
 Armix, Filigree Thrasher
 Aspect of Wolf
+Augur il-Vec
 Avatar of Slaughter
 Awaken the Bear
+Awakening of Vitu-Ghazi
+Axebane Guardian
+Axgard Armory
 Ayumi, the Last Visitor
 Baloth Cage Trap
+Bane Alley Blackguard
 Bitterbow Sharpshooters
 Blessed Reversal
+Blood Bairn
 Bloodbond Vampire
+Bone to Ash
+Brass Secretary
+Breach
+Bristling Boar
+Bushmaster, Coiled Henchman
 Captain of Umbar
+Cathartic Operation
+Caustic Hound
+Chance-Met Elves
+Charge Through
 Charity Extractor
+Chevill, Bane of Monsters
 Choking Tethers
+Cleaving Skyrider
+Cloud Pirates
+Coma Veil
+Crack Open
 Crash the Ramparts
+Crimson Roc
+Crumbling Ashes
 Cultivator of Blades
 Custodi Lich
+Cutthroat Contender
+Darksteel Axe
+Deal Broker
 Deepcavern Imp
 Deepwater Hypnotist
+Deface
+Disciples of Gix
 Dovin's Dismissal
 Dual Strike
 Easterling Vanguard
+Edge of the Divinity
+Elephant Resurgence
+Elves of Deep Shadow
 Emerald Dragonfly
 Entomb
+Evacuation
 Experimental Aviator
+Faith Unbroken
 Fear of Death
+Flame Spirit
+Flameshadow Conjuring
 Forest
+Furor of the Bitten
+Gargoyle Sentinel
 Garrison Cat
+Gate to Manorborn
+Gavony Unhallowed
+Geothermal Kami
+Ghitu Firebreathing
 Ghost Warden
+Gigantomancer
 Gitaxian Raptor
+Gixian Skullflayer
+Glimmervoid
+Glissa's Courier
+Glitterfang
+Glory Seeker
+Glóin the Mighty
 Goblin Spelunkers
 Goblin Turncoat
+Golden Hind
+Gothmog, Morgul Lieutenant
 Haunt of the Dead Marshes
+Heal the Scars
 Heavy Infantry
+Herd Gnarr
+Hissing Quagmire
+Ignite the Future
 Impulse
+Inertia Bubble
+Infectious Host
+Inkling Summoning
+Insatiable Appetite
 Into Thin Air
 Island
+Jace's Archivist
+Jolted Awake
 Kaervek's Hex
+Kayla's Reconstruction
 Kothophed, Soul Hoarder
+Krosan Grip
 Laboratory Drudge
 Labyrinth Minotaur
+Leave in the Dust
+Lena, Selfless Champion
 Lifecraft Cavalry
+Lion Sash
 Living Airship
+Loyal Gryff
+Loyal Retainers
+Lunar Avenger
 Magnetic Flux
+Malachite Golem
+Manaforce Mace
+Master of Arms
+Memorial to War
+Mesmerizing Benthid
+Mindclaw Shaman
+Mines of Moria
+Mizzium Tank
+Most Wanted
 Mountain
 Mournful Zombie
 Myr Servitor
+Mystic Crusader
+Nema Siltlurker
 Nephalia Seakite
 Norwood Ranger
 Noxious Hatchling
+Ojutai Exemplars
+Omen of the Sun
 One With the Wind
+Orzhov Basilica
+Panic Spellbomb
 Perish
+Phantom Monster
+Pia Nalaar
+Plague Mare
 Plains
+Precise Strike
+Predatory Hunger
+Primevals' Glorious Rebirth
+Prize Pig
 Psionic Sliver
+Quiet Purity
 Rallying Roar
+Ravenous Demon
+Recover
 Relearn
+Renegade Freighter
+Renegade's Getaway
+Revel Ruiner
+Ring of Gix
+Roar of the Kha
 Saiba Cryptomancer
 Scaldkin
+Scare Tactics
+Scattershot
 Scion of Calamity
+Scrapskin Drake
 Seacoast Drake
 Serpentine Curve
+Serum Visionary
 Shambling Ghoul
+Shelter
+Shrieking Drake
+Shrine Steward
+Shu Farmer
+Silverback Elder
 Siren Reaver
 Slayer's Plate
 Snapback
 Snare the Skies
+Sneaking Guide
 Soldevi Sage
+Soulknife Spy
 Soulless One
+Spark Harvest
+Spell Snuff
+Spire Monitor
+Spiritual Asylum
 Spitfire Handler
+Squash
+Squirrel Mob
+Stalking Bloodsucker
+Steadfastness
+Steamcore Weird
+Stoic Star-Captain
 Stone Idol Generator
+Stunning Shot
 Suture Spirit
 Swamp
+Swashbuckling
+Synth Infiltrator
+Tandem Tactics
+Tangle Mantis
+Terashi's Cry
+Terravore
+That's Rough Buddy
 Thaumaturge's Familiar
+The Gaffer
+The One Ring
 The Restoration of Eiganjo
+Thriving Rats
+Throne of the God-Pharaoh
 Throttle
 Thunderclap Wyvern
+Tidal Force
+Tidal Visionary
 Tireless Missionaries
+Toll of the Invasion
+Trade Routes
+Tranquil Grove
+Triumph of Ferocity
+Turbulent Wetlands
+Uglúk of the White Hand
 Undercity's Embrace
+Unified Strike
+Unyielding Krumar
+Valiant Guard
+Vent Sentinel
+Village Bell-Ringer
+Vineshaper Prodigy
+Vintara Elephant
+Viridian Joiner
 Viridian Lorebearers
+Viridian Scout
+Virulent Wound
 Vodalian Soldiers
+Volcanic Geyser
+Voracious Vacuum
+Wall of Razors
 Wall of Wood
 Warren Pilferers
+Whirlwind
+Wild-Field Scarecrow
+Wildfire
 Windborne Charge
+Woebearer
+Wriggling Grub
+X-23, Deadly Weapon
