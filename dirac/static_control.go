@@ -426,6 +426,16 @@ func (s *State) ctrlCleanup(k *prep) {
 //
 //go:noinline
 func (s *State) ctrlSBA(k *prep) {
+	// The bearers' controllers at entry: a pass that moves one changes the
+	// affected set of every controller-keyed static (a global override static
+	// like Ashaya's "nontoken creatures you control are Forest lands"), whose
+	// cached override-derived types refreshTy must recompute before the ask
+	// the caller poses next is projected. Control moves are rare, so the
+	// refresh is paid only when one happened.
+	var start [MaxPerm]uint8
+	for m := s.fxM; m.any(); m = m.rest() {
+		start[m.first()] = s.perms[m.first()].ctrl
+	}
 	var prev [MaxPerm]uint8
 	for pass := 0; pass <= maxFx; pass++ {
 		nfx := s.g.nfx
@@ -436,11 +446,14 @@ func (s *State) ctrlSBA(k *prep) {
 			s.ctrlExpire(k, false)
 		}
 		if !s.ctrlRegister(k) {
-			return
+			break
 		}
 		if s.g.nfx == nfx && !s.ctrlMoved(&prev) {
-			return
+			break
 		}
+	}
+	if s.ctrlMoved(&start) {
+		s.refreshTy(k)
 	}
 }
 
