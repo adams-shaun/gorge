@@ -271,9 +271,26 @@ func (e *Engine) sVarGateOK(p state.PlayerID, id state.ObjID, ab *cards.SA, merg
 	if o == nil || o.PileFaceFor(merged) == nil {
 		return false
 	}
-	svars := e.pileSVars(id, merged)
-	ctx := effects.NewCtxPtr(id, p, effects.CtxInit{SVars: svars})
-	holds, evaluated := effects.CheckSVarHolds(e, ctx, check, ab.ParamStr(cards.PKSVarCompare))
+	return sVarGateEval(e, effects.NewCtxPtr(id, p, effects.CtxInit{SVars: e.pileSVars(id, merged)}), ab, check)
+}
+
+// gainedSVarGateOK is sVarGateOK for a has-all-abilities-of gained ability
+// (Necrotic Ooze, CR 602.5): the CheckSVar$ names an SVar of the FOREIGN
+// card's face (Gilt-Blade Prowler's X), so it reads that face's table with
+// the recipient as the source and p as "you".
+func gainedSVarGateOK(h effects.Host, p state.PlayerID, id state.ObjID, ab *cards.SA, face *cards.Face) bool {
+	check, ok := ab.Param(cards.PKCheckSVar)
+	if !ok {
+		return true
+	}
+	if face == nil {
+		return false
+	}
+	return sVarGateEval(h, effects.NewCtxPtr(id, p, effects.CtxInit{SVars: face.SVars}), ab, check)
+}
+
+func sVarGateEval(h effects.Host, ctx *effects.Ctx, ab *cards.SA, check string) bool {
+	holds, evaluated := effects.CheckSVarHolds(h, ctx, check, ab.ParamStr(cards.PKSVarCompare))
 	if !evaluated {
 		// The gate's count body is not one the evaluator models: fail OPEN —
 		// the ability is still offered. A gate you cannot read must not
