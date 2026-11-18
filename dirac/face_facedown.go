@@ -179,6 +179,9 @@ func (s *State) offerFaceDown(k *prep, d *Decision, p uint8, o Obj, fam uint8) {
 		return
 	}
 	c := s.objs[o].card
+	if s.castHeldOut(o) { // gorge appendFaceDownCast: castSuppressed holds the card's every cast out (CR 733.2)
+		return
+	}
 	if k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
 		return
 	}
