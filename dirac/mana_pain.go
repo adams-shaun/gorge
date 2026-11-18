@@ -513,14 +513,15 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 		}
 		return t
 	}
-	// a painful type: its colours, the source kind and creature-ness name it
-	// (every pool card with painful colours has its own pair of colours); a
+	// a painful type: its colours, damage, the source kind and creature-ness
+	// name it (a painful any-colour source of 3 damage, Tarnished Citadel, and
+	// one of 1, Grand Coliseum, are two types: key 1 prices each its own); a
 	// life-only unit (lifeOnlyPain) shares no type with a {T} one — the type's
 	// activation taps or not (utype.sacOnly), so the shape is part of the key
 	findP := func() int {
 		for t := 0; t < pk.nt; t++ {
 			ty := &pk.types[t]
-			if ty.pain != 0 && ty.mask == pm && ty.creat == cr && ty.alt == !pc.painOnly && ty.xv == xp &&
+			if ty.pain != 0 && ty.pain == pc.painN && ty.mask == pm && ty.creat == cr && ty.alt == !pc.painOnly && ty.xv == xp &&
 				ty.sacOnly == lifeOnlyPain(pc) {
 				return t
 			}
@@ -533,7 +534,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	if !pc.painOnly {
 		for t := 0; t < pk.nt && tc < 0; t++ {
 			ty := &pk.types[t]
-			if ty.pair != 0 && !ty.alt && ty.mask == prim && ty.creat == cr && pk.types[ty.pair-1].mask == pm && ty.xv == xc && pk.types[ty.pair-1].xv == xp {
+			if ty.pair != 0 && !ty.alt && ty.mask == prim && ty.creat == cr && pk.types[ty.pair-1].mask == pm && pk.types[ty.pair-1].pain == pc.painN && ty.xv == xc && pk.types[ty.pair-1].xv == xp {
 				tc = t
 			}
 		}
