@@ -2617,13 +2617,15 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		s.bld().bfl |= bflAnyColor
 	}
 	var av avail
-	// The witness prices what the surface's census offers (legal.go
-	// priorityOptions): a dynamic {T}, sacrifice source joins it everywhere
-	// but the autopay surface, whose planner drops a scripted plain cast
-	// (script_gen.go autopayDropsPlainCast). On the others the witness
-	// evaluates its amount (gen.go varPC), so its taps agree with gorge's
-	// lowering (CR 601.2g).
-	av.dynSac = s.cfg&cfgGorgeAutopay == 0
+	// The witness prices the cast census (legal.go priorityOptions): a cast's
+	// census leaves a dynamic {T}, sacrifice source out (avail.dynSac stays
+	// false), as does the payment planner (planCastDynSacSkip): gorge funds a
+	// cast with it only by activating the source at priority, its script
+	// route's prefix float (mana_sacctr.go), so the floating pool already
+	// holds that mana when the cast's witness plans. Counting it here priced
+	// an {X} cast at an X the plan could not tap, and the payment panicked
+	// "autopay found no plan" (tail-34-c001 pair 9, Crackle with Power).
+	av.dynSac = false
 	s.availFor(k, p, &av)
 	printedPays := false
 	if any != 0 || anyColor {
