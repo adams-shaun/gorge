@@ -260,11 +260,8 @@ func (r *realSide) Project(p *Projection) {
 	r.s.Project(&r.kp)
 	r.s.ProjectChars(&r.kp)
 	kp := &r.kp
-	*p = Projection{}
+	p.reset()
 	p.NInst = kp.NObj
-	for i := range p.Cards {
-		p.Cards[i] = CardProj{Card: NoCardIndex, Zone: ZoneNone, Pos: 255, AttachedTo: RefNone, Blocks: RefNone}
-	}
 	for i := 0; i < int(kp.NObj) && i < MaxInst; i++ {
 		o := &kp.Objs[i]
 		c := &p.Cards[i]
