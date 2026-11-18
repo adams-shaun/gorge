@@ -39,6 +39,26 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 		return n, true, true
 	}
 
+	// DungeonsCompleted$Amount — the resolving controller's completed-dungeon
+	// count (CR 309.7): what Player.CompletedDungeons folds, one per
+	// DungeonComplete event (venture from the bottom room, CR 704.5t). It is
+	// Forge's DungeonsCompleted$Amount property, the SVar the Attacks
+	// trigger's CheckSVar$ X gate reads (Ravenloft Adventurer's "if you've
+	// completed a dungeon"). The read is controller-scoped like
+	// YourCounters, event-backed through the same fold, and a controller out
+	// of range reads 0 (the modelled zero). Any other property fails closed
+	// to not-evaluated — the head has no other corpus spelling (measured: the
+	// only card carrying it is ravenloft_adventurer at the pin).
+	if rest, ok := strings.CutPrefix(head, "DungeonsCompleted$"); ok {
+		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
+			return 0, true, true
+		}
+		if strings.TrimSpace(rest) == "Amount" {
+			return g.Players[c.Controller].CompletedDungeons, true, true
+		}
+		return 0, false, true
+	}
+
 	// PlayerCount<Players|Opponents|RegisteredOpponents>$<Property> — per-
 	// group extreme properties. "Players" spans every living player,
 	// "Opponents" every living player but the resolving controller, the same
