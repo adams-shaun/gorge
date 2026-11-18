@@ -93,3 +93,17 @@ func (g *grantSrch) sacXBranch(t *State, i int, sl Slot) bool {
 	}
 	return false
 }
+
+// sacXAutopayActivate: activation a on the autopay surface beside a live
+// sacrifice-another source (Ashnod's Altar). gorge's offer walk offers a
+// printed ability the floating pool cannot pay when the payment planner has a
+// witness that taps and sacrifices for it, confirmed by the offer gate over the
+// pool plus the witness's mana (legal_walk_autopay.go autoPayOffer). That is
+// not the prefix search: it asks no post-sacrifice question, so a play whose
+// only target the sacrifice removes (Spiked Ripsaw's equip, the Altar paid
+// with the equipped Dune Chanter) is offered where the grant search's
+// waitsForStack refuses it. The no-grant tap-another script, which models the
+// planner's witness, still prices the play.
+func (s *State) sacXAutopayActivate(k *prep, p uint8, a Action) bool {
+	return s.cfg&cfgGorgeAutopay != 0 && a.Kind() == AkActivate && s.grantSacXGaps(k, p).any()
+}
