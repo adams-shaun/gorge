@@ -153,9 +153,11 @@ func TestCreatePodSeatsAFourSeatCommanderTableFromOneRequest(t *testing.T) {
 	if gate.token(host.TableID(resp.Table), 2) != "" || gate.token(host.TableID(resp.Table), 3) != "" {
 		t.Error("a bot seat holds a token")
 	}
-	// The match is built by the table's goroutine after Start returns.
+	// The match is built by the table's goroutine after Start returns. The
+	// 10 s deadline is the bound; the 1 ms tick only paces the poll, so no
+	// PASS/FAIL depends on a short wall-clock window.
 	var ms []protocol.MatchInfo
-	for deadline := time.Now().Add(10 * time.Second); len(ms) == 0 && time.Now().Before(deadline); time.Sleep(5 * time.Millisecond) {
+	for deadline := time.Now().Add(10 * time.Second); len(ms) == 0 && time.Now().Before(deadline); time.Sleep(time.Millisecond) {
 		ms, _ = r.Matches(host.TableID(resp.Table))
 	}
 	if len(ms) != 1 {
