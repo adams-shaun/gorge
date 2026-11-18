@@ -825,6 +825,16 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		}
 		walk.Options[j], key[j] = a, kk
 	}
+	// gorge's offer set on an unrelaxable census (a live sacrifice-any or
+	// two-permanent tap-another source, a Combo Any gap) is the bound's and
+	// gaps walk's plays (mana_tapanother.go tapXSacAnyBound, script_gen.go
+	// potentialBoundLists), which the searches below mirror; a play only the
+	// separate gap units pay is searched and offered beside a relaxable
+	// census and a live tap-another source alone (gorge runs its prefix
+	// search only on an incomplete census, potential_plan.go
+	// potentialPlayVerdict; a granted ability beside none is priced by the
+	// census, Joraga Treespeaker's own level ability).
+	relaxCensus := s.grantRelaxCensus(k, p)
 	n := 0
 	var g grantSrch
 	// A play the offer lists on the join of a source's own and granted
@@ -961,19 +971,48 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 				// price it again on a second budget.
 				capSpent.add(a)
 			}
-		} else if (g.cheaper || g.storeStep() && !s.autopayScriptedCast(a)) && !hasOption(d, a) {
-			// gorge's planner prices the play again at every search node
-			// (potentialPlayVerdict, mana_grantedoffers.go visit): a trigger the
-			// found prefix answered lowered the cost under the root price the
-			// offer builder priced the play with (Gran-Gran's loot discarding a
-			// Lesson into the graveyard, CR 601.2f, 106.4), so gorge's walk
-			// lists what the builder left off; so does a prefix that activates a
-			// storage battery, whose counters the builder's units leave out
-			// (mana_grantstore.go), except a plain cast under the autopay
-			// surface, which gorge reaches only by that script and drops
+		} else if s.grantSearchAdds(k, p, a, d, &g, relaxCensus) {
 			d.add(a)
 		}
 	}
+}
+
+// grantSearchAdds reports a play a the grant search's prefix pays that the
+// offer list d lacks and gorge's walk lists:
+// gorge's potential planner offers every play its one prefix search
+// pays (potentialPlayVerdict): the offer builder's census prices a
+// source's own and granted abilities as one join unit (availGrant),
+// so a play only the separate gap units pay -- a land's granted
+// any-colour ability beside its printed one with the granting
+// source tapped out (Peema Outrider's {2}{G}{G} beside a tapped
+// Chromatic Lantern's lands and a Jaspera Sentinel; CR 611.3c,
+// 601.2g-h) -- is searched here and added. gorge's planner prices
+// the play again at every search node (potentialPlayVerdict,
+// mana_grantedoffers.go visit): a trigger the found prefix answered
+// lowered the cost under the root price the offer builder priced
+// the play with (Gran-Gran's loot discarding a Lesson into the
+// graveyard, CR 601.2f, 106.4), so gorge's walk lists what the
+// builder left off; so does a prefix that activates a storage
+// battery, whose counters the builder's units leave out
+// (mana_grantstore.go), except a plain cast under the autopay
+// surface, which gorge reaches only by that script and drops
+func (s *State) grantSearchAdds(k *prep, p uint8, a Action, d *Decision, g *grantSrch, relaxCensus bool) bool {
+	return !hasOption(d, a) && (g.cheaper || g.storeStep() && !s.autopayScriptedCast(a) ||
+		s.cfg&cfgGorgeAutopay == 0 && relaxCensus && s.tapXCensusGap(k, p).any())
+}
+
+// grantRelaxCensus is whether the walk's census is relaxable beside a live
+// grant gap: gorge's offer set on an unrelaxable census (a live
+// sacrifice-any or two-permanent tap-another source, a Combo Any gap) is
+// the bound's and gaps walk's plays, which grantCap's searches mirror.
+func (s *State) grantRelaxCensus(k *prep, p uint8) bool {
+	_, sacOpen := s.tapXSacAnyBound(k, p)
+	var gateFilt slotMask
+	if k.gen.anyFilt {
+		gateFilt = s.scriptFilt(k, p)
+	}
+	return s.scriptRelax(k, p, gateFilt,
+		k.gen.anyComboAny && s.caBoard(k, p) || k.tapMana && s.tapXTwoLive(k, p) || sacOpen)
 }
 
 // objPartCast reports a plain cast a whose spell carries a cost part the
