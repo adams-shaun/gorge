@@ -172,6 +172,7 @@ copy_exception_types_count std-big
 copy_keyword_exception_returns_when_loss_ends std-blb
 copy_retarget_unique_link std-otj
 copy_sacrificed_to_own_cost_reflexive_body std-tdm
+copy_token_entry_order_beside_untap std-fin
 cosmium_confluence_destroys_two_enchantments custom
 cost_sacrifices_latch_one_or_more_die std-mkm
 cost_static_attacking_you_reads_the_caster custom
