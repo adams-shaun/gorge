@@ -2272,15 +2272,8 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, j, ab, d) {
 					continue
 				}
-				paidGap := len(units) != 0 && ab.Cost.Mana.MV() != 0
-				if paidGap && !boundedAny {
-					// the census (units) is the planner-shaped bound: gorge's
-					// relaxed proof charges a paid ability's fee as generic on
-					// top of the play's cost (paymentPlanRelaxProof), while
-					// the pool mana that covers the fee here is already a
-					// recorded unit, so admitting it would double-count
-					// (White Lotus Hideout's {1},{T} filter). The over-bound
-					// pool beside the census keeps the paid abilities.
+				paidGap, skip := d.paidGapProbe(len(units) != 0, boundedAny, sl, j, &ab.Cost.Mana)
+				if skip {
 					continue
 				}
 				if !open && !potentialCovers(&others, &ab.Cost.Mana) {
