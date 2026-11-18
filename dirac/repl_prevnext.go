@@ -45,6 +45,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // at the turn change. It never competes: beside a second shield or anything
 // prevNextCompetes reports, the kernel stalls StallPrevNext (a bounded pool
 // stalls at 255 too, so no real pool can look like the sentinel).
+//
+// Ria Ivor's form adds riders to the unbounded shield: kop.PrevNextPlayers
+// matches a player recipient only, kop.PrevNextEndCombat ends the record with
+// the combat (prevEndCombat, repl_prevx.go), and kop.PrevNextTokens makes the
+// record's body mint the instruction's token (its pool index in B) as many as
+// the damage the event dealt. The token rider applies only through
+// prevNextTake — a candidate of an order ask stalls StallPrevRider — and
+// beside a token doubler it stalls StallPrevRider too (repl_tokorder.go).
 
 // StallPrevNext is a damage event a depleting prevent-the-next-N shield and
 // another damage replacement both match (gorge asks the CR 616.1 order, and
@@ -77,8 +85,15 @@ var DebugNoPrevNext bool
 func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
 	all := in.C&kop.PrevNextAll != 0 // seat-ok: an instruction flag bit
 	from := in.C&kop.PrevNextFrom != 0
-	if from && !all {
-		s.capFull(StallLowering) // loud: a source-keyed shield has no amount to spend
+	if from && !all || in.C&(kop.PrevNextTokens|kop.PrevNextPlayers|kop.PrevNextEndCombat) != 0 && !from {
+		s.capFull(StallLowering) // loud: a source-keyed shield has no amount to spend, and the riders are its shapes
+		return
+	}
+	if in.C&kop.PrevNextTokens != 0 && !s.scopeInstrFindable() {
+		// the rider mints the token the instruction names, found again from the
+		// record's object (repl_prevscopefilter.go): a copy resolves from a card
+		// the record can never read it from
+		s.capFull(StallPrevScopeCopy)
 		return
 	}
 	n := prevNextAll
@@ -114,6 +129,15 @@ func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
 				if in.C&kop.PrevNextGain != 0 {
 					s.g.prevX[i] |= pxRidGain
 				}
+				if in.C&kop.PrevNextTokens != 0 {
+					s.g.prevX[i] |= pxRidTok // the rider mints the instruction's token
+				}
+				if in.C&kop.PrevNextEndCombat != 0 {
+					s.g.prevX[i] |= pxEOC // repl_prevx.go: the record ends with the combat
+				}
+				if in.C&kop.PrevNextPlayers != 0 {
+					s.g.prevX[i] |= pxPlayers // the shield matches a player recipient only
+				}
 			}
 			return
 		}
@@ -136,10 +160,16 @@ func (s *State) pnxLive() bool {
 // player or a source with no permanent). A shield without kop.PrevNextFrom
 // matches by its recipient; one with it matches only by its source — the
 // record's ctl is the source's code and the recipient is never read, so
-// damage dealt TO the Awe-Struck creature is dealt.
+// damage dealt TO the Awe-Struck creature is dealt. A shield with
+// kop.PrevNextPlayers (Ria Ivor's ValidTarget$ Player) matches a player
+// recipient only: damage to a blocker or a planeswalker is dealt and the
+// record waits.
 func (s *State) pnxMatches(i int, code TCode, srcSl Slot, combat bool) bool {
 	r := &s.g.prevCol[i]
 	if r.sc&prevNextSc == 0 || r.col == 0 || !combat && r.sc&prevNextCmb != 0 {
+		return false
+	}
+	if s.g.prevX[i]&pxPlayers != 0 && !isPlayerTarget(code) {
 		return false
 	}
 	if s.g.prevX[i]&pxFrom == 0 {
@@ -156,13 +186,16 @@ func (s *State) pnxMatches(i int, code TCode, srcSl Slot, combat bool) bool {
 // applied; false leaves the event to the other prevention and replacement
 // arms.
 func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, rcp uint8, sl Slot, combat bool, n int) (int, bool) {
-	hit, at, rider := 0, -1, false
+	hit, at, rider, tokRider := 0, -1, false, false
 	for i := range s.g.prevCol {
 		if s.pnxMatches(i, code, srcSl, combat) {
 			hit++
 			at = i
 			if s.g.prevX[i]&(pxFrom|pxRidGain) == pxFrom|pxRidGain {
 				rider = true // a gain rider: gorge runs the body (repl_prevx.go)
+			}
+			if s.g.prevX[i]&pxRidTok != 0 {
+				rider, tokRider = true, true // a token rider: the record's body mints tokens
 			}
 		}
 	}
@@ -186,6 +219,12 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 		s.capFull(StallPrevRider) // loud: the rider would be run where the kernel cannot
 		return n, false
 	}
+	if tokRider && k.gen.anyRepl&rbDblTok != 0 {
+		// the mint would run the token replacements mid-pass, and gorge's token
+		// path there cannot be posed a question (repl_tokorder.go)
+		s.capFull(StallPrevRider)
+		return n, false
+	}
 	if hit > 1 || s.prevNextCompetes(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
 		if rider {
 			s.capFull(StallPrevRider) // a body is never a bare prevention: gorge asks the order
@@ -200,8 +239,18 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 		// whole and the record is spent (the Effect exiles itself)
 		m := n
 		r.col = 0
-		if x := s.g.prevX[at]; x&pxRidGain != 0 && !DebugNoPrevRider {
+		x := s.g.prevX[at]
+		if x&pxRidGain != 0 && !DebugNoPrevRider {
 			s.gainLife(k, x>>pxSeatShift, m)
+		} else if x&pxRidTok != 0 && !DebugNoPrevRider {
+			in := s.prevTokInstr(k, at)
+			if in == nil {
+				// the record's object no longer holds the card whose program made
+				// the record (a reused object): the token is unreadable
+				s.capFull(StallPrevScopeCopy)
+				return n, false
+			}
+			s.mintTokens(k, &kop.Instr{Op: kop.OpCreateToken, C: int16(in.B.N)}, x>>pxSeatShift, m)
 		}
 		return n - m, true
 	}
@@ -211,6 +260,27 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 	m := min(n, int(r.col))
 	r.col -= kop.ColorMask(m)
 	return n - m, true
+}
+
+// prevTokInstr is the ExtPreventNext instruction with kop.PrevNextTokens in
+// the token-rider record i's source card (as scopeInstr finds the filtered
+// scope's, repl_prevscopefilter.go): its B.N is the token the rider mints.
+// nil when the record's object no longer holds that card (a reused object),
+// which prevNextTake stalls on.
+func (s *State) prevTokInstr(k *prep, i int) *kop.Instr {
+	r := &s.g.prevCol[i]
+	if r.obj == NoObj || int(r.obj) >= MaxObj {
+		return nil
+	}
+	ab := k.t.Cards[s.objs[r.obj].card].Abilities
+	for j := range ab {
+		for l := range ab[j].Prog {
+			if in := &ab[j].Prog[l]; in.Ext() == kop.ExtPreventNext && in.C&kop.PrevNextTokens != 0 {
+				return in
+			}
+		}
+	}
+	return nil
 }
 
 // combatEvLess takes d damage out of combat event ev of r (a partial
@@ -299,8 +369,8 @@ func (s *State) prevNextCands(k *prep, code TCode, srcSl Slot, combat bool, cand
 			cand[c] = Obj(i)
 			*pm |= 1 << c
 			c++
-			if s.g.prevX[i]&(pxFrom|pxRidGain) == pxFrom|pxRidGain {
-				rider = true // a gain rider: the order's walk cannot run the body
+			if s.g.prevX[i]&(pxFrom|pxRidGain) == pxFrom|pxRidGain || s.g.prevX[i]&pxRidTok != 0 {
+				rider = true // a rider: the order's walk cannot run the body
 			}
 		}
 	}
