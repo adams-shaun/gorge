@@ -29,7 +29,7 @@ const (
 	OpBounce           // return object Obj to its owner's hand
 	OpToLibrary        // put object Obj into its owner's library: C=0 top, C=1 bottom, C=2 shuffled in
 	OpPumpUntilEOT     // creature Obj gets +A/+B until end of turn
-	OpGrantKeyword     // creature Obj gains keywords C (KwMask low 16 bits; B = high 16 bits) until end of turn
+	OpGrantKeyword     // creature Obj gains keywords C (KwMask low 16 bits; B = high 16 bits) until end of turn; A = 1: an Effect grants them (a prevention's CR 616.1 option names the source)
 	OpPutCounter       // put A counters of kind C on permanent Obj
 	OpRemoveCounter    // remove A counters of kind C from permanent Obj
 	OpCreateToken      // player Obj creates A tokens of card C (a token CardDef in the Table); B = TokenRider flags

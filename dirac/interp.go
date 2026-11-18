@@ -680,8 +680,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 }
 
 // execGrantKeyword applies OpGrantKeyword: an until-end-of-turn keyword
-// grant on a battlefield permanent, with the effect source recorded for a
-// combat-damage prevention's CR 616.1 option (combat_prevention.go).
+// grant on a battlefield permanent; when A marks the grant as gorge's Effect
+// object, the effect source is recorded for a combat-damage prevention's
+// CR 616.1 option (combat_prevention.go).
 func (s *State) execGrantKeyword(k *prep, in *kop.Instr) {
 	sl := s.objRef(k, in.Obj)
 	if sl == NoSlot {
@@ -690,7 +691,9 @@ func (s *State) execGrantKeyword(k *prep, in *kop.Instr) {
 	m := kop.KwMask(uint16(in.C)) | kop.KwMask(uint16(in.B.N))<<16
 	s.grantEOT(sl, m)
 	s.promoKw(k, sl, m)
-	s.recordPrevGrant(sl, m)
+	if in.A.K == kop.VConst && in.A.N != 0 {
+		s.recordPrevGrant(sl, m) // an Effect's grant (kgen effectPrevent): gorge's option names the Effect
+	}
 	s.touchSl(sl)
 }
 

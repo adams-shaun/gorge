@@ -47,11 +47,18 @@ func (s *State) planHoldsOnStack(k *prep, p uint8, o Obj, cost *kop.ManaCost) bo
 		// source pays has no plan, and on the lowering surface gorge reaches
 		// it as a potential play (the oracle taps the witness at priority).
 		// A restricted source the spell may spend (Castle Doom's {U} for an
-		// artifact) is in the planner's census, so it pays here too
-		var av avail
+		// artifact) is in the planner's census, so it pays here too. Only the
+		// dynamic source decides a withhold: a cost neither census affords is
+		// one the census does not price at all (Plaza of Heroes' legendary-only
+		// any colour), and the planner's own try below answers it.
+		var av, dv avail
 		s.availFor(k, p, &av)
 		if !av.affords(&c, pipMaskOf(&c), 0) && !s.restrFallback(k, p, s.objs[o].card, s.restrOriginOfObj(o), &c, &av) {
-			return false
+			dv.dynSac = true
+			s.availFor(k, p, &dv)
+			if dv.affords(&c, pipMaskOf(&c), 0) {
+				return false
+			}
 		}
 	}
 	t.tapForPK(k, p, &c, 0, o, false, false, &pk)
