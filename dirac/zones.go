@@ -649,7 +649,8 @@ func (s *State) leave(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		z = s.dieZone(k, sl) // Fiery Annihilation / a dies-to-exile replacement
 	}
 	if s.cmdZoneReplace(k, s.perms[sl].obj, &z, &bottom) {
-		return // a CR 903.9b commander move parked before it happens
+		s.exileRiderReset(k, sl) // the exile it chose did not happen (repl_exilerider.go)
+		return                   // a CR 903.9b commander move parked before it happens
 	}
 	if s.res.active && k.gen != nil {
 		s.snapResTarget(s.perms[sl].obj) // CR 608.2h: a moved target's LKI (zone_lki.go)
@@ -725,6 +726,7 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 }
 
 func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
+	rider := s.exileRiderTake(k, sl, z) // the dies-to-exile rider to run after the move (repl_exilerider.go)
 	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
 		z = s.unearthZone(sl, z) // cast_altfree.go
 	}
@@ -887,6 +889,9 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	}
 	if k.gen != nil {
 		s.leaveGen(k, sl, o)
+	}
+	if rider != NoSlot {
+		s.exileRiderRun(k, rider, o)
 	}
 }
 
