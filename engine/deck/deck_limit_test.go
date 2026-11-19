@@ -14,7 +14,10 @@ import (
 // where the singleton rule alone would reject even two, and twelve do not.
 func TestDeckLimitCapsNamedCardCount(t *testing.T) {
 	r := commanderFixture(t)
-	src := "Name:Seven Dwarves\nManaCost:1 W\nTypes:Creature Dwarf\nPT:2/2\nK:DeckLimit:7:A deck can have up to seven cards named CARDNAME.\n"
+	// The K line's sentence tail is decoration (DeckLimitOf reads only the
+	// count segment), so the fixture paraphrases the cap instead of quoting
+	// the corpus line verbatim (the GPL boundary).
+	src := "Name:Seven Dwarves\nManaCost:1 W\nTypes:Creature Dwarf\nPT:2/2\nK:DeckLimit:7:CARDNAME may appear at most seven times in one deck.\n"
 	c, diags := cards.ParseBytes("fixture.txt", []byte(src))
 	if len(diags) > 0 {
 		t.Fatalf("Seven Dwarves parse: %v", diags)
