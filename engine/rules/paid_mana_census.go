@@ -140,6 +140,30 @@ func (e *Engine) paidManaAlts(id state.ObjID, ma *cards.SA, life int32) []window
 	return pinnedManaAlts(alt, mf.Counts)
 }
 
+// fixedMultiColourAlt is the one alt of a fixed production over several
+// colours ("{1}, {T}: Add {W}{B}", Produced$ W B): it makes BOTH colours, so
+// splitting it per colour (pinnedManaAlts, for a choice) would price it at one
+// mana and lose the filter land's second. ok is false for a single-colour
+// production and for an ability carrying an activation limit (left out, as
+// pinnedManaAlts does).
+func fixedMultiColourAlt(alt windowManaAlt, counts [6]int32) (windowManaAlt, bool) {
+	colours := 0
+	for _, n := range counts {
+		if n != 0 {
+			colours++
+		}
+	}
+	ma := alt.Ma
+	if colours < 2 || ma.ParamStr(cards.PKGameActivationLimit) != "" || pay.ChainGatesOnActivationCount(ma) {
+		return windowManaAlt{}, false
+	}
+	if _, limited := ma.Param(cards.PKActivationLimit); limited {
+		return windowManaAlt{}, false
+	}
+	alt.Counts = counts
+	return alt, true
+}
+
 // pinnedManaAlts splits a choice-shaped production over the colours in counts
 // into one alt per colour, each pinned so that its activation poses no colour
 // ask. An ability carrying an activation limit is left out.
@@ -303,8 +327,13 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 				continue
 			}
 			if castWindowGenericCostShape(fee) {
-				for _, a := range pinnedManaAlts(windowManaAlt{Ma: ma, Amt: fmf.Amount,
-					CostGeneric: fee.Generic, CostColored: fee.Colored}, fmf.Counts) {
+				feeAlt := windowManaAlt{Ma: ma, Amt: fmf.Amount,
+					CostGeneric: fee.Generic, CostColored: fee.Colored}
+				if a, ok := fixedMultiColourAlt(feeAlt, fmf.Counts); ok {
+					units = pay.AppendUnitAlt(units, id, a)
+					continue
+				}
+				for _, a := range pinnedManaAlts(feeAlt, fmf.Counts) {
 					units = pay.AppendUnitAlt(units, id, a)
 				}
 			}
