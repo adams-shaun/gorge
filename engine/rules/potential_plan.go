@@ -192,53 +192,10 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 			return got
 		}
 		got := verdict()
-		if got.Reason == "insufficient" {
-			if !censused {
-				census, censused = e.paymentPlanCensusOf(p, &hyp), true
-			}
-			if !census.complete {
-				got = PaymentPlanOutcome{Reason: "unsupported", Detail: "census_incomplete"}
-				if census.relaxable {
-					// The census misses a source the planner cannot execute
-					// (Saruli Caretaker's tapXType, Wall of Roots' counter,
-					// Heap Gate's {1} fee). Re-ask with each such ability as
-					// a free, relaxed alternative: a play no relaxed plan
-					// pays is unpayable by any real sequence.
-					if r := e.paymentPlanRelaxProof(census, verdict); r.Reason == "insufficient" {
-						got = PaymentPlanOutcome{Reason: "insufficient", Detail: "relaxed_census"}
-					}
-				}
-				if got.Reason != "insufficient" && scripts < scriptPlays && !e.potentialTargetPriced(p, o) {
-					// Payable, if at all, only through an uncovered source:
-					// search the activations of those sources on clones
-					// for a prefix after which the planner pays the play.
-					// The search slot is counted first, whether or not the
-					// search runs below: dirac mirrors this search and its
-					// slot accounting node for node, so skipping a search
-					// must not move a later play into or out of the bound.
-					scripts++
-					// The bounded relaxation is a NECESSARY condition: it
-					// over-produces every real activation sequence of the
-					// census's uncovered sources (each unit is free, and a
-					// repeatable tap source contributes as many as its
-					// untapped candidates can pay for), so a play no bounded
-					// plan pays cannot be paid by any prefix and the search
-					// could only run to a dead end. It is used ONLY here, to
-					// skip such a search: it is never reported as
-					// "insufficient", nor does it feed the relaxed proof
-					// above, because over-producing is not a proof of
-					// unpayability. got stays unsupported/census_incomplete
-					// exactly as before.
-					skip := !census.relaxable && census.bounded &&
-						e.paymentPlanRelaxProof(census.boundedProof(), verdict).Reason == "insufficient"
-					if !skip {
-						if script, ok := e.potentialPrefixScript(p, o, census.gaps, census.fees()); ok {
-							pp.Script = script
-							got = PaymentPlanOutcome{}
-						}
-					}
-				}
-			}
+		if needed, mayPlayUnpriced := potentialCensusNeeded(o, got); needed {
+			var script []ScriptStep
+			got, script = potentialCensusFallback(e, p, o, hyp, got, mayPlayUnpriced, verdict, &census, &censused, &scripts)
+			pp.Script = script
 		}
 		if witness && got.Plan != nil && got.Reason == "" && paymentPlanConsumes(*got.Plan) && !e.potentialWitnessReaches(p, o, *got.Plan) {
 			// The witness sacrifices or returns a permanent the play
@@ -265,6 +222,91 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 		out = append(out, pp)
 	}
 	return out
+}
+
+// potentialCensusNeeded reports whether a verdict the planner could not
+// price from its own census takes the census/prefix fallback: an
+// insufficient proof, or a may-play cast whose rider witness was not offered
+// (the folded cost was paid, but no plan funded the coloured pip from a
+// coloured unit; an uncovered source's activation may still float it).
+func potentialCensusNeeded(o decision.Option, got PaymentPlanOutcome) (needed, mayPlayUnpriced bool) {
+	mayPlayUnpriced = got.Reason == pay.ReasonUnsupported && got.Detail == pay.DetailWitnessNotOffered &&
+		castModeCodes.Code(o.Mode) == castModeMayplay
+	return got.Reason == pay.ReasonInsufficient || mayPlayUnpriced, mayPlayUnpriced
+}
+
+// potentialCensusHost is the narrow slice of the engine the census/prefix
+// fallback reads: one census, its relaxed proof, the target-priced gate and
+// the prefix search. A free function over this interface keeps the fallback
+// out of the engine's method surface (codeshape's EngineSurface) while
+// still sharing the walk's one census and script budget.
+type potentialCensusHost interface {
+	paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentPlanCensus
+	paymentPlanRelaxProof(c paymentPlanCensus, verdict func() PaymentPlanOutcome) PaymentPlanOutcome
+	potentialTargetPriced(p state.PlayerID, o decision.Option) bool
+	potentialPrefixScript(p state.PlayerID, o decision.Option, gaps []state.ObjID, funding int) ([]ScriptStep, bool)
+}
+
+// potentialCensusFallback is potentialPlans' census/prefix fallback. It fills
+// the walk's census on first use (censused and scripts are the walk-wide
+// state: one census read and potentialScriptPlays prefix searches across
+// every play). An insufficient verdict re-asks with the census's relaxed
+// alternatives and becomes insufficient/relaxed_census only when even those
+// cannot pay. A may-play rider's witness_not_offered keeps its own verdict:
+// its folded plan proves some mana can be made, so only an executable prefix
+// (an uncovered source's activation before the play) turns it into an offer.
+// The prefix search is bounded by scriptPlays and returns the script that
+// priced the play, or nil.
+func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision.Option, hyp state.Mana,
+	got PaymentPlanOutcome, mayPlayUnpriced bool, verdict func() PaymentPlanOutcome,
+	census *paymentPlanCensus, censused *bool, scripts *int) (PaymentPlanOutcome, []ScriptStep) {
+	if !*censused {
+		*census, *censused = e.paymentPlanCensusOf(p, &hyp), true
+	}
+	if census.complete {
+		return got, nil
+	}
+	if !mayPlayUnpriced {
+		got = PaymentPlanOutcome{Reason: "unsupported", Detail: "census_incomplete"}
+		if census.relaxable {
+			// The census misses a source the planner cannot execute (Saruli
+			// Caretaker's tapXType, Wall of Roots' counter, Heap Gate's {1}
+			// fee). Re-ask with each such ability as a free, relaxed
+			// alternative: a play no relaxed plan pays is unpayable by any
+			// real sequence.
+			if r := e.paymentPlanRelaxProof(*census, verdict); r.Reason == pay.ReasonInsufficient {
+				got = PaymentPlanOutcome{Reason: "insufficient", Detail: "relaxed_census"}
+			}
+		}
+	}
+	if got.Reason == pay.ReasonInsufficient || *scripts >= potentialScriptPlays || e.potentialTargetPriced(p, o) {
+		return got, nil
+	}
+	// Payable, if at all, only through an uncovered source: search the
+	// activations of those sources on clones for a prefix after which the
+	// planner pays the play. The search slot is counted first, whether or not
+	// the search runs below: dirac mirrors this search and its slot
+	// accounting node for node, so skipping a search must not move a later
+	// play into or out of the bound.
+	*scripts++
+	// The bounded relaxation is a NECESSARY condition: it over-produces every
+	// real activation sequence of the census's uncovered sources (each unit
+	// is free, and a repeatable tap source contributes as many as its
+	// untapped candidates can pay for), so a play no bounded plan pays
+	// cannot be paid by any prefix and the search could only run to a dead
+	// end. It is used ONLY here, to skip such a search: it is never reported
+	// as "insufficient", nor does it feed the relaxed proof above, because
+	// over-producing is not a proof of unpayability. got keeps its previous
+	// verdict exactly as before.
+	skip := !census.relaxable && census.bounded &&
+		e.paymentPlanRelaxProof(census.boundedProof(), verdict).Reason == pay.ReasonInsufficient
+	if skip {
+		return got, nil
+	}
+	if script, ok := e.potentialPrefixScript(p, o, census.gaps, census.fees()); ok {
+		return PaymentPlanOutcome{}, script
+	}
+	return got, nil
 }
 
 // potentialWitnessSmallerX is the witness for a plain {X} cast whose
