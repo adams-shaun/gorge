@@ -753,7 +753,9 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 		if k.gen != nil {
 			pc = s.manaPCGen(k, sl)
 		}
-		s.removeSrc(k, &av2, sl, pc)
+		if !s.ownTapBoundKept(k, sl) {
+			s.removeSrc(k, &av2, sl, pc) // (the gaps walk's bound keeps the source's own mana: mana_reflamtowntap.go)
+		}
 		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, &av2, sl, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, &av2)) {
 			return false
 		}
