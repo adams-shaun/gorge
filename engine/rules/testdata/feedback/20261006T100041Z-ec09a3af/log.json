@@ -806,6 +806,7 @@
     {
       "seq": 85,
       "kind": 1,
+      "text": "shuffle from effect",
       "ids": [
         37,
         59,
@@ -3754,6 +3755,7 @@
       "seq": 623,
       "kind": 1,
       "player": 1,
+      "text": "shuffle from effect",
       "ids": [
         194,
         193,
@@ -5713,7 +5715,7 @@
       ]
     }
   ],
-  "head": "4d8752d6fe5a49e2",
+  "head": "54222338d50962ab",
   "intent_count": 142,
   "turn": 7,
   "step": "main1",
