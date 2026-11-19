@@ -794,6 +794,139 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 	}
 }
 
+// deferGapSearch is the Taps-deferred gaps' search on a board whose only
+// census gaps are those sources: gorge's one prefix search (potential_script.go
+// scriptSearch.visit), whose visit explores every subset of the gaps -- a
+// node's children are the remaining gaps in option order, the pass that lets
+// the queued triggers resolve after them (mana_scriptpost.go) -- where
+// scriptDFS walks the ordered prefixes alone. A cost whose pips only a later
+// gap pay, and an earlier gap whose prefix kills the payer (Burning Earth's
+// damage to the tapper beside Dragon-Cursed Halls and Starlit Sanctum: the
+// Sanctum-then-Halls prefix deals 2 at 2 life and ends the search's clone,
+// while the Halls alone floats the {B} Planar Despair's {3}{B}{B} needs), is
+// that later sibling, and the script is the taps and answers along the first
+// line that offers the play, gorge's visit order (CR 601.2b with 605.4a).
+func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool) bool {
+	if len(order) == 0 {
+		return false
+	}
+	noGrant := a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
+	resolvePlay := s.playNeedsEmptyStack(k, a)
+	nodes, stall := 0, uint8(0)
+	var cut [MaxPerm]bool // gap i: every answer so far ended the line at another player's ask
+	removed := make([]bool, len(order))
+	used := make([]int8, 0, len(order)) // the tapped gaps, in tap order
+	answers := make([]uint8, 0, len(order))
+	inUsed := func(i int) bool {
+		for _, u := range used {
+			if int(u) == i {
+				return true
+			}
+		}
+		return false
+	}
+	// walk is one visit of gorge's search at the used subset: the replay on a
+	// fork and the play's offered check, then the children, then the pass.
+	var walk func(post bool) bool
+	walk = func(post bool) bool {
+		if nodes++; nodes > potentialScriptNodes {
+			if stall != 0 {
+				s.capFull(stall) // past gorge's search budget: no script
+			}
+			return false
+		}
+		if len(used) > 0 {
+			t := s.fork()
+			t.g.noGrant = noGrant
+			var spill [kop.NumManaKinds]uint8
+			replay := true
+			for u := range used {
+				if !t.scriptGapTap(k, p, a, order[used[u]], slotMask{}, slotMask{}, slotMask{}, tapsDef, slotMask{}, int(answers[u]), &spill) {
+					replay = false // a life-only gap the path's earlier activation made unpayable
+					break
+				}
+			}
+			if stall == 0 {
+				stall = t.g.stalled
+			}
+			found, foreign := replay, false
+			if replay {
+				t.hideDeferred(k, p, a, tapsDef)
+				var d Decision
+				t.restrOptions(k, &d, p)
+				foreign = t.foreignPendAsks(k, p, resolvePlay)
+				complete := len(used) == len(order)
+				found = hasOption(&d, a) && (t.npend == 0 || complete || !resolvePlay || post) && !foreign
+				if found && t.npend != 0 {
+					t.resolvePrefixPlay(k, a, p, t.sp, resolvePlay)
+					if t.over {
+						found = false // the prefix's triggers end the payer: the branch is dead
+					} else if resolvePlay {
+						var d2 Decision
+						t.restrOptions(k, &d2, p)
+						found = hasOption(&d2, a)
+					}
+				}
+			}
+			if !found && stall == 0 {
+				stall = t.g.stalled
+			}
+			if found {
+				*dead = false
+				if t.rbAny(SeatIx(p)) || spill != ([kop.NumManaKinds]uint8{}) {
+					for c := range spill {
+						t.pl[SeatIx(p)].pool[c] -= spill[c] // restricted mana the byte spilled pays nothing either
+					}
+					*dead = !t.scriptCompletes(k, p, a)
+				}
+				s.unfork()
+				for i := range *pick {
+					(*pick)[i] = -1
+				}
+				for u := range used {
+					(*pick)[used[u]], (*ans)[used[u]] = int8(used[u]), answers[u]
+				}
+				return true
+			}
+			j := used[len(used)-1]
+			cut[j] = foreign && (answers[len(answers)-1] == 0 || cut[j])
+			s.unfork()
+			if foreign {
+				return false // the line ends at another player's ask: no deeper activation under it
+			}
+		}
+		if post {
+			return false // the pass is the node's last line: nothing deeper under it
+		}
+		for i := 0; i < len(order); i++ {
+			if cut[i] || removed[i] || inUsed(i) {
+				continue
+			}
+			n := int(s.deferGapAnswers(k, order[i]))
+			for c := 0; c < n; c++ {
+				used = append(used, int8(i))
+				answers = append(answers, uint8(c))
+				ok := walk(false)
+				used, answers = used[:len(used)-1], answers[:len(answers)-1]
+				if ok {
+					return true
+				}
+			}
+			if cut[i] {
+				removed[i] = true // gorge's search goes on without i (scriptDFS cutAll)
+			}
+		}
+		// the pass that lets the queued triggers resolve, after every deeper
+		// activation failed (mana_scriptpost.go): the play is offered only
+		// once the stack is clear again
+		if resolvePlay && len(used) > 0 {
+			return walk(true)
+		}
+		return false
+	}
+	return walk(false)
+}
+
 // planTiered is plan with gorge's tiers: the sources a Taps watcher
 // defers are no unit of the first pass. gorge's planner never lists them, but
 // a play the planner then proves insufficient is paid through the potential
