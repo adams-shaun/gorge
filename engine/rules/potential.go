@@ -362,6 +362,9 @@ func (e *Engine) potentialTapExtra(p state.PlayerID, id state.ObjID, ma *cards.S
 	}
 	payer := asPayer(e)
 	productions := pay.PaymentPlanProductions(payer, id, ma)
+	if alt, ok := paymentPlanReflectedAlt(e, p, id, ma, 1); ok {
+		productions = paymentPlanReflectedProductions(alt)
+	}
 	if sub := condSplitLiveSub(e, p, id, ma); sub != nil {
 		productions = append(slices.Clone(productions), pay.PaymentPlanProductions(payer, id, sub)...)
 	}
