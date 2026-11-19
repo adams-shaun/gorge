@@ -1207,6 +1207,15 @@ func effectRememberedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 					add(t.Player)
 				}
 			}
+		default:
+			// Willie Lumpkin, Postman's DBEffect remembers "You": the resolving
+			// ability's controller (Forge's Effect card is owned by EffectOwner$,
+			// so "You" in RememberObjects$ is not that owner), whose Target$
+			// Player.IsRemembered names the player the restricted seat cannot
+			// attack. The word's ONE home is definedSpecCodes.
+			if definedSpecCodes.Code(part) == definedSpecYou {
+				add(c.Controller)
+			}
 		}
 	}
 	return out
