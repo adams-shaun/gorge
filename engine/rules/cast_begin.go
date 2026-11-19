@@ -549,25 +549,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 			cost = Cost{}
 		}
 	case castModeOffering:
-		// Offering (CR 702.46): the offering cast pays the PRINTED mana cost
-		// (never a substitution -- the keyword reduces it) AND sacrifices a
-		// permanent of the named type, whose mana cost (colour-inclusive)
-		// reduces the total. The reduction is NOT applied here -- the
-		// permanent is not chosen until sacAsk settles the Sac part -- so
-		// this arm composes the printed mana cost with the mandatory
-		// sacrifice and marks the cast; applyOfferingReduction folds the
-		// chosen permanent's mana cost out of pc.cost once the choice is in.
-		// cost at this point is the same pay.RawBaseCost the offer gate
-		// priced, so the two stages cannot drift; the spell's own additional
-		// costs fold here exactly as the emerged arm's emergeBase folds them.
-		// A stale option whose keyword is gone falls back to the empty cost
-		// like the keyword family above.
-		if spec, ok := offeringSacrificeSpec(f); ok {
-			cost.Sac = append(cost.Sac, spec)
-			cost = pay.WithSpellAbilityExtras(f, cost)
-		} else {
-			cost = Cost{}
-		}
+		cost = offeringCastCost(f, cost)
 	}
 	// CR 601.2b/f/h: a spell's own SpellAbility may carry an explicit Cost$
 	// (Forge's SP Cost) naming an additional cost -- most commonly a
@@ -684,12 +666,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 	if opt.Mode == "emerged" {
 		e.cast.emerge = true
 	}
-	// Offering (CR 702.46): sacAsk folds the chosen sacrifice's mana cost out
-	// of pc.cost once the mandatory sacrifice is settled, the same shape the
-	// emerge mark above documents.
-	if opt.Mode == "offering" {
-		e.cast.offering = true
-	}
+	e.cast.offering = opt.Mode == "offering" // CR 702.46: sacAsk folds the sacrifice's cost out
 	// Morph family (CR 702.37a/702.168a/702.169a): the mark is set beside
 	// the cost the switch composed, so the {3} charge and the face-down
 	// entry marker can never disagree about which cast they belong to.
