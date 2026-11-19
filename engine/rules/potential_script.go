@@ -55,6 +55,10 @@ const (
 	potentialScriptNodes = 160
 )
 
+// potentialCastKind is the potential play kind a plain cast's prefix search
+// prices (the covered-source spendability prune is cast-only).
+const potentialCastKind = "cast"
+
 // potentialPrefixScript searches, on clones of the engine, for a sequence
 // of activations of the census's uncovered sources (gaps: the mana
 // abilities the planner census cannot price, e.g. Saruli Caretaker's
@@ -792,6 +796,9 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 			if sr.ownTapSource(c, opt.Obj) {
 				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
 			}
+			if !gap && !sr.coveredSpendable(c, p, opt.Obj) {
+				continue // a covered source whose mana the play cannot spend is a dead funding branch
+			}
 			if !gap && !c.windowSourceYields(p, opt.Obj) {
 				// A covered source whose every mana ability provably adds
 				// nothing (Bag End Banquet with no Food) cannot fund a fee:
@@ -807,6 +814,61 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 			if sr.try(pool, c, d, decision.Intent{Seq: d.Seq, Player: p, Choices: []int{opt.Index}}, next, gapUsed || gap) {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// coveredSpendable reports whether a covered source's mana can help this
+// search: an unrestricted ability always can, a restricted one only when
+// its RestrictValid$ admits the searched play (the same test
+// scriptSpendableGaps applies to the census's gaps) or a census gap's
+// activation fee. A covered source whose every ability makes mana the play
+// can spend nowhere is a dead funding branch (CR 106.6): tapping it changes
+// only the tapped bit and spends one node of the bounded search. The proof
+// run keeps it too: its gaps are per-node (visit's scriptNodeGaps), so a
+// source no census gap's fee can use may still fund a deeper node's gap
+// fee, and its completed verdict is returned as an insufficient proof --
+// the walk it proves over is pruned nowhere. The test otherwise runs for
+// plain casts only -- an activation's search keeps today's node walk -- and
+// a creature is never pruned, since it may still be tapped as a cost
+// (tapXType<Creature>, convoke, crew). A tap that fires another permanent's
+// mana trigger (floating mana the search reaches only through that later
+// node) is not accounted for here: no corpus card demonstrates it, so the
+// next divergence of this class starts there.
+func (sr *scriptSearch) coveredSpendable(c *Engine, p state.PlayerID, id state.ObjID) bool {
+	if sr.nodePlans {
+		return true // the proof run's walk is pruned nowhere
+	}
+	if sr.play.Kind != potentialCastKind {
+		return true
+	}
+	if o := c.G.Obj(id); o != nil && o.Face() != nil && o.Face().IsCreature() {
+		// A creature can still be tapped as a cost (Holdout Settlement's
+		// tapXType<Creature>, convoke, crew): its restricted mana being
+		// unspendable does not make the source a dead branch.
+		return true
+	}
+	for _, ma := range c.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
+		if effects.ManaOf(ma).RestrictValid == "" {
+			return true
+		}
+	}
+	o := decision.Option{Kind: sr.play.Kind, Obj: sr.play.Obj, Ability: sr.play.Ability, Mode: sr.play.Mode, AltCostIndex: max(sr.altCost, 0)}
+	if len(c.scriptSpendableGaps(p, o, []state.ObjID{id})) > 0 {
+		return true
+	}
+	// ... but a restricted covered source can still pay a census gap's
+	// activation fee even when the play itself cannot spend it (Vhal's
+	// "{C} ... can't be spent to cast a spell from hand" pays School of the
+	// Unseen's {2}, whose mana the cast spends, CR 106.6). The fee is an
+	// activation of the gap, not the play, so test each gap source.
+	for _, gid := range sr.gaps {
+		if gid == id {
+			continue
+		}
+		if c.gapSpendableFor(p, id, paymentDescriptor{Class: pay.PurposeActivated, ID: gid}) {
+			return true
 		}
 	}
 	return false
