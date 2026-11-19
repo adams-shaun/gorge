@@ -120,7 +120,27 @@ func (s *State) spMatchAs(k *prep, hc uint8, b Slot, src Obj, a *kop.Ability, e 
 	if e.srcSl != NoSlot {
 		return s.matchPermGen(k, r.Filter2, e.srcSl, hc, b, layerFull)
 	}
-	return s.matchCardGenAt(k, r.Filter2, e.srcCard, e.srcCtrl, hc, NoObj, &ctx)
+	return s.matchSourceCard(k, r.Filter2, e.srcCard, e.srcCtrl, hc, &ctx)
+}
+
+// matchSourceCard is matchCardGenAt for a damage source that has left the
+// battlefield (or is a spell): a Card.Self alternative means the source is
+// the host, but the host is on the battlefield (the static's ActiveZones$
+// Battlefield) and the source is not, so it can never match. The generic card
+// matcher ignores filter flags, and the empty type set of a bare Self clause
+// would otherwise match every departed source (Indentured Oaf's prevention
+// against damage from a sacrificed Land Mine token, CR 615.1a with CR 609.7).
+func (s *State) matchSourceCard(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, ctx *evalCtx) bool {
+	for ; f != 0; f = k.t.Filters[f].Or {
+		fl := &k.t.Filters[f]
+		if fl.Flags&kop.FSelf != 0 {
+			continue
+		}
+		if s.matchCardOneAt(k, fl, c, owner, ctrl, NoObj, ctx) {
+			return true
+		}
+	}
+	return false
 }
 
 // spCollect fills out with the candidates of e in gorge's scan order (each
