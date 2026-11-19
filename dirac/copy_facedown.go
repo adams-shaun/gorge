@@ -22,6 +22,18 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // permanent (face_manifest.go: manifested and cloaked are exclusive).
 const gtyBlankCopy = gtyProvMask
 
+// spareCopyFaceDown marks a token copy minted from a face-down permanent
+// (copyTokenEnterFrom): the token keeps that permanent's provenance for
+// faceDownWard, but it is itself face up (CR 707.2), so projFaceDown must not
+// read the provenance as its own face-down status. markFaceDown clears it when
+// the token later becomes face down in its own right.
+const spareCopyFaceDown uint8 = 2
+
+// copiedFaceDown reports a token copy minted from a face-down permanent.
+func (s *State) copiedFaceDown(sl Slot) bool {
+	return s.perms[sl].spare&spareCopyFaceDown != 0
+}
+
 // permBlank reports a permanent copy of a face-down permanent.
 func (s *State) permBlank(sl Slot) bool {
 	return s.perms[sl].gty&(gtyFaceDown|gtyProvMask) == gtyFaceDown|gtyBlankCopy
@@ -62,13 +74,14 @@ func (s *State) copyBlankLayer(k *prep, sl, tmpl Slot) bool {
 // keeps its printed card's name, as gorge projects it.
 //
 // The provenance marks come first: a permanent that is itself manifested or
-// cloaked is face down (CR 708.2) even when it is a token copy minted earlier,
-// while a copy OF a face-down permanent is face up (CR 707.2) and carries no
-// provenance of its own (copyTokenEnterFrom). blankCopy still catches the
-// face-down-valued copies that are not marked, e.g. a copy of a morph.
+// cloaked is face down (CR 708.2), while a copy OF a face-down permanent is
+// face up (CR 707.2) even though it carries the source's provenance for its
+// ward (copyTokenEnterFrom, faceDownWard). copiedFaceDown separates the two;
+// blankCopy still catches the face-down-valued copies that are not marked,
+// e.g. a copy of a morph.
 func (s *State) projFaceDown(sl Slot, po *ProjObj) {
 	switch {
-	case s.manifested(sl) || s.cloaked(sl):
+	case (s.manifested(sl) || s.cloaked(sl)) && !s.copiedFaceDown(sl):
 		po.Flags |= ProjFaceDown
 	case !s.blankCopy(sl):
 		po.Flags |= ProjFaceDown

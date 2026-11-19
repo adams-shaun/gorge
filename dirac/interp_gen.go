@@ -2402,13 +2402,16 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		s.g.entExc = entExcOn | uint32(tmpl)<<8 | uint32(uint8(in.C))
 	}
 	sl := s.enterNF(k, t, e.ctrl, fl&kop.CpTapped != 0, kop.ZoneLibrary, face)
-	if face != 0 && s.perms[tmpl].gty&gtyProvMask == gtyBlankCopy {
-		// A token copy OF a blank permanent copy keeps the blank-copy mark
-		// (both provenance bits, permBlank) so projFaceDown leaves it a
-		// nameless-but-printed-name blank copy, as gorge projects it. A
-		// manifested/cloaked template's single mark is its own face-down
-		// provenance, which the token (face up, CR 707.2) does not take.
-		s.perms[sl].gty |= gtyBlankCopy
+	if face != 0 {
+		// The token copies the template's face-down copiable values (CR 707.2):
+		// keep its provenance for faceDownWard (a cloak's ward {2}, CR 701.58a;
+		// a manifested card's none, CR 701.40a) and mark it a copy of a
+		// face-down permanent, so projFaceDown does not read that provenance as
+		// the token's own face-down status. A blank permanent copy (both bits,
+		// gtyBlankCopy) keeps its both-bit mark, which permBlank reads as a copy
+		// that keeps its printed name.
+		s.perms[sl].gty |= s.perms[tmpl].gty & gtyProvMask
+		s.perms[sl].spare |= spareCopyFaceDown
 	}
 	s.touch(t)
 	if uint16(in.B.N)&(kop.CopyAttacking|0x3f<<kop.CopyPumpShift) == kop.CopyAttacking && s.occ.has(sl) {
