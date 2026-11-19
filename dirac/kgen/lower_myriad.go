@@ -15,13 +15,17 @@ import (
 // Legion Loyalty) synthesizes the same trigger without the marker
 // (scriptfacts.GrantedKeywordTrigger, the __kwMyriadGranted payload). The
 // body walks the opponents other than the defending player
-// (effects.myriadOpponents), asking the controller about each (a "yes" /
-// "no" KChoose) and making a tapped copy attacking that player on a yes;
-// the copies are exiled as the combat ends. One OpExt ExtMyriad over Self
-// (dirac/kw_myriad.go) is the whole body (seat-exact: with no opponent but
-// the defending player it asks nothing and creates nothing).
-// Each instance triggers separately (CR 702.116b): Scurry of Squirrels'
-// two printed lines are two triggers, a printed line beside a grant two.
+// (effects.myriadOpponents), asking the controller about each (a KChoose
+// over the source: the player, each face-up planeswalker they control --
+// the CR 508.4 arm Adeline's token ask poses -- then the decline) and making
+// a tapped copy attacking the chosen defender on a create answer; the copy
+// registers its own end-of-combat exile promise (gorge scheduleAtEOTRider
+// __kwWarpExile at this turn's end-of-combat step, CR 511.2). One OpExt
+// ExtMyriad over Self (dirac/kw_myriad.go) is the whole body (seat-exact:
+// with no opponent but the defending player it asks nothing and creates
+// nothing). Each instance triggers separately (CR 702.116b): Scurry of
+// Squirrels' two printed lines are two triggers, a printed line beside a
+// grant two.
 
 // isMyriadBody reports whether sa is gorge's DB$ Myriad body as the keyword
 // expansion writes it, with no sub-ability (the chain lowering refuses any
@@ -62,6 +66,8 @@ func (lc *lowerCtx) myriad(sa *cards.SA) error {
 		!filterSelfOnly(lc.ab.Trigger.F) || len(lc.ab.Prog) != 0 || !isMyriadBody(sa) {
 		return refuse("DB$ Myriad outside an Attacks Self trigger's whole body")
 	}
+	// The Note text is part of the card's lir16, so editing it re-stales every evidenced Myriad
+	// card's coverage row (stale_max); the planeswalker arm is documented above instead.
 	lc.emit(lInstr{Op: "Myriad", Obj: lRef{Kind: rSelf}, A: cst(1), CS: "Tapped",
 		Note: "for each opponent but the defending player, may copy it tapped and attacking that player"})
 	return nil

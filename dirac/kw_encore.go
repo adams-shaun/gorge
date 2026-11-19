@@ -83,10 +83,11 @@ func (s *State) encoreCopy(k *prep, in *kop.Instr, c CardID, opp uint8) {
 
 // oppCopyEnter is a per-opponent copy's entry (copyTokenEnterFrom, under
 // rfOppCopy): an Encore copy's attack duty names the opponent s.res.left;
-// a Myriad copy (kw_myriad.go) enters attacking that player.
-func (s *State) oppCopyEnter(k *prep, in *kop.Instr, sl Slot) {
+// a Myriad copy (kw_myriad.go) enters attacking that player, with its
+// end-of-combat exile promise.
+func (s *State) oppCopyEnter(k *prep, in *kop.Instr, sl Slot, t Obj) {
 	if s.res.e.kind == seTrigger {
-		s.myriadEnter(k, sl) // kw_myriad.go: Myriad is the trigger's copy
+		s.myrCopyEnter(k, in, sl, t) // kw_myriad.go: Myriad is the trigger's copy
 		return
 	}
 	opp := s.res.left
@@ -131,8 +132,6 @@ func encoreUses(in *kop.Instr, u *[numMech]bool) {
 	case in.Op != kop.OpExt:
 	case in.Ext() == kop.ExtGrantEncore:
 		u[mechEncore] = true
-	case in.Ext() == kop.ExtMyriad:
-		u[mechMyriad] = true
 	case in.Ext() == kop.ExtEncore:
 		u[mechAttacksIfAble], u[mechAttacksPlayer] = true, true
 		u[mechEncSeat0], u[mechEncSeat1] = true, true

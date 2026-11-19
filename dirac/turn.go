@@ -331,7 +331,6 @@ func (s *State) advance(k *prep) {
 		s.endStep(next) // a step of its own, so the pools empty as it ends (CR 500.4, 510.4)
 		return
 	case kop.StepEndCombat:
-		s.myriadEndCombat(k) // kw_myriad.go: before the combat state resets (gorge MyriadCleanup)
 		s.clearCombat()
 		if k.gen != nil && k.gen.anyRepl&rbPrevCol != 0 {
 			s.prevEndCombat() // repl_prevx.go: the Duration$ UntilEndOfCombat scoped records end here
