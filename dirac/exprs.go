@@ -857,6 +857,20 @@ func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx
 			}
 			return 0
 		}
+		if e := ctx.e; e != nil && e.kind != seSpell && ctx.src == e.obj && f != 0 {
+			// CR 608.2h: an ability whose source left the battlefield since
+			// it was created reads the source's last known information, the
+			// departed slot (Weatherlight Compleated's dies trigger on its
+			// own death: "draw a card if it has seven or more phyresis
+			// counters on it" reads the counters it died with, as gorge's
+			// source LKI does)
+			if sl := s.departedSrcSlot(e); sl != NoSlot {
+				if s.matchPermGen(k, f, sl, ctx.ctrl, sl, layerFull) {
+					return 1
+				}
+				return 0
+			}
+		}
 		return one(ctx.src)
 	case kop.RefSacrificed:
 		o := s.sacrificedObj(ctx)

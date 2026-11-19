@@ -66,6 +66,12 @@ func prepMcombat(t *kop.Table, g *genPrep) {
 			a := &c.Abilities[j]
 			var f kop.FilterFlags2
 			f |= chainFlags2(t, a.Trig.Filter) | chainFlags2(t, a.Trig.Filter2)
+			if a.Kind == kop.AbReplacement {
+				// a replacement's own filter: Incendiary Oracle's "If a
+				// creature dealt damage by CARDNAME this turn would die,
+				// exile it instead" reads DamagedBy only here
+				f |= chainFlags2(t, a.Repl.Filter)
+			}
 			for _, ts := range a.Targets {
 				f |= chainFlags2(t, ts.Filter)
 			}
