@@ -24,6 +24,9 @@ var twoPilesChooserPodDeck = []cardset.Entry{
 // play in lockstep, the caster choosing a non-first opponent to pick the
 // pile, and that opponent answering the pile choice.
 func TestFourSeatTwoPilesChooserLockstep(t *testing.T) {
+	// The subtests skip without the corpus, so the parent must too, or its
+	// watched-count check below fails on an empty run.
+	corpusDirOrSkip(t)
 	var chosen, controller int
 	var pending bool
 	var asks, picks int
