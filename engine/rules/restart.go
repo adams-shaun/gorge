@@ -132,7 +132,6 @@ func (e *Engine) resetForRestart() {
 	*e = Engine{}
 	e.G, e.L, e.rng = keep.G, keep.L, keep.rng
 	e.deckManifests, e.compiledText, e.landTypeWords = keep.deckManifests, keep.compiledText, keep.landTypeWords
-	e.walkerTypeWords = keep.walkerTypeWords
 	e.ManaAbilityHook, e.StaticTriggerHook = keep.ManaAbilityHook, keep.StaticTriggerHook
 	e.format = keep.format
 	e.mulligans, e.windowDiagnostics, e.paidManaCensus = keep.mulligans, keep.windowDiagnostics, keep.paidManaCensus

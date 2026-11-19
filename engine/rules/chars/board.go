@@ -49,10 +49,6 @@ type Board interface {
 	// AllNonBasicLandType grant expands against (CorpusLandTypeWords over the
 	// game's name universe).
 	LandTypeWords() []string
-	// PlaneswalkerTypeWords is the corpus planeswalker-subtype vocabulary
-	// (the walker names, CR 205.3j) the RemoveType$ Planeswalker strip
-	// follows (CorpusPlaneswalkerTypeWords over the game's name universe).
-	PlaneswalkerTypeWords() []string
 	// CDAContext is the evaluation context a characteristic-defining
 	// ability's value expression resolves through, with the board's
 	// published layer-4 derived type table bound.

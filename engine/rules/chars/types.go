@@ -433,6 +433,21 @@ func buildCorpusPlaneswalkerTypeWords(universe *cards.Universe) []string {
 	return slices.Compact(words)
 }
 
+// gameCorpus is the parsed compiled corpus the derived vocabularies build
+// from: the game's NamedCorpus when the game has one, else its NameUniverse
+// (the source genesis.go's nameUniverseOrCorpus seeds the land vocabulary
+// with, carried on the state the walk reads). Unlike the land list -- a
+// genesis-time Engine field -- the walker list is derived here on the first
+// RemoveType$ Planeswalker strip and memoised on the universe, so an
+// embedder without a universe (the unit-test boards) derives an empty one,
+// the same empty vocabulary the land field carries there.
+func gameCorpus(g *state.Game) *cards.Universe {
+	if g.NamedCorpus != nil {
+		return g.NamedCorpus
+	}
+	return g.NameUniverse
+}
+
 func IsCardType(t string) bool {
 	for _, word := range cardTypeWords {
 		if strings.EqualFold(t, word) {
@@ -779,7 +794,7 @@ func applyTypeEffect(b Board, ce *state.ContinuousEffect, ty []string, allCreatu
 			landWords = b.LandTypeWords()
 		}
 		if sets.Planeswalker() {
-			walkerWords = b.PlaneswalkerTypeWords()
+			walkerWords = gameCorpus(b.Game()).PlaneswalkerTypeWords(buildCorpusPlaneswalkerTypeWords)
 		}
 		kept := ty[:0]
 		for _, t := range ty {

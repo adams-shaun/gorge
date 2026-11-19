@@ -17,10 +17,12 @@ package rules
 // sets it the way all_land_types_test.go does for the land vocabulary.
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -78,13 +80,15 @@ func TestLuxiorRemoveTypePlaneswalkerDropsWalkerName(t *testing.T) {
 
 	// Precondition: the printed line still carries the walker name -- the
 	// word the strip owes is on the printed face, not only on the derived
-	// list, and the corpus-derived walker vocabulary knows it.
+	// list -- and the corpus-derived walker vocabulary, built from the same
+	// universe the game carries, knows the word.
 	face := e.G.Obj(ajani).Face()
 	if got := face.Types; !hasTypeWord(got, "Ajani") || hasTypeWord(got, "Creature") {
 		t.Fatalf("precondition broken: printed Ajani, Caller of the Pride types %v carry no walker-name word in the subtype slot", got)
 	}
-	if w := e.walkerTypeWords; len(w) == 0 {
-		t.Fatal("precondition broken: the game's walker-name vocabulary is empty")
+	w := chars.CorpusPlaneswalkerTypeWords(reg.Universe())
+	if !slices.Contains(w, "Ajani") {
+		t.Fatalf("precondition broken: the corpus walker-name vocabulary %v does not know the printed walker name", w)
 	}
 
 	ty := e.derivedTypesOf(ajani)

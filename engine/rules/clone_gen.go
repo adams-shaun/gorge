@@ -62,7 +62,6 @@ func cloneFieldsEngine(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.deckManifests = e.deckManifests
 	c.compiledText = e.compiledText
 	c.landTypeWords = e.landTypeWords
-	c.walkerTypeWords = e.walkerTypeWords
 	c.restartRest = e.restartRest
 	c.format = e.format
 	if e.pending != nil {

@@ -324,7 +324,6 @@ func newEngineShell(cfg Config, random *rng) *Engine {
 		loop:              newLivelockWatcherInto(cfg.LoopGuard, spare.loopSigs, spare.loopRecent, spare.loopPrev, spare.loopHeads, spare.loopHash),
 		compiledText:      newCompiledText(cfg),
 		landTypeWords:     chars.CorpusLandTypeWords(nameUniverseOrCorpus(cfg)),
-		walkerTypeWords:   chars.CorpusPlaneswalkerTypeWords(nameUniverseOrCorpus(cfg)),
 		mulligans:         cfg.Mulligans,
 		windowDiagnostics: cfg.WindowDiagnostics,
 		paidManaCensus:    !cfg.DisablePaidManaCensus,

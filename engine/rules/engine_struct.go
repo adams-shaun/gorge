@@ -19,7 +19,6 @@ type Engine struct {
 	L                  *events.Log     `clone:"deep"`
 	compiledText       *compiledText   `clone:"share"`
 	landTypeWords      []string        `clone:"share"`
-	walkerTypeWords    []string        `clone:"share"`
 
 	// restart is a CR 727 restart effRestartGame requested and the
 	// resolving caller has not yet performed (engine/rules/restart.go).
@@ -203,8 +202,7 @@ type Engine struct {
 	// Clone's per-field copy classes (engine/rules/clone.go) are unchanged. Only the
 	// fields some composite literal must set stay at this top level:
 	// genesis.go's New (G, deckManifests, L, format, rng, loop, compiledText,
-	// landTypeWords, walkerTypeWords, mulligans, windowDiagnostics,
-	// startingLife),
+	// landTypeWords, mulligans, windowDiagnostics, startingLife),
 	// trigger_match.go's observer Engine literal (G, L, continuous,
 	// continuousVersion, setNameInPool, layer4InPool) and the test
 	// constructors in engine/rules/*_test.go. Never introduce e.<cluster>.<field>

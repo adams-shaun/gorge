@@ -54,8 +54,6 @@ func (b *charsBoard) ControllerOf(id state.ObjID) state.PlayerID {
 
 func (b *charsBoard) LandTypeWords() []string { return b.landTypeWords }
 
-func (b *charsBoard) PlaneswalkerTypeWords() []string { return b.walkerTypeWords }
-
 func (b *charsBoard) CDAContext(o *state.Object, f *cards.Face) *effects.Ctx {
 	e := (*Engine)(b)
 	return e.cdaEvalCtx(o, f)
