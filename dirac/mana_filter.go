@@ -1167,10 +1167,11 @@ type filtSearch struct {
 	// scriptSearch.feeOnly). The activation-site and one-shot cuts are scoped
 	// to it, so a board with no such source keeps the base node walk other
 	// searches share a budget with (the granted-mana prefix). The twin cut
-	// runs on this fee-only path and for activated plays: two indistinguishable
-	// sources reach the same payer states, and the skip is what prices a
-	// fee-carrying gap beside a row of identical basics (tail-26 pair 26),
-	// while an ordinary cast keeps the node walk the cast tables price.
+	// runs on this fee-only path and for a printed or gained activated play
+	// (isAbilityPlay): two indistinguishable sources reach the same payer
+	// states, and the skip is what prices a fee-carrying gap beside a row of
+	// identical basics (tail-26 pair 26). An ordinary cast and a granted play
+	// keep their older walk.
 	feeOnly bool
 	// hands: the hand guides the path exiled so far (mana_handguide.go)
 	hands uint8
@@ -1863,7 +1864,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				}
 				continue
 			}
-			if (fs.feeOnly || fs.a.Kind() == AkActivate) && fs.twinTried(k, t, sl, tried[:ntried]) {
+			if (fs.feeOnly || isAbilityPlay(fs.a)) && fs.twinTried(k, t, sl, tried[:ntried]) {
 				continue // an indistinguishable earlier source already walked this subtree
 			}
 			if gap && k.gen.anyFiltFirst {
@@ -2245,6 +2246,19 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 // printed cost, or an activation.
 func gapFilteredPlay(a Action) bool {
 	return a.Kind() == AkActivate || a.Kind() == AkCast && a.Mode() == 0
+}
+
+// isAbilityPlay: action a is one of gorge's potential play kind "ability",
+// the activated plays the twin cut runs for: a printed activation or a gained
+// one (the 0xC0 mode pair, static_gainsof.go). A granted activation (the 0x80
+// bit alone: legal_gen.go's max-speed grant and cast_exilegrant.go's exile
+// grant) is gorge's separate Kind "granted", whose prefix search keeps the
+// older walk, so the cut must not run there.
+func isAbilityPlay(a Action) bool {
+	if a.Kind() != AkActivate {
+		return false
+	}
+	return a.Mode()&0x80 == 0 || isGainedMode(a.Mode())
 }
 
 // gapSpendableMask drops from m each source whose every mana ability, printed
