@@ -282,11 +282,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 			po.Flags2 |= ProjRenowned
 		}
 		if s.faceDown(k, sl) {
-			if s.blankCopy(sl) {
-				po.Flags2 |= ProjNameless
-			} else {
-				po.Flags |= ProjFaceDown
-			}
+			s.projFaceDown(sl, po)
 		}
 		po.Damage = pm.damage
 		po.Counters = [kop.NumCounterKinds2]uint16{}

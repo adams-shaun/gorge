@@ -58,10 +58,11 @@ func (s *State) lostSlow(k *prep, sl Slot) bool {
 	return s.perms[sl].gty&gtyFaceDown != 0 || s.ovrLoses(k, sl)
 }
 
-// blankCopy reports a token copy of a face-down permanent: gtyFaceDown gives it
-// the face-down characteristics, but it is face up and cannot be turned (CR 707.2).
+// blankCopy reports a copy of a face-down permanent, a token copy or a
+// permanent's copy layer (copy_facedown.go): gtyFaceDown gives it the
+// face-down characteristics, but it is face up and cannot be turned (CR 707.2).
 func (s *State) blankCopy(sl Slot) bool {
-	return s.objs[s.perms[sl].obj].of&ofCopy != 0
+	return s.objs[s.perms[sl].obj].of&ofCopy != 0 || s.permBlank(sl)
 }
 
 // slotFaceDownSpell is object.slot of a face-down spell on the stack (a

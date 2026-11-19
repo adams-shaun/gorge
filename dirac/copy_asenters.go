@@ -142,7 +142,10 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
 	p.ovr.flags |= ovCopy
 	p.ovr.copyOf = c
-	s.subscribe(sl, &k.cards[c], true)
+	blank := s.copyBlankLayer(k, sl, src) // a face-down template: the face-down values (copy_facedown.go)
+	if !blank {
+		s.subscribe(sl, &k.cards[c], true)
+	}
 	// the template's copy exceptions, then the op's own (CR 707.9b)
 	s.copyExcAdd(k, sl, src, uint8(in.C>>1))
 	s.copyGrantsAdd(k, sl, src)
@@ -162,11 +165,12 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	// entry plan reads the clone template): enters tapped, with counters,
 	// and its enters programs (a choice among them is asked once it is on
 	// the battlefield, the queued as-enters ask)
+	// A face-down template's values have none (copy_facedown.go).
 	pc := &k.cards[c]
-	if pc.enterTap {
+	if pc.enterTap && !blank {
 		p.flags |= pfTapped
 	}
-	if pc.enterCtr != 0 && !(k.gen.anyEntryMerge && s.entryAcc(int(pc.enterCK), int(pc.enterCtr))) {
+	if !blank && pc.enterCtr != 0 && !(k.gen.anyEntryMerge && s.entryAcc(int(pc.enterCK), int(pc.enterCtr))) {
 		s.placeEntryCounters(k, sl, int(pc.enterCK), int(pc.enterCtr), p.ctrl)
 	}
 	if in.B.K == kop.VConst && in.B.N&kop.BecomeCopyCtr != 0 {
@@ -176,7 +180,7 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 		// printed counters just placed, CR 707.5).
 		s.copyEnteredCounters(k, sl, src)
 	}
-	if k.gen.has(c, gfEnterRepl) {
+	if !blank && k.gen.has(c, gfEnterRepl) {
 		cd := &k.t.Cards[c]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]

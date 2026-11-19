@@ -33,8 +33,10 @@ func (s *State) markFaceDown(sl Slot, cloaked bool) {
 }
 
 // manifested and cloaked report the provenance marks.
-func (s *State) manifested(sl Slot) bool { return s.perms[sl].gty&gtyManifested != 0 }
-func (s *State) cloaked(sl Slot) bool    { return s.perms[sl].gty&gtyCloaked != 0 }
+// Both set is a permanent copy of a face-down permanent (gtyBlankCopy,
+// copy_facedown.go), neither manifested nor cloaked.
+func (s *State) manifested(sl Slot) bool { return s.perms[sl].gty&gtyProvMask == gtyManifested }
+func (s *State) cloaked(sl Slot) bool    { return s.perms[sl].gty&gtyProvMask == gtyCloaked }
 
 // execDread runs the manifest/cloak ops (execOblige's default branch).
 // done=false means the op is not one of these; false ok means a dread ask is
