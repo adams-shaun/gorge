@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -88,4 +89,42 @@ func announcedSourceSubCounter(c Cost) (CostPart, bool) {
 		}
 	}
 	return CostPart{}, false
+}
+
+// scriptDropEmptyManaAnswers removes from the answers to a mana-ability ask the
+// ones that pick an ability yielding nothing (manaAbilityYieldsNothing: Three
+// Tree City's "{2}, {T}: ... mana equal to the creatures of the chosen type"
+// with none): paying its fee only taps sources for no mana, and each such
+// branch spends a node, and every node under it, of the prefix search's budget
+// (the kernel's filter search never takes it, as its funding pass never taps
+// an empty source: windowSourceYields). The ask keeps every answer when no
+// other would remain, so a lone empty ability is still branched on.
+func scriptDropEmptyManaAnswers(ma *manaActivation, p state.PlayerID, d *decision.Decision, answers []decision.Intent, yieldsNothing func(*cards.SA) bool) []decision.Intent {
+	if ma == nil || ma.player != p || ma.source != d.Source || len(answers) < 2 {
+		return answers
+	}
+	empty := func(in decision.Intent) bool {
+		if len(in.Choices) != 1 {
+			return false
+		}
+		for i := range d.Options {
+			op := &d.Options[i]
+			if op.Index != in.Choices[0] {
+				continue
+			}
+			return op.Kind == "mana" && !op.Granted && op.Ability >= 0 && op.Ability < len(ma.abilities) &&
+				yieldsNothing(ma.abilities[op.Ability])
+		}
+		return false
+	}
+	var kept []decision.Intent
+	for _, in := range answers {
+		if !empty(in) {
+			kept = append(kept, in)
+		}
+	}
+	if len(kept) == 0 {
+		return answers
+	}
+	return kept
 }
