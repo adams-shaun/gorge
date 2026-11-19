@@ -173,7 +173,7 @@ func (s *State) phyPay(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj)
 		s.tapFor(k, p, cost, x, exclude)
 		return true
 	}
-	if !s.phyWindowReach(k, p, cost) {
+	if !s.phyWindowReach(k, p, cost) && !s.phyFilterReach(k, p, cost) {
 		return false // a face only a filter could make: gorge's window never opens, it reverses
 	}
 	// The window's pick is the first useful source in battlefield order and
@@ -188,6 +188,28 @@ func (s *State) phyPay(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj)
 		return true // a tap-another pick is pending: the payment runs on when it answers
 	}
 	return ok && s.windowSpellSettled(k, p, cost, false)
+}
+
+// phyFilterReach: some repeatable fee-only filter (Bog Initiate's "{1}: Add
+// {B}.") makes the potential pool pay cost, so gorge's stranded check lets
+// the window open (its PotentialMana fixpoint prices the filter's own
+// production, potential_repeat_fee.go) though the printed sources do not
+// reach it. The window then lists no filter that cannot help (windowFeeStalls)
+// and the cast is reversed when it ends short (CR 733.1; phyFilterStranded).
+func (s *State) phyFilterReach(k *prep, p uint8, cost *kop.ManaCost) bool {
+	if k.gen == nil || !k.gen.anyFiltRepeat {
+		return false
+	}
+	var av avail
+	s.availPotential(k, p, &av)
+	return av.affords(cost, pipMaskOf(cost), 0)
+}
+
+// phyFilterStranded: the Phyrexian cost is reachable only through a repeatable
+// filter (phyFilterReach), so a window that leaves it unpaid reverses the cast,
+// as gorge's does when the player is done (CR 733.1).
+func (s *State) phyFilterStranded(k *prep, p uint8, cost *kop.ManaCost) bool {
+	return !s.phyAllLife(k) && !s.phyWindowReach(k, p, cost) && s.phyFilterReach(k, p, cost)
 }
 
 // phyWindowReach reports whether the payment's own pool, the untapped printed
