@@ -151,6 +151,7 @@ Rebuke
 Reckless One
 Reito Sentinel
 Relic Runner
+Reshape the Earth
 Riddlesmith
 Rise of the Ants
 Rishadan Airship
@@ -206,6 +207,7 @@ Unbender Tine
 Urza's Armor
 Vedalken Blademaster
 Vengeful Warchief
+Venomspout Brackus
 Vessel of Paramnesia
 Visions of Brutality
 Voidslime

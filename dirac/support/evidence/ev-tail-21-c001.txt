@@ -1,3 +1,4 @@
+A-Bretagard Stronghold
 A.I.M. Bot
 Aang, A Lot to Learn
 Accursed Centaur
@@ -5,6 +6,7 @@ Addle
 Aethertide Whale
 Ali Baba
 Ambassador Oak
+Ancestral Tribute
 Ancient Brontodon
 Archon of Cruelty
 Ardent Recruit
@@ -46,10 +48,12 @@ Bravado
 Breath of Malfegor
 Brightcap Badger
 Brion Stoutarm
+Brokers Initiate
 Brutal Expulsion
 Caldera Pyremaw
 Cave of the Frost Dragon
 Celestial Colonnade
+Cerulean Wisps
 Charge Across the Araba
 Chief Engineer
 Cinder Seer
@@ -58,6 +62,7 @@ Cobbled Wings
 Confound
 Consume Spirit
 Courageous Outrider
+Court of Bounty
 Crossover Collaboration
 Crosswinds
 Crovax, Ascendant Hero
@@ -94,6 +99,7 @@ Elegant Entourage
 Elephant-Mandrill
 Elixir of Vitality
 Elvish Berserker
+Ember Weaver
 Enchanted Carriage
 Enduring Bondwarden
 Errant Doomsayers
@@ -121,11 +127,13 @@ Foot Soldiers
 Forbidden Lore
 Forest
 Forgeborn Oreads
+Frantic Purification
 Frantic Salvage
 Frenetic Sliver
 Fumulus, the Infestation
 Fury Sliver
 Galvanic Key
+General Marhault Elsdragon
 Geth, Lord of the Vault
 Ghitu Slinger
 Gift of Compleation
@@ -145,6 +153,7 @@ Grateful Apparition
 Green Scarab
 Grendel, Spawn of Knull
 Grounded
+Guided Strike
 Hag of Dark Duress
 Hapless Researcher
 Havoc Sower
@@ -195,12 +204,14 @@ Lava Storm
 Lay Bare
 Layla Hassan
 Leaden Fists
+Lens Flare
 Leonin Snarecaster
 Leyline of Abundance
 Lifecrafter's Bestiary
 Lightkeeper of Emeria
 Lightning Berserker
 Lita, Mechanical Engineer
+Lotus Guardian
 Magmatic Core
 Makindi Ox
 Mana Geode
@@ -211,6 +222,7 @@ Meneldor, Swift Savior
 Mesmeric Orb
 Metallurgeon
 Meteorite
+Michiko Konda, Truth Seeker
 Might of Oaks
 Military Intelligence
 Mind Carver
@@ -236,6 +248,7 @@ Notion Rain
 Oath of Druids
 Oketra the True
 Omen of Fire
+Ondu War Cleric
 One with the Stars
 Open Fire
 Opportunist
@@ -263,6 +276,7 @@ Prying Blade
 Psychic Barrier
 Pyroconvergence
 Queen's Commission
+Radha, Heir to Keld
 Rageblood Shaman
 Raging Kronch
 Raging Regisaur
@@ -301,6 +315,7 @@ Seismic Strike
 Serene Offering
 Serra Zealot
 Servo Exhibition
+Shared Summons
 Shining Armor
 Siege Modification
 Simian Grunts
@@ -321,17 +336,20 @@ Soul Bleed
 Sparkshaper Visionary
 Spirit Link
 Spit Flame
+Spring of Eternal Peace
 Standing Troops
 Starfall
 Steelshaper Apprentice
 Stinging Scorpion
 Stone of Erech
+Subdue
 Subterranean Scout
 Sulfurous Springs
 Sultai Skullkeeper
 Survive the Night
 Swallowing Plague
 Swamp
+Sylvan Brushstrider
 Sylvan Tutor
 Syphon Essence
 Take Vengeance
@@ -343,17 +361,24 @@ The Howling Commandos
 The Mending of Dominaria
 Thoughtbound Phantasm
 Thraben Watcher
+Thrash
+Thunder Totem
 Tomb of the Spirit Dragon
 Tori D'Avenant, Fury Rider
+Tormented Angel
 Tormenting Voice
 Torpid Moloch
 Tower Worker
+Triassic Egg
 Trigon of Mending
+Trumpeting Herd
 Tuktuk Scrapper
 Turbulent Wilderness
 Umara Raptor
 Umbilicus
+Unbridled Growth
 Undead Minotaur
+Unravel the Aether
 Unspeakable Symbol
 Urabrask the Hidden
 Urza, Chief Artificer
@@ -363,14 +388,19 @@ Vassal Soul
 Vaultbreaker
 Veil of Assimilation
 Viashino Sandswimmer
+Viridian Longbow
+Voice of Grace
 Wake the Reflections
 Walking Wall
 Wall of Lava
 Wasteful Harvest
 Weaponcraft Enthusiast
+Wedding Invitation
 Whip Sergeant
 Whiptail Moloch
+White Rhystic Study
 Wild Jhovall
+Will of the Mardu
 Windgrace's Judgment
 Winged Sliver
 Wirefly Hive
