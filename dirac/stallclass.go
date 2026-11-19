@@ -379,7 +379,7 @@ const (
 	TwoSeatSpeed      = "speed"       // OpChangeSpeed or Start your engines: genState.speed packs two seats (kw_speed.go)
 	TwoSeatSkipUntap  = "skip-untap"  // OpSkipUntap: perm.cseen holds two seats' marks (act_skipuntap.go)
 	TwoSeatBattle     = "battle"      // TBattle: the protector is the one opponent (face_battle.go; CR 310.10)
-	TwoSeatGoadStatic = "goad-static" // StatGoad: a static goad has no goader seat (act_goad.go prepGoad)
+	TwoSeatGoadStatic = "goad-static" // a granted StatGoad (kop.StatGoadGranted): no goader seat (act_goad.go prepGoad)
 	TwoSeatCtrAdded   = "ctr-added"   // a counters-added-this-turn condition on the card itself: ctrAdd.e[].fl packs two seats (ctr_addedthisturn.go)
 )
 
@@ -410,7 +410,7 @@ func TwoSeatCauses(t *kop.Table) [][]string {
 		goad, ctr := false, false
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			goad = goad || a.Kind == kop.AbStatic && a.Static.Kind == kop.StatGoad
+			goad = goad || a.Kind == kop.AbStatic && a.Static.Kind == kop.StatGoad && a.Static.OvGate != 0
 			ctr = ctr || anyCtr && (condReadsCtrSelf(t, a.Trig.Cond) || condReadsCtrSelf(t, a.Static.Cond2) || condReadsCtrSelf(t, a.Repl.Cond))
 		}
 		if goad {
