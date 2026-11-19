@@ -25,7 +25,7 @@ func (e *Engine) sweepEffectDelayed(ev events.Event) {
 				break
 			}
 		}
-		if ev.Kind == events.MoveZone || ev.Kind == events.PutOnStack {
+		if ev.Kind == events.MoveZone || ev.Kind == events.PutOnStack || ev.Kind == events.Draw {
 			if !has {
 				continue
 			}
