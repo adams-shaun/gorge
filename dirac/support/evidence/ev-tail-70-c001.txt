@@ -116,6 +116,7 @@ Fleecemane Lion
 Flight
 Forbidden Friendship
 Forest
+Forging the Tyrite Sword
 Garruk's Companion
 Geist-Fueled Scarecrow
 Geistlight Snare
@@ -220,6 +221,7 @@ Plains
 Planar Gate
 Plated Onslaught
 Plated Slagwurm
+Pollenbright Wings
 Possessed Nomad
 Predatory Nightstalker
 Price of Glory

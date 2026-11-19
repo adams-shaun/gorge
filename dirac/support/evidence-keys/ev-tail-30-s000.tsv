@@ -10,6 +10,7 @@ Ashes of the Fallen	330320f0cbfe071c	16	0/0		0/0
 Assassin Gauntlet	81ff59d73ce68f84	9	2/2		1/1	
 Assure	6fdf6cbb5b0a8f7b	18	0/0		2/3	f1/s
 Atlas, Sizable Stooge	ff3ca70379552d94	6	2/2		0/1	ix:resp
+Avacyn, Angel of Hope	d6b175e4a4b006cf	12	0/0		0/0	
 Ballista Charger	eb0bb1f84ef5a2e9	11	2/2		1/1	
 Barbed Spike	eeb0bdcb8014ed62	6	2/2		0/1	ix:resp
 Barbed-Back Wurm	676580bfdcfc827e	9	1/1		0/1	ix:resp
@@ -21,7 +22,9 @@ Benevolent Hydra	706cc0b0886284ed	11	1/1		0/1	ix:resp
 Bitter Revelation	cd3cb4beb08d51ff	7	0/0		1/2	ix:resp
 Black Scarab	af7ad7369be7c942	17	0/0		2/2	
 Blood Host	8e808bb1b27cf5cd	9	1/1		1/1	
+Boggart Harbinger	eb2ba9743938cd6d	43	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bravado	5ce911ab969228a7	8	0/0		2/2	
+Brigone, Soldier of Meletis	d29e2a32c09b7831	13	2/2		0/1	ix:resp
 Bull-Rush Bruiser	2d84b36e6fa55eff	16	1/1		0/1	ix:resp
 Burdened Aerialist	0a054945ea18909e	5	2/2		0/1	ix:resp
 Cackling Flames	95212afdcf0ead24	15	0/0		2/2	
@@ -48,6 +51,7 @@ Discordant Piper	d18f05fe3952291e	23	1/1		0/1	ix:resp
 Doomwake Giant	952501f3c8919b0f	12	1/1		1/1	
 Drainpipe Vermin	7d77deed110bbfc6	19	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Drowsing Tyrannodon	ac0c782f09295277	11	0/0		0/0	
+Duelist of Deep Faith	e87f4f005c025dc0	14	0/0		0/0	
 Echoing Truth	b284e60ab7363595	18	0/0		2/2	
 Electrozoa	35c8312c45926813	24	2/2		1/1	
 Elvish Champion	588dc9248b0f57a4	17	0/0		0/0	
@@ -100,6 +104,7 @@ Mad Ratter	2772ab2364ff6aa0	20	1/1		1/1
 Marcus, Mutant Mayor	ebe2b051a06d3422	22	1/1		1/1	
 Mardu Hateblade	92c7e0648f73ba69	11	1/1		0/1	ix:resp
 Martyr for the Cause	bc5d9e48ea7e8718	17	1/1		0/1	ix:resp
+Mass Calcify	829a822cb3692897	13	0/0		1/2	ix:resp
 Mindcrank	cda00a71cd9e0589	19	1/1		1/1	
 Moonfolk Puzzlemaker	d5526251abc5b775	23	1/1		0/1	ix:resp
 Moriok Reaver	4fdc14e9ec083592	30	0/0		0/0	
@@ -145,6 +150,8 @@ Scavenger Folk	3f7e86116d76993e	24	1/1		0/1	ix:resp
 Scribe of the Mindful	a43fd6a835499f8c	26	1/1		0/1	ix:resp
 Secret Rendezvous	98dfd55a67c6407a	14	0/0		1/2	ix:resp
 Seizan, Perverter of Truth	67aced9f019aa27a	4	1/1		1/1	
+Seraph of the Masses	73671fc714b567ba	3	0/0		0/0	
+Shadow Guildmage	207098004709cbaf	94	2/2		1/1	
 Shadowcloak Vampire	17592ce474f16ee2	18	1/1		1/1	
 Shapeshifter	93a6f4c602760d34	26	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Siani, Eye of the Storm	8e29d687151ec85e	9	1/1		0/1	ix:resp
@@ -184,6 +191,7 @@ Undergrowth Stadium	49cd613ee7b8b77d	147	1/1		0/1	ix:resp
 Vastwood Gorger	02baeaabfd5b0084	10	0/0		0/0	
 Veteran Cathar	dccbec5785880428	16	1/1		0/1	ix:resp
 Viper, Cruel Conspirator	26af32aefcb01b3f	29	2/2		1/1	
+Vision, Synthezoid Avenger	e1a5e6b5efc90e86	35	1/1		1/1	
 Vitality Charm	edc5946862390db1	52	0/0		2/2	
 Volcanic Dragon	9853a02151354b85	13	0/0		0/0	
 Volrath's Gardens	00a46c8d1ae3b448	33	1/1		1/1	

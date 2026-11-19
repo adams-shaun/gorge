@@ -386,6 +386,7 @@ Twincast
 Unbreakable Formation
 Unstable Frontier
 Vampire Revenant
+Vega, the Watcher
 Verdant Rebirth
 Viashino Runner
 Viridian Corrupter
@@ -419,5 +420,6 @@ Wretched Anurid
 Wrong Turn
 Wu Longbowman
 Yeva's Forcemage
+Yomiji, Who Bars the Way
 Yore-Tiller Nephilim
 Zulaport Duelist

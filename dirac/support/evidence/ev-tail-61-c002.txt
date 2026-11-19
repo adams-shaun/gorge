@@ -191,6 +191,7 @@ Nightveil Specter
 Nissa, Resurgent Animist
 Ogre Menial
 One with Nature
+Ongoing Investigation
 Onslaught
 Opposition
 Orazca Relic
@@ -281,6 +282,7 @@ Strongarm Monk
 Struggle for Skemfar
 Stun Sniper
 Stupor
+Sturdy Hatchling
 Summon the School
 Sunweb
 Surge of Righteousness
@@ -298,6 +300,7 @@ Tempest Owl
 Temporal Eddy
 Tenth District Veteran
 Teroh's Faithful
+Tezzeret, Artifice Master
 Thalakos Sentry
 Thanos, Death's Consort
 Thassa's Rebuff
@@ -340,8 +343,10 @@ Whirlwind Technique
 Wildest Dreams
 Wit's End
 Woolly Thoctar
+Wrack with Madness
 Wretched Anurid
 Wrong Turn
 Wu Longbowman
 Yeva's Forcemage
+Yomiji, Who Bars the Way
 Zulaport Duelist
