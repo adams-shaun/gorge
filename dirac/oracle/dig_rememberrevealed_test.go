@@ -19,11 +19,11 @@ import (
 // DigUntil scan with DuRememberRevealed. The mutations remember the top card
 // only (DebugPeekWindowOne) and the last scanned card only
 // (DebugDigRememberLastOnly). The found-zBattlefield DigUntil carriers
-// (Madcap Experiment, Audacious Reshapers) are refused: the untriaged
-// sac-source prefix hang means no lockstep pod with a sac mana source in it
-// runs (a Chromatic Star pod spins resolvePrefixStack with no dig card in
-// the deck at all), so the carriers cannot be locked step against a pod
-// that would exercise the interaction.
+// (Madcap Experiment, Audacious Reshapers) are refused: the found card
+// entering the battlefield is never read by the lowering. (The once-
+// suspected sac-source prefix spin in resolvePrefixStack is fixed --
+// sacsource_prefixspin_test.go -- but the carriers still have no lowering
+// to lockstep against.)
 
 // remRevealWatch counts, per carrier name, the decisions posed with a carrier
 // on the stack or as the source (the carrier resolved or was about to).
@@ -80,7 +80,8 @@ var digUntilRememberPodDeck = []cardset.Entry{
 // TestFourSeatDigUntilRememberRevealedLockstep: four-seat DigUntil
 // RememberRevealed$ games play in lockstep, the scan window remembered. The
 // found-zBattlefield carriers (Madcap Experiment, Audacious Reshapers) are
-// refused (lower_digimprint.go: the untriaged sac-source prefix hang), so
+// refused (lower_digimprint.go: found-zBattlefield lowering unimplemented),
+// so
 // only the found-zHand carrier is dealt.
 func TestFourSeatDigUntilRememberRevealedLockstep(t *testing.T) {
 	corpusDirOrSkip(t) // the watch assertions below need the pod to have played

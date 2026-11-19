@@ -109,7 +109,12 @@ func (lc *lowerCtx) digRememberedRevealed(ps *params, in lInstr, found, rev int)
 		return refuse("DigUntil RememberFound$ beside RememberRevealed$")
 	}
 	if found == zBattlefield {
-		return refuse("DigUntil RememberRevealed$ with the found card entering the battlefield (untriaged sac-source prefix hang)")
+		// Madcap Experiment, Audacious Reshapers: the found card enters the
+		// battlefield, which this lowering never reads (no zBattlefield arm
+		// below). Refused by name: the once-suspected sac-source prefix spin
+		// in resolvePrefixStack is fixed (aliveCount()-1), but there is still
+		// no lowering to lockstep against.
+		return refuse("DigUntil RememberRevealed$ with the found card entering the battlefield (found-zBattlefield lowering unimplemented)")
 	}
 	if found == zNone && rev == zLibrary && in.CS == "revealed=Library|FoundWithRevealed" {
 		return lc.digRememberedLibraryReveal(in)
