@@ -889,6 +889,20 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	}
 	if k.gen != nil {
 		s.leaveGen(k, sl, o)
+		if k.anyStateCtr {
+			// gorge's walk at this move event re-checks the CR 603.8 state
+			// triggers against the live board here (trig_statectr.go): inside
+			// a departure batch the until-leaves returns are still held, so a
+			// condition that only the intermediate board meets (Last Laugh
+			// "when there are no creatures" between the last casualty's move
+			// and the batch-close return) fires now, as gorge's walk did
+			// (mbc state_trigger_momentary_batch). Outside a batch leaveGen
+			// has already run the return, as gorge's sweep runs before the
+			// leave event's triggers are matched. Before ctrlExpireAfterLeave:
+			// gorge's expireControl runs after the leave event, so the walk
+			// read the pre-expire control state.
+			s.stateCtrRefire(k)
+		}
 		s.ctrlExpireAfterLeave(k)
 	}
 	if rider.src != 0 {

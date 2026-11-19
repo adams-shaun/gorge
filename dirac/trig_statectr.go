@@ -11,7 +11,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // the stack), and the re-check runs again at every resolution's finish
 // (finishResolve) and after the end-of-turn sweep, so the source re-fires
 // while it still meets the threshold. gorge re-checks on every event; the
-// kernel re-checks at a counter put, at the clean end of a state-based
+// kernel re-checks at a counter put, at every battlefield removal
+// (removePerm, after leaveGen: inside a departure batch the until-leaves
+// returns are still held, so the intermediate board a Last Laugh "when there
+// are no creatures" needs is seen there; mbc state_trigger_momentary_batch),
+// at the clean end of a state-based
 // pass (sbaClean) and at the points above. The
 // finish-only cadence is sound only while no lowered counter shape removes
 // the source mid-resolution and no lowered ability-counter adds a trigger in
