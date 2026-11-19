@@ -17,6 +17,31 @@ import (
 // the counter because only EntryCounterNotice suppresses placement.
 const UntapReplacedByStunNotice = "__untap_replaced_by_stun_notice"
 
+// PayLifeProposalText marks the negative LifeChange a cost settlement emits
+// for its life part (rules/pay's payMana and payCombatExtras, rollmodify).
+// rules consumes it synchronously before logging -- emit's prepareEmitReplacement
+// turns the marked settlement into an unlogged POSITIVE proposal for the
+// repl:PayLife replacement pipeline and the trig:PayLife trigger pipeline,
+// then clears the Text before the plain negative loss folds -- so it is never
+// part of the replay log. The proposal is a PAYMENT, never a life gain (CR
+// 119.1): repl:PayLife and trig:PayLife are its only consumers, so every
+// other positive-LifeChange matcher (Mode$ LifeGained, trigmatch.lifeGain)
+// rejects a Text carrying this mark. It lives here, not in rules/pay, because
+// engine/rules/trigmatch matches on it and the import direction forbids
+// trigmatch reading a sibling rules package.
+const PayLifeProposalText = "paylife proposal"
+
+// ShuffleFromEffectMarker marks the Secret events.Shuffle a resolving spell
+// or ability emits (the DB$ Shuffle verb, a library search's "then shuffle"
+// tail, ChangeZoneAll's Shuffle$ True, a dig's shuffle), as distinct from the
+// game-rule shuffles the engine itself performs (mulligan, restart, genesis
+// deal, an Omen spell's CR 720.3d resolution shuffle): Mode$ Shuffled lines
+// carrying Forge's ShuffleFromEffect$ True fire only on the former. Like
+// PayLifeProposalText this rides the Text field and is never consumed by
+// Apply, so replay is unaffected; it lives here because trigmatch matches on
+// it while the emitters live in engine/effects.
+const ShuffleFromEffectMarker = "shuffle from effect"
+
 // ProliferateProposalText marks the synthetic R:Event$ Proliferate
 // replacement proposal (Tekuthal, Inquiry Dominus): effProliferate holds the
 // instruction's action count out to the replacement registry as one

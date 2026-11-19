@@ -16,8 +16,10 @@ import (
 
 // PayLifeProposalText marks a negative LifeChange emitted at a cost-payment
 // boundary. rules consumes it synchronously before logging; it is never part
-// of the replay log.
-const PayLifeProposalText = "paylife proposal"
+// of the replay log. The literal lives in engine/events so trigmatch's
+// Mode$ PayLife matcher (which may not import this package) reads the same
+// constant; this alias keeps every existing reader untouched.
+const PayLifeProposalText = events.PayLifeProposalText
 
 // manaTaggedLetters[t][i] is state.ManaUnitTags[t]+ManaLetters[i] and
 // manaSnowLetters[i] is "S"+ManaLetters[i]: the spend split's Counter forms,

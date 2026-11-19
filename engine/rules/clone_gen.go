@@ -579,7 +579,7 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 		}
 	}
 	if e.excessDamageBaseline != nil {
-		c.excessDamageBaseline = make(map[state.ObjID]int32, len(e.excessDamageBaseline))
+		c.excessDamageBaseline = make(map[state.ObjID]excessBase, len(e.excessDamageBaseline))
 		for k0, v0 := range e.excessDamageBaseline {
 			c.excessDamageBaseline[k0] = v0
 		}

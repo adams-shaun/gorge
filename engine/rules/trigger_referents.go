@@ -58,7 +58,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerTarget = e.becomesTargetReferent(t, source, ev)
 		c.TriggerSource = e.protectionSource(ev.Obj)
 		c.TriggerStack = ev.Obj
-	case cards.TriggerDamageDone, cards.TriggerDamageDealtOnce, cards.TriggerDamageDoneOnce, cards.TriggerDamageAll, cards.TriggerExcessDamageAll:
+	case cards.TriggerDamageDone, cards.TriggerDamageDealtOnce, cards.TriggerDamageDoneOnce, cards.TriggerDamageAll, cards.TriggerExcessDamageAll, cards.TriggerExcessDamage:
 		// The damage source the causing event names: the published override
 		// when a DamageSource$ emitter set one (Kediss' DamageAll with
 		// DamageSource$ TriggeredSource resolves its own execute through
@@ -257,6 +257,8 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerPlayer = player(p)
 			c.TriggerAmount = amount
 		}
+	case cards.TriggerPayLife, cards.TriggerShuffled:
+		payAndShuffleReferents(&c, t.ModeKind(), ev, player)
 	case cards.TriggerLifeGained:
 		// The gaining player and the gained magnitude: TriggerCount$LifeAmount
 		// (Prize Pig's CounterNum$ Y) reads both off this context.
@@ -825,5 +827,21 @@ func counterResolveReferents(c *effects.TriggerContext, k cards.TriggerMode, ev 
 	c.TriggerCard = ev.Obj
 	if k == cards.TriggerAbilityResolves {
 		c.TriggerAbility = ev.Obj
+	}
+}
+
+// payAndShuffleReferents binds the roles of the edh-trigB player-valued
+// modes. PayLife (Font of Agonies) fires on the unlogged positive pay-life
+// proposal: the payer is ev.Player and the amount is the life PAID -- the
+// magnitude the proposal's positive Amount carries, what TriggerCount$
+// LifeAmount (Font's CounterNum$ X) reads back. Shuffled (Widespread Panic)
+// fires on the effect-caused shuffle: the player whose library was shuffled
+// is ev.Player -- what ValidPlayer$ matched and what Widespread Panic's and
+// Psychogenic Probe's DefinedPlayer$ TriggeredPlayer bodies resolve.
+func payAndShuffleReferents(c *effects.TriggerContext, k cards.TriggerMode, ev events.Event,
+	player func(state.PlayerID) state.Target) {
+	c.TriggerPlayer = player(ev.Player)
+	if k == cards.TriggerPayLife {
+		c.TriggerAmount = ev.Amount
 	}
 }
