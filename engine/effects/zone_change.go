@@ -480,6 +480,16 @@ func instantCannotEnter(h Host, o *state.Object, to state.Zone, faceDown, transf
 	return matchesObjectPtr(h.Game(), "Instant,Sorcery", o, &SpecContext{})
 }
 
+// InstantCannotEnter is instantCannotEnter for a caller outside effects that
+// moves a card onto the battlefield by hand (engine/rules/emit.go's
+// sweepExileReturn, the Duration$ UntilHostLeavesPlay return): CR 400.4a
+// keeps an instant or sorcery card in its previous zone. The sweep's return
+// enters face up and untransformed (CR 708.3: face-down entry happens only
+// when the moving effect says so), so both exemptions are false.
+func InstantCannotEnter(h Host, o *state.Object, to state.Zone) bool {
+	return instantCannotEnter(h, o, to, false, false)
+}
+
 // changeZoneMoveSkip repeats the mover loop's per-object skip guards.
 // Origin$, when given, is a precondition: the object must actually be where
 // the script expects, or the movement does not happen. This is also this
