@@ -15,17 +15,13 @@ import (
 // Legion Loyalty) synthesizes the same trigger without the marker
 // (scriptfacts.GrantedKeywordTrigger, the __kwMyriadGranted payload). The
 // body walks the opponents other than the defending player
-// (effects.myriadOpponents): in a two-player game there are none, so it
-// asks nothing and creates nothing. The kernel plays the trigger as an
-// ordinary Attacks Self trigger with an empty program: it goes on the stack,
-// both players get priority, and it resolves doing nothing, as gorge's does.
+// (effects.myriadOpponents), asking the controller about each (a "yes" /
+// "no" KChoose) and making a tapped copy attacking that player on a yes;
+// the copies are exiled as the combat ends. One OpExt ExtMyriad over Self
+// (dirac/kw_myriad.go) is the whole body (seat-exact: with no opponent but
+// the defending player it asks nothing and creates nothing).
 // Each instance triggers separately (CR 702.116b): Scurry of Squirrels'
 // two printed lines are two triggers, a printed line beside a grant two.
-// twoSeat-at-caller: lc.myriad marks the card.
-
-// myriadTwoSeat is the two-seat reading every Myriad body takes
-// (twoSeat-at-caller: lc.myriad marks the card with it).
-const myriadTwoSeat = "Myriad: no opponent other than the defending player"
 
 // isMyriadBody reports whether sa is gorge's DB$ Myriad body as the keyword
 // expansion writes it, with no sub-ability (the chain lowering refuses any
@@ -57,7 +53,7 @@ func myriadMarker(v, validCard string, body *cards.SA) error {
 	return nil
 }
 
-// myriad lowers the DB$ Myriad body: no instruction, two-seat. It lowers
+// myriad lowers the DB$ Myriad body: one ExtMyriad. It lowers
 // only as the whole body of an Attacks Self trigger (the printed expansion
 // or the granted one), the context gorge's body reads its defending player
 // from.
@@ -66,7 +62,8 @@ func (lc *lowerCtx) myriad(sa *cards.SA) error {
 		!filterSelfOnly(lc.ab.Trigger.F) || len(lc.ab.Prog) != 0 || !isMyriadBody(sa) {
 		return refuse("DB$ Myriad outside an Attacks Self trigger's whole body")
 	}
-	lc.twoSeat(myriadTwoSeat)
+	lc.emit(lInstr{Op: "Myriad", Obj: lRef{Kind: rSelf}, A: cst(1), CS: "Tapped",
+		Note: "for each opponent but the defending player, may copy it tapped and attacking that player"})
 	return nil
 }
 
