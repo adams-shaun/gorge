@@ -1,9 +1,11 @@
 A.I.M. Labs
+A.I.M. Scientists
 A.I.M. Synthoids
 Aerial Doombot
 Agent 13, Sharon Carter
 Agent Phil Coulson
 Agent of Atlas
+Agents of HYDRA
 Agents of S.H.I.E.L.D.
 Ant-Man's Army
 Arc Reactor
@@ -16,32 +18,47 @@ Avengers Assemble!
 Avengers Disassembled
 Avengers Hangar
 Avengers Tower
+Baron Strucker, HYDRA Overlord
+Baxter Building
 Birnin Zana Plaza
+Black Panther, Vanguard
 Black Widow, Double Agent
 Black Widow, Super Spy
 Blazing Crescendo
 Bold Biochemist
+Borough Backup
 Brave Brawler
+Call Damage Control
 Captain America's Shield
 Captain America, Super-Soldier
 Captain America, Wings of Freedom
 Captain Mar-Vell, Space-Born
 Captain Marvel, Earth's Protector
 Castle Doom
+Claim the Kingdom
 Colleen Wing, Street Samurai
+Cosmic Cube
 Crimson Operative
 Crossbones, Malicious Mercenary
 Crowd of True Believers
+Cruel Alliance
 Daredevil, Man Without Fear
 Dark Deed
+Dark Fortress
 Death to Our Enemies
+Decoy Ploy
 Dependable Quinjet
 Depower
+Doc Samson, Super Psychiatrist
+Doctor Doom
+Doom Reigns Supreme
+Earth's Mightiest Heroes
 Echo, Perceptive Prodigy
 Elektra, Daughter of the Hand
 Epic Fight
 Falcon's Wing Harness
 Falcon, Winged Wonder
+Fin Fang Foom
 Fisk Tower
 Forest
 Frozen in Ice
@@ -54,6 +71,7 @@ Go Nuts!
 Grim Reaper, Lethal Legionnaire
 Guerrilla Gorilla
 H.E.R.B.I.E. Scout Unit
+HULK SMASH!
 HYDRA Assault Robot
 HYDRA Infiltration
 HYDRA Troopers
@@ -62,6 +80,7 @@ Hawkeye, Master Marksman
 Hawkeye, Young Avenger
 Helicarrier Strike
 Hell's Kitchen
+Hellcat, Undying Vigilante
 Hercules, Prince of Power
 Hero in Training
 Heroic Feast
@@ -84,11 +103,14 @@ K'un-Lun Warrior
 Ka-Zar of the Savage Land
 King T'Challa
 Kingpin's Enforcers
+Knight of Wundagore
 Kree Commandos
 Lightning Strike
 Loki Laufeyson
 Loki, God of Mischief
 Los Diablos Missile Base
+Luke Cage, Power Man
+M.O.D.O.K.
 Machinesmith Automaton
 Madame Masque
 Mister Fantastic, Reed Richards
@@ -96,17 +118,22 @@ Misty Knight, Hero for Hire
 Mockingbird, Ace Agent
 Mole Man, Moloid Master
 Monica Rambeau
+Moonstone, Harsh Mistress
 Mountain
+Ms. Marvel, Kamala Khan
 Multiversal Incursion
 Murdock's Crusade
 Namor the Sub-Mariner
 Night Nurse, Healer of Heroes
 Ninja of the Hand
+Okoye, Dora Milaje Leader
 Origin of the Avengers
 Panther Pounce
 Patriot, Shield Wielder
+Pet Avengers
 Photon Blast Barrage
 Plains
+Project Deathlok Soldier
 Punishing Punch
 Pym Particles
 Pym Technologies
@@ -116,12 +143,20 @@ Rapid Rescue
 Red Guardian, Super-Soldier
 Red Hulk
 Red Room Recruit
+Reptil, Dinomorpher
 Repulsor Blast
+Restorative Technique
 Rewrite History
+Rick Jones, Destined Sidekick
+Roxxon Brutes
 S.H.I.E.L.D. Deployment Drone
 S.H.I.E.L.D. Flying Car
 S.H.I.E.L.D. Helicarrier
 S.H.I.E.L.D. Spy Kit
+Serpent Specialist
+Shang-Chi, Master of Kung Fu
+She-Hulk, Jade Defender
+Shuri, Wakandan Inventor
 Speed, Young Avenger
 Spider-Man, To the Rescue
 Spider-Woman, Secret Agent
@@ -135,33 +170,49 @@ Super Strength
 Super Suit
 Super Villain Lockup
 Super-Adaptoid
+Super-Skrull
 Surveillance Room
 Swamp
+Swordsman, Sharp Scoundrel
 Take Up the Shield
 Team Tactics
 The Scarlet Witch
 The Sentry, Golden Guardian
+The Ten Rings
 The Thing, Ben Grimm
+The Unbeatable Squirrel Girl
 The Vision
 The Wondrous Wasp
 Thirst for Knowledge
+Thor Odinson
 Thor, God of Thunder
 Thunderbolts Conspiracy
+Tigra, Feline Fury
 Too Evil to Stay Dead
 Training Compound
+Training Regimen
 Trickster's Stratagem
 Truck Toss
+U.S.Agent, John Walker
 Ultron Drone
+Ultron, Artificial Malevolence
+Undercover Skrull
 Unliving Legionnaire
 Vibranium Energy Daggers
+Villainous Hideout
 Vision of Love
+Visions of Villainy
 Viv Vision, Teen Synthezoid
 Volcanic Villain
 Wakandan Drone Flock
+Wakandan Royal Guard
 War Machine, Legacy of Iron
 We Say Thee Nay!
 Web Up
+Whiplash, Vengeful Engineer
+White Tiger, Ava Ayala
 White Widow, Free Agent
+Wiccan, Rising Magician
 Widow's Bite
 Winter Soldier, Icy Assassin
 Yellowjacket, Heartless Marauder

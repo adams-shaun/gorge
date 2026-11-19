@@ -1,88 +1,227 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Aang's Iceberg	861eceb25b018fa5	3	2/2		1/1	
+Aang's Journey	78290bddea57bcd7	15	0/0		3/4	cast/alt:kicked
+Aang, the Last Airbender	ccea469831f8544e	10	2/2		1/1	
 Abandon Attachments	38a68517f788fe0e	8	0/0		2/2	
+Abandoned Air Temple	8b2e37185b1552d2	20	2/2		0/1	ix:resp
 Accumulate Wisdom	efa017d6990378c1	4	0/0		2/2	
 Agna Qel'a	eaa73729bbfa560c	16	2/2		1/1	
+Air Nomad Legacy	d957f34800e2b507	6	1/1		0/1	ix:resp
+Airbender Ascension	2e959ebb81eb2d04	8	3/3		1/1	
+Airbender's Reversal	fb9ce9e0c08c3698	9	0/0		1/2	ix:resp
+Airbending Lesson	31664818d4ae9f68	16	0/0		2/2	
+Airship Engine Room	30e9348d196fa767	5	2/2		0/1	ix:resp
+Allies at Last	e38abcfd090e2834	23	0/0		2/2	
+Appa, Loyal Sky Bison	33905a3f84e07573	5	2/2		1/1	
+Avatar Destiny	139ab9beeea45ffe	3	1/1		1/2	ix:resp
 Avatar Enthusiasts	11e09f827e73a9ce	8	1/1		0/1	ix:resp
+Avatar's Wrath	12592b5614b7afe4	6	0/0		1/2	ix:resp
+Azula Always Lies	7ee486ee78983d51	11	0/0		2/2	
+Azula, On the Hunt	e6b126b9c9d2a52c	8	2/2		0/1	ix:resp
+Ba Sing Se	ddc090ce2f44dcb9	15	2/2		0/1	ix:resp
+Badgermole	6651b3cde821af03	8	1/1		0/1	ix:resp
+Badgermole Cub	265d7e2eddd84163	20	2/2		1/1	
+Barrels of Blasting Jelly	7534a61c9aad4466	23	2/2		0/1	ix:resp
+Beetle-Headed Merchants	8f7fed8067925fc7	3	1/1		0/1	ix:resp
+Bender's Waterskin	c637aacb078e48b6	11	1/1		1/1	
 Boar-q-pine	be5b317ae9a7dea2	8	1/1		1/1	
 Boiling Rock Prison	7e907353ba79c7ae	16	2/2		0/1	ix:resp
 Boomerang Basics	2e39d153bdca6429	11	0/0		2/2	
 Bumi Bash	5d1dfd0b75a9630c	6	0/0		2/2	
+Bumi, King of Three Trials	91d7a75729087da8	5	1/1		0/1	ix:resp
+Buzzard-Wasp Colony	ff1afaa81a039e31	7	2/2		1/1	
 Callous Inspector	6bf00b09d92fa34c	5	1/1		0/1	ix:resp
+Canyon Crawler	069dcdc77c991da4	3	2/2		0/1	ix:resp
+Cat-Gator	86a44fad40191938	3	1/1		0/1	ix:resp
+Cat-Owl	b5a6b38b1b3f3208	5	1/1		0/1	ix:resp
+Combustion Man	33fea0aab97b574f	3	1/1		0/1	ix:resp
+Combustion Technique	b630af884058b7a0	26	0/0		2/2	
+Compassionate Healer	bf4b929b710fb581	8	1/1		0/1	ix:resp
+Corrupt Court Official	287d6f850cceb4fc	8	1/1		0/1	ix:resp
+Crescent Island Temple	4bf6adf1cd2fcd1f	16	2/2		1/1	
+Cunning Maneuver	6d0ebf68b1a10ef7	22	0/0		2/2	
 Curious Farm Animals	83b49a996c93a3c7	7	2/2		1/1	
 Cycle of Renewal	fa779d141d8e1113	4	0/0		1/2	ix:resp
+Dai Li Indoctrination	a02a82177d285f9b	7	0/0		2/2	
 Day of Black Sun	c7ed5fe494895370	5	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
+Deadly Precision	d739684225953313	11	0/0		2/2	
 Deserter's Disciple	265cece7f94fcd5b	13	1/1		1/1	
+Dragonfly Swarm	dc4b2947a9a115c9	10	2/2		1/1	
 Earth Kingdom General	8339fcda287f74e6	4	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Earth Kingdom Jailer	aa3654a7621f0e0f	4	1/1		1/1	
 Earth Kingdom Protectors	c66dfe8d8056163b	8	1/1		0/1	ix:resp
+Earth Rumble	1bb58f5fd255934b	8	0/0		1/2	ix:resp
 Earthbender Ascension	9b0e9fd7f227ac53	5	2/2		1/1	
+Earthbending Lesson	15a14c8fa0c62953	6	0/0		2/2	
+Earthen Ally	1babb9ea905e452e	9	1/1		0/1	ix:resp
+Ember Island Production	4a34e3ae54637fff	5	0/0		2/2	
+Enter the Avatar State	e673f67afc6a440f	9	0/0		1/2	ix:resp
+Epic Downfall	39f590dfd204b8a3	6	0/0		1/2	ix:resp
 Fancy Footwork	a2cfe72f5dc81f32	3	0/0		1/2	ix:resp
+Fatal Fissure	8a671b9a9f0ab481	12	0/0		2/2	
+Fated Firepower	71420e1005b3e173	3	0/0		0/0	
 Fire Nation Attacks	b7b723dd9cb9d2d8	5	0/0		3/4	cast/alt:flashback
+Fire Nation Cadets	ee1d2d094f9e9d4e	12	1/1		1/1	
+Fire Nation Engineer	492fac6d0ad3d5d7	27	1/1		1/1	
 Fire Nation Palace	2b3dbbdafdfa181d	3	2/2		1/1	
+Fire Nation Raider	b4c9d2192ad212db	17	1/1		1/1	
+Fire Nation Warship	a38269963822ff4d	6	2/2		1/1	
+Fire Navy Trebuchet	cf8933b7c9578dab	9	1/1		0/1	ix:resp
+Fire Sages	91c8deb2126273e4	14	2/2		1/1	
 Firebending Lesson	339a150588aa11e7	6	0/0		3/4	ix:resp
+Firebending Student	09eaeca0309ccdba	4	2/2		0/1	ix:resp
+First-Time Flyer	3f172a6dbb3b1041	8	0/0		0/0	
 Flexible Waterbender	e510c8ae26175651	3	1/1		1/1	
+Flopsie, Bumi's Buddy	7e0aaff9b0e35166	4	1/1		0/1	ix:resp
 Foggy Bottom Swamp	81186ed7c6151ef1	10	2/2		0/1	ix:resp
+Foggy Swamp Hunters	99ed4c926c89c036	6	0/0		0/0	
+Foggy Swamp Spirit Keeper	dd9ab3d55d4d9400	8	1/1		0/1	ix:resp
+Foggy Swamp Vinebender	73ad1ceb1a18142a	8	1/1		1/1	
 Forecasting Fortune Teller	0c1115a800bcf6ec	7	1/1		0/1	ix:resp
 Forest	6d0466c30f825dba	29	1/1		0/1	ix:resp
+Gather the White Lotus	c36075d3034f88af	11	0/0		1/2	ix:resp
 Geyser Leaper	d21b097c1d90507b	3	1/1		1/1	
 Giant Koi	c57afa7135de3e72	3	2/2		1/1	
 Glider Kids	19b39a0452dd459b	4	1/1		0/1	ix:resp
+Glider Staff	2afb9a6e4289bd05	16	2/2		1/1	
 Gran-Gran	cdfa4be562a5db12	9	1/1		1/1	
+Great Divide Guide	f91a84c5a7e7f27c	3	0/0		0/0	
+Guru Pathik	eedb7b5049899688	4	2/2		0/1	ix:resp
+Hakoda, Selfless Commander	01cfaab446e524e6	8	1/1		0/1	ix:resp
+Haru, Hidden Talent	3372cf39911c10a7	18	1/1		1/1	
+Heartless Act	9fc884b693b769b7	35	0/0		2/2	
+Hermitic Herbalist	84c21801f01f6bb0	49	2/2		1/1	
+Hog-Monkey	93009feb0349daf6	3	2/2		0/1	ix:resp
 Honest Work	666fdfe19e2604a5	6	1/1		2/2	
 How to Start a Riot	37bc2f722bc72974	3	0/0		2/2	
 Iguana Parrot	9e3d20f612c515a4	3	1/1		0/1	ix:resp
+Invasion Reinforcements	183f99d877617816	11	1/1		0/1	ix:resp
+Invasion Submersible	a9a638990168fda1	11	2/2		0/1	ix:resp
+Invasion Tactics	0f390ec85c5ddbee	3	2/2		0/1	ix:resp
 Iroh's Demonstration	525c89924416b8e7	4	0/0		2/2	
 Island	763c67ef7a27eaf5	262	1/1		0/1	ix:resp
 It'll Quench Ya!	b321617bcbf15165	10	0/0		2/2	
+Jasmine Dragon Tea Shop	42675be4857e67d2	6	3/3		0/1	ix:resp
+Jeong Jeong's Deserters	e5c923f84405fa97	7	1/1		1/1	
+Jeong Jeong, the Deserter	76016b154fe5bb25	5	2/2		1/1	
 Jet's Brainwashing	f02e3e51760c676e	10	0/0		3/4	cast/alt:kicked
 Joo Dee, One of Many	11fdaf97ba37b2bb	5	1/1		0/1	ix:resp
 June, Bounty Hunter	00c7b8e84d0d7b79	5	1/1		1/1	
 Katara, Bending Prodigy	31dd88712aca8f43	5	2/2		1/1	
+Katara, Water Tribe's Hope	fcbc91ce3f72d8d4	7	2/2		1/1	
 Knowledge Seeker	66f978b5995469ac	10	2/2		1/1	
+Kyoshi Battle Fan	a30d30ef3933238c	7	2/2		0/1	ix:resp
+Kyoshi Island Plaza	b89b1cd73e95d990	9	2/2		0/1	ix:resp
+Kyoshi Village	f01c86342f61db62	10	2/2		0/1	ix:resp
+Kyoshi Warriors	8dd0e52a43ee57a0	9	1/1		0/1	ix:resp
+Leaves from the Vine	e8de80f4180b5539	14	0/0		0/0	
 Lightning Strike	5d01b955495e0a84	6	0/0		2/2	
+Lo and Li, Twin Tutors	2568cd3ca3979e87	9	1/1		0/1	ix:resp
 Lost Days	044bb56f21f22238	6	0/0		2/2	
 Mai, Jaded Edge	1097b16363af48d0	4	2/2		0/1	ix:resp
 Mai, Scornful Striker	66bb584fed3301f2	7	1/1		0/1	ix:resp
 Master Pakku	e0214342b9f64496	5	2/2		1/1	
 Master Piandao	8a4ae89dc8f5d95a	3	1/1		0/1	ix:resp
+Meditation Pools	92df21c67ecf276a	20	2/2		0/1	ix:resp
+Merchant of Many Hats	98c4837b58bbcfc8	8	1/1		0/1	ix:resp
+Messenger Hawk	728d6045dba87eac	5	1/1		0/1	ix:resp
+Meteor Sword	cf8c0cb562b121ec	5	2/2		1/1	
 Misty Palms Oasis	660908510dcdf66d	11	2/2		0/1	ix:resp
 Momo, Friendly Flier	f0395da2d27ed342	4	1/1		0/1	ix:resp
+Momo, Playful Pet	d76ea6e94874d62f	4	1/1		0/1	ix:resp
 Mountain	9e71388353e907ed	89	1/1		0/1	ix:resp
 North Pole Gates	15709edd27486a4f	6	2/2		0/1	ix:resp
+North Pole Patrol	e88193ea857821cc	10	2/2		1/1	
+Northern Air Temple	c76a6872f3a2d1c1	40	2/2		1/1	
+Obsessive Pursuit	cb443d1fae23fa33	14	3/3		1/1	
 Octopus Form	84f635d0054218ca	7	0/0		2/2	
 Omashu City	c9b69b823e9fa1dc	6	2/2		0/1	ix:resp
+Origin of Metalbending	6b33f0fde8c43508	8	0/0		2/2	
+Ostrich-Horse	639ff70bc921b700	9	1/1		0/1	ix:resp
+Otter-Penguin	95026c14ff2a0b0b	14	1/1		0/1	ix:resp
+Ozai's Cruelty	6446572d16a76783	4	0/0		1/2	ix:resp
+Path to Redemption	3ac0c37a7ec41bbf	3	1/1		1/2	ix:resp
 Pillar Launch	c92e3639c6e5820d	4	0/0		1/2	ix:resp
+Pirate Peddlers	2a1ae2f2be4d4459	8	1/1		0/1	ix:resp
 Plains	82d63a695487e567	82	1/1		0/1	ix:resp
+Platypus-Bear	42837483945a8e64	5	1/1		0/1	ix:resp
+Price of Freedom	832b332b4d3c83b5	11	0/0		2/2	
 Professor Zei, Anthropologist	78b14edd439e32f9	4	2/2		0/1	ix:resp
+Ran and Shaw	14d63ea17e480eed	13	3/3		1/1	
+Raucous Audience	8c330baefddcbf0b	8	1/1		0/1	ix:resp
+Raven Eagle	1cb19b574e690ee3	4	3/3		0/1	ix:resp
 Razor Rings	2c472e9563c57ecc	5	0/0		2/2	
+Realm of Koh	ded6878a07d523b0	18	2/2		0/1	ix:resp
+Rebellious Captives	21e7035a469667ce	3	1/1		0/1	ix:resp
 Redirect Lightning	bd8375f54d770a51	3	0/0		2/2	
 Rockalanche	372dda168876b5f0	5	0/0		3/4	ix:resp
+Rocky Rebuke	81dc45280dcc8f94	7	0/0		1/2	ix:resp
+Rough Rhino Cavalry	696412329a90118d	7	2/2		0/1	ix:resp
+Rowdy Snowballers	6ccc0bb16545d64c	12	1/1		0/1	ix:resp
+Ruinous Waterbending	9cc231eb3e584123	10	0/0		2/2	
+Rumble Arena	8f26e446ee886d49	15	3/3		0/1	ix:resp
+Sandbenders' Storm	2f1b727e630addf5	11	0/0		2/2	
 Secret Tunnel	59ab46083c16b4a5	4	2/2		0/1	ix:resp
+Seismic Sense	426a2a167c2d61d2	6	0/0		2/2	
+Serpent of the Pass	9947fe7e8f6d9089	10	0/0		0/0	
 Serpent's Pass	18c88a5ab662bb3b	9	2/2		0/1	ix:resp
+Shared Roots	9744c76b52794ea3	9	0/0		2/2	
 Sokka's Haiku	01674be9f8bc8a88	3	0/0		2/2	
 Sokka, Bold Boomeranger	7e4bd2786fd778df	9	2/2		0/1	ix:resp
+Sokka, Lateral Strategist	6a319a69e6c607dd	5	1/1		0/1	ix:resp
+Sold Out	ac7a101c352631bf	7	0/0		2/2	
 Solstice Revelations	ea9f5a601e0ae4b6	8	0/0		4/4	
 South Pole Voyager	6fb2053c9c7817b3	5	1/1		0/1	ix:resp
+Southern Air Temple	72f3c03b2e794392	42	2/2		1/1	
+Sparring Dummy	89b3671fb7c49c8f	8	1/1		0/1	ix:resp
 Spirit Water Revival	4ba5289dea668bdb	6	0/0		2/2	
+Suki, Courageous Rescuer	a3a02146cbd9ced5	9	1/1		0/1	ix:resp
 Sun-Blessed Peak	977f2c97e7da0ae5	5	2/2		0/1	ix:resp
 Swamp	342b413902f441c3	66	1/1		0/1	ix:resp
+Swampsnare Trap	56f318b9f0b2b842	8	0/0		1/2	ix:resp
+Team Avatar	18a1fb95c0e03e10	3	2/2		1/1	
 Teo, Spirited Glider	e52443b20e4e2529	15	1/1		1/1	
+The Boulder, Ready to Rumble	69b89277de7f0b61	6	1/1		1/1	
+The Cave of Two Lovers	5a7bb6993322408a	7	0/0		0/0	
 The Earth King	c56e1a93f55af772	4	2/2		0/1	ix:resp
+The Fire Nation Drill	c8254b19dbd64482	3	3/3		1/1	
 The Last Agni Kai	8dd36cd67340cac6	9	0/0		2/2	
+The Legend of Kuruk	b13167acd562606c	7	2/2		1/1	
+The Legend of Kyoshi	efa7132a274a4550	7	1/1		1/1	
+The Legend of Roku	8fee532107a131c3	5	2/2		1/1	
+The Lion-Turtle	2a6d1b30be2ce385	11	2/2		1/1	
+The Mechanist, Aerial Artisan	6967f2e243d637cb	28	2/2		1/1	
+The Spirit Oasis	f50f1f52350f65ea	20	2/2		1/1	
 The Unagi of Kyoshi Island	ef54a2bf7dd0730d	6	2/2		1/1	
+The Walls of Ba Sing Se	ba1fcb5dfbb086b9	3	0/0		0/0	
+Tiger-Dillo	756dd4ed02f534a5	13	0/0		0/0	
+Tiger-Seal	b6e36545129a2263	5	2/2		1/1	
 Toph, the Blind Bandit	9eb8fac28bb1db6b	4	1/1		0/1	ix:resp
 Treetop Freedom Fighters	c8b436946e87b3aa	4	1/1		0/1	ix:resp
+True Ancestry	7558500dbd57232f	4	0/0		1/2	ix:resp
+Trusty Boomerang	f4635b11cfac73a7	13	1/1		1/1	
+Turtle-Duck	c377239525f01be1	15	1/1		1/1	
 Twin Blades	02dfff42fc17e4a0	6	2/2		1/1	
+Ty Lee, Artful Acrobat	6ccebfa1d87e866f	11	2/2		0/1	ix:resp
 Ty Lee, Chi Blocker	c4eda99d0b854fef	8	2/2		0/1	ix:resp
 United Front	71bba89ff01f3fcd	3	0/0		2/4	f0/s/x+,f0/s/x0
+Unlucky Cabbage Merchant	aedf9bb417b8b790	3	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Vengeful Villagers	6b5343beca062124	4	1/1		0/1	ix:resp
+Walltop Sentries	e66a925387cd119f	11	1/1		0/1	ix:resp
+Wan Shi Tong, Librarian	243d4c63f70f07bf	18	2/2		1/1	
 War Balloon	273401cb22f12604	3	2/2		1/1	
+Wartime Protestors	10f8b51ae5ad41c8	7	1/1		0/1	ix:resp
+Water Tribe Captain	0848a090d09fe5d1	4	1/1		0/1	ix:resp
 Water Tribe Rallier	ec578531ddacba1b	4	1/1		1/1	
 Waterbender Ascension	b7c2335f5416f3e1	8	2/2		1/1	
+Waterbending Lesson	ca469c5e11bb31aa	5	0/0		2/2	
 Waterbending Scroll	9f383174b35ad7d8	3	1/1		0/1	ix:resp
 Watery Grasp	ae640e5e371a9083	10	1/1		2/2	
 White Lotus Hideout	df8e4aae81fa3d3f	6	3/3		0/1	ix:resp
+Wolfbat	ce8832d1e40a6363	6	1/1		1/1	
 Yip Yip!	5adcfc3988ae7925	3	0/0		2/2	
 Yue, the Moon Spirit	2621abcbcfcd5d91	4	1/1		0/1	ix:resp
 Yuyan Archers	e5446ab2cb740caf	6	1/1		0/1	ix:resp
+Zuko's Conviction	cf14c4e2bab4e8fd	19	0/0		4/4	
+Zuko's Exile	5be15234703c3b04	14	0/0		2/2	
 Zuko, Exiled Prince	07f448e3e157a19e	6	2/2		0/1	ix:resp

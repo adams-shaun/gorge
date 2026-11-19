@@ -198,6 +198,7 @@ Orzhova, the Church of Deals
 Otherworldly Gaze
 Otherworldly Outburst
 Owlbear Shepherd
+Paradoxical Outcome
 Path of Peace
 Persistent Specimen
 Pestilent Kathari
@@ -208,6 +209,7 @@ Planar Void
 Pol Jamaar, Illusionist
 Press the Advantage
 Prosperity
+Psychic Corrosion
 Psychic Miasma
 Quicksilver, Speedster
 Racers' Ring
@@ -262,6 +264,7 @@ Sword Dancer
 Symbol of Unsummoning
 Syndic of Tithes
 Take Vengeance
+Tangle
 Tel-Jilad Fallen
 Temple Altisaur
 Temporary Lockdown

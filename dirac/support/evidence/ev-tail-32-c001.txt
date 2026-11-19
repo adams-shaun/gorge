@@ -39,12 +39,16 @@ Clot Sliver
 Cloud Elemental
 Cold Storage
 Colossus of Akros
+Combust
 Conclave Mentor
 Consuming Sinkhole
+Copper Host Crusher
 Copper Myr
+Court Homunculus
 Court of Grace
 Dakmor Plague
 Dark Betrayal
+Death's Presence
 Definitely Not a Turtle
 Demystify
 Dormant Sliver
@@ -57,25 +61,32 @@ Elite Scaleguard
 Elspeth Tirel
 Encroach
 Enthusiastic Mechanaut
+Ertai Resurrected
 Essence Flare
 Eternal Skylord
 Eviscerator's Insight
 Expedition Diviner
+Explosive Impact
 Eye of Nowhere
 Facevaulter
+Familiar Ground
 Farm
 Fault Riders
 Feral Abomination
 Feral Ridgewolf
+Filigree Fracture
 Flamekin Harbinger
 Flamespeaker's Will
 Fleeting Aven
+Floating-Dream Zubera
+Flying Dolphin-Fish
 Footfall Crater
 Forest
 Forget
 Fourth Bridge Prowler
 Frontline Devastator
 Geier Reach Sanitarium
+Genasi Enforcers
 Ghastly Demise
 Ghostly Visit
 Glimmerbell
@@ -100,6 +111,7 @@ Hysterical Blindness
 Idle Thoughts
 Ifnir Deadlands
 Ignition Team
+Inferno
 Into Thin Air
 Into the Maw of Hell
 Ioreth of the Healing House
@@ -122,6 +134,7 @@ Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
 Magus of the Candelabra
+Mandibular Kite
 Master Decoy
 Meldweb Strider
 Memory Drain
@@ -140,12 +153,14 @@ Morbid Bloom
 Mountain
 Multiversal Recruitment
 Nephalia Smuggler
+Night Scythe
 Nocturnal Raid
 Nyxborn Marauder
 Oashra Cultivator
 Obliterate
 Ogre Berserker
 Ondu Cleric
+Oni Possession
 Ovalchase Daredevil
 Overrule
 Penance Stare
@@ -154,6 +169,7 @@ Pillar of Light
 Plains
 Pollenbright Wings
 Prized Statue
+Provoke
 Psychic Spear
 Purifying Dragon
 Quicksilver Dagger
@@ -222,6 +238,7 @@ Unnatural Speed
 Untamed Wilds
 Unwavering Initiate
 Valkyrior Skyrider
+Vaporkin
 Venomous Vines
 Vexing Sphinx
 Viashivan Dragon

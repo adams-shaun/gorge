@@ -37,6 +37,7 @@ Baleful Ammit
 Banishing Slash
 Bash to Bits
 Battle Rampart
+Battle Screech
 Baxter, Fly in the Ointment
 Beaming Defiance
 Bellowing Mauler

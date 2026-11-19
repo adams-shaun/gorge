@@ -1,7 +1,10 @@
 Academy Journeymage
 Aethersnipe
+Ainok Survivalist
 Ambition's Cost
+Amoeboid Changeling
 Anax, Hardened in the Forge
+Angel of Light
 Arc Trail
 Archfiend of Sorrows
 Autumn Willow, Harmony
@@ -17,13 +20,18 @@ Briarblade Adept
 Burst Lightning
 Caligo Skin-Witch
 Canopy Surge
+Catacomb Crocodile
 Chaos Warp
 Clip Wings
 Commune with the Gods
 Contraband Livestock
+Dead
 Deepchannel Mentor
+Descent into Avernus
 Dreampod Druid
 Electrickery
+Encampment Keeper
+Equilibrium
 Expel from Orazca
 Exultant Skymarcher
 Fain, the Broker
@@ -36,19 +44,31 @@ Frogify
 Future Sight
 Gemhide Sliver
 General Kreat, the Boltbringer
+Genju of the Fields
+Grakk the Pacifist
+Gray Merchant of Asphodel
+Grinding Station
 Hada Spy Patrol
 Hand of Death
+Havoc Jester
 Hunger of the Howlpack
 Innocent Blood
+Irregular Cohort
 Island
 Jubilant Mascot
 Kami of the Crescent Moon
+Karoo
+Keldon Strike Team
 Knight of the Tusk
+Kor Celebrant
+Lagonna-Band Trailblazer
 Legacy's Allure
 Ley Weaver
 Man-o'-War
+Master of Arms
 Master's Rebuke
 Memory Lapse
+Momentary Blink
 Mothdust Changeling
 Mountain
 Multani, Yavimaya's Avatar
@@ -60,11 +80,17 @@ Pollenbright Druid
 Pongify
 Presence of Gond
 Priest of Gix
+Pyreheart Wolf
 Rain of Filth
+Rapid Hybridization
 Reanimate
+Reconnaissance Mission
+Rending Volley
+Ricochet Trap
 Rite of Consumption
 Roar of Challenge
 Rootborn Defenses
+Sandstone Needle
 Saprazzan Skerry
 Scrapwork Mutt
 Searing Spear
@@ -73,15 +99,22 @@ Shiny Impetus
 Skyline Despot
 Skyshroud Claim
 Souldrinker
+Striped Riverwinder
+Submerge
 Swamp
 Syr Alin, the Lion's Claw
+Tabaxi Toucaneers
+Tavern Swindler
+Tectonic Rift
 Telekinetic Sliver
 Temur Sabertooth
+Tevesh Szat, Doom of Fools
 Thassa's Oracle
 Thermo-Alchemist
 Thunderclap
 Tibalt, Rakish Instigator
 Toothy, Imaginary Friend
+Trostani's Judgment
 Unchained Berserker
 Valakut Invoker
 Vandalize

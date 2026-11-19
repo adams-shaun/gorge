@@ -4,10 +4,13 @@ Aetherize	c06bbace91ef80a8	8	0/0		1/2	ix:resp
 Akroma's Will	713144bd09f9b15b	13	0/0		1/2	ix:resp
 Alena, Kessig Trapper	bbf3a13a99111efc	4	1/1		0/1	ix:resp
 Ancestral Blade	cc70cc290be5f866	5	2/2		1/1	
+Angel of Indemnity	8acfeefee5b15247	8	2/2		1/1	
 Annoyed Altisaur	3b39cf64b2cedea4	6	0/0		0/0	
+Arabella, Abandoned Doll	7499255a7df1c7e4	11	1/1		0/1	ix:resp
 Araumi of the Dead Tide	506046ed94ca55cf	4	1/1		1/1	
 Avenging Druid	341a3fd6b30c95c9	13	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Back to Basics	8430fd168a1cfb36	5	0/0		0/0	
+Ball Lightning	34880e2168e2cd6e	10	1/1		0/1	ix:resp
 Benevolent Bodyguard	5522cf237f2ee779	4	1/1		0/1	ix:resp
 Bestial Menace	a5c1b9a2dc5358aa	5	0/0		1/2	ix:resp
 Blindblast	a39d11a4b4aa4492	3	0/0		2/2	
@@ -17,9 +20,12 @@ Broodbirth Viper	aa0a20f2e2080a1a	12	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Cenn's Enlistment	bb7cafaf7732f564	5	0/0		2/2	
 Chandra, Novice Pyromancer	c43c8043d54590c4	6	3/3		0/1	ix:resp
 Charcoal Diamond	e6917015ded11f43	16	1/1		0/1	ix:resp
+Chomping Changeling	bb8fda649b4a24ec	11	1/1		0/1	ix:resp
 Citanul Woodreaders	2f400b766b614bed	7	1/1		2/3	ix:resp
 Cliffgate	3927da9806431479	24	1/1		0/1	ix:resp
+Collective Resistance	f422d39c357d5a80	5	0/0		1/2	ix:resp
 Commune with Nature	c74f1fa9e2946bbf	13	0/0		2/2	
+Compulsion	947a949fc00aab19	8	2/2		0/1	ix:resp
 Conclave Evangelist	a7b1919fd3b2af73	9	2/2		1/1	
 Crimson Wisps	2e15015b6a4a9aae	4	0/0		1/2	ix:resp
 Curiosity	215cd120b33b079d	11	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
@@ -29,52 +35,80 @@ Disturbed Burial	59d5512d0ebc870d	5	0/0		3/4	ix:resp
 Dread Linnorm	b12c9d1ad6ce99c7	6	0/0		2/2	
 Dust to Dust	6a41cb08f7af11e9	3	0/0		1/2	ix:resp
 Emiel the Blessed	e3abd5a8a0e7924b	6	2/2		0/1	ix:resp
+End the Festivities	8f3d6afae6fb80d5	4	0/0		1/2	ix:resp
 Eternal Thirst	efb366071ef84bd1	4	0/0		1/2	ix:resp
 Experimental Augury	253df2b0d1557e59	6	0/0		1/2	ix:resp
 Fa'adiyah Seer	3299a99153b737cd	7	1/1		0/1	ix:resp
 Fallen Angel	39d2d29a47986468	3	1/1		1/1	
+Far Wanderings	0448c8b4aaa3faa2	12	0/0		1/2	ix:resp
 Farseek	45f51ba11fadad79	7	0/0		1/2	ix:resp
 Fell Stinger	4efe23c1bf66bac4	3	2/2		0/1	ix:resp
 Forest	6d0466c30f825dba	60	1/1		0/1	ix:resp
 Fortify	cc5d792b45f43a47	7	0/0		1/2	ix:resp
+Fyndhorn Elves	d0e49e9ea4984b98	10	1/1		1/1	
 Galvanic Blast	999ef8d4f7d0acac	4	0/0		2/2	
 Gluntch, the Bestower	5ba489e28648714e	6	1/1		0/1	ix:resp
 Goblin Gang Leader	366042eb16a5d0cc	6	1/1		0/1	ix:resp
+Grizzly Fate	fbe8f559ba50a68e	7	0/0		3/4	ix:resp
 Heroes' Bane	ea4c45b4cb7e6832	8	1/1		0/1	ix:resp
+Hoarding Ogre	57606092e418a7fc	11	1/1		1/1	
 Honor the God-Pharaoh	2be4fab55c279717	6	0/0		2/2	
 Hunting Cheetah	11e4e94879e77c06	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Impulsive Pilferer	8109bfc7f95ff170	6	2/2		1/1	
+Invigorated Rampage	21b0f4745d02c191	4	0/0		1/2	ix:resp
 Island	763c67ef7a27eaf5	100	1/1		0/1	ix:resp
 Joraga Treespeaker	125f83fe80f9e647	4	1/1		0/1	ix:resp
 Jwar Isle Avenger	375f2329ab01de83	9	0/0		2/2	
 Kiki-Jiki, Mirror Breaker	42d819f3c63dfb61	7	1/1		0/1	ix:resp
+Kitesail Skirmisher	fac5447cf712c268	15	2/2		0/1	ix:resp
 Lava Hounds	759462ec87f0be37	4	1/1		0/1	ix:resp
 Lord of the Accursed	f3773c3cdefcb8ab	8	1/1		0/1	ix:resp
+Meeting of Minds	3e4a57b5cbe1bb0a	4	0/0		1/2	ix:resp
+Mikokoro, Center of the Sea	605a62662579a1cf	10	2/2		1/1	
+Miner's Bane	47682873ac1d7303	5	1/1		0/1	ix:resp
+Miss Highwater	37667f8bc104cdaa	9	1/1		0/1	ix:resp
 Mountain	9e71388353e907ed	30	1/1		0/1	ix:resp
 Myriad Landscape	9b42c73d63544b4c	32	2/2		0/1	ix:resp
 Nadier's Nightblade	4bc93f49ff7d2ba9	8	1/1		0/1	ix:resp
+Nekrataal	7a65e4bf7fd3495c	3	1/1		0/1	ix:resp
 Paladin of the Bloodstained	6c42af2759ea97aa	6	1/1		0/1	ix:resp
 Pegasus Courser	ec8dced2562f2a83	10	1/1		0/1	ix:resp
 Pentarch Ward	71e309527f171eab	5	1/1		1/2	ix:resp
+Penumbra Kavu	e1c9d57a0b0d8b4a	12	1/1		1/1	
 Plains	82d63a695487e567	105	1/1		0/1	ix:resp
+Pore Over the Pages	bf4c7ebc562bb68e	4	0/0		1/2	ix:resp
 Power Word Kill	45318a71ccacfe63	4	0/0		2/2	
 Predator's Strike	cbf3cdd2bde99d4f	6	0/0		1/2	ix:resp
 Price of Fame	2e662cfb711e69e9	4	0/0		1/2	ix:resp
+Price of Glory	f630452a9b3085db	6	1/1		1/1	
+Pyrite Spellbomb	e78035cf01a93a7c	8	2/2		0/1	ix:resp
+Raffine's Informant	fe577218a6cc94ba	8	1/1		0/1	ix:resp
 Rain of Thorns	4a77e7c9326e8770	4	0/0		1/2	ix:resp
 Rampaging Brontodon	bc0ed75207f316ea	5	1/1		0/1	ix:resp
+Ramunap Ruins	8ce543a86ee8b8ce	10	3/3		0/1	ix:resp
 Rancor	60aa551679ad5355	3	1/1		1/2	ix:resp
+Rankle, Master of Pranks	f57ab31659ae1d6e	3	1/1		0/1	ix:resp
+Ratadrabik of Urborg	9a2e32a547715cd5	6	2/2		0/1	ix:resp
+Run Away Together	57e24937865276ad	4	0/0		1/2	ix:resp
 Rush of Vitality	2cdf72aaa0341221	8	0/0		2/2	
 Scale Up	c31599258cd918d5	10	0/0		3/4	ix:resp
 Shenanigans	8645f457c8e760ac	6	0/0		2/2	
 Shepherd of Rot	2b7ebeef134633d9	4	1/1		0/1	ix:resp
 Spidersilk Armor	8335d1009c6b3c99	6	0/0		0/0	
 Staggershock	38e2be5b2c700c5e	3	0/0		1/2	ix:resp
+Storm-Kiln Artist	8608a1d7045ca6b2	4	1/1		0/1	ix:resp
 Swamp	342b413902f441c3	38	1/1		0/1	ix:resp
 Thassa's Emissary	2d8b0c86bf736014	14	1/1		2/3	ix:resp
 Thopter Engineer	5364655f35700915	5	1/1		0/1	ix:resp
 Thorn of the Black Rose	50e50d5e0b1a1109	6	1/1		0/1	ix:resp
 Thraben Charm	44bd2dc4be97c094	18	0/0		2/2	
+Thrill of Possibility	7f7d85a82a715629	4	0/0		1/2	ix:resp
 Tireless Provisioner	8dad1699c126fcd6	6	1/1		0/1	ix:resp
 Tormented Angel	b9820ab6d8272939	4	0/0		0/0	
 Volcanic Hammer	c6e2a37a567102ad	4	0/0		1/2	ix:resp
+Volcanic Torrent	f70a594d1f3f6854	9	0/0		2/2	
+Wall of Blood	7cccbe4907d30c54	4	1/1		1/1	
+Wall of Omens	9a60928592432c58	8	1/1		0/1	ix:resp
+Windfall	c8204db0c7aac650	4	0/0		1/2	ix:resp
 Woodland Mystic	0ecd723cc325a8df	4	1/1		0/1	ix:resp
 Yavimaya Elder	82da0285ba66f29f	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp

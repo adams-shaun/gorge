@@ -1,10 +1,16 @@
 A-Steadfast Unicorn
+A-Young Blue Dragon
 Accomplished Automaton
 Ainok Guide
 Amphin Cutthroat
 Amy Rose
+Ancestor's Prophet
+Ancient Amphitheater
 Angelic Blessing
 Apex Devastator
+Aphelia, Viper Whisperer
+Arctic Flats
+Aura Finesse
 Aven Skirmisher
 Bala Ged Scorpion
 Balduvian Bears
@@ -14,12 +20,17 @@ Bard, Heir of Girion
 Barrin's Codex
 Battle at the Helvault
 Battlefield Raptor
+Bishop of Rebirth
+Blessed Orator
 Blisterpod
 Bloodfire Mentor
 Boneclad Necromancer
 Bottle of Suleiman
+Brushstrider
 Brutal Deceiver
 Burden of Guilt
+Caldera Lake
+Chandra Nalaar
 Chandra's Flame Wave
 Change of Fortune
 Clamavus
@@ -33,27 +44,38 @@ Crackdown
 Crypt Ripper
 Curse of Obsession
 Dakmor Plague
+Dark Supplicant
+Daru Healer
 Dauntless River Marshal
 Deeproot Warrior
 Demogorgon's Clutches
 Diabolical Salvation
+Disembowel
 Dispeller's Capsule
 Drannith Magistrate
 Dreadful Apathy
+Duskdale Wurm
 Earthshaker
 Echoing Return
+Elephant Grass
+Elvish Farmer
 Emerald Charm
 Empyrial Plate
 Emrakul's Messenger
 Entropic Specter
+Envoy of the Ancestors
+Errant Ephemeron
 Etherium Pteramander
 Everdawn Champion
+Exorcist
 Eyeblight Massacre
+Faerie Swarm
 Falcon and Redwing
 Fetid Gargantua
 Filigree Crawler
 Forest
 Foriysian Brigade
+Foul Watcher
 Frightcrawler
 Fyndhorn Brownie
 Galvanic Blast
@@ -65,6 +87,7 @@ Gigantiform
 Gleeful Arsonist
 Glimmer Lens
 Gnoll War Band
+Go Blank
 Goblin Recruiter
 Graaz, Unstoppable Juggernaut
 Granulate
@@ -75,13 +98,18 @@ Greed
 Gut, True Soul Zealot
 Hanweir Militia Captain
 Healer's Flock
+Heed the Mists
 Hidden Stockpile
+Highspire Artisan
 Honey Mammoth
 Honored Hierarch
 Hot Soup
 Human Frailty
 Hypnotic Cloud
 Impending Disaster
+In Bolas's Clutches
+Indrik Umbra
+Ingenuity Engine
 Insatiable Souleater
 Invisible Force Field
 Iroas's Champion
@@ -89,9 +117,14 @@ Iron Lance
 Island
 Island Fish Jasconius
 Javelin of Lightning
+Jeweled Torque
+Jump
+Kithkin Zealot
 Knight of Dusk's Shadow
+Knight of the Tusk
 Kytheon's Tactics
 Lokhust Heavy Destroyer
+Lounge
 Magmatic Channeler
 Magmatic Chasm
 Mana Leak
@@ -99,7 +132,10 @@ Memory's Journey
 Militia's Pride
 Mindwrack Demon
 Mire Triton
+Molten Influence
 Mountain
+Mox Amber
+Mu Yanling
 Naru Meha, Master Wizard
 Necropouncer
 Nimana Skitter-Sneak
@@ -108,10 +144,12 @@ Ob Nixilis, the Ascended
 Obzedat's Aid
 Oculus
 Ogre Shaman
+Orah, Skyclave Hierophant
 Orcish Artillery
 Organ Grinder
 Orthion, Hero of Lavabrink
 Overmaster
+Oxidda Daredevil
 Paragon of Fierce Defiance
 Peema Outrider
 Phyrexian Ironworks
@@ -123,11 +161,14 @@ Political Triumph
 Primetime Suspect
 Pyre-Sledge Arsonist
 Pyreswipe Hawk
+Rakdos Drake
 Raze the Effigy
 Read the Tides
 Reckless Embermage
+Reconstruction
 Redeem the Lost
 Regent's Authority
+Replication Technique
 Restore the Peace
 Ring of Kalonia
 Ritual Guardian
@@ -136,6 +177,7 @@ Rotting Fensnake
 Saiba Cryptomancer
 Sailor of Means
 Salvage Scout
+Saprazzan Heir
 Sarulf's Packmate
 Scarecrow
 Seal of Removal
@@ -144,28 +186,37 @@ Sergeant John Benton
 Serra Avenger
 Shepherd of the Lost
 Shining Aerosaur
+Shivan Emissary
 Shu Elite Companions
 Sigil of the Empty Throne
+Silent-Chant Zubera
 Singing Bell Strike
 Skirk Commando
 Sky Spirit
+So Shiny
 Sparkmage's Gambit
 Spectral Shield
 Starnheim Aspirant
+Stensia Innkeeper
+Stone Spirit
 Surge Conductor
 Swamp
 Sylvan Anthem
 Tavern Swindler
+Tempest Drake
 Temple Bell
+Thirst for Meaning
 Thorn of the Black Rose
 Thriving Ibex
 Throne of Geth
 Titania's Boon
 Topplegeist
 Traitorous Blood
+Treasure Hunt
 Triangle of War
 Triskelion
 Undermountain Adventurer
+Unholy Indenture
 Vampire's Bite
 Venser's Sliver
 Vibranium Mining Mech
@@ -174,6 +225,7 @@ Voracious Typhon
 Vraska's Contempt
 Wall of Blossoms
 Warm Welcome
+Waterfront District
 Wayfaring Temple
 Wedding Announcement
 White Scarab
@@ -181,4 +233,5 @@ Wilderness Reclamation
 Wolfir Avenger
 Wrath of the Skies
 You Meet in a Tavern
+Zagoth Triome
 Zodiac Ox

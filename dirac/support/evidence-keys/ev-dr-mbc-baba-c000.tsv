@@ -1,48 +1,74 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Accorder Paladin	ff60f899420cdd73	12	1/1		0/1	ix:resp
 Acquisition Octopus	31f4479dc3926084	17	3/3		1/1	
 Aftershock	8053b6f8ebdb819e	3	0/0		1/2	ix:resp
+Alchemist's Retrieval	0e5b737e75d24e95	30	0/0		2/2	
 All That Glitters	e78d83cf1b788210	4	0/0		1/2	ix:resp
 Alseid of Life's Bounty	a545a2091a77d677	6	1/1		0/1	ix:resp
+Ambassador Oak	72913fa562500a63	38	1/1		1/1	
 Archetype of Courage	0dba5fcba31e6bcb	4	0/0		0/0	
 Armorcraft Judge	6f5c27cd7ffdfa3e	8	1/1		0/1	ix:resp
 Arrogant Vampire	a3266a1bda7c9e7f	4	0/0		0/0	
 Atraxa's Fall	ee723f1b579e4cf1	8	0/0		2/2	
 Aura Gnarlid	a6e9050f3a6a5b0f	4	0/0		0/0	
 Avacyn's Pilgrim	733584ecb79bd8b7	6	1/1		0/1	ix:resp
+Battlewing Mystic	fca989b2ad911b7b	49	1/1		3/3	
+Black Vise	a92f10037b12437d	133	1/1		1/1	
+Blood Fountain	34806907d5b35fe2	98	2/2		1/1	
+Bolt Bend	8a081a1780a70777	5	0/0		1/2	ix:resp
+Bond of Discipline	dab42efdd4850eb1	8	0/0		1/2	ix:resp
 Brave the Sands	2fe420d34a8fc081	6	0/0		0/0	
+Breaker of Armies	1ab54bf2e2f7b1a3	18	0/0		0/0	
 Bronzeplate Boar	1b5e9bd7e9c84cf4	6	2/2		0/1	ix:resp
 Bushwhack	d5be4edcbcc661aa	23	0/0		1/2	ix:resp
 Butcher Ghoul	805b696c82ec2024	6	1/1		0/1	ix:resp
 Cadira, Caller of the Small	1c3d77afa9ad5b55	4	1/1		0/1	ix:resp
 Caller of the Pack	6db4d606eeec744b	4	1/1		1/1	
+Cerulean Wyvern	58362a7953563b14	25	0/0		0/0	
 Charging Tuskodon	dd18120f23c19dd1	12	0/0		0/0	
+Choking Tethers	fd0ecf9204bf97b4	6	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
+Chromatic Lantern	7d70d7977c444016	48	1/1		1/1	
+Citywatch Sphinx	0c57a5c13d0986a8	16	1/1		1/1	
+Cling to Dust	eff2a23663600334	81	0/0		3/4	cast/alt:escaped
 Coastline Marauders	251bead82f465f0f	5	2/2		0/1	ix:resp
 Crashing Boars	b53e3740e63efb60	4	1/1		1/1	
+Deathgreeter	3337b6a184e0ad81	50	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Dive Down	7e9adf61e1e05c77	16	0/0		1/2	ix:resp
+Dusk Legion Zealot	5952c03b21d70d4d	42	1/1		0/1	ix:resp
+Echoing Truth	b284e60ab7363595	26	0/0		1/2	ix:resp
+Elspeth's Nightmare	cdfcea94406ed2f6	30	0/0		0/0	
 Empty-Shrine Kannushi	38c4bab7c7ce2f4d	4	0/0		0/0	
 Enlarge	42619b97cd5fb39e	4	0/0		1/2	ix:resp
 Ensnaring Bridge	59f2642900af8fae	14	0/0		0/0	
+Epic Downfall	39f590dfd204b8a3	25	0/0		1/2	ix:resp
 Experimental Synthesizer	5c5b288d915ba686	6	3/3		0/1	ix:resp
 Feast or Famine	f7f1b3ac0e1a1d85	20	0/0		1/2	ix:resp
 Fireblast	0bc711cb04535f03	4	0/0		1/2	ix:resp
 Flame Elemental	72bba7387e6575d0	8	1/1		0/1	ix:resp
 Forest	6d0466c30f825dba	121	1/1		0/1	ix:resp
+Fragmentize	a3b95c911af06944	6	0/0		2/2	
 Garruk's Packleader	bc2c66bb75df25e1	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Geode Golem	cc3ab0ea356d1c10	48	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Ghostly Changeling	bdda8a4cfd3f497a	6	1/1		1/1	
 Go Blank	7613e85870e02cf9	4	0/0		1/2	ix:resp
 Goblin Assault	e3db7f4f1489de5c	4	1/1		0/1	ix:resp
 Goblin King	d965a7b8ce1cc5b6	3	0/0		0/0	
 Goblin Settler	163e440cce2c69aa	7	1/1		0/1	ix:resp
+Gonti, Lord of Luxury	974af1bda9ebbcec	44	1/1		1/1	
+Grim Affliction	9b9e4a03493b6201	40	0/0		2/2	
 Helpful Hunter	41dfc8b1026e22f3	4	1/1		0/1	ix:resp
+Horseshoe Crab	a6a2cbf71afe77e1	24	1/1		1/1	
 Island	763c67ef7a27eaf5	51	1/1		0/1	ix:resp
 Jaspera Sentinel	fa35bbf5d8e2ca5b	8	1/1		0/1	ix:resp
 Llanowar Visionary	5aa755495f4a7ab1	10	2/2		0/1	ix:resp
 Mad Auntie	a9664ab8a5c7745a	30	1/1		0/1	ix:resp
+Markov Baron	c5d8e8f6b82040be	24	0/0		0/0	
 Ministrant of Obligation	a9152c08585ba570	4	1/1		0/1	ix:resp
 Mountain	9e71388353e907ed	40	1/1		0/1	ix:resp
 Muscle Sliver	e9994c33f4bac520	16	0/0		0/0	
 Narcolepsy	05d12f2f94002f73	18	1/1		2/2	
 Nephalia Smuggler	2c09eb846626748e	24	1/1		1/1	
+Nezahal, Primal Tide	1011263ce51111b6	16	2/2		0/1	ix:resp
 Nils, Discipline Enforcer	cd5b8557d70e634a	6	1/1		1/1	
 Nirkana Cutthroat	43042950cd7b3b30	36	1/1		1/1	
 Novice Occultist	f906bdbe2d2a29c5	6	1/1		0/1	ix:resp
@@ -50,13 +76,26 @@ Pact of Negation	d918aef2df41eda2	14	0/0		1/2	ix:resp
 Peema Outrider	a08fe7ed3793fea4	4	1/1		0/1	ix:resp
 Plaguemaw Beast	79bc88233e17d3e9	4	1/1		0/1	ix:resp
 Plains	82d63a695487e567	36	1/1		0/1	ix:resp
+Proteus Staff	37b8ae3dbab476e9	102	1/1		1/1	
+Raise the Alarm	28b01806a3f846d9	12	0/0		1/2	ix:resp
+Reveille Squad	98545554383fd78a	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Revenge of Ravens	f2375406053249df	74	1/1		1/1	
 Rhonas's Monument	fccc040cfe42c311	17	1/1		1/1	
 Rites of Initiation	8ecb306abafcf23e	4	0/0		2/2	
 Samut's Sprint	8d6b79cb7d9e9597	10	0/0		2/2	
+Sealock Monster	1541a6c0d4ac00f8	26	2/2		1/1	
+Seeker of Skybreak	9202f7947cccb024	38	1/1		1/1	
+Seluma, Light of Aysen	93aa785236912957	8	1/1		1/1	
+Shoreline Ranger	5e9bc6fb97e8c872	6	1/1		1/1	
+Sol Ring	faecb641e88dbfc1	58	1/1		0/1	ix:resp
+Spark Reaper	e391261e0795fae3	35	1/1		1/1	
 Spellshock	aaeab7bab9883ad4	8	1/1		1/1	
 Stonecloaker	e2529985f9e60612	4	2/2		0/1	ix:resp
+Stonespeaker Crystal	607c1c8452533d9a	28	2/2		0/1	ix:resp
+Sunset Strikemaster	3108f54c691d5b37	16	2/2		0/1	ix:resp
 Supply Runners	85d095200fc915b6	4	1/1		0/1	ix:resp
 Swamp	342b413902f441c3	113	1/1		0/1	ix:resp
+Swarming Goblins	cb33b1899ba08102	12	1/1		0/1	ix:resp
 Swift Justice	c82cadfa92ab51a6	6	0/0		1/2	ix:resp
 Swiftfoot Boots	8159934f610e5978	19	1/1		1/1	
 Symbiotic Beast	5854cc0b090235e5	8	1/1		1/1	
@@ -66,5 +105,6 @@ Travel Preparations	61b00a21bd454d73	9	0/0		3/4	ix:resp
 True Love's Kiss	f28a8ba3ca057e64	4	0/0		1/2	ix:resp
 Urborg Repossession	0187c6f697368994	6	0/0		2/4	cast/alt:kicked,ix:resp
 Valorous Steed	c0242b513d6cac83	4	1/1		0/1	ix:resp
+Viridian Shaman	dc8232f167e179fd	34	1/1		1/1	
 Warrior en-Kor	d229db1728256a51	6	1/1		1/1	
 Wilt	508248d95dc6a0d5	11	1/1		2/2	

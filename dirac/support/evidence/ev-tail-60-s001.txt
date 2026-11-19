@@ -22,6 +22,7 @@ Bloodtracker
 Boros Cluestone
 Boros Reckoner
 Brave the Elements
+Briar Hydra
 Bridgeworks Battle
 Broodhatch Nantuko
 Cabal Initiate
@@ -62,6 +63,8 @@ Execute
 Expedition Champion
 Experiment Kraj
 Extract the Truth
+Eyes of the Wisent
+Ezio, Blade of Vengeance
 Faithless Looting
 Fallaji Dragon Engine
 Felhide Brawler
@@ -95,6 +98,7 @@ Hungry Mist
 Ichor Wellspring
 Illness in the Ranks
 Implement of Combustion
+Invasion of Eldraine
 Ironclaw Buzzardiers
 Island
 Ivory Crane Netsuke
@@ -143,12 +147,14 @@ Ohran Frostfang
 Ojutai, Soul of Winter
 Oketra's Last Mercy
 One with the Machine
+Onslaught
 Opportunity
 Orchard Strider
 Otarian Juggernaut
 Outnumber
 Overgrown Battlement
 Path of Discovery
+Phyrexian Ironfoot
 Pillardrop Rescuer
 Pir, Imaginative Rascal
 Plains
@@ -181,11 +187,15 @@ Scion of Ugin
 Sculpted Perfection
 Scuttling Sliver
 Sengir Nosferatu
+Sigil of the Nayan Gods
 Sigiled Starfish
 Silverstorm Samurai
 Sixth Sense
 Skeletal Grimace
 Skemfar Avenger
+Snow-Covered Island
+Snow-Covered Mountain
+Snow-Covered Plains
 Soltari Emissary
 Spawn of Thraxes
 Split-Tail Miko

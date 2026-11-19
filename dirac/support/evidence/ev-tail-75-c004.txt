@@ -219,6 +219,7 @@ Rooftop Nuisance
 Rune-Cervin Rider
 Sacred Prey
 Sage Aven
+Sage of Fables
 Sailor of Means
 Sanctify
 Sanctum of Stone Fangs
@@ -247,6 +248,7 @@ Soulmender
 Spike Breeder
 Spindrift Drake
 Spirit Shackle
+Spirited Companion
 Spitebellows
 Spiteful Squad
 Spitfire Handler

@@ -153,6 +153,7 @@ Forest
 Forestfolk
 Frazzle
 Frontline Devastator
+Frostwielder
 Gallia of the Endless Dance
 General Kreat, the Boltbringer
 Geralf, Visionary Stitcher
@@ -439,6 +440,7 @@ Wall of Blood
 Wandering Tombshell
 War-Name Aspirant
 Water Wurm
+Waterlogged Grove
 Wellspring
 White Sun's Zenith
 White Widow, Yelena Belova

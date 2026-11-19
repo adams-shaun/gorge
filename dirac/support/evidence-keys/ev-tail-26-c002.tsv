@@ -12,10 +12,13 @@ Bloodhall Priest	3d9fe149b2ed6e8f	54	2/2		1/1
 Blue Scarab	71b862d5637e23d6	4	0/0		2/2	
 Bringer of the Blue Dawn	0be2e3715ce4b357	8	1/1		1/1	
 Chastise	88f485b985554995	9	0/0		1/2	ix:resp
+Cloud Manta	05890e73449cc88c	9	0/0		0/0	
 Colossal Badger	5ab467cf8d4241ae	22	1/1		2/2	
 Crossbow Infantry	0c262d10c490dce1	11	1/1		0/1	ix:resp
 Dark Temper	9cb10f7bfbed298c	4	0/0		1/2	ix:resp
+Dinosaur Hunter	e3b624d59d2a7ebf	11	1/1		0/1	ix:resp
 Divebomber Griffin	fea2d82920ca9c84	11	1/1		0/1	ix:resp
+Dramatist's Puppet	5509f1fc95f2cf48	4	1/1		0/1	ix:resp
 Empyrial Armor	13d34977cba5e287	13	0/0		1/2	ix:resp
 Festering Wound	74fb522f683a9491	6	2/2		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Force of Savagery	77e5e06b68d11c0a	13	0/0		0/0	
@@ -27,13 +30,16 @@ Gravity Well	cdeb9b54c41cc6c3	13	1/1		0/1	ix:resp
 Hammer Mage	b238e1189cc972fb	44	1/1		0/1	ix:resp
 Hero of Precinct One	5dc5f22bd373fb2d	14	1/1		1/1	
 Jewel-Eyed Cobra	8c8a668126d22d7b	18	1/1		0/1	ix:resp
+Karakas	136cf132e12205b7	51	2/2		1/1	
 Laccolith Grunt	2484228c68cc20ed	35	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Legion Leadership	efdc752056a722dc	14	1/1		2/2	
+Leisure Bicycle	29bd00581b164b0b	13	3/3		1/1	
 Living Lands	28b004316ff7c0e7	3	0/0		0/0	
 Make Your Mark	348b72ca7cd139ec	10	0/0		2/2	
 Makeshift Battalion	e2b092d86759b278	6	1/1		0/1	ix:resp
 Moat Piranhas	d462f1cac953b19d	53	0/0		0/0	
 Monster Manual	6edc892ed8f9e367	13	1/1		1/2	ix:resp
+Necrogen Spellbomb	4926ea90bad8ba88	9	2/2		1/1	
 No Escape	e2e4d0f63775b8a9	18	0/0		1/2	ix:resp
 Nullmage Advocate	942c672d50e1d673	4	1/1		0/1	ix:resp
 Orochi Soul-Reaver	b62782590171b697	27	2/2		0/1	ix:resp
@@ -51,9 +57,12 @@ Shambling Goblin	48fd099eae5dd257	4	1/1		1/1
 Sivriss, Nightmare Speaker	0da0707a21da6064	28	1/1		0/1	ix:resp
 Skyhunter Prowler	6473728dfe3c781c	4	0/0		0/0	
 Skyway Sniper	575df0501f6ef38d	14	1/1		1/1	
+Slate of Ancestry	91a935825bfbc7c4	9	1/1		1/1	
 Slip Through Space	63487c7045c11f55	14	0/0		2/2	
 Snake Pit	135318cd0462a578	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Sokenzan, Crucible of Defiance	296f6374baefa0b0	28	2/2		0/1	ix:resp
 Spark Elemental	bb3f4f3b42c4f8d9	24	1/1		1/1	
+Spell Burst	d6f37d38c6321eee	19	0/0		5/6	f0/s/x0
 Spellbook	eab3c58a902a6202	8	0/0		0/0	
 Sporeback Troll	9b4c97135b21a43f	21	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Stony Strength	2c7873006fef53aa	9	0/0		2/2	
@@ -66,6 +75,8 @@ Tigereye Cameo	aa2e1470f6a73c42	36	1/1		1/1
 Titania, Nature's Force	58aaf63e5be9b2a3	11	2/2		0/1	ix:resp
 Triad of Fates	126878afbfa8e069	12	3/3		0/1	ix:resp
 Turbulent Dreams	df74c26476541708	21	0/0		2/2	
+Urza's Filter	c88e0c6417ffffd8	11	0/0		0/0	
+Vivien's Arkbow	fd7d0acd4b97c04a	6	1/1		1/1	
 War Machine, James Rhodes	26e27ad86b289168	7	1/1		1/1	
 Wasp, Shrinking Savior	7c5b34a6fb9b1a2d	133	1/1		1/1	
 Wicked Guardian	1f407523d7cf9309	32	1/1		1/1	
