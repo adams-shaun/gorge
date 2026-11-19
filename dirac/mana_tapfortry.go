@@ -31,6 +31,23 @@ func (s *State) tapForSpellPlain(k *prep, e *stackEntry, cost *kop.ManaCost, any
 	// cost it would count that mana twice and tap short a payment the window
 	// funds (as the k.phyMana arm keeps phyPay unshortened).
 	short := s.restrAdmShortCost(k, e, *cost)
+	if s.buildIsTb(k) {
+		// A planned twobrid cast (CR 107.4e): the cast planner resolves the
+		// announced faces (planTwobridCost) and prices the printed census. A
+		// cost that census cannot fund -- a filter's fee paid from the floated
+		// pool, a granted source -- has no witness, and gorge's plan falls
+		// back to its manual CR 601.2g window. Plan first (the try taps only
+		// when it finds a witness, so a planner-priceable cast keeps the
+		// planner's ObjID-ordered payment), then pay that window rather than
+		// panicking on the missing plan.
+		if s.tapForTry(k, e.ctrl, &short, int(e.x), e.obj, anyColor) {
+			return false
+		}
+		if !s.tapForHyb(k, e.ctrl, cost, int(e.x), e.obj, anyColor) {
+			return true // stranded: the cast was reversed
+		}
+		return false
+	}
 	if s.raisePerTargetCharge(e.card, e.ctrl) == 0 {
 		s.tapForRider(k, e.ctrl, &short, int(e.x), e.obj, anyColor)
 		return false

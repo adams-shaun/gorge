@@ -20,7 +20,6 @@ Protection from EachCMCAmongDefined
 Protection from NotCommanderColorID
 Protection from cardColors
 Protection from colorsYouCtrl
-Protection from each color
 ProtectionColor
 Rampage
 Ripple

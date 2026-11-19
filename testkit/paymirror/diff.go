@@ -200,6 +200,7 @@ var excluded = map[excludedField]bool{
 	{"rules.Engine", "colorsEpoch"}:    true,
 	{"rules.Engine", "colorsVersion"}:  true,
 	{"rules.Engine", "colorsObjs"}:     true,
+	{"rules.Engine", "colorsStatic"}:   true,
 	{"rules.Engine", "colorsValid"}:    true,
 	{"rules.Engine", "colorsBuilding"}: true,
 	// The replacement-source walk's zone summaries (repl_zoneskip.go), the
