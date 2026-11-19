@@ -1319,8 +1319,12 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	if ask.card != NoCard {
 		saveRep := s.g.replaced
 		s.g.replaced = p.obj
+		n0 := s.g.nask
 		s.runReplProg(k, ask.sl, ask.card, uint8(ask.ab), ask.pc)
 		s.g.replaced = saveRep
+		if ask.ts&askETBDeferred != 0 {
+			s.deferredETBFire(k, ask, n0) // ctr_choice.go
+		}
 	}
 }
 

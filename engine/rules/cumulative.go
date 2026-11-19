@@ -366,7 +366,9 @@ func parseCumulativeAction(label string) (*cumulativeAction, bool) {
 func (e *Engine) startCumulativeUpkeep(stackObj, source state.ObjID, sa *cards.SA) {
 	o := e.G.Obj(source)
 	stack := e.G.Obj(stackObj)
-	if !pay.ExistsOnBattlefield(o) || stack == nil {
+	// A source that left and returned since the trigger went on the stack is
+	// a new object (CR 400.7): no age counter, no payment, no sacrifice.
+	if !pay.ExistsOnBattlefield(o) || stack == nil || effects.SourceIsNewObject(e.G, stack) {
 		e.finishResumption(stackObj)
 		return
 	}
