@@ -64,6 +64,7 @@ Crackling Drake
 Crookclaw Elder
 Crosstown Courier
 Cunning Survivor
+Curiosity Crafter
 Daggersail Aeronaut
 Dawning Angel
 Death's Shadow
@@ -88,6 +89,7 @@ Drown in Dreams
 Dualcaster Mage
 Dune Mover
 Eccentric Pestfinder
+Emperor Crocodile
 Enrage
 Erstwhile Trooper
 Etched Monstrosity
@@ -151,6 +153,7 @@ Lightning-Rig Crew
 Lightwielder Paladin
 Lonis, Genetics Expert
 Lorthos, the Tidemaker
+Lost in the Mist
 Lost in the Spirit World
 Magma Vein
 Magmatic Insight

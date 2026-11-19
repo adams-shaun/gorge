@@ -8,9 +8,11 @@ Bloodfire Expert	238de0276a100009	4	1/1		0/1	ix:resp
 Buried Alive	7939f78a7bf800c1	4	0/0		1/2	ix:resp
 Cartouche of Strength	23025413eab0fb8b	13	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Cloudreader Sphinx	fb2bcd0878faccaf	23	1/1		0/1	ix:resp
+Confound	64ee7657ab7bfc4a	32	0/0		1/2	ix:resp
 Constricting Sliver	c88f79bb4625cbda	9	0/0		0/0	
 Coruscation Mage	2849aac56a5f549e	32	2/2		3/3	
 Court of Embereth	99120ae728451c7d	38	2/2		1/1	
+Dauthi Embrace	602241a53abf525e	10	1/1		1/1	
 Demand Answers	f16552fd099d7110	21	0/0		2/2	
 Desperate Lunge	08b8108499d14cea	6	0/0		1/2	ix:resp
 Destroy Evil	ef35eccd7631cb76	6	0/0		1/2	ix:resp
@@ -19,6 +21,7 @@ Doomsday	61600771264e0427	4	0/0		1/2	ix:resp
 Elven Bow	abea579c56d067d1	10	2/2		0/1	ix:resp
 Exhaustion	5184ca486b79ec49	7	0/0		1/2	ix:resp
 Exquisite Huntmaster	402bf936c713cb1c	8	2/2		1/1	
+Extract from Darkness	46052cc3751ca8af	4	0/0		1/2	ix:resp
 Fatestitcher	e8a93e35f31e65f5	6	2/2		1/1	
 Felidar Guardian	cb0bb7c042d967d0	6	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Fiend Hunter	222755bd476849dd	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -71,12 +74,14 @@ Silver Knight	25e4cfc9cfdf354b	6	0/0		0/0
 Snap	7b3f2663850bbe4b	32	0/0		2/2	
 Spin into Myth	87f147f390148b8e	14	0/0		1/2	ix:resp
 Sting-Slinger	ee92e32781f6fb8d	3	1/1		1/1	
+Stinging Barrier	6d5b31969994594e	40	1/1		1/1	
 Stronghold Rats	50790d38e7bb9478	4	1/1		0/1	ix:resp
 Surge of Salvation	cf076a6037307579	16	0/0		1/2	ix:resp
 Swamp	342b413902f441c3	8	1/1		0/1	ix:resp
 Take Up the Shield	d1ebe074e6bd29a8	20	0/0		1/2	ix:resp
 Temple Acolyte	a34ab08f2f5e65dd	8	1/1		0/1	ix:resp
 Thornwind Faeries	e177a21a7516649a	21	1/1		1/1	
+Thought Courier	3eba88a01c77ba43	4	1/1		0/1	ix:resp
 Torch Breath	bcdc54c9376ce0ce	21	0/0		3/4	f0/s/x0
 Trove Tracker	3a30c0efd7b57f72	31	2/2		1/1	
 Unexpected Fangs	cf031ccd09750d99	5	0/0		1/2	ix:resp
@@ -87,3 +92,4 @@ Volatile Claws	e6f2f0cad245a0f3	8	0/0		1/2	ix:resp
 Wanderer's Strike	41e26e57cde6aa71	5	0/0		1/2	ix:resp
 You See a Pair of Goblins	62e8c35d19b17b5c	6	0/0		1/2	ix:resp
 Young Wolf	c83665296a954082	17	1/1		0/1	ix:resp
+Zombie Cutthroat	3d66efa6244d37d3	9	0/0		1/2	cast/alt:morphed

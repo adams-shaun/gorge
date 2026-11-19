@@ -1,57 +1,119 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Afterlife Insurance	7da3f443ae85ad97	4	0/0		1/2	ix:resp
+Akroan Phalanx	291cabfc8a474a09	25	1/1		1/1	
 Altar's Reap	1f099f5c445cdf39	6	0/0		2/2	
+Angel of Renewal	9fec2c8f7dc2fdba	4	1/1		0/1	ix:resp
 Aphotic Wisps	1f06ea183bac8ff5	5	0/0		2/2	
+Apprentice Sorcerer	475ae28d4d1d0782	6	1/1		0/1	ix:resp
 Archetype of Finality	605a028a9191e1a1	4	0/0		0/0	
+Archetype of Imagination	49066222ff7d0096	9	0/0		0/0	
+Arms Dealer	9a23b037b51265a0	5	1/1		0/1	ix:resp
+Arrow Storm	ab1475f7fc10d534	4	0/0		2/2	
 Artistic Process	6d6b105dca8f956b	3	0/0		1/2	ix:resp
 Barbed Batterfist	d0a1b922c037067c	14	2/2		1/1	
 Blaze	ddf0feb339c57dc7	11	0/0		3/4	f0/s/x0
+Blight Mamba	986a35acb45eb6e4	3	1/1		1/1	
+Blightwidow	3b40ce4448682213	24	0/0		0/0	
 Bloodmark Mentor	77561e4f2b212a83	6	0/0		0/0	
+Boomerang	6c4c3d6a44a35400	7	0/0		1/2	ix:resp
+Borderland Ranger	df9f7d2121c58d46	9	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Brazen Wolves	89c1a76fab268c29	3	1/1		0/1	ix:resp
+Brilliant Plan	d75addc6fa063358	10	0/0		2/2	
 Brood of Cockroaches	3638dfa7efc747de	30	1/1		1/1	
 Burning Palm Efreet	a124a3e95d87454b	5	1/1		0/1	ix:resp
 Cabal Ritual	adf27a40f902159c	7	0/0		1/2	ix:resp
+Chaos Channeler	7f95bd97d2379e02	4	1/1		0/1	ix:resp
+Codecracker Hound	0e76983791d55a6e	4	1/1		2/3	ix:resp
 Dakmor Plague	93fb8181691ea982	5	0/0		1/2	ix:resp
+Daring Saboteur	bec4cc31ae601303	15	2/2		1/1	
 Dark-Dweller Oracle	07d7e74c9db96c68	4	1/1		1/1	
+Devout Witness	021ad1b40484461b	15	1/1		1/1	
 Dockside Chef	f712a353245f54bc	21	1/1		1/1	
 Driver of the Dead	02e3ebf3eb5af09d	7	1/1		0/1	ix:resp
+Drumhunter	92f6bd0c70eff24d	15	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+E. Honda, Sumo Champion	124dc608d0228f3f	3	1/1		1/1	
+Electric Revelation	25a8c22df611b5d4	8	0/0		4/4	
 Elemental Bond	15aa5bc4ac4acb26	3	1/1		0/1	ix:resp
 Esior, Wardwing Familiar	e17616d3a2ae6da4	10	0/0		0/0	
+Essence Scatter	2d525323d9246cf1	4	0/0		1/2	ix:resp
 Expedite	d3d4bb74e8e7cf02	4	0/0		1/2	ix:resp
 Faith Unbroken	70b1b599a39917f6	4	1/1		1/2	ix:resp
+Flusterstorm	2fc3966fda40e65e	14	1/1		2/2	
+Forbid	98872c61b7d6812c	3	0/0		3/4	ix:resp
 Forest	6d0466c30f825dba	229	1/1		0/1	ix:resp
 Ghoulcaller Gisa	2ea71929427d4278	15	1/1		1/1	
 Gift of the Viper	18a501711cabcd9c	10	0/0		1/2	ix:resp
 Graaz, Unstoppable Juggernaut	2762731a83de14e7	5	0/0		0/0	
 Grimclaw Bats	471121e2882fdd90	11	1/1		1/1	
 Guardian Naga	af616cebb82ce6ec	4	0/0		2/2	
+Herald of the Host	00893f152af766be	6	1/1		0/1	ix:resp
+Hope and Glory	7fe1d6488c698106	16	0/0		2/2	
+Hunter's Ambush	4cd7cb236db4e7bd	22	0/0		1/2	ix:resp
 Incremental Blight	be7f120b6b999009	4	0/0		1/2	ix:resp
 Inspiring Overseer	6ed8982562d84cc2	6	1/1		1/1	
 Island	763c67ef7a27eaf5	24	1/1		0/1	ix:resp
+Iwamori of the Open Fist	ef27ee1c116246df	5	1/1		0/1	ix:resp
+Kangee's Lieutenant	328c8a3c1485bbaf	4	2/2		1/1	
+Khalni Garden	681b12adebbad71f	103	2/2		1/1	
+Kobolds of Kher Keep	46ef85514064b18f	19	0/0		0/0	
 Kozilek's Predator	44bfae6117e4c324	5	1/1		1/1	
+Krovikan Sorcerer	77a0695bc9831dae	4	2/2		0/1	ix:resp
 Leatherback Baloth	86809bd3c3e566e8	11	0/0		0/0	
 Magmaw	84b6765f9ed0b3ed	4	1/1		0/1	ix:resp
 Marchesa's Decree	4aca397904692f65	6	2/2		1/1	
+Mask of Law and Grace	dd2b41df99b0d9a1	41	0/0		2/2	
 Master Decoy	15bbda0774019787	10	1/1		1/1	
 Matoc, Lavamancer	a0dd93a704a2d4e8	4	2/2		1/1	
+Militia Bugler	22c10cc12bcc0f05	18	1/1		0/1	ix:resp
+Mirror Image	c32aecfbf0c16e95	6	0/0		0/0	
 Mountain	9e71388353e907ed	31	1/1		0/1	ix:resp
 Needle Drop	9e02bb6d5223851c	4	0/0		1/2	ix:resp
+Negate	575fbd46f9f739c6	4	0/0		1/2	ix:resp
+New Frontiers	a85aab0320adffc7	10	0/0		2/4	f0/s/x0,ix:resp
+Oath of Druids	2d208a3cbe6a6051	3	1/1		0/1	ix:resp
 Oblivion Strike	4d1a879863db0d9c	4	0/0		1/2	ix:resp
+Perilous Research	13b8ebcaa82f7b5b	23	0/0		2/2	
 Phyrexian Gargantua	23aede10b514e6ca	10	1/1		0/1	ix:resp
+Phyrexian Missionary	710b5e39d99cc700	31	1/1		3/3	
 Plains	82d63a695487e567	68	1/1		0/1	ix:resp
 Preordain	fa0c0a98b3980e23	8	0/0		2/2	
 Priest of Titania	801249adc6b6762c	17	1/1		1/1	
+Quirion Ranger	bbc57eb24cb07dde	15	1/1		1/1	
 Rambunctious Mutt	388120e1f9ba1568	16	1/1		0/1	ix:resp
 Recover	8ce465c8495f672e	4	0/0		2/2	
+Recumbent Bliss	4c676d292d553813	6	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
+Refuse to Yield	bf9914c9ab23d1f5	20	0/0		2/2	
+Riverwheel Aerialists	d00a129f706772fe	8	1/1		0/1	ix:resp
+Ruin Crab	338de945d221695e	5	1/1		0/1	ix:resp
+Rust Goliath	a98a1281872fb8d2	23	0/0		2/2	
+Seeker of the Way	20971ad18fa3f937	6	2/2		0/1	ix:resp
 Seething Anger	4e8f75ebf047b4ca	10	0/0		3/4	ix:resp
+Sentinel of the Eternal Watch	7ff135e2f641f35a	4	1/1		0/1	ix:resp
 Shinen of Life's Roar	a3d4b6be3f56367e	4	1/1		0/1	ix:resp
+Sigil of Sleep	ea864aa9ea45d8e3	8	1/1		1/2	ix:resp
+Six	877b0f4c485a326c	31	1/1		0/1	ix:resp
+Skeletal Scrying	7d6abeddf0bbef9c	40	0/0		4/4	
+Skullport Merchant	1583aa43e8719ef2	12	2/2		1/1	
+Skyhunter Skirmisher	5a9ceca7024f74d3	11	0/0		0/0	
 Snuff Out	09fedbc7f0a78c6f	6	0/0		1/2	ix:resp
+Spike Weaver	1fddeff5e55fd148	10	2/2		1/1	
+Spirit Mantle	eba02dec60b18756	18	0/0		2/2	
+Spirited Companion	02235b86b60a6f7d	3	1/1		1/1	
 Splitskin Doll	9565d946514b0916	4	1/1		0/1	ix:resp
 Sporemound	dde2bfc046741cb6	7	1/1		0/1	ix:resp
+Stasis Snare	40d6d843c04f0533	4	1/1		1/1	
 Swamp	342b413902f441c3	48	1/1		0/1	ix:resp
+Syndic of Tithes	125eb924c46f5d19	24	1/1		1/1	
 Tajuru Warcaller	5fd572522f216183	8	1/1		0/1	ix:resp
 Talrand's Invocation	c49de7bb188cb7fc	4	0/0		1/2	ix:resp
+Tear Asunder	c3f286204c7b9614	7	0/0		2/4	cast/alt:kicked,ix:resp
 Terror	f6c7d4dbf74ab1a3	7	0/0		2/2	
+Tetsuko Umezawa, Fugitive	1b4d4d11305629c2	6	0/0		0/0	
+Thunderfoot Baloth	c96de14370b69943	4	0/0		0/0	
+Thunderous Orator	77123ef1accdf943	8	1/1		1/1	
 Time Ebb	5ce7954f106aec41	6	0/0		2/2	
 Toggo, Goblin Weaponsmith	e12229df9ccb1411	8	1/1		0/1	ix:resp
 Tragic Slip	18be260d67aef835	6	0/0		1/2	ix:resp
+Twinmaw Stormbrood	3bda9e6038c3c187	4	1/1		1/2	ix:resp
 Wayward Giant	0770bf871e94a9af	6	0/0		0/0	
+Zombie Master	f22e752c94cbed05	10	0/0		0/0	

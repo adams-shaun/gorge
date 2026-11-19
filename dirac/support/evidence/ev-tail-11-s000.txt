@@ -1,12 +1,20 @@
+A-Gnarlid Colony
 Agoraphobia
+Ajani, Strength of the Pride
+Akroma's Will
 Alabaster Mage
+Alpine Guide
 Angelic Voices
 Anje, Maid of Dishonor
+Aphemia, the Cacophony
+Archdemon of Paliano
 Artful Dodge
 Assassin Initiate
 Astral Steel
+Barbarian Lunatic
 Black Market
 Blood-Toll Harpy
+Bloodbriar
 Brainbite
 Bucky Barnes, Eager Ally
 Caller of Gales
@@ -16,22 +24,38 @@ Cinder Storm
 Comparative Analysis
 Consecrate
 Constricting Sliver
+Control of the Court
+Craven Hulk
+Curse Artifact
+Dakmor Sorceress
 Deadeye Harpooner
+Deceiver Exarch
 Defiant Falcon
 Demonic Consultation
+Desmond Miles
 Destined
+Devour Flesh
+Devour in Shadow
 Diabolic Revelation
 Disfigure
 Divine Verdict
+Dragonstalker
 Dream's Grip
+Dwarven Hammer
 Elven Rite
 Emry, Lurker of the Loch
+Ensouled Scimitar
+Faerie Noble
+Feral Roar
 Feral Shadow
+Firebolt
 Flametongue Kavu
 Fleshtaker
+Forbidden Friendship
 Forest
 Funeral Charm
 Furnace Whelp
+Future Flight
 Galerider Sliver
 Gerrard's Wisdom
 Glistener Seer
@@ -41,7 +65,9 @@ Goblin War Cry
 God-Pharaoh's Statue
 Graveborn Muse
 Grim Flowering
+Grotag Thrasher
 Hellkite Whelp
+Hematite Golem
 Hithlain Knots
 Hovermyr
 Icequake
@@ -57,67 +83,114 @@ Kami of Twisted Reflection
 Kindly Stranger
 Larder Zombie
 Lay Down Arms
+Lead Astray
 Leaden Myr
 Life Burst
+Llanowar Loamspeaker
 Loam Lion
+Lose Hope
+Lost in a Labyrinth
+Lotus Bloom
 Loxodon Wayfarer
+Malakir Rebirth
+Mana Cannons
 Mer Man
 Metathran Transport
+Mind Knives
+Mindless Conscription
 Monstrous Growth
+Morgue Burst
 Mountain
+Multani's Harmony
+Myr Propagator
 Nemesis Mask
 Nemesis of Mortals
+Nissa, Worldwaker
 Noxious Revival
+Numbing Jellyfish
 Nyxborn Seaguard
 Of Herbs and Stewed Rabbit
+Opaline Bracers
+Overcome
+Palazzo Archers
 Parallax Tide
 Path of Bravery
 Pathway Arrows
+Petrified Plating
 Piper Wright, Publick Reporter
 Pirate's Pillage
 Plains
 Pointed Discussion
 Pool Resources
+Powerstone Fracture
 Prava of the Steel Legion
 Protection Magic
 Proud Mentor
+Pygmy Kavu
+Raptor Hatchling
+Redirect
+Rock Slide
 Sacrifice
+Sage's Row Denizen
 Sakashima's Student
 Sanguine Statuette
 Scrapyard Recombiner
+Seachrome Coast
 Secrets of the Key
 Sentinels of Glen Elendra
+Shacklegeist
 Shenanigans
 Silkenfist Order
+Silver Seraph
 Skyclave Apparition
 Skyreaping
+Skyshroud Condor
 Sledding Otter-Penguin
 Sleep of the Dead
 Smelted Chargebug
 Smoldering Crater
+Sparkshaper Visionary
+Spike-Tailed Ceratops
 Spinneret Sliver
 Splendid Agony
 Squealing Devil
 Stampede Driver
+Stormrider Spirit
 Sudden Death
+Supreme Phantom
 Surtr, Fiery Jötun
 Swamp
 Sweep Away
+Take Heart
 Temporary Insanity
 Tendrils of Agony
 Territorial Scythecat
+The Revelations of Ezio
+Tidebinder Mage
+Tidepool Turtle
+Tormentor Exarch
 Tortoise Formation
 Traverse Eternity
 Treetop Recluse
+Treetop Scout
+Trueheart Duelist
 Ugin's Conjurant
 Ugin's Construct
 Unagi's Spray
 Unconventional Tactics
 Usher of the Fallen
 Vampire Opportunist
+Vermiculos
+Vicious Offering
+Victimize
+Voice of Law
 Voracious Vampire
 Walking Sponge
+Wash Out
 Welding Jar
+Welkin Hawk
 Wildwood Geist
+Wirewood Channeler
+Yotian Soldier
 Zulaport Cutthroat
 Éomer of the Riddermark

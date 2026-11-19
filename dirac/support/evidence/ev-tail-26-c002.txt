@@ -44,6 +44,7 @@ Chasm Drake
 Chastise
 Chemister's Insight
 Chrome Mox
+Cloud Manta
 Colossal Badger
 Contract Killing
 Copper Tablet
@@ -59,11 +60,13 @@ Deadly Dispute
 Death of a Thousand Stings
 Declare Dominance
 Despondent Killbot
+Dinosaur Hunter
 Dirty Rat
 Divebomber Griffin
 Domri's Ambush
 Dragon Bell Monk
 Dragon Hatchling
+Dramatist's Puppet
 Drider
 Eel-Hounds
 Elven Bow
@@ -107,6 +110,7 @@ Jewel-Eyed Cobra
 Junk Golem
 Kami of False Hope
 Kami of Fire's Roar
+Karakas
 Kavu Chameleon
 Killer Bees
 King Crab
@@ -116,6 +120,7 @@ Laccolith Grunt
 Lava Axe
 Leela, Sevateem Warrior
 Legion Leadership
+Leisure Bicycle
 Lightning Prowess
 Living Lands
 Lord of Extinction
@@ -132,6 +137,7 @@ Monster Manual
 Moss Kami
 Mountain
 Necra Sanctuary
+Necrogen Spellbomb
 Necrosquito
 Nested Shambler
 Niall Silvain
@@ -191,10 +197,13 @@ Skyhunter Cub
 Skyhunter Prowler
 Skyway Sniper
 Slate Street Ruffian
+Slate of Ancestry
 Slip Through Space
 Snake Pit
+Sokenzan, Crucible of Defiance
 Spark Elemental
 Sparkspitter
+Spell Burst
 Spellbook
 Spined Fluke
 Spontaneous Combustion
@@ -223,8 +232,10 @@ Triad of Fates
 Turbulent Dreams
 Unholy Strength
 Urabrask's Anointer
+Urza's Filter
 Vapor Snag
 Verduran Emissary
+Vivien's Arkbow
 War Machine, James Rhodes
 Warkite Marauder
 Warlord's Axe

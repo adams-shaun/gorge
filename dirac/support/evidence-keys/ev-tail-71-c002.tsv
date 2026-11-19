@@ -2,6 +2,7 @@ card	lir16	plays	keys	unused	branches	missing_branches
 A-Armory Veteran	b8519bf0a57c7b86	38	1/1		0/1	ix:resp
 Academy Elite	4321891ab13e4da9	3	1/1		0/1	ix:resp
 Aerial Guide	0586c2f2afa4c8ee	4	1/1		1/1	
+Alandra, Sky Dreamer	65a27e8139bfa024	5	2/2		0/1	ix:resp
 Altar of the Goyf	dd8c91d6c7562d24	8	1/1		1/1	
 Ancient Carp	3c92e8e05adc50e3	3	0/0		0/0	
 Angel of Flight Alabaster	52b89c7091b4853d	21	1/1		1/1	
@@ -101,6 +102,7 @@ Pathmaker Initiate	c4d3a9eeb6d47a0f	34	1/1		1/1
 Phantatog	76c5c8ba19ae287e	4	2/2		1/1	
 Piston Sledge	c82ecf9a3595fd46	6	2/2		0/1	ix:resp
 Predator's Strike	cbf3cdd2bde99d4f	6	0/0		1/2	ix:resp
+Primal Boost	feb8116f0288acf3	4	2/2		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Pyrogoyf	91f9e5534b0f9bb4	6	1/1		0/1	ix:resp
 Raving Oni-Slave	b5c332280de08f81	33	2/2		1/1	
 Recruit the Worthy	f7e9a66721df085c	12	0/0		3/4	ix:resp

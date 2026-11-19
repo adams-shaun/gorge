@@ -167,6 +167,7 @@ Leech Fanatic
 Leonin Snarecaster
 Leyline of Abundance
 Lingering Death
+Lion Umbra
 Liturgy of Blood
 Loch Korrigan
 Lone Missionary
@@ -222,6 +223,8 @@ Punish the Enemy
 Pursuit of Flight
 Pyre Spawn
 Quest for Pure Flame
+Quirion Elves
+Rakdos Charm
 Rally the Forces
 Ravenous Rats
 Razortip Whip
@@ -312,6 +315,7 @@ Tri-Sentinel, Act of Vengeance
 Triplicate Spirits
 Triumphant Reckoning
 Twilight Shepherd
+Ulamog's Dreadsire
 Urza's Chalice
 Veteran Explorer
 Veteran of the Depths

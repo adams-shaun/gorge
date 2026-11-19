@@ -1,27 +1,56 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Ajani's Welcome	0470054feaf38162	12	1/1		0/1	ix:resp
 Archaeomancer	da86ec75dfd5e1df	10	1/1		0/1	ix:resp
+Ardent Elementalist	d2f8bb0c16df872a	31	1/1		1/1	
+Armored Ascension	863d7930ca26232b	4	0/0		1/2	ix:resp
 Aven Fisher	50cb02a1a42ae198	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Bad Deal	2ea2965ceab6850b	13	0/0		2/2	
 Barrage of Boulders	651db0e43fbeccf9	4	0/0		1/2	ix:resp
+Battle Screech	cceacfbdc171022f	15	0/0		3/4	ix:resp
 Bloodchief's Thirst	79d88e426eea4a60	14	0/0		4/4	
 Clarion Spirit	e936c10dff3eaa68	54	1/1		1/1	
+Cloudshift	0e311ed0dcb83ab7	98	0/0		2/2	
+Dawnbringer Cleric	0f74553e60b7c966	13	1/1		0/1	ix:resp
+Daxos, Blessed by the Sun	b6b5991587b7aec3	6	2/2		1/1	
 Devouring Light	3d885059f5cae683	8	0/0		2/2	
 Diabolic Tutor	62ecf84336d43c4b	12	0/0		1/2	ix:resp
+Dissenter's Deliverance	4ad1cf8042ec376a	8	1/1		1/2	ix:resp
+Dream Fracture	d8c3394345641390	23	0/0		2/2	
+Errant Ephemeron	3577fde3f151d2f2	9	0/0		2/2	
 Exuberant Fuseling	4517b4dc92e3193b	10	2/2		1/1	
 Fathom Fleet Swordjack	f0dcbec19ad3a616	12	2/2		0/1	ix:resp
 Fencing Ace	27cf254e45689a37	22	0/0		0/0	
 Forest	6d0466c30f825dba	58	1/1		0/1	ix:resp
+Forest Bear	c3a7b73c4e073bc8	76	0/0		0/0	
 Goblin Wardriver	6a71fdce10dcf5e5	4	1/1		1/1	
 Hellspark Elemental	22fefd172c0cbaee	10	2/2		0/1	ix:resp
+Humble	8e83f8987fd8c821	4	0/0		1/2	ix:resp
 Ideas Unbound	bc9bb4d23c7863ec	6	0/0		1/2	ix:resp
 Island	763c67ef7a27eaf5	78	1/1		0/1	ix:resp
+Jaya, Venerated Firemage	421ca8b470f90600	37	1/1		1/1	
+Keldon Halberdier	05e21f0e4ff8304f	21	0/0		2/2	
+Kinsbaile Courier	825fb474a9383854	12	2/2		0/1	ix:resp
 Mana Flare	0fb77b26ab6e7d9e	10	1/1		0/1	ix:resp
 Merfolk Trickster	7491352ea62842ed	10	1/1		0/1	ix:resp
+Mistwalker	4d513573566dd30b	39	1/1		1/1	
+Mogg Raider	80b65b65f8ad0cd5	54	1/1		1/1	
 Mountain	9e71388353e907ed	80	1/1		0/1	ix:resp
+Omen of the Sun	846efb0bf1baedae	7	2/2		0/1	ix:resp
+Pegasus Guardian	04064769e0cdf0f5	7	1/1		1/2	ix:resp
 Plains	82d63a695487e567	266	1/1		0/1	ix:resp
 Reckless Abandon	991eca29ec0ea2d2	8	0/0		2/2	
+Restock	f5446cdf56232fc5	52	0/0		2/2	
+Ruinous Gremlin	d0431fd9dcedb291	41	1/1		1/1	
+Shiv's Embrace	8e74dde11321ec9e	31	1/1		2/2	
 Strafe	96f7af5ea1d84f38	12	0/0		1/2	ix:resp
+Strategic Planning	416d82c088afe0de	25	0/0		2/2	
 Swamp	342b413902f441c3	62	1/1		0/1	ix:resp
 Talrand, Sky Summoner	9116822b1a3d1d22	20	1/1		0/1	ix:resp
 The Reality Chip	570be922ea1b618f	12	2/2		1/1	
+Torpor Orb	3a0d4004af42d86a	53	0/0		0/0	
+Traveling Minister	f427fce6e8a9a732	20	1/1		0/1	ix:resp
 Vapor Snag	97d1875bf7c89c38	6	0/0		1/2	ix:resp
+Varchild, Betrayer of Kjeldor	7a4db7c486b21c09	32	2/2		0/1	ix:resp
+Wakestone Gargoyle	4e113e3f9f82b64c	12	1/1		1/1	
+Whirler Rogue	53125e8ad24dc74d	26	2/2		1/1	
 Wicked Pact	024815b22ca3ef36	8	0/0		1/2	ix:resp

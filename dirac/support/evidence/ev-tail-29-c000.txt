@@ -144,6 +144,7 @@ Knight Paladin
 Kodama of the North Tree
 Krovikan Elementalist
 Lagonna-Band Storyteller
+Lair of the Hydra
 Leonardo, Worldly Warrior
 Leonin Bladetrap
 Levitating Statue
@@ -258,6 +259,7 @@ Terisiare's Devastation
 Thalakos Drifters
 Thornscape Familiar
 Thornwind Faeries
+Thousand Winds
 Thundering Raiju
 Tibalt's Rager
 Titan Forge
