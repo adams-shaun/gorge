@@ -611,9 +611,9 @@ func AnyNumberAllowed(c *cards.Card) bool {
 
 // DeckLimitKeyword is the head of the deck-construction keyword line Nazgûl
 // and Seven Dwarves print (CR 100.2a's bounded variant of the any-number
-// exception): "K:DeckLimit:9:A deck can have up to nine cards named CARDNAME."
-// The line's shape is head:count:sentence, so the allowed count is the text
-// between the first and second colon.
+// exception): K:DeckLimit:<count>:<sentence naming the cap>. The line's
+// shape is head:count:sentence, so the allowed count is the text between
+// the first and second colon; the sentence tail is decoration.
 const DeckLimitKeyword = "DeckLimit"
 
 // DeckLimitOf reports how many cards named c the deck-construction keyword
