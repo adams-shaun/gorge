@@ -3729,10 +3729,14 @@ func (lc *lowerCtx) charmMultiTargets(nModes int, rootTargeted []bool) error {
 // RepeatCheckSVar$ bodies of the `Remembered$Valid <filter>` shape and of
 // any Count$ expression are lowered (Sphinx's Tutelage, Tainted Pact).
 func (lc *lowerCtx) repeat(ps *params) error {
-	for _, k := range []string{"RepeatOptional", "RepeatNum"} {
-		if _, ok := ps.get(k); ok {
-			return refuse("Repeat %s$", k)
+	if _, ok := ps.get("RepeatOptional"); ok {
+		if ps.str("RepeatCheckSVar") == "" && ps.str("RepeatDefined") == "" {
+			return lc.repeatOptional(ps) // lower_repeatoptional.go
 		}
+		return refuse("Repeat RepeatOptional$ beside a RepeatCheckSVar$ or RepeatDefined$ gate")
+	}
+	if _, ok := ps.get("RepeatNum"); ok {
+		return refuse("Repeat RepeatNum$")
 	}
 	if _, ok := ps.get("ValidTgts"); ok {
 		// the targeted player the body's Defined$ Targeted names
