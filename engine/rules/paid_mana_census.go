@@ -140,6 +140,21 @@ func (e *Engine) paidManaAlts(id state.ObjID, ma *cards.SA, life int32) []window
 	return pinnedManaAlts(alt, mf.Counts)
 }
 
+// unlessCensusAlts prices one production's census alternatives the shape
+// paidManaAlts prices: a fixed production is ONE alt carrying its whole
+// production (paidManaAlts' plain arm), a choice-shaped one the per-colour
+// pin (pinnedManaAlts). The reach walk prices at most one alt per source,
+// so a fixed {W}{B} production split into single-colour halves prices each
+// activation as one mana, never both -- Desolate Mire's "{1}, {T}: Add
+// {W}{B}" beside an untapped Island then looked unable to reach a {2}
+// unless tax the Island's {U} can fund the {1} fee for (CR 107.4, 605.3b).
+func unlessCensusAlts(alt windowManaAlt, counts [6]int32, any bool) []windowManaAlt {
+	if !any {
+		return []windowManaAlt{alt}
+	}
+	return pinnedManaAlts(alt, counts)
+}
+
 // fixedMultiColourAlt is the one alt of a fixed production over several
 // colours ("{1}, {T}: Add {W}{B}", Produced$ W B): it makes BOTH colours, so
 // splitting it per colour (pinnedManaAlts, for a choice) would price it at one
@@ -234,7 +249,7 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 					probe = e.paymentPlanTappedProbe(p)
 				}
 				if amt, ok := e.paymentPlanStableAmount(probe, p, id, o, ma); ok {
-					for _, a := range pinnedManaAlts(windowManaAlt{Ma: ma, Amt: amt}, effects.ManaOf(ma).Counts) {
+					for _, a := range unlessCensusAlts(windowManaAlt{Ma: ma, Counts: effects.ManaOf(ma).Counts, Amt: amt}, effects.ManaOf(ma).Counts, mf.Any) {
 						units = pay.AppendUnitAlt(units, id, a)
 					}
 				}
@@ -273,7 +288,7 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 				!((mf.Tap && o.Tapped) || (mf.Untap && !o.Tapped)) {
 				cost := e.manaAbilityCC(p, id, ma).Cost
 				if pay.ManaSubCounterOnlyCost(cost) && manaSubCounterCarried(o, cost) {
-					for _, a := range pinnedManaAlts(windowManaAlt{Ma: ma, Amt: mf.Amount}, mf.Counts) {
+					for _, a := range unlessCensusAlts(windowManaAlt{Ma: ma, Counts: mf.Counts, Amt: mf.Amount}, mf.Counts, mf.Any) {
 						units = pay.AppendUnitAlt(units, id, a)
 					}
 				}
