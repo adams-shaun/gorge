@@ -1339,6 +1339,17 @@ func (e *Engine) findTriggerForAbilityFace(source state.ObjID, sa *cards.SA) (ca
 	if t, tf, _, _, ok := printedFaceTrigger(o, sa); ok {
 		return t, tf, true
 	}
+	// A copy that left the battlefield with its trigger still on the stack
+	// (Malleable Impostor copying Hollowsage, shuffled away in response): the
+	// body is the departed copy's, whose line (OptionalDecider$ and the rest)
+	// still governs the resolution (CR 113.7a, 603.10a).
+	if lc := o.LeftCopyFace; lc != nil {
+		for _, t := range lc.Triggers {
+			if t.Effect == sa {
+				return t, lc, true
+			}
+		}
+	}
 	f := o.Face()
 	if f == nil {
 		return cards.Trigger{}, nil, false
