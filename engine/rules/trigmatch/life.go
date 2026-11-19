@@ -47,9 +47,12 @@ func LifeLoss(ev events.Event) (state.PlayerID, int32, bool) {
 
 // lifeGain names the player and positive magnitude of an event that raises a
 // player's life total (the mirror of lifeLoss). Damage can only lower life,
-// so only a positive LifeChange qualifies.
+// so only a positive LifeChange qualifies. The marked pay-life PROPOSAL
+// (events.PayLifeProposalText) is a cost payment, never a gain (CR 119.1:
+// only a gain effect raises a life total by gain), so it never matches here
+// -- trig:PayLife is the proposal's one trigger consumer.
 func lifeGain(ev events.Event) (state.PlayerID, int32, bool) {
-	if ev.Kind == events.LifeChange && ev.Amount > 0 {
+	if ev.Kind == events.LifeChange && ev.Amount > 0 && ev.Text != events.PayLifeProposalText {
 		return ev.Player, ev.Amount, true
 	}
 	return 0, 0, false
@@ -129,7 +132,11 @@ func lifeLostMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Eve
 // actionTriggerModes gates (PlayerTurn$ at queue time, ActivationLimit$),
 // since the mode joined that set.
 func lifeGainedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
-	if ev.Kind != events.LifeChange || ev.Amount <= 0 {
+	// The marked pay-life proposal is a payment, never a gain (lifeGain's
+	// contract): a Mode$ LifeGained trigger must not fire on a cost
+	// settlement's synthetic boundary -- the queue-side walk that carries the
+	// proposal to trig:PayLife passes every LifeChange-eligible observer.
+	if ev.Kind != events.LifeChange || ev.Amount <= 0 || ev.Text == events.PayLifeProposalText {
 		return false
 	}
 	p := ev.Player
