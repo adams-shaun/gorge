@@ -925,6 +925,16 @@ const (
 	// Appended: earlier ordinals stay stable.
 	PKEmbalm
 	PKRemoveCost
+	// FirstTimeCrewed$ True on a Mode$ BecomesCrewed line ("becomes crewed for
+	// the first time each turn", CR 702.122; Mighty Servant of Leuk-o), read
+	// by trigmatch's BecomesCrewedMatches. Appended: earlier ordinals stay
+	// stable.
+	PKFirstTimeCrewed
+	// ValidCrewAmount$ N on a Mode$ BecomesCrewed line ("if it was crewed by
+	// exactly N creatures", CR 702.122; Mighty Servant of Leuk-o), read by
+	// trigmatch's BecomesCrewedMatches against the marker's crew count.
+	// Appended: earlier ordinals stay stable.
+	PKValidCrewAmount
 	paramKeyCount
 )
 
@@ -1757,6 +1767,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKHaunt:                            "Haunt",
 	PKEmbalm:                           "Embalm",
 	PKRemoveCost:                       "RemoveCost",
+	PKFirstTimeCrewed:                  "FirstTimeCrewed",
+	PKValidCrewAmount:                  "ValidCrewAmount",
 }
 
 // String is the key's Forge text.

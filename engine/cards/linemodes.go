@@ -154,7 +154,11 @@ const (
 	TriggerCountered       TriggerMode = 107
 	TriggerMilledOnce      TriggerMode = 108
 	TriggerAbilityResolves TriggerMode = 109
-	TriggerModeCount                   = 110 // one past the last; sizes a dense per-TriggerMode array
+	// BecomesCrewed ("whenever this Vehicle becomes crewed", CR 702.122;
+	// Mobilizer Mech, Ghost Ark, Mighty Servant of Leuk-o), appended so every
+	// earlier ordinal is unchanged.
+	TriggerBecomesCrewed TriggerMode = 110
+	TriggerModeCount                 = 111 // one past the last; sizes a dense per-TriggerMode array
 )
 
 var triggerModeNames = [TriggerModeCount]string{
@@ -267,6 +271,7 @@ var triggerModeNames = [TriggerModeCount]string{
 	TriggerCountered:                  "Countered",
 	TriggerMilledOnce:                 "MilledOnce",
 	TriggerAbilityResolves:            "AbilityResolves",
+	TriggerBecomesCrewed:              "BecomesCrewed",
 }
 
 var triggerModeCodes = func() StrCodes[TriggerMode] {

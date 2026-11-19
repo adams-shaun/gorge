@@ -178,6 +178,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"registry_lazy.go":        {true, "AllCards (Save's input) dispatches through lazyCards; kept conservatively"},
 	"rider_shape.go":          {true, "prevention rider param shape; kept in the compiler fingerprint"},
 	"saga.go":                 {false, "runtime SagaChapters parse of K:Chapter"},
+	"sa_keywordtag.go":        {false, "runtime IsCrewAbility predicate over an SA's Keyword$ param; compile never calls it"},
 	"slot.go":                 {false, "runtime memo slots held in unexported fields gob never encodes"},
 	"strtab.go":               {true, "interned string tables used by compiled params"},
 	"subset.go":               {true, "writeSegments: the .seg file written beside the cache"},
