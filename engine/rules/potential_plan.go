@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"fmt"
+	"os"
 	"slices"
 	"strings"
 
@@ -263,6 +265,9 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 	if !*censused {
 		*census, *censused = e.paymentPlanCensusOf(p, &hyp), true
 	}
+	if dbgPotential() {
+		fmt.Fprintf(os.Stderr, "PFDBG obj=%v ab=%d kind=%s complete=%v relaxable=%v bounded=%v gaps=%d got=%s/%s\n", o.Obj, o.Ability, o.Kind, census.complete, census.relaxable, census.bounded, len(census.gaps), got.Reason, got.Detail)
+	}
 	if census.complete {
 		return got, nil
 	}
@@ -301,9 +306,18 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 	skip := !census.relaxable && census.bounded &&
 		e.paymentPlanRelaxProof(census.boundedProof(), verdict).Reason == pay.ReasonInsufficient
 	if skip {
+		if dbgPotential() {
+			fmt.Fprintf(os.Stderr, "PFDBG-SKIP obj=%v ab=%d\n", o.Obj, o.Ability)
+		}
 		return got, nil
 	}
+	if dbgPotential() {
+		fmt.Fprintf(os.Stderr, "PFDBG-SEARCH obj=%v ab=%d\n", o.Obj, o.Ability)
+	}
 	if script, ok := e.potentialPrefixScript(p, o, census.gaps, census.fees()); ok {
+		if dbgPotential() {
+			fmt.Fprintf(os.Stderr, "PFDBG-FOUND obj=%v ab=%d\n", o.Obj, o.Ability)
+		}
 		return PaymentPlanOutcome{}, script
 	}
 	return got, nil
@@ -2711,3 +2725,6 @@ func (e *Engine) planFaceIdx(id state.ObjID) uint8 {
 	}
 	return 0
 }
+
+// TEMPORARY debug gate (delete before commit).
+func dbgPotential() bool { return os.Getenv("GORGE_PPDBG") != "" }
