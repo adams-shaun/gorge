@@ -444,9 +444,20 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		}
 		return e.applyNonMoveReplacements(ev, matches)
 	case events.CounterChange, events.PlayerCounterChange:
+		// The sign routes the two counter classes apart (see
+		// replacementEventKind): a removal is prohibited, never modified.
+		if ev.Amount < 0 && !state.InternalCounterMarker(ev.Counter) {
+			return e.applyRemoveCounterReplacements(ev, matches)
+		}
 		return e.applyAddCounterReplacements(ev, matches)
 	case events.TurnFaceUp:
 		return e.applyTurnFaceUpReplacements(ev, matches)
+	case events.Proliferate:
+		// The instruction proposal. Like the cascade kind it is never
+		// logged: effProliferate reads the rewritten action count straight
+		// off the returned event, and each action it then runs emits its own
+		// completed marker.
+		return e.applyProliferateReplacements(ev, matches)
 	case events.Cascade:
 		// The instruction proposal. Unlike every other kind here it has no
 		// logged event to emit or suppress: applyCascadeReplacements runs the
@@ -950,6 +961,17 @@ func replacementEventKind(ev events.Event) cards.ReplEvent {
 		// emitted, so no logged event can ever map here. The exiled batch
 		// rides ev.IDs and becomes Ctx.ReplacedCards on the body's context.
 		return cards.ReplCascade
+	case events.Proliferate:
+		// The proliferate-action replacement boundary (CR 614.4; Tekuthal,
+		// Inquiry Dominus). Only the synthetic PROPOSAL (effProliferate's
+		// CountReplacementProposed hold, the roll boundary's discipline)
+		// reaches the collection: the completed events.Proliferate markers
+		// the actions emit carry no proposal text, so they map no class --
+		// a replacement applies before the action, never to its record.
+		if ev.Text == events.ProliferateProposalText {
+			return cards.ReplProliferate
+		}
+		return 0
 	case events.MillProposal:
 		return cards.ReplMill
 	case events.Scry:
@@ -972,6 +994,14 @@ func replacementEventKind(ev events.Event) cards.ReplEvent {
 		// form (CounterChange) and the player form (PlayerCounterChange) share
 		// the class; the matcher splits them on ValidCard$/ValidObject$ vs
 		// ValidPlayer$.
+		//
+		// A REMOVAL (negative amount) is the R:Event$ RemoveCounter class
+		// instead (Fear of Sleep Paralysis's stun-counter lock): the two
+		// classes never share an event, so the sign routes them apart before
+		// either matcher runs.
+		if ev.Amount < 0 && !state.InternalCounterMarker(ev.Counter) {
+			return cards.ReplRemoveCounter
+		}
 		return cards.ReplAddCounter
 	case events.TurnFaceUp:
 		// The turn-up boundary itself (CR 614.1a with CR 708.6/702.36e):

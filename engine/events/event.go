@@ -17,6 +17,14 @@ import (
 // the counter because only EntryCounterNotice suppresses placement.
 const UntapReplacedByStunNotice = "__untap_replaced_by_stun_notice"
 
+// ProliferateProposalText marks the synthetic R:Event$ Proliferate
+// replacement proposal (Tekuthal, Inquiry Dominus): effProliferate holds the
+// instruction's action count out to the replacement registry as one
+// never-logged proposal. The completed events.Proliferate markers the
+// actions emit carry no such text, so they map no replacement class -- the
+// proposal/record split the scry boundary keeps.
+const ProliferateProposalText = "__proliferate_replacement_proposal"
+
 // Kind is an event's type. The constants are append-only (a new kind goes
 // after the last one, never between). Each kind's metadata -- its name,
 // trigger-interest class and transcript template -- is its one entry in

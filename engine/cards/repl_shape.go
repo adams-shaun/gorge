@@ -1,5 +1,7 @@
 package cards
 
+import "strings"
+
 // replPrimitive is the registry label for one R: line: "repl:"+Event, or
 // "repl:<Event>.OtherShape" for an event whose implemented family covers only
 // one shape of the line (the api:Craft.OtherShape precedent), so registering
@@ -10,12 +12,45 @@ func replPrimitive(f *Face, r Repl) string {
 		if !BeginTurnExtraTurnSkipShape(r) {
 			return "repl:BeginTurn.OtherShape"
 		}
+	case "RemoveCounter":
+		if !RemoveCounterCantHappenShape(r) {
+			return "repl:RemoveCounter.OtherShape"
+		}
 	case "CopySpell":
 		if _, ok := CopySpellExtraOf(f, r); !ok {
 			return "repl:CopySpell.OtherShape"
 		}
 	}
 	return "repl:" + r.Event
+}
+
+// RemoveCounterCantHappenShape reports whether a RemoveCounter line is the
+// implemented "can't be removed" shape: a With-less Layer$ CantHappen line
+// naming the affected permanent (ValidCard$/ValidObject$) and the counter
+// kind (ValidCounterType$), scoped by the matcher's ordinary keys only
+// (Fear of Sleep Paralysis's stun-counter lock). Deification's damage-arm
+// shape (ReplaceWith$ ReduceLoss, IsDamage$ True, Result$ LT1 -- "instead
+// remove all but one") rewrites the removal rather than prohibiting it and
+// is not implemented, so it stays repl:RemoveCounter.OtherShape. Anything
+// the matcher does not read fails closed the same way, so a registered key
+// never certifies a shape the engine leaves inert.
+func RemoveCounterCantHappenShape(r Repl) bool {
+	if r.With != nil {
+		return false
+	}
+	if !strings.EqualFold(strings.TrimSpace(r.ParamStr(PKLayer)), "CantHappen") {
+		return false
+	}
+	for k := range r.Params {
+		switch k {
+		case "Event", "ActiveZones", "ValidCard", "ValidObject", "ValidCounterType",
+			"ValidPlayer", "Layer", "Description", "AILogic":
+			// the event name itself, read by the matcher or display-only
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // BeginTurnExtraTurnSkipShape reports whether a BeginTurn line is the

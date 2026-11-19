@@ -7,6 +7,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+func init() { effects.RegisterNonAPI("repl:Cascade") }
+
 // cascadeReplacementEvent builds the synthetic Cascade proposal
 // ProposeCascadeReplacement holds out to the replacement matcher. It is never
 // logged: the IDs carry the ordered exiled batch the body's ReplacedCards
