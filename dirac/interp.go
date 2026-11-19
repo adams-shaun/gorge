@@ -409,8 +409,8 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.damageSeqNext(k, n)
 			break
 		}
-		if in.B.N&30 != 0 {
-			s.damageAllOpp(k, in, e.ctrl, n) // trig_gravedrawn.go
+		if in.B.N&62 != 0 {
+			s.damageAllOpp(k, in, e.ctrl, n) // act_damageallopp.go
 			break
 		}
 		src := s.objRef(k, kop.RefSelf)

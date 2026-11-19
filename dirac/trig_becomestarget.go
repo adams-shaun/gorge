@@ -117,7 +117,7 @@ func (s *State) btSrcOK(k *prep, l trigListener, a *kop.Ability, e *stackEntry) 
 // TriggeredSourceController / TriggeredSourceSAController), else the
 // listener's controller.
 func (s *State) btTriggerPlayer(l trigListener, a *kop.Ability, e *stackEntry, ctrl uint8) uint8 {
-	if a.Trig.N == kop.TrigNSrcSpell || a.Trig.N == kop.TrigNSrcAbility {
+	if a.Trig.N == kop.TrigNSrcSpell || a.Trig.N == kop.TrigNSrcAbility || a.Trig.N == kop.TrigNSrcCtrl && !DebugSrcCtrlListener {
 		return e.ctrl
 	}
 	return ctrl
@@ -234,3 +234,9 @@ func (s *State) btSpellSrcOK(k *prep, l trigListener, a *kop.Ability, e *stackEn
 	}
 	return e.kind == seSpell && s.matchCardAt(k, a.Trig.Filter2, e.card, e.ctrl, l.ctrl, e.obj)
 }
+
+// DebugSrcCtrlListener is the lockstep mutation of kop.TrigNSrcCtrl: the
+// trigger player stays the listener's controller, so Thunderbreak Regent's
+// "that player" names nobody the targeting spell's controller is
+// (TestFourSeatThunderbreakLockstep must then diverge).
+var DebugSrcCtrlListener bool

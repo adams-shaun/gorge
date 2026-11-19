@@ -532,7 +532,7 @@ func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParen
 		if f.Players != 0 && len(f.Clauses) == 0 {
 			t.Zone = zNone
 		}
-		if lc.otherOneEach(ps, f, t.Zone) { // the bounds are set here; forEachOpp checks the rest
+		if lc.otherOneEach(ps, f, t.Zone) { // the bounds are set here; forEachOpp checks the rest and sets the max
 			t.Min, t.Max = cst(0), cst(1)
 		} else {
 			if v, ok := ps.get("TargetMin"); ok {
@@ -545,7 +545,7 @@ func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParen
 					return lRef{}, err
 				}
 			}
-			t.Min, t.Max = lc.oppCountBound(t.Min), lc.oppCountBound(t.Max)
+			t.Min, t.Max = lc.oppCountBound(t.Min), lc.oppCountMax(ps, t.Max)
 		}
 		if allowParent {
 			if v, ok := ps.get("TargetsWithDefinedController"); ok && v != "TriggeredCardController" && v != "TriggeredTarget" && v != "TriggeredAttackedTarget" { // those forms: lower_targetset.go
@@ -1837,14 +1837,16 @@ func (lc *lowerCtx) damageAll(ps *params) error {
 		return lc.sweepFrom(ps, ds, n) // lower_sweepfrom.go
 	}
 	if vp := ps.str("ValidPlayers"); vp == "OppNonTriggeredTarget" && ps.m["ValidCards"] == "" {
-		// every opponent but the damaged one (gorge validPlayers): in a
-		// two-player game the damaged player is the one opponent, so no
-		// player is left to hit (CR 102.2)
+		// every opponent but the damaged one (gorge validPlayers:
+		// AliveFrom(0) less the controller and the trigger's target
+		// player), at any seat count: OpDamageAll B.N bit 32 (kernel
+		// damageOtherOpps), seat-exact. In a two-player game the damaged player is the
+		// one opponent, so no player is left to hit (CR 102.2)
 		if !lc.damagedPlayerIsTriggerPlayer() {
 			return refuse("ValidPlayers$ OppNonTriggeredTarget outside a damage-to-player trigger")
 		}
-		lc.twoSeat("OppNonTriggeredTarget read as nobody")
 		ps.consume("ValidPlayers")
+		lc.emit(lInstr{Op: "DamageAll", A: n, CS: "OtherOpps"})
 		return nil
 	}
 	if strings.TrimSpace(ps.str("ValidPlayers")) == "Targeted" {

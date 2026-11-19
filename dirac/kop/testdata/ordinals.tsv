@@ -1010,6 +1010,7 @@ PlayerPredNeg	untyped int	256
 PredActiveCtrl	Pred	23
 PredAdventureCard	Pred	253
 PredAttached	Pred	22
+PredAttackingYou	Pred	235
 PredBlocked	Pred	251
 PredCMCEQ	Pred	11
 PredCMCGE	Pred	5
@@ -1637,6 +1638,7 @@ TrigNCauseSpellOppCtrl	int16	2
 TrigNCauseSpellYouCtrl	int16	1
 TrigNMonarchBeganTurn	int16	1
 TrigNSrcAbility	int16	5
+TrigNSrcCtrl	int16	6
 TrigNSrcSpell	int16	4
 TrigNTeamworkTap	int16	1
 TrigNTraining	int16	2

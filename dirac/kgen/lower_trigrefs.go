@@ -158,8 +158,8 @@ func readWatchSourceCtrl(lc *lowerCtx, tr *lTrigger, v string) (lRef, bool) {
 	// gorge definedSpecTriggeredSourceController: the controller of the spell
 	// or ability that targeted the watched permanent. The watcher arm that
 	// sets Whose = opp is ValidSource$ SpellAbility.OppCtrl, so the
-	// controller is an opponent of the listener's controller: in a
-	// two-player game the one opponent (CR 102.2; Thunderbreak Regent).
+	// controller is an opponent of the listener's controller, read
+	// seat-exact below (CR 603.2; Thunderbreak Regent).
 	if tr.Watch && tr.SrcSpell {
 		// a spell source form: the controller is the spell's, whichever seat
 		// it is (the kernel's trigger player, btWatchers); a YouCtrl form is
@@ -174,8 +174,14 @@ func readWatchSourceCtrl(lc *lowerCtx, tr *lTrigger, v string) (lRef, bool) {
 	if !tr.Watch || tr.Whose != whoOpp {
 		return lRef{}, false
 	}
-	lc.twoSeat("TriggeredSourceController read as the one opponent")
-	return lRef{Kind: rEachOpp}, true
+	// an opponent's spell or ability: the targeting entry's controller is
+	// read as the trigger is queued, while the entry is on the stack
+	// (kop.TrigNSrcCtrl, kernel btTriggerPlayer), the source forms' trigger
+	// player above (seat-exact)
+	if !tr.SrcSpell && !tr.SrcAbility {
+		tr.SrcCtrl = true
+	}
+	return lRef{Kind: rTriggeredPlayer}, true
 }
 
 func readDamageSourceCtrl(lc *lowerCtx, tr *lTrigger, v string) (lRef, bool) {

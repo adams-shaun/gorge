@@ -663,6 +663,13 @@ const PredHasManaAbility Pred = 255
 // false with no trigger entry and off the battlefield. Explicit ordinal.
 const PredTrigPlayerCtrl Pred = 239
 
+// PredAttackingYou: an attacking battlefield permanent whose defending player
+// is the evaluating controller: the attacked player, the controller of the
+// attacked planeswalker or the protector of the attacked battle (gorge
+// attackingYou: o.Attacking == you; CR 506.2, 508.1b). At any seat count;
+// false off the battlefield. Explicit ordinal.
+const PredAttackingYou Pred = 235
+
 // PredSuspected: PredN 1, a suspected battlefield permanent; PredN 0, anything
 // else, off the battlefield too (gorge IsSuspected / !IsSuspected:
 // Object.Suspected, false off the battlefield).

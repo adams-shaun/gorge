@@ -176,6 +176,7 @@ const (
 	cmpSameNameSelf   // shares the reading source's name (gorge sharesNameWith Self; CmpN 1 negates)
 	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
 	cmpRenowned       // IsRenowned (CmpN 1) / !IsRenowned (CmpN 0): the CR 702.112b renowned designation
+	cmpAttackingYou   // attackingYou: attacking, the evaluating controller its defending player (kop.PredAttackingYou; no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -686,12 +687,12 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	case "attackingYou":
 		// gorge attackingYou: attacking "you", the evaluating player
 		// (o.Attacking names the defending seat, a planeswalker's
-		// controller or a battle's protector too). In two players every
-		// attacker attacks the non-active player's side, so it is an attacking creature the
-		// controller's opponent controls (Confront the Assault;
-		// twoSeat-at-caller: lowerCtx.filter marks the card)
+		// controller or a battle's protector too), at any seat count: the
+		// kernel reads the attacker's defending seat (kop.PredAttackingYou,
+		// kernel attackingYou; Confront the Assault, Sentry Bot, Everett
+		// K. Ross). fAttacking stays for the readers that gate on it.
 		c.Flags |= fAttacking
-		return c.setWho(&c.Ctrl, whoOpp)
+		return c.setCmp(cmpAttackingYou, 0, 0, "", "")
 	case "YouCtrl", "YourTeamCtrl":
 		// gorge predicates["YourTeamCtrl"] reads YouCtrl: gorge models no
 		// teams, so a player's team is that player alone (Combo Attack)
@@ -1317,3 +1318,7 @@ func (c *lClause) addNotSub(w string) error {
 	}
 	return fmt.Errorf("six negated subtypes")
 }
+
+// battlefieldPreds maps the compare words build.go's clause reads as one
+// battlefield-only predicate each.
+var battlefieldPreds = map[uint8]kop.Pred{cmpRenowned: kop.PredRenowned, cmpAttackingYou: kop.PredAttackingYou}

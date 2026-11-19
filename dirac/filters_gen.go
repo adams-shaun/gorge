@@ -154,6 +154,9 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 		if fl.Pred == kop.PredAttached {
 			return s.predAttached(sl, src)
 		}
+		if isAttackingYou(fl) {
+			return s.attackingYou(k, sl, ctrl) // filter_attackingyou.go
+		}
 		if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV && fl.PredN == 3) && src != NoSlot {
 			return s.powerGEVFrom(k, fl, sl, src) // filter_typesall.go
 		}
