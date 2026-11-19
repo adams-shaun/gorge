@@ -374,7 +374,6 @@ Angelic Purge
 Angelic Rocket
 Angelic Sleuth
 Angler Turtle
-Angrath's Fury
 Angry Rabble
 Anguished Unmaking
 Angus Mackenzie
@@ -440,7 +439,6 @@ Arashin Cleric
 Arashin Foremost
 Arashin Sunshield
 Arashin War Beast
-Arbaaz Mir
 Arbor Armament
 Arborea Pegasus
 Arboreal Alliance
@@ -2505,7 +2503,6 @@ Dominion Assault Force
 Dominion Infiltration
 Dominion Saboteur
 Dominion Supervisor
-Domri, Anarch of Bolas
 Don't Make a Sound
 Donatello's Technique
 Donatello, Gadget Master
@@ -2605,7 +2602,6 @@ Dream Seizer
 Dream Spoilers
 Dream Trawler
 Dream Twist
-Dreamcaller Siren
 Dreamcatcher
 Dreamdew Entrancer
 Dreamroot Cascade
@@ -4739,7 +4735,6 @@ Intrepid Stablemaster
 Intrepid Tenderfoot
 Intrepid Trufflesnout
 Introduction to Prophecy
-Intruding Soulrager
 Invade the City
 Invasion Reinforcements
 Invasion Submersible
@@ -5035,7 +5030,6 @@ Keening Banshee
 Keensight Mentor
 Keep Out
 Keep Watch
-Keeper of Secrets
 Keeper of the Quiet Hour
 Keepers of the Faith
 Keepsake Gorgon
@@ -6045,7 +6039,6 @@ Moderation
 Mogg Conscripts
 Moggcatcher
 Mogis's Favor
-Moira Brown, Guide Author
 Mold Demon
 Molder
 Moldering Gym
@@ -6718,7 +6711,6 @@ Paradox Shaper
 Paradox Surveyor
 Paradoxical Outcome
 Paragon of Gathering Mists
-Paragon of the Amesha
 Parallax Tide
 Parallel Lives
 Paralyzing Grasp
@@ -7678,7 +7670,6 @@ Roar of Challenge
 Roar of Endless Song
 Roar of the Crowd
 Roaring Earth
-Roaring Furnace
 Roaring Primadox
 Roaring Slagwurm
 Robe of Mirrors
@@ -8666,7 +8657,6 @@ Soratami Mindsweeper
 Soratami Seer
 Sorcerer of the Fang
 Sorceress's Schemes
-Sorin, Solemn Visitor
 Soul Barrier
 Soul Bleed
 Soul Collector
@@ -9199,7 +9189,6 @@ Sundering Eruption
 Sundial, Dawn Tyrant
 Sundown Pass
 Sunfall
-Sunfire Balm
 Sunfire Torch
 Sunflare Shaman
 Sunhome, Fortress of the Legion

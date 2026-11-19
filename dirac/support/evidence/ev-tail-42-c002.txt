@@ -22,7 +22,9 @@ Ardent Soldier
 Armored Ascension
 Ashiok's Adept
 Assemble the Legion
+Astral Dragon
 Attended Healer
+Auton Soldier
 Avatar of Woe
 Aven Mindcensor
 Baloth Prime
@@ -67,6 +69,7 @@ Consuming Corruption
 Containment Construct
 Corpse Cur
 Corrupted Resolve
+Crashing Boars
 Crooked Custodian
 Cruel Witness
 Cystbearer
@@ -93,6 +96,7 @@ Entropic Specter
 Essence Depleter
 Evolution Sage
 Exemplar of Strength
+Fathom Trawl
 Fell the Pheasant
 Fervent Champion
 Fireflux Squad
@@ -137,6 +141,7 @@ Greater Auramancy
 Green Scarab
 Grizzled Angler
 Guardian Scalelord
+Gwenna, Eyes of Gaea
 Hammerhead, Maggia Boss
 Hangarback Walker
 Harvest Wurm
@@ -206,6 +211,7 @@ Needlethorn Drake
 Nest Robber
 Night Market Aeronaut
 Nirkana Cutthroat
+Nostalgic Dreams
 Nova Flame
 Ob Nixilis, the Fallen
 Ogre Menial
@@ -248,6 +254,7 @@ Samite Archer
 Samut's Sprint
 Sandsteppe Scavenger
 Sandstorm
+Saprazzan Outrigger
 Satyr Hoplite
 Satyr Nyx-Smith
 Savai Sabertooth
@@ -263,6 +270,7 @@ Shadow of Mortality
 Shaman of the Pack
 Shamble Back
 Shapers' Sanctuary
+Shard of the Nightbringer
 Shared Discovery
 Shauku's Minion
 Shoulder to Shoulder

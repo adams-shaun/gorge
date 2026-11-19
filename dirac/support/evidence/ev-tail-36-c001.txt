@@ -62,6 +62,7 @@ Charge of the Mites
 Collar the Culprit
 Collision
 Combat Professor
+Compost
 Conclave Equenaut
 Conduit Goblin
 Corrupt Eunuchs
@@ -174,11 +175,13 @@ Loxodon Mender
 Luminarch Aspirant
 Lurking Deadeye
 Luxa River Shrine
+MJ, Rising Star
 Magmatic Scorchwing
 Malefic Scythe
 Mardu Hordechief
 Masked Vandal
 Mass Mutiny
+Megaton's Fate
 Mending Hands
 Mesmerizing Dose
 Mikaeus, the Lunarch
@@ -209,6 +212,7 @@ Phyrexian Vivisector
 Pious Warrior
 Pitiless Plunderer
 Plains
+Plaxcaster Frogling
 Praetor's Counsel
 Pride of Conquerors
 Primordial Wurm
@@ -270,6 +274,7 @@ Snow-Covered Wastes
 Somberwald Spider
 Soul Partition
 Soul of Ravnica
+Soulscour
 Spawnwrithe
 Specter's Shroud
 Spike Worker

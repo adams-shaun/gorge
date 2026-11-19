@@ -10,7 +10,9 @@ Alrund's Epiphany
 Ancient Gold Dragon
 Anointer Priest
 Apprentice Sharpshooter
+Archwing Dragon
 Artificer Class
+Aspect of Lamprey
 Attune with Aether
 Avatar of Discord
 Avatar of Growth
@@ -39,6 +41,7 @@ Bonehoard
 Boneknitter
 Bonepicker Skirge
 Bound in Silence
+Bountiful Promenade
 Brackwater Elemental
 Brandywine Farmer
 Bugenhagen, Wise Elder
@@ -121,6 +124,7 @@ Harmless Assault
 Herd Gnarr
 Hero of the Dunes
 Hibernation
+Honden of Life's Web
 Howl of the Night Pack
 Hulk, Brutal Brawler
 Hurloon Battle Hymn
@@ -213,6 +217,7 @@ Sanctify
 Sanctum of Stone Fangs
 Scab-Clan Mauler
 Scalding Devil
+Scour All Possibilities
 Sedgemoor Witch
 Seething Pathblazer
 Shaman of Spring
@@ -280,6 +285,7 @@ Waterknot
 Whiptail Moloch
 Whiptail Wurm
 Will-o'-the-Wisp
+Winding Canyons
 Wingsteed Rider
 Wizard Replica
 Wolfwillow Haven

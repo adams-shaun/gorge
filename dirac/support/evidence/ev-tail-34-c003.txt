@@ -21,6 +21,7 @@ Bar the Door
 Battle Angels of Tyr
 Bazaar Krovod
 Belbe's Percher
+Blink Dog
 Blockbuster
 Blood Clock
 Bloodied Ghost
@@ -79,6 +80,7 @@ Ethersworn Sphinx
 Evanescent Intellect
 Exoskeletal Armor
 Experimental Augury
+Ezuri's Brigade
 False Peace
 Feral Ridgewolf
 First Volley
@@ -92,8 +94,10 @@ Gnottvold Hermit
 Goblin Lackey
 Goreclaw, Terror of Qal Sisma
 Gossamer Phantasm
+Grafted Butcher
 Grazing Kelpie
 Grim Guardian
+Grim Haruspex
 Grim Return
 Grizzled Outrider
 Ground Seal
@@ -101,10 +105,12 @@ Guise of Fire
 Hapatra, the Desert Fang
 Harsh Scrutiny
 Harvest Gwyllion
+Haunt of the Dead Marshes
 Hawkeye, Clint Barton
 Heartstone
 Hired Poisoner
 Hoverguard Observer
+Hunter's Edge
 Hydroid Krasis
 Hythonia the Cruel
 Indulgent Aristocrat
@@ -127,8 +133,10 @@ Lionheart Maverick
 Locthwain Gargoyle
 Loran's Escape
 Lost Legion
+Loxodon Warhammer
 Loyal Cathar
 Luke Cage, Hero for Hire
+Lurking Arynx
 Malachite Golem
 Mana Seism
 Mantle of the Wolf
@@ -140,9 +148,11 @@ Midnight Entourage
 Mind Over Matter
 Ministrant of Obligation
 Minn, Wily Illusionist
+Mirari
 Morinfen
 Moriok Scavenger
 Mountain
+Muck Rats
 Naga Oracle
 Nefashu
 Neurok Stealthsuit
@@ -159,6 +169,7 @@ Perilous Myr
 Pharika's Chosen
 Pillar of Light
 Plains
+Platoon Dispenser
 Power Armor
 Pull from Tomorrow
 Pyretic Prankster
@@ -166,6 +177,7 @@ Quilled Wolf
 Quirion Sentinel
 Rain of Rust
 Raise the Alarm
+Rampaging Ferocidon
 Reclusive Wight
 Reduce
 Resurrection Orb
@@ -209,6 +221,7 @@ Suffocating Blast
 Summoning Materia
 Sunder Shaman
 Swamp
+Tajuru Archer
 Teardrop Kami
 Tempting Witch
 The Thanos-Copter
@@ -235,6 +248,7 @@ Unnatural Growth
 Venerable Monk
 Veteran's Voice
 Viashino Outrider
+Viashino Runner
 Viral Drake
 Vodalian Arcanist
 Voice of All
