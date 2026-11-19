@@ -2532,7 +2532,7 @@ func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDe
 		// deferGapSearch), not the ordered prefixes
 		var ans [MaxPerm]uint8
 		var pick [MaxPerm]int8
-		if !s.deferGapSearch(k, a, p, order[:n], tapsDef, &ans, &pick, &dead) {
+		if !s.deferGapSearch(k, a, p, order[:n], tapsDef, nil, &ans, &pick, &dead) {
 			return true
 		}
 		return dead
@@ -2565,7 +2565,7 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 		// search reaches next
 		var ans [MaxPerm]uint8
 		var pick [MaxPerm]int8
-		if !s.deferGapSearch(k, a, p, order[:n], tapsDef, &ans, &pick, &dead) {
+		if !s.deferGapSearch(k, a, p, order[:n], tapsDef, nil, &ans, &pick, &dead) {
 			return
 		}
 		for j := 0; j < n; j++ {
