@@ -27,10 +27,16 @@ const raGenCzBearer = raGenManifestDread + 72
 // czBearerCands writes the permanents the returning card o may be attached to
 // by the filter in.F, in slot order, and returns their number. The filter's
 // "You" is the resolving controller; the Aura's Enchant restriction is read
-// for the controller it enters under (its owner, as czAttachHost).
+// for the controller it enters under: its owner, or the resolving controller
+// when the move's MvUnderYourControl flag says the return gains control
+// (interp_gen's same derivation; Nomad Mythmaker, CR 303.4f -- gorge folds
+// the control onto the card before its entry's ask, emitEntryMove).
 func (s *State) czBearerCands(k *prep, in *kop.Instr, o Obj, out *[MaxOptions]TCode) int {
 	c := s.objs[o].card
 	ctrl, you := s.objs[o].owner(), s.res.e.ctrl
+	if in.C>>3&kop.MvUnderYourControl != 0 {
+		ctrl = you
+	}
 	n := 0
 	if k.cards[c].types&kop.TAura != 0 {
 		if k.t.Cards[c].Enchant.Kind != kop.TgtObject {
