@@ -2,16 +2,22 @@
 
 **dirac** is a second Magic rules engine, written to be fast enough to sit
 inside a search loop. A whole game is one `dirac.State`, copied with `CopyFrom`, allocating nothing per
-transition. It is a 2-player engine driven as a `Step`/`Apply` state machine over a `kop.Table` of cards,
+transition. It is a `Step`/`Apply` state machine over a `kop.Table` of cards, for two to four seats,
 and it is judged against gorge, the rules engine in [`engine/`](../engine): gorge leads and dirac follows,
 decision by decision (see [verification](docs/verification.md)). That speed is the point: self-play,
 search and policy training run millions of transitions.
 
 It is **not** a card-database front end or a replacement for gorge. One build
-holds four seat slots and plays a duel or a four-seat pod from a fixed card
-table, supports the mechanics the generated tables cover, and leaves
-everything else to gorge. A server reaches it
-through `dirac/adapter` ([serving](docs/serving.md)).
+holds four seat slots (`MaxSeats`) and plays a two-seat game or a pod of three
+or four seats from a fixed card table, supports the mechanics the generated
+tables cover, and leaves everything else to gorge. `NewConfig` and `Init` start
+two seats; `InitN` with `cardset`'s `MatchupN` starts a pod. Pods, Commander
+pods included, play in lockstep with gorge like two-seat games
+([verification](docs/verification.md#four-seat-pods)). A card whose lowering
+reads the one opponent of a two-seat game (`kop.CardTwoSeat`) makes dirac refuse
+a game of three or more seats at its start (`StallTwoSeat`): a declared limit,
+counted, not a divergence. A server reaches dirac through `dirac/adapter`, which hosts
+two seats ([serving](docs/serving.md)).
 
 ## Quick start
 
@@ -53,11 +59,11 @@ the gorge rules dirac follows.
 |---|---|
 | `State` | The whole game. `dst.CopyFrom(src)` clones a position; `New` and `NewConfig` return a pointer, and `Init` starts a game in an existing State. `go vet` rejects an assignment. |
 | `Decision` | One ask from the engine. `Step()` returns a `Decision`; `StepInto(&d)` fills a caller's value without the copy. `DkNone` means the game is over. `Options[:d.N]` are the legal answers; `d.Player` is who answers and `d.Sub` says what a `DkChoose` chooses. |
-| `Action` | One packed `uint32` answer: `kind<<24 | source<<16 | target<<8 | mode`. See `types.go` for `ActionKind` and each kind's fields; `MakeAction`, `Kind()`, `Source()`, `Target()` and `Mode()` encode and decode it. |
-| `Obj` | A card instance index. Objects `0..len(deckA)-1` are seat 0's deck in deck order, the next `len(deckB)` seat 1's, then tokens in creation order (`MaxObj` = 224). An object keeps its index across zones. |
+| `Action` | One packed `uint32` answer: `kind<<26 | source<<17 | target<<8 | mode`, with nine-bit source and target codes (`seats.go`). See `types.go` for `ActionKind` and each kind's fields; `MakeAction`, `Kind()`, `Source()`, `Target()` and `Mode()` encode and decode it. |
+| `Obj` | A card instance index. Objects are laid out deck by deck in seat order (seat 0's deck in deck order, then seat 1's, and so on), then the sideboards, then tokens in creation order, up to `MaxObj` (`seats.go`). An object keeps its index across zones. |
 | `Projection` | `Project(&p)` writes a comparable, fixed-array view: objects by `Obj` index, stack, life, turn, step, active player, mana pools, zone sizes, game over and winner. It is the oracle's comparison surface and a convenient read-only view for tools. |
 | `Config` | `NewConfig(tbl, deckA, deckB, seed, Config{...})`. `Mulligans` is the London mulligan limit (0 skips it); `NoElide` poses single-option decisions instead of answering them in place. The other fields are oracle/search knobs documented in `state.go`. |
-| `Terminal` | `Terminal() (over bool, winner int8)`. `winner` is 0 or 1, or -1 for a draw. |
+| `Terminal` | `Terminal() (over bool, winner int8)`. `winner` is the winning seat, or -1 for a draw. |
 | Stall | A capacity stop: a pool filled or a bound was hit, so the game ends as a draw with a reason instead of corrupting state. `StallReason()` returns the reason byte and `StallName(reason)` its short name. The capacity reasons are `Stall*` constants in `gen.go`; per-mechanic ones live beside their mechanic. `stallNames` is the name table in `gen.go`, filled by per-reason `init` functions. A caller sees a stall as `Terminal() == (true, -1)` plus a non-zero `StallReason()`. |
 
 Other useful entry points: `Turn()`, `Life(p)`, `ActivePlayer()`, `StepNow()`,

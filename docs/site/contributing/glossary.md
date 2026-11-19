@@ -164,7 +164,7 @@ non-draft PR once its `fast` and `lint` checks pass, and merges a batch of up to
 suite is green on it; `main` is also what this site and the published coverage are built from
 ([Branch flow](../repos/index.md#branch-flow)).
 
-**dirac.** The second rules engine in this repository, for two players, built for search and
+**dirac.** The second rules engine in this repository, for two to four seats, built for search and
 self-play. Its whole game is one flat value and one buffer sized to its card table, cloned with one
 or two memory copies and driven as a `Step`/`Apply` state machine, and its cards are tables of *kop*
 instructions, generated from gorge's compiled cards. Play is checked against gorge by a *lockstep

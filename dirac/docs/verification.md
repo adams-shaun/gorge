@@ -147,6 +147,27 @@ less: TDM's three-colour `{2/C}` hybrids beside any cost modifier stall about 70
 `kfuzz` needs the gorge card corpus: run it where `.cards` is linked or
 pass `-cards DIR`.
 
+### Four-seat pods
+
+dirac plays pods of three or four seats in lockstep with gorge, under the same comparison as a two-seat
+game. `-seats 3` or `-seats 4` plays pods of distinct decks (`oracle.PodAt`), one game each, `-pods N` of
+them. A pod plays on `-kernel vanilla`, a `-synth` pool, or a Commander pool cut with `-cmd-mini`:
+
+```sh
+bin/kfuzz -kernel cmd5 -seats 4 -cmd-mini 60 -pods 100 -seed 1 -keep-going -shrink 0
+```
+
+A pod run prints a pod line after the verdict. The `TestFourSeat*` tests in `dirac/oracle` hold pod play
+in lockstep on fixtures, one mechanic at a time.
+
+A card whose lowering reads the one opponent of a two-seat game (`kop.CardTwoSeat`) plays in a two-seat
+game, and a game of three or more seats holding it is refused at its start under the reason
+`StallTwoSeat` (`dirac/stallclass.go`): `MatchupN` refuses the pod, and `InitN` stalls a hand-built
+table. It is a declared limit and is counted, not a divergence. `TestCommanderPodTwoSeatCensus` counts which full
+Commander precons such cards hold to two seats, by class, against the goldens in
+`dirac/oracle/testdata/twoseat-census/`, and its log ranks the classes by the pods they block.
+`kgen -supported <pool> -four-seat` answers false for such a card.
+
 ## Lockstep, the core check
 
 `oracle.Lockstep` (`dirac/oracle/lockstep.go`) starts a fresh gorge side and plays one game with
@@ -355,8 +376,8 @@ ok  	github.com/adams-shaun/gorge/dirac/oracle	0.615s
 
 `dirac/crcoverage` is the rule-by-rule audit: one Markdown file per CR chapter, one row per numbered
 rule, with a status (`follows`, `partial`, `deviates`, `not-impl`, `definition`, `n/a`, `unknown`),
-the code that decides it, the tests that exercise it and a note. dirac is two-player and plays
-fixed pools, so many rows are `n/a` with the reason stated. The package README explains how to read
+the code that decides it, the tests that exercise it and a note. dirac plays at most four seats
+(`MaxSeats`) and plays fixed pools, so many rows are `n/a` with the reason stated. The package README explains how to read
 and update a row: [dirac/crcoverage/README.md](../crcoverage/README.md).
 
 ```sh

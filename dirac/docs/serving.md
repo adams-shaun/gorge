@@ -22,9 +22,11 @@ gorged -engine dirac -seats 2 -vsbot -dir /tmp/gorge-dirac
 
 ## What it plays
 
-- Two seats, constructed or commander (one commander per seat, from a set that holds
-  the deck: `-format commander -dirac-sets cmd5 -decks testkit/testutil/decks`). Every cast is paid by the server's plan, so the client
-  shows no Auto Mana switch.
+- Two seats, constructed or commander (one commander or a legal partner pair per seat,
+  from a set that holds the deck: `-format commander -dirac-sets cmd5 -decks testkit/testutil/decks`). Every cast is paid by the server's plan, so the client
+  shows no Auto Mana switch. The engine plays pods of up to four seats
+  ([verification](verification.md#four-seat-pods)); the adapter seats two
+  (`dirac/adapter/engine.go`).
 - A human against a bot, or bots against each other. A bot table skips, with a log
   line, a deck that the rotation cannot pair with its neighbour.
 - Bots: `bot`, `lethal-pressure`, `forge-heuristic`, `forge-heuristic-hold`, and at a
@@ -51,7 +53,8 @@ Each of these says why, at startup or in the request's error.
 
 | Asked for | Answer |
 |---|---|
-| `-seats` other than 2, partner commanders | dirac plays two seats, and one commander per seat |
+| `-seats` other than 2 | the adapter seats two |
+| Two commanders that are not a legal partner pair, the Commander-draft partner rule | the pair is named |
 | `-auto-mana=false`, `-bot-auto-mana=false` | dirac has no manual mana |
 | `-events`, a chosen starting player, sideboards | these need gorge |
 | `-<policy>-net`, `az-redeal`, any search policy | a search needs a root, and dirac deals none |
