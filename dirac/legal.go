@@ -2474,6 +2474,31 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, len(units) != 0, anyAdd, &anyFree, &open) {
 					s.addOrMergeRepeat(&cen, sl, ab, d, abDrop, addAb, fold)
 				}
+				if len(units) != 0 && kop.SacAnyManaAb(ab) {
+					var cs [MaxPerm]Slot
+					if n := s.sacXCands(k, p, sl, ab, &cs); n >= 2 {
+						// a live sacrifice-any mana source (Phyrexian Altar's
+						// "Sacrifice a creature: Add one mana of any color",
+						// no {T}) activates once per candidate in the same
+						// payment. gorge's potential fold prices the open
+						// any-colour production unbounded in every colour
+						// (potential.go producedOpen), so the bound admits
+						// the play and its planner's prefix search funds it;
+						// the per-tap census keeps the repeats the sacrifice
+						// can fund as cands units, one per candidate
+						// (pay.ManaSacrificeCandidates) — the planner-shaped
+						// bound of the play (CR 605.3b, 601.2g). With one
+						// candidate the one-unit record stands exact: the
+						// sweep still refuses a play that one activation
+						// cannot fund, as gorge's planner does.
+						open = true
+						if m := uint8(ab.ManaColors) &^ abDrop; m != 0 {
+							unrecordPotUnit(&cen.units, &cen.n, m, 1, cen.pain, false)
+							recordPotUnit(&cen.units, &cen.n, m, uint8(min(n, 255)), cen.pain, false)
+							fold(sl, m, uint8(min(n, 255)))
+						}
+					}
+				}
 			}
 		}
 	}
