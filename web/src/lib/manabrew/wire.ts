@@ -125,7 +125,7 @@ export interface AvailableAction {
   id: string;
   type: 'cast' | 'activateAbility' | 'undoMana' | 'autofill' | string;
   cardId?: string;
-  mode?: string;
+  mode?: string | { type: string; cost?: string };
   label?: string;
   modeLabel?: string;
   abilityIndex?: number;
