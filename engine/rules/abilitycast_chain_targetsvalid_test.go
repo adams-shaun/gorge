@@ -17,8 +17,8 @@ import (
 // the chain link's answer was invisible and the trigger stayed silent.
 
 const abilityChainTargetsValidWatcher = "Name:ChainWatcher\nManaCost:1 G\nTypes:Creature\nPT:2/2\n" +
-	"T:Mode$ AbilityCast | ValidActivatingPlayer$ You | TargetsValid$ Creature | TriggerZones$ Battlefield | Execute$ TrigDraw\n" +
-	"SVar:TrigDraw:DB$ Draw | Defined$ You | NumCards$ 1\n" +
+	"T:Mode$ AbilityCast | ValidActivatingPlayer$ You | TargetsValid$ Creature | TriggerZones$ Battlefield | Execute$ ChainDraw\n" +
+	"SVar:ChainDraw:DB$ Draw | Defined$ You | NumCards$ 1\n" +
 	"A:AB$ Pump | Cost$ 1 R | ValidTgts$ Artifact | TargetMin$ 0 | TargetMax$ 1 | SubAbility$ SubPump\n" +
 	"SVar:SubPump:DB$ Pump | ValidTgts$ Creature | TargetMin$ 1 | TargetMax$ 1 | NumAtt$ 2\n" +
 	"Oracle:x\n"
