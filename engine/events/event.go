@@ -1382,10 +1382,27 @@ const (
 	// order. Appended after AbilityResolved so every earlier ordinal, hash chain and
 	// golden replay is unchanged.
 	ReverseTurnOrder
+	// CrewAction records one crew ability's RESOLUTION (CR 702.122e: "becomes
+	// crewed" means a crew ability of the Vehicle resolves), however many
+	// creatures tapped for it: Obj is the
+	// VEHICLE that became crewed, Player its controller, IDs the crewing
+	// creatures in tap order. It is an Apply no-op marker, exactly like
+	// Exploit: the per-crewer Crew markers (one per tapped creature, Obj the
+	// CREWER, IDs[0] the Vehicle) precede it and are what the
+	// Creature.CrewedThisTurn filter reads; this record is the once-per-action
+	// subject view Mode$ BecomesCrewed matches ("Whenever this Vehicle becomes
+	// crewed", CR 702.122; Mobilizer Mech, Ghost Ark, Mighty Servant of
+	// Leuk-o), so a Crew 3 paid by three creatures queues the trigger once,
+	// with the action's crew count carried for its ValidCrewAmount$ gate.
+	// Emitted by effects' Animate primitive when the minted Crew ability
+	// resolves (a countered ability or a Vehicle that left emits nothing).
+	// Appended after ReverseTurnOrder so every earlier ordinal, hash chain and
+	// golden replay is unchanged.
+	CrewAction
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(ReverseTurnOrder) + 1
+	NumKinds = int(CrewAction) + 1
 )
 
 // AbilityResolved's Amount bits: the resolved ability is a triggered one, a
