@@ -411,9 +411,11 @@ func (s *State) PicksLeft() int {
 }
 
 // BuildingCast is the spell or ability being built's kicked flag and its
-// announced X (ok false outside a build).
+// announced X (ok false outside a build). A miracle trigger at its reveal ask
+// (bsMiracle) is no cast or activation and is not on the stack yet, so the
+// stack's top entry is a committed one, not the build.
 func (s *State) BuildingCast() (kicked bool, x int, ok bool) {
-	if s.ctl != ctlBuild {
+	if s.ctl != ctlBuild || s.bld().stage == bsMiracle {
 		return false, 0, false
 	}
 	return s.bld().e.flags&sfKicked != 0, int(s.bld().e.x), true
