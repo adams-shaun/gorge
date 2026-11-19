@@ -22,6 +22,19 @@ func (s *State) xHypoCost(k *prep, x int) kop.ManaCost {
 	return c
 }
 
+// xCostDependsOnX reports whether a cost modifier reads the spell's mana
+// value with the announced X in it (CR 202.3e): the cost composed at X = 0
+// and at the search ceiling differs. Such a modifier can make a larger X
+// cheaper (a reduction's threshold) or dearer (an increase's), so the
+// filter bound's monotone sweep may not use the composed cost
+// (mana_filter.go foldedMaxX).
+func (s *State) xCostDependsOnX(k *prep) bool {
+	if k.gen == nil || !s.statM.any() {
+		return false
+	}
+	return s.xHypoCost(k, 0) != s.xHypoCost(k, maxXAsk)
+}
+
 // xReducedCeiling is the largest X the ask prices past mx: mx itself unless
 // the cost at gorge's ceiling differs from the one at X = 0.
 func (s *State) xReducedCeiling(k *prep, e *stackEntry, cost *kop.ManaCost, av *avail, mx int) int {
