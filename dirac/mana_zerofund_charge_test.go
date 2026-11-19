@@ -11,18 +11,19 @@ import (
 // TestZeroFiltTapChargesOnce: a funding tap beside a zero-amount dynamic
 // any-colour filter that both zero-filter gates claim -- a Three Tree City
 // beside its plain {T}: {C}, its {2},{T} filter yielding nothing -- charges
-// the search's node budget for the tap once: the ability ask, the {C} answer,
-// the filter's colour ask and its colour answers (mana_zerofilt.go's
-// comment). With the old gate (mana_zerofilt.go) and the new one
-// (mana_filtzerofund.go) both claiming the tap, the ask was ticked twice and
-// the colour search ran twice: seven nodes a tap where gorge spends them
-// once, so at a budget boundary the search exhausted before gorge and refused
-// an option gorge offers -- the lockstep class
+// the search's node budget for the tap once: the ability ask, then the {C}
+// answer; the filter's own answer is no branch, because it yields nothing
+// (mana_zerofilt.go's comment). With the old gate (mana_zerofilt.go) and the
+// new one (mana_filtzerofund.go) both claiming the tap, the ask was ticked
+// twice and the colour search ran twice: seven nodes a tap where gorge spends
+// them once, so at a budget boundary the search exhausted before gorge and
+// refused an option gorge offers -- the lockstep class
 // TestMBCMinamoSchoolAtWaterSEdgeReprosLockstep fixes, reversed. The pin is a
 // failing search (Starfleet Academy's {5} filter gap no board mana funds,
 // Three Tree City untapped until its tap's turn): fundTap yields the
 // one-answer tap to fundOne's gate, and the search that visited the tap's
-// co-firing branch four times spent 92 nodes before the yield, 64 with it.
+// co-firing branch four times spent 92 nodes before the yield, 64 with it and
+// 37 once the zero filter's answer is no branch (the Shiv's Embrace pin).
 func TestZeroFiltTapChargesOnce(t *testing.T) {
 	deck := []cardset.Entry{
 		{Name: "Starfleet Academy", Count: 4}, {Name: "Three Tree City", Count: 4},
@@ -99,7 +100,7 @@ func TestZeroFiltTapChargesOnce(t *testing.T) {
 	if ok {
 		t.Fatal("the search found a script for the {3}{G} cast, want a failed one (a pin over the whole tree)")
 	}
-	if n := fs.nodes; n != 64 {
-		t.Fatalf("the search spent %d nodes, want 64: the tap's ask and colour search are charged twice", n)
+	if n := fs.nodes; n != 37 {
+		t.Fatalf("the search spent %d nodes, want 37: the tap's ask is charged once and the zero filter's answer is no branch", n)
 	}
 }
