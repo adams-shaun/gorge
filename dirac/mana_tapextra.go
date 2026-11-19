@@ -524,6 +524,33 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 	}
 }
 
+// filterOwnTakes is removeSrc for a filter walk, reporting whether the filter
+// may still produce: true when the census owed nothing of the source's own
+// tap (availLeavesOut, a no-grant walk's granted-only source, a production
+// with no units) or took it out of a, false when the census counted the own
+// production and it was already gone from a -- an earlier fee of the same
+// window spent the mana the permanent's one tap made (CR 605.1a), so the
+// permanent cannot tap again to make this filter's mana. A filter walk that
+// ignores the false return double-counts the tap: it kept Fetid Heath's {C}
+// standing as another filter's fee while Heath's {W/B} ability still made its
+// two (tail-01 pair 122: The Mana Rig's X ask read X = 3 off a board whose
+// window reaches 8 mana).
+func (s *State) filterOwnTakes(k *prep, a *avail, sl Slot, pc *pcard) bool {
+	if pc == nil || s.srcYieldAt(k, sl, pc) == 0 {
+		return true // the census owed nothing of the source's own tap
+	}
+	if s.availLeavesOut(k, sl) {
+		return true // the census never counted it
+	}
+	noGrantWalk := k.gen != nil && s.g.noGrant && s.g.availX&availPlain != 0
+	if noGrantWalk && s.manaGranted(k, sl) {
+		return true // the census never counted it either (removeSrc's early return above)
+	}
+	before := a.total
+	s.removeSrc(k, a, sl, pc)
+	return a.total < before
+}
+
 // removePainAvail takes out of a the units addPainAvail added for the painful
 // source at sl: its pain-widened mask (painAvailMask, which holds the colours
 // of its life-paid ability beside the printed ones), not srcMaskAt's printed
