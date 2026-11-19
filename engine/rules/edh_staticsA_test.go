@@ -326,3 +326,34 @@ func TestEDHStaticsARiverSongDrawsFromTheBottom(t *testing.T) {
 		t.Fatalf("with River Song the draw took %d, want the bottom card %d", drawn, lib[2])
 	}
 }
+
+// TestEDHStaticsAValidPlayerIsYou pins the assumption effects' youStaticCount
+// makes without reading it: every corpus carrier of GainLifeRadiation,
+// Devotion, FlipCoinDoubler and DrawFromBottom is scoped ValidPlayer$ You, so
+// the scan over the controller's own permanents is the whole rule. A card that
+// names another player fails here, before the engine would apply it to You.
+func TestEDHStaticsAValidPlayerIsYou(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	seen := map[string]int{}
+	for _, c := range reg.AllCards() {
+		for _, f := range c.Faces {
+			for _, st := range f.Statics {
+				switch st.Mode {
+				case effects.ModeGainLifeRadiation, effects.ModeDevotion,
+					effects.ModeFlipCoinDoubler, effects.ModeDrawFromBottom:
+					seen[st.Mode]++
+					if got := st.ParamStr(cards.PKValidPlayer); got != "You" {
+						t.Errorf("%s: %s names ValidPlayer$ %q, want You", f.Name, st.Mode, got)
+					}
+				}
+			}
+		}
+	}
+	for _, mode := range []string{effects.ModeGainLifeRadiation, effects.ModeDevotion,
+		effects.ModeFlipCoinDoubler, effects.ModeDrawFromBottom} {
+		if seen[mode] == 0 {
+			t.Errorf("no corpus card carries %s: the corpus did not load or the mode is gone", mode)
+		}
+	}
+}

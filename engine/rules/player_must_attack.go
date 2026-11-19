@@ -30,10 +30,6 @@ const (
 	noMustAttackSpec            = ""
 )
 
-// playerMustAttackKeys are the parameters a PlayerMustAttack static may carry
-// and still be read; any other key (a condition, a selector) fails closed.
-var playerMustAttackKeys = [...]cards.ParamKey{cards.PKMode, cards.PKValidPlayer, cards.PKMustAttack, cards.PKDescription}
-
 // attackDutyBoard is the slice of the engine PlayerMustAttack reads.
 type attackDutyBoard interface {
 	activeStatics(mode string) []staticView
@@ -50,12 +46,15 @@ type playerMustAttackUnit struct {
 
 // playerMustAttackUnits collects the readable PlayerMustAttack statics that
 // bind player p (ValidPlayer$ read relative to each static's controller).
-func playerMustAttackUnits(b attackDutyBoard, g *state.Game, p state.PlayerID) []playerMustAttackUnit {
+func playerMustAttackUnits(e attackDutyBoard, g *state.Game, p state.PlayerID) []playerMustAttackUnit {
 	var out []playerMustAttackUnit
-	for _, sv := range b.activeStatics("PlayerMustAttack") {
+	for _, sv := range e.activeStatics("PlayerMustAttack") {
+		// Only Mode$, ValidPlayer$, MustAttack$ and Description$ are read; any
+		// other key (a condition, a selector) fails closed to no duty.
 		known := 0
-		for _, k := range playerMustAttackKeys {
-			if _, ok := sv.Param(k); ok {
+		for _, present := range [...]bool{sv.HasParam(cards.PKMode), sv.HasParam(cards.PKValidPlayer),
+			sv.HasParam(cards.PKMustAttack), sv.HasParam(cards.PKDescription)} {
+			if present {
 				known++
 			}
 		}
@@ -76,7 +75,7 @@ func playerMustAttackUnits(b attackDutyBoard, g *state.Game, p state.PlayerID) [
 
 // discharges reports whether attacking def (and the planeswalker battle, or 0
 // for the player) obeys the duty.
-func (u playerMustAttackUnit) discharges(b attackDutyBoard, g *state.Game, def state.PlayerID, battle state.ObjID) bool {
+func (u playerMustAttackUnit) discharges(e attackDutyBoard, g *state.Game, def state.PlayerID, battle state.ObjID) bool {
 	if u.anyDefender {
 		return true
 	}
@@ -87,7 +86,7 @@ func (u playerMustAttackUnit) discharges(b attackDutyBoard, g *state.Game, def s
 		return true
 	}
 	o := g.Obj(battle)
-	return o != nil && o.Controller == u.controller && b.hasType(o, "Planeswalker")
+	return o != nil && o.Controller == u.controller && e.hasType(o, "Planeswalker")
 }
 
 // markPlayerMustAttack sets Option.AttackOne on the declarable pairs that
@@ -99,9 +98,9 @@ func (u playerMustAttackUnit) discharges(b attackDutyBoard, g *state.Game, def s
 // decision unanswerable. A per-defender cap or a tap-candidate pool can make
 // that fit unprovable, so either leaves the duty unmarked (unenforced), the
 // attackRequirementGroups precedent.
-func markPlayerMustAttack(b attackDutyBoard, g *state.Game, p state.PlayerID, offers []attackOffer, opts []decision.Option,
+func markPlayerMustAttack(e attackDutyBoard, g *state.Game, p state.PlayerID, offers []attackOffer, opts []decision.Option,
 	required map[state.ObjID]bool, bounds attackBounds, tapPool int) {
-	units := playerMustAttackUnits(b, g, p)
+	units := playerMustAttackUnits(e, g, p)
 	if len(units) == 0 || tapPool > 0 {
 		return
 	}
@@ -131,7 +130,7 @@ func markPlayerMustAttack(b attackDutyBoard, g *state.Game, p state.PlayerID, of
 		}
 		met, every := 0, true
 		for _, u := range units {
-			if u.discharges(b, g, o.Player, o.Battle) {
+			if u.discharges(e, g, o.Player, o.Battle) {
 				met++
 			} else {
 				every = false

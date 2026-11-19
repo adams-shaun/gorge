@@ -1,7 +1,6 @@
 package effects
 
 import (
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -31,11 +30,14 @@ func init() {
 }
 
 // youStaticCount counts the live printed statics of mode that player p's
-// permanents carry in the exact corpus shape: ValidPlayer$ You and no other
-// selector or condition (any unread key fails closed, so a conditioned
-// variant never becomes a blanket rule). A phased-out or face-down permanent
-// has no functioning printed static (CR 702.26b, 708.2). One static counts
-// once, so two copies of a permanent count twice.
+// permanents carry in the exact corpus shape: no selector or condition beyond
+// ValidPlayer$ (any other key fails closed, so a conditioned variant never
+// becomes a blanket rule). The scan is scoped to p's own permanents, which is
+// ValidPlayer$ You: every corpus carrier of these four modes names exactly
+// You (pinned by rules' TestEDHStaticsAValidPlayerIsYou), and the value is not
+// read here so the Draw/Count paths that reach this scan read no SA param. A
+// phased-out or face-down permanent has no functioning printed static (CR
+// 702.26b, 708.2). One static counts once, so two copies count twice.
 func youStaticCount(g *state.Game, p state.PlayerID, mode string) int {
 	if int(p) < 0 || int(p) >= len(g.Players) {
 		return 0
@@ -48,7 +50,7 @@ func youStaticCount(g *state.Game, p state.PlayerID, mode string) int {
 				continue
 			}
 			for _, st := range o.Face().Statics {
-				if st.Mode == mode && st.ParamStr(cards.PKValidPlayer) == "You" &&
+				if st.Mode == mode &&
 					staticKeysReadable(st.Params, "Mode", "ValidPlayer", "Description") {
 					n++
 				}
