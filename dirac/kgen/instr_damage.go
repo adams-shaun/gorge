@@ -23,6 +23,7 @@ func init() {
 	instrOp("PreventColor", (*instrCtx).opPreventColor)
 	instrOp("PreventDamageScope", (*instrCtx).opPreventDamageScope)
 	instrOp("PreventNext", (*instrCtx).opPreventNext)
+	instrOp("ChooseSource", (*instrCtx).opChooseSource) // lower_choosesource.go
 	instrOp("Fog", (*instrCtx).opFog)
 }
 
@@ -341,14 +342,14 @@ func (ic *instrCtx) opPreventNext() error {
 		if !ok {
 			return fmt.Errorf("token %q", in.CS)
 		}
-		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), kop.Const(idx), int16(in.C&127)
+		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), kop.Const(idx), int16(in.C&255)
 		return nil
 	}
 	v, err := cb.value(in.A)
 	if err != nil {
 		return err
 	}
-	ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v, int16(in.C&127)
+	ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v, int16(in.C&255)
 	return nil
 }
 

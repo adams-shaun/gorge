@@ -85,6 +85,8 @@ ChoosePlayerFresh	untyped int	1
 ChooseRandom	untyped int	1
 ChooseSelf	untyped int	0
 ChooseTypeBasicLand	untyped int	2
+ChosenSrcArtifact	untyped int	32
+ChosenSrcLand	untyped int	64
 CloneBatch	untyped int	64
 CloneEOT	untyped int	1
 CloneExclTmpl	untyped int	2
@@ -1066,6 +1068,7 @@ PredWasCastSpell	Pred	247
 PredWithPowerLEX	Pred	10
 PredWord7	Pred	241
 PrevNextAll	untyped int	2
+PrevNextChosen	untyped int	128
 PrevNextCombat	untyped int	1
 PrevNextEndCombat	untyped int	32
 PrevNextFrom	untyped int	4
