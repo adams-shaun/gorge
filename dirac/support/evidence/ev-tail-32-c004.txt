@@ -4,7 +4,9 @@ Barbed Batterfist
 Blood Age General
 Brood Birthing
 Cateran Enforcer
+Cho-Arrim Bruiser
 Clot Sliver
+Cut
 Dark Betrayal
 Definitely Not a Turtle
 Drana, Liberator of Malakir
@@ -13,6 +15,7 @@ Enthusiastic Mechanaut
 Expedition Diviner
 Feral Ridgewolf
 Filigree Fracture
+Floating-Dream Zubera
 Forest
 Fourth Bridge Prowler
 Ghastly Demise
@@ -33,17 +36,21 @@ Magnivore
 Master Decoy
 Merrow Bonegnawer
 Mind Drain
+Mistmeadow Skulk
 Mountain
 Nephalia Smuggler
 Nyxborn Marauder
 Ogre Berserker
 Ondu Cleric
+Pest Infestation
 Pillar of Light
 Plains
 Psychic Spear
+Quicksilver Dagger
 Raiding Nightstalker
 Raving Oni-Slave
 Rhox Brute
+Rotted Hulk
 Rust Monster
 Sandstone Warrior
 Seismic Strike
@@ -52,6 +59,7 @@ Skirk Shaman
 Skyclave Cleric
 Skyswimmer Koi
 Slaughter Cry
+Soul Bleed
 Swamp
 The Royal Scions
 Thriving Ibex

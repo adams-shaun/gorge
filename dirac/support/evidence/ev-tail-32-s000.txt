@@ -95,6 +95,7 @@ Mindless Null
 Mire Blight
 Mistcutter Hydra
 Misthios's Fury
+Mistmeadow Skulk
 Morbid Bloom
 Mortician Beetle
 Mountain
@@ -119,6 +120,7 @@ Relic of Progenitus
 Rescue Retriever
 Rofellos, Llanowar Emissary
 Root Greevil
+Rotted Hulk
 Scragnoth
 Sewerdreg
 Shieldmate's Blessing

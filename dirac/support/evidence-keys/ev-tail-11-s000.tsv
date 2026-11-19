@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Dwarfhold Champion	c5681e10f62deabc	6	1/1		0/1	ix:resp
 A-Gnarlid Colony	91246d99a8b4753d	3	0/0		2/2	
+A-Hall of Tagsin	8403bfef19fb9a43	54	3/3		1/1	
 Agoraphobia	c0362c6547a16c47	16	1/1		2/2	
 Ajani, Strength of the Pride	50bc14bde358cff5	4	3/3		0/1	ix:resp
 Akroma's Will	713144bd09f9b15b	3	0/0		1/2	ix:resp
@@ -63,6 +64,7 @@ Dwarven Hammer	1b9e0c33cd9890e8	4	2/2		0/1	ix:resp
 Elven Rite	870aae0e3bd7182a	4	0/0		1/2	ix:resp
 Emry, Lurker of the Loch	7a5bec259b40fb38	13	2/2		0/1	ix:resp
 Ensouled Scimitar	c58b56193d701f7a	4	2/2		1/1	
+Eternity Snare	9029fd32c931d2d5	4	1/1		1/2	ix:resp
 Faerie Noble	ead6e65b1717d1f0	7	1/1		0/1	ix:resp
 Feast of Worms	00f1747eaab461df	6	0/0		1/2	ix:resp
 Feral Roar	78dee115783e7d55	4	0/0		1/2	ix:resp

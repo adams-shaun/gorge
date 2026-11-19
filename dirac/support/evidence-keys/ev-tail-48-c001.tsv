@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Abyssal Nocturnus	6cbc69550b1a92db	115	1/1		1/1	
+Ace, Fearless Rebel	8e74d0ef7db4b634	5	1/1		0/1	ix:resp
 Alpha Kavu	e7c4847eb9a1b6c9	4	1/1		1/1	
 Angrath's Rampage	df4cf6e20bff57a2	71	0/0		1/2	ix:resp
 Armored Galleon	d47dc2aa55189e15	8	0/0		0/0	
@@ -39,6 +40,7 @@ Deathgrip	889486999d5769cd	84	1/1		1/1
 Demotion	a1a8fda2aa330d81	4	0/0		1/2	ix:resp
 Desecration Plague	6d056a0194ea43a7	4	0/0		1/2	ix:resp
 Divine Light	5c9f4b7bd2f35500	136	0/0		2/2	
+Dovin's Veto	7ce0d6f9880baf1c	3	0/0		2/2	
 Draining Whelk	b2967a6be0f91b96	4	1/1		1/1	
 Drake Haven	24fa220538f8f3bc	20	1/1		1/1	
 Dueling Rapier	10cc89f0aeb51c98	6	2/2		0/1	ix:resp
@@ -97,6 +99,7 @@ Lathnu Sailback	679bbff2d87f950a	6	0/0		0/0
 Lay Waste	092955ce5de9e812	4	1/1		2/2	
 Leering Emblem	6e4b42497d495b73	159	2/2		1/1	
 Lifelink	dfb27474e7506500	6	0/0		2/2	
+Llanowar Visionary	5aa755495f4a7ab1	6	2/2		1/1	
 Loch Korrigan	379be7e2be030f15	4	1/1		1/1	
 Lurking Crocodile	1cd9610b4ef44b31	6	0/0		0/0	
 Lys Alana Scarblade	717d5f91764d087d	96	1/1		1/1	
@@ -135,6 +138,7 @@ Ruin Crab	338de945d221695e	4	1/1		0/1	ix:resp
 Rune of Protection: Black	c69cf9e312989be8	9	2/2		1/1	
 Runed Stalactite	0af851c13cd6b10f	4	1/1		0/1	ix:resp
 Ryusei, the Falling Star	8fb13e8533c52dc8	25	1/1		0/1	ix:resp
+Satsuki, the Living Lore	0187128a2b51bb1c	4	2/2		0/1	ix:resp
 Scale Up	c31599258cd918d5	8	0/0		4/4	
 Scavenged Weaponry	8cace01660905037	100	1/1		2/2	
 Scepter of Fugue	06b1fe6ab26f9689	4	1/1		0/1	ix:resp
@@ -175,4 +179,5 @@ Wormfang Behemoth	0f80abd0f7c67254	4	2/2		0/1	ix:resp
 You Come to a River	6dc040967ca6c673	23	0/0		2/2	
 Yuki-Onna	2b2100c54dc3358f	47	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Zodiac Rat	b7b5618daf7dcefe	168	0/0		0/0	
+Zodiac Tiger	b77574ec98178295	4	0/0		0/0	
 Zuberi, Golden Feather	942286eaa702696d	3	0/0		0/0	
