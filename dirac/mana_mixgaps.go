@@ -276,9 +276,12 @@ func (fs *filtSearch) otherOwnAsk(k *prep, t *State, sl Slot, funded int, try fu
 // to tap or sacrifice, then the colour of an any-colour one.
 func (fs *filtSearch) tapXGap(k *prep, t *State, sl Slot, try func(otherStep) bool) bool {
 	p := fs.p
-	if k.tapXSecond(t.cardAt(sl)) {
+	if k.tapXSecond(t.cardAt(sl)) && t.canTapForMana(k, sl) {
 		// its ability ask (tapXAbilityAsk): the plain first ability, then
-		// the tap-another one
+		// the tap-another one. A tapped source has only the second: its {T}
+		// is already spent, and tapXPlainDo would tap it again for a free
+		// unit (Relic of Legends tapped, its legendary-creature ability the
+		// only one left).
 		if !fs.tick() {
 			return false
 		}
