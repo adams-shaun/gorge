@@ -393,14 +393,17 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			}
 			continue
 		}
-		if s.manaGranted(k, sl) || k.gen.has(c, gfRestr|gfAnyR|gfEachCol|gfFilt|gfDeferred) {
+		if s.manaGranted(k, sl) || k.gen.has(c, gfRestr|gfAnyR|gfEachCol|gfFilt|gfDeferred) && !s.landSetLost(k, sl) {
 			// Not the plain unrestricted any-colour shape the census gap is:
 			// a restricted source's mana must float restricted (tapDeferFloat
 			// adds plain pool mana), a granted one is grantCap/grantPrefix's,
 			// an each-colour or filter one has its own arm, and a deferred one
 			// is tapGap's gfDeferred arm. Each keeps the census unit the
 			// availFor skip would otherwise drop (the skip is keyed on this
-			// mask).
+			// mask). A land a type setter stripped (landSetLost) has none of
+			// those printed abilities left (CR 305.7: Unknown Shores' {1},{T}
+			// filter under Contaminated Ground): only its intrinsic mana
+			// remains, which landSetGap below reads.
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
