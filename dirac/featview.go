@@ -238,8 +238,8 @@ func (s *State) FeatCDAPT(o Obj) (p, t int, ok bool) {
 	cd := &k.t.Cards[ob.card]
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatCDAPT {
-			continue
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatCDAPT || a.Static.Cond2 != 0 {
+			continue // a conditioned CDA claims nothing off the battlefield (gorge CDAPTStatic's whitelist)
 		}
 		ctx := evalCtx{src: o, srcSl: NoSlot, ctrl: s.featCtrl(o)}
 		return s.evalV(k, a.Static.VA, ctx), s.evalV(k, a.Static.VB, ctx), true
@@ -1143,7 +1143,8 @@ func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all,
 	subs = printed
 	if k.gen != nil {
 		if s.fxM.has(sl) && k.gen.cpxSub {
-			subs = subs.Or(s.copyExcSubs(k, sl)) // layer 1, before the overrides (hasSubGen)
+			subs = s.copyExcSubs(k, sl, subs) // layer 1, before the overrides (hasSubGen)
+			setSub = s.copyExcSetsSub(k, sl)
 		}
 		s.eachOverride(k, sl, func(ov *kop.Override, _ CardID) {
 			if ov.HasSub {
