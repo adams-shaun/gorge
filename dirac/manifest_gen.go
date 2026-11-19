@@ -27,8 +27,11 @@ const raGenMyriad uint8 = 151
 // ask (dirac/manifest/ask/raGenPileOpp)
 const raGenPileOpp uint8 = 152
 
+// ask (dirac/manifest/ask/raGenRepeatOptional)
+const raGenRepeatOptional uint8 = 153
+
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 153
+const raPodClashOpp uint8 = 154
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -735,6 +738,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.putCounterChoice(k, in) // ctr_choice.go
 	case kop.ExtRadiation:
 		return s.radiationExt(k, in) // act_radiation.go
+	case kop.ExtRepeatOptional:
+		return s.repeatOptionalExt(k, in) // act_repeatoptional.go
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }
@@ -767,6 +772,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raDredgeRes:
 		s.dredgeResOptions(k, d) // kw_dredge.go
 		return true
+	case raGenRepeatOptional:
+		s.repeatOptionalOptions(k, d) // act_repeatoptional.go
+		return true
 	}
 	return false
 }
@@ -788,6 +796,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raDredgeRes:
 		s.dredgeResAnswer(k, a) // kw_dredge.go
+		return true
+	case raGenRepeatOptional:
+		s.repeatOptionalAnswer(k, a) // act_repeatoptional.go
 		return true
 	}
 	return false
