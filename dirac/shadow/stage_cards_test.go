@@ -37,7 +37,7 @@ func cardsEnv(t *testing.T) *stageEnv {
 		t.Fatal(err)
 	}
 	var list []cardset.Entry
-	for _, n := range append(append([]string{"Pacifism", "Swiftfoot Boots", "Dragon Fodder"}, cardsLands...), cardsCreatures...) {
+	for _, n := range append(append([]string{"Pacifism", "Swiftfoot Boots", "Dragon Fodder", "Raise the Alarm"}, cardsLands...), cardsCreatures...) {
 		list = append(list, cardset.Entry{Name: n, Count: 1})
 	}
 	tbl, _, _, err := set.Matchup(list, list)
@@ -61,18 +61,22 @@ func cardsEnv(t *testing.T) *stageEnv {
 		add(3, "Pacifism")
 		add(3, "Swiftfoot Boots")
 		add(4, "Dragon Fodder")
+		add(3, "Raise the Alarm")
 		add(14, cardsCreatures...)
 		return d
 	}
 	return &stageEnv{
 		tbl: tbl, deck: deck, kernel: oracle.SetSide(set, tbl, oracle.Config{}),
-		// a quarter of the games each wait for an attachment, a quarter for a token
+		// a quarter of the games each wait for an attachment, a quarter for a token,
+		// a quarter for a spell on the stack
 		want: func(seed uint64, v *view.View) bool {
 			switch seed % 4 {
 			case 1:
 				return hasBF(v, func(c *view.CardView) bool { return c.AttachedTo != 0 })
 			case 3:
 				return hasBF(v, func(c *view.CardView) bool { return c.IsToken })
+			case 2:
+				return len(v.Stack) != 0
 			}
 			return true
 		},
@@ -106,13 +110,13 @@ func TestStageCardsMatchReplay(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("marks: %d staged positions held an attachment, %d a token (%d skipped for a token that left the view)", st.attached, st.tokens, st.deadTok)
+	t.Logf("marks: %d staged positions held an attachment, %d a token, %d a spell on the stack (%d skipped for a token that left the view)", st.attached, st.tokens, st.spells, st.deadTok)
 	t.Logf("%d games: %d positions tried, %d staged (by step %v), %d continuation decisions; unstageable by reason %v", stageGames, st.tried, st.staged, st.byStep, st.contSteps, st.reasons)
 	t.Logf("first detail of each reason: %v", st.firstDetail)
-	if st.attached < 20 || st.tokens < 20 {
+	if st.attached < 20 || st.tokens < 20 || st.spells < 20 {
 		t.Errorf("the pool exercised too little: %d attachment and %d token positions staged", st.attached, st.tokens)
 	}
-	if st.staged < stageGames*9/10 {
+	if st.staged < stageGames*8/10 { // a game that waits for a stack position may never see one
 		t.Errorf("only %d of %d games staged a position", st.staged, stageGames)
 	}
 }
@@ -147,6 +151,24 @@ func cardsMutations(tbl *kop.Table) map[string]func(*dirac.World) {
 			}
 		},
 		"tokens dropped": dropTokens(tbl),
+		// the spell goes to its owner's graveyard instead of staying on the stack
+		"stack spell dropped": func(w *dirac.World) {
+			var keep []dirac.WorldStack
+			for _, e := range w.Stack {
+				if e.Ability {
+					keep = append(keep, e)
+					continue
+				}
+				o := &w.Objs[e.Obj]
+				o.Zone = kop.ZoneGraveyard
+				for j := range w.Objs {
+					if g := &w.Objs[j]; j != int(e.Obj) && g.Owner == o.Owner && g.Zone == kop.ZoneGraveyard && g.Pos >= o.Pos {
+						o.Pos = g.Pos + 1
+					}
+				}
+			}
+			w.Stack = keep
+		},
 	}
 }
 
