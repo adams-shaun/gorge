@@ -18,6 +18,7 @@ Aven Smokeweaver	2b3c00f22de23697	23	0/0		0/0
 Avian Changeling	7600923bd810fbba	30	0/0		0/0	
 Awaken the Ancient	c5a569eff8621e29	8	0/0		1/2	ix:resp
 Barbed Battlegear	0108788c55c4f3b1	14	1/1		0/1	ix:resp
+Bearer of the Heavens	2d5eddc296c192b1	5	1/1		1/1	
 Bee Sting	088c6dabebb62a71	17	0/0		2/2	
 Belligerent Brontodon	8cc0ad18e0f0b7ca	15	0/0		0/0	
 Berserk Murlodont	7bf39f10d6ad6e89	18	1/1		1/1	
@@ -89,6 +90,7 @@ Hulking Devil	7ec87a19d268c8fa	13	0/0		0/0
 Hurloon Minotaur	072d4f4a74fef174	10	0/0		0/0	
 Ignite Disorder	1842b5a7a8dc87e1	10	0/0		2/2	
 In the Eye of Chaos	2e7d0a38cca56652	28	1/1		1/1	
+Incinerate	8379934d32276865	14	0/0		2/2	
 Into the Core	db1f20c3f630e19a	17	0/0		2/2	
 Invasion of Belenon	aca2671c9762940d	9	1/1		1/1	
 Irregular Cohort	feb368db3a21c6cd	13	1/1		1/1	
@@ -120,6 +122,7 @@ Moorish Cavalry	6a9d0bf90adfbecb	5	0/0		0/0
 Moriok Replica	31138c27488cfc0e	37	1/1		1/1	
 Mountain	9e71388353e907ed	354	1/1		0/1	ix:resp
 Mudbrawler Cohort	fdda1f77f0646412	18	0/0		0/0	
+Mycosynth Wellspring	5b68c2574ccade0a	29	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Myrkul's Edict	1149bc07965fe2a8	12	0/0		1/2	ix:resp
 Necrogen Censer	a36cec0dba99c42d	20	1/1		0/1	ix:resp
 Necrogen Scudder	75de403c6a815629	22	1/1		0/1	ix:resp
@@ -194,6 +197,7 @@ Treetop Sentinel	f8569fba6f0bf240	14	0/0		0/0
 Tribal Flames	6660bf22125d0624	12	0/0		1/2	ix:resp
 Troll of Khazad-dûm	8ffe82df292e19b7	4	1/1		1/1	
 Tsabo's Decree	d4f928fc860d28b2	5	0/0		1/2	ix:resp
+Turntimber Grove	b0de8ef0a8759027	75	2/2		0/1	ix:resp
 Tusked Colossodon	a666408dd2cc37e0	9	0/0		0/0	
 Upriser Renegade	beb3c2b6f586938f	14	0/0		0/0	
 Viashino Racketeer	781b4a9047fb4841	28	1/1		1/1	
@@ -202,6 +206,7 @@ Volrath's Stronghold	2cd7846f4aa643ff	115	2/2		1/1
 Water Servant	12084a065b3817da	16	2/2		1/1	
 Weed-Pruner Poplar	e962b852aea07406	6	1/1		1/1	
 Whipflare	651bef29986b2c16	16	0/0		2/2	
+World Breaker	ee167496dc76fdb8	25	2/2		1/1	
 Xorn	a7abec663cb447f2	9	0/0		0/0	
 Yarok's Wavecrasher	b79ee617c47a9fc4	42	1/1		1/1	
 Young Wei Recruits	ec4a748cc49950bf	20	0/0		0/0	
