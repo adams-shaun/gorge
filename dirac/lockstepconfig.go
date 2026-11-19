@@ -308,6 +308,24 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	}
 }
 
+// xFoldCost is the cost the X ask prices at x, the announced tap-paid picks
+// folded on: the stat-reduction composition at x (gorge paymentManaX's
+// mods), then a Waterbend<X> pick's or an announced convoke/harmonize
+// pick's one pip or one generic (CR 601.2b, 702.51a; gorge xAsk prices
+// paymentManaX, whose fold is applyConvoke). ok=false reports a pick the
+// cost at x cannot absorb (gorge xAsk's convokeAbsorbs): the ask skips that
+// value and prices the next one through the same helper.
+func (s *State) xFoldCost(k *prep, base kop.ManaCost, x int, wbX bool) (kop.ManaCost, bool) {
+	c := base
+	if k.gen != nil && s.statM.any() {
+		c = s.xHypoCost(k, x) // the stat-reduction alternative: the cost at this X
+	}
+	if wbX {
+		return s.waterbendXCost(c, x)
+	}
+	return s.convokeXCost(k, c, x)
+}
+
 // addXOptions offers X = 0..mx for the entry being built, less any value the target
 // ask that follows could not answer, or no hand card could pay the discard at
 // (cost_discardxbound.go): X is announced before the targets (CR 601.2b-c),
@@ -352,14 +370,9 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 			return x <= mx || s.xReducedPays(k, av, x) || s.xDelveWithinMx(k, e, x, av, anyColor)
 		}
 		c := base
-		if k.gen != nil && s.statM.any() {
-			c = s.xHypoCost(k, x) // the stat-reduction alternative: the cost at this X
-		}
 		var ok bool
-		if wbX {
-			c, ok = s.waterbendXCost(c, x)
-		} else if absorb {
-			c, ok = s.convokeXCost(k, c, x)
+		if absorb {
+			c, ok = s.xFoldCost(k, base, x, wbX)
 		} else {
 			c, ok = s.convokeApplyPicksTo(k, xFolded(c, x)), true
 		}
