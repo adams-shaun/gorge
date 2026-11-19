@@ -291,7 +291,7 @@ func (e *Engine) askAttackers() {
 	// the triggers of a closure no legal declaration can complete removed.
 	reqGroups, opts := attackRequirementOffers(asBoard(e), opts, mustAtt, maxOpts, maxSum, payerLife)
 	maxOpts = min(maxOpts, len(opts))
-	markPlayerMustAttack(e, p, offers, opts, mustAtt, attackBounds{max: maxOpts, maxSum: maxSum, payerLife: payerLife}, tapPool)
+	markPlayerMustAttack(e, e.G, p, offers, opts, mustAtt, attackBounds{max: maxOpts, maxSum: maxSum, payerLife: payerLife}, tapPool)
 	if len(opts) == 0 {
 		// Every (attacker, defender) pair is blocked — a CantAttack static or
 		// restriction covering the whole table — or priced out — a

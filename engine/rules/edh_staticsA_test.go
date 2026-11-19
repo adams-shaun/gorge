@@ -219,8 +219,8 @@ const edhAFlipSrc = "Name:Thumb Flip Test\nManaCost:R\nTypes:Sorcery\n" +
 	"Oracle:Flip a coin. If you win the flip, you gain 3 life. If you lose the flip, you lose 3 life.\n"
 
 const edhAThumbSrc = "Name:Krark's Thumb\nManaCost:2\nTypes:Legendary Artifact\n" +
-	"S:Mode$ FlipCoinDoubler | ValidPlayer$ You | Description$ If you would flip a coin, instead flip two coins and ignore one.\n" +
-	"Oracle:If you would flip a coin, instead flip two coins and ignore one.\n"
+	"S:Mode$ FlipCoinDoubler | ValidPlayer$ You\n" +
+	"Oracle:x\n"
 
 // edhAFlip casts the flip sorcery at seed, with Krark's Thumb out or not,
 // answering the keep-which-coin ask (when posed) with answer (0 heads, 1

@@ -25,7 +25,20 @@ import (
 // planeswalker they control); any other parameter fails closed to no duty.
 func init() { effects.RegisterNonAPI("stat:PlayerMustAttack") }
 
-const playerMustAttackYouOrWalker = "You,Planeswalker.YouCtrl"
+const (
+	playerMustAttackYouOrWalker = "You,Planeswalker.YouCtrl"
+	noMustAttackSpec            = ""
+)
+
+// playerMustAttackKeys are the parameters a PlayerMustAttack static may carry
+// and still be read; any other key (a condition, a selector) fails closed.
+var playerMustAttackKeys = [...]cards.ParamKey{cards.PKMode, cards.PKValidPlayer, cards.PKMustAttack, cards.PKDescription}
+
+// attackDutyBoard is the slice of the engine PlayerMustAttack reads.
+type attackDutyBoard interface {
+	activeStatics(mode string) []staticView
+	hasType(o *state.Object, t string) bool
+}
 
 // playerMustAttackUnit is one live duty binding the attacking player: any
 // attack discharges it (anyDefender), or only an attack on controller or on a
@@ -37,27 +50,24 @@ type playerMustAttackUnit struct {
 
 // playerMustAttackUnits collects the readable PlayerMustAttack statics that
 // bind player p (ValidPlayer$ read relative to each static's controller).
-func playerMustAttackUnits(e *Engine, p state.PlayerID) []playerMustAttackUnit {
+func playerMustAttackUnits(b attackDutyBoard, g *state.Game, p state.PlayerID) []playerMustAttackUnit {
 	var out []playerMustAttackUnit
-	for _, sv := range e.activeStatics("PlayerMustAttack") {
-		readable := true
-		for k := range sv.Params { // membership test only
-			switch k {
-			case "Mode", "ValidPlayer", "MustAttack", "Description":
-			default:
-				readable = false
+	for _, sv := range b.activeStatics("PlayerMustAttack") {
+		known := 0
+		for _, k := range playerMustAttackKeys {
+			if _, ok := sv.Param(k); ok {
+				known++
 			}
 		}
-		if !readable {
+		if known != len(sv.Params) {
 			continue
 		}
-		if spec := sv.ParamStr(cards.PKValidPlayer); spec == "" || !effects.MatchesPlayerSpec(e.G, spec, p, sv.Controller) {
+		if spec := sv.ParamStr(cards.PKValidPlayer); spec == "" || !effects.MatchesPlayerSpec(g, spec, p, sv.Controller) {
 			continue
 		}
-		switch sv.ParamStr(cards.PKMustAttack) {
-		case "":
+		if must := sv.ParamStr(cards.PKMustAttack); must == noMustAttackSpec {
 			out = append(out, playerMustAttackUnit{controller: sv.Controller, anyDefender: true})
-		case playerMustAttackYouOrWalker:
+		} else if must == playerMustAttackYouOrWalker {
 			out = append(out, playerMustAttackUnit{controller: sv.Controller})
 		}
 	}
@@ -66,7 +76,7 @@ func playerMustAttackUnits(e *Engine, p state.PlayerID) []playerMustAttackUnit {
 
 // discharges reports whether attacking def (and the planeswalker battle, or 0
 // for the player) obeys the duty.
-func (u playerMustAttackUnit) discharges(e *Engine, def state.PlayerID, battle state.ObjID) bool {
+func (u playerMustAttackUnit) discharges(b attackDutyBoard, g *state.Game, def state.PlayerID, battle state.ObjID) bool {
 	if u.anyDefender {
 		return true
 	}
@@ -76,8 +86,8 @@ func (u playerMustAttackUnit) discharges(e *Engine, def state.PlayerID, battle s
 	if battle == 0 {
 		return true
 	}
-	o := e.G.Obj(battle)
-	return o != nil && o.Controller == u.controller && e.hasType(o, "Planeswalker")
+	o := g.Obj(battle)
+	return o != nil && o.Controller == u.controller && b.hasType(o, "Planeswalker")
 }
 
 // markPlayerMustAttack sets Option.AttackOne on the declarable pairs that
@@ -89,9 +99,9 @@ func (u playerMustAttackUnit) discharges(e *Engine, def state.PlayerID, battle s
 // decision unanswerable. A per-defender cap or a tap-candidate pool can make
 // that fit unprovable, so either leaves the duty unmarked (unenforced), the
 // attackRequirementGroups precedent.
-func markPlayerMustAttack(e *Engine, p state.PlayerID, offers []attackOffer, opts []decision.Option,
-	required map[state.ObjID]bool, b attackBounds, tapPool int) {
-	units := playerMustAttackUnits(e, p)
+func markPlayerMustAttack(b attackDutyBoard, g *state.Game, p state.PlayerID, offers []attackOffer, opts []decision.Option,
+	required map[state.ObjID]bool, bounds attackBounds, tapPool int) {
+	units := playerMustAttackUnits(b, g, p)
 	if len(units) == 0 || tapPool > 0 {
 		return
 	}
@@ -116,12 +126,12 @@ func markPlayerMustAttack(e *Engine, p state.PlayerID, offers []attackOffer, opt
 	anyAll := false
 	for i := range opts {
 		o := &opts[i]
-		if !free[attackOfferKey{id: o.Obj, def: o.Player, battle: o.Battle}] || !playerMustAttackFits(o, cheapest, required, b) {
+		if !free[attackOfferKey{id: o.Obj, def: o.Player, battle: o.Battle}] || !playerMustAttackFits(o, cheapest, required, bounds) {
 			continue
 		}
 		met, every := 0, true
 		for _, u := range units {
-			if u.discharges(e, o.Player, o.Battle) {
+			if u.discharges(b, g, o.Player, o.Battle) {
 				met++
 			} else {
 				every = false
