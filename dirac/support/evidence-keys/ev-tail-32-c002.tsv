@@ -8,6 +8,7 @@ Blade Splicer	4bf7b38627473819	4	1/1		0/1	ix:resp
 Bloodcrusher of Khorne	82f674575c36ed1f	7	0/0		0/0	
 Boggart Arsonists	3efcd2e324918e16	6	1/1		1/1	
 Border Guard	66f3fd32e845afd1	4	0/0		0/0	
+Boreal Elemental	54202da3062daaa9	4	0/0		0/0	
 Brawl-Bash Ogre	61090b900dad4022	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Bull Hippo	555877f6a29d6648	6	0/0		0/0	
 Bushi Tenderfoot	0e239a08368a4403	63	3/3		1/1	
@@ -19,9 +20,11 @@ Combust	201f5d6ee6aec5b7	4	0/0		1/2	ix:resp
 Copper Host Crusher	5f977d1c52fe5ad0	3	0/0		0/0	
 Court Homunculus	0ce5e66f433ca485	11	0/0		0/0	
 Cut	7b1b4871806241d5	13	0/0		4/7	f1/s,f1/s/x+,f1/s/x0
+Death-Hood Cobra	d778d66aca808390	6	2/2		1/1	
 Dementia Bat	7fefb2d594260e1b	3	1/1		0/1	ix:resp
 Deploy the Gatewatch	6018c9bff07904ba	7	0/0		2/2	
 Dismiss	98c54a5dacadbdcc	4	0/0		1/2	ix:resp
+Draugr Thought-Thief	eafff8feb9916d5a	4	1/1		0/1	ix:resp
 Drown in Ichor	43334b7985e29b44	7	0/0		1/2	ix:resp
 Dwarven Warriors	4f547993319d89ea	3	1/1		1/1	
 Evaporate	3063c6f97bbe6f92	4	0/0		1/2	ix:resp

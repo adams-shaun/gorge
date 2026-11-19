@@ -67,6 +67,7 @@ First-Sphere Gargantua	52f760b60bded5e0	11	2/2		0/1	ix:resp
 Flowstone Sculpture	896dd1aa0329a0b7	25	1/1		1/1	
 Forest	6d0466c30f825dba	1368	1/1		0/1	ix:resp
 Foundry Screecher	9cc4d8aeaaf732f7	14	0/0		0/0	
+Frostwalla	1fc9b0ada23549a2	269	1/1		1/1	
 Gempalm Strider	5ec9f26b556512ed	26	2/2		1/1	
 Gideon's Resolve	6daa24707abd3f66	10	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Glimmering Angel	21effe7aac6dff63	8	1/1		1/1	
@@ -83,6 +84,7 @@ Gruul Charm	70dbc30dd16d18c2	16	0/0		1/2	ix:resp
 Gyome, Master Chef	da2c63ed15cffa88	12	2/2		0/1	ix:resp
 Haazda Exonerator	d38270a5afafb6c2	9	1/1		0/1	ix:resp
 Halo Scarab	99942ee6e444206c	12	1/1		0/1	ix:resp
+Hex	dfdd85efa8bd7abd	3	0/0		1/2	ix:resp
 Hotshot Mechanic	471aaced0126eb52	13	0/0		0/0	
 Hound of Griselbrand	7730076d5d8e2d00	14	1/1		1/1	
 Howling Golem	191b745cfcc73b0f	9	2/2		1/1	
@@ -152,6 +154,7 @@ Rampant Elephant	6f53b6522e22f808	17	1/1		1/1
 Raphael, the Muscle	b4f0c4359ebeb1ec	6	1/1		0/1	ix:resp
 Reclusive Wight	3cffaf9818d35481	8	1/1		1/1	
 Red Scarab	10316cad76eb7644	12	0/0		1/2	ix:resp
+Replicating Ring	d3ac1b08f9d1badc	26	2/2		1/1	
 Reprisal	0447b3f5bf035692	5	0/0		1/2	ix:resp
 Returned Phalanx	eb0e6958374cf0a4	27	1/1		1/1	
 Revive the Shire	fffdba83a7f5557b	32	0/0		2/2	
@@ -171,6 +174,9 @@ Silkwrap	cab7be8dbba75da5	21	1/1		1/1
 Skorpekh Destroyer	8f44f7ec87e6135b	11	1/1		1/1	
 Skullport Merchant	1583aa43e8719ef2	12	2/2		0/1	ix:resp
 Snow Devil	a2e068241e1c9ee6	21	0/0		2/2	
+Snow-Covered Forest	a1a5f67cd8b33a1c	286	1/1		0/1	ix:resp
+Snow-Covered Island	3020b29d96f5b5b9	1016	1/1		0/1	ix:resp
+Snow-Covered Swamp	c7302ea4a23ed037	1004	1/1		0/1	ix:resp
 Somber Hoverguard	9eab7b94392cd1ee	31	0/0		0/0	
 Somberwald Alpha	7de794876748864d	18	2/2		1/1	
 Soulsworn Jury	01725f610cb98c74	21	1/1		0/1	ix:resp

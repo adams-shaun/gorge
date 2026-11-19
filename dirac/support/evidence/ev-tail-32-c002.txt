@@ -25,6 +25,7 @@ Blue Sun's Zenith
 Boggart Arsonists
 Book of Rass
 Border Guard
+Boreal Elemental
 Brand
 Brawl-Bash Ogre
 Brood Birthing
@@ -47,12 +48,14 @@ Court Homunculus
 Cut
 Dakmor Plague
 Dark Betrayal
+Death-Hood Cobra
 Definitely Not a Turtle
 Dementia Bat
 Demystify
 Deploy the Gatewatch
 Dismiss
 Drana, Liberator of Malakir
+Draugr Thought-Thief
 Drown in Ichor
 Dwarven Warriors
 Dwell on the Past
