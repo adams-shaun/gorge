@@ -24,11 +24,35 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // refcounts cannot make equal states hash differently. Readers only ever
 // dereference an index, whose content is the snapshot itself.
 
-// maxLKI is the LKI pool's records, at 56 B of State each on every pool:
-// tliIdx's five bits hold up to 31. 31 since 2026-11-03, past MaxPending's old
-// 24: every trigger of a creature entering snapshots it, so twenty Cat tokens
-// from Ajani, Caller of the Pride beside Mentor of the Meek took twenty.
-const maxLKI = 31
+// maxLKI is the LKI pool's records, at 36 B of State each on every pool:
+// tliIdx's six bits hold up to 63. 63 since 2026-11-19, when random-policy
+// four-seat Commander pods filled 31 in 2 of about 460 (a board of creatures
+// dying together, each with its own trigger: 37 pending), and the subtype set
+// moved to a cold region (coldLKISubs) so the larger pool cost 280 B, not
+// 2 KB. 31 since 2026-11-03, past MaxPending's old 24: every trigger of a
+// creature entering snapshots it, so twenty Cat tokens from Ajani, Caller of
+// the Pride beside Mentor of the Meek took twenty.
+const maxLKI = 63
+
+// coldLKISubs is each LKI record's derived subtype set (lki[i]'s at [i]), for
+// the Sacrificed$Valid Card/creature-type reads: the 192-bit mask is most of a
+// record, and only a table that lowers such a read (genPrep.anySacSub) has
+// the region.
+var coldLKISubs = newCold[kop.SubMask]("lkiSubs", func(g *genPrep) int {
+	if g.anySacSub {
+		return maxLKI
+	}
+	return 0
+})
+
+// lkSubs is record index i's subtype set (empty for 0, or for a table
+// without the region).
+func (s *State) lkSubs(i uint8) kop.SubMask {
+	if r := coldLKISubs.of(s); i != 0 && int(i) <= len(r) {
+		return r[i-1]
+	}
+	return kop.SubMask{}
+}
 
 // lkiRec.bits (the byte that was faceDown): the snapshot's designations.
 const (
@@ -47,14 +71,10 @@ const lkiInfect uint8 = 1 << 5
 // (layered) types, colours and keywords (CR 608.2h in full).
 //
 // The fields run widest first, so the record has no interior padding (the
-// object is two bytes): 64 bytes, where the 16-bit counter
-// kinds (ck, as perm.ck) pushed it one byte past 56.
+// object is two bytes): 36 bytes. The derived subtype set of the
+// Sacrificed$Valid reads is beside the pool, in coldLKISubs (it was the
+// record's first 24 bytes before 2026-11-19).
 type lkiRec struct {
-	// subs is the derived subtype set at the snapshot, for the
-	// Sacrificed$Valid Card/creature-type reads (anySacSub): the 192-bit
-	// mask does not fit the 16-bit types snapshot, so it is a field of its
-	// own. Zero unless the table lowers one of those reads.
-	subs   kop.SubMask
 	kw     kop.KwMask
 	power  int16
 	tough  int16
@@ -125,8 +145,9 @@ func (s *State) snapLKI(o Obj) uint8 {
 	if s.faceDown(k, sl) {
 		r.bits |= lkiFaceDown
 	}
+	var subs kop.SubMask
 	if k.gen != nil && k.gen.anySacSub {
-		r.subs = s.lkiSubs(k, sl) // Sacrificed$Valid Card/creature-type reads
+		subs = s.lkiSubs(k, sl) // Sacrificed$Valid Card/creature-type reads
 	}
 	if k.gen != nil && k.gen.anySuspect && s.suspected(k, sl) {
 		r.bits |= lkiSuspected
@@ -155,7 +176,7 @@ func (s *State) snapLKI(o Obj) uint8 {
 			}
 			continue
 		}
-		if r.obj == q.obj && r.ver == q.ver && r.same(q) && (s.g.nctrOver == 0 || s.ctrOverSnapSame(o, uint8(i+1))) {
+		if r.obj == q.obj && r.ver == q.ver && r.same(q) && subs == s.lkSubs(uint8(i+1)) && (s.g.nctrOver == 0 || s.ctrOverSnapSame(o, uint8(i+1))) {
 			return uint8(i + 1)
 		}
 	}
@@ -165,6 +186,9 @@ func (s *State) snapLKI(o Obj) uint8 {
 	}
 	r.ref = 1
 	s.g.lki[free] = r
+	if cs := coldLKISubs.of(s); free < len(cs) {
+		cs[free] = subs
+	}
 	if p.ck[ctrSlots-1] != 0 {
 		s.ctrOverSnap(o, uint8(free+1))
 	}
@@ -204,7 +228,7 @@ func (s *State) lkiSubs(k *prep, sl Slot) kop.SubMask {
 // same: q holds r's snapshot (ref aside).
 func (r *lkiRec) same(q *lkiRec) bool {
 	return r.ctrl == q.ctrl && r.power == q.power && r.tough == q.tough && r.p1p1 == q.p1p1 &&
-		r.cn == q.cn && r.ck == q.ck && r.col == q.col && r.types == q.types && r.subs == q.subs && r.kw == q.kw &&
+		r.cn == q.cn && r.ck == q.ck && r.col == q.col && r.types == q.types && r.kw == q.kw &&
 		r.bits == q.bits && r.chosen == q.chosen
 }
 
@@ -253,7 +277,7 @@ func (s *State) objVer(o Obj) uint8 {
 const (
 	tliOn     = 0x80 // res.tli: matchTargetLKI is reading the snapshot
 	tliRemLKI = 0x40 // the snapshot is a RememberLKI$ move's capture: a remembered read takes its controller (zone_rememberparams.go)
-	tliIdx    = 0x1F // the record index (1..maxLKI)
+	tliIdx    = 0x3F // the record index (1..maxLKI)
 )
 
 // snapResTarget: a resolving effect is about to move o off the battlefield;
@@ -315,3 +339,6 @@ func (s *State) lkiPT() (int, int) {
 	l := s.lk(s.g.tli & tliIdx)
 	return int(l.power), int(l.tough)
 }
+
+// The record index fits below tliRemLKI.
+var _ = [1]struct{}{}[maxLKI>>6]

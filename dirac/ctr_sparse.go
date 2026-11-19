@@ -16,9 +16,11 @@ import (
 
 // maxCtrOver is the overflow table's entries: every counter kind held past
 // the slots by any permanent, plus the LKI snapshots' copies of them. The
-// keyword-counter pool of TestCtrcellLockstep peaks at 8 in 600 games; twice
-// that costs about 100 bytes of State.
-const maxCtrOver = 16
+// keyword-counter pool of TestCtrcellLockstep peaks at 8 in 600 games. 32
+// since 2026-11-19 (16 before, about 100 bytes of State; the 16 more cost 128):
+// a four-seat MBC pod filled 16, and the LKI pool's records, which copy a
+// snapshot's overflow kinds here, grew from 31 to 63.
+const maxCtrOver = 32
 
 // ctrPadN pads genState so the 16-bit counter kinds (perm.ck, lkiRec.ck,
 // ctrOverEntry.kind, genState's lastCK and enterCtr.kind) grow the State ahead

@@ -11,13 +11,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // {B} pump's two activations (CR 602.5b), so the offer gate reads the census
 // less the object's granted activations this turn.
 //
-// The kernel lists the host of each granted activation pushed this turn in a
-// cold region (coldGrantAct, source Obj+1, 0 = empty), present only for a
+// The kernel lists the hosts of the granted activations pushed this turn in a
+// cold region (coldGrantAct, packed as the activation ledger's entries are:
+// host Obj+1 and its push count, actPack, 0 = empty), present only for a
 // table with an ExActivations N 1 expression (prepGrantAct), so State itself
-// does not grow and no fixed field is added (TestNoNewFixedStateFields). A fifth granted activation in one turn stalls with
-// StallActRing rather than truncating.
+// does not grow and no fixed field is added (TestNoNewFixedStateFields). A fifth
+// distinct host of granted activations in one turn stalls with StallActRing
+// rather than truncating (a fifth push did before 2026-11-19).
 
-// grantActN is the granted activations per turn the ledger records.
+// grantActN is the distinct hosts per turn the ledger records.
 const grantActN = 4
 
 // coldGrantAct is the ledger, grantActN hosts, laid out by prepGrantAct (it
@@ -42,25 +44,22 @@ func (s *State) grantActOn() bool { return coldGrantAct.count(s.cold.layout) > 0
 //
 //go:noinline
 func (s *State) noteGrantAct(o Obj) {
-	r := coldGrantAct.of(s)
-	for i := range r {
-		if r[i] == 0 {
-			r[i] = o + 1
-			return
-		}
+	if !actBump(coldGrantAct.of(s), o) {
+		s.capFull(StallActRing)
 	}
-	s.capFull(StallActRing)
 }
 
-// dropGrantAct takes back the newest record of host o: a reversed activation
+// dropGrantAct takes back one push of host o: a reversed activation
 // (unpushActivation) is not one (CR 733.1).
 //
 //go:noinline
 func (s *State) dropGrantAct(o Obj) {
 	r := coldGrantAct.of(s)
 	for i := len(r) - 1; i >= 0; i-- {
-		if r[i] == o+1 {
-			r[i] = 0
+		if r[i] != 0 && r[i]&actObjMask == o+1 {
+			if r[i] -= 1 << actCntShift; r[i]>>actCntShift == 0 {
+				r[i] = 0
+			}
 			return
 		}
 	}
@@ -70,8 +69,8 @@ func (s *State) dropGrantAct(o Obj) {
 func (s *State) grantActsOf(o Obj) int {
 	n := 0
 	for _, h := range coldGrantAct.of(s) {
-		if h == o+1 {
-			n++
+		if h != 0 && h&actObjMask == o+1 {
+			n += int(h >> actCntShift)
 		}
 	}
 	return n
@@ -82,7 +81,7 @@ func (s *State) grantActsOf(o Obj) int {
 func (s *State) dropGrantActs(o Obj) {
 	r := coldGrantAct.of(s)
 	for i := range r {
-		if r[i] == o+1 {
+		if r[i] != 0 && r[i]&actObjMask == o+1 {
 			r[i] = 0
 		}
 	}

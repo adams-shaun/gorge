@@ -96,10 +96,12 @@ const (
 // boards in reach: a "divided as you choose among any number of target
 // creatures" spell (Monstrous Onslaught, X = the greatest power you control)
 // cast by the heuristic bot into a four-seat Commander pod picked a ninth
-// creature in 18 of 300 pods, so the class holds sixteen objects.
-const maxXTgt = 15
+// creature in 18 of 300 pods, so the class held sixteen objects; the random
+// policy on a board of up to 192 permanents picked a seventeenth, so since
+// 2026-11-19 it holds thirty-two (xtMask a uint32).
+const maxXTgt = 31
 
-type xtMask = uint16
+type xtMask = uint32
 
 // embRemSlots is how many objects one emblem remembers (static_emblemrem.go):
 // the frozen-number byte and embR. The four-seat class has no reserved bytes
@@ -108,11 +110,11 @@ const embRemSlots = 2
 
 // linkPadN pads genState after its sixteen exile-until-leaves links so perms
 // keeps its cache-line phase (statelayout_test.go). It rounds four seats of
-// player.lastLost, the two-byte seatWord fields, the sixteen-object xTargets,
+// player.lastLost, the two-byte seatWord fields, the thirty-two-object xTargets,
 // the sixteen-object free-cast arrays (maxFree), the sixteen-bit codes and the
 // BecomesTarget player/source referent bytes (stackEntry.btPl, trigSA,
 // trigSASid) to phase 0.
-const linkPadN = 88
+const linkPadN = 24 // 88 before 2026-11-19: MaxPerm 192, the three-word slotMask, the 63-record LKI pool, maxXTgt 31 and maxCtrOver 32 moved the State ahead of perms
 
 // seatWord is a packed field holding a few bits per seat beside its other
 // bits (genState.speed, genState.freeP): two bytes at four seats.
