@@ -44,6 +44,11 @@ func (f *Face) Primitives() []string {
 			// not playable as printed.
 			set["api:TwoPiles.OtherShape"] = struct{}{}
 		}
+		if sa.API == "MultiplePiles" && !MultiplePilesShapeSupported(sa, f) {
+			// Only the random-pile battlefield shape resolves (Whims of the
+			// Fates); any other MultiplePiles Notes and moves nothing.
+			set["api:MultiplePiles.OtherShape"] = struct{}{}
+		}
 		if v := strings.TrimSpace(sa.ParamStr(PKAtEOT)); v != "" && !AtEOTValueSupported(v) {
 			set["api:AtEOT."+v] = struct{}{}
 		}

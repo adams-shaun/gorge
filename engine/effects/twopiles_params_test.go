@@ -61,14 +61,16 @@ func TestTwoPilesZoneLibraryAndFaceDownOneAreMetadata(t *testing.T) {
 	}
 }
 
-func TestTwoPilesFaceDownTrueStaysLoud(t *testing.T) {
+// FaceDown$ True (Phyrexian Portal) is display-only metadata like FaceDown$
+// One; an unknown value stays loud.
+func TestTwoPilesFaceDownUnknownStaysLoud(t *testing.T) {
 	h, ids := twopilesBoard(t)
 	ctx := &Ctx{Controller: 0, Source: ids[5], Remembered: twopilesRemembered(ids[:2]), SVars: twopilesSVars()}
-	Resolve(h, ctx, sa(t, "DB$ TwoPiles | Defined$ You | DefinedCards$ Remembered | FaceDown$ True | Separator$ You | ChosenPile$ DBHand"))
+	Resolve(h, ctx, sa(t, "DB$ TwoPiles | Defined$ You | DefinedCards$ Remembered | FaceDown$ Two | Separator$ You | ChosenPile$ DBHand"))
 	if h.g.Obj(ids[0]).Zone != state.ZLibrary || h.g.Obj(ids[1]).Zone != state.ZLibrary {
 		t.Fatal("unsupported FaceDown shape moved cards")
 	}
-	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Text != "unimplemented TwoPiles shape: FaceDown$ True" {
+	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Text != "unimplemented TwoPiles shape: FaceDown$ Two" {
 		t.Fatalf("log = %+v, want exactly one FaceDown$ Note", h.log)
 	}
 }
