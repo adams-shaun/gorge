@@ -25,7 +25,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // tap-another-permanent ability (cand the permanent it taps, col its colour).
 const stepTapX int16 = -3
 
-// grantTapXGaps: p's one- and two-permanent tap-another sources on a board whose
+// grantTapXGaps: p's one- and two-permanent tap-another sources (Urza's
+// no-{T} "Tap an untapped artifact you control: Add {U}" among them) on a board whose
 // census gaps the tap-another search models (scriptTapXModelled). A
 // sacrifice-another source is not one: beside a granted mana ability the
 // grant search activates it as a candidate of its own (grantSacXGaps,
@@ -42,7 +43,7 @@ func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 		if kop.SacXMana(a) {
 			continue
 		}
-		if a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 || a.Cost.N == 2 {
+		if a.Cost.N == 1 || a.Cost.N == 2 { // (a one-permanent cost with or without {T}: Urza's has none)
 			m = m.with(sl)
 		}
 	}
@@ -50,7 +51,8 @@ func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 }
 
 // tapXBranch activates candidate i's (slot sl) tap-another ability on copies
-// of t: each permanent its cost may tap, then each colour.
+// of t: each permanent its cost may tap, then each colour, the play's
+// colours first (tapXColours; none asked of a fixed production).
 func (g *grantSrch) tapXBranch(t *State, i int, sl Slot) bool {
 	var cs [MaxPerm]Slot
 	nc := t.tapXCands(g.k, g.p, sl, &cs)
@@ -60,14 +62,15 @@ func (g *grantSrch) tapXBranch(t *State, i int, sl Slot) bool {
 	if nc > 1 && !g.node() { // the creature ask
 		return false
 	}
+	order, ncol := g.tapXColours(t, sl)
 	for j := 0; j < nc; j++ {
 		if nc > 1 && tapXOwnAnswer(g.ex, cs[j], NoSlot) {
 			continue // it would tap the play's own {T} source (CR 602.2b)
 		}
-		if !g.node() { // the colour ask
+		if ncol > 1 && !g.node() { // the colour ask
 			return false
 		}
-		for col := uint8(0); col < 5; col++ {
+		for _, col := range order[:ncol] {
 			if g.np >= len(g.path) {
 				return false
 			}
@@ -91,6 +94,19 @@ func (g *grantSrch) tapXBranch(t *State, i int, sl Slot) bool {
 	return false
 }
 
+// tapXColours is the answers of tapXBranch's colour ask for source sl: W U B
+// R G with the play's announced colours first (gorge's scriptOrderAnswers on
+// that ask, needFirst), or one fixed colour and no ask (Urza's {U},
+// kop.TapXFixedColour).
+func (g *grantSrch) tapXColours(t *State, sl Slot) ([5]uint8, int) {
+	if fc, ok := kop.TapXFixedColour(g.k.tapXAbOf(t.cardAt(sl))); ok {
+		return [5]uint8{uint8(fc)}, 1
+	}
+	order := [5]uint8{0, 1, 2, 3, 4}
+	needFirst(order[:], g.need)
+	return order, 5
+}
+
 // tapXPairBranch is tapXBranch for a two-permanent cost: two candidates are
 // tapped with no ask, more are asked as one "choose 2" (every pair of its
 // candidates, tapXPairLimit), then the colour.
@@ -98,6 +114,8 @@ func (g *grantSrch) tapXPairBranch(t *State, i int, sl Slot, cs *[MaxPerm]Slot, 
 	if nc > 2 && !g.node() { // the pair ask
 		return false
 	}
+	order := [5]uint8{0, 1, 2, 3, 4}
+	needFirst(order[:], g.need) // (gorge's scriptOrderAnswers on the colour ask)
 	for pi, npair := 0, tapXPairLimit(nc); pi < npair; pi++ {
 		x, y := tapXPairAt(nc, pi)
 		a, b := cs[x], cs[y]
@@ -107,7 +125,7 @@ func (g *grantSrch) tapXPairBranch(t *State, i int, sl Slot, cs *[MaxPerm]Slot, 
 		if !g.node() { // the colour ask
 			return false
 		}
-		for col := uint8(0); col < 5; col++ {
+		for _, col := range order {
 			if g.np >= len(g.path) {
 				return false
 			}
