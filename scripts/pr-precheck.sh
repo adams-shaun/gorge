@@ -9,6 +9,14 @@ source scripts/pr-cards.sh
 cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
 log=$(mktemp); trap 'rm -f "$log"' EXIT
 fail() { echo "pr-precheck: $*"; exit 1; }
+# gofmt, the lint job's first step (.github/workflows/ci.yml): #1964 printed "pr-precheck: ok" here and then failed
+# lint on ./dirac/turn_gen.go and ./dirac/combat_mustbeblocked.go, needing a hand gofmt commit and a requeue. First,
+# before any heavy step. --diff-filter=ACMR is the "still exist" half: a file the branch deletes is not there for
+# gofmt to read.
+unformatted=$(git diff --name-only --diff-filter=ACMR "$base"...HEAD -- '*.go' | xargs -r gofmt -l)
+if [ -n "$unformatted" ]; then
+  fail "gofmt: run gofmt -w $unformatted"
+fi
 # The gate for the golden-head step below, on a `git diff --name-only` list: the golden-head tests and the
 # corpus-wide ratchets it runs live in ./engine/rules, so the affected-package steps never select them when the
 # change lands in engine/{events,effects,state,cards} or cmd/forgec. #1758 appended events.CrewAction, pr-precheck
