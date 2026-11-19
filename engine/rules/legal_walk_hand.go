@@ -322,8 +322,8 @@ func (w *legalWalk) handWalk() {
 			// sorcery-speed gate. When it is already sorcery timing the plain
 			// cast is strictly cheaper, so no mayflash option is offered and the
 			// face takes the ordinary path (no redundant duplicate offer).
-			w.offerMayflash(ph, p, id, f, out)
-			w.offerOffering(ph, p, id, f, true, func() bool { return e.castTargetsAvailable(p, id, f.SpellAbility()) }, out)
+			offerMayflash(w, ph, p, id, f, out)
+			offerOffering(w, ph, p, id, f, true, func() bool { return e.castTargetsAvailable(p, id, f.SpellAbility()) }, out)
 			w.offerMayPlayFlashAlts(p, id, f, out)
 			continue
 		}
@@ -666,7 +666,7 @@ func (w *legalWalk) handWalk() {
 					Label: "Cast " + f.Name + " (emerged)", Obj: id, Mode: "emerged"})
 			}
 		}
-		w.offerOffering(ph, p, id, f, false, targetsAvailable, out)
+		offerOffering(w, ph, p, id, f, false, targetsAvailable, out)
 		// Bestow (CR 702.114a): the bestowed cast is its own "cast" option
 		// paying the bestow cost in place of the mana cost, and the spell is
 		// an Aura with enchant creature, so the offer gates on the targets of

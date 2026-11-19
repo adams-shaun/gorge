@@ -41,7 +41,7 @@
 //     Sac part and marks the cast.
 //   - sacAsk applies the chosen permanent's mana cost as the reduction exactly
 //     once, after every Sac part is settled, before the mana window reads
-//     pc.cost (applyOfferingReduction, the applyEmergeReduction shape).
+//     pc.cost (pendingCast.applyOfferingReduction, the applyEmergeReduction shape).
 
 package rules
 
@@ -122,8 +122,8 @@ func offeringPrintedCost(f *cards.Face) (Cost, bool) {
 // hybrid, an unknown token; tokens with no mana cost are NOT unpriceable —
 // they reduce by nothing and are legal sacrifices) is skipped: ok=false tells
 // the caller to drop the candidate, never to price a degraded generic.
-func (e *Engine) offeringCandidateCost(base Cost, oid state.ObjID) (Cost, bool) {
-	o := e.G.Obj(oid)
+func offeringCandidateCost(g *state.Game, base Cost, oid state.ObjID) (Cost, bool) {
+	o := g.Obj(oid)
 	if o == nil || o.Face() == nil {
 		return base, false
 	}
@@ -147,7 +147,8 @@ func (e *Engine) offeringCandidateCost(base Cost, oid state.ObjID) (Cost, bool) 
 // best-case price alone must not authorize an offering whose own payment is
 // unaffordable; the payment ask repeats this candidate-specific constraint
 // against the live pool.
-func (e *Engine) offeringOfferCost(p state.PlayerID, id state.ObjID, f *cards.Face, payable func(Cost) bool) (Cost, bool) {
+func offeringOfferCost(w *legalWalk, p state.PlayerID, id state.ObjID, f *cards.Face, payable func(Cost) bool) (Cost, bool) {
+	e := w.e
 	spec, ok := offeringSacrificeSpec(f)
 	if !ok {
 		return Cost{}, false
@@ -169,7 +170,7 @@ func (e *Engine) offeringOfferCost(p state.PlayerID, id state.ObjID, f *cards.Fa
 	best := int32(-1)
 	var priced Cost
 	for _, oid := range pay.SacrificeCostCandidates(asPayer(e), p, id, spec, false) {
-		candidate, ok := e.offeringCandidateCost(base, oid)
+		candidate, ok := offeringCandidateCost(e.G, base, oid)
 		if !ok || !payable(candidate) {
 			continue
 		}
@@ -178,23 +179,6 @@ func (e *Engine) offeringOfferCost(p state.PlayerID, id state.ObjID, f *cards.Fa
 		}
 	}
 	return priced, best >= 0
-}
-
-// At the sacrifice ask use the same reduction and pool feasibility as the
-// offer, but the pending cast's captured modifiers (the card is on the stack
-// now). Only mana varies by candidate; the common non-mana parts were checked
-// at the offer and are settled independently by sacAsk. A candidate this
-// build cannot price is not offered as a sacrifice.
-func (e *Engine) offeringSacPayable(pc *pendingCast, oid state.ObjID) bool {
-	candidate, ok := e.offeringCandidateCost(pc.cost, oid)
-	if !ok {
-		return false
-	}
-	delve := int32(0)
-	if e.hasCastDelve(pc.card, pc.isAbility()) {
-		delve = int32(len(e.G.Zone(state.ZGraveyard, pc.player)))
-	}
-	return e.manaFeasiblePriced(pc.player, paymentFor(pc.card, false, Cost{}), candidate, pc.mods, pc.taxGeneric, delve, nil)
 }
 
 // applyOfferingReduction folds the actual chosen sacrifice's mana cost into
@@ -206,32 +190,14 @@ func (e *Engine) offeringSacPayable(pc *pendingCast, oid state.ObjID) bool {
 // makes cannot subtract twice. An unpriceable chosen sacrifice folds nothing
 // (it cannot reach here: sacAsk only offers candidates
 // offeringSacPayable admitted).
-func (e *Engine) applyOfferingReduction(pc *pendingCast) {
+func (pc *pendingCast) applyOfferingReduction(g *state.Game) {
 	if !pc.offering || pc.offeringDone {
 		return
 	}
-	if candidate, ok := e.offeringCandidateCost(pc.cost, pc.offeringSac); ok {
+	if candidate, ok := offeringCandidateCost(g, pc.cost, pc.offeringSac); ok {
 		pc.cost = candidate
 	}
 	pc.offeringDone = true
-}
-
-// offeringTimingOK is the timing gate the hand walk relaxes to: the keyword
-// must be present and the face's own activation-phase restrictions
-// (ActivationPhases$, PlayerTurn$, ...) must hold, exactly the
-// mayflashTimingOK shape — the instant/sorcery-speed check spellTimingOK
-// makes is deliberately omitted, because the permission ("any time you could
-// cast an instant", CR 702.46a) IS the flash window, and every sorcery window
-// satisfies it as well (CR 117.1a: an instant can be cast whenever a sorcery
-// can).
-func (e *Engine) offeringTimingOK(p state.PlayerID, f *cards.Face) bool {
-	if f == nil {
-		return false
-	}
-	if _, ok := f.KeywordParam("Offering"); !ok {
-		return false
-	}
-	return e.activationPhasesOK(p, f.SpellAbility())
 }
 
 // offeringCastCost composes the Offering cast's cost (CR 702.46): the PRINTED
@@ -243,8 +209,12 @@ func (e *Engine) offeringTimingOK(p state.PlayerID, f *cards.Face) bool {
 // of the cast's cost once the choice is in. cost is the same pay.RawBaseCost
 // the offer gate priced, so the two stages cannot drift; the spell's own
 // additional costs fold here as the emerged arm's emergeBase folds them. A
-// stale option whose keyword is gone falls back to the empty cost.
-func offeringCastCost(f *cards.Face, cost Cost) Cost {
+// stale option whose keyword is gone falls back to the empty cost. offering is
+// the cast's mode test: any other cast keeps its cost.
+func offeringCastCost(offering bool, f *cards.Face, cost Cost) Cost {
+	if !offering {
+		return cost
+	}
 	spec, ok := offeringSacrificeSpec(f)
 	if !ok {
 		return Cost{}
@@ -278,12 +248,16 @@ func offeringCastCost(f *cards.Face, cost Cost) Cost {
 //
 // ph is the face's keyword census (nothing to offer without phOffering);
 // instant selects the failed-timing-gate path, which also requires the
-// keyword's own timing check (offeringTimingOK).
-func (w *legalWalk) offerOffering(ph printedHeads, p state.PlayerID, id state.ObjID, f *cards.Face, instant bool, targetsOK func() bool, out *[]decision.Option) {
-	if !ph.has(phOffering) || instant && !w.e.offeringTimingOK(p, f) {
+// keyword's own timing check: the keyword must be present and the face's own
+// activation-phase restrictions (ActivationPhases$, PlayerTurn$, ...) must
+// hold, exactly the mayflashTimingOK shape -- the instant/sorcery-speed check
+// spellTimingOK makes is deliberately omitted, because the permission ("any
+// time you could cast an instant", CR 702.46a) IS the flash window.
+func offerOffering(w *legalWalk, ph printedHeads, p state.PlayerID, id state.ObjID, f *cards.Face, instant bool, targetsOK func() bool, out *[]decision.Option) {
+	if !ph.has(phOffering) || instant && (f == nil || !w.e.activationPhasesOK(p, f.SpellAbility())) {
 		return
 	}
-	if _, ok := w.e.offeringOfferCost(p, id, f, func(c Cost) bool {
+	if _, ok := offeringOfferCost(w, p, id, f, func(c Cost) bool {
 		return w.offerCastable(p, id, c, spellScope("offering"), false)
 	}); ok && targetsOK() {
 		*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",

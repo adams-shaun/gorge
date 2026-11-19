@@ -19,7 +19,7 @@ import "github.com/adams-shaun/gorge/engine/decision"
 // tapeWindowFlow reports whether flow's window is served from the tape.
 func tapeWindowFlow(e *Engine, flow chooseFor) bool {
 	switch flow {
-	case chooseTriggeredCost, chooseTriggeredMandatory, chooseCumulative, chooseEcho, chooseRecover:
+	case chooseTriggeredCost, chooseTriggeredMandatory, chooseCumulative, chooseEcho:
 		return true
 	case chooseMana, chooseManaColor:
 		// A mana activation's ability wheel and colour choice inside a tape
@@ -75,8 +75,6 @@ func windowAnswer(e *Engine, flow chooseFor, chosen []decision.Option) {
 		e.cumulativeAnswer(chosen)
 	case chooseEcho:
 		e.echoAnswer(chosen)
-	case chooseRecover:
-		e.recoverAnswer(chosen)
 	case chooseUnlessCost:
 		e.answerUnlessPayment(chosen)
 	case chooseUnlessMana:
@@ -106,7 +104,7 @@ func windowAnswer(e *Engine, flow chooseFor, chosen []decision.Option) {
 // a settled window owe handlePriority its tapeGranted.
 func tapeWindowCompletes(flow chooseFor) bool {
 	switch flow {
-	case chooseTriggeredCost, chooseTriggeredMandatory, chooseCumulative, chooseEcho, chooseRecover:
+	case chooseTriggeredCost, chooseTriggeredMandatory, chooseCumulative, chooseEcho:
 		return true
 	}
 	return false

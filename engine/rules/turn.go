@@ -1798,10 +1798,9 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// choice-bearing component was answered. The component's picks are
 		// validated and settled; no pay/decline election is ever posed.
 		e.triggeredMandatoryAnswer(chosen)
-	case chooseEcho, chooseRecover:
-		// kw:Echo's pay-or-sacrifice (echo.go) or kw:Recover's pay-or-exile
-		// (recover.go) election was answered.
-		echoOrRecoverAnswer(e, chosen)
+	case chooseEcho:
+		// kw:Echo's pay-or-sacrifice election (engine/rules/echo.go) was answered.
+		e.echoAnswer(chosen)
 	case chooseDamageDivision:
 		// The combat damage step's controller
 		// damage-division decision (CR 510.1c) was answered.

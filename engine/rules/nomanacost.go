@@ -35,7 +35,8 @@ func paysPrintedManaCost(opt *decision.Option) bool {
 	if opt.Kind != "cast" || opt.AltCostIndex > 0 {
 		return false
 	}
-	return paysPrintedManaCostSet.Has(opt.Mode) || castAnswerCodes.Code(opt.Mode) == castAnswerTeamworkMode
+	return paysPrintedManaCostSet.Has(opt.Mode) || castAnswerCodes.Code(opt.Mode) == castAnswerTeamworkMode ||
+		opt.Mode == "offering" // CR 702.46: the printed cost, reduced by the sacrifice
 }
 
 // isNoManaCost reports the printed "no cost" mana cost (CR 118.6 / 202.1b).
@@ -106,7 +107,4 @@ var paysPrintedManaCostSet = state.NewNameSet(
 	"jumpstart",
 	"warp_recast",
 	"mayplay",
-	// Offering (CR 702.46, engine/rules/offering.go): the cast pays the
-	// printed mana cost reduced by the sacrificed permanent's mana cost.
-	"offering",
 )
