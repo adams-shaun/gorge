@@ -188,6 +188,23 @@ func pinnedManaAlts(alt windowManaAlt, counts [6]int32) []windowManaAlt {
 	return out
 }
 
+// fixedManaAlts prices a FIXED production (ProducedCounts' any=false: no
+// colour is chosen on activation) as ONE alternative over its full counts.
+// The activation produces every slot of counts at once, so per-colour
+// pinning would price a two-colour tap for one unit (Sunscorched Divide's
+// "{1}, {T}: Add {R}{W}" under an unless cost, CR 605.3a) and hide half the
+// production behind the other alternative. It keeps pinnedManaAlts'
+// activation-limit exclusion, the one eligibility rule its callers shared.
+func fixedManaAlts(alt windowManaAlt, counts [6]int32) []windowManaAlt {
+	ma := alt.Ma
+	if _, limited := ma.Param(cards.PKActivationLimit); limited || ma.ParamStr(cards.PKGameActivationLimit) != "" ||
+		pay.ChainGatesOnActivationCount(ma) {
+		return nil
+	}
+	alt.Counts = counts
+	return []windowManaAlt{alt}
+}
+
 // manaSubCounterCarried reports whether o carries every fixed counter the
 // cost's source-anchored SubCounter parts name, so the activation's settle
 // (PayManaSourceParts) removes a counter that exists.
@@ -273,7 +290,7 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 				!((mf.Tap && o.Tapped) || (mf.Untap && !o.Tapped)) {
 				cost := e.manaAbilityCC(p, id, ma).Cost
 				if pay.ManaSubCounterOnlyCost(cost) && manaSubCounterCarried(o, cost) {
-					for _, a := range pinnedManaAlts(windowManaAlt{Ma: ma, Amt: mf.Amount}, mf.Counts) {
+					for _, a := range fixedManaAlts(windowManaAlt{Ma: ma, Amt: mf.Amount}, mf.Counts) {
 						units = pay.AppendUnitAlt(units, id, a)
 					}
 				}
