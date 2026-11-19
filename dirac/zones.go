@@ -447,6 +447,7 @@ func (s *State) objReferenced(o Obj) bool {
 // (kop.ZoneNone when the caller does not know it), recorded for
 // Count$ThisTurnEntered_from_.
 func (s *State) enter(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone) Slot {
+	n0 := s.g.nask
 	sl := s.enterNF(k, o, ctrl, tapped, from, 0)
 	if from == kop.ZoneGraveyard {
 		s.fireLeavesGraveyardSelf(k, sl, o) // trig_leftgraveyard.go
@@ -455,7 +456,7 @@ func (s *State) enter(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone) Sl
 	if s.g.entHost != 0 {
 		host = s.attachEntering(k, sl) // zone_handmoveaura.go
 	}
-	if s.anyETB(k) && !(s.g.pre.ordMid && s.g.pre.obj == o) { // a copy waiting on gorge's second order ask fires them once applied (repl_entryclone.go)
+	if s.anyETB(k) && !(s.g.pre.ordMid && s.g.pre.obj == o) && !s.deferETBToCtrPick(k, sl, n0) { // a copy waiting on gorge's second order ask fires them once applied (repl_entryclone.go); an as-enters counter pick once answered (ctr_choice.go)
 		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
 	}
 	s.attachedEntered(k, sl, host)

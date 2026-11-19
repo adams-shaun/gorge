@@ -1774,6 +1774,12 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 		if in.Op == kop.OpChooseMove && in.Obj != kop.RefController {
 			return true // the target player whose hand it is is gone: nothing moves
 		}
+		if r := handMoveOwnerRef(in.Obj); r == kop.RefTargetController || r == kop.RefTgtCtrl1 || r == kop.RefTgtCtrl2 {
+			// DefinedPlayer$ TargetedController over an "up to one" slot left
+			// empty (White Orchid Phantom's destroy chose no land): gorge's
+			// definedPlayers names no one, so no one searches
+			return true
+		}
 		p = s.res.e.ctrl
 	}
 	s.res.left = 0 // the parked-tail marker (zone_parkedtail.go)
