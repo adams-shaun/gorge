@@ -357,7 +357,9 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
 		p.ovr.flags |= ovCopy
 		p.ovr.copyOf = c
-		s.subscribe(sl, &k.cards[c], true)
+		if !s.copyBlankLayer(k, sl, tmpl) { // a face-down template's copy has no abilities (copy_facedown.go)
+			s.subscribe(sl, &k.cards[c], true)
+		}
 		if self {
 			// the layer's exceptions are the ones it copied plus the op's;
 			// copyExcAdd would read the slot as its own template and re-push
@@ -507,6 +509,9 @@ func (s *State) cloneCleanup(k *prep) {
 		p := &s.perms[sl]
 		s.touchSl(sl)
 		s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
+		if s.permBlank(sl) {
+			s.clearFaceDown(sl) // the ended layer was a face-down template's (copy_facedown.go)
+		}
 		p.ovr.flags &^= ovCopy
 		p.ovr.copyOf = 0
 		if l.kind != copyNone {
