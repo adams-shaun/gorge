@@ -1,0 +1,16 @@
+# the graveyard-ability ReduceCost$ pool: Razorlash Transmogrant's "{4}{B}{B}:
+# return it from the graveyard, costing {4} less when an opponent controls four
+# or more nonbasic lands", against burn and gain lands
+# (dirac/oracle/gravereduce_lockstep_test.go)
+Razorlash Transmogrant
+Walking Corpse
+Swamp
+Lightning Bolt
+Shock
+Grizzly Bears
+Jungle Hollow
+Blossoming Sands
+Rugged Highlands
+Wind-Scarred Crag
+Mountain
+Forest
