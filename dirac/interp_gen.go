@@ -1702,7 +1702,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		ctrl = e.ctrl
 	}
 	if in.B.N&kop.RetUnderOpponent != 0 {
-		ctrl = s.nextAlive(e.ctrl) // GainControl$ ChosenPlayer: the one opponent (kop.RetUnderOpponent)
+		ctrl = s.retUnderOppSeat(e.ctrl) // GainControl$ ChosenPlayer (kop.RetUnderOpponent; zone_returndefender.go)
 	}
 	if z == kop.ZoneBattlefield && fl&kop.MvTransformed != 0 {
 		s.enterTransformed(k, o)
