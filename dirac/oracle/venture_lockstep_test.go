@@ -239,15 +239,18 @@ var ventureSeeds = []uint64{1, 2, 3, 5}
 
 // TestVenturePinnedRepro pins seed 7 and the dungeon events it reaches: seven
 // dungeons entered (three Mad Mage, one Lost Mine, three Tomb of Annihilation),
-// twenty-nine marker moves and five completed dungeons, with seven dungeon asks
-// and ten room asks the option lists are checked through.
+// twenty-eight marker moves and three completed dungeons, with seven dungeon
+// asks and ten room asks the option lists are checked through. Moved from
+// 29/5 by Oubliette's SacEachValid$ sacrifice (agent-20261119T194717Z): the
+// room now takes each player's artifact, creature and land, so the pods'
+// boards thin out and three walks end before their last room.
 func TestVenturePinnedRepro(t *testing.T) {
 	p := newVenturePod(t)
 	res, c, st := p.play(t, 7, 40)
 	if res.Div != nil {
 		ventureFail(t, 7, res)
 	}
-	want := ventureCounts{enters: 7, rooms: 29, completes: 5,
+	want := ventureCounts{enters: 7, rooms: 28, completes: 3,
 		byKey: map[string]int{"dungeon_of_the_mad_mage": 3, "lost_mine_of_phandelver": 1, "tomb_of_annihilation": 3}}
 	if c.enters != want.enters || c.rooms != want.rooms || c.completes != want.completes || len(c.byKey) != len(want.byKey) {
 		t.Fatalf("seed 7 dungeon events = %+v, want %+v", c, want)
