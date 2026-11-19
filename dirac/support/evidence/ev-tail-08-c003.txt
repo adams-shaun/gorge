@@ -72,6 +72,7 @@ Drudge Reavers
 Duergar Mine-Captain
 Dusk Legion Dreadnought
 Dwarven Recruiter
+Dwarven Trader
 Eagle of Deliverance
 Electrify
 Elite Javelineer
@@ -84,6 +85,7 @@ Faerie Macabre
 False Demise
 Feast of the Unicorn
 Feast or Famine
+Feedback
 Fetid Gargantua
 Fists of Flame
 Flare
@@ -97,6 +99,7 @@ Funnel-Web Recluse
 Ghost-Lit Nourisher
 Glarewielder
 Glimpse the Future
+Gloomlance
 Go-Shintai of Shared Purpose
 Goblin Heelcutter
 Goblin Sky Raider
@@ -125,6 +128,7 @@ Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
 Inspiring Cleric
+Iron Fist, Hero for Hire
 Iron Verdict
 Ishai, Ojutai Dragonspeaker
 Island
@@ -152,6 +156,7 @@ Marsh Casualties
 Mascot Exhibition
 Mass Appeal
 Mass Diminish
+Midnight Ritual
 Military Discipline
 Militia Bugler
 Mind Slash
@@ -196,11 +201,13 @@ Reverent Mantra
 Riddle Gate Gargoyle
 Righteous Charge
 Righteous Fury
+Rilsa Rael, Kingpin
 Rob the Archives
 Rustspore Ram
 Rustwing Falcon
 Ruthless Deathfang
 Scourge of the Nobilis
+Screeching Bat
 Screeching Drake
 Selesnya Charm
 Selfless Cathar
@@ -216,10 +223,13 @@ Skyblade's Boon
 Skyhunter Patrol
 Slimy Piper
 Sorcerer's Strongbox
+Soul Channeling
 Soulblade Djinn
 Spectral Flight
 Sphere of Reason
 Spore Crawler
+Sprinting Warbrute
+Square Up
 Stalwart Aven
 Stand
 Static Net
@@ -228,6 +238,7 @@ Steel Wall
 Stonewood Invocation
 Storm Fleet Aerialist
 Sublime Archangel
+Summon: Kujata
 Sunlit Marsh
 Suspicious Bookcase
 Swamp
@@ -264,6 +275,7 @@ Valorous Steed
 Vampire Outcasts
 Vampire Slayer
 Vampiric Sliver
+Vectis Silencers
 Veilborn Ghoul
 Venerable Warsinger
 Vengeful Vampire
@@ -280,6 +292,7 @@ Wayward Soul
 Weakness
 White Widow, Yelena Belova
 Winds of Rath
+Wormhole Serpent
 Wu Scout
 Wyluli Wolf
 Yarok's Wavecrasher

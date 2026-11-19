@@ -77,6 +77,7 @@ Death's Shadow
 Demon's Disciple
 Dense Foliage
 Deputized Protester
+Deranged Assistant
 Desolate Mire
 Desynchronize
 Devouring Light
@@ -104,6 +105,7 @@ Enrage
 Erstwhile Trooper
 Ethereal Investigator
 Falkenrath Marauders
+Familiar's Ruse
 Farewell
 Fateful Showdown
 Feral Instinct
@@ -283,6 +285,7 @@ Tempestra, Dame of Games
 Territorial Boar
 Thirst for Discovery
 Thopter Assembly
+Thopter Mechanic
 Threnody Singer
 Thrilling Encore
 Thundersteel Colossus

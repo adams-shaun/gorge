@@ -18,6 +18,7 @@ Arctic Nishoba
 Arden Angel
 Arno Dorian
 Arrest
+Arvad the Cursed
 Asceticism
 Ashen Firebeast
 Assault Griffin
@@ -60,6 +61,7 @@ Brass Herald
 Breath Weapon
 Broken Fall
 Built to Last
+Burakos, Party Leader
 Cabal Ritual
 Caged Zombie
 Call the Bloodline
@@ -282,6 +284,7 @@ Phantasmal Abomination
 Phantasmal Forces
 Pilgrim's Eye
 Pillardrop Warden
+Pitiless Pontiff
 Plains
 Portcullis Vine
 Predatory Advantage
@@ -314,6 +317,7 @@ Seal of Primordium
 Searing Wind
 Seething Landscape
 Seismic Mage
+Selfless Glyphweaver
 Selfless Savior
 Sentinel Spider
 Serpentine Ambush
@@ -343,6 +347,7 @@ Sporoloth Ancient
 Stand United
 Starlit Angel
 Stomp and Howl
+Stone Quarry
 Storm, Shaker of Skies
 Story Seeker
 Suit Up

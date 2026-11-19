@@ -35,6 +35,7 @@ Burning Sun's Avatar
 Cacophony Unleashed
 Capital Guard
 Carnage Interpreter
+Challenger Troll
 Champion Lancer
 Charcoal Diamond
 Cloakwood Hermit
@@ -54,6 +55,7 @@ Deranged Hermit
 Deserter's Quarters
 Desolation Twin
 Devastation Tide
+Diabolic Tutor
 Dictate of Karametra
 Dissipate
 Dragon Mask
@@ -114,6 +116,7 @@ Jace's Sentinel
 Jodah's Codex
 Johnny, Combo Player
 Jushi Apprentice
+Kalitas, Traitor of Ghet
 Kazandu Refuge
 Kird Chieftain
 Kitesail Skirmisher
@@ -142,6 +145,7 @@ Owlbear Shepherd
 Pain
 Paragon of Open Graves
 Pillar of War
+Pirate's Prize
 Pistus Strike
 Pith Driller
 Plains
@@ -218,9 +222,11 @@ Torch Courier
 Triceraton Regenta
 Underworld Charger
 Unlicensed Hearse
+Vedalken Dismisser
 Vesper Ghoul
 Virtus the Veiled
 Wall of Hope
+War Elemental
 Warlord's Fury
 Warped Landscape
 Winding Way
