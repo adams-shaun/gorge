@@ -63,7 +63,7 @@ func (s *State) leaveGame(k *prep, p uint8) bool {
 	var atk slotMask
 	if s.nAttackers > 0 {
 		for m := s.occ; m.any(); m = m.rest() {
-			if a := m.first(); s.perms[a].flags&pfAttacking != 0 && s.atkSeat(k, a) == p {
+			if a := m.first(); s.perms[a].flags&pfAttacking != 0 && s.atkSeatLeft(k, a) == p {
 				atk.set(a)
 			}
 		}
@@ -143,4 +143,17 @@ func (s *State) leaveGame(k *prep, p uint8) bool {
 // check, which applies to a static's record too).
 func (s *State) ctrlSeatLeft(r *fxRec) bool {
 	return s.out(r.cTo()) || s.out(r.cYou())
+}
+
+// atkSeatLeft is the seat attacker a is attacking as a player leaves the
+// game: atkSeat, or, once the planeswalker it attacks has left the
+// battlefield, that planeswalker's owner. gorge keeps the declared defending
+// seat on the attacker (Object.Attacking) after its planeswalker is gone
+// (CR 506.4), so the attacker leaves combat with that seat's player.
+func (s *State) atkSeatLeft(k *prep, a Slot) uint8 {
+	q := s.atkSeat(k, a)
+	if t := s.perms[a].atk; q == noSeat && !isPlayerOrNone(t) && s.objs[t].zone != kop.ZoneBattlefield {
+		q = s.objs[t].owner()
+	}
+	return q
 }

@@ -71,6 +71,9 @@ func (s *State) entryCopyAnswer(k *prep, a Action) {
 	if !parked {
 		parked = s.eachResume(k, in) // copy_eachtarget.go: the targets after it
 	}
+	if !parked {
+		parked = s.nonRemResume(k, in, was, r.e.ctrl) // copy_nonremctrl.go: the owners after it
+	}
 	r.e.ctrl = was
 	if !parked {
 		s.continueRes(k, 0)

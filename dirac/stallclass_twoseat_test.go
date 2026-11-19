@@ -32,23 +32,23 @@ func TestCardTwoSeat(t *testing.T) {
 	prog := func(in kop.Instr) kop.CardDef {
 		return kop.CardDef{Abilities: []kop.Ability{{Kind: kop.AbSpell, Prog: []kop.Instr{in}}}}
 	}
-	plain := prog(kop.Instr{Op: kop.OpCreateTokenEx})
+	plain := prog(kop.Instr{Op: kop.OpCreateTokenEx, B: kop.ValueRef{N: kop.TokAttacking}}) // Adeline's attacking token plays at any seat count
 	if cardTwoSeat(&plain) {
 		t.Fatal("a plain token maker is two-seat only")
 	}
 	marked := plain
 	marked.TwoSeat = true
-	att := prog(kop.Instr{Op: kop.OpCreateTokenEx, B: kop.ValueRef{N: kop.TokAttacking}})
+	may := prog(kop.Instr{Op: kop.OpMayPlay, B: kop.ValueRef{N: kop.MayPlayOpponent}})
 	ret := prog(kop.Instr{Op: kop.OpReturnEx, B: kop.ValueRef{N: kop.RetUnderOpponent}})
-	for name, c := range map[string]kop.CardDef{"marked": marked, "attacking token": att, "return under opponent": ret} {
+	for name, c := range map[string]kop.CardDef{"marked": marked, "may play for the opponent": may, "return under opponent": ret} {
 		if !cardTwoSeat(&c) {
 			t.Errorf("%s: not two-seat only", name)
 		}
 	}
-	tb := &kop.Table{Cards: []kop.CardDef{plain, att}}
+	tb := &kop.Table{Cards: []kop.CardDef{plain, may}}
 	g := &genPrep{}
 	prepTwoSeat(tb, g)
 	if !g.twoSeatOnly {
-		t.Fatal("prepTwoSeat missed the attacking token")
+		t.Fatal("prepTwoSeat missed the may-play card")
 	}
 }
