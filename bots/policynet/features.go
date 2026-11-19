@@ -488,11 +488,14 @@ func mzState(v view.View, seat state.PlayerID, sk *sink) {
 
 // mzLifeSlotRows is the life rows' per-opponent-slot name tag: slot 0 is the
 // legacy "mz|opp|life=" / "mz|lifediff=" pair, slot j>0 spells the slot in.
+var mzLifeSlotNames = [maxSeatBlocks - 1][2]string{
+	{"mz|lifediff=", "mz|opp|life="},
+	{"mz|lifediff1=", "mz|opp1|life="},
+	{"mz|lifediff2=", "mz|opp2|life="},
+}
+
 func mzLifeSlotRows(slot int) (diffPrefix, oppPrefix string) {
-	if slot == 0 {
-		return "mz|lifediff=", "mz|opp|life="
-	}
-	return fmt.Sprintf("mz|lifediff%d=", slot), fmt.Sprintf("mz|opp%d|life=", slot)
+	return mzLifeSlotNames[slot][0], mzLifeSlotNames[slot][1]
 }
 
 // mzLifeRows emits the life and lethal rows. Two seats read the one
