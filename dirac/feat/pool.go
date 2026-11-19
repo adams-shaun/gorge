@@ -259,10 +259,11 @@ const (
 	ztExileMe
 	ztExileOpp
 	ztStack
+	ztCommand // the pod set's command-zone ids (pod.go)
 	numZoneTags
 )
 
-var zoneTags = [numZoneTags]string{"hand", "battlefield", "battlefield-opp", "graveyard", "graveyard-opp", "exile", "exile-opp", "stack"}
+var zoneTags = [numZoneTags]string{"hand", "battlefield", "battlefield-opp", "graveyard", "graveyard-opp", "exile", "exile-opp", "stack", "command"}
 
 // ---- policynet's pinned vocabularies (copied; a golden test holds both) ----
 

@@ -217,7 +217,7 @@ func (e *Encoder) EncodeParts(s *dirac.State, d *dirac.Decision, seat uint8) *Pa
 	}
 	ps := e.parts[dirac.SeatIx(seat)]
 	p := &ps.p
-	p.Dense = e.st.Dense
+	copy(p.Dense[:], e.st.Dense[:DenseWidth])
 	ps.start, ps.novf = ps.use+1, 0
 	p.Objs, p.Fresh, p.Ents = p.Objs[:0], p.Fresh[:0], p.Ents[:0]
 	e.PartsStats.Encodes++

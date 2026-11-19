@@ -341,7 +341,7 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 	if !ok {
 		return nil, fmt.Errorf("checkpoint: encoder hash %#x does not match this build's encoder %#x — the encoder drifted since this checkpoint was trained", h, EncoderHash())
 	}
-	if (version == CheckpointVersionEntity || version == CheckpointVersionValueVecEntity) != (features == FeaturesEntity) {
+	if (version == CheckpointVersionEntity || version == CheckpointVersionValueVecEntity) != features.Entity() {
 		return nil, fmt.Errorf("checkpoint: schema version %d does not match feature set %s (versions %d and %d are the entity layouts only)", version, features, CheckpointVersionEntity, CheckpointVersionValueVecEntity)
 	}
 	rows := int(binary.LittleEndian.Uint32(hdr[16:20]))

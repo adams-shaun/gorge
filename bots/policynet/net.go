@@ -575,7 +575,7 @@ func (m *Model) OptDenseW() int {
 // StateDenseW is the state dense width the model reads.
 func (m *Model) StateDenseW() int {
 	if m.stateDenseW == 0 {
-		return DenseWidth
+		return m.Features.DenseW()
 	}
 	return m.stateDenseW
 }

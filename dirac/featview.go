@@ -1862,3 +1862,10 @@ func (s *State) FeatSubCtrWildcard() bool {
 func (s *State) FeatPaySubCounter() bool {
 	return s.res.ask == raGenPayPick && s.g.pickZ == kop.PaySubCounter
 }
+
+// FeatLifeTurn is seat p's life gained and life lost this turn (gorge
+// PlayerView.LifeGainedThisTurn / LifeLostThisTurn).
+func (s *State) FeatLifeTurn(p uint8) (gained, lost int) {
+	pl := &s.pl[SeatIx(p)]
+	return int(pl.lifeGained), int(pl.lifeLost)
+}

@@ -263,6 +263,9 @@ func (e *Encoder) EncodeStateIncFor(s *dirac.State, d *dirac.Decision, seat uint
 	}
 	e.mzStack(seat)
 	e.mzGlobal(seat, me, opp, &mine, &theirs)
+	if e.pod {
+		e.podSparse()
+	}
 	// The fresh entries stably by row. A row a card's cached value-1 rows
 	// also hold, with a fresh entry whose value is not 1, needs the full
 	// emission order between them: full rebuild.

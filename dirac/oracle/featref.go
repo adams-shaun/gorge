@@ -247,10 +247,14 @@ func CompareState(g *policynet.State, k *feat.State) *FeatMismatch {
 	mm := func(field string, a, b any) *FeatMismatch {
 		return &FeatMismatch{Where: "state", Field: field, Gorge: fmt.Sprint(a), Kern: fmt.Sprint(b)}
 	}
-	if len(g.Dense) != feat.DenseWidth {
+	if len(g.Dense) != feat.DenseWidth && len(g.Dense) != feat.DenseWidthPod {
 		return mm("dense width", len(g.Dense), feat.DenseWidth)
 	}
-	for i, x := range g.Dense {
+	for i := range k.Dense {
+		var x float32
+		if i < len(g.Dense) {
+			x = g.Dense[i]
+		}
 		if x != k.Dense[i] {
 			return mm(fmt.Sprintf("dense[%d]", i), x, k.Dense[i])
 		}
@@ -354,6 +358,10 @@ type FeatStats struct {
 	// slot EntityRawWidthV1+i), so a test can assert its positions exercise
 	// the whole format.
 	Rel [16]bool
+	// DenseHit counts, per dense column, the compared decisions at which
+	// gorge's encoding held it nonzero (a test asserts a pod column was
+	// reached).
+	DenseHit [feat.DenseWidthPod]int
 }
 
 // FeatCheck is a RunConfig.Check comparing, at every decision, the real
@@ -367,8 +375,16 @@ type FeatStats struct {
 // more synthetic casts the last is named the bot's answer on both sides, so
 // the bot-first order is exercised.
 func FeatCheck(pool *feat.Pool, st *FeatStats) func(ref *GorgeSide, k Side) *Divergence {
+	return FeatCheckFS(pool, st, policynet.FeaturesEntity)
+}
+
+// FeatCheckFS is FeatCheck under feature set fs: FeaturesEntity, or
+// FeaturesPod with the kernel encoders' pod encoding on (feat SetPod).
+func FeatCheckFS(pool *feat.Pool, st *FeatStats, fs policynet.FeatureSet) func(ref *GorgeSide, k Side) *Divergence {
 	enc := feat.NewEncoder(pool)
 	inc := feat.NewEncoder(pool)
+	enc.SetPod(fs == policynet.FeaturesPod)
+	inc.SetPod(fs == policynet.FeaturesPod)
 	var kopts []feat.Option
 	var gopts, list []decision.Option
 	var genc []policynet.Option
@@ -406,7 +422,7 @@ func FeatCheck(pool *feat.Pool, st *FeatStats) func(ref *GorgeSide, k Side) *Div
 		kopts = enc.EncodeOptionsBot(&r.d, kopts, bot)
 		var gst policynet.State
 		var gpos []int
-		gst, genc, gopts, gpos, ok = ref.GorgeNetFeatures(r.opts, list, genc, gopts, gpos)
+		gst, genc, gopts, gpos, ok = ref.GorgeNetFeaturesFS(fs, r.opts, list, genc, gopts, gpos)
 		if !ok {
 			return &Divergence{What: "features", Field: "option", Detail: "no gorge option for a kernel option"}
 		}
@@ -423,6 +439,11 @@ func FeatCheck(pool *feat.Pool, st *FeatStats) func(ref *GorgeSide, k Side) *Div
 		st.Options += len(gopts)
 		if m == nil {
 			m = CompareState(&gst, kst)
+		}
+		for i, x := range gst.Dense {
+			if x != 0 && i < len(st.DenseHit) {
+				st.DenseHit[i]++
+			}
 		}
 		if m == nil {
 			for ci := range gst.Cards {
@@ -633,9 +654,13 @@ func (g *GorgeSide) GorgeNetList(botObj state.ObjID, dst []decision.Option) []de
 // play) is encoded as the list's last entry. pos[i] is the index used. ok
 // is false when an action names no gorge option.
 func (g *GorgeSide) GorgeNetFeatures(cs []Canon, list []decision.Option, genc []policynet.Option, gopts []decision.Option, pos []int) (policynet.State, []policynet.Option, []decision.Option, []int, bool) {
+	return g.GorgeNetFeaturesFS(policynet.FeaturesEntity, cs, list, genc, gopts, pos)
+}
+
+// GorgeNetFeaturesFS is GorgeNetFeatures under feature set fs.
+func (g *GorgeSide) GorgeNetFeaturesFS(fs policynet.FeatureSet, cs []Canon, list []decision.Option, genc []policynet.Option, gopts []decision.Option, pos []int) (policynet.State, []policynet.Option, []decision.Option, []int, bool) {
 	gd := g.fr.d
 	v := view.Project(g.E.G, g.E, gd.Player, gd)
-	fs := policynet.FeaturesEntity
 	gst := policynet.EncodeStateWith(fs, v, gd.Player, nil)
 	var x policynet.OptionEncoder
 	x.Reset(&v, gd.Player)

@@ -256,7 +256,7 @@ func (x *OptionEncoder) Encode(fs FeatureSet, d decision.Kind, o decision.Option
 			opt.Hashed = append(opt.Hashed, Feature{Row: hashID("mz|api|" + ref.cv.SpellAPI), Value: 1})
 		}
 	}
-	if fs == FeaturesEntity {
+	if fs.Entity() {
 		rel := o.Attacker
 		if rel == 0 {
 			rel = o.Battle
@@ -307,7 +307,7 @@ func EncodeOptionsWith(fs FeatureSet, v *view.View, seat state.PlayerID, d decis
 // played) omits nothing, so its projection is ProjectInto's.
 func (fs FeatureSet) ViewOmit() view.Omit {
 	switch fs {
-	case FeaturesV1, FeaturesMZ, FeaturesEntity, FeaturesMZGrave:
+	case FeaturesV1, FeaturesMZ, FeaturesEntity, FeaturesMZGrave, FeaturesPod:
 		return view.OmitLibrary | view.OmitArchetype | view.OmitAbilityCosts | view.OmitEffectiveCost |
 			view.OmitDecision | view.OmitOwnDeck | view.OmitPotential
 	}
