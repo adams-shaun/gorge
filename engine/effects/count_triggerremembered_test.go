@@ -55,14 +55,14 @@ func TestTriggerRememberedRefProperty(t *testing.T) {
 	// depend on. A vacuous board (no objects, no counters) or a ctx whose
 	// capture is disjoint from Remembered would let the test pass against the
 	// wrong mapping; assert both halves of the shape here.
-	if got := EvalCount(h, c, "TriggeredCard$Amount"); got != 3 {
-		t.Fatalf("precondition: TriggeredCard$Amount = %d, want 3 (Remembered list not seeded with capture+chain)", got)
+	if len(c.Remembered) != 3 || len(c.Captured) != 1 {
+		t.Fatalf("precondition: Remembered %d, Captured %d, want 3 and 1 (Remembered list not seeded with capture+chain)", len(c.Remembered), len(c.Captured))
 	}
 	if got := EvalCount(h, c, "TriggerRemembered$Amount"); got != 2 {
 		t.Fatalf("precondition: TriggerRemembered$Amount = %d, want 2 (capture not excluded)", got)
 	}
-	if got := EvalCount(h, c, "TriggeredCard$CardCounters.P1P1"); got != 2 {
-		t.Fatalf("precondition: TriggeredCard$CardCounters.P1P1 = %d, want 2 (counter not placed)", got)
+	if got := EvalCount(h, c, "TriggerRemembered$CardCounters.P1P1"); got != 2 {
+		t.Fatalf("precondition: TriggerRemembered$CardCounters.P1P1 = %d, want 2 (counter not placed)", got)
 	}
 
 	for _, tc := range []struct {
@@ -92,17 +92,19 @@ func TestTriggerRememberedRefProperty(t *testing.T) {
 		// zero; it resolves rather than failing closed.
 		{"TriggerRemembered$CastTotalManaSpent", 0},
 		// The adjacent refs on the same ctx keep their own binding: the
-		// plain TriggeredCard read is the WHOLE Remembered list (capture
-		// included), proving the exclusion is TriggerRemembered's alone.
+		// plain TriggeredCard read is the trigger's capture alone (the event
+		// object, Forge's TriggeredCard run parameter; the chain's remember rider
+		// never joins it: Monkey Cage's RememberSacrificed$ before its
+		// TriggeredCard$CardManaCost), the complement of TriggerRemembered.
 		// RememberedLKI shares the plain-Remembered resolver instead: the LKI
 		// spelling changes only HOW a characteristic is read (through Ctx.LKI's
 		// pre-move snapshot), not WHICH objects are remembered, so it is
 		// capture-excluded too (Noxious Gearhulk's Destroy rider).
-		{"TriggeredCard$Amount", 3},
-		{"TriggeredCard$CardPower", 8},
-		{"TriggeredCard$CardToughness", 9},
-		{"TriggeredCard$CardManaCost", 6},
-		{"TriggeredCard$CardCounters.P1P1", 2},
+		{"TriggeredCard$Amount", 1},
+		{"TriggeredCard$CardPower", 3},
+		{"TriggeredCard$CardToughness", 3},
+		{"TriggeredCard$CardManaCost", 0},
+		{"TriggeredCard$CardCounters.P1P1", 0},
 		{"RememberedLKI$Amount", 2},
 		// An unknown ref stays zero.
 		{"UnknownRef$CardPower", 0},

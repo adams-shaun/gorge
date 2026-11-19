@@ -2259,7 +2259,12 @@ func LegacyNameFallback(g *state.Game, p state.PlayerID) string {
 }
 
 func effNameCard(h Host, c *Ctx, sa *cards.SA) {
-	if o := h.Game().Obj(c.Source); o != nil && o.ChosenName != "" {
+	// A name already chosen is kept (an as-enters ask answered it), except
+	// on a resolving instant or sorcery: its earlier name belongs to an
+	// earlier object (CR 400.7). Cabal Therapy cast from hand naming one card
+	// and flashed back later names again.
+	if o := h.Game().Obj(c.Source); o != nil && o.ChosenName != "" &&
+		!(o.Zone == state.ZStack && o.Face() != nil && !o.Face().IsPermanent()) {
 		return
 	}
 	valid := sa.ParamStr(cards.PKValidCards)

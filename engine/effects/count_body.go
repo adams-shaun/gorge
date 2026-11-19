@@ -379,7 +379,11 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// is read off the source permanent, which CastInfo carried out of
 		// the cast onto the battlefield object (Meathook Massacre II's
 		// SVar:X:Count$xPaid driving "each player sacrifices X creatures").
-		if c.X != 0 {
+		// An announced X, zero included, is the resolving object's own: a
+		// Chamber Sentry cast for X=1 and activated for X=0 deals 0, not
+		// the permanent's cast X (only a never-announced trigger X falls
+		// back to the source).
+		if c.X != 0 || c.XAnnounced {
 			return c.X, true, true
 		}
 		if o := g.Obj(c.Source); o != nil {
