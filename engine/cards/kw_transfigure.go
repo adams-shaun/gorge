@@ -5,6 +5,9 @@
 package cards
 
 func kwTransfigure(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
+	if has("A", k) {
+		return
+	}
 	// CR 702.71: transfigure is a sorcery-speed activation of the creature
 	// itself: "{cost}, Sacrifice this creature: Search your library for a
 	// creature card with the same mana value as this creature, put that card
