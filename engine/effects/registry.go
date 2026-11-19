@@ -874,6 +874,40 @@ func captureStackTargetSnapshots(h Host, c *Ctx) {
 			captureTargetManaSpent(c.AllTargets)
 		}
 	}
+	if c.Snap.SpellManaValue == nil {
+		c.Snap.SpellManaValue = make(map[state.ObjID]int32)
+		capture := func(id state.ObjID) {
+			if id == 0 {
+				return
+			}
+			if object := h.Game().Obj(id); object != nil && object.Zone == state.ZStack {
+				c.Snap.SpellManaValue[id] = state.ManaValue(h.Game(), object)
+			}
+		}
+		for _, ts := range [][]state.Target{c.Targets, c.AllTargets, c.Remembered} {
+			for _, target := range ts {
+				if !target.IsPlayer {
+					capture(target.Obj)
+				}
+			}
+		}
+		capture(c.TriggerCard)
+		capture(c.TriggerAbility)
+	}
+}
+
+// CloneSpellManaValueLKI returns an independent copy of a spell mana-value
+// LKI map threaded across a suspension (rules' resumePoint), for the reason
+// CloneTargetCountersLKI gives.
+func CloneSpellManaValueLKI(m map[state.ObjID]int32) map[state.ObjID]int32 {
+	if m == nil {
+		return nil
+	}
+	out := make(map[state.ObjID]int32, len(m))
+	for id, v := range m {
+		out[id] = v
+	}
+	return out
 }
 
 // Resolve runs an ability and every sub-ability chained beneath it.

@@ -2453,7 +2453,21 @@ type genState struct {
 	defCol [(MaxSeats + 1) / 2]uint8
 	// prevX: one byte per prevCol record, its rider (repl_prevx.go). Taken from rsv.
 	prevX [prevColN]uint8
-	rsv   [rsvN]uint8
+	// tgtMVCd/tgtMV: per target slot, the resolving entry's object target's
+	// code + 1 (0 = no snapshot) and, when that target was a spell on the
+	// stack as the resolution started (resolve.go snapTgtMV), its stack mana
+	// value + 1, saturating at 255 (0 = no snapshot; CR 202.3e). Read once a
+	// Counter earlier in the chain has moved the target off the stack (CR
+	// 608.2h; gorge captureStackTargetSnapshots and count_ref_property.go's
+	// SpellManaValue arm; Sound the Trumpets' recruit gate, Illumination's
+	// life gain). trigMVCd/trigMV are the same for the resolving trigger's
+	// object (gorge's TriggerCard capture), read by the ExMVOf RefTriggerObj
+	// arm. Taken from rsv.
+	tgtMVCd  [kop.MaxTargets]TCode
+	tgtMV    [kop.MaxTargets]uint8
+	trigMVCd TCode
+	trigMV   uint8
+	rsv      [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]objWord
 	// atkDef is the defending seat + 1 of the attack event whose triggers are
@@ -2481,6 +2495,12 @@ const (
 	usedHostBytes = maxUsed * int(unsafe.Sizeof(Obj(0)))
 	dmgAmtN       = 4 // genState.dmgAmt: reader-card records (value_dmgamount.go)
 	dmgAmtBytes   = dmgAmtN * int(unsafe.Sizeof(dmgAmtRec{}))
+	// tgtMVBytes: genState's countered-spell MV snapshots (tgtMVCd, tgtMV,
+	// trigMVCd, trigMV), taken from rsv. rsvTgtMV grows the block by a whole
+	// cache line for them (the nine-bit TCode makes them 18 bytes, past what
+	// the four-seat reserve has left), so perms keeps its phase.
+	tgtMVBytes = (kop.MaxTargets+1)*int(unsafe.Sizeof(TCode(0))) + kop.MaxTargets + 1
+	rsvTgtMV   = 64
 	// rsvN pads the reserved block to 80 bytes (genState's tail padding
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
@@ -2492,7 +2512,7 @@ const (
 	// rsvExtra grows the block by the four bytes four seats' object-wide
 	// fields (sixteen-bit usedRec.host, turnF, the four-seat mana and emblem
 	// rows) need past that line.
-	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) + 64 + rsvExtra - redirBytes - prevXBytes - usedHostBytes
+	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) - tgtMVBytes + 64 + rsvExtra + rsvTgtMV - redirBytes - prevXBytes - usedHostBytes
 )
 
 // dmgAmtRec is one genState.dmgAmt record: the reader card's object+1 (0
