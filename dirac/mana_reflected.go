@@ -131,13 +131,14 @@ func (s *State) potentialReflNone(k *prep, sl Slot, done *[MaxPerm]uint16) {
 func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 	cd := &k.t.Cards[c]
 	var f kop.FilterID
-	var produce, ident, grave bool
+	var produce, ident, grave, lifeCost bool
 	for j := range cd.Abilities {
 		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfManaReflect != 0 {
 			f = a.ManaAmong
 			produce = a.ManaProduce
 			ident = a.ManaIdentity
 			grave = a.ManaGrave
+			_, lifeCost = manaLifePain(a)
 			break
 		}
 	}
@@ -151,7 +152,11 @@ func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 		return s.graveReflColours(k, sl, f)
 	}
 	if produce {
-		return s.produceColours(k, sl, f)
+		m := s.produceColours(k, sl, f)
+		if m == 0 && lifeCost && s.producesColourless(k, sl, f) {
+			return kop.ColC // prepManaImprint's colourless view
+		}
+		return m
 	}
 	p := s.perms[sl].ctrl
 	var m kop.ColorMask
@@ -239,6 +244,28 @@ func (s *State) produceColours(k *prep, sl Slot, f kop.FilterID) kop.ColorMask {
 		}
 	}
 	return m & kop.ColAny
+}
+
+// producesColourless reports whether a permanent a Produce-mode reflected
+// ability of the source at sl matches (produceColours' walk) has a printed
+// mana ability that makes {C}: the {C} gorge's fold keeps under ColorOrType$
+// Type. A reflected ability reads no {C} of its own (the circle it would be).
+func (s *State) producesColourless(k *prep, sl Slot, f kop.FilterID) bool {
+	p := s.perms[sl].ctrl
+	for b := s.ctrlM[SeatIx(p)].or(s.oppsM(p)); b.any(); b = b.rest() {
+		o := b.first()
+		if !s.matchPerm(k, f, o, p, sl) {
+			continue
+		}
+		cd := &k.t.Cards[s.cardAt(o)]
+		for j := range cd.Abilities {
+			a := &cd.Abilities[j]
+			if a.Kind == kop.AbMana && a.AFlags&(kop.AfLatent|kop.AfManaReflect) == 0 && a.ManaColors&kop.ColC != 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // manaReflView is manaPCGen's arm for a reflected source: the view of the
