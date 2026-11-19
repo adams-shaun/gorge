@@ -7,14 +7,16 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // "{1}: Add one mana of any color", Prophetic Prism) as a paid gap beside
 // the plain sources (potential_plan.go), so a keyword turn-up whose cost the
 // sources pay only through that filter is a potential play (CR 605.3a,
-// 106.1). availFor leaves a filter out of its units, so the price is the
+// 106.1). A second-ability filter beside a free {T} ability (Talon Gates of
+// Madara's "{1}, {T}: Add one mana of any color") is priced the same way, so
+// the gate is any filter, not only a first-and-only one. availFor leaves a filter out of its units, so the price is the
 // filter search a cast's gap prefix runs (filtScript), asked for the
 // turn-up action: its prefix funds the filter's fee, activates it, and the
 // pool then pays the cost (turnUpOffered).
 //
 //go:noinline
 func (s *State) turnUpFilterPays(k *prep, p uint8, sl Slot, mode uint8) bool {
-	if k.gen == nil || !k.gen.anyFiltFirst || !s.scriptFilt(k, p).any() {
+	if k.gen == nil || !k.gen.anyFilt || !s.scriptFilt(k, p).any() {
 		return false
 	}
 	return s.filtScript(k, MakeAction(AkTurnFaceUp, TCode(s.perms[sl].obj), 0, mode), p, false)
