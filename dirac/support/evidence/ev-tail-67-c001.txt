@@ -62,6 +62,7 @@ Claim the Firstborn
 Cling to Dust
 Clutch of Undeath
 Cogwork Assembler
+Collective Resistance
 Commissar Severina Raine
 Common Iguana
 Company Commander
@@ -367,6 +368,7 @@ Touch the Spirit Realm
 Tranquil Frillback
 Tranquil Path
 Transcendent Master
+Transcendent Message
 Trenching Steed
 Trigon of Rage
 Troublesome Spirit

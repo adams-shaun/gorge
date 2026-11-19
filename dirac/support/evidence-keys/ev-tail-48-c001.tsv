@@ -48,6 +48,7 @@ Dusk Imp	20577b864b52f049	6	0/0		0/0
 Dwarven Miner	c992a50881d3ba4b	4	1/1		0/1	ix:resp
 Earth-Cult Elemental	0f3af086779ecd81	6	1/1		0/1	ix:resp
 Elven Riders	2c4f982dce495016	3	0/0		0/0	
+Elvish Mystic	71205404c4d87ad1	4	1/1		0/1	ix:resp
 Emancipation Angel	d725e87ed6a560c2	3	1/1		0/1	ix:resp
 End Hostilities	18fcf1fe5c14b288	4	0/0		1/2	ix:resp
 Exiled Boggart	0ca749677ac0e4ba	6	1/1		0/1	ix:resp
@@ -116,6 +117,7 @@ Miming Slime	a19f731e76ad58be	4	0/0		1/2	ix:resp
 Mirran Crusader	12f68aaabe79d366	6	0/0		0/0	
 Mirri, Cat Warrior	ab06c88c470bc629	4	0/0		0/0	
 Molting Skin	e07a204500a58301	16	1/1		0/1	ix:resp
+Nantuko Shaman	68176ba69b9f0f0d	4	1/1		2/3	ix:resp
 Noxious Hatchling	19bb00d25bd33eaf	5	2/2		0/1	ix:resp
 Oath of Gideon	4dd0f67a0c388273	100	1/1		1/1	
 Oblivion Crown	42bb29d0fb03acee	166	0/0		2/2	
@@ -157,6 +159,7 @@ Sire of the Storm	87646004bb7d0c4d	6	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Siren Song Lyre	e121f6a2dbf63da1	8	1/1		1/1	
 Skyclave Relic	78eb5effef156622	146	2/2		3/3	
 Sojourner's Companion	1efa73f359a47a3e	10	1/1		1/1	
+Spectral Procession	e4e3edb7410765b7	5	0/0		2/2	
 Sprite Noble	15c6cd4ba7399876	3	1/1		0/1	ix:resp
 Stone Haven Pilgrim	406266b9e85d81ae	6	1/1		0/1	ix:resp
 Sun Clasp	1931aa6c65cae8fa	9	1/1		2/2	

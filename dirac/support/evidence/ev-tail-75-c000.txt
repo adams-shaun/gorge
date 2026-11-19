@@ -93,6 +93,7 @@ Creakwood Liege
 Creeping Corrosion
 Crookclaw Elder
 Crosstown Courier
+Cruel Ultimatum
 Cunning Survivor
 Curiosity Crafter
 Curse of Opulence
@@ -102,6 +103,7 @@ Dawning Angel
 Dawning Purist
 Death Speakers
 Death's Shadow
+Decree of Silence
 Deepwood Wolverine
 Delraich
 Demon's Disciple
@@ -242,6 +244,7 @@ Liliana's Standard Bearer
 Linessa, Zephyr Mage
 Lingering Mirage
 Lonis, Genetics Expert
+Lord of Tresserhorn
 Lorthos, the Tidemaker
 Lost in the Mist
 Lost in the Spirit World

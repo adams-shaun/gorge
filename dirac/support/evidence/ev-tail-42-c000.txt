@@ -330,6 +330,7 @@ Phyrexian Warhorse
 Phytoburst
 Piety
 Plains
+Planar Ally
 Plow Through Reito
 Polluted Mire
 Predatory Sliver
