@@ -246,6 +246,7 @@ Piranha Marsh
 Piston Sledge
 Plains
 Planar Despair
+Predator's Strike
 Predatory Wurm
 Prized Elephant
 Puppet's Verdict
@@ -343,6 +344,7 @@ Ukkima, Stalking Shadow
 Undead Butler
 Unseal the Necropolis
 Utvara Scalper
+Vantress Paladin
 Vapor Snag
 Vectis Dominator
 Veiled Sentry
@@ -354,6 +356,7 @@ Wakeroot Elemental
 Wanderer's Twig
 Wandering Ones
 Wave of Terror
+Webspinner Cuff
 Weight of Memory
 Weldfast Wingsmith
 Whirlermaker

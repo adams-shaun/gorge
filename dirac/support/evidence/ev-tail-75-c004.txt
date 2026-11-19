@@ -78,6 +78,7 @@ Drillworks Mole
 Drossclaw
 Dualcaster Mage
 Dune Mover
+Duplicant
 Elvish Dreadlord
 Emperor Crocodile
 Enrage
@@ -131,6 +132,7 @@ Keskit, the Flesh Sculptor
 Khenra Eternal
 Kher Keep
 Kjeldoran Outrider
+Kodama's Reach
 Launch
 Leapfrog
 Leyline of Punishment

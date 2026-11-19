@@ -6,6 +6,7 @@ Absolute Law
 Abyssal Specter
 Abzan Falconer
 Accorder Paladin
+Aerathi Berserker
 Ahn-Crop Invader
 Airlift Chaplain
 Akki Ember-Keeper
@@ -150,6 +151,7 @@ Gelatinous Genesis
 Genju of the Falls
 Genju of the Spires
 Gerrard's Irregulars
+Gerrard, Weatherlight Hero
 Ghostfire Slice
 Giant Crab
 Glass of the Guildpact

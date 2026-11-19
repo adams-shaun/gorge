@@ -9,6 +9,7 @@ Alchemist's Gift
 All Is Dust
 Alluring Suitor
 Altar of the Goyf
+Amateur Auteur
 Ambulatory Edifice
 Anaconda
 Ancient Carp
@@ -26,6 +27,7 @@ Battleground Geist
 Beacon of Destruction
 Ben-Ben, Akki Hermit
 Benalish Honor Guard
+Bennie Bracks, Zoologist
 Bladebrand
 Blazing Volley
 Blind with Anger
@@ -35,6 +37,7 @@ Bloodvial Purveyor
 Bogbrew Witch
 Bola Warrior
 Bone Splinters
+Boon of Safety
 Bounty of Might
 Bower Passage
 Braingeyser
@@ -48,10 +51,12 @@ Cat Oven
 Cathedral Sanctifier
 Caustic Caterpillar
 Cerebral Eruption
+Cerodon Yearling
 Cleaving Skyrider
 Clinging Darkness
 Collected Conjuring
 Commando Raid
+Conquer
 Coordinated Barrage
 Cordial Vampire
 Cosmic Hunger
@@ -120,6 +125,7 @@ Gut, True Soul Zealot
 Harnessed Lightning
 Hateflayer
 Haze of Pollen
+Hearth Kami
 Hidden Gibbons
 Hideous End
 Hold for Questioning
@@ -145,6 +151,8 @@ Kin-Tree Warden
 Knight of the Tusk
 Kor Scythemaster
 Kyoshi Warrior Guard
+Lair Delve
+Lightning Rift
 Lightning Spear
 Llanowar Cavalry
 Llanowar Vanguard
@@ -175,6 +183,7 @@ Nexus of Fate
 Nezumi Graverobber
 Nightmare Shepherd
 Nightmare Void
+Nim Abomination
 Nimble Mongoose
 Nissa's Zendikon
 Nuka-Cola Vending Machine
@@ -186,11 +195,13 @@ Ogre Slumlord
 Overwhelming Remorse
 Pact of Negation
 Palace Sentinels
+Paladin of Atonement
 Pathmaker Initiate
 Phyrexian Missionary
 Piston Sledge
 Plains
 Planar Despair
+Predator's Strike
 Primal Boost
 Prized Elephant
 Psychic Overload
@@ -207,6 +218,7 @@ Revolutionary Rebuff
 Revolutionist
 Riptide Mangler
 Rising Populace
+Roc Hatchling
 Rummaging Goblin
 Sanctifier of Souls
 Scalding Salamander
@@ -243,6 +255,7 @@ Striking Sliver
 Strongarm Thug
 Sungrace Pegasus
 Swamp
+Swarm Shambler
 Swathcutter Giant
 Tattermunge Witch
 Tezzeret's Gambit
@@ -276,6 +289,7 @@ Withdraw
 Witherbloom Command
 Wizards of Thay
 Wolfcaller's Howl
+Wormwood Dryad
 Wrath of Marit Lage
 Wyleth, Soul of Steel
 Xathrid Necromancer

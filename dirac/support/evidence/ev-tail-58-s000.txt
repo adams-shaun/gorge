@@ -2,6 +2,7 @@ A-Hobbling Zombie
 A-Llanowar Loamspeaker
 A.I.M. Bot
 Abbey Gargoyles
+Abolish
 Accelerate
 Admiral's Order
 Aerie Ouphes
@@ -133,6 +134,7 @@ Oracle's Insight
 Oreskos Sun Guide
 Peema Aether-Seer
 Pegasus Courser
+Pelt Collector
 Plague Witch
 Plains
 Power Plant Worker
@@ -180,6 +182,7 @@ Spoils of Adventure
 Sprouting Phytohydra
 Staff of Titania
 Stag Beetle
+Stand Together
 Summit Apes
 Summit Prowler
 Sunder

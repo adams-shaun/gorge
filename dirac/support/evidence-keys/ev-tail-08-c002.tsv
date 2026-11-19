@@ -2,6 +2,7 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Abbey Griffin	1eb64f82022f6563	9	0/0		0/0	
 Acceptable Losses	f7d19de8f3cb12da	14	0/0		1/2	ix:resp
 Aerial Caravan	e7e106db2565047d	11	1/1		0/1	ix:resp
+Aether Herder	d8bb906aad871bde	37	2/2		1/1	
 Akoum Hellkite	de74c7ed98b7fb36	12	1/1		0/1	ix:resp
 Amnesia	1f8e40d137e355a7	10	0/0		1/2	ix:resp
 Ana Disciple	928160eba07e4669	8	2/2		1/1	
@@ -13,6 +14,7 @@ Banewhip Punisher	84b302f6b9c41595	22	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bankrupt in Blood	91ca4491618b56c0	3	0/0		2/2	
 Benalish Marshal	2b64de3935f51e7d	18	0/0		0/0	
 Bequeathal	f6625072f167edc1	28	1/1		2/2	
+Bestial Menace	a5c1b9a2dc5358aa	19	0/0		1/2	ix:resp
 Black Market Tycoon	fcd4caa4897dd69b	19	2/2		1/1	
 Blizzard Strix	c29d3360abd2e8ee	62	1/1		1/1	
 Blood Seeker	488e1bccb1e47e11	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -36,6 +38,7 @@ Counterintelligence	05283e8aa0033b1f	15	0/0		2/2
 Crystal Golem	9baffb74578b56b7	4	1/1		0/1	ix:resp
 Death Wind	549e3f93cda0478e	9	0/0		2/4	f0/s/x0,ix:resp
 Death's Duet	ab69d1205960c10d	4	0/0		1/2	ix:resp
+Deathbringer Liege	7706f257b52822f5	5	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
 Denizen of the Deep	0100507157527215	6	1/1		1/1	
 Devil's Play	c7e78c0a610e6b0a	17	0/0		5/6	ix:resp
 Devouring Deep	1700f61f0a9542af	17	0/0		0/0	
@@ -127,11 +130,13 @@ Summon: Kujata	420152b43063f42c	3	0/0		0/0
 Sunlit Marsh	c671eaffb7e4ba94	18	2/2		0/1	ix:resp
 Talisman of Unity	b7203c0f73ec1ed6	8	2/2		0/1	ix:resp
 Tempest of Light	4412304336f1c41f	4	0/0		1/2	ix:resp
+Teysa, Envoy of Ghosts	0367f70d82e872c3	5	1/1		0/1	ix:resp
 True Polymorph	94a50941e4752451	17	0/0		1/2	ix:resp
 Tyranid Harridan	a9ee50e1e1dc038f	18	2/2		1/1	
 Tyranid Prime	341bb3dcb9fd1d51	17	1/1		1/1	
 Underhanded Designs	f53313c307c4de09	8	2/2		0/1	ix:resp
 Valorous Steed	c0242b513d6cac83	4	1/1		0/1	ix:resp
+Vampire Slayer	76998cb398f9e024	13	1/1		0/1	ix:resp
 Vampiric Sliver	29bd51205bc0bf68	21	0/0		0/0	
 Vectis Silencers	e8c51798a55a3018	34	1/1		1/1	
 Victory's Herald	b971eeb6bd83a389	6	1/1		1/1	

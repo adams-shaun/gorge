@@ -131,6 +131,7 @@ Ghitu Slinger
 Gift of Compleation
 Glade Gnarr
 Glimmerdust Nap
+Glimpse the Sun God
 Glittering Wish
 Goblin Chariot
 Goblin Kaboomist
@@ -166,6 +167,7 @@ Icatian Crier
 Imposing Visage
 Impulse
 In the Web of War
+Incarnation Technique
 Infernal Rebirth
 Into the Maw of Hell
 Invasion of Kylem
@@ -196,6 +198,7 @@ Leaden Fists
 Leonin Snarecaster
 Leyline of Abundance
 Lifecrafter's Bestiary
+Lightkeeper of Emeria
 Lightning Berserker
 Lita, Mechanical Engineer
 Magmatic Core
@@ -278,6 +281,7 @@ Ring of Xathrid
 Roadside Reliquary
 Roast
 Robot Chicken
+Rogue Class
 Run for Your Life
 Rush the Room
 Sacred Wolf

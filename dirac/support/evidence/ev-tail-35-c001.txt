@@ -140,6 +140,7 @@ Infantry Veteran
 Infernal Pet
 Inferno
 Inspiring Bard
+Inventor's Goggles
 Iraxxa, Empress of Mars
 Iridescent Blademaster
 Iron-Craw Crusher
@@ -155,6 +156,7 @@ Keeper of the Accord
 Killmonger, Ruthless Usurper
 Lab Rats
 Lady Spider, Maybelle Reilly
+Lammastide Weave
 Leaf Gilder
 Leery Fogbeast
 Leonin Armorguard
@@ -211,6 +213,7 @@ Predatory Wurm
 Presence of Gond
 Prey's Vengeance
 Primal Order
+Primeval Titan
 Prohibit
 Rapid Decay
 Reach of Branches
@@ -295,6 +298,7 @@ Titan of Eternal Fire
 Tor Wauki the Younger
 Tranquil Frillback
 Tree Monkey
+Treefolk Umbra
 Tribal Flames
 Triclopean Sight
 Triton Waverider

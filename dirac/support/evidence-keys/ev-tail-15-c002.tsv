@@ -2,10 +2,12 @@ card	lir16	plays	keys	unused	branches	missing_branches
 A-Radha's Firebrand	9bb8826a82a6fd15	51	2/2		1/1	
 A-Radha, Coalition Warlord	dd8f458c6e956fb0	6	2/2		0/1	ix:resp
 A-Sepulcher Ghoul	d6bf4570b4f377f2	4	1/1		0/1	ix:resp
+Abundant Growth	50e7bf49768dfbd1	59	1/1		2/2	
 Aerial Maneuver	6d789a24a5db71d1	8	0/0		2/2	
 Afflict	3c5dbdec69877f16	8	0/0		1/2	ix:resp
 Amarant Coral	2897229113dccc17	18	1/1		0/1	ix:resp
 Ampryn Tactician	78393dfa814ff9b0	4	1/1		0/1	ix:resp
+Angel of the God-Pharaoh	303661cd724b9067	6	1/1		1/1	
 Anointed Chorister	a1a4a8e30cc6fdf0	12	1/1		1/1	
 Anurid Murkdiver	e860ed1a2064e238	5	0/0		0/0	
 Armillary Sphere	79c6a2f1557a02fd	16	1/1		1/1	
@@ -22,11 +24,14 @@ Bloodflow Connoisseur	ea91caa4bafa6b7b	4	1/1		0/1	ix:resp
 Boonweaver Giant	0b5c662b200fc9aa	32	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bramble Wurm	972b7169d0a0bb11	15	2/2		1/1	
 By Force	cc9582497b51a685	34	0/0		4/4	
+Cartouche of Strength	23025413eab0fb8b	48	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
 Char	87e447d24c46247d	8	0/0		2/2	
 Chishiro, the Shattered Blade	bb0d8769ddd3e10f	8	2/2		0/1	ix:resp
 Chrome Cat	019954283153ccf8	3	1/1		0/1	ix:resp
 Conclave's Blessing	5af9dfb31f932465	8	0/0		2/2	
 Corpse Hauler	27ecc9234ab3e274	4	1/1		0/1	ix:resp
+Corrupted Resolve	3baf5d16004767bf	61	0/0		2/2	
+Cryptolith Rite	dd93f79887a0dcd9	29	0/0		0/0	
 Deb Thomas	9092562d0ac0831c	4	3/3		1/1	
 Defy Gravity	98f2ddc7257662ef	86	0/0		3/4	ix:resp
 Desecration Elemental	dc05770dbe5d2f7e	4	1/1		0/1	ix:resp
@@ -34,6 +39,7 @@ Despoiler of Souls	7f083e1a4127e375	8	1/1		0/1	ix:resp
 Dihada's Ploy	15d4bb0d6f6f47ba	4	0/0		2/4	cast/alt:jumpstart,ix:resp
 Diplomacy of the Wastes	db50bc2822feb297	6	0/0		2/2	
 Dire Fleet Hoarder	f6de78b0aa6d8a93	5	1/1		1/1	
+Displace	70675214f678398a	50	0/0		2/2	
 Dogged Hunter	9c65aebfb32a2c3e	27	1/1		1/1	
 Dowsing Shaman	841591f64cca5f36	3	1/1		0/1	ix:resp
 Dusk	a65960e250c7efb8	38	0/0		4/5	f1/s
@@ -42,24 +48,30 @@ Dáin of the Ancient Halls	973591bf34314c68	31	1/1		0/1	ix:resp
 Elspeth Tirel	39898d6fd8843a3d	31	3/3		1/1	
 Elvish Scout	dd9caac66eb8ed8c	23	1/1		0/1	ix:resp
 Ephara's Warden	2472951f13911000	4	1/1		1/1	
+Everflame Eidolon	afd03ff322e2e637	83	1/1		3/3	
 Executioner's Hood	f2cb0bb5bced647e	9	1/1		0/1	ix:resp
 Faithful Pikemaster	380f2a965954a029	21	1/1		1/1	
 Falkenrath Marauders	c24f6cec34c705fa	3	1/1		0/1	ix:resp
 Fated Conflagration	a1823dc71deafa3a	6	0/0		1/2	ix:resp
+Fell Specter	32563b2a306c8782	35	2/2		1/1	
 Floodwater Dam	e7f087ad9caa2bfb	45	1/1		1/1	
 Foundry Street Denizen	c35137876b6a7d14	51	1/1		1/1	
+Free from Flesh	2553d50bb110cfc4	33	0/0		2/2	
 Galina's Knight	4aea64a10c9d23be	24	0/0		0/0	
 Ghastbark Twins	3b45b5d3ceb78d0d	25	0/0		0/0	
 Giant Fly	bbc452c6a9849d38	3	1/1		0/1	ix:resp
 Goblin Warchief	f6bccc69c3a114f8	6	0/0		0/0	
 Goliath Spider	b1d7c9638798ea3e	4	0/0		0/0	
 Grim Guardian	40ca779a6aa4b623	6	1/1		0/1	ix:resp
+Growth-Chamber Guardian	e28293990f55ad2a	33	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Gustha Ebbasdotter	43c3ba211bfdeaf2	23	1/1		0/1	ix:resp
 Gutter Skulk	fc9df1811f72e49c	14	0/0		0/0	
 Healing Leaves	3d726bdc9d9a218c	37	0/0		2/2	
 Imoti, Celebrant of Bounty	3b12e2db79d392a7	7	0/0		0/0	
+Innocuous Researcher	09f85199a80cc55a	40	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Inside Out	096d7df4f6366849	21	0/0		2/2	
 Inspired Inventor	074d78e9432dd201	4	1/1		0/1	ix:resp
+Into the North	896ac07cf125c5b6	49	0/0		2/2	
 Into the Time Vortex	76c61f7caf6cc378	4	0/0		2/2	
 Inviolability	12b773b06004b6ae	15	0/0		1/2	ix:resp
 Jace's Erasure	6594167cb3eb0284	32	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -91,6 +103,7 @@ Mirari's Wake	e1d8ecfa5e878282	8	1/1		0/1	ix:resp
 Mire Boa	7c3347c5ed2d4321	10	1/1		1/1	
 Morkrut Behemoth	d17c32024be85eac	6	0/0		0/0	
 Mounted Dreadknight	b2a92285d200376c	4	0/0		0/0	
+Mouth	688ea60e783c6a9b	57	0/0		4/5	f1/s
 Multiform Wonder	9b53cdbcb2f74226	7	3/3		1/1	
 Nefarox, Overlord of Grixis	a9aacbfe586ae325	39	2/2		1/1	
 Nightscape Familiar	5c488d18479da3b1	14	1/1		1/1	
@@ -126,6 +139,7 @@ Sea's Claim	5a85ed60f30c7230	22	0/0		1/2	ix:resp
 Seer's Vision	0523ea1db7149a8d	4	1/1		0/1	ix:resp
 Selesnya Evangel	994e7181c514b662	19	1/1		1/1	
 Seraph of New Capenna	819dbb239b406ea6	62	2/2		1/3	f1/t0/opt:n,f1/t0/opt:y
+Shaper Guildmage	3c258fedbfa99ce5	59	2/2		1/1	
 Shardless Outlander	15b7077c8bb9cc8d	4	1/1		0/1	ix:resp
 Sigardian Priest	fc51c762e637e2ab	4	1/1		1/1	
 Sign in Blood	f57e2b0b7a937a0b	10	0/0		1/2	ix:resp
@@ -134,6 +148,7 @@ Skyclave Pick-Axe	57192d0b964643df	4	3/3		0/1	ix:resp
 Skyfisher Spider	1cb931195e09aaf1	4	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Skyshroud Ranger	1dee78610bfa14b6	35	1/1		1/1	
 Slagwurm Armor	ef2993bb142112b8	8	1/1		0/1	ix:resp
+Sludge Monster	e44b71b9981afd1a	27	2/2		1/1	
 Smitten Swordmaster	ebb42a373252c22e	3	0/0		1/2	ix:resp
 Spawning Grounds	bba18e07fbd42872	3	0/0		1/2	ix:resp
 Spiketail Drakeling	fa3b58a9587dce03	37	1/1		1/1	
@@ -141,6 +156,7 @@ Splinter, the Mentor	50698de4e09b835f	9	1/1		0/1	ix:resp
 Steelbane Hydra	64d31e75b8fc012a	3	1/1		0/1	ix:resp
 Steeple Roc	92f4ecc5a94c2db0	51	0/0		0/0	
 Stolen Strategy	b19a632a0e86883c	4	1/1		0/1	ix:resp
+Stolen by the Fae	022e9776c2531f3c	29	0/0		3/4	f0/s/x0
 Swift Response	4deca589d95dd700	8	0/0		2/2	
 Sylvan Tutor	1fb010a6ebf5d921	3	0/0		1/2	ix:resp
 Territory Culler	bcfb8b06542b5550	24	1/1		1/1	

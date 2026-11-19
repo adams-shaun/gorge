@@ -348,6 +348,7 @@ Sparkspitter
 Spectral Cloak
 Sphere Grid
 Spike Breeder
+Spinal Graft
 Spinal Parasite
 Spirit of the Hearth
 Springjaw Trap
@@ -395,6 +396,7 @@ Tome Anima
 Traitorous Instinct
 Traxos, Scourge of Kroog
 Tuknir Deathlock
+Turn into a Pumpkin
 Tymaret, the Murder King
 Tyrannize
 Underworld Dreams
