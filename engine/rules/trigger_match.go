@@ -3224,6 +3224,18 @@ func init() {
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
 		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblocked", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce", "trig:CounterPlayerAddedAll", "trig:CounterAddedAll", "trig:CounterTypeAddedAll",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana", "trig:Untaps",
+		// trig:ManaAdded: "Whenever a land's ability causes you to add one or
+		// more mana of the chosen color, add an additional one mana of that
+		// color" (Caged Sun's CR 605.1b triggered mana ability, the corpus's
+		// sole carrier). Matched by trigmatch.manaAddedMatches
+		// (engine/rules/trigmatch/mana_added.go) off the ManaAdd events the
+		// mana ability's resolution emits; the Static$ True instances are
+		// lifted into the CR 605.3b immediate batch by
+		// resolveTriggeredManaAbilities's ManaAdded lift, and the
+		// payment planner folds the bonus into a planned land tap
+		// (pay.PaymentPlanFoldableManaAdded through
+		// engine/rules/payment_plan_interference.go).
+		"trig:ManaAdded",
 		// Aggregate tap trigger modes, matched by
 		// trigmatch.tapAllMatches/untapAllMatches off the ordinary Tap/Untap
 		// events, batched once per tapping/untapping action.
