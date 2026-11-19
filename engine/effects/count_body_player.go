@@ -82,6 +82,9 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 		if n, ok2 := playerGroupCount(g.AliveFrom(0), rest); ok2 {
 			return n, true, true
 		}
+		if cov3PlayerPropCodes.Code(rest) == cov3PlayerPropTiedForHighestLife {
+			return playersTiedForHighestLife(g), true, true
+		}
 		if n, ok2 := lifeExtreme(g, g.AliveFrom(0), rest); ok2 {
 			return n, true, true
 		}
@@ -375,3 +378,28 @@ var evalCountBodyPlayerCodes = state.NewStrCodes(
 	state.StrEntry[evalCountBodyPlayerCode]{Key: "RingTemptedYou", Val: evalCountBodyPlayerRingTemptedYou},
 	state.StrEntry[evalCountBodyPlayerCode]{Key: "HasPropertyMaxSpeed", Val: evalCountBodyPlayerHasPropertyMaxSpeed},
 )
+
+// playersTiedForHighestLife is the count of living players tied for the
+// highest life total (Celestial Convergence's SVar:NumHighestLife behind its
+// WinnerDecided/GameIsADraw ConditionCheckSVar$ pair: LT2 picks the single
+// highest-life winner, GE2 makes the game a draw). Read off the live seat life
+// totals, the same read lifeExtreme's HighestLifeTotal makes, so the count and
+// the extreme cannot disagree. An empty group reads 0 (a real count, never a
+// fake one): no player is tied for anything.
+func playersTiedForHighestLife(g *state.Game) int32 {
+	highest, seen := int32(0), false
+	for _, p := range g.AliveFrom(0) {
+		if life := g.Players[p].Life; !seen || life > highest {
+			highest, seen = life, true
+		}
+	}
+	n := int32(0)
+	if seen {
+		for _, p := range g.AliveFrom(0) {
+			if g.Players[p].Life == highest {
+				n++
+			}
+		}
+	}
+	return n
+}

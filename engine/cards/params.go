@@ -921,6 +921,23 @@ const (
 	// exiled card haunts the announced creature target. Read by effects'
 	// compileChangeZone. Appended: earlier ordinals stay stable.
 	PKHaunt
+	// StartBidding$ on a BidLife: the opening bid as written ("", a literal
+	// number, or Any). Read by effects' effBidLife. Appended: earlier
+	// ordinals stay stable.
+	PKStartBidding
+	// OtherBidder$ on a BidLife: the extra bidding participant(s) beyond the
+	// resolving controller (Mages' Contest's TargetedController). Read by
+	// effects' effBidLife. Appended: earlier ordinals stay stable.
+	PKOtherBidder
+	// BidSubAbility$ on a BidLife: the SVar body the winning bid resolves
+	// (Forge's BidSubAbility, the DBLoseLife chain). Read by effects'
+	// effBidLife. Appended: earlier ordinals stay stable.
+	PKBidSubAbility
+	// ConditionPlayerDefined$ / ConditionPlayerContains$: the player-group
+	// membership gate read by effects' conditionMetCore. Appended: earlier
+	// ordinals stay stable.
+	PKConditionPlayerDefined
+	PKConditionPlayerContains
 	// Embalm$ True and RemoveCost$ True on a Clone (Vizier of Many Faces's
 	// embalm-gated token exceptions). Read by effects' compileClone.
 	// Appended: earlier ordinals stay stable.
@@ -1025,6 +1042,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKConditionNotPresent:              "ConditionNotPresent",
 	PKConditionPhases:                  "ConditionPhases",
 	PKConditionPlayerTurn:              "ConditionPlayerTurn",
+	PKConditionPlayerDefined:           "ConditionPlayerDefined",
+	PKConditionPlayerContains:          "ConditionPlayerContains",
 	PKConditionPresent:                 "ConditionPresent",
 	PKConditionPresent2:                "ConditionPresent2",
 	PKConditionSVarCompare:             "ConditionSVarCompare",
@@ -1109,6 +1128,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKOnlyFirst:                        "OnlyFirst",
 	PKOnlyFirstSpell:                   "OnlyFirstSpell",
 	PKOpponentTurn:                     "OpponentTurn",
+	PKOtherBidder:                      "OtherBidder",
 	PKOptional:                         "Optional",
 	PKOptionalDecider:                  "OptionalDecider",
 	PKOptionalPrompt:                   "OptionalPrompt",
@@ -1161,6 +1181,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKShuffle:                          "Shuffle",
 	PKSorcerySpeed:                     "SorcerySpeed",
 	PKSpellDescription:                 "SpellDescription",
+	PKStartBidding:                     "StartBidding",
 	PKStatic:                           "Static",
 	PKStaticAbilities:                  "StaticAbilities",
 	PKStoreVoteNum:                     "StoreVoteNum",
@@ -1475,6 +1496,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKAnnounceTitle:                    "AnnounceTitle",
 	PKAttacked:                         "Attacked",
 	PKBeginTurn:                        "BeginTurn",
+	PKBidSubAbility:                    "BidSubAbility",
 	PKBlessing:                         "Blessing",
 	PKCheckDefinedPlayer:               "CheckDefinedPlayer",
 	PKCheckOnTriggeredCard:             "CheckOnTriggeredCard",
