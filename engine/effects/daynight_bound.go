@@ -48,3 +48,12 @@ func effDayTime(h Host, c *Ctx, sa *cards.SA) {
 	}
 	h.Emit(events.Event{Kind: events.DayNightChange, Amount: int32(to), Text: to.String()})
 }
+
+// transformBlocked reports whether id can't transform right now: a daybound
+// or nightbound permanent transforms only by its own ability (CR 702.145b/e),
+// and a live S:Mode$ CantTransform static forbids it outright (CR 701.28f,
+// Host.TransformBlocked). The one gate SetState's transform emit and its
+// would-change probe share.
+func transformBlocked(h Host, id state.ObjID) bool {
+	return dayNightBound(h, id) || h.TransformBlocked(id)
+}

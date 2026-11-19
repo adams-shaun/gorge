@@ -73,7 +73,8 @@ func (e *Engine) dayNightFlips() []events.Event {
 			case dn == state.DayNightDay && o.FaceIdx != 0 && e.hasKeywordH(id, kwhNightbound):
 				to = 0
 			}
-			if to >= 0 {
+			// CR 701.28f: a CantTransform static (Immerwolf) holds the face.
+			if to >= 0 && !transformForbidden(e, id) {
 				flips = append(flips, events.Event{Kind: events.FlipFace, Obj: id, Amount: to, Text: "Transformed"})
 			}
 		}

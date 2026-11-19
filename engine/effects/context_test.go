@@ -313,6 +313,14 @@ func (h *fakeHost) ExileBlocked(id state.ObjID, forCost bool) bool {
 	return h.exileBlocked[id]
 }
 
+// DiscardBlocked has no static registry to consult here (the engine-side
+// CantDiscard static lives in rules.Engine): nothing is blocked.
+func (h *fakeHost) DiscardBlocked(p state.PlayerID, forCost bool) bool { return false }
+
+// TransformBlocked has no static registry to consult here (the engine-side
+// CantTransform static lives in rules.Engine): nothing is blocked.
+func (h *fakeHost) TransformBlocked(id state.ObjID) bool { return false }
+
 // SurveilLookExtra has no static registry to consult here (the activeStatics
 // walk lives in rules.Engine), the same discipline as SacrificeBlocked above:
 // the double reports zero rather than inventing a registry it cannot answer

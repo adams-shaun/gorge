@@ -637,7 +637,7 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step, start ...int) 
 			ev := events.Event{Kind: events.ManaClear, Player: state.PlayerID(i)}
 			ev.Text = e.unspentManaKeep(state.PlayerID(i))
 			choicesBefore := len(e.replChoices)
-			e.emit(ev)
+			emitManaClearBurning(e, ev)
 			if len(e.replChoices) > choicesBefore {
 				// An order choice owns this loss. Finish other seats and combat
 				// cleanup only after the last replacement answer has settled.
