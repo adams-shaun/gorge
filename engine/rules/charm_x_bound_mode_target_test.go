@@ -7,9 +7,9 @@ import (
 )
 
 const xBoundCharmSrc = "Name:Past Confronter\nManaCost:X B\nTypes:Sorcery\n" +
-	"A:SP$ Charm | Choices$ Return,Remove | Announce$ X\n" +
-	"SVar:Return:DB$ ChangeZone | Origin$ Graveyard | Destination$ Battlefield | ValidTgts$ Planeswalker.YouOwn+cmcLEX\n" +
-	"SVar:Remove:DB$ RemoveCounter | ValidTgts$ Planeswalker.OppCtrl | CounterType$ LOYALTY | CounterNum$ Y\n" +
+	"A:SP$ Charm | Announce$ X | Choices$ Back,Drain\n" +
+	"SVar:Back:DB$ ChangeZone | Origin$ Graveyard | Destination$ Battlefield | ValidTgts$ Planeswalker.YouOwn+cmcLEX\n" +
+	"SVar:Drain:DB$ RemoveCounter | CounterType$ LOYALTY | CounterNum$ Y | ValidTgts$ Planeswalker.OppCtrl\n" +
 	"SVar:X:Count$xPaid\nSVar:Y:SVar$X/Times.2\nOracle:x\n"
 
 const xBoundWalkerSrc = "Name:Past Walker\nManaCost:3 B B\nTypes:Legendary Planeswalker Walker\nLoyalty:5\nOracle:x\n"
