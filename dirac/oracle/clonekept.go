@@ -1,6 +1,10 @@
 package oracle
 
 import (
+	"maps"
+	"slices"
+
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -16,15 +20,47 @@ import (
 // trigger whose Effect the root also carries is reported at the root's index
 // (abilityIndex finds the first match), so the index i passed in is already the
 // root's for those.
+//
+// A token template (Cryptoplasm copying a Hamster Token and keeping its own
+// trigger) is named by no card of the universe: the match's token definitions
+// are the root there, walked in sorted-script order so the answer never
+// depends on the map's order.
 func cloneKeptTriggerOf(g *state.Game, o *state.Object, i int) bool {
 	if o == nil || len(o.CloneLayers) == 0 || o.Face() == nil || i < 0 || i >= len(o.Face().Triggers) {
 		return false
+	}
+	if tok, face := rootTokenCard(g, o.Face().Name); tok != nil {
+		return i >= len(face.Triggers)
 	}
 	ord, fi, ok := g.NameUniverse.FaceByName(o.Face().Name)
 	if !ok {
 		return false
 	}
 	return i >= len(g.NameUniverse.Card(ord).Faces[fi].Triggers)
+}
+
+// rootTokenCard is the match's token definition whose face is named name,
+// with that face, when the universe carries no such card (tokens are
+// compiled scripts beside it, keyed by script, so they are found by value).
+func rootTokenCard(g *state.Game, name string) (*cards.Card, *cards.Face) {
+	if name == "" {
+		return nil, nil
+	}
+	if _, _, ok := g.NameUniverse.FaceByName(name); ok {
+		return nil, nil
+	}
+	for _, k := range slices.Sorted(maps.Keys(g.Tokens)) {
+		tok := g.Tokens[k]
+		if tok == nil {
+			continue
+		}
+		for _, f := range tok.Faces {
+			if f != nil && f.Name == name {
+				return tok, f
+			}
+		}
+	}
+	return nil, nil
 }
 
 // grantedTriggerOf reports whether stack ability ab (0x80|i: trigger i of o's
