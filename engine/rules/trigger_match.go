@@ -3047,6 +3047,15 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 	if strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKFirstCombat)), "True") && e.G.CombatsThisTurn != 1 {
 		return false
 	}
+	// FirstUpkeep$ (a presence flag in Forge, as here; Paradox Haze: "at the beginning of enchanted
+	// player's first upkeep each turn"): only the first upkeep begun this
+	// turn, so the extra upkeep the trigger grants does not re-fire it (a
+	// measured livelock). Haze's trigger names no Phase$, so the step must be
+	// the upkeep itself too (else it fired at every step before the second
+	// upkeep began). Same count == 1 reading as FirstCombat$ above.
+	if t.HasParam(cards.PKFirstUpkeep) && (e.G.Step != state.StepUpkeep || e.G.UpkeepsThisTurn != 1) {
+		return false
+	}
 	// PlayerTurn$ True: only during the turn of the source's controller
 	// (Forge Trigger.requirementsCheck). Applied to EVERY mode, as Forge does
 	// and as the OpponentTurn$ mirror below always was. It used to be scoped
