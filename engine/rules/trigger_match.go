@@ -3355,6 +3355,12 @@ func init() {
 		// ("becomes blocked"), each a Pump of itself +N/+N until
 		// end of turn (CR 702.45a).
 		"kw:Bushido",
+		// Rampage's expansion (engine/cards/kw_rampage.go) is one
+		// AttackerBlocked trigger on itself whose Pump reads the blockers
+		// beyond the first, times N (CR 702.23a). A KW$ Rampage grant
+		// (Rapid Fire, Gabriel Angelfire) is not synthesized; it adds no
+		// kw: primitive, so this registration does not cover it.
+		"kw:Rampage",
 		// Afterlife's expansion (engine/cards/keywords.go) is a ChangesZone death
 		// trigger whose effect mints the wb_1_1_spirit_flying tokens.
 		"kw:Afterlife",
