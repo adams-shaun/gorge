@@ -562,20 +562,27 @@ func foldClonePermanent(g *state.Game, e *Event) {
 	// by the granted ability.
 	if e.Counter == "gain-this-ability" || e.Counter == "gain-this-trigger" {
 		if of := o.Face(); of != nil {
+			var gainedTrigger *cards.Trigger
+			var gainedAbilities []*cards.SA
 			if e.Counter == "gain-this-trigger" {
 				// Amount is a one-based index into the become object's face
 				// TRIGGERS: Forge appends exactly root.getTrigger().copy(...),
 				// so the copy keeps the recurring trigger that makes a
 				// recurring Copy carrier recur.
 				if e.Amount > 0 && int(e.Amount) <= len(of.Triggers) {
-					sf.Triggers = append(append([]cards.Trigger(nil), sf.Triggers...), of.Triggers[e.Amount-1])
+					t := of.Triggers[e.Amount-1]
+					sf.Triggers = append(append([]cards.Trigger(nil), sf.Triggers...), t)
+					gainedTrigger = &t
 				}
 			} else if e.Amount > 0 && int(e.Amount) <= len(of.Abilities) {
 				// Amount is a one-based index into the become object's face
 				// abilities. Zero retains the legacy whole-list form for old
 				// logs; new Clone effects identify the resolving ability.
-				sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), of.Abilities[e.Amount-1])
+				gained := of.Abilities[e.Amount-1]
+				gainedAbilities = append(gainedAbilities, gained)
+				sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), gained)
 			} else if e.Amount == 0 && len(of.Abilities) > 0 {
+				gainedAbilities = append(gainedAbilities, of.Abilities...)
 				sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), of.Abilities...)
 			}
 			if len(of.SVars) > 0 {
@@ -602,6 +609,17 @@ func foldClonePermanent(g *state.Game, e *Event) {
 						merged[k] = v
 					}
 				}
+				// The GAINED ability/trigger is the OTHER direction: its
+				// body is the become object's own, so a name it reads must
+				// resolve to the become face's value even when the copied
+				// face defines the same name. Re-apply exactly those names
+				// (never the whole table: the copied Xerex Strobe-Knight's
+				// activation gate still owns its own X). Measured: Lazav,
+				// the Multifarious and Likeness Looter's gained "{X}:
+				// Clone" keeps SVar:X = Count$xPaid, so its cmcEQX target
+				// filter must read the announced X, not the copied
+				// Snooping Newsie's graveyard count.
+				reapplyGainedSVars(merged, of.SVars, gainedTrigger, gainedAbilities)
 				sf.SVars = merged
 			}
 		}
@@ -673,6 +691,73 @@ func foldClonePermanent(g *state.Game, e *Event) {
 	if src != nil {
 		o.CastFlags |= src.CastFlags & state.FlagPrototype
 	}
+}
+
+// reapplyGainedSVars writes own's value for every SVar name the GAINED
+// trigger or ability itself reads. The copy-basis merge in foldClonePermanent
+// deliberately lets the copied face (sf) win a name collision so a prior
+// copy's stale table cannot shadow it; the gained body is the become object's
+// own text, though, so the names IT reads must still come from the become
+// face (Forge resolves a gained ability's SVars on its source). Only the
+// names the body actually mentions are re-applied: re-applying the whole own
+// table would shadow the copied face's identically named SVar for the copied
+// abilities (the Cryptoplasm direction). trig is the gained trigger with its
+// resolved body; abilities are the gained activated/spell ability chain.
+func reapplyGainedSVars(merged, own map[string]string, trig *cards.Trigger, abilities []*cards.SA) {
+	if len(own) == 0 {
+		return
+	}
+	var lines []string
+	if trig != nil {
+		// A trigger's own T: line is stored as Params, so Execute$ (the
+		// SVar naming the body) is recovered from the values; the body is
+		// the trigger's resolved Effect chain.
+		for _, v := range trig.Params {
+			lines = append(lines, v)
+		}
+		for sa := trig.Effect; sa != nil; sa = sa.Sub {
+			lines = append(lines, sa.Line)
+		}
+	}
+	for _, ab := range abilities {
+		for sa := ab; sa != nil; sa = sa.Sub {
+			lines = append(lines, sa.Line)
+		}
+	}
+	if len(lines) == 0 {
+		return
+	}
+	for name, val := range own {
+		for _, ln := range lines {
+			if svarNameMentioned(ln, name) {
+				merged[name] = val
+				break
+			}
+		}
+	}
+}
+
+// svarNameMentioned reports whether text names the SVar name on a word
+// boundary, so a name that is a substring of another (X inside Xerex) does
+// not match.
+func svarNameMentioned(text, name string) bool {
+	if name == "" {
+		return false
+	}
+	for i := 0; i+len(name) <= len(text); i++ {
+		if text[i:i+len(name)] != name {
+			continue
+		}
+		if (i == 0 || !svarWordByte(text[i-1])) &&
+			(i+len(name) == len(text) || !svarWordByte(text[i+len(name)])) {
+			return true
+		}
+	}
+	return false
+}
+
+func svarWordByte(b byte) bool {
+	return b == '_' || (b >= '0' && b <= '9') || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z')
 }
 
 // foldFlipFace folds Kinds FlipFace, Specialize into state.
