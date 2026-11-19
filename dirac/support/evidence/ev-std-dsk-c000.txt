@@ -41,6 +41,7 @@ Killer's Mask
 Let's Play a Game
 Leyline of the Void
 Live or Die
+Meat Locker
 Midnight Mayhem
 Mirror Room
 Mountain
@@ -53,6 +54,7 @@ Peculiar Lighthouse
 Piggy Bank
 Piranha Fly
 Plains
+Pyroclasm
 Rampaging Soulrager
 Razorkin Hordecaller
 Razorkin Needlehead
@@ -60,6 +62,7 @@ Razortrap Gorge
 Ripchain Razorkin
 Rite of the Moth
 Savior of the Small
+Scorching Dragonfire
 Seized from Slumber
 Sheltered by Ghosts
 Splitskin Doll

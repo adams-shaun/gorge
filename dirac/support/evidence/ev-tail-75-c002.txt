@@ -90,6 +90,7 @@ Drossclaw
 Drown in Dreams
 Dualcaster Mage
 Dune Mover
+Duplicant
 Eccentric Pestfinder
 Emperor Crocodile
 Enrage
@@ -222,6 +223,7 @@ Raugrin Triome
 Reckless Barbarian
 Reclaim the Wastes
 Reduce in Stature
+Return from Extinction
 Reverberate
 Rimewood Falls
 Rishadan Cutpurse

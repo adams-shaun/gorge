@@ -3,11 +3,14 @@ Abolish	0ef68ef586d04323	4	0/0		2/2
 About Face	f6c8796991030b6a	6	0/0		1/2	ix:resp
 Banishing Slash	febf18b340355138	4	0/0		1/2	ix:resp
 Blasting Station	6e7e2b8c2378eb8d	10	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Boggart Harbinger	eb2ba9743938cd6d	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Claustrophobia	c6f9b581467745af	14	1/1		1/2	ix:resp
 Cloud Spirit	6d27d0f2b0a2af11	15	0/0		0/0	
 Deceiver Exarch	2b21a5f4f8601e6e	12	1/1		0/1	ix:resp
 Dynacharge	ab87a6da0e82fe16	6	0/0		2/4	cast/alt:none,ix:resp
 Forest	6d0466c30f825dba	64	1/1		0/1	ix:resp
+Giant Spider	483542faca64a414	9	0/0		0/0	
+Goblinslide	8a27c2612f6d80f0	5	1/1		0/1	ix:resp
 Goldmeadow Harrier	b91c521e10039418	10	1/1		1/1	
 Healer's Hawk	8f8feddee07aade2	8	0/0		0/0	
 Intangible Virtue	1b6b1833d16a530c	4	0/0		0/0	
@@ -15,11 +18,14 @@ Island	763c67ef7a27eaf5	233	1/1		0/1	ix:resp
 Kenrith's Transformation	ce5d204ed9f1641b	4	1/1		1/2	ix:resp
 Kor Cartographer	1d0b9a025e607225	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Lore Weaver	556249d5d3f50502	12	2/2		0/1	ix:resp
+Merciless Executioner	e813a9b8a926e850	8	1/1		1/1	
 Molten Birth	c16506e41d2ac1fa	4	0/0		1/2	ix:resp
 Mountain	9e71388353e907ed	66	1/1		0/1	ix:resp
 Nevermaker	e9c7e078f8b28d76	8	1/1		2/3	ix:resp
 Nyxborn Hydra	9c25b758482a9cc4	3	0/0		2/2	
 Plains	82d63a695487e567	50	1/1		0/1	ix:resp
+Quest for the Gravelord	5fd7720e1de61f2b	9	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Reality Shift	84fc1f7ca3bb0d0c	124	0/0		2/2	
 Relic Crush	47e826cde94b4b3f	4	0/0		2/2	
 Renegade Warlord	dfd2b5c2f85093f0	3	1/1		0/1	ix:resp
 Reverent Mantra	b6d100c622180da9	8	0/0		2/2	
@@ -27,6 +33,7 @@ Send in the Pest	2c3ae66b17de743c	5	0/0		1/2	ix:resp
 Spitting Earth	165a13c062540255	6	0/0		1/2	ix:resp
 Stand Together	38eb655d7f939356	6	0/0		2/2	
 Swamp	342b413902f441c3	58	1/1		0/1	ix:resp
+Twinferno	8d38211c9bc6a051	16	0/0		2/2	
 Vigean Graftmage	3ccd0ed1c483cb70	60	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Wall of Roots	9fc6da95d4e6fdce	6	1/1		0/1	ix:resp
 Woodland Changeling	91d97ba155ce29de	3	0/0		0/0	

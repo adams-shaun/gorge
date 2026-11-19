@@ -52,6 +52,7 @@ Cut
 Dakmor Plague
 Dark Betrayal
 Death's Presence
+Death-Hood Cobra
 Definitely Not a Turtle
 Demystify
 Dormant Sliver
@@ -141,6 +142,7 @@ Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
 Magus of the Candelabra
+Manaweft Sliver
 Mandibular Kite
 Master Decoy
 Meldweb Strider
@@ -175,6 +177,7 @@ Overrule
 Penance Stare
 Pestermite
 Pillar of Light
+Pious Evangel
 Plains
 Pollenbright Wings
 Prized Statue
@@ -201,6 +204,7 @@ Ruin Ghost
 Rust Monster
 Salt Marsh
 Sandstone Warrior
+Scragnoth
 Scroll of Origins
 Seeker
 Seismic Strike
