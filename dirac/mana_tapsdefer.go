@@ -818,18 +818,24 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 }
 
 // deferSeenKey is gorge's scriptStateKey over the deferred gaps' search: the
-// tapped gaps (a set, not their order), the floating pool and the stack the
-// taps queued.
+// tapped gaps (a set, not their order), the floating pool, the restricted
+// mana's partition and the stack the taps queued. gorge's Pool counts each
+// restricted unit with its colour, while State.rb holds that unit beside the
+// raw pool (floatRestrAb leaves pool untouched), so the key reads poolProj
+// beside the batches. Hashing the raw pool alone made two answers that differ
+// only in their restricted colour one state and dropped the second's subtree
+// (Primal Beyond's five-colour restricted ability; restrCensusDeferGap).
 type deferSeenKey struct {
 	taps [(MaxPerm + 63) / 64]uint64
 	pool [kop.NumManaKinds]uint8
+	rb   [maxRB]rbatch
 	pend uint8
 }
 
 // seenSet records the state of a search node and reports whether an earlier
 // node had already reached it.
-func seenSet(seen map[deferSeenKey]struct{}, used []int8, pool [kop.NumManaKinds]uint8, pend uint8) bool {
-	key := deferSeenKey{pool: pool, pend: pend}
+func seenSet(seen map[deferSeenKey]struct{}, used []int8, pool [kop.NumManaKinds]uint8, rb [maxRB]rbatch, pend uint8) bool {
+	key := deferSeenKey{pool: pool, rb: rb, pend: pend}
 	for _, u := range used {
 		key.taps[u>>6] |= 1 << (uint(u) & 63)
 	}
@@ -851,12 +857,13 @@ func deferInUsed(used []int8, i int) bool {
 }
 
 // deferDuplicate reports whether the replayed node is a state gorge's visited
-// set (scriptStateKey) already reached: the same tapped set, pool and pending
+// set (scriptStateKey) already reached: the same tapped set, pool (restricted
+// units included, as gorge's Pool counts them), restricted batches and pending
 // stack in another tap order. A post node is the pass that resolves the stack,
 // not a tap state gorge's key marks, so it is never a duplicate. t is the
 // node's fork.
 func deferDuplicate(replay, post bool, seen map[deferSeenKey]struct{}, t *State, p uint8, used []int8) bool {
-	return replay && !post && seenSet(seen, used, t.pl[SeatIx(p)].pool, t.npend)
+	return replay && !post && seenSet(seen, used, t.poolProj(p), t.rb[SeatIx(p)], t.npend)
 }
 
 // deferAskNodes charges the activation's colour ask as gorge's search prices
@@ -884,15 +891,14 @@ func deferReplay(t *State, k *prep, p uint8, a Action, order []Slot, used []int8
 // deferChainCharge returns the clones gorge's pass chain and the answers under
 // its intermediate resolutions add to the post node walked on fork t (the node
 // itself already counted): one per queued trigger resolved short of the last,
-// and, under each of those, the answers of every remaining gap, each an
-// activation ask gorge's scriptSearch.visit branches. The child term is a
-// floor on the walk's clones: one node per gap undercharged a multi-answer ask
-// (the answer count is what the subtree visits first), while pricing the whole
-// subtree at its worst over-withholds plays the walk still finds (Charix,
-// Grasping Dunes). The chain term uses t.npend, the chain's longest line (a
-// line whose payer dies ends sooner), so a trigger that does not damage the
-// payer is not undercharged. The bool reports whether nodes plus the charge
-// stays inside gorge's potentialScriptNodes.
+// and, under each of those, every remaining gap's activation ask and each of
+// its answers, the children gorge's scriptSearch.visit branches. The child term
+// is a floor on the walk's clones: the ask node per multi-answer gap plus one
+// per answer, while pricing the whole subtree at its worst over-withholds plays
+// the walk still finds (Charix, Grasping Dunes). The chain term uses t.npend,
+// the chain's longest line (a line whose payer dies ends sooner), so a trigger
+// that does not damage the payer is not undercharged. The bool reports whether
+// nodes plus the charge stays inside gorge's potentialScriptNodes.
 func (s *State) deferChainCharge(k *prep, t *State, nodes int, order []Slot, used []int8, replay, post, resolvePlay bool) (int, bool) {
 	if !replay || !post || !resolvePlay || t.npend == 0 {
 		return 0, true
@@ -900,7 +906,8 @@ func (s *State) deferChainCharge(k *prep, t *State, nodes int, order []Slot, use
 	sub := 0
 	for i := 0; i < len(order); i++ {
 		if !deferInUsed(used, i) {
-			sub += int(s.deferGapAnswers(k, order[i]))
+			n := int(s.deferGapAnswers(k, order[i]))
+			sub += n + deferAskNodes(n)
 		}
 	}
 	chain := int(t.npend)
@@ -958,6 +965,16 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 			}
 			charge, fits := s.deferChainCharge(k, t, nodes, order, used, replay, post, resolvePlay)
 			if !fits {
+				// Gorge's visit charges every clone until its budget saturates,
+				// then refuses every later node, so a genuinely too-long pass
+				// chain ends its whole search. The chain term here is a
+				// longest-line *overestimate* (t.npend counts the payer
+				// surviving every queued trigger; a payer that dies leaves a
+				// shorter chain), not a floor, so a branch it rejects may still
+				// fit gorge's walk. Saturating nodes would spread that
+				// overestimate to every later sibling; keeping the budget
+				// unsaturated is deliberate, an approximation that may still
+				// find a line rather than a modelled clone count.
 				s.unfork()
 				if stall != 0 {
 					s.capFull(stall)
