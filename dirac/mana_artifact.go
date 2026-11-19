@@ -148,16 +148,27 @@ var useArtN = newGenUse(tableAnyTypedMana)
 
 // tableAnyTypedMana reports whether any card's mana is typed (prep.go manaTyped).
 func tableAnyTypedMana(t *kop.Table) bool {
+	// The tally matters only where a hand-mana card (a Spirit Guide) puts plain
+	// mana beside a typed producer's tagged mana; any typed producer alone
+	// would make a vanilla fixture's table need gen, and the fresh-clone tests
+	// pin a nil gen there. A table with typed producers but no hand-mana card
+	// keeps one bit per colour, as before.
+	hand := false
+	for i := range t.Cards {
+		if t.Cards[i].HandMana != 0 {
+			hand = true
+			break
+		}
+	}
+	if !hand {
+		return false
+	}
 	typed := typedManaSubtypes(t)
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		if c.Types&kop.TArtifact == 0 && (c.Subtypes[0]&typed[0]|c.Subtypes[1]&typed[1]) == 0 {
 			continue
 		}
-		// A typed card that prints no mana ability tags nothing (a vanilla
-		// fixture's artifact must not make its table need gen: the fresh-clone
-		// tests pin a nil gen). A granted mana ability on such a card is not
-		// covered: the tally then reads as one bit per colour, as before.
 		for j := range c.Abilities {
 			if c.Abilities[j].Kind == kop.AbMana {
 				return true
