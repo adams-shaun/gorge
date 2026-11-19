@@ -11,7 +11,8 @@ import (
 // dungeon scripts but Undercity, each lowered with no refusal, and the rooms
 // that needed new forms -- Twisted Caverns' until-next-turn can't-attack
 // override, Runestone Caverns' paid land-capable Play, Mad Wizard's Lair's
-// free cast from the drawn cards (hand zone) and Oubliette's no-op sacrifice.
+// free cast from the drawn cards (hand zone) and Oubliette's per-part
+// SacEachValid$ sacrifice.
 func TestVentureDungeonsLower(t *testing.T) {
 	cardsDir := ratchetCards(t)
 	list := filepath.Join(t.TempDir(), "cards.txt")

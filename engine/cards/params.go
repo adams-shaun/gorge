@@ -963,6 +963,12 @@ const (
 	// marker reaches. Read by trigmatch's payCumulativeUpkeepMatches.
 	// Appended: earlier ordinals stay stable.
 	PKPaid
+	// SacEachValid$ True on a Sacrifice whose SacValid$ is a " & " list
+	// (Tomb of Annihilation's Oubliette room, Catch // Release): True
+	// sacrifices one permanent per listed type, part by part. Read by
+	// effects' sacrificeParams (sacEachValidParts). Appended: earlier
+	// ordinals stay stable.
+	PKSacEachValid
 	paramKeyCount
 )
 
@@ -1805,6 +1811,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKShuffleBySelfControlled:          "ShuffleBySelfControlled",
 	PKValidCauser:                      "ValidCauser",
 	PKPaid:                             "Paid",
+	PKSacEachValid:                     "SacEachValid",
 }
 
 // String is the key's Forge text.

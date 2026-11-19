@@ -13,7 +13,7 @@ func init() {
 	Register("ChangeZoneAll", effChangeZoneAll)
 	Register("Destroy", effDestroy)
 	Register("DestroyAll", effDestroyAll)
-	Register("Sacrifice", effSacrifice)
+	Register("Sacrifice", sacrificeEachValid)
 	Register("Manifest", effManifest)
 	Register("ManifestDread", effManifestDread)
 	Register("Cloak", effCloak)
