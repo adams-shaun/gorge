@@ -312,6 +312,7 @@ func (s *State) grantSacApply(k *prep, p uint8, st *grantStep) {
 		}
 	} else {
 		s.pl[SeatIx(p)].pool[st.col] += st.n
+		s.artTag(k, p, st.sl, int(st.col)) // the search branch's tag: a snow source's unit is snow (mana_snow.go)
 	}
 	s.grantSacDo(k, st.sl)
 }
@@ -455,6 +456,7 @@ func (s *State) grantCostApply(k *prep, p uint8, st *grantStep) {
 		}
 	} else {
 		s.pl[SeatIx(p)].pool[st.col] += st.n
+		s.artTag(k, p, sl, int(st.col)) // the search branch's tag: a snow source's unit is snow (mana_snow.go)
 	}
 	if k.gen.anyTapExtra {
 		xv := s.srcExtraPick(k, sl, pc, int(st.col))
