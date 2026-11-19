@@ -76,6 +76,12 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 	fh := s.objs[o].zone == kop.ZoneHand
 	cost, used := s.convokeCreditUsed(k, p, c, o, fh, k.t.Cards[c].MadnessCost)
 	credited := used.any() || s.hasCastDelve(k, p, c, o, fh)
+	// the CR 601.2f modifiers compose over the credited cost (gorge
+	// offerCastablePotential: the gate composes the very charge the payment
+	// will make, engine/rules/mana.go), so a ReduceCost static may still
+	// afford a credited residual the census refuses, and a Thalia-style
+	// increase prices the offer the cast must pay
+	cost = s.adjustCost(k, p, c, o, cost)
 	ok := s.affordsFor(k, p, &cost) || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost) || s.filterCastAffords(k, p, o, &cost) ||
 		s.painCastAffords(k, p, &cost)
 	var stall uint8

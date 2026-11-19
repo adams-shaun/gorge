@@ -151,6 +151,7 @@ func (s *State) convokeCreditUsed(k *prep, p uint8, c CardID, o Obj, fromHand bo
 				continue
 			}
 			gen--
+			used = used.with(sl) // the committed slot counts in madnessCastable's creditless read
 		}
 	}
 	for i := range rem {
