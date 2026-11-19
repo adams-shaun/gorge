@@ -202,6 +202,7 @@ const (
 	vExileTypes          // the distinct card types among the exiled cards matching F, every seat's exile (Count$ValidExile <spec>$CardTypes)
 	vSacrificedThisTurn  // the permanents the controller sacrificed this turn; N 0 every one, N 1 artifact cards (PlayerCountPropertyYou$SacrificedThisTurn Permanent|Artifact)
 	vDiscardedThisTurn   // the cards the controller discarded this turn (PlayerCountPropertyYou$CardsDiscardedThisTurn)
+	vRingTempted         // the controller's temptation count (PlayerCountPropertyYou$RingTemptedYou; the Ring emblem's level gates, gorge count_body_player.go RingTemptedYou)
 	vNumColorsOf         // the colour count of object Ref (TriggeredCard$CardNumColors in a SpellCast trigger)
 	vScriedThisTurn      // the scry (N 0) or surveil (N 1) instructions the controller performed this turn (Count$YouScryThisTurn / Count$YouSurveilThisTurn)
 	vRemLKIPT            // RememberedLKI$CardPower (N 0) / $CardToughness (N 1): the sum over the creatures a Sacrifice RememberSacrificed$ took, read from before they left
@@ -320,6 +321,7 @@ var valNames = [...]string{
 	vExileTypes:          "ExileTypes",
 	vSacrificedThisTurn:  "SacrificedThisTurn",
 	vDiscardedThisTurn:   "DiscardedThisTurn",
+	vRingTempted:         "RingTempted",
 	vNumColorsOf:         "NumColorsOf",
 	vScriedThisTurn:      "ScriedThisTurn",
 	vRemLKIPT:            "RemLKIPT",

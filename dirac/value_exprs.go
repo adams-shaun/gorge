@@ -76,6 +76,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.sacrificedThisTurn(k, x, ctx)
 	case kop.ExDiscardedThisTurn:
 		return s.discardedThisTurn(ctx)
+	case kop.ExRingTempted:
+		return s.ringCountOf(ctx.ctrl) // the controller's temptation count (act_ring.go)
 	case kop.ExYourTurns:
 		if x.N == 2 {
 			return s.ownMainPhase(ctx.ctrl) // value_countheads.go

@@ -50,6 +50,7 @@ func allYouCtrl(f *lFilter) bool {
 var graveTriggerModes = map[string]bool{
 	"Phase": true, "SpellCast": true, "AbilityCast": true, "CommitCrime": true, "AttackersDeclared": true,
 	"FullyUnlock": true, "ChangesZone": true, "ChangesZoneAll": true, "Drawn": true, "Cycled": true, "Discarded": true, "Sacrificed": true, "FacesDilemma": true,
+	"RingTemptsYou": true, // the Ring tempts (lower_ring.go; dirac/act_ring.go)
 }
 
 // triggerZoneHalves reports a TriggerZones$ comma list that is exactly the
@@ -1193,6 +1194,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if err := lc.becomeMonarchTrigger(tp, tr); err != nil { // lower_monarch.go
 			return err
 		}
+	case "RingTemptsYou":
+		if err := lc.ringTemptsTrigger(tp, tr, readF); err != nil { // lower_ring.go
+			return err
+		}
 	case "Scry", "Surveil":
 		if err := lc.scrySurveilTrigger(tp, tr, t.Mode); err != nil {
 			return err
@@ -1571,16 +1576,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	default:
 		return refuse("trigger mode %s", t.Mode)
 	}
-	if tp.is("PlayerTurn", "True") {
-		tr.OnlyYourTurn = true
-	}
-	// "This ability triggers only once each turn" (CR 603.2h; gorge
-	// trigger ActivationLimit$ 1): kernel TfOncePerTurn per source object.
-	if al, ok := tp.get("ActivationLimit"); ok {
-		if al != "1" {
-			return refuse("ActivationLimit %q", al)
-		}
-		tr.OncePer = true
+	tr.OnlyYourTurn = tp.is("PlayerTurn", "True")
+	if err := lc.trigOncePerTurn(tp, tr); err != nil {
+		return err
 	}
 	if rl, ok := tp.get("ResolvedLimit"); ok {
 		if err := lc.resolvedLimit(tr, rl, zone); err != nil {
@@ -1984,6 +1982,19 @@ func alwaysCounterThreshold(ip string) error {
 	}
 	if _, err := counterKind(kind); err != nil {
 		return refuse("Always IsPresent$ %q (%v)", ip, err)
+	}
+	return nil
+}
+
+// activationLimit lowers "This ability triggers only once each turn"
+// (CR 603.2h; gorge trigger ActivationLimit$ 1): kernel TfOncePerTurn per
+// source object.
+func (lc *lowerCtx) trigOncePerTurn(tp *params, tr *lTrigger) error {
+	if al, ok := tp.get("ActivationLimit"); ok {
+		if al != "1" {
+			return refuse("ActivationLimit %q", al)
+		}
+		tr.OncePer = true
 	}
 	return nil
 }

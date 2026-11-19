@@ -1,0 +1,5 @@
+family: ask
+name: raRingLoot
+value: next
+status: active
+doc: the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.

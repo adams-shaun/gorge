@@ -305,10 +305,14 @@ const NoCard = kop.NoCard
 // typesGen is sl's types.
 func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
 	if k.gen.fxNeed != 0 && s.walkSlot(k, sl) {
-		if k.gen.tyPost {
-			return s.tyPostTy(k, sl, s.walkTypes(k, sl)) // bestow, impending (kw_impending.go)
+		t := s.walkTypes(k, sl)
+		if k.gen.ringOn() && s.ringLegend(k, sl) {
+			t |= kop.TLegendary // the Ring emblem's first ability (CR 701.54c; act_ring.go)
 		}
-		return s.walkTypes(k, sl)
+		if k.gen.tyPost {
+			return s.tyPostTy(k, sl, t) // bestow, impending (kw_impending.go)
+		}
+		return t
 	}
 	p := &s.perms[sl]
 	t := k.cards[s.cardAt(sl)].types
@@ -334,6 +338,9 @@ func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
 	// types (the layer below them), never against the result: checking it
 	// against t would let a static's own AddType re-admit it.
 	s.eachOverrideStaticBelow(k, sl, t, func(o *kop.Override, _ uint16) { apply(o) })
+	if k.gen.ringOn() && s.ringLegend(k, sl) {
+		t |= kop.TLegendary // the Ring emblem's first ability (CR 701.54c; act_ring.go)
+	}
 	if k.gen.tyPost {
 		t = s.tyPostTy(k, sl, t) // bestow, impending (kw_impending.go)
 	}

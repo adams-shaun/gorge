@@ -4,4 +4,5 @@ value: 62
 forge: RingTemptsYou
 census: trig RingTemptsYou all=9 std=0 mbc=0 sole=3
 state: player 4 (ring)
-status: reserved
+status: active
+ticket: gap-ring
