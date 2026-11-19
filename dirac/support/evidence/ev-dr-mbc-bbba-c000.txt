@@ -13,6 +13,7 @@ Barbed Spike
 Basri's Acolyte
 Big Score
 Birchlore Rangers
+Blessed Spirits
 Blessing of Belzenlok
 Bloodrite Invoker
 Borrowing 100,000 Arrows
@@ -28,6 +29,7 @@ Contraband Livestock
 Dead
 Deepchannel Mentor
 Descent into Avernus
+Dreadmalkin
 Dreampod Druid
 Electrickery
 Encampment Keeper
@@ -64,6 +66,7 @@ Kor Celebrant
 Lagonna-Band Trailblazer
 Legacy's Allure
 Ley Weaver
+Lure
 Man-o'-War
 Master of Arms
 Master's Rebuke
@@ -116,6 +119,7 @@ Thermo-Alchemist
 Thunderclap
 Tibalt, Rakish Instigator
 Toothy, Imaginary Friend
+Tower Above
 Trostani's Judgment
 Unchained Berserker
 Valakut Invoker

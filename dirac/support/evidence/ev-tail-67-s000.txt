@@ -139,6 +139,7 @@ Psychic Spear
 Psychotrope Thallid
 Pulse of the Grid
 Purifying Dragon
+Quest for Pure Flame
 Rally to Battle
 Reckless Handling
 Renewed Faith
@@ -165,6 +166,8 @@ Skitter of Lizards
 Skullscorch
 Sky Weaver
 Snow-Covered Forest
+Snow-Covered Island
+Snow-Covered Mountain
 Snow-Covered Plains
 Snow-Covered Swamp
 Spearbreaker Behemoth

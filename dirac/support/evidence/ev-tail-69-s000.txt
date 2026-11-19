@@ -80,6 +80,7 @@ Foul Watcher
 Frightcrawler
 Fyndhorn Brownie
 Galvanic Blast
+Garruk Wildspeaker
 Gauntlet of Might
 Geistflame
 Ghostly Wings
@@ -160,6 +161,7 @@ Plains
 Planar Bridge
 Political Triumph
 Primetime Suspect
+Protean Thaumaturge
 Pyre-Sledge Arsonist
 Pyreswipe Hawk
 Rakdos Drake
@@ -222,6 +224,7 @@ Vampire's Bite
 Venser's Sliver
 Vibranium Mining Mech
 Vigilant Sentry
+Vogar, Necropolis Tyrant
 Voracious Typhon
 Vraska's Contempt
 Wall of Blossoms

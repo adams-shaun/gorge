@@ -12,6 +12,7 @@ Atog
 Baleful Beholder
 Binding Agony
 Bitterbow Sharpshooters
+Blasting Station
 Bleed Dry
 Blinking Spirit
 Bloodmad Vampire
@@ -104,6 +105,7 @@ Infuse with the Elements
 Ingenious Thief
 Ironclad Krovod
 Ironclaw Orcs
+Ironhoof Boar
 Island
 Ivora, Insatiable Heir
 Izzet Locket
@@ -123,6 +125,7 @@ Lash Out
 Legions to Ashes
 Life and Limb
 Lightning Blast
+Lightning-Rig Crew
 Liliana's Standard Bearer
 Liliana, Death Wielder
 Liquimetal Torque

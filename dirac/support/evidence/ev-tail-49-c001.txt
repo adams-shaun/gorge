@@ -336,6 +336,7 @@ Rustvine Cultivator
 Sacred Fire
 Sage of Epityr
 Salt Road Quartermasters
+Sanctuary Smasher
 Sanctum of Stone Fangs
 Sandstorm Eidolon
 Sarpadian Simulacrum
@@ -459,6 +460,7 @@ Windborn Muse
 Wing Puncture
 Wirewood Hivemaster
 Wirewood Lodge
+Woodcloaker
 Woodland Wanderer
 Woodwraith Strangler
 Wose Pathfinder

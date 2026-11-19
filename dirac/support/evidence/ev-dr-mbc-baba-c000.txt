@@ -12,6 +12,7 @@ Atraxa's Fall
 Aura Gnarlid
 Avacyn's Pilgrim
 Battlewing Mystic
+Beseech the Queen
 Black Vise
 Blood Fountain
 Bolt Bend
@@ -59,6 +60,7 @@ Helpful Hunter
 Horseshoe Crab
 Island
 Jaspera Sentinel
+Krosan Tusker
 Llanowar Visionary
 Mad Auntie
 Markov Baron

@@ -222,6 +222,7 @@ Maze of Shadows
 Meishin, the Mind Cage
 Mephidross Vampire
 Metathran Aerostat
+Midnight Pathlighter
 Midnight Scavengers
 Millennial Gargoyle
 Millstone
@@ -257,6 +258,7 @@ Polluted Delta
 Possessed Nomad
 Pradesh Gypsies
 Prakhata Club Security
+Precipitous Drop
 Presence of Gond
 Presence of the Master
 Priest of the Crossing

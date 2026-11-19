@@ -422,4 +422,5 @@ Withering Boon
 Wooded Ridgeline
 Woodland Sleuth
 Worldgorger Dragon
+You Find a Cursed Idol
 Zurgo Bellstriker

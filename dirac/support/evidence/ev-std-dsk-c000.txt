@@ -1,5 +1,6 @@
 Acrobatic Cheerleader
 Attack-in-the-Box
+Baseball Bat
 Boilerbilges Ripper
 Broodspinner
 Cackling Slasher
@@ -7,8 +8,10 @@ Cautious Survivor
 Clammy Prowler
 Clockwork Percussionist
 Conductive Machete
+Cracked Skull
 Cursed Recording
 Cursed Windbreaker
+Cynical Loner
 Dazzling Theater
 Demonic Counsel
 Disturbing Mirth
@@ -24,17 +27,23 @@ Exorcise
 Fanatic of the Harrowing
 Fear of Being Hunted
 Fear of Burning Alive
+Fear of Failed Tests
+Fear of Impostors
 Fear of Lost Teeth
 Fear of Missing Out
+Fear of Surveillance
 Final Vengeance
 Forest
 Found Footage
 Friendly Ghost
+Funeral Room
+Get Out
 Ghostly Keybearer
 Give In to Violence
 Glassworks
 Grab the Prize
 Grand Entryway
+Hardened Escort
 Horrid Vigor
 Impossible Inferno
 Innocuous Rat
@@ -46,7 +55,9 @@ Keys to the House
 Killer's Mask
 Let's Play a Game
 Leyline of the Void
+Lionheart Glimmer
 Live or Die
+Manifest Dread
 Marina Vendrell's Grimoire
 Meat Locker
 Midnight Mayhem
@@ -56,6 +67,8 @@ Murder
 Murky Sewer
 Neglected Manor
 Norin, Swift Survivalist
+Overlord of the Balemurk
+Overlord of the Boilerbilges
 Paranormal Analyst
 Peculiar Lighthouse
 Piggy Bank
@@ -70,19 +83,26 @@ Razortrap Gorge
 Restricted Office
 Ripchain Razorkin
 Rite of the Moth
+Roaring Furnace
 Savior of the Small
 Scorching Dragonfire
 Seized from Slumber
 Sheltered by Ghosts
+Smoky Lounge
 Splitskin Doll
+Strangled Cemetery
+Surgical Suite
 Swamp
 The Mindskinner
 The Swarmweaver
 Threats Around Every Corner
+Toby, Beastie Befriender
+Tunnel Surveyor
 Turn Inside Out
 Unable to Scream
 Undead Sprinter
 Unnerving Grasp
+Unsettling Twins
 Untimely Malfunction
 Unwanted Remake
 Valgavoth's Lair
@@ -91,3 +111,4 @@ Veteran Survivor
 Vile Mutilator
 Waltz of Rage
 Wildfire Wickerfolk
+Withering Torment

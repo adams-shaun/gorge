@@ -106,6 +106,7 @@ Drifter il-Dal
 Drifting Meadow
 Dross Scorpion
 Dryad Sophisticate
+Dungeon Map
 Dungeon Shade
 Dwarven Forge-Chanter
 Eccentric Pestfinder
@@ -442,6 +443,7 @@ Warfire Javelineer
 Warlord's Elite
 Warped Physique
 Warren Soultrader
+Warrior's Oath
 Weaponize the Monsters
 Weirding Shaman
 Where Ancients Tread

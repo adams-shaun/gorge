@@ -1,9 +1,12 @@
+Abstruse Interference
 Aeolipile
 Aeronaut's Wings
 Alabaster Wall
 Amulet of Kroog
 Annoyed Altisaur
+Arcbound Hybrid
 Atarka Beastbreaker
+Attrition
 Blood Age General
 Book of Rass
 Bull Hippo
@@ -12,23 +15,32 @@ Cast Down
 Cateran Enforcer
 Chatter of the Squirrel
 Cho-Arrim Bruiser
+Cloak of Feathers
 Clot Sliver
 Cloud Elemental
 Cold Storage
 Conclave Mentor
 Cut
 Dark Betrayal
+Death's Presence
 Definitely Not a Turtle
+Dementia Bat
 Demystify
 Drana, Liberator of Malakir
+Drown in Ichor
 Dryad Greenseeker
+Duskhunter Bat
 Dwell on the Past
+Elas il-Kor, Sadistic Pilgrim
 Enthusiastic Mechanaut
 Evangel of Synthesis
 Explosive Impact
+Facevaulter
 Familiar Ground
 Farm
 Feral Ridgewolf
+Filigree Fracture
+Floating-Dream Zubera
 Forest
 Forget
 Fourth Bridge Prowler
@@ -50,6 +62,7 @@ Izzet Charm
 Knight of Old Benalia
 Koilos Roc
 Krenko's Enforcer
+Krosan Restorer
 Lace with Moonglove
 Liliana's Defeat
 Liliana's Devotee
@@ -57,19 +70,26 @@ Loam Lion
 Loathsome Catoblepas
 Magma Phoenix
 Magus of the Candelabra
+Manaweft Sliver
 Mandibular Kite
 Merrow Bonegnawer
 Mesa Lynx
 Metallic Mastery
 Mind Drain
+Mindless Null
+Mire Blight
 Monstrous Hound
 Mountain
+Mukotai Soulripper
 Nephalia Smuggler
 Nyxborn Marauder
 Oashra Cultivator
 Peer Through Depths
+Penance Stare
 Phantasmal Sphere
 Plains
+Prakhata Pillar-Bug
+Provoke
 Psychic Spear
 Raiding Nightstalker
 Rakshasa's Secret
@@ -85,10 +105,12 @@ Salt Marsh
 Sandstone Warrior
 Savage Thallid
 Seismic Strike
+Sewerdreg
 Shanna, Sisay's Legacy
 Slaughter Cry
 Soul Bleed
 Storm Crow
+Sunblade Angel
 Swamp
 Toph, Earthbending Master
 Toph, Greatest Earthbender
@@ -105,3 +127,4 @@ Wander in Death
 Warleader's Helix
 Wilderness Elemental
 Windreader Sphinx
+Witness of Tomorrows
