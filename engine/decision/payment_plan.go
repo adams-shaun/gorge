@@ -201,10 +201,18 @@ type PaymentPlan struct {
 // may-play permission grants a card there) -- or "flashback" (OriginFlashback),
 // the CR 702.34a flashback cast of a graveyard card for its primary flashback
 // cost, the one alternative-cost cast a V1 witness pays.
+//
+// Mode is the priority-option Mode the cast begins as: "adventure_alt" or
+// "omen_alt" for a hand alternate-spell-face cast (CR 715.3a, 720.3 -- the
+// card shows face 0, the witness pays Face 1's charge), empty for every
+// other origin, whose CastMode() derives the mode from Origin alone. The
+// identity encoding appends it only when non-empty, so every
+// plain/flashback/may-play cast keeps its exact earlier identity.
 type PlannedCast struct {
 	Object state.ObjID `json:"object"`
 	Face   int         `json:"face"`
 	Origin string      `json:"origin"`
+	Mode   string      `json:"mode,omitempty"`
 }
 
 // OriginFlashback is the PlannedCast.Origin of a planned flashback cast: the
@@ -214,9 +222,14 @@ type PlannedCast struct {
 const OriginFlashback = "flashback"
 
 // CastMode is the priority-option Mode a planned cast of this origin begins
-// as: "flashback" for OriginFlashback, "mayplay" for the exile and graveyard
-// may-play origins, "" for the hand and command-zone plain casts.
+// as: the cast's own Mode for a hand alternate-spell-face cast
+// ("adventure_alt"/"omen_alt"), "flashback" for OriginFlashback, "mayplay"
+// for the exile and graveyard may-play origins, "" for the hand and
+// command-zone plain casts.
 func (c PlannedCast) CastMode() string {
+	if c.Mode != "" {
+		return c.Mode
+	}
 	switch c.Origin {
 	case OriginFlashback:
 		return "flashback"
@@ -526,6 +539,12 @@ func canonicalPaymentPrefixInto(b []byte, domain string, version uint32, seq uin
 	b = appendU64(b, uint64(cast.Object))
 	b = appendU64(b, uint64(cast.Face))
 	b = appendString(b, cast.Origin)
+	// A hand alternate-spell-face cast's Mode is appended only when non-empty,
+	// so every plain/flashback/may-play cast keeps its exact pre-Mode
+	// identity (PaymentPlanV1's codec changes only additively).
+	if cast.Mode != "" {
+		b = appendString(b, cast.Mode)
+	}
 	return b
 }
 

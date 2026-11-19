@@ -1716,6 +1716,12 @@ func (e *canonEncoder) encdecision_PlannedCast(v *decision.PlannedCast) error {
 	e.buf = binary.AppendUvarint(e.buf, uint64(v.Object))
 	e.buf = binary.AppendVarint(e.buf, int64(v.Face))
 	e.appendString(string(v.Origin))
+	if len(v.Mode) == 0 {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		e.appendString(string(v.Mode))
+	}
 	return nil
 }
 
