@@ -21,30 +21,35 @@ const raDefeatCast uint8 = 149
 // ask (dirac/manifest/ask/raDredgeRes)
 const raDredgeRes uint8 = 150
 
+// ask (dirac/manifest/ask/raDungeon)
+//
+// the dungeon choice of a plain Venture (CR 701.49a; act_venture.go dungeonChoose): the venturer's pick among the dungeon cards of the table but Undercity, in key order, gorge's "dungeon" KChoose.
+const raDungeon uint8 = 151
+
 // ask (dirac/manifest/ask/raGenClash)
-const raGenClash uint8 = 151
+const raGenClash uint8 = 152
 
 // ask (dirac/manifest/ask/raGenMyriad)
-const raGenMyriad uint8 = 152
+const raGenMyriad uint8 = 153
 
 // ask (dirac/manifest/ask/raGenPileOpp)
-const raGenPileOpp uint8 = 153
+const raGenPileOpp uint8 = 154
 
 // ask (dirac/manifest/ask/raGenRepeatOptional)
-const raGenRepeatOptional uint8 = 154
+const raGenRepeatOptional uint8 = 155
 
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 155
+const raPodClashOpp uint8 = 156
 
 // ask (dirac/manifest/ask/raRingBearer)
 //
 // the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.
-const raRingBearer uint8 = 156
+const raRingBearer uint8 = 157
 
 // ask (dirac/manifest/ask/raRingLoot)
 //
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
-const raRingLoot uint8 = 157
+const raRingLoot uint8 = 158
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -757,6 +762,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.repeatOptionalExt(k, in) // act_repeatoptional.go
 	case kop.ExtRingTemptsYou:
 		return s.ringTemptsExt(k, in) // act_ring.go
+	case kop.ExtVenture:
+		return s.ventureExt(k, in) // act_venture.go
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }
@@ -792,6 +799,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raDredgeRes:
 		s.dredgeResOptions(k, d) // kw_dredge.go
 		return true
+	case raDungeon:
+		s.dungeonAskOptions(k, d) // act_venture.go
+		return true
 	case raGenRepeatOptional:
 		s.repeatOptionalOptions(k, d) // act_repeatoptional.go
 		return true
@@ -825,6 +835,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raDredgeRes:
 		s.dredgeResAnswer(k, a) // kw_dredge.go
+		return true
+	case raDungeon:
+		s.dungeonAskAnswer(k, a) // act_venture.go
 		return true
 	case raGenRepeatOptional:
 		s.repeatOptionalAnswer(k, a) // act_repeatoptional.go

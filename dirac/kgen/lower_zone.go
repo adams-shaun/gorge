@@ -2133,7 +2133,8 @@ func (lc *lowerCtx) play(ps *params) error {
 	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)
 	var saExpr string
 	var err error
-	if !playCommandZone(ps) {
+	landPlay := playLandShape(ps, paid, mandatory, copyCard, repeat, upTo, forget, replace, amount)
+	if !playCommandZone(ps) && !landPlay {
 		// (the command-zone Play reads its absent ValidSA$: lower_playcommand.go)
 		sa, _ := playDefaultValidSA(ps)
 		saExpr, err = lc.playSAExpr(sa)
@@ -2183,6 +2184,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	if replace {
 		cs += "|ReplaceGY"
 	}
+	cs += playLandsFlag(landPlay)
 	cs += playSpellMVFlag(saExpr, ps.str("Valid"))
 	def := ps.str("Defined")
 	valid := ps.str("Valid")
@@ -2227,7 +2229,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		if hasValid || vzone != "" {
 			return refuse("Play Defined$ Remembered with Valid$/ValidZone$")
 		}
-		return emit(lRef{Kind: rRemembered}, zExile, saExpr)
+		return emit(lRef{Kind: rRemembered}, lc.playRememberedZone(), saExpr)
 	}
 	if def == "Imprinted" && lc.digImprinted && !hasValid && vzone == "" && !forget && !replace {
 		// the DigUntil's imprinted found card, the resolution's remembered
@@ -2239,6 +2241,9 @@ func (lc *lowerCtx) play(ps *params) error {
 	}
 	if !hasValid {
 		return refuse("Play shape")
+	}
+	if landPlay {
+		return emit(lRef{Kind: rRemembered}, zExile, "")
 	}
 	if paid {
 		// the source card itself, in exile (lower_exilegrant.go): Valid$

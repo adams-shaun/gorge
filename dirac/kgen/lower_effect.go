@@ -2305,18 +2305,25 @@ func (lc *lowerCtx) pumpPermanentKwGrant(kw string, obj lRef) error {
 // record together as pumpAllDuration's does. A computed amount refuses: a
 // record's P/T is read once at resolution, which a Count$ amount is not.
 func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw string, hasKW bool) error {
+	// "HIDDEN CARDNAME can't attack." (Twisted Caverns): the override
+	// record's CantAttack, no keyword bit; it is a keyword part of the grant
+	cantAtk := false
+	if hasKW {
+		kw, cantAtk = splitKWSentence(kw, cantAttackKW)
+		hasKW = kw != "" || cantAtk
+	}
 	if !na && !nd {
 		if !hasKW {
 			return refuse("Pump Duration %q without NumAtt$/NumDef$/KW$", "UntilYourNextTurn")
 		}
-		o := &lOverride{}
+		o := &lOverride{CantAttack: cantAtk}
 		if err := lc.protKwInto(o, kw); err != nil {
 			return err
 		}
 		lc.emitOverride(obj, o, "UntilYourNextTurn")
 		return nil
 	}
-	o := &lOverride{}
+	o := &lOverride{CantAttack: cantAtk}
 	if hasKW {
 		if err := lc.protKwInto(o, kw); err != nil {
 			return err
@@ -2562,6 +2569,10 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 // this turn" (CR 508.1, 509.1: Alchemist's Vial). Like mustBeBlockedKW it is a
 // mark, not a keyword bit.
 const cantAttackOrBlockKW = "HIDDEN CARDNAME can't attack or block."
+
+// cantAttackKW is the Pump keyword sentence "can't attack" (Twisted Caverns'
+// Duration$ UntilYourNextTurn grant): the override record's CantAttack.
+const cantAttackKW = "HIDDEN CARDNAME can't attack."
 
 // mustBeBlockedKW is the one Pump / PumpAll keyword sentence that is a mark,
 // not a keyword bit (CR 509.1c, ExtMustBeBlocked).

@@ -1,0 +1,5 @@
+family: ask
+name: raDungeon
+value: next
+status: active
+doc: the dungeon choice of a plain Venture (CR 701.49a; act_venture.go dungeonChoose): the venturer's pick among the dungeon cards of the table but Undercity, in key order, gorge's "dungeon" KChoose.

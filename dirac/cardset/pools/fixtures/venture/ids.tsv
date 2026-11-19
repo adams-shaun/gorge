@@ -1,0 +1,64 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	A-Acererak the Archlich
+1	card	A-Cloister Gargoyle
+2	card	A-Dungeon Descent
+3	card	A-Ellywick Tumblestrum
+4	card	A-Fates' Reversal
+5	card	A-Find the Path
+6	card	A-Precipitous Drop
+7	card	A-Triumphant Adventurer
+8	card	Acererak the Archlich
+9	card	Bar the Gate
+10	card	Barrowin of Clan Undurr
+11	card	Clattering Skeletons
+12	card	Cloister Gargoyle
+13	card	Delver's Torch
+14	card	Displacer Beast
+15	card	Dungeon Descent
+16	card	Dungeon Map
+17	card	Eccentric Apprentice
+18	card	Ellywick Tumblestrum
+19	card	Fates' Reversal
+20	card	Fifty Feet of Rope
+21	card	Find the Path
+22	card	Fly
+23	card	Forest
+24	card	Giant Growth
+25	card	Grizzly Bears
+26	card	Immovable Rod
+27	card	Intrepid Outlander
+28	card	Island
+29	card	Kick in the Door
+30	card	Lightning Bolt
+31	card	Midnight Pathlighter
+32	card	Mountain
+33	card	Nadaar, Selfless Paladin
+34	card	Plains
+35	card	Planar Ally
+36	card	Precipitous Drop
+37	card	Radiant Solar
+38	card	Ranger's Hawk
+39	card	Savannah Lions
+40	card	Secret Door
+41	card	Sefris of the Hidden Ways
+42	card	Shortcut Seeker
+43	card	Swamp
+44	card	Thorough Investigation
+45	card	Triumphant Adventurer
+46	card	Varis, Silverymoon Ranger
+47	card	Veteran Dungeoneer
+48	card	Wandering Troubadour
+49	card	You Find a Cursed Idol
+50	card	Yuan-Ti Fang-Blade
+51	card	Yuan-Ti Malison
+52	card	Zalto, Fire Giant Duke
+53	card	Zombie Ogre
+54	token	b_1_1_skeleton
+55	token	b_2_2_zombie
+56	token	c_a_clue_draw
+57	token	c_a_treasure_sac
+58	token	dungeon_of_the_mad_mage
+59	token	lost_mine_of_phandelver
+60	token	r_1_1_goblin
+61	token	the_atropal
+62	token	tomb_of_annihilation

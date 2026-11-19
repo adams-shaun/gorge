@@ -193,7 +193,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	*po = ProjObj{ZoneIdx: 255}
 	po.Card, po.Owner, po.Ctrl, po.Zone, po.Token = ob.card, ob.owner(), ob.owner(), ob.zone, ob.of&ofToken != 0
 	po.Attached, po.Blocks, po.Attacks = NoObj, NoObj, TCode(NoTarget)
-	if po.Token && k.anyInit && ob.card == k.gen.dungeon {
+	if po.Token && k.anyInit && len(k.t.Cards[ob.card].DungeonNext) != 0 {
 		po.Token = false // a dungeon is no token (act_initiative.go)
 	}
 	if ob.of&ofCopy != 0 {

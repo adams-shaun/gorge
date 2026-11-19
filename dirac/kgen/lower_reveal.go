@@ -96,6 +96,9 @@ func (lc *lowerCtx) reveal(ps *params) error {
 	if d, ok := ps.get("Defined"); ok && d != "You" {
 		return refuse("Reveal Defined$ %q", d)
 	}
+	if rd, ok := ps.get("RevealDefined"); ok {
+		return lc.revealRemembered(ps, rd)
+	}
 	spec := ps.str("RevealValid")
 	if spec == "" {
 		spec = "Card"
@@ -148,5 +151,23 @@ func (lc *lowerCtx) lookAck(ps *params, look bool, who lRef) error {
 		}
 	}
 	lc.emit(lInstr{Op: "LookAck", Obj: who, Note: "look at the hand"})
+	return nil
+}
+
+// revealRemembered lowers Reveal's RevealDefined$ Remembered straight after a
+// Draw that remembers its cards (Dungeon of the Mad Mage's Mad Wizard's
+// Lair): gorge effReveal skips a remembered CARD (Forge's Remembered
+// selector adds remembered players only), so the node reveals nothing and
+// emits nothing. Any other RevealDefined$ stays refused.
+func (lc *lowerCtx) revealRemembered(ps *params, rd string) error {
+	n := len(lc.ab.Prog)
+	if rd != "Remembered" || n == 0 || lc.ab.Prog[n-1].Op != "Draw" || lc.ab.Prog[n-1].CS != "Remember" {
+		return refuse("Reveal RevealDefined$ %q", rd)
+	}
+	for _, k := range []string{"RevealValid", "Optional", "NumCards", "AnyNumber", "RevealType", "RevealOptional", "Random", "RevealAllValid"} {
+		if _, ok := ps.m[k]; ok {
+			return refuse("Reveal RevealDefined$ with %s$", k)
+		}
+	}
 	return nil
 }

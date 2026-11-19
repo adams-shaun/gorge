@@ -181,6 +181,11 @@ type prep struct {
 	// act_initiative.go): a prep byte beside anySaga, so the
 	// per-SBA-pass and per-upkeep gates read no genPrep
 	anyInit bool
+	// dungeons: the plain venture's candidate dungeons, in table (key)
+	// order (prepInit; act_venture.go): every dungeon card of the table but
+	// the initiative's Undercity (genPrep.dungeon). Prep data like cards,
+	// never a pinned genPrep field (TestNoNewFixedStateFields).
+	dungeons []CardID
 	// costObj: some card's cost forages or exiles cards from a graveyard
 	// (kop.CostForage / kop.CostExileGrave; act_forage.go): guards their
 	// payability and pick paths

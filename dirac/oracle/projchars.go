@@ -113,6 +113,10 @@ var gorgeKwPrefix = []struct {
 // (Changeling), a CardDef field (Offspring, Gift, Landwalk, Enchant, Equip)
 // or an ability. Only the prefix before ':' (or the whole word) is listed.
 var gorgeKwElsewhere = map[string]string{
+	// a Pump KW$ grant until your next turn (Twisted Caverns): the override
+	// record's CantAttack, no kernel keyword bit; compared through the attack options
+	"HIDDEN CARDNAME can't attack.": "the override record's CantAttack (kop.Override.CantAttack; compared through the attack options)",
+
 	"Changeling":               "the subtype set (kgen's changelingSubs; CharsProj.Subtypes)",
 	"Beam me up":               "CardDef.BeamMeUp (a graveyard cast for AltCost with a return; kw_beammeup.go)",
 	"Harmonize":                "CardDef.Harmonize (a graveyard cast for AltCost; kw_harmonize.go)",
