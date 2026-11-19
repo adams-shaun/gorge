@@ -109,6 +109,7 @@ nav:
           - engines/using.md
           - Play and fuzz on gorge: engines/tools-gorge.md
           - Build, play and check dirac: engines/tools-dirac.md
+          - Play and experiment from Go: engines/lab.md
           - Every flag: engines/flags.md
           - Serve dirac: guide/dirac.md
       - Search and nets:
