@@ -398,6 +398,13 @@ type Descriptor struct {
 	// stack-side FlagBestowed provenance exists yet to make a RestrictValid$
 	// spell read see an Aura; the payment, made on the stack, does.
 	Bestowed bool
+	// Prototype marks a cast paying the K:Prototype inset cost (CR 718.3a):
+	// a RestrictValid$ spell read sees the prototyped spell's inset colour,
+	// mana value and P/T, not the printed face's. CR 718.3b gives the
+	// prototyped spell the inset cost's colour, so "spend only to cast a
+	// colourless spell" mana cannot pay it even when the card's printed face
+	// is colourless.
+	Prototype bool
 	// SubCounterBound marks the resolution-time pay gate's descriptor
 	// (respay.go): the potential bound reads a SubCounter<X> mana ability's
 	// Amount$ X at the counters it can remove instead of unbounded
@@ -714,6 +721,12 @@ func addsNoCounterHolds(g *state.Game, id state.ObjID, cond string) bool {
 	}
 }
 
+// PrototypeRead is the AsFace index that reads an object as the prototyped
+// spell it is being cast as (CR 718.3a/718.3b: the K:Prototype inset mana
+// cost, colour and P/T), not as any printed face. Negative, so it never
+// collides with a Card.Faces index.
+const PrototypeRead = -1
+
 // RestrictValidMatches evaluates RestrictValid$'s payment class. Forge spells
 // each term as <SA-kind>.<object filter> and a Valid$ value may name several
 // comma-separated terms with OR semantics (Eldrazi Temple's
@@ -741,6 +754,9 @@ func RestrictValidMatches(e Engine, p state.PlayerID, d Descriptor, valid string
 	if d.FaceIdx != 0 {
 		return restrictValidMatchesAsFace(e, p, d, valid, src)
 	}
+	if d.Prototype {
+		return restrictValidMatchesAsPrototype(e, p, d, valid, src)
+	}
 	for term := range strings.SplitSeq(strings.TrimSpace(valid), ",") {
 		if restrictValidTermMatches(e, p, d, strings.TrimSpace(term), src) {
 			return true
@@ -764,6 +780,20 @@ func restrictValidMatchesAsFace(e Engine, p state.PlayerID, d Descriptor, valid 
 		dc.Cost = &c
 	}
 	return e.AsFace(dc.ID, int(d.FaceIdx)-1, func() bool { return RestrictValidMatches(e, p, dc, valid, src) })
+}
+
+// restrictValidMatchesAsPrototype is RestrictValidMatches read with the spell
+// as its prototyped self (CR 718.3a/718.3b). The copy has the same reason as
+// the alternate-face branch: the escaping closure must not carry the priced
+// cost to the heap, and dc.Prototype stays false so the scoped AsFace read is
+// the one that answers the term.
+func restrictValidMatchesAsPrototype(e Engine, p state.PlayerID, d Descriptor, valid string, src state.ObjID) bool {
+	dc := Descriptor{ID: d.ID, Class: d.Class, Special: d.Special, XAnnounced: d.XAnnounced}
+	if d.Cost != nil {
+		c := *d.Cost
+		dc.Cost = &c
+	}
+	return e.AsFace(dc.ID, PrototypeRead, func() bool { return RestrictValidMatches(e, p, dc, valid, src) })
 }
 
 // UnlessRestrictionAdmitsOther reports whether a mana ability's RestrictValid$
