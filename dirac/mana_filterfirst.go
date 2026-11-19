@@ -163,7 +163,7 @@ func (s *State) filtFirstAdmit(k *prep, p uint8, pend slotMask) slotMask {
 // filtOtherMana bounds the potential mana a first-only filter's fee may
 // draw on before any other first-only filter is admitted (filtFirstAdmit
 // adds theirs): the pool and every source the plain walk taps, plus the
-// counter-cost sources.
+// counter-cost, tap-another, deferred and rider gaps.
 func (s *State) filtOtherMana(k *prep, p uint8) int {
 	pl := &s.pl[SeatIx(p)]
 	n := poolTotal(pl) + s.rbTotal(p, s.rbAll(p))
@@ -191,6 +191,20 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 		// PotentialMana with a production that resolves to no mana, so it
 		// funds no fee (mana_countercost.go)
 		n += s.scriptCtr(k, p).count() - s.deadCtrMask(k, p).count()
+	}
+	if k.tapMana {
+		// a tap-another-permanent source (Relic of Legends' "Tap an untapped
+		// legendary creature: Add one mana of any color") is potential mana
+		// gorge's planner prices, so it funds a first-only filter's fee (CR
+		// 605.1a, 601.2g): Overflowing Basin's {1} paid by the relic's mana,
+		// then the Basin's {G}{U} casts Aberrant. The upper bound counts every
+		// activatable tap-another source, its candidate taps aside (the script
+		// search prices the actual payment).
+		for b := s.scriptTapX(k, p); b.any(); b = b.rest() {
+			var tx avail
+			addTapXUnits(&tx, k.tapXAbOf(s.cardAt(b.first())))
+			n += tx.total
+		}
 	}
 	if k.gen.anyDeferred {
 		// a deferred source's {R} (mana_deferred.go): gorge's PotentialMana
