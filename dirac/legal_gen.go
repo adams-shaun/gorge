@@ -1121,6 +1121,13 @@ func (s *State) priorityGenReadsAv(k *prep, p uint8) bool {
 // being built or resolved, else the feasibility probe): spell reports a spell,
 // card its card, c its colours (a source on the battlefield's current ones),
 // srcSl its permanent. ok is false when no targeting is in progress.
+//
+// A spell probe for a card other than the resolving entry's wins over the
+// entry: the cast-free ask's CR 601.2c feasibility sweep judges a graveyard
+// candidate's targets while a trigger resolves, and protection reads the
+// SPELL being cast (a black spell's targets), never the asking trigger
+// (CR 702.16b; gorge's census judges the spell). The build's own sweep
+// (cast.go) probes its spell, which reads the same as the entry's.
 func (s *State) tgtSource(k *prep) (spell bool, card CardID, c kop.ColorMask, srcSl Slot, ok bool) {
 	srcSl = NoSlot
 	// a spell probe is the spell a feasibility check is pricing, even while
