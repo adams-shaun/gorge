@@ -62,5 +62,9 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 	}
 	tr.Event, tr.TapsForMana, tr.TapperNonActive = "Taps", true, nonActive
 	tr.TapPlan = uint8(kop.TapPlanDefer)
+	// The class stays Defer (gorge's planner never taps the source), but a
+	// literal damage body naming the tapper still costs the payer life at
+	// each tap, so the kernel's potential census's lethal guard reads it.
+	tr.TapPainN = tapsDeferPain(t.Effect)
 	return nil
 }
