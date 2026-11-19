@@ -1170,8 +1170,8 @@ type filtSearch struct {
 	// runs on this fee-only path and for a printed or gained activated play
 	// (isAbilityPlay): two indistinguishable sources reach the same payer
 	// states, and the skip is what prices a fee-carrying gap beside a row of
-	// identical basics (tail-26 pair 26). An ordinary cast and a granted play
-	// keep their older walk.
+	// identical basics (tail-26 pair 26). An ordinary cast and every 0x80
+	// grant keep their older walk.
 	feeOnly bool
 	// hands: the hand guides the path exiled so far (mana_handguide.go)
 	hands uint8
@@ -2243,12 +2243,16 @@ func gapFilteredPlay(a Action) bool {
 	return a.Kind() == AkActivate || a.Kind() == AkCast && a.Mode() == 0
 }
 
-// isAbilityPlay: action a is one of gorge's potential play kind "ability",
-// the activated plays the twin cut runs for: a printed activation or a gained
-// one (the 0xC0 mode pair, static_gainsof.go). A granted activation (the 0x80
-// bit alone: legal_gen.go's max-speed grant and cast_exilegrant.go's exile
-// grant) is gorge's separate Kind "granted", whose prefix search keeps the
-// older walk, so the cut must not run there.
+// isAbilityPlay: action a is one of the activated plays gorge's twin cut
+// runs for -- a printed activation or a gained one (the 0xC0 mode pair,
+// static_gainsof.go), the two option shapes gorge's potentialTwinCut
+// classifies as printed or gained. The 0x80 bit alone is every grant dirac
+// cannot tell apart by encoding: a max-speed grant (legal_gen.go) and an
+// exile grant (cast_exilegrant.go) are Kind "granted", but a non-max-speed
+// SVar grant (Fishing Pole's ability granted to the equipped creature) is
+// Kind "ability" too. Gorge narrows its cut to the printed/gained option
+// shapes precisely because dirac cannot split those grants, so the cut must
+// not run on 0x80 here.
 func isAbilityPlay(a Action) bool {
 	if a.Kind() != AkActivate {
 		return false

@@ -11,7 +11,7 @@ import (
 // that lost its abilities (an override record) is no twin of one that did not,
 // and the search must still walk the usable one. The cut runs on the fee-only
 // path and for a printed or gained activated play (isAbilityPlay), never for a
-// cast or a granted play.
+// cast or a 0x80 grant.
 func TestFiltTwinSlotFailsOpenOnAnOverride(t *testing.T) {
 	sc, id := fixedTapsScen(t, []cardset.Entry{{Name: "Grizzly Bears", Count: 1}, {Name: "Forest", Count: 20}})
 	a, b := sc.untappedPerm(id["Forest"], 0), sc.untappedPerm(id["Forest"], 0)
