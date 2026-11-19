@@ -18,6 +18,7 @@ Attrition
 Axgard Armory
 Barbed Batterfist
 Bazaar Trademage
+Blade Splicer
 Blasted Landscape
 Blood Age General
 Blood Rites
@@ -107,6 +108,7 @@ Hall of Oracles
 Hallowed Healer
 Hamza, Might of the Yathan
 Harmonic Sliver
+Hasran Ogress
 Haunted Cloak
 Heart Sliver
 Heliod's Pilgrim
@@ -215,6 +217,7 @@ Seismic Strike
 Shackles
 Shanna, Sisay's Legacy
 Shared Discovery
+Sizzle
 Skirk Shaman
 Skyclave Cleric
 Skyswimmer Koi
@@ -226,6 +229,7 @@ Spellseeker
 Spitting Spider
 Spontaneous Flight
 Sporocyst
+Stampeding Horncrest
 Star of Extinction
 Steel Golem
 Steeple Roc

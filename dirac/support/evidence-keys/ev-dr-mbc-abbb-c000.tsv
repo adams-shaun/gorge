@@ -5,6 +5,7 @@ Archaeomancer	da86ec75dfd5e1df	9	1/1		1/1
 Ardent Elementalist	d2f8bb0c16df872a	14	1/1		0/1	ix:resp
 Armored Ascension	863d7930ca26232b	4	0/0		1/2	ix:resp
 Aven Fisher	50cb02a1a42ae198	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Axebane Guardian	dc4454034473f955	14	1/1		0/1	ix:resp
 Bad Deal	2ea2965ceab6850b	12	0/0		2/2	
 Baird, Steward of Argive	5f4e4f769382922d	4	0/0		0/0	
 Baloth Woodcrasher	87b2eb0005cef636	5	1/1		0/1	ix:resp
@@ -27,6 +28,7 @@ Diabolic Tutor	62ecf84336d43c4b	4	0/0		1/2	ix:resp
 Dragon Bell Monk	615d8fb21a819e7a	20	1/1		1/1	
 Dream Fracture	d8c3394345641390	22	0/0		2/2	
 Errant Ephemeron	3577fde3f151d2f2	13	0/0		2/2	
+Evincar's Justice	a3e67612b98098e8	6	0/0		3/4	cast/alt:buyback
 Experiment One	1eacf8b4e0da85eb	14	2/2		0/1	ix:resp
 Exuberant Fuseling	4517b4dc92e3193b	22	2/2		0/1	ix:resp
 Fathom Fleet Swordjack	f0dcbec19ad3a616	81	2/2		1/1	
@@ -73,8 +75,10 @@ Rewind	28ad54c0045a9a43	4	0/0		1/2	ix:resp
 Ruinous Gremlin	d0431fd9dcedb291	8	1/1		0/1	ix:resp
 Savage Gorger	3b0ad07f3a055721	6	1/1		0/1	ix:resp
 Serum Visions	ea85da7f4b2f9e4f	25	0/0		2/2	
+Sheltering Word	a6296dbac38b1c64	25	0/0		1/2	ix:resp
 Shiv's Embrace	8e74dde11321ec9e	6	1/1		2/2	
 Sneering Shadewriter	77b7362fe9f8b8e1	14	1/1		1/1	
+Stinging Shot	ee5fea486795e1ff	3	1/1		1/2	ix:resp
 Stitch Together	42df3e6afc3d556c	11	0/0		2/2	
 Strafe	96f7af5ea1d84f38	18	0/0		1/2	ix:resp
 Strategic Planning	416d82c088afe0de	4	0/0		2/2	

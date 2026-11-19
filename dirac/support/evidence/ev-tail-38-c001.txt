@@ -150,6 +150,7 @@ Hibernation Sliver
 Hissing Quagmire
 Hook Swords
 Horizon Seed
+Hostage Taker
 Hussar Patrol
 Ignite the Future
 Impulse
@@ -204,6 +205,7 @@ Most Wanted
 Mountain
 Mournful Zombie
 Myojin of Life's Web
+Myr Prototype
 Myr Servitor
 Mystic Crusader
 Nema Siltlurker

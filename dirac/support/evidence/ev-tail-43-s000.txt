@@ -1,14 +1,23 @@
+A-Plate Armor
 Algorithmic Ferocity
 Amulet of Unmaking
+Annex Sentry
+Antagonize
 Aven Augur
+Bakersbane Duo
 Bioessence Hydra
 Biting Tether
 Blessings of Nature
 Bloodscent
+Boggart Loggers
 Bower Passage
+Bristlebud Farmer
 Burlfist Oak
+Cache Grab
+Cavalcade of Calamity
 Cloudcrown Oak
 Code of Constraint
+Contract Hero
 Controlled Instincts
 Curio Vendor
 Cursecatcher
@@ -16,12 +25,15 @@ Custodian of the Trove
 Dancing Scimitar
 Darkthicket Wolf
 Deceptive Landscape
+Defender of Chaos
 Despotic Scepter
 Distortion Strike
 Drownyard Amalgam
 Dungrove Elder
 Energizer
+Eviscerate
 Explore the Underdark
+Extinction
 Farhaven Elf
 Fighting Drake
 Firemind Vessel
@@ -29,6 +41,7 @@ Forceful Denial
 Forest
 Foundation Breaker
 Fruit of the First Tree
+Gargantos, the Endbringer
 Garruk's Harbinger
 Geistpack Alpha
 Generated Horizons
@@ -36,15 +49,20 @@ Gloomwidow
 Great Sable Stag
 Hadana's Climb
 Hard Cover
+Hildibrand Manderville
+History of Benalia
 Hunt the Weak
 Hydroform
 Island
 Kraul Stinger
 Krosan Drover
 Lay of the Land
+Liliana's Scrounger
 Living Armor
+Maggot Therapy
 Matter Reshaper
 Memnite
+Mountain
 Mox Opal
 Murmuring Phantasm
 Mystic Remora
@@ -56,14 +74,18 @@ Oath of Jace
 Order of the Sacred Bell
 Paladin of Predation
 Park Heights Maverick
+Pawpatch Formation
 Penumbra Kavu
 Pheres-Band Thunderhoof
+Plains
 Primal Forcemage
+Quag Vampires
 Quarry Hauler
 Regal Force
 Reinforced Bulwark
 Relentless Skaabs
 Reminisce
+Ritual of Rejuvenation
 Rooting Kavu
 Ruins Recluse
 Rusted Relic
@@ -77,7 +99,9 @@ Spike Rogue
 Spore Burst
 Spore Swarm
 Stampeding Serow
+Stirring Address
 Stunt Double
+Swamp
 Sylvan Basilisk
 Takenuma, Abandoned Mire
 Talas Explorer
@@ -98,6 +122,7 @@ War Horn
 Westvale Abbey
 Windstorm Drake
 Wizard's Retort
+Wondrous Revival
 Wrath of Oko
 Yavimaya's Embrace
 Zegana, Utopian Speaker

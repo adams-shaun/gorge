@@ -8,7 +8,9 @@ Alchemist's Gift
 Allied Reinforcements
 Angel of Glory's Rise
 Annihilating Glare
+Arcbound Worker
 Armor of Faith
+Armory Guard
 Ballista Watcher
 Bartolomé del Presidio
 Befoul
@@ -22,6 +24,7 @@ Brainspoil
 Buoyancy
 Cavern Crawler
 Cheering Fanatic
+Chief of the Foundry
 Civic Wayfinder
 Clash of Wills
 Conquering Manticore
@@ -33,12 +36,14 @@ Court Archers
 Cradle to Grave
 Crashing Footfalls
 Crop Sigil
+Cruel Celebrant
 Crypt Creeper
 Daru Warchief
 Death's Caress
 Deathmark Prelate
 Deepwood Ghoul
 Defensive Maneuvers
+Defiant Strike
 Demon's Jester
 Diabolic Edict
 Disciple of Grace
@@ -47,11 +52,13 @@ Dreadhound
 Dreadlight Monstrosity
 Drowner Initiate
 Dual Shot
+Eel Umbra
 Ellivere of the Wild Court
 Essence Infusion
 Evie Frye
 Extract from Darkness
 Extremis Elite
+Falkenrath Torturer
 Fated Return
 Fearless Fledgling
 Final Strike
@@ -61,6 +68,7 @@ Forebear's Blade
 Forest
 Frenzied Devils
 From the Rubble
+Frost Trickster
 Glen Elendra Liege
 Glissa's Courier
 Goblin Barrage
@@ -71,6 +79,7 @@ Goliath, Mass Manipulator
 Grave Peril
 Graveblade Marauder
 Gravity Sphere
+Great Oak Guardian
 Grizzled Leotau
 Gruesome Scourger
 Guardians of Oboro
@@ -80,6 +89,7 @@ Harness Infinity
 Hero of Goma Fada
 Hold at Bay
 Horizon Scholar
+Horizon Spellbomb
 Hormagaunt Horde
 Hydromorph Gull
 Infernal Contract
@@ -100,6 +110,7 @@ Lead by Example
 Lightning Javelin
 Lizard Warrior
 Llanowar Sentinel
+Loamcrafter Faun
 Longbow Archer
 Maraleaf Pixie
 Massacre
@@ -113,10 +124,13 @@ Mountain
 Murasa Brute
 Myr Sire
 Márton Stromgald
+Nature's Embrace
 Nausea
+Norwood Archers
 Obelisk of Alara
 Origin of Black Widow
 Orochi Sustainer
+Pang Tong, "Young Phoenix"
 Phantom Centaur
 Phyrexian Colossus
 Phyrexian Delver
@@ -128,11 +142,18 @@ Plains
 Quicksilver Amulet
 Rampant Rejuvenator
 Ray of Enfeeblement
+Renegade Warlord
+Repel the Vile
 Reprieve
 Resupply
+Rhox Charger
+Riptide Mangler
 River Kaijin
 Rosethorn Acolyte
 Rush of Knowledge
+Sacred Knight
+Sanctum Custodian
+School of Piranha
 Scorch Rider
 Sea Sprite
 Self-Inflicted Wound
@@ -148,10 +169,12 @@ Sif's Spearmaster
 Silas Renn, Seeker Adept
 Sky Diamond
 Sky Theater Strix
+Spell Contortion
 Spitting Sliver
 Squee's Embrace
 Squelching Leeches
 Squirrel Sovereign
+Staff of the Storyteller
 Stern Marshal
 Stick, Fearless Mentor
 Stone Calendar
@@ -159,13 +182,17 @@ Strangle
 Stromkirk Occultist
 Svyelunite Priest
 Swamp
+Talrand's Invocation
+Tanglebloom
 The Destined Black Mage
 The Mary Janes
 Theros Charm
 Tolarian Academy
 Tolarian Entrancer
 Traveling Philosopher
+Treasure Vault
 Trench Gorger
+Trenchpost
 Tromokratis
 Two-Headed Sliver
 Tyvar Kell
@@ -174,7 +201,11 @@ Vampire Noble
 Vampiric Fury
 Vampiric Sliver
 Vedalken Aethermage
+Vendetta
+Vengeful Dreams
+Vivien's Grizzly
 Wake the Past
+Walker of the Grove
 Weaver of Harmony
 Where We're Going . . .
 Wicked Pact

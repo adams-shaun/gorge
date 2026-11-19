@@ -4,6 +4,7 @@ Agate Instigator
 Alharu, Solemn Ritualist
 Ancient Grudge
 Apprentice Necromancer
+Apprentice Wizard
 Arc Lightning
 Augur of Bolas
 Azra Oddsmaker
@@ -27,6 +28,7 @@ Cryogen Relic
 Crypt Rats
 Dauntless Cathar
 Diamond Pick-Axe
+Dirge of Dread
 Dreamscape Artist
 Emerge Unscathed
 Empty the Warrens
@@ -41,6 +43,7 @@ Fanatic of Mogis
 Feral Shadow
 Fiery Impulse
 Firewing Phoenix
+Flame Slash
 Footbottom Feast
 Forest
 Gaea's Gift
@@ -70,7 +73,10 @@ Monastery Swiftspear
 Morbid Opportunist
 Mountain
 Mutagenic Growth
+Nemesis Mask
 Night's Whisper
+Nissa's Judgment
+Oathsworn Giant
 Ogre Arsonist
 Orthion, Hero of Lavabrink
 Orzhov Enforcer
@@ -94,6 +100,7 @@ Rograkh, Son of Rohgahh
 Roiling Dragonstorm
 Sensor Splicer
 Seraph of Dawn
+Seraph of the Suns
 Serpentine Curve
 Settle Beyond Reality
 Sever Soul
@@ -109,6 +116,7 @@ Temur Battle Rage
 The Birth of Meletis
 Thraben Watcher
 Thrull Parasite
+Tinder Wall
 Turtleshell Changeling
 Tyvar's Stand
 Unbounded Potential

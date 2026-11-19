@@ -219,6 +219,7 @@ Spellseeker
 Spitting Spider
 Spontaneous Flight
 Squall Line
+Stampeding Horncrest
 Star of Extinction
 Steel Golem
 Steeple Roc
@@ -259,6 +260,7 @@ Vraska's Contempt
 Wake of Destruction
 Wander in Death
 Warleader's Helix
+Wilderness Elemental
 Wildfire Eternal
 Windreader Sphinx
 Woodland Bellower

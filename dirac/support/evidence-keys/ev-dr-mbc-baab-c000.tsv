@@ -5,6 +5,7 @@ Agate Instigator	cfb71ff9166dba3c	8	2/2		2/3	ix:resp
 Alharu, Solemn Ritualist	a7e07de3eeae37bf	12	2/2		0/1	ix:resp
 Ancient Grudge	90fbe88f3f1fc560	8	0/0		3/4	ix:resp
 Apprentice Necromancer	74a14d570248d376	6	1/1		1/1	
+Apprentice Wizard	5caa6fb04a3a746f	18	1/1		0/1	ix:resp
 Arc Lightning	8a8f0908aaf31976	12	0/0		2/2	
 Augur of Bolas	7b06bb126895a420	3	1/1		0/1	ix:resp
 Azra Oddsmaker	6faa160b06c97242	8	1/1		1/1	
@@ -28,6 +29,7 @@ Cryogen Relic	3aff98de245853e6	4	3/3		1/1
 Crypt Rats	1da88e0ac05de886	8	1/1		1/1	
 Dauntless Cathar	d1f139f1ee4f478c	14	1/1		0/1	ix:resp
 Diamond Pick-Axe	60d1a4aaf5e0a7a6	8	1/1		1/1	
+Dirge of Dread	ca091e723db2bd0c	8	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
 Dreamscape Artist	7cb8d02102553e65	13	1/1		0/1	ix:resp
 Emerge Unscathed	7bbf4f768539fe25	9	0/0		2/2	
 Empty the Warrens	3d0f76364fe5b459	6	1/1		2/2	
@@ -42,6 +44,7 @@ Fanatic of Mogis	4ecac99069c2e95e	6	1/1		0/1	ix:resp
 Feral Shadow	b5ce18e0c66a9ce5	4	0/0		0/0	
 Fiery Impulse	64cd4faa2adc7378	6	0/0		1/2	ix:resp
 Firewing Phoenix	7070fe7456006d9e	37	1/1		0/1	ix:resp
+Flame Slash	795949e4ed008946	35	0/0		2/2	
 Footbottom Feast	74c0fa3327591229	6	0/0		2/2	
 Forest	6d0466c30f825dba	230	1/1		0/1	ix:resp
 Gaea's Gift	3336d9ed890d5cfd	14	0/0		2/2	
@@ -71,7 +74,10 @@ Monastery Swiftspear	8cf1bbe1ffb8f33b	10	1/1		0/1	ix:resp
 Morbid Opportunist	24722ae9947e36da	4	1/1		0/1	ix:resp
 Mountain	9e71388353e907ed	72	1/1		0/1	ix:resp
 Mutagenic Growth	a031ee2441ff5bb3	9	0/0		1/2	ix:resp
+Nemesis Mask	1532618cbeb2a1df	50	1/1		1/1	
 Night's Whisper	57c30c3a272643c4	4	0/0		1/2	ix:resp
+Nissa's Judgment	21bbb35d49a3ea44	19	0/0		1/2	ix:resp
+Oathsworn Giant	09f782817486e737	15	0/0		0/0	
 Ogre Arsonist	f956aa32c1982738	6	1/1		1/1	
 Orthion, Hero of Lavabrink	28cadd58ee31ceeb	21	2/2		0/1	ix:resp
 Orzhov Enforcer	755e39f604d0ab31	10	1/1		1/1	
@@ -95,6 +101,7 @@ Rograkh, Son of Rohgahh	d0e9e97bf4de816f	12	0/0		0/0
 Roiling Dragonstorm	dbd28927d45d568a	14	2/2		0/1	ix:resp
 Sensor Splicer	976e5dddfa0fc4cb	4	1/1		0/1	ix:resp
 Seraph of Dawn	c1d0f32f1c5d03f1	4	0/0		0/0	
+Seraph of the Suns	f115d528d271a7c4	13	0/0		0/0	
 Serpentine Curve	52027f209f38c3b7	8	0/0		1/2	ix:resp
 Settle Beyond Reality	cdbe9fadfa494357	6	0/0		1/2	ix:resp
 Sever Soul	7cf4fc44b5e49e95	4	0/0		1/2	ix:resp
@@ -110,6 +117,7 @@ Temur Battle Rage	f255d265a3d2c2f5	8	0/0		1/2	ix:resp
 The Birth of Meletis	e50ebbb76265a813	5	0/0		0/0	
 Thraben Watcher	c0f4122f6ab187bb	10	0/0		0/0	
 Thrull Parasite	12f64dc43bc33730	4	2/2		1/1	
+Tinder Wall	d2c1c27986c407fa	29	2/2		0/1	ix:resp
 Turtleshell Changeling	7a664fbb80e73809	9	1/1		1/1	
 Tyvar's Stand	214e409296439c2b	3	0/0		2/4	f0/s/x0,ix:resp
 Unbounded Potential	3b35b87faf9d9b30	6	0/0		1/2	ix:resp

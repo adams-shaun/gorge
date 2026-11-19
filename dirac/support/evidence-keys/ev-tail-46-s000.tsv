@@ -3,11 +3,18 @@ A-Circle of the Land Druid	7fcd05c0fa66e002	31	2/2		1/1
 A-Haywire Mite	f45bf2667c43d660	14	2/2		1/1	
 A-Revel Ruiner	d6076a361e964dc6	15	1/1		1/1	
 Aether Spellbomb	b6b5a8d93a4911c0	45	2/2		1/1	
+Anowon, the Ruin Sage	de650e12bc627dec	21	1/1		1/1	
 Anthousa, Setessan Hero	521450d6aacf1929	16	1/1		1/1	
+Arcbound Wanderer	8c398da3ffb74c01	10	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Archfiend of Despair	46ab9cc2e9512c88	13	1/1		1/1	
+Argothian Treefolk	c11a2a278d4471b4	25	0/0		0/0	
 Astarion's Thirst	d5c2f7003a7943b2	10	0/0		2/2	
+Ayara, First of Locthwain	c98f067a73916177	10	2/2		1/1	
+Back in Town	9e459a04f7b6720c	3	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
 Bakersbane Duo	6ffef594aee9e88b	637	2/2		1/1	
+Beast of Burden	c3ba3c6d65dfa343	18	0/0		0/0	
 Blood Funnel	9ec99766cd26a105	28	1/1		1/1	
+Breaker of Armies	1ab54bf2e2f7b1a3	25	0/0		0/0	
 Brink of Madness	0fd65d7b9d5fa505	28	1/1		1/1	
 Bristlebud Farmer	6da82084551fd4f8	538	2/2		1/1	
 Bumbleflower's Sharepot	1876816fa8a361bd	656	2/2		1/1	
@@ -16,42 +23,57 @@ Cache Grab	f9493d496beba169	736	0/0		2/2
 Cackling Imp	fa122981f4a3f323	9	1/1		1/1	
 Call of the Wild	e6d806fdacd32a39	11	1/1		1/1	
 Clay Revenant	c6cff4094ff8a8be	150	1/1		1/1	
+Coastal Tower	71808ebbd1510502	119	1/1		0/1	ix:resp
 Colossal Growth	1981ebe0926d54b2	18	0/0		4/4	
 Cradle Guard	73fb41e857ebf3a1	17	1/1		0/1	ix:resp
 Crocodile of the Crossing	3a250ec4675fa63f	14	1/1		1/1	
 Deathcap Cultivator	3f3c7eb8a1ebcbdd	30	1/1		0/1	ix:resp
 Defense of the Heart	67b717a100657fc0	4	1/1		0/1	ix:resp
 Demolition Stomper	71127df54451d4ec	30	1/1		1/1	
+Dining Room	425b46b71f860a7b	131	2/2		1/1	
 Doombot Harbinger	92b5939d09b9bfc4	25	2/2		1/1	
 Dragonscale Boon	18e02bfa2d891931	35	0/0		2/2	
+Drossforge Bridge	867fcc1d9a7c12bc	142	1/1		0/1	ix:resp
 Drudge Sentinel	0ec74fe43c2a5d08	11	1/1		1/1	
+Drudge Skeletons	543a58a1db26dbdc	18	1/1		1/1	
+Earsplitting Rats	5aa43d8c274e9475	14	2/2		1/1	
 Essence Pulse	997734b83c0048b8	17	0/0		2/2	
 Fathom Fleet Cutthroat	d45cb2712062dea2	20	1/1		1/1	
 Forest	6d0466c30f825dba	2084	1/1		0/1	ix:resp
 Foul-Tongue Shriek	f6b09b41b0f8cde5	14	0/0		2/2	
 Garruk's Gorehorn	b2101db2c0e6ff7e	20	0/0		0/0	
+Geode Golem	cc3ab0ea356d1c10	14	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Gilt-Leaf Ambush	f44009a25d44b0be	35	0/0		2/2	
 Grisly Survivor	523ea4ab4a59c5ba	15	1/1		1/1	
+Haunted Fengraf	493669f718eabbbe	109	2/2		1/1	
 Heir of the Wilds	d35f0a12ece27e9a	11	1/1		1/1	
+Hollow Trees	79b5c1035b70ce66	128	2/2		1/1	
 Infuse with Vitality	f2f21b3dc25c7e71	19	0/0		2/2	
+Introduction to Prophecy	da67eed280b8aaca	24	0/0		2/2	
 Irontread Crusher	9863cd518bd62fe8	20	1/1		1/1	
 Joraga Bard	ec1866ae0f88e837	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Kalonian Twingrove	9db95f5c3e2350fd	8	1/1		1/1	
 Karstoderm	488528a6ecc37094	16	1/1		1/1	
 Kokusho, the Evening Star	b450082e66caeeb5	16	1/1		1/1	
 Level Up	9d2dac522e208aec	8	1/1		2/2	
+Library of Alexandria	be946a27cd02a068	134	2/2		1/1	
 Liquimetal Coating	23ecefad3f947c2a	31	1/1		1/1	
 Lumengrid Gargoyle	8caee25bd00f6153	12	0/0		0/0	
 Master Symmetrist	56f2a8727edcce1f	14	1/1		1/1	
 Match the Odds	6383dddd14f1611a	15	0/0		2/2	
 Meandering River	e30302b0586c730d	135	1/1		0/1	ix:resp
 Might of Old Krosa	361d0f4adf25e2b2	30	0/0		2/2	
+Mirrodin Avenged	fe63a60362cf885f	13	0/0		2/2	
 Mossfire Egg	bc320985f05f910e	19	1/1		0/1	ix:resp
+Mystifying Maze	57f9b1f5f2df6663	123	2/2		0/1	ix:resp
 N'Yami-Class Mother Ship	b52a6ede6d44016d	25	2/2		1/1	
 Natural State	4cd7320ed05c40bf	22	0/0		2/2	
+New Benalia	d9ba2bc6e111b456	164	2/2		0/1	ix:resp
 Nocturnal Hunger	4ddb438aa996ceaa	627	0/0		4/4	
 One with Death	6baf7d0387eb69cd	21	0/0		1/2	ix:resp
 Pawpatch Formation	cb455e9b31465254	672	0/0		2/2	
 Phyrexian Rager	b1ff1e76ad3fc6b3	26	1/1		1/1	
+Phyrexian Vault	26921eb5f1919d96	14	1/1		1/1	
 Placid Rottentail	50edc96d994df9e3	22	1/1		1/1	
 Putrefaction	27fc5d1d70b18a4c	20	1/1		1/1	
 Qasali Slingers	f4c5281a285a2420	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -59,13 +81,18 @@ Reave Soul	9e94a80016403b57	11	0/0		2/2
 Ring of Valkas	283f4b2ed04aeec0	30	2/2		1/1	
 Root Cage	98a7c03bc8ca3c84	33	0/0		0/0	
 Rosethorn Acolyte	72bc90825e26d1ba	32	1/1		2/2	
+Rushwood Grove	dab3f265fc46162e	91	2/2		1/1	
 Saproling Migration	cdd43b80209382ca	24	0/0		4/4	
 Savor	145dbfb9a9e43d33	665	0/0		2/2	
 Scythe Tiger	062c903e3925af90	21	1/1		1/1	
+Searchlight Companion	9faf2f593b9755f8	20	1/1		1/1	
 Seek the Wilds	8283faefab516f32	37	0/0		2/2	
+Shadow Stinger	e5d2bbb8fa9ab7fc	46	2/2		1/1	
 Sharpshooter Elf	2a6b2087dd34d5eb	17	1/1		1/1	
+Shield of Kaldra	36301211a2c6c0fc	20	1/1		1/1	
 Sidisi's Pet	45d3f55a5a1c1f5a	16	0/0		1/2	cast/alt:morphed
 Skeletal Snake	d22bd4a295e63066	17	0/0		0/0	
+Skittering Cicada	c9abbff9a12799e2	12	1/1		0/1	ix:resp
 Slith Predator	fb10277e5901287d	17	1/1		1/1	
 Smolder Initiate	61e55b9d0f026394	31	1/1		1/1	
 Snare Thopter	fd0e4357e1ecd4b2	19	0/0		0/0	
@@ -82,12 +109,16 @@ Tempered Sliver	4480d77596c7475e	13	0/0		0/0
 Terra Stomper	feb2a3e4a087f436	4	0/0		0/0	
 Tethered Skirge	930092a64c89e71b	16	1/1		0/1	ix:resp
 Thallid Devourer	3eb1540f48adfb51	10	3/3		1/1	
+Tome of the Guildpact	774119c54080eb7a	14	2/2		1/1	
 Toski, Bearer of Secrets	9447611b22e5afe6	27	1/1		1/1	
 Treefolk Harbinger	551c44ef9de6593a	17	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Tromell, Seymour's Butler	c2e5865a9b7d4327	20	1/1		1/1	
+Universal Solvent	9ca3488c69af13e6	10	1/1		1/1	
 Vessel of Malignity	786fa9b557824d2f	10	1/1		0/1	ix:resp
+Walking Wall	c6c8eb5aee20e42b	8	1/1		1/1	
 Wanderer's Twig	3cce38d5178fa9a7	16	1/1		0/1	ix:resp
 Warden of Geometries	a6e1ed35b8bd8ee9	27	1/1		1/1	
 Wellwisher	08f7ce0076293eed	8	1/1		1/1	
 White Tiger, Amulet Keeper	bd2bfc58faf0ea86	14	1/1		1/1	
+Witness the End	07f1e503505fb17f	20	0/0		2/2	
 Zombie Infestation	df801d2dd6a7e728	13	1/1		1/1	

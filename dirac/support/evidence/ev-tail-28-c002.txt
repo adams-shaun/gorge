@@ -10,6 +10,7 @@ Academy Rector
 Acceptable Losses
 Act of Aggression
 Ad Nauseam
+Air Servant
 Alaborn Grenadier
 Alisaie Leveilleur
 Allied Teamwork
@@ -159,6 +160,7 @@ Hand of Emrakul
 Hanna's Custody
 Harbor Serpent
 Harrier Griffin
+Haunting Figment
 Hellraiser Goblin
 Herald of Dromoka
 Herald of the Sun
@@ -311,6 +313,7 @@ Slippery Scoundrel
 Slith Firewalker
 Spectacle Mage
 Spectral Grasp
+Spell Rupture
 Spelltithe Enforcer
 Sphere of Safety
 Spite of Mogis

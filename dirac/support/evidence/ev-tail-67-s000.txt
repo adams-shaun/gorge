@@ -7,6 +7,7 @@ Accelerated Evolution
 Aerial Assault
 Angelic Field Marshal
 Animate Land
+Appa, the Vigilant
 Armor Thrull
 Asphodel Wanderer
 Auron, Venerated Guardian
@@ -40,6 +41,7 @@ Common Iguana
 Confront the Unknown
 Consuming Vapors
 Contagion
+Coralhelm Guide
 Corrupted Zendikon
 Corrupting Licid
 Corsairs of Umbar
@@ -162,6 +164,9 @@ Simplify
 Skitter of Lizards
 Skullscorch
 Sky Weaver
+Snow-Covered Forest
+Snow-Covered Plains
+Snow-Covered Swamp
 Spearbreaker Behemoth
 Spectral Shepherd
 Spellweaver Eternal
@@ -189,6 +194,7 @@ Tranquil Frillback
 Transcendent Master
 Transcendent Message
 Trenching Steed
+Trigon of Rage
 Undying Rage
 Unwilling Ingredient
 Vampire Lacerator
