@@ -31,10 +31,10 @@ const raGenMyriad uint8 = 152
 const raGenPileOpp uint8 = 153
 
 // ask (dirac/manifest/ask/raGenRepeatOptional)
-const raGenRepeatOptional uint8 = 153
+const raGenRepeatOptional uint8 = 154
 
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 154
+const raPodClashOpp uint8 = 155
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
