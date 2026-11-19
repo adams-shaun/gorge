@@ -214,6 +214,12 @@ func (ic *instrCtx) opExtJoinForces() error {
 func (ic *instrCtx) opAddTurn() error {
 	ki := &ic.ki
 	ki.Op = kop.OpAddTurn
+	if _, ok := ic.fl["ExtraTurnRider"]; ok {
+		// the granted turn's ExtraTurnDelayedTrigger rider (Final Fortune):
+		// interp arms it when the granted turn begins and its end step fires
+		// the loss (act_extraturn.go). The end step is the only lowered phase.
+		ki.C = int16(kop.StepEnd)
+	}
 	return nil
 }
 

@@ -1536,11 +1536,36 @@ func (s *State) pendListenerOrder(lo int) {
 // of that token, walked at its place in the battlefield order
 // (Slumbering Cerberus, the copy, the other Cerberus).
 func (s *State) fireDelayedAt(k *prep, m int) {
+	// The granted turn's ExtraTurnDelayedTrigger loss is registered at the
+	// consumption, before any promise made during that turn: gorge queues it
+	// ahead of them, so the drain (last queued resolves first) resolves
+	// those, then the loss, then the printed triggers.
 	m2 := int(s.npend)
+	s.exRideFire()
+	r := int(s.npend) - m2
 	s.fireDelayed(k)
-	if k.gen != nil && m2 > m && int(s.npend) > m2 {
-		s.pendListenerOrder(m)
+	if k.gen != nil && m2 > m && int(s.npend) > m2+r {
+		s.pendListenerOrderSkip(m, m2, r)
 	}
+}
+
+// pendListenerOrderSkip is pendListenerOrder over the triggers queued since
+// lo with the r records at [at, at+r) (the extra-turn riders) held out of
+// the sort and put back at at, after the printed triggers' share.
+func (s *State) pendListenerOrderSkip(lo, at, r int) {
+	if r == 0 {
+		s.pendListenerOrder(lo)
+		return
+	}
+	var held [maxExRide]pendingTrig
+	copy(held[:r], s.pend[at:at+r])
+	n := int(s.npend)
+	copy(s.pend[at:], s.pend[at+r:n])
+	s.npend = uint8(n - r)
+	s.pendListenerOrder(lo)
+	copy(s.pend[at+r:n], s.pend[at:n-r])
+	copy(s.pend[at:], held[:r])
+	s.npend = uint8(n)
 }
 
 // restrSpendable is the mask of p's restricted batches (State.rb) that may

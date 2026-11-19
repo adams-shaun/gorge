@@ -143,6 +143,7 @@ func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64
 		s.ctl = ctlMullDeclare
 		return
 	}
+	s.g.exBase = toss // the first turn is a normal one: the rotation resumes after it
 	s.beginTurn(toss)
 }
 
@@ -470,6 +471,7 @@ func (s *State) nextBottom() {
 	for {
 		s.mullCur++
 		if s.mullCur >= s.nSeats() {
+			s.g.exBase = s.startPl
 			s.beginTurn(s.startPl)
 			return
 		}

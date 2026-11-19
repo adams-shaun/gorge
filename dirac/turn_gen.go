@@ -1420,6 +1420,7 @@ func (s *State) nextLeyline(k *prep) {
 		return
 	}
 	s.g.leyOn = false
+	s.g.exBase = s.startPl
 	s.beginTurn(s.startPl)
 }
 

@@ -425,10 +425,9 @@ type player struct {
 	mulls       uint8
 	lost        bool
 	drewEmpty   bool
-	lifeGained  int16 // this turn
-	lifeLost    int16 // this turn
-	lastLost    int16 // the life lost in the previous turn (ExLifeLostLastTurn)
-	extraTurns  uint8
+	lifeGained  int16           // this turn
+	lifeLost    int16           // this turn
+	lastLost    int16           // the life lost in the previous turn (ExLifeLostLastTurn)
 	scry        uint8           // this turn: scry instructions in bits 0-3, surveil instructions in bits 4-7 (one byte: it fills padding)
 	sac         [3]uint8        // this turn: [sacAll] every sacrifice, [sacArtifact] artifact cards, [sacFood] Food cards
 	disc        uint8           // cards this player discarded this turn

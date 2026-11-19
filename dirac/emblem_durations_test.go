@@ -77,6 +77,10 @@ func TestEmblemDurations(t *testing.T) {
 			t.Fatalf("%d emblems after its controller's cleanup, want 1", sc.s.g.nemb[0])
 		}
 		sc.s.active = 1
+		// A normal turn's beginTurn pins exBase to its holder (CR 500.7;
+		// act_extraturn.go), and nextActive reads it: the state this hand-set
+		// cleanup would see in a game.
+		sc.s.g.exBase = 1
 		sc.s.cleanupGen(sc.k) // the cleanup before its controller's next turn
 		if sc.s.g.nemb[0] != 0 {
 			t.Fatalf("%d emblems after the preceding cleanup, want 0", sc.s.g.nemb[0])
