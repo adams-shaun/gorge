@@ -39,7 +39,9 @@ const (
 // Card is one entity card (policynet.EntityCard).
 type Card struct {
 	Group uint8
-	Raw   [EntityRawWidth]float32
+	// Raw is EntityRawWidthPod wide; only the first EntityRawWidth columns
+	// are written with the pod encoding off (SetPod).
+	Raw   [EntityRawWidthPod]float32
 	Rows  [2]Feature
 	NRows uint8
 }
@@ -47,7 +49,9 @@ type Card struct {
 // State is one encoded state (policynet.State): Sparse and Cards are views
 // of the Encoder's storage, valid until its next encode.
 type State struct {
-	Dense  [DenseWidth]float32
+	// Dense is DenseWidthPod wide; with the pod encoding off (SetPod) only
+	// its first DenseWidth columns are written, the rest stay zero.
+	Dense  [DenseWidthPod]float32
 	Sparse []Feature
 	Cards  []Card
 	// Ext is the extension block (SetExt), empty when off
@@ -123,6 +127,8 @@ type Encoder struct {
 	// the root's, in every world cloned from it), so a world reuses it
 	// without the line hint.
 	oroot [dirac.MaxObj]cardHint
+	// pod is the four-seat Commander pod encoding (SetPod, pod.go)
+	pod bool
 	// tym memoises the derived type lines and renamed views the pool did
 	// not precompute (the pool is shared, so only read)
 	tym tyMemo
@@ -220,7 +226,7 @@ func (e *Encoder) prelude(s *dirac.State, d *dirac.Decision, seat uint8) (uint8,
 		}
 	}
 	st := &e.st
-	st.Dense = [DenseWidth]float32{}
+	st.Dense = [DenseWidthPod]float32{}
 	dn := &st.Dense
 	dn[0] = float32(v.turn)
 	b := float32(v.turn)
@@ -308,6 +314,9 @@ func (e *Encoder) prelude(s *dirac.State, d *dirac.Decision, seat uint8) (uint8,
 			dn[base+denseCmdOnField] = 1
 		}
 	}
+	if e.pod {
+		e.podDense(s, dn)
+	}
 	return seat, me, opp
 }
 
@@ -344,6 +353,9 @@ func (e *Encoder) fullTail(seat uint8, me, opp *vplayer) *State {
 	// policynet sorts the v1 bag, appends the mz rows and sorts again; one
 	// stable sort of the whole emission leaves the same order.
 	e.mz(seat, me, opp)
+	if e.pod {
+		e.podSparse()
+	}
 	stableSortByRow(e.sp, &e.sorts)
 	st.Sparse = e.sp
 	e.entities(seat, me, opp)
@@ -515,6 +527,10 @@ func (e *Encoder) mzGlobal(seat uint8, me, opp *vplayer, mine, theirs *agg) {
 	num(&nkMeCanBlockN, mine.canBlock)
 	num(&nkMeFlyers, mine.flyers)
 	num(&nkOppFlyers, theirs.flyers)
+	if e.pod {
+		e.podLifeRows(me, mine)
+		return
+	}
 	diff := me.life - opp.life
 	e.push(rowsLifediff[clampI(diff/3+7, 14)], 1)
 	e.push(rowsOppLife[clampI(opp.life/2, lifeBucketHi)], 1)
@@ -726,6 +742,13 @@ func (e *Encoder) entities(seat uint8, me, opp *vplayer) {
 		e.seen[c.obj] = e.gen
 		e.cards = append(e.cards, Card{Group: group})
 		e.entityCard(&e.cards[len(e.cards)-1], c, zone, seat, me.avail)
+		if e.pod {
+			e.podEntity(&e.cards[len(e.cards)-1].Raw, c, zone)
+		}
+	}
+	if e.pod {
+		e.podEntities(seat, me, one)
+		return
 	}
 	for _, ci := range me.bf {
 		one(ci, 0, entZoneBf)

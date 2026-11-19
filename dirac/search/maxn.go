@@ -1,6 +1,10 @@
 package search
 
-import "github.com/adams-shaun/gorge/dirac"
+import (
+	"fmt"
+
+	"github.com/adams-shaun/gorge/dirac"
+)
 
 // Max^n at the opponents' points (Options.MaxN; gorge bots/azmcts's
 // maxNApplies, leafVec and splitLeafVec). Every leaf's value vector is
@@ -65,8 +69,31 @@ func (sr *Searcher) liveVec(s *dirac.State, d *dirac.Decision, lost bool) float6
 	if !lost {
 		v = float64(sr.Eval.Value(s, d, sr.seat))
 	}
+	sr.St.ScalarFallbacks++ // the backup MaxNScalarFallback allows (ValidateEval)
 	splitVec(s, sr.seat, v, &sr.vec)
 	return v
+}
+
+// ValidateEval refuses MaxN (with OpponentNodes) over an evaluator that
+// has no value vector for a pod of dirac.MaxSeats seats -- not a
+// VecEvaluator, or a VecReporter (a network without a wide enough K-way
+// head) that says so -- unless MaxNScalarFallback allows the counted
+// paranoid split: gorge azmcts Options.Validate's refusal of a scalar
+// network under max^n.
+func (o *Options) ValidateEval(eval Evaluator) error {
+	if !o.MaxN || !o.OpponentNodes || o.MaxNScalarFallback || dirac.MaxSeats <= 2 {
+		return nil
+	}
+	if _, ok := eval.(VecEvaluator); ok {
+		if vr, rep := eval.(VecReporter); !rep || vr.HasValueVec(dirac.MaxSeats) {
+			return nil
+		}
+	}
+	k := 0
+	if kv, ok := eval.(interface{ ValueK() int }); ok {
+		k = kv.ValueK()
+	}
+	return fmt.Errorf("search: max^n over the %T evaluator with ValueK %d: a scalar value split over the opponents is paranoid search, not max^n; it needs a value vector for %d seats (or MaxNScalarFallback for the counted paranoid backup)", eval, k, dirac.MaxSeats)
 }
 
 // splitVec is gorge's splitLeafVec: an evaluator that values only seat's

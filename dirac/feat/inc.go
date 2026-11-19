@@ -116,9 +116,35 @@ func (e *Encoder) EncodeStateInc(s *dirac.State, d *dirac.Decision) *State {
 	return e.EncodeStateIncFor(s, d, d.Player)
 }
 
-// EncodeStateIncFor is EncodeStateFor, incrementally.
+// incFull is EncodeStateIncFor's full rebuild into si: the full tail's bag
+// and cards, every entity cache entry reset.
+func (e *Encoder) incFull(si *seatInc, seat uint8, me, opp *vplayer) *State {
+	e.IncStats.Fallback++
+	st := e.fullTail(seat, me, opp)
+	si.st.Sparse = append(si.sp[:0], st.Sparse...)
+	si.sp = si.st.Sparse
+	si.st.Cards = append(si.cards[:0], st.Cards...)
+	si.cards = si.st.Cards
+	si.entObj, si.entVer = si.entObj[:0], si.entVer[:0]
+	for range si.cards {
+		si.entObj = append(si.entObj, noObj)
+		si.entVer = append(si.entVer, 0)
+	}
+	si.st.Ext = e.extFor(seat, me, opp)
+	return &si.st
+}
+
+// EncodeStateIncFor is EncodeStateFor, incrementally. The pod encoding
+// (SetPod) has no incremental path and always takes the full rebuild.
 func (e *Encoder) EncodeStateIncFor(s *dirac.State, d *dirac.Decision, seat uint8) *State {
 	seat, me, opp := e.prelude(s, d, seat)
+	if e.pod {
+		// the pod encoding has no incremental path: the full rebuild
+		e.IncStats.Fallback++
+		st := e.fullTail(seat, me, opp)
+		st.Ext = e.extFor(seat, me, opp)
+		return st
+	}
 	if e.inc[dirac.SeatIx(seat)] == nil {
 		e.inc[dirac.SeatIx(seat)] = &seatInc{fresh: make([]Feature, 0, 256),
 			sp: make([]Feature, 0, 512), cards: make([]Card, 0, 64)}
@@ -271,19 +297,7 @@ func (e *Encoder) EncodeStateIncFor(s *dirac.State, d *dirac.Decision, seat uint
 	si.fresh = fr
 	for _, f := range fr {
 		if f.Value != 1 && si.cnt[f.Row] > 0 {
-			e.IncStats.Fallback++
-			st := e.fullTail(seat, me, opp)
-			si.st.Sparse = append(si.sp[:0], st.Sparse...)
-			si.sp = si.st.Sparse
-			si.st.Cards = append(si.cards[:0], st.Cards...)
-			si.cards = si.st.Cards
-			si.entObj, si.entVer = si.entObj[:0], si.entVer[:0]
-			for range si.cards {
-				si.entObj = append(si.entObj, noObj)
-				si.entVer = append(si.entVer, 0)
-			}
-			si.st.Ext = e.extFor(seat, me, opp)
-			return &si.st
+			return e.incFull(si, seat, me, opp)
 		}
 	}
 	// The sorted bag: the cards' rows (each repeated by its count) merged

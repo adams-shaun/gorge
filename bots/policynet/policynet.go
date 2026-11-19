@@ -176,8 +176,14 @@ func EncodeState(v view.View, seat state.PlayerID) State { return encodeState(ni
 // encodeState is EncodeState into buf's storage (fresh storage for a nil
 // buf).
 func encodeState(buf *StateBuf, vp *view.View, seat state.PlayerID) State {
+	return encodeStateW(buf, vp, seat, DenseWidth)
+}
+
+// encodeStateW is encodeState into a dense vector w >= DenseWidth wide: the
+// columns past DenseWidth are left zero for the caller (FeaturesPod's).
+func encodeStateW(buf *StateBuf, vp *view.View, seat state.PlayerID, w int) State {
 	v := vp
-	dense := buf.denseBuf(DenseWidth)
+	dense := buf.denseBuf(w)
 	dense[denseTurn] = float32(v.Turn)
 	b := float32(v.Turn)
 	if b > 40 {

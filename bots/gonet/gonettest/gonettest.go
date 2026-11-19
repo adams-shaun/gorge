@@ -69,6 +69,15 @@ func WriteShape(dir, name string, sh Shape, rawW int, extra map[string]any) (str
 	return writeShape(dir, name, sh, rawW, extra, nil, DefaultLayout)
 }
 
+// WritePod writes a Small FeaturesPod mlp network: the pod raw and dense
+// widths, the pod set's seven pooled groups and its encoder_hash.
+func WritePod(dir, name string) (string, error) {
+	return writeShape(dir, name, Small, policynet.EntityRawWidthPod, map[string]any{
+		"DENSE_W": policynet.DenseWidthPod, "GROUPS": policynet.EntityGroupsPod,
+		"encoder_hash": fmt.Sprintf("%016x", policynet.EncoderHashFor(policynet.FeaturesPod)),
+	}, nil, DefaultLayout)
+}
+
 // Layout is a network's depth: its trunk blocks and the hidden layers of
 // its policy and value heads (the trainer's layers, policy_layers and
 // value_layers).
@@ -130,8 +139,12 @@ func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extI
 		return "", fmt.Errorf("gonettest: layout %+v: layers must be positive", lay)
 	}
 	denseW := denseWidthFor(extra)
-	if denseW != policynet.DenseWidth && denseW != policynet.DenseWidthV1 {
-		return "", fmt.Errorf("gonettest: DENSE_W %d is neither %d nor %d", denseW, policynet.DenseWidthV1, policynet.DenseWidth)
+	if denseW != policynet.DenseWidth && denseW != policynet.DenseWidthV1 && denseW != policynet.DenseWidthPod {
+		return "", fmt.Errorf("gonettest: DENSE_W %d is neither %d, %d nor %d", denseW, policynet.DenseWidthV1, policynet.DenseWidth, policynet.DenseWidthPod)
+	}
+	groups := grps
+	if g, ok := extra["GROUPS"].(int); ok {
+		groups = g
 	}
 	d, ff, e, cd, hh := sh.D, sh.FF, sh.E, sh.CD, sh.HH
 	if rawW < policynet.EntityRawWidthV1 {
@@ -177,10 +190,17 @@ func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extI
 		fill(name+".weight", 1, w)
 		fill(name+".bias", 0, w)
 	}
+	// a pod network (a new geometry, with no older bytes to keep) draws
+	// every raw and dense column, so the pod inputs move its outputs
+	pod := groups != grps
+	drawRaw, drawDense := policynet.EntityRawWidthV1, policynet.DenseWidth
+	if pod {
+		drawRaw, drawDense = rawW, denseW
+	}
 	rawRand := func(name string, out, in int) {
 		f := make([]float32, out*in)
 		for o := 0; o < out; o++ {
-			for i := 0; i < policynet.EntityRawWidthV1; i++ {
+			for i := 0; i < drawRaw; i++ {
 				f[o*in+i] = next()
 			}
 		}
@@ -197,7 +217,7 @@ func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extI
 	{
 		f := make([]float32, d*denseW)
 		for o := 0; o < d; o++ {
-			for i := 0; i < policynet.DenseWidth; i++ {
+			for i := 0; i < drawDense; i++ {
 				x := next()
 				if i < denseW {
 					f[o*denseW+i] = x
@@ -208,7 +228,7 @@ func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extI
 		rand("dense_in.bias", d)
 	}
 	lin("sparse_proj", e, d, false)
-	lin("pool_proj", 2*grps*cd, d, true)
+	lin("pool_proj", 2*groups*cd, d, true)
 	for i := 0; i < lay.Layers; i++ {
 		p := fmt.Sprintf("blocks.%d", i)
 		norm(p+".norm", d)
@@ -331,7 +351,7 @@ func headerShape(tensors []Entry, sh Shape, rawW int, extra map[string]any, lay 
 		h["config"].(map[string]float64)["value_k"] = float64(lay.ValueK)
 	}
 	for k, v := range extra {
-		if k == "EXT_W" || k == "OPT_DENSE_W" || k == "DENSE_W" { // a const of the net, not a top-level header key
+		if k == "EXT_W" || k == "OPT_DENSE_W" || k == "DENSE_W" || k == "GROUPS" { // a const of the net, not a top-level header key
 			h["consts"].(map[string]int)[k] = v.(int)
 			continue
 		}

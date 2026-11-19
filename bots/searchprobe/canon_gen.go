@@ -442,6 +442,16 @@ func (e *canonEncoder) encview_PlayerView(v *view.PlayerView) error {
 			e.buf = append(e.buf, 0)
 		}
 	}
+	if !v.IsMonarch {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		if v.IsMonarch {
+			e.buf = append(e.buf, 1)
+		} else {
+			e.buf = append(e.buf, 0)
+		}
+	}
 	if v.CommanderCasts == nil {
 		e.buf = append(e.buf, 0)
 	} else {
@@ -1022,6 +1032,30 @@ func (e *canonEncoder) encview_CardView(v *view.CardView) error {
 			e.buf = binary.AppendUvarint(e.buf, uint64((*v.AttackingPlayer)))
 		}
 	}
+	if !v.AttackingPermanent {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		if v.AttackingPermanent {
+			e.buf = append(e.buf, 1)
+		} else {
+			e.buf = append(e.buf, 0)
+		}
+	}
+	if len(v.GoadedBy) == 0 {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		if v.GoadedBy == nil {
+			e.buf = append(e.buf, 0)
+		} else {
+			e.buf = append(e.buf, 1)
+			e.buf = binary.AppendUvarint(e.buf, uint64(len(v.GoadedBy)))
+			for x49 := range v.GoadedBy {
+				e.buf = binary.AppendUvarint(e.buf, uint64(v.GoadedBy[x49]))
+			}
+		}
+	}
 	if len(v.BlockedBy) == 0 {
 		e.buf = append(e.buf, 0)
 	} else {
@@ -1031,8 +1065,8 @@ func (e *canonEncoder) encview_CardView(v *view.CardView) error {
 		} else {
 			e.buf = append(e.buf, 1)
 			e.buf = binary.AppendUvarint(e.buf, uint64(len(v.BlockedBy)))
-			for x49 := range v.BlockedBy {
-				e.buf = binary.AppendUvarint(e.buf, uint64(v.BlockedBy[x49]))
+			for x50 := range v.BlockedBy {
+				e.buf = binary.AppendUvarint(e.buf, uint64(v.BlockedBy[x50]))
 			}
 		}
 	}
@@ -1074,20 +1108,20 @@ func (e *canonEncoder) encview_CardView(v *view.CardView) error {
 		} else {
 			e.buf = append(e.buf, 1)
 			e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Counters)))
-			x50 := len(e.strKeys)
-			for x52 := range v.Counters {
-				e.strKeys = append(e.strKeys, string(x52))
-			}
 			x51 := len(e.strKeys)
-			slices.Sort(e.strKeys[x50:x51])
-			for x53 := x50; x53 < x51; x53++ {
-				x52 := e.strKeys[x53]
-				e.appendString(x52)
-				x54 := v.Counters[string(x52)]
-				e.buf = binary.AppendVarint(e.buf, int64(x54))
+			for x53 := range v.Counters {
+				e.strKeys = append(e.strKeys, string(x53))
 			}
-			clear(e.strKeys[x50:x51])
-			e.strKeys = e.strKeys[:x50]
+			x52 := len(e.strKeys)
+			slices.Sort(e.strKeys[x51:x52])
+			for x54 := x51; x54 < x52; x54++ {
+				x53 := e.strKeys[x54]
+				e.appendString(x53)
+				x55 := v.Counters[string(x53)]
+				e.buf = binary.AppendVarint(e.buf, int64(x55))
+			}
+			clear(e.strKeys[x51:x52])
+			e.strKeys = e.strKeys[:x51]
 		}
 	}
 	if len(v.Keywords) == 0 {
@@ -1099,8 +1133,8 @@ func (e *canonEncoder) encview_CardView(v *view.CardView) error {
 		} else {
 			e.buf = append(e.buf, 1)
 			e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Keywords)))
-			for x55 := range v.Keywords {
-				e.appendString(string(v.Keywords[x55]))
+			for x56 := range v.Keywords {
+				e.appendString(string(v.Keywords[x56]))
 			}
 		}
 	}
@@ -1132,8 +1166,8 @@ func (e *canonEncoder) encview_CardView(v *view.CardView) error {
 		} else {
 			e.buf = append(e.buf, 1)
 			e.buf = binary.AppendUvarint(e.buf, uint64(len(v.AbilityCosts)))
-			for x56 := range v.AbilityCosts {
-				e.appendString(string(v.AbilityCosts[x56]))
+			for x57 := range v.AbilityCosts {
+				e.appendString(string(v.AbilityCosts[x57]))
 			}
 		}
 	}
@@ -1165,8 +1199,8 @@ func (e *canonEncoder) encview_CardView(v *view.CardView) error {
 		} else {
 			e.buf = append(e.buf, 1)
 			e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Imprinted)))
-			for x57 := range v.Imprinted {
-				e.buf = binary.AppendUvarint(e.buf, uint64(v.Imprinted[x57]))
+			for x58 := range v.Imprinted {
+				e.buf = binary.AppendUvarint(e.buf, uint64(v.Imprinted[x58]))
 			}
 		}
 	}
@@ -1185,8 +1219,8 @@ func (e *canonEncoder) encview_CardView(v *view.CardView) error {
 		} else {
 			e.buf = append(e.buf, 1)
 			e.buf = binary.AppendUvarint(e.buf, uint64(len(v.ExiledCards)))
-			for x58 := range v.ExiledCards {
-				e.buf = binary.AppendUvarint(e.buf, uint64(v.ExiledCards[x58]))
+			for x59 := range v.ExiledCards {
+				e.buf = binary.AppendUvarint(e.buf, uint64(v.ExiledCards[x59]))
 			}
 		}
 	}
@@ -1296,22 +1330,22 @@ func (e *canonEncoder) encview_ArchetypePosterior(v *view.ArchetypePosterior) er
 		} else {
 			e.buf = append(e.buf, 1)
 			e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Scores)))
-			x59 := len(e.strKeys)
-			for x61 := range v.Scores {
-				e.strKeys = append(e.strKeys, string(x61))
-			}
 			x60 := len(e.strKeys)
-			slices.Sort(e.strKeys[x59:x60])
-			for x62 := x59; x62 < x60; x62++ {
-				x61 := e.strKeys[x62]
-				e.appendString(x61)
-				x63 := v.Scores[string(x61)]
-				if err := e.appendFloat(float64(x63)); err != nil {
+			for x62 := range v.Scores {
+				e.strKeys = append(e.strKeys, string(x62))
+			}
+			x61 := len(e.strKeys)
+			slices.Sort(e.strKeys[x60:x61])
+			for x63 := x60; x63 < x61; x63++ {
+				x62 := e.strKeys[x63]
+				e.appendString(x62)
+				x64 := v.Scores[string(x62)]
+				if err := e.appendFloat(float64(x64)); err != nil {
 					return err
 				}
 			}
-			clear(e.strKeys[x59:x60])
-			e.strKeys = e.strKeys[:x59]
+			clear(e.strKeys[x60:x61])
+			e.strKeys = e.strKeys[:x60]
 		}
 	}
 	return nil
@@ -1538,8 +1572,8 @@ func (e *canonEncoder) encdecision_PaymentAction(v *decision.PaymentAction) erro
 	} else {
 		e.buf = append(e.buf, 1)
 		e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Plans)))
-		for x64 := range v.Plans {
-			if err := e.encdecision_PaymentPlan(&v.Plans[x64]); err != nil {
+		for x65 := range v.Plans {
+			if err := e.encdecision_PaymentPlan(&v.Plans[x65]); err != nil {
 				return err
 			}
 		}
@@ -1568,8 +1602,8 @@ func (e *canonEncoder) encdecision_ManaPaymentWindow(v *decision.ManaPaymentWind
 		return err
 	}
 	e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Pool)))
-	for x65 := range v.Pool {
-		e.buf = binary.AppendUvarint(e.buf, uint64(v.Pool[x65]))
+	for x66 := range v.Pool {
+		e.buf = binary.AppendUvarint(e.buf, uint64(v.Pool[x66]))
 	}
 	if len(v.AutoFill) == 0 {
 		e.buf = append(e.buf, 0)
@@ -1580,8 +1614,8 @@ func (e *canonEncoder) encdecision_ManaPaymentWindow(v *decision.ManaPaymentWind
 		} else {
 			e.buf = append(e.buf, 1)
 			e.buf = binary.AppendUvarint(e.buf, uint64(len(v.AutoFill)))
-			for x66 := range v.AutoFill {
-				e.buf = binary.AppendUvarint(e.buf, uint64(v.AutoFill[x66]))
+			for x67 := range v.AutoFill {
+				e.buf = binary.AppendUvarint(e.buf, uint64(v.AutoFill[x67]))
 			}
 		}
 	}
@@ -1591,8 +1625,8 @@ func (e *canonEncoder) encdecision_ManaPaymentWindow(v *decision.ManaPaymentWind
 func (e *canonEncoder) encdecision_PaymentCost(v *decision.PaymentCost) error {
 	e.buf = binary.AppendUvarint(e.buf, uint64(v.Generic))
 	e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Mana)))
-	for x67 := range v.Mana {
-		e.buf = binary.AppendUvarint(e.buf, uint64(v.Mana[x67]))
+	for x68 := range v.Mana {
+		e.buf = binary.AppendUvarint(e.buf, uint64(v.Mana[x68]))
 	}
 	return nil
 }
@@ -1634,8 +1668,8 @@ func (e *canonEncoder) encdecision_TargetEffect(v *decision.TargetEffect) error 
 		} else {
 			e.buf = append(e.buf, 1)
 			e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Statics)))
-			for x68 := range v.Statics {
-				e.appendString(string(v.Statics[x68]))
+			for x69 := range v.Statics {
+				e.appendString(string(v.Statics[x69]))
 			}
 		}
 	}
@@ -1667,8 +1701,8 @@ func (e *canonEncoder) encview_Printing(v *view.Printing) error {
 
 func (e *canonEncoder) enccards_ManaProduction(v *cards.ManaProduction) error {
 	e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Colour)))
-	for x69 := range v.Colour {
-		e.buf = binary.AppendVarint(e.buf, int64(v.Colour[x69]))
+	for x70 := range v.Colour {
+		e.buf = binary.AppendVarint(e.buf, int64(v.Colour[x70]))
 	}
 	if v.Any {
 		e.buf = append(e.buf, 1)
@@ -1696,19 +1730,19 @@ func (e *canonEncoder) encdecision_PaymentPlan(v *decision.PaymentPlan) error {
 	} else {
 		e.buf = append(e.buf, 1)
 		e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Activations)))
-		for x70 := range v.Activations {
-			if err := e.encdecision_PaymentActivation(&v.Activations[x70]); err != nil {
+		for x71 := range v.Activations {
+			if err := e.encdecision_PaymentActivation(&v.Activations[x71]); err != nil {
 				return err
 			}
 		}
 	}
 	e.buf = binary.AppendUvarint(e.buf, uint64(len(v.PoolSpend)))
-	for x71 := range v.PoolSpend {
-		e.buf = binary.AppendUvarint(e.buf, uint64(v.PoolSpend[x71]))
+	for x72 := range v.PoolSpend {
+		e.buf = binary.AppendUvarint(e.buf, uint64(v.PoolSpend[x72]))
 	}
 	e.buf = binary.AppendUvarint(e.buf, uint64(len(v.PoolAfter)))
-	for x72 := range v.PoolAfter {
-		e.buf = binary.AppendUvarint(e.buf, uint64(v.PoolAfter[x72]))
+	for x73 := range v.PoolAfter {
+		e.buf = binary.AppendUvarint(e.buf, uint64(v.PoolAfter[x73]))
 	}
 	return nil
 }
@@ -1741,8 +1775,8 @@ func (e *canonEncoder) encdecision_PaymentActivation(v *decision.PaymentActivati
 		return err
 	}
 	e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Produces)))
-	for x73 := range v.Produces {
-		e.buf = binary.AppendUvarint(e.buf, uint64(v.Produces[x73]))
+	for x74 := range v.Produces {
+		e.buf = binary.AppendUvarint(e.buf, uint64(v.Produces[x74]))
 	}
 	if v.Consequence == nil {
 		e.buf = append(e.buf, 0)

@@ -36,13 +36,18 @@ func (p *vecProbe) ValueVec(s *dirac.State, d *dirac.Decision, seat uint8, out *
 // TestMaxNLeafReadsTheValueHead: under Options.MaxN a four-seat pod's
 // search reads the K-way head's vector at its leaves (Stats.VecLeaves, a
 // four-entry vector), while a scalar network and a head too narrow for the
-// pod (value_k 3: two seats and no winner) fall back to the scalar value and
-// the even split, reading no vector. NETEVAL_VALUEK_NET runs the first case
-// on a trained export.
+// pod (value_k 3: two seats and no winner) are refused (ValidateEval, naming
+// the head's ValueK) and, with MaxNScalarFallback, fall back to the scalar
+// value and the even split, reading no vector and counting every split leaf
+// (Stats.ScalarFallbacks). NETEVAL_VALUEK_NET runs the first case on a
+// trained export.
 func TestMaxNLeafReadsTheValueHead(t *testing.T) {
-	pod := func(ev search.Evaluator) (vecLeaves, maxN int) {
+	pod := func(ev search.Evaluator) (vecLeaves, maxN, scalar int) {
 		o := search.DefaultOptions()
 		o.Sims, o.MaxN = 16, true
+		if err := o.ValidateEval(ev); err != nil {
+			o.MaxNScalarFallback = true
+		}
 		sr := search.NewSearcher(o, ev, search.Heuristic{})
 		var decks [dirac.MaxSeats][]dirac.CardID
 		for i := 0; i < 4; i++ {
@@ -59,13 +64,19 @@ func TestMaxNLeafReadsTheValueHead(t *testing.T) {
 			r := sr.Search(&s, 977+uint64(i))
 			vecLeaves += r.Stats.VecLeaves
 			maxN += r.Stats.MaxN
+			scalar += r.Stats.ScalarFallbacks
 			r.Play(&s)
 		}
-		return vecLeaves, maxN
+		return vecLeaves, maxN, scalar
 	}
 	p := &vecProbe{Net: valueKNet(t, 5), t: t}
-	leaves, maxN := pod(p)
-	if maxN == 0 || leaves == 0 || p.reads != leaves || p.four == 0 {
+	o := search.DefaultOptions()
+	o.MaxN = true
+	if err := o.ValidateEval(p); err != nil {
+		t.Fatalf("a five-way head: %v", err)
+	}
+	leaves, maxN, sc := pod(p)
+	if maxN == 0 || leaves == 0 || p.reads != leaves || p.four == 0 || sc != 0 {
 		t.Fatalf("K-way net: %d max^n searches, %d vector leaves, %d reads, %d four-seat vectors", maxN, leaves, p.reads, p.four)
 	}
 	t.Logf("K-way net: %d max^n searches read %d leaf vectors (%d with four living seats)", maxN, leaves, p.four)
@@ -76,8 +87,11 @@ func TestMaxNLeafReadsTheValueHead(t *testing.T) {
 		name string
 		ev   search.Evaluator
 	}{{"scalar", testNet(t)}, {"value_k 3", valueKNet(t, 3)}} {
-		if leaves, maxN := pod(c.ev); maxN == 0 || leaves != 0 {
-			t.Errorf("%s net: %d max^n searches, %d vector leaves; want the scalar fallback", c.name, maxN, leaves)
+		if err := o.ValidateEval(c.ev); err == nil {
+			t.Errorf("%s net: max^n accepted without MaxNScalarFallback", c.name)
+		}
+		if leaves, maxN, sc := pod(c.ev); maxN == 0 || leaves != 0 || sc == 0 {
+			t.Errorf("%s net: %d max^n searches, %d vector leaves, %d counted splits; want the counted scalar fallback", c.name, maxN, leaves, sc)
 		}
 	}
 }

@@ -87,6 +87,9 @@ type Stats struct {
 	// maxNApplies); VecLeaves counts the leaves whose value vector the
 	// evaluator wrote (VecEvaluator), not splitVec.
 	MaxN, VecLeaves int
+	// ScalarFallbacks counts the max^n leaves whose vector split a scalar
+	// value over the opponents (Options.MaxNScalarFallback).
+	ScalarFallbacks int
 }
 
 // Result is one Search: the root candidates (index 0 the bot's answer),

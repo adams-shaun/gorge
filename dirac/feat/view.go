@@ -43,6 +43,10 @@ type vcard struct {
 	blocked   bool
 	blocks    dirac.Obj // a blocker: the attacker it blocks (noObj none)
 	rel       entRel
+	// gateOff: every mana ability is gated (IsPresent$) and off now;
+	// gateSome: some is. Facts of the board rather than of the card's
+	// content (kernel FeatManaGates), so set per build.
+	gateOff, gateSome bool
 }
 
 // kwReps is a card view's repeated keyword grants (vcore.kwRep), kept
@@ -121,6 +125,7 @@ func (c *vcore) typeRows(zi int) []uint16 {
 
 // vplayer is one seat's public facts and zone lists (indices into cards).
 type vplayer struct {
+	cmd                       []int32 // the commanders in the command zone (gorge PlayerView.Command), slot order
 	life, handN, libN, graveN int32
 	pool                      [6]int32
 	avail                     int32 // pool + available, policynet seatAvailable
@@ -306,7 +311,7 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind, decid
 		e.objs = s.FeatBattlefield(p, e.objs[:0])
 		pl := &v.players[p]
 		for _, o := range e.objs {
-			pl.bf = append(pl.bf, e.addCard(s, o, zBattlefield))
+			pl.bf = append(pl.bf, e.addBfCard(s, o))
 		}
 	}
 	for p := 0; p < int(v.n); p++ {
@@ -405,6 +410,7 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind, decid
 		}
 		v.stack = append(v.stack, st)
 	}
+	e.buildCommand(s)
 	e.buildRel(s)
 	// Available mana: the pool plus every untapped source that can tap.
 	for p := 0; p < int(v.n); p++ {
@@ -418,7 +424,7 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind, decid
 			if c.tapped {
 				continue
 			}
-			w := c.c.avail
+			w := c.availWeight()
 			if !c.printedKw {
 				// its abilities are lost: only a granted mana ability counts
 				// (a {T}: Add {C}, one unit)
@@ -525,6 +531,41 @@ func (v *vview) relSeat(p uint8) int {
 		return int((p - v.seat) & 1)
 	}
 	return (int(p) - int(v.seat) + int(v.n)) % int(v.n)
+}
+
+// availWeight is what the untapped source adds to gorge's AvailableMana:
+// its pool weight, or with a gated (IsPresent$) mana ability off what its
+// ungated abilities alone make (gorge skips a gated-off ability).
+func (c *vcard) availWeight() int32 {
+	if c.gateSome {
+		return c.c.availOff
+	}
+	return c.c.avail
+}
+
+// addBfCard is addCard on the battlefield, with the card's mana gates
+// (kernel FeatManaGates: a board fact, so set per build, not cached).
+func (e *Encoder) addBfCard(s *dirac.State, o dirac.Obj) int32 {
+	ci := e.addCard(s, o, zBattlefield)
+	if n, off := s.FeatManaGates(o); off > 0 {
+		e.v.cards[ci].gateOff, e.v.cards[ci].gateSome = off == n, true
+	}
+	return ci
+}
+
+// buildCommand lists the command zones (gorge PlayerView.Command): each
+// seat's commanders sitting there, viewed as a hand card is.
+func (e *Encoder) buildCommand(s *dirac.State) {
+	v := &e.v
+	for p := uint8(0); p < v.n; p++ {
+		pl := &v.players[p]
+		pl.cmd = pl.cmd[:0]
+		for j := uint8(0); j < 2; j++ {
+			if o := s.FeatCommanderN(p, j); o != noObj && e.po(o).Zone == kop.ZoneCommand {
+				pl.cmd = append(pl.cmd, e.addCard(s, o, zHand))
+			}
+		}
+	}
 }
 
 // addCard appends obj's card view in zone z and returns its index.

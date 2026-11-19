@@ -428,6 +428,9 @@ func (g *Game) boardObject(i canon.Ref) {
 		o.Attacking = state.PlayerID(dirac.TCode(po.Attacks) - dirac.PlayerTarget0)
 	} else if o.IsAttacking && dirac.IsObjTarget(dirac.TCode(po.Attacks)) {
 		o.Attacking = state.PlayerID(g.kp.Objs[po.Attacks].Ctrl)
+		// The attacked planeswalker or battle, as gorge's AttackingBattle holds it
+		// (view AttackingPermanent reads it).
+		o.AttackingBattle = g.ids.obj(canon.Ref(po.Attacks))
 	}
 	if o.Zone != state.ZBattlefield && g.s.FeatSickOff(dirac.Obj(i)) {
 		o.SummonSick = true

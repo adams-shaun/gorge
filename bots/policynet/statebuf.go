@@ -62,21 +62,21 @@ func (b *StateBuf) keepSparse(s []Feature) {
 }
 
 // entitySlabs are the entity list's storage for total cards: an empty card
-// list, total*EntityRawWidth zeroed raw floats, an empty rows slab.
-func (b *StateBuf) entitySlabs(total int) ([]EntityCard, []float32, []Feature) {
+// list, total*rawW zeroed raw floats, an empty rows slab.
+func (b *StateBuf) entitySlabs(total, rawW int) ([]EntityCard, []float32, []Feature) {
 	if b == nil {
-		return make([]EntityCard, 0, total), make([]float32, total*EntityRawWidth), make([]Feature, 0, 2*total)
+		return make([]EntityCard, 0, total), make([]float32, total*rawW), make([]Feature, 0, 2*total)
 	}
 	if cap(b.cards) < total {
 		b.cards = make([]EntityCard, 0, total+total/2)
 	}
-	if n := total * EntityRawWidth; cap(b.raw) < n {
+	if n := total * rawW; cap(b.raw) < n {
 		b.raw = make([]float32, n, n+n/2)
 	}
 	if cap(b.rows) < 2*total {
 		b.rows = make([]Feature, 0, 2*total+total)
 	}
-	raw := b.raw[:total*EntityRawWidth]
+	raw := b.raw[:total*rawW]
 	clear(raw)
 	return b.cards[:0], raw, b.rows[:0]
 }
