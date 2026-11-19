@@ -131,17 +131,27 @@ func (s *State) phyCastGateAffords(k *prep, p uint8, cav *avail, cost *kop.ManaC
 // for the fifth mana of {4}{G/P}{G/P} at two life). The prefix search then
 // decides the cast like any other potential play.
 func (s *State) phyHalfPlanned(k *prep, p uint8, a Action) bool {
-	cost := k.cards[s.objs[Obj(a.Source())].card].cost
-	if !cost.Phyrexian() {
+	o := Obj(a.Source())
+	c := s.objs[o].card
+	if !k.cards[c].cost.Phyrexian() {
 		return false
 	}
-	h := phyPlanHalf(cost)
+	// The half the cast planner funds is its COMPOSED cost without the pips
+	// (plannedCastCost: the printed cost re-priced by every live cost static,
+	// then the Phyrexian bits cleared), not the printed cost: Sphere of
+	// Resistance's surcharge is part of the half, and pricing the printed
+	// half let the autopay surface keep a cast gorge's planner calls
+	// insufficient (Pith Driller's {5} half beside five net sources).
+	half, ok := s.plannedCastCost(k, p, o, 0)
+	if !ok {
+		return false
+	}
 	saved := s.g.availX
 	s.g.availX = availWalk
 	var av avail
 	s.availFor(k, p, &av)
 	s.g.availX = saved
-	return av.affords(&h, pipMaskOf(&h), 0)
+	return av.affords(&half, pipMaskOf(&half), 0)
 }
 
 // phyAbilityMana pays a Phyrexian activation: the plan for the cost its pips
