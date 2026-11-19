@@ -38,6 +38,7 @@ Cast into Darkness	db790891c2269549	32	0/0		2/2
 Cavalier of Flame	554053e66e439ee1	17	3/3		1/1	
 Chasm Guide	6fd2ae12ec9aea38	63	1/1		1/1	
 Chief of the Scale	b2c3a59713cc87f7	20	0/0		0/0	
+Chilling Apparition	78f27feb9e70cfdd	88	2/2		1/1	
 Clan Crafter	c831f9f3fe8aa20c	32	0/0		0/0	
 Cloudkin Seer	8b11ce063101e068	61	1/1		1/1	
 Colossal Majesty	db90b4d625c40567	44	1/1		1/1	
@@ -65,7 +66,9 @@ Dromoka Warrior	6b3e631a383b6932	59	0/0		0/0
 Duskwielder	446a10b57ee8a236	27	1/1		0/1	ix:resp
 Dying Wish	257b2c4dd99fc25f	20	1/1		2/2	
 Earth Rift	836ab604b6978b52	104	0/0		4/4	
+Ebony Fly	5f69f671c0dbeae9	85	3/3		1/1	
 Elemental Appeal	0c578c3e2d34d64d	19	0/0		3/4	ix:resp
+Elf Replica	744cfad62a09de5c	74	1/1		1/1	
 Embrace the Unknown	0588de6e232fd0ce	32	0/0		2/2	
 Emergent Growth	682500fa46246736	36	0/0		1/2	ix:resp
 Enchantmentize	f429165c6b3d575f	32	0/0		2/2	
@@ -88,6 +91,7 @@ Fyndhorn Elder	9875a97327415335	13	1/1		1/1
 Gatecreeper Vine	ca2cc9dc7bfe146b	53	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Ghostfire Slice	418949423e4b473e	22	0/0		2/2	
 Giant Spectacle	c09c5b27e137685a	86	0/0		2/2	
+Giant's Ire	6fe88438e423fb05	34	0/0		2/2	
 Gift of the Deity	d9e9a8f1d6335f87	14	0/0		1/2	ix:resp
 Golden-Tail Disciple	23d8036fed58da53	47	0/0		0/0	
 Gonti, Lord of Luxury	974af1bda9ebbcec	46	1/1		1/1	
@@ -148,6 +152,7 @@ Nameless One	8e9fea06b2e657be	26	0/0		1/2	cast/alt:morphed
 Nessian Courser	7dd56b0a5d656889	18	0/0		0/0	
 Night Incarnate	287656addcea5eb1	27	1/1		3/3	
 Night of Souls' Betrayal	d4624ccbd9c508dc	55	0/0		0/0	
+Nikko-Onna	470533e05bd77cc6	54	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Norn's Wellspring	153c1811a5e2b653	39	2/2		1/1	
 Nylea's Emissary	63bb29123658604d	45	0/0		2/2	
 Ondu Spiritdancer	f90cc9e3e0fa6893	18	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -211,6 +216,7 @@ Tin Street Market	0a07578928242b01	54	0/0		2/2
 Titania's Command	c63d25a9ef4f866d	12	0/0		2/2	
 Transluminant	eb229df58cc53ef1	66	1/1		1/1	
 Transmogrifying Wand	b661749ef18640a2	43	1/1		1/1	
+Trespasser's Curse	edc908c8d2ecba36	90	1/1		2/2	
 Tribal Unity	05384ddfd8c2aa86	31	0/0		3/4	f0/s/x0
 Urza's Science Fair Project	f0bfa3736c4c7775	15	1/1		1/1	
 Vengeance	a9ed63000ae06d77	15	0/0		2/2	

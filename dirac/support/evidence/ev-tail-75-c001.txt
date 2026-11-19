@@ -4,6 +4,7 @@ Aether Spellbomb
 Afterlife
 Agility Bobblehead
 Akoum Refuge
+Alabaster Potion
 Alrund's Epiphany
 Ancestral Blade
 Ancient Gold Dragon
@@ -49,6 +50,7 @@ Bound in Silence
 Bountiful Promenade
 Brackwater Elemental
 Brandywine Farmer
+Bugenhagen, Wise Elder
 Burning Fields
 Cabal Patriarch
 Cabaretti Courtyard
@@ -74,6 +76,7 @@ Daggersail Aeronaut
 Daunting Defender
 Dawning Angel
 Death's Shadow
+Delraich
 Demon's Disciple
 Dense Foliage
 Deputized Protester
@@ -140,6 +143,7 @@ Howl of the Night Pack
 Huatli, Radiant Champion
 Hulk, Brutal Brawler
 Hurloon Battle Hymn
+Illicit Shipment
 Imaginary Pet
 Immortal Phoenix
 Incisor Steed
@@ -159,6 +163,7 @@ Launch
 Leapfrog
 Leyline of Punishment
 Lightwielder Paladin
+Lonis, Genetics Expert
 Lorthos, the Tidemaker
 Lost in the Mist
 Lost in the Spirit World
@@ -184,6 +189,7 @@ Minotaur, Roxxon CEO
 Mobile Fort
 Momentum Rumbler
 Mortal Wound
+Mossbridge Troll
 Mountain
 Mox Tantalite
 Muck Rats
@@ -227,6 +233,7 @@ Rampaging Cyclops
 Raugrin Triome
 Reduce in Stature
 Return from Extinction
+Return of the Nightstalkers
 Reverberate
 Rimewood Falls
 Rishadan Cutpurse
@@ -284,6 +291,7 @@ Tectonic Edge
 Tempestra, Dame of Games
 Territorial Boar
 Thirst for Discovery
+Thistledown Duo
 Thopter Assembly
 Thopter Mechanic
 Threnody Singer

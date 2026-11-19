@@ -288,6 +288,7 @@ Plague Fiend
 Plains
 Planar Incision
 Planar Portal
+Plow Under
 Pool Resources
 Precision Bolt
 Preening Champion
@@ -413,6 +414,7 @@ Thunderhead Squadron
 Tideshaper Mystic
 Tiller Engine
 Topaz Dragon
+Torch Breath
 Towering Indrik
 Traumatize
 Treacherous Vampire

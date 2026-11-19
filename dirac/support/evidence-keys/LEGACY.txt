@@ -36,7 +36,6 @@ A-Omnath, Locus of Creation
 A-Oran-Rief Ooze
 A-Phylath, World Sculptor
 A-Plate Armor
-A-Pyre-Sledge Arsonist
 A-Queza, Augur of Agonies
 A-Return Upon the Tide
 A-Revel Ruiner
@@ -150,7 +149,6 @@ Adversary by Algorithm
 Adverse Conditions
 Aegis Sculptor
 Aegis of the Gods
-Aerial Assault
 Aerial Doombot
 Aerial Modification
 Aerial Predation
@@ -953,7 +951,6 @@ Birthing Hulk
 Birthing Ritual
 Bishop of Wings
 Bite Down on Crime
-Biting Tether
 Bitter Chill
 Bitter Downfall
 Bitter Triumph
@@ -1017,7 +1014,6 @@ Bleeding Woods
 Blessed Ghoul
 Blessed Hippogriff
 Blessed Light
-Blessed Respite
 Blessing
 Blight
 Blight Keeper
@@ -1108,9 +1104,7 @@ Bob, Reluctant HYDRA Agent
 Body Launderer
 Body of Knowledge
 Bofur, Reliable Guardian
-Bog Badger
 Bog Glider
-Bog Naughty
 Bog Rats
 Bog Tatters
 Bog Wraith
@@ -1176,7 +1170,6 @@ Borborygmos Enraged
 Border Guard
 Border Patrol
 Borderland Behemoth
-Boreal Druid
 Boreal Elemental
 Borg Cube
 Borg Queen, One Who Is Many
@@ -1417,7 +1410,6 @@ Camera Launcher
 Campus Composer
 Campus Crier
 Candlelight Vigil
-Candlelit Cavalry
 Candlestick
 Candy Grapple
 Candy Trail
@@ -1979,7 +1971,6 @@ Cranial Ram
 Crash and Burn
 Crash of Rhino Beetles
 Crash of Rhinos
-Crash the Party
 Crashing Centaur
 Crater Elemental
 Crater Hellion
@@ -2323,7 +2314,6 @@ Defensive Maneuvers
 Defensive Stance
 Defiant Bloodlord
 Defiant Falcon
-Defiant Greatmaw
 Defiant Khenra
 Defiant Strike
 Defiant Survivor
@@ -2493,7 +2483,6 @@ Dissection Practice
 Dissection Tools
 Dissipation Field
 Dissolve
-Distemper of the Blood
 Distinguished Conjurer
 Distorting Wake
 Distress
@@ -2702,7 +2691,6 @@ Dune Mover
 Dune-Brood Nephilim
 Duneblast
 Dunland Crebain
-Durable Coilbug
 Durable Handicraft
 Dusk Rose Reliquary
 Duskhunter Bat
@@ -2778,7 +2766,6 @@ Eat to Extinction
 Eater of Hope
 Eater of the Dead
 Ebon Drake
-Ebony Fly
 Ebony Treefolk
 Echo of Dusk
 Echo of Eons
@@ -3414,7 +3401,6 @@ Flash Thompson, Spider-Fan
 Flashback
 Flatten
 Flayed One
-Flayer Drone
 Fleecemane Lion
 Fleet Captain Christopher Pike
 Fleet-Footed Monk
@@ -3609,7 +3595,6 @@ Funeral Room
 Fungal Bloom
 Fungal Colossus
 Fungal Fortitude
-Fungal Infection
 Fungal Plots
 Fungal Shambler
 Fungus Sliver
@@ -3675,7 +3660,6 @@ Gandalf, Wandering Wizard
 Gang of Elk
 Gangly Stompling
 Gardenize
-Gargadon
 Gargantuan Leech
 Gargoyle Flock
 Garland, Knight of Cornelia
@@ -3686,7 +3670,6 @@ Garrison Sergeant
 Garruk's Companion
 Garruk's Gorehorn
 Garruk's Packleader
-Garruk, Caller of Beasts
 Garruk, Curse Breaker
 Garruk, Unleashed
 Garza Zol, Plague Queen
@@ -3723,7 +3706,6 @@ Gene Pollinator
 Genemorph Imago
 General Chang, Cold Warrior
 General Kreat, the Boltbringer
-General Kudro of Drannith
 General Traag, Heart of Stone
 General's Enforcer
 Generous Gift
@@ -4698,7 +4680,6 @@ Indatha Triome
 Indelicate Healer
 Indomitable Ancients
 Indomitable Will
-Indrik Stomphowler
 Indulgent Tormentor
 Indulging Patrician
 Industrial Advancement
@@ -5193,7 +5174,6 @@ Kithkin Billyrider
 Kithkin Rabble
 Kithkin Shielddare
 Kitsa, Otterball Elite
-Kitsune Dawnblade
 Kitsune Riftwalker
 Kitsune's Technique
 Kitsune, Dragon's Daughter
@@ -5576,7 +5556,6 @@ Longbow Archer
 Longhorn Sharpshooter
 Longstalk Brawl
 Longtusk Cub
-Lonis, Genetics Expert
 Looming Altisaur
 Looming Hoverguard
 Loot, the Key to Everything
@@ -5669,7 +5648,6 @@ Lyra, Archangel of Dawn
 Lyra, Tolarian Archangel
 Lys Alana Bowmaster
 Lys Alana Informant
-Lórien Revealed
 M'Ress, Crew Coordinator
 M.O.D.O.K.
 MACH-1, Swooping Scoundrel
@@ -5983,7 +5961,6 @@ Michelangelo, Weirdness to 11
 Michelangelo, the Heart
 Midgar, City of Mako
 Midnight Arsonist
-Midnight Covenant
 Midnight Entourage
 Midnight Mangler
 Midnight Mayhem
@@ -6231,7 +6208,6 @@ Mr. Spock, Science Officer
 Ms. Marvel, Elastic Ally
 Ms. Marvel, Kamala Khan
 Mtenda Lion
-Mu Yanling, Sky Dancer
 Mu Yanling, Wind Rider
 Mudbutton Cursetosser
 Muddle the Mixture
@@ -6429,7 +6405,6 @@ Nightmare's Thirst
 Nightsquad Commando
 Nightwhorl Hermit
 Nikara, Lair Scavenger
-Nikko-Onna
 Nim Replica
 Nim Shambler
 Nim Shrieker
@@ -6488,7 +6463,6 @@ Norwood Priestess
 Norwood Riders
 Not Forgotten
 Not on My Watch
-Notorious Assassin
 Nourish
 Nova Hellkite
 Novablast Wurm
@@ -6918,7 +6892,6 @@ Phabine, Boss's Confidant
 Phalanx Leader
 Phantasmagorian
 Phantasmal Abomination
-Phantasmal Bear
 Phantasmal Forces
 Phantasmal Form
 Phantasmal Sphere
@@ -7267,7 +7240,6 @@ Quartzwood Crasher
 Queen Brahne
 Queen Marchesa
 Queen's Bay Paladin
-Quest for Pure Flame
 Quest for the Gravelord
 Quest for the Nihil Stone
 Questing Druid
@@ -7667,7 +7639,6 @@ Rhonas the Indomitable
 Rhovanion Rampager
 Rhox Bodyguard
 Rhox Charger
-Rhox Maulers
 Rhox Meditant
 Rhox War Monk
 Rhys the Exiled
@@ -7676,7 +7647,6 @@ Rhystic Scrying
 Rhystic Syphon
 Rhystic Tutor
 Rhythmic Water Vortex
-Rib Cage Spider
 Ribbon Snake
 Ribbons of the Reikai
 Rick Jones, Destined Sidekick
@@ -7839,7 +7809,6 @@ Rorix Bladewing
 Rosa, Resolute White Mage
 Rosethorn Acolyte
 Rot Farm Mortipede
-Rot Hulk
 Rot Wolf
 Rotisserie Elemental
 Rotted Hulk
@@ -8268,7 +8237,6 @@ Serpent of the Pass
 Serpent's Gift
 Serpent's Pass
 Serpentine Curve
-Serra Ascendant
 Serra Disciple
 Serra Paladin
 Serra Redeemer
@@ -8333,7 +8301,6 @@ Sharuum the Hegemon
 Shatter
 Shatter Assumptions
 Shatter the Oath
-Shatter the Source
 Shattered Acolyte
 Shattered Landscape
 Shattered Perception
@@ -8507,7 +8474,6 @@ Silverbeak Griffin
 Silverclad Ferocidons
 Silvergill Mentor
 Silvergill Peddler
-Silverglade Elemental
 Silverquill Apprentice
 Silverquill Charm
 Silverquill Silencer
@@ -8679,7 +8645,6 @@ Smaug the Magnificent
 Smaug's Fury
 Smaug, Wicked Worm
 Smaug, the Great Calamity
-Smell Fear
 Smellerbee, Rebel Fighter
 Smelt-Ward Minotaur
 Smelted Chargebug
@@ -8688,7 +8653,6 @@ Smite
 Smite the Monstrous
 Smiting Helix
 Smoke Bomb
-Smoky Lounge
 Smolder Initiate
 Smoldering Butcher
 Smoldering Crater
@@ -8877,7 +8841,6 @@ Spellseeker
 Spellshock
 Spelltithe Enforcer
 Spelunking
-Sphere Grid
 Sphere of Safety
 Sphere of Truth
 Sphinx Sovereign
@@ -8951,7 +8914,6 @@ Spirit Mantle
 Spirit Mascot
 Spirit Mirror
 Spirit Water Revival
-Spirit of the Hearth
 Spirit of the Hunt
 Spiritcall Enthusiast
 Spiritual Sanctuary
@@ -9365,7 +9327,6 @@ Sureshot Sower
 Surge Node
 Surge of Brilliance
 Surge of Strength
-Surge of Thoughtweft
 Surgespanner
 Surgical Precision
 Surgical Suite
@@ -9439,7 +9400,6 @@ Synapse Necromage
 Synchronized Charge
 Syncopate
 Syndic of Tithes
-Syndicate Heavy
 Syndicate Liquidators
 Syndicate Trafficker
 Synthesizer Labship
@@ -9511,7 +9471,6 @@ Tam, Observant Sequencer
 Tam, the Possibility
 Tamanoa
 Tamiyo's Epiphany
-Tamiyo's Journal
 Tana, the Bloodsower
 Tangle Golem
 Tangle Tumbler
@@ -9842,7 +9801,6 @@ Thirst for Knowledge
 Thirsting Bloodlord
 Thirsting Shade
 This Town Ain't Big Enough
-Thistledown Duo
 Thistledown Players
 Thopter Assembly
 Thopter Fabricator
@@ -9965,7 +9923,6 @@ Timid Shieldbearer
 Timmy, Power Gamer
 Tin-Wing Chimera
 Tinder Wall
-Tinker
 Tinker's Tote
 Tinybones Joins Up
 Tinybones, Pocket Nuisance
@@ -10126,7 +10083,6 @@ Tremble
 Tremor
 Trench Wurm
 Treno, Dark City
-Trespasser's Curse
 Treva's Charm
 Trial of Ambition
 Tribal Golem
@@ -10636,7 +10592,6 @@ Vivid Marsh
 Vivid Meadow
 Vivien's Grizzly
 Vivien, Arkbow Ranger
-Vivien, Nature's Avenger
 Vivify
 Vivisection
 Vizier of Tumbling Sands
@@ -10830,7 +10785,6 @@ Wave of Indifference
 Wave-Wing Elemental
 Wavebreak Hippocamp
 Waves of Aggression
-Wavesifter
 Waveskimmer Aven
 Wax-Wane Witness
 Waxen Shapethief
@@ -10953,7 +10907,6 @@ Wildfire Howl
 Wildfire Wickerfolk
 Wildgrowth Archaic
 Wildgrowth Walker
-Wildslayer Elves
 Wildvine Pummeler
 Wildwood Geist
 Wildwood Mentor
@@ -10969,7 +10922,6 @@ Wilt in the Heat
 Wilt-Leaf Cavaliers
 Wind Strider
 Wind Zendikon
-Windborn Muse
 Windborne Charge
 Windbrisk Raptor
 Windreaper Falcon
@@ -11075,7 +11027,6 @@ Worthy Cost
 Wraith, Vicious Vigilante
 Wrangler of the Damned
 Wrath of God
-Wrath of Oko
 Wrath of the Bloodmane
 Wreck Remover
 Wreckage Wickerfolk
@@ -11086,7 +11037,6 @@ Wrenn and Seven
 Wrenn's Resolve
 Wretched Doll
 Wu Elite Cavalry
-Wu Scout
 Wu Warship
 Wurmskin Forger
 Wurmwall Sweeper

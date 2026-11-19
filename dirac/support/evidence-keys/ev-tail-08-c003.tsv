@@ -21,6 +21,7 @@ Blood Divination	f59909a0b22e65a6	24	0/0		2/2
 Blood Glutton	5a5d7d53b1c4bacc	4	0/0		0/0	
 Blood Seeker	488e1bccb1e47e11	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Blur Sliver	52faf45be9cc0f3f	9	0/0		0/0	
+Bolt of Keranos	1712d4fd7f4bf2e9	52	0/0		2/2	
 Bounty Agent	8a0f559f8511de4d	6	1/1		0/1	ix:resp
 Bronze Sword	70fcf76a2a03f600	4	1/1		0/1	ix:resp
 Bronze Walrus	9711c43fdd1b1fbc	12	2/2		0/1	ix:resp
@@ -33,6 +34,7 @@ Certain Death	545289d30bbfd585	4	0/0		2/2
 Chakram Retriever	3df15a928a26f2ca	3	2/2		0/1	ix:resp
 Chill to the Bone	42fce76aa14cc97f	8	0/0		1/2	ix:resp
 Commence the Endgame	084f0d60749c8da4	42	0/0		2/2	
+Containment Protocol	af633dbcfece2ba8	41	1/1		1/2	ix:resp
 Corrosive Mentor	442b0bc5ce316b31	4	0/0		0/0	
 Counterintelligence	05283e8aa0033b1f	15	0/0		2/2	
 Crisis of Conscience	afe395bd17600cfc	3	0/0		1/2	ix:resp
@@ -73,6 +75,7 @@ Hyperion Blacksmith	c3820513a2907c92	10	1/1		1/1
 Ilysian Caryatid	b668c21dc0c9f1d7	21	1/1		1/1	
 Improbable Alliance	ff1267220b636ebc	26	2/2		1/1	
 Inspiring Cleric	60103fcb12a0387b	5	1/1		0/1	ix:resp
+Invasion of Theros	d2727feb4f73a8b4	38	2/2		1/1	
 Iron Fist, Hero for Hire	ceca251c078548ff	46	2/2		1/1	
 Iron Verdict	51e98a5b1e0040d5	10	0/0		3/4	cast/alt:foretold
 Ishai, Ojutai Dragonspeaker	847aa3f7263802f7	8	1/1		1/1	

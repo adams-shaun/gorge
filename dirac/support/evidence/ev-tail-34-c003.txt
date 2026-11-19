@@ -2,11 +2,14 @@ A-Mentor's Guidance
 Aboshan's Desire
 Aether Mutation
 Ageless Guardian
+Agent of the Shadow Thieves
+Alms of the Vein
 Angel's Mercy
 Angelic Wall
 Appeal
 Araba Mothrider
 Arcane Flight
+Archon of Redemption
 Ardent Militia
 Arm-Mounted Anchor
 Arrogant Bloodlord
@@ -14,6 +17,7 @@ Aura Mutation
 Aven Trailblazer
 Bala Ged Recovery
 Bar the Door
+Battle Angels of Tyr
 Bazaar Krovod
 Belbe's Percher
 Blockbuster
@@ -22,10 +26,14 @@ Bloodied Ghost
 Boon of Safety
 Brazen Borrower
 Breath Weapon
+Bushmeat Poacher
 Butterbur, Bree Innkeeper
 Cartouche of Zeal
 Cathartic Adept
 Cave of the Frost Dragon
+Conjurer's Mantle
+Conversion
+Crash the Party
 Crash the Ramparts
 Crown of Empires
 Cruel Deceiver
@@ -41,14 +49,18 @@ Dirty Rat
 Dizzy Spell
 Douse
 Drelnoch
+Drowner of Secrets
+Durable Coilbug
 Dwarven Patrol
 Edric, Spymaster of Trest
 Eidolon of Blossoms
 Electric Revelation
 Electrozoa
 Elegant Entourage
+Elminster's Simulacrum
 Embersmith
 Encase in Ice
+Enter the Unknown
 Era of Innovation
 Etherium-Horn Sorcerer
 Ethersworn Sphinx
@@ -59,6 +71,7 @@ Feral Ridgewolf
 First Volley
 Folk of An-Havva
 Forest
+Gaea's Gift
 Gerrard Capashen
 Ghalma's Warden
 Glimmer of Genius
@@ -69,6 +82,7 @@ Gossamer Phantasm
 Grazing Kelpie
 Grim Guardian
 Grim Return
+Grizzled Outrider
 Ground Seal
 Guise of Fire
 Hapatra, the Desert Fang
@@ -77,15 +91,23 @@ Harvest Gwyllion
 Hawkeye, Clint Barton
 Heartstone
 Hired Poisoner
+Hoverguard Observer
 Hydroid Krasis
+Hythonia the Cruel
+Indulgent Aristocrat
 Inspiration
 Invasion of Ergamon
 Island
+Jace's Phantasm
+Join Forces
 Joraga Auxiliary
 Kitesail Apprentice
+Kitsune Dawnblade
 Kronch Wrangler
 Krosan Avenger
 Labyrinth Champion
+Launch Mishap
+Lionheart Maverick
 Loran's Escape
 Lost Legion
 Loyal Cathar
@@ -95,34 +117,45 @@ Mana Seism
 Mantle of the Wolf
 Marsh Lurker
 Master of the Pearl Trident
+Maze Sentinel
 Merciless Javelineer
 Midnight Entourage
 Ministrant of Obligation
 Minn, Wily Illusionist
+Morinfen
 Moriok Scavenger
 Mountain
 Nefashu
 Nissa's Chosen
+Notorious Assassin
 Nurturer Initiate
 Ogre Jailbreaker
 Painful Memories
+Paladin Danse, Steel Maverick
 Pegasus Stampede
+Perilous Myr
 Pharika's Chosen
 Pillar of Light
 Plains
 Power Armor
 Pull from Tomorrow
+Pyretic Prankster
 Quilled Wolf
 Quirion Sentinel
 Rain of Rust
+Raise the Alarm
 Reclusive Wight
+Resurrection Orb
 Retreat to Coralhelm
 Revenge of the Hunted
 Rile
+Ringskipper
 Rise from the Grave
 Rising of the Day
 Ruination
 Rukh Egg
+Saheeli's Silverwing
+Seagraf Skaab
 Serum Visions
 Shadow Rift
 Showstopping Surprise
@@ -130,10 +163,19 @@ Sibsig Icebreakers
 Siege Zombie
 Siegecraft
 Silkbind Faerie
+Silverchase Fox
 Snooping Newsie
+Sokka's Charge
 Soltari Trooper
+Songs of the Damned
+Soul's Might
+Sound the Call
+Sphere of Grace
 Spire Owl
+Spitting Dilophosaurus
+Sprite Dragon
 Squelching Leeches
+Storm Sculptor
 Suffocating Blast
 Sunder Shaman
 Swamp
@@ -141,6 +183,7 @@ Teardrop Kami
 Tempting Witch
 The Thanos-Copter
 Their Number Is Legion
+Then, Dreadmaws Ate Everyone
 Thief of Existence
 Thrull Surgeon
 Thumbscrews
@@ -149,13 +192,21 @@ Tide Drifter
 Tombfire
 Touch of Death
 Toxic Scorpion
+Treacherous Link
 Trickster Mage
 Troll-Horn Cameo
 Typhoid Rats
+Undercity Necrolisk
+Unhallowed Phalanx
 Unlikely Aid
+Venerable Monk
+Viashino Outrider
+Viral Drake
 Vodalian Arcanist
 Voice of All
 Warpath Ghoul
 Wasteful Harvest
+Wild Elephant
 Winds of Qal Sisma
 Witness the End
+Yavimaya Scion

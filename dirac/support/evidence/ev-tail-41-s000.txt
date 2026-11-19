@@ -74,6 +74,7 @@ Homarid Explorer
 Horned Sliver
 Hunter's Bow
 Indebted Samurai
+Indomitable Archangel
 Infernal Grasp
 Inventor's Apprentice
 Island
@@ -103,6 +104,7 @@ Morale
 Morbid Hunger
 Mountain
 Mournwhelk
+Mu Yanling, Sky Dancer
 Mudbutton Torchrunner
 Multiversal Recruitment
 Murderous Compulsion
@@ -113,6 +115,7 @@ Nephalia Seakite
 Omen of the Dead
 Osai Vultures
 Pact of the Titan
+Panicked Bystander
 Perimeter Patrol
 Permafrost Trap
 Phantom Whelp
@@ -140,6 +143,7 @@ Revive the Fallen
 Rimeshield Frost Giant
 Rimrock Knight
 Riptide Laboratory
+River of Tears
 Rockslide Ambush
 Rograkh, Son of Rohgahh
 Rosethorn Halberd
@@ -150,6 +154,7 @@ Salvage Slasher
 Sanctified Charge
 Scent of Ivy
 Scouting Trek
+Secret Passage
 Secrets of the Golden City
 Seedguide Ash
 Selesnya Eulogist
@@ -157,6 +162,7 @@ Sensor Splicer
 Shadow Glider
 Shard of Broken Glass
 Sheltering Light
+Shred Memory
 Shrieking Mogg
 Sigil of Myrkul
 Signal Pest
@@ -176,6 +182,7 @@ Staunch-Hearted Warrior
 Steam Frigate
 Storm Fleet Swashbuckler
 Submerge
+Sulfurous Mire
 Survival of the Fittest
 Swamp
 Synod Artificer
@@ -188,6 +195,7 @@ The Art of Tea
 Tidehollow Strix
 Timetwister
 Torch Slinger
+Trustworthy Scout
 Tunneler Wurm
 Twinscroll Shaman
 Tymaret, Chosen from Death

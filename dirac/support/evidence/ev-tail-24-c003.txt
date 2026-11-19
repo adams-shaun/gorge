@@ -1,4 +1,5 @@
 A-Pseudodragon Familiar
+A-Pyre-Sledge Arsonist
 A-The One Ring
 Aerial Modification
 Air Nomad Student
@@ -22,6 +23,7 @@ Bladewing, Deathless Tyrant
 Blasting Station
 Bog Wraith
 Bone Devourer
+Boreal Druid
 Boss Uramon, Shadow's Reach
 Box of Free-Range Goblins
 Brandywine Farmer
@@ -49,6 +51,7 @@ Deepwood Tantiv
 Depth Charge Colossus
 Disciple of Perdition
 Discontinuity
+Distemper of the Blood
 Diviner of Mist
 Doubtless One
 Dredge
@@ -97,16 +100,19 @@ Hunting Grounds
 Ignoble Hierarch
 Imperial Subduer
 Impetuous Sunchaser
+Indrik Stomphowler
 Inferno Elemental
 Insubordination
 Iron Man, Futurist Paragon
 Island
 Jackhammer
+Jungle Troll
 Khalni Garden
 Knotvine Paladin
 Korlessa, Scale Singer
 Lampad of Death's Vigil
 Lava Spike
+Life from the Loam
 Lightning Bolt
 Lightning Stormkin
 Llanowar Augur
@@ -146,6 +152,7 @@ Pitiless Vizier
 Plains
 Plundering Barbarian
 Port Inspector
+Pouncing Lynx
 Powerstone Engineer
 Prism Array
 Psionic Entity
@@ -160,6 +167,7 @@ Referee Squad
 Remand
 Retrofitted Transmogrant
 Rhonas the Indomitable
+Rhox Maulers
 Riot Ringleader
 Rip-Clan Crasher
 Ripjaw Raptor
@@ -179,11 +187,13 @@ Seismic Elemental
 Sejiri Steppe
 Selesnya Cluestone
 Selfless Samurai
+Serra Ascendant
 Serra's Liturgy
 Serum Visionary
 Shady Traveler
 Shaggy Camel
 Shorecomber Crab
+Showdown of the Skalds
 Shroofus Sproutsire
 Sightless Ghoul
 Silk Net
@@ -200,7 +210,9 @@ Soul Warden
 Soulshriek
 Sparkspitter
 Spectral Cloak
+Sphere Grid
 Spike Breeder
+Spirit of the Hearth
 Staggershock
 Steadfast Armasaur
 Stitched Assistant
@@ -208,6 +220,7 @@ Stonefare Crocodile
 Strangleroot Geist
 Sunlance
 Supply Drop
+Surge of Thoughtweft
 Survival Cache
 Swamp
 Sword of the Chosen
