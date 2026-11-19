@@ -166,7 +166,7 @@ const (
 	// string literal plus strings.EqualFold calls with a literal argument: the
 	// if-chain spelling of the `case "X":` dispatch stringCaseLiterals froze
 	// at zero.
-	stringLiteralCompares = 2761
+	stringLiteralCompares = 2763
 	// rawBoolParamParses is the strings.EqualFold calls whose argument holds a
 	// Param/ParamStr call: a flag parameter re-parsed at each use.
 	rawBoolParamParses = 266
@@ -179,7 +179,7 @@ const (
 	// in engine/rules/ and engine/effects/, and strCodesKeyDup the sum over string keys of
 	// (distinct tables naming the key - 1): a word named in a second table is the
 	// vocabulary splitting again.
-	strCodesTables = 375
+	strCodesTables = 374
 	strCodesKeyDup = 1487
 )
 
