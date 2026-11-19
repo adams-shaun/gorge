@@ -27,11 +27,13 @@ Chaotic Backlash
 Clip Wings
 Creakwood Liege
 Crosstown Courier
+Curiosity Crafter
 Dawning Angel
 Death's Shadow
 Deepwood Wolverine
 Deputized Protester
 Drainpipe Vermin
+Dream Thief
 Dreamshackle Geist
 Drillworks Mole
 Drossclaw
@@ -59,11 +61,13 @@ Herd Gnarr
 Honden of Life's Web
 Howl of the Night Pack
 Huatli, Radiant Champion
+Hulk, Brutal Brawler
 Hurloon Battle Hymn
 Imaginary Pet
 Inspire Awe
 Island
 Jace's Erasure
+Jolrael, Voice of Zhalfir
 Kayla's Reconstruction
 Kazandu Tuskcaller
 Khenra Eternal
@@ -77,6 +81,7 @@ Magmatic Insight
 Magnify
 Malanthrope
 Malcator's Watcher
+Mammoth Spider
 Mana Vault
 Markov Patrician
 Masked Blackguard
@@ -100,6 +105,7 @@ Personal Tutor
 Plains
 Precinct Captain
 Privileged Position
+Radstorm
 Rageblood Shaman
 Rally the Peasants
 Rampaging Cyclops
@@ -129,14 +135,19 @@ Swarm Surge
 Swarm of Rats
 Sword of the Animist
 Tectonic Edge
+Thopter Mechanic
 Threnody Singer
 Thrilling Encore
 Thundersteel Colossus
+Timbermaw Larva
 Tui and La, Moon and Ocean
+Twilight's Call
+Unholy Hunger
 Urza's Rebuff
 Urza, Powerstone Prodigy
 Venomous Changeling
 Verdant Sun's Avatar
+Viscid Lemures
 Voyager Staff
 Waterknot
 Will-o'-the-Wisp

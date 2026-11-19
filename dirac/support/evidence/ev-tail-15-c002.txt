@@ -1,8 +1,11 @@
 A-Buy Your Silence
+A-Radha's Firebrand
+A-Radha, Coalition Warlord
 A-Sepulcher Ghoul
 Aerial Maneuver
 Afflict
 Alexi's Cloak
+Amarant Coral
 Ampryn Tactician
 Angelheart Protector
 Angelheart Vial
@@ -32,10 +35,12 @@ Brightclimb Pathway
 Brimstone Mage
 Buoyancy
 Burden of Guilt
+By Force
 Canopy Tactician
 Char
 Chatterstorm and Awaken the Woods
 Child of Night
+Chishiro, the Shattered Blade
 Chrome Cat
 Cleanse
 Colossus Hammer
@@ -131,6 +136,7 @@ Jace's Erasure
 Jackal Familiar
 Josu Vess, Lich Knight
 Kami of Whispered Hopes
+Kappa Tech-Wrecker
 Kathari Screecher
 Kenrith's Transformation
 King Cheetah
@@ -158,6 +164,8 @@ Map the Wastes
 Maralen of the Mornsong
 Marsh Viper
 Marshmist Titan
+Mary Read and Anne Bonny
+Mask of the Jadecrafter
 Mending Hands
 Metrognome
 Michiko's Reign of Truth
@@ -171,6 +179,7 @@ Morkrut Behemoth
 Mountain
 Mounted Dreadknight
 Multiform Wonder
+Nefarox, Overlord of Grixis
 Nessian Game Warden
 Nightscape Familiar
 Nightshade Assassin
@@ -214,8 +223,10 @@ Regisaur Alpha
 Release to Memory
 Relic of Progenitus
 Remove Soul
+Rending Flame
 Retreat to Hagra
 Rhox Bodyguard
+Ring of Evos Isle
 Rise Again
 Roil Cartographer
 Romana II
@@ -275,6 +286,7 @@ Territory Culler
 Teyo's Lightshield
 Teysa Karlov
 The Prydwen, Steel Flagship
+The Wasp, Winsome Avenger
 Thornhide Wolves
 Thought Scour
 Thundering Raiju
@@ -287,6 +299,7 @@ Two-Headed Giant of Foriys
 Two-Headed Zombie
 Uktabi Orangutan
 Umbral Mantle
+Urza's Rage
 Valeron Outlander
 Valley Dasher
 Vertigo Spawn
