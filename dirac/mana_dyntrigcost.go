@@ -237,6 +237,24 @@ func (s *State) anyLiveSource(k *prep, p uint8, d *payDesc) bool {
 			return true // a ColorIdentity source the payment-bound fold prices (CR 903.4)
 		}
 		c := s.cardAt(sl)
+		// a printed planner mana ability (Springleaf Drum's tap-another, a
+		// filter) is a source while its activation is admitted and it makes
+		// something now: a dynamic amount that resolves to zero is no source
+		// (gorge windowSourceYields' strict read), so the walk's zero-amount
+		// admission is not the flag's
+		if j := int(k.cards[c].manaAb); j >= 0 {
+			if ab := &k.t.Cards[c].Abilities[j]; !kop.DiscardHandManaAb(ab) &&
+				s.potentialAdmits(k, p, sl, j, ab, nil) && s.srcYieldAt(k, sl, pc) > 0 {
+				return true
+			}
+		}
+		// an each-colour gap (Bloom Tender) is a census gap with no planner
+		// manaAb: gorge's walk counts it while its count makes at least one
+		// mana now, and potentialManaFor prices it open in every colour
+		if j := k.gen.eachCol(c); j >= 0 && s.eachColorOut(k, p, sl) != 0 &&
+			s.potentialAdmits(k, p, sl, int(j), &k.t.Cards[c].Abilities[j], d) {
+			return true
+		}
 		// a tap-another ability beside a spent plain one (Relic of Legends, CR
 		// 605.3a) and a counter-cost gap source (Wall of Roots, CR 605.1a)
 		// yield while their permanent to tap, or counters, are there
