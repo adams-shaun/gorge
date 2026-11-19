@@ -1559,7 +1559,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if mode == "CantBlockBy" {
 				freezeChosenColor(h, c, &ce)
 			}
-			effectContinuous(h, ce)
+			effectRegisterRestriction(h, c, ownerSel, mode, ce)
 			registered = true
 		case cards.StaticPanharmonicon:
 			// An Effect-delivered trigger doubler (Lwaxana Troi, Charming

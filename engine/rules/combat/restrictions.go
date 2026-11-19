@@ -547,7 +547,8 @@ func AttackBlocked(b Board, id state.ObjID, defender state.PlayerID, attacked st
 // RestrictionTargetMatches resolves a CantAttack restriction's Target$
 // list against the defender. Player specs match the defending player; a
 // Planeswalker.<player-spec> clause matches a qualifying planeswalker that
-// defender controls. An absent Target$ applies to every defender. rules'
+// defender controls (Permanent.<player-spec> the same, for any permanent
+// the defender controls). An absent Target$ applies to every defender. rules'
 // CantAttackUnless charge reads the same grammar.
 func RestrictionTargetMatches(g *state.Game, spec string, defender, controller state.PlayerID, source state.ObjID, rememberedPlayers []state.PlayerID, attacked state.ObjID) bool {
 	spec = strings.TrimSpace(spec)
@@ -573,15 +574,26 @@ func RestrictionTargetMatches(g *state.Game, spec string, defender, controller s
 // by the defender.
 func restrictionPlaneswalkerTargetMatches(g *state.Game, spec string, defender, controller state.PlayerID, source state.ObjID, rememberedPlayers []state.PlayerID, attacked state.ObjID) bool {
 	parts := strings.SplitN(strings.TrimSpace(spec), ".", 2)
-	if len(parts) != 2 || !strings.EqualFold(strings.TrimSpace(parts[0]), "Planeswalker") {
+	if len(parts) != 2 {
 		return false
 	}
+	// A non-Planeswalker head (Willie Lumpkin's "Permanent.RememberedPlayerCtrl",
+	// "or permanents you control") is an object spec the attacked permanent --
+	// a planeswalker or battle the defender controls -- must match.
+	head := strings.TrimSpace(parts[0])
+	isPlaneswalker := strings.EqualFold(head, "Planeswalker")
 	selector := strings.TrimSpace(parts[1])
 	if attacked == 0 {
 		return false
 	}
 	o := g.Obj(attacked)
-	if o == nil || o.Zone != state.ZBattlefield || o.FaceDown || !printedHasType(o, "Planeswalker") || o.Controller != defender {
+	if o == nil || o.Zone != state.ZBattlefield || o.FaceDown || o.Controller != defender {
+		return false
+	}
+	if isPlaneswalker && !printedHasType(o, "Planeswalker") {
+		return false
+	}
+	if !isPlaneswalker && !effects.MatchesSpecFrom(g, head, attacked, controller, source) {
 		return false
 	}
 	// Forge's common Target$ form is Planeswalker.YouCtrl. Other
