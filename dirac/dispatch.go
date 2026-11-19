@@ -453,6 +453,8 @@ func (s *State) askOptionsCold4(k *prep, d *Decision) bool {
 		s.pileOppOptions(d) // act_twopiles.go
 	case raGenMyriad:
 		s.myriadOptions(d) // kw_myriad.go
+	case raPodClashOpp:
+		s.clashOppOptions(d) // act_clash.go
 	case raGenSupport:
 		d.Sub = ChGenBolster // gorge's "counter_pick"
 		s.supportOptions(k, &s.prog(k)[s.res.pc], d)
@@ -471,6 +473,8 @@ func (s *State) applyAskCold4(k *prep, a Action) bool {
 		s.pileOppAnswer(k, a) // act_twopiles.go
 	case raGenMyriad:
 		s.myriadAnswer(k, a) // kw_myriad.go
+	case raPodClashOpp:
+		s.clashOppAnswer(k, a) // act_clash.go
 	case raGenSupport:
 		s.answerSupport(k, a)
 	default:

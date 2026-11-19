@@ -25,14 +25,19 @@ func gainControlTrue(v string) error {
 	return nil
 }
 
-// gainControlChosen: GainControl$ ChosenPlayer / Player.Chosen names the one
-// opponent while this ability's one-opponent ChoosePlayer is armed
-// (chosenPlayerDefined). It lowers only on a Defined$ move to the battlefield
+// gainControlChosen: GainControl$ ChosenPlayer / Player.Chosen names the
+// opponent this ability's ChoosePlayer chose (chosenPlayerDefined): the
+// mid-resolution choice at any seat count (seat-exact), the one-opponent one
+// twoSeat-at-caller (lower_chooseplayer.go). It lowers only on a Defined$ move
+// to the battlefield
 // (Zuko, Conflicted's MoveToPlay): no ChangeType$ pick, no hand/graveyard
 // choice, no Defined$ the other helpers (TopOfLibrary, ExiledWith) read. The
 // final Return then carries kop.RetUnderOpponent; every other shape refuses.
 func (lc *lowerCtx) gainControlChosen(ps *params, gc string, dest int, choice bool) bool {
-	if _, ok := lc.chosenPlayerDefined(strings.TrimSpace(gc)); !ok {
+	// the mid-resolution choice (the kernel's res.chPl, retUnderOppSeat) or
+	// the one-opponent one (twoSeat-at-caller); the any-player choice's seat lives
+	// elsewhere (RefChosenPlayerRes) and stays refused
+	if r, ok := lc.chosenPlayerDefined(strings.TrimSpace(gc)); !ok || r.Kind != rChosenPlayer && r.Kind != rEachOpp {
 		return false
 	}
 	d := strings.TrimSpace(ps.m["Defined"])

@@ -37,6 +37,15 @@ const (
 	StCantAtkWalker = StAnyManaType
 )
 
+// StCantAtkDef is a StatCantAttack static whose Cond2 is an UnlessDefender$
+// gate on the defending player (gorge combat.AttackBlocked over
+// effects.UnlessDefenderHolds): its filters read DefenderCtrl (F2DefendingCtrl)
+// and, past two seats, the kernel judges it per (attacker, defender) pair with
+// the pair's defending seat bound (dirac combat_cantattack.go). Two-player it
+// is the whole-defender shape, the defender the one opponent. It aliases the
+// IncreaseCost-only StRaiseOpp, which StatCantAttack never reads.
+const StCantAtkDef = StRaiseOpp
+
 // RefTaxedAttacker is the creature an attack-tax charge is being priced for
 // (Nils, Discipline Enforcer's RememberingAttacker$): atkTaxCharge binds it
 // beside each (attacker, defender) pair it prices, the charge

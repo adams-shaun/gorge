@@ -8,7 +8,7 @@ import (
 )
 
 // api:Clash (CR 701.31; gorge effClash, effects/clash.go). The resolving
-// controller clashes with their opponent: both reveal their top card, then
+// controller clashes with an opponent they choose: both reveal their top card, then
 // each (the controller first, then the opponent, APNAP order) puts their own
 // card on the top or bottom of their library, and the strictly higher mana
 // value wins (a tie, or two empty libraries, has no winner).
@@ -23,14 +23,18 @@ import (
 // not linked into the cast's targets) or reads X.
 //
 // Refused: Defined$, ValidTgts$ and RememberClasher$ (the clash opponent is
-// the controller's one opponent; a chosen or remembered one is not lowered)
+// the controller's chosen one, asked past two seats, seat-exact; a defined, targeted or
+// remembered one is not lowered)
 // and every other parameter, as an unread key.
 func (lc *lowerCtx) clash(ps *params) error {
-	// the one opponent (clashOpp -> State.oppsFrom): gorge's controller
-	// chooses the opponent (CR 701.31a, chooseClashOpponent), an ask only at
-	// three or more seats, which the kernel does not model. The reason text
-	// is pinned by the two-seat census; do not reword it.
-	lc.twoSeat("Clash with the one opponent (gorge's fallback scans from seat 0)")
+	// the clash opponent: gorge's controller chooses one living opponent
+	// (CR 701.31a, chooseClashOpponent), an ask only at three or more
+	// seats, which the kernel poses too (act_clash.go raPodClashOpp) and
+	// holds in the resolution's chosen-player byte while the placements are
+	// asked: a ChoosePlayer of this ability would share it
+	if lc.ab != nil && (lc.chosenMidAb == lc.ab || lc.chosenResAb == lc.ab || lc.chosenPlAb == lc.ab || lc.chosenOppAb == lc.ab) {
+		return refuse("Clash beside a ChoosePlayer of its ability")
+	}
 	win, other := clashBranch(ps, "WinSubAbility"), clashBranch(ps, "OtherwiseSubAbility")
 	lc.emit(lInstr{Op: "Clash", Note: "clash with the opponent: result 1 won, 2 not"})
 	result := lValue{Kind: vRollResult}
