@@ -278,6 +278,18 @@ const (
 	// OppExtNonTrigPl: the group is the living players but the trigger
 	// player (Battle Angels of Tyr's "more than each other player")
 	OppExtNonTrigPl = 0x200
+	// OppExtCountCmp: count the group's members whose figure (OppExtHand,
+	// or OppExtGraveAll) compares Op against Sub[0], read once from the
+	// controller's side (gorge hasPropertyStateBacked's HasCardsIn heads,
+	// effects/count_player.go: PlayerCountOpponents$HasPropertyHasCardsInHand
+	// _Card_GTY, Wojek Investigator)
+	OppExtCountCmp = 0x400
+	// OppExtAllPl: the group is every living player, the controller
+	// included (gorge PlayerCount$, PlayerCountPlayers$)
+	OppExtAllPl = 0x800
+	// OppExtGraveAll: the graveyard's length, a token waiting there
+	// included (gorge's HasCardsInGraveyard_Card zone walk)
+	OppExtGraveAll = 6
 )
 
 // ExStepIn is 1 while the game's current step is one of the kop.Step bits

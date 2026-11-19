@@ -2411,8 +2411,8 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 		return kop.Expr{}, fmt.Errorf("value kind %s", valNames[v.Kind])
 	}
 	e := kop.Expr{Kind: k, N: int16(v.N), Mul: int8(v.Mul), Div: int8(v.Div), Add: int8(v.Add), Neg: v.Neg}
-	if v.Kind == vCompare {
-		e.Op = cmpOps[v.Op]
+	if v.Kind == vCompare || v.Kind == vOppExtreme && v.N&kop.OppExtCountCmp != 0 {
+		e.Op = cmpOps[v.Op] // value_hascards.go: the member's figure against Sub[0]
 	}
 	var err error
 	if v.Kind == vCtrAdded && !cb.ctrGate {
