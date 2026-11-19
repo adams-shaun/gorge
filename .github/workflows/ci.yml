@@ -51,8 +51,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # The nightly (schedule) run has its own group and is never cancelled: sharing refs/heads/main with push runs let
+  # every merge cancel it, and 11-16..11-18 all three nightlies were cancelled, so the ManaBrew and SpellBench
+  # wire tests (build tags, nightly only) ran nowhere and TestSyntheticPromptsOverStream sat red on main unseen.
+  group: ci-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name == 'schedule' && 'nightly' || 'run' }}
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
 
 env:
   SHARDS: 6
