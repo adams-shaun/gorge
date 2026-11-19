@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/adams-shaun/gorge/bots/heuristic"
 
@@ -191,6 +192,33 @@ type Seat struct {
 	// note, when set (SetExplain), receives one decision note per decision
 	// the seat answers (explain.go). nil builds nothing.
 	note func(explain.Note)
+	// scalarFallbacks counts the games (one seat plays one) in which a
+	// max^n search took the scalar split (Stats.MaxNScalarFallbacks), each
+	// logged once through logf (log.Printf when nil).
+	scalarFallbacks int
+	logf            func(format string, args ...any)
+}
+
+// SetLogf routes the seat's once-per-game notices (the max^n scalar
+// fallback) to f instead of log.Printf.
+func (s *Seat) SetLogf(f func(format string, args ...any)) { s.logf = f }
+
+// MaxNScalarFallbacks is 1 when a max^n search of this seat's game split a
+// scalar network value over the opponents (Options.MaxNScalarFallback), 0
+// otherwise; the seat logged "maxn: scalar fallback (paranoid)" then.
+func (s *Seat) MaxNScalarFallbacks() int { return s.scalarFallbacks }
+
+// noteScalarFallback counts and logs the game's first scalar fallback.
+func (s *Seat) noteScalarFallback(st *Stats) {
+	if st.MaxNScalarFallbacks == 0 || s.scalarFallbacks > 0 {
+		return
+	}
+	s.scalarFallbacks = 1
+	logf := s.logf
+	if logf == nil {
+		logf = log.Printf
+	}
+	logf("maxn: scalar fallback (paranoid)")
 }
 
 // SetRecorder installs the visit-corpus recorder (a bench runner
@@ -401,6 +429,7 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 		root.NoBot = true
 	}
 	res, err := Search(ctx, root, src, s.net, opts)
+	s.noteScalarFallback(&res.Stats)
 	if tapReroot && res.Stats.Searched == 1 {
 		res.Stats.BotTapRerooted = 1
 	}

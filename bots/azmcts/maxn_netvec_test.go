@@ -2,8 +2,10 @@ package azmcts
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"math/rand/v2"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots/policynet"
@@ -157,7 +159,9 @@ func TestMaxNNetVecSearchChangesTheResult(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	paranoid, err := Search(context.Background(), Root{Engine: e, Decision: d, Bot: bot, Observer: obs}, src, scalar, opts)
+	sopts := opts
+	sopts.MaxNScalarFallback = true // a scalar head under max^n is refused without it
+	paranoid, err := Search(context.Background(), Root{Engine: e, Decision: d, Bot: bot, Observer: obs}, src, scalar, sopts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,5 +191,60 @@ func TestMaxNNetVecSearchChangesTheResult(t *testing.T) {
 	}
 	if diff := sameResult(vec, again); diff != "" {
 		t.Fatalf("the K-way search is not deterministic: %s", diff)
+	}
+}
+
+// TestMaxNLeafReadsTheValueHead: max^n over a network without a K-way
+// value head is refused at four seats, naming the network and its ValueK
+// (the split of its scalar is paranoid search); with MaxNScalarFallback the
+// search runs, every leaf that split the scalar is counted
+// (Stats.MaxNScalarFallbacks), and the seat counts and logs the game's
+// fallback once, however many searches take it. A K-way head of maxVecSeats+1
+// outcomes is accepted and takes no fallback.
+func TestMaxNLeafReadsTheValueHead(t *testing.T) {
+	e, d, bot := podPosition(t, podConfig(t, 4, testSeed+2), 4)
+	if n := len(e.G.Players); n != 4 {
+		t.Fatalf("precondition: %d seats, want 4", n)
+	}
+	opts := podOpts()
+	opts.MaxN = true
+	search := func(m *policynet.Model, o Options) (Result, error) {
+		obs := searchprobe.NewCollector(d.Player)
+		src, err := newTestClairvoyant(e, obs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return Search(context.Background(), Root{Engine: e, Decision: d, Bot: bot, Observer: obs}, src, m, o)
+	}
+	scalar := netVecModel(0)
+	if _, err := search(scalar, opts); err == nil || !strings.Contains(err.Error(), "ValueK 0") {
+		t.Fatalf("a scalar network under max^n: err %v, want a refusal naming ValueK 0", err)
+	}
+	if _, err := NewSeat(1, scalar, SeatConfig{Search: opts}); err == nil {
+		t.Fatal("NewSeat accepted a scalar network under max^n")
+	}
+	fb := opts
+	fb.MaxNScalarFallback = true
+	res, err := search(scalar, fb)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Stats.MaxNScalarFallbacks == 0 {
+		t.Fatalf("the fallback search split no leaf: %+v", res.Stats)
+	}
+	var logs []string
+	s := &Seat{}
+	s.SetLogf(func(f string, args ...any) { logs = append(logs, fmt.Sprintf(f, args...)) })
+	s.noteScalarFallback(&res.Stats)
+	s.noteScalarFallback(&res.Stats)
+	if s.MaxNScalarFallbacks() != 1 || len(logs) != 1 || logs[0] != "maxn: scalar fallback (paranoid)" {
+		t.Fatalf("seat fallback count %d, logs %q", s.MaxNScalarFallbacks(), logs)
+	}
+	vec, err := search(netVecModel(maxVecSeats+1), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if vec.Stats.MaxNScalarFallbacks != 0 {
+		t.Fatalf("a K-way head took %d scalar fallbacks", vec.Stats.MaxNScalarFallbacks)
 	}
 }

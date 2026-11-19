@@ -23,6 +23,9 @@ type CardSpec struct {
 	// (every colour alternative of its single usable mana ability times its
 	// amount) while it can be tapped for mana; 0 for no mana ability.
 	Avail int32
+	// AvailGateOff is Avail while the card's gated (IsPresent$) mana
+	// abilities are off: what its ungated abilities alone add.
+	AvailGateOff int32
 	// Effect is the spell ability's class and amount (see EffectSpec).
 	Effect EffectSpec
 }
@@ -147,6 +150,7 @@ type card struct {
 	flash        bool
 	power, tough int32
 	avail        int32
+	availOff     int32 // Spec.AvailGateOff
 	eff          EffectSpec
 	pstr         int32 // printed strength (printedStrength)
 	// static rows
@@ -255,10 +259,11 @@ const (
 	ztExileMe
 	ztExileOpp
 	ztStack
+	ztCommand // the pod set's command-zone ids (pod.go)
 	numZoneTags
 )
 
-var zoneTags = [numZoneTags]string{"hand", "battlefield", "battlefield-opp", "graveyard", "graveyard-opp", "exile", "exile-opp", "stack"}
+var zoneTags = [numZoneTags]string{"hand", "battlefield", "battlefield-opp", "graveyard", "graveyard-opp", "exile", "exile-opp", "stack", "command"}
 
 // ---- policynet's pinned vocabularies (copied; a golden test holds both) ----
 
@@ -342,7 +347,7 @@ func buildCard(c *card, sp CardSpec, kwMask kop.KwMask) {
 		}
 	}
 	c.kwMask = kwMask
-	c.power, c.tough, c.avail = sp.Power, sp.Toughness, sp.Avail
+	c.power, c.tough, c.avail, c.availOff = sp.Power, sp.Toughness, sp.Avail, sp.AvailGateOff
 	for z, tag := range zoneTags {
 		c.nameTag[z] = row(add(add(add(off, sp.Name), "|"), tag))
 	}

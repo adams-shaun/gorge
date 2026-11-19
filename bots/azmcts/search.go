@@ -153,8 +153,23 @@ func (o Options) Validate(net *policynet.Model) error {
 		if net.Features.Diagnostic() {
 			return fmt.Errorf("azmcts: checkpoint feature set %s reads hidden information; the network must read the searching seat's redacted view", net.Features)
 		}
+		if k := NetValueK(net); o.MaxN && o.OpponentNodes && k < maxVecSeats+1 && !o.MaxNScalarFallback {
+			return fmt.Errorf("azmcts: max^n over the %s network with ValueK %d: a scalar value head split over the opponents is paranoid search, not max^n; it needs a K-way head of at least %d outcomes (or MaxNScalarFallback for the counted paranoid backup)", net.Features, k, maxVecSeats+1)
+		}
 	}
 	return nil
+}
+
+// NetValueK is net's K-way value head width: Model.ValueK, or its
+// External's (a gonet network's ValueK()), 0 for a scalar head.
+func NetValueK(net *policynet.Model) int {
+	if net.Ext != nil {
+		if v, ok := net.Ext.(interface{ ValueK() int }); ok {
+			return v.ValueK()
+		}
+		return 0
+	}
+	return net.ValueK
 }
 
 // priorTopK is the PriorTopK in effect with net: 0 unless a network supplies

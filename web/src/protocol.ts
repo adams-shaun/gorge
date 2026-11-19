@@ -459,6 +459,20 @@ export interface CardView {
    * then lists fewer creatures than blocked it, or none.
    */
   attacking_player?: number | null;
+  /**
+   * AttackingPermanent is true while the creature attacks a planeswalker
+   * or a battle (CR 508.1b, 310.7) rather than a player; AttackingPlayer
+   * then names that permanent's controller or protector.
+   */
+  attacking_permanent?: boolean;
+  /**
+   * GoadedBy lists, in seat order, every seat with a goad designation on
+   * this permanent in force (CR 701.15; state.Object.Goads), nil when none.
+   * A Goad$ True static's goad is derived, not state, and is not listed.
+   * Public like the attack it compels; omitted when empty, so a view
+   * without a goad serialises as before.
+   */
+  goaded_by?: string;
   blocked_by?: number[];
   blocked?: boolean;
   tapped: boolean;
@@ -887,6 +901,12 @@ export interface PlayerView {
    * convention.
    */
   has_initiative?: boolean;
+  /**
+   * IsMonarch is the CR 725 monarch designation: true for the one player
+   * who is the monarch. Public for every seat, like the initiative, and
+   * omitted when false, so a match without a monarch serialises as before.
+   */
+  is_monarch?: boolean;
   /**
    * CommanderCasts runs parallel to Commanders: entry k is how many times
    * Commanders[k] has been cast from the command zone, the CR 903.8 tax

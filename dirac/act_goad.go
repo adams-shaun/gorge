@@ -177,3 +177,19 @@ func (s *State) execGoad(k *prep, in *kop.Instr) (ok, done bool) {
 	}
 	return s.execInitiative(k, in) // act_initiative.go
 }
+
+// FeatGoadedBy reports whether seat p's goad designation is on battlefield
+// object o (gorge view.CardView.GoadedBy: state's goads in force, not a
+// Goad$ True static's, which is derived).
+func (s *State) FeatGoadedBy(o Obj, p uint8) bool {
+	k := s.k()
+	ob := &s.objs[o]
+	if DebugIgnoreGoad || !goadOn(k) || ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
+		return false
+	}
+	return s.mSl(k, goadMech(p), ob.slot)
+}
+
+// FeatAttacksPlayer reports whether attack target code tgt names a player
+// (not a planeswalker or a battle).
+func FeatAttacksPlayer(tgt TCode) bool { return isPlayerTarget(tgt) }

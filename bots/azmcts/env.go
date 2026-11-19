@@ -909,6 +909,9 @@ func (e *engineEnv) leafVec(l *Leaf) {
 		if vec, nv, has := netLeafVec(e.cfg.net, e.e, e.cfg.actor, e.cfg.views); has {
 			l.Vec, l.NVec = vec, nv
 		} else {
+			// the paranoid backup MaxNScalarFallback allows (Validate
+			// refuses it otherwise), counted
+			e.cfg.stats.MaxNScalarFallbacks++
 			l.Vec, l.NVec = splitLeafVec(e.e.G, e.cfg.actor, l.V)
 		}
 	}

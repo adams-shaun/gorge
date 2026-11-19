@@ -188,3 +188,39 @@ func TestHeuristicLeafValueVec(t *testing.T) {
 		t.Fatal("no position checked")
 	}
 }
+
+// TestMaxNScalarFallbackCounted: a four-seat pod searched under max^n over
+// a scalar evaluator with MaxNScalarFallback counts every leaf that split
+// its value (Stats.ScalarFallbacks), and the heuristic vector leaf counts
+// none.
+func TestMaxNScalarFallbackCounted(t *testing.T) {
+	count := func(ev Evaluator) (maxN, splits int) {
+		o := podOpts()
+		o.MaxN, o.MaxNScalarFallback = true, true
+		sr := NewSearcher(o, ev, Heuristic{})
+		var s dirac.State
+		var decks [dirac.MaxSeats][]dirac.CardID
+		for p := range decks {
+			decks[p] = v.Decks[p%len(v.Decks)]
+		}
+		s.InitN(v.Table, decks, 4, 11, dirac.Config{})
+		var d dirac.Decision
+		for i := 0; i < 300; i++ {
+			s.StepInto(&d)
+			if d.Kind == dirac.DkNone {
+				break
+			}
+			r := sr.Search(&s, 7)
+			maxN += r.Stats.MaxN
+			splits += r.Stats.ScalarFallbacks
+			r.Play(&s)
+		}
+		return
+	}
+	if maxN, splits := count(&fakeNet{val: -1}); maxN == 0 || splits == 0 {
+		t.Fatalf("scalar evaluator: %d max^n searches, %d counted splits", maxN, splits)
+	}
+	if maxN, splits := count(HeuristicLeaf{}); maxN == 0 || splits != 0 {
+		t.Fatalf("vector leaf: %d max^n searches, %d counted splits", maxN, splits)
+	}
+}
