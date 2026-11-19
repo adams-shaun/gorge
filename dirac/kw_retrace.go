@@ -120,12 +120,16 @@ func (s *State) retraceLive(k *prep, o Obj) bool {
 // legal_walk_hand.go, cast.go's hand walk; the kicker cost folds only in
 // gorge's castModeKicked), so a Kicker card's retrace cast is the plain one in
 // both engines -- the printed base plus the discard, the kicker unpaid, and
-// neither engine offers a kicked retrace cast.
+// neither engine offers a kicked retrace cast. Warp is neither: its cost is a
+// hand-only permission (CR 702.185a, "cast this card from your hand"; gorge's
+// warp walk is the hand's, and a graveyard cast carries no modeWarped mark), so
+// a Warp card's retrace cast is the plain one -- the printed cost plus the
+// discard, never warped, never exiled at the end step.
 func retraceGrantBarred(k *prep, c CardID) bool {
 	cd := &k.t.Cards[c]
 	return cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp || cd.Escape ||
 		cd.Convoke || cd.Improvise || cd.Cost.X != 0 ||
-		cd.HasWarp || cd.HasPlot || cd.HasSneak || cd.Impending != 0 || cd.HasBestow ||
+		cd.HasPlot || cd.HasSneak || cd.Impending != 0 || cd.HasBestow ||
 		cd.SpellCost.Flags != 0 || cd.HasAltAdd || cd.Offspring || cd.Gift || cd.MorphCost != (kop.ManaCost{}) ||
 		cd.Casualty != 0 || cd.Bargain || cd.OptCost.Flags != 0 || cd.Teamwork != 0 || cd.HasModeCost || cd.HasMadness ||
 		k.gen != nil && k.gen.anyBeam

@@ -19,6 +19,11 @@ import (
 func TestMBCDrMbcBbabReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "granted_retrace_delve")
+	// CR 702.185a with CR 702.81a: warp is a hand-only permission, so a granted
+	// retrace cast of a Warp card (Codecracker Hound) is the plain one -- the
+	// printed cost plus the land discard. The kernel once withheld it as an
+	// unmodelled retracegrant stall (dr-mbc-bbab pair 59, seed 447610, autopay).
+	stdReproNamed(t, "granted_retrace_warp")
 }
 
 // CR 702.81a with CR 702.33a: Six gives the nonland permanent cards in its
