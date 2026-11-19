@@ -86,7 +86,7 @@ func (e *Engine) staticTriggerLine(pt pendingTrigger) (cards.Trigger, map[string
 // gate. Anything not proven ask-free is refused, and the trigger takes the
 // ordinary stack path.
 func (e *Engine) staticTriggerAskFree(pt pendingTrigger, line cards.Trigger, svars map[string]string, self *cards.Face) bool {
-	if pt.SA == nil || line.Mode == "TapsForMana" {
+	if pt.SA == nil || line.Mode == "TapsForMana" || line.Mode == "ManaAdded" {
 		// The CR 605.3b mana path owns triggered mana abilities; a nil body
 		// has nothing to run.
 		return false
