@@ -42,6 +42,7 @@ Clockwork Vorrac	50e3055c48039ef7	15	3/3		1/1
 Clot Sliver	b6b09edf823f96d3	4	0/0		0/0	
 Cloudreader Sphinx	fb2bcd0878faccaf	3	1/1		1/1	
 Clutch of the Undercity	fdf5c3a1eea862e0	4	1/1		2/2	
+Cold Storage	e28cee368be82b11	8	2/2		0/1	ix:resp
 Colorful Feiyi Sparrow	5dc530d002e516d5	6	0/0		0/0	
 Coral Net	ccf08d44668a615a	4	0/0		1/2	ix:resp
 Corpulent Corpse	8320faf393691ca4	4	0/0		2/2	
@@ -213,6 +214,7 @@ Windrider Wizard	a314be276c17d4a6	6	1/1		0/1	ix:resp
 Wingmate Roc	817d099e60f23dcf	10	2/2		1/1	
 Wolfbriar Elemental	c6198db0d16b7b87	3	1/1		2/3	cast/alt:multikicked
 Wooden Sphere	66b6a1bc28939ec6	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Yavimaya Elder	82da0285ba66f29f	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Yavimaya Granger	7f607854453c4f21	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Yotian Frontliner	ea945e709cd14a31	6	2/2		1/1	
 Zephyr Falcon	5f728c53612fe90c	4	0/0		0/0	
