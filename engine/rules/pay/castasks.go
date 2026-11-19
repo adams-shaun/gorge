@@ -70,6 +70,11 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 	name := g.Obj(in.Card).Face().Name
 	d := &decision.Decision{Player: in.Player, Kind: decision.KChoose, Min: 0, Source: in.Card}
 	sawCreature, sawArtifact := false, false
+	// colourValue prices each coloured convoke option under ColourBudget (MaxSum).
+	colourValue := 0
+	if in.ColourBudget > 0 {
+		colourValue = 1
+	}
 	var creatureMana map[state.ObjID]bool
 	if in.CreatureMana {
 		creatureMana = make(map[state.ObjID]bool)
@@ -111,7 +116,7 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 			for _, color := range []byte{'W', 'U', 'B', 'R', 'G'} {
 				if mana.Colored[state.ManaIndex(color)] > 0 && strings.Contains(r.Colors(id), string(color)) {
 					d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "convoke_" + string(color), Obj: id,
-						Group: group, Label: "Tap " + o.Face().Name + " for " + string(color)})
+						Group: group, Label: "Tap " + o.Face().Name + " for " + string(color), Value: colourValue})
 					sawCreature = true
 				}
 			}
@@ -224,24 +229,11 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 		d.Max = 1
 	}
 	d.Min = min(in.MinTaps, d.Max)
-	publishColourBudget(d, in.ColourBudget)
+	if in.ColourBudget > 0 {
+		d.MaxSum = in.ColourBudget
+	}
 	e.Ask(AskCast, d)
 	return true
-}
-
-// publishColourBudget publishes ConvokeOffer.ColourBudget on the ask: every
-// coloured convoke option carries Value 1 and MaxSum caps their sum. A zero
-// budget leaves the ask untouched.
-func publishColourBudget(d *decision.Decision, budget int) {
-	if budget <= 0 {
-		return
-	}
-	for i := range d.Options {
-		if k := d.Options[i].Kind; len(k) == len("convoke_W") && k[:len("convoke_")] == "convoke_" && k != "convoke_generic" {
-			d.Options[i].Value = 1
-		}
-	}
-	d.MaxSum = budget
 }
 
 // ManaAsk offers the payer's choice for the next unsettled hybrid or

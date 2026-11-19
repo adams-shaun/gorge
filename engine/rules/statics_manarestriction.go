@@ -50,7 +50,7 @@ func manaSpendCastBan(g *state.Game, id state.ObjID) bool {
 		return false
 	}
 	for i := range f.Statics {
-		if f.Statics[i].Mode == "ManaRestriction" && cards.ManaRestrictionZeroSpendShape(f.Statics[i]) {
+		if cards.ManaRestrictionZeroSpendShape(f.Statics[i]) {
 			return true
 		}
 	}

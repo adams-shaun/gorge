@@ -31,7 +31,7 @@ func forcedConvokeChoices(d *decision.Decision) []int {
 		if len(picks) >= d.Min {
 			break
 		}
-		if o.Kind == "convoke_generic" && !used[int32(o.Obj)] {
+		if o.Value == 0 && !used[int32(o.Obj)] {
 			used[int32(o.Obj)] = true
 			picks = append(picks, o.Index)
 		}

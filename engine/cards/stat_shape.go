@@ -34,9 +34,21 @@ func ManaRestrictionZeroSpendShape(s Static) bool {
 			return false
 		}
 	}
-	return s.ParamStr(PKValidSource) == "Card,Emblem" &&
-		s.Params["InvertValidSource"] == "True" &&
-		s.ParamStr(PKEffectZone) == "All"
+	for _, r := range zeroSpendShape {
+		if s.Params[r.key] != r.val {
+			return false
+		}
+	}
+	return true
+}
+
+// zeroSpendShape is the parameter values ManaRestrictionZeroSpendShape
+// requires (the mode itself included, so callers need not re-check it).
+var zeroSpendShape = [...]struct{ key, val string }{
+	{"Mode", "ManaRestriction"},
+	{"ValidSource", "Card,Emblem"},
+	{"InvertValidSource", "True"},
+	{"EffectZone", "All"},
 }
 
 // CantAttachEquipmentShape reports whether an S:Mode$ CantAttach line is the
