@@ -40,22 +40,43 @@ const (
 	ZoneGraveyard   ZoneKind = "graveyard"
 	ZoneExile       ZoneKind = "exile"
 	ZoneCommand     ZoneKind = "command"
-	ZoneStack       ZoneKind = "stack"
+	// ZoneStack is gorge-internal: ManaBrew's ZoneKind has no stack member,
+	// so it never reaches the wire.
+	ZoneStack ZoneKind = "stack"
 )
 
-// DayTime is UNDEFINED in the published spec.
+// DayTime is the CR 731 designation. ManaBrew's enum (manabrew-protocol
+// src/game/mod.rs DayTime) has exactly these three values; an empty string
+// is not one of them and fails every ManaBrew client's decode.
 type DayTime string
 
-// PlayerStatus is UNDEFINED in the published spec.
+const (
+	DayTimeNeither DayTime = "neither"
+	DayTimeDay     DayTime = "day"
+	DayTimeNight   DayTime = "night"
+)
+
+// PlayerStatus is ManaBrew's PlayerStatus enum (manabrew-protocol
+// src/game/mod.rs): playing, lost or conceded.
 type PlayerStatus string
 
-// PlayerCounterKind is UNDEFINED; the game-view page names the canonical
-// counter keys "P1P1", "Loyalty" and uppercase one-offs.
+const (
+	PlayerPlaying  PlayerStatus = "playing"
+	PlayerLost     PlayerStatus = "lost"
+	PlayerConceded PlayerStatus = "conceded"
+)
+
+// PlayerCounterKind is ManaBrew's PlayerCounterKind enum (manabrew-protocol
+// src/game/mod.rs): the counters a PLAYER holds. A card's counters are keyed
+// by free-form strings instead (CardDto.Counters).
 type PlayerCounterKind string
 
 const (
-	CounterP1P1    PlayerCounterKind = "P1P1"
-	CounterLoyalty PlayerCounterKind = "Loyalty"
+	CounterPoison     PlayerCounterKind = "poison"
+	CounterEnergy     PlayerCounterKind = "energy"
+	CounterExperience PlayerCounterKind = "experience"
+	CounterRadiation  PlayerCounterKind = "radiation"
+	CounterTicket     PlayerCounterKind = "ticket"
 )
 
 // ManaColor is the colour palette used by manaPool maps and Mana values.
@@ -147,44 +168,63 @@ type CardIdentity struct {
 	TokenScript string `json:"tokenScript,omitempty"`
 }
 
-// ClassLevelDto is UNDEFINED in the published spec; the fields are INFERRED.
+// ClassLevelDto is one Class level (manabrew-protocol src/game/mod.rs
+// ClassLevelDto).
 type ClassLevelDto struct {
-	Level     int      `json:"level"`
-	MinLevel  int      `json:"minLevel,omitempty"`
-	MaxLevel  int      `json:"maxLevel,omitempty"`
-	Abilities []string `json:"abilities,omitempty"`
+	Level  int    `json:"level"`
+	Oracle string `json:"oracle"`
+	Cost   string `json:"cost,omitempty"`
 }
 
-// SagaChapterDto is UNDEFINED in the published spec; the fields are INFERRED.
+// SagaChapterDto is one Saga chapter ability and the chapter numbers it
+// fires on (manabrew-protocol src/game/mod.rs SagaChapterDto).
 type SagaChapterDto struct {
-	Chapter int    `json:"chapter"`
-	Ability string `json:"ability,omitempty"`
+	Chapters []int  `json:"chapters"`
+	Oracle   string `json:"oracle"`
 }
 
-// CardChoiceDto is UNDEFINED in the published spec; the fields are INFERRED.
+// CardChoiceDto is one choice made for a card, a union on kind
+// (manabrew-protocol src/game/mod.rs CardChoiceDto: color{colors},
+// type{values}, namedCard{names}, chosenCard{count}, number{value},
+// mode{value}, player{playerId,name}). It is one flat struct: Value is a
+// number for kind number and a string for kind mode, so it stays raw.
 type CardChoiceDto struct {
-	ID    string `json:"id"`
-	Label string `json:"label"`
+	Kind     string          `json:"kind"`
+	Colors   []ManaColor     `json:"colors,omitempty"`
+	Values   []string        `json:"values,omitempty"`
+	Names    []string        `json:"names,omitempty"`
+	Count    *int            `json:"count,omitempty"`
+	Value    json.RawMessage `json:"value,omitempty"`
+	PlayerID string          `json:"playerId,omitempty"`
+	Name     string          `json:"name,omitempty"`
 }
 
 // CardDto is the full card shape carried by visible CardViews and prompts
-// (game-view page). Counter keys follow the engine's canonical form: "P1P1",
-// "Loyalty", uppercase one-offs.
+// (manabrew-protocol src/game/mod.rs CardDto). Counter keys follow the
+// engine's canonical form: "P1P1", "Loyalty", uppercase one-offs.
+//
+// Color is ManaBrew's String: the card's colours as WUBRG letters in that
+// order ("WU", "" for a colourless card). CMC is its mana value, an i32
+// upstream. Types holds the card types only; subtypes and supertypes have
+// their own lists, as upstream splits them.
+//
+// Every list and map field is a JSON array/object, never null: ManaBrew's
+// Vec and BTreeMap fields reject null, so MarshalJSON writes a nil one as
+// empty (a Go nil slice would otherwise encode as null).
 type CardDto struct {
 	ID         string       `json:"id"`
 	Identity   CardIdentity `json:"identity"`
-	Color      []string     `json:"color"`
+	Color      ColorText    `json:"color"`
 	ManaCost   string       `json:"manaCost"`
-	CMC        float64      `json:"cmc"`
+	CMC        int          `json:"cmc"`
 	Types      []string     `json:"types"`
 	Subtypes   []string     `json:"subtypes"`
 	Supertypes []string     `json:"supertypes"`
 	Power      *string      `json:"power"`
 	Toughness  *string      `json:"toughness"`
-	// BasePower/BaseToughness have an unspecified type in the published spec;
-	// modelled as strings for parity with power/toughness. INFERRED.
-	BasePower         *string          `json:"basePower,omitempty"`
-	BaseToughness     *string          `json:"baseToughness,omitempty"`
+	// BasePower/BaseToughness are Option<i32> upstream.
+	BasePower         *int             `json:"basePower,omitempty"`
+	BaseToughness     *int             `json:"baseToughness,omitempty"`
 	FinalChapter      *int             `json:"finalChapter,omitempty"`
 	ClassLevel        *int             `json:"classLevel,omitempty"`
 	ClassLevels       []ClassLevelDto  `json:"classLevels"`
@@ -249,7 +289,57 @@ type HiddenCard struct {
 }
 
 func (VisibleCard) isCardViewValue() {}
-func (HiddenCard) isCardViewValue()  {}
+
+// cardDtoFields is CardDto without its methods, so MarshalJSON can encode the
+// fields themselves.
+type cardDtoFields CardDto
+
+// MarshalJSON encodes the card with every nil list or map written as an empty
+// one (see CardDto).
+func (c CardDto) MarshalJSON() ([]byte, error) {
+	f := cardDtoFields(c)
+	emptyList(&f.Types)
+	emptyList(&f.Subtypes)
+	emptyList(&f.Supertypes)
+	emptyList(&f.ClassLevels)
+	emptyList(&f.SagaChapters)
+	emptyList(&f.Choices)
+	emptyList(&f.Keywords)
+	emptyList(&f.AttachmentIDs)
+	emptyList(&f.MergedCardIDs)
+	if f.Counters == nil {
+		f.Counters = map[string]int{}
+	}
+	return json.Marshal(f)
+}
+
+// emptyList replaces a nil slice with an empty one.
+func emptyList[T any](s *[]T) {
+	if *s == nil {
+		*s = []T{}
+	}
+}
+
+// MarshalJSON writes the visibility tag ahead of the card's own fields: the
+// embedded CardDto's MarshalJSON would otherwise be promoted and drop it.
+func (v VisibleCard) MarshalJSON() ([]byte, error) {
+	card, err := v.CardDto.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	tag, err := json.Marshal(v.Visibility)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]byte, 0, len(card)+len(tag)+16)
+	out = append(out, `{"visibility":`...)
+	out = append(out, tag...)
+	if len(card) > 2 {
+		out = append(out, ',')
+	}
+	return append(out, card[1:]...), nil
+}
+func (HiddenCard) isCardViewValue() {}
 
 func (c *CardView) UnmarshalJSON(b []byte) error {
 	var h struct {
@@ -401,26 +491,137 @@ type GameViewDto struct {
 	OwnDeck *OwnDeckExtension `json:"x_gorge_own_deck_v1,omitempty"`
 }
 
-// AvailableAction is one legal action in a chooseAction prompt. The published
-// spec defines it as a union on `type` (cast | activateAbility | undoMana),
-// but only `kind`, `input.type`, `output.type` and `visibility` carry union
-// codecs in this package (the discriminators gorge reads), so it is
-// decoded into one flat struct with optional fields. The doc inconsistency
-// where the example sends `modeLabel` while the interface says `label` shows
-// up as a reported unknown path ("actions[].modeLabel"), never as a decode
-// error.
+// The AvailableAction / PaymentAction type discriminators
+// (manabrew-protocol src/prompts/common.rs AvailableActionKind,
+// PaymentActionKind).
+const (
+	ActionCast                = "cast"
+	ActionActivateAbility     = "activateAbility"
+	ActionUndoMana            = "undoMana"
+	ActionActivateManaAbility = "activateManaAbility"
+	ActionUseResource         = "useResource"
+	ActionReleaseResource     = "releaseResource"
+	ActionPayLife             = "payLife"
+)
+
+// PlayCardMode is how a cast action plays its card, a union on type
+// (manabrew-protocol src/prompts/common.rs PlayCardMode): normal,
+// backFaceLand, roomRightSplit, alternative{cost}, staticAlternative,
+// foretellExile, unlockDoor. Cost is set only for alternative and names an
+// AlternativeCostKind ("flashback", "harmonize", ...).
+type PlayCardMode struct {
+	Type string `json:"type"`
+	Cost string `json:"cost,omitempty"`
+}
+
+// UnmarshalJSON also accepts a bare string, the published docs' example shape
+// ("mode":"cast"), as the mode's type.
+func (m *PlayCardMode) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err == nil {
+		*m = PlayCardMode{Type: s}
+		return nil
+	}
+	type fields PlayCardMode
+	var f fields
+	if err := json.Unmarshal(b, &f); err != nil {
+		return err
+	}
+	*m = PlayCardMode(f)
+	return nil
+}
+
+// The PlayCardMode type values.
+const (
+	ModeNormal            = "normal"
+	ModeBackFaceLand      = "backFaceLand"
+	ModeRoomRightSplit    = "roomRightSplit"
+	ModeAlternative       = "alternative"
+	ModeStaticAlternative = "staticAlternative"
+	ModeForetellExile     = "foretellExile"
+	ModeUnlockDoor        = "unlockDoor"
+)
+
+// AvailableAction is one legal action in a chooseAction prompt: a union on
+// `type` (manabrew-protocol src/prompts/common.rs AvailableAction, flattened
+// AvailableActionKind): cast{cardId, mode, label}, activateAbility
+// (ActivatableAbilityInfo: cardId, abilityIndex, description, isManaAbility,
+// isClassLevelUp?, cost?, producedMana?) and undoMana{cardId}. gorge reads
+// only id back, so it decodes into one flat struct; MarshalJSON writes
+// exactly the fields of the member Type names, every required one present
+// even when it is zero (abilityIndex 0, isManaAbility false).
 type AvailableAction struct {
+	ID             string       `json:"id"`
+	Type           string       `json:"type"`
+	CardID         string       `json:"cardId,omitempty"`
+	Mode           PlayCardMode `json:"mode"`
+	Label          string       `json:"label,omitempty"`
+	AbilityIndex   int          `json:"abilityIndex,omitempty"`
+	Description    string       `json:"description,omitempty"`
+	IsManaAbility  bool         `json:"isManaAbility,omitempty"`
+	IsClassLevelUp bool         `json:"isClassLevelUp,omitempty"`
+	Cost           string       `json:"cost,omitempty"`
+	ProducedMana   []Mana       `json:"producedMana,omitempty"`
+}
+
+// castActionWire, abilityActionWire and cardActionWire are the wire members
+// of AvailableAction and PaymentAction.
+type castActionWire struct {
+	ID     string       `json:"id"`
+	Type   string       `json:"type"`
+	CardID string       `json:"cardId"`
+	Mode   PlayCardMode `json:"mode"`
+	Label  string       `json:"label"`
+}
+
+type abilityActionWire struct {
 	ID             string `json:"id"`
 	Type           string `json:"type"`
-	CardID         string `json:"cardId,omitempty"`
-	Mode           string `json:"mode,omitempty"` // PlayCardMode is UNDEFINED; only "cast" appears in any example
-	Label          string `json:"label,omitempty"`
-	AbilityIndex   int    `json:"abilityIndex,omitempty"`
-	Description    string `json:"description,omitempty"`
-	IsManaAbility  bool   `json:"isManaAbility,omitempty"`
-	IsClassLevelUp bool   `json:"isClassLevelUp,omitempty"`
+	CardID         string `json:"cardId"`
+	AbilityIndex   int    `json:"abilityIndex"`
+	Description    string `json:"description"`
+	IsManaAbility  bool   `json:"isManaAbility"`
+	IsClassLevelUp *bool  `json:"isClassLevelUp,omitempty"`
 	Cost           string `json:"cost,omitempty"`
 	ProducedMana   []Mana `json:"producedMana,omitempty"`
+}
+
+type cardActionWire struct {
+	ID     string `json:"id"`
+	Type   string `json:"type"`
+	CardID string `json:"cardId"`
+}
+
+func abilityWire(id, typ, card string, index int, desc string, mana, levelUp bool, cost string, produced []Mana) abilityActionWire {
+	w := abilityActionWire{ID: id, Type: typ, CardID: card, AbilityIndex: index, Description: desc,
+		IsManaAbility: mana, Cost: cost, ProducedMana: produced}
+	if levelUp {
+		w.IsClassLevelUp = &levelUp
+	}
+	return w
+}
+
+// MarshalJSON writes the member Type names (see AvailableAction). A cast with
+// no mode is a normal cast.
+func (a AvailableAction) MarshalJSON() ([]byte, error) {
+	switch a.Type {
+	case ActionCast:
+		mode := a.Mode
+		if mode.Type == "" {
+			mode.Type = ModeNormal
+		}
+		return json.Marshal(castActionWire{ID: a.ID, Type: a.Type, CardID: a.CardID, Mode: mode, Label: a.Label})
+	case ActionActivateAbility:
+		return json.Marshal(abilityWire(a.ID, a.Type, a.CardID, a.AbilityIndex, a.Description, a.IsManaAbility,
+			a.IsClassLevelUp, a.Cost, a.ProducedMana))
+	case ActionUndoMana:
+		return json.Marshal(cardActionWire{ID: a.ID, Type: a.Type, CardID: a.CardID})
+	default:
+		// A type ManaBrew does not define (only a decoded foreign message
+		// carries one): its fields as they are.
+		type fields AvailableAction
+		return json.Marshal(fields(a))
+	}
 }
 
 // Deck and its children are the deck data format
@@ -431,7 +632,7 @@ type Deck struct {
 	Version         string              `json:"version,omitempty"`
 	ID              string              `json:"id,omitempty"`
 	Description     string              `json:"description,omitempty"`
-	Color           []string            `json:"color,omitempty"`
+	Color           ColorText           `json:"color,omitempty"`
 	Format          string              `json:"format,omitempty"`
 	Cards           []DeckCard          `json:"cards,omitempty"`
 	Sideboard       []DeckCard          `json:"sideboard,omitempty"`
@@ -446,14 +647,39 @@ type Deck struct {
 	Labels          []DeckLabel         `json:"labels,omitempty"`
 	CustomTags      []string            `json:"customTags,omitempty"`
 	CardTags        map[string][]string `json:"cardTags,omitempty"`
-	Editor          string              `json:"editor,omitempty"`
+	Editor          json.RawMessage     `json:"editor,omitempty"` // DeckEditorMetadata, opaque here
 	CoverCardName   string              `json:"coverCardName,omitempty"`
-	CoverCardFace   string              `json:"coverCardFace,omitempty"`
+	CoverCardFace   *int                `json:"coverCardFace,omitempty"`
 	PlaymatURL      string              `json:"playmatUrl,omitempty"`
 	PlaymatAssetID  string              `json:"playmatAssetId,omitempty"`
 	PlaymatSettings json.RawMessage     `json:"playmatSettings,omitempty"`
 	StackPositions  json.RawMessage     `json:"stackPositions,omitempty"`
 	Tokens          []DeckCard          `json:"tokens,omitempty"`
+}
+
+// ColorText is a colour string ("WU"), ManaBrew's shape for a card's and a
+// deck's colours (manabrew-protocol src/game/mod.rs CardDto.color,
+// src/deck_dto.rs CardRulesSummary.color and Deck.color). It encodes as a
+// string; decoding also accepts a list of colour letters (the published docs'
+// examples, and the shape gorge once modelled) and joins it.
+type ColorText string
+
+func (c *ColorText) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err == nil {
+		*c = ColorText(s)
+		return nil
+	}
+	var list []string
+	if err := json.Unmarshal(b, &list); err != nil {
+		return err
+	}
+	joined := ""
+	for _, l := range list {
+		joined += l
+	}
+	*c = ColorText(joined)
+	return nil
 }
 
 // DeckCardIdentity identifies a deck entry; ID is a client instance id.
@@ -475,15 +701,17 @@ type CardImageUris struct {
 	Large      string `json:"large,omitempty"`
 	ArtCrop    string `json:"art_crop,omitempty"`
 	BorderCrop string `json:"border_crop,omitempty"`
+	PNG        string `json:"png,omitempty"`
 }
 
-// CardBackFaceSummary summarises the back face of a double-faced deck card.
+// CardBackFaceSummary summarises the back face of a double-faced deck card
+// (manabrew-protocol src/deck_dto.rs CardBackFaceSummary).
 type CardBackFaceSummary struct {
-	Name      string   `json:"name,omitempty"`
-	ManaCost  string   `json:"manaCost,omitempty"`
-	Types     []string `json:"types,omitempty"`
-	Power     string   `json:"power,omitempty"`
-	Toughness string   `json:"toughness,omitempty"`
+	Name       string        `json:"name,omitempty"`
+	ManaCost   string        `json:"manaCost,omitempty"`
+	TypeLine   string        `json:"typeLine,omitempty"`
+	OracleText string        `json:"oracleText,omitempty"`
+	URIs       CardImageUris `json:"uris"`
 }
 
 // DeckCard is one card entry of a Deck.
@@ -492,7 +720,7 @@ type DeckCard struct {
 	URIs          CardImageUris        `json:"uris"`
 	ImageLanguage string               `json:"imageLanguage,omitempty"`
 	AllParts      []json.RawMessage    `json:"allParts,omitempty"`
-	Color         []string             `json:"color"`
+	Color         ColorText            `json:"color"`
 	ColorIdentity []string             `json:"colorIdentity"`
 	ManaCost      string               `json:"manaCost"`
 	CMC           float64              `json:"cmc"`
