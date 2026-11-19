@@ -1099,15 +1099,6 @@ type filtSearch struct {
 	// (scriptSearch.visit) walks its gap list once: each gap activates at most
 	// once per path.
 	lifeUsed slotMask
-	// useful is the play's printed mana cost (filtUsefulCost), the fixed pips
-	// the fee-stall clamps (filtFeeColStalls, filtChainDoomed) read;
-	// usefulOK false -- a play whose printed cost the search does not read, a
-	// kicked or bargained cast -- fails the clamps open. costUnits is its
-	// whole mana, the bound filtChainDoomed prices the fee-only repeatable
-	// filter's activations against.
-	useful    kop.ManaCost
-	usefulOK  bool
-	costUnits int
 }
 
 // filtFunded reports whether gorge's census funds the fees of the filter gaps f:
@@ -1142,10 +1133,6 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	var fs filtSearch
 	fs.a, fs.p, fs.gaps, fs.own, fs.sp0 = a, p, s.scriptFilt(k, p), NoSlot, s.sp
 	fs.need = s.playNeed(k, a) // the play's announced colours, whichever search prices it
-	fs.useful, fs.usefulOK = s.filtUsefulCost(k, a)
-	if fs.usefulOK {
-		fs.costUnits = int(fs.useful.Generic) + pipSum(&fs.useful.Pips)
-	}
 	fs.other = s.otherGaps(k, p, a)
 	if a.Kind() == AkActivate {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
@@ -1165,7 +1152,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	defer s.unfork()
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
-	if found := fs.visit(k, t, 0, false); !found {
+	if !fs.visit(k, t, 0, false) {
 		if fs.stall != 0 {
 			// every line failed and one ran into a rule gap the kernel stalls by
 			// name: declare it, not "no payment" (tapXScript's stall; a found
@@ -1568,13 +1555,11 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	// offers before it dedups: the colour-only key cannot tell a restricted
 	// unit from a filter's converted one, so a priced node can key equal to an
 	// earlier unpriced sibling.
-	opt := false
 	if gapUsed {
 		var d Decision
 		t.restrOptions(k, &d, p) // (restricted mana floating is priced as ordinary: the search reads no restriction)
 		t.capGrantOvercounts(k, &d, p)
-		opt = hasOption(&d, fs.a)
-		if opt && !t.grantRefusedPrices(k, p, fs.a) && !fs.witnessEats(k, t) {
+		if hasOption(&d, fs.a) && !t.grantRefusedPrices(k, p, fs.a) && !fs.witnessEats(k, t) {
 			return true
 		}
 	}
@@ -1631,9 +1616,6 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if gap {
 				free := t.canTapForMana(k, sl)
 				filt := t.filtPaid(k, p, sl)
-				if filt && t.filtChainDoomed(k, p, sl, fs) {
-					continue // the fee-only repeatable filter's activations cannot pay the play
-				}
 				if rm := t.mixSrcMask(k, sl); free && rm != 0 {
 					if fs.mixSrcGap(k, t, sl, funded, rm, filt) { // (a restricted ability beside the filter: mana_mixsrc.go)
 						return true
@@ -1809,15 +1791,8 @@ func (fs *filtSearch) settle(k *prep, t *State, funded int, gapUsed bool) bool {
 // askManaColor offers effects.ComboColours in script order). A combination
 // filter (Baxter Building) asks for a whole allocation instead (filtCombo).
 func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
-	feeStall := func(col uint8) bool {
-		return fs.usefulOK && t.filtRepeat(k, sl) &&
-			t.filtFeeColStalls(k, fs.p, sl, &fs.useful, int(col))
-	}
 	if t.filtAb(k, sl).ManaEach {
 		// a fixed production: no colour ask, one activation (mana_filtereach.go)
-		if m := uint8(t.filtAb(k, sl).ManaColors); m != 0 && m&(m-1) == 0 && feeStall(uint8(bits.TrailingZeros8(m))) {
-			return false
-		}
 		return fs.try(k, t, filtStep{sl: sl, ans: 1, gap: true}, funded, true)
 	}
 	if !t.filtFixed(k, sl) && !fs.tick() { // (a fixed production asks no colour)
@@ -1826,9 +1801,6 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 	if t.filtFixed(k, sl) {
 		// one fixed colour, {C} included (manaColourOrder names WUBRG only)
 		c := uint8(bits.TrailingZeros8(uint8(t.filtAb(k, sl).ManaColors)))
-		if feeStall(c) {
-			return false
-		}
 		return fs.try(k, t, filtStep{sl: sl, ans: 1 + c, gap: true}, funded, true)
 	}
 	if comboFiltAb(t.filtAb(k, sl)) {
@@ -1839,9 +1811,6 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 	needFirst(order[:n], fs.need)
 	for i := 0; i < n; i++ {
 		c := order[i]
-		if feeStall(c) {
-			continue
-		}
 		if fs.try(k, t, filtStep{sl: sl, ans: uint8(1 + c), gap: true}, funded, true) {
 			return true
 		}
