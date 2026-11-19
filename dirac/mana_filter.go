@@ -1232,9 +1232,10 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	}
 	switch {
 	case st.gap && st.ans > 0:
-		// the fee is paid from the pool, generic in C W U B R G order, after
-		// the restricted mana it may spend; a one-pip filter's {c} is paid in
-		// c (mana_filterpip.go)
+		// the fee is paid from the pool, generic in C W U B R G order, the
+		// restricted mana the activation may spend in line with the plain
+		// ones (filtFeeSpend); a one-pip filter's {c} is paid in c
+		// (mana_filterpip.go)
 		dc, dn := s.deferSnap(p) // a deferred source's unit the fee spends is gone (mana_deferred.go)
 		fee := s.filtFee(k, st.sl)
 		if col, ok := s.filtPip(k, st.sl); ok {
@@ -1247,13 +1248,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 			s.filtPayHyb(k, p, st.sl, a, b) // the hybrid pip, in its first printed colour when held
 			fee = 0
 		}
-		fee -= s.filtFeeRestr(k, p, st.sl, fee)
-		for _, c := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {
-			for fee > 0 && pl.pool[c] > 0 {
-				pl.pool[c]--
-				fee--
-			}
-		}
+		fee = s.filtFeeSpend(k, p, st.sl, fee)
 		if k.artMana {
 			s.artSync(p) // a slot the fee emptied no longer holds an artifact's mana
 		}

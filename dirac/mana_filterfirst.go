@@ -265,19 +265,12 @@ func (s *State) windowFiltFirstFallback(k *prep, p uint8, sl Slot, useful *kop.M
 		want, decided = s.windowUseful(k, p, useful)
 	} else {
 		c := s.fork()
-		pool := &c.pl[SeatIx(p)].pool
 		fee := s.filtFee(k, sl)
 		if col, ok := s.filtRepeatPip(k, sl); ok {
 			c.filtPayPip(k, p, sl, col) // the pip first, as filtDo
 			fee--
 		}
-		fee -= c.filtFeeRestr(k, p, sl, fee) // filtDo's fee: restricted batches first
-		for _, col := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {
-			for fee > 0 && pool[col] > 0 {
-				pool[col]--
-				fee--
-			}
-		}
+		fee = c.filtFeeSpend(k, p, sl, fee) // filtDo's fee
 		want, decided = c.windowUseful(k, p, useful)
 		s.unfork()
 	}

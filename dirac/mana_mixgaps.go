@@ -689,6 +689,65 @@ func (s *State) filtFeeRestr(k *prep, p uint8, sl Slot, fee int) int {
 	return s.rbSpendN(p, m, min(fee, s.rbTotal(p, m)))
 }
 
+// filtFeeSpend pays up to fee of p's visible pool as gorge's payment spends
+// it (filtDo's gap fee, windowFiltFirstFallback's rehearsal of it): the
+// colours in C W U B R G order, the admitted batches' units in line with the
+// plain ones and then carved by what their colour's spend actually consumed
+// (ResolveMana's plain-first unit search, emitRestrictedManaSpend's cap; a
+// typed batch's units are spent after the plain ones of their colour,
+// rbSettle). The batches-first spend this replaces consumed a batch's units
+// the payment had not reached, leaving the plain mana the fee had spent and
+// handing the searched play plain units the payment refuses (Vedalken
+// Engineer's artifact-only batch beside a Stonework Packbeast fee paid
+// Donate's {2}). It returns the unpayable remainder.
+func (s *State) filtFeeSpend(k *prep, p uint8, sl Slot, fee int) int {
+	if fee <= 0 {
+		return 0
+	}
+	m := s.filtFeeRestrM(k, p, sl)
+	typed := m != 0 && s.rbTyped(p)
+	for _, c := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {
+		if fee <= 0 {
+			break
+		}
+		pl := &s.pl[SeatIx(p)]
+		var batch int
+		if m != 0 {
+			for i := range s.rb[SeatIx(p)] {
+				if m&(1<<i) != 0 {
+					batch += int(s.rb[SeatIx(p)][i].n[c])
+				}
+			}
+		}
+		need := min(fee, int(pl.pool[c])+batch)
+		if need <= 0 {
+			continue
+		}
+		carve := min(need, batch) // a plain batch's units carve the colour's spend first
+		if typed {
+			carve = need - min(need, int(pl.pool[c])) // a typed batch's units are spent after the plain ones
+		}
+		applied := 0
+		for i := range s.rb[SeatIx(p)] {
+			if m&(1<<i) == 0 || carve == 0 {
+				continue
+			}
+			b := &s.rb[SeatIx(p)][i]
+			d := min(carve, int(b.n[c]))
+			b.n[c] -= uint8(d)
+			carve -= d
+			applied += d
+		}
+		pl.pool[c] -= uint8(need - applied)
+		fee -= need
+	}
+	s.rbCompact(p)
+	if !s.rbAny(p) {
+		s.g.poolArt[SeatIx(p)] &^= poolArtRestr
+	}
+	return fee
+}
+
 // wideAnswerIndex is the scriptDFS answer of the two-colour multiset a <= b,
 // wideAnswer's inverse: the multisets in order W W, W U ... W G, U U ... G G.
 func wideAnswerIndex(a, b int) uint8 {
