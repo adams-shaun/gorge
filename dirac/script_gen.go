@@ -895,6 +895,31 @@ func (s *State) capGrantOvercounts(k *prep, d *Decision, p uint8) {
 	s.grantCap(k, d, p, &capSpent)
 }
 
+// filterScriptKeeps: the activation a is one the filter script prices (gorge's
+// one prefix search over the filters and the grants, actScriptPays). The
+// grant cap must not drop it: White Lotus Hideout's {1},{T} ability funds
+// Abandoned Air Temple's {3}{W},{T} fee on a board the plain walk leaves
+// unpriced (the gated-mana activation).
+func (s *State) filterScriptKeeps(k *prep, a Action) bool {
+	if a.Kind() != AkActivate {
+		return false
+	}
+	o := Obj(a.Source())
+	if int(o) >= len(s.objs) {
+		return false
+	}
+	sl := s.objs[o].slot
+	if sl == NoSlot {
+		return false
+	}
+	cd := &k.t.Cards[s.cardAt(sl)]
+	ai := int(a.Mode())
+	if ai >= len(cd.Abilities) {
+		return false
+	}
+	return s.actScriptPays(k, sl, ai, &cd.Abilities[ai])
+}
+
 func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 	if !s.grantGapLive(k, p) {
 		return
@@ -1081,6 +1106,9 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 				// dropped offer (mana_tapanother.go tapXScript declares
 				// nothing).
 				s.capStall(stall)
+				if s.filterScriptKeeps(k, a) {
+					continue // the filter script prices it: keep the play (gorge's one prefix search)
+				}
 				d.remove(a) // no prefix within gorge's node budget (mana_grantedoffers.go)
 				// The play has had gorge's one prefix search (the grant search
 				// covers a grant board's filters with its grants,
