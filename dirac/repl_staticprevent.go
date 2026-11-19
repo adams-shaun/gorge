@@ -252,6 +252,14 @@ func (s *State) spApply(k *prep, e *spEv) (int, bool) {
 	case c == 1:
 		a := s.spCandAb(k, cs[0])
 		if a.Repl.C&kop.ReplSPOptional != 0 {
+			if s.g.ro.on && s.spWalkOpt(k, e) {
+				// the frozen combat walk owns this ask (spWalkOpt: the event's
+				// only candidate): the recomputed pass keeps the event whole
+				// until the walk poses the "may" and the answer (pick or skip)
+				// is dealt as asked (dealAsked); spPark poses a noncombat
+				// event's own
+				return e.n, false
+			}
 			s.capFull(StallReplPlus) // gorge asks the optional line's "may"; only a noncombat event is posed (spPark)
 			return e.n, false
 		}
@@ -391,6 +399,18 @@ func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
 		// a lone static prevention beside full preventions (a granted Effect's,
 		// a printed one): gorge asks the order over all of them
 	case c < 2 || s.spBare(k, &cs, c) || !s.spOrderable(k, &cs, c):
+		if n == 0 && c == 1 && s.spCandAb(k, cs[0]).Repl.C&kop.ReplSPOptional != 0 {
+			if cs[0].b >= MaxPerm {
+				s.capFull(StallReplCands) // an emblem is never named by an ask
+				return -1
+			}
+			// the lone Optional$ line's "may" (CR 616.1g): a candidate the
+			// walk poses (spWalkOpt marks it for spApply's defer), not one
+			// spApply auto-applies
+			s.g.ro.cand[n] = s.perms[cs[0].b].obj
+			s.g.ro.spv |= 1 << n
+			n++
+		}
 		return n
 	case n > 0:
 		s.capFull(StallReplPlus)
@@ -410,6 +430,25 @@ func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
 		ro.spv |= 1 << (n + i)
 	}
 	return n + c
+}
+
+// spWalkOpt reports whether the frozen walk poses the lone Optional$ line's
+// "may" for this event: replOrderCandsFz collected exactly one candidate and
+// spCombatCands marked it (the walk's shape of spPark's lone-optional ask;
+// gorge asks the line's OptionalDecider$, CR 616.1g). It probes like
+// walkAsksRepl, with the ask scratch saved and restored; the probe may stall
+// loud (a competition the walk cannot name), as the walk's own collection
+// would.
+func (s *State) spWalkOpt(k *prep, e *spEv) bool {
+	if !s.g.ro.on || e.srcSl == NoSlot {
+		return false
+	}
+	save := s.g.ro
+	fe := fzEv{src: e.srcSl, dst: e.sl, n: int16(min(e.n, 1<<14)), card: e.srcCard, ctrl: e.srcCtrl, apl: e.rcp}
+	c := s.replOrderCandsFz(k, &fe)
+	mark := s.g.ro.spv&1 != 0 // seat-ok: ro.spv is the walk's candidate bitmask (read before the restore discards the probe's collection)
+	s.g.ro = save
+	return c == 1 && mark
 }
 
 // spBesidePrevAll: the n candidates already collected are all full
