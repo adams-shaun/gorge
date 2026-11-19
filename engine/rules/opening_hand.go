@@ -179,13 +179,18 @@ func (e *Engine) applyOpeningEffect(ef openingEffect) {
 		sub = sub.Sub
 	}
 	if sub != nil && sub.API == "ChangeZone" && effects.ChangeZoneOf(sub).OriginExactly(state.ZHand) && effects.ChangeZoneOf(sub).DestinationIs(state.ZExile) {
-		e.opening.exile = ef.card
 		d := &decision.Decision{Player: ef.player, Kind: decision.KChoose, Min: 1, Max: 1,
 			Prompt: "Exile a card from your hand", Source: ef.card}
 		for _, id := range e.G.Zone(state.ZHand, ef.player) {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "opening_exile", Obj: id, Label: e.G.Obj(id).Face().Name})
 		}
+		// A final hand that held only the moving card (a deep-mulliganed
+		// Gemstone Caverns) has no candidate to pick: the mandatory ask would
+		// have no legal answer, so the pick is skipped and the effect ends --
+		// parking e.opening.exile here would strand the round with no pending
+		// decision (stepOpening early-returns while exile is set).
 		if len(d.Options) > 0 {
+			e.opening.exile = ef.card
 			if e.pending != nil || e.Suspended() {
 				e.opening.exileAsk = d
 				return
