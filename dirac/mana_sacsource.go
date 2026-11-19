@@ -305,7 +305,8 @@ func (s *State) kickWitness(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCos
 	}
 	// the plan's mana abilities are activated before the kicker's cost is paid (CR 601.2g-h): a
 	// Treasure the plan sacrificed is no longer there for a kicker that sacrifices an artifact
-	if kc := &k.t.Cards[c].KickerCost; kc.Flags&kop.CostSac != 0 && plannerConsumesSac(&pk) && !tmp.pickCostPayable(k, p, kc, o) {
+	// or returns a creature (Arctic Merfolk beside an Eldrazi Scion the plan sacrificed)
+	if kc := &k.t.Cards[c].KickerCost; kc.Flags&(kop.CostSac|kop.CostReturn) != 0 && plannerConsumesSac(&pk) && !tmp.pickCostPayable(k, p, kc, o) {
 		return tmp.witnessEndsGameWon(k, p, c, n0)
 	}
 	if !s.subs[kop.TrigSacrificed].any() || int(tmp.npend)-int(n0) <= witnessWaits {
