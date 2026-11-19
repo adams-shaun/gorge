@@ -973,7 +973,8 @@ func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor boo
 		}
 		pc := s.windowGrantPC(k, sl)
 		dyn := k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDynMask(k, p, sl) != 0
-		if gap || windowSacOnly(k, pc) || windowNoTapPain(k, pc) || s.perms[sl].flags&pfTapped != 0 || dyn {
+		if gap && !s.dryDeferPriced(k, sl, pc) ||
+			windowSacOnly(k, pc) || windowNoTapPain(k, pc) || s.perms[sl].flags&pfTapped != 0 || dyn {
 			ok, known = false, false
 			sacStop = !gap && !dyn && (windowSacOnly(k, pc) || windowNoTapPain(k, pc)) && s.perms[sl].flags&pfTapped == 0
 			break
