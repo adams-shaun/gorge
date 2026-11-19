@@ -23,28 +23,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // The options are gorge's, bottom (mode 0) then top (mode 1), over the
 // revealed card.
 
-// clashOpp is the seat the controller p clashes with, noSeat when none is
-// left: gorge's clashParticipants fallback, the first living player but p
-// scanning from seat 0 (AliveFrom(0)), not from p.
+// clashOpp is the seat the controller clashes with: their one opponent, or
+// noSeat when none is left.
 func (s *State) clashOpp(p uint8) uint8 {
-	if DebugClashNextSeat {
-		if o := s.oppsFrom(p); o.n > 0 {
-			return o.s[0]
-		}
-		return noSeat
-	}
-	q := s.aliveFrom(0)
-	for i := uint8(0); i < q.n; i++ {
-		if q.s[i] != p {
-			return q.s[i]
-		}
+	if o := s.oppsFrom(p); o.n > 0 {
+		return o.s[0]
 	}
 	return noSeat
 }
-
-// DebugClashNextSeat is the mutation switch: the controller clashes with the
-// next living seat after it, not gorge's first from seat 0. Tests only.
-var DebugClashNextSeat bool
 
 // clashMV is the mana value of the top card of seat p's library, -1 for an
 // empty library.

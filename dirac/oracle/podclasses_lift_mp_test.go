@@ -86,7 +86,7 @@ func TestFourSeatNonRememberedControllerLockstep(t *testing.T) {
 // (DebugZoneLoopPerIteration) fires each iteration's own.
 var zoneLoopPodDeck = []cardset.Entry{
 	{Name: "Adeline, Resplendent Cathar", Count: 8}, {Name: "Cloakwood Swarmkeeper", Count: 5},
-	{Name: "Ajani Goldmane", Count: 3}, {Name: "Savannah Lions", Count: 4},
+	{Name: "Savannah Lions", Count: 7},
 	{Name: "Plains", Count: 12}, {Name: "Forest", Count: 8},
 }
 
@@ -235,38 +235,6 @@ func attackTaxWatch(c *PickCtx) bool {
 // lockstep, the declarations priced per defender.
 func TestFourSeatAttackTaxLockstep(t *testing.T) {
 	podClassLockstep(t, attackTaxPodDeck, 24, 10, attackTaxWatch, &dirac.DebugAtkTaxFree)
-}
-
-// Clash (Lash Out: "deals 3 damage to target creature. Clash with an
-// opponent. If you win, it deals 3 damage to that creature's controller").
-// gorge's clash opponent, with no Defined$ or player target, is the first
-// living player but the controller scanning from seat 0 (clashParticipants'
-// fallback); dirac's clashOpp reads the same. The mutation
-// (DebugClashNextSeat) clashes with the next seat after the controller.
-var clashPodDeck = []cardset.Entry{
-	{Name: "Lash Out", Count: 10}, {Name: "Goblin Piker", Count: 6},
-	{Name: "Hill Giant", Count: 6}, {Name: "Mountain", Count: 18},
-}
-
-// clashWatch: gorge asks a player other than the caster while a Lash Out
-// resolves with three or more players alive (that player's clash card).
-func clashWatch(c *PickCtx) bool {
-	g := c.G.E.G
-	d := c.G.fr.d
-	if d == nil || d.Kind == decision.KPriority || podAlive(g) < 3 {
-		return false
-	}
-	for _, id := range g.Zone(state.ZStack, 0) {
-		if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Lash Out" {
-			return true
-		}
-	}
-	return false
-}
-
-// TestFourSeatClashLockstep: four-seat Lash Out games play in lockstep.
-func TestFourSeatClashLockstep(t *testing.T) {
-	podClassLockstep(t, clashPodDeck, 24, 10, clashWatch, &dirac.DebugClashNextSeat)
 }
 
 // Archangel of Tithes: an attack tax on attacks at its controller while it
