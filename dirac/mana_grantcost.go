@@ -354,10 +354,32 @@ func (g *grantSrch) witnessEats(t *State, cost *kop.ManaCost) bool {
 }
 
 // witnessKeeps: the node's printed plan neither sacrifices the play's only
-// target (witnessEats) nor waits on the stack, so the play is still offered
+// target (witnessEats) nor taps it out of an untapped-target requirement
+// (playTargetsFeasible) nor waits on the stack, so the play is still offered
 // after it and the node may price it (CR 601.2c: a target must remain legal).
 func (g *grantSrch) witnessKeeps(t *State, cost *kop.ManaCost) bool {
-	return !g.witnessEats(t, cost) && !g.waitsForStack(t)
+	return !g.witnessEats(t, cost) && !g.waitsForStack(t) && t.playTargetsFeasible(g.k, g.p, g.d)
+}
+
+// playTargetsFeasible reports the play d still has a candidate for every
+// mandatory target slot on the post-prefix state s. A prefix activation can
+// tap a permanent, and a target whose filter requires it untapped is no
+// candidate once tapped (Coordinated Clobbering's "Tap one or two target
+// untapped creatures you control" paid by tapping the only untapped creature
+// in reach): gorge's scripted prefix re-runs the offer walk on the tapped
+// board (potential_script.go potentialWitnessOffers -> rules
+// castTargetsAvailable), so it refuses the play and the search must not price
+// it. Only casts carry their target specs here; an activated ability's own
+// target census is the ability offer's.
+func (s *State) playTargetsFeasible(k *prep, p uint8, d payDesc) bool {
+	if !d.hasPlay || !isCastKind(d.play.Kind()) || k.t == nil || int(d.card) >= len(k.t.Cards) {
+		return true
+	}
+	o := Obj(d.play.Source())
+	if o == NoObj || int(o) >= len(s.objs) {
+		return true
+	}
+	return s.spellTargetsFeasibleFrom(k, d.card, p, o)
 }
 
 // grantCostLife is the life a granted view's activation pays (0: none).
