@@ -104,6 +104,7 @@ func (s *State) faceDownSlots() (m slotMask) {
 func (s *State) clearFaceDown(sl Slot) {
 	p := &s.perms[sl]
 	p.gty = 0
+	p.spare &^= spareCopyFaceDown
 	p.ovr.flags &^= ovGenTy
 	p.ovr.walk = 0
 	s.touchSl(sl)

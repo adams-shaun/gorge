@@ -2405,7 +2405,15 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	}
 	sl := s.enterNF(k, t, e.ctrl, fl&kop.CpTapped != 0, kop.ZoneLibrary, face)
 	if face != 0 {
+		// The token copies the template's face-down copiable values (CR 707.2):
+		// keep its provenance for faceDownWard (a cloak's ward {2}, CR 701.58a;
+		// a manifested card's none, CR 701.40a) and mark it a copy of a
+		// face-down permanent, so projFaceDown does not read that provenance as
+		// the token's own face-down status. A blank permanent copy (both bits,
+		// gtyBlankCopy) keeps its both-bit mark, which permBlank reads as a copy
+		// that keeps its printed name.
 		s.perms[sl].gty |= s.perms[tmpl].gty & gtyProvMask
+		s.perms[sl].spare |= spareCopyFaceDown
 	}
 	s.touch(t)
 	if uint16(in.B.N)&(kop.CopyAttacking|0x3f<<kop.CopyPumpShift) == kop.CopyAttacking && s.occ.has(sl) {
