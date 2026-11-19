@@ -2280,6 +2280,7 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			}
 		} else {
 			s.pl[SeatIx(g.p)].pool[st.col] += st.n
+			s.artTag(k, g.p, sl, int(st.col)) // the search branch's tag: a snow source's unit is snow (mana_snow.go)
 		}
 		if st.pain {
 			s.painDamage(k, sl, SeatIx(g.p), int(s.manaPCGen(k, sl).painN)) // its life or damage (mana_grantpain.go)
