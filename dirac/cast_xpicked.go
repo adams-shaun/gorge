@@ -49,3 +49,18 @@ func (s *State) excludePickedSources(k *prep, av *avail) {
 		s.removeSrc(k, av, sl, pc)
 	}
 }
+
+// pickedForMana reports whether o is a Convoke or Waterbend contribution of
+// the build in progress: it is tapped to pay that cast (CR 702.51a), so it
+// cannot also tap for mana and the cast's mana census must leave it out.
+func (s *State) pickedForMana(o Obj) bool {
+	if !s.buildLive() {
+		return false
+	}
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if s.bld().picks[i] == o && (s.bld().pickKs[i] == pkWaterbend || isConvokePick(s.bld().pickKs[i])) {
+			return true
+		}
+	}
+	return false
+}

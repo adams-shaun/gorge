@@ -115,6 +115,9 @@ func (s *State) tapXSources(k *prep, p uint8, cands bool) slotMask {
 	}
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
+		if s.pickedForMana(s.perms[sl].obj) {
+			continue // a Convoke/Waterbend pick is tapped for that cast, not for mana
+		}
 		a := k.tapXAbOf(s.cardAt(sl))
 		if a == nil || DebugNoSacXMana && kop.SacXMana(a) {
 			continue
