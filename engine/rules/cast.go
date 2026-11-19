@@ -210,6 +210,15 @@ type pendingCast struct {
 	// tag's units pay this cast.
 	altOnlyTag string `clone:"deep"`
 
+	// noMana records, at newCast, the spell's own stat:ManaRestriction
+	// zero-spend static (cards.ManaRestrictionZeroSpendShape, Hogaak's "You
+	// can't spend mana to cast this spell"): every payment descriptor
+	// paymentForCast builds for this cast carries pay.Descriptor.NoMana, so
+	// the pool it may spend is empty and only the cast's Convoke/Delve
+	// credits pay. Spell-only (an activated ability is not a cast); read by
+	// validateCastContributions, announceFeasible and delveAsk the same way.
+	noMana bool `clone:"deep"`
+
 	// altCostPaid marks a cast at an S:Mode$ AlternativeCost static's
 	// alternative (beginCast's announceAlt) for a face that reads
 	// Count$AltCost (faceWantsAltCost): the announce-time PendingAltCost seed

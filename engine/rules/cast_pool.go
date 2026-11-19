@@ -40,6 +40,10 @@ func (e *Engine) newCast(p state.PlayerID, card state.ObjID, from state.Zone, mo
 		}
 	}
 	pc.player, pc.card, pc.from, pc.mode, pc.ability = p, card, from, mode, ability
+	// The zero-spend shape's mark (stat:ManaRestriction, Hogaak): a spell-only
+	// read of the cast card's own face, taken once at issue; every payment
+	// descriptor for this cast derives from it.
+	pc.noMana = ability < 0 && manaSpendCastBan(e.G, card)
 	e.castIssued = pc
 	return pc
 }

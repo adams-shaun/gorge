@@ -625,9 +625,16 @@ func (e *Engine) delveAsk() bool {
 	// no payable face and the cast strands). Defer instead: continueCast
 	// re-runs this ask right after manaAsk, when every pip is announced and
 	// the shortfall is real. delveDone stays unset, so the re-entry after the
-	// exile picks falls through here to the asks that follow.
+	// exile picks falls through here to the asks that follow. The zero-spend
+	// shape's cast (stat:ManaRestriction, Hogaak) defers the same way over a
+	// hybrid pip: a convoke colour contribution covers the pip's face
+	// (convokeAsk offers the colour options and announceFeasible's fold
+	// absorbs the pip), so how many credits the unresolved pips still eat --
+	// and with them what generic is left for Delve -- is not real until the
+	// pip faces are announced either.
 	if !pc.isAbility() && e.hasCastDelve(pc.card, false) &&
-		len(pc.cost.DropAnnouncePrefix(pc.PayIdx).Twobrid) > 0 {
+		(len(pc.cost.DropAnnouncePrefix(pc.PayIdx).Twobrid) > 0 ||
+			pc.noMana && len(pc.cost.DropAnnouncePrefix(pc.PayIdx).Hybrid) > 0) {
 		return false
 	}
 	pc.delveDone = true
@@ -653,8 +660,14 @@ func (e *Engine) delveAsk() bool {
 	// need. Delve only ever covers generic, so the colored requirement is
 	// reserved out of the pool first; the rest of the pool can pay at most
 	// its total as generic (Cost.Pay's WUBRG spending order never reduces
-	// the total it can cover).
+	// the total it can cover). The zero-spend shape's payment (stat:ManaRestriction,
+	// Hogaak) sees no pool at all: every unit of generic left after the
+	// announced credits is the shortfall, and the ask's Min forces it -- an
+	// under-exile would leave a mana payment the cast may not make.
 	rest := e.G.Players[pc.player].Pool
+	if pc.noMana {
+		rest = state.Mana{}
+	}
 	for i, n := range cost.Colored {
 		if rest[i] < n {
 			// Colored unpayable: delve cannot help with it, so the whole
@@ -677,7 +690,14 @@ func (e *Engine) delveAsk() bool {
 	if int32(max) > shortfall {
 		max = int(shortfall)
 	}
-	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 0, Max: max,
+	// The zero-spend shape forces the shortfall (see the pool arm above): the
+	// Min is the whole shortfall, so no answer can leave a mana payment the
+	// cast may not make.
+	min := 0
+	if pc.noMana {
+		min = int(shortfall)
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: min, Max: max,
 		Prompt: "Delve: exile cards from your graveyard to help cast " + e.G.Obj(pc.card).Face().Name,
 		Source: pc.card}
 	for _, id := range gy {

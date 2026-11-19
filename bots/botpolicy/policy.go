@@ -1378,6 +1378,9 @@ func (b Board) tapHelperChoices(d *decision.Decision) []int {
 // helper pays the first outstanding pip of its colours, the same contribution a v2
 // seat's selection of that object commits, else one generic.
 func (b Board) castHelperChoices(d *decision.Decision) []int {
+	if picks := forcedConvokeChoices(d); picks != nil {
+		return picks
+	}
 	spell := b.announcedSpell(d)
 	if spell == nil {
 		return nil
