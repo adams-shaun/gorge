@@ -166,7 +166,7 @@ func (s *State) availSpreeWindow(k *prep, e *stackEntry, av *avail) {
 	s.availForBuilt(k, e, av)
 	s.g.availX = x
 	for b := s.scriptDeferred(k, e.ctrl); b.any(); b = b.rest() {
-		av.addUnits(1<<k.deferCol(s.cardAt(b.first())), 1)
+		av.addUnits(s.deferMask(k, b.first()), 1)
 	}
 }
 

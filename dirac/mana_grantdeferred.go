@@ -20,17 +20,17 @@ func (g *grantSrch) deferBranch(t *State, i int, sl Slot) bool {
 	if t.perms[sl].flags&pfTapped != 0 {
 		return false
 	}
-	return g.branch(t, i, sl, stepDeferred, 1<<g.k.deferCol(t.cardAt(sl)), 1, false)
+	return g.branch(t, i, sl, stepDeferred, t.deferMask(g.k, sl), 1, true) // an identity source asks its colour (mana_deferident.go)
 }
 
 // deferApply taps the deferred source of a found prefix step on s: its {R}
 // floats as the deferred source's (floatDeferred), so a cast that spends it is
 // paid by Goggles and its rider can fire.
-func (s *State) deferApply(k *prep, p uint8, sl Slot) {
+func (s *State) deferApply(k *prep, p uint8, sl Slot, col int) {
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
-	s.floatDeferred(k, p, sl)
+	s.floatDeferredAs(k, p, sl, col)
 }
 
 // deferBesideGrant reports whether p has an untapped deferred source while a

@@ -4017,7 +4017,7 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 	m.Split = split
 	prod := ps.str("Produced")
 	if v := ps.peek("TriggersWhenSpent"); v != "" && len(prod) == 1 && strings.Contains("WUBRG", prod) {
-		if err := lc.deferredMana(ab, ps, v); err != nil {
+		if err := lc.deferredMana(ab, ps, v, false); err != nil {
 			return err
 		}
 		m.Deferred = true
@@ -4051,8 +4051,20 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 			m.Colors, m.Choice, m.Amount = "WUBRG", true, cst(1)
 			return lc.finishMana(sa, ps, ab, m)
 		}
-		ps.str("TriggersWhenSpent")
 		m.IdentityPotential = true
+		// a plain {T} source with a spend rider is a deferred one, as any
+		// TriggersWhenSpent$ source is (kernel mana_deferident.go): the rider
+		// runs as the SpellCast trigger of the source that reads the payment
+		if rider := ps.peek("TriggersWhenSpent"); rider != "" {
+			if lc.granted == 0 && ab.Kind == akMana && ab.Cost.Tap && plainTapCost(ab.Cost) {
+				if err := lc.deferredMana(ab, ps, rider, true); err != nil {
+					return err
+				}
+				m.Deferred = true
+			} else {
+				ps.str("TriggersWhenSpent") // a granted or costed one stays the potential fold's alone
+			}
+		}
 		m.Colors = ""
 		m.Amount = cst(1)
 		return lc.finishMana(sa, ps, ab, m)
