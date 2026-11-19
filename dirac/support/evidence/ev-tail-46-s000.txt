@@ -2,11 +2,18 @@ A-Circle of the Land Druid
 A-Haywire Mite
 A-Revel Ruiner
 Aether Spellbomb
+Anowon, the Ruin Sage
 Anthousa, Setessan Hero
+Arcbound Wanderer
 Archfiend of Despair
+Argothian Treefolk
 Astarion's Thirst
+Ayara, First of Locthwain
+Back in Town
 Bakersbane Duo
+Beast of Burden
 Blood Funnel
+Breaker of Armies
 Brink of Madness
 Bristlebud Farmer
 Bumbleflower's Sharepot
@@ -15,42 +22,57 @@ Cache Grab
 Cackling Imp
 Call of the Wild
 Clay Revenant
+Coastal Tower
 Colossal Growth
 Cradle Guard
 Crocodile of the Crossing
 Deathcap Cultivator
 Defense of the Heart
 Demolition Stomper
+Dining Room
 Doombot Harbinger
 Dragonscale Boon
+Drossforge Bridge
 Drudge Sentinel
+Drudge Skeletons
+Earsplitting Rats
 Essence Pulse
 Fathom Fleet Cutthroat
 Forest
 Foul-Tongue Shriek
 Garruk's Gorehorn
+Geode Golem
+Gilt-Leaf Ambush
 Grisly Survivor
+Haunted Fengraf
 Heir of the Wilds
+Hollow Trees
 Infuse with Vitality
+Introduction to Prophecy
 Irontread Crusher
 Joraga Bard
 Kalonian Twingrove
 Karstoderm
 Kokusho, the Evening Star
 Level Up
+Library of Alexandria
 Liquimetal Coating
 Lumengrid Gargoyle
 Master Symmetrist
 Match the Odds
 Meandering River
 Might of Old Krosa
+Mirrodin Avenged
 Mossfire Egg
+Mystifying Maze
 N'Yami-Class Mother Ship
 Natural State
+New Benalia
 Nocturnal Hunger
 One with Death
 Pawpatch Formation
 Phyrexian Rager
+Phyrexian Vault
 Placid Rottentail
 Putrefaction
 Qasali Slingers
@@ -58,13 +80,18 @@ Reave Soul
 Ring of Valkas
 Root Cage
 Rosethorn Acolyte
+Rushwood Grove
 Saproling Migration
 Savor
 Scythe Tiger
+Searchlight Companion
 Seek the Wilds
+Shadow Stinger
 Sharpshooter Elf
+Shield of Kaldra
 Sidisi's Pet
 Skeletal Snake
+Skittering Cicada
 Slith Predator
 Smolder Initiate
 Snare Thopter
@@ -81,12 +108,16 @@ Tempered Sliver
 Terra Stomper
 Tethered Skirge
 Thallid Devourer
+Tome of the Guildpact
 Toski, Bearer of Secrets
 Treefolk Harbinger
 Tromell, Seymour's Butler
+Universal Solvent
 Vessel of Malignity
+Walking Wall
 Wanderer's Twig
 Warden of Geometries
 Wellwisher
 White Tiger, Amulet Keeper
+Witness the End
 Zombie Infestation

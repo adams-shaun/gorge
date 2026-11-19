@@ -38,6 +38,7 @@ Goblin Hero
 Goblin Tutor
 Goliath, Mass Manipulator
 Harmonic Sliver
+Hasran Ogress
 Haunted Cloak
 Heroic Charge
 Highway Robber
@@ -73,6 +74,7 @@ Psychic Spear
 Raiding Nightstalker
 Rakshasa's Secret
 Raving Oni-Slave
+Reckless Imp
 Rescue Retriever
 Rhox Brute
 Rofellos, Llanowar Emissary

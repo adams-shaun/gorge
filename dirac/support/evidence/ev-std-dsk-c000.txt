@@ -14,7 +14,9 @@ Demonic Counsel
 Disturbing Mirth
 Diversion Specialist
 Don't Make a Sound
+Emerge from the Cocoon
 Enduring Curiosity
+Enduring Tenacity
 Enter the Enigma
 Etched Cornfield
 Ethereal Armor
@@ -59,6 +61,7 @@ Peculiar Lighthouse
 Piggy Bank
 Piranha Fly
 Plains
+Popular Egotist
 Pyroclasm
 Rampaging Soulrager
 Razorkin Hordecaller
@@ -82,6 +85,7 @@ Undead Sprinter
 Unnerving Grasp
 Untimely Malfunction
 Unwanted Remake
+Valgavoth's Lair
 Vanish from Sight
 Veteran Survivor
 Vile Mutilator

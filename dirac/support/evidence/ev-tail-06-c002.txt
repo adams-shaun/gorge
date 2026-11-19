@@ -88,6 +88,7 @@ Dramatic Entrance
 Dreamdrinker Vampire
 Dwarven Pony
 Ebony Charm
+Eland Umbra
 Eldrazi Mimic
 Elvish Rejuvenator
 Embodiment of Fury
@@ -307,6 +308,7 @@ Teferi's Ageless Insight
 Teleportation Circle
 Teller of Tales
 Thalakos Scout
+Thassa, Deep-Dwelling
 Thassa, God of the Sea
 The Antiquities War
 The Brute

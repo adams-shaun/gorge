@@ -51,6 +51,7 @@ Capture of Jingzhou
 Cat Burglar
 Cathartic Operation
 Celebrate the Harvest
+Chamber Sentry
 Chimeric Staff
 Choking Tethers
 Clawing Torment
@@ -115,6 +116,7 @@ Fall to Earth
 Fallen Cleric
 Fang Dragon
 Fangren Hunter
+Fell Shepherd
 Festive Funeral
 Fire-Omen Crane
 Fireslinger
@@ -258,6 +260,7 @@ Quest for the Nihil Stone
 Radha, Coalition Warlord
 Radical Idea
 Ragefire
+Rampaging Hippo
 Reckless Amplimancer
 Recycla-bird
 Rejuvenating Springs

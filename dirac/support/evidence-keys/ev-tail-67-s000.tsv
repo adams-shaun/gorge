@@ -8,6 +8,7 @@ Accelerated Evolution	6d1c1078a0453060	8	1/1		1/2	ix:resp
 Aerial Assault	9a59761c89086451	8	0/0		2/2	
 Angelic Field Marshal	1f960b81be1ae51b	4	0/0		0/0	
 Animate Land	ca96eda71bd0e7e8	20	0/0		2/2	
+Appa, the Vigilant	d194add9ee323952	8	1/1		1/1	
 Armor Thrull	743550c0ba174684	19	1/1		0/1	ix:resp
 Asphodel Wanderer	dddb88ef0a12584b	18	1/1		0/1	ix:resp
 Auron, Venerated Guardian	10e2b2b347c10f1f	12	1/1		1/1	
@@ -41,6 +42,7 @@ Common Iguana	268f381fc6290400	15	1/1		0/1	ix:resp
 Confront the Unknown	9e6bc09c325c062b	16	0/0		1/2	ix:resp
 Consuming Vapors	c83f01583ff9e220	13	0/0		1/2	ix:resp
 Contagion	2a3c5fdb451f4bc2	35	0/0		2/2	
+Coralhelm Guide	3c7ecdf6b526802e	19	1/1		1/1	
 Corrupted Zendikon	0dfc1c99d01f2497	9	1/1		2/2	
 Corrupting Licid	63508a3b6371f137	10	1/1		1/1	
 Corsairs of Umbar	7f1ba796f6278fd3	21	2/2		1/1	
@@ -163,6 +165,9 @@ Simplify	8bf5cf4e3cfe4cde	10	0/0		1/2	ix:resp
 Skitter of Lizards	d4e631f743a34647	6	0/0		1/2	cast/alt:multikicked
 Skullscorch	f1230b4fdccb0515	12	0/0		1/2	ix:resp
 Sky Weaver	97a352d90a00aeb3	23	1/1		1/1	
+Snow-Covered Forest	a1a5f67cd8b33a1c	173	1/1		0/1	ix:resp
+Snow-Covered Plains	bdaf911aefce4749	659	1/1		0/1	ix:resp
+Snow-Covered Swamp	c7302ea4a23ed037	614	1/1		0/1	ix:resp
 Spearbreaker Behemoth	5c7db578bb26d526	14	1/1		1/1	
 Spectral Shepherd	5fc11137890f9e2b	8	1/1		1/1	
 Spellweaver Eternal	23c9e8a67bac3365	18	2/2		0/1	ix:resp
@@ -190,6 +195,7 @@ Tranquil Frillback	771a4b82caf0eba5	28	1/1		1/1
 Transcendent Master	bc2e8409a1409c12	4	1/1		1/1	
 Transcendent Message	46dce27769d53dba	14	0/0		0/4	f0/s,f0/s/x+,f0/s/x0,ix:resp
 Trenching Steed	2dcc25cd722aacc2	4	1/1		1/1	
+Trigon of Rage	e338cc69305a890d	24	2/2		1/1	
 Undying Rage	b21bdcc2d116d761	23	1/1		2/2	
 Unwilling Ingredient	f5972371134e7e6d	12	1/1		1/1	
 Vampire Lacerator	de252312e424672b	24	1/1		1/1	
