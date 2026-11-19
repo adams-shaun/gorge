@@ -177,11 +177,17 @@ type CardView struct {
 	// even after every blocker has left the battlefield (CR 509.1h); BlockedBy
 	// then lists fewer creatures than blocked it, or none.
 	AttackingPlayer *state.PlayerID `json:"attacking_player,omitempty"`
-	BlockedBy       []state.ObjID   `json:"blocked_by,omitempty"`
-	Blocked         bool            `json:"blocked,omitempty"`
-	Tapped          bool            `json:"tapped"`
-	Power           int32           `json:"power"`
-	Toughness       int32           `json:"toughness"`
+	// GoadedBy lists, in seat order, every seat with a goad designation on
+	// this permanent in force (CR 701.15; state.Object.Goads), nil when none.
+	// A Goad$ True static's goad is derived, not state, and is not listed.
+	// Public like the attack it compels; omitted when empty, so a view
+	// without a goad serialises as before.
+	GoadedBy  []state.PlayerID `json:"goaded_by,omitempty"`
+	BlockedBy []state.ObjID    `json:"blocked_by,omitempty"`
+	Blocked   bool             `json:"blocked,omitempty"`
+	Tapped    bool             `json:"tapped"`
+	Power     int32            `json:"power"`
+	Toughness int32            `json:"toughness"`
 	// PrintedPT is the face's PRINTED power/toughness as text ("1/1", "*/*"),
 	// the value the physical card or token is printed with. Power/Toughness
 	// above are the CURRENT layer-7 values a counter or an anthem moves; a
@@ -587,13 +593,14 @@ func blockers(blk []state.ObjID, o *state.Object) (bool, []state.ObjID) {
 // battlefield. It reuses cv's storage as cardView does.
 func (p *projector) faceDownCard(cv *CardView, o *state.Object) {
 	atk, ctr := cv.AttackingPlayer, cv.Counters
-	blk, kws := cv.BlockedBy[:0], cv.Keywords[:0]
+	blk, kws, gdb := cv.BlockedBy[:0], cv.Keywords[:0], cv.GoadedBy[:0]
 	*cv = CardView{ID: o.ID, FaceDown: true, Token: p.token(o.ID), Controller: o.Controller, Owner: o.Owner}
 	if o.Zone != state.ZBattlefield {
 		return
 	}
 	cv.Tapped, cv.Damage, cv.Attacking = o.Tapped, o.Damage, o.IsAttacking
 	cv.SummonSick, cv.AttachedTo = o.SummonSick, o.AttachedTo
+	cv.GoadedBy = p.goadedBy(gdb, o)
 	// A Room's doors are printed text, which the face-down permanent has none of.
 	cv.Flags = cardFlags(p.g, o) &^ (FlagLeftDoor | FlagRightDoor)
 	if o.IsAttacking {
@@ -767,7 +774,7 @@ func printedNonManaAbilityCosts(f *cards.Face) []string {
 func (p *projector) cardView(cv *CardView, id state.ObjID) {
 	o := p.g.Obj(id)
 	prod, atk, ctr, types := cv.Produces, cv.AttackingPlayer, cv.Counters, cv.Types
-	blk, kws := cv.BlockedBy[:0], cv.Keywords[:0]
+	blk, kws, gdb := cv.BlockedBy[:0], cv.Keywords[:0], cv.GoadedBy[:0]
 	*cv = CardView{
 		ID: id, Tapped: o.Tapped, Damage: o.Damage, Attacking: o.IsAttacking,
 		Controller: o.Controller, Owner: o.Owner, SummonSick: o.SummonSick,
@@ -923,6 +930,29 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 		}
 		cv.Counters = ctr
 	}
+	cv.GoadedBy = p.goadedBy(gdb, o)
+}
+
+// goadedBy is o's GoadedBy list into dst's storage, read from state: each
+// seat, in seat order, with a goad relationship on o in force
+// (Game.GoadActive); nil off the battlefield or when no seat goads it.
+func (p *projector) goadedBy(dst []state.PlayerID, o *state.Object) []state.PlayerID {
+	if len(o.Goads) == 0 || o.Zone != state.ZBattlefield {
+		return nil
+	}
+	for i := range p.g.Players {
+		pid := p.g.Players[i].ID
+		for _, ge := range o.Goads {
+			if ge.Player == pid && p.g.GoadActive(o, ge) {
+				dst = append(dst, pid)
+				break
+			}
+		}
+	}
+	if len(dst) == 0 {
+		return nil
+	}
+	return dst
 }
 
 // typeLine is strings.Join(parts, " "), the CardView.Types line, without a
