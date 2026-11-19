@@ -94,6 +94,9 @@ func (s *State) statCond(k *prep, st statSrc) bool {
 	if c == 0 {
 		return true
 	}
+	if st.a.Static.StFlags&kop.StCantAtkDef != 0 && st.a.Kind == kop.AbStatic && st.a.Static.Kind == kop.StatCantAttack && s.g.atkDef == 0 && !s.duel() {
+		return false // an UnlessDefender$ gate reads a pair's defender: unbound outside cantAtkPair (combat_cantattack.go)
+	}
 	return s.condEval(k, c, s.ctxStatic(st))
 }
 

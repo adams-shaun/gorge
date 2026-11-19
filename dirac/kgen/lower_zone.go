@@ -3632,7 +3632,7 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 			if err != nil {
 				return err
 			}
-			if r.Kind != rTarget && r.Kind != rEachOpp && r.Kind != rTriggeredPlayer && r.Kind != rTriggeredTgtCtrl {
+			if r.Kind != rTarget && r.Kind != rEachOpp && r.Kind != rTriggeredPlayer && r.Kind != rTriggeredTgtCtrl && r.Kind != rChosenPlayer {
 				return refuse("GainControl NewController %q", nc)
 			}
 			if r.Kind == rTarget {

@@ -1320,6 +1320,7 @@ StAtkTaxWalker	StaticFlags	4
 StBanOpp	StaticFlags	256
 StBargained	StaticFlags	4096
 StBeamGranted	StaticFlags	1
+StCantAtkDef	StaticFlags	256
 StCantAtkPlayer	StaticFlags	2
 StCantAtkWalker	StaticFlags	4
 StCasterActive	StaticFlags	64

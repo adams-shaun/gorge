@@ -131,9 +131,10 @@ func TestFewerInPlayCantAttackBlock(t *testing.T) {
 		if atk == nil || blk == nil {
 			t.Fatalf("%s: missing the CantAttack/CantBlock statics", c.Name)
 		}
-		// CantAttack: the defender's count >= the controller's.
-		if atk.Cond.Kind != cValue || !countCond(atk.Cond.A, atk.Cond.Op, atk.Cond.B, typ+".OppCtrl") {
-			t.Errorf("%s CantAttack Cond = %+v, want vCount(%s.OppCtrl) >= vCount(%s.YouCtrl)",
+		// CantAttack: the pair's defender's count >= the controller's
+		// (DefenderCtrl, judged per defender: kop.StCantAtkDef).
+		if atk.Cond.Kind != cValue || !countCond(atk.Cond.A, atk.Cond.Op, atk.Cond.B, typ+".DefenderCtrl") {
+			t.Errorf("%s CantAttack Cond = %+v, want vCount(%s.DefenderCtrl) >= vCount(%s.YouCtrl)",
 				c.Name, atk.Cond, typ, typ)
 		}
 		// CantBlock: NotPlayerTurn AND the active player's count >= the
@@ -171,6 +172,10 @@ func filterIs(f *lFilter, expr string) bool {
 	switch ctrl {
 	case "YouCtrl":
 		if c.Ctrl != whoYou {
+			return false
+		}
+	case "DefenderCtrl":
+		if c.Ctrl != whoDefending {
 			return false
 		}
 	case "OppCtrl":

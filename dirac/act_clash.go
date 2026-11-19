@@ -23,14 +23,28 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // The options are gorge's, bottom (mode 0) then top (mode 1), over the
 // revealed card.
 
-// clashOpp is the seat the controller clashes with: their one opponent, or
-// noSeat when none is left.
+// The clash opponent (CR 701.31a; gorge clashParticipants ->
+// chooseClashOpponent): the controller chooses one living opponent, an ask
+// (raPodClashOpp, ChGenPlayer, mode = the seat) of one "player" option per
+// opponent in AliveFrom(0) order, posed only with two or more of them; a sole
+// opponent is the clash's unasked and none leaves the controller clashing
+// alone. The seat is held in res.chPl (seat + 1) until the last placement is
+// answered, then cleared, so no ChosenPlayer reader sees it (kgen refuses a
+// Clash beside a ChoosePlayer of its own ability).
+
+// clashOpp is the seat the controller clashes with (res.chPl, set as the
+// clash starts), or noSeat when none is left.
 func (s *State) clashOpp(p uint8) uint8 {
-	if o := s.oppsFrom(p); o.n > 0 {
-		return o.s[0]
+	if s.res.chPl != 0 {
+		return s.res.chPl - 1
 	}
 	return noSeat
 }
+
+// DebugClashNextSeat is the lockstep mutation of the pod clash: the kernel
+// clashes with the next live seat unasked, the two-seat reading
+// (TestFourSeatClashLockstep must then diverge).
+var DebugClashNextSeat bool
 
 // clashMV is the mana value of the top card of seat p's library, -1 for an
 // empty library.
@@ -43,20 +57,61 @@ func (s *State) clashMV(k *prep, p uint8) int {
 	return s.objMV(k, s.objs[o].card, o)
 }
 
-// clashExt is OpExt ExtClash; false: a placement ask is posed.
+// clashExt is OpExt ExtClash; false: the opponent or a placement ask is
+// posed.
 //
 //kmanifest:ext ExtClash
 func (s *State) clashExt(k *prep, in *kop.Instr) (ok, done bool) {
 	p := s.res.e.ctrl
+	q := s.oppsFrom(p)
+	if q.n > 1 && !DebugClashNextSeat {
+		s.res.ask, s.res.askP = raPodClashOpp, p
+		return false, true
+	}
+	opp := uint8(noSeat)
+	if q.n > 0 {
+		opp = q.s[0]
+	}
+	return s.clashStart(k, p, opp), true
+}
+
+// clashStart reveals and strikes the verdict of p's clash with opp (noSeat:
+// none) and poses the first placement ask; true: nothing is left to ask.
+func (s *State) clashStart(k *prep, p, opp uint8) bool {
+	s.res.chPl = 0
 	mine, theirs := s.clashMV(k, p), -1
-	if o := s.clashOpp(p); o != noSeat {
-		theirs = s.clashMV(k, o)
+	if opp != noSeat {
+		s.res.chPl = opp + 1
+		theirs = s.clashMV(k, opp)
 	}
 	s.g.roll = 2
 	if mine >= 0 && mine > theirs {
 		s.g.roll = 1
 	}
-	return s.clashAsk(p), true
+	if s.clashAsk(p) {
+		s.res.chPl = 0
+		return true
+	}
+	return false
+}
+
+// clashOppOptions fills the opponent ask: one option per living opponent of
+// the controller in seat order from seat 0 (gorge's AliveFrom(0)).
+func (s *State) clashOppOptions(d *Decision) {
+	d.Sub = ChGenPlayer
+	for q := uint8(0); q < s.nSeats(); q++ {
+		if q != s.res.askP && !s.out(q) {
+			d.add(MakeAction(AkChoose, 0, 0, q))
+		}
+	}
+}
+
+// clashOppAnswer starts the clash with the chosen opponent.
+func (s *State) clashOppAnswer(k *prep, a Action) {
+	s.res.ask = raNone
+	if s.clashStart(k, s.res.e.ctrl, a.Mode()) {
+		s.continueRes(k, 0)
+	}
 }
 
 // clashAsk poses the placement ask of seat p, or of the opponent when p's
@@ -103,6 +158,7 @@ func (s *State) clashAnswer(k *prep, a Action) {
 		}
 	}
 	if next {
+		s.res.chPl = 0
 		s.continueRes(k, 0)
 	}
 }
