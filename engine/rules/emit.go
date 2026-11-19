@@ -899,6 +899,16 @@ func (e *Engine) sweepExileReturn(source state.ObjID) {
 		if o == nil || o.Zone != state.ZExile {
 			continue
 		}
+		// CR 400.4a: an instant or sorcery card that would enter the
+		// battlefield remains in its previous zone, so a card exiled face
+		// down while manifested (Emerge from the Cocoon under a Sheltered by
+		// Ghosts) stays in exile, revealed (CR 708.9), instead of coming back
+		// as a battlefield sorcery. The ReturnAbility$ rider reads "when an
+		// exiled card enters the battlefield this way" (CR 610.3): nothing
+		// enters, so the rider does not run either.
+		if effects.InstantCannotEnter(e, o, entry.From) {
+			continue
+		}
 		e.emit(events.Event{Kind: events.MoveZone, Obj: entry.Obj, From: state.ZExile, To: entry.From})
 		if entry.Ret {
 			e.runExileReturnAbility(source, entry.Obj)
