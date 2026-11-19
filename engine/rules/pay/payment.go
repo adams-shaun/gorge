@@ -403,6 +403,16 @@ type Descriptor struct {
 	// Amount$ X at the counters it can remove instead of unbounded
 	// (potential_subcounter.go).
 	SubCounterBound bool
+	// NoMana marks the zero-spend shape's payment (stat:ManaRestriction,
+	// Hogaak's "You can't spend mana to cast this spell"): this payment may
+	// spend NO mana at all, so every unit of the cost must come from its
+	// non-mana credits (the spell's Convoke and Delve). AvailableFor answers
+	// the empty pool for such a payment, so the offer gate, the announcement
+	// pricing and the charge all agree no mana exists to spend. Set by the
+	// rules side at descriptor build (paymentForCast from the pending cast's
+	// noMana, the offer gates' own reader); false, the ordinary case, costs
+	// one bool check.
+	NoMana bool
 }
 
 // OnlyTagKnown reports whether tag names a modelled producer tag (the
@@ -484,6 +494,12 @@ func DescriptorFor(id state.ObjID, ability bool, cost Cost) Descriptor {
 // (CostContainsX, CostContainsC, CantPayGenericCosts), so callers without a
 // real cost must say so with Cost{} and stay on the class-only terms.
 func AvailableFor(e Engine, p state.PlayerID, d Descriptor) Available {
+	// A NoMana payment (stat:ManaRestriction's zero-spend shape) may spend no
+	// mana at all: the empty pool is the answer whatever the real pool, its
+	// restricted batches or its typed provenance hold.
+	if d.NoMana {
+		return Available{}
+	}
 	pl := e.Game().Players[p]
 	available := Available{Pool: pl.Pool, Typed: pl.ManaUnits()}
 	for _, r := range pl.RestrictedMana {

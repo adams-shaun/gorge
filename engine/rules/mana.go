@@ -271,7 +271,40 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 	if scope.Kind == "Spell" && e.hasCastDelve(id, false) {
 		delve = int32(len(e.G.Zone(state.ZGraveyard, p)))
 	}
-	if !e.manaFeasiblePricedP(p, offerPayment(id, ability, scope), base, &mods, tax, delve, hyp) {
+	// The zero-spend shape's offer gate (stat:ManaRestriction, Hogaak's "You
+	// can't spend mana to cast this spell"): the offer is the integrated
+	// credit question -- can the cast's whole cost be paid by its Convoke
+	// taps and Delve potential alone (manaSpendOfferCovers, over the RAW cost
+	// composed with the same modifiers and tax the ordinary gate prices
+	// with)? castOfferBase's generic-only Convoke credit cannot see a pip's
+	// colour face, so the ban does not reuse it. An offer the pay step then
+	// refuses is a rewind, so the same credits the announcement gates enforce
+	// (validateCastContributions' coverage, announceFeasible's fold,
+	// delveAsk's forced shortfall) are exactly what the offer promises here,
+	// and no answer inside the payment can spend a unit of mana the offer
+	// never promised. A cost carrying a component the credit cannot price
+	// (an unfixed {X}, a Phyrexian or hybrid-Phyrexian pip whose life face is
+	// a legal non-mana payment, snow mana) is withheld outright: the
+	// fail-closed direction, never an offer whose every legal answer is
+	// refused. The target-dependent reduction retry below is skipped: a
+	// reduction can only free generic for the Delve potential, and the
+	// potential-target census is the one place the composed modifiers may
+	// differ from this pass -- a targeted zero-spend carrier under-credits
+	// and stays withheld rather than promising a repricing it has not proved.
+	desc := offerPayment(id, ability, scope)
+	if !ability {
+		desc.NoMana = manaSpendCastBan(e.G, id)
+	}
+	if desc.NoMana {
+		raw := pay.RawBaseCost(asPayer(e), p, id)
+		var composed Cost
+		e.composedOfferCostInto(&composed, p, id, &raw, &mods, scope)
+		if !manaSpendOfferCovers(e, p, id, composed, delve) {
+			return false
+		}
+		return pay.NonManaCastableP(asPayer(e), p, id, &composed, ability, tapCostSAKind(scope.Ab))
+	}
+	if !e.manaFeasiblePricedP(p, desc, base, &mods, tax, delve, hyp) {
 		// A target-dependent reducer cannot be in the ordinary pre-target
 		// snapshot, but it may make one legal target choice payable. Retry with
 		// exactly those potential reductions; target-dependent raises/floors
@@ -291,7 +324,7 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 				if len(extra) > 0 {
 					m.Reduces = append(slices.Clone(m.Reduces), extra...)
 				}
-				if !e.manaFeasiblePriced(p, offerPayment(id, ability, scope), *base, m, tax, delve, hyp) {
+				if !e.manaFeasiblePriced(p, desc, *base, m, tax, delve, hyp) {
 					return false
 				}
 				var c Cost

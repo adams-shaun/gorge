@@ -28,6 +28,7 @@ func TestEDHStaticsBSupported(t *testing.T) {
 		"Tamiyo, Collector of Tales",
 		"Rasputin Dreamweaver",
 		"Yurlok of Scorch Thrash",
+		"Hogaak, Arisen Necropolis",
 	} {
 		c, ok := r.Lookup(name)
 		if !ok {

@@ -72,6 +72,16 @@ func (e *Engine) validateCastContributions(d *decision.Decision, in decision.Int
 	if !e.convokeAbsorbs(pc, e.manaToPay(pc), all, pc.cost.X > 0) {
 		return fmt.Errorf("announcement reduces nothing: the outstanding cost cannot absorb every chosen contribution")
 	}
+	// The zero-spend shape's coverage rule (stat:ManaRestriction, Hogaak's
+	// "You can't spend mana to cast this spell"): the announcement must leave
+	// no more than the Delve potential, and no coloured requirement at all --
+	// mana may pay none of it. The same helper is what CastContributionsAdmitted
+	// hands the lockstep host, so the offer's promise (the offer gate priced
+	// this cast only when its credits could cover the whole cost) and every
+	// accepted answer agree.
+	if pc.noMana && !manaSpendConvokeCovers(e, pc, pays) {
+		return fmt.Errorf("announcement leaves mana the cast may not spend: the convoke and delve credits must cover the whole cost")
+	}
 	// Waterbend taps pay only the waterbend amount (CR 701.67a). A fixed
 	// Waterbend<N> part has a cap known here; a Waterbend<X> amount is the
 	// announced X, which does not exist yet at this pre-X announcement gate,
@@ -133,11 +143,34 @@ func (e *Engine) convokeAsk() bool {
 	if isWaterbend && !isConvoke && !isHarmonize && !isImprovise && !creatureMana {
 		minTaps = e.waterbendTapsNeeded(pc)
 	}
+	// The zero-spend shape's colour options (stat:ManaRestriction, Hogaak):
+	// the cast's unresolved hybrid pips carry no Colored unit yet (their
+	// faces are announced later, manaAsk), but a convoke creature of one of
+	// their colours pays exactly that face -- "each creature you tap while
+	// casting this spell pays for {1} or one mana of that creature's colour"
+	// (CR 702.51a). The announcement is gated on pc.noMana, so every
+	// ordinary convoke ask offers the same options it always did.
+	mana := e.manaToPay(pc)
+	colourBudget := 0
+	if pc.noMana {
+		// The announcement's exact size: every coloured slot (a hybrid pip's
+		// face included) needs its own coloured tap, and the generic left
+		// after the Delve potential needs one tap per unit
+		// (manaSpendConvokeCovers). The ask publishes both, so a rules-ignorant
+		// answerer (the bot) can build a covering announcement without
+		// recomposing the cost.
+		colourBudget, minTaps = manaSpendAnnouncementShape(e, pc, mana)
+		for _, p := range mana.Hybrid {
+			for _, c := range []byte{p.A, p.B} {
+				mana.Colored[state.ManaIndex(c)]++
+			}
+		}
+	}
 	return pay.ConvokeAsk(asPayer(e), &pc.CastPayment, &pc.PaidCost, pay.ConvokeOffer{
-		Player: pc.player, Card: pc.card, MinTaps: minTaps,
+		Player: pc.player, Card: pc.card, MinTaps: minTaps, ColourBudget: colourBudget,
 		Convoke: isConvoke, Harmonize: isHarmonize, Improvise: isImprovise, Waterbend: isWaterbend,
 		CreatureMana: creatureMana, SourceTaps: pc.cost.Tap,
-		Mana: e.manaToPay(pc), HasX: pc.cost.X > 0,
+		Mana: mana, HasX: pc.cost.X > 0,
 		WaterbendN: pc.mods.Waterbend, WaterbendOpen: pc.mods.RaiseX != 0 || pc.mods.WaterbendX,
 	})
 }
@@ -294,8 +327,17 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	}
 	// The pips 0..payIdx have been announced (their faces are folded in
 	// above), so their slots leave the cost; the pips after payIdx stay live
-	// for the shared primitive to enumerate.
+	// for the shared primitive to enumerate. The zero-spend shape's pricing
+	// (stat:ManaRestriction, Hogaak) folds the announced Convoke
+	// contributions in AFTER that drop, over the pips still left to resolve:
+	// with no mana left to spend, a pip face is offered exactly when the
+	// credits -- this announcement plus the Delve potential below -- cover
+	// the remaining requirement, and an unfolded check would refuse every
+	// face of a cast whose pips are only ever payable by the credits.
 	c = c.DropAnnouncePrefix(pc.PayIdx + 1)
+	if pc.noMana {
+		c = noManaConvokeFold(pc, c)
+	}
 	payment := paymentForCast(pc, c)
 	rider := pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}
 	if e.manaFeasibleDescriptor(pc.player, payment, c, pc.mods, pc.taxGeneric, delve, rider) {

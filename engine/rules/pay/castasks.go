@@ -40,6 +40,13 @@ type ConvokeOffer struct {
 	WaterbendOpen bool
 	// MinTaps is how many contributions the payment can't finish without.
 	MinTaps int
+	// ColourBudget, when > 0, is the exact number of coloured contributions
+	// the announcement may make: each coloured option carries Value 1 and the
+	// ask publishes MaxSum = ColourBudget, the one budget Validate, Clamp and
+	// the bot arm all read. A cast that may not spend mana (stat:ManaRestriction)
+	// sets it, because its hybrid pips are offered under both faces and a
+	// coloured pick past the pips would pay nothing.
+	ColourBudget int
 }
 
 // harmonizePaymentGroup is the one exclusivity group every harmonize option
@@ -63,6 +70,8 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 	name := g.Obj(in.Card).Face().Name
 	d := &decision.Decision{Player: in.Player, Kind: decision.KChoose, Min: 0, Source: in.Card}
 	sawCreature, sawArtifact := false, false
+	// colourValue prices each coloured convoke option under ColourBudget (MaxSum).
+	colourValue := min(in.ColourBudget, 1)
 	var creatureMana map[state.ObjID]bool
 	if in.CreatureMana {
 		creatureMana = make(map[state.ObjID]bool)
@@ -104,7 +113,7 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 			for _, color := range []byte{'W', 'U', 'B', 'R', 'G'} {
 				if mana.Colored[state.ManaIndex(color)] > 0 && strings.Contains(r.Colors(id), string(color)) {
 					d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "convoke_" + string(color), Obj: id,
-						Group: group, Label: "Tap " + o.Face().Name + " for " + string(color)})
+						Group: group, Label: "Tap " + o.Face().Name + " for " + string(color), Value: colourValue})
 					sawCreature = true
 				}
 			}
@@ -217,6 +226,7 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 		d.Max = 1
 	}
 	d.Min = min(in.MinTaps, d.Max)
+	d.MaxSum = in.ColourBudget
 	e.Ask(AskCast, d)
 	return true
 }
