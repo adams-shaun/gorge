@@ -84,12 +84,21 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		return nil, false
 	}
 	a := decision.PotentialAction{Kind: o.Kind, Obj: o.Obj, Ability: o.Ability, Mode: o.Mode}
+	desc, descOK := scriptPlayDesc(o, func() Cost { return e.castOfferBase(p, o.Obj) })
 	build := func(phased bool) *scriptSearch {
 		sr := e.newScriptSearch(p, a, o.AltCostIndex, potentialScriptNodes)
 		if sr == nil {
 			return nil
 		}
 		sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
+		for _, id := range gaps {
+			for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
+				if repeatableFeeOnlyMana(e, p, id, ma) {
+					sr.feeOnly = true
+				}
+			}
+		}
+		sr.actDesc, sr.actDescOK = desc, descOK
 		sr.instance, sr.instanced = o.Cost, o.Kind == "cast"
 		sr.passes = true
 		sr.phased = phased
@@ -114,6 +123,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	if plain == nil {
 		return nil, false
 	}
+	plain.feeStall = true // the plain run's doomed-branch prune (feeOnlyAskPrune)
 	script, found := plain.run(e)
 	if found && len(script) > 0 {
 		return script, true
@@ -158,14 +168,8 @@ func (e *Engine) scriptSpendableGaps(p state.PlayerID, o decision.Option, gaps [
 	if o.Mode != "" || o.AltCostIndex != 0 {
 		return gaps
 	}
-	var desc paymentDescriptor
-	switch o.Kind {
-	case "cast":
-		cost := e.castOfferBase(p, o.Obj)
-		desc = paymentDescriptor{ID: o.Obj, Class: pay.PurposeSpell, Cost: &cost}
-	case "ability":
-		desc = paymentDescriptor{ID: o.Obj, Class: pay.PurposeActivated}
-	default:
+	desc, ok := scriptPlayDesc(o, func() Cost { return e.castOfferBase(p, o.Obj) })
+	if !ok {
 		return gaps
 	}
 	var out []state.ObjID
@@ -184,6 +188,20 @@ func (e *Engine) scriptSpendableGaps(p state.PlayerID, o decision.Option, gaps [
 		return gaps
 	}
 	return out
+}
+
+// scriptPlayDesc is the searched play's payment descriptor: scriptSpendableGaps'
+// gap admission and the fee-stall prune's pool read (pay.AvailableFor) share
+// it. false for a play that is neither a plain cast nor a printed ability.
+func scriptPlayDesc(o decision.Option, castBase func() Cost) (paymentDescriptor, bool) {
+	switch o.Kind {
+	case "cast":
+		cost := castBase()
+		return paymentDescriptor{ID: o.Obj, Class: pay.PurposeSpell, Cost: &cost}, true
+	case "ability":
+		return paymentDescriptor{ID: o.Obj, Class: pay.PurposeActivated}, true
+	}
+	return paymentDescriptor{}, false
 }
 
 // gapSpendableFor reports whether one of id's mana abilities the census reads
@@ -231,6 +249,46 @@ type scriptSearch struct {
 	// a kept one -- so it can only find a script the plain search walked
 	// past, never refuse one it found.
 	subsume bool
+	// feeOnly: the census's gaps include a fee-only repeatable source (Energy
+	// Refractor's "{2}: Add one mana of any color"). The activation-site,
+	// one-shot and twin cuts below are scoped to it: they exist to float that
+	// source's fee before it is activated, and applying them to a board with
+	// no such source only moves the node walk other searches share a budget
+	// with (the granted-mana prefix's capSpent). The landed ask prune
+	// (feeStall) stays on every plain run.
+	feeOnly bool
+	// feeStall arms the plain run's doomed-branch prune (feeOnlyAskPrune): a
+	// fee-only repeatable gap's colour ask drops the answers whose colour
+	// cannot bring the play closer to paid (CR 605.3a: a line that skips the
+	// net-<=0 repeatable activation holds at least as much of every colour as
+	// one that uses it). Without it the search spends its whole node budget
+	// on a fee-only source's own activations (Energy Refractor's "{2}: Add
+	// one mana of any color" branches five ways per activation, each a
+	// distinct payer state) and starves before the funding line that pays the
+	// play without the source is reached. Only the plain run arms it: it is
+	// the run dirac's node-for-node mirror (mana_filter.go filtColours)
+	// prices plays by, and the fallbacks below only run where the plain run
+	// already found nothing.
+	feeStall bool
+	// actPool is the pool at the node the last gap activation was submitted
+	// from, and actSrc its source: the activation's colour ask is read after
+	// its fee left the pool, and the fee's payment destroys the shapes it
+	// spent ({W}{R} paying {2} leaves no trace of either), so the stall test
+	// reads the opening pool (the kernel's mirror reads the node's pool,
+	// mana_filterrepeat.go filtFeeColStalls). The ask of the activation's own
+	// resolution follows it directly, so the stash is still the ask's.
+	// The stash reads the pool this payment may spend (pay.AvailableFor: the
+	// restricted batches actDesc admits back in), the view the kernel's mirror
+	// adds its admitted restricted units beside (filtFeeColStalls: s.pl[p].pool
+	// plus rbUnits of restrPoolAdmits), so both short-counts read the same
+	// mana. actDesc is the searched play's payment descriptor
+	// (scriptPlayDesc); actDescOK false (a play that is neither a plain cast
+	// nor a printed ability, which the kernel never searches a filter for)
+	// makes the prune fail open.
+	actPool   state.Mana
+	actSrc    state.ObjID
+	actDesc   paymentDescriptor
+	actDescOK bool
 	// costCol holds the searched play's base cost's coloured pips per colour
 	// when that cost is coloured pips alone (scriptNeedCounts), the bound the
 	// subsume run's colour-ask filter prunes against. costOK is false for a
@@ -238,6 +296,16 @@ type scriptSearch struct {
 	// colour may help pay.
 	costCol [state.MC + 1]int32
 	costOK  bool
+	// pipCol is the searched play's base cost's fixed pips per colour, pipOK
+	// whether they were read (scriptPipCounts): the fee-stall prune's bound
+	// (feeOnlyAskPrune). Unlike costOK it is not about the pips alone -- a
+	// generic pip is fine, payable with any colour -- but about FIXED pips:
+	// pipOK is false when the cost has a part whose payment any colour may
+	// help beyond a generic one (an X, snow, forage or hybrid-family pip) or
+	// whose base the read does not name (scriptPlayBaseCost: a mode or
+	// alternative cost), and the prune then fails open.
+	pipCol [state.MC + 1]int32
+	pipOK  bool
 	// printedOnly: the play is a printed ability, and a granted one sharing its
 	// Ability is another option (only a printed ability reaches the planner).
 	printedOnly bool
@@ -276,6 +344,7 @@ func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, a
 	if altCost <= 0 {
 		sr.need = scriptNeedColours(e, e.G.Obj(a.Obj), p, a)
 		sr.costCol, sr.costOK = scriptNeedCounts(e, e.G.Obj(a.Obj), p, a)
+		sr.pipCol, sr.pipOK = scriptPipCounts(e, e.G.Obj(a.Obj), p, a)
 	}
 	return sr
 }
@@ -391,6 +460,33 @@ func scriptNeedCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a d
 		}
 	}
 	return counts, any
+}
+
+// scriptPipCounts is scriptNeedCounts as the fee-stall prune's bound
+// (feeOnlyAskPrune; dirac's filtUsefulCost on the same play): the searched
+// play's base cost's fixed pips per colour, ok false when the cost has a
+// part whose payment any colour may help beyond a generic one (an X, snow,
+// forage or hybrid-family pip -- a generic pip is fine, payable with any
+// colour) or that the base cost does not announce (scriptPlayBaseCost: a
+// mode or alternative cost). The set may be empty (an all-generic cost), and
+// the prune then drops every colour ask answer of a fee-only repeatable gap:
+// a conversion that never raises the spendable total cannot help pay it.
+func scriptPipCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) ([state.MC + 1]int32, bool) {
+	var counts [state.MC + 1]int32
+	c, ok := scriptPlayBaseCost(r, o, p, a)
+	if !ok {
+		return counts, false
+	}
+	if c.X != 0 || c.Snow != 0 || c.Forage ||
+		len(c.Hybrid) != 0 || len(c.Phyrexian) != 0 || len(c.Twobrid) != 0 || len(c.HybridPhyrexian) != 0 {
+		return counts, false
+	}
+	for i, n := range c.Colored {
+		if n > 0 && i <= state.MC {
+			counts[i] = n
+		}
+	}
+	return counts, true
 }
 
 // run searches from a clone of e; found reports a path (possibly empty,
@@ -555,6 +651,25 @@ func (sr *scriptSearch) offered(o *decision.Option) bool {
 	return o.Kind == a.Kind && o.Obj == a.Obj && o.Ability == a.Ability && o.Mode == a.Mode && (sr.altCost < 0 || o.AltCostIndex == sr.altCost)
 }
 
+// childOffers reports whether the play is already offered at child's
+// priority decision cd (visit's scan): the visited-state key is a colour-only
+// state, and a priced state can key equal to an earlier unpriced sibling (a
+// restricted unit beside a filter's converted one), so the hoisted dedup must
+// not skip the offered node. The phased run's scope is visit's: an offer the
+// fallback does not take is not a reason to keep the node.
+func (sr *scriptSearch) childOffers(d *decision.Decision, c *Engine) bool {
+	for i := range d.Options {
+		if !sr.offered(&d.Options[i]) {
+			continue
+		}
+		if sr.phased && !sr.consumes(c) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
 // priced reports whether, at c's payer priority, the planner pays the play
 // from the floating pool (a witness that also reaches it); a verdict that
 // is neither a witness nor a proof marks the search unproven.
@@ -611,6 +726,16 @@ func (sr *scriptSearch) try(pool *Engine, c *Engine, d *decision.Decision, in de
 	child := pool.hypClone(c)
 	found := false
 	if child.Submit(in) == nil {
+		// The visited-state check is hoisted here (cut G): a duplicate
+		// payer state is not a node of the search. visit's own check stays
+		// (the root and any child whose key it reaches first still mark it),
+		// and the seen set only ever holds states an earlier offered scan
+		// did not find the play in, so skipping before that scan cannot lose
+		// an offer. The budget is potentialScriptNodes *distinct* states.
+		if cd := child.Pending(); sr.feeOnly && cd != nil && cd.Kind == decision.KPriority && cd.Player == sr.p && !sr.childOffers(cd, child) && sr.seen[scriptStateKey(child, sr.p)] {
+			pool.hypRelease(child)
+			return false
+		}
 		sr.path = append(sr.path, scriptStepOf(d, in))
 		if found = sr.visit(pool, child, funded, gapUsed); !found {
 			sr.path = sr.path[:len(sr.path)-1]
@@ -683,6 +808,12 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 		if sr.subsume {
 			answers = sr.subsumeAnswers(c, d, answers)
 		}
+		if sr.feeStall {
+			answers = sr.feeOnlyAskPrune(c, d, answers)
+			if sr.feeOnly {
+				answers = sr.oneShotAskPrune(c, d, answers)
+			}
+		}
 		if len(answers) == 0 {
 			sr.approx = true
 		}
@@ -736,6 +867,62 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 	return false
 }
 
+// scriptTwin reports whether a and b are indistinguishable mana sources for
+// the search's purposes: the same printed face, both untapped, no counters
+// and nothing attached to either, and the same activate options on the
+// current decision (a granted ability a continuous effect gives one and not
+// the other is not a twin). Two such sources' activation subtrees are
+// isomorphic -- the same mana for the same cost -- so the branch through the
+// later one reaches no payer state the earlier one's does not, and the
+// search skips it (the kernel's filtSearch.twinTried on the same pair).
+func scriptTwin(g *state.Game, d *decision.Decision, a, b state.ObjID) bool {
+	if a == b || a == 0 || b == 0 {
+		return false
+	}
+	oa, ob := g.Obj(a), g.Obj(b)
+	if oa == nil || ob == nil || oa.Face() == nil || ob.Face() == nil {
+		return false
+	}
+	if oa.Face().Name != ob.Face().Name || oa.Tapped || ob.Tapped || oa.AttachedTo != 0 || ob.AttachedTo != 0 {
+		return false
+	}
+	// Battlefield sources alone: the kernel's twin cut reads battlefield slots
+	// and its hand pass (handFund) walks every guide. Two hand sources are not
+	// interchangeable for the search either -- one may be the searched play's
+	// own card, whose exile ends the play -- so the second guide is a line of
+	// its own (the visited set still drops an equal state it does not price).
+	if oa.Zone != state.ZBattlefield || ob.Zone != state.ZBattlefield {
+		return false
+	}
+	if oa.Counters != nil || ob.Counters != nil {
+		return false
+	}
+	for _, id := range g.Zone(state.ZBattlefield, oa.Controller) {
+		if o := g.Obj(id); o != nil && (o.AttachedTo == a || o.AttachedTo == b) {
+			return false
+		}
+	}
+	return scriptOptionKey(d, a) == scriptOptionKey(d, b)
+}
+
+// scriptActivate reports whether o is an "activate" option: a mana ability the
+// payer can activate at priority, the search's one branching move.
+func scriptActivate(o *decision.Option) bool { return o.Kind == "activate" }
+
+// scriptOptionKey is a source's activate-option signature at d: the labels,
+// symbols and ability indices the decision offers for it, in engine order.
+func scriptOptionKey(d *decision.Decision, id state.ObjID) string {
+	var b strings.Builder
+	for i := range d.Options {
+		o := &d.Options[i]
+		if !scriptActivate(o) || o.Obj != id {
+			continue
+		}
+		fmt.Fprintf(&b, "%s|%s|%d;", o.Label, o.ManaSymbol, o.Ability)
+	}
+	return b.String()
+}
+
 // activations is the visit activation loop: sr's children at c, one try an
 // option. The plain order is the one dirac's mirror prices plays by: the
 // uncovered sources first, then the others (under gapsOnly, while funding
@@ -775,9 +962,10 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 		if !ph.gap && sr.gapsOnly && funded >= sr.funding {
 			break // under gapsOnly, while funding lasts: a covered source tapped to pay a filter's fee
 		}
+		var tried []state.ObjID
 		for j := range d.Options {
 			opt := &d.Options[j]
-			if opt.Kind != "activate" {
+			if !scriptActivate(opt) {
 				continue
 			}
 			gap := scriptGap(gaps, opt.Obj)
@@ -796,8 +984,28 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 			if sr.ownTapSource(c, opt.Obj) {
 				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
 			}
+			twin := false
+			for _, t := range tried {
+				if scriptTwin(c.G, d, t, opt.Obj) {
+					twin = true
+					break
+				}
+			}
+			if sr.feeOnly && twin {
+				continue // an indistinguishable earlier source already walked this subtree
+			}
 			if !gap && !sr.coveredSpendable(c, p, opt.Obj) {
 				continue // a covered source whose mana the play cannot spend is a dead funding branch
+			}
+			if gap && sr.feeStall && sr.feeOnly {
+				if sr.actDescOK {
+					sr.actPool = pay.AvailableFor(asPayer(c), p, sr.actDesc).Pool
+				} else {
+					sr.actPool = c.G.Players[p].Pool
+				}
+				if sr.feeOnlyGapDoomed(c, opt.Obj) {
+					continue // only fee-only repeatable activations, none of whose colours can help
+				}
 			}
 			if !gap && !c.windowSourceYields(p, opt.Obj) {
 				// A covered source whose every mana ability provably adds
@@ -807,9 +1015,14 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 				// (the kernel's funding pass never taps it).
 				continue
 			}
+			tried = append(tried, opt.Obj)
 			next := funded
 			if !gap {
 				next++
+			} else {
+				// The gap activation's opening pool was stashed above for the
+				// fee-stall run; its source is what the ask's prune reads.
+				sr.actSrc = opt.Obj
 			}
 			if sr.try(pool, c, d, decision.Intent{Seq: d.Seq, Player: p, Choices: []int{opt.Index}}, next, gapUsed || gap) {
 				return true
@@ -1208,6 +1421,299 @@ func (sr *scriptSearch) subsumeAnswers(c *Engine, d *decision.Decision, answers 
 	return answers[:kept]
 }
 
+// scriptPipShort counts the fixed pips pipCol the pool still lacks.
+func scriptPipShort(pipCol *[state.MC + 1]int32, pool state.Mana) (n int32) {
+	for i := range pool {
+		if pipCol[i] > pool[i] {
+			n += pipCol[i] - pool[i]
+		}
+	}
+	return n
+}
+
+// scriptPayFee pays fee from pool in pay/solve.go's order: the coloured pips
+// first, then the generic part from {C}, W, U, B, R, G. false reports a fee
+// the pool cannot pay. It mutates pool.
+func scriptPayFee(pool *state.Mana, fee state.Mana, generic int32) bool {
+	for i := range pool {
+		if fee[i] > pool[i] {
+			return false
+		}
+		pool[i] -= fee[i]
+	}
+	for g := generic; g > 0; g-- {
+		spent := false
+		for _, i := range [...]int{state.MC, state.MW, state.MU, state.MB, state.MR, state.MG} {
+			if pool[i] > 0 {
+				pool[i]--
+				spent = true
+				break
+			}
+		}
+		if !spent {
+			return false
+		}
+	}
+	return true
+}
+
+// feeOnlyGapDoomed reports whether activating gap source id can only walk a
+// doomed branch: every mana ability it could activate is a fee-only
+// repeatable one (repeatableFeeOnlyMana), and no colour any of them can make
+// brings the play's fixed pips closer to paid once the ability's fee is paid
+// from the node's opening pool (feeOnlyAskPrune's short test, applied at the
+// activation site so the activation and its ask are never visited). CR
+// 605.3a: a line that skips such an activation holds at least as much of
+// every colour as one that spends a fee it cannot get back; and a fee the
+// pool cannot pay is not an activation the payer can make, so the branch is
+// not a real line either. Every shape the test cannot read fails open (the
+// branch is explored), as feeOnlyAskPrune does.
+func (sr *scriptSearch) feeOnlyGapDoomed(c *Engine, id state.ObjID) bool {
+	abs := c.appendAvailableManaAbilitiesGate(nil, nil, sr.p, id, true)
+	if len(abs) == 0 || !sr.pipOK || !sr.actDescOK {
+		return false
+	}
+	pool := pay.AvailableFor(asPayer(c), sr.p, sr.actDesc).Pool
+	before := scriptPipShort(&sr.pipCol, pool)
+	for _, ma := range abs {
+		if !repeatableFeeOnlyMana(c, sr.p, id, ma) {
+			return false // another ability poses a choice the prune cannot read
+		}
+		// A fixed-colour production ("{R}: Add {B}") is the class too: the
+		// kernel's activationStalls prunes it by the same per-colour test, so
+		// no open-production gate here (the made loop below reads its colour).
+		mp := effects.ManaOf(ma)
+		amount, indeterminate := potentialAmount(mp)
+		if indeterminate || amount != 1 {
+			return false
+		}
+		cc := c.manaAbilityCC(sr.p, id, ma).Cost
+		if amount > cc.Generic+cc.Colored.Total() {
+			return false // the ability makes more than its fee spends: the activation can pay
+		}
+		paid := pool
+		if !scriptPayFee(&paid, cc.Colored, cc.Generic) {
+			return false // an unpayable fee fails open (the live gate withholds the activation)
+		}
+		var made state.Mana
+		c.addPotentialManaOf(&made, ma)
+		for j, n := range made {
+			if n <= 0 {
+				continue
+			}
+			after := paid
+			after[j] += amount
+			if scriptPipShort(&sr.pipCol, after) < before {
+				return false // a colour fills a pip the play lacks
+			}
+		}
+	}
+	return true
+}
+
+// oneShotAskPrune is the plain run's colour-ask prune for a gap whose
+// activation is not the fee-only repeatable class feeOnlyAskPrune reads (a
+// one-shot flexible source: Vivid Meadow's "{T}, Remove a charge counter: Add
+// one mana of any color"). While a fixed pip of the play is still owed
+// (before > 0), an answer whose colour fills no such pip
+// floats mana a covered colour also pays the generic part with, so the line
+// through a filling answer dominates it. An ask with no pip owed, or one
+// where no answer fills a pip, is kept whole: the prune only narrows a space
+// it can read, never empties an ask it cannot.
+func (sr *scriptSearch) oneShotAskPrune(c *Engine, d *decision.Decision, answers []decision.Intent) []decision.Intent {
+	if !sr.pipOK || len(answers) <= 1 || !scriptManaUnits(d) {
+		return answers
+	}
+	mca := c.manaColorActivation
+	if mca == nil || mca.player != sr.p || mca.source != d.Source || mca.cast || mca.allocation ||
+		mca.trigger != nil || mca.ability == nil || !scriptGap(sr.gaps, d.Source) {
+		return answers
+	}
+	if repeatableFeeOnlyMana(c, sr.p, d.Source, mca.ability) {
+		return answers // feeOnlyAskPrune's class
+	}
+	var made state.Mana
+	c.addPotentialManaOf(&made, mca.ability)
+	pool := c.G.Players[sr.p].Pool
+	if sr.actSrc == d.Source && sr.actDescOK {
+		pool = sr.actPool // the activation's opening pool (a counter or tap cost spends no pool mana)
+	}
+	before := scriptPipShort(&sr.pipCol, pool)
+	if before == 0 {
+		return answers
+	}
+	kept := 0
+	for _, in := range answers {
+		wanted := false
+		for _, ch := range in.Choices {
+			for i := range d.Options {
+				o := &d.Options[i]
+				if o.Index == ch && len(o.ManaSymbol) == 1 {
+					if j := state.ManaIndex(o.ManaSymbol[0]); j <= state.MC && made[j] > 0 {
+						after := pool
+						after[j]++
+						if scriptPipShort(&sr.pipCol, after) < before {
+							wanted = true
+						}
+					}
+					break
+				}
+			}
+			if wanted {
+				break
+			}
+		}
+		if wanted {
+			answers[kept] = in
+			kept++
+		}
+	}
+	if kept == 0 {
+		return answers // no answer fills a pip: fail open rather than empty the ask
+	}
+	return answers[:kept]
+}
+
+// feeOnlyAskPrune is the plain run's doomed-branch prune (sr.feeStall): the
+// colour ask of a fee-only repeatable gap's activation keeps only the
+// answers whose colour can bring the play closer to paid, and drops the rest
+// (dirac's filtFeeColStalls, mana_filterrepeat.go, is the node-for-node
+// mirror; feeOnlyConversionStalls, payment_window_feeonly.go, the same rule
+// in the payment window). The ability makes no more mana than its fee
+// spends, so activating it only converts pool mana into a colour of its own
+// (CR 605.3a: it is repeatable -- no {T}, no activation limit -- so a line
+// that skips the activation holds at least as much of every colour as one
+// that spends a fee it cannot get back): the conversion helps exactly when
+// the made colour fills a fixed pip the play's cost still lacks
+// (sr.pipCol). Without the prune the search spends its whole node budget on
+// the repeat activations (Energy Refractor's "{2}: Add one mana of any
+// color" branches five ways per activation, each a distinct payer state) and
+// starves before the funding line that pays the play is reached.
+//
+// The ask is read only where the whole answer set is a colour choice of ONE
+// fee-only repeatable ability of a gap source (the plain walk of the
+// census's gaps, scriptGap): any other shape -- another player's ask, a
+// multi-ability ask, an option whose symbol the code cannot resolve -- fails
+// open. The pool the test reads is the activation's opening pool: the ask's
+// pool has already paid the fee, and the fee's units are added back, so the
+// short-count before and after is taken where the kernel's mirror takes it.
+func (sr *scriptSearch) feeOnlyAskPrune(c *Engine, d *decision.Decision, answers []decision.Intent) []decision.Intent {
+	if !sr.pipOK || len(answers) <= 1 || !scriptManaUnits(d) {
+		return answers
+	}
+	// mca is the paid mana ability whose controller picks the colour: the ask
+	// is its colour ask. A triggered mana ability's choice, an allocation ask
+	// (a Produced$ Combo) and an ask inside a spell's own payment (cast) are
+	// not a gap activation's: fail open. mca.source is the activated source;
+	// the plain run's gaps are the sources whose activations the search
+	// prices (the kernel's mirror runs in the gaps pass alone, mana_filter.go
+	// filtColours).
+	mca := c.manaColorActivation
+	if mca == nil || mca.player != sr.p || mca.source != d.Source || mca.cast || mca.allocation ||
+		mca.trigger != nil || mca.ability == nil || !scriptGap(sr.gaps, d.Source) {
+		return answers
+	}
+	sa := mca.ability
+	if !repeatableFeeOnlyMana(c, sr.p, d.Source, sa) {
+		return answers
+	}
+	// The kernel's fee-only class (kop.FeeOnlyManaAb): one unit of a chosen
+	// colour (ManaN at most one, no each-colour production). A fixed or
+	// each-colour production poses no choice ask here, and a variable or
+	// multi-unit amount is not the class: fail open.
+	mp := effects.ManaOf(sa)
+	if !producedOpen(mp.Produced) {
+		return answers
+	}
+	amount, indeterminate := potentialAmount(mp)
+	if indeterminate || amount != 1 {
+		return answers
+	}
+	fee := c.manaAbilityCC(sr.p, d.Source, sa).Cost
+	if amount > fee.Generic+fee.Colored.Total() {
+		return answers // the ability makes more than its fee spends: the activation can pay
+	}
+	var made state.Mana
+	c.addPotentialManaOf(&made, sa)
+	// The activation's opening pool: the ask's pool has already paid the fee
+	// (CR 605.1a), whose payment destroys the shapes it spent, so the stash
+	// taken when the activation was submitted (sr.actPool) is the read.
+	if sr.actSrc != d.Source || !sr.actDescOK {
+		return answers
+	}
+	pool := sr.actPool
+	var before int32
+	for i := range pool {
+		if sr.pipCol[i] > pool[i] {
+			before += sr.pipCol[i] - pool[i]
+		}
+	}
+	// The fee's coloured pips are paid first, then its generic part from the
+	// pool in the order pay/solve.go spends it: {C}, then W, U, B, R, G. That
+	// order ignores the pips still owed, so it can spend the very colour the
+	// activation is meant to supply. The pool could not pay it: fail open
+	// (the live gate withholds such an activation, so this is unreachable).
+	for i := range pool {
+		if fee.Colored[i] > pool[i] {
+			return answers
+		}
+		pool[i] -= fee.Colored[i]
+	}
+	for g := fee.Generic; g > 0; g-- {
+		spent := false
+		for _, i := range [...]int{state.MC, state.MW, state.MU, state.MB, state.MR, state.MG} {
+			if pool[i] > 0 {
+				pool[i]--
+				spent = true
+				break
+			}
+		}
+		if !spent {
+			return answers
+		}
+	}
+	kept := 0
+	for _, in := range answers {
+		wanted := false
+		for _, ch := range in.Choices {
+			for i := range d.Options {
+				o := &d.Options[i]
+				if o.Index == ch && len(o.ManaSymbol) == 1 {
+					if j := state.ManaIndex(o.ManaSymbol[0]); j <= state.MC && made[j] > 0 {
+						after := pool
+						after[j] += amount
+						var short int32
+						for k := range after {
+							if sr.pipCol[k] > after[k] {
+								short += sr.pipCol[k] - after[k]
+							}
+						}
+						wanted = short < before
+					}
+					break
+				}
+			}
+		}
+		if wanted {
+			answers[kept] = in
+			kept++
+		}
+	}
+	if kept == 0 {
+		// No colour the activation can make fills a pip the play lacks: the
+		// activation is skipped (the kernel's order loop `continue`s every
+		// colour and walks no step; CR 605.3a). The nil answer set sets
+		// sr.approx (visit), which only the verdict path reads
+		// (potentialPlayVerdict's search_limit vs insufficient) and that path
+		// never arms feeStall -- only potentialPrefixScript's plain run does,
+		// and its callers read (script, found) alone -- so the flag cannot
+		// change an offer either engine makes and the kernel needs no
+		// counterpart.
+		return nil
+	}
+	return answers[:kept]
+}
+
 // witnessSelfTargetsLast stably moves, in a target ask the witness replay
 // answers, the answers naming p itself behind the rest. The replay is node
 // budget-capped, and a trigger the witness's sacrifices stacked (Havoc
@@ -1434,7 +1940,7 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 		}
 		act := steps[next]
 		for _, opt := range d.Options {
-			if opt.Kind != "activate" || opt.Obj != act.Source {
+			if !scriptActivate(&opt) || opt.Obj != act.Source {
 				continue
 			}
 			want := expect

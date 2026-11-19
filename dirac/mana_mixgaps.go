@@ -581,7 +581,25 @@ func (fs *filtSearch) ctrOther(k *prep, t *State, sl Slot, try func(otherStep) b
 			return false // the counter ability's colour ask
 		}
 		order := t.ctrColOrder(k, fs.a)
+		// The one-shot flexible gap's colour prune (gorge's oneShotAskPrune,
+		// potential_script.go, cut D): while a fixed pip is owed, a colour
+		// that fills none is dominated by one that does. Fail open when no
+		// colour fills a pip (the prune never empties the ask).
+		oneShot := fs.feeOnly && fs.ctrOneShot(k, t, sl, ab)
+		if oneShot {
+			any := false
+			for _, col := range order {
+				if !t.ctrOneShotColStalls(k, fs.p, sl, &fs.useful, int(col)) {
+					any = true
+					break
+				}
+			}
+			oneShot = any
+		}
 		for _, col := range order {
+			if oneShot && t.ctrOneShotColStalls(k, fs.p, sl, &fs.useful, int(col)) {
+				continue
+			}
 			if try(otherStep{kind: otherCtr, col: int8(col)}) {
 				return true
 			}
@@ -589,6 +607,38 @@ func (fs *filtSearch) ctrOther(k *prep, t *State, sl Slot, try func(otherStep) b
 		return false
 	}
 	return try(otherStep{kind: otherCtr, col: -1})
+}
+
+// ctrOneShot reports whether the counter-cost gap's colour ask is the
+// one-shot flexible class (a gap that is not the fee-only repeatable filter,
+// no mana fee, a fixed-pip cost read): gorge's oneShotAskPrune class.
+func (fs *filtSearch) ctrOneShot(k *prep, t *State, sl Slot, ab *kop.Ability) bool {
+	if !fs.usefulOK || !fs.other.has(sl) {
+		return false
+	}
+	return ab.Cost.Mana.Generic == 0 && pipSum(&ab.Cost.Mana.Pips) == 0 && ab.Cost.Mana.Hyb == ([4]kop.ColorMask{})
+}
+
+// ctrOneShotColStalls: the counter-cost gap at sl making col fills no fixed
+// pip the play still lacks while one is owed (gorge's oneShotAskPrune; dirac's
+// filtOneShotColStalls is the filter-ability twin).
+func (s *State) ctrOneShotColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int) bool {
+	if useful == nil || useful.Hyb[0] != 0 || s.g.winMode == winTrig {
+		return false
+	}
+	if col < 0 || col >= kop.NumManaKinds {
+		return false
+	}
+	pool := s.pl[p].pool
+	if m := s.restrPoolAdmits(k, p); m != 0 {
+		s.rbUnits(p, m, &pool)
+	}
+	before := feeOnlyShort(&useful.Pips, &pool)
+	if before == 0 {
+		return false
+	}
+	pool[col]++
+	return feeOnlyShort(&useful.Pips, &pool) >= before
 }
 
 // chosenPairGapSrc: gap sl is a chosen-colour pair source (mana_chosenfilter.go).
