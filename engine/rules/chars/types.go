@@ -422,14 +422,24 @@ func appendLandTypes(types, grants, nonBasic []string) []string {
 				types = appendTypeOnce(types, w)
 			}
 		case strings.EqualFold(grant, "AllNonBasicLandType"):
+			// The corpus vocabulary also carries the five basic land types
+			// (basic lands print them); "every nonbasic land type" (CR 205.3i)
+			// excludes them, and a basic type would grant a mana ability (CR 305.6).
 			for _, w := range nonBasic {
-				types = appendTypeOnce(types, w)
+				if !isBasicLandType(w) {
+					types = appendTypeOnce(types, w)
+				}
 			}
 		default:
 			types = appendTypeOnce(types, grant)
 		}
 	}
 	return types
+}
+
+// isBasicLandType reports whether w is one of the five basic land types.
+func isBasicLandType(w string) bool {
+	return slices.Contains([]string{"Plains", "Island", "Swamp", "Mountain", "Forest"}, w)
 }
 
 // appendTypeOnce appends word unless types already carries it
