@@ -23,7 +23,7 @@ const AdaptedMark = "Adapted"
 // the only gate a chained DB$ body (Jetfire's "then adapt 3") ever gets. A
 // put that is not an Adapt$ one is never blocked here.
 func putCounterAdaptBlocked(h Host, o *state.Object, adapt bool) bool {
-	return adapt && o.Counter("P1P1") > 0 && !h.AdaptsAsIfNoCounters(o.ID)
+	return adapt && o.Counter("P1P1") > 0 && !h.RestrictionApplies(ModeCanAdapt, o.ID)
 }
 
 // putCounterAdaptMark emits the Adapted marker once a creature's Adapt$ put

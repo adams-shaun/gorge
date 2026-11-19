@@ -125,9 +125,9 @@ func TestEDHTrigEBiomancerAdapt(t *testing.T) {
 	e.G.Players[0].Pool = state.Mana{}
 
 	trigEActivateFamiliar(t, e, fam, a)
-	if !e.AdaptsAsIfNoCounters(a) || e.AdaptsAsIfNoCounters(b) || e.AdaptsAsIfNoCounters(c) {
+	if !e.RestrictionApplies(effects.ModeCanAdapt, a) || e.RestrictionApplies(effects.ModeCanAdapt, b) || e.RestrictionApplies(effects.ModeCanAdapt, c) {
 		t.Fatalf("grant coverage after the activation: A=%v B=%v C=%v, want A only",
-			e.AdaptsAsIfNoCounters(a), e.AdaptsAsIfNoCounters(b), e.AdaptsAsIfNoCounters(c))
+			e.RestrictionApplies(effects.ModeCanAdapt, a), e.RestrictionApplies(effects.ModeCanAdapt, b), e.RestrictionApplies(effects.ModeCanAdapt, c))
 	}
 
 	// The counterless creature adapts normally: it fires Adapt, but the
@@ -139,7 +139,7 @@ func TestEDHTrigEBiomancerAdapt(t *testing.T) {
 	if trigEAdaptedCount(e, c) != 1 {
 		t.Fatalf("counterless creature's adapt emitted %d Adapted marks, want 1", trigEAdaptedCount(e, c))
 	}
-	if !e.AdaptsAsIfNoCounters(a) {
+	if !e.RestrictionApplies(effects.ModeCanAdapt, a) {
 		t.Fatal("the grant ended when an unnamed creature adapted")
 	}
 
@@ -162,7 +162,7 @@ func TestEDHTrigEBiomancerAdapt(t *testing.T) {
 
 	// "The next time": its Adapt trigger ended the grant, so the same
 	// creature cannot adapt again with counters on it.
-	if e.AdaptsAsIfNoCounters(a) {
+	if e.RestrictionApplies(effects.ModeCanAdapt, a) {
 		t.Fatal("the grant outlived the adapt it was for")
 	}
 	addMana(t, e, 0, "CC")

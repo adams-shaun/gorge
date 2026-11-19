@@ -101,7 +101,7 @@ func ReplaceDestruction(h Host, id state.ObjID) bool {
 	// (effDestroy, effDestroyAll and engine/rules/sba.go's lethal-damage sweep) funnels
 	// through, so one check covers all of them rather than a bespoke per-caller
 	// guard that a future destructor could quietly miss.
-	if h.RegenerationDisallowed(id) {
+	if h.RestrictionApplies("CantRegenerate", id) {
 		return false
 	}
 	h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "Shield", Amount: -1})
