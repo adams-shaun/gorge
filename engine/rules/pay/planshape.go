@@ -112,6 +112,11 @@ func PaymentPlanShapeTierOf(ma *cards.SA, cost costvocab.Cost) (tier Tier, c Con
 	if PlanHasSpecialProductionParam(ma) {
 		return deferred("source:special_production")
 	}
+	// A TriggersWhenSpent$ rider's verdict reads the source's SVar body, so
+	// the source-aware arm (paymentPlanAbilityShapeTier) decides it.
+	if effects.ManaOf(ma).TriggersWhenSpent != "" {
+		return TierDeferred, Consequence{}, "", true
+	}
 	if cost.XMin != 0 || cost.X != 0 || cost.Generic != 0 || cost.Colored.Total() != 0 || len(cost.Discard)+len(cost.SubCounter)+len(cost.Exile)+len(cost.ExileFromTop)+len(cost.TapPermanent)+len(cost.Energy)+len(cost.LifeX) != 0 {
 		return deferred("source:last_resort")
 	}

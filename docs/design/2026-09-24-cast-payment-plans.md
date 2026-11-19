@@ -269,7 +269,8 @@ parameters fail closed to *deferred*.
 exactly `{T}`. The ability has no `SubAbility$`, no `Condition*`/
 `ConditionCheckSVar$` gate on its production, no target anywhere in its chain,
 no special-production parameter (`TriggersWhenSpent$`, `AddsCounters$`,
-`AddsKeywords*$`, `PersistentMana$`, `UnlessCost$` …) and no `RestrictValid$`;
+`AddsKeywords*$`, `PersistentMana$`, `UnlessCost$` …; see the 2026-11-18 note
+below for the one `TriggersWhenSpent$` exception) and no `RestrictValid$`;
 its parameters are within an allowlist the planner models (production and
 amount, presentation keys, and the activation gates the window already
 evaluates). Production is one of: fixed symbols with a literal amount
@@ -281,6 +282,15 @@ resolved against the controller's commander colour identity (no commander, no
 alternatives). No trigger or replacement on the source itself, and none on
 another object whose filter can match this source's tap or mana, touches the
 tap or the production. Creatures are normal (ranked later, §5).
+
+*(2026-11-18 note.)* `TriggersWhenSpent$` is the one special-production
+parameter with an exception: in a game of three or more seats a `{T}`-only,
+`SubAbility$`-free source whose rider is a `SpellCast` trigger with a bare
+`Scry` body (Path of Ancestry) is Normal, because the scry only adds a
+library-order decision after the cast and cannot change what the mana pays
+(`pay.PlanSpentRiderIsScry`). Every other rider stays deferred, and a two-seat
+game keeps the deferral for every rider: the dirac kernel is two-seat and does
+not yet model the rider's commander-type filter.
 
 **Last resort.** Exactly the normal shape except that the ability, or the
 source's own static text, adds one or more of these consequences, each fully
