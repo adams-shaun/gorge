@@ -342,7 +342,7 @@ func planManaUnderRider(pe pay.Engine, p state.PlayerID, life int32, cast decisi
 			return retry
 		}
 	}
-	return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
+	return PaymentPlanOutcome{Reason: "unsupported", Detail: pay.DetailWitnessNotOffered}
 }
 
 // planPaysManaUnderRider reports whether plan's activations plus the starting

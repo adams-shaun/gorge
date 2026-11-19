@@ -34,6 +34,10 @@ const (
 	// DetailCostCredit marks an unsupported verdict whose cost carries a
 	// convoke/improvise/delve credit the planner does not price.
 	DetailCostCredit = "cost:credit"
+	// DetailWitnessNotOffered marks a may-play rider's unsupported verdict
+	// whose folded-cost plan exists but no rider-consistent plan could fund
+	// its coloured pips from a coloured unit.
+	DetailWitnessNotOffered = "witness_not_offered"
 )
 
 // The spec §6 PaymentFallback vocabulary. It is closed: a plan that stops
