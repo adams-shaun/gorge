@@ -186,11 +186,14 @@ type Net struct {
 
 	// gnn is the graph network's weights when the file's arch is "gnn"; nil for
 	// the mlp, whose weights are the fields above. One Net is one architecture.
-	gnn   *gnGNN
-	cache *EvalCache
-	cards *cardCache // card entries [c ‖ W_sum(group)·c]
-	pas   *cardCache // ea_proj(c)
-	pbs   *cardCache // eb_proj(c)
+	gnn *gnGNN
+	// groups is the pooled card group count (GROUPS: gnGroups, or the pod
+	// set's policynet.EntityGroupsPod)
+	groups int
+	cache  *EvalCache
+	cards  *cardCache // card entries [c ‖ W_sum(group)·c]
+	pas    *cardCache // ea_proj(c)
+	pbs    *cardCache // eb_proj(c)
 
 	calls, hits, evals, cardHits, cardMiss, ns atomic.Int64
 	scoreCalls, scoreHits, scoreSeen           atomic.Int64 // scoreSeen: a Score miss whose state's value was cached
@@ -296,48 +299,54 @@ func Load(path string) (*Net, error) {
 	if h.Format != "dzgw-1" {
 		return nil, fmt.Errorf("gonet %s: format %q, want dzgw-1", path, h.Format)
 	}
+	pod, err := podHeader(path, h)
+	if err != nil {
+		return nil, err
+	}
 	rawW := h.Consts["RAW_W"]
-	if rawW != policynet.EntityRawWidth && rawW != policynet.EntityRawWidthV1 {
-		return nil, fmt.Errorf("gonet %s: RAW_W = %d, this build reads %d or %d", path, rawW, policynet.EntityRawWidthV1, policynet.EntityRawWidth)
-	}
-	// DENSE_W is 92, or 68 for a network exported before the Commander
-	// block: such a net reads only the first 68 dense columns, so it scores
-	// exactly as it did.
 	denseW := h.Consts["DENSE_W"]
-	if denseW != policynet.DenseWidth && denseW != policynet.DenseWidthV1 {
-		return nil, fmt.Errorf("gonet %s: DENSE_W = %d, this build reads %d or %d", path, denseW, policynet.DenseWidthV1, policynet.DenseWidth)
-	}
-	hashChecked := false
-	if h.EncoderHash != "" {
-		got, err := strconv.ParseUint(strings.TrimPrefix(h.EncoderHash, "0x"), 16, 64)
-		if err != nil {
-			return nil, fmt.Errorf("gonet %s: encoder_hash %q: %w", path, h.EncoderHash, err)
+	hashChecked := pod
+	if !pod {
+		if rawW != policynet.EntityRawWidth && rawW != policynet.EntityRawWidthV1 {
+			return nil, fmt.Errorf("gonet %s: RAW_W = %d, this build reads %d or %d", path, rawW, policynet.EntityRawWidthV1, policynet.EntityRawWidth)
 		}
-		live := policynet.EncoderHashFor(policynet.FeaturesEntity)
-		live68 := policynet.EncoderHashForV1Dense(policynet.FeaturesEntity)
-		live24 := policynet.EncoderHashForV1Options(policynet.FeaturesEntity)
-		v1 := policynet.EncoderHashEntityV1()
-		optW := h.Consts["OPT_DENSE_W"]
-		switch {
-		case got == live && rawW == policynet.EntityRawWidth && denseW == policynet.DenseWidth && optW == policynet.OptionDenseWidth,
-			got == live68 && rawW == policynet.EntityRawWidth && denseW == policynet.DenseWidthV1 && optW == policynet.OptionDenseWidth,
-			got == live24 && rawW == policynet.EntityRawWidth && denseW == policynet.DenseWidthV1 && optW == policynet.OptionDenseWidthV1,
-			got == v1 && rawW == policynet.EntityRawWidthV1 && denseW == policynet.DenseWidthV1 && optW == policynet.OptionDenseWidthV1:
-			hashChecked = true
-		case got == live, got == live68, got == live24, got == v1:
-			wantW, wantDense, wantOpt := policynet.EntityRawWidthV1, policynet.DenseWidthV1, policynet.OptionDenseWidthV1
-			if got != v1 {
-				wantW = policynet.EntityRawWidth
+		// DENSE_W is 92, or 68 for a network exported before the Commander
+		// block: such a net reads only the first 68 dense columns, so it scores
+		// exactly as it did.
+		if denseW != policynet.DenseWidth && denseW != policynet.DenseWidthV1 {
+			return nil, fmt.Errorf("gonet %s: DENSE_W = %d, this build reads %d or %d", path, denseW, policynet.DenseWidthV1, policynet.DenseWidth)
+		}
+		if h.EncoderHash != "" {
+			got, err := strconv.ParseUint(strings.TrimPrefix(h.EncoderHash, "0x"), 16, 64)
+			if err != nil {
+				return nil, fmt.Errorf("gonet %s: encoder_hash %q: %w", path, h.EncoderHash, err)
 			}
-			if got == live {
-				wantDense, wantOpt = policynet.DenseWidth, policynet.OptionDenseWidth
+			live := policynet.EncoderHashFor(policynet.FeaturesEntity)
+			live68 := policynet.EncoderHashForV1Dense(policynet.FeaturesEntity)
+			live24 := policynet.EncoderHashForV1Options(policynet.FeaturesEntity)
+			v1 := policynet.EncoderHashEntityV1()
+			optW := h.Consts["OPT_DENSE_W"]
+			switch {
+			case got == live && rawW == policynet.EntityRawWidth && denseW == policynet.DenseWidth && optW == policynet.OptionDenseWidth,
+				got == live68 && rawW == policynet.EntityRawWidth && denseW == policynet.DenseWidthV1 && optW == policynet.OptionDenseWidth,
+				got == live24 && rawW == policynet.EntityRawWidth && denseW == policynet.DenseWidthV1 && optW == policynet.OptionDenseWidthV1,
+				got == v1 && rawW == policynet.EntityRawWidthV1 && denseW == policynet.DenseWidthV1 && optW == policynet.OptionDenseWidthV1:
+				hashChecked = true
+			case got == live, got == live68, got == live24, got == v1:
+				wantW, wantDense, wantOpt := policynet.EntityRawWidthV1, policynet.DenseWidthV1, policynet.OptionDenseWidthV1
+				if got != v1 {
+					wantW = policynet.EntityRawWidth
+				}
+				if got == live {
+					wantDense, wantOpt = policynet.DenseWidth, policynet.OptionDenseWidth
+				}
+				if got == live68 {
+					wantOpt = policynet.OptionDenseWidth
+				}
+				return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match RAW_W = %d, DENSE_W = %d, OPT_DENSE_W = %d (that encoder is %d wide, %d dense and %d option columns)", path, got, rawW, denseW, optW, wantW, wantDense, wantOpt)
+			default:
+				return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match this build's entity encoder %#x — the encoder drifted since this network was trained", path, got, live)
 			}
-			if got == live68 {
-				wantOpt = policynet.OptionDenseWidth
-			}
-			return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match RAW_W = %d, DENSE_W = %d, OPT_DENSE_W = %d (that encoder is %d wide, %d dense and %d option columns)", path, got, rawW, denseW, optW, wantW, wantDense, wantOpt)
-		default:
-			return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match this build's entity encoder %#x — the encoder drifted since this network was trained", path, got, live)
 		}
 	}
 	switch h.Arch {
@@ -352,7 +361,11 @@ func Load(path string) (*Net, error) {
 	if optDenseW != policynet.OptionDenseWidth && optDenseW != policynet.OptionDenseWidthV1 {
 		return nil, fmt.Errorf("gonet %s: OPT_DENSE_W = %d, this build reads %d or %d", path, optDenseW, policynet.OptionDenseWidthV1, policynet.OptionDenseWidth)
 	}
-	want := map[string]int{"TABLE_ROWS": gnRows, "SLOT_ROWS": gnSlotRow, "GROUPS": gnGroups}
+	groups := gnGroups
+	if pod {
+		groups = policynet.EntityGroupsPod
+	}
+	want := map[string]int{"TABLE_ROWS": gnRows, "SLOT_ROWS": gnSlotRow, "GROUPS": groups}
 	for k, v := range want {
 		if h.Consts[k] != v {
 			return nil, fmt.Errorf("gonet %s: %s = %d, this build has %d", path, k, h.Consts[k], v)
@@ -389,9 +402,12 @@ func Load(path string) (*Net, error) {
 	}
 	cfg := func(k string) int { return int(h.Config[k]) }
 	if h.Arch == "gnn" {
-		return loadGNN(path, h, tensors, shapes, rawW, hashChecked)
+		return loadGNN(path, h, tensors, shapes, rawW, hashChecked, pod)
 	}
-	g := &Net{path: path, hashChecked: hashChecked, d: cfg("d"), ff: cfg("ff"), dEmb: cfg("d_emb"), cd: cfg("card_d"), hh: cfg("head_hidden")}
+	if pod && cfg("player_nodes") != 0 {
+		return nil, fmt.Errorf("gonet %s: an mlp network has no player nodes (config player_nodes %d)", path, cfg("player_nodes"))
+	}
+	g := &Net{path: path, hashChecked: hashChecked, groups: groups, d: cfg("d"), ff: cfg("ff"), dEmb: cfg("d_emb"), cd: cfg("card_d"), hh: cfg("head_hidden")}
 	var errs []error
 	get := func(name string, shape ...int) []float32 {
 		t, ok := tensors[name]
@@ -433,7 +449,7 @@ func Load(path string) (*Net, error) {
 	g.cardPhi = lin("card_phi", cd, cd, true)
 	g.denseIn = lin("dense_in", denseW, d, true)
 	g.sparseProj = lin("sparse_proj", e, d, false)
-	g.poolProj = lin("pool_proj", gnPoolW*cd, d, true)
+	g.poolProj = lin("pool_proj", 2*g.groups*cd, d, true)
 	for i := 0; i < cfg("layers"); i++ {
 		p := fmt.Sprintf("blocks.%d", i)
 		g.blocks = append(g.blocks, gnBlock{norm: norm(p+".norm", d), fc1: lin(p+".fc1", d, g.ff, true), fc2: lin(p+".fc2", g.ff, d, true)})
@@ -737,15 +753,16 @@ func (g *Net) evalK(sc *gnScratch, st *policynet.State, opts []policynet.Option,
 	sc.s = grow(sc.s, d)
 	s := sc.s
 	copy(s, g.poolProj.b)
-	sc.pools = grow(sc.pools, gnGroups*cd)
+	sc.pools = grow(sc.pools, g.groups*cd)
 	clear(sc.pools)
-	var used [gnGroups]bool
+	var usedBuf [16]bool
+	used := usedBuf[:g.groups]
 	sc.t = grow(sc.t, d)
 	psum := sc.t
 	clear(psum)
 	for k := 0; k < nc; k++ {
 		gr := int(st.Cards[k].Group)
-		if gr >= gnGroups {
+		if gr >= g.groups {
 			continue
 		}
 		used[gr] = true
@@ -764,7 +781,7 @@ func (g *Net) evalK(sc *gnScratch, st *policynet.State, opts []policynet.Option,
 			continue
 		}
 		mx := sc.pools[gr*cd : (gr+1)*cd]
-		col := (gnGroups + gr) * cd
+		col := (g.groups + gr) * cd
 		for o := range s {
 			s[o] += dot(g.poolProj.w[o*pw+col:o*pw+col+cd], mx)
 		}
@@ -991,7 +1008,7 @@ func (g *Net) cardVectors(sc *gnScratch, cards []policynet.EntityCard) {
 		c := ent[:cd]
 		copy(c, cv[i*cd:(i+1)*cd])
 		ps := ent[cd:]
-		if gr := int(cards[k].Group); gr < gnGroups {
+		if gr := int(cards[k].Group); gr < g.groups {
 			col := gr * cd
 			for o := range ps {
 				ps[o] = dot(g.poolProj.w[o*pw+col:o*pw+col+cd], c)
@@ -1316,4 +1333,28 @@ func (c *cardCache) put(k uint64, v []float32) {
 		s.slab = append(s.slab, v[:c.w]...)
 	}
 	s.mu.Unlock()
+}
+
+// podHeader reports whether h is a FeaturesPod network (GROUPS is the pod
+// set's group count) and holds it to the pod contract: the pod raw, dense
+// and option widths and the pod set's encoder_hash, which a pod network
+// must carry (there are none from before the field). Every other header is
+// left to Load's existing checks.
+func podHeader(path string, h gnHeader) (bool, error) {
+	if h.Consts["GROUPS"] != policynet.EntityGroupsPod {
+		return false, nil
+	}
+	if rawW, denseW, optW := h.Consts["RAW_W"], h.Consts["DENSE_W"], h.Consts["OPT_DENSE_W"]; rawW != policynet.EntityRawWidthPod ||
+		denseW != policynet.DenseWidthPod || optW != policynet.OptionDenseWidth {
+		return false, fmt.Errorf("gonet %s: a pod network (GROUPS %d) has RAW_W %d, DENSE_W %d, OPT_DENSE_W %d; the pod encoder is %d, %d and %d",
+			path, policynet.EntityGroupsPod, rawW, denseW, optW, policynet.EntityRawWidthPod, policynet.DenseWidthPod, policynet.OptionDenseWidth)
+	}
+	got, err := strconv.ParseUint(strings.TrimPrefix(h.EncoderHash, "0x"), 16, 64)
+	if h.EncoderHash == "" || err != nil {
+		return false, fmt.Errorf("gonet %s: a pod network must carry the pod encoder_hash (got %q)", path, h.EncoderHash)
+	}
+	if want := policynet.EncoderHashFor(policynet.FeaturesPod); got != want {
+		return false, fmt.Errorf("gonet %s: encoder hash %#x is not the pod encoder's %#x", path, got, want)
+	}
+	return true, nil
 }
