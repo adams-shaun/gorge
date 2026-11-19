@@ -297,7 +297,9 @@ func (e *Engine) resolveTop() {
 			e.startCumulativeUpkeep(id, o.Source, o.Ability)
 			return
 		}
-		if startEchoOrRecover(e, id, o) {
+		// Echo and Recover: the pay-or-lose election flow (engine/rules/echo.go).
+		if o.Ability.API == "Echo" || o.Ability.API == "Recover" {
+			e.startEcho(id, o.Source, o.Ability)
 			return
 		}
 		if _, triggered := e.triggerForAbilityObject(id, o); triggered &&

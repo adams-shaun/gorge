@@ -203,7 +203,7 @@ engine/rules (*Engine).payCast	955	159
 engine/rules (*Engine).potentialModeCastPlan	175	55
 engine/rules (*Engine).pushTrigger	800	170
 engine/rules (*Engine).replacementMatchesRememberedUngatedBy	719	191
-engine/rules (*Engine).resolveTop	783	107
+engine/rules (*Engine).resolveTop	785	108
 engine/rules (*Engine).staticEffectsWalk	781	132
 engine/rules (*Engine).targetAsk	345	68
 engine/rules (*Engine).triggerConditionHoldsWithSVars	224	56

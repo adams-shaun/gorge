@@ -1021,8 +1021,7 @@ func (e *Engine) sacAsk() bool {
 					break
 				}
 			}
-			if !already && (!pc.emerge || pc.SacPart != 0 || e.emergeSacPayable(pc, oid)) &&
-				(!pc.offering || pc.SacPart != 0 || e.offeringSacPayable(pc, oid)) {
+			if !already && (!pc.sacReducesCost() || pc.SacPart != 0 || e.emergeSacPayable(pc, oid)) {
 				candidates = append(candidates, oid)
 			}
 		}
@@ -1149,7 +1148,7 @@ func (e *Engine) sacAsk() bool {
 	// (CR 702.46) folds the chosen sacrifice's mana cost the same way, once,
 	// colour-inclusive.
 	e.applyEmergeReduction(pc)
-	e.applyOfferingReduction(pc)
+	pc.applyOfferingReduction(e.G)
 	return false
 }
 

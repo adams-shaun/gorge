@@ -548,9 +548,9 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		} else {
 			cost = Cost{}
 		}
-	case castModeOffering:
-		cost = offeringCastCost(f, cost)
 	}
+	offering := opt.Mode == "offering"
+	cost = offeringCastCost(offering, f, cost)
 	// CR 601.2b/f/h: a spell's own SpellAbility may carry an explicit Cost$
 	// (Forge's SP Cost) naming an additional cost -- most commonly a
 	// sacrifice (Altar's Reap's "1 B Sac<1/Creature>", the CR 601.2h example).
@@ -666,7 +666,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 	if opt.Mode == "emerged" {
 		e.cast.emerge = true
 	}
-	e.cast.offering = opt.Mode == "offering" // CR 702.46: sacAsk folds the sacrifice's cost out
+	e.cast.offering = offering
 	// Morph family (CR 702.37a/702.168a/702.169a): the mark is set beside
 	// the cost the switch composed, so the {3} charge and the face-down
 	// entry marker can never disagree about which cast they belong to.
@@ -1392,7 +1392,6 @@ const (
 	castModePrototype
 	castModeBeamMeUp
 	castModeDisturb
-	castModeOffering
 )
 
 var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
@@ -1443,9 +1442,6 @@ var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
 	state.StrEntry[castModeCode]{Key: castModeCleavedWord, Val: castModeCleaved},
 	state.StrEntry[castModeCode]{Key: "prototype", Val: castModePrototype},
 	state.StrEntry[castModeCode]{Key: beamMeUpMode, Val: castModeBeamMeUp},
-	// Offering (CR 702.46, engine/rules/offering.go): the mode word is the
-	// keyword head, lower-cased like "emerged"'s family.
-	state.StrEntry[castModeCode]{Key: "offering", Val: castModeOffering},
 }, append(altCastModeEntries(),
 	// The Bargain row's mode word lives in rules/optional_sacrifice.go.
 	state.StrEntry[castModeCode]{Key: optionalSacrifices[optSacBargain].mode, Val: castModeBargained})...)...)

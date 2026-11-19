@@ -144,8 +144,17 @@ func (e *Engine) emergeOfferCost(p state.PlayerID, id state.ObjID, f *cards.Face
 // offer, but the pending cast's captured modifiers (the card is on the stack
 // now). Only mana varies by candidate; the common non-mana parts were checked
 // at the offer and are settled independently by sacAsk.
+//
+// An Offering cast (CR 702.46) shares it: the candidate's price comes from
+// offeringCandidateCost, and a sacrifice this build cannot price is not offered.
 func (e *Engine) emergeSacPayable(pc *pendingCast, oid state.ObjID) bool {
 	candidate := e.emergeCandidateCost(pc.cost, oid)
+	if pc.offering {
+		var ok bool
+		if candidate, ok = offeringCandidateCost(e.G, pc.cost, oid); !ok {
+			return false
+		}
+	}
 	delve := int32(0)
 	if e.hasCastDelve(pc.card, pc.isAbility()) {
 		delve = int32(len(e.G.Zone(state.ZGraveyard, pc.player)))

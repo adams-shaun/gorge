@@ -5,6 +5,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -63,6 +64,39 @@ type echoFlow struct {
 	// parsed by the shared parseCumulativeAction vocabulary; executing it
 	// reuses cumulativeObjects/cumulativeActionPayable against this shim.
 	action *cumulativeAction
+
+	// recover marks a Recover flow (kw:Recover, CR 702.59, engine/rules/recover.go):
+	// the same pay-or-lose election with Echo's shape, but the source is in
+	// its owner's graveyard, paying returns it to hand and declining exiles
+	// it (echoWords names the kinds and prompt words).
+	recover bool
+}
+
+// echoWords is the vocabulary one election flow poses its asks in: the keyword
+// word, the option kinds and the decline verb. Echo's sacrifice and Recover's
+// exile are the same decision shape.
+type echoWords struct{ name, pay, payManual, decline, verb string }
+
+var echoWordSets = [2]echoWords{
+	{"echo", "echo_pay", "echo_pay_manual", "echo_sac", "sacrifice"},
+	{"recover", "recover_pay", "recover_pay_manual", "recover_exile", "exile"},
+}
+
+func (ef *echoFlow) words() *echoWords {
+	if ef.recover {
+		return &echoWordSets[1]
+	}
+	return &echoWordSets[0]
+}
+
+// echoSourceHere reports whether the flow's source is still where its keyword
+// acts: on the battlefield for Echo, in the graveyard for Recover (a source
+// that left in response is asked nothing and moved by nothing).
+func echoSourceHere(o *state.Object, recover bool) bool {
+	if recover {
+		return o != nil && o.Zone == state.ZGraveyard
+	}
+	return pay.ExistsOnBattlefield(o)
 }
 
 // echoGateHolds is the CR 702.35a intervening-if: the permanent owes echo at
@@ -116,9 +150,10 @@ func echoAnnounceableCost(c Cost) bool {
 func (e *Engine) startEcho(stackObj, source state.ObjID, sa *cards.SA) {
 	o := e.G.Obj(source)
 	stack := e.G.Obj(stackObj)
+	recover := sa.API == "Recover"
 	// A source that left, or phased out in response (CR 702.26b: treated as
 	// though it does not exist), is asked nothing and sacrificed by nothing.
-	if !pay.ExistsOnBattlefield(o) || stack == nil {
+	if !echoSourceHere(o, recover) || stack == nil {
 		e.finishResumption(stackObj)
 		return
 	}
@@ -126,30 +161,49 @@ func (e *Engine) startEcho(stackObj, source state.ObjID, sa *cards.SA) {
 	// the stack; a response changing the permanent's control must not
 	// transfer the already-triggered election (the Cumulative upkeep
 	// contract, CR 113.8).
-	ef := &echoFlow{stackObj: stackObj, source: source, player: stack.Controller}
+	ef := &echoFlow{stackObj: stackObj, source: source, player: stack.Controller, recover: recover}
 	label := sa.ParamStr(cards.PKCost)
-	if action, ok := parseCumulativeAction(label); ok {
+	unresolved := false
+	if action, ok := parseCumulativeAction(label); ok && !recover {
 		// Non-mana echo cost (Discard<1/Card>, Sac<2/Land> — 3 corpus
 		// files): reuse the cumulative-upkeep action vocabulary and its
 		// payable/object helpers; the election below poses echo-labelled
 		// asks and the answer executes the action once.
 		ef.action = action
+	} else if recover {
+		// Recover's strict unless parser is the one that accepts the corpus's
+		// non-mana token (Garza's Assassin's LifeTotalHalfUp); a token it
+		// rejects falls back to the ordinary cost parser (a bare mana cost).
+		if c, ok := costvocab.ParseUnlessCost(label); ok {
+			ef.amount = c
+		} else {
+			ef.amount = e.parseCost(label)
+		}
+		// The LifeTotalHalfUp token prices as half the payer's current life,
+		// rounded up, unpayable at zero life (pay.UnlessFoldDynamic).
+		folded, ok := pay.UnlessFoldDynamic(asPayer(e), ef.player, ef.amount, nil)
+		unresolved = !ok || !folded.Priceable()
+		ef.amount = folded
 	} else {
 		ef.amount = e.parseCost(label)
-		if !ef.amount.Priceable() && !echoAnnounceableCost(ef.amount) {
-			// An unresolvable echo cost (Volcano Hellion's K:Echo:X, whose
-			// SVar prices X at the controller's life total): the election is
-			// the card's contract, so it is skipped LOUDLY, never silently —
-			// one Note names the unresolved cost and the permanent stays
-			// (a silent sacrifice every upkeep would be flatly wrong).
-			e.emit(events.Event{Kind: events.Note, Player: ef.player, Obj: source,
-				Text: "echo cost unresolvable: " + label})
-			e.finishResumption(stackObj)
-			e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
-			return
-		}
+		unresolved = !ef.amount.Priceable() && !echoAnnounceableCost(ef.amount)
+	}
+	if unresolved {
+		// An unresolvable echo cost (Volcano Hellion's K:Echo:X, whose
+		// SVar prices X at the controller's life total): the election is
+		// the card's contract, so it is skipped LOUDLY, never silently —
+		// one Note names the unresolved cost and the permanent stays
+		// (a silent sacrifice every upkeep would be flatly wrong).
+		e.emit(events.Event{Kind: events.Note, Player: ef.player, Obj: source,
+			Text: ef.words().name + " cost unresolvable: " + label})
+		e.finishResumption(stackObj)
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+		return
 	}
 	ef.costLabel = cumulativeCostLabel(label, ef.action, ef.amount)
+	if recover {
+		ef.costLabel = label
+	}
 	e.echo = ef
 	e.echoElectionAsk()
 }
@@ -165,7 +219,8 @@ func (e *Engine) echoElectionAsk() {
 		return
 	}
 	o := e.G.Obj(ef.source)
-	if !pay.ExistsOnBattlefield(o) {
+	w := ef.words()
+	if !echoSourceHere(o, ef.recover) {
 		e.finishEcho()
 		return
 	}
@@ -178,10 +233,10 @@ func (e *Engine) echoElectionAsk() {
 		// The payer already elected to pay (respay.go): fund what the pool
 		// lacks, then charge.
 		if e.resPayFund(&ef.res, ef.player, ef.source, announced, ef.windowDone,
-			"Activate mana abilities to pay echo", chooseEcho, paymentOther) {
+			"Activate mana abilities to pay "+w.name, chooseEcho, paymentOther) {
 			return
 		}
-		e.echoAnswer([]decision.Option{{Kind: "echo_pay", Obj: ef.source}})
+		e.echoAnswer([]decision.Option{{Kind: w.pay, Obj: ef.source}})
 		return
 	}
 	payable := false
@@ -195,20 +250,20 @@ func (e *Engine) echoElectionAsk() {
 	var opts, manual []decision.Option
 	if ef.action == nil && e.resPayNeedsMana(ef.player, ef.source, announced, paymentOther) {
 		// Pay first: an untapped source can fund what the pool lacks.
-		routes := e.resPayOptions(ef.player, ef.source, announced, paymentOther, "echo_pay", "echo_pay_manual", capitaliseFirst(ef.costLabel))
+		routes := e.resPayOptions(ef.player, ef.source, announced, paymentOther, w.pay, w.payManual, capitaliseFirst(ef.costLabel))
 		opts, manual = []decision.Option{routes[0]}, routes[1:]
 	} else if payable {
-		opts = append(opts, decision.Option{Kind: "echo_pay", Obj: ef.source,
+		opts = append(opts, decision.Option{Kind: w.pay, Obj: ef.source,
 			Label: capitaliseFirst(ef.costLabel)})
 	}
-	opts = append(opts, decision.Option{Kind: "echo_sac", Obj: ef.source,
-		Label: "Sacrifice " + o.Face().Name})
+	opts = append(opts, decision.Option{Kind: w.decline, Obj: ef.source,
+		Label: capitaliseFirst(w.verb) + " " + o.Face().Name})
 	opts = append(opts, manual...)
 	for i := range opts {
 		opts[i].Index = i
 	}
 	windowAsk(e, &decision.Decision{Player: ef.player, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: o.Face().Name + " — echo: " + ef.costLabel + " or sacrifice",
+		Prompt: o.Face().Name + " — " + w.name + ": " + ef.costLabel + " or " + w.verb,
 		Source: ef.source, Options: opts}, chooseEcho)
 }
 
@@ -225,6 +280,7 @@ func (e *Engine) echoAnswer(chosen []decision.Option) {
 		e.echoElectionAsk()
 		return
 	}
+	paid := false
 	switch echoAnswerCodes.Code(string(chosen[0].Kind)) {
 	case echoAnswerActivate:
 		e.activatePaymentMana(ef.player, chosen[0].Obj)
@@ -240,20 +296,28 @@ func (e *Engine) echoAnswer(chosen []decision.Option) {
 		}
 		announced := ef.pips.fold(ef.amount)
 		if !ef.res.chosen && e.resPayNeedsMana(ef.player, ef.source, announced, paymentOther) {
-			ef.res.elect(chosen[0].Kind == "echo_pay_manual")
+			ef.res.elect(string(chosen[0].Kind) == ef.words().payManual)
 			e.echoElectionAsk()
 			return
 		}
-		if announced.Priceable() &&
-			pay.PayManaConv(asPayer(e), ef.player, announced, asEval(e).Conv(ef.player, ef.source, pay.SAOther)) {
-			e.finishEcho()
-			return
-		}
+		paid = announced.Priceable() &&
+			pay.PayManaConv(asPayer(e), ef.player, announced, asEval(e).Conv(ef.player, ef.source, pay.SAOther))
 	case echoAnswerEchoActionPick:
 		e.echoActionExecute(chosen)
 		return
 	}
-	if pay.ExistsOnBattlefield(e.G.Obj(ef.source)) {
+	if ef.recover {
+		// CR 702.59: paying returns the card to its owner's hand, otherwise it
+		// is exiled; a source that left the graveyard in response is not moved.
+		if o := e.G.Obj(ef.source); o != nil && o.Zone == state.ZGraveyard {
+			to, text := state.ZExile, "recover declined"
+			if paid {
+				to, text = state.ZHand, "recovered"
+			}
+			e.emit(events.Event{Kind: events.MoveZone, Obj: ef.source,
+				From: state.ZGraveyard, To: to, Text: text})
+		}
+	} else if !paid && pay.ExistsOnBattlefield(e.G.Obj(ef.source)) {
 		pay.PaySacrificeCost(asPayer(e), []state.ObjID{ef.source})
 	}
 	e.finishEcho()
@@ -350,5 +414,7 @@ var echoAnswerCodes = state.NewStrCodes(
 	state.StrEntry[echoAnswerCode]{Key: "done", Val: echoAnswerDone},
 	state.StrEntry[echoAnswerCode]{Key: "echo_pay", Val: echoAnswerEchoPay},
 	state.StrEntry[echoAnswerCode]{Key: "echo_pay_manual", Val: echoAnswerEchoPay},
+	state.StrEntry[echoAnswerCode]{Key: "recover_pay", Val: echoAnswerEchoPay},
+	state.StrEntry[echoAnswerCode]{Key: "recover_pay_manual", Val: echoAnswerEchoPay},
 	state.StrEntry[echoAnswerCode]{Key: "echo_action_pick", Val: echoAnswerEchoActionPick},
 )
