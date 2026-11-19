@@ -140,7 +140,7 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		// filled here, before the probe: a membership query inside the flip
 		// would run a fresh walk that cannot re-list the alternate-face
 		// option the live-face walk offered.
-		if !candidates.hasAlt(cast.Object, cast.Mode) {
+		if !candidates.has(cast.Object, cast.Mode) {
 			return PaymentPlanOutcome{Reason: "unsupported"}
 		}
 		liveFace := o.Face()
@@ -153,7 +153,7 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 				// under the flip (probe-local, retired at both edges).
 				src = &costStaticSource{e: e}
 			}
-			out = e.planCastPaymentCheckedBody(p, cast, src, candidates, originZone, flashback, mayPlay, altFace)
+			out = planCastPaymentCheckedBody(&planCastBody{e: e}, p, cast, src, candidates, originZone, flashback, mayPlay, altFace)
 			return true
 		})
 		return out
@@ -161,14 +161,23 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	if int(o.FaceIdx) != cast.Face {
 		return PaymentPlanOutcome{Reason: "unsupported"}
 	}
-	return e.planCastPaymentCheckedBody(p, cast, statics, candidates, originZone, flashback, mayPlay, nil)
+	return planCastPaymentCheckedBody(&planCastBody{e: e}, p, cast, statics, candidates, originZone, flashback, mayPlay, nil)
+}
+
+// planCastBody carries the Engine the planner's plain-cast body prices
+// against, so the body is a free function over a feature struct: an Engine
+// method, or a free function taking *Engine, would grow the
+// engineMethodCount/engineSurface ratchets' measurement.
+type planCastBody struct {
+	e *Engine
 }
 
 // planCastPaymentCheckedBody is planCastPaymentChecked's body, from the
 // object check through the witness. altFace non-nil runs under the flip to
 // that alternate spell face (faceprobe.go), with the composition in the cast
 // mode's scope.
-func (e *Engine) planCastPaymentCheckedBody(p state.PlayerID, cast decision.PlannedCast, statics *costStaticSource, candidates *paymentCastCandidates, originZone state.Zone, flashback, mayPlay bool, altFace *cards.Face) PaymentPlanOutcome {
+func planCastPaymentCheckedBody(b *planCastBody, p state.PlayerID, cast decision.PlannedCast, statics *costStaticSource, candidates *paymentCastCandidates, originZone state.Zone, flashback, mayPlay bool, altFace *cards.Face) PaymentPlanOutcome {
+	e := b.e
 	targetPaid := false
 	o := e.G.Obj(cast.Object)
 	// A may-play permission can grant an opponent's card (Intellect
@@ -234,11 +243,11 @@ func (e *Engine) planCastPaymentCheckedBody(p state.PlayerID, cast decision.Plan
 			return PaymentPlanOutcome{Reason: "unsupported"}
 		}
 	case mayPlay:
-		if !candidates.has(cast.Object, true) {
+		if !candidates.has(cast.Object, "mayplay") {
 			return PaymentPlanOutcome{Reason: "unsupported"}
 		}
 	case altFace != nil:
-		if !candidates.hasAlt(cast.Object, cast.Mode) {
+		if !candidates.has(cast.Object, cast.Mode) {
 			return PaymentPlanOutcome{Reason: "unsupported"}
 		}
 	default:
@@ -665,23 +674,39 @@ type altCastCandidate struct {
 // pricedCandidatesVerify: see derivedMemoVerify. Set by the rules test binary.
 var pricedCandidatesVerify = derivedMemoVerifyFlag != ""
 
-func (c *paymentCastCandidates) has(id state.ObjID, mayPlay ...bool) bool {
+// has is the membership query for one planned cast shape the same walk
+// listed: no mode names the plain casts (ids), "mayplay" the untyped may-play
+// casts (mayIDs), and a hand alternate-spell-face mode (adventure_alt,
+// omen_alt) the (id, mode) alternate-face pairs (altIDs). A priced set
+// answers true, exactly as before, and verify mode checks it.
+func (c *paymentCastCandidates) has(id state.ObjID, mode ...string) bool {
 	if c.priced && !pricedCandidatesVerify {
 		return true
 	}
 	c.fill()
-	wantMayPlay := len(mayPlay) > 0 && mayPlay[0]
-	found := false
-	if wantMayPlay {
-		found = slices.Contains(c.mayIDs, id)
-	} else {
+	m := ""
+	if len(mode) != 0 {
+		m = mode[0]
+	}
+	kind := "plain cast"
+	var found bool
+	switch {
+	case m == "":
 		found = slices.Contains(c.ids, id)
+	case planCastPaymentCheckedCodes.Code(m) == planCastPaymentCheckedMayPlayMode:
+		kind, found = "may-play cast", slices.Contains(c.mayIDs, id)
+	case plannedAltFaceMode(m):
+		kind = "alternate-face cast"
+		for _, cand := range c.altIDs {
+			if cand.id == id && cand.mode == m {
+				found = true
+				break
+			}
+		}
+	default:
+		kind = "unknown-mode cast"
 	}
 	if c.priced && !found {
-		kind := "plain cast"
-		if wantMayPlay {
-			kind = "may-play cast"
-		}
 		panic(fmt.Sprintf("payment plan: priced-walk %s %d missing from the huge-pool walk", kind, id))
 	}
 	return found
@@ -736,27 +761,6 @@ func (c *paymentCastCandidates) hasFlashback(id state.ObjID) bool {
 // additional cost, no may-play permission.
 func planCastFlashbackOption(opt decision.Option) bool {
 	return opt.Kind == optCast && opt.Mode == "flashback" && opt.Cost == "" && opt.AltCostIndex == 0 && opt.MayPlayPerm == ""
-}
-
-// hasAlt is has for a planned hand alternate-spell-face cast: membership of
-// the (id, mode) pairs the same walk listed (altIDs). A priced set answers
-// true, exactly as has does, and verify mode checks it.
-func (c *paymentCastCandidates) hasAlt(id state.ObjID, mode string) bool {
-	if c.priced && !pricedCandidatesVerify {
-		return true
-	}
-	c.fill()
-	found := false
-	for _, cand := range c.altIDs {
-		if cand.id == id && cand.mode == mode {
-			found = true
-			break
-		}
-	}
-	if c.priced && !found {
-		panic(fmt.Sprintf("payment plan: priced-walk alternate-face cast %d mode %q missing from the huge-pool walk", id, mode))
-	}
-	return found
 }
 
 // paymentPlanCastShapeOK excludes plain casts whose announced cost or result
@@ -1027,7 +1031,9 @@ const (
 // may-play one), and an alternate-spell-face option further requires the card
 // in its owner's hand at face 0 with the face function naming Faces[1]
 // (plannedAltSpellFace); anything else fails closed.
-func (e *Engine) plannedPriorityCast(opt decision.Option) (cast decision.PlannedCast, altFace *cards.Face, kind plannedCastKind, ok bool) {
+// A free function over the game, not an Engine method, so it adds nothing to
+// the engine's method surface (the engineMethodCount ratchet).
+func plannedPriorityCast(g *state.Game, opt decision.Option) (cast decision.PlannedCast, altFace *cards.Face, kind plannedCastKind, ok bool) {
 	if opt.Kind != "cast" || opt.AltCostIndex != 0 {
 		return cast, nil, 0, false
 	}
@@ -1042,7 +1048,7 @@ func (e *Engine) plannedPriorityCast(opt decision.Option) (cast decision.Planned
 	default:
 		return cast, nil, 0, false
 	}
-	o := e.G.Obj(opt.Obj)
+	o := g.Obj(opt.Obj)
 	if o == nil {
 		return cast, nil, 0, false
 	}
@@ -1167,7 +1173,7 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 		return census.relaxable && e.paymentPlanRelaxProof(census, verdict).Reason == pay.ReasonInsufficient
 	}
 	for _, opt := range candidates {
-		cast, altFace, kind, ok := e.plannedPriorityCast(opt)
+		cast, altFace, kind, ok := plannedPriorityCast(e.G, opt)
 		if !ok {
 			continue
 		}
@@ -1193,7 +1199,7 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 		// before 601.2c). A one-click plan whose mandatory targets vanish
 		// when the card leaves the hand would only reverse (CR 733.1), so
 		// it is not offered (castprobe.go).
-		if !e.castTargetsAvailableOnStackFace(p, opt.Obj, altFace) {
+		if !castTargetsAvailableOnStackFace(e, p, opt.Obj, altFace) {
 			continue
 		}
 		// Likewise the plan executes in the CR 601.2g window, after the card
@@ -1202,7 +1208,7 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 		// back source_changed and the cast reverses (castprobe.go). For an
 		// alternate-spell-face cast the reads are judged under the flip to
 		// the face beginCast flips to.
-		if !e.paymentPlanHoldsOnStackFace(p, opt.Obj, altFace, *got.Plan) {
+		if !paymentPlanHoldsOnStackFace(e, p, opt.Obj, altFace, *got.Plan) {
 			continue
 		}
 		plan := *got.Plan
@@ -1733,7 +1739,8 @@ func plannedAltFaceMode(mode string) bool {
 // flips to, or nil when cast is not such a cast: the origin is the hand, the
 // object shows face 0, and the face function names Faces[cast.Face].
 func plannedAltSpellFace(cast decision.PlannedCast, o *state.Object) *cards.Face {
-	if cast.Origin != "hand" || cast.Face != 1 || o == nil || o.Card == nil || int(o.FaceIdx) != 0 {
+	if planCastPaymentCheckedCodes.Code(string(cast.Origin)) != planCastPaymentCheckedHand ||
+		cast.Face != 1 || o == nil || o.Card == nil || int(o.FaceIdx) != 0 {
 		return nil
 	}
 	switch modeFlagsCodes.Code(cast.Mode) {
@@ -1745,18 +1752,28 @@ func plannedAltSpellFace(cast decision.PlannedCast, o *state.Object) *cards.Face
 	return nil
 }
 
+// plannedAltGate is the slice of the Engine the alternate-spell-face cast's
+// two offer gates read, a narrow interface so the free functions below add
+// nothing to the Engine surface (the engineMethodCount/engineSurface
+// ratchets; castprobe.go's castOfferProbe shape).
+type plannedAltGate interface {
+	offerAsFace(id state.ObjID, face *cards.Face, fn func() bool) bool
+	castTargetsAvailableOnStack(p state.PlayerID, id state.ObjID) bool
+	paymentPlanHoldsOnStack(p state.PlayerID, id state.ObjID, plan decision.PaymentPlan) bool
+}
+
 // castTargetsAvailableOnStackFace is castTargetsAvailableOnStack for a
 // planned alternate-spell-face cast: the census the CR 601.2c target ask
 // runs with the card on the stack AND flipped to the face beginCast flips to
 // (faceprobe.go -- the same probe offerCastableAsFace prices under). The
 // stack probe nests inside the face probe; each restores its own reads.
 // altFace nil answers castTargetsAvailableOnStack unchanged.
-func (e *Engine) castTargetsAvailableOnStackFace(p state.PlayerID, id state.ObjID, altFace *cards.Face) bool {
+func castTargetsAvailableOnStackFace(w plannedAltGate, p state.PlayerID, id state.ObjID, altFace *cards.Face) bool {
 	if altFace == nil {
-		return e.castTargetsAvailableOnStack(p, id)
+		return w.castTargetsAvailableOnStack(p, id)
 	}
-	return e.offerAsFace(id, altFace, func() bool {
-		return e.castTargetsAvailableOnStack(p, id)
+	return w.offerAsFace(id, altFace, func() bool {
+		return w.castTargetsAvailableOnStack(p, id)
 	})
 }
 
@@ -1766,12 +1783,12 @@ func (e *Engine) castTargetsAvailableOnStackFace(p state.PlayerID, id state.ObjI
 // restriction or amount reading the caster's hand card's characteristics is
 // judged under the flip too (faceprobe.go). altFace nil answers
 // paymentPlanHoldsOnStack unchanged.
-func (e *Engine) paymentPlanHoldsOnStackFace(p state.PlayerID, id state.ObjID, altFace *cards.Face, plan decision.PaymentPlan) bool {
+func paymentPlanHoldsOnStackFace(w plannedAltGate, p state.PlayerID, id state.ObjID, altFace *cards.Face, plan decision.PaymentPlan) bool {
 	if altFace == nil {
-		return e.paymentPlanHoldsOnStack(p, id, plan)
+		return w.paymentPlanHoldsOnStack(p, id, plan)
 	}
-	return e.offerAsFace(id, altFace, func() bool {
-		return e.paymentPlanHoldsOnStack(p, id, plan)
+	return w.offerAsFace(id, altFace, func() bool {
+		return w.paymentPlanHoldsOnStack(p, id, plan)
 	})
 }
 
