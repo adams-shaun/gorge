@@ -2394,6 +2394,16 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, j, ab, d) {
 					continue
 				}
+				if cen.on && s.dynManaYieldsNothing(k, ab, sl) {
+					// gorge's planner window never taps the ability
+					// (manaAbilityYieldsNothing, gen.go dynManaYieldsNothing):
+					// the census prices its tap at nothing -- no gap, no
+					// unit, no fold (Baldur's Gate's second ability with no
+					// other Gates, its {2} fee gapping the census and leaving
+					// an X-bound sweep the over-bound open pool; CR 601.2g)
+					done[sl] |= 1 << j
+					continue
+				}
 				paidGap, skip, repeat := d.paidGapProbe(len(units) != 0, boundedAny, sl, j, ab)
 				if skip {
 					continue
@@ -2430,29 +2440,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				abPain := abPainOf(ab)
 				cen.pain = uint8(min(abPain, 255)) // the units below carry it (potUnitsAvail's cap)
 				abDrop, addAb := cen.painGate(abPain, life, uint8(ab.ManaColors), add, fold)
-				if kop.StoreManaAb(ab) {
-					// A storage battery's announced X (Count$xPaid) is indeterminate to
-					// gorge's potentialAmount, which folds it unbounded in every
-					// colour (potentialUnbounded) for the view and a cast. A trigger's
-					// own cost reads it at the counters it can remove, one mana each
-					// (rules potential_subcounter.go: pay ManaSubCounterXBound).
-					if len(units) != 0 {
-						// the census (units) reads the battery at the counters
-						// it can remove, one mana each, never the unbounded
-						// fold the over-bound pool keeps: gorge's relaxed
-						// census bounds a gap source at its natural amount, so
-						// a battery holding no counter makes nothing there
-						// (Dwarven Hold beside a kicked Flourishing Strike)
-						if n := s.perms[sl].ctrN(s, int(ab.Cost.Ctr)); n > 0 {
-							// a battery that taps beside the source's plain {T}: {C}
-							// (Mage-Ring Network) is the same tap, so its counters
-							// replace that unit's one mana instead of adding to it
-							cen.recStore(sl, ab, n, abDrop)
-						}
-						open = s.storePotential(open, sl, ab, d, fold)
-						continue
-					}
-					open = s.storePotential(open, sl, ab, d, addAb)
+				if s.storeBatteryPotential(sl, ab, d, &cen, abDrop, addAb, fold, &open) {
 					continue
 				}
 				if ab.ManaIdentityPotential {
