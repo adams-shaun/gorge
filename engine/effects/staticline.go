@@ -205,6 +205,17 @@ func AdjustLandPlaysValueOK(raw string) (int32, bool) {
 	return int32(n), true
 }
 
+// MaxCounterValueOK is the S:Mode$ MaxCounter MaxNum$ grammar rules'
+// maxCounterSBA reads (Rasputin Dreamweaver's 7, CR 704.5r): a plain
+// non-negative decimal integer. Anything else reports false and caps nothing.
+func MaxCounterValueOK(raw string) (int32, bool) {
+	n, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || n < 0 {
+		return 0, false
+	}
+	return int32(n), true
+}
+
 // HandSizeValueOK is the ONE SetMaxHandSize$ value grammar both the
 // printed-static read (rules' maxHandSizeFor) and the Effect-delivery
 // whitelist (setMaxHandSizeGrantFromLine) consult, so the two registration

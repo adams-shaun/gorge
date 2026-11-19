@@ -303,6 +303,7 @@ func (e *Engine) checkStateBased() {
 		if e.sbaFacts(facts).counterPair {
 			e.annihilateOppositeCounters(&b)
 		}
+		maxCounterSBA(e, &b)
 		tried.rearm(e.G.AliveCount())
 		e.destroyLethalDamage(&b, tried)
 		groups := e.legendGroups(e.sbaFacts(facts).legend)

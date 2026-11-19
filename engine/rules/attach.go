@@ -231,6 +231,15 @@ func (e *Engine) attachmentSBAs(b *sbaBatch) {
 					Text: "Equipment bearer is no longer a creature"})
 				continue
 			}
+			if e.isEquipment(o) && cantAttachForbids(e, o, bearer) {
+				// CR 301.5c / 704.5n: an S:Mode$ CantAttach static (O-Naginata's
+				// power 3 floor, Konda's Banner's legendary bearer) makes the
+				// bearer illegal, so the Equipment detaches and stays.
+				b.add(events.Event{Kind: events.Unattached, Obj: id,
+					IDs:  []state.ObjID{o.AttachedTo},
+					Text: "Equipment can't be attached to this bearer"})
+				continue
+			}
 			if e.isFortification(o) && !e.IsLand(bearer.ID) {
 				// CR 704.5n's Fortification half (CR 702.67b): the bearer is no
 				// longer a land, so the Fortification detaches and stays on the
@@ -425,7 +434,8 @@ func (e *Engine) attachRefused(obj, bearerID state.ObjID) (refused, note bool) {
 		// equipmentEquipSpecAdmits): Luxior's "Equip planeswalker" attaches
 		// to a walker that is a creature only through Luxior's own static.
 		return bearer.ReconfiguredAttached() || bearer.ImpendingDormant() ||
-			(!e.IsCreature(bearer.ID) && !e.equipmentEquipSpecAdmits(o, bearer)), true
+			(!e.IsCreature(bearer.ID) && !e.equipmentEquipSpecAdmits(o, bearer)) ||
+			cantAttachForbids(e, o, bearer), true
 	case e.isFortification(o):
 		return !e.IsLand(bearer.ID), true
 	}

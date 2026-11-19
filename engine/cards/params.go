@@ -943,6 +943,10 @@ const (
 	// Appended: earlier ordinals stay stable.
 	PKEmbalm
 	PKRemoveCost
+	// MaxNum$ on an S:Mode$ MaxCounter static (Rasputin Dreamweaver's seven
+	// dream counters, CR 704.5r). Read by rules' maxCounterSBA. Appended:
+	// earlier ordinals stay stable.
+	PKMaxNum
 	paramKeyCount
 )
 
@@ -1781,6 +1785,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKHaunt:                            "Haunt",
 	PKEmbalm:                           "Embalm",
 	PKRemoveCost:                       "RemoveCost",
+	PKMaxNum:                           "MaxNum",
 }
 
 // String is the key's Forge text.

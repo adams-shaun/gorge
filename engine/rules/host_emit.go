@@ -9,7 +9,19 @@ import (
 // role of effects.Host (rules-engine refactor spec W1d): every event an effect
 // proposes enters the engine through one of these.
 
-func (e *Engine) Emit(ev events.Event) { e.emit(ev) }
+func (e *Engine) Emit(ev events.Event) {
+	if ev.Kind == events.ManaClear {
+		// An effect's "lose all unspent mana" (DB$ DrainMana) is a mana loss
+		// a stat:ManaBurn static turns into life loss, like the step boundary.
+		emitManaClearBurning(e, ev)
+		return
+	}
+	if note, forbidden := staticForbidsHostEvent(e, ev); forbidden {
+		e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player, Text: note})
+		return
+	}
+	e.emit(ev)
+}
 
 // EmitScryRecord is effects.Host's completed-scry-record emit: the stand-in completion in effects' effLookAndArrange goes
 // through emitScryRecord, the exact site handleArrange uses, so a scry that
