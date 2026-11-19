@@ -1118,7 +1118,7 @@ type filtSearch struct {
 // School of the Unseen beside it is funded by nothing (potential_plan.go
 // paymentPlanCensus.fees).
 func (s *State) filtFunded(k *prep, p uint8, f slotMask) bool {
-	return s.filtRelaxable(k, f) && !(k.tapMana && (s.tapXTwoLive(k, p) || s.tapXSacAnyLive(k, p))) && !s.storeGapLive(k, p)
+	return s.filtRelaxable(k, f) && s.filtFundable(k, p, f)
 }
 
 // filtFundable is filtFunded for a prefix search's funding: a hybrid-fee
