@@ -169,8 +169,8 @@ func (s *State) gainedFrom(k *prep, d *Decision, st, rc statSrc, sorc bool, av *
 	n := s.listenerOrder(s.occ, &order)
 	for oi := 0; oi < n; oi++ {
 		fs := order[oi]
-		if !s.matchPermGen(k, st.a.Static.GainsOf, fs, st.ctrl, st.sl, layerKw) {
-			continue
+		if s.faceDown(k, fs) || !s.matchPermGen(k, st.a.Static.GainsOf, fs, st.ctrl, st.sl, layerKw) {
+			continue // CR 708.2a: a face-down permanent has no abilities to grant
 		}
 		if !s.gainedOffer(k, d, rc, first, s.perms[fs].obj, &k.t.Cards[s.cardAt(fs)], sorc, av) {
 			return false
