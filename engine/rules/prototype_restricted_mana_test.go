@@ -21,7 +21,7 @@ Oracle:x
 const filterRockSrc = `Name:Proto Filter Rock
 ManaCost:2
 Types:Artifact
-A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 1 | RestrictValid$ Spell.Colorless,Activated | SpellDescription$ Add {C}.
+A:AB$ Mana | Produced$ C | Amount$ 1 | Cost$ T | RestrictValid$ Spell.Colorless,Activated | SpellDescription$ Add one colourless mana.
 Oracle:x
 `
 
@@ -58,7 +58,7 @@ func TestPrototypeRestrictedManaReadsInsetColour(t *testing.T) {
 	t.Parallel()
 	// The same three sources pay {1}{U}{U} when the {C} is unrestricted.
 	unrestricted := "Name:Proto Rock\nManaCost:2\nTypes:Artifact\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 1 | SpellDescription$ Add {C}.\nOracle:x\n"
+		"A:AB$ Mana | Produced$ C | Amount$ 1 | Cost$ T | SpellDescription$ Add one colourless mana.\nOracle:x\n"
 	if !protoOffer(t, 8201, protoIslandSrc, protoIslandSrc, unrestricted) {
 		t.Fatal("precondition: the prototype cast is offered over two Islands and an unrestricted {C} source")
 	}
