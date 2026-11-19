@@ -55,6 +55,7 @@ Boil
 Boltwing Marauder
 Bomat Bazaar Barge
 Boon of the Wish-Giver
+Brainstealer Dragon
 Brazen Borrower
 Breakneck Berserker
 Brood of Cockroaches
@@ -175,6 +176,7 @@ Homarid Warrior
 Honor the Fallen
 Hookhand Mariner
 Humbler of Mortals
+Hundroog
 Hunted Ghoul
 Hunter of Eyeblights
 Hunter's Mark

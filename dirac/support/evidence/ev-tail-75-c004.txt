@@ -49,6 +49,7 @@ Captive Weird
 Catacomb Sifter
 Chainweb Aracnir
 Change the Equation
+Chaos Lord
 Chaotic Backlash
 Cinder Shade
 Clear a Path
@@ -79,6 +80,7 @@ Drossclaw
 Dualcaster Mage
 Dune Mover
 Duplicant
+Eccentric Pestfinder
 Elvish Dreadlord
 Emperor Crocodile
 Enrage
@@ -146,6 +148,7 @@ Magma Vein
 Magmatic Insight
 Malcator's Watcher
 Malicious Advice
+Mammoth Spider
 Mana Vault
 Manalith
 Marauding Boneslasher

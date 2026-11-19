@@ -107,6 +107,7 @@ Frenetic Raptor
 Frost Breath
 Fugitive Druid
 Gamble
+Gargadon
 Gerrard's Battle Cry
 Ghost-Lit Warder
 Ghostly Changeling
@@ -177,6 +178,7 @@ Marshal's Anthem
 Meatsqueak, Hoard Lord
 Megantic Sliver
 Meltdown
+Merfolk Thaumaturgist
 Mindlash Sliver
 Mishra's Groundbreaker
 Mizzium Meddler

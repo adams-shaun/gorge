@@ -68,6 +68,7 @@ Goblin Dirigible	f0903e30cbc7ff04	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Gristleback	eaa77261108aa341	14	1/1		0/1	ix:resp
 Growth Cycle	4e59359cccd30e0f	7	0/0		1/2	ix:resp
 Guardian Lions	156437887363f7f1	7	0/0		0/0	
+Hallowed Healer	e444e125de1e4fb6	7	2/2		0/1	ix:resp
 Harbinger of the Seas	d0918137fc04875a	4	0/0		0/0	
 Harsh Sustenance	e420aef55ec79aad	4	0/0		1/2	ix:resp
 Hateflayer	543f2562a59dcee9	3	1/1		0/1	ix:resp
@@ -85,6 +86,7 @@ Kin-Tree Warden	37dfc91b4bc21323	7	1/1		2/3	cast/alt:morphed
 Lair Delve	62ff25b8115c52d4	18	0/0		1/2	ix:resp
 Llanowar Vanguard	46ed0f6574842ddd	31	1/1		1/1	
 Lumberknot	d93dfb7b0641d744	5	1/1		0/1	ix:resp
+Lórien Revealed	5f6a14c36716e6ea	3	1/1		1/2	ix:resp
 Mask of Memory	04785a8ce89bb6cc	6	2/2		0/1	ix:resp
 Mechanical Glider	94e7423797d80a8b	4	2/2		1/1	
 Meldweb Strider	a4fa726a29c85cf4	4	2/2		0/1	ix:resp
@@ -109,6 +111,7 @@ Piston Sledge	c82ecf9a3595fd46	36	2/2		1/1
 Planar Despair	7865902e8b8cc4c7	4	0/0		2/2	
 Predator's Strike	cbf3cdd2bde99d4f	7	0/0		1/2	ix:resp
 Predatory Wurm	b51fbbf66f736e31	5	0/0		0/0	
+Primal Boost	feb8116f0288acf3	8	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
 Pyrogoyf	91f9e5534b0f9bb4	8	1/1		0/1	ix:resp
 Radiant Epicure	557aa499489a326e	4	1/1		1/1	
 Raving Oni-Slave	b5c332280de08f81	4	2/2		0/1	ix:resp
@@ -133,6 +136,7 @@ Skarrgan Skybreaker	94b6af3d2b08a56d	3	1/1		0/1	ix:resp
 Skycat Sovereign	c109979bcd1bd441	10	1/1		0/1	ix:resp
 Slinking Skirge	5be59eb00639e08a	16	1/1		1/1	
 Sly Instigator	ddbd0bf39ca096ab	4	1/1		0/1	ix:resp
+Smell Fear	d2d07e8e3b04366a	8	0/0		2/2	
 Snowfield Sinkhole	e742a047403e7354	33	2/2		0/1	ix:resp
 Soaring Thought-Thief	ce8da179858e6f4b	3	1/1		0/1	ix:resp
 Sonic Seizure	dc3bac815150ef73	5	0/0		2/2	
@@ -159,6 +163,7 @@ Tragic Fall	81c28691707e6a56	3	0/0		1/2	ix:resp
 Trespassing Souleater	c2ffd6987467dbaf	12	1/1		1/1	
 Vantress Paladin	03d4db0fce57330d	3	0/0		0/0	
 Viashino Firstblade	468549dfc788e0b1	4	1/1		0/1	ix:resp
+Vivien, Nature's Avenger	34f86d8e966bdfe2	29	3/3		1/1	
 Vodalian Soldiers	a71e76be34f94445	6	0/0		0/0	
 Voltaic Brawler	e05c42c1c622026c	5	2/2		0/1	ix:resp
 Wakeroot Elemental	21a69df831b499d4	4	1/1		0/1	ix:resp

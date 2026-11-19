@@ -75,6 +75,7 @@ Homarid Explorer	f7b83c3aa74f3b0d	20	1/1		1/1
 Horned Sliver	477f8f73641bfe48	15	0/0		0/0	
 Hunter's Bow	4f7b4defff8b0f1d	23	2/2		1/1	
 Indebted Samurai	c622cd483c9f9bf7	11	3/3		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Indomitable Archangel	c1f14ee9b8391b1d	17	0/0		0/0	
 Infernal Grasp	023ce3dd66113f37	15	0/0		1/2	ix:resp
 Inventor's Apprentice	bbe8d4483edc71b3	22	0/0		0/0	
 Island	763c67ef7a27eaf5	500	1/1		0/1	ix:resp
@@ -104,6 +105,7 @@ Morale	490749bd67c84a9d	11	0/0		2/2
 Morbid Hunger	9cb5a22bbf233ca4	14	0/0		4/4	
 Mountain	9e71388353e907ed	246	1/1		0/1	ix:resp
 Mournwhelk	472fa44c47b702fc	9	1/1		2/3	ix:resp
+Mu Yanling, Sky Dancer	6345be94de69cb73	13	3/3		0/1	ix:resp
 Mudbutton Torchrunner	dcf76a7cce07b41c	21	1/1		1/1	
 Multiversal Recruitment	5a22b97179bcb8a0	9	0/0		3/4	ix:resp
 Murderous Compulsion	d28a5c663122b1fd	34	0/0		2/2	
@@ -114,6 +116,7 @@ Nephalia Seakite	22ca8ffcab366997	24	0/0		0/0
 Omen of the Dead	ee42479eff31e5b0	4	2/2		0/1	ix:resp
 Osai Vultures	3736eb02b88a1874	10	2/2		0/1	ix:resp
 Pact of the Titan	8eb075f2f89aa86c	18	0/0		2/2	
+Panicked Bystander	65fde852ddba64fa	6	4/4		1/1	
 Perimeter Patrol	7a337cfd025b119d	31	1/1		1/1	
 Permafrost Trap	32531c8df999c789	20	0/0		2/2	
 Phantom Whelp	841792da55abf162	18	2/2		0/1	ix:resp
@@ -141,6 +144,7 @@ Revive the Fallen	c014488582f8d447	35	0/0		2/2
 Rimeshield Frost Giant	68da5d32464b2ba9	9	1/1		0/1	ix:resp
 Rimrock Knight	a73437786e4ca388	20	0/0		2/2	
 Riptide Laboratory	1998c80136b4a39a	105	2/2		0/1	ix:resp
+River of Tears	3a712d1008f6ade1	80	1/1		0/1	ix:resp
 Rockslide Ambush	1500ea8ec7ab620d	18	0/0		2/2	
 Rograkh, Son of Rohgahh	d0e9e97bf4de816f	19	0/0		0/0	
 Rosethorn Halberd	b742a3ffa37484c7	11	2/2		0/1	ix:resp
@@ -151,6 +155,7 @@ Salvage Slasher	66cefc2c82f179f6	25	0/0		0/0
 Sanctified Charge	fb76f7e868bf152e	15	0/0		1/2	ix:resp
 Scent of Ivy	1098959bf8e855f1	25	0/0		1/2	ix:resp
 Scouting Trek	2ffe686bb91bee10	26	0/0		1/2	ix:resp
+Secret Passage	eb6858c7e2f99c04	109	2/2		1/1	
 Secrets of the Golden City	5160d9ef3b24f891	9	0/0		1/2	ix:resp
 Seedguide Ash	3504eff292af21f5	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Selesnya Eulogist	e70bf7852e867655	26	1/1		1/1	
@@ -158,6 +163,7 @@ Sensor Splicer	976e5dddfa0fc4cb	8	1/1		0/1	ix:resp
 Shadow Glider	c63c4cc62d39e6d1	4	0/0		0/0	
 Shard of Broken Glass	b4d276a86a5172ca	24	2/2		1/1	
 Sheltering Light	c68cf0cbe86ee8e9	14	0/0		1/2	ix:resp
+Shred Memory	8f4edd7a75ae5ea0	26	1/1		2/2	
 Shrieking Mogg	66158404264ef086	7	1/1		0/1	ix:resp
 Sigil of Myrkul	7ec4d2648d06eb5e	26	1/1		1/1	
 Signal Pest	0be60c7ac07ebb92	18	1/1		0/1	ix:resp
@@ -177,6 +183,7 @@ Staunch-Hearted Warrior	d5bac110c79877bf	20	1/1		0/1	ix:resp
 Steam Frigate	c71da0283a2f2698	21	0/0		0/0	
 Storm Fleet Swashbuckler	00b5734eb75f00fe	24	0/0		0/0	
 Submerge	217bcf9d98726757	26	0/0		1/2	ix:resp
+Sulfurous Mire	91bf31e9a092a999	64	2/2		0/1	ix:resp
 Survival of the Fittest	17e037197710f11f	26	1/1		1/1	
 Swamp	342b413902f441c3	1431	1/1		0/1	ix:resp
 Synod Artificer	474c61b4d441fe56	11	2/2		1/1	
@@ -189,6 +196,7 @@ The Art of Tea	2b1f87ed46ca55ea	31	0/0		2/2
 Tidehollow Strix	343fb74f791385f8	22	0/0		0/0	
 Timetwister	1deac510127e6df8	22	0/0		1/2	ix:resp
 Torch Slinger	a50d68ba0a515025	26	1/1		2/3	ix:resp
+Trustworthy Scout	fb8ace2233041c72	12	1/1		0/1	ix:resp
 Tunneler Wurm	8aab655dd4b07967	7	1/1		1/1	
 Twinscroll Shaman	e1dae87debf3fb87	16	0/0		0/0	
 Tymaret, Chosen from Death	68527e6954957c05	9	1/1		1/1	

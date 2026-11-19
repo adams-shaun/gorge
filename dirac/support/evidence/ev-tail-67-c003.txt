@@ -119,6 +119,7 @@ Gnome-Made Engine
 Goblin Glider
 Goblin Racketeer
 Golden Egg
+Gray Merchant of Asphodel
 Grim Monolith
 Guardian Kirin
 Hanna, Ship's Navigator
@@ -145,6 +146,7 @@ Iron Suitcase
 Ironclad Krovod
 Island
 Jackalope Herd
+Kaito Shizuki
 Keen-Eyed Raven
 Knight of the Keep
 Knights of the Black Rose
@@ -208,6 +210,7 @@ Prosperous Innkeeper
 Protector of Gondor
 Prowling Pangolin
 Psychic Spear
+Pulse of the Grid
 Purifying Dragon
 Python
 Quest for Pure Flame
@@ -233,6 +236,7 @@ Savra, Queen of the Golgari
 Scepter of Celebration
 Scion of Oona
 Scion of Vitu-Ghazi
+Seal from Existence
 Searing Barb
 Searing Blood
 Secure the Scene
@@ -249,6 +253,7 @@ Simplify
 Skitter of Lizards
 Skullscorch
 Sky Terror
+Sky Weaver
 Slinking Giant
 Sol Grail
 Solid Footing

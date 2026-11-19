@@ -1,5 +1,8 @@
+A-Briar Hydra
 A-Dokuchi Silencer
+A-Rockslide Sorcerer
 A-Umara Mystic
+Aerial Assault
 Aethershield Artificer
 Against All Odds
 Air Nomad Student
@@ -8,29 +11,36 @@ Akrasan Squire
 Akroan Crusader
 Alms Beast
 Angelic Renewal
+Animate Land
 Aquatic Incursion
 Archaeomender
 Armor Thrull
 Asphodel Wanderer
 Avatar of the Resolute
+Aven Trailblazer
 Axebane Guardian
+Beast Attack
 Biting Rain
 Blacksmith's Skill
 Blade Splicer
 Blazing Hellhound
 Blight Sickle
 Blossom Dryad
+Buccaneer's Bravado
 Buried Alive
 Burst of Speed
+Caldera Pyremaw
 Caravan Escort
 Case the Joint
 Castle
 Claim the Firstborn
 Cling to Dust
+Clutch of Undeath
 Cogwork Assembler
 Commissar Severina Raine
 Confront the Unknown
 Conservator
+Contagion
 Corpse Knight
 Corrupted Zendikon
 Corrupting Licid
@@ -55,6 +65,7 @@ Despise
 Diligent Excavator
 Dismantling Blow
 Drag Down
+Dragon's Approach
 Dyfed, the Guiding Hand
 Eidolon of Rhetoric
 Erratic Visionary
@@ -75,13 +86,17 @@ Forest
 Fungal Sprouting
 Furnace Celebration
 Galvanic Iteration
+Garenbrig Squire
 Gluttonous Zombie
 Gnome-Made Engine
 Goblin Glider
+Gray Merchant of Asphodel
 Grim Monolith
 Hanna, Ship's Navigator
+Helitrooper
 Hemlock Vial
 Heroes of the Revel
+Heroes' Podium
 Honed Khopesh
 Horizon Chimera
 Hound of the Farbogs
@@ -90,6 +105,7 @@ Infernal Pet
 Infested Fleshcutter
 Inkrise Infiltrator
 Inspiring Refrain
+Irencrag Pyromancer
 Iron Suitcase
 Island
 Jackalope Herd
@@ -117,6 +133,7 @@ Mogis's Warhound
 Moonblade Shinobi
 Moss Monster
 Mountain
+Mourning
 Nagging Thoughts
 Natural Emergence
 Necrobite
@@ -142,6 +159,7 @@ Protector of Gondor
 Prowling Pangolin
 Psychic Spear
 Python
+Quest for Pure Flame
 Rage Weaver
 Rally to Battle
 Ravos, Soultender
@@ -151,9 +169,11 @@ Relic Barrier
 Reparations
 Replenish
 Revelation of Power
+Rhox Oracle
 Rogue Refiner
 Samite Pilgrim
 Sandcrafter Mage
+Scepter of Celebration
 Scion of Vitu-Ghazi
 Searing Blood
 Secure the Scene
@@ -163,6 +183,7 @@ Shake the Foundations
 Shepherd of the Lost
 Skitter of Lizards
 Skullscorch
+Sky Weaver
 Sol Grail
 Solid Footing
 Soul of Theros
@@ -170,6 +191,7 @@ Spellweaver Eternal
 Spined Fluke
 Spirit Weaver
 Squee's Embrace
+Steam Blast
 Swamp
 Symmetry Sage
 Tale of Momo
@@ -183,16 +205,19 @@ Thorn Thallid
 Thrull Retainer
 Thrór's Map
 Thunder Drake
+Thundering Sparkmage
 Thwart the Grave
 Tibor and Lumia
 Tidal Bore
 Titan Hunter
 Tormod's Cryptkeeper
+Transcendent Master
 Trigon of Rage
 Trueheart Duelist
 Undercity Scavenger
 Unholy Hunger
 Unwilling Ingredient
+Viashino Fangtail
 Vine Trellis
 Voice of the Provinces
 Warped Devotion
