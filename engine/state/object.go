@@ -815,6 +815,18 @@ type Object struct {
 
 	Tapped     bool
 	SummonSick bool
+	// StartedTurnUntapped is Forge's Card.startedTheTurnUntapped (Rasputin
+	// Dreamweaver's "if NICKNAME started the turn untapped"): the permanent's
+	// tapped status as the current turn began, before that turn's untap
+	// action. events.Apply's TurnChange fold stamps it for every battlefield
+	// object (and clears it off the battlefield), and Move's battlefield entry
+	// clears it -- CR 400.7: a permanent that enters later in the turn is a
+	// new object, which did not start the turn untapped. A filter that read
+	// the CURRENT Tapped status would pass a permanent the untap step has
+	// since untapped; only this stamp keeps the turn-start reading.
+	// Written only inside events.Apply, so a live game and a replay derive it
+	// identically.
+	StartedTurnUntapped bool
 	// FaceDown records a face-down exile (CR 702.75 Hideaway). It is state,
 	// rather than merely a Secret event flag, so later projections know not to
 	// reveal the card to another player.

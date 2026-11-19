@@ -179,6 +179,16 @@ var predicates = map[string]predFn{
 	"Other":    func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
 	"tapped":   func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.Tapped },
 	"untapped": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return !o.Tapped },
+	// startedTheTurnUntapped is Forge's Card.isStartedTheTurnUntapped
+	// (Rasputin Dreamweaver's `IsPresent$ Card.Self+startedTheTurnUntapped`):
+	// the permanent was untapped as the CURRENT turn began, not merely untapped
+	// now. events.Apply's TurnChange fold stamps Object.StartedTurnUntapped
+	// before the turn's untap action runs, so a permanent the untap step has
+	// since untapped fails here -- the CR 502.3 reading. The battlefield gate
+	// is belt and braces: the stamp is cleared off the battlefield anyway.
+	"startedTheTurnUntapped": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o != nil && o.Zone == state.ZBattlefield && o.StartedTurnUntapped
+	},
 	// phasedOut is Forge's Card.isPhasedOut (CR 702.25b): a phased-out
 	// BATTLEFIELD permanent. Phasing is a status, not a zone, so a card that
 	// left the battlefield (its PhasedOut cleared by the Move fold, CR

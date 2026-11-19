@@ -244,6 +244,14 @@ func foldTurnChange(g *state.Game, e *Event) {
 			// trigger still sees it) but not the turn boundary.
 			g.Objs[i].BlockedByThisTurn = nil
 			g.Objs[i].BlockedThisTurn = nil
+			// Forge's Card.startedTheTurnUntapped: the tapped status as THIS
+			// turn began, read at upkeeps later in the turn. The stamp is
+			// taken here, before the untap action runs (a permanent tapped
+			// during the previous turn was untapped by that untap action but
+			// did not start the turn untapped), and off the battlefield the
+			// record is false -- an object that re-enters later (CR 400.7, the
+			// Move entry clear below) did not start the turn at all.
+			g.Objs[i].StartedTurnUntapped = g.Objs[i].Zone == state.ZBattlefield && !g.Objs[i].Tapped
 			// CR 702.100a: exerted is a per-turn fact. ExertSkipUntap is
 			// deliberately NOT reset here -- its window spans the turn
 			// boundary and is consumed at the next untap step instead.
