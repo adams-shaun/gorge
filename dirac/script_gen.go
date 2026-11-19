@@ -954,16 +954,18 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			// is a twobrid one ("cost:twobrid", mana_twobrid.go). An improvise
 			// cast that credits no artifact is no contribution (improviseAloneCast):
 			// gorge plans it plainly and its prefix search taps the granted source
-			// (Organic Extinction beside Brightcap Badger's Saprolings)
-			if a.Target() == 0 && a.Mode()&3 == 0 && hasOption(d, a) {
-				// The ordinary plain offer already listed it: castOfferBase
-				// prices Convoke and Improvise before its offerCastable gate
-				// (CR 702.51a, 702.66a), so the floating pool pays the credited
-				// cast whether or not the potential planner prices the shape.
-				// The search's drop is the planner's, never the offer's. An
-				// alternative route (the impended cast's target byte) keeps the
-				// planner's refusal: its own offer does not credit the taps.
-				continue
+			// (Organic Extinction beside Brightcap Badger's Saprolings).
+			// The refusal is the offer verdict only for a base the credit
+			// leaves unpayable: gorge's offer gate prices the credited base
+			// itself (castOfferBase, mana.go: convokeCost then improviseCost),
+			// so a hand cast whose credited base the printed census pays --
+			// the creatures paying the coloured pips with every land tapped
+			// (CR 702.51a) -- is still offered, as the credited re-price below
+			// reads (a delve cast credits nothing: castOfferBase is the raw base)
+			if o := Obj(a.Source()); s.objs[o].zone == kop.ZoneHand {
+				if credited := s.convokeCredit(k, p, s.objs[o].card, o, cost); s.affordsUngrantedPlay(k, p, a, &credited, ex, s.grantPayDesc(k, a)) {
+					continue
+				}
 			}
 			d.remove(a)
 			capSpent.add(a)
