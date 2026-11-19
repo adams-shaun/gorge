@@ -15,6 +15,12 @@ func (s *State) oppExtreme(k *prep, x *kop.Expr, ctx evalCtx) int {
 	what := int(x.N) & 0xff
 	lowest := int(x.N)&kop.OppExtLowest != 0
 	skip := ctx.ctrl
+	if int(x.N)&kop.OppExtAllPl != 0 {
+		skip = 255
+	}
+	if int(x.N)&kop.OppExtCountCmp != 0 {
+		return s.groupCountCmp(k, x, ctx, what, skip)
+	}
 	if int(x.N)&kop.OppExtNonTrigPl != 0 {
 		skip = 255
 		if e := ctx.e; e != nil && e.kind == seTrigger {
@@ -61,3 +67,39 @@ func (s *State) oppExtreme(k *prep, x *kop.Expr, ctx evalCtx) int {
 // DebugOppCountOne is a test-only mutation: the controller's living
 // opponents count at most one, as in a two-player game.
 var DebugOppCountOne bool
+
+// groupCountCmp is ExOppExtreme with OppExtCountCmp: the living players
+// other than skip (255: every living player) whose figure compares x.Op
+// against Sub[0], the bound read once from the controller's side (gorge
+// hasPropertyStateBacked: hasPropertyCount over the group, each member's
+// zone length against the one threshold). A two-player game reads the one
+// opponent; a pod reads each of them (CR 102.2).
+func (s *State) groupCountCmp(k *prep, x *kop.Expr, ctx evalCtx, what int, skip uint8) int {
+	th := s.evalV(k, x.Sub[0], ctx)
+	n := 0
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if p == skip || s.out(p) {
+			continue
+		}
+		v := int(s.pl[p].handN)
+		if what == kop.OppExtGraveAll {
+			v = int(s.pl[p].graveN)
+		}
+		var hit bool
+		switch x.Op {
+		case kop.CmpGE:
+			hit = v >= th
+		case kop.CmpGT:
+			hit = v > th
+			if DebugHasCardsGE { // lockstep mutation (value_hascards.go)
+				hit = v >= th
+			}
+		case kop.CmpLE:
+			hit = v <= th
+		}
+		if hit {
+			n++
+		}
+	}
+	return n
+}
