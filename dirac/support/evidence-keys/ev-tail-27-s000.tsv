@@ -1,0 +1,160 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Aegis of the Gods	926855a4c686ba78	9	0/0		0/0	
+Aetherstorm Roc	23e4a918b3edd303	11	2/2		0/1	ix:resp
+Agonizing Syphon	33dfb620d5c45bec	3	0/0		1/2	ix:resp
+Air Elemental	4bb680e7466ce7b8	8	0/0		0/0	
+Allied Assault	b16501bca0e39ac5	15	0/0		2/2	
+Altac Bloodseeker	9225a98b902c0f11	12	1/1		1/1	
+Altar of the Brood	2a2d7da5f04bef6b	10	1/1		1/1	
+Anarchy	3b9116fb9805f5a9	14	0/0		2/2	
+Ancient Crab	02da4e4d7b881806	4	0/0		0/0	
+Apes of Rath	3dc6d443a2df455f	5	1/1		0/1	ix:resp
+Arachnoid	d8aa86c7fe438691	5	0/0		0/0	
+Arborea Pegasus	056df899047b503d	4	1/1		1/1	
+Arctic Merfolk	f0c138154efc385b	6	0/0		2/2	
+Argothian Wurm	b6ddb86eb98e04ef	4	1/1		1/1	
+Aspiring Aeronaut	0799b4c5062b7157	3	1/1		0/1	ix:resp
+Aura Flux	9ce88fe6766fce99	14	0/0		0/0	
+Azure Drake	e9e60909c2db70e1	4	0/0		0/0	
+Belligerent Guest	4c173b343a184d6b	395	1/1		1/1	
+Belligerent Hatchling	3f4a60493ed39671	7	2/2		0/1	ix:resp
+Bident of Thassa	a1827052d434aa28	6	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Blessing	a93ea3dc22939507	17	1/1		2/2	
+Blood Hypnotist	0c583dc3ec83905e	397	1/1		1/1	
+Blood Servitor	027c7407d35d6690	432	1/1		1/1	
+Bountiful Landscape	8db2c48143e67449	224	3/3		0/1	ix:resp
+Brink of Disaster	65bd0ca2e38dc274	3	1/1		1/2	ix:resp
+Broken Ambitions	99a95549b7b014f9	8	0/0		2/4	f0/s/x0,ix:resp
+Buried Alive	7939f78a7bf800c1	19	0/0		1/2	ix:resp
+Canopy Dragon	04c7f8cbd5ef9dea	5	1/1		1/1	
+Captain of the Mists	af05cb2e34a042c2	14	2/2		0/1	ix:resp
+Cathar's Shield	3b99502496dad6ad	20	1/1		1/1	
+Chitterspitter	94249fa2d36fb6a1	4	2/2		1/1	
+Chromatic Sphere	02ad14fc8f5f837a	15	1/1		1/1	
+Cloak of Mists	a7a1c6f3f513f590	8	0/0		2/2	
+Cobalt Golem	9caaf5abda53a290	11	1/1		0/1	ix:resp
+Conch Horn	f05bab907d2a7d16	3	1/1		0/1	ix:resp
+Conclave Naturalists	24bcce9a6fe98969	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Contested Cliffs	42169d7da6c122a4	220	2/2		0/1	ix:resp
+Cursed Flesh	7b8ece238076b2df	6	0/0		1/2	ix:resp
+Deliberate	05a91aa682fcb930	20	0/0		1/2	ix:resp
+Destroy the Evidence	7a4646ba13fd4c39	8	0/0		1/2	ix:resp
+Dream Twist	0722f9c679f2cbae	25	0/0		3/4	ix:resp
+Dryad's Revival	39405901d90ebe02	24	0/0		4/4	
+Duergar Assailant	59d75bbdca9103a5	4	1/1		0/1	ix:resp
+Dwarven Armorer	12aa2914e321b887	11	2/2		0/1	ix:resp
+Dwarven Lieutenant	1970c94f6bd5eb12	8	1/1		1/1	
+Electrosiphon	5d738c6291efa5e1	4	0/0		1/2	ix:resp
+Elemental Mastery	f1464578687145f3	10	0/0		1/2	ix:resp
+Elven Warhounds	bc66da17e1f35279	10	1/1		0/1	ix:resp
+Embargo	ac665c814f381f25	10	1/1		1/1	
+Enraging Licid	bb6e6463662e9dd7	16	1/1		1/1	
+Erebor Flamesmith	d7050216fb4dfbb2	10	1/1		1/1	
+Evernight Shade	97f2426c1d385eb2	4	2/2		0/1	ix:resp
+Eyekite	2882779227e5d366	7	0/0		0/0	
+Eyeless Watcher	e21e6ecc6af95dad	4	1/1		0/1	ix:resp
+Falkenrath Celebrants	be2eeeb7bcac09b8	265	1/1		1/1	
+Field of Ruin	497fea2027a53338	221	2/2		1/1	
+Fiend Binder	5783880418b2472f	3	1/1		1/1	
+Fight as One	6a2465e147b64df1	7	0/0		2/2	
+Flowstone Giant	27edf38107df574f	4	1/1		1/1	
+Font of Vigor	a228001cf058a067	3	1/1		0/1	ix:resp
+For the Ancestors	7f0e13cf267d5ae0	31	0/0		4/4	
+Force of Rowan	b627236e9b2990c1	13	0/0		1/2	ix:resp
+Forest	6d0466c30f825dba	360	1/1		0/1	ix:resp
+Fruition	a8ecbd01ccef819e	9	0/0		1/2	ix:resp
+Furnace Gremlin	b7d71d7e005c9558	4	2/2		1/1	
+Galepowder Mage	50e6e45b23d560b6	5	1/1		0/1	ix:resp
+Ghoulcaller's Accomplice	7fb15b6936c4b349	6	1/1		0/1	ix:resp
+Giant Ladybug	3668890f464367d2	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Gift of Strands	0fd3b403cde5a0fd	5	1/1		1/2	ix:resp
+Glacial Floodplain	240588534eaad982	173	2/2		0/1	ix:resp
+God-Favored General	257083191d484b3e	5	1/1		0/1	ix:resp
+Gossamer Phantasm	c0063c4de7c6f382	10	1/1		0/1	ix:resp
+Grim Lavamancer	505a2c8a38f9af0a	6	1/1		0/1	ix:resp
+Gruul Locket	177c56d7403e4cb1	6	2/2		0/1	ix:resp
+Harvestguard Alseids	bb8aa683c99f7ea8	8	1/1		0/1	ix:resp
+Hazoret's Undying Fury	972957637daf283b	5	0/0		1/2	ix:resp
+Honorable Scout	eef47f0e35a0dbe5	12	1/1		1/1	
+Hungry Ridgewolf	33ca204a0f2d3c67	5	0/0		0/0	
+Ichorclaw Myr	201015e740185b33	6	1/1		0/1	ix:resp
+Increasing Confusion	7eb3529c3aa37010	18	0/0		6/6	
+Island	763c67ef7a27eaf5	520	1/1		0/1	ix:resp
+Lagac Lizard	a855aae0025e1919	11	0/0		0/0	
+Lightning Axe	f2a583f14e550ce9	19	0/0		1/2	ix:resp
+Llanowar Druid	6cb8d13cafb2c648	9	1/1		0/1	ix:resp
+Lord of the Unreal	104d86756a1706be	15	0/0		0/0	
+Mage's Attendant	7ca9c0e54bf859b1	13	1/1		1/1	
+Marauding Looter	a358663f3c79d575	15	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Marauding Raptor	b677ddfc3121dc3b	5	1/1		0/1	ix:resp
+Master Decoy	15bbda0774019787	8	1/1		0/1	ix:resp
+Metallic Sliver	5046be891715961a	16	0/0		0/0	
+Midnight Arsonist	68032da38727be84	5	1/1		0/1	ix:resp
+Molten Birth	c16506e41d2ac1fa	8	0/0		2/2	
+Moonstone Eulogist	478e7b76d2ce1f71	36	2/2		1/1	
+Mountain	9e71388353e907ed	1523	1/1		0/1	ix:resp
+Namor, Scourge of the Seas	42c264e2c97e1e11	3	1/1		0/1	ix:resp
+Neheb, Dreadhorde Champion	9caf00b61c988dac	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Neverwinter Dryad	6b4d8b1615bf76d3	5	1/1		0/1	ix:resp
+Night Revelers	7c9842658597f3d0	10	0/0		0/0	
+Noble Stand	1279a1095f8e434b	3	1/1		0/1	ix:resp
+Norwood Riders	54f3a51d0e5d4434	6	0/0		0/0	
+Null Brooch	77d428d978996726	3	1/1		0/1	ix:resp
+Nyxborn Wolf	0028aad6c35d800a	6	0/0		2/2	
+Orcish Squatters	f03d003cd361a943	9	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Ornery Goblin	95bf1ab05da3e8c9	10	2/2		0/1	ix:resp
+Orzhov Keyrune	9e2c7c4d5599903f	18	2/2		1/1	
+Out of the Way	11126a4c3fbdf268	7	0/0		1/2	ix:resp
+Phoenix of Ash	9311e4da4560a09b	13	1/1		1/3	cast/alt:escaped,ix:resp
+Plains	82d63a695487e567	500	1/1		0/1	ix:resp
+Pretender's Claim	cf5368a99c8827d5	4	1/1		1/2	ix:resp
+Python	7173c48f80167b6c	10	0/0		0/0	
+Ravenous Baboons	c029658cf6fd299e	9	1/1		0/1	ix:resp
+Red Ghost, Intangible Genius	ab56905eb42d4ff2	9	2/2		0/1	ix:resp
+Rhystic Deluge	09afec42ad9adfca	8	1/1		1/1	
+Rite of Flame	c9e64936786bfd9e	6	0/0		1/2	ix:resp
+Sage of the Falls	a1ada6f6453e1a6c	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Sarah Jane Smith	cd63d5638426f8e8	15	1/1		0/1	ix:resp
+Sarcomite Myr	af6a19df1edb99e2	7	2/2		1/1	
+Satyr Rambler	dbafd7edb2551f2f	16	0/0		0/0	
+Scion of Vitu-Ghazi	bddc925390e5ce12	7	1/1		0/1	ix:resp
+Seek New Knowledge	f1cde22e293037c0	12	0/0		1/2	ix:resp
+Serpentine Curve	52027f209f38c3b7	12	0/0		1/2	ix:resp
+Shorecomber Crab	569dc5ffc10ef13e	16	0/0		0/0	
+Silent Attendant	c47f09419fccecb0	5	1/1		1/1	
+Silumgar Monument	faf06e1261fb6f26	10	2/2		1/1	
+Skyclave Plunder	6dfde8fe6f8fef8e	8	0/0		1/2	ix:resp
+Skyshroud Poacher	f9337907b09455cd	6	1/1		0/1	ix:resp
+Snake Basket	0a5f28a6c7fb01f0	7	1/1		0/1	ix:resp
+Southern Paladin	7f94482af343ec05	11	1/1		0/1	ix:resp
+Spined Thopter	fffbbfefb663fe19	11	0/0		0/0	
+Storm Front	1a246a8431037d9d	11	1/1		1/1	
+Stormfist Crusader	12401c3745945e0e	10	1/1		0/1	ix:resp
+Sudden Reclamation	cd36ac6172bf77a5	8	0/0		1/2	ix:resp
+Surgespanner	d15b086d1248ff30	11	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Swamp	342b413902f441c3	266	1/1		0/1	ix:resp
+Sword of Sinew and Steel	ba9800f5ae4729ef	5	2/2		0/1	ix:resp
+Sword of War and Peace	97c23ee84b246bdb	16	2/2		1/1	
+Tail Slash	8e3d31217812fade	11	0/0		1/2	ix:resp
+Tainted Isle	78e198254b48d651	205	2/2		0/1	ix:resp
+Tattermunge Maniac	59446637fe9014b6	4	0/0		0/0	
+Teferi's Protege	8b8b427a28590f0e	9	1/1		0/1	ix:resp
+Thieving Magpie	1b1e376f544f16cc	4	1/1		0/1	ix:resp
+Thirsting Roots	6848082946440d9c	14	0/0		1/2	ix:resp
+Thrull Surgeon	b5b4f61de852d69d	7	1/1		0/1	ix:resp
+Timmy, Power Gamer	85affbe66f290422	8	1/1		0/1	ix:resp
+Tormented Thoughts	391fa376f236ed3c	4	0/0		1/2	ix:resp
+Trained Condor	d598bca02b63c8c4	11	1/1		0/1	ix:resp
+Tundra Wolves	93bd4a467d254b1d	6	0/0		0/0	
+Untethered Express	172cc2b51d7f3fa7	4	2/2		0/1	ix:resp
+Unwind	00a437a3532d2b3c	5	0/0		1/2	ix:resp
+Vedalken Infiltrator	239f5996085eb5f0	8	0/0		0/0	
+Vengeful Devil	628e473e0fed5bc3	6	1/1		1/1	
+Venser's Journal	c270d0572fbb6963	10	1/1		1/1	
+Vertigo Spawn	4e46a2461d96ee83	12	1/1		0/1	ix:resp
+Vildin-Pack Outcast	3d366fd770932c2e	9	3/3		1/1	
+Vodalian Hexcatcher	7bc77f41afef359e	12	1/1		0/1	ix:resp
+Void Shatter	b3d7b07454a12bc8	4	0/0		1/2	ix:resp
+Wildwood Tracker	d5e455e44ba4ce2e	10	2/2		1/1	
+Workshop Assistant	060d581f13788f1b	6	1/1		0/1	ix:resp
+Yuffie, Materia Hunter	e0aca07f1cef654a	9	2/2		0/1	ix:resp

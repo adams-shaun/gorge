@@ -1,0 +1,110 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Abyssal Nocturnus	6cbc69550b1a92db	22	1/1		1/1	
+Aid the Fallen	414fb81f4e94badd	22	0/0		1/2	ix:resp
+Badlands	b58806a2e68ea63e	73	2/2		0/1	ix:resp
+Baleful Force	e055ab07470180ac	6	1/1		0/1	ix:resp
+Bartolomé del Presidio	e8926fab9272cc2c	31	1/1		1/1	
+Basilica Screecher	08a5006072d9b418	34	1/1		1/1	
+Bessie, the Doctor's Roadster	d17f93af99a0d3aa	14	2/2		1/1	
+Blitz Leech	ed9f801d220c73c6	12	1/1		1/1	
+Blowfly Infestation	2d0b58a31bef342a	18	1/1		0/1	ix:resp
+Bob, Reluctant HYDRA Agent	a9de100ed1f29340	28	1/1		0/1	ix:resp
+Boon-Bringer Valkyrie	d97303014da2fd7d	6	1/1		1/1	
+Brilliant Halo	fdcf8ed58c5ec4f5	34	1/1		2/2	
+Builder's Blessing	e5e82bf8a934b87c	8	0/0		0/0	
+Burst of Energy	0f4dfc1e262134bd	16	0/0		2/2	
+Bygone Bishop	91831112aef79db9	22	1/1		1/1	
+Carnifex Demon	c5089479557b93bc	16	1/1		1/1	
+Cathars' Crusade	97a1fe94b68ac1f9	15	1/1		1/1	
+Chitinous Cloak	9345fe3ccf59acf7	21	1/1		1/1	
+Clavileño, First of the Blessed	aba3afbaf8bdef5e	12	1/1		1/1	
+Cliff Threader	81599da77fab5d84	27	0/0		0/0	
+Consul's Shieldguard	a799ff2a81dffb75	8	2/2		0/1	ix:resp
+Dark Impostor	ac44f7c1d41a7278	16	1/1		0/1	ix:resp
+Dark Revenant	2bf447023dcbdac6	12	1/1		1/1	
+Day of Destiny	542a6497a5c8253f	18	0/0		0/0	
+Deadly Rollick	25336c38c1bd3558	13	0/0		1/2	ix:resp
+Demotion	a1a8fda2aa330d81	24	0/0		2/2	
+Doom's Servo-Guards	0829dee126c8a4f7	23	1/1		0/1	ix:resp
+Dragon's Presence	6f09bafc58d4acb1	18	0/0		2/2	
+Dune Mover	4eac559d131ced9e	263	1/1		1/1	
+Dusk Imp	20577b864b52f049	20	0/0		0/0	
+Emancipation Angel	d725e87ed6a560c2	16	1/1		1/1	
+End Hostilities	18fcf1fe5c14b288	9	0/0		2/2	
+Excommunicate	42a82175c459ec4b	12	0/0		1/2	ix:resp
+Exiled Boggart	0ca749677ac0e4ba	6	1/1		0/1	ix:resp
+Expose to Daylight	bd2521e338efbe7f	8	0/0		1/2	ix:resp
+Final Revels	e9ce253dcfdc0c84	9	0/0		1/2	ix:resp
+Firescreamer	3ceb19201abaa706	15	1/1		1/1	
+Flesh-Eater Imp	5252612c3c9a98dc	202	1/1		1/1	
+Fodder Tosser	77ff1d014531d1b0	32	1/1		1/1	
+Gateway Plaza	f0246163c137388d	124	2/2		0/1	ix:resp
+Ghost-Lit Redeemer	2f993973f271a866	8	2/2		0/1	ix:resp
+Ghoulish Procession	3b7fcfb0c12b967c	14	1/1		0/1	ix:resp
+Golgari Thug	094f77996fd312a7	38	1/1		0/1	ix:resp
+Greatsword	98e74091cf46789e	20	1/1		1/1	
+Gruesome Scourger	1487e46a446dcb45	11	1/1		1/1	
+Hagra Sharpshooter	d157f20e89b39898	6	1/1		0/1	ix:resp
+Heavenly Qilin	ed54dd72dd1c4f20	28	1/1		1/1	
+Hexavus	b459f842fd13cde6	12	2/2		1/1	
+Hexgold Hoverwings	da460bca728e4666	6	2/2		0/1	ix:resp
+Hookblade	55fd4da8f2d0c363	24	2/2		1/1	
+Imperial Recovery Unit	b0a0603e9f9c0f72	24	2/2		1/1	
+Inkrise Infiltrator	ce4343ef740e3f8e	16	1/1		1/1	
+Insidious Bookworms	4a0eca11e24c4fb4	6	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Inspiring Roar	1eb007b1780b4a6c	9	0/0		2/2	
+Iron Tusk Elephant	2820f5c50851d3e2	20	0/0		0/0	
+Juzám Djinn	a212f7844465db40	4	1/1		1/1	
+Kingpin's Pet	6bc2164c428ac538	13	1/1		0/1	ix:resp
+Knight of Obligation	dac5ca79d2efa735	20	1/1		1/1	
+Knight-Errant of Eos	d3a251779c6468aa	5	1/1		0/1	ix:resp
+Leering Emblem	6e4b42497d495b73	12	2/2		1/1	
+Lifelink	dfb27474e7506500	24	0/0		2/2	
+Loch Korrigan	379be7e2be030f15	14	1/1		1/1	
+Markov Purifier	a6835628d3c4586e	27	1/1		0/1	ix:resp
+Mausoleum Secrets	f49d4c4173b181c0	23	0/0		2/2	
+Mercenary Informer	c4eccba501e0023e	21	1/1		1/1	
+Midnight Charm	b9b0c06f47cc2e2f	18	0/0		2/2	
+Mirran Crusader	12f68aaabe79d366	15	0/0		0/0	
+Neck Snap	edbf9e19277d0cca	10	0/0		1/2	ix:resp
+Night	4c21e25c4a75e198	27	0/0		1/3	f1/s,ix:resp
+Oath of Gideon	4dd0f67a0c388273	19	1/1		1/1	
+Oblivion Crown	42bb29d0fb03acee	17	0/0		2/2	
+Olivia's Dragoon	b2dd957df18be833	19	1/1		1/1	
+Order of Leitbur	2744cefba817fd13	24	2/2		1/1	
+Order of the Ebon Hand	cdb1fb0e649388ed	24	2/2		1/1	
+Order of the Stars	dda65877f46e9d41	14	0/0		0/0	
+Plains	82d63a695487e567	910	1/1		0/1	ix:resp
+Polluted Dead	2d4fde5afda10392	14	1/1		0/1	ix:resp
+Reconnaissance	3d2066d409ca8c44	15	1/1		0/1	ix:resp
+Resolute Watchdog	13641a9592f96ea9	20	1/1		1/1	
+Resurgent Belief	230df2e1470dca3d	8	0/0		3/4	cast/alt:none
+Robaran Mercenaries	3dd581350053321c	22	0/0		0/0	
+Rootbound Crag	020db38246235ad3	71	1/1		0/1	ix:resp
+Roterothopter	027cbaf51a1cded5	12	1/1		1/1	
+Runed Stalactite	0af851c13cd6b10f	16	1/1		1/1	
+Scavenged Weaponry	8cace01660905037	8	1/1		1/2	ix:resp
+Scepter of Fugue	06b1fe6ab26f9689	20	1/1		0/1	ix:resp
+Scissors Lizard	8bf165592d37e2bd	20	0/0		0/0	
+Search the Premises	699066bb48281eeb	12	1/1		0/1	ix:resp
+Sentry Bot	708fcb31274aab6f	13	2/2		1/1	
+Sigil of Distinction	34bab55627c55b6c	26	1/1		1/1	
+Silverflame Ritual	e6698b22eda657da	6	0/0		2/2	
+Siren Song Lyre	e121f6a2dbf63da1	32	1/1		1/1	
+Skirsdag Flayer	2168bd7311934153	10	1/1		1/1	
+Skyboon Evangelist	ad1fd0598d56b0aa	6	2/2		0/1	ix:resp
+Skyclave Relic	78eb5effef156622	12	2/2		3/3	
+Stone Haven Pilgrim	406266b9e85d81ae	13	1/1		1/1	
+Sun Clasp	1931aa6c65cae8fa	10	1/1		2/2	
+Swamp	342b413902f441c3	799	1/1		0/1	ix:resp
+Szarekh, the Silent King	7d7bdb7ee6a5d2ba	15	1/1		0/1	ix:resp
+The Mightstone and Weakstone	beda9a33b1c55a1c	9	2/2		1/1	
+Thoughtseize	e6d275098cb5c79a	16	0/0		1/2	ix:resp
+Ulcerate	23ea2197dd63700c	30	0/0		2/2	
+Unruly Mob	575ba9aa275bd7da	22	1/1		1/1	
+Virulent Swipe	2c0081256a0143a1	56	0/0		2/2	
+Vivisection Evangelist	32c93ff9f0c600a9	168	1/1		1/1	
+Warchanter Skald	b4be3887bcf93584	10	1/1		1/1	
+Windbrisk Heights	3b3604079b0aebc7	84	3/3		1/1	
+Zodiac Rat	b7b5618daf7dcefe	11	0/0		0/0	
+Zuberi, Golden Feather	942286eaa702696d	11	0/0		0/0	

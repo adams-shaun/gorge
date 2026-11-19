@@ -120,6 +120,7 @@ Gingerbehemoth
 Glint-Nest Crane
 Goatnapper
 Goblin Lore
+Godtracker of Jund
 Graaz, Unstoppable Juggernaut
 Granger Guildmage
 Gravel Slinger
@@ -226,6 +227,7 @@ Prey's Vengeance
 Primal Order
 Primeval Titan
 Prohibit
+Pursue Glory
 Rapid Decay
 Reach of Branches
 Rebuke

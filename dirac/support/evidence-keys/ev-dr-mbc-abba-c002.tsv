@@ -1,0 +1,43 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Adventurous Impulse	8bf0e846bf4e6aaf	3	0/0		1/2	ix:resp
+Akroma's Will	713144bd09f9b15b	8	0/0		1/2	ix:resp
+Ancestral Blade	cc70cc290be5f866	7	2/2		0/1	ix:resp
+Annoyed Altisaur	3b39cf64b2cedea4	5	0/0		0/0	
+Avenging Druid	341a3fd6b30c95c9	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Beloved Chaplain	7f9fcc00876bac1c	8	0/0		0/0	
+Bestial Menace	a5c1b9a2dc5358aa	5	0/0		1/2	ix:resp
+Blor the Impervious	0dd832e69a286a31	5	0/0		0/0	
+Citanul Woodreaders	2f400b766b614bed	10	1/1		2/3	ix:resp
+Cliffgate	3927da9806431479	18	1/1		0/1	ix:resp
+Commune with Nature	c74f1fa9e2946bbf	9	0/0		2/2	
+Dread Linnorm	b12c9d1ad6ce99c7	11	0/0		1/2	ix:resp
+Experimental Augury	253df2b0d1557e59	4	0/0		1/2	ix:resp
+Fa'adiyah Seer	3299a99153b737cd	7	1/1		1/1	
+Far Wanderings	0448c8b4aaa3faa2	4	0/0		1/2	ix:resp
+Farseek	45f51ba11fadad79	7	0/0		1/2	ix:resp
+Forest	6d0466c30f825dba	76	1/1		0/1	ix:resp
+Fortify	cc5d792b45f43a47	7	0/0		1/2	ix:resp
+Fyndhorn Elves	d0e49e9ea4984b98	10	1/1		0/1	ix:resp
+Gluntch, the Bestower	5ba489e28648714e	5	1/1		0/1	ix:resp
+Grizzly Fate	fbe8f559ba50a68e	6	0/0		3/4	ix:resp
+Hunting Cheetah	11e4e94879e77c06	11	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Island	763c67ef7a27eaf5	32	1/1		0/1	ix:resp
+Joraga Treespeaker	125f83fe80f9e647	6	1/1		0/1	ix:resp
+Kitesail Skirmisher	fac5447cf712c268	9	2/2		1/1	
+Myriad Landscape	9b42c73d63544b4c	18	2/2		0/1	ix:resp
+Paladin of the Bloodstained	6c42af2759ea97aa	3	1/1		0/1	ix:resp
+Pentarch Ward	71e309527f171eab	4	1/1		2/2	
+Penumbra Kavu	e1c9d57a0b0d8b4a	4	1/1		0/1	ix:resp
+Plains	82d63a695487e567	76	1/1		0/1	ix:resp
+Pore Over the Pages	bf4c7ebc562bb68e	3	0/0		1/2	ix:resp
+Predator's Strike	cbf3cdd2bde99d4f	3	0/0		1/2	ix:resp
+Raffine's Informant	fe577218a6cc94ba	5	1/1		0/1	ix:resp
+Rain of Thorns	4a77e7c9326e8770	4	0/0		1/2	ix:resp
+Rancor	60aa551679ad5355	25	1/1		2/2	
+Run Away Together	57e24937865276ad	4	0/0		1/2	ix:resp
+Scale Up	c31599258cd918d5	5	0/0		2/4	cast/alt:overloaded,ix:resp
+Spidersilk Armor	8335d1009c6b3c99	7	0/0		0/0	
+Sumala Rumblers	2db9b2782323efcf	6	1/1		0/1	ix:resp
+Swamp	342b413902f441c3	8	1/1		0/1	ix:resp
+Windfall	c8204db0c7aac650	4	0/0		1/2	ix:resp
+Woodland Mystic	0ecd723cc325a8df	11	1/1		0/1	ix:resp

@@ -3,24 +3,33 @@ Act of Treason
 Affa Protector
 Akroan Crusader
 Alaborn Trooper
+Altar's Reap
 Ancestral Statue
+Argentum Armor
+Argothian Elder
 Arixmethes, Slumbering Isle
 Arm with Aether
+Artful Maneuver
 Aven Gagglemaster
 Awesome Presence
 Azorius Skyguard
 Battlegrowth
+Bellowing Aegisaur
 Biblioplex Assistant
 Bladestitched Skaab
 Bloodrage Vampire
 Bloodtracker
+Boros Cluestone
 Boros Reckoner
 Brave the Elements
 Bridgeworks Battle
+Broodhatch Nantuko
 Cabal Initiate
 Call the Gatewatch
 Canyon Jerboa
 Centaur Battlemaster
+Charnel Serenade
+Chief of the Edge
 Choking Miasma
 Cliffside Lookout
 Cogworker's Puzzleknot
@@ -32,11 +41,13 @@ Court Cleric
 Crenellated Wall
 Crimson Fleet Commodore
 Curse of Wizardry
+Dark Salvation
 Dauntless Cathar
 Dead
 Deep Dish Pizza
 Demon of Wailing Agonies
 Disruptive Pitmage
+Doctor Strange, Surgeon
 Dreadfeast Demon
 Drift of Phantasms
 Drowner of Hope
@@ -48,6 +59,7 @@ Enthusiastic Mechanaut
 Eternal Flame
 Ethersworn Sphinx
 Execute
+Expedition Champion
 Experiment Kraj
 Extract the Truth
 Faithless Looting
@@ -59,6 +71,7 @@ Flickering Ward
 Foil
 Forest
 Gild
+Goblin Arsonist
 Goblin Striker
 Gore-House Chainwalker
 Greenhilt Trainee
@@ -74,9 +87,12 @@ Harmattan Efreet
 Harnessed Lightning
 Harrier Naga
 Hawkeye, Bowslinger
+Heightened Reflexes
 Hellhole Rats
+Hulk, Always Angry
 Hulk, Strongest There Is
 Hungry Mist
+Ichor Wellspring
 Illness in the Ranks
 Implement of Combustion
 Ironclaw Buzzardiers
@@ -118,27 +134,32 @@ Mischief and Mayhem
 Mist Leopard
 Mist-Cloaked Herald
 Moria Marauder
+Mortuary
 Mountain
 Murkfiend Liege
 Nezahal, Primal Tide
 Ochran Assassin
 Ohran Frostfang
+Ojutai, Soul of Winter
 Oketra's Last Mercy
 One with the Machine
 Opportunity
 Orchard Strider
 Otarian Juggernaut
 Outnumber
+Overgrown Battlement
 Path of Discovery
 Pillardrop Rescuer
 Pir, Imaginative Rascal
 Plains
 Planar Cleansing
 Poison the Blade
+Power of Fire
 Priest of the Haunted Edge
 Qarsi High Priest
 Quiet Disrepair
 Rabid Rats
+Rambunctious Mutt
 Ramosian Captain
 Rampage of the Valkyries
 Ramunap Hydra
@@ -155,8 +176,11 @@ Ronom Unicorn
 Rootgrapple
 Rootwalla
 Sardian Cliffstomper
+Sawtooth Thresher
 Scion of Ugin
+Sculpted Perfection
 Scuttling Sliver
+Sengir Nosferatu
 Sigiled Starfish
 Silverstorm Samurai
 Sixth Sense
@@ -193,15 +217,18 @@ Thurid, Mare of Destiny
 Tombfire
 Touch of Darkness
 Towashi Guide-Bot
+Treacherous Werewolf
 Triton Shorestalker
 Undead Slayer
 Undergrowth Champion
+Unfathomable Truths
 Vapor Snare
 Venomous Hierophant
 Vestige of Emrakul
 Viridian Claw
 Volcanic Rambler
 Voldaren Pariah
+Wall of Distortion
 Wall of Wonder
 Warpath
 Warrior's Honor

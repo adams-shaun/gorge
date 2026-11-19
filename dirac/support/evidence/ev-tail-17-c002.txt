@@ -66,6 +66,7 @@ Cunning Lethemancer
 Curate
 Curious Pair
 Curse of Verbosity
+Damnable Pact
 Daraja Griffin
 Dark Hatchling
 Dauthi Warlord
@@ -99,6 +100,7 @@ Ethereal Whiskergill
 Etherium Abomination
 Evil Presence
 Extract
+Exuberant Fuseling
 Exultant Skymarcher
 Facet Reader
 Faerie Conclave
@@ -141,6 +143,7 @@ Gorging Vulture
 Grafted Growth
 Gravepurge
 Graypelt Refuge
+Grazing Gladehart
 Great Furnace
 Greataxe
 Greenbelt Rampager

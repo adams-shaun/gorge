@@ -1,0 +1,40 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Angelic Protector	53483fd94fa54bf8	4	1/1		0/1	ix:resp
+Anger	97dd76a318a08e28	22	0/0		0/0	
+Basalt Monolith	f0d78ab1a238f342	4	2/2		0/1	ix:resp
+Beast Attack	26212472d9149b66	8	0/0		3/4	ix:resp
+Blade Sliver	642905c54f6a7e13	8	0/0		0/0	
+Blade of Selves	7eca0abe62e4c14d	8	1/1		1/1	
+Blastfire Bolt	f568d46737c866ac	6	0/0		2/2	
+Boots of Speed	46953059160d7515	4	1/1		0/1	ix:resp
+Brute Force	a999985e0f84ce51	12	0/0		1/2	ix:resp
+Charge Through	f92ec657d89e5164	8	0/0		1/2	ix:resp
+Court of Garenbrig	39ff21b421e59255	6	2/2		0/1	ix:resp
+Dawn Charm	10fd54436d52004b	4	0/0		1/2	ix:resp
+Faerie Seer	3326a32d959662dd	8	1/1		0/1	ix:resp
+Fire-Belly Changeling	de82d0e91b71c310	4	1/1		0/1	ix:resp
+Flaring Pain	68f8a18fff016f4b	20	0/0		4/4	
+Forest	6d0466c30f825dba	49	1/1		0/1	ix:resp
+Fury Sliver	2dbca9fead00a917	4	0/0		0/0	
+Ghitu Slinger	dde45058a81cc81e	4	2/2		0/1	ix:resp
+Grapeshot	f690522f9ed3d805	8	1/1		2/2	
+Hydra's Growth	7adbc279e6314c44	4	2/2		1/2	ix:resp
+Impostor of the Sixth Pride	eefe09772d092fa1	10	0/0		0/0	
+Island	763c67ef7a27eaf5	50	1/1		0/1	ix:resp
+Mountain	9e71388353e907ed	171	1/1		0/1	ix:resp
+Owl Familiar	b983288c46f5bfa0	7	1/1		0/1	ix:resp
+Pillaging Horde	9a01385247c452ec	4	1/1		0/1	ix:resp
+Plains	82d63a695487e567	74	1/1		0/1	ix:resp
+Release the Dogs	933db8ff04c4cc81	4	0/0		1/2	ix:resp
+Rise of the Ants	48f3d386ccd9cdcd	4	0/0		3/4	ix:resp
+Rush of Knowledge	9a34939b502d608f	6	0/0		1/2	ix:resp
+Sanctum Gargoyle	72ae7cd391f7a937	6	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Seize the Spoils	f6cd0ba09be1b81c	4	0/0		1/2	ix:resp
+Serum Powder	6350a95ec21b9c76	9	1/1		1/1	
+Stormkeld Vanguard	2679d4203249f5b7	6	0/0		1/2	ix:resp
+Sunlance	896d6f43ffe83206	6	0/0		2/2	
+Swamp	342b413902f441c3	14	1/1		0/1	ix:resp
+Take Vengeance	eb859f407c2db226	6	0/0		1/2	ix:resp
+Tenacity	c35b82b8c4c6c665	8	0/0		1/2	ix:resp
+Whipcorder	8d69fdc7e598d90e	6	1/1		1/3	cast/alt:morphed,ix:resp
+Witching Well	4ab75475116f8b92	8	2/2		0/1	ix:resp

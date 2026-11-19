@@ -1,20 +1,24 @@
 Aeolipile
 Aeronaut's Wings
 Ageless Guardian
+Akki Rockspeaker
 Alabaster Wall
 Alchor's Tomb
 Annoyed Altisaur
 Apprentice Sorcerer
 Archfiend of Sorrows
 Arctic Treeline
+Ashling the Pilgrim
 Atarka Beastbreaker
 Axgard Armory
 Barbed Batterfist
 Bazaar Trademage
+Blade Splicer
 Blasted Landscape
 Blood Age General
 Bloodfire Colossus
 Blue Sun's Zenith
+Boggart Arsonists
 Book of Rass
 Brand
 Brawl-Bash Ogre
@@ -22,15 +26,19 @@ Brood Birthing
 Bushi Tenderfoot
 Capenna Express
 Cast Down
+Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
+Chaotic Goo
 Clot Sliver
 Cold Storage
+Combust
 Copper Myr
 Dakmor Plague
 Dark Betrayal
 Definitely Not a Turtle
 Demystify
+Deploy the Gatewatch
 Drana, Liberator of Malakir
 Dwell on the Past
 Elite Scaleguard
@@ -45,6 +53,7 @@ Farm
 Feral Ridgewolf
 Flamespeaker's Will
 Fleeting Aven
+Floating-Dream Zubera
 Footfall Crater
 Forest
 Forget
@@ -79,6 +88,7 @@ Krenko's Enforcer
 Lace with Moonglove
 Leo's Guidance
 Lesser Gargadon
+Light the Way
 Liliana's Defeat
 Liliana's Devotee
 Lilting Refrain
@@ -91,6 +101,7 @@ Master Decoy
 Meldweb Strider
 Memory Worm
 Merrow Bonegnawer
+Mesa Lynx
 Metallic Mastery
 Mind Drain
 Mirrodin Avenged
@@ -99,6 +110,7 @@ Monstrous Hound
 Morbid Bloom
 Mountain
 Multiversal Recruitment
+Mystic Restraints
 Nephalia Smuggler
 Nocturnal Raid
 Nymris, Oona's Trickster
@@ -108,6 +120,7 @@ Obliterate
 Ogre Berserker
 Ondu Cleric
 Overrule
+Penance Stare
 Pestermite
 Pillar of Light
 Plains
@@ -143,9 +156,12 @@ Star of Extinction
 Steel Golem
 Steeple Roc
 Strength of Arms
+Sunblade Angel
+Surreal Memoir
 Swamp
 Tail Slash
 Telim'Tor's Edict
+Territorial Aetherkite
 Tervigon
 The Prydwen, Steel Flagship
 The Royal Scions
@@ -162,8 +178,10 @@ Tyranid Invasion
 Tyrranax Atrocity
 Ugin's Insight
 Umbral Juke
+Unnatural Speed
 Untamed Wilds
 Valkyrior Skyrider
+Vexing Sphinx
 Viashivan Dragon
 Vraska's Contempt
 Wake of Destruction

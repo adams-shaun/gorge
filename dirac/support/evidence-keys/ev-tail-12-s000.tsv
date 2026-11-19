@@ -1,0 +1,172 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Blood Artist	d4ccbc24677c6c6c	6	1/1		0/1	ix:resp
+A-Manticore	23deb1c3efe9adb0	6	1/1		0/1	ix:resp
+Advance Scout	2a0e84896c6328fb	15	1/1		1/1	
+Adverse Conditions	bd0e48c7a0784d18	14	0/0		1/2	ix:resp
+Aether Spike	a6a7099c195764da	12	0/0		1/2	ix:resp
+Ahn-Crop Invader	ef67243255bbfd3e	11	1/1		0/1	ix:resp
+Ajani Fells the Godsire	80ba94bdc6cebbdf	5	0/0		0/0	
+Angel of Invention	acabb255aea1110b	3	1/1		0/1	ix:resp
+Angelheart Vial	f7f64a567a2355a9	15	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Arlinn's Wolf	3ac2c278242c55e6	4	0/0		0/0	
+Armament Master	df50a946fa862af6	19	0/0		0/0	
+Assaultron Dominator	1488e1339263c628	8	2/2		0/1	ix:resp
+Aven Sunstriker	71f15e1feccdc5b0	8	0/0		1/2	cast/alt:megamorphed
+Azorius Cluestone	5f58ade1c3d6c3c7	18	2/2		1/1	
+Backwoods Survivalists	54f4035b07886313	9	0/0		0/0	
+Banefire	02031e38f4eb3301	8	0/0		3/4	f0/s/x0
+Benalish Veteran	9a6991cc6280ca8f	9	1/1		0/1	ix:resp
+Birthing Boughs	c22ac4d7f680fab6	16	1/1		0/1	ix:resp
+Birthing Ritual	79e62d2e130735eb	12	1/1		0/1	ix:resp
+Blessed Wind	8867c4b69d458def	9	0/0		1/2	ix:resp
+Blind-Spot Giant	6e396fb3ae0812b5	11	0/0		0/0	
+Bloodsworn Steward	abe5e8de0af27b0a	13	0/0		0/0	
+Bog Glider	64e86e412db03efc	12	1/1		0/1	ix:resp
+Brainstone	5ed1b003cc411fd5	10	1/1		1/1	
+Briarberry Cohort	dac31f9186ed4abb	23	0/0		0/0	
+Broodstar	50e1f95b424390a8	3	0/0		0/0	
+Call to Serve	a58503ce88345f64	3	0/0		1/2	ix:resp
+Catalyst Elemental	8bc19a1f130d35d7	8	1/1		0/1	ix:resp
+Charismatic Vanguard	333515ad65893908	8	1/1		1/1	
+Chimeric Mass	2578015ae024391d	19	1/1		1/1	
+Cinder Seer	b87c2ffb477387f8	8	1/1		0/1	ix:resp
+Crater Elemental	855160aae8276dff	22	2/2		1/1	
+Cunning Sparkmage	4c9989b2a6b2a068	17	1/1		0/1	ix:resp
+Deepwater Hypnotist	7c5d429b96a4aad6	20	1/1		1/1	
+Diamond Kaleidoscope	9d5762b46bdb9b46	13	2/2		1/1	
+Disentomb	38019167a22902f7	4	0/0		1/2	ix:resp
+Double Cleave	dbfadca9c2d7aa09	16	0/0		2/2	
+Drowned Rusalka	de4967e7097e072a	10	1/1		0/1	ix:resp
+Dwarven Grunt	137a0dca358b9013	9	0/0		0/0	
+Eagle of the Watch	de46af45c57a08ee	8	0/0		0/0	
+Enlightened Tutor	38665cb3442755fa	33	0/0		2/2	
+Enlistment Officer	2575257afd94e202	28	1/1		1/1	
+Excavation Technique	78fa279e0b2afab2	16	1/1		2/2	
+Feedback Bolt	28a5d9341547fcdc	8	0/0		1/2	ix:resp
+Fire Imp	f015aae6c8fa298f	7	1/1		0/1	ix:resp
+Flesh to Dust	dc1b53404efdd84d	13	0/0		1/2	ix:resp
+Flower	5233d8bc7a9a6d9f	8	0/0		1/3	f1/s,ix:resp
+Fog on the Barrow-Downs	3d48c5c7fa6b9cd0	27	0/0		1/2	ix:resp
+Force of Despair	deb87529bce1f711	6	0/0		1/2	ix:resp
+Forever Young	a85c9d7f108cb0be	17	0/0		1/2	ix:resp
+Gelid Shackles	7d24c3713b715ce4	359	1/1		2/2	
+General Tazri	810eb7f2739687d4	15	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Genesis	5c0d696462da7e1a	5	1/1		0/1	ix:resp
+Geralf, Visionary Stitcher	00932b52192ca19c	18	1/1		0/1	ix:resp
+Geyserfield Stalker	451f1a8b70114086	6	1/1		0/1	ix:resp
+Glacial Stalker	33d6dca9732e1074	12	0/0		1/2	cast/alt:morphed
+Gliding Licid	e4362b1b2c4c2bd3	22	1/1		1/1	
+Gloomwidow's Feast	e799cb19073f4465	8	0/0		1/2	ix:resp
+Glowrider	995f5e5090937383	10	0/0		0/0	
+Goblin Marshal	ba4d88af0662f443	8	3/3		0/1	ix:resp
+Golden-Scale Aeronaut	b41c594a9365b742	18	1/1		1/1	
+Golem Artisan	ed121657b17d3560	8	2/2		1/1	
+Gorgon Flail	01b00a008cbed629	17	1/1		1/1	
+Growing Ranks	81c4721a06dcac5e	10	1/1		1/1	
+Guardian Gladewalker	cc77ac286b35fc66	5	1/1		0/1	ix:resp
+Guardian of Ghirapur	c54721d414341d61	28	1/1		0/1	ix:resp
+Gustcloak Harrier	645ceb4ee94aa957	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Gustcloak Savior	be6b0631082d33c9	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Hexgold Halberd	a8fde0949a42b529	17	2/2		0/1	ix:resp
+Hobgoblin Captain	58822c6c48f3e85c	25	1/1		1/1	
+Holy Armor	855673aefecd9b49	18	1/1		2/2	
+Hopeful Initiate	8eee5be3c0c5a4b0	44	2/2		1/1	
+Hurloon Battle Hymn	bc47161d05bbb4d8	33	0/0		4/4	
+Illusionist's Stratagem	154427723e73bf84	12	0/0		2/2	
+Increasing Devotion	00dd472ea7c467b4	13	0/0		3/4	ix:resp
+Ingenious Skaab	c16d7753e9b6ddd8	18	2/2		1/1	
+Intervene	26142b1d50452ce8	7	0/0		1/2	ix:resp
+Into the Void	bd8fe94e20c8004a	26	0/0		2/2	
+Iron Man, Armored Avenger	a5a9d8d6e0df9e08	19	2/2		1/1	
+Irreverent Revelers	174cbc3ce7ae0905	12	1/1		0/1	ix:resp
+Jasmine Seer	91e27d88223eeca0	14	1/1		0/1	ix:resp
+Kinjalli's Sunwing	0b90d47aa608741d	17	0/0		0/0	
+Kjeldoran War Cry	b3ec64b1473c2530	18	0/0		2/2	
+Kraken's Eye	8f47f854e8a2c0f6	22	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Kyren Glider	8a8fb21007631346	18	0/0		0/0	
+Landroval, Horizon Witness	01ed9cf530758c04	19	1/1		1/1	
+Last Caress	e369a4b2e0c2ec3f	20	0/0		2/2	
+Laurine, the Diversion	ece5da33c49bf55d	12	2/2		0/1	ix:resp
+Legion Loyalist	4dc1bc4f099918e9	21	1/1		1/1	
+Leonin Armorguard	37262d15bed4b01f	3	1/1		0/1	ix:resp
+Lich's Caress	35af70d89fe31fa3	10	0/0		1/2	ix:resp
+Loyal Fire Sage	5dd4018fdd21dbf3	24	2/2		0/1	ix:resp
+MACH-1, Swooping Scoundrel	b05939045236b4d5	22	2/2		0/1	ix:resp
+Magus of the Coffers	6ee2d2afd28a4d5a	6	1/1		1/1	
+Manaplasm	e80d0525f40332a5	6	1/1		0/1	ix:resp
+Martyr of Dusk	8248804a99fde0a9	9	1/1		1/1	
+Medicine Bag	1ad3305904e5382c	23	1/1		1/1	
+Millikin	576bad3689f5baa1	23	1/1		1/1	
+Mind's Eye	244d8c1b85dcbfb3	12	1/1		0/1	ix:resp
+Mine Collapse	6e19f0ff9c76e8bf	11	0/0		1/2	ix:resp
+Minotaur Tactician	7e9a722db64d6a99	13	0/0		0/0	
+Mishra's Self-Replicator	5a9b552fc813898d	16	1/1		0/1	ix:resp
+Molten Rain	954b883951fef556	22	0/0		1/2	ix:resp
+Moment of Truth	4bb4c6e6d7fa746b	26	0/0		2/2	
+Mutilate	29ff96dba1e8b4a3	6	0/0		1/2	ix:resp
+Muzzio, Visionary Architect	8aefbbeab314d231	10	1/1		0/1	ix:resp
+Nausea	f79544c9ee73c504	14	0/0		1/2	ix:resp
+Niblis of the Mist	8e011e6a03d2cca8	24	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Nyxborn Triton	f640bdce412839fd	22	0/0		2/2	
+Oswald Fiddlebender	231fcfd08439a9cd	7	1/1		0/1	ix:resp
+Owl Familiar	b983288c46f5bfa0	19	1/1		0/1	ix:resp
+Patagia Viper	fad68d94629ef033	15	2/2		0/1	ix:resp
+Phyrexian Juggernaut	31378a3e2ed56fcc	8	0/0		0/0	
+Phyrexian War Beast	af6b9716cf05a974	13	1/1		1/1	
+Portent of Betrayal	6a14d9954ec89722	12	0/0		1/2	ix:resp
+Prying Blade	1bea73ffc56883cb	14	2/2		0/1	ix:resp
+Ragefire	36f5c712023472e8	13	0/0		2/2	
+Ramosian Sergeant	3c013452eea14673	23	1/1		1/1	
+Ranger-Captain of Eos	f7ff8bd5963ca809	21	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Rats of Rath	919ca0453c5cb815	13	1/1		0/1	ix:resp
+Relic Robber	cb3806d800991fc7	22	1/1		0/1	ix:resp
+Repair and Recharge	a89885f1e617dff0	9	0/0		2/2	
+Repository Skaab	a87802c5ee867d60	23	2/2		1/1	
+Restless Bones	35dec83928602d2c	12	2/2		1/1	
+Retrofitter Foundry	51e7b6025f586566	28	4/4		1/1	
+Ria Ivor, Bane of Bladehold	bf8ebfa3193ece11	7	2/2		1/1	
+Rise to the Challenge	e590c4d1a07c0567	14	0/0		2/2	
+Rishadan Pawnshop	3204e967b2578c47	28	1/1		1/1	
+Royal Warden	81d5c2afa1b3f305	5	2/2		0/1	ix:resp
+Rude Awakening	6880d86a3d68fb6b	5	0/0		1/2	ix:resp
+Rushwood Herbalist	5a75214ee2a6660f	17	1/1		1/1	
+Rusting Golem	aa726808d490ccc2	26	1/1		1/1	
+Sanctifier of Souls	6cfb6facc99f2ee2	5	2/2		0/1	ix:resp
+Sand Squid	1c41d7b81c2700ba	13	1/1		1/1	
+Sanguimancy	9128b7a392625c56	16	0/0		2/2	
+Savannah Sage	31dee783121a1404	18	1/1		0/1	ix:resp
+Seismic Shudder	896b7c6812a7125b	19	0/0		2/2	
+Serum Powder	6350a95ec21b9c76	22	1/1		1/1	
+Silverquill Apprentice	3d657d3b838ad63c	9	1/1		0/1	ix:resp
+Slimebind	33ff0179087d9c35	22	0/0		2/2	
+Slimy Piper	f70dccfebfce975a	19	1/1		1/1	
+Sliptide Serpent	805e9d8b7d9dc4ab	11	1/1		1/1	
+Slumbering Dragon	0a80e623126b8937	16	1/1		0/1	ix:resp
+Sly Requisitioner	d3a98284f77b5c81	9	1/1		0/1	ix:resp
+Sphinx of Magosi	20f576d6100e204d	6	1/1		1/1	
+Spontaneous Mutation	1d0b83afd4ba4b7a	14	0/0		2/2	
+Steel Overseer	f1b1578dbbfaf516	30	1/1		1/1	
+Storm of Souls	c6bc932537149ee2	4	0/0		1/2	ix:resp
+Sudden Edict	f285239c886d014a	17	0/0		2/2	
+Sudden Spinnerets	b2806ed9219d6dc2	14	0/0		2/2	
+Suppressor Skyguard	83a409ff233b469f	14	1/1		1/1	
+Swamp Mosquito	76ebdcc92d854d6c	10	1/1		0/1	ix:resp
+Tamiyo's Epiphany	418cd20640ba50a8	22	0/0		2/2	
+Thaumatic Compass	9b42198505a016c7	16	4/4		1/1	
+Thumbscrews	4b01464ba279608c	10	1/1		1/1	
+Thundering Chariot	423b96ac5f11df26	8	1/1		1/1	
+Thundermare	60ce83a2d00e5615	16	1/1		0/1	ix:resp
+Treebeard, Gracious Host	5587953e0352c3dd	8	3/3		0/1	ix:resp
+Tromp the Domains	f452c133aee51eda	9	0/0		1/2	ix:resp
+Unnatural Restoration	4fb082f0368ed915	7	0/0		2/2	
+Unnerve	b57d61a88bb9b45c	11	0/0		2/2	
+Urborg Skeleton	5ef3817ce373f5f3	10	1/1		2/3	ix:resp
+Uthros Research Craft	4cff061969bb361b	5	0/0		0/0	
+Veteran's Reflexes	a44945e374dd528f	16	0/0		2/2	
+Vigil for the Lost	96bdcf98ecb4b50a	9	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Vindictive Mob	da35309173cb9699	10	1/1		0/1	ix:resp
+War Flare	3e3639b0b22a809e	18	0/0		1/2	ix:resp
+Waste Away	0df051a26dbb5d7b	8	0/0		2/2	
+Waterfront Bouncer	6973c2a28267806f	19	1/1		1/1	
+Well of Discovery	388113a09b93cc8e	15	1/1		0/1	ix:resp
+Wither and Bloom	54ce027fd681e1cf	10	1/1		1/2	ix:resp

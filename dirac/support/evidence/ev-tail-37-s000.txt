@@ -8,7 +8,9 @@ Arcane Adaptation
 Ardoz, Cobbler of War
 Avatar of the Resolute
 Barricade Breaker
+Blackcleave Goblin
 Blightreaper Thallid
+Blind Zealot
 Boseiju Reaches Skyward
 Brightstone Ritual
 Calming Licid
@@ -17,6 +19,7 @@ Cave-In
 Chapel Geist
 Cho-Arrim Legate
 Citizen V, Helmut Zemo
+Cloud, Midgar Mercenary
 Cloudreach Cavalry
 Commander's Authority
 Concordia Pegasus
@@ -26,6 +29,7 @@ Dance with Devils
 Darkness
 Decompose
 Deer-Dog
+Drag to the Underworld
 Duskrider Falcon
 Ebony Rhino
 Elder Cathar
@@ -43,6 +47,7 @@ Gaea's Touch
 Goblin Patrol
 Gornog, the Red Reaper
 Guild Artisan
+Halo Hopper
 Hand of Silumgar
 Herald of Slaanesh
 Humiliate
@@ -53,16 +58,19 @@ Invading Manticore
 Island
 Isolation Cell
 Jungle Delver
+King's Assassin
 Kitsune Diviner
 Knight of Cliffhaven
 Lazotep Reaver
 Loxodon Anchorite
 Loxodon Gatekeeper
+Lux Cannon
 Maulfist Doorbuster
 Mephidross Vampire
 Millennial Gargoyle
 Mob
 Moltensteel Dragon
+Morbid Plunder
 Mountain
 Nearheath Chaplain
 Norika Yamazaki, the Poet
@@ -74,22 +82,28 @@ Phyrexian Missionary
 Pillar Tombs of Aku
 Plains
 Possessed Nomad
+Prakhata Club Security
 Priest of the Crossing
 Primaris Chaplain
 Prismari Campus
 Pumpkin Bombs
 Purgatory
 Qilin's Blessing
+Ravenous Skirge
 Regal Bloodlord
 Rekindled Flame
 Reviving Melody
 Rising Populace
+Roar of Reclamation
 Rumbling Baloth
 Scorch Spitter
 Selesnya Signet
 Shadow Lance
 Shadowfeed
+Sickle Ripper
 Siege Smash
+Silumgar Butcher
+Siren of the Silent Song
 Skred
 Sky Ruin Drake
 Soltari Priest
@@ -106,12 +120,16 @@ Terminal Agony
 The Meathook Massacre
 Thraben Inspector
 Tradewind Rider
+Twilight Prophet
 Undead Butler
 Vault Guardsman
 Vectis Dominator
 Walking Corpse
+Warped Physique
 Warrior's Charge
 Wayfaring Giant
+Wei Elite Companions
 White Glove Gourmand
+Wicker Witch
 Wielding the Green Dragon
 You See a Pair of Goblins

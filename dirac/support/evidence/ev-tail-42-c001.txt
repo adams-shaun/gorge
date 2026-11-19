@@ -180,6 +180,7 @@ Greater Auramancy
 Green Scarab
 Grenzo, Havoc Raiser
 Griffin Dreamfinder
+Grim Roustabout
 Grizzled Angler
 Guardian Scalelord
 Gwenna, Eyes of Gaea
@@ -268,6 +269,7 @@ Naru Meha, Master Wizard
 Nature's Will
 Nectar Faerie
 Needlethorn Drake
+Needleverge Pathway
 Nest Robber
 Nether Horror
 Nimbus Champion
@@ -376,6 +378,7 @@ Stolen Grain
 Stolen Vitality
 Strength from the Fallen
 Strength of Isolation
+Subterranean Hangar
 Sunbringer's Touch
 Sunken Hope
 Suppression Bonds
@@ -388,6 +391,7 @@ Tatyova, Steward of Tides
 Temperamental Oozewagg
 Temporal Manipulation
 Thalia's Lancers
+The Balrog of Moria
 The Odd Acorn Gang
 Thoughtcutter Agent
 Thran Spider

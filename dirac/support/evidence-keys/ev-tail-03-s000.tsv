@@ -1,0 +1,62 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Abyssal Gatekeeper	5f328b786833f753	4	1/1		0/1	ix:resp
+Armasaur Guide	17cb4a664724c3af	80	1/1		1/1	
+Borderland Minotaur	a96e5e0c33cfabe2	5	0/0		0/0	
+Breaking Point	23348a6d68f24af3	16	0/0		2/2	
+Choke	aadb996a5117e939	7	0/0		0/0	
+Coral Colony	e16a0e950c7bc6f8	11	1/1		1/1	
+Crack the Earth	b8a487a7794e2171	21	0/0		1/2	ix:resp
+Creeping Trailblazer	7023e7af2afdacf3	4	1/1		0/1	ix:resp
+Devils' Playground	9479b44c37ee654f	6	0/0		2/2	
+Dominating Licid	c7bf41db82ff056f	17	1/1		1/1	
+Dracosaur Auxiliary	cb501f939531bc00	174	2/2		1/1	
+Duergar Hedge-Mage	ec5ca5a3ebf392b8	11	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
+Entomb	d60a037fb593fc62	4	0/0		1/2	ix:resp
+Falkenrath Pit Fighter	c1f50c0e7f7be436	12	1/1		1/1	
+Fiery Confluence	7ab964d7fa7a1759	12	0/0		1/2	ix:resp
+Forerunner of the Empire	7637fa63a83276e6	316	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
+Forest	6d0466c30f825dba	273	1/1		0/1	ix:resp
+Fruitcake Elemental	18fdf9cab4adf19b	9	2/2		0/1	ix:resp
+Furyblade Vampire	2c94d6b218f5a112	22	1/1		1/1	
+Goblin Chainwhirler	d7f449f6a9244f81	18	1/1		0/1	ix:resp
+Hope and Glory	7fe1d6488c698106	12	0/0		2/2	
+Impale	f382fc13b06d9c80	10	0/0		1/2	ix:resp
+Implement of Malice	426edd6c2433bae9	21	2/2		0/1	ix:resp
+Island	763c67ef7a27eaf5	453	1/1		0/1	ix:resp
+Karplusan Strider	f6b9894abc19902d	9	0/0		0/0	
+Kraul Raider	5241dca865d53f6e	18	0/0		0/0	
+Land Tax	d642ef6cab88eea1	16	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Lunge	a588116675f7bdec	30	0/0		2/2	
+Mantle of Webs	81b99367d3122dae	8	0/0		1/2	ix:resp
+Minotaur Warrior	bfca9f32974db038	15	0/0		0/0	
+Moor Fiend	70aaea87a5a50721	7	0/0		0/0	
+Mountain	9e71388353e907ed	1356	1/1		0/1	ix:resp
+Nesting Dragon	d043dbc3922fd726	13	1/1		0/1	ix:resp
+Nimble Birdsticker	2c112ecb1f7de3c7	7	0/0		0/0	
+Nyxborn Rollicker	1e5b96bbe715249e	16	0/0		2/2	
+Pale Bears	346e2f81c27e06f5	4	0/0		0/0	
+Peek	748a43f17e67b895	22	0/0		2/2	
+Phthisis	d9345a275944691b	4	0/0		2/4	cast/alt:none,ix:resp
+Phyrexian Metamorph	59341bb4c74a8cf0	15	0/0		0/0	
+Plains	82d63a695487e567	466	1/1		0/1	ix:resp
+Prosperous Partnership	5c0254e95623e061	11	2/2		1/1	
+Regal Imperiosaur	068a2d4881596c84	58	0/0		0/0	
+Rigging Runner	bb7d9770e752169b	36	0/0		0/0	
+Roc Hunter	fa729a4065fb4597	9	0/0		0/0	
+Rural Recruit	d03bd8fb7e853321	4	2/2		0/1	ix:resp
+Salvage Scuttler	f87d6f05b1f73ec2	10	1/1		0/1	ix:resp
+Siege-Gang Commander	c0861a284ed08236	15	2/2		1/1	
+Slag Strider	f0869e0013c57074	8	1/1		1/1	
+Song of Serenity	ff0ed47970ee047f	4	0/0		0/0	
+Strange Augmentation	f66425e8e987cb00	10	0/0		2/2	
+Stream of Acid	23e451d58a791f11	5	0/0		1/2	ix:resp
+Stromkirk Condemned	460afdd7ee924629	13	1/1		0/1	ix:resp
+Swamp	342b413902f441c3	180	1/1		0/1	ix:resp
+Syphon Sliver	b62c77e091980ec8	6	0/0		0/0	
+Terrian, World Tyrant	0c6a4be1620f375d	46	0/0		0/0	
+Thatcher Revolt	4dc331955a2cb85b	12	0/0		1/2	ix:resp
+Tyrox, Saurid Tyrant	3253f09e648a6caa	401	0/0		0/0	
+Vaultborn Tyrant	a6b3c4ec56242e69	24	2/2		1/1	
+Verdant Confluence	29747444f26d4bf6	3	0/0		1/2	ix:resp
+Word of Binding	5c965cb916b39ea3	3	0/0		2/4	f0/s/x0,ix:resp
+Zo-Zu the Punisher	b9dca2d3e67badde	13	1/1		1/1	

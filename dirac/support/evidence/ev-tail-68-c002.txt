@@ -94,6 +94,7 @@ Festergloom
 Fey Steed
 Fill with Fright
 Finale of Eternity
+Fire Tempest
 Fire of Orthanc
 Flameborn Viron
 Flamecast Wheel
@@ -184,6 +185,7 @@ Proud Pack-Rhino
 Psychic Strike
 Rakdos Ragemutt
 Ranging Raptors
+Rashka the Slayer
 Ray of Erasure
 Recalibrate
 Reckoner Bankbuster
