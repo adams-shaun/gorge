@@ -152,7 +152,14 @@ func (s *State) sacXLive(k *prep, p uint8) bool {
 //
 //go:noinline
 func (s *State) tapXTwoLive(k *prep, p uint8) bool {
-	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+	return s.tapXTwoLiveIn(k, s.scriptTapXModelled(k, p))
+}
+
+// tapXTwoLiveIn: b holds a live no-{T} unbounded tap-another source (Relic of
+// Legends, Baylen), the shape whose cost is not once-only and whose census
+// gorge's filter/restricted searches refuse (filtFundable, tapXTwoLive).
+func (s *State) tapXTwoLiveIn(k *prep, b slotMask) bool {
+	for ; b.any(); b = b.rest() {
 		if ab := k.tapXAbOf(s.cardAt(b.first())); ab.Cost.Flags&kop.CostTap == 0 && !kop.BoundedOnceManaAb(ab) {
 			return true
 		}
@@ -411,12 +418,30 @@ func (s *State) scriptCtrModelled(k *prep, p uint8) slotMask {
 	return s.scriptCtr(k, p)
 }
 
+// tapXTwoLiveSource: p has a live no-{T} tap-another source (Relic of
+// Legends, Baylen), the shape whose cost is not once-only and whose census
+// the filter/restricted searches refuse (filtFundable, tapXTwoLive). It
+// reads scriptTapX directly so tapXBoard can call it without recursing
+// through scriptTapXModelled.
+func (s *State) tapXTwoLiveSource(k *prep, p uint8) bool {
+	return s.tapXTwoLiveIn(k, s.scriptTapX(k, p))
+}
+
 // tapXBoard: p's census gaps are tap-another-permanent and counter-cost
 // sources only, those beside each-colour sources (a Bloom Tender; the search
 // activates them as steps, tapXEach), or a mix the filter search runs
 // (mixBoard).
 func (s *State) tapXBoard(k *prep, p uint8) bool {
 	if s.scriptRestr(k, p).or(s.scriptFilt(k, p)).any() {
+		// A live no-{T} tap-another source (Relic of Legends, Baylen) is the
+		// tapX search's alone beside these gaps: the filter/restricted
+		// searches are disabled for it (filtFundable, tapXTwoLive), so their
+		// branch would drop every play the base sources plus that source pay.
+		// The tapX search leaves the filter/restricted sources to the base
+		// walk, so it cannot spend their mana on a play it refuses.
+		if s.tapXTwoLiveSource(k, p) {
+			return true
+		}
 		return s.mixBoard(k, p)
 	}
 	if s.scriptAnyR(k, p).any() {
