@@ -118,3 +118,20 @@ func (s *State) tgtAsksNothing(k *prep, t *kop.TargetSpec, e *stackEntry) bool {
 	}
 	return hi == 0
 }
+
+// spellSlotShort reports whether a spell's target slot t, before its first
+// pick, has fewer candidates than its minimum in one of the two shapes where
+// gorge's ask aborts the cast ("cast aborted: no legal target", CR 601.2c,
+// 733.1; cast_targets.go: min > 0 and !targetChoiceFeasible):
+//   - the candidates the cast can pay for (n of all) fall short under a life
+//     or mana raise on a target (cost_raiselife.go);
+//   - an "X target" slot (TgfBoundsV) is short of the announced X. The X ask
+//     offers only an X the slot can answer while one exists, but its fallback
+//     (no X answerable, or every answerable X leaves a convoke pick a no-op:
+//     lockstepconfig.go addXOptions) keeps the payable range.
+func (s *State) spellSlotShort(k *prep, t *kop.TargetSpec, mt *multiTgt, n, all int) bool {
+	if mt.picked != 0 || n >= int(mt.min) {
+		return false
+	}
+	return n < all && (k.gen.anyRaiseLife || k.gen.anyRaise) || t.TFlags&kop.TgfBoundsV != 0
+}

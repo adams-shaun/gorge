@@ -1,6 +1,6 @@
 # Gemstone Caverns: a Condition-split mana source (a luck counter makes its mana
-# any colour instead of {C}) behind an opening-hand effect kgen still refuses.
-# dirac/oracle/gemstonecaverns_test.go gates on it.
+# any colour instead of {C}) and its !PlayFirst opening-hand effect (the luck
+# counter, then a hand exile). dirac/oracle/gemstonecaverns_test.go plays it.
 Gemstone Caverns
 Grizzly Bears
 Mountain

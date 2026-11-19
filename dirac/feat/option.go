@@ -95,22 +95,23 @@ const (
 	okPayB
 	okPayR
 	okPayG
-	okEnchant     // gorge's CR 303.4f "enchant" ask (kernel ChGenEnchant)
-	okSubCounter  // gorge's "subcounter" cost ask (kernel ChCostSubCtr, Quilled Greatwurm)
-	okDivide      // gorge's CR 601.2d "divide" ask (kernel ChCastDivide)
-	okReveal      // gorge's reveal_pick "reveal" (kernel ChGenReveal)
-	okTap         // gorge's taporuntap "tap" (kernel ChGenTapOrUntap)
-	okUntap       // gorge's taporuntap "untap"
-	okTop         // gorge's explore "top" (kernel ChGenExplore)
-	okCounterPick // gorge's bolster "counter_pick" (kernel ChGenBolster)
-	okProliferate // gorge's "proliferate" pick (kernel ChGenProlif)
-	okPayGeneric  // gorge's twobrid generic face pay_generic (kernel ChGenPip mode 6)
-	okCommandZone // gorge's KCommanderZone "command_zone" (kernel ChCommanderZone mode 0)
-	okLeave       // gorge's KCommanderZone "leave" (kernel ChCommanderZone mode 1)
-	okGiftDecline // gorge's giftAsk "gift_decline" (kernel ChGenGift mode 0)
-	okGiftPromise // gorge's giftAsk "gift_promise" (kernel ChGenGift mode 1+)
-	okUnless      // gorge's discard_unless "unless" (kernel ChGenDiscUnless mode 1)
-	okOrdinary    // gorge's discard_unless "ordinary" (kernel ChGenDiscUnless mode 0)
+	okEnchant      // gorge's CR 303.4f "enchant" ask (kernel ChGenEnchant)
+	okSubCounter   // gorge's "subcounter" cost ask (kernel ChCostSubCtr, Quilled Greatwurm)
+	okDivide       // gorge's CR 601.2d "divide" ask (kernel ChCastDivide)
+	okReveal       // gorge's reveal_pick "reveal" (kernel ChGenReveal)
+	okTap          // gorge's taporuntap "tap" (kernel ChGenTapOrUntap)
+	okUntap        // gorge's taporuntap "untap"
+	okTop          // gorge's explore "top" (kernel ChGenExplore)
+	okCounterPick  // gorge's bolster "counter_pick" (kernel ChGenBolster)
+	okProliferate  // gorge's "proliferate" pick (kernel ChGenProlif)
+	okPayGeneric   // gorge's twobrid generic face pay_generic (kernel ChGenPip mode 6)
+	okCommandZone  // gorge's KCommanderZone "command_zone" (kernel ChCommanderZone mode 0)
+	okLeave        // gorge's KCommanderZone "leave" (kernel ChCommanderZone mode 1)
+	okGiftDecline  // gorge's giftAsk "gift_decline" (kernel ChGenGift mode 0)
+	okGiftPromise  // gorge's giftAsk "gift_promise" (kernel ChGenGift mode 1+)
+	okUnless       // gorge's discard_unless "unless" (kernel ChGenDiscUnless mode 1)
+	okOrdinary     // gorge's discard_unless "ordinary" (kernel ChGenDiscUnless mode 0)
+	okOpeningExile // gorge's Gemstone Caverns "opening_exile" pick (kernel ChGenOpeningExile)
 	numOK
 )
 
@@ -120,7 +121,7 @@ var kindNames = [numOK]string{"pass", "play_land", "cast", "ability", "attacker"
 	"search", "hidden_pick", "hand_move", "dig", "twopiles", "pile-a", "pile-b", "primary",
 	"trigger_cost_pay", "trigger_cost_decline", "color", "type", "opening_yes", "opening_no", "number", "dig_bottom", "altaddcost", "replacement",
 	"pay_W", "pay_U", "pay_B", "pay_R", "pay_G", "enchant", "subcounter", "divide", "reveal", "tap", "untap", "top", "counter_pick", "proliferate", "pay_generic",
-	"command_zone", "leave", "gift_decline", "gift_promise", "unless", "ordinary"}
+	"command_zone", "leave", "gift_decline", "gift_promise", "unless", "ordinary", "opening_exile"}
 
 // decision kinds (indices into decisionKinds), -1 = other.
 const (

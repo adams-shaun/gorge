@@ -785,11 +785,17 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 			cp = "Card.inZoneStack"
 			ps.consume("ConditionZone")
 		}
+		spellGate := lc.targetedSpellGate(d0, hasD) // lower_condtargetspell.go
+		lc.spellBaseOK = spellGate
 		f, err := lc.filter(cp)
+		lc.spellBaseOK = false
 		lc.exwOK = false
 		lc.spellProvOK = false
 		if err != nil {
 			return lCond{}, err
+		}
+		if spellGate {
+			dropTargetedSpellBase(f)
 		}
 		c := lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)}
 		if d, ok := ps.get("ConditionDefined"); ok {
@@ -3729,10 +3735,14 @@ func (lc *lowerCtx) charmMultiTargets(nModes int, rootTargeted []bool) error {
 // RepeatCheckSVar$ bodies of the `Remembered$Valid <filter>` shape and of
 // any Count$ expression are lowered (Sphinx's Tutelage, Tainted Pact).
 func (lc *lowerCtx) repeat(ps *params) error {
-	for _, k := range []string{"RepeatOptional", "RepeatNum"} {
-		if _, ok := ps.get(k); ok {
-			return refuse("Repeat %s$", k)
+	if _, ok := ps.get("RepeatOptional"); ok {
+		if ps.str("RepeatCheckSVar") == "" && ps.str("RepeatDefined") == "" {
+			return lc.repeatOptional(ps) // lower_repeatoptional.go
 		}
+		return refuse("Repeat RepeatOptional$ beside a RepeatCheckSVar$ or RepeatDefined$ gate")
+	}
+	if _, ok := ps.get("RepeatNum"); ok {
+		return refuse("Repeat RepeatNum$")
 	}
 	if _, ok := ps.get("ValidTgts"); ok {
 		// the targeted player the body's Defined$ Targeted names

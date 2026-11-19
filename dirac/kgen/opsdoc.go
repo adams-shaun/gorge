@@ -561,6 +561,9 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		if d.Leyline {
 			add("card:Leyline", name)
 		}
+		if d.LeylineGem {
+			add("card:LeylineGem", name)
+		}
 		if d.World {
 			add("card:World", name)
 		}

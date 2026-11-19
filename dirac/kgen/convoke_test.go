@@ -5,24 +5,26 @@ import (
 	"testing"
 )
 
-// TestConvokeXRefused: a printed Convoke on a cost with {X} is refused
-// (xOpen absorption and xAsk pricing are not ported).
-func TestConvokeXRefused(t *testing.T) {
-	for _, c := range lowerNamed(t, []string{"Transcendent Message"}) {
-		if c.Name != "Transcendent Message" {
+// TestConvokeXLowers: a printed Convoke on a cost with {X} lowers (the
+// kernel's announcement and X ask price the picks, kw_convoke.go), with no
+// refusal left on the card.
+func TestConvokeXLowers(t *testing.T) {
+	n := 0
+	for _, c := range lowerNamed(t, []string{"Transcendent Message", "Chord of Calling"}) {
+		if c.Name != "Transcendent Message" && c.Name != "Chord of Calling" {
 			continue
 		}
-		var reasons []string
-		for _, r := range c.Refusals {
-			reasons = append(reasons, r.Node+": "+r.Reason)
+		n++
+		if len(c.Refusals) != 0 {
+			t.Fatalf("%s refused: %+v", c.Name, c.Refusals)
 		}
-		got := strings.Join(reasons, "; ")
-		if !strings.Contains(got, "Convoke with {X}") {
-			t.Fatalf("refusals %q, want Convoke with {X}", got)
+		if !c.Convoke || !c.Cost.X {
+			t.Fatalf("%s: convoke=%v X=%v, want a convoke {X} cost", c.Name, c.Convoke, c.Cost.X)
 		}
-		return
 	}
-	t.Fatal("Transcendent Message not lowered")
+	if n != 2 {
+		t.Fatalf("lowered %d of the two cards", n)
+	}
 }
 
 // TestImproviseXRefused: a printed Improvise on a cost with {X} is refused
