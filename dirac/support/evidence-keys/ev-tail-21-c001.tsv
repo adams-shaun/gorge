@@ -13,6 +13,7 @@ Biting-Palm Ninja	4ce6edfa47d8c71b	27	2/2		1/1
 Brass-Talon Chimera	8bec2c6fd1fb90c0	160	1/1		1/1	
 Breath of Malfegor	6a597f7098223d0b	12	0/0		2/2	
 Brokers Initiate	ded585dc8c2cec96	10	1/1		1/1	
+Carrion Imp	241ceccdfc3204a3	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Cerulean Wisps	df12810cca06ed58	4	0/0		2/2	
 Cobbled Wings	f382714133a1b7d9	170	1/1		1/1	
 Confound	64ee7657ab7bfc4a	30	0/0		2/2	
@@ -29,12 +30,15 @@ Elegant Entourage	d0a330647db33157	25	1/1		0/1	ix:resp
 Ember Weaver	6ee649c58002b30f	5	0/0		0/0	
 Enchanted Carriage	3ca9e4cbe8043c77	78	2/2		1/1	
 Enduring Bondwarden	9c9d88a94f80411d	23	2/2		1/1	
+Exquisite Blood	b970bc6844e1ff54	4	1/1		1/1	
 Fangren Marauder	4fd042ba23cbd76e	76	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Fiery Hellhound	b7c129f9f659f4d5	26	1/1		1/1	
+Flint Golem	1975e740063a8abb	4	1/1		0/1	ix:resp
 Flying Men	7031e47e0cb8cc43	147	0/0		0/0	
 Forgeborn Oreads	8f8d2e18b6e73733	24	1/1		1/1	
 Frantic Purification	f4422e04de074c89	11	0/0		1/2	ix:resp
 Frantic Salvage	6c5537e5a0723031	12	0/0		2/2	
+Gale Force	fa52115d1a4198ec	5	0/0		1/2	ix:resp
 General Marhault Elsdragon	81491c674800f5bb	6	1/1		1/1	
 Geth, Lord of the Vault	02ed0d66f7629b5d	253	1/1		1/1	
 Glimpse the Sun God	5bff978d90557941	4	0/0		3/4	ix:resp
@@ -49,6 +53,7 @@ Hover Barrier	8c5b5d9be0594d7b	130	0/0		0/0
 Hydroelectric Specimen	4941f734b36a024c	44	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Icatian Crier	be081b14e1db1ccd	23	1/1		1/1	
 Imposing Visage	ec463c84bb088a63	21	0/0		2/2	
+Impulsive Pilferer	5f715ace0905beaf	12	2/2		0/1	ix:resp
 Incarnation Technique	f01fcc74f0ff65d3	3	1/1		2/2	
 Infernal Rebirth	82d948a31c08d7f8	5	1/1		1/2	ix:resp
 Into the Maw of Hell	fbc5963a51faee83	14	0/0		2/2	
@@ -59,6 +64,8 @@ Kessig Cagebreakers	b3a526a2e45a95c1	21	1/1		0/1	ix:resp
 Lens Flare	82d773a9f2216deb	7	0/0		2/2	
 Lightkeeper of Emeria	eec1ba43481149d8	3	1/1		3/3	
 Lita, Mechanical Engineer	ce51c6a892c50426	33	2/2		1/1	
+Living Tsunami	a69e5d21b754f5a1	9	1/1		0/1	ix:resp
+Llanowar Behemoth	c605a3dd6861e83d	5	1/1		1/1	
 Lotus Guardian	3bcdae077d4197c8	4	1/1		0/1	ix:resp
 Makindi Ox	bd8ad639606b7338	26	1/1		1/1	
 Mastermind Plum	2db577573e64aef2	48	2/2		1/1	
@@ -76,6 +83,7 @@ Pack's Favor	471e1a6d351679b7	36	0/0		2/2
 Parallax Wave	bdcaf3a5c3aa12fc	36	3/3		1/1	
 Perilous Research	13b8ebcaa82f7b5b	51	0/0		2/2	
 Plague Wind	de13d72ccf638222	4	0/0		2/2	
+Planar Guide	59f68874ca6bd71b	8	1/1		0/1	ix:resp
 Prism Ring	d1f6c28d5fc2db39	202	1/1		1/1	
 Prosperous Thief	8d877e6267645286	100	2/2		1/1	
 Pyroconvergence	a4f5181b6cc0f7c1	13	1/1		1/1	
@@ -98,6 +106,7 @@ Stinging Scorpion	10097d644d3b6512	38	1/1		1/1
 Stone of Erech	18227a8928c1dd72	143	1/1		1/1	
 Subdue	5cf3b4ad14c2c49b	4	0/0		1/2	ix:resp
 Sylvan Brushstrider	3e00355171c69e3e	3	1/1		0/1	ix:resp
+The Roaring Toeclaws	f53c2cb97f17f6e8	6	1/1		1/1	
 Thrash	3419ac8aa2d54d32	7	0/0		1/3	f1/s,ix:resp
 Thunder Totem	50826640595534cc	8	2/2		0/1	ix:resp
 Tormented Angel	b9820ab6d8272939	9	0/0		0/0	

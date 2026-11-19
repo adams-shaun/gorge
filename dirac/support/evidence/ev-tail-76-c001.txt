@@ -80,6 +80,7 @@ First Volley
 Flamekin Herald
 Floral Spuzzem
 Folk of the Pines
+Footbottom Feast
 Forest
 Frazzle
 Frenzy Sliver
@@ -201,6 +202,7 @@ Spell Shrivel
 Spell Swindle
 Sphinx's Disciple
 Spidersilk Armor
+Spin into Myth
 Steadfast Cathar
 Stealth Mission
 Stensia Bloodhall

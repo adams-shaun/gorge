@@ -24,6 +24,7 @@ Barrel Down Sokenzan
 Birchlore Rangers
 Birthing Pod
 Blade of the Bloodchief
+Bloodhall Priest
 Bloodscale Prowler
 Blue Scarab
 Boros Mastiff
@@ -218,6 +219,7 @@ Verduran Emissary
 Warkite Marauder
 Warlord's Axe
 Warthog
+Wasp, Shrinking Savior
 Watchful Blisterzoa
 Wei Night Raiders
 Whirler Rogue

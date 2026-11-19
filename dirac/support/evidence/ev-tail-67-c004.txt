@@ -10,9 +10,11 @@ Alms Beast
 Angelic Renewal
 Aquatic Incursion
 Archaeomender
+Armor Thrull
 Asphodel Wanderer
 Avatar of the Resolute
 Axebane Guardian
+Biting Rain
 Blacksmith's Skill
 Blade Splicer
 Blazing Hellhound
@@ -20,18 +22,26 @@ Blight Sickle
 Blossom Dryad
 Buried Alive
 Burst of Speed
+Caravan Escort
 Case the Joint
+Castle
+Claim the Firstborn
 Cling to Dust
 Cogwork Assembler
 Commissar Severina Raine
 Confront the Unknown
 Conservator
 Corpse Knight
+Corrupted Zendikon
+Corrupting Licid
+Corsairs of Umbar
 Courier's Capsule
 Crackling Triton
 Crop Rotation
 Culling Mark
+Custodi Soulbinders
 Cyclops Superconductor
+Daily Bugle Newspaper
 Daring Fiendbonder
 Dauntless Survivor
 Deadshot
@@ -54,7 +64,10 @@ Eternal Witness
 Ethereal Champion
 Ethereal Usher
 Expansion
+Eyes of Gitaxias
 Fain, the Broker
+Farbog Boneflinger
+Final-Sting Faerie
 Firebird, Blazing Ranger
 Floodhound
 Fog of Gnats
@@ -73,15 +86,19 @@ Honed Khopesh
 Horizon Chimera
 Hound of the Farbogs
 Independent Troops
+Infernal Pet
 Infested Fleshcutter
 Inkrise Infiltrator
 Inspiring Refrain
 Iron Suitcase
 Island
 Jackalope Herd
+Kaito Shizuki
 Keen-Eyed Raven
 Kirtar's Wrath
 Kiyomaro, First to Stand
+Knight of the Keep
+Kor Castigator
 Leafkin Druid
 Lightning Reaver
 Liliana's Influence
@@ -89,6 +106,7 @@ Lodestone Myr
 Longtusk Cub
 Lucas, the Sharpshooter
 Lush Growth
+Mana Matrix
 Manaforce Mace
 Mardu Strike Leader
 Mausoleum Secrets
@@ -96,6 +114,7 @@ Metropolis Reformer
 Mirror of Galadriel
 Mise
 Mogis's Warhound
+Moonblade Shinobi
 Moss Monster
 Mountain
 Nagging Thoughts
@@ -115,11 +134,13 @@ Phyrexian Obliterator
 Pilfering Imp
 Plains
 Pollywog Prodigy
+Preeminent Captain
 Primeval Force
 Prizefighter Construct
 Prosperous Innkeeper
 Protector of Gondor
 Prowling Pangolin
+Psychic Spear
 Python
 Rage Weaver
 Rally to Battle
@@ -127,13 +148,17 @@ Ravos, Soultender
 Ray of Erasure
 Reality Ripple
 Relic Barrier
+Reparations
+Replenish
 Revelation of Power
 Rogue Refiner
 Samite Pilgrim
 Sandcrafter Mage
 Scion of Vitu-Ghazi
 Searing Blood
+Secure the Scene
 Selective Memory
+Settle the Score
 Shake the Foundations
 Shepherd of the Lost
 Skitter of Lizards
@@ -141,13 +166,16 @@ Skullscorch
 Sol Grail
 Solid Footing
 Soul of Theros
+Spellweaver Eternal
 Spined Fluke
 Spirit Weaver
 Squee's Embrace
 Swamp
+Symmetry Sage
 Tale of Momo
 Talons of Wildwood
 Task Force
+Tawnos's Wand
 Temmet, Vizier of Naktamun
 The Bears of Littjara
 The Whizzer, Classic Speedster
@@ -157,7 +185,10 @@ Thrór's Map
 Thunder Drake
 Thwart the Grave
 Tibor and Lumia
+Tidal Bore
+Titan Hunter
 Tormod's Cryptkeeper
+Trigon of Rage
 Trueheart Duelist
 Undercity Scavenger
 Unholy Hunger
@@ -167,6 +198,7 @@ Voice of the Provinces
 Warped Devotion
 Way of the Thief
 Well-Laid Plans
+Whack
 Whispering Wizard
 Windgrace Acolyte
 Wirecat

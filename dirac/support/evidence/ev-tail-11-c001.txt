@@ -24,6 +24,7 @@ Annihilating Glare
 Aphemia, the Cacophony
 Archdemon of Paliano
 Archwing Dragon
+Arclight Phoenix
 Arctic Aven
 Arctic Treeline
 Arctic Wolves
@@ -144,6 +145,7 @@ Fall of the Gavel
 Feast of Worms
 Feral Roar
 Feral Shadow
+Ferrous Lake
 Firebolt
 Fireflux Squad
 Flametongue Kavu
