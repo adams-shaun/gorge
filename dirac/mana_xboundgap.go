@@ -97,9 +97,10 @@ func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 	fees := d.gapFee
 	for m := 0; m < 1<<n; m++ {
 		if never := int(d.gapNever); m&never != 0 {
-			// a hybrid-fee filter funds nothing in gorge's prefix search (its
-			// fee is paid only from mana already floating), so a subset
-			// holding it is priced as the one without it, fee uncharged
+			// a hybrid-fee filter has no relaxed alternative (its fee is
+			// floated by the prefix search, which the relaxed subset does not
+			// model), so a subset holding it is priced as the one without it,
+			// fee uncharged
 			gs.sub[m] = gs.sub[m&^never]
 			continue
 		}

@@ -2456,9 +2456,10 @@ func tapOnlyManaCost(c costvocab.Cost) bool {
 // source id for an unpayability proof: one free, normal-tier alternative per
 // production the ability can make (a fixed production; one per colour of an
 // Any/Combo/Chosen choice; one per colour multiset for an amount above one),
-// with its cost ignored -- no fee, no tapped companion, no counter. Every
-// real activation sequence maps onto a relaxed plan that produces at least
-// as much, so a play no relaxed plan pays is unpayable.
+// with its cost ignored as a payment shape -- no tapped companion, no
+// counter -- though a fee it carries is still read. Every real activation
+// sequence maps onto a relaxed plan that produces at least as much, so a
+// play no relaxed plan pays is unpayable.
 //
 // That holds only while the relaxed ability is usable at most once in the
 // payment, which is why once is false unless its cost taps, untaps,
