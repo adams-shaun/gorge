@@ -36,6 +36,16 @@ const raGenRepeatOptional uint8 = 154
 // ask (dirac/manifest/ask/raPodClashOpp)
 const raPodClashOpp uint8 = 155
 
+// ask (dirac/manifest/ask/raRingBearer)
+//
+// the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.
+const raRingBearer uint8 = 156
+
+// ask (dirac/manifest/ask/raRingLoot)
+//
+// the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
+const raRingLoot uint8 = 157
+
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
 
@@ -745,6 +755,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.radiationExt(k, in) // act_radiation.go
 	case kop.ExtRepeatOptional:
 		return s.repeatOptionalExt(k, in) // act_repeatoptional.go
+	case kop.ExtRingTemptsYou:
+		return s.ringTemptsExt(k, in) // act_ring.go
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }
@@ -783,6 +795,12 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raGenRepeatOptional:
 		s.repeatOptionalOptions(k, d) // act_repeatoptional.go
 		return true
+	case raRingBearer:
+		s.ringAskOptions(k, d) // act_ring.go
+		return true
+	case raRingLoot:
+		s.ringAskLootOptions(k, d) // act_ring.go
+		return true
 	}
 	return false
 }
@@ -810,6 +828,12 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raGenRepeatOptional:
 		s.repeatOptionalAnswer(k, a) // act_repeatoptional.go
+		return true
+	case raRingBearer:
+		s.ringAskAnswer(k, a) // act_ring.go
+		return true
+	case raRingLoot:
+		s.ringAskLootAnswer(k, a) // act_ring.go
 		return true
 	}
 	return false

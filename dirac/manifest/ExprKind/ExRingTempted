@@ -1,0 +1,8 @@
+family: ExprKind
+name: ExRingTempted
+value: next
+forge: RingTemptedYou
+census: count RingTemptedYou all=4 std=0 mbc=0 sole=3
+state: player 4 (ring)
+status: active
+ticket: gap-ring

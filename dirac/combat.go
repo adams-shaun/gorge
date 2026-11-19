@@ -478,7 +478,7 @@ func (s *State) fireAttacksGen(k *prep) {
 		m = s.grantTrigHosts(k, m)
 	}
 	emb := k.gen.embCombatEv&(1<<kop.TrigAttacks|1<<kop.TrigAttackersDeclared) != 0 && s.anyEmb()
-	if !m.any() && len(k.gen.graveTrig) == 0 && !emb && !s.anyCommandTrigger(k, kop.TrigAttackersDeclared) {
+	if !m.any() && len(k.gen.graveTrig) == 0 && !emb && !s.anyCommandTrigger(k, kop.TrigAttackersDeclared) && !k.gen.ringOn() {
 		return
 	}
 	var atk [MaxPerm]Slot
@@ -644,6 +644,9 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 	if emb {
 		s.emblemAtkListeners(k, fire) // gorge: the delayed registrations are checked after the event's face triggers
 	}
+	if k.gen.ringOn() {
+		s.ringAtkTrigs(k, grp) // the Ring emblem's level 2 (act_ring.go), after the event's triggers
+	}
 }
 
 // canBlock reports whether blocker b may block attacker a.
@@ -685,6 +688,9 @@ func (s *State) canBlock(k *prep, b, a Slot) bool {
 	}
 	if k.unleash && s.unleashNoBlock(k, b) {
 		return false // an Unleash creature with a +1/+1 counter can't block (CR 702.86a; kw_unleash.go)
+	}
+	if k.gen != nil && k.gen.ringOn() && s.ringOutpowers(k, b, a) {
+		return false // the Ring emblem: can't be blocked by creatures with greater power (CR 701.54c; act_ring.go)
 	}
 	return true
 }
@@ -1078,6 +1084,9 @@ func (s *State) finishBlocks(k *prep) {
 	if k.gen != nil && k.gen.anyUnblocked {
 		s.fireUnblocked(k)
 	}
+	if k.gen != nil && k.gen.ringOn() {
+		s.ringBlockTrigs(k) // the Ring emblem's level 3 (act_ring.go), after the event's triggers
+	}
 	// first strike among blockers
 	bm := s.oppsM(s.active)
 	for bm.any() {
@@ -1416,6 +1425,9 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		}
 		if k.gen.anyMonarch {
 			s.monarchCombat(&r) // CR 725.2 (act_monarch.go)
+		}
+		if k.gen.ringOn() {
+			s.ringCombatHit(k, &r) // the Ring emblem's level 4 (act_ring.go)
 		}
 		return false
 	}

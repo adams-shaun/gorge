@@ -12,6 +12,7 @@ func init() {
 	instrOp("TakeInitiative", (*instrCtx).opTakeInitiative)
 	instrOp("MayPlayGrave", (*instrCtx).opMayPlayGrave)
 	instrOp("BecomeMonarch", (*instrCtx).opBecomeMonarch)
+	instrOp("RingTemptsYou", (*instrCtx).opRingTemptsYou)
 	instrOp("TurnRepl", (*instrCtx).opTurnRepl)
 	instrOp("CastFree", (*instrCtx).opCastFree)
 	instrOp("MayPlay", (*instrCtx).opMayPlay)
@@ -50,6 +51,13 @@ func (ic *instrCtx) opBecomeMonarch() error {
 	ki := &ic.ki
 	// OpExt ExtBecomeMonarch, Obj the player (dirac/act_monarch.go)
 	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtBecomeMonarch))
+	return nil
+}
+
+func (ic *instrCtx) opRingTemptsYou() error {
+	ki := &ic.ki
+	// OpExt ExtRingTemptsYou, Obj the player (dirac/act_ring.go)
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRingTemptsYou))
 	return nil
 }
 

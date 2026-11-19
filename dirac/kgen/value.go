@@ -637,6 +637,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vYourTurns, N: 1} // 1 on the controller's turn
 		case "CardsDiscardedThisTurn":
 			v = lValue{Kind: vDiscardedThisTurn}
+		case "RingTemptedYou":
+			// the controller's temptation count (gorge count_body_player.go
+			// RingTemptedYou, the Ring emblem's level gates; dirac/act_ring.go)
+			v = lValue{Kind: vRingTempted}
 		case "OpponentsAttackedThisTurn":
 			// gorge Engine.OpponentsAttackedThisTurn: the distinct players the
 			// controller's declared attacks named (a planeswalker or battle
