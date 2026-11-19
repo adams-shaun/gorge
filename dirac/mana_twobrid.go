@@ -88,6 +88,47 @@ func (s *State) adjustFit(k *prep, av *avail, p uint8, c CardID, o Obj, base kop
 	return s.adjustPlain(gen, k, p, c, o, base)
 }
 
+// hybWitnessTb resolves an unannounced twobrid cost the way the cast
+// planner's planTwobridCost does: the first face assignment (the colour face
+// first, then the two-generic one, as AnnouncePip orders them) that a
+// affords, with the leaf delve credit taken (CR 702.66a). The cost unchanged
+// when none is affordable. The offer's stack-hold probe
+// (planHoldsOnStack) uses it, because a payment announces its pips first and
+// the hybrid witness refuses the marker.
+func (a *avail) hybWitnessTb(cost kop.ManaCost, x int, anyColor bool) kop.ManaCost {
+	n := cost.TbN()
+	phy := cost.Phyrexian()
+	for m := 0; m < 1<<n; m++ {
+		if phy && 2*bits.OnesCount(uint(m)) > int(a.life) {
+			continue // the two-life faces must be payable (CR 119.4)
+		}
+		r := cost
+		for i := 0; i < n; i++ {
+			r = r.ResolveTb(m>>i&1 != 0)
+		}
+		rx := r.AtX(x)
+		ex := 0
+		if a.delve > 0 {
+			// the composed leaf takes the credit off the resolved generic
+			// first, then the {X} part's remainder (gorge delveAsk's order)
+			cr := min(int(rx.Generic)+ex, a.delve)
+			g := min(int(rx.Generic), cr)
+			rx.Generic -= uint8(g)
+			ex -= cr - g
+		}
+		var ok bool
+		if anyColor {
+			ok = a.affordsAnyColor(&rx, ex)
+		} else {
+			ok = a.affords(&rx, pipMaskOf(&rx), ex)
+		}
+		if ok {
+			return r
+		}
+	}
+	return cost
+}
+
 // affordsTb: some face assignment of cost's twobrid pips is affordable
 // (gorge pay.ResolveManaWith expands each pip to {colour, two generic}).
 func (a *avail) affordsTb(cost *kop.ManaCost, extra int, anyColor bool) bool {
@@ -243,18 +284,4 @@ func tbDevotion(c *kop.ManaCost, mask kop.ColorMask) int {
 		}
 	}
 	return n
-}
-
-// twobridPotentialCast reports cast a is a twobrid-cost spell the potential
-// walk would price: gorge's planner refuses it ("cost:twobrid",
-// pay.PlanCostDetail; gorgeLowers), so no prefix search a granted or census-gap
-// source feeds offers it and only the printed sources pay it. A Phyrexian pip
-// rides the same encoding but its mana half is planned (CR 107.4f); an
-// alternative-cost cast prices its own cost.
-func (s *State) twobridPotentialCast(k *prep, a Action) bool {
-	if a.Kind() != AkCast || a.Mode()&(3|castFace|castWarp) != 0 || a.Target() != 0 {
-		return false
-	}
-	cost := &k.t.Cards[s.objs[Obj(a.Source())].card].Cost
-	return cost.Hyb[0] == kop.HybTwobrid && !cost.Phyrexian()
 }

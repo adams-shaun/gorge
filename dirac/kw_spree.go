@@ -315,11 +315,24 @@ func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
 		// the cast with that mana pooled too (CR 601.2f)
 		cost = addCost(cost, s.altAddManaPart(k, c))
 	}
+	payCost := cost
+	if payCost.Hyb[0] == kop.HybTwobrid {
+		// The cast planner resolves a twobrid cost's pips before pricing it
+		// (planTwobridCost). This witness prices the cast before its
+		// announcements, and the hybrid witness refuses the unresolved
+		// marker; no face the census affords is no witness.
+		var av avail
+		s.availFor(k, p, &av)
+		payCost = av.hybWitnessTb(payCost, 0, false)
+		if payCost.Hyb[0] == kop.HybTwobrid {
+			return false
+		}
+	}
 	t := s.fork()
 	n0 := t.npend
 	var pk planner
 	pk.try = true
-	t.tapForPK(k, p, &cost, 0, NoObj, false, false, &pk)
+	t.tapForPK(k, p, &payCost, 0, NoObj, false, false, &pk)
 	consumes := pk.found && plannerConsumesSac(&pk)
 	reaches := false
 	// a witness whose sacrifices stack more triggers than the wait budget lets

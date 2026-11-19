@@ -21,6 +21,14 @@ import (
 // may only shrink.
 const grantedKeywordGapsFile = "testdata/granted-keyword-gaps.txt"
 
+// printedOnlyKeywordHeads are heads registered for their printed K: line only:
+// the printed line expands into a trigger at link time, and no granted-keyword
+// synthesis (trigger_granted.go) builds that trigger for a grant, so a grant
+// of one is still inert and stays a gap here. Rampage: kw_rampage.go expands
+// K:Rampage:N; Rapid Fire's and Gabriel Angelfire's KW$ Rampage grants do
+// nothing yet.
+var printedOnlyKeywordHeads = map[string]bool{"Rampage": true}
+
 // grantedKeywordHeads returns the sorted, distinct keyword heads face f
 // grants through KW$, Keywords$ or AddKeyword$, walking the same reachable
 // bodies as the coverage walk: every ability and its SubAbility$ chain,
@@ -107,7 +115,7 @@ func TestGrantedKeywordHeadsAreRegisteredOrPinned(t *testing.T) {
 	for _, c := range reg.AllCards() {
 		for _, f := range c.Faces {
 			for _, h := range grantedKeywordHeads(f) {
-				if !sup["kw:"+h] {
+				if !sup["kw:"+h] || printedOnlyKeywordHeads[h] {
 					count[h]++
 				}
 			}
