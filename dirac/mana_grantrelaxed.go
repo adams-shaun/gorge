@@ -10,7 +10,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // cast a spell from anywhere other than your hand" under an Equip) is no unit
 // of it. A play the relaxed census cannot pay is proven insufficient and takes
 // no prefix search, however a granted tap would untap a land (Nanoform
-// Sentinel). m is the walk's avail mode. A cast, or an activation with its own
+// Sentinel). A Lotus Blossom's petals beside a Gift of Paradise's two mana
+// pay Path to the World Tree's {2}{W}{U}{B}{R}{G} (tail-74 pair 49, decision
+// 610). m is the walk's avail mode. A cast, or an activation with its own
 // {T} source, keeps the walk's answer.
 func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCost, ex Slot, d payDesc, m uint16) bool {
 	if a.Kind() != AkActivate || ex != NoSlot {
@@ -18,6 +20,7 @@ func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCo
 	}
 	var av avail
 	av.xd, av.xdOn = d, true
+	av.dynSac = true // a dynamic {T}, sacrifice source (Lotus Blossom) is a relaxed unit of its petals' mana: gorge's relaxed alternative takes its larger live amount, once
 	s.g.availX = availPlain | m
 	s.availFor(k, p, &av)
 	s.g.availX = 0
