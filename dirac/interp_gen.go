@@ -548,38 +548,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.res.left = 0 // the parked-tail marker (zone_parkedtail.go)
 		return s.execDigUntil(k, in, false), true
 	case kop.OpPeek:
-		p := s.playerRef(k, in.Obj)
-		if p == 255 {
-			p = e.ctrl
-		}
-		if in.C != 0 {
-			if in.C&kop.PeekMayReveal != 0 {
-				return s.peekMayReveal(k, in, p), true // act_peekreveal.go
-			}
-			if in.Obj == kop.RefEachPlayer {
-				// Defined$ Player: every player reveals, the resolving
-				// controller first, as gorge's definedPlayers walks AliveFrom.
-				q := s.eachPlayers(k, in.Obj)
-				for i := uint8(0); i < q.n; i++ {
-					s.peekPublic(k, in, q.s[i])
-				}
-				break
-			}
-			s.peekPublic(k, in, p)
-			break
-		}
-		pl := &s.pl[p]
-		n := s.value(k, in.A)
-		s.g.nrem = 0
-		for i := 0; i < n && i < pl.libLen() && i < maxRem; i++ {
-			s.remember(pl.lib[int(pl.libLo)+i])
-		}
-		if s.g.nrem > 0 {
-			// gorge poses the bare look's pacing ack (NoReveal$ True) first,
-			// to the effect's controller (effReveal: asker = c.Controller)
-			s.res.ask, s.res.askP = raGenLookAck, e.ctrl
-			return false, true
-		}
+		return s.execPeek(k, in) // act_peekreveal.go
 	case kop.OpGrantKeyword:
 		if o := s.objRefObj(in.Obj); o != NoObj && s.objs[o].zone == kop.ZoneStack {
 			s.grantSpellKw(o, kop.KwMask(uint16(in.C))|kop.KwMask(uint16(in.B.N))<<16)

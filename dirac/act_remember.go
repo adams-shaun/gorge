@@ -142,6 +142,10 @@ func (s *State) digUntilRemember(first bool, found []Obj) {
 	}
 }
 
+// DebugDigRememberLastOnly is the lockstep mutation of DigUntil's
+// RememberRevealed$: only the last scanned card is remembered, not the window.
+var DebugDigRememberLastOnly bool
+
 // digRememberRevealed is DigUntil's RememberRevealed$ (DuRememberRevealed,
 // OpDigUntil C>>3): every scanned card — found and revealed, in scan order —
 // joins the remembered set, per player, without clearing (gorge effDigUntil's
@@ -149,6 +153,9 @@ func (s *State) digUntilRemember(first bool, found []Obj) {
 //
 //go:noinline
 func (s *State) digRememberRevealed(revealed []Obj) {
+	if DebugDigRememberLastOnly && len(revealed) > 1 {
+		revealed = revealed[len(revealed)-1:]
+	}
 	for _, o := range revealed {
 		s.remember(o)
 	}

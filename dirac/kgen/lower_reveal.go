@@ -8,8 +8,9 @@ import (
 // reveal, or with Look$ True a private look, of the target or defined
 // player's hand). A reveal has no rules effect in the kernel (CR 701.20;
 // gorge records a Note), so the node keeps only its target slot and emits
-// nothing. RememberRevealed$/RememberRevealedPlayer$ (the remembered hand),
-// Optional$ (gorge's may-reveal ask) and NumCards$ stay unread.
+// nothing. RememberRevealed$ True emits OpPeek PeekHand (the remembered hand);
+// RememberRevealedPlayer$, Optional$ (gorge's may-reveal ask) and NumCards$
+// stay unread.
 func (lc *lowerCtx) revealHand(ps *params) error {
 	look := ps.is("Look", "True")
 	ps.consume("Look", "RevealType")
@@ -31,6 +32,14 @@ func (lc *lowerCtx) revealHand(ps *params) error {
 	}
 	if err := lc.lookAck(ps, look, who); err != nil { // lower_handmove.go
 		return err
+	}
+	if v, ok := ps.get("RememberRevealed"); ok {
+		// gorge effReveal's remember arm: the revealed (or looked-at) hand
+		// joins the resolution's remembered set (OpPeek PeekHand)
+		if v != "True" {
+			return refuse("RevealHand RememberRevealed %q", v)
+		}
+		lc.emit(lInstr{Op: "Peek", Obj: who, CS: "Hand|Remember"})
 	}
 	if q != ps {
 		ps.consume("Defined")

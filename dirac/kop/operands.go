@@ -652,6 +652,7 @@ const (
 	PeekPublic    = 1 << iota // a public reveal: no look_ack (gorge effReveal's public PeekAndReveal)
 	PeekRemember              // with PeekPublic: the revealed cards join the remembered set (RememberRevealed$)
 	PeekMayReveal             // the library's owner may reveal the top card if it matches F (RevealOptional$ + RevealValid$ + RememberRevealed$): ask yes/no, a yes remembers it
+	PeekHand                  // the whole hand of each player Obj names joins the remembered set, in hand order (RevealHand RememberRevealed$)
 )
 
 // RepeatPlain is OpRepeatEach's C bit for the plain per-card loop
