@@ -1118,7 +1118,31 @@ type filtSearch struct {
 // School of the Unseen beside it is funded by nothing (potential_plan.go
 // paymentPlanCensus.fees).
 func (s *State) filtFunded(k *prep, p uint8, f slotMask) bool {
-	return s.filtRelaxable(k, f) && !(k.tapMana && (s.tapXTwoLive(k, p) || s.tapXSacAnyLive(k, p))) && !s.storeGapLive(k, p)
+	return s.filtRelaxable(k, f) && s.filtFundable(k, p, f)
+}
+
+// filtFundable is filtFunded for a prefix search's funding: a hybrid-fee
+// filter is left out of the unit bounds and the fee. Gorge cannot relax its
+// pip (a hybrid fee has no relaxed alternative) but its activation pays the
+// pip only from mana already floating (mana_filterhybrid.go), so its fee is
+// never funded; beside a first-and-only filter (Apprentice Wizard's "{U},
+// {T}: Add {C}{C}{C}") the wizard's fee is still fundable and the search must
+// not give up on it (tail-66-c000 pair 4: Arcane Melee).
+func (s *State) filtFundable(k *prep, p uint8, f slotMask) bool {
+	n := 0
+	for ; f.any(); f = f.rest() {
+		if n++; n > relaxedPaidLimit {
+			return false
+		}
+		sl := f.first()
+		if _, _, hyb := s.filtHyb(k, sl); hyb {
+			continue
+		}
+		if units := s.filtUnits(k, sl); units < 1 || units > 6 {
+			return false
+		}
+	}
+	return !(k.tapMana && (s.tapXTwoLive(k, p) || s.tapXSacAnyLive(k, p))) && !s.storeGapLive(k, p)
 }
 
 // storeGapLive reports whether p controls an activatable storage battery: a
