@@ -341,8 +341,7 @@ func (s *State) charsFx(k *prep, sl Slot, upTo uint8, fx *[maxLfx]lfx, np *int) 
 	}
 	// layer 4: the changeling CDA first (CR 613.3), then the effects in
 	// dependency order
-	c.all = !fd && cd.AllCreatureTypes && !(s.fxM.has(sl) && k.gen.cpxSub && s.copyExcSetsSub(k, sl)) ||
-		exc && s.fxM.has(sl) && k.gen.cpxSub && s.copyExcAll(k, sl)
+	c.all = s.walkAllSeed(k, sl, cd.AllCreatureTypes && !fd, exc)
 	var done [maxLfx]bool
 	for left := n; left > 0; left-- {
 		pick := -1
@@ -891,4 +890,12 @@ func (s *State) ovStaticOn(k *prep, sl Slot) bool {
 		}
 	}
 	return false
+}
+
+// walkAllSeed is the layer-4 changeling seed (CR 613.3): a printed changeling
+// (printed, not face down) unless a copy exception replaced the subtypes, or a
+// copy exception's own changeling (exc: the exceptions apply).
+func (s *State) walkAllSeed(k *prep, sl Slot, printed, exc bool) bool {
+	cpx := s.fxM.has(sl) && k.gen.cpxSub
+	return printed && !(cpx && s.copyExcSetsSub(k, sl)) || exc && cpx && s.copyExcAll(k, sl)
 }
