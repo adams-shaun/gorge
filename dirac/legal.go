@@ -745,7 +745,8 @@ func sourcesPay(m *kop.ManaCost) bool {
 func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaCost, av *avail) bool {
 	f := a.Cost.Flags
 	pm := pipMaskOf(cost)
-	if f&kop.CostTap != 0 && s.canTapForMana(k, sl) {
+	own := s.g.availX&availOwn != 0 // gorge's potential walk prices the bound with the source's own mana in it (mana_ownwalk.go)
+	if f&kop.CostTap != 0 && !own && s.canTapForMana(k, sl) {
 		// the source can't also tap for its own cost's mana
 		var av2 avail
 		av2 = *av
@@ -769,7 +770,7 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 	// Processor) is outside the ordinary walk above, but its own {T} still
 	// takes its mana out of the restricted sources this activation may spend.
 	skip := NoSlot
-	if f&kop.CostTap != 0 {
+	if f&kop.CostTap != 0 && !own {
 		skip = sl
 	}
 	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, av, skip, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, av)) {
