@@ -731,7 +731,16 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 			var d Decision
 			s.plainOptions(k, &d, availNoActScript)
 			if !s.plainListedPays(k, a, p, &d) {
-				s.filtScript(k, a, p, true)
+				// The filter prefix owns the play when it prices one. A no-{T}
+				// tap-another source beside it leaves the filter search
+				// unpayable (filtFundable), so the tapX search's prefix is the
+				// fallback (mana_tapanother.go). Trying the filter first keeps
+				// its trigger order when it is the play's payer (a filter
+				// answer may tap a creature and stack its trigger before the
+				// play is priced, CR 603.3).
+				if !s.filtScript(k, a, p, true) && s.tapXTwoLiveSource(k, p) && s.tapXPrefix(k, a, p) {
+					return
+				}
 			}
 		}
 		return
