@@ -3321,10 +3321,13 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 		return s.hybStrand(k, p, &c, anyColor)
 	}
 	if tb {
-		// gorge's cast planner refuses a twobrid cost (pay.PlanCostDetail
-		// "cost:twobrid"), so the announced cost is always paid through the
-		// manual window this walk models, never re-planned with a witness.
-		// A flexible source the walk tapped for an earlier owed colour can
+		// A planned twobrid cast is priced by the cast planner's resolved
+		// faces (planTwobridCost) and pays through the planner's witness. This
+		// walk pays the lowered twobrid cast (a granted/scripted source, or a
+		// face-sensitive modifier the face-blind cast price cannot compose)
+		// and a planned one whose census cannot fund it (tapForSpellPlain tries
+		// the plan first). A flexible source the walk tapped for an earlier
+		// owed colour can
 		// strand a later pip only it could make (Frontier Bivouac's {U}
 		// leaves a {R} pip no source makes); gorge reverses the cast and
 		// keeps the tap and its mana (CR 601.2g-h, 733.1), so the kernel
