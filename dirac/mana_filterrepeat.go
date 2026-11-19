@@ -153,15 +153,38 @@ func (s *State) windowFeeStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost,
 	if m := s.restrPoolAdmits(k, p); m != 0 {
 		s.rbUnits(p, m, &pool)
 	}
-	short := func(pool *[kop.NumManaKinds]uint8) (n int) {
-		for c := range pool {
-			if useful.Pips[c] > pool[c] {
-				n += int(useful.Pips[c] - pool[c])
-			}
-		}
-		return n
+	before := feeOnlyShort(&useful.Pips, &pool)
+	if !feeOnlyPayFee(&fee, &pool) {
+		return false
 	}
-	before := short(&pool)
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if uint8(ab.ManaColors)&(1<<c) == 0 {
+			continue
+		}
+		after := pool
+		after[c] += uint8(amount)
+		if feeOnlyShort(&useful.Pips, &after) < before {
+			return false
+		}
+	}
+	return true
+}
+
+// feeOnlyShort reads the fixed pips useful still lacks from pool.
+func feeOnlyShort(useful, pool *[kop.NumManaKinds]uint8) (n int) {
+	for c := range pool {
+		if useful[c] > pool[c] {
+			n += int(useful[c] - pool[c])
+		}
+	}
+	return n
+}
+
+// feeOnlyPayFee pays a fee-only filter's fee from a copy of the pool: the
+// fee's pips first, then its generic part in pay/solve.go's spend order
+// ({C}, W, U, B, R, G), whatever the owed cost's pips still need. false
+// fails the caller open: the pool cannot pay the fee.
+func feeOnlyPayFee(fee *kop.ManaCost, pool *[kop.NumManaKinds]uint8) bool {
 	for c := range pool {
 		if fee.Pips[c] > pool[c] {
 			return false
@@ -181,16 +204,6 @@ func (s *State) windowFeeStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost,
 			return false
 		}
 	}
-	for c := 0; c < kop.NumManaKinds; c++ {
-		if uint8(ab.ManaColors)&(1<<c) == 0 {
-			continue
-		}
-		after := pool
-		after[c] += uint8(amount)
-		if short(&after) < before {
-			return false
-		}
-	}
 	return true
 }
 
@@ -199,4 +212,91 @@ func pipSum(p *[kop.NumManaKinds]uint8) (n int) {
 		n += int(v)
 	}
 	return n
+}
+
+// filtFeeColStalls: the fee-only repeatable filter at sl producing col
+// cannot bring the play closer to paid: once the fee is paid from the pool,
+// col fills no fixed pip the play's cost still lacks (windowFeeStalls' one
+// colour arm; gorge's scriptSearch.feeOnlyAskPrune, engine/rules/
+// potential_script.go; CR 605.3a: the activation is repeatable, so a line
+// that skips it holds at least as much of every colour as one that spent a
+// fee it cannot get back). The search would otherwise walk every colour of
+// every repeat activation: Energy Refractor's "{2}: Add one mana of any
+// color" beside a full battlefield spent the whole node budget on those
+// branches and starved the line that pays the play without the filter, whose
+// offer then went missing. useful nil (the play's printed pips unread,
+// filtUsefulCost) fails open: the branch is explored.
+func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int) bool {
+	if useful == nil || useful.Hyb[0] != 0 || s.g.winMode == winTrig || !s.filtRepeat(k, sl) {
+		return false
+	}
+	fee := s.filtRepeatCost(k, sl)
+	ab := s.filtAb(k, sl)
+	amount := int(ab.ManaN)
+	if amount > int(fee.Generic)+pipSum(&fee.Pips) {
+		return false
+	}
+	if col < 0 || col >= kop.NumManaKinds || uint8(ab.ManaColors)&(1<<col) == 0 {
+		return false
+	}
+	pool := s.pl[p].pool
+	if m := s.restrPoolAdmits(k, p); m != 0 {
+		s.rbUnits(p, m, &pool)
+	}
+	before := feeOnlyShort(&useful.Pips, &pool)
+	if !feeOnlyPayFee(&fee, &pool) {
+		return false
+	}
+	pool[col] += uint8(amount)
+	return feeOnlyShort(&useful.Pips, &pool) >= before
+}
+
+// filtOneShotColStalls: the one-shot flexible gap at sl producing col cannot
+// bring the play closer to paid while a fixed pip is still owed: col fills no
+// pip the pool lacks, and a covered colour pays the generic part just as
+// well. gorge's oneShotAskPrune (potential_script.go, cut D) is the same
+// rule. The class is a gap that is not the fee-only repeatable one
+// (filtFeeColStalls) and whose ability costs no mana (a fee would make the
+// opening-pool read wrong); anything else fails open.
+func (s *State) filtOneShotColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int) bool {
+	if useful == nil || useful.Hyb[0] != 0 || s.g.winMode == winTrig || s.filtRepeat(k, sl) {
+		return false
+	}
+	a := s.filtAb(k, sl)
+	if a.Cost.Mana.Generic != 0 || pipSum(&a.Cost.Mana.Pips) != 0 || a.Cost.Mana.Hyb != ([4]kop.ColorMask{}) {
+		return false
+	}
+	if col < 0 || col >= kop.NumManaKinds || uint8(a.ManaColors)&(1<<col) == 0 {
+		return false
+	}
+	pool := s.pl[p].pool
+	if m := s.restrPoolAdmits(k, p); m != 0 {
+		s.rbUnits(p, m, &pool)
+	}
+	before := feeOnlyShort(&useful.Pips, &pool)
+	if before == 0 {
+		return false // no pip owed: the prune fails open (gorge's before == 0 arm)
+	}
+	pool[col]++
+	return feeOnlyShort(&useful.Pips, &pool) >= before
+}
+
+// filtUsefulCost is play a's printed mana cost: the fixed pips the fee-stall
+// clamp (filtFeeColStalls) reads (gorge's scriptPipCounts on the same play,
+// engine/rules/potential_script.go). A plain cast's mana cost, an
+// activation's printed base (playBaseCost). ok false for a play whose
+// printed pips the search does not read -- a kicked, bargained, kicked-mode
+// or flashback cast's cost is not the printed one, and an {X}, snow, hybrid,
+// twobrid or Phyrexian pip is no fixed one -- and the clamp then fails open.
+// A generic part is fine (any colour may pay it); an all-generic cost reads
+// as no fixed pip, and the clamp then drops the filter's every colour: a
+// conversion that never raises the spendable total cannot help pay it.
+func (s *State) filtUsefulCost(k *prep, a Action) (m kop.ManaCost, ok bool) {
+	if m, _, ok = s.playBaseCost(k, a); !ok {
+		return kop.ManaCost{}, false
+	}
+	if m.X != 0 || m.Snow != 0 || m.Hyb != ([4]kop.ColorMask{}) || m.Tb != 0 {
+		return kop.ManaCost{}, false
+	}
+	return m, true
 }
