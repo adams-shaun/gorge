@@ -62,31 +62,48 @@ func (s *State) witnessKeepsTargets(k *prep, p uint8, c CardID, o Obj, cost *kop
 		f.g.availX = m
 		return true
 	}
+	ok := f.specKeepsTarget(k, p, o, sp, cost)
+	// A charm's other modes' targets are as good: gorge's castTargetsAvailable
+	// takes the cast while any mode keeps a legal target (CR 700.2, 601.2c), so
+	// Vandalize's land mode stands when the plan consumes every artifact it
+	// could destroy.
+	if ab := spellAb(k, c); !ok && ab != 255 {
+		a := &k.t.Cards[c].Abilities[ab]
+		for j := 1; a.NModes > 1 && j < int(a.NTargets) && !ok; j++ {
+			if a.TgtModes[j]&a.TgtModes[0] == 0 {
+				ok = f.specKeepsTarget(k, p, o, &a.Targets[j], cost)
+			}
+		}
+	}
+	f.g.availX = m
+	return ok
+}
+
+// specKeepsTarget is witnessKeepsTargets' per-spec read over the offer's
+// census (availX holds availGaps): true when sp has no legal target, a target
+// no mana activation takes, or one candidate whose whole production the plan
+// can do without.
+func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cost *kop.ManaCost) bool {
 	var buf [MaxOptions]TCode
-	n := f.targetCands(k, sp, p, NoSlot, o, &buf)
+	n := s.targetCands(k, sp, p, NoSlot, o, &buf)
 	if n == 0 {
-		f.g.availX = m
 		return true // a cast with no legal target (an X-resolves-to-zero announcement) is cast without one
 	}
 	for i := 0; i < n; i++ {
 		tc := buf[i]
 		if isPlayerOrNone(tc) {
-			f.g.availX = m
 			return true // a player target is never on the battlefield to lose
 		}
 		tobj := Obj(tc)
-		if tobj >= MaxObj || f.objs[tobj].zone != kop.ZoneBattlefield {
-			f.g.availX = m
+		if tobj >= MaxObj || s.objs[tobj].zone != kop.ZoneBattlefield {
 			return true // a stack, graveyard or exile target: no mana activation takes it
 		}
 		var c1 avail
-		f.availSansObj(k, p, tobj, &c1)
+		s.availSansObj(k, p, tobj, &c1)
 		if c1.affords(cost, pipMaskOf(cost), 0) {
-			f.g.availX = m
 			return true
 		}
 	}
-	f.g.availX = m
 	return false
 }
 
