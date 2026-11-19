@@ -314,6 +314,14 @@ var addedAfterTheSplit = []string{
 	// dispatcher (TurnChange, PlayerLost, ControlChange, MoveZone), plus
 	// ChangesController which had vocabulary but no matcher.
 	"TurnBegin", "LosesGame", "ChangesController", "Exiled",
+	// "Whenever this Vehicle becomes crewed" (CR 702.122; Mobilizer Mech,
+	// Ghost Ark, Mighty Servant of Leuk-o). It matches the events.CrewAction
+	// marker engine/rules/pay's Crew cost settlement emits once per crew
+	// activation, appended for it: the pre-split switch had no way to read
+	// the crew action's SUBJECT view (the per-crewer Crew markers predate the
+	// mode but carry the crewing creature, and a three-crewer Crew 3 would
+	// have queued the trigger three times).
+	"BecomesCrewed",
 	// "whenever you solve a Case" (MKM Case
 	// File Auditor). It matches the AlterAttribute "Solved" grant, which the
 	// effect only began emitting when the Case's solved designation was

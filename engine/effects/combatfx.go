@@ -772,11 +772,33 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 			eventRemember(h, c, o.ID)
 		}
 		registerAnimateEffects(h, c, o.ID, ag)
+		emitCrewAction(h, c, sa, o.ID)
 		if atEOTInclude(h, c, sa, o.ID) {
 			ateotIDs = append(ateotIDs, o.ID)
 		}
 	}
 	scheduleAtEOT(h, c, sa, ateotIDs)
+}
+
+// emitCrewAction records that a Vehicle became crewed (CR 702.122e: "becomes
+// crewed" means a crew ability of it RESOLVED). It runs from effAnimate when
+// the minted Crew ability (`Keyword$ Crew`, engine/cards/kw_crew.go) animates
+// its Vehicle, so a crew ability that is countered, Stifled, or whose Vehicle
+// left the battlefield in response (the loop's sourceLeftSincePush skip)
+// emits nothing. ONE events.CrewAction per resolution, however many creatures
+// tapped for it: Obj the Vehicle, Player the controller, IDs the creatures
+// that paid the activation's tap cost (Ctx.Paid.Tapped, the cost-paid list the
+// resolution already carries). The per-crewer events.Crew markers stay at cost
+// payment (the creatures did tap then); this is Mode$ BecomesCrewed's subject
+// record, emitted after the animation is registered so the Vehicle is
+// already a creature when the trigger resolves.
+func emitCrewAction(h Host, c *Ctx, sa *cards.SA, vehicle state.ObjID) {
+	if !sa.IsCrewAbility() {
+		return
+	}
+	crewers := make([]state.ObjID, len(c.Paid.Tapped))
+	copy(crewers, c.Paid.Tapped)
+	h.Emit(events.Event{Kind: events.CrewAction, Obj: vehicle, Player: c.Controller, IDs: crewers})
 }
 
 // animateWouldChange reports whether this Animate would actually alter any
