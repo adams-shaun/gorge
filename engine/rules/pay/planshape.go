@@ -907,10 +907,15 @@ var paymentPlanTapDamageTriggerCodes = state.NewStrCodes(
 // safety ordering both ask: a unit with several free abilities offers its
 // alternatives as a CHOICE (the payer taps the permanent for one of them),
 // never as their sum, so a dual land contributes {U} or {R} -- and the
-// search proves a {U} tax payable from it. The search is bounded by
-// manaPipCount (a minimal cover never needs more sources than the mana it
-// supplies) and by a hard node budget; beyond that it fails closed, which is
-// the conservative direction (never offer a Pay the window cannot complete).
+// search proves a {U} tax payable from it. An alt whose activation carries a
+// literal mana fee pays the fee from the floating mana BEFORE its production
+// is added (CR 605.3b), so an earlier same-window activation can fund it --
+// Apprentice Wizard's "{U}, {T}: Add {C}{C}{C}" beside an Island's {U}. A
+// fee the floating mana cannot cover leaves the alt out of that branch. The
+// search is bounded by manaPipCount plus the fees the units pay (a minimal
+// cover never needs more sources than the mana it supplies) and by a hard
+// node budget; beyond that it fails closed, which is the conservative
+// direction (never offer a Pay the window cannot complete).
 func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, snow state.Mana, typed [8]state.Mana, life int32, conv *Conv, units []WindowUnit) bool {
 	// CR 119.7/119.8: under a CantChangeLife static no positive life may be
 	// paid, so neither the charge's own fixed life nor a PayLife source's
@@ -931,6 +936,13 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 		return true
 	}
 	budget := cost.ManaPipCount()
+	for i := range units {
+		fee := int32(0)
+		for _, a := range units[i].Alts {
+			fee = max(fee, a.Fee())
+		}
+		budget += int(fee)
+	}
 	if budget <= 0 {
 		return false
 	}
@@ -958,7 +970,22 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 				if (a.Life > 0 && a.Life > lifeLeft) || (a.LifeKeep && a.Life >= lifeLeft) {
 					continue
 				}
-				if rec(i+1, remaining-1, ManaAdd(acc, a.Mana()), lifeLeft-a.Life) {
+				// A literal mana fee is charged from the floating mana
+				// (the base pool plus every earlier activation) before
+				// this activation resolves (CR 605.3b), so the alt only
+				// joins a branch whose accumulated mana can fund it. The
+				// base pool may itself fund the fee, which is why the
+				// debit lands on the pool-relative delta: the walk prices
+				// every later payable() against pool plus the delta.
+				next := acc
+				if fee := a.Fee(); fee > 0 {
+					funded, ok := feeFromMana(a, ManaAdd(pool, acc), conv)
+					if !ok {
+						continue
+					}
+					next = ManaSub(funded, pool)
+				}
+				if rec(i+1, remaining-1, ManaAdd(next, a.Mana()), lifeLeft-a.Life) {
 					return true
 				}
 			}
@@ -966,4 +993,23 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 		return false
 	}
 	return rec(0, budget, state.Mana{}, life)
+}
+
+// feeFromMana pays one activation's literal mana fee (WindowAlt.CostGeneric
+// beside WindowAlt.CostColored) out of the floating mana under this
+// payment's conversion set, and returns the mana left. The fee is charged
+// from the pool before the ability resolves (CR 605.3b), so mana an earlier
+// same-window activation produced can fund it; snow and typed batches are
+// deliberately not consulted, a conservative miss (the live window can fund
+// a fee from them, the census just does not promise one it does).
+func feeFromMana(a WindowAlt, pool state.Mana, conv *Conv) (state.Mana, bool) {
+	paid, ok := ResolveMana(costvocab.Cost{Generic: a.CostGeneric, Colored: a.CostColored},
+		pool, state.Mana{}, [8]state.Mana{}, 0, conv)
+	if !ok {
+		return state.Mana{}, false
+	}
+	// Payment.Pool is the pool the fee LEFT (solve.go's Payment carries the
+	// remaining floating mana, spent = before - after); returning it directly
+	// prices every later branch against the mana the fee did not consume.
+	return paid.Pool, true
 }
