@@ -45,6 +45,19 @@ func effShuffle(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		order := h.ShuffleLibrary(p, g.Zone(state.ZLibrary, p))
-		h.Emit(events.Event{Kind: events.Shuffle, Player: p, IDs: order, Secret: true})
+		emitEffectShuffle(h, p, order)
 	}
+}
+
+// emitEffectShuffle is the one emitter of the marked, effect-caused Secret
+// events.Shuffle (events.ShuffleFromEffectMarker): effShuffle, a dig's
+// Shuffle$ True tail, and every shuffleLibraryOrder caller -- the
+// library-search "then shuffle" tail (searchShuffleTail), Shuffle$ True
+// (shuffleLibraryExplicit), ChangeZoneAll's owed shuffle, the object-path
+// shuffle owners and the rearrange may-shuffle -- all go through it, so
+// Mode$ Shuffled's ShuffleFromEffect$ True filter has exactly one mark to
+// match.
+func emitEffectShuffle(h Host, p state.PlayerID, order []state.ObjID) {
+	h.Emit(events.Event{Kind: events.Shuffle, Player: p, IDs: order, Secret: true,
+		Text: events.ShuffleFromEffectMarker})
 }

@@ -158,7 +158,16 @@ const (
 	// mana of the chosen color", Caged Sun's CR 605.1b triggered mana
 	// ability), appended so every earlier ordinal is unchanged.
 	TriggerManaAdded TriggerMode = 110
-	TriggerModeCount             = 111 // one past the last; sizes a dense per-TriggerMode array
+	// EDH trigger-modes class (edh-trigB): ExcessDamage (Toralf, God of
+	// Fury's "whenever a creature or planeswalker an opponent controls is
+	// dealt excess noncombat damage", the singular sibling of ExcessDamageAll),
+	// PayLife (Font of Agonies, "whenever you pay life") and Shuffled
+	// (Widespread Panic, "whenever a spell or ability causes its controller to
+	// shuffle their library"), appended so every earlier ordinal is unchanged.
+	TriggerExcessDamage TriggerMode = 111
+	TriggerPayLife      TriggerMode = 112
+	TriggerShuffled     TriggerMode = 113
+	TriggerModeCount                = 114 // one past the last; sizes a dense per-TriggerMode array
 )
 
 var triggerModeNames = [TriggerModeCount]string{
@@ -272,6 +281,9 @@ var triggerModeNames = [TriggerModeCount]string{
 	TriggerMilledOnce:                 "MilledOnce",
 	TriggerAbilityResolves:            "AbilityResolves",
 	TriggerManaAdded:                  "ManaAdded",
+	TriggerExcessDamage:               "ExcessDamage",
+	TriggerPayLife:                    "PayLife",
+	TriggerShuffled:                   "Shuffled",
 }
 
 var triggerModeCodes = func() StrCodes[TriggerMode] {

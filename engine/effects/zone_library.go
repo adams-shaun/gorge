@@ -117,9 +117,14 @@ func shuffleLibraryExplicit(h Host, cz *ChangeZoneParams, owner state.PlayerID) 
 	}
 }
 
+// shuffleLibraryOrder shuffles owner's whole library through THE marked
+// effect-shuffle emitter: every one of its callers is an effect-caused
+// shuffle (the library-search "then shuffle" tail, Shuffle$ True,
+// ChangeZoneAll's owed shuffle, the object-path and rearrange may-shuffles),
+// so Mode$ Shuffled's ShuffleFromEffect$ True filter sees all of them.
 func shuffleLibraryOrder(h Host, owner state.PlayerID) {
 	order := h.ShuffleLibrary(owner, h.Game().Zone(state.ZLibrary, owner))
-	h.Emit(events.Event{Kind: events.Shuffle, Player: owner, IDs: order, Secret: true})
+	emitEffectShuffle(h, owner, order)
 }
 
 // shuffleSelectedLibraryObjects randomizes only a resolved object subset that

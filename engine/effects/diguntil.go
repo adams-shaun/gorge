@@ -472,7 +472,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 		// NoneFound restricts it to a scan that found nothing.
 		if shuffle && (!shuffleNoneFound || len(found) == 0) {
 			order := h.ShuffleLibrary(p, g.Zone(state.ZLibrary, p))
-			h.Emit(events.Event{Kind: events.Shuffle, Player: p, IDs: order, Secret: true})
+			emitEffectShuffle(h, p, order)
 		}
 		// ImprintFound$/ImprintRevealed$ (Forge's addImprintedLists) are
 		// accumulated across the player walk and emitted once after it.
