@@ -114,11 +114,13 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	// gaps last (their fee is paid from the floating pool, CR 601.2b), so a
 	// plain search that budget-limited on dead fee branches finds the
 	// funding line it walked past. The fallback only takes a script when the
-	// play's own cost sacrifices or returns a permanent (consumes): the
-	// ordering it fixes is the one a cast that sacrifices its own funding
-	// source needs, and the node-for-node mirror does not model it for any
-	// other play, so a recorded game's other offers stay on the plain
-	// script.
+	// play's own cost sacrifices or returns a permanent, when a census gap
+	// is a hybrid-fee mana ability, or when the plain run exhausted its node
+	// budget walking a repeatable fee-only filter's branches: the ordering it
+	// fixes is the one a cast that sacrifices its own funding source needs,
+	// and for any other play the node-for-node mirror does not model the
+	// phased order, so a recorded game's other offers keep the pre-existing
+	// scope.
 	plain := build(false)
 	if plain == nil {
 		return nil, false
@@ -132,6 +134,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	if sr == nil {
 		return nil, false
 	}
+	sr.plainLimited = plain.limited && plain.feeOnly
 	script, found = sr.run(e)
 	if found && len(script) > 0 {
 		return script, true
@@ -240,6 +243,16 @@ type scriptSearch struct {
 	// real-payable gates (potentialPrefixScript's fallback run). The plain
 	// run keeps the order and node walk dirac's mirror prices plays by.
 	phased bool
+	// plainLimited is set on the phased run when the plain run exhausted its
+	// node budget on a board with a repeatable fee-only filter (Signpost
+	// Scarecrow's "{2}: Add one mana of any color"), whose fee branches the
+	// plain order spends its budget on before the fee is funded. A phased
+	// script is taken outside phasedScope only then; a plain run that
+	// completed, or limited without such a filter (Barrels of Blasting
+	// Jelly's once-a-turn {1} filter), keeps the scope below, where the
+	// phased order is only modelled for a cost that sacrifices or returns a
+	// permanent, or for a hybrid-fee gap.
+	plainLimited bool
 	// subsume is potentialPrefixScript's third run: with the plain and phased
 	// orders both unable to price the play, it drops a mana activation's
 	// colour-ask answers the floating pool has already covered (a kept answer
@@ -662,7 +675,7 @@ func (sr *scriptSearch) childOffers(d *decision.Decision, c *Engine) bool {
 		if !sr.offered(&d.Options[i]) {
 			continue
 		}
-		if sr.phased && !sr.phasedScope(c) {
+		if sr.phasedOutOfScope(c) {
 			continue
 		}
 		return true
@@ -686,8 +699,8 @@ func (sr *scriptSearch) priced(pool *Engine, c *Engine) bool {
 		}
 		return false
 	}
-	if sr.phased && !sr.phasedScope(c) {
-		return false // the fallback's scope: a consuming cost or a hybrid-fee gap
+	if sr.phasedOutOfScope(c) {
+		return false // the fallback's scope: a consuming cost, a hybrid-fee gap, or a plain fee-only budget exhaustion
 	}
 	if paymentPlanConsumes(*got.Plan) && !c.witnessReachesMode(pool, sr.p, o, *got.Plan, true) {
 		// winOK: a payment whose own sacrifice trigger ends the game in the
@@ -708,6 +721,17 @@ func (sr *scriptSearch) priced(pool *Engine, c *Engine) bool {
 // option is sr's play as the planner's option.
 func (sr *scriptSearch) option() decision.Option {
 	return decision.Option{Kind: sr.play.Kind, Obj: sr.play.Obj, Ability: sr.play.Ability, Mode: sr.play.Mode, AltCostIndex: max(sr.altCost, 0)}
+}
+
+// phasedOutOfScope reports whether the phased fallback must leave this play
+// to the plain order: only a play phasedScope prices is in scope, unless the
+// plain run exhausted the node budget on a repeatable fee-only filter
+// (plainLimited), because the phased order is a different node walk the
+// kernel's plain-search mirror does not price elsewhere. A consuming cost or
+// a hybrid-fee gap is always in scope (the prefix may have activated the
+// permanent the payment must sacrifice, and a hybrid fee is floated first).
+func (sr *scriptSearch) phasedOutOfScope(c *Engine) bool {
+	return sr.phased && !sr.phasedScope(c) && !sr.plainLimited
 }
 
 // phasedScope reports whether the phased order may price sr's play: one whose
@@ -854,8 +878,8 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 	}
 	for i := range d.Options {
 		if sr.offered(&d.Options[i]) {
-			if sr.phased && !sr.phasedScope(c) {
-				continue // the fallback's scope: only a payment that consumes a permanent
+			if sr.phasedOutOfScope(c) {
+				continue // the fallback's scope: a consuming cost, a hybrid-fee gap, or a plain fee-only budget exhaustion
 			}
 			return true
 		}
