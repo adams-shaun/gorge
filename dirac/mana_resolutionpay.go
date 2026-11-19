@@ -259,12 +259,33 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8) {
 	if s.restrActNow(k, p) != 0 {
 		return // admitted restricted mana shortens the cost the planner pays (mana_window.go)
 	}
-	// the plain planner must settle the remainder: a plan it cannot price
-	// keeps manaStep's window arm (the probe is dry: it taps nothing)
+	// The remainder must be one the plain census cannot price but the census
+	// with the Taps-deferred sources can (the probe is dry: it taps nothing).
+	// That is the shape gorge's prefix search activates for: its planner's
+	// first pass refuses the Taps-deferred sources, so the potential play's
+	// search proves the play by activating the whole plan (mana_tapsdefer.go).
+	// A remainder the plain census prices is gorge's planner's to pay, at
+	// payment, after the push -- and a plan no pass prices keeps manaStep's
+	// window arm.
 	var chk planner
 	chk.dry = true
-	s.tapForPK(k, p, &cost, 0, NoObj, false, false, &chk)
-	if chk.needT != 0 && !chk.found {
+	s.tapNeed(&chk, p, &cost, 0, false)
+	if chk.needT == 0 {
+		return
+	}
+	if k.gen == nil || !k.gen.anyTapsDefer || DebugNoTapsDefer {
+		return // no Taps-deferred source can be the remainder: the post-push payment, as before
+	}
+	saved := chk
+	chk.try = true // the first pass: the census without the Taps-deferred sources
+	s.plan(k, p, &chk, NoObj)
+	if chk.found {
+		return // the plain census prices it: gorge's planner pays it post-push
+	}
+	chk = saved
+	chk.tapsIn = true // the second pass: the Taps-deferred sources are units
+	s.plan(k, p, &chk, NoObj)
+	if !chk.found {
 		return
 	}
 	// the source's own {T} cost holds it tapped across the payment the way
