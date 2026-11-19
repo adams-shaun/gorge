@@ -9,6 +9,14 @@ source scripts/pr-cards.sh
 cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
 log=$(mktemp); trap 'rm -f "$log"' EXIT
 fail() { echo "pr-precheck: $*"; exit 1; }
+# The gate for the golden-head step below, on a `git diff --name-only` list: the golden-head tests and the
+# corpus-wide ratchets it runs live in ./engine/rules, so the affected-package steps never select them when the
+# change lands in engine/{events,effects,state,cards} or cmd/forgec. #1758 appended events.CrewAction, pr-precheck
+# said ok, and batch #1798 failed on the 10 TestSetHeads goldens it moved; #1710 left stale TestTakeInitiative
+# exceptions. internal/precheckgate runs this function on fake diff lists.
+heads_gate() {
+  grep -q -E '^(engine/(events|effects|state|rules|cards)/|cmd/forgec/)'
+}
 changed=$(git diff --name-only "$base"...HEAD)
 if ! "${cap[@]}" go test -timeout 3m -run '^TestComplexFunctionsOnlyShrink$|^TestLongFunctionsOnlyShrink$|^TestFuncCeilingsLowerOnly$|^TestCodeShapeOnlyShrinks$' ./internal/codeshape >"$log" 2>&1; then
   # TestCodeShapeOnlyShrinks holds the tree-wide counts (stringLiteralCompares and the rest): a dirac ticket added two
@@ -45,6 +53,19 @@ for pkg in $(grep -E '\.(go|txt|tsv|json)$' <<<"$changed" | xargs -r -n1 dirname
   grep -q -E "^func Test[A-Za-z0-9_]*($census)" "$pkg"/*_test.go || continue
   "${cap[@]}" go test -timeout 5m -run "$census" "./$pkg" >"$log" 2>&1 || { cat "$log"; fail "census in $pkg: $(grep -o -E -- '--- FAIL: [A-Za-z0-9_/]+' "$log" | head -2 | sed 's/--- FAIL: //' | paste -sd' ')"; }
 done
+# The golden-head tests and the corpus-wide ratchets the census step never selects: they live in ./engine/rules (and
+# TestKnownApproximationsOnlyShrinks in ./testkit/testutil), so a change in engine/{events,effects,state,cards} or
+# cmd/forgec moves them without a changed file in those packages — #1758's events.CrewAction said ok here and failed
+# batch #1798 on the 10 TestSetHeads goldens it moved; #1710 left stale TestTakeInitiative exceptions behind.
+# GORGE_UPDATE_SETHEADS re-pins TestSetHeads, GORGE_UPDATE_HEADS TestHeads; the commit message must name the first
+# diverging event (GORGE_DUMP_SETHEADS=<dir>, then diff the dump against base).
+if heads_gate <<<"$changed"; then
+  heads='^(TestSetHeads|TestHeads|TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead|TestEveryStandardSetParamsAreRead|TestTakeInitiative.*|TestKnownApproximationsOnlyShrinks)$'
+  if ! "${cap[@]}" go test -timeout 5m -run "$heads" ./engine/rules ./testkit/testutil >"$log" 2>&1; then
+    cat "$log"
+    fail "golden heads: $(grep -o -E -- '--- FAIL: Test[A-Za-z0-9_/]+' "$log" | head -3 | sed 's/--- FAIL: //' | paste -sd' ') — re-pin with GORGE_UPDATE_SETHEADS=1 (or GORGE_UPDATE_HEADS=1 for TestHeads), and name the first diverging event in the commit message (GORGE_DUMP_SETHEADS=<dir>, then diff the dump against base)"
+  fi
+fi
 for pkg in $(grep '_test\.go$' <<<"$changed" | xargs -r -n1 dirname | sort -u); do
   rx=$(grep "^$pkg/[^/]*_test\.go$" <<<"$changed" | while read -r f; do [ -f "$f" ] && sed -n 's/^func \(Test[A-Za-z0-9_]*\)(t \*testing\.T).*/\1/p' "$f"; done | sort -u | paste -sd'|')
   [ -n "$rx" ] || continue
