@@ -29,6 +29,9 @@ type Universe struct {
 
 	landOnce sync.Once
 	land     []string
+
+	walkerOnce sync.Once
+	walker     []string
 }
 
 // UniverseOf is the universe over cs, in order. A nil or empty cs is a
@@ -271,4 +274,19 @@ func (u *Universe) LandTypeWords(build func(*Universe) []string) []string {
 		u.land = out[:len(out):len(out)]
 	})
 	return u.land
+}
+
+// PlaneswalkerTypeWords returns the universe's planeswalker-subtype
+// vocabulary (the walker names, CR 205.3j), built once by build
+// (engine/rules/chars owns the word rules) and memoised on the universe,
+// exactly like LandTypeWords. SHARED: read-only.
+func (u *Universe) PlaneswalkerTypeWords(build func(*Universe) []string) []string {
+	if u == nil {
+		return build(u)
+	}
+	u.walkerOnce.Do(func() {
+		out := build(u)
+		u.walker = out[:len(out):len(out)]
+	})
+	return u.walker
 }
