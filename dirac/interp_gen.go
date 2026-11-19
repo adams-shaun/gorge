@@ -930,6 +930,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			break
 		}
 		s.leave(k, s.objs[o].slot, kop.ZoneExile, false)
+		if in.C&kop.MvRemember != 0 {
+			s.remember(o) // RememberChanged$: gorge effChangeZone remembers the exiled card
+		}
 		if s.g.nlinks < uint8(len(s.g.links)) {
 			l := &s.g.links[s.g.nlinks]
 			l.src, l.sver, l.obj = e.obj, s.objs[e.obj].ver, o

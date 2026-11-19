@@ -678,7 +678,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		if err != nil {
 			return err
 		}
-		eu := lInstr{Op: "ExileUntilLeaves", Obj: obj}
+		eu := lInstr{Op: "ExileUntilLeaves", Obj: obj, CS: exileUntilRememberCS(flags)} // lower_remembered_writers.go
 		if ctrs > 0 {
 			eu.A = cst(ctrs) // the return rider's +1/+1 counters (A unset = none)
 		}
@@ -3956,6 +3956,7 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 	if err != nil {
 		return err
 	}
+	lc.remReflexParentSet(ps, lat) // lower_remembered_reflex.go
 	b, err := lc.trigRememberedCapture(ps, lat)
 	if err != nil {
 		return err
