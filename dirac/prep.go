@@ -53,7 +53,7 @@ type pcard struct {
 	wideN      uint8
 	wideCol    kop.ColorMask
 	wideChosen bool
-	restrFloat bool // a restricted ability of more than one mana that floats restricted when a plan overpays (Steelswarm Operator's activation {U}{U})
+	restrFloat bool // a restricted ability whose unit floats restricted when a plan leaves part of it unspent (rkExt; Steelswarm Operator's activation {U}{U}, Vodalian Arcanist's {C})
 	cdRec      bool // the card reads CtrlHitBySrc against itself: its combat hits on players are recorded (value_turntallies.go)
 	food       bool // the card's printed subtypes include Food (the sacFood tally; value_turntallies.go)
 	manaTyped  bool // gorge tallies the mana it adds as typed (an artifact, a Desert or a Cave: mana_artifact.go)
