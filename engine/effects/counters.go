@@ -1125,6 +1125,16 @@ func effProliferate(h Host, c *Ctx, sa *cards.SA) {
 	if n <= 0 {
 		return
 	}
+	// R:Event$ Proliferate replacement boundary (CR 614.4; Tekuthal, Inquiry
+	// Dominus's "if you would proliferate, proliferate twice instead"):
+	// before any action runs the instruction's action count is held out as
+	// ONE synthetic proposal (the RollDice/Scry hook's discipline -- never
+	// logged), and a matching replacement rewrites the count in place. Each
+	// rewritten action still runs in full below, each with its own choice
+	// round and its own completed events.Proliferate marker (CR 701.34a's
+	// per-action shape, the Amount$ 2 precedent).
+	n = h.CountReplacementProposed(events.Event{Kind: events.Proliferate, Player: c.Controller,
+		Obj: c.Source, Amount: n, Text: events.ProliferateProposalText}).Amount
 	// CR 701.34a: "proliferate N times" is N proliferate actions, each a fresh
 	// choice over the then-current counters, each giving +1 per kind and each
 	// completing with its own Proliferate marker (so a "whenever you

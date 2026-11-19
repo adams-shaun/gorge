@@ -816,6 +816,12 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 			return false
 		}
 		return e.replacementConditionHoldsWith(r, source, you, svars)
+	case cards.ReplProliferate:
+		return proliferateReplacementMatches(e, r, ev, you,
+			func() bool { return e.replacementConditionHoldsWith(r, source, you, svars) })
+	case cards.ReplRemoveCounter:
+		return removeCounterReplacementMatches(e, r, ev, you, source,
+			func() bool { return e.replacementConditionHoldsWith(r, source, you, svars) })
 	case cards.ReplRollPlanarDice:
 		// The planar-dice replacement class (Ichor Elixir):
 		// "if you would roll one or more planar dice, instead roll that many
@@ -831,19 +837,8 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		}
 		return e.replacementConditionHoldsWith(r, source, you, svars)
 	case cards.ReplCascade:
-		// The cascade instruction's replacement boundary (CR 614.4;
-		// Averna, the Chaos Bloom's replacement on its controller, active
-		// on the battlefield). Only the synthetic proposal reaches here, so there
-		// is no logged event and no ValidCard$: the caster is ev.Player and
-		// ValidPlayer$ scopes it exactly as the Draw/ProduceMana classes do.
-		if ev.Kind != events.Cascade {
-			return false
-		}
-		if vp, ok := r.Param(cards.PKValidPlayer); ok &&
-			!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
-			return false
-		}
-		return e.replacementConditionHoldsWith(r, source, you, svars)
+		return cascadeReplacementMatches(e, r, ev, you,
+			func() bool { return e.replacementConditionHoldsWith(r, source, you, svars) })
 	case cards.ReplGameLoss, cards.ReplGameWin:
 		// The "you can't lose the game" / "your opponents can't win the
 		// game" class (CR 104.3 / 704.5a-c). Only
