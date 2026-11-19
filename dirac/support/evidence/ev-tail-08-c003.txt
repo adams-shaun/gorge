@@ -2,7 +2,10 @@ A-Ochre Jelly
 A-Warm Welcome
 Abbey Griffin
 Aberrant Return
+Acceptable Losses
+Aether Herder
 Age of Ultron
+Amnesia
 Ana Disciple
 Ancestral Recall
 Angel of Glory's Rise
@@ -24,6 +27,7 @@ Bequeathal
 Bestial Menace
 Black Market Tycoon
 Blood Age General
+Blood Divination
 Blood Glutton
 Blood Seeker
 Blur Sliver
@@ -41,7 +45,9 @@ Chakram Retriever
 Chill to the Bone
 Clockwork Fox
 Coercive Impetus
+Commence the Endgame
 Corrosive Mentor
+Counterintelligence
 Courier Griffin
 Courtly Provocateur
 Cover of Darkness
@@ -99,6 +105,7 @@ Goggles of Night
 Grid Monitor
 Hag of Noxious Nightmares
 Hallowed Haunting
+Halvar, God of Battle
 Hammerheim Deadeye
 Hazardous Conditions
 Henrika Domnathi
@@ -112,11 +119,14 @@ Hornet Nest
 Hour of Revelation
 Hunter's Edge
 Hyperion Blacksmith
+Ilysian Caryatid
+Improbable Alliance
 Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
 Inspiring Cleric
 Iron Verdict
+Ishai, Ojutai Dragonspeaker
 Island
 Jeskai Elder
 Juju Bubble
@@ -139,6 +149,7 @@ M.O.D.O.K., Evil Intellect
 Magmaroth
 Mardu Hateblade
 Marsh Casualties
+Mascot Exhibition
 Mass Appeal
 Mass Diminish
 Military Discipline
@@ -176,6 +187,7 @@ Rain of Filth
 Rain of Revelation
 Ral's Outburst
 Rally at the Hornburg
+Rat Colony
 Ratcatcher
 Red XIII, Proud Warrior
 Regisaur Alpha
@@ -212,6 +224,7 @@ Stalwart Aven
 Stand
 Static Net
 Staunch Shieldmate
+Steel Wall
 Stonewood Invocation
 Storm Fleet Aerialist
 Sublime Archangel

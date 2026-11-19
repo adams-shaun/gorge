@@ -49,6 +49,7 @@ Cinder Giant
 Cinder Storm
 Citadel Castellan
 Cliffhaven Vampire
+Clockwork Vorrac
 Clot Sliver
 Cloudreader Sphinx
 Clutch of the Undercity

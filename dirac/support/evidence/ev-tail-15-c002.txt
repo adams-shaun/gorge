@@ -2,11 +2,13 @@ A-Buy Your Silence
 A-Radha's Firebrand
 A-Radha, Coalition Warlord
 A-Sepulcher Ghoul
+Abundant Growth
 Aerial Maneuver
 Afflict
 Alexi's Cloak
 Amarant Coral
 Ampryn Tactician
+Angel of the God-Pharaoh
 Angelheart Protector
 Angelheart Vial
 Anointed Chorister
@@ -37,6 +39,7 @@ Buoyancy
 Burden of Guilt
 By Force
 Canopy Tactician
+Cartouche of Strength
 Char
 Chatterstorm and Awaken the Woods
 Child of Night
@@ -47,8 +50,10 @@ Colossus Hammer
 Conclave's Blessing
 Copperhoof Vorrac
 Corpse Hauler
+Corrupted Resolve
 Courier Griffin
 Crimson Roc
+Cryptolith Rite
 Cursed Totem
 Cyclone Summoner
 Dawnfeather Eagle
@@ -63,6 +68,7 @@ Dihada's Ploy
 Dingus Staff
 Diplomacy of the Wastes
 Dire Fleet Hoarder
+Displace
 Dogged Hunter
 Dowsing Shaman
 Drossclaw
@@ -83,6 +89,7 @@ Ephara's Warden
 Erebos's Emissary
 Eternal Skylord
 Ethereal Ambush
+Everflame Eidolon
 Evil Eye of Urborg
 Executioner's Hood
 Eyes of the Watcher
@@ -91,6 +98,7 @@ Falkenrath Marauders
 Fanatical Fever
 Fanged Flames
 Fated Conflagration
+Fell Specter
 Femeref Scouts
 Festival of the Guildpact
 First-Sphere Gargantua
@@ -99,6 +107,7 @@ Floodwater Dam
 Flowstone Strike
 Forest
 Foundry Street Denizen
+Free from Flesh
 Furious Assault
 Galina's Knight
 Ghastbark Twins
@@ -116,6 +125,7 @@ Grey Knight Paragon
 Grim Feast
 Grim Guardian
 Grip of Desolation
+Growth-Chamber Guardian
 Gustha Ebbasdotter
 Gutter Skulk
 Haazda Snare Squad
@@ -127,8 +137,10 @@ Hope Against Hope
 Human Frailty
 Imoti, Celebrant of Bounty
 Inner Calm, Outer Strength
+Innocuous Researcher
 Inside Out
 Inspired Inventor
+Into the North
 Into the Time Vortex
 Inviolability
 Island
@@ -178,6 +190,7 @@ Misery Charm
 Morkrut Behemoth
 Mountain
 Mounted Dreadknight
+Mouth
 Multiform Wonder
 Nefarox, Overlord of Grixis
 Nessian Game Warden
@@ -241,6 +254,7 @@ Seal of Fire
 Seer's Vision
 Selesnya Evangel
 Seraph of New Capenna
+Shaper Guildmage
 Shardless Outlander
 Shared Trauma
 Shrieking Drake
@@ -256,6 +270,7 @@ Skyclave Pick-Axe
 Skyfisher Spider
 Skyshroud Ranger
 Slagwurm Armor
+Sludge Monster
 Smitten Swordmaster
 Sorcerer's Wand
 Soulblade Corrupter
@@ -271,6 +286,7 @@ Steal Strength
 Steelbane Hydra
 Steeple Roc
 Stolen Strategy
+Stolen by the Fae
 Stone Calendar
 Stormwatch Eagle
 Stupefying Touch

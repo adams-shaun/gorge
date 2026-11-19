@@ -305,6 +305,7 @@ Silumgar Butcher
 Silundi Vision
 Siren of the Silent Song
 Skin Invasion
+Skred
 Sky Ruin Drake
 Skyway Sniper
 Slice in Twain
@@ -381,5 +382,6 @@ Wring Flesh
 Yavimaya Ancients
 Yorvo, Lord of Garenbrig
 You See a Pair of Goblins
+Zealot of the God-Pharaoh
 Zephyr Boots
 Zuran Spellcaster

@@ -45,6 +45,7 @@ Guided Strike
 Heliod's Punishment
 Herald of Secret Streams
 Hero's Blade
+Hunting Pack
 Hydrolash
 Imoti, Celebrant of Bounty
 Impact Tremors
@@ -72,6 +73,7 @@ Reconnaissance
 Saryth, the Viper's Fang
 Scourge Devil
 Seal of Removal
+Sensei's Divining Top
 Shadowcloak Vampire
 Shimmercreep
 Shoreline Looter
@@ -90,6 +92,8 @@ Take Up the Shield
 Temple Acolyte
 The Muckslinger Gang
 Thought Courier
+Titanoth Rex
+Torch Breath
 Trove Tracker
 Unexpected Fangs
 Vampires' Vengeance

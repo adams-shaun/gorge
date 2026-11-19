@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Accomplished Automaton	acf5125569525d0f	8	1/1		1/1	
 Ancient Amphitheater	5b49df9c646cfb9e	59	1/1		0/1	ix:resp
+Apex Devastator	9b97c83bbeef3f9c	4	0/0		0/0	
 Aphelia, Viper Whisperer	bf9efd9a443cf4df	29	2/2		1/1	
 Arctic Flats	910f4bd012607376	89	1/1		0/1	ix:resp
 Aura Finesse	c5141cfd6dc35e28	10	0/0		2/2	
@@ -29,6 +30,7 @@ Grasping Giant	4d717c8365319fcd	7	1/1		0/1	ix:resp
 Gray Slaad	78c79d47ab0226ab	19	0/0		2/2	
 Ice-Fang Coatl	22fb34dea8535c2e	6	1/1		0/1	ix:resp
 In Bolas's Clutches	b9a5f22cd3d171b2	7	0/0		1/2	ix:resp
+Indrik Umbra	bb525135dc2d1d04	4	0/0		1/2	ix:resp
 Ingenuity Engine	5de03df13d2c00c2	7	1/1		1/1	
 Interceptor, Shadow's Hound	65192ead1ec5de3f	6	1/1		0/1	ix:resp
 Iron Lance	aea84959046668e3	12	1/1		0/1	ix:resp
@@ -65,6 +67,7 @@ Thirst for Meaning	6ff3a103797a4749	24	0/0		2/2
 Thorn of the Black Rose	50e50d5e0b1a1109	4	1/1		1/1	
 Throne of Geth	661ac625c14fe905	6	1/1		0/1	ix:resp
 Ukkima, Stalking Shadow	a00039399456b047	6	2/2		0/1	ix:resp
+Undermountain Adventurer	4910ce625e993c2f	14	2/2		0/1	ix:resp
 Venser's Sliver	63f79430395a7b26	18	0/0		0/0	
 Waterfront District	f39100c1ed6ed6c6	66	2/2		0/1	ix:resp
 Wolfir Avenger	ceef52c3b2be84b5	3	1/1		1/1	
