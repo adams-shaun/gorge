@@ -2165,6 +2165,43 @@ func (s *State) anyRAnswers(k *prep, sl Slot) uint8 {
 	return 6
 }
 
+// scriptSkip is a path entry whose gap the script does not tap: gorge's
+// search (scriptSearch.visit) branches every remaining gap as a node's
+// child, so after a Taps-deferred gap's own answers failed the line goes
+// on without it -- beside Manabarbs the only paying plan taps the Islands
+// and skips the unneeded lands, whose taps would kill the payer before the
+// play (cast of Charix, the Raging Isle, 2026-11-19). A gap whose watcher
+// is kind to its payer still never needs the skip: mana only adds up.
+const scriptSkip = 0xff
+
+// scriptSubtreeCost prices a subtree of m gaps left under the tapped ones
+// as scriptPostNode prices gorge's walk: a chain of up to n+1 clones per
+// subset. Past 24 gaps the count is past gorge's cap many times over; the
+// shift stops there so a large board cannot wrap the int into a pass.
+func scriptSubtreeCost(m, n int) int {
+	if m > 24 {
+		m = 24
+	}
+	return (1 << m) * (n + 1)
+}
+
+// scriptSkipCost prices, as scriptPostNode prices gorge's walk, the clones
+// gorge spends on the tap-subtrees its search exhausts before each skip of
+// path: reaching a branch that went on without gap j, gorge first visits
+// every subset that keeps it, a chain of up to n+1 clones each. 0 when the
+// line skipped nothing. j indexes path and the order it walks: the callers
+// pass the live prefix only, so a gap a foreign ask cut out of the order
+// (cutAll) prices nothing.
+func scriptSkipCost(path []uint8, n int) int {
+	cost := 0
+	for j, v := range path {
+		if v == scriptSkip {
+			cost += scriptSubtreeCost(n-j-1, n)
+		}
+	}
+	return cost
+}
+
 // scriptDFS is gorge's prefix search (scriptSearch.visit) for play a: p's
 // gaps tapped in battlefield order (order[i:]), a Courtyard branched on its
 // six answers, a counter-cost gap with a plain {T} first mana ability on
@@ -2172,7 +2209,8 @@ func (s *State) anyRAnswers(k *prep, sl Slot) uint8 {
 // counter-cost one -- an any-colour one on its five colour answers),
 // depth first; at each node after the first tap the
 // walk (restricted mana priced as ordinary) is asked for a. It returns the
-// number of gaps the found script taps (path holds their answers) and,
+// number of gaps the found script reaches (path holds their answers, and
+// scriptSkip where the line went on without the gap) and,
 // in dead, whether the oracle cannot complete it: restricted mana floats
 // and the play's pool does not pay it (the planner refuses that pool).
 // Mana only adds up, so skipping a gap never prices what tapping it does
@@ -2187,6 +2225,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 	depth := 0                  // gaps tapped at this node: order[:depth], answers path[:depth]
 	nodes := 0
 	stall := uint8(0) // the first stall a node's fork latched (t.g.stalled), StallNone none
+	tapsN := 0        // the current branch's tapped gaps: gorge's descent, one clone each
 	// An activation's granted mana is the grant search's only for a play its
 	// walk lists (grantCap). A play the walk leaves off -- it needs a
 	// Taps-deferred or counter-cost gap (Saprazzan Skerry), which is no unit
@@ -2205,7 +2244,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 	for {
 		replay, cut := true, false
 		if depth > 0 {
-			if nodes++; (ctr.any() || ca.any() || life.any()) && nodes > potentialScriptNodes { // gorge's search budget: no script past it (the counter, Combo Any and life gaps' answers multiply)
+			if nodes++; (ctr.any() || ca.any() || life.any() || tapsDef.any()) && nodes > potentialScriptNodes { // gorge's search budget: no script past it (the counter, Combo Any, Taps-deferred and life gaps' answers multiply)
 				if stall != 0 {
 					// the drop is final (scriptDeadEndAny's callers drop the
 					// play) and one node's fork ran into a rule gap the kernel
@@ -2218,7 +2257,12 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			t := s.fork()
 			t.g.noGrant = noGrant
 			var spill [kop.NumManaKinds]uint8
+			tapsN = 0 // the branch's tapped gaps: gorge's descent, one clone each
 			for j := 0; j < depth; j++ {
+				if path[j] == scriptSkip {
+					continue // the line went on without this gap
+				}
+				tapsN++
 				if !t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, ca, int(path[j]), &spill) {
 					// a life-only gap the path's earlier activation made
 					// unpayable: no state under this prefix can tap it, so
@@ -2252,12 +2296,25 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			resolve := t.playNeedsEmptyStack(k, a)
 			foreign := replay && t.foreignPendAsks(k, p, resolve)
 			found := replay && hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve || post) && !foreign
+			if found && tapsN != depth {
+				// the branch's skips put tap-subtrees ahead of this node in
+				// gorge's walk (scriptSkipCost prices them): past gorge's
+				// cap it offers nothing (Spiked Corridor), so the node is
+				// not the search's to judge -- its taps, the pass per
+				// pending trigger (sorcery-speed plays wait for the stack)
+				// and the skipped subtrees must fit the cap
+				pend := 0
+				if resolve {
+					pend = int(t.npend)
+				}
+				found = tapsN+pend+scriptSkipCost(path[:depth], len(order)) < potentialScriptNodes
+			}
 			// gorge's visit returns false at another player's ask and its
 			// activation loop goes on to the next sibling: the line ends here
 			// (no deeper gap is tapped under it) and a gap whose every answer
 			// ends this way is no continuation of any prefix (cutAll, below)
 			cut = foreign
-			cutAll[depth-1] = cut && (path[depth-1] == 0 || cutAll[depth-1])
+			cutAll[depth-1] = cut && path[depth-1] != scriptSkip && (path[depth-1] == 0 || cutAll[depth-1])
 			if found && t.npend != 0 {
 				t.resolvePrefixPlay(k, a, p, t.sp, resolve)
 				if t.over {
@@ -2322,7 +2379,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			case ca.has(order[j]):
 				nch = s.caGapAnswers(k, order[j])
 			}
-			if path[j]+1 < nch {
+			if int(path[j])+1 < int(nch) { // int: the scriptSkip sentinel must not wrap into answer 0
 				path[j]++
 				break
 			}
@@ -2340,8 +2397,33 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 				post = false
 				break
 			}
+			if path[j] != scriptSkip && tapsDef.has(order[j]) {
+				// gorge's search branches every remaining gap as a node's
+				// child (scriptSearch.visit): after gap j's own answers
+				// failed the line goes on without it. The skip is the
+				// branch's last child, after the gap's answers, as gorge's
+				// resolve is the node's last arm (mana_scriptpost.go); the
+				// replay (scriptPrefixAny) and the node check (above) read
+				// the skipped gap out of path. Reaching it gorge first
+				// exhausts the tap of order[j] -- the subsets that keep the
+				// gap, priced as scriptPostNode prices a subtree -- so past
+				// its cap (ten Manabarbs lands at five life) the branch is
+				// not the search's to take and the line ends here.
+				if scriptSkipCost(path[:j], len(order))+scriptSubtreeCost(len(order)-j-1, len(order)) < potentialScriptNodes {
+					path[j] = scriptSkip
+					break
+				}
+			}
+			if path[j] == scriptSkip {
+				path[j] = 0 // stale skip of a gap a fresh descent taps again
+			}
 			depth--
-			if post = s.scriptPostNode(k, a, depth, len(order)); post {
+			if post = s.scriptPostNode(k, a, depth, len(order)); post && depth != 0 && tapsN != depth {
+				// the same bound past the branch's skipped subtrees: gorge
+				// reaches the node's post pass only within its cap
+				post = tapsN+scriptSkipCost(path[:depth], len(order))+scriptSubtreeCost(len(order)-depth, len(order)) < potentialScriptNodes
+			}
+			if post {
 				break
 			}
 		}
@@ -2445,6 +2527,9 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 	}
 	var spill [kop.NumManaKinds]uint8
 	for i := 0; i < m; i++ {
+		if path[i] == scriptSkip {
+			continue // the found script went on without this gap
+		}
 		s.scriptGapTap(k, p, a, order[i], ctr, restr, anyR, tapsDef, ca, int(path[i]), &spill)
 		if s.npend != 0 {
 			// gorge answers each gap's activation as its own decision, so the
