@@ -193,9 +193,11 @@ type Report struct {
 	Routes  []RouteResult `json:"routes"`
 	// forkObjs is the object-arena size at the pre-submit fork (floatReorder).
 	forkObjs int
-	// castMode is the Mode of the priority option that begins this cast: ""
-	// for a hand or command-zone cast, "mayplay" for one planned from exile
-	// or the graveyard under an untyped may-play permission.
+	// castMode is the Mode of the priority option that begins this cast
+	// (decision.PlannedCast.CastMode): "" for a plain hand or command-zone
+	// cast, "mayplay" for one planned from exile or the graveyard under an
+	// untyped may-play permission, and the alternate-spell-face mode
+	// ("adventure_alt"/"omen_alt") for one planned from the hand.
 	castMode string
 }
 
@@ -330,7 +332,7 @@ func check(base, a *rules.Engine, in decision.Intent, answer Answerer, opt Optio
 	}
 	plan := decision.ClonePaymentPlan(in.Payment.Plan)
 	rep.Plan, rep.Object = plan, action.Cast.Object
-	rep.castMode = castOptionMode(action.Cast.Origin)
+	rep.castMode = action.Cast.CastMode()
 	rep.Activations = len(plan.Activations)
 	rep.BaseOption = action.BaseOptionIndex != nil
 	if o := base.G.Obj(action.Cast.Object); o != nil && o.Face() != nil {
@@ -605,14 +607,6 @@ func floatTriggerPrecedesCast(res *RouteResult) {
 	res.Status, res.Reason, res.Expected = Unmirrorable, "float_trigger_precedes_cast", true
 }
 
-// castOptionMode is the option Mode a planned cast's origin begins with: a
-// card in exile or the graveyard is cast through its untyped may-play offer,
-// a flashback-origin plan through its primary flashback offer
-// (decision.PlannedCast.CastMode).
-func castOptionMode(origin string) string {
-	return decision.PlannedCast{Origin: origin}.CastMode()
-}
-
 // mirrorFloat is RouteFloat: activate each source of the witness run A paid
 // by (Report.paid) at priority with its production, then cast through the
 // ordinary option. aEvents is
@@ -794,7 +788,7 @@ func mirrorBase(b *rules.Engine, rep *Report, action *decision.PaymentAction, re
 		return
 	}
 	o := d.Options[i]
-	if o.Kind != "cast" || o.Obj != action.Cast.Object || o.Mode != castOptionMode(action.Cast.Origin) || o.AltCostIndex != 0 || o.Cost != "" {
+	if o.Kind != "cast" || o.Obj != action.Cast.Object || o.Mode != action.Cast.CastMode() || o.AltCostIndex != 0 || o.Cost != "" {
 		setMismatch(res, "base_option_names_other_action", fmt.Sprintf("%+v", o))
 		return
 	}
