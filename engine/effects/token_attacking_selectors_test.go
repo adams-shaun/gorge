@@ -128,10 +128,10 @@ func TestTokenAttackingTriggeredDefenderAttacksTheDefender(t *testing.T) {
 }
 
 // TestTokenAttackingPlaneswalkerArmDegradesLoud is the "or a planeswalker they
-// control" half a player-only defender cannot represent: Adeline's
+// control" half: Adeline's
 // `RememberedPlayer & Valid Planeswalker.ControlledBy Remembered` attacks the
-// remembered player and says the planeswalker arm is unmodelled -- exactly
-// once, and never the generic does-not-attack degrade.
+// remembered player (no walker to choose) with no unimplemented Note, and
+// never the generic does-not-attack degrade.
 func TestTokenAttackingPlaneswalkerArmDegradesLoud(t *testing.T) {
 	h, c := fixtureHostWithTokens(t)
 	c.Remembered = []state.Target{{Player: 1, IsPlayer: true}}
@@ -149,8 +149,10 @@ func TestTokenAttackingPlaneswalkerArmDegradesLoud(t *testing.T) {
 	if !o.Tapped || !o.IsAttacking || o.Attacking != 1 {
 		t.Fatalf("token tapped=%v attacking=%v defender=%d, want tapped, attacking the remembered seat 1", o.Tapped, o.IsAttacking, o.Attacking)
 	}
-	if n := notesContaining(h, "planeswalker arm is not implemented"); n != 1 {
-		t.Fatalf("%d planeswalker-arm notes, want exactly 1; log=%+v", n, h.log)
+	// The walker arm is modelled now (no walker on this board, so the one
+	// candidate is the player): no unimplemented Note.
+	if n := notesContaining(h, "planeswalker arm is not implemented"); n != 0 {
+		t.Fatalf("%d planeswalker-arm notes, want none; log=%+v", n, h.log)
 	}
 	if n := notesContaining(h, "is not implemented; the token enters but does not attack"); n != 0 {
 		t.Fatalf("%d does-not-attack notes, want none (the player half resolved); log=%+v", n, h.log)
