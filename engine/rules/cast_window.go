@@ -509,7 +509,7 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 	for _, ma := range e.castWindowProbeAbilities(p, id) {
 		mp := effects.ManaOf(ma)
 		cost := e.manaAbilityCC(p, id, ma).Cost
-		if pay.ActivationTapCostUnavailable(o, &cost) || e.castWindowTapPartsShort(p, id, cost) {
+		if pay.ActivationTapCostUnavailable(o, &cost) || castWindowTapPartsShort(asPayer(e), p, id, cost) {
 			continue
 		}
 		if mp.RestrictValid != "" {
@@ -574,7 +574,7 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 // the window untaps a permanent, so the census leaves it unpriced without
 // failing open (CR 605.1a, 602.2b). A dynamic head other than X is fail-closed
 // elsewhere, so it is never "short" here.
-func (e *Engine) castWindowTapPartsShort(p state.PlayerID, id state.ObjID, cost Cost) bool {
+func castWindowTapPartsShort(pe pay.Engine, p state.PlayerID, id state.ObjID, cost Cost) bool {
 	if len(cost.TapPermanent) == 0 || pay.CostHasDynamicXTap(&cost) {
 		return false
 	}
@@ -583,7 +583,7 @@ func (e *Engine) castWindowTapPartsShort(p state.PlayerID, id state.ObjID, cost 
 			return false
 		}
 	}
-	return !pay.ManaTapsPayable(asPayer(e), p, id, cost, nil)
+	return !pay.ManaTapsPayable(pe, p, id, cost, nil)
 }
 
 // castWindowIdentityCounts is the mana a commander-identity production makes
