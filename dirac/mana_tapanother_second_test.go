@@ -98,9 +98,8 @@ func TestSecondTapXSourceIsAGap(t *testing.T) {
 }
 
 // TestSecondTapXSourceNeedsACandidate: with no other creature the second
-// ability cannot be paid, so the source is no prefix gap; gorge's window census
-// (which does not read the tap part's payability) still leaves it unpriced.
-// Tapped, it is neither.
+// ability cannot be paid, so the source is no prefix gap and, like a tapped
+// one, no census gap either (gorge castWindowTapPartsShort).
 func TestSecondTapXSourceNeedsACandidate(t *testing.T) {
 	sc, _, sl, id := sceneScen(t, "Scene of the Crime", "Forest")
 	sceneIsSecond(t, sc, id["Scene of the Crime"])
@@ -108,8 +107,8 @@ func TestSecondTapXSourceNeedsACandidate(t *testing.T) {
 	if sc.s.scriptTapX(sc.k, 0).has(scene) {
 		t.Fatal("Scene of the Crime with no creature to tap is a tap-another gap")
 	}
-	if !sc.s.tapXCensusGap(sc.k, 0).has(scene) {
-		t.Fatal("the window census prices Scene of the Crime's tap-another ability")
+	if sc.s.tapXCensusGap(sc.k, 0).has(scene) {
+		t.Fatal("Scene of the Crime with no creature to tap is a census gap")
 	}
 	sc, _, sl, _ = sceneScen(t, "Scene of the Crime", "Aftermath Analyst")
 	scene = sl[0]
