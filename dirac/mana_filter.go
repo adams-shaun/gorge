@@ -1748,9 +1748,16 @@ func (fs *filtSearch) witnessEats(k *prep, t *State) bool {
 // for a gate-on pair's larger one: gorge's ability ask lists both and the
 // search takes them in turn (filtStep.wide).
 func (fs *filtSearch) fundOne(k *prep, t *State, sl Slot, pc *pcard, mask uint8, funded int, gapUsed bool) bool {
+	zero := fs.zeroFiltAsks(k, t, sl)
+	if zero && !fs.tick() {
+		return false // the ask beside a zero filter (mana_filtzerofund.go)
+	}
 	ans := uint8(bits.TrailingZeros8(mask))
 	if fs.try(k, t, filtStep{sl: sl, ans: ans}, funded+1, gapUsed) {
 		return true
+	}
+	if zero {
+		return fs.zeroFiltColours(k, t, sl, funded+1, gapUsed)
 	}
 	return t.widePairAb(k, sl, pc) >= 0 && fs.tick() && fs.try(k, t, filtStep{sl: sl, ans: ans, wide: true}, funded+1, gapUsed)
 }
