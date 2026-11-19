@@ -31,8 +31,8 @@ func TestRetraceGrantBarredAdditionalCosts(t *testing.T) {
 		{"none", func(*kop.CardDef) {}},
 		// (kicker is not here: a kicked cast is a hand-only offer, so a Kicker
 		// card's retrace cast is the plain one in both engines --
-		// TestRetraceGrantKickerNotBarred)
-		{"warp", func(cd *kop.CardDef) { cd.HasWarp = true }},
+		// TestRetraceGrantKickerNotBarred; nor is warp, a hand-only permission:
+		// TestRetraceGrantWarpNotBarred)
 		{"plot", func(cd *kop.CardDef) { cd.HasPlot = true }},
 		{"sneak", func(cd *kop.CardDef) { cd.HasSneak = true }},
 		{"impending", func(cd *kop.CardDef) { cd.Impending = 4 }},
