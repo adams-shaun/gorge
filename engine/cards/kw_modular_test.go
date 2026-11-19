@@ -64,7 +64,13 @@ func TestModularSunburstCountsConvergedColours(t *testing.T) {
 		t.Fatalf("repls = %+v, want one", f.Repls)
 	}
 	put := ResolveSVar(f.SVars, f.Repls[0].Params["ReplaceWith"])
-	if put == nil || put.Params["CounterNum"] != "Count$Converge" {
-		t.Fatalf("entry body = %+v, want CounterNum Count$Converge", put)
+	// The count rides its own SVar, whose body is Count$Converge: the shape the
+	// cast's converge gate (rules faceWantsConverge) finds, so the colours spent
+	// are recorded and counted.
+	if put == nil {
+		t.Fatalf("entry body missing: repl %+v", f.Repls[0])
+	}
+	if got := f.SVars[put.Params["CounterNum"]]; got != "Count$Converge" {
+		t.Fatalf("entry count = %q (CounterNum %q), want an SVar whose body is Count$Converge", got, put.Params["CounterNum"])
 	}
 }
