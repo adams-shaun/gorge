@@ -109,6 +109,7 @@ func (s *State) persistEmpty(ec bool) {
 	s.g.poolArt, s.g.defSrc = restr, [MaxSeats]uint8{}
 	s.g.defCol = [(MaxSeats + 1) / 2]uint8{}
 	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
+	s.artNClearAll()
 	s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
 }
 
@@ -126,6 +127,7 @@ func (s *State) persistTurn() {
 	s.g.poolArt, s.g.defSrc = [MaxSeats]uint8{}, [MaxSeats]uint8{}
 	s.g.defCol = [(MaxSeats + 1) / 2]uint8{}
 	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
+	s.artNClearAll()
 	s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
 }
 

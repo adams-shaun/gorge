@@ -453,6 +453,11 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 		if perm && a.Kind == "SP" {
 			continue
 		}
+		if !perm && lc.handManaLine(a) {
+			// a Spirit Guide's hand mana: CardDef.HandMana, no ability
+			// (lower_handmana.go)
+			continue
+		}
 		n := len(out.Abilities)
 		lc.guard(fmt.Sprintf("A[%d] %s$ %s", i, a.Kind, a.API), func() error {
 			entered := lc.chains
