@@ -252,7 +252,7 @@ func typePredicate(p string, g *state.Game, o *state.Object, sc SpecContext) (bo
 		t, _ := sourceChosen(g, sc)
 		return t != "" && !hasTypeCtx(o, t, sc), true
 	case typePredicateChosenCtrl:
-		return chosenCtrlMatches(g, o, sc.Source), true
+		return chosenCtrlMatches(g, o, sc.Source, &sc), true
 	case typePredicateExiledWithSource:
 		return exiledBySourceAt(g, o, sc.Source, sc.TriggerContext.SourceIncarnation), true
 	}
@@ -263,13 +263,20 @@ func typePredicate(p string, g *state.Game, o *state.Object, sc SpecContext) (bo
 // (controlled by the source's secretly chosen player) the context-aware
 // typePredicate path and the census-only predicates-map entry share, so the
 // matcher and UnknownPredicates cannot drift. A source with no chosen player
-// fails closed.
-func chosenCtrlMatches(g *state.Game, o *state.Object, src state.ObjID) bool {
-	s := g.Obj(src)
-	if s == nil {
-		return false
+// fails closed. The census entry passes sc nil and reads the live source
+// alone; the context-aware path binds the departed source's last-known
+// choice (sourceChosen's read, CR 113.7a/608.2h): The Rack's upkeep trigger,
+// exiled mid-upkeep by Touch the Spirit Realm's channel, still counts the
+// chosen player's hand -- the live read had been cleared by the move, the
+// count was 0 and X was 3 with a 4-card hand.
+func chosenCtrlMatches(g *state.Game, o *state.Object, src state.ObjID, sc *SpecContext) bool {
+	var chosen []state.Target
+	if sc != nil && sc.SourceLKIValid {
+		chosen = sc.SourceChosen
+	} else if s := g.Obj(src); s != nil {
+		chosen = s.Chosen
 	}
-	for _, t := range s.Chosen {
+	for _, t := range chosen {
 		if t.IsPlayer && o.Controller == t.Player {
 			return true
 		}

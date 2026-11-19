@@ -113,10 +113,14 @@ func (s *State) chosenPlayerOf(sl Slot) uint8 {
 
 // chosenPlayerSeat is kop.RefChosenPlayer for entry e: the seat the live
 // resolution chose mid-resolution (ExtChoosePlayerMid), else the seat e's
-// source permanent chose as it entered, while the source is still that
-// permanent on the battlefield (gorge reads the in-flight Ctx.Chosen, else
-// the source's live Object.Chosen, which it clears as the permanent leaves,
-// CR 400.7).
+// source permanent chose as it entered. The choice stands while the source is
+// still that permanent on the battlefield, and after the source left it is
+// read from the departure snapshot taken as it left (zone_lkisource.go,
+// lkiRec.chosen) -- the as-enters choice is the source's last-known one (CR
+// 608.2h, 113.7a; gorge binds TriggerContext.SourceChosen through
+// bindSourceLKI at the resolution's start, rules/stack.go). The Rack's upkeep
+// trigger exiled by Touch the Spirit Realm's channel mid-upkeep still deals
+// its damage to the chosen player.
 func (s *State) chosenPlayerSeat(e *stackEntry) uint8 {
 	if p := s.resChosenPlayer(); p != 255 {
 		return p
@@ -126,6 +130,9 @@ func (s *State) chosenPlayerSeat(e *stackEntry) uint8 {
 	}
 	ob := &s.objs[e.obj]
 	if ob.zone != kop.ZoneBattlefield || ob.ver != e.srcVer {
+		if r := s.srcDepartRecFresh(e); r != nil && r.chosen < s.nSeats() {
+			return r.chosen
+		}
 		return 255
 	}
 	return s.chosenPlayerOf(ob.slot)

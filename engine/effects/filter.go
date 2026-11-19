@@ -565,7 +565,7 @@ var predicates = map[string]predFn{
 	// typePredicate first, and both call the one chosenCtrlMatches helper so
 	// the two can never diverge.
 	"ChosenCtrl": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
-		return chosenCtrlMatches(g, o, src)
+		return chosenCtrlMatches(g, o, src, nil) // census-only: the live read, no LKI binding
 	},
 	// An object records this association in events.Apply when an effect moves
 	// it to exile with moveZoneEvent, or in the source's forward ExiledCards
