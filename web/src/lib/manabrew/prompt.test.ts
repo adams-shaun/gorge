@@ -99,6 +99,20 @@ describe('bindPrompt (captured from a real gorged -manabrew)', () => {
     expect(() => undoMessage(other)).toThrow(AnswerError);
   });
 
+  it('reads a PlayCardMode object: a normal-mode cast of a hand land is a land play', () => {
+    const r = withPrompt.find((x) => promptOf(x)!.input.type === 'chooseAction')!;
+    const view = projectView(stateOf(r), { viewer: 0 });
+    const hand = view.players.flatMap((pl) => pl.hand ?? []);
+    const land = hand.find((c) => /\bLand\b/.test(c.types ?? ''));
+    const spell = hand.find((c) => !/\bLand\b/.test(c.types ?? ''));
+    expect(land && spell, 'the captured hand holds a land and a spell').toBeTruthy();
+    if (!land || !spell) return;
+    const act = (id: string, c: { id: number }, mode: unknown) => ({ id, type: 'cast', cardId: `o${c.id}`, mode, label: id });
+    const input = { type: 'chooseAction', actions: [act('opt-0', land, { type: 'normal' }), act('opt-1', spell, { type: 'normal' }), act('opt-2', spell, { type: 'alternative', cost: 'flashback' }), act('opt-3', land, { type: 'backFaceLand' })] };
+    const b = bindPrompt({ promptId: 5, decidingPlayerId: 'player-0', input } as unknown as AgentPrompt, { view });
+    expect(b.decision!.options.slice(0, 4).map((o) => o.kind)).toEqual(['play_land', 'cast', 'cast', 'play_land']);
+  });
+
   const synth = (input: AgentPrompt['input']): AgentPrompt => ({ promptId: 5, decidingPlayerId: 'player-0', input });
   it('uses CardDto identity names as search option labels', () => {
     const prompt: AgentPrompt = {

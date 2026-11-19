@@ -133,6 +133,26 @@ function manaWindowReadout(card: number, cost: string, floating: Record<string, 
 }
 
 /**
+ * castMode names a cast action's PlayCardMode: the wire carries an object
+ * ({type:"normal"}, {type:"alternative",cost:"flashback"}), and an older server a bare string.
+ */
+function castMode(mode: unknown): string {
+  if (typeof mode === 'string') return mode;
+  if (mode && typeof mode === 'object') {
+    const m = mode as { type?: string; cost?: string };
+    return m.type === 'alternative' && m.cost ? m.cost : (m.type ?? '');
+  }
+  return '';
+}
+
+/** isLandInHand reports whether the object is a land card in some hand: a land play is a normal-mode cast on the wire. */
+function isLandInHand(v: View | null, obj: number | undefined): boolean {
+  if (obj === undefined) return false;
+  for (const p of v?.players ?? []) for (const c of p.hand ?? []) if (c.id === obj) return /\bLand\b/.test(c.types ?? '');
+  return false;
+}
+
+/**
  * decisionFor reconstructs the Decision for a prompt, and its binding.
  * `gameOver` has no decision (it takes no answer).
  */
@@ -163,7 +183,10 @@ export function bindPrompt(p: AgentPrompt, ctx: PromptContext): PromptBinding {
           payment.push({ id: a.id.slice(4), cast: { object: obj ?? 0, face: 0, origin: 'hand' }, label, plans: [] });
           continue;
         }
-        if (a.type === 'cast') add({ kind: a.mode === 'play' ? 'play_land' : 'cast', label, obj, ...(a.mode && a.mode !== 'play' ? { mode: a.mode } : {}) }, { t: 'act', actionId: a.id });
+        if (a.type === 'cast') {
+          const m = castMode(a.mode);
+          add({ kind: m === 'backFaceLand' || m === 'play' || (m === 'normal' && isLandInHand(v, obj)) ? 'play_land' : 'cast', label, obj, ...(m && m !== 'normal' && m !== 'play' && m !== 'backFaceLand' ? { mode: m } : {}) }, { t: 'act', actionId: a.id });
+        }
         else if (a.type === 'activateAbility') add({ kind: a.isManaAbility ? 'activate' : 'ability', label, obj, ...(a.abilityIndex !== undefined ? { ability: a.abilityIndex } : {}) }, { t: 'act', actionId: a.id });
         else add({ kind: a.type === 'undoMana' ? 'undo_tap' : 'ability', label, obj }, { t: 'act', actionId: a.id });
       }
