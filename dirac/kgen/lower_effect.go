@@ -351,16 +351,17 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 // gorge binds AttackingPlayer on a DeclareAttackers event to the declaring
 // player, who is the game's active player (CR 508.1: only the active player
 // declares attackers) -- the kernel's queue-time trigger player at every seat
-// count (fireAtkDecl's who, fireDefPlayer's, combat.go stampDefSeat). The
-// combat-damage arm keeps its two-seat reading (the combat source's
-// controller is the one opponent).
+// count (fireAtkDecl's who, fireDefPlayer's, combat.go stampDefSeat). On a
+// combat-damage-to-you line gorge binds it to the damage source's controller,
+// which the per-referent DamageDone queue carries as the trigger object
+// whose controller RefTriggerTgtCtrl reads (rTriggeredTgtCtrl); the queue's
+// trigger player there is the damaged seat, not the attacker.
 func (lc *lowerCtx) triggeredAttackingPlayerDefined(v string) (lRef, error) {
 	if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackersDeclared" {
 		return lRef{Kind: rTriggeredPlayer}, nil
 	}
 	if tr := lc.ab.Trigger; ddoAttackingPlayer(tr) {
-		lc.twoSeat("TriggeredAttackingPlayer read as the one opponent")
-		return lRef{Kind: rEachOpp}, nil
+		return lRef{Kind: rTriggeredTgtCtrl}, nil
 	}
 	return lRef{}, refuse("Defined$ %q outside a combat damage-to-you trigger the kernel's attacking player names or an AttackersDeclared trigger", v)
 }
@@ -407,15 +408,17 @@ func (lc *lowerCtx) damagedPlayerIsTriggerPlayer() bool {
 
 // ownAttackTrigger reports whether the ability is an Attacks trigger on the
 // source itself (ValidCard$ Card.Self), or an AttackersDeclared trigger of
-// its controller's attack: the defending player is then the controller's
-// opponent (two players), which is what kop.RefDefendingPlayer resolves to.
-// With more seats the kernel resolves it to the defending seat of the attack
-// event that queued the trigger (stackEntry.defSeat: for a declaration, its
-// first event's seat, as gorge's batch trigger latches there), else the
-// defender of an attacking source. Another attacker's Attacks trigger is
-// queued with its own event, so its defSeat is the seat that attacker
-// attacks; another attacker's AttackerBlocked trigger is queued at blocks
-// with no seat bound and marks the card two-seat only.
+// its controller's attack: the defending player is then the seat the attack
+// event names, which kop.RefDefendingPlayer resolves to. With more seats the
+// kernel resolves it to the defending seat of the attack event that queued
+// the trigger (stackEntry.defSeat: for a declaration, its first event's seat,
+// as gorge's batch trigger latches there), else the defender of an attacking
+// source. Another attacker's Attacks trigger is queued with its own event, so
+// its defSeat is the seat that attacker attacks; another attacker's
+// AttackerBlocked or AttackerUnblocked trigger is stamped with that attacker's
+// defending seat as it is queued (trig_blocked.go fireBlockedGen,
+// trig_unblocked.go fireUnblocked), so RefDefendingPlayer and
+// defendingSeatF2 read the same seat.
 func (lc *lowerCtx) ownAttackTrigger() bool {
 	tr := lc.ab.Trigger
 	if tr == nil {
@@ -426,19 +429,12 @@ func (lc *lowerCtx) ownAttackTrigger() bool {
 		if tr.F == nil || len(tr.F.Clauses) == 0 {
 			return false
 		}
-		self := true
 		for _, c := range tr.F.Clauses {
 			if c.Flags&fSelf == 0 && c.Ctrl != whoYou {
 				if !lc.enchantedByYouCtrl(c) {
 					return false
 				}
-				self = false
-				continue
 			}
-			self = self && c.Flags&fSelf != 0
-		}
-		if !self && tr.Event == "AttackerBlocked" {
-			lc.twoSeat("the defending player of another attacker read as the one opponent")
 		}
 		return true
 	case "AttackersDeclared":
@@ -450,9 +446,9 @@ func (lc *lowerCtx) ownAttackTrigger() bool {
 // enchantedByYouCtrl reports whether c is the "enchanted creature" attacker
 // of an Aura whose printed Enchant word names only a creature its controller
 // controls. That attacker is then controlled by the Aura's controller, so
-// the defending player of its attack is the one opponent (Cloak of
-// Confusion's "defending player discards"; every other attacker's defending
-// player is not the trigger controller's opponent).
+// the defending player of its attack is a specific opponent of the
+// controller, which the kernel reads from the attacker's attack target
+// (Cloak of Confusion's "defending player discards").
 func (lc *lowerCtx) enchantedByYouCtrl(c lClause) bool {
 	if c.Flags != fEnchantedBy || c.Ctrl != whoAny || c.Types != tCreature || lc.face == nil {
 		return false

@@ -46,7 +46,11 @@ func (s *State) fireUnblocked(k *prep) {
 	for _, sl := range ord[:m] {
 		s.slotTriggers(k, sl, isUnb, func(l trigListener, a *kop.Ability) {
 			for _, as := range atk[:n] {
+				n0 := s.npend
 				s.objTrigGen(k, kop.TrigBecomesBlocked, l, a, as, s.perms[as].obj, s.perms[as].ctrl, 0)
+				if !s.duel() {
+					s.stampDefSeat(n0, s.atkSeat(k, as))
+				}
 			}
 		})
 	}

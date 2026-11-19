@@ -211,21 +211,18 @@ func kvfInlineOperand(arg string) bool {
 
 // kvfTriggerConds adds the player gates to a trigger's
 // conditions and reports whether one is a fire-time-only gate:
-//   - Attacked$ Player.withMostLife: the defending player (the opponent)
-//     has at least your life (gorge playerHasMost Life: life == the max);
 //   - ValidPlayer$ You.descended: a permanent card you own entered a
 //     graveyard this turn (gorge descendedThisTurn over g.Entered: To
 //     graveyard, Owner you, PermanentCard -- not a token);
-//   - CheckDefinedPlayer$ You.withMostLife: you have at least the
-//     opponent's life (gorge checkDefinedPlayerHolds -> playerHasMost).
-func (lc *lowerCtx) kvfTriggerConds(tp *params, conds *[]lCond, atkMostLife, descended bool) (bool, error) {
+//   - CheckDefinedPlayer$ You.withMostLife: your life is not less than every
+//     living opponent's (gorge checkDefinedPlayerHolds -> playerHasMost).
+//
+// Attacked$ Player.withMostLife is not here: it lowers to the shared
+// dethroneCond over the defended seat (lower_dethrone.go), which is exact at
+// every seat count.
+func (lc *lowerCtx) kvfTriggerConds(tp *params, conds *[]lCond, descended bool) (bool, error) {
 	you := lValue{Kind: vLifeOf, Ref: lRef{Kind: rYou}}
-	opp := lValue{Kind: vLifeOf, Ref: lRef{Kind: rEachOpp}}
 	fire := false
-	if atkMostLife {
-		*conds = append(*conds, lCond{Kind: cValue, A: opp, Op: opGE, B: you})
-		fire = true
-	}
 	if descended {
 		v, err := lc.countValue("ThisTurnEntered_Graveyard_Permanent.YouOwn+nonToken", 0)
 		if err != nil {
@@ -236,7 +233,8 @@ func (lc *lowerCtx) kvfTriggerConds(tp *params, conds *[]lCond, atkMostLife, des
 	}
 	if tp.str("CheckDefinedPlayer") == "You.withMostLife" {
 		tp.consume("CheckDefinedPlayer")
-		*conds = append(*conds, lCond{Kind: cValue, A: you, Op: opGE, B: opp})
+		opps := lValue{Kind: vOppExtreme, N: kop.OppExtLife}
+		*conds = append(*conds, lCond{Kind: cValue, A: you, Op: opGE, B: opps})
 	}
 	return fire, nil
 }
