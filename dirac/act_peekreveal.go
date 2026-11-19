@@ -84,6 +84,10 @@ type PeekRevealStats struct {
 // DebugPeekRevealStats is the test hook; nil in normal play.
 var DebugPeekRevealStats *PeekRevealStats
 
+// DebugPeekWindowOne is the lockstep mutation of the public reveal's
+// remembered window (Dig RememberRevealed$): only the top card is remembered.
+var DebugPeekWindowOne bool
+
 // peekPublic is OpPeek with PeekPublic (gorge effReveal's public
 // PeekAndReveal): player p reveals the top A cards of their library with no
 // ask; with PeekRemember they join the resolution's remembered set,
@@ -96,7 +100,85 @@ func (s *State) peekPublic(k *prep, in *kop.Instr, p uint8) {
 	}
 	pl := &s.pl[p]
 	n := s.value(k, in.A)
+	if DebugPeekWindowOne && n > 1 {
+		n = 1
+	}
 	for i := 0; i < n && i < pl.libLen(); i++ {
 		s.remember(pl.lib[int(pl.libLo)+i])
 	}
+}
+
+// DebugPeekHandNextSeat is the lockstep mutation of the pod hand reveal: the
+// kernel remembers the next live seat's hand whoever the reveal names, the
+// two-seat reading.
+var DebugPeekHandNextSeat bool
+
+// peekHand is OpPeek with PeekHand (gorge effReveal's RevealHand with
+// RememberRevealed$, no Look$-less count or filter): each player the ref
+// names, in gorge's definedPlayers order, reveals the whole hand, and its
+// cards join the resolution's remembered set in hand order, appended (gorge
+// appends to Ctx.Remembered; an empty hand reveals and remembers nothing). A
+// full set stalls (remember's StallRemember).
+//
+//go:noinline
+func (s *State) peekHand(k *prep, in *kop.Instr) {
+	q := s.players(k, in.Obj)
+	if DebugPeekHandNextSeat {
+		q = seatOne(s.oppsFrom(s.res.e.ctrl).s[0])
+	}
+	for i := uint8(0); i < q.n; i++ {
+		if q.s[i] == 255 {
+			continue
+		}
+		pl := &s.pl[SeatIx(q.s[i])]
+		for j := 0; j < int(pl.handN); j++ {
+			s.remember(pl.hand[j])
+		}
+	}
+}
+
+// execPeek runs OpPeek's whole dispatch (interp_gen.go's case): the hand
+// reveal, the may-reveal arm, the public reveal of one player or each player,
+// and the bare private look with its pacing ack. It lives here rather than in
+// the dispatch switch to keep execGen under its length ceiling.
+//
+//go:noinline
+func (s *State) execPeek(k *prep, in *kop.Instr) (ok, done bool) {
+	if in.C&kop.PeekHand != 0 {
+		s.peekHand(k, in)
+		return true, true
+	}
+	p := s.playerRef(k, in.Obj)
+	if p == 255 {
+		p = s.res.e.ctrl
+	}
+	if in.C != 0 {
+		if in.C&kop.PeekMayReveal != 0 {
+			return s.peekMayReveal(k, in, p), true
+		}
+		if in.Obj == kop.RefEachPlayer {
+			// Defined$ Player: every player reveals, the resolving
+			// controller first, as gorge's definedPlayers walks AliveFrom.
+			q := s.eachPlayers(k, in.Obj)
+			for i := uint8(0); i < q.n; i++ {
+				s.peekPublic(k, in, q.s[i])
+			}
+			return true, true
+		}
+		s.peekPublic(k, in, p)
+		return true, true
+	}
+	pl := &s.pl[p]
+	n := s.value(k, in.A)
+	s.g.nrem = 0
+	for i := 0; i < n && i < pl.libLen() && i < maxRem; i++ {
+		s.remember(pl.lib[int(pl.libLo)+i])
+	}
+	if s.g.nrem > 0 {
+		// gorge poses the bare look's pacing ack (NoReveal$ True) first,
+		// to the effect's controller (effReveal: asker = c.Controller)
+		s.res.ask, s.res.askP = raGenLookAck, s.res.e.ctrl
+		return false, true
+	}
+	return true, true
 }
