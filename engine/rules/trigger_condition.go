@@ -229,6 +229,26 @@ func (e *Engine) triggerConditionHoldsAsWithDelayedRemembered(t cards.Trigger, s
 // while the granted-trigger paths pass the GRANTOR's table through
 // triggerMatchesWithSVars (source is the affected recipient, whose same-named
 // SVar must not answer the condition).
+// conditionRemembered is the remembered set a CheckSVar gate's body reads:
+// the fire-time capture (CR 107.3m), which outlives a source that left before
+// the recheck. An event-matched delayed registration (a DB$ Effect's
+// Triggers$ body: Garland, Royal Kidnapper's `Mode$ Always ... CheckSVar$ X`
+// over PlayerCountRememberedPlayer$) reads ITS OWN captured set as
+// "remembered", not its source card's list. Anything else reads the source's
+// persistent list (Remembered$Amount in the gate — Coffin Queen, Krovikan
+// Vampire — counts the source's list; a resolution-time re-check reads the
+// fire-time snapshot when the source re-entered, CR 400.7). It is a free
+// function over the game, not an Engine method.
+func conditionRemembered(g *state.Game, tcv effects.TriggerContext, src *state.Object) []state.Target {
+	if len(tcv.DelayedRemembered) > 0 {
+		return tcv.DelayedRemembered
+	}
+	if src != nil {
+		return effects.SourceRemembered(g, tcv, src)
+	}
+	return nil
+}
+
 func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext, ownedSVars map[string]string) bool {
 	// A kw:Class level band is an independent AND gate beside every clause
 	// below (and beside the body's own IsPresent$/IsPresent2$ clauses).
@@ -433,10 +453,7 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 		if tc != nil {
 			tcv = *tc
 		}
-		var remembered []state.Target
-		if src != nil {
-			remembered = effects.SourceRemembered(e.G, tcv, src)
-		}
+		remembered := conditionRemembered(e.G, tcv, src)
 		// X reads what the body reads: the fire-time capture (CR 107.3m), which
 		// outlives a source that left before the recheck.
 		ctx := effects.NewCtxPtr(source, you, effects.CtxInit{SVars: svars, TriggerContext: tcv, Remembered: remembered, X: tcv.TriggerPaidX})

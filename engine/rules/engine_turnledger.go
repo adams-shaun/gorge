@@ -64,4 +64,20 @@ type engineTurnLedger struct {
 	// rebuild; emit rotates this turn's set into last turn's on TurnChange.
 	noncombatDamagedSeats     uint64 `clone:"deep"`
 	noncombatDamagedSeatsLast uint64 `clone:"deep"`
+	// combatDamagedSinceTurn has bit p set for a seat dealt combat damage in a
+	// COMPLETED turn since the end of its own last turn (Forge's
+	// PlayerCountPropertyYou$BeenDealtCombatDamageSinceLastTurn, Marchesa,
+	// Resolute Monarch's upkeep gate). NO-EVENT like combatHitsThisTurn (a
+	// Damage event carries no combat flag): recordTurnLedgers folds the ending
+	// turn's combat hits in at TurnChange and clears the bit of the seat whose
+	// turn just ended; the turn in progress is read from combatHitsThisTurn.
+	combatDamagedSinceTurn uint64 `clone:"deep"`
+
+	// staticFiringDT is the registration ID+1 of the recurring (EffectRepeat)
+	// Static$ True delayed registration whose body is firing right now (zero:
+	// none). Its own DelayedPush emit re-walks the event-matched registrations,
+	// and a Mode$ Always one (Garland, Royal Kidnapper's ExileMe) would fire
+	// again inside its own fire, without bound, before its self-exile body
+	// ever ran. The walk skips it while this is set. Transient.
+	staticFiringDT uint32 `clone:"reset"`
 }

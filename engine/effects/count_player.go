@@ -515,10 +515,10 @@ func hasPropertyStateBacked(h Host, g *state.Game, c *Ctx, group []state.PlayerI
 		// Grim Repriser / Whiplash Wordsmith: "an opponent was dealt
 		// noncombat damage this turn" -- the Host's per-turn ledger of seats
 		// dealt damage outside a combat damage assignment.
-		qualifies = h.WasDealtNoncombatDamageThisTurn
+		qualifies = func(p state.PlayerID) bool { return h.WasDealtNoncombatDamage(p, false) }
 	case base == "HasPropertywasDealtNonCombatDamageLastTurn":
 		// Command the Stage: "... was dealt noncombat damage last turn".
-		qualifies = h.WasDealtNoncombatDamageLastTurn
+		qualifies = func(p state.PlayerID) bool { return h.WasDealtNoncombatDamage(p, true) }
 	case base == "HasPropertywasDealtCombatDamageThisTurn":
 		hits := h.CombatDamageToPlayersThisTurn()
 		qualifies = func(p state.PlayerID) bool {
@@ -544,6 +544,14 @@ func hasPropertyStateBacked(h Host, g *state.Game, c *Ctx, group []state.PlayerI
 			}
 			return false
 		}
+	case cov3PlayerScalarCodes.Code(base) == cov3PlayerScalarHasPropertyAttackedYouTheirCurrentTurn || strings.HasPrefix(base, "HasPropertyNotedFor"):
+		// The two shared player-filter qualifiers the EDH census class reads
+		// through a count head: Faramir's "they attacked you this turn" and
+		// Decoy Gambit's NotedFor<label> note set. One home for each grammar
+		// (MatchesPlayerSpec); the member is judged against the resolving
+		// controller as "you".
+		spec := "Player." + strings.TrimPrefix(base, "HasProperty")
+		qualifies = func(p state.PlayerID) bool { return MatchesPlayerSpec(g, spec, p, c.Controller) }
 	case base == "HasPropertyIsRememberedOrController":
 		// Cut a Deal: "you draw a card for each opponent who drew a card
 		// this way" -- the resolution's RememberDrawn$ remembered the drawn

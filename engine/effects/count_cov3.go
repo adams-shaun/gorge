@@ -372,6 +372,10 @@ func evalCov3PlayerHead(h Host, c *Ctx, head, arg string, depth int) (int32, boo
 		// resolution's remembered objects (Deadly Cover-Up's survivor search).
 		players = cov3RememberedOwners(g, c)
 		sharedProps = true
+	case cov3PlayerGroupPlayerCountRememberedOwner, cov3PlayerGroupPlayerCountRememberedPlayer,
+		cov3PlayerGroupPlayerCountDefinedTriggeredPlay:
+		players = playerPropGroupMembers(g, c, cov3PlayerGroupCodes.Code(string(group)))
+		sharedProps = true
 	case cov3PlayerGroupPlayerCountRegisteredOpponen:
 		// Only the per-turn noncombat damage property is answered here; every
 		// other property of this group keeps its own dispatch (count.go's
@@ -547,21 +551,21 @@ func evalCov3PlayerHead(h Host, c *Ctx, head, arg string, depth int) (int32, boo
 	// fallback before this dispatch, as before.
 	if strings.HasPrefix(group, "PlayerCountProperty") {
 		if spec, op, hasOp := strings.Cut(arg, "/"); hasOp && modelledCountOp(h, c, op, depth) {
-			n, ok := evalCov3PlayerScalar(h, c, g, group, players, prop, strings.TrimSpace(spec))
+			n, ok := evalCov3PlayerScalar(h, c, g, group, players, prop, strings.TrimSpace(spec), depth)
 			if !ok {
 				return 0, false
 			}
 			return applyCountOpOperand(h, c, n, op, depth), true
 		}
 	}
-	return evalCov3PlayerScalar(h, c, g, group, players, prop, arg)
+	return evalCov3PlayerScalar(h, c, g, group, players, prop, arg, depth)
 }
 
 // evalCov3PlayerScalar answers the per-group scalar property reads of
 // evalCov3PlayerHead's PlayerCount<group>$ dispatch. arg is the property
 // argument AFTER the PlayerCountProperty* /Op suffix has been peeled by the
 // caller; the wrapper there applies that operator to the returned count.
-func evalCov3PlayerScalar(h Host, c *Ctx, g *state.Game, group string, players []state.PlayerID, prop, arg string) (int32, bool) {
+func evalCov3PlayerScalar(h Host, c *Ctx, g *state.Game, group string, players []state.PlayerID, prop, arg string, depth int) (int32, bool) {
 	switch cov3PlayerScalarCodes.Code(string(prop)) {
 	case cov3PlayerScalarSacrificedThisTurn:
 		return sacrificedThisTurn(g, c, players, arg), true
@@ -714,7 +718,7 @@ func evalCov3PlayerScalar(h Host, c *Ctx, g *state.Game, group string, players [
 		}
 		return n, true
 	}
-	return 0, false
+	return evalPlayerPropScalar(h, c, g, cov3PlayerGroupCodes.Code(group), players, prop, arg, depth)
 }
 
 // cov3SharedPlayerProps answers the property families every selector shares:
@@ -989,6 +993,9 @@ const (
 	cov3PlayerGroupPlayerCountRegisteredOpponen
 	cov3PlayerGroupPlayerCountRemembered
 	cov3PlayerGroupPlayerCountRememberedControl
+	cov3PlayerGroupPlayerCountRememberedOwner
+	cov3PlayerGroupPlayerCountRememberedPlayer
+	cov3PlayerGroupPlayerCountDefinedTriggeredPlay
 )
 
 var cov3PlayerGroupCodes = state.NewStrCodes(
@@ -1001,6 +1008,9 @@ var cov3PlayerGroupCodes = state.NewStrCodes(
 	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountRegisteredOpponents", Val: cov3PlayerGroupPlayerCountRegisteredOpponen},
 	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountRemembered", Val: cov3PlayerGroupPlayerCountRemembered},
 	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountRememberedController", Val: cov3PlayerGroupPlayerCountRememberedControl},
+	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountRememberedOwner", Val: cov3PlayerGroupPlayerCountRememberedOwner},
+	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountRememberedPlayer", Val: cov3PlayerGroupPlayerCountRememberedPlayer},
+	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountDefinedTriggeredPlayer", Val: cov3PlayerGroupPlayerCountDefinedTriggeredPlay},
 )
 
 type cov3PlayerPropCode uint16
@@ -1009,6 +1019,11 @@ const (
 	cov3PlayerPropAmount cov3PlayerPropCode = iota + 1
 	cov3PlayerPropValid
 	cov3PlayerPropLifeLostThisTurn
+	// The EDH player-property census class (count_playerprop.go): Simulacrum's
+	// "damage dealt to you this turn", Invasion of Fiora's Marchesa upkeep
+	// gate, Celestial Convergence's two-or-more draw check.
+	cov3PlayerPropDamageThisTurn
+	cov3PlayerPropBeenDealtCombatDamageSinceLastTurn
 	cov3PlayerPropTiedForHighestLife
 )
 
@@ -1016,6 +1031,8 @@ var cov3PlayerPropCodes = state.NewStrCodes(
 	state.StrEntry[cov3PlayerPropCode]{Key: "Amount", Val: cov3PlayerPropAmount},
 	state.StrEntry[cov3PlayerPropCode]{Key: "Valid", Val: cov3PlayerPropValid},
 	state.StrEntry[cov3PlayerPropCode]{Key: "LifeLostThisTurn", Val: cov3PlayerPropLifeLostThisTurn},
+	state.StrEntry[cov3PlayerPropCode]{Key: "DamageThisTurn", Val: cov3PlayerPropDamageThisTurn},
+	state.StrEntry[cov3PlayerPropCode]{Key: "BeenDealtCombatDamageSinceLastTurn", Val: cov3PlayerPropBeenDealtCombatDamageSinceLastTurn},
 	state.StrEntry[cov3PlayerPropCode]{Key: "TiedForHighestLife", Val: cov3PlayerPropTiedForHighestLife},
 )
 
@@ -1033,6 +1050,7 @@ const (
 	cov3PlayerScalarHasPropertyBeenAttackedThisC
 	cov3PlayerScalarOpponentsAttackedThisCombat
 	cov3PlayerScalarHasPropertyAttackedYouTheirLastTurn
+	cov3PlayerScalarHasPropertyAttackedYouTheirCurrentTurn
 	cov3PlayerScalarDomainPlayer
 	cov3PlayerScalarDamageToOppsThisTurn
 )
@@ -1049,6 +1067,7 @@ var cov3PlayerScalarCodes = state.NewStrCodes(
 	state.StrEntry[cov3PlayerScalarCode]{Key: "HasPropertyBeenAttackedThisCombat", Val: cov3PlayerScalarHasPropertyBeenAttackedThisC},
 	state.StrEntry[cov3PlayerScalarCode]{Key: "OpponentsAttackedThisCombat", Val: cov3PlayerScalarOpponentsAttackedThisCombat},
 	state.StrEntry[cov3PlayerScalarCode]{Key: "HasPropertyattackedYouTheirLastTurn", Val: cov3PlayerScalarHasPropertyAttackedYouTheirLastTurn},
+	state.StrEntry[cov3PlayerScalarCode]{Key: "HasPropertyattackedYouTheirCurrentTurn", Val: cov3PlayerScalarHasPropertyAttackedYouTheirCurrentTurn},
 	state.StrEntry[cov3PlayerScalarCode]{Key: "DomainPlayer", Val: cov3PlayerScalarDomainPlayer},
 	state.StrEntry[cov3PlayerScalarCode]{Key: "DamageToOppsThisTurn", Val: cov3PlayerScalarDamageToOppsThisTurn},
 )

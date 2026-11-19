@@ -658,14 +658,24 @@ type HostTurnLedger interface {
 	// Count$YouScryThisTurn and Count$YouSurveilThisTurn.
 	ScriedThisTurn(p state.PlayerID) int32
 	SurveilledThisTurn(p state.PlayerID) int32
-	// WasDealtNoncombatDamageThisTurn / WasDealtNoncombatDamageLastTurn
-	// report whether player p was dealt noncombat damage (any landed damage
-	// outside a combat damage assignment) during the current turn / the
-	// previous turn. They back the player properties
+	// WasDealtNoncombatDamage reports whether player p was dealt noncombat
+	// damage (any landed damage outside a combat damage assignment) during
+	// the current turn (lastTurn false) or the previous turn (lastTurn
+	// true). It backs the player properties
 	// HasPropertywasDealtNonCombatDamageThisTurn / ...LastTurn (Grim
-	// Repriser, Whiplash Wordsmith, Command the Stage).
-	WasDealtNoncombatDamageThisTurn(p state.PlayerID) bool
-	WasDealtNoncombatDamageLastTurn(p state.PlayerID) bool
+	// Repriser, Whiplash Wordsmith, Command the Stage). The two one-line
+	// ledger reads are one method so the role's 21-method budget carries the
+	// combat-window sibling below as well.
+	WasDealtNoncombatDamage(p state.PlayerID, lastTurn bool) bool
+	// WasDealtCombatDamageSinceLastTurn reports whether seat p was dealt
+	// combat damage since the end of its own LAST turn — the completed
+	// turns folded at each TurnChange plus the turn in progress (damage
+	// dealt to p during p's own turn included; a seat is never the defender
+	// in its own combat phase, so the fold's clear of the ending seat never
+	// erases a hit that matters). It is the
+	// PlayerCountPropertyYou$BeenDealtCombatDamageSinceLastTurn backing
+	// (Invasion of Fiora's Marchesa upkeep gate).
+	WasDealtCombatDamageSinceLastTurn(p state.PlayerID) bool
 	// StartingLife reports this game's opening life total (the format
 	// default — 40 for Commander, 20 otherwise — already resolved at
 	// genesis). It is the PlayerCountDefinedPlayer.
