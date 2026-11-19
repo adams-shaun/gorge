@@ -106,6 +106,7 @@ Forest
 Gadrak, the Crown-Scourge
 Gang of Elk
 Gauntlets of Light
+General Kudro of Drannith
 Ghost Tactician
 Giant's Skewer
 Glaze Fiend
@@ -232,6 +233,7 @@ Screeching Phoenix
 Security Blockade
 Selesnya Keyrune
 Shatter Assumptions
+Shatter the Source
 Showstopper
 Sivitri Scarzam
 Skatewing Spy

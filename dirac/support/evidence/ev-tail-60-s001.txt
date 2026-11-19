@@ -1,49 +1,85 @@
 Accumulated Knowledge
 Act of Treason
 Affa Protector
+Akroan Crusader
 Alaborn Trooper
+Arixmethes, Slumbering Isle
 Arm with Aether
 Aven Gagglemaster
 Awesome Presence
+Azorius Skyguard
 Biblioplex Assistant
 Bladestitched Skaab
+Bloodrage Vampire
+Bloodtracker
+Boros Reckoner
 Brave the Elements
 Cabal Initiate
+Call the Gatewatch
 Canyon Jerboa
+Choking Miasma
+Cliffside Lookout
 Collective Nightmare
 Combat Thresher
 Coral Merfolk
+Counterspell
 Court Cleric
+Crenellated Wall
 Curse of Wizardry
+Dauntless Cathar
+Dead
+Demon of Wailing Agonies
 Disruptive Pitmage
 Dreadfeast Demon
 Drift of Phantasms
 Drowner of Hope
+Earth Servant
+Echoing Decay
 Elixir of Immortality
 Enthusiastic Mechanaut
+Eternal Flame
 Ethersworn Sphinx
+Execute
 Extract the Truth
 Felhide Brawler
 Festival of Trokin
 Fleetfeather Cockatrice
 Flickering Ward
+Foil
 Forest
+Gild
 Goblin Striker
+Gore-House Chainwalker
 Greenhilt Trainee
+Guardians of Akrasa
 Guildpact Informant
+Haazda Snare Squad
 Hagra Diabolist
 Hamlet Vanguard
+Hammer Helper
+Hammers of Moradin
+Hardened Scales
 Harmattan Efreet
+Harnessed Lightning
+Hawkeye, Bowslinger
+Hellhole Rats
 Illness in the Ranks
 Implement of Combustion
 Ironclaw Buzzardiers
 Island
 Ivory Crane Netsuke
 Janjeet Sentry
+Journey of Discovery
+Journey to Eternity
+Kargan Dragonlord
+Knight of Sorrows
 Krile Baldesion
 Llanowar Stalker
 Loathsome Catoblepas
+Lockjaw Snapper
 Lore Broker
+Lorehold Excavation
+Marble Chalice
 Mardu Shadowspear
 Master Thief
 Maw of Kozilek
@@ -54,27 +90,47 @@ Mind Maggots
 Mind Ravel
 Mind Sculpt
 Minotaur, Roxxon CEO
+Mirror-Sigil Sergeant
 Mist-Cloaked Herald
 Moria Marauder
 Mountain
 Murkfiend Liege
+Nezahal, Primal Tide
+Ochran Assassin
+Oketra's Last Mercy
+One with the Machine
 Opportunity
+Otarian Juggernaut
 Outnumber
 Pillardrop Rescuer
+Pir, Imaginative Rascal
 Plains
+Planar Cleansing
 Poison the Blade
 Priest of the Haunted Edge
+Qarsi High Priest
 Ramosian Captain
+Rampage of the Valkyries
+Razor Golem
 Razortooth Rats
+Refresh
+Restoration Gearsmith
+Reviving Dose
+Ricochet Trap
+Ronom Unicorn
 Rootwalla
 Sardian Cliffstomper
 Scuttling Sliver
 Sigiled Starfish
 Silverstorm Samurai
+Skeletal Grimace
 Soltari Emissary
+Spawn of Thraxes
 Split-Tail Miko
 Spurnmage Advocate
+Stasis Field
 Steadfast Sentry
+Stenchskipper
 Stitched Assistant
 Sudden Insight
 Sulfurous Blast
@@ -82,18 +138,29 @@ Sultai Skullkeeper
 Sun Ce, Young Conquerer
 Swamp
 Syphon Flesh
+Tainted Strike
 Tek
 The Bears of Littjara
 Those Who Serve
 Thran Dynamo
+Thrill-Kill Assassin
+Thunderstaff
+Tombfire
 Touch of Darkness
+Towashi Guide-Bot
 Triton Shorestalker
 Vapor Snare
 Venomous Hierophant
 Viridian Claw
+Volcanic Rambler
 Voldaren Pariah
+Warpath
 Warrior's Honor
 Waterwhirl
 Wave Elemental
 Wetland Sambar
+Whip Sergeant
 Wight
+Witherbloom Pledgemage
+Wort, Boggart Auntie
+Zof Shade

@@ -171,6 +171,7 @@ Guardian Automaton
 Guardian Lions
 Gut, True Soul Zealot
 Gwaihir the Windlord
+Hallowed Healer
 Hanna, Ship's Navigator
 Harbinger of the Seas
 Harnessed Lightning
@@ -223,6 +224,7 @@ Lightning Spear
 Llanowar Cavalry
 Llanowar Vanguard
 Lumberknot
+Lórien Revealed
 Mage il-Vec
 Magma Jet
 Makeshift Munitions
@@ -284,6 +286,7 @@ Planar Despair
 Portal to Phyrexia
 Predator's Strike
 Predatory Wurm
+Primal Boost
 Prized Elephant
 Psychic Overload
 Puppet's Verdict
@@ -342,6 +345,7 @@ Slagstone Refinery
 Slinking Skirge
 Slurrk, All-Ingesting
 Sly Instigator
+Smell Fear
 Snowfield Sinkhole
 Soaring Thought-Thief
 Sonic Seizure
@@ -401,6 +405,7 @@ Vectis Dominator
 Veiled Sentry
 Vent Sentinel
 Viashino Firstblade
+Vivien, Nature's Avenger
 Vodalian Soldiers
 Voltaic Brawler
 Wakeroot Elemental

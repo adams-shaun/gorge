@@ -17,6 +17,7 @@ Archon of Redemption
 Ardent Militia
 Arm-Mounted Anchor
 Arrogant Bloodlord
+Aura Mutation
 Aven Trailblazer
 Bar the Door
 Bast, Panther Goddess
@@ -56,14 +57,18 @@ Clear the Mind
 Cleaving Sliver
 Conjurer's Mantle
 Consulate Turret
+Conversion
 Copperline Gorge
 Cowl Prowler
 Crackle with Power
 Crash
+Crash the Party
 Crash the Ramparts
 Crown of Empires
 Crusade
+Cryptoplasm
 Crystal Ball
+Crystalline Nautilus
 Culmination of Studies
 Cult Guildmage
 Custodian of the Trove
@@ -141,6 +146,7 @@ Kazandu Refuge
 Keldon Halberdier
 Killian, Ink Duelist
 Kitesail Apprentice
+Kitsune Dawnblade
 Knotvine Paladin
 Kobold Drill Sergeant
 Kolaghan Skirmisher
@@ -224,6 +230,7 @@ Retreat to Coralhelm
 Revenge of the Hunted
 Rhys the Exiled
 Rile
+Ringskipper
 Riot Piker
 Rise from the Grave
 Rising of the Day
@@ -252,6 +259,7 @@ Smokebraider
 Snooping Newsie
 Sokka's Charge
 Soltari Trooper
+Songs of the Damned
 Soul's Might
 Sound the Call
 Sphere of Grace
@@ -260,7 +268,9 @@ Spike-Tailed Ceratops
 Spiked Corridor
 Spire Owl
 Spring Cleaning
+Sprite Dragon
 Squelching Leeches
+Staff of the Wild Magus
 Storm Fleet Sprinter
 Storm Sculptor
 Stun

@@ -151,6 +151,7 @@ Iron Bully
 Iron Suitcase
 Island
 Jackalope Herd
+Kaito Shizuki
 Keen-Eyed Raven
 Kirtar's Wrath
 Knight of the Keep
@@ -333,3 +334,4 @@ You Look Upon the Tarrasque
 Young Blue Dragon
 Zephyr Falcon
 Zodiac Ox
+Zulaport Chainmage
