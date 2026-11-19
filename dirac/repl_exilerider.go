@@ -21,9 +21,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // that names the source, so a mid-resolution caller's own resolution is
 // restored after.
 //
-// Nothing here guesses: two or more competing replacements with a rider
-// source stall instead of entering a CR 616.1 order (park), and a prog that
-// asks or parks stalls (StallExileRider).
+// Nothing here guesses: a CR 616.1 order (park) may hold one rider source
+// beside replacements without a rider — the answer decides whether that
+// replacement applies first, so only the chosen source's rider runs — but two
+// or more competing rider sources stall, since one dying slot records one
+// rider. A prog that asks or parks stalls (StallExileRider).
 
 // useExileRider: some card's ReplExileOnLeave carries a rider prog; the
 // table gets the cold mark region.
@@ -127,20 +129,79 @@ func (s *State) exileRiderTake(k *prep, sl Slot, z kop.Zone) exRiderMark {
 	return m
 }
 
-// exileRiderAmong stalls (StallExileRider) and reports true when one of the
-// objects srcs, the competing dies-to-exile sources of a parked move, carries
-// a rider: its order cannot be answered with the rider in it.
+// exileRiderAmong stalls (StallExileRider) and reports true when the objects
+// srcs, the competing dies-to-exile sources of a parked move, carry more than
+// one rider, or one that is not a battlefield permanent (it cannot be
+// recorded on the dying slot). One battlefield rider beside plain
+// replacements parks.
 func (s *State) exileRiderAmong(k *prep, srcs []Obj) bool {
 	if !exileRiderOn(k) {
 		return false
 	}
+	rider, n := NoObj, 0
 	for _, o := range srcs {
 		if exileRiderAb(&k.t.Cards[s.objs[o].card]) >= 0 {
-			s.capFull(StallExileRider)
-			return true
+			rider, n = o, n+1
 		}
 	}
+	if n > 1 || n == 1 && s.objs[rider].zone != kop.ZoneBattlefield {
+		s.capFull(StallExileRider)
+		return true
+	}
 	return false
+}
+
+// exileRiderParkMark records the parked move's single rider source on the
+// dying slot, using the source's identity as the pre-move scan sees it, or
+// clears the record when the move has none. The answer then keeps it only
+// when that source is the one chosen (settleExileRider), and removePerm runs
+// the rider after the move (exileRiderTake/exileRiderRun).
+func (s *State) exileRiderParkMark(k *prep, o Obj, srcs []Obj) {
+	if !exileRiderOn(k) {
+		return
+	}
+	ob := &s.objs[o]
+	if ob.zone != kop.ZoneBattlefield {
+		return
+	}
+	m := coldExRider.of(s)
+	if int(ob.slot) >= len(m) {
+		return
+	}
+	rider, n := NoObj, 0
+	for _, so := range srcs {
+		if s.objs[so].zone != kop.ZoneBattlefield || exileRiderAb(&k.t.Cards[s.objs[so].card]) < 0 {
+			continue
+		}
+		rider, n = so, n+1
+	}
+	if n != 1 {
+		m[ob.slot] = exRiderMark{}
+		return
+	}
+	sp := &s.perms[s.objs[rider].slot]
+	m[ob.slot] = exRiderMark{src: uint8(s.objs[rider].slot) + 1, obj: sp.obj, ctrl: sp.ctrl, ver: s.objs[sp.obj].ver, card: s.objs[rider].card}
+}
+
+// settleExileRider keeps the parked move's recorded rider only when the CR
+// 616.1 answer (mode) chose that source: a mark answer, or any other source,
+// applies its effect first and the rider's replacement never does.
+func (s *State) settleExileRider(k *prep, r parkedMove, mode int) {
+	if !exileRiderOn(k) {
+		return
+	}
+	ob := &s.objs[r.obj]
+	if ob.zone != kop.ZoneBattlefield {
+		return
+	}
+	m := coldExRider.of(s)
+	if int(ob.slot) >= len(m) || m[ob.slot].src == 0 {
+		return
+	}
+	i := mode - maxExMarks
+	if i < 0 || i >= r.nsrc() || r.src[i] != m[ob.slot].obj {
+		m[ob.slot] = exRiderMark{}
+	}
 }
 
 // exileRiderRun runs the rider prog recorded for the dying slot after o, the
