@@ -2372,6 +2372,16 @@ func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDe
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
 	var path [MaxPerm]uint8
 	dead := true
+	if tapsDef.any() && !gaps.andNot(tapsDef).any() {
+		// only Taps-deferred gaps: the subsets search (mana_tapsdefer.go
+		// deferGapSearch), not the ordered prefixes
+		var ans [MaxPerm]uint8
+		var pick [MaxPerm]int8
+		if !s.deferGapSearch(k, a, p, order[:n], tapsDef, &ans, &pick, &dead) {
+			return true
+		}
+		return dead
+	}
 	if _, ok := s.scriptDFS(k, a, p, order[:n], ctr, restr, anyR, tapsDef, ca, path[:], &dead); !ok {
 		return true
 	}
@@ -2392,6 +2402,37 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
 	var path [MaxPerm]uint8
 	var dead bool
+	if tapsDef.any() && !gaps.andNot(tapsDef).any() {
+		// only Taps-deferred gaps: gorge's visit explores the gaps' subsets,
+		// not the ordered prefixes scriptDFS walks (mana_tapsdefer.go
+		// deferGapSearch) -- a later gap's unit, or an earlier gap whose
+		// prefix's triggers end the payer beside it, is the sibling gorge's
+		// search reaches next
+		var ans [MaxPerm]uint8
+		var pick [MaxPerm]int8
+		if !s.deferGapSearch(k, a, p, order[:n], tapsDef, &ans, &pick, &dead) {
+			return
+		}
+		for j := 0; j < n; j++ {
+			if pick[j] < 0 {
+				continue
+			}
+			var spill [kop.NumManaKinds]uint8
+			s.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, ca, int(ans[j]), &spill)
+			if s.npend != 0 {
+				// gorge answers each gap's activation as its own decision, so the
+				// trigger queue is drained before the next tap: two lands under
+				// different Contaminated Grounds stack in tap order (CR 603.3b); a
+				// tap that queued two of one controller's is gorge's order ask,
+				// answered as the script does before the next tap
+				s.flushPrefixTriggers(k)
+				if s.npend != 0 {
+					s.resolvePrefixStack(k, s.sp, false)
+				}
+			}
+		}
+		return
+	}
 	m, ok := s.scriptDFS(k, a, p, order[:n], ctr, restr, anyR, tapsDef, ca, path[:], &dead)
 	if !ok {
 		return
