@@ -937,7 +937,12 @@ func (c *Cost) AnnPipCountP() int {
 // reachability search below never has to consider picking more.
 func (c Cost) ManaPipCount() int {
 	n := int(c.Generic) + int(c.Colored.Total()) + int(c.Snow)
-	n += len(c.Hybrid) + len(c.Phyrexian) + len(c.Twobrid) + len(c.HybridPhyrexian)
+	n += len(c.Hybrid) + len(c.Phyrexian) + len(c.HybridPhyrexian)
+	// A twobrid pip (CR 107.4e) can take its two-generic face, so it may
+	// consume two sources even though the coloured face takes one.
+	for _, t := range c.Twobrid {
+		n += max(int(t.Generic), 1)
+	}
 	return n
 }
 

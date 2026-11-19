@@ -185,9 +185,6 @@ func (s *State) kickedPotentialPays(k *prep, p uint8, c CardID, o Obj, kc *kop.M
 	if s.waterbendOwnPart(k, p, c, o) != 0 {
 		return false // ... and a waterbend one (potentialModeCastPlan, "shape:contribution")
 	}
-	if kc.Hyb[0] == kop.HybTwobrid {
-		return false // ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail)
-	}
 	if kc.X != 0 {
 		return false // the planner prices the largest X the sources fund: unmodelled here
 	}
