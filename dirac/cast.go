@@ -1042,6 +1042,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 					s.ctl = ctlPlaceTriggers
 					return false
 				}
+				if e.kind == seSpell && s.noModeAbort(k, a) {
+					return false
+				}
 				s.bld().modesN = 255
 				continue
 			}
