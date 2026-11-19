@@ -182,6 +182,7 @@ Meatsqueak, Hoard Lord
 Megantic Sliver
 Meltdown
 Merfolk Thaumaturgist
+Merry, Esquire of Rohan
 Mindlash Sliver
 Mishra's Groundbreaker
 Mizzium Meddler
@@ -339,5 +340,6 @@ Worldly Counsel
 Wrap in Flames
 Wreck and Rebuild
 Wrecking Ball
+Writhing Chrysalis
 Yarok's Fenlurker
 Yuan Shao's Infantry

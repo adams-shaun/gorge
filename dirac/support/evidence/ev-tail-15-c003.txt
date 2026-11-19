@@ -2,6 +2,7 @@ A-Buy Your Silence
 A-Sepulcher Ghoul
 Afflict
 Alexi's Cloak
+Ampryn Tactician
 Angelheart Protector
 Angelheart Vial
 Anurid Murkdiver
@@ -83,6 +84,7 @@ Hope Against Hope
 Human Frailty
 Ill-Tempered Cyclops
 Inner Calm, Outer Strength
+Inviolability
 Island
 Jackal Familiar
 Kalonian Hydra
@@ -115,7 +117,10 @@ Mystic Enforcer
 Nature's Ruin
 Nessian Game Warden
 Nightscape Familiar
+Nightshade Assassin
+Nimble Pilferer
 Obelisk of Esper
+Okiba Salvage
 Otherworld Atlas
 Parasitic Grasp
 Pawn of Ulamog
@@ -158,11 +163,13 @@ Sunder from Within
 Swamp
 TVA Bureaucrat
 Teyo's Lightshield
+Teysa Karlov
 Thought Scour
 Thundering Raiju
 Titan's Strength
 Tormentor's Trident
 Treasure Hunter
+Trokin High Guard
 Turret Ogre
 Two-Headed Sliver
 Uktabi Orangutan

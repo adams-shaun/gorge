@@ -39,6 +39,7 @@ Condescend
 Conjurer's Mantle
 Consulate Turret
 Conversion
+Cowl Prowler
 Crash the Party
 Crash the Ramparts
 Crown of Empires
@@ -53,6 +54,7 @@ Cynette, Jelly Drover
 Dai Li Censor
 Dark Inquiry
 Death-Priest of Myrkul
+Devious Cover-Up
 Dirty Rat
 Disappearing Act
 Dizzy Spell
@@ -60,6 +62,7 @@ Douse
 Drelnoch
 Drowner of Secrets
 Durable Coilbug
+Dust Elemental
 Dwarven Patrol
 Edric, Spymaster of Trest
 Eidolon of Blossoms
@@ -223,6 +226,8 @@ Treacherous Link
 Trickster Mage
 Troll-Horn Cameo
 Typhoid Rats
+Ulamog's Crusher
+Ulvenwald Captive
 Undercity Necrolisk
 Unhallowed Phalanx
 Unlikely Aid

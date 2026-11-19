@@ -126,6 +126,7 @@ Goblin Heelcutter
 Goblin Soothsayer
 Goggles of Night
 Grid Monitor
+Guardian of Faith
 Gust of Wind
 Hag of Inner Weakness
 Hag of Noxious Nightmares
@@ -305,6 +306,7 @@ Treespring Lorian
 Troubled Healer
 Troublesome Spirit
 True Polymorph
+True-Faith Censer
 Trusty Packbeast
 Tukatongue Thallid
 Tyranid Harridan

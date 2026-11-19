@@ -50,6 +50,7 @@ Cogwork Spy
 Concord with the Kami
 Confound
 Consider
+Consign
 Constable of the Realm
 Courier's Briefcase
 Covert Operative
@@ -100,6 +101,7 @@ Freyalise, Llanowar's Fury
 Frontier Mastodon
 Furious Assault
 Genestealer Locus
+Ghost-Lit Raider
 Gift of Wrath
 Gilt-Blade Prowler
 Gobbling Ooze
@@ -190,6 +192,7 @@ Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
 Nekrataal
+Nettle Drone
 Nightveil Specter
 Nissa, Resurgent Animist
 Ogre Menial
@@ -308,6 +311,7 @@ Tezzeret, Artifice Master
 Thalakos Sentry
 Thanos, Death's Consort
 Thassa's Rebuff
+The Falcon, Airship Restored
 The Great Juggernaut
 Thornscape Apprentice
 Thran Quarry
@@ -326,6 +330,7 @@ Turret Ogre
 Twincast
 Unbreakable Formation
 Vampire Revenant
+Vega, the Watcher
 Verdant Rebirth
 Viashino Runner
 Viridian Corrupter
@@ -344,6 +349,7 @@ Wave of Terror
 Whelming Wave
 Whiptail Wurm
 Whirlwind Technique
+Whirlwind, Killer Cyclone
 Wildest Dreams
 Wit's End
 Woolly Thoctar

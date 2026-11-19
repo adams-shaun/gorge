@@ -36,6 +36,7 @@ Boonweaver Giant
 Bramble Wurm
 Brightclimb Pathway
 Brimstone Mage
+Brood Butcher
 Buoyancy
 Burden of Guilt
 By Force
@@ -123,6 +124,7 @@ Goblin Gang Leader
 Goblin Matron
 Goblin Warchief
 Goliath Spider
+Gorma, the Gullet
 Grandmother Sengir
 Great Hall of Starnheim
 Greenseeker
@@ -332,6 +334,7 @@ Two-Headed Giant of Foriys
 Two-Headed Zombie
 Uktabi Orangutan
 Umbral Mantle
+Undercity Uprising
 Urza's Rage
 Valeron Outlander
 Valley Dasher
