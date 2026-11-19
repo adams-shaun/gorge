@@ -396,6 +396,43 @@ func buildCorpusLandTypeWords(universe *cards.Universe) []string {
 	return out
 }
 
+// CorpusPlaneswalkerTypeWords derives the planeswalker-subtype vocabulary
+// from the parsed compiled corpus supplied as the game's NameUniverse. A
+// planeswalker's subtype is its own name (CR 205.3j), so the vocabulary is
+// every non-card-type, non-supertype word a face carrying the Planeswalker
+// card type prints: the walker faces are the only ones with a subtype word
+// that is not from one of the four word-list sets, and a Planeswalker face
+// prints nothing beside the walker name but its card type and supertypes.
+// Memoised on the universe exactly like the land list (CorpusLandTypeWords):
+// the universe is immutable and shared by every game an embedder starts from
+// one registry, so the walk runs once per universe and the list is shared
+// read-only. Sorting makes the derived layer list deterministic.
+func CorpusPlaneswalkerTypeWords(universe *cards.Universe) []string {
+	return universe.PlaneswalkerTypeWords(buildCorpusPlaneswalkerTypeWords)
+}
+
+func buildCorpusPlaneswalkerTypeWords(universe *cards.Universe) []string {
+	var words []string
+	universe.EachFaceTypes(func(types []string) {
+		walker := false
+		for _, ct := range types {
+			if cards.TypeMaskOfName(ct) == cards.TypePlaneswalker {
+				walker = true
+			}
+		}
+		if !walker {
+			return
+		}
+		for _, typ := range types {
+			if !IsCardType(typ) && !IsSupertype(typ) {
+				words = append(words, typ)
+			}
+		}
+	})
+	slices.Sort(words)
+	return slices.Compact(words)
+}
+
 func IsCardType(t string) bool {
 	for _, word := range cardTypeWords {
 		if strings.EqualFold(t, word) {
@@ -729,20 +766,25 @@ func applyTypeEffect(b Board, ce *state.ContinuousEffect, ty []string, allCreatu
 		}
 		// CR 205.1a: the subtypes correlated with a card type the strip
 		// removed leave with it (the Theros gods' devotion statics:
-		// RemoveType$ Creature takes God with it). The derived list keeps
-		// subtype words tied to their card type, so an object without the
-		// Creature card type carries no creature subtype word to strip -- no
-		// per-word presence check is owed. A RemoveType$ naming a subtype or
-		// supertype word names no card type and strips exactly that word.
+		// RemoveType$ Creature takes God with it; Luxior's RemoveType$
+		// Planeswalker takes the walker's name word with it, CR 205.3j). The
+		// derived list keeps subtype words tied to their card type, so an
+		// object without the Creature card type carries no creature subtype
+		// word to strip -- no per-word presence check is owed. A RemoveType$
+		// naming a subtype or supertype word names no card type and strips
+		// exactly that word.
 		sets := effects.SubtypesCorrelatedWith(ce.RemoveTypes)
-		var landWords []string
+		var landWords, walkerWords []string
 		if sets.Land() {
 			landWords = b.LandTypeWords()
+		}
+		if sets.Planeswalker() {
+			walkerWords = b.PlaneswalkerTypeWords()
 		}
 		kept := ty[:0]
 		for _, t := range ty {
 			if !slices.ContainsFunc(ce.RemoveTypes, func(remove string) bool { return strings.EqualFold(t, remove) }) &&
-				!correlatesWithRemovedCardType(t, sets, landWords) {
+				!correlatesWithRemovedCardType(t, sets, landWords, walkerWords) {
 				kept = append(kept, t)
 			}
 		}
@@ -813,16 +855,20 @@ func applyTypeEffect(b Board, ce *state.ContinuousEffect, ty []string, allCreatu
 // with a card type the RemoveType$ strip removed (CR 205.1a: the subtypes
 // correlated with a removed card type are removed with it, unless they are
 // also the subtypes of a card type the object still has -- no word belongs
-// to two of these sets, so "still has" never holds here). Only the sets the
-// package carries vocabularies for participate; the RemoveCardTypes strip
-// above shares the same four (effects.SubtypesKept shares them with the
-// one dispatch in effects.SubtypesCorrelatedWith). The land vocabulary is
-// the corpus's, fetched only when the land set participates.
-func correlatesWithRemovedCardType(t string, sets effects.SubtypesKept, landWords []string) bool {
+// to two of these sets, so "still has" never holds here; the walker-name
+// word Equipment/Stone overlap with the artifact word list cannot bite, as
+// an object carrying one under the Planeswalker card type carries no
+// Artifact card type beside it). Only the sets the package carries
+// vocabularies for participate; the RemoveCardTypes strip above shares the
+// same five (effects.SubtypesKept shares them with the one dispatch in
+// effects.SubtypesCorrelatedWith). The land and walker vocabularies are the
+// corpus's, fetched only when their set participates.
+func correlatesWithRemovedCardType(t string, sets effects.SubtypesKept, landWords, walkerWords []string) bool {
 	return sets.Creature() && effects.CreatureTypeWords(t) ||
 		sets.Land() && slices.Contains(landWords, t) ||
 		sets.Artifact() && effects.ArtifactTypeWord(t) ||
-		sets.Enchantment() && effects.EnchantmentTypeWord(t)
+		sets.Enchantment() && effects.EnchantmentTypeWord(t) ||
+		sets.Planeswalker() && slices.Contains(walkerWords, t)
 }
 
 func typeMatchWordsKnown(ty []string, all, full bool) []string {

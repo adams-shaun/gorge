@@ -66,7 +66,11 @@ var chooseCardTypes = []string{
 // Derived from the committed corpus's own planeswalker type lines and checked
 // as a sorted set: it includes the Un-set and Universes-Beyond subtypes
 // (B.O.B., Duck, Monopoly, You, Dungeon Master's "Dungeon"/"Master") because
-// those are real planeswalker subtypes the corpus prints.
+// those are real planeswalker subtypes the corpus prints. It is also the
+// walker set the RemoveCardTypes$ reader consults (SubtypesKeptBy, Has): the
+// word list for the name-word set whose strip side reads the corpus-derived
+// vocabulary (rules/chars' CorpusPlaneswalkerTypeWords), because no
+// RemoveCardTypes$ carrier adds the Planeswalker card type.
 var choosePlaneswalkerTypes = []string{
 	"Ajani", "Aminatou", "Angrath", "Arlinn", "Arzakon", "Ashiok", "B.O.B.",
 	"Bahamut", "Basri", "Bolas", "Calix", "Chandra", "Comet", "Dack",
