@@ -62,6 +62,13 @@ func (lc *lowerCtx) playerSetSpec(api, v string) (pred playerSetPred, matched bo
 		// loop; gorge's effToken lists these owners with AliveFrom(0).
 		return playerSetPred{base: v, seat: true}, true, nil
 	}
+	if api == "Token" && (v == "Player.Opponent" || v == "Opponent") {
+		// CreateToken has one owner, so each opponent is its own loop
+		// iteration (gorge tokenOwnerPlayers' definedSpec: AliveFrom(the
+		// controller) without the controller, each owner minting its own);
+		// the bare EachOpp owner would mint for the first opponent alone
+		return playerSetPred{base: "Opponent"}, true, nil
+	}
 	base, q, ok := strings.Cut(v, ".")
 	if !ok || (base != "Player" && base != "Opponent") {
 		return pred, false, nil

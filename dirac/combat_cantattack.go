@@ -26,7 +26,7 @@ func prepCantAtkScope(t *kop.Table, g *genPrep) {
 		for j := range t.Cards[i].Abilities {
 			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCantAttack {
 				g.anyCantAtk = true
-				if a.Static.StFlags&(kop.StCantAtkPlayer|kop.StCantAtkWalker) != 0 {
+				if a.Static.StFlags&(kop.StCantAtkPlayer|kop.StCantAtkWalker|kop.StCantAtkDef) != 0 {
 					g.anyCantAtkScope = true
 				}
 			}
@@ -36,7 +36,7 @@ func prepCantAtkScope(t *kop.Table, g *genPrep) {
 		for j := range t.Emblems[i].Abilities {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCantAttack {
 				g.anyCantAtk = true
-				if a.Static.StFlags&(kop.StCantAtkPlayer|kop.StCantAtkWalker) != 0 {
+				if a.Static.StFlags&(kop.StCantAtkPlayer|kop.StCantAtkWalker|kop.StCantAtkDef) != 0 {
 					g.anyCantAtkScope = true
 				}
 			}
@@ -61,6 +61,7 @@ func (s *State) cantAtkBare(k *prep, sl Slot) bool {
 		a := st.a
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatCantAttack ||
 			a.Static.StFlags&(kop.StCantAtkPlayer|kop.StCantAtkWalker) != 0 ||
+			a.Static.StFlags&kop.StCantAtkDef != 0 && !s.duel() ||
 			!s.statCond(k, st) ||
 			!s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerFull) {
 			return true
@@ -88,6 +89,20 @@ func (s *State) cantAtkPair(k *prep, sl Slot, def uint8, walker Slot) bool {
 	s.eachStatic(k, func(st statSrc) bool {
 		a := st.a
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatCantAttack {
+			return true
+		}
+		if a.Static.StFlags&kop.StCantAtkDef != 0 {
+			if s.duel() {
+				return true // the whole-defender shape: cantAtkBare
+			}
+			q := def
+			if DebugUnlessDefBlind {
+				q = s.nextAlive(s.active) // seat-ok: a test-only mutation
+			}
+			if s.unlessDefHolds(k, st, q) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerFull) {
+				hit = true
+				return false
+			}
 			return true
 		}
 		sc := a.Static.StFlags & (kop.StCantAtkPlayer | kop.StCantAtkWalker)
@@ -149,4 +164,25 @@ func (s *State) cantAtkEveryPair(k *prep, sl Slot) bool {
 // the defender's permanent.
 func (s *State) cantAtkPairWalker(k *prep, sl, q Slot) bool {
 	return s.cantAtkPair(k, sl, s.perms[q].ctrl, q)
+}
+
+// DebugUnlessDefBlind is the lockstep mutation of the pod UnlessDefender$
+// read: a pod judges every pair of a StCantAtkDef static on the next live
+// seat, the two-seat reading of the defender (TestFourSeatUnlessDefenderLockstep
+// must then diverge).
+var DebugUnlessDefBlind bool
+
+// unlessDefHolds reports whether a StCantAtkDef static's UnlessDefender$
+// gate (its Cond2) restricts the attack on defender seat def: gorge
+// AttackBlocked evaluates UnlessDefenderHolds on each (attacker, defending
+// player) pair, a planeswalker's pair on the walker's controller. The
+// condition's DefenderCtrl filters read g.atkDef (defendingSeatF2), bound
+// to def for the read and put back after, as fireAttacksGen binds it for an
+// attack event's triggers.
+func (s *State) unlessDefHolds(k *prep, st statSrc, def uint8) bool {
+	old := s.g.atkDef
+	s.g.atkDef = def + 1
+	ok := s.statCond(k, st)
+	s.g.atkDef = old
+	return ok
 }

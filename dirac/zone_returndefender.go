@@ -32,7 +32,7 @@ func (s *State) returnDefenderAsk(k *prep, in *kop.Instr, host Slot) bool {
 		ctrl = s.res.e.ctrl
 	}
 	if in.B.N&kop.RetUnderOpponent != 0 {
-		ctrl = s.nextAlive(s.res.e.ctrl) // two live seats only (kop.TwoSeatInstr: RetUnderOpponent)
+		ctrl = s.retUnderOppSeat(s.res.e.ctrl) // GainControl$ ChosenPlayer (kop.RetUnderOpponent)
 	}
 	if ctrl != s.active || s.step < kop.StepAttackers || s.step > kop.StepEndCombat {
 		return false
@@ -44,3 +44,22 @@ func (s *State) returnDefenderAsk(k *prep, in *kop.Instr, host Slot) bool {
 	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, ctrl, objWord(uint8(NoSlot))
 	return true
 }
+
+// retUnderOppSeat is the controller a kop.RetUnderOpponent return enters
+// under (GainControl$ ChosenPlayer: Zuko, Conflicted; Sol'Kanar the
+// Tainted): the opponent the resolution's mid-resolution ChoosePlayer chose
+// (res.chPl, repl_chooseplayer.go), which gorge's chosen player is at any
+// seat count; with no such choice, the one opponent after ctrl (a two-seat
+// lowering, kgen's one-opponent ChoosePlayer).
+func (s *State) retUnderOppSeat(ctrl uint8) uint8 {
+	if p := s.resChosenPlayer(); p != 255 && !DebugChosenNextSeat {
+		return p
+	}
+	return s.nextAlive(ctrl)
+}
+
+// DebugChosenNextSeat is the lockstep mutation of the pod ChoosePlayer
+// readers: a GainControl's new controller and a RetUnderOpponent return read
+// the next live seat instead of the chosen one, the two-seat reading
+// (TestFourSeatChoosePlayerControlLockstep must then diverge).
+var DebugChosenNextSeat bool
