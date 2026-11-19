@@ -67,6 +67,19 @@ func prepManaImprint(g *genPrep, id CardID, pc *pcard, ident bool, ra int, life 
 		}
 		g.varPC = append(g.varPC, v)
 	}
+	if life != 0 && !ident {
+		// the colourless view (reflColours' kop.ColC index): a land beside the
+		// source could make {C} and nothing coloured (Horizon of Progress
+		// beside a Dragon-Cursed Halls). gorge's fold keeps the {C} (ColorOrType$
+		// Type) while the census counts only coloured production, so the
+		// ability is no planner unit there and the gaps walk plays it for {C};
+		// the kernel prices it as the same last-resort pain unit, of {C}.
+		v := *pc
+		v.manaCol, v.manaMulti, v.manaRefl, v.manaIdent = kop.ColC, false, true, false
+		v.manaAb, v.manaTap = int8(ra), true
+		v.painCol, v.painN, v.painOnly, v.painLife = kop.ColC, life, true, true
+		g.varPC = append(g.varPC, v)
+	}
 }
 
 // imprintColours is the colours of the cards in exile whose reverse
