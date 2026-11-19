@@ -197,9 +197,11 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 		if s.bld().bfl&bflAnyColor != 0 {
 			ok = av.affordsAnyColor(&cost, 0) // the may-play any-colour rider prices each target too (CR 609.4b)
 		}
-		if !ok && !free {
+		if !ok {
 			// the plain sources fall short: gorge's probe then asks the CR 601.2g window, whose filters (a
-			// Signet's {1},{T}: add {G}{W}) and unpriced sources can still pay the taxed cost (castWindowReachable)
+			// Signet's {1},{T}: add {G}{W}) and unpriced sources can still pay the taxed cost (castWindowReachable);
+			// a free cast's taxed empty cost asks it the same way (Chain of Vapor from Urza's exile under Kasmina,
+			// with Urza's artifact tap an unpriced census gap)
 			ok = !s.targetWindowShort(k, e, &cost, false)
 		}
 		if ok {
