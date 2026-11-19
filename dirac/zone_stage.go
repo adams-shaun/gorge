@@ -399,6 +399,7 @@ func (s *State) initFromWorld(w *World) error {
 	s.pl[w.Active].landsPlayed = w.LandsPlayed[w.Active]
 	s.turn = w.Turn
 	s.active = w.Active
+	s.g.exBase = w.Active // a staged position is on a normal turn: the rotation resumes after its holder
 	// the starting player took the odd turns
 	s.startPl = w.Active
 	if w.Turn%2 == 0 {

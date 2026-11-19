@@ -24,11 +24,11 @@ const maxExRide = 4
 // end-step lose rider. The trigger is source-less: its action is the granted
 // seat's loss, read off the entry's controller (turn.go resolveDelayed). The
 // amount sits in the kernel-internal negative space beside speed's -1, the
-// venture's -2, the monarch's -3/-4 and the rad drain's -5: a dly record's
+// venture's -2, the monarch's -3/-4, the rad drain's -5 and the ring's -6/-7/-8: a dly record's
 // act is a kop Op ordinal (uint8, never negative), so no delayed directive
 // can ever collide with it -- the positive 230/231/232 sentinels
 // (opLeaveReturn, opSacUntracked, opDashReturn) must not be reused here.
-const exTurnRiderAmt = -6
+const exTurnRiderAmt = -9
 
 // DebugExtraTurnFIFO is the mutation test's wrong order: the queue is taken
 // oldest first instead of most recently created first (CR 500.7).
