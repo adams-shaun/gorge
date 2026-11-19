@@ -2473,7 +2473,6 @@ Doc Ock's Henchmen
 Doc Ock's Tentacles
 Doc Ock, Sinister Scientist
 Doc Samson, Super Psychiatrist
-Docent of Perfection
 Dockworker Drone
 Doctor Doom
 Doctor Doom, King of Latveria
@@ -4914,7 +4913,6 @@ Jungle Barrier
 Jungle Lion
 Jungle Shrine
 Jungle Wayfinder
-Jungle Weaver
 Jungle Wurm
 Junji, the Midnight Sky
 Junkblade Bruiser
@@ -5347,7 +5345,6 @@ Leyline of the Guildpact
 Leyline of the Void
 Lhurgoyf
 Liberty Prime, Recharged
-Library
 Library Larcenist
 Library of Alexandria
 Lich Lord of Unx
@@ -6161,7 +6158,6 @@ Muzzle
 Mwonvuli Acid-Moss
 My Precious
 Mycosynth Golem
-Mycosynth Wellspring
 Myojin of Infinite Rage
 Myr Galvanizer
 Myr Matrix
@@ -7846,7 +7842,6 @@ Sanar, Innovative First-Year
 Sanar, Unfinished Genius
 Sanctuary Cat
 Sanctuary Raptor
-Sanctuary Smasher
 Sanctuary Wall
 Sanctum Custodian
 Sanctum Gargoyle
@@ -8679,7 +8674,6 @@ Speaker of the Heavens
 Spearpoint Oread
 Species 8472
 Species Gorger
-Species Specialist
 Specimen Freighter
 Spectacle Summit
 Spectacular Pileup
@@ -9427,7 +9421,6 @@ Temur Battlecrier
 Temur Devotee
 Temur Monument
 Temur Tawnyback
-Temur War Shaman
 Tenacious Drone
 Tenacious Hunter
 Tenacious Tosk

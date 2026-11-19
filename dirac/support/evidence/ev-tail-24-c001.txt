@@ -75,6 +75,7 @@ Deepwood Tantiv
 Deflection
 Deny Reality
 Depth Charge Colossus
+Devouring Strossus
 Dimir Guildmage
 Dirgur Nemesis
 Disciple of Perdition
@@ -289,6 +290,7 @@ Rhystic Syphon
 Riot Ringleader
 Rip-Clan Crasher
 Ripjaw Raptor
+Risen Riptide
 Roaming Ghostlight
 Rockslide Elemental
 Rooftop Nuisance

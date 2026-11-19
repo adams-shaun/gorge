@@ -17,6 +17,7 @@ Aven Smokeweaver
 Avian Changeling
 Awaken the Ancient
 Barbed Battlegear
+Bearer of the Heavens
 Bee Sting
 Belligerent Brontodon
 Berserk Murlodont
@@ -88,6 +89,7 @@ Hulking Devil
 Hurloon Minotaur
 Ignite Disorder
 In the Eye of Chaos
+Incinerate
 Into the Core
 Invasion of Belenon
 Irregular Cohort
@@ -119,6 +121,7 @@ Moorish Cavalry
 Moriok Replica
 Mountain
 Mudbrawler Cohort
+Mycosynth Wellspring
 Myrkul's Edict
 Necrogen Censer
 Necrogen Scudder
@@ -193,6 +196,7 @@ Treetop Sentinel
 Tribal Flames
 Troll of Khazad-dûm
 Tsabo's Decree
+Turntimber Grove
 Tusked Colossodon
 Upriser Renegade
 Viashino Racketeer
@@ -201,6 +205,7 @@ Volrath's Stronghold
 Water Servant
 Weed-Pruner Poplar
 Whipflare
+World Breaker
 Xorn
 Yarok's Wavecrasher
 Young Wei Recruits
