@@ -71,7 +71,7 @@ func TestCantAttackStatic(t *testing.T) {
 		[]string{
 			"static CantAttack F={types=0x2 WithoutFlying}",                                                 // Moat
 			"static CantAttack F={types=0x2 EnchantedBy}",                                                   // Pacifism
-			"static CantAttack F={types=0x0 Self} F2=nil cond=Present({types=0x0 sub=Island ctrl=2},op3,0)", // Sea Monster
+			"static CantAttack F={types=0x0 Self} F2=nil cond=Present({types=0x0 sub=Island ctrl=5},op3,0)", // Sea Monster (ctrl=5: the defender, UnlessDefender at 4 seats)
 			"static CantAttack F={types=0x2} F2=nil",                                                        // Blazing Archon (Target$ scope is the static's flags, CR 508.1b-c)
 		})
 }
