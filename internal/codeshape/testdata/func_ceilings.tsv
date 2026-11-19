@@ -185,7 +185,7 @@ engine/effects wordPredicate	317	96
 engine/rules (*Engine).appendAvailableManaAbilitiesGateCompute	381	122
 engine/rules (*Engine).applyReplacementsDispatch	407	126
 engine/rules (*Engine).askReplacementChoiceIn	169	54
-engine/rules (*Engine).beginCastWith	781	173
+engine/rules (*Engine).beginCastWith	774	173
 engine/rules (*Engine).candidatesForLimitInto	193	63
 engine/rules (*Engine).castAnswer	242	80
 engine/rules (*Engine).checkEventDelayedTriggers	356	59

@@ -232,3 +232,22 @@ func (e *Engine) offeringTimingOK(p state.PlayerID, f *cards.Face) bool {
 	}
 	return e.activationPhasesOK(p, f.SpellAbility())
 }
+
+// offeringCastCost composes the Offering cast's cost (CR 702.46): the PRINTED
+// mana cost (never a substitution -- the keyword reduces it) plus the
+// mandatory sacrifice of a permanent of the named type, whose mana cost
+// reduces the total. The reduction is NOT applied here -- the permanent is
+// not chosen until sacAsk settles the Sac part -- so this marks nothing
+// itself; applyOfferingReduction folds the chosen permanent's mana cost out
+// of the cast's cost once the choice is in. cost is the same pay.RawBaseCost
+// the offer gate priced, so the two stages cannot drift; the spell's own
+// additional costs fold here as the emerged arm's emergeBase folds them. A
+// stale option whose keyword is gone falls back to the empty cost.
+func offeringCastCost(f *cards.Face, cost Cost) Cost {
+	spec, ok := offeringSacrificeSpec(f)
+	if !ok {
+		return Cost{}
+	}
+	cost.Sac = append(cost.Sac, spec)
+	return pay.WithSpellAbilityExtras(f, cost)
+}
