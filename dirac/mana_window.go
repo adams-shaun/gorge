@@ -3376,6 +3376,14 @@ func (s *State) lowerTargetDepCostCast(k *prep, e *stackEntry) {
 // mana window (a free, lowered or madness cast) or with restricted mana floating
 // keeps its whole payment at bsPay.
 //
+// announcedPipWindow reports whether an announced flexible-pip cast pays
+// through tapForHyb's manual window: every hybrid cast (the planner refuses
+// the shape, and a potential-play offer sets no bflLowered), and a lowered
+// twobrid cast. A planned twobrid cast falls through to tapForSpellPlain.
+func (s *State) announcedPipWindow(k *prep) bool {
+	return s.bld().bfl&bflLowered != 0 || !s.buildIsTb(k)
+}
+
 //go:noinline
 func (s *State) manaStep(k *prep) bool {
 	e := &s.bld().e
@@ -3479,7 +3487,7 @@ func (s *State) manaStep(k *prep) bool {
 				s.reverseCast(k)
 				return true
 			}
-		} else if s.bld().pipN != 0 && (s.bld().bfl&bflLowered != 0 || !s.buildIsTb(k)) {
+		} else if s.bld().pipN != 0 && s.announcedPipWindow(k) {
 			// a hybrid pip was announced: gorge's cast planner refuses a
 			// hybrid cost (pay.PlanCostDetail "cost:hybrid"), so it is paid
 			// through its manual CR 601.2g window, which activates sources in
