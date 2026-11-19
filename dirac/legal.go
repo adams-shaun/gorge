@@ -2999,30 +2999,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	// cast's prefix search activates it in battlefield order as it does an
 	// activation's (mana_granttapsdefer.go)
 	grantFirst = grantFirst || grants && s.grantFirstGaps(k, p)
-	if grantFirst {
-		s.grantPrefix(k, a, p)
-		if s.npend != 0 {
-			s.flushPrefixTriggers(k)
-		}
-	}
-	if s.scriptAny(k) && isScriptPlayKind(a.Kind()) {
-		s.scriptPrefix(k, a, p) // a play only a scripted activation pays (script_gen.go)
-		if s.npend != 0 {
-			s.flushPrefixTriggers(k) // its trigger resolves before the play (seed 640)
-		}
-	}
-	if grants && !grantFirst {
-		s.grantPrefix(k, a, p) // a play only a granted mana ability pays (script_gen.go)
-		if s.npend != 0 {
-			s.flushPrefixTriggers(k)
-		}
-	}
-	if a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
-		s.chosenPairPrefix(k, a, p) // a play only a chosen-colour pair pays (mana_chosenprefix.go)
-		if s.npend != 0 {
-			s.flushPrefixTriggers(k)
-		}
-	}
+	pref := s.runPrefixes(k, a, p, grants, grantFirst)
 	if s.sp > sp0 || s.npend != 0 {
 		empty := s.playNeedsEmptyStack(k, a)
 		if s.sp > sp0 && empty || s.npend != 0 {
@@ -3097,6 +3074,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkActivate:
 		if k.gen != nil && s.activateGen(k, a) {
 			break
+		}
+		if pref {
+			s.payPrefixRest(k, a, p) // the prefix's untapped cost part, before the push (mana_resolutionpay.go)
 		}
 		s.beginActivate(k, Obj(a.Source()), a.Mode())
 	case AkTurnFaceUp:
