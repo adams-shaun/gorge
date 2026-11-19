@@ -239,6 +239,15 @@ type ConditionParams struct {
 	PhasesOK        bool
 	FirstCombat     string
 	ActivationLimit string
+	// PlayerDefined and PlayerContains are ConditionPlayerDefined$ /
+	// ConditionPlayerContains$, Forge's player-group membership gate: the
+	// group the first spelling names must include a player the second names
+	// (Mages' Contest's `Remembered | You` counter gate). Both are read
+	// through the raw Params map (the key spellings are not in cards'
+	// compiled vocabulary) and evaluated by conditionMet through the shared
+	// player-referent resolver.
+	PlayerDefined  string
+	PlayerContains string
 	// OptionalPaid is ConditionOptionalPaid$, the paid/unpaid selector of a
 	// bare `Condition$ OptionalCost` gate (Ruinous Waterbending's "If this
 	// spell's additional cost was paid", Undergrowth's unpaid Fog). It is
@@ -267,6 +276,7 @@ func (c *ConditionParams) Any() bool {
 	return c.Defined != "" || c.Present.Text != "" || c.NotPresent != "" || c.Compare.Text != "" ||
 		c.CheckSVar != "" || c.Bare != "" || c.PlayerTurn != "" || c.OpponentTurn || c.Phases != "" ||
 		c.FirstCombat != "" || c.ActivationLimit != "" ||
+		c.PlayerDefined != "" || c.PlayerContains != "" ||
 		c.Present2.Text != "" || c.Compare2.Text != "" || c.Zone != "" || c.OptionalPaid != "" ||
 		c.ManaSpent != "" || c.ManaNotSpent != ""
 }
@@ -446,6 +456,8 @@ func compileActivation(sa *cards.SA) *ActivationParams {
 	}
 	c.FirstCombat = strings.TrimSpace(sa.ParamStr(cards.PKConditionFirstCombat))
 	c.ActivationLimit = strings.TrimSpace(sa.ParamStr(cards.PKConditionActivationLimit))
+	c.PlayerDefined = strings.TrimSpace(sa.ParamStr(cards.PKConditionPlayerDefined))
+	c.PlayerContains = strings.TrimSpace(sa.ParamStr(cards.PKConditionPlayerContains))
 	p2, p2OK := sa.Param(cards.PKConditionPresent2)
 	c.Present2 = paramText(p2, p2OK)
 	c.Compare2 = CompareOf(sa.ParamStr(cards.PKConditionCompare2))
@@ -516,6 +528,7 @@ var conditionEvaluatedKeys = state.NewNameSet(
 	"ConditionCompare", "ConditionCheckSVar", "ConditionSVarCompare",
 	"Condition", "ConditionPlayerTurn", "ConditionOpponentTurn", "ConditionPhases",
 	"ConditionFirstCombat", "ConditionActivationLimit",
+	"ConditionPlayerDefined", "ConditionPlayerContains",
 	"ConditionPresent2", "ConditionCompare2", "ConditionZone",
 	"ConditionOptionalPaid", "ConditionManaSpent", "ConditionManaNotSpent",
 	"ConditionTargetValidTargeting", "ConditionTargetsSingleTarget",

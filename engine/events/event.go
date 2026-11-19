@@ -1364,10 +1364,20 @@ const (
 	// battlefield permanent carries a Mode$ AbilityResolves line. Appended
 	// after Countered so every earlier ordinal is unchanged.
 	AbilityResolved
+	// ReverseTurnOrder reverses the game's turn order (Forge's
+	// ReverseTurnOrderEffect, Aeon Engine): the fold toggles
+	// state.Game.ReverseTurnOrder, and the ONE next-player helpers
+	// (state.Game.NextAlive/AliveFrom) read it, so the turn advance, the
+	// priority pass order and every APNAP order follow the reversed
+	// direction. Obj is the reversing ability's source, provenance only.
+	// Each activation toggles, so two activations restore the original
+	// order. Appended after AbilityResolved so every earlier ordinal, hash chain and
+	// golden replay is unchanged.
+	ReverseTurnOrder
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(AbilityResolved) + 1
+	NumKinds = int(ReverseTurnOrder) + 1
 )
 
 // AbilityResolved's Amount bits: the resolved ability is a triggered one, a
