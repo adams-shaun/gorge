@@ -91,6 +91,13 @@ func (ic *instrCtx) opSweepFrom() error {
 func (ic *instrCtx) opDamageAll() error {
 	ki := &ic.ki
 	in := &ic.in
+	if _, ok := ic.fl["OtherOpps"]; ok {
+		// ValidPlayers$ OppNonTriggeredTarget (lower_effect.go damageAll):
+		// B.N bit 32, no permanent, each opponent but the trigger's player
+		// (kernel damageOtherOpps)
+		ki.Op, ki.B = kop.OpDamageAll, kop.ValueRef{N: 32}
+		return nil
+	}
 	switch {
 	case in.F != nil && len(in.F.Clauses) == 0 && in.F.Players == plBoth:
 		// "N damage to each player".

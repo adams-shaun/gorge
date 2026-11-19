@@ -3,4 +3,4 @@ keys_total=0
 branches_hit=0
 branches_total=0
 full=0
-stale_max=10
+stale_max=26

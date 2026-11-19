@@ -67,12 +67,25 @@ func TestScourgeOfValkasLowers(t *testing.T) {
 }
 
 // TestThunderbreakRegentLowers: "that player" of an opponent-source
-// BecomesTarget watcher is the one opponent.
+// BecomesTarget watcher is the targeting entry's controller, carried as the
+// trigger player (kop.TrigNSrcCtrl), at any seat count.
 func TestThunderbreakRegentLowers(t *testing.T) {
 	lc := cmd5Lower(t, "Thunderbreak Regent")
 	got := cmd5Ops(lc, "DealDamage")
-	if len(got) != 1 || got[0].Obj.Kind != rEachOpp {
-		t.Fatalf("DealDamage = %+v, want one to each opponent", got)
+	if len(got) != 1 || got[0].Obj.Kind != rTriggeredPlayer {
+		t.Fatalf("DealDamage = %+v, want one to the trigger player", got)
+	}
+	if lc.TwoSeat {
+		t.Errorf("Thunderbreak Regent is two-seat only: %v", lc.TwoSeatWhy)
+	}
+	_, all, _, err := buildPool(&lowered{cards: []*lCard{lc}})
+	if err != nil {
+		t.Fatalf("build: %v", err)
+	}
+	for _, ab := range all[0].def.Abilities {
+		if ab.Kind == kop.AbTriggered && ab.Trig.Event == kop.TrigBecomesTarget && ab.Trig.N != kop.TrigNSrcCtrl {
+			t.Errorf("BecomesTarget N = %d, want TrigNSrcCtrl", ab.Trig.N)
+		}
 	}
 }
 

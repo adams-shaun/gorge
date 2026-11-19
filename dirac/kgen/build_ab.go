@@ -1525,11 +1525,8 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 				}
 			}
 		}
-		if t.SrcAbility {
-			if !t.Watch || t.SrcSpell {
-				return kt, fmt.Errorf("ability source on a non-watcher BecomesTarget")
-			}
-			kt.N = kop.TrigNSrcAbility
+		if err := btSrcN(t, &kt); err != nil {
+			return kt, err
 		}
 		if t.SpellToo {
 			if kt.Flags&kop.TfSelf != 0 {
@@ -3259,6 +3256,24 @@ func trigWhoseScope(whose kop.Whose, a *lAbility) error {
 	if whose == kop.WhoseEnchCtrl && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
 		// the kernel reads it only for a printed battlefield Phase listener
 		return fmt.Errorf("EnchantedController outside a printed battlefield Phase trigger")
+	}
+	return nil
+}
+
+// btSrcN sets a BecomesTarget watcher's ability-source (kop.TrigNSrcAbility)
+// or source-controller (kop.TrigNSrcCtrl) marker in kt.N.
+func btSrcN(t *lTrigger, kt *kop.Trigger) error {
+	if t.SrcAbility {
+		if !t.Watch || t.SrcSpell {
+			return fmt.Errorf("ability source on a non-watcher BecomesTarget")
+		}
+		kt.N = kop.TrigNSrcAbility
+	}
+	if t.SrcCtrl {
+		if !t.Watch || t.SrcSpell || t.SrcAbility || kt.N != 0 {
+			return fmt.Errorf("source controller on a non-watcher BecomesTarget")
+		}
+		kt.N = kop.TrigNSrcCtrl
 	}
 	return nil
 }

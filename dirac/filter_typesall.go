@@ -220,6 +220,9 @@ func predCardCold(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 	if fl.Pred == kop.PredHasManaAbility {
 		return hasManaAbilityCard(k, c, fd) == (fl.PredN == 0) // a face-down card has no abilities (CR 708.2)
 	}
+	if fl.Pred == kop.PredAttackingYou {
+		return false // only a battlefield permanent attacks
+	}
 	panic("kernel: card predicate not implemented: " + predName(fl.Pred))
 }
 

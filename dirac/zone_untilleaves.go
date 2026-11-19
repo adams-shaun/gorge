@@ -126,6 +126,11 @@ func (s *State) linkRetStall(k *prep, srcCtrl uint8, o Obj, ret Obj) {
 	}
 }
 
+// DebugOneEachOne is the lockstep mutation of the one-per-controller
+// slots: it reads the candidates' distinct controllers as one, as the
+// two-seat reading of "for each opponent, up to one target" did.
+var DebugOneEachOne bool
+
 // diffCtrlCap bounds a TargetsWithDifferentControllers$ slot by the number of
 // distinct controllers among its candidates at the slot's start (gorge
 // target_modes.go oneEachTargetBounds: no legal answer picks more targets
@@ -144,6 +149,9 @@ func (s *State) diffCtrlCap(k *prep, t *kop.TargetSpec, ti uint8, mt *multiTgt) 
 		}
 	}
 	d := seatCount(&seen)
+	if DebugOneEachOne && d > 1 {
+		d = 1
+	}
 	if d > 0 && mt.max > d {
 		mt.max = max8(d, mt.min)
 	}

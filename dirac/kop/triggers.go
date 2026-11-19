@@ -302,6 +302,14 @@ const TrigNSrcSpell int16 = 4
 // btSrcOK.
 const TrigNSrcAbility int16 = 5
 
+// TrigNSrcCtrl in Trigger.N of a TrigBecomesTarget watcher (non-Valiant)
+// whose ValidSource$ is any spell or ability (SpellAbility.OppCtrl) and whose
+// body reads the targeting entry's controller (Defined$
+// TriggeredSourceController: Thunderbreak Regent's "that player"): the
+// trigger player is that controller, as TrigNSrcSpell and TrigNSrcAbility
+// carry it (kernel btTriggerPlayer), at any seat count.
+const TrigNSrcCtrl int16 = 6
+
 // Trigger.N of a TrigAbilityCast trigger: the activated ability's class
 // (gorge abilityCastConstraintHolds). The Opp form also requires the
 // ability's controller to be an opponent of the listener's controller.

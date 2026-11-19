@@ -14,20 +14,21 @@ import "strings"
 // candidates, then clamps it to the candidate count, and groups the options
 // one per controller (:275-299).
 //
-// This reduction holds ONLY in a two-player game (the kernel is two-player):
-// every alternative is OppCtrl, so every candidate has the one opponent as
-// its controller -- max is 1 when any candidate exists and 0 otherwise, min is
-// 0, and the single group is the whole set. That is exactly TargetMin$ 0 |
-// TargetMax$ 1, which the kernel already lowers. The which-opponent ask
-// (opponentPick) is posed only with two or more living opponents, so it never
-// arises here. Any other shape refuses.
+// The kernel reads it for any number of seats (CR 601.2c, 115.1): a literal
+// TargetMax$ 1 is a plain "up to one" slot (gorge's max is min(1, distinct),
+// one group's single pick), and TargetMax$ OneEach is the kernel's
+// different-controllers slot (TgfDiffController) bounded at the most
+// opponents a game seats (oppOneEachMax): diffCtrlCap clamps the live ask to
+// the distinct controllers among the candidates, exactly gorge's respelled
+// max, and multiCands offers no candidate whose controller a pick of the
+// slot already has (gorge's Option.Group exclusivity), seat-exact. In a two-player game
+// that is the single opponent's one group, as before. The which-opponent
+// ask (opponentPick) is not posed for this shape.
 //
 // "Each other player" (SVar PlayerCountOther$Amount, Kaya, Spirits' Justice's
-// -2) and YouDontCtrl are the same two-player identities as "opponents" and
-// OppCtrl (filter.go maps YouDontCtrl to whoOpp). Lowered Max 1 over that
-// candidate set equals gorge's distinct-owner count (targets_ask.go:127-148):
-// one owner group, so the same single ask over the same candidates.
-// twoSeat-at-caller: forEachOpp, below, marks the card.
+// -2) and YouDontCtrl are opponents and OppCtrl in a game without teams
+// (filter.go maps YouDontCtrl to whoOpp), so they lower the same way.
+//
 // otherOneEach reports the accepted PlayerCountOther$ shape, whose bounds the
 // caller sets directly (value.go knows no PlayerCountOther head, and that
 // alias is deliberately not added). It requires the same opponent-permanent
@@ -78,13 +79,33 @@ func (lc *lowerCtx) forEachOpp(ps *params, f *lFilter, t *lTarget) error {
 	}
 	mx, _ := ps.get("TargetMax")
 	mx = strings.TrimSpace(mx)
-	oneEach := mx == "OneEach" && (strings.TrimSpace(lc.face.SVars["OneEach"]) == "PlayerCountOpponents$Amount" || lc.otherOneEach(ps, f, t.Zone))
+	oneEach := lc.oppOneEach(ps) || lc.otherOneEach(ps, f, t.Zone)
 	if !oneEach && (!t.Max.isConst() || t.Max.N != 1) {
 		return refuse("TargetsForEachPlayer$ shape %q: TargetMax$ %q", v, mx)
 	}
-	lc.twoSeat("one target for each opponent read as one target")
-	t.Max = cst(1)
+	if !oneEach {
+		t.Max = cst(1)
+		return nil
+	}
+	if t.Unique || t.SameCtrl || t.SharedCrType || t.DistinctName || t.Divided != 0 || t.ParentPlus1 != 0 {
+		return refuse("TargetsForEachPlayer$ OneEach beside another set constraint")
+	}
+	t.DiffCtrl = true
+	t.Max = cst(oppOneEachMax)
 	return nil
+}
+
+// oppOneEachMax bounds a OneEach slot: one target for each opponent, at most
+// the three opponents of a four-seat game (dirac MaxSeats-1 <= kop.MaxTargets).
+const oppOneEachMax = 3
+
+// oppOneEach reports TargetsForEachPlayer$ True | TargetMax$ OneEach over the
+// opponents' count (SVar OneEach PlayerCountOpponents$Amount).
+func (lc *lowerCtx) oppOneEach(ps *params) bool {
+	fe, _ := ps.get("TargetsForEachPlayer")
+	mx, _ := ps.get("TargetMax")
+	return strings.TrimSpace(fe) == "True" && strings.TrimSpace(mx) == "OneEach" &&
+		strings.TrimSpace(lc.face.SVars["OneEach"]) == "PlayerCountOpponents$Amount"
 }
 
 // livingEach reads "for each player, up to one target permanent that player

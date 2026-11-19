@@ -238,11 +238,11 @@ func (s *State) copyBounds(k *prep, e *stackEntry, slot int, opts *Decision) (lo
 	}
 	multi = hi > 1 || e.xi != 0 && s.slotHasExtra(e, uint8(slot))
 	if t.TFlags&kop.TgfDiffController != 0 {
-		var g [2]bool
+		var g [MaxSeats]bool
 		for i := 0; i < int(opts.N); i++ {
 			g[s.copyGroup(opts.Options[i].Target())] = true
 		}
-		if n := b2u(g[0]) + b2u(g[1]); n > 0 && hi > n {
+		if n := seatCount(&g); n > 0 && hi > n {
 			hi = n
 		}
 	}

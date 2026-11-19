@@ -233,20 +233,22 @@ func (s *State) multiCands(k *prep, t *kop.TargetSpec, ti uint8, out *[MaxOption
 		if c == NoTarget || s.pickedInSlot(e, ti, c) {
 			continue
 		}
-		if per[0]|per[1] != 0 && isObjTarget(c) && per[SeatIx(s.ctrlOfObj(Obj(c)))] < mt.min {
+		if seatMax(&per) != 0 && isObjTarget(c) && per[SeatIx(s.ctrlOfObj(Obj(c)))] < mt.min {
 			continue
 		}
 		if t.TFlags&kop.TgfDistinct != 0 && s.pickedBefore(e, ti, c) {
 			continue
 		}
-		if mt.picked > 0 && isObjTarget(c) && t.TFlags&(kop.TgfSameController|kop.TgfDiffController) != 0 {
-			first := e.tgt[ti]
-			if isObjTarget(first) {
-				same := s.ctrlOfObj(Obj(c)) == s.ctrlOfObj(Obj(first))
-				if t.TFlags&kop.TgfSameController != 0 && !same || t.TFlags&kop.TgfDiffController != 0 && same {
-					continue
-				}
+		if mt.picked > 0 && isObjTarget(c) && t.TFlags&kop.TgfSameController != 0 {
+			if first := e.tgt[ti]; isObjTarget(first) && s.ctrlOfObj(Obj(c)) != s.ctrlOfObj(Obj(first)) {
+				continue
 			}
+		}
+		if mt.picked > 0 && isObjTarget(c) && t.TFlags&kop.TgfDiffController != 0 && s.ctrlPickedInSlot(e, ti, s.ctrlOfObj(Obj(c))) {
+			// one pick per controller, against every pick so far (gorge's
+			// Option.Group exclusivity: a OneEach slot of three opponents
+			// takes up to three; CR 601.2c)
+			continue
 		}
 		if t.TFlags&tgtSetMask != 0 && !s.tgtSetAdmit(k, t, e, ti, c, all[:n]) {
 			continue
@@ -255,6 +257,21 @@ func (s *State) multiCands(k *prep, t *kop.TargetSpec, ti uint8, out *[MaxOption
 		m++
 	}
 	return m
+}
+
+// ctrlPickedInSlot reports whether an object of the slot's picks so far is
+// controlled by p.
+func (s *State) ctrlPickedInSlot(e *stackEntry, ti uint8, p uint8) bool {
+	if s.g.mt.picked > 0 && isObjTarget(e.tgt[ti]) && s.ctrlOfObj(Obj(e.tgt[ti])) == p {
+		return true
+	}
+	xt := s.xtOf(e)
+	for i := 0; i < int(xt.n); i++ {
+		if xt.slot[i] == ti && isObjTarget(xt.code[i]) && s.ctrlOfObj(Obj(xt.code[i])) == p {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *State) pickedInSlot(e *stackEntry, ti uint8, c TCode) bool {
@@ -357,7 +374,7 @@ func (s *State) hasTargetsMin(k *prep, t *kop.TargetSpec, p uint8, src Slot, sel
 				seen[SeatIx(s.ctrlOfObj(Obj(buf[i])))] = true
 			}
 		}
-		return seatCount(&seen) >= 2
+		return seatCount(&seen) >= t.Min
 	}
 	return true
 }
