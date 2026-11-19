@@ -440,7 +440,21 @@ const W7NoNameTwinGrave int16 = 20
 // creature types (CR 613.1d); one with every creature type shares with any
 // object that has a creature type (CR 702.73a). An unbound referent matches
 // nothing.
+//
+// PredN>>8 names the referent: 0 the triggering object, 1 the evaluating
+// controller's commanders (gorge's "sharesCreatureTypeWith Commander",
+// sharesTypeReferentsCommander: Path of Ancestry's rider; any of them, in any
+// zone): W7SharesCrCommanderN builds that PredN, Filter.SharesCrCommander reads it.
 const W7SharesCrTrigObj int16 = 21
+
+// W7SharesCrCommanderN is the PredN of W7SharesCrTrigObj's commander referent.
+func W7SharesCrCommanderN() int { return int(W7SharesCrTrigObj) | 1<<8 }
+
+// SharesCrCommander reports whether f is W7SharesCrTrigObj with the commander
+// referent.
+func (f *Filter) SharesCrCommander() bool {
+	return f.PredN&0xff == W7SharesCrTrigObj && f.PredN>>8 == 1
+}
 
 // W7WithDisguise (PredWord7 sub-kind 22): the card was printed with Disguise
 // (CardDef.MorphFamily == MorphDisguise; gorge's exact keyword word

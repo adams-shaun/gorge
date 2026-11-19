@@ -18,11 +18,14 @@ import (
 // (lowerMana), the cost a plain {T}; the rider SVar is a SpellCast of the
 // source's controller's spell (any ValidCard$ lowerTrigger reads) whose body is
 // any chain lowerTriggered lowers; anything else refuses.
-func (lc *lowerCtx) deferredMana(ab *lAbility, ps *params, rider string) error {
+func (lc *lowerCtx) deferredMana(ab *lAbility, ps *params, rider string, identity bool) error {
 	// The kernel tracks one floating deferred source per player (genState.defSrc):
 	// two sources' mana in one payment is unmodelled, so only a legendary source
 	// (never two on the battlefield, CR 704.5j) lowers.
-	if lc.face != nil && !lc.face.IsLegendary() {
+	// An identity source (a commander-identity {T} source with a spend rider) is no legendary one, but a Commander
+	// deck is singleton: a second one floating beside the first stalls loudly
+	// (floatDeferred, StallObsSrc).
+	if lc.face != nil && !lc.face.IsLegendary() && !identity {
 		return refuse("TriggersWhenSpent$ on a source that is not legendary")
 	}
 	return lc.spentRider(ab, ps, rider)
