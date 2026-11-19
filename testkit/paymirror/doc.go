@@ -149,7 +149,7 @@
 //	lossMemo                           abilityLoss's per-build answer memo, generation-stamped
 //	manaGate                           the mana gate's per-walk answer memo, generation-stamped
 //	layer5Colors, colorsEpoch/Version/ the on-demand derived-colour table and its key,
-//	Objs/Valid/Building                validated on every use; Clone copies none
+//	Objs/Static/Valid/Building          validated on every use; Clone copies none
 //	replZones/Ep, replArena            replacement-walk zone summaries, validated on every use,
 //	                                   and the arena's replacement event-bit superset cache
 //	staticZones/Ep                     static-source-walk zone summaries, validated on every use
