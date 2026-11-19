@@ -208,6 +208,48 @@ func (s *State) trigWindowCharge(k *prep, p uint8, c *kop.ManaCost) bool {
 	return true
 }
 
+// runPrefixes runs the prefix searches applyPriority does before the play --
+// grantFirst's grant search, the script search, the plain grant search beside
+// it and the chosen-colour-pair search -- flushing each one's triggers below
+// the play. It reports whether a prefix ran and tapped: its taps are gorge's
+// search's, made at its asks (before the play), and a cost part it left to the
+// planner is paid the same way before the push, not by manaStep's post-push tap
+// (payPrefixRest). A prefix that ran without tapping priced the play by
+// planning; gorge pays that at payment, after the push, as manaStep does.
+func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool) bool {
+	pool0 := s.prefixPoolMana(p)
+	ran := false
+	if grantFirst {
+		s.grantPrefix(k, a, p)
+		ran = true
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k)
+		}
+	}
+	if s.scriptAny(k) && isScriptPlayKind(a.Kind()) {
+		s.scriptPrefix(k, a, p) // a play only a scripted activation pays (script_gen.go)
+		ran = true
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k) // its trigger resolves before the play (seed 640)
+		}
+	}
+	if grants && !grantFirst {
+		s.grantPrefix(k, a, p) // a play only a granted mana ability pays (script_gen.go)
+		ran = true
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k)
+		}
+	}
+	if a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
+		s.chosenPairPrefix(k, a, p) // a play only a chosen-colour pair pays (mana_chosenprefix.go)
+		ran = true
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k)
+		}
+	}
+	return ran && s.prefixPoolMana(p) > pool0
+}
+
 // prefixPoolMana is p's floating pool total: the prefix section's taps (and
 // sacrifices) float their mana here, so a rise over the snapshot taken before
 // it marks a prefix search that activated for the play. A prefix that also
