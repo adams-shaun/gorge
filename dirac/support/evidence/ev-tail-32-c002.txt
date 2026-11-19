@@ -48,7 +48,10 @@ Celestial Purge
 Channel the Suns
 Chaotic Goo
 Charging Monstrosaur
+Chatter of the Squirrel
 Clot Sliver
+Cloud Elemental
+Cloudchaser Kestrel
 Cold Storage
 Colossus of Akros
 Combust
@@ -63,6 +66,7 @@ Dakmor Plague
 Damning Verdict
 Dark Betrayal
 Dark Ritual
+Death's Presence
 Death-Hood Cobra
 Definitely Not a Turtle
 Dementia Bat
@@ -105,6 +109,7 @@ Flying Dolphin-Fish
 Footfall Crater
 Forest
 Forget
+Foul Orchard
 Fourth Bridge Prowler
 Frogtosser Banneret
 Frontline Devastator
@@ -132,6 +137,7 @@ Hasran Ogress
 Haunted Cloak
 Heart Sliver
 Heroic Charge
+Hold the Line
 Hollowhenge Overlord
 Honor the Past
 Hour of Reckoning
@@ -156,8 +162,10 @@ Krosan Restorer
 Kruin Striker
 Kukemssa Pirates
 Lace with Moonglove
+Lancer Sliver
 Leo's Guidance
 Lesser Gargadon
+Levitating Statue
 Leyline Dowser
 Light the Way
 Liliana's Defeat
@@ -166,6 +174,8 @@ Lilting Refrain
 Loam Lion
 Loathsome Catoblepas
 Luminarch Ascension
+Luxury Suite
+Lys Alana Bowmaster
 Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
@@ -173,6 +183,7 @@ Magus of the Candelabra
 Mandibular Kite
 Master Decoy
 Meldweb Strider
+Memory Drain
 Memory Worm
 Mercurial Spelldancer
 Merrow Bonegnawer
@@ -222,16 +233,20 @@ Psychic Spear
 Purifying Dragon
 Pygmy Pyrosaur
 Quicksilver Dagger
+Radiant Fountain
 Raiding Nightstalker
 Rakka Mar
 Rakshasa's Secret
+Ranger Class
 Ravenous Harpy
 Raving Oni-Slave
 Razorjaw Oni
 Reckless Imp
 Recross the Paths
+Redwood Treefolk
 Relic of Progenitus
 Renounce
+Rescue Retriever
 Resistance Squad
 Returned Centaur
 Rhox Brute
@@ -260,6 +275,7 @@ Sizzle
 Skirk Shaman
 Skyclave Cleric
 Skyclave Shade
+Skyshroud Troll
 Skyswimmer Koi
 Slaughter Cry
 Smashing Spree
@@ -306,21 +322,30 @@ Ugin's Insight
 Umbral Juke
 Unnatural Speed
 Untamed Wilds
+Unwavering Initiate
+Urborg, Tomb of Yawgmoth
+Urza's Cave
 Valakut Fireboar
 Valkyrior Skyrider
+Value Town
+Vaporkin
 Vexing Sphinx
 Viashivan Dragon
 Vindictive Flamestoker
 Viridian Zealot
+Vivisection
 Voda Sea Scavenger
 Vraska's Contempt
 Wake of Destruction
+Walking Archive
 Wander in Death
 Warleader's Helix
 Wheel and Deal
+Wild Crocodile
 Wilderness Elemental
 Wildfire Eternal
 Windreader Sphinx
+Witch's Mist
 Woodland Bellower
 Wose Pathfinder
 Zuko's Offense

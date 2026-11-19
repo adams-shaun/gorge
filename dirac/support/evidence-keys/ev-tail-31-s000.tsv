@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Deal Gone Bad	dfb1586753bbc8ab	25	0/0		2/2	
+A-Precipitous Drop	65f09e3a9bbaf228	19	1/1		1/2	ix:resp
 Abandon the Post	4223c7b9c6944977	11	0/0		4/4	
 Abrupt Decay	98750720f5e9fd14	4	0/0		2/2	
 Accelerated Mutation	d616ff869a5bccba	14	0/0		2/2	
@@ -81,6 +82,7 @@ Forfend	ca75ada31bd0bcf0	4	0/0		1/2	ix:resp
 Fork in the Road	a56eb70c29d8022d	14	0/0		1/2	ix:resp
 Fury Sliver	2dbca9fead00a917	7	0/0		0/0	
 Ghost Ship	7a90c9b324c3e403	19	1/1		1/1	
+Giant Spider	483542faca64a414	6	0/0		0/0	
 Glorious Dragon-Kin	f8c4d06b71d5af2e	14	0/0		0/0	
 Goblin Guide	5f2c865dda128cb9	19	1/1		1/1	
 Goblin Turncoat	f5288d8bbea43537	8	1/1		0/1	ix:resp
@@ -91,6 +93,7 @@ Grim Servant	157cd8db2e1a815d	3	1/1		0/1	ix:resp
 Guardian of the Great Conduit	ebf3277a228cc855	5	0/0		0/0	
 Guul Draz Overseer	22714f5ed449960a	4	1/1		1/1	
 Hagra Constrictor	5a7a2afd14245239	21	0/0		0/0	
+Hailstorm Valkyrie	17d7f50773359214	274	1/1		1/1	
 Hamletback Goliath	791250dadb6daf4f	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Harsh Judgment	6c4ec44eb8af6c1a	8	0/0		0/0	
 Heavy Mattock	6ca0c122b876acff	24	1/1		1/1	
@@ -199,6 +202,7 @@ Snapping Gnarlid	3f2593db16c2fa24	12	1/1		1/1
 Snow-Covered Forest	a1a5f67cd8b33a1c	171	1/1		0/1	ix:resp
 Snow-Covered Island	3020b29d96f5b5b9	737	1/1		0/1	ix:resp
 Snow-Covered Mountain	3200469019de4aca	618	1/1		0/1	ix:resp
+Snow-Covered Plains	bdaf911aefce4749	722	1/1		0/1	ix:resp
 Snow-Covered Swamp	c7302ea4a23ed037	638	1/1		0/1	ix:resp
 Soldevi Heretic	ca0bd8b5d5eb60c2	13	1/1		1/1	
 Solemn Offering	6496aa551ea9e91f	5	0/0		2/2	
@@ -211,6 +215,7 @@ Stolen Goods	cccaac3c003e1622	10	0/0		2/2
 Stone Idol Generator	533d2ea003468621	17	2/2		1/1	
 Stromgald Cabal	18b89d149d364b31	15	1/1		1/1	
 Stronghold Biologist	7423690b55abcf0d	11	1/1		1/1	
+Structural Collapse	cbfdfb2ee74e2cc4	8	0/0		1/2	ix:resp
 Sustenance	ff0f3947060ada6b	6	1/1		1/1	
 Swamp	342b413902f441c3	449	1/1		0/1	ix:resp
 Synod Sanctum	3e8c41adad83bb49	25	2/2		0/1	ix:resp
