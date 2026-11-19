@@ -106,13 +106,17 @@ func (s *State) impHasAt(k *prep, src, o Obj, origin kop.Zone) bool {
 // impRefSrc reports whether a RefImprinted value read names an expression
 // source that keeps its Imprinted list and is not the resolving entry: the
 // read then answers from the store (impStoreEach), as gorge's Defined$
-// Imprinted does from the source's own list.
+// Imprinted does from the source's own list. A read outside the resolution's
+// own context (a static's, ctx.e nil) while another ability of the source
+// resolves answers from the store too, unless that resolution has imprinted
+// (gorge's list already holds what it exiled): Phyrexian Ingester's +X/+Y
+// while a granted upkeep trigger of it resolves (Vile Consumption).
 func (s *State) impRefSrc(ctx evalCtx) (Obj, bool) {
 	src := ctx.src
 	if src == NoObj || !s.impSource(s.k(), src) {
 		return NoObj, false
 	}
-	if s.res.active && s.res.e.obj == src {
+	if s.res.active && s.res.e.obj == src && (ctx.e == &s.res.e || s.g.nimp > 0) {
 		return NoObj, false
 	}
 	return src, true
