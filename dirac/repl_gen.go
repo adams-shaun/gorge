@@ -257,9 +257,12 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 	// are dealt in gorge's assignment order (repl_prevnext.go)
 	var ord [MaxPerm]uint8
 	ordered := k.gen.anyRepl&rbPrevCol != 0 && !s.g.ro.on && s.pnxLive() && s.replOrderOrder(r, &ord) == r.nev
+	// a prevent-and-counters self host (Undergrowth Champion) spends its counter
+	// on the first event it is dealt, so the events to it run in that order too
+	byOrd := ordered || !s.g.ro.on && k.gen.anyRepl&rbPrevCtrSelf != 0 && s.replOrderOrder(r, &ord) == r.nev
 	for j := 0; j < r.nev; j++ {
 		i := j
-		if ordered {
+		if byOrd {
 			i = int(ord[j])
 		}
 		ev := &r.ev[i]
