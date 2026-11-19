@@ -3,6 +3,7 @@ A-Luminarch Aspirant
 Adarkar Wastes
 Akroan Jailer
 Alabaster Host Sanctifier
+Alley Assailant
 Anje's Ravager
 Arachnoform
 Assassin's Ink
@@ -154,6 +155,7 @@ River of Tears
 Rockslide Ambush
 Rograkh, Son of Rohgahh
 Rosethorn Halberd
+Roshan, Hidden Magister
 Rousing Refrain
 Runaway Carriage
 Sagittars' Volley

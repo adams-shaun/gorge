@@ -1,3 +1,4 @@
+Adeline, Resplendent Cathar
 Adventurous Impulse
 Aetherize
 Akroma's Will
@@ -10,6 +11,7 @@ Araumi of the Dead Tide
 Avenging Druid
 Back to Basics
 Ball Lightning
+Beloved Chaplain
 Benevolent Bodyguard
 Bestial Menace
 Blindblast
@@ -22,6 +24,7 @@ Charcoal Diamond
 Chomping Changeling
 Citanul Woodreaders
 Cliffgate
+Cloudgoat Ranger
 Collective Resistance
 Commune with Nature
 Compulsion
@@ -33,6 +36,7 @@ Daring Demolition
 Disturbed Burial
 Dread Linnorm
 Dust to Dust
+Eater of the Dead
 Emiel the Blessed
 End the Festivities
 Eternal Thirst
@@ -96,6 +100,7 @@ Shepherd of Rot
 Spidersilk Armor
 Staggershock
 Storm-Kiln Artist
+Sumala Rumblers
 Swamp
 Thassa's Emissary
 Thopter Engineer

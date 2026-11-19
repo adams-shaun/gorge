@@ -74,6 +74,7 @@ Mountain
 Multani, Yavimaya's Avatar
 Mystic Speculation
 Nantuko Elder
+Oblivion Ring
 Phantom Flock
 Plains
 Pollenbright Druid
@@ -121,6 +122,7 @@ Vandalize
 Vivien's Grizzly
 Volcanic Geyser
 Voldaren Epicure
+Voyager Drake
 Wall of Tears
 Warchief Giant
 Watcher for Tomorrow

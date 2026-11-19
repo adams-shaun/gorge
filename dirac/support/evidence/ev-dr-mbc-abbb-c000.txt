@@ -5,12 +5,16 @@ Ardent Elementalist
 Armored Ascension
 Aven Fisher
 Bad Deal
+Baloth Woodcrasher
 Barrage of Boulders
 Battle Screech
+Blood Artist
 Bloodchief's Thirst
 Careful Study
 Cast Out
+Clarion Spirit
 Conifer Strider
+Dark Triumph
 Dawnbringer Cleric
 Daxos, Blessed by the Sun
 Devouring Light
@@ -18,9 +22,11 @@ Diabolic Tutor
 Dragon Bell Monk
 Dream Fracture
 Errant Ephemeron
+Experiment One
 Exuberant Fuseling
 Fathom Fleet Swordjack
 Fencing Ace
+Ferocious Zheng
 Forest
 Forest Bear
 Gaea's Anthem
@@ -39,7 +45,9 @@ Kinsbaile Courier
 Lassoed by the Law
 Lingering Souls
 Mana Flare
+Masked Vandal
 Merchant Scroll
+Merfolk Looter
 Merfolk Trickster
 Mesmeric Fiend
 Metastatic Evangel
@@ -48,6 +56,7 @@ Mogg Raider
 Mountain
 Omen
 Omen of the Sun
+Outnumber
 Parasitic Impetus
 Pegasus Guardian
 Plague Spitter
@@ -55,7 +64,9 @@ Plains
 Rakdos Charm
 Reckless Abandon
 Restock
+Rewind
 Ruinous Gremlin
+Savage Gorger
 Serum Visions
 Shiv's Embrace
 Sneering Shadewriter
@@ -68,6 +79,7 @@ The Reality Chip
 Torpor Orb
 Traveling Minister
 Up the Beanstalk
+Vampire Hexmage
 Vapor Snag
 Varchild, Betrayer of Kjeldor
 Venomspout Brackus

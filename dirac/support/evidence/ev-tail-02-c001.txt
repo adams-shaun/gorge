@@ -154,6 +154,7 @@ Knight of the Stampede
 Knighted Myr
 Kor Skyfisher
 Korlessa, Scale Singer
+Lavaclaw Reaches
 Lead the Stampede
 Leadership Vacuum
 Lifebane Zombie
@@ -177,6 +178,7 @@ Moss Monster
 Mountain
 Mox Ruby
 Mystic Forge
+Mystic Gate
 Nautiloid Ship
 Nested Ghoul
 Nightshade Stinger
@@ -227,6 +229,7 @@ Rewind
 Rikala, Homarid King
 Riptide Turtle
 Rite of Passage
+Riverglide Pathway
 Roar of the Crowd
 Rumbling Sentry
 Sabretooth Tiger

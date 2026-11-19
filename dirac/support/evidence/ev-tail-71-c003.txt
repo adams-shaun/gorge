@@ -219,6 +219,7 @@ Primal Boost
 Prized Elephant
 Psychic Overload
 Pyrogoyf
+Radiant Epicure
 Rampaging Monument
 Raving Oni-Slave
 Reckless Reveler
@@ -264,6 +265,7 @@ Soaring Thought-Thief
 Sonic Seizure
 Soulblade Corrupter
 Soulcatcher
+Spawnwrithe
 Spiked Ripsaw
 Spikefield Hazard
 Spined Thopter

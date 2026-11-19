@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Kona, Rescue Beastie	e6db51069b44d1f4	4	1/1		0/1	ix:resp
+A-Master of Winds	ec2fa152a6a5e379	3	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Afterlife	e15f7bc71c352041	3	0/0		1/2	ix:resp
 Agility Bobblehead	bb9b53c64f0a88f9	97	2/2		1/1	
 Alabaster Potion	a4528db6d164240f	52	0/0		3/4	f0/s/x0
@@ -144,6 +145,7 @@ Rockshard Elemental	3206d97f5324c562	67	0/0		2/2
 Rout	997bf004717e1754	96	0/0		2/2	
 Rune-Cervin Rider	e0097db62c3e1ef5	106	1/1		1/1	
 Sacred Prey	6d70d4fc5e353f8a	5	1/1		1/1	
+Sage of Fables	342d74db99e45380	6	1/1		0/1	ix:resp
 Sanctify	2eb6f8c724bf7475	135	0/0		2/2	
 Scalding Devil	94e641cef9ffd015	159	1/1		1/1	
 Scour All Possibilities	688e3f59f6a2a933	6	0/0		4/4	

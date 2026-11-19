@@ -8,6 +8,7 @@ Aetherize
 Affectionate Indrik
 Aggressive Mammoth
 Ajani's Pridemate
+Ajani, Caller of the Pride
 Alesha, Who Laughs at Fate
 Ambush Wolf
 An Offer You Can't Refuse
@@ -81,6 +82,7 @@ Charming Prince
 Chart a Course
 Circuitous Route
 Claws Out
+Clinquant Skymage
 Cloudblazer
 Confiscate
 Consuming Aberration
@@ -150,6 +152,7 @@ Elvish Regrower
 Empyrean Eagle
 Enigma Drake
 Erudite Wizard
+Essence Scatter
 Etali, Primal Storm
 Evolving Wilds
 Exclusion Mage
@@ -195,6 +198,7 @@ Ghitu Lavarunner
 Giada, Font of Hope
 Giant Cindermaw
 Giant Growth
+Gigantosaurus
 Gilded Lotus
 Gleaming Barrier
 Gnarlback Rhino
@@ -215,6 +219,7 @@ Grow from the Ashes
 Gruul Guildgate
 Guarded Heir
 Gutless Plunderer
+Guttersnipe
 Halana and Alena, Partners
 Harbinger of the Tides
 Hare Apparent
@@ -239,6 +244,7 @@ Homunculus Horde
 Hungry Ghoul
 Icewind Elemental
 Immersturm Predator
+Impact Tremors
 Imperious Perfect
 Imprisoned in the Moon
 Incinerating Blast
@@ -270,6 +276,7 @@ Knight of Malice
 Koma, World-Eater
 Krenko, Mob Boss
 Kykar, Zephyr Awakener
+Lathliss, Dragon Queen
 Lathril, Blade of the Elves
 Leonin Skyhunter
 Leonin Vanguard
@@ -293,6 +300,7 @@ Massacre Wurm
 Maze's End
 Mazemind Tome
 Mentor of the Meek
+Meteor Golem
 Micromancer
 Midnight Reaper
 Midnight Snack
@@ -312,6 +320,7 @@ Myojin of Night's Reach
 Mystic Archaeologist
 Mystical Teachings
 Needletooth Pack
+Negate
 Nessian Hornbeetle
 New Horizons
 Nine-Lives Familiar
@@ -352,6 +361,7 @@ Raise the Past
 Rakdos Guildgate
 Ramos, Dragon Engine
 Rampaging Baloths
+Rapacious Dragon
 Ravenous Amulet
 Ravenous Giant
 Reassembling Skeleton

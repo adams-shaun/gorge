@@ -23,6 +23,7 @@ Burning Palm Efreet
 Cabal Ritual
 Chaos Channeler
 Codecracker Hound
+Combo Attack
 Dakmor Plague
 Daring Saboteur
 Dark-Dweller Oracle
@@ -60,6 +61,7 @@ Krovikan Sorcerer
 Leatherback Baloth
 Magmaw
 Marchesa's Decree
+Mardu Warshrieker
 Mask of Law and Grace
 Master Decoy
 Matoc, Lavamancer
@@ -114,5 +116,6 @@ Time Ebb
 Toggo, Goblin Weaponsmith
 Tragic Slip
 Twinmaw Stormbrood
+Vat of Rebirth
 Wayward Giant
 Zombie Master

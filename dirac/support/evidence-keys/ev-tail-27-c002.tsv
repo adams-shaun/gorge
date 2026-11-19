@@ -1,18 +1,41 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Agonizing Syphon	33dfb620d5c45bec	10	0/0		1/2	ix:resp
+Amphin Mutineer	ed233df8367a2c63	3	2/2		0/1	ix:resp
 Arachnoid	d8aa86c7fe438691	4	0/0		0/0	
 Aspiring Aeronaut	0799b4c5062b7157	6	1/1		1/1	
+Bountiful Landscape	8db2c48143e67449	27	3/3		0/1	ix:resp
+Brink of Disaster	65bd0ca2e38dc274	6	1/1		1/2	ix:resp
 Broken Ambitions	99a95549b7b014f9	3	0/0		2/4	f0/s/x+,f0/s/x0
+Buried Alive	7939f78a7bf800c1	5	0/0		1/2	ix:resp
+Carrion Beetles	2fbcd52783be1f35	4	1/1		0/1	ix:resp
+Chitterspitter	94249fa2d36fb6a1	12	2/2		1/1	
+Destroy the Evidence	7a4646ba13fd4c39	4	0/0		1/2	ix:resp
 Dream Twist	0722f9c679f2cbae	6	0/0		3/4	ix:resp
 Field of Ruin	497fea2027a53338	34	2/2		1/1	
+Giant Octopus	5ad2354579b5b97c	6	0/0		0/0	
 Glacial Floodplain	240588534eaad982	21	2/2		0/1	ix:resp
+Gruul Locket	177c56d7403e4cb1	3	2/2		0/1	ix:resp
+Harvestguard Alseids	bb8aa683c99f7ea8	9	1/1		1/1	
+Kataki, War's Wage	4fccf2ee9c4d430b	9	0/0		0/0	
 Namor, Scourge of the Seas	42c264e2c97e1e11	4	1/1		0/1	ix:resp
 Onyx Goblet	10698e1523047277	7	1/1		1/1	
+Orcish Squatters	f03d003cd361a943	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Orzhov Keyrune	9e2c7c4d5599903f	4	2/2		1/1	
+Pretender's Claim	cf5368a99c8827d5	8	1/1		1/2	ix:resp
+Ritual of Soot	1754a7d31f7f8fc5	4	0/0		0/2	f0/s,ix:resp
 Sage of the Falls	a1ada6f6453e1a6c	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Serpentine Curve	52027f209f38c3b7	8	0/0		1/2	ix:resp
+Skyclave Plunder	6dfde8fe6f8fef8e	4	0/0		1/2	ix:resp
 Snake Basket	0a5f28a6c7fb01f0	4	1/1		0/1	ix:resp
 Soul of Mirrodin	cadf2c1d36610923	10	2/2		0/1	ix:resp
 Spined Thopter	fffbbfefb663fe19	8	0/0		0/0	
+Sword of Sinew and Steel	ba9800f5ae4729ef	8	2/2		0/1	ix:resp
 Sword of War and Peace	97c23ee84b246bdb	8	2/2		0/1	ix:resp
+Syphon Life	c11fff6ecfe3859d	6	0/0		1/2	ix:resp
 Tainted Isle	78e198254b48d651	28	2/2		0/1	ix:resp
+Tormented Thoughts	391fa376f236ed3c	5	0/0		1/2	ix:resp
+Trained Condor	d598bca02b63c8c4	3	1/1		0/1	ix:resp
 Vedalken Infiltrator	239f5996085eb5f0	5	0/0		0/0	
 Venser's Journal	c270d0572fbb6963	4	1/1		0/1	ix:resp
+Veteran's Powerblade	04f091a89c645732	9	2/2		0/1	ix:resp
+Visara the Dreadful	86ad1645fce6e9ce	3	1/1		1/1	

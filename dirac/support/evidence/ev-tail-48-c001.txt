@@ -22,6 +22,7 @@ Beast Mode
 Bessie, the Doctor's Roadster
 Black Dragon Gate
 Bladeback Sliver
+Blazing Sunsteel
 Blinding Drone
 Blitz Leech
 Blowfly Infestation
@@ -42,6 +43,7 @@ Circle of Affliction
 Citanul Stalwart
 Clavileño, First of the Blessed
 Cliff Threader
+Cloud of Faeries
 Collective Voyage
 Colossal Badger
 Consul's Shieldguard
@@ -239,6 +241,7 @@ Sea Kings' Blessing
 Search the Premises
 Seismic Stomp
 Sentry Bot
+She-Hulk, Wallbreaker
 Shield-Wall Sentinel
 Shipwreck Moray
 Shockmaw Dragon

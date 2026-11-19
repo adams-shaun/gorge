@@ -9,6 +9,7 @@ Aetherize	c06bbace91ef80a8	32	0/0		2/2
 Affectionate Indrik	1b3cb53d19fe7e10	15	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Aggressive Mammoth	4056f6f1e3faf00d	10	0/0		0/0	
 Ajani's Pridemate	410ac28c745d4dfe	36	1/1		0/1	ix:resp
+Ajani, Caller of the Pride	edcb8283d97834b9	39	3/3		1/1	
 Alesha, Who Laughs at Fate	4eb524008f93016b	33	2/2		0/1	ix:resp
 Ambush Wolf	6e7457d61a776fc6	45	1/1		0/1	ix:resp
 An Offer You Can't Refuse	f785496fb61bb2e8	22	0/0		2/2	
@@ -82,6 +83,7 @@ Charming Prince	df6379b844fd3e42	39	1/1		1/1
 Chart a Course	680d5db2ad529ef4	46	0/0		2/2	
 Circuitous Route	b396f106c7481042	33	0/0		2/2	
 Claws Out	c848c8e79e08a13a	26	0/0		1/2	ix:resp
+Clinquant Skymage	e25f5daeb422f2a3	69	1/1		1/1	
 Cloudblazer	36fc3133125a11d5	17	1/1		0/1	ix:resp
 Confiscate	ac5a9f914f17eae9	17	0/0		1/2	ix:resp
 Consuming Aberration	3dc1c7e0e9a1ebaf	31	1/1		1/1	
@@ -151,6 +153,7 @@ Elvish Regrower	f9505eb56885b490	15	1/1		0/1	ix:resp
 Empyrean Eagle	0dbce4eb8b7cde92	18	0/0		0/0	
 Enigma Drake	1217c58a1b1d1e4e	20	0/0		0/0	
 Erudite Wizard	e9eed996641f98d0	31	1/1		1/1	
+Essence Scatter	2d525323d9246cf1	25	0/0		2/2	
 Etali, Primal Storm	4442a5b718a96039	24	1/1		1/1	
 Evolving Wilds	a6ee2ff9e998c057	91	1/1		0/1	ix:resp
 Exclusion Mage	74874524e9d37ef1	27	1/1		1/1	
@@ -196,6 +199,7 @@ Ghitu Lavarunner	4d110c31fdb94e14	46	0/0		0/0
 Giada, Font of Hope	1a9cca9306ee7913	24	1/1		0/1	ix:resp
 Giant Cindermaw	151421a389b16891	39	0/0		0/0	
 Giant Growth	010ba87094de43e0	27	0/0		2/2	
+Gigantosaurus	f9ac5f9e5e8c3b6b	11	0/0		0/0	
 Gilded Lotus	3f0df5f9918202fa	21	1/1		0/1	ix:resp
 Gleaming Barrier	a172ddd435f756d0	24	1/1		0/1	ix:resp
 Gnarlback Rhino	77e1fd909e7eedcb	10	1/1		0/1	ix:resp
@@ -216,6 +220,7 @@ Grow from the Ashes	c208fcde354ca8a9	21	0/0		3/4	ix:resp
 Gruul Guildgate	82fb9fda4530d4de	55	1/1		0/1	ix:resp
 Guarded Heir	4cfaec86bc9cfcf1	18	1/1		1/1	
 Gutless Plunderer	2945d6ea8dada8a7	50	1/1		1/1	
+Guttersnipe	ee8ce5bd50c06510	10	1/1		0/1	ix:resp
 Halana and Alena, Partners	aa6d0730afc37c68	27	1/1		1/1	
 Harbinger of the Tides	f54fd2eadb4f7ec9	14	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Hare Apparent	f8892665dfd69038	31	1/1		0/1	ix:resp
@@ -240,6 +245,7 @@ Homunculus Horde	72ef9761d78797cc	23	1/1		0/1	ix:resp
 Hungry Ghoul	b0a48ab1bc25374a	46	1/1		1/1	
 Icewind Elemental	34cd264ec3a41c04	20	1/1		0/1	ix:resp
 Immersturm Predator	a005f8afe24be9f5	10	2/2		1/1	
+Impact Tremors	5b25a43e421d9b56	15	1/1		0/1	ix:resp
 Imperious Perfect	4b38802053176ad6	12	1/1		1/1	
 Imprisoned in the Moon	47107a87df37a8b2	47	0/0		2/2	
 Incinerating Blast	3fa39354c41cd3a2	24	0/0		1/2	ix:resp
@@ -271,6 +277,7 @@ Knight of Malice	8df91191949e0d2a	22	0/0		0/0
 Koma, World-Eater	3780563cd7122014	5	2/2		1/1	
 Krenko, Mob Boss	192b8e7db025c011	31	1/1		1/1	
 Kykar, Zephyr Awakener	930d09277992fb6d	27	1/1		1/1	
+Lathliss, Dragon Queen	5689dc47b3dd025e	19	2/2		1/1	
 Lathril, Blade of the Elves	dda2e79a7dbc5ecd	41	2/2		1/1	
 Leonin Skyhunter	9421e9d2fd9d1f70	24	0/0		0/0	
 Leonin Vanguard	30219f5bf8613a15	36	1/1		1/1	
@@ -294,6 +301,7 @@ Massacre Wurm	8a832d14be67be11	12	2/2		1/1
 Maze's End	3c4bb781f2fced23	184	2/2		0/1	ix:resp
 Mazemind Tome	aa44dd73c9426603	40	3/3		0/1	ix:resp
 Mentor of the Meek	c10286fc41b98ef3	18	1/1		1/1	
+Meteor Golem	5988b8779ba437ff	9	1/1		0/1	ix:resp
 Micromancer	8e92d564567af430	34	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Midnight Reaper	1afbe4ef1f8a66f3	18	1/1		1/1	
 Midnight Snack	050909064000d00b	33	2/2		1/1	
@@ -313,6 +321,7 @@ Myojin of Night's Reach	f7292498cc83e25c	7	1/1		0/1	ix:resp
 Mystic Archaeologist	fc5102739b4c6c27	38	1/1		1/1	
 Mystical Teachings	33aa658e6ae35905	66	0/0		4/4	
 Needletooth Pack	b0674b81017010eb	11	1/1		0/1	ix:resp
+Negate	575fbd46f9f739c6	30	0/0		2/2	
 Nessian Hornbeetle	821bd4070f6e9b76	39	1/1		1/1	
 New Horizons	79272e61076f12bd	35	1/1		2/2	
 Nine-Lives Familiar	88e4a300f75ede7e	41	1/1		1/1	
@@ -353,6 +362,7 @@ Raise the Past	f5c1df70a8ce3610	13	0/0		1/2	ix:resp
 Rakdos Guildgate	eff7019a3a6da667	60	1/1		0/1	ix:resp
 Ramos, Dragon Engine	fc98d1df8a89b92f	27	2/2		1/1	
 Rampaging Baloths	1a1cb7c275e1c8aa	27	1/1		1/1	
+Rapacious Dragon	1e6d7e34d78fcac2	26	1/1		0/1	ix:resp
 Ravenous Amulet	f6c81a18bda34b6c	36	2/2		1/1	
 Ravenous Giant	6ba74d49d456d36d	14	1/1		1/1	
 Reassembling Skeleton	62010861b8f9794a	21	1/1		1/1	
