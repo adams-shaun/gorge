@@ -177,6 +177,7 @@ func cloneFieldsEngineTurnLedger(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.bendSeatsThisTurn = e.bendSeatsThisTurn
 	c.noncombatDamagedSeats = e.noncombatDamagedSeats
 	c.noncombatDamagedSeatsLast = e.noncombatDamagedSeatsLast
+	c.combatDamagedSinceTurn = e.combatDamagedSinceTurn
 }
 
 func cloneFieldsEngineLayerCaches(c, e *Engine, sp *Spare, remap *cloneRemap) {
