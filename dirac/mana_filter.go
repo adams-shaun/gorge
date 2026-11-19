@@ -1656,40 +1656,50 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				}
 				continue
 			}
-			if free && rm != 0 && !fs.tick() {
-				return false // the ask between its census and its restricted ability
-			}
-			zeroAsk := free && rm == 0 && fs.zeroFiltAsk(k, t, sl)
-			if zeroAsk && !fs.tick() {
-				return false // the ask between its free ability and a zero filter (mana_zerofilt.go)
-			}
-			if free {
-				pc := t.manaPCGen(k, sl)
-				mask := t.fundMaskAt(k, pc, sl) // a painland asks its painful colours too (mana_filtpain.go)
-				if bits.OnesCount8(mask) > 1 && !fs.tick() {
-					return false // the colour ask
-				}
-				if bits.OnesCount8(mask) > 1 {
-					// a Treasure funds too, sacrificed; the ask in gorge's order (mana_filtfund.go)
-					if fs.fundColours(k, t, sl, pc, mask, funded, gapUsed) {
-						return true
-					}
-				} else if fs.fundOne(k, t, sl, pc, mask, funded, gapUsed) {
-					return true
-				}
-			}
-			if zeroAsk && fs.zeroFiltFund(k, t, sl, funded, gapUsed) {
-				return true
-			}
-			if bits.OnesCount8(rm) > 1 && !fs.tick() {
-				return false // the restricted ability's colour ask
-			}
-			if fs.restrictedAnswers(k, t, sl, rm, funded, gapUsed) {
-				return true
+			if res, stop := fs.fundTap(k, t, sl, rm, free, funded, gapUsed); stop {
+				return res
 			}
 		}
 	}
 	return fs.passTrigger(k, t, funded)
+}
+
+// fundTap: one funding tap of sl in visit's pass: its asks and answers in
+// gorge's order. stop reports that visit ends with res (a plan found, or the
+// node budget spent); otherwise the pass goes on to the next slot.
+func (fs *filtSearch) fundTap(k *prep, t *State, sl Slot, rm uint8, free bool, funded int, gapUsed bool) (res, stop bool) {
+	if free && rm != 0 && !fs.tick() {
+		return false, true // the ask between its census and its restricted ability
+	}
+	zeroAsk := free && rm == 0 && fs.zeroFiltAsk(k, t, sl)
+	if zeroAsk && !fs.tick() {
+		return false, true // the ask between its free ability and a zero filter (mana_zerofilt.go)
+	}
+	if free {
+		pc := t.manaPCGen(k, sl)
+		mask := t.fundMaskAt(k, pc, sl) // a painland asks its painful colours too (mana_filtpain.go)
+		if bits.OnesCount8(mask) > 1 && !fs.tick() {
+			return false, true // the colour ask
+		}
+		if bits.OnesCount8(mask) > 1 {
+			// a Treasure funds too, sacrificed; the ask in gorge's order (mana_filtfund.go)
+			if fs.fundColours(k, t, sl, pc, mask, funded, gapUsed) {
+				return true, true
+			}
+		} else if fs.fundOne(k, t, sl, pc, mask, funded, gapUsed) {
+			return true, true
+		}
+	}
+	if zeroAsk && fs.zeroFiltFund(k, t, sl, funded, gapUsed) {
+		return true, true
+	}
+	if bits.OnesCount8(rm) > 1 && !fs.tick() {
+		return false, true // the restricted ability's colour ask
+	}
+	if fs.restrictedAnswers(k, t, sl, rm, funded, gapUsed) {
+		return true, true
+	}
+	return false, false
 }
 
 // passTrigger: a trigger a step caused: let it resolve, the pool floats (gorge
