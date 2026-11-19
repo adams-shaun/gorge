@@ -255,8 +255,14 @@ func (fs *filtSearch) otherOwnAsk(k *prep, t *State, sl Slot, funded int, try fu
 	case t.chosenPairGapSrc(k, sl):
 		return fs.chosenPairGap(t, sl, try), true
 	case k.gen.anyDeferred && k.gen.has(t.cardAt(sl), gfDeferred):
+		if t.perms[sl].flags&pfTapped != 0 || !t.deferLifeSurvives(k, fs.p, sl) {
+			return false, true
+		}
+		if k.deferIdent(t.cardAt(sl)) {
+			return fs.deferIdentOther(k, t, sl, try), true // the identity's colour ask (mana_deferident.go)
+		}
 		// a single fixed {R} ability: no ask node (deferBranch)
-		return t.perms[sl].flags&pfTapped == 0 && t.deferLifeSurvives(k, fs.p, sl) && try(otherStep{kind: otherDeferred}), true
+		return try(otherStep{kind: otherDeferred, col: -1}), true
 	case t.scriptCtr(k, fs.p).has(sl):
 		return fs.ctrOther(k, t, sl, try), true
 	case t.isLifeGapAt(k, fs.p, sl):
@@ -595,7 +601,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	o := &st.other
 	switch o.kind {
 	case otherDeferred:
-		s.deferApply(k, p, st.sl) // its {R} floats as the deferred source's (mana_grantdeferred.go)
+		s.deferApply(k, p, st.sl, int(o.col)) // its {R} floats as the deferred source's (mana_grantdeferred.go); -1 the source's own colour
 	case otherAnyR:
 		var spill [kop.NumManaKinds]uint8
 		s.tapGapChoice(k, p, st.sl, slotMask{}, slotMask{}.with(st.sl), slotMask{}, int(o.ans), &spill)

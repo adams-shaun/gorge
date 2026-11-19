@@ -2221,7 +2221,7 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			}
 			continue
 		case stepDeferred:
-			s.deferApply(k, g.p, sl) // (mana_grantdeferred.go)
+			s.deferApply(k, g.p, sl, int(st.col)) // (mana_grantdeferred.go)
 			if g.tapTriggers(s, sl) {
 				passed = true
 				s.tapXNext(g.p, &d)
