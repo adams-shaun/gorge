@@ -4,6 +4,7 @@ Agoraphobia
 Ajani, Strength of the Pride
 Akroma's Will
 Alabaster Mage
+Algae Gharial
 Alpine Guide
 Angelic Voices
 Anje, Maid of Dishonor
@@ -14,11 +15,14 @@ Arctic Aven
 Artful Dodge
 Assassin Initiate
 Astral Steel
+Bag End Porter
 Barbarian Lunatic
+Benthicore
 Black Market
 Blazing Rootwalla
 Blood-Toll Harpy
 Bloodbriar
+Bloodsworn Squire
 Brainbite
 Brute Strength
 Bucky Barnes, Eager Ally
@@ -26,6 +30,7 @@ Caller of Gales
 Carnophage
 Chasm Skulker
 Cinder Storm
+Cloudgoat Ranger
 Comparative Analysis
 Consecrate
 Constricting Sliver
@@ -53,6 +58,7 @@ Elven Rite
 Emry, Lurker of the Loch
 Ensouled Scimitar
 Faerie Noble
+Feast of Worms
 Feral Roar
 Feral Shadow
 Firebolt
@@ -73,6 +79,7 @@ Gnottvold Recluse
 Goblin Razerunners
 Goblin War Cry
 God-Pharaoh's Statue
+Goldmire Bridge
 Graveborn Muse
 Grim Flowering
 Grotag Thrasher
@@ -98,6 +105,7 @@ Lay Down Arms
 Lead Astray
 Leaden Myr
 Leonin Den-Guard
+Leyline Invocation
 Life Burst
 Llanowar Loamspeaker
 Loam Lion
@@ -160,6 +168,7 @@ Sentinels of Glen Elendra
 Setessan Griffin
 Shacklegeist
 Shenanigans
+Shire Terrace
 Silkenfist Order
 Silver Seraph
 Skyclave Apparition
@@ -178,12 +187,15 @@ Sporeweb Weaver
 Squealing Devil
 Stampede Driver
 Steel Sabotage
+Stirring Wildwood
 Stormrider Spirit
 Sudden Death
 Supreme Phantom
+Surrakar Spellblade
 Surtr, Fiery Jötun
 Swamp
 Sweep Away
+Sweet-Gum Recluse
 Take Heart
 Temporary Insanity
 Tendrils of Agony
@@ -216,6 +228,7 @@ Welding Jar
 Welkin Hawk
 Wildwood Geist
 Wirewood Channeler
+Wirewood Hivemaster
 Yotian Soldier
 Zulaport Cutthroat
 Éomer of the Riddermark

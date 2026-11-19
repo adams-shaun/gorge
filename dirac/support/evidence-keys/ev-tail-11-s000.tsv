@@ -5,6 +5,7 @@ Agoraphobia	c0362c6547a16c47	16	1/1		2/2
 Ajani, Strength of the Pride	50bc14bde358cff5	4	3/3		0/1	ix:resp
 Akroma's Will	713144bd09f9b15b	3	0/0		1/2	ix:resp
 Alabaster Mage	6fd91fe59992f78f	4	1/1		0/1	ix:resp
+Algae Gharial	68801551f9998dee	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Alpine Guide	781e51c513c2a400	8	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Angelic Voices	fb3e7f2bfd83da63	6	0/0		0/0	
 Anje, Maid of Dishonor	4cecf65c497fe281	5	2/2		1/1	
@@ -15,11 +16,14 @@ Arctic Aven	d0459b30cf8ee437	10	1/1		0/1	ix:resp
 Artful Dodge	4c1e1f0c23f0f5b7	20	0/0		3/4	ix:resp
 Assassin Initiate	04076b38916ac5dc	18	1/1		1/1	
 Astral Steel	af9164a93018d1b8	11	1/1		2/2	
+Bag End Porter	f80bf1e15a1f64f9	6	1/1		0/1	ix:resp
 Barbarian Lunatic	9f7f196b1a1ffa49	4	1/1		0/1	ix:resp
+Benthicore	572216a62b964cb5	4	2/2		1/1	
 Black Market	3503895018d11120	4	2/2		1/1	
 Blazing Rootwalla	20b16c9134bda93d	10	1/1		0/1	ix:resp
 Blood-Toll Harpy	55f0e65ed949a2ee	12	1/1		0/1	ix:resp
 Bloodbriar	9841cd7c13e5ff62	3	1/1		0/1	ix:resp
+Bloodsworn Squire	f2f429a1999f235b	5	2/2		0/1	ix:resp
 Brainbite	78d8a33d163a387e	4	0/0		1/2	ix:resp
 Brute Strength	c455dca363e0e75b	12	0/0		1/2	ix:resp
 Bucky Barnes, Eager Ally	9e1d34915afe4c5d	6	1/1		0/1	ix:resp
@@ -27,6 +31,7 @@ Caller of Gales	33bf112657192c3a	14	1/1		0/1	ix:resp
 Carnophage	40c0494965bcee3a	4	1/1		0/1	ix:resp
 Chasm Skulker	14bf18d1ec069f01	10	2/2		0/1	ix:resp
 Cinder Storm	f2e8fba5862200c0	3	0/0		1/2	ix:resp
+Cloudgoat Ranger	7d91b0ce96b3f108	3	2/2		1/1	
 Comparative Analysis	2ba6ae8fec892480	3	0/0		2/4	cast/alt:surged,ix:resp
 Consecrate	93c382a6f63ee46f	5	0/0		1/3	f1/s,ix:resp
 Constricting Sliver	c88f79bb4625cbda	4	0/0		0/0	
@@ -54,6 +59,7 @@ Elven Rite	870aae0e3bd7182a	4	0/0		1/2	ix:resp
 Emry, Lurker of the Loch	7a5bec259b40fb38	13	2/2		0/1	ix:resp
 Ensouled Scimitar	c58b56193d701f7a	4	2/2		1/1	
 Faerie Noble	ead6e65b1717d1f0	7	1/1		0/1	ix:resp
+Feast of Worms	00f1747eaab461df	6	0/0		1/2	ix:resp
 Feral Roar	78dee115783e7d55	4	0/0		1/2	ix:resp
 Feral Shadow	b5ce18e0c66a9ce5	5	0/0		0/0	
 Firebolt	b754bcc4c4da15ed	6	0/0		3/4	ix:resp
@@ -74,6 +80,7 @@ Gnottvold Recluse	2301a867af1cc617	5	0/0		0/0
 Goblin Razerunners	fff96d927af7ade1	5	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Goblin War Cry	09ebbf0494eb067d	8	0/0		1/2	ix:resp
 God-Pharaoh's Statue	79f8515c522fd346	5	1/1		0/1	ix:resp
+Goldmire Bridge	fd52af0503efe9da	43	1/1		0/1	ix:resp
 Graveborn Muse	f3557497b28398a8	8	1/1		0/1	ix:resp
 Grim Flowering	cfcd189b402fbb1b	4	0/0		1/2	ix:resp
 Grotag Thrasher	3d8852e5cde97499	5	1/1		0/1	ix:resp
@@ -99,6 +106,7 @@ Lay Down Arms	f4ff2495d9884f16	3	0/0		1/2	ix:resp
 Lead Astray	62a67c3a6dd42570	4	0/0		1/2	ix:resp
 Leaden Myr	07f1dcc33bc590e0	18	1/1		0/1	ix:resp
 Leonin Den-Guard	54397908fc7a1067	12	0/0		0/0	
+Leyline Invocation	c4cba705f1adfa77	3	0/0		1/2	ix:resp
 Life Burst	e86e3b24a941a9f8	14	0/0		1/2	ix:resp
 Llanowar Loamspeaker	2b271d96f6673ffe	4	2/2		0/1	ix:resp
 Loam Lion	85abd74de3a4c7bf	10	0/0		0/0	
@@ -161,6 +169,7 @@ Sentinels of Glen Elendra	fe2d9874ab30d22d	3	0/0		0/0
 Setessan Griffin	5ed77ddf7b9b0b08	8	1/1		0/1	ix:resp
 Shacklegeist	c88cdec3eabfb513	14	1/1		0/1	ix:resp
 Shenanigans	8645f457c8e760ac	8	0/0		1/2	ix:resp
+Shire Terrace	3992121dcb4a00ff	36	2/2		0/1	ix:resp
 Silkenfist Order	6f9dd2ff0a87136a	3	1/1		0/1	ix:resp
 Silver Seraph	9f6ae210f213af99	4	0/0		0/0	
 Skyclave Apparition	0da8390d44c576b2	4	2/2		0/1	ix:resp
@@ -179,12 +188,15 @@ Sporeweb Weaver	6fe0744cc8800ad7	12	1/1		0/1	ix:resp
 Squealing Devil	e2779bbc1802d5f8	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Stampede Driver	22f5cfb18ed05955	10	1/1		0/1	ix:resp
 Steel Sabotage	7b20d4abd91b2bf7	6	0/0		1/2	ix:resp
+Stirring Wildwood	b8dca43920b65d74	40	2/2		0/1	ix:resp
 Stormrider Spirit	b6cd2a0612abfa7d	7	0/0		0/0	
 Sudden Death	66525929728d5efd	5	0/0		1/2	ix:resp
 Supreme Phantom	a90c4fb86edb1186	6	0/0		0/0	
+Surrakar Spellblade	b659d7ed12871b04	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Surtr, Fiery Jötun	84c5e0d1d42ce120	4	1/1		0/1	ix:resp
 Swamp	342b413902f441c3	1356	1/1		0/1	ix:resp
 Sweep Away	aca928a9cc6e3c7b	9	0/0		1/2	ix:resp
+Sweet-Gum Recluse	b2456dbc7b2d3fb4	6	1/1		1/1	
 Take Heart	b57ca654b18d9b4e	8	0/0		1/2	ix:resp
 Temporary Insanity	223364774de499b5	3	0/0		1/2	ix:resp
 Tendrils of Agony	17a91375b71ed59f	8	1/1		2/2	
@@ -217,6 +229,7 @@ Welding Jar	76e697325838b1d8	6	1/1		0/1	ix:resp
 Welkin Hawk	7c9bee4cbbaaae76	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Wildwood Geist	7c16c6ca64a97390	6	0/0		0/0	
 Wirewood Channeler	de85bc9406a9cfd7	6	1/1		0/1	ix:resp
+Wirewood Hivemaster	e3638874001c5f49	9	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Yotian Soldier	62217f3af78ebea0	7	0/0		0/0	
 Zulaport Cutthroat	0ff81874c3e406d4	9	1/1		0/1	ix:resp
 Éomer of the Riddermark	a24361c6036f9b8d	5	1/1		0/1	ix:resp

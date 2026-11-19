@@ -44,6 +44,7 @@ Bog Tatters
 Bogstomper
 Boseiju Reaches Skyward
 Bountiful Promenade
+Break Down
 Brightstone Ritual
 Brotherhood Vertibird
 Brutal Deceiver
@@ -70,6 +71,7 @@ Concordia Pegasus
 Conductor of Cacophony
 Constant Mists
 Contagion Clasp
+Contested War Zone
 Crawling Chorus
 Crimson Kobolds
 Crumbling Ashes
@@ -141,6 +143,7 @@ Grave Venerations
 Gray Merchant of Asphodel
 Great Sable Stag
 Greatsword
+Gruul Turf
 Guard Gomazoa
 Guild Artisan
 Halo Hopper
@@ -338,10 +341,12 @@ The Meathook Massacre
 Thornglint Bridge
 Thraben Inspector
 Thragtusk
+Tidal Barracuda
 Tithebearer Giant
 Towashi Guide-Bot
 Tradewind Rider
 Travel Preparations
+Trollbred Guardian
 Twilight Prophet
 Undead Butler
 Undergrowth Scavenger
@@ -361,6 +366,7 @@ Wayfaring Giant
 Wei Elite Companions
 White Glove Gourmand
 Wicker Witch
+Wielding the Green Dragon
 Wildfire Emissary
 Will-o'-the-Wisp
 Witch's Cauldron

@@ -83,6 +83,7 @@ Definitely Not a Turtle
 Dementia Bat
 Demonic Tutor
 Demystify
+Dismiss
 Dormant Sliver
 Drana, Liberator of Malakir
 Draugr Thought-Thief
@@ -224,6 +225,7 @@ Mistcutter Hydra
 Misthios's Fury
 Mistmeadow Skulk
 Monstrous Hound
+Morbid Bloom
 Mortician Beetle
 Mountain
 Mukotai Soulripper
@@ -316,6 +318,7 @@ Spontaneous Flight
 Squall Line
 Stampeding Horncrest
 Star of Extinction
+Steady Progress
 Steel Golem
 Steeple Roc
 Storm Crow

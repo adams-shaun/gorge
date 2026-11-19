@@ -1,13 +1,16 @@
 Aeolipile
 Aeronaut's Wings
 Alabaster Wall
+Amulet of Kroog
 Annoyed Altisaur
 Atarka Beastbreaker
 Blood Age General
 Book of Rass
+Bull Hippo
 Capenna Express
 Cast Down
 Cateran Enforcer
+Chatter of the Squirrel
 Clot Sliver
 Cold Storage
 Dark Betrayal
@@ -21,11 +24,14 @@ Feral Ridgewolf
 Forest
 Forget
 Fourth Bridge Prowler
+Frogtosser Banneret
 Ghastly Demise
 Goblin Hero
+Goblin Tutor
 Goliath, Mass Manipulator
 Harmonic Sliver
 Haunted Cloak
+Heroic Charge
 Howlpack Resurgence
 Hyalopterous Lemure
 Irini Sengir
@@ -39,6 +45,8 @@ Liliana's Devotee
 Loam Lion
 Loathsome Catoblepas
 Magma Phoenix
+Magus of the Candelabra
+Mandibular Kite
 Merrow Bonegnawer
 Metallic Mastery
 Mind Drain
@@ -47,16 +55,20 @@ Mountain
 Nephalia Smuggler
 Nyxborn Marauder
 Oashra Cultivator
+Phantasmal Sphere
 Plains
 Psychic Spear
 Raiding Nightstalker
+Rakshasa's Secret
 Raving Oni-Slave
 Rhox Brute
+Rofellos, Llanowar Emissary
 Rust Monster
 Saddleback Lagac
 Salt Marsh
 Sandstone Warrior
 Seismic Strike
+Shanna, Sisay's Legacy
 Slaughter Cry
 Swamp
 Toph, Greatest Earthbender
@@ -65,6 +77,8 @@ Umbral Juke
 Unholy Grotto
 Valley Rannet
 Viashivan Dragon
+Viridian Zealot
 Wander in Death
+Warleader's Helix
 Wilderness Elemental
 Windreader Sphinx

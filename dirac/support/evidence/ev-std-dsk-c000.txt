@@ -1,12 +1,14 @@
 Acrobatic Cheerleader
 Boilerbilges Ripper
 Broodspinner
+Cackling Slasher
 Cautious Survivor
 Clockwork Percussionist
 Conductive Machete
 Cursed Recording
 Cursed Windbreaker
 Dazzling Theater
+Demonic Counsel
 Disturbing Mirth
 Diversion Specialist
 Don't Make a Sound
@@ -18,6 +20,7 @@ Exorcise
 Fanatic of the Harrowing
 Fear of Being Hunted
 Fear of Burning Alive
+Fear of Lost Teeth
 Fear of Missing Out
 Final Vengeance
 Forest
@@ -43,6 +46,7 @@ Mirror Room
 Mountain
 Murder
 Murky Sewer
+Neglected Manor
 Norin, Swift Survivalist
 Paranormal Analyst
 Peculiar Lighthouse
@@ -65,9 +69,11 @@ The Swarmweaver
 Threats Around Every Corner
 Turn Inside Out
 Unable to Scream
+Undead Sprinter
 Unnerving Grasp
 Untimely Malfunction
 Vanish from Sight
 Veteran Survivor
+Vile Mutilator
 Waltz of Rage
 Wildfire Wickerfolk

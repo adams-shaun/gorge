@@ -58,12 +58,14 @@ Chainweb Aracnir
 Change the Equation
 Chaos Lord
 Chaotic Backlash
+Chord of Calling
 Clear a Path
 Clip Wings
 Colossal Dreadmaw and Storm Crow
 Continue?
 Crackling Drake
 Creeping Corrosion
+Crookclaw Elder
 Crosstown Courier
 Cunning Survivor
 Curiosity Crafter
@@ -96,6 +98,7 @@ Drossclaw
 Drown in Dreams
 Dualcaster Mage
 Dune Mover
+Duplicant
 Easy Prey
 Elvish Dreadlord
 Emperor Crocodile
@@ -105,6 +108,7 @@ Ethereal Investigator
 Evolving Adaptive
 Faerie Noble
 Falkenrath Marauders
+Familiar's Ruse
 Farewell
 Fateful Showdown
 Feral Instinct

@@ -6,6 +6,7 @@ All That Glitters
 Angel of Condemnation
 Angelic Renewal
 Arcbound Shikari
+Ashen Firebeast
 Ashmouth Hound
 Atog
 Baleful Beholder
@@ -152,6 +153,7 @@ Nebelgast Intruder
 Needleshot Gourna
 Needletooth Raptor
 Norwood Warrior
+Nuclear Fallout
 Ogre Recluse
 Opaline Sliver
 Ordeal of Thassa
@@ -178,6 +180,7 @@ Revive
 Rise of the Hobgoblins
 Ritual of Steel
 Rooftop Bypass
+Root-Kin Ally
 Rouse
 Run for Your Life
 Rustvale Bridge
@@ -194,6 +197,11 @@ Shu Soldier-Farmers
 Sigiled Contender
 Skirk Drill Sergeant
 Skull Fracture
+Snow-Covered Forest
+Snow-Covered Island
+Snow-Covered Mountain
+Snow-Covered Plains
+Snow-Covered Swamp
 Social Climber
 Spiteful Bully
 Starlight
@@ -213,6 +221,7 @@ Tainted Peak
 Temperamental Oozewagg
 Tenacity
 The Rack
+The Weaver King
 Thorn of Amethyst
 Thresher Lizard
 Thundering Djinn
@@ -235,6 +244,7 @@ Vibrating Sphere
 Vincent, Vengeful Atoner
 Vitalize
 Voltaic Servant
+Vraska, Scheming Gorgon
 Whiptongue Hydra
 Windreaver
 Witness of the Ages

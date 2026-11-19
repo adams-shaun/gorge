@@ -10,6 +10,7 @@ Aligned Heart
 Altar of Bhaal
 Amazing Alliance
 Ambush
+An-Havva Inn
 Aragorn and Arwen, Wed
 Argivian Blacksmith
 Ark of Blight
@@ -18,6 +19,7 @@ Atsushi, the Blazing Sky
 Attended Knight
 Augur il-Vec
 Aura Blast
+Avabruck Caretaker
 Avenging Hunter
 Awakening Zone
 Azra Smokeshaper
@@ -26,11 +28,13 @@ Barbtooth Wurm
 Bastion Enforcer
 Beetleback Chief
 Benthic Biomancer
+Bootleggers' Stash
 Bottle-Cap Blast
 Briarbridge Tracker
 Broken Fall
 Bumbling Pangolin
 Butcher's Glee
+Canopy Gorger
 Carrion Ants
 Cartouche of Knowledge
 Centaur Garden
@@ -41,14 +45,18 @@ Churning Eddy
 Clattering Augur
 Cloakwood Swarmkeeper
 Cogwork Spy
+Concord with the Kami
 Confound
 Consider
+Consign
 Contingency Plan
 Covert Operative
+Crackling Doom
 Crested Herdcaller
 Crimson Hellkite
 Crush of Wurms
 Curious Killbot
+Daggerdrome Imp
 Daredevil, Fearless Fighter
 Daring Apprentice
 Davriel's Shadowfugue
@@ -63,6 +71,7 @@ Devouring Deep
 Diminish
 Disturbed Burial
 Dreadmalkin
+Duskworker
 Elemental Summoning
 Ellyn Harbreeze, Busybody
 Endless Cockroaches
@@ -72,6 +81,7 @@ Exuberant Wolfbear
 Eyeblight's Ending
 False Mourning
 Fangren Hunter
+Farfinder
 Farmstead
 Feast of Succession
 Filigree Crawler
@@ -79,15 +89,18 @@ Fire Whip
 Fireblade Artist
 Fires of Victory
 Firewing Phoenix
+Fleetwheel Cruiser
 Font of Progress
 Force of Vigor
 Forest
 Fortress Cyclops
 Furious Assault
+Ghost-Lit Raider
 Gift of Granite
 Gift of Wrath
 Gilt-Blade Prowler
 Gobbling Ooze
+Goblin Champion
 Goblin Chariot
 Goblin Chieftain
 Goblin War Drums
@@ -95,8 +108,10 @@ Goldnight Commander
 Gravel-Hide Goblin
 Grimdancer
 Grisly Spectacle
+Guardian Seraph
 Hanabi Blast
 Harsh Scrutiny
+Harvesttide Sentry
 Hatchery Spider
 Hawkeye, Trick Shot
 Heartless Pillage
@@ -105,6 +120,7 @@ Howlpack Wolf
 Huatli's Raptor
 Hungering Hydra
 Hunted Ghoul
+Hunting Moa
 Ifh-Bíff Efreet
 Ihsan's Shade
 Imaginary Friends
@@ -134,6 +150,8 @@ Krosan Archer
 Leech Gauntlet
 Lingering Phantom
 Llawan, Cephalid Empress
+Lumbering Satyr
+Magma Sliver
 Makindi Aeronaut
 Mana Prism
 Mardu Outrider
@@ -142,6 +160,7 @@ Maximize Velocity
 Mending Touch
 Mercenary Informer
 Merfolk of the Depths
+Meriadoc Brandybuck
 Mesa Unicorn
 Mindeye Drake
 Mirkwood Channeler
@@ -158,7 +177,9 @@ Nagao, Bound by Honor
 Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
+Nekrataal
 Nightshade Harvester
+Nissa, Resurgent Animist
 Ogre Menial
 One with Nature
 Ongoing Investigation
@@ -190,6 +211,7 @@ Prince Imrahil the Fair
 Prismari Apprentice
 Ravenous Lindwurm
 Razor Swine
+Reckless Pangolin
 Reforge the Soul
 Relic Barrier
 Relic Robber
@@ -202,6 +224,7 @@ Rhovanion Rampager
 Rhystic Study
 Rogue Refiner
 Safe Haven
+Safehold Sentry
 Sage's Row Denizen
 Sandstorm
 Savage Silhouette
@@ -215,6 +238,7 @@ Shatterskull Recruit
 Sheltering Light
 Sigardian Priest
 Sigiled Paladin
+Simic Signet
 Sip of Hemlock
 Skirk Commando
 Skittering Crustacean
@@ -237,20 +261,24 @@ Star Pupil
 Steely Resolve
 Stern Scolding
 Stitched Mangler
+Stolen Grain
 Stormscape Master
 Stream of Consciousness
 Strength of the Pack
 Struggle for Skemfar
+Stun Sniper
 Stupor
 Sunweb
 Survivor of Korlis
 Sutina, Speaker of the Tajuru
 Swamp
 Swordwise Centaur
+Syndicate Messenger
 Syphon Life
 Tarfire
 Tavern Swindler
 Teardrop Kami
+Tectonic Rift
 Teetering Peaks
 Teroh's Faithful
 Thalakos Sentry
@@ -258,27 +286,34 @@ Thanos, Death's Consort
 Thassa's Rebuff
 The Falcon, Airship Restored
 Thistledown Duo
+Timber Protector
 Timeless Lotus
 Titans' Vanguard
 Towering Viewpoint
 Town Gossipmonger
 Trading Post
+Turn Aside
 Unbreakable Formation
 Uninvited Geist
+Unstable Frontier
 Vampire Revenant
 Viashino Runner
 Viridian Corrupter
 Viscerid Deepwalker
 Vizier of the Scorpion
+Volatile Rig
 Volcanic Spite
+Volcano Imp
 Vrock
 Wakandan Tusker
 Ward Sliver
 Waterlogged Teachings
+Wave of Terror
 Whelming Wave
 Whiptail Wurm
 Whirlwind Technique
 Wildest Dreams
+Wrack with Madness
 Wretched Anurid
 Wrong Turn
 Wu Longbowman

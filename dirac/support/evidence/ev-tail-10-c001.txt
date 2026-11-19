@@ -12,6 +12,7 @@ Aether Swooper
 Agent of the Fates
 Airdrop Aeronauts
 Alpine Grizzly
+Alpine Houndmaster
 Amphin Pathmage
 Anax, Hardened in the Forge
 Angel of Light
@@ -410,7 +411,9 @@ Tempting Witch
 Terror of the Fairgrounds
 The Locust God
 The Mirari Conjecture
+The Seedcore
 Thornscape Familiar
+Thrilling Discovery
 Tireless Tribe
 Torch Gauntlet
 Transcendent Envoy
