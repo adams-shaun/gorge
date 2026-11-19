@@ -1236,11 +1236,18 @@ func (s *State) unlessTapsDeferred(k *prep, p uint8) bool {
 // the rest cannot cover the cost: gorge's unlessWindowUnits lists it, so the
 // pay is offered (CR 118.3, 605.3b). So does it tap a fixed counter-fee
 // source the census prices (unlessCtrGaps, Weather Maker), whose activation
-// the windowPick census arm takes (ctrCensusOffer).
+// the windowPick census arm takes (ctrCensusOffer). So does it take a
+// first-only filter the unless census prices (scriptFilt: Apprentice
+// Wizard's "{U}, {T}: Add {C}{C}{C}"), whose fee the walk pays from the
+// floating mana an earlier same-window activation produced (gorge's
+// unlessWindowUnits' literal-mana-fee arm and UnlessManaReachable's fee
+// transition, CR 605.3b) -- without the disjunct the gate offers decline
+// only where gorge's census prices the source and this walk proves the
+// chain (kfuzz pair 25 of dr-mbc-baab).
 func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred, unless bool) (bool, uint8) {
 	s.setUnlessWin(unless)
 	defer s.setUnlessWin(false)
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || s.riderOfferable(k, p, takeDeferred)) {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || takeDeferred && k.gen.anyFiltFirst && s.scriptFilt(k, p).any() || s.riderOfferable(k, p, takeDeferred)) {
 		return false, 0
 	}
 	t := s.fork()
