@@ -47,7 +47,15 @@ func (s *State) fireBlockedGen(k *prep) {
 				if a.Trig.Flags2&kop.Tf2BlockedBySelf != 0 && !s.blocks(l.sl, as) {
 					continue
 				}
+				n0 := s.npend
 				s.objTrigGen(k, kop.TrigBecomesBlocked, l, a, as, s.perms[as].obj, s.perms[as].ctrl, 0)
+				if !s.duel() {
+					// the attacker's defending seat: a block trigger's source is
+					// the Aura/creature the trigger sits on, not the attacker, so
+					// RefDefendingPlayer and defendingSeatF2 need the seat bound
+					// here as an Attacks trigger's is (combat.go fireAttacksGen).
+					s.stampDefSeat(n0, s.atkSeat(k, as))
+				}
 			}
 		})
 	}
@@ -115,6 +123,10 @@ func (s *State) firePairTrig(k *prep, l trigListener, a *kop.Ability, ps []blkPa
 		if l.sl == b {
 			other = at
 		}
+		n0 := s.npend
 		s.objTrigGen(k, kop.TrigBecomesBlocked, l, a, at, s.perms[other].obj, s.perms[other].ctrl, 0)
+		if !s.duel() {
+			s.stampDefSeat(n0, s.atkSeat(k, at))
+		}
 	}
 }
