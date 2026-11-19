@@ -80,10 +80,25 @@ func hogaakCastOption(t *testing.T, e *Engine, id state.ObjID) (decision.Option,
 // cast-flow choose.
 func answerHogaakAsks(t *testing.T, e *Engine, genericWanted int) {
 	t.Helper()
+	answerHogaakAsksPlan(t, e, []byte{'B', 'G'}, genericWanted)
+}
+
+// answerHogaakAsksPlan drives the pending cast-flow asks with an explicit
+// announcement plan: one convoke_<c> contribution per entry of colors (from
+// distinct creatures), then genericWanted generic contributions, then the
+// pip faces (index 0) and the delve exiles the Min forces. Each pip ask's
+// offered option kinds are appended to the returned slice, so a test can pin
+// which faces the payment offered and which it refused (an empty-menu
+// defensive arm offers the first alternative whatever it covers -- a menu
+// the feasibility gate did not build). Stops when the pending decision is no
+// longer a cast-flow choose.
+func answerHogaakAsksPlan(t *testing.T, e *Engine, colors []byte, genericWanted int) [][]string {
+	t.Helper()
+	var pipMenus [][]string
 	for i := 0; i < 16; i++ {
 		d := e.Pending()
 		if d == nil || d.Kind != decision.KChoose {
-			return
+			return pipMenus
 		}
 		kind := ""
 		if len(d.Options) > 0 {
@@ -93,20 +108,23 @@ func answerHogaakAsks(t *testing.T, e *Engine, genericWanted int) {
 		case strings.HasPrefix(kind, "convoke_"), kind == "harmonize", kind == "improvise_generic":
 			used := map[state.ObjID]bool{}
 			var choices []int
-			// One colour contribution per hybrid pip colour, from distinct
-			// creatures of that colour.
-			for _, c := range []byte{'B', 'G'} {
+			for _, c := range colors {
+				picked := false
 				for _, o := range d.Options {
 					if o.Kind == "convoke_"+string(c) && !used[o.Obj] {
 						used[o.Obj] = true
 						choices = append(choices, o.Index)
+						picked = true
 						break
 					}
+				}
+				if !picked {
+					t.Fatalf("the convoke ask lacks a %c contribution: %+v", c, d.Options)
 				}
 			}
 			// genericWanted generic contributions from the rest.
 			for _, o := range d.Options {
-				if len(choices) >= 2+genericWanted {
+				if len(choices) >= len(colors)+genericWanted {
 					break
 				}
 				if o.Kind == "convoke_generic" && !used[o.Obj] {
@@ -114,13 +132,18 @@ func answerHogaakAsks(t *testing.T, e *Engine, genericWanted int) {
 					choices = append(choices, o.Index)
 				}
 			}
-			if len(choices) < 2+genericWanted {
+			if len(choices) < len(colors)+genericWanted {
 				t.Fatalf("the convoke ask lacks a covering answer: %+v", d.Options)
 			}
 			submitChoices(t, e, choices...)
 		case strings.HasPrefix(kind, "pay_"):
 			// A pip face: the first feasible one (its colour contribution
 			// covers it).
+			kinds := make([]string, 0, len(d.Options))
+			for _, o := range d.Options {
+				kinds = append(kinds, o.Kind)
+			}
+			pipMenus = append(pipMenus, kinds)
 			submitChoices(t, e, 0)
 		case kind == "exile":
 			// Delve: the shortfall the Min forces.
@@ -130,10 +153,25 @@ func answerHogaakAsks(t *testing.T, e *Engine, genericWanted int) {
 			}
 			submitChoices(t, e, choices...)
 		default:
-			return
+			return pipMenus
 		}
 	}
 	t.Fatalf("the cast-flow asks did not settle in 16 answers")
+	return nil
+}
+
+// hogaakWantMenus asserts the cast's pip asks offered exactly the wanted
+// option kinds, in order.
+func hogaakWantMenus(t *testing.T, got [][]string, want ...[]string) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("%d pip menus, want %d: %v", len(got), len(want), got)
+	}
+	for i := range want {
+		if strings.Join(got[i], ",") != strings.Join(want[i], ",") {
+			t.Fatalf("pip %d offered %v, want %v", i, got[i], want[i])
+		}
+	}
 }
 
 func TestHogaakCastOnlyByConvokeAndDelve(t *testing.T) {
@@ -150,7 +188,13 @@ func TestHogaakCastOnlyByConvokeAndDelve(t *testing.T) {
 		t.Fatalf("Hogaak not offered with convoke and delve credits: %+v", e.Pending().Options)
 	}
 	submitChoices(t, e, opt.Index)
-	answerHogaakAsks(t, e, 3)
+	// One black and one green contribution: each pip has a completing face
+	// (the other pip takes the other credit), so pip 0 offers both, and after
+	// pip 0 announced black only the green face of pip 1 completes -- the
+	// uncovered black is refused, not silently offered by the empty-menu
+	// defensive arm.
+	menus := answerHogaakAsksPlan(t, e, []byte{'B', 'G'}, 3)
+	hogaakWantMenus(t, menus, []string{"pay_B", "pay_G"}, []string{"pay_G"})
 	drainStack(t, e, 24)
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("Hogaak not on the battlefield after the cast: %+v", o)
@@ -200,6 +244,53 @@ func TestHogaakCastOnlyByConvokeAndDelve(t *testing.T) {
 	}
 	if p := e.G.Players[0].Pool; p.Total() != 1 || p[state.MG] != 1 {
 		t.Fatalf("pool after the cast = %v, want the floating {G} untouched", p)
+	}
+	replayCheck(t, e, cfg)
+
+	// Both pips announced at one colour face. Two green contributions cover
+	// both {B/G} pips (CR 702.51a's pip absorption: an unresolved hybrid pip
+	// is exactly one unit a convoke creature of its colour pays), so every
+	// pip menu offers green and only green -- the announceFeasible
+	// composition must fold the credits into the unresolved pips the same way
+	// the Submit gate did. A composition that drops a credit whose colour
+	// unit is still unresolved leaves both faces unpayable, the menu falls to
+	// the defensive arm's uncovered alternative, and the cast aborts at
+	// payCast -- an offered payment whose completion is refused.
+	e, cfg, id, _ = hogaakBoard(t, 3, 2, 2)
+	toMain1(t, e)
+	opt, ok = hogaakCastOption(t, e, id)
+	if !ok {
+		t.Fatalf("Hogaak not offered with two green contributions: %+v", e.Pending().Options)
+	}
+	submitChoices(t, e, opt.Index)
+	menus = answerHogaakAsksPlan(t, e, []byte{'G', 'G'}, 3)
+	hogaakWantMenus(t, menus, []string{"pay_G"}, []string{"pay_G"})
+	drainStack(t, e, 24)
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("Hogaak not on the battlefield after the all-green cast: %+v", o)
+	}
+	if p := e.G.Players[0].Pool; p.Total() != 0 {
+		t.Fatalf("pool after the all-green cast = %v, want empty", p)
+	}
+	replayCheck(t, e, cfg)
+
+	// The same at black: two black contributions cover both pips at their
+	// black faces, and no green face is ever offered.
+	e, cfg, id, _ = hogaakBoard(t, 2, 3, 2)
+	toMain1(t, e)
+	opt, ok = hogaakCastOption(t, e, id)
+	if !ok {
+		t.Fatalf("Hogaak not offered with two black contributions: %+v", e.Pending().Options)
+	}
+	submitChoices(t, e, opt.Index)
+	menus = answerHogaakAsksPlan(t, e, []byte{'B', 'B'}, 3)
+	hogaakWantMenus(t, menus, []string{"pay_B"}, []string{"pay_B"})
+	drainStack(t, e, 24)
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("Hogaak not on the battlefield after the all-black cast: %+v", o)
+	}
+	if p := e.G.Players[0].Pool; p.Total() != 0 {
+		t.Fatalf("pool after the all-black cast = %v, want empty", p)
 	}
 	replayCheck(t, e, cfg)
 

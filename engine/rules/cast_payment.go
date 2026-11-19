@@ -321,15 +321,15 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	// above), so their slots leave the cost; the pips after payIdx stay live
 	// for the shared primitive to enumerate. The zero-spend shape's pricing
 	// (stat:ManaRestriction, Hogaak) folds the announced Convoke
-	// contributions in first: with no mana left to spend, a pip face is
-	// offered exactly when the credits -- this announcement plus the Delve
-	// potential below -- cover the remaining requirement, and an unfolded
-	// check would refuse every face of a cast whose pips are only ever
-	// payable by the credits.
-	if pc.noMana {
-		c = e.applyConvoke(pc, c)
-	}
+	// contributions in AFTER that drop, over the pips still left to resolve:
+	// with no mana left to spend, a pip face is offered exactly when the
+	// credits -- this announcement plus the Delve potential below -- cover
+	// the remaining requirement, and an unfolded check would refuse every
+	// face of a cast whose pips are only ever payable by the credits.
 	c = c.DropAnnouncePrefix(pc.PayIdx + 1)
+	if pc.noMana {
+		c = noManaConvokeFold(pc, c)
+	}
 	payment := paymentForCast(pc, c)
 	rider := pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}
 	if e.manaFeasibleDescriptor(pc.player, payment, c, pc.mods, pc.taxGeneric, delve, rider) {

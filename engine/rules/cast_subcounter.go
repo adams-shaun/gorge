@@ -627,9 +627,11 @@ func (e *Engine) delveAsk() bool {
 	// the shortfall is real. delveDone stays unset, so the re-entry after the
 	// exile picks falls through here to the asks that follow. The zero-spend
 	// shape's cast (stat:ManaRestriction, Hogaak) defers the same way over a
-	// hybrid pip: its pip can only ever be paid at its two-generic face (the
-	// colour face has no non-mana payment), so the shortfall is not real
-	// until the pip faces are announced either.
+	// hybrid pip: a convoke colour contribution covers the pip's face
+	// (convokeAsk offers the colour options and announceFeasible's fold
+	// absorbs the pip), so how many credits the unresolved pips still eat --
+	// and with them what generic is left for Delve -- is not real until the
+	// pip faces are announced either.
 	if !pc.isAbility() && e.hasCastDelve(pc.card, false) &&
 		(len(pc.cost.DropAnnouncePrefix(pc.PayIdx).Twobrid) > 0 ||
 			pc.noMana && len(pc.cost.DropAnnouncePrefix(pc.PayIdx).Hybrid) > 0) {

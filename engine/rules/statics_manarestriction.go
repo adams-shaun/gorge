@@ -80,10 +80,11 @@ type manaSpendOfferBoard interface {
 // potential alone, with no mana at any point? The coloured requirement is
 // matched against the untapped creatures (the announcement's taps) by
 // maximum bipartite matching -- a hybrid pip accepts either of its colours
-// (CR 702.51a: the creature pays "one mana of that creature's colour"), a
-// plain pip its own colour and a twobrid pip its colour or two generic --
-// and every unmatched creature then gives one generic; the remaining generic
-// is the Delve potential's to cover, and any leftover refuses. Components
+// (CR 702.51a: the creature pays "one mana of that creature's colour") and a
+// plain pip its own colour, while a twobrid pip counts only at its
+// two-generic face -- and every unmatched creature then gives one generic;
+// the remaining generic is the Delve potential's to cover, and any leftover
+// refuses. Components
 // the credit cannot price (an unfixed {X}, a Phyrexian or hybrid-Phyrexian
 // pip, snow mana) refuse outright, the same fail-closed arm the offer gate
 // withholds on. A waterbend tap credit is not modelled (no corpus carrier),
@@ -107,8 +108,18 @@ func manaSpendOfferCovers(e manaSpendOfferBoard, p state.PlayerID, id state.ObjI
 	for _, hp := range c.Hybrid {
 		slots = append(slots, slot{colors: string(hp.A) + string(hp.B)})
 	}
-	for _, tb := range c.Twobrid {
-		slots = append(slots, slot{colors: string(tb.Col), generic: 2})
+	// A twobrid pip stays at its two-generic face. Its colour face is NOT
+	// offerable: convokeAsk's zero-spend colour options enumerate the
+	// unresolved HYBRID pips only (cast_payment.go's convokeAsk), so no
+	// colour contribution can ever be announced against a twobrid pip, and
+	// crediting the colour face here would promise a payment the
+	// announcement cannot make -- the offer would open a cast whose
+	// announcement is refused. delveAsk reserves the pip at the same
+	// two-generic face, so the Delve potential alone must cover it. No corpus
+	// carrier pairs the zero-spend shape with a twobrid pip, so this is the
+	// conservative reading until one exists.
+	for range c.Twobrid {
+		slots = append(slots, slot{generic: 2})
 	}
 	// The candidates are the untapped creatures the convoke announcement can
 	// tap -- the same eligibility convokeCountCredit prices with (CR

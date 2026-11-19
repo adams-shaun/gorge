@@ -1072,6 +1072,61 @@ func (e *Engine) applyConvoke(pc *pendingCast, m Cost) Cost {
 	return m
 }
 
+// noManaConvokeFold composes the zero-spend shape's announced Convoke
+// contributions into the cast's cost (stat:ManaRestriction, Hogaak) with the
+// CR 702.51a unresolved-pip absorption convokeAbsorbs and
+// manaSpendConvokeCovers encode: a colour contribution pays one Colored unit
+// of its colour when the composition still carries one -- the resolved faces
+// of the announced pips and the candidate face announceFeasible folded in --
+// and otherwise covers one hybrid pip STILL AWAITING ITS PIP MENU, the only
+// payment such a pip has on a cast that may not spend mana. Call it only
+// after DropAnnouncePrefix has removed the announced pips, so an absorption
+// can never eat a pip whose resolved face a Colored unit already stands for.
+// Plain applyConvoke is exactly right at payCast's charge, where every pip
+// face is resolved and the credits decrement them; here an unabsorbed credit
+// pays nothing, the composition keeps a requirement the Submit gate
+// (manaSpendConvokeCovers) validated as covered, and manaAsk prices every
+// face of the remaining pips as unpayable -- an offered payment whose
+// completion is refused, the rewind the offer gate exists to prevent. The
+// arithmetic mirrors manaSpendConvokeCovers's fold over exactly the payments
+// that gate judged, and leaves whatever the credits do not cover to the
+// feasibility walk's refusal (the offer gate withheld any component the
+// arithmetic cannot price: an unfixed {X}, a Phyrexian or hybrid-Phyrexian
+// pip, snow mana).
+func noManaConvokeFold(pc *pendingCast, c Cost) Cost {
+	for _, pay := range pc.Convoke {
+		if pay.Color != 0 {
+			i := state.ManaIndex(pay.Color)
+			if c.Colored[i] > 0 {
+				c.Colored[i]--
+				continue
+			}
+			for j, p := range c.Hybrid {
+				if p.A == pay.Color || p.B == pay.Color {
+					// A fresh slice: c.Hybrid may still share its backing
+					// array with pc.cost.Hybrid, and a shifting removal in
+					// place would corrupt the composed total manaToPay reads.
+					hy := make([]ManaPair, 0, len(c.Hybrid)-1)
+					hy = append(hy, c.Hybrid[:j]...)
+					hy = append(hy, c.Hybrid[j+1:]...)
+					c.Hybrid = hy
+					break
+				}
+			}
+			continue
+		}
+		reduce := pay.Power
+		if reduce <= 0 {
+			reduce = 1
+		}
+		c.Generic -= reduce
+		if c.Generic < 0 {
+			c.Generic = 0
+		}
+	}
+	return c
+}
+
 // convokeCountCredit reduces composed cost m by the largest payment the
 // caster's permanents can actually make through Convoke (CR 702.51),
 // Harmonize (CR 702.46) or Improvise (CR 702.66) right now. It exists so a
