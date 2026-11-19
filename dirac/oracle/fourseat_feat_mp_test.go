@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/adams-shaun/gorge/bots/policynet"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/dirac/vanilla"
@@ -15,6 +16,7 @@ import (
 // seat blocks, the bags and entity lists over every other seat, the option
 // rows' relative-seat one-hot) equal policynet's encoding of gorge's view.
 // Random and heuristic policies, so attacks at each defender are reached.
+// Every game is compared under FeaturesEntity and under FeaturesPod.
 func TestFeatFourSeatVanilla(t *testing.T) {
 	t.Parallel()
 
@@ -26,7 +28,11 @@ func TestFeatFourSeatVanilla(t *testing.T) {
 	mk := RealKernel(vanilla.Table, nil, Config{})
 	n := len(vanilla.Decks)
 	var total FeatStats
-	for g := 0; g < 8; g++ {
+	for gi := 0; gi < 16; gi++ {
+		g, fs := gi%8, policynet.FeaturesEntity
+		if gi >= 8 {
+			fs = policynet.FeaturesPod
+		}
 		seats := 3 + g%2
 		labels := make([]string, seats)
 		decks := make([][]kop.CardID, seats)
@@ -48,15 +54,15 @@ func TestFeatFourSeatVanilla(t *testing.T) {
 		if g%4 >= 2 {
 			pol = HeuristicPolicy(seed)
 		}
-		res := Lockstep(m, seed, k, pol, RunConfig{MaxDecisions: 4000, MaxTurns: 40, Check: FeatCheck(pool, &st)})
+		res := Lockstep(m, seed, k, pol, RunConfig{MaxDecisions: 4000, MaxTurns: 40, Check: FeatCheckFS(pool, &st, fs)})
 		CloseSide(k)
 		total.Decisions += st.Decisions
 		total.Options += st.Options
 		if d := res.Div; d != nil {
-			t.Errorf("game %d (%d seats): after %d compared decisions: %s %s: %s", g, seats, st.Decisions, d.What, d.Field, d.Detail)
+			t.Errorf("game %d (%d seats, %s): after %d compared decisions: %s %s: %s", g, seats, fs, st.Decisions, d.What, d.Field, d.Detail)
 		}
 	}
-	if total.Decisions < 500 {
+	if total.Decisions < 1000 {
 		t.Fatalf("compared only %d decisions", total.Decisions)
 	}
 	t.Logf("compared %d decisions, %d options", total.Decisions, total.Options)
@@ -174,7 +180,7 @@ func TestFeatFourSeatHundred(t *testing.T) {
 }
 
 // TestFeatFourSeatCommanderPods is TestFeatFourSeatVanilla over four-seat
-// Commander pods: the cmd5 decks cut to 40 cards (MiniCommanderDeck), as
+// Commander pods, each under FeaturesEntity and FeaturesPod: the cmd5 decks cut to 40 cards (MiniCommanderDeck), as
 // kfuzz -kernel cmd5 -seats 4 -cmd-mini 40 plays them, with FeatCheck on, so
 // the Commander block (commander damage per relative seat, casts, the
 // commander on the battlefield, the left-the-game bit) and the command zone
@@ -200,7 +206,11 @@ func TestFeatFourSeatCommanderPods(t *testing.T) {
 	}
 	var total FeatStats
 	pods := 0
-	for _, i := range []int{0, 1, 2, 3, 5, 6, 8, 10} {
+	for pi, i := range []int{0, 1, 2, 3, 5, 6, 8, 10, 0, 1, 2, 3, 5, 6, 8, 10} {
+		fs := policynet.FeaturesEntity
+		if pi >= 8 {
+			fs = policynet.FeaturesPod
+		}
 		p := PodAt(pool, i, 1, 4)
 		m, tbl, err := SetMatchupN(set, c, p.Decks(), 0)
 		if err != nil {
@@ -211,7 +221,7 @@ func TestFeatFourSeatCommanderPods(t *testing.T) {
 			t.Fatal(err)
 		}
 		var st FeatStats
-		rc := RunConfig{MaxDecisions: 3000, MaxTurns: 60, Check: FeatCheck(fp, &st)}
+		rc := RunConfig{MaxDecisions: 3000, MaxTurns: 60, Check: FeatCheckFS(fp, &st, fs)}
 		k, err := SetSide(set, tbl, rc.Config)(m, p.Seed)
 		if err != nil {
 			t.Fatalf("pod %d: %v", i, err)
@@ -227,14 +237,13 @@ func TestFeatFourSeatCommanderPods(t *testing.T) {
 		total.Options += st.Options
 		if d := res.Div; d != nil {
 			if d.What == "features" || d.Field == "panic" {
-				t.Errorf("pod %d %v: after %d compared decisions: %s %s: %s", i, p.Decks(), st.Decisions, d.What, d.Field, d.Detail)
+				t.Errorf("pod %d %v (%s): after %d compared decisions: %s %s: %s", i, p.Decks(), fs, st.Decisions, d.What, d.Field, d.Detail)
 			} else {
 				t.Logf("pod %d: rules divergence after %d compared decisions: %s %s", i, st.Decisions, d.What, d.Field)
 			}
 		}
-		t.Logf("pod %d: %d decisions compared", i, st.Decisions)
 	}
-	if pods == 0 || total.Decisions < 1000 {
+	if pods == 0 || total.Decisions < 2000 {
 		t.Fatalf("%d pods, %d compared decisions", pods, total.Decisions)
 	}
 	t.Logf("%d pods: compared %d decisions, %d options", pods, total.Decisions, total.Options)

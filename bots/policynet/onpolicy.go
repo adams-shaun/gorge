@@ -312,7 +312,7 @@ func LoadOnPolicy(path string) ([]Example, []OnPolicyRecord, OnPolicyStats, erro
 // onPolicyFeatures maps a corpus record's %016x encoder hash onto its
 // checkpointable feature set.
 func onPolicyFeatures(h string) (FeatureSet, bool) {
-	for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ, FeaturesEntity, FeaturesMZOwnLib, FeaturesMZGrave} {
+	for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ, FeaturesEntity, FeaturesMZOwnLib, FeaturesMZGrave, FeaturesPod} {
 		if fmt.Sprintf("%016x", EncoderHashFor(fs)) == h {
 			return fs, true
 		}

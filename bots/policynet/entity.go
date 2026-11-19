@@ -727,6 +727,12 @@ func (m *Model) entBackward(c *entCache, st State, ds []float32, dh [][]float32,
 // source did until training moves them. The source must be an mz model (the
 // entity set is mz plus the cards) without an entity encoder already.
 func UpgradeEntity(m *Model, k int, rng *rand.Rand) error {
+	return upgradeEntity(m, k, rng, FeaturesEntity)
+}
+
+// upgradeEntity is UpgradeEntity into entity set target (FeaturesEntity or
+// FeaturesPod), whose widths size the new blocks.
+func upgradeEntity(m *Model, k int, rng *rand.Rand, target FeatureSet) error {
 	switch {
 	case k < 1:
 		return fmt.Errorf("policynet: entity width %d < 1", k)
@@ -738,6 +744,7 @@ func UpgradeEntity(m *Model, k int, rng *rand.Rand) error {
 		return fmt.Errorf("policynet: entity upgrade of an ExtraW model")
 	}
 	oldInW := m.InW
+	m.Features = target
 	m.EntK = k
 	m.InW = oldInW + 2*k
 	hid := make([]float32, m.Hidden*m.InW)
@@ -749,7 +756,6 @@ func UpgradeEntity(m *Model, k int, rng *rand.Rand) error {
 	m.EntB = make([]float32, k)
 	m.EntP = make([]float32, m.entPoolW()*m.H)
 	fillUniform(m.EntW, glorot(m.entInW(), k), rng)
-	m.Features = FeaturesEntity
 	return nil
 }
 
