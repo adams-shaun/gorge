@@ -134,6 +134,13 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 			has = true
 			break
 		}
+		// A free cast's own target-gated reduction (Revoke Demise) prices
+		// each candidate once a raise (Squeeze) taxes the empty cost: gorge's
+		// probe charges {3} for one target and {1} for another (CR 601.2f).
+		if free && a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost && a.Static.StFlags&kop.StTargetsFilter2 != 0 {
+			has = true
+			break
+		}
 	}
 	// A battlefield one (an opponent's Kasmina, Enigmatic Mentor taxing a
 	// spell that targets her side) prices it per candidate the same way.
