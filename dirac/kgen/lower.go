@@ -324,6 +324,9 @@ type lowerCtx struct {
 	// prevColor while a mid-resolution ChooseColor waits for its
 	// prevent-the-chosen-colour Effect (Prismatic Strands)
 	prevColor bool
+	// chosenSrc while a ChooseSource waits for its prevention Effect
+	// (lower_choosesource.go)
+	chosenSrc bool
 	// colGrant while a mid-resolution ChooseColor's chosen-colour grants
 	// (Skrelv: the Pump DefinedKW$ ChosenColor, the CantBlockBy Effect, the
 	// ClearChosenColor Cleanup) are still to be lowered
