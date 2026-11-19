@@ -1388,9 +1388,11 @@ func (g *GorgeSide) completeFrom(fr *frame, chosen []int, last int, budget *int)
 
 // blockFloorsMatchable reports whether every attacker a blockers answer has
 // begun to block (CR 509.1a: menace, a MinMaxBlocker floor) can still get its
-// missing blockers: each missing blocker is a distinct creature not yet
-// declared that has a valid pair on that attacker (a bipartite matching, as
-// the kernel's blocksCompletable). It is a necessary condition only, checked
+// missing blockers: each missing blocker is a distinct creature that has a
+// valid pair on that attacker and a slot to spare (its group cap less its
+// chosen pairs, so a declared blocker's spare slot still counts), not reusing
+// a pair the answer already declared (a bipartite matching, as the kernel's
+// blocksCompletable). It is a necessary condition only, checked
 // before the budgeted completion search, which on a wide board runs out of
 // budget and answers optimistically for a pair that strands a menace
 // attacker's second blocker.
@@ -1399,12 +1401,14 @@ func blockFloorsMatchable(fr *frame, chosen []int) bool {
 	if d.Kind != decision.KBlockers {
 		return true
 	}
-	var used []state.ObjID
-	var blocked []state.ObjID // attacker, one entry per chosen pair
+	var blocked []state.ObjID          // attacker, one entry per chosen pair
+	usedSlots := map[state.ObjID]int{} // blocker -> its chosen pairs
+	usedPair := map[[2]state.ObjID]bool{}
 	for _, c := range chosen {
 		o := optByIndex(d, c)
-		used = append(used, o.Obj)
 		blocked = append(blocked, o.Attacker)
+		usedSlots[o.Obj]++
+		usedPair[[2]state.ObjID{o.Obj, o.Attacker}] = true
 	}
 	var missing []state.ObjID // attacker, one entry per blocker still owed
 	var seen []state.ObjID
@@ -1427,14 +1431,30 @@ func blockFloorsMatchable(fr *frame, chosen []int) bool {
 	if len(missing) == 0 {
 		return true
 	}
+	// Free blocker slots: one entry per pair a blocker still has to spare (its
+	// group cap less its chosen pairs; block_attack_must.go builds the same),
+	// not just blockers in no chosen pair — a declared blocker's spare slot
+	// can still meet a floor (CR 509.1a, Brave the Sands).
 	var free []state.ObjID
+	slotsSeen := map[state.ObjID]bool{}
 	for i := range d.Options {
 		o := &d.Options[i]
-		if fr.valid[i] && !slices.Contains(used, o.Obj) && !slices.Contains(free, o.Obj) {
+		if !fr.valid[i] || slotsSeen[o.Obj] {
+			continue
+		}
+		slotsSeen[o.Obj] = true
+		spare := 1
+		if o.Group != "" {
+			spare = d.GroupCapFor(o.Group)
+		}
+		for spare -= usedSlots[o.Obj]; spare > 0; spare-- {
 			free = append(free, o.Obj)
 		}
 	}
 	canBlock := func(b, a state.ObjID) bool {
+		if usedPair[[2]state.ObjID{b, a}] {
+			return false // one blocker blocks an attacker at most once
+		}
 		for i := range d.Options {
 			if o := &d.Options[i]; fr.valid[i] && o.Obj == b && o.Attacker == a {
 				return true
