@@ -81,6 +81,7 @@ First Volley
 Flamekin Herald
 Floral Spuzzem
 Folk of the Pines
+Footbottom Feast
 Forest
 Frazzle
 Frenzy Sliver
@@ -180,6 +181,7 @@ Rhox Pummeler
 Rishadan Footpad
 Rockcaster Platoon
 Ruins of Oran-Rief
+Sadistic Glee
 Sage Owl
 Saiba Syphoner
 Salvager of Ruin
