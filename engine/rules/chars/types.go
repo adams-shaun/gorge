@@ -400,9 +400,13 @@ func buildCorpusLandTypeWords(universe *cards.Universe) []string {
 // from the parsed compiled corpus supplied as the game's NameUniverse. A
 // planeswalker's subtype is its own name (CR 205.3j), so the vocabulary is
 // every non-card-type, non-supertype word a face carrying the Planeswalker
-// card type prints: the walker faces are the only ones with a subtype word
-// that is not from one of the four word-list sets, and a Planeswalker face
-// prints nothing beside the walker name but its card type and supertypes.
+// card type prints. Most faces print only the name there; the collisions the
+// corpus does print in the subtype slot ride along and become the strip
+// side's problem: The Aetherspark prints Equipment (also an artifact
+// subtype) and Drake Stone prints Stone under a Planeswalker card type, so
+// the RemoveType$ Planeswalker strip owes those words the CR 205.1a survival
+// check (staysOnARemainingCardType) -- the word stays while the face's
+// Artifact card type does, and leaves when no remaining card type claims it.
 // Memoised on the universe exactly like the land list (CorpusLandTypeWords):
 // the universe is immutable and shared by every game an embedder starts from
 // one registry, so the walk runs once per universe and the list is shared
@@ -780,14 +784,17 @@ func applyTypeEffect(b Board, ce *state.ContinuousEffect, ty []string, allCreatu
 			allCreatureTypes = false
 		}
 		// CR 205.1a: the subtypes correlated with a card type the strip
-		// removed leave with it (the Theros gods' devotion statics:
+		// removed leave with it -- unless the word is also the subtype of a
+		// card type the object still has (the Theros gods' devotion statics:
 		// RemoveType$ Creature takes God with it; Luxior's RemoveType$
-		// Planeswalker takes the walker's name word with it, CR 205.3j). The
-		// derived list keeps subtype words tied to their card type, so an
-		// object without the Creature card type carries no creature subtype
-		// word to strip -- no per-word presence check is owed. A RemoveType$
-		// naming a subtype or supertype word names no card type and strips
-		// exactly that word.
+		// Planeswalker takes the walker's name word with it, CR 205.3j, but
+		// not the Equipment word The Aetherspark prints under an Artifact
+		// card type the strip does not name). The four word-list sets are
+		// disjoint from one another, so the survival check bites only where
+		// the walker-name words overlap them (Equipment, Stone); a word is
+		// checked against the surviving card types exactly once, for the set
+		// its own word list claims it. A RemoveType$ naming a subtype or
+		// supertype word names no card type and strips exactly that word.
 		sets := effects.SubtypesCorrelatedWith(ce.RemoveTypes)
 		var landWords, walkerWords []string
 		if sets.Land() {
@@ -798,10 +805,14 @@ func applyTypeEffect(b Board, ce *state.ContinuousEffect, ty []string, allCreatu
 		}
 		kept := ty[:0]
 		for _, t := range ty {
-			if !slices.ContainsFunc(ce.RemoveTypes, func(remove string) bool { return strings.EqualFold(t, remove) }) &&
-				!correlatesWithRemovedCardType(t, sets, landWords, walkerWords) {
-				kept = append(kept, t)
+			if slices.ContainsFunc(ce.RemoveTypes, func(remove string) bool { return strings.EqualFold(t, remove) }) {
+				continue
 			}
+			if correlatesWithRemovedCardType(t, sets, landWords, walkerWords) &&
+				!staysOnARemainingCardType(t, ty, ce.RemoveTypes, landWords) {
+				continue
+			}
+			kept = append(kept, t)
 		}
 		ty = kept
 		if sets.Creature() {
@@ -869,21 +880,41 @@ func applyTypeEffect(b Board, ce *state.ContinuousEffect, ty []string, allCreatu
 // correlatesWithRemovedCardType reports whether the subtype word t leaves
 // with a card type the RemoveType$ strip removed (CR 205.1a: the subtypes
 // correlated with a removed card type are removed with it, unless they are
-// also the subtypes of a card type the object still has -- no word belongs
-// to two of these sets, so "still has" never holds here; the walker-name
-// word Equipment/Stone overlap with the artifact word list cannot bite, as
-// an object carrying one under the Planeswalker card type carries no
-// Artifact card type beside it). Only the sets the package carries
-// vocabularies for participate; the RemoveCardTypes strip above shares the
-// same five (effects.SubtypesKept shares them with the one dispatch in
-// effects.SubtypesCorrelatedWith). The land and walker vocabularies are the
-// corpus's, fetched only when their set participates.
+// also the subtypes of a card type the object still has -- that survival
+// half is staysOnARemainingCardType, and it bites exactly where the
+// vocabularies overlap: the walker-name words Equipment and Stone are also
+// artifact subtypes, printed on faces that do (The Aetherspark) and do not
+// (Drake Stone) carry the Artifact card type). Only the sets the package
+// carries vocabularies for participate; the RemoveCardTypes strip above
+// shares the same five (effects.SubtypesKept shares them with the one
+// dispatch in effects.SubtypesCorrelatedWith). The land and walker
+// vocabularies are the corpus's, fetched only when their set participates.
 func correlatesWithRemovedCardType(t string, sets effects.SubtypesKept, landWords, walkerWords []string) bool {
 	return sets.Creature() && effects.CreatureTypeWords(t) ||
 		sets.Land() && slices.Contains(landWords, t) ||
 		sets.Artifact() && effects.ArtifactTypeWord(t) ||
 		sets.Enchantment() && effects.EnchantmentTypeWord(t) ||
 		sets.Planeswalker() && slices.Contains(walkerWords, t)
+}
+
+// staysOnARemainingCardType reports whether the subtype word t survives a
+// RemoveType$ strip because it is also the subtype of a card type the object
+// still carries (CR 205.1a: a subtype correlated with a removed card type is
+// removed with it "unless it is also a subtype of a card type the object
+// still has"). The word's own set names the card type to look for; ty is the
+// materialized list the strip runs over and remove the card types it names,
+// so stillHas is false both for a card type the strip itself removes and for
+// one the object never carried (Drake Stone's Stone: an artifact word with no
+// Artifact card type on the face).
+func staysOnARemainingCardType(t string, ty, remove, landWords []string) bool {
+	stillHas := func(ct string) bool {
+		return slices.ContainsFunc(ty, func(w string) bool { return IsCardType(w) && strings.EqualFold(w, ct) }) &&
+			!slices.ContainsFunc(remove, func(r string) bool { return strings.EqualFold(r, ct) })
+	}
+	return effects.CreatureTypeWords(t) && stillHas("Creature") ||
+		effects.ArtifactTypeWord(t) && stillHas("Artifact") ||
+		effects.EnchantmentTypeWord(t) && stillHas("Enchantment") ||
+		slices.Contains(landWords, t) && stillHas("Land")
 }
 
 func typeMatchWordsKnown(ty []string, all, full bool) []string {

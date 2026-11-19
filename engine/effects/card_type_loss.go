@@ -63,7 +63,12 @@ func SubtypesCorrelatedWith(words []string) SubtypesKept {
 
 // correlatedSet is the one card-type-word dispatch behind both readers. The
 // dispatch goes through the catalog type mask (cards.TypeMaskOfName), so the
-// word list it switches on is the one table that owns the card-type words.
+// word list it switches on is the one table that owns the card-type words --
+// and, unlike the exact-case string switch it replaced, the mask lookup
+// falls back to a case-insensitive catalog match, so a card type word in
+// non-canonical case still dispatches. Forge script values are canonical
+// case; the broadening only widens what these readers accept, never what the
+// strips they feed remove.
 func correlatedSet(words []string) SubtypesKept {
 	var k SubtypesKept
 	for _, t := range words {
