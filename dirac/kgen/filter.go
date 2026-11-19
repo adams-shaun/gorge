@@ -1137,9 +1137,6 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	if ok, err := c.sharesNameWithProp(p); ok {
 		return err
 	}
-	if p == "sharesCreatureTypeWith Commander" {
-		return c.setCmp(cmpSharesCrCmdr, 0, 0, "", "") // the Path of Ancestry rider's filter
-	}
 	if n, ok := filterWordPred(p); ok {
 		return c.setCmp(cmpWord7, 0, n, "", "") // lower_filterwords.go
 	}
@@ -1231,6 +1228,10 @@ func (c *lClause) sharesNameWithProp(p string) (bool, error) {
 			n = 1
 		}
 		return true, c.setCmp(cmpSameNameSelf, 0, n, "", "")
+	case "sharesCreatureTypeWith Commander":
+		// a creature type shared with a commander of the evaluating
+		// controller (the Path of Ancestry rider's filter)
+		return true, c.setCmp(cmpSharesCrCmdr, 0, 0, "", "")
 	}
 	return false, nil
 }
