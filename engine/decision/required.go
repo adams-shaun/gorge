@@ -394,6 +394,7 @@ func (d *Decision) fitRequiredPreferred(choices []int) []int {
 		(d.MinSum <= 0 || sum >= d.MinSum || (d.AllowNone && len(choices) == 0)) &&
 		d.RequiredChosen(choices) >= d.RequiredQuota() &&
 		d.AttackRequirementsSatisfied(choices) &&
+		d.AttackOneSatisfied(choices) &&
 		d.ChargeOptionsFit(choices) &&
 		!d.groupCapExceeded(choices) &&
 		d.setPropAnswerAdmits(choices) {
@@ -612,9 +613,26 @@ func (d *Decision) fitRequiredPreferred(choices []int) []int {
 			out = d.requiredCore()
 		}
 	}
+	// A must-attack-with-at-least-one duty the fold left unmet is completed
+	// first, so the closure pass below sees the creature it adds.
+	out = d.repairAttackOne(out)
 	// A preferred pick may have activated a closure the room no longer
 	// completes: add the missing members, or drop the triggering attackers.
-	return d.repairAttackRequirements(out, true)
+	out = d.repairAttackRequirements(out, true)
+	// Belt: the fold and the closure pass can both leave the must-attack duty
+	// unmet -- the fold spent the budget (or the room) on unmarked picks the
+	// repair cannot displace, and the closure pass's dropTriggers can drop the
+	// pick repairAttackOne just added. Re-derive from the required core, where
+	// the rules layer proved a discharging pick fits beside it; if even that
+	// fails, the decision has no legal answer that discharges the duty and out
+	// is returned unchanged (Validate says so), the same fallback the charge
+	// belt above takes.
+	if !d.AttackOneSatisfied(out) {
+		if alt := d.repairAttackRequirements(d.repairAttackOne(d.requiredCore()), true); d.AttackOneSatisfied(alt) {
+			out = alt
+		}
+	}
+	return out
 }
 
 // maxChoices is Max floored at 0: Validate rejects any answer longer than a

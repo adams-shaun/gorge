@@ -149,3 +149,75 @@ func (d *Decision) dropTriggers(g *AttackRequirementGroup, out []int) []int {
 	}
 	return kept
 }
+
+// AttackOneSatisfied reports whether choices meets the player-level "attack
+// with at least one creature" duty (Option.AttackOne): true when no option
+// carries it, otherwise when some chosen option does. It is the ONE rule:
+// Validate rejects an answer that fails it, FitRequired's repair builds toward
+// it, and the engine's declaration check asks it too, so a repaired answer can
+// never be one the engine rejects. Out-of-range indices are ignored.
+func (d *Decision) AttackOneSatisfied(choices []int) bool {
+	marked := false
+	for i := range d.Options {
+		if d.Options[i].AttackOne {
+			marked = true
+			break
+		}
+	}
+	if !marked {
+		return true
+	}
+	for _, c := range choices {
+		if c >= 0 && c < len(d.Options) && d.Options[c].AttackOne {
+			return true
+		}
+	}
+	return false
+}
+
+// repairAttackOne makes out obey the AttackOne duty: when no chosen option
+// carries it, the cheapest marked option joins (Max, the budgets, the life
+// charge and the per-Group caps still hold). A marked option whose creature is
+// already declared against another defender takes that pair's place (one pair
+// per creature, CR 506.2). The rules layer marks only options that fit the
+// decision's bounds beside the required core, so a marked option is always
+// admissible there; when none is (a caller-built decision), out is returned
+// unchanged and Validate says so.
+func (d *Decision) repairAttackOne(out []int) []int {
+	if d.AttackOneSatisfied(out) {
+		return out
+	}
+	best, slot := -1, -1
+	for c := range d.Options {
+		o := &d.Options[c]
+		if !o.AttackOne || (best >= 0 && o.Value >= d.Options[best].Value) {
+			continue
+		}
+		at := -1
+		for i, k := range out {
+			if k >= 0 && k < len(d.Options) && d.Options[k].Obj == o.Obj {
+				at = i
+			}
+		}
+		if at >= 0 {
+			swapped := append([]int(nil), out...)
+			swapped[at] = c
+			if d.requirementAdmits(append(swapped[:at:at], swapped[at+1:]...), c) {
+				best, slot = c, at
+			}
+			continue
+		}
+		if d.requirementAdmits(out, c) {
+			best, slot = c, -1
+		}
+	}
+	switch {
+	case best < 0:
+		return out
+	case slot >= 0:
+		next := append([]int(nil), out...)
+		next[slot] = best
+		return next
+	}
+	return append(append([]int(nil), out...), best)
+}
