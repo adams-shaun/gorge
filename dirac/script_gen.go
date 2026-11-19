@@ -102,7 +102,7 @@ func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
 		pm := &s.perms[sl]
 		if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) ||
 			k.gen.anyCantAct && s.actForbidden(k, sl, true) || // a CantBeActivated lock (cast_cantactivate.go)
-			k.gen.anyDeferred && k.gen.has(s.cardAt(sl), gfDeferred) && !s.deferLifeSurvives(k, p, sl) {
+			k.gen.anyDeferred && k.gen.has(s.cardAt(sl), gfDeferred) && (!s.deferLifeSurvives(k, p, sl) || s.deferNoMana(k, sl)) {
 			continue
 		}
 		m = m.with(sl)
@@ -152,7 +152,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	for b := s.scriptRestr(k, p); b.any(); b = b.rest() {
 		c := s.cardAt(b.first())
 		if k.gen.has(c, gfDeferred) {
-			a.addUnits(1<<k.deferCol(c), 1) // the deferred source's plain mana (mana_deferred.go)
+			a.addUnits(s.deferMask(k, b.first()), 1) // the deferred source's plain mana (mana_deferred.go)
 			continue
 		}
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
