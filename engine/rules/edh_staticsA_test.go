@@ -327,6 +327,60 @@ func TestEDHStaticsARiverSongDrawsFromTheBottom(t *testing.T) {
 	}
 }
 
+// edhAAttackCeilingSrc is a whole-declaration attacker ceiling (CR 508.1j,
+// Silent Arbiter's MaxAttackers$ 1 shape): no ValidDefender$, so
+// combat.MaxAttackers reads it as the global cap on seat 0's declaration.
+const edhAAttackCeilingSrc = "Name:Arbiter\nManaCost:4\nTypes:Artifact\n" +
+	"S:Mode$ AttackRestrict | MaxAttackers$ 1\nOracle:x\n"
+
+// TestEDHStaticsAPlayerMustAttackUnenforcedUnderCeiling: with an attacker
+// ceiling in force (the decision's Max is below the offered option count) the
+// PlayerMustAttack marking leaves the duty unmarked, the unenforcement the tap
+// pool and the per-defender cap already take: a Max-full declaration cannot
+// make room for a marked pair on a creature it did not declare, so a repair
+// that cannot hand back a legal answer would leave the deterministic bot
+// re-deriving forever. The duty stays enforced whenever no ceiling binds
+// (TestEDHStaticsATroveOfTemptationMustAttackController).
+func TestEDHStaticsAPlayerMustAttackUnenforcedUnderCeiling(t *testing.T) {
+	t.Parallel()
+	edhARequireRegistered(t, "stat:PlayerMustAttack")
+	pc, ok := testutil.CorpusRegistry(t).Lookup("Trove of Temptation")
+	if !ok {
+		t.Fatal("corpus missing Trove of Temptation")
+	}
+	bear := card(t, staticBearFixture)
+	e, cfg := restrictionGame(t, 6203,
+		[][]*cards.Card{nil, nil, nil},
+		[][]*cards.Card{{bear, card(t, edhAAttackCeilingSrc)}, {pc}, nil})
+	b := bearOnBoard(t, e, 0, bear)
+	driveToStep(t, e, e.G.Turn, 0, state.StepDeclareAttackers)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected seat 0's attackers decision, got %+v", d)
+	}
+	if d.Max != 1 || len(d.Options) != 2 {
+		t.Fatalf("precondition: Max %d over %d options, want the ceiling at 1 over 2", d.Max, len(d.Options))
+	}
+	at1, at2 := edhAPairAt(t, d, b, 1), edhAPairAt(t, d, b, 2)
+	if d.Options[at1].AttackOne || d.Options[at2].AttackOne {
+		t.Fatalf("AttackOne marks under the ceiling: at seat 1 %v, at seat 2 %v; want false/false",
+			d.Options[at1].AttackOne, d.Options[at2].AttackOne)
+	}
+	in := func(choices ...int) decision.Intent {
+		return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}
+	}
+	if err := e.Submit(in(at2)); err != nil {
+		t.Fatalf("attacking only seat 2 rejected under the ceiling: %v", err)
+	}
+	if fit := d.FitRequired(nil); d.Validate(in(fit...)) != nil {
+		t.Fatalf("FitRequired(nil) = %v is not a legal answer (the repair must never deadlock)", fit)
+	}
+	if fit := d.FitRequired([]int{at2}); d.Validate(in(fit...)) != nil {
+		t.Fatalf("FitRequired([seat 2 only]) = %v is not a legal answer", fit)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestEDHStaticsAValidPlayerIsYou pins the assumption effects' youStaticCount
 // makes without reading it: every corpus carrier of GainLifeRadiation,
 // Devotion, FlipCoinDoubler and DrawFromBottom is scoped ValidPlayer$ You, so

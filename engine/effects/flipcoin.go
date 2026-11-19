@@ -64,7 +64,7 @@ func coinResult(h Host, p state.PlayerID, source state.ObjID) bool {
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
 		Source: source, ResumeKind: "flipcoinkeep",
-		Prompt: "Krark's Thumb: keep heads or tails"}
+		Prompt: "Coin-flip doubler: keep heads or tails"}
 	d.Options = append(d.Options,
 		decision.Option{Index: 0, Kind: "coin", Label: "heads", Player: p},
 		decision.Option{Index: 1, Kind: "coin", Label: "tails", Player: p})

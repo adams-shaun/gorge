@@ -9,5 +9,5 @@ import "github.com/adams-shaun/gorge/engine/effects"
 // payment planner and the offer path price it through the same composition
 // (statics_costapply.go: applied after every other cost change, a SetCost
 // without RaiseTo$ True is not read), and pinned by
-// TestTrinisphereSetCostFloor and TestEDHStaticsATrinisphere.
+// TestTrinisphereSetCostFloor and TestEDHStaticsATrinisphereFloorsCosts.
 func init() { effects.RegisterNonAPI("stat:SetCost") }

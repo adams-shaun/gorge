@@ -95,13 +95,18 @@ func (u playerMustAttackUnit) discharges(e attackDutyBoard, g *state.Game, def s
 // declaration obeys at least one whenever it can). A pair is marked only when
 // it costs nothing to declare and a declaration holding it plus the required
 // attackers fits the decision's own bounds, so the duty can never leave the
-// decision unanswerable. A per-defender cap or a tap-candidate pool can make
-// that fit unprovable, so either leaves the duty unmarked (unenforced), the
+// decision unanswerable. A per-defender cap, a tap-candidate pool, or an
+// attacker ceiling (combat.MaxAttackers, bounds.max below the offered option
+// count) can make that fit unprovable: with a ceiling the declaration can be
+// Max-full of unmarked pairs while every discharging pair belongs to a
+// creature it did not declare, and no repair can make room (a repaired answer
+// the engine rejects sends the deterministic bot re-deriving forever), so any
+// of the three leaves the duty unmarked (unenforced), the
 // attackRequirementGroups precedent.
 func markPlayerMustAttack(e attackDutyBoard, g *state.Game, p state.PlayerID, offers []attackOffer, opts []decision.Option,
 	required map[state.ObjID]bool, bounds attackBounds, tapPool int) {
 	units := playerMustAttackUnits(e, g, p)
-	if len(units) == 0 || tapPool > 0 {
+	if len(units) == 0 || tapPool > 0 || bounds.max < len(opts) {
 		return
 	}
 	free := make(map[attackOfferKey]bool, len(offers)) // lookup only, never ranged
