@@ -39,6 +39,7 @@ Bearer of the Heavens
 Beast Attack
 Bee Sting
 Belligerent Brontodon
+Berserk Murlodont
 Big Boa Constrictor
 Bladetusk Boar
 Blanchwood Prowler
@@ -190,12 +191,14 @@ Hulking Devil
 Hurloon Minotaur
 Ignite Disorder
 In the Eye of Chaos
+Incinerate
 Inferno Elemental
 Infiltrator's Magemark
 Inga Rune-Eyes
 Into the Core
 Into the Void
 Invasion of Belenon
+Ionize
 Iron Lance
 Irregular Cohort
 Island
@@ -243,6 +246,7 @@ Merfolk Pupil
 Metallic Mimic
 Metalwork Colossus
 Millicent, Restless Revenant
+Mind Funeral
 Mind's Eye
 Minsc, Beloved Ranger
 Mirran Banesplitter
@@ -292,6 +296,7 @@ Pheres-Band Brawler
 Pheres-Band Raiders
 Phyrexian Vatmother
 Pierce the Sky
+Pink Horror
 Pinpoint Avalanche
 Plaguemaw Beast
 Plains
@@ -359,6 +364,7 @@ Snow Devil
 Soltari Priest
 Somber Hoverguard
 Somberwald Alpha
+Somnomancer
 Soulsworn Jury
 Spawnbed Protector
 Spell Snuff

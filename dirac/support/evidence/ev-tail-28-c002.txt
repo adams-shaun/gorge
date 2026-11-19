@@ -22,6 +22,7 @@ Angelic Overseer
 Annihilate
 Apostle of Purifying Light
 Aquastrand Spider
+Archetype of Imagination
 Archfiend of Despair
 Arnjlot's Ascent
 Aspect of Gorgon
@@ -150,6 +151,7 @@ Golden-Tail Disciple
 Gonti, Lord of Luxury
 Gravecrawler
 Griffin Protector
+Grimdancer
 Halcyon Glaze
 Hammerhead, Maggia Boss
 Hand of Emrakul
@@ -173,10 +175,12 @@ Infernal Tribute
 Inferno Titan
 Initiate's Companion
 Inspired Sprite
+Invasion of Xerex
 Invoke Despair
 Island
 Isu the Abominable
 Ith, High Arcanist
+Jasconian Isle
 Kathari Remnant
 Kazuul's Toll Collector
 Keen Glidemaster

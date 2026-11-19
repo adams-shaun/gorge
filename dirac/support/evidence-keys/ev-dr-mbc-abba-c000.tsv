@@ -1,4 +1,5 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Adeline, Resplendent Cathar	de235f299fa1fb15	46	1/1		1/1	
 Adventurous Impulse	8bf0e846bf4e6aaf	6	0/0		1/2	ix:resp
 Aetherize	c06bbace91ef80a8	8	0/0		1/2	ix:resp
 Akroma's Will	713144bd09f9b15b	13	0/0		1/2	ix:resp
@@ -11,6 +12,7 @@ Araumi of the Dead Tide	506046ed94ca55cf	4	1/1		1/1
 Avenging Druid	341a3fd6b30c95c9	13	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Back to Basics	8430fd168a1cfb36	5	0/0		0/0	
 Ball Lightning	34880e2168e2cd6e	10	1/1		0/1	ix:resp
+Beloved Chaplain	7f9fcc00876bac1c	52	0/0		0/0	
 Benevolent Bodyguard	5522cf237f2ee779	4	1/1		0/1	ix:resp
 Bestial Menace	a5c1b9a2dc5358aa	5	0/0		1/2	ix:resp
 Blindblast	a39d11a4b4aa4492	3	0/0		2/2	
@@ -23,6 +25,7 @@ Charcoal Diamond	e6917015ded11f43	16	1/1		0/1	ix:resp
 Chomping Changeling	bb8fda649b4a24ec	11	1/1		0/1	ix:resp
 Citanul Woodreaders	2f400b766b614bed	7	1/1		2/3	ix:resp
 Cliffgate	3927da9806431479	24	1/1		0/1	ix:resp
+Cloudgoat Ranger	7d91b0ce96b3f108	41	2/2		1/1	
 Collective Resistance	f422d39c357d5a80	5	0/0		1/2	ix:resp
 Commune with Nature	c74f1fa9e2946bbf	13	0/0		2/2	
 Compulsion	947a949fc00aab19	8	2/2		0/1	ix:resp
@@ -34,6 +37,7 @@ Daring Demolition	757a546b9584218c	3	0/0		1/2	ix:resp
 Disturbed Burial	59d5512d0ebc870d	5	0/0		3/4	ix:resp
 Dread Linnorm	b12c9d1ad6ce99c7	6	0/0		2/2	
 Dust to Dust	6a41cb08f7af11e9	3	0/0		1/2	ix:resp
+Eater of the Dead	65638f1917f80175	11	1/1		1/1	
 Emiel the Blessed	e3abd5a8a0e7924b	6	2/2		0/1	ix:resp
 End the Festivities	8f3d6afae6fb80d5	4	0/0		1/2	ix:resp
 Eternal Thirst	efb366071ef84bd1	4	0/0		1/2	ix:resp
@@ -97,6 +101,7 @@ Shepherd of Rot	2b7ebeef134633d9	4	1/1		0/1	ix:resp
 Spidersilk Armor	8335d1009c6b3c99	6	0/0		0/0	
 Staggershock	38e2be5b2c700c5e	3	0/0		1/2	ix:resp
 Storm-Kiln Artist	8608a1d7045ca6b2	4	1/1		0/1	ix:resp
+Sumala Rumblers	2db9b2782323efcf	12	1/1		0/1	ix:resp
 Swamp	342b413902f441c3	38	1/1		0/1	ix:resp
 Thassa's Emissary	2d8b0c86bf736014	14	1/1		2/3	ix:resp
 Thopter Engineer	5364655f35700915	5	1/1		0/1	ix:resp

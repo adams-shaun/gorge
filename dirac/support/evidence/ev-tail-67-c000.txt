@@ -68,6 +68,7 @@ Cloud of Faeries
 Cloudkill
 Clutch of Undeath
 Cogwork Assembler
+Collective Resistance
 Commissar Severina Raine
 Common Iguana
 Company Commander
@@ -95,6 +96,7 @@ Daily Bugle Newspaper
 Daring Fiendbonder
 Dauntless Survivor
 Deadshot
+Death Rattle
 Death's-Head Buzzard
 Deathless Angel
 Deep Reconnaissance

@@ -9,6 +9,7 @@ Angelic Renewal	e5ad1e8940f9660f	24	1/1		1/1
 Arcbound Shikari	c7c64bda048acf20	8	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Ashmouth Hound	8306e15ff6186dbb	16	2/2		0/1	ix:resp
 Atog	54c6bdd6edfbceb3	16	1/1		1/1	
+Baleful Beholder	44e5e0c3120368c6	10	1/1		0/1	ix:resp
 Binding Agony	60051e8b78349fdc	12	1/1		2/2	
 Bitterbow Sharpshooters	24121c643ac8e2ec	12	0/0		0/0	
 Bleed Dry	ad4542c0d117b0bc	12	0/0		2/2	
@@ -17,6 +18,7 @@ Bloodmad Vampire	2fe6a5652de3d353	18	1/1		1/1
 Blue Dragon	f151e12f698c3ab2	4	1/1		0/1	ix:resp
 Butcher's Cleaver	26d30a7ff96828e3	13	1/1		1/1	
 Canopy Cover	61655c8c3f450881	12	0/0		1/2	ix:resp
+Canopy Tactician	ae04176da50d9ca1	14	1/1		0/1	ix:resp
 Celestial Kirin	936d07b809a9dce3	4	1/1		0/1	ix:resp
 Cerulean Wyvern	58362a7953563b14	8	0/0		0/0	
 Citizen's Arrest	097aee9da81aa0c7	18	1/1		0/1	ix:resp
@@ -48,6 +50,7 @@ Eldrazi Skyspawner	e623e0ccd875b260	23	1/1		0/1	ix:resp
 Elvish Soultiller	4fb47d3280b49052	3	1/1		0/1	ix:resp
 Enlarge	42619b97cd5fb39e	5	0/0		1/2	ix:resp
 Erinis, Gloom Stalker	4f33dd740561634d	8	1/1		0/1	ix:resp
+Eureka Moment	3cfc4417c3747668	15	0/0		2/2	
 Eviscerator	1fb4cc0d33b6d60a	6	1/1		0/1	ix:resp
 Fallaji Archaeologist	64e0fd47ae30c4ae	14	1/1		0/1	ix:resp
 Fatal Frenzy	51ab2a4952055a46	24	0/0		2/2	
@@ -124,6 +127,7 @@ Liliana's Standard Bearer	22726d742d6309da	16	1/1		1/1
 Liliana, Death Wielder	3a54cb73cb99ba29	4	3/3		0/1	ix:resp
 Liquimetal Torque	90099921575be16f	24	2/2		1/1	
 Live Fast	9500f5378fedd42a	10	0/0		1/2	ix:resp
+Longshot Squad	4234186386788518	12	1/1		1/1	
 Lotus Path Djinn	324c9e68f0ea4b17	15	1/1		0/1	ix:resp
 Mannichi, the Fevered Dream	19cc7b1f17e9e453	11	1/1		1/1	
 Manta Riders	ce12a223755ab561	21	1/1		1/1	
@@ -131,6 +135,7 @@ Marang River Prowler	f49eba3b92af73b7	8	0/0		0/0
 Marble Diamond	35dfcd4c22aa2423	30	1/1		0/1	ix:resp
 March of the Returned	5e175fa7d10cca24	14	0/0		1/2	ix:resp
 Marrow-Gnawer	3537657784812dcd	15	1/1		1/1	
+Maverick Thopterist	b75053f2fd7a852c	11	1/1		1/1	
 Maximus, Knight Apparent	a381ab419f557118	6	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Midnight Haunting	8c547fd4d2b4d114	34	0/0		2/2	
 Mindleech Ghoul	faa3b37865a73a7e	20	2/2		0/1	ix:resp
@@ -141,6 +146,7 @@ Mogg Maniac	bf5fa2f1c74829e7	9	1/1		1/1
 Molder Slug	1a45d132baa150d5	10	1/1		1/1	
 Mountain	9e71388353e907ed	374	1/1		0/1	ix:resp
 Muscle Sliver	e9994c33f4bac520	12	0/0		0/0	
+Myojin of Seeing Winds	a5074b91018c6a69	5	1/1		0/1	ix:resp
 Nantuko Husk	7b256742bef99644	10	1/1		0/1	ix:resp
 Nature's Resurgence	b0d24182802da47f	13	0/0		2/2	
 Nebelgast Intruder	921e82405501bea2	8	1/1		1/1	
@@ -167,11 +173,14 @@ Recantation	f0224d3cfed65960	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Reckless Rage	da60e9ddff81d012	16	0/0		2/2	
 Renegade Krasis	f9d5cedaf91d4da5	12	2/2		0/1	ix:resp
 Repentant Vampire	022a6c593ba29f1f	8	1/1		0/1	ix:resp
+Repudiate	0a80f973c947a77a	8	0/0		2/3	f1/s
 Retrieve	cf2fcf899da31f9c	8	0/0		1/2	ix:resp
 Revive	6eb8d01147d02a5e	9	0/0		2/2	
 Rise of the Hobgoblins	c48f4b9c19bf27ee	9	2/2		1/1	
 Ritual of Steel	ae872440f9e802fa	18	1/1		2/2	
+Rooftop Bypass	c5900f1fbeaec1e4	6	1/1		1/1	
 Rouse	2e433fc23273ac2e	28	0/0		1/2	ix:resp
+Run for Your Life	f1d6c6b678e6b13b	7	0/0		3/4	cast/alt:escaped
 Rustvale Bridge	63c1dfc7ad57039e	277	1/1		0/1	ix:resp
 Sanguine Spy	e3c28d41a3cfc4d2	15	2/2		0/1	ix:resp
 Scourge Servant	9c639cb014cd52d1	20	0/0		0/0	
@@ -207,6 +216,7 @@ Tenacity	c35b82b8c4c6c665	24	0/0		1/2	ix:resp
 The Rack	5474393ea2274c44	24	1/1		1/1	
 Thorn of Amethyst	e9257aad0c62b26e	22	0/0		0/0	
 Thresher Lizard	197b60d5686f05cd	6	0/0		0/0	
+Thundering Djinn	894930d128ff4835	11	1/1		1/1	
 Thunderous Orator	77123ef1accdf943	24	1/1		1/1	
 Tiamat's Fanatics	8c30cac967afa6e3	8	1/1		0/1	ix:resp
 Time Reversal	aaae6fdad7898fbf	4	0/0		1/2	ix:resp

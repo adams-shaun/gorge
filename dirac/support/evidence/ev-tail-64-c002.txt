@@ -3,6 +3,7 @@ Abomination, Irradiated Brute
 Absolute Law
 Abzan Falconer
 Accorder Paladin
+Aerathi Berserker
 Aggressive Instinct
 Ahn-Crop Invader
 Airlift Chaplain
@@ -11,16 +12,24 @@ All That Glitters
 Alseid of Life's Bounty
 Ambush Paratrooper
 Ana Sanctuary
+Angel of Condemnation
 Angel of the Dawn
 Angelic Renewal
+Arcbound Shikari
 Arm with Aether
 Armory Veteran
 Arrester's Zeal
+Ashen Firebeast
+Ashmouth Hound
+Atog
 Azorius Charm
 Bane's Invoker
+Bitterbow Sharpshooters
 Bleed Dry
+Blinking Spirit
 Bloodmad Vampire
 Bloodsworn Steward
+Blue Dragon
 Bog Imp
 Bottle Golems
 Bramblesnap
@@ -28,9 +37,14 @@ Brass-Talon Chimera
 Brokers Initiate
 Butcher's Cleaver
 Canopy Cover
+Celestial Kirin
 Cerulean Wyvern
 Charging Troll
+Citizen's Arrest
 Clockwork Gnomes
+Cockatrice
+Cogwork Archivist
+Coming In Hot
 Common Bond
 Compelled Duel
 Congregate
@@ -40,27 +54,35 @@ Corridor Monitor
 Crookshank Kobolds
 Crow Storm
 Crusading Knight
+Culling the Weak
 Curfew
 Curse Artifact
 Custodi Soulbinders
+Dakmor Bat
 Dance of the Skywise
 Danitha, New Benalia's Light
 Daring Demolition
+Dark Betrayal
 Dawn to Dusk
 Dawnfluke
 Debilitating Injury
+Defend the Celestus
 Desperate Ravings
+Destructor Dragon
 Detainment Spell
 Devil Dinosaur
 Dig Up the Body
 Dispeller's Capsule
 Drannith Magistrate
 Dread Return
+Dreadwurm
+Drizzt Do'Urden
 Dusk Legion Zealot
 Duskrider Peregrine
 Dwarven Armorer
 Eastern Paladin
 Eladamri, Lord of Leaves
+Elvish Soultiller
 Empty City Ruse
 Empyrial Plate
 Enclave Elite
@@ -70,79 +92,121 @@ Erinis, Gloom Stalker
 Escape Velocity
 Eureka Moment
 Evie Frye
+Eviscerator
 Expedition Skulker
 Eye Gouge
+Faerie Macabre
 Fallaji Archaeologist
 Fatal Frenzy
 Fateful End
+Fear of Death
 Fell Stinger
 Feral Krushok
 Flame On!
 Flamekin Spitfire
+Fleet Swallower
 Fleetfeather Sandals
+Fleshbag Marauder
 Flood of Recollection
 Fog Elemental
+Foothill Guide
+Force of Will
 Forest
 Forgehammer Centurion
+Forsaken Drifters
+Foundry Champion
 Freewind Equenaut
+Frog Tongue
+Genju of the Falls
+Genju of the Spires
 Gerrard's Irregulars
+Gerrard, Weatherlight Hero
 Ghitu Firebreathing
 Giant Crab
 Glass of the Guildpact
+Glint Raker
 Goblin Trailblazer
 Greenwood Sentinel
+Grid Monitor
+Grindstone
 Grisly Ritual
 Gruesome Deformity
 Guardian of Cloverdell
+Gustcloak Runner
+Gutwrencher Oni
 Healing Technique
 Heap Doll
 Hedron Alignment
 Hedron Crab
+Helm of the Host
 Heron of Hope
+Hexplate Wallbreaker
 Hoard Robber
+Honored Crop-Captain
 Honored Heirloom
+Impeccable Timing
 In the Trenches
 Indestructibility
+Inescapable Blaze
+Inevitable Betrayal
 Infuse with the Elements
 Ingenious Thief
 Innovative Metatect
 Invasion of Dominaria
+Invasion of Tolvada
 Ironclad Krovod
+Ironclaw Orcs
 Island
 Ivora, Insatiable Heir
 Ivy Elemental
 Izzet Locket
+Jade Mage
+Jungleborn Pioneer
 Junk Diver
 Kalonian Tusker
 Karn's Touch
+Kashi-Tribe Elite
 Kashi-Tribe Reaver
 Keeneye Aven
+Kelsinko Ranger
+Kinsbaile Cavalier
 Kitesail Cleric
+Konda's Hatamoto
 Krenko's Enforcer
 Kuldotha Rebirth
+Lapse of Certainty
+Lash Out
 Lawmage's Binding
 Learn from the Past
 Legion Guildmage
+Legions to Ashes
 Life and Limb
 Light 'Em Up
 Lightning Blast
 Liliana's Standard Bearer
 Lily Bowen, Raging Grandma
 Lionheart Maverick
+Liquimetal Torque
 Live Fast
 Living Airship
+Longshot Squad
+Lotus Path Djinn
 Mage-Ring Bully
+Mannichi, the Fevered Dream
 Manta Riders
 Marang River Prowler
 Marble Diamond
+March of the Returned
 Marrow-Gnawer
 Master Symmetrist
 Maverick Thopterist
+Maximus, Knight Apparent
 Merfolk Secretkeeper
 Midnight Charm
 Midnight Haunting
 Mindleech Ghoul
 Miscast
+Mishra's Onslaught
 Mogg Maniac
 Molder Slug
 Mountain
@@ -152,13 +216,18 @@ Mystical Tutor
 Nantuko Husk
 Narnam Cobra
 Natural End
+Nature's Resurgence
 Nebelgast Intruder
 Necrogen Spellbomb
 Needleshot Gourna
+Needletooth Raptor
 Nevinyrral's Disk
 Norwood Warrior
+Nuclear Fallout
 Obelisk of Jund
 Ogre Recluse
+Opaline Sliver
+Ordeal of Thassa
 Order of the Mirror
 Outland Boar
 Paragon of New Dawns
@@ -173,47 +242,63 @@ Priest of Urabrask
 Pyknite
 Pyrophobia
 Quickling
+Rabble-Rouser
 Radha's Firebrand
+Radiant, Archangel
+Rainbow Crow
 Ral's Reinforcements
 Rathi Assassin
 Ray Fillet, Wave Warrior
 Reaver Ambush
+Recantation
 Reckless Rage
 Refocus
 Renegade Krasis
+Repentant Vampire
 Repudiate
 Resplendent Griffin
 Retrieve
+Revive
 Riders of Rohan
+Rise of the Hobgoblins
 Ritual of Steel
 Rock Lobster
 Root-Kin Ally
 Rootborn Defenses
+Rouse
 Run for Your Life
+Sanguine Spy
 Sarkhan's Dragonfire
 Savage Thallid
 Searing Meditation
 Seeker of the Way
 Segmented Krotiq
+Selenia, Dark Angel
 Self-Inflicted Wound
 Seraph of Dawn
 Shacklegeist
 Shield of the Ages
+Shiv's Embrace
 Shu Soldier-Farmers
+Sigiled Contender
 Skillful Lunge
+Skirk Drill Sergeant
 Skull Fracture
 Skyshroud Sentinel
 Smoldering Werewolf
 Social Climber
 Spiked Ripsaw
 Spiteful Bully
+Starlight
 Stinkdrinker Daredevil
 Stitched Mangler
 Stormrider Spirit
+Strangleroot Geist
 Stratus Walk
 Stromgald Crusader
 Sudden Edict
 Suit Up
+Sunspear Shikari
 Suspicious Stowaway
 Swaggering Corsair
 Swamp
@@ -226,27 +311,43 @@ Tenacity
 Terravore
 Territorial Allosaurus
 Thaumatic Compass
+The Rack
 The Weaver King
 Thorn of Amethyst
 Thresher Lizard
 Thrun, the Last Troll
+Thunderous Orator
+Tiamat's Fanatics
 Tidy Conclusion
 Time Reversal
 Time Walk
 Tolarian Winds
+Tome Anima
 Topplegeist
 Tower Winder
 Tragic Lesson
+Treasure Hunter
+Trelasarra, Moon Dancer
 Tremor
+Tukatongue Thallid
+Uncontrolled Infestation
 Urborg Syphon-Mage
 Valkyrior Skyrider
 Vampiric Tutor
+Veiled Sentry
+Venomous Brutalizer
+Vibrating Sphere
+Vincent, Vengeful Atoner
+Vitalize
+Voltaic Servant
+Vraska, Scheming Gorgon
 Wall of Pine Needles
 War Chariot
 Weldfast Monitor
 Whiptongue Hydra
 White Knight
 Windreaver
+Witness of the Ages
 Wurmcoil Larva
 Zarichi Tiger
 Zeriam, Golden Wind

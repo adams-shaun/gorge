@@ -2,6 +2,7 @@ A-Circuit Mender
 A-Jackhammer
 Abyssal Hunter
 Active Volcano
+Aeronaut Admiral
 Agonizing Syphon
 Ajani's Influence
 Alhammarret, High Arbiter
@@ -29,14 +30,19 @@ Bottle-Cap Blast
 Briarbridge Tracker
 Broken Fall
 Bumbling Pangolin
+Butcher's Glee
 Carrion Ants
+Cartouche of Knowledge
+Centaur Garden
 Cerodon Yearling
 Charity Extractor
 Chorus of Might
+Churning Eddy
 Clattering Augur
 Cloakwood Swarmkeeper
 Cogwork Spy
 Confound
+Consider
 Contingency Plan
 Covert Operative
 Crested Herdcaller
@@ -45,6 +51,7 @@ Crush of Wurms
 Curious Killbot
 Daredevil, Fearless Fighter
 Daring Apprentice
+Davriel's Shadowfugue
 Dawnhart Geist
 Death Frenzy
 Death's Duet
@@ -63,6 +70,7 @@ Entish Restoration
 Etherium Abomination
 Exuberant Wolfbear
 Eyeblight's Ending
+False Mourning
 Fangren Hunter
 Farmstead
 Feast of Succession
@@ -78,6 +86,7 @@ Fortress Cyclops
 Furious Assault
 Gift of Granite
 Gift of Wrath
+Gilt-Blade Prowler
 Gobbling Ooze
 Goblin Chariot
 Goblin Chieftain
@@ -86,6 +95,7 @@ Goldnight Commander
 Gravel-Hide Goblin
 Grimdancer
 Grisly Spectacle
+Hanabi Blast
 Harsh Scrutiny
 Hatchery Spider
 Hawkeye, Trick Shot
@@ -133,6 +143,7 @@ Mending Touch
 Mercenary Informer
 Merfolk of the Depths
 Mesa Unicorn
+Mindeye Drake
 Mirkwood Channeler
 Mist Raven
 Moira, Urborg Haunt
@@ -143,6 +154,7 @@ Mountain
 Muddle the Mixture
 Mwonvuli Acid-Moss
 Mysterious Tome
+Nagao, Bound by Honor
 Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
@@ -151,17 +163,21 @@ Ogre Menial
 One with Nature
 Ongoing Investigation
 Onslaught
+Orazca Relic
 Orcish Vandal
 Overwhelming Denial
 Panic Attack
 Patriarch's Desire
 Peel from Reality
 Pegasus Courser
+Peppersmoke
 Phalanx Vanguard
+Pharika's Libation
 Phyresis
 Phyrexian Archivist
 Pilgrim of the Fires
 Pillar Tombs of Aku
+Pincer Spider
 Pirate Ship
 Plague Rats
 Plains
@@ -182,13 +198,16 @@ Reprobation
 Resistance Reunited
 Reverberate
 Rhonas's Monument
+Rhovanion Rampager
 Rhystic Study
 Rogue Refiner
+Safe Haven
 Sage's Row Denizen
 Sandstorm
 Savage Silhouette
 Security Bypass
 Selesnya Locket
+Sengir Autocrat
 Shabraz, the Skyshark
 Shaman of the Pack
 Shapeshifter
@@ -211,16 +230,20 @@ Songbird, Sonic Screamer
 Sootfeather Flock
 Soul's Majesty
 Spiketail Drake
+Spitting Drake
 Spotter Thopter
 Staff of the Storyteller
 Star Pupil
 Steely Resolve
 Stern Scolding
 Stitched Mangler
+Stormscape Master
+Stream of Consciousness
 Strength of the Pack
 Struggle for Skemfar
 Stupor
 Sunweb
+Survivor of Korlis
 Sutina, Speaker of the Tajuru
 Swamp
 Swordwise Centaur
@@ -240,6 +263,7 @@ Titans' Vanguard
 Towering Viewpoint
 Town Gossipmonger
 Trading Post
+Unbreakable Formation
 Uninvited Geist
 Vampire Revenant
 Viashino Runner
@@ -256,6 +280,7 @@ Whiptail Wurm
 Whirlwind Technique
 Wildest Dreams
 Wretched Anurid
+Wrong Turn
 Wu Longbowman
 Yomiji, Who Bars the Way
 Zulaport Duelist

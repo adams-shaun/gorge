@@ -21,6 +21,7 @@ Elven Bow
 Exhaustion
 Exquisite Huntmaster
 Extract from Darkness
+Fangren Marauder
 Fatestitcher
 Felidar Guardian
 Fiend Hunter
@@ -52,6 +53,7 @@ Knight of Meadowgrain
 Kutzil, Malamet Exemplar
 Larger Than Life
 Longshot Squad
+Manor Gate
 Meatsqueak, Hoard Lord
 Moment's Peace
 Mountain
@@ -86,6 +88,8 @@ Trove Tracker
 Unexpected Fangs
 Vampires' Vengeance
 Vedalken Mastermind
+Venom Sliver
+Victimize
 Vizier of Remedies
 Volatile Claws
 Wanderer's Strike

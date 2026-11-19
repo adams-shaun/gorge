@@ -11,6 +11,7 @@ Alpine Watchdog
 Ambassador Laquatus
 Ancient Gold Dragon
 Ancient Silverback
+Ancient Ziggurat
 Angel of Light
 Angel's Feather
 Angelic Shield
@@ -251,6 +252,7 @@ Mire Boa
 Misfortune Teller
 Molly Hayes, Runaway
 Moonglove Extract
+Mossfire Valley
 Mountain
 Mtenda Lion
 Myrkul's Edict
@@ -305,11 +307,13 @@ Returned Reveler
 Riptide Turtle
 Rise from the Grave
 Ritual of Rejuvenation
+Riveteers Overlook
 Rock Badger
 Rot Wolf
 Rubblehulk
 Rush of Inspiration
 Salvaged Manaworker
+Sand Silos
 Saruman's Trickery
 Scourge of Kher Ridges
 Sea Eagle
@@ -357,6 +361,7 @@ Sunflare Shaman
 Sunrise Seeker
 Sunseed Nurturer
 Swamp
+Sword of the Meek
 Symbiote Spawn
 Tenement Crasher
 Tezzeret's Betrayal
