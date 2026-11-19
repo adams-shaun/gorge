@@ -53,3 +53,5 @@ Lightning Bolt
 Giant Growth
 Grizzly Bears
 Savannah Lions
+Crossroads Village
+Blood Crypt

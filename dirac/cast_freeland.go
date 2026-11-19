@@ -20,9 +20,8 @@ func (s *State) freeLandable(k *prep, p uint8) bool {
 
 // freeLandPlay plays queued land o for p (gorge beginPlay: the gates are read
 // again when the play is begun, a refused one is a Note and nothing, the card
-// staying where it is); false: the game stalled. A land whose entry asks (an
-// as-enters choice, a shock land's election, the CR 616.1 entry order) is a
-// stall: the queue parks no land play.
+// staying where it is); false: the game stalled, or the play is parked on an
+// ask of its entry (freeLandAsk) and the drain resumes once it is answered.
 //
 //go:noinline
 func (s *State) freeLandPlay(k *prep, o Obj, p uint8) bool {
@@ -34,8 +33,7 @@ func (s *State) freeLandPlay(k *prep, o Obj, p uint8) bool {
 	}
 	c := s.objs[o].card
 	if k.gen.anyEntUntap || k.gen.has(c, gfShockEntry) || s.enterChoiceKind(k, c) != 0 {
-		s.capFull(StallLowering)
-		return false
+		return s.freeLandAsk(k, o, p)
 	}
 	from := s.detach(o)
 	if k.gen.anyMayLimit {
@@ -49,4 +47,34 @@ func (s *State) freeLandPlay(k *prep, o Obj, p uint8) bool {
 	}
 	s.passes = 0
 	return true
+}
+
+// freeLandAsk plays queued land o whose entry may ask something, as the hand
+// play does (legal.go's AkPlayLand arm: gorge beginPlay's land arm asks the
+// as-enters choice before the move, newCast then continueCast): the choice is
+// posed with the land still in its zone and its answer plays it
+// (preLandAsk, applyGen); a shock land's election and the CR 616.1 entry
+// order are the play's own asks (playLandNow). false when an ask is posed:
+// gorge's runPlays parks at it, so the rest of the queue waits.
+//
+//go:noinline
+func (s *State) freeLandAsk(k *prep, o Obj, p uint8) bool {
+	if st := DebugVentureStats; st != nil {
+		st.LandAsks++
+	}
+	if s.preLandAsk(k, o) {
+		return false
+	}
+	s.playLandNow(k, o, p)
+	return s.ctl == ctlPriority && s.g.nask == 0 && s.g.ro.n == 0
+}
+
+// preLandSeat is the seat whose land play a pre-ask belongs to: the caster of
+// the Play whose queue is being drained (a land picked from another zone is
+// played by the Play's controller), otherwise the player holding priority.
+func (s *State) preLandSeat() uint8 {
+	if s.g.freeP&freeLandsOn != 0 {
+		return uint8(s.g.freeP & freeSeatMask)
+	}
+	return s.prio
 }
