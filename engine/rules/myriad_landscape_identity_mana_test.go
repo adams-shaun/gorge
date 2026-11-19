@@ -20,10 +20,6 @@ import (
 // priority and Commander's Sphere ({3}) has a payment plan tapping all three
 // lands. The scry rider made the planner defer the Path
 // ("source:special_production"), which left only the Swamp for the {2}.
-//
-// The carve-out is for games of three or more seats: the dirac kernel is
-// two-seat and still leaves the Path out of payment
-// (TestPathOfAncestryStaysDeferredInTwoSeatGames), so the game here has three.
 func TestMyriadLandscapeActivatePaidByPathOfAncestry(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -176,22 +172,5 @@ func TestPathOfAncestryPlannedCastQueuesScry(t *testing.T) {
 	}
 	if ask := drainUntilArrange(t, e); ask == nil {
 		t.Fatal("the planned spend of Path's mana on a Goblin creature spell queued no scry (KArrange) ask")
-	}
-}
-
-// TestPathOfAncestryStaysDeferredInTwoSeatGames pins the carve-out's scope:
-// the dirac kernel is two-seat and models the Path as a source outside
-// payment, so a two-seat game keeps the planner's "source:special_production"
-// deferral and offers no plan that taps the Path. Delete this test with the
-// follow-up that lowers the Path's rider in the kernel.
-func TestPathOfAncestryStaysDeferredInTwoSeatGames(t *testing.T) {
-	t.Parallel()
-	_, _, path, _, acts := pathPlanBoard(t, 4244, 2)
-	for _, a := range acts {
-		for _, p := range a.Plans {
-			if slices.Contains(tappedBy(p), path) {
-				t.Fatalf("a two-seat game planned a payment that taps the Path of Ancestry: %+v", p)
-			}
-		}
 	}
 }

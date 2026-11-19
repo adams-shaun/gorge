@@ -518,8 +518,8 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 		}
 	}
 	for i := range dd.Filters {
-		if f := &dd.Filters[i]; f.Pred == kop.PredWord7 && f.PredN&0xff == kop.W7SharesCrTrigObj {
-			choosesType = true // sharing a creature type with the attacker reads every printed one
+		if f := &dd.Filters[i]; f.Pred == kop.PredWord7 && f.PredN&0xff == kop.W7SharesCrTrigObj || f.Pred == kop.PredSharesCrCmdr {
+			choosesType = true // sharing a creature type with the attacker or a commander reads every printed one
 		}
 	}
 	if choosesType {

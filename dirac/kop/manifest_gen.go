@@ -1811,6 +1811,11 @@ const PredNamedCard Pred = 35
 // PredSameNameSelf: the candidate's current name equals the reading source's current name (gorge sharesNameWith Self, filter_attachment.go; Marvin, Murderous Mimic's GainsAbilitiesOf$ Creature.YouCtrl+!sharesNameWith Self). The source is the static's own source slot, or the resolving entry's object; the name identity is sharesNameRem's (a battlefield permanent reads its layer-3 name, a face-down object has no name, CR 708.2). PredN 1 is the ordinary ! negation.
 const PredSameNameSelf Pred = 36
 
+// Pred (dirac/manifest/Pred/PredSharesCrCmdr)
+//
+// PredSharesCrCmdr: the object shares a creature type with a commander of the evaluating controller (gorge sharesCreatureTypeWith Commander, effects sharesTypeReferentsCommander: the resolving source's controller's commanders, Path of Ancestry's SpellCast ValidCard$ Creature.sharesCreatureTypeWith Commander). Each side reads its current creature types where it now is (a commander in the command zone its printed ones); an object with every creature type shares with any commander that has a creature type, and a commander with every type with any object that has one (CR 702.73a). A controller with no commander matches nothing.
+const PredSharesCrCmdr Pred = 37
+
 // repl BeginPhase (dirac/manifest/ReplKind/ReplBeginPhase)
 const ReplBeginPhase ReplKind = 42
 

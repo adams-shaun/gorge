@@ -2658,7 +2658,7 @@ const (
 	StallLinkCtr       = 60  // an until-leaves return rider's counters on a card that does not enter inline (a returning Aura asked its host, an as-enters choice asked first; zone_untilleaves.go)
 	StallAegis         = 62  // an Assimilation Aegis copy that cannot be kept (a second exiled card, a bearer already a copy; zone_exilethenattach.go)
 	StallSacOther      = 63  // a Mobilize group sacrifice whose member another player controls (gorge checks no controller; kw_mobilize.go)
-	StallObsSrc        = 70  // a second observed mana source (Spell.ManaFromCard.StrictlySelf reader) tapped by one cast (mana_spendtrigger.go)
+	StallObsSrc        = 70  // a ninth observed mana source (Spell.ManaFromCard.StrictlySelf reader), or a second beside a deferred or haste one, tapped by one cast (mana_spendtrigger.go)
 	StallCopyCast      = 88  // a Play CopyCard$ cast of a multi-face card other than an Adventure card (cast_copycast.go)
 	StallDynMana       = 89  // a dynamic mana ability's amount above maxDynMana, its autopay variants (gen.go manaPCGen; value_gravecounts.go)
 	StallExiledWith    = 96  // more than maxExw live exiled-with links (zone_exiledwith.go)
