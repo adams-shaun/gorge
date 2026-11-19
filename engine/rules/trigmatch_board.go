@@ -40,6 +40,7 @@ func (b *trigBoard) Facts() trigmatch.Facts {
 		Damaging:               b.damaging,
 		CombatDamaging:         b.combatDamaging,
 		DmgSrcOverride:         b.dmgSrcOverride,
+		FightDamaging:          b.dmgFlags&effects.DamageFight != 0,
 		DeclaredAttackers:      b.declaredAttackers,
 		TapObj:                 b.tapObj,
 		TapPlayer:              b.tapPlayer,

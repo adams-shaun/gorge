@@ -137,6 +137,9 @@ type Facts struct {
 	Damaging       state.ObjID
 	CombatDamaging bool
 	DmgSrcOverride state.ObjID
+	// FightDamaging is whether the Damage event being matched is one
+	// direction of a fight (CR 701.14), published by effects' emitFightHit.
+	FightDamaging bool
 	// DeclaredAttackers is the whole declare-attackers batch while its events
 	// are emitted.
 	DeclaredAttackers []state.ObjID

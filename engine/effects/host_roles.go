@@ -166,12 +166,16 @@ type HostBatch interface {
 	// (DealDamage/DamageAll never ask mid-loop, so nothing suspends inside
 	// the override window).
 	SetDamageSource(id state.ObjID) state.ObjID
-	// SetDamageNoPrevention publishes "the damage the caller is about to
-	// emit can't be prevented" (DealDamage's NoPrevention$, CR 615.12) for
-	// rules' prevention gates, returning the previous value so the caller
-	// restores it. Runtime-only like SetDamageSource: replay re-executes the
-	// same setter and Clone never copies it.
-	SetDamageNoPrevention(on bool) (prev bool)
+	// SetDamageFlags publishes the provenance bits of the Damage event the
+	// caller is about to emit (DamageFlags): DamageNoPrevention is
+	// DealDamage's NoPrevention$ (CR 615.12), read by rules' prevention
+	// gates; DamageFight marks one direction of a fight (CR 701.14), read by
+	// trigmatch's Mode$ Fight / FightOnce matchers. events.Event carries
+	// neither (hash-chained, replayed), so they are engine-transient: the
+	// caller restores the returned previous value. Runtime-only like
+	// SetDamageSource: replay re-executes the same setter and Clone never
+	// copies it.
+	SetDamageFlags(f DamageFlags) (prev DamageFlags)
 	// SetCounterAdder publishes the player causing the CounterChange /
 	// PlayerCounterChange events the caller is about to emit, so the
 	// repl:AddCounter class's ValidSource$ scope can be read. It mirrors
