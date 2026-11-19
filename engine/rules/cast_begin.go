@@ -1173,6 +1173,10 @@ func (e *Engine) continueCast() {
 	if e.squadAsk() {
 		return
 	}
+	// CR 601.2b: Chorus of the Conclave's pay-any-amount additional cost.
+	if chorusAsk(e) {
+		return
+	}
 	// CR 702.78a: the Conspire tap election (two untapped creatures that
 	// share a colour with the spell) is posed before Convoke/X so an elected
 	// creature cannot also be announced as a payment source. See conspireAsk.

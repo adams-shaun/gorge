@@ -449,6 +449,10 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 	if len(chosen) > 0 {
 		kind = chosen[0].Kind
 	}
+	if kind == chorusAnswerKind {
+		answerChorus(pc, chosen)
+		return
+	}
 	if kind == "sacrifice" && pc.emerge && pc.SacPart == 0 && len(chosen) == 1 {
 		pc.emergeSac = chosen[0].Obj
 	}
