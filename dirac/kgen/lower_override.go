@@ -176,6 +176,11 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		if strings.TrimSpace(v) != "Creature" {
 			return nil, refuse("RemoveType %q", v)
 		}
+		// The runtime walk takes CR 205.1a's correlated subtypes with the
+		// Creature mask (chars_gen.go subsGen, static_layerwalk.go lfxApply4):
+		// gorge chars/types.go's RemoveTypes block strips them beside the
+		// card type, and a RemoveCreatureSub set here would refuse the
+		// conditioned devotion statics in selfCondCheck.
 		o.RemoveTypes = uint16(typeBits["Creature"])
 	}
 	if v, ok := sp.get("AddAllCreatureTypes"); ok {

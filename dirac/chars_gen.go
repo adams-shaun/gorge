@@ -421,7 +421,7 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		// sets AllCreatureTypes), until a subtype-setting effect
 		all := k.t.Cards[s.cardAt(sl)].AllCreatureTypes || s.fxM.has(sl) && k.gen.cpxSub && s.copyExcAll(k, sl)
 		s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
-			if o.HasSub || o.RemoveCreatureSub {
+			if o.HasSub || ovrCreatSub(o) {
 				all = false
 			}
 			if ovrAllCreat(o) {
@@ -447,7 +447,7 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 			m = m.And(o.KeepSub).Or(o.SetSub)
 			all = false
 		}
-		if o.RemoveCreatureSub && !DebugRmCreatSubKeep {
+		if ovrCreatSub(o) && !DebugRmCreatSubKeep {
 			m, all = m.AndNot(k.gen.creatSub), false
 		}
 		if o.SetLandSub {
@@ -522,7 +522,7 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 				m = m.And(o.KeepSub).Or(o.SetSub)
 				mAll, allOut = false, false
 			}
-			if o.RemoveCreatureSub {
+			if ovrCreatSub(o) {
 				allOut = false // the outside branch clears it on the record, mutation switch or not
 				if !DebugRmCreatSubKeep {
 					m = m.AndNot(k.gen.creatSub)

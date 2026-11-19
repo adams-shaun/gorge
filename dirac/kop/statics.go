@@ -148,7 +148,7 @@ type Override struct {
 	HasTypes         bool
 	SetTypes         TypeMask // card types (supertypes are kept)
 	AddTypes         TypeMask
-	RemoveTypes      TypeMask // RemoveType$ (gorge applyTypeEffect RemoveTypes): card types removed after a HasTypes set, before AddTypes (the devotion gods' "isn't a creature", CR 205.1b)
+	RemoveTypes      TypeMask // RemoveType$ (gorge applyTypeEffect RemoveTypes): card types removed after a HasTypes set, before AddTypes (the devotion gods' "isn't a creature", CR 205.1b); the walk takes the subtypes correlated with the removed card types with it (CR 205.1a: the God word), as gorge chars/types.go's RemoveTypes block does
 	HasSub           bool
 	SetSub           SubMask // Table.Subtypes indexes
 	AddSub           SubMask
