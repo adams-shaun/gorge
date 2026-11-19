@@ -7,6 +7,7 @@ All That Glitters	e78d83cf1b788210	18	0/0		2/2
 Angel of Condemnation	9fe5e51d81ea9f6c	12	2/2		0/1	ix:resp
 Angelic Renewal	e5ad1e8940f9660f	24	1/1		1/1	
 Arcbound Shikari	c7c64bda048acf20	8	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Ashen Firebeast	c1f9c0b6dd7db24c	4	1/1		1/1	
 Ashmouth Hound	8306e15ff6186dbb	16	2/2		0/1	ix:resp
 Atog	54c6bdd6edfbceb3	16	1/1		1/1	
 Baleful Beholder	44e5e0c3120368c6	10	1/1		0/1	ix:resp
@@ -153,6 +154,7 @@ Nebelgast Intruder	921e82405501bea2	8	1/1		1/1
 Needleshot Gourna	8966d36a48d577e3	8	0/0		0/0	
 Needletooth Raptor	ba64916ae176bbf9	13	1/1		0/1	ix:resp
 Norwood Warrior	a936626a4dd07a57	16	1/1		0/1	ix:resp
+Nuclear Fallout	417c970f067157b7	9	0/0		3/4	f0/s/x0
 Ogre Recluse	8d0c689e927f6e82	10	1/1		1/1	
 Opaline Sliver	4d25f10ff553b096	6	0/0		0/0	
 Ordeal of Thassa	97eca541ad71795c	16	2/2		2/2	
@@ -179,6 +181,7 @@ Revive	6eb8d01147d02a5e	9	0/0		2/2
 Rise of the Hobgoblins	c48f4b9c19bf27ee	9	2/2		1/1	
 Ritual of Steel	ae872440f9e802fa	18	1/1		2/2	
 Rooftop Bypass	c5900f1fbeaec1e4	6	1/1		1/1	
+Root-Kin Ally	608b822d738438d9	4	1/1		0/1	ix:resp
 Rouse	2e433fc23273ac2e	28	0/0		1/2	ix:resp
 Run for Your Life	f1d6c6b678e6b13b	7	0/0		3/4	cast/alt:escaped
 Rustvale Bridge	63c1dfc7ad57039e	277	1/1		0/1	ix:resp
@@ -195,6 +198,11 @@ Shu Soldier-Farmers	410b4574121c676e	20	1/1		1/1
 Sigiled Contender	bc46849cacaed1c7	17	0/0		0/0	
 Skirk Drill Sergeant	f4291f0ef4acbcce	14	1/1		1/1	
 Skull Fracture	06573d8bcbca2232	30	0/0		4/4	
+Snow-Covered Forest	a1a5f67cd8b33a1c	235	1/1		0/1	ix:resp
+Snow-Covered Island	3020b29d96f5b5b9	976	1/1		0/1	ix:resp
+Snow-Covered Mountain	3200469019de4aca	996	1/1		0/1	ix:resp
+Snow-Covered Plains	bdaf911aefce4749	973	1/1		0/1	ix:resp
+Snow-Covered Swamp	c7302ea4a23ed037	998	1/1		0/1	ix:resp
 Social Climber	aa0875606604b771	8	1/1		0/1	ix:resp
 Spiteful Bully	65e283e0327d7bcf	10	1/1		0/1	ix:resp
 Starlight	1057f8b318bd5e4f	22	0/0		2/2	
@@ -214,6 +222,7 @@ Tainted Peak	cc39d5fe6b6c46e8	244	2/2		0/1	ix:resp
 Temperamental Oozewagg	8294f4cbd1039030	6	1/1		0/1	ix:resp
 Tenacity	c35b82b8c4c6c665	24	0/0		1/2	ix:resp
 The Rack	5474393ea2274c44	24	1/1		1/1	
+The Weaver King	bfdc992fc43eb914	8	1/1		0/1	ix:resp
 Thorn of Amethyst	e9257aad0c62b26e	22	0/0		0/0	
 Thresher Lizard	197b60d5686f05cd	6	0/0		0/0	
 Thundering Djinn	894930d128ff4835	11	1/1		1/1	
@@ -236,6 +245,7 @@ Vibrating Sphere	06b3f7da59f6c469	26	0/0		0/0
 Vincent, Vengeful Atoner	46ad52183c8525a6	16	2/2		1/1	
 Vitalize	077dea108b120718	6	0/0		1/2	ix:resp
 Voltaic Servant	62de8d6591f2fd9a	29	1/1		0/1	ix:resp
+Vraska, Scheming Gorgon	6349e4e07d098441	7	3/3		1/1	
 Whiptongue Hydra	0ca44768a6b9df32	7	1/1		1/1	
 Windreaver	e621200bf792620d	40	4/4		1/1	
 Witness of the Ages	734aa8de0e5a035f	278	0/0		2/2	

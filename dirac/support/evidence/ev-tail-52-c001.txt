@@ -151,6 +151,7 @@ Greenside Watcher
 Grim Affliction
 Hanged Executioner
 Hardened-Scale Armor
+Harvester Druid
 Hate Weaver
 Headwater Sentries
 Healing Hands

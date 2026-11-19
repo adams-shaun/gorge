@@ -296,6 +296,7 @@ Prowling Pangolin
 Psychomancer
 Pyknite
 Quantum Entanglement
+Quick Sliver
 Quicksilver Fisher
 RMS Titanic
 Radha, Heart of Keld
@@ -438,6 +439,7 @@ Virtue's Ruin
 Vitu-Ghazi Guildmage
 Voracious Fell Beast
 Vorrac Battlehorns
+Voyager Drake
 Wake Thrasher
 Wall of Corpses
 Wall of Essence

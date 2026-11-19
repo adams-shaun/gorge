@@ -13,6 +13,7 @@ Arashin Sunshield
 Armament Dragon
 Attuned Hunter
 Auroral Procession
+Awaken the Honored Dead
 Barrensteppe Siege
 Bearer of Glory
 Betor, Kin to All
@@ -37,6 +38,7 @@ Craterhoof Behemoth
 Cruel Truths
 Dalkovan Encampment
 Dalkovan Packbeasts
+Death Begets Life
 Defibrillating Current
 Delta Bloodflies
 Descendant of Storms
@@ -60,6 +62,7 @@ Encroaching Dragonstorm
 Equilibrium Adept
 Essence Anchor
 Evolving Wilds
+Fangkeeper's Familiar
 Felothar, Dawn of the Abzan
 Feral Deathgorger
 Fire-Rim Form
@@ -75,6 +78,7 @@ Furious Forebear
 Glacial Dragonhunt
 Glacierwood Siege
 Great Arashin City
+Gurmag Nightwatch
 Gurmag Rakshasa
 Hardened Tactician
 Herd Heirloom
@@ -93,15 +97,19 @@ Jade-Cast Sentinel
 Jeskai Devotee
 Jeskai Monument
 Jungle Hollow
+Kheru Goldkeeper
 Kin-Tree Nurturer
 Kishla Skimmer
 Kishla Trawlers
 Kishla Village
 Knockout Maneuver
+Kotis, the Fangkeeper
 Krotiq Nestguard
 Krumar Initiate
 Lasyd Prowler
+Lie in Wait
 Lightfoot Technique
+Lotuslight Dancers
 Loxodon Battle Priest
 Maelstrom of the Spirit Dragon
 Magmatic Hellkite
@@ -131,6 +139,7 @@ Poised Practitioner
 Purging Stormbrood
 Qarsi Revenant
 Rainveil Rejuvenator
+Rakshasa's Bargain
 Rally the Monastery
 Rebellious Strike
 Reigning Victor
@@ -191,6 +200,7 @@ Tempest Hawk
 Temur Devotee
 Temur Monument
 Tersa Lightshatter
+Teval, Arbiter of Virtue
 The Sibsig Ceremony
 Thornwood Falls
 Thunder of Unity

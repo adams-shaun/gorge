@@ -56,6 +56,7 @@ Chainweb Aracnir
 Change the Equation
 Chaos Lord
 Choking Sands
+Chord of Calling
 Clear a Path
 Clip Wings
 Colossal Dreadmaw and Storm Crow
@@ -237,6 +238,7 @@ Sage of Fables
 Sailor of Means
 Sanctify
 Sanctum of Stone Fangs
+Sarkhan's Unsealing
 Scalding Devil
 School of Piranha
 Scour All Possibilities
@@ -256,6 +258,7 @@ Sizzle
 Skyclave Shadowcat
 Skyline Cascade
 Slagwoods Bridge
+Songstitcher
 Sonic Screwdriver
 Sootstoke Kindler
 Soulmender

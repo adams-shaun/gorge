@@ -5,6 +5,7 @@ Ardent Elementalist
 Armored Ascension
 Aven Fisher
 Bad Deal
+Baird, Steward of Argive
 Baloth Woodcrasher
 Barrage of Boulders
 Battle Screech
@@ -13,8 +14,10 @@ Bloodchief's Thirst
 Careful Study
 Cast Out
 Clarion Spirit
+Cloudshift
 Conifer Strider
 Dark Triumph
+Dauthi Trapper
 Dawnbringer Cleric
 Daxos, Blessed by the Sun
 Devouring Light

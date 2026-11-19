@@ -53,6 +53,7 @@ Knight of Meadowgrain
 Kutzil, Malamet Exemplar
 Larger Than Life
 Longshot Squad
+Mad Ratter
 Manor Gate
 Meatsqueak, Hoard Lord
 Moment's Peace
@@ -60,6 +61,8 @@ Mountain
 Mulldrifter
 Noble Purpose
 Nomads en-Kor
+Noxious Dragon
+Okiba-Gang Shinobi
 Pick Your Poison
 Plains
 Rampant Growth
@@ -76,6 +79,7 @@ Snap
 Spin into Myth
 Sting-Slinger
 Stinging Barrier
+Strands of Night
 Stronghold Rats
 Surge of Salvation
 Swamp

@@ -159,6 +159,7 @@ Gaea's Anthem
 Gala Greeters
 Gather the Pack
 Gempalm Polluter
+Gemstone Caverns
 Glass Golem
 Gluttonous Zombie
 Goblin Fireslinger
@@ -469,6 +470,7 @@ Unsubstantiate
 Vampire Scrivener
 Vampiric Feast
 Vault 87: Forced Evolution
+Vernal Equinox
 Viashino Warrior
 Victual Sliver
 Village Elder

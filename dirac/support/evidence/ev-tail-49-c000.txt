@@ -57,6 +57,7 @@ Butcher's Cleaver
 Cacophony Unleashed
 Call the Cavalry
 Call the Scions
+Callow Jushi
 Captain America, Steve Rogers
 Carrion Wurm
 Casting of Bones
@@ -312,6 +313,7 @@ Prodigy's Prototype
 Psychomancer
 Pyknite
 Quantum Entanglement
+Quick Sliver
 Quicksilver Fisher
 RMS Titanic
 Radha, Heart of Keld

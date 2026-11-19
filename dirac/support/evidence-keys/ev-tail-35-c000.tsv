@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Acidic Sliver	4b65991f64350504	34	0/0		0/0	
 Centaur Archer	39ef958207ddb09d	8	1/1		0/1	ix:resp
+Cloudshift	0e311ed0dcb83ab7	8	0/0		1/2	ix:resp
 Consume Strength	b02c57fe3b69d0c2	18	0/0		2/2	
 Dead Reveler	93db6ae16d5fc22c	14	0/0		0/0	
 Deeproot Historian	31a560d0ef9197c6	94	0/0		0/0	
@@ -8,6 +9,7 @@ Dwarven Thaumaturgist	8ed59c212d4dec6f	16	1/1		0/1	ix:resp
 Ebonblade Reaper	eaac43afe6f42456	26	2/2		2/3	cast/alt:morphed
 Fugitive Druid	80e405532f0d9e4c	10	1/1		0/1	ix:resp
 Generous Ent	122613c8ce305324	5	2/2		0/1	ix:resp
+Gilanra, Caller of Wirewood	dfbd92fe995f0c29	12	1/1		1/1	
 Golgari Findbroker	712ea59675d1f4e1	8	1/1		1/1	
 Griselbrand	057aa5f268b980e8	8	1/1		0/1	ix:resp
 Grixis Slavedriver	541c968634caf49e	19	2/2		0/1	ix:resp

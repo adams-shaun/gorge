@@ -29,6 +29,7 @@ Blowfly Infestation
 Bob, Reluctant HYDRA Agent
 Bonded Fetch
 Boon-Bringer Valkyrie
+Bouncer's Beatdown
 Bow of Nylea
 Breathstealer
 Brilliant Halo
@@ -159,6 +160,7 @@ Krark-Clan Shaman
 Kura, the Boundless Sky
 Lantern of the Lost
 Lathnu Sailback
+Lay Waste
 Leering Emblem
 Lifelink
 Liliana's Reaver
@@ -208,6 +210,7 @@ Pile On
 Plains
 Plated Wurm
 Polluted Dead
+Pride Sovereign
 Primeval Herald
 Profit
 Pseudodragon Familiar
@@ -277,6 +280,7 @@ Thoughtseize
 Tiger Claws
 Tilonalli's Crown
 Topan Ascetic
+Treefolk Healer
 Trestle Troll
 Tunneling Geopede
 Two-Headed Dragon
