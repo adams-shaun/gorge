@@ -1638,6 +1638,16 @@ func (g *grantSrch) visit(t *State) bool {
 			continue
 		}
 		g.funded++
+		// The filter's own card taps here only for its plain {C}, whose
+		// one-bit mask poses no ask of its own; charge the zero-filter ask
+		// now, as the filter search does before its one answer
+		// (mana_filtzerofund.go).
+		if zeroFiltTap(g.k, t, g.p, sl) {
+			if !g.node() {
+				g.funded--
+				return false
+			}
+		}
 		var ok bool
 		if painFunds(g.k, pc) {
 			ok = g.fundPainBranch(t, i, sl, pc) // a painland asks its painful colours too (mana_filtpain.go)

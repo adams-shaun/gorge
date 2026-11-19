@@ -24,12 +24,19 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // modelled any-colour filter of one dynamic amount, out of the search's gaps,
 // usable, yielding nothing, and with its fee floating.
 func (fs *filtSearch) zeroFiltAsks(k *prep, t *State, sl Slot) bool {
-	if !k.gen.anyDynFilt || !k.gen.has(t.cardAt(sl), gfFilt) || fs.gaps.has(sl) || t.filtFirstOnly(k, sl) {
+	return !fs.gaps.has(sl) && zeroFiltTap(k, t, fs.p, sl)
+}
+
+// zeroFiltTap is that shape without a search's gaps: the filter search asks
+// it of a non-gap, and grantSrch's funding loop asks it of every non-gap
+// candidate, whose plain {T}: {C} tap poses no ask of its own.
+func zeroFiltTap(k *prep, t *State, p uint8, sl Slot) bool {
+	if !k.gen.anyDynFilt || !k.gen.has(t.cardAt(sl), gfFilt) || t.filtFirstOnly(k, sl) {
 		return false
 	}
 	a := t.filtAb(k, sl)
 	if a.AFlags&kop.AfManaDynamic == 0 || a.ManaColors != kop.ColAny || comboFiltAb(a) || a.ManaEach {
 		return false
 	}
-	return t.filtUsable(k, sl) && t.filtUnits(k, sl) == 0 && t.filtPaid(k, fs.p, sl)
+	return t.filtUsable(k, sl) && t.filtUnits(k, sl) == 0 && t.filtPaid(k, p, sl)
 }
