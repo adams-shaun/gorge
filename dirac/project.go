@@ -283,7 +283,9 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 		}
 		if s.faceDown(k, sl) {
 			if s.blankCopy(sl) {
-				po.Flags2 |= ProjNameless
+				if !s.permBlank(sl) { // gorge names a permanent copy by its printed card (copy_facedown.go)
+					po.Flags2 |= ProjNameless
+				}
 			} else {
 				po.Flags |= ProjFaceDown
 			}

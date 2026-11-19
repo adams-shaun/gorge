@@ -1,0 +1,57 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// A permanent that becomes a copy of a face-down permanent copies its
+// face-down copiable values: a nameless 2/2 colourless Creature with no
+// abilities and no mana cost (CR 707.2 "as modified by its face-down status",
+// 707.3's example, 708.2), plus the copy's own exceptions (CR 707.9b). It is
+// face up, so it cannot be turned face up (gorge builds the copy's face from
+// the template's current face, state.Object.SetCopyFace).
+//
+// The copy layer keeps the template's card as ovr.copyOf, as every copy
+// layer does, and rides the face-down derivation (face_facedown.go): the
+// becomer takes gtyFaceDown, its types on ovGenTy and the walk flag, with
+// both provenance bits set (gtyBlankCopy), a value no manifest or cloak
+// writes, so blankCopy reads it as a copy and the turn-up, face-down filter
+// and projection gates treat it as face up. The copied card is not
+// subscribed: the blank values have no abilities. A face-down permanent that
+// becomes a copy stays face down (CR 708.10) and is left alone.
+
+// gtyBlankCopy is the provenance value of a permanent copy of a face-down
+// permanent (face_manifest.go: manifested and cloaked are exclusive).
+const gtyBlankCopy = gtyProvMask
+
+// permBlank reports a permanent copy of a face-down permanent.
+func (s *State) permBlank(sl Slot) bool {
+	return s.perms[sl].gty&(gtyFaceDown|gtyProvMask) == gtyFaceDown|gtyBlankCopy
+}
+
+// copyBlankLayer settles the copy layer just put on the permanent at sl from
+// the template at tmpl (NoSlot: a card, face up): blank when the template is
+// face down, else the copied card's own values (a blank copy covered by a
+// face-up copy drops its mark). It reports whether the layer is blank, so the
+// caller subscribes no copied abilities.
+//
+//go:noinline
+func (s *State) copyBlankLayer(k *prep, sl, tmpl Slot) bool {
+	if k.gen == nil || !k.gen.anyFaceDown {
+		return false
+	}
+	p := &s.perms[sl]
+	blank := s.permBlank(sl)
+	if p.gty&gtyFaceDown != 0 && !blank {
+		return false // CR 708.10: a face-down permanent (or a blank token copy) keeps its face
+	}
+	if tmpl == NoSlot || !s.faceDown(k, tmpl) {
+		if blank {
+			s.clearFaceDown(sl)
+		}
+		return false
+	}
+	p.gty = kop.TCreature | gtyFaceDown | gtyBlankCopy
+	p.ovr.flags |= ovGenTy
+	p.ovr.walk = walkOn
+	s.touchSl(sl)
+	return true
+}
