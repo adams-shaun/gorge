@@ -491,7 +491,6 @@ Archon of Sun's Grace
 Archon of the Wild Rose
 Archon's Glory
 Archway Commons
-Arclight Phoenix
 Arctic Aven
 Arctic Merfolk
 Arctic Nishoba
@@ -698,7 +697,6 @@ Awakened Awareness
 Awakener Druid
 Awakening
 Awakening Zone
-Awesome Presence
 Axebane Ferox
 Axebane Stag
 Axgard Artisan
@@ -824,7 +822,6 @@ Bat'leth
 Battering Sliver
 Batterskull
 Battle Brawler
-Battle Cry Goblin
 Battle Hymn
 Battle Menu
 Battle Rampart
@@ -1434,7 +1431,6 @@ Cantivore
 Canyon Crab
 Canyon Lurkers
 Canyon Slough
-Canyon Wildcat
 Cao Ren, Wei Commander
 Caparocti Sunborn
 Capital City
@@ -1488,7 +1484,6 @@ Carrion Beetles
 Carrion Call
 Carrion Cruiser
 Carrion Feeder
-Carrion Imp
 Carrion Locust
 Carrion Thrash
 Carrot Cake
@@ -3123,7 +3118,6 @@ Expose Evil
 Expose the Culprit
 Expressive Firedancer
 Expressive Iteration
-Exquisite Blood
 Extended Absence
 Exterminatus
 Extinction
@@ -3304,7 +3298,6 @@ Ferocious Charge
 Ferocious Colonist
 Ferocious Werefox
 Ferocity of the Hunt
-Ferrous Lake
 Fervent Charge
 Festercreep
 Festerhide Boar
@@ -3446,7 +3439,6 @@ Flight
 Flight of Equenauts
 Flight of Fancy
 Flight-Deck Coordinator
-Flint Golem
 Flinthoof Boar
 Flitterstep Eidolon
 Flitterwing Nuisance
@@ -3654,7 +3646,6 @@ Galadhrim Guide
 Galadriel, Gift-Giver
 Galadriel, Light of Valinor
 Galazeth Prismari
-Gale Force
 Gale Swooper
 Galea, Kindler of Hope
 Galepowder Mage
@@ -3807,7 +3798,6 @@ Giant Ladybug
 Giant Mantis
 Giant Octopus
 Giant Space Amoeba
-Giant Strength
 Giant's Boulder
 Giant's Grasp
 Giant-Sized Flying Ant
@@ -4170,7 +4160,6 @@ Gruff Triplets
 Gruul Locket
 Gruul Nodorog
 Gruul War Chant
-Gruul War Plow
 Gryff Vanguard
 Gryff's Boon
 Gríma Wormtongue
@@ -4607,7 +4596,6 @@ Hurricane
 Hushwood Verge
 Huskburster Swarm
 Hustle
-Hydra Broodmaster
 Hydra Omnivore
 Hydraulic Helper
 Hydromorph Gull
@@ -4651,7 +4639,6 @@ Idle Thoughts
 Idol of the Deep King
 Idolized
 Idyllic Grange
-Igneous Pouncer
 Ignis Scientia
 Iguana Parrot
 Il Mheg Pixie
@@ -4696,7 +4683,6 @@ Impractical Joke
 Improvisation Capstone
 Improvised Armor
 Improvised Arsenal
-Impulsive Pilferer
 Imskir Iron-Eater
 In the Pale Moonlight
 In the Web of War
@@ -4725,7 +4711,6 @@ Infectious Inquiry
 Infernal Contract
 Infernal Genesis
 Infernal Idol
-Infernal Pet
 Infernal Phantom
 Infernal Plunge
 Inferno
@@ -5547,11 +5532,9 @@ Living Phone
 Living Plane
 Living Tempest
 Living Terrain
-Living Tsunami
 Living Wish
 Livonya Silone
 Lizard, Connors's Curse
-Llanowar Behemoth
 Llanowar Cavalry
 Llanowar Druid
 Llanowar Elite
@@ -7027,7 +7010,6 @@ Plan the Heist
 Planar Collapse
 Planar Engineering
 Planar Gate
-Planar Guide
 Planet Killer
 Planetary Bombardment
 Planetary Patrol
@@ -9002,7 +8984,6 @@ Spock, Logical Choice
 Spock, Voice of Reason
 Spoils of Evil
 Spoils of Victory
-Spontaneous Artist
 Spontaneous Generation
 Spontaneous Mutation
 Spore Cloud
@@ -9107,7 +9088,6 @@ Statecraft
 Static Snare
 Station Monitor
 Staunch Crewmate
-Staunch-Hearted Warrior
 Stay Hidden, Stay Silent
 Steadfast Guard
 Steadfast Paladin
@@ -9477,7 +9457,6 @@ Systems Override
 Szarekh, the Silent King
 Szarel, Genesis Shepherd
 Séance
-Séance Board
 T'Challa, the Black Panther
 T'Pol, Vulcan Representative
 TCRI Building
@@ -9560,7 +9539,6 @@ Tattered Haunter
 Tattered Ratter
 Tatterkite
 Tattermunge Maniac
-Taunting Kobold
 Tawnos, Urza's Apprentice
 Taxi Driver
 Tayam, Luminous Enigma
@@ -9803,7 +9781,6 @@ The Reality Chip
 The Regalia
 The Restoration of Eiganjo
 The Revelations of Ezio
-The Roaring Toeclaws
 The Rollercrusher Ride
 The Ruinous Wrecking Crew
 The Sackville-Bagginses
@@ -10098,7 +10075,6 @@ Training Center
 Training Compound
 Training Regimen
 Traitor's Clutch
-Traitorous Instinct
 Tramway Station
 Tranquil Landscape
 Tranquil Thicket
@@ -10826,7 +10802,6 @@ Wary Farmer
 Wary Watchdog
 Wash Out
 Wasp Lancer
-Wasp, Shrinking Savior
 Waste Away
 Waste Not
 Wastes

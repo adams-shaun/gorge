@@ -106,6 +106,7 @@ Gruul Guildmage
 Harrow
 Henge of Ramos
 Hermes, Overseer of Elpis
+Hero of Precinct One
 Hesitation
 Island
 Jeskai Ascendancy
@@ -193,6 +194,7 @@ Sacred Cat
 Saiba Trespassers
 Saltfield Recluse
 Satyr Enchanter
+Satyr Firedancer
 Satyr Grovedancer
 Savage Swipe
 Scarwood Treefolk

@@ -51,6 +51,7 @@ Brion Stoutarm
 Brokers Initiate
 Brutal Expulsion
 Caldera Pyremaw
+Carrion Imp
 Cave of the Frost Dragon
 Celestial Colonnade
 Cerulean Wisps
@@ -104,6 +105,7 @@ Enchanted Carriage
 Enduring Bondwarden
 Errant Doomsayers
 Esquire of the King
+Exquisite Blood
 Extremis Elite
 Fade from Memory
 Fangren Marauder
@@ -120,6 +122,7 @@ Flagstones of Trokair
 Flaming Sword
 Flayer Husk
 Fledgling Djinn
+Flint Golem
 Flowering Field
 Flying Dolphin-Fish
 Flying Men
@@ -132,6 +135,7 @@ Frantic Salvage
 Frenetic Sliver
 Fumulus, the Infestation
 Fury Sliver
+Gale Force
 Galvanic Key
 General Marhault Elsdragon
 Geth, Lord of the Vault
@@ -175,6 +179,7 @@ Hydroelectric Specimen
 Icatian Crier
 Imposing Visage
 Impulse
+Impulsive Pilferer
 In the Web of War
 Incarnation Technique
 Infernal Rebirth
@@ -211,6 +216,8 @@ Lifecrafter's Bestiary
 Lightkeeper of Emeria
 Lightning Berserker
 Lita, Mechanical Engineer
+Living Tsunami
+Llanowar Behemoth
 Lotus Guardian
 Magmatic Core
 Makindi Ox
@@ -268,6 +275,7 @@ Pine Barrens
 Pitchstone Wall
 Plague Wind
 Plains
+Planar Guide
 Pounce
 Prism Ring
 Prosperous Thief
@@ -359,6 +367,7 @@ Thalakos Mistfolk
 The Dross Pits
 The Howling Commandos
 The Mending of Dominaria
+The Roaring Toeclaws
 Thoughtbound Phantasm
 Thraben Watcher
 Thrash
