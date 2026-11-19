@@ -306,6 +306,7 @@ func (s *State) faceReachSet(k *prep, p uint8, r *kop.ManaCost, extra int, t ava
 			s.removeSrc(k, &t, sl, pc)
 		}
 		fee := s.filtFee(k, sl)
+		feeCol := s.feeColour(k, sl)
 		var held [kop.NumManaKinds]uint8
 		if s.rbAny(p) {
 			s.rbUnits(p, s.restrPoolAdmits(k, p)&^s.filtFeeRestrM(k, p, sl), &held) // restricted mana the payment may spend but the filter's own activation may not (CR 106.6)
@@ -320,12 +321,14 @@ func (s *State) faceReachSet(k *prep, p uint8, r *kop.ManaCost, extra int, t ava
 		if t.total < fee {
 			return false
 		}
-		if fee == 0 || t.pain.on || nh != 0 || t.nOne != 0 {
+		if fee == 0 || feeCol == 0 && (t.pain.on || nh != 0 || t.nOne != 0) {
 			// the total-only reading: the painful and held-out units are out
 			// of the groups, so the groups cannot price the fee; a one-colour
 			// source's units sit in a ColAny group its entry in t.one counts
 			// whole, so a unit taken from the group alone would leave the two
-			// out of step
+			// out of step. A coloured fee (feeCol) stays out of it: the total
+			// alone holds no colour, and only a unit of the fee's colours
+			// pays it.
 			t.total -= fee
 			if nh != 0 && t.total == 0 {
 				// the fee took every unit that could pay it: none stays for the face
@@ -334,18 +337,60 @@ func (s *State) faceReachSet(k *prep, p uint8, r *kop.ManaCost, extra int, t ava
 			}
 			return s.faceReachProduce(k, p, r, extra, t, held, sl, filt, i+1, n, set)
 		}
-		return s.faceFeeSpend(k, p, r, extra, t, fee, 0, held, sl, filt, i+1, n, set)
+		return s.faceFeeSpend(k, p, r, extra, t, fee, 0, held, sl, filt, i+1, n, set, feeCol)
 	}
 	return t.affords(r, pipMaskOf(r), extra)
 }
 
+// feeColour is the colour mask of the filter at sl's coloured fee unit, 0 when
+// any mana pays its fee: a pip fee's colour (mana_filterpip.go), a hybrid
+// fee's two colours (mana_filterhybrid.go), and the pip inside a repeatable
+// fee-only filter's generic-plus-pip fee (mana_filterrepeat.go).
+func (s *State) feeColour(k *prep, sl Slot) uint8 {
+	if c, ok := s.filtPip(k, sl); ok {
+		return 1 << c
+	}
+	if a, b, ok := s.filtHyb(k, sl); ok {
+		return 1<<uint(a) | 1<<uint(b)
+	}
+	if c, ok := s.filtRepeatPip(k, sl); ok {
+		return 1 << c
+	}
+	return 0
+}
+
 // faceFeeSpend takes owed units of the filter's fee out of t's groups, from
 // group index from on, each way of spending it tried, then goes on with the
-// set's remaining filters over what is left (faceReachProduce). When no group
-// holds a unit the rest of the fee can take, the fee reads off the total
-// alone, as on a board with painful units held out of the groups.
-func (s *State) faceFeeSpend(k *prep, p uint8, r *kop.ManaCost, extra int, t avail, owed, from int, held [kop.NumManaKinds]uint8, sl Slot, filt *[maxFaceFilters]Slot, i, n int, set uint32) bool {
+// set's remaining filters over what is left (faceReachProduce). A coloured
+// fee's unit (feeCol) comes only from a group of the fee's colours: no other
+// unit pays it (gorge's window pays the fee through the ordinary mana payment,
+// CR 605.3b), so when the groups hold none the fee reads off the total only if
+// a painful group of the fee's colours can fund it -- the painful units sit
+// out of the groups under the budget. A wide fee with no group holding a unit
+// reads off the total alone, as on a board with painful units held out of the
+// groups.
+func (s *State) faceFeeSpend(k *prep, p uint8, r *kop.ManaCost, extra int, t avail, owed, from int, held [kop.NumManaKinds]uint8, sl Slot, filt *[maxFaceFilters]Slot, i, n int, set uint32, feeCol uint8) bool {
 	if owed == 0 {
+		return s.faceReachProduce(k, p, r, extra, t, held, sl, filt, i, n, set)
+	}
+	if feeCol != 0 {
+		// the coloured unit first: only a group of the fee's colours holds
+		// it, and the rest of the fee (a repeatable filter's generic part)
+		// reads wide over every group
+		for g := 0; g < t.n; g++ {
+			if t.cnt[g] == 0 || t.mask[g]&feeCol == 0 {
+				continue
+			}
+			u := t
+			u.removeWide(u.mask[g], 1)
+			if s.faceFeeSpend(k, p, r, extra, u, owed-1, 0, held, sl, filt, i, n, set, 0) {
+				return true
+			}
+		}
+		if !s.faceFeePainCol(t, feeCol) {
+			return false // no unit of the fee's colours exists: the fee is unpayable
+		}
+		t.total -= owed
 		return s.faceReachProduce(k, p, r, extra, t, held, sl, filt, i, n, set)
 	}
 	found := false
@@ -356,7 +401,7 @@ func (s *State) faceFeeSpend(k *prep, p uint8, r *kop.ManaCost, extra int, t ava
 		found = true
 		u := t
 		u.removeWide(u.mask[g], 1)
-		if s.faceFeeSpend(k, p, r, extra, u, owed-1, g, held, sl, filt, i, n, set) {
+		if s.faceFeeSpend(k, p, r, extra, u, owed-1, g, held, sl, filt, i, n, set, feeCol) {
 			return true
 		}
 	}
@@ -368,6 +413,24 @@ func (s *State) faceFeeSpend(k *prep, p uint8, r *kop.ManaCost, extra int, t ava
 	}
 	t.total -= owed
 	return s.faceReachProduce(k, p, r, extra, t, held, sl, filt, i, n, set)
+}
+
+// faceFeePainCol reports whether a painful group of the fee's colours can fund
+// the fee: the painful units are held out of the groups (painTight) but they
+// are real mana (gorge's pool reads them as any other), so a unit of the fee's
+// colours there pays a coloured fee as the total-only reading of a wide fee
+// does.
+func (s *State) faceFeePainCol(t avail, feeCol uint8) bool {
+	pa := &t.pain
+	if !pa.on {
+		return false
+	}
+	for g := uint8(0); g < pa.n; g++ {
+		if pa.cnt[g] != 0 && pa.mask[g]&feeCol != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // faceReachProduce re-adds the held-out restricted mana (it may pay the face,
