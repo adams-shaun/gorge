@@ -127,6 +127,7 @@ import "embed"
 //go:embed linemodes.go
 //go:embed link.go
 //go:embed mana_production.go
+//go:embed multiplepiles_shape.go
 //go:embed params.go
 //go:embed parse.go
 //go:embed registry.go
