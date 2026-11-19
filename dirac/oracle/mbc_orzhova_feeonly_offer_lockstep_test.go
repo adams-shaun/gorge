@@ -14,7 +14,10 @@ import (
 type feeOnlyBoardTally struct {
 	play, fee string
 	seen      bool
-	priced    bool
+	// offered: the play's own activation option was IN gorge's priority
+	// options at a class decision -- the offer gate's printedOK/autoPayOffer
+	// accepted it, priced (the prefix script found) or not.
+	offered bool
 }
 
 // check reads gorge's pending decision and battlefields.
@@ -25,7 +28,6 @@ func (y *feeOnlyBoardTally) check(ref *GorgeSide) {
 	}
 	g := ref.E.G
 	playOn, feeOn := false, false
-	var playID state.ObjID
 	for _, id := range g.Zone(state.ZBattlefield, d.Player) {
 		o := g.Obj(id)
 		if o == nil || o.Face() == nil {
@@ -33,25 +35,25 @@ func (y *feeOnlyBoardTally) check(ref *GorgeSide) {
 		}
 		switch o.Face().Name {
 		case y.play:
-			playOn, playID = true, id
+			playOn = true
 		case y.fee:
 			feeOn = true
 		}
 	}
-	y.seen = y.seen || (playOn && feeOn)
-	if !y.seen || y.priced {
+	if !playOn || !feeOn {
 		return
 	}
-	// The play is priced when the planner's census-derived prefix search
-	// found its script: the row's reason is empty and it carries the script
-	// the seat pays by (the same route the offer gate reads). A row left
-	// "unsupported"/"census_incomplete" is the fee-only source the search
-	// starved on, which is exactly what the pin must never accept: both
-	// engines would omit the play together and agree vacuously.
-	for _, pp := range ref.E.PotentialPaymentPlans(d.Player) {
-		if pp.Action.Kind == "ability" && pp.Action.Obj == playID && pp.Reason == "" && len(pp.Script) > 0 {
-			y.priced = true
-			return
+	y.seen = true
+	if ref.fr == nil {
+		return
+	}
+	for _, a := range ref.fr.cur.Options {
+		o, ok := ref.GorgeOption(a)
+		if !ok || o.Kind != "ability" || o.Obj == 0 {
+			continue
+		}
+		if src := g.Obj(o.Obj); src != nil && src.Face() != nil && src.Face().Name == y.play {
+			y.offered = true
 		}
 	}
 }
@@ -78,6 +80,9 @@ func TestMBCOrzhovaFeeOnlyCensusNotAProofLockstep(t *testing.T) {
 	y := &feeOnlyBoardTally{play: "Orzhova, the Church of Deals", fee: "Energy Refractor"}
 	stdReproLockstepReaching(t, "testdata/repro/orzhova_feeonly_funded_activation_offer.repro.json", "tail-02", func(ref *GorgeSide) bool {
 		y.check(ref)
-		return y.priced
+		return y.seen
+	}, func(ref *GorgeSide) bool {
+		y.check(ref)
+		return y.offered
 	})
 }

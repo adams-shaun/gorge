@@ -1688,7 +1688,15 @@ func (sr *scriptSearch) feeOnlyAskPrune(c *Engine, d *decision.Decision, answers
 								short += sr.pipCol[k] - after[k]
 							}
 						}
-						wanted = short < before
+						// The second cut: a colour a free bare-tap source can
+						// make is dominated even when it fills a pip. Read it only
+						// where the colour actually improves the short count: the
+						// first cut already drops the rest, and the scan is a read
+						// of the live board that must not run for a branch this
+						// ask does not keep.
+						if short < before && !sr.feeOnlyFreeTapColour(c, d.Source, int(j)) {
+							wanted = true
+						}
 					}
 					break
 				}
@@ -1712,6 +1720,57 @@ func (sr *scriptSearch) feeOnlyAskPrune(c *Engine, d *decision.Decision, answers
 		return nil
 	}
 	return answers[:kept]
+}
+
+// feeOnlyFreeTapColour is the fee-only ask prune's second cut: p controls an
+// untapped source other than skip whose activation costs no mana -- a bare
+// tap, the class the kernel's plain source census prices as a free unit
+// (dirac's filtFreeTapColour, mana_filterrepeat.go) -- and whose production
+// can make colour. A source whose activation also spends a counter, a
+// permanent or life is not this class: the swap below would lose that other
+// use, so the cut fails open there.
+//
+// The cut is the swapped-line domination. At the ask the fee-only repeatable
+// source S (one mana of any colour, fee F no larger than its production, no
+// {T}) offers colour c, and c fills a fixed pip the play still lacks. A
+// first-only free source X that can make c is better than S for that pip:
+// activate X for c instead of S. That line has c filled and F still floating,
+// and S is still untapped (S has no {T}), so every continuation of the
+// dominated branch is reachable along it. If the continuation would use X
+// again, S makes the same colour for F, paid from the F the swap saved; the
+// endpoint after both activations is the same (X spent, one S activation
+// paid, the pip filled). X is first-only, so at most one substitution is
+// needed. A repeatable free source is the same argument with X never spent,
+// so its later uses stay available and the saved F is pure surplus. The
+// fee's own coloured pip is saved too when the swap replaces the activation,
+// and the any-colour S can make every colour X can. Nothing in the argument
+// needs X to sit before or after S in battlefield order: the two lines are
+// parallel branches of the same ask, and each one's continuations are
+// reachable from the other after both activations.
+func (sr *scriptSearch) feeOnlyFreeTapColour(c *Engine, skip state.ObjID, colour int) bool {
+	for _, id := range c.G.Zone(state.ZBattlefield, sr.p) {
+		if id == skip {
+			continue
+		}
+		o := c.G.Obj(id)
+		if o == nil || o.PhasedOut || o.Tapped || o.Face() == nil {
+			continue
+		}
+		for _, ma := range c.appendAvailableManaAbilitiesGate(nil, nil, sr.p, id, true) {
+			cc := c.manaAbilityCC(sr.p, id, ma)
+			if !pay.PaymentPlanTapOnlyCost(cc.Cost) {
+				continue
+			}
+			var made state.Mana
+			if !addPotentialChosenColour(c, &made, id, ma) {
+				c.addPotentialManaOf(&made, ma)
+			}
+			if made[colour] > 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // witnessSelfTargetsLast stably moves, in a target ask the witness replay
