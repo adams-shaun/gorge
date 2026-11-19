@@ -997,6 +997,13 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		// freeP: the caster, the zone, ReplaceGraveyard, CopyCard, paid and
 		// ForgetPlayed (cast_freecast.go)
 		ctrl := uint8(s.g.freeP & freeSeatMask)
+		if k.cards[c].land && s.g.freeP&freeLandsOn != 0 {
+			// a picked land (OpCastFree freeLands) is played, not cast
+			if !s.freeLandPlay(k, o, ctrl) {
+				return false
+			}
+			continue
+		}
 		if s.g.freeP&freeCopy != 0 {
 			paid := s.g.freeP&freePaid != 0
 			// gorge casts the copy whatever became of the original and mints

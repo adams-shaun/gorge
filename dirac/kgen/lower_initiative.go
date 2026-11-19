@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -23,24 +24,38 @@ func (lc *lowerCtx) takeInitiative(ps *params) error {
 	if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" {
 		return refuse("TakeInitiative Defined$ %q", d)
 	}
-	c, ok := lc.p.reg.Token(undercityKey)
-	if !ok || len(c.Faces) == 0 {
-		return refuse("no %q dungeon script in the corpus", undercityKey)
+	if err := lc.nameDungeon(undercityKey); err != nil {
+		return err
 	}
-	lc.out.Tokens = append(lc.out.Tokens, undercityKey)
-	// the rooms' own tokens (Stash's Treasure, Catacombs' Skeleton): the
-	// pool lowers only the tokens a card names, so the carrier names them,
-	// in room order (SVars is a map)
+	lc.emit(lInstr{Op: "TakeInitiative", Obj: lRef{Kind: rYou}, CS: undercityKey})
+	return nil
+}
+
+// nameDungeon names the dungeon token script k on the carrier, then the
+// rooms' own tokens (Stash's Treasure, Catacombs' Skeleton): the pool
+// lowers only the tokens a card names, so the carrier names them, in room
+// order (SVars is a map).
+func (lc *lowerCtx) nameDungeon(k string) error {
+	c, ok := lc.p.reg.Token(k)
+	if !ok || len(c.Faces) == 0 {
+		return refuse("no %q dungeon script in the corpus", k)
+	}
+	lc.out.Tokens = append(lc.out.Tokens, k)
 	for _, r := range dungeonRooms(c.Faces[0]) {
 		for _, part := range strings.Split(c.Faces[0].SVars[r], "|") {
-			k, v, ok := strings.Cut(strings.TrimSpace(part), "$")
-			if ok && strings.TrimSpace(k) == "TokenScript" {
+			t, v, ok := strings.Cut(strings.TrimSpace(part), "$")
+			if ok && strings.TrimSpace(t) == "TokenScript" {
 				lc.out.Tokens = append(lc.out.Tokens, strings.TrimSpace(v))
 			}
 		}
 	}
-	lc.emit(lInstr{Op: "TakeInitiative", Obj: lRef{Kind: rYou}, CS: undercityKey})
 	return nil
+}
+
+// isDungeonKey reports whether token key k is a dungeon script (Types:Dungeon).
+func isDungeonKey(p *pool, k string) bool {
+	c, ok := p.reg.Token(k)
+	return ok && len(c.Faces) > 0 && slices.Contains(c.Faces[0].Types, "Dungeon")
 }
 
 // dungeonRooms is the face's printed K:Dungeon room order.

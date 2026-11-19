@@ -1815,7 +1815,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepMonarch(t, g)        // act_monarch.go
 	prepAirbend(t, g)
 	prepMayWhileSrc(t, g) // cast_whilesource.go
-	prepInit(t, g)        // act_initiative.go
+	prepInit(t, p, g)     // act_initiative.go
 	prepExileFD(t, g)     // zone_exilefacedown.go
 	prepEmpower(t, g)
 	g.tyCombat = overridesUncreature(t)

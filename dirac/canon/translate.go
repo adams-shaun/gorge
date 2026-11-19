@@ -951,6 +951,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChGenConfirm:
 		// gorge's hand_move_confirm: a KChoose of yes / no
 		return confirmChoice(mode)
+	case dirac.ChDungeon:
+		// gorge's venture "dungeon" KChoose: the option index in the
+		// candidates' key order
+		return Pack(kind("dungeon"), RefNone, RefNone, mode), true
 	case dirac.ChRoom:
 		// gorge's venture "room" KChoose: the option index in the room's
 		// printed NextRoom$ order

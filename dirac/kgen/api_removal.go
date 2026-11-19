@@ -208,6 +208,14 @@ func (lc *lowerCtx) apiSacrifice(sa *cards.SA, ps *params) error {
 		// chooses what to sacrifice whether or not it says so
 		ps.consume("Mode")
 	}
+	if sv := strings.TrimSpace(ps.str("SacValid")); strings.Contains(sv, " & ") && ps.is("SacEachValid", "True") {
+		// "an artifact, a creature, and a land" (Tomb of Annihilation's
+		// Oubliette): gorge's spec grammar has no " & " conjunction and
+		// reads SacEachValid$ nowhere, so the SacValid$ matches no
+		// permanent and effSacrifice sacrifices nothing (no ask, no event)
+		ps.consume("Defined", "SacValid", "SacEachValid")
+		return nil
+	}
 	_, hasD := ps.get("Defined")
 	_, hasT := ps.get("ValidTgts")
 	sv := strings.TrimSpace(ps.str("SacValid"))

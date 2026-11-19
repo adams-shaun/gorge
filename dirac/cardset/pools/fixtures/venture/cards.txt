@@ -1,0 +1,55 @@
+# the Venture pool (api Venture; CR 701.49): the cards that venture into the dungeon
+A-Acererak the Archlich
+Acererak the Archlich
+A-Cloister Gargoyle
+A-Dungeon Descent
+A-Ellywick Tumblestrum
+A-Fates' Reversal
+A-Find the Path
+A-Precipitous Drop
+A-Triumphant Adventurer
+Barrowin of Clan Undurr
+Bar the Gate
+Clattering Skeletons
+Cloister Gargoyle
+Delver's Torch
+Displacer Beast
+Dungeon Descent
+Dungeon Map
+Eccentric Apprentice
+Ellywick Tumblestrum
+Fates' Reversal
+Fifty Feet of Rope
+Find the Path
+Fly
+Immovable Rod
+Intrepid Outlander
+Kick in the Door
+Midnight Pathlighter
+Nadaar, Selfless Paladin
+Planar Ally
+Precipitous Drop
+Radiant Solar
+Ranger's Hawk
+Secret Door
+Sefris of the Hidden Ways
+Shortcut Seeker
+Thorough Investigation
+Triumphant Adventurer
+Varis, Silverymoon Ranger
+Veteran Dungeoneer
+Wandering Troubadour
+You Find a Cursed Idol
+Yuan-Ti Fang-Blade
+Yuan-Ti Malison
+Zalto, Fire Giant Duke
+Zombie Ogre
+Forest
+Island
+Mountain
+Plains
+Swamp
+Lightning Bolt
+Giant Growth
+Grizzly Bears
+Savannah Lions

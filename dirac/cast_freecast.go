@@ -32,6 +32,12 @@ func (s *State) freeQueued(o Obj) bool {
 //     True: the copy's cast via cast_exilegrant.go, every other card's via
 //     turn_gen.go's drain); bit 9: a literal Amount$ A (the ask closes after A picks).
 //   - C bit 11 (freeMandatory): no Optional$ True, so no Done is offered.
+//   - C bit 12 (freeLands): the population may hold lands (a Play without
+//     ValidSA$ over a land-capable remembered set: Dungeon of the Mad Mage's
+//     Runestone Caverns). A land is offered only while its player could make the
+//     land play now (the active player with a land play left, gorge
+//     CastProhibited's land arm); a picked land is queued with the spells and
+//     played in pick order by the freeQ drain (cast_freeland.go).
 //   - C bit 10 (freeSpellMV): the filter's mana-value bound is the ValidSA$ one, read on the spell
 //     cast: a split card counts its front half, not the sum of its halves.
 //   - Obj: RefRemembered (P1), a target slot (P2: the targeted card; a
@@ -41,8 +47,8 @@ func (s *State) freeQueued(o Obj) bool {
 // The zone, ReplaceGraveyard and ForgetPlayed bits ride to the freeQ drain
 // in s.g.freeP: the caster in the low freeSeatBits, the zone in the three
 // bits above, then freeGY (ReplaceGraveyard), freeCopy (CopyCard), freePaid
-// and freeForget (ForgetPlayed). At two seats that is bit 0, bits 1-3 and
-// bits 4-7 of a byte.
+// freeForget (ForgetPlayed) and freeLandsOn (the queue's lands are played). At
+// two seats that is bit 0, bits 1-3 and bits 4-8 of a word.
 const (
 	// freeSpellMV is OpCastFree's C bit 10 (see the operands above).
 	freeSpellMV = 1 << 10
@@ -50,6 +56,8 @@ const (
 	// (gorge effPlay's ask has Min 1, or Min = Max under Amount$ All), so the
 	// offer has no Done while a candidate is left.
 	freeMandatory = 1 << 11
+	// freeLands is OpCastFree's C bit 12 (see the operands above).
+	freeLands = 1 << 12
 
 	freeSeatBits  = MaxSeats / 2 // one bit at two seats, two at four
 	freeSeatMask  = 1<<freeSeatBits - 1
@@ -58,6 +66,7 @@ const (
 	freeCopy      = freeGY << 1
 	freePaid      = freeGY << 2
 	freeForget    = freeGY << 3
+	freeLandsOn   = freeGY << 4 // the queue holds a land-capable Play's picks (freeLands): its lands are played
 )
 
 // freeSeatBits holds every seat.
@@ -113,11 +122,20 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 	}
 	add := func(o Obj) bool {
 		ob := &s.objs[o]
-		if ob.zone != zone || k.cards[ob.card].land {
+		land := k.cards[ob.card].land
+		if ob.zone != zone || land && in.C&freeLands == 0 {
 			return true
 		}
 		if in.F != 0 && !DebugFreeFilterIgnored && !s.matchCardGenAt(k, in.F, ob.card, ob.owner(), e.ctrl, o, spellCtx) {
 			return true
+		}
+		if land {
+			// gorge CastProhibited's land arm: a land the play could not make
+			// now is not offered, and a land has no targets or cast statics
+			if !s.freeLandable(k, e.ctrl) {
+				return true
+			}
+			return s.addFree(o)
 		}
 		// CR 601.2c: a spell whose mandatory targets cannot all be chosen is
 		// never offered (gorge effPlay filters through castTargetsHost)
@@ -127,13 +145,7 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 		if k.gen.anyCantCast && s.castForbiddenFree(k, e.ctrl, ob.card, o) {
 			return true
 		}
-		if s.g.nfree >= uint8(len(s.g.free)) {
-			s.capFull(StallFree)
-			return false
-		}
-		s.g.free[s.g.nfree] = o
-		s.g.nfree++
-		return true
+		return s.addFree(o)
 	}
 	switch {
 	case in.Obj == kop.RefRemembered:
@@ -186,6 +198,17 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 	if in.C&128 != 0 {
 		s.castFreeRepeat(k, in) // cast_freerepeat.go: AllowRepeats$ with Amount$ X
 	}
+}
+
+// addFree appends o to the offered free-cast cards; false: the pool is full.
+func (s *State) addFree(o Obj) bool {
+	if s.g.nfree >= uint8(len(s.g.free)) {
+		s.capFull(StallFree)
+		return false
+	}
+	s.g.free[s.g.nfree] = o
+	s.g.nfree++
+	return true
 }
 
 // forgetRemGen drops o from the resolution's remembered set, order-preserving

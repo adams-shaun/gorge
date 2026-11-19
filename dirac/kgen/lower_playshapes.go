@@ -78,3 +78,37 @@ func playBaseCS(mandatory bool) string {
 	}
 	return "Optional"
 }
+
+// playLandShape reports the one Play without ValidSA$ over a land-capable
+// population the kernel plays: a paid, optional Amount$ All play of the
+// remembered cards in exile (Valid$ Card.IsRemembered, ValidZone$ Exile; Dungeon
+// of the Mad Mage's Runestone Caverns, the Dig's two exiled cards). OpCastFree's
+// Lands flag offers its lands as land plays (dirac/cast_freeland.go). The free
+// shape (Vault 112) stays refused.
+func playLandShape(ps *params, paid, mandatory, copyCard, repeat, upTo, forget, replace bool, amount string) bool {
+	if _, ok := ps.m["ValidSA"]; ok {
+		return false
+	}
+	_, hasT := ps.m["ValidTgts"]
+	return paid && !mandatory && !copyCard && !repeat && !upTo && !forget && !replace && !hasT &&
+		amount == "All" && ps.m["Defined"] == "" && ps.m["ValidZone"] == "Exile" && ps.m["Valid"] == "Card.IsRemembered"
+}
+
+// playLandsFlag is the CastFree flag a land-capable population adds (opCastFree's
+// C bit 12: the picked lands are played, dirac/cast_freeland.go).
+func playLandsFlag(landPlay bool) string {
+	if landPlay {
+		return "|Lands"
+	}
+	return ""
+}
+
+// playRememberedZone is the zone a Play of Defined$ Remembered reads its cards
+// in: the hand straight after a Draw that remembered its cards (Mad Wizard's
+// Lair's free cast of one of three drawn cards), else exile.
+func (lc *lowerCtx) playRememberedZone() int {
+	if n := len(lc.ab.Prog); n > 0 && lc.ab.Prog[n-1].Op == "Draw" && lc.ab.Prog[n-1].CS == "Remember" {
+		return zHand
+	}
+	return zExile
+}

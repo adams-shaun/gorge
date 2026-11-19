@@ -63,16 +63,31 @@ const (
 const ChRoom ChoiceKind = 250
 
 // prepInit sets anyInit and the dungeon card: some program takes the
-// initiative.
-func prepInit(t *kop.Table, g *genPrep) {
+// initiative. The plain venture's candidate dungeons (every dungeon card of
+// the table but the Undercity, in table order) go on the prep's dungeons.
+func prepInit(t *kop.Table, p *prep, g *genPrep) {
+	uc := false
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
 				if in.Op == kop.OpTakeInitiative {
-					g.anyInit = true
+					g.anyInit, uc = true, true
 					g.dungeon = CardID(in.C)
 				}
+				if in.Op == kop.OpExt && in.Ext() == kop.ExtVenture {
+					g.anyInit = true
+				}
 			}
+		}
+	}
+	if !g.anyInit {
+		return
+	}
+	// a plain venture offers every dungeon but Undercity, in table (key) order
+	// (gorge dungeonCandidates)
+	for i := range t.Cards {
+		if len(t.Cards[i].DungeonNext) != 0 && !(uc && CardID(i) == g.dungeon) {
+			p.dungeons = append(p.dungeons, CardID(i))
 		}
 	}
 }
@@ -95,33 +110,41 @@ func (s *State) takeInitiative(k *prep, in *kop.Instr) bool {
 		return true
 	}
 	s.g.initH = p + 1
-	return s.venture(k, p)
+	return s.venture(k, p, true)
 }
 
-// venture moves p's marker (gorge effVenture); false: the room ask is
-// posed (s.res.ask = raRoom).
-func (s *State) venture(k *prep, p uint8) bool {
+// dungeonDef is the dungeon card p's marker is in (its object's card).
+func (s *State) dungeonDef(k *prep, p uint8) *kop.CardDef {
+	return &k.t.Cards[s.objs[s.g.dObj[p]].card]
+}
+
+// venture moves p's marker (gorge effVenture); false: an ask is posed
+// (s.res.ask = raRoom or raDungeon). undercity: venture into Undercity (the
+// initiative's, CR 726.2), else a plain venture (CR 701.49a).
+func (s *State) venture(k *prep, p uint8, undercity bool) bool {
 	if s.g.room[p] == 0 {
-		s.dungeonEnter(k, p)
-		return true
+		return s.dungeonChoose(k, p, undercity)
 	}
-	nx := k.t.Cards[k.gen.dungeon].DungeonNext[s.g.room[p]-1]
+	nx := s.dungeonDef(k, p).DungeonNext[s.g.room[p]-1]
 	switch {
 	case nx == 0:
 		s.dungeonRemove(p) // CR 701.49c: completed; a new one begins
-		s.dungeonEnter(k, p)
+		return s.dungeonChoose(k, p, undercity)
 	case nx>>4 == 0:
 		s.markerEnter(k, p, nx&15-1)
 	default:
+		if st := DebugVentureStats; st != nil {
+			st.RoomAsks++
+		}
 		s.res.ask, s.res.askP = raRoom, p
 		return false
 	}
 	return true
 }
 
-// dungeonEnter puts a new dungeon object into p's command zone with the
-// marker on the top room (gorge ventureEnter).
-func (s *State) dungeonEnter(k *prep, p uint8) {
+// dungeonEnter puts a new dungeon object of card c into p's command zone
+// with the marker on the top room (gorge ventureEnter).
+func (s *State) dungeonEnter(k *prep, p uint8, c CardID) {
 	if s.objTableFull() {
 		s.capFull(StallBoard)
 		return
@@ -130,7 +153,7 @@ func (s *State) dungeonEnter(k *prep, p uint8) {
 	// table's token suffix, which a non-token mint would cut short; the
 	// dungeon is never in a zone it ceases from, and the projection reads
 	// it as no token (gorge AddObject)
-	o := s.newToken(k.gen.dungeon, p)
+	o := s.newToken(c, p)
 	s.objs[o].zone = kop.ZoneCommand
 	s.g.dObj[p] = o
 	s.markerEnter(k, p, 0)
@@ -171,7 +194,7 @@ func (s *State) markerEnter(k *prep, p, r uint8) {
 	if s.pl[p].lost {
 		return
 	}
-	s.enqueue(o, s.objs[o].ver, k.gen.dungeon, r, p, NoObj, p, 0)
+	s.enqueue(o, s.objs[o].ver, s.objs[o].card, r, p, NoObj, p, 0)
 }
 
 // initVentureTrig queues p's source-less "ventures into Undercity" trigger.
@@ -259,23 +282,28 @@ func (s *State) initCombat(k *prep, r *dmgRec) {
 //go:noinline
 func (s *State) resolveVentureTrig(k *prep) bool {
 	p := s.res.e.ctrl
-	if s.pl[p].lost || s.venture(k, p) {
+	if s.pl[p].lost || s.venture(k, p, true) {
 		return true
 	}
 	s.ctl = ctlResolve
 	return false
 }
 
-// dungeonSBA is CR 704.5t (gorge dungeonCompletion).
+// initSBA is the state-based pass's dungeon step: true when a dungeon was
+// completed and the pass runs again.
+func (s *State) initSBA(k *prep) bool { return initOn(k) && s.dungeonSBA(k) }
+
+// dungeonSBA is CR 704.5t (gorge dungeonCompletion); true: a dungeon was
+// completed, so the state-based pass runs again.
 //
 //go:noinline
-func (s *State) dungeonSBA(k *prep) {
+func (s *State) dungeonSBA(k *prep) (done bool) {
 	for p := uint8(0); p < s.nSeats(); p++ {
 		if s.out(p) {
 			continue
 		}
 		r := s.g.room[p]
-		if r == 0 || k.t.Cards[k.gen.dungeon].DungeonNext[r-1] != 0 || s.pl[p].lost {
+		if r == 0 || s.dungeonDef(k, p).DungeonNext[r-1] != 0 || s.pl[p].lost {
 			continue
 		}
 		o := s.g.dObj[p]
@@ -291,8 +319,10 @@ func (s *State) dungeonSBA(k *prep) {
 		}
 		if !busy {
 			s.dungeonRemove(p)
+			done = true
 		}
 	}
+	return done
 }
 
 // execInitiative runs this family's ops (execGoad's default).
@@ -330,17 +360,23 @@ func (s *State) applyAskInit(k *prep, a Action) bool {
 		return s.applyAskStdmech(k, a) // cast_altfree.go
 	}
 	p := s.res.askP
-	nx := k.t.Cards[k.gen.dungeon].DungeonNext[s.g.room[p]-1]
+	nx := s.dungeonDef(k, p).DungeonNext[s.g.room[p]-1]
 	r := nx & 15
 	if a.Mode() == 1 {
 		r = nx >> 4
 	}
 	s.markerEnter(k, p, r-1)
+	s.ventureResume(k)
+	return true
+}
+
+// ventureResume goes on after a venture ask's answer: the venture trigger
+// finishes, a program (OpTakeInitiative's, ExtVenture's) continues.
+func (s *State) ventureResume(k *prep) {
 	if s.res.e.ab == abDelayed {
 		s.res.ask = raNone
 		s.finishResolve(k, false)
-		return true
+		return
 	}
 	s.continueRes(k, 0)
-	return true
 }
