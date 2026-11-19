@@ -732,6 +732,16 @@ func (e *Engine) finishChosenDamage(rc replChoice, inPlace bool) events.Event {
 		// Amount <= 0), and a redirect ONTO a permanent zeroes nothing but
 		// fails the Obj == 0 guard exactly as the capture site's guard does.
 		e.combatHitsThisTurn = append(e.combatHitsThisTurn, e.combatHit(applied.Player, rc.damaging, applied.Amount))
+		// CR 726.2's SECOND collection site, mirroring the ledger append's
+		// twin path: a parked player-targeted combat hit never reaches
+		// runCombatAssignments' synchronous CR 726.2 collection, so its
+		// dealing creature's controller must be recorded here or the tail
+		// adjudication sees no candidate and the player who HAS the
+		// initiative keeps it while the creatures that damaged them take it
+		// (Battletide Alchemist's optional "you may prevent X" alone parks
+		// every player hit). The same Obj == 0 guard applies: a redirect ONTO
+		// a permanent dealt no player.
+		recordHandoffHit(e.G, &e.combatRound, applied.Player, rc.damaging)
 		// CR 702.164's SECOND poison site, mirroring the ledger append's twin
 		// path: a parked player-targeted combat hit never reaches
 		// runCombatAssignments' synchronous toxic emit, so the landed event
