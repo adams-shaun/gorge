@@ -107,10 +107,14 @@ func (s *State) filtFunding(k *prep, p uint8, f slotMask) int {
 		return potentialScriptNodes
 	}
 	n := 0
-	if s.filtFunded(k, p, f) {
-		for ; f.any(); f = f.rest() {
-			n += s.filtFee(k, f.first())
+	if !s.filtFundable(k, p, f) {
+		return 0
+	}
+	for ; f.any(); f = f.rest() {
+		if _, _, hyb := s.filtHyb(k, f.first()); hyb {
+			continue // paid only from mana already floating (mana_filterhybrid.go)
 		}
+		n += s.filtFee(k, f.first())
 	}
 	return n
 }
