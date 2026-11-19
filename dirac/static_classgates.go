@@ -194,7 +194,7 @@ func (s *State) grantMay(k *prep, sl Slot) bool {
 // static. Then a creature with no record, no walk flag and no set/copy
 // override has at least its printed toughness (sba's fast path, kprio2).
 func (s *State) sbaPTQuiet(k *prep) bool {
-	if s.g.nemb[0]+s.g.nemb[1] != 0 || k.gen == nil || k.gen.fxNeed&(fxNeedGlobal|fxNeedSubGrant) != 0 {
+	if s.anyEmb() || k.gen == nil || k.gen.fxNeed&(fxNeedGlobal|fxNeedSubGrant) != 0 {
 		return false
 	}
 	for m := s.statM; m.any(); m = m.rest() {

@@ -23,10 +23,14 @@ var DebugBtSelfOff bool
 // BecomesTarget triggers the games queued (Queues), the player half's
 // (PlayerQueues) and those whose ValidSource$ is an ability
 // (SrcAbilityQueues). The plain self walk's queues also count in Queues.
+// SrcCtrlReads counts the TrigNSrcCtrl triggers that resolved
+// (trig_srcctrllive.go), SrcGone those whose targeting object had left the
+// stack and the battlefield by then (a countered spell, a sacrificed source).
 // The lockstep tests read them to prove the games reached the walks; nothing
 // else reads them.
 type BtStats struct {
 	Queues, PlayerQueues, SrcAbilityQueues int
+	SrcCtrlReads, SrcGone                  int
 }
 
 // DebugBtStats is the lockstep hook of the BecomesTarget walk. Never set in

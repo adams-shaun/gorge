@@ -60,7 +60,9 @@ func (s *State) Occupancy(o *Occupancy) {
 	o.N[PoolChosen] = int(s.g.nchosen)
 	o.N[PoolMay] = int(s.g.nmay)
 	o.N[PoolDProg] = int(s.g.ndp)
-	o.N[PoolEmb] = int(max(s.g.nemb[0], s.g.nemb[1]))
+	for p := range s.g.nemb {
+		o.N[PoolEmb] = max(o.N[PoolEmb], int(s.g.nemb[p]))
+	}
 	o.N[PoolDmgMap] = int(s.g.ndmg)
 	for i := uint8(1); i <= maxXTPool; i++ {
 		if s.xtUsed(i) {

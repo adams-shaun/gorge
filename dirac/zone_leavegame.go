@@ -53,6 +53,12 @@ func (s *State) sweepDeparted(k *prep) bool {
 // no zone (kop.ZoneNone, which the oracle projects as ZCeased).
 func (s *State) leaveGame(k *prep, p uint8) bool {
 	moved := false
+	if s.g.nfx != 0 {
+		// every effect giving p control ends first, as gorge's expireControl
+		// runs on the PlayerLost emit (ctrlSeatLeft): a stolen permanent goes
+		// back to its controller before the effect, not to exile
+		s.ctrlExpire(k, false)
+	}
 	// the attackers attacking p, judged before any of p's walkers cease
 	var atk slotMask
 	if s.nAttackers > 0 {
@@ -130,4 +136,11 @@ func (s *State) leaveGame(k *prep, p uint8) bool {
 		}
 	}
 	return moved
+}
+
+// ctrlSeatLeft reports whether control record r gives control to, or was
+// made by, a seat that has left the game (gorge grantEnded's CR 800.4a
+// check, which applies to a static's record too).
+func (s *State) ctrlSeatLeft(r *fxRec) bool {
+	return s.out(r.cTo()) || s.out(r.cYou())
 }

@@ -25,6 +25,10 @@ type podClassStats struct {
 	games, divs, stalls, hits int
 }
 
+// podClassSteer, when a test sets it for its run, picks first: its action
+// when it reports one, else podClassPolicy's usual preference.
+var podClassSteer func(c *PickCtx) (Canon, bool)
+
 // podClassPolicy casts, plays lands, attacks and takes targets whenever
 // offered, else random; watch reports whether gorge's posed decision is the
 // class's multi-opponent case.
@@ -34,6 +38,11 @@ func podClassPolicy(seed uint64, watch func(c *PickCtx) bool, st *podClassStats)
 	return PolicyFunc(func(c *PickCtx) Canon {
 		if c.G != nil && c.G.fr != nil && watch(c) {
 			st.hits++
+		}
+		if podClassSteer != nil {
+			if a, ok := podClassSteer(c); ok {
+				return a
+			}
 		}
 		buf = buf[:0]
 		for _, a := range c.D.Options {
@@ -311,4 +320,218 @@ func thunderbreakWatch(c *PickCtx) bool {
 // abilities.
 func TestFourSeatThunderbreakLockstep(t *testing.T) {
 	podClassLockstep(t, thunderbreakPodDeck, 24, 10, thunderbreakWatch, &dirac.DebugSrcCtrlListener)
+}
+
+// The Regent's "that player" once the targeting spell or ability has left
+// the stack before the trigger resolves. gorge reads TriggeredSourceController
+// at resolution (effects.TriggeredSourceController): the live controller of
+// the targeting spell, or of an ability's source object, and its owner once
+// that object has left the stack and the battlefield (a spell countered in
+// response, a Mogg Fanatic sacrificed as the cost). It is not last-known
+// information (CR 608.2h). dirac reads the same object again as the trigger
+// resolves (trig_srcctrllive.go). The mutation (DebugBtSrcCtrlGone) names the
+// Regent's controller for a departed source and must diverge.
+var thunderbreakCounterPodDeck = []cardset.Entry{
+	{Name: "Thunderbreak Regent", Count: 7}, {Name: "Mogg Fanatic", Count: 6},
+	{Name: "Shock", Count: 3}, {Name: "Counterspell", Count: 5},
+	{Name: "Act of Treason", Count: 3},
+	{Name: "Mountain", Count: 10}, {Name: "Island", Count: 6},
+}
+
+// TestFourSeatThunderbreakCounteredLockstep: four-seat games where Regent
+// triggers resolve after their targeting spell was countered or their
+// targeting ability's source was sacrificed.
+func TestFourSeatThunderbreakCounteredLockstep(t *testing.T) {
+	t.Run("clean", func(t *testing.T) {
+		var bt dirac.BtStats
+		dirac.DebugBtStats = &bt
+		defer func() { dirac.DebugBtStats = nil }()
+		st := runPodClass(t, thunderbreakCounterPodDeck, 24, thunderbreakWatch, &dirac.DebugBtSrcCtrlGone, false)
+		t.Logf("%d games, %d divergences, %d stalls, %d watched decisions; %d live reads, %d departed sources",
+			st.games, st.divs, st.stalls, st.hits, bt.SrcCtrlReads, bt.SrcGone)
+		if bt.SrcGone < 10 {
+			t.Errorf("the games reached %d departed sources, want >= 10", bt.SrcGone)
+		}
+	})
+	t.Run("mutation", func(t *testing.T) {
+		st := runPodClass(t, thunderbreakCounterPodDeck, 24, thunderbreakWatch, &dirac.DebugBtSrcCtrlGone, true)
+		if st.divs == 0 {
+			t.Fatalf("mutation left %d games with no divergence", st.games)
+		}
+		t.Logf("mutation diverged in %d of %d games", st.divs, st.games)
+	})
+}
+
+// A bare MustAttack effect (Bident of Thassa: "creatures your opponents
+// control attack this turn if able"). gorge marks every attack pair of such
+// a creature Required and leaves the defender to its controller (CR 508.1d);
+// dirac asks the same at more than two seats (mustAttackAsked), binding every
+// opponent's creatures, whichever seat holds the effect (anyEmb reads every
+// seat's emblems). The mutation (DebugMustAttackOneOpp) binds only the next
+// live seat's creatures, the two-seat reading.
+var mustAttackPodDeck = []cardset.Entry{
+	{Name: "Bident of Thassa", Count: 8}, {Name: "Savannah Lions", Count: 6},
+	{Name: "Goblin Piker", Count: 6}, {Name: "Coral Merfolk", Count: 4},
+	{Name: "Island", Count: 9}, {Name: "Plains", Count: 4}, {Name: "Mountain", Count: 3},
+}
+
+// mustAttackWatch: gorge asks the active player's attackers with no Done (a
+// creature must still attack), three or more players alive, while another
+// player controls a tapped Bident of Thassa.
+func mustAttackWatch(c *PickCtx) bool {
+	d := c.G.fr.d
+	if d == nil || d.Kind != decision.KAttackers || slices.ContainsFunc(c.D.Options, func(a Canon) bool { return a.Kind() == ActDone }) {
+		return false
+	}
+	g := c.G.E.G
+	alive := 0
+	for p := range g.Players {
+		if !g.Players[p].Lost {
+			alive++
+		}
+	}
+	if alive < 3 {
+		return false
+	}
+	for q := range g.Players {
+		for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(q)) {
+			if o := g.Obj(id); o != nil && o.Controller != d.Player && o.Tapped && o.Face() != nil && o.Face().Name == "Bident of Thassa" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// TestFourSeatMustAttackLockstep: four-seat Bident of Thassa games play in
+// lockstep, with creatures that must attack choosing among three defenders.
+func TestFourSeatMustAttackLockstep(t *testing.T) {
+	podClassSteer = mustAttackSteer
+	defer func() { podClassSteer = nil }()
+	podClassLockstep(t, mustAttackPodDeck, 24, 10, mustAttackWatch, &dirac.DebugMustAttackOneOpp)
+}
+
+// mustAttackSteer keeps a Bident of Thassa untapped on its controller's and
+// the next live seat's turns and activates it before combat on a later
+// seat's turn (the multi-opponent case), so its effect binds that player's attackers, and declares
+// no attacker the requirement does not force (Done whenever offered), so a
+// requirement only one side holds shows.
+func mustAttackSteer(c *PickCtx) (Canon, bool) {
+	if slices.ContainsFunc(c.D.Options, func(a Canon) bool { return a.Kind() == ActAttack }) {
+		return findAction(c, func(a Canon) bool { return a.Kind() == ActDone })
+	}
+	if c.G == nil || c.G.fr == nil || c.G.fr.d == nil {
+		return 0, false
+	}
+	g, me := c.G.E.G, c.G.fr.d.Player
+	bident := func(a Canon) bool {
+		if a.Kind() != ActActivate {
+			return false
+		}
+		for _, id := range g.Zone(state.ZBattlefield, me) {
+			if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Bident of Thassa" && c.G.InstRef(id) == a.Src() {
+				return true
+			}
+		}
+		return false
+	}
+	if g.Active != me && g.Active != nextLiveSeat(g, me) {
+		if g.Step > state.StepBeginCombat {
+			return 0, false
+		}
+		return findAction(c, bident)
+	}
+	if !slices.ContainsFunc(c.D.Options, bident) {
+		return 0, false
+	}
+	// on its controller's turn and the next seat's (the one opponent of a
+	// two-seat reading) a Bident stays untapped for a later seat's turn
+	if a, ok := findAction(c, func(a Canon) bool {
+		k := a.Kind()
+		return k == ActCast || k == ActPlayLand
+	}); ok {
+		return a, true
+	}
+	return findAction(c, func(a Canon) bool { return a.Kind() == ActPass })
+}
+
+// nextLiveSeat is the first seat after p in turn order still in the game.
+func nextLiveSeat(g *state.Game, p state.PlayerID) state.PlayerID {
+	n := len(g.Players)
+	for i := 1; i < n; i++ {
+		if q := state.PlayerID((int(p) + i) % n); !g.Players[q].Lost {
+			return q
+		}
+	}
+	return p
+}
+
+// Crackling Doom: "each opponent sacrifices a creature with the greatest
+// power among creatures that player controls". gorge repeats over the
+// opponents and each chooses among its own greatest-power creatures
+// (greatestPowerControlledByRemembered); dirac reads that player's greatest
+// power inside the RepeatEach body (kop.CtrlEachPl). The mutation
+// (DebugEachPlOppCtrl) takes the greatest power across every opponent, the
+// two-seat reading, so an opponent whose creatures are all smaller
+// sacrifices nothing.
+var greatestPowerPodDeck = []cardset.Entry{
+	{Name: "Crackling Doom", Count: 8}, {Name: "Savannah Lions", Count: 5},
+	{Name: "Goblin Piker", Count: 4}, {Name: "Hill Giant", Count: 4},
+	{Name: "Plains", Count: 6}, {Name: "Mountain", Count: 7}, {Name: "Swamp", Count: 6},
+}
+
+// greatestPowerWatch: gorge asks a player to choose a creature to sacrifice
+// while three or more players are alive.
+func greatestPowerWatch(c *PickCtx) bool {
+	d := c.G.fr.d
+	if d == nil || d.Kind == decision.KPriority || d.Kind == decision.KAttackers || d.Kind == decision.KBlockers {
+		return false
+	}
+	g := c.G.E.G
+	alive := 0
+	for p := range g.Players {
+		if !g.Players[p].Lost {
+			alive++
+		}
+	}
+	if alive < 3 {
+		return false
+	}
+	for _, id := range g.Zone(state.ZStack, 0) {
+		if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Crackling Doom" {
+			return true
+		}
+	}
+	return false
+}
+
+// TestFourSeatGreatestPowerLockstep: four-seat Crackling Doom games play in
+// lockstep, each opponent choosing among its own greatest-power creatures.
+func TestFourSeatGreatestPowerLockstep(t *testing.T) {
+	podClassLockstep(t, greatestPowerPodDeck, 24, 10, greatestPowerWatch, &dirac.DebugEachPlOppCtrl)
+}
+
+// TwoPiles with an opponent separating (Fact or Fiction, Sphinx of Uthuun:
+// "an opponent separates those cards into two piles"). At three or more
+// seats gorge asks the caster which opponent separates (CR 801.5b,
+// twoPilesAskOpponent), then that opponent splits; dirac asks the same
+// (pilesOppAsk) and the picked opponent splits. The mutation
+// (DebugPilesNextOpp) has the next live seat split whatever was picked.
+var twoPilesPodDeck = []cardset.Entry{
+	{Name: "Fact or Fiction", Count: 10}, {Name: "Sphinx of Uthuun", Count: 2},
+	{Name: "Coral Merfolk", Count: 6}, {Name: "Wind Drake", Count: 4},
+	{Name: "Island", Count: 18},
+}
+
+// twoPilesWatch: gorge asks the caster which of two or more opponents
+// separates the piles.
+func twoPilesWatch(c *PickCtx) bool {
+	d := c.G.fr.d
+	return d != nil && d.ResumeKind == "twopiles_opponent" && len(d.Options) >= 2
+}
+
+// TestFourSeatTwoPilesLockstep: four-seat Fact or Fiction games play in
+// lockstep, the caster choosing the separating opponent.
+func TestFourSeatTwoPilesLockstep(t *testing.T) {
+	podClassLockstep(t, twoPilesPodDeck, 24, 10, twoPilesWatch, &dirac.DebugPilesNextOpp)
 }

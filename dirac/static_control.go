@@ -261,6 +261,9 @@ func (s *State) ctrlSrcSlot(r *fxRec) Slot {
 
 // ctrlEnded reports whether control record r is over (gorge grantEnded).
 func (s *State) ctrlEnded(k *prep, r *fxRec, cleanup bool) bool {
+	if MaxSeats > 2 && s.ctrlSeatLeft(r) {
+		return true // CR 800.4a: an effect giving a departed seat control ends (zone_leavegame.go)
+	}
 	if r.r.idx&fcStatic != 0 {
 		return !s.ctrlStaticLive(k, r)
 	}
@@ -658,13 +661,11 @@ func (s *State) gainControlOne(k *prep, in *kop.Instr, sl Slot, to, dur uint8, s
 		}
 	}
 	if in.B.N&kop.GcHasteEOT != 0 {
-		if dur == kop.DurEOT {
-			s.grantEOT(sl, kop.KwHaste)
-		} else {
-			// AddKWs$ beside a longer LoseControl$ (gorge grants it for as
-			// long as the control effect lasts): the record carries it
-			s.g.fx[s.g.nfx-1].r.fl |= fcHaste // the record gainControl just appended
-		}
+		// AddKWs$: gorge grants it for as long as the control effect lasts
+		// (dropControlKeywords), so the record carries it at every duration;
+		// an until-end-of-turn steal also ends early when its controller leaves
+		// the game (CR 800.4a; ctrlSeatLeft), taking the haste with it
+		s.g.fx[s.g.nfx-1].r.fl |= fcHaste // the record gainControl just appended
 	}
 	if in.B.N&kop.GcRemember != 0 {
 		s.remember(p.obj) // RememberControlled$ (gorge effGainControl)

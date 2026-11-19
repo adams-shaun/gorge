@@ -8,14 +8,18 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // rest in the revealed order.
 
 // pilesSeats is the separator and the chooser, as gorge's twoPilesPlayer
-// reads Separator$ and Chooser$ at TWO seats: the resolving controller and
-// the first live opponent, swapped under kop.TpOppSeparates (Fact or
-// Fiction). Every TwoPiles carrier lowers two-seat: at three or more seats
-// gorge asks the spell's controller WHICH opponent separates or picks (CR
-// 801.5b, twoPilesAskOpponent), a decision dirac does not model, so the
-// kernel stalls StallTwoSeat on the carrier instead of playing it.
+// reads Separator$ and Chooser$: the resolving controller and an opponent,
+// swapped under kop.TpOppSeparates (Fact or Fiction). With one live opponent
+// it is that opponent; with more, gorge asks the spell's controller WHICH
+// opponent (CR 801.5b, twoPilesAskOpponent), and under TpOppSeparates the
+// kernel asks it too (pilesOppAsk), keeping the pick in res.chPl. The
+// opponent-chooses shape (Steam Augury) still lowers two-seat: its pick
+// would have to outlive the split.
 func (s *State) pilesSeats(in *kop.Instr, ctrl uint8) (sep, chooser uint8) {
 	opp := s.nextAlive(ctrl)
+	if in.B.N&kop.TpOppSeparates != 0 && s.res.chPl != 0 && !DebugPilesNextOpp {
+		opp = s.res.chPl - 1
+	}
 	if in.B.N&kop.TpOppSeparates != 0 {
 		return opp, ctrl
 	}
@@ -81,5 +85,50 @@ func (s *State) pilesToGraveyard(k *prep, in *kop.Instr, np int, pickA bool) {
 			s.capFull(StallReplCands)
 			return
 		}
+	}
+}
+
+// raGenPileOpp (manifest_gen.go, dirac/manifest/ask): OpTwoPiles' CR 801.5b
+// ask under kop.TpOppSeparates, which opponent separates (gorge
+// twoPilesAskOpponent: KChoose of one "player" option per live opponent,
+// AliveFrom the controller; ChGenPlayer, mode = the seat).
+
+// DebugPilesNextOpp is the lockstep mutation of the separator pick: the next
+// live seat separates whatever the controller answered, the two-seat reading,
+// so TestFourSeatTwoPilesLockstep must diverge. Never set in production.
+var DebugPilesNextOpp bool
+
+// pilesOppAsk poses raGenPileOpp before the split when the controller has two
+// or more live opponents and has not picked one yet; gorge asks it before the
+// split (and with one card too), never with one opponent. true: asked.
+func (s *State) pilesOppAsk(in *kop.Instr, ctrl uint8) bool {
+	if in.B.N&kop.TpOppSeparates == 0 || s.res.chPl != 0 || s.oppsFrom(ctrl).n < 2 {
+		return false
+	}
+	s.res.ask, s.res.askP = raGenPileOpp, ctrl
+	return true
+}
+
+// pileOppOptions fills raGenPileOpp: the controller's live opponents in
+// AliveFrom order.
+func (s *State) pileOppOptions(d *Decision) {
+	d.Sub = ChGenPlayer
+	q := s.oppsFrom(s.res.askP)
+	for i := uint8(0); i < q.n; i++ {
+		d.add(MakeAction(AkChoose, 0, 0, q.s[i]))
+	}
+}
+
+// pileOppAnswer keeps the picked opponent and poses the split as OpTwoPiles
+// would have (the same op, its pc unmoved).
+func (s *State) pileOppAnswer(k *prep, a Action) {
+	s.res.chPl = a.Mode() + 1
+	in := &s.prog(k)[s.res.pc]
+	sep, chooser := s.pilesSeats(in, s.res.e.ctrl)
+	s.g.lookSel = 0
+	s.res.ask, s.res.askP = raGenPileSplit, sep
+	if s.g.nrem == 1 {
+		s.g.lookSel, s.resArm().pileOrd[0] = 1, 0
+		s.res.ask, s.res.askP = raGenPileChoose, chooser
 	}
 }

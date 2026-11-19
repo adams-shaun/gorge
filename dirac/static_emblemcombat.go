@@ -32,10 +32,15 @@ func prepEmbComb(t *kop.Table, p *prep) bool {
 	return false
 }
 
-// anyEmb reports whether either player has an emblem.
-//
-//go:noinline
-func (s *State) anyEmb() bool { return s.g.nemb[0]+s.g.nemb[1] != 0 }
+// anyEmb reports whether any seat holds an emblem (every seat: a third or
+// fourth seat's emblem gates the fast paths as a first seat's does).
+func (s *State) anyEmb() bool {
+	n := uint8(0)
+	for p := range s.g.nemb {
+		n |= s.g.nemb[p]
+	}
+	return n != 0
+}
 
 // idemEmblemHeld reports whether player p already holds the emblem emb
 // (Table.Emblems index+1) and emblemIdem reads it as made once: a second
@@ -57,3 +62,9 @@ func (s *State) idemEmblemHeld(k *prep, p, emb uint8) bool {
 	}
 	return false
 }
+
+// DebugMustAttackOneOpp is the lockstep mutation of an Effect's MustAttack
+// over "creatures your opponents control" (Bident of Thassa): it binds only
+// the next live seat's creatures, the one opponent of a two-player game, so
+// TestFourSeatMustAttackLockstep must diverge. Never set in production.
+var DebugMustAttackOneOpp bool

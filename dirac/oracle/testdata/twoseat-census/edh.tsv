@@ -3,10 +3,8 @@ Calling All Angels (FDC)	Archangel of Tithes	kgen: a block tax: its lockstep pla
 Calling All Angels (FDC)	Archangel of Tithes	kgen: an attack tax: its lockstep plays two seats
 Cavalry Charge (MOC)	Adeline, Resplendent Cathar	kgen: ChangeZoneTable over the opponents read as one iteration's batch
 Desert Bloom (OTC)	Angel of Indemnity	kgen: one copy for each opponent read as one copy
-Fae Dominion (WOC)	Fact or Fiction	kgen: TwoPiles: an opponent separates or chooses, read as the next live seat
 Federation Fleet (TRC)	Fractured Identity	kgen: NonRememberedController read as the one opponent
 Federation Fleet Collector's Edition (TRC)	Fractured Identity	kgen: NonRememberedController read as the one opponent
-First Flight (SCD)	Bident of Thassa	kgen: MustAttack$ Player.Other read as the one opponent
 First Flight (SCD)	Kangee's Lieutenant	kgen: one copy for each opponent read as one copy
 Growing Threat (MOC)	Phyrexian Triniform	kgen: one copy for each opponent read as one copy
 Hatsune Miku (SLD)	Angel of Indemnity	kgen: one copy for each opponent read as one copy
@@ -30,8 +28,4 @@ Political Puppets (CMD)	Ghostly Prison	kgen: an attack tax: its lockstep plays t
 Political Puppets (CMD)	Lash Out	kgen: Clash with the one opponent (gorge's fallback scans from seat 0)
 Political Puppets (CMD)	Propaganda	kgen: an attack tax: its lockstep plays two seats
 Political Puppets (CMD)	Windborn Muse	kgen: an attack tax: its lockstep plays two seats
-Reap the Tides (CMR)	Fact or Fiction	kgen: TwoPiles: an opponent separates or chooses, read as the next live seat
-Reap the Tides (CMR)	Sphinx of Uthuun	kgen: TwoPiles: an opponent separates or chooses, read as the next live seat
-Urza's Iron Alliance (BRC)	Bident of Thassa	kgen: MustAttack$ Player.Other read as the one opponent
-Vampiric Bloodlust (C17)	Crackling Doom	kgen: the repeated opponent's greatest power read as OppCtrl's
 Veloci-Ramp-Tor (LCC)	Scion of Calamity	kgen: Myriad: no opponent other than the defending player
