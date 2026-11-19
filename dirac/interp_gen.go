@@ -1577,6 +1577,9 @@ func (s *State) returnAura(k *prep, o Obj, host Slot) bool {
 			return ask
 		}
 	}
+	if s.returnChoicePark(k, o, ctrl, host) {
+		return true
+	}
 	from := s.detach(o)
 	if k.gen != nil && k.gen.anyMayLimit {
 		s.countMayPlayLand(k, o, from)
@@ -1590,6 +1593,51 @@ func (s *State) returnAura(k *prep, o Obj, host Slot) bool {
 	}
 	s.attachedTo(k, sl, host)
 	return false
+}
+
+// resumeEnchantReturn re-runs the return op the enchant ask parked (CR
+// 303.4f): the Aura enters attached to the answered host, or the card enters
+// by the op's own flags. A re-run that poses an ask of its own (the clone
+// election, the CR 616.1 order, returnChoicePark) leaves it posed; its
+// answer resumes the program.
+func (s *State) resumeEnchantReturn(k *prep, r *resCtx, in *kop.Instr, a Action) {
+	host := s.objs[a.Source()].slot
+	ask := false
+	if in.Op == kop.OpReturn {
+		ask = s.returnAura(k, s.returningObj(in), host)
+	} else {
+		ask = s.execReturn(k, in, host)
+	}
+	if !ask {
+		s.continueRes(k, 0)
+	}
+}
+
+// returnChoicePark poses the as-enters record ask (enterChoiceKind: a colour,
+// a type, a number, a name) of an Aura a resolution's return op is about to
+// enter with its CR 303.4f enchant host settled: gorge parks the move at the
+// CR 614.12 entry boundary and asks the choice with the card still in its
+// zone (engine/rules/replacement_etb.go applyETBChoiceReplacement), the way
+// cloneReturnPark asks a clone's copy election. The card stays where it is;
+// the answer (raGenRetChoice, preReturnAura) re-enters it attached to host,
+// whose slot preAsk.val carries + 1 until the answer replaces it with the
+// choice. Only when nothing is pending (res.ask clear, no parked ask): gorge
+// runs an entry with a decision outstanding unasked, and the repl program's
+// own fallback keeps that (runReplProgAs's entryAskOutstanding arm).
+//
+//go:noinline
+func (s *State) returnChoicePark(k *prep, o Obj, ctrl uint8, host Slot) bool {
+	if k.gen == nil || !s.res.active || s.g.pre.state != 0 || s.res.ask != raNone {
+		return false
+	}
+	kind := s.enterChoiceKind(k, s.objs[o].card)
+	if kind == 0 {
+		return false
+	}
+	s.g.pre = preAsk{obj: o, kind: kind, state: preReturnAura, val: objWord(uint8(host) + 1)}
+	s.res.ask, s.res.askP = raGenRetChoice, ctrl
+	s.touch(o) // the projection reads ctrl while it waits
+	return true
 }
 
 // execReturn moves the instruction's object to its zone. An Aura card put
