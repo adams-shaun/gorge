@@ -1,0 +1,18 @@
+# Channel costs spelled Discard<1/NICKNAME> (Forge's alias of CARDNAME; gorge
+# pay.costparts reads both as the source): Arashi and Jiwari damage every
+# flier / every non-flier from the hand (dirac/oracle/channelnick_lockstep_test.go)
+Arashi, the Sky Asunder
+Jiwari, the Earth Aflame
+Wind Drake
+Serra Angel
+Air Elemental
+Grizzly Bears
+Llanowar Elves
+Raging Goblin
+Savannah Lions
+Spined Wurm
+Craw Wurm
+Shock
+Forest
+Plains
+Mountain
