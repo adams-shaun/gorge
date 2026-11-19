@@ -42,16 +42,39 @@ func (s *State) triggerLKIMV(r kop.Ref, o Obj, ctx evalCtx) (int, bool) {
 	return int(l.mv), true
 }
 
+// refObjMV is the mana value of the object o a ref names, in order: the
+// trigger's last-known information (triggerLKIMV), 0 for a face-down
+// permanent or spell (CR 708.2: no mana cost), the mana value of the trigger's
+// spell the chain countered (trigMVLKIMV, value_tgtmv.go), else objMV
+// (static_cda.go).
+func (s *State) refObjMV(k *prep, r kop.Ref, o Obj, ctx evalCtx) int {
+	if mv, ok := s.triggerLKIMV(r, o, ctx); ok {
+		return mv
+	}
+	if s.faceDownAt(k, o) {
+		return 0
+	}
+	if mv, ok := s.trigMVLKIMV(r, o); ok {
+		return mv
+	}
+	return s.objMV(k, s.objs[o].card, o)
+}
+
 // targetMV is Targeted$CardManaCost (gorge evalRefProperty over the
 // targeted object, whose id survives its moves): the mana value of the
 // chosen target's card -- the copied card while it is on the battlefield
 // (its derived characteristics), the printed card elsewhere (a copy effect
 // ends as it leaves); 0 for an illegal target. objMV adds the announced X
-// when the target is a spell on the stack (CR 202.3e).
+// when the target is a spell on the stack (CR 202.3e), and a spell the chain
+// countered keeps the mana value it had there (CR 608.2h; tgtMVLKIMV).
 //
 //go:noinline
 func (s *State) targetMV(k *prep, r kop.Ref, ctx evalCtx) int {
-	return s.objTargetMV(k, s.refObjCtx(r, ctx))
+	o := s.refObjCtx(r, ctx)
+	if mv, ok := s.tgtMVLKIMV(r, o); ok {
+		return mv
+	}
+	return s.objTargetMV(k, o)
 }
 
 // objTargetMV is targetMV's read over the target object o.
