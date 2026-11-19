@@ -127,9 +127,10 @@ func statusOf(c *lCard, s *supportLists) (cardset.Status, string) {
 // twoSeat-at-caller: SupportFor only reports the flag; cardaudit's run reads
 // TwoSeat to rank 4-seat cards first.
 type CardSupport struct {
-	Status  cardset.Status
-	TwoSeat bool
-	LIRKey  string
+	Status     cardset.Status
+	TwoSeat    bool
+	TwoSeatWhy []string // the reasons that set TwoSeat (lCard.TwoSeatWhy), for the Commander pod census
+	LIRKey     string
 }
 
 // SupportFor lowers and builds the named cards as TestSupportDocIsCurrent does
@@ -158,7 +159,7 @@ func SupportFor(cardsDir string, names []string) (map[string]CardSupport, error)
 	out := make(map[string]CardSupport, len(lw.cards))
 	for _, c := range lw.cards {
 		st, _ := statusOf(c, s)
-		out[c.Name] = CardSupport{Status: st, TwoSeat: c.TwoSeat, LIRKey: keys[c.Name]}
+		out[c.Name] = CardSupport{Status: st, TwoSeat: c.TwoSeat, TwoSeatWhy: c.TwoSeatWhy, LIRKey: keys[c.Name]}
 	}
 	return out, nil
 }
