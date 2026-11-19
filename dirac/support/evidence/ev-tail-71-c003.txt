@@ -86,6 +86,7 @@ Dune Chanter
 Earthshaker Giant
 Eccentric Farmer
 Elvish Piper
+Elvish Visionary
 Embereth Paladin
 Enduring Victory
 Ensnare
@@ -216,10 +217,12 @@ Recruit the Worthy
 Regenesis
 Release the Ants
 Renegade Warlord
+Restock
 Retribution of the Meek
 Revolutionary Rebuff
 Revolutionist
 Riptide Mangler
+Rishkar, Peema Renegade
 Rising Populace
 Roc Hatchling
 Rummaging Goblin
@@ -229,6 +232,7 @@ Scaled Behemoth
 Scarab Feast
 Scion Summoner
 Scoria Wurm
+Scryb Sprites
 Season of Growth
 Season of Renewal
 Serene Heart
@@ -268,6 +272,7 @@ Threnody Singer
 Throne of the God-Pharaoh
 Thunderous Might
 Time Bomb
+Tooth and Nail
 Tormod's Crypt
 Torture
 Tragic Fall
@@ -284,6 +289,7 @@ Vent Sentinel
 Viashino Firstblade
 Vodalian Soldiers
 Voltaic Brawler
+Webspinner Cuff
 Weight of Memory
 Weldfast Wingsmith
 Whirlermaker

@@ -3,6 +3,7 @@ A-Kona, Rescue Beastie	e6db51069b44d1f4	6	1/1		0/1	ix:resp
 A-Master of Winds	ec2fa152a6a5e379	3	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Afterlife	e15f7bc71c352041	3	0/0		1/2	ix:resp
 Agility Bobblehead	bb9b53c64f0a88f9	4	2/2		0/1	ix:resp
+Alabaster Potion	a4528db6d164240f	23	0/0		3/4	f0/s/x0
 Alrund's Epiphany	d3a7386952084ecc	8	0/0		3/4	cast/alt:foretold
 Apprentice Sharpshooter	24fbc7cf7330dd90	6	1/1		0/1	ix:resp
 Arachnus Web	90608be04ac5d667	3	1/1		1/2	ix:resp
@@ -24,6 +25,7 @@ Bone Devourer	30b714e3648dd0ef	4	1/1		0/1	ix:resp
 Boneknitter	02e50dfe73e41cf4	4	1/1		1/3	cast/alt:morphed,ix:resp
 Bountiful Promenade	e157ecf950a69f95	9	1/1		0/1	ix:resp
 Brackwater Elemental	9144ebf6cd3b0bbb	10	3/3		0/1	ix:resp
+Bugenhagen, Wise Elder	030e85a7bac8ffed	65	2/2		1/1	
 Cabal Patriarch	5d155d23688e0733	27	2/2		1/1	
 Cabaretti Courtyard	35be59e842d3db99	11	1/1		0/1	ix:resp
 Cao Cao, Lord of Wei	c9c28c0f7395f113	24	1/1		1/1	
@@ -41,6 +43,7 @@ Curiosity Crafter	a4da71997a7b3da3	6	1/1		0/1	ix:resp
 Daggersail Aeronaut	0bec55c4e284cd91	4	0/0		0/0	
 Daunting Defender	d021c9c7280589a8	4	0/0		0/0	
 Dawning Angel	25fc8287ece95c98	4	1/1		0/1	ix:resp
+Delraich	75a0cbeee13ff685	39	0/0		0/0	
 Demon's Disciple	b542ff135c11a3e0	7	1/1		0/1	ix:resp
 Dense Foliage	da2e1ddb70c32401	4	0/0		0/0	
 Deputized Protester	d2d1977ef7339d0b	4	1/1		0/1	ix:resp
@@ -78,6 +81,7 @@ Grim Tutor	3c205ffe7a0c8491	7	0/0		1/2	ix:resp
 Harmless Assault	224f5a7b744103fe	4	0/0		1/2	ix:resp
 Hero of the Dunes	8380f47d67a5b93b	3	1/1		0/1	ix:resp
 Hulk, Brutal Brawler	fc14624be05b6a75	3	1/1		0/1	ix:resp
+Illicit Shipment	a1846b2f905e5094	38	0/0		2/2	
 Imaginary Pet	0e7501875523b3a8	77	1/1		1/1	
 Immortal Phoenix	47186dba1a240707	3	1/1		0/1	ix:resp
 Incisor Steed	b63c79756c62d52d	7	0/0		0/0	
@@ -88,6 +92,7 @@ Khenra Eternal	bbfaac847623256e	8	1/1		1/1
 Kodama's Reach	d19ff79f49b69152	5	0/0		1/2	ix:resp
 Leyline of Punishment	a208ab9103b24afb	3	0/0		0/0	
 Lightwielder Paladin	51c47c5f3b89f4eb	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Lonis, Genetics Expert	56cf6f7d2b4018c1	11	3/3		0/1	ix:resp
 Lorthos, the Tidemaker	5cd3c3c9c194785c	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Lost in the Spirit World	ff870131f7c9ca10	3	0/0		2/2	
 Magma Vein	6e94436e204467e7	3	1/1		0/1	ix:resp
@@ -102,6 +107,7 @@ Masked Blackguard	a8a142ebd47fd68d	8	1/1		1/1
 Maze Rusher	a3c81f9a2ec016a3	3	0/0		0/0	
 Mobile Fort	8fb50bf5e67964bd	3	1/1		0/1	ix:resp
 Mortal Wound	729e89f45b704a01	7	1/1		2/2	
+Mossbridge Troll	a2f9885034ff3846	41	1/1		0/1	ix:resp
 Mox Tantalite	149b5f504ed2bfc3	3	1/1		2/3	cast/alt:none
 Mystic Skull	e5c2c5d6f020d251	8	2/2		0/1	ix:resp
 Nakaya Shade	77d4ecf82513a3d3	3	1/1		0/1	ix:resp
@@ -119,6 +125,7 @@ Quirion Explorer	a3c1cbfd3451cdd8	16	1/1		0/1	ix:resp
 Rampaging Cyclops	a138ac690caa5681	6	0/0		0/0	
 Raugrin Triome	39799887a771fa09	9	4/4		0/1	ix:resp
 Reduce in Stature	bd3b48374957e827	6	0/0		1/2	ix:resp
+Return of the Nightstalkers	ae076966896c28c5	33	0/0		2/2	
 Reverberate	8c12f6b85df24db4	17	0/0		1/2	ix:resp
 Rimewood Falls	b8d8696df1812ae6	8	2/2		0/1	ix:resp
 Rout	997bf004717e1754	3	0/0		1/2	ix:resp
@@ -152,6 +159,7 @@ Tamiyo's Immobilizer	514bf77414e6d8bb	4	1/1		0/1	ix:resp
 Tamiyo's Safekeeping	fa01c64cc04388d8	6	0/0		1/2	ix:resp
 Tempestra, Dame of Games	1818e85c0ea1f3e0	6	1/1		0/1	ix:resp
 Thirst for Discovery	4f2561b8d54e5c24	4	0/0		1/2	ix:resp
+Thistledown Duo	5ed2f3430a2c3e84	15	2/2		1/1	
 Thopter Mechanic	5fa4deadd10769ec	32	2/2		1/1	
 Thrilling Encore	53c365c97c426094	6	0/0		1/2	ix:resp
 Timbermaw Larva	515bc614f12d368b	13	1/1		0/1	ix:resp

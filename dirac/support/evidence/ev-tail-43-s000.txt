@@ -1,6 +1,7 @@
 Algorithmic Ferocity
 Amulet of Unmaking
 Aven Augur
+Biting Tether
 Blessings of Nature
 Bloodscent
 Bower Passage
@@ -92,6 +93,7 @@ War Horn
 Westvale Abbey
 Windstorm Drake
 Wizard's Retort
+Wrath of Oko
 Yavimaya's Embrace
 Zegana, Utopian Speaker
 Zephyr Spirit

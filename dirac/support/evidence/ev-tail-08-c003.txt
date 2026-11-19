@@ -32,6 +32,7 @@ Blood Divination
 Blood Glutton
 Blood Seeker
 Blur Sliver
+Bolt of Keranos
 Bounty Agent
 Bronze Sword
 Bronze Walrus
@@ -47,6 +48,7 @@ Chill to the Bone
 Clockwork Fox
 Coercive Impetus
 Commence the Endgame
+Containment Protocol
 Corrosive Mentor
 Counterintelligence
 Courier Griffin
@@ -130,6 +132,7 @@ Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
 Inspiring Cleric
+Invasion of Theros
 Iron Fist, Hero for Hire
 Iron Verdict
 Ishai, Ojutai Dragonspeaker

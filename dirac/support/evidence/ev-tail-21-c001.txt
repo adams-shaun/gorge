@@ -38,6 +38,7 @@ Blood Researcher
 Bloodline Keeper
 Bloodrock Cyclops
 Blossom Dryad
+Bog Badger
 Bonecaller Cleric
 Boneshard Slasher
 Boseiju, Who Endures
@@ -51,6 +52,7 @@ Brion Stoutarm
 Brokers Initiate
 Brutal Expulsion
 Caldera Pyremaw
+Candlelit Cavalry
 Carrion Imp
 Cave of the Frost Dragon
 Celestial Colonnade
@@ -77,6 +79,7 @@ Death Cultist
 Deathbringer Regent
 Deepfathom Skulker
 Defang
+Defiant Greatmaw
 Demonlord of Ashmouth
 Desert Nomads
 Destined
@@ -120,6 +123,7 @@ Firedrinker Satyr
 Firemane Avenger
 Flagstones of Trokair
 Flaming Sword
+Flayer Drone
 Flayer Husk
 Fledgling Djinn
 Flint Golem
@@ -134,6 +138,7 @@ Frantic Purification
 Frantic Salvage
 Frenetic Sliver
 Fumulus, the Infestation
+Fungal Infection
 Fury Sliver
 Gale Force
 Galvanic Key
@@ -268,6 +273,7 @@ Parallax Wave
 Perilous Research
 Permission Denied
 Pestilent Haze
+Phantasmal Bear
 Phantom Nomad
 Phantom Wurm
 Phyrexian Awakening
@@ -298,12 +304,14 @@ Revival
 Reyav, Master Smith
 Rhovanion Rampager
 Rhystic Tutor
+Rib Cage Spider
 Righteous Valkyrie
 Ring of Xathrid
 Roadside Reliquary
 Roast
 Robot Chicken
 Rogue Class
+Rot Hulk
 Run for Your Life
 Rush the Room
 Sacred Wolf
@@ -324,8 +332,10 @@ Serene Offering
 Serra Zealot
 Servo Exhibition
 Shared Summons
+Shilgengar, Sire of Famine
 Shining Armor
 Siege Modification
+Silverglade Elemental
 Simian Grunts
 Skittering Surveyor
 Skull Skaab
@@ -372,6 +382,7 @@ Thoughtbound Phantasm
 Thraben Watcher
 Thrash
 Thunder Totem
+Tinker
 Tomb of the Spirit Dragon
 Tori D'Avenant, Fury Rider
 Tormented Angel
@@ -403,12 +414,14 @@ Wake the Reflections
 Walking Wall
 Wall of Lava
 Wasteful Harvest
+Wavesifter
 Weaponcraft Enthusiast
 Wedding Invitation
 Whip Sergeant
 Whiptail Moloch
 White Rhystic Study
 Wild Jhovall
+Wildslayer Elves
 Will of the Mardu
 Windgrace's Judgment
 Winged Sliver

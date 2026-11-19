@@ -166,6 +166,7 @@ Furyborn Hellkite
 Gaea's Courser
 Gaea's Protector
 Gale Swooper
+Garruk, Caller of Beasts
 Genesis Chamber
 Gerrard's Irregulars
 Giant Solifuge
@@ -342,6 +343,7 @@ Ravenous Chupacabra
 Ravenous Sailback
 Ray Fillet, Wave Warrior
 Realmwalker
+Reaping the Graves
 Red Dragon
 Red Elemental Blast
 Refocus

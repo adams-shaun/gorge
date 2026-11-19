@@ -12,6 +12,7 @@ Archangel's Light	07393533216f0f67	8	0/0		1/2	ix:resp
 Archon of Redemption	0b985db5ba747b52	7	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Ardent Militia	f1cff3c9d9902327	26	0/0		0/0	
 Arrogant Bloodlord	72e0e13aab86845a	41	2/2		1/1	
+Aura Mutation	45cb9713ee9c83ce	8	0/0		2/2	
 Bat Whisperer	29747ad756f336ae	49	1/1		1/1	
 Battle Angels of Tyr	a689afca4fb83792	4	2/2		0/1	ix:resp
 Belbe's Percher	b84ecdc7ad352072	12	0/0		0/0	
@@ -35,10 +36,14 @@ Clear the Mind	235f1d7b2472568d	22	0/0		2/2
 Cleaving Sliver	b9af3baeb11fe97f	16	0/0		0/0	
 Conjurer's Mantle	2d1d6a410eb60a1e	18	2/2		0/1	ix:resp
 Consulate Turret	c27fb123ea5e8358	6	2/2		0/1	ix:resp
+Conversion	a42a844cb2bb5fe2	17	1/1		1/1	
 Cowl Prowler	05ae4194008e303a	24	0/0		0/0	
 Crackle with Power	7e5e54cbb0bfc45d	16	0/0		2/4	f0/s/x0,ix:resp
 Crash	062b3165b36cd571	20	0/0		2/2	
+Crash the Party	912e31a151e6f5c9	19	0/0		2/2	
 Crusade	f6e961a01627cc40	12	0/0		0/0	
+Cryptoplasm	d14063be6296c677	3	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Crystalline Nautilus	2c3e8e42f65858fb	7	1/1		2/3	ix:resp
 Cut Down	4fd0d68c04b020b3	72	0/0		2/2	
 Cynette, Jelly Drover	0303cedd43138e16	71	2/2		1/1	
 Death-Priest of Myrkul	920fe7fd716042c6	13	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -88,6 +93,7 @@ Joraga Auxiliary	7e589c25a61ff5bd	65	1/1		1/1
 Jwari Scuttler	70501809c4814686	20	0/0		0/0	
 Keldon Halberdier	05e21f0e4ff8304f	4	0/0		2/2	
 Killian, Ink Duelist	93cd8523562f5287	22	0/0		0/0	
+Kitsune Dawnblade	1c235ce5956e1b45	11	3/3		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Kobold Drill Sergeant	2049c9e6f1cb0bc1	10	0/0		0/0	
 Kolaghan Skirmisher	f2c3f688c8446fb8	120	0/0		2/2	
 Kronch Wrangler	8beb916f3e4a2a81	63	1/1		1/1	
@@ -139,6 +145,7 @@ Rapacious One	075a8e1bf7b0f561	5	1/1		0/1	ix:resp
 Reality Hemorrhage	f750614ff7a1cf16	22	0/0		2/2	
 Resurrection Orb	f65d46e9d2df2e05	16	2/2		1/1	
 Revenge of the Hunted	9a415f4f87bf49ec	30	0/0		4/4	
+Ringskipper	ffd3b94828592736	4	1/1		0/1	ix:resp
 Riot Piker	fbc7c74e669a6768	18	0/0		0/0	
 Rise from the Grave	9e955d6101b447c7	43	0/0		2/2	
 Saheeli's Silverwing	e0dde5374110c68e	12	1/1		1/1	
@@ -157,12 +164,15 @@ Silverchase Fox	1b5b02d90c0d7f1f	9	1/1		0/1	ix:resp
 Smokebraider	224c83fda0cd551a	13	1/1		0/1	ix:resp
 Snooping Newsie	3267d22994a8c85a	26	1/1		0/1	ix:resp
 Sokka's Charge	ebdcaca21b27c31d	95	0/0		0/0	
+Songs of the Damned	353fc655e2c6ab05	6	0/0		1/2	ix:resp
 Soul's Might	3f827062a4f1de0d	47	0/0		2/2	
 Sound the Call	608255c46696829a	89	0/0		2/2	
 Sphere of Grace	c7b59cd461a23318	4	0/0		0/0	
 Spiked Corridor	a4654b6c29f8aea3	6	1/1		0/1	ix:resp
 Spire Owl	c6f68e3c09cfbef1	26	1/1		1/1	
 Spring Cleaning	218606804d21f2eb	60	0/0		2/2	
+Sprite Dragon	de4688efee062c73	8	1/1		0/1	ix:resp
+Staff of the Wild Magus	8773cc31b1583863	20	2/2		0/1	ix:resp
 Storm Fleet Sprinter	8d2eba06897c9f40	35	0/0		0/0	
 Storm Sculptor	6556e0afce3e3bd1	6	1/1		0/1	ix:resp
 Stun	5b50bb57ff62b8df	20	0/0		1/2	ix:resp

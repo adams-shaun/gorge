@@ -2,49 +2,85 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Accumulated Knowledge	a46b635e785f67ed	8	0/0		1/2	ix:resp
 Act of Treason	18ac6b6e2423494e	10	0/0		2/2	
 Affa Protector	91fa9f47e1e2951e	6	0/0		0/0	
+Akroan Crusader	5ae3b8011e13c3f2	8	1/1		0/1	ix:resp
 Alaborn Trooper	3f9597031e09c99a	8	0/0		0/0	
+Arixmethes, Slumbering Isle	9082fa727c4e8b73	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Arm with Aether	d8e8b1fe7508cac8	8	0/0		1/2	ix:resp
 Aven Gagglemaster	bdaaf528858fb14d	10	1/1		0/1	ix:resp
 Awesome Presence	ddd761beae16011d	4	0/0		1/2	ix:resp
+Azorius Skyguard	eddd2d248f811696	10	0/0		0/0	
 Biblioplex Assistant	b25918b9f9a5e38f	8	1/1		0/1	ix:resp
 Bladestitched Skaab	3b5c9a178b466c6b	14	0/0		0/0	
+Bloodrage Vampire	be0668f1b9828ee0	6	0/0		0/0	
+Bloodtracker	425730edfc87d9ac	13	2/2		1/1	
+Boros Reckoner	702356d0eb3cabfc	5	2/2		1/1	
 Brave the Elements	41c8625953a315e5	4	0/0		1/2	ix:resp
 Cabal Initiate	13d1246afbc55ce9	11	1/1		1/1	
+Call the Gatewatch	c0d8650988248304	13	0/0		1/2	ix:resp
 Canyon Jerboa	78fc640996c6eb5a	6	1/1		0/1	ix:resp
+Choking Miasma	2a20039f393c1314	14	0/0		3/4	ix:resp
+Cliffside Lookout	7d881e7d9f487423	10	1/1		0/1	ix:resp
 Collective Nightmare	5082860eb32c6e78	6	0/0		2/2	
 Combat Thresher	075207bf189995f7	8	1/1		1/3	cast/alt:none,ix:resp
 Coral Merfolk	c78ac8e180dc7008	12	0/0		0/0	
+Counterspell	24d94fba7803eb31	3	0/0		1/2	ix:resp
 Court Cleric	c8963f8301153974	6	0/0		0/0	
+Crenellated Wall	aad396711584ac94	7	1/1		0/1	ix:resp
 Curse of Wizardry	438f7e761e459c7e	4	1/1		0/1	ix:resp
+Dauntless Cathar	d1f139f1ee4f478c	20	1/1		1/1	
+Dead	e8f9e9b0488ad82d	26	0/0		2/3	f1/s
+Demon of Wailing Agonies	40aef97f35d25a6a	6	0/0		0/0	
 Disruptive Pitmage	7885db5221538dd7	21	1/1		2/3	cast/alt:morphed
 Dreadfeast Demon	c34ed39e4e63ed8f	3	1/1		0/1	ix:resp
 Drift of Phantasms	062138a54af7a9fd	12	1/1		0/1	ix:resp
 Drowner of Hope	a794ca93a3c89510	12	2/2		0/1	ix:resp
+Earth Servant	4db207328b3c5f2e	10	0/0		0/0	
+Echoing Decay	a8542f9d6616d6bf	10	0/0		1/2	ix:resp
 Elixir of Immortality	041032273eae2714	8	1/1		1/1	
 Enthusiastic Mechanaut	655ca335b9fbd851	16	0/0		0/0	
+Eternal Flame	d4a80cde046427d3	10	0/0		1/2	ix:resp
 Ethersworn Sphinx	7441c8b0a779e5b0	6	0/0		0/0	
+Execute	8140b6310d4a0766	13	0/0		1/2	ix:resp
 Extract the Truth	d8c07890d42aa859	3	0/0		1/2	ix:resp
 Felhide Brawler	c3d93070ecd51f63	17	0/0		0/0	
 Festival of Trokin	909988489680615d	4	0/0		1/2	ix:resp
 Fleetfeather Cockatrice	3e282e561ca2b9f2	6	1/1		0/1	ix:resp
 Flickering Ward	d509182ff8fa9e1e	25	1/1		2/2	
+Foil	462198bb1311a851	6	0/0		2/2	
 Forest	6d0466c30f825dba	352	1/1		0/1	ix:resp
+Gild	64775d8aeafb8a4c	12	0/0		1/2	ix:resp
 Goblin Striker	eaae9512a8455d4d	18	0/0		0/0	
+Gore-House Chainwalker	9e99b84c18da89b6	8	0/0		0/0	
 Greenhilt Trainee	846440079d35edab	8	1/1		0/1	ix:resp
+Guardians of Akrasa	2fed36abb8639074	28	1/1		0/1	ix:resp
 Guildpact Informant	a8156007b5a14e5e	8	1/1		1/1	
+Haazda Snare Squad	90b08746a34c588d	10	1/1		0/1	ix:resp
 Hagra Diabolist	4ec8d1f63ff6268c	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Hamlet Vanguard	59faad8ef09662d8	10	1/1		0/1	ix:resp
+Hammer Helper	b74f8fe6bf6a5b4a	11	0/0		1/2	ix:resp
+Hammers of Moradin	8315020b1a973aaf	12	2/2		1/1	
+Hardened Scales	899b8342e433f8b3	11	0/0		0/0	
 Harmattan Efreet	7a40c8fc624e32b7	8	1/1		1/1	
+Harnessed Lightning	6657ee3e6ecb505f	20	0/0		2/2	
+Hawkeye, Bowslinger	c7356ddaa51b5996	8	1/1		0/1	ix:resp
+Hellhole Rats	724b04e94621b84c	3	1/1		0/1	ix:resp
 Illness in the Ranks	c6727279a80a776e	18	0/0		0/0	
 Implement of Combustion	e1f9ae05ce7c1b8f	14	2/2		0/1	ix:resp
 Ironclaw Buzzardiers	912690db1b69e2b2	10	1/1		1/1	
 Island	763c67ef7a27eaf5	438	1/1		0/1	ix:resp
 Ivory Crane Netsuke	90ad2325d3a19ad3	22	1/1		0/1	ix:resp
 Janjeet Sentry	18118d22c33b19ef	26	2/2		1/1	
+Journey of Discovery	33f85a8b6ce6062a	7	0/0		1/2	ix:resp
+Journey to Eternity	684defa62677d70d	4	3/3		1/2	ix:resp
+Kargan Dragonlord	4894fa604a159299	12	1/1		0/1	ix:resp
+Knight of Sorrows	4febbca5130e37fa	22	1/1		1/1	
 Krile Baldesion	eed196c60c759226	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Llanowar Stalker	e856230c55c29d8d	16	1/1		1/1	
 Loathsome Catoblepas	74eb9c7dc01d74b1	14	2/2		1/1	
+Lockjaw Snapper	513abf4960eb3f7c	6	1/1		1/1	
 Lore Broker	35d5731d0a8f5821	12	1/1		0/1	ix:resp
+Lorehold Excavation	0083826871014c88	6	2/2		0/1	ix:resp
+Marble Chalice	8b26646d66813e56	4	1/1		1/1	
 Mardu Shadowspear	847c14c15bed2538	15	1/1		2/3	ix:resp
 Master Thief	33dbbe6f82fec244	10	1/1		1/1	
 Maw of Kozilek	3b4f6908ebc9c7bc	8	1/1		0/1	ix:resp
@@ -55,27 +91,47 @@ Mind Maggots	989887b377d0aea2	3	1/1		0/1	ix:resp
 Mind Ravel	6f36f52306950ac9	3	0/0		1/2	ix:resp
 Mind Sculpt	a4e98e58d97c4222	16	0/0		1/2	ix:resp
 Minotaur, Roxxon CEO	9c04d3867c00fcc6	5	1/1		0/1	ix:resp
+Mirror-Sigil Sergeant	a208adfa5d28ef67	20	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Mist-Cloaked Herald	10589aca6abc5b0d	18	0/0		0/0	
 Moria Marauder	b82eb070afb0b710	9	1/1		1/1	
 Mountain	9e71388353e907ed	374	1/1		0/1	ix:resp
 Murkfiend Liege	09711c14c153e05b	4	0/0		0/0	
+Nezahal, Primal Tide	1011263ce51111b6	4	2/2		1/1	
+Ochran Assassin	9b669415e82677e3	7	0/0		0/0	
+Oketra's Last Mercy	c62d57a4be924472	16	0/0		2/2	
+One with the Machine	6ae417ebd308657c	12	0/0		1/2	ix:resp
 Opportunity	a8e504e9deca6bf7	17	0/0		1/2	ix:resp
+Otarian Juggernaut	0b512c466fa4a2ef	4	0/0		0/0	
 Outnumber	1a9b3d893a4c18bf	7	0/0		1/2	ix:resp
 Pillardrop Rescuer	80ac38b499b4bce2	6	1/1		0/1	ix:resp
+Pir, Imaginative Rascal	683c7203f2c30d32	8	1/1		0/1	ix:resp
 Plains	82d63a695487e567	326	1/1		0/1	ix:resp
+Planar Cleansing	007d08857af6bd38	6	0/0		1/2	ix:resp
 Poison the Blade	04b26ba5ec94752a	19	0/0		1/2	ix:resp
 Priest of the Haunted Edge	950c09681fd158e3	10	1/1		0/1	ix:resp
+Qarsi High Priest	2689809c8c9cb7e8	10	1/1		1/1	
 Ramosian Captain	b1b6b8ab07c6c682	4	1/1		0/1	ix:resp
+Rampage of the Valkyries	179026eff11cd9f7	4	2/2		0/1	ix:resp
+Razor Golem	57a65930dd26d5d0	12	0/0		0/0	
 Razortooth Rats	e628b89e24b1f15d	8	0/0		0/0	
+Refresh	ff042ab26e26118a	7	0/0		1/2	ix:resp
+Restoration Gearsmith	e937faff32eaaee7	4	1/1		0/1	ix:resp
+Reviving Dose	af43188bef1a2c1e	14	0/0		2/2	
+Ricochet Trap	f466e65bb72cc6d7	5	0/0		1/2	ix:resp
+Ronom Unicorn	3d06dc5613458669	18	1/1		1/1	
 Rootwalla	cf1b62e4b6976d88	12	1/1		0/1	ix:resp
 Sardian Cliffstomper	1ebd1852b500c1fe	6	0/0		0/0	
 Scuttling Sliver	0d9415dfd7b0f50c	10	0/0		0/0	
 Sigiled Starfish	6ce1919bba104a95	14	1/1		1/1	
 Silverstorm Samurai	304af09f2d489867	8	2/2		1/1	
+Skeletal Grimace	2415ea7857f18dd2	6	0/0		1/2	ix:resp
 Soltari Emissary	ff1484bb27439109	10	1/1		1/1	
+Spawn of Thraxes	d2228d23961038bc	4	1/1		0/1	ix:resp
 Split-Tail Miko	c3d082b69e84700f	6	1/1		1/1	
 Spurnmage Advocate	fa6aff50ebb74656	15	1/1		1/1	
+Stasis Field	fc397644db338c9d	4	0/0		2/2	
 Steadfast Sentry	964e2abd3fc33448	4	1/1		0/1	ix:resp
+Stenchskipper	17c4293e03cd284a	8	1/1		0/1	ix:resp
 Stitched Assistant	f7149cfa14e9cd71	22	2/2		1/1	
 Sudden Insight	ef14cdc4b61de2af	6	0/0		1/2	ix:resp
 Sulfurous Blast	fe0812e1bcc258bc	9	0/0		2/2	
@@ -83,18 +139,29 @@ Sultai Skullkeeper	db76e907f14582b4	10	1/1		0/1	ix:resp
 Sun Ce, Young Conquerer	f05dccb0bad53175	11	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Swamp	342b413902f441c3	312	1/1		0/1	ix:resp
 Syphon Flesh	9251203ad8921bc0	7	0/0		1/2	ix:resp
+Tainted Strike	18d4af8099c42a09	6	0/0		1/2	ix:resp
 Tek	cbca7882c393cb11	6	0/0		0/0	
 The Bears of Littjara	b8a729470259f48f	6	0/0		0/0	
 Those Who Serve	c315519a93240888	10	0/0		0/0	
 Thran Dynamo	b35d8ffe13c34f03	10	1/1		0/1	ix:resp
+Thrill-Kill Assassin	a3e1f066671ee55d	4	0/0		0/0	
+Thunderstaff	ba61abbe08aa4c77	10	1/1		0/1	ix:resp
+Tombfire	1ed009276e623a64	4	0/0		1/2	ix:resp
 Touch of Darkness	7f7c708850ebef80	6	0/0		1/2	ix:resp
+Towashi Guide-Bot	2acec5a3cb1e1c09	20	2/2		1/1	
 Triton Shorestalker	4179a558b32570bb	20	0/0		0/0	
 Vapor Snare	564583652c4e5361	12	1/1		2/2	
 Venomous Hierophant	7fdbf44e13a7f092	14	1/1		1/1	
 Viridian Claw	ff2cbbc9e13e3ad4	18	1/1		0/1	ix:resp
+Volcanic Rambler	6d79313cae6e979a	6	1/1		0/1	ix:resp
 Voldaren Pariah	77eb7a0828b6944c	4	2/2		0/1	ix:resp
+Warpath	69cfb415576d5a35	13	0/0		1/2	ix:resp
 Warrior's Honor	7278a2f631bfcf1c	14	0/0		1/2	ix:resp
 Waterwhirl	fd8c3358f00d77a2	16	0/0		2/2	
 Wave Elemental	6995b94444f56aec	4	1/1		0/1	ix:resp
 Wetland Sambar	d7f295ff466c5d13	21	0/0		0/0	
+Whip Sergeant	e40b40026262c6d4	4	1/1		0/1	ix:resp
 Wight	a1efccadaf12817f	6	1/1		0/1	ix:resp
+Witherbloom Pledgemage	bc80f9968097e5a1	6	1/1		0/1	ix:resp
+Wort, Boggart Auntie	e0b1cdcd183b994b	5	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Zof Shade	4c92607b8efa7bbc	9	1/1		1/1	
