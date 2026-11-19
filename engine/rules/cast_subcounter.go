@@ -451,7 +451,7 @@ func (e *Engine) xAsk() bool {
 					nonMonotonic = true
 				}
 			}
-			if m, ok := e.xTargetPotentialMods(pc, x, xStatics); ok {
+			if m, ok := e.xTargetPotentialMods(pc, x, xStatics, units); ok {
 				potentialMods = m
 				wx = e.paymentManaXUsing(pc, x, m)
 				wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic, pc.isAbility())
@@ -571,8 +571,14 @@ func (e *Engine) xAsk() bool {
 // which case the caller keeps the ordinary fail-closed break. The final
 // selection is still repriced before payment (repriceForTargets and
 // affordableTargetCandidates), so this only widens the MENU to X values some
-// legal target choice can pay.
-func (e *Engine) xTargetPotentialMods(pc *pendingCast, x int32, statics costStaticViews) (costMods, bool) {
+// legal target choice can pay. The accept gate is the sweep's own: the pool
+// pays (CostPayableClass) or the CR 601.2g window completes the payment
+// (castWindowPays) -- a pool-only gate would withhold an X the floating mana
+// cannot finish but a window source can (Torch Breath's {2}-less cast paid
+// partly by a self-sacrificing producer). units are the window units the
+// sweep already priced; with none the gate is the pool-only question, so an
+// activation (no window) prices exactly as before.
+func (e *Engine) xTargetPotentialMods(pc *pendingCast, x int32, statics costStaticViews, units []windowManaUnit) (costMods, bool) {
 	if !statics.validTarget {
 		return costMods{}, false
 	}
@@ -594,8 +600,11 @@ func (e *Engine) xTargetPotentialMods(pc *pendingCast, x int32, statics costStat
 	return e.potentialCostModsUsing(statics, pc.player, pc.card, scope, targets, x, func(m costMods) bool {
 		w := e.paymentManaXUsing(pc, x, m)
 		w.Generic -= e.delveCredit(pc.player, pc.card, w.Generic, pc.isAbility())
-		return pay.CostPayableClass(asPayer(e), pc.player, paymentForCast(pc, w),
-			pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, w)
+		if pay.CostPayableClass(asPayer(e), pc.player, paymentForCast(pc, w),
+			pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, w) {
+			return true
+		}
+		return len(units) > 0 && e.castWindowPays(pc, w, units)
 	})
 }
 
