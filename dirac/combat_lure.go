@@ -106,6 +106,19 @@ func (s *State) lureFloorMet(k *prep, duty slotMask, b, a Slot) bool {
 	return n >= need
 }
 
+// blockFloorInCombat reports whether an attacking creature carries a block
+// floor above one (menace's two, a MinMaxBlocker Min$, combat.go
+// minBlockers): an attacker blocked below it pulls blockers, which is what
+// can starve the lure requirement of a spilled duty blocker.
+func (s *State) blockFloorInCombat(k *prep) bool {
+	for am := s.blockAtkM(k); am.any(); am = am.rest() {
+		if a := am.first(); s.perms[a].flags&pfAttacking != 0 && s.minBlockers(k, a) >= 2 {
+			return true
+		}
+	}
+	return false
+}
+
 // lureMaxSat is the most duty blockers the lure attackers can host: a lure
 // attacker under a Max$ 1 static (combat_maxblockers.go) takes one further
 // blocker, the others any number, and every assignment needs blockPairOK.
@@ -207,6 +220,18 @@ func (s *State) blockerOptionsLure(k *prep, d *Decision, lure slotMask) bool {
 				spill = spill.with(b)
 			}
 		}
+	}
+	// The spill's plain pairs are not all offerable: committing a spilled
+	// duty blocker to a non-lure attacker under a block floor (menace's two,
+	// a Min$, CR 509.1b) can leave the floor to be filled by another duty
+	// blocker, which drops the declaration below the lure maximum -- the
+	// two readings (the floor is coverable, the duty blocker is free) cannot
+	// hold together. gorge's completability search rejects such a pair, so
+	// the offer goes to the requirement search (blockerOptionsReq), whose
+	// reachability is that same completion test over both at once. Cold: a
+	// lure attacker short of its duty, with a floored attacker in combat.
+	if spill.any() && s.blockFloorInCombat(k) {
+		return s.blockerOptionsReq(k, d, slotMask{})
 	}
 	owed := dutyM.any()
 	for bm := s.ctrlM[def]; bm.any(); bm = bm.rest() {
