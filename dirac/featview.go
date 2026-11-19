@@ -604,6 +604,21 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 		// search never funds a hand play (mana_discardhand.go)
 		return false
 	}
+	if k.t.Cards[s.objs[o].card].Cost.Hyb[0] == kop.HybTwobrid {
+		// A cost modifier that changes the generic requirement composes on
+		// the faces a twobrid cost announces (pay.CostMods.FaceSensitiveP).
+		// The planner composes the unresolved cost (generic 0), so the
+		// reduction is lost from its price: the play is still offered when
+		// that composed price is affordable, and withheld when only the
+		// reduced one is (gorge's own plan cannot fund the reduced price).
+		probe := kop.ManaCost{Generic: 1}
+		if s.adjustPlain(false, k, p, s.objs[o].card, o, probe).Generic != probe.Generic {
+			d := payDesc{class: pdSpell, card: s.objs[o].card, og: s.restrOriginOfObj(o)}
+			if !s.affordsUngrantedCast(k, p, &cost, d) {
+				return false
+			}
+		}
+	}
 	return s.witnessKeepsTargets(k, p, s.objs[o].card, o, &cost) && s.planHoldsOnStack(k, p, o, &cost) // cast_planholdsonstack.go
 }
 
@@ -759,9 +774,9 @@ func (s *State) FeatAltAddMana(p uint8, o Obj) (kop.ManaCost, bool) {
 // life/energy additional cost, a mana-spent read, a target-dependent price.
 func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 	cd := &k.t.Cards[c]
-	if cd.BeholdExile || cd.SpellWaterbend != 0 || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() ||
+	if cd.BeholdExile || cd.SpellWaterbend != 0 || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && cd.Cost.Hyb[0] != kop.HybTwobrid && !hyb && !cd.Cost.Phyrexian() ||
 		cd.HasMultikicker || !modal && (cd.HasAltAdd && cd.BeholdN == 0 || cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
-		return true // (a hybrid cost: the planner's "cost:hybrid"; a Phyrexian one is priced by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold"; Multikicker: payment_plan.go's "shape:optional_cost", so gorge lowers even the PLAIN cast and the kernel must too)
+		return true // (a hybrid cost: the planner's "cost:hybrid"; a twobrid one is priced by resolving its pips (planTwobridCost), a Phyrexian one by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold"; Multikicker: payment_plan.go's "shape:optional_cost", so gorge lowers even the PLAIN cast and the kernel must too)
 	}
 	if k.gen != nil && k.gen.anyEvTargets && spellEvidenceTargets(cd) {
 		return true // gorge's planner declines a CollectEvidence part ("cost:evidence", classify.go): offered by the pool only (cost_collectevidencex.go)

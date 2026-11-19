@@ -946,12 +946,14 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		if s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) {
 			continue // priced by the printed sources, restricted ones the play may spend included
 		}
-		if s.contribCast(k, p, a) && !s.improviseAloneCast(k, p, a) || s.twobridPotentialCast(k, a) {
+		if s.contribCast(k, p, a) && !s.improviseAloneCast(k, p, a) {
 			// a convoke, improvise or delve cast (Dazzling Theater's granted
 			// convoke): gorge's potential planner refuses the shape
 			// ("shape:contribution") before any prefix search, so the printed
-			// sources did not price it and it is not offered (CR 702.51a); so
-			// is a twobrid one ("cost:twobrid", mana_twobrid.go). An improvise
+			// sources did not price it and it is not offered (CR 702.51a). A
+			// twobrid cast is no longer dropped here: gorge's planner resolves
+			// its pips (planTwobridCost) and the prefix search prices it like
+			// any other mana cost. An improvise
 			// cast that credits no artifact is no contribution (improviseAloneCast):
 			// gorge plans it plainly and its prefix search taps the granted source
 			// (Organic Extinction beside Brightcap Badger's Saprolings).
