@@ -576,6 +576,9 @@ func (fs *filtSearch) ctrOther(k *prep, t *State, sl Slot, try func(otherStep) b
 		}
 		order := t.ctrColOrder(k, fs.a)
 		for _, col := range order {
+			if fs.colArmStalls(t, k, ab, int(col)) {
+				continue // a better colour the same activation makes fills a missing pip
+			}
 			if try(otherStep{kind: otherCtr, col: int8(col)}) {
 				return true
 			}

@@ -1,32 +1,18 @@
 package oracle
 
-import (
-	"testing"
-
-	"github.com/adams-shaun/gorge/dirac"
-)
+import "testing"
 
 // Bash to Bits' flashback ({4}{R}{R}) was offered by gorge as a cast from the
-// graveyard in a priority decision where the kernel offered none: p1's board
-// tapped for five mana with only one {R} (a Mountain), and the only second {R}
-// sat behind Energy Refractor's own {2} activation cost (decision 393 of 393,
-// tail-02-c000 pair 55, seed 648290).
+// graveyard in a priority decision where the kernel offered none: the cast is
+// affordable without Energy Refractor (a Vivid Meadow charge counter, four
+// tapped lands and an Orzhova {C}), but the kernel's offer gate requires
+// filtScript to find a prefix script, and that search spent its whole node
+// budget on Energy Refractor's repeatable fee-only activation ("{2}: Add one
+// mana of any color", a 5-way colour branch per activation beside a full
+// battlefield), starving the branch that pays without the filter (decision 393
+// of 393, tail-02-c000 pair 55, seed 648290). The fee-stall clamps in
+// mana_filterrepeat.go prune those branches.
 func TestMBCBashToBitsReprosLockstep(t *testing.T) {
 	t.Parallel()
-	dirac.ZzFiltOn() // TEMP PROBE
 	stdReproNamed(t, "flashback_cast_priced_over_ability_cost")
-}
-
-// TestZZBashPanicDetail TEMP PROBE: print the kernel panic's stack.
-func TestZZBashPanicDetail(t *testing.T) {
-	dirac.ZzFiltOn()
-	r, err := ReadRepro("testdata/repro/flashback_cast_priced_over_ability_cost.repro.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	res := replayDecodedScript(t, synthReg(t), globSet(t, r.Pool, r), r, &ScriptPolicy{Actions: r.Actions})
-	if res.Div != nil {
-		t.Fatalf("div at %d: %s", res.Div.At, res.Div.Detail)
-	}
-	t.Fatal("no divergence")
 }
