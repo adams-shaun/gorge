@@ -1859,6 +1859,9 @@ func (e *Engine) planComposedCostFor(p state.PlayerID, id state.ObjID, cast deci
 	if len(composed.Hybrid) != 0 {
 		return e.planHybridCost(p, id, composed, ability, selfSource)
 	}
+	if len(composed.Twobrid) != 0 {
+		return planTwobridCost(e, p, id, composed, ability, selfSource, e.planKeepSources)
+	}
 	mana := Cost{Colored: composed.Colored, Generic: composed.Generic, X: composed.X, XMin: composed.XMin,
 		Hybrid: composed.Hybrid, Phyrexian: composed.Phyrexian, Twobrid: composed.Twobrid,
 		HybridPhyrexian: composed.HybridPhyrexian, Snow: composed.Snow}
@@ -2030,6 +2033,64 @@ func (e *Engine) planHybridCost(p state.PlayerID, id state.ObjID, composed Cost,
 
 // planHybridLimit bounds planHybridCost's 2^n resolutions.
 const planHybridLimit = 4
+
+// twobridCostPlanner is the one planner read planTwobridCost needs, so the
+// helper is a free function over a narrow interface rather than another
+// *Engine method.
+type twobridCostPlanner interface {
+	planComposedCost(p state.PlayerID, id state.ObjID, composed Cost, ability, selfSource bool) PaymentPlanOutcome
+}
+
+// planTwobridCost plans a cost with twobrid pips ({2/W}: one white mana or
+// two generic, CR 107.4e) by resolving every pip to each of its two faces in
+// turn and planning the resolved cost: the coloured face first, then the
+// generic one, matching the order manaAsk offers the pip's announcement
+// (pay.AnnouncePip). The first resolution with a witness wins; the play is
+// unpayable only when every resolution is. More than planTwobridLimit pips is
+// unsupported. The resolved faces are plain coloured/generic mana, so the
+// witness's wire cost states exactly what the cast will spend.
+func planTwobridCost(pl twobridCostPlanner, p state.PlayerID, id state.ObjID, composed Cost, ability, selfSource, keepSources bool) PaymentPlanOutcome {
+	pips := composed.Twobrid
+	if len(pips) > planTwobridLimit {
+		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:twobrid"}
+	}
+	allInsufficient := true
+	for mask := 0; mask < 1<<len(pips); mask++ {
+		c := composed
+		c.Twobrid = nil
+		for i, t := range pips {
+			if mask>>i&1 == 1 {
+				c.Generic = costvocab.AddClampedGeneric(c.Generic, int64(t.Generic))
+				continue
+			}
+			idx := state.ManaIndex(t.Col)
+			if idx < 0 || idx >= len(c.Colored) {
+				return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:twobrid"}
+			}
+			c.Colored[idx]++
+		}
+		got := pl.planComposedCost(p, id, c, ability, selfSource)
+		if keepSources && got.Plan != nil && paymentPlanConsumes(*got.Plan) {
+			// A witness that must keep every source is asked of each face:
+			// the first one that pays may need a source the cast cannot
+			// spare while another pays from the lands alone.
+			got = PaymentPlanOutcome{Reason: "insufficient"}
+		}
+		if got.Plan != nil && got.Reason == "" {
+			return got
+		}
+		if got.Reason != pay.ReasonInsufficient {
+			allInsufficient = false
+		}
+	}
+	if allInsufficient {
+		return PaymentPlanOutcome{Reason: "insufficient", Detail: "cost:twobrid"}
+	}
+	return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:twobrid"}
+}
+
+// planTwobridLimit bounds planTwobridCost's 2^n resolutions.
+const planTwobridLimit = 5
 
 // planReservationLimit bounds the candidate assignments planComposedCost
 // tries for a cost's tap parts (and its sacrifice-conflict retries). A

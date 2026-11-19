@@ -503,6 +503,9 @@ func init() {
 		// Progenitus's printed "Protection from everything": sourceHasQuality
 		// already answers the "everything" quality true for any source.
 		"kw:Protection from everything",
+		// Iridescent Angel's printed "Protection from each color":
+		// sourceHasQuality answers it for any source with a colour.
+		"kw:Protection from each color",
 		"stat:CantPreventDamage")
 	// kw:Hexproof is the plain keyword and every parameterised K:Hexproof:<Spec>
 	// form (KeywordHead collapses them onto the same head); enforcement lives

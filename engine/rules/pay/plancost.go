@@ -151,8 +151,67 @@ func b2i(b bool) int {
 
 // planPaymentCostWithDemand is planPaymentCostWithout over the hand demand
 // that excludes the cast (paymentPlanHandDemand), the cast's one entry into
-// the plan besides desc's restriction admission.
+// the plan besides desc's restriction admission. A twobrid pip (CR 107.4e) is
+// resolved to each of its faces first: the witness must state the plain
+// coloured/generic amount the announced pip will cost (WireCost carries no
+// pip), and the pip ask offers the faces in this same order.
 func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost costvocab.Cost, desc *Descriptor, tapped, gone, kept []state.ObjID) PlanOutcome {
+	if len(cost.Twobrid) != 0 {
+		return planPaymentCostTwobrid(e, p, demand, cost, desc, tapped, gone, kept)
+	}
+	return planPaymentCostResolved(e, p, demand, cost, desc, tapped, gone, kept)
+}
+
+// planPaymentCostTwobrid plans each face assignment of cost's twobrid pips in
+// turn (the colour face first, then the generic one, as AnnouncePip offers
+// them) and returns the first witness. Every assignment insufficient is a
+// proof; any other failure is unsupported.
+func planPaymentCostTwobrid(e Engine, p state.PlayerID, demand [5]int, cost costvocab.Cost, desc *Descriptor, tapped, gone, kept []state.ObjID) PlanOutcome {
+	pips := cost.Twobrid
+	if len(pips) > planTwobridLimit {
+		return PlanOutcome{Reason: "unsupported", Detail: "cost:twobrid"}
+	}
+	allInsufficient := true
+	for mask := 0; mask < 1<<len(pips); mask++ {
+		c := cost
+		c.Twobrid = nil
+		bad := false
+		for i, t := range pips {
+			if mask>>i&1 == 1 {
+				c.Generic = costvocab.AddClampedGeneric(c.Generic, int64(t.Generic))
+				continue
+			}
+			idx := state.ManaIndex(t.Col)
+			if idx < 0 || idx >= len(c.Colored) {
+				bad = true
+				break
+			}
+			c.Colored[idx]++
+		}
+		if bad {
+			return PlanOutcome{Reason: "unsupported", Detail: "cost:twobrid"}
+		}
+		got := planPaymentCostResolved(e, p, demand, c, desc, tapped, gone, kept)
+		if got.Plan != nil && got.Reason == "" {
+			return got
+		}
+		if got.Reason != ReasonInsufficient {
+			allInsufficient = false
+		}
+	}
+	if allInsufficient {
+		return PlanOutcome{Reason: "insufficient", Detail: "cost:twobrid"}
+	}
+	return PlanOutcome{Reason: "unsupported", Detail: "cost:twobrid"}
+}
+
+// planTwobridLimit bounds planPaymentCostTwobrid's 2^n resolutions. A printed
+// twobrid cost has at most five pips.
+const planTwobridLimit = 5
+
+// planPaymentCostResolved is planPaymentCostWithDemand for a cost with no
+// twobrid pip left to resolve.
+func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost costvocab.Cost, desc *Descriptor, tapped, gone, kept []state.ObjID) PlanOutcome {
 	defer PaymentPlanQueryEnd(e, PaymentPlanQueryBegin(e))
 	ps := e.PlanScratch()
 	if ps == nil {

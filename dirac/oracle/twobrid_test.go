@@ -15,10 +15,10 @@ import (
 )
 
 // The twobrid lockstep (CR 107.4e, 601.2b, 202.3f): constructed
-// matchups over the generated twobrid pool. Gorge prices no twobrid cast but
-// a floating pool's (the cast planner and the potential planner both refuse
-// "cost:twobrid"), so the {X} spells leave mana floating: a policy casts one
-// with the smallest X while it holds a twobrid card.
+// matchups over the generated twobrid pool. Gorge now plans a twobrid cast
+// (the cast planner resolves each pip's face), so the {X} spells still leave
+// mana floating: a policy casts one with the smallest X while it holds a
+// twobrid card.
 //
 // The counters come from gorge's decisions and log, where the branch is taken.
 var ktwobridDecks = [2][]cardset.Entry{

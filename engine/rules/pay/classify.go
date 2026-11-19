@@ -71,6 +71,11 @@ func PlanNonManaAdmissible(c Cost) string {
 	}
 	rest := c
 	rest.Sac, rest.Discard = nil, nil
+	// A twobrid pip is mana the witness funds: the plan resolves each pip to
+	// its colour face or its two-generic face before the search
+	// (planTwobridCost, CR 107.4e), so it is no non-mana admissibility
+	// question and the shape gate must not report "cost:twobrid".
+	rest.Twobrid = nil
 	return PlanCostDetail(rest)
 }
 
@@ -232,8 +237,8 @@ func PlanManaUnderRiderAlternatives(c Cost, r PipRider) (alts [7]Cost, n int) {
 func PlanManaUnderRiderMatching(c Cost, r PipRider, wire decision.PaymentCost) (Cost, bool) {
 	alts, n := PlanManaUnderRiderAlternatives(c, r)
 	for i := 0; i < n; i++ {
-		if WireCost(alts[i]) == wire {
-			return alts[i], true
+		if got, ok := planManaWireMatch(alts[i], wire); ok {
+			return got, true
 		}
 	}
 	pins := pipUnitsUnderRider(c, r)
@@ -254,7 +259,43 @@ func PlanManaUnderRiderMatching(c Cost, r PipRider, wire decision.PaymentCost) (
 	for i := range out.Colored {
 		out.Colored[i] = int32(wire.Mana[i])
 	}
-	return out, true
+	return planManaWireMatch(out, wire)
+}
+
+// planManaWireMatch returns c when its wire form is wire, or c with its
+// twobrid pips resolved face by face to the resolution that wires to it (CR
+// 107.4e: the plan resolved the pips before the search, so the wire carries
+// the announced face). The pip order is the planner's: every colour face
+// first, then the generic one (AnnouncePip).
+func planManaWireMatch(c Cost, wire decision.PaymentCost) (Cost, bool) {
+	if WireCost(c) == wire {
+		return c, true
+	}
+	if len(c.Twobrid) == 0 || len(c.Twobrid) > planTwobridLimit {
+		return Cost{}, false
+	}
+	pips := c.Twobrid
+	for mask := 0; mask < 1<<len(pips); mask++ {
+		r := c
+		r.Twobrid = nil
+		bad := false
+		for i, t := range pips {
+			if mask>>i&1 == 1 {
+				r.Generic = cost.AddClampedGeneric(r.Generic, int64(t.Generic))
+				continue
+			}
+			idx := state.ManaIndex(t.Col)
+			if idx < 0 || idx >= len(r.Colored) {
+				bad = true
+				break
+			}
+			r.Colored[idx]++
+		}
+		if !bad && WireCost(r) == wire {
+			return r, true
+		}
+	}
+	return Cost{}, false
 }
 
 func PlanCostDetail(c Cost) string {
