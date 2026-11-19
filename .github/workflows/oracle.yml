@@ -2,15 +2,23 @@
 # hourly). It never runs on a pull request or a Mergify queue batch: those run dirac-slices (ci.yml).
 # GitHub-hosted runners, so it takes nothing from the self-hosted boxes the queue runs on. A run still
 # going when the next one is due finishes first; the next one waits rather than cancelling it.
+#
+# The cadence is kept by the due job, not by the cron. GitHub delays scheduled events by hours under load and
+# drops some outright (no run is created): with '23 */6 * * *', 11-17..11-19 every 06:23 and 18:23 event was
+# dropped and the 12:23 ones arrived 3-4 hours late, so the oracle ran about twice a day, and after the 00:30 run
+# on 11-19 nothing ran for 10 hours while TestTgteachoppMutation sat red on main. The cron now fires hourly and
+# due starts the oracle only when no run of it started in the last 5h30m; a dropped event costs an hour, not six.
+# A manual dispatch always runs.
 name: oracle
 
 on:
   schedule:
-    - cron: '23 */6 * * *'
+    - cron: '23 * * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: oracle-hourly
@@ -20,8 +28,38 @@ env:
   GOFLAGS: -p=4
 
 jobs:
-  oracle:
+  due:
     if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    outputs:
+      run: ${{ steps.due.outputs.run }}
+    steps:
+      - name: Has the oracle run in the last 5h30m?
+        id: due
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != schedule ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          now=$(date +%s)
+          last=""
+          while read -r id at; do
+            [ $((now - $(date -d "$at" +%s))) -ge 19800 ] && break
+            # a run whose due job skipped its oracle jobs does not count
+            n=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs?per_page=50" \
+              --jq '[.jobs[] | select(.name | startswith("oracle")) | select(.conclusion != "skipped")] | length')
+            if [ "$n" -gt 0 ]; then last="$id $at"; break; fi
+          done < <(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/oracle.yml/runs?branch=main&per_page=30" \
+            --jq ".workflow_runs[] | select(.id != $GITHUB_RUN_ID) | select(.conclusion != \"cancelled\") | \"\(.id) \(.created_at)\"")
+          if [ -n "$last" ]; then
+            echo "oracle ran recently (run $last): not due"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "no oracle run in the last 5h30m: due"
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+  oracle:
+    needs: due
+    if: needs.due.outputs.run == 'true'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
