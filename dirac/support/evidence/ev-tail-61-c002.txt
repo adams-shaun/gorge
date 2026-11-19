@@ -74,6 +74,7 @@ Demoralize
 Devouring Deep
 Diminish
 Disturbed Burial
+Doomskar
 Dreadmalkin
 Drumhunter
 Duskworker
@@ -82,15 +83,18 @@ Elemental Summoning
 Ellyn Harbreeze, Busybody
 Embraal Gear-Smasher
 Empty City Ruse
+Endless Cockroaches
 Entish Restoration
 Etherium Abomination
 Exuberant Wolfbear
 Fallen Ferromancer
 False Mourning
 Fangren Hunter
+Farfinder
 Farmstead
 Filigree Crawler
 Fire Whip
+Fires of Victory
 Firewing Phoenix
 Fleetwheel Cruiser
 Font of Progress
@@ -190,9 +194,11 @@ Mysterious Tome
 Nagao, Bound by Honor
 Najal, the Storm Runner
 Narstad Scrapper
+Necrotic Ooze
 Needlepeak Spider
 Nekrataal
 Nettle Drone
+Nightshade Harvester
 Nightveil Specter
 Nissa, Resurgent Animist
 Ogre Menial
@@ -214,6 +220,7 @@ Pianna, Nomad Captain
 Pillar Tombs of Aku
 Pincer Spider
 Pirate Ship
+Plague Rats
 Plains
 Planar Atlas
 Possessed Centaur
@@ -239,6 +246,7 @@ Resounding Silence
 Returned Pastcaller
 Reverberate
 Rhonas's Monument
+Rhovanion Rampager
 Riders of Rohan
 Roc Egg
 Rogue Refiner
@@ -247,7 +255,9 @@ Safehold Sentry
 Sage's Row Denizen
 Sandstorm
 Savage Silhouette
+Scarlet Witch, Wanda Maximoff
 Security Bypass
+Selesnya Locket
 Sengir Autocrat
 Shabraz, the Skyshark
 Shaman of the Pack
@@ -260,6 +270,7 @@ Simic Signet
 Sip of Hemlock
 Skirk Commando
 Skittering Crustacean
+Skull Raid
 Sky-Blessed Samurai
 Skyship Stalker
 Skyshroud Claim
@@ -267,6 +278,7 @@ Slinza, the Spiked Stampede
 Slith Firewalker
 Slobad, Goblin Tinkerer
 Smogsteed Rider
+Sokenzan Spellblade
 Solitary Defiance
 Songbird, Sonic Screamer
 Sootfeather Flock

@@ -85,6 +85,7 @@ Crown of Empires
 Crude Rampart
 Cruel Deceiver
 Crusade
+Cryptoplasm
 Crystal Ball
 Crystalline Nautilus
 Cult Guildmage
@@ -117,6 +118,7 @@ Elegant Entourage
 Elminster's Simulacrum
 Embargo
 Embersmith
+Endrek Sahr, Master Breeder
 Endurance Bobblehead
 Enter the Unknown
 Era of Innovation

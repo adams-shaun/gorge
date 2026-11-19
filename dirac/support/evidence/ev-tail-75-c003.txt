@@ -10,6 +10,7 @@ Ancestral Blade
 Ancient Gold Dragon
 Anointer Priest
 Apprentice Sharpshooter
+Arachnus Web
 Archwing Dragon
 Ardent Elementalist
 Artificer Class
@@ -157,6 +158,7 @@ Leyline of Punishment
 Lightning-Rig Crew
 Lightwielder Paladin
 Liliana of the Veil
+Lonis, Genetics Expert
 Lorthos, the Tidemaker
 Lost in the Mist
 Lost in the Spirit World
@@ -194,6 +196,7 @@ Nebelgast Herald
 Neonate's Rush
 Nezumi Freewheeler
 Nightveil Predator
+Niv-Mizzet, the Firemind
 Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper

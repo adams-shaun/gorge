@@ -3,6 +3,7 @@ A-Moon-Circuit Hacker
 Adder-Staff Boggart
 Agadeem Occultist
 Aggravated Assault
+Ajani Goldmane
 Alabaster Wall
 Aladdin's Ring
 Anaba Ancestor
@@ -53,6 +54,7 @@ Dreadwaters
 Drover of the Mighty
 Dungeoneer's Pack
 Dwarven Scorcher
+Dynacharge
 E. Honda, Sumo Champion
 Encampment Keeper
 Endless Scream
@@ -84,6 +86,7 @@ Goring Ceratops
 Great-Horn Krushok
 Greater Forgeling
 Hatred
+Haywire Mite
 Heartless Summoning
 Hedron Crawler
 Hell Mongrel
@@ -125,6 +128,7 @@ Minotaur Skullcleaver
 Mogg Alarm
 Moment of Heroism
 Monstrous Onslaught
+Mothrider Samurai
 Mountain
 Mournful Zombie
 Namora, the Sea Queen
@@ -154,6 +158,7 @@ Repercussion
 Rescue
 Restore
 Riot Spikes
+Ronin Cliffrider
 Sanguine Bond
 Seaside Haven
 Second Breakfast
@@ -206,6 +211,7 @@ Vulshok Refugee
 Wand of Denial
 Wand of the Elements
 Wandering Tombshell
+War Priest of Thune
 Warfire Javelineer
 When We Were Young
 Whisper Agent

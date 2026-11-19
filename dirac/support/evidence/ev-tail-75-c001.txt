@@ -81,6 +81,7 @@ Demon's Disciple
 Dense Foliage
 Deputized Protester
 Deranged Assistant
+Desert of the Indomitable
 Desolate Mire
 Desynchronize
 Devouring Light
@@ -238,6 +239,7 @@ Reverberate
 Rimewood Falls
 Rishadan Cutpurse
 Rishkar's Expertise
+River Sneak
 Rockshard Elemental
 Rooftop Nuisance
 Rout
@@ -281,6 +283,7 @@ Spitfire Handler
 Stormscape Apprentice
 Sultai Emissary
 Sunscorched Desert
+Surge Engine
 Swamp
 Swarm Surge
 Swarm of Rats

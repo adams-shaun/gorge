@@ -4,6 +4,7 @@ A-Moon-Circuit Hacker	9190601830499ecd	18	2/2		0/1	ix:resp
 Adder-Staff Boggart	611791edc63cbfd2	14	1/1		1/1	
 Agadeem Occultist	16f00c49e23b5e56	12	1/1		1/1	
 Aggravated Assault	7341854a89e1070f	10	1/1		1/1	
+Ajani Goldmane	67e4dea13f0fb0f0	8	3/3		0/1	ix:resp
 Alabaster Wall	e25d3f6a1bc9a0a1	6	1/1		0/1	ix:resp
 Aladdin's Ring	1b138b8d97a7b892	4	1/1		0/1	ix:resp
 Anaba Ancestor	cd12264f3032b6fa	7	1/1		0/1	ix:resp
@@ -54,6 +55,7 @@ Dreadwaters	cbf1bced3f87b874	10	0/0		2/2
 Drover of the Mighty	97d8c6831ef5ac0d	7	1/1		0/1	ix:resp
 Dungeoneer's Pack	47d88d1f54392e3e	10	1/1		0/1	ix:resp
 Dwarven Scorcher	00271eff49de1fd3	10	1/1		0/1	ix:resp
+Dynacharge	ab87a6da0e82fe16	4	0/0		2/4	cast/alt:none,ix:resp
 E. Honda, Sumo Champion	124dc608d0228f3f	6	1/1		1/1	
 Encampment Keeper	3481b3147850acca	8	1/1		0/1	ix:resp
 Endless Scream	05d69fadf8d8aaaf	10	0/0		3/4	f0/s/x0
@@ -85,6 +87,7 @@ Goring Ceratops	9235457257dc1594	8	1/1		0/1	ix:resp
 Great-Horn Krushok	51494edf17dce82b	14	0/0		0/0	
 Greater Forgeling	d28e982f35a7017e	4	1/1		0/1	ix:resp
 Hatred	6c3fd1a03ba8d8a4	6	0/0		1/2	ix:resp
+Haywire Mite	fa8545b2a59a543e	8	2/2		1/1	
 Heartless Summoning	dee4a25a45260ea3	4	0/0		0/0	
 Hedron Crawler	5c2da1669f2cdbfb	10	1/1		0/1	ix:resp
 Hell Mongrel	1bd9a4e3bf0e10d1	5	1/1		1/1	
@@ -126,6 +129,7 @@ Minotaur Skullcleaver	a76f33a21838c78b	4	1/1		0/1	ix:resp
 Mogg Alarm	b7dfb3999f9e1927	18	0/0		1/2	ix:resp
 Moment of Heroism	09fc15f575171d97	8	0/0		2/2	
 Monstrous Onslaught	604acce868b4af84	12	0/0		2/2	
+Mothrider Samurai	ebbf91b4f6cbc1cd	7	2/2		0/1	ix:resp
 Mountain	9e71388353e907ed	209	1/1		0/1	ix:resp
 Mournful Zombie	b16d247519a83f13	16	1/1		1/1	
 Namora, the Sea Queen	63e765fb64fa4d88	18	1/1		0/1	ix:resp
@@ -155,6 +159,7 @@ Repercussion	a8d4de2a906d511f	15	1/1		1/1
 Rescue	0917bbec9504a533	12	0/0		1/2	ix:resp
 Restore	0d0e28562429b882	6	0/0		1/2	ix:resp
 Riot Spikes	cda5ef8bc40c77c0	8	0/0		1/2	ix:resp
+Ronin Cliffrider	1f54820cc6a9a195	13	3/3		1/3	f0/t0/opt:n,f0/t0/opt:y
 Sanguine Bond	d3319a4d34ae3887	8	1/1		0/1	ix:resp
 Seaside Haven	fee1faffd744fee9	56	2/2		0/1	ix:resp
 Second Breakfast	c9ef464a00b556cc	4	0/0		1/2	ix:resp
@@ -207,6 +212,7 @@ Vulshok Refugee	775a40b16f415421	10	0/0		0/0
 Wand of Denial	ee0665047f9d181d	8	1/1		1/1	
 Wand of the Elements	4467071f16c548b7	15	2/2		1/1	
 Wandering Tombshell	6ea7237a5f635576	10	0/0		0/0	
+War Priest of Thune	a7622933a7379e4e	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Warfire Javelineer	feee5d7035a09465	7	1/1		1/1	
 When We Were Young	8043a11ffabd9e19	14	0/0		2/2	
 Whisper Agent	3e030f1bb5496a14	8	1/1		1/1	

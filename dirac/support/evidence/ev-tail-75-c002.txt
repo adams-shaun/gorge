@@ -82,6 +82,7 @@ Dreamshackle Geist
 Drifting Shade
 Drillworks Mole
 Drossclaw
+Drown in Dreams
 Dualcaster Mage
 Dune Mover
 Eccentric Pestfinder
@@ -126,6 +127,7 @@ Honden of Life's Web
 Howl of the Night Pack
 Hulk, Brutal Brawler
 Hurloon Battle Hymn
+Illicit Shipment
 Imaginary Pet
 Immortal Phoenix
 Incisor Steed
@@ -145,6 +147,7 @@ Launch
 Leyline of Punishment
 Lightning-Rig Crew
 Lightwielder Paladin
+Lonis, Genetics Expert
 Lorthos, the Tidemaker
 Lost in the Spirit World
 Magma Vein
@@ -153,6 +156,7 @@ Malcator's Watcher
 Mammoth Spider
 Mana Vault
 Manalith
+Marauding Boneslasher
 Mardu Woe-Reaper
 Mark of the Oni
 Markov Patrician
@@ -242,6 +246,7 @@ Simian Brawler
 Singing Tree
 Sinkhole
 Sizzle
+Skyclave Shadowcat
 Skyline Cascade
 Slagwoods Bridge
 Sonic Screwdriver
