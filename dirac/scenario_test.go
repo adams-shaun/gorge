@@ -49,6 +49,7 @@ func newScenTableLib(t *testing.T, tbl *kop.Table, libCard CardID, cfg Config) *
 	}
 	s.turn = 2
 	s.active = 0
+	s.g.exBase = s.active // the seeded fixture's rotation base is the live active seat (gorge rotationBase's first-candidate escape)
 	s.step = kop.StepMain1
 	s.prio = 0
 	s.passes = 0

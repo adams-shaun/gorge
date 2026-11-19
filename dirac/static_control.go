@@ -715,13 +715,10 @@ func (s *State) ctrlPlayerRef(r kop.Ref) (uint8, bool) {
 	return 0, false
 }
 
-// nextActive is the player whose turn follows this one (an extra turn
-// first).
+// nextActive is the player whose turn follows this one: the next pending
+// grant's seat, else the ordinary rotation (CR 500.7; act_extraturn.go).
 func (s *State) nextActive() uint8 {
-	if s.pl[s.active].extraTurns > 0 {
-		return s.active
-	}
-	return s.nextAlive(s.active)
+	return s.exNextTurn()
 }
 
 // ovDurFl is an OpOverride / OpOverrideAll duration's record bits.

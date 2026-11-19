@@ -598,7 +598,12 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			if p == 255 {
 				p = e.ctrl
 			}
-			s.pl[p].extraTurns++
+			// CR 500.7's pending queue (act_extraturn.go): one grant, spent at
+			// the cleanup that follows this turn. C names the rider's phase
+			// (kop.StepEnd; the only lowered ExtraTurnDelayedTrigger shape,
+			// kgen apiAddTurn's addTurnRider); the rider's trigger names the
+			// resolving spell its source, gorge's registration c.Source.
+			s.exPush(p, in.C != 0, e.obj)
 			break
 		}
 		panic("kernel: op not implemented: " + in.Op.String())
