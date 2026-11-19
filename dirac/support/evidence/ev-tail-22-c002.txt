@@ -43,6 +43,7 @@ Bloodcrazed Paladin
 Boil
 Boltwing Marauder
 Bomat Bazaar Barge
+Brainstealer Dragon
 Brazen Borrower
 Breakneck Berserker
 Brion Stoutarm
@@ -85,6 +86,7 @@ Desolate Mire
 Destructive Revelry
 Diregraf Captain
 Dismantling Wave
+Dissatisfied Customer
 Doric, Nature's Warden
 Dovescape
 Dramatic Rescue
@@ -130,6 +132,7 @@ Goblin Recruiter
 Goblin Swine-Rider
 Goblin Taskmaster
 Gorma, the Gullet
+Grafted Exoskeleton
 Grave Defiler
 Gravedigger
 Gravity Well
@@ -267,6 +270,7 @@ Restoration Specialist
 Retract
 Rites of Spring
 Root Greevil
+Rootborn Defenses
 Roots of Wisdom
 Rootwire Amalgam
 Rot-Tide Gargantua

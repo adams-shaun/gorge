@@ -46,6 +46,7 @@ Bull Rush
 Burning Earth
 Burning Wish
 Callous Dismissal
+Campaign of Vengeance
 Canyon Lurkers
 Captivating Gyre
 Cat Oven
@@ -71,6 +72,7 @@ Daggerclaw Imp
 Dalek Drone
 Dangerous Wager
 Deadbridge Shaman
+Defend the Hearth
 Defy Death
 Desperate Charge
 Detective of the Month
@@ -126,6 +128,7 @@ Growth Cycle
 Guardian Automaton
 Guardian Lions
 Gut, True Soul Zealot
+Hallowed Healer
 Harbinger of the Seas
 Harnessed Lightning
 Hateflayer
@@ -133,6 +136,7 @@ Haze of Pollen
 Hearth Kami
 Hidden Gibbons
 Hideous End
+Hit-Monkey
 Hold for Questioning
 Horizon of Progress
 Huatli's Snubhorn
@@ -208,6 +212,7 @@ Piston Sledge
 Plains
 Planar Despair
 Predator's Strike
+Predatory Wurm
 Primal Boost
 Prized Elephant
 Psychic Overload
@@ -224,6 +229,7 @@ Retribution of the Meek
 Revolutionary Rebuff
 Revolutionist
 Riptide Mangler
+Rise of the Witch-king
 Rishkar, Peema Renegade
 Rising Populace
 Roc Hatchling
@@ -256,6 +262,7 @@ Soulcatcher
 Spikefield Hazard
 Spined Thopter
 Splatter Goblin
+Squee's Toy
 Starlit Sanctum
 Steel Golem
 Steelclad Spirit
@@ -291,6 +298,7 @@ Vent Sentinel
 Viashino Firstblade
 Vodalian Soldiers
 Voltaic Brawler
+Wakeroot Elemental
 Webspinner Cuff
 Weight of Memory
 Weldfast Wingsmith

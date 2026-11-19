@@ -223,7 +223,6 @@ Airship Engine Room
 Airtight Alibi
 Aisling Leprechaun
 Ajani Fells the Godsire
-Ajani Goldmane
 Ajani Resolute
 Ajani Unrelenting
 Ajani's Anguish
@@ -699,7 +698,6 @@ Azorius First-Wing
 Azorius Herald
 Azorius Knight-Arbiter
 Azra Oddsmaker
-Azra Smokeshaper
 Azula Always Lies
 Azula, On the Hunt
 Azure Beastbinder
@@ -1728,7 +1726,6 @@ Clockwork Percussionist
 Cloistered Telepath
 Cloistered Youth
 Clone
-Cloud Djinn
 Cloud Manta
 Cloud Spirit
 Cloud Sprite
@@ -1903,7 +1900,6 @@ Cornered by Black Mages
 Corporeal Projection
 Corpse Blockade
 Corpse Connoisseur
-Corpse Harvester
 Corpseberry Cultivator
 Corpses of the Lost
 Corroding Dragonstorm
@@ -2923,7 +2919,6 @@ Enigma Eidolon
 Enlightened Confidant
 Enlightened Maniac
 Enlightened Tutor
-Enlisted Wurm
 Enlistment Officer
 Ennis, Debate Moderator
 Enormous Baloth
@@ -2961,7 +2956,6 @@ Equilibrium Adept
 Erase
 Erebor Flamesmith
 Erebos's Emissary
-Erebos, Bleak-Hearted
 Erebos, God of the Dead
 Erica Ortegas, Plucky Pilot
 Eriette of the Charmed Apple
@@ -3085,7 +3079,6 @@ Extract a Confession
 Extremis Elite
 Extruder
 Extus, Oriq Overlord
-Exuberant Firestoker
 Eye of Jace
 Eye of Malcator
 Eye of Nowhere
@@ -3329,7 +3322,6 @@ Fireglass Mentor
 Firemane Commando
 Firemantle Mage
 Fires of Undeath
-Fires of Victory
 Fireslinger
 Firion, Wild Rose Warrior
 First Contact
@@ -5340,7 +5332,6 @@ Legion Extruder
 Legion Guildmage
 Legion Loyalist
 Legion's Judgment
-Legolas, Counter of Kills
 Leisure Bicycle
 Leo's Guidance
 Leonardo's Technique
@@ -6048,7 +6039,6 @@ Molecular Modifier
 Molten Birth
 Molten Collapse
 Molten Duplication
-Molten Echoes
 Molten Exhale
 Molten Man, Inferno Incarnate
 Molten Note
@@ -7562,7 +7552,6 @@ Reyav, Master Smith
 Rhino's Rampage
 Rhino, Barreling Brute
 Rhonas the Indomitable
-Rhovanion Rampager
 Rhox Bodyguard
 Rhox Charger
 Rhox Meditant
@@ -8089,7 +8078,6 @@ Season of Gathering
 Season of Loss
 Seasoned Consultant
 Seasoned Warrenguard
-Secluded Steppe
 Secret Identity
 Secret Tunnel
 Secure the Wastes
@@ -10361,7 +10349,6 @@ Vengeful Tracker
 Vengeful Villagers
 Vengevine
 Venom's Hunger
-Venom, Eddie Brock
 Venom, Evil Unleashed
 Venomized Cat
 Venomsac Lagac

@@ -71,6 +71,7 @@ Death Speakers
 Death Wind
 Death's Duet
 Deathbringer Liege
+Delve too Deep
 Denizen of the Deep
 Devil's Play
 Devouring Deep
@@ -225,7 +226,9 @@ Precinct Captain
 Primal Adversary
 Propagator Drone
 Protector of the Wastes
+Puca's Covenant
 Queen's Agent
+Quickbeam, Upstart Ent
 Quietus Spike
 Rain of Filth
 Rain of Revelation
@@ -249,6 +252,7 @@ Scourge of the Nobilis
 Screeching Bat
 Screeching Drake
 Scroll of Fate
+Secluded Steppe
 Selesnya Charm
 Selfless Cathar
 Selfless Savior
@@ -335,6 +339,7 @@ Vrock
 Vulpine Goliath
 Wall of Opposition
 War Falcon
+Wardscale Crocodile
 Warlord's Elite
 Warped Tusker
 Water Elemental

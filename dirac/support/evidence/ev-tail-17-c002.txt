@@ -168,6 +168,7 @@ Iron-Heart Chimera
 Ironclaw Buzzardiers
 Island
 Jagged Lightning
+Jolrael, Mwonvuli Recluse
 Juniper Order Advocate
 Juniper Order Rootweaver
 Junkyo Bell
@@ -216,6 +217,7 @@ Natural Reclamation
 Needle Specter
 Nightguard Patrol
 Nimble Mongoose
+Nirkana Cutthroat
 Noble Steeds
 Norn's Inquisitor
 Obelisk of Naya

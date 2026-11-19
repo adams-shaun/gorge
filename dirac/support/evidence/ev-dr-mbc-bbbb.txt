@@ -23,12 +23,14 @@ Davvol, Evincar of Rath
 Destined
 Dimir House Guard
 Diregraf Horde
+Dwarven Miner
 Elite Scaleguard
 Executioner's Capsule
 Ezuri, Claw of Progress
 Falter
 Fatal Push
 Fellwar Stone
+Flame Javelin
 Flesh-Eater Imp
 Fog
 Fog Bank
@@ -54,6 +56,7 @@ Island
 Jolene, the Plunder Queen
 Kavu Predator
 Konda, Lord of Eiganjo
+Krark-Clan Ironworks
 Lively Dirge
 Lunar Frenzy
 Manabond

@@ -18,6 +18,7 @@ Angelic Field Marshal
 Animate Land
 Appa, the Vigilant
 Aquatic Incursion
+Archon of Absolution
 Armor Thrull
 Asphodel Wanderer
 Augury Adept
@@ -256,6 +257,7 @@ Secure the Scene
 Selective Memory
 Sentinel Sliver
 Settle the Score
+Shadowspear
 Shake the Foundations
 Sheoldred
 Shepherd of the Lost
