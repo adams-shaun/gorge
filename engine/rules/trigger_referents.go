@@ -175,11 +175,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerTarget = player(ev.Player)
 		}
 	case cards.TriggerAttacks:
-		c.DefendingPlayer = player(ev.Player)
-		c.AttackedTarget = player(ev.Player)
-		if len(ev.IDs) > 0 {
-			c.AttackingPlayer = player(e.controllerOf(ev.IDs[0]))
-		}
+		attackReferents(e.controllerOf, &c, ev, player)
 		// CR 508.3a: an Attacks line is the singular "whenever [a creature]
 		// attacks" form, so the queue point expands it into one instance per
 		// matching attacker and binds TriggerCard/TriggerSource to that ONE
@@ -188,11 +184,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// does not expand keeps the historical absent-role fallback to
 		// Remembered.
 	case cards.TriggerAttackersDeclaredOneTarget, cards.TriggerAttackersDeclared:
-		c.DefendingPlayer = player(ev.Player)
-		c.AttackedTarget = player(ev.Player)
-		if len(ev.IDs) > 0 {
-			c.AttackingPlayer = player(e.controllerOf(ev.IDs[0]))
-		}
+		attackReferents(e.controllerOf, &c, ev, player)
 		// The current engine batches attackers per defender. Preserve the
 		// defending player, but do not invent a singular TriggeredCard when
 		// several matching attackers caused this one queued trigger.
@@ -259,6 +251,8 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		}
 	case cards.TriggerPayLife, cards.TriggerShuffled:
 		payAndShuffleReferents(&c, t.ModeKind(), ev, player)
+	case cards.TriggerDestroyed:
+		destroyedReferents(&c, boardOf(e), ev, player)
 	case cards.TriggerLifeGained:
 		// The gaining player and the gained magnitude: TriggerCount$LifeAmount
 		// (Prize Pig's CounterNum$ Y) reads both off this context.
@@ -830,6 +824,21 @@ func counterResolveReferents(c *effects.TriggerContext, k cards.TriggerMode, ev 
 	}
 }
 
+// attackReferents binds the attacking-side roles shared by the attack-declared
+// modes: the defending player the attackers declared against (ev.Player, what
+// both modes' DefendingPlayer/AttackedTarget referents read) and, when the
+// event names attackers, the attacking player whose seat resolves from those
+// attackers' controller (the same capture the NewController$
+// TriggeredAttackingPlayer spelling reads).
+func attackReferents(controllerOf func(state.ObjID) state.PlayerID, c *effects.TriggerContext, ev events.Event,
+	player func(state.PlayerID) state.Target) {
+	c.DefendingPlayer = player(ev.Player)
+	c.AttackedTarget = player(ev.Player)
+	if len(ev.IDs) > 0 {
+		c.AttackingPlayer = player(controllerOf(ev.IDs[0]))
+	}
+}
+
 // payAndShuffleReferents binds the roles of the edh-trigB player-valued
 // modes. PayLife (Font of Agonies) fires on the unlogged positive pay-life
 // proposal: the payer is ev.Player and the amount is the life PAID -- the
@@ -843,5 +852,20 @@ func payAndShuffleReferents(c *effects.TriggerContext, k cards.TriggerMode, ev e
 	c.TriggerPlayer = player(ev.Player)
 	if k == cards.TriggerPayLife {
 		c.TriggerAmount = ev.Amount
+	}
+}
+
+// destroyedReferents binds the roles of a Mode$ Destroyed trigger (edh-trigC).
+// TriggeredCard is the destroyed permanent (Cobra Trap's RememberObjects$
+// TriggeredCard). TriggeredCauser is the player controlling the spell or
+// ability whose resolution destroyed it (Karmic Justice's
+// TargetsWithDefinedController$ TriggeredCauser); it rides TriggerPlayer, the
+// one player slot a Destroyed trigger otherwise leaves empty, and stays absent
+// when no resolution is running (a Jaws-style line that names no causer).
+func destroyedReferents(c *effects.TriggerContext, b trigmatch.Board, ev events.Event,
+	player func(state.PlayerID) state.Target) {
+	c.TriggerCard = ev.Obj
+	if causer, ok := trigmatch.DestroyCauser(b); ok {
+		c.TriggerPlayer = player(causer)
 	}
 }

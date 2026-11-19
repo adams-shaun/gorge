@@ -170,8 +170,12 @@ const (
 	// Adapt (Biomancer's Familiar's `Mode$ Adapt` Effect trigger: "the next
 	// time target creature adapts"), the creature-adapted marker, appended so
 	// every earlier ordinal is unchanged.
-	TriggerAdapt     TriggerMode = 114
-	TriggerModeCount             = 115 // one past the last; sizes a dense per-TriggerMode array
+	TriggerAdapt TriggerMode = 114
+	// Destroyed (edh-trigC; Karmic Justice's "whenever a spell or ability an
+	// opponent controls destroys a noncreature permanent you control", Cobra
+	// Trap's tracker), appended so every earlier ordinal is unchanged.
+	TriggerDestroyed TriggerMode = 115
+	TriggerModeCount             = 116 // one past the last; sizes a dense per-TriggerMode array
 )
 
 var triggerModeNames = [TriggerModeCount]string{
@@ -289,6 +293,7 @@ var triggerModeNames = [TriggerModeCount]string{
 	TriggerPayLife:                    "PayLife",
 	TriggerShuffled:                   "Shuffled",
 	TriggerAdapt:                      "Adapt",
+	TriggerDestroyed:                  "Destroyed",
 }
 
 var triggerModeCodes = func() StrCodes[TriggerMode] {

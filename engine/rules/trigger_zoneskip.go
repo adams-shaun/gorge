@@ -161,6 +161,10 @@ func computeFaceTriggerZones(f *cards.Face, valid func(string) bool) uint8 {
 			m = 1<<trigZoneSlots - 1
 			break
 		}
+		if staticAnyZone(f, t) {
+			m = 1<<trigZoneSlots - 1
+			continue
+		}
 		// zoneGate's spec resolution for a source that is not the event's
 		// own object (the only kind a skip ever passes over).
 		spec := t.ParamStr(cards.PKTriggerZones)

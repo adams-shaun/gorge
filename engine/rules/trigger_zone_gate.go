@@ -84,6 +84,14 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		if t.Mode == "Cycled" && source == ev.Obj && events.IsDiscard(ev) {
 			return true
 		}
+		// Cobra Trap's Static$ True tracker (edh-trigC) declares no
+		// TriggerZones$ and must work from the HAND, where the spell waits for
+		// its alternative cost to light: Forge applies no zone restriction to
+		// such a trigger. Narrow to the Destroyed mode's static tracker so an
+		// ordinary Destroyed line (Jaws) keeps the battlefield default.
+		if staticAnyZone(o.Face(), &t) {
+			return true
+		}
 		// A card's own ChangesZone move from any origin (Lupine Harbingers'
 		// hand->exile "note the number of turns you've begun since it was
 		// foretold"; Ulamog, the Infinite Gyre and Emrakul, the Aeons Torn
@@ -217,4 +225,37 @@ func leavesOtherZoneTrigger(t cards.Trigger) bool {
 func exploitedItself(ev events.Event, source state.ObjID) bool {
 	return ev.Kind == events.Exploit && source != 0 && source == ev.Obj &&
 		len(ev.IDs) != 0 && ev.IDs[0] == source
+}
+
+// staticAnyZone is the one definition of the Cobra Trap exception
+// (edh-trigC): a Mode$ Destroyed line that is Static$ True and declares no
+// TriggerZones$/ActiveZones$ functions from every zone (the spell waits in
+// the hand, tracking what was destroyed), and so does the same face's
+// Static$ True Mode$ TurnBegin reset line that clears the tracker each turn.
+// zoneGate admits both and computeFaceTriggerZones summarizes them, so the
+// zone-skip index can never pass over a hand object the gate would have
+// admitted. Every other zoneless line keeps the battlefield default.
+func staticAnyZone(f *cards.Face, t *cards.Trigger) bool {
+	if f == nil || !zonelessStatic(t) {
+		return false
+	}
+	switch t.ModeKind() {
+	case cards.TriggerDestroyed:
+		return true
+	case cards.TriggerTurnBegin:
+		for i := range f.Triggers {
+			if o := &f.Triggers[i]; o.ModeKind() == cards.TriggerDestroyed && zonelessStatic(o) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// staticTrue is the Static$ parameter value that marks a static trigger line.
+const staticTrue = "True"
+
+func zonelessStatic(t *cards.Trigger) bool {
+	return t.ParamStr(cards.PKStatic) == staticTrue &&
+		t.ParamStr(cards.PKTriggerZones) == "" && t.ParamStr(cards.PKActiveZones) == ""
 }

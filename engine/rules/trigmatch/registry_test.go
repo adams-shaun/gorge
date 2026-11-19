@@ -336,6 +336,11 @@ var addedAfterTheSplit = []string{
 	// Shuffled (Widespread Panic) matches the Secret Shuffle event a
 	// resolving spell or ability emits (InResolution with an ActionCause).
 	"ExcessDamage", "PayLife", "Shuffled",
+	// edh-trigC: Destroyed (Karmic Justice, Cobra Trap) matches the
+	// effect-caused destroy MoveZone (Text "destroyed") with ValidCauser$ read
+	// off the resolving stack object (ActionCause); no pre-split arm
+	// dispatched the mode.
+	"Destroyed",
 	// edh-trigE: Adapt (Biomancer's Familiar) matches the AlterAttribute
 	// "Adapted" marker a resolving Adapt$ put emits; the mode name is new.
 	"Adapt",

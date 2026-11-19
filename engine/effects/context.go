@@ -2433,8 +2433,31 @@ func rememberDefinedObjects(h Host, c *Ctx, r Ref, api string) {
 		if !t.IsPlayer && t.Obj == 0 {
 			continue
 		}
+		if containsTarget(c.Remembered, t) {
+			// The trigger's own capture already seeded this object into the
+			// chain's Remembered (rememberTarget would stop there), but the
+			// write also owes the source's persistent, event-backed list:
+			// Cobra Trap's RememberObjects$ TriggeredCard is read back long
+			// after the resolution by its alternative cost's
+			// Remembered$Amount.
+			persistRemembered(h, c, t)
+			continue
+		}
 		rememberTarget(h, c, t)
 	}
+}
+
+// persistRemembered writes t into the source's event-backed Remembered list
+// unless it is already there (the persistent half of rememberTarget).
+func persistRemembered(h Host, c *Ctx, t state.Target) {
+	if containsTarget(sourceRemembered(h, c), t) {
+		return
+	}
+	if t.IsPlayer {
+		eventRemember(h, c, state.PlayerRef(t.Player))
+		return
+	}
+	eventRemember(h, c, t.Obj)
 }
 
 // eventForgetChanged implements ForgetChanged$ True (Forge ChangeZoneEffect's
