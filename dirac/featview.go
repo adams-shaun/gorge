@@ -512,6 +512,38 @@ func (s *State) featManaActivatable(k *prep, sl Slot) bool {
 	return false
 }
 
+// manaGateHolds reads mana ability a's IsPresent$ gate (its Trig.Cond) at
+// slot sl, as manaGateView does.
+func (s *State) manaGateHolds(k *prep, a *kop.Ability, sl Slot) bool {
+	return s.condEval(k, a.Trig.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl})
+}
+
+// FeatManaGates counts battlefield object o's mana abilities: all of them,
+// and the gated ones (IsPresent$, mana_gate.go) whose gate is off now.
+// gorge lists no gated-off ability, so a card whose every ability is off
+// (Temple of the False God with fewer than five lands) is no source, and
+// one with an ungated ability beside an off one (Whisperer of the Wilds)
+// adds what the ungated ability alone makes.
+func (s *State) FeatManaGates(o Obj) (n, off int) {
+	ob := &s.objs[o]
+	if ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
+		return 0, 0
+	}
+	k := s.k()
+	cd := &k.t.Cards[s.cardAt(ob.slot)]
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
+			continue
+		}
+		n++
+		if a.Trig.Cond != 0 && !s.manaGateHolds(k, a, ob.slot) {
+			off++
+		}
+	}
+	return n, off
+}
+
 // FeatPlannedCast reports whether gorge's payment planner offers p's cast
 // of o in kernel cast mode (0 plain, bit 1 flashback) as a payment action.
 // It does not for a spell with an {X} cost, an either-or additional cost
