@@ -40,6 +40,9 @@ func (e *Engine) recordTurnLedgers(stored events.Event, abilityMintWant state.Ob
 		stored.Player >= 0 && stored.Player < 64 {
 		e.noncombatDamagedSeats |= 1 << uint(stored.Player)
 	}
+	if stored.Kind == events.TurnChange {
+		e.rotateCombatDamageSinceTurn(e.L.Events)
+	}
 	if stored.Kind == events.ElementalBend && stored.Player >= 0 && stored.Player < 64 {
 		bit := map[string]uint8{"water": 1, "earth": 2, "fire": 4, "air": 8}[strings.ToLower(stored.Text)]
 		e.bendSeatsThisTurn[stored.Player] |= bit
@@ -238,18 +241,79 @@ func (e *Engine) activationMatches(alt string, source state.ObjID, activator sta
 	return true, true
 }
 
-// WasDealtNoncombatDamageThisTurn satisfies effects.Host's method of the same
-// name: Forge's wasDealtNonCombatDamageThisTurn player property (Grim
-// Repriser's activation gate, Whiplash Wordsmith's flying and haste).
-func (e *Engine) WasDealtNoncombatDamageThisTurn(p state.PlayerID) bool {
-	return p >= 0 && p < 64 && e.noncombatDamagedSeats&(1<<uint(p)) != 0
+// WasDealtNoncombatDamage satisfies effects.Host's method of the same name:
+// Forge's wasDealtNonCombatDamageThisTurn / wasDealtNonCombatDamageLastTurn
+// player properties (Grim Repriser's activation gate, Whiplash Wordsmith's
+// flying and haste, Command the Stage's upkeep return) — this turn's set or
+// the previous turn's set rotated in at TurnChange. The two one-line reads
+// are one ledger method so the role's 21-method budget carries the
+// combat-window sibling below as well; it reaches effects through Engine's
+// embedding, so the interface satisfaction adds no Engine method.
+func (t *engineTurnLedger) WasDealtNoncombatDamage(p state.PlayerID, lastTurn bool) bool {
+	if p < 0 || p >= 64 {
+		return false
+	}
+	if lastTurn {
+		return t.noncombatDamagedSeatsLast&(1<<uint(p)) != 0
+	}
+	return t.noncombatDamagedSeats&(1<<uint(p)) != 0
 }
 
-// WasDealtNoncombatDamageLastTurn satisfies effects.Host's method of the same
-// name: Forge's wasDealtNonCombatDamageLastTurn (Command the Stage's upkeep
-// return) -- the previous turn's set, rotated in at TurnChange.
-func (e *Engine) WasDealtNoncombatDamageLastTurn(p state.PlayerID) bool {
-	return p >= 0 && p < 64 && e.noncombatDamagedSeatsLast&(1<<uint(p)) != 0
+// rotateCombatDamageSinceTurn runs at a TurnChange (the new turn's event is
+// already in the log): the ending turn's combat hits join combatDamagedSinceTurn
+// and the seat whose turn just ended -- the Player of the previous TurnChange
+// -- starts a fresh "since your last turn" window. The first turn has no
+// previous TurnChange, so nothing is cleared. It lives on the engineTurnLedger
+// feature struct (both fields it reads and writes are its own; evs is passed
+// in), reached through Engine's embedding.
+func (t *engineTurnLedger) rotateCombatDamageSinceTurn(evs []events.Event) {
+	// The fold of the ending turn's hits runs BEFORE the clear of the
+	// ending seat below: the fold keeps the seats the turn's combat damaged
+	// (the clear targets a seat the fold may just have set). A seat dealt
+	// combat damage during its OWN turn is folded and then immediately
+	// cleared, so it never counts for that seat's own window — unreachable
+	// in normal play (a seat is never the defender in its own combat
+	// phase), and the clear wins by design: the window is "since the END of
+	// the seat's last turn", and that turn is ending now.
+	for _, hit := range t.combatHitsThisTurn {
+		if hit.Player >= 0 && hit.Player < 64 {
+			t.combatDamagedSinceTurn |= 1 << uint(hit.Player)
+		}
+	}
+	seen := 0
+	for i := len(evs) - 1; i >= 0; i-- {
+		if evs[i].Kind != events.TurnChange {
+			continue
+		}
+		if seen++; seen == 2 {
+			if q := evs[i].Player; q >= 0 && q < 64 {
+				t.combatDamagedSinceTurn &^= 1 << uint(q)
+			}
+			return
+		}
+	}
+}
+
+// WasDealtCombatDamageSinceLastTurn reports whether seat p was dealt combat
+// damage since the end of its own last turn (damage in the turn in progress
+// included): the PlayerCountPropertyYou$BeenDealtCombatDamageSinceLastTurn
+// read, effects.HostCombatLedger's second method. It lives on the
+// engineTurnLedger feature struct — both fields it reads are its own — and
+// reaches effects through Engine's embedding, so the interface satisfaction
+// adds no Engine method.
+func (t *engineTurnLedger) WasDealtCombatDamageSinceLastTurn(p state.PlayerID) bool {
+	if p < 0 || p >= 64 {
+		return false
+	}
+	if t.combatDamagedSinceTurn&(1<<uint(p)) != 0 {
+		return true
+	}
+	for _, hit := range t.combatHitsThisTurn {
+		if hit.Player == p {
+			return true
+		}
+	}
+	return false
 }
 
 // maxDamageBySingleSourceThisTurn is the most damage any ONE source p
