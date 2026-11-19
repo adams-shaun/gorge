@@ -284,6 +284,7 @@ Primeval Shambler
 Prismari Pianist
 Prized Elephant
 Psychic Drain
+Pyroblast
 Quandrix Campus
 Rack and Ruin
 Rage of Purphoros

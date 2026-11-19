@@ -308,6 +308,7 @@ Palace Siege
 Pale Bears
 Paragon of Open Graves
 Paranoid Parish-Blade
+Path of Annihilation
 Patrician's Scorn
 Pegasus Guardian
 People of the Woods
@@ -432,6 +433,7 @@ Tempting Witch
 Terror of the Fairgrounds
 The Locust God
 The Mirari Conjecture
+The Seedcore
 Thornscape Familiar
 Thrilling Discovery
 Tireless Tribe

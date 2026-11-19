@@ -15,6 +15,7 @@ Brallin, Skyshark Rider
 Breakthrough
 Breath Weapon
 Cartouche of Ambition
+Chain of Vapor
 Commander Eesha
 Corpse Connoisseur
 Costly Plunder
@@ -58,6 +59,7 @@ Istvan, Butcher of Eln
 Kiln Fiend
 Kira, Great Glass-Spinner
 Kitsa, Otterball Elite
+Lay Claim
 Liliana's Devotee
 Liliana's Specter
 Master Splicer

@@ -27,6 +27,7 @@ Fear of Missing Out
 Final Vengeance
 Forest
 Found Footage
+Friendly Ghost
 Ghostly Keybearer
 Give In to Violence
 Glassworks
@@ -80,6 +81,7 @@ Unable to Scream
 Undead Sprinter
 Unnerving Grasp
 Untimely Malfunction
+Unwanted Remake
 Vanish from Sight
 Veteran Survivor
 Vile Mutilator

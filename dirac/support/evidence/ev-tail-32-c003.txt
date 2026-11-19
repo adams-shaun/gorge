@@ -86,6 +86,7 @@ Seismic Strike
 Shanna, Sisay's Legacy
 Slaughter Cry
 Soul Bleed
+Storm Crow
 Swamp
 Toph, Earthbending Master
 Toph, Greatest Earthbender
@@ -93,6 +94,7 @@ Traumatic Revelation
 Umbral Juke
 Unholy Grotto
 Valley Rannet
+Vaporkin
 Vexing Sphinx
 Viashivan Dragon
 Vindictive Flamestoker

@@ -66,6 +66,7 @@ First-Sphere Gargantua
 Flowstone Sculpture
 Forest
 Foundry Screecher
+Frostwalla
 Gempalm Strider
 Gideon's Resolve
 Glimmering Angel
@@ -82,6 +83,7 @@ Gruul Charm
 Gyome, Master Chef
 Haazda Exonerator
 Halo Scarab
+Hex
 Hotshot Mechanic
 Hound of Griselbrand
 Howling Golem
@@ -151,6 +153,7 @@ Rampant Elephant
 Raphael, the Muscle
 Reclusive Wight
 Red Scarab
+Replicating Ring
 Reprisal
 Returned Phalanx
 Revive the Shire
@@ -170,6 +173,9 @@ Silkwrap
 Skorpekh Destroyer
 Skullport Merchant
 Snow Devil
+Snow-Covered Forest
+Snow-Covered Island
+Snow-Covered Swamp
 Somber Hoverguard
 Somberwald Alpha
 Soulsworn Jury
