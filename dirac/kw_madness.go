@@ -94,11 +94,14 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 			// drop is final for the madness cast, so it declares it rather
 			// than losing the offer silently (tapXScript's shape)
 			ok, stall = s.windowAffords(k, p, &cost)
-			if !ok && k.gen != nil && k.gen.anyCondSplit {
+			if !ok && k.gen != nil && (k.gen.anyCondSplit || s.scriptTapsDefer(k, p).any()) {
 				// gorge prices the madness cast against the potential pool
-				// too, which counts a Condition-split source (River of Tears)
-				// the census defers (mana_condsplit.go); without one the
-				// census and window say the same
+				// too, which counts a source the census defers (mana_condsplit.go's
+				// River of Tears, and a Taps-deferred one: Burning Earth beside
+				// the nonbasic lands whose tap fires its watcher -- its census
+				// leaves the source unlisted and so cannot prove the cast
+				// unpayable, mana_tapsdefer.go); without either the census and
+				// window say the same
 				ok = s.potentialAffords(k, p, o, &cost)
 			}
 		}
