@@ -959,10 +959,20 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		return false // ... and a waterbend one (potentialModeCastPlan, "shape:contribution")
 	}
 	if cd.Cost.Hyb[0] == kop.HybTwobrid && !cd.Cost.Phyrexian() {
-		// ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail); a
-		// Phyrexian pip rides the same encoding but PlanCostDetail plans its
-		// mana half (CR 107.4f), so a Phyrexian cast is lowered like any other
-		return false
+		// The cast planner resolves a twobrid pip's faces before it prices
+		// (planTwobridCost), so a witness exists exactly when the printed
+		// census pays the resolved cost; FeatPlannedCast offers that cast. A
+		// cast only a granted or scripted source pays is the potential
+		// route's, and a face-sensitive modifier (a reduction composing on
+		// the announced faces) is not composed by the planner's face-blind
+		// price, so its plan is the potential route's too.
+		cost := s.featCost(k, p, c, o, k.cards[c].cost)
+		cost = s.mayRiderCost(cost, anyColor)
+		d := payDesc{class: pdSpell, card: c, og: s.restrOriginOfObj(o)}
+		if s.affordsUngrantedCast(k, p, &cost, d) {
+			return false // the planner prices it; FeatPlannedCast offers it
+		}
+		return k.gen != nil && (len(k.gen.grantPC) != 0 || s.scriptSourceLive(k, p) || k.gen.anyFilt && s.filtOnly(k, p)) && s.affordsFor(k, p, &cost)
 	}
 	if (cd.HasMultikicker || cd.HasEscalate) && !mayPlay && s.g.availX&(availAny|availGaps) != 0 {
 		// a plain Multikicker or Escalate hand cast is "shape:optional_cost" to the cast
