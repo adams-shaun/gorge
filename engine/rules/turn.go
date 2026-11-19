@@ -1780,13 +1780,10 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// one, so e.drainAwaitsTarget is necessarily false here.
 		e.suspendCastAnswer(chosen)
 	case chooseCleanup:
-		// CR 514.1: the cleanup-step discard decision was answered.
-		// discardCleanup moves the chosen cards hand -> graveyard, runs the
-		// CR 514.2 body, and advances the step -- the cleanup step's resume,
-		// the mirror of the cast-flow resume cases above. There is no drain
-		// to resume: a discard answer is never handed out from inside a
-		// trigger drain (only the turn structure asks it, when no step is
-		// mid-resolution), so e.drainAwaitsTarget is necessarily false here.
+		// CR 514.1: the cleanup-step discard answer. discardCleanup moves the
+		// chosen cards to the graveyard, runs the CR 514.2 body and advances the
+		// step. No drain to resume: only the turn structure asks it, so
+		// e.drainAwaitsTarget is necessarily false here.
 		e.discardCleanup(chosen)
 	case chooseCumulative:
 		// The cumulative-upkeep trigger is resolving and waiting in its
@@ -1804,8 +1801,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	case chooseEcho:
 		// kw:Echo's pay-or-sacrifice election (engine/rules/echo.go) was answered.
 		e.echoAnswer(chosen)
-	case chooseRecover:
-		// kw:Recover's pay-or-exile election (engine/rules/recover.go) was answered.
+	case chooseRecover: // kw:Recover's pay-or-exile election (recover.go)
 		e.recoverAnswer(chosen)
 	case chooseDamageDivision:
 		// The combat damage step's controller

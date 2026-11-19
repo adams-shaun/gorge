@@ -194,7 +194,7 @@ engine/rules (*Engine).checkGrantedStaticTriggersUsing	269	62
 engine/rules (*Engine).continueCast	237	53
 engine/rules (*Engine).emit	851	241
 engine/rules (*Engine).forEachTriggerObject	170	53
-engine/rules (*Engine).handleChoose	414	105
+engine/rules (*Engine).handleChoose	413	105
 engine/rules (*Engine).handleReplacement	298	79
 engine/rules (*Engine).legalTargets	200	56
 engine/rules (*Engine).mayPlaySpellIdsBoard	178	54
