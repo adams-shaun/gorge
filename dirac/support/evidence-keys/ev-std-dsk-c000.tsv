@@ -2,12 +2,14 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Acrobatic Cheerleader	0a7272f66463a072	4	1/1		0/1	ix:resp
 Boilerbilges Ripper	0c0180bac4b0e3ab	6	1/1		0/1	ix:resp
 Broodspinner	7fd50caa7edd13e8	4	2/2		0/1	ix:resp
+Cackling Slasher	fd83930bebce7d9c	4	0/0		0/0	
 Cautious Survivor	ec3f07467de424ab	3	1/1		0/1	ix:resp
 Clockwork Percussionist	54d3e6bbb72048b0	6	1/1		0/1	ix:resp
 Conductive Machete	00b704910893c666	4	2/2		0/1	ix:resp
 Cursed Recording	9ad02f6e62247dae	4	2/2		0/1	ix:resp
 Cursed Windbreaker	24a29e4c6fc5d243	6	2/2		1/1	
 Dazzling Theater	6eb5ee9df4f4cdc4	6	0/0		0/0	
+Demonic Counsel	7ec3cebb6395913d	4	0/0		1/2	ix:resp
 Disturbing Mirth	df1a36fcb9a84e4b	4	2/2		0/1	ix:resp
 Diversion Specialist	d69333498cc9578f	3	1/1		1/1	
 Don't Make a Sound	c3c1abfac40eb435	4	0/0		1/2	ix:resp
@@ -19,6 +21,7 @@ Exorcise	877a3a380a6761e8	4	0/0		1/2	ix:resp
 Fanatic of the Harrowing	55ff899a13aacfd0	8	1/1		0/1	ix:resp
 Fear of Being Hunted	bbdf79e50162faaf	3	0/0		0/0	
 Fear of Burning Alive	d8570b55baddb459	4	2/2		0/1	ix:resp
+Fear of Lost Teeth	23aa4fe42424dbe7	4	1/1		0/1	ix:resp
 Fear of Missing Out	9ea2881f7b5096dc	4	2/2		0/1	ix:resp
 Final Vengeance	5a59d3f6fb567fe9	4	0/0		1/2	ix:resp
 Forest	6d0466c30f825dba	63	1/1		0/1	ix:resp
@@ -44,6 +47,7 @@ Mirror Room	2d2cb7f3646890d7	4	1/1		0/1	ix:resp
 Mountain	9e71388353e907ed	56	1/1		0/1	ix:resp
 Murder	cb5577a7bce1d337	4	0/0		1/2	ix:resp
 Murky Sewer	5bf439d4052dc0e0	5	1/1		0/1	ix:resp
+Neglected Manor	7683b951635e381e	3	1/1		0/1	ix:resp
 Norin, Swift Survivalist	a31917a3160b5c56	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Paranormal Analyst	529a60bc4917151f	5	1/1		0/1	ix:resp
 Peculiar Lighthouse	8ef3cfa1a24408b3	4	1/1		0/1	ix:resp
@@ -66,9 +70,11 @@ The Swarmweaver	a2723ebe441575fd	4	1/1		0/1	ix:resp
 Threats Around Every Corner	b31c898cd09052d3	3	2/2		0/1	ix:resp
 Turn Inside Out	733324a44405ebe8	4	0/0		1/2	ix:resp
 Unable to Scream	dd571358e095685f	3	0/0		1/2	ix:resp
+Undead Sprinter	66c6ff777de6637f	5	0/0		0/0	
 Unnerving Grasp	330b4d11c652cc64	4	0/0		1/2	ix:resp
 Untimely Malfunction	9e98f272a3df51e0	4	0/0		1/2	ix:resp
 Vanish from Sight	7150390cced0b929	3	0/0		1/2	ix:resp
 Veteran Survivor	98914fac917ff874	4	1/1		0/1	ix:resp
+Vile Mutilator	c30745bdcf422ae5	3	1/1		2/2	
 Waltz of Rage	15d31221e32b924c	4	0/0		1/2	ix:resp
 Wildfire Wickerfolk	252aefec031ce2ab	4	0/0		0/0	

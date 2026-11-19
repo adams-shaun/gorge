@@ -15,6 +15,7 @@ Bitterbow Sharpshooters
 Blessing of Leeches
 Blink of an Eye
 Blood Curdle
+Blur
 Bone Shredder
 Broken Wings
 Campfire

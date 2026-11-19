@@ -42,6 +42,7 @@ Bringer of the White Dawn
 Bristling Boar
 Burning Palm Efreet
 Burning Prophet
+Burnout
 Butcher of Malakir
 Call to Mind
 Callous Giant
@@ -106,6 +107,7 @@ Ember Swallower
 Endless One
 Energy Refractor
 Erebos, God of the Dead
+Ertai's Trickery
 Expedition Envoy
 Explosive Entry
 Explosive Growth

@@ -114,6 +114,7 @@ Elvish Hexhunter
 Elvish Reclaimer
 Elvish Vanguard
 Etherium Astrolabe
+Exploding Barrel
 Explosive Welcome
 Extortion
 Extractor Demon

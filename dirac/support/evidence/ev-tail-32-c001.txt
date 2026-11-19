@@ -36,6 +36,7 @@ Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
 Celestial Purge
+Chatter of the Squirrel
 Clot Sliver
 Cloud Elemental
 Cold Storage
@@ -100,6 +101,7 @@ Goliath, Mass Manipulator
 Griffin Protector
 Hall of Oracles
 Hallowed Healer
+Hamza, Might of the Yathan
 Harmonic Sliver
 Haunted Cloak
 Heart Sliver
@@ -123,11 +125,13 @@ Island
 Ivory Crane Netsuke
 Koilos Roc
 Krenko's Enforcer
+Krosan Restorer
 Kruin Striker
 Kukemssa Pirates
 Lace with Moonglove
 Leo's Guidance
 Lesser Gargadon
+Leyline Dowser
 Liliana's Defeat
 Liliana's Devotee
 Lilting Refrain
@@ -141,6 +145,7 @@ Mandibular Kite
 Master Decoy
 Meldweb Strider
 Memory Drain
+Mercurial Spelldancer
 Merrow Bonegnawer
 Merrow Witsniper
 Mesa Falcon
@@ -188,6 +193,7 @@ Renounce
 Rescue Retriever
 Returned Centaur
 Rhox Brute
+Rhox Meditant
 Righteousness
 Riot Gear
 Root Greevil
@@ -249,6 +255,7 @@ Vaporkin
 Venomous Vines
 Vexing Sphinx
 Viashivan Dragon
+Vivid Revival
 Voda Sea Scavenger
 Vraska's Contempt
 Wake of Destruction

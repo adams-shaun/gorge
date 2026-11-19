@@ -2,6 +2,7 @@ A Little Chat
 A-Death-Priest of Myrkul
 A-Geological Appraiser
 A-Glittermonger
+A-Llanowar Greenwidow
 A-Midnight Assassin
 Abzan Runemark
 Access Tunnel

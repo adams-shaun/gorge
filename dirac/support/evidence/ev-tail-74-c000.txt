@@ -31,6 +31,7 @@ Aven Trooper
 Aven Windreader
 Azimaet Drake
 Azure Mage
+Baleful Strix
 Barricade Breaker
 Battleflight Eagle
 Bearer of Memory

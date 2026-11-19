@@ -373,6 +373,7 @@ Stinging Barrier
 Stormcrag Elemental
 Stormrider Rig
 Streetbreaker Wurm
+Sultai Scavenger
 Summon: Good King Mog XII
 Sunblade Angel
 Swamp
@@ -412,6 +413,7 @@ Tormod's Cryptkeeper
 Touch the Spirit Realm
 Tranquil Frillback
 Transcendent Master
+Transcendent Message
 Trenching Steed
 Trigon of Rage
 Troublesome Spirit

@@ -11,6 +11,7 @@ Archfiend of Sorrows
 Arctic Treeline
 Ashling the Pilgrim
 Atarka Beastbreaker
+Attrition
 Axgard Armory
 Banish from Edoras
 Barbed Batterfist
@@ -49,6 +50,7 @@ Definitely Not a Turtle
 Dementia Bat
 Demystify
 Deploy the Gatewatch
+Dismiss
 Drana, Liberator of Malakir
 Drown in Ichor
 Dwarven Warriors
@@ -62,6 +64,9 @@ Evangel of Synthesis
 Evaporate
 Eviscerator's Insight
 Expedition Diviner
+Explosive Impact
+Eye of Nowhere
+Facevaulter
 Familiar Ground
 Farm
 Fault Riders
@@ -73,9 +78,12 @@ Footfall Crater
 Forest
 Forget
 Fourth Bridge Prowler
+Frogtosser Banneret
 Frontline Devastator
 Geier Reach Sanitarium
+Genasi Enforcers
 Ghastly Demise
+Ghitu Journeymage
 Ghost-Spider, Gwen Stacy
 Ghostly Visit
 Glare of Subdual
@@ -86,6 +94,7 @@ Goblin Hero
 Goblin Tutor
 Goliath, Mass Manipulator
 Griffin Protector
+Grip of Desolation
 Grollub
 Hall of Oracles
 Hallowed Healer
@@ -133,10 +142,12 @@ Mind Drain
 Mirrodin Avenged
 Mirror Image
 Mistcutter Hydra
+Misthios's Fury
 Monstrous Hound
 Morbid Bloom
 Mortician Beetle
 Mountain
+Mukotai Soulripper
 Multiversal Recruitment
 Mystic Restraints
 Nephalia Smuggler
@@ -151,20 +162,26 @@ Ondu Cleric
 Overrule
 Penance Stare
 Pestermite
+Phoenix Chick
 Pillar of Light
 Pious Evangel
 Pious Wayfarer
 Plains
+Precognition Field
 Provoke
 Psychic Spear
 Purifying Dragon
+Pygmy Pyrosaur
 Raiding Nightstalker
+Rakshasa's Secret
 Raving Oni-Slave
 Razorjaw Oni
+Relic of Progenitus
 Renounce
 Resistance Squad
 Returned Centaur
 Rhox Brute
+Rhox Meditant
 Righteousness
 Riot Gear
 Rofellos, Llanowar Emissary
@@ -178,6 +195,7 @@ Scragnoth
 Scroll of Origins
 Seeker
 Seismic Strike
+Sewerdreg
 Shackles
 Shared Discovery
 Skirk Shaman
@@ -185,6 +203,7 @@ Skyclave Cleric
 Skyswimmer Koi
 Slaughter Cry
 Smashing Spree
+Soul Bleed
 Spellseeker
 Spitting Spider
 Spontaneous Flight
@@ -222,6 +241,7 @@ Untamed Wilds
 Valkyrior Skyrider
 Vexing Sphinx
 Viashivan Dragon
+Viridian Zealot
 Voda Sea Scavenger
 Vraska's Contempt
 Wake of Destruction

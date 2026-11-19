@@ -10,6 +10,7 @@ Border Guard	66f3fd32e845afd1	6	0/0		0/0
 Brawl-Bash Ogre	61090b900dad4022	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Bull Hippo	555877f6a29d6648	3	0/0		0/0	
 Celestial Purge	fc7614349e489e95	4	0/0		1/2	ix:resp
+Chatter of the Squirrel	1b2ac842c78713d3	4	0/0		3/4	ix:resp
 Cloud Elemental	dc4854121b224215	4	0/0		0/0	
 Colossus of Akros	f965b58ddd1e5fe2	3	1/1		1/1	
 Combust	201f5d6ee6aec5b7	3	0/0		1/2	ix:resp
@@ -32,14 +33,18 @@ Filigree Fracture	670dceaaa8bb9af1	5	0/0		1/2	ix:resp
 Floating-Dream Zubera	520f297966eac78a	4	1/1		0/1	ix:resp
 Flying Dolphin-Fish	71421889e414afcb	3	0/0		0/0	
 Genasi Enforcers	7ae475822fe905c5	4	2/2		1/1	
+Hamza, Might of the Yathan	877b4e8b741d79e1	19	2/2		1/1	
 Honor the Past	ae5a9461d21425d8	4	0/0		2/2	
 Idle Thoughts	69de54507b1835c1	8	1/1		1/1	
 Inferno	afc7d8d6b7bad2a9	4	0/0		1/2	ix:resp
 Into Thin Air	7b4a90205f1f1a80	4	0/0		1/2	ix:resp
+Krosan Restorer	d92fd6b84181b468	4	2/2		1/1	
 Kruin Striker	dbb51f5c9bae5ba2	4	1/1		0/1	ix:resp
 Kukemssa Pirates	0273c4e4bed563ba	5	1/1		0/1	ix:resp
+Leyline Dowser	a236a7d862f74f42	4	2/2		1/1	
 Mandibular Kite	5f19e89369943863	4	2/2		0/1	ix:resp
 Memory Drain	c46fd829c51d7202	12	0/0		1/2	ix:resp
+Mercurial Spelldancer	5140695b8f8e5b39	4	2/2		0/1	ix:resp
 Mindless Null	a765b6fba3bc77f0	4	0/0		0/0	
 Mistcutter Hydra	2de897cc411ea6cb	4	0/0		0/0	
 Morbid Bloom	7b097cd23dea84d4	31	0/0		2/2	
@@ -54,6 +59,7 @@ Raging Spirit	f9ad9a26c24fae84	3	1/1		0/1	ix:resp
 Rakka Mar	c7acdf82078f50bc	10	1/1		0/1	ix:resp
 Ravenous Harpy	0104258b9627be58	6	1/1		1/1	
 Reckless Imp	3a4c602681840bb2	9	0/0		2/2	
+Rhox Meditant	82f31e157ebac6ad	4	1/1		0/1	ix:resp
 Root Greevil	def19c81f79ab70e	6	1/1		0/1	ix:resp
 Sokka, Swordmaster	57eafca79c98ec24	4	1/1		1/1	
 Soul Bleed	4c4338ec96c1e1fb	6	1/1		1/2	ix:resp
@@ -62,6 +68,7 @@ Territorial Aetherkite	e68a92eabadf7237	4	1/1		0/1	ix:resp
 Thran Lens	7eae2099f3b2d778	10	0/0		0/0	
 Valakut Fireboar	53ea89743e709d1d	4	1/1		0/1	ix:resp
 Vaporkin	e366e826894f1096	3	0/0		0/0	
+Vivid Revival	0d44b681287d8277	4	0/0		1/2	ix:resp
 Wild Crocodile	953aede19e3ac2c4	4	1/1		0/1	ix:resp
 Wilderness Elemental	b1ffff6bdc456ae2	9	0/0		0/0	
 Witness of Tomorrows	f11687a9be46948c	6	1/1		0/1	ix:resp

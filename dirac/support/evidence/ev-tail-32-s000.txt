@@ -4,17 +4,22 @@ Akoum Boulderfoot
 Akoum Warrior
 Amulet of Kroog
 Arcbound Hybrid
+Archfiend of Sorrows
 Ashling the Pilgrim
 Attrition
 Blade Splicer
+Bloodcrusher of Khorne
 Blunt the Assault
 Boggart Arsonists
 Border Guard
+Boreal Elemental
 Brawl-Bash Ogre
 Bull Hippo
 Castaway's Despair
+Celestial Purge
 Channel the Suns
 Chaotic Goo
+Chatter of the Squirrel
 Cho-Arrim Bruiser
 Cloud Elemental
 Cognivore
@@ -23,6 +28,7 @@ Curious Altisaur
 Cut
 Damning Verdict
 Death's Presence
+Dementia Bat
 Dismiss
 Draugr Thought-Thief
 Drown in Ichor
@@ -36,34 +42,42 @@ Eternal Skylord
 Evaporate
 Explosive Impact
 Eye of Nowhere
+Facevaulter
 Familiar Ground
 Fault Riders
 Feral Abomination
 Filigree Fracture
 Floating-Dream Zubera
 Flying Dolphin-Fish
+Flywheel Racer
 Forest
 Frogtosser Banneret
 Frontline Devastator
 Garrison Griffin
+Genasi Enforcers
 General Kreat, the Boltbringer
 Ghost-Lit Stalker
 Ghost-Spider, Gwen Stacy
 Gisa's Bidding
 Go-Shintai of Shared Purpose
 Goblin Tutor
+Grip of Desolation
 Grollub
 Hasran Ogress
 Heart Sliver
 Heliod's Pilgrim
+Heroic Charge
 Highway Robber
 Hold the Line
+Idle Thoughts
 Invasion of Segovia
 Island
 Knight of Old Benalia
+Krosan Restorer
 Kruin Striker
 Kukemssa Pirates
 Lavakin Brawler
+Leyline Dowser
 Light the Way
 Luminarch Ascension
 Lydia Frye
@@ -83,6 +97,7 @@ Mortician Beetle
 Mountain
 Mukotai Soulripper
 Mystic Restraints
+Night Scythe
 Nimbus of the Isles
 Oni Possession
 Ovalchase Daredevil
@@ -94,8 +109,10 @@ Plains
 Precognition Field
 Pygmy Pyrosaur
 Rakka Mar
+Rakshasa's Secret
 Ravenous Harpy
 Redwood Treefolk
+Relic of Progenitus
 Rescue Retriever
 Root Greevil
 Scragnoth
@@ -103,6 +120,8 @@ Sewerdreg
 Shieldmate's Blessing
 Skyclave Shade
 Skyshroud Troll
+Sokka, Swordmaster
+Sonic Screwdriver
 Soul Bleed
 Squall Line
 Stampeding Horncrest
@@ -125,6 +144,8 @@ Vaporkin
 Veilborn Ghoul
 Vexing Sphinx
 Vindictive Flamestoker
+Viridian Zealot
+Vivid Revival
 Voda Sea Scavenger
 Wave-Wing Elemental
 Wheel and Deal

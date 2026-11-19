@@ -8,6 +8,7 @@ Angel of Retribution
 Artificer's Epiphany
 Avenging Angel
 Axegrinder Giant
+Azorius Guildgate
 Balduvian Atrocity
 Balduvian Horde
 Bant Battlemage
@@ -16,6 +17,7 @@ Bay Falcon
 Berg Strider
 Blaze
 Bonecrusher Giant
+Boros Guildgate
 Boros Keyrune
 Boulderfall
 Bring to Trial
@@ -24,6 +26,7 @@ Capashen Knight
 Captain of Umbar
 Cenn's Enlistment
 Cephalid Looter
+Chandra, Pyrogenius
 Chimeric Coils
 Civic Gardener
 Cliffgate
@@ -50,6 +53,7 @@ Deadly Insect
 Deathrender
 Demon of Catastrophes
 Dictate of Erebos
+Dimir Guildgate
 Doctor Spectrum
 Doom Blade
 Dragonborn Looter
@@ -77,12 +81,15 @@ Goblin Offensive
 Goblin Shortcutter
 Goblin War Wagon
 Golgari Germination
+Golgari Guildgate
 Gorilla Warrior
 Graverobber Spider
 Graveyard Shovel
 Greenside Watcher
+Gruul Guildgate
 Hanged Executioner
 Hardened-Scale Armor
+Harvester Druid
 Hate Weaver
 Headwater Sentries
 Healing Hands
@@ -94,6 +101,7 @@ Imperial Aerosaur
 Infernal Medusa
 Intrepid Provisioner
 Island
+Izzet Guildgate
 Jeskai Banner
 Junk Golem
 Kalastria Healer
@@ -136,6 +144,7 @@ Nezumi Ronin
 Oak Street Innkeeper
 Occult Epiphany
 Ondu Champion
+Orzhov Guildgate
 P-Joven and Chandler
 Palinchron
 Parasitic Bond
@@ -179,6 +188,7 @@ Salvage Titan
 Sanctum of Tranquil Light
 Sandsteppe Outcast
 Saprazzan Breaker
+Saruli Gatekeepers
 Savageborn Hydra
 Scalebane's Elite
 Sea God's Revenge

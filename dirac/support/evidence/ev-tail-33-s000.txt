@@ -1,45 +1,72 @@
+A-Guide of Souls
 A-Oran-Rief Ooze
 A-Psionic Snoop
+A-Urza, Powerstone Prodigy
 Abzan Advantage
 Acrobatic Maneuver
 Aether Chaser
 Aether Vial
+Afterlife Insurance
 Agent of Horizons
+Agent of Masks
+Aid from the Cowl
 Ajani's Sunstriker
+Alharu, Solemn Ritualist
 Allay
+Anaba Bodyguard
+Ancestral Knowledge
 Arcane Investigator
+Archweaver
+Armorcraft Judge
+Ash Barrens
+Aura Extraction
 Autumnal Gloom
 Avaricious Dragon
+Battlefront Krushok
+Blast Zone
+Blinkmoth Nexus
 Blistering Dieflyn
 Blood Speaker
 Bloodstone Cameo
+Bloom Hulk
+Blurred Mongoose
 Bogardan Dragonheart
 Bond of Passion
 Bonded Herdbeast
 Bontu the Glorified
 Book of Rass
+Bramblecrush
 Brazen Buccaneers
 Briarpack Alpha
+Cagemail
+Cankerbloom
 Carnival of Souls
 Charforger
 Chittering Witch
+Cold-Water Snapper
+Contagious Vorrac
 Coordinated Assault
 Cordial Vampire
 Crawl from the Cellar
 Culmination of Studies
+Curse of Inertia
 Darwin, Adaptive Mutant
 Daryl, Hunter of Walkers
 Death Tyrant
+Deathbloom Thallid
 Deception
 Demonic Lore
 Deranged Whelp
 Detonate
 Dimir Machinations
 Diving Griffin
+Donate
+Dragonlord Silumgar
 Dragonwing Glider
 Drawn from Dreams
 Dread Warlock
 Drill-Skimmer
+Dripping Dead
 Dross Prowler
 Dwarven Forge-Chanter
 Dáin's Company
@@ -49,57 +76,95 @@ Elvish Fury
 Ember-Eye Wolf
 Encroach
 Eternal Taskmaster
+Evolution Sage
 Farbog Explorer
+Feroz's Ban
+Flawless Maneuver
+Flourishing Hunter
 Flumph
+Flux Channeler
+Forbidding Watchtower
 Force Spike
 Forceful Cultivator
+Forest
 Freejam Regent
 Frontline Sage
 Gaea's Might
+Gates of Istfell
 Gau, Feral Youth
 Gearsmith Prodigy
+Gleam of Authority
 Gluttonous Guest
 Goblin Rimerunner
 Godo, Bandit Warlord
+Grateful Apparition
 Grimoire of the Dead
 Gristle Grinner
+Grozoth
+Guildpact Informant
+Hammer of Purphoros
+Haunted Dead
+Hazoret's Monument
 Healer's Headdress
 Horrific Assault
 Hyena Umbra
 Illustrious Historian
 Indulgent Tormentor
+Infected Defector
+Infernal Reckoning
 Innocent Traveler
 Inspiring Veteran
+Insurrection
 Invasive Species
 Ironclad Revolutionary
+Island
 Izzet Guildmage
+Jhoira's Familiar
+Kambal, Consul of Allocation
 Kinscaer Harpoonist
 Kjeldoran Javelineer
 Krark-Clan Grunt
 Lava Coil
+Liege of the Pit
 Lightning Elemental
 Liliana's Influence
+Llanowar Dead
+Long-Forgotten Gohei
+Looming Altisaur
+Lotus Petal
 Lumengrid Sentinel
 Mace of the Valiant
 Magnetic Theft
+Mawcor
 Maximize Altitude
+Memorial to Folly
 Mimic
 Mjölnir's Might
 Mogg Conscripts
+Mogg Jailer
 Monastery Mentor
+Mountain
+Muster the Departed
 Mystic Might
+Naga Eternal
 Nath's Buffoon
 Never
 Nezumi Freewheeler
 Nyxathid
+Ogre Arsonist
 Outland Boar
 Pack's Disdain
 Pashalik Mons
 Perilous Shadow
+Plains
 Prickleboar
+Pride Guardian
 Quarantine Field
 Rattlechains
+Ravenous Leucrocota
+Raze
 Razorjaw Oni
+Reanimate
 Reaver Drone
 Reckoner's Bargain
 Regeneration
@@ -112,13 +177,17 @@ Riptide Chronologist
 Roar of the Wurm
 Runehorn Hellkite
 Sabertooth Mauler
+Sage's Row Savant
 Samut, Tyrant Smasher
 Sanguine Glorifier
 Saruman the White
+Scheming Aspirant
+Seed Guardian
 Seeker
 Seething Anger
 Shattered Dreams
 Shepherd of Rot
+Shu Foot Soldiers
 Shu Grain Caravan
 Sifter of Skulls
 Skizzik Surger
@@ -128,9 +197,11 @@ Spore Cloud
 Stamina
 Stonework Packbeast
 Subversion
+Swamp
 Sylvan Hierophant
 Temple Elder
 Temporal Machinations
+The Tabernacle at Pendrell Vale
 Thraben Foulbloods
 Tin-Wing Chimera
 Tower of Champions
@@ -138,6 +209,7 @@ Towering Thunderfist
 Toxrill, the Corrosive
 Trained Jackal
 Tranquil Path
+Tree of Tales
 Treefolk Seedlings
 Two-Headed Dragon
 Ultron, Machine Overlord
@@ -146,6 +218,8 @@ Undead Servant
 Unyaro Bee Sting
 Urborg Shambler
 Urza's Command
+Verdant Embrace
+Vernal Fen
 Viashino Skeleton
 Vinelasher Kudzu
 Voice of Truth
@@ -153,8 +227,10 @@ Voidwielder
 Voyaging Satyr
 Vulshok War Boar
 Walking Dead
+Warden of the Wall
 Warmonger's Chariot
 Wayward Swordtooth
+Weatherlight Compleated
 Wild Griffin
 Willow Faerie
 Wilson, Refined Grizzly
@@ -163,4 +239,5 @@ Wingfold Pteron
 Wizened Cenn
 You Look Upon the Tarrasque
 Yuan Shao, the Indecisive
+Yuriko, the Tiger's Shadow
 Zhalfirin Decoy
