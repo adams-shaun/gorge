@@ -387,6 +387,9 @@ func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
 	switch {
 	case c < 0:
 		return -1
+	case c == 1 && n > 0 && s.spBesidePrevAll(n) && !s.spBare(k, &cs, c) && s.spOrderable(k, &cs, c):
+		// a lone static prevention beside full preventions (a granted Effect's,
+		// a printed one): gorge asks the order over all of them
 	case c < 2 || s.spBare(k, &cs, c) || !s.spOrderable(k, &cs, c):
 		return n
 	case n > 0:
@@ -394,15 +397,29 @@ func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
 		return -1
 	}
 	ro := &s.g.ro
+	if n+c > len(ro.cand) {
+		s.capFull(StallReplCands) // loud: never truncate the candidates
+		return -1
+	}
 	for i := 0; i < c; i++ {
 		if cs[i].b >= MaxPerm {
 			s.capFull(StallReplCands) // an emblem is never named by an order ask
 			return -1
 		}
-		ro.cand[i] = s.perms[cs[i].b].obj
-		ro.spv |= 1 << i
+		ro.cand[n+i] = s.perms[cs[i].b].obj
+		ro.spv |= 1 << (n + i)
 	}
-	return c
+	return n + c
+}
+
+// spBesidePrevAll: the n candidates already collected are all full
+// preventions (a granted Effect's or a printed one) and nothing else (no
+// shield, shield-counter, color prevention, addition or doubling), so a
+// static prevention beside them is posed in the same order ask: whichever is
+// picked, the full prevention leaves nothing dealt.
+func (s *State) spBesidePrevAll(n int) bool {
+	ro := &s.g.ro
+	return n < 8 && ro.prev == uint8(1<<n)-1 && ro.shld == 0 && ro.pnx == 0 && ro.plus == 0 && ro.pcol == 0
 }
 
 // spAbility is the static prevention of the host at b a pick of candidate
