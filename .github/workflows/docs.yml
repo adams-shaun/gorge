@@ -16,6 +16,8 @@ on:
       - mkdocs.yml
       - scripts/docs_sets.py
       - scripts/docs_sets_test.py
+      - scripts/docs_slices_test.py
+      - scripts/dirac_slices_summary.py
       - scripts/docs_web_test.py
       - scripts/docs_perf_figs.py
       - scripts/docs_perf_figs_test.py
@@ -34,6 +36,8 @@ on:
       - mkdocs.yml
       - scripts/docs_sets.py
       - scripts/docs_sets_test.py
+      - scripts/docs_slices_test.py
+      - scripts/dirac_slices_summary.py
       - scripts/docs_web_test.py
       - scripts/docs_perf_figs.py
       - scripts/docs_perf_figs_test.py
@@ -57,6 +61,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -123,10 +128,28 @@ jobs:
       - name: Check the performance figures against their data
         run: python3 -m unittest discover -s scripts -p 'docs_perf_figs_test.py'
 
+      # The lockstep slice table: the newest slices-summary artifact a main run of ci.yml's dirac-slices job
+      # uploaded (scripts/dirac_slices_summary.py). Without one (none yet, expired, a fork's read-only token)
+      # the page says "not measured" and the build still passes.
+      - name: Fetch the newest lockstep slice summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .slices
+          id=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=slices-summary&per_page=30" \
+            --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "main")][0].workflow_run.id' 2>/dev/null || true)
+          if [ -n "$id" ] && [ "$id" != null ] && gh run download "$id" --repo "$GITHUB_REPOSITORY" -n slices-summary -D .slices 2>/dev/null; then
+            echo "lockstep slice summary from run $id"
+          else
+            echo "no slices-summary artifact; the lockstep slices render as not measured"
+          fi
+
       - name: Render the per-set support tables
         run: |
           python3 -m unittest discover -s scripts -p 'docs_sets_test.py'
+          python3 -m unittest discover -s scripts -p 'docs_slices_test.py'
           args=(--dirac-support dirac/docs/support.md)
+          if [ -s .slices/slices-summary.json ]; then args+=(--slices .slices/slices-summary.json); fi
           if git fetch --depth=1 https://github.com/adams-shaun/gorge-compliance.git docs-data 2>/dev/null; then
             d=$(mktemp -d)
             for f in status-A.jsonl status-B.jsonl meta.json; do git show "FETCH_HEAD:$f" > "$d/$f"; done

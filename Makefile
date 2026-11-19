@@ -90,6 +90,7 @@ help:
 	@echo "  make report         — print card coverage against implemented primitives"
 	@echo "  make dirac-tables   — write dirac's binary card tables under the corpus (gitignored, keyed by corpus and kgen sources)"
 	@echo "  make dirac-slices   — play dirac against gorge on the committed FDN and BLB slices, both surfaces"
+	@echo "  make dirac-pods     — the same for four-seat cmd5 and edh Commander pods (a census, for the docs site's lockstep table)"
 	@echo "  make test-one PKG=./p RUN=TestX — one capped, corpus-checked test run with one verdict line (debugging)"
 	@echo "  make test-targeted  — the packages your diff vs BASE touches plus their test reverse deps (the inner loop)"
 	@echo "  make test-smart     — the precheck, fail-fast, on a committed tree: affected packages + test groups (GORGE_TEST_SMART_GATES=1: the landing gates; precheck is an alias)"
@@ -245,6 +246,16 @@ dirac-slices: dirac-tables
 	@for set in fdn blb; do for surface in autopay full; do \
 		$(BIN_DIR)/kfuzz -kernel $$set -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface $$surface -mulligans 1 -shrink 0 -workers 4 -absolute -v || exit 1; \
 	done; done
+
+.PHONY: dirac-pods
+# The four-seat Commander pods (cmd5, edh), dirac against gorge, for the docs site's lockstep table
+# (scripts/dirac_slices_summary.py). A census, not a gate: kfuzz is run without -absolute, so a pool whose cards
+# the table refuses (edh) plays no game and reports 0, and a divergence is counted in the summary, not failed here.
+dirac-pods: dirac-tables
+	go build -trimpath -o $(BIN_DIR)/kfuzz ./dirac/oracle/cmd/kfuzz
+	@for pool in cmd5 edh; do \
+		$(BIN_DIR)/kfuzz -kernel $$pool -seats 4 -cmd-mini 40 -pods 100 -seed 1 -keep-going -surface full -mulligans 1 -shrink 0 -workers 4 || exit 1; \
+	done
 
 .PHONY: fresh-clone-check
 fresh-clone-check:

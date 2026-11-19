@@ -178,9 +178,20 @@ newest first.
   basic land.
 - **dirac supported** and **dirac lowered** are counts / cards over dirac's own
   card list for the set.
-- **Lockstep games** is agreeing games / games in the set's committed slice, on
-  `-surface full`. The support page carries no slice results, so the column is
-  "—" until a source for them is wired in.
+- **Lockstep games** is clean games / games in the set's committed slice, on
+  `-surface full`, from the newest main run of the CI `dirac-slices` job
+  (see [Lockstep slices](#lockstep-slices)). It says "—" when no run's summary
+  was available to the build.
+
+## Lockstep slices
+
+`dirac-slices` plays dirac beside gorge on each committed slice, on both surfaces, and the four-seat Commander pods
+(`make dirac-pods`). Its job writes `slices-summary.json` from kfuzz's summary lines and uploads it as an artifact on
+main runs. The docs build downloads the newest one. Games that hit a capacity limit with no disagreement up to that
+point count as *capacity stalls*; a *two-seat* stall is a pod held to two seats by a declared limit. A build with no
+artifact says "not measured".
+
+--8<-- "support/_generated_sets.md:slices"
 
 ## Every set
 
