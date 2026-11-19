@@ -63,6 +63,16 @@ type LKISnapshots struct {
 	// not an absent snapshot); an existing map is kept on re-entry, since the
 	// target has by then already left the stack. Keyed by target ObjID.
 	TargetManaSpent map[state.ObjID]castManaSpentTotals
+	// SpellManaValue is the CR 608.2h look-back for the mana value of a spell
+	// that was on the stack when this Resolve chain began, with its announced
+	// X counted (CR 202.3e). events.Apply's Move zeroes Object.X when the
+	// spell leaves the stack, so a Counter earlier in the chain makes the live
+	// read lose the X part: Dovescape counters the spell, then creates X Birds
+	// for X = its mana value (TriggeredSpellAbility$CardManaCostLKI). Captured
+	// at Resolve entry for every stack object among the targets, the
+	// remembered set and the trigger's spell; an existing map is kept on
+	// re-entry. Keyed by ObjID.
+	SpellManaValue map[state.ObjID]int32
 	// SourceLifelinkLKI is the source permanent's derived lifelink state at
 	// the last moment it existed on the battlefield. The validity bit is
 	// separate because "it did not have lifelink" is authoritative LKI too.

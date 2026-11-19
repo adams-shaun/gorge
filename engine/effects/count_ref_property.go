@@ -269,7 +269,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 				if sacLKI != nil {
 					n += sacLKI.ManaValue
 				} else {
-					n += int32(objectManaValue(h.Game(), o))
+					n += refManaValue(h, c, o)
 				}
 			}
 		case prop == "NumTimesChoseMode":
@@ -900,3 +900,17 @@ var evalPlayerRefPropertyCodes = state.NewStrCodes(
 	state.StrEntry[evalPlayerRefPropertyCode]{Key: "TriggeredPlayersTargets", Val: evalPlayerRefPropertyTriggeredPlayersTargets},
 	state.StrEntry[evalPlayerRefPropertyCode]{Key: "TriggeredPlayersAttackedTarget", Val: evalPlayerRefPropertyTriggeredPlayersAttackedTarget},
 )
+
+// refManaValue is the mana value a CardManaCost read takes off o. CR 608.2h:
+// a spell this chain moved off the stack (a Counter ahead of the read) keeps
+// the mana value it had there, announced X included. A printed face's mana
+// value never changes, so the SpellTargeted$CardManaCostLKI spelling reads the
+// same number the plain spelling does, except that once the chain has moved a
+// spell that was on the stack off it, the answer is the CR 608.2h
+// resolution-start snapshot (Ctx.Snap.SpellManaValue).
+func refManaValue(h Host, c *Ctx, o *state.Object) int32 {
+	if mv, ok := c.Snap.SpellManaValue[o.ID]; ok && o.Zone != state.ZStack {
+		return mv
+	}
+	return int32(objectManaValue(h.Game(), o))
+}
