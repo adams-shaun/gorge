@@ -509,7 +509,7 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 	for _, ma := range e.castWindowProbeAbilities(p, id) {
 		mp := effects.ManaOf(ma)
 		cost := e.manaAbilityCC(p, id, ma).Cost
-		if pay.ActivationTapCostUnavailable(o, &cost) {
+		if pay.ActivationTapCostUnavailable(o, &cost) || e.castWindowTapPartsShort(p, id, cost) {
 			continue
 		}
 		if mp.RestrictValid != "" {
@@ -565,6 +565,25 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 		}
 	}
 	return false
+}
+
+// castWindowTapPartsShort reports whether a mana ability's literal
+// tapXType<N/Spec> parts (Urza, Lord High Artificer's "tap an untapped
+// artifact you control") have too few untapped matching permanents right now.
+// Like a tap-blocked source it has nothing to offer this window: nothing in
+// the window untaps a permanent, so the census leaves it unpriced without
+// failing open (CR 605.1a, 602.2b). A dynamic head other than X is fail-closed
+// elsewhere, so it is never "short" here.
+func (e *Engine) castWindowTapPartsShort(p state.PlayerID, id state.ObjID, cost Cost) bool {
+	if len(cost.TapPermanent) == 0 || pay.CostHasDynamicXTap(&cost) {
+		return false
+	}
+	for _, part := range cost.TapPermanent {
+		if part.Dyn != "" {
+			return false
+		}
+	}
+	return !pay.ManaTapsPayable(asPayer(e), p, id, cost, nil)
 }
 
 // castWindowIdentityCounts is the mana a commander-identity production makes
