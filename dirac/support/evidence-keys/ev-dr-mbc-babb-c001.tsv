@@ -1,0 +1,71 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Aerial Responder	ca69368325b73339	16	0/0		0/0	
+Annex	b5d08ad578dca367	24	0/0		2/2	
+Argothian Opportunist	611749ae50d3f1f8	12	1/1		0/1	ix:resp
+Bloodfire Expert	238de0276a100009	7	1/1		0/1	ix:resp
+Cartouche of Strength	23025413eab0fb8b	18	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
+Cloudreader Sphinx	fb2bcd0878faccaf	16	1/1		0/1	ix:resp
+Constricting Sliver	c88f79bb4625cbda	14	0/0		0/0	
+Court of Embereth	99120ae728451c7d	8	2/2		1/1	
+Demand Answers	f16552fd099d7110	3	0/0		1/2	ix:resp
+Desperate Lunge	08b8108499d14cea	28	0/0		1/2	ix:resp
+Destroy Evil	ef35eccd7631cb76	5	0/0		1/2	ix:resp
+Diplomatic Escort	0257ea0fd1b273a6	14	1/1		0/1	ix:resp
+Elven Bow	abea579c56d067d1	12	2/2		1/1	
+Exhaustion	5184ca486b79ec49	14	0/0		1/2	ix:resp
+Extract from Darkness	46052cc3751ca8af	4	0/0		1/2	ix:resp
+Fatestitcher	e8a93e35f31e65f5	23	2/2		1/1	
+Felidar Guardian	cb0bb7c042d967d0	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Fiend Hunter	222755bd476849dd	20	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Fireslinger	451a84720f814440	6	1/1		1/1	
+Flame Jab	fea6b0f754adf378	8	0/0		2/2	
+Flowstone Hellion	1fa81a1d412c1d48	6	1/1		1/1	
+Forbidden Alchemy	e5da05941194cc87	30	0/0		4/4	
+Forest	6d0466c30f825dba	224	1/1		0/1	ix:resp
+Frog Tongue	dcfc2d7a39fab2d2	18	1/1		1/2	ix:resp
+Furnace Whelp	f1e6a9b9cfc7967e	7	1/1		1/1	
+Glimmerpoint Stag	95860e7fcbe8a673	6	1/1		0/1	ix:resp
+Goblin Taskmaster	24867095a11a4e92	16	1/1		2/3	cast/alt:morphed
+Gorehorn Minotaurs	854de0e053100c07	6	0/0		0/0	
+Grazing Gladehart	716aff652e052dce	9	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Grip of the Roil	55cc41d66b17809a	20	0/0		4/4	
+Gudul Lurker	9fda11d44515e2b8	30	0/0		1/2	cast/alt:megamorphed
+Guided Strike	a7e00b48dd745f91	3	0/0		1/2	ix:resp
+Heliod's Punishment	99da4ba5ee42e6db	9	0/0		1/2	ix:resp
+Herald of Secret Streams	3bbbd52c410f6e3d	22	0/0		0/0	
+Hunting Pack	8b49d055703c8153	12	1/1		2/2	
+Hydrolash	8336575e8fde4582	12	0/0		1/2	ix:resp
+Imoti, Celebrant of Bounty	3b12e2db79d392a7	8	0/0		0/0	
+Impact Tremors	5b25a43e421d9b56	4	1/1		0/1	ix:resp
+Island	763c67ef7a27eaf5	311	1/1		0/1	ix:resp
+Jötun Owl Keeper	f266b875dead899b	6	2/2		0/1	ix:resp
+Knight of Meadowgrain	5822bba0224a19d9	18	0/0		0/0	
+Kutzil, Malamet Exemplar	64fb64715b884288	8	1/1		1/1	
+Larger Than Life	c369236ec9d68b7f	10	0/0		1/2	ix:resp
+Longshot Squad	4234186386788518	10	1/1		0/1	ix:resp
+Meatsqueak, Hoard Lord	500c39ad9311b7a2	14	1/1		1/1	
+Mountain	9e71388353e907ed	95	1/1		0/1	ix:resp
+Mulldrifter	eb506817458e2c18	24	1/1		2/3	ix:resp
+Nomads en-Kor	119e01ee3ef49197	4	1/1		1/1	
+Pick Your Poison	4a7c1a77422d3be7	8	0/0		1/2	ix:resp
+Plains	82d63a695487e567	172	1/1		0/1	ix:resp
+Rampant Growth	7e60ba8c4c03c886	10	0/0		2/2	
+Reconnaissance	3d2066d409ca8c44	20	1/1		1/1	
+Saryth, the Viper's Fang	dcf284d9c90defbd	5	1/1		0/1	ix:resp
+Scourge Devil	face1c19c11cf4c6	8	2/2		0/1	ix:resp
+Seal of Removal	235ac432be473012	22	1/1		1/1	
+Shoreline Looter	c8e103bb97667310	23	1/1		0/1	ix:resp
+Silver Knight	25e4cfc9cfdf354b	13	0/0		0/0	
+Snap	7b3f2663850bbe4b	19	0/0		2/2	
+Spin into Myth	87f147f390148b8e	21	0/0		2/2	
+Swamp	342b413902f441c3	14	1/1		0/1	ix:resp
+Take Up the Shield	d1ebe074e6bd29a8	16	0/0		2/2	
+Temple Acolyte	a34ab08f2f5e65dd	16	1/1		0/1	ix:resp
+Vampires' Vengeance	cb0b0463dbb2c16a	12	0/0		2/2	
+Vedalken Mastermind	8d9082cf5e84f88f	22	1/1		1/1	
+Venom Sliver	ec33e5fa3b0547e4	67	0/0		0/0	
+Vizier of Remedies	ec613eed8a5a6f16	6	0/0		0/0	
+Volatile Claws	e6f2f0cad245a0f3	6	0/0		2/2	
+Wanderer's Strike	41e26e57cde6aa71	6	0/0		1/2	ix:resp
+You See a Pair of Goblins	62e8c35d19b17b5c	10	0/0		1/2	ix:resp
+Zombie Cutthroat	3d66efa6244d37d3	4	0/0		1/2	cast/alt:morphed

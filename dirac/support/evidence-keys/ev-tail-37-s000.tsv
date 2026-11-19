@@ -9,7 +9,9 @@ Arcane Adaptation	83cf5364bcd9ba43	18	0/0		0/0
 Ardoz, Cobbler of War	7bfec03b7fa75643	10	2/2		1/1	
 Avatar of the Resolute	1a32e475d29eda93	10	0/0		0/0	
 Barricade Breaker	00da6f79d90f0de9	25	0/0		0/0	
+Blackcleave Goblin	be4fdc0a5c997121	13	0/0		0/0	
 Blightreaper Thallid	d15711f9a68fed37	14	3/3		0/1	ix:resp
+Blind Zealot	66ef7431bfb9225e	18	1/1		1/1	
 Boseiju Reaches Skyward	4b113478ba1c9090	6	0/0		0/0	
 Brightstone Ritual	54ed19e8ca969c49	16	0/0		1/2	ix:resp
 Calming Licid	f45c6f3cc1346a29	10	1/1		1/1	
@@ -18,6 +20,7 @@ Cave-In	eaca251af87f5862	13	0/0		2/2
 Chapel Geist	62218c086d94c828	4	0/0		0/0	
 Cho-Arrim Legate	a4231da49b1d0165	22	0/0		0/0	
 Citizen V, Helmut Zemo	ab25d2092ee8dfc2	30	1/1		1/1	
+Cloud, Midgar Mercenary	f7d8f4237d346f00	74	1/1		1/1	
 Cloudreach Cavalry	97fd6e0cc3b35b44	15	0/0		0/0	
 Commander's Authority	7afb7596c4565ed1	10	0/0		1/2	ix:resp
 Concordia Pegasus	4efb7c9e348cd98f	19	0/0		0/0	
@@ -27,6 +30,7 @@ Dance with Devils	ac67c5fc674e33be	24	0/0		1/2	ix:resp
 Darkness	e1ffbce630420379	25	0/0		2/2	
 Decompose	59767f29dbfce664	32	0/0		1/2	ix:resp
 Deer-Dog	5aea8724fdef3aba	26	0/0		0/0	
+Drag to the Underworld	c68296002d014b00	22	0/0		2/2	
 Duskrider Falcon	593cb637396e5de0	18	0/0		0/0	
 Ebony Rhino	fb1658b4b26157bd	13	0/0		0/0	
 Elder Cathar	9ee31f721e279941	22	1/1		1/1	
@@ -44,6 +48,7 @@ Gaea's Touch	25a2919f478f79ce	7	2/2		0/1	ix:resp
 Goblin Patrol	a2ea5ba9b285d84d	6	1/1		0/1	ix:resp
 Gornog, the Red Reaper	a62cafcd9699d9d9	11	1/1		0/1	ix:resp
 Guild Artisan	95e962bb8f620497	10	0/0		0/0	
+Halo Hopper	0168e719f4cf3a98	8	0/0		0/0	
 Hand of Silumgar	8f98454478a64719	34	0/0		0/0	
 Herald of Slaanesh	e6b3c5629ea2c065	11	0/0		0/0	
 Humiliate	40d4780697a64e4c	11	0/0		2/2	
@@ -54,16 +59,19 @@ Invading Manticore	7f3bbdad128429f6	4	1/1		0/1	ix:resp
 Island	763c67ef7a27eaf5	520	1/1		0/1	ix:resp
 Isolation Cell	4d350207bfa2e242	14	1/1		1/1	
 Jungle Delver	bfbcfee8e2689362	20	1/1		1/1	
+King's Assassin	dfe1fe5e5a471823	23	1/1		0/1	ix:resp
 Kitsune Diviner	3a760e5e03e7366e	12	1/1		0/1	ix:resp
 Knight of Cliffhaven	fc4a61c24d1ebf9f	25	1/1		1/1	
 Lazotep Reaver	33188a53d2b40042	31	1/1		0/1	ix:resp
 Loxodon Anchorite	91a388a6a3857e90	12	1/1		1/1	
 Loxodon Gatekeeper	aaa8b49302a6e3bb	10	0/0		0/0	
+Lux Cannon	48ace2ba06f11b1d	29	2/2		1/1	
 Maulfist Doorbuster	be02558213000e2e	12	2/2		0/1	ix:resp
 Mephidross Vampire	ecd8b91de1abfe0f	6	0/0		0/0	
 Millennial Gargoyle	ce78493f6ee6fe13	8	0/0		0/0	
 Mob	b521223237ad9bb0	8	0/0		2/2	
 Moltensteel Dragon	254fe7bc0d13dcab	13	1/1		1/1	
+Morbid Plunder	1a686ceeb493b8a2	10	0/0		2/2	
 Mountain	9e71388353e907ed	295	1/1		0/1	ix:resp
 Nearheath Chaplain	2ae6900efbe7d8d8	18	1/1		1/1	
 Norika Yamazaki, the Poet	96de22ae57ae2ada	7	1/1		1/1	
@@ -75,22 +83,28 @@ Phyrexian Missionary	710b5e39d99cc700	17	1/1		2/3	ix:resp
 Pillar Tombs of Aku	f7b36d9cc12bc971	8	1/1		1/1	
 Plains	82d63a695487e567	292	1/1		0/1	ix:resp
 Possessed Nomad	d27d6fc5440a6d64	10	0/0		0/0	
+Prakhata Club Security	0f9648731fceef0b	25	0/0		0/0	
 Priest of the Crossing	adc3328e4ab23daf	10	1/1		0/1	ix:resp
 Primaris Chaplain	31795420bead5686	17	2/2		1/1	
 Prismari Campus	2e095a319fbba3f9	57	2/2		1/1	
 Pumpkin Bombs	f4a708ff7acd78f0	26	1/1		1/1	
 Purgatory	f312bc4511fa6fcd	4	2/2		1/1	
 Qilin's Blessing	1efcb25d423edb07	12	0/0		1/2	ix:resp
+Ravenous Skirge	5160bb162f754735	17	1/1		0/1	ix:resp
 Regal Bloodlord	a0ff349592e5bec7	8	1/1		0/1	ix:resp
 Rekindled Flame	2fbffa295953bf2e	11	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
 Reviving Melody	a652f6374013f66b	12	0/0		2/2	
 Rising Populace	5747f1e754f3a56b	20	1/1		1/1	
+Roar of Reclamation	4bc69b17ba8a3eeb	6	0/0		1/2	ix:resp
 Rumbling Baloth	5634ba9772356f94	9	0/0		0/0	
 Scorch Spitter	4665654d638d2244	20	1/1		0/1	ix:resp
 Selesnya Signet	4c6244e3932adfbc	26	1/1		0/1	ix:resp
 Shadow Lance	50538dd2d2444d30	20	1/1		2/2	
 Shadowfeed	906fb886d5971f13	30	0/0		2/2	
+Sickle Ripper	775d2c6386c3ebf5	9	0/0		0/0	
 Siege Smash	6371abd9e36f54d9	26	0/0		1/2	ix:resp
+Silumgar Butcher	1710618992e3f53a	14	2/2		1/1	
+Siren of the Silent Song	e7b8ae06d9122f09	30	1/1		1/1	
 Skred	cd2215a4865b1dca	11	0/0		1/2	ix:resp
 Sky Ruin Drake	6d8423af695e0cdf	21	0/0		0/0	
 Soltari Priest	6c82ec1f8fa7951f	6	0/0		0/0	
@@ -107,12 +121,16 @@ Terminal Agony	be02c194ad3352e6	13	0/0		2/2
 The Meathook Massacre	b1e3b84309d16df0	7	3/3		1/1	
 Thraben Inspector	26a8dec307e4d231	13	1/1		1/1	
 Tradewind Rider	b73de656a1b382eb	35	1/1		1/1	
+Twilight Prophet	fb941778d6fbcb5c	38	1/1		1/1	
 Undead Butler	d342c5189de9a0b8	33	2/2		1/1	
 Vault Guardsman	13c258591533d1d6	9	1/1		0/1	ix:resp
 Vectis Dominator	56bf12dc18190d1e	14	1/1		0/1	ix:resp
 Walking Corpse	a8f89f413b100b65	21	0/0		0/0	
+Warped Physique	db3735d652034c6c	24	0/0		2/2	
 Warrior's Charge	500948c605524213	16	0/0		1/2	ix:resp
 Wayfaring Giant	65e5d630f6993a86	3	0/0		0/0	
+Wei Elite Companions	dbd696c10d04a30f	12	0/0		0/0	
 White Glove Gourmand	066c5ae5ad85cd17	12	2/2		0/1	ix:resp
+Wicker Witch	08b78e2e6be3d932	32	0/0		0/0	
 Wielding the Green Dragon	17ea603cc0f72f93	17	0/0		2/2	
 You See a Pair of Goblins	62e8c35d19b17b5c	16	0/0		1/2	ix:resp

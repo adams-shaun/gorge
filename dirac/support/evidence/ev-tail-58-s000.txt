@@ -24,6 +24,7 @@ Born to Drive
 Bramblesnap
 Bright Reprisal
 Brood Weaver
+Burst Lightning
 Canal Dredger
 Candelabra of Tawnos
 Capashen Unicorn
@@ -33,6 +34,7 @@ Chaos Maw
 Chardalyn Dragon
 Charging Bandits
 Cinder Pyromancer
+Consult the Star Charts
 Contagious Vorrac
 Coveted Peacock
 Cruel Fate
@@ -44,6 +46,7 @@ Deluge
 Disciple of Freyalise
 Disciple of Law
 Disempower
+Divine Resilience
 Dormant Sliver
 Dovin's Acuity
 Dreadwing
@@ -68,16 +71,20 @@ Forest
 Garenbrig Carver
 Gate Hound
 Gate of the Black Dragon
+Gatekeeper of Malakir
 Ghirapur Aether Grid
 Giant Dustwasp
 Glint-Horn Buccaneer
 Glint-Nest Crane
+Gnarlid Colony
 Goblin Engineer
 Graf Reaver
 Grave Strength
 Gravecrawler
 Gravedig
 Grotag Night-Runner
+Ground Rift
+Grow from the Ashes
 Guardian of Pilgrims
 Guma
 Harbor Bandit
@@ -92,6 +99,7 @@ Incite
 Infernal Captor
 Inquisitor Exarch
 Inspired Insurgent
+Into the Roil
 Iron Myr
 Iron Will
 Island
@@ -115,6 +123,7 @@ Mardu Warshrieker
 Marionette Master
 Maul of the Skyclaves
 Meletis Astronomer
+Merfolk Falconer
 Mesmeric Fiend
 Minds Aglow
 Minion's Return

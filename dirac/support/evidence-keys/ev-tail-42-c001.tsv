@@ -52,6 +52,7 @@ Goblin Sledder	916ea42dd12803df	20	1/1		1/1
 Gold-Forged Sentinel	4974f4120d90d64a	5	0/0		0/0	
 Greater Auramancy	3ee56a41131c7e83	5	0/0		0/0	
 Green Scarab	18d0543b3f5647ed	20	0/0		2/2	
+Grim Roustabout	05f1daad0e3b5b1b	19	1/1		1/1	
 Grizzled Angler	be42a55b9a027acb	14	2/2		1/1	
 Gwenna, Eyes of Gaea	7fc193932dfb9621	18	2/2		0/1	ix:resp
 Hammerhead, Maggia Boss	a4eada396afd033f	21	1/1		0/1	ix:resp
@@ -76,6 +77,7 @@ Mage's Guile	18ebd821350f4c67	8	1/1		1/2	ix:resp
 Mordant Dragon	d5ec805145f7ea96	10	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Morkrut Banshee	282d6cbba8eb8e52	14	1/1		0/1	ix:resp
 Mossbeard Ancient	a38a9e151ab55a4a	5	1/1		0/1	ix:resp
+Needleverge Pathway	11b8671b35715217	37	2/2		0/1	ix:resp
 Nest Robber	8ae89be93e217c4e	13	0/0		0/0	
 Nostalgic Dreams	a4b322b4a8193ab5	6	0/0		2/2	
 Nova Flame	092d38df366e8e8b	9	0/0		2/4	f0/s/x0,ix:resp
@@ -104,9 +106,11 @@ Shoulder to Shoulder	aa808ac62763ad11	12	0/0		1/2	ix:resp
 Soulblade Djinn	22dd2a49ca0a68e0	10	1/1		0/1	ix:resp
 Spider Spawning	17f214091484bd53	10	0/0		4/4	
 Strength of Isolation	a6c64bffb27c18de	11	0/0		2/2	
+Subterranean Hangar	762f8a5b71ddc6ca	74	2/2		1/1	
 Sunbringer's Touch	a622b0872b2609f9	6	0/0		1/2	ix:resp
 Suppression Bonds	9d531f97d7065b17	14	0/0		1/2	ix:resp
 Temporal Manipulation	628500a0f9fb7738	15	0/0		2/2	
+The Balrog of Moria	4836636e31f2c7a6	3	3/3		1/1	
 Trigon of Corruption	599a98f6ec879dab	10	2/2		0/1	ix:resp
 Turntimber Ranger	f2b02e0f53eb67c2	7	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Ureni's Counsel	2ae493b7cb0f582c	11	0/0		2/4	cast/alt:harmonize,ix:resp

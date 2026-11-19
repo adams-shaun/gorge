@@ -39,6 +39,7 @@ Cowardice	8457c3f35278a329	3	1/1		0/1	ix:resp
 Cunning Lethemancer	83ee495715ec7724	4	1/1		1/1	
 Curate	3ef5a864932838a4	5	0/0		2/2	
 Curious Pair	0b3573f005009961	16	0/0		1/2	ix:resp
+Damnable Pact	9bf50898fa79dc15	3	0/0		2/4	f0/s/x0,ix:resp
 Daraja Griffin	b75db702694f1b83	4	1/1		0/1	ix:resp
 Dark Hatchling	526f0d2c0e9135e4	6	1/1		0/1	ix:resp
 Dauthi Warlord	7f124f41f796deb2	8	0/0		0/0	
@@ -61,6 +62,7 @@ Ethereal Whiskergill	f985b557ec0eb12e	3	0/0		0/0
 Etherium Abomination	3bf19f678c9511de	14	1/1		0/1	ix:resp
 Evil Presence	c3c4f2a4446d1b86	4	0/0		1/2	ix:resp
 Extract	474257b5f7cf9bf6	4	0/0		2/2	
+Exuberant Fuseling	4517b4dc92e3193b	8	2/2		0/1	ix:resp
 Faerie Conclave	0928db5002307465	10	2/2		1/1	
 Fated Infatuation	ce39ac3e096643de	4	0/0		1/2	ix:resp
 Fell Flagship	2c87926e50541f34	5	2/2		0/1	ix:resp
@@ -79,6 +81,7 @@ Glacial Grasp	7a65c1472b1b1baf	8	0/0		2/2
 Goblin Outlander	68467922f4089b5c	3	0/0		0/0	
 Goblin Ruinblaster	1bd0d6849ee394fb	4	1/1		2/3	ix:resp
 Gravepurge	69a852869535d27e	6	0/0		1/2	ix:resp
+Grazing Gladehart	716aff652e052dce	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Great Furnace	9e196dbe92d1831b	15	1/1		0/1	ix:resp
 Greataxe	e4956932b137469a	12	1/1		0/1	ix:resp
 Greenbelt Rampager	300890c83e1dc8a9	32	1/1		0/1	ix:resp

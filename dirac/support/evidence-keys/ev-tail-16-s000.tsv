@@ -1,0 +1,128 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Angler Turtle	472c699a3a079ece	4	0/0		0/0	
+Arcbound Fiend	24c6d79edfa05966	10	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
+Archghoul of Thraben	09d61ad81db9a1d2	9	1/1		1/1	
+Armory of Iroas	5aeafa25e88dc630	18	2/2		0/1	ix:resp
+Awakened Awareness	04a8ffb0958250ac	13	1/1		2/4	f0/s/x0,ix:resp
+Awe Strike	0cc1ed4a4c521f44	6	0/0		1/2	ix:resp
+Baral's Expertise	e8ad39238d2100c1	8	0/0		1/2	ix:resp
+Benthic Djinn	170a57b5514ff16d	10	1/1		1/1	
+Black Cat	33151028b333f337	9	1/1		0/1	ix:resp
+Black Lotus	ce5412443be51c46	36	1/1		0/1	ix:resp
+Blood Clock	c79f2e9229715d83	10	1/1		1/1	
+Brazen Freebooter	032d8cb5976728bc	13	1/1		0/1	ix:resp
+Bronze Cudgels	507c9936a678231e	18	2/2		1/1	
+Burning Anger	115c41256eb917f1	11	0/0		2/2	
+Cantivore	da5523fa22a79722	10	0/0		0/0	
+Cathartic Reunion	704ca519b9d113db	14	0/0		2/2	
+Caves of Chaos Adventurer	6a9a180d3ca67687	8	2/2		0/1	ix:resp
+Chittering Skitterling	839c919cbbbf48ff	16	1/1		1/1	
+Clay Statue	be35997001ee61e7	19	1/1		1/1	
+Cloaked Cadet	c1f170bebd1d3c8c	9	2/2		0/1	ix:resp
+Colossal Whale	0a7ffbc8ee2d083e	14	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Consecrated Sphinx	25cf72211a9a5c9e	8	1/1		1/1	
+Contagious Nim	20be9000f357abe3	9	0/0		0/0	
+Crippling Chill	0bbba305ee1fbec6	17	0/0		1/2	ix:resp
+D'Avenant Archer	ed327f116e3cdb0d	10	1/1		0/1	ix:resp
+Darkblade Agent	d25483dae789cb02	6	0/0		0/0	
+Dauntless Survivor	0180b96484eb4028	11	1/1		1/1	
+Dauntless Unity	3c4e4efb4ba16ddc	16	0/0		2/4	cast/alt:kicked,ix:resp
+Demon's Horn	4cc0ce72349c4308	34	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Descend upon the Sinful	5761748c97adac19	3	0/0		1/2	ix:resp
+Desert Sandstorm	2425969f195bf8e9	17	0/0		1/2	ix:resp
+Didn't Say Please	1a68c43b7afa3baa	9	0/0		2/2	
+Draconic Lore	4e3a5b9bcc8410c8	31	0/0		2/2	
+Dragonfly Suit	84fe1d686e66db54	15	1/1		1/1	
+Dunland Crebain	bcf2515dee7b3902	19	1/1		1/1	
+Ebon Praetor	b892a5de6d2a99dc	4	2/2		1/1	
+Elvish Lyrist	81e94d08a981bff9	5	1/1		0/1	ix:resp
+Endure	335b1dc99cbed009	12	0/0		2/2	
+Fall of the Hammer	9611a5bb3aafd9fa	11	0/0		2/2	
+Ferocity of the Wilds	43928500d2c1efa6	16	0/0		0/0	
+Fire Drake	7088edf3dc3ffeef	4	1/1		0/1	ix:resp
+Fires of Undeath	b024b28de07c0099	32	0/0		3/4	ix:resp
+Fleet-Footed Monk	0c4dbdee2419c4a3	8	0/0		0/0	
+Foul Imp	3ce8fc4a8ddeb583	9	1/1		1/1	
+Frilled Sea Serpent	da2afe0c08b572be	13	1/1		1/1	
+Frodo, Determined Hero	d836788a2613333c	12	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Furnace Strider	bad494245e54bacb	11	1/1		0/1	ix:resp
+Furtive Analyst	a254b07b95222f4e	28	1/1		1/1	
+Garrison Cat	96ae11af034fe261	20	1/1		0/1	ix:resp
+Ghirapur Gearcrafter	32cedfe1d6f47180	8	1/1		0/1	ix:resp
+Gluttonous Cyclops	c5f46f6e9119949f	11	1/1		1/1	
+Goblin Assault Team	46ed54f399d8583c	12	1/1		0/1	ix:resp
+Goblin Cavaliers	95792df063ba476d	11	0/0		0/0	
+Goblin Cratermaker	24c118e51666eee0	13	1/1		1/1	
+Goblin Gathering	afc0065e1af74c33	11	0/0		1/2	ix:resp
+Goblin Roughrider	00490c2d9f2bf7d3	18	0/0		0/0	
+Grave Exchange	5731ec08c9c91796	13	0/0		2/2	
+Gryff's Boon	9ed9d725f0f0026a	14	1/1		2/2	
+Guardian Zendikon	940a8d2522df2b6c	6	1/1		1/2	ix:resp
+Hagi Mob	9f857e2b2254a54d	8	1/1		0/1	ix:resp
+Hagra Crocodile	2e54e10a5e24d71f	6	1/1		1/1	
+Havoc Demon	d96eff235787f52b	9	1/1		1/1	
+Herbology Instructor	078d46720ea76c25	10	3/3		0/1	ix:resp
+Hired Poisoner	ed43aa5be21a6699	4	0/0		0/0	
+Hobble	277fbc3ce37db237	10	1/1		1/2	ix:resp
+Inner Fire	57d7d50a62f3138b	4	0/0		1/2	ix:resp
+Inquisitor's Ox	5189ba5354974186	7	0/0		0/0	
+Instrument of the Bards	039f15f5a149613e	8	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Jayemdae Tome	627786d6b477db32	14	1/1		1/1	
+Junk Diver	0159d3e8d2758a35	25	1/1		0/1	ix:resp
+Kiora's Dambreaker	782856722373b0fc	8	1/1		0/1	ix:resp
+Krenko, Tin Street Kingpin	18c6022c06641abe	10	1/1		0/1	ix:resp
+Lethal Protection	4e8b912ab00655be	12	0/0		2/2	
+Mana-Charged Dragon	c504002f69de4f68	7	2/2		0/1	ix:resp
+Martial Impetus	bbad586f29553889	6	1/1		1/2	ix:resp
+Merfolk Branchwalker	4485279ae37aae08	16	1/1		0/1	ix:resp
+Merrow Commerce	444f25a033fc4854	17	1/1		1/1	
+Mind Shatter	8aa6d951ff0a5e45	4	0/0		3/4	f0/s/x0
+Mirror Entity	0a858fd0818a0023	4	1/1		1/1	
+Mox Emerald	8762de173274ac76	24	1/1		1/1	
+Nebelgast Beguiler	f2b4c18b18417674	6	1/1		1/1	
+Necromancer's Assistant	78757d02ed53725e	10	1/1		1/1	
+Nevinyrral's Disk	846470e947df6ed4	18	1/1		1/1	
+Obsessive Search	bc559823d81ce0fa	23	0/0		2/2	
+Ogre Errant	c11e547e4efd8fea	9	1/1		0/1	ix:resp
+Orcish Bloodpainter	5dabc7e4f00636a9	4	1/1		0/1	ix:resp
+Orcish Oriflamme	fbc4846346f6e450	6	0/0		0/0	
+Origin Spellbomb	600b5ee8f57dc669	35	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Oriq Loremage	6e85c9818b2c7847	23	1/1		1/1	
+Parish-Blade Trainee	7a2df346fd36b3fd	10	2/2		0/1	ix:resp
+Phyrexian Scriptures	bd10118631b8aff1	8	0/0		0/0	
+Pillardrop Warden	15f9cc77fb7ad024	15	1/1		0/1	ix:resp
+Plague Boiler	f63cb8ba08926474	22	3/3		1/1	
+Ramroller	615fc33f859a163d	26	0/0		0/0	
+Renegade Firebrand	13a31e91c0355241	20	0/0		0/0	
+Rimewind Taskmage	2c24273ca948707e	332	1/1		1/1	
+Rishadan Brigand	43ff6f4a609c91b3	11	1/1		0/1	ix:resp
+Rubblebelt Maaka	bcee798babbc84de	6	1/1		0/1	ix:resp
+Ruthless Winnower	d76f6c7ad6a5920b	9	1/1		1/1	
+Scab-Clan Berserker	437032a33a4ee393	10	2/2		1/1	
+Schismotivate	7abb82e777c04376	16	0/0		2/2	
+Scourge of Geier Reach	36080b5d362545f9	10	0/0		0/0	
+Scrapyard Mongrel	0a644896ac1dd2d6	9	0/0		0/0	
+Siegfried, Famed Swordsman	38789962adf6cd38	10	1/1		1/1	
+Silver-Inlaid Dagger	956e484cb7f8db97	18	1/1		0/1	ix:resp
+Skyline Despot	b9815b97b0efb4b9	7	2/2		1/1	
+Sleep	cfb57686af7d5d6b	8	0/0		2/2	
+Soaring Show-Off	6e481f736585a0df	18	1/1		0/1	ix:resp
+Soltari Lancer	6dbe8d421a6c4211	14	0/0		0/0	
+Soul Summons	7c94a9a30c897604	8	0/0		1/2	ix:resp
+Soulsurge Elemental	794d74e07d22f52d	14	0/0		0/0	
+Sphinx Mindbreaker	b8f199f4c99175cb	7	1/1		0/1	ix:resp
+Stonybrook Angler	7e71914332858b52	26	1/1		0/1	ix:resp
+Strength of Cedars	60494059a74ce44d	11	0/0		2/2	
+Survey the Wreckage	f041bb499334b1e8	8	0/0		2/2	
+Synchronized Spellcraft	e21225c2daad8fcc	8	0/0		1/2	ix:resp
+The Marvelous Scientist	4afcf3c19b30e559	8	0/0		0/0	
+Thought Erasure	09f00bac184e4229	7	0/0		2/2	
+Thrash of Raptors	5cb9179855e2e923	11	0/0		0/0	
+Thrull Parasite	12f64dc43bc33730	8	2/2		1/1	
+Thunder of Hooves	36e52f953f1e79b4	17	0/0		1/2	ix:resp
+Towashi Songshaper	1fa4f18ef49fb515	18	1/1		1/1	
+Turn to Slag	8506e4232f982a41	6	0/0		1/2	ix:resp
+Violent Eruption	07f8df6292a6dd98	3	0/0		1/2	ix:resp
+Wall of Tanglecord	9ec1e6001e160d12	25	1/1		1/1	
+Wily Goblin	e2b98a305c80156a	10	1/1		0/1	ix:resp
+Wydwen, the Biting Gale	e21e083cc659d999	63	1/1		1/1	

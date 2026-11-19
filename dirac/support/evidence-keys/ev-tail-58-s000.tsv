@@ -25,6 +25,7 @@ Born to Drive	55388faad8b9d2c2	8	1/1		1/2	ix:resp
 Bramblesnap	831ff70d9a7790c0	10	1/1		1/1	
 Bright Reprisal	f7501dddca843bd8	12	0/0		1/2	ix:resp
 Brood Weaver	f3c319aa96b772dc	20	1/1		1/1	
+Burst Lightning	4e791fe7bd67d888	133	0/0		4/4	
 Canal Dredger	c5be75f034e1ee98	31	1/1		0/1	ix:resp
 Candelabra of Tawnos	4171bf7581fb192c	25	1/1		1/1	
 Capashen Unicorn	bc69ebffbc1b7e92	24	1/1		0/1	ix:resp
@@ -34,6 +35,7 @@ Chaos Maw	4be60967de91f6e5	6	1/1		1/1
 Chardalyn Dragon	55345e509ed885e8	16	0/0		0/0	
 Charging Bandits	544dc9ff0b53af5f	20	1/1		1/1	
 Cinder Pyromancer	de6368413c3191ef	10	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Consult the Star Charts	b600a2269a42c5ca	561	0/0		4/4	
 Contagious Vorrac	8e3b46f95c87f8fd	14	1/1		0/1	ix:resp
 Coveted Peacock	b0c7b86ce89366ca	24	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Cruel Fate	abb0d99983ecd6e7	22	0/0		1/2	ix:resp
@@ -45,6 +47,7 @@ Deluge	1e07b69bd08ce5e7	46	0/0		2/2
 Disciple of Freyalise	4a594b2af7759df0	20	2/2		0/1	ix:resp
 Disciple of Law	fd44bdb5386cf755	5	1/1		1/1	
 Disempower	218a042c0f009c48	25	0/0		2/2	
+Divine Resilience	d74777d203d1e3ca	137	0/0		4/4	
 Dormant Sliver	324eb5708eb906cf	20	0/0		0/0	
 Dovin's Acuity	f0b9c5051acc0565	11	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Dreadwing	7ee324d342af5a93	40	1/1		0/1	ix:resp
@@ -69,16 +72,20 @@ Forest	6d0466c30f825dba	282	1/1		0/1	ix:resp
 Garenbrig Carver	f28b3f0843bb2a7c	27	0/0		1/2	ix:resp
 Gate Hound	df6f2b118a25e9cb	24	0/0		0/0	
 Gate of the Black Dragon	9f017409059fee97	186	2/2		1/1	
+Gatekeeper of Malakir	4c64acaef83893ff	132	1/1		3/3	
 Ghirapur Aether Grid	c18a3a0ab0fac84c	4	1/1		0/1	ix:resp
 Giant Dustwasp	1e08862415a3a7a5	8	0/0		1/2	cast/alt:none
 Glint-Horn Buccaneer	6c2a2c2bab4d3d97	6	2/2		1/1	
 Glint-Nest Crane	42f103136a1a7d6c	27	1/1		0/1	ix:resp
+Gnarlid Colony	7ba5677f1ea76991	127	0/0		2/2	
 Goblin Engineer	846c41ac519cc08c	18	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Graf Reaver	b887544b7b028813	21	3/3		1/1	
 Grave Strength	acddab0cad9ad5ab	28	0/0		2/2	
 Gravecrawler	edfd0e9268aa2149	22	0/0		0/0	
 Gravedig	b1f7a4129c7aae24	28	0/0		2/2	
 Grotag Night-Runner	54c21ca680721457	28	1/1		1/1	
+Ground Rift	419fe9f37808217c	6	1/1		2/2	
+Grow from the Ashes	c208fcde354ca8a9	100	0/0		4/4	
 Guardian of Pilgrims	f19d1c0836dad42d	24	1/1		0/1	ix:resp
 Guma	b7f781fb9e822256	8	0/0		0/0	
 Harbor Bandit	af91565fb9b1b31d	25	1/1		1/1	
@@ -93,6 +100,7 @@ Incite	7ed16befb24f3c9e	8	0/0		2/2
 Infernal Captor	c9cde0a374968056	10	2/2		0/1	ix:resp
 Inquisitor Exarch	63dc0fe0a4a9547a	28	1/1		1/1	
 Inspired Insurgent	100c2b8aa38f20dc	11	1/1		1/1	
+Into the Roil	24483411a5b14b54	538	0/0		4/4	
 Iron Myr	70cfea9c73068add	29	1/1		1/1	
 Iron Will	1a24e2bd2674fc98	18	1/1		2/2	
 Island	763c67ef7a27eaf5	1721	1/1		0/1	ix:resp
@@ -116,6 +124,7 @@ Mardu Warshrieker	a8b68a6b558871f3	16	1/1		1/1
 Marionette Master	749dc4439a0decaa	8	2/2		1/1	
 Maul of the Skyclaves	66af3f9eb5e99934	28	2/2		0/1	ix:resp
 Meletis Astronomer	0ac87256b8eb7475	25	1/1		1/1	
+Merfolk Falconer	9b429ce85555a27a	315	1/1		1/1	
 Mesmeric Fiend	cebad4ce12fe0867	18	2/2		1/1	
 Minds Aglow	0ad91a203e92cf58	26	0/0		2/2	
 Minion's Return	6e8e27c5210519b0	30	1/1		2/2	

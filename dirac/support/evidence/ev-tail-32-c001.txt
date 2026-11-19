@@ -1,7 +1,9 @@
+Abstruse Interference
 Advocate of the Beast
 Aeolipile
 Aeronaut's Wings
 Ageless Guardian
+Akki Rockspeaker
 Akoum Warrior
 Alabaster Wall
 Alchor's Tomb
@@ -11,6 +13,7 @@ Apprentice Sorcerer
 Archfiend of Sorrows
 Arctic Treeline
 Atarka Beastbreaker
+Attrition
 Axgard Armory
 Barbed Batterfist
 Bazaar Trademage
@@ -22,6 +25,7 @@ Blue Sun's Zenith
 Blunt the Assault
 Boggart Arsonists
 Book of Rass
+Border Guard
 Brand
 Brawl-Bash Ogre
 Brood Birthing
@@ -88,12 +92,15 @@ Heart Sliver
 Heliod's Pilgrim
 Heroic Charge
 Hollowhenge Overlord
+Honor the Past
 Howlpack Resurgence
 Hulking Cyclops
 Hyalopterous Lemure
 Hysterical Blindness
+Idle Thoughts
 Ifnir Deadlands
 Ignition Team
+Into Thin Air
 Into the Maw of Hell
 Ioreth of the Healing House
 Irini Sengir
@@ -102,6 +109,7 @@ Ivory Crane Netsuke
 Koilos Roc
 Krenko's Enforcer
 Kruin Striker
+Kukemssa Pirates
 Lace with Moonglove
 Leo's Guidance
 Lesser Gargadon
@@ -125,6 +133,7 @@ Metallic Mastery
 Mind Drain
 Mirrodin Avenged
 Mirror Image
+Mistcutter Hydra
 Misthios's Fury
 Monstrous Hound
 Morbid Bloom
@@ -139,10 +148,12 @@ Ogre Berserker
 Ondu Cleric
 Ovalchase Daredevil
 Overrule
+Penance Stare
 Pestermite
 Pillar of Light
 Plains
 Pollenbright Wings
+Prized Statue
 Psychic Spear
 Purifying Dragon
 Quicksilver Dagger
@@ -158,6 +169,7 @@ Returned Centaur
 Rhox Brute
 Righteousness
 Riot Gear
+Root Greevil
 Ruin Ghost
 Rust Monster
 Salt Marsh
@@ -188,6 +200,7 @@ Surreal Memoir
 Swamp
 Tail Slash
 Telim'Tor's Edict
+Territorial Aetherkite
 Tervigon
 The Prydwen, Steel Flagship
 Thorn Lieutenant

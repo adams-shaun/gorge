@@ -1,0 +1,88 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Aang's Iceberg	861eceb25b018fa5	3	2/2		1/1	
+Abandon Attachments	38a68517f788fe0e	8	0/0		2/2	
+Accumulate Wisdom	efa017d6990378c1	4	0/0		2/2	
+Agna Qel'a	eaa73729bbfa560c	16	2/2		1/1	
+Avatar Enthusiasts	11e09f827e73a9ce	8	1/1		0/1	ix:resp
+Boar-q-pine	be5b317ae9a7dea2	8	1/1		1/1	
+Boiling Rock Prison	7e907353ba79c7ae	16	2/2		0/1	ix:resp
+Boomerang Basics	2e39d153bdca6429	11	0/0		2/2	
+Bumi Bash	5d1dfd0b75a9630c	6	0/0		2/2	
+Callous Inspector	6bf00b09d92fa34c	5	1/1		0/1	ix:resp
+Curious Farm Animals	83b49a996c93a3c7	7	2/2		1/1	
+Cycle of Renewal	fa779d141d8e1113	4	0/0		1/2	ix:resp
+Day of Black Sun	c7ed5fe494895370	5	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
+Deserter's Disciple	265cece7f94fcd5b	13	1/1		1/1	
+Earth Kingdom General	8339fcda287f74e6	4	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Earth Kingdom Jailer	aa3654a7621f0e0f	4	1/1		1/1	
+Earth Kingdom Protectors	c66dfe8d8056163b	8	1/1		0/1	ix:resp
+Earthbender Ascension	9b0e9fd7f227ac53	5	2/2		1/1	
+Fancy Footwork	a2cfe72f5dc81f32	3	0/0		1/2	ix:resp
+Fire Nation Attacks	b7b723dd9cb9d2d8	5	0/0		3/4	cast/alt:flashback
+Fire Nation Palace	2b3dbbdafdfa181d	3	2/2		1/1	
+Firebending Lesson	339a150588aa11e7	6	0/0		3/4	ix:resp
+Flexible Waterbender	e510c8ae26175651	3	1/1		1/1	
+Foggy Bottom Swamp	81186ed7c6151ef1	10	2/2		0/1	ix:resp
+Forecasting Fortune Teller	0c1115a800bcf6ec	7	1/1		0/1	ix:resp
+Forest	6d0466c30f825dba	29	1/1		0/1	ix:resp
+Geyser Leaper	d21b097c1d90507b	3	1/1		1/1	
+Giant Koi	c57afa7135de3e72	3	2/2		1/1	
+Glider Kids	19b39a0452dd459b	4	1/1		0/1	ix:resp
+Gran-Gran	cdfa4be562a5db12	9	1/1		1/1	
+Honest Work	666fdfe19e2604a5	6	1/1		2/2	
+How to Start a Riot	37bc2f722bc72974	3	0/0		2/2	
+Iguana Parrot	9e3d20f612c515a4	3	1/1		0/1	ix:resp
+Iroh's Demonstration	525c89924416b8e7	4	0/0		2/2	
+Island	763c67ef7a27eaf5	262	1/1		0/1	ix:resp
+It'll Quench Ya!	b321617bcbf15165	10	0/0		2/2	
+Jet's Brainwashing	f02e3e51760c676e	10	0/0		3/4	cast/alt:kicked
+Joo Dee, One of Many	11fdaf97ba37b2bb	5	1/1		0/1	ix:resp
+June, Bounty Hunter	00c7b8e84d0d7b79	5	1/1		1/1	
+Katara, Bending Prodigy	31dd88712aca8f43	5	2/2		1/1	
+Knowledge Seeker	66f978b5995469ac	10	2/2		1/1	
+Lightning Strike	5d01b955495e0a84	6	0/0		2/2	
+Lost Days	044bb56f21f22238	6	0/0		2/2	
+Mai, Jaded Edge	1097b16363af48d0	4	2/2		0/1	ix:resp
+Mai, Scornful Striker	66bb584fed3301f2	7	1/1		0/1	ix:resp
+Master Pakku	e0214342b9f64496	5	2/2		1/1	
+Master Piandao	8a4ae89dc8f5d95a	3	1/1		0/1	ix:resp
+Misty Palms Oasis	660908510dcdf66d	11	2/2		0/1	ix:resp
+Momo, Friendly Flier	f0395da2d27ed342	4	1/1		0/1	ix:resp
+Mountain	9e71388353e907ed	89	1/1		0/1	ix:resp
+North Pole Gates	15709edd27486a4f	6	2/2		0/1	ix:resp
+Octopus Form	84f635d0054218ca	7	0/0		2/2	
+Omashu City	c9b69b823e9fa1dc	6	2/2		0/1	ix:resp
+Pillar Launch	c92e3639c6e5820d	4	0/0		1/2	ix:resp
+Plains	82d63a695487e567	82	1/1		0/1	ix:resp
+Professor Zei, Anthropologist	78b14edd439e32f9	4	2/2		0/1	ix:resp
+Razor Rings	2c472e9563c57ecc	5	0/0		2/2	
+Redirect Lightning	bd8375f54d770a51	3	0/0		2/2	
+Rockalanche	372dda168876b5f0	5	0/0		3/4	ix:resp
+Secret Tunnel	59ab46083c16b4a5	4	2/2		0/1	ix:resp
+Serpent's Pass	18c88a5ab662bb3b	9	2/2		0/1	ix:resp
+Sokka's Haiku	01674be9f8bc8a88	3	0/0		2/2	
+Sokka, Bold Boomeranger	7e4bd2786fd778df	9	2/2		0/1	ix:resp
+Solstice Revelations	ea9f5a601e0ae4b6	8	0/0		4/4	
+South Pole Voyager	6fb2053c9c7817b3	5	1/1		0/1	ix:resp
+Spirit Water Revival	4ba5289dea668bdb	6	0/0		2/2	
+Sun-Blessed Peak	977f2c97e7da0ae5	5	2/2		0/1	ix:resp
+Swamp	342b413902f441c3	66	1/1		0/1	ix:resp
+Teo, Spirited Glider	e52443b20e4e2529	15	1/1		1/1	
+The Earth King	c56e1a93f55af772	4	2/2		0/1	ix:resp
+The Last Agni Kai	8dd36cd67340cac6	9	0/0		2/2	
+The Unagi of Kyoshi Island	ef54a2bf7dd0730d	6	2/2		1/1	
+Toph, the Blind Bandit	9eb8fac28bb1db6b	4	1/1		0/1	ix:resp
+Treetop Freedom Fighters	c8b436946e87b3aa	4	1/1		0/1	ix:resp
+Twin Blades	02dfff42fc17e4a0	6	2/2		1/1	
+Ty Lee, Chi Blocker	c4eda99d0b854fef	8	2/2		0/1	ix:resp
+United Front	71bba89ff01f3fcd	3	0/0		2/4	f0/s/x+,f0/s/x0
+War Balloon	273401cb22f12604	3	2/2		1/1	
+Water Tribe Rallier	ec578531ddacba1b	4	1/1		1/1	
+Waterbender Ascension	b7c2335f5416f3e1	8	2/2		1/1	
+Waterbending Scroll	9f383174b35ad7d8	3	1/1		0/1	ix:resp
+Watery Grasp	ae640e5e371a9083	10	1/1		2/2	
+White Lotus Hideout	df8e4aae81fa3d3f	6	3/3		0/1	ix:resp
+Yip Yip!	5adcfc3988ae7925	3	0/0		2/2	
+Yue, the Moon Spirit	2621abcbcfcd5d91	4	1/1		0/1	ix:resp
+Yuyan Archers	e5446ab2cb740caf	6	1/1		0/1	ix:resp
+Zuko, Exiled Prince	07f448e3e157a19e	6	2/2		0/1	ix:resp

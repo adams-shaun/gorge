@@ -1,0 +1,74 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Urza's Command	ee398b603ca34123	50	0/0		2/2	
+Ashenmoor Cohort	ade3ac9ea3117488	49	0/0		0/0	
+Balshan Beguiler	ef0f95af196ba3c3	64	1/1		1/1	
+Battered Golem	107d464320eed98b	72	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Boneshard Slasher	e680b0ec342ef61d	41	0/0		0/0	
+Briber's Purse	e77c6cc38f6b24b7	79	1/1		0/1	ix:resp
+Broken Concentration	16391eb78e895083	24	0/0		2/2	
+Catalog	872a9c67e13fb888	50	0/0		2/2	
+Cathartic Adept	c39e9dbf867fe164	68	1/1		1/1	
+Cemetery Reaper	c1de090c446eba3d	15	1/1		0/1	ix:resp
+Chillbringer	046932a4797283c4	39	1/1		1/1	
+Crafty Pathmage	64152afeaae1f683	76	1/1		1/1	
+Dawn of the Dead	6193e808b5a05970	15	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Deviant Glee	dd0d2f86f3b2ae0f	72	0/0		2/2	
+Doom Whisperer	867a5161e29e264c	25	1/1		1/1	
+Emmessi Tome	7898ce5210055fd3	43	1/1		1/1	
+Fandaniel, Telophoroi Ascian	0a62c515f96db537	44	2/2		0/1	ix:resp
+Feral Ghoul	aca90f1f75ad4ac5	45	2/2		0/1	ix:resp
+Festering Mummy	c1abb4e33863f564	74	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Fire Nation Sentinels	4a731a1b7bd2ada8	24	1/1		1/1	
+Force of Negation	3ee7e1c8c2a70d16	46	0/0		2/2	
+Fyndhorn Bow	8ab39b083b071fd1	42	1/1		1/1	
+Grasping Scoundrel	69fe93562492d29c	88	0/0		0/0	
+Grey Havens Navigator	987885f4239f43ef	61	1/1		0/1	ix:resp
+Grim Physician	c082936d5a3d26cc	46	1/1		1/1	
+Grim Reaper's Scythe	677bdbb1fd88b07e	65	2/2		0/1	ix:resp
+Gush	fdcdce078901e099	35	0/0		2/2	
+Headless Rider	040ea30427e0da3e	43	1/1		0/1	ix:resp
+Hired Blade	c8fcacd83f41658c	48	0/0		0/0	
+Hydrosurge	2fdfc8b7c2e2b5b3	80	0/0		2/2	
+Ichor Synthesizer	3e24c96a0ba318a7	72	1/1		0/1	ix:resp
+Ledger Shredder	0bc8be44c90c9941	48	1/1		1/1	
+Lord of the Undead	498b6552bbb8a52a	34	1/1		1/1	
+Merfolk Traders	947bc3cf08cdf81c	53	1/1		0/1	ix:resp
+Metallic Mimic	53349e62b630d1e4	94	0/0		0/0	
+Mind Drain	0a0d9ad43731699a	54	0/0		2/2	
+Mox Sapphire	54c024c7fb550b25	94	1/1		1/1	
+Nature's Ruin	cbcde0793d4e3258	47	0/0		2/2	
+Neurok Replica	ea11e259a9182c0b	66	1/1		1/1	
+Obelisk of Undoing	224aa4bffee5d89d	65	1/1		1/1	
+Ogre's Cleaver	447b1ebcb57c7d25	56	1/1		1/1	
+Phyrexian Broodstar	e4f03952b48fe949	22	0/0		0/0	
+Power Word Kill	45318a71ccacfe63	40	0/0		2/2	
+Prowler's Helm	d868fc39a0f71d07	110	1/1		1/1	
+Rainbow Efreet	250d30146cea4114	40	1/1		1/1	
+Renegade Map	ad683f12431e944c	90	1/1		1/1	
+Rhythmic Water Vortex	cd4b1cf1edf20588	38	0/0		2/2	
+Runaway Trash-Bot	73404f69401ec954	64	0/0		0/0	
+Runed Servitor	70918e788a3415c1	64	1/1		0/1	ix:resp
+Scaretiller	281193a79e032b23	70	1/1		0/1	ix:resp
+Scrapwork Rager	45a56e6108f88ae4	58	2/2		1/1	
+Shire Scarecrow	1ff22594d5dab825	55	1/1		0/1	ix:resp
+Shuko	825fb8483329c2c4	59	1/1		1/1	
+Skirsdag High Priest	9c164175e8123932	41	1/1		0/1	ix:resp
+Skywarp Skaab	069610244a91fdc6	14	1/1		0/1	ix:resp
+Skywing Aven	564389085140aa01	124	1/1		1/1	
+Soratami Mindsweeper	c0f7757d96f5ed1e	62	1/1		1/1	
+Soul Collector	01d1c7f1403e22d2	31	1/1		1/3	cast/alt:morphed,ix:resp
+Stern Proctor	ea9913a554d11536	54	1/1		1/1	
+Stonework Puma	a8b5b797db518d38	89	0/0		0/0	
+Sunset Pyramid	9de7b4b5517e2e94	67	2/2		1/1	
+Syndicate Trafficker	9d43eec614f6454f	45	1/1		1/1	
+Talas Lookout	95d02d7d45266511	48	1/1		0/1	ix:resp
+Their Name Is Death	c7e3e72c39f85d32	9	0/0		1/2	ix:resp
+Thirsting Bloodlord	ad4bcdde34b5909c	51	0/0		0/0	
+Thopter Squadron	0cb7c50a0b6711b1	52	2/2		1/1	
+Traitor's Clutch	8dabb1e2742503fb	137	0/0		4/4	
+Uchuulon	714dc700afae66a6	42	1/1		1/1	
+Urn of Godfire	b4c4878f8578b035	62	2/2		1/1	
+Vampire's Kiss	efb69597140fa2ad	64	0/0		2/2	
+Vat Emergence	151ec6f32ba92eb7	41	0/0		2/2	
+Vivid Flying Fish	4388e4184bb6ef94	86	0/0		0/0	
+Wanted Scoundrels	cd0716629c5d6d86	49	1/1		0/1	ix:resp
