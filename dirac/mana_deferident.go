@@ -91,6 +91,21 @@ func (s *State) tapGapDeferred(k *prep, p uint8, sl Slot, col int) {
 	s.floatDeferredAs(k, p, sl, col)
 }
 
+// windowDeferIdentFirst taps sl as a Combo Any gap source (windowGapTap), or
+// through windowDeferIdentTap when it is a deferred identity source, reporting
+// whether it did; split from windowTapWalk to hold that walk at its codeshape
+// ceiling.
+func (s *State) windowDeferIdentFirst(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCost, clamp, noOwed bool) bool {
+	if k.gen.anyComboAny && s.windowGapTap(k, p, sl, s.cardAt(sl), cost, useful, clamp, noOwed) {
+		return true // a Combo Any gap source, tried first as windowTapWalk did before the split
+	}
+	if !k.gen.anyDeferred || !k.gen.has(s.cardAt(sl), gfDeferred) || !k.deferIdent(s.cardAt(sl)) {
+		return false
+	}
+	s.windowDeferIdentTap(k, p, sl, cost, useful, clamp, noOwed)
+	return true
+}
+
 // windowDeferIdentTap activates the deferred identity source sl in a payment
 // window: the tap, then the one mana in the colour the cost still owes (windowOwedCost),
 // else the lowest colour the clamp keeps, else the lowest of the identity (the

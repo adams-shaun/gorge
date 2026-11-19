@@ -316,11 +316,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				}
 				continue
 			}
-			if k.gen.anyComboAny && s.windowGapTap(k, p, sl, s.cardAt(sl), cost, useful, clamp, noOwed) {
-				continue
-			}
-			if k.gen.anyDeferred && k.gen.has(s.cardAt(sl), gfDeferred) && k.deferIdent(s.cardAt(sl)) {
-				s.windowDeferIdentTap(k, p, sl, cost, useful, clamp, noOwed) // the identity's colour ask (mana_deferident.go)
+			if s.windowDeferIdentFirst(k, p, sl, cost, useful, clamp, noOwed) {
 				continue
 			}
 			if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) {
