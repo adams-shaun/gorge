@@ -100,9 +100,10 @@ func (s *State) filtRepeatPotential(k *prep, p uint8, sl Slot, av *avail, have *
 // filtFunding is the funding the prefix search may activate for the filter
 // gaps f: a repeatable gap's census is unbounded, so the funding never binds
 // (any value of at least potentialScriptNodes is gorge's fee x 160: a funding
-// step costs a node); otherwise the fundable filters' fees summed (a hybrid
-// fee is never funded: mana_filterhybrid.go), none when the search's funding
-// is unrelaxable.
+// step costs a node); otherwise the fundable filters' fees summed, none when
+// the search's funding is unrelaxable. A hybrid fee counts like any other:
+// its activation spends the pip from floating mana (mana_filterhybrid.go), so
+// the search must first tap a covered source to float it.
 func (s *State) filtFunding(k *prep, p uint8, f slotMask) int {
 	if s.filtRepeatIn(k, f) {
 		return potentialScriptNodes
@@ -112,9 +113,6 @@ func (s *State) filtFunding(k *prep, p uint8, f slotMask) int {
 		return 0
 	}
 	for ; f.any(); f = f.rest() {
-		if _, _, hyb := s.filtHyb(k, f.first()); hyb {
-			continue // paid only from mana already floating (mana_filterhybrid.go)
-		}
 		n += s.filtFee(k, f.first())
 	}
 	return n
