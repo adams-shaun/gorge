@@ -57,10 +57,19 @@ func (s *State) copyBlankLayer(k *prep, sl, tmpl Slot) bool {
 }
 
 // projFaceDown sets the projection flags of the face-down-valued permanent at
-// sl: a face-down one is ProjFaceDown, a token copy of one is nameless, and a
-// permanent copy of one keeps its printed card's name, as gorge projects it.
+// sl: a permanently face-down one (a manifested/cloaked card, or a morph) is
+// ProjFaceDown, a token copy of one is nameless, and a permanent copy of one
+// keeps its printed card's name, as gorge projects it.
+//
+// The provenance marks come first: a permanent that is itself manifested or
+// cloaked is face down (CR 708.2) even when it is a token copy minted earlier,
+// while a copy OF a face-down permanent is face up (CR 707.2) and carries no
+// provenance of its own (copyTokenEnterFrom). blankCopy still catches the
+// face-down-valued copies that are not marked, e.g. a copy of a morph.
 func (s *State) projFaceDown(sl Slot, po *ProjObj) {
 	switch {
+	case s.manifested(sl) || s.cloaked(sl):
+		po.Flags |= ProjFaceDown
 	case !s.blankCopy(sl):
 		po.Flags |= ProjFaceDown
 	case !s.permBlank(sl):
