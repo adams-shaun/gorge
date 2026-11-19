@@ -88,6 +88,7 @@ func (s *State) resolveTop(k *prep) {
 		if k.gen.anyTgtSpent {
 			s.snapTgtSpent(&e) // the target's spend, before a counter removes its entry
 		}
+		s.snapTgtMV(k, &e) // the object targets' stack mana value, before a counter removes an entry (value_tgtmv.go)
 		if k.gen.anyCastSpent && DebugOpusLive {
 			s.res.e.trigAmt = s.liveSpentAmt(k, &e) // TestOpusMutation only
 		}
@@ -364,6 +365,9 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 	}
 	if k.gen != nil && k.gen.anyTgtSpent {
 		s.g.tgtSpent = 0 // the snapshot is the resolution's
+	}
+	if k.gen != nil {
+		s.clearTgtMV() // the snapshots are the resolution's (value_tgtmv.go)
 	}
 	if e.kind == seTrigger && e.trigAmt < 0 && !fizzled && e.ab < abCascade && k.gen != nil {
 		if a := &k.t.Cards[e.card].Abilities[e.ab]; a.Trig.Event == kop.TrigETB && a.Trig.Flags2&kop.Tf2Evolve != 0 {
