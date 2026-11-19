@@ -503,6 +503,19 @@ func (s *State) filtMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail, anyCol
 	}
 	best := -1
 	w := filtWalk{s: s, k: k, filt: &filt, cost: cost, anyColor: anyColor}
+	// An announced tap-paid pick pays one pip or one generic of the folded
+	// cost, so the bound prices the pick-folded cost the ask prices (gorge
+	// xAsk, paymentManaX): without it the bound stops one X short of what
+	// the window with the filter can pay. The applied-pick arm is the same
+	// cost as the primary arm wherever that arm absorbs, so it covers both
+	// the ask's offers and its fallback offers. A cost modifier that reads
+	// the spell's mana value sees X and can make a larger X cheaper
+	// (cast_xreduced.go xCostDependsOnX), which breaks the sweep's monotone
+	// break, so the fold is installed only when no modifier reads X.
+	wbX := s.waterbendXBuilding(k) && s.waterbendPickCount() > 0
+	if !s.xCostDependsOnX(k) && (s.convokePickCount() > 0 || wbX) {
+		w.fold = func(x int) (kop.ManaCost, bool) { return s.xFoldCost(k, *cost, x, wbX, false) }
+	}
 	for set := 1; set < 1<<n; set++ {
 		best = max(best, w.activate(*av, filtPos{set: set}))
 	}
@@ -528,13 +541,17 @@ func (s *State) filtBoundExtra(k *prep, p uint8) int {
 }
 
 // filtWalk is one activation of a set of filters on the window's mana (CR
-// 605.3b): filtMaxX runs it per set and it prices each result.
+// 605.3b): filtMaxX runs it per set and it prices each result. fold, when
+// the entry being built carries announced tap-paid picks, is the cost the
+// ask prices at x (lockstepconfig.go xFoldCost): the bound then prices the
+// pick-folded cost, exactly the cost the ask's own sweep prices past mx.
 type filtWalk struct {
 	s        *State
 	k        *prep
 	filt     *[maxFaceFilters]Slot
 	cost     *kop.ManaCost
 	anyColor bool
+	fold     func(x int) (kop.ManaCost, bool)
 }
 
 // filtPos is where a walk stands: the filters still to activate, the sweep
@@ -626,7 +643,41 @@ func (w *filtWalk) activate(t avail, st filtPos) int {
 	if st.set != 0 {
 		return -1
 	}
+	if w.fold != nil {
+		return w.foldedMaxX(t)
+	}
 	return t.maxXScore(w.cost, w.anyColor)
+}
+
+// foldedMaxX is activate's terminal X sweep when the entry carries announced
+// tap-paid picks: gorge's xAsk prices every X through paymentManaX, whose
+// fold applies the announced picks (lockstepconfig.go xFoldCost), so the
+// bound prices the same folded cost -- a convoke pick's pip or generic is
+// mana the announced X no longer needs, and the larger X the window (its
+// filters' fees funded, CR 605.3a) can still make must be offered (Chord of
+// Calling announced with two picks beside a Desolate Mire's {1},{T}).
+// filtMaxX installs the fold only when no cost modifier reads the announced
+// X (cast_xreduced.go xCostDependsOnX), so the folded cost only grows with
+// x: the sweep breaks at the first value the post-filter census cannot pay.
+// A value whose Waterbend<X> picks exceed x (ok=false) is skipped, not a
+// break, since a later, larger X can absorb them.
+func (w *filtWalk) foldedMaxX(t avail) int {
+	best := -1
+	for x := 0; x < maxXAsk; x++ {
+		c, ok := w.fold(x)
+		if !ok {
+			continue
+		}
+		if w.anyColor {
+			if !t.affordsAnyColor(&c, 0) {
+				break
+			}
+		} else if !t.affords(&c, pipMaskOf(&c), 0) {
+			break
+		}
+		best = x
+	}
+	return best
 }
 
 // filtFeePip is the coloured pip of the filter at sl's fee, whether it is a
