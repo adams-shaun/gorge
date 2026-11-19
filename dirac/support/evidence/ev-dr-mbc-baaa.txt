@@ -44,6 +44,7 @@ Grimdancer
 Ground Rift
 Guttersnipe
 Hammers of Moradin
+Hand of Honor
 Haywire Mite
 Hordeling Outburst
 Hunter's Talent
@@ -84,6 +85,7 @@ River Bear
 Rock Slide
 Sabertooth Wyvern
 Sacred Cat
+Samurai of the Pale Curtain
 Shabraz, the Skyshark
 Shadow Prophecy
 Sigil of the New Dawn

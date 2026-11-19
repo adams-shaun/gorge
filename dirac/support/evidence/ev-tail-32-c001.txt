@@ -37,6 +37,7 @@ Cateran Enforcer
 Cavalry Pegasus
 Celestial Purge
 Chatter of the Squirrel
+Cho-Arrim Bruiser
 Clot Sliver
 Cloud Elemental
 Cold Storage
@@ -51,6 +52,7 @@ Court of Grace
 Cut
 Dakmor Plague
 Dark Betrayal
+Darksteel Angel
 Death's Presence
 Death-Hood Cobra
 Definitely Not a Turtle
@@ -176,6 +178,7 @@ Ovalchase Daredevil
 Overrule
 Penance Stare
 Pestermite
+Phantasmal Sphere
 Pillar of Light
 Pious Evangel
 Plains
@@ -209,6 +212,7 @@ Scroll of Origins
 Seeker
 Seismic Strike
 Shackles
+Shanna, Sisay's Legacy
 Shared Discovery
 Skirk Shaman
 Skyclave Cleric
@@ -264,6 +268,7 @@ Voda Sea Scavenger
 Vraska's Contempt
 Wake of Destruction
 Wander in Death
+Warleader's Helix
 Wild Crocodile
 Wilderness Elemental
 Wildfire Eternal

@@ -7,7 +7,6 @@ Altar of the Goyf	dd8c91d6c7562d24	8	1/1		1/1
 Ancient Carp	3c92e8e05adc50e3	3	0/0		0/0	
 Angel of Flight Alabaster	52b89c7091b4853d	21	1/1		1/1	
 Arcane Spyglass	09824fc3050d1297	4	2/2		0/1	ix:resp
-Ashnod's Altar	96367fcb33611442	6	1/1		0/1	ix:resp
 Awe for the Guilds	49f88e15347f2f65	33	0/0		2/2	
 Basilica Shepherd	a8bdde5117c2b2cd	6	1/1		0/1	ix:resp
 Baton of Courage	37af939224f8a158	24	1/1		0/1	ix:resp
@@ -23,6 +22,7 @@ Burning Earth	d81f436e123f6c82	4	1/1		1/1
 Burning Wish	44e90b4985484e8c	30	0/0		2/2	
 Captivating Gyre	751ced8b3f0cef38	10	0/0		1/2	ix:resp
 Cat Oven	210d257086168745	8	2/2		0/1	ix:resp
+Catapult Master	62086270e31baa68	4	1/1		0/1	ix:resp
 Cerebral Eruption	599d4b7beb3a208d	40	0/0		2/2	
 Cerodon Yearling	d60efde6bbc52592	45	0/0		0/0	
 Clinging Darkness	4c992c96cf1e30f4	36	0/0		2/2	
@@ -71,6 +71,7 @@ Hateflayer	543f2562a59dcee9	29	1/1		1/1
 Hidden Gibbons	a48f2cedf3b09f86	36	1/1		1/1	
 Hold for Questioning	1771706b6cd7930e	35	1/1		2/2	
 Horizon of Progress	abb8834233c3cfc8	17	3/3		1/1	
+Hydroblast	6ab1300dc404576a	6	0/0		1/2	ix:resp
 Hydrolash	8336575e8fde4582	5	0/0		1/2	ix:resp
 Inspirit	139f244df7f5bc15	12	0/0		1/2	ix:resp
 Invincible Hymn	787dcba5371f0758	4	0/0		1/2	ix:resp

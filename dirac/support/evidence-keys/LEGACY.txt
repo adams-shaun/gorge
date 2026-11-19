@@ -9,7 +9,6 @@ A-Cosmos Elixir
 A-Elderleaf Mentor
 A-Falcon Abomination
 A-Galvanic Discharge
-A-Hall of Tagsin
 A-High-Rise Sawjack
 A-Lantern of Revealing
 A-Leyline of Resonance
@@ -34,7 +33,6 @@ A-Tatyova, Steward of Tides
 A-The Meathook Massacre
 A-Vega, the Watcher
 Aang and Katara
-Aang, Air Nomad
 Aang, Airbending Master
 Aang, at the Crossroads
 Aatchik, Emerald Radian
@@ -64,8 +62,6 @@ Academy Instructor
 Academy Ruins
 Access Denied
 Accursed Horde
-Accursed Spirit
-Ace, Fearless Rebel
 Acolyte of Xathrid
 Acolyte of the Inferno
 Action News Crew
@@ -129,7 +125,6 @@ Airlift Chaplain
 Airship Crash
 Airtight Alibi
 Aisling Leprechaun
-Ajani Unrelenting
 Ajani's Anguish
 Ajani's Response
 Ajani, the Greathearted
@@ -251,7 +246,6 @@ Apocalypse Runner
 Appeal to Eirdu
 Appendage Amalgam
 Applied Biomancy
-Apprentice Necromancer
 April O'Neil, Hacktivist
 April O'Neil, Kunoichi Trainee
 April, Reporter of the Weird
@@ -269,7 +263,6 @@ Arbor Armament
 Arboreal Alliance
 Arboreal Grazer
 Arboretum Elemental
-Arc Lightning
 Arcades Sabboth
 Arcades, the Strategist
 Arcane Amphisbaena
@@ -372,13 +365,11 @@ Astrid Peth
 Astute Terraformer
 At Knifepoint
 Atarka Pummeler
-Atarka, World Render
 Atlantean Skirmisher
 Atmospheric Greenhouse
 Atogatog
 Atomic Microsizer
 Atraxa, Praetors' Voice
-Attack-in-the-Box
 Attended Healer
 Attercop
 Attune with Aether
@@ -433,7 +424,6 @@ Ayumi, the Last Visitor
 Aziza, Mage Tower Captain
 Azorius First-Wing
 Azorius Knight-Arbiter
-Azra Oddsmaker
 Azure Beastbinder
 Azusa's Many Journeys
 Back in Town
@@ -458,7 +448,6 @@ Balustrade Spy
 Bandage
 Bandit's Haul
 Banishing Betrayal
-Banishment Decree
 Banners Raised
 Banquet Guests
 Bant Charm
@@ -660,7 +649,6 @@ Blitzball
 Blitzball Shot
 Blood Crypt
 Blood Hustler
-Blood Knight
 Blood Ogre
 Blood Pet
 Blood Price
@@ -676,7 +664,6 @@ Bloodhusk Ritualist
 Bloodline Keeper
 Bloodline Recollector
 Bloodline Shaman
-Bloodlust Inciter
 Bloodscale Prowler
 Bloodshot Trainee
 Bloodstone Goblin
@@ -1057,7 +1044,6 @@ Cityscape Leveler
 Clachan Festival
 Claim
 Clairvoyance
-Clammy Prowler
 Clamorous Ironclad
 Clan Guildmage
 Clandestine Meddler
@@ -1360,7 +1346,6 @@ Dark Ritual
 Darklight Phoenix
 Darkness Descends
 Darkstar Augur
-Darksteel Angel
 Darksteel Forge
 Darksteel Gargoyle
 Darksteel Ingot
@@ -1468,7 +1453,6 @@ Demonic Collusion
 Demonic Rising
 Demonic Taskmaster
 Demonic Tutor
-Demonlord Belzenlok
 Den Protector
 Dense Canopy
 Deny the Divine
@@ -1535,7 +1519,6 @@ Discerning Peddler
 Disciple of the Old Ways
 Disciplined Duelist
 Discombobulate
-Discordant Dirge
 Disdainful Stroke
 Dismantling Wave
 Dismissive Pyromancer
@@ -1594,7 +1577,6 @@ Double Down
 Dour Port-Mage
 Douse in Gloom
 Douser of Lights
-Dovin's Veto
 Down in the Valley
 Down, Down to Goblin-town
 Downhill Charge
@@ -1961,7 +1943,6 @@ Exploratory Mission
 Explosive Apparatus
 Explosive Getaway
 Explosive Prodigy
-Explosive Revelation
 Expose Evil
 Expose the Culprit
 Expressive Firedancer
@@ -2502,7 +2483,6 @@ Goblin Warrens
 Goblin-town
 Goblin-town Flunkies
 God-Eternal Bontu
-God-Eternal Oketra
 God-Pharaoh's Faithful
 Godless Shrine
 Godo's Irregulars
@@ -2611,7 +2591,6 @@ Grub's Command
 Gruff Triplets
 Gruul Nodorog
 Gryff Vanguard
-Gríma Wormtongue
 Guac & Marshmallow Pizza
 Guadosalam, Farplane Gateway
 Guardian Augmenter
@@ -2893,7 +2872,6 @@ Hunter's Mark
 Hunter's Prowess
 Hunting Drake
 Hunting Grounds
-Hurler Cyclops
 Hushwood Verge
 Huskburster Swarm
 Hustle
@@ -3426,7 +3404,6 @@ Leaping Ambush
 Leatherhead, Swamp Stalker
 Lecturing Scornmage
 Ledev Guardian
-Leech Collector
 Leering Gargoyle
 Leering Onlooker
 Legion Extruder
@@ -3697,7 +3674,6 @@ Mardu Heart-Piercer
 Mardu Monument
 Mardu Roughrider
 Marina Vendrell
-Marina Vendrell's Grimoire
 Marisi's Twinclaws
 Marketback Walker
 Marketwatch Phantom
@@ -3736,7 +3712,6 @@ Maximum Carnage
 Maximum Overdrive
 Mayael the Anima
 Mayael's Aria
-Mayhem Devil
 Maze Abomination
 Maze Glider
 Mazzy, Truesword Paladin
@@ -3809,7 +3784,6 @@ Michelangelo, Improviser
 Michelangelo, Mutant BFF
 Michelangelo, Weirdness to 11
 Michelangelo, the Heart
-Midnight Entourage
 Midnight Mangler
 Midnight Tilling
 Might Beyond Reason
@@ -3876,7 +3850,6 @@ Mister Fantastic
 Mister Gutsy
 Mistfire Adept
 Mistmeadow Council
-Mistmeadow Skulk
 Mistrise Village
 Mists of Littjara
 Mistvault Bridge
@@ -3890,7 +3863,6 @@ Mm'menon, the Right Hand
 Mnemonic Sphere
 Mnemonic Wall
 Mob Lookout
-Mob Rule
 Mobile Garrison
 Mobile Homestead
 Mockingbird
@@ -4186,7 +4158,6 @@ Ognis, the Dragon's Lash
 Ogre Chitterlord
 Ogre Jailbreaker
 Ogre Resister
-Ogre Siegebreaker
 Oildeep Gearhulk
 Ojer Axonil, Deepest Might
 Ojer Taq, Deepest Foundation
@@ -4277,7 +4248,6 @@ Oroku Saki, Shredder Rising
 Oros, the Avenger
 Orthodoxy Enforcer
 Orysa, Tide Choreographer
-Orzhov Enforcer
 Oscorp Research Team
 Osseous Exhale
 Osteomancer Adept
@@ -4398,7 +4368,6 @@ Person of Interest
 Personify
 Persuasive Interrogators
 Pest Control
-Pest Infestation
 Pest Mascot
 Pest Summoning
 Pestbrood Sloth
@@ -4639,7 +4608,6 @@ Quandrix, the Proof
 Quark's Bar
 Quark, Humble Proprietor
 Quarrel
-Quartzwood Crasher
 Queen Brahne
 Queen Marchesa
 Quest for the Nihil Stone
@@ -4824,7 +4792,6 @@ Remnant Elemental
 Renata, Called to the Hunt
 Rendclaw Trow
 Render Speechless
-Renegade Demon
 Renegade Rallier
 Renegade Silent
 Renegade Troops
@@ -4870,7 +4837,6 @@ Restless Vinestalk
 Restoration Magic
 Restoration Seminar
 Restore with Empathy
-Restricted Office
 Resurrected Cultist
 Retaliator Griffin
 Retched Wretch
@@ -4979,7 +4945,6 @@ Rocky Roads
 Rogue Artificial Intelligence
 Rohgahh, Kher Keep Overlord
 Roiling Canopy
-Roiling Dragonstorm
 Rok-Tahk, Budding Scientist
 Roku's Mastery
 Roll-Roll-Roll-Roll
@@ -5008,7 +4973,6 @@ Rosa, Resolute White Mage
 Rot Farm Mortipede
 Rot Wolf
 Rotisserie Elemental
-Rotted Hulk
 Rottenheart Ghoul
 Rotting Giant
 Rotting Mastodon
@@ -5136,7 +5100,6 @@ Sarpadian Simulacrum
 Saru, Unthreatened
 Saruman, the White Hand
 Satoru, the Infiltrator
-Satsuki, the Living Lore
 Satyr Wayfinder
 Saurian Explorer
 Saurian Symbiote
@@ -6690,7 +6653,6 @@ Unspeakable Symbol
 Unstable Experiment
 Unstoppable Plan
 Unstoppable Slasher
-Unsubstantiate
 Unsubtle Mockery
 Unswerving Sloth
 Unwelcome Sprite
@@ -6777,7 +6739,6 @@ Venerable Knight
 Venerated Stormsinger
 Vengeance Mission
 Vengeful Creeper
-Vengeful Rebel
 Vengeful Townsfolk
 Vengeful Tracker
 Vengevine
@@ -6923,7 +6884,6 @@ Wanderwine Distracter
 Wanted Griffin
 War Effort
 War Squeak
-War-Torch Goblin
 Warbeast of Gorgoroth
 Warbriar Blessing
 Warden of Evos Isle
@@ -7203,7 +7163,6 @@ Zimone, All-Questioning
 Zimone, Mystery Unraveler
 Zodiac Horse
 Zodiac Rabbit
-Zodiac Tiger
 Zodiark, Umbral God
 Zog, Triceraton Castaway
 Zombie Goliath

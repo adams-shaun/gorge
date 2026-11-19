@@ -19,6 +19,7 @@ Bastion Inventor	af56413740c59913	10	0/0		0/0
 Beast Attack	26212472d9149b66	30	0/0		4/4	
 Biting Rain	6c2c845cd955b3c5	9	0/0		2/2	
 Blight Sickle	bf230f6d4d8c3624	7	1/1		0/1	ix:resp
+Boldwyr Intimidator	04cde492aad58e36	5	2/2		1/1	
 Bolrac-Clan Basher	ed3daad830dbc9c6	41	0/0		1/2	cast/alt:disguised
 Bubble Smuggler	a1de6f90724a9920	383	0/0		1/2	cast/alt:disguised
 Buccaneer's Bravado	36ef1c20561b371d	10	0/0		2/2	
@@ -33,6 +34,7 @@ Chain Lightning	4c8da300574f4c4d	12	0/0		2/2
 Champion's Helm	c055e38b89f07e79	6	1/1		1/1	
 Clackbridge Troll	212b01c55c3d7779	5	2/2		0/1	ix:resp
 Claim the Firstborn	1d12a6c3b8573e83	8	0/0		1/2	ix:resp
+Cling to Dust	eff2a23663600334	21	0/0		2/4	cast/alt:escaped,ix:resp
 Clutch of Undeath	892157b3eb04fe49	6	0/0		2/2	
 Collective Resistance	f422d39c357d5a80	16	0/0		2/2	
 Common Iguana	268f381fc6290400	15	1/1		0/1	ix:resp
@@ -75,6 +77,7 @@ Furnace Celebration	fd079f33d5d17e62	15	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Furnace Hellkite	78974a283bc2ed85	15	1/1		1/1	
 Galvanic Iteration	ada8cf8d366b9ccb	27	0/0		3/4	ix:resp
 Gilt-Leaf Palace	9a2a3bf87ee5c8d5	115	1/1		0/1	ix:resp
+Gnome-Made Engine	e17a2e3ef946bd26	12	1/1		0/1	ix:resp
 Goblin Glider	d3adead6b92a74c8	11	0/0		0/0	
 Goblin Racketeer	a2883d47736c3cbe	8	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Golden Egg	3133801e9c022bb6	11	3/3		0/1	ix:resp
@@ -146,6 +149,7 @@ Samite Pilgrim	57df9d7b355d20f6	6	1/1		0/1	ix:resp
 Savage Conception	1d6f8391475f69fb	13	0/0		2/2	
 Scepter of Celebration	b9fd15a3f2b8dd7d	20	2/2		1/1	
 Scion of Oona	11b97b36b823bc68	24	0/0		0/0	
+Scuttling Butler	0e27484fbb4b4881	21	1/1		0/1	ix:resp
 Searing Blood	3acd79f52afeb298	10	0/0		2/2	
 Secure the Scene	18387e00adabd9c6	6	0/0		1/2	ix:resp
 Selective Memory	75cd0507b773e2b3	28	0/0		2/2	

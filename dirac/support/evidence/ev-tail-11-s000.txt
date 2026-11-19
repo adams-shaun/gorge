@@ -1,5 +1,6 @@
 A-Dwarfhold Champion
 A-Gnarlid Colony
+A-Hall of Tagsin
 Agoraphobia
 Ajani, Strength of the Pride
 Akroma's Will
@@ -62,6 +63,7 @@ Dwarven Hammer
 Elven Rite
 Emry, Lurker of the Loch
 Ensouled Scimitar
+Eternity Snare
 Faerie Noble
 Feast of Worms
 Feral Roar

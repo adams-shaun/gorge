@@ -1,16 +1,36 @@
 Adamant Will
 Agate Instigator
 Ancient Grudge
+Apprentice Necromancer
+Arc Lightning
 Augur of Bolas
+Azra Oddsmaker
 Baffling End
+Bastion of Remembrance
+Biogenic Upgrade
+Bladewing's Thrall
 Blazing Volley
+Bloodlust Inciter
+Boarding Party
+Bookwurm
+Breath of Darigaaz
 Briar Patch
+Bristling Boar
 Broodhatch Nantuko
 Cabal Pit
+Chemister's Insight
+Contagion
 Corrupted Conviction
 Cryogen Relic
+Crypt Rats
+Dauntless Cathar
+Diamond Pick-Axe
+Dreamscape Artist
 Emerge Unscathed
+Empty the Warrens
+Evolution Charm
 Evolutionary Escalation
+Exclude
 Exhume
 Faerie Swarm
 Faithbearer Paladin
@@ -20,40 +40,72 @@ Fiery Impulse
 Footbottom Feast
 Forest
 Gaea's Gift
+Geist of the Moors
+Gilanra, Caller of Wirewood
+God-Eternal Oketra
 Grafted Exoskeleton
 Hard Evidence
 Harvester Druid
+Havoc Demon
 Hedge Troll
+Hydroblast
 Island
+Jeska, Warrior Adept
+Joven and Chandler
 Kessig Flamebreather
 Knight of Cliffhaven
 Lazotep Plating
+Leech Collector
+Mana Geyser
 Mana Leak
 Masked Admirers
 Mindwrack Harpy
+Mistveil Plains
 Monastery Swiftspear
+Morbid Opportunist
 Mountain
+Mutagenic Growth
 Night's Whisper
+Ogre Arsonist
+Orzhov Enforcer
 Overwhelming Encounter
+Phantom Tiger
 Plains
+Porcelain Legionnaire
 Primal Rage
+Purifying Dragon
 Rally the Peasants
 Rebuff the Wicked
 Reckless Barbarian
 Reckless Charge
+Reckless Fireweaver
+Referee Squad
 Requisition Raid
 Reverent Hoplite
+Rograkh, Son of Rohgahh
+Roiling Dragonstorm
+Sensor Splicer
+Seraph of Dawn
 Serpentine Curve
 Settle Beyond Reality
 Sever Soul
+Shepherd of the Flock
+Shipwreck Dowser
 Sky Crier
 Soltari Visionary
 Sorcerous Sight
+Squee, Goblin Nabob
 Swamp
 Temur Battle Rage
 The Birth of Meletis
 Thraben Watcher
 Thrull Parasite
+Turtleshell Changeling
+Tyvar's Stand
+Unbounded Potential
+Unsubstantiate
+Urborg Uprising
 Wickerbough Elder
 Wildheart Invoker
+Windstorm Drake
 Wood Elves

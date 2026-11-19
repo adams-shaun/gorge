@@ -2,6 +2,7 @@ Aether Tradewinds
 Ainok Tracker
 Ajani's Pridemate
 Amphin Pathmage
+Ancient Craving
 Angelic Page
 Ashaya, Soul of the Wild
 Aven Mindcensor
@@ -67,6 +68,7 @@ Mystic of the Hidden Way
 Mystical Teachings
 Norwood Priestess
 On Serra's Wings
+Ophidian
 Orcish Settlers
 Peregrine Drake
 Plains
@@ -99,6 +101,7 @@ Treasure Hunt
 Trespasser's Curse
 Trial of Ambition
 Unexpected Windfall
+Urza, Lord High Artificer
 Valor
 View from Above
 Virus Beetle

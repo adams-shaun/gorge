@@ -1,7 +1,10 @@
+Aang, Air Nomad
 Abundant Harvest
 Academy Raider
+Accursed Spirit
 Acid Rain
 Adaptive Training Post
+Adeline, Resplendent Cathar
 Ankh of Mishra
 Aradara Express
 Arcbound Crusher
@@ -12,21 +15,28 @@ Ashen-Skin Zubera
 Ashenmoor Gouger
 Asphyxiate
 Assimilate Essence
+Atarka, World Render
+Azorius Guildgate
 Balduvian Rage
+Banishment Decree
 Barbarian General
 Barrin, Tolarian Archmage
 Basri's Acolyte
 Bassara Tower Archer
 Beacon Behemoth
+Blood Knight
 Blossoming Wreath
 Blur of Blades
 Bond of Insight
 Bookwurm
+Boros Guildgate
 Boros Locket
 Brain Gorgers
 Burrenton Shield-Bearers
+Cabal Therapy
 Cavalier of Thorns
 Charge
+Circle of Protection: Green
 Citadel of Pain
 Cloistered Youth
 Confessor
@@ -44,8 +54,11 @@ Cutthroat Maneuver
 Dawn to Dusk
 Deathgaze Cockatrice
 Deconstruct
+Demonlord Belzenlok
 Devout Monk
 Diabolic Machine
+Dimir Guildgate
+Discordant Dirge
 Dizzy Spell
 Dogged Pursuit
 Drown in Sorrow
@@ -53,8 +66,10 @@ Duskrider Peregrine
 Ecstatic Electromancer
 Elanor Gardner
 Emissary of Despair
+End the Festivities
 Entrancing Melody
 Equilibrium
+Explosive Revelation
 Fa'adiyah Seer
 Fable of Wolf and Owl
 Fatal Blow
@@ -71,10 +86,13 @@ Funeral Pyre
 Genju of the Cedars
 Giant Killer
 Goblin Balloon Brigade
+Golgari Guildgate
 Gorging Vulture
 Graypelt Refuge
 Greater Werewolf
 Grixis Battlemage
+Gruul Guildgate
+Gríma Wormtongue
 Hampering Snare
 Hearth Charm
 Hissing Iguanar
@@ -82,10 +100,12 @@ Holy Justiciar
 Hornet Harasser
 Humility
 Hunted Troll
+Hurler Cyclops
 Hyena Pack
 Imperial Outrider
 Infectious Inquiry
 Island
+Izzet Guildgate
 Jace Beleren
 Joyous Respite
 Keep Safe
@@ -107,11 +127,15 @@ Majestic Heliopterus
 Make a Wish
 Makindi Shieldmate
 Matsu-Tribe Birdstalker
+Mayhem Devil
 Michiko's Reign of Truth
+Midnight Entourage
 Mindscour Dragon
 Mist Raven
 Mistblade Shinobi
+Mob Rule
 Monastery Flock
+Mountain
 Mountain Bandit
 Mystic Compass
 Mystic Redaction
@@ -123,8 +147,10 @@ Ninja of the Deep Hours
 Nissa, Who Shakes the World
 Nomadic Elf
 Odylic Wraith
+Ogre Siegebreaker
 Oko's Accomplices
 Onyx Mage
+Orzhov Guildgate
 Ovinize
 Pact of Negation
 Paired Tactician
@@ -138,15 +164,19 @@ Phyrexian Driver
 Phyrexian Reaper
 Phyrexian Soulgorger
 Pinion Feast
+Plains
 Planar Portal
 Plaxmanta
 Praetor's Counsel
 Priest of Forgotten Gods
 Qarsi Sadist
+Quartzwood Crasher
+Rakdos Guildgate
 Rakdos Keyrune
 Rathi Fiend
 Ravenous Gigamole
 Remorseful Cleric
+Renegade Demon
 Replication Specialist
 Retreat to Emeria
 Return to Action
@@ -165,6 +195,8 @@ Silver Erne
 Skyscanner
 Slash of Talons
 Sliversmith
+Smelt-Ward Gatekeepers
+Snuff Out
 Solarion
 Soldevi Steam Beast
 Soul-Strike Technique
@@ -173,6 +205,7 @@ Spider-Man, Hometown Hero
 Spitting Image
 Starved Rusalka
 Stone-Throwing Devils
+Stoneforge Acolyte
 Stonerise Spirit
 Storm-Kiln Artist
 Street Riot
@@ -182,6 +215,7 @@ Summoner's Pact
 Sunbond
 Sunstone
 Svogthos, the Restless Tomb
+Swamp
 Sworn Companions
 Sylvan Awakening
 Tajuru Snarecaster
@@ -191,6 +225,7 @@ Teshar, Ancestor's Apostle
 Throne of the High City
 Thunder Drake
 Thunderclap
+Tiller Engine
 Totem Speaker
 Transgress the Mind
 Transguild Promenade
@@ -201,10 +236,13 @@ Uninvited Geist
 Urban Utopia
 Urborg Uprising
 Utrom Monitor
+Vampiric Link
+Vengeful Rebel
 Vessel of Nascency
 Vulshok Battlegear
 Wall of Frost
 Wall of Reverence
+War-Torch Goblin
 Warrior Angel
 Weapons Trainer
 Weaselback Redcap
