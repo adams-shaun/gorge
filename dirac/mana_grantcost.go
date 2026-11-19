@@ -213,11 +213,14 @@ func (g *grantSrch) sacOnlyVisit(t *State, i int, sl Slot) bool {
 // only once the node is not priced and the other gaps are tried: a node the
 // play is already payable at ends the line there, so a later gap (Gilanra's
 // {G}) is reached before this sacrifice and the node it charges counts against
-// the same budget.
+// the same budget. A holder that could not activate its grant at the root (a
+// summoning-sick Spawn beside Path of Annihilation) is no gap of gorge's: its
+// printed sacrifice is the planner's, priced at each node, never a step (CR
+// 302.6, 605.1a).
 func (g *grantSrch) printedSacPass(t *State, sacd bool) bool {
 	for i := 0; i < g.gapN; i++ {
 		sl := g.cand[i]
-		if g.ng[i] == 0 || t.grantTapOK(g.k, sl) || g.tapx[i] && t.scriptTapX(g.k, g.p).has(sl) {
+		if g.ng[i] == 0 || g.idle.has(sl) || t.grantTapOK(g.k, sl) || g.tapx[i] && t.scriptTapX(g.k, g.p).has(sl) {
 			continue
 		}
 		if sacd && (!t.occ.has(sl) || t.perms[sl].obj != g.cobj[i]) {

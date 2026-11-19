@@ -971,6 +971,7 @@ type grantSrch struct {
 	d        payDesc
 	n        int
 	cand     [MaxPerm]Slot
+	idle     slotMask                  // holders whose granted mana ability no step could activate at the root (tapped or sick): gorge's census covers their printed sacrifice, so it is no gap (printedSacPass)
 	cobj     [MaxPerm]Obj              // the candidate's object at the root: a sacrificed one's slot may hold another (mana_grantcost.go)
 	gi       [MaxPerm][maxGrants]int16 // each candidate's granted abilities (grantPC indices)
 	ng       [MaxPerm]uint8
@@ -1175,6 +1176,9 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		g.gapFlags(s, g.n, sl, ng, fm, tm, dm, em, wm, xm, cm, smi, am)
+		if ng > 0 && !s.grantGapUsable(g.k, sl) {
+			g.idle = g.idle.with(sl)
+		}
 		g.gap[g.n] = true
 		if fm.has(sl) {
 			g.funding += s.filtFee(g.k, sl)
