@@ -1000,7 +1000,7 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		if k.cards[c].land && s.g.freeP&freeLandsOn != 0 {
 			// a picked land (OpCastFree freeLands) is played, not cast
 			if !s.freeLandPlay(k, o, ctrl) {
-				return false
+				return s.stepGen(k, d) // the entry's ask is posed now (cast_freeland.go), or the latched stall
 			}
 			continue
 		}
@@ -1129,7 +1129,7 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 			return true
 		}
 		if s.g.pre.land {
-			d.Player = s.prio // the land's player still holds priority
+			d.Player = s.preLandSeat() // the land's player still holds priority (a Play's picked land: its caster)
 		} else {
 			d.Player = s.stack[s.sp-1].ctrl
 		}
@@ -1247,7 +1247,7 @@ func (s *State) applyGen(k *prep, a Action) {
 		s.g.pre.state = 2
 		s.ctl = ctlPriority
 		if s.g.pre.land {
-			s.playLandNow(k, s.g.pre.obj, s.prio) // the land enters with the choice made
+			s.playLandNow(k, s.g.pre.obj, s.preLandSeat()) // the land enters with the choice made
 		} else {
 			s.resolveTop(k) // the permanent enters with the choice made
 		}

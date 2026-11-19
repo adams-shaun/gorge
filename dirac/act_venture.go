@@ -16,6 +16,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 type VentureStats struct {
 	DungeonAsks int // dungeon choices posed (raDungeon)
 	RoomAsks    int // room choices posed (raRoom)
+	LandAsks    int // lands a Play picked whose entry may ask (freeLandAsk)
 }
 
 // DebugVentureStats is the test hook; nil in normal play.
