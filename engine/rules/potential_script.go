@@ -662,7 +662,7 @@ func (sr *scriptSearch) childOffers(d *decision.Decision, c *Engine) bool {
 		if !sr.offered(&d.Options[i]) {
 			continue
 		}
-		if sr.phased && !sr.consumes(c) {
+		if sr.phased && !sr.phasedScope(c) {
 			continue
 		}
 		return true
@@ -686,8 +686,8 @@ func (sr *scriptSearch) priced(pool *Engine, c *Engine) bool {
 		}
 		return false
 	}
-	if sr.phased && !sr.consumes(c) {
-		return false // the fallback's scope: only a play whose own cost consumes a permanent
+	if sr.phased && !sr.phasedScope(c) {
+		return false // the fallback's scope: a consuming cost or a hybrid-fee gap
 	}
 	if paymentPlanConsumes(*got.Plan) && !c.witnessReachesFrom(pool, sr.p, o, *got.Plan) {
 		if sr.nodePlans {
@@ -703,20 +703,38 @@ func (sr *scriptSearch) option() decision.Option {
 	return decision.Option{Kind: sr.play.Kind, Obj: sr.play.Obj, Ability: sr.play.Ability, Mode: sr.play.Mode, AltCostIndex: max(sr.altCost, 0)}
 }
 
-// consumes reports whether sr's play has a sacrifice (or return) in its own
-// cost: the phased fallback's scope. The fallback exists for a cast whose
-// payment consumes a permanent the prefix activated for mana (CR 601.2b: the
-// activation comes before the sacrifice); for any other play the plain order
-// is the script dirac's node-for-node mirror prices, so the fallback must
-// leave that play's offer as the plain search found it.
-func (sr *scriptSearch) consumes(c *Engine) bool {
+// phasedScope reports whether the phased order may price sr's play: one whose
+// own cost sacrifices or returns a permanent (CR 601.2b: the activation comes
+// before the sacrifice), or one whose census gaps include a hybrid-fee mana
+// ability (Fetid Heath's "{W/B}, {T}: Add {W}{W}, {W}{B} or {B}{B}"). A hybrid
+// fee is paid only from mana already floating (CR 601.2g: the filter's
+// activation spends the fee as it resolves), so the phased order's
+// covered-funding-then-fee-carrying-gap walk is the one that floats the fee
+// first. For any other play the plain order is the script dirac's
+// node-for-node mirror prices, so the fallback must leave its offer as the
+// plain search found it.
+func (sr *scriptSearch) phasedScope(c *Engine) bool {
 	o := sr.option()
 	obj := c.G.Obj(o.Obj)
 	if o.Kind != "cast" || obj == nil || obj.Face() == nil {
 		return false
 	}
 	base, ok := c.potentialModeBaseCost(sr.p, o.Obj, obj.Face(), o)
-	return ok && (len(base.Sac) != 0 || len(base.Return) != 0)
+	if ok && (len(base.Sac) != 0 || len(base.Return) != 0) {
+		return true
+	}
+	for _, id := range sr.gaps {
+		g := c.G.Obj(id)
+		if g == nil || g.Face() == nil {
+			continue
+		}
+		for _, ma := range g.Face().Abilities {
+			if ma.API == "Mana" && len(c.manaAbilityCC(sr.p, id, ma).Cost.Hybrid) != 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // try submits in to a clone of c and continues the search there. gapUsed
@@ -829,7 +847,7 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 	}
 	for i := range d.Options {
 		if sr.offered(&d.Options[i]) {
-			if sr.phased && !sr.consumes(c) {
+			if sr.phased && !sr.phasedScope(c) {
 				continue // the fallback's scope: only a payment that consumes a permanent
 			}
 			return true
