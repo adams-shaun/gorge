@@ -465,3 +465,48 @@ func nextLiveSeat(g *state.Game, p state.PlayerID) state.PlayerID {
 	}
 	return p
 }
+
+// Crackling Doom: "each opponent sacrifices a creature with the greatest
+// power among creatures that player controls". gorge repeats over the
+// opponents and each chooses among its own greatest-power creatures
+// (greatestPowerControlledByRemembered); dirac reads that player's greatest
+// power inside the RepeatEach body (kop.CtrlEachPl). The mutation
+// (DebugEachPlOppCtrl) takes the greatest power across every opponent, the
+// two-seat reading, so an opponent whose creatures are all smaller
+// sacrifices nothing.
+var greatestPowerPodDeck = []cardset.Entry{
+	{Name: "Crackling Doom", Count: 8}, {Name: "Savannah Lions", Count: 5},
+	{Name: "Goblin Piker", Count: 4}, {Name: "Hill Giant", Count: 4},
+	{Name: "Plains", Count: 6}, {Name: "Mountain", Count: 7}, {Name: "Swamp", Count: 6},
+}
+
+// greatestPowerWatch: gorge asks a player to choose a creature to sacrifice
+// while three or more players are alive.
+func greatestPowerWatch(c *PickCtx) bool {
+	d := c.G.fr.d
+	if d == nil || d.Kind == decision.KPriority || d.Kind == decision.KAttackers || d.Kind == decision.KBlockers {
+		return false
+	}
+	g := c.G.E.G
+	alive := 0
+	for p := range g.Players {
+		if !g.Players[p].Lost {
+			alive++
+		}
+	}
+	if alive < 3 {
+		return false
+	}
+	for _, id := range g.Zone(state.ZStack, 0) {
+		if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Crackling Doom" {
+			return true
+		}
+	}
+	return false
+}
+
+// TestFourSeatGreatestPowerLockstep: four-seat Crackling Doom games play in
+// lockstep, each opponent choosing among its own greatest-power creatures.
+func TestFourSeatGreatestPowerLockstep(t *testing.T) {
+	podClassLockstep(t, greatestPowerPodDeck, 24, 10, greatestPowerWatch, &dirac.DebugEachPlOppCtrl)
+}
