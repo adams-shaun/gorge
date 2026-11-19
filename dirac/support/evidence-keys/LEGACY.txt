@@ -529,7 +529,6 @@ Armored Kincaller
 Armory Guard
 Armory Mice
 Armory of Iroas
-Arms Dealer
 Arms of Hadar
 Armus, Skin of Evil
 Army Ants
@@ -1296,7 +1295,6 @@ Bronze Cudgels
 Bronze Guardian
 Bronze Sable
 Bronzebeak Moa
-Brood Butcher
 Brood Monitor
 Broodbirth Viper
 Broodguard Elite
@@ -1894,7 +1892,6 @@ Copper Host Crusher
 Copper Longlegs
 Copper Tablet
 Copper-Leaf Angel
-Copperline Gorge
 Copy Catchers
 Coral Atoll
 Coral Fighters
@@ -2236,7 +2233,6 @@ Death's Presence
 Death's Shadow
 Death-Greeter's Champion
 Death-Hood Cobra
-Deathbloom Gardener
 Deathbloom Ritualist
 Deathbonnet Sprout
 Deathbringer Regent
@@ -3979,7 +3975,6 @@ Gorgon's Head
 Gorilla Shaman
 Gorilla Tactics
 Gorilla Titan
-Gorma, the Gullet
 Gorn Captain
 Goro-Goro and Satoru
 Gossip's Talent
@@ -5878,7 +5873,6 @@ Meria's Outrider
 Merrow Skyswimmer
 Merrow Witsniper
 Merry Bards
-Merry, Esquire of Rohan
 Merry, Warden of Isengard
 Mesa Cavalier
 Mesa Lynx
@@ -9431,7 +9425,6 @@ Tea, Earl Grey, Hot
 Teacher's Pest
 Team Avatar
 Team Tactics
-Team Transmitter
 Teapot Slinger
 Technodrome
 Tectonic Hazard
@@ -9806,7 +9799,6 @@ Thundering Falls
 Thundermare
 Thunderous Debut
 Thunderous Velocipede
-Thunderscape Master
 Thundertrap Trainer
 Thunderwave
 Thunderwolf Cavalry
@@ -10184,7 +10176,6 @@ Undercity Eliminator
 Undercity Informer
 Undercity Scavenger
 Undercity Sewers
-Undercity Uprising
 Undercover Crocodelf
 Undercover Skrull
 Underdark Basilisk

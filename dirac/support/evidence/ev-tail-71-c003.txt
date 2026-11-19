@@ -85,6 +85,7 @@ Dragonscale General
 Dune Chanter
 Earthshaker Giant
 Eccentric Farmer
+Elven Cache
 Elvish Piper
 Elvish Visionary
 Embereth Paladin
@@ -133,6 +134,7 @@ Hearth Kami
 Hidden Gibbons
 Hideous End
 Hold for Questioning
+Horizon of Progress
 Huatli's Snubhorn
 Humble
 Hydrolash

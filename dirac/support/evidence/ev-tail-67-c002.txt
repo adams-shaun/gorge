@@ -96,6 +96,7 @@ Enslaved Dwarf
 Erratic Visionary
 Essence Feed
 Essence Warden
+Etched Oracle
 Eternal Witness
 Ethereal Champion
 Explosive Welcome
@@ -224,6 +225,7 @@ Psychotrope Thallid
 Pulse of the Grid
 Purifying Dragon
 Python
+Quest for Pure Flame
 Rage Weaver
 Rally to Battle
 Ranger en-Vec
