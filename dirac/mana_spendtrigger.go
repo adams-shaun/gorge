@@ -51,21 +51,60 @@ func prepManaSrc(t *kop.Table, g *genPrep, p *prep) {
 
 // noteTapSrc records that the cast being built tapped the source at sl for
 // mana: an observed source (the SpellCast reader's own source). A Treasure's
-// mana is marked when it is spent, not when it is tapped (treSync). A
-// second observed source in one cast stalls loudly.
+// mana is marked when it is spent, not when it is tapped (treSync). Further
+// plain observed sources (several Path of Ancestry: gorge's ManaSpentSources
+// lists each, and each one's rider reads its own spend) are kept in obsMore;
+// one past obsMore, or a second beside a deferred or rider-haste source,
+// stalls loudly.
 //
 //go:noinline
 func (s *State) noteTapSrc(k *prep, pc *pcard, sl Slot) {
 	if pc.castSrc&csObserved != 0 {
-		if s.bld().obsSl != 0 && s.bld().obsSl != sl+1 {
+		b := s.bld()
+		switch {
+		case b.obsSl == 0:
+			b.obsSl = sl + 1
+		case b.obsHas(sl):
+		case !s.plainObs(k, b.obsSl-1) || !s.plainObs(k, sl) || !b.obsAdd(sl):
 			s.capFull(StallObsSrc)
 			return
 		}
-		s.bld().obsSl = sl + 1
 	}
 	if pc.castSrc&(csManaHaste|csObserved) == csManaHaste {
 		s.noteHasteSrc(k, sl) // mana_spentrider.go
 	}
+}
+
+// plainObs: the observed source at sl is read only by its own SpellCast rider
+// (castProvOK): no rider-haste grant (manaHasteRider) and no deferred source
+// (fireDeferredRider, deferredSpent), the readers that take obsSl alone.
+func (s *State) plainObs(k *prep, sl Slot) bool {
+	c := s.cardAt(sl)
+	return k.cards[c].castSrc&csManaHaste == 0 && (k.gen == nil || !k.gen.has(c, gfDeferred))
+}
+
+// obsHas: the cast being built recorded the observed source at sl.
+func (b *build) obsHas(sl Slot) bool {
+	if b.obsSl == sl+1 {
+		return true
+	}
+	for _, o := range b.obsMore {
+		if o == sl+1 {
+			return true
+		}
+	}
+	return false
+}
+
+// obsAdd records sl in obsMore's first free entry; false when it is full.
+func (b *build) obsAdd(sl Slot) bool {
+	for i := range b.obsMore {
+		if b.obsMore[i] == 0 {
+			b.obsMore[i] = sl + 1
+			return true
+		}
+	}
+	return false
 }
 
 // castProvOK is castTrigGen's cold gate for the cast-provenance bits
@@ -85,7 +124,7 @@ func (s *State) castProvOK(t *kop.Trigger, l trigListener, e *stackEntry) bool {
 		if debugSonManaMutate == 2 {
 			return true // test only: the reader ignores the payment
 		}
-		return l.sl != NoSlot && s.bld().e.kind == seSpell && s.bld().e.obj == e.obj && s.bld().obsSl == l.sl+1
+		return l.sl != NoSlot && s.bld().e.kind == seSpell && s.bld().e.obj == e.obj && s.bld().obsHas(l.sl)
 	}
 	return true
 }
@@ -135,6 +174,12 @@ func (s *State) obsWinSettle(k *prep, p uint8, before [kop.NumManaKinds]uint8, o
 	b := s.bld()
 	b.obsWin = 0
 	if !ok || b.obsSl == 0 {
+		return
+	}
+	if b.obsMore[0] != 0 {
+		// two observed sources floating before the payment: which one's
+		// units it spent is unmodelled
+		s.capFull(StallObsSrc)
 		return
 	}
 	mask := s.windowOwnMask(k, b.obsSl-1)

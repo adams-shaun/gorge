@@ -1,0 +1,5 @@
+family: Pred
+name: PredSharesCrCmdr
+value: next
+status: active
+doc: PredSharesCrCmdr: the object shares a creature type with a commander of the evaluating controller (gorge sharesCreatureTypeWith Commander, effects sharesTypeReferentsCommander: the resolving source's controller's commanders, Path of Ancestry's SpellCast ValidCard$ Creature.sharesCreatureTypeWith Commander). Each side reads its current creature types where it now is (a commander in the command zone its printed ones); an object with every creature type shares with any commander that has a creature type, and a commander with every type with any object that has one (CR 702.73a). A controller with no commander matches nothing.

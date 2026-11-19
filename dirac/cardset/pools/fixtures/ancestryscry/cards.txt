@@ -1,0 +1,10 @@
+# Path of Ancestry in Commander duels (a Kobold Warrior commander a seat): its
+# mana adds a colour of the commander's identity and scries 1 when spent on a
+# creature spell sharing a creature type with a commander, beside Warrior and
+# non-Warrior creatures and Shock (dirac/oracle/pathofancestry_scry_test.go)
+Path of Ancestry
+Rograkh, Son of Rohgahh
+Viashino Slasher
+Gray Ogre
+Shock
+Mountain

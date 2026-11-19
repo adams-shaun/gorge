@@ -284,13 +284,11 @@ another object whose filter can match this source's tap or mana, touches the
 tap or the production. Creatures are normal (ranked later, §5).
 
 *(2026-11-18 note.)* `TriggersWhenSpent$` is the one special-production
-parameter with an exception: in a game of three or more seats a `{T}`-only,
+parameter with an exception: a `{T}`-only,
 `SubAbility$`-free source whose rider is a `SpellCast` trigger with a bare
 `Scry` body (Path of Ancestry) is Normal, because the scry only adds a
 library-order decision after the cast and cannot change what the mana pays
-(`pay.PlanSpentRiderIsScry`). Every other rider stays deferred, and a two-seat
-game keeps the deferral for every rider: the dirac kernel is two-seat and does
-not yet model the rider's commander-type filter.
+(`pay.PlanSpentRiderIsScry`). Every other rider stays deferred.
 
 **Last resort.** Exactly the normal shape except that the ability, or the
 source's own static text, adds one or more of these consequences, each fully

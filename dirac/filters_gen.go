@@ -517,6 +517,10 @@ func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, src Slot, layer ui
 			src, srcObj = cx.srcSl, cx.src
 		}
 		return s.sharesNameSelf(src, srcObj, sl, NoCard, NoObj, false, n == 1)
+	case kop.PredSharesCrCmdr:
+		// a battlefield candidate is read against its own controller's
+		// commanders (the rider that reads it is a spell filter)
+		return s.sharesCrCmdr(k, s.perms[sl].obj, s.perms[sl].ctrl)
 	case kop.PredNamedCard:
 		// the card-name property NamedCard (CR 201.4): the permanent shares
 		// the reading source's chosen card name (gorge namePredicate
@@ -867,6 +871,14 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		return false // only a battlefield permanent is modified or holds counters here
 	case kop.PredSameNameRem, kop.PredSameNameSelf:
 		return s.predSameNameCard(fl, c, o, fd, ctx)
+	case kop.PredSharesCrCmdr:
+		// the evaluating controller's commanders (a trigger's listener, a
+		// static's own controller); a face-down object has no creature type
+		// of its own to share (CR 708.2)
+		if ctx != nil {
+			ctrl = ctx.ctrl
+		}
+		return !fd && s.sharesCrCmdr(k, o, ctrl)
 	default:
 		if fl.Pred == kop.PredExiledWith {
 			return s.exwCard(o) // zone_exiledwith.go
