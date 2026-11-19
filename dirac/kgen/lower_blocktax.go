@@ -93,6 +93,6 @@ func (lc *lowerCtx) cantBlockUnless(sp *params, st *lStatic) error {
 		return refuse("CantBlockUnless Cost$ %q: a non-mana, coloured or Phyrexian block cost is not lowered", raw)
 	}
 	sp.consume("Secondary")
-	lc.twoSeat("a block tax: its lockstep plays two seats")
+	// priced for each defending player's blocks at any seat count (dirac combat_blocktax.go)
 	return nil
 }

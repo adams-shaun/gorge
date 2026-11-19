@@ -127,7 +127,7 @@ func (s *State) fireEntries(k *prep, b *entBatch) {
 // in the same zone batch (gorge effCopyPermanent, CR 603.6a), so these
 // entrants' checks wait for the frame's end (genState.held, fireHeld).
 func (s *State) fireOrHoldEntries(k *prep, b *entBatch) {
-	if s.g.inLoop && s.g.batchLatch&batchHeld != 0 {
+	if (s.g.inLoop || s.zoneLoopHeld()) && s.g.batchLatch&batchHeld != 0 {
 		s.holdBatch(b)
 		b.n = 0
 		return

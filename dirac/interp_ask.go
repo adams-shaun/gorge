@@ -1429,6 +1429,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			if !parked {
 				parked = s.eachResume(k, in) // copy_eachtarget.go: the targets after it
 			}
+			if !parked {
+				parked = s.nonRemResume(k, in, was, r.e.ctrl) // copy_nonremctrl.go: the owners after it
+			}
 		}
 		r.e.ctrl = was
 		if parked {
@@ -1485,6 +1488,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
 			if !parked {
 				parked = s.eachResume(k, in) // copy_eachtarget.go: the targets after it
+			}
+			if !parked {
+				parked = s.nonRemResume(k, in, was, r.e.ctrl) // copy_nonremctrl.go: the owners after it
 			}
 		}
 		r.e.ctrl = was

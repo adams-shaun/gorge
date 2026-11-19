@@ -2114,7 +2114,7 @@ type genState struct {
 
 	died     uint8           // creatures put into a graveyard from the battlefield this turn
 	attacked [MaxSeats]uint8 // creatures each player attacked with this turn
-	oppAtt   uint8           // 1 once a declaration this turn named a player as defender (prep.anyOppsAtt only; value_oppsattacked.go)
+	oppAtt   uint8           // bits 0-3: the seats a declaration this turn named as player defender; bits 4-7: the latest declaration's defending seats (prep.anyOppsAtt only; value_oppsattacked.go)
 	isCast   [MaxSeats]uint8 // instants and sorceries each player cast this turn (Tf2CastSnapshot)
 	// the turn history bank (value_turnhistory.go): per player, counters kgen's
 	// readers name by slot (histSpells: spells cast), and the mana spent
