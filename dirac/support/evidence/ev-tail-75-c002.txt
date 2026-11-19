@@ -67,6 +67,7 @@ Cunning Survivor
 Daggersail Aeronaut
 Dawning Angel
 Death's Shadow
+Delraich
 Dense Foliage
 Deputized Protester
 Deranged Assistant
@@ -298,6 +299,7 @@ Veiling Oddity
 Venomous Changeling
 Verdant Sun's Avatar
 Viscerid Deepwalker
+Viscid Lemures
 Volcanic Torrent
 Volcanic Upheaval
 Voyager Staff
