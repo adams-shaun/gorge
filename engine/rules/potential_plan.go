@@ -192,9 +192,9 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 			return got
 		}
 		got := verdict()
-		if needed, mayPlayUnpriced := potentialCensusNeeded(o, got); needed {
+		if needed, keepVerdict := potentialCensusNeeded(o, got); needed {
 			var script []ScriptStep
-			got, script = potentialCensusFallback(e, p, o, hyp, got, mayPlayUnpriced, verdict, scriptPlays, &census, &censused, &scripts)
+			got, script = potentialCensusFallback(e, p, o, hyp, got, keepVerdict, verdict, scriptPlays, &census, &censused, &scripts)
 			pp.Script = script
 		}
 		if witness && got.Plan != nil && got.Reason == "" && paymentPlanConsumes(*got.Plan) && !e.potentialWitnessReaches(p, o, *got.Plan) {
@@ -226,13 +226,19 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 
 // potentialCensusNeeded reports whether a verdict the planner could not
 // price from its own census takes the census/prefix fallback: an
-// insufficient proof, or a may-play cast whose rider witness was not offered
+// insufficient proof, a may-play cast whose rider witness was not offered
 // (the folded cost was paid, but no plan funded the coloured pip from a
-// coloured unit; an uncovered source's activation may still float it).
-func potentialCensusNeeded(o decision.Option, got PaymentPlanOutcome) (needed, mayPlayUnpriced bool) {
-	mayPlayUnpriced = got.Reason == pay.ReasonUnsupported && got.Detail == pay.DetailWitnessNotOffered &&
-		castModeCodes.Code(o.Mode) == castModeMayplay
-	return got.Reason == pay.ReasonInsufficient || mayPlayUnpriced, mayPlayUnpriced
+// coloured unit; an uncovered source's activation may still float it), or a
+// cast with a live convoke/improvise/delve credit the planner declines as
+// unknown ("cost:credit"). The credit is an optional announcement whose
+// greedy shape is not a proof, so an uncovered source's activation may
+// still price the credited cost; keepVerdict preserves the unknown verdict
+// when no prefix reaches one (never an unpayable claim).
+func potentialCensusNeeded(o decision.Option, got PaymentPlanOutcome) (needed, keepVerdict bool) {
+	keepVerdict = got.Reason == pay.ReasonUnsupported &&
+		(got.Detail == pay.DetailWitnessNotOffered && castModeCodes.Code(o.Mode) == castModeMayplay ||
+			got.Detail == "cost:credit")
+	return got.Reason == pay.ReasonInsufficient || keepVerdict, keepVerdict
 }
 
 // potentialCensusHost is the narrow slice of the engine the census/prefix
@@ -252,13 +258,13 @@ type potentialCensusHost interface {
 // state: one census read and at most scriptPlays prefix searches across
 // every play). An insufficient verdict re-asks with the census's relaxed
 // alternatives and becomes insufficient/relaxed_census only when even those
-// cannot pay. A may-play rider's witness_not_offered keeps its own verdict:
-// its folded plan proves some mana can be made, so only an executable prefix
-// (an uncovered source's activation before the play) turns it into an offer.
-// The prefix search is bounded by scriptPlays and returns the script that
-// priced the play, or nil.
+// cannot pay. A may-play rider's witness_not_offered and a plain cast's
+// "cost:credit" keep their own verdict: their folded/credited plan proves
+// some mana can be made, so only an executable prefix (an uncovered source's
+// activation before the play) turns one into an offer. The prefix search is
+// bounded by scriptPlays and returns the script that priced the play, or nil.
 func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision.Option, hyp state.Mana,
-	got PaymentPlanOutcome, mayPlayUnpriced bool, verdict func() PaymentPlanOutcome, scriptPlays int,
+	got PaymentPlanOutcome, keepVerdict bool, verdict func() PaymentPlanOutcome, scriptPlays int,
 	census *paymentPlanCensus, censused *bool, scripts *int) (PaymentPlanOutcome, []ScriptStep) {
 	if !*censused {
 		*census, *censused = e.paymentPlanCensusOf(p, &hyp), true
@@ -266,7 +272,7 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 	if census.complete {
 		return got, nil
 	}
-	if !mayPlayUnpriced {
+	if !keepVerdict {
 		got = PaymentPlanOutcome{Reason: "unsupported", Detail: "census_incomplete"}
 		if census.relaxable {
 			// The census misses a source the planner cannot execute (Saruli
