@@ -4,54 +4,64 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // potentialDynOpen reports whether the trigger-cost offer gate
 // (interp_ask.go trigCostPotentialPays) opens because p controls an untapped
-// census source whose mana ability's amount is dynamic (AfManaDynamic, the
-// gfManaVar family: Lotus Blossom's "Add X mana of any one color, where X is
-// the number of petal counters on Lotus Blossom") while a source on the board
-// still yields mana now and the ability's production covers the ask's cost
-// (dynCoversCost). gorge's potential walk (rules potential.go
-// addPotentialMana) prices such an amount potentialUnbounded in the
-// production's faces -- an indeterminate Amount$ is never priced at zero,
-// whatever it reads now -- while the census prices the amount the source
-// holds (gen.go varPC: zero petals is zero mana and no planner unit,
-// manaPCGen), so the gate's fold (availPotentialFor) could not reach the cost
-// and the ask was decline-only while gorge offered pay beside decline (CR
-// 118.3: the payer elects pay, the charge fails, the payer declines). The
-// over-bound's unbounded claim is per produced face, not per colour, and
-// gorge's gate still requires the potential pool to cover the cost's pips
-// (respay.go resPayNeedsMana over pay.CostPayablePool): a fixed-face
-// production (Elvish Archdruid's "one G per counter") prices G unbounded and
-// every other kind at zero, so a trigger's {2}{B}{B} stays decline-only on
-// both engines while the generic alone opens the gate.
+// source with a mana ability gorge's potential walk prices potentialUnbounded
+// (rules potential.go addPotentialMana) while a source on the board still
+// yields mana now and the ability's production covers the ask's cost
+// (dynCoversCost).
+//
+// gorge prices two shapes unbounded that the census prices at what they hold
+// now: an indeterminate Amount$ in the production's faces (an X, a Count$
+// expression, a Sacrificed$ reference: addIndeterminatePotentialMana, CR
+// 107.4a) and an open production (Any, each-colour, an unknown token) in every
+// colour (producedOpen over addPotentialMana). The census leaves both out of
+// its planner view -- gen.go clears manaAb for a dynamic amount, and every
+// non-varPC shape (a paid filter's {2}, a RestrictValid$ source, a
+// commander-identity production, an each-colour gap) has no varPC entry -- so
+// availPotentialFor's fold alone could not reach the cost: the ask was
+// decline-only while gorge offered pay beside decline (CR 118.3: the payer
+// elects pay, the charge fails, the payer declines). The varPC family (Lotus
+// Blossom's {T}, SacSelf) was this arm's first case; the scan now keys on
+// gorge's own condition, the ability's flags, not on the census view.
 //
 // The dynamic source must be one gorge's own gate admits, and the admission is
 // the potential walk's, not the census's: dynSourceAdmits reads the walk's
-// membership gates (potentialRestrictionAdmits, potential.go) and the
-// activation's payability (manaAbilityPayablePool) without the census's
-// zero-amount exclusions.
+// membership gates (potentialAdmits) without the census's zero-amount
+// exclusions, and prices the activation's own {N} from the other sources
+// (manaAbilityPayablePool). The over-bound's unbounded claim is per produced
+// face, not per colour: a fixed-face production (Elvish Archdruid's "one G per
+// counter") prices G unbounded and every other kind at zero, so a trigger's
+// {2}{B}{B} stays decline-only on both engines while the generic alone opens
+// the gate.
 func (s *State) potentialDynOpen(k *prep, p uint8, cost *kop.ManaCost, d *payDesc) bool {
 	if k.gen == nil || !s.anyLiveSource(k, p, d) {
 		return false
 	}
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
-		c := s.cardAt(sl)
-		if k.gen.flags[c]&gfManaVar == 0 {
-			continue
-		}
-		cd := &k.t.Cards[c]
+		cd := &k.t.Cards[s.cardAt(sl)]
 		for j := range cd.Abilities {
 			a := &cd.Abilities[j]
-			if a.Kind != kop.AbMana || a.AFlags&(kop.AfManaDynamic|kop.AfLatent) != kop.AfManaDynamic {
+			if j >= 16 || a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
 				continue
 			}
-			// a commander-identity production adds nothing unbounded to gorge's
-			// pool: addPotentialIdentityColours declines an indeterminate
-			// amount and the strip fallback adds nothing (potential.go), so
-			// the shape stays decline-only here
-			if a.ManaIdentity {
+			dynamic := a.AFlags&kop.AfManaDynamic != 0
+			each := a.AFlags&kop.AfManaEachColor != 0
+			if !dynamic && !each {
 				continue
 			}
-			if dynamicManaCost(a) && s.dynSourceAdmits(k, p, sl, j, a, d) && dynCoversCost(a, cost) {
+			// a reflected Amount$ production has its own prepared view
+			// (mana_reflamt.go): gorge's addPotentialReflected prices it at the
+			// reflected colours, not unbounded, so it is no shape of this fold
+			if a.AFlags&kop.AfManaReflect != 0 && !a.ManaIdentity {
+				continue
+			}
+			// a commander-identity production with no commander reads no mana
+			// (gorge potentialIdentityEmpty, CR 903.4f): its indeterminate
+			// amount's producedOpen fallback would otherwise price every colour
+			if (a.ManaIdentity || a.ManaIdentityPotential) && s.identityColours(k, s.perms[sl].ctrl) == 0 {
+				continue
+			}
+			if s.dynSourceAdmits(k, p, sl, j, a, d) && dynCoversCost(a, cost) {
 				return true
 			}
 		}
@@ -67,13 +77,19 @@ func (s *State) potentialDynOpen(k *prep, p uint8, cost *kop.ManaCost, d *payDes
 // are the only colours the ability makes), so an open production ("mana of
 // any one color", ColAny) is unbounded in every kind and covers any cost,
 // while a fixed mask is unbounded in its faces alone and funds no pip outside
-// them; the generic part any face funds, for every kind of mana pays it.
+// them; the generic part any face funds, for every kind of mana pays it. An
+// each-colour or identity production is open in every kind (producedOpen over
+// addPotentialMana prices it there), and a blank production is the executor's
+// colourless default.
 func dynCoversCost(a *kop.Ability, cost *kop.ManaCost) bool {
 	if cost == nil {
 		return true
 	}
 	if cost.Snow != 0 {
 		return false // the {S} bound: only the pool pays it (mana.go affords)
+	}
+	if a.AFlags&kop.AfManaEachColor != 0 || a.AFlags&kop.AfManaDynamic != 0 && (a.ManaIdentity || a.ManaIdentityPotential) {
+		return true // open production: the whole-pool open, every kind unbounded
 	}
 	m := uint8(a.ManaColors)
 	if m == 0 {
@@ -103,10 +119,25 @@ func dynCoversCost(a *kop.Ability, cost *kop.ManaCost) bool {
 // the dynamic-amount variant's manaAb-less view are the sources flag's strict
 // read, which anyLiveSource carries; the potential walk's admission is the
 // activation's payability (gorge manaAbilityPayablePool) -- whatever the
-// amount resolves to now, the walk prices it potentialUnbounded.
+// amount resolves to now, the walk prices it potentialUnbounded. The
+// activation's own {N} fee is read from the sources other than sl (a source's
+// own tap cannot pay its own activation): a {2}, {T} filter joins only once
+// the rest of the board funds the {2}.
 func (s *State) dynSourceAdmits(k *prep, p uint8, sl Slot, j int, a *kop.Ability, d *payDesc) bool {
 	pp := &s.perms[sl]
 	if pp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.genLost(k, sl) {
+		return false
+	}
+	if a.Cost.Flags&^(kop.CostTap|kop.CostSacSelf|kop.CostPayLife|kop.CostOncePerTurn|kop.CostOncePerGame) != 0 && !s.potentialGapCost(k, p, sl, j, a) {
+		return false
+	}
+	if a.Cost.Flags&kop.CostOncePerTurn != 0 && j < 8 && pp.actUsed&(1<<j) != 0 {
+		return false
+	}
+	if a.Cost.Flags&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, a) {
+		return false
+	}
+	if a.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(p)].life) < lifeCostOwed(&a.Cost) {
 		return false
 	}
 	if k.gen.anyCantAct && s.actForbidden(k, sl, true) {
@@ -125,7 +156,36 @@ func (s *State) dynSourceAdmits(k *prep, p uint8, sl Slot, j int, a *kop.Ability
 		s.countCostSac(k, s.perms[sl].ctrl, &a.Cost, sl) < int(a.Cost.N) {
 		return false
 	}
+	if (a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0) && !s.dynFeePayable(k, p, sl, &a.Cost.Mana) {
+		return false
+	}
 	return d == nil || a.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, a, d)
+}
+
+// dynFeePayable reports whether the sources other than sl, plus the floating
+// pool, cover a mana ability's own {N} activation cost. It is gorge's
+// manaAbilityPayablePool pricing for the fixpoint, read on the current board:
+// a source's own production never funds its own activation (one tap cannot do
+// both), and a source that makes nothing now funds nothing.
+func (s *State) dynFeePayable(k *prep, p uint8, sl Slot, cost *kop.ManaCost) bool {
+	var pot [kop.NumManaKinds]int
+	for c := range pot {
+		pot[c] = int(s.pl[SeatIx(p)].pool[c])
+	}
+	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
+		o := m.first()
+		if o == sl || !s.canTapForManaPC(k, o, s.manaPCGen(k, o)) {
+			continue
+		}
+		pc := s.manaPCGen(k, o)
+		mask, n := s.srcMaskAt(pc, o), s.srcYieldAt(k, o, pc)
+		for c := 0; c < kop.NumManaKinds; c++ {
+			if mask&(1<<uint(c)) != 0 {
+				pot[c] += int(n)
+			}
+		}
+	}
+	return potentialCovers(&pot, cost)
 }
 
 // anyLiveSource is the sources flag gorge's resPayNeedsMana gates the
@@ -159,6 +219,12 @@ func (s *State) anyLiveSource(k *prep, p uint8, d *payDesc) bool {
 			return true // a bounded rider source's activation (CR 605.3b)
 		}
 		if s.identityPotentialSource(k, p, sl, d) {
+			// a dynamic identity production makes nothing while its amount is
+			// zero, so it is no source now (gorge windowSourceYields resolves
+			// the amount strictly)
+			if a, _, ok := s.identityPotentialAbility(k, sl); ok && d != nil && !s.dynSourceYields(k, sl, a) {
+				continue
+			}
 			return true // a ColorIdentity source the payment-bound fold prices (CR 903.4)
 		}
 		c := s.cardAt(sl)
@@ -178,14 +244,30 @@ func (s *State) anyLiveSource(k *prep, p uint8, d *payDesc) bool {
 			}
 		}
 		// a restricted ability the payment may spend (Queen's Diamond's
-		// commander-only mana refused, Hydraulic Helper's admitted, CR 106.6)
+		// commander-only mana refused, Hydraulic Helper's admitted, CR 106.6).
+		// A dynamic amount that resolves to zero now makes nothing, so it is
+		// no source for the window flag however its restriction reads
+		// (gorge windowSourceYields' strict amount read).
 		cd := &k.t.Cards[c]
 		for j := range cd.Abilities {
 			if ab := &cd.Abilities[j]; j < 16 && ab.Kind == kop.AbMana && ab.AFlags&kop.AfLatent == 0 &&
-				ab.ManaRestrict != 0 && s.restrSrcAdmits(k, p, sl, ab, d) && s.potentialAdmits(k, p, sl, j, ab, nil) {
+				ab.ManaRestrict != 0 && (d == nil || s.restrSrcAdmits(k, p, sl, ab, d)) && s.potentialAdmits(k, p, sl, j, ab, nil) &&
+				s.dynSourceYields(k, sl, ab) {
 				return true
 			}
 		}
 	}
 	return false
+}
+
+// dynSourceYields reports whether a mana ability whose amount the census reads
+// dynamically makes at least one mana now: gorge's windowSourceYields resolves
+// a non-literal Amount$ strictly (rules payment_window_yield.go), so a
+// source holding none is no source for the trigger-cost offer however its
+// ability is admitted.
+func (s *State) dynSourceYields(k *prep, sl Slot, a *kop.Ability) bool {
+	if a.AFlags&kop.AfManaDynamic == 0 {
+		return true
+	}
+	return s.dynManaN(k, a, sl) > 0
 }
