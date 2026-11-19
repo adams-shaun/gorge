@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/server/manabrew"
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
@@ -700,19 +701,15 @@ func (c *MockClient) answerReorder(in mb.ReorderInput) mb.PromptOutputValue {
 }
 
 // answerPayManaCost prefers an activation action (advancing the payment one
-// step, the engine re-prompts after each) until maxPaymentSteps, then the wire
-// "autofill" action via pay{auto:true}, then confirming from the pool
-// (pay{auto:false}), and cancels only when none of those is offered. "autofill"-typed entries in
-// Actions cannot be sent through act (only mana/activate/undoMana can); this
-// client tells them apart by PaymentAction.Type, as the payment
-// doc requires of a well-behaved client.
+// step, the engine re-prompts after each) until maxPaymentSteps, then
+// auto-fill via pay{auto:true} when the window offers it
+// (manabrew.PaymentOffersAutoFill), then confirming from the pool
+// (pay{auto:false}), and cancels only when none of those is offered.
 func (c *MockClient) answerPayManaCost(in mb.PayManaCostInput) mb.PromptOutputValue {
-	var stepActions, autofillActions []mb.PaymentAction
+	var stepActions []mb.PaymentAction
 	for _, a := range in.Actions {
 		switch a.Type {
-		case "autofill":
-			autofillActions = append(autofillActions, a)
-		case "activateAbility", "undoMana":
+		case mb.ActionActivateManaAbility, mb.ActionUndoMana:
 			stepActions = append(stepActions, a)
 		}
 	}
@@ -727,7 +724,7 @@ func (c *MockClient) answerPayManaCost(in mb.PayManaCostInput) mb.PromptOutputVa
 		}
 		return mb.ActOutput{ActionID: stepActions[idx].ID}
 	}
-	if len(autofillActions) > 0 {
+	if manabrew.PaymentOffersAutoFill(in) {
 		return mb.PayOutput{Auto: true}
 	}
 	if in.CanConfirmFromPool {

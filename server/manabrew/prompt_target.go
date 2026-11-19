@@ -37,14 +37,20 @@ func boardTargetInput(d *decision.Decision, intent mb.TargetingIntent, hostile b
 		cands = append(cands, mb.TargetRef{Kind: targetRefKind(opt.Kind), ID: targetRefID(opt),
 			Intent: intent, Oracle: opt.Label})
 	}
+	// The input's intent is required upstream (a candidate's is optional):
+	// an unclassified ask is the conservative friendly one.
+	askIntent := intent
+	if askIntent == "" {
+		askIntent = mb.IntentFriendly
+	}
 	return mb.ChooseBoardTargetsInput{
 		PromptBase:    mb.PromptBase{Presentation: mb.PromptPresentation{Title: d.Prompt, Description: targetSetSentences(d), Targets: cands}},
 		Candidates:    cands,
 		Hostile:       hostile,
-		Intent:        intent,
+		Intent:        askIntent,
 		MinTargets:    d.Min,
 		MaxTargets:    d.Max,
-		ChosenTargets: []mb.TargetRef{},
+		ChosenTargets: 0,
 		Cancellable:   false,
 	}
 }

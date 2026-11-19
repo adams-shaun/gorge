@@ -95,6 +95,7 @@ func (h *handler) send(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case outcome.Err != nil:
 		sc.pushMsg(mb.EngineMessage{Value: mb.ErrorMessage{Error: *outcome.Err}})
+		resendPrompt(sc, pending)
 		writeProtocolError(w, *outcome.Err)
 	case outcome.Queued:
 		sc.queueConcede()
@@ -117,6 +118,9 @@ func (h *handler) send(w http.ResponseWriter, r *http.Request) {
 			// tells those two apart instead of mislabelling every refusal.
 			pe := h.submitProtocolError(t, k, claim.Seat, d, err)
 			sc.pushMsg(mb.EngineMessage{Value: mb.ErrorMessage{Error: pe}})
+			if pe.Code != mb.CodeStalePrompt {
+				resendPrompt(sc, pending)
+			}
 			writeProtocolError(w, pe)
 			return
 		}
@@ -129,6 +133,19 @@ func (h *handler) send(w http.ResponseWriter, r *http.Request) {
 		// translator bug, not a client mistake.
 		writeError(w, http.StatusInternalServerError, "internal", "translator produced no outcome")
 	}
+}
+
+// resendPrompt pushes the still-open prompt again after the error a refused
+// answer pushed. The stream sends each prompt once (its havePrompt latch), so
+// a client that drops its refused answer and waits for the next prompt -- as
+// ManaBrew's own seat client does -- would otherwise wait forever on a
+// decision that is still open (G2: a Crew pick answered short). nil (no
+// prompt open) pushes nothing.
+func resendPrompt(sc *seatConn, p *manabrew.Pending) {
+	if p == nil {
+		return
+	}
+	sc.pushMsg(mb.EngineMessage{Value: p.Prompt})
 }
 
 // promptIDOf reads the open prompt's id for an error body, or nil when there

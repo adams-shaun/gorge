@@ -62,12 +62,12 @@ func TestChooseActionPromptAdvertisesActions(t *testing.T) {
 		acts[a.ID] = a
 	}
 	a := acts["opt-1"]
-	if a.Type != "cast" || a.CardID != "o2" || a.Mode != "" || a.Label != "Cast Shock" {
+	if a.Type != "cast" || a.CardID != "o2" || a.Mode != (mb.PlayCardMode{Type: mb.ModeNormal}) || a.Label != "Cast Shock" {
 		t.Fatalf("cast action: %#v", a)
 	}
 	a = acts["opt-2"]
-	if a.Type != "cast" || a.CardID != "o1" || a.Mode != "play" {
-		t.Fatalf("play_land action must be a cast with mode play: %#v", a)
+	if a.Type != "cast" || a.CardID != "o1" || a.Mode != (mb.PlayCardMode{Type: mb.ModeNormal}) {
+		t.Fatalf("play_land action must be a cast with mode normal: %#v", a)
 	}
 	a = acts["opt-3"]
 	if a.Type != "activateAbility" || !a.IsManaAbility || a.CardID != "o1" {
