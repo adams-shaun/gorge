@@ -1149,7 +1149,7 @@ func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all,
 			if ov.HasSub {
 				subs, all, setSub = subs.And(ov.KeepSub).Or(ov.SetSub), false, true
 			}
-			if ov.RemoveCreatureSub && !DebugRmCreatSubKeep {
+			if ovrCreatSub(ov) && !DebugRmCreatSubKeep {
 				subs, all, setSub = subs.AndNot(k.gen.creatSub), false, true
 			}
 			if ov.SetLandSub {
