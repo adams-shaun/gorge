@@ -39,6 +39,7 @@ Glimmerpoint Stag
 Goblin Taskmaster
 Gorehorn Minotaurs
 Graveshifter
+Grazing Gladehart
 Grip of the Roil
 Gudul Lurker
 Guided Strike
@@ -54,6 +55,7 @@ Jötun Owl Keeper
 Knight of Meadowgrain
 Knights of the Black Rose
 Kutzil, Malamet Exemplar
+Larger Than Life
 Longshot Squad
 Mad Ratter
 Manor Gate
@@ -91,6 +93,7 @@ Swamp
 Take Up the Shield
 Temple Acolyte
 The Muckslinger Gang
+Thornwind Faeries
 Thought Courier
 Titanoth Rex
 Torch Breath

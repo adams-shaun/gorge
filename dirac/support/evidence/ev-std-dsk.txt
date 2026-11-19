@@ -106,6 +106,7 @@ Impossible Inferno
 Innocuous Rat
 Inquisitive Glimmer
 Insidious Fungus
+Intruding Soulrager
 Irreverent Gremlin
 Island
 Jump Scare
@@ -169,6 +170,7 @@ Resurrected Cultist
 Rip, Spawn Hunter
 Ripchain Razorkin
 Rite of the Moth
+Roaring Furnace
 Rootwise Survivor
 Savior of the Small
 Saw

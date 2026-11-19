@@ -2,13 +2,16 @@ A-Kona, Rescue Beastie
 Akoum Refuge
 Anointer Priest
 Apprentice Sharpshooter
+Arachnus Web
 Archwing Dragon
 Artificer Class
 Ashen Monstrosity
 Aspect of Lamprey
 Banishment
+Barkhide Troll
 Bathe in Dragonfire
 Belligerent Sliver
+Bellowing Mauler
 Black Widow, Intel Expert
 Black Widow, Natasha Romanoff
 Blind Creeper
@@ -21,10 +24,14 @@ Bone Devourer
 Bonehoard
 Boneknitter
 Bonepicker Skirge
+Bountiful Promenade
 Brackwater Elemental
 Brandywine Farmer
 Bugenhagen, Wise Elder
 Burning Fields
+Cabal Patriarch
+Cabaretti Courtyard
+Captive Weird
 Chainweb Aracnir
 Chaotic Backlash
 Clip Wings
@@ -37,12 +44,15 @@ Death's Shadow
 Deepwood Wolverine
 Dense Foliage
 Deputized Protester
+Desert of the Indomitable
+Desolate Mire
 Dragon-Scarred Bear
 Drainpipe Vermin
 Dream Thief
 Dreamshackle Geist
 Drillworks Mole
 Drossclaw
+Drown in Dreams
 Dualcaster Mage
 Dune Mover
 Duplicant
@@ -62,6 +72,7 @@ Flatman
 Forest
 Gift of Fangs
 Gift of Paradise
+Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
 Great Defender
@@ -69,6 +80,7 @@ Grixis Slavedriver
 Guul Draz Mucklord
 Haazda Officer
 Harbinger of Night
+Harmless Assault
 Herd Gnarr
 Honden of Life's Web
 Howl of the Night Pack
@@ -102,6 +114,7 @@ Malcator's Watcher
 Mammoth Spider
 Mana Vault
 Manalith
+Marauding Boneslasher
 Mardu Woe-Reaper
 Markov Patrician
 Masked Blackguard
@@ -126,6 +139,7 @@ Parallel Lives
 Patrol Hound
 Peregrine Mask
 Personal Tutor
+Pillage
 Plains
 Precinct Captain
 Privileged Position
@@ -152,12 +166,17 @@ Scour All Possibilities
 Seething Pathblazer
 Shaman of Spring
 Shield of the Oversoul
+Shimmer of Possibility
 Show of Valor
 Simian Brawler
+Skyclave Shadowcat
 Skyline Cascade
+Slagwoods Bridge
 Songstitcher
+Soulmender
 Spike Breeder
 Spindrift Drake
+Spirit Shackle
 Spiteful Squad
 Sultai Emissary
 Sunscorched Desert
@@ -180,15 +199,18 @@ Twilight's Call
 Unholy Hunger
 Urza's Rebuff
 Urza, Powerstone Prodigy
+Veiling Oddity
 Venomous Changeling
 Verdant Sun's Avatar
 Viscid Lemures
+Volcanic Upheaval
 Voyager Staff
 Wall of Vines
 Waterknot
 Whiptail Moloch
 Whiptail Wurm
 Will-o'-the-Wisp
+Winding Canyons
 Wizard Replica
 Wolfwillow Haven
 Woodland Stream
