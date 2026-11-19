@@ -732,6 +732,17 @@ func (e *Engine) finishChosenDamage(rc replChoice, inPlace bool) events.Event {
 		// Amount <= 0), and a redirect ONTO a permanent zeroes nothing but
 		// fails the Obj == 0 guard exactly as the capture site's guard does.
 		e.combatHitsThisTurn = append(e.combatHitsThisTurn, e.combatHit(applied.Player, rc.damaging, applied.Amount))
+		// CR 725.2's SECOND collection site, mirroring the ledger append's
+		// twin path: a parked player-targeted combat hit never reaches
+		// runCombatAssignments' synchronous CR 725.2 collection, so the landed
+		// event must queue the monarch steal here or a creature whose hit the
+		// monarch WAS dealt leaves the crown where it was (Battletide
+		// Alchemist's optional prevention, declined or applying a 0-amount
+		// prevent, both land here). The same Obj == 0 guard applies: a
+		// redirect ONTO a permanent dealt no player.
+		if pt, ok := monarchStealFor(e.G, applied.Player, rc.damaging); ok {
+			e.pendingTriggers = append(e.pendingTriggers, pt)
+		}
 		// CR 726.2's SECOND collection site, mirroring the ledger append's
 		// twin path: a parked player-targeted combat hit never reaches
 		// runCombatAssignments' synchronous CR 726.2 collection, so its
