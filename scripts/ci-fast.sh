@@ -34,7 +34,13 @@ if [ -n "$whole" ]; then
 fi
 while IFS=$'\t' read -r m p r; do
   [ "$m" = named ] || continue
-  go test -timeout 10m -short -run "$r" "$p" || rc=1
+  # ./dirac/oracle's named row is the whole case above's replacement when only
+  # its tests or recordings changed: every repro replay and the census guards.
+  # It gets the same 15m cap, not the generic 10m: #2159 timed out at 10m after
+  # one existing replay (The World Tree) took 7m43 under box load.
+  to=10m
+  [ "$p" = ./dirac/oracle ] && to=15m
+  go test -timeout "$to" -short -run "$r" "$p" || rc=1
 done <<<"$list"
 [ -n "$list" ] || echo "ci-fast: the diff selects no tests"
 exit $rc
