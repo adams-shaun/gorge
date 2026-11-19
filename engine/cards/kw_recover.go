@@ -4,8 +4,6 @@
 
 package cards
 
-import "strings"
-
 func kwRecover(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
 	// CR 702.59: "Recover [cost] (When a creature is put into your graveyard
 	// from the battlefield, you may pay [cost]. If you do, return this card
@@ -30,8 +28,8 @@ func kwRecover(f *Face, i int, k, head, param string, has func(kind, line string
 	// dispatches on the parameter's body (a plain number stays a number,
 	// the half-your-life spellings fold to LifeTotalHalfUp) and add its
 	// behaviour test; do not widen this blind fold.
-	cost := strings.TrimSpace(param)
-	if strings.HasPrefix(cost, "PayLife<") {
+	cost := param
+	if len(cost) >= 8 && cost[:8] == "PayLife<" {
 		cost = "LifeTotalHalfUp"
 	}
 	f.addKeywordTrigger(head, k,
