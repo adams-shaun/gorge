@@ -748,13 +748,14 @@ func (s *State) windowFiltUseful(k *prep, p uint8, sl Slot, want uint8) bool {
 
 // windowFiltOwedPick: the clamp kept sl (windowClampSkip read no colour of the
 // cost still owed in its plain tap) only for a filter beside a plain ability,
-// whose colours windowFiltUseful makes. gorge's window lists the
-// owed-colour abilities first (pay.owedAbilitiesFirst, a stable partition of
-// the source's ability order), so the answer takes the filter, whose colour
-// ask answers what the cost still owes (windowFiltFirst) -- the paid window's
-// payWinHybFilt arm, which lists the filter first for its lowest symbol, on
-// the window whose ask carries the cost. An unsettled generic keeps the
-// listing order: gorge lists the plain tap first and takes it.
+// whose colours windowFiltUseful makes. This is the window whose ask carries
+// the ManaPayment (xWindowPay, the announced X): gorge's owedAbilitiesFirst
+// lists the owed-colour abilities first (a stable partition of the source's
+// ability order), so the answer takes the filter, whose colour ask answers
+// what the cost still owes (windowFiltFirst) -- the payWin window's
+// payWinHybFilt arm, which lists the filter first for its lowest symbol. A
+// window whose ask carries no ManaPayment keeps the listing order: gorge
+// lists the plain tap first and takes it.
 func (s *State) windowFiltOwedPick(k *prep, p uint8, sl Slot, useful *kop.ManaCost) bool {
 	if k.gen == nil || !k.gen.has(s.cardAt(sl), gfFilt) || s.filtFirstOnly(k, sl) || !s.filtUsable(k, sl) {
 		return false

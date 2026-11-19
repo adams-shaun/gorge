@@ -317,7 +317,7 @@ func (s *State) windowFiltAffords(k *prep, p uint8, cost *kop.ManaCost) (bool, u
 	}
 	t := s.fork()
 	defer s.unfork()
-	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, true, false, true, false)
+	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, true, false, true, false, false)
 	stall := uint8(0)
 	if !ok {
 		stall = t.g.stalled

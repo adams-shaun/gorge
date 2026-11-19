@@ -245,7 +245,7 @@ func (s *State) windowTapRiderUseful(k *prep, p uint8, cost, useful *kop.ManaCos
 // noOwed is gorge's trigger-cost manual window, whose decision has no
 // ManaPayment, so a source answers its lowest colour (windowCol).
 func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential bool) (ok bool, held [kop.NumManaKinds]uint8) {
-	return s.windowTapWalk(k, p, cost, useful, clamp, anyColor, noOwed, potential, false, false)
+	return s.windowTapWalk(k, p, cost, useful, clamp, anyColor, noOwed, potential, false, false, false)
 }
 
 // windowTapWalk is windowTapUseful (takeDeferred is kept for the callers' signature:
@@ -260,7 +260,10 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 // like any other, whatever the planner census affords. An Intent.Announce
 // cast's announced window (announcedManaWindowAsk) would offer the auto-fill
 // plan the census covers; no seat sends it here, so the walk never skips.
-func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential, takeDeferred, census bool) (ok bool, held [kop.NumManaKinds]uint8) {
+// payAsk is the one walk whose ask carries the ManaPayment (the announced X,
+// xWindowPay): gorge's owedAbilitiesFirst reorders its listing by what the
+// cost still owes, so windowFiltOwedPick takes a filter the clamp kept.
+func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential, takeDeferred, census, payAsk bool) (ok bool, held [kop.NumManaKinds]uint8) {
 	if s.buildLive() && s.bld().manaNP == 0 && s.bld().bfl&bflPushed != 0 && s.bld().e.kind == seSpell {
 		// the payment's mana abilities queue from here: a reversal (unpushSpell) keeps what they
 		// queued (CR 733.1), whichever window path reverses the cast (Spree's, a hybrid pip's)
@@ -336,10 +339,15 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		if s.payWinHybFilt(k, p, sl, noOwed && !clamp && !anyColor && !potential) {
 			continue // payWindow: a hybrid-fee filter's lowest Combo answer (mana_paywinanswer.go)
 		}
-		if clamp && !anyColor && s.windowFiltOwedPick(k, p, sl, useful) {
+		if payAsk && clamp && !anyColor && s.windowFiltOwedPick(k, p, sl, useful) {
 			// the clamp kept the source for a filter beside a plain ability: the
-			// owed window lists it first (mana_filter.go windowFiltOwedPick), and
-			// its colour ask answers what the cost still owes
+			// ask carries the ManaPayment, so gorge's owedAbilitiesFirst lists
+			// the owed-colour abilities first (mana_filter.go
+			// windowFiltOwedPick) and the filter's colour ask answers what the
+			// cost still owes. A window whose ask carries no ManaPayment keeps
+			// the listing order and takes the plain tap (payWinHybFilt's payWin
+			// gate, windowFiltFirstFallback's note: the hybrid-only activation,
+			// convoke, Spree, a lowered or free cast, waterbend, pain)
 			s.windowFiltFirst(k, p, sl, useful, false)
 			continue
 		}
@@ -1239,7 +1247,7 @@ func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDefe
 	defer s.unfork()
 	was := t.pool.census
 	t.pool.census = takeDeferred
-	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, false, false, takeDeferred, takeDeferred)
+	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, false, false, takeDeferred, takeDeferred, false)
 	t.pool.census = was
 	stall := uint8(0)
 	if !ok {
