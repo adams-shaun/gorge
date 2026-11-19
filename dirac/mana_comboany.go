@@ -75,7 +75,7 @@ func (s *State) caGaps(k *prep, p uint8) slotMask {
 	m := s.gapMask(k, p, gfGapOther)
 	for b := m; b.any(); b = b.rest() {
 		sl := b.first()
-		if !k.isComboAny(s.cardAt(sl)) || s.caAmount(k, sl) == 0 {
+		if !(k.isComboAny(s.cardAt(sl)) || k.isReflAmt(s.cardAt(sl))) || s.caAmount(k, sl) == 0 {
 			m = m.andNot(slotBit(sl))
 		}
 	}
@@ -154,9 +154,17 @@ func (s *State) caChainTap(k *prep, p uint8, a Action, sl Slot, c int) {
 }
 
 // availCA adds each live Combo Any source's units: its amount of any colour.
+// A reflected Amount$ source's window availability is gorge's bound read:
+// {C} alone (mana_reflamt.go reflAmtPotential), so a coloured pip the pool
+// cannot cover keeps the window unafforded, as gorge's potential fold does.
 func (s *State) availCA(k *prep, p uint8, a *avail) {
 	for b := s.caGaps(k, p); b.any(); b = b.rest() {
-		a.addUnits(0x1f, uint8(s.caAmount(k, b.first())))
+		sl := b.first()
+		if k.isReflAmt(s.cardAt(sl)) {
+			a.addUnits(uint8(kop.ColC), uint8(s.caAmount(k, sl)))
+			continue
+		}
+		a.addUnits(0x1f, uint8(s.caAmount(k, sl)))
 	}
 }
 
@@ -177,6 +185,9 @@ func (s *State) caPotentialOpen(k *prep, p uint8) bool {
 	}
 	for b := s.gapMask(k, p, gfGapOther); b.any(); b = b.rest() {
 		if k.isComboAny(s.cardAt(b.first())) {
+			// a reflected Amount$ source beside it is no whole-pool open — its
+			// fold is {C} alone (mana_reflamt.go reflAmtPotential) — so it
+			// stays out and the affords check below reads it
 			return true
 		}
 	}
@@ -318,6 +329,41 @@ func (cs *caSearch) visit(k *prep, t *State, d *Decision, root bool) bool {
 		if cs.nodes >= potentialScriptNodes {
 			return false
 		}
+		if k.isReflAmt(t.cardAt(order[i])) {
+			// a reflected Amount$ source: the ask is the colour candidates
+			// (mana_reflamt.go), one node only when more than one candidate
+			// names an ask — a single candidate resolves with none (gorge's
+			// effManaReflected) — and the whole evaluated amount floats in the
+			// pick's colour. A source with no candidate makes no mana (gorge's
+			// scriptSpendableGaps, CR 106.6): no branch, the search goes on.
+			cols := t.reflAmtCols(k, order[i])
+			if cols == 0 {
+				continue
+			}
+			if cs.nodes >= potentialScriptNodes {
+				return false
+			}
+			if bits.OnesCount8(cols) > 1 {
+				cs.nodes++ // the colour ask's node
+			}
+			var ans [6]uint8
+			for _, col := range t.reflAmtOrder(k, order[i], cs.a, ans[:]) {
+				c := t.fork()
+				c.reflAmtDo(k, cs.p, order[i], int(col))
+				cs.path[cs.np] = caStep{sl: order[i], ans: col}
+				cs.np++
+				found := cs.visit(k, c, d, false)
+				if !found {
+					cs.stallOf(c) // the line failed; the fork may have latched a stall
+				}
+				t.unfork()
+				if found {
+					return true
+				}
+				cs.np--
+			}
+			continue
+		}
 		cs.nodes++ // the colour ask's node
 		units := t.caAmount(k, order[i])
 		for r, na := 0, caAnswerCount(units); r < na; r++ {
@@ -357,6 +403,10 @@ func (s *State) caScript(k *prep, a Action, p uint8, apply bool) bool {
 	}
 	if apply {
 		for _, st := range cs.path[:cs.np] {
+			if k.isReflAmt(s.cardAt(st.sl)) {
+				s.reflAmtDo(k, p, st.sl, int(st.ans)) // the reflected Amount$ source: ans is the colour (mana_reflamt.go)
+				continue
+			}
 			s.caActivate(k, p, st.sl, int(st.ans))
 		}
 	}
