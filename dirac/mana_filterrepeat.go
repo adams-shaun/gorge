@@ -271,6 +271,12 @@ func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost
 // sl whose bare-tap mana ability can make col: the free unit the plain source
 // census prices (pcard.manaTap), and the kernel mirror of gorge's
 // scriptSearch.feeOnlyFreeTapColour (engine/rules/potential_script.go).
+// A source whose ability also pays life (Mana Confluence's "{T}, Pay 1 life")
+// is not this class (pc.painLife): the swapped line would spend that life,
+// which the dominated branch saved, so the endpoint after both activations is
+// not the same and the cut fails open (gorge's PaymentPlanTapOnlyCost reads
+// the same class, pay.ManaFreeCost's c.Life == 0; canTapForManaPC only holds
+// the lethal band out, life < painN, which is not enough here).
 func (s *State) filtFreeTapColour(k *prep, p uint8, skip Slot, col int) bool {
 	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 		sl := b.first()
@@ -286,7 +292,7 @@ func (s *State) filtFreeTapColour(k *prep, p uint8, skip Slot, col int) bool {
 		} else {
 			pc = &k.cards[s.cardAt(sl)]
 		}
-		if pc.manaAb < 0 || !pc.manaTap || pc.manaSac || !s.canTapForManaPC(k, sl, pc) {
+		if pc.manaAb < 0 || !pc.manaTap || pc.manaSac || pc.painLife || !s.canTapForManaPC(k, sl, pc) {
 			continue
 		}
 		if s.srcMaskAt(pc, sl)&(1<<uint(col)) != 0 {
