@@ -3,14 +3,17 @@ A-Forge Boss
 Accorder's Shield
 Akki Avalanchers
 Akoum Battlesinger
+Akroma's Memorial
 Alexi's Cloak
 Amber Prison
 Amoeboid Changeling
 Angelheart Protector
 Arbor Colossus
+Avacyn's Memorial
 Barbtooth Wurm
 Bastion Mastodon
 Battlegrace Angel
+Bellowing Tanglewurm
 Binding the Old Gods
 Bird Maiden
 Blood Cultist
@@ -27,6 +30,7 @@ Casey Jones, Asphalt Hooligan
 Cast into the Fire
 Cavern Thoctar
 Chakra Meditation
+Chandra, Hope's Beacon
 Children of Korlis
 Chorus of the Tides
 Chub Toad
@@ -39,6 +43,7 @@ Cradle of Safety
 Dawnhart Disciple
 Dawnhart Rejuvenator
 Deal Gone Bad
+Debtors' Transport
 Decisive Denial
 Deep Spawn
 Devastation
@@ -80,6 +85,7 @@ Gloomhunter
 Goblin Replica
 Green Goblin, Back for More
 Grimgrin, Corpse-Born
+Gruul Scrapper
 Gruul Signet
 Hammerheim Deadeye
 Havengul Runebinder
@@ -95,6 +101,7 @@ Ideas Unbound
 Ingenious Infiltrator
 Intrusive Packbeast
 Island
+Jalira, Master Polymorphist
 Jhoira, Weatherlight Captain
 Jousting Lance
 Knight Paladin
@@ -105,6 +112,7 @@ Leyline Phantom
 Liliana's Spoils
 Littjara Glade-Warden
 Living Wall
+Lost Leonin
 Ludevic's Test Subject
 Magma Jet
 Master of Diversion
@@ -116,6 +124,7 @@ Mistford River Turtle
 Moku, Meandering Drummer
 Mountain
 Mudhole
+Myojin of Cryptic Dreams
 Myr Battlesphere
 Mystic of the Hidden Way
 Nahiri's Binding
@@ -129,6 +138,7 @@ Omnispell Adept
 Ornamental Courage
 Pendrell Mists
 Phantom Wings
+Phyrexian Rebirth
 Plague Sliver
 Plains
 Plow Through Reito
@@ -146,6 +156,7 @@ Return of the Mole Man
 Revoke Demise
 River's Favor
 Road
+Root Spider
 Sai of the Shinobi
 Saltwater Stalwart
 Scavenging Scarab
@@ -172,6 +183,7 @@ Staff of the Flame Magus
 Stampede
 Stealer of Secrets
 Steelshaper Apprentice
+Stormcloud Djinn
 Strategic Planning
 Strider, Ranger of the North
 Sturmgeist

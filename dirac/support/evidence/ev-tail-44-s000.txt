@@ -37,6 +37,7 @@ Floodbringer
 Forest
 Frogmite
 Genju of the Cedars
+Graypelt Refuge
 Hampering Snare
 Hunted Troll
 Island
@@ -44,9 +45,11 @@ Jace Beleren
 Joyous Respite
 Keep Safe
 Keeper of Keys
+Kumena, Tyrant of Orazca
 Limestone Golem
 Lord of Change
 Lumbering Falls
+Lunar Force
 Madame Vastra
 Make a Wish
 Matsu-Tribe Birdstalker
@@ -60,6 +63,7 @@ Navigator's Ruin
 Nephalia Moondrakes
 Neurok Invisimancer
 Ninja of the Deep Hours
+Nissa, Who Shakes the World
 Nomadic Elf
 Oko's Accomplices
 Ovinize
@@ -94,6 +98,7 @@ Svogthos, the Restless Tomb
 Sylvan Awakening
 Tajuru Snarecaster
 Tangletrove Kelp
+Throne of the High City
 Thunder Drake
 Totem Speaker
 Transguild Promenade

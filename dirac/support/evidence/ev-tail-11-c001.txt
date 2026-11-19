@@ -105,6 +105,7 @@ Day of the Dragons
 Deadeye Harpooner
 Defiant Falcon
 Deglamer
+Demonic Consultation
 Depopulate
 Desmond Miles
 Destined
@@ -199,6 +200,7 @@ Hithlain Knots
 Hovermyr
 Icequake
 Icy Prison
+Idyllic Beachfront
 Ikiral Outrider
 Ill-Tempered Cyclops
 In Bolas's Clutches
@@ -337,10 +339,12 @@ Rotting Regisaur
 Sacred Mesa
 Sacrifice
 Sage's Row Denizen
+Sakashima's Student
 Sanctum Weaver
 Sanguine Statuette
 Sanity Gnawers
 Scouring Sands
+Scrapyard Recombiner
 Seachrome Coast
 Secrets of the Key
 Seedcradle Witch
@@ -454,6 +458,7 @@ Voice of Law
 Voidmage Prodigy
 Voracious Vampire
 Vorstclaw
+Walking Sponge
 Wash Out
 Waste Away
 Watcher of Hours

@@ -1,5 +1,6 @@
 A-Briar Hydra
 A-Dokuchi Silencer
+A-Eyes of the Beholder
 A-Most Wanted
 A-Rockslide Sorcerer
 A-Umara Mystic
@@ -17,12 +18,15 @@ Appa, the Vigilant
 Aquatic Incursion
 Archaeomender
 Archon of Absolution
+Armor Thrull
 Asphodel Wanderer
 Augury Adept
 Avatar of the Resolute
 Aven Trailblazer
 Axebane Guardian
 Azorius Ploy
+Beast Attack
+Biting Rain
 Black Market
 Blade Splicer
 Blight Sickle
@@ -39,9 +43,11 @@ Caravan Escort
 Case the Joint
 Castle
 Chain Lightning
+Champion's Helm
 Clackbridge Troll
 Claim the Firstborn
 Cling to Dust
+Clutch of Undeath
 Cogwork Assembler
 Commissar Severina Raine
 Common Iguana
@@ -49,12 +55,18 @@ Company Commander
 Conclave Guildmage
 Confront the Unknown
 Conservator
+Consuming Vapors
+Contagion
 Corpse Knight
+Corrupted Zendikon
+Corrupting Licid
+Corsairs of Umbar
 Courier's Capsule
 Crackling Triton
 Crop Rotation
 Crypt Incursion
 Culling Mark
+Custodi Soulbinders
 Daily Bugle Newspaper
 Daring Fiendbonder
 Dauntless Survivor
@@ -78,19 +90,25 @@ Eidolon of Rhetoric
 Ekthi, Contaminator Priest
 Emerge Unscathed
 Erratic Visionary
+Essence Feed
 Essence Warden
 Eternal Witness
 Ethereal Champion
 Ethereal Usher
 Explosive Welcome
+Eyes of Gitaxias
+Faerie Mastermind
 Fain, the Broker
 Farbog Boneflinger
 Femeref Healer
+Final-Sting Faerie
 Firebird, Blazing Ranger
 Flashfires
 Floodhound
 Flow of Ideas
 Flux Channeler
+Foe-liage
+Fog of Gnats
 Forest
 Fungal Sprouting
 Furnace Celebration
@@ -100,15 +118,19 @@ Gnome-Made Engine
 Goblin Glider
 Goblin Racketeer
 Grim Monolith
+Guardian Kirin
 Hanna, Ship's Navigator
+Helitrooper
 Hemlock Vial
 Heroes of the Revel
+Heroes' Podium
 Honed Khopesh
 Hooting Mandrills
 Horizon Chimera
 Horseshoe Crab
 Hound of the Farbogs
 Idol of Oblivion
+Implement of Ferocity
 Independent Troops
 Indigo Faerie
 Infernal Pet
@@ -122,6 +144,7 @@ Ironclad Krovod
 Island
 Jackalope Herd
 Keen-Eyed Raven
+Knight of the Keep
 Kor Castigator
 Lagrella, the Magpie
 Leafkin Druid
@@ -146,17 +169,20 @@ Mirror of Galadriel
 Mise
 Mogg Sentry
 Mogis's Warhound
+Morkrut Necropod
 Mortal's Ardor
 Moss Monster
 Mother of Runes
 Mothrider Patrol
 Mountain
+Mourning
 Nagging Thoughts
 Natural Emergence
 Necrobite
 Nemesis of Reason
 Nezumi Bladeblesser
 Norn's Disassembly
+Novice Dissector
 Oblation
 Obscura Initiate
 Orcish Bowmasters
@@ -164,6 +190,8 @@ Orim's Touch
 Path of Anger's Flame
 Pentarch Ward
 Pernicious Deed
+Phyrexian Etchings
+Phyrexian Obliterator
 Pilfering Imp
 Plains
 Pollywog Prodigy
@@ -175,6 +203,8 @@ Prosper, Tome-Bound
 Prosperous Innkeeper
 Protector of Gondor
 Prowling Pangolin
+Psychic Spear
+Purifying Dragon
 Python
 Quest for Pure Flame
 Rage Weaver
@@ -188,9 +218,12 @@ Reduce to Ashes
 Relic Barrier
 Reparations
 Repel
+Replenish
 Revelation of Power
+Rhox Oracle
 Rogue Refiner
 Rolling Thunder
+Samite Pilgrim
 Sandcrafter Mage
 Savra, Queen of the Golgari
 Scepter of Celebration
@@ -201,12 +234,16 @@ Searing Blood
 Secure the Scene
 Selective Memory
 Sentinel Sliver
+Settle the Score
 Shadowspear
 Shake the Foundations
+Sheoldred
 Shepherd of the Lost
 Shore Keeper
 Simic Keyrune
+Simplify
 Skitter of Lizards
+Skullscorch
 Sky Terror
 Slinking Giant
 Sol Grail
@@ -216,16 +253,22 @@ Spectral Shepherd
 Spellweaver Eternal
 Spined Fluke
 Spirit Weaver
+Sporogenesis
 Squee's Embrace
 Steam Blast
+Stinging Barrier
 Streetbreaker Wurm
 Sultai Scavenger
 Swamp
+Symmetry Sage
+Tactical Advantage
 Tale of Momo
 Talons of Falkenrath
 Talons of Wildwood
 Task Force
+Tawnos's Wand
 Temmet, Vizier of Naktamun
+Temporal Cascade
 Tenza, Godo's Maul
 Territorial Allosaurus
 The Bears of Littjara
@@ -237,8 +280,12 @@ Thrór's Map
 Thundering Sparkmage
 Thwart the Grave
 Tibor and Lumia
+Tidal Bore
+Titan Hunter
 Titan's Strength
+Topan Freeblade
 Tormod's Cryptkeeper
+Tranquil Frillback
 Transcendent Master
 Trigon of Rage
 Trueheart Duelist
@@ -247,6 +294,8 @@ Undercity Scavenger
 Undying Rage
 Unholy Hunger
 Unwilling Ingredient
+Vampire Lacerator
+Venomcrawler
 Viashino Fangtail
 Vine Trellis
 Voldaren Stinger
@@ -255,6 +304,7 @@ Way of the Thief
 Weight of the Underworld
 Welder Automaton
 Well-Laid Plans
+Whack
 Whispering Wizard
 Windgrace Acolyte
 Wirecat

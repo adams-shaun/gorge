@@ -4,6 +4,7 @@ Apprentice Sharpshooter	24fbc7cf7330dd90	3	1/1		0/1	ix:resp
 Archwing Dragon	0a78094c510428b0	7	1/1		1/1	
 Artificer Class	302c5045449dec8d	3	4/4		0/1	ix:resp
 Aspect of Lamprey	6fc0c557ac1286b4	3	1/1		1/2	ix:resp
+Banishment	b9774dc62ffa1ac0	4	1/1		0/1	ix:resp
 Black Widow, Natasha Romanoff	bdc71b51f1d6bcb1	3	0/0		0/0	
 Blind Creeper	cc217a03311a41f2	5	1/1		0/1	ix:resp
 Bloodcrazed Neonate	2040c9e4b81762e4	7	1/1		0/1	ix:resp
@@ -15,6 +16,7 @@ Bonepicker Skirge	3162b64f4b546dc4	4	0/0		0/0
 Brackwater Elemental	9144ebf6cd3b0bbb	4	3/3		0/1	ix:resp
 Bugenhagen, Wise Elder	030e85a7bac8ffed	4	2/2		0/1	ix:resp
 Chainweb Aracnir	b94e2058321f5191	5	1/1		1/3	cast/alt:escaped,ix:resp
+Continue?	98902ea995c0af08	4	0/0		2/2	
 Creakwood Liege	024ea4ddbe311bb9	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Crosstown Courier	7e69ce8231238c8a	3	1/1		0/1	ix:resp
 Curiosity Crafter	a4da71997a7b3da3	9	1/1		1/1	
@@ -32,6 +34,7 @@ Fetid Imp	ea1ab007dfd1789d	6	1/1		0/1	ix:resp
 Flare of Denial	92ddcf63dca7c7fa	8	0/0		2/2	
 Flatman	e606e0b81146a517	7	1/1		0/1	ix:resp
 Gift of Fangs	49cc6cc04d154a07	6	0/0		1/2	ix:resp
+Great Defender	a82248cd82c9c7cd	4	0/0		1/2	ix:resp
 Honden of Life's Web	f24eec17cf548c1e	7	1/1		1/1	
 Hulk, Brutal Brawler	fc14624be05b6a75	28	1/1		1/1	
 Imaginary Pet	0e7501875523b3a8	6	1/1		1/1	
@@ -53,6 +56,7 @@ Masked Blackguard	a8a142ebd47fd68d	3	1/1		1/1
 Mobile Fort	8fb50bf5e67964bd	5	1/1		0/1	ix:resp
 Mox Tantalite	149b5f504ed2bfc3	4	1/1		2/3	cast/alt:none
 Nakaya Shade	77d4ecf82513a3d3	3	1/1		0/1	ix:resp
+Obelisk of Grixis	69966ddbffaee50e	4	1/1		0/1	ix:resp
 Ogre Taskmaster	e40b726704d6de3b	3	0/0		0/0	
 Panic Attack	0a7af9390a6bd1c1	3	0/0		1/2	ix:resp
 Paradigm Shift	fd549080f8f56349	3	0/0		1/2	ix:resp
@@ -74,6 +78,7 @@ Simian Brawler	618504ef98d989a4	7	1/1		1/1
 Songstitcher	07f782d03a8a7056	3	1/1		0/1	ix:resp
 Spike Breeder	709b8664e1a15f2b	4	2/2		1/1	
 Spindrift Drake	c5b0a202a94045cd	5	1/1		1/1	
+Spiteful Squad	9f673f527e4ce775	8	1/1		0/1	ix:resp
 Sultai Emissary	6bc1390b0e128231	4	1/1		0/1	ix:resp
 Surge Engine	69682ba7a799aa16	10	3/3		1/1	
 Swarm Surge	d7fa16679eca28fa	3	0/0		1/2	ix:resp

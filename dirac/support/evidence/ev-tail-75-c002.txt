@@ -53,6 +53,7 @@ Cabaretti Courtyard
 Captive Weird
 Catacomb Sifter
 Chainweb Aracnir
+Change the Equation
 Chaos Lord
 Choking Sands
 Clear a Path
@@ -134,6 +135,7 @@ Jolrael, Voice of Zhalfir
 Kayla's Reconstruction
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
+Khenra Eternal
 Kher Keep
 Kodama's Reach
 Launch

@@ -169,6 +169,7 @@ Haystack
 Heir of the Ancient Fang
 Heir of the Wilds
 Helionaut
+Helium Squirter
 Herald of Secret Streams
 Hoarding Ogre
 Holy Day
@@ -249,6 +250,7 @@ Nurturing Presence
 One with Death
 Ordeal of Heliod
 Orim, Samite Healer
+Otepec Huntmaster
 Otherworldly Journey
 Panther Robot
 Pest Summoning
