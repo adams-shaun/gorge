@@ -302,6 +302,7 @@ Stonecloaker
 Stormbound Geist
 Summer Bloom
 Swamp
+Swirling Torrent
 Sylvok Lifestaff
 Syndicate Guildmage
 Taj-Nar Swordsmith

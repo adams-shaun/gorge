@@ -1,7 +1,11 @@
 Abstruse Interference
 Akoum Boulderfoot
+Akoum Warrior
+Amulet of Kroog
+Ashling the Pilgrim
 Attrition
 Blade Splicer
+Blunt the Assault
 Boggart Arsonists
 Border Guard
 Brawl-Bash Ogre
@@ -9,40 +13,67 @@ Bull Hippo
 Castaway's Despair
 Chaotic Goo
 Cho-Arrim Bruiser
+Cloud Elemental
+Court Homunculus
+Curious Altisaur
+Cut
+Damning Verdict
+Death's Presence
 Dismiss
 Draugr Thought-Thief
 Duskhunter Bat
+Dwarven Warriors
 Elas il-Kor, Sadistic Pilgrim
+Electric Revelation
 Endurance Bobblehead
 Ertai Resurrected
+Eternal Skylord
+Explosive Impact
 Eye of Nowhere
+Familiar Ground
 Fault Riders
+Filigree Fracture
 Floating-Dream Zubera
+Flying Dolphin-Fish
 Forest
+Frogtosser Banneret
 General Kreat, the Boltbringer
 Ghost-Lit Stalker
+Ghost-Spider, Gwen Stacy
 Go-Shintai of Shared Purpose
 Goblin Tutor
+Grollub
 Hasran Ogress
 Heart Sliver
 Heliod's Pilgrim
+Highway Robber
+Hold the Line
 Invasion of Segovia
 Island
+Kruin Striker
 Kukemssa Pirates
+Lavakin Brawler
 Light the Way
+Lydia Frye
 Mandibular Kite
+Memory Drain
+Mercurial Spelldancer
+Merrow Witsniper
 Mesa Falcon
 Mesa Lynx
 Mire Blight
+Mistcutter Hydra
 Morbid Bloom
 Mortician Beetle
 Mountain
 Mystic Restraints
 Nimbus of the Isles
+Oni Possession
 Ovalchase Daredevil
 Peer Through Depths
 Penance Stare
 Phantasmal Sphere
+Pious Evangel
 Plains
 Precognition Field
 Pygmy Pyrosaur
@@ -50,14 +81,29 @@ Rakka Mar
 Redwood Treefolk
 Rescue Retriever
 Scragnoth
+Sewerdreg
+Shieldmate's Blessing
 Skyclave Shade
+Stampeding Horncrest
 Storm Crow
 Strandwalker
+Sure-Footed Infiltrator
 Surreal Memoir
 Swamp
+Territorial Aetherkite
+Tezzeret's Touch
 The Unspeakable
+Thunder Wall
 True Conviction
+Turnabout
+Umbral Juke
+Unnatural Speed
+Valakut Fireboar
 Vaporkin
 Vexing Sphinx
 Voda Sea Scavenger
 Wave-Wing Elemental
+Wheel and Deal
+Wild Crocodile
+Witch's Mist
+Witness of Tomorrows

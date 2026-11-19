@@ -61,6 +61,7 @@ Earth Servant
 Earth-Origin Yak
 Echoing Decay
 Elixir of Immortality
+Endless Obedience
 Enthusiastic Mechanaut
 Eternal Flame
 Ethersworn Sphinx
@@ -213,6 +214,9 @@ Silverstorm Samurai
 Sixth Sense
 Skeletal Grimace
 Skemfar Avenger
+Snow-Covered Island
+Snow-Covered Mountain
+Snow-Covered Plains
 Soltari Emissary
 Spawn of Thraxes
 Split-Tail Miko

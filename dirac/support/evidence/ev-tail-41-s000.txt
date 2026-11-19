@@ -9,15 +9,19 @@ Assassin's Ink
 Attended Socialite
 Avalanche
 Azorius Chancery
+Basilica Stalker
 Battle Cry Goblin
 Blessed Sanctuary
 Blood Mist
 Bloodforged Battle-Axe
 Bloody Betrayal
 Blossoming Bogbeast
+Bolrac-Clan Basher
 Bone Splinters
 Borne Upon a Wind
 Brotherhood Outcast
+Bubble Smuggler
+Cabal Coffers
 Canyon Wildcat
 Cathar's Companion
 Chill of the Grave
@@ -76,6 +80,7 @@ Hunter's Bow
 Indebted Samurai
 Indomitable Archangel
 Infernal Grasp
+Intangible Virtue
 Inventor's Apprentice
 Island
 Justiciar's Portal

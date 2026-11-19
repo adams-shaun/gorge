@@ -11,6 +11,7 @@ Anarchy
 Ancient Crab
 Apes of Rath
 Apex Hawks
+Arachnoid
 Arborea Pegasus
 Arc Runner
 Arctic Merfolk
@@ -18,6 +19,7 @@ Argothian Wurm
 Armix, Filigree Thrasher
 Arrogant Outlaw
 Arrows of Justice
+Aspiring Aeronaut
 Aura Flux
 Avatar of Woe
 Aven Wind Mage
@@ -65,6 +67,7 @@ Dinrova Horror
 Dispersing Orb
 Douser of Lights
 Drana's Chosen
+Dream Twist
 Dryad's Revival
 Duergar Assailant
 Dwarven Armorer
@@ -90,6 +93,7 @@ Fabricate
 Fandaniel, Telophoroi Ascian
 Fang, Roku's Companion
 Ferropede
+Field of Ruin
 Fiend Binder
 Fight as One
 Finishing Blow
@@ -112,6 +116,7 @@ Ghor-Clan Bloodscale
 Ghoulcaller's Accomplice
 Giant Ladybug
 Gift of Strands
+Glacial Floodplain
 Glint-Horn Buccaneer
 Glistening Deluge
 Goblin Dark-Dwellers
@@ -178,6 +183,7 @@ Molten Birth
 Moon-Blessed Cleric
 Mountain
 Myrkul's Invoker
+Namor, Scourge of the Seas
 Natural Reclamation
 Necrogenesis
 Necron Deathmark
@@ -193,7 +199,9 @@ Null Brooch
 Nyxborn Wolf
 Offalsnout
 Old Ghastbark
+Onyx Goblet
 Ornery Goblin
+Orzhov Keyrune
 Out of the Way
 Overload
 Pain Kami
@@ -220,6 +228,7 @@ Rise of the Hobgoblins
 Rite of Flame
 Riven Turnbull
 Rotlung Reanimator
+Sage of the Falls
 Sarah Jane Smith
 Sarcomite Myr
 Satyr Rambler
@@ -243,9 +252,12 @@ Skinrender
 Skull Rend
 Skyshroud Poacher
 Smother
+Snake Basket
 Soul Manipulation
+Soul of Mirrodin
 Southern Paladin
 Speaker of the Heavens
+Spined Thopter
 Splatter Goblin
 Staff of the Flame Magus
 Steppe Glider
@@ -262,8 +274,10 @@ Survivor of Korlis
 Swamp
 Swiftgear Drake
 Swooping Lookout
+Sword of War and Peace
 Sylvok Explorer
 Tail Slash
+Tainted Isle
 Tattermunge Maniac
 Teferi's Protege
 Tendrils of Corruption
@@ -282,7 +296,9 @@ Twinferno
 Untethered Express
 Valiant Guard
 Vampire Lacerator
+Vedalken Infiltrator
 Vengeful Devil
+Venser's Journal
 Vertigo Spawn
 Viconia, Drow Apostate
 Vildin-Pack Outcast

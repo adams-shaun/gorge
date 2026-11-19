@@ -31,6 +31,7 @@ Bastion Enforcer
 Beetleback Chief
 Benalish Sleeper
 Benthic Biomancer
+Blasted Landscape
 Boon-Bringer Valkyrie
 Bootleggers' Stash
 Bottle-Cap Blast
@@ -149,6 +150,7 @@ Ihsan's Shade
 Illumination
 Imaginary Friends
 Implode
+Incremental Blight
 Incubation Sac
 Indicate
 Infected Vermin
@@ -166,6 +168,7 @@ Jon Irenicus, the Exile
 Just the Wind
 K-9, Mark I
 Kaleidoscorch
+Karn's Bastion
 Kessig Wolfrider
 Kor Duelist
 Koth's Courier
@@ -180,6 +183,7 @@ Maga, Traitor to Mortals
 Magma Sliver
 Makindi Aeronaut
 Mana Prism
+Manta Ray
 Mardu Outrider
 Master Thief
 Maulfist Doorbuster
@@ -322,6 +326,7 @@ Swamp
 Swordwise Centaur
 Syndicate Messenger
 Syphon Life
+Talon Gates of Madara
 Tarfire
 Tavern Swindler
 Teardrop Kami

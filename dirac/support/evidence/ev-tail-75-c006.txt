@@ -162,6 +162,7 @@ Peregrine Mask
 Personal Tutor
 Pillage
 Plains
+Port Inspector
 Precinct Captain
 Privileged Position
 Quirion Explorer
@@ -181,6 +182,7 @@ Rout
 Rune-Cervin Rider
 Sacred Prey
 Sage Aven
+Sage of Fables
 Sanctify
 Sanctum of Stone Fangs
 Scalding Devil
@@ -218,6 +220,7 @@ Tamiyo's Safekeeping
 Tectonic Edge
 Tempestra, Dame of Games
 Territorial Boar
+Thirst for Discovery
 Thopter Mechanic
 Threnody Singer
 Thrilling Encore
