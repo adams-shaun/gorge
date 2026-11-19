@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -25,14 +24,15 @@ const chorusKeywordLine = "As an additional cost to cast creature spells, you ma
 const chorusAnswerKind = "chorus"
 
 // chorusInEffect reports whether p controls a battlefield permanent whose
-// current (layer-derived) keywords still carry the static.
-func chorusInEffect(e *Engine, p state.PlayerID) bool {
-	for _, id := range e.G.Zone(state.ZBattlefield, p) {
-		o := e.G.Obj(id)
+// current (layer-derived) keywords, read through derivedKeywords, still carry
+// the static. It takes the game and a keyword reader, not the engine.
+func chorusInEffect(g *state.Game, p state.PlayerID, derivedKeywords func(state.ObjID) []string) bool {
+	for _, id := range g.Zone(state.ZBattlefield, p) {
+		o := g.Obj(id)
 		if o == nil || o.Face() == nil || !printsChorusLine(o.Face().Keywords) {
 			continue
 		}
-		if printsChorusLine(e.Derived(id).Keywords) {
+		if printsChorusLine(derivedKeywords(id)) {
 			return true
 		}
 	}
@@ -56,18 +56,20 @@ func preCostAsks(e *Engine) bool {
 }
 
 // chorusAsk poses the amount question once per creature-spell cast made while
-// the static applies: how much extra mana to pay (0 declines), bounded by the
+// the static applies (a special action -- suspend, plot, foretell, a land
+// drop -- casts no spell, CR 116.2, so it is never asked): how much extra mana to pay (0 declines), bounded by the
 // most the caster can still pay on top of the pending cost (the same
 // affordability walk the payment window's composed total faces, so the offer
 // and the charge agree). With no applicable static, or nothing more payable,
 // no decision is posed.
 func chorusAsk(e *Engine) bool {
 	pc := e.cast
-	if pc == nil || pc.chorusDone || pc.isAbility() {
+	if pc == nil || pc.chorusDone || pc.isAbility() || pc.isSpecialAction() {
 		return false
 	}
 	pc.chorusDone = true
-	if !chorusInEffect(e, pc.player) || !e.IsCreature(pc.card) {
+	derivedKeywords := func(id state.ObjID) []string { return e.Derived(id).Keywords }
+	if !chorusInEffect(e.G, pc.player, derivedKeywords) || !e.IsCreature(pc.card) {
 		return false
 	}
 	max := pay.MaxAnyAmount(func(n int32) bool {
@@ -83,7 +85,7 @@ func chorusAsk(e *Engine) bool {
 	for n := int32(0); n <= max; n++ {
 		label := "Pay no extra mana"
 		if n > 0 {
-			label = fmt.Sprintf("Pay {%d} extra", n)
+			label = "Pay " + formatCost(Cost{Generic: n}) + " extra mana"
 		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: chorusAnswerKind,
 			Label: label, Amount: int(n)})

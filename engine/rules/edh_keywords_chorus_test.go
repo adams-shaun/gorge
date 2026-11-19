@@ -21,7 +21,8 @@ func chorusEngine(t *testing.T, withChorus bool) (*Engine, Config) {
 	bear := searchCorpusCard(t, reg, "Grizzly Bears")
 	bolt := searchCorpusCard(t, reg, "Lightning Bolt")
 	mountain := searchCorpusCard(t, reg, "Mountain")
-	deck := []*cards.Card{chorus, bolt}
+	halberdier := searchCorpusCard(t, reg, "Keldon Halberdier")
+	deck := []*cards.Card{chorus, bolt, halberdier}
 	for len(deck) < 40 {
 		deck = append(deck, bear)
 	}
@@ -212,5 +213,32 @@ func TestEDHKeywordsChorusStaticIsRegistered(t *testing.T) {
 	c := searchCorpusCard(t, reg, "Chorus of the Conclave")
 	if m := reg.Unsupported(c, effects.Supported()); len(m) != 0 {
 		t.Fatalf("Chorus of the Conclave reports unsupported: %v", m)
+	}
+}
+
+// TestEDHKeywordsChorusNotAskedForSuspend: suspending a creature card is a
+// special action, not casting a creature spell (CR 116.2f, 702.62a), so
+// Chorus's additional cost never applies -- no amount is asked, nothing extra
+// is charged and the exiled card carries no counter grant.
+func TestEDHKeywordsChorusNotAskedForSuspend(t *testing.T) {
+	t.Parallel()
+	e, _ := chorusEngine(t, true)
+	id := searchMoveByName(t, e, "Keldon Halberdier", state.ZHand)
+	addMana(t, e, 0, "RR")
+
+	submitChoices(t, e, replicateOption(t, e, id, "suspend").Index)
+	if d := e.Pending(); d != nil {
+		for _, o := range d.Options {
+			if o.Kind == chorusAnswerKind {
+				t.Fatalf("suspend posed the chorus amount ask: %+v", d)
+			}
+		}
+	}
+	o := e.G.Obj(id)
+	if o.Zone != state.ZExile || o.CastFlags&state.FlagSuspend == 0 {
+		t.Fatalf("Halberdier in %s flags %v, want suspended in exile", o.Zone, o.CastFlags)
+	}
+	if left := chorusPool(e); left != 1 {
+		t.Fatalf("pool holds %d after suspending for {R} from 2, want 1", left)
 	}
 }

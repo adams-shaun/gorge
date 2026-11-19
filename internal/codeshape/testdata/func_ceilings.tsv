@@ -187,7 +187,7 @@ engine/rules (*Engine).applyReplacementsDispatch	407	126
 engine/rules (*Engine).askReplacementChoiceIn	169	54
 engine/rules (*Engine).beginCastWith	781	173
 engine/rules (*Engine).candidatesForLimitInto	193	63
-engine/rules (*Engine).castAnswer	242	77
+engine/rules (*Engine).castAnswer	242	80
 engine/rules (*Engine).checkEventDelayedTriggers	356	59
 engine/rules (*Engine).checkFaceTriggers	798	166
 engine/rules (*Engine).checkGrantedStaticTriggersUsing	269	62
