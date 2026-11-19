@@ -480,6 +480,16 @@ func (w *livelockWatcher) observeFrom(ev *events.Event, damageSource state.ObjID
 	if (ev.Kind == events.Damage || ev.Kind == events.LifeChange) && damageSource != 0 {
 		sig = sigMix(sig, uint64(damageSource)|livelockDamageTag)
 	}
+	// A DelayedRemove names the registration it consumes in Amount (its ID),
+	// which eventSignature leaves out. A turn that ends with hundreds of
+	// registrations (Jace, Cunning Castaway's +1 from a few hundred copies of
+	// itself) expires them in one object-less batch of otherwise identical
+	// events; each id is consumed once, so the batch is finite progress. A
+	// real loop re-emitting one id still repeats its signature exactly, and
+	// one that keeps registering fresh ids falls to the runaway backstop.
+	if ev.Kind == events.DelayedRemove {
+		sig = sigMix(sigMix(sig, livelockDelayedTag), uint64(uint32(ev.Amount)))
+	}
 	if mintingKinds.has(ev.Kind) {
 		w.mints++
 		sig = sigMix(sigMix(sig, livelockMintTag), w.mints)
@@ -843,6 +853,9 @@ const (
 	// anyway, and the kind is in the header word).
 	livelockDamageTag = 1 << 62
 	livelockMintTag   = 0x6D696E74
+	// livelockDelayedTag marks the registration id folded into a
+	// DelayedRemove's signature (see observeFrom).
+	livelockDelayedTag = 0x64656C79
 )
 
 // sigMix folds one 64-bit word into the running signature: xor, an odd
