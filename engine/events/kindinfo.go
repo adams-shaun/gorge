@@ -241,6 +241,7 @@ var kindInfo = [NumKinds]KindInfo{
 	Haunt:                 {Name: "haunt", Trigger: TriggerNone, Describe: "{obj} haunts a creature"},                  // CR 702.55b bookkeeping read back through state.Object.Haunting
 	Countered:             {Name: "countered", Trigger: TriggerFullMatch, Describe: "{obj} is countered"},              // CR 701.6a marker read by trig:Countered
 	AbilityResolved:       {Name: "ability_resolved", Trigger: TriggerFullMatch, Describe: "{obj}'s ability resolves"}, // marker read by trig:AbilityResolves
+	CrewAction:            {Name: "crew_action", Trigger: TriggerFullMatch, Describe: "{obj} becomes crewed"},          // CR 702.122's once-per-action subject record: Mode$ BecomesCrewed reads it
 }
 
 // Info returns k's descriptor; ok is false for a value past the enum.

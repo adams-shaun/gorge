@@ -580,5 +580,12 @@ func applyKind(g *state.Game, e *Event) {
 		foldCmdDamage(g, e)
 	case DamageProvenance:
 		foldDamageProvenance(g, e)
+	case CrewAction:
+		// The crew action record (CR 702.122) is a pure
+		// marker, exactly like Exploit: the per-crewer Crew markers around it
+		// are their own events whose fold keeps the Creature.CrewedThisTurn
+		// pairing, and this record is what trig:BecomesCrewed matches. Obj the
+		// VEHICLE that became crewed, Player its controller, IDs the crewing
+		// creatures. One marker per crew ability resolution.
 	}
 }
