@@ -2631,11 +2631,7 @@ func (e *Engine) runCombatAssignments() {
 					// CR 725.2: "Whenever a creature deals combat damage to the
 					// monarch, its controller becomes the monarch": one trigger per
 					// creature whose hit landed, controlled by the monarch.
-					if e.G.HasMonarch && ev.Player == e.G.Monarch &&
-						x.from != 0 && e.G.Obj(x.from) != nil {
-						e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-							Controller: e.G.Monarch, MonarchSteal: true, MonarchTo: e.G.Obj(x.from).Controller})
-					}
+					recordMonarchSteal(e, ev.Player, x.from)
 					// CR 726.2: "Whenever one or more creatures a player controls
 					// deal combat damage to the player who has the initiative, the
 					// controller of those creatures takes the initiative." The
@@ -2746,6 +2742,25 @@ func recordHandoffHit(g *state.Game, cr *combatRound, player state.PlayerID, fro
 		}
 	}
 	cr.initCtrls = append(cr.initCtrls, ctrl)
+}
+
+// recordMonarchSteal queues CR 725.2's "Whenever a creature deals combat
+// damage to the monarch, its controller becomes the monarch" trigger for one
+// LANDED player-targeted combat hit: controlled by the monarch, moving the
+// crown to the dealing creature's controller. It has two call sites, mirroring
+// the combat-damage ledger's established twin path: runCombatAssignments'
+// synchronous player branch, and finishChosenDamage's parked-hit block (a hit
+// whose CR 616.1 replacement competition is posed -- Battletide Alchemist's
+// optional "you may prevent X" alone parks every player hit -- never reaches
+// the synchronous branch, so the landed event must queue the steal there).
+// The guards are the same ones the synchronous site used: no crown, the hit
+// was not dealt to the monarch, or the dealing source is gone means no steal.
+func recordMonarchSteal(e *Engine, player state.PlayerID, from state.ObjID) {
+	if !e.G.HasMonarch || player != e.G.Monarch || from == 0 || e.G.Obj(from) == nil {
+		return
+	}
+	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		Controller: e.G.Monarch, MonarchSteal: true, MonarchTo: e.G.Obj(from).Controller})
 }
 
 // maxHandSize is CR 514.1's DEFAULT maximum: at the beginning of a player's
