@@ -107,6 +107,10 @@ const (
 	okPayGeneric  // gorge's twobrid generic face pay_generic (kernel ChGenPip mode 6)
 	okCommandZone // gorge's KCommanderZone "command_zone" (kernel ChCommanderZone mode 0)
 	okLeave       // gorge's KCommanderZone "leave" (kernel ChCommanderZone mode 1)
+	okGiftDecline // gorge's giftAsk "gift_decline" (kernel ChGenGift mode 0)
+	okGiftPromise // gorge's giftAsk "gift_promise" (kernel ChGenGift mode 1+)
+	okUnless      // gorge's discard_unless "unless" (kernel ChGenDiscUnless mode 1)
+	okOrdinary    // gorge's discard_unless "ordinary" (kernel ChGenDiscUnless mode 0)
 	numOK
 )
 
@@ -116,7 +120,7 @@ var kindNames = [numOK]string{"pass", "play_land", "cast", "ability", "attacker"
 	"search", "hidden_pick", "hand_move", "dig", "twopiles", "pile-a", "pile-b", "primary",
 	"trigger_cost_pay", "trigger_cost_decline", "color", "type", "opening_yes", "opening_no", "number", "dig_bottom", "altaddcost", "replacement",
 	"pay_W", "pay_U", "pay_B", "pay_R", "pay_G", "enchant", "subcounter", "divide", "reveal", "tap", "untap", "top", "counter_pick", "proliferate", "pay_generic",
-	"command_zone", "leave"}
+	"command_zone", "leave", "gift_decline", "gift_promise", "unless", "ordinary"}
 
 // decision kinds (indices into decisionKinds), -1 = other.
 const (
@@ -420,6 +424,13 @@ func (e *Encoder) lookup(o dirac.Obj) (cref, bool) {
 			if v.cards[ci].obj == o {
 				return cref{&v.cards[ci], zone, false}, true
 			}
+		}
+	}
+	// policynet adds the viewer's command zone (and its commander roster,
+	// whose other members the zones above already list) as zone class -1.
+	for _, ci := range v.players[v.seat].cmd {
+		if v.cards[ci].obj == o {
+			return cref{&v.cards[ci], -1, true}, true
 		}
 	}
 	for i := range v.stack {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/dirac/vanilla"
 )
@@ -170,4 +171,71 @@ func TestFeatFourSeatHundred(t *testing.T) {
 		t.Fatalf("compared only %d decisions", total.Decisions)
 	}
 	t.Logf("compared %d decisions, %d options", total.Decisions, total.Options)
+}
+
+// TestFeatFourSeatCommanderPods is TestFeatFourSeatVanilla over four-seat
+// Commander pods: the cmd5 decks cut to 40 cards (MiniCommanderDeck), as
+// kfuzz -kernel cmd5 -seats 4 -cmd-mini 40 plays them, with FeatCheck on, so
+// the Commander block (commander damage per relative seat, casts, the
+// commander on the battlefield, the left-the-game bit) and the command zone
+// are compared with policynet's encoding of gorge's view at every decision.
+// A rules divergence ends a pod's comparison and is logged (the lockstep
+// gate owns those); a feature mismatch or a panic fails, naming the field.
+//
+// Pods 4 and 7 are not among them: their Calling All Angels deck puts Tome
+// of Legends on the battlefield, whose PAGE counters are an unfeaturized
+// kernel kind (kop.CtrXNames) that gorge's counter string and mz counter
+// rows list and the kernel encoders do not yet (the kernel keeps no "seen"
+// record of those kinds, which gorge's list of a removed kind at 0 needs).
+func TestFeatFourSeatCommanderPods(t *testing.T) {
+	c, names := cmd5MiniCorpus(t, 40)
+	set, err := cardset.ByName("cmd5")
+	if err != nil {
+		t.Skipf("no cmd5 table (make dirac-tables): %v", err)
+	}
+	set = cardset.AllowUnverified(set)
+	pool := make([]PoolDeck, len(names))
+	for i, n := range names {
+		pool[i] = PoolDeck{Name: n}
+	}
+	var total FeatStats
+	pods := 0
+	for _, i := range []int{0, 1, 2, 3, 5, 6, 8, 10} {
+		p := PodAt(pool, i, 1, 4)
+		m, tbl, err := SetMatchupN(set, c, p.Decks(), 0)
+		if err != nil {
+			t.Fatalf("pod %d: %v", i, err)
+		}
+		fp, err := FeatPool(c.Reg, tbl, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var st FeatStats
+		rc := RunConfig{MaxDecisions: 3000, MaxTurns: 60, Check: FeatCheck(fp, &st)}
+		k, err := SetSide(set, tbl, rc.Config)(m, p.Seed)
+		if err != nil {
+			t.Fatalf("pod %d: %v", i, err)
+		}
+		pol := AffordableTargetPolicy(RandomPolicy(p.Seed))
+		if i%2 == 1 {
+			pol = HeuristicPolicy(p.Seed)
+		}
+		res := Lockstep(m, p.Seed, k, pol, rc)
+		CloseSide(k)
+		pods++
+		total.Decisions += st.Decisions
+		total.Options += st.Options
+		if d := res.Div; d != nil {
+			if d.What == "features" || d.Field == "panic" {
+				t.Errorf("pod %d %v: after %d compared decisions: %s %s: %s", i, p.Decks(), st.Decisions, d.What, d.Field, d.Detail)
+			} else {
+				t.Logf("pod %d: rules divergence after %d compared decisions: %s %s", i, st.Decisions, d.What, d.Field)
+			}
+		}
+		t.Logf("pod %d: %d decisions compared", i, st.Decisions)
+	}
+	if pods == 0 || total.Decisions < 1000 {
+		t.Fatalf("%d pods, %d compared decisions", pods, total.Decisions)
+	}
+	t.Logf("%d pods: compared %d decisions, %d options", pods, total.Decisions, total.Options)
 }

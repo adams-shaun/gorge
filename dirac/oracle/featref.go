@@ -88,7 +88,7 @@ func FeatPool(reg *cards.Registry, tbl *kop.Table, names map[string]string) (*fe
 		_, _, kws, p, t := e.ViewCharacteristics(e.G.Objs[at[i]].ID)
 		sp.Keywords = append([]string(nil), kws...)
 		sp.Power, sp.Toughness = p, t
-		sp.Avail = availWeight(f)
+		sp.Avail, sp.AvailGateOff = availWeight(f, false), availWeight(f, true)
 		specs[i] = sp
 	}
 	p := feat.NewPool(tbl, specs)
@@ -131,11 +131,16 @@ func matchToken(cd *kop.CardDef, cands []*cards.Card) *cards.Card {
 // its description ("Sac<1/CARDNAME/this token>", a Treasure's).
 var selfSacTap = regexp.MustCompile(`^T Sac<1/CARDNAME(/[^>]*)?>$`)
 
-func availWeight(f *cards.Face) int32 {
+// gateOff leaves out the gated (IsPresent$) mana abilities, as gorge's
+// listing does while their gate is off (pay.ManaActivationGateHolds).
+func availWeight(f *cards.Face, gateOff bool) int32 {
 	var w int32
 	n := 0
 	for _, sa := range f.Abilities {
 		if sa == nil || sa.API != "Mana" || sa.Kind != "AB" {
+			continue
+		}
+		if gateOff && sa.Params["IsPresent"] != "" {
 			continue
 		}
 		cost := strings.Join(strings.Fields(sa.Params["Cost"]), " ")
