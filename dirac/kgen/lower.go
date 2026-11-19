@@ -295,6 +295,10 @@ type lowerCtx struct {
 	// cr-trigcond-defenderctrl binds the event's defending player at
 	// queue time, and the resolution check reads the captured one)
 	atkPresent bool
+	// unlessDef while a CantAttack static's UnlessDefender$ gate is
+	// lowered: its DefenderCtrl names the defending player of the
+	// (attacker, defender) pair the kernel judges (kop.StCantAtkDef)
+	unlessDef bool
 	// attachedTgtOK while a node with no target slot of its own lowers a
 	// Choices$ filter that may read AttachedTo Targeted (lower_filterreferents.go)
 	attachedTgtOK bool
@@ -3097,7 +3101,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			// ZoneStack)
 			return nil, refuse("filter %q: a Spell head outside a ReduceCost ValidTarget$", expr)
 		}
-		if (c.Ctrl == whoDefending || c.Owner == whoDefending) && !lc.atkPresent && !lc.spawnAtk && !lc.defenderTrigBody() {
+		if (c.Ctrl == whoDefending || c.Owner == whoDefending) && !lc.atkPresent && !lc.unlessDef && !lc.spawnAtk && !lc.defenderTrigBody() {
 			return nil, refuse("ControlledBy TriggeredDefendingPlayer outside an Attacks or becomes-(un)blocked trigger's battlefield filter")
 		}
 		if c.CmpX != "" && (c.CmpV == nil || c.CmpV.Kind != vChosenNumber) {
