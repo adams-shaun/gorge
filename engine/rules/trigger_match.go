@@ -1609,7 +1609,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				}
 				mk := t.ModeKind()
 				damageAmount := damageTriggerAmount(e.excessDamageBaseline, mk, *ev, damageSourceHasDeathtouch(e, e.damageSourceLKI, *ev))
-				if damageAmount <= 0 && (mk == cards.TriggerExcessDamageAll || mk == cards.TriggerDamageDealtOnce || mk == cards.TriggerDamageDoneOnce || mk == cards.TriggerDamageAll) {
+				if damageAmount <= 0 && (mk == cards.TriggerExcessDamageAll || mk == cards.TriggerExcessDamage || mk == cards.TriggerDamageDealtOnce || mk == cards.TriggerDamageDoneOnce || mk == cards.TriggerDamageAll) {
 					continue
 				}
 				key := triggerKey{Source: id, Idx: ti, Face: fc.faceIdx}

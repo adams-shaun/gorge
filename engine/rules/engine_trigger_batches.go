@@ -68,7 +68,7 @@ type engineTriggerBatches struct {
 	damageBatchLog   []damageBatchEntry     `clone:"deep"`
 	// Pre-fold lethal threshold per recipient, fixed at its first hit in the
 	// batch so earlier simultaneous hits never lower the threshold.
-	excessDamageBaseline map[state.ObjID]int32 `clone:"deep"`
+	excessDamageBaseline map[state.ObjID]excessBase `clone:"deep"`
 	// excessBatch is the per-recipient excess-damage tally for the open
 	// damage batch (engine/rules/excess_damage_emit.go): pre-batch thresholds per
 	// card type and the batch's summed damage, published as ExcessDamage
