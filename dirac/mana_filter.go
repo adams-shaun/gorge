@@ -303,7 +303,12 @@ func (s *State) faceReachSet(k *prep, p uint8, r *kop.ManaCost, extra int, t ava
 		sl := filt[i]
 		if !s.filtNoTap(k, sl) && s.canTapForMana(k, sl) {
 			pc := s.manaPCGen(k, sl)
-			s.removeSrc(k, &t, sl, pc)
+			if !s.filterOwnTakes(k, &t, sl, pc) {
+				// The filter's own production was already spent as an earlier
+				// fee's mana: the permanent's one tap made it (CR 605.1a), so
+				// the filter is spent, not producing.
+				continue
+			}
 		}
 		fee := s.filtFee(k, sl)
 		feeCol := s.feeColour(k, sl)
@@ -581,7 +586,15 @@ func (w *filtWalk) activate(t avail, st filtPos) int {
 			continue // no mana made so far can be the fee's {c}: another filter may make it first
 		}
 		if pc != nil {
-			s.removeSrc(k, &t, sl, pc)
+			if !s.filterOwnTakes(k, &t, sl, pc) {
+				// The filter's own production was already spent as an earlier
+				// fee's mana: the permanent's one tap made it (CR 605.1a), so
+				// the filter is spent, not producing. Leave the total and go
+				// on with the set's rest.
+				st.set &^= 1 << i
+				st.progress = true
+				continue
+			}
 		}
 		st.set &^= 1 << i
 		st.progress = true

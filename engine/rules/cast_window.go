@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -303,6 +304,10 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 			lifeCost := int32(0)
 			genericCost := int32(0)
 			var coloredCost state.Mana
+			// feeMasks, when non-nil, is the activation fee's hybrid pips
+			// expanded into the concrete coloured masks the reach walk pays
+			// (one alternative per assignment, CR 107.4b).
+			var feeMasks []state.Mana
 			free := pay.ManaFreeCost(cost)
 			freeTap := free && cost.Tap
 			post := false
@@ -315,6 +320,20 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				// the production is parsed).
 			case castWindowGenericCostShape(cost):
 				genericCost, coloredCost = cost.Generic, cost.Colored
+			case castWindowHybridFeeCost(cost):
+				// A hybrid pip in the activation fee is pip-shaped mana: the
+				// payer announces one of its pair's colours (CR 107.4b), the
+				// same read the live window's payability gate prices it with
+				// (pay.ManaCostPayableFull). The pip is carried as its
+				// concrete colour half, one alternative per assignment, so
+				// the CR 601.2g window's reach counts the fee's net the way
+				// the live window can pay it (Fetid Heath's "{W/B}, {T}: Add
+				// {W}{W}, {W}{B} or {B}{B}").
+				genericCost = cost.Generic
+				feeMasks = castWindowHybridFeeMasks(cost.Hybrid, cost.Colored)
+				if feeMasks == nil {
+					continue
+				}
 			case pay.CastWindowSelfSacFeeCost(asPayer(e), p, id, cost):
 				// A source that sacrifices itself beside a literal fee is
 				// one-shot, so pricing it here adds at most one unit for it;
@@ -389,27 +408,32 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 					continue
 				}
 			}
-			if any {
-				for colour, n := range counts {
-					if n == 0 {
-						continue
-					}
-					var single [6]int32
-					single[colour] = 1
-					alt := windowManaAlt{Ma: ma, Counts: single, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: coloredCost, FreeTap: freeTap, SelfSac: selfSac}
-					if post {
-						postAlts = append(postAlts, alt)
-					} else {
-						windowUnits = appendCastWindowAlt(windowUnits, id, alt)
-					}
-				}
-				continue
+			if feeMasks == nil {
+				feeMasks = []state.Mana{coloredCost}
 			}
-			alt := windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: coloredCost, FreeTap: freeTap, SelfSac: selfSac}
-			if post {
-				postAlts = append(postAlts, alt)
-			} else {
-				windowUnits = appendCastWindowAlt(windowUnits, id, alt)
+			for _, feeMask := range feeMasks {
+				if any {
+					for colour, n := range counts {
+						if n == 0 {
+							continue
+						}
+						var single [6]int32
+						single[colour] = 1
+						alt := windowManaAlt{Ma: ma, Counts: single, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac}
+						if post {
+							postAlts = append(postAlts, alt)
+						} else {
+							windowUnits = appendCastWindowAlt(windowUnits, id, alt)
+						}
+					}
+					continue
+				}
+				alt := windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac}
+				if post {
+					postAlts = append(postAlts, alt)
+				} else {
+					windowUnits = appendCastWindowAlt(windowUnits, id, alt)
+				}
 			}
 		}
 		if len(postAlts) > 0 {
@@ -495,7 +519,8 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 			continue
 		}
 		free := pay.ManaFreeCost(cost)
-		if !free && !castWindowGenericCostShape(cost) && !pay.CastWindowSelfSacFeeCost(asPayer(e), p, id, cost) {
+		if !free && !castWindowGenericCostShape(cost) && !castWindowHybridFeeCost(cost) &&
+			!pay.CastWindowSelfSacFeeCost(asPayer(e), p, id, cost) {
 			if _, ok := e.paidCostShape(p, id, cost, e.G.Players[p].Life); !ok {
 				return true
 			}
@@ -703,6 +728,46 @@ func castWindowPayLifeCost(c Cost) bool {
 func castWindowGenericCostShape(c Cost) bool {
 	return (c.Generic > 0 || c.Colored != (state.Mana{})) &&
 		len(c.Sac) == 0 && pay.CastWindowOtherPartsAbsent(c)
+}
+
+// castWindowHybridFeeCost is the cast-window probe's hybrid-pip twin of
+// castWindowGenericCostShape: a literal mana activation cost whose coloured
+// requirement includes hybrid pips, and no component beyond mana pips and
+// the tap (bar the life and sacrifice shapes, which stay the paid-cost
+// census layer's). The pip is resolved by the payer's colour announcement
+// (CR 107.4b), one of its pair's colours, the same read the live window's
+// payability gate prices it with (pay.ManaCostPayableFull), so promising it
+// in the reach never promises an activation the window will not offer.
+func castWindowHybridFeeCost(c Cost) bool {
+	return len(c.Hybrid) > 0 && len(c.Hybrid) <= maxHybridFeePips && c.Life == 0 &&
+		len(c.Sac) == 0 && pay.CastWindowHybridPartsAbsent(c)
+}
+
+// maxHybridFeePips caps the hybrid pips the probe expands: the assignments
+// double per pip, and past three the probe refuses the cost (fail closed) --
+// an unpriced fee leaves the census verdict, not a promised reach.
+const maxHybridFeePips = 3
+
+// castWindowHybridFeeMasks expands an activation fee's hybrid pips into the
+// concrete coloured masks the reach walk pays: each pip one of its pair's
+// two colours (CR 107.4b), combined with the cost's plain coloured pips.
+// nil when the pip count is past the cap (the caller refuses the cost).
+func castWindowHybridFeeMasks(pairs []costvocab.ManaPair, base state.Mana) []state.Mana {
+	if len(pairs) > maxHybridFeePips {
+		return nil
+	}
+	masks := []state.Mana{base}
+	for _, pair := range pairs {
+		next := make([]state.Mana, 0, 2*len(masks))
+		for _, m := range masks {
+			a, b := m, m
+			a[state.ManaIndex(pair.A)]++
+			b[state.ManaIndex(pair.B)]++
+			next = append(next, a, b)
+		}
+		masks = next
+	}
+	return masks
 }
 
 // appendCastWindowAlt merges one production alternative into the unit for id
