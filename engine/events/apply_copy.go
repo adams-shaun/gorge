@@ -583,8 +583,24 @@ func foldClonePermanent(g *state.Game, e *Event) {
 				for k, v := range sf.SVars {
 					merged[k] = v
 				}
+				// The copy basis wins a name collision. of is the become
+				// object's CURRENT face, which for a recurring Clone
+				// carrier is itself a copy (CR 707.3) carrying the
+				// previous copy's SVars; merging those over sf would let a
+				// stale table shadow the newly copied face's same-named
+				// SVar. Measured: Cryptoplasm copying Snooping Newsie and
+				// then Xerex Strobe-Knight carried Snooping Newsie's
+				// SVar:X (Count$ValidGraveyard ...DifferentCardManaCost)
+				// over Xerex's Count$ThisTurnCast_Card.YouCtrl, so the
+				// copied "{T}: create a Knight" ability's "activate only
+				// if you've cast two or more spells this turn" gate read
+				// the wrong body and offered an activation not unlocked
+				// (tail-34 pair 5). The explicit AddSVars$ grant still
+				// overrides: its CopyExcept fold runs after this one.
 				for k, v := range of.SVars {
-					merged[k] = v
+					if _, ok := merged[k]; !ok {
+						merged[k] = v
+					}
 				}
 				sf.SVars = merged
 			}
