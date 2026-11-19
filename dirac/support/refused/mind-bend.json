@@ -1,0 +1,14 @@
+{
+  "card": "Mind Bend",
+  "class": "unmodelled-textchange",
+  "why": "gorge rewrites the target's text (CR 612: a Mountain's land type word becomes Island, so its intrinsic mana ability changes) and the kernel holds no per-permanent text, so a target whose face reads the changed word stalls textchange; dr-mbc-aaab pair 3 targets a Mountain",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "mind_bend_text_change_reads_word"
+  }
+}
