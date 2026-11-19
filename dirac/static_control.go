@@ -224,6 +224,9 @@ func (s *State) ctrlMove(sl Slot, to uint8) {
 	if k.gen != nil && k.gen.anyEmbCtrl {
 		s.embCtrlDrop(k, p.obj, to) // CR 611.2b: AsLongAsControl emblems (static_emblemdurations.go)
 	}
+	if k.gen != nil && k.gen.ringOn() {
+		s.ringControlChanged(p.obj, to) // CR 701.54b: a Ring-bearer designation ends on a control change
+	}
 }
 
 // ctrlUncombat removes the permanent at sl from combat (gorge

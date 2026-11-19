@@ -1,0 +1,44 @@
+# the Ring pool (thering; CR 701.54): the cards that tempt ("the Ring tempts
+# you", api RingTemptsYou) and the "Whenever the Ring tempts you" triggers
+# beside cheap creatures and burn, so a seat is tempted repeatedly, chooses a
+# Ring-bearer among several, its bearer attacks, becomes blocked and deals
+# combat damage while the emblem's levels climb (dirac/oracle/thering_lockstep_test.go)
+Bilbo, Retired Burglar
+Birthday Escape
+Bombadil's Song
+Breaking of the Fellowship
+Call of the Ring
+Claim the Precious
+Dúnedain Rangers
+Elrond, Lord of Rivendell
+Enraged Huorn
+Faramir, Field Commander
+Frodo, Adventurous Hobbit
+Frodo Baggins
+Galadriel of Lothlórien
+Gandalf, Friend of the Shire
+Gollum, Patient Plotter
+Gollum's Bite
+Inherited Envelope
+Nazgûl
+Now for Wrath, Now for Ruin!
+Rohirrim Lancer
+Samwise the Stouthearted
+Sauron, the Dark Lord
+Shortcut to Mushrooms
+Slip On the Ring
+Stalwarts of Osgiliath
+There and Back Again
+Took Reaper
+Uruk-hai Berserker
+Witch-king of Angmar
+Forest
+Island
+Mountain
+Plains
+Swamp
+Lightning Bolt
+Giant Growth
+Giant Spider
+Savannah Lions
+Grizzly Bears

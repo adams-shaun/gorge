@@ -1,0 +1,5 @@
+family: ask
+name: raRingBearer
+value: next
+status: active
+doc: the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.

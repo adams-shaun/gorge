@@ -815,6 +815,9 @@ func init() { enum[kop.ExprKind]("kop.ExWasCastFromYourLibrary", kop.ExWasCastFr
 // dirac/manifest/ExprKind/ExXColorPaid
 func init() { enum[kop.ExprKind]("kop.ExXColorPaid", kop.ExXColorPaid) }
 
+// dirac/manifest/ExprKind/ExRingTempted
+func init() { enum[kop.ExprKind]("kop.ExRingTempted", kop.ExRingTempted) }
+
 // dirac/manifest/ExprKind/ExSrcRemCounters
 func init() { enum[kop.ExprKind]("kop.ExSrcRemCounters", kop.ExSrcRemCounters) }
 
@@ -1112,6 +1115,9 @@ func init() { enum[kop.KwID]("kop.KwStartingHandFive", kop.KwStartingHandFive) }
 
 // dirac/manifest/Pred/PredNamedCard
 func init() { enum[kop.Pred]("kop.PredNamedCard", kop.PredNamedCard) }
+
+// dirac/manifest/Pred/PredRingBearer
+func init() { enum[kop.Pred]("kop.PredRingBearer", kop.PredRingBearer) }
 
 // dirac/manifest/Pred/PredSameNameSelf
 func init() { enum[kop.Pred]("kop.PredSameNameSelf", kop.PredSameNameSelf) }

@@ -75,6 +75,7 @@ var stallCapacityReasons = [...]uint8{
 	StallObsSrc, StallDynMana, StallTapExtra, StallExiledWith, StallBreach, StallNetLock, StallPanharmGrant, StallExileGrant, StallCharmPick,
 	StallCombatHit, StallFinality, StallPersistMana, StallOptMoves, StallMustBlock, StallRestrSrc, StallFirebend,
 	StallImprint, StallExHaste, StallEffEtbCtr, StallAtkGrp, StallParadigm, StallFiltX, StallPlanAlts,
+	StallRingPromise,  // more than MaxDelayed live level-3 Ring promises (act_ring.go): a declared limit
 	StallCtrAdded,     // a fifth record of genState.ctrAdd; its two non-capacity sites moved to StallLowering
 	StallTwoSeat,      // a two-seat-only table in a larger game (stallclass.go): a declared limit
 	StallAddPhase,     // a fifth genState.xph entry or a 256th grant; its one non-capacity site moved to StallLowering

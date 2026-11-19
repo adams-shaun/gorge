@@ -294,6 +294,7 @@ const (
 	dredgeResRecruit objWord = 2 // act_recruit.go: the discard after the draw
 	dredgeResUpto    objWord = 3 // act_drawupto.go: the program goes on
 	dredgeResMonarch objWord = 4 // act_monarch.go: the delayed trigger finishes
+	dredgeResRing    objWord = 5 // act_ring.go: the loot's discard follows the draw
 )
 
 // dredgeResPose poses the dredge ask of a non-OpDraw draw site at p for its
@@ -373,6 +374,8 @@ func (s *State) dredgeResTail(k *prep, site objWord, p uint8) {
 			return // the answered card's as-enters choice (zone_untilleavesbatch.go)
 		}
 		s.finishResolve(k, false)
+	case dredgeResRing:
+		s.ringLootDiscard(k, p) // the draw is done; the loot's discard follows
 	default:
 		panic("kernel: bad dredge draw site")
 	}

@@ -3121,6 +3121,9 @@ func (s *State) refreshTy(k *prep) {
 	if k.gen.tyPost {
 		m = m.or(s.tyPostSlots(k)) // attached bestow cards, impending-dormant ones (kw_impending.go)
 	}
+	if k.gen.ringOn() {
+		m = m.or(s.ringTySlots(k)) // the Ring emblem's Legendary rides gty (act_ring.go)
+	}
 	m = m.and(s.occ)
 	if k.gen.anyFaceDown {
 		// a face-down permanent's types ride on ovGenTy and its

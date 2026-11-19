@@ -179,6 +179,7 @@ const (
 	cmpAttackingYou   // attackingYou: attacking, the evaluating controller its defending player (kop.PredAttackingYou; no operator)
 	cmpSharesCrCmdr   // sharesCreatureTypeWith Commander: a creature type shared with a commander of the evaluating controller (kop.PredSharesCrCmdr; no operator)
 	cmpPTBox          // two constant power/toughness compares in one clause (powerEQ1+toughnessEQ1, powerGE4+powerLE6): CmpN is the kop.PredStatBox bounds (ptBox; no operator)
+	cmpRingBearer     // IsRingbearer (CmpN 1) / !IsRingbearer (CmpN 0): the candidate is its controller's Ring-bearer (CR 701.54e; kop.PredRingBearer, act_ring.go ringLegend; no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -779,25 +780,8 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		}
 		return c.setCmp(cmpSolved, 0, n, "", "")
 	}
-	if p == "IsRenowned" || p == "!IsRenowned" {
-		// the renowned designation (CR 702.112b; gorge filter.go IsRenowned:
-		// Object.Renowned, cleared off the battlefield): CmpN 1 renowned, 0
-		// not
-		n := 1
-		if p[0] == '!' {
-			n = 0
-		}
-		return c.setCmp(cmpRenowned, 0, n, "", "")
-	}
-	if p == "IsSuspected" || p == "!IsSuspected" {
-		// the suspected designation (CR 701.60; gorge filter.go IsSuspected:
-		// Object.Suspected, false off the battlefield): CmpN 1 suspected, 0
-		// not
-		n := 1
-		if p[0] == '!' {
-			n = 0
-		}
-		return c.setCmp(cmpSuspected, 0, n, "", "")
+	if ok, err := c.designationWord(p); ok {
+		return err
 	}
 	if n, ok := permMarkWord(p); ok {
 		// the per-permanent attacked / dealt-damage marks (kop.PredPermMark;
@@ -1256,6 +1240,29 @@ func (c *lClause) setWho(dst *uint8, v uint8) error {
 	}
 	*dst = v
 	return nil
+}
+
+// designationWord handles the renowned, Ring-bearer and suspected words.
+// Each is a designation read off the battlefield, CmpN 1 set and 0 not:
+// renowned (CR 702.112b; gorge filter.go IsRenowned: Object.Renowned,
+// cleared off the battlefield), the Ring-bearer (CR 701.54e; gorge
+// filter_word.go wordRingBearer, read live in act_ring.go ringLegend), and
+// suspected (CR 701.60; gorge filter.go IsSuspected). ok is false for any
+// other word.
+func (c *lClause) designationWord(p string) (ok bool, err error) {
+	n := 1
+	if strings.HasPrefix(p, "!") {
+		n = 0
+	}
+	switch strings.TrimPrefix(p, "!") {
+	case "IsRenowned":
+		return true, c.setCmp(cmpRenowned, 0, n, "", "")
+	case "IsRingbearer":
+		return true, c.setCmp(cmpRingBearer, 0, n, "", "")
+	case "IsSuspected":
+		return true, c.setCmp(cmpSuspected, 0, n, "", "")
+	}
+	return false, nil
 }
 
 func (c *lClause) setCmp(stat, op uint8, n int, x, counter string) error {

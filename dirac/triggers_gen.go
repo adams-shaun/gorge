@@ -531,6 +531,19 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 		if !s.expendCrossed(t, who, amt) {
 			return
 		}
+	case kop.TrigRingTemptsYou:
+		// ValidCard$ gates the event's Ring-bearer against the live object
+		// (gorge ringTemptsMatches's MatchesSpec, the trigger source the
+		// Other); with no bearer a ValidCard$ trigger never fires.
+		// ValidPlayer$ is whoseOK above.
+		if t.Filter != 0 {
+			if passed == NoObj {
+				return
+			}
+			if !s.matchPermGen(k, t.Filter, s.objs[passed].slot, l.ctrl, l.sl, layerFull) {
+				return
+			}
+		}
 	case kop.TrigDiscarded:
 		if t.Flags2&kop.Tf2Cycled != 0 {
 			return // fired only by a cycle (cycleDiscard)

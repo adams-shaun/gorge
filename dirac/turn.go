@@ -268,6 +268,7 @@ func (s *State) beginStep(k *prep) {
 		if k.gen != nil && k.gen.anyTokEndCombat {
 			s.fireDlyEndCombat(k) // after the dp programs: one registration-ordered list in gorge
 		}
+		s.fireRingPromises(k) // the Ring emblem's level-3 promises (act_ring.go; a no-op off ring tables)
 		s.openPriority()
 	case kop.StepEnd:
 		m := int(s.npend)
@@ -1136,6 +1137,10 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	}
 	if radTrig(e) {
 		s.resolveRadTrig(k, e) // the rad drain (act_radiation.go)
+		return
+	}
+	if ringTrig(e) {
+		s.resolveRingTrig(k, e) // the Ring emblem's loot, promise or drain (act_ring.go)
 		return
 	}
 	if k.gen != nil && e.trigAmt == opLeaveReturn {

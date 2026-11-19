@@ -1,0 +1,8 @@
+family: Pred
+name: PredRingBearer
+value: next
+forge: IsRingbearer
+census: pred IsRingbearer all=2 std=0 mbc=0 sole=1
+state: code 0
+status: active
+ticket: gap-ring
