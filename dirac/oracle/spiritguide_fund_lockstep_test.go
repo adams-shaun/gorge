@@ -151,20 +151,21 @@ func TestSpiritGuideFundFourSeatPodLockstep(t *testing.T) {
 	}
 }
 
-// TestSpiritGuideFundKeyCountMutation proves the pool reaches a pool holding
-// a Signpost's tagged unit beside a guide's plain one: keyed by the per-colour
-// bit instead of the count, the kernel's visited set dedups a node gorge's
-// does not, and some seed diverges.
-func TestSpiritGuideFundKeyCountMutation(t *testing.T) {
+// TestSpiritGuideFundTryExemptMutation proves the pool prices a node a guide's
+// exile reached: a guide's exile leaves the key it leaves whichever guide it
+// was (the play's own card among them), so the visited-set cut at try must
+// let a priced node through as gorge's scriptSearch.try does. Limited to gap
+// lines, the kernel drops a node gorge prices, and some seed diverges.
+func TestSpiritGuideFundTryExemptMutation(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	dirac.DebugArtKeyBit = true
-	defer func() { dirac.DebugArtKeyBit = false }()
+	dirac.DebugFiltTryGapExempt = true
+	defer func() { dirac.DebugFiltTryGapExempt = false }()
 	if lockstepDiverges(t, "spiritguide", kspiritGuideDecks, 400) {
 		return
 	}
-	t.Fatal("no seed diverged with the tagged units keyed by their colour bit: the pool never mixes tagged and plain mana")
+	t.Fatal("no seed diverged with the priced-node exemption limited to gap lines: the pool never prices a node a guide's exile reached")
 }
 
 // TestSpiritGuideUnlessWindowFilterMutation proves the pool pays a Mana Leak
