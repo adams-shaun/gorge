@@ -105,6 +105,9 @@ func (s *State) lifeGapMask(k *prep, p uint8) slotMask {
 	var m slotMask
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
+		if s.pickedForMana(s.perms[sl].obj) {
+			continue // a Convoke/Waterbend pick is tapped for that cast, not for mana
+		}
 		if s.genLost(k, sl) || k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 			continue
 		}

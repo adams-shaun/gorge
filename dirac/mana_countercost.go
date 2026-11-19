@@ -114,6 +114,9 @@ func (s *State) scriptCtrIdle(k *prep, p uint8, idle bool) slotMask {
 	}
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
+		if s.pickedForMana(s.perms[sl].obj) {
+			continue // a Convoke/Waterbend pick is tapped for that cast, not for mana
+		}
 		c := s.cardAt(sl)
 		a := k.ctrAbOf(c)
 		if a == nil || DebugNoDeadCtr && deadCtrAb(a) || s.perms[sl].actUsed&(1<<uint(k.ctrAb[c])) != 0 || s.genLost(k, sl) || k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {

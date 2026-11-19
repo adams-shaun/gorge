@@ -340,6 +340,9 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 	var m slotMask
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
+		if s.pickedForMana(s.perms[sl].obj) {
+			continue // a Convoke/Waterbend pick is tapped for that cast, not for mana
+		}
 		c := s.cardAt(sl)
 		if a, ok := s.riderAbilityOf(k, sl); ok {
 			// A bounded rider source: the planner defers its first ability
