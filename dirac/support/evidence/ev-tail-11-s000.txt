@@ -3,6 +3,7 @@ A-Gnarlid Colony
 Agoraphobia
 Ajani, Strength of the Pride
 Akroma's Will
+Alabaster Host Intercessor
 Alabaster Mage
 Algae Gharial
 Alpine Guide
@@ -13,13 +14,16 @@ Aphemia, the Cacophony
 Archdemon of Paliano
 Arctic Aven
 Artful Dodge
+Ascendant Evincar
 Assassin Initiate
 Astral Steel
 Bag End Porter
+Baku Altar
 Barbarian Lunatic
 Benthicore
 Black Market
 Blazing Rootwalla
+Blink of an Eye
 Blood-Toll Harpy
 Bloodbriar
 Bloodsworn Squire
@@ -28,6 +32,7 @@ Brute Strength
 Bucky Barnes, Eager Ally
 Caller of Gales
 Carnophage
+Cerulean Drake
 Chasm Skulker
 Cinder Storm
 Cloudgoat Ranger
@@ -65,6 +70,7 @@ Firebolt
 Flametongue Kavu
 Fleshtaker
 Forbidden Friendship
+Forced Fruition
 Forest
 Funeral Charm
 Furnace Whelp
@@ -118,6 +124,7 @@ Mana Cannons
 Mana Geyser
 Mer Man
 Metathran Transport
+Midsummer Revel
 Mind Knives
 Mindless Conscription
 Monstrous Growth
@@ -167,6 +174,7 @@ Send to Sleep
 Sentinels of Glen Elendra
 Setessan Griffin
 Shacklegeist
+Sheltered Thicket
 Shenanigans
 Shire Terrace
 Silkenfist Order

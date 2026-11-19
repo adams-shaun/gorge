@@ -2,11 +2,14 @@ Abolish
 About Face
 Banishing Slash
 Blasting Station
+Boggart Harbinger
 Claustrophobia
 Cloud Spirit
 Deceiver Exarch
 Dynacharge
 Forest
+Giant Spider
+Goblinslide
 Goldmeadow Harrier
 Healer's Hawk
 Intangible Virtue
@@ -14,11 +17,14 @@ Island
 Kenrith's Transformation
 Kor Cartographer
 Lore Weaver
+Merciless Executioner
 Molten Birth
 Mountain
 Nevermaker
 Nyxborn Hydra
 Plains
+Quest for the Gravelord
+Reality Shift
 Relic Crush
 Renegade Warlord
 Reverent Mantra
@@ -26,6 +32,7 @@ Send in the Pest
 Spitting Earth
 Stand Together
 Swamp
+Twinferno
 Vigean Graftmage
 Wall of Roots
 Woodland Changeling

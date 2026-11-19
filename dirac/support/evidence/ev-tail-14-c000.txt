@@ -206,6 +206,7 @@ Incriminating Impetus
 Inferno Project
 Initiate of Blood
 Inspiring Unicorn
+Invulnerability
 Ior Ruin Expedition
 Iron Man, Futurist Paragon
 Island
@@ -354,6 +355,7 @@ Riptide Pilferer
 Rite of Passage
 Rock Lobster
 Ruination Rioter
+Rune of Protection: White
 Sagittars' Volley
 Salivating Gremlins
 Sandwurm Convergence

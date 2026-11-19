@@ -47,6 +47,7 @@ Carrion Howler
 Cartouche of Strength
 Char
 Chatterstorm and Awaken the Woods
+Chemister's Insight
 Child of Night
 Chime of Night
 Chishiro, the Shattered Blade
@@ -57,16 +58,19 @@ Conclave's Blessing
 Copperhoof Vorrac
 Corpse Hauler
 Corrupted Resolve
+Cosmic Epiphany
 Courier Griffin
 Crimson Roc
 Crucible of Worlds
 Cryptolith Rite
 Cursed Totem
 Cyclone Summoner
+Dauthi Voidwalker
 Dawnfeather Eagle
 Deathbloom Ritualist
 Deb Thomas
 Declare Dominance
+Deep-Sea Serpent
 Defy Gravity
 Deluge of Doom
 Desecration Elemental
@@ -103,6 +107,7 @@ Everflame Eidolon
 Evil Eye of Urborg
 Executioner's Hood
 Eyes of the Watcher
+Fae of Wishes
 Faithful Pikemaster
 Falkenrath Marauders
 Fanatical Fever
@@ -134,6 +139,7 @@ Great Hall of Starnheim
 Greenseeker
 Grenzo's Cutthroat
 Grey Knight Paragon
+Grim Backwoods
 Grim Feast
 Grim Guardian
 Grip of Desolation
@@ -147,7 +153,9 @@ Helionaut
 Highspire Infusion
 Hope Against Hope
 Human Frailty
+Ill-Tempered Cyclops
 Imoti, Celebrant of Bounty
+Infuse
 Inner Calm, Outer Strength
 Innocuous Researcher
 Inside Out
@@ -183,6 +191,7 @@ Lychguard
 Madame Hydra, Reanimated
 Magic Missile
 Mana Flare
+Mana Short
 Mana Skimmer
 Manriki-Gusari
 Map the Wastes
@@ -192,6 +201,7 @@ Marshmist Titan
 Mary Read and Anne Bonny
 Mask of the Jadecrafter
 Mending Hands
+Messenger Drake
 Metrognome
 Michiko's Reign of Truth
 Midnight Covenant
@@ -269,6 +279,7 @@ Sacred Nectar
 Saddleback Lagac
 Sanguine Glorifier
 Saprazzan Outrigger
+Screamer-Killer
 Scuttling Sentinel
 Sea's Claim
 Seal of Fire
@@ -297,6 +308,7 @@ Slum Reaper
 Smitten Swordmaster
 Song of Eärendil
 Sorcerer's Wand
+Soul Sear
 Soulblade Corrupter
 Spawning Grounds
 Spiketail Drakeling
@@ -337,6 +349,7 @@ Tormentor's Trident
 Treachery
 Treasure Hunter
 Trokin High Guard
+Tui and La, Moon and Ocean
 Turbulent Wetlands
 Two-Headed Giant of Foriys
 Two-Headed Zombie

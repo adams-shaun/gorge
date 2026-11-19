@@ -1,98 +1,201 @@
+A-Briar Hydra
 A-Eyes of the Beholder
+A-Most Wanted
 A-Rockslide Sorcerer
 A-Umara Mystic
 Accelerated Evolution
 Aerial Assault
 Angelic Field Marshal
+Animate Land
 Armor Thrull
 Asphodel Wanderer
+Auron, Venerated Guardian
+Aven Trailblazer
 Azorius Ploy
 Balduvian Frostwaker
+Basilica Stalker
+Bastion Inventor
+Beast Attack
 Biting Rain
 Blight Sickle
+Bolrac-Clan Basher
+Bubble Smuggler
 Buccaneer's Bravado
 Burning Palm Efreet
 Burst of Speed
 Cacophony Scamp
 Caldera Pyremaw
 Caravan Escort
+Case the Joint
 Castle
 Chain Lightning
+Champion's Helm
 Clackbridge Troll
 Claim the Firstborn
+Clutch of Undeath
+Collective Resistance
 Common Iguana
+Confront the Unknown
 Consuming Vapors
 Contagion
+Corrupted Zendikon
 Corrupting Licid
 Corsairs of Umbar
+Crackling Triton
 Crypt Incursion
+Crystalline Armor
 Custodi Soulbinders
+Daily Bugle Newspaper
 Deadshot
+Death's-Head Buzzard
+Despise
+Diligent Excavator
 Dismantling Blow
 Dragon's Approach
+Drifting Meadow
 Dwarven Vigilantes
+Eidolon of Rhetoric
 Ekthi, Contaminator Priest
+Emerge Unscathed
 Essence Feed
+Etched Oracle
 Eyes of Gitaxias
+Faerie Mastermind
 Farbog Boneflinger
+Femeref Healer
 Final-Sting Faerie
 Flashfires
+Floodhound
+Foe-liage
+Fog of Gnats
+Forest
+Fountain of Cho
 Furnace Celebration
+Furnace Hellkite
 Galvanic Iteration
+Gilt-Leaf Palace
 Goblin Glider
 Goblin Racketeer
+Golden Egg
 Golgari Raiders
+Gray Merchant of Asphodel
 Guardian Kirin
+Hall
+Helitrooper
+Heroes' Podium
+Hidden Blade
+Idol of Oblivion
 Implement of Ferocity
 Independent Troops
+Indigo Faerie
 Infernal Pet
+Infested Fleshcutter
 Irencrag Pyromancer
+Iron Bully
+Island
+Keen-Eyed Raven
+Knight of the Keep
 Kor Castigator
 Lightning Hounds
+Liliana's Steward
 Lowland Oaf
 Lucas, the Sharpshooter
+Lyla, Holographic Assistant
+Mana Matrix
+Might Weaver
+Miren, the Moaning Well
+Mirror of Galadriel
 Mogg Sentry
+Moonblade Shinobi
 Moonglove Changeling
 Morkrut Necropod
 Mortal's Ardor
+Mother of Runes
 Mothrider Patrol
+Mountain
 Mourning
 Novice Dissector
+Obscura Initiate
+Onulet
 Orcish Bowmasters
+Organ Hoarder
+Orim's Touch
+Paradox Engine
 Path of Anger's Flame
 Phyrexian Etchings
+Phyrexian Obliterator
+Plains
+Preeminent Captain
+Prizefighter Construct
+Progenitor Mimic
+Protector of Gondor
 Prowling Pangolin
+Psychic Spear
+Psychotrope Thallid
+Pulse of the Grid
 Purifying Dragon
 Rally to Battle
 Reckless Handling
 Renewed Faith
 Reparations
 Replenish
+Rhox Oracle
 Rolling Thunder
+Samite Pilgrim
+Savage Conception
+Scepter of Celebration
+Scion of Oona
 Searing Blood
 Secure the Scene
+Selective Memory
 Settle the Score
 Shadowspear
 Shake the Foundations
 Sheoldred
+Shore Keeper
+Simic Keyrune
 Simplify
+Skitter of Lizards
+Skullscorch
+Sky Weaver
+Spearbreaker Behemoth
 Spectral Shepherd
+Spellweaver Eternal
 Spirit Weaver
+Sporogenesis
 Steam Blast
+Stinging Barrier
 Summon: Good King Mog XII
+Swamp
+Symmetry Sage
 Tactical Advantage
+Tale of Katara and Toph
+Task Force
+Tawnos's Wand
+Temporal Cascade
+Tenza, Godo's Maul
 Thrull Retainer
 Thundering Sparkmage
 Tibor and Lumia
+Tidal Bore
 Titan Hunter
 Topan Freeblade
 Tor Giant
+Tranquil Frillback
 Transcendent Master
+Transcendent Message
 Trenching Steed
 Undying Rage
 Unwilling Ingredient
 Vampire Lacerator
 Venomcrawler
+Viashino Fangtail
+Voice of the Provinces
 Voldaren Stinger
+Walker of Secret Ways
+Well-Laid Plans
 Whack
+Windgrace Acolyte
+Wirecat
 Writhing Necromass
+Young Blue Dragon

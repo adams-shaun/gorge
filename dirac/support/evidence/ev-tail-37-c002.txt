@@ -307,6 +307,7 @@ Snap
 Soltari Priest
 Soratami Rainshaper
 Sorin's Vengeance
+Sosuke's Summons
 Soul Reap
 Spawning Breath
 Spellbane Centaur
@@ -326,6 +327,7 @@ Sun-Collared Raptor
 Sunstrike Legionnaire
 Supply Runners
 Swamp
+Swampbenders
 Tainted Adversary
 Tangle Mantis
 Tangle Spider

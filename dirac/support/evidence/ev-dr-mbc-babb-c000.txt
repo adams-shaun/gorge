@@ -17,6 +17,7 @@ Desperate Lunge
 Destroy Evil
 Diplomatic Escort
 Doomsday
+Echo Tracer
 Elven Bow
 Exhaustion
 Exquisite Huntmaster
@@ -32,6 +33,7 @@ Forbidden Alchemy
 Forest
 Frog Tongue
 Furnace Whelp
+Gleam of Resistance
 Glimmerpoint Stag
 Goblin Taskmaster
 Gorehorn Minotaurs
@@ -63,6 +65,7 @@ Noble Purpose
 Nomads en-Kor
 Noxious Dragon
 Okiba-Gang Shinobi
+Path of Annihilation
 Pick Your Poison
 Plains
 Rampant Growth
