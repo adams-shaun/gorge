@@ -785,11 +785,17 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 			cp = "Card.inZoneStack"
 			ps.consume("ConditionZone")
 		}
+		spellGate := lc.targetedSpellGate(d0, hasD) // lower_condtargetspell.go
+		lc.spellBaseOK = spellGate
 		f, err := lc.filter(cp)
+		lc.spellBaseOK = false
 		lc.exwOK = false
 		lc.spellProvOK = false
 		if err != nil {
 			return lCond{}, err
+		}
+		if spellGate {
+			dropTargetedSpellBase(f)
 		}
 		c := lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)}
 		if d, ok := ps.get("ConditionDefined"); ok {
