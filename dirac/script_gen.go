@@ -695,7 +695,14 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	ctr := s.scriptCtr(k, p)
 	anyDiff := s.anyDifferentGaps(k, p)
 	life := s.lifeGapMask(k, p)
-	if !gaps.or(restr).or(anyR).or(tapsDef).or(ctr).or(anyDiff).or(life).any() {
+	// A Taps-deferred source (Rikala's Island) beside the filters and no other
+	// gap kind is the filter search's own otherGap step (mana_filtertapsdefer.go):
+	// gorge's one prefix search taps it and the filter in battlefield order
+	// (Energy Refractor's {2} paid by the Island's extra {U}), which the
+	// Taps-deferred search below never funds (CR 605.3a, 601.2g-h).
+	tdFilt := tapsDef.any() && !gaps.or(restr).or(anyR).or(ctr).or(anyDiff).or(life).any() &&
+		k.gen.anyFilt && s.filtOnly(k, p) && !s.liveGrantGap(k, p)
+	if tdFilt || !gaps.or(restr).or(anyR).or(tapsDef).or(ctr).or(anyDiff).or(life).any() {
 		// A live grant makes the grant search's candidates the board's
 		// filters too, activated with the grants in battlefield order
 		// (grantSrch.candidates): one search taps both gaps, so a filter
