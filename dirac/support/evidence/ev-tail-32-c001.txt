@@ -138,6 +138,7 @@ Obliterate
 Ogre Berserker
 Ondu Cleric
 Ovalchase Daredevil
+Overrule
 Pestermite
 Pillar of Light
 Plains
