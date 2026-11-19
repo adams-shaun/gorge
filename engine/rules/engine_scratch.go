@@ -58,6 +58,14 @@ type engineScratch struct {
 	// descriptor so a spell-cast restriction cannot refuse its mana; none
 	// otherwise.
 	planSpecial pay.Special `clone:"reset"`
+	// planPrototype marks a potential plan for a prototyped cast (CR 718.3a),
+	// read by planComposedCostFor's descriptor so a RestrictValid$ spell read
+	// uses the K:Prototype inset colour and mana value.
+	planPrototype bool `clone:"reset"`
+	// prototypeRead is the scoped AsFace(pay.PrototypeRead) read's flag: a
+	// RestrictValid$ spell read then sees the cast's K:Prototype inset
+	// characteristics (CR 718.3a/718.3b). Pure per-call read state.
+	prototypeRead bool `clone:"reset"`
 	// planKeepSources makes a potential cast's plan refuse a step that
 	// sacrifices or returns its source (potentialWitnessKeeping).
 	planKeepSources bool `clone:"reset"`

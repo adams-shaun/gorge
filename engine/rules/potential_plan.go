@@ -624,6 +624,11 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 	xCap, xCapOn := e.planXCap, e.planXCapOn
 	e.planXCapOn = false
 	e.planLastX = 0
+	// A prototyped route's plan prices its RestrictValid$ sources against the
+	// K:Prototype inset characteristics (CR 718.3a/718.3b).
+	prevPrototype := e.planPrototype
+	e.planPrototype = castModeCodes.Code(o.Mode) == castModePrototype
+	defer func() { e.planPrototype = prevPrototype }()
 	id := o.Obj
 	obj := e.G.Obj(id)
 	if obj == nil || obj.Face() == nil {
@@ -1845,7 +1850,8 @@ func (e *Engine) planComposedCostFor(p state.PlayerID, id state.ObjID, cast deci
 		// as the offer gate and the payment already read it.
 		desc = pay.SpecialDescriptor(id, e.planSpecial, composed)
 	}
-	desc.FaceIdx = e.planFaceIdx(id) // an alternate-face route's restriction reads the cast face
+	desc.FaceIdx = e.planFaceIdx(id)             // an alternate-face route's restriction reads the cast face
+	desc.Prototype = !ability && e.planPrototype // a prototyped route reads the K:Prototype inset (CR 718.3a)
 	return e.planReserving(p, id, composed, ability, selfSource, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
 		out := pay.PlanPaymentCostWithout(asPayer(e), p, cast, manaOnly, &desc, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))
 		if out.Plan != nil && out.Reason == "search_limit" {
