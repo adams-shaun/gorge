@@ -1383,7 +1383,7 @@ func (s *State) modeTargetFeasible(k *prep, t *kop.TargetSpec) bool {
 
 // modeFeasible: mode m's mandatory targets have candidates.
 func (s *State) modeFeasible(k *prep, a *kop.Ability, m int) bool {
-	if k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, s.srcSlot(), m) {
+	if k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, s.bld().e.obj, m) {
 		return false // ChoiceRestriction$: chosen before (modal_charmpick.go)
 	}
 	for i := 0; i < int(a.NTargets); i++ {

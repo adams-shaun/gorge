@@ -21,7 +21,7 @@ func (s *State) modalActAsk(k *prep, a *kop.Ability) bool {
 	if a.NModes == 0 || s.res.e.mode != 0 {
 		return false
 	}
-	if k.gen != nil && k.gen.anyCharmPick && s.charmPickAllBarred(a, s.resSrcSlot(k)) {
+	if k.gen != nil && k.gen.anyCharmPick && s.charmPickAllBarred(a, s.objRefObj(kop.RefSelf)) {
 		return false // every mode was chosen before: nothing happens (gorge CharmEligibleModes; modal_charmpick.go)
 	}
 	s.res.ask, s.res.askP, s.res.chosen = raGenModalMode, s.res.e.ctrl, 0
@@ -109,7 +109,7 @@ func (s *State) askOptionsModalAct(k *prep, d *Decision) bool {
 		a := s.modalAb(k)
 		d.Kind = DkModes
 		for m := 0; m < int(a.NModes); m++ {
-			if r.e.mode&(1<<m) == 0 && !(k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, s.resSrcSlot(k), m)) {
+			if r.e.mode&(1<<m) == 0 && !(k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, s.objRefObj(kop.RefSelf), m)) {
 				d.add(MakeAction(AkMode, 0, 0, uint8(m)))
 			}
 		}
@@ -141,7 +141,7 @@ func (s *State) applyAskModalAct(k *prep, a Action) bool {
 		r.chosen++
 		ab := s.modalAb(k)
 		if k.gen != nil && k.gen.anyCharmPick {
-			s.charmPickLog(ab, s.resSrcSlot(k), a.Mode()) // modal_charmpick.go
+			s.charmPickLog(ab, s.objRefObj(kop.RefSelf), a.Mode()) // modal_charmpick.go
 		}
 		if r.chosen < objWord(max8(ab.ModesPick, 1)) && int(r.chosen) < int(ab.NModes) {
 			return true // the next mode

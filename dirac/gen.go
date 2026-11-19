@@ -2142,7 +2142,7 @@ type genState struct {
 	chPick [6]struct {
 		sl Slot
 		m  uint8
-	} // per restricted charm source: m bits 0-3 picked modes, bit 7 ThisGame scope (modal_charmpick.go)
+	} // per restricted charm source ON the battlefield: m bits 0-3 picked modes, bit 7 ThisGame scope; a source off it logs in the cold buffer (modal_charmpick.go)
 	nchPick    uint8           // entries of chPick in use
 	trigTurn   uint16          // triggered abilities resolved this turn (StallLoop)
 	dilemmas   [MaxSeats]uint8 // the dilemmas each player faced this turn (trig_dilemma.go)
@@ -2667,7 +2667,7 @@ const (
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
 	StallDmgBatch      = 191 // a ninth DamageDealtOnce line of one DamageAll sweep's batch (armRes.dmgB; trig_dmgbatch.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
-	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
+	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once, on the battlefield or off it (ChoiceRestriction$; modal_charmpick.go)
 	StallRedirOrder    = 184 // a damage event a redirect record and another replacement both match, or a redirect the kernel does not model (infect, a combat pass already in an order ask; repl_dmgredirect.go)
 	StallExileRider    = 115 // a dies-to-exile replacement's rider (Kalitas's Zombie token) that cannot run exactly: it competes with another replacement in a CR 616.1 order, its source left before the exile move, or its prog asked or parked (repl_exilerider.go)
 	StallRedirCap      = 185 // a fifth redirect record in one turn (genState.redir; repl_dmgredirect.go)
