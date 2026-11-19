@@ -577,6 +577,25 @@ func (s *State) activateGen(k *prep, a Action) bool {
 		hc := s.objs[host].card
 		if s.objs[host].zone == kop.ZoneBattlefield {
 			hc = s.grantCardAt(k, s.objs[host].slot, a.Mode()&^0x80)
+		} else {
+			// An off-battlefield grantor (an emblem's creator: the grant is
+			// offered against the effect's Source wherever it now is,
+			// CR 114.4). The grant names an ability of the card that granted
+			// it, which a multi-face grantor may no longer show: a
+			// transforming DFC is front-face-up in every zone but the
+			// battlefield (CR 711.5a) while the granted body lives on the
+			// face that granted it (CR 113.7a). Read the faces the way the
+			// mint's fold does (events.ResolveSVarAcrossFaces): the object's
+			// current card first, then the layout's face cards in index
+			// order -- the first whose ability ab is an activated ability is
+			// the grant's card. A one-face grantor keeps its card, as before.
+			ab := a.Mode() &^ 0x80
+			for _, fc := range k.t.Cards[hc].Faces {
+				if fc != hc && len(k.t.Cards[fc].Abilities) > int(ab) && k.t.Cards[fc].Abilities[ab].Kind == kop.AbActivated {
+					hc = fc
+					break
+				}
+			}
 		}
 		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: hc, ab: a.Mode() &^ 0x80, ctrl: s.prio, trigObj: host}}
 	} else if ob.zone != kop.ZoneBattlefield {
