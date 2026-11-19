@@ -223,7 +223,24 @@ func (b *trigBoard) LiveActivation(card state.ObjID) (trigmatch.Activation, bool
 			n += part.N
 		}
 	}
-	return trigmatch.Activation{Targets: pc.targets, CountersRemoved: n}, true
+	// The WHOLE target chain the activation announced (CR 602.2b importing
+	// 601.2c): the root declaration's answers plus every cast-time
+	// SubAbility$ link's answers, in chain order. The links are all announced
+	// before the cost is paid, so the deferred "whenever you activate" scan
+	// (which runs at the completion boundary, after payment) sees them here.
+	// A TargetsValid$ trigger must judge this whole list: Boom Box's creature
+	// target lives in a link, not the root, and Ertha Jo, Frontier Mentor
+	// copies the activation only because of it. The slice is fresh so a
+	// caller can never append into pc.targets.
+	targets := pc.targets
+	if len(pc.subAns) > 0 {
+		targets = make([]state.Target, 0, len(pc.targets)+len(pc.subAns))
+		targets = append(targets, pc.targets...)
+		for _, ans := range pc.subAns {
+			targets = append(targets, ans...)
+		}
+	}
+	return trigmatch.Activation{Targets: targets, CountersRemoved: n}, true
 }
 
 func (b *trigBoard) TokenSnapshot(ev events.Event) *state.Object { return b.eng().tokenSnapshot(ev) }
