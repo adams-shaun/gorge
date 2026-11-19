@@ -4031,13 +4031,22 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 		// Hideout) reads the controller's commanders' identity at each use
 		// (kop.Ability.ManaIdentity; kernel mana_reflected.go identityColours):
 		// one colour adds it unasked, none adds nothing (CR 903.4f, gorge
-		// pay.CommanderIdentityColours). One with a rider (Path of Ancestry's
-		// scry, Opal Palace's counters) or a cost beyond {T} stays a source of no
+		// pay.CommanderIdentityColours). One with a bare-scry rider (Path of
+		// Ancestry) is the same source, its rider a SpellCast trigger reading
+		// the cast's tapped source (spentRider). One with another rider (Opal
+		// Palace's counters) or a cost beyond {T} stays a source of no
 		// colour, which the kernel leaves out of payment: a TriggersWhenSpent$
 		// rider waits on that mana being spent, so it never triggers. It is still
 		// one gorge's potential fold prices at the identity
 		// (kop.Ability.ManaIdentityPotential; kernel legal.go availPotentialFor).
-		if ps.peek("TriggersWhenSpent") == "" && ps.peek("AddsCounters") == "" && lc.granted == 0 && reflTapCost(&ab.Cost) {
+		scry := false // Path of Ancestry's bare-scry rider: a plain source (lower_deferredmana.go)
+		if v := ps.peek("TriggersWhenSpent"); v != "" && lc.identityScryRider(ab, ps, v) {
+			if err := lc.spentRider(ab, ps, v); err != nil {
+				return err
+			}
+			scry = true
+		}
+		if (scry || ps.peek("TriggersWhenSpent") == "") && ps.peek("AddsCounters") == "" && lc.granted == 0 && reflTapCost(&ab.Cost) {
 			m.Special = "ReflectedIdentity"
 			m.Colors, m.Choice, m.Amount = "WUBRG", true, cst(1)
 			return lc.finishMana(sa, ps, ab, m)

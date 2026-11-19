@@ -19,14 +19,42 @@ import (
 // source's controller's spell (any ValidCard$ lowerTrigger reads) whose body is
 // any chain lowerTriggered lowers; anything else refuses.
 func (lc *lowerCtx) deferredMana(ab *lAbility, ps *params, rider string) error {
-	if ab.Kind != akMana || !ab.Cost.Tap || !plainTapCost(ab.Cost) || lc.face == nil {
-		return refuse("TriggersWhenSpent$ on a mana ability beyond a plain {T}")
-	}
 	// The kernel tracks one floating deferred source per player (genState.defSrc):
 	// two sources' mana in one payment is unmodelled, so only a legendary source
 	// (never two on the battlefield, CR 704.5j) lowers.
-	if !lc.face.IsLegendary() {
+	if lc.face != nil && !lc.face.IsLegendary() {
 		return refuse("TriggersWhenSpent$ on a source that is not legendary")
+	}
+	return lc.spentRider(ab, ps, rider)
+}
+
+// identityScryRider reports whether the TriggersWhenSpent$ rider of a
+// commander-identity {T} mana ability is Path of Ancestry's shape: a SpellCast
+// trigger whose Execute$ body is a bare Scry with no sub-ability (gorge
+// pay.PlanSpentRiderIsScry). Such a source is an ordinary payment source (the
+// plain ReflectedIdentity shape, lowerMana) whose rider only adds a library
+// decision after the cast, so it is no deferred source (one that is not
+// legendary, which deferredMana refuses) and its rider lowers through
+// spentRider like a deferred one.
+func (lc *lowerCtx) identityScryRider(ab *lAbility, ps *params, rider string) bool {
+	if lc.face == nil || lc.granted != 0 || ab.Kind != akMana || !reflTapCost(&ab.Cost) ||
+		ps.peek("SubAbility") != "" || ps.peek("AddsCounters") != "" {
+		return false
+	}
+	t, ok := cards.ParseTriggerLine(lc.face.SVars[rider])
+	if !ok || t.Mode != "SpellCast" {
+		return false
+	}
+	exec := cards.ResolveSVar(lc.face.SVars, strings.TrimSpace(t.Params["Execute"]))
+	return exec != nil && exec.API == "Scry" && strings.TrimSpace(exec.ParamStr(cards.PKSubAbility)) == ""
+}
+
+// spentRider lowers the TriggersWhenSpent$ rider of a plain {T} mana ability
+// as a SpellCast trigger of the source that reads the payment's tapped source
+// (deferredMana's doc has the shape).
+func (lc *lowerCtx) spentRider(ab *lAbility, ps *params, rider string) error {
+	if ab.Kind != akMana || !ab.Cost.Tap || !plainTapCost(ab.Cost) || lc.face == nil {
+		return refuse("TriggersWhenSpent$ on a mana ability beyond a plain {T}")
 	}
 	for k := range ps.m {
 		switch k {

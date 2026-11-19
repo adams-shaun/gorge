@@ -177,6 +177,7 @@ const (
 	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
 	cmpRenowned       // IsRenowned (CmpN 1) / !IsRenowned (CmpN 0): the CR 702.112b renowned designation
 	cmpAttackingYou   // attackingYou: attacking, the evaluating controller its defending player (kop.PredAttackingYou; no operator)
+	cmpSharesCrCmdr   // sharesCreatureTypeWith Commander: a creature type shared with a commander of the evaluating controller (kop.PredSharesCrCmdr; no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -1227,6 +1228,10 @@ func (c *lClause) sharesNameWithProp(p string) (bool, error) {
 			n = 1
 		}
 		return true, c.setCmp(cmpSameNameSelf, 0, n, "", "")
+	case "sharesCreatureTypeWith Commander":
+		// a creature type shared with a commander of the evaluating
+		// controller (the Path of Ancestry rider's filter)
+		return true, c.setCmp(cmpSharesCrCmdr, 0, 0, "", "")
 	}
 	return false, nil
 }
@@ -1318,6 +1323,10 @@ func (c *lClause) addNotSub(w string) error {
 	}
 	return fmt.Errorf("six negated subtypes")
 }
+
+// bareCmpPreds maps the compare words build.go's clause reads as one
+// argument-less predicate each (kernel sharesCrCmdr is filter_sharescmdr.go).
+var bareCmpPreds = map[uint8]kop.Pred{cmpMonstrous: kop.PredMonstrous, cmpNoCounters: kop.PredNoCounters, cmpMonoColor: kop.PredMonoColor, cmpSharesCrCmdr: kop.PredSharesCrCmdr}
 
 // battlefieldPreds maps the compare words build.go's clause reads as one
 // battlefield-only predicate each.

@@ -788,6 +788,7 @@ type build struct {
 	libPos    uint8    // origin library: the card's index from the top before the push (the reversal puts it back there, CR 733.2)
 	castN     uint8    // the ring entry noteCast recorded for this cast (index+1; 0 = none)
 	obsSl     Slot     // 1 + the slot of the observed mana source (a Tf2ManaFromSelf reader) this cast tapped; 0 none (mana_spendtrigger.go)
+	obsMore   [7]Slot  // 1 + each further plain observed source the same cast tapped (several Path of Ancestry), each rider reading its own; 0 free (noteTapSrc)
 	raiseSl   Slot     // the may-play static whose non-mana RaiseCost$ this cast owes: its slot (NoSlot = the cast card's own static); raiseAb 0 = none (cost_mayplayraise.go)
 	raiseAb   uint8    // Static.B of that static: 1 + the latent ability holding the raise cost
 	fixedGen  uint8    // the generic part as last priced (bflCostFixed: the total cost, CR 601.2f)
