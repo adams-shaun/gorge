@@ -2272,7 +2272,10 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 				// a repeatable fee-only ability converts colour, not mana:
 				// each activation spends its fee from other sources, so the
 				// prefix search must be allowed to tap one source per fee per
-				// activation, up to its own node budget
+				// activation, up to its own node budget. Read whatever the
+				// zone order put before it: an earlier unrelaxable gap (Mystic
+				// Gate's hybrid fee) must not drop the funding of a later one
+				// (Energy Refractor's {2}).
 				out.fund += int(fee) * potentialScriptNodes
 			}
 			if out.relaxable {
