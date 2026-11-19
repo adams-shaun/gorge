@@ -1,6 +1,7 @@
 package cards
 
 import (
+	"iter"
 	"slices"
 	"strconv"
 	"strings"
@@ -363,6 +364,15 @@ func (f *Face) CharacteristicDefining() bool { return f.characteristicDefining }
 // does not set it — grants stay in the rules layer walk.
 func (f *Face) AllCreatureTypesCDA() bool { return f.allCreatureTypesCDA }
 
+// CDAAddTypes is the type words the face's own characteristic-defining
+// AddType$ static adds, in the static's word order (Veteran Adventurer's
+// "CARDNAME is also a Cleric, Rogue, Warrior, and Wizard" →
+// [Cleric Rogue Warrior Wizard]), nil when it prints none. CR 613.4a: the
+// ability works in every zone, so the type filter's intrinsic tail
+// (effects' hasType, which the rules layer walk's published table does not
+// serve off the battlefield) reads the list. Derived once at load.
+func (f *Face) CDAAddTypes() []string { return f.cdaAddTypes }
+
 // Colour identity is a bitmask over the five colours packed into one byte. A
 // bitmask is the natural representation: identity is used as a set-membership
 // question ("commander identity must be a superset of this card's identity")
@@ -432,6 +442,8 @@ func (f *Face) copyPrintedFrom(src *Face) {
 func (f *Face) derive() {
 	f.power, f.toughness, f.characteristicDefining = parsePT(f.PT)
 	f.allCreatureTypesCDA = cdaAllCreatureTypes(f.Statics)
+	f.cdaAddTypes = cdaAddTypes(f.Statics)
+	f.cdaAddGated = cdaAddGatedStatics(f.Statics)
 	f.cmc = cmcFromManaCost(f.ManaCost)
 	f.cmcSrc, f.cmcBound = f.ManaCost, true
 	if f.manaCostSlot == nil {
@@ -518,18 +530,191 @@ func (f *Face) deriveColourIdentity() uint8 {
 // must not set the intrinsic flag).
 func cdaAllCreatureTypes(sts []Static) bool {
 	for _, s := range sts {
-		if s.Mode != "Continuous" || !strings.EqualFold(strings.TrimSpace(s.ParamStr(PKCharacteristicDefining)), "True") {
+		if s.Mode != "Continuous" || !paramTrue(s, PKCharacteristicDefining) {
 			continue
 		}
-		if !strings.EqualFold(strings.TrimSpace(s.ParamStr(PKAddAllCreatureTypes)), "True") {
+		if !paramTrue(s, PKAddAllCreatureTypes) {
 			continue
 		}
-		if aff := strings.TrimSpace(s.ParamStr(PKAffected)); aff != "" && !strings.Contains(aff, "Self") {
-			continue
+		if affSelf(s) {
+			return true
 		}
-		return true
 	}
 	return false
+}
+
+// paramTrue reads key k as the True flag the printed-CDAs gates share
+// (cdaAllCreatureTypes, cdaAddTypes): one trim-and-compare, defined once so
+// the strings ratchet (internal/codeshape/strings_ratchet_test.go) holds.
+func paramTrue(s Static, k ParamKey) bool {
+	return strings.EqualFold(strings.TrimSpace(s.ParamStr(k)), "True")
+}
+
+// affSelf reports whether the static's Affected$ scopes it to its own card:
+// an empty Affected$ counts as self-scoped for a printed CDA (an
+// Affected$ Card.Self line names it); a static that affects OTHER
+// permanents — Maskwood Nexus's Affected$ Creature.YouCtrl grant, handled by
+// the rules layer walk — is not the card's own type.
+func affSelf(s Static) bool {
+	aff := strings.TrimSpace(s.ParamStr(PKAffected))
+	return aff == "" || strings.Contains(aff, "Self")
+}
+
+// CDAAddGate classifies a candidate CDA AddType$ static's gate for the
+// intrinsic every-zone read (CR 613.4a answers a characteristic-defining
+// ability in every zone, but only where its own gate lets it work).
+type CDAAddGate uint8
+
+const (
+	// CDAAddGateEveryZone: the static carries no gate at all. Its words are
+	// the derived every-zone list (cdaAddTypes) — Veteran Adventurer's
+	// "Cleric & Rogue & Warrior & Wizard".
+	CDAAddGateEveryZone CDAAddGate = iota
+	// CDAAddGateZone: the static's ExcludeZone$/EffectZone$ zone gate
+	// decides where it works. The every-zone list holds nothing for it; the
+	// filter tier's intrinsic tail evaluates the gate against the object's
+	// zone (Grist, the Hunger Tide's "As long as CARDNAME isn't on the
+	// battlefield, it's a 1/1 Insect creature").
+	CDAAddGateZone
+	// CDAAddGateRefused: the static carries a gate the intrinsic read
+	// cannot evaluate (a Condition$-prefixed key, IsPresent$'s counter
+	// condition, CheckSVar$, PresentZone$). Fail closed — it stays the
+	// rules layer walk's, which evaluates the condition on the battlefield
+	// (Grand Master of Flowers' loyalty threshold).
+	CDAAddGateRefused
+)
+
+// CDAAddTypeStatic reports whether st is one of the self-scoped
+// characteristic-defining Continuous AddType$ statics the intrinsic AddType$
+// read answers, and which gate class its parameters carry. One home for the
+// grammar, shared by the every-zone derivation below and the zone-gated half
+// the filter tier evaluates against the object's zone
+// (filter_type.go's cdaAddTypeGatedHas).
+func CDAAddTypeStatic(st Static) (CDAAddGate, bool) {
+	if st.Mode != "Continuous" || !paramTrue(st, PKCharacteristicDefining) || !affSelf(st) {
+		return CDAAddGateEveryZone, false
+	}
+	if st.ParamStr(PKAddType) == "" {
+		return CDAAddGateEveryZone, false
+	}
+	if conditionalStatic(st) {
+		return CDAAddGateRefused, true
+	}
+	if st.HasParam(PKExcludeZone) || st.HasParam(PKEffectZone) {
+		return CDAAddGateZone, true
+	}
+	return CDAAddGateEveryZone, true
+}
+
+// conditionalStatic reports whether the static carries a gate the intrinsic
+// every-zone read cannot evaluate, so it fails closed on: any
+// Condition$-prefixed parameter (Karn's "During your turn"), IsPresent$'s
+// counter condition, CheckSVar$ or PresentZone$. The zone keys are NOT
+// here — ExcludeZone$/EffectZone$ are evaluable against the object's zone,
+// and CDAAddTypeStatic classifies them CDAAddGateZone. The raw parameter
+// keys are scanned byte-wise — the map is read once at load and the strings
+// ratchet (internal/codeshape/strings_ratchet_test.go) holds the package's
+// strings.* call count.
+func conditionalStatic(s Static) bool {
+	for k := range s.Params {
+		if len(k) >= 9 && k[:9] == "Condition" {
+			return true
+		}
+	}
+	return s.HasParam(PKIsPresent) || s.HasParam(PKIsPresent2) ||
+		s.HasParam(PKCheckSVar) || s.HasParam(PKCheckSecondSVar) || s.HasParam(PKPresentZone)
+}
+
+// CDAAddTypeWords yields st's AddType$ words, split once (no per-word
+// allocation) for the filter tier's fallback tail. Placeholder words are
+// skipped: Forge's AddType$ also carries parameter-placeholder words that
+// name no card type (Coalition Construct's ChosenType, Planar Nexus's
+// AllNonBasicLandType, Nearby Planet's AllBasicLandType) — a filter always
+// resolves them to a real word before it queries a type, so a derived word
+// list must not collect the literals. No real type word begins "Chosen" or
+// "All" (AddAllCreatureTypes$ is a different parameter), so the skip is the
+// two byte prefixes.
+func CDAAddTypeWords(st Static) iter.Seq[string] {
+	add := st.ParamStr(PKAddType)
+	return func(yield func(string) bool) {
+		if add == "" {
+			return
+		}
+		for w := range strings.SplitSeq(add, "&") {
+			w = strings.TrimSpace(w)
+			if w == "" || cdaAddTypePlaceholder(w) {
+				continue
+			}
+			if !yield(w) {
+				return
+			}
+		}
+	}
+}
+
+// CDAAddTypeWordList is CDAAddTypeWords collected into a slice, for a caller
+// that must not capture its own parameters in a range-over-func body (the
+// closure escapes, which makes those parameters leak and forces every
+// caller's stack-built string onto the heap). It allocates, so it is for the
+// rare zone-gated static only.
+func CDAAddTypeWordList(st Static) []string {
+	var out []string
+	for w := range CDAAddTypeWords(st) {
+		out = append(out, w)
+	}
+	return out
+}
+
+// cdaAddTypePlaceholder reports whether an AddType$ word is one of Forge's
+// placeholder forms, byte-prefix scanned like the raw parameter keys above
+// (the strings ratchet holds the package's strings.* call count).
+func cdaAddTypePlaceholder(w string) bool {
+	return (len(w) >= 6 && w[:6] == "Chosen") || (len(w) >= 3 && w[:3] == "All")
+}
+
+// cdaAddTypes is cdaAllCreatureTypes' sibling for the AddType$ spelling: the
+// type words of the face's every-zone characteristic-defining Continuous
+// statics affecting the card itself, deduplicated in static order (Veteran
+// Adventurer's "Cleric & Rogue & Warrior & Wizard"). A static with a gate is
+// not here: a CONDITIONAL one (Karn's "During your turn ... is a 3/4 Ninja
+// creature") is refused — the intrinsic read cannot evaluate its condition,
+// so it stays the rules layer walk's, which evaluates it on the battlefield,
+// the fail-closed direction the rest of the type grammar takes — and a
+// ZONE-GATED one (Grist's ExcludeZone$ Battlefield) is the filter tail's
+// zone-evaluated half, where granting it in every zone would read the card
+// as a creature exactly where its static is OFF.
+func cdaAddTypes(sts []Static) []string {
+	var out []string
+	for i := range sts {
+		gate, ok := CDAAddTypeStatic(sts[i])
+		if !ok || gate != CDAAddGateEveryZone {
+			continue
+		}
+		for w := range CDAAddTypeWords(sts[i]) {
+			if !slices.Contains(out, w) {
+				out = append(out, w)
+			}
+		}
+	}
+	return out
+}
+
+// CDAAddGatedStatics is the indices into f.Statics of the face's zone-gated
+// characteristic-defining AddType$ statics (CDAAddGateZone), nil when it has
+// none. Derived once at load; see cdaAddGatedStatics.
+func (f *Face) CDAAddGatedStatics() []int32 { return f.cdaAddGated }
+
+// cdaAddGatedStatics collects the indices of the statics CDAAddTypeStatic
+// classifies CDAAddGateZone, so the filter tier's per-call read never scans
+// the static list.
+func cdaAddGatedStatics(sts []Static) []int32 {
+	var out []int32
+	for i := range sts {
+		if gate, ok := CDAAddTypeStatic(sts[i]); ok && gate == CDAAddGateZone {
+			out = append(out, int32(i))
+		}
+	}
+	return out
 }
 
 // CommanderColourChoiceCDA reports whether the face carries the CR 903.4b
