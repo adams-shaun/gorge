@@ -23,6 +23,11 @@ var stdEDHRepros = []struct {
 	// artifact. The kernel's copy layer used to point at the printed card: a
 	// 0/0 artifact.
 	{"clone_facedown_copy", "Cards[47].Power", 481, []string{"Malleable Impostor", "Inspiring Statuary"}},
+	// The same game further on: Tegwyll, Duke of Splendor ("other Faerie
+	// creatures you control get +1/+1") reads the blank copy's Faerie
+	// exception (CR 707.9b), which the face-down "no subtypes" filter gate
+	// used to hide: gorge 3/3, the kernel 2/2.
+	{"clone_facedown_copy_faerie_lord", "Cards[47].Power", 602, []string{"Malleable Impostor", "Tegwyll, Duke of Splendor"}},
 }
 
 // TestStdEDHReprosLockstep replays every edh recording with no divergence for
