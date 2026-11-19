@@ -104,6 +104,7 @@ func (s *State) nonSpellRestrAffords(k *prep, p uint8, cost *kop.ManaCost) bool 
 		return false
 	}
 	var av avail
+	av.xd, av.xdOn = payDesc{class: pdOther}, true // an unless tax or ward is no spell's, an ability's or a cast's: a restricted grant it cannot spend adds no unit (CR 106.6; canPayGen's census, gorge UnlessRestrictionAdmitsOther)
 	s.availWindowFor(k, p, &av)
 	return s.restrOtherFallback(k, p, cost, &av)
 }
