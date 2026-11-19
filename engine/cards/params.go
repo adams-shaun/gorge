@@ -956,6 +956,13 @@ const (
 	// stack object. Read by trigmatch's destroyedMatches. Appended: earlier
 	// ordinals stay stable.
 	PKValidCauser
+	// Paid$ True/False on a Mode$ PayCumulativeUpkeep trigger (Hibernation's
+	// End's True, Heart of Bogardan's and Thought Lash's False): True is the
+	// payment arm the settle marker serves (inherent -- the marker exists
+	// only when the cost was paid), False is the decline arm, which no
+	// marker reaches. Read by trigmatch's payCumulativeUpkeepMatches.
+	// Appended: earlier ordinals stay stable.
+	PKPaid
 	paramKeyCount
 )
 
@@ -1797,6 +1804,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKMaxNum:                           "MaxNum",
 	PKShuffleBySelfControlled:          "ShuffleBySelfControlled",
 	PKValidCauser:                      "ValidCauser",
+	PKPaid:                             "Paid",
 }
 
 // String is the key's Forge text.
