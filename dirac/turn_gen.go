@@ -925,8 +925,7 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		return true // zone_untilleavescost.go
 	}
 	if s.g.endTurn {
-		s.myriadEndCombat(k) // kw_myriad.go: the combat phase ends with the turn
-		s.clearCombat()      // CR 723.1b: every creature is removed from combat
+		s.clearCombat() // CR 723.1b: every creature is removed from combat
 		// a state-based action still due is performed before the step: inside
 		// it, CR 514.3a would give priority for it
 		if s.sba(k) || s.ctl != ctlPriority {
@@ -934,6 +933,9 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		}
 		if s.g.nask == 0 {
 			s.g.endTurn = false
+			if k.gen != nil && k.gen.anyTokEndCombat {
+				s.dropDlyEndCombat() // gorge's |TT= expiry: the turn ends before its end of combat
+			}
 			s.endStep(kop.StepCleanup)
 			return false
 		}

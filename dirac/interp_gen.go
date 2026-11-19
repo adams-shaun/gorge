@@ -2398,7 +2398,7 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		s.copyEnterAttacking(k, sl, e.ctrl) // ExtCopyPicked's TokenAttacking$ True (copy_picked.go)
 	}
 	if s.res.flags&rfOppCopy != 0 && s.occ.has(sl) {
-		s.oppCopyEnter(k, in, sl) // kw_encore.go: Encore's duty, Myriad's attack
+		s.oppCopyEnter(k, in, sl, t) // kw_encore.go: Encore's duty, Myriad's attack
 	}
 	// a token that elected a copy as it entered (ctr_entryperkind.go): the
 	// elected template is its basis and replaces the copy's own exceptions

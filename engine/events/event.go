@@ -342,10 +342,10 @@ const (
 	// the attack-creature Obj that enters tapped and attacking the opponent
 	// named by Player. Appended after Pair, same append-only precedent.
 	MyriadCopy
-	// MyriadCleanup exiles every Myriad token still on the battlefield as the
-	// end-of-combat step ends (CR 702.109a). Its event-sourced arena scan keeps
-	// live play and log replay in lockstep without adding one delayed trigger
-	// per token.
+	// MyriadCleanup exiles every Myriad token still on the battlefield (CR
+	// 702.109a). Live play no longer emits it -- the exile is the tokens'
+	// own delayed end-of-combat trigger (CR 511.2) -- but the Kind and its
+	// fold stay for log replay of older games.
 	MyriadCleanup
 	// GrantTriggerPush mints a static-grant's triggered ability (AddTrigger$
 	// on a Mode$ Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you
@@ -390,9 +390,9 @@ const (
 	// MoveZone case already made the object, and Obj here is that battlefield
 	// object, Player its controller and IDs[0] the defender it attacks.
 	// MyriadCopy must not be reused for this: it
-	// mints a copy of the SOURCE card and flags IsMyriad, which
-	// MyriadCleanup exiles at end of combat -- wrong semantics for a script
-	// token a Sacrifice at the next end step owns. Appended here, after
+	// mints a copy of the SOURCE card and flags IsMyriad (an old log's
+	// MyriadCleanup exiled it at end of combat) -- wrong semantics for a
+	// script token a Sacrifice at the next end step owns. Appended here, after
 	// ManaActivate, following every prior Kind's own append-only precedent,
 	// so no earlier ordinal, hash chain or golden replay is affected.
 	TokenAttacks
@@ -1450,9 +1450,9 @@ func MergedTriggerIndexes(amount int32) (mergedIdx, trigIdx int, ok bool) {
 // CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state
 // riders, folded in Apply so replay derives the identical object):
 // TokenTapped$ True, TokenAttacking$ True, and AtEOT$ ExileCombat -- the
-// latter flags the copy IsMyriad so the existing end-of-combat cleanup
-// (MyriadCleanup, CR 702.109a) exiles it with the same semantics every
-// Myriad token already had: end-of-combat exile, battlefield only.
+// latter flags the copy IsMyriad, kept for old-log replay (an old log's
+// MyriadCleanup exiled it). Live play exiles the copy by the delayed
+// trigger copyAtEOTSide registers (CR 511.2).
 const (
 	CopyTokenTapped      int32 = 1
 	CopyTokenAttacking   int32 = 2
