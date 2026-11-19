@@ -249,7 +249,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerPlayer = player(p)
 			c.TriggerAmount = amount
 		}
-	case cards.TriggerPayLife, cards.TriggerShuffled:
+	case cards.TriggerPayLife, cards.TriggerShuffled, cards.TriggerPayCumulativeUpkeep:
 		payAndShuffleReferents(&c, t.ModeKind(), ev, player)
 	case cards.TriggerDestroyed:
 		destroyedReferents(&c, boardOf(e), ev, player)
@@ -858,10 +858,17 @@ func attackReferents(controllerOf func(state.ObjID) state.PlayerID, c *effects.T
 // fires on the effect-caused shuffle: the player whose library was shuffled
 // is ev.Player -- what ValidPlayer$ matched and what Widespread Panic's and
 // Psychogenic Probe's DefinedPlayer$ TriggeredPlayer bodies resolve.
+// PayCumulativeUpkeep (edh-trigF) binds the payer, the permanent whose upkeep
+// was paid (ev.Obj) and the age paid -- the same AGE count the body's
+// Count$CardCounters.AGE reads back at the source.
 func payAndShuffleReferents(c *effects.TriggerContext, k cards.TriggerMode, ev events.Event,
 	player func(state.PlayerID) state.Target) {
 	c.TriggerPlayer = player(ev.Player)
-	if k == cards.TriggerPayLife {
+	switch k {
+	case cards.TriggerPayLife:
+		c.TriggerAmount = ev.Amount
+	case cards.TriggerPayCumulativeUpkeep:
+		c.TriggerCard = ev.Obj
 		c.TriggerAmount = ev.Amount
 	}
 }

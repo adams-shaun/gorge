@@ -175,7 +175,6 @@ const (
 	// opponent controls destroys a noncreature permanent you control", Cobra
 	// Trap's tracker), appended so every earlier ordinal is unchanged.
 	TriggerDestroyed TriggerMode = 115
-
 	// EDH fight-family modes (edh-trigD): Fight (Foe-Razer Regent's "whenever
 	// a creature you control fights"), FightOnce (Neyith of the Dire Hunt's
 	// "whenever one or more creatures you control fight") and
@@ -183,7 +182,13 @@ const (
 	TriggerFight               TriggerMode = 116
 	TriggerFightOnce           TriggerMode = 117
 	TriggerAttackerBlockedOnce TriggerMode = 118
-	TriggerModeCount                       = 119 // one past the last; sizes a dense per-TriggerMode array
+	// EDH trigger-modes class (edh-trigF): PayCumulativeUpkeep (Hibernation's
+	// End, "whenever you pay CARDNAME's cumulative upkeep"), the
+	// payment-settled marker rules' cumulative-upkeep window hands to the
+	// trigger walk when the cost is paid, appended so every earlier ordinal
+	// is unchanged.
+	TriggerPayCumulativeUpkeep TriggerMode = 119
+	TriggerModeCount                       = 120 // one past the last; sizes a dense per-TriggerMode array
 )
 
 var triggerModeNames = [TriggerModeCount]string{
@@ -305,6 +310,7 @@ var triggerModeNames = [TriggerModeCount]string{
 	TriggerAttackerBlockedOnce:        "AttackerBlockedOnce",
 	TriggerAdapt:                      "Adapt",
 	TriggerDestroyed:                  "Destroyed",
+	TriggerPayCumulativeUpkeep:        "PayCumulativeUpkeep",
 }
 
 var triggerModeCodes = func() StrCodes[TriggerMode] {

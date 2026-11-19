@@ -345,6 +345,14 @@ var addedAfterTheSplit = []string{
 	// through Facts.FightDamaging (effects' SetDamageFlags(DamageFight) publication); no
 	// pre-split arm could dispatch the new mode names.
 	"Fight", "FightOnce",
+	// edh-trigF: "Whenever you pay CARDNAME's cumulative upkeep"
+	// (Hibernation's End). It matches the unlogged payment-settled proposal
+	// rules' cumulative-upkeep window hands to the walk when the cost is paid
+	// (engine/rules/cumulative.go's noteCumulativeUpkeepPaid) -- an
+	// internal-marker CounterChange that is never an emitted event, so no
+	// pre-split arm could have dispatched it and no ordinary counter trigger
+	// can match it.
+	"PayCumulativeUpkeep",
 	// edh-trigE: Adapt (Biomancer's Familiar) matches the AlterAttribute
 	// "Adapted" marker a resolving Adapt$ put emits; the mode name is new.
 	"Adapt",
