@@ -130,15 +130,18 @@ func (s *State) copyCensusOpen(k *prep, e *stackEntry) bool {
 // gap, a tap-another one, or an ability whose cost needs no tap -- a
 // sacrifice-only source (CR 602.2b) or a life-only pain one, which a tapped
 // permanent holds as well (gorge mana_available.go rejects only
-// mf.Tap && o.Tapped).
+// mf.Tap && o.Tapped). An idle storage battery counts too, empty or not:
+// gorge prices its SubCounter<X> cost at X=0, so the untapped permanent is a
+// source the census cannot price (mana_storecensus.go, castWindowCensusComplete).
 func (s *State) windowUnpricedOpenIf(k *prep, e *stackEntry, open bool) bool {
 	if !open {
 		return false
 	}
 	tapX := s.windowTapXLive(k, e.ctrl)
+	ctr := s.scriptCtrIdle(k, e.ctrl, true)
 	for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
 		if sl := m.first(); s.canTapForMana(k, sl) || s.windowGap(k, e.ctrl, sl) || tapX.has(sl) || s.restrManaUntapped(k, sl) ||
-			k.sacOnlyMana && s.canSacOnlyNowAt(k, sl) || k.painMana && s.canLifeOnlyMana(k, sl, SeatIx(e.ctrl)) {
+			ctr.has(sl) || k.sacOnlyMana && s.canSacOnlyNowAt(k, sl) || k.painMana && s.canLifeOnlyMana(k, sl, SeatIx(e.ctrl)) {
 			return true
 		}
 	}
