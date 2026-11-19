@@ -394,6 +394,7 @@ func (d *Decision) fitRequiredPreferred(choices []int) []int {
 		(d.MinSum <= 0 || sum >= d.MinSum || (d.AllowNone && len(choices) == 0)) &&
 		d.RequiredChosen(choices) >= d.RequiredQuota() &&
 		d.AttackRequirementsSatisfied(choices) &&
+		d.AttackOneSatisfied(choices) &&
 		d.ChargeOptionsFit(choices) &&
 		!d.groupCapExceeded(choices) &&
 		d.setPropAnswerAdmits(choices) {
@@ -612,6 +613,9 @@ func (d *Decision) fitRequiredPreferred(choices []int) []int {
 			out = d.requiredCore()
 		}
 	}
+	// A must-attack-with-at-least-one duty the fold left unmet is completed
+	// first, so the closure pass below sees the creature it adds.
+	out = d.repairAttackOne(out)
 	// A preferred pick may have activated a closure the room no longer
 	// completes: add the missing members, or drop the triggering attackers.
 	return d.repairAttackRequirements(out, true)

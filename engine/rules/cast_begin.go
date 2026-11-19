@@ -1059,7 +1059,7 @@ func (e *Engine) resumeOrdinaryDraw(p state.PlayerID) {
 		e.markDrawEmpty(p)
 		return
 	}
-	e.emit(events.Event{Kind: events.Draw, Player: p, Obj: lib[0],
+	e.emit(events.Event{Kind: events.Draw, Player: p, Obj: libraryDrawCard(e.G, p, lib),
 		From: state.ZLibrary, To: state.ZHand, Secret: true})
 }
 

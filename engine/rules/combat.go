@@ -291,6 +291,7 @@ func (e *Engine) askAttackers() {
 	// the triggers of a closure no legal declaration can complete removed.
 	reqGroups, opts := attackRequirementOffers(asBoard(e), opts, mustAtt, maxOpts, maxSum, payerLife)
 	maxOpts = min(maxOpts, len(opts))
+	markPlayerMustAttack(e, p, offers, opts, mustAtt, attackBounds{max: maxOpts, maxSum: maxSum, payerLife: payerLife}, tapPool)
 	if len(opts) == 0 {
 		// Every (attacker, defender) pair is blocked — a CantAttack static or
 		// restriction covering the whole table — or priced out — a
@@ -914,6 +915,9 @@ func (e *Engine) validateAttackDeclarationChosen(d *decision.Decision, in decisi
 	}
 	if !d.AttackRequirementsSatisfied(in.Choices) {
 		return fmt.Errorf("declaration does not satisfy an AttackRequirement static's whole-declaration closure")
+	}
+	if !d.AttackOneSatisfied(in.Choices) {
+		return fmt.Errorf("declaration attacks with no creature a PlayerMustAttack static requires")
 	}
 	if len(chosen) > maxAllowed {
 		return fmt.Errorf("declared %d attackers, more than the allowed %d", len(chosen), maxAllowed)
