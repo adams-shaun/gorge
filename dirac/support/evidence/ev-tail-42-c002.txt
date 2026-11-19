@@ -270,6 +270,7 @@ Silverquill Lecturer
 Silverwing Squadron
 Simic Sky Swallower
 Singing Tree
+Skullmane Baku
 Skyshroud Lookout
 Smother
 Soldevi Machinist
@@ -316,14 +317,17 @@ Turntimber Ranger
 Twitch
 Tyrranax
 Ultimate Price
+Umbilicus
 Unbreathing Horde
 Undead Warchief
 Unicycle
 Unraveling Mummy
+Ureni's Counsel
 Ursine Champion
 Urza's Guilt
 Vedalken Orrery
 Venser, the Sojourner
+Vhal, Candlekeep Researcher
 Viashino Firstblade
 Viashino Shanktail
 Villainous Ogre

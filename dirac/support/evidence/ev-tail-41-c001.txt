@@ -1,6 +1,7 @@
 A-Goggles of Night
 A-Luminarch Aspirant
 Adarkar Wastes
+Agrus Kos, Wojek Veteran
 Akroan Jailer
 Akroma's Memorial
 Alabaster Host Sanctifier
@@ -25,6 +26,7 @@ Battle Cry Goblin
 Blessed Sanctuary
 Blightbelly Rat
 Blood Mist
+Bloodbraid Elf
 Bloodforged Battle-Axe
 Bloody Betrayal
 Blossoming Bogbeast
