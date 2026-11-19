@@ -280,7 +280,10 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 	if len(pay.PaymentPlanInterferenceCarriers(asPayer(e))) > 0 {
 		units = e.windowTapExtras(units)
 	}
-	return units
+	// CR 106.1: a reflected tap (Fellwar Stone) adds a coloured mana, not
+	// the census's colourless stand-in; the offer gate must price it so. The
+	// pass reads only the payer, so a payer-only pendingCast carries it.
+	return e.castWindowReflectedUnits(&pendingCast{player: p}, units)
 }
 
 // unlessRestrictedAlt prices one PurposeOther-admitted restricted mana
