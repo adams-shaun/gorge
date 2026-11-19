@@ -7,10 +7,11 @@ import (
 
 // TestDigUntilBattlefieldRememberRefusedByName: DigUntil's RememberRevealed$
 // carriers whose found card enters the battlefield (Madcap Experiment,
-// Audacious Reshapers) stay refused with the named hang reason (the lockstep
-// pod with a sac mana source spins in (*State).resolvePrefixStack until
-// triaged), not a bare "unread params" or a cascaded cross-ability read;
-// Spoils of the Vault, the found-zHand carrier, still lowers.
+// Audacious Reshapers) stay refused with the named found-zBattlefield reason
+// (the lowering never reads the found card entering the battlefield; the
+// once-suspected sac-source prefix spin in resolvePrefixStack is fixed), not
+// a bare "unread params" or a cascaded cross-ability read; Spoils of the
+// Vault, the found-zHand carrier, still lowers.
 func TestDigUntilBattlefieldRememberRefusedByName(t *testing.T) {
 	names := []string{"Madcap Experiment", "Audacious Reshapers", "Spoils of the Vault"}
 	seen := map[string]bool{}
@@ -28,7 +29,7 @@ func TestDigUntilBattlefieldRememberRefusedByName(t *testing.T) {
 			continue
 		}
 		if !strings.Contains(got, "DigUntil RememberRevealed$ with the found card entering the battlefield") {
-			t.Errorf("%s: refusals %q, want the untriaged sac-source prefix hang reason", c.Name, got)
+			t.Errorf("%s: refusals %q, want the named found-zBattlefield reason", c.Name, got)
 		}
 		if strings.Contains(got, "unread params") || strings.Contains(got, "reads Remembered written by another ability") {
 			t.Errorf("%s: refused as a cascaded/unnamed blocker, not by name: %q", c.Name, got)

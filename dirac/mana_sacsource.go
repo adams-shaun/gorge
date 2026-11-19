@@ -835,7 +835,12 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 				return
 			}
 			spBefore := s.sp
-			s.passes = 1
+			// the search's assumption is a full priority round: the OTHER
+			// seats have passed before the search's pass. Two seats: 1, the
+			// "the other player passed" reading. More seats: the reset to 1
+			// every round never reached aliveCount() and the stack spun
+			// without resolving.
+			s.passes = s.aliveCount() - 1
 			s.pass(k)
 			resolved = resolved || s.sp < spBefore
 		case ctlPlaceTriggers:
