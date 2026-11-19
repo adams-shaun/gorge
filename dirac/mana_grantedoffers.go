@@ -1503,6 +1503,9 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		if g.dual[i] && (!tx || t.canTapForMana(g.k, sl)) { // (a tapped Relic of Legends asks only its tap-another ability)
 			alts++
+			if grants && t.gatedPairWide(g.k, sl) > 0 {
+				alts++ // the gate-on pair's larger {T} ability is an answer of the ask too (mana_gatedpair_grant.go)
+			}
 			if t.ownManaUsable(g.k, sl) && t.ownRestrAb(g.k, sl) != nil {
 				alts++ // (the restricted printed ability beside the usable one is an answer of the ask)
 			}
@@ -1576,6 +1579,13 @@ func (g *grantSrch) visit(t *State) bool {
 				if ra := t.ownRestrAb(g.k, sl); ra != nil {
 					g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
 					if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra), ra.ManaColors&kop.ColAny == kop.ColAny) {
+						return true
+					}
+				} else if wn := t.gatedPairWide(g.k, sl); wn > 0 && g.sel != 1 && grants {
+					// Whisperer of the Wilds' ferocious {T}: Add {G}{G} beside its
+					// {G} and the grant: the ask's second option, one colour and
+					// no colour ask (mana_gatedpair_grant.go)
+					if g.branchSel(t, i, sl, -1, t.gatedPairMask(g.k, sl), wn, false, 0) {
 						return true
 					}
 				} else if t.wideSecond(g.k, sl) && g.sel != 1 && g.wide2Branch(t, i, sl) {
