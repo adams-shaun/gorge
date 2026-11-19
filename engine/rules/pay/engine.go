@@ -34,7 +34,8 @@ type Engine interface {
 	MatchesSpellFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool
 	// AsFace runs fn with object id showing its Card.Faces[faceIdx] (the
 	// face an alternate-face cast flips to; rules faceprobe.go offerAsFace),
-	// a scoped read.
+	// a scoped read. PrototypeRead instead reads id as the prototyped spell
+	// it is being cast as (CR 718.3a).
 	AsFace(id state.ObjID, faceIdx int, fn func() bool) bool
 	// CastProvenanceAdmitsPending splits the cast-provenance qualifiers out
 	// of spec and evaluates them for objID, pending-cast aware: the rest of
