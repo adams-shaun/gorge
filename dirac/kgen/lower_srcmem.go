@@ -42,6 +42,7 @@ import (
 // writes (Grindstone's loop) is not this shape and keeps its old route.
 var srcMemWriters = map[[2]string]string{
 	{"ChangeZone", "RememberChanged"}:    "effects/zone_change.go effChangeZone",
+	{"ChangeZone", "RememberTargets"}:    "effects/parent_targets.go rememberChosenTargets",
 	{"ChangeZoneAll", "RememberChanged"}: "effects/zone_changeall.go effChangeZoneAll",
 	{"CopyPermanent", "RememberTokens"}:  "effects/copypermanent.go effCopyPermanent",
 	{"Token", "RememberTokens"}:          "effects/token.go applyTokenMintRiders",
@@ -133,18 +134,37 @@ func srcMemWatch(t *cards.Trigger) bool {
 // the abilities (bit = Abilities index) whose resolution starts with the
 // source's kept set.
 func (lc *lowerCtx) srcMemShape() (seed uint32, ok bool) {
-	if !lc.srcMemFaceClean() {
-		return 0, false
-	}
-	writer, ok := lc.srcMemAbilities()
-	if !ok {
-		return 0, false
-	}
-	kind, tw, reader, ok := lc.srcMemTriggers()
-	if !ok || !(writer || tw) || !reader || !lc.srcMemLoweredClean() {
+	kind, ok := lc.srcMemScript()
+	if !ok || !lc.srcMemLoweredClean() {
 		return 0, false
 	}
 	return lc.srcMemSeed(kind)
+}
+
+// srcMemScript is srcMemShape's script half: the face is clean, a writer and
+// a reader are classified. A writer being lowered asks it before the lowered
+// half exists (RememberTargets$, lower_zone.go); the card's end check
+// (refuseCrossAbilityRemembered) still asks srcMemShape whole.
+func (lc *lowerCtx) srcMemScript() (kind []uint8, ok bool) {
+	if !lc.srcMemFaceClean() {
+		return nil, false
+	}
+	writer, ok := lc.srcMemAbilities()
+	if !ok {
+		return nil, false
+	}
+	kind, tw, reader, ok := lc.srcMemTriggers()
+	if !ok || !(writer || tw) || !reader {
+		return nil, false
+	}
+	return kind, true
+}
+
+// srcMemWriterOK reports whether the card is the SrcMem shape by its script,
+// so a writer's remembered set is kept on the source for its readers.
+func (lc *lowerCtx) srcMemWriterOK() bool {
+	_, ok := lc.srcMemScript()
+	return ok
 }
 
 // srcMemFaceClean: no static or replacement names a remembered set.

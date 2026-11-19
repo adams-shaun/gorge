@@ -1,0 +1,14 @@
+# same-resolution Remembered reads through an amount SVar or a named branch:
+# Pyretic Rebirth (NumDmg X Remembered$CardManaCost), Lie in Wait (Remembered
+# power), Gilt-Leaf Ambush (Clash WinSubAbility reads IsRemembered); Lightning
+# Bolt fills the graveyard. Lockstep: dirac/oracle/remsameres_test.go
+Pyretic Rebirth
+Lie in Wait
+Gilt-Leaf Ambush
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Island
+Forest
+Mountain
+Swamp
