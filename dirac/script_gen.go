@@ -644,6 +644,56 @@ func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.Num
 	s.eachProduce(k, p, sl, s.eachDefaultAns(k, p, sl)) // (a fee-paid each-colour gap: mana_eachfee.go)
 }
 
+// plainListedPays reports whether the plain walk's listing of a is one the
+// planner can price: the walk's relaxed census counts a filter as a free unit
+// (availFilt), so a play only the filter script pays is listed there too. A
+// listing with no plan would leave the play's mana step no witness (the
+// autopay planner's panic), so scriptPrefix applies the filter script instead.
+// Only a plain activation's printed cost is probed; an X, hybrid, power-up,
+// waterbend or tap-X cost keeps the walk's answer (its plan needs the asks the
+// build poses first).
+func (s *State) plainListedPays(k *prep, a Action, p uint8, d *Decision) bool {
+	if !hasOption(d, a) {
+		return false
+	}
+	if a.Kind() != AkActivate {
+		return true
+	}
+	o := Obj(a.Source())
+	if o == 0 || int(o) >= len(s.objs) {
+		return true
+	}
+	ob := &s.objs[o]
+	c := ob.card
+	ai := int(a.Mode())
+	if int(c) >= len(k.t.Cards) || ai >= len(k.t.Cards[c].Abilities) {
+		return true
+	}
+	ab := &k.t.Cards[c].Abilities[ai]
+	if !plainPricedCost(ab) {
+		return true
+	}
+	sl := NoSlot
+	if ob.zone == kop.ZoneBattlefield {
+		sl = ob.slot
+	}
+	cost := s.abPlannedCost(k, ab, sl, p)
+	var pk planner
+	pk.dry, pk.noGrant = true, true
+	s.tapPlanNeed(k, p, &cost, 0, NoObj, false, false, &pk)
+	return !(pk.needT > 0 && !pk.found)
+}
+
+// plainPricedCost reports whether ab's printed cost is one the plain planner
+// prices without the asks a build poses first: no X, hybrid, snow, Phyrexian,
+// own-reduce, power-up, waterbend, tap-X or sacrifice part (plainListedPays,
+// actScriptPays).
+func plainPricedCost(ab *kop.Ability) bool {
+	return !(ab.Cost.Mana.X != 0 || ab.Cost.XMin != 0 || ab.Cost.Mana.Hyb[0] != 0 ||
+		ab.Cost.Mana.Snow != 0 || ab.Cost.Mana.Phyrexian() || ab.OwnReduce != (kop.ValueRef{}) ||
+		ab.Cost.Flags&(kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX|kop.CostSac|kop.CostSacSelf) != 0)
+}
+
 // scriptPrefix plays gorge's script for play a: the search's script, played
 // (ctrScript) -- p's gaps tapped in battlefield (entry) order, a restricted
 // source among them (Giada), an any-colour counter ability branched on its
@@ -662,7 +712,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	// an activation too.
 	if k.gen.anyDiscHand && s.dhBoard(k, p) {
 		var d Decision
-		s.plainOptions(k, &d, 0)
+		s.plainOptions(k, &d, availNoActScript)
 		if !hasOption(&d, a) {
 			s.dhScript(k, a, p, true) // Lion's Eye Diamonds the only gaps (mana_discardhand.go)
 		}
@@ -676,8 +726,8 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	if s.mixBoard(k, p) {
 		if !act {
 			var d Decision
-			s.plainOptions(k, &d, 0)
-			if !hasOption(&d, a) {
+			s.plainOptions(k, &d, availNoActScript)
+			if !s.plainListedPays(k, a, p, &d) {
 				s.filtScript(k, a, p, true)
 			}
 		}
@@ -710,7 +760,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		// filter-only script that would fund the fee from a land instead.
 		if k.gen.anyFilt && s.filtOnly(k, p) && !s.liveGrantGap(k, p) {
 			var d Decision
-			s.plainOptions(k, &d, 0)
+			s.plainOptions(k, &d, availNoActScript)
 			// A live granted mana gap (a Humble Merchant) beside the filter:
 			// gorge's one prefix search covers the board's filters with its
 			// grants (mana_grantedoffers.go) and taps the granted gap first
@@ -723,7 +773,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 			// its CR 601.2g window then activates the filter with the plan's
 			// mana (Moltensteel Dragon beside a Selesnya Signet), so a script
 			// tapped ahead of the pip ask parts at the first tap flag.
-			if !hasOption(&d, a) && !s.grantGapLive(k, p) && !(s.autopayDropsPlainCast(a) && s.phyHalfPlanned(k, p, a)) {
+			if !s.plainListedPays(k, a, p, &d) && !s.grantGapLive(k, p) && !(s.autopayDropsPlainCast(a) && s.phyHalfPlanned(k, p, a)) {
 				s.filtScript(k, a, p, true)
 			}
 		}
@@ -731,7 +781,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	}
 	if k.gen.anyRefl && s.reflBoard(k, p, restr, anyR) {
 		var d Decision
-		s.plainOptions(k, &d, 0)
+		s.plainOptions(k, &d, availNoActScript)
 		if !hasOption(&d, a) {
 			s.reflScript(k, a, p, true) // (mana_reflected.go)
 		}
@@ -746,7 +796,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		return
 	}
 	var d Decision
-	s.plainOptions(k, &d, 0)
+	s.plainOptions(k, &d, availNoActScript)
 	var order [MaxPerm]Slot
 	n := s.battlefieldOrder(p, gaps.or(restr).or(ctr).or(anyDiff), order[:], 0) // gorge's option order (two Tenders)
 	if hasOption(&d, a) {

@@ -1183,7 +1183,10 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	defer s.unfork()
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
-	if !fs.visit(k, t, 0, false) {
+	s.pool.inFilt++ // (fork made the pool)
+	found := fs.visit(k, t, 0, false)
+	s.pool.inFilt--
+	if !found {
 		if fs.stall != 0 {
 			// every line failed and one ran into a rule gap the kernel stalls by
 			// name: declare it, not "no payment" (tapXScript's stall; a found
