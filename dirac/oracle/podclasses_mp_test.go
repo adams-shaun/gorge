@@ -510,3 +510,28 @@ func greatestPowerWatch(c *PickCtx) bool {
 func TestFourSeatGreatestPowerLockstep(t *testing.T) {
 	podClassLockstep(t, greatestPowerPodDeck, 24, 10, greatestPowerWatch, &dirac.DebugEachPlOppCtrl)
 }
+
+// TwoPiles with an opponent separating (Fact or Fiction, Sphinx of Uthuun:
+// "an opponent separates those cards into two piles"). At three or more
+// seats gorge asks the caster which opponent separates (CR 801.5b,
+// twoPilesAskOpponent), then that opponent splits; dirac asks the same
+// (pilesOppAsk) and the picked opponent splits. The mutation
+// (DebugPilesNextOpp) has the next live seat split whatever was picked.
+var twoPilesPodDeck = []cardset.Entry{
+	{Name: "Fact or Fiction", Count: 10}, {Name: "Sphinx of Uthuun", Count: 2},
+	{Name: "Coral Merfolk", Count: 6}, {Name: "Wind Drake", Count: 4},
+	{Name: "Island", Count: 18},
+}
+
+// twoPilesWatch: gorge asks the caster which of two or more opponents
+// separates the piles.
+func twoPilesWatch(c *PickCtx) bool {
+	d := c.G.fr.d
+	return d != nil && d.ResumeKind == "twopiles_opponent" && len(d.Options) >= 2
+}
+
+// TestFourSeatTwoPilesLockstep: four-seat Fact or Fiction games play in
+// lockstep, the caster choosing the separating opponent.
+func TestFourSeatTwoPilesLockstep(t *testing.T) {
+	podClassLockstep(t, twoPilesPodDeck, 24, 10, twoPilesWatch, &dirac.DebugPilesNextOpp)
+}

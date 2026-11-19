@@ -449,6 +449,8 @@ func (s *State) execCold7(k *prep, in *kop.Instr) (ok, done bool) {
 //go:noinline
 func (s *State) askOptionsCold4(k *prep, d *Decision) bool {
 	switch s.res.ask {
+	case raGenPileOpp:
+		s.pileOppOptions(d) // act_twopiles.go
 	case raGenSupport:
 		d.Sub = ChGenBolster // gorge's "counter_pick"
 		s.supportOptions(k, &s.prog(k)[s.res.pc], d)
@@ -463,6 +465,8 @@ func (s *State) askOptionsCold4(k *prep, d *Decision) bool {
 //go:noinline
 func (s *State) applyAskCold4(k *prep, a Action) bool {
 	switch s.res.ask {
+	case raGenPileOpp:
+		s.pileOppAnswer(k, a) // act_twopiles.go
 	case raGenSupport:
 		s.answerSupport(k, a)
 	default:

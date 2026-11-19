@@ -609,6 +609,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if s.g.nrem == 0 || s.pilesTooWide() {
 			break
 		}
+		s.g.pickZ = uint8(in.C)
+		if s.pilesOppAsk(in, e.ctrl) {
+			return false, true // which opponent separates (act_twopiles.go)
+		}
 		sep, chooser := s.pilesSeats(in, e.ctrl) // act_twopiles.go
 		s.g.lookSel = 0
 		s.res.ask, s.res.askP = raGenPileSplit, sep
@@ -618,7 +622,6 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.g.lookSel, s.resArm().pileOrd[0] = 1, 0
 			s.res.ask, s.res.askP = raGenPileChoose, chooser
 		}
-		s.g.pickZ = uint8(in.C)
 		return false, true
 	case kop.OpChooseEachType:
 		return s.startChooseEach(k, in), true
