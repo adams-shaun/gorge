@@ -339,8 +339,9 @@ func prepare(t *kop.Table) *prep {
 		// the card's mana is typed by its types (mana_artifact.go) whether
 		// the producing ability is printed or granted: the tag rides the
 		// source, not the ability (effects.ManaProducerTag)
-		pc.manaTyped = c.Types&kop.TArtifact != 0 || (c.Subtypes[0]&typedSub[0]|c.Subtypes[1]&typedSub[1]) != 0
-		pc.manaSnow = snowMana(c, pc.manaTyped)
+		typedWord := (c.Subtypes[0]&typedSub[0] | c.Subtypes[1]&typedSub[1]) != 0
+		pc.manaTyped = c.Types&kop.TArtifact != 0 || typedWord
+		pc.manaSnow = snowMana(c, typedWord)
 		p.artMana = p.artMana || pc.manaTyped
 		pc.land = c.Types&kop.TLand != 0
 		pc.creature = c.Types&kop.TCreature != 0
