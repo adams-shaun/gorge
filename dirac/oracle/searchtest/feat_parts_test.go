@@ -56,7 +56,7 @@ func TestPartsMatchStateFDN(t *testing.T) {
 			p := enc.EncodeParts(s, &ev.d, seat)
 			st := ref.EncodeStateFor(s, &ev.d, seat)
 			calls++
-			if p.Dense != st.Dense {
+			if p.Dense != [feat.DenseWidth]float32(st.Dense[:feat.DenseWidth]) {
 				t.Fatalf("set %d event %d: dense differs", si, i)
 			}
 			got = append(got[:0], p.Fresh...)

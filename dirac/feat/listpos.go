@@ -138,10 +138,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 			}
 			// engine order: the hand walk, the permission walks, then
 			// graveyard casts
-			if mode&2 != 0 {
-				sub = 3
-			}
-			return secSynth<<24 | sub<<16 | uint32(z.idx)<<8
+			return secSynth<<24 | e.synthCastSub(dirac.Obj(src), mode)<<16 | uint32(z.idx)<<8
 		case dirac.AkActivate:
 			if e.st0.FeatScripted(d.Player, a) {
 				return noPos
@@ -218,7 +215,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 			return uint32(e.st0.FeatDivideIndex(dirac.TCode(src))) // gorge lists the targets in target order
 		case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt:
 			return uint32(mode) // ChAltAdd: the payable parts first, as gorge lists them
-		case dirac.ChGenPay, dirac.ChGenPayMode, dirac.ChGenTopBottom, dirac.ChGenLeyline:
+		case dirac.ChGenPay, dirac.ChGenPayMode, dirac.ChGenTopBottom, dirac.ChGenLeyline, dirac.ChGenDiscUnless:
 			return 1 - uint32(mode&1) // pay / top / yes first
 		case dirac.ChGenType:
 			return e.st0.FeatTypeKey(d.Player, int(tgt)<<8|int(mode)) // the chooser's own creature types first
@@ -236,6 +233,21 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 	return uint32(a)
 }
 
+// synthCastSub is a synthesised cast's walk in gorge's engine order: the
+// hand walk (0), the permission walks (2), the graveyard casts (3), then
+// the command-zone walk (4).
+func (e *Encoder) synthCastSub(o dirac.Obj, mode uint8) uint32 {
+	switch {
+	case e.po(o).Zone == kop.ZoneCommand:
+		return 4
+	case mode&2 != 0:
+		return 3
+	case e.zoneOf(o).zone != 4:
+		return 2
+	}
+	return 0
+}
+
 // listShape computes, for every option of d, its position in gorge's net
 // list (pos) and the list's length. bot is the index in d of the bot's
 // answer (-1 none): a synthetic cast it names is listed first among them.
@@ -246,7 +258,7 @@ func (e *Encoder) listShape(d *dirac.Decision, bot int) int {
 	if d.Kind == dirac.DkPriority {
 		// kernel FeatManaSources, read from the view
 		for _, ci := range e.v.players[dirac.SeatIx(d.Player)].bf {
-			if e.v.cards[ci].manaSrc {
+			if e.v.cards[ci].manaSrc && !e.v.cards[ci].gateOff {
 				extra++
 			}
 		}

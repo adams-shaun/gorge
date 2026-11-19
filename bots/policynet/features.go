@@ -66,9 +66,27 @@ const (
 	FeaturesMZOwnLib
 	// FeaturesMZGrave is appended after FeaturesMZOwnLib, same rule.
 	FeaturesMZGrave
+	// FeaturesPod ("entity-pod") is FeaturesEntity plus the four-seat
+	// Commander pod encoding (pod.go): its own dense width, entity raw
+	// width and pooled groups, so it is a geometry of its own. Appended
+	// after FeaturesMZGrave, same rule.
+	FeaturesPod
 )
 
-var featureSetNames = [...]string{"v1", "mz", "mz-opphand", "mz-oracle", "entity", "mz-ownlib", "mz-grave"}
+var featureSetNames = [...]string{"v1", "mz", "mz-opphand", "mz-oracle", "entity", "mz-ownlib", "mz-grave", "entity-pod"}
+
+// Entity reports whether fs carries the entity list (State.Cards,
+// Option.EntA/EntB) and so an entity encoder (Model.EntK > 0).
+func (fs FeatureSet) Entity() bool { return fs == FeaturesEntity || fs == FeaturesPod }
+
+// DenseW is fs's state dense width: DenseWidthPod for the pod set,
+// DenseWidth for every other.
+func (fs FeatureSet) DenseW() int {
+	if fs == FeaturesPod {
+		return DenseWidthPod
+	}
+	return DenseWidth
+}
 
 // String is the flag spelling.
 func (fs FeatureSet) String() string {
@@ -137,7 +155,7 @@ func SplitOmniscientView(v view.View, seat state.PlayerID) (view.View, *Diag) {
 // name and token-format version, so a checkpoint cannot be read under the
 // wrong feature set.
 func EncoderHashFor(fs FeatureSet) uint64 {
-	return encoderHashForDenseW(fs, DenseWidth, OptionDenseWidth)
+	return encoderHashForDenseW(fs, fs.DenseW(), OptionDenseWidth)
 }
 
 // EncoderHashForV1Dense is EncoderHashFor at the 68-wide dense vector
@@ -164,6 +182,9 @@ func encoderHashForDenseW(fs FeatureSet, denseW, w int) uint64 {
 	}
 	if fs == FeaturesEntity {
 		return encoderHashWithDense(fs, entityHashSuffix(), denseW, w)
+	}
+	if fs == FeaturesPod {
+		return encoderHashWithDense(fs, entityHashSuffix()+podHashSuffix(), denseW, w)
 	}
 	return encoderHashWithDense(fs, "", denseW, w)
 }
@@ -207,7 +228,7 @@ func encoderHashWithDense(fs FeatureSet, entSuffix string, denseW, optW int) uin
 // legacy hash checkpointable); featuresForHashW accepts the legacy widths and
 // also reports which widths the hash was taken at.
 func FeaturesForHash(h uint64) (FeatureSet, bool) {
-	for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ, FeaturesEntity, FeaturesMZOwnLib, FeaturesMZGrave} {
+	for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ, FeaturesEntity, FeaturesMZOwnLib, FeaturesMZGrave, FeaturesPod} {
 		if EncoderHashFor(fs) == h {
 			return fs, true
 		}
@@ -220,7 +241,7 @@ func FeaturesForHash(h uint64) (FeatureSet, bool) {
 // the state dense and option dense widths the hash was taken at.
 func featuresForHashW(h uint64) (FeatureSet, int, int, bool) {
 	if fs, ok := FeaturesForHash(h); ok {
-		return fs, DenseWidth, OptionDenseWidth, true
+		return fs, fs.DenseW(), OptionDenseWidth, true
 	}
 	for _, denseW := range [...]int{DenseWidthV1} {
 		for _, optW := range [...]int{OptionDenseWidth, OptionDenseWidthV1} {
@@ -247,19 +268,25 @@ func EncodeStateWith(fs FeatureSet, v view.View, seat state.PlayerID, diag *Diag
 // encodeStateWith is EncodeStateWith into buf's storage (fresh storage for
 // a nil buf).
 func encodeStateWith(buf *StateBuf, fs FeatureSet, v *view.View, seat state.PlayerID, diag *Diag) State {
-	st := encodeState(buf, v, seat)
+	st := encodeStateW(buf, v, seat, fs.DenseW())
 	if fs == FeaturesV1 {
 		return st
+	}
+	if fs == FeaturesPod {
+		podDense(st.Dense, v, seat)
 	}
 	// The mz rows are appended straight after the v1 bag, then the whole
 	// bag is stably sorted by row.
 	sk := &sink{fs: st.Sparse}
-	mzState(*v, seat, sk)
+	mzState(*v, seat, sk, fs == FeaturesPod)
 	if fs == FeaturesMZOwnLib {
 		ownLibState(*v, seat, sk.str)
 	}
 	if fs == FeaturesMZGrave {
 		graveyardState(*v, seat, sk.str)
+	}
+	if fs == FeaturesPod {
+		podSparse(v, sk)
 	}
 	if fs.Diagnostic() && diag != nil {
 		mzDiag(*v, seat, fs, diag, sk)
@@ -267,8 +294,8 @@ func encodeStateWith(buf *StateBuf, fs FeatureSet, v *view.View, seat state.Play
 	st.Sparse = sk.fs
 	stableSortByRow(st.Sparse)
 	buf.keepSparse(st.Sparse)
-	if fs == FeaturesEntity {
-		st.Cards = entityCardList(buf, v, seat)
+	if fs.Entity() {
+		st.Cards = entityCardListFS(buf, v, seat, fs)
 	}
 	return st
 }
@@ -338,7 +365,10 @@ func seatAvailable(pv *view.PlayerView) int32 {
 // hand, the stack, then the seat aggregates. Each token is hashed as it is
 // streamed (hashstream.go): the row is hashID of the token string the
 // comment beside it spells, which is never built.
-func mzState(v view.View, seat state.PlayerID, sk *sink) {
+//
+// pod (FeaturesPod) replaces the life and lethal rows with the per-opponent
+// ones (podLifeRows); every other set keeps them as they were.
+func mzState(v view.View, seat state.PlayerID, sk *sink, pod bool) {
 	var me *view.PlayerView
 	var othersBuf [8]*view.PlayerView
 	others := othersBuf[:0]
@@ -424,10 +454,15 @@ func mzState(v view.View, seat state.PlayerID, sk *sink) {
 			perm("bf-me", &me.Battlefield[i], &mine)
 		}
 	}
+	// oppPower[j] is others[j]'s own can-attack power (the pod lethal rows).
+	var oppPowerBuf [8]int32
+	oppPower := oppPowerBuf[:0]
 	for _, pv := range others {
+		before := theirs.canAttackPower
 		for i := range pv.Battlefield {
 			perm("bf-opp", &pv.Battlefield[i], &theirs)
 		}
+		oppPower = append(oppPower, theirs.canAttackPower-before)
 	}
 	var myAvail int32
 	if me != nil {
@@ -473,6 +508,10 @@ func mzState(v view.View, seat state.PlayerID, sk *sink) {
 	num("me|canblock-n", mine.canBlock, 6)
 	num("me|flyers", mine.flyers, 4)
 	num("opp|flyers", theirs.flyers, 4)
+	if me != nil && len(others) > 0 && pod {
+		podLifeRows(&v, me, others, mine.canAttackPower, oppPower, sk)
+		return
+	}
 	if me != nil && len(others) > 0 {
 		diff := me.Life - others[0].Life
 		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|lifediff="), mzClamp(diff/3+7, 14)), 1)
