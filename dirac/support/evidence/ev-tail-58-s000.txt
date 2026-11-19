@@ -20,6 +20,7 @@ Bogardan Firefiend
 Boggart Forager
 Bonded Construct
 Bonds of Quicksilver
+Born to Drive
 Bramblesnap
 Bright Reprisal
 Brood Weaver
@@ -114,6 +115,7 @@ Mardu Warshrieker
 Marionette Master
 Maul of the Skyclaves
 Meletis Astronomer
+Mesmeric Fiend
 Minds Aglow
 Minion's Return
 Mishra's Research Desk

@@ -154,6 +154,7 @@ Horizon Explorer
 Hornet Nest
 Hour of Revelation
 Hunter's Edge
+Hydra Broodmaster
 Hyperion Blacksmith
 Ilysian Caryatid
 Imperial Oath
@@ -197,7 +198,9 @@ Mascot Exhibition
 Mass Appeal
 Mass Diminish
 Mawloc
+Memorial to Unity
 Mercurial Pretender
+Meria, Scholar of Antiquity
 Midnight Ritual
 Military Discipline
 Militia Bugler
@@ -282,6 +285,7 @@ Serra's Guardian
 Serum Tank
 Shared Triumph
 Shield Sphere
+Shrine of the Forsaken Gods
 Sifter of Skulls
 Silkbind Faerie
 Sinstriker's Will

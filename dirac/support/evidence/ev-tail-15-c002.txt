@@ -14,6 +14,7 @@ Angelheart Vial
 Anointed Chorister
 Anurid Murkdiver
 Apex Devastator
+Aphotic Wisps
 Armillary Sphere
 Arrows of Justice
 Artful Maneuver
@@ -40,6 +41,7 @@ Brood Butcher
 Buoyancy
 Burden of Guilt
 By Force
+Cabal Archon
 Canopy Tactician
 Carrion Howler
 Cartouche of Strength
@@ -199,6 +201,7 @@ Minion of Tevesh Szat
 Mirari's Wake
 Mire Boa
 Misery Charm
+Moan of the Unhallowed
 Morkrut Behemoth
 Mountain
 Mounted Dreadknight
@@ -234,6 +237,7 @@ Poxwalkers
 Primal Bellow
 Psychic Impetus
 Pulsating Illusion
+Putrid Cyclops
 Pyre Hound
 Quagmire Lamprey
 Quirion Druid
@@ -247,6 +251,7 @@ Raven Familiar
 Ray of Revelation
 Reckless Amplimancer
 Reckless Scholar
+Reclaiming Vines
 Regisaur Alpha
 Release to Memory
 Relic of Progenitus

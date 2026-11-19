@@ -820,7 +820,6 @@ Battle-Scarred Survivalist
 Battlefield Butcher
 Battlefield Forge
 Battleflight Eagle
-Battlefly Swarm
 Baxter Building
 Baxter Stockman
 Baxter, Fly in the Ointment
@@ -1087,7 +1086,6 @@ Blue Sun's Zenith
 Blur of Blades
 Boar-q-pine
 Boarding Action
-Boartusk Liege
 Bob, Reluctant HYDRA Agent
 Body Launderer
 Body of Knowledge
@@ -1164,7 +1162,6 @@ Borg Queen, One Who Is Many
 Borg Queen, Perfection Manifest
 Borg Scout Sphere
 Boris Devilboon
-Born to Drive
 Boros Garrison
 Boros Guildmage
 Boros Mastiff
@@ -1297,7 +1294,6 @@ Broodguard Elite
 Broodheart Engine
 Broodhunter Wurm
 Broodmate Dragon
-Broodmate Tyrant
 Broodrage Mycoid
 Broodspinner
 Brotherhood Vertibird
@@ -1351,7 +1347,6 @@ Bygone Marvels
 Byrke, Long Ear of the Law
 Byway Barterer
 Byway Courier
-Cabal Archon
 Cabal Conditioning
 Cabal Evangel
 Cabal Executioner
@@ -1731,7 +1726,6 @@ Cloud Spirit
 Cloud Sprite
 Cloud of Darkness
 Cloud of Faeries
-Cloud's Limit Break
 Cloud, Ex-SOLDIER
 Cloud, Midgar Mercenary
 Cloud, Planet's Champion
@@ -1961,7 +1955,6 @@ Crazed Skirge
 Creakwood Ghoul
 Creakwood Safewright
 Creative Technique
-Creeping Corrosion
 Creeping Mold
 Creeping Peeper
 Creeping Trailblazer
@@ -2032,7 +2025,6 @@ Crystacean
 Crystal Fragments
 Crystal Grotto
 Crystal, Inhuman Princess
-Crystalline Armor
 Crystalline Entity
 Crystalline Sliver
 Cuboid Colony
@@ -2084,7 +2076,6 @@ Cut the Earthly Bond
 Cutthroat Maneuver
 Cutthroat Negotiator
 Cutthroat il-Dal
-Cybermen Squadron
 Cybernetic Specialist
 Cycle of Renewal
 Cyclone Summoner
@@ -2417,7 +2408,6 @@ Dire Tactics
 Direct Hit
 Director Nick Fury
 Diregraf Captain
-Diregraf Colossus
 Diregraf Horde
 Diresight
 Dirgur Focusmage
@@ -2602,7 +2592,6 @@ Dreamcatcher
 Dreamdew Entrancer
 Dreamroot Cascade
 Dreams of Laguna
-Dreamstalker Manticore
 Dredger's Insight
 Dreg Recycler
 Dress Down
@@ -3039,7 +3028,6 @@ Executioner's Swing
 Exhibition Magician
 Exhibition Tidecaller
 Exhume
-Exile
 Exile into Darkness
 Exocomp
 Exorcise
@@ -3989,7 +3977,6 @@ Granite Grip
 Grapeshot Catapult
 Grapple with Death
 Grasp of Darkness
-Grasping Dunes
 Grasping Longneck
 Grasping Scoundrel
 Grasping Shadows
@@ -4123,7 +4110,6 @@ Gul Dukat, Colonial Prefect
 Gumato
 Gumdrop Poisoner
 Gundabad Opportunist
-Gunner Conscript
 Gurgling Anointer
 Gurmag Angler
 Gurmag Nightwatch
@@ -4346,7 +4332,6 @@ Hexmark Destroyer
 Hexplate Golem
 Hickory Woodlot
 Hidden Ancients
-Hidden Blade
 Hidden Cataract
 Hidden Courtyard
 Hidden Footblade
@@ -4740,7 +4725,6 @@ Invasion of Moag
 Invasion of Segovia
 Invasion of Tolvada
 Invasion of Ulgrotha
-Invasion of Vryn
 Invasion of Zendikar
 Invasive Maneuvers
 Inventive Wingsmith
@@ -5821,7 +5805,6 @@ Memnarch, the Warden
 Memorial Team Leader
 Memorial Vault
 Memorial to Glory
-Memorial to Unity
 Memory Guardian
 Memory Trap
 Memory Worm
@@ -5861,7 +5844,6 @@ Merry Bards
 Merry, Warden of Isengard
 Mesa Cavalier
 Mesa Lynx
-Mesmeric Fiend
 Mesmeric Orb
 Mesmeric Sliver
 Messenger Drake
@@ -6016,7 +5998,6 @@ Mm'menon, the Right Hand
 Mnemonic Sliver
 Mnemonic Sphere
 Mnemonic Wall
-Moan of the Unhallowed
 Moat
 Mob Justice
 Mob Lookout
@@ -6152,7 +6133,6 @@ Multani's Acolyte
 Multani's Harmony
 Multiply by Zero
 Multiversal Incursion
-Mummy Paramount
 Munitions Enthusiast
 Murasa Behemoth
 Murasa Brute
@@ -7109,7 +7089,6 @@ Pursue Glory
 Pursue the Past
 Push the Limit
 Putrefaction
-Putrid Cyclops
 Putrid Goblin
 Putrid Pals
 Putrid Warrior
@@ -7220,7 +7199,6 @@ Raging Battle Mouse
 Raging Goblin
 Raging Goblinoids
 Raging Gorilla
-Ragnar
 Ragost, Deft Gastronaut
 Raid Bombardment
 Raiding Schemes
@@ -7786,7 +7764,6 @@ Rust Elemental
 Rust Harvester
 Rust Monster
 Rust-Shield Rampager
-Rusted Relic
 Rusting Golem
 Rustler Rampage
 Rustmouth Ogre
@@ -8045,7 +8022,6 @@ Scroll of Origins
 Scrollshift
 Scrounge for Eternity
 Scrounging Skyray
-Scrubland
 Scryb Ranger
 Scurrid Colony
 Scurry of Squirrels
@@ -9697,7 +9673,6 @@ This Town Ain't Big Enough
 Thistledown Players
 Thopter Assembly
 Thopter Fabricator
-Thopter Foundry
 Thopter Spy Network
 Thopter Squadron
 Thor Odinson
@@ -10124,7 +10099,6 @@ Ultros, Obnoxious Octopus
 Ulvenwald Bear
 Ulvenwald Hydra
 Ulvenwald Observer
-Umara Wizard
 Umbral Collar Zealot
 Umbral Expanse
 Umbral Juke
@@ -10615,7 +10589,6 @@ Wargling
 Warhorn Blast
 Warkite Marauder
 Warleader's Call
-Warleader's Helix
 Warlock Class
 Warlord's Axe
 Warm Welcome

@@ -141,6 +141,7 @@ Hunter's Edge
 Hydroid Krasis
 Hythonia the Cruel
 Imperial Recovery Unit
+Indatha Crystal
 Indulgent Aristocrat
 Infest
 Invasion of Tarkir
@@ -217,6 +218,7 @@ Perilous Myr
 Pharika's Chosen
 Pillar of Light
 Plains
+Platoon Dispenser
 Power Armor
 Press into Service
 Primal Cocoon
@@ -316,6 +318,7 @@ Troll-Horn Cameo
 Typhoid Rats
 Ulamog's Crusher
 Ulvenwald Captive
+Umara Wizard
 Undercellar Myconid
 Undercity Necrolisk
 Unhallowed Phalanx

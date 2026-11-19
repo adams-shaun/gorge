@@ -1,5 +1,6 @@
 +2 Mace
 A-Hagra Constrictor
+A-Tanazir Quandrix
 A-Young Red Dragon
 Aarakocra Sneak
 Abnormal Endurance
@@ -59,9 +60,11 @@ Coerced Confession
 Collective Voyage
 Conclave Tribunal
 Corpse Cur
+Creeping Corrosion
 Crimson Mage
 Cruel Edict
 Crystal Slipper
+Cybermen Squadron
 Damping Matrix
 Deep-Sea Terror
 Defiant Salvager
@@ -309,6 +312,7 @@ The Surgical Bay
 Thopter Engineer
 Thorncaster Sliver
 Thought Monitor
+Thought Reflection
 Thoughts of Ruin
 Time of Ice
 Toggo, Goblin Weaponsmith

@@ -9,6 +9,7 @@ Ardent Elementalist
 Artificer Class
 Ashen Monstrosity
 Aspect of Lamprey
+Aven Fogbringer
 Banishment
 Barkhide Troll
 Bathe in Dragonfire
@@ -17,6 +18,7 @@ Bellowing Mauler
 Black Widow, Intel Expert
 Black Widow, Natasha Romanoff
 Blind Creeper
+Blood Fountain
 Bloodcrazed Neonate
 Bloodmark Mentor
 Bloodthirsty Adversary
@@ -36,8 +38,10 @@ Cabaretti Courtyard
 Cao Cao, Lord of Wei
 Captive Weird
 Chainweb Aracnir
+Chaos Lord
 Chaotic Backlash
 Clip Wings
+Colossal Dreadmaw and Storm Crow
 Continue?
 Creakwood Liege
 Crosstown Courier
@@ -63,6 +67,7 @@ Drown in Dreams
 Dualcaster Mage
 Dune Mover
 Duplicant
+Eccentric Pestfinder
 Elvish Dreadlord
 Emperor Crocodile
 Enrage
@@ -79,6 +84,7 @@ Fissure
 Flare of Denial
 Flatman
 Forest
+Foxfire Oak
 Gift of Fangs
 Gift of Paradise
 Gingerbread Cabin
@@ -162,6 +168,7 @@ Radstorm
 Rageblood Shaman
 Rally the Peasants
 Rampaging Cyclops
+Raugrin Triome
 Reclaim the Wastes
 Reduce in Stature
 Return of the Nightstalkers
@@ -184,6 +191,7 @@ Shaman of Spring
 Shield of the Oversoul
 Shimmer of Possibility
 Show of Valor
+Shrine Keeper
 Sigil of Valor
 Simian Brawler
 Singing Tree
@@ -204,9 +212,11 @@ Swamp
 Swarm Surge
 Swarm of Rats
 Sword of the Animist
+Tamiyo's Immobilizer
 Tamiyo's Safekeeping
 Tectonic Edge
 Tempestra, Dame of Games
+Territorial Boar
 Thopter Mechanic
 Threnody Singer
 Thrilling Encore
@@ -231,6 +241,7 @@ Whiptail Moloch
 Whiptail Wurm
 Will-o'-the-Wisp
 Winding Canyons
+Wingsteed Rider
 Wizard Replica
 Wolfwillow Haven
 Woodland Stream

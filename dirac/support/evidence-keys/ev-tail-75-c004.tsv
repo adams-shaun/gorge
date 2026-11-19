@@ -8,6 +8,7 @@ Alrund's Epiphany	d3a7386952084ecc	3	0/0		3/4	cast/alt:foretold
 Apprentice Sharpshooter	24fbc7cf7330dd90	4	1/1		1/1	
 Arachnus Web	90608be04ac5d667	6	1/1		1/2	ix:resp
 Archwing Dragon	0a78094c510428b0	18	1/1		0/1	ix:resp
+Ardent Elementalist	d2f8bb0c16df872a	6	1/1		1/1	
 Artificer Class	302c5045449dec8d	6	4/4		0/1	ix:resp
 Aspect of Lamprey	6fc0c557ac1286b4	9	1/1		1/2	ix:resp
 Avatar of Discord	b9f1150a034aa0d7	3	1/1		1/1	
@@ -43,12 +44,14 @@ Creakwood Liege	024ea4ddbe311bb9	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Crookclaw Elder	61876b6ed079823e	4	2/2		0/1	ix:resp
 Crosstown Courier	7e69ce8231238c8a	4	1/1		0/1	ix:resp
 Daggersail Aeronaut	0bec55c4e284cd91	3	0/0		0/0	
+Daunting Defender	d021c9c7280589a8	4	0/0		0/0	
 Dawning Angel	25fc8287ece95c98	4	1/1		1/1	
 Delraich	75a0cbeee13ff685	3	0/0		0/0	
 Demon's Disciple	b542ff135c11a3e0	4	1/1		0/1	ix:resp
 Dense Foliage	da2e1ddb70c32401	4	0/0		0/0	
 Deputized Protester	d2d1977ef7339d0b	8	1/1		0/1	ix:resp
 Deranged Assistant	3c4feec229066b8d	4	1/1		0/1	ix:resp
+Desert of the Indomitable	448f09b019c7ceb4	10	2/2		0/1	ix:resp
 Desolate Mire	27c413ad855cebb6	15	1/1		0/1	ix:resp
 Devouring Light	3d885059f5cae683	4	0/0		2/2	
 Dina, Soul Steeper	991b6133f6a91023	8	2/2		0/1	ix:resp
@@ -131,6 +134,8 @@ Psychic Frog	91af151d2d51e669	5	3/3		1/1
 Quirion Explorer	a3c1cbfd3451cdd8	5	1/1		0/1	ix:resp
 Radstorm	d418cc331f3b27c6	4	1/1		2/2	
 Rageblood Shaman	1509f9dfdd2cd18e	6	0/0		0/0	
+Rampaging Cyclops	a138ac690caa5681	6	0/0		0/0	
+Raugrin Triome	39799887a771fa09	13	4/4		0/1	ix:resp
 Reduce in Stature	bd3b48374957e827	4	0/0		1/2	ix:resp
 Return from Extinction	5a81b19e7096c54d	4	0/0		1/2	ix:resp
 Return of the Nightstalkers	ae076966896c28c5	4	0/0		2/2	
@@ -156,6 +161,7 @@ Songstitcher	07f782d03a8a7056	8	1/1		0/1	ix:resp
 Soulmender	dc0f19e97ad76507	4	1/1		0/1	ix:resp
 Spike Breeder	709b8664e1a15f2b	6	2/2		1/1	
 Spindrift Drake	c5b0a202a94045cd	4	1/1		0/1	ix:resp
+Spirit Shackle	ee8844432927de00	6	1/1		1/2	ix:resp
 Spiteful Squad	9f673f527e4ce775	4	1/1		0/1	ix:resp
 Sultai Emissary	6bc1390b0e128231	4	1/1		0/1	ix:resp
 Surge Engine	69682ba7a799aa16	4	3/3		1/1	

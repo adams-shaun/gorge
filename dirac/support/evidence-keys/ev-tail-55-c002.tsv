@@ -1,9 +1,12 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Tanazir Quandrix	7587ec012f87b17a	14	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Acorn Catapult	1acb0832c210c150	47	1/1		1/1	
 Anvilwrought Raptor	009b0afd18ba6994	4	0/0		0/0	
 Arcbound Stinger	c287d1cc0a3e4c4a	50	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bosk Banneret	e6e8a7cf52dcf47f	52	0/0		0/0	
 Conclave Tribunal	bef378fbe4e85931	57	1/1		1/1	
+Creeping Corrosion	83e21938aa5d5db5	6	0/0		2/2	
+Cybermen Squadron	d0611b32eccb68ec	8	0/0		0/0	
 Devout Lightcaster	be9af2dbc76afdd6	9	1/1		0/1	ix:resp
 Eldritch Immunity	e5740fc81b3a9c3f	34	0/0		4/4	
 Enchanted Prairie	74f91857c393b035	7	1/1		0/1	ix:resp
@@ -28,6 +31,7 @@ Subtle Strike	d1961b0c9af40aff	4	0/0		1/2	ix:resp
 Sword of Fire and Ice	296032564c2fe87a	3	2/2		0/1	ix:resp
 Targ Nar, Demon-Fang Gnoll	33efb4401043dcc8	4	2/2		0/1	ix:resp
 Thopter Engineer	5364655f35700915	14	1/1		0/1	ix:resp
+Thought Reflection	169d96275f3af56c	10	0/0		0/0	
 Ultimate Price	d4b34ea3ed7fd1c6	6	0/0		1/2	ix:resp
 Valkyrie Harbinger	4c549857e8ac27f8	3	1/1		0/1	ix:resp
 Venerated Rotpriest	e52440d38537a1bc	7	1/1		0/1	ix:resp

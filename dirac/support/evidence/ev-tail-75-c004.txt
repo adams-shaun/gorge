@@ -12,6 +12,7 @@ Anointer Priest
 Apprentice Sharpshooter
 Arachnus Web
 Archwing Dragon
+Ardent Elementalist
 Artificer Class
 Aspect of Lamprey
 Attune with Aether
@@ -62,6 +63,7 @@ Creakwood Liege
 Crookclaw Elder
 Crosstown Courier
 Daggersail Aeronaut
+Daunting Defender
 Dawning Angel
 Death's Shadow
 Deepwood Wolverine
@@ -70,6 +72,7 @@ Demon's Disciple
 Dense Foliage
 Deputized Protester
 Deranged Assistant
+Desert of the Indomitable
 Desolate Mire
 Desynchronize
 Devouring Light
@@ -203,6 +206,8 @@ Quirion Explorer
 Radstorm
 Rageblood Shaman
 Rally the Peasants
+Rampaging Cyclops
+Raugrin Triome
 Reclaim the Wastes
 Reduce in Stature
 Return from Extinction
@@ -240,6 +245,7 @@ Sootstoke Kindler
 Soulmender
 Spike Breeder
 Spindrift Drake
+Spirit Shackle
 Spitebellows
 Spiteful Squad
 Spitfire Handler

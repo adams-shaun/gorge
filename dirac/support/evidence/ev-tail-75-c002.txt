@@ -65,6 +65,7 @@ Crookclaw Elder
 Crosstown Courier
 Cunning Survivor
 Daggersail Aeronaut
+Dawning Angel
 Death's Shadow
 Dense Foliage
 Deputized Protester
@@ -215,6 +216,7 @@ Raugrin Triome
 Reckless Barbarian
 Reclaim the Wastes
 Reduce in Stature
+Reverberate
 Rimewood Falls
 Rishadan Cutpurse
 Rishkar's Expertise
@@ -304,6 +306,7 @@ Warmonger Hellkite
 Waterknot
 Wavebreak Hippocamp
 Whiptail Moloch
+Whiptail Wurm
 Will-o'-the-Wisp
 Winding Canyons
 Wingsteed Rider

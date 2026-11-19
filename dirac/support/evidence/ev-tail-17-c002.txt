@@ -61,6 +61,7 @@ Containment Breach
 Contingency Plan
 Coral Eel
 Council's Judgment
+Cowardice
 Cunning Lethemancer
 Curate
 Curious Pair
@@ -125,6 +126,7 @@ Garruk's Harbinger
 Gate of the Black Dragon
 Gearsmith Prodigy
 Geosurge
+Giant Cockroach
 Gift of Estates
 Gift of Tusks
 Gimli's Reckless Might
@@ -196,6 +198,7 @@ Liliana's Elite
 Lin Sivvi, Defiant Hero
 Liu Bei, Lord of Shu
 Looming Shade
+Lunk Errant
 Lurking Nightstalker
 Mad Dog
 Mahadi, Emporium Master
