@@ -727,7 +727,7 @@ func (e *Engine) settleExpiredClones(expired []cloneExpiry) {
 }
 
 // effectMoveSweep is the move-driven lifetime of Effect-created continuous
-// effects, run from Engine.emit after every MoveZone has been applied:
+// effects, run from Engine.emit after every MoveZone and Draw has been applied:
 //
 //   - ForgetOnMoved$ <zone> (Atsushi's, Rakdos's, Opposition Agent's may-play
 //     effects, Incinerate's CantRegenerate): a remembered card that moved
