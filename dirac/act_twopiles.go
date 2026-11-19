@@ -88,11 +88,10 @@ func (s *State) pilesToGraveyard(k *prep, in *kop.Instr, np int, pickA bool) {
 	}
 }
 
-// raGenPileOpp: OpTwoPiles' CR 801.5b ask under kop.TpOppSeparates, which
-// opponent separates (gorge twoPilesAskOpponent: KChoose of one "player"
-// option per live opponent, AliveFrom the controller; ChGenPlayer, mode =
-// the seat). +86: the next free offset above raGenManifestDread.
-const raGenPileOpp = raGenManifestDread + 86
+// raGenPileOpp (manifest_gen.go, dirac/manifest/ask): OpTwoPiles' CR 801.5b
+// ask under kop.TpOppSeparates, which opponent separates (gorge
+// twoPilesAskOpponent: KChoose of one "player" option per live opponent,
+// AliveFrom the controller; ChGenPlayer, mode = the seat).
 
 // DebugPilesNextOpp is the lockstep mutation of the separator pick: the next
 // live seat separates whatever the controller answered, the two-seat reading,
