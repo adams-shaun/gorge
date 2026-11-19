@@ -13,7 +13,7 @@ import (
 //
 // The players are read as gorge's twoPilesPlayer reads them: the chooser is
 // Chooser$, else Defined$; the separator is Separator$, else the chooser.
-// You separating for an opponent's pick is the zero shape (Curator of
+// You separating for an opponent's pick is TpOppChooses (Curator of
 // Destinies, Steam Augury); an opponent separating for your pick is
 // TpOppSeparates (Fact or Fiction, Sphinx of Uthuun). Zone$ and FaceDown$ One
 // are not read by gorge once DefinedCards$ names the set.
@@ -52,6 +52,7 @@ func (lc *lowerCtx) twoPilesRemembered(ps *params) error {
 	flags := 0
 	switch {
 	case sep == "You" && chooser == "Opponent":
+		flags |= kop.TpOppChooses
 	case sep == "Opponent" && chooser == "You":
 		flags |= kop.TpOppSeparates
 	default:
@@ -60,13 +61,9 @@ func (lc *lowerCtx) twoPilesRemembered(ps *params) error {
 	// Both accepted shapes name an opponent as the separator or the chooser,
 	// and CR 801.5b makes that opponent the spell controller's CHOICE at
 	// three or more seats (gorge twoPilesAskOpponent). The kernel asks it for
-	// an opponent separator (TpOppSeparates; act_twopiles.go pilesOppAsk);
-	// an opponent chooser is still read as the next live seat, so that shape
-	// holds only for two players -- the two-seat marker 3+-seat games refuse
-	// the carrier on.
-	if flags&kop.TpOppSeparates == 0 {
-		lc.twoSeat("TwoPiles: an opponent separates or chooses, read as the next live seat")
-	}
+	// either shape (act_twopiles.go pilesOppAsk) and keeps the answer live
+	// across the split, so the shape is seat-exact and needs no two-seat
+	// marker.
 	chosen := cards.ResolveSVar(lc.face.SVars, ps.str("ChosenPile"))
 	if !pileBody(chosen, "ChangeZone", "Defined", "Remembered", "Destination", "Hand") {
 		return refuse("TwoPiles pile actions")

@@ -1,11 +1,8 @@
 package kgen
 
-import (
-	"slices"
-	"testing"
-)
+import "testing"
 
-// The Fact or Fiction-shaped script the two-seat pin lowers: a
+// The Fact or Fiction-shaped script the pin lowers: a
 // PeekAndReveal remembering the revealed five chained into a TwoPiles whose
 // Separator$ names Opponent, exactly the corpus carrier's shape, inline (no
 // Forge script text is committed).
@@ -31,12 +28,11 @@ SVar:DBToYard:DB$ ChangeZone | Destination$ Graveyard | Defined$ Remembered | Or
 Oracle:Reveal the top five of your library. Separate them into two piles. An opponent chooses one; put it into your hand and the other into your graveyard.
 `
 
-// TestTwoPilesOpponentSeparatorAnySeats: a TwoPiles whose Separator$ names an
-// opponent is CR 801.5b at three or more seats -- the spell controller picks
-// WHICH opponent -- and the kernel asks it (act_twopiles.go pilesOppAsk), so
-// the FoF shape lowers with no two-seat marker. An opponent CHOOSER is still
-// read as the next live seat: that shape keeps the marker and its reason (a
-// 3+-seat dirac game refuses it on StallTwoSeat).
+// TestTwoPilesOpponentSeparatorAnySeats: either TwoPiles shape that names an
+// opponent (Separator$ Opponent, or Chooser$ Opponent) is CR 801.5b at three
+// or more seats -- the spell controller picks WHICH opponent -- and the
+// kernel asks it (act_twopiles.go pilesOppAsk), so both lower with no
+// two-seat marker.
 func TestTwoPilesOpponentSeparatorAnySeats(t *testing.T) {
 	if r := lowerScript(t, "Test Fof", twopilesFofScript); len(r) != 0 {
 		t.Fatalf("the FoF shape refused: %v", r)
@@ -47,9 +43,7 @@ func TestTwoPilesOpponentSeparatorAnySeats(t *testing.T) {
 	if r := lowerScript(t, "Test Augury", twopilesOppChoosesScript); len(r) != 0 {
 		t.Fatalf("the opponent-chooses shape refused: %v", r)
 	}
-	p := lowerScriptCard(t, "Test Augury", twopilesOppChoosesScript)
-	const want = "TwoPiles: an opponent separates or chooses, read as the next live seat"
-	if !p.TwoSeat || !slices.Contains(p.TwoSeatWhy, want) {
-		t.Fatalf("the opponent-chooses TwoPiles: TwoSeat %v, TwoSeatWhy %v, want %q", p.TwoSeat, p.TwoSeatWhy, want)
+	if p := lowerScriptCard(t, "Test Augury", twopilesOppChoosesScript); p.TwoSeat {
+		t.Fatalf("the opponent-chooses TwoPiles lowered two-seat: %v", p.TwoSeatWhy)
 	}
 }

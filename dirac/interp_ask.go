@@ -1210,6 +1210,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		// unchosen pile A in pick order (pilesToGraveyard).
 		np := bits.OnesCount32(s.g.lookSel)
 		pickA := a.Mode() == 0
+		s.res.chPl = 0 // the chosen opponent routed the pick; it does not outlive it
 		if pickA {
 			for j := 0; j < np; j++ {
 				s.pileMove(s.g.rem[s.resArm().pileOrd[j]], kop.Zone(s.g.pickZ))
