@@ -100,6 +100,9 @@ func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
 			continue
 		}
 		pm := &s.perms[sl]
+		if s.pickedForMana(pm.obj) {
+			continue // a Convoke/Waterbend pick is tapped for that cast, not for mana
+		}
 		if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) ||
 			k.gen.anyCantAct && s.actForbidden(k, sl, true) || // a CantBeActivated lock (cast_cantactivate.go)
 			k.gen.anyDeferred && k.gen.has(s.cardAt(sl), gfDeferred) && (!s.deferLifeSurvives(k, p, sl) || s.deferNoMana(k, sl)) {
