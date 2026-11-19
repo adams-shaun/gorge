@@ -2918,6 +2918,13 @@ func (s *State) applyPriority(k *prep, a Action) {
 	// before the granted source gorge taps; run the grant search first and
 	// let the filter search see the play priced.
 	grants := k.gen != nil && len(k.gen.grantPC) != 0
+	// A prefix ran and tapped: its taps are gorge's search's, made at its asks
+	// (before the play), and a cost part it left to the planner is paid the same
+	// way before the push, not by manaStep's post-push tap (payPrefixRest). A
+	// prefix that ran without tapping priced the play by planning; gorge pays
+	// that at payment, after the push, as manaStep does.
+	pool0 := s.prefixPoolMana(p)
+	pref := false
 	// A deferred source (Pyromancer's Goggles) is a gap candidate of the same
 	// search (mana_grantdeferred.go): scriptPrefix would tap it alone, ahead of a
 	// granted source that precedes it in battlefield order, which gorge's search
@@ -2933,28 +2940,33 @@ func (s *State) applyPriority(k *prep, a Action) {
 	grantFirst = grantFirst || grants && s.grantFirstGaps(k, p)
 	if grantFirst {
 		s.grantPrefix(k, a, p)
+		pref = true
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k)
 		}
 	}
 	if s.scriptAny(k) && isScriptPlayKind(a.Kind()) {
 		s.scriptPrefix(k, a, p) // a play only a scripted activation pays (script_gen.go)
+		pref = true
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k) // its trigger resolves before the play (seed 640)
 		}
 	}
 	if grants && !grantFirst {
 		s.grantPrefix(k, a, p) // a play only a granted mana ability pays (script_gen.go)
+		pref = true
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k)
 		}
 	}
 	if a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
 		s.chosenPairPrefix(k, a, p) // a play only a chosen-colour pair pays (mana_chosenprefix.go)
+		pref = true
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k)
 		}
 	}
+	pref = pref && s.prefixPoolMana(p) > pool0
 	if s.sp > sp0 || s.npend != 0 {
 		empty := s.playNeedsEmptyStack(k, a)
 		if s.sp > sp0 && empty || s.npend != 0 {
@@ -3029,6 +3041,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkActivate:
 		if k.gen != nil && s.activateGen(k, a) {
 			break
+		}
+		if pref {
+			s.payPrefixRest(k, a, p) // the prefix's untapped cost part, before the push (mana_resolutionpay.go)
 		}
 		s.beginActivate(k, Obj(a.Source()), a.Mode())
 	case AkTurnFaceUp:

@@ -207,3 +207,77 @@ func (s *State) trigWindowCharge(k *prep, p uint8, c *kop.ManaCost) bool {
 	s.payTrigPool(k, p, c)
 	return true
 }
+
+// prefixPoolMana is p's floating pool total: the prefix section's taps (and
+// sacrifices) float their mana here, so a rise over the snapshot taken before
+// it marks a prefix search that activated for the play. A prefix that also
+// paid a sub-cost from the pool can net to no rise; that play keeps the
+// post-push payment, as before.
+func (s *State) prefixPoolMana(p uint8) int {
+	n := 0
+	pl := &s.pl[SeatIx(p)]
+	for c := 0; c < kop.NumManaKinds; c++ {
+		n += int(pl.pool[c])
+	}
+	return n
+}
+
+// payPrefixRest pays, before the activation's build begins, what a prefix
+// search left of a plain activation cost to the payment planner. The
+// planner's tap fires at manaStep (bsMana), after bsPush has placed the
+// ability, so the tapped source's Taps trigger lands above the paid-for
+// ability; gorge's search taps at its ask, below it (Charix, the Raging
+// Isle's {3} pump under an opponent's Manabarbs). The cost is the offer's
+// (abPlannedCost): the build is not yet live, so the pre-build fields the
+// build's arms read (pips, X) are not announced yet anyway. Only a cost the
+// plain planner settles takes this -- one it cannot price keeps its manaStep
+// window arm (sacXWindowPays, equipGapWindowPays, the hybrid arms), and
+// restricted floating mana keeps the shortened cost the planner pays.
+func (s *State) payPrefixRest(k *prep, a Action, p uint8) {
+	o, ab := Obj(a.Source()), a.Mode()
+	ob := &s.objs[o]
+	cd := &k.t.Cards[s.cardAt(ob.slot)]
+	if isGainedMode(ab) || int(ab) >= len(cd.Abilities) {
+		return // a gained ability reads its host card (activateGen), not this build
+	}
+	abn := &cd.Abilities[ab]
+	if abn.Kind == kop.AbMana || abn.Cost.Flags&(kop.CostSac|kop.CostSacSelf|kop.CostTapX|kop.CostTapHost|kop.CostPowerUp|kop.CostWaterbend) != 0 ||
+		abn.Cost.Mana.X != 0 || abn.Cost.Mana.XPip != 0 {
+		return // the build's X, sacrifice, pip and window arms keep their paths
+	}
+	sl := NoSlot
+	if ob.zone == kop.ZoneBattlefield {
+		sl = ob.slot
+	}
+	cost := s.abPlannedCost(k, abn, sl, p)
+	if cost.X != 0 || cost.Hyb[0] != 0 || cost.Tb != 0 || cost.Snow != 0 || cost.Phyrexian() {
+		return
+	}
+	if s.poolPays(p, &cost) {
+		return // the prefix settled it
+	}
+	if s.restrActNow(k, p) != 0 {
+		return // admitted restricted mana shortens the cost the planner pays (mana_window.go)
+	}
+	// the plain planner must settle the remainder: a plan it cannot price
+	// keeps manaStep's window arm (the probe is dry: it taps nothing)
+	var chk planner
+	chk.dry = true
+	s.tapForPK(k, p, &cost, 0, NoObj, false, false, &chk)
+	if chk.needT != 0 && !chk.found {
+		return
+	}
+	// the source's own {T} cost holds it tapped across the payment the way
+	// manaStep holds it (CR 602.2b), so the planner does not tap it for mana
+	held := sl != NoSlot && abn.Cost.Flags&kop.CostTap != 0 && s.perms[sl].flags&pfTapped == 0
+	if held {
+		s.perms[sl].flags |= pfTapped
+	}
+	s.tapFor(k, p, &cost, 0, NoObj)
+	if held {
+		s.perms[sl].flags &^= pfTapped
+	}
+	if s.npend != 0 {
+		s.flushPrefixTriggers(k) // the tapped source's trigger below the play, not above it
+	}
+}
