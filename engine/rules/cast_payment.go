@@ -423,6 +423,14 @@ func (e *Engine) manaConvertAsk() bool {
 	return pay.ManaConvertAsk(asPayer(e), &pc.CastPayment, pc.player, pc.card, !optional.Empty())
 }
 
+// noteEmergeSac remembers the creature an Emerge cast sacrifices (its first
+// sacrifice part's single pick).
+func noteEmergeSac(pc *pendingCast, kind string, chosen []decision.Option) {
+	if kind == "sacrifice" && pc.emerge && pc.SacPart == 0 && len(chosen) == 1 {
+		pc.emergeSac = chosen[0].Obj
+	}
+}
+
 // castAnswer records a chooseCast answer into the flow, keyed off which
 // stage asked it (every option in one decision shares a Kind).
 // A payment-shaped answer (a cost-part pick, a pip face, a Convoke
@@ -449,17 +457,13 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 	if len(chosen) > 0 {
 		kind = chosen[0].Kind
 	}
-	if kind == chorusAnswerKind {
-		answerChorus(pc, chosen)
-		return
-	}
-	if kind == "sacrifice" && pc.emerge && pc.SacPart == 0 && len(chosen) == 1 {
-		pc.emergeSac = chosen[0].Obj
-	}
+	noteEmergeSac(pc, kind, chosen)
 	if pay.RecordCastPaymentAnswer(&pc.CastPayment, pay.CastPayAnswer{Paid: &pc.PaidCost, Cost: &pc.cost, X: &pc.x, XDone: pc.xDone}, kind, chosen) {
 		return
 	}
 	switch castAnswerCodes.Code(kind) {
+	case castAnswerChorus:
+		answerChorus(pc, chosen)
 	case castAnswerCostType:
 		e.answerChooseTypeCost(pc, chosen)
 	case castAnswerDivide:
@@ -713,6 +717,7 @@ const (
 	castAnswerDefilerYes
 	castAnswerDefilerNo
 	castAnswerSplice
+	castAnswerChorus
 )
 
 var castAnswerCodes = state.NewStrCodes(
@@ -747,4 +752,5 @@ var castAnswerCodes = state.NewStrCodes(
 	state.StrEntry[castAnswerCode]{Key: "yes", Val: castAnswerDefilerYes},
 	state.StrEntry[castAnswerCode]{Key: "no", Val: castAnswerDefilerNo},
 	state.StrEntry[castAnswerCode]{Key: "splice", Val: castAnswerSplice},
+	state.StrEntry[castAnswerCode]{Key: chorusAnswerKind, Val: castAnswerChorus},
 )
