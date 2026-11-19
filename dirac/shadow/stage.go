@@ -22,6 +22,8 @@ const (
 	ReasonHidden   = "hidden"          // the dealt hidden zones disagree with the counts the view shows
 	ReasonExile    = "exile"           // exile or the command zone holds a card
 	ReasonToken    = "token"           // a token or a copy
+	ReasonCounter  = "counter"         // a counter other than a nonzero +1/+1 count on a battlefield card
+	ReasonAttach   = "attachment"      // an Aura, Equipment or Fortification attached to something, or a player
 	ReasonMark     = "mark"            // counters, damage, an attachment, a combat mark, face-down, a flag
 	ReasonPool     = "pool"            // floating mana
 	ReasonStepName = "step-name"       // a step name this package does not know
@@ -30,7 +32,7 @@ const (
 // Reasons lists every reason WorldFromView returns that dirac does not.
 var Reasons = []string{
 	ReasonOver, ReasonSeats, ReasonStack, ReasonDecision, ReasonUnknown, ReasonUnmapped,
-	ReasonHidden, ReasonExile, ReasonToken, ReasonMark, ReasonPool, ReasonStepName,
+	ReasonHidden, ReasonExile, ReasonToken, ReasonCounter, ReasonAttach, ReasonMark, ReasonPool, ReasonStepName,
 }
 
 var stepOf = map[string]kop.Step{
@@ -162,25 +164,47 @@ func (b *builder) add(obj uint8, name string, owner, pos int, z kop.Zone, cv *vi
 	}
 	o := dirac.WorldObj{Card: id, Owner: uint8(owner), Zone: z, Pos: uint8(pos), Ctrl: uint8(owner)}
 	if cv != nil {
-		if err := checkCard(cv, name, owner); err != nil {
+		if err := checkCard(cv, name, owner, z); err != nil {
 			return err
 		}
 		if z == kop.ZoneBattlefield {
 			o.Tapped, o.Sick = cv.Tapped, cv.SummonSick
+			o.Damage, o.P1P1 = uint8(cv.Damage), uint16(cv.Counters["P1P1"])
 		}
 	}
 	b.all = append(b.all, placed{obj, o})
 	return nil
 }
 
+// checkMarks refuses counters and damage the staging cannot rebuild. On the
+// battlefield it carries damage within a byte and a nonzero +1/+1 count; a
+// card off the battlefield carries neither (dirac keeps none there).
+func checkMarks(cv *view.CardView, name string, z kop.Zone) error {
+	for kind, n := range cv.Counters {
+		if kind != "P1P1" || n <= 0 || n > 0xffff || z != kop.ZoneBattlefield {
+			return bad(ReasonCounter, "%s: %s %d", name, kind, n)
+		}
+	}
+	if cv.Damage < 0 || cv.Damage > 255 || (cv.Damage != 0 && z != kop.ZoneBattlefield) {
+		return bad(ReasonMark, "%s: damage %d", name, cv.Damage)
+	}
+	return nil
+}
+
 // checkCard refuses a shown card the minimal scope cannot stage.
-func checkCard(cv *view.CardView, name string, owner int) error {
+func checkCard(cv *view.CardView, name string, owner int, z kop.Zone) error {
 	if cv.IsToken || cv.IsCopy {
 		return bad(ReasonToken, "%s", name)
 	}
-	if cv.FaceDown || cv.Flags != 0 || len(cv.Counters) != 0 || cv.Damage != 0 || cv.Attacking ||
-		cv.AttackingPermanent || cv.Blocked || len(cv.BlockedBy) != 0 || cv.AttachedTo != 0 ||
-		cv.AttachedToPlayer || len(cv.GoadedBy) != 0 || len(cv.Imprinted) != 0 || len(cv.ExiledCards) != 0 {
+	if cv.AttachedTo != 0 || cv.AttachedToPlayer {
+		return bad(ReasonAttach, "%s", name)
+	}
+	if err := checkMarks(cv, name, z); err != nil {
+		return err
+	}
+	if cv.FaceDown || cv.Flags != 0 || cv.Attacking ||
+		cv.AttackingPermanent || cv.Blocked || len(cv.BlockedBy) != 0 ||
+		len(cv.GoadedBy) != 0 || len(cv.Imprinted) != 0 || len(cv.ExiledCards) != 0 {
 		return bad(ReasonMark, "%s", name)
 	}
 	if int(cv.Owner) != owner || int(cv.Controller) != owner {

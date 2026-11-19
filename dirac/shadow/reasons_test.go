@@ -51,6 +51,14 @@ func TestWorldFromViewReasons(t *testing.T) {
 		c.ID, c.Name = 0, "Savannah Lions"
 		in.View.Players[0].Battlefield = []view.CardView{c}
 	}
+	// damage and +1/+1 counters on a battlefield creature stage
+	for _, c := range []view.CardView{{Damage: 1}, {Counters: map[string]int32{"P1P1": 2}}} {
+		in := reasonsInput()
+		bf(in, c)
+		if _, err := shadow.StageFromView(in); err != nil {
+			t.Errorf("%+v does not stage: %v", c, err)
+		}
+	}
 	cases := map[string]func(*shadow.Input){
 		shadow.ReasonOver:     func(in *shadow.Input) { in.View.Over = true },
 		shadow.ReasonSeats:    func(in *shadow.Input) { in.View.Players = in.View.Players[:1] },
@@ -61,7 +69,9 @@ func TestWorldFromViewReasons(t *testing.T) {
 		shadow.ReasonHidden:   func(in *shadow.Input) { in.Hidden.Library[1] = in.Hidden.Library[1][1:] },
 		shadow.ReasonExile:    func(in *shadow.Input) { in.View.Players[1].Exile = []view.CardView{{Name: "Plains"}} },
 		shadow.ReasonToken:    func(in *shadow.Input) { bf(in, view.CardView{IsToken: true}) },
-		shadow.ReasonMark:     func(in *shadow.Input) { bf(in, view.CardView{Damage: 1}) },
+		shadow.ReasonCounter:  func(in *shadow.Input) { bf(in, view.CardView{Counters: map[string]int32{"M1M1": 1}}) },
+		shadow.ReasonAttach:   func(in *shadow.Input) { bf(in, view.CardView{AttachedTo: 5}) },
+		shadow.ReasonMark:     func(in *shadow.Input) { bf(in, view.CardView{Blocked: true}) },
 		shadow.ReasonPool:     func(in *shadow.Input) { in.View.Players[0].Pool = map[string]int32{"R": 1} },
 		shadow.ReasonStepName: func(in *shadow.Input) { in.View.Step = "" },
 		dirac.ReasonStep:      func(in *shadow.Input) { in.View.Step = "declare-blockers" },
