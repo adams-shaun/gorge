@@ -1748,11 +1748,18 @@ func (fs *filtSearch) witnessEats(k *prep, t *State) bool {
 // for a gate-on pair's larger one: gorge's ability ask lists both and the
 // search takes them in turn (filtStep.wide).
 func (fs *filtSearch) fundOne(k *prep, t *State, sl Slot, pc *pcard, mask uint8, funded int, gapUsed bool) bool {
+	zf := t.zeroFiltFund(k, fs.p, sl)
+	if zf && !fs.tick() {
+		return false // the ask between its {C} and its zero-yield filter (mana_filtfund_zero.go)
+	}
 	ans := uint8(bits.TrailingZeros8(mask))
 	if fs.try(k, t, filtStep{sl: sl, ans: ans}, funded+1, gapUsed) {
 		return true
 	}
-	return t.widePairAb(k, sl, pc) >= 0 && fs.tick() && fs.try(k, t, filtStep{sl: sl, ans: ans, wide: true}, funded+1, gapUsed)
+	if t.widePairAb(k, sl, pc) >= 0 && fs.tick() && fs.try(k, t, filtStep{sl: sl, ans: ans, wide: true}, funded+1, gapUsed) {
+		return true
+	}
+	return zf && fs.fundZeroFilt(k, t, sl, funded, gapUsed)
 }
 
 // DebugFiltNoTrigSettle leaves a Taps trigger a filter-search step caused

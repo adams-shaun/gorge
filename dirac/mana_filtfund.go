@@ -74,7 +74,7 @@ func (fs *filtSearch) fundColours(k *prep, t *State, sl Slot, pc *pcard, mask ui
 			return true
 		}
 	}
-	return false
+	return t.zeroFiltFund(k, fs.p, sl) && fs.fundZeroFilt(k, t, sl, funded, gapUsed) // the same ask's filter answer (mana_filtfund_zero.go)
 }
 
 // fundSac sacrifices funding source sl after its mana is added, when its mana
