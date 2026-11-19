@@ -281,13 +281,15 @@ type HostContinuous interface {
 // HostRestrictions is the restriction role: the rules-side "can't" gates an effect
 // consults before it acts.
 type HostRestrictions interface {
-	// RegenerationDisallowed reports whether an Effect-registered
-	// CantRegenerate restriction makes id unable to be regenerated (Incinerate's
-	// "can't be regenerated this turn"). Consulted by ReplaceDestruction before
-	// it would consume a shield, so a banned regeneration is never honoured.
+	// RestrictionApplies reports whether a live Effect-registered restriction
+	// of the named Mode$ covers id. CantRegenerate: Incinerate's "can't be
+	// regenerated this turn", consulted by ReplaceDestruction before it would
+	// consume a shield, so a banned regeneration is never honoured. CanAdapt
+	// (ModeCanAdapt): Biomancer's Familiar's "adapts as though it had no +1/+1
+	// counters on it", consulted by an Adapt$ put's CR 702.35a condition.
 	// Implemented by rules.Engine against its continuous-effect registry; the
 	// effects test double reports false (no engine to consult).
-	RegenerationDisallowed(id state.ObjID) bool
+	RestrictionApplies(mode string, id state.ObjID) bool
 	// SacrificeBlocked reports whether id is forbidden from being sacrificed
 	// at all this turn — an Effect-registered CantSacrifice restriction (Call
 	// for Aid's "You can't sacrifice those creatures this turn") or a face

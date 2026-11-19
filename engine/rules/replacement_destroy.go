@@ -19,7 +19,7 @@ func (e *Engine) replacementMatchesDestroy(r cards.Repl, source state.ObjID, ev 
 		return false
 	}
 	if _, ok := r.Param(cards.PKRegeneration); ok {
-		if ev.Amount != 1 || e.RegenerationDisallowed(ev.Obj) {
+		if ev.Amount != 1 || e.RestrictionApplies("CantRegenerate", ev.Obj) {
 			return false
 		}
 		if e.IsCreature(ev.Obj) && e.Toughness(ev.Obj) <= 0 {
