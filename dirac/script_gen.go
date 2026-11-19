@@ -276,6 +276,13 @@ func (s *State) plainCastUnsearched(k *prep, p uint8, a Action) bool {
 }
 
 // scriptOffers adds to d the plays a scripted prefix pays.
+// filtMixOpen: the filter/mix searches' branch takes the play — a filter or
+// mix board the search can fund the fee from — and no tap-two source has
+// disabled those searches for it (filtFundable, tapXTwoLive).
+func filtMixOpen(filt slotMask, mix, tapTwo bool) bool {
+	return (filt.any() || mix) && !tapTwo
+}
+
 func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
 	tapsDef := s.scriptTapsDefer(k, p)
@@ -310,7 +317,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// Ironworks' plays are the gaps walk's and those gorge's PotentialMana bound
 	// pays on its own (sacAny; tapXSacAnyBound; sacPotPays).
 	sacAny, sacOpen := s.tapXSacAnyBound(k, p)
-	twoLive := k.tapMana && s.tapXTwoLive(k, p) || sacOpen
+	tapTwo := k.tapMana && s.tapXTwoLive(k, p)
+	twoLive := tapTwo || sacOpen
 	relax := s.scriptRelax(k, p, filt, ca || twoLive || sacAny)
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
@@ -403,7 +411,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if !s.caSearch(k, a, p, restr, anyR, tapsDef, caM) {
 				continue // no script within gorge's search: no colour answers pay the play (mana_comboany.go)
 			}
-		} else if (filt.any() || mix) && s.liveGrantGap(k, p) {
+		} else if filtMixOpen(filt, mix, tapTwo) && s.liveGrantGap(k, p) {
 			// a cast beside a filter and a live grant needs both: the grant
 			// search's filter step funds the filter's fee from a granted
 			// sacrifice ability (Rain of Filth's lands; grantSearch's
@@ -421,7 +429,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 					continue // no script within gorge's one search's budget (grantActScript)
 				}
 			}
-		} else if filt.any() || mix {
+		} else if filtMixOpen(filt, mix, tapTwo) {
 			if !s.filtScript(k, a, p, false) {
 				continue // no script within gorge's search budget
 			}
@@ -728,7 +736,16 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 			var d Decision
 			s.plainOptions(k, &d, availNoActScript)
 			if !s.plainListedPays(k, a, p, &d) {
-				s.filtScript(k, a, p, true)
+				// The filter prefix owns the play when it prices one. A no-{T}
+				// tap-another source beside it leaves the filter search
+				// unpayable (filtFundable), so the tapX search's prefix is the
+				// fallback (mana_tapanother.go). Trying the filter first keeps
+				// its trigger order when it is the play's payer (a filter
+				// answer may tap a creature and stack its trigger before the
+				// play is priced, CR 603.3).
+				if !s.filtScript(k, a, p, true) && s.tapXTwoLiveSource(k, p) && s.tapXPrefix(k, a, p) {
+					return
+				}
 			}
 		}
 		return
