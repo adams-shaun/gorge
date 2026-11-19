@@ -261,10 +261,11 @@ func (c *lClause) faceUpDisguise(p string) (handled bool, err error) {
 
 // spawnerTargetCtrl rewrites the filter word "ControlledBy
 // Spawner>TriggeredTarget" (gorge controlReferentPlayers spawnerChain: the
-// spawning trigger's target player) to OppCtrl inside an ImmediateTrigger
-// body spawned by a combat-damage-to-a-player trigger whose source is the
-// card itself (lc.spawnDmg, set by immediateTrigger): two-player, the
-// player a creature deals combat damage to is the one opponent (CR 506.4).
+// spawning trigger's target player) to trigPlayerCtrlWord inside an
+// ImmediateTrigger body spawned by a combat-damage-to-a-player trigger whose
+// source is the card itself (lc.spawnDmg, set by immediateTrigger): the
+// player a creature deals combat damage to is the damaged seat, at any seat
+// count (CR 506.4; the kernel's trigger player, dmgSeat/fireDmg; seat-exact).
 // Anywhere else the word refuses with a named reason.
 func (lc *lowerCtx) spawnerTargetCtrl(expr string) (string, error) {
 	const word = "ControlledBy Spawner>TriggeredTarget"
@@ -274,8 +275,7 @@ func (lc *lowerCtx) spawnerTargetCtrl(expr string) (string, error) {
 	if !lc.spawnDmg {
 		return expr, refuse("filter %q: Spawner>TriggeredTarget outside an ImmediateTrigger spawned by Card.Self's combat damage to a player", expr)
 	}
-	lc.twoSeat("ControlledBy Spawner>TriggeredTarget read as OppCtrl")
-	return strings.ReplaceAll(expr, word, "OppCtrl"), nil
+	return strings.ReplaceAll(expr, word, trigPlayerCtrlWord), nil
 }
 
 // spawnerDefendingCtrl rewrites the filter word "ControlledBy
@@ -285,10 +285,10 @@ func (lc *lowerCtx) spawnerTargetCtrl(expr string) (string, error) {
 // trigger_referents.go) to the plain "ControlledBy
 // TriggeredDefendingPlayer" word inside an ImmediateTrigger body spawned by
 // an Attacks trigger whose source is the card itself (lc.spawnAtk, set by
-// immediateTrigger). The word marks the card two-seat (kop.CardDef.TwoSeat):
-// past two seats the reflexive entry binds no defSeat, so
-// defendingSeatF2 has no seat to read. Anywhere else the word refuses with a
-// named reason.
+// immediateTrigger). The seat is seat-exact at any seat count: the reflexive
+// entry inherits the parent Attacks trigger's defSeat as it is queued
+// (OpReflexiveTrigger, interp_gen.go), which defendingSeatF2 reads. Anywhere
+// else the word refuses with a named reason.
 func (lc *lowerCtx) spawnerDefendingCtrl(expr string) (string, error) {
 	const word = "ControlledBy Spawner>TriggeredDefendingPlayer"
 	if !strings.Contains(expr, word) {
@@ -297,7 +297,6 @@ func (lc *lowerCtx) spawnerDefendingCtrl(expr string) (string, error) {
 	if !lc.spawnAtk {
 		return expr, refuse("filter %q: Spawner>TriggeredDefendingPlayer outside an ImmediateTrigger spawned by Card.Self's Attacks trigger", expr)
 	}
-	lc.twoSeat("ControlledBy Spawner>TriggeredDefendingPlayer read as the Attacks trigger's defending player")
 	return strings.ReplaceAll(expr, word, "ControlledBy TriggeredDefendingPlayer"), nil
 }
 
