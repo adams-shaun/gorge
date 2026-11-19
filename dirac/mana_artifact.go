@@ -151,8 +151,17 @@ func tableAnyTypedMana(t *kop.Table) bool {
 	typed := typedManaSubtypes(t)
 	for i := range t.Cards {
 		c := &t.Cards[i]
-		if c.Types&kop.TArtifact != 0 || (c.Subtypes[0]&typed[0]|c.Subtypes[1]&typed[1]) != 0 {
-			return true
+		if c.Types&kop.TArtifact == 0 && (c.Subtypes[0]&typed[0]|c.Subtypes[1]&typed[1]) == 0 {
+			continue
+		}
+		// A typed card that prints no mana ability tags nothing (a vanilla
+		// fixture's artifact must not make its table need gen: the fresh-clone
+		// tests pin a nil gen). A granted mana ability on such a card is not
+		// covered: the tally then reads as one bit per colour, as before.
+		for j := range c.Abilities {
+			if c.Abilities[j].Kind == kop.AbMana {
+				return true
+			}
 		}
 	}
 	return false
