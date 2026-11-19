@@ -66,6 +66,11 @@ func (g *grantSrch) wideBranch(t *State, i int, sl Slot) bool {
 		order := [kop.NumManaKinds - 1]uint8{0, 1, 2, 3, 4}
 		needFirst(order[:], g.need)
 		for _, c := range order {
+			if g.subsume && !g.subsumeKeeps(t, c) {
+				// the subsume run's colour ask keeps only the colours the pool
+				// still lacks (subsumeCols): a covered colour pays nothing more
+				continue
+			}
 			if g.wideTry(t, i, sl, c, false) {
 				return true
 			}
@@ -83,7 +88,18 @@ func (g *grantSrch) wideAlloc(t *State, i int, sl Slot) bool {
 	ab := &g.k.t.Cards[t.cardAt(sl)].Abilities[g.k.gen.anyR(t.cardAt(sl))]
 	skip := !t.restrSrcAdmits(g.k, g.p, sl, ab, &g.d)
 	for c := 0; c < wideAnswers; c++ {
-		if g.wideTry(t, i, sl, uint8(kop.NumManaKinds-1+wideEngineAnswer(g.need, c)), skip) {
+		ans := uint8(kop.NumManaKinds - 1 + wideEngineAnswer(g.need, c))
+		if g.subsume {
+			// gorge's subsumeAnswers keeps a combination whose units all name
+			// a covered colour off the ask: one unit naming a colour the pool
+			// still lacks keeps it (subsumeKeeps, the pool read before the
+			// step's mana floats in)
+			c1, c2 := wideAnswer(int(ans) - (kop.NumManaKinds - 1)) // both within the five colours
+			if !g.subsumeKeeps(t, uint8(c1)) && !g.subsumeKeeps(t, uint8(c2)) {
+				continue
+			}
+		}
+		if g.wideTry(t, i, sl, ans, skip) {
 			return true
 		}
 	}
@@ -111,7 +127,7 @@ func (g *grantSrch) wideTry(t *State, i int, sl Slot, ans uint8, skip bool) bool
 	}
 	var gx [kop.NumManaKinds]uint8
 	if skip {
-		c1, c2 := wideAnswer(int(ans) - (kop.NumManaKinds - 1))
+		c1, c2 := wideAnswer(int(ans) - (kop.NumManaKinds - 1)) // both within the five colours
 		gx[c1]++
 		gx[c2]++
 	}
