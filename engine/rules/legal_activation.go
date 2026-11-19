@@ -230,7 +230,7 @@ func (e *Engine) adaptGateOK(id state.ObjID, ab *cards.SA) bool {
 		return true
 	}
 	o := e.G.Obj(id)
-	return o != nil && o.Counter("P1P1") == 0
+	return o != nil && (o.Counter("P1P1") == 0 || e.RestrictionApplies(effects.ModeCanAdapt, id))
 }
 
 // monstrosityGateOK evaluates AB$ PutCounter's Monstrosity$ once-only gate

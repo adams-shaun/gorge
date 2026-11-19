@@ -9,18 +9,19 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// RegenerationDisallowed implements effects.Host for the CantRegenerate
-// restriction: reports whether an Effect-registered restriction
-// forbids id from regenerating. Consulted by effects.ReplaceDestruction, so
-// Incinerate's "creature can't be regenerated this turn" actually blocks the
-// shield-consumption path instead of being a Note. Scanning e.active() keeps
-// the expiry discipline identical to every other continuous effect: a
-// this-turn restriction is UntilEOT and is dropped at cleanup, a permanent-
-// sourced one disappears when its source leaves the battlefield.
-func (e *Engine) RegenerationDisallowed(id state.ObjID) bool {
+// RestrictionApplies implements effects.Host for the Effect-registered
+// restrictions a resolving effect consults by Mode$: CantRegenerate (Incinerate's
+// "creature can't be regenerated this turn", read by effects.ReplaceDestruction
+// so the shield-consumption path honours it instead of a Note) and CanAdapt
+// (Biomancer's Familiar, read by an Adapt$ put's condition and the adapt offer
+// gate). Scanning e.active() keeps the expiry discipline identical to every
+// other continuous effect: a this-turn restriction is UntilEOT and is dropped at
+// cleanup, a permanent-sourced one disappears when its source leaves the
+// battlefield.
+func (e *Engine) RestrictionApplies(mode string, id state.ObjID) bool {
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
-		if ce.Restriction != "CantRegenerate" {
+		if ce.Restriction != mode {
 			continue
 		}
 		if e.restrictionApplies(ce, id) {

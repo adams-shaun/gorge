@@ -93,6 +93,19 @@ func effectUnsupportedStatic(h Host, c *Ctx, mode string, params staticLineParam
 		})
 		return true
 	}
+	if mode == ModeCanAdapt && staticKeysReadable(params, "Mode", "ValidCard", "Description") {
+		// "The next time target creature adapts this turn" (Biomancer's
+		// Familiar): the grant is bounded by the Effect's own lifetime, an
+		// absent Duration$ being this turn, and ended early by its Adapt
+		// trigger's self-exile (Host.EndEffectSource).
+		effectContinuous(h, state.ContinuousEffect{
+			Source: c.Source, Controller: c.Controller, Name: name,
+			UntilEOT: effectUntilEOT(h, c.Source, rawDur) || rawDur == "", Duration: dur,
+			Restriction: mode, RestrictParams: params,
+			RestrictSVars: c.SVars, Remembered: remembered,
+		})
+		return true
+	}
 	if len(mode) > 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "continuous effect " + mode + " unimplemented (" + what + ")"})

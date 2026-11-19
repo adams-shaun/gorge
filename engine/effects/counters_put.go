@@ -310,16 +310,9 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		if putCounterReferentLeft(h, c, sa, o) {
 			continue
 		}
-		// Adapt$'s put is itself conditional (CR 702.35a: "If this creature has
-		// no +1/+1 counters on it, put N +1/+1 counters on it"). For an AB$
-		// activation the offer-time gate (engine/rules/legal.go's adaptGateOK) already
-		// withheld the ability while counters were present, but counters can
-		// arrive in response between activation and resolution -- the effect's
-		// own if-condition, not the activation restriction, is what governs the
-		// put. It is also the only gate a chained DB$ body (Jetfire's
-		// "then adapt 3") ever gets, since an activation restriction does not
-		// govern a resolution-time body.
-		if adapt && o.Counter("P1P1") > 0 {
+		// Adapt$'s put is itself conditional (CR 702.35a); the resolve-time
+		// gate is adapt_mark.go's putCounterAdaptBlocked.
+		if putCounterAdaptBlocked(h, o, adapt) {
 			continue
 		}
 		// CR 701.31b defense-in-depth: a monstrosity ability's activation is
@@ -401,6 +394,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.AlterAttribute, Obj: o.ID,
 				Player: o.Controller, Text: "Renowned", Amount: n})
 		}
+		putCounterAdaptMark(h, o, adapt, n)
 		// RememberPut$ (Synth Eradicator's DBEnergy) names the objects this
 		// pass actually CounterChanged, never the attempt: a body whose count
 		// resolves to zero (a `CounterNum$ X` the unmodelled cost token leaves

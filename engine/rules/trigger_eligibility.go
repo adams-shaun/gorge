@@ -415,6 +415,11 @@ var triggerModeEventRows = [...]struct {
 	// ordinal 78), past the 64-bit mask's reach, so it is admitted through
 	// the same fail-open path and gated by trigmatch.becomeRenownedMatches.
 	{cards.TriggerBecomeRenowned, 0},
+	// Adapt reads the AlterAttribute "Adapted" marker (effects.AdaptedMark),
+	// past the 64-bit mask's reach like BecomeRenowned above, so it is
+	// admitted through the same fail-open path and gated by
+	// trigmatch.adaptMatches.
+	{cards.TriggerAdapt, 0},
 	// The DungeonComplete Kind's ordinal (114) is past the 64-bit mask's
 	// reach: allows() fails open for it, so the mode is admitted through
 	// that fail-open path and gated by the full matcher

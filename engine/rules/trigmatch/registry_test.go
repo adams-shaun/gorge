@@ -336,6 +336,9 @@ var addedAfterTheSplit = []string{
 	// Shuffled (Widespread Panic) matches the Secret Shuffle event a
 	// resolving spell or ability emits (InResolution with an ActionCause).
 	"ExcessDamage", "PayLife", "Shuffled",
+	// edh-trigE: Adapt (Biomancer's Familiar) matches the AlterAttribute
+	// "Adapted" marker a resolving Adapt$ put emits; the mode name is new.
+	"Adapt",
 }
 
 func allRegisteredModeNames() []string {

@@ -167,7 +167,11 @@ const (
 	TriggerExcessDamage TriggerMode = 111
 	TriggerPayLife      TriggerMode = 112
 	TriggerShuffled     TriggerMode = 113
-	TriggerModeCount                = 114 // one past the last; sizes a dense per-TriggerMode array
+	// Adapt (Biomancer's Familiar's `Mode$ Adapt` Effect trigger: "the next
+	// time target creature adapts"), the creature-adapted marker, appended so
+	// every earlier ordinal is unchanged.
+	TriggerAdapt     TriggerMode = 114
+	TriggerModeCount             = 115 // one past the last; sizes a dense per-TriggerMode array
 )
 
 var triggerModeNames = [TriggerModeCount]string{
@@ -284,6 +288,7 @@ var triggerModeNames = [TriggerModeCount]string{
 	TriggerExcessDamage:               "ExcessDamage",
 	TriggerPayLife:                    "PayLife",
 	TriggerShuffled:                   "Shuffled",
+	TriggerAdapt:                      "Adapt",
 }
 
 var triggerModeCodes = func() StrCodes[TriggerMode] {
