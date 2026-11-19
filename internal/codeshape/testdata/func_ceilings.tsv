@@ -75,7 +75,7 @@ dirac/feat (*Encoder).extKill	128	69
 dirac/feat (*Encoder).genOption	133	51
 dirac/feat (*Encoder).optionOf	173	64
 dirac/kgen (*cardBuilder).ability	281	148
-dirac/kgen (*cardBuilder).clause	520	186
+dirac/kgen (*cardBuilder).clause	516	184
 dirac/kgen (*cardBuilder).cost	247	74
 dirac/kgen (*cardBuilder).fold	103	51
 dirac/kgen (*cardBuilder).mana	171	62

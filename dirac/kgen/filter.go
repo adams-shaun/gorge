@@ -1323,6 +1323,10 @@ func (c *lClause) addNotSub(w string) error {
 	return fmt.Errorf("six negated subtypes")
 }
 
+// bareCmpPreds maps the compare words build.go's clause reads as one
+// argument-less predicate each (kernel sharesCrCmdr is filter_sharescmdr.go).
+var bareCmpPreds = map[uint8]kop.Pred{cmpMonstrous: kop.PredMonstrous, cmpNoCounters: kop.PredNoCounters, cmpMonoColor: kop.PredMonoColor, cmpSharesCrCmdr: kop.PredSharesCrCmdr}
+
 // battlefieldPreds maps the compare words build.go's clause reads as one
 // battlefield-only predicate each.
 var battlefieldPreds = map[uint8]kop.Pred{cmpRenowned: kop.PredRenowned, cmpAttackingYou: kop.PredAttackingYou}

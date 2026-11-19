@@ -1848,10 +1848,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredModified
 	case cmpHasCounters:
 		kf.Pred = kop.PredHasCounters
-	case cmpMonstrous:
-		kf.Pred = kop.PredMonstrous
-	case cmpNoCounters:
-		kf.Pred = kop.PredNoCounters
+	case cmpMonstrous, cmpNoCounters, cmpMonoColor, cmpSharesCrCmdr:
+		kf.Pred = bareCmpPreds[c.CmpStat]
 	case cmpLacksKw:
 		kf.Pred, kf.PredN = kop.PredLacksKeyword, int16(c.CmpN)
 	case cmpHasManaAbility:
@@ -1861,14 +1859,10 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		for _, w := range [...]string{"Assassin", "Mercenary", "Pirate", "Rogue", "Warlock"} {
 			cb.pt.sub(w) // the kernel finds the five by name (genPrep.outlawSub)
 		}
-	case cmpMonoColor:
-		kf.Pred = kop.PredMonoColor
 	case cmpSameNameT0:
 		kf.Pred, kf.PredN = kop.PredSameNameT0, int16(c.CmpN) // PredN 1: the target itself excluded
 	case cmpSameNameRem, cmpSameNameSelf:
 		sameNamePred(&c, &kf)
-	case cmpSharesCrCmdr:
-		kf.Pred = kop.PredSharesCrCmdr // kernel sharesCrCmdr (filter_sharescmdr.go)
 	case cmpAdventureCard:
 		kf.Pred = kop.PredAdventureCard
 	case cmpSolved:
