@@ -1867,6 +1867,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred, kf.PredN = kop.PredSameNameT0, int16(c.CmpN) // PredN 1: the target itself excluded
 	case cmpSameNameRem, cmpSameNameSelf:
 		sameNamePred(&c, &kf)
+	case cmpSharesCrCmdr:
+		kf.Pred = kop.PredSharesCrCmdr // kernel sharesCrCmdr (filter_sharescmdr.go)
 	case cmpAdventureCard:
 		kf.Pred = kop.PredAdventureCard
 	case cmpSolved:

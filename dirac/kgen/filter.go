@@ -177,6 +177,7 @@ const (
 	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
 	cmpRenowned       // IsRenowned (CmpN 1) / !IsRenowned (CmpN 0): the CR 702.112b renowned designation
 	cmpAttackingYou   // attackingYou: attacking, the evaluating controller its defending player (kop.PredAttackingYou; no operator)
+	cmpSharesCrCmdr   // sharesCreatureTypeWith Commander: a creature type shared with a commander of the evaluating controller (kop.PredSharesCrCmdr; no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -1135,6 +1136,9 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	}
 	if ok, err := c.sharesNameWithProp(p); ok {
 		return err
+	}
+	if p == "sharesCreatureTypeWith Commander" {
+		return c.setCmp(cmpSharesCrCmdr, 0, 0, "", "") // the Path of Ancestry rider's filter
 	}
 	if n, ok := filterWordPred(p); ok {
 		return c.setCmp(cmpWord7, 0, n, "", "") // lower_filterwords.go
