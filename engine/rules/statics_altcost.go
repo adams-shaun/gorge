@@ -355,6 +355,10 @@ func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID stat
 	ctx := effects.NewCtxPtr(srcID, controller, effects.CtxInit{})
 	if o := e.G.Obj(srcID); o != nil && o.Face() != nil {
 		ctx.SVars = o.Face().SVars
+		// Forge evaluates the gate with the static's host card as the
+		// source, so Remembered$Amount counts the host's remembered list
+		// (Cobra Trap's destroyed-this-turn tracker).
+		ctx.Remembered = append([]state.Target(nil), o.Remembered...)
 	}
 	if ck := strings.TrimSpace(params["CheckSVar"]); ck != "" {
 		if holds, evaluated := effects.CheckSVarHolds(e, ctx, ck, params["SVarCompare"]); evaluated && !holds {
