@@ -201,6 +201,7 @@ var excluded = map[excludedField]bool{
 	{"rules.Engine", "colorsVersion"}:  true,
 	{"rules.Engine", "colorsObjs"}:     true,
 	{"rules.Engine", "colorsValid"}:    true,
+	{"rules.Engine", "colorsStatic"}:   true,
 	{"rules.Engine", "colorsBuilding"}: true,
 	// The replacement-source walk's zone summaries (repl_zoneskip.go), the
 	// trigZones shape: scratch validated on every use; Clone copies none.
