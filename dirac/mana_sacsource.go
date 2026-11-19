@@ -752,10 +752,23 @@ func (s *State) activateNeedsEmptyStack(k *prep, a Action) bool {
 	return k.t.Cards[c].Abilities[ab].Cost.Flags&kop.CostSorcery != 0
 }
 
-// playNeedsEmptyStack is castNeedsEmptyStack or activateNeedsEmptyStack: the
-// play a is offered only with the stack empty.
+// specialNeedsEmptyStack reports whether the hand special action a follows
+// sorcery timing: the plot action (CR 702.170a) and the suspend action
+// (CR 702.62a) are taken only when their caster could cast a sorcery
+// (CR 307.1, 117.1a: their main phase with the stack empty), which the walk
+// gates on sorc (legal.go), so gorge's script search prices the play only
+// after the triggers the prefix's taps queued have resolved
+// (potential_script.go waitsForStack). The foretell action needs only
+// priority on its controller's own turn (CR 702.143a, legal.go), so it is
+// not one.
+func (s *State) specialNeedsEmptyStack(k *prep, a Action) bool {
+	return a.Kind() == AkPlot && (a.Mode() == 0 || a.Mode() == plotModeSuspend)
+}
+
+// playNeedsEmptyStack is castNeedsEmptyStack, activateNeedsEmptyStack or
+// specialNeedsEmptyStack: the play a is offered only with the stack empty.
 func (s *State) playNeedsEmptyStack(k *prep, a Action) bool {
-	return s.castNeedsEmptyStack(k, a) || s.activateNeedsEmptyStack(k, a)
+	return s.castNeedsEmptyStack(k, a) || s.activateNeedsEmptyStack(k, a) || s.specialNeedsEmptyStack(k, a)
 }
 
 // resolvePrefixStack drives what a scripted prefix left behind before the
