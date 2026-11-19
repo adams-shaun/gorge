@@ -195,7 +195,7 @@ func planPaymentCostTwobrid(e Engine, p state.PlayerID, demand [5]int, cost cost
 		if got.Plan != nil && got.Reason == "" {
 			return got
 		}
-		if got.Reason != "insufficient" {
+		if got.Reason != ReasonInsufficient {
 			allInsufficient = false
 		}
 	}

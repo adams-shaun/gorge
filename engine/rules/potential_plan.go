@@ -1860,7 +1860,7 @@ func (e *Engine) planComposedCostFor(p state.PlayerID, id state.ObjID, cast deci
 		return e.planHybridCost(p, id, composed, ability, selfSource)
 	}
 	if len(composed.Twobrid) != 0 {
-		return e.planTwobridCost(p, id, composed, ability, selfSource)
+		return planTwobridCost(e, p, id, composed, ability, selfSource, e.planKeepSources)
 	}
 	mana := Cost{Colored: composed.Colored, Generic: composed.Generic, X: composed.X, XMin: composed.XMin,
 		Hybrid: composed.Hybrid, Phyrexian: composed.Phyrexian, Twobrid: composed.Twobrid,
@@ -2034,6 +2034,13 @@ func (e *Engine) planHybridCost(p state.PlayerID, id state.ObjID, composed Cost,
 // planHybridLimit bounds planHybridCost's 2^n resolutions.
 const planHybridLimit = 4
 
+// twobridCostPlanner is the one planner read planTwobridCost needs, so the
+// helper is a free function over a narrow interface rather than another
+// *Engine method.
+type twobridCostPlanner interface {
+	planComposedCost(p state.PlayerID, id state.ObjID, composed Cost, ability, selfSource bool) PaymentPlanOutcome
+}
+
 // planTwobridCost plans a cost with twobrid pips ({2/W}: one white mana or
 // two generic, CR 107.4e) by resolving every pip to each of its two faces in
 // turn and planning the resolved cost: the coloured face first, then the
@@ -2042,7 +2049,7 @@ const planHybridLimit = 4
 // unpayable only when every resolution is. More than planTwobridLimit pips is
 // unsupported. The resolved faces are plain coloured/generic mana, so the
 // witness's wire cost states exactly what the cast will spend.
-func (e *Engine) planTwobridCost(p state.PlayerID, id state.ObjID, composed Cost, ability, selfSource bool) PaymentPlanOutcome {
+func planTwobridCost(pl twobridCostPlanner, p state.PlayerID, id state.ObjID, composed Cost, ability, selfSource, keepSources bool) PaymentPlanOutcome {
 	pips := composed.Twobrid
 	if len(pips) > planTwobridLimit {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:twobrid"}
@@ -2062,8 +2069,8 @@ func (e *Engine) planTwobridCost(p state.PlayerID, id state.ObjID, composed Cost
 			}
 			c.Colored[idx]++
 		}
-		got := e.planComposedCost(p, id, c, ability, selfSource)
-		if e.planKeepSources && got.Plan != nil && paymentPlanConsumes(*got.Plan) {
+		got := pl.planComposedCost(p, id, c, ability, selfSource)
+		if keepSources && got.Plan != nil && paymentPlanConsumes(*got.Plan) {
 			// A witness that must keep every source is asked of each face:
 			// the first one that pays may need a source the cast cannot
 			// spare while another pays from the lands alone.
@@ -2072,7 +2079,7 @@ func (e *Engine) planTwobridCost(p state.PlayerID, id state.ObjID, composed Cost
 		if got.Plan != nil && got.Reason == "" {
 			return got
 		}
-		if got.Reason != "insufficient" {
+		if got.Reason != pay.ReasonInsufficient {
 			allInsufficient = false
 		}
 	}
