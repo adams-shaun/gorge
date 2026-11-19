@@ -4,6 +4,7 @@ Aether Spellbomb
 Afterlife
 Agility Bobblehead
 Akoum Refuge
+Alrund's Epiphany
 Ancestral Blade
 Ancient Gold Dragon
 Anointer Priest
@@ -15,6 +16,7 @@ Artificer Class
 Ashen Monstrosity
 Aspect of Lamprey
 Attune with Aether
+Avatar of Discord
 Avatar of Growth
 Aven Fogbringer
 Azure Drake
@@ -23,6 +25,7 @@ Baloth Null
 Banishment
 Barkhide Troll
 Barrow Witches
+Basilica Skullbomb
 Bathe in Dragonfire
 Battle of Hoover Dam
 Belligerent Sliver
@@ -60,6 +63,7 @@ Cinder Shade
 Clear a Path
 Clip Wings
 Colossal Dreadmaw and Storm Crow
+Continue?
 Crackling Drake
 Creakwood Liege
 Crookclaw Elder
@@ -109,6 +113,7 @@ Fiendslayer Paladin
 Fireblade Charger
 Flare of Denial
 Flatman
+Flowstone Charger
 Forest
 Foxfire Oak
 Gift of Fangs
@@ -158,6 +163,7 @@ Lost in the Spirit World
 Magma Vein
 Magmatic Insight
 Malcator's Watcher
+Malicious Advice
 Mammoth Spider
 Mana Vault
 Manalith
@@ -219,6 +225,7 @@ Rampaging Cyclops
 Raugrin Triome
 Reduce in Stature
 Return from Extinction
+Reverberate
 Rimewood Falls
 Rishadan Cutpurse
 Rishkar's Expertise
@@ -303,11 +310,15 @@ Wall of Vines
 Warmonger Hellkite
 Waterknot
 Whiptail Moloch
+Whiptail Wurm
 Will-o'-the-Wisp
 Winding Canyons
 Winged Shepherd
+Wingsteed Rider
 Wizard Replica
+Wolfwillow Haven
 Woodland Stream
+Yoshimaru, Ever Faithful
 Zap
 Zealot's Conviction
 Zendikar Farguide

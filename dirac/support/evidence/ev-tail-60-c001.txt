@@ -17,6 +17,7 @@ Aphetto Grifter
 Arachnus Web
 Argentum Armor
 Argothian Elder
+Arm with Aether
 Armored Wolf-Rider
 Artful Maneuver
 Artificer Class
@@ -42,6 +43,7 @@ Blaster Mage
 Blessing
 Bloodrage Vampire
 Bloodtracker
+Boar Umbra
 Boros Cluestone
 Boros Reckoner
 Brackwater Elemental
@@ -51,6 +53,7 @@ Briar Hydra
 Bridgeworks Battle
 Brightstone Ritual
 Brine Shaman
+Bringer of the Red Dawn
 Broodhatch Nantuko
 Builder's Blessing
 Burning-Tree Emissary
@@ -94,6 +97,7 @@ Dauntless Cathar
 Dawnhart Rejuvenator
 Dead
 Death Bomb
+Deep Dish Pizza
 Dehydration
 Demon of Wailing Agonies
 Demonlord of Ashmouth
@@ -108,6 +112,7 @@ Dragon Tyrant
 Dragonlord Ojutai
 Dread Drone
 Dreadfeast Demon
+Drift of Phantasms
 Dross Harvester
 Drowner of Hope
 Drumhunter
@@ -181,6 +186,7 @@ Hardened Scales
 Harnessed Lightning
 Harrier Naga
 Harrow
+Hawkeye, Bowslinger
 Healing Salve
 Healing Technique
 Heartwood Treefolk
@@ -297,6 +303,7 @@ Plains
 Planar Cleansing
 Poison the Blade
 Power of Fire
+Priest of the Haunted Edge
 Qarsi High Priest
 Quiet Disrepair
 Quirion Trailblazer
@@ -332,6 +339,7 @@ Rowan Treefolk
 Sardian Cliffstomper
 Satyr Rambler
 Sawtooth Thresher
+Scatter the Seeds
 Scion of Ugin
 Sculpted Perfection
 Scuttling Sliver
@@ -409,6 +417,7 @@ Tymaret, Chosen from Death
 Uktabi Efreet
 Undead Slayer
 Undergrowth Champion
+Unfathomable Truths
 Unliving Psychopath
 Vapor Snare
 Veiled Shade

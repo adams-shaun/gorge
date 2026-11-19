@@ -1,9 +1,13 @@
 Abbey Griffin
 Aberrant Return
+Acceptable Losses
+Aether Herder
 Age of Ultron
+Amnesia
 Ancestral Recall
 Aura of Silence
 Banewhip Punisher
+Bankrupt in Blood
 Barrenton Cragtreads
 Battle Sliver
 Benalish Marshal
@@ -11,19 +15,23 @@ Bequeathal
 Bestial Menace
 Black Market Tycoon
 Blood Age General
+Blood Divination
 Blood Glutton
 Blur Sliver
 Bolt of Keranos
 Bronze Sword
 Bronze Walrus
 Cadira, Caller of the Small
+Call to Glory
 Call to the Netherworld
 Calming Verse
 Carnage Tyrant
 Chase Stein, Runaway
 Chill to the Bone
 Coercive Impetus
+Commence the Endgame
 Corrosive Mentor
+Counterintelligence
 Cover of Darkness
 Crystal Golem
 Death Speakers
@@ -57,7 +65,10 @@ Hobbit's Sting
 Homicidal Seclusion
 Honeymoon Hearse
 Horizon Explorer
+Hornet Nest
+Hour of Revelation
 Hyperion Blacksmith
+Ilysian Caryatid
 Imperial Oath
 Inspiring Cleric
 Invasion of Theros
@@ -75,11 +86,13 @@ Loxodon Mystic
 M.O.D.O.K., Evil Intellect
 Magmatic Force
 Marsh Casualties
+Mascot Exhibition
 Midnight Ritual
 Mind Slash
 Moldering Karok
 Mother Kangaroo
 Mountain
+Nature's Wrath
 Necropede
 Network Terminal
 Nightstalker Engine
@@ -100,9 +113,11 @@ Primal Adversary
 Promise of Tomorrow
 Rain of Filth
 Rally at the Hornburg
+Rat Colony
 Red XIII, Proud Warrior
 Regisaur Alpha
 Reverent Mantra
+Righteous Fury
 Rob the Archives
 Rustspore Ram
 Rustwing Falcon
@@ -124,8 +139,10 @@ Spectral Flight
 Stalwart Aven
 Static Net
 Staunch Shieldmate
+Steel Wall
 Stonewood Invocation
 Strafe
+Sublime Archangel
 Swamp
 Sylvia Brightspear
 Talas Researcher
@@ -135,11 +152,14 @@ Tangle Asp
 Tempest of Light
 Territorial Maro
 Thalia's Lieutenant
+That Which Was Taken
 The Terror of Serpent's Pass
 Thopter Mechanic
 Thraben Valiant
 Tor Giant
 Treespring Lorian
+Troubled Healer
+Tyranid Harridan
 Underhanded Designs
 Updraft
 Valorous Steed

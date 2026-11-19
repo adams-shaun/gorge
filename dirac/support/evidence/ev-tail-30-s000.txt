@@ -9,6 +9,7 @@ Ashes of the Fallen
 Assassin Gauntlet
 Assure
 Atlas, Sizable Stooge
+Avacyn, Angel of Hope
 Ballista Charger
 Barbed Spike
 Barbed-Back Wurm
@@ -20,7 +21,9 @@ Benevolent Hydra
 Bitter Revelation
 Black Scarab
 Blood Host
+Boggart Harbinger
 Bravado
+Brigone, Soldier of Meletis
 Bull-Rush Bruiser
 Burdened Aerialist
 Cackling Flames
@@ -47,6 +50,7 @@ Discordant Piper
 Doomwake Giant
 Drainpipe Vermin
 Drowsing Tyrannodon
+Duelist of Deep Faith
 Echoing Truth
 Electrozoa
 Elvish Champion
@@ -99,6 +103,7 @@ Mad Ratter
 Marcus, Mutant Mayor
 Mardu Hateblade
 Martyr for the Cause
+Mass Calcify
 Mindcrank
 Moonfolk Puzzlemaker
 Moriok Reaver
@@ -144,6 +149,8 @@ Scavenger Folk
 Scribe of the Mindful
 Secret Rendezvous
 Seizan, Perverter of Truth
+Seraph of the Masses
+Shadow Guildmage
 Shadowcloak Vampire
 Shapeshifter
 Siani, Eye of the Storm
@@ -183,6 +190,7 @@ Undergrowth Stadium
 Vastwood Gorger
 Veteran Cathar
 Viper, Cruel Conspirator
+Vision, Synthezoid Avenger
 Vitality Charm
 Volcanic Dragon
 Volrath's Gardens

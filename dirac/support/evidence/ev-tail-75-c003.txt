@@ -19,6 +19,7 @@ Avatar of Growth
 Aven Fogbringer
 Azure Drake
 Back in Town
+Baloth Null
 Banishment
 Barkhide Troll
 Barrow Witches
@@ -78,6 +79,7 @@ Desynchronize
 Devouring Light
 Devouring Swarm
 Dina, Essence Brewer
+Dina, Soul Steeper
 Doom Whisperer
 Double Negative
 Dragon-Scarred Bear
@@ -309,6 +311,7 @@ Wall of Vines
 Warmonger Hellkite
 Waterknot
 Whiptail Moloch
+Whiptail Wurm
 Will-o'-the-Wisp
 Winding Canyons
 Wingsteed Rider

@@ -5,9 +5,13 @@ A-Ready to Rumble
 A-Tenured Inkcaster
 Aardvark Sloth
 Abattoir Ghoul
+Academy Rector
 Acceptable Losses
 Act of Aggression
+Alaborn Grenadier
+Alisaie Leveilleur
 Allied Teamwork
+Alora, Merry Thief
 Altar's Light
 Ancient Lumberknot
 Ancient Runes
@@ -19,6 +23,7 @@ Aquastrand Spider
 Archfiend of Despair
 Arnjlot's Ascent
 Aspect of Gorgon
+Aven of Enduring Hope
 Azorius Cluestone
 Balshan Beguiler
 Bargain
@@ -27,11 +32,14 @@ Basilica Guards
 Battering Krasis
 Beacon of Creation
 Beckon Apparition
+Beyeen Veil
 Big Mother Mouser
 Blessed Hippogriff
 Blind Obedience
+Bloodgift Demon
 Blue Sun's Twilight
 Bola Slinger
+Bond of Flourishing
 Bonds of Faith
 Bone Shards
 Bottle Gnomes
@@ -74,6 +82,7 @@ Dragon Arch
 Dragonsguard Elite
 Dramatic Reversal
 Dromoka Warrior
+Duskwielder
 Dying Wish
 Earth Rift
 Earthquake
@@ -89,8 +98,10 @@ Exotic Curse
 Expendable Lackey
 Explosive Apparatus
 Fabled Hero
+Faerie Trickery
 Faith Unbroken
 Farfinder
+Fell the Profane
 Fen Stalker
 Feral Krushok
 Fervent Cathar
@@ -115,6 +126,7 @@ Gift of the Deity
 Gigapede
 Gravecrawler
 Hammerhead, Maggia Boss
+Hand of Emrakul
 Hanna's Custody
 Harbor Serpent
 Harrier Griffin
@@ -142,10 +154,12 @@ Kazuul's Toll Collector
 Keen Glidemaster
 Keep Safe
 Keldon Halberdier
+Kindred Dominance
 Kinjalli's Caller
 Kiss of the Amesha
 Knight of the New Coalition
 Kodama of the West Tree
+Krark-Clan Ogre
 Kris Mage
 Lancers en-Kor
 Lava Coil
@@ -188,6 +202,7 @@ Nylea's Emissary
 Oblivion Strike
 Ondu Spiritdancer
 Orazca Raptor
+Orchard Spirit
 Ordeal of Purphoros
 Origin of the Hidden Ones
 Original Skullclamp
@@ -202,6 +217,7 @@ Phantasmal Fiend
 Pippin's Bravery
 Plains
 Plated Crusher
+Polukranos Reborn
 Power of Fire
 Prakhata Club Security
 Precognition
@@ -209,6 +225,7 @@ Professor's Warning
 Psychosis Crawler
 Puppet Master
 Pure Reflection
+Purify
 Purple-Crystal Crab
 Pursued Whale
 Raging Cougar
@@ -244,6 +261,7 @@ Slashing Tiger
 Sleeping Potion
 Slinking Serpent
 Slippery Scoundrel
+Slith Firewalker
 Spectacle Mage
 Spectral Grasp
 Spelltithe Enforcer
@@ -252,6 +270,7 @@ Spite of Mogis
 Spread the Sickness
 Star of Extinction
 Stifle
+Stitchwing Skaab
 Stoke the Flames
 Stone Golem
 Stonybrook Schoolmaster
@@ -269,6 +288,7 @@ Thraben Valiant
 Thran Vigil
 Thundering Tanadon
 Titania's Command
+Transluminant
 Transmogrifying Wand
 Tribal Unity
 Tromokratis
