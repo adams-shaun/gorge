@@ -83,7 +83,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		s.exwEnter(o, from) // a source entering other than from the stack clears its forward links (zone_exiledwith.go)
 	}
 	if s.g.nchPick != 0 {
-		s.charmPickLeft(sl) // modal_charmpick.go: a new permanent starts with no pick log (CR 400.7)
+		s.charmPickSlotLeft(sl) // modal_charmpick.go: a new permanent starts with no pick log (CR 400.7)
 	}
 	p := &s.perms[sl]
 	p.chosen = 255

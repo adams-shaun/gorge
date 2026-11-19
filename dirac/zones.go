@@ -656,6 +656,9 @@ func (s *State) leave(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if s.res.active && k.gen != nil {
 		s.snapResTarget(s.perms[sl].obj) // CR 608.2h: a moved target's LKI (zone_lki.go)
 	}
+	if s.g.nchPick != 0 || coldCharmPick.count(s.cold.layout) != 0 {
+		s.charmPickLeft(sl, s.perms[sl].obj) // modal_charmpick.go: leaving empties the source's pick log (CR 400.7)
+	}
 	s.fireLeave(k, sl, z)
 	s.removePerm(k, sl, z, bottom)
 }
