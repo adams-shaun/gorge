@@ -639,6 +639,22 @@ type ContinuousEffect struct {
 	// Empty on every effect that grants no control.
 	GainControl string
 
+	// GainControlCheckSVar/GainControlSVarCompare carry an EFFECT-delivered
+	// control static's CheckSVar$/SVarCompare$ intervening-if (Garland, Royal
+	// Kidnapper's "gain control ... for as long as they're the monarch":
+	// CheckSVar$ X over PlayerCountRememberedPlayer$ HasPropertyisMonarch,
+	// SVarCompare$ EQ1). rules' static-control reconcile (engine/rules/
+	// control_static.go) evaluates the named SVar through the shared statics
+	// evaluator EVERY derivation, against the grant's own SVar table and its
+	// remembered players, so the transfer holds exactly while the condition
+	// does and ends through grantEnded when it stops. This mirrors
+	// MayPlayCheckSVar/MayPlaySVarCompare, the printed route's twin (its
+	// "as long as" gate is the scan's own staticGateHolds). An empty
+	// GainControlCheckSVar is no gate. Runtime-only, rebuilt by re-execution
+	// on replay like MayPlayCheckSVar.
+	GainControlCheckSVar   string
+	GainControlSVarCompare string
+
 	// MayLookAt is a look-permission grant (MayLookAt$ on a Mode$
 	// Continuous static, e.g. Oracle of Mul Daya): while the static is live,
 	// the affected player may look at the object its Affected$ spec matches

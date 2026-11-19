@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -44,6 +45,11 @@ import (
 // staticWant is one wanted static control transfer: the SOURCE object (the
 // Aura carrying the static, stamped so a returned Aura is a new object, CR
 // 400.7), the bearer it currently holds, and the controller the static names.
+// An EFFECT-delivered transfer (fromEffect) stamps no source: its source
+// object can leave the battlefield while the Duration$ Permanent
+// registration outlives it (CR 611.2a), so the tracked grant is keyed on the
+// registration's continued liveness (active()'s own output) and the
+// bearer's stamps alone.
 type staticWant struct {
 	source      state.ObjID
 	obj         state.ObjID
@@ -51,6 +57,7 @@ type staticWant struct {
 	objStamp    uint32
 	layerStamp  uint32 // CR 613.7a: source.LayerTimestamp(), the grant's order
 	controller  state.PlayerID
+	fromEffect  bool
 }
 
 // staticControlWants derives the wanted set fresh from the live static scan.
@@ -92,7 +99,101 @@ func (e *Engine) staticControlWants() []staticWant {
 			}
 		}
 	}
+	return e.effectControlWants(w)
+}
+
+// effectControlWants appends the wanted transfers of the EFFECT-delivered
+// control statics: the GainControl-carrying ContinuousEffect registrations
+// effectGainControlGrant creates (engine/effects/effect_gaincontrol.go --
+// Garland, Royal Kidnapper's monarch steal, Shield Broker's shield-counter
+// steal). The same derivation the printed route runs, but read from the
+// live registrations rather than the static scan: the gate is re-evaluated
+// on EVERY derivation (this function runs at the same fixed points
+// expireControl does), so a delivered "for as long as ..." transfer holds
+// exactly while its condition does and ends through grantEnded when it
+// stops -- a delivered static has no printed scan whose gate could re-run
+// for it. An unreadable gate fails closed (effectControlGateHolds), the
+// same convention the printed scan's checkSVarHolds documents.
+//
+// There is no source-zone check here, unlike the printed route: the
+// registration's own lifetime machinery (active()'s liveness -- Permanent,
+// UntilEOT, ForgetOnMoved$) is what keeps the registration live, and a
+// Duration$ Permanent Effect grant outlives its source (CR 611.2a), so the
+// want stamps no source (fromEffect: sourceStamp stays zero).
+func (e *Engine) effectControlWants(w []staticWant) []staticWant {
+	ces := e.active()
+	for i := range ces {
+		ce := &ces[i]
+		if !ce.FromEffect || ce.GainControl == "" {
+			continue
+		}
+		if !e.effectControlGateHolds(ce) {
+			continue
+		}
+		ctrl, ok := staticGainControlController(e.G, ce.GainControl, ce.Controller, ce.Source)
+		if !ok {
+			// A value that names nobody (or several players) grants
+			// nothing -- the fail-closed direction, no Note (the
+			// derivation's consumers cannot emit).
+			continue
+		}
+		for _, p := range e.G.AliveFrom(0) {
+			for _, id := range e.G.Zone(state.ZBattlefield, p) {
+				if !e.effectControlAffects(ce, id) {
+					continue
+				}
+				o := e.G.Obj(id)
+				if o == nil || o.Zone != state.ZBattlefield {
+					continue
+				}
+				w = append(w, staticWant{source: ce.Source, obj: id,
+					objStamp: o.Timestamp, layerStamp: ce.Timestamp,
+					controller: ctrl, fromEffect: true})
+			}
+		}
+	}
 	return w
+}
+
+// effectControlGateHolds evaluates an Effect-delivered control static's
+// CheckSVar$/SVarCompare$ intervening-if (Garland's CheckSVar$ X over
+// PlayerCountRememberedPlayer$ HasPropertyisMonarch, "for as long as
+// they're the monarch"; CR 611.2a/b) through the ONE shared statics
+// evaluator -- the wrapper mayplay.go's effectMayPlayGateHolds is for the
+// may-play twin. The gate reads the REGISTRATION's own captured set: its
+// remembered objects and its remembered PLAYERS (Garland's RememberObjects$
+// TriggeredPlayer, the monarch the body counts), with the resolving face's
+// SVar table the registration bound -- not the source card's memory, which
+// does not survive the Effect. A gate this build cannot evaluate fails
+// CLOSED: the transfer is withheld, never silently always-applied (the
+// statics convention checkSVarHoldsRaw documents). An empty CheckSVar$ is
+// no gate.
+func (e *Engine) effectControlGateHolds(ce *state.ContinuousEffect) bool {
+	if ce.GainControlCheckSVar == "" {
+		return true
+	}
+	remembered := pay.RememberedTargets(ce.Remembered)
+	for _, p := range ce.RememberedPlayers {
+		remembered = append(remembered, state.Target{IsPlayer: true, Player: p})
+	}
+	ctx := effects.NewCtxPtr(ce.Source, ce.Controller, effects.CtxInit{SVars: ce.SVars, Remembered: remembered})
+	holds, evaluated := effects.CheckSVarHolds(e, ctx, ce.GainControlCheckSVar, ce.GainControlSVarCompare)
+	return evaluated && holds
+}
+
+// effectControlAffects matches an Effect-delivered control static's Affected$
+// spec against a battlefield object with the registration's captured set
+// bound: the remembered objects answer the Card.IsRemembered clause
+// (effectGainControlGrant normalized IsImprinted to it), the remembered
+// players ride alongside for a <base>.RememberedPlayerCtrl qualifier, and
+// the spec context carries the same layer tables every rules-side spec
+// match resolves through (specCtx). This is the binding mayplay.go's
+// effectGrantSpecContext makes for the may-play grant walk.
+func (e *Engine) effectControlAffects(ce *state.ContinuousEffect, id state.ObjID) bool {
+	sc := e.specCtx(ce.Source, ce.Controller)
+	sc.Remembered = pay.RememberedTargets(ce.Remembered)
+	sc.RememberedPlayers = ce.RememberedPlayers
+	return e.matchesSpec(ce.Affects, id, sc)
 }
 
 // staticGainControlController resolves a GainControl$ static VALUE to the
@@ -178,8 +279,15 @@ func (e *Engine) reconcileControlStatics() {
 				continue
 			}
 			o, src := e.G.Obj(w.obj), e.G.Obj(w.source)
-			if o == nil || o.Zone != state.ZBattlefield || o.Timestamp != w.objStamp ||
-				src == nil || src.Zone != state.ZBattlefield || src.Timestamp != w.sourceStamp {
+			if o == nil || o.Zone != state.ZBattlefield || o.Timestamp != w.objStamp {
+				continue
+			}
+			// An EFFECT-delivered want stamps no source (fromEffect): the
+			// registration outlives its source object (CR 611.2a), so the
+			// source's zone and stamp are not consulted -- its continued
+			// liveness is active()'s answer, which produced the want.
+			if !w.fromEffect &&
+				(src == nil || src.Zone != state.ZBattlefield || src.Timestamp != w.sourceStamp) {
 				continue
 			}
 			// CR 613.7: the later effect wins. A want older than a grant
