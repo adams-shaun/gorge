@@ -133,8 +133,10 @@ type RouteResult struct {
 	// skip; the summary counts it by HorizonPanicSignature.
 	HorizonPanic string `json:"horizon_panic,omitempty"`
 	// floatTriggered records that the float route's activations put
-	// triggered abilities on the stack before its cast (floatAddedAbility);
-	// runRoute then reads a disagreement as floatTriggerPrecedesCast.
+	// triggered abilities on the stack before its cast (floatAddedAbility),
+	// or created ones that already left it (floatCreated); runRoute then
+	// reads a disagreement as floatTriggerPrecedesCast once floatTriggerOnly
+	// proves it is nothing else.
 	floatTriggered bool
 	// floatStack is the float route's stack before its first activation.
 	floatStack []state.ObjID
@@ -704,9 +706,14 @@ func mirrorFloat(b *rules.Engine, rep *Report, res *RouteResult, aEvents []event
 		setUnmirrorable(res, "cast_not_offered_after_float", why)
 		return
 	}
-	res.floatTriggered = floatAddedAbility(b, stackBefore)
 	res.floatStack = stackBefore
 	res.floatCreated = floatCreatedTriggers(b, rep.forkObjs)
+	// A trigger the float created counts even when it already left the
+	// stack: one with no legal target is removed as it is put on the stack
+	// (CR 603.3d), yet its ability object still took an ObjID ahead of the
+	// spell's cast triggers, which run A creates first (commander4 seed
+	// 6085, a sacrificed Eldrazi Spawn's delayed lose-life trigger).
+	res.floatTriggered = floatAddedAbility(b, stackBefore) || len(res.floatCreated) > 0
 	if err := submitChoices(b, d, []int{idx}); err != nil {
 		setUnmirrorable(res, "cast_rejected", err.Error())
 		return

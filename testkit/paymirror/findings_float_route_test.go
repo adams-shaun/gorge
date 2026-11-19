@@ -20,7 +20,14 @@ import (
 //     (verifiedProductions) and the cast mirrors equivalently.
 //   - 6085: Chain of Vapor's only target is the Lotus Petal paying for it;
 //     the float sacrificed it before the cast (cast_not_offered_after_float,
-//     now expected float_removed_every_target).
+//     now expected float_removed_every_target). Since Myriad's end-of-combat
+//     exile became the tokens' own delayed trigger (CR 511.2), the game also
+//     reaches seq 7808: Worn Powerstone, whose float sacrifices an Eldrazi
+//     Spawn whose death fires a delayed lose-life trigger removed for want of
+//     a target as it is put on the stack (CR 603.3d). Its ability object
+//     takes an ObjID before the spell's cast triggers, after them in A, so
+//     the route is float_trigger_precedes_cast (floatTriggered counts
+//     float-created triggers that already left the stack).
 //   - 6191: Roaming Throne's cast-trigger order in A batched Butcher of
 //     Malakir's trigger from the float-sacrificed Eldrazi Spawn
 //     (follow_up_unmappable); A's order is kept over the rest and the end

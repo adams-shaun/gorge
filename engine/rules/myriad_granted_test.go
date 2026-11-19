@@ -121,6 +121,11 @@ func TestGrantedMyriadCreatesCopyAttackingTheOtherOpponent(t *testing.T) {
 	e.pending = nil
 	e.setStep(state.StepEndCombat)
 	e.advanceStep()
+	// The end-of-combat exile is a delayed triggered ability (CR 511.2):
+	// entering the step fired it and priorityRound puts it on the stack;
+	// passing priority resolves the exile.
+	e.priorityRound()
+	passUntilStackEmpty(t, e, 20)
 	if o := e.G.Obj(tokens[0]); o != nil && o.Zone == state.ZBattlefield {
 		t.Fatal("granted Myriad token remained on the battlefield after combat")
 	}

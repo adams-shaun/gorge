@@ -124,11 +124,14 @@ func TestFlamerushRiderCopiesTheOtherAttackerExiledAtEndOfCombat(t *testing.T) {
 	}
 	noUnimplementedCopyPermanent(t, e)
 
-	// Leaving the end-of-combat step exiles the copy (the IsMyriad
-	// MyriadCleanup semantics the AtEOT$ ExileCombat bit rides); the CR
-	// 704.5d tombstone is the token's final resting state.
+	// The AtEOT$ ExileCombat rider is a delayed triggered ability (CR 511.2):
+	// entering the end-of-combat step fires it, priorityRound puts it on the
+	// stack and passing priority resolves the exile; the CR 704.5d tombstone
+	// is the token's final resting state.
 	e.pending = nil
 	e.setStep(state.StepEndCombat)
+	e.priorityRound()
+	passUntilStackEmpty(t, e, 20)
 	e.pending = nil
 	e.setStep(state.StepEnd)
 	exiledTo(t, e, cid)

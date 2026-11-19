@@ -322,12 +322,13 @@ func TestFourSeatEncoreLockstep(t *testing.T) {
 // defending player, you may create a token that's a copy of this creature
 // that's tapped and attacking that player or a planeswalker they control.
 // Exile the tokens at end of combat." gorge asks the controller about each
-// opponent but the defending player in turn order (a "yes" / "no" KChoose,
+// opponent but the defending player in turn order (a KChoose over the source,
 // resumed with the next opponent), mints a yes's copy tapped and attacking
-// that player (MyriadCopy names the player; no planeswalker is offered) and
-// exiles the copies as the end of combat step ends (effMyriad,
-// MyriadCleanup). dirac asks the same (kw_myriad.go); Blade of Selves grants
-// the trigger. The deck holds no planeswalker. The mutation
+// that player (the walker arm is the kernel's StallMyriadPW) and each mint
+// registers its own end-of-combat exile trigger (CR 511.2: fireDlyEndCombat
+// enqueues it as the step begins, the resolution exiles the copy). dirac asks
+// the same and records the same promise (kw_myriad.go); Blade of Selves
+// grants the trigger. The deck holds no planeswalker. The mutation
 // (DebugMyriadNoOpp) asks about no opponent, the two-seat reading.
 var myriadPodDeck = []cardset.Entry{
 	{Name: "Genasi Enforcers", Count: 10}, {Name: "Blade of Selves", Count: 2},
@@ -342,7 +343,8 @@ func myriadWatch(c *PickCtx) bool {
 }
 
 // TestFourSeatMyriadLockstep: four-seat Myriad games play in lockstep, each
-// opponent but the defending player asked about.
+// opponent but the defending player asked about, each copy exiled by its
+// end-of-combat trigger.
 func TestFourSeatMyriadLockstep(t *testing.T) {
 	podClassLockstep(t, myriadPodDeck, 24, 10, myriadWatch, &dirac.DebugMyriadNoOpp)
 }

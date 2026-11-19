@@ -342,10 +342,10 @@ const (
 	// the attack-creature Obj that enters tapped and attacking the opponent
 	// named by Player. Appended after Pair, same append-only precedent.
 	MyriadCopy
-	// MyriadCleanup exiles every Myriad token still on the battlefield as the
-	// end-of-combat step ends (CR 702.109a). Its event-sourced arena scan keeps
-	// live play and log replay in lockstep without adding one delayed trigger
-	// per token.
+	// MyriadCleanup exiles every Myriad token still on the battlefield (CR
+	// 702.109a). Live play no longer emits it -- the exile is the tokens'
+	// own delayed end-of-combat trigger (CR 511.2) -- but the Kind and its
+	// fold stay for log replay of older games.
 	MyriadCleanup
 	// GrantTriggerPush mints a static-grant's triggered ability (AddTrigger$
 	// on a Mode$ Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you

@@ -76,10 +76,28 @@ func dedupeTargets(ts []state.Target) []state.Target {
 // registered on the token itself, so Defined$ Self in those bodies IS the
 // copy: "exile/sacrifice it at the beginning of the next end step"), AtEOT$
 // ExileCombat (the CopyTokenExileCombat bit: the copy is flagged IsMyriad and
-// the existing MyriadCleanup sweep exiles it at end of combat), and
+// registers its own end-of-combat exile trigger, CR 511.2), and
 // Controller$ You/Targeted*/Remembered*/TriggeredCardController/Opponent and
 // the per-player NonRememberedController families. Any other Controller$ or
 // AtEOT$ value is one loud Note per call.
+// copyAtEOTSide registers one mint's AtEOT$ rider: a grouped-sacrifice value
+// joins the resolution's grouped batch (one trigger over them all, even when
+// no copy was made, CR 603.7), every other value is the shared one-shot
+// rider, the token the affected object and this CopyPermanent resolution's
+// source the creator (CR 603.7d). ExileCombat rides this same path: its
+// promise fires at the beginning of the end-of-combat step (CR 511.2), where
+// the turn-structure sweep that used to exile it is gone.
+func copyAtEOTSide(h Host, c *Ctx, atEOT string, owner state.PlayerID, want state.ObjID, grouped *[]state.ObjID, groupedOwner *state.PlayerID) {
+	if r, ok := atEOTRiders.Get(atEOT); ok {
+		if groupedSacrifice(atEOT, r) {
+			*grouped = append(*grouped, want)
+			*groupedOwner = owner
+		} else {
+			scheduleAtEOTRider(h, owner, c.Source, r, []state.ObjID{want})
+		}
+	}
+}
+
 func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	// One resolution's copies enter as one batch (CR 603.2c).
@@ -749,17 +767,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			c.Remembered = append(c.Remembered, state.Target{Obj: want})
 			eventRemember(h, c, want)
 		}
-		// ExileCombat rode the mint (IsMyriad cleanup, above); every other
-		// value is the shared one-shot rider, the token the affected object
-		// and this CopyPermanent resolution's source the creator (CR 603.7d).
-		if r, ok := atEOTRiders.Get(string(atEOT)); ok && atEOT != "ExileCombat" {
-			if groupedSacrifice(string(atEOT), r) {
-				grouped = append(grouped, want)
-				groupedOwner = owner
-			} else {
-				scheduleAtEOTRider(h, owner, c.Source, r, []state.ObjID{want})
-			}
-		}
+		copyAtEOTSide(h, c, atEOT, owner, want, &grouped, &groupedOwner)
 	}
 	targetObjs := make([]state.ObjID, 0, len(targets))
 	for _, t := range targets {

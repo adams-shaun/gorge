@@ -205,12 +205,14 @@ func (s *State) fireDlyEndCombat(k *prep) {
 }
 
 // prepTokAtEOT sets anyTokEndCombat when a table's CreateTokenEx carries the
-// SacrificeCombat rider.
+// SacrificeCombat rider, or an ExtMyriad copy makes an end-of-combat exile
+// promise (kw_myriad.go).
 func prepTokAtEOT(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
-				if in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) == kop.TokSacAtEnd|kop.TokExileAtEnd && in.B.N>>8 == kop.TokAtEOTSacCombat {
+				if (in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) == kop.TokSacAtEnd|kop.TokExileAtEnd && in.B.N>>8 == kop.TokAtEOTSacCombat) ||
+					(in.Op == kop.OpExt && in.Ext() == kop.ExtMyriad) {
 					g.anyTokEndCombat = true
 				}
 			}
