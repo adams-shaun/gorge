@@ -509,7 +509,9 @@ var triggerModeEventRows = [...]struct {
 	// ExcessDamage (edh-trigB, Toralf) fires per Damage event through the
 	// same matcher; PayLife (Font of Agonies) on the unlogged pay-life
 	// proposal (Kind LifeChange); Shuffled (Widespread Panic) on the
-	// effect-caused Secret Shuffle.
+	// effect-caused Secret Shuffle; PayCumulativeUpkeep (edh-trigF,
+	// Hibernation's End) on the unlogged payment-settled proposal (Kind
+	// CounterChange, the internal marker counter).
 	{cards.TriggerExcessDamage, 1 << events.Damage},
 	{cards.TriggerPayLife, 1 << events.LifeChange},
 	{cards.TriggerShuffled, 1 << events.Shuffle},
@@ -522,6 +524,7 @@ var triggerModeEventRows = [...]struct {
 	{cards.TriggerFight, 1 << events.Damage},
 	{cards.TriggerFightOnce, 1 << events.Damage},
 	{cards.TriggerAttackerBlockedOnce, 1 << events.DeclareBlockers},
+	{cards.TriggerPayCumulativeUpkeep, 1 << events.CounterChange},
 	// The mode fires on the STORED prevention Note (engine/rules/replacement.go's
 	// full-prevention arm and its ReplaceDamage/protection siblings), not
 	// on the Damage event the prevention replaces -- a prevented hit is a
