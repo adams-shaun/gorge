@@ -244,17 +244,3 @@ func tbDevotion(c *kop.ManaCost, mask kop.ColorMask) int {
 	}
 	return n
 }
-
-// twobridPotentialCast reports cast a is a twobrid-cost spell the potential
-// walk would price: gorge's planner refuses it ("cost:twobrid",
-// pay.PlanCostDetail; gorgeLowers), so no prefix search a granted or census-gap
-// source feeds offers it and only the printed sources pay it. A Phyrexian pip
-// rides the same encoding but its mana half is planned (CR 107.4f); an
-// alternative-cost cast prices its own cost.
-func (s *State) twobridPotentialCast(k *prep, a Action) bool {
-	if a.Kind() != AkCast || a.Mode()&(3|castFace|castWarp) != 0 || a.Target() != 0 {
-		return false
-	}
-	cost := &k.t.Cards[s.objs[Obj(a.Source())].card].Cost
-	return cost.Hyb[0] == kop.HybTwobrid && !cost.Phyrexian()
-}
