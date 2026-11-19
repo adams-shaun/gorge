@@ -133,6 +133,7 @@ Kira, Great Glass-Spinner
 Knight Paladin
 Kodama of the North Tree
 Krovikan Elementalist
+Lair of the Hydra
 Leonardo, Worldly Warrior
 Leonin Bladetrap
 Leyline Phantom
@@ -255,6 +256,7 @@ Vat of Rebirth
 Vengeful Firebrand
 Vigorspore Wurm
 Vine Mare
+Violent Impact
 Viscera Dragger
 Voice of Duty
 Voldaren Epicure
