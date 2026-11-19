@@ -71,6 +71,47 @@ func (s *State) pccPut(k *prep, in *kop.Instr, kind Obj) bool {
 
 // pccEnterAnswer applies the as-enters pick: one counter of the picked kind on
 // the entered permanent (placed as an ordinary put, like ctrPickAnswer's).
+// askETBDeferred (askRec.ts) marks an as-enters counter pick whose entrant's
+// enters triggers wait for the answer. gorge asks the pick with the permanent
+// on the battlefield and puts the counter before its enters triggers are
+// checked, so an intervening-if that reads the entrant's counters sees it:
+// Denry Klin, Editor in Chief's "if Denry has counters on it" triggers on
+// Denry's own entry (CR 614.1c, 603.4).
+const askETBDeferred uint16 = 1 << 15
+
+// deferETBToCtrPick marks the as-enters ExtPutCounterChoice ask the entry at
+// sl queued (asks n0 onwards) and reports whether its enters triggers wait
+// for the answer (deferredETBFire).
+func (s *State) deferETBToCtrPick(k *prep, sl Slot, n0 uint8) bool {
+	for i := n0; i < s.g.nask; i++ {
+		a := &s.g.ask[i]
+		if a.sl != sl || a.kind != akCtrPick || a.card == NoCard || a.pc == 0 {
+			continue
+		}
+		if k.t.Cards[a.card].Abilities[uint8(a.ab)].Prog[a.pc-1].Ext() == kop.ExtPutCounterChoice {
+			a.ts |= askETBDeferred
+			return true
+		}
+	}
+	return false
+}
+
+// deferredETBFire fires the enters triggers an answered as-enters counter
+// pick held back, once the rest of the entering program has run; a later ask
+// of the same program (asks n0 onwards) carries them on instead.
+func (s *State) deferredETBFire(k *prep, ask askRec, n0 uint8) {
+	for i := n0; i < s.g.nask; i++ {
+		if s.g.ask[i].sl == ask.sl {
+			s.g.ask[i].ts |= askETBDeferred
+			return
+		}
+	}
+	o := s.perms[ask.sl].obj
+	if s.objs[o].zone == kop.ZoneBattlefield && s.anyETB(k) {
+		s.fireObj(k, kop.TrigETB, ask.sl, o, s.perms[ask.sl].ctrl, 0)
+	}
+}
+
 func (s *State) pccEnterAnswer(k *prep, ask askRec, a Action) {
 	p := &s.perms[ask.sl]
 	if s.objs[p.obj].zone == kop.ZoneBattlefield {

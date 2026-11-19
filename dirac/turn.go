@@ -202,8 +202,9 @@ func (s *State) beginStep(k *prep) {
 			s.step = kop.StepMain1
 			return
 		}
-		s.g.drawFirst = true  // repl_draw.go: the first card drawn in this draw step
-		s.g.drawStepN = 0     // trig_drawstep.go: no card drawn in this draw step yet
+		s.g.drawFirst = true // repl_draw.go: the first card drawn in this draw step
+		s.g.drawStepN = 0    // trig_drawstep.go: no card drawn in this draw step yet
+		n0 := s.npend
 		if !s.out(s.active) { // a departed active player draws nothing (gorge turn.go)
 			if s.dredgeTurnAsk(k) {
 				return // kw_dredge.go: the active player's dredge ask comes first
@@ -214,7 +215,9 @@ func (s *State) beginStep(k *prep) {
 		if s.over {
 			return
 		}
+		n1 := s.npend
 		s.firePhase(k, kop.StepDraw)
+		s.pendFirst(n0, n1) // the step's own triggers ahead of the draw's
 		s.openPriority()
 	case kop.StepMain1, kop.StepMain2:
 		s.firePhase(k, s.step)
@@ -1366,4 +1369,24 @@ func (s *State) applyLegend(k *prep, a Action) {
 	if s.parkedWaiting() {
 		s.ctl = ctlExileOrder
 	}
+}
+
+// pendFirst moves the pending triggers queued from n1 on ahead of those
+// queued from n0 to n1, keeping each run's order. gorge scans its log in
+// event order and its draw step's Step event comes before the turn draw
+// (CR 504.1), so "at the beginning of each player's draw step" triggers are
+// queued before the draw's "whenever ... draws" ones (Nekusar, the
+// Mindrazer's two triggers, offered in that order for the CR 603.3b order).
+func (s *State) pendFirst(n0, n1 uint8) {
+	if n1 <= n0 || s.npend <= n1 {
+		return
+	}
+	rev := func(a, b uint8) {
+		for i, j := int(a), int(b)-1; i < j; i, j = i+1, j-1 {
+			s.pend[i], s.pend[j] = s.pend[j], s.pend[i]
+		}
+	}
+	rev(n0, n1)
+	rev(n1, s.npend)
+	rev(n0, s.npend)
 }

@@ -270,3 +270,16 @@ func TestPutCounterAllSubLinkPlayerTargetCastEndToEnd(t *testing.T) {
 	 "steps":[{"op":"cast","seat":0,"card":"p0:Twisted Fates","mana":"CCWWB","targets":["p1:Ornithopter","p0"]},{"op":"resolve"}],
 	 "expect":[{"card":"p1:Ornithopter","zone":"graveyard"},{"card":"p0:Grizzly Bears","counters":{"P1P1":1}},{"card":"p1:Runeclaw Bear","counters":{"P1P1":0}}]}`)
 }
+
+// TestAttackTriggerRememberAmountFeedsReflexiveTrigger pins CR 603.12 on
+// Auron, Venerated Guardian: its attack trigger's capture is Auron itself,
+// and the +1/+1 counter it puts on Auron is remembered as one Auron entry.
+// Excluding the capture must not eat that entry, or Count$RememberedNumber
+// reads 0 and the "when you do" exile never triggers.
+func TestAttackTriggerRememberAmountFeedsReflexiveTrigger(t *testing.T) {
+	t.Parallel()
+	runRememberScenario(t, `{"name":"auron","cr":["603.12"],"why":"x",
+	 "setup":{"p0":{"battlefield":["Auron, Venerated Guardian"]},"p1":{"battlefield":["Grizzly Bears"]}},
+	 "steps":[{"op":"attack","seat":0,"attackers":["p0:Auron, Venerated Guardian"],"defender":"p1"},{"op":"resolve","targets":["p1:Grizzly Bears"]},{"op":"resolve"}],
+	 "expect":[{"card":"p0:Auron, Venerated Guardian","counters":{"P1P1":1}},{"card":"p1:Grizzly Bears","zone":"exile"}]}`)
+}

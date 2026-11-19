@@ -1032,6 +1032,19 @@ func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 	if cond.Kind != cNone || guardAt >= 0 || setPred != nil {
 		lc.markUnlessGuarded(usN) // a skip over the node alone (lower_unlesssubs.go)
 	}
+	if cond.Kind != cNone && guardAt < 0 && at < len(lc.ab.Prog) && lc.ab.Prog[at].Op == "IfPaid" && lc.ab.Prog[at].Skip == -1 {
+		// a trigger's own "you may pay" cost (Feed the Pack's Sac<1/...>):
+		// gorge's triggered-cost window pays it before the body runs, and the
+		// body's conditions are checked as it resolves, so the condition
+		// reads what the payment did (ConditionCheckSVar$ X, X the
+		// sacrificed creature's toughness). The guard goes behind the
+		// payment, over the rest of the node.
+		n := len(lc.ab.Prog) - at - 1
+		lc.ab.Prog = append(lc.ab.Prog, lInstr{})
+		copy(lc.ab.Prog[at+2:], lc.ab.Prog[at+1:])
+		lc.ab.Prog[at+1] = lInstr{Op: "SkipIf", Cond: cond, Skip: n}
+		cond = lCond{}
+	}
 	if cond.Kind != cNone {
 		n := len(lc.ab.Prog) - at
 		lc.ab.Prog = append(lc.ab.Prog, lInstr{})
