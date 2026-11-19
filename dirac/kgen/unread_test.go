@@ -10,7 +10,7 @@ var unreadForms = []formCase{
 	{card: "Reckless Impulse", form: "Dig Imprint$ True on a spell that never reads it: consumed (the record dies with the spell)", lir: "MayPlay obj=Remembered"},
 	{card: "Citadel Gate", form: "ChooseColor Exclude$ white: C=1, the excluded colour bits (gorge chooseColorOptions)", lir: "ChooseColor obj=You C=1"},
 	{card: "Ascendant Packleader", form: "etbCounter IsPresent$ on the replacement: a Present condition on the enters program", lir: "cond=Present({types=0x9f ctrl=1 cmp(2 1 4  )},op1,1)"},
-	{card: "Confront the Assault", form: "a spell's IsPresent$ is a cast restriction (spell Trig.Cond; gorge cr-spell-ispresent-cast-gate; attackingYou: an attacking creature an opponent controls)", lir: "activate turnonce=false cond=Present({types=0x2 ctrl=2 Attacking},op1,1)"},
+	{card: "Confront the Assault", form: "a spell's IsPresent$ is a cast restriction (spell Trig.Cond; gorge cr-spell-ispresent-cast-gate; attackingYou: an attacking creature whose defending player is you)", lir: "activate turnonce=false cond=Present({types=0x2 Attacking cmp(37 0 0  )},op1,1)"},
 	{card: "Brainstorm", form: "hand put-back without ChangeType$: a mandatory hand move of 2 to the library (gorge effChangeZoneHand)", lir: "ChooseMove obj=You A=2 C=4 CS=from=Hand|Mandatory"},
 	{card: "Lembas", form: "ChangeNum$ 1 / Mandatory$ on a Defined$ shuffle-in: inert (gorge's object path)", lir: "ToLibrary obj=TriggeredNew CS=TopShuffle|from=Graveyard"},
 	{card: "Floodpits Drowner", form: "ThisDefinedAndTgts$ Self on a shuffled move: the target, then this, one shuffle per owner", lir: "ToLibraryPair obj=Target0"},

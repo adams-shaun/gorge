@@ -52,3 +52,12 @@ func (lc *lowerCtx) livingBound(t *lTarget) {
 	lc.twoSeat("the living players counted as two")
 	t.Max = cst(2)
 }
+
+// oppCountMax is oppCountBound on a target maximum, which a OneEach slot
+// keeps as it is: forEachOpp sets its bound (lower_targeteachopponent.go).
+func (lc *lowerCtx) oppCountMax(ps *params, v lValue) lValue {
+	if lc.oppOneEach(ps) {
+		return v
+	}
+	return lc.oppCountBound(v)
+}

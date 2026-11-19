@@ -963,6 +963,10 @@ type lTrigger struct {
 	// .OppCtrl], so the targeting stack entry must be an ability
 	// (kop.TrigNSrcAbility).
 	SrcAbility bool
+	// SrcCtrl: a SpellAbility.OppCtrl watcher whose body reads the targeting
+	// entry's controller (TriggeredSourceController): the trigger player
+	// carries it (kop.TrigNSrcCtrl; lower_trigrefs.go readWatchSourceCtrl).
+	SrcCtrl bool
 	// PlayerAlt: F carries a player alternative (You / Player / Opponent).
 	// The builder emits it as an FPlayer chain entry (filterPlayerAlt) and
 	// the kernel's player walk matches it with castTargetsPlayer.

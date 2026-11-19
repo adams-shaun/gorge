@@ -1228,7 +1228,11 @@ func (s *State) damageSeqNext(k *prep, n int) {
 			continue
 		}
 		if MaxSeats != 2 && s.g.dmgSeqPl != 0 {
-			q := s.aliveFrom(s.res.e.ctrl)
+			from := s.res.e.ctrl
+			if s.g.dmgSeqPl&dmgSeqSeat0 != 0 {
+				from = 0 // OppNonTriggeredTarget's seat order (damageOtherOpps)
+			}
+			q := s.aliveFrom(from)
 			for i := uint8(0); i < q.n; i++ {
 				if p := q.s[i]; s.g.dmgSeqPl&(1<<p) != 0 {
 					s.g.dmgSeqPl &^= 1 << p

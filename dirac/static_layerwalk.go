@@ -644,6 +644,9 @@ func (s *State) matchCurOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Sl
 	if fl.Pred == kop.PredAttached {
 		return s.predAttached(sl, src)
 	}
+	if isAttackingYou(fl) {
+		return s.attackingYou(k, sl, ctrl) // the static's controller (filter_attackingyou.go)
+	}
 	return s.predPermGen(k, fl, sl, src, layerKw)
 }
 
