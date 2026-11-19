@@ -81,12 +81,12 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 			battlefield = true
 		}
 	}
-	if !battlefield && spec != "Remembered" && spec != "Targeted" {
+	if !battlefield && !cards.TwoPilesDefinedCardsSupported(spec) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unimplemented TwoPiles shape: DefinedCards$ " + spec})
 		return
 	}
-	if v := strings.TrimSpace(sa.ParamStr(cards.PKFaceDown)); v != "" && !strings.EqualFold(v, "One") {
+	if v := strings.TrimSpace(sa.ParamStr(cards.PKFaceDown)); v != "" && !strings.EqualFold(v, "One") && !strings.EqualFold(v, "True") {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unimplemented TwoPiles shape: FaceDown$ " + v})
 		return
@@ -109,16 +109,7 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 		pool = p
 		ids = twoPilesBattlefieldSet(h, c, sa, pool)
 	} else {
-		set := objectsOf(rememberedExcludingCapture(h, c))
-		if spec == "Targeted" {
-			set = objectsOf(c.Targets)
-		}
-		ids = make([]state.ObjID, 0, len(set))
-		for _, t := range set {
-			if o := g.Obj(t.Obj); o != nil {
-				ids = append(ids, o.ID)
-			}
-		}
+		ids = twoPilesFixedSet(h, c, spec)
 	}
 	if len(ids) == 0 {
 		// Forge returns when the card list is empty: no ask, no movement,
@@ -166,12 +157,8 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 	// (Forge's core carriers all do); UnchosenPile$ is optional — Brilliant
 	// Ultimatum leaves the unchosen pile in exile. An unresolvable value
 	// emitted its own Note inside pileBodyFor and stops the walk.
-	chosenBody := twoPilesBodyFor(h, c, sa.ParamStr(cards.PKChosenPile), "ChosenPile")
-	if chosenBody == "" {
-		return
-	}
-	unchosenBody := twoPilesBodyFor(h, c, sa.ParamStr(cards.PKUnchosenPile), "UnchosenPile")
-	if strings.TrimSpace(sa.ParamStr(cards.PKUnchosenPile)) != "" && unchosenBody == "" {
+	chosenBody, unchosenBody, ok := twoPilesBodies(h, c, sa)
+	if !ok {
 		return
 	}
 
@@ -200,12 +187,12 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 
 		pileA, pileB := splitSet(ids, pileA)
 		pickB := twoPilesPosePick(h, c, sa, chooser)
-		twoPilesRunPiles(h, c, chosenBody, unchosenBody, pickB, pileA, pileB)
+		twoPilesRunPiles(h, c, sa, chosenBody, unchosenBody, pickB, pileA, pileB)
 		return
 	}
 	// One-card set: the split ask is skipped, the chooser is still asked.
 	pickB := twoPilesPosePick(h, c, sa, chooser)
-	twoPilesRunPiles(h, c, chosenBody, unchosenBody, pickB, ids[:1], nil)
+	twoPilesRunPiles(h, c, sa, chosenBody, unchosenBody, pickB, ids[:1], nil)
 }
 
 // twoPilesBodyFor validates a ChosenPile$/UnchosenPile$ value: it must be an
@@ -224,6 +211,22 @@ func twoPilesBodyFor(h Host, c *Ctx, value, label string) string {
 		return ""
 	}
 	return v
+}
+
+// twoPilesBodies validates the ChosenPile$/UnchosenPile$ SVar names. ok is
+// false (after a Note) for an unresolvable name or a missing ChosenPile$ that
+// RememberChosen$ True does not excuse; an empty body is simply not run.
+func twoPilesBodies(h Host, c *Ctx, sa *cards.SA) (chosen, unchosen string, ok bool) {
+	chosen = twoPilesBodyFor(h, c, sa.ParamStr(cards.PKChosenPile), "ChosenPile")
+	if chosen == "" && (strings.TrimSpace(sa.ParamStr(cards.PKChosenPile)) != "" ||
+		twoPilesDefinedPilesValue(sa) != "" || !twoPilesRemembersChosen(sa)) {
+		return "", "", false
+	}
+	unchosen = twoPilesBodyFor(h, c, sa.ParamStr(cards.PKUnchosenPile), "UnchosenPile")
+	if strings.TrimSpace(sa.ParamStr(cards.PKUnchosenPile)) != "" && unchosen == "" {
+		return "", "", false
+	}
+	return chosen, unchosen, true
 }
 
 // twoPilesRunPile runs one pile body with the pile as its Remembered set.
@@ -252,8 +255,20 @@ func twoPilesRunPile(h Host, c *Ctx, name string, pile []state.ObjID) {
 }
 
 // twoPilesRunPiles runs the bodies once the pick is settled: ChosenPile$ on
-// the chosen pile, UnchosenPile$ on the other.
-func twoPilesRunPiles(h Host, c *Ctx, chosenBody, unchosenBody string, pickB bool, pileA, pileB []state.ObjID) {
+// the chosen pile, UnchosenPile$ on the other. RememberChosen$ True first adds
+// the chosen pile to the resolution's Remembered set (Forge's
+// host.addRemembered(chosenPile)), where a later sub-ability or the enclosing
+// RepeatEach fold reads it.
+func twoPilesRunPiles(h Host, c *Ctx, sa *cards.SA, chosenBody, unchosenBody string, pickB bool, pileA, pileB []state.ObjID) {
+	if twoPilesRemembersChosen(sa) {
+		chosen := pileA
+		if pickB {
+			chosen = pileB
+		}
+		for _, id := range chosen {
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		}
+	}
 	if pickB {
 		twoPilesRunPile(h, c, chosenBody, pileB)
 		twoPilesRunPile(h, c, unchosenBody, pileA)
@@ -296,16 +311,12 @@ func effTwoPilesDefined(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	}
-	chosenBody := twoPilesBodyFor(h, c, sa.ParamStr(cards.PKChosenPile), "ChosenPile")
-	if chosenBody == "" {
-		return
-	}
-	unchosenBody := twoPilesBodyFor(h, c, sa.ParamStr(cards.PKUnchosenPile), "UnchosenPile")
-	if strings.TrimSpace(sa.ParamStr(cards.PKUnchosenPile)) != "" && unchosenBody == "" {
+	chosenBody, unchosenBody, ok := twoPilesBodies(h, c, sa)
+	if !ok {
 		return
 	}
 	pickB := twoPilesPosePick(h, c, sa, chooser)
-	twoPilesRunPiles(h, c, chosenBody, unchosenBody, pickB, pileA, pileB)
+	twoPilesRunPiles(h, c, sa, chosenBody, unchosenBody, pickB, pileA, pileB)
 }
 
 // twoPilesPileObjs resolves one DefinedPiles$ selector to the live objects it
