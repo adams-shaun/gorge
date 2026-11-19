@@ -11,3 +11,16 @@ func TestMBCDismemberReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "phyrexian_pip_face_from_dual_combo_land")
 }
+
+// CR 605.3a with CR 601.2g: Dismember's fallback payment window (pool [B,G],
+// {1}{B}{B} owed, one {B} still lacking) listed Bog Initiate's "{1}: Add {B}."
+// forever: the stall rule modelled the fee's generic part as paid from the
+// mana no fixed pip needs (the {G}), but the live payment spends generic mana
+// in C,W,U,B,R,G order (pay/solve.go), so it ate the owed {B} and the
+// activation changed nothing (a livelock at decision 224, tail-49 pair 108).
+// feeOnlyConversionStalls and windowFeeStalls pay the generic part in that
+// order too.
+func TestMBCDismemberFeeOnlyStallOrderLockstep(t *testing.T) {
+	t.Parallel()
+	stdReproNamed(t, "feeonly-stall-order")
+}

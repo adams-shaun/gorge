@@ -51,7 +51,9 @@ func feeOnlyConversionStalls(pp potentialPricer, p state.PlayerID, id state.ObjI
 	}
 	before := short(pool)
 	// The fee's coloured pips are paid first, then its generic part from the
-	// mana no fixed pip of the payment needs, then from any (pay/solve.go).
+	// pool in the order pay/solve.go spends it: {C}, then W, U, B, R, G. That
+	// order ignores the pips still owed, so it can spend the very colour the
+	// activation is meant to supply.
 	for i := range pool {
 		if fee.Colored[i] > pool[i] {
 			return false // the live gate already withholds an unpayable fee
@@ -60,17 +62,7 @@ func feeOnlyConversionStalls(pp potentialPricer, p state.PlayerID, id state.ObjI
 	}
 	for g := fee.Generic; g > 0; g-- {
 		spent := false
-		for i := range pool {
-			if pool[i] > comp.Colored[i] {
-				pool[i]--
-				spent = true
-				break
-			}
-		}
-		if spent {
-			continue
-		}
-		for i := range pool {
+		for _, i := range [...]int{state.MC, state.MW, state.MU, state.MB, state.MR, state.MG} {
 			if pool[i] > 0 {
 				pool[i]--
 				spent = true
