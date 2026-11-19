@@ -327,6 +327,15 @@ var addedAfterTheSplit = []string{
 	// the MODE name is new, so no pre-split switch arm could have dispatched
 	// it.
 	"ManaAdded",
+	// edh-trigB: three modes over events that existed but that no pre-split
+	// arm dispatched. ExcessDamage (Toralf, God of Fury) is ExcessDamageAll's
+	// singular sibling over the ordinary Damage event, with the per-event
+	// excess amount rules' damageTriggerAmount computes for it; PayLife
+	// (Font of Agonies) matches the unlogged positive pay-life proposal
+	// interceptPayLifeProposal dispatches from the marked cost settlement;
+	// Shuffled (Widespread Panic) matches the Secret Shuffle event a
+	// resolving spell or ability emits (InResolution with an ActionCause).
+	"ExcessDamage", "PayLife", "Shuffled",
 }
 
 func allRegisteredModeNames() []string {
