@@ -4,6 +4,7 @@ Aeronaut Admiral	cad8136cfcb286cd	4	0/0		0/0
 Alhammarret, High Arbiter	db51cbc43c0513fc	7	0/0		0/0	
 Aligned Heart	ac48147005e691dc	3	1/1		0/1	ix:resp
 Altar of Bhaal	2c178e2719583076	12	1/1		1/2	ix:resp
+Altar of Bone	3893be4fb5dd4f45	4	0/0		2/2	
 An-Havva Inn	d77d5492d44dc5e1	6	0/0		1/2	ix:resp
 Avabruck Caretaker	b03bcc5ed0663c1e	10	2/2		1/1	
 Avenging Hunter	4e2b8b7e1638525e	5	1/1		1/1	
@@ -21,6 +22,7 @@ Cogwork Spy	b5a25b41cc931247	33	0/0		0/0
 Concord with the Kami	bbe13543ee348442	15	1/1		1/1	
 Consider	7a4cba30568ede20	3	0/0		2/2	
 Consign	0c419218b21a82f3	5	0/0		3/5	f1/s,ix:resp
+Constable of the Realm	19db6d60af022488	4	2/2		0/1	ix:resp
 Covert Operative	8380f3330f8fa4a4	3	0/0		0/0	
 Crackling Doom	0ca01fc7a2b24900	6	0/0		2/2	
 Crested Herdcaller	9580d51fd54ab725	3	1/1		0/1	ix:resp
@@ -42,6 +44,7 @@ Fires of Victory	cd3d3622b1897ac2	4	0/0		2/4	cast/alt:kicked,ix:resp
 Firewing Phoenix	7070fe7456006d9e	11	1/1		1/1	
 Fleetwheel Cruiser	85e8a0fcc7bc0a9c	11	2/2		1/1	
 Furious Assault	1e33149c6f74fda9	4	1/1		0/1	ix:resp
+Genestealer Locus	45a8e93717d62e71	4	2/2		1/1	
 Ghost-Lit Raider	8dc1db6a136d9c93	6	2/2		1/1	
 Gilt-Blade Prowler	5cc07ae2cf9efd1e	13	1/1		0/1	ix:resp
 Goblin Champion	9fc07f38c302164a	10	1/1		0/1	ix:resp
@@ -52,6 +55,7 @@ Hanabi Blast	31d7129bdd3c21db	6	0/0		1/2	ix:resp
 Harsh Scrutiny	13a49b8b2e68ed1f	6	0/0		1/2	ix:resp
 Harvesttide Sentry	972ad275cd946380	5	1/1		0/1	ix:resp
 Heartless Pillage	9b87700dbb54534d	4	0/0		1/2	ix:resp
+Heron's Grace Champion	97c3bbba2dc53da7	6	1/1		0/1	ix:resp
 High Score	453d855d72eb9ce0	7	1/1		0/1	ix:resp
 Hunting Moa	596e30abfb225bc9	12	3/3		0/1	ix:resp
 Imaginary Friends	0e37cd3d9ce42fd9	12	0/0		1/2	ix:resp
@@ -123,6 +127,7 @@ Songbird, Sonic Screamer	fd92cb1d9e286f97	4	1/1		1/1
 Soul's Majesty	7af9badfc9a6985c	5	0/0		2/2	
 Spitting Drake	c64ca2747c765529	3	1/1		0/1	ix:resp
 Star Pupil	2fda6678e3c83515	5	1/1		0/1	ix:resp
+Steam Spitter	06abe3e636386faa	3	1/1		1/1	
 Steely Resolve	0a25dc23549283d8	4	0/0		0/0	
 Stolen Grain	6f6ca68d2e959781	10	0/0		1/2	ix:resp
 Stormscape Master	68822a6832f57eb9	4	2/2		0/1	ix:resp
@@ -142,6 +147,7 @@ The Falcon, Airship Restored	ecbce2bddc8699e6	4	3/3		1/1
 Timber Protector	6fb28d3475d2d7e7	5	0/0		0/0	
 Timeless Lotus	272cbb2b4c8772b9	4	1/1		0/1	ix:resp
 Town Gossipmonger	17f61654f1b790d3	14	2/2		1/1	
+Triumph of the Hordes	bc04a07654e449f7	3	0/0		2/2	
 Turn Aside	974d5e263056d6c6	8	0/0		2/2	
 Unbreakable Formation	877d8d4eb1b192db	4	0/0		1/2	ix:resp
 Unstable Frontier	12a5d0ee6c074b4c	20	2/2		1/1	
@@ -156,5 +162,6 @@ Wildest Dreams	44f94149c2d4f52b	3	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
 Wrack with Madness	1b9e0f7650a52d64	4	0/0		1/2	ix:resp
 Wrong Turn	9bbe71d52570827d	6	0/0		1/2	ix:resp
 Wu Longbowman	79893f17cb5954b5	4	1/1		0/1	ix:resp
+Yeva's Forcemage	122d38a57238a45f	8	1/1		1/1	
 Yomiji, Who Bars the Way	f17ffaf1303afa6e	4	1/1		0/1	ix:resp
 Zulaport Duelist	65ec7b4adbdbeac0	4	1/1		0/1	ix:resp

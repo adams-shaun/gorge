@@ -31,15 +31,19 @@ Cabal Archon	783a908b73078cdc	66	1/1		1/1
 Carrion Howler	e5f23cbe5bc2f93a	41	1/1		1/1	
 Cartouche of Strength	23025413eab0fb8b	48	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
 Char	87e447d24c46247d	8	0/0		2/2	
+Chemister's Insight	04dbfa9dfab4dde4	8	0/0		3/4	cast/alt:jumpstart
 Chime of Night	5b83acc81d4ad4f4	56	1/1		2/2	
 Chishiro, the Shattered Blade	bb0d8769ddd3e10f	8	2/2		0/1	ix:resp
 Chrome Cat	019954283153ccf8	3	1/1		0/1	ix:resp
 Conclave's Blessing	5af9dfb31f932465	8	0/0		2/2	
 Corpse Hauler	27ecc9234ab3e274	4	1/1		0/1	ix:resp
 Corrupted Resolve	3baf5d16004767bf	61	0/0		2/2	
+Cosmic Epiphany	c950e9151f22189e	7	0/0		2/2	
 Crucible of Worlds	8d2ea0313646d32d	84	0/0		0/0	
 Cryptolith Rite	dd93f79887a0dcd9	29	0/0		0/0	
+Dauthi Voidwalker	f39d62532698f41b	4	1/1		1/1	
 Deb Thomas	9092562d0ac0831c	4	3/3		1/1	
+Deep-Sea Serpent	9a1f9e5ccdf0f34b	7	0/0		0/0	
 Defy Gravity	98f2ddc7257662ef	86	0/0		3/4	ix:resp
 Desecration Elemental	dc05770dbe5d2f7e	4	1/1		0/1	ix:resp
 Despoiler of Souls	7f083e1a4127e375	8	1/1		0/1	ix:resp
@@ -60,6 +64,7 @@ Erebos, Bleak-Hearted	a47da28e89ca2519	34	2/2		1/1
 Essence Capture	0e36051c67fc229b	43	0/0		2/2	
 Everflame Eidolon	afd03ff322e2e637	83	1/1		3/3	
 Executioner's Hood	f2cb0bb5bced647e	9	1/1		0/1	ix:resp
+Fae of Wishes	7b4ecbd9c64e2c03	10	1/1		1/2	ix:resp
 Faithful Pikemaster	380f2a965954a029	21	1/1		1/1	
 Falkenrath Marauders	c24f6cec34c705fa	3	1/1		0/1	ix:resp
 Fated Conflagration	a1823dc71deafa3a	6	0/0		1/2	ix:resp
@@ -74,12 +79,15 @@ Giant Strength	112ede777b3f9bb0	46	0/0		2/2
 Goblin Warchief	f6bccc69c3a114f8	6	0/0		0/0	
 Goliath Spider	b1d7c9638798ea3e	4	0/0		0/0	
 Gorma, the Gullet	a1833f92b1836cd7	8	1/1		1/1	
+Grim Backwoods	221026a2fb4926b0	40	2/2		0/1	ix:resp
 Grim Guardian	40ca779a6aa4b623	6	1/1		0/1	ix:resp
 Growth-Chamber Guardian	e28293990f55ad2a	33	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Gustha Ebbasdotter	43c3ba211bfdeaf2	23	1/1		0/1	ix:resp
 Gutter Skulk	fc9df1811f72e49c	14	0/0		0/0	
 Healing Leaves	3d726bdc9d9a218c	37	0/0		2/2	
+Ill-Tempered Cyclops	17f4a8b43c9a4b09	6	1/1		1/1	
 Imoti, Celebrant of Bounty	3b12e2db79d392a7	7	0/0		0/0	
+Infuse	8c09f73838ef0b18	6	0/0		1/2	ix:resp
 Innocuous Researcher	09f85199a80cc55a	40	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Inside Out	096d7df4f6366849	21	0/0		2/2	
 Inspired Inventor	074d78e9432dd201	4	1/1		0/1	ix:resp
@@ -104,12 +112,14 @@ Lumengrid Warden	64cb01284365b8c1	36	0/0		0/0
 Lychguard	6291625f68b9a10f	7	1/1		1/1	
 Madame Hydra, Reanimated	72691cee36415763	19	2/2		1/1	
 Magic Missile	21c55cd784c607f7	32	0/0		2/2	
+Mana Short	e27ea6e50cbd4aae	12	0/0		1/2	ix:resp
 Manriki-Gusari	7ffd80d40df8fa90	4	1/1		0/1	ix:resp
 Map the Wastes	0bf7aba59b8f8d3e	18	0/0		1/2	ix:resp
 Marsh Viper	283d0ef14fbad099	3	1/1		1/1	
 Mary Read and Anne Bonny	abef3ea4180dd477	27	2/2		1/1	
 Mask of the Jadecrafter	3647839288e508f1	104	2/2		1/1	
 Mending Hands	73cceaa8dddf6c9f	3	0/0		1/2	ix:resp
+Messenger Drake	b0dd11a6e40f57eb	6	1/1		1/1	
 Metrognome	91c948c9b45b79b3	4	2/2		1/1	
 Midnight Covenant	84ef9cea3a9075ba	56	0/0		1/2	ix:resp
 Mindwarper	17459aef9f8c5f7c	8	1/1		0/1	ix:resp
@@ -155,6 +165,7 @@ Roving Harper	0c1aebdec205843b	4	1/1		0/1	ix:resp
 Rust Tick	4907e82ccff4ab39	51	1/1		1/1	
 Sacred Nectar	ce0f509afe7adcdd	30	0/0		1/2	ix:resp
 Saddleback Lagac	2ead5a82d123d7f6	30	1/1		1/1	
+Screamer-Killer	dd99a59579dfa4eb	6	1/1		0/1	ix:resp
 Scuttling Sentinel	3e7044c079b753ad	16	1/1		1/1	
 Sea's Claim	5a85ed60f30c7230	22	0/0		1/2	ix:resp
 Seer's Vision	0523ea1db7149a8d	4	1/1		0/1	ix:resp
@@ -174,6 +185,7 @@ Sludge Monster	e44b71b9981afd1a	27	2/2		1/1
 Slum Reaper	3aa570dd8fc34304	35	1/1		1/1	
 Smitten Swordmaster	ebb42a373252c22e	3	0/0		1/2	ix:resp
 Song of Eärendil	3a0f2a3c25c6877e	37	0/0		0/0	
+Soul Sear	c7f9fb7d7b378ef6	8	0/0		2/2	
 Spawning Grounds	bba18e07fbd42872	3	0/0		1/2	ix:resp
 Spiketail Drakeling	fa3b58a9587dce03	37	1/1		1/1	
 Spiteful Motives	5f9a771d40c16998	50	0/0		2/2	
@@ -194,6 +206,7 @@ Titan's Strength	4c4e78ea9527a413	78	0/0		2/2
 Tormentor's Trident	38735b7a18e1bac3	101	1/1		1/1	
 Treachery	3ce0072feacef208	3	1/1		1/2	ix:resp
 Trokin High Guard	7063ae8de6d1272e	4	0/0		0/0	
+Tui and La, Moon and Ocean	3015133d045fac62	8	2/2		1/1	
 Two-Headed Giant of Foriys	97fe9df449f4a528	16	0/0		0/0	
 Two-Headed Zombie	334a74a5250e0791	8	0/0		0/0	
 Undercity Uprising	bf4ed4515a2ca49a	3	0/0		1/2	ix:resp

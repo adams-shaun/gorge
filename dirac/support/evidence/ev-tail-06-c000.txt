@@ -233,6 +233,7 @@ Leaf Gilder
 Leafcrown Dryad
 Lesser Masticore
 Leyline of Vitality
+Lictor
 Lightning Surge
 Liliana's Talent
 Locthwain Lancer

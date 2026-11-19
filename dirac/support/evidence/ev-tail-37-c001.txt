@@ -316,6 +316,7 @@ Snap
 Soltari Priest
 Soratami Rainshaper
 Sorin's Vengeance
+Sosuke's Summons
 Soul Reap
 Spawning Breath
 Spellbane Centaur
@@ -340,6 +341,7 @@ Tainted Adversary
 Tainted Indulgence
 Tangle Mantis
 Tangle Spider
+Tangled Islet
 Target Minotaur
 Tattermunge Duo
 Temur Runemark

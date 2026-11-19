@@ -4,6 +4,7 @@ A-Gnarlid Colony	91246d99a8b4753d	3	0/0		2/2
 Agoraphobia	c0362c6547a16c47	16	1/1		2/2	
 Ajani, Strength of the Pride	50bc14bde358cff5	4	3/3		0/1	ix:resp
 Akroma's Will	713144bd09f9b15b	3	0/0		1/2	ix:resp
+Alabaster Host Intercessor	5590b848cb58eaad	3	2/2		0/1	ix:resp
 Alabaster Mage	6fd91fe59992f78f	4	1/1		0/1	ix:resp
 Algae Gharial	68801551f9998dee	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Alpine Guide	781e51c513c2a400	8	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -14,13 +15,16 @@ Aphemia, the Cacophony	edc27a919b0045e6	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Archdemon of Paliano	f1b6b388dfd5f570	14	0/0		0/0	
 Arctic Aven	d0459b30cf8ee437	10	1/1		0/1	ix:resp
 Artful Dodge	4c1e1f0c23f0f5b7	20	0/0		3/4	ix:resp
+Ascendant Evincar	a7fe9e331da8fe4d	7	0/0		0/0	
 Assassin Initiate	04076b38916ac5dc	18	1/1		1/1	
 Astral Steel	af9164a93018d1b8	11	1/1		2/2	
 Bag End Porter	f80bf1e15a1f64f9	6	1/1		0/1	ix:resp
+Baku Altar	8e67fe3a13e02c51	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Barbarian Lunatic	9f7f196b1a1ffa49	4	1/1		0/1	ix:resp
 Benthicore	572216a62b964cb5	4	2/2		1/1	
 Black Market	3503895018d11120	4	2/2		1/1	
 Blazing Rootwalla	20b16c9134bda93d	10	1/1		0/1	ix:resp
+Blink of an Eye	e9bb647e7e350e84	4	0/0		2/4	cast/alt:kicked,ix:resp
 Blood-Toll Harpy	55f0e65ed949a2ee	12	1/1		0/1	ix:resp
 Bloodbriar	9841cd7c13e5ff62	3	1/1		0/1	ix:resp
 Bloodsworn Squire	f2f429a1999f235b	5	2/2		0/1	ix:resp
@@ -29,6 +33,7 @@ Brute Strength	c455dca363e0e75b	12	0/0		1/2	ix:resp
 Bucky Barnes, Eager Ally	9e1d34915afe4c5d	6	1/1		0/1	ix:resp
 Caller of Gales	33bf112657192c3a	14	1/1		0/1	ix:resp
 Carnophage	40c0494965bcee3a	4	1/1		0/1	ix:resp
+Cerulean Drake	bf4ca6fc66e64e47	12	1/1		1/1	
 Chasm Skulker	14bf18d1ec069f01	10	2/2		0/1	ix:resp
 Cinder Storm	f2e8fba5862200c0	3	0/0		1/2	ix:resp
 Cloudgoat Ranger	7d91b0ce96b3f108	3	2/2		1/1	
@@ -66,6 +71,7 @@ Firebolt	b754bcc4c4da15ed	6	0/0		3/4	ix:resp
 Flametongue Kavu	817878800f01967e	4	1/1		0/1	ix:resp
 Fleshtaker	f040f7ad9eaeccfa	4	2/2		1/1	
 Forbidden Friendship	4bf8af67f3d8e0c1	11	0/0		1/2	ix:resp
+Forced Fruition	a67bc10b08abf995	3	1/1		0/1	ix:resp
 Forest	6d0466c30f825dba	306	1/1		0/1	ix:resp
 Funeral Charm	d239ea89d511a834	5	0/0		2/2	
 Furnace Whelp	f1e6a9b9cfc7967e	3	1/1		1/1	
@@ -119,6 +125,7 @@ Mana Cannons	7ce188d6354c6600	3	1/1		0/1	ix:resp
 Mana Geyser	4ea3ebca92ee52b9	12	0/0		1/2	ix:resp
 Mer Man	6625e8c16f436089	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Metathran Transport	7a81115911d3dfbc	9	1/1		1/1	
+Midsummer Revel	da37268538bf8218	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Mind Knives	b7589479bcdc0d3a	13	0/0		1/2	ix:resp
 Mindless Conscription	f5e609ce6cc8d94d	6	2/2		0/1	ix:resp
 Monstrous Growth	ef2d90c8a1fc9096	4	0/0		1/2	ix:resp
@@ -168,6 +175,7 @@ Send to Sleep	eeca82749f930a30	8	0/0		2/2
 Sentinels of Glen Elendra	fe2d9874ab30d22d	3	0/0		0/0	
 Setessan Griffin	5ed77ddf7b9b0b08	8	1/1		0/1	ix:resp
 Shacklegeist	c88cdec3eabfb513	14	1/1		0/1	ix:resp
+Sheltered Thicket	8e7e8a274635bae9	18	3/3		0/1	ix:resp
 Shenanigans	8645f457c8e760ac	8	0/0		1/2	ix:resp
 Shire Terrace	3992121dcb4a00ff	36	2/2		0/1	ix:resp
 Silkenfist Order	6f9dd2ff0a87136a	3	1/1		0/1	ix:resp

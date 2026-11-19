@@ -12,14 +12,20 @@ Cast Down
 Cateran Enforcer
 Chatter of the Squirrel
 Clot Sliver
+Cloud Elemental
 Cold Storage
+Conclave Mentor
 Dark Betrayal
 Definitely Not a Turtle
 Demystify
 Drana, Liberator of Malakir
+Dryad Greenseeker
 Dwell on the Past
 Enthusiastic Mechanaut
 Evangel of Synthesis
+Explosive Impact
+Familiar Ground
+Farm
 Feral Ridgewolf
 Forest
 Forget
@@ -32,11 +38,13 @@ Goliath, Mass Manipulator
 Harmonic Sliver
 Haunted Cloak
 Heroic Charge
+Highway Robber
 Howlpack Resurgence
 Hyalopterous Lemure
 Irini Sengir
 Island
 Izzet Charm
+Knight of Old Benalia
 Koilos Roc
 Krenko's Enforcer
 Lace with Moonglove
@@ -48,6 +56,7 @@ Magma Phoenix
 Magus of the Candelabra
 Mandibular Kite
 Merrow Bonegnawer
+Mesa Lynx
 Metallic Mastery
 Mind Drain
 Monstrous Hound
@@ -55,28 +64,34 @@ Mountain
 Nephalia Smuggler
 Nyxborn Marauder
 Oashra Cultivator
+Peer Through Depths
 Phantasmal Sphere
 Plains
 Psychic Spear
 Raiding Nightstalker
 Rakshasa's Secret
 Raving Oni-Slave
+Rescue Retriever
 Rhox Brute
 Rofellos, Llanowar Emissary
 Rust Monster
 Saddleback Lagac
 Salt Marsh
 Sandstone Warrior
+Savage Thallid
 Seismic Strike
 Shanna, Sisay's Legacy
 Slaughter Cry
 Swamp
+Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
 Umbral Juke
 Unholy Grotto
 Valley Rannet
+Vexing Sphinx
 Viashivan Dragon
+Vindictive Flamestoker
 Viridian Zealot
 Wander in Death
 Warleader's Helix

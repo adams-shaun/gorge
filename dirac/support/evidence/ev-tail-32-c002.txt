@@ -28,6 +28,7 @@ Border Guard
 Brand
 Brawl-Bash Ogre
 Brood Birthing
+Bull Hippo
 Bushi Tenderfoot
 Capenna Express
 Cast Down
@@ -71,6 +72,7 @@ Familiar Ground
 Farm
 Fault Riders
 Feral Ridgewolf
+Filigree Fracture
 Flamespeaker's Will
 Fleeting Aven
 Floating-Dream Zubera
@@ -117,6 +119,7 @@ Izzet Charm
 Koilos Roc
 Krenko's Enforcer
 Krosan Restorer
+Kukemssa Pirates
 Lace with Moonglove
 Leo's Guidance
 Lesser Gargadon
@@ -159,6 +162,7 @@ Oashra Cultivator
 Obliterate
 Ogre Berserker
 Ondu Cleric
+Oni Possession
 Overrule
 Penance Stare
 Pestermite
@@ -172,6 +176,7 @@ Provoke
 Psychic Spear
 Purifying Dragon
 Pygmy Pyrosaur
+Quicksilver Dagger
 Raiding Nightstalker
 Rakshasa's Secret
 Raving Oni-Slave
@@ -197,6 +202,7 @@ Seeker
 Seismic Strike
 Sewerdreg
 Shackles
+Shanna, Sisay's Legacy
 Shared Discovery
 Skirk Shaman
 Skyclave Cleric
@@ -231,6 +237,7 @@ Tolarian Sentinel
 Tomb Fortress
 Traumatic Revelation
 Tromell, Seymour's Butler
+True Conviction
 Turntimber Ranger
 Tyranid Invasion
 Tyrranax Atrocity

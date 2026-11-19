@@ -9,6 +9,7 @@ Banishing Slash	febf18b340355138	4	0/0		1/2	ix:resp
 Barrowgoyf	832ad4ab055efb28	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Battle Angels of Tyr	3f671ba536129558	19	2/2		0/1	ix:resp
 Beast Within	3b0bc887448dc429	11	0/0		2/2	
+Bewilder	97b0db74eb511e8b	46	0/0		2/2	
 Bhaal's Invoker	a1f34b0d24818ed7	26	1/1		0/1	ix:resp
 Bitter Reunion	be7b57c719911746	88	2/2		1/1	
 Blasting Station	6e7e2b8c2378eb8d	10	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -34,6 +35,7 @@ Expunge	acab15ef5633eda8	3	1/1		2/2
 Exsanguinate	1132aca7332a5ed5	17	0/0		3/4	f0/s/x0
 Faerie Mechanist	8853bef975cea2b8	16	1/1		0/1	ix:resp
 Falkenrath Noble	b85338ebee1a65ab	30	1/1		1/1	
+Felidar Umbra	99db4a60643e631a	44	1/1		2/2	
 Feral Hydra	6077a7089b2cbe25	4	1/1		1/1	
 Flock Impostor	04fcb7352439d021	6	1/1		0/1	ix:resp
 Forest	6d0466c30f825dba	61	1/1		0/1	ix:resp
@@ -49,13 +51,16 @@ Inferno Jet	b0616f368e7a65cb	7	1/1		2/2
 Intangible Virtue	1b6b1833d16a530c	12	0/0		0/0	
 Island	763c67ef7a27eaf5	205	1/1		0/1	ix:resp
 Kami of False Hope	d2be1c3946e2a958	9	1/1		0/1	ix:resp
+Kelpie Guide	a0352f41c8530b08	26	2/2		1/1	
 Kenrith's Transformation	ce5d204ed9f1641b	5	1/1		1/2	ix:resp
 Killer Whale	0baffafee6b01bea	17	1/1		1/1	
 Kor Cartographer	1d0b9a025e607225	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Kor Firewalker	dfb876411ab03679	16	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Leap	e9790221ec848e27	38	0/0		2/2	
 Lore Weaver	556249d5d3f50502	37	2/2		1/1	
 Madcap Skills	cf357134ab1827b4	4	0/0		2/2	
 Merciless Executioner	e813a9b8a926e850	15	1/1		0/1	ix:resp
+Merfolk Seastalkers	e82d29f926e6691a	49	1/1		1/1	
 Molten Birth	c16506e41d2ac1fa	6	0/0		2/2	
 Mountain	9e71388353e907ed	46	1/1		0/1	ix:resp
 Myth Realized	681988063eced015	6	3/3		1/1	
@@ -76,6 +81,7 @@ Rogue's Passage	f4ce658cd3cc9ea4	113	2/2		1/1
 Sage's Reverie	d6466dc7d7560781	4	1/1		1/2	ix:resp
 Scholar of the Ages	f51d072df9f76e16	4	1/1		1/1	
 Sea Gate	efaa5aa35469a6a4	109	1/1		0/1	ix:resp
+Sea Gate Oracle	22b5ef54d75339bc	26	1/1		1/1	
 Sejiri Merfolk	f230e9ed6a92627c	32	0/0		0/0	
 Send in the Pest	2c3ae66b17de743c	13	0/0		2/2	
 Sheoldred, Whispering One	d851189ee73e198f	6	2/2		0/1	ix:resp
@@ -93,6 +99,7 @@ Sword Coast Serpent	83de716a8959c970	69	0/0		2/2
 Trumpeting Herd	2514362987e6ef18	19	0/0		2/2	
 Twinferno	8d38211c9bc6a051	33	0/0		2/2	
 Ultimate Price	d4b34ea3ed7fd1c6	3	0/0		1/2	ix:resp
+Vigean Graftmage	3ccd0ed1c483cb70	19	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Volcanic Dragon	9853a02151354b85	14	0/0		0/0	
 Wall of Corpses	7bcaf2a2e862e36f	16	1/1		0/1	ix:resp
 Wall of Mulch	8523a3f468fa81d6	7	1/1		1/1	
