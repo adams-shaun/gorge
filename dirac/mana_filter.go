@@ -1659,6 +1659,10 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if free && rm != 0 && !fs.tick() {
 				return false // the ask between its census and its restricted ability
 			}
+			zeroAsk := free && rm == 0 && fs.zeroFiltAsk(k, t, sl)
+			if zeroAsk && !fs.tick() {
+				return false // the ask between its free ability and a zero filter (mana_zerofilt.go)
+			}
 			if free {
 				pc := t.manaPCGen(k, sl)
 				mask := t.fundMaskAt(k, pc, sl) // a painland asks its painful colours too (mana_filtpain.go)
@@ -1673,6 +1677,9 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				} else if fs.fundOne(k, t, sl, pc, mask, funded, gapUsed) {
 					return true
 				}
+			}
+			if zeroAsk && fs.zeroFiltFund(k, t, sl, funded, gapUsed) {
+				return true
 			}
 			if bits.OnesCount8(rm) > 1 && !fs.tick() {
 				return false // the restricted ability's colour ask
