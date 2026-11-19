@@ -915,8 +915,11 @@ OpUntapAll	Op	100
 OpUntapChoose	Op	154
 OpWard	Op	38
 OpWarpExile	Op	135
+OppExtAllPl	untyped int	2048
 OppExtAmount	untyped int	1
+OppExtCountCmp	untyped int	1024
 OppExtGrave	untyped int	4
+OppExtGraveAll	untyped int	6
 OppExtHand	untyped int	3
 OppExtLife	untyped int	2
 OppExtLowest	untyped int	256

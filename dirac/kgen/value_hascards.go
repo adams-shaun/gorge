@@ -3,6 +3,8 @@ package kgen
 import (
 	"strconv"
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // hasCardsValue lowers <group>$HasPropertyHasCardsIn{Hand,Graveyard}_Card_<op><bound>
@@ -64,42 +66,17 @@ func (lc *lowerCtx) hasCardsValue(group, rest string) (v lValue, ok bool, err er
 		}
 		bound = bv
 	}
-	bound.Neg = !bound.Neg
-	term := func(opp bool) (lValue, error) {
-		var size lValue
-		switch {
-		case !graveyard && opp:
-			size = lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rEachOpp}}
-		case !graveyard:
-			size = lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}
-		default:
-			spec := "Card.YouOwn"
-			if opp {
-				spec = "Card.OppOwn"
-			}
-			f, ferr := lc.filter(spec)
-			if ferr != nil {
-				return lValue{}, ferr
-			}
-			size = lValue{Kind: vCountGraveyard, N: 1, F: f} // N 1: a token waiting in the graveyard counts, as gorge's zone walk counts it
-		}
-		return lValue{Kind: vCompare, N: 0, Op: op, Sub: []lValue{
-			{Kind: vSum, Sub: []lValue{size, bound}},
-			{Kind: vBranches, Sub: []lValue{cst(1), cst(0)}},
-		}}, nil
+	// each member of the group compared on its own (gorge
+	// hasPropertyStateBacked: hasPropertyCount over the living group), so a
+	// pod counts every opponent, not one (kop.OppExtCountCmp)
+	n := kop.OppExtCountCmp | kop.OppExtHand
+	if graveyard {
+		n = kop.OppExtCountCmp | kop.OppExtGraveAll
 	}
-	opp, err := term(true)
-	if err != nil {
-		return lValue{}, true, err
+	if group != "PlayerCountOpponents" {
+		n |= kop.OppExtAllPl
 	}
-	if group == "PlayerCountOpponents" {
-		return opp, true, nil
-	}
-	you, err := term(false)
-	if err != nil {
-		return lValue{}, true, err
-	}
-	return lValue{Kind: vSum, Sub: []lValue{you, opp}}, true, nil
+	return lValue{Kind: vOppExtreme, N: n, Op: op, Sub: []lValue{bound}}, true, nil
 }
 
 // zeroOne reports whether v is provably 0 or 1: the opponents-who-lost-life
