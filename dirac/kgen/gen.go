@@ -255,7 +255,7 @@ func lowerTokenEntry(p *pool, cards []*lCard, k string) *lCard {
 		return lowerFusedEntry(p, k) // lower_fuse.go
 	case strings.HasPrefix(k, roomKeyPrefix):
 		return lowerRoomEntry(p, k) // lower_rooms.go
-	case k == undercityKey:
+	case isDungeonKey(p, k):
 		return lowerDungeonEntry(p, k) // lower_initiative.go
 	case strings.HasPrefix(k, nameCardKey):
 		return nameCard(cards, k)

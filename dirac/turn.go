@@ -783,8 +783,8 @@ func (s *State) sba(k *prep) bool {
 			if k.anySaga && s.sagaSBA(k) {
 				continue // CR 714.4 sacrificed a Saga: run the pass again
 			}
-			if initOn(k) {
-				s.dungeonSBA(k) // CR 704.5t (act_initiative.go)
+			if s.initSBA(k) {
+				continue // CR 704.5t (act_initiative.go): the completed count rose, the next pass reads it (Precipitous Drop)
 			}
 			if k.anyDayNight && s.dnSBA(k) {
 				continue // CR 702.145c/d/f/g (kw_daynight.go)

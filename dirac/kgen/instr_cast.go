@@ -10,6 +10,7 @@ import (
 func init() {
 	instrOp("GiveGift", (*instrCtx).opGiveGift)
 	instrOp("TakeInitiative", (*instrCtx).opTakeInitiative)
+	instrOp("Venture", (*instrCtx).opVenture)
 	instrOp("MayPlayGrave", (*instrCtx).opMayPlayGrave)
 	instrOp("BecomeMonarch", (*instrCtx).opBecomeMonarch)
 	instrOp("RingTemptsYou", (*instrCtx).opRingTemptsYou)
@@ -34,6 +35,13 @@ func (ic *instrCtx) opTakeInitiative() error {
 		return fmt.Errorf("dungeon %q", in.CS)
 	}
 	ki.C = int16(idx)
+	return nil
+}
+
+func (ic *instrCtx) opVenture() error {
+	ki := &ic.ki
+	// OpExt ExtVenture, Obj the player (dirac/act_venture.go)
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtVenture))
 	return nil
 }
 
@@ -73,7 +81,7 @@ func (ic *instrCtx) opCastFree() error {
 	ki := &ic.ki
 	in := &ic.in
 	fl := ic.fl
-	// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7 | Paid<<8 | UpTo<<9 | SpellMV<<10 | Mandatory<<11
+	// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7 | Paid<<8 | UpTo<<9 | SpellMV<<10 | Mandatory<<11 | Lands<<12
 	// (Repeat: A is the copy count, AllowRepeats$ with Amount$ X)
 	// Obj: RefRemembered (P1), a target slot (P2), or
 	// RefNone with F (P3/P4 filter population).
@@ -105,6 +113,9 @@ func (ic *instrCtx) opCastFree() error {
 	}
 	if _, ok := fl["Mandatory"]; ok {
 		ki.C |= 1 << 11 // no Optional$ True: the offer has no Done while a candidate is left
+	}
+	if _, ok := fl["Lands"]; ok {
+		ki.C |= 1 << 12 // the population may hold lands, offered as land plays (dirac/cast_freeland.go)
 	}
 	if err := ic.objFilter(zoneMap[in.C]); err != nil {
 		return err

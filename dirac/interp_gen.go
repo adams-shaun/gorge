@@ -613,7 +613,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 	case kop.OpCastFree:
 		s.g.nfree, s.g.nfreeAll = 0, 0
-		if in.Obj != kop.RefRemembered || in.C&0xF8 != 0 || in.F != 0 {
+		if in.Obj != kop.RefRemembered || in.C&(0xF8|freeLands) != 0 || in.F != 0 {
 			s.castFreeFillGen(k, in, e) // P2/P3/P4 and P1's new bits
 		} else {
 			for i := 0; i < int(s.g.nrem); i++ {
@@ -650,6 +650,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		if in.C&64 != 0 {
 			s.g.freeP |= freeCopy // Play CopyCard$ True: the cast is of a copy (cast_copycast.go)
+		}
+		if in.C&freeLands != 0 {
+			s.g.freeP |= freeLandsOn // the queue's lands are played (cast_freeland.go)
 		}
 		if in.C&256 != 0 {
 			s.g.freeP |= freePaid // the copy (cast_exilegrant.go) or the play pays its mana cost (turn_gen.go's drain)
