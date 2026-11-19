@@ -59,11 +59,6 @@ const (
 // prices (the covered-source spendability prune is cast-only).
 const potentialCastKind = "cast"
 
-// potentialAbilityKind is an activated ability's potential play kind: the
-// twin cut runs for these, where a fee-carrying gap beside a row of identical
-// basics otherwise spends the budget ordering the basics (tail-26 pair 26).
-const potentialAbilityKind = "ability"
-
 // potentialPrefixScript searches, on clones of the engine, for a sequence
 // of activations of the census's uncovered sources (gaps: the mana
 // abilities the planner census cannot price, e.g. Saruli Caretaker's
@@ -95,7 +90,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		if sr == nil {
 			return nil
 		}
-		sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
+		sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == optAbility
 		for _, id := range gaps {
 			for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
 				if repeatableFeeOnlyMana(e, p, id, ma) {
@@ -206,7 +201,7 @@ func scriptPlayDesc(o decision.Option, castBase func() Cost) (paymentDescriptor,
 	case "cast":
 		cost := castBase()
 		return paymentDescriptor{ID: o.Obj, Class: pay.PurposeSpell, Cost: &cost}, true
-	case "ability":
+	case optAbility:
 		return paymentDescriptor{ID: o.Obj, Class: pay.PurposeActivated}, true
 	}
 	return paymentDescriptor{}, false
@@ -274,7 +269,7 @@ type scriptSearch struct {
 	// source only moves the node walk other searches share a budget with (the
 	// granted-mana prefix's capSpent). The landed ask prune (feeStall) stays
 	// on every plain run; the twin cut (scriptTwin) runs on this fee-only
-	// path and for activated plays.
+	// path and for printed or gained activated plays.
 	feeOnly bool
 	// feeStall arms the plain run's doomed-branch prune (feeOnlyAskPrune): a
 	// fee-only repeatable gap's colour ask drops the answers whose colour
@@ -443,7 +438,7 @@ func scriptPlayBaseCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a
 			return costvocab.Cost{}, false
 		}
 		return r.castOfferBase(p, a.Obj), true
-	case "ability":
+	case optAbility:
 		pa, ok := o.PileAbilityAt(a.Ability)
 		if !ok || pa.SA == nil {
 			return costvocab.Cost{}, false
@@ -532,7 +527,7 @@ func (sr *scriptSearch) run(e *Engine) ([]ScriptStep, bool) {
 // but does not read its tapped state), ending the search in a dead-end
 // script that hides every other prefix.
 func (sr *scriptSearch) ownTapSource(c *Engine, id state.ObjID) bool {
-	if sr.play.Kind != "ability" || id != sr.play.Obj {
+	if sr.play.Kind != optAbility || id != sr.play.Obj {
 		return false
 	}
 	o := c.G.Obj(id)
@@ -550,7 +545,7 @@ func (sr *scriptSearch) ownTapSource(c *Engine, id state.ObjID) bool {
 // among them when Supportive Parents' second activation has only him and one
 // other creature left, and the node pricing would still call the play payable.
 func (sr *scriptSearch) tappedOwnSource(c *Engine) bool {
-	if sr.play.Kind != "ability" {
+	if sr.play.Kind != optAbility {
 		return false
 	}
 	o := c.G.Obj(sr.play.Obj)
@@ -565,7 +560,7 @@ func (sr *scriptSearch) tappedOwnSource(c *Engine) bool {
 // search tries the next source (another creature the Ring equips) instead of
 // ending in a dead-end script that hides every other prefix.
 func (sr *scriptSearch) leftOwnZone(c *Engine) bool {
-	if sr.play.Kind != "ability" {
+	if sr.play.Kind != optAbility {
 		return false
 	}
 	o := c.G.Obj(sr.play.Obj)
@@ -601,7 +596,7 @@ func (sr *scriptSearch) waitsForStack(c *Engine) bool {
 	if o == nil || o.Face() == nil {
 		return false
 	}
-	if sr.play.Kind == "ability" {
+	if sr.play.Kind == optAbility {
 		pa, ok := o.PileAbilityAt(sr.play.Ability)
 		if !ok || pa.SA == nil {
 			return false
@@ -645,7 +640,7 @@ func (sr *scriptSearch) targetsGone(c *Engine) bool {
 // would end in a dead-end script and hide every other prefix (here one that
 // sacrifices some other creature for Ashnod's Altar's mana).
 func (sr *scriptSearch) unattachedSource(c *Engine) bool {
-	if sr.play.Kind != "ability" {
+	if sr.play.Kind != optAbility {
 		return false
 	}
 	o := c.G.Obj(sr.play.Obj)
@@ -930,11 +925,12 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 // isomorphic -- the same mana for the same cost -- so the branch through the
 // later one reaches no payer state the earlier one's does not, and the
 // search skips it (the kernel's filtSearch.twinTried on the same pair). The
-// skip runs on the fee-only path and for every activated play: a fee-carrying
-// gap beside a row of identical basics otherwise spends the budget ordering
-// the basics and never prices the ability (tail-26 pair 26). A cast outside
-// the fee-only path keeps the older walk, where the cast tables price its
-// node count.
+// skip runs on the fee-only path and for a printed or gained activated play
+// (Kind "ability"; a granted play is a separate Kind and keeps the older
+// walk): a fee-carrying gap beside a row of identical basics otherwise spends
+// the budget ordering the basics and never prices the ability (tail-26 pair
+// 26). A cast outside the fee-only path also keeps the older walk, where the
+// cast tables price its node count.
 func scriptTwin(g *state.Game, d *decision.Decision, a, b state.ObjID) bool {
 	if a == b || a == 0 || b == 0 {
 		return false
@@ -1051,7 +1047,7 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 					break
 				}
 			}
-			if (sr.feeOnly || sr.play.Kind == potentialAbilityKind) && twin {
+			if (sr.feeOnly || sr.play.Kind == optAbility) && twin {
 				continue // an indistinguishable earlier source already walked this subtree
 			}
 			if !gap && !sr.coveredSpendable(c, p, opt.Obj) {
