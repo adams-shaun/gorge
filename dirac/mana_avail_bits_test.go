@@ -15,6 +15,7 @@ func TestAvailModeBitsAreDisjoint(t *testing.T) {
 		{"availWalk", availWalk}, {"availNoWide", availNoWide}, {"availWin", availWin},
 		{"availWinCol", availWinCol}, {"availHyp", availHyp}, {"availNoFilt", availNoFilt},
 		{"availLife", availLife}, {"availOwn", availOwn},
+		{"availNoActScript", availNoActScript},
 	}
 	var seen uint16
 	for _, m := range modes {
