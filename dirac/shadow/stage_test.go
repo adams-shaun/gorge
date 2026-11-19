@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/dirac/oracle"
 	"github.com/adams-shaun/gorge/dirac/shadow"
@@ -61,27 +62,49 @@ func stageCfg() dirac.Config {
 	return c
 }
 
+// stageEnv is one pool a verifier plays: its table, how a deck is drawn, how
+// the lockstep kernel is built, and which positions a game waits for.
+type stageEnv struct {
+	tbl    *kop.Table
+	deck   func(r *rand.Rand) []kop.CardID
+	kernel oracle.SideFactory
+	// want reports whether a staged position of game seed is worth
+	// verifying (a game that wants none takes the first stageable one).
+	want func(seed uint64, v *view.View) bool
+}
+
+func vanillaEnv() *stageEnv {
+	return &stageEnv{
+		tbl: vanilla.Table, deck: stageDeck, kernel: oracle.RealKernel(vanilla.Table, nil, oracle.Config{}),
+		want: func(seed uint64, v *view.View) bool { return seed%2 == 0 || hasMarks(v) }, // odd games wait for damage or a counter
+	}
+}
+
 type stageStats struct {
 	tried, staged int
 	reasons       map[string]int
 	byStep        map[string]int
 	contSteps     int
-	damaged       int // staged positions with a damaged creature
-	countered     int // staged positions with a +1/+1 counter
+	damaged       int               // staged positions with a damaged creature
+	countered     int               // staged positions with a +1/+1 counter
+	attached      int               // staged positions with an attached Aura or Equipment
+	tokens        int               // staged positions with a token
+	firstDetail   map[string]string // the first error text of each reason, for a log
+	deadTok       int               // positions skipped: a token had left the view after the last one shown
 }
 
 var errDone = &oracle.Divergence{What: "stage-done"}
 
 // stageGame plays game seed to a random decision and verifies staging at the
 // first stageable one from there on. It returns a failure text or "".
-func stageGame(reg *cards.Registry, seed uint64, st *stageStats, mut func(*dirac.World)) string {
+func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, mut func(*dirac.World)) string {
 	r := rand.New(rand.NewPCG(seed, 0x5748))
-	decks := [2][]kop.CardID{stageDeck(r), stageDeck(r)}
-	m, err := oracle.KernelMatchup(reg, vanilla.Table, [2]string{"a", "b"}, decks, nil, 0)
+	decks := [2][]kop.CardID{env.deck(r), env.deck(r)}
+	m, err := oracle.KernelMatchup(reg, env.tbl, [2]string{"a", "b"}, decks, nil, 0)
 	if err != nil {
 		return err.Error()
 	}
-	k, err := oracle.RealKernel(vanilla.Table, nil, oracle.Config{})(m, seed)
+	k, err := env.kernel(m, seed)
 	if err != nil {
 		return err.Error()
 	}
@@ -111,33 +134,30 @@ func stageGame(reg *cards.Registry, seed uint64, st *stageStats, mut func(*dirac
 				hidden.Library[p] = append(hidden.Library[p], card(ref, g, id))
 			}
 		}
-		if seed%2 == 1 && !hasMarks(&v) {
-			return nil // odd games wait for a position with damage or a counter
+		if !env.want(seed, &v) {
+			return nil
 		}
 		st.tried++
 		in := &shadow.Input{
-			View: v, Hidden: hidden, Tbl: vanilla.Table, Cfg: stageCfg(), Seed: seed,
+			View: v, Hidden: hidden, Tbl: env.tbl, Cfg: stageCfg(), Seed: seed,
 			ObjOf: func(id int) (uint8, bool) { return uint8(ref.InstRef(state.ObjID(id))), true },
 		}
 		w, err := shadow.WorldFromView(in)
 		var staged *dirac.State
 		if err == nil {
+			var kp dirac.Projection
+			kstate.Project(&kp)
+			if len(w.Objs) != int(kp.NObj) {
+				st.deadTok++ // a token left the view after the last shown one: the replayed game holds one more object
+				return nil
+			}
 			if mut != nil {
 				mut(&w)
 			}
-			for i := range w.Objs {
-				if w.Objs[i].Damage != 0 {
-					st.damaged++
-					break
-				}
-			}
-			for i := range w.Objs {
-				if w.Objs[i].P1P1 != 0 {
-					st.countered++
-					break
-				}
-			}
 			staged, err = dirac.NewFromWorld(&w)
+			if err == nil {
+				st.count(&w)
+			}
 		}
 		if err != nil {
 			var u dirac.ErrUnstageable
@@ -146,6 +166,12 @@ func stageGame(reg *cards.Registry, seed uint64, st *stageStats, mut func(*dirac
 				return errDone
 			}
 			st.reasons[u.Reason]++
+			if st.firstDetail == nil {
+				st.firstDetail = map[string]string{}
+			}
+			if _, ok := st.firstDetail[u.Reason]; !ok {
+				st.firstDetail[u.Reason] = u.Detail
+			}
 			return nil
 		}
 		st.staged++
@@ -158,6 +184,23 @@ func stageGame(reg *cards.Registry, seed uint64, st *stageStats, mut func(*dirac
 		return fmt.Sprintf("seed %d: the lockstep itself diverged: %s", seed, res.Div)
 	}
 	return fail
+}
+
+// count tallies the features a staged world holds, once per position.
+func (st *stageStats) count(w *dirac.World) {
+	var dmg, ctr, att, tok bool
+	for i := range w.Objs {
+		o := &w.Objs[i]
+		dmg, ctr, att, tok = dmg || o.Damage != 0, ctr || o.P1P1 != 0, att || o.Attached, tok || o.Token
+	}
+	for _, f := range []struct {
+		on bool
+		n  *int
+	}{{dmg, &st.damaged}, {ctr, &st.countered}, {att, &st.attached}, {tok, &st.tokens}} {
+		if f.on {
+			*f.n++
+		}
+	}
 }
 
 // hasMarks reports whether a battlefield card of v carries damage or counters.
@@ -241,7 +284,7 @@ func TestStageMatchesReplay(t *testing.T) {
 	st := &stageStats{reasons: map[string]int{}, byStep: map[string]int{}}
 	failed := 0
 	for seed := uint64(1); seed <= stageGames; seed++ {
-		if msg := stageGame(reg, seed, st, nil); msg != "" {
+		if msg := stageGame(reg, vanillaEnv(), seed, st, nil); msg != "" {
 			t.Error(msg)
 			if failed++; failed >= 5 {
 				break
@@ -262,6 +305,7 @@ func TestStageMatchesReplay(t *testing.T) {
 // verifier, so the verifier is checking each of them.
 func TestStageMutationsAreCaught(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
+	cardsettest.Require(t, "mbc")
 	muts := map[string]func(*dirac.World){
 		"tapped dropped": func(w *dirac.World) {
 			for i := range w.Objs {
@@ -312,6 +356,14 @@ func TestStageMutationsAreCaught(t *testing.T) {
 		},
 		"turn off": func(w *dirac.World) { w.Turn += 2 },
 	}
+	runMutations(t, reg, vanillaEnv(), muts)
+	cenv := cardsEnv(t)
+	runMutations(t, reg, cenv, cardsMutations(cenv.tbl))
+}
+
+// runMutations requires the verifier to fail for each mutation within 120 games of env.
+func runMutations(t *testing.T, reg *cards.Registry, env *stageEnv, muts map[string]func(*dirac.World)) {
+	t.Helper()
 	for name, mut := range muts {
 		caught := false
 		st := &stageStats{reasons: map[string]int{}, byStep: map[string]int{}}
@@ -322,7 +374,7 @@ func TestStageMutationsAreCaught(t *testing.T) {
 						caught = true
 					}
 				}()
-				caught = stageGame(reg, seed, st, mut) != ""
+				caught = stageGame(reg, env, seed, st, mut) != ""
 			}()
 		}
 		if !caught {
