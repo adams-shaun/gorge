@@ -1634,7 +1634,7 @@ func putCounterReferentLeft(h Host, c *Ctx, sa *cards.SA, o *state.Object) bool 
 		// object to put the counters on
 		return true
 	}
-	if sourceLeftSincePush(h, c, o) {
+	if sourceLeftSincePush(h, c, o) && !triggeredCardReferent(sa, o) {
 		return true
 	}
 	if o.Zone == state.ZBattlefield || sa == nil {
@@ -1654,6 +1654,24 @@ func putCounterReferentLeft(h Host, c *Ctx, sa *cards.SA, o *state.Object) bool 
 	// suspended card's time counters, CR 122.1); this relation is not one.
 	base, _, _ := strings.Cut(d, ".")
 	return definedSpecCodes.Code(base) == definedSpecEquipped
+}
+
+// triggeredCardReferent reports whether o, the resolving trigger's departed
+// source, is named through the plain Defined$ Triggered* card family (not an
+// LKICopy spelling) on a battlefield it is back on: the referent is the card
+// the trigger captured, whose CR 400.7 staleness putCounterDefined already
+// judged against the fire-time stamps (TriggerRememberedMoved). A move the
+// resolution itself made keeps it findable: Bogardan Phoenix's "return it to
+// the battlefield under your control and put a death counter on it" puts the
+// counter on the returned permanent (XMage BogardanPhoenixEffect), where the
+// source-departure read made the counter land nowhere and the Phoenix return
+// every time it died.
+func triggeredCardReferent(sa *cards.SA, o *state.Object) bool {
+	if sa == nil || o.Zone != state.ZBattlefield {
+		return false
+	}
+	r := DefinedRefOf(sa)
+	return !strings.HasSuffix(strings.TrimSpace(r.Raw), "LKICopy") && triggeredCardFamilyDefined(r)
 }
 
 // sourceLeftSincePush reports whether o is the resolving ability's source,

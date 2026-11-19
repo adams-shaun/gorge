@@ -133,16 +133,37 @@ func (s *State) copyExcPT(k *prep, sl Slot) (p, t int, ok bool) {
 	return
 }
 
-// copyExcSubs is the subtypes slot sl's copy exceptions add.
+// copyExcSubs is base (the copied card's printed subtypes) through slot sl's
+// copy exceptions in order (layer 1, CR 707.9b): a subtype-line replacement
+// (Dino DNA's RemoveSubTypes$ True, HasSub) drops the copied subtypes but the
+// ones it keeps, then the exception's added subtypes join.
 //
 //go:noinline
-func (s *State) copyExcSubs(k *prep, sl Slot) (m kop.SubMask) {
+func (s *State) copyExcSubs(k *prep, sl Slot, base kop.SubMask) kop.SubMask {
+	m := base
 	for i := 0; i < int(s.g.nfx); i++ {
 		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc {
-			m = m.Or(k.t.Overrides[r.r.idx-1].AddSub)
+			o := &k.t.Overrides[r.r.idx-1]
+			if o.HasSub {
+				m = m.And(o.KeepSub).Or(o.SetSub)
+			}
+			m = m.Or(o.AddSub)
 		}
 	}
-	return
+	return m
+}
+
+// copyExcSetsSub reports whether slot sl's copy exceptions replace its
+// subtypes (HasSub): a printed changeling's every creature type goes too.
+//
+//go:noinline
+func (s *State) copyExcSetsSub(k *prep, sl Slot) bool {
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc && k.t.Overrides[r.r.idx-1].HasSub {
+			return true
+		}
+	}
+	return false
 }
 
 // DebugCopyChangelingOff is the mutation switch: a copy's changeling
@@ -244,7 +265,7 @@ func copyExcFlags(t *kop.Table) (pt, sub, col, nocost, ty, rmLeg bool) {
 		}
 		o := &t.Overrides[x-1]
 		pt = pt || o.HasPT
-		sub = sub || o.AddSub != (kop.SubMask{}) || o.AllCreatureTypes
+		sub = sub || o.AddSub != (kop.SubMask{}) || o.AllCreatureTypes || o.HasSub
 		col = col || o.HasColors || o.AddColors != 0
 		ty = ty || o.AddTypes != 0 || o.HasTypes || o.RemoveLegendary
 		rmLeg = rmLeg || o.RemoveLegendary
