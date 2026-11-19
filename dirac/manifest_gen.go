@@ -27,6 +27,9 @@ const raGenMyriad uint8 = 151
 // ask (dirac/manifest/ask/raGenPileOpp)
 const raGenPileOpp uint8 = 152
 
+// ask (dirac/manifest/ask/raPodClashOpp)
+const raPodClashOpp uint8 = 153
+
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
 

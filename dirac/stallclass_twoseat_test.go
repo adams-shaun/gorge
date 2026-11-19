@@ -39,11 +39,16 @@ func TestCardTwoSeat(t *testing.T) {
 	marked := plain
 	marked.TwoSeat = true
 	may := prog(kop.Instr{Op: kop.OpMayPlay, B: kop.ValueRef{N: kop.MayPlayOpponent}})
-	ret := prog(kop.Instr{Op: kop.OpReturnEx, B: kop.ValueRef{N: kop.RetUnderOpponent}})
-	for name, c := range map[string]kop.CardDef{"marked": marked, "may play for the opponent": may, "return under opponent": ret} {
+	for name, c := range map[string]kop.CardDef{"marked": marked, "may play for the opponent": may} {
 		if !cardTwoSeat(&c) {
 			t.Errorf("%s: not two-seat only", name)
 		}
+	}
+	// a return under the chosen opponent enters under the resolution's
+	// choice (retUnderOppSeat): it plays at any seat count
+	ret := prog(kop.Instr{Op: kop.OpReturnEx, B: kop.ValueRef{N: kop.RetUnderOpponent}})
+	if cardTwoSeat(&ret) {
+		t.Error("return under the chosen opponent: two-seat only")
 	}
 	tb := &kop.Table{Cards: []kop.CardDef{plain, may}}
 	g := &genPrep{}
