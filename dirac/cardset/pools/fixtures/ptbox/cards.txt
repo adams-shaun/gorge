@@ -1,0 +1,24 @@
+# two constant power/toughness compares in one clause (kop.PredStatBox:
+# gorge powerEQ1+toughnessEQ1, powerGE4+powerLE6): the 1/1 payoffs and
+# Sarkhan's Unsealing's power 4-6 cast trigger beside creatures of every
+# size (dirac/oracle/ptbox_lockstep_test.go)
+Pendelhaven
+Pendelhaven Elder
+Sword of the Meek
+Aegis of the Meek
+Lovestruck Beast
+Sigil Captain
+The Seedcore
+Sarkhan's Unsealing
+Llanowar Elves
+Raging Goblin
+Savannah Lions
+Grizzly Bears
+Ornithopter
+Spined Wurm
+Craw Wurm
+Enormous Baloth
+Shock
+Forest
+Plains
+Mountain

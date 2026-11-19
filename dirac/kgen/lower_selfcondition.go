@@ -87,7 +87,7 @@ func filterRd(f *lFilter) condRd {
 			r.all = true
 		}
 		switch c.CmpStat {
-		case cmpPower, cmpToughness, cmpPowerLTToughness, cmpPowerGTBase:
+		case cmpPower, cmpToughness, cmpPowerLTToughness, cmpPowerGTBase, cmpPTBox:
 			r.pt = true
 		case cmpHasKw:
 			r.kw = true

@@ -457,9 +457,11 @@ func xBoundTarget(tb *kop.Table, t *kop.TargetSpec) bool {
 func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, src Slot, layer uint8) bool {
 	n := int(fl.PredN)
 	switch fl.Pred {
-	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE:
+	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE, kop.PredStatBox:
 		pw, t := s.ptGen(k, sl)
 		switch fl.Pred {
+		case kop.PredStatBox:
+			return kop.PTBoxHolds(fl.PredN, pw, t)
 		case kop.PredPowerLE:
 			return pw <= n
 		case kop.PredPowerGE:
@@ -810,7 +812,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	n := int(fl.PredN)
 	switch fl.Pred {
 	case kop.PredNone:
-	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE:
+	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE, kop.PredStatBox:
 		s.offZonePTRead(k, c, owner, o) // static_offzonept.go
 		pw, t := int(pc.power), int(pc.tough)
 		if fd {
@@ -823,6 +825,8 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			pw, t = s.lkiPT() // a moved target's last known P/T (zone_lki.go)
 		}
 		switch fl.Pred {
+		case kop.PredStatBox:
+			return kop.PTBoxHolds(fl.PredN, pw, t)
 		case kop.PredPowerLE:
 			return pw <= n
 		case kop.PredPowerGE:
