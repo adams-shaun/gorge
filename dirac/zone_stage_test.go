@@ -39,14 +39,17 @@ func TestUnstageableReasons(t *testing.T) {
 		t.Fatalf("the base world does not stage: %v", err)
 	}
 	cases := map[string]func(*dirac.World){
-		dirac.ReasonTable:    func(w *dirac.World) { w.Tbl = nil },
-		dirac.ReasonSeats:    func(w *dirac.World) { w.NSeat = 3 },
-		dirac.ReasonLayout:   func(w *dirac.World) { w.Objs[0], w.Objs[39] = w.Objs[39], w.Objs[0] },
-		dirac.ReasonCard:     func(w *dirac.World) { w.Objs[3].Card = vanilla.LightningBolt },
-		dirac.ReasonZone:     func(w *dirac.World) { w.Objs[3].Zone = kop.ZoneExile },
-		dirac.ReasonControl:  func(w *dirac.World) { w.Objs[3].Zone, w.Objs[3].Ctrl, w.Objs[3].Pos = kop.ZoneBattlefield, 1, 0 },
-		dirac.ReasonPlace:    func(w *dirac.World) { w.Objs[3].Pos = 9 },
-		dirac.ReasonStep:     func(w *dirac.World) { w.Step = kop.StepBlockers },
+		dirac.ReasonTable:   func(w *dirac.World) { w.Tbl = nil },
+		dirac.ReasonSeats:   func(w *dirac.World) { w.NSeat = 3 },
+		dirac.ReasonLayout:  func(w *dirac.World) { w.Objs[0], w.Objs[39] = w.Objs[39], w.Objs[0] },
+		dirac.ReasonCard:    func(w *dirac.World) { w.Objs[3].Card = vanilla.LightningBolt },
+		dirac.ReasonZone:    func(w *dirac.World) { w.Objs[3].Zone = kop.ZoneExile },
+		dirac.ReasonControl: func(w *dirac.World) { w.Objs[3].Zone, w.Objs[3].Ctrl, w.Objs[3].Pos = kop.ZoneBattlefield, 1, 0 },
+		dirac.ReasonPlace:   func(w *dirac.World) { w.Objs[3].Pos = 9 },
+		dirac.ReasonStep:    func(w *dirac.World) { w.Step = kop.StepDamage },
+		dirac.ReasonCombat: func(w *dirac.World) {
+			w.Objs[3].Zone, w.Objs[3].Pos, w.Objs[3].Blocked = kop.ZoneBattlefield, 0, true // blocked and not attacking
+		},
 		dirac.ReasonPriority: func(w *dirac.World) { w.Prio = 2 },
 		dirac.ReasonTurn:     func(w *dirac.World) { w.Turn = 0 },
 		dirac.ReasonLife:     func(w *dirac.World) { w.Life[0] = 1 << 20 },

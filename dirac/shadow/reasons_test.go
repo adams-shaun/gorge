@@ -72,10 +72,11 @@ func TestWorldFromViewReasons(t *testing.T) {
 		shadow.ReasonToken:    func(in *shadow.Input) { bf(in, view.CardView{IsToken: true}) },
 		shadow.ReasonCounter:  func(in *shadow.Input) { bf(in, view.CardView{Counters: map[string]int32{"M1M1": 1}}) },
 		shadow.ReasonAttach:   func(in *shadow.Input) { bf(in, view.CardView{AttachedTo: 5}) },
-		shadow.ReasonMark:     func(in *shadow.Input) { bf(in, view.CardView{Blocked: true}) },
+		shadow.ReasonMark:     func(in *shadow.Input) { bf(in, view.CardView{FaceDown: true}) },
 		shadow.ReasonPool:     func(in *shadow.Input) { in.View.Players[0].Pool = map[string]int32{"R": 1} },
 		shadow.ReasonStepName: func(in *shadow.Input) { in.View.Step = "" },
-		dirac.ReasonStep:      func(in *shadow.Input) { in.View.Step = "declare-blockers" },
+		dirac.ReasonStep:      func(in *shadow.Input) { in.View.Step = "combat-damage" },
+		dirac.ReasonCombat:    func(in *shadow.Input) { bf(in, view.CardView{Blocked: true}) },
 		dirac.ReasonControl:   func(in *shadow.Input) { bf(in, view.CardView{Controller: 1}) },
 		dirac.ReasonTable:     func(in *shadow.Input) { in.Tbl = nil },
 		dirac.ReasonStackEntry: func(in *shadow.Input) {
@@ -98,6 +99,79 @@ func TestWorldFromViewReasons(t *testing.T) {
 		var u dirac.ErrUnstageable
 		if !errors.As(err, &u) || u.Reason != r || s != nil {
 			t.Errorf("reason %q: got state %v, error %v", r, s != nil, err)
+		}
+	}
+}
+
+// TestStageCombatPositions: a combat position the view settles stages, and a
+// combat position it cannot settle, or one the staging cannot rebuild, returns
+// its reason.
+func TestStageCombatPositions(t *testing.T) {
+	t.Parallel()
+	seat1 := state.PlayerID(1)
+	// seat 0 attacks seat 1 with Savannah Lions (object 0)
+	attack := func(in *shadow.Input, c view.CardView) {
+		in.View.Step = "declare-attackers"
+		in.View.Players[0].Hand = in.View.Players[0].Hand[1:]
+		in.View.Players[0].HandSize--
+		c.ID, c.Name = 0, "Savannah Lions"
+		in.View.Players[0].Battlefield = []view.CardView{c}
+	}
+	// seat 1 blocks object 0 with its object 20, taken from its hidden hand
+	block := func(in *shadow.Input) {
+		attack(in, view.CardView{Attacking: true, AttackingPlayer: &seat1, Blocked: true, BlockedBy: []state.ObjID{20}})
+		in.View.Step = "declare-blockers"
+		in.Hidden.Hand[1] = in.Hidden.Hand[1][1:]
+		in.View.Players[1].HandSize--
+		in.View.Players[1].Battlefield = []view.CardView{{ID: 20, Name: "Savannah Lions", Owner: 1, Controller: 1}}
+	}
+	ok := map[string]func(*shadow.Input){
+		"begin combat":       func(in *shadow.Input) { in.View.Step = "begin-combat" },
+		"attackers declared": func(in *shadow.Input) { attack(in, view.CardView{Attacking: true, AttackingPlayer: &seat1}) },
+		"blocks declared":    block,
+		"declare attackers pose": func(in *shadow.Input) {
+			attack(in, view.CardView{})
+			in.View.Decision = &decision.Decision{Kind: decision.KAttackers}
+		},
+		"declare blockers pose": func(in *shadow.Input) {
+			block(in)
+			in.View.Players[0].Battlefield[0].Blocked, in.View.Players[0].Battlefield[0].BlockedBy = false, nil
+			in.View.Decision = &decision.Decision{Kind: decision.KBlockers}
+		},
+	}
+	for name, mut := range ok {
+		in := reasonsInput()
+		mut(in)
+		if _, err := shadow.StageFromView(in); err != nil {
+			t.Errorf("%s does not stage: %v", name, err)
+		}
+	}
+	bad := map[string]struct {
+		reason string
+		mut    func(*shadow.Input)
+	}{
+		"declare attackers, no decision shown, no attacker": {shadow.ReasonDecision, func(in *shadow.Input) { attack(in, view.CardView{}) }},
+		"attackers decision at main":                        {shadow.ReasonDecision, func(in *shadow.Input) { in.View.Decision = &decision.Decision{Kind: decision.KAttackers} }},
+		"combat damage":                                     {dirac.ReasonStep, func(in *shadow.Input) { in.View.Step = "combat-damage" }},
+		"end of combat":                                     {dirac.ReasonStep, func(in *shadow.Input) { in.View.Step = "end-combat" }},
+		"blocked with no blocker listed": {dirac.ReasonCombat, func(in *shadow.Input) {
+			block(in)
+			in.View.Players[0].Battlefield[0].BlockedBy = nil
+		}},
+		"attacking at main": {dirac.ReasonCombat, func(in *shadow.Input) {
+			attack(in, view.CardView{Attacking: true, AttackingPlayer: &seat1})
+			in.View.Step = "main1"
+		}},
+		"a creature attacking a permanent": {shadow.ReasonMark, func(in *shadow.Input) {
+			attack(in, view.CardView{Attacking: true, AttackingPlayer: &seat1, AttackingPermanent: true})
+		}},
+	}
+	for name, c := range bad {
+		in := reasonsInput()
+		c.mut(in)
+		var u dirac.ErrUnstageable
+		if _, err := shadow.StageFromView(in); !errors.As(err, &u) || u.Reason != c.reason {
+			t.Errorf("%s: want reason %q, got %v", name, c.reason, err)
 		}
 	}
 }
