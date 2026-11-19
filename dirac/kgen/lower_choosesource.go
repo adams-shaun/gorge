@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -106,7 +107,13 @@ func (lc *lowerCtx) chosenSrcEffect(ps *params) error {
 		return refuse("ChooseSource Effect replacement shape")
 	}
 	rm := r.Params
+	// Sorted: a map range would name a different unknown parameter run to run and make the census TSV differ.
+	keys := make([]string, 0, len(rm))
 	for k := range rm {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
 		switch k {
 		case "Event", "Description", "ValidSource", "ValidTarget", "ReplaceWith", "PreventionEffect":
 		default:
