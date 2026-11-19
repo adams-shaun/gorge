@@ -99,13 +99,8 @@ func announcedSourceSubCounter(c Cost) (CostPart, bool) {
 // (the kernel's filter search never takes it, as its funding pass never taps
 // an empty source: windowSourceYields). The ask keeps every answer when no
 // other would remain, so a lone empty ability is still branched on.
-func (e *Engine) scriptDropEmptyManaAnswers(p state.PlayerID, d *decision.Decision, answers []decision.Intent) []decision.Intent {
-	ma := e.manaActivation
+func scriptDropEmptyManaAnswers(ma *manaActivation, p state.PlayerID, d *decision.Decision, answers []decision.Intent, yieldsNothing func(*cards.SA) bool) []decision.Intent {
 	if ma == nil || ma.player != p || ma.source != d.Source || len(answers) < 2 {
-		return answers
-	}
-	o := e.G.Obj(d.Source)
-	if o == nil || o.Face() == nil {
 		return answers
 	}
 	empty := func(in decision.Intent) bool {
@@ -117,14 +112,8 @@ func (e *Engine) scriptDropEmptyManaAnswers(p state.PlayerID, d *decision.Decisi
 			if op.Index != in.Choices[0] {
 				continue
 			}
-			if op.Kind != "mana" || op.Granted || op.Ability < 0 || op.Ability >= len(ma.abilities) {
-				return false
-			}
-			ab := ma.abilities[op.Ability]
-			if _, storage := announcedSourceSubCounter(e.abilityCompiledCost(ab).Cost); storage {
-				return false // an idle storage land's tap stays a branch: the kernel's search takes it (mbc_idle_storage_tap)
-			}
-			return e.manaAbilityYieldsNothing(p, d.Source, o.Face(), ab)
+			return op.Kind == "mana" && !op.Granted && op.Ability >= 0 && op.Ability < len(ma.abilities) &&
+				yieldsNothing(ma.abilities[op.Ability])
 		}
 		return false
 	}

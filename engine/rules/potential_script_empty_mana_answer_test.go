@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -51,12 +52,16 @@ func TestScriptDropsAnEmptyManaAbilityAnswer(t *testing.T) {
 	if len(all) < 2 {
 		t.Fatalf("precondition: the ask has %d answers, want both of Three Tree City's abilities", len(all))
 	}
-	kept := e.scriptDropEmptyManaAnswers(d.Player, d, all)
+	kept := scriptDropEmptyManaAnswers(e.manaActivation, d.Player, d, all, func(ab *cards.SA) bool {
+		return e.manaAbilityYieldsNothing(d.Player, d.Source, e.G.Obj(d.Source).Face(), ab)
+	})
 	if len(kept) != len(all)-1 {
 		t.Fatalf("no creature of the chosen type: kept %d of %d answers, want the empty ability's one dropped", len(kept), len(all))
 	}
 	e, d, all = emptyManaAsk(t, "Bear", "Grizzly Bears")
-	if kept := e.scriptDropEmptyManaAnswers(d.Player, d, all); len(kept) != len(all) {
+	if kept := scriptDropEmptyManaAnswers(e.manaActivation, d.Player, d, all, func(ab *cards.SA) bool {
+		return e.manaAbilityYieldsNothing(d.Player, d.Source, e.G.Obj(d.Source).Face(), ab)
+	}); len(kept) != len(all) {
 		t.Fatalf("a creature of the chosen type: kept %d of %d answers, want all", len(kept), len(all))
 	}
 }
