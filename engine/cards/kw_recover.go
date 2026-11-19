@@ -21,6 +21,15 @@ func kwRecover(f *Face, i int, k, head, param string, has func(kind, line string
 	// spelling (Garza's Assassin's PayLife<X/half your life, rounded up>,
 	// priced by its own SVar) folds to the LifeTotalHalfUp token the cost
 	// parser accepts, so both spellings price identically.
+	//
+	// The fold is deliberately CONTENT-BLIND and only correct for the two
+	// corpus carriers today: ANY `PayLife<...>` spelling becomes half your
+	// life, rounded up, discarding the parameter's actual content. A future
+	// carrier with a flat `PayLife<N>` cost would be silently priced as
+	// half-your-life. If one appears, replace this fold with a reader that
+	// dispatches on the parameter's body (a plain number stays a number,
+	// the half-your-life spellings fold to LifeTotalHalfUp) and add its
+	// behaviour test; do not widen this blind fold.
 	cost := strings.TrimSpace(param)
 	if strings.HasPrefix(cost, "PayLife<") {
 		cost = "LifeTotalHalfUp"

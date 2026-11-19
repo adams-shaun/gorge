@@ -1021,7 +1021,8 @@ func (e *Engine) sacAsk() bool {
 					break
 				}
 			}
-			if !already && (!pc.emerge || pc.SacPart != 0 || e.emergeSacPayable(pc, oid)) {
+			if !already && (!pc.emerge || pc.SacPart != 0 || e.emergeSacPayable(pc, oid)) &&
+				(!pc.offering || pc.SacPart != 0 || e.offeringSacPayable(pc, oid)) {
 				candidates = append(candidates, oid)
 			}
 		}
@@ -1144,8 +1145,11 @@ func (e *Engine) sacAsk() bool {
 	// Every Sac part is settled: an Emerge cast (CR 702.118a) now folds the
 	// chosen sacrifice's mana value out of pc.cost, before the mana window and
 	// payment read it. Idempotent through pc.emergeDone, so the re-entries a
-	// suspended mana window makes cannot subtract twice.
+	// suspended mana window makes cannot subtract twice. An Offering cast
+	// (CR 702.46) folds the chosen sacrifice's mana cost the same way, once,
+	// colour-inclusive.
 	e.applyEmergeReduction(pc)
+	e.applyOfferingReduction(pc)
 	return false
 }
 

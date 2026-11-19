@@ -89,6 +89,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Rampage":        "TestEDHKeywordsRampagePumpsPerExtraBlocker",
 		"kw:Transfigure":    "TestEDHKeywordsTransfigureTutorsSameManaValue",
 		"kw:Recover":        "TestEDHKeywordsRecoverPaysToHandOrExiles",
+		"kw:Offering":       "TestEDHKeywordsOfferingCastReducesBySacrificedManaCost",
 	} {
 		if !sup[kw] {
 			t.Errorf("%s is not registered (proof test: %s)", kw, proof)

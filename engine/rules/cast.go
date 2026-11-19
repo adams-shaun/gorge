@@ -450,6 +450,17 @@ type pendingCast struct {
 	emergeDone bool        `clone:"deep"`
 	emergeSac  state.ObjID `clone:"deep"`
 
+	// offering / offeringDone / offeringSac mark an Offering cast (CR
+	// 702.46): beginCast's "offering" arm composes the printed mana cost
+	// with the mandatory Sac<1/Type> part and marks the cast; sacAsk then
+	// folds the chosen sacrifice's mana cost out of pc.cost exactly once
+	// (colour-inclusive, engine/rules/offering.go's applyOfferingReduction),
+	// guarded by offeringDone so a resumed mana window cannot subtract
+	// twice. Plain data, so Clone carries them like emerge/emergeSac.
+	offering     bool        `clone:"deep"`
+	offeringDone bool        `clone:"deep"`
+	offeringSac  state.ObjID `clone:"deep"`
+
 	// suspendCastClear marks a suspend cast's time-counter clear as owed.
 	suspendCastClear bool `clone:"deep"`
 
