@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 )
@@ -185,5 +186,113 @@ func TestMZLifeRowsSkipLostSeat(t *testing.T) {
 	mz := EncodeStateWith(FeaturesMZ, v, 2, nil)
 	if !has(mz.Sparse, "mz|opp|life=15") || has(mz.Sparse, "mz|pod|opp0|life=6") {
 		t.Error("mz set: the life rows moved")
+	}
+}
+
+// TestPodEntitiesFourSeat pins the pod entity rows against podView: the
+// relative-seat groups, the controller/owner/attacked/goader one-hots,
+// entMine left zero, and the command-zone commanders listed last in the
+// command group; an option naming a command-zone commander points at it.
+func TestPodEntitiesFourSeat(t *testing.T) {
+	v := podView()
+	st := EncodeStateWith(FeaturesPod, v, 0, nil)
+	byID := map[state.ObjID]EntityCard{}
+	order := []state.ObjID{10, 11, 20, 113, 12, 100, 101, 102, 103}
+	if len(st.Cards) != len(order) {
+		t.Fatalf("%d entity cards, want %d", len(st.Cards), len(order))
+	}
+	for _, c := range st.Cards {
+		if len(c.Raw) != EntityRawWidthPod {
+			t.Fatalf("raw width %d, want %d", len(c.Raw), EntityRawWidthPod)
+		}
+	}
+	for i, id := range order {
+		byID[id] = st.Cards[i]
+	}
+	groups := map[state.ObjID]uint8{10: 0, 11: 0, 20: 1, 113: 3, 12: PodGroupHand, 100: PodGroupCommand, 103: PodGroupCommand}
+	for id, g := range groups {
+		if byID[id].Group != g {
+			t.Errorf("card %d group %d, want %d", id, byID[id].Group, g)
+		}
+	}
+	bear := byID[10].Raw
+	for _, c := range []struct {
+		name string
+		col  int
+		want float32
+	}{
+		{"bear controller rel 0", PodEntCtrl0, 1},
+		{"bear owner rel 0", PodEntOwner0, 1},
+		{"bear attacks rel 3", PodEntAttacked0 + 3, 1},
+		{"bear attacks no permanent", PodEntAttacksPerm, 0},
+		{"bear goaded by rel 1", PodEntGoadedBy0 + 1, 1},
+		{"bear entMine zero", entMine, 0},
+		{"bear not a commander", PodEntCommander, 0},
+	} {
+		if bear[c.col] != c.want {
+			t.Errorf("%s: raw[%d] = %v, want %v", c.name, c.col, bear[c.col], c.want)
+		}
+	}
+	if r := byID[20].Raw; r[PodEntCtrl0+1] != 1 || r[PodEntCtrl0] != 0 {
+		t.Errorf("seat 1's wall: controller one-hot %v", r[PodEntCtrl0:PodEntCtrl0+4])
+	}
+	if r := byID[113].Raw; r[PodEntCommander] != 1 || r[PodEntCommandZone] != 0 || r[PodEntCtrl0+3] != 1 {
+		t.Errorf("seat 3's battlefield commander: commander %v command zone %v ctrl %v", r[PodEntCommander], r[PodEntCommandZone], r[PodEntCtrl0:PodEntCtrl0+4])
+	}
+	if r := byID[103].Raw; r[PodEntCommander] != 1 || r[PodEntCommandZone] != 1 || r[PodEntOwner0+3] != 1 {
+		t.Errorf("seat 3's command-zone commander: commander %v command zone %v owner %v", r[PodEntCommander], r[PodEntCommandZone], r[PodEntOwner0:PodEntOwner0+4])
+	}
+	// the entity set has none of it
+	ent := EncodeStateWith(FeaturesEntity, v, 0, nil)
+	if len(ent.Cards) != 5 || len(ent.Cards[0].Raw) != EntityRawWidth || ent.Cards[0].Raw[entMine] != 1 {
+		t.Errorf("entity set: %d cards, raw %d, bear entMine %v", len(ent.Cards), len(ent.Cards[0].Raw), ent.Cards[0].Raw[entMine])
+	}
+	var x OptionEncoder
+	x.Reset(&v, 0)
+	o := x.Encode(FeaturesPod, decision.KPriority, decision.Option{Kind: "cast", Obj: 100}, 0, 1)
+	if o.EntA != int32(1+indexOf64(order, 100)) {
+		t.Errorf("a command-zone cast's EntA = %d, want %d", o.EntA, 1+indexOf64(order, 100))
+	}
+}
+
+func indexOf64(ids []state.ObjID, id state.ObjID) int {
+	for i, x := range ids {
+		if x == id {
+			return i
+		}
+	}
+	return -1
+}
+
+// TestPodMLPScoresFourSeat runs a FeaturesPod model's forward over the
+// four-seat Commander state: the entity encoder reads the 120-wide rows
+// into seven pooled groups, the scores are finite, and a pod entity column
+// (the attacker's attacked seat) moves them once its weights are nonzero.
+func TestPodMLPScoresFourSeat(t *testing.T) {
+	m, err := NewPodModel(TableRows, 8, 16, 4, rand.New(rand.NewPCG(3, 4)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.entPoolW() != EntityGroupsPod*2*m.EntK || m.entInW() != EntityRawWidthPod+m.H {
+		t.Fatalf("pod model geometry: pool %d in %d", m.entPoolW(), m.entInW())
+	}
+	// the warm start zeroes the pooled projection: give it signal
+	for i := range m.EntP {
+		m.EntP[i] = float32(i%7)*0.01 - 0.03
+	}
+	v := podView()
+	st := EncodeStateWith(FeaturesPod, v, 0, nil)
+	opts := EncodeOptionsWith(FeaturesPod, &v, 0, decision.KPriority,
+		[]decision.Option{{Kind: "cast", Obj: 100}, {Kind: "pass"}}, nil)
+	a := m.Score(st, opts)
+	for _, x := range a {
+		if x != x {
+			t.Fatalf("scores %v", a)
+		}
+	}
+	st.Cards[0].Raw[PodEntAttacked0+3], st.Cards[0].Raw[PodEntAttacked0+1] = 0, 1
+	b := m.Score(st, opts)
+	if a[0] == b[0] && a[1] == b[1] {
+		t.Errorf("the attacked-seat column does not move the scores %v", a)
 	}
 }

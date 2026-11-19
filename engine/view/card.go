@@ -177,6 +177,10 @@ type CardView struct {
 	// even after every blocker has left the battlefield (CR 509.1h); BlockedBy
 	// then lists fewer creatures than blocked it, or none.
 	AttackingPlayer *state.PlayerID `json:"attacking_player,omitempty"`
+	// AttackingPermanent is true while the creature attacks a planeswalker
+	// or a battle (CR 508.1b, 310.7) rather than a player; AttackingPlayer
+	// then names that permanent's controller or protector.
+	AttackingPermanent bool `json:"attacking_permanent,omitempty"`
 	// GoadedBy lists, in seat order, every seat with a goad designation on
 	// this permanent in force (CR 701.15; state.Object.Goads), nil when none.
 	// A Goad$ True static's goad is derived, not state, and is not listed.
@@ -609,6 +613,7 @@ func (p *projector) faceDownCard(cv *CardView, o *state.Object) {
 		}
 		*atk = o.Attacking
 		cv.AttackingPlayer = atk
+		cv.AttackingPermanent = o.AttackingBattle != 0
 	}
 	cv.Blocked, cv.BlockedBy = blockers(blk, o)
 	// CR 708.2a: it is a creature, unless a type-changing effect says otherwise
@@ -890,6 +895,7 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 		}
 		*atk = o.Attacking
 		cv.AttackingPlayer = atk
+		cv.AttackingPermanent = o.AttackingBattle != 0
 	}
 	cv.Blocked, cv.BlockedBy = blockers(blk, o)
 	if p.noDerived {

@@ -295,7 +295,7 @@ func encodeStateWith(buf *StateBuf, fs FeatureSet, v *view.View, seat state.Play
 	stableSortByRow(st.Sparse)
 	buf.keepSparse(st.Sparse)
 	if fs.Entity() {
-		st.Cards = entityCardList(buf, v, seat)
+		st.Cards = entityCardListFS(buf, v, seat, fs)
 	}
 	return st
 }

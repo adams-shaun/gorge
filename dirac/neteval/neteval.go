@@ -411,7 +411,7 @@ func (n *Net) prepParts(s *dirac.State, d *dirac.Decision, seat uint8) {
 		}
 		if !hit {
 			raw := &n.raws[k]
-			*raw = pe.Card.Raw
+			copy(raw[:], pe.Card.Raw[:feat.EntityRawWidth])
 			if pe.Castable {
 				raw[feat.EntCastable] = 1
 			}

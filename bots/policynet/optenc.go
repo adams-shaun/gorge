@@ -30,6 +30,7 @@ type OptionEncoder struct {
 	ent      []int32
 	entOrder []state.ObjID
 	entOK    bool
+	entPod   bool // the entity order built (or to build) is FeaturesPod's
 	// ids are the refs' ObjIDs, for Reset's clearing: the view the refs
 	// point into may have been re-projected in place since.
 	ids     []state.ObjID
@@ -66,7 +67,7 @@ func (x *OptionEncoder) Reset(v *view.View, seat state.PlayerID) {
 		}
 	}
 	clear(x.refs)
-	x.refs, x.ids, x.entOrder, x.entOK, x.availOK = x.refs[:0], x.ids[:0], x.entOrder[:0], false, false
+	x.refs, x.ids, x.entOrder, x.entOK, x.availOK, x.entPod = x.refs[:0], x.ids[:0], x.entOrder[:0], false, false, false
 	x.v, x.seat = v, seat
 	for i := range v.Players {
 		pv := &v.Players[i]
@@ -209,6 +210,26 @@ func (x *OptionEncoder) buildEnt() {
 			x.entAddOne(sv.Card.ID)
 		}
 	}
+	if x.entPod {
+		for i := range v.Players {
+			pv := &v.Players[i]
+			for j := range pv.Command {
+				if isCommander(pv, pv.Command[j].ID) {
+					x.entAddOne(pv.Command[j].ID)
+				}
+			}
+		}
+	}
+}
+
+// resetEnt drops the built entity order (a different set's is wanted).
+func (x *OptionEncoder) resetEnt() {
+	for _, id := range x.entOrder {
+		if int(id) < len(x.ent) {
+			x.ent[id] = 0
+		}
+	}
+	x.entOrder, x.entOK = x.entOrder[:0], false
 }
 
 func (x *OptionEncoder) entAdd(cards []view.CardView) {
@@ -257,6 +278,10 @@ func (x *OptionEncoder) Encode(fs FeatureSet, d decision.Kind, o decision.Option
 		}
 	}
 	if fs.Entity() {
+		if pod := fs == FeaturesPod; pod != x.entPod {
+			x.resetEnt()
+			x.entPod = pod
+		}
 		rel := o.Attacker
 		if rel == 0 {
 			rel = o.Battle

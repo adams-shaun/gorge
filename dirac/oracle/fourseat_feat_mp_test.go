@@ -73,7 +73,9 @@ func TestFeatFourSeatVanilla(t *testing.T) {
 // noncreature permanents reach the relative-seat encodings. A pod the
 // tables cannot build is skipped; a rules divergence ends a pod's
 // comparison and is logged (the lockstep gate owns those), a feature
-// mismatch fails.
+// mismatch fails. Each pod is compared under FeaturesEntity and again under
+// FeaturesPod, where the entity rows' controller and attacked-player
+// relative-seat one-hots must be reached for every opponent seat.
 func TestFeatFourSeatFDN(t *testing.T) {
 	t.Parallel()
 
@@ -81,41 +83,56 @@ func TestFeatFourSeatFDN(t *testing.T) {
 	var total FeatStats
 	pods := 0
 	ps := Pairings(pool, 16, 13)
-	for i := 0; i+1 < len(ps) && pods < 6; i += 2 {
-		names := []string{ps[i].A, ps[i].B, ps[i+1].A, ps[i+1].B}
-		m, tbl, err := SetMatchupN(rawSet("fdn"), c, names, 0)
-		if err != nil {
-			continue
-		}
-		fp, err := FeatPool(c.Reg, tbl, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		seed := ps[i].Seed
-		k, err := SetSide(rawSet("fdn"), tbl, Config{})(m, seed)
-		if err != nil {
-			continue
-		}
-		var st FeatStats
-		pol := RandomPolicy(seed)
-		if pods%2 == 1 {
-			pol = HeuristicPolicy(seed)
-		}
-		res := Lockstep(m, seed, k, pol, RunConfig{MaxDecisions: 4000, MaxTurns: 40, Check: FeatCheck(fp, &st)})
-		CloseSide(k)
-		pods++
-		total.Decisions += st.Decisions
-		total.Options += st.Options
-		if d := res.Div; d != nil {
-			if d.What == "features" || d.Field == "panic" {
-				t.Errorf("pod %v: after %d compared decisions: %s %s: %s", names, st.Decisions, d.What, d.Field, d.Detail)
-			} else {
-				t.Logf("pod %v: rules divergence after %d compared decisions: %s %s", names, st.Decisions, d.What, d.Field)
+	for _, fs := range []policynet.FeatureSet{policynet.FeaturesEntity, policynet.FeaturesPod} {
+		setPods := 0
+		for i := 0; i+1 < len(ps) && setPods < 6; i += 2 {
+			names := []string{ps[i].A, ps[i].B, ps[i+1].A, ps[i+1].B}
+			m, tbl, err := SetMatchupN(rawSet("fdn"), c, names, 0)
+			if err != nil {
+				continue
+			}
+			fp, err := FeatPool(c.Reg, tbl, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			seed := ps[i].Seed
+			k, err := SetSide(rawSet("fdn"), tbl, Config{})(m, seed)
+			if err != nil {
+				continue
+			}
+			var st FeatStats
+			pol := RandomPolicy(seed)
+			if pods%2 == 1 {
+				pol = HeuristicPolicy(seed)
+			}
+			res := Lockstep(m, seed, k, pol, RunConfig{MaxDecisions: 4000, MaxTurns: 40, Check: FeatCheckFS(fp, &st, fs)})
+			CloseSide(k)
+			pods++
+			setPods++
+			total.Decisions += st.Decisions
+			total.Options += st.Options
+			for j, n := range st.EntHit {
+				total.EntHit[j] += n
+			}
+			if d := res.Div; d != nil {
+				if d.What == "features" || d.Field == "panic" {
+					t.Errorf("pod %v (%s): after %d compared decisions: %s %s: %s", names, fs, st.Decisions, d.What, d.Field, d.Detail)
+				} else {
+					t.Logf("pod %v: rules divergence after %d compared decisions: %s %s", names, st.Decisions, d.What, d.Field)
+				}
 			}
 		}
 	}
-	if pods == 0 || total.Decisions < 200 {
+	if pods == 0 || total.Decisions < 400 {
 		t.Fatalf("%d pods, %d compared decisions", pods, total.Decisions)
+	}
+	for r := 0; r < 4; r++ {
+		if total.EntHit[policynet.PodEntCtrl0+r] == 0 {
+			t.Errorf("no pod entity card was controlled by relative seat %d", r)
+		}
+		if r > 0 && total.EntHit[policynet.PodEntAttacked0+r] == 0 {
+			t.Errorf("no pod entity card attacked relative seat %d", r)
+		}
 	}
 	t.Logf("%d pods: compared %d decisions, %d options", pods, total.Decisions, total.Options)
 }

@@ -278,7 +278,7 @@ func CompareState(g *policynet.State, k *feat.State) *FeatMismatch {
 		if gc.Group != kc.Group {
 			return mm(fmt.Sprintf("cards[%d].group", i), gc.Group, kc.Group)
 		}
-		for j := 0; j < feat.EntityRawWidth; j++ {
+		for j := 0; j < len(kc.Raw); j++ {
 			var x float32
 			if j < len(gc.Raw) {
 				x = gc.Raw[j]
@@ -362,6 +362,9 @@ type FeatStats struct {
 	// gorge's encoding held it nonzero (a test asserts a pod column was
 	// reached).
 	DenseHit [feat.DenseWidthPod]int
+	// EntHit counts, per entity raw column, the gorge entity cards holding
+	// it nonzero at the compared decisions.
+	EntHit [feat.EntityRawWidthPod]int
 }
 
 // FeatCheck is a RunConfig.Check comparing, at every decision, the real
@@ -443,6 +446,13 @@ func FeatCheckFS(pool *feat.Pool, st *FeatStats, fs policynet.FeatureSet) func(r
 		for i, x := range gst.Dense {
 			if x != 0 && i < len(st.DenseHit) {
 				st.DenseHit[i]++
+			}
+		}
+		for ci := range gst.Cards {
+			for j, x := range gst.Cards[ci].Raw {
+				if x != 0 && j < len(st.EntHit) {
+					st.EntHit[j]++
+				}
 			}
 		}
 		if m == nil {
