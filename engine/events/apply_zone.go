@@ -967,6 +967,10 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	switch to {
 	case state.ZBattlefield:
 		o.SummonSick = true
+		// CR 400.7: a permanent that enters mid-turn is a new object, which
+		// did not start the turn untapped (the TurnChange stamp above named
+		// its old identity or, for a fresh card, nothing).
+		o.StartedTurnUntapped = false
 		o.Damage = 0
 		g.Clock++
 		o.Timestamp = g.Clock
