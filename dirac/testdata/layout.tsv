@@ -1,6 +1,6 @@
 # Generated State layout pins (layout_pins_test.go); do not edit by hand. Regenerate: DIRAC_UPDATE_LAYOUT=1 go test -run 'TestStateLayoutPinned|TestNoNewFixedStateFields|TestCapacityHashPins' ./dirac
 # class	key	value; field rows: class	field	Type.field	offset	size
-default	size	29432
+default	size	29496
 default	perms%64	0
 default	ObjHash	0x1840693a7b08d20b
 default	ViewHash	0x30fbf5c02563bccf
@@ -83,9 +83,9 @@ default	field	stateCore.heldTouch	13420	4
 default	field	stateCore.stamp	13424	488
 default	field	stateCore.Skipped	13912	16
 default	field	stateCore.nlC	13928	8
-default	field	stateCore.g	13936	7496
-default	field	stateCore.Decisions	21432	4
-default	field	stateCore.payHyb	21436	1
+default	field	stateCore.g	13936	7560
+default	field	stateCore.Decisions	21496	4
+default	field	stateCore.payHyb	21500	1
 default	field	genState.graveKept	0	1
 default	field	genState.cskip	1	1
 default	field	genState.fx	2	768
@@ -325,11 +325,15 @@ default	field	genState.turnF	7434	2
 default	field	genState.dmgAmt	7436	16
 default	field	genState.defCol	7452	2
 default	field	genState.prevX	7454	3
-default	field	genState.rsv	7457	1
-default	field	genState.embX	7458	0
-default	field	genState.atkDef	7458	1
-default	field	genState.mon	7459	1
-default	field	genState.redir	7460	32
+default	field	genState.tgtMVCd	7458	10
+default	field	genState.tgtMV	7468	5
+default	field	genState.trigMVCd	7474	2
+default	field	genState.trigMV	7476	1
+default	field	genState.rsv	7477	47
+default	field	genState.embX	7524	0
+default	field	genState.atkDef	7524	1
+default	field	genState.mon	7525	1
+default	field	genState.redir	7526	32
 default	field	perm.eotKw	0	4
 default	field	perm.eotKwRep	4	8
 default	field	perm.ovr	12	12

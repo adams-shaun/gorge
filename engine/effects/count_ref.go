@@ -751,10 +751,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		// (ok=true, a legitimate zero). Reject Imperfection's, Press the
 		// Enemy's, Gale's Redirection's and Sound the Trumpets'
 		// SpellTargeted$CardManaCostLKI are the four corpus users. The mana
-		// value is a printed face characteristic, so it survives the
-		// counter/exile that follows the read and the LKI spelling reads the
-		// same face value the plain spelling does (the shared CardManaCost/
-		// CardManaCostLKI property arm below).
+		// value itself is read by the shared property arm (refManaValue).
 		//
 		// The spell identity is the RESOLUTION-START snapshot (Ctx.TargetSpellLKI,
 		// captured by effects.Resolve before any effect can move a target), not
