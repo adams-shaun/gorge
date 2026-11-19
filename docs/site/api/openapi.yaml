@@ -2309,6 +2309,8 @@ components:
         face:
           format: "int64"
           type: "integer"
+        mode:
+          type: "string"
         object:
           maximum: 4294967295
           minimum: 0
