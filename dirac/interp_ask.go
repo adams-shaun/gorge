@@ -272,7 +272,13 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	}
 	other := payDesc{class: pdOther, subBound: true}
 	sacAny := s.tapXSacAnyLive(k, p) // Ashnod's Altar: gorge's potential walk counts its fixed production once
-	if !s.anyDifferentOpen(k, p) && !s.anyManaSource(k, p, &other) && !sacAny {
+	// the sources flag is gorge's whole gate (rules respay.go resPayNeedsMana:
+	// untappedManaSourceFor && windowSourceYields), not only a precondition of
+	// the dynamic fold: a source whose ability is admitted while it makes
+	// nothing now (a zero-amount dynamic source, an each-colour gap with no
+	// count) is no source, and the potential fold's unbounded claim must not
+	// ride it (mana_dyntrigcost.go anyLiveSource).
+	if !s.anyDifferentOpen(k, p) && !sacAny && !s.anyLiveSource(k, p, &other) {
 		return false
 	}
 	c := s.numTimesCost(k, amt, pips)
