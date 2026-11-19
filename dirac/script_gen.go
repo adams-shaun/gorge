@@ -955,6 +955,16 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			// cast that credits no artifact is no contribution (improviseAloneCast):
 			// gorge plans it plainly and its prefix search taps the granted source
 			// (Organic Extinction beside Brightcap Badger's Saprolings)
+			if a.Target() == 0 && a.Mode()&3 == 0 && hasOption(d, a) {
+				// The ordinary plain offer already listed it: castOfferBase
+				// prices Convoke and Improvise before its offerCastable gate
+				// (CR 702.51a, 702.66a), so the floating pool pays the credited
+				// cast whether or not the potential planner prices the shape.
+				// The search's drop is the planner's, never the offer's. An
+				// alternative route (the impended cast's target byte) keeps the
+				// planner's refusal: its own offer does not credit the taps.
+				continue
+			}
 			d.remove(a)
 			capSpent.add(a)
 			continue
