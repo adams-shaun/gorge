@@ -278,13 +278,14 @@ func (s *State) park(k *prep, o Obj, kind parkKind, x uint8) bool {
 		return false
 	}
 	if s.exileRiderAmong(k, src[:n]) {
-		return false // a rider never sits in an answered order (repl_exilerider.go)
+		return false // two rider sources cannot share one answered order (repl_exilerider.go)
 	}
 	for i := range s.cold.parked {
 		if r := &s.cold.parked[i]; r.kind == parkNone {
 			*r = parkedMove{obj: o, kind: kind, x: x}
 			r.setNsrc(n)
 			copy(r.src[:], src[:n])
+			s.exileRiderParkMark(k, o, src[:n]) // repl_exilerider.go
 			return true
 		}
 	}
@@ -519,6 +520,7 @@ func (s *State) applyExileOrder(k *prep, a Action) {
 	ctr, ctrN := s.chosenExileCounter(k, r, int(a.Mode()))
 	if ob := &s.objs[r.obj]; ob.zone == kop.ZoneBattlefield {
 		s.settleExileMarks(ob.slot, int(a.Mode()))
+		s.settleExileRider(k, r, int(a.Mode())) // repl_exilerider.go
 	}
 	s.cold.parked[0].kind = parkAnswered
 	s.ctl = ctlPriority
