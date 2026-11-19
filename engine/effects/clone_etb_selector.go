@@ -120,3 +120,14 @@ func CloneETBOffered(sa *cards.SA, svars map[string]string) bool {
 	}
 	return CloneNamedGrantsReadable(svars, cp)
 }
+
+// CloneForeignEntryOffered reports whether a DB$ Clone ETB-replacement body
+// is the implemented foreign-entry shape (CloneParams.ETBForeignShapeOK):
+// the replacement sits on one permanent and makes ANOTHER entering object
+// enter as a copy (Infinite Reflection, CR 614.1c/707.2). It is never an
+// election: the entering object becomes a copy of the carrier's enchanted
+// creature through the ordinary Clone resolution, the become operand being
+// the replaced card.
+func CloneForeignEntryOffered(sa *cards.SA) bool {
+	return sa != nil && CloneOf(sa).ETBForeignShapeOK
+}

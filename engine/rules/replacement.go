@@ -1160,11 +1160,7 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		effects.SetSVars(ctx, f.SVars)
 	}
 	if o != nil && m.repl != nil && m.repl.ParamStr(cards.PKKeyword) == "ETBReplacement" && m.repl.With != nil && m.repl.With.API == "Clone" {
-		ctx.CloneEnter.ETB = true
-		ctx.CloneEnter.Become = ev.Obj
-		ctx.CloneEnter.BecomeValid = true
-		ctx.CloneEnter.ChoiceValid = o.ETBCloneChoiceValid
-		ctx.CloneEnter.Choice = o.ETBCloneChoice
+		seedCloneEntry(ctx, o, m, ev)
 	}
 	// The as-enters colour-choice body (K:ETBReplacement:Other:ChooseColor)
 	// marks itself: the entry machinery (applyETBChoiceReplacement ->
