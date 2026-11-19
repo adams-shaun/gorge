@@ -123,6 +123,6 @@ func (lc *lowerCtx) cantAttackUnless(sp *params, st *lStatic) error {
 		return refuse("CantAttackUnless Cost$ %q: a non-mana, coloured or Phyrexian attack cost is not lowered", raw)
 	}
 	sp.consume("Secondary", "TriggerDescription")
-	lc.twoSeat("an attack tax: its lockstep plays two seats")
+	// priced per (attacker, defender) pair over every seat (dirac combat_attacktax.go)
 	return nil
 }

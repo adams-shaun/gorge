@@ -7,11 +7,10 @@ import (
 	"testing"
 )
 
-// TestClashTwoSeat: a Clash lowering reads "the one opponent" (clashOpp ->
-// State.oppsFrom), which is gorge's first living opponent in APNAP order from
-// seat 0 (engine/effects/clash.go clashParticipants: g.AliveFrom(0)). That is
-// the same player only in a two-player game, so every clash carrier must be
-// marked two-seat only (kop.CardDef.TwoSeat, refused at three or more seats).
+// TestClashTwoSeat: a Clash lowering's opponent is gorge's first living
+// opponent in APNAP order from seat 0 (engine/effects/clash.go
+// clashParticipants: g.AliveFrom(0)), which the kernel's clashOpp reads at
+// any seat count, so no clash carrier is marked two-seat only for it.
 func TestClashTwoSeat(t *testing.T) {
 	heavyParallel(t)
 	cardsDir := ratchetCards(t)
@@ -34,11 +33,10 @@ func TestClashTwoSeat(t *testing.T) {
 			t.Errorf("%s: refused, so the clash lowering never ran: %v", c.Name, c.Refusals)
 			continue
 		}
-		if !c.TwoSeat {
-			t.Errorf("%s: Clash reads the one opponent but the lowering is not marked two-seat", c.Name)
-		}
-		if len(c.TwoSeatWhy) == 0 {
-			t.Errorf("%s: two-seat only with no reason", c.Name)
+		for _, w := range c.TwoSeatWhy {
+			if strings.Contains(w, "Clash") {
+				t.Errorf("%s: still marked two-seat for its clash: %s", c.Name, w)
+			}
 		}
 	}
 }

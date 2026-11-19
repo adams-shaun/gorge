@@ -190,3 +190,125 @@ func beaconWatch(c *PickCtx) bool {
 func TestFourSeatBeaconLockstep(t *testing.T) {
 	podClassLockstep(t, meleePodDeck, 24, 10, beaconWatch, &dirac.DebugOppsAttOne)
 }
+
+// The attack tax (Propaganda, Ghostly Prison, Windborn Muse: "creatures
+// can't attack you unless their controller pays {2} for each creature they
+// control that's attacking you"). gorge prices each (attacker, defender)
+// pair by the statics whose Target$ admits that defender, so only an attack
+// on the tax's controller is charged, and budgets the declaration over every
+// defender it offers (rules/attack_cost.go attackPairCharge, attackBudget;
+// CR 508.1d, 508.1g-h); dirac prices the same pairs over every seat still in
+// the game (combat_attacktax.go atkTaxScope, atkTaxTargets). The mutation
+// (DebugAtkTaxFree) charges nothing.
+var attackTaxPodDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 4}, {Name: "Ghostly Prison", Count: 4},
+	{Name: "Windborn Muse", Count: 2}, {Name: "Savannah Lions", Count: 6},
+	{Name: "Coral Merfolk", Count: 6},
+	{Name: "Plains", Count: 9}, {Name: "Island", Count: 9},
+}
+
+// attackTaxWatch: gorge asks the active player's attackers while another
+// player controls an attack tax and two or more other players are alive.
+func attackTaxWatch(c *PickCtx) bool {
+	d := c.G.fr.d
+	g := c.G.E.G
+	if d == nil || d.Kind != decision.KAttackers || podAlive(g) < 3 {
+		return false
+	}
+	for q := range g.Players {
+		if state.PlayerID(q) == g.Active {
+			continue
+		}
+		for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(q)) {
+			if o := g.Obj(id); o != nil && o.Face() != nil {
+				switch o.Face().Name {
+				case "Propaganda", "Ghostly Prison", "Windborn Muse":
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// TestFourSeatAttackTaxLockstep: four-seat attack-tax games play in
+// lockstep, the declarations priced per defender.
+func TestFourSeatAttackTaxLockstep(t *testing.T) {
+	podClassLockstep(t, attackTaxPodDeck, 24, 10, attackTaxWatch, &dirac.DebugAtkTaxFree)
+}
+
+// Clash (Lash Out: "deals 3 damage to target creature. Clash with an
+// opponent. If you win, it deals 3 damage to that creature's controller").
+// gorge's clash opponent, with no Defined$ or player target, is the first
+// living player but the controller scanning from seat 0 (clashParticipants'
+// fallback); dirac's clashOpp reads the same. The mutation
+// (DebugClashNextSeat) clashes with the next seat after the controller.
+var clashPodDeck = []cardset.Entry{
+	{Name: "Lash Out", Count: 10}, {Name: "Goblin Piker", Count: 6},
+	{Name: "Hill Giant", Count: 6}, {Name: "Mountain", Count: 18},
+}
+
+// clashWatch: gorge asks a player other than the caster while a Lash Out
+// resolves with three or more players alive (that player's clash card).
+func clashWatch(c *PickCtx) bool {
+	g := c.G.E.G
+	d := c.G.fr.d
+	if d == nil || d.Kind == decision.KPriority || podAlive(g) < 3 {
+		return false
+	}
+	for _, id := range g.Zone(state.ZStack, 0) {
+		if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Lash Out" {
+			return true
+		}
+	}
+	return false
+}
+
+// TestFourSeatClashLockstep: four-seat Lash Out games play in lockstep.
+func TestFourSeatClashLockstep(t *testing.T) {
+	podClassLockstep(t, clashPodDeck, 24, 10, clashWatch, &dirac.DebugClashNextSeat)
+}
+
+// Archangel of Tithes: an attack tax on attacks at its controller while it
+// is untapped, and a block tax ("creatures can't block unless their
+// controller pays {1} for each of those creatures") while it is attacking.
+// gorge charges the block tax to each blocking player (rules attack_cost.go;
+// CR 509.1c-e), whichever defender the Archangel attacks; dirac prices each
+// defending player's blocks the same (combat_blocktax.go). The mutation
+// (DebugAtkTaxFree) drops the attack half.
+var tithesPodDeck = []cardset.Entry{
+	{Name: "Archangel of Tithes", Count: 8}, {Name: "Savannah Lions", Count: 8},
+	{Name: "Coral Merfolk", Count: 6}, {Name: "Plains", Count: 18},
+}
+
+// tithesWatch: gorge asks blockers of a defending player while an
+// Archangel of Tithes attacks, three or more players alive.
+func tithesWatch(c *PickCtx) bool {
+	d := c.G.fr.d
+	g := c.G.E.G
+	if d == nil || d.Kind != decision.KBlockers || podAlive(g) < 3 {
+		return false
+	}
+	for _, id := range g.Zone(state.ZBattlefield, g.Active) {
+		if o := g.Obj(id); o != nil && o.IsAttacking && o.Face() != nil && o.Face().Name == "Archangel of Tithes" {
+			return true
+		}
+	}
+	return false
+}
+
+// TestFourSeatTithesLockstep: four-seat Archangel of Tithes games play in
+// lockstep, both taxes priced per player.
+func TestFourSeatTithesLockstep(t *testing.T) {
+	podClassLockstep(t, tithesPodDeck, 24, 10, tithesWatch, &dirac.DebugAtkTaxFree)
+}
+
+// TestFourSeatTithesBlockMutation: the block half; the mutation
+// (DebugBlkTaxFree) lets every block go uncharged and must diverge.
+func TestFourSeatTithesBlockMutation(t *testing.T) {
+	st := runPodClass(t, tithesPodDeck, 24, tithesWatch, &dirac.DebugBlkTaxFree, true)
+	if st.divs == 0 {
+		t.Fatalf("mutation left %d games with no divergence", st.games)
+	}
+	t.Logf("mutation diverged in %d of %d games", st.divs, st.games)
+}
