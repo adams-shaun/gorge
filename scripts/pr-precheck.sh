@@ -41,6 +41,12 @@ if grep -q '^dirac/' <<<"$changed"; then
   # branch cut fails TestEvidenceAndRefusedAreDisjoint though the PR touches neither test (#503, 11-17).
   ledger='^(TestSupportDocIsCurrent|TestEvidenceAndRefusedAreDisjoint|TestRefusedEntriesWellFormed|TestRefusedReproParses|TestSupportHasNoScriptText)$'
   "${cap[@]}" go test -timeout 5m -run "$ledger" ./dirac/kgen >"$log" 2>&1 || { cat "$log"; fail "support ledger: $(grep -m1 -A1 -- '--- FAIL' "$log" | tr '\n' ' ') (a stale page: scripts/pr-regen.sh dirac/docs/support.md)"; }
+  # #1836 added dirac/stallclass_twoseatcauses.go — stallclass is core, not a topic — and pr-precheck said ok: no
+  # step here runs TestDiracFileNames, and the batch failed on it. Only an added file can introduce a bad name; the
+  # topic list is dirac/filenames_test.go's (doc.go lists the topics).
+  if git diff --name-only --diff-filter=A "$base"...HEAD -- 'dirac/' | grep -q '\.go$'; then
+    "${cap[@]}" go test -timeout 3m -run '^TestDiracFileNames$' ./dirac >"$log" 2>&1 || { cat "$log"; fail "dirac file names: $(grep -m1 -E 'neither core|named for where|ends in a number' "$log" | sed 's/^[[:space:]]*//' | cut -c1-200) — rename it <topic>_<mechanic>.go (doc.go lists the topics; rounds of one mechanic share a file, no digits)"; }
+  fi
 fi
 # A package's census and pin ratchets: #611 registered kw:Modular but left its pin in granted-keyword-gaps.txt, and
 # TestGrantedKeywordHeadsAreRegisteredOrPinned failed in the batch (11-17). engine/rules' 225 run in ~32 s. The
@@ -61,9 +67,21 @@ done
 # diverging event (GORGE_DUMP_SETHEADS=<dir>, then diff the dump against base).
 if heads_gate <<<"$changed"; then
   heads='^(TestSetHeads|TestHeads|TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead|TestEveryStandardSetParamsAreRead|TestTakeInitiative.*|TestKnownApproximationsOnlyShrinks)$'
+  # #1787 read EffectZone/ExcludeZone in engine/ and pr-precheck said ok: the known-key census tests live in
+  # ./engine/rules, which the census step above never selects from a change outside it, and the batch failed on 21
+  # stale engine/effects/*_params.go tables.
+  if grep -qE '^(engine/|cmd/forgec/)' <<<"$changed"; then
+    heads='^(TestSetHeads|TestHeads|TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead|TestEveryStandardSetParamsAreRead|TestTakeInitiative.*|TestKnownApproximationsOnlyShrinks|Test[A-Za-z0-9_]*KnownKeysMatchTheCensus)$'
+  fi
   if ! "${cap[@]}" go test -timeout 5m -run "$heads" ./engine/rules ./testkit/testutil >"$log" 2>&1; then
     cat "$log"
-    fail "golden heads: $(grep -o -E -- '--- FAIL: Test[A-Za-z0-9_/]+' "$log" | head -3 | sed 's/--- FAIL: //' | paste -sd' ') — re-pin with GORGE_UPDATE_SETHEADS=1 (or GORGE_UPDATE_HEADS=1 for TestHeads), and name the first diverging event in the commit message (GORGE_DUMP_SETHEADS=<dir>, then diff the dump against base)"
+    why="re-pin with GORGE_UPDATE_SETHEADS=1 (or GORGE_UPDATE_HEADS=1 for TestHeads), and name the first diverging event in the commit message (GORGE_DUMP_SETHEADS=<dir>, then diff the dump against base)"
+    if grep -q 'KnownKeysMatchTheCensus' "$log"; then
+      # The census's -update rewrites the *_params.go tables for the NEXT run only (the package var is loaded
+      # before the rewrite), so it must be run twice: once with -update, once without to verify.
+      why="regenerate the params tables: go test ./engine/rules -run 'KnownKeysMatchTheCensus' -update, then run it again without -update to verify (the rewrite lands for the NEXT run: the package var was loaded before it) — and $why"
+    fi
+    fail "golden heads: $(grep -o -E -- '--- FAIL: Test[A-Za-z0-9_/]+' "$log" | head -3 | sed 's/--- FAIL: //' | paste -sd' ') — $why"
   fi
 fi
 for pkg in $(grep '_test\.go$' <<<"$changed" | xargs -r -n1 dirname | sort -u); do
