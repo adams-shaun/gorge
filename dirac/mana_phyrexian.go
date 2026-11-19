@@ -190,14 +190,14 @@ func (s *State) phyPay(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj)
 	return ok && s.windowSpellSettled(k, p, cost, false)
 }
 
-// phyFilterReach: some repeatable fee-only filter (Bog Initiate's "{1}: Add
-// {B}.") makes the potential pool pay cost, so gorge's stranded check lets
-// the window open (its PotentialMana fixpoint prices the filter's own
-// production, potential_repeat_fee.go) though the printed sources do not
-// reach it. The window then lists no filter that cannot help (windowFeeStalls)
+// phyFilterReach: some filter (Bog Initiate's "{1}: Add {B}.", Selesnya
+// Signet's "{1}, {T}: Add {W}{G}.") makes the potential pool pay cost, so
+// gorge's stranded check lets the window open (its PotentialMana fixpoint
+// prices the filter's own production, potential_repeat_fee.go) though the
+// printed sources do not reach it. The window then lists no filter that cannot help (windowFeeStalls)
 // and the cast is reversed when it ends short (CR 733.1; phyFilterStranded).
 func (s *State) phyFilterReach(k *prep, p uint8, cost *kop.ManaCost) bool {
-	if k.gen == nil || !k.gen.anyFiltRepeat {
+	if k.gen == nil || !k.gen.anyFilt {
 		return false
 	}
 	var av avail
