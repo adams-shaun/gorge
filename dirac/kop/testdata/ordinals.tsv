@@ -933,6 +933,7 @@ OptDefined	untyped int	32
 OvChosenColor	untyped int	1
 OvChosenType	untyped int	3
 OvEnterWith	untyped int	2
+PTBoxOpen	untyped int	15
 PTRelEQ	int16	1
 PTRelLT	int16	0
 PTRelNE	int16	2

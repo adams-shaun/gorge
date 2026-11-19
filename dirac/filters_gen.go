@@ -457,9 +457,11 @@ func xBoundTarget(tb *kop.Table, t *kop.TargetSpec) bool {
 func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, src Slot, layer uint8) bool {
 	n := int(fl.PredN)
 	switch fl.Pred {
-	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE:
+	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE, kop.PredStatBox:
 		pw, t := s.ptGen(k, sl)
 		switch fl.Pred {
+		case kop.PredStatBox:
+			return kop.PTBoxHolds(fl.PredN, pw, t)
 		case kop.PredPowerLE:
 			return pw <= n
 		case kop.PredPowerGE:
@@ -810,25 +812,8 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	n := int(fl.PredN)
 	switch fl.Pred {
 	case kop.PredNone:
-	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE:
-		s.offZonePTRead(k, c, owner, o) // static_offzonept.go
-		pw, t := int(pc.power), int(pc.tough)
-		if fd {
-			pw, t = 2, 2
-		}
-		if k.cda && k.gen.has(c, gfCDAPT) {
-			pw, t = s.cardCDAPT(k, c, owner, o)
-		}
-		if s.g.tli&tliOn != 0 {
-			pw, t = s.lkiPT() // a moved target's last known P/T (zone_lki.go)
-		}
-		switch fl.Pred {
-		case kop.PredPowerLE:
-			return pw <= n
-		case kop.PredPowerGE:
-			return pw >= n
-		}
-		return t <= n
+	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE, kop.PredStatBox:
+		return s.predCardPT(k, fl, c, owner, o, fd)
 	case kop.PredCMCLE, kop.PredCMCGE, kop.PredCMCEQ, kop.PredCMCLEV:
 		mv := s.cardMVIn(k, c, o, fd, ctx)
 		switch fl.Pred {
@@ -947,4 +932,33 @@ func (s *State) offFieldCountersGE(k *prep, n int, o Obj) bool {
 	// off the battlefield: a stash counter (Tinybones) or an exile counter
 	// (Dauthi Voidwalker's VOID, Draugr Necromancer's ICE)
 	return s.predCountersGECard(k, o, n)
+}
+
+// predCardPT is matchCardOneAt's power and toughness predicates (PredPowerLE,
+// PredPowerGE, PredToughnessLE, PredStatBox) for card c off the battlefield:
+// the printed P/T, a face-down spell's 2/2 (CR 708.4), the CDA's, or a moved
+// target's last known P/T (zone_lki.go).
+func (s *State) predCardPT(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj, fd bool) bool {
+	pc := &k.cards[c]
+	s.offZonePTRead(k, c, owner, o) // static_offzonept.go
+	pw, t := int(pc.power), int(pc.tough)
+	if fd {
+		pw, t = 2, 2
+	}
+	if k.cda && k.gen.has(c, gfCDAPT) {
+		pw, t = s.cardCDAPT(k, c, owner, o)
+	}
+	if s.g.tli&tliOn != 0 {
+		pw, t = s.lkiPT()
+	}
+	n := int(fl.PredN)
+	switch fl.Pred {
+	case kop.PredStatBox:
+		return kop.PTBoxHolds(fl.PredN, pw, t)
+	case kop.PredPowerLE:
+		return pw <= n
+	case kop.PredPowerGE:
+		return pw >= n
+	}
+	return t <= n
 }

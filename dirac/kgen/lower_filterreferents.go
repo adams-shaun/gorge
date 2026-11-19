@@ -286,6 +286,18 @@ func (lc *lowerCtx) referentGate(expr string) error {
 			return refuse("filter %q: NotDefinedTriggeredAttacker outside an Attacks trigger", expr)
 		}
 	}
+	if strings.Contains(expr, "sharesCreatureTypeWith TriggeredCard") {
+		// the Dies trigger's dying card (act_sweeps / trig_diesleaves pass
+		// the event's obj) and the ETB trigger's entering one (fireObj): the
+		// kernel's trigObj is gorge's TriggerCard there and nowhere else
+		tr := (*lTrigger)(nil)
+		if lc.ab != nil {
+			tr = lc.ab.Trigger
+		}
+		if tr == nil || tr.Event != "Dies" && tr.Event != "ETB" || !lc.trigBody || lc.granted > 0 || lc.ab.Latent {
+			return refuse("filter %q: sharesCreatureTypeWith TriggeredCard outside a Dies or ETB trigger", expr)
+		}
+	}
 	if strings.Contains(expr, "blockingTriggeredAttacker") {
 		if lc.ab == nil || lc.ab.Trigger == nil || lc.ab.Trigger.Event != "AttackerBlocked" || !lc.trigBody || lc.granted > 0 && !(lc.granted == 1 && lc.emblemBlocked) {
 			return refuse("filter %q: blockingTriggeredAttacker outside an AttackerBlocked trigger", expr)

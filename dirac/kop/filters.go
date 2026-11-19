@@ -597,6 +597,30 @@ const (
 	PTRelNE int16 = 2
 )
 
+// PredStatBox's PredN: a power range and a toughness range, one 4-bit bound
+// each (bits 0-3 power low, 4-7 power high, 8-11 toughness low, 12-15
+// toughness high), every bound inclusive and PTBoxOpen meaning no bound.
+const PTBoxOpen = 15
+
+// PTBoxPack packs bounds b (power lo, hi, toughness lo, hi; each 0..14 or
+// PTBoxOpen) into a PredStatBox PredN.
+func PTBoxPack(b [4]int) int16 {
+	return int16(uint16(b[0]&15 | b[1]&15<<4 | b[2]&15<<8 | b[3]&15<<12))
+}
+
+// PTBoxUnpack is PTBoxPack's inverse.
+func PTBoxUnpack(n int16) [4]int {
+	u := int(uint16(n))
+	return [4]int{u & 15, u >> 4 & 15, u >> 8 & 15, u >> 12 & 15}
+}
+
+// PTBoxHolds reports whether power pw and toughness t lie in box n.
+func PTBoxHolds(n int16, pw, t int) bool {
+	b := PTBoxUnpack(n)
+	return (b[0] == PTBoxOpen || pw >= b[0]) && (b[1] == PTBoxOpen || pw <= b[1]) &&
+		(b[2] == PTBoxOpen || t >= b[2]) && (b[3] == PTBoxOpen || t <= b[3])
+}
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go
