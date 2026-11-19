@@ -204,6 +204,63 @@ func windowNoTapPain(k *prep, pc *pcard) bool {
 	return k.painMana && lifeOnlyPain(pc)
 }
 
+// windowColPain is windowColOwed's pain arm: a painful source (k.painMana,
+// pc.painCol, not pain-only) on an ask that does owe a colour (an any-colour
+// ask is answered above it). The colours an owed pip reaches through either
+// the painful ability or a normal one beside it have answered above
+// (owedColoursFirst); what is left is the lowest colour the ask still lists.
+func (s *State) windowColPain(k *prep, p uint8, cost *kop.ManaCost, pc *pcard, mask uint8, noOwed bool) int {
+	if prim := uint8(pc.manaCol) & 0x1f; prim != 0 {
+		// A two-colour normal ability beside the painful one (Haunted
+		// Screen: {W} or {B}, then {G}, {U} or {R} for 1 life): the ask
+		// lists both abilities' colours, so an owed colour either
+		// ability makes has answered above (owedColoursFirst) and
+		// otherwise the answer is the lowest listed colour, mask's (W),
+		// not the painful ability's lowest for its own sake
+		// (payexec.WindowAnswer, TestPayWindowTapsLowestColour). A
+		// noOwed ask (a ward/unless window) owes nothing at all, so it
+		// takes the same lowest colour and pays no life. A {C} normal
+		// ability (a painland, Starting Town) keeps the measured answer
+		// below.
+		return bits.TrailingZeros8(mask)
+	}
+	// a painland: gorge's "Choose a mana ability" ask carries no
+	// payment, so the answer is its lowest colour option whatever
+	// the window owes (mana_pain.go)
+	col := bits.TrailingZeros8(uint8(pc.painCol))
+	if pc.painLife && bits.OnesCount8(uint8(pc.painCol)&0x1f) == 1 && uint8(pc.painCol)&^0x1f == 0 {
+		// a life-cost ability of one fixed colour (Ramunap Ruins' {R})
+		// lists no mana symbol, like Starting Town's, so the window's
+		// answer takes the first listed ability, the plain {C} (CR 605.3b)
+		col = kop.C
+	}
+	if pc.painCol == kop.ColAny {
+		// Starting Town: the any-colour ability lists no symbol. A fixed
+		// pip still owed makes the ability ask take it (owedAbilitiesFirst);
+		// the colour ask then answers the owed pip when the demand is
+		// decided, and otherwise offers every colour, where the payment
+		// window's bot takes the first listed one (W), not an owed pip.
+		demand := s.windowDemand(k, p, cost)
+		col = kop.C
+		if noOwed && !pc.painLife {
+			// an unless / ward window's ability ask is in printed order
+			// (owedAbilitiesFirst reorders a cast's only): the plain {C}
+			// ability answers it, Grand Coliseum beside an owed {G}. A
+			// pay-life any-colour ability (Starting Town) is not this class:
+			// its 1 life is a real cost (CR 118.3) gorge's window does pay,
+			// so its ask keeps the measured answer below.
+			demand = 0
+		}
+		if m := uint8(pc.painCol) & 0x1f & demand; m != 0 {
+			col = bits.TrailingZeros8(uint8(pc.painCol))
+			if _, decided := s.windowUseful(k, p, cost); decided {
+				col = bits.TrailingZeros8(m)
+			}
+		}
+	}
+	return col
+}
+
 // canLifeOnlyMana is the census and planner admission of sl's life-only pain
 // unit: the ability's cost taps nothing and needs no untapped, unsick source
 // (the census extends it tapped or not, mana_sacsource.go), only an ability
