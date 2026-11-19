@@ -78,6 +78,7 @@ Custodi Soulbinders
 Cutthroat Centurion
 Dakmor Bat
 Dance of the Skywise
+Dandân
 Danitha, New Benalia's Light
 Daring Demolition
 Dark Betrayal
@@ -243,6 +244,7 @@ Lionheart Maverick
 Liquimetal Torque
 Live Fast
 Living Airship
+Longshot Squad
 Lotus Path Djinn
 Lurking Predators
 Mage-Ring Bully
@@ -284,6 +286,7 @@ Needleshot Gourna
 Needletooth Raptor
 Nevinyrral's Disk
 Norwood Warrior
+Nuclear Fallout
 Obelisk of Grixis
 Obelisk of Jund
 Ogre Recluse
@@ -418,6 +421,7 @@ Trelasarra, Moon Dancer
 Tremor
 Triskelavus
 Tukatongue Thallid
+Uncontrolled Infestation
 Unruly Krasis
 Urborg Syphon-Mage
 Valkyrior Skyrider

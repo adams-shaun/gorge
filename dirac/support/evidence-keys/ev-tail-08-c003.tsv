@@ -45,11 +45,13 @@ Disposal Mummy	cee2f5c13cabe676	12	1/1		0/1	ix:resp
 Drana's Emissary	50dc4dda91909a67	8	1/1		1/1	
 Dread Specter	bd71d1ae875b8b99	3	2/2		0/1	ix:resp
 Dream Prowler	1774f31e70ea87c2	5	0/0		0/0	
+Dwarven Trader	7901656a0c7a5384	64	0/0		0/0	
 Eagle of Deliverance	61dcc0ba80d302c3	8	1/1		0/1	ix:resp
 Elite Javelineer	d786df8370f927db	16	1/1		1/1	
 Engulf the Shore	454b898bf485ef85	4	0/0		1/2	ix:resp
 False Demise	cf715abaf80af88e	9	1/1		1/2	ix:resp
 Feast of the Unicorn	b7d7909b92925769	7	0/0		1/2	ix:resp
+Feedback	d98cfa21f06b2e6b	15	1/1		2/2	
 Fists of Flame	e41591b5e089b2d4	5	0/0		1/2	ix:resp
 Flay	e42d995f61acce9a	15	0/0		1/2	ix:resp
 Foundry Inspector	2e4f1b595fdda667	6	0/0		0/0	
@@ -59,6 +61,7 @@ Funnel-Web Recluse	ab868df9ea9f3ec7	16	1/1		1/1
 Ghost-Lit Nourisher	4c3f609734d00e05	10	2/2		0/1	ix:resp
 Glarewielder	49a553498054e50c	4	1/1		1/3	cast/alt:none,ix:resp
 Glimpse the Future	00263b11d0f556c2	11	0/0		1/2	ix:resp
+Gloomlance	39803635ea919bd6	50	0/0		2/2	
 Goblin Heelcutter	0985148ad319b657	18	1/1		2/3	ix:resp
 Goggles of Night	d8838bbe55722e40	14	2/2		1/1	
 Hallowed Haunting	a5ce710f99f291aa	14	1/1		0/1	ix:resp
@@ -68,6 +71,7 @@ Hyperion Blacksmith	c3820513a2907c92	10	1/1		1/1
 Ilysian Caryatid	b668c21dc0c9f1d7	21	1/1		1/1	
 Improbable Alliance	ff1267220b636ebc	26	2/2		1/1	
 Inspiring Cleric	60103fcb12a0387b	5	1/1		0/1	ix:resp
+Iron Fist, Hero for Hire	ceca251c078548ff	46	2/2		1/1	
 Iron Verdict	51e98a5b1e0040d5	10	0/0		3/4	cast/alt:foretold
 Ishai, Ojutai Dragonspeaker	847aa3f7263802f7	8	1/1		1/1	
 Juju Bubble	e4697f30d319d5a4	8	4/4		1/1	
@@ -82,6 +86,7 @@ Lynx	dafb34074ff927a5	9	0/0		0/0
 M.O.D.O.K., Evil Intellect	77b73345412db753	7	1/1		1/1	
 Mascot Exhibition	d10d162b60c58ca7	14	0/0		2/2	
 Mass Diminish	51d404a449d80d02	34	0/0		4/4	
+Midnight Ritual	566b5ebce30f18b4	23	0/0		2/4	f0/s/x0,ix:resp
 Militia Bugler	22c10cc12bcc0f05	4	1/1		0/1	ix:resp
 Moldering Karok	0b156a26a6195eb1	7	0/0		0/0	
 Moroii	ddd06c7c208743d0	8	1/1		1/1	
@@ -101,17 +106,23 @@ Red XIII, Proud Warrior	5305cbd1cc28fc75	3	1/1		0/1	ix:resp
 Relic Bind	8dc60ea51a80ce85	6	1/1		1/2	ix:resp
 Riddle Gate Gargoyle	5fd1a538d39ca2e5	6	2/2		0/1	ix:resp
 Righteous Charge	0ccd123a379c89b6	6	0/0		1/2	ix:resp
+Rilsa Rael, Kingpin	9104eca065711ea3	15	2/2		0/1	ix:resp
 Rob the Archives	0fb535cdc2e61b15	9	0/0		1/2	ix:resp
 Rustspore Ram	d26cb89a1ba142c4	6	1/1		0/1	ix:resp
 Rustwing Falcon	c3e1ca2297a1b401	6	0/0		0/0	
 Ruthless Deathfang	cbf39e455abe9c4c	4	1/1		0/1	ix:resp
+Screeching Bat	0f94336f8859d316	48	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f1/t0/opt:n,f1/t0/opt:y
 Selfless Cathar	b54f6149c5dd4db3	9	1/1		0/1	ix:resp
 Serra's Boon	deaf36301a869299	13	0/0		1/2	ix:resp
 Six-Sided Die	2c51e57d10b3cd0d	6	0/0		2/2	
 Skyblade's Boon	47703488bcb6a449	15	2/2		2/2	
+Soul Channeling	c14ca46acdd56d4f	30	1/1		2/2	
 Sphere of Reason	185b34203c181d44	4	0/0		0/0	
+Sprinting Warbrute	c98a2c7bccfff20b	60	0/0		2/2	
+Square Up	e0fadcf16f4cec76	20	0/0		2/2	
 Staunch Shieldmate	8b1e52a4dcaed16a	15	0/0		0/0	
 Steel Wall	0f8eb08731d917ee	36	0/0		0/0	
+Summon: Kujata	420152b43063f42c	13	0/0		0/0	
 Sunlit Marsh	c671eaffb7e4ba94	27	2/2		0/1	ix:resp
 Talisman of Unity	b7203c0f73ec1ed6	8	2/2		0/1	ix:resp
 Tempest of Light	4412304336f1c41f	12	0/0		1/2	ix:resp
@@ -123,10 +134,12 @@ Urborg Drake	c1f08979930ead28	21	0/0		0/0
 Valorous Steed	c0242b513d6cac83	4	1/1		1/1	
 Vampire Slayer	76998cb398f9e024	125	1/1		1/1	
 Vampiric Sliver	29bd51205bc0bf68	5	0/0		0/0	
+Vectis Silencers	e8c51798a55a3018	49	1/1		1/1	
 Venerable Warsinger	c83179b9325f247d	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Victory's Herald	b971eeb6bd83a389	3	1/1		0/1	ix:resp
 Vrock	aa8a27b47e014106	8	1/1		0/1	ix:resp
 Wall of Opposition	8a7d474ea16c3ad1	9	1/1		1/1	
 Warlord's Elite	d1353e9b1bb7a28a	3	0/0		1/2	ix:resp
+Wormhole Serpent	06bf056fa91ab379	33	1/1		1/1	
 Yavimaya Enchantress	1cfc978b6e7e811b	9	0/0		0/0	
 Yukora, the Prisoner	fc89723f7a79e9bd	7	1/1		0/1	ix:resp

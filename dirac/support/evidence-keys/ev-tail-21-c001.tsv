@@ -1,6 +1,8 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Bretagard Stronghold	001e3c249e0a36ac	6	2/2		0/1	ix:resp
 Aang, A Lot to Learn	179c2d6fc0713c24	10	1/1		1/1	
 Ali Baba	1c7074b8695041bf	33	1/1		0/1	ix:resp
+Ancestral Tribute	295149f44db79804	3	0/0		3/4	cast/alt:flashback
 Aron, Benalia's Ruin	ef775be607963b29	18	1/1		1/1	
 Arrogant Vampire	a3266a1bda7c9e7f	45	0/0		0/0	
 Artistic Refusal	e5344346ccd83cac	36	0/0		2/2	
@@ -10,9 +12,12 @@ Beetleback Chief	d29442ea17d0671f	10	1/1		1/1
 Biting-Palm Ninja	4ce6edfa47d8c71b	27	2/2		1/1	
 Brass-Talon Chimera	8bec2c6fd1fb90c0	160	1/1		1/1	
 Breath of Malfegor	6a597f7098223d0b	12	0/0		2/2	
+Brokers Initiate	ded585dc8c2cec96	10	1/1		1/1	
+Cerulean Wisps	df12810cca06ed58	4	0/0		2/2	
 Cobbled Wings	f382714133a1b7d9	170	1/1		1/1	
 Confound	64ee7657ab7bfc4a	30	0/0		2/2	
 Consume Spirit	3ece0c897241f625	29	0/0		3/4	f0/s/x0
+Court of Bounty	b2b9b124369f368f	5	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Crovax, Ascendant Hero	9409828d5ad1b65c	5	1/1		0/1	ix:resp
 Cyan, Vengeful Samurai	570e4adcf3e0e290	9	1/1		1/1	
 Demonlord of Ashmouth	c8af6cc05e06dcbb	20	2/2		0/1	ix:resp
@@ -21,18 +26,22 @@ Draconic Destiny	59b274877a032498	15	1/1		2/2
 Dralnu's Crusade	e06c6987f7eeb379	19	0/0		0/0	
 Dutiful Servants	bcefa81132348113	26	0/0		0/0	
 Elegant Entourage	d0a330647db33157	25	1/1		0/1	ix:resp
+Ember Weaver	6ee649c58002b30f	5	0/0		0/0	
 Enchanted Carriage	3ca9e4cbe8043c77	78	2/2		1/1	
 Enduring Bondwarden	9c9d88a94f80411d	23	2/2		1/1	
 Fangren Marauder	4fd042ba23cbd76e	76	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Fiery Hellhound	b7c129f9f659f4d5	26	1/1		1/1	
 Flying Men	7031e47e0cb8cc43	147	0/0		0/0	
 Forgeborn Oreads	8f8d2e18b6e73733	24	1/1		1/1	
+Frantic Purification	f4422e04de074c89	11	0/0		1/2	ix:resp
 Frantic Salvage	6c5537e5a0723031	12	0/0		2/2	
+General Marhault Elsdragon	81491c674800f5bb	6	1/1		1/1	
 Geth, Lord of the Vault	02ed0d66f7629b5d	253	1/1		1/1	
 Glimpse the Sun God	5bff978d90557941	4	0/0		3/4	ix:resp
 Goblin War Buggy	a28111aa171c8651	24	1/1		1/1	
 Golgari Longlegs	cb72f50237c4b8bb	5	0/0		0/0	
 Graf Harvest	2ce4c7e2a2116bf4	26	1/1		1/1	
+Guided Strike	a7e00b48dd745f91	6	0/0		1/2	ix:resp
 Horned Stoneseeker	ce0be283a74c1d2c	23	2/2		0/1	ix:resp
 Horror of Horrors	270837c06e3781cb	33	1/1		1/1	
 Horseshoe Crab	a6a2cbf71afe77e1	123	1/1		1/1	
@@ -47,17 +56,21 @@ Iroh, Firebending Instructor	bbe73d48027a4dc3	29	1/1		1/1
 Jirina, Dauntless General	dfd164b79651aa3d	33	2/2		1/1	
 Joust	9f6eceed286364c9	16	0/0		2/2	
 Kessig Cagebreakers	b3a526a2e45a95c1	21	1/1		0/1	ix:resp
+Lens Flare	82d773a9f2216deb	7	0/0		2/2	
 Lightkeeper of Emeria	eec1ba43481149d8	3	1/1		3/3	
 Lita, Mechanical Engineer	ce51c6a892c50426	33	2/2		1/1	
+Lotus Guardian	3bcdae077d4197c8	4	1/1		0/1	ix:resp
 Makindi Ox	bd8ad639606b7338	26	1/1		1/1	
 Mastermind Plum	2db577573e64aef2	48	2/2		1/1	
 Metallurgeon	191974b2cd726b4c	23	1/1		0/1	ix:resp
+Michiko Konda, Truth Seeker	db595ac0a7bdeab0	3	1/1		0/1	ix:resp
 Might of Oaks	800461106c940fd5	159	0/0		2/2	
 Military Intelligence	9174ef532c362e98	150	1/1		1/1	
 Misguided Rage	740636a4075e582b	32	0/0		2/2	
 Morbid Curiosity	b05422179eddc559	29	0/0		2/2	
 Naban, Dean of Iteration	2704e92934e8d6d8	162	0/0		0/0	
 Notion Rain	ad03a6cfa0747f29	16	0/0		2/2	
+Ondu War Cleric	3a405678713f82eb	13	1/1		1/1	
 Orazca Frillback	aa38ab269e676a67	125	0/0		0/0	
 Pack's Favor	471e1a6d351679b7	36	0/0		2/2	
 Parallax Wave	bdcaf3a5c3aa12fc	36	3/3		1/1	
@@ -66,24 +79,41 @@ Plague Wind	de13d72ccf638222	4	0/0		2/2
 Prism Ring	d1f6c28d5fc2db39	202	1/1		1/1	
 Prosperous Thief	8d877e6267645286	100	2/2		1/1	
 Pyroconvergence	a4f5181b6cc0f7c1	13	1/1		1/1	
+Radha, Heir to Keld	8b60286b25dc07c2	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Revival	1b907ae83dca4d96	16	0/0		2/3	f1/s
 Righteous Valkyrie	4869df447ab1129b	20	1/1		1/1	
 Roast	d8126266c47fb565	28	0/0		2/2	
 Rogue Class	5b7fe1b580e26648	5	3/3		1/1	
 Rush the Room	84c9e76d76a049a6	32	0/0		2/2	
+Shared Summons	3d69d7fc765412b6	6	0/0		2/2	
 Simian Grunts	128e8d467d962cd4	19	1/1		0/1	ix:resp
 Skittering Surveyor	717644e8a4eddec3	130	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Skull Skaab	3e8234362764748c	25	2/2		1/1	
 Slith Strider	f71004f2dea05db4	128	2/2		1/1	
 Sokenzan Bruiser	9ef41701a0f4f19e	7	0/0		0/0	
 Spit Flame	181e62413e7e5d44	24	1/1		2/2	
+Spring of Eternal Peace	cbc4e9d9c7aecfd8	8	0/0		1/2	ix:resp
 Starfall	b236482afdf15555	5	0/0		1/2	ix:resp
 Stinging Scorpion	10097d644d3b6512	38	1/1		1/1	
 Stone of Erech	18227a8928c1dd72	143	1/1		1/1	
+Subdue	5cf3b4ad14c2c49b	4	0/0		1/2	ix:resp
+Sylvan Brushstrider	3e00355171c69e3e	3	1/1		0/1	ix:resp
+Thrash	3419ac8aa2d54d32	7	0/0		1/3	f1/s,ix:resp
+Thunder Totem	50826640595534cc	8	2/2		0/1	ix:resp
+Tormented Angel	b9820ab6d8272939	9	0/0		0/0	
+Triassic Egg	49f9798fab623ec5	3	2/2		0/1	ix:resp
+Trumpeting Herd	2514362987e6ef18	7	0/0		2/2	
 Tuktuk Scrapper	858fc5d9f256a88d	17	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Umara Raptor	37dc084b0c0a529c	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Unbridled Growth	f52d7a2fc906a1e3	6	1/1		1/2	ix:resp
+Unravel the Aether	34a64867127da187	4	0/0		1/2	ix:resp
 Urabrask the Hidden	4d2e55adc69431c6	6	0/0		0/0	
 Vassal Soul	6d844e96aafecb98	12	0/0		0/0	
 Viashino Sandswimmer	fbc6c4b214296a76	32	1/1		0/1	ix:resp
+Viridian Longbow	a0e86916c8f7765e	10	1/1		0/1	ix:resp
+Voice of Grace	e686e351df4b7b12	6	0/0		0/0	
 Wall of Lava	1d096dbc70abb3a1	30	1/1		1/1	
+Wedding Invitation	6879d64f20178c68	8	2/2		0/1	ix:resp
+White Rhystic Study	35e4a989c2277f63	3	1/1		1/1	
+Will of the Mardu	034a7c2c7002f429	7	0/0		1/2	ix:resp
 Yellow Scarves Troops	d4a8e00f96c8d117	34	0/0		0/0	

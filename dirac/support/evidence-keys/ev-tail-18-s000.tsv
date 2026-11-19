@@ -36,6 +36,7 @@ Burning Sun's Avatar	6f5b1b6e9e67f2a3	13	1/1		0/1	ix:resp
 Cacophony Unleashed	386fd4da26bcfb66	10	2/2		1/1	
 Capital Guard	f4eea768da433c25	18	0/0		0/0	
 Carnage Interpreter	a039ce90fa994af0	12	1/1		0/1	ix:resp
+Challenger Troll	783ed452b945433c	10	0/0		0/0	
 Champion Lancer	c0c93cc2e04862b3	10	0/0		0/0	
 Charcoal Diamond	e6917015ded11f43	27	1/1		1/1	
 Cloakwood Hermit	f4506a68ba3c1991	13	0/0		0/0	
@@ -55,6 +56,7 @@ Deranged Hermit	d1a0e66f7a30cb6e	4	2/2		0/1	ix:resp
 Deserter's Quarters	49e81d77cc3445ab	32	1/1		1/1	
 Desolation Twin	44521d3da69a2b83	8	1/1		1/1	
 Devastation Tide	c5d88a0f8b66414d	24	0/0		4/4	
+Diabolic Tutor	62ecf84336d43c4b	8	0/0		2/2	
 Dictate of Karametra	4a0a5881d2b511a6	10	1/1		0/1	ix:resp
 Dissipate	3ea66d31f397873f	22	0/0		2/2	
 Dragon Mask	56e5032a4c9ec6c3	25	1/1		0/1	ix:resp
@@ -115,6 +117,7 @@ Jace's Sentinel	9efc7bada1315435	4	0/0		0/0
 Jodah's Codex	a0b4a0f15d7b72e4	26	1/1		1/1	
 Johnny, Combo Player	a3722e2c0cb442d2	25	1/1		1/1	
 Jushi Apprentice	153a114191c436b2	31	2/2		1/1	
+Kalitas, Traitor of Ghet	dff8a925366d954a	6	1/1		0/1	ix:resp
 Kazandu Refuge	6ebbfe62f6b165ab	89	2/2		0/1	ix:resp
 Kird Chieftain	1f2bdf0df3da1781	23	1/1		1/1	
 Kitesail Skirmisher	7fec978f94bea0b6	18	2/2		1/1	
@@ -143,6 +146,7 @@ Owlbear Shepherd	9c9fadf56eb87fda	13	1/1		0/1	ix:resp
 Pain	cfc3e6ee7d1f35aa	11	0/0		1/3	f1/s,ix:resp
 Paragon of Open Graves	4b91a8a08b2852d7	16	1/1		1/1	
 Pillar of War	97ec45144bdbb150	18	0/0		0/0	
+Pirate's Prize	a5cfd5f460b702e9	7	0/0		1/2	ix:resp
 Pistus Strike	80cb5cec83bfe616	8	0/0		2/2	
 Pith Driller	9a416ea44d6029f6	17	1/1		0/1	ix:resp
 Plains	82d63a695487e567	323	1/1		0/1	ix:resp
@@ -219,9 +223,11 @@ Torch Courier	a13e869ada9ce72b	16	1/1		0/1	ix:resp
 Triceraton Regenta	f60213e14074a2da	14	1/1		0/1	ix:resp
 Underworld Charger	d3890ccbb1f1559d	15	0/0		1/2	cast/alt:escaped
 Unlicensed Hearse	6126e71a1fa4f56b	38	2/2		1/1	
+Vedalken Dismisser	79d16a1f7192b687	17	1/1		1/1	
 Vesper Ghoul	442f1e92344321ee	24	1/1		0/1	ix:resp
 Virtus the Veiled	6609656b40ab6d6e	10	2/2		0/1	ix:resp
 Wall of Hope	62843a03622fb463	4	1/1		0/1	ix:resp
+War Elemental	b459b4cc3b0a0257	11	2/2		0/1	ix:resp
 Warlord's Fury	3c9d1b80d6f68c62	21	0/0		1/2	ix:resp
 Warped Landscape	5e1d13c5f3266dad	83	2/2		0/1	ix:resp
 Winding Way	6396e985c5a41fc6	23	0/0		1/2	ix:resp
