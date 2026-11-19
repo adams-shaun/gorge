@@ -2653,20 +2653,7 @@ func (e *Engine) runCombatAssignments() {
 					// creatures" is a single designation), and it matches 726.5:
 					// a controller who already holds the designation re-taking it
 					// folds an idempotent InitiativeChange and still ventures.
-					if e.combatRound.initHad && ev.Player == e.combatRound.initHolder &&
-						x.from != 0 && e.G.Obj(x.from) != nil {
-						ctrl := e.G.Obj(x.from).Controller
-						known := false
-						for _, c := range e.combatRound.initCtrls {
-							if c == ctrl {
-								known = true
-								break
-							}
-						}
-						if !known {
-							e.combatRound.initCtrls = append(e.combatRound.initCtrls, ctrl)
-						}
-					}
+					recordHandoffHit(e.G, &e.combatRound, ev.Player, x.from)
 					// CR 702.164 (toxic): a player dealt combat damage by a source
 					// with toxic N ALSO gets N poison counters. Toxic modifies the
 					// damage only by adding a second instruction, so it must not
@@ -2736,6 +2723,29 @@ func (e *Engine) runCombatAssignments() {
 	e.combatRound.assignments = nil
 	e.combatRound.damageNext = 0
 	e.EndLifeLossBatch()
+}
+
+// recordHandoffHit collects one landed player-targeted combat hit for the
+// CR 726.2 handoff adjudication in runCombatAssignments' tail: the distinct
+// controllers of creatures whose hit LANDED on the holder SNAPSHOT (taken
+// when dealing began -- the live field must not be re-read, because this
+// very rule moves it). The synchronous loop calls it per assignment, and
+// finishChosenDamage calls it for a hit the loop never saw: a player-targeted
+// combat hit parked behind a damage replacement-order ask (Battletide
+// Alchemist's optional "you may prevent X" alone parks every one) lands
+// there, after the loop has moved past its index.
+func recordHandoffHit(g *state.Game, cr *combatRound, player state.PlayerID, from state.ObjID) {
+	if cr.assignments == nil || !cr.initHad ||
+		player != cr.initHolder || from == 0 || g.Obj(from) == nil {
+		return
+	}
+	ctrl := g.Obj(from).Controller
+	for _, c := range cr.initCtrls {
+		if c == ctrl {
+			return
+		}
+	}
+	cr.initCtrls = append(cr.initCtrls, ctrl)
 }
 
 // maxHandSize is CR 514.1's DEFAULT maximum: at the beginning of a player's
