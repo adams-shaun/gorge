@@ -346,7 +346,7 @@ func (s *State) statRdrDeal(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, 
 // damage leaves the event and lands on the rewritten recipient's event. It
 // reports whether the event was taken (applied, or stalled so nothing else
 // may answer).
-func (s *State) statRdrCombat(k *prep, r *dmgRec, ev *dmgEv, ordered bool, code TCode, rcp uint8) bool {
+func (s *State) statRdrCombat(k *prep, r *dmgRec, ev *dmgEv, byOrd bool, code TCode, rcp uint8) bool {
 	e := rdrEv{srcCtrl: s.perms[ev.src].ctrl, srcSl: ev.src, srcCard: s.cardAt(ev.src),
 		code: code, rcp: rcp, sl: ev.dst, combat: true}
 	var cands [rdrMax]rdrCand
@@ -368,8 +368,8 @@ func (s *State) statRdrCombat(k *prep, r *dmgRec, ev *dmgEv, ordered bool, code 
 		s.capFull(StallRedirOrder)
 		return true
 	}
-	if ordered || r.nev >= len(r.ev) {
-		s.capFull(StallRedirOrder) // an event-by-event ordered walk, or no room for the new event
+	if byOrd || r.nev >= len(r.ev) {
+		s.capFull(StallRedirOrder) // an order-sensitive walk, or no room for the new event
 		return true
 	}
 	tsl := s.objs[to].slot

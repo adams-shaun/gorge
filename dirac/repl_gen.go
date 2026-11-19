@@ -247,6 +247,25 @@ func (s *State) graveLibInsert(k *prep, c CardID) (bottom, shuffle bool) {
 	return b&eaLibBottom != 0, b&eaLibShuffle != 0
 }
 
+// prevCtrSelfRecv reports whether an event of r is dealt to a live
+// ReplPreventDamageCounters host. Such a host spends its counter on the first
+// event it is dealt, so the pass's events must run in gorge's assignment
+// order. Without one the order does not matter and the pass stays in slot
+// order: an event a redirect appends mid-pass is then appended in that order
+// instead of being indexed through the stale walk order.
+func (s *State) prevCtrSelfRecv(k *prep, r *dmgRec) bool {
+	if k.gen.anyRepl&rbPrevCtrSelf == 0 {
+		return false
+	}
+	for i := 0; i < r.nev; i++ {
+		ev := &r.ev[i]
+		if ev.n > 0 && ev.dst != NoSlot && s.selfDamageHost(k, ev.dst, rbPrevCtrSelf) {
+			return true
+		}
+	}
+	return false
+}
+
 // replCombatGen applies protection from everything and the damage-amount
 // replacements to each combat
 // damage event of r (one per source and recipient, in assignment order),
@@ -256,13 +275,17 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 	// a live Ext PreventNext shield depletes across the pass's events, so they
 	// are dealt in gorge's assignment order (repl_prevnext.go)
 	var ord [MaxPerm]uint8
-	ordered := k.gen.anyRepl&rbPrevCol != 0 && !s.g.ro.on && s.pnxLive() && s.replOrderOrder(r, &ord) == r.nev
+	nord := r.nev // the events before a redirect appends one mid-pass
+	ordered := k.gen.anyRepl&rbPrevCol != 0 && !s.g.ro.on && s.pnxLive() && s.replOrderOrder(r, &ord) == nord
 	// a prevent-and-counters self host (Undergrowth Champion) spends its counter
-	// on the first event it is dealt, so the events to it run in that order too
-	byOrd := ordered || !s.g.ro.on && k.gen.anyRepl&rbPrevCtrSelf != 0 && s.replOrderOrder(r, &ord) == r.nev
+	// on the first event it is dealt, so the events to it run in that order too.
+	// The host must be live: a card of the table that is not on the battlefield
+	// arms rbPrevCtrSelf but needs no ordering, and the walk covers only the
+	// events that existed before the loop (an appended event keeps its index).
+	byOrd := ordered || !s.g.ro.on && s.prevCtrSelfRecv(k, r) && s.replOrderOrder(r, &ord) == nord
 	for j := 0; j < r.nev; j++ {
 		i := j
-		if byOrd {
+		if byOrd && j < nord {
 			i = int(ord[j])
 		}
 		ev := &r.ev[i]
@@ -281,7 +304,7 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 		}
 		if k.gen.uses.has(useStatRdr) {
 			// ReplDamageRedirect: the combat pass's static redirects (repl_staticredirect.go)
-			if s.statRdrCombat(k, r, ev, ordered, code, s.recipientCtl(ev.dst, code)) && ev.n <= 0 {
+			if s.statRdrCombat(k, r, ev, byOrd, code, s.recipientCtl(ev.dst, code)) && ev.n <= 0 {
 				continue
 			}
 		}
@@ -311,7 +334,7 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 		if k.gen.anyRepl&rbHealSelf != 0 && s.selfDamageCombat(k, r, i) {
 			return // a heal host's second event of an ordered-walk pass (repl_selfdamage.go)
 		}
-		if k.gen.anyRedir && s.redirCombat(k, r, ev, ordered, code, s.recipientCtl(ev.dst, code)) && ev.n <= 0 {
+		if k.gen.anyRedir && s.redirCombat(k, r, ev, byOrd, code, s.recipientCtl(ev.dst, code)) && ev.n <= 0 {
 			continue // Ext DmgRedirect: all of it dealt to the record's recipient as a new event
 		}
 		if s.spCombatEv(k, r, ev, src.ctrl, code) {
