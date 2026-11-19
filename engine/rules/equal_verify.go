@@ -150,6 +150,8 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		a.AbilityGrantor == b.AbilityGrantor &&
 		cards.StringMapEqual(a.AddSVars, b.AddSVars) &&
 		a.GainControl == b.GainControl &&
+		a.GainControlCheckSVar == b.GainControlCheckSVar &&
+		a.GainControlSVarCompare == b.GainControlSVarCompare &&
 		a.MayLookAt == b.MayLookAt &&
 		a.MayLookAtAll == b.MayLookAtAll &&
 		a.MayPlayPlayer == b.MayPlayPlayer &&
