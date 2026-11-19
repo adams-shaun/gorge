@@ -10,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/dirac/oracle"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -69,7 +70,7 @@ func cardsEnv(t *testing.T) *stageEnv {
 		tbl: tbl, deck: deck, kernel: oracle.SetSide(set, tbl, oracle.Config{}),
 		// a quarter of the games each wait for an attachment, a quarter for a token,
 		// a quarter for a spell on the stack
-		want: func(seed uint64, v *view.View) bool {
+		want: func(seed uint64, v *view.View, _ *decision.Decision) bool {
 			switch seed % 4 {
 			case 1:
 				return hasBF(v, func(c *view.CardView) bool { return c.AttachedTo != 0 })
@@ -100,7 +101,7 @@ func hasBF(v *view.View, f func(*view.CardView) bool) bool {
 func TestStageCardsMatchReplay(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	env := cardsEnv(t)
-	st := &stageStats{reasons: map[string]int{}, byStep: map[string]int{}}
+	st := &stageStats{reasons: map[string]int{}, byStep: map[string]int{}, byKind: map[string]int{}}
 	failed := 0
 	for seed := uint64(1); seed <= stageGames; seed++ {
 		if msg := stageGame(reg, env, seed, st, nil); msg != "" {
