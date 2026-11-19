@@ -182,6 +182,26 @@ func (s *State) availCA(k *prep, p uint8, a *avail) {
 	}
 }
 
+// removeCA takes out of a the units availCA added for the Combo Any (or
+// reflected Amount$) source at sl: a waterbend or convoke pick taps it for
+// the payment, so the X window cannot spend the same tap twice
+// (CR 601.2g-h). availXWindow counts these sources only on its plain walk
+// (availX&3 == 0), so the same gate here removes exactly what it added.
+func (s *State) removeCA(k *prep, a *avail, sl Slot) {
+	if k.gen == nil || !k.gen.anyComboAny || s.g.availX&3 != 0 {
+		return
+	}
+	if !s.caGaps(k, s.perms[sl].ctrl).has(sl) {
+		return
+	}
+	n := uint8(s.caAmount(k, sl))
+	if k.isReflAmt(s.cardAt(sl)) {
+		a.remove(uint8(kop.ColC), n)
+		return
+	}
+	a.remove(0x1f, n)
+}
+
 // caPotentialOpen reports whether p controls an untapped, activatable Combo
 // Any source (gapMask over gfGapOther): gorge's potential walk (rules
 // potential.go addPotentialMana, producedOpenSet) prices a "in any
