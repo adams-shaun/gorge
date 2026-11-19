@@ -336,6 +336,11 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 	// pays: X = x is payable. An announced convoke pick pays one generic of
 	// the X total, so the pool owes the post-pick cost, and a pick the total
 	// cannot absorb is rejected (gorge xAsk, convokeAbsorbs with xOpen false).
+	// absorb false is gorge xAsk's fallback: when no X is legal (every payable X
+	// leaves an announced pick a no-op, or no X answers the targets) the old
+	// offer, every payable X with the picks applied as applyConvoke folds them,
+	// stands, and the payment settles the cast (CR 733.2).
+	absorb := true
 	pays := func(x int) bool {
 		if !picks && !wbX {
 			return x <= mx || s.xReducedPays(k, av, x) || s.xDelveWithinMx(k, e, x, av, anyColor)
@@ -347,8 +352,10 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 		var ok bool
 		if wbX {
 			c, ok = s.waterbendXCost(c, x)
-		} else {
+		} else if absorb {
 			c, ok = s.convokeXCost(k, c, x)
+		} else {
+			c, ok = s.convokeApplyPicksTo(k, xFolded(c, x)), true
 		}
 		if !ok {
 			return false
@@ -371,7 +378,17 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 			}
 		}
 	}
+	convokeFallback := picks && !wbX
 	if d.N == n0 {
+		absorb = !(convokeFallback && (bound || dxb))
+		for x := fl; x <= hi; x++ {
+			if pays(x) {
+				d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
+			}
+		}
+	}
+	if d.N == n0 && convokeFallback && absorb {
+		absorb = false
 		for x := fl; x <= hi; x++ {
 			if pays(x) {
 				d.add(MakeAction(AkChoose, 0, 0, uint8(x)))

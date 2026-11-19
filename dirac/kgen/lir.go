@@ -1388,18 +1388,21 @@ type lCard struct {
 	SpellCost      *lCost    // additional costs on the spell (Sac/Discard)
 	AltAddOne      bool      // SpellCost is a one-part AlternateAdditionalCost (gorge's planner: shape:optional_cost)
 	Leyline        bool
-	World          bool      // the printed World supertype (CR 205.4a, 704.5k): CardDef.World
-	Snow           bool      // the printed Snow supertype (CR 205.4a): CardDef.Snow
-	SelfFlash      bool      // a CastWithFlash EffectZone$ All self grant (Illusion Spinners; CardDef.SelfFlash)
-	Changeling     bool      // K:Changeling: every creature type (CR 702.73a), in every zone
-	CDAFace        *lCDAFace // the face's own characteristics before cdaColorType folded a CDA into them (CardDef.CDAFace)
-	Offspring      *manaCost // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring
-	Buyback        *manaCost // K:Buyback:<cost> (CR 702.27a): the kernel's kicked cast and Kicker cost, CardDef.Buyback; a Sac<1/..> cost is zero mana plus KickerCost
-	Entwine        *manaCost // K:Entwine:<cost> (CR 702.42a): the kernel's kicked cast and Kicker cost, CardDef.Entwine; a Sac<N/..> cost is zero mana plus KickerCost (lower_entwine.go)
-	Casualty       int       // printed K:Casualty:<N> (CR 702.153a, fixed N >= 1), CardDef.Casualty
-	Bargain        bool      // printed K:Bargain (CR 702.166), CardDef.Bargain
-	Storm          bool      // printed K:Storm (CR 702.40a), CardDef.Storm: the kernel's own native cast trigger (dirac/kw_storm.go)
-	BeholdN        int       // RaiseCost Cost$ BeholdExile<1/Type> (the Lorwyn Champions): behold one permanent or hand card of BeholdF and exile it (lower_beholdexile.go)
+	LeylineGem     bool            // the Leyline ask's Gemstone shape (!PlayFirst, counters, hand exile): CardDef.LeylineGem
+	LeylineCtr     kop.CounterKind // the counter it enters with (CardDef.LeylineCtr)
+	LeylineCtrN    uint8           // and how many (CardDef.LeylineCtrN)
+	World          bool            // the printed World supertype (CR 205.4a, 704.5k): CardDef.World
+	Snow           bool            // the printed Snow supertype (CR 205.4a): CardDef.Snow
+	SelfFlash      bool            // a CastWithFlash EffectZone$ All self grant (Illusion Spinners; CardDef.SelfFlash)
+	Changeling     bool            // K:Changeling: every creature type (CR 702.73a), in every zone
+	CDAFace        *lCDAFace       // the face's own characteristics before cdaColorType folded a CDA into them (CardDef.CDAFace)
+	Offspring      *manaCost       // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring
+	Buyback        *manaCost       // K:Buyback:<cost> (CR 702.27a): the kernel's kicked cast and Kicker cost, CardDef.Buyback; a Sac<1/..> cost is zero mana plus KickerCost
+	Entwine        *manaCost       // K:Entwine:<cost> (CR 702.42a): the kernel's kicked cast and Kicker cost, CardDef.Entwine; a Sac<N/..> cost is zero mana plus KickerCost (lower_entwine.go)
+	Casualty       int             // printed K:Casualty:<N> (CR 702.153a, fixed N >= 1), CardDef.Casualty
+	Bargain        bool            // printed K:Bargain (CR 702.166), CardDef.Bargain
+	Storm          bool            // printed K:Storm (CR 702.40a), CardDef.Storm: the kernel's own native cast trigger (dirac/kw_storm.go)
+	BeholdN        int             // RaiseCost Cost$ BeholdExile<1/Type> (the Lorwyn Champions): behold one permanent or hand card of BeholdF and exile it (lower_beholdexile.go)
 	BeholdF        *lFilter
 	BeholdExile    bool
 	SpellWaterbend int      // RaiseCost Cost$ Waterbend<N> on the spell itself (lower_raisewaterbend.go): N generic payable by tapping artifacts/creatures, CardDef.SpellWaterbend

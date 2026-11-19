@@ -1122,7 +1122,12 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 	}
 	for s.g.leyOn {
 		// one yes/no per Leyline in hand, hand order, starting player first
-		// (gorge's opening_yes / opening_no)
+		// (gorge's opening_yes / opening_no); a Gemstone's hand-exile
+		// pick comes first (zone_gemstone.go)
+		if s.g.ley[2] != 0 {
+			s.leyGemOptions(d)
+			return true
+		}
 		if o := s.leyCard(k, s.g.leyP, s.g.ley[1]); o != NoObj {
 			d.Kind, d.Sub, d.Player = DkChoose, ChGenLeyline, s.g.leyP
 			d.add(MakeAction(AkChoose, TCode(o), 0, 1))
@@ -1241,10 +1246,14 @@ func (s *State) applyGen(k *prep, a Action) {
 		return
 	}
 	if s.g.leyOn {
+		if s.g.ley[2] != 0 {
+			s.leyGemAnswer(k, a) // zone_gemstone.go
+			return
+		}
 		if a.Mode() == 1 {
 			o := Obj(a.Source())
 			from := s.detach(o)
-			s.enter(k, o, s.g.leyP, false, from)
+			s.leyGemEnter(k, o, s.enter(k, o, s.g.leyP, false, from))
 		} else {
 			s.g.ley[1]++ // declined: it stays in hand, ask the next one
 		}
@@ -1363,7 +1372,7 @@ func (s *State) anyLeyline(k *prep) bool {
 func (s *State) hasLeyline(k *prep, p uint8) bool {
 	pl := &s.pl[p]
 	for i := 0; i < int(pl.handN); i++ {
-		if k.t.Cards[s.objs[pl.hand[i]].card].Leyline {
+		if s.leyEligible(k, p, pl.hand[i]) {
 			return true
 		}
 	}
@@ -1375,7 +1384,7 @@ func (s *State) hasLeyline(k *prep, p uint8) bool {
 func (s *State) leyCard(k *prep, p, skip uint8) Obj {
 	pl := &s.pl[p]
 	for i := 0; i < int(pl.handN); i++ {
-		if o := pl.hand[i]; k.t.Cards[s.objs[o].card].Leyline {
+		if o := pl.hand[i]; s.leyEligible(k, p, o) {
 			if skip == 0 {
 				return o
 			}

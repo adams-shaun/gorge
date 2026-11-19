@@ -298,7 +298,11 @@
 //   - Leylines in the opening hand (CR 103.6a): one ChGenLeyline per
 //     Leyline in hand (hand order, starting player first), source = the
 //     card, mode 1 = put it onto the battlefield, 0 = don't (gorge's
-//     opening_yes / opening_no).
+//     opening_yes / opening_no). A Gemstone-shape Leyline
+//     (CardDef.LeylineGem: Gemstone Caverns) is not asked of the starting
+//     player, enters with its counters, and is followed by a ChGenOpeningExile
+//     pick over the rest of that hand (source = the card exiled; gorge's
+//     opening_exile; zone_gemstone.go).
 //   - Play permissions and play-from-zone statics add AkCast options with
 //     mode bit 3 (and bit 4: without paying the mana cost); a granted
 //     activated ability (an Equipment's) is AkActivate{source: the creature,

@@ -84,6 +84,10 @@ func (s *State) mayAsk(k *prep, in *kop.Instr) bool {
 		if !s.cloneAsks(k, next) { // copy_clone.go
 			return true
 		}
+	case kop.MayGuardCopyParent:
+		if !s.copyParentAsks() { // copy_parentoptional.go
+			return true
+		}
 	case kop.MayGuardPut:
 		// gorge putCounterOptionalDeclined: an Optional$ PutCounter with
 		// RememberPut$ True asks only when it would actually put (n > 0) on
