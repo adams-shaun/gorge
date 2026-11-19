@@ -172,6 +172,9 @@ func (e *Engine) gainedFacesForSpec(st cards.Static, spec string, src state.ObjI
 				if o == nil || o.Face() == nil {
 					continue
 				}
+				if o.FaceDownHidden() {
+					continue // CR 708.2a: a face-down permanent has no abilities to grant
+				}
 				if !e.matchesSpecFrom(spec, id, controller, src) {
 					continue
 				}
