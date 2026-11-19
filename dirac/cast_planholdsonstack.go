@@ -61,6 +61,20 @@ func (s *State) planHoldsOnStack(k *prep, p uint8, o Obj, cost *kop.ManaCost) bo
 			}
 		}
 	}
+	if c.Hyb[0] == kop.HybTwobrid {
+		// The cast planner resolves a twobrid cost's pips before pricing it
+		// (planTwobridCost); this probe reads the same faces because the
+		// hybrid witness refuses the unannounced marker (every twobrid
+		// payment announces first). No face the census affords is no step to
+		// compare, so the plan holds.
+		var av avail
+		s.availFor(k, p, &av)
+		r := av.hybWitnessTb(c, 0, false)
+		if r.Hyb[0] == kop.HybTwobrid {
+			return true
+		}
+		c = r
+	}
 	t.tapForPK(k, p, &c, 0, o, false, false, &pk)
 	for m := s.ctrlM[seat]; m.any(); m = m.rest() {
 		sl := m.first()

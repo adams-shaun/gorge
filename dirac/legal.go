@@ -1004,11 +1004,8 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	if s.waterbendOwnPart(k, p, c, o) != 0 {
 		return false // ... and a waterbend one (potentialModeCastPlan, "shape:contribution")
 	}
-	if cd.Cost.Hyb[0] == kop.HybTwobrid && !cd.Cost.Phyrexian() {
-		// ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail); a
-		// Phyrexian pip rides the same encoding but PlanCostDetail plans its
-		// mana half (CR 107.4f), so a Phyrexian cast is lowered like any other
-		return false
+	if handled, lower := s.twobridLowers(k, p, c, o, anyColor); handled {
+		return lower
 	}
 	if (cd.HasMultikicker || cd.HasEscalate) && !mayPlay && s.g.availX&(availAny|availGaps) != 0 {
 		// a plain Multikicker or Escalate hand cast is "shape:optional_cost" to the cast
@@ -1217,6 +1214,24 @@ func (s *State) plainHandPlayLowers(k *prep, p uint8, c CardID, o Obj) bool {
 	// (potential_plan.go potentialWitnessReaches, cast_tgtkeep.go,
 	// mana_sacplaintarget.go)
 	return s.plainSacKeepsTarget(k, p, c, o, &cost) && s.witnessKeepsTargets(k, p, c, o, &cost)
+}
+
+// twobridLowers is gorgeLowersRider's twobrid arm (CR 107.4e): the cast
+// planner resolves the pips and prices the printed census, so a cast only a
+// granted or scripted source pays (or one a face-sensitive modifier reprices
+// below the planner's face-blind price) is the potential route's.
+func (s *State) twobridLowers(k *prep, p uint8, c CardID, o Obj, anyColor bool) (handled, lower bool) {
+	cd := &k.t.Cards[c]
+	if cd.Cost.Hyb[0] != kop.HybTwobrid || cd.Cost.Phyrexian() {
+		return false, false
+	}
+	cost := s.featCost(k, p, c, o, k.cards[c].cost)
+	cost = s.mayRiderCost(cost, anyColor)
+	d := payDesc{class: pdSpell, card: c, og: s.restrOriginOfObj(o)}
+	if s.affordsUngrantedCast(k, p, &cost, d) {
+		return true, false // the planner prices it; FeatPlannedCast offers it
+	}
+	return true, k.gen != nil && (len(k.gen.grantPC) != 0 || s.scriptSourceLive(k, p) || k.gen.anyFilt && s.filtOnly(k, p)) && s.affordsFor(k, p, &cost)
 }
 
 // scriptSourceLive: p has a source the planner's census leaves a gap (an
