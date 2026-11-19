@@ -77,6 +77,16 @@ func (s *State) permCopyBlocked(k *prep, ce *stackEntry) bool {
 		if cd.Face == 0 {
 			return false
 		}
+	case kop.FaceAdventure:
+		// An adventurer card is not two-faced (CR 715.2c): off the stack, and
+		// on the stack not as an Adventure, it has only its normal
+		// characteristics (CR 715.4), so the copy of its permanent spell is an
+		// ordinary copy whose token is the front face (CR 707.10f). A spell on
+		// the stack as an Adventure is an instant or sorcery, so the types
+		// check above already returns false (CR 715.3c).
+		if cd.Face == 0 {
+			return false
+		}
 	}
 	s.stall(StallCopyFace)
 	return true
