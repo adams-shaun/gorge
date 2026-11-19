@@ -24,7 +24,7 @@ func TestTriggerReferentsUseEventRoles(t *testing.T) {
 		ev   events.Event
 		want effects.TriggerContext
 	}{
-		{"BecomesTarget", events.Event{Kind: events.TargetsChosen, Obj: other, IDs: []state.ObjID{source}}, effects.TriggerContext{TriggerTarget: state.Target{Obj: source}, TriggerSource: other, TriggerStack: other}},
+		{"BecomesTarget", events.Event{Kind: events.TargetsChosen, Obj: other, IDs: []state.ObjID{source}}, effects.TriggerContext{TriggerTarget: state.Target{Obj: source}, TriggerSource: other, TriggerSourceController: state.Target{Player: 1, IsPlayer: true}, TriggerStack: other}},
 		{"DamageDone", events.Event{Kind: events.Damage, Obj: source}, effects.TriggerContext{TriggerTarget: state.Target{Obj: source}, TriggerSource: other}},
 		{"DamageDone", events.Event{Kind: events.Damage, Player: 0}, effects.TriggerContext{TriggerTarget: state.Target{IsPlayer: true, Player: 0}, TriggerSource: other}},
 		{"ChangesZone", events.Event{Kind: events.MoveZone, Obj: other}, effects.TriggerContext{TriggerCard: other}},
