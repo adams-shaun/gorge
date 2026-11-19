@@ -375,6 +375,11 @@ func (s *State) playTargetsFeasible(k *prep, p uint8, d payDesc) bool {
 	if !d.hasPlay || !isCastKind(d.play.Kind()) || k.t == nil || int(d.card) >= len(k.t.Cards) {
 		return true
 	}
+	if d.play.Kind() == AkCast && d.play.Target() == castOverloadTgt {
+		// CR 702.96b: the overloaded cast's "each" has no target to
+		// announce, so the printed spell's target check does not apply.
+		return true
+	}
 	o := Obj(d.play.Source())
 	if o == NoObj || int(o) >= len(s.objs) {
 		return true
