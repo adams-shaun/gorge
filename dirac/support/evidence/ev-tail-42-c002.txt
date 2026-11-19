@@ -56,6 +56,7 @@ Cascade Seer
 Cessation
 Chaos Terminator Lord
 Cinder Barrens
+Cinder Elemental
 Claws of Valakut
 Cleanse
 Cleric of Chill Depths
@@ -322,6 +323,7 @@ Traitor's Clutch
 Trench Stalker
 Tribal Unity
 Tribute to Horobi
+Trigon of Corruption
 Trostani's Summoner
 Trufflesnout
 Turntimber Ranger
