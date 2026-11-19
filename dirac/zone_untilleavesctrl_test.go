@@ -18,18 +18,28 @@ import (
 func TestUntilLeavesReturnCountersFourSeat(t *testing.T) {
 	// A generated table with a card whose until-leaves exile carries the
 	// +1/+1 rider (the shape kgen lowers for Lagrella, the Magpie). The
-	// rider is read only for a generated table (gen.anyLinkCtr).
-	set := cardsettest.Synth(t, "tail-67")
-	deck := make([]cardset.Entry, 0, 40)
-	deck = append(deck, cardset.Entry{Name: "Lagrella, the Magpie", Count: 12})
-	deck = append(deck, cardset.Entry{Name: "Plains", Count: 28})
+	// rider is read only for a generated table (gen.anyLinkCtr), so a
+	// committed set's table takes one appended test card.
+	set := cardsettest.Set(t, "blb")
+	deck := []cardset.Entry{{Name: "Plains", Count: 40}}
 	decks := [MaxSeats][]cardset.Entry{deck, deck, deck, deck}
 	tbl, da, err := set.MatchupN(decks[:])
 	if err != nil {
 		t.Fatal(err)
 	}
-	linker := da[0][0]    // Lagrella, the Magpie (the deck's first card)
-	plainsID := da[0][12] // the deck's first Plains
+	cards := append([]kop.CardDef(nil), tbl.Cards...)
+	linker := kop.CardID(len(cards))
+	cards = append(cards, kop.CardDef{
+		Name:      "Test Until Leaves",
+		Types:     kop.TCreature,
+		Power:     2,
+		Toughness: 2,
+		Abilities: []kop.Ability{{
+			Prog: []kop.Instr{{Op: kop.OpExileUntilLeaves, A: kop.Const(2)}},
+		}},
+	})
+	tbl.Cards = cards
+	plainsID := da[0][0]
 	var lib [20]CardID
 	for i := range lib {
 		lib[i] = plainsID
