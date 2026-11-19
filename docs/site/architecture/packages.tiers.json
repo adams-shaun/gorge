@@ -346,6 +346,11 @@
       "status": "TOOL",
       "purpose": "Heap-footprint ratchet (tests only)."
     },
+    "internal/precheckgate": {
+      "tier": "tooling",
+      "status": "TOOL",
+      "purpose": "Tests of the heads_gate step in scripts/pr-precheck.sh (tests only)."
+    },
     "internal/schemacheck": {
       "tier": "tooling",
       "status": "TOOL",
