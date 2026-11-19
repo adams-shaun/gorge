@@ -33,8 +33,7 @@ func gainControlStaticKeysReadable(params map[string]string) bool {
 		"Mode", "Affected", "GainControl", "CheckSVar", "SVarCompare", "Description") {
 		return false
 	}
-	return strings.TrimSpace(params["Mode"]) != "" &&
-		strings.EqualFold(strings.TrimSpace(params["Mode"]), "Continuous") &&
+	return cards.StaticModeOf(params["Mode"]) == cards.StaticContinuous &&
 		strings.TrimSpace(params["GainControl"]) != ""
 }
 
@@ -114,7 +113,7 @@ func effectGainControlDelivered(h Host, c *Ctx, sa *cards.SA, ep *EffectParams,
 	}
 	ce.UntilEOT = effectUntilEOT(h, c.Source, rawDur)
 	ce.Duration = dur
-	ce.Permanent = strings.EqualFold(strings.TrimSpace(rawDur), "Permanent")
+	ce.Permanent = effectDurationPermanent(rawDur)
 	ce.ForgetOnMoved = forgetOn
 	ce.ExileOnMoved = exileOn
 	ce.ForgetCounter = forgetCounter
