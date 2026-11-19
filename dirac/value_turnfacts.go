@@ -42,13 +42,10 @@ func (s *State) InstantSpeed(a Action) bool {
 }
 
 // NextTurnPlayer is the player whose turn follows the current one, as
-// turn.go will begin it: the active player when it has an extra turn
-// coming, else the other player.
+// turn.go will begin it: the next pending grant's seat, else the ordinary
+// rotation after the last normal turn's holder (CR 500.7; act_extraturn.go).
 func (s *State) NextTurnPlayer() uint8 {
-	if s.pl[s.active].extraTurns > 0 {
-		return s.active
-	}
-	return s.nextAlive(s.active)
+	return s.exNextTurn()
 }
 
 // OutlastsTurn reports whether option a of the pending priority decision

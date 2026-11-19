@@ -1,0 +1,26 @@
+# CR 500.7 extra turns across seats (dirac/oracle/extraturn_pod_mp_test.go):
+# the instant extra-turn cards and the skip-a-turn cards they meet
+Nexus of Fate
+Time Walk
+Temporal Mastery
+Mystic Sanctuary
+Magosi, the Waterveil
+Savor the Moment
+Walk the Aeons
+Time Warp
+Beacon of Tomorrows
+Gerrard's Hourglass Pendant
+Stranglehold
+Ugin's Nexus
+Trouble in Pairs
+Obeka, Splitter of Seconds
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Island
+Mountain
+Plains
+Final Fortune
+Last Chance
+Warrior's Oath
+Time Stop

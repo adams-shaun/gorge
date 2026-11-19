@@ -2282,6 +2282,16 @@ type genState struct {
 	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step; bit 4+p their creatures (SkipUntapPlayerCL; padding)
 	yourTurns      [MaxSeats]uint8         // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
 	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)
+	exQ            [maxExTurnQ]uint8       // the pending extra-turn grants (CR 500.7), creation order; the LAST is spent first (act_extraturn.go)
+	exQSrc         [maxExTurnQ]Obj         // exQ[i]'s rider trigger's source spell
+	exRide         uint32                  // bit i: exQ[i]'s grant carries the ExtraTurnDelayedTrigger rider
+	exRideS        [maxExRide]uint8        // the armed riders' seats: each granted turn's end step fires its loss
+	exRideO        [maxExRide]Obj          // the armed riders' source spells
+	exRideV        [maxExRide]uint8        // exRideO[i]'s incarnation when the rider armed (gorge's registration carries the Source then)
+	exRideC        [maxExRide]CardID       // exRideO[i]'s card when the rider armed
+	exN            uint8                   // pending grants (max maxExTurnQ; over it StallExTurn)
+	exBase         uint8                   // the last NORMAL turn's holder: the rotation resumes after it once the queue drains (gorge rotationBase)
+	exRideN        uint8                   // armed riders (max maxExRide; over it StallExTurn)
 	dayNight       uint8                   // CR 731: bits 0-1 the designation (dnDay, dnNight), bits 2-3 the last turn's active player's spells, at most 2 (kw_daynight.go; padding)
 	links          [16]struct {
 		src  Obj
@@ -2671,7 +2681,8 @@ const (
 	StallRedirOrder    = 184 // a damage event a redirect record and another replacement both match, or a redirect the kernel does not model (infect, a combat pass already in an order ask; repl_dmgredirect.go)
 	StallExileRider    = 115 // a dies-to-exile replacement's rider (Kalitas's Zombie token) that cannot run exactly: it competes with another replacement in a CR 616.1 order, its source left before the exile move, or its prog asked or parked (repl_exilerider.go)
 	StallRedirCap      = 185 // a fifth redirect record in one turn (genState.redir; repl_dmgredirect.go)
-	NumStall           = 194 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
+	StallExTurn        = 194 // more than maxExTurnQ extra-turn grants pending one turn's cleanup (act_extraturn.go)
+	NumStall           = 195 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
 )
 
 // StallName is reason r's short name ("" for StallNone).

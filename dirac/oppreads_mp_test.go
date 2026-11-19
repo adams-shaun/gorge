@@ -63,7 +63,7 @@ func TestNextTurnPlayerSkipsTheGone(t *testing.T) {
 			if int(a) == gone {
 				continue
 			}
-			s.active = a
+			s.active, s.g.exBase = a, a // turnsTo counts the rotation from exBase
 			want := uint8(e.G.NextAlive(state.PlayerID(a)))
 			if got := s.NextTurnPlayer(); got != want {
 				t.Fatalf("gone%d active%d: next %d, gorge %d", gone, a, got, want)
