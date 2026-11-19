@@ -297,20 +297,7 @@ func (e *Engine) resolveTop() {
 			e.startCumulativeUpkeep(id, o.Source, o.Ability)
 			return
 		}
-		// Echo (kw:Echo, CR 702.35a) is the same keyword-expansion shape: an
-		// ordinary Phase trigger whose DB$ Echo body needs rules' payment
-		// window and the pay-or-sacrifice election (engine/rules/echo.go). The
-		// intervening-if was already applied at trigger time (triggerMatches's
-		// Echo$ branch), so everything reaching here is owed.
-		if o.Ability.API == "Echo" {
-			e.startEcho(id, o.Source, o.Ability)
-			return
-		}
-		// Recover (kw:Recover, CR 702.59) is the same keyword-expansion shape:
-		// an ordinary ChangesZone trigger whose DB$ Recover body needs rules'
-		// payment window and the pay-or-exile election (engine/rules/recover.go).
-		if o.Ability.API == "Recover" {
-			e.startRecover(id, o.Source, o.Ability)
+		if startEchoOrRecover(e, id, o) {
 			return
 		}
 		if _, triggered := e.triggerForAbilityObject(id, o); triggered &&

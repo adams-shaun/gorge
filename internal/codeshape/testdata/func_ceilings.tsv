@@ -203,7 +203,7 @@ engine/rules (*Engine).payCast	955	159
 engine/rules (*Engine).potentialModeCastPlan	175	55
 engine/rules (*Engine).pushTrigger	800	170
 engine/rules (*Engine).replacementMatchesRememberedUngatedBy	719	191
-engine/rules (*Engine).resolveTop	794	109
+engine/rules (*Engine).resolveTop	783	107
 engine/rules (*Engine).staticEffectsWalk	781	132
 engine/rules (*Engine).targetAsk	345	68
 engine/rules (*Engine).triggerConditionHoldsWithSVars	224	56
@@ -213,7 +213,7 @@ engine/rules (*Engine).xAsk	433	87
 engine/rules (*legalWalk).battlefieldWalk	758	169
 engine/rules (*legalWalk).exileCastsWalk	179	70
 engine/rules (*legalWalk).graveyardCastsOver	278	84
-engine/rules (*legalWalk).handWalk	706	172
+engine/rules (*legalWalk).handWalk	701	167
 engine/rules (*legalWalk).mayPlaySpellWalk	207	53
 engine/rules (*oracleRun).build	253	70
 engine/rules (*oracleRun).check	237	106

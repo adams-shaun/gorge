@@ -214,3 +214,32 @@ var recoverAnswerCodes = state.NewStrCodes(
 	state.StrEntry[recoverAnswerCode]{Key: "recover_pay", Val: recoverAnswerPay},
 	state.StrEntry[recoverAnswerCode]{Key: "recover_pay_manual", Val: recoverAnswerPay},
 )
+
+// startEchoOrRecover dispatches the keyword-expansion triggers whose DB$ body
+// needs rules' payment window (CR 702.35a Echo, CR 702.59 Recover): each is an
+// ordinary trigger whose body asks a pay-or-lose election (engine/rules/echo.go,
+// recover.go). Echo's intervening-if was already applied at trigger time
+// (triggerMatches's Echo$ branch), so everything reaching here is owed. It
+// reports whether the stacked ability was one of the two and has been started.
+func startEchoOrRecover(e *Engine, id state.ObjID, o *state.Object) bool {
+	if o.Ability.API == "Echo" {
+		e.startEcho(id, o.Source, o.Ability)
+		return true
+	}
+	if o.Ability.API == "Recover" {
+		e.startRecover(id, o.Source, o.Ability)
+		return true
+	}
+	return false
+}
+
+// echoOrRecoverAnswer routes the answered keyword-expansion election
+// (e.choosing) to its keyword: Echo's pay-or-sacrifice or Recover's
+// pay-or-exile.
+func echoOrRecoverAnswer(e *Engine, chosen []decision.Option) {
+	if e.choosing == chooseRecover {
+		e.recoverAnswer(chosen)
+		return
+	}
+	e.echoAnswer(chosen)
+}

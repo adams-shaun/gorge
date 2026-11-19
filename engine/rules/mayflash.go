@@ -2,7 +2,9 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -79,4 +81,21 @@ func (e *Engine) mayflashTimingOK(p state.PlayerID, f *cards.Face) bool {
 		return false
 	}
 	return e.activationPhasesOK(p, f.SpellAbility())
+}
+
+// offerMayflash appends the "mayflash" cast option for a hand face whose
+// ordinary timing gate failed (the comment at the handWalk call site's arm):
+// the printed extra cost rides the plain cast base, and the offer needs the
+// plain SpellAbility's targets plus a payable total. It adds nothing without
+// the keyword or outside its own timing check.
+func (w *legalWalk) offerMayflash(ph printedHeads, p state.PlayerID, id state.ObjID, f *cards.Face, out *[]decision.Option) {
+	if !ph.has(phMayFlashCost) || !w.e.mayflashTimingOK(p, f) {
+		return
+	}
+	if extra, ok := mayflashExtraCost(f); ok && w.e.castTargetsAvailable(p, id, f.SpellAbility()) {
+		if w.offerCastable(p, id, pay.WithSpellAbilityExtras(f, w.e.castOfferBase(p, id)).Plus(extra), spellScope("mayflash"), false) {
+			*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
+				Label: "Cast " + f.Name + " (may-flash)", Obj: id, Mode: "mayflash"})
+		}
+	}
 }

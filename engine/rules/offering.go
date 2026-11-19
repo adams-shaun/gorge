@@ -49,6 +49,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -250,4 +251,62 @@ func offeringCastCost(f *cards.Face, cost Cost) Cost {
 	}
 	cost.Sac = append(cost.Sac, spec)
 	return pay.WithSpellAbilityExtras(f, cost)
+}
+
+// offerOffering appends the "offering" cast option for a hand face (CR 702.46)
+// when the best sacrifice candidate is payable and targetsOK reports the
+// plain SpellAbility has targets. Called from handWalk on both timing paths:
+//
+// At instant timing, when the ordinary timing gate fails, a face printed with
+// the keyword may still be cast at instant speed ("any time you could cast an
+// instant") by sacrificing a permanent of the named type; the cast's price is
+// the printed mana cost reduced by that permanent's mana cost
+// (colour-inclusive), which is CHEAPER than the plain cast. Unlike mayflash
+// there is no plain duplicate to suppress, because the plain cast is not
+// legal there at all.
+//
+// At sorcery timing the keyword's permission already covers every sorcery
+// window, so the offer is added there as well -- it is NOT a redundant
+// duplicate of the plain cast, because the sacrifice makes the offering price
+// CHEAPER than the plain one.
+//
+// offeringOfferCost composes the printed mana cost with the mandatory Sac
+// part and prices each sacrifice candidate's colour-inclusive reduction;
+// sacAsk permits only candidates whose own reduced cost remains payable.
+// Unsupported printed cost shapes are withheld; the plain cast is unaffected.
+// targetsOK is lazy so the census runs only once the price check passes.
+//
+// ph is the face's keyword census (nothing to offer without phOffering);
+// instant selects the failed-timing-gate path, which also requires the
+// keyword's own timing check (offeringTimingOK).
+func (w *legalWalk) offerOffering(ph printedHeads, p state.PlayerID, id state.ObjID, f *cards.Face, instant bool, targetsOK func() bool, out *[]decision.Option) {
+	if !ph.has(phOffering) || instant && !w.e.offeringTimingOK(p, f) {
+		return
+	}
+	if _, ok := w.e.offeringOfferCost(p, id, f, func(c Cost) bool {
+		return w.offerCastable(p, id, c, spellScope("offering"), false)
+	}); ok && targetsOK() {
+		*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
+			Label: "Cast " + f.Name + " (offering)", Obj: id, Mode: "offering"})
+	}
+}
+
+// sacReducesCost reports whether the cast's Sac part reduces the total cost
+// (Emerge CR 702.118a, Offering CR 702.46), so sacAsk announces it before the
+// targets (CR 601.2f).
+func (pc *pendingCast) sacReducesCost() bool { return pc.emerge || pc.offering }
+
+// recordCostReducingSac remembers the sacrifice an Emerge or Offering cast's
+// "sacrifice" answer chose, before the Sac part settles (SacPart == 0), for
+// the reduction folded out of the cast's cost.
+func (pc *pendingCast) recordCostReducingSac(chosen []decision.Option) {
+	if pc.SacPart != 0 || len(chosen) != 1 {
+		return
+	}
+	if pc.emerge {
+		pc.emergeSac = chosen[0].Obj
+	}
+	if pc.offering {
+		pc.offeringSac = chosen[0].Obj
+	}
 }

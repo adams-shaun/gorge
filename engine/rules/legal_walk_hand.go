@@ -322,33 +322,8 @@ func (w *legalWalk) handWalk() {
 			// sorcery-speed gate. When it is already sorcery timing the plain
 			// cast is strictly cheaper, so no mayflash option is offered and the
 			// face takes the ordinary path (no redundant duplicate offer).
-			if ph.has(phMayFlashCost) && e.mayflashTimingOK(p, f) {
-				if extra, ok := mayflashExtraCost(f); ok && e.castTargetsAvailable(p, id, f.SpellAbility()) {
-					if w.offerCastable(p, id, pay.WithSpellAbilityExtras(f, e.castOfferBase(p, id)).Plus(extra), spellScope("mayflash"), false) {
-						*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-							Label: "Cast " + f.Name + " (may-flash)", Obj: id, Mode: "mayflash"})
-					}
-				}
-			}
-			// Offering (CR 702.46, engine/rules/offering.go): when the
-			// ordinary timing gate fails, a face printed with the keyword may
-			// still be cast at instant timing ("any time you could cast an
-			// instant") by sacrificing a permanent of the named type; the
-			// cast's price is the printed mana cost reduced by that
-			// permanent's mana cost (colour-inclusive), which is CHEAPER than
-			// the plain cast. offeringOfferCost prices each sacrifice
-			// candidate against the walk's own gates and offers only when the
-			// best candidate is payable; unlike mayflash there is no plain
-			// duplicate to suppress, because the plain cast is not legal
-			// here at all.
-			if ph.has(phOffering) && e.offeringTimingOK(p, f) {
-				if _, ok := e.offeringOfferCost(p, id, f, func(c Cost) bool {
-					return w.offerCastable(p, id, c, spellScope("offering"), false)
-				}); ok && e.castTargetsAvailable(p, id, f.SpellAbility()) {
-					*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-						Label: "Cast " + f.Name + " (offering)", Obj: id, Mode: "offering"})
-				}
-			}
+			w.offerMayflash(ph, p, id, f, out)
+			w.offerOffering(ph, p, id, f, true, func() bool { return e.castTargetsAvailable(p, id, f.SpellAbility()) }, out)
 			w.offerMayPlayFlashAlts(p, id, f, out)
 			continue
 		}
@@ -691,25 +666,7 @@ func (w *legalWalk) handWalk() {
 					Label: "Cast " + f.Name + " (emerged)", Obj: id, Mode: "emerged"})
 			}
 		}
-		// Offering (CR 702.46, engine/rules/offering.go), from the hand at
-		// sorcery timing too: the keyword's own permission ("any time you
-		// could cast an instant") already covers every sorcery window, so the
-		// offer adds the "offering" cast mode here as well -- it is NOT a
-		// redundant duplicate of the plain cast, because the sacrifice makes
-		// the offering price CHEAPER than the plain one. offeringOfferCost
-		// composes the printed mana cost with the mandatory Sac part and
-		// prices each sacrifice candidate's colour-inclusive reduction;
-		// sacAsk permits only candidates whose own reduced cost remains
-		// payable. Unsupported printed cost shapes are withheld; the plain
-		// cast remains unaffected.
-		if ph.has(phOffering) {
-			if _, ok := e.offeringOfferCost(p, id, f, func(c Cost) bool {
-				return w.offerCastable(p, id, c, spellScope("offering"), false)
-			}); ok && targetsAvailable() {
-				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-					Label: "Cast " + f.Name + " (offering)", Obj: id, Mode: "offering"})
-			}
-		}
+		w.offerOffering(ph, p, id, f, false, targetsAvailable, out)
 		// Bestow (CR 702.114a): the bestowed cast is its own "cast" option
 		// paying the bestow cost in place of the mana cost, and the spell is
 		// an Aura with enchant creature, so the offer gates on the targets of
