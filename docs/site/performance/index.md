@@ -15,7 +15,7 @@ and profile, and [Bot speed](bots.md) has the cost per decision and per simulati
       default AI. The AIs aren't the same kind of player, so that is the price of a game with the bot each engine ships.
     - **dirac plays about 1,750 random-policy games per core-second**, with
       2.7 µs a transition, and plays
-      only its [supported cards](../architecture/dirac/index.md#what-it-supports), for two players.
+      only its [supported cards](../architecture/dirac/index.md#what-it-supports). These rows are two-seat games; dirac also plays pods of up to four seats.
     - **mtg-kernel**, a public Rust engine with a few hundred cards, plays about as many games per core-second as gorge on its
       home Burn mirror and is 5-11× slower per turn on the FDN pair it plays.
     - **Memory:** a game-playing process peaks at about 350-400 MB for gorge with the whole corpus loaded,
@@ -141,7 +141,7 @@ one. Its memory isn't comparable, since it compiles its few hundred cards into t
 ## What the comparison doesn't show
 
 - **Card coverage differs.** XMage and Forge implement every card. gorge plays most of Forge's corpus ([Card support](../support/sets.md)). dirac
-  plays two players and its [supported cards](../architecture/dirac/index.md#what-it-supports). mtg-kernel plays a few hundred cards. A faster engine that plays fewer cards isn't doing the
+  plays two to four seats and its [supported cards](../architecture/dirac/index.md#what-it-supports). mtg-kernel plays a few hundred cards. A faster engine that plays fewer cards isn't doing the
   same job.
 - **Dates differ.** The XMage, Forge and mtg-kernel rows are from 2026-10-20 and came from their own measured commits.
   Both gorge and dirac have changed since then, so read those ratios as orders of magnitude, which is what they're large enough to support.

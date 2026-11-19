@@ -146,11 +146,11 @@ claims or a plain count, not certifications.
 | Engine | Claim | Source |
 |---|---|---|
 | XMage | "over 32 000 unique cards and more than 91 000 reprints across official sets" | the [XMage README](https://github.com/magefree/mage), read 2026-10-20 |
-| Forge | no card-count claim in its README; its card corpus at gorge's pin holds 34,444 card scripts and 864 token scripts | `.cards/cards.lock` and `make report` |
+| Forge | no card-count claim in its README; `forgec fetch` prints the card and token scripts its corpus holds at gorge's pin | `.cards/cards.lock` and `make report` |
 
 Forge is where gorge's card scripts come from, so Forge's corpus is gorge's
-denominator. XMage supplies the set manifests (591 sets, built from its set
-classes) and the second opinion behind every verdict.
+denominator. XMage supplies the set manifests (one per set class; [Every set](#every-set)
+counts them) and the second opinion behind every verdict.
 
 ## Charts by engine
 
@@ -184,7 +184,7 @@ newest first.
 
 ## Every set
 
-gorge-compliance measures all 591 XMage set manifests, not only the audited
+gorge-compliance measures every XMage set manifest, not only the audited
 ones. For every set without a printed list, the figures are estimates, not
 certifications.
 

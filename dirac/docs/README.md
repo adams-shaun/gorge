@@ -1,6 +1,6 @@
 # dirac docs
 
-Index for dirac: a second 2-player Magic rules engine built for fast search and
+Index for dirac: a second Magic rules engine for two to four seats, built for fast search and
 training, held to gorge by lockstep. Start with the front door, then pick the guide that matches the
 job.
 

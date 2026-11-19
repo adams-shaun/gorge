@@ -8,7 +8,7 @@ and browser client to play on them, and the bots and draft stack around them.
 cards, and records every game as a deterministic, hash-chained event log that
 replays byte for byte.
 
-**dirac** plays two seats, built for search and self-play: a game is one flat value
+**dirac** plays two to four seats, built for search and self-play: a game is one flat value
 and one buffer sized to its card table, copied in place. It plays only cards it has
 shown it agrees with gorge on, decision by decision, and refuses the rest by name.
 
@@ -28,7 +28,7 @@ shown it agrees with gorge on, decision by decision, and refuses the rest by nam
 
 | | gorge | dirac |
 |---|---|---|
-| Seats and formats | 2 to 8, Constructed and Commander | 2, Constructed |
+| Seats and formats | 2 to 8, Constructed and Commander | 2 to 4, Constructed and Commander; `gorged -engine dirac` hosts 2 |
 | Cards | scripts playable: `make report` prints the live count; [per set](https://adams-shaun.github.io/gorge/support/sets/) on the support pages | supported cards only, counted per set in [`dirac/docs/support.md`](dirac/docs/support.md) |
 | What the count means | every primitive the script names is implemented; [per set](https://adams-shaun.github.io/gorge/support/sets/) also checked against XMage | lowered, not refused by name, and clean in the lockstep games of the evidence corpus |
 | Random games per core-second, FDN decks | see [Performance](https://adams-shaun.github.io/gorge/performance/) | see [Performance](https://adams-shaun.github.io/gorge/performance/) |

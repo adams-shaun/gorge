@@ -32,9 +32,11 @@ for {
 over, winner := s.Terminal()
 ```
 
-Copying a mid-game FDN position takes about 76 ns and allocates nothing, and a transition takes
-about 3.1 µs, also allocating nothing, measured 2026-11-11
-([Performance](../../performance/index.md#transitions-and-copies)).
+Copying a position and taking a transition both allocate nothing. Their measured cost, with its date and commit, is on
+[Performance](../../performance/index.md#transitions-and-copies).
+
+`NewConfig` starts two seats. `InitN` starts a pod of up to four (`MaxSeats`) from the decks `cardset`'s `MatchupN`
+builds, and the same `Step` and `Apply` loop plays it.
 
 ## What it supports
 
@@ -72,16 +74,15 @@ can still find a difference on a supported card.
 
 ### How far lockstep agrees
 
-gorge is the engine dirac is checked against ([Verification](oracle.md)). The state of that check on
-2026-11-08 at `fc2be1aabe`, with random answers. The rows are `make dirac-slices`, which any clone
-with a corpus can run, and CI runs on every change. A slice is the first 1,500 pairs of a pool at seed 1.
+gorge is the engine dirac is checked against ([Verification](oracle.md)). `make dirac-slices` plays the FDN and BLB
+slices on both surfaces with random answers; a slice is the first 1,500 pairs of a pool at seed 1. Any clone with a
+corpus can run it, and the CI job `dirac-slices` runs it on every pull request and queue batch. A divergence, an
+unmodelled stall or a hang fails the job, so a change that lands plays every slice game it starts without one. The
+job's four verdict lines (one per slice and surface) are the live counts of games, clean games, capacity stalls and
+refused pairs; they change with every merge, so they are not written here.
 
-| Run | Games | Clean | Divergent | Unmodelled stalls | Capacity stalls | Refused pairs |
-|---|--:|--:|--:|--:|--:|--:|
-| FDN slice, `-surface autopay` | 1,494 | 1,492 | 0 | 0 | 2 | 6 |
-| FDN slice, `-surface full` | 1,494 | 1,491 | 0 | 0 | 3 | 6 |
-| BLB slice, `-surface autopay` | 1,500 | 1,500 | 0 | 0 | 0 | 0 |
-| BLB slice, `-surface full` | 1,500 | 1,500 | 0 | 0 | 0 | 0 |
+Pods of three and four seats, Commander pods included, play under the same check
+([Four-seat pods](oracle.md#four-seat-pods)).
 
 A refused pair holds a card dirac doesn't support, so it never starts a game. A capacity stall is a declared limit,
 reached with no disagreement up to that point; it counts against the run and isn't clean. Games beyond these slices,
@@ -94,18 +95,21 @@ dirac does less than gorge on purpose.
 
 | Limit | Value | Past it |
 |---|---|---|
-| Players | exactly 2 | not representable |
-| Deck size | 100 cards a seat (`MaxDeck`, a Commander deck's size), and a sideboard of 15 (`MaxSide`) | rejected at setup |
-| Card instances, both decks plus tokens and copies | 224 | the game stalls (`board`) |
-| Battlefield | 112 permanents | stalls (`board`) |
-| Stack | 48 entries | stalls (`stack`) |
-| Triggered abilities waiting | 48 | stalls (`pending`) |
-| Delayed triggers | 32 | stalls (`delayed`) |
-| Attack or block options in one declaration | 512 | stalls (`options`) |
-| Triggers resolved in one turn | 2,000 | stalls (`loop`, an endless mandatory loop, CR 104.4b) |
+| Players | 2 to 4 seats (`MaxSeats`) | `InitN` panics; a card that only plays two seats refuses a larger game (`StallTwoSeat`) |
+| Deck size | `MaxDeck` cards a seat (a Commander deck's 100), and a sideboard of `MaxSide` | rejected at setup |
+| Card instances, every deck plus tokens and copies | `MaxObj` (`dirac/seats.go`, sized for a four-seat Commander pod) | the game stalls (`board`) |
+| Battlefield | `MaxPerm` permanents | stalls (`board`) |
+| Stack | `MaxStack` entries | stalls (`stack`) |
+| Triggered abilities waiting | `MaxPending` | stalls (`pending`) |
+| Delayed triggers | `MaxDelayed` | stalls (`delayed`) |
+| Attack or block options in one declaration | `MaxOptions` | stalls (`options`) |
+| Triggers resolved in one turn | `maxTrigTurn` | stalls (`loop`, an endless mandatory loop, CR 104.4b) |
+
+The constants are in `dirac/state.go`, `dirac/seats.go`, `dirac/types.go` and `dirac/gen.go`; a limit raised in the code
+needs no edit here.
 
 **Stalls are named.** A game dirac can't continue correctly ends as a draw, `Terminal` reports `(true, -1)`
-and `StallReason` gives one of about a hundred named reasons. The names fall into two classes, and every
+and `StallReason` gives a named reason (`StallName`). The names fall into two classes, and every
 reason must be in one or a test fails:
 
 - **Capacity:** a fixed array or budget ran out, and gorge has no such limit. The game was right up to there.
@@ -152,15 +156,15 @@ flowchart LR
 
 | | gorge | dirac |
 |---|---|---|
-| **State** | `state.Game`: an object arena with slices and maps | one `State` of under 24 KiB plus one small table-sized buffer ([State](state.md)) |
+| **State** | `state.Game`: an object arena with slices and maps | one `State` under the bar `TestStateSize` holds, plus one small table-sized buffer ([State](state.md)) |
 | **Mutation** | events folded by `events.Apply` into a hash chain | `Apply(action)` writes the value directly, with no log |
 | **Clone** | `Engine.Clone`, [tens of µs and hundreds of KB](../../performance/index.md#transitions-and-copies) | `CopyFrom`, [tens of ns and no allocation](../../performance/index.md#transitions-and-copies) |
-| **Players** | up to 8 | exactly 2 |
+| **Players** | up to 8 | 2 to 4 |
 | **Cards** | every Forge script is compiled; a card is playable when every primitive it names is implemented ([Card support](../../support/sets.md)) | supported cards only ([What it supports](#what-it-supports)) |
 | **Comparing two games** | the chain head: the same head means the same history | its `Projection` (fixed arrays): equal positions project `==`; two States in the same position may differ in bookkeeping |
 | **Decisions** | 13 kinds, multi-select answers | 8 kinds, every answer a single pick ([Step and Apply](step-apply.md)) |
 | **Checked by** | golden replays, census ratchets, XMage, Forge and Oracle-text scenarios | lockstep against gorge at every decision ([Verification](oracle.md)) |
-| **Used for** | hosting games, every card, the reference | search and self-play; two-seat tables on FDN and BLB limited decks |
+| **Used for** | hosting games, every card, the reference | search and self-play at two to four seats; hosted two-seat tables on FDN and BLB limited decks and the Foundations precons |
 
 dirac can also run as a stdio SpellBench v2 engine: `dirac/cmd/sbv2dirac` plays the game with dirac as the
 authority and a gorge engine following in lockstep, which builds the observations and candidates. A
