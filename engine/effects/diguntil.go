@@ -20,7 +20,9 @@ import (
 // the revealed rest to
 // RevealedDestination$ (default Library; RevealedLibraryPosition$ "-1" =
 // bottom via Move's zone append, "0"/absent = the stay-in-place default so
-// no event). The cards AFTER the found card stay in the library untouched —
+// no event — except on a battlefield-entering dig with RevealRandomOrder$,
+// whose rest returns to the bottom in random order, see below). The cards
+// AFTER the found card stay in the library untouched —
 // the scan stops at the amount-th match, unlike Dig's fixed window.
 //
 // OptionalFoundMove$ True (4 corpus lines — Songbirds' Blessing) makes the
@@ -35,7 +37,11 @@ import (
 // RETURN order to the bottom of the library through the engine's seeded
 // generator (h.Rand), so it replays exactly; the public reveal Note and the
 // Remembered capture stay in scan order because reveal order is a reveal-time
-// fact. A stay-in-place placement (RevealedLibraryPosition$ "0"/absent, e.g.
+// fact. On a battlefield-entering dig (FoundDestination$ Battlefield without
+// FoundWithRevealed$) the rest returns to the bottom — the Oracles say "put
+// the rest on the bottom of your library in a random order" (Kethek, Crucible
+// Goliath) — so the random order needs no RevealedLibraryPosition$. A
+// stay-in-place placement elsewhere (RevealedLibraryPosition$ "0"/absent, e.g.
 // Indomitable Creativity) cannot express a random order at all, so it keeps
 // the existing order behind one loud Note.
 //
@@ -65,8 +71,10 @@ import (
 // destination. What remains withheld: Amount$ whose SVar is absent or
 // unresolvable (amount 1 then) and DigZone$ (every corpus value is
 // PlanarDeck, and this build has no planar tier). RevealRandomOrder$ True is
-// implemented for the library-bottom return (h.Rand, seeded and replay-exact);
-// a stay-in-place placement keeps the existing order behind one loud Note.
+// implemented for the library-bottom return (h.Rand, seeded and replay-exact;
+// on a battlefield-entering dig the absent/"0" position returns to the bottom
+// too); a stay-in-place placement keeps the existing order behind one loud
+// Note.
 func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	dp := DigUntilOf(sa)
 	spec := dp.Spec
@@ -400,72 +408,8 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 		if len(found) == 0 && noneFoundSet {
 			restDest, restPos = noneFoundDest, noneFoundPos
 		}
-		if !noMoveRevealed {
-			// The rest is the revealed pile minus any found card that really
-			// left the pile; a library-bottom random return shuffles exactly
-			// THIS list (the order the per-card Secret MoveZone events are
-			// emitted in IS the returned bottom order — zone append lands each
-			// card at the bottom in emit order). Reveal order is NOT shuffled:
-			// the public Note and the Remembered capture above stay in scan
-			// order.
-			toReturn := make([]state.ObjID, 0, len(revealed))
-			for _, id := range revealed {
-				isFound := false
-				for _, fid := range found {
-					if fid == id {
-						isFound = true
-						break
-					}
-				}
-				if isFound && !foundJoinedRevealed {
-					continue
-				}
-				toReturn = append(toReturn, id)
-			}
-			if restDest == state.ZLibrary && revealRandomOrder {
-				switch {
-				case restPos == "-1":
-					// A full Fisher-Yates over the return list (the h.Rand idiom
-					// the random pick/discard arms use) draws once per position,
-					// so the seeded generator replays byte-identically. This is
-					// the engine's seeded randomness, not a library shuffle:
-					// T:Mode$ Shuffled triggers must not fire for a bottom return
-					// that merely happens to be random.
-					for i := 0; i < len(toReturn); i++ {
-						j := i + h.Rand(len(toReturn)-i)
-						toReturn[i], toReturn[j] = toReturn[j], toReturn[i]
-					}
-				case restPos == "" || restPos == "0":
-					// Stay-in-place placement keeps the existing order (no
-					// library randomisation is expressible there); name the
-					// limitation once.
-					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
-						Text: "RevealRandomOrder$ with stay-in-place placement keeps existing order"})
-				}
-			}
-			for _, id := range toReturn {
-				if restDest == state.ZLibrary {
-					// Library placement: "-1" (bottom) is a real
-					// library-to-library move (Move's zone append lands it at the
-					// bottom — the exact contract effDig's LibraryPosition2$ "-1"
-					// arm documents); "0"/absent is the engine's stay-in-place
-					// default (the cards already sit on top in their existing
-					// relative order) so no event; anything else is named loudly
-					// and the card stays.
-					if restPos == "-1" {
-						h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-							From: state.ZLibrary, To: state.ZLibrary, Player: p, Secret: true})
-					} else if restPos != "" && restPos != "0" {
-						h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
-							Text: "RevealedLibraryPosition$ " + restPos + " is not implemented; the card stays on top"})
-					}
-					continue
-				}
-				ev := moveZoneEvent(c, id, state.ZLibrary, restDest)
-				ev.Player, ev.Secret = p, true
-				h.Emit(ev)
-			}
-		}
+		digUntilReturnRest(h, c, p, revealed, found, foundJoinedRevealed, noMoveRevealed,
+			revealRandomOrder, foundDest, foundWithRevealed, restDest, restPos)
 		// Shuffle$ True: after the found move and the revealed-rest moves,
 		// shuffle the dug player's library (the same Fisher-Yates +
 		// Secret events.Shuffle contract effShuffle emits). ShuffleCondition$
@@ -498,6 +442,93 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if rememberFound {
 		c.Remembered = digRemembered
+	}
+}
+
+// digUntilReturnRest is the revealed-rest tail of one scanned player's
+// DigUntil walk: it moves the rest to restDest at restPos (both already
+// resolved — the NoneFound* override decided at the call site). The rest is
+// the revealed pile minus any found card that really left the pile; a
+// library-bottom random return shuffles exactly THIS list (the order the
+// per-card Secret MoveZone events are emitted in IS the returned bottom
+// order — zone append lands each card at the bottom in emit order). Reveal
+// order is NOT shuffled: the public Note and the Remembered capture stay in
+// scan order.
+func digUntilReturnRest(h Host, c *Ctx, p state.PlayerID, revealed, found []state.ObjID,
+	foundJoinedRevealed, noMoveRevealed, revealRandomOrder bool,
+	foundDest state.Zone, foundWithRevealed bool, restDest state.Zone, restPos string) {
+	if noMoveRevealed {
+		// NoMoveRevealed$ True (8 corpus lines) leaves the rest where it is.
+		return
+	}
+	toReturn := make([]state.ObjID, 0, len(revealed))
+	for _, id := range revealed {
+		isFound := false
+		for _, fid := range found {
+			if fid == id {
+				isFound = true
+				break
+			}
+		}
+		if isFound && !foundJoinedRevealed {
+			continue
+		}
+		toReturn = append(toReturn, id)
+	}
+	// A battlefield-entering dig (FoundDestination$ Battlefield without
+	// FoundWithRevealed$ — the kernel's entering) is not a stay-in-place
+	// reveal: its Oracles say "put the rest on the bottom of your library
+	// in a random order" (Kethek, Crucible Goliath), so with
+	// RevealRandomOrder$ the rest returns to the bottom in random order
+	// even at the absent/"0" position. The kernel's stay rule agrees
+	// (dirac interp execDigUntil: stay = library rest with no
+	// DuRestBottom and not entering).
+	restBottom := restPos == "-1" ||
+		(revealRandomOrder && foundDest == state.ZBattlefield && !foundWithRevealed &&
+			(restPos == "" || restPos == "0"))
+	if restDest == state.ZLibrary && revealRandomOrder {
+		switch {
+		case restBottom:
+			// A full Fisher-Yates over the return list (the h.Rand idiom
+			// the random pick/discard arms use) draws once per position,
+			// so the seeded generator replays byte-identically. This is
+			// the engine's seeded randomness, not a library shuffle:
+			// T:Mode$ Shuffled triggers must not fire for a bottom return
+			// that merely happens to be random.
+			for i := 0; i < len(toReturn); i++ {
+				j := i + h.Rand(len(toReturn)-i)
+				toReturn[i], toReturn[j] = toReturn[j], toReturn[i]
+			}
+		case restPos == "" || restPos == "0":
+			// Stay-in-place placement keeps the existing order (no
+			// library randomisation is expressible there); name the
+			// limitation once.
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+				Text: "RevealRandomOrder$ with stay-in-place placement keeps existing order"})
+		}
+	}
+	for _, id := range toReturn {
+		if restDest == state.ZLibrary {
+			// Library placement: a bottom return ("-1", or a
+			// RevealRandomOrder$ battlefield-entering dig with no
+			// position) is a real library-to-library move (Move's zone
+			// append lands it at the bottom — the exact contract effDig's
+			// LibraryPosition2$ "-1" arm documents); the stay-in-place
+			// default ("0"/absent elsewhere) emits no event (the cards
+			// already sit on top in their existing relative order);
+			// anything else is named loudly and the card stays.
+			if restBottom {
+				h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+					From: state.ZLibrary, To: state.ZLibrary, Player: p, Secret: true})
+			} else if restPos != "" && restPos != "0" {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+					Text: "RevealedLibraryPosition$ " + restPos + " is not implemented; the card stays on top"})
+			}
+			continue
+		}
+		ev := moveZoneEvent(c, id, state.ZLibrary, restDest)
+		ev.Player, ev.Secret = p, true
+		h.Emit(ev)
 	}
 }
 
