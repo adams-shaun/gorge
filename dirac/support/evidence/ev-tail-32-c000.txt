@@ -63,6 +63,7 @@ Cloak of Feathers
 Clot Sliver
 Cloud Elemental
 Cloudchaser Kestrel
+Cognivore
 Cold Storage
 Combust
 Conclave Mentor
@@ -139,6 +140,7 @@ Genasi Enforcers
 General Kreat, the Boltbringer
 Ghastly Demise
 Ghitu Journeymage
+Ghost-Spider, Gwen Stacy
 Ghostly Visit
 Gisa's Bidding
 Glare of Subdual
@@ -275,6 +277,7 @@ Ravenous Harpy
 Raving Oni-Slave
 Razorjaw Oni
 Reckless Imp
+Recross the Paths
 Relic of Progenitus
 Renounce
 Rescue Retriever
@@ -356,6 +359,7 @@ Umbral Juke
 Unnatural Speed
 Untamed Wilds
 Unwavering Initiate
+Urza's Cave
 Valakut Fireboar
 Valkyrior Skyrider
 Value Town

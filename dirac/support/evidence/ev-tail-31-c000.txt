@@ -364,6 +364,7 @@ Strix Serenade
 Stromgald Cabal
 Stromkirk Patrol
 Stronghold Biologist
+Structural Collapse
 Sun-Crowned Hunters
 Sunflare Shaman
 Sustenance

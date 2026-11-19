@@ -1,16 +1,24 @@
+A-Elderleaf Mentor
 Abstruse Interference
 Aeolipile
 Aeronaut's Wings
 Aether Shockwave
+Akoum Boulderfoot
 Akoum Warrior
 Alabaster Wall
 Amulet of Kroog
 Annoyed Altisaur
 Arcbound Hybrid
+Archfiend of Sorrows
 Atarka Beastbreaker
 Attrition
+Attune with Aether
+Avenger of Zendikar
 Blood Age General
+Bloodcrusher of Khorne
+Blunt the Assault
 Book of Rass
+Bottle Golems
 Bull Hippo
 Capenna Express
 Cast Down
@@ -26,6 +34,7 @@ Cloudchaser Kestrel
 Cold Storage
 Colossus of Akros
 Conclave Mentor
+Court of Grace
 Curious Altisaur
 Cut
 Dark Betrayal
@@ -33,7 +42,9 @@ Death's Presence
 Death-Hood Cobra
 Definitely Not a Turtle
 Dementia Bat
+Demonic Tutor
 Demystify
+Dismiss
 Drana, Liberator of Malakir
 Draugr Thought-Thief
 Drown in Ichor
@@ -56,10 +67,15 @@ Feral Abomination
 Feral Ridgewolf
 Filigree Fracture
 Floating-Dream Zubera
+Flying Dolphin-Fish
+Flywheel Racer
 Forest
 Forget
 Fourth Bridge Prowler
 Frogtosser Banneret
+Frontline Devastator
+Gaea's Embrace
+Garrison Griffin
 Geier Reach Sanitarium
 Ghastly Demise
 Gisa's Bidding
@@ -70,11 +86,15 @@ Goliath, Mass Manipulator
 Harmonic Sliver
 Hasran Ogress
 Haunted Cloak
+Heliod's Pilgrim
 Heroic Charge
 Highway Robber
+Hold the Line
+Honor the Past
 Howlpack Resurgence
 Hyalopterous Lemure
 Idle Thoughts
+Inferno
 Into Thin Air
 Invasion of Segovia
 Irini Sengir
@@ -84,13 +104,17 @@ Knight of Old Benalia
 Koilos Roc
 Krenko's Enforcer
 Krosan Restorer
+Kruin Striker
 Kukemssa Pirates
 Lace with Moonglove
 Lancer Sliver
+Lavakin Brawler
+Light the Way
 Liliana's Defeat
 Liliana's Devotee
 Loam Lion
 Loathsome Catoblepas
+Lure
 Magma Phoenix
 Magus of the Candelabra
 Manaweft Sliver
@@ -98,12 +122,17 @@ Mandibular Kite
 Memory Drain
 Mercurial Spelldancer
 Merrow Bonegnawer
+Merrow Witsniper
 Mesa Lynx
 Metallic Mastery
 Mind Drain
 Mindless Null
 Mire Blight
+Mistcutter Hydra
+Misthios's Fury
 Monstrous Hound
+Morbid Bloom
+Mortician Beetle
 Mountain
 Mukotai Soulripper
 Nephalia Smuggler
@@ -111,17 +140,23 @@ Night Scythe
 Nyxborn Marauder
 Oashra Cultivator
 Oni Possession
+Pattern of Rebirth
 Peer Through Depths
 Penance Stare
 Phantasmal Sphere
 Plains
 Prakhata Pillar-Bug
+Precognition Field
+Prized Statue
 Provoke
 Psychic Spear
+Radiant Fountain
+Raging Spirit
 Raiding Nightstalker
 Rakshasa's Secret
 Ranger Class
 Ravenloft Adventurer
+Ravenous Harpy
 Raving Oni-Slave
 Reckless Imp
 Recross the Paths
@@ -131,36 +166,45 @@ Rescue Retriever
 Rhox Brute
 Rofellos, Llanowar Emissary
 Rotted Hulk
+Rotting Mastodon
 Rust Monster
 Saddleback Lagac
 Salt Marsh
 Sandstone Warrior
 Sarcomancy
 Savage Thallid
+Scragnoth
 Seismic Strike
 Sewerdreg
 Shanna, Sisay's Legacy
 Shieldmate's Blessing
 Sizzle
+Skyclave Shade
 Slaughter Cry
+Sokka, Swordmaster
 Sonic Screwdriver
 Soul Bleed
+Squall Line
 Steady Progress
 Storm Crow
+Strike It Rich
 Sunblade Angel
 Sure-Footed Infiltrator
 Swamp
 Thran Lens
 Thunder Wall
+Titanic Brawl
 Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
 Turnabout
 Umbral Juke
 Unholy Grotto
+Urza's Cave
 Valakut Fireboar
 Valley Rannet
 Vaporkin
+Veilborn Ghoul
 Vexing Sphinx
 Viashivan Dragon
 Vindictive Flamestoker
@@ -171,7 +215,10 @@ Walking Archive
 Wander in Death
 Warleader's Helix
 Wave-Wing Elemental
+Wheel and Deal
 Wild Crocodile
 Wilderness Elemental
 Windreader Sphinx
+Witch's Mist
 Witness of Tomorrows
+Wose Pathfinder
