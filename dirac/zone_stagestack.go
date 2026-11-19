@@ -24,7 +24,7 @@ type WorldStack struct {
 	// Ability marks an activated ability; the entry is a spell otherwise.
 	Ability bool
 	// Obj is the spell's object (in ZoneStack in Objs) or the ability's source.
-	Obj  uint8
+	Obj  Obj
 	Ctrl uint8
 	// Ab is an ability's index in its source's CardDef.
 	Ab uint8
@@ -119,8 +119,8 @@ func (s *State) stageStack(k *prep, w *World) {
 	for i := range w.Stack {
 		we := &w.Stack[i]
 		ob := &s.objs[we.Obj]
-		s.touch(Obj(we.Obj))
-		e := stackEntry{kind: seSpell, obj: Obj(we.Obj), card: ob.card, ab: spellAb(k, ob.card), ctrl: we.Ctrl, trigObj: NoObj, tgt: noTargets}
+		s.touch(we.Obj)
+		e := stackEntry{kind: seSpell, obj: we.Obj, card: ob.card, ab: spellAb(k, ob.card), ctrl: we.Ctrl, trigObj: NoObj, tgt: noTargets}
 		if we.Ability {
 			e.kind, e.ab = seAbility, we.Ab
 		} else {

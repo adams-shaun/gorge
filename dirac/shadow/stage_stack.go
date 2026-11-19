@@ -44,7 +44,7 @@ func (b *builder) spellEntry(w *dirac.World, i int, sv *view.StackView) error {
 	if err := b.add(o, cv.Name, int(cv.Owner), i, kop.ZoneStack, cv); err != nil {
 		return err
 	}
-	w.Stack = append(w.Stack, dirac.WorldStack{Obj: o, Ctrl: uint8(sv.Controller)})
+	w.Stack = append(w.Stack, dirac.WorldStack{Obj: dirac.Obj(o), Ctrl: uint8(sv.Controller)})
 	return nil
 }
 
@@ -63,6 +63,6 @@ func (b *builder) abilityEntry(w *dirac.World, sv *view.StackView) error {
 	if ab < 0 {
 		return bad(ReasonStack, "%s has no one self-counter ability", sv.Card.Name)
 	}
-	w.Stack = append(w.Stack, dirac.WorldStack{Ability: true, Obj: o, Ctrl: uint8(sv.Controller), Ab: uint8(ab)})
+	w.Stack = append(w.Stack, dirac.WorldStack{Ability: true, Obj: dirac.Obj(o), Ctrl: uint8(sv.Controller), Ab: uint8(ab)})
 	return nil
 }
