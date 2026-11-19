@@ -754,7 +754,9 @@ func (e *Engine) triggeredCastSpendReaderOut() bool {
 	g := e.G
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
-			if o := g.Obj(id); o != nil && e.objectReadsTriggeredCastSpend(o) {
+			// a phased-out permanent is treated as though it doesn't exist
+			// (CR 702.26b): its trigger reads nothing
+			if o := g.Obj(id); o != nil && !o.PhasedOut && e.objectReadsTriggeredCastSpend(o) {
 				return true
 			}
 		}
@@ -954,7 +956,7 @@ func (e *Engine) triggeredConvergeReaderOut() bool {
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			o := g.Obj(id)
-			if o == nil {
+			if o == nil || o.PhasedOut { // CR 702.26b: a phased-out reader reads nothing
 				continue
 			}
 			// faceConvergeSVarReader per face, memoised (face_scan_memo.go).
