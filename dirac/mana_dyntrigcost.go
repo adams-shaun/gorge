@@ -55,6 +55,15 @@ func (s *State) potentialDynOpen(k *prep, p uint8, cost *kop.ManaCost, d *payDes
 			if a.AFlags&kop.AfManaReflect != 0 && !a.ManaIdentity {
 				continue
 			}
+			// a counter-removal amount ("Remove X counters: Add X mana") is
+			// priced at the counters it can remove when the payment reads the
+			// sub-counter bound (rules potential_subcounter.go), not unbounded:
+			// the trigger-cost gate's descriptor sets SubCounterBound, so a
+			// storage battery's announced X stays bounded here
+			if d != nil && d.subBound && a.ManaV.K == kop.VCountersSelf &&
+				a.ManaV.N == int16(a.Cost.Ctr) && a.Cost.Flags&kop.CostLoyaltyX != 0 {
+				continue
+			}
 			// a commander-identity production with no commander reads no mana
 			// (gorge potentialIdentityEmpty, CR 903.4f): its indeterminate
 			// amount's producedOpen fallback would otherwise price every colour
