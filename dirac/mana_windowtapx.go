@@ -85,10 +85,17 @@ func (s *State) trigWindowTap(k *prep, p uint8, cost *kop.ManaCost) (paused bool
 //
 //go:noinline
 func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
-	if !k.tapMana || !s.scriptTapX(k, p).has(o) || k.tapXSecond(s.cardAt(o)) || k.sacXOf(s.cardAt(o)) && s.g.winMode != winNone && s.g.winMode != winWard && s.g.winMode != winTrig {
+	if !k.tapMana || !s.scriptTapX(k, p).has(o) || k.tapXSecond(s.cardAt(o)) && !s.tapXSecondOnly(o) || k.sacXOf(s.cardAt(o)) && s.g.winMode != winNone && s.g.winMode != winWard && s.g.winMode != winTrig {
 		return false
 	}
 	return !decided || s.windowSrcMask(k, o)&want != 0
+}
+
+// tapXSecondOnly: source o's plain first ability is spent (its {T} was paid, a
+// tapped Relic of Legends), so the window's only ability of it is the later
+// tap-another one, which needs no {T} (gorge lists it while a permanent is there to tap).
+func (s *State) tapXSecondOnly(o Slot) bool {
+	return s.g.winMode == winTrig && s.perms[o].flags&pfTapped != 0
 }
 
 // winTapN is how many permanents source sl's cost taps: one (Saruli Caretaker)
