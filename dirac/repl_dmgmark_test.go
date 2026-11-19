@@ -27,7 +27,7 @@ func TestDmgMarkLifetime(t *testing.T) {
 	}
 	s.g.nseat = MaxSeats
 	last := uint8(MaxSeats - 1) // the seat whose turn precedes seat 0's
-	s.active = 0
+	s.active, s.g.exBase = 0, 0 // turnsTo counts the rotation from exBase, the last normal turn's holder
 	mark(0, 1)
 	if s.dmgMarkN(1) != 1 || s.dmgMarkN(0) != 0 {
 		t.Fatalf("marks on seat 1 / seat 0 = %d / %d, want 1 / 0", s.dmgMarkN(1), s.dmgMarkN(0))
@@ -41,7 +41,7 @@ func TestDmgMarkLifetime(t *testing.T) {
 	if !dmkSet(&s, 0, 1) || dmkSet(&s, 1, 1) {
 		t.Fatalf("after the cleanup of seat 0's turn: seat 0's mark %v (want kept), seat 1's %v (want ended)", dmkSet(&s, 0, 1), dmkSet(&s, 1, 1))
 	}
-	s.active = last // the last seat's turn is ending: seat 0's next turn follows
+	s.active, s.g.exBase = last, last // the last seat's turn is ending: seat 0's next turn follows
 	s.dmgMarkEnd()
 	if s.dmgMarkN(1) != 0 || s.g.dmk != [dmkBytes]uint8{} {
 		t.Fatalf("marks %v remain after both controllers' next turns", s.g.dmk)

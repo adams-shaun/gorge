@@ -466,14 +466,12 @@ func (s *State) finishCleanup(k *prep) {
 		s.openPriority()
 		return
 	}
-	next := s.nextAlive(s.active)
-	if s.pl[s.active].extraTurns > 0 {
-		s.pl[s.active].extraTurns--
-		next = s.active
-		if !DebugNoExtraTurnBegun {
-			s.g.extraTurnBegun |= 1 << SeatIx(s.active) // ExYourExtraTurns: an extra turn's TurnChange fires
-		}
+	if s.g.exN > 0 {
+		s.exTake() // CR 500.7: the most recently created grant's turn begins (act_extraturn.go)
+		return
 	}
+	next := s.nextAlive(s.g.exBase)
+	s.g.exBase = next
 	s.beginTurn(next)
 }
 
@@ -1144,6 +1142,10 @@ func (s *State) fireDelayed(k *prep) {
 func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	if e.trigAmt == speedTrigAmt && e.obj == NoObj {
 		s.resolveSpeed(e) // the source-less speed trigger (kw_speed.go)
+		return
+	}
+	if e.trigAmt == exTurnRiderAmt {
+		s.lose(e.ctrl) // the extra turn's end-step lose rider (act_extraturn.go); its source (the resolving spell) is only the trigger's named source
 		return
 	}
 	if monarchTrig(e) {

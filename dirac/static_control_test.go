@@ -371,7 +371,7 @@ func TestL5BeastbinderUntilYourNextTurn(t *testing.T) {
 	}
 	victim := sc.perm(bb, 1)
 	sl := sc.slot(victim)
-	s.active = 0
+	s.active, s.g.exBase = 0, 0 // turnsTo counts the rotation from exBase
 	s.res.e.ctrl = 0
 	s.applyOverrideFl(k, sl, int(prog[0].C), bb, s.ovDurFl(prog[0].A.N))
 	s.applyOverrideFl(k, sl, int(prog[2].C), bb, s.ovDurFl(prog[2].A.N))
@@ -383,7 +383,7 @@ func TestL5BeastbinderUntilYourNextTurn(t *testing.T) {
 	if p, _ := pt(); !s.genLost(k, sl) || p != 2 {
 		t.Fatal("the effect ended at its controller's own cleanup")
 	}
-	s.active = 1
+	s.active, s.g.exBase = 1, 1
 	s.cleanupGen(k) // the cleanup before p0's next turn
 	if p, tg := pt(); s.genLost(k, sl) || p != 1 || tg != 3 {
 		t.Fatalf("after p1's cleanup: lost %v, %d/%d, want 1/3 with its abilities", s.genLost(k, sl), p, tg)

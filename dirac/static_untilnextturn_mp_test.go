@@ -26,11 +26,8 @@ func TestOvNextTurnFourSeatController(t *testing.T) {
 	if s.nSeats() != n {
 		t.Fatalf("nSeats %d", s.nSeats())
 	}
-	for _, active := range [][2]uint8{{0, 0}, {1, 1}, {2, 2}, {3, 3}} {
-		st := &s.pl[active[0]]
-		if st.extraTurns != 0 {
-			t.Fatalf("seat %d has %d extra turns; nextActive would not follow it", active[0], st.extraTurns)
-		}
+	if s.g.exN != 0 {
+		t.Fatalf("%d extra turns pending; nextActive would not follow the rotation", s.g.exN)
 	}
 	for _, tc := range [][2]uint8{{2, 3}, {2, 1}, {3, 0}, {3, 2}, {0, 3}, {1, 0}} {
 		ctrl, active := tc[0], tc[1]

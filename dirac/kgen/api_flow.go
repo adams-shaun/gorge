@@ -114,7 +114,76 @@ func (lc *lowerCtx) apiAddTurn(sa *cards.SA, ps *params) error {
 	if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" {
 		return refuse("AddTurn Defined$ %q", d)
 	}
-	lc.emit(lInstr{Op: "AddTurn", Obj: lRef{Kind: rYou}})
+	in := lInstr{Op: "AddTurn", Obj: lRef{Kind: rYou}}
+	if err := lc.addTurnRider(ps, &in); err != nil {
+		return err
+	}
+	lc.emit(in)
+	return nil
+}
+
+// addTurnRider lowers ExtraTurnDelayedTrigger$ with
+// ExtraTurnDelayedTriggerExecute$ (Final Fortune, Last Chance, Warrior's
+// Oath, Chance for Glory's sub-ability): the granted turn's end step fires
+// the Execute body. Only the DelTrig phase trigger whose Execute is DB$
+// LosesGame on You lowers; gorge registers the delayed trigger at the -1
+// ExtraTurn consumption with the granted turn as MinTurn (engine/events/
+// apply_turn.go foldExtraTurn), and the kernel arms the rider when the
+// granted turn begins (act_extraturn.go exRideArm), so the granting turn's own
+// end step never fires it. Every other shape refuses: Alchemist's Gambit's
+// and Kang the Conqueror's Execute is DB$ Effect, whose static modes are
+// unmodelled.
+func (lc *lowerCtx) addTurnRider(ps *params, in *lInstr) error {
+	name, ok := ps.get("ExtraTurnDelayedTrigger")
+	if !ok {
+		if _, ok := ps.get("ExtraTurnDelayedTriggerExecute"); ok {
+			return refuse("AddTurn ExtraTurnDelayedTriggerExecute$ without ExtraTurnDelayedTrigger$")
+		}
+		return nil
+	}
+	exec, ok := ps.get("ExtraTurnDelayedTriggerExecute")
+	if !ok {
+		return refuse("AddTurn ExtraTurnDelayedTrigger$ %q without ExtraTurnDelayedTriggerExecute$", name)
+	}
+	dt := cards.ResolveSVar(lc.face.SVars, name)
+	var dp *params
+	if dt != nil {
+		dp = newParams(dt.Params)
+	} else if raw, ok := lc.face.SVars[name]; ok {
+		// the raw T: shape (Final Fortune's "ThisTurn$ True | Mode$ Phase |
+		// ..."): gorge's delayedTriggerSpec parses the named body through
+		// ParseTriggerLine when ResolveSVar has no DB$ head for it
+		if trig, ok := cards.ParseTriggerLine(raw); ok {
+			dp = newParams(trig.Params)
+		}
+	}
+	if dp == nil {
+		return refuse("AddTurn ExtraTurnDelayedTrigger$ %q: no such SVar", name)
+	}
+	if dp.str("Mode") != "Phase" {
+		return refuse("AddTurn rider %s: Mode$ %q", name, dp.str("Mode"))
+	}
+	if dp.str("Phase") != "End of Turn" {
+		return refuse("AddTurn rider %s: Phase$ %q", name, dp.str("Phase"))
+	}
+	if t := dp.str("ThisTurn"); t != "True" {
+		return refuse("AddTurn rider %s: ThisTurn$ %q", name, t)
+	}
+	if _, ok := dp.get("Static"); ok {
+		return refuse("AddTurn rider %s: Static$ rider", name)
+	}
+	ex := cards.ResolveSVar(lc.face.SVars, exec)
+	if ex == nil {
+		return refuse("AddTurn rider Execute$ %q: no such SVar", exec)
+	}
+	if ex.API != "LosesGame" {
+		return refuse("AddTurn rider Execute$ %s: api %s", exec, ex.API)
+	}
+	ep := newParams(ex.Params)
+	if d := strings.TrimSpace(ep.str("Defined")); d != "" && d != "You" {
+		return refuse("AddTurn rider Execute$ %s: Defined$ %q", exec, d)
+	}
+	in.CS = "ExtraTurnRider" // opAddTurn: C names the granted turn's end step (kop.StepEnd)
 	return nil
 }
 

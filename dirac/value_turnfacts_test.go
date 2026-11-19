@@ -111,19 +111,21 @@ func TestOutlastsTurn(t *testing.T) {
 }
 
 // TestNextTurnPlayer: the next turn is the other player's, or the active
-// player's when it has an extra turn coming, and the turn that follows is
-// that player's (turn.go finishCleanup), the extra turn then taken.
+// player's when a grant to it is pending, and the turn that follows is
+// that player's (turn.go exTake), the granted turn then taken.
 func TestNextTurnPlayer(t *testing.T) {
-	for _, extra := range []uint8{0, 1} {
+	for _, extra := range []bool{false, true} {
 		sc, _ := newObjScen(t, outlastsDeck)
 		s := sc.s
-		s.pl[0].extraTurns = extra
+		if extra {
+			s.exPush(0, false, NoObj) // seat 0's pending grant (CR 500.7; act_extraturn.go)
+		}
 		want := uint8(1)
-		if extra > 0 {
+		if extra {
 			want = 0
 		}
 		if got := s.NextTurnPlayer(); got != want {
-			t.Fatalf("extra turns %d: NextTurnPlayer %d, want %d", extra, got, want)
+			t.Fatalf("extra turn %v: NextTurnPlayer %d, want %d", extra, got, want)
 		}
 		turn := s.turn
 		for i := 0; i < 200 && s.turn == turn; i++ {
@@ -137,9 +139,9 @@ func TestNextTurnPlayer(t *testing.T) {
 			}
 			s.Apply(a)
 		}
-		if s.turn != turn+1 || s.active != want || s.pl[0].extraTurns != 0 {
-			t.Fatalf("extra turns %d: turn %d active %d extra %d, want turn %d active %d extra 0",
-				extra, s.turn, s.active, s.pl[0].extraTurns, turn+1, want)
+		if s.turn != turn+1 || s.active != want || s.g.exN != 0 {
+			t.Fatalf("extra turn %v: turn %d active %d pending %d, want turn %d active %d pending 0",
+				extra, s.turn, s.active, s.g.exN, turn+1, want)
 		}
 	}
 }

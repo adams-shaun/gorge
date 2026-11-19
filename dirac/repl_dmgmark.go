@@ -121,15 +121,28 @@ func (s *State) dmkLive(c uint8) bool {
 }
 
 // turnsTo is how many turns from the one in progress controller c's next turn
-// is (gorge nextTurnFor - the turn now): 1 when it is the next turn (an extra
-// turn of the active player first), 0 when c is out of the rotation.
+// is (gorge nextTurnFor - the turn now): the pending grants count first, most
+// recently created first (CR 500.7; gorge layers_effect.go nextTurnFor), a
+// grant to a seat that has lost no turn makes, then the ordinary rotation
+// after the last normal turn's holder; 0 when c is out of the rotation.
 func (s *State) turnsTo(c uint8) uint8 {
-	ex := s.pl[s.active].extraTurns
-	if c == s.active && ex > 0 {
-		return 1
+	d := uint8(0)
+	n := int(s.g.exN)
+	for i := 0; i < n; i++ {
+		ix := n - 1 - i
+		if DebugExtraTurnFIFO {
+			ix = i
+		}
+		p := s.g.exQ[ix]
+		if s.pl[p].lost {
+			continue
+		}
+		d++
+		if p == c {
+			return d
+		}
 	}
-	d := ex
-	q := s.active
+	q := s.g.exBase
 	for i := 0; i < MaxSeats; i++ {
 		q = s.nextAlive(q)
 		d++
