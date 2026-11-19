@@ -2,6 +2,7 @@ Aeronaut's Wings
 Arctic Treeline
 Barbed Batterfist
 Blood Age General
+Boreal Elemental
 Brood Birthing
 Cateran Enforcer
 Cho-Arrim Bruiser
@@ -60,12 +61,15 @@ Skyclave Cleric
 Skyswimmer Koi
 Slaughter Cry
 Soul Bleed
+Storm Crow
 Swamp
 The Royal Scions
 Thriving Ibex
+Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
 Umbral Juke
 Valley Rannet
+Vaporkin
 Viashivan Dragon
 Windreader Sphinx

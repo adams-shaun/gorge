@@ -7,6 +7,7 @@ Attrition	0ef985a4765623fd	4	1/1		0/1	ix:resp
 Blood Rites	52d32a5b24499be7	3	1/1		0/1	ix:resp
 Blunt the Assault	0a9df5063530adf1	3	0/0		2/2	
 Border Guard	66f3fd32e845afd1	6	0/0		0/0	
+Boreal Elemental	54202da3062daaa9	5	0/0		0/0	
 Brawl-Bash Ogre	61090b900dad4022	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Bull Hippo	555877f6a29d6648	3	0/0		0/0	
 Celestial Purge	fc7614349e489e95	4	0/0		1/2	ix:resp
@@ -71,9 +72,11 @@ Scragnoth	c16a2b2dcc6bc954	6	0/0		0/0
 Shanna, Sisay's Legacy	7f2b94337e08e70d	4	0/0		0/0	
 Sokka, Swordmaster	57eafca79c98ec24	4	1/1		1/1	
 Soul Bleed	4c4338ec96c1e1fb	6	1/1		1/2	ix:resp
+Storm Crow	68ab9f2ac1943e67	4	0/0		0/0	
 Strandwalker	3587eaca0aecb313	6	2/2		0/1	ix:resp
 Territorial Aetherkite	e68a92eabadf7237	4	1/1		0/1	ix:resp
 Thran Lens	7eae2099f3b2d778	10	0/0		0/0	
+Toph, Earthbending Master	2ad409b3c7cd55a4	4	2/2		1/1	
 Valakut Fireboar	53ea89743e709d1d	4	1/1		0/1	ix:resp
 Vaporkin	e366e826894f1096	3	0/0		0/0	
 Vivid Revival	0d44b681287d8277	4	0/0		1/2	ix:resp
