@@ -16,14 +16,17 @@ Two rules shape everything here.
 
 `Hidden` is the caller's. A determinization deals it from the seat's own deck list and the counts the view shows; the verifier supplies the true zones. The staging code cannot tell which.
 
-## What stages today (chunk C4)
+## What stages today (chunks C4 and C5)
 
 - Two seats.
-- Lands and creatures with no abilities beyond combat keywords.
+- Lands and creatures with no abilities beyond combat keywords, and creatures whose only ability is "put a +1/+1 counter on this" (`selfCounterAbility`: activated, no target, no once-per-turn state).
+- Damage marked on a battlefield creature (C5; a damaged creature is also marked dealt-damage-this-turn, as `dmgPerm` records it) and nonzero +1/+1 counters on a battlefield creature (C5).
 - Library, hand, graveyard and battlefield order, tapped and summoning-sick marks, life, land drop, turn, step and priority holder.
 - Quiet priority steps only: upkeep, draw, first main, second main, end.
 
-Everything else is refused with a reason. dirac's reasons: `table`, `seats`, `object-layout`, `card`, `zone`, `control`, `place`, `step`, `priority`, `turn`, `life`, `battlefield`. The shadow adds: `game-over`, `seats`, `stack`, `decision`, `unknown-card`, `unmapped-object`, `hidden`, `exile`, `token`, `mark`, `pool`, `step-name`. Each has a test that provokes it (`TestUnstageableReasons`, `TestWorldFromViewReasons`).
+Everything else is refused with a reason. dirac's reasons: `table`, `seats`, `object-layout`, `card`, `zone`, `control`, `place`, `step`, `priority`, `turn`, `life`, `battlefield`. The shadow adds: `game-over`, `seats`, `stack`, `decision`, `unknown-card`, `unmapped-object`, `hidden`, `exile`, `token`, `counter`, `attachment`, `mark`, `pool`, `step-name`. Each has a test that provokes it (`TestUnstageableReasons`, `TestWorldFromViewReasons`).
+
+Still refused after C5: tokens and copies (`token`), any other counter kind, a zero count, or a counter or damage off the battlefield (`counter`, `mark`), an attached Aura or Equipment (`attachment`). Tokens need object slots beyond the deck, and attachment needs Aura and Equipment cards, which dirac's staging scope does not yet admit; neither is staged by guess.
 
 Not carried: the RNG draw count (the verifier masks `Projection.Draws`) and the per-card in-hand history.
 
@@ -31,14 +34,14 @@ Not carried: the RNG draw count (the verifier masks `Projection.Draws`) and the 
 
 `TestStageMatchesReplay` (`dirac/shadow/stage_test.go`):
 
-1. Play 200 lockstep games on a pool of vanilla lands and 14 vanilla or keyword creatures.
+1. Play 200 lockstep games on a pool of vanilla lands, 14 vanilla or keyword creatures and Hungry Ghoul. Odd-numbered games wait for a position where a battlefield creature carries damage or a counter.
 2. At a random step, build the seat's `view.View` from gorge's game and stage a `State` from it, with the true hidden zones as `Hidden`.
 3. Require `oracle.Project` equality with the dirac state replayed from the same prefix.
 4. Continue both on one shared policy to game end and require zero mismatches.
 
-Last run: 200 of 200 positions staged (462 tried; 243 refused as a non-quiet step, 19 for a non-empty stack), 105,166 continuation decisions, 0 mismatches.
+Last run (C5): 197 of 200 games staged a position (719 tried; 476 refused as a non-quiet step, 46 for a non-empty stack), 40 staged positions held damage and 71 held +1/+1 counters, 103,742 continuation decisions, 0 mismatches. The test fails if fewer than 20 staged positions hold each mark.
 
-`TestStageMutationsAreCaught` drops each of tapped, summoning-sick, life, land drop, library order, graveyard order and turn from the staging in turn, and requires the verifier to fail on each. A feature that staging silently dropped would be caught.
+`TestStageMutationsAreCaught` drops each of tapped, summoning-sick, damage, +1/+1 counters, life, land drop, library order, graveyard order and turn from the staging in turn, and requires the verifier to fail on each. A feature that staging silently dropped would be caught.
 
 ## Extending it
 
@@ -46,7 +49,7 @@ Each later chunk widens the refused set and keeps the same verifier, run on a po
 
 | Chunk | Adds |
 |---|---|
-| C5 | counters, damage, auras, equipment, tokens |
+| C5 (partly done: damage, +1/+1 counters) | other counter kinds, auras, equipment, tokens |
 | C6 | stack, triggers, replacement effects, per-source remembered memory |
 | C7 | mid-turn positions: declare attackers and blockers, targets |
 | C8 | `CopyFrom` fork and rollout loop |

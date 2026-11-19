@@ -72,6 +72,12 @@ type WorldObj struct {
 	// Sick is the summoning-sick mark: the permanent came under its
 	// controller's control since that seat's most recent turn began.
 	Sick bool
+	// Damage is the damage marked on a battlefield creature (CR 120.3e) and
+	// P1P1 its +1/+1 counters. Both are battlefield state: dirac keeps neither
+	// off the battlefield, and a card there carries none. A creature with
+	// Damage above zero was dealt damage this turn (WasDealtDamageThisTurn).
+	Damage uint8
+	P1P1   uint16
 }
 
 // World is one position, staged at a priority decision with an empty stack.
@@ -127,13 +133,27 @@ func stageableCard(def *kop.CardDef) string {
 		}
 		return ""
 	}
-	if len(def.Abilities) != 0 {
-		return "ability"
+	for i := range def.Abilities {
+		if !selfCounterAbility(&def.Abilities[i]) {
+			return "ability"
+		}
 	}
 	if def.Enchant != (kop.TargetSpec{}) || def.EquipCost != (kop.ManaCost{}) || def.Leyline || def.Dredge != 0 || def.UmbraArmor {
 		return "ability"
 	}
 	return ""
+}
+
+// selfCounterAbility reports whether ab is an activated ability whose only
+// effect is a +1/+1 counter on its own source ("{1}, sacrifice another
+// creature: put a +1/+1 counter on this"). It keeps no per-permanent state
+// beyond the counter itself: not once per turn, no target, no choice.
+func selfCounterAbility(ab *kop.Ability) bool {
+	if ab.Kind != kop.AbActivated || ab.NTargets != 0 || ab.NModes != 0 || ab.AFlags != 0 || len(ab.Prog) != 1 {
+		return false
+	}
+	in := &ab.Prog[0]
+	return in.Op == kop.OpPutCounter && in.Obj == kop.RefSelf && in.C == int16(kop.CtrP1P1) && in.A == kop.Const(1)
 }
 
 // NewFromWorld returns the game at w's position, at the priority decision
@@ -209,7 +229,7 @@ func (w *World) validate() error {
 		if o.Ctrl >= 2 || (o.Zone == kop.ZoneBattlefield && o.Ctrl != o.Owner) || (o.Zone != kop.ZoneBattlefield && o.Ctrl != o.Owner) {
 			return unstageable(ReasonControl, "object %d owner %d controller %d", i, o.Owner, o.Ctrl)
 		}
-		if o.Zone != kop.ZoneBattlefield && (o.Tapped || o.Sick) {
+		if o.Zone != kop.ZoneBattlefield && (o.Tapped || o.Sick || o.Damage != 0 || o.P1P1 != 0) {
 			return unstageable(ReasonZone, "object %d off the battlefield carries a mark", i)
 		}
 		count[o.Owner][z][0]++
@@ -319,6 +339,7 @@ func (s *State) initFromWorld(w *World) error {
 			if !o.Sick {
 				s.perms[sl].flags &^= pfSick
 			}
+			s.stageMarks(sl, o)
 			s.touchSl(sl)
 		}
 	}
@@ -343,4 +364,14 @@ func (s *State) initFromWorld(w *World) error {
 	}
 	s.mullMax = 0
 	return nil
+}
+
+// stageMarks sets the damage and +1/+1 counters of the permanent at sl.
+func (s *State) stageMarks(sl Slot, o *WorldObj) {
+	p := &s.perms[sl]
+	p.damage = o.Damage
+	p.p1 = o.P1P1
+	if o.Damage > 0 {
+		s.g.dmgTurn.set(p.obj) // dealt damage this turn, as dmgPerm records it
+	}
 }
