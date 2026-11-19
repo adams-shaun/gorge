@@ -22,7 +22,7 @@ import (
 const (
 	// maxFuncLinesOver300 is the number of non-test functions in engine/rules/ and
 	// engine/effects/ spanning more than 300 lines.
-	maxFuncLinesOver300 = 50
+	maxFuncLinesOver300 = 49
 	// engineMethodCount is the number of non-test methods on rules.Engine.
 	engineMethodCount = 2423
 	// hostMethodCount is the number of methods in the effects.Host interface
@@ -169,7 +169,7 @@ const (
 	stringLiteralCompares = 2772
 	// rawBoolParamParses is the strings.EqualFold calls whose argument holds a
 	// Param/ParamStr call: a flag parameter re-parsed at each use.
-	rawBoolParamParses = 267
+	rawBoolParamParses = 266
 	// stringKeyedParamReads is the string literals passed at the key position
 	// of a string-keyed parameter helper (effects.Num and kin, found
 	// automatically: codeshape.Metrics.StringKeyedParamHelpers): the helper

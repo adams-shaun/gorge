@@ -74,15 +74,25 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 	}
 	// ResolvedOnly$ True: a trigger fires only on the spell's own RESOLUTION
 	// move off the stack, not on any other stack exit. No corpus card prints
-	// this parameter today (Cipher, its only former user, now runs its encode
-	// as a resolution-tail instruction instead of a trigger; see
-	// engine/cards/kw_cipher.go and engine/rules/cipher.go). It is kept as a generic
-	// ChangesZone gate: the engine's resolution tail
-	// (resolution.moveResolvedOffStack) is the ONE empty-Text stack exit;
-	// every counter/fizzle/reversal path tags its move ("countered",
-	// "fizzled: ...", "reversed"), so the empty Text is the resolution. This
-	// keeps the gate out of the event shape itself -- no existing move changes
-	// its Text, so the hash chain is untouched.
+	// this parameter today, and no keyword expansion leans on it for a
+	// resolution-exit gate either: Cipher runs its encode as a resolution-tail
+	// instruction (engine/cards/kw_cipher.go + engine/rules/cipher.go) and
+	// kw:Epic arms from the same tail (engine/rules/epic.go) -- both without a
+	// trigger. The parameter stays as a generic ChangesZone gate, but the
+	// empty-Text test below is NOT a sound resolution-exit discriminator and
+	// must not be read as one: counter/fizzle/reversal paths tag their moves
+	// ("countered", "fizzled: ...", "reversed"), yet BOTH the engine's
+	// resolution tail (resolution.moveResolvedOffStack) AND every effect-driven
+	// stack exit (engine/effects/context.go's moveZoneEvent -- Bilbo's Gambit's
+	// "Return target spell to its owner's hand" shape) carry empty Text alike.
+	// A trigger using the parameter thus over-fires on effect-driven exits;
+	// kw:Haunt still mints one (kw_haunt.go) whose hole -- an effect moving a
+	// haunt spell from the stack straight to the graveyard -- no corpus body
+	// performs today (the 21 stack->graveyard lines are as-it-resolves
+	// replacements of the resolution move itself). Any future resolution-exit
+	// user needs the tail route or a tagged move first. This keeps the gate
+	// out of the event shape itself -- no existing move changes its Text, so
+	// the hash chain is untouched.
 	if strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKResolvedOnly)), "True") && ev.Text != "" {
 		return false
 	}

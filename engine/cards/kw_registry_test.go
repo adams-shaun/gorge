@@ -204,6 +204,9 @@ var expandedHeads = []string{
 	// appended to the spell ability (engine/cards/kw_awaken.go). Added after
 	// the split.
 	"Awaken",
+	// Epic (CR 702.50a): the rest-of-game no-spells static and the upkeep
+	// copy trigger (engine/cards/kw_epic.go). Added after the split.
+	"Epic",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
