@@ -231,6 +231,7 @@ func keptOnLoss(t *kop.Table, a *kop.Ability) bool {
 // ovrKeptOnLoss reports whether override o has a part in layers 1 to 5.
 func ovrKeptOnLoss(o *kop.Override) bool {
 	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0 ||
+		o.ImpSub || // AddType$ ImprintedCreatureType is a layer-4 part (Duplicant)
 		o.HasColors || o.AddColors != 0 || o.NameCard != 0
 }
 
@@ -247,7 +248,8 @@ func l4part(e *lfx) bool {
 		return true
 	}
 	o := e.o
-	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0
+	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0 ||
+		o.ImpSub // AddType$ ImprintedCreatureType: the imprinted card's creature types (Duplicant)
 }
 
 // lfxApplies reports whether e applies to sl given the characteristics
@@ -263,7 +265,7 @@ func (s *State) lfxApplies(k *prep, sl Slot, e *lfx, cur *dchars) bool {
 }
 
 // lfxApply4 applies e's layer-4 part to c.
-func lfxApply4(k *prep, e *lfx, c *dchars) {
+func (s *State) lfxApply4(k *prep, sl Slot, e *lfx, c *dchars) {
 	if e.o == nil {
 		c.subs = c.subs.Or(e.a.Static.AddSub)
 		if k.gen.anyAddChosen && e.a.Static.AddChosen {
@@ -289,6 +291,12 @@ func lfxApply4(k *prep, e *lfx, c *dchars) {
 		c.subs = c.subs.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 	}
 	c.subs = c.subs.Or(o.AddSub)
+	if o.ImpSub {
+		// AddType$ ImprintedCreatureType: the printed creature types of the
+		// last still-exiled imprinted creature card (Duplicant; the fixed
+		// path's arm is chars_gen.go eachOverride)
+		c.subs = c.subs.Or(s.impCreatureSub(k, s.perms[sl].obj))
+	}
 	if ovrAllCreat(o) {
 		c.all = true
 	}
@@ -365,7 +373,7 @@ func (s *State) charsFx(k *prep, sl Slot, upTo uint8, fx *[maxLfx]lfx, np *int) 
 		}
 		if s.lfxApplies(k, sl, e, &c) {
 			e.ok = 1
-			lfxApply4(k, e, &c)
+			s.lfxApply4(k, sl, e, &c)
 		} else {
 			e.ok = 2
 		}
@@ -442,7 +450,7 @@ func (s *State) lfxIndependent(k *prep, sl Slot, fx *[maxLfx]lfx, n int, done *[
 			continue
 		}
 		var applied [maxLfx]bool
-		lfxApply4(k, &fx[j], &sim)
+		s.lfxApply4(k, sl, &fx[j], &sim)
 		applied[j] = true
 		for grew := true; grew; {
 			grew = false
@@ -451,7 +459,7 @@ func (s *State) lfxIndependent(k *prep, sl Slot, fx *[maxLfx]lfx, n int, done *[
 					continue
 				}
 				if s.lfxApplies(k, sl, &fx[q], &sim) {
-					lfxApply4(k, &fx[q], &sim)
+					s.lfxApply4(k, sl, &fx[q], &sim)
 					applied[q] = true
 					grew = true
 				}

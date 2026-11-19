@@ -251,7 +251,7 @@ func TestL7KeptSubtypes(t *testing.T) {
 
 	k := l.sc.k
 	c := dchars{types: kop.TLand | kop.TCreature, subs: l.mask("Plains", "Frog")}
-	lfxApply4(k, &lfx{o: &moon}, &c)
+	l.sc.s.lfxApply4(k, l.sc.slot(plains), &lfx{o: &moon}, &c)
 	if c.types != kop.TLand || !c.subs.Has(l.sub["Plains"]) || c.subs.Has(l.sub["Frog"]) {
 		t.Errorf("the layer walk gives types %#x subs %v, want a land that is a Plains and no Frog", c.types, c.subs)
 	}
