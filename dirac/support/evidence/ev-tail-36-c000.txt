@@ -43,6 +43,7 @@ Backwoods Survivalists
 Baleful Ammit
 Balthor the Defiled
 Balthor the Stout
+Bar the Gate
 Barishi
 Basilica Guards
 Battlewise Aven
@@ -75,6 +76,7 @@ Castle Ardenvale
 Cazur, Ruthless Stalker
 Cemetery Gate
 Cephalid Scout
+Chain of Vapor
 Champion of Lambholt
 Chaos Harlequin
 Charge of the Mites

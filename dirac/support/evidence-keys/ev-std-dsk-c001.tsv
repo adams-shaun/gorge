@@ -3,14 +3,19 @@ Abandoned Campground	3443acda32ddc940	3	1/1		0/1	ix:resp
 Acrobatic Cheerleader	0a7272f66463a072	4	1/1		0/1	ix:resp
 Anthropede	6804f2f4fbdef81c	10	1/1		0/1	ix:resp
 Balustrade Wurm	718c9ef4a0bfd812	4	1/1		0/1	ix:resp
+Baseball Bat	3d8de30527de66a5	7	3/3		0/1	ix:resp
 Bear Trap	84c11baf5d45f604	7	1/1		0/1	ix:resp
 Beastie Beatdown	feba4f988dfa9075	4	0/0		1/2	ix:resp
 Break Down the Door	900a4ac6cfc57a29	10	0/0		1/2	ix:resp
 Broodspinner	7fd50caa7edd13e8	4	2/2		0/1	ix:resp
 Cathartic Parting	d0808b86cdf89e87	3	0/0		2/2	
+Clammy Prowler	2a106b8a2ddbc49a	4	1/1		0/1	ix:resp
 Come Back Wrong	415e6bf9a45daa61	4	0/0		1/2	ix:resp
+Commune with Evil	4392f02203304a58	6	0/0		1/2	ix:resp
 Conductive Machete	00b704910893c666	5	2/2		0/1	ix:resp
+Cracked Skull	4fd6e5b0a41d5031	4	2/2		1/2	ix:resp
 Creeping Peeper	cd210f9a7a708185	4	1/1		0/1	ix:resp
+Cursed Recording	9ad02f6e62247dae	8	2/2		0/1	ix:resp
 Cursed Windbreaker	24a29e4c6fc5d243	4	2/2		0/1	ix:resp
 Dissection Tools	6fbc34eb37f54b75	4	2/2		0/1	ix:resp
 Diversion Specialist	d69333498cc9578f	7	1/1		1/1	
@@ -18,17 +23,23 @@ Enduring Courage	e968f9659848a30e	4	2/2		1/1
 Enduring Curiosity	442d7f321bb0091f	8	2/2		0/1	ix:resp
 Enduring Innocence	2143fdbc9f5a3dcc	4	2/2		0/1	ix:resp
 Enter the Enigma	7c3f1b3df9beb852	3	0/0		1/2	ix:resp
+Ethereal Armor	f366ac2a380a3093	4	0/0		2/2	
 Exorcise	877a3a380a6761e8	3	0/0		1/2	ix:resp
 Fear of Being Hunted	bbdf79e50162faaf	4	0/0		0/0	
 Fear of Immobility	2e83ac63e24d6771	3	1/1		0/1	ix:resp
 Fear of Impostors	7d0b49016ae9ab66	9	1/1		0/1	ix:resp
+Fear of Lost Teeth	23aa4fe42424dbe7	5	1/1		0/1	ix:resp
+Fear of Surveillance	0e8019863212e809	10	1/1		0/1	ix:resp
 Flesh Burrower	e419a60a4b413485	4	1/1		0/1	ix:resp
 Forest	6d0466c30f825dba	18	1/1		0/1	ix:resp
+Found Footage	0e1f873c65551f8f	9	1/1		0/1	ix:resp
 Frantic Strength	ee92078e7f258344	13	0/0		1/2	ix:resp
+Friendly Ghost	be503c23b64aa3f1	9	1/1		0/1	ix:resp
 Friendly Teddy	f377badd0c97a127	4	1/1		0/1	ix:resp
 Get Out	27f299a127715960	7	0/0		1/2	ix:resp
 Ghostly Keybearer	4a3965ac10fe5b4e	4	1/1		0/1	ix:resp
 Glimmer Seeker	663e0fcead1dff28	5	1/1		0/1	ix:resp
+Glimmerburst	e1cdc4faa2eca006	4	0/0		1/2	ix:resp
 Glimmerlight	b981658c06b621b8	5	2/2		1/1	
 Grasping Longneck	6492594225186ff2	4	1/1		0/1	ix:resp
 Hardened Escort	21b05b149868ac20	9	1/1		0/1	ix:resp
@@ -41,8 +52,11 @@ Living Phone	2010815e5dfd06de	3	1/1		0/1	ix:resp
 Malevolent Chandelier	e0025b6ef6953c76	3	1/1		0/1	ix:resp
 Most Valuable Slayer	9e038097f002eb95	3	1/1		0/1	ix:resp
 Mountain	9e71388353e907ed	6	1/1		0/1	ix:resp
+Norin, Swift Survivalist	a31917a3160b5c56	9	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Overlord of the Boilerbilges	8ef1c2a03d1c7503	7	2/2		2/3	ix:resp
 Overlord of the Floodpits	a875a526978b75c1	4	2/2		2/3	ix:resp
 Overlord of the Mistmoors	ce44c8c5c47e55e0	4	2/2		2/3	ix:resp
+Paranormal Analyst	529a60bc4917151f	5	1/1		0/1	ix:resp
 Patched Plaything	86609f02c8d3e66c	4	0/0		0/0	
 Peer Past the Veil	4dbd3d6503780b1c	4	0/0		1/2	ix:resp
 Piggy Bank	18db8ef80ae56f27	6	1/1		0/1	ix:resp
@@ -56,8 +70,10 @@ Razorkin Hordecaller	d61f74d592c99622	4	1/1		0/1	ix:resp
 Reluctant Role Model	ae09e885cd66331e	7	2/2		0/1	ix:resp
 Rip, Spawn Hunter	47f44a58c2842706	3	1/1		0/1	ix:resp
 Ripchain Razorkin	b6877ab3c7aa8b71	5	1/1		0/1	ix:resp
+Savior of the Small	4d786340739ab83d	4	1/1		0/1	ix:resp
 Saw	871edee900abd90e	3	2/2		0/1	ix:resp
 Scorching Dragonfire	adc834b32cb69f21	4	0/0		1/2	ix:resp
+Shardmage's Rescue	4a2002ba91452373	11	0/0		1/2	ix:resp
 Sheltered by Ghosts	dd4ac65e51635908	4	1/1		1/2	ix:resp
 Shrewd Storyteller	a1f7418d52385b3f	5	1/1		0/1	ix:resp
 Silent Hallcreeper	5d4598b0031afae9	5	1/1		0/1	ix:resp
@@ -69,6 +85,7 @@ Turn Inside Out	733324a44405ebe8	5	0/0		1/2	ix:resp
 Twitching Doll	2004089e922a56c9	12	2/2		1/1	
 Tyvar, the Pummeler	967f63465ddf6d59	3	2/2		1/1	
 Under the Skin	90cdf53c1c4bccce	9	0/0		1/2	ix:resp
+Unnerving Grasp	330b4d11c652cc64	3	0/0		1/2	ix:resp
 Unwanted Remake	cbe8c5fe66a2df20	4	0/0		1/2	ix:resp
 Vanish from Sight	7150390cced0b929	4	0/0		1/2	ix:resp
 Vengeful Possession	1cde54610e118afd	3	0/0		1/2	ix:resp

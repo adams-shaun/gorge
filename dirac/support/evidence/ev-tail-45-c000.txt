@@ -148,6 +148,7 @@ Flame Slash
 Flare of Faith
 Flash Flood
 Fledgling Dragon
+Fly
 Forest
 Forest Bear
 Foundry Assembler

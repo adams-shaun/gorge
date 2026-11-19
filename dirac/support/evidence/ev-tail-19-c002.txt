@@ -9,6 +9,7 @@ Akroma's Vengeance
 Akroma, Angel of Fury
 Alena, Kessig Trapper
 Angel of Glory's Rise
+Arcbound Worker
 Armory Guard
 Attended Knight
 Avoid Fate
@@ -53,6 +54,7 @@ Druid of Horns
 Drumbellower
 Dual Shot
 Dustin, Gadget Genius
+Eel Umbra
 Efreet Flamepainter
 Electrosiphon
 Elemental Augury
@@ -63,6 +65,7 @@ Everbark Shaman
 Evie Frye
 Extract from Darkness
 Extremis Elite
+Eye of Ugin
 Falkenrath Torturer
 Fallaji Archaeologist
 Fated Return
@@ -87,6 +90,7 @@ Goblin Bushwhacker
 Goblin Locksmith
 Goliath, Mass Manipulator
 Gonti, Lord of Luxury
+Grasslands
 Grave Peril
 Graveblade Marauder
 Gravity Sphere
@@ -163,17 +167,21 @@ Quicksilver Amulet
 Rampant Rejuvenator
 Ransom Note
 Razormane Masticore
+Razorverge Thicket
 Renegade Warlord
 Repel the Vile
 Reprieve
+Rhox Charger
 Ring of Immortals
 Riptide Mangler
 River Kaijin
 Rush of Knowledge
 Sacred Knight
+Salt Marsh
 Sanctum Custodian
 School of Piranha
 Scrap Trawler
+Scrapwork Mutt
 Sea Sprite
 Self-Inflicted Wound
 Sell-Sword Brute
@@ -211,10 +219,12 @@ Theater of Horrors
 Theros Charm
 Thornwatch Scarecrow
 Tolarian Entrancer
+Transguild Courier
 Traveling Philosopher
 Treasure Vault
 Trench Gorger
 Trench Wurm
+Trenchpost
 Tromokratis
 Two-Headed Sliver
 Unseal the Necropolis
