@@ -53,6 +53,23 @@ func (lc *lowerCtx) lowerManaReflected(sa *cards.SA, ps *params, ab *lAbility) e
 		lc.out.ExiledWith, lc.out.ExwWord = true, true
 		return lc.finishMana(sa, ps, ab, m)
 	}
+	if rest, ok := strings.CutPrefix(valid, "Defined.ValidGraveyard "); ok {
+		// (The Grey Havens) "Add one mana of any color among legendary
+		// creature cards in your graveyard": gorge plans the graveyard scan
+		// (pay.paymentPlanReflectedDefined's ValidGraveyard; planshape.go),
+		// its walk every alive seat's graveyard in AliveFrom(0) order, the
+		// spec matched with the controller as "you" (effects
+		// reflectedDefinedExtras). The kernel's read is graveReflColours
+		// (mana_reflected.go) over the two-ability reflected shape's views;
+		// a lone one refuses (refuseReflectedMana: the imprint view has no
+		// graveyard arm)
+		f, err := lc.filter(strings.TrimSpace(rest))
+		if err != nil {
+			return err
+		}
+		m := &lMana{Colors: "WUBRG", Choice: true, Amount: cst(1), Special: "Reflected", Graveyard: true, SpecialF: f}
+		return lc.finishMana(sa, ps, ab, m)
+	}
 	if valid == "" || strings.HasPrefix(valid, "Defined.") {
 		return refuse("ManaReflected Valid$ %q", valid)
 	}
@@ -97,6 +114,26 @@ func (lc *lowerCtx) lowerManaReflectedProduce(sa *cards.SA, ps *params, ab *lAbi
 	f, err := lc.filter(valid)
 	if err != nil {
 		return err
+	}
+	amt, err := lc.amount(ps, "Amount", 1)
+	if err != nil {
+		return err
+	}
+	if !amt.isConst() {
+		// (Incubation Druid) "Add one mana of any type that a land you
+		// control could produce. If it has a +1/+1 counter on it, add three
+		// mana of that type instead": Amount$ Count$Compare Y GE1.3.1 over
+		// the counters. gorge's planner defers the amount (pay
+		// PaymentPlanReflectedShape rejects mr.Amount.Present): its census
+		// leaves the source a gap, the fold prices the amount open, and the
+		// prefix search evaluates it at the activation — the kernel's
+		// AfManaDynamic + ManaV over the Combo Any plumbing (dirac
+		// mana_reflamt.go)
+		m := &lMana{Colors: "WUBRG", Choice: true, Amount: amt, Special: "Reflected", Produce: true, SpecialF: f}
+		return lc.finishMana(sa, ps, ab, m)
+	}
+	if amt.N != 1 {
+		return refuse("ManaReflected Amount$ %d", amt.N)
 	}
 	m := &lMana{Colors: "WUBRG", Choice: true, Amount: cst(1), Special: "Reflected", Produce: true, SpecialF: f}
 	return lc.finishMana(sa, ps, ab, m)
@@ -149,6 +186,31 @@ func reflTapMana(a *lAbility) bool {
 	return reflTapCost(&a.Cost) && len(a.Prog) == 0 && a.ActCond.Kind == cNone && a.Limit == 0 && !a.TurnOnce && a.Gate == nil && !a.Sorcery && !a.Loyalty
 }
 
+// reflTapLifeMana: a is the lowered reflected ability whose cost is exactly
+// {T} plus PayLife<N> (Horizon of Progress). gorge's planner prices such an
+// ability last-resort, Consequence{Life: N} (pay.PaymentPlanShapeTierOf's
+// cost.Life arm), which the kernel's lone imprint view carries as pain
+// (dirac mana_pain.go manaLifePain over prepManaImprint's view fields).
+func reflTapLifeMana(a *lAbility) bool {
+	if a.Mana == nil || a.Mana.Special != "Reflected" && a.Mana.Special != "ReflectedImprint" && a.Mana.Special != "ReflectedIdentity" {
+		return false
+	}
+	return reflTapCostLife(&a.Cost) && len(a.Prog) == 0 && a.ActCond.Kind == cNone && a.Limit == 0 && !a.TurnOnce && a.Gate == nil && !a.Sorcery && !a.Loyalty
+}
+
+// reflTapCostLife is reflTapCost with exactly a PayLife<N> (N >= 1) admitted.
+func reflTapCostLife(c *lCost) bool {
+	if c.PayLife <= 0 {
+		return false
+	}
+	m := &c.Mana
+	if !c.Tap || c.SacSelf || c.Sac != nil || c.DiscardN != 0 || c.DiscardSelf || c.Loyalty != 0 || c.SubCtr != 0 ||
+		c.TapN != 0 || c.TapHost || c.SacHost || c.Forage != nil || c.ExileG != nil || c.Energy != 0 || c.ReturnSelf || c.ExileSelf || c.Return != nil {
+		return false
+	}
+	return m.Pips == [5]int{} && len(m.Hybrid) == 0 && !m.X && m.C == 0 && m.Generic == 0
+}
+
 // reflTapCost: c is {T} alone.
 func reflTapCost(c *lCost) bool {
 	m := &c.Mana
@@ -197,9 +259,27 @@ func (lc *lowerCtx) refuseReflectedMana(ms []*lAbility) bool {
 	if len(ms) == 1 {
 		// (Mox Amber) the filter-reflected ability alone, {T} its whole
 		// cost: the kernel models it as the imprint mox's per-colour views
-		// over the filter's colours (dirac mana_imprint.go prepManaImprint)
-		if !reflTapMana(ms[0]) {
+		// over the filter's colours (dirac mana_imprint.go prepManaImprint).
+		// A {T} + PayLife<N> one (Horizon of Progress) lowers too: gorge's
+		// planner prices it last-resort, Consequence{Life: N}
+		// (pay.PaymentPlanShapeTierOf's cost.Life arm), which the kernel's
+		// imprint view carries as pain (dirac mana_pain.go painUnit over
+		// prepManaImprint's view fields)
+		if !reflTapMana(ms[0]) && !reflTapLifeMana(ms[0]) {
 			lc.refuseNode("card", "lone reflected mana ability with a cost beyond {T}")
+		}
+		if reflTapLifeMana(ms[0]) && ms[0].Mana.Amount.Kind != vConst {
+			// a life cost with an Amount$ (no corpus card): the kernel's gap
+			// discriminator (reflAmtManaAb) wants {T} alone, so the card would
+			// take the one-mana imprint view while gorge defers the amount
+			lc.refuseNode("card", "lone reflected Amount$ mana ability with a life cost")
+		}
+		if ms[0].Mana.Graveyard {
+			// the imprint view's colours read the battlefield or the
+			// imprint record only (mana_imprint.go reflColours's arms); a
+			// graveyard scan lowers beside a plain first ability (The Grey
+			// Havens) and alone it has no view
+			lc.refuseNode("card", "lone reflected mana ability reading the graveyard")
 		}
 		return true
 	}
@@ -210,6 +290,14 @@ func (lc *lowerCtx) refuseReflectedMana(ms []*lAbility) bool {
 		switch {
 		case !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) || ms[0].Mana.Colors != "C" || ms[0].Mana.Choice:
 			lc.refuseNode("card", "reflected mana ability beside a first ability other than {T}: Add {C}")
+		case ms[1].Mana.Amount.Kind != vConst:
+			// an Amount$ one (Incubation Druid's shape) beside another mana
+			// ability: its census gap registers position-independently (gen.go
+			// registersGapOther) but the window enabler is the first mana
+			// ability's alone (gen.go j == firstManaAb, mana_reflamt.go), so
+			// the gap would be registered yet never offered — gorge's manual
+			// window lists every untapped source
+			lc.refuseNode("card", "reflected Amount$ mana ability beside another mana ability")
 		case !reflTapMana(ms[1]):
 			lc.refuseNode("card", "reflected mana ability with a cost beyond {T}")
 		}
@@ -223,6 +311,14 @@ func (lc *lowerCtx) refuseReflectedMana(ms []*lAbility) bool {
 	case !plainTapMana(ms[1], false) || ms[1].Mana.Colors != "WUBRG" || ms[1].Mana.Restrict == nil || ms[1].Mana.RestrictAb != nil ||
 		ms[1].Mana.Amount.Kind != vConst || ms[1].Mana.Amount.N != 1:
 		lc.refuseNode("card", "reflected mana ability beside a second ability other than a restricted any colour")
+	case ms[2].Mana.Amount.Kind != vConst:
+		// an Amount$ one (Incubation Druid's shape) beside two mana abilities:
+		// its census gap registers position-independently (gen.go
+		// registersGapOther) but the window enabler is the first mana ability's
+		// alone (gen.go j == firstManaAb, mana_reflamt.go), so the gap would be
+		// registered yet never offered — gorge's manual window lists every
+		// untapped source
+		lc.refuseNode("card", "reflected Amount$ mana ability beside another mana ability")
 	case !reflTapMana(ms[2]):
 		lc.refuseNode("card", "reflected mana ability with a cost beyond {T}")
 	}

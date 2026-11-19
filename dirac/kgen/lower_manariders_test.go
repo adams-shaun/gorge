@@ -22,11 +22,12 @@ var manaRiderCards = []struct {
 	{"Reflecting Pool", ""},
 	{"Star Compass", ""},
 	{"Gond Gate", ""},
-	// ManaReflected still refused
-	{"Horizon of Progress", "lone reflected mana ability with a cost beyond {T}"},
-	{"Incubation Druid", "unread params [Amount]"},
+	// ManaReflected lowered by dirac-manareflected-leftovers; Incubation
+	// Druid's Amount$ is the reflected Amount$ gap class (mana_reflamt.go)
+	{"Horizon of Progress", ""},
+	{"Incubation Druid", ""},
 	{"Cactus Preserve", "AB$ Animate"},
-	{"The Grey Havens", `ManaReflected Valid$ "Defined.ValidGraveyard`},
+	{"The Grey Havens", ""},
 	// AddsNoCounter$ True beside a spell restriction: the restricted batch is
 	// its own kind and the payment stamps the spell (dirac mana_nocounter.go)
 	{"Cavern of Souls", ""},
