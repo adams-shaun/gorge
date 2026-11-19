@@ -5,7 +5,15 @@ import (
 	"unsafe"
 )
 
-// maxStateBytes is the State bar: 24 KiB since 2026-11-03, when the largest pool's
+// maxStateBytes is the State bar: 36 KiB since 2026-11-18, when the operator
+// approved one four-seat build (MaxSeats 4, nine-bit Obj, MaxObj 488 for a
+// four-seat Commander pod) in place of the two-seat build: State grew 21456 ->
+// 29432 B and the largest pool's to 34616 B. 36 KiB was the four-seat class's
+// (dirac_mp) bar since 2026-11-14, when the operator approved room for 16-bit
+// counter kinds; it was 32 KiB since 2026-11-12, when the operator approved
+// 16-bit object codes. It covers State plus a pool's cold arrays, about 34 KB
+// of a 48 KiB L1d at the largest.
+// Before it the two-seat build's bar was 24 KiB since 2026-11-03, when the largest pool's
 // State reached 16352 B. Measured that day with stateCore (the part every fork copies
 // whole) padded by 8192 B, eight interleaved pinned reps, user-mode cycles:
 // TransitionFDN (300k steps) median 7153M base, 7110M padded; hbot Pick (20k)
@@ -20,7 +28,10 @@ import (
 // 9168 B, no trend with size. It was 9 KB since CardID became 16 bits
 // (8.6 KB then), and 8 KB before that. Moving this bar is a deliberate decision, never
 // the side effect of a change.
-const maxStateBytes = 24 * 1024
+const maxStateBytes = 36 * 1024
+
+// stateBar is the State bar the size tests read.
+const stateBar = maxStateBytes
 
 func TestStateSize(t *testing.T) {
 	sz := unsafe.Sizeof(State{})

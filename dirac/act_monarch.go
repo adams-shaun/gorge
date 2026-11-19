@@ -128,7 +128,7 @@ func (s *State) becomeMonarchOp(k *prep, in *kop.Instr) {
 // later in the same check is still in the game when the heir is chosen. At two
 // seats a loss ends the game and the call folds away.
 func (s *State) monarchLeft(k *prep, p uint8) {
-	if MaxSeats > 2 && k.gen != nil && k.gen.anyMonarch && s.g.mon&15 == p+1 {
+	if !s.duel() && k.gen != nil && k.gen.anyMonarch && s.g.mon&15 == p+1 {
 		s.monarchHandoff(k, p)
 	}
 }

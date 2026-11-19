@@ -329,7 +329,7 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 	atk := PlayerCode(s.nextAlive(SeatIx(p)))
 	if s.g.tokDefSet {
 		atk = s.g.tokDef
-	} else if MaxSeats > 2 && in.B.N&kop.TokAttackAsk != 0 {
+	} else if !s.duel() && in.B.N&kop.TokAttackAsk != 0 {
 		if atk = s.enterDefenderFallback(k, p); atk == NoTarget || s.out(CodeSeat(atk)) {
 			return // no defender, or the captured one left the game (gorge EnteringAttackLegal)
 		}
@@ -407,7 +407,7 @@ func (s *State) tokenDefenderAsk(k *prep, in *kop.Instr, p uint8) bool {
 	}
 	var buf [MaxOptions]TCode
 	n := s.enteringDefenderCands(k, p, &buf)
-	if MaxSeats > 2 {
+	if !s.duel() {
 		fb := s.enterDefenderFallback(k, p)
 		if fb == NoTarget {
 			return false

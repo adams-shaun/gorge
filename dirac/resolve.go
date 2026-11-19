@@ -1077,8 +1077,8 @@ func (s *State) oneOpp(k *prep, r kop.Ref) uint8 {
 // obj. Past two seats an attack trigger's defending player is the one bound
 // as it was queued (defSeat), else the seat its attacking source attacks.
 func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj) uint8 {
-	if MaxSeats == 2 {
-		return NextSeat(ctrl)
+	if s.duel() {
+		return s.nextSeat(ctrl)
 	}
 	if r == kop.RefDefendingPlayer && e != nil && e.kind == seTrigger && e.defSeat != 0 {
 		return e.defSeat - 1

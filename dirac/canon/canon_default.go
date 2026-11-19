@@ -1,15 +1,17 @@
 package canon
 
-// Ref is a canonical reference (canon.go): a byte, as dirac.TCode.
-type Ref = uint8
+// Ref is a canonical reference (canon.go): nine bits in a uint16, as
+// dirac.TCode.
+type Ref = uint16
 
-// Canon is a canonical option tuple (canon.go): kind<<24 | source<<16 |
-// target<<8 | mode.
-type Canon uint32
+// Canon is a canonical option tuple (canon.go): kind 8 | source 9 |
+// target 9 | mode 8 bits, kind<<26 | source<<17 | target<<8 | mode, which
+// needs 34 bits.
+type Canon uint64
 
 const (
-	canonKindShift = 24
-	canonSrcShift  = 16
+	canonKindShift = 26
+	canonSrcShift  = 17
 	canonTgtShift  = 8
-	canonRefMask   = 0xff
+	canonRefMask   = 0x1ff
 )

@@ -22,7 +22,7 @@ import (
 // spellings per family:
 //
 //   - opp1minus: a subtraction whose left side is the literal 1 or ends in
-//     "+ 1" (1 - p, 1-ctrl, PlayerTarget0+1-p). Use NextSeat(p) where it
+//     "+ 1" (1 - p, 1-ctrl, PlayerTarget0+1-p). Use s.nextSeat(p) where it
 //     means the next seat in turn order and IsOpponent(p, q) for a test; a
 //     lone "the opponent" has no helper yet (at more than two seats it is a
 //     choice or a loop), so leave it raw rather than invent one.
@@ -107,8 +107,8 @@ func TestSeatArithmeticOnlyShrinks(t *testing.T) {
 func seatFam(k string) string { f, _, _ := strings.Cut(k, "\t"); return f }
 
 var seatHelperFor = map[string]string{
-	"opp1minus": "NextSeat(p) for turn order or IsOpponent(p, q) for a test (a lone \"the opponent\" has no helper yet: it needs N-seat design, so leave it raw rather than invent one)",
-	"xor1":      "NextSeat(p) or IsOpponent(p, q), as opp1minus",
+	"opp1minus": "s.nextSeat(p) for turn order or IsOpponent(p, q) for a test (a lone \"the opponent\" has no helper yet: it needs N-seat design, so leave it raw rather than invent one)",
+	"xor1":      "s.nextSeat(p) or IsOpponent(p, q), as opp1minus",
 	"and1":      "SeatIx(p)",
 	"seatloop2": "a MaxSeats bound (p < MaxSeats, range MaxSeats)",
 	"ptarget":   "PlayerCode(p) to encode, CodeSeat(c) to decode, isPlayerTarget(c) to test",
@@ -299,7 +299,7 @@ func scanSeatArithmetic(t *testing.T) (map[string]int, map[string][]string) {
 					}
 				}
 			case *ast.Ident:
-				if (x.Name == "PlayerTarget0" || x.Name == "PlayerTarget1") && n != "types.go" && n != "seats_default.go" {
+				if (x.Name == "PlayerTarget0" || x.Name == "PlayerTarget1") && n != "types.go" && n != "seats.go" {
 					add("ptarget", x.Pos())
 				}
 			}

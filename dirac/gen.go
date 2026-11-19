@@ -2100,7 +2100,7 @@ type genState struct {
 
 	lki [maxLKI]lkiRec // the shared LKI pool (zone_lki.go)
 	// lkiPad: the 192-bit SubMask grew each LKI record by 8 bytes (31 x 8 = 248); these 8 carry
-	// that growth to 256, a multiple of 64, so perms keeps its cache-line phase.
+	// that growth to 256, a multiple of 64, so perms keeps its cache-line phase in both size classes.
 	lkiPad [8]uint8
 
 	used  [maxUsed]usedRec // once-per-turn triggers / statics used this turn
@@ -2290,7 +2290,7 @@ type genState struct {
 	linkAeg  uint16 // bit i: links[i] is an attachment whose copy of its exiled card is live (Assimilation Aegis; zone_exilethenattach.go; padding)
 	linkHand uint16 // bit i: links[i] returns its card to its owner's hand, not the battlefield (a hand exile until the source leaves; act_mayask.go)
 	// linkPad keeps perms' cache-line phase after links grew from 8 to 16
-	// (linkPadN, seats_default.go)
+	// (linkPadN, seats.go)
 	linkPad [linkPadN]uint8
 
 	// retHeld lists, in departure order, the sources that left in the open
@@ -2417,9 +2417,9 @@ type genState struct {
 	linkImp uint8
 	embF    [MaxSeats]uint8 // bit i: player p's emblem i (UntilEndOfNextTurn) has begun a turn since creation (static_emblemdurations.go)
 	embR    [MaxSeats][maxEmb]Obj
-	nseat   uint8                             // seats in this game, set by InitN; read only when MaxSeats > 2 (nSeats)
+	nseat   uint8                             // seats in this game, set by InitN; read by nSeats and duel
 	poolTre [MaxSeats][kop.NumManaKinds]uint8 // per player and colour, the floating units a Treasure produced (mana_artifact.go artTag/treSync)
-	blkDef  uint8                             // the defending player declaring blockers; read only when MaxSeats > 2 (blockDef)
+	blkDef  uint8                             // the defending player declaring blockers; read only in a pod (blockDef)
 	ul      [maxUntapLock]untapLock           // source-bound untap locks (act_untaplock.go)
 	nul     uint8
 	dmk     [dmkBytes]uint8 // per-player damage-doubling marks, a bit per (controller, player) (repl_dmgmark.go)
@@ -2466,10 +2466,11 @@ type genState struct {
 }
 
 const (
+	rsvExtra   = 4
 	maxImp     = 16
-	prevColN   = 3        // genState.prevCol records
-	prevXBytes = prevColN // genState.prevX, taken from rsv
-	turnFBytes = 1        // genState.turnF, taken from rsv
+	prevColN   = 3                             // genState.prevCol records
+	prevXBytes = prevColN                      // genState.prevX, taken from rsv
+	turnFBytes = int(unsafe.Sizeof(turnFT(0))) // genState.turnF, taken from rsv
 	// usedHostBytes: usedRec.host across the pool, taken from rsv
 	usedHostBytes = maxUsed * int(unsafe.Sizeof(Obj(0)))
 	dmgAmtN       = 4 // genState.dmgAmt: reader-card records (value_dmgamount.go)
@@ -2481,7 +2482,11 @@ const (
 	// in the class. The redirect records (redirBytes) grow the block by a
 	// whole cache line (64) in every seat class, so the phase holds: rsvN is
 	// what is left of that line after them.
-	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) + 64 - redirBytes - prevXBytes - usedHostBytes
+	//
+	// rsvExtra grows the block by the four bytes four seats' object-wide
+	// fields (sixteen-bit usedRec.host, turnF, the four-seat mana and emblem
+	// rows) need past that line.
+	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) + 64 + rsvExtra - redirBytes - prevXBytes - usedHostBytes
 )
 
 // dmgAmtRec is one genState.dmgAmt record: the reader card's object+1 (0

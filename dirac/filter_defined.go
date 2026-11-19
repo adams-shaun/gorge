@@ -202,8 +202,8 @@ func (s *State) playerPred(k *prep, in *kop.Instr, p uint8) bool {
 // each other player still in the game (gorge playerHasMost: no player has
 // more).
 func (s *State) mostCreatures(k *prep, p uint8) bool {
-	if MaxSeats == 2 {
-		return s.creaturesCtrl(k, p) >= s.creaturesCtrl(k, NextSeat(p))
+	if s.duel() {
+		return s.creaturesCtrl(k, p) >= s.creaturesCtrl(k, s.nextSeat(p))
 	}
 	n := s.creaturesCtrl(k, p)
 	for q := uint8(0); q < s.nSeats(); q++ {
@@ -253,7 +253,7 @@ func (s *State) playerSetMask(k *prep, in *kop.Instr) uint8 {
 	if s.playerPred(k, in, s.active) {
 		m |= 1
 	}
-	if s.playerPred(k, in, NextSeat(s.active)) {
+	if s.playerPred(k, in, s.nextSeat(s.active)) {
 		m |= 2
 	}
 	return m

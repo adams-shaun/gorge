@@ -160,7 +160,7 @@ func (s *State) uniqueFeasible(c TCode, cur []TCode, rest int, later *[kop.MaxTa
 		}
 	}
 	for u := 0; u < m.nu; u++ {
-		m.seen = [256]bool{}
+		m.seen = [NoTarget + 1]bool{}
 		if !m.try(u) {
 			return false
 		}
@@ -178,8 +178,8 @@ type uniqMatch struct {
 	ln    *[kop.MaxTargets]int
 	unit  [maxUniqUnits]int8 // the slot a unit fills: -1 the current one, else a later index
 	nu    int
-	owner [256]int8 // target code -> unit + 1
-	seen  [256]bool
+	owner [NoTarget + 1]int8 // target code -> unit + 1
+	seen  [NoTarget + 1]bool
 }
 
 func (m *uniqMatch) cands(u int) []TCode {

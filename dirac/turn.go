@@ -245,7 +245,7 @@ func (s *State) beginStep(k *prep) {
 	case kop.StepBlockers:
 		s.lastPick = NoSlot
 		s.blockSeq = 0
-		if MaxSeats > 2 {
+		if !s.duel() {
 			s.blockRound(k, s.active)
 		} else if s.anyBlock(k) {
 			s.blkArm().poseMask = s.blockingMask() // armBlockers: the pose's declared set
@@ -745,7 +745,7 @@ func (s *State) sba(k *prep) bool {
 			// gorge poses the legend ask before the pass's other actions
 			// apply, a token outside the battlefield still there (pair 3630)
 			if s.legendRule(k) {
-				if MaxSeats > 2 {
+				if !s.duel() {
 					s.sweepDeparted(k) // gorge sweeps before it parks (rules/sba.go)
 				}
 				s.legSaga = s.sagasDue(k) // parked with the ask (applyLegend)
@@ -775,7 +775,7 @@ func (s *State) sba(k *prep) bool {
 			}
 			// CR 800.4a: the departed seats' objects left, at the pass end
 			// (gorge sweepDepartedPlayers runs after every pass's batch)
-			if MaxSeats > 2 && s.sweepDeparted(k) {
+			if !s.duel() && s.sweepDeparted(k) {
 				continue
 			}
 			return s.sbaClean(k)
@@ -784,7 +784,7 @@ func (s *State) sba(k *prep) bool {
 		// apply (parkLegendChoice): park the creature casualties, which
 		// the answer applies ahead of the non-kept legends
 		if s.legendRule(k) {
-			if MaxSeats > 2 {
+			if !s.duel() {
 				s.sweepDeparted(k) // gorge sweeps before it parks (rules/sba.go)
 			}
 			s.legDie = die
@@ -842,7 +842,7 @@ func (s *State) sba(k *prep) bool {
 		}
 		// CR 800.4a: the departed seats' objects left, after this pass's
 		// casualties applied (gorge sweepDepartedPlayers, rules/sba.go)
-		if MaxSeats > 2 && s.sweepDeparted(k) {
+		if !s.duel() && s.sweepDeparted(k) {
 			continue
 		}
 		if askAfter && s.parkedWaiting() {

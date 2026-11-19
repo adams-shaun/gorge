@@ -291,8 +291,8 @@ func prepPoison(t *kop.Table, g *genPrep) {
 // attack is against (the controller of a blocker of that attack, CR 509.1a).
 func (s *State) combatFoe(k *prep, sl Slot) uint8 {
 	c := s.perms[sl].ctrl
-	if MaxSeats == 2 {
-		return NextSeat(c)
+	if s.duel() {
+		return s.nextSeat(c)
 	}
 	if c != s.active {
 		return s.active

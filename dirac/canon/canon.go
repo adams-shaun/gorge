@@ -12,18 +12,19 @@ import (
 // Ref is a canonical reference, the source/target byte of a Canon and the
 // reference fields of a Projection: 0..MaxInst-1 a card instance (doc.go,
 // "Card identity"), RefStack+i the i-th stack object from the bottom (an
-// ability, which is no card), RefPlayer+p seat p, RefNone nothing. Ref is a
-// byte (canon_default.go), as dirac.TCode.
+// ability, which is no card), RefPlayer+p seat p, RefNone nothing. Ref is
+// set in canon_default.go: nine bits in a uint16, as dirac.TCode.
 
 const (
-	RefStack  Ref = Ref(dirac.StackTarget0)  // one definition (dirac seats_default.go)
+	RefStack  Ref = Ref(dirac.StackTarget0)  // dirac seats.go
 	RefPlayer Ref = Ref(dirac.PlayerTarget0) // seat p is RefPlayer+p
 	RefNone   Ref = Ref(dirac.NoTarget)
 )
 
 // Canon is a canonical option tuple (doc.go's grammar), packed
-// kind<<24 | source<<16 | target<<8 | mode (canonKindShift and the rest,
-// canon_default.go). Source and target are Refs.
+// kind | source | target | mode, laid out per size class (canonKindShift and
+// the rest, canon_*.go; kind<<24 | source<<16 | target<<8 | mode in the
+// default class). Source and target are Refs.
 
 // CanonKind is a Canon's top byte.
 type CanonKind uint8
