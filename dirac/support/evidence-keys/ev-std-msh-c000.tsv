@@ -1,0 +1,168 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A.I.M. Labs	bd6b1c622ea5d378	8	2/2		0/1	ix:resp
+A.I.M. Synthoids	935d46611948c059	8	1/1		0/1	ix:resp
+Aerial Doombot	725ca59d638309dc	21	1/1		0/1	ix:resp
+Agent 13, Sharon Carter	7fe24c1d9d8d72b7	15	1/1		0/1	ix:resp
+Agent Phil Coulson	9f6b83e19c7fb109	6	1/1		0/1	ix:resp
+Agent of Atlas	999ce2cf6a4224fa	7	1/1		0/1	ix:resp
+Agents of S.H.I.E.L.D.	188289ee3f719d28	6	1/1		0/1	ix:resp
+Ant-Man's Army	f86bb57c5ba62d83	6	1/1		0/1	ix:resp
+Arc Reactor	8ce518b0850fa7ab	8	1/1		1/1	
+Arnim Zola, Bio-Fanatic	98c98eb477c79ad8	6	1/1		0/1	ix:resp
+Asgardian Citadel	f3cdadd49f0f2423	10	2/2		0/1	ix:resp
+Atlantean Cavalry	500ac24342900ac5	18	1/1		1/1	
+Atlantis Attacks	96ad2f47a3b9431d	6	0/0		2/2	
+Attuma, Atlantean Warlord	329fae0d11bd5d79	10	1/1		0/1	ix:resp
+Avengers Assemble!	fc1c84944ad34d1f	6	1/1		1/1	
+Avengers Disassembled	eb5200a50152e2bb	8	0/0		2/2	
+Avengers Hangar	a56565d2dd8e2133	4	2/2		0/1	ix:resp
+Avengers Tower	87a91f04f114f919	24	3/3		1/1	
+Birnin Zana Plaza	4a7662ac0f30d544	4	2/2		0/1	ix:resp
+Black Widow, Double Agent	2c8036a3de74aa29	5	1/1		0/1	ix:resp
+Black Widow, Super Spy	9d2d62151b4fdd2f	9	1/1		0/1	ix:resp
+Blazing Crescendo	aa5b725c4f45438a	16	0/0		2/2	
+Bold Biochemist	2b378378e4f57be6	3	1/1		0/1	ix:resp
+Brave Brawler	f7c78fb98529544a	6	1/1		0/1	ix:resp
+Captain America's Shield	64472bbdf184e5fe	8	2/2		0/1	ix:resp
+Captain America, Super-Soldier	7c206eef969efb7b	4	0/0		0/0	
+Captain America, Wings of Freedom	e555e26a2f35f1f3	10	2/2		1/1	
+Captain Mar-Vell, Space-Born	c16bad13994f8f62	12	0/0		0/0	
+Captain Marvel, Earth's Protector	aa2a81dd1c6d92c4	10	1/1		0/1	ix:resp
+Castle Doom	4a08ca1462e51639	23	3/3		0/1	ix:resp
+Colleen Wing, Street Samurai	aa2f67799f37e8b0	10	1/1		1/1	
+Crimson Operative	617f672d653d409a	4	2/2		0/1	ix:resp
+Crossbones, Malicious Mercenary	006d08d5b41bc2aa	5	1/1		0/1	ix:resp
+Crowd of True Believers	6518a3ff1d893b7a	10	1/1		0/1	ix:resp
+Daredevil, Man Without Fear	0238de634d55d7e0	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Dark Deed	75f6dc8ae7b945c9	4	0/0		1/2	ix:resp
+Death to Our Enemies	1ef7cf5653548498	4	2/2		1/1	
+Dependable Quinjet	c8b959902c49c8b2	6	2/2		0/1	ix:resp
+Depower	7a40a74edb829cd9	4	0/0		1/2	ix:resp
+Echo, Perceptive Prodigy	6f1f70662e0ab077	4	1/1		0/1	ix:resp
+Elektra, Daughter of the Hand	2a86bb6e5596fedc	4	1/1		1/3	cast/alt:sneaked,ix:resp
+Epic Fight	790327ce1f04116f	4	0/0		1/2	ix:resp
+Falcon's Wing Harness	b96bca137dcee5bf	7	2/2		0/1	ix:resp
+Falcon, Winged Wonder	8b024e620d4ef8f1	4	1/1		1/1	
+Fisk Tower	b4665e5fa077f1fb	10	2/2		0/1	ix:resp
+Forest	6d0466c30f825dba	38	1/1		0/1	ix:resp
+Frozen in Ice	5f95104dec3fcfd3	10	1/1		2/2	
+Futurist Forge	9fbdbb6ee363876b	7	2/2		1/1	
+Gathering Place	a2909c17f197003e	13	2/2		0/1	ix:resp
+Giant Growth	010ba87094de43e0	5	0/0		1/2	ix:resp
+Giant-Sized Flying Ant	12a5ffe69bef24b9	19	1/1		1/1	
+Gleaming Bastion	fd6432ed6e88c764	6	2/2		0/1	ix:resp
+Go Nuts!	a4d2d726ef691a57	4	0/0		1/2	ix:resp
+Grim Reaper, Lethal Legionnaire	543358fd526996de	9	1/1		0/1	ix:resp
+Guerrilla Gorilla	9b5be77ab9c5b28f	4	1/1		0/1	ix:resp
+H.E.R.B.I.E. Scout Unit	cd3e33349f3161e4	8	1/1		0/1	ix:resp
+HYDRA Assault Robot	3656e547dd1b5fc0	11	1/1		1/1	
+HYDRA Infiltration	9e6b40b2e3b2faef	4	2/2		0/1	ix:resp
+HYDRA Troopers	d96848caa1fb0106	8	1/1		0/1	ix:resp
+Hawkeye's Bow	01ae9ef6df7a5924	4	2/2		1/1	
+Hawkeye, Master Marksman	892bc8ddac5ea81e	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Hawkeye, Young Avenger	7a5f9b57caa3f54b	4	0/0		0/0	
+Helicarrier Strike	16cab388a9dbea17	3	0/0		1/2	ix:resp
+Hell's Kitchen	f24223bd168a8752	8	2/2		0/1	ix:resp
+Hercules, Prince of Power	cd29d2bcf58ea761	10	1/1		0/1	ix:resp
+Hero in Training	d51b23a298c11030	10	1/1		0/1	ix:resp
+Heroic Feast	654c31a6ef18719d	4	2/2		0/1	ix:resp
+Hex Magic	9a038d124e9e1063	16	0/0		2/2	
+Hidden Lair	c745ac773af5c627	15	2/2		0/1	ix:resp
+Hire a Crew	ce02941cce71d2d7	10	0/0		2/2	
+Hour of Defeat	70d71b0c63040d10	4	0/0		1/2	ix:resp
+Hulkling, Burgeoning Bruiser	147850bcfcb69338	4	1/1		0/1	ix:resp
+Human Torch, Johnny Storm	8e57e1fac02d9930	8	2/2		0/1	ix:resp
+Hydraulic Helper	c4d469d158064975	4	1/1		0/1	ix:resp
+I Am Iron Man	e9d170124f5ffb33	5	0/0		1/2	ix:resp
+Invisible Woman, Sue Storm	6632bef327782a5d	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Iron Lad, Diverging Destiny	cd58ebc1db3d318c	5	1/1		0/1	ix:resp
+Ironheart, Clever Champion	4adde05d32c67452	33	0/0		0/0	
+Island	763c67ef7a27eaf5	114	1/1		0/1	ix:resp
+Jennifer Walters	df9f2bba3aae722e	7	2/2		1/3	f1/t0/opt:n,f1/t0/opt:y
+Jessica Jones, Private Eye	4fd959eb771dc6c5	9	1/1		0/1	ix:resp
+Justice, Vance Astrovik	7e76eb8fd2babcb2	4	2/2		0/1	ix:resp
+K'un-Lun Warrior	75faa9b6e81e7ba5	6	1/1		0/1	ix:resp
+Ka-Zar of the Savage Land	aa5144db4e301c64	3	1/1		0/1	ix:resp
+King T'Challa	47ecd3bb1679fd7a	8	3/3		1/1	
+Kingpin's Enforcers	e7d696fbb7e634cf	6	1/1		0/1	ix:resp
+Kree Commandos	62f98a5d525dc929	6	1/1		0/1	ix:resp
+Lightning Strike	5d01b955495e0a84	14	0/0		2/2	
+Loki Laufeyson	34024f92d68437b4	4	2/2		0/1	ix:resp
+Loki, God of Mischief	fda0dcbc497edcb8	10	1/1		0/1	ix:resp
+Los Diablos Missile Base	386a1a50c86ccc5a	12	2/2		0/1	ix:resp
+Machinesmith Automaton	529d771be2a74f52	3	1/1		0/1	ix:resp
+Madame Masque	4657682ee9dde30e	4	2/2		1/1	
+Mister Fantastic, Reed Richards	73e02f7ff127dba1	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Misty Knight, Hero for Hire	ddcf5114fcf23f6f	12	1/1		0/1	ix:resp
+Mockingbird, Ace Agent	85518d60bedd8e78	10	1/1		0/1	ix:resp
+Mole Man, Moloid Master	9dd9f03c582c8198	3	1/1		0/1	ix:resp
+Monica Rambeau	83ace88c922945a7	10	4/4		0/1	ix:resp
+Mountain	9e71388353e907ed	76	1/1		0/1	ix:resp
+Multiversal Incursion	8a8ab2484add5c81	4	0/0		2/2	
+Murdock's Crusade	b2f389bba0d11ad9	11	0/0		2/2	
+Namor the Sub-Mariner	2c7918ccb0db9013	9	1/1		1/1	
+Night Nurse, Healer of Heroes	1289baad193e9817	5	1/1		0/1	ix:resp
+Ninja of the Hand	1aab80f0a3a87d8b	4	1/1		0/1	ix:resp
+Origin of the Avengers	ee1a362b2a9708db	4	0/0		0/0	
+Panther Pounce	631b2e3fff4dcf31	6	0/0		1/2	ix:resp
+Patriot, Shield Wielder	94d731c246217519	6	1/1		0/1	ix:resp
+Photon Blast Barrage	d0c3679b7edbb729	4	1/1		4/4	
+Plains	82d63a695487e567	115	1/1		0/1	ix:resp
+Punishing Punch	7cbc6812905db3c0	4	0/0		1/2	ix:resp
+Pym Particles	42d47ae9acc64572	4	0/0		1/2	ix:resp
+Pym Technologies	dc405b4f8f101c6d	14	2/2		0/1	ix:resp
+Quake, Agent of S.H.I.E.L.D.	9ce766ed98e4d0c4	5	1/1		0/1	ix:resp
+Quicksilver, Brash Blur	6a7dd6e11b0a78fb	4	1/1		0/1	ix:resp
+Rapid Rescue	ccf28815fffca40e	4	0/0		1/2	ix:resp
+Red Guardian, Super-Soldier	d7d059688ee8f2ce	19	1/1		0/1	ix:resp
+Red Hulk	509e712933a00c45	5	1/1		0/1	ix:resp
+Red Room Recruit	459662026d3a4f22	6	1/1		0/1	ix:resp
+Repulsor Blast	bb0deb9225b4aaa1	5	0/0		2/2	
+Rewrite History	786d03d87184ca0b	9	2/2		1/1	
+S.H.I.E.L.D. Deployment Drone	54fcaf094f2fe7ba	18	1/1		1/1	
+S.H.I.E.L.D. Flying Car	2780f79a68832560	6	2/2		1/1	
+S.H.I.E.L.D. Helicarrier	d79e3bc3ef7b2b3c	4	2/2		1/1	
+S.H.I.E.L.D. Spy Kit	96b68a48d9981d4c	6	2/2		1/1	
+Speed, Young Avenger	2f18a2520ea937fc	4	1/1		1/1	
+Spider-Man, To the Rescue	f4c9ce70c977bb22	4	1/1		0/1	ix:resp
+Spider-Woman, Secret Agent	c4aedcf261c5e37d	7	1/1		0/1	ix:resp
+Stark Industries	edc63331192658ea	11	2/2		0/1	ix:resp
+Stark Industries Executive	dad4752af210775e	6	1/1		1/1	
+Stolen Stark Tech	632e011f28e1e02e	4	2/2		0/1	ix:resp
+Subterranean Cavern	6d63f8fdcbdc9db6	13	2/2		0/1	ix:resp
+Super Intelligence	25b3910ea69ffa02	7	1/1		2/2	
+Super Speed	ea74a86f4e7e1271	6	1/1		1/2	ix:resp
+Super Strength	2969255c06ed0f85	4	0/0		1/2	ix:resp
+Super Suit	2dbd949e8d385ff4	13	2/2		1/1	
+Super Villain Lockup	b2e891b1a5e54b8d	8	1/1		1/1	
+Super-Adaptoid	2ca3837835bc5fbc	3	2/2		1/1	
+Surveillance Room	c02ab9aea2c17149	10	3/3		0/1	ix:resp
+Swamp	342b413902f441c3	44	1/1		0/1	ix:resp
+Take Up the Shield	d1ebe074e6bd29a8	8	0/0		1/2	ix:resp
+Team Tactics	5d934a4931fa6909	10	0/0		2/2	
+The Scarlet Witch	c64458def4a609bf	4	0/0		0/0	
+The Sentry, Golden Guardian	00772eddea2d3f5c	3	1/1		0/1	ix:resp
+The Thing, Ben Grimm	54b8a89aca20b828	3	1/1		0/1	ix:resp
+The Vision	e9fd5487a4ecda43	4	1/1		0/1	ix:resp
+The Wondrous Wasp	b1da6671b7e05c4f	18	1/1		1/1	
+Thirst for Knowledge	2a2aa53a1cc00ffb	10	0/0		2/2	
+Thor, God of Thunder	b1917dfcb8469905	3	2/2		0/1	ix:resp
+Thunderbolts Conspiracy	4b1fc0c93232cb5c	4	1/1		0/1	ix:resp
+Too Evil to Stay Dead	55d041c3e0a74b53	4	0/0		1/2	ix:resp
+Training Compound	74fded2627af8042	7	2/2		0/1	ix:resp
+Trickster's Stratagem	380061d2d14db661	4	0/0		2/2	
+Truck Toss	08657763f72b3337	5	0/0		2/2	
+Ultron Drone	77e4a82787bc4678	4	1/1		0/1	ix:resp
+Unliving Legionnaire	08a9463ff08b516a	11	1/1		0/1	ix:resp
+Vibranium Energy Daggers	12c3bf66a0b7ccfe	4	1/1		0/1	ix:resp
+Vision of Love	2c6711d97dd17377	11	0/0		2/2	
+Viv Vision, Teen Synthezoid	4a675a1180103db7	15	2/2		0/1	ix:resp
+Volcanic Villain	70dccfa1e94feee9	4	1/1		0/1	ix:resp
+Wakandan Drone Flock	10db7aed2b2c8991	5	1/1		0/1	ix:resp
+War Machine, Legacy of Iron	35bc9564b080f397	3	1/1		0/1	ix:resp
+We Say Thee Nay!	58bfb77dc0da8dc8	4	0/0		1/2	ix:resp
+Web Up	53d77aab0178ec33	3	1/1		1/1	
+White Widow, Free Agent	eca0aa38d4b86f4b	4	1/1		0/1	ix:resp
+Widow's Bite	cb88f898e14866b6	3	0/0		1/2	ix:resp
+Winter Soldier, Icy Assassin	f18ad5482e3639b1	7	1/1		0/1	ix:resp
+Yellowjacket, Heartless Marauder	72fa4a973b7e73a7	8	1/1		0/1	ix:resp

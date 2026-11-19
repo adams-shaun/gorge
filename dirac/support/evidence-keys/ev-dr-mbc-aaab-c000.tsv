@@ -1,0 +1,54 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Abrade	c3ab9a67695d8dbb	18	0/0		2/2	
+Acidic Slime	7e790b3c2be57b1e	3	1/1		0/1	ix:resp
+Aggressive Urge	1ddf15f9d43939e4	10	0/0		1/2	ix:resp
+Avatar of Growth	e59650bd50c6ffd3	4	1/1		0/1	ix:resp
+Banisher Priest	bb69c68e7f40e247	5	1/1		0/1	ix:resp
+Bassara Tower Archer	3a8f578dc1154ec4	7	0/0		0/0	
+Benevolent Ancestor	7ed85cd621a9c74b	6	1/1		0/1	ix:resp
+Benevolent Blessing	6a1a3afe3a12df03	3	0/0		1/2	ix:resp
+Blood Curdle	9b8bfae51740eb62	9	0/0		2/2	
+Broken Wings	eae39ac5e149163b	4	0/0		2/2	
+Campfire	d674630374ad1699	12	2/2		0/1	ix:resp
+Cephalid Illusionist	2dae8cf10f762032	27	2/2		1/1	
+Claws of Gix	af3e400c17dbf4d7	10	1/1		1/1	
+Colossal Dreadmaw	d7df553a84c0f2be	3	0/0		0/0	
+Consul's Lieutenant	36b80b1f22a0160a	4	2/2		0/1	ix:resp
+Elspeth's Smite	404ed57a605dc9f4	4	0/0		1/2	ix:resp
+Filth	40fb7b3d9c03de08	16	0/0		0/0	
+Fireball	38e57e53e1b89980	8	0/0		3/4	f0/s/x0
+Forest	6d0466c30f825dba	55	1/1		0/1	ix:resp
+Ghost Lantern	49d55e82fc5ae4e4	12	2/2		1/2	ix:resp
+Heart Warden	226472cab9cb7403	13	2/2		0/1	ix:resp
+Hoodwink	80140563819d9fef	6	0/0		1/2	ix:resp
+Inner Demon	daee124ca357b776	10	1/1		2/2	
+Island	763c67ef7a27eaf5	40	1/1		0/1	ix:resp
+Kavu Primarch	be6e53cf9601bc31	4	0/0		1/2	cast/alt:kicked
+Kyren Negotiations	680d71a643aeafdd	8	1/1		1/1	
+Lightning Bolt	c7296d7fd250d1ad	26	0/0		2/2	
+Mentor of the Meek	c10286fc41b98ef3	10	1/1		1/1	
+Mind Stone	2742f5d9d34776f2	7	2/2		0/1	ix:resp
+Mirri's Guile	f64b6988fde4ac80	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Mortuary	acbabc2b90435a56	13	1/1		1/1	
+Mountain	9e71388353e907ed	81	1/1		0/1	ix:resp
+Nature's Claim	48bf5768f92fa86f	8	0/0		1/2	ix:resp
+Oakhame Adversary	d6186de28511996b	7	1/1		0/1	ix:resp
+Order of Yawgmoth	b0c1addfe8a7586f	11	1/1		0/1	ix:resp
+Pir, Imaginative Rascal	683c7203f2c30d32	6	1/1		0/1	ix:resp
+Pit Keeper	73f5a1db523ed703	15	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Plains	82d63a695487e567	42	1/1		0/1	ix:resp
+Pressure Point	a410cc7b95af74cb	5	0/0		1/2	ix:resp
+Prison Term	18d73d1049a27b00	4	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Secret Rendezvous	98dfd55a67c6407a	4	0/0		1/2	ix:resp
+Supreme Will	cc84ba4df15f11a2	23	0/0		2/2	
+Swamp	342b413902f441c3	247	1/1		0/1	ix:resp
+Tainted Strike	18d4af8099c42a09	11	0/0		2/2	
+Temporal Fissure	0b2431c85dd59a07	8	1/1		2/2	
+Thunderwave	39013f2d6d531430	19	0/0		1/2	ix:resp
+Toby, Beastie Befriender	93c52fb20767606d	4	1/1		0/1	ix:resp
+Trollbred Guardian	35e4b0e58c89e9b8	5	1/1		0/1	ix:resp
+Twisted Image	5d04a4eac85d91e0	14	0/0		2/2	
+Two-Handed Axe	936208c1888a15ba	32	2/2		2/2	
+Vanish into Eternity	5554d11c25568b37	3	0/0		2/2	
+Veteran Armorer	0d842a17c7357ec9	3	0/0		0/0	
+Whip Silk	2e28bb3166ddfa66	8	1/1		2/2	

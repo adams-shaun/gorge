@@ -7,6 +7,7 @@ Alpha Kavu
 Angelic Chorus
 Angrath's Rampage
 Animate Land
+Armored Galleon
 Aspiring Aeronaut
 Assault
 Aveline de Grandpré
@@ -69,7 +70,10 @@ Dragon's Presence
 Draining Whelk
 Drake Haven
 Drake-Skull Cameo
+Dueling Rapier
 Dusk Imp
+Dwarven Miner
+Earth-Cult Elemental
 Eliminate
 Elven Riders
 Emancipation Angel
@@ -152,6 +156,7 @@ Kragma Butcher
 Krark-Clan Shaman
 Kura, the Boundless Sky
 Lantern of the Lost
+Lathnu Sailback
 Leering Emblem
 Lifelink
 Liliana's Reaver
@@ -163,6 +168,7 @@ Lorehold Pledgemage
 Lurking Crocodile
 Lys Alana Scarblade
 Mage Slayer
+Magus of the Mind
 Malevolent Rumble
 Managorger Hydra
 Markov Purifier
@@ -175,6 +181,7 @@ Merfolk Mesmerist
 Michelangelo, the Heart
 Midnight Charm
 Militant Monk
+Miming Slime
 Mirran Crusader
 Mirri, Cat Warrior
 Molting Skin
@@ -202,6 +209,7 @@ Polluted Dead
 Primeval Herald
 Profit
 Pseudodragon Familiar
+Quillmane Baku
 Ragavan, Nimble Pilferer
 Ral, Storm Conduit
 Ravenous Lindwurm
@@ -239,6 +247,7 @@ Sigil of Distinction
 Silvanus's Invoker
 Silverflame Ritual
 Singer of Swift Rivers
+Sire of the Storm
 Siren Song Lyre
 Skirsdag Flayer
 Skyboon Evangelist
@@ -270,6 +279,7 @@ Tunneling Geopede
 Two-Headed Dragon
 Ulcerate
 Ulvenwald Oddity
+Unchained Berserker
 Unruly Mob
 Urza's Command
 Vance's Blasting Cannons
@@ -279,10 +289,12 @@ Vedalken Infuser
 Veinwitch Coven
 Vexing Devil
 Virulent Swipe
+Vodalian Wave-Knight
 Wall of Tears
 Warchanter Skald
 Waterlogged Teachings
 Windbrisk Heights
+Wormfang Behemoth
 You Come to a River
 Yuki-Onna
 Zodiac Rat

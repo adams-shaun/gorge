@@ -1,41 +1,72 @@
 A-Pseudodragon Familiar
 A-The One Ring
+Air Nomad Student
 Alaborn Veteran
+Amalia Benavides Aguirre
+Archdemon of Unx
+Auriok Glaivemaster
 Benalish Heralds
 Capashen Standard
+Cenote Scout
 Collector's Case
+Consulate Crackdown
+Dauntless Dourbark
 Daybreak Chimera
 Deflection
+Defossilize
 Depth Charge Colossus
 Dimir Guildmage
+Distemper of the Blood
 Doomsday
 Dredge
 Drinker of Sorrow
 Durkwood Boars
 Elite Skirmisher
+Estwald Shieldbasher
 Exalted Flamer of Tzeentch
+Executioner's Swing
 Expel from Orazca
 Flamespeaker's Will
+Flanking Troops
 Forest
+Fungus Sliver
+Glint-Sleeve Artisan
+Glowcap Lantern
+Gluttonous Troll
 Grapeshot
 Griffin Dreamfinder
 Grixis Panorama
+Growth Spurt
 Gruesome Realization
 Hedgewitch's Mask
 Hero of Bladehold
 Heroic Teamwork
+Hungry for More
+Ignoble Hierarch
 Imperial Subduer
 Infectious Horror
+Inferno Elemental
 Island
+Izoni, Thousand-Eyed
 Jace's Ingenuity
 Jackdaw
 Jade Avenger
+Jadelight Spelunker
 Key to the City
 Khalni Garden
+Kinjalli's Dawnrunner
 Konda, Lord of Eiganjo
 Lampad of Death's Vigil
 Last Word
+Life from the Loam
+Luminarch Aspirant
+Lurking Chupacabra
+Mardu Strike Leader
 Maritime Guard
+Masked Admirers
+Minamo Sightbender
+Mind Peel
+Miner's Guidewing
 Mountain
 Mycologist
 Necromantic Summons
@@ -45,12 +76,16 @@ Plains
 Pouncing Lynx
 Psionic Entity
 Puppeteer Clique
+Pyromancer's Assault
+Read the Bones
 Reckless Reveler
+Reckless Stormseeker
 Referee Squad
 Risen Riptide
 Rooftop Nuisance
 Sage of Lat-Nam
 Sandblast
+Sanguine Sacrament
 Sejiri Steppe
 Sinister Possession
 Skaab Wrangler
@@ -63,6 +98,7 @@ Solve the Equation
 Sorcerer's Strongbox
 Soul Transfer
 Springjaw Trap
+Steadfast Paladin
 Suspension Field
 Swamp
 Sword of the Chosen
@@ -73,6 +109,7 @@ Thraben Sentry
 Tidewater Minion
 Time Wipe
 Turn into a Pumpkin
+Underworld Rage-Hound
 Vile Deacon
 Vivid Crag
 Vodalian Serpent

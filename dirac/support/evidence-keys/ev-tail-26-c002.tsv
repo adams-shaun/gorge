@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Riveteers Initiate	c45e5fbfc0b9f77c	61	1/1		1/1	
 Akroan Hoplite	6cedab37cdd3e57e	5	1/1		0/1	ix:resp
+Arena Trickster	18e75b5000675e3f	12	1/1		1/1	
 Asceticism	2ffb80fed3fec39d	3	1/1		1/1	
 Ashcoat Bear	b6dacf4265c24577	17	0/0		0/0	
 Auriok Sunchaser	0f4e38feaab27829	3	0/0		0/0	
@@ -16,7 +17,10 @@ Crossbow Infantry	0c262d10c490dce1	11	1/1		0/1	ix:resp
 Dark Temper	9cb10f7bfbed298c	4	0/0		1/2	ix:resp
 Divebomber Griffin	fea2d82920ca9c84	11	1/1		0/1	ix:resp
 Empyrial Armor	13d34977cba5e287	13	0/0		1/2	ix:resp
+Festering Wound	74fb522f683a9491	6	2/2		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Force of Savagery	77e5e06b68d11c0a	13	0/0		0/0	
+Gate to the Afterlife	2443ab27dc3316ef	11	2/2		1/1	
+Gerrard's Irregulars	b0187d0403f07e53	28	0/0		0/0	
 Graceful Cat	eec039cca980e648	4	1/1		0/1	ix:resp
 Grappling Sundew	6cc6c7d51cd6e7ca	26	1/1		1/1	
 Gravity Well	cdeb9b54c41cc6c3	13	1/1		0/1	ix:resp
@@ -33,12 +37,15 @@ Monster Manual	6edc892ed8f9e367	13	1/1		1/2	ix:resp
 No Escape	e2e4d0f63775b8a9	18	0/0		1/2	ix:resp
 Nullmage Advocate	942c672d50e1d673	4	1/1		0/1	ix:resp
 Orochi Soul-Reaver	b62782590171b697	27	2/2		0/1	ix:resp
+Pardic Arsonist	06f039c5fa87a7d0	4	0/0		0/0	
+Paupers' Cage	33d9aa24c102da42	50	1/1		1/1	
 Psionic Blast	76f7f614534eacb6	19	0/0		2/2	
 Quandrix Pledgemage	e2413f4c8394f240	8	1/1		0/1	ix:resp
 Quest for Ancient Secrets	853340017d65bdfa	32	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Rampaging Aetherhood	48e495bbf40026fa	5	2/2		1/1	
 Road of Return	7f4f313225128665	7	0/0		1/2	ix:resp
 Scarwood Treefolk	1d946806f022a43c	11	0/0		0/0	
+Sensei's Divining Top	156db14edbf30aac	81	2/2		1/1	
 Sentinel	8c752872c913e614	3	1/1		0/1	ix:resp
 Shambling Goblin	48fd099eae5dd257	4	1/1		1/1	
 Sivriss, Nightmare Speaker	0da0707a21da6064	28	1/1		0/1	ix:resp
@@ -50,13 +57,16 @@ Spark Elemental	bb3f4f3b42c4f8d9	24	1/1		1/1
 Spellbook	eab3c58a902a6202	8	0/0		0/0	
 Sporeback Troll	9b4c97135b21a43f	21	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Stony Strength	2c7873006fef53aa	9	0/0		2/2	
+Storm of Memories	acd69b1bb25e077a	10	1/1		2/2	
 Swift Maneuver	c6a23621a5a0d75f	8	0/0		2/2	
 Taranika, Akroan Veteran	f104099656526995	17	1/1		1/1	
 Tel-Jilad Chosen	b6f03872b7343465	4	0/0		0/0	
 The Surgical Bay	65f79fe9ddf681e0	211	2/2		1/1	
+Tigereye Cameo	aa2e1470f6a73c42	36	1/1		1/1	
 Titania, Nature's Force	58aaf63e5be9b2a3	11	2/2		0/1	ix:resp
 Triad of Fates	126878afbfa8e069	12	3/3		0/1	ix:resp
 Turbulent Dreams	df74c26476541708	21	0/0		2/2	
+War Machine, James Rhodes	26e27ad86b289168	7	1/1		1/1	
 Wasp, Shrinking Savior	7c5b34a6fb9b1a2d	133	1/1		1/1	
 Wicked Guardian	1f407523d7cf9309	32	1/1		1/1	
 Yahenni's Expertise	7b46ece9e9bef37c	6	0/0		1/2	ix:resp

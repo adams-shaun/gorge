@@ -9,6 +9,7 @@ Altar of Bone	3893be4fb5dd4f45	25	0/0		1/2	ix:resp
 An-Havva Inn	d77d5492d44dc5e1	42	0/0		2/2	
 Atraxi Warden	179da53a90d48cd9	15	1/1		3/3	
 Avabruck Caretaker	b03bcc5ed0663c1e	25	2/2		1/1	
+Avenger en-Dal	2a025402d3645256	5	1/1		0/1	ix:resp
 Avenging Hunter	4e2b8b7e1638525e	10	1/1		1/1	
 Bastion Enforcer	7e5903b39c1fa63d	44	0/0		0/0	
 Bootleggers' Stash	75b5a07aaa6eca86	7	0/0		0/0	
@@ -50,6 +51,7 @@ Fallen Ferromancer	cf25e6a88e068ead	14	1/1		1/1
 False Mourning	03790b6fe8423d8b	10	0/0		1/2	ix:resp
 Farfinder	71813d96485c26c6	38	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Fire Whip	c6ea78ff4dbc02ae	4	1/1		1/2	ix:resp
+Fireblade Artist	d5aec96de0185bb7	15	1/1		1/1	
 Fires of Victory	cd3d3622b1897ac2	20	0/0		3/4	ix:resp
 Firewing Phoenix	7070fe7456006d9e	20	1/1		1/1	
 Fleetwheel Cruiser	85e8a0fcc7bc0a9c	25	2/2		1/1	
@@ -154,6 +156,7 @@ Sip of Hemlock	4cbdf03734466b17	5	0/0		1/2	ix:resp
 Skittering Crustacean	804e741b34148458	22	1/1		1/1	
 Skull Raid	8ca66909036a042c	26	0/0		2/4	cast/alt:foretold,ix:resp
 Slinza, the Spiked Stampede	7a30ae0da51256da	4	1/1		0/1	ix:resp
+Sliver Overlord	43009ffad0faba66	6	2/2		1/1	
 Slobad, Goblin Tinkerer	9a11576374b76b88	18	1/1		0/1	ix:resp
 Sokenzan Spellblade	c1aa33974eed2765	7	3/3		1/1	
 Songbird, Sonic Screamer	fd92cb1d9e286f97	8	1/1		1/1	
@@ -220,4 +223,5 @@ Wrong Turn	9bbe71d52570827d	4	0/0		2/2
 Wu Longbowman	79893f17cb5954b5	4	1/1		1/1	
 Yeva's Forcemage	122d38a57238a45f	17	1/1		1/1	
 Yomiji, Who Bars the Way	f17ffaf1303afa6e	13	1/1		1/1	
+Yore-Tiller Nephilim	0722b2909ef35967	12	1/1		1/1	
 Zulaport Duelist	65ec7b4adbdbeac0	23	1/1		1/1	

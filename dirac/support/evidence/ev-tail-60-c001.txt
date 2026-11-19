@@ -17,6 +17,7 @@ Aphetto Grifter
 Arachnus Web
 Argentum Armor
 Argothian Elder
+Arixmethes, Slumbering Isle
 Arm with Aether
 Armored Wolf-Rider
 Artful Maneuver
@@ -24,6 +25,7 @@ Artificer Class
 Assimilate Essence
 Atreus, Impulsive Son
 Aven Gagglemaster
+Azorius Skyguard
 Back to Basics
 Back to Nature
 Baloth Gorger
@@ -41,6 +43,7 @@ Bladestitched Skaab
 Blaring Captain
 Blaster Mage
 Blessing
+Bloated Toad
 Bloodrage Vampire
 Bloodtracker
 Boar Umbra
@@ -64,6 +67,7 @@ Canopy Stalker
 Canyon Jerboa
 Captain America, Skybound
 Catacomb Crocodile
+Centaur Battlemaster
 Centaur Nurturer
 Cerulean Wisps
 Chambered Nautilus
@@ -106,6 +110,7 @@ Deserted Temple
 Desperate Farmer
 Dingus Egg
 Dirty Wererat
+Disruptive Pitmage
 Doctor Strange, Surgeon
 Dogpile
 Dragon Tyrant
@@ -132,6 +137,7 @@ Enthusiastic Mechanaut
 Essence Infusion
 Eternal Flame
 Etherium Sculptor
+Ethersworn Sphinx
 Excise the Imperfect
 Execute
 Exemplar of Strength
@@ -152,6 +158,7 @@ Fleetwheel Cruiser
 Flesh-Eater Imp
 Flickering Ward
 Flowstone Kavu
+Foil
 Forerunner of the Coalition
 Forest
 Forsaken City
@@ -183,6 +190,7 @@ Hamlet Vanguard
 Hammer Helper
 Hammers of Moradin
 Hardened Scales
+Harmattan Efreet
 Harnessed Lightning
 Harrier Naga
 Harrow
@@ -209,6 +217,7 @@ Ironclaw Buzzardiers
 Island
 Island of Wak-Wak
 Ivory Crane Netsuke
+Jadelight Ranger
 Janjeet Sentry
 Journey of Discovery
 Journey to Eternity
@@ -224,7 +233,9 @@ Kitesail Cleric
 Knight of Sorrows
 Knowledge Is Power
 Kokusho, the Evening Star
+Koskun Falls
 Krav, the Unredeemed
+Krile Baldesion
 Kruphix's Insight
 Lava Hounds
 Leechridden Swamp
@@ -287,6 +298,7 @@ Occult Epiphany
 Ochran Assassin
 Ogre Battledriver
 Ohran Frostfang
+Ojutai, Soul of Winter
 Oketra's Last Mercy
 One with the Machine
 Onslaught
@@ -402,6 +414,7 @@ Thousand-Year Elixir
 Thran Dynamo
 Thriving Moor
 Thunderstaff
+Thurid, Mare of Destiny
 Toe-Breaking Helmet
 Tombfire
 Touch of Darkness

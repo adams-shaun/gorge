@@ -1,0 +1,89 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Aerial Responder	ca69368325b73339	8	0/0		0/0	
+Annex	b5d08ad578dca367	3	0/0		1/2	ix:resp
+Argothian Opportunist	611749ae50d3f1f8	4	1/1		1/1	
+Baloth Gorger	f5f50891b2376474	4	0/0		1/2	cast/alt:kicked
+Blood Pact	2b8b71ca16a0839f	8	0/0		2/2	
+Bloodfire Expert	238de0276a100009	4	1/1		0/1	ix:resp
+Buried Alive	7939f78a7bf800c1	4	0/0		1/2	ix:resp
+Cartouche of Strength	23025413eab0fb8b	13	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Cloudreader Sphinx	fb2bcd0878faccaf	23	1/1		0/1	ix:resp
+Constricting Sliver	c88f79bb4625cbda	9	0/0		0/0	
+Coruscation Mage	2849aac56a5f549e	32	2/2		3/3	
+Court of Embereth	99120ae728451c7d	38	2/2		1/1	
+Demand Answers	f16552fd099d7110	21	0/0		2/2	
+Desperate Lunge	08b8108499d14cea	6	0/0		1/2	ix:resp
+Destroy Evil	ef35eccd7631cb76	6	0/0		1/2	ix:resp
+Diplomatic Escort	0257ea0fd1b273a6	4	1/1		0/1	ix:resp
+Doomsday	61600771264e0427	4	0/0		1/2	ix:resp
+Elven Bow	abea579c56d067d1	10	2/2		0/1	ix:resp
+Exhaustion	5184ca486b79ec49	7	0/0		1/2	ix:resp
+Exquisite Huntmaster	402bf936c713cb1c	8	2/2		1/1	
+Fatestitcher	e8a93e35f31e65f5	6	2/2		1/1	
+Felidar Guardian	cb0bb7c042d967d0	6	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Fiend Hunter	222755bd476849dd	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Fireslinger	451a84720f814440	6	1/1		0/1	ix:resp
+Flame Jab	fea6b0f754adf378	14	0/0		1/2	ix:resp
+Flowstone Hellion	1fa81a1d412c1d48	6	1/1		0/1	ix:resp
+Forbidden Alchemy	e5da05941194cc87	18	0/0		4/4	
+Forest	6d0466c30f825dba	34	1/1		0/1	ix:resp
+Frog Tongue	dcfc2d7a39fab2d2	6	1/1		1/2	ix:resp
+Furnace Whelp	f1e6a9b9cfc7967e	4	1/1		0/1	ix:resp
+Glimmerpoint Stag	95860e7fcbe8a673	10	1/1		0/1	ix:resp
+Goblin Taskmaster	24867095a11a4e92	4	1/1		1/3	cast/alt:morphed,ix:resp
+Gorehorn Minotaurs	854de0e053100c07	29	0/0		0/0	
+Graveshifter	8c897000f29f83a9	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Grazing Gladehart	716aff652e052dce	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Grip of the Roil	55cc41d66b17809a	5	0/0		2/4	cast/alt:surged,ix:resp
+Gudul Lurker	9fda11d44515e2b8	9	0/0		1/2	cast/alt:megamorphed
+Guided Strike	a7e00b48dd745f91	4	0/0		1/2	ix:resp
+Heliod's Punishment	99da4ba5ee42e6db	6	0/0		1/2	ix:resp
+Herald of Secret Streams	3bbbd52c410f6e3d	21	0/0		0/0	
+Hero's Blade	3400cfac56e3b5a0	22	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Hunting Pack	8b49d055703c8153	8	1/1		2/2	
+Hydrolash	8336575e8fde4582	4	0/0		1/2	ix:resp
+Imoti, Celebrant of Bounty	3b12e2db79d392a7	8	0/0		0/0	
+Impact Tremors	5b25a43e421d9b56	3	1/1		1/1	
+Island	763c67ef7a27eaf5	144	1/1		0/1	ix:resp
+Jötun Owl Keeper	f266b875dead899b	8	2/2		0/1	ix:resp
+Knight of Meadowgrain	5822bba0224a19d9	14	0/0		0/0	
+Kutzil, Malamet Exemplar	64fb64715b884288	12	1/1		0/1	ix:resp
+Larger Than Life	c369236ec9d68b7f	8	0/0		1/2	ix:resp
+Longshot Squad	4234186386788518	4	1/1		0/1	ix:resp
+Meatsqueak, Hoard Lord	500c39ad9311b7a2	6	1/1		0/1	ix:resp
+Moment's Peace	fe31fc1a37b5c083	114	0/0		4/4	
+Mountain	9e71388353e907ed	41	1/1		0/1	ix:resp
+Mulldrifter	eb506817458e2c18	6	1/1		2/3	ix:resp
+Noble Purpose	3ec5725379c49a8a	8	1/1		1/1	
+Nomads en-Kor	119e01ee3ef49197	6	1/1		1/1	
+Pick Your Poison	4a7c1a77422d3be7	4	0/0		1/2	ix:resp
+Plains	82d63a695487e567	76	1/1		0/1	ix:resp
+Rampant Growth	7e60ba8c4c03c886	11	0/0		2/2	
+Reconnaissance	3d2066d409ca8c44	6	1/1		0/1	ix:resp
+Saryth, the Viper's Fang	dcf284d9c90defbd	36	1/1		1/1	
+Scourge Devil	face1c19c11cf4c6	5	2/2		0/1	ix:resp
+Seal of Removal	235ac432be473012	6	1/1		0/1	ix:resp
+Sensei's Divining Top	156db14edbf30aac	125	2/2		1/1	
+Shadowcloak Vampire	17592ce474f16ee2	5	1/1		1/1	
+Shimmercreep	f3f212ff8a6195ee	5	1/1		0/1	ix:resp
+Shoreline Looter	c8e103bb97667310	5	1/1		0/1	ix:resp
+Silver Knight	25e4cfc9cfdf354b	6	0/0		0/0	
+Snap	7b3f2663850bbe4b	32	0/0		2/2	
+Spin into Myth	87f147f390148b8e	14	0/0		1/2	ix:resp
+Sting-Slinger	ee92e32781f6fb8d	3	1/1		1/1	
+Stronghold Rats	50790d38e7bb9478	4	1/1		0/1	ix:resp
+Surge of Salvation	cf076a6037307579	16	0/0		1/2	ix:resp
+Swamp	342b413902f441c3	8	1/1		0/1	ix:resp
+Take Up the Shield	d1ebe074e6bd29a8	20	0/0		1/2	ix:resp
+Temple Acolyte	a34ab08f2f5e65dd	8	1/1		0/1	ix:resp
+Thornwind Faeries	e177a21a7516649a	21	1/1		1/1	
+Torch Breath	bcdc54c9376ce0ce	21	0/0		3/4	f0/s/x0
+Trove Tracker	3a30c0efd7b57f72	31	2/2		1/1	
+Unexpected Fangs	cf031ccd09750d99	5	0/0		1/2	ix:resp
+Vampires' Vengeance	cb0b0463dbb2c16a	10	0/0		2/2	
+Vedalken Mastermind	8d9082cf5e84f88f	5	1/1		1/1	
+Vizier of Remedies	ec613eed8a5a6f16	4	0/0		0/0	
+Volatile Claws	e6f2f0cad245a0f3	8	0/0		1/2	ix:resp
+Wanderer's Strike	41e26e57cde6aa71	5	0/0		1/2	ix:resp
+You See a Pair of Goblins	62e8c35d19b17b5c	6	0/0		1/2	ix:resp
+Young Wolf	c83665296a954082	17	1/1		0/1	ix:resp

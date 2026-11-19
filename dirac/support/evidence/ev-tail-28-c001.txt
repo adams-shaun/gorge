@@ -6,6 +6,7 @@ A-Ready to Rumble
 A-Tenured Inkcaster
 Aardvark Sloth
 Abattoir Ghoul
+Abundant Countryside
 Academy Rector
 Acceptable Losses
 Act of Aggression
@@ -153,6 +154,7 @@ Fyndhorn Elder
 Ganax, Astral Hunter
 Gatecreeper Vine
 Geist of the Moors
+Gemstone Mine
 Ghastly Death Tyrant
 Ghitu Chronicler
 Ghost-Lit Stalker
@@ -165,6 +167,7 @@ Golden-Tail Disciple
 Gonti, Lord of Luxury
 Grafted Butcher
 Gravecrawler
+Great Hall of Starnheim
 Griffin Protector
 Grimdancer
 Grizzled Wolverine
@@ -347,6 +350,7 @@ Spectral Grasp
 Spell Rupture
 Spelltithe Enforcer
 Sphere of Safety
+Spire Garden
 Spite of Mogis
 Spread the Sickness
 Stalking Stones

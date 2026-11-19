@@ -1,0 +1,66 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Amphin Pathmage	7dfee550a54f33e3	16	1/1		1/1	
+Argent Dais	2b9fed6705679963	12	2/2		1/1	
+Auramancer	6ee410c2d83edc38	16	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Bloodfray Giant	29e72d77a656a80c	7	0/0		0/0	
+Bog Imp	d15f6e5e6205ce66	20	0/0		0/0	
+Brutalizer Exarch	9a02932517ae74cd	15	1/1		1/1	
+Call of the Conclave	fa9500c83c8a4b86	16	0/0		2/2	
+Case of the Shifting Visage	9aeb680aa6689aaf	22	3/3		1/1	
+Ceremonious Rejection	c1bb7893b62e930d	7	0/0		2/2	
+Chromescale Drake	9474bc627e5a5055	5	1/1		0/1	ix:resp
+Cloud Dragon	cd86e74387f16699	18	0/0		0/0	
+Curfew	3b3c79e86103fe40	12	0/0		2/2	
+Demonic Vigor	1aad85543d02aa8b	15	1/1		1/2	ix:resp
+Donatello's Science Lesson	321d1c03764cc6da	19	0/0		2/2	
+Enervate	51f176e749c988e9	24	0/0		2/2	
+Forest	6d0466c30f825dba	1380	1/1		0/1	ix:resp
+Forget	ab19fcf19907113d	12	0/0		2/2	
+Glasspool Mimic	c44de1411b98ccaf	37	1/1		1/1	
+Goblin Furrier	71ed7ef2bcc1aed1	7	0/0		0/0	
+Harmonious Archon	807fac00b98b9cab	14	1/1		1/1	
+Honden of Cleansing Fire	b2bf3b1ecd5b509f	19	1/1		1/1	
+Illusory Wrappings	2f7e133c081acc87	19	0/0		2/2	
+Island	763c67ef7a27eaf5	509	1/1		0/1	ix:resp
+Jeskai Sage	6bd68d0d04dc7489	16	2/2		1/1	
+Jeskai Windscout	8471c3477b39480c	8	1/1		0/1	ix:resp
+Jolting Merfolk	88aa527c6a536b2e	11	2/2		1/1	
+Kappa Cannoneer	f7b7e1032fce7620	12	2/2		0/1	ix:resp
+Kyscu Drake	ce4848bef6470c7b	301	2/2		1/1	
+Leaf Arrow	d78491b364cc4491	10	0/0		1/2	ix:resp
+Lu Xun, Scholar General	549930aa381249c4	15	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Mana Vortex	908ef9a77d958549	15	3/3		1/1	
+Marsh Threader	cabcb427812a8350	16	0/0		0/0	
+Merfolk Windrobber	490fd5e00232bd1d	23	2/2		0/1	ix:resp
+Mnemonic Sliver	a83f5025ba245352	30	0/0		0/0	
+Momir Vig, Simic Visionary	90c1edc250563a46	3	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Mountain	9e71388353e907ed	216	1/1		0/1	ix:resp
+Mystic Denial	dd2fabfb0d4b3ae4	19	0/0		2/2	
+Mystic Zealot	1e5cd0c5fd612f33	15	0/0		0/0	
+Pain Distributor	3afeaa550d1ff85c	9	2/2		0/1	ix:resp
+Phantom Nishoba	c21345b2c9d3ac53	3	1/1		0/1	ix:resp
+Phyrexian Broodlings	9e015fc9b8054114	14	1/1		1/1	
+Plains	82d63a695487e567	531	1/1		0/1	ix:resp
+Prodigal Sorcerer	a52ef6d999d4f3d0	18	1/1		0/1	ix:resp
+Repel	91f3694cd0d5260a	18	0/0		1/2	ix:resp
+Ritual of Restoration	d255816ae9f7c127	7	0/0		2/2	
+Scroll Thief	edef43b33d96a977	17	1/1		0/1	ix:resp
+Sea Eagle	d58a1e818c9ddfd2	32	0/0		0/0	
+Seahunter	f6a47ad18c194ece	5	1/1		0/1	ix:resp
+Shi'ar Soldier	a45669eb04922332	34	1/1		1/1	
+Skyrider Trainee	75f6fd7aaeee5833	18	0/0		0/0	
+Soldier On	e59c6c2d6b2e7785	6	0/0		2/2	
+Somberwald Dryad	a6449e9cbdbb09db	25	0/0		0/0	
+Soul-Guide Gryff	c51fc9bf6e331c02	15	1/1		1/1	
+Stir the Pride	0a379ffb0ecb6258	18	0/0		2/2	
+Stoic Rebuttal	7543b05774b0778e	17	0/0		2/2	
+Stoneskin	0405dd47f2c126ce	20	0/0		2/2	
+Swamp	342b413902f441c3	298	1/1		0/1	ix:resp
+Tempting Witch	06dc537bb8dea8d2	7	2/2		1/1	
+Transcendent Envoy	9196c4290509599a	14	0/0		0/0	
+Trapfinder's Trick	24aa19a1ead9e71c	31	0/0		2/2	
+Undercity Scavenger	189e3d377dc6fe18	10	1/1		0/1	ix:resp
+Unquenchable Thirst	e21c08528c89fccf	14	1/1		2/2	
+Vivisurgeon's Insight	a175ab08380d1f85	18	0/0		2/2	
+Vizier of Tumbling Sands	c31d7b905ed10f54	3	3/3		1/1	
+Weigh Down	ba3da6d2d5cd7ca0	9	0/0		2/2	

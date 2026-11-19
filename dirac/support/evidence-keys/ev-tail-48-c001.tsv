@@ -2,6 +2,7 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Abyssal Nocturnus	6cbc69550b1a92db	115	1/1		1/1	
 Alpha Kavu	e7c4847eb9a1b6c9	4	1/1		1/1	
 Angrath's Rampage	df4cf6e20bff57a2	71	0/0		1/2	ix:resp
+Armored Galleon	d47dc2aa55189e15	8	0/0		0/0	
 Azusa, Lost but Seeking	3a59834fd2aebde1	6	0/0		0/0	
 Badlands	b58806a2e68ea63e	612	2/2		0/1	ix:resp
 Bartolomé del Presidio	e8926fab9272cc2c	10	1/1		1/1	
@@ -37,7 +38,10 @@ Desecration Plague	6d056a0194ea43a7	4	0/0		1/2	ix:resp
 Divine Light	5c9f4b7bd2f35500	136	0/0		2/2	
 Draining Whelk	b2967a6be0f91b96	4	1/1		1/1	
 Drake Haven	24fa220538f8f3bc	20	1/1		1/1	
+Dueling Rapier	10cc89f0aeb51c98	6	2/2		0/1	ix:resp
 Dusk Imp	20577b864b52f049	6	0/0		0/0	
+Dwarven Miner	c992a50881d3ba4b	4	1/1		0/1	ix:resp
+Earth-Cult Elemental	0f3af086779ecd81	6	1/1		0/1	ix:resp
 Elven Riders	2c4f982dce495016	3	0/0		0/0	
 Emancipation Angel	d725e87ed6a560c2	3	1/1		0/1	ix:resp
 End Hostilities	18fcf1fe5c14b288	4	0/0		1/2	ix:resp
@@ -86,17 +90,20 @@ Knight-Errant of Eos	d3a251779c6468aa	21	1/1		1/1
 Kor Hookmaster	837f77534ebb11f0	4	1/1		0/1	ix:resp
 Kragma Butcher	36a40af22d6514af	8	1/1		0/1	ix:resp
 Kura, the Boundless Sky	f8c40deb5efdb9e6	5	1/1		0/1	ix:resp
+Lathnu Sailback	679bbff2d87f950a	6	0/0		0/0	
 Leering Emblem	6e4b42497d495b73	159	2/2		1/1	
 Lifelink	dfb27474e7506500	6	0/0		2/2	
 Loch Korrigan	379be7e2be030f15	4	1/1		1/1	
 Lurking Crocodile	1cd9610b4ef44b31	6	0/0		0/0	
 Lys Alana Scarblade	717d5f91764d087d	96	1/1		1/1	
+Magus of the Mind	f369f157681adccc	4	1/1		0/1	ix:resp
 Managorger Hydra	6f11af26bd37544d	4	1/1		1/1	
 Markov Purifier	a6835628d3c4586e	97	1/1		1/1	
 Marsh Boa	69282b14c2391bc3	4	0/0		0/0	
 Memory Plunder	f3a1ba33472914c5	33	0/0		2/2	
 Mercenary Informer	c4eccba501e0023e	4	1/1		1/1	
 Midnight Charm	b9b0c06f47cc2e2f	10	0/0		1/2	ix:resp
+Miming Slime	a19f731e76ad58be	4	0/0		1/2	ix:resp
 Mirran Crusader	12f68aaabe79d366	6	0/0		0/0	
 Mirri, Cat Warrior	ab06c88c470bc629	4	0/0		0/0	
 Molting Skin	e07a204500a58301	16	1/1		0/1	ix:resp
@@ -109,6 +116,7 @@ Order of the Stars	dda65877f46e9d41	137	0/0		0/0
 Patron of the Arts	4866ed90df953817	4	2/2		0/1	ix:resp
 Pile On	af82bbcc9562a078	94	0/0		2/2	
 Pseudodragon Familiar	94118e9e49f587bf	36	1/1		0/1	ix:resp
+Quillmane Baku	e67bf7bbf1f5dcee	38	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Ravenous Lindwurm	99c0e7ddbbdb20af	4	1/1		0/1	ix:resp
 Reckless Racer	09023828a5a13e41	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Reconnaissance	3d2066d409ca8c44	12	1/1		1/1	
@@ -132,6 +140,7 @@ Shockmaw Dragon	69aa5ae20ec48f52	4	1/1		0/1	ix:resp
 Sigil of Distinction	34bab55627c55b6c	6	1/1		0/1	ix:resp
 Silverflame Ritual	e6698b22eda657da	5	0/0		2/2	
 Singer of Swift Rivers	6b352442970b9618	4	1/1		0/1	ix:resp
+Sire of the Storm	87646004bb7d0c4d	6	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Siren Song Lyre	e121f6a2dbf63da1	8	1/1		1/1	
 Skyclave Relic	78eb5effef156622	146	2/2		3/3	
 Sojourner's Companion	1efa73f359a47a3e	10	1/1		1/1	
@@ -143,15 +152,18 @@ Thalakos Deceiver	a5460304ee0ad825	49	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Theft of Dreams	66c26f94739a352d	11	0/0		2/2	
 Thoughtseize	e6d275098cb5c79a	17	0/0		2/2	
 Ulvenwald Oddity	6de739170b0cc168	6	1/1		0/1	ix:resp
+Unchained Berserker	8320b4e3f504b660	6	0/0		0/0	
 Vandalize	3cddfa2fb3677a75	31	0/0		1/2	ix:resp
 Vastwood Zendikon	9eb57307bc3f16ad	4	1/1		1/2	ix:resp
 Veinwitch Coven	d21efe8f0cca3af5	7	1/1		0/1	ix:resp
 Vexing Devil	102e80c608dacb62	48	1/1		1/1	
 Virulent Swipe	2c0081256a0143a1	12	0/0		2/2	
+Vodalian Wave-Knight	b3e052c84dab152b	5	1/1		0/1	ix:resp
 Wall of Tears	753eca4216e5d229	4	1/1		0/1	ix:resp
 Warchanter Skald	b4be3887bcf93584	4	1/1		0/1	ix:resp
 Waterlogged Teachings	d6bb06625fc8aac9	72	1/1		2/2	
 Windbrisk Heights	3b3604079b0aebc7	16	3/3		0/1	ix:resp
+Wormfang Behemoth	0f80abd0f7c67254	4	2/2		0/1	ix:resp
 You Come to a River	6dc040967ca6c673	23	0/0		2/2	
 Yuki-Onna	2b2100c54dc3358f	47	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Zodiac Rat	b7b5618daf7dcefe	168	0/0		0/0	
