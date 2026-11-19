@@ -9,4 +9,6 @@ import "testing"
 func TestMBCDragonCursedHallsReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "dragon_cursed_halls_options")
+	// tail-71-c001 pair 2, decision 40, seed 569081: the same card, the same class.
+	stdReproNamedServed(t, "dragon_cursed_halls_activation")
 }
