@@ -31,9 +31,9 @@ const (
 	availGaps  uint16 = 1
 	availAny   uint16 = 2
 	availPlain uint16 = 4
-	availWalk  uint16 = 8   // the real mana, no offer surface (grantCap)
-	availHyp   uint16 = 128 // with availWalk: gorge's PotentialMana bound, a choice source counting every colour it can make (mana_owncolours.go)
-	availOwn   uint16 = 256 // with availGaps: an activation's own {T} source stays in the census, as gorge's PotentialMana bound counts it (mana_ownwalk.go)
+	availWalk  uint16 = 8    // the real mana, no offer surface (grantCap)
+	availHyp   uint16 = 128  // with availWalk: gorge's PotentialMana bound, a choice source counting every colour it can make (mana_owncolours.go)
+	availOwn   uint16 = 1024 // with availGaps: an activation's own {T} source stays in the census, as gorge's PotentialMana bound counts it (mana_ownwalk.go)
 )
 
 // scriptGaps: p's activatable each-colour sources, a slot mask.
