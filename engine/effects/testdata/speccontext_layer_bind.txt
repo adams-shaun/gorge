@@ -82,7 +82,6 @@ effects/resolve.go repeatDefinedGateHolds
 effects/resolve.go setStateChoose
 effects/resolve.go setStateTurnUpVerdict
 effects/sacrificeall.go effSacrificeAll
-effects/taporuntapall.go effTapOrUntapAll
 effects/token.go tokenControlledCount
 effects/trigger_referents.go Ctx.MatchSpec
 effects/twopiles.go twoPilesBattlefieldSet

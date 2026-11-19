@@ -346,9 +346,11 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	phases := cp.Phases
 	firstCombat := cp.FirstCombat
 	activationLimit := cp.ActivationLimit
-	if defined == "" && present == "" && notPresent == "" && compare == "" && check == "" && bare == "" &&
-		playerTurn == "" && phases == "" && firstCombat == "" && activationLimit == "" &&
-		cp.ManaSpent == "" && cp.ManaNotSpent == "" {
+	playerDefined := cp.PlayerDefined
+	playerContains := cp.PlayerContains
+	playerGated := playerDefined != "" || playerContains != ""
+	if !anyNonEmpty(defined, present, notPresent, compare, check, bare, playerTurn, phases, firstCombat,
+		activationLimit, cp.ManaSpent, cp.ManaNotSpent) && !playerGated {
 		return true, false // not gated (a lone ConditionSVarCompare$ compares nothing)
 	}
 	// ConditionActivationLimit$ <op><n> (4 corpus lines: Farrelite Priest,
@@ -362,22 +364,11 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// only a corpus shape alone, so any other Condition key beside it is
 	// unsupported too.
 	if activationLimit != "" {
-		if defined != "" || present != "" || notPresent != "" || compare != "" || check != "" || bare != "" ||
-			playerTurn != "" || phases != "" || firstCombat != "" || c.ActivationsThisTurn <= 0 ||
-			cp.ManaSpent != "" || cp.ManaNotSpent != "" {
+		if anyNonEmpty(defined, present, notPresent, compare, check, bare, playerTurn, phases, firstCombat,
+			cp.ManaSpent, cp.ManaNotSpent) || playerGated || c.ActivationsThisTurn <= 0 {
 			return false, false
 		}
 		return activationCountHolds(c.ActivationsThisTurn, activationLimit)
-	}
-	// Any other Condition* key (PlayerDefined, LifeTotal, ...) beside the supported
-	// nine makes the shape unsupported. ConditionDescription$ is
-	// display text, not part of the evaluation, and is ignored.
-	// (The ConditionCheckSVar$ shape below covers the sacrifice-continuation
-	// bridge the pre-merge build carried as rememberedSacrificeCondition:
-	// Braids's `Defined$ Player.IsRemembered` legs with a `Remembered$Valid`
-	// SVar body evaluate through the same shared gate.)
-	if ap.Has(ActConditionOther) {
-		return false, false
 	}
 	// The player-turn / phase preconditions (ConditionPlayerTurn$ True|False,
 	// ConditionPhases$ <phase-list>): the Unbreakable Formation Addendum
@@ -396,6 +387,39 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// through).
 	g := h.Game()
 	extraMet := true
+	// ConditionPlayerDefined$ + ConditionPlayerContains$: Forge's player-group
+	// membership gate. The group ConditionPlayerDefined$ names (Mages'
+	// Contest's and Minion of Leshrac's `Remembered`, Menacing Ogre's
+	// `TargetedController`, Sarah's Wings' `TriggeredDefendingPlayer`) must
+	// include a player ConditionPlayerContains$ names (`You`,
+	// `Player.Chosen`, `Player.isMonarch`). Both resolve through
+	// EffectOwnerPlayers, the ONE shared player-referent resolver, so the
+	// group and the members cannot drift from every other Defined$ consumer;
+	// a spelling that resolver does not model keeps the shape unresolved
+	// (the same fail direction an unresolvable ConditionDefined$ value
+	// takes at the walk). A lone ConditionPlayerContains$ names no group and
+	// stays unresolved. The answer AND-s with every other gate below through
+	// extraMet, exactly the player-turn/phase preconditions' -- so a bare
+	// pair with no other gate returns the membership answer directly (the
+	// Eddymurk-shape tail) and a paired ConditionCheckSVar$ is a real
+	// conjunction.
+	if playerGated {
+		playerMet, ok := conditionPlayerGroupMet(h, c, playerDefined, playerContains)
+		if !ok {
+			return false, false
+		}
+		extraMet = playerMet
+	}
+	// Any other Condition* key (PlayerDefined, LifeTotal, ...) beside the supported
+	// keys makes the shape unsupported. ConditionDescription$ is
+	// display text, not part of the evaluation, and is ignored.
+	// (The ConditionCheckSVar$ shape below covers the sacrifice-continuation
+	// bridge the pre-merge build carried as rememberedSacrificeCondition:
+	// Braids's `Defined$ Player.IsRemembered` legs with a `Remembered$Valid`
+	// SVar body evaluate through the same shared gate.)
+	if ap.Has(ActConditionOther) {
+		return false, false
+	}
 	if playerTurn != "" {
 		switch conditionMetCodes.Code(string(strings.ToLower(playerTurn))) {
 		case conditionMetTrue:
@@ -464,7 +488,8 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			return false, false
 		}
 		if defined == "" && present == "" && notPresent == "" && compare == "" && bare == "" &&
-			playerTurn == "" && phases == "" && firstCombat == "" && cp.ManaSpent == "" && cp.ManaNotSpent == "" {
+			playerTurn == "" && phases == "" && firstCombat == "" && cp.ManaSpent == "" && cp.ManaNotSpent == "" &&
+			!playerGated {
 			return holds, true
 		}
 		// A ConditionCheckSVar$ beside a ConditionDefined$/ConditionPresent$
@@ -499,7 +524,8 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	}
 	if bare != "" {
 		if defined != "" || present != "" || notPresent != "" || compare != "" || svarCmp != "" ||
-			playerTurn != "" || phases != "" || firstCombat != "" || cp.ManaSpent != "" || cp.ManaNotSpent != "" {
+			playerTurn != "" || phases != "" || firstCombat != "" || cp.ManaSpent != "" || cp.ManaNotSpent != "" ||
+			playerGated {
 			return false, false
 		}
 		return conditionBareMet(h, c, bare, cp.OptionalPaid)
@@ -1888,3 +1914,59 @@ var conditionNotPresentMetCodes = state.NewStrCodes(
 	state.StrEntry[conditionNotPresentMetCode]{Key: "Remembered", Val: conditionNotPresentMetRemembered},
 	state.StrEntry[conditionNotPresentMetCode]{Key: "Targeted", Val: conditionNotPresentMetTargeted},
 )
+
+// conditionPlayerGroupMet answers the ConditionPlayerDefined$ /
+// ConditionPlayerContains$ gate: whether the group named by defined includes
+// a player contains names. ok=false keeps the shape unresolved (a lone
+// ConditionPlayerContains$ names no group; a spelling EffectOwnerPlayers does
+// not model). A lone group spelling gates on the group naming somebody (Forge
+// pairs the two keys everywhere in the corpus; the lone shape degrades to the
+// group's presence).
+func conditionPlayerGroupMet(h Host, c *Ctx, defined, contains string) (met, ok bool) {
+	if defined == "" {
+		return false, false
+	}
+	group, ok := effectOwnerPlayerGroup(h, c, defined)
+	if !ok {
+		return false, false
+	}
+	if contains == "" {
+		return len(group) > 0, true
+	}
+	members, ok := effectOwnerPlayerGroup(h, c, contains)
+	if !ok {
+		return false, false
+	}
+	return anyPlayerAmong(group, members), true
+}
+
+// effectOwnerPlayerGroup resolves one ConditionPlayerDefined$ /
+// ConditionPlayerContains$ spelling to the seats it names, through
+// EffectOwnerPlayers (the ONE shared player-referent resolver; the ok=false
+// second result keeps an unmodelled spelling's shape unresolved).
+func effectOwnerPlayerGroup(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
+	return EffectOwnerPlayers(h, c, spec)
+}
+
+// anyPlayerAmong reports whether the two player lists share a seat (the
+// ConditionPlayerContains$ membership test).
+func anyPlayerAmong(group, members []state.PlayerID) bool {
+	for _, m := range members {
+		for _, g := range group {
+			if m == g {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// anyNonEmpty reports whether any of the Condition* spellings is set.
+func anyNonEmpty(vals ...string) bool {
+	for _, v := range vals {
+		if v != "" {
+			return true
+		}
+	}
+	return false
+}
