@@ -1123,7 +1123,7 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 	for s.g.leyOn {
 		// one yes/no per Leyline in hand, hand order, starting player first
 		// (gorge's opening_yes / opening_no); a Gemstone's hand-exile
-		// pick comes first (turn_gemstone.go)
+		// pick comes first (zone_gemstone.go)
 		if s.g.ley[2] != 0 {
 			s.leyGemOptions(d)
 			return true
@@ -1247,7 +1247,7 @@ func (s *State) applyGen(k *prep, a Action) {
 	}
 	if s.g.leyOn {
 		if s.g.ley[2] != 0 {
-			s.leyGemAnswer(k, a) // turn_gemstone.go
+			s.leyGemAnswer(k, a) // zone_gemstone.go
 			return
 		}
 		if a.Mode() == 1 {

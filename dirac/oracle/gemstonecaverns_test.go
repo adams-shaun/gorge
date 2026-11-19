@@ -8,7 +8,7 @@ import (
 )
 
 // The Gemstone Caverns lockstep (CR 103.6a; kgen lower_gemstone.go, kernel
-// turn_gemstone.go). gorge's opening round (rules/opening_hand.go) asks each
+// zone_gemstone.go). gorge's opening round (rules/opening_hand.go) asks each
 // seat, AliveFrom the starting player and in hand order, whether to begin the
 // game with a Gemstone; the starting player is never asked (!PlayFirst). A
 // yes puts it onto the battlefield with a luck counter and poses the

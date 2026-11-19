@@ -134,7 +134,7 @@ type CardDef struct {
 	// CR 103.6a; gorge rules/opening_hand.go): the starting player is not
 	// asked (!PlayFirst), the card enters with LeylineCtrN counters of
 	// LeylineCtr, then its player exiles a card from their hand (gorge's
-	// opening_exile pick; kernel turn_gemstone.go).
+	// opening_exile pick; kernel zone_gemstone.go).
 	LeylineGem  bool
 	LeylineCtr  CounterKind
 	LeylineCtrN uint8

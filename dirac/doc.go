@@ -302,7 +302,7 @@
 //     (CardDef.LeylineGem: Gemstone Caverns) is not asked of the starting
 //     player, enters with its counters, and is followed by a ChGenOpeningExile
 //     pick over the rest of that hand (source = the card exiled; gorge's
-//     opening_exile; turn_gemstone.go).
+//     opening_exile; zone_gemstone.go).
 //   - Play permissions and play-from-zone statics add AkCast options with
 //     mode bit 3 (and bit 4: without paying the mana cost); a granted
 //     activated ability (an Equipment's) is AkActivate{source: the creature,

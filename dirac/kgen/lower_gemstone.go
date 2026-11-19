@@ -14,7 +14,7 @@ import (
 // counter is put by the pregame PutCounter sub, and the mandatory hand exile
 // is a KChoose over the hand (opening_exile). It lowers onto the kernel's
 // Leyline ask (turn_gen.go leylineStart, CardDef.Leyline) with the Gemstone
-// marks (CardDef.LeylineGem, LeylineCtr/LeylineCtrN; kernel turn_gemstone.go):
+// marks (CardDef.LeylineGem, LeylineCtr/LeylineCtrN; kernel zone_gemstone.go):
 // the ask skips the starting player, the card enters with the counters, and
 // its player picks the exiled hand card.
 //
