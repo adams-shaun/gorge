@@ -1,9 +1,11 @@
 A-Kona, Rescue Beastie
+Agility Bobblehead
 Akoum Refuge
 Anointer Priest
 Apprentice Sharpshooter
 Arachnus Web
 Archwing Dragon
+Ardent Elementalist
 Artificer Class
 Ashen Monstrosity
 Aspect of Lamprey
@@ -31,6 +33,7 @@ Bugenhagen, Wise Elder
 Burning Fields
 Cabal Patriarch
 Cabaretti Courtyard
+Cao Cao, Lord of Wei
 Captive Weird
 Chainweb Aracnir
 Chaotic Backlash
@@ -39,13 +42,17 @@ Continue?
 Creakwood Liege
 Crosstown Courier
 Curiosity Crafter
+Daggersail Aeronaut
 Dawning Angel
 Death's Shadow
 Deepwood Wolverine
+Demon's Disciple
 Dense Foliage
 Deputized Protester
+Deranged Assistant
 Desert of the Indomitable
 Desolate Mire
+Dina, Soul Steeper
 Dragon-Scarred Bear
 Drainpipe Vermin
 Dream Thief
@@ -56,7 +63,9 @@ Drown in Dreams
 Dualcaster Mage
 Dune Mover
 Duplicant
+Elvish Dreadlord
 Emperor Crocodile
+Enrage
 Erstwhile Trooper
 Evolving Adaptive
 Faerie Noble
@@ -89,6 +98,7 @@ Hulk, Brutal Brawler
 Hurloon Battle Hymn
 Illicit Shipment
 Imaginary Pet
+Immortal Phoenix
 Incisor Steed
 Inspire Awe
 Island
@@ -119,8 +129,11 @@ Mardu Woe-Reaper
 Markov Patrician
 Masked Blackguard
 Mass Calcify
+Maze Rusher
 Metathran Elite
+Mijae Djinn
 Mobile Fort
+Mortal Wound
 Mountain
 Mox Tantalite
 Muck Rats
@@ -128,6 +141,7 @@ Mystic Repeal
 Mystic Skull
 Nakaya Shade
 Nezumi Freewheeler
+Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper
 Obelisk of Grixis
@@ -151,6 +165,7 @@ Rampaging Cyclops
 Reclaim the Wastes
 Reduce in Stature
 Return of the Nightstalkers
+Rimewood Falls
 Rishadan Cutpurse
 Rishkar's Expertise
 Rooftop Nuisance
@@ -164,11 +179,15 @@ Scalding Devil
 School of Piranha
 Scour All Possibilities
 Seething Pathblazer
+Selhoff Occultist
 Shaman of Spring
 Shield of the Oversoul
 Shimmer of Possibility
 Show of Valor
+Sigil of Valor
 Simian Brawler
+Singing Tree
+Sinkhole
 Skyclave Shadowcat
 Skyline Cascade
 Slagwoods Bridge
@@ -187,6 +206,7 @@ Swarm of Rats
 Sword of the Animist
 Tamiyo's Safekeeping
 Tectonic Edge
+Tempestra, Dame of Games
 Thopter Mechanic
 Threnody Singer
 Thrilling Encore

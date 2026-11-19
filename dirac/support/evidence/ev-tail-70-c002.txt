@@ -67,6 +67,7 @@ Elephant Ambush
 Elephant-Rat
 Elusive Tormentor
 Emergent Growth
+Enlisted Wurm
 Etherium Sculptor
 Ethersworn Shieldmage
 Experimental Overload
@@ -120,6 +121,7 @@ Infectious Bite
 Infestation Expert
 Insolent Neonate
 Island
+Jace's Scrutiny
 Jolrael's Favor
 Juri, Master of the Revue
 Jwari Disruption

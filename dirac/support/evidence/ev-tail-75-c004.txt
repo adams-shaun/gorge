@@ -10,6 +10,7 @@ Alrund's Epiphany
 Ancient Gold Dragon
 Anointer Priest
 Apprentice Sharpshooter
+Arachnus Web
 Archwing Dragon
 Artificer Class
 Aspect of Lamprey
@@ -80,6 +81,7 @@ Dreamshackle Geist
 Drifting Shade
 Drillworks Mole
 Drossclaw
+Drown in Dreams
 Dualcaster Mage
 Dune Mover
 Duplicant

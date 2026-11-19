@@ -22,6 +22,7 @@ Bone Devourer
 Boneknitter
 Bonepicker Skirge
 Bound in Silence
+Bountiful Promenade
 Brackwater Elemental
 Burning Fields
 Cabal Patriarch
@@ -36,6 +37,7 @@ Dawning Angel
 Death's Shadow
 Delraich
 Demon's Disciple
+Desert of the Indomitable
 Desolate Mire
 Desynchronize
 Devouring Light
@@ -47,6 +49,7 @@ Drifting Shade
 Drillworks Mole
 Drossclaw
 Dune Mover
+Duplicant
 Eccentric Pestfinder
 Elvish Dreadlord
 Erstwhile Trooper

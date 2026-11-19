@@ -3,6 +3,7 @@ A-Warm Welcome
 Abbey Griffin
 Aberrant Return
 Acceptable Losses
+Aerial Caravan
 Aether Herder
 Age of Ultron
 Akoum Hellkite
@@ -12,6 +13,7 @@ Ancestral Recall
 Angel of Glory's Rise
 Anurid Barkripper
 Archghoul of Thraben
+Arrester's Admonition
 Ashiok's Skulker
 Assassin Initiate
 Aura of Silence
@@ -32,6 +34,7 @@ Blood Divination
 Blood Glutton
 Blood Seeker
 Blur Sliver
+Boggart Trawler
 Bolt of Keranos
 Bounty Agent
 Bronze Sword
@@ -86,6 +89,7 @@ Engulf the Shore
 Eyeblight's Ending
 Faerie Macabre
 False Demise
+Fearless Liberator
 Feast of the Unicorn
 Feast or Famine
 Feedback
@@ -93,12 +97,14 @@ Fetid Gargantua
 Fists of Flame
 Flare
 Flay
+Flourishing Strike
 Flowstone Mauler
 Forest
 Foundry Inspector
 Frenetic Efreet
 Fruit of Tizerus
 Funnel-Web Recluse
+Garruk's Horde
 Ghost-Lit Nourisher
 Glarewielder
 Glimpse the Future
@@ -138,6 +144,7 @@ Iron Verdict
 Ishai, Ojutai Dragonspeaker
 Island
 Jeskai Elder
+Joiner Adept
 Juju Bubble
 Jukai Trainee
 Juvenile Gloomwidow
@@ -151,12 +158,14 @@ Last Kiss
 Lat-Nam Adept
 Lesser Werewolf
 Liliana's Triumph
+Living Totem
 Lone Missionary
 Loxodon Mystic
 Lynx
 M.O.D.O.K., Evil Intellect
 Magmaroth
 Mardu Hateblade
+Marionette Apprentice
 Marsh Casualties
 Mascot Exhibition
 Mass Appeal
@@ -170,19 +179,23 @@ Mogg Squad
 Moldering Karok
 Moonsilver Key
 Moroii
+Mortal's Resolve
 Mother Kangaroo
 Mountain
 Nature's Wrath
 Necropede
 Nether Spirit
 Network Terminal
+Nishoba Brawler
 Nomads en-Kor
+O'aka, Traveling Merchant
 Okiba-Gang Shinobi
 Orim's Thunder
 Overtaker
 Paradise Druid
 Pearled Unicorn
 Pernicious Deed
+Pestilent Wolf
 Pierce Strider
 Pious Wayfarer
 Pitchburn Devils
@@ -193,7 +206,9 @@ Precinct Captain
 Primal Adversary
 Propagator Drone
 Protector of the Wastes
+Puca's Covenant
 Queen's Agent
+Quickbeam, Upstart Ent
 Quietus Spike
 Rain of Filth
 Rain of Revelation
@@ -203,6 +218,7 @@ Rat Colony
 Ratcatcher
 Red XIII, Proud Warrior
 Regisaur Alpha
+Relentless Rats
 Relic Bind
 Reverent Mantra
 Riddle Gate Gargoyle
@@ -216,6 +232,7 @@ Ruthless Deathfang
 Scourge of the Nobilis
 Screeching Bat
 Screeching Drake
+Secluded Steppe
 Selesnya Charm
 Selfless Cathar
 Selfless Savior
@@ -230,11 +247,13 @@ Skyblade's Boon
 Skyhunter Patrol
 Slimy Piper
 Slingshot Goblin
+Snarespinner
 Sorcerer's Strongbox
 Soul Channeling
 Soulblade Djinn
 Spectral Flight
 Sphere of Reason
+Sphinx of Clear Skies
 Spontaneous Artist
 Spore Crawler
 Sprinting Warbrute
@@ -248,6 +267,7 @@ Stonewood Invocation
 Storm Fleet Aerialist
 Stroke of Genius
 Sublime Archangel
+Summon Undead
 Summon: Kujata
 Sunlit Marsh
 Suspicious Bookcase
@@ -271,8 +291,10 @@ Treespring Lorian
 Troubled Healer
 Troublesome Spirit
 True Polymorph
+True-Faith Censer
 Trusty Packbeast
 Tukatongue Thallid
+Tyranid Harridan
 Tyranid Prime
 Uktabi Wildcats
 Unbreakable Formation
@@ -296,11 +318,13 @@ Vrock
 Vulpine Goliath
 Wall of Opposition
 War Falcon
+Wardscale Crocodile
 Warlord's Elite
 Water Elemental
 Wayward Soul
 Weakness
 White Widow, Yelena Belova
+Willow Elf
 Winds of Rath
 Wormhole Serpent
 Wu Scout

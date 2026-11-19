@@ -66,4 +66,5 @@ Unholy Grotto
 Valley Rannet
 Viashivan Dragon
 Wander in Death
+Wilderness Elemental
 Windreader Sphinx
