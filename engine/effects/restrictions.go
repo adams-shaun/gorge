@@ -332,11 +332,17 @@ func unlessDefenderCompare(tok string) (string, int32, bool) {
 // the layer-aware hasTypeCtx over sc, so a permanent a type-changing effect
 // made a creature counts as one (CR 613.1d: Kormus Bell's Swamps against Mogg
 // Toady's hasFewerCreaturesInPlayThanYou) and one that lost the type does not.
+// A phased-out battlefield object counts as none (CR 702.26b: treated as
+// though it does not exist — Goblin Goon may attack past a phased-out
+// defender creature; the property mentions no phased-out exception).
 func unlessDefenderTypeCount(g *state.Game, z state.Zone, p state.PlayerID, cardType string, sc SpecContext) int32 {
 	n := int32(0)
 	for _, id := range g.Zone(z, p) {
 		o := g.Obj(id)
 		if o == nil {
+			continue
+		}
+		if o.PhasedOut && o.Zone == state.ZBattlefield {
 			continue
 		}
 		if strings.EqualFold(cardType, "Card") || strings.EqualFold(cardType, "Any") || hasTypeCtxPtr(o, cardType, &sc) {
