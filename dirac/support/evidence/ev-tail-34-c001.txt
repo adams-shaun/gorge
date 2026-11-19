@@ -74,6 +74,7 @@ Company Commander
 Condescend
 Conjurer's Mantle
 Consulate Turret
+Contaminated Ground
 Conversion
 Copperline Gorge
 Cowl Prowler
@@ -226,6 +227,7 @@ Mirari
 Moaning Wall
 Mogis's Warhound
 Molten Rebuke
+Monastery Loremaster
 Morale
 Morinfen
 Moriok Scavenger

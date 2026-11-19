@@ -126,6 +126,7 @@ Gravel Slinger
 Grayscaled Gharial
 Griselbrand
 Grixis Slavedriver
+Ground Assault
 Gruul Cluestone
 Gulf Squid
 Hag of Noxious Nightmares
@@ -168,6 +169,7 @@ Leonin Armorguard
 Leyline of the Meek
 Linvala, the Preserver
 Living Lightning
+Living Twister
 Longbow Archer
 Loyal Warhound
 Lu Meng, Wu General

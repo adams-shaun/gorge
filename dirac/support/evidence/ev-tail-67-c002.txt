@@ -73,6 +73,7 @@ Courier's Capsule
 Crackling Triton
 Crop Rotation
 Crypt Incursion
+Crystalline Armor
 Culling Mark
 Custodi Soulbinders
 Daily Bugle Newspaper
@@ -136,12 +137,14 @@ Helitrooper
 Hemlock Vial
 Heroes of the Revel
 Heroes' Podium
+Hidden Blade
 Honed Khopesh
 Horizon Chimera
 Horseshoe Crab
 Hound of the Farbogs
 Idol of Oblivion
 Implement of Ferocity
+Improvised Armor
 Independent Troops
 Indigo Faerie
 Infernal Pet
@@ -157,6 +160,7 @@ Island
 Jackalope Herd
 Kaito Shizuki
 Keen-Eyed Raven
+Keeneye Aven
 Kirtar's Wrath
 Knight of the Keep
 Knights of the Black Rose
@@ -219,6 +223,7 @@ Plains
 Preeminent Captain
 Primeval Force
 Prizefighter Construct
+Progenitor Mimic
 Prosper, Tome-Bound
 Protector of Gondor
 Prowling Pangolin
@@ -275,6 +280,7 @@ Spellweaver Eternal
 Spider-Man 2099, Miguel O'Hara
 Spined Fluke
 Spirit Weaver
+Sporogenesis
 Squee's Embrace
 Steam Blast
 Stinging Barrier

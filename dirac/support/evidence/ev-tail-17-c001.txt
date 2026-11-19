@@ -163,6 +163,7 @@ Gorging Vulture
 Grafted Growth
 Gravepurge
 Graypelt Refuge
+Grazing Gladehart
 Great Furnace
 Greataxe
 Greenbelt Rampager
@@ -258,6 +259,7 @@ Opal Acrolith
 Open Fire
 Oran-Rief Hydra
 Orbs of Warding
+Orchard Warden
 Orcish Spy
 Orim's Prayer
 Owl Familiar

@@ -26,6 +26,7 @@ Barbarian Outcast
 Batroc the Leaper
 Batterbone
 Battle Mammoth
+Battlefly Swarm
 Benthic Behemoth
 Blightbeetle
 Blistering Barrier
@@ -150,6 +151,7 @@ Goblin Skycutter
 Goldmeadow Lookout
 Golgari Death Swarm
 Graceful Restoration
+Grasping Dunes
 Great Desert Prospector
 Greater Auramancy
 Greater Good
@@ -388,6 +390,7 @@ Tidings
 Torment
 Touch of Brilliance
 Towering-Wave Mystic
+Tranquil Expanse
 Tranquil Thicket
 Turn
 Twisted Embrace

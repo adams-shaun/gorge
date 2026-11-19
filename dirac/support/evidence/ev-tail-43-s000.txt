@@ -64,6 +64,7 @@ Relentless Skaabs
 Reminisce
 Rooting Kavu
 Ruins Recluse
+Rusted Relic
 Rusted Slasher
 Saberclaw Golem
 Sakura-Tribe Scout
@@ -77,6 +78,7 @@ Stampeding Serow
 Stunt Double
 Sylvan Basilisk
 Takenuma, Abandoned Mire
+Talas Explorer
 Tear Asunder
 The Hunger Tide Rises
 Torrential Gearhulk

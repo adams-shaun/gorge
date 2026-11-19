@@ -103,6 +103,7 @@ Dense Foliage
 Desecration Elemental
 Destructive Force
 Devkarin Dissident
+Diregraf Colossus
 Dismantling Wave
 Domri, City Smasher
 Draco
