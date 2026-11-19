@@ -933,13 +933,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C&kop.MvRemember != 0 {
 			s.remember(o) // RememberChanged$: gorge effChangeZone remembers the exiled card
 		}
-		if s.g.nlinks < uint8(len(s.g.links)) {
-			l := &s.g.links[s.g.nlinks]
-			l.src, l.sver, l.obj = e.obj, s.objs[e.obj].ver, o
-			s.g.nlinks++
-		} else {
-			s.capFull(StallLinks)
-		}
+		s.recordExileLink(e.obj, o)
 	case kop.OpChooseColor:
 		// inside an as-enters program: asked before the next priority
 		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
@@ -1345,6 +1339,18 @@ func (s *State) loopBackGen(k *prep) {
 		s.res.pc = s.g.repPC
 	} else if s.res.pc == s.g.repEnd && s.g.repEnd != 0 && s.zoneLoopHeld() {
 		s.zoneLoopClose(k) // zone_repeatbatch.go: the last player is done
+	}
+}
+
+// recordExileLink records an exile-until-leaves link (src's exile of o), or
+// counts a StallLinks capacity stall when every link slot is taken.
+func (s *State) recordExileLink(src, o Obj) {
+	if s.g.nlinks < uint8(len(s.g.links)) {
+		l := &s.g.links[s.g.nlinks]
+		l.src, l.sver, l.obj = src, s.objs[src].ver, o
+		s.g.nlinks++
+	} else {
+		s.capFull(StallLinks)
 	}
 }
 
