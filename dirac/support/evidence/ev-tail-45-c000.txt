@@ -178,6 +178,7 @@ Haazda Officer
 Hag of Death's Legion
 Havengul Skaab
 Haze of Pollen
+Hazel's Brewmaster
 Heart Sliver
 Heartbeat of Spring
 Hellfire Mongrel
@@ -256,6 +257,7 @@ Mudhole
 Murasa Pyromancer
 Murasa Rootgrazer
 Mycoid Shepherd
+Naga Vitalist
 Nath's Elite
 Nebelgast Herald
 Necrogen Censer

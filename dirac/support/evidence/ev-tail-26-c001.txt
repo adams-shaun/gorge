@@ -47,6 +47,7 @@ Chemister's Insight
 Chrome Mox
 City of Shadows
 Cloud Manta
+Cloud's Limit Break
 Colossal Badger
 Contract Killing
 Copper Tablet
@@ -252,6 +253,7 @@ Vivien's Arkbow
 Volcanic Dragon
 Volcanic Rush
 Wall of Opposition
+War Machine, James Rhodes
 Warkite Marauder
 Warlord's Axe
 Warthog

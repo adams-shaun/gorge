@@ -155,6 +155,7 @@ Frost Trickster
 Fungal Rebirth
 Gainsay
 Garruk's Companion
+Garruk, Cursed Huntsman
 Gate to Phyrexia
 Geistblast
 Generous Stray
@@ -192,6 +193,7 @@ Horrific Assault
 Howling Golem
 Humongulus
 Hunted Dragon
+Iname as One
 Incriminate
 Inferno Fist
 Inspired Fire
@@ -409,6 +411,7 @@ The Rack
 Thorncaster Sliver
 Thought Collapse
 Thundercloud Shaman
+Thunderscape Master
 Tide Skimmer
 Tidings
 Torment

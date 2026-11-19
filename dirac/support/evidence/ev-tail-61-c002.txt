@@ -13,11 +13,14 @@ Altar of Bhaal
 Altar of Bone
 Amazing Alliance
 Ambush
+An-Havva Inn
 Araña, Heart of the Spider
 Argivian Blacksmith
 Asha's Favor
+Atraxi Warden
 Atsushi, the Blazing Sky
 Augur il-Vec
+Avabruck Caretaker
 Avenging Hunter
 Azra Smokeshaper
 Bad Deal
@@ -87,6 +90,7 @@ Endless Cockroaches
 Entish Restoration
 Etherium Abomination
 Exuberant Wolfbear
+Eyeblight's Ending
 Fallen Ferromancer
 False Mourning
 Fangren Hunter
@@ -178,6 +182,7 @@ Master Thief
 Maulfist Doorbuster
 Maximize Velocity
 Meishin, the Mind Cage
+Mending Touch
 Merfolk of the Depths
 Meriadoc Brandybuck
 Mesa Unicorn
@@ -214,6 +219,7 @@ Peel from Reality
 Pegasus Courser
 Peppersmoke
 Phalanx Vanguard
+Pharika's Libation
 Phyresis
 Phyrexian Archivist
 Pianna, Nomad Captain
@@ -294,6 +300,7 @@ Steam Spitter
 Steely Resolve
 Steppe Lynx
 Stern Scolding
+Stolen Grain
 Stormscape Master
 Stream of Consciousness
 Strength of the Pack
@@ -318,6 +325,7 @@ Tectonic Rift
 Tempest Owl
 Temporal Eddy
 Tenth District Veteran
+Termagant Swarm
 Teroh's Faithful
 Tezzeret, Artifice Master
 Thalakos Sentry

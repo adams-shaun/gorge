@@ -96,6 +96,7 @@ Mind Drain
 Mirrodin Avenged
 Mirror Image
 Monstrous Hound
+Morbid Bloom
 Mountain
 Multiversal Recruitment
 Nephalia Smuggler
@@ -167,6 +168,7 @@ Viashivan Dragon
 Vraska's Contempt
 Wake of Destruction
 Wander in Death
+Warleader's Helix
 Wildfire Eternal
 Windreader Sphinx
 Woodland Bellower

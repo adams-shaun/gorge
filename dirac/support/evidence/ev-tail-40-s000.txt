@@ -49,6 +49,7 @@ Destroy Evil
 Digsite Engineer
 Dire Fleet Neckbreaker
 Dirtwater Wraith
+Dragonstorm
 Drannith Ruins
 Dreadwaters
 Drover of the Mighty
@@ -124,6 +125,7 @@ Mech Hangar
 Meldweb Curator
 Meng Huo, Barbarian King
 Mental Discipline
+Merchant Ship
 Minotaur Skullcleaver
 Mogg Alarm
 Moment of Heroism
@@ -135,6 +137,7 @@ Namora, the Sea Queen
 Nantuko Shade
 Nephalia Drownyard
 Nightveil Sprite
+Nimraiser Paladin
 No Rest for the Wicked
 Noxious Toad
 Nurturing Peatland

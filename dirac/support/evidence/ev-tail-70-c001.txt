@@ -47,6 +47,7 @@ Chain Devil
 Chains of Custody
 Champion's Drake
 Chandra, Flamecaller
+Chant of Vitu-Ghazi
 Charge
 Chimney Rabble
 Chrome Host Seedshark
@@ -141,6 +142,7 @@ Hero's Heirloom
 Holy Strength
 Hoof Skulkin
 Hopping Automaton
+Hoverguard Sweepers
 Hullbreaker Horror
 Hythonia the Cruel
 Ilysian Caryatid
