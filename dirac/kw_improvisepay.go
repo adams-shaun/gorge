@@ -45,6 +45,10 @@ func (s *State) improviseReserved(k *prep, p uint8, gen uint8) slotMask {
 // improviseSourcesPay reports whether p's pool and sources, less the reserved
 // artifacts, pay cost (the plan's census), the restricted sources and mana
 // the spell's payment may spend beside it (CR 106.6, 601.2g-h; restrFallback).
+// The census holds no granted mana ability, so a price the credit's artifacts
+// were withheld for that only a grant pays is the planner's "cost:credit"
+// decline too (a cast crediting no artifact is planned plainly and its prefix
+// search taps the grant: improviseAloneCast).
 func (s *State) improviseSourcesPay(k *prep, p uint8, o Obj, res slotMask, cost *kop.ManaCost) bool {
 	m := s.ctrlM[SeatIx(p)]
 	s.ctrlM[SeatIx(p)] = m.andNot(res)
@@ -52,6 +56,12 @@ func (s *State) improviseSourcesPay(k *prep, p uint8, o Obj, res slotMask, cost 
 	s.availFor(k, p, &av)
 	ok := av.affords(cost, pipMaskOf(cost), 0) ||
 		s.restrFallback(k, p, s.objs[o].card, s.restrOriginOfObj(o), cost, &av)
+	if ok && res.any() && k.gen != nil && len(k.gen.grantPC) != 0 {
+		// the planner's census holds no granted mana ability (pay/board.go
+		// PaymentAbility): a credited price only a grant pays is its
+		// "cost:credit" decline, the prefix search's (potentialCensusNeeded)
+		ok = s.affordsUngrantedCast(k, p, cost, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)})
+	}
 	s.ctrlM[SeatIx(p)] = m
 	return ok
 }
