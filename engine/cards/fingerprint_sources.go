@@ -65,6 +65,7 @@ import "embed"
 //go:embed kw_devour.go
 //go:embed kw_echo.go
 //go:embed kw_embalm.go
+//go:embed kw_epic.go
 //go:embed kw_enchant.go
 //go:embed kw_encore.go
 //go:embed kw_equip.go

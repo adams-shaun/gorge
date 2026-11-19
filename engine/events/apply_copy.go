@@ -87,6 +87,14 @@ func foldMutate(g *state.Game, e *Event) {
 	survivor.TimesMutated += e.Amount
 }
 
+// EpicSpellCopyText marks a StackCopy whose source is a resolved Epic
+// spell's snapshot off the stack (CR 702.50a; kw:Epic's upkeep body,
+// engine/cards/kw_epic.go -> engine/effects/copy.go's Defined$ Self arm).
+// A card spell's resolvability lives on its face (Face().SpellAbility), so
+// the resolved card is still a complete spell and the ordinary StackCopy
+// field reads mint its stack copy.
+const EpicSpellCopyText = "epic spell copy"
+
 // foldStackCopy folds Kind StackCopy into state.
 func foldStackCopy(g *state.Game, e *Event) {
 	if !validPlayer(g, e.Player) {
@@ -107,7 +115,15 @@ func foldStackCopy(g *state.Game, e *Event) {
 		o.IsCopy = true
 		return
 	}
-	if src == nil || src.Zone != state.ZStack {
+	// The snapshot arm copies a spell that is no longer on the stack: only an
+	// object that is still a complete spell (its card, a face that resolves
+	// as one) admits it, fail-closed -- a plain card or a ceased ability
+	// never mints.
+	snapshot := src != nil && src.Zone != state.ZStack && e.Text == EpicSpellCopyText
+	if snapshot && (src.Card == nil || src.Face() == nil || src.Face().SpellAbility() == nil) {
+		return
+	}
+	if src == nil || (src.Zone != state.ZStack && !snapshot) {
 		return
 	}
 	// Snapshot everything read from src into locals before AddObject:

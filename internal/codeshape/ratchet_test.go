@@ -22,7 +22,7 @@ import (
 const (
 	// maxFuncLinesOver300 is the number of non-test functions in engine/rules/ and
 	// engine/effects/ spanning more than 300 lines.
-	maxFuncLinesOver300 = 50
+	maxFuncLinesOver300 = 49
 	// engineMethodCount is the number of non-test methods on rules.Engine.
 	engineMethodCount = 2423
 	// hostMethodCount is the number of methods in the effects.Host interface

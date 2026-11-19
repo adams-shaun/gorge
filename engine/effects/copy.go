@@ -77,7 +77,12 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// stack-arena order, each copied Amount$ times. It is nil for every other
 	// Defined form, whose established single-spell shape is unchanged.
 	var validStackSpells []state.ObjID
-	code := effCopySpellAbilityCodes.Code(string(DefinedRefOf(sa).Text))
+	// snapshot marks the Defined$ Self arm: its source may be a resolved
+	// spell's snapshot off the stack (see the effCopySpellAbilitySelf comment),
+	// which the zone guard below admits and the emit below tags with the
+	// event's EpicSpellCopyText discriminator.
+	var snapshot bool
+	code := copySpellDefinedArm(sa)
 	if _, chained := spawnerChain(DefinedRefOf(sa).Text); chained {
 		code = effCopySpellAbilitySpawnerChain
 	}
@@ -113,6 +118,15 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	case effCopySpellAbilityParent:
 		// An explicit Parent copy copies the resolving spell itself.
 		spell = c.Source
+	case effCopySpellAbilitySelf:
+		// The snapshot copy (kw:Epic's upkeep body): CR 702.50a's "copy this
+		// spell" runs long after the spell left the stack, so the source is
+		// the registration's Source -- the Epic card itself, wherever it now
+		// sits -- read as c.Source by the delayed body. A source still on the
+		// stack copies exactly like Parent; one off it must still be a spell
+		// snapshot (the zone guard below).
+		spell = c.Source
+		snapshot = true
 	default: // "Targeted" and any unset/other name
 		// An SA that names targets copies its TARGET: every corpus
 		// CopySpellAbility line without Defined$ (66, Flare of Duplication
@@ -129,47 +143,9 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 		if spell == 0 {
-			// Defined$ ValidStack <spec> (Ulalek, Fused Atrocity's "copy all
-			// spells you control" and its SubAbility$'s "copy all other
-			// activated and triggered abilities you control"): the one Defined
-			// form this arm cannot read off c.Targets -- a ValidStack spec
-			// resolves from the STACK, not from the trigger's targets. Route
-			// it through the shared ValidStack resolver every other Defined
-			// consumer uses, but ONLY when some comma token actually names a
-			// stack kind (state.StackKindTokenOf): the parser's no-usable-token
-			// degradation to Spell-only must not leak in here -- a genuinely
-			// unknown token would otherwise widen to "all spells you control"
-			// and copy every spell on the stack. Fail closed instead. The
-			// `Ability` base IS a stack kind (Activated+
-			// Triggered, never Spell), and its `otherAbility` qualifier
-			// excludes the resolving wrapper via Ctx.ResolvingObj, so the
-			// sub-copy cannot copy itself; the arm is PLURAL -- every admitted
-			// object is copied, so Ulalek's "copy all spells you control" and
-			// "copy all other activated and triggered abilities" place one copy
-			// per match instead of only the first. The family exclusion is
-			// untouched by this: validStackAdmits still drops the resolving
-			// wrapper AND every instance or copy sharing (Source, Ability), the
-			// recorded livelock guard -- an id-only exclusion would let a copy
-			// of the wrapper be copied again and ask its pay question forever.
-			spec := DefinedRefOf(sa).Text
-			if stackSpec, ok := strings.CutPrefix(spec, "ValidStack"); ok {
-				for tok := range strings.SplitSeq(strings.TrimSpace(stackSpec), ",") {
-					if _, known := state.StackKindTokenOf(strings.TrimSpace(tok)); known {
-						if ts, knownAll := knownDefinedTargets(h, c, spec); knownAll {
-							for _, t := range ts {
-								if t.IsPlayer || t.Obj == 0 {
-									continue
-								}
-								if o := g.Obj(t.Obj); o == nil || o.Zone != state.ZStack {
-									continue
-								}
-								validStackSpells = append(validStackSpells, t.Obj)
-							}
-						}
-						break
-					}
-				}
-			}
+			// Defined$ ValidStack <spec>: the plural arm resolves from the
+			// STACK (validStackCopyTargets), fail-closed on any unknown token.
+			validStackSpells = validStackCopyTargets(h, c, DefinedRefOf(sa).Text)
 		}
 		if spell == 0 && len(validStackSpells) == 0 {
 			return
@@ -178,13 +154,37 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	if spell != 0 {
 		// The source spell must actually be on the stack; a copy of something
 		// that already left it is a no-op, the same totality stance as every
-		// other effect primitive. The plural ValidStack arm above already
-		// applied this filter per match.
-		if o := g.Obj(spell); o == nil || o.Zone != state.ZStack {
+		// other effect primitive. The one carve-out is the snapshot arm: a
+		// card spell's resolvability lives on its FACE (Face().SpellAbility),
+		// not on the object, so the resolved Epic card is still a complete
+		// spell and CR 702.50a's "copy this spell" names exactly it. Anything
+		// else off the stack -- a plain card, a ceased ability -- still
+		// refuses, fail-closed. The plural ValidStack arm above already
+		// applied its filter per match.
+		o := g.Obj(spell)
+		if o == nil {
 			return
 		}
-		if !spellCopyAllowed(h, spell) {
+		if o.Zone != state.ZStack && !(snapshot && o.Card != nil && o.Face() != nil && o.Face().SpellAbility() != nil) {
 			return
+		}
+		// spellCopyAllowed answers two questions for a STACK spell: the
+		// CantBeCopied statics and the resolving-wrapper livelock guard. A
+		// snapshot source is neither on the stack (the host read refuses
+		// off-stack candidates outright) nor a wrapper, and the CantBeCopied
+		// ValidCard$ specs the corpus writes target stack spells, so the
+		// guard is a stack-spell guard and the snapshot arm skips it.
+		if o.Zone == state.ZStack && !spellCopyAllowed(h, spell) {
+			return
+		}
+	}
+	// The snapshot emit tag: only a copy whose source is OFF the stack rides
+	// the fold's snapshot discriminator (events.EpicSpellCopyText); a Self
+	// copy of an on-stack spell is an ordinary copy.
+	var snapshotText string
+	if snapshot {
+		if o := g.Obj(spell); o != nil && o.Zone != state.ZStack {
+			snapshotText = events.EpicSpellCopyText
 		}
 	}
 	if len(validStackSpells) > 0 {
@@ -254,44 +254,10 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	}
-	// IgnoreFreeze$ True (Ulalek, Fused Atrocity's copy trigger; Forge's
-	// generic copy template carries it too): Forge MagicStack's frozen flag
-	// blocks adding to the stack while it holds, and a copy SA carrying this
-	// key is exempt. This engine has no stack freeze -- nothing in the
-	// implemented ruleset suspends stack additions -- so there is no gate to
-	// relax; the recognition read documents the parameter so the census never
-	// flags it unread.
-	_ = sa.ParamStr(cards.PKIgnoreFreeze)
+	// IgnoreFreeze$ is recognised, not acted on (no stack freeze exists); ignoreFreezeRead's doc carries the details.
+	_ = ignoreFreezeRead(sa)
 	mayChoose := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKMayChooseTarget)), "True")
-	// NonLegendary$ True (The Sixth Doctor's "copy it, except the copy isn't
-	// legendary", and the corpus's six-carrier CopySpellAbility family:
-	// Osgood Operation Double, Iron Man Bleeding Edge, Jackal Genius
-	// Geneticist, Storm of Saruman, The Clone Saga). The copy's
-	// characteristics drop the Legendary supertype, so a copied legendary
-	// PERMANENT spell resolves into a token CR 704.5j must not gather against
-	// its original. The rider rides the StackCopy event's Counter -- the
-	// field StackCopy otherwise leaves empty -- and events.Apply's fold
-	// turns it into the object marker rules' typeCharacteristics strips the
-	// supertype from, the same event-sourced shape ClonePermanent's Counter
-	// riders take. No event field is added or reordered; an absent or False
-	// key adds no strip, but a copy of a stripped copy inherits the strip.
-	nonLegendary := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKNonLegendary)), "True")
-	// SetLoyalty$ (the corpus's one carrier is Ob Nixilis, the Adversary's
-	// Casualty:X script rider): the copy's starting loyalty, delivered
-	// RESOLVED -- the creating trigger's payload already substituted the
-	// casualty amount for the script's `Casualty` value, so the value here
-	// is a number. The rider composes into the StackCopy event's Counter
-	// payload (events.StackCopyCounter), which the entry fold
-	// (events.EntryCounterGrants) places instead of the printed face value.
-	// An absent key leaves the printed starting loyalty; an unparseable
-	// value cannot arise from the payload path and is ignored.
-	var riders events.StackCopyCounter
-	riders.NonLegendary = nonLegendary
-	if raw := strings.TrimSpace(sa.ParamStr(cards.PKSetLoyalty)); raw != "" {
-		if n, err := strconv.Atoi(raw); err == nil && n >= 0 {
-			riders.Loyalty, riders.HasLoyalty = int32(n), true
-		}
-	}
+	riders := stackCopyRiders(sa)
 	payload := events.StackCopyCounterString(riders)
 	// RememberCopies$ True (Shiko and Narset, Unified's "copy that spell ...
 	// If you don't copy a spell this way, draw a card"; Chef's Kiss's "the
@@ -352,7 +318,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 		}
 		for _, sp := range copies {
 			for i := 0; i < n; i++ {
-				ev := events.Event{Kind: events.StackCopy, Obj: sp, Player: controller, Counter: payload}
+				ev := events.Event{Kind: events.StackCopy, Obj: sp, Player: controller, Counter: payload, Text: snapshotText}
 				if mayChoose {
 					// CR 707.10c: the copy's controller may choose new targets
 					// before anyone can respond. The permission rides the
@@ -370,11 +336,119 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 			// additional copy" -- each extra copy carries the CR 707.10c
 			// new-targets permission (Amount 1) whatever MayChooseTarget$ says.
 			for i, extra := 0, copySpellExtra(h, controller, sp); i < extra; i++ {
-				ev := events.Event{Kind: events.StackCopy, Obj: sp, Player: controller, Counter: payload, Amount: 1}
+				// The extra copy carries the same snapshot discriminator as
+				// the main one: an extra copy OF an Epic snapshot copy has an
+				// off-stack source too, and without the Text foldStackCopy
+				// refuses it -- the extra copy would silently never mint
+				// (Twinning Staff beside a resolved Epic).
+				ev := events.Event{Kind: events.StackCopy, Obj: sp, Player: controller, Counter: payload, Text: snapshotText, Amount: 1}
 				emitCopy(h, c, rememberCopies, ev, addTypes)
 			}
 		}
 	}
+}
+
+// stackCopyRiders builds the StackCopy event's Counter rider payload:
+//
+// NonLegendary$ True (The Sixth Doctor's "copy it, except the copy isn't
+// legendary", and the corpus's six-carrier CopySpellAbility family: Osgood
+// Operation Double, Iron Man Bleeding Edge, Jackal Genius Geneticist, Storm
+// of Saruman, The Clone Saga). The copy's characteristics drop the Legendary
+// supertype, so a copied legendary PERMANENT spell resolves into a token CR
+// 704.5j must not gather against its original. The rider rides the StackCopy
+// event's Counter -- the field StackCopy otherwise leaves empty -- and
+// events.Apply's fold turns it into the object marker rules'
+// typeCharacteristics strips the supertype from, the same event-sourced shape
+// ClonePermanent's Counter riders take. No event field is added or reordered;
+// an absent or False key adds no strip, but a copy of a stripped copy
+// inherits the strip.
+//
+// SetLoyalty$ (the corpus's one carrier is Ob Nixilis, the Adversary's
+// Casualty:X script rider): the copy's starting loyalty, delivered RESOLVED
+// -- the creating trigger's payload already substituted the casualty amount
+// for the script's `Casualty` value, so the value here is a number. The rider
+// composes into the StackCopy event's Counter payload
+// (events.StackCopyCounter), which the entry fold (events.EntryCounterGrants)
+// places instead of the printed face value. An absent key leaves the printed
+// starting loyalty; an unparseable value cannot arise from the payload path
+// and is ignored.
+func stackCopyRiders(sa *cards.SA) events.StackCopyCounter {
+	var riders events.StackCopyCounter
+	riders.NonLegendary = strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKNonLegendary)), "True")
+	if raw := strings.TrimSpace(sa.ParamStr(cards.PKSetLoyalty)); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil && n >= 0 {
+			riders.Loyalty, riders.HasLoyalty = int32(n), true
+		}
+	}
+	return riders
+}
+
+// copySpellDefinedArm resolves a CopySpellAbility's Defined$ spelling to its
+// arm code. `Defined$ Self` (kw:Epic's snapshot arm) is NOT a table key here:
+// copyDefinedTargetsCodes owns the word ("Self" is its only Self-valued key),
+// so the arm derives from that lookup instead of naming the word in a second
+// table (strCodesKeyDup is shrink-only).
+func copySpellDefinedArm(sa *cards.SA) effCopySpellAbilityCode {
+	code := effCopySpellAbilityCodes.Code(string(DefinedRefOf(sa).Text))
+	if code == 0 && copyDefinedTargetsCodes.Code(string(DefinedRefOf(sa).Text)) == copyDefinedTargetsSelf {
+		return effCopySpellAbilitySelf
+	}
+	return code
+}
+
+// ignoreFreezeRead recognises CopySpellAbility's IgnoreFreeze$ key (Ulalek,
+// Fused Atrocity's copy trigger; Forge's generic copy template carries it
+// too): Forge MagicStack's frozen flag blocks adding to the stack while it
+// holds, and a copy SA carrying this key is exempt. This engine has no stack
+// freeze -- nothing in the implemented ruleset suspends stack additions -- so
+// there is no gate to relax; the recognition read documents the parameter so
+// the census never flags it unread.
+func ignoreFreezeRead(sa *cards.SA) string {
+	return sa.ParamStr(cards.PKIgnoreFreeze)
+}
+
+// validStackCopyTargets resolves a CopySpellAbility's Defined$ ValidStack
+// <spec> (Ulalek, Fused Atrocity's "copy all spells you control" and its
+// SubAbility$'s "copy all other activated and triggered abilities you
+// control"): the one Defined form the targeted arm cannot read off c.Targets
+// -- a ValidStack spec resolves from the STACK, not from the trigger's
+// targets. It routes through the shared ValidStack resolver every other
+// Defined consumer uses, but ONLY when some comma token actually names a
+// stack kind (state.StackKindTokenOf): the parser's no-usable-token
+// degradation to Spell-only must not leak in here -- a genuinely unknown
+// token would otherwise widen to "all spells you control" and copy every
+// spell on the stack. Fail closed instead. The `Ability` base IS a stack
+// kind (Activated+Triggered, never Spell), and its `otherAbility` qualifier
+// excludes the resolving wrapper via Ctx.ResolvingObj, so the sub-copy
+// cannot copy itself; the arm is PLURAL -- every admitted object is copied,
+// so Ulalek's "copy all spells you control" and "copy all other activated and
+// triggered abilities" place one copy per match instead of only the first.
+// The family exclusion is untouched by this: validStackAdmits still drops the
+// resolving wrapper AND every instance or copy sharing (Source, Ability), the
+// recorded livelock guard -- an id-only exclusion would let a copy of the
+// wrapper be copied again and ask its pay question forever.
+func validStackCopyTargets(h Host, c *Ctx, spec string) []state.ObjID {
+	g := h.Game()
+	var out []state.ObjID
+	if stackSpec, ok := strings.CutPrefix(spec, "ValidStack"); ok {
+		for tok := range strings.SplitSeq(strings.TrimSpace(stackSpec), ",") {
+			if _, known := state.StackKindTokenOf(strings.TrimSpace(tok)); known {
+				if ts, knownAll := knownDefinedTargets(h, c, spec); knownAll {
+					for _, t := range ts {
+						if t.IsPlayer || t.Obj == 0 {
+							continue
+						}
+						if o := g.Obj(t.Obj); o == nil || o.Zone != state.ZStack {
+							continue
+						}
+						out = append(out, t.Obj)
+					}
+				}
+				break
+			}
+		}
+	}
+	return out
 }
 
 // copySpellExtra asks the rules host how many additional copies its live
@@ -661,6 +735,21 @@ type effCopySpellAbilityCode uint16
 const (
 	effCopySpellAbilityTriggeredSpellAbility effCopySpellAbilityCode = iota + 1
 	effCopySpellAbilityParent
+	// effCopySpellAbilitySelf (kw:Epic's upkeep body, engine/cards/kw_epic.go)
+	// copies the resolving chain's SOURCE as a spell SNAPSHOT: CR 702.50a's
+	// "copy this spell" names a spell that has long left the stack, and a
+	// resolved card spell keeps its compiled Ability across the stack exit
+	// (engine/events/apply_zone.go ceases only Card==nil ability objects), so
+	// the object is still a complete spell. The snapshot mint rides the
+	// StackCopy event's "epic spell copy" Text arm. Its "Self" spelling is
+	// NOT a key here: strCodesKeyDup is shrink-only and copyDefinedTargetsCodes
+	// (the copy mechanism's own table, DefinedTarget$) already owns the word,
+	// so effCopySpellAbility derives the arm from that lookup -- the same
+	// no-key pattern effCopySpellAbilitySpawnerChain uses. For an ON-stack
+	// source the snapshot flag is inert (the zone guard, spellCopyAllowed and
+	// the emit tag all key on the source's zone), so a hypothetical non-Epic
+	// `Defined$ Self` copy behaves exactly like Parent.
+	effCopySpellAbilitySelf
 	// effCopySpellAbilitySpawnerChain is set by effCopySpellAbility itself
 	// for a `Spawner>` chained Defined$; it has no table key.
 	effCopySpellAbilitySpawnerChain
