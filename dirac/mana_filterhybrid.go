@@ -7,13 +7,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // {T}: Add {C}.
 //
 // gorge's planner census misses it (a paid gap) and cannot relax it: a hybrid
-// fee has no relaxed alternative (rules paymentPlanRelaxedAlternatives), so
-// the census is unrelaxable (filtRelaxable) and funds nothing (fees 0): no
-// prefix search floats the fee, and the filter is activated only from mana the
-// payer already floats. Its activation ask lists {C}, then the Combo's one
-// option per colour of the amount, "Add WW" and "Add BB"
-// (pay.ManaAbilityComboColours flattens it): no {W}{B} option, so the kernel
-// plays the production as ManaN of one chosen colour (filtUnits, filtColours).
+// fee has no relaxed alternative (rules paymentPlanRelaxedAlternatives). It
+// funds one fee like any other once-only paid gap (fees), so the prefix search
+// taps a covered source to float the pip before activating the filter
+// (filtFunding). Its activation ask lists {C}, then the Combo's one option per
+// colour of the amount, "Add WW" and "Add BB" (pay.ManaAbilityComboColours
+// flattens it): no {W}{B} option, so the kernel plays the production as ManaN
+// of one chosen colour (filtUnits, filtColours).
 
 // filtHyb reports the two colours of the hybrid fee of the filter at sl, in
 // the printed order gorge's payment tries them. It reads the ability itself
