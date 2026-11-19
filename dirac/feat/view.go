@@ -124,6 +124,7 @@ type vplayer struct {
 	life, handN, libN, graveN int32
 	pool                      [6]int32
 	avail                     int32 // pool + available, policynet seatAvailable
+	lost                      bool  // the seat has left the game
 	bf, hand, grave, exile    []int32
 }
 
@@ -295,6 +296,7 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind, decid
 	for p := 0; p < int(v.n); p++ {
 		pl := &v.players[p]
 		pl.life = int32(kp.Life[p])
+		pl.lost = s.FeatLost(uint8(p))
 		pl.handN, pl.libN, pl.graveN = int32(kp.HandN[p]), int32(kp.LibN[p]), int32(kp.GraveN[p])
 		for k := range pl.pool {
 			pl.pool[k] = int32(kp.Pool[p][k])
@@ -461,7 +463,7 @@ func (v *vview) sides() (me, opp *vplayer) {
 // order policynet's bags and entity lists walk everyOther). Its lists are
 // the seats' lists concatenated; its counts and available mana are summed
 // (policynet's "opp|avail" sums every other seat); its life is the first
-// other seat's (policynet's mz life rows read others[0]).
+// other seat's (the mz life rows read the opponents one by one instead: mzLifeRows).
 func (v *vview) mergeOthers() {
 	o := &v.others
 	o.bf, o.hand, o.grave, o.exile = o.bf[:0], o.hand[:0], o.grave[:0], o.exile[:0]

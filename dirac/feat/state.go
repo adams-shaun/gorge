@@ -1,6 +1,8 @@
 package feat
 
 import (
+	"fmt"
+
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -440,13 +442,34 @@ func bucketRows(prefix string, hi int32) []uint16 {
 	return out
 }
 
+// slotBucketRows is policynet's mzLifeSlotRows tables: slot 0 the legacy
+// "mz|lifediff=" / "mz|opp|life=" rows, slot j>0 "mz|lifediff<j>=" /
+// "mz|opp<j>|life=".
+func slotBucketRows(kind string, hi int32) [maxSeatBlocks - 1][]uint16 {
+	var out [maxSeatBlocks - 1][]uint16
+	for j := range out {
+		switch {
+		case j == 0 && kind == "lifediff":
+			out[j] = bucketRows("mz|lifediff=", hi)
+		case j == 0:
+			out[j] = bucketRows("mz|opp|life=", hi)
+		case kind == "lifediff":
+			out[j] = bucketRows(fmt.Sprintf("mz|lifediff%d=", j), hi)
+		default:
+			out[j] = bucketRows(fmt.Sprintf("mz|opp%d|life=", j), hi)
+		}
+	}
+	return out
+}
+
 var (
 	nkMeAvail, nkOppAvail                         = newNumKey("me|avail", 8), newNumKey("opp|avail", 8)
 	nkMeCanAttackN, nkMeCanAttackPower            = newNumKey("me|canattack-n", 6), newNumKey("me|canattack-power", 12)
 	nkOppCanBlockN, nkOppCanBlockTough            = newNumKey("opp|canblock-n", 6), newNumKey("opp|canblock-tough", 12)
 	nkOppCanAttackN, nkOppCanAttackPower          = newNumKey("opp|canattack-n", 6), newNumKey("opp|canattack-power", 12)
 	nkMeCanBlockN, nkMeFlyers, nkOppFlyers        = newNumKey("me|canblock-n", 6), newNumKey("me|flyers", 4), newNumKey("opp|flyers", 4)
-	rowsLifediff, rowsOppLife, rowsMeLife         = bucketRows("mz|lifediff=", 14), bucketRows("mz|opp|life=", lifeBucketHi), bucketRows("mz|me|life=", lifeBucketHi)
+	rowsLifediff, rowsOppLife                     = slotBucketRows("lifediff", 14), slotBucketRows("opp|life", lifeBucketHi)
+	rowsMeLife                                    = bucketRows("mz|me|life=", lifeBucketHi)
 	rowMeLethal, rowOppLethal                     = row(add(off, "mz|me|lethal-unblocked")), row(add(off, "mz|opp|lethal-unblocked"))
 	rowStack                                      = [2]uint16{row(add(off, "mz|stack|me")), row(add(off, "mz|stack|opp"))}
 	rowHandInstant, rowHandCastable, rowHandCastI = row(add(off, "mz|hand|instant-speed")), row(add(off, "mz|hand|castable")), row(add(off, "mz|hand|castable|instant-speed"))
@@ -515,14 +538,54 @@ func (e *Encoder) mzGlobal(seat uint8, me, opp *vplayer, mine, theirs *agg) {
 	num(&nkMeCanBlockN, mine.canBlock)
 	num(&nkMeFlyers, mine.flyers)
 	num(&nkOppFlyers, theirs.flyers)
-	diff := me.life - opp.life
-	e.push(rowsLifediff[clampI(diff/3+7, 14)], 1)
-	e.push(rowsOppLife[clampI(opp.life/2, lifeBucketHi)], 1)
+	e.mzLifeRows(me, opp, mine)
+}
+
+// mzLifeRows is policynet's mzLifeRows: the life and lethal rows. Two seats
+// read the one opponent; more seats read the opponents in turn order from
+// the viewer, lost seats skipped, one life row per slot, with the lethal
+// rows evaluated per opponent.
+func (e *Encoder) mzLifeRows(me, opp *vplayer, mine *agg) {
+	v := &e.v
 	e.push(rowsMeLife[clampI(me.life/2, lifeBucketHi)], 1)
-	if mine.canAttackPower >= opp.life {
+	if v.n <= 2 {
+		e.push(rowsLifediff[0][clampI((me.life-opp.life)/3+7, 14)], 1)
+		e.push(rowsOppLife[0][clampI(opp.life/2, lifeBucketHi)], 1)
+		if mine.canAttackPower >= opp.life {
+			e.push(rowMeLethal, 1)
+		}
+		if e.killTheirs.canAttackPower >= me.life {
+			e.push(rowOppLethal, 1)
+		}
+		return
+	}
+	slot := 0
+	meLethal, oppLethal := false, false
+	for r := 1; r < int(v.n); r++ {
+		pl := &v.players[v.relPlayer(r)]
+		if pl.lost {
+			continue
+		}
+		if slot < maxSeatBlocks-1 {
+			e.push(rowsLifediff[slot][clampI((me.life-pl.life)/3+7, 14)], 1)
+			e.push(rowsOppLife[slot][clampI(pl.life/2, lifeBucketHi)], 1)
+		}
+		slot++
+		if mine.canAttackPower >= pl.life {
+			meLethal = true
+		}
+		var theirs agg
+		for _, ci := range pl.bf {
+			theirs.add(&v.cards[ci])
+		}
+		if theirs.canAttackPower >= me.life {
+			oppLethal = true
+		}
+	}
+	if meLethal {
 		e.push(rowMeLethal, 1)
 	}
-	if theirs.canAttackPower >= me.life {
+	if oppLethal {
 		e.push(rowOppLethal, 1)
 	}
 }

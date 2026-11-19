@@ -36,7 +36,7 @@ func TestLifeBucketRowsMatchPolicynet(t *testing.T) {
 	if got := int32(len(rowsMeLife)); got != lifeBucketHi+1 {
 		t.Fatalf("rowsMeLife has %d entries, want lifeBucketHi+1 = %d", got, lifeBucketHi+1)
 	}
-	if got := int32(len(rowsOppLife)); got != lifeBucketHi+1 {
+	if got := int32(len(rowsOppLife[0])); got != lifeBucketHi+1 {
 		t.Fatalf("rowsOppLife has %d entries, want lifeBucketHi+1 = %d", got, lifeBucketHi+1)
 	}
 	if rowsMeLife[clampI(40/2, lifeBucketHi)] == rowsMeLife[clampI(24/2, lifeBucketHi)] {
@@ -56,7 +56,7 @@ func TestLifeBucketRowsMatchPolicynet(t *testing.T) {
 
 		// The opponent at life, seat 0 at 20.
 		v = lifeView(20, life)
-		wantOpp := rowsOppLife[clampI(life/2, lifeBucketHi)]
+		wantOpp := rowsOppLife[0][clampI(life/2, lifeBucketHi)]
 		if !sparseHasRow(policynet.EncodeStateWith(policynet.FeaturesEntity, v, 0, nil), wantOpp) {
 			t.Fatalf("life %d: kernel opp row %d not in policynet's sparse bag", life, wantOpp)
 		}

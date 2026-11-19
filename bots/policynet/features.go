@@ -184,8 +184,16 @@ func EncoderHashEntityV1() uint64 {
 // supplied by the caller, so the format-1 and format-2 entity hashes share
 // one string shape.
 func encoderHashWithDense(fs FeatureSet, entSuffix string, denseW, optW int) uint64 {
-	s := fmt.Sprintf("gorge-policynet-features\x1fbase=%#016x\x1fset=%s\x1fmz-format=1\x1fpins=%d,%d",
-		encoderHashDenseOptW(denseW, optW), fs, hashID("mz|bf-opp|canblock"), hashID("mz|me|avail"))
+	// mz-format 2: the mz life and lethal rows read each opponent in turn
+	// order (mzLifeRows) instead of others[0]. The legacy-width hashes keep
+	// format 1: those load paths predate the multi-seat rows and read only
+	// their first columns.
+	mzFormat := 1
+	if denseW == DenseWidth && optW == OptionDenseWidth {
+		mzFormat = 2
+	}
+	s := fmt.Sprintf("gorge-policynet-features\x1fbase=%#016x\x1fset=%s\x1fmz-format=%d\x1fpins=%d,%d",
+		encoderHashDenseOptW(denseW, optW), fs, mzFormat, hashID("mz|bf-opp|canblock"), hashID("mz|me|avail"))
 	s += entSuffix
 	if fs == FeaturesMZOwnLib {
 		s += ownLibHashSuffix()
@@ -474,19 +482,78 @@ func mzState(v view.View, seat state.PlayerID, sk *sink) {
 	num("me|flyers", mine.flyers, 4)
 	num("opp|flyers", theirs.flyers, 4)
 	if me != nil && len(others) > 0 {
-		diff := me.Life - others[0].Life
-		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|lifediff="), mzClamp(diff/3+7, 14)), 1)
-		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|opp|life="), mzClamp(others[0].Life/2, mzLifeBucketHi)), 1)
-		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|me|life="), mzClamp(me.Life/2, mzLifeBucketHi)), 1)
-		// Lethal reads: can my untapped attackers' power alone kill through no
-		// blocks; can theirs kill me.
-		if mine.canAttackPower >= others[0].Life {
-			sk.h(fnvAdd(fnvOffset, "mz|me|lethal-unblocked"), 1)
+		mzLifeRows(&v, me, others, mine.canAttackPower, sk)
+	}
+}
+
+// mzLifeSlotRows is the life rows' per-opponent-slot name tag: slot 0 is the
+// legacy "mz|opp|life=" / "mz|lifediff=" pair, slot j>0 spells the slot in.
+func mzLifeSlotRows(slot int) (diffPrefix, oppPrefix string) {
+	if slot == 0 {
+		return "mz|lifediff=", "mz|opp|life="
+	}
+	return fmt.Sprintf("mz|lifediff%d=", slot), fmt.Sprintf("mz|opp%d|life=", slot)
+}
+
+// mzLifeRows emits the life and lethal rows. Two seats read the one
+// opponent (the legacy rows). More seats read the opponents in turn order
+// from the viewer, lost seats skipped, one life row per slot, and the lethal
+// rows are per opponent: any single opponent that has lethal on the viewer
+// through no blocks, and the viewer's power against any one opponent's life.
+// Opponents' power is never summed against the viewer's life.
+func mzLifeRows(v *view.View, me *view.PlayerView, others []*view.PlayerView, myPower int32, sk *sink) {
+	sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|me|life="), mzClamp(me.Life/2, mzLifeBucketHi)), 1)
+	var oppsBuf [8]*view.PlayerView
+	opps := oppsBuf[:0]
+	if len(v.Players) <= 2 {
+		opps = append(opps, others[0])
+	} else {
+		meIdx := 0
+		for i := range v.Players {
+			if v.Players[i].ID == me.ID {
+				meIdx = i
+			}
 		}
-		if theirs.canAttackPower >= me.Life {
-			sk.h(fnvAdd(fnvOffset, "mz|opp|lethal-unblocked"), 1)
+		for r := 1; r < len(v.Players); r++ {
+			if pv := &v.Players[(meIdx+r)%len(v.Players)]; !pv.Lost {
+				opps = append(opps, pv)
+			}
 		}
 	}
+	meLethal, oppLethal := false, false
+	for j, pv := range opps {
+		if j < maxSeatBlocks-1 {
+			dp, op := mzLifeSlotRows(j)
+			sk.h(fnvAddInt(fnvAdd(fnvOffset, dp), mzClamp((me.Life-pv.Life)/3+7, 14)), 1)
+			sk.h(fnvAddInt(fnvAdd(fnvOffset, op), mzClamp(pv.Life/2, mzLifeBucketHi)), 1)
+		}
+		// Lethal reads: can my untapped attackers' power alone kill this
+		// opponent through no blocks; can its attackers kill me.
+		if myPower >= pv.Life {
+			meLethal = true
+		}
+		if mzAttackPower(pv) >= me.Life {
+			oppLethal = true
+		}
+	}
+	if meLethal {
+		sk.h(fnvAdd(fnvOffset, "mz|me|lethal-unblocked"), 1)
+	}
+	if oppLethal {
+		sk.h(fnvAdd(fnvOffset, "mz|opp|lethal-unblocked"), 1)
+	}
+}
+
+// mzAttackPower is the power of pv's creatures that could attack now.
+func mzAttackPower(pv *view.PlayerView) int32 {
+	var p int32
+	for i := range pv.Battlefield {
+		cv := &pv.Battlefield[i]
+		if hasType(cv, cards.TypeCreature) && !cv.Tapped && (!cv.SummonSick || hasKeyword(cv, kwHaste)) && !hasKeyword(cv, kwDefender) {
+			p += cv.Power
+		}
+	}
+	return p
 }
 
 // battlefieldName is the name the attached-host lookup reads: the LAST
