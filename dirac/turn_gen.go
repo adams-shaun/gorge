@@ -613,6 +613,15 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			continue // nothing it can enchant: it stays in exile (CR 303.4g; pair 74242)
 		}
 		if x.zone == kop.ZoneExile {
+			if s.instantStays(k, l.obj, kop.ZoneBattlefield) {
+				// CR 400.4a: an instant or sorcery card that would enter the
+				// battlefield stays in exile (gorge sweepExileReturn's
+				// effects.InstantCannotEnter gate): a card exiled face down
+				// while manifested (Emerge from the Cocoon under a Sheltered
+				// by Ghosts) never comes back, so its return rider never
+				// runs (CR 610.3: nothing enters "this way")
+				continue
+			}
 			// the clone election comes first: a card whose enters replacement
 			// opens with OpBecomeCopy (Naga Fleshcrafter) has no
 			// enterChoiceKind, and enterChoiceKind alone would miss it
