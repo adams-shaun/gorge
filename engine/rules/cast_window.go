@@ -501,6 +501,13 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 			}
 		}
 		if _, ok := e.castWindowAmount(p, id, o, ma); !ok {
+			// An Amount$ that resolves to zero (Cabal Coffers with no
+			// Swamp) adds no mana: nothing is left unpriced (CR 605.1).
+			zctx := e.manaAmountCtx(p, id)
+			effects.SetSVars(zctx, o.Face().SVars)
+			if effects.ManaAmountIsZero(ma, e, zctx) {
+				continue
+			}
 			return true
 		}
 		counts := mp.Counts
