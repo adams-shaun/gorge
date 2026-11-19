@@ -1,21 +1,64 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Abstruse Interference	8e3a9496a8e7136b	6	0/0		1/2	ix:resp
+Akoum Boulderfoot	6620cb34c344358a	4	1/1		0/1	ix:resp
+Attrition	0ef985a4765623fd	12	1/1		1/1	
+Blade Splicer	4bf7b38627473819	10	1/1		0/1	ix:resp
+Boggart Arsonists	3efcd2e324918e16	6	1/1		0/1	ix:resp
+Border Guard	66f3fd32e845afd1	8	0/0		0/0	
 Brawl-Bash Ogre	61090b900dad4022	10	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bull Hippo	555877f6a29d6648	15	0/0		0/0	
+Castaway's Despair	2a16c4f02fe18444	4	1/1		2/2	
+Chaotic Goo	5543eafb58cebe80	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Cho-Arrim Bruiser	8da9466c6dc4cc46	4	1/1		0/1	ix:resp
+Dismiss	98c54a5dacadbdcc	4	0/0		1/2	ix:resp
+Draugr Thought-Thief	eafff8feb9916d5a	4	1/1		0/1	ix:resp
+Duskhunter Bat	4f0b1730f213e3a8	10	0/0		0/0	
 Elas il-Kor, Sadistic Pilgrim	4cceb7c3633ef5a2	13	2/2		1/1	
+Endurance Bobblehead	fc15a4d77c37e468	8	2/2		0/1	ix:resp
 Ertai Resurrected	e1bd5cb95e80692e	6	1/1		1/1	
+Eye of Nowhere	03883b778672e449	4	0/0		1/2	ix:resp
+Fault Riders	1571f38303f14c0a	14	1/1		0/1	ix:resp
+Floating-Dream Zubera	520f297966eac78a	8	1/1		0/1	ix:resp
 Forest	6d0466c30f825dba	265	1/1		0/1	ix:resp
+General Kreat, the Boltbringer	690ad04671b9a6d7	12	2/2		0/1	ix:resp
 Ghost-Lit Stalker	6ad4be817d1f4b90	20	2/2		0/1	ix:resp
+Go-Shintai of Shared Purpose	2e513825a4c9d0cd	6	1/1		0/1	ix:resp
+Goblin Tutor	5e1c4709480ba930	4	0/0		1/2	ix:resp
 Hasran Ogress	8939eb42c6436bd1	19	1/1		1/1	
 Heart Sliver	0dd78a85bc43e35d	8	0/0		0/0	
+Heliod's Pilgrim	05d3608d962c6c8e	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Invasion of Segovia	d28a230e9692bac2	12	2/2		0/1	ix:resp
 Island	763c67ef7a27eaf5	386	1/1		0/1	ix:resp
+Kukemssa Pirates	0273c4e4bed563ba	15	1/1		0/1	ix:resp
+Light the Way	f11cb04f318b08e0	4	0/0		2/2	
+Mandibular Kite	5f19e89369943863	8	2/2		0/1	ix:resp
+Mesa Falcon	903c7c457b5cb1e4	5	1/1		1/1	
+Mesa Lynx	7ccdbd32c1be062a	4	0/0		0/0	
+Mire Blight	98df71dfa6b06a3d	8	1/1		1/2	ix:resp
 Morbid Bloom	7b097cd23dea84d4	10	0/0		1/2	ix:resp
+Mortician Beetle	d7f2cc00ffcf62d4	17	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Mountain	9e71388353e907ed	288	1/1		0/1	ix:resp
+Mystic Restraints	b496d88f717cd75b	12	1/1		2/2	
 Nimbus of the Isles	c82b01f10e81e394	16	0/0		0/0	
 Ovalchase Daredevil	da6eba29cc55f47c	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Peer Through Depths	d0bec7273520c057	4	0/0		1/2	ix:resp
+Penance Stare	f6dd18f79d56e3e0	6	0/0		2/2	
+Phantasmal Sphere	1b1889e3eb82d388	10	2/2		0/1	ix:resp
 Plains	82d63a695487e567	1439	1/1		0/1	ix:resp
+Precognition Field	ba9459db912443dc	4	1/1		0/1	ix:resp
+Pygmy Pyrosaur	03c0b2cbfb21db7e	14	1/1		1/1	
 Rakka Mar	c7acdf82078f50bc	12	1/1		1/1	
+Redwood Treefolk	74772f6fadc55255	9	0/0		0/0	
+Rescue Retriever	a70a6817ff49a5aa	4	1/1		0/1	ix:resp
+Scragnoth	c16a2b2dcc6bc954	8	0/0		0/0	
 Skyclave Shade	ecdcd108240338a1	18	1/1		3/3	
 Storm Crow	68ab9f2ac1943e67	19	0/0		0/0	
 Strandwalker	3587eaca0aecb313	4	2/2		0/1	ix:resp
+Surreal Memoir	fb97a45aded28399	6	0/0		2/2	
 Swamp	342b413902f441c3	360	1/1		0/1	ix:resp
 The Unspeakable	ca366311c699b77c	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+True Conviction	ba3973b3d50957e5	4	0/0		0/0	
+Vaporkin	e366e826894f1096	6	0/0		0/0	
+Vexing Sphinx	3f85457aabccf346	6	2/2		0/1	ix:resp
+Voda Sea Scavenger	7543fb8314fcaea4	8	1/1		0/1	ix:resp
+Wave-Wing Elemental	ad2bc0a271533ba6	4	1/1		0/1	ix:resp

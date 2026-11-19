@@ -229,6 +229,7 @@ Phyrexian Missionary
 Pierce the Sky
 Pillar Tombs of Aku
 Plains
+Polluted Delta
 Possessed Nomad
 Pradesh Gypsies
 Prakhata Club Security
@@ -309,6 +310,7 @@ Spellbane Centaur
 Spellheart Chimera
 Spineless Thug
 Stand Firm
+Star Compass
 Staunch Defenders
 Steadfast Paladin
 Steel Overseer

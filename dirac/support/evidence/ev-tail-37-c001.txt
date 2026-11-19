@@ -71,6 +71,7 @@ Concordia Pegasus
 Conductor of Cacophony
 Constant Mists
 Contagion Clasp
+Contested War Zone
 Controlled Instincts
 Crawling Chorus
 Crimson Kobolds
@@ -321,6 +322,7 @@ Spellbane Centaur
 Spellheart Chimera
 Spineless Thug
 Stand Firm
+Star Compass
 Staunch Defenders
 Steadfast Paladin
 Steel Overseer

@@ -1,0 +1,163 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Kenku Artificer	45a0fa4ae1c2a4af	22	1/1		1/1	
+A-Moon-Circuit Hacker	9190601830499ecd	19	2/2		1/1	
+Adder-Staff Boggart	611791edc63cbfd2	9	1/1		1/1	
+Agadeem Occultist	16f00c49e23b5e56	21	1/1		1/1	
+Aggravated Assault	7341854a89e1070f	12	1/1		1/1	
+Alabaster Wall	e25d3f6a1bc9a0a1	10	1/1		0/1	ix:resp
+Aladdin's Ring	1b138b8d97a7b892	10	1/1		0/1	ix:resp
+Anaba Ancestor	cd12264f3032b6fa	14	1/1		1/1	
+Ancient Kavu	144fcc345ce0674e	14	1/1		1/1	
+Ascending Aven	4f469c98f9608b7b	6	0/0		1/2	cast/alt:morphed
+Augur of Bolas	7b06bb126895a420	12	1/1		1/1	
+Aven Battle Priest	584ef52dbcd9dcf5	8	1/1		1/1	
+Azorius Keyrune	02d4494aea345872	21	2/2		1/1	
+Bereaved Survivor	4c0424f2ae371745	18	2/2		0/1	ix:resp
+Blitz Automaton	10893d3e0dcd7b8b	16	0/0		2/2	
+Bloodline Necromancer	e39d1d4fc646f77c	17	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Bloodthorn Taunter	87a1e4631f8c0d35	3	1/1		0/1	ix:resp
+Bogardan Rager	313057c63c59c211	10	1/1		1/1	
+Broken Visage	ee4cf6fd347276f4	12	0/0		1/2	ix:resp
+Bubble Matrix	8aeb846d222d6335	4	0/0		0/0	
+Bull's Strength	3e8b5ee13983a06d	3	0/0		1/2	ix:resp
+Cankerbloom	ad61dda464e4db9b	4	1/1		0/1	ix:resp
+Carnage Altar	0cb14dda256213a2	18	1/1		0/1	ix:resp
+Chainer's Edict	97a2cea7a59ce7af	24	0/0		4/4	
+Charitable Levy	aa31b15c247e0fb8	4	1/1		0/1	ix:resp
+Charmed Stray	da2edaa0d5179a84	24	1/1		0/1	ix:resp
+Cho-Manno, Revolutionary	afb300b8f0d3eada	20	0/0		0/0	
+Choking Fumes	18a4a3902223bfed	25	0/0		1/2	ix:resp
+Choose Your Weapon	e5b5ca8a67513939	6	0/0		2/2	
+Chronomancer	c55d99904abe3b0a	11	2/2		0/1	ix:resp
+Cinder Crawler	c82da23d134e9158	22	1/1		0/1	ix:resp
+Conformer Shuriken	4a8fe8e7997350e1	8	1/1		0/1	ix:resp
+Cosi's Ravager	a8219b4a33ee7812	21	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Court of Cunning	d4a107c73af448b0	8	2/2		1/1	
+Crescendo of War	29cefb247ecbe630	17	1/1		1/1	
+Deceptive Frostkite	5839c126da201147	3	0/0		0/0	
+Deepcavern Imp	fd337874a7721303	9	1/1		0/1	ix:resp
+Defender of Law	d61bb037bb7a0bba	22	0/0		0/0	
+Dehydration	88cd1617f0ef6fb1	18	0/0		2/2	
+Digsite Engineer	8012c6944341eaf2	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Dire Fleet Neckbreaker	3ca872698992b39f	13	0/0		0/0	
+Dirtwater Wraith	a3afcff386d63e43	13	1/1		0/1	ix:resp
+Dragonstorm	c74f2deb6cb40cea	8	1/1		2/2	
+Dreadwaters	cbf1bced3f87b874	3	0/0		2/2	
+Drover of the Mighty	97d8c6831ef5ac0d	12	1/1		0/1	ix:resp
+Dungeoneer's Pack	47d88d1f54392e3e	16	1/1		0/1	ix:resp
+Dwarven Scorcher	00271eff49de1fd3	8	1/1		1/1	
+Encampment Keeper	3481b3147850acca	22	1/1		1/1	
+Endless Scream	05d69fadf8d8aaaf	5	0/0		3/4	f0/s/x0
+Experimental Armor	c92313dc7bd91667	8	1/1		1/1	
+Eye of Yawgmoth	6583bcbf77693535	11	1/1		1/1	
+Fast	4cb9c8cabe57b964	16	0/0		2/3	f1/s
+Filigree Attendant	91188d51d3d41195	6	0/0		0/0	
+Flight Spellbomb	3254d7959754003d	19	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Forced Retreat	4af99832cab69718	37	0/0		2/2	
+Forgehammer Centurion	03092da02204c135	23	2/2		1/1	
+Foul Play	b8144931ef3d50ce	12	0/0		2/2	
+Freed from the Real	70ad48128ca40489	15	2/2		2/2	
+Fumble	af731dfb244707f5	20	0/0		2/2	
+Furnace Dragon	96f3fb55a2ec62c0	4	1/1		1/1	
+Futurist Sentinel	10c50e62a30b276a	24	1/1		1/1	
+Geist Snatch	5f12bf52b468bfdf	4	0/0		2/2	
+Geistblast	be8415a5931eb40c	4	1/1		2/2	
+Gift of the Viper	18a501711cabcd9c	8	0/0		2/2	
+Glimpse of Nature	edc895d6bf027594	7	0/0		1/2	ix:resp
+Gluttonous Slug	91708445565f8406	15	1/1		1/1	
+Great-Horn Krushok	51494edf17dce82b	12	0/0		0/0	
+Hatred	6c3fd1a03ba8d8a4	5	0/0		1/2	ix:resp
+Heartless Summoning	dee4a25a45260ea3	6	0/0		0/0	
+Hedron Crawler	5c2da1669f2cdbfb	12	1/1		0/1	ix:resp
+Hell Mongrel	1bd9a4e3bf0e10d1	14	1/1		1/1	
+Hellfire Mongrel	91a9a73b62f94af2	10	1/1		0/1	ix:resp
+Hoard Hauler	2a355aa4a4dba327	10	2/2		1/1	
+Horde of Boggarts	1a5e53d2558807c2	3	0/0		0/0	
+Hurloon Shaman	db65d5c1be6e30bd	6	1/1		1/1	
+Infinity Formula	a7ac3e08b6d68c4d	6	2/2		1/1	
+Infused Arrows	e09dd883b99ef3e2	4	1/1		1/1	
+Into the Story	4d3f32663a2f3a26	3	0/0		2/2	
+Jace, Ingenious Mind-Mage	f1f1da13ee293d95	10	3/3		1/1	
+Jokulmorder	dda74de9d69a67e7	4	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Kabira Outrider	242c87876c643300	24	1/1		0/1	ix:resp
+Kardur, Doomscourge	b16b4fc9f308a001	11	2/2		1/1	
+Knight of Infamy	fa1e6587f4d6be2f	25	1/1		1/1	
+Kolaghan Forerunners	aed5a4ea0af95dc8	7	0/0		2/2	
+Land Grant	b40bf4b2dab7c17c	8	0/0		1/2	ix:resp
+Legion Lieutenant	3b77094c8232b151	12	0/0		0/0	
+Liberate	bf5cfbd22045e5a4	10	0/0		1/2	ix:resp
+Lightning Cloud	8529f559a1cdf5e0	12	1/1		1/1	
+Lightning Serpent	426b159ec559e78e	8	1/1		1/1	
+Lingering Phantom	92297d9b50602b8e	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Machinate	83d2fac7d6b64dc3	6	0/0		2/2	
+Machine Man, Model X-51	7b5d00afd2c53d2f	12	1/1		0/1	ix:resp
+Manabond	d6a52e24e7f1e146	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Mardu Banner	95c24d1a386ee5df	26	2/2		1/1	
+Maw of the Obzedat	c31726706238e7fe	8	1/1		1/1	
+Meldweb Curator	5e88141d932718f4	9	1/1		0/1	ix:resp
+Minotaur Skullcleaver	a76f33a21838c78b	16	1/1		1/1	
+Mogg Alarm	b7dfb3999f9e1927	4	0/0		1/2	ix:resp
+Moment of Heroism	09fc15f575171d97	4	0/0		1/2	ix:resp
+Mournful Zombie	b16d247519a83f13	6	1/1		0/1	ix:resp
+Namora, the Sea Queen	63e765fb64fa4d88	20	1/1		1/1	
+Nantuko Shade	4761f79cb1eb6a81	15	1/1		1/1	
+Nightveil Sprite	9c79e66423d15c65	11	1/1		1/1	
+Nimraiser Paladin	5ef3c1baaaad8329	6	1/1		0/1	ix:resp
+No Rest for the Wicked	e6e470fe8f255ed8	28	1/1		1/1	
+Noxious Toad	1ff3f6fa35e02760	9	1/1		1/1	
+Oath of the Ancient Wood	75e6d32b035a9067	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Obelisk of Esper	7c97e3b01232fe6d	12	1/1		0/1	ix:resp
+Oracle of Tragedy	b756a70631d59ea2	25	2/2		0/1	ix:resp
+Ordeal of Purphoros	6b675e9370257b0b	12	2/2		1/2	ix:resp
+Phyrexian Fleshgorger	ae699666c552b708	5	1/1		3/3	
+Poultrygeist	695ecf1899a29edf	13	1/1		1/1	
+Precognitive Perception	44ffc7c87b4c23cb	7	0/0		1/2	ix:resp
+Press for Answers	ba5e81058417a71f	16	0/0		2/2	
+Protector of the Crown	19d2995854e9acd9	8	1/1		1/1	
+Ravenous Bloodseeker	fc8e4278799ae283	12	1/1		1/1	
+Relic Bane	a6020db437311bd0	14	0/0		2/2	
+Repercussion	a8d4de2a906d511f	7	1/1		1/1	
+Rescue	0917bbec9504a533	17	0/0		2/2	
+Sanguine Bond	d3319a4d34ae3887	4	1/1		0/1	ix:resp
+Second Breakfast	c9ef464a00b556cc	8	0/0		1/2	ix:resp
+Sentinel's Eyes	96c6910bcc780e12	20	0/0		3/4	cast/alt:escaped
+Sheoldred's Edict	8089ddad8a7ef79a	12	0/0		1/2	ix:resp
+Shepherd of the Cosmos	ace590a83b7b8f72	8	1/1		1/3	cast/alt:foretold,ix:resp
+Shriekhorn	38fc46785010cb43	16	1/1		1/1	
+Shrill Howler	07921b8cb5139560	5	2/2		0/1	ix:resp
+Shrivel	bceaf67ca5c94cc4	11	0/0		1/2	ix:resp
+Silumgar's Command	06f40e33561b20f2	3	0/0		1/2	ix:resp
+Sinking Feeling	5689e418fed34e3f	18	0/0		2/2	
+Slimefoot, the Stowaway	8148d989589c9ab6	8	2/2		1/1	
+Snapcaster Mage	218711664e0d555d	11	1/1		0/1	ix:resp
+Snarling Warg	a72ae8a73a140ddc	4	0/0		0/0	
+Soltari Crusader	f1f4e5bed7c91881	12	1/1		0/1	ix:resp
+Spellskite	d24082ecabebd4a2	26	1/1		1/1	
+Spire Mangler	2b5abdbf7454a6b2	18	1/1		0/1	ix:resp
+Stoneshaker Shaman	d00380e936859b6f	14	1/1		0/1	ix:resp
+Stormcrag Elemental	5e45af24d676f640	5	0/0		1/2	cast/alt:megamorphed
+Take Possession	a6fffd7f48bdd74c	4	0/0		1/2	ix:resp
+Tenured Oilcaster	7b7adfc8393651ab	8	2/2		1/1	
+Thrasher Brute	c4211e28efe733db	22	1/1		0/1	ix:resp
+Topan Ascetic	677e0d6dfd94c5d7	8	1/1		1/1	
+Tormented Hero	7ca046cbed6d6297	36	1/1		1/1	
+Tower Defense	538d09077fb9a84e	4	0/0		1/2	ix:resp
+Tower Drake	c121699712dc2b78	24	1/1		1/1	
+Uncaged Fury	cdbdb0ba8b04532e	10	0/0		2/2	
+Uncanny Speed	76d38d2145f38b6f	19	0/0		2/2	
+Unyaro Griffin	0dfcb731023b35ac	12	1/1		0/1	ix:resp
+Urborg Mindsucker	4d0f47e2949d8788	9	1/1		0/1	ix:resp
+Vampire Revenant	d8cf1112c9dc762a	4	0/0		0/0	
+Vampire Warlord	b0b229dfbb4128e9	8	1/1		0/1	ix:resp
+Vectis Gloves	cb7d6e41b0f35493	14	1/1		0/1	ix:resp
+Venser, Fervent Forger	62f21a5a98298284	3	1/1		1/1	
+Vulshok Refugee	775a40b16f415421	6	0/0		0/0	
+Wand of Denial	ee0665047f9d181d	16	1/1		0/1	ix:resp
+Wand of the Elements	4467071f16c548b7	4	2/2		1/1	
+Wandering Tombshell	6ea7237a5f635576	4	0/0		0/0	
+Warfire Javelineer	feee5d7035a09465	6	1/1		1/1	
+Whisper Agent	3e030f1bb5496a14	8	1/1		1/1	
+Xiahou Dun, the One-Eyed	c1c7dd9bf140ab05	3	1/1		0/1	ix:resp
+You Come to the Gnoll Camp	e264855462bdbc4c	18	0/0		2/2	
+Zhao, the Seething Flame	73447e9b0b7ed0ac	8	0/0		0/0	
+Zuran Orb	4ce662418eab9baf	20	1/1		1/1	

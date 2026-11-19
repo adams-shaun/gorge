@@ -1,0 +1,164 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-You Come to a River	7fa8c19f9782e870	8	0/0		1/2	ix:resp
+Abomination, World Ravager	c2b110192f1ab78c	10	0/0		1/2	cast/alt:mayhem
+Absolute Law	eab4d838c675d3f9	28	0/0		0/0	
+Aeolipile	56e4ecbe9344b8f1	25	1/1		0/1	ix:resp
+Aerial Boost	09da50258d6fb356	24	0/0		2/2	
+Alibou, Ancient Witness	4e498a1573e5557b	18	1/1		1/1	
+Anax, Hardened in the Forge	29f717791fe07aad	12	1/1		0/1	ix:resp
+Arcane Denial	461e68c0170b4943	3	0/0		2/2	
+Archmage's Charm	29e3e54a1a2173d9	9	0/0		2/2	
+Atraxa's Skitterfang	959b09beb778181d	39	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Ballynock Trapper	811f5bd97555e6bc	12	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Blade of Selves	7eca0abe62e4c14d	22	1/1		1/1	
+Blinding Souleater	46270a34338ea316	30	1/1		1/1	
+Blinding Spray	f51434d92221d4d6	26	0/0		2/2	
+Blitz of the Thunder-Raptor	6702fda902eed715	16	0/0		1/2	ix:resp
+Bloodhunter Bat	b12d27b20a3adfee	25	1/1		1/1	
+Bontu's Last Reckoning	64d7367d2a7054ae	10	0/0		1/2	ix:resp
+Boreal Griffin	1e52e357a92189c7	148	1/1		1/1	
+Brute Force	a999985e0f84ce51	44	0/0		2/2	
+Call to the Feast	3cb64443c76c9434	9	0/0		1/2	ix:resp
+Carmen, Cruel Skymarcher	6168049bc6be61ad	9	2/2		0/1	ix:resp
+Celestial Enforcer	06929a1453ba3279	28	1/1		1/1	
+Cephalid Sage	25c1531e4f6aa52d	14	0/0		0/0	
+Chained Brute	37d290aaf746f2d9	21	1/1		1/1	
+Chandra's Magmutt	7757f41a5802a709	22	1/1		1/1	
+Chaos Warp	0b9de0035d6cff8f	20	0/0		2/2	
+Cloaked Siren	2daa17594ebfc623	20	0/0		0/0	
+Convolute	f5bf1d07171b0b61	12	0/0		2/2	
+Cryoclasm	9a9993515c722447	12	0/0		1/2	ix:resp
+Cunning Survivor	13338735196bcb92	12	1/1		1/1	
+Cursebreak	37225a435e154287	7	0/0		1/2	ix:resp
+Dauthi Mercenary	f59d2b332b143bb0	10	1/1		0/1	ix:resp
+Dawn Charm	10fd54436d52004b	20	0/0		2/2	
+Dead Reveler	93db6ae16d5fc22c	28	0/0		0/0	
+Death Grasp	634f8f4c99fca289	7	0/0		2/4	f0/s/x0,ix:resp
+Death Pits of Rath	1f2743bbd826eada	8	1/1		0/1	ix:resp
+Decimator Web	876bce6de08256c6	22	1/1		0/1	ix:resp
+Deekah, Fractal Theorist	c00eef8634398ce1	17	2/2		1/1	
+Deeproot Historian	31a560d0ef9197c6	10	0/0		0/0	
+Defabricate	d352021d9f565c34	10	0/0		1/2	ix:resp
+Destiny Spinner	7723a71bf5d8dddd	8	1/1		0/1	ix:resp
+Discontinuity	773b7cd3ab03d79a	22	0/0		2/2	
+Divination	320ec7e9075f4953	6	0/0		2/2	
+Drake Familiar	2172e2c68b5842f0	18	1/1		1/1	
+Dwarven Thaumaturgist	8ed59c212d4dec6f	23	1/1		0/1	ix:resp
+Ebonblade Reaper	eaac43afe6f42456	19	2/2		1/3	cast/alt:morphed,ix:resp
+Elder Druid	c3c0e15b927eaf00	6	1/1		0/1	ix:resp
+Elite Vanguard	200bc014f3a9586d	18	0/0		0/0	
+Encrust	29a2f23adf4e97d2	4	0/0		2/2	
+Esper Battlemage	92e8971506fe69a3	18	2/2		0/1	ix:resp
+Expedition Diviner	a5f02a0c7446a7c5	12	0/0		0/0	
+False Peace	8c0c4d3d67126784	32	0/0		2/2	
+Fiend Hunter	222755bd476849dd	11	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Flatline	04e2f0ba1f7cc386	14	0/0		1/2	ix:resp
+Forsake the Worldly	f142ea50b3572186	6	1/1		2/2	
+Foundry Assembler	ce764f945edaf095	30	0/0		0/0	
+Foxfire	87488ffa2b862a63	7	0/0		1/2	ix:resp
+Frenetic Raptor	7bf7d7232bb21cd3	8	0/0		0/0	
+Frost Breath	c6a6cc36c0c98783	22	0/0		2/2	
+Gargadon	5c307bca97e08f46	8	0/0		1/2	cast/alt:none
+Ghostly Changeling	bdda8a4cfd3f497a	13	1/1		1/1	
+Gimli, Counter of Kills	a9a1f4b6a9792622	19	1/1		1/1	
+Gingerbehemoth	ffbc856174d32133	22	1/1		0/1	ix:resp
+Goatnapper	dacd07bc1b5e7811	28	1/1		1/1	
+Goblin Lore	794576e546b0f41f	30	0/0		2/2	
+Granger Guildmage	d774ba15b32c4d65	6	2/2		0/1	ix:resp
+Gravel Slinger	7d1e5153c1c1c91d	14	1/1		2/3	cast/alt:morphed
+Grayscaled Gharial	0fb38dbfc676a1ca	18	0/0		0/0	
+Grixis Slavedriver	541c968634caf49e	13	2/2		0/1	ix:resp
+Gruul Cluestone	271c031988140e75	17	2/2		0/1	ix:resp
+Gulf Squid	e1f68a686a012485	22	1/1		0/1	ix:resp
+Hazerider Drake	0de1b3f814fda6cc	20	0/0		0/0	
+Helldozer	e9a495f738e9ac3f	6	1/1		0/1	ix:resp
+Herald of War	de35b2b2ddadaeb3	25	1/1		0/1	ix:resp
+Hoofprints of the Stag	289a25d01200300d	25	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Hypnotic Grifter	fdfeaa4e4c77f064	10	1/1		1/1	
+Impaler Shrike	ab71ae5a00143b18	10	1/1		1/1	
+In Oketra's Name	21604e5c6e3ed615	40	0/0		2/2	
+Infantry Veteran	dce63e197375be3a	16	1/1		1/1	
+Inspiring Bard	439cc9c9157013cb	4	1/1		0/1	ix:resp
+Iron-Craw Crusher	1d8ddbf5eae4a270	14	1/1		1/3	cast/alt:prototype,ix:resp
+Jeskai Barricade	b9a72fb544ea3e3f	22	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Jet Medallion	c33ce849c3bb6cfa	33	0/0		0/0	
+Kaito's Pursuit	40bf8b523cb620d5	11	0/0		1/2	ix:resp
+Killmonger, Ruthless Usurper	c183a632ff3d2138	21	2/2		1/1	
+Lady Spider, Maybelle Reilly	333c0d97b52d0014	21	1/1		0/1	ix:resp
+Leaf Gilder	f10d26dbfaa03666	6	1/1		0/1	ix:resp
+Leery Fogbeast	ef1a022c46f31fe5	6	1/1		0/1	ix:resp
+Leyline of the Meek	986941bb9d747664	17	0/0		0/0	
+Living Lightning	732f3c50b4a35225	15	1/1		0/1	ix:resp
+Lu Meng, Wu General	29a9a86e5732c265	13	0/0		0/0	
+Lulu, Loyal Hollyphant	b4e278f3946b40dd	25	1/1		1/1	
+Magus of the Bazaar	2e4f19e282e5181e	8	1/1		1/1	
+Manticore of the Gauntlet	624c28796f330bc7	20	1/1		0/1	ix:resp
+Marshal's Anthem	30b70be8b3184f1c	8	1/1		3/3	
+Meatsqueak, Hoard Lord	500c39ad9311b7a2	8	1/1		0/1	ix:resp
+Meltdown	d09d757d689f06c1	8	0/0		2/4	f0/s/x0,ix:resp
+Merfolk Thaumaturgist	5da2937c73d82140	18	1/1		1/1	
+Merry, Esquire of Rohan	4b8905e28bd5a275	19	1/1		1/1	
+Mindlash Sliver	54e22dd07acd6850	17	0/0		0/0	
+Mishra's Groundbreaker	b0fcce98d4f69c9d	32	1/1		1/1	
+Moonlit Wake	7236c0b6e690155f	18	1/1		1/1	
+Morality Shift	15f8aeca9585997a	5	0/0		1/2	ix:resp
+Myr Galvanizer	c31bc3c4c80ed8f2	10	1/1		0/1	ix:resp
+Nezumi Cutthroat	6e8faff59c50ba56	12	0/0		0/0	
+Night Market Aeronaut	3cb30788cde2d13d	13	0/0		0/0	
+Nine-Tail White Fox	e67cb9fad80264e5	10	1/1		0/1	ix:resp
+Nip Gwyllion	e48779202541d2e9	6	0/0		0/0	
+No-Dachi	ea1094f206fb3be5	27	1/1		0/1	ix:resp
+Noble Benefactor	34037ab7a3d9b6be	8	1/1		0/1	ix:resp
+Olog-hai Crusher	4412a7a65c1b9150	14	0/0		0/0	
+Pain Seer	9f06d80c744bf57f	32	1/1		0/1	ix:resp
+Patriarch's Desire	7b5d9fd99b1c8a22	5	0/0		1/2	ix:resp
+Planar Birth	f5ac93e59125fb92	22	0/0		1/2	ix:resp
+Prey's Vengeance	18687a8202d2dd04	4	0/0		1/2	ix:resp
+Pursue Glory	bc4ca58faa5fc251	10	1/1		2/2	
+Rapid Decay	25628604350d8801	6	1/1		1/2	ix:resp
+Reject Imperfection	7a9732c355b28d32	6	0/0		1/2	ix:resp
+Research Thief	e8e6a36eca6bad2f	14	1/1		0/1	ix:resp
+Reservoir Walker	e22f807bf4fa31f6	25	1/1		1/1	
+Rise from the Tides	141a8e8b26f53af0	9	0/0		2/2	
+Sacred Rites	64c629288e628ab0	36	0/0		2/2	
+Saprazzan Raider	92d8258c5b94356c	12	1/1		1/1	
+Seasoned Hallowblade	9afdf70319716b87	20	1/1		1/1	
+Secretkeeper	6fc640c100f22beb	14	0/0		0/0	
+Seer of the Last Tomorrow	81fad1a5776ef523	10	1/1		1/1	
+Serra's Embrace	9b518eda87366603	10	0/0		2/2	
+Shaleskin Bruiser	648675766cce2c16	7	1/1		1/1	
+Shanodin Dryads	440ba39078214261	8	0/0		0/0	
+Sleeper Dart	0c0a85eef837c572	26	2/2		0/1	ix:resp
+Spellkeeper Weird	7508049aadae3d22	8	1/1		1/1	
+Spiketail Drake	d499f012ead0ff56	4	1/1		0/1	ix:resp
+Spirit of the Night	2110ec560698c61c	3	0/0		0/0	
+Stave Off	6d2408ac536bc8eb	20	0/0		2/2	
+Stensia Uprising	f7d68c1c00fb8c95	17	1/1		0/1	ix:resp
+Stratadon	12dcb5ff23cf3790	15	0/0		0/0	
+Subterranean Shambler	81e76392af2e8dbe	10	3/3		0/1	ix:resp
+Synapse Sliver	5ce65f24464826e5	10	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Syphon Essence	585d52592fb9a796	6	0/0		1/2	ix:resp
+Syphon Mind	a94977701956a15a	18	0/0		1/2	ix:resp
+Tainted Aether	f50789d29c572840	7	1/1		0/1	ix:resp
+Tears of Valakut	db76c669ab2492af	11	0/0		1/2	ix:resp
+Tectonic Fiend	257a50df89eb10d3	11	1/1		1/1	
+Thassa's Oracle	85de9cbd667cfb14	9	1/1		1/1	
+The Falcon, Sam Wilson	dda63a957799e4fe	28	1/1		1/1	
+Thriving Grubs	e27ccd23d4217cca	13	2/2		0/1	ix:resp
+Thriving Rhino	a069032a813bb848	8	2/2		0/1	ix:resp
+Titan of Eternal Fire	94ef666f34e726ed	11	0/0		0/0	
+Tolarian Emissary	d5e9d9b355244895	14	1/1		2/3	ix:resp
+Tree Monkey	a5f8de427e39cb68	4	0/0		0/0	
+Triton Waverider	b17f1c2cd2dc170d	12	1/1		1/1	
+Turtleshell Changeling	7a664fbb80e73809	22	1/1		1/1	
+Unifying Theory	5206746af6fac44b	25	1/1		1/1	
+Utter End	d667ba8dad1b6176	16	0/0		2/2	
+Viashino Weaponsmith	6816773c87ad0120	36	1/1		1/1	
+Vibranium Strike Gauntlets	0752e20f7b806a4f	35	2/2		1/1	
+Watcher in the Mist	4b2e8b8fb11e61fa	3	1/1		0/1	ix:resp
+Weakstone's Subjugation	026e4a2ba9cbd800	16	1/1		2/2	
+Weathered Wayfarer	f0988a337dd5c272	29	1/1		1/1	
+Witch's Vengeance	9026bf88b8245e3e	6	0/0		1/2	ix:resp
+Witches' Eye	5f2905b697a3c108	16	1/1		1/1	
+Worldly Counsel	2dbdfe954531c2d1	10	0/0		1/2	ix:resp
+Zealous Persecution	735d99292ea58e28	10	0/0		1/2	ix:resp

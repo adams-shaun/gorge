@@ -1,34 +1,45 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Arixmethes, Slumbering Isle	9082fa727c4e8b73	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Arm with Aether	d8e8b1fe7508cac8	14	0/0		1/2	ix:resp
+Azorius Skyguard	eddd2d248f811696	16	0/0		0/0	
 Biblioplex Assistant	b25918b9f9a5e38f	4	1/1		1/1	
 Bladestitched Skaab	3b5c9a178b466c6b	12	0/0		0/0	
+Bloated Toad	63e8d300737a9d6d	3	1/1		0/1	ix:resp
 Boar Umbra	1e770ae1ec04610a	41	0/0		2/2	
 Boros Cluestone	8f90e681b0387fa5	30	2/2		1/1	
 Bringer of the Red Dawn	aa7235bdf53f3ccc	3	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Centaur Battlemaster	e0e7f487be285ddb	19	1/1		1/1	
 Charnel Serenade	950cb5c04184b9ea	34	0/0		4/4	
 Choking Miasma	2a20039f393c1314	37	0/0		4/4	
 Courier Bat	12fe5ebe16cf6ffa	49	1/1		1/1	
 Curse of Wizardry	438f7e761e459c7e	22	1/1		1/1	
 Dark Salvation	4843a6c813fe2a6a	25	0/0		2/4	f0/s/x0,ix:resp
 Deep Dish Pizza	e06fdbfa5fd9fa5b	20	1/1		2/3	cast/alt:none
+Disruptive Pitmage	7885db5221538dd7	26	1/1		2/3	cast/alt:morphed
 Drift of Phantasms	062138a54af7a9fd	29	1/1		0/1	ix:resp
 Drowner of Hope	a794ca93a3c89510	13	2/2		1/1	
 Echoing Decay	a8542f9d6616d6bf	45	0/0		2/2	
 Endless Obedience	11f0ab56b7b1bde4	3	0/0		1/2	ix:resp
+Ethersworn Sphinx	7441c8b0a779e5b0	6	0/0		0/0	
 Extract the Truth	d8c07890d42aa859	75	0/0		1/2	ix:resp
 Ezio, Blade of Vengeance	8c5a549aac905b2c	4	1/1		0/1	ix:resp
+Foil	462198bb1311a851	31	0/0		1/2	ix:resp
 Forerunner of the Coalition	61fc9eb93b1bbb01	47	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Goblin Arsonist	f725a7fa636479dc	63	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Goblin Kaboomist	f78ded4557814052	31	1/1		1/1	
 Gore-House Chainwalker	9e99b84c18da89b6	28	0/0		0/0	
 Guildpact Informant	a8156007b5a14e5e	15	1/1		0/1	ix:resp
+Harmattan Efreet	7a40c8fc624e32b7	16	1/1		1/1	
 Hawkeye, Bowslinger	c7356ddaa51b5996	39	1/1		0/1	ix:resp
 Hulk, Always Angry	bb20d88766294e79	14	1/1		1/1	
 Illness in the Ranks	c6727279a80a776e	24	0/0		0/0	
 Indentured Oaf	2d62388fd68e413b	17	0/0		0/0	
 Ironclaw Buzzardiers	912690db1b69e2b2	61	1/1		1/1	
+Jadelight Ranger	276a9b21651bfd01	29	1/1		1/1	
 Journey to Eternity	684defa62677d70d	40	3/3		2/2	
 Knight of Sorrows	4febbca5130e37fa	20	1/1		0/1	ix:resp
+Koskun Falls	33699265183ec58c	6	1/1		0/1	ix:resp
+Krile Baldesion	eed196c60c759226	5	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Llanowar Stalker	e856230c55c29d8d	4	1/1		0/1	ix:resp
 Loathsome Catoblepas	74eb9c7dc01d74b1	46	2/2		1/1	
 Marble Chalice	8b26646d66813e56	30	1/1		0/1	ix:resp
@@ -37,6 +48,7 @@ Minotaur, Roxxon CEO	9c04d3867c00fcc6	20	1/1		1/1
 Mist-Cloaked Herald	10589aca6abc5b0d	42	0/0		0/0	
 Nezahal, Primal Tide	1011263ce51111b6	13	2/2		1/1	
 Ochran Assassin	9b669415e82677e3	36	0/0		0/0	
+Ojutai, Soul of Winter	b881d1a1d0e97628	13	1/1		1/1	
 Opportunity	a8e504e9deca6bf7	22	0/0		2/2	
 Pillardrop Rescuer	80ac38b499b4bce2	4	1/1		0/1	ix:resp
 Priest of the Haunted Edge	950c09681fd158e3	31	1/1		0/1	ix:resp
@@ -54,6 +66,7 @@ Sudden Insight	ef14cdc4b61de2af	29	0/0		1/2	ix:resp
 Sword of Fire and Ice and War and Peace	5207cdcd7cb88717	15	2/2		1/1	
 Sylvok Explorer	4134a5904268f3aa	4	1/1		0/1	ix:resp
 Tasigur's Cruelty	5b09652f4e50a563	4	0/0		1/2	ix:resp
+Thurid, Mare of Destiny	eccc624226ed8a17	26	1/1		1/1	
 Tombfire	1ed009276e623a64	54	0/0		1/2	ix:resp
 Triton Shorestalker	4179a558b32570bb	26	0/0		0/0	
 Undead Slayer	82b57f9a1dad10fe	28	1/1		0/1	ix:resp

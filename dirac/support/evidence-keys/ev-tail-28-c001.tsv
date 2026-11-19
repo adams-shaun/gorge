@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Celestial Regulator	220196ced0bfbd63	3	1/1		1/1	
+Abundant Countryside	1d4fb77cb9857e8c	27	3/3		0/1	ix:resp
 Alaborn Grenadier	c99b31456c15f494	49	0/0		0/0	
 Alphinaud Leveilleur	c776dff79aadedc1	29	2/2		1/1	
 Aquastrand Spider	0e9ddac905982797	26	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -20,6 +21,8 @@ Dramatic Reversal	37ab582746521d2c	4	0/0		1/2	ix:resp
 Duskwielder	446a10b57ee8a236	56	1/1		1/1	
 Elf Replica	744cfad62a09de5c	17	1/1		1/1	
 Faerie Trickery	1254a55de5830cbb	9	0/0		2/2	
+Gemstone Mine	92ac667e11bdb6fc	35	1/1		0/1	ix:resp
+Great Hall of Starnheim	d4fa5bf58950d1a0	32	2/2		0/1	ix:resp
 Invasion of Xerex	af4570654054d025	5	1/1		0/1	ix:resp
 Invoke Despair	946d20a1917859d8	3	0/0		1/2	ix:resp
 Isu the Abominable	113336eb04ae0d72	11	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -30,6 +33,7 @@ Reflective Golem	23ee5736fa1f11e5	16	1/1		1/1
 Savra, Queen of the Golgari	ec9bb43db0bbbc66	38	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
 Search for Glory	98c87b624cced10e	22	0/0		2/2	
 Shadows of the Past	f51535c3f1bc489e	9	2/2		1/1	
+Spire Garden	c3b6ad452bc78a78	41	1/1		0/1	ix:resp
 Stratus Dancer	7722b93309faadb6	3	1/1		2/3	ix:resp
 Survivor of the Unseen	d9e6d33f79681ace	18	2/2		0/1	ix:resp
 Sylvok Battle-Chair	dad1b20d158e84c8	27	2/2		0/1	ix:resp

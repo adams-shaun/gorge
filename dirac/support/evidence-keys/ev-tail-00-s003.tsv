@@ -1,0 +1,22 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Alchemist's Vial	d3b275af7b35c8bf	15	2/2		1/1	
+Bishop of the Bloodstained	f7df9fe477f78721	22	1/1		0/1	ix:resp
+Bloodthirsty Blade	585e8b2b0383642d	32	1/1		1/1	
+Contaminated Bond	1b44dc9fd323acda	30	2/2		2/2	
+Energy Chamber	ccdd7d33c14326a8	26	1/1		1/1	
+Flight of Fancy	e5ffb0ee948016a9	23	1/1		2/2	
+Geth's Grimoire	40e932fccebec14e	32	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Gilded Sentinel	d35906bedb118aa4	10	0/0		0/0	
+Ichor Shade	2ca2429d07c55123	22	1/1		1/1	
+Infernal Genesis	d2a8683b0e9cbf3d	28	1/1		1/1	
+Intelligence Bobblehead	196992bdfa00528a	28	2/2		1/1	
+Island	763c67ef7a27eaf5	1141	1/1		0/1	ix:resp
+Laboratory Drudge	a463e9a95fb35977	38	1/1		1/1	
+Nectar Faerie	cddfd5125b48fb3f	32	1/1		1/1	
+Nightmare Lash	5ab3ebed53ac7b0b	28	1/1		1/1	
+Pennon Blade	4b537d7ea0264118	17	1/1		1/1	
+Raiding Nightstalker	fbd1dd4af80bde9c	20	0/0		0/0	
+Swamp	342b413902f441c3	960	1/1		0/1	ix:resp
+Taste of Death	c2e57bb47b632099	22	0/0		2/2	
+Thought Harvester	8f4c633d514a1589	15	1/1		1/1	
+Windscouter	8c1c677cc26b8bba	22	2/2		0/1	ix:resp

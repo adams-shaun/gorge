@@ -1,0 +1,96 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Accorder's Shield	2b6f5664769c2816	8	1/1		1/1	
+Alexi's Cloak	62b4107cf857737b	20	0/0		2/2	
+Amber Prison	01d30eba56832cda	18	1/1		1/1	
+Bastion Mastodon	43e3e7dfc31ee740	11	1/1		0/1	ix:resp
+Brain Maggot	c33f82b8aaf624f7	9	1/1		0/1	ix:resp
+Coast Watcher	92229a6d29beda7a	6	0/0		0/0	
+Court Hussar	9f8065644804e234	6	2/2		1/1	
+Cradle of Safety	2c130177029dabc8	10	1/1		2/2	
+Crystal Seer	efbec41381b56efe	21	2/2		1/1	
+Deal Gone Bad	e5f4a922e6a8788e	12	0/0		2/2	
+Deathgazer	8b77c3680416a6ef	5	2/2		1/1	
+Deep Spawn	f037bcdff2014a81	12	2/2		1/1	
+Dimir Spybug	5fedefd2c2991730	417	1/1		1/1	
+Dirty Wererat	3cf36210c480042e	9	1/1		1/1	
+Dispersal Shield	4c66fc70fb703546	11	0/0		2/2	
+Doomfall	9e2ace29dd2818ea	22	0/0		2/2	
+Drake Hatchling	d79c5053e5b1d41b	24	1/1		0/1	ix:resp
+Dread of Night	3845cfa479c42fb8	9	0/0		0/0	
+Drelnoch	cc13be85bc272e54	11	1/1		0/1	ix:resp
+Eerie Soultender	eb152916979f0d13	28	2/2		0/1	ix:resp
+Electrostatic Pummeler	6a6924ebede529a6	23	2/2		0/1	ix:resp
+Empty the Laboratory	638bdbded62994b9	4	0/0		2/4	f0/s/x0,ix:resp
+Exert Influence	ebe2a8dc8f1a7785	4	0/0		1/2	ix:resp
+False Cure	0360245b7b476b01	12	0/0		2/2	
+Filter Out	57c1a122094bff5d	20	0/0		2/2	
+Foulmire Knight	485177d845821b73	6	0/0		2/2	
+Galestrike	b018e7c40a6ae3a2	7	0/0		2/2	
+Gloomhunter	a2e432cd2ad36830	19	0/0		0/0	
+Goblin Replica	2041dce2449c4abb	14	1/1		0/1	ix:resp
+Gossip's Talent	7d9ccefdf83dded6	472	5/5		1/3	f0/t2/opt:n,f0/t2/opt:y
+Green Goblin, Back for More	e4fafd2c1dfc0a5a	6	1/1		1/3	cast/alt:mayhem,ix:resp
+Grimgrin, Corpse-Born	503ecae150133244	12	2/2		1/1	
+Gruul Signet	b1dcf1d646ccc8de	8	1/1		1/1	
+Guardian of Tazeem	b1a46bfe5fe9ccfc	3	1/1		0/1	ix:resp
+Havengul Runebinder	e55aae12775585e5	11	1/1		0/1	ix:resp
+Hidden Grotto	31d0db94e361f6b8	270	3/3		0/1	ix:resp
+Hindering Touch	592e05b7611c65a1	12	1/1		2/2	
+Howling Banshee	958fe23e62033882	6	1/1		0/1	ix:resp
+Ideas Unbound	bc9bb4d23c7863ec	10	0/0		2/2	
+Ingenious Infiltrator	8006efb492928834	12	2/2		0/1	ix:resp
+Ink-Eyes, Servant of Oni	c078d9225dd73dbe	9	3/3		1/3	f0/t0/opt:n,f0/t0/opt:y
+Island	763c67ef7a27eaf5	1707	1/1		0/1	ix:resp
+Jalira, Master Polymorphist	04dc3149273ff586	12	1/1		1/1	
+Jousting Lance	6a869198143eadbf	17	1/1		1/1	
+Krovikan Elementalist	217bf7e7442ce4aa	11	2/2		1/1	
+Leonin Bladetrap	3ecfbd5f52f8c95a	16	1/1		1/1	
+Leyline Phantom	2b8bf783cf96b413	3	1/1		0/1	ix:resp
+Lightshell Duo	c9c8563e90020949	330	2/2		1/1	
+Liliana's Spoils	d0574a77be2c9d53	14	0/0		2/2	
+Ludevic's Test Subject	1690b7045b162341	17	1/1		1/1	
+Midnight Scavengers	e27ca062fa89a358	6	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Mind Games	ba103d3fc0359106	15	0/0		4/4	
+Mindwhisker	5048d2d9680c3b44	359	1/1		1/1	
+Mistford River Turtle	0a89d6df173025bb	5	1/1		0/1	ix:resp
+Myojin of Cryptic Dreams	3430da82eca4b48b	5	1/1		0/1	ix:resp
+Myr Battlesphere	e9d40446864ef9e5	6	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Noxious Groodion	e1aeaff69c98b821	11	0/0		0/0	
+Omnispell Adept	ace227a11425e546	8	1/1		0/1	ix:resp
+Oppressive Will	7b0ca40865a83f79	3	0/0		2/2	
+Pendrell Mists	64c5668d3cabd950	5	0/0		0/0	
+Phantom Wings	2189c06209fad732	10	1/1		2/2	
+Plague Sliver	de3aeace9ef75ded	3	0/0		0/0	
+Psychic Whorl	40968fa78a9c7c31	413	0/0		2/2	
+River's Favor	98d389b84c2f0aaa	14	0/0		2/2	
+Sai of the Shinobi	1bc04f28dc9db7dc	18	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Saltwater Stalwart	d21e76171df0c382	8	1/1		0/1	ix:resp
+Sea Sprite	0b6fc52c34a2e2be	11	0/0		0/0	
+Shadow, Mysterious Assassin	dc2399b84cf19181	18	1/1		0/1	ix:resp
+Sinister Strength	f2fa2324947c1ada	19	0/0		2/2	
+Skullmead Cauldron	e186efe3ae3785ab	18	2/2		1/1	
+Sootfeather Flock	53d5d674d4e0746a	3	0/0		1/2	cast/alt:morphed
+Soul of the Rapids	6bd9d5ae34c8ce4a	17	0/0		0/0	
+Spellgyre	9b89dd1bcc6c139a	412	0/0		2/2	
+Spiderwig Boggart	efa0f44a1b4aa0c5	11	1/1		0/1	ix:resp
+Squeeze	3d2db8c904020be1	4	0/0		0/0	
+Stabbing Pain	85f589dcc0176ef5	15	0/0		2/2	
+Starlit Soothsayer	244b61882d0b1693	389	1/1		1/1	
+Stealer of Secrets	be605ab2e7579bcc	5	1/1		0/1	ix:resp
+Stormchaser Drake	8cff0fcada7b655d	7	1/1		0/1	ix:resp
+Swamp	342b413902f441c3	1454	1/1		0/1	ix:resp
+Swarm of Rats	b081e453f3097e68	37	0/0		0/0	
+Sylvok Replica	2cb38882e4c272c1	22	1/1		0/1	ix:resp
+Talisman of Resilience	c350055f341b9158	19	2/2		0/1	ix:resp
+Tar Pit Warrior	da15fd6d84f3d5ab	11	1/1		0/1	ix:resp
+Thalakos Drifters	4a6a8a5fdd2e069c	12	1/1		1/1	
+Titan Forge	148c834e147de8f0	21	2/2		1/1	
+Treason of Isengard	6a80a28c9292f64d	3	0/0		1/2	ix:resp
+Triumph of Cruelty	a4472e58b78e7528	14	1/1		1/1	
+Turtle-Seals	ef54fbd6bd3641ea	5	0/0		0/0	
+Vat of Rebirth	daf7047c46351e43	14	2/2		1/1	
+Villainous Syndication	e29245ac4a243d63	17	2/2		1/1	
+Whispersilk Cloak	dd3fb4bd30a013da	14	1/1		0/1	ix:resp
+Wind Zendikon	a90eec2466e0266f	16	1/1		2/2	
+Wing Commando	d7c20cd100703606	13	1/1		0/1	ix:resp
+Zodiac Pig	b41ea03bdc6092ba	9	0/0		0/0	

@@ -42,6 +42,7 @@ Collective Nightmare
 Combat Thresher
 Coral Merfolk
 Counterspell
+Courier Bat
 Court Cleric
 Crenellated Wall
 Crimson Fleet Commodore

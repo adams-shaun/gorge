@@ -1,0 +1,88 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Mentor's Guidance	1f2a4b41bbf30660	35	1/1		2/2	
+A-Midnight Assassin	6e51ead312a20a68	20	0/0		0/0	
+Alchemist's Vial	d3b275af7b35c8bf	22	2/2		1/1	
+Aphetto Alchemist	4e252f6ab4fdf498	38	1/1		2/3	cast/alt:morphed
+Arid Mesa	280b64231ef2a345	173	1/1		0/1	ix:resp
+Artificer's Assistant	1c2ec90a70d71e78	55	1/1		0/1	ix:resp
+Avacyn's Collar	2c2b0043b00b8172	36	2/2		1/1	
+Avengers Quinjet	ebfcb2eddde5152a	24	3/3		1/1	
+Bishop of the Bloodstained	f7df9fe477f78721	11	1/1		0/1	ix:resp
+Bloodthirsty Blade	585e8b2b0383642d	40	1/1		1/1	
+Cephalid Broker	2ed8ab687aa26752	28	1/1		0/1	ix:resp
+Chain to Memory	379065ccbf642814	47	0/0		2/2	
+Charisma	e409b1da52f68219	11	1/1		2/2	
+Chimney Goyf	d7edce19e6a51a61	28	1/1		1/1	
+Chronomaton	0396c387cc10433a	24	1/1		0/1	ix:resp
+Contaminated Bond	1b44dc9fd323acda	28	2/2		2/2	
+Corrupted Harvester	2397dae46b776c47	22	1/1		1/1	
+Cruel Reality	44b2430958d82a61	19	1/1		2/2	
+Cytoplast Manipulator	eb64231f90ec871c	21	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Demonic Bargain	2f63e4cc444bbcf5	34	0/0		2/2	
+Disciple of the Ring	dfdae99485bc5b05	24	1/1		1/1	
+Disinformation Campaign	c6bbf9e062804ca7	739	2/2		1/1	
+Doctor Strange, Master of Magic	536c1374c3e65ca4	22	2/2		1/1	
+Downsize	0e55f92b446ac6ba	24	0/0		4/4	
+Dross Harvester	b66fd2c8bdefcce9	30	2/2		1/1	
+Egon, God of Death	87dd653a55315920	28	3/3		1/1	
+Elite Instructor	566e1413df5925ca	39	1/1		0/1	ix:resp
+Energy Chamber	ccdd7d33c14326a8	33	1/1		1/1	
+Essence Flux	8b4651ad8fa033b5	20	0/0		2/2	
+Fallen Ideal	bd0ae7e8147f736b	155	1/1		2/2	
+Flight of Fancy	e5ffb0ee948016a9	21	1/1		2/2	
+Flux Channeler	52ad66ed83e53988	396	1/1		1/1	
+Fodder Cannon	0a06c3ad75dd1e9f	27	1/1		1/1	
+Foresee	fd5a6c79cd819ebd	28	0/0		2/2	
+Geth's Grimoire	40e932fccebec14e	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Gilded Sentinel	d35906bedb118aa4	10	0/0		0/0	
+Grave Birthing	85e9a7f12096eae5	36	0/0		2/2	
+Guardians of Oboro	fe8b0c0f81d6f243	46	0/0		0/0	
+Gutless Ghoul	9f112aa910faca5f	10	1/1		1/1	
+HYDRA Disintegrator	31bfb4887ab2a252	22	2/2		1/1	
+Haughty Djinn	c61687c07068e972	26	0/0		0/0	
+Hengegate Pathway	575e896737fa1dfb	135	2/2		0/1	ix:resp
+Heralds of Tzeentch	22936ad0f6491423	32	0/0		0/0	
+Hermetic Study	ec645f5445d21e3f	22	0/0		2/2	
+High-Speed Hoverbike	bf8ec3fa9f7509a1	26	2/2		1/1	
+Ichor Shade	2ca2429d07c55123	36	1/1		0/1	ix:resp
+Imperial Seal	fe6fb2e445595d30	43	0/0		2/2	
+Infernal Genesis	d2a8683b0e9cbf3d	11	1/1		1/1	
+Intelligence Bobblehead	196992bdfa00528a	36	2/2		1/1	
+Island	763c67ef7a27eaf5	1874	1/1		0/1	ix:resp
+Kozilek's Channeler	396ba894428b172c	16	1/1		0/1	ix:resp
+Krang, the All-Powerful	6450876b5cd0de99	19	1/1		1/1	
+Laboratory Drudge	a463e9a95fb35977	15	1/1		0/1	ix:resp
+Leyline of Anticipation	d028a3bc7cf163ab	14	0/0		0/0	
+Locthwain Paladin	03652ab35c42243d	16	0/0		0/0	
+Magebane Armor	a2a9930064814052	23	1/1		1/1	
+Make Obsolete	eb095358a9f99381	32	0/0		2/2	
+Necromantic Thirst	4e1f47626e87eac8	28	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
+Nectar Faerie	cddfd5125b48fb3f	28	1/1		0/1	ix:resp
+Nightmare Lash	5ab3ebed53ac7b0b	31	1/1		1/1	
+Pennon Blade	4b537d7ea0264118	16	1/1		1/1	
+Pharika's Cure	405e2e07eb1a861e	23	0/0		2/2	
+Phobian Phantasm	68ae725735744d01	26	1/1		1/1	
+Piranha Marsh	9c420a39b44376dc	169	2/2		0/1	ix:resp
+Raiding Nightstalker	fbd1dd4af80bde9c	18	0/0		0/0	
+Scourge of Fleets	75efbad72f5426e1	18	1/1		0/1	ix:resp
+Serpent Assassin	aae2284d2964e4ee	35	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Soulstinger	583bd8c350804230	42	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Spellseeker	3f5c8c730f6c8a45	33	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Sphinx of Enlightenment	56b2c69fcf29e32b	16	1/1		0/1	ix:resp
+Swamp	342b413902f441c3	1493	1/1		0/1	ix:resp
+Swarmyard Massacre	b61c8c0a8f83f957	28	0/0		2/2	
+Taborax, Hope's Demise	15d1cd4f31f8fb91	42	1/1		1/1	
+Taste of Death	c2e57bb47b632099	9	0/0		2/2	
+Tattered Haunter	1a70f06d07060b3a	67	0/0		0/0	
+Tezzeret's Gambit	d43cd48ba9f256a7	356	0/0		2/2	
+Thought Harvester	8f4c633d514a1589	14	1/1		0/1	ix:resp
+Thran Temporal Gateway	6d2ac7315f60fa3b	20	1/1		1/1	
+Tumble Magnet	c6f0d7296004ac8a	27	1/1		1/1	
+Venser, Corpse Puppet	9f41e4e9351b9230	371	1/1		1/1	
+Vicious Hunger	ff1168fa268cc44b	40	0/0		2/2	
+Void Squall	ceac3630c0a1091c	40	0/0		2/2	
+Wandering Ones	1f1c3a1cb66514a0	33	0/0		0/0	
+Warlord's Axe	d2cb7151b72e5688	35	1/1		1/1	
+Wicked Reward	0b7247f45858957f	28	0/0		2/2	
+Windscouter	8c1c677cc26b8bba	36	2/2		1/1	
+Zhang Liao, Hero of Hefei	2c702ddf34bb880d	22	1/1		1/1	

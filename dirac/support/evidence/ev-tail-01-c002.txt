@@ -3,6 +3,7 @@ A-Leyline of Resonance
 A-Pseudodragon Familiar
 A-Tatyova, Steward of Tides
 A-Urza, Powerstone Prodigy
+Abandon Hope
 Aether Mutation
 Aetherling
 Aethersnipe
@@ -21,6 +22,7 @@ Arc Spitter
 Arcane Spyglass
 Ascendant Evincar
 Aven Fateshaper
+Aven Squire
 Bail Out
 Balance of Power
 Balduvian Dead
@@ -193,6 +195,7 @@ Ire of Kaminari
 Island
 Ith, High Arcanist
 Jasmine Boreal
+Jetmir's Garden
 Jungle Lion
 Kamigawa Charm
 Kazuul Warlord
@@ -208,6 +211,7 @@ Kyren Legate
 Lagonna-Band Trailblazer
 Legion's Landing
 Life Goes On
+Lightwalker
 Living Lies of Loki
 Llawan, Cephalid Empress
 Locked in the Cemetery
@@ -334,6 +338,7 @@ Skaab Wrangler
 Skeletal Snake
 Skulking Ghost
 Skull Prophet
+Skybridge Towers
 Skyhunter Patrol
 Sleek Schooner
 Smokespew Invoker
@@ -360,16 +365,19 @@ Stronghold Assassin
 Stymied Hopes
 Sudden Breakthrough
 Sumala Woodshaper
+Sunscorched Divide
 Swamp
 Swarm Guildmage
 Sylvan Safekeeper
 Tandem Takedown
 Tear Asunder
 Temporal Mastery
+Tendo Ice Bridge
 Tenza, Godo's Maul
 Terramorph
 Thallid Omnivore
 Thallid Shell-Dweller
+The Hunter Maze
 The Mana Rig
 The Modern Age
 The Revelations of Ezio
@@ -380,6 +388,7 @@ Thrilling Discovery
 Thriving Moor
 Thriving Skyclaw
 Thunderous Snapper
+Tithe
 Tithe Drinker
 Tizerus Charger
 Tobias Andrion
@@ -431,6 +440,7 @@ Wing Snare
 Witherscale Wurm
 Woodcutter's Grit
 Woodland Changeling
+Wrenn and Seven
 Zealots en-Dal
 Zenith Festival
 Zhentarim Bandit

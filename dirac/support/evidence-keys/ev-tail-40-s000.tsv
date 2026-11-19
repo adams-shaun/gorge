@@ -13,6 +13,7 @@ Ascending Aven	4f469c98f9608b7b	14	0/0		1/2	cast/alt:morphed
 Augur of Bolas	7b06bb126895a420	10	1/1		0/1	ix:resp
 Aven Battle Priest	584ef52dbcd9dcf5	6	1/1		0/1	ix:resp
 Azorius Keyrune	02d4494aea345872	10	2/2		1/1	
+Baron Sengir	e24416a50ac06db9	4	2/2		0/1	ix:resp
 Baru, Wurmspeaker	45e3ba7657c43e6d	7	1/1		1/1	
 Bereaved Survivor	4c0424f2ae371745	8	2/2		0/1	ix:resp
 Blitz Automaton	10893d3e0dcd7b8b	3	0/0		2/2	
@@ -37,6 +38,7 @@ Choose Your Weapon	e5b5ca8a67513939	4	0/0		1/2	ix:resp
 Chronomancer	c55d99904abe3b0a	12	2/2		0/1	ix:resp
 Cinder Crawler	c82da23d134e9158	10	1/1		1/1	
 Cinderbones	ac93795824bfcd8e	5	1/1		1/1	
+Companion of the Trials	bf4be2a764d20507	21	1/1		1/1	
 Conformer Shuriken	4a8fe8e7997350e1	18	1/1		1/1	
 Cosi's Ravager	a8219b4a33ee7812	8	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Court of Cunning	d4a107c73af448b0	7	2/2		1/1	
@@ -79,6 +81,7 @@ Game-Trail Changeling	9603e70f147c4035	12	0/0		0/0
 Gangrenous Goliath	c425dcdaad3a3f1f	130	1/1		1/1	
 Geist Snatch	5f12bf52b468bfdf	9	0/0		1/2	ix:resp
 Generous Patron	c973ab6d90426868	20	2/2		1/1	
+Gideon Blackblade	5df264fcff642f48	8	2/2		0/1	ix:resp
 Gift of the Viper	18a501711cabcd9c	13	0/0		2/2	
 Glimmerpost	9ed745db49c88248	41	2/2		1/1	
 Glimpse of Nature	edc895d6bf027594	6	0/0		1/2	ix:resp
@@ -161,6 +164,7 @@ Relic Bane	a6020db437311bd0	5	0/0		2/2
 Repercussion	a8d4de2a906d511f	15	1/1		1/1	
 Rescue	0917bbec9504a533	12	0/0		1/2	ix:resp
 Restore	0d0e28562429b882	6	0/0		1/2	ix:resp
+Rimebound Dead	afb272b9c2548948	289	1/1		1/1	
 Riot Spikes	cda5ef8bc40c77c0	8	0/0		1/2	ix:resp
 Ronin Cliffrider	1f54820cc6a9a195	13	3/3		1/3	f0/t0/opt:n,f0/t0/opt:y
 Sanguine Bond	d3319a4d34ae3887	8	1/1		0/1	ix:resp

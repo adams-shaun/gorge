@@ -12,6 +12,7 @@ Ascending Aven
 Augur of Bolas
 Aven Battle Priest
 Azorius Keyrune
+Baron Sengir
 Baru, Wurmspeaker
 Bereaved Survivor
 Blitz Automaton
@@ -36,6 +37,7 @@ Choose Your Weapon
 Chronomancer
 Cinder Crawler
 Cinderbones
+Companion of the Trials
 Conformer Shuriken
 Cosi's Ravager
 Court of Cunning
@@ -78,6 +80,7 @@ Game-Trail Changeling
 Gangrenous Goliath
 Geist Snatch
 Generous Patron
+Gideon Blackblade
 Gift of the Viper
 Glimmerpost
 Glimpse of Nature
@@ -160,6 +163,7 @@ Relic Bane
 Repercussion
 Rescue
 Restore
+Rimebound Dead
 Riot Spikes
 Ronin Cliffrider
 Sanguine Bond

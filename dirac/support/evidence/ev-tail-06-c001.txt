@@ -26,6 +26,7 @@ Artistic Refusal
 Astarion, the Decadent
 Atomize
 Augur of Skulls
+Avacyn and Griselbrand
 Awaken the Sky Tyrant
 Azorius Chancery
 Balduvian Hydra
@@ -224,6 +225,7 @@ Leaf Gilder
 Leafcrown Dryad
 Lesser Masticore
 Leyline of Vitality
+Lictor
 Lightning Surge
 Liliana's Talent
 Locthwain Lancer

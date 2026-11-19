@@ -1,6 +1,7 @@
 Algorithmic Ferocity
 Amulet of Unmaking
 Aven Augur
+Bioessence Hydra
 Biting Tether
 Blessings of Nature
 Bloodscent
@@ -49,6 +50,7 @@ Murmuring Phantasm
 Mystic Remora
 Nantuko Mentor
 Narset's Reversal
+Nevermaker
 Nyxborn Behemoth
 Oath of Jace
 Order of the Sacred Bell

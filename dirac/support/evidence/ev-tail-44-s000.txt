@@ -1,4 +1,5 @@
 Abundant Harvest
+Academy Raider
 Acid Rain
 Adaptive Training Post
 Ankh of Mishra
@@ -7,56 +8,112 @@ Arcbound Crusher
 Archers of Qarsi
 Artificer's Intuition
 Ascendant Acolyte
+Ashen-Skin Zubera
+Ashenmoor Gouger
+Asphyxiate
 Assimilate Essence
+Balduvian Rage
+Barbarian General
 Barrin, Tolarian Archmage
+Basri's Acolyte
 Bassara Tower Archer
 Beacon Behemoth
 Blossoming Wreath
+Blur of Blades
 Bond of Insight
 Bookwurm
 Boros Locket
+Brain Gorgers
+Burrenton Shield-Bearers
 Cavalier of Thorns
+Charge
+Citadel of Pain
+Cloistered Youth
+Confessor
 Copper Carapace
 Core Prowler
+Corrupted Key
 Cragplate Baloth
 Cranial Plating
+Crazed Goblin
 Creeping Tar Pit
+Cunning Advisor
 Curious Obsession
+Curse of Chains
+Cutthroat Maneuver
+Dawn to Dusk
+Deathgaze Cockatrice
 Deconstruct
+Devout Monk
 Diabolic Machine
 Dizzy Spell
+Dogged Pursuit
+Drown in Sorrow
+Duskrider Peregrine
+Ecstatic Electromancer
 Elanor Gardner
+Emissary of Despair
 Entrancing Melody
 Equilibrium
 Fa'adiyah Seer
 Fable of Wolf and Owl
+Fatal Blow
+Fierce Retribution
 Fin-Clade Fugitives
 Finale of Devastation
 Five Hundred Year Diary
+Fixer, Techno Terror
 Floodbringer
 Forest
+Forge Devil
 Frogmite
+Funeral Pyre
 Genju of the Cedars
+Giant Killer
+Goblin Balloon Brigade
+Gorging Vulture
 Graypelt Refuge
+Greater Werewolf
+Grixis Battlemage
 Hampering Snare
+Hearth Charm
+Hissing Iguanar
+Holy Justiciar
+Hornet Harasser
+Humility
 Hunted Troll
+Hyena Pack
+Imperial Outrider
+Infectious Inquiry
 Island
 Jace Beleren
 Joyous Respite
 Keep Safe
 Keeper of Keys
+Krav, the Unredeemed
 Kumena, Tyrant of Orazca
+Larger Than Life
+Lavabelly Sliver
+Leyline Binding
+Lightning Wolf
+Liliana's Indignation
 Limestone Golem
+Lingering Tormentor
 Lord of Change
 Lumbering Falls
 Lunar Force
 Madame Vastra
+Majestic Heliopterus
 Make a Wish
+Makindi Shieldmate
 Matsu-Tribe Birdstalker
+Michiko's Reign of Truth
 Mindscour Dragon
 Mist Raven
 Mistblade Shinobi
 Monastery Flock
+Mountain Bandit
+Mystic Compass
 Mystic Redaction
 Mythic Proportions
 Navigator's Ruin
@@ -65,52 +122,98 @@ Neurok Invisimancer
 Ninja of the Deep Hours
 Nissa, Who Shakes the World
 Nomadic Elf
+Odylic Wraith
 Oko's Accomplices
+Onyx Mage
 Ovinize
 Pact of Negation
+Paired Tactician
 Pangosaur
 Paperfin Rascal
 Part the Veil
+Patrolling Peacemaker
 Pewter Golem
+Photon, Lady of Light
+Phyrexian Driver
+Phyrexian Reaper
 Phyrexian Soulgorger
 Pinion Feast
 Planar Portal
 Plaxmanta
 Praetor's Counsel
+Priest of Forgotten Gods
+Qarsi Sadist
 Rakdos Keyrune
+Rathi Fiend
+Ravenous Gigamole
+Remorseful Cleric
 Replication Specialist
+Retreat to Emeria
+Return to Action
+Return to Battle
 Rise of Eagles
+Rise to Glory
+Rising of the Day
 Saddle of the Cavalier
 Savage Punch
+Sedge Troll
 Selesnya Keyrune
 Shapers of Nature
+Shelob's Ambush
 Silumgar Sorcerer
 Silver Erne
 Skyscanner
+Slash of Talons
 Sliversmith
 Solarion
 Soldevi Steam Beast
+Soul-Strike Technique
+Spectacular Showdown
+Spider-Man, Hometown Hero
 Spitting Image
 Starved Rusalka
+Stone-Throwing Devils
+Stonerise Spirit
+Storm-Kiln Artist
+Street Riot
+Structural Distortion
 Sudden Strength
 Summoner's Pact
+Sunbond
+Sunstone
 Svogthos, the Restless Tomb
+Sworn Companions
 Sylvan Awakening
 Tajuru Snarecaster
 Tangletrove Kelp
+Termination Facilitator
+Teshar, Ancestor's Apostle
 Throne of the High City
 Thunder Drake
+Thunderclap
 Totem Speaker
+Transgress the Mind
 Transguild Promenade
+Tremor
+True Love's Kiss
 Twitch
 Uninvited Geist
+Urban Utopia
+Urborg Uprising
 Utrom Monitor
 Vessel of Nascency
 Vulshok Battlegear
 Wall of Frost
+Wall of Reverence
+Warrior Angel
+Weapons Trainer
+Weaselback Redcap
+Wei Strike Force
 Wild Nacatl
 Windreader Sphinx
 Wirewood Pride
+Witch's Cauldron
 Wolfkin Outcast
 Wolverine Pack
 Worldly Tutor
+Zombie Outlander

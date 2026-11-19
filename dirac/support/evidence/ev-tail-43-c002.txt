@@ -5,6 +5,7 @@ Amulet of Unmaking
 Annex Sentry
 Antagonize
 Aphemia, the Cacophony
+Archangel
 Ardent Soldier
 Arlinn's Wolf
 Audacious Infiltrator
@@ -21,23 +22,27 @@ Bloodline Necromancer
 Bloodscent
 Bloodthorn Taunter
 Bonded Construct
+Bonescythe Sliver
 Boon of Boseiju
 Borne Upon a Wind
 Bower Passage
 Brilliant Wings
 Brittle Effigy
+Burlfist Oak
 Burn Down the House
 Carnifex Demon
 Carrion Locust
 Cemetery Gate
 Choking Restraints
 Citadel Siege
+Cloudcrown Oak
 Cloudheath Drake
 Collective Defiance
 Colossal Dreadmask
 Concentrated Fire
 Conscripted Infantry
 Consul's Shieldguard
+Court Street Denizen
 Court of Ambition
 Crenellated Wall
 Crimson Muckwader
@@ -45,6 +50,7 @@ Crowned Ceratok
 Custodian of the Trove
 Cyclops of One-Eyed Pass
 Dancing Scimitar
+Darkthicket Wolf
 Daru Spiritualist
 Dauthi Cutthroat
 Desperate Charge
@@ -100,6 +106,7 @@ Infernal Medusa
 Instruments of War
 Insubordination
 Invisible Woman
+Iona, Shield of Emeria
 Ironclad Slayer
 Ironshell Beetle
 Island
@@ -134,6 +141,7 @@ Mogg Mob
 Motivated Pony
 Mountain
 Mox Opal
+Nantuko Mentor
 Nature's Will
 Night Market Aeronaut
 Nightfire Giant
@@ -153,14 +161,17 @@ Piper Wright, Publick Reporter
 Plains
 Plow Through Reito
 Preemptive Strike
+Primal Forcemage
 Purify the Grave
 Quag Vampires
+Quarry Hauler
 Ramunap Ruins
 Razorgrass Ambush
 Regal Force
 Reinforced Bulwark
 Ritual of Rejuvenation
 River Bear
+Rooting Kavu
 Ruins Recluse
 Run Afoul
 Rusted Relic
@@ -188,6 +199,7 @@ Spireside Infiltrator
 Spitting Drake
 Spore Burst
 Spore Swarm
+Stampeding Serow
 Steadfast Sentry
 Steelclaw Lance
 Stirring Address
@@ -198,15 +210,18 @@ Survivors' Encampment
 Sustainer of the Realm
 Swamp
 Swarming of Moria
+Sylvan Basilisk
 Talas Explorer
 Talon Gates of Madara
 The Hunger Tide Rises
+The Restoration of Eiganjo
 Thraben Charm
 Thraben Heretic
 Three Dreams
 Thundermaw Hellkite
 Troll Ascetic
 Turbulent Moor
+Turntimber Basilisk
 Unexpected Fangs
 Urza's Tome
 Utvara Hellkite
@@ -217,6 +232,7 @@ Verge Rangers
 Vessel of Ephemera
 Viashino Heretic
 Vigil for the Lost
+Vine Dryad
 Voldaren Stinger
 Voracious Hydra
 Wakandan Shield Guard

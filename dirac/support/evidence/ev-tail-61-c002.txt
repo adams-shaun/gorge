@@ -21,6 +21,7 @@ Atraxi Warden
 Atsushi, the Blazing Sky
 Augur il-Vec
 Avabruck Caretaker
+Avenger en-Dal
 Avenging Hunter
 Azra Smokeshaper
 Bad Deal
@@ -99,6 +100,7 @@ Farfinder
 Farmstead
 Filigree Crawler
 Fire Whip
+Fireblade Artist
 Fires of Victory
 Firewing Phoenix
 Fleetwheel Cruiser
@@ -283,6 +285,7 @@ Skyship Stalker
 Skyshroud Claim
 Slinza, the Spiked Stampede
 Slith Firewalker
+Sliver Overlord
 Slobad, Goblin Tinkerer
 Smogsteed Rider
 Sokenzan Spellblade
@@ -380,4 +383,5 @@ Wrong Turn
 Wu Longbowman
 Yeva's Forcemage
 Yomiji, Who Bars the Way
+Yore-Tiller Nephilim
 Zulaport Duelist

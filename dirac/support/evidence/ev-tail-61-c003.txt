@@ -1,10 +1,12 @@
 A-Circuit Mender
 A-Jackhammer
+Abyssal Hunter
 Active Volcano
 Agonizing Syphon
 Ajani's Influence
 Alhammarret, High Arbiter
 Aligned Heart
+Altar of Bhaal
 Amazing Alliance
 Ambush
 Aragorn and Arwen, Wed
@@ -15,6 +17,7 @@ Atsushi, the Blazing Sky
 Attended Knight
 Augur il-Vec
 Aura Blast
+Avenging Hunter
 Awakening Zone
 Azra Smokeshaper
 Bad Deal
@@ -25,17 +28,20 @@ Benthic Biomancer
 Bottle-Cap Blast
 Briarbridge Tracker
 Broken Fall
+Bumbling Pangolin
 Carrion Ants
 Cerodon Yearling
 Charity Extractor
 Chorus of Might
 Clattering Augur
+Cloakwood Swarmkeeper
 Cogwork Spy
 Confound
 Contingency Plan
 Covert Operative
 Crested Herdcaller
 Crimson Hellkite
+Crush of Wurms
 Curious Killbot
 Daredevil, Fearless Fighter
 Daring Apprentice
@@ -45,12 +51,14 @@ Death's Duet
 Deeproot Waters
 Defiant Elf
 Demon of Dark Schemes
+Demoralize
 Devouring Deep
 Diminish
 Disturbed Burial
 Dreadmalkin
 Elemental Summoning
 Ellyn Harbreeze, Busybody
+Endless Cockroaches
 Entish Restoration
 Etherium Abomination
 Exuberant Wolfbear
@@ -59,7 +67,9 @@ Fangren Hunter
 Farmstead
 Feast of Succession
 Filigree Crawler
+Fire Whip
 Fireblade Artist
+Fires of Victory
 Firewing Phoenix
 Font of Progress
 Force of Vigor
@@ -75,8 +85,11 @@ Goblin War Drums
 Goldnight Commander
 Gravel-Hide Goblin
 Grimdancer
+Grisly Spectacle
+Harsh Scrutiny
 Hatchery Spider
 Hawkeye, Trick Shot
+Heartless Pillage
 High Score
 Howlpack Wolf
 Huatli's Raptor
@@ -90,6 +103,7 @@ Incremental Blight
 Incubation Sac
 Indicate
 Infuriate
+Insatiable Gorgers
 Iridescent Angel
 Irradiate
 Irregular Cohort
@@ -104,29 +118,38 @@ Karn's Bastion
 Kessig Wolfrider
 Klothys's Design
 Kor Duelist
+Koth's Courier
 Kranioceros
 Krosan Archer
 Leech Gauntlet
 Lingering Phantom
+Llawan, Cephalid Empress
 Makindi Aeronaut
 Mana Prism
 Mardu Outrider
 Maulfist Doorbuster
+Maximize Velocity
+Mending Touch
 Mercenary Informer
 Merfolk of the Depths
 Mesa Unicorn
 Mirkwood Channeler
 Mist Raven
+Moira, Urborg Haunt
 Molten Rebuke
 Monastery Flock
+Monumental Corruption
 Mountain
 Muddle the Mixture
 Mwonvuli Acid-Moss
+Mysterious Tome
 Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
+Nightshade Harvester
 Ogre Menial
 One with Nature
+Ongoing Investigation
 Onslaught
 Orcish Vandal
 Overwhelming Denial
@@ -134,31 +157,38 @@ Panic Attack
 Patriarch's Desire
 Peel from Reality
 Pegasus Courser
+Phalanx Vanguard
 Phyresis
+Phyrexian Archivist
 Pilgrim of the Fires
 Pillar Tombs of Aku
 Pirate Ship
+Plague Rats
 Plains
 Planar Atlas
 Possessed Centaur
 Pouncing Lynx
 Prescient Chimera
 Primordial Sage
+Prince Imrahil the Fair
 Prismari Apprentice
 Ravenous Lindwurm
 Razor Swine
 Reforge the Soul
+Relic Barrier
 Relic Robber
 Relic Vial
 Reprobation
 Resistance Reunited
 Reverberate
+Rhonas's Monument
 Rhystic Study
 Rogue Refiner
 Sage's Row Denizen
 Sandstorm
 Savage Silhouette
 Security Bypass
+Selesnya Locket
 Shabraz, the Skyshark
 Shaman of the Pack
 Shapeshifter
@@ -166,6 +196,7 @@ Shatterskull Recruit
 Sheltering Light
 Sigardian Priest
 Sigiled Paladin
+Sip of Hemlock
 Skirk Commando
 Skittering Crustacean
 Skull Raid
@@ -182,6 +213,7 @@ Soul's Majesty
 Spiketail Drake
 Spotter Thopter
 Staff of the Storyteller
+Star Pupil
 Steely Resolve
 Stern Scolding
 Stitched Mangler
@@ -191,26 +223,33 @@ Stupor
 Sunweb
 Sutina, Speaker of the Tajuru
 Swamp
+Swordwise Centaur
 Syphon Life
 Tarfire
 Tavern Swindler
 Teardrop Kami
 Teetering Peaks
+Teroh's Faithful
 Thalakos Sentry
 Thanos, Death's Consort
 Thassa's Rebuff
 The Falcon, Airship Restored
 Thistledown Duo
+Timeless Lotus
 Titans' Vanguard
 Towering Viewpoint
+Town Gossipmonger
 Trading Post
 Uninvited Geist
 Vampire Revenant
 Viashino Runner
 Viridian Corrupter
+Viscerid Deepwalker
 Vizier of the Scorpion
 Volcanic Spite
 Vrock
+Wakandan Tusker
+Ward Sliver
 Waterlogged Teachings
 Whelming Wave
 Whiptail Wurm

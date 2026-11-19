@@ -1,0 +1,99 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Eyes of the Beholder	cfc896dd5611f208	12	0/0		2/2	
+A-Rockslide Sorcerer	80c1dd5898a0e48f	12	1/1		1/1	
+A-Umara Mystic	cecfcf975ea10856	6	1/1		0/1	ix:resp
+Accelerated Evolution	6d1c1078a0453060	8	1/1		1/2	ix:resp
+Aerial Assault	9a59761c89086451	8	0/0		2/2	
+Angelic Field Marshal	1f960b81be1ae51b	4	0/0		0/0	
+Armor Thrull	743550c0ba174684	19	1/1		0/1	ix:resp
+Asphodel Wanderer	dddb88ef0a12584b	18	1/1		0/1	ix:resp
+Azorius Ploy	9c7b7b4c208b0cac	8	0/0		1/2	ix:resp
+Balduvian Frostwaker	8206ff42b67b50c9	229	1/1		1/1	
+Biting Rain	6c2c845cd955b3c5	9	0/0		2/2	
+Blight Sickle	bf230f6d4d8c3624	7	1/1		0/1	ix:resp
+Buccaneer's Bravado	36ef1c20561b371d	10	0/0		2/2	
+Burning Palm Efreet	a124a3e95d87454b	6	1/1		0/1	ix:resp
+Burst of Speed	f91565bb4126fadd	4	0/0		1/2	ix:resp
+Cacophony Scamp	fc5197bcd7d64a2d	14	2/2		0/1	ix:resp
+Caldera Pyremaw	dcc4cc669da4ed08	5	1/1		0/1	ix:resp
+Caravan Escort	4ea3d5efd4fb1f1d	10	1/1		0/1	ix:resp
+Castle	bdd747c6541de8c3	6	0/0		0/0	
+Chain Lightning	4c8da300574f4c4d	12	0/0		2/2	
+Clackbridge Troll	212b01c55c3d7779	5	2/2		0/1	ix:resp
+Claim the Firstborn	1d12a6c3b8573e83	8	0/0		1/2	ix:resp
+Common Iguana	268f381fc6290400	15	1/1		0/1	ix:resp
+Consuming Vapors	c83f01583ff9e220	13	0/0		1/2	ix:resp
+Contagion	2a3c5fdb451f4bc2	35	0/0		2/2	
+Corrupting Licid	63508a3b6371f137	10	1/1		1/1	
+Corsairs of Umbar	7f1ba796f6278fd3	21	2/2		1/1	
+Crypt Incursion	26651cf26a7e40c3	11	0/0		2/2	
+Custodi Soulbinders	4515064808315608	4	1/1		1/1	
+Deadshot	47663dcc6ce6fd85	8	0/0		1/2	ix:resp
+Dismantling Blow	ad70ec28a7086ec2	10	0/0		3/4	cast/alt:kicked
+Dragon's Approach	bb64e3df4047f807	8	0/0		2/2	
+Dwarven Vigilantes	794af72b66324574	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Ekthi, Contaminator Priest	a2324447f76b35fc	18	0/0		0/0	
+Essence Feed	ae27113ec5bc8d48	10	0/0		1/2	ix:resp
+Eyes of Gitaxias	3d0557c1c7275d43	11	0/0		1/2	ix:resp
+Farbog Boneflinger	d90d58ce93fd7b06	9	1/1		0/1	ix:resp
+Final-Sting Faerie	a1ba605360ed1362	16	1/1		1/1	
+Flashfires	c7248ecc5847d884	8	0/0		1/2	ix:resp
+Furnace Celebration	fd079f33d5d17e62	15	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Galvanic Iteration	ada8cf8d366b9ccb	27	0/0		3/4	ix:resp
+Goblin Glider	d3adead6b92a74c8	11	0/0		0/0	
+Goblin Racketeer	a2883d47736c3cbe	8	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Golgari Raiders	fdc1b59d3edb5305	8	0/0		0/0	
+Guardian Kirin	ea4c832a663e816a	12	1/1		0/1	ix:resp
+Implement of Ferocity	8864bda92317400c	12	2/2		0/1	ix:resp
+Independent Troops	472515492a089d9c	10	0/0		0/0	
+Infernal Pet	8d552c35bb98a29f	17	1/1		0/1	ix:resp
+Irencrag Pyromancer	e2e06bfc26890104	21	1/1		1/1	
+Kor Castigator	465c9bb276e94804	6	0/0		0/0	
+Lightning Hounds	264e30de4233ab00	10	0/0		0/0	
+Lowland Oaf	446d5a11e23f35d9	11	1/1		1/1	
+Lucas, the Sharpshooter	a721a5a1ac39c102	18	1/1		0/1	ix:resp
+Mogg Sentry	c33886c76ac2c97c	20	1/1		1/1	
+Moonglove Changeling	958303c9557edfac	6	1/1		1/1	
+Morkrut Necropod	ec955e86e9b55b75	15	2/2		0/1	ix:resp
+Mortal's Ardor	1945c394c93c5fa4	4	0/0		2/2	
+Mothrider Patrol	70db17fe2772c544	6	1/1		1/1	
+Mourning	6af883be95647e15	8	1/1		1/2	ix:resp
+Novice Dissector	256c9c0c86285e4a	13	1/1		0/1	ix:resp
+Orcish Bowmasters	a50b2aa31d289afd	21	2/2		1/1	
+Path of Anger's Flame	989cc6c92038c21e	4	0/0		1/2	ix:resp
+Phyrexian Etchings	6748596d16a13291	6	3/3		0/1	ix:resp
+Prowling Pangolin	2aa62652a21f2b9f	4	1/1		0/1	ix:resp
+Purifying Dragon	cf5750e94b05ddb6	10	1/1		0/1	ix:resp
+Rally to Battle	9bd59f6f319a97cd	10	0/0		1/2	ix:resp
+Reckless Handling	20a50b964257e70a	20	0/0		1/2	ix:resp
+Renewed Faith	5061e68f7979ff7d	4	2/2		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Reparations	3d88111cda8f06e1	10	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Replenish	2ad4870ef3cb850c	6	0/0		2/2	
+Rolling Thunder	526f0008c6fecf86	3	0/0		3/4	f0/s/x0
+Searing Blood	3acd79f52afeb298	10	0/0		2/2	
+Secure the Scene	18387e00adabd9c6	6	0/0		1/2	ix:resp
+Settle the Score	be02feab1c11d4e3	5	0/0		1/2	ix:resp
+Shadowspear	69a2db86f43c128a	22	2/2		1/1	
+Shake the Foundations	9dc49ca887c86798	14	0/0		2/2	
+Sheoldred	e2f7955e83dc042d	3	2/2		0/1	ix:resp
+Simplify	8bf5cf4e3cfe4cde	10	0/0		1/2	ix:resp
+Spectral Shepherd	5fc11137890f9e2b	8	1/1		1/1	
+Spirit Weaver	d64347872e01aafa	6	1/1		0/1	ix:resp
+Steam Blast	d9920bb73ec50dc9	15	0/0		2/2	
+Summon: Good King Mog XII	e8dc297a3fe18199	4	0/0		0/0	
+Tactical Advantage	43ab34c6992fad14	12	0/0		2/2	
+Thrull Retainer	1cfb9626adab31c2	5	1/1		1/2	ix:resp
+Thundering Sparkmage	d2640051049ba9dd	7	1/1		1/1	
+Tibor and Lumia	ba4382482e9246f2	7	2/2		0/1	ix:resp
+Titan Hunter	7c8ac31bf43be3b7	7	2/2		0/1	ix:resp
+Topan Freeblade	daf29a4a64f76fe6	27	1/1		1/1	
+Tor Giant	8bf8f2590f386ea5	15	0/0		0/0	
+Transcendent Master	bc2e8409a1409c12	4	1/1		1/1	
+Trenching Steed	2dcc25cd722aacc2	4	1/1		1/1	
+Undying Rage	b21bdcc2d116d761	23	1/1		2/2	
+Unwilling Ingredient	f5972371134e7e6d	12	1/1		1/1	
+Vampire Lacerator	de252312e424672b	24	1/1		1/1	
+Venomcrawler	9337f283dc8c0715	4	1/1		0/1	ix:resp
+Voldaren Stinger	01731e8150e7e76d	10	1/1		1/1	
+Whack	320835820407e3b6	5	0/0		2/2	
+Writhing Necromass	ef632a4adcd1f489	6	0/0		0/0	

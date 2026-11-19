@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Dueling Coach	12893c29e4ec4e51	22	2/2		0/1	ix:resp
+Abandon Hope	c5a34b78a77e6e52	20	0/0		3/4	f0/s/x0
 Aetherling	dde72ac586d59c15	42	4/4		1/1	
 Aethersnipe	c600147e2ded99e4	13	1/1		2/3	cast/alt:none
 Aethersquall Ancient	3cb0b620c9ace4b5	3	2/2		0/1	ix:resp
@@ -8,6 +9,7 @@ Akroan Mastiff	658680ac84b11368	83	1/1		1/1
 Ambush Krotiq	d0fefc576710d889	3	1/1		1/1	
 Angelic Captain	d1cd6567de77f61c	37	1/1		1/1	
 Aven Fateshaper	b414b11b35b3fa86	4	2/2		0/1	ix:resp
+Aven Squire	4a7d02901d06c223	16	1/1		0/1	ix:resp
 Bail Out	6946f53cae2f1d71	71	0/0		4/4	
 Balduvian Dead	543bfb9442223e6e	49	1/1		1/1	
 Battle of Hoover Dam	27df9a8dfcc09351	18	0/0		0/0	
@@ -103,6 +105,7 @@ Inundate	fb80b558f584e811	8	0/0		1/2	ix:resp
 Ire of Kaminari	737eed8f78b60aa4	15	0/0		1/2	ix:resp
 Ith, High Arcanist	a617668dd29cc7c7	30	1/1		3/3	
 Jasmine Boreal	a06332051935f0e7	4	0/0		0/0	
+Jetmir's Garden	6d6edeaa3068d8cc	69	4/4		0/1	ix:resp
 Kefnet's Monument	8196d09279231e1e	73	1/1		1/1	
 Kessig Prowler	33ef871771ffb03b	8	1/1		0/1	ix:resp
 Killian, Decisive Mentor	d6f009bd34e559d6	45	2/2		1/1	
@@ -111,6 +114,7 @@ Kozilek's Sentinel	6d79bf66c5bbc497	16	1/1		1/1
 Lagonna-Band Trailblazer	489f0bf0edd4c5f5	52	1/1		1/1	
 Legion's Landing	91638856e25fe24f	32	4/4		1/1	
 Life Goes On	99c18a6b45b5b573	35	0/0		1/2	ix:resp
+Lightwalker	d70e920c7f7d8985	10	0/0		0/0	
 Living Lies of Loki	95b3570a8bfe4844	35	1/1		1/1	
 Lu Bu, Master-at-Arms	3cca70b87b01534f	12	0/0		0/0	
 Lurking Roper	9ea3cd3963ca8bbc	12	1/1		0/1	ix:resp
@@ -168,6 +172,7 @@ Shielded by Faith	1e81387295ffd866	8	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
 Shimmering Mirage	9f126d9531fc5443	82	0/0		2/2	
 Skulking Ghost	4a571f83eb81e325	40	1/1		0/1	ix:resp
 Skull Prophet	ab645aa20f791797	12	2/2		0/1	ix:resp
+Skybridge Towers	0f7ca6e908010906	106	2/2		0/1	ix:resp
 Skyhunter Patrol	a30a7e03164b7a45	35	0/0		0/0	
 Smokespew Invoker	e938bf6a086fad78	7	1/1		0/1	ix:resp
 Sophic Centaur	4ff82100c2dddbe7	13	1/1		0/1	ix:resp
@@ -183,12 +188,15 @@ Storm Fleet Aerialist	d7e147bfb7a33a99	15	0/0		0/0
 Stronghold Assassin	f08b3cf4599a0b5c	10	1/1		1/1	
 Stymied Hopes	6442d4d18effe0f2	6	0/0		1/2	ix:resp
 Sudden Breakthrough	d242924f6f47472c	15	0/0		2/2	
+Sunscorched Divide	f7f5abb0445d701a	112	1/1		0/1	ix:resp
 Swarm Guildmage	2594a92e2c9f9fc7	5	2/2		0/1	ix:resp
 Tandem Takedown	cdb0da8531ef2056	24	0/0		2/2	
 Temporal Mastery	84f0ea8d2db52ec6	6	0/0		3/4	ix:resp
+Tendo Ice Bridge	0ddcab1b372fe910	108	2/2		0/1	ix:resp
 Terramorph	7867e78308d8de4c	29	0/0		2/2	
 Thallid Omnivore	6537f1a4f668577d	48	1/1		1/1	
 Thallid Shell-Dweller	dddcf8a0854be3c8	14	2/2		1/1	
+The Hunter Maze	713945d7a3717a52	134	2/2		0/1	ix:resp
 The Mana Rig	11b4d8b62c41e932	72	2/2		1/1	
 The Modern Age	34cff785f7dd3409	9	0/0		0/0	
 Thraben Standard Bearer	81a2a041fbb4966e	102	1/1		1/1	
@@ -196,6 +204,7 @@ Thrasios, Triton Hero	b1d703346fec15c1	5	1/1		0/1	ix:resp
 Thraxodemon	8b9f3531b6d4e263	14	1/1		0/1	ix:resp
 Thriving Moor	24a9864625ca5e71	120	1/1		0/1	ix:resp
 Thriving Skyclaw	a7ca056b06488cb7	7	2/2		0/1	ix:resp
+Tithe	fbed0e50d09bccfa	15	0/0		2/2	
 Tithe Drinker	18f8beff4370d274	33	1/1		0/1	ix:resp
 Tizerus Charger	6621347f156abc5b	63	0/0		1/2	cast/alt:escaped
 Toshiro Umezawa	9775d4f5c375ad13	10	3/3		0/1	ix:resp
@@ -223,5 +232,6 @@ Wind Dancer	1749bdccc39b89a0	15	1/1		1/1
 Wing Puncture	9df6a6de6f5c9d2e	24	0/0		1/2	ix:resp
 Wing Snare	cc24a3626293e7f0	8	0/0		2/2	
 Woodland Changeling	91d97ba155ce29de	38	0/0		0/0	
+Wrenn and Seven	912f141ef8067320	11	4/4		1/1	
 Zealots en-Dal	bd377f1a988bb467	79	1/1		1/1	
 Zenith Festival	9081cd616855d53f	16	0/0		4/6	cast/alt:harmonize,f0/s/x0

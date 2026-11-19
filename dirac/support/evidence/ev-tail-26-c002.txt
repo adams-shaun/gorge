@@ -10,6 +10,7 @@ Angelic Overseer
 Arc Lightning
 Arcades Sabboth
 Ardbert, Warrior of Darkness
+Arena Trickster
 Armor of Shadows
 Armorcraft Judge
 Arno Dorian
@@ -74,6 +75,7 @@ Famished Foragers
 Fast Forward
 Feast of Dreams
 Fencing Ace
+Festering Wound
 Flowstone Crusher
 Force of Savagery
 Forest
@@ -82,6 +84,8 @@ Frantic Inventory
 Furnace Scamp
 Galadhrim Ambush
 Gate Hound
+Gate to the Afterlife
+Gerrard's Irregulars
 Gideon's Lawkeeper
 Glimpse of Freedom
 Gloom Pangolin
@@ -142,7 +146,9 @@ Open the Vaults
 Orochi Soul-Reaver
 Orzhov Racketeers
 Paradise Mantle
+Pardic Arsonist
 Patriot, Young Avenger
+Paupers' Cage
 Pharika's Libation
 Phyrexian Ghoul
 Pit Imp
@@ -172,6 +178,7 @@ Satyr Grovedancer
 Savage Swipe
 Scarwood Treefolk
 Scathe Zombies
+Sensei's Divining Top
 Sentinel
 Serpent Warrior
 Shambling Goblin
@@ -195,6 +202,7 @@ Sporeback Troll
 Steadfast Unicorn
 Stitched Drake
 Stony Strength
+Storm of Memories
 Sunscape Master
 Sunset Revelry
 Sunspire Griffin
@@ -208,6 +216,7 @@ The Surgical Bay
 The Wretched
 Thundering Spineback
 Tide Drifter
+Tigereye Cameo
 Titania, Nature's Force
 Tower of Calamities
 Triad of Fates
@@ -216,6 +225,7 @@ Unholy Strength
 Urabrask's Anointer
 Vapor Snag
 Verduran Emissary
+War Machine, James Rhodes
 Warkite Marauder
 Warlord's Axe
 Warthog
