@@ -2631,10 +2631,8 @@ func (e *Engine) runCombatAssignments() {
 					// CR 725.2: "Whenever a creature deals combat damage to the
 					// monarch, its controller becomes the monarch": one trigger per
 					// creature whose hit landed, controlled by the monarch.
-					if e.G.HasMonarch && ev.Player == e.G.Monarch &&
-						x.from != 0 && e.G.Obj(x.from) != nil {
-						e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-							Controller: e.G.Monarch, MonarchSteal: true, MonarchTo: e.G.Obj(x.from).Controller})
+					if pt, ok := monarchStealFor(e.G, ev.Player, x.from); ok {
+						e.pendingTriggers = append(e.pendingTriggers, pt)
 					}
 					// CR 726.2: "Whenever one or more creatures a player controls
 					// deal combat damage to the player who has the initiative, the
@@ -2746,6 +2744,28 @@ func recordHandoffHit(g *state.Game, cr *combatRound, player state.PlayerID, fro
 		}
 	}
 	cr.initCtrls = append(cr.initCtrls, ctrl)
+}
+
+// monarchStealFor returns CR 725.2's "Whenever a creature deals combat damage
+// to the monarch, its controller becomes the monarch" trigger for one LANDED
+// player-targeted combat hit: controlled by the monarch, moving the crown to
+// the dealing creature's controller. The caller appends it to
+// pendingTriggers. It has two call sites, mirroring the combat-damage
+// ledger's established twin path: runCombatAssignments' synchronous player
+// branch, and finishChosenDamage's parked-hit block (a hit whose CR 616.1
+// replacement competition is posed -- Battletide Alchemist's optional "you
+// may prevent X" alone parks every player hit -- never reaches the
+// synchronous branch, so the landed event must queue the steal there). The
+// guards are the same ones the synchronous site used: no crown, the hit was
+// not dealt to the monarch, or the dealing source is gone means no steal.
+// The game, not the engine, is the parameter, so this stays off the frozen
+// engine-surface ratchet like its recordHandoffHit sibling.
+func monarchStealFor(g *state.Game, player state.PlayerID, from state.ObjID) (pendingTrigger, bool) {
+	if !g.HasMonarch || player != g.Monarch || from == 0 || g.Obj(from) == nil {
+		return pendingTrigger{}, false
+	}
+	return pendingTrigger{
+		Controller: g.Monarch, MonarchSteal: true, MonarchTo: g.Obj(from).Controller}, true
 }
 
 // maxHandSize is CR 514.1's DEFAULT maximum: at the beginning of a player's
