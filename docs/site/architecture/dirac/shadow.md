@@ -16,17 +16,22 @@ Two rules shape everything here.
 
 `Hidden` is the caller's. A determinization deals it from the seat's own deck list and the counts the view shows; the verifier supplies the true zones. The staging code cannot tell which.
 
-## What stages today (chunks C4 and C5)
+## What stages today (chunks C4, C5 and C5b)
 
 - Two seats.
 - Lands and creatures with no abilities beyond combat keywords, and creatures whose only ability is "put a +1/+1 counter on this" (`selfCounterAbility`: activated, no target, no once-per-turn state).
 - Damage marked on a battlefield creature (C5; a damaged creature is also marked dealt-damage-this-turn, as `dmgPerm` records it) and nonzero +1/+1 counters on a battlefield creature (C5).
+- Plain creature tokens on the battlefield (C5b): a token `CardDef` with `TToken`, combat keywords and no ability. A token is a `WorldObj` with `Token` set, placed after the decks' objects in the order it was made, so it gets the object index the game gave it. The shadow finds its table token by the view's name ("Goblin Token"), printed power and toughness, against the table's script names (`r_1_1_goblin`); zero or several matches is `token`.
+- Attached Auras and Equipment (C5b), on a creature of either seat: `WorldObj.Attached` and `Host` (the bearer's object index), staged by `attachTo`. The card must be an Aura or Equipment whose abilities are statics that commute (a P/T or keyword grant, can't attack, can't block, no condition) plus the Equip ability. An attachment's layer timestamp is the order the staging attaches in, the battlefield list order, not the order the game did, which an observation does not show; that is exact for the statics admitted and is why only commuting ones are.
+- A sorcery or instant whose whole spell ability creates tokens, in any hidden zone, the graveyard or the hand (a card carries no state there).
 - Library, hand, graveyard and battlefield order, tapped and summoning-sick marks, life, land drop, turn, step and priority holder.
 - Quiet priority steps only: upkeep, draw, first main, second main, end.
 
-Everything else is refused with a reason. dirac's reasons: `table`, `seats`, `object-layout`, `card`, `zone`, `control`, `place`, `step`, `priority`, `turn`, `life`, `battlefield`. The shadow adds: `game-over`, `seats`, `stack`, `decision`, `unknown-card`, `unmapped-object`, `hidden`, `exile`, `token`, `counter`, `attachment`, `mark`, `pool`, `step-name`. Each has a test that provokes it (`TestUnstageableReasons`, `TestWorldFromViewReasons`).
+Everything else is refused with a reason. dirac's reasons: `table`, `seats`, `object-layout`, `card`, `zone`, `control`, `place`, `step`, `priority`, `turn`, `life`, `battlefield`, `token`, `attachment`. The shadow adds: `game-over`, `seats`, `stack`, `decision`, `unknown-card`, `unmapped-object`, `hidden`, `exile`, `counter`, `mark`, `pool`, `step-name`. Each has a test that provokes it (`TestUnstageableReasons`, `TestWorldFromViewReasons`).
 
-Still refused after C5: tokens and copies (`token`), any other counter kind, a zero count, or a counter or damage off the battlefield (`counter`, `mark`), an attached Aura or Equipment (`attachment`). Tokens need object slots beyond the deck, and attachment needs Aura and Equipment cards, which dirac's staging scope does not yet admit; neither is staged by guess.
+Still refused: copies (`token`), any other counter kind, a zero count, or a counter or damage off the battlefield (`counter`, `mark`), an Aura or Equipment of another shape, attached to a non-creature or a player, or an Aura on the battlefield attached to nothing (`attachment`), a token that is not a plain creature token or that the table cannot name (`token`). Both new reasons are dirac's (`dirac.ReasonToken`, `dirac.ReasonAttach`); the shadow reuses them.
+
+A token that has left the battlefield leaves its object index behind in the game that made it (dirac reuses an index only when the table is full). The view cannot show it, so a gap before a shown token is refused as `token`; a token that left after the last shown one leaves no gap, and the staged game simply holds fewer objects than the one that made it. The verifier skips those positions and counts them.
 
 Not carried: the RNG draw count (the verifier masks `Projection.Draws`) and the per-card in-hand history.
 
@@ -41,7 +46,9 @@ Not carried: the RNG draw count (the verifier masks `Projection.Draws`) and the 
 
 Last run (C5): 197 of 200 games staged a position (719 tried; 476 refused as a non-quiet step, 46 for a non-empty stack), 40 staged positions held damage and 71 held +1/+1 counters, 103,742 continuation decisions, 0 mismatches. The test fails if fewer than 20 staged positions hold each mark.
 
-`TestStageMutationsAreCaught` drops each of tapped, summoning-sick, damage, +1/+1 counters, life, land drop, library order, graveyard order and turn from the staging in turn, and requires the verifier to fail on each. A feature that staging silently dropped would be caught.
+`TestStageCardsMatchReplay` (`dirac/shadow/stage_cards_test.go`) is the same verifier on a corpus pool from the `mbc` set, every card supported with evidence: Plains and Mountain, eleven creatures with combat keywords, Pacifism (an Aura), Swiftfoot Boots (an Equipment) and Dragon Fodder (two Goblin tokens). A quarter of the games wait for a position holding an attachment and a quarter for one holding a token. Last run (C5b): 181 of 200 games staged a position, 85 staged positions held an attachment and 117 a token, 114,034 continuation decisions, 0 mismatches. The test fails if fewer than 20 positions hold each.
+
+`TestStageMutationsAreCaught` drops each of tapped, summoning-sick, damage, +1/+1 counters, life, land drop, library order, graveyard order and turn from the staging in turn, and on the corpus pool drops an Equipment's attachment, moves an Aura to another creature and drops the tokens, and requires the verifier to fail on each. A feature that staging silently dropped would be caught.
 
 ## Fork and rollout (chunk C8)
 
@@ -55,7 +62,7 @@ Each later chunk widens the refused set and keeps the same verifier, run on a po
 
 | Chunk | Adds |
 |---|---|
-| C5 (partly done: damage, +1/+1 counters) | other counter kinds, auras, equipment, tokens |
+| C5 (partly done: damage, +1/+1 counters; C5b: attached Auras and Equipment, plain creature tokens) | other counter kinds, attachments with abilities beyond a static grant, tokens with abilities, copies |
 | C6 | stack, triggers, replacement effects, per-source remembered memory |
 | C7 | mid-turn positions: declare attackers and blockers, targets |
 | C8 | `CopyFrom` fork and rollout loop (landed, below) |
