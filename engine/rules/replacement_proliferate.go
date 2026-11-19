@@ -1,11 +1,38 @@
 package rules
 
 import (
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 func init() { effects.RegisterNonAPI("repl:Proliferate") }
+
+// proliferateReplacementMatches is the matcher arm of the proliferate-action
+// replacement class (Tekuthal, Inquiry Dominus: "if you would proliferate,
+// proliferate twice instead"). Only the synthetic PROPOSAL
+// (effProliferate's CountReplacementProposed hold, the roll boundary's
+// discipline) reaches here; the completed events.Proliferate markers the
+// actions emit carry no proposal text and map no class, so a replacement
+// applies before the action and never to its own record. The rewrite is the
+// With's shared ReplaceCount$ arithmetic (applyProliferateReplacements), so
+// only a With-bearing line matches: a With-less line has no implemented
+// application and fails closed.
+func (e *Engine) proliferateReplacementMatches(r cards.Repl, ev events.Event,
+	you state.PlayerID, source state.ObjID, svars map[string]string) bool {
+	if ev.Kind != events.Proliferate || ev.Text != events.ProliferateProposalText {
+		return false
+	}
+	if r.With == nil {
+		return false
+	}
+	if vp, ok := r.Param(cards.PKValidPlayer); ok &&
+		!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+		return false
+	}
+	return e.replacementConditionHoldsWith(r, source, you, svars)
+}
 
 // applyProliferateReplacements rewrites a Proliferate proposal's action
 // count through every applicable R:Event$ Proliferate replacement. The

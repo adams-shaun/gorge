@@ -761,3 +761,33 @@ func (e *Engine) replMatchEffectCreated(m replMatch, ev events.Event) bool {
 	}
 	return e.replacementMatchesEffectCreatedCap(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers, m.chosenCap())
 }
+
+// applyDamageClassReplacements is the repl:DamageDone dispatch arm (the
+// Damage event's replacement pass, extracted verbatim from
+// applyReplacementsDispatch). The class first narrows the collected matches
+// to the applicable ones, then -- CR 616.1 -- either poses the affected
+// player's order choice over non-commuting candidates, parks the event
+// behind the choice, or applies the whole set.
+func (e *Engine) applyDamageClassReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	matches = e.applicableDamageReplacements(ev, matches)
+	if len(matches) == 0 {
+		return ev, false
+	}
+	if (len(matches) > 1 && !allBarePreventions(matches)) || hasOptionalReplacement(matches) {
+		if p, ok := e.damageAffectedPlayer(ev); ok && !e.G.Players[p].Lost {
+			if applied, served := e.poseDamageReplacementChoice(ev, matches, e.replacementAskPlayer(matches, p)); served {
+				// Under the resolution kernel the ask was answered in place
+				// and the modified damage already landed: return the landed
+				// event so the emitting primitive (Host.EmitDamage's
+				// contract) reads the post-replacement amount for its
+				// ExcessSVar$/RememberDamaged$ riders. A fully prevented
+				// in-place hit arrives as the zero event and keeps the
+				// Note below, which the emitter reads as 0.
+				return applied, true
+			}
+			return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+				Text: "damage awaiting replacement-order choice"}, true
+		}
+	}
+	return e.applyNonMoveReplacements(ev, matches)
+}

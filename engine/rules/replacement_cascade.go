@@ -91,3 +91,21 @@ func (e *Engine) CascadeReplacement(source state.ObjID, controller state.PlayerI
 	e.cascadeResidue = saved
 	return handled
 }
+
+// cascadeReplacementMatches is the matcher arm of the cascade instruction's
+// replacement boundary (CR 614.4; Averna, the Chaos Bloom's replacement on
+// its controller, active on the battlefield). Only the synthetic proposal
+// reaches here, so there is no logged event and no ValidCard$: the caster
+// is ev.Player and ValidPlayer$ scopes it exactly as the Draw/ProduceMana
+// classes do.
+func (e *Engine) cascadeReplacementMatches(r cards.Repl, ev events.Event,
+	you state.PlayerID, source state.ObjID, svars map[string]string) bool {
+	if ev.Kind != events.Cascade {
+		return false
+	}
+	if vp, ok := r.Param(cards.PKValidPlayer); ok &&
+		!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+		return false
+	}
+	return e.replacementConditionHoldsWith(r, source, you, svars)
+}
