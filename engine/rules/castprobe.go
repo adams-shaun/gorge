@@ -54,6 +54,20 @@ func (e *Engine) offerAsSpellOnStack(id state.ObjID, fn func() bool) bool {
 	probeHand = append(append(probeHand, hand[:i]...), hand[i+1:]...)
 	prevStack, prevZone := e.G.Stack, o.Zone
 	prevDepth, prevGen := e.derivedMemoDepth, e.derivedMemoGen
+	// The staticEffects memo (engine_layercache.go) is keyed on the log head
+	// and stamped at events; this probe moves a card with no event, so a memo
+	// whose recorded gate outcomes read the zone the card leaves (Condition$
+	// Hellbent's empty hand, an IsPresent$ over the source zone, a CheckSVar$
+	// graveyard count under a may-play probe) is stale inside it. Invalidate
+	// the memo for the probe so its reads re-evaluate every gate against the
+	// moved card (castprobe's seed case: Alena, Kessig Trapper's greatest-power
+	// amount read Demon's Jester's hellbent +2/+1 at the old hand), and leave
+	// it invalidated on the way out so the next read after the restore rebuilds
+	// it for the real board -- a rescan inside the probe, when one happened,
+	// stamped the probed board. Only a memo whose gates are all reads a card
+	// move never touches (the active player, a life total: the gate records'
+	// staticGateDepActive/staticGateDepLife classes) keeps its epoch.
+	probeStales := staticProbeStales(e.staticEpoch, len(e.L.Events), e.staticGatesKnown, e.staticGates)
 	e.G.SetZone(srcZone, o.Owner, probeHand)
 	e.G.Stack = append(slices.Clip(prevStack), id)
 	o.Zone = state.ZStack
@@ -62,6 +76,10 @@ func (e *Engine) offerAsSpellOnStack(id state.ObjID, fn func() bool) bool {
 	// move, whose fingerprint would outlive it.
 	e.offerProbeDepth++
 	e.retireCrossWalkMemo()
+	if probeStales {
+		e.staticEpoch = -1
+		e.activeEpoch = -1
+	}
 	defer func() {
 		e.offerProbeDepth--
 		o.Zone = prevZone
@@ -72,8 +90,40 @@ func (e *Engine) offerAsSpellOnStack(id state.ObjID, fn func() bool) bool {
 		if e.derivedMemoGen != prevGen {
 			e.derivedMemoGen++
 		}
+		if probeStales {
+			e.staticEpoch = -1
+			e.activeEpoch = -1
+		}
 	}()
 	return fn()
+}
+
+// staticProbeStales reports whether the staticEffects memo described by the
+// given fields can serve a stale gate answer inside an offerAsSpellOnStack
+// probe that moves a card out of its zone for the probe's duration. The memo
+// is a pure function of the board while its gates are all reads a card move
+// never touches: the recorded gates' dependency classes (static_gatememo.go)
+// are then exactly staticGateDepActive (the active player, written by
+// TurnChange) and staticGateDepLife (the controller's life and its fixed
+// starting value). A gate in any other class -- Hellbent's empty hand,
+// Metalcraft's or IsPresent's counts, a CheckSVar$ body, the library top --
+// can flip when a card leaves its zone (the hand for a plain cast, the
+// graveyard or exile for a may-play probe), so the memo must be rebuilt
+// around the probe. An unknown or already-invalid memo (no records, or an
+// epoch off the log head) rebuilds inside the probe when its reads reach it,
+// so the probe must re-invalidate at both edges regardless.
+func staticProbeStales(epoch, events int, gatesKnown bool, gates []staticGateRec) bool {
+	if epoch != events || !gatesKnown {
+		return true
+	}
+	for i := range gates {
+		switch gates[i].dep {
+		case staticGateDepActive, staticGateDepLife:
+		default:
+			return true
+		}
+	}
+	return false
 }
 
 // castTargetsAvailableOnStack is castTargetsAvailable judged by
