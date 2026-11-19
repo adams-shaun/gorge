@@ -817,9 +817,11 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		}
 		return e.replacementConditionHoldsWith(r, source, you, svars)
 	case cards.ReplProliferate:
-		return e.proliferateReplacementMatches(r, ev, you, source, svars)
+		return proliferateReplacementMatches(e, r, ev, you,
+			func() bool { return e.replacementConditionHoldsWith(r, source, you, svars) })
 	case cards.ReplRemoveCounter:
-		return e.removeCounterReplacementMatches(r, ev, you, source, svars)
+		return removeCounterReplacementMatches(e, r, ev, you, source,
+			func() bool { return e.replacementConditionHoldsWith(r, source, you, svars) })
 	case cards.ReplRollPlanarDice:
 		// The planar-dice replacement class (Ichor Elixir):
 		// "if you would roll one or more planar dice, instead roll that many
@@ -835,7 +837,8 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		}
 		return e.replacementConditionHoldsWith(r, source, you, svars)
 	case cards.ReplCascade:
-		return e.cascadeReplacementMatches(r, ev, you, source, svars)
+		return cascadeReplacementMatches(e, r, ev, you,
+			func() bool { return e.replacementConditionHoldsWith(r, source, you, svars) })
 	case cards.ReplGameLoss, cards.ReplGameWin:
 		// The "you can't lose the game" / "your opponents can't win the
 		// game" class (CR 104.3 / 704.5a-c). Only
