@@ -2897,6 +2897,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	}
 	untapped := s.untappedRestrSrcs(k, p)
 	tapColor := anyColor && !printedPays // the printed symbols the census pays are planned as printed (CR 609.4b lets either tap pay)
+	cost = s.lowerWitnessKeepsTarget(k, p, excl, cost)
 	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 && !s.anyRestrEach(k, untapped) {
 		if !s.tapForSpellTaps(k, p, &cost, x, excl, tapColor) {
 			s.tapForRider(k, p, &cost, x, excl, tapColor)
