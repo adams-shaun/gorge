@@ -85,15 +85,15 @@ func (s *State) tokCopyOp(k *prep, in *kop.Instr, p uint8, tok CardID, n, nCopy 
 // tokCopyRiders reports whether the creation's riders are ones the copy takes
 // as a plain mint does (gorge applyTokenMintRiders lands every rider on each
 // token the replaced plan mints, the copy included): enters tapped, haste
-// until end of turn, remembered or imprinted, counted, and the end-step
-// sacrifice or exile. A comma-listed script, a Role mint and a token that
-// enters attacking stay unmodelled.
+// until end of turn, remembered or imprinted, counted, enters attacking
+// (tokenAttacks) and the end-step sacrifice or exile. A comma-listed script
+// and a Role mint stay unmodelled.
 func tokCopyRiders(in *kop.Instr) bool {
 	switch in.Op {
 	case kop.OpCreateToken:
 		return in.B.N&^(kop.TrTapped|kop.TrHasteEOT) == 0
 	case kop.OpCreateTokenEx:
-		return in.B.N&(kop.TokAttach|kop.TokAttacking|kop.TokAttackAsk) == 0
+		return in.B.N&kop.TokAttach == 0
 	}
 	return false
 }
@@ -188,6 +188,9 @@ func (s *State) mintTokenCopy(k *prep, in *kop.Instr, p uint8, host Obj) bool {
 	e.ctrl = was
 	if in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) != 0 {
 		s.tokenAtEOT(in, t)
+	}
+	if in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttacking != 0 && s.objs[t].zone == kop.ZoneBattlefield {
+		s.tokenAttacks(k, in, s.objs[t].slot, p) // filter_combatwords.go
 	}
 	if nsl := s.objs[t].slot; in.Op == kop.OpCreateToken && in.B.N&kop.TrHasteEOT != 0 && s.objs[t].zone == kop.ZoneBattlefield {
 		s.perms[nsl].eotKw |= kop.KwHaste
