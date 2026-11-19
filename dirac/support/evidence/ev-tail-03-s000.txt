@@ -1,61 +1,172 @@
 Abyssal Gatekeeper
+Ainok Bond-Kin
+Ajani's Mantra
+Altar's Light
+Arcade Cabinet
+Argivian Find
 Armasaur Guide
+Armor of Faith
+Armored Pegasus
+Back to Basics
+Band Together
+Befriending the Moths
+Bontu's Monument
 Borderland Minotaur
+Braids, Cabal Minion
+Bramble Armor
 Breaking Point
+Brightmare
+Brushwagg
+Celestial Crusader
+Cenn's Heir
 Choke
+Claim of Erebos
+Clear Shot
+Clever Lumimancer
+Cloud Cover
+Confirm Suspicions
+Consulate Skygate
 Coral Colony
+Courier's Capsule
 Crack the Earth
 Creeping Trailblazer
+Deadly Visit
 Devils' Playground
 Dominating Licid
+Doom Foretold
 Dracosaur Auxiliary
+Drana, Liberator of Malakir
 Duergar Hedge-Mage
+Eiganjo Uprising
+Enchantress's Presence
+Enshrined Memories
 Entomb
+Ephemerate
+Ethercaste Knight
 Falkenrath Pit Fighter
+Festering Newt
 Fiery Confluence
+Firehoof Cavalry
+Font of Mythos
 Forerunner of the Empire
 Forest
 Fruitcake Elemental
+Funeral Longboat
 Furyblade Vampire
+Gather the Pack
+Gaze of Adamaro
+Gideon Blackblade
+Gideon's Company
+Githzerai Monk
+Gnarlwood Dryad
 Goblin Chainwhirler
+Graveyard Marshal
+Grey Knight Paragon
+Hamato Ninpō
+Heliod, Sun-Crowned
+Hoar Shade
 Hope and Glory
+Howling Wolf
 Impale
 Implement of Malice
+Iridescent Angel
 Island
+Jeskai Student
+Kami of Restless Shadows
 Karplusan Strider
+Katilda, Dawnhart Prime
+Knighthood
 Kraul Raider
 Land Tax
+Leeching Licid
+Lion's Eye Diamond
+Lore Seeker
+Loxodon Smiter
 Lunge
 Mantle of Webs
+Martial Glory
 Minotaur Warrior
+Mirkwood Channeler
+Misthollow Griffin
+Molten Gatekeeper
 Moor Fiend
 Mountain
+Mysterious Pathlighter
+Mystic Penitent
 Nesting Dragon
+Nightmare Shepherd
 Nimble Birdsticker
 Nyxborn Rollicker
+Oakgnarl Warrior
+Pack Mastiff
 Pale Bears
+Pale Rider of Trostad
 Peek
 Phthisis
 Phyrexian Metamorph
 Plains
+Plated Wurm
+Profit
 Prosperous Partnership
+Puppet Conjurer
 Regal Imperiosaur
+Reshape
 Rigging Runner
+Rite of Belzenlok
 Roc Hunter
+Rousing of Souls
 Rural Recruit
 Salvage Scuttler
+Sanctum of Fruitful Harvest
+Sapphire Medallion
+Scute Mob
 Siege-Gang Commander
+Simic Locket
+Skitterbeam Battalion
+Slab Hammer
 Slag Strider
+Soaring Hope
 Song of Serenity
+Stillmoon Cavalier
+Stonewood Invoker
 Strange Augmentation
 Stream of Acid
 Stromkirk Condemned
+Summary Judgment
 Swamp
+Sword of Truth and Justice
+Sylvan Safekeeper
+Sylvan Shepherd
 Syphon Sliver
+Temur Battle Rage
 Terrian, World Tyrant
+Thalia, Heretic Cathar
 Thatcher Revolt
+The Covert Blue Mage
+Thunderscape Familiar
+Tidehollow Sculler
+Tireless Provisioner
+Tocatli Honor Guard
+Tome Shredder
+Tropical Island
+Trynn, Champion of Freedom
+Turbulent Moor
 Tyrox, Saurid Tyrant
+Tyvar Kell
+Ulvenwald Observer
+Unburial Rites
+Unlikely Alliance
+Urza, Prince of Kroog
 Vaultborn Tyrant
+Vegetation Abomination
 Verdant Confluence
+Veteran Swordsmith
+Vorapede
+Vraan, Executioner Thane
+Wall of Essence
+Wandering Fumarole
+Wax
+Wizard Class
 Word of Binding
+You Happen On a Glade
 Zo-Zu the Punisher

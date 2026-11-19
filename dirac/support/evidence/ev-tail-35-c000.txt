@@ -57,6 +57,7 @@ Chasm Skulker
 Choose Your Weapon
 Claws of Valakut
 Cloaked Siren
+Cloudshift
 Codex Shredder
 Consume Strength
 Control Magic
@@ -127,6 +128,7 @@ Generous Ent
 Gerrard's Battle Cry
 Ghost-Lit Warder
 Ghostly Changeling
+Gilanra, Caller of Wirewood
 Gimli, Counter of Kills
 Gingerbehemoth
 Glint-Nest Crane

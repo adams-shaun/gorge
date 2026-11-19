@@ -9,6 +9,7 @@ Angel of Retribution	1fdeaf645468af9a	4	0/0		0/0
 Artificer's Epiphany	903d07f0d10be46f	18	0/0		2/2	
 Avenging Angel	ae3cdbe141260c85	16	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Axegrinder Giant	047eb239134a6028	8	0/0		0/0	
+Azorius Guildgate	0c6f7074e8fe3eac	498	1/1		0/1	ix:resp
 Balduvian Atrocity	3d2bc1b4dfc115e9	13	1/1		2/3	ix:resp
 Balduvian Horde	324f99eb7c1bd8f1	13	1/1		0/1	ix:resp
 Bant Battlemage	993ec98c138f214c	22	2/2		1/1	
@@ -17,6 +18,7 @@ Bay Falcon	9104e2d88a908ec0	6	0/0		0/0
 Berg Strider	2b59f618ea8a8b95	12	1/1		1/1	
 Blaze	ddf0feb339c57dc7	8	0/0		2/4	f0/s/x0,ix:resp
 Bonecrusher Giant	89e0aa57fdc5d9ce	36	1/1		2/2	
+Boros Guildgate	6249fa87da90150b	481	1/1		0/1	ix:resp
 Boros Keyrune	1c5bb18e73152b0d	16	2/2		1/1	
 Boulderfall	8c655b76e1e3fa94	6	0/0		1/2	ix:resp
 Bring to Trial	a3c0dc8320f25eef	9	0/0		2/2	
@@ -25,6 +27,7 @@ Capashen Knight	000f54a92d597508	7	1/1		1/1
 Captain of Umbar	61725eb79234c262	10	1/1		1/1	
 Cenn's Enlistment	bb7cafaf7732f564	8	0/0		1/2	ix:resp
 Cephalid Looter	14a8657553165247	5	1/1		1/1	
+Chandra, Pyrogenius	32c9522235a6c11d	21	3/3		1/1	
 Chimeric Coils	bf42fd5989a321af	32	1/1		0/1	ix:resp
 Civic Gardener	633d572afd12017b	36	1/1		1/1	
 Cliffgate	3927da9806431479	220	1/1		0/1	ix:resp
@@ -51,6 +54,7 @@ Deadly Insect	1402b26094c1b513	22	0/0		0/0
 Deathrender	02190eaaac3fd3c1	29	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Demon of Catastrophes	2cff4b15102cecfa	13	0/0		1/2	ix:resp
 Dictate of Erebos	0d8ee00d426ecb59	35	1/1		1/1	
+Dimir Guildgate	55aff70b9caa7d03	521	1/1		0/1	ix:resp
 Doctor Spectrum	1204c51120945a1f	11	1/1		0/1	ix:resp
 Doom Blade	98713a47e5130443	19	0/0		2/2	
 Dragonborn Looter	a57a3b62b2f05be8	16	1/1		1/1	
@@ -78,12 +82,15 @@ Goblin Offensive	94e1ba94012331be	8	0/0		3/4	f0/s/x0
 Goblin Shortcutter	7a2306e581658f12	14	1/1		0/1	ix:resp
 Goblin War Wagon	e149ebd441ebfb13	18	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Golgari Germination	d7ed739f2d145afc	4	1/1		0/1	ix:resp
+Golgari Guildgate	b1dc6528db04531e	514	1/1		0/1	ix:resp
 Gorilla Warrior	1c0741ad23b2f650	18	0/0		0/0	
 Graverobber Spider	5c52172248fe9dc4	16	1/1		0/1	ix:resp
 Graveyard Shovel	5953c7a9a7a3cd5d	19	1/1		1/1	
 Greenside Watcher	ba7bccba7889e298	29	1/1		1/1	
+Gruul Guildgate	82fb9fda4530d4de	547	1/1		0/1	ix:resp
 Hanged Executioner	e26bd42385e27798	20	2/2		0/1	ix:resp
 Hardened-Scale Armor	b2bb81439192ef18	12	0/0		1/2	ix:resp
+Harvester Druid	fc130d35cbcb8be6	14	1/1		1/1	
 Hate Weaver	af7becdabb1f7ba8	17	1/1		1/1	
 Headwater Sentries	4c56e863924b7655	13	0/0		0/0	
 Healing Hands	c3e8ea93cbec6339	17	0/0		1/2	ix:resp
@@ -95,6 +102,7 @@ Imperial Aerosaur	60af6e9e9368b3ac	11	1/1		1/1
 Infernal Medusa	e763c6b9361fc485	17	2/2		0/1	ix:resp
 Intrepid Provisioner	a174856a2c5402b5	16	1/1		0/1	ix:resp
 Island	763c67ef7a27eaf5	369	1/1		0/1	ix:resp
+Izzet Guildgate	8b260829726abf56	496	1/1		0/1	ix:resp
 Jeskai Banner	11561a13f0ee8415	22	2/2		0/1	ix:resp
 Junk Golem	a782e6e36ae5b03f	20	2/2		1/1	
 Kalastria Healer	f4dbc7f6da858a02	8	1/1		0/1	ix:resp
@@ -137,6 +145,7 @@ Nezumi Ronin	2ca5bf6b6e71f9a3	11	2/2		1/1
 Oak Street Innkeeper	c4a999e941a2e9eb	18	0/0		0/0	
 Occult Epiphany	ea029ed82e0d95f6	12	0/0		4/4	
 Ondu Champion	0bd59850933f4558	8	1/1		0/1	ix:resp
+Orzhov Guildgate	0b2b8b026a48ccd3	512	1/1		0/1	ix:resp
 P-Joven and Chandler	6e2152302ad61d41	11	2/2		0/1	ix:resp
 Palinchron	893da4bcf6531e0a	5	2/2		1/1	
 Parasitic Bond	7001e69fe4914c6c	13	1/1		2/2	
@@ -180,6 +189,7 @@ Salvage Titan	bde5b75b082a5f09	11	1/1		1/1
 Sanctum of Tranquil Light	2c29570cbbf14ccd	10	1/1		0/1	ix:resp
 Sandsteppe Outcast	a0153cc653cc47cb	5	1/1		0/1	ix:resp
 Saprazzan Breaker	5dab018aaffe0803	7	1/1		1/1	
+Saruli Gatekeepers	ed948c5c2e16a050	373	1/1		1/1	
 Savageborn Hydra	0f3e5e401e08f8cf	5	1/1		0/1	ix:resp
 Scalebane's Elite	9e8870c6a4e12205	4	0/0		0/0	
 Sea God's Revenge	781dbf06ad3d838b	9	0/0		2/2	

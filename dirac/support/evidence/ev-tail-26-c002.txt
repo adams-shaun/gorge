@@ -165,6 +165,7 @@ Phyrexian Ghoul
 Pit Imp
 Pit Keeper
 Plains
+Plaza of Heroes
 Polluted Bonds
 Portal to Phyrexia
 Possessed Aven
@@ -184,6 +185,7 @@ Road of Return
 Rootwater Diver
 Rundvelt Hordemaster
 Sacred Cat
+Saiba Trespassers
 Saltfield Recluse
 Satyr Grovedancer
 Savage Swipe

@@ -5,17 +5,22 @@ Akoum Boulderfoot	6620cb34c344358a	4	1/1		0/1	ix:resp
 Akoum Warrior	93c44d82dae98e49	6	1/1		0/1	ix:resp
 Amulet of Kroog	45e61056e1e6a801	8	1/1		0/1	ix:resp
 Arcbound Hybrid	3677aaa97f6a4c8c	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Archfiend of Sorrows	c2ba82213b6a92bf	8	2/2		0/1	ix:resp
 Ashling the Pilgrim	f4b22dd4dbc992b4	4	1/1		0/1	ix:resp
 Attrition	0ef985a4765623fd	12	1/1		1/1	
 Blade Splicer	4bf7b38627473819	10	1/1		0/1	ix:resp
+Bloodcrusher of Khorne	82f674575c36ed1f	4	0/0		0/0	
 Blunt the Assault	0a9df5063530adf1	6	0/0		1/2	ix:resp
 Boggart Arsonists	3efcd2e324918e16	6	1/1		0/1	ix:resp
 Border Guard	66f3fd32e845afd1	8	0/0		0/0	
+Boreal Elemental	54202da3062daaa9	4	0/0		0/0	
 Brawl-Bash Ogre	61090b900dad4022	10	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bull Hippo	555877f6a29d6648	15	0/0		0/0	
 Castaway's Despair	2a16c4f02fe18444	4	1/1		2/2	
+Celestial Purge	fc7614349e489e95	8	0/0		1/2	ix:resp
 Channel the Suns	6e9449f2faaba16f	4	0/0		1/2	ix:resp
 Chaotic Goo	5543eafb58cebe80	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Chatter of the Squirrel	1b2ac842c78713d3	4	0/0		3/4	ix:resp
 Cho-Arrim Bruiser	8da9466c6dc4cc46	4	1/1		0/1	ix:resp
 Cloud Elemental	dc4854121b224215	10	0/0		0/0	
 Cognivore	067dffb8c72cd043	4	0/0		0/0	
@@ -24,6 +29,7 @@ Curious Altisaur	4fd65777f2356619	5	1/1		0/1	ix:resp
 Cut	7b1b4871806241d5	10	0/0		3/7	f1/s,f1/s/x+,f1/s/x0,ix:resp
 Damning Verdict	1dccb20420d30c22	4	0/0		1/2	ix:resp
 Death's Presence	fb2c2b24647bb67f	4	1/1		0/1	ix:resp
+Dementia Bat	7fefb2d594260e1b	10	1/1		1/1	
 Dismiss	98c54a5dacadbdcc	4	0/0		1/2	ix:resp
 Draugr Thought-Thief	eafff8feb9916d5a	4	1/1		0/1	ix:resp
 Drown in Ichor	43334b7985e29b44	10	0/0		1/2	ix:resp
@@ -37,34 +43,42 @@ Eternal Skylord	8b6a49b6344af639	12	1/1		0/1	ix:resp
 Evaporate	3063c6f97bbe6f92	4	0/0		1/2	ix:resp
 Explosive Impact	72838393582bdc92	6	0/0		1/2	ix:resp
 Eye of Nowhere	03883b778672e449	4	0/0		1/2	ix:resp
+Facevaulter	2909076beb61b45a	6	1/1		0/1	ix:resp
 Familiar Ground	9e019d807c452cca	9	0/0		0/0	
 Fault Riders	1571f38303f14c0a	14	1/1		0/1	ix:resp
 Feral Abomination	f1081f770e37d37f	6	0/0		0/0	
 Filigree Fracture	670dceaaa8bb9af1	6	0/0		1/2	ix:resp
 Floating-Dream Zubera	520f297966eac78a	8	1/1		0/1	ix:resp
 Flying Dolphin-Fish	71421889e414afcb	8	0/0		0/0	
+Flywheel Racer	d35861af7b172ee9	8	2/2		1/1	
 Forest	6d0466c30f825dba	265	1/1		0/1	ix:resp
 Frogtosser Banneret	755c354027fd2824	14	0/0		0/0	
 Frontline Devastator	277bee8fe4fac8a5	5	2/2		1/1	
 Garrison Griffin	4c8c27bbdfe89372	20	1/1		0/1	ix:resp
+Genasi Enforcers	7ae475822fe905c5	9	2/2		1/1	
 General Kreat, the Boltbringer	690ad04671b9a6d7	12	2/2		0/1	ix:resp
 Ghost-Lit Stalker	6ad4be817d1f4b90	20	2/2		0/1	ix:resp
 Ghost-Spider, Gwen Stacy	3364cd27780b8394	8	1/1		0/1	ix:resp
 Gisa's Bidding	222d17a4cd4c92c6	8	0/0		1/2	ix:resp
 Go-Shintai of Shared Purpose	2e513825a4c9d0cd	6	1/1		0/1	ix:resp
 Goblin Tutor	5e1c4709480ba930	4	0/0		1/2	ix:resp
+Grip of Desolation	a32d280394672b49	4	0/0		1/2	ix:resp
 Grollub	e3116e66fca8570d	12	1/1		0/1	ix:resp
 Hasran Ogress	8939eb42c6436bd1	19	1/1		1/1	
 Heart Sliver	0dd78a85bc43e35d	8	0/0		0/0	
 Heliod's Pilgrim	05d3608d962c6c8e	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Heroic Charge	2d50c74879c0a100	6	0/0		2/4	cast/alt:kicked,ix:resp
 Highway Robber	4cc39da9a221e5ec	4	1/1		0/1	ix:resp
 Hold the Line	52dba1ebbf5ed907	4	0/0		1/2	ix:resp
+Idle Thoughts	69de54507b1835c1	6	1/1		1/1	
 Invasion of Segovia	d28a230e9692bac2	12	2/2		0/1	ix:resp
 Island	763c67ef7a27eaf5	386	1/1		0/1	ix:resp
 Knight of Old Benalia	c2e4f7038eb3f6ec	8	1/1		2/3	cast/alt:none
+Krosan Restorer	d92fd6b84181b468	10	2/2		0/1	ix:resp
 Kruin Striker	dbb51f5c9bae5ba2	7	1/1		0/1	ix:resp
 Kukemssa Pirates	0273c4e4bed563ba	15	1/1		0/1	ix:resp
 Lavakin Brawler	f6629e87dd7865ad	4	1/1		0/1	ix:resp
+Leyline Dowser	a236a7d862f74f42	16	2/2		1/1	
 Light the Way	f11cb04f318b08e0	4	0/0		2/2	
 Luminarch Ascension	38fdfddb010b3cd3	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Lydia Frye	e63eabc2879254f8	4	1/1		0/1	ix:resp
@@ -84,6 +98,7 @@ Mortician Beetle	d7f2cc00ffcf62d4	17	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Mountain	9e71388353e907ed	288	1/1		0/1	ix:resp
 Mukotai Soulripper	67c0d8776cf746a4	12	2/2		0/1	ix:resp
 Mystic Restraints	b496d88f717cd75b	12	1/1		2/2	
+Night Scythe	8eaa9c81ea0207bf	7	2/2		1/1	
 Nimbus of the Isles	c82b01f10e81e394	16	0/0		0/0	
 Oni Possession	e0f135010e3f4566	6	1/1		1/2	ix:resp
 Ovalchase Daredevil	da6eba29cc55f47c	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -95,8 +110,10 @@ Plains	82d63a695487e567	1439	1/1		0/1	ix:resp
 Precognition Field	ba9459db912443dc	4	1/1		0/1	ix:resp
 Pygmy Pyrosaur	03c0b2cbfb21db7e	14	1/1		1/1	
 Rakka Mar	c7acdf82078f50bc	12	1/1		1/1	
+Rakshasa's Secret	c17edfcfb9c791fb	10	0/0		1/2	ix:resp
 Ravenous Harpy	0104258b9627be58	6	1/1		0/1	ix:resp
 Redwood Treefolk	74772f6fadc55255	9	0/0		0/0	
+Relic of Progenitus	317974f6c8e368ec	4	2/2		0/1	ix:resp
 Rescue Retriever	a70a6817ff49a5aa	4	1/1		0/1	ix:resp
 Root Greevil	def19c81f79ab70e	4	1/1		0/1	ix:resp
 Scragnoth	c16a2b2dcc6bc954	8	0/0		0/0	
@@ -104,6 +121,8 @@ Sewerdreg	dab87112e73f01b2	4	1/1		0/1	ix:resp
 Shieldmate's Blessing	91f0ec1ede912277	6	0/0		1/2	ix:resp
 Skyclave Shade	ecdcd108240338a1	18	1/1		3/3	
 Skyshroud Troll	cb852c49e3bca104	5	1/1		1/1	
+Sokka, Swordmaster	57eafca79c98ec24	4	1/1		0/1	ix:resp
+Sonic Screwdriver	168f84b6aa170072	18	4/4		0/1	ix:resp
 Soul Bleed	4c4338ec96c1e1fb	4	1/1		1/2	ix:resp
 Squall Line	11be3bb1b639b381	4	0/0		2/4	f0/s/x0,ix:resp
 Stampeding Horncrest	3494b9ec62af1d10	4	0/0		0/0	
@@ -126,6 +145,8 @@ Vaporkin	e366e826894f1096	6	0/0		0/0
 Veilborn Ghoul	5cdc9680114ac77a	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Vexing Sphinx	3f85457aabccf346	6	2/2		0/1	ix:resp
 Vindictive Flamestoker	38f5dcccbad881ad	14	2/2		0/1	ix:resp
+Viridian Zealot	e050a00bd5975a6f	6	1/1		0/1	ix:resp
+Vivid Revival	0d44b681287d8277	5	0/0		1/2	ix:resp
 Voda Sea Scavenger	7543fb8314fcaea4	8	1/1		0/1	ix:resp
 Wave-Wing Elemental	ad2bc0a271533ba6	4	1/1		0/1	ix:resp
 Wheel and Deal	a011dd397be5a912	4	0/0		1/2	ix:resp

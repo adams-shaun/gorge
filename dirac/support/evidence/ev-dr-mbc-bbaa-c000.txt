@@ -1,3 +1,4 @@
+Abolish
 About Face
 Against All Odds
 Ancient Hydra
@@ -13,16 +14,19 @@ Blasting Station
 Boggart Harbinger
 Carrion Imp
 Claustrophobia
+Cloud Djinn
 Cloud Spirit
 Condemn
 Control of the Court
 Corpse Harvester
+Crashing Drawbridge
 Cytoplast Root-Kin
 Darksteel Mutation
 Deceiver Exarch
 Dreadhound
 Dynacharge
 Eldrazi Skyspawner
+Emrakul's Messenger
 Engineered Explosives
 Evangel of Heliod
 Expunge
@@ -38,14 +42,17 @@ Goldlust Triad
 Goldmeadow Harrier
 Halimar Depths
 Healer's Hawk
+Hieroglyphic Illumination
 Imperious Perfect
 Inferno Jet
 Intangible Virtue
 Island
 Kami of False Hope
 Kenrith's Transformation
+Killer Whale
 Kor Cartographer
 Kor Firewalker
+Lore Weaver
 Madcap Skills
 Merciless Executioner
 Molten Birth
@@ -61,10 +68,12 @@ Prosperous Pirates
 Pyrohemia
 Quest for Pure Flame
 Quest for the Gravelord
+Reality Shift
 Renegade Warlord
 Reverent Mantra
 Rogue's Passage
 Sage's Reverie
+Scholar of the Ages
 Sea Gate
 Sejiri Merfolk
 Send in the Pest
@@ -73,8 +82,10 @@ Shimmering Glasskite
 Sign in Blood
 Skeletal Wurm
 Sparkmage Apprentice
+Spectral Sailor
 Spitting Earth
 Stand Together
+Starlit Angel
 Stromgald Crusader
 Swamp
 Sword Coast Serpent

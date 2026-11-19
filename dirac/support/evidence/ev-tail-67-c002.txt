@@ -90,6 +90,7 @@ Diligent Excavator
 Dismantling Blow
 Domri, Anarch of Bolas
 Dragon's Approach
+Drifting Meadow
 Dwarven Vigilantes
 Eidolon of Rhetoric
 Ekthi, Contaminator Priest
@@ -117,12 +118,14 @@ Flux Channeler
 Foe-liage
 Fog of Gnats
 Forest
+Fountain of Cho
 Fuel for the Cause
 Fungal Sprouting
 Furnace Celebration
 Furnace Hellkite
 Galvanic Iteration
 Garenbrig Squire
+Gilt-Leaf Palace
 Gluttonous Zombie
 Gnome-Made Engine
 Goblin Glider
@@ -133,6 +136,7 @@ Gray Merchant of Asphodel
 Grim Monolith
 Guardian Kirin
 Hadran, Naya Sunseeder
+Hall
 Hana Kami
 Helitrooper
 Hemlock Vial
@@ -187,6 +191,7 @@ Mardu Strike Leader
 Mausoleum Secrets
 Metropolis Reformer
 Might Weaver
+Miren, the Moaning Well
 Mirror of Galadriel
 Mise
 Mogg Sentry
