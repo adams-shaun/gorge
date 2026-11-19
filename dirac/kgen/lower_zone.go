@@ -1451,7 +1451,7 @@ func (lc *lowerCtx) dig(ps *params) error {
 	// not read exactly (a blind face-down exile, a look on a non-exile move)
 	fd, look := ps.is("ExileFaceDown", "True"), ps.is("WithMayLook", "True")
 	blind := fd && !look && dest == zExile && (lc.repeatBlindDig(ps) || lc.blindDigShape(ps)) // lower_blinddig.go
-	if fd != look && !blind || fd && dest != zExile {
+	if !digFaceDownShape(fd, look, blind, dest) {
 		return refuse("Dig ExileFaceDown$ shape")
 	}
 	if fd {
@@ -1469,6 +1469,9 @@ func (lc *lowerCtx) dig(ps *params) error {
 		// both Dig paths clear before the walk; DigRemember then re-adds the
 		// taken cards (Primal Surge)
 		lc.emit(lInstr{Op: "ClearRemembered"})
+	}
+	if _, err := lc.digWindowRemember(ps, who, n, noReveal); err != nil { // lower_digwindow.go
+		return err
 	}
 	if ct, ok := ps.get("WithCounters"); ok && lc.name == undercityKey {
 		// the taken card enters with counters (CR 122.6;
