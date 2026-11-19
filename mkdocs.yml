@@ -128,6 +128,7 @@ nav:
           - Cards: architecture/dirac/cards.md
           - Verification: architecture/dirac/oracle.md
           - Search: architecture/dirac/search.md
+          - Staging from an observation: architecture/dirac/shadow.md
       - Design invariants: architecture/invariants.md
       - Performance:
           - performance/index.md
