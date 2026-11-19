@@ -326,16 +326,8 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 			if pay.ActivationTapCostUnavailable(o, &fee) {
 				continue
 			}
-			if castWindowGenericCostShape(fee) {
-				feeAlt := windowManaAlt{Ma: ma, Amt: fmf.Amount,
-					CostGeneric: fee.Generic, CostColored: fee.Colored}
-				if a, ok := fixedMultiColourAlt(feeAlt, fmf.Counts); ok {
-					units = pay.AppendUnitAlt(units, id, a)
-					continue
-				}
-				for _, a := range pinnedManaAlts(feeAlt, fmf.Counts) {
-					units = pay.AppendUnitAlt(units, id, a)
-				}
+			for _, a := range unlessFeeAlts(ma, fmf, fee) {
+				units = pay.AppendUnitAlt(units, id, a)
 			}
 		}
 	}
@@ -346,6 +338,24 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 	// the census's colourless stand-in; the offer gate must price it so. The
 	// pass reads only the payer, so a payer-only pendingCast carries it.
 	return e.castWindowReflectedUnits(&pendingCast{player: p}, units)
+}
+
+// unlessFeeAlts prices one gate-bypassing activation carrying a literal mana
+// fee: the fee rides the alt (CostGeneric/CostColored, never netted into the
+// production). A fixed production over several colours ("Add {W}{B}") is
+// every colour at once, not a pick among them: one alt carries the whole
+// vector (CR 106.1); pinning it per colour would price a Desolate Mire at one
+// mana. An unpriced fee shape yields no alts (fail closed, the census
+// convention).
+func unlessFeeAlts(ma *cards.SA, fmf pay.ManaStatic, fee Cost) []windowManaAlt {
+	if !castWindowGenericCostShape(fee) {
+		return nil
+	}
+	feeAlt := windowManaAlt{Ma: ma, Amt: fmf.Amount, CostGeneric: fee.Generic, CostColored: fee.Colored}
+	if a, ok := fixedMultiColourAlt(feeAlt, fmf.Counts); ok {
+		return []windowManaAlt{a}
+	}
+	return pinnedManaAlts(feeAlt, fmf.Counts)
 }
 
 // unlessRestrictedAlt prices one PurposeOther-admitted restricted mana
