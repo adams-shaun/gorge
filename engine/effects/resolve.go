@@ -277,7 +277,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		}
 		// CR 702.145b/e: a daybound or nightbound permanent can't transform
 		// except by its own ability (engine/rules syncDayNightFaces).
-		if transform && transformBlocked(h, o.ID) {
+		if transform && dayNightBound(h, o.ID) {
 			continue
 		}
 		if setStateFlipMode(sa) && !setStateFlipGate(o) {
@@ -367,7 +367,7 @@ func setStateObjWouldChange(h Host, c *Ctx, sa *cards.SA, o *state.Object, turnU
 	}
 	// CR 702.145b/e: a daybound or nightbound permanent can't transform
 	// except by its own ability (engine/rules syncDayNightFaces).
-	if transform && transformBlocked(h, o.ID) {
+	if transform && dayNightBound(h, o.ID) {
 		return false
 	}
 	if setStateFlipMode(sa) && !setStateFlipGate(o) {

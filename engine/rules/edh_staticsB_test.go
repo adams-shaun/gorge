@@ -23,7 +23,7 @@ const (
 	edhbDreamSrc = "Name:EDHB Dream\nManaCost:W\nTypes:Instant\n" +
 		"A:SP$ PutCounter | ValidTgts$ Creature | CounterType$ DREAM | CounterNum$ 1 | SpellDescription$ Put a dream counter on target creature.\nOracle:x\n"
 	edhbMindRotSrc = "Name:EDHB Mind Rot\nManaCost:2 B\nTypes:Sorcery\n" +
-		"A:SP$ Discard | ValidTgts$ Player | NumCards$ 2 | Mode$ TgtChoose | SpellDescription$ Target player discards two cards.\nOracle:x\n"
+		"A:SP$ Discard | NumCards$ 2 | Mode$ TgtChoose | ValidTgts$ Player | SpellDescription$ The targeted player discards two.\nOracle:x\n"
 )
 
 // edhbGame builds a two-seat game, seat 0 first: each seat's deck is its

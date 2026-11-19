@@ -321,23 +321,6 @@ type HostRestrictions interface {
 	// Implemented by rules.Engine (engine/rules/layers.go); the effects test double
 	// reports false (no engine to consult).
 	ExileBlocked(id state.ObjID, forCost bool) bool
-	// DiscardBlocked reports whether player p is forbidden from discarding
-	// because of the cause currently in flight -- a face S:Mode$ CantDiscard
-	// static (Tamiyo, Collector of Tales: "Spells and abilities your
-	// opponents control can't cause you to discard cards"). Consulted by
-	// api:Discard's acting-player walk (discardingPlayers), so a protected
-	// player is neither asked nor made to discard. forCost is the call site's provenance exactly as
-	// on ExileBlocked: this package's effect-driven callers pass false.
-	// Implemented by rules.Engine (engine/rules/cantdiscard_static.go); the
-	// effects test double reports false.
-	DiscardBlocked(p state.PlayerID, forCost bool) bool
-	// TransformBlocked reports whether a live S:Mode$ CantTransform static
-	// (Immerwolf, Bound by Moonsilver) forbids the battlefield permanent id
-	// from transforming (CR 701.28f). Consulted by SetState Mode$ Transform
-	// through transformBlocked. Implemented by rules.Engine
-	// (engine/rules/canttransform_static.go); the effects test double reports
-	// false.
-	TransformBlocked(id state.ObjID) bool
 	// CounterAllowed reports whether a spell or ability may be countered.
 	// Counter replacement effects are rules, not a MoveZone replacement: they
 	// stop Counter before it emits the move off the stack.

@@ -311,24 +311,6 @@ func actingPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	return []state.PlayerID{c.Controller}
 }
 
-// discardingPlayers is actingPlayers for api:Discard less every player a
-// live S:Mode$ CantDiscard static protects from this effect's cause (Tamiyo,
-// Collector of Tales: "Spells and abilities your opponents control can't
-// cause you to discard cards"; Host.DiscardBlocked). A protected player is
-// neither asked to choose nor made to discard. Both of chooseDiscards' walks
-// read this one list, so an answered ask's target index names the same
-// player on every pass.
-func discardingPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
-	all := actingPlayers(h, c, sa)
-	out := all[:0:0]
-	for _, p := range all {
-		if !h.DiscardBlocked(p, false) {
-			out = append(out, p)
-		}
-	}
-	return out
-}
-
 // discardAndRemember emits one discard with the riders bound above.
 func discardAndRemember(h Host, c *Ctx, r discardRiders, id state.ObjID, p state.PlayerID) {
 	discardAndRememberEvent(h, c, r, events.Discard(id, p))
@@ -609,7 +591,7 @@ func chooseDiscards(h Host, c *Ctx, sa *cards.SA, riders discardRiders) {
 		mode == "YouChoose" || mode == "RevealTgtChoose"
 	if chooseMode {
 		chooser := discardChooser(c, mode)
-		for targetIndex, t := range discardingPlayers(h, c, sa) {
+		for targetIndex, t := range actingPlayers(h, c, sa) {
 			p := t
 			hand := zoneOf(g, state.ZHand, p)
 			eligible := discardEligible(g, c, hand, valid)
@@ -643,7 +625,7 @@ func chooseDiscards(h Host, c *Ctx, sa *cards.SA, riders discardRiders) {
 		}
 		return
 	}
-	for targetIndex, t := range discardingPlayers(h, c, sa) {
+	for targetIndex, t := range actingPlayers(h, c, sa) {
 		p := t
 		hand := zoneOf(g, state.ZHand, p)
 

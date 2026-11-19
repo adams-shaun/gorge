@@ -16,6 +16,10 @@ func (e *Engine) Emit(ev events.Event) {
 		emitManaClearBurning(e, ev)
 		return
 	}
+	if note, forbidden := staticForbidsHostEvent(e, ev); forbidden {
+		e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player, Text: note})
+		return
+	}
 	e.emit(ev)
 }
 
