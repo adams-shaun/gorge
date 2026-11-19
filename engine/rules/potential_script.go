@@ -825,11 +825,21 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 // scriptSpendableGaps applies to the census's gaps) or a census gap's
 // activation fee. A covered source whose every ability makes mana the play
 // can spend nowhere is a dead funding branch (CR 106.6): tapping it changes
-// only the tapped bit and spends one node of the bounded search. The test
-// runs for plain casts only -- an activation's search keeps today's node
-// walk -- and a creature is never pruned, since it may still be tapped as a
-// cost (tapXType<Creature>, convoke, crew).
+// only the tapped bit and spends one node of the bounded search. The proof
+// run keeps it too: its gaps are per-node (visit's scriptNodeGaps), so a
+// source no census gap's fee can use may still fund a deeper node's gap
+// fee, and its completed verdict is returned as an insufficient proof --
+// the walk it proves over is pruned nowhere. The test otherwise runs for
+// plain casts only -- an activation's search keeps today's node walk -- and
+// a creature is never pruned, since it may still be tapped as a cost
+// (tapXType<Creature>, convoke, crew). A tap that fires another permanent's
+// mana trigger (floating mana the search reaches only through that later
+// node) is not accounted for here: no corpus card demonstrates it, so the
+// next divergence of this class starts there.
 func (sr *scriptSearch) coveredSpendable(c *Engine, p state.PlayerID, id state.ObjID) bool {
+	if sr.nodePlans {
+		return true // the proof run's walk is pruned nowhere
+	}
 	if sr.play.Kind != potentialCastKind {
 		return true
 	}
