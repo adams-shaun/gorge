@@ -11,6 +11,7 @@ Against All Odds
 Air Nomad Student
 Akki Underminer
 Akrasan Squire
+Alela, Cunning Conqueror
 Angelic Field Marshal
 Angelic Renewal
 Animate Land
@@ -117,6 +118,7 @@ Gluttonous Zombie
 Gnome-Made Engine
 Goblin Glider
 Goblin Racketeer
+Golden Egg
 Grim Monolith
 Guardian Kirin
 Hanna, Ship's Navigator
@@ -145,6 +147,7 @@ Island
 Jackalope Herd
 Keen-Eyed Raven
 Knight of the Keep
+Knights of the Black Rose
 Kor Castigator
 Lagrella, the Magpie
 Leafkin Druid
@@ -169,6 +172,7 @@ Mirror of Galadriel
 Mise
 Mogg Sentry
 Mogis's Warhound
+Moonblade Shinobi
 Morkrut Necropod
 Mortal's Ardor
 Moss Monster
@@ -314,3 +318,4 @@ You Look Upon the Tarrasque
 Young Blue Dragon
 Zephyr Falcon
 Zodiac Ox
+Zulaport Chainmage

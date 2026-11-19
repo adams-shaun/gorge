@@ -5,6 +5,7 @@ Aberrant Return
 Acceptable Losses
 Aether Herder
 Age of Ultron
+Akoum Hellkite
 Amnesia
 Ana Disciple
 Ancestral Recall
@@ -121,6 +122,7 @@ Horizon Explorer
 Hornet Nest
 Hour of Revelation
 Hunter's Edge
+Hydra Broodmaster
 Hyperion Blacksmith
 Ilysian Caryatid
 Improbable Alliance
@@ -162,6 +164,7 @@ Militia Bugler
 Mind Slash
 Mogg Maniac
 Moldering Karok
+Moonsilver Key
 Moroii
 Mother Kangaroo
 Mountain
@@ -222,11 +225,13 @@ Six-Sided Die
 Skyblade's Boon
 Skyhunter Patrol
 Slimy Piper
+Slingshot Goblin
 Sorcerer's Strongbox
 Soul Channeling
 Soulblade Djinn
 Spectral Flight
 Sphere of Reason
+Spontaneous Artist
 Spore Crawler
 Sprinting Warbrute
 Square Up
@@ -237,6 +242,7 @@ Staunch Shieldmate
 Steel Wall
 Stonewood Invocation
 Storm Fleet Aerialist
+Stroke of Genius
 Sublime Archangel
 Summon: Kujata
 Sunlit Marsh

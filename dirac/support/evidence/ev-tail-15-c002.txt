@@ -117,6 +117,7 @@ Furious Assault
 Galina's Knight
 Ghastbark Twins
 Giant Fly
+Giant Strength
 Goblin Electromancer
 Goblin Gang Leader
 Goblin Matron
@@ -290,6 +291,7 @@ Spiketail Drakeling
 Spiraling Embers
 Spirit of the Hearth
 Spiteful Bully
+Spiteful Motives
 Splinter, the Mentor
 Spoils of Blood
 Steady Aim

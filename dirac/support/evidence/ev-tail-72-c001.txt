@@ -280,6 +280,7 @@ Phantasmal Form
 Pheres-Band Warchief
 Phyrexian Revoker
 Pieces of the Puzzle
+Piracy Charm
 Plague Rats
 Plains
 Planar Atlas
@@ -351,6 +352,7 @@ Secure the Wastes
 Seed of Hope
 Seer's Sundial
 Selfless Spirit
+Serendib Djinn
 Serendib Sorcerer
 Serra's Sanctum
 Servant of Volrath

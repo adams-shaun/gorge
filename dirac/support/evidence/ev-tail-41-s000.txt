@@ -9,6 +9,7 @@ Assassin's Ink
 Attended Socialite
 Avalanche
 Azorius Chancery
+Battle Cry Goblin
 Blessed Sanctuary
 Blood Mist
 Bloodforged Battle-Axe
@@ -17,6 +18,7 @@ Blossoming Bogbeast
 Bone Splinters
 Borne Upon a Wind
 Brotherhood Outcast
+Canyon Wildcat
 Cathar's Companion
 Chill of the Grave
 Cloak of the Bat
@@ -90,6 +92,7 @@ Locthwain Lancer
 Loxodon Lifechanter
 Mage-Ring Responder
 Magus of the Moat
+Mana Flare
 Manakin and Millikin
 Marked by Honor
 Matsu-Tribe Sniper
@@ -131,6 +134,7 @@ Rakshasa Deathdealer
 Rank and File
 Reap the Seagraf
 Rebuking Ceremony
+Retributive Wand
 Returned Centaur
 Revive the Fallen
 Rimeshield Frost Giant
@@ -158,6 +162,7 @@ Sigil of Myrkul
 Signal Pest
 Silversmote Ghoul
 Skywinder Drake
+Slithery Stalker
 Soul Swallower
 Spara's Headquarters
 Spawnbed Protector
@@ -167,6 +172,7 @@ Splatter Thug
 Spontaneous Flight
 Springmantle Cleric
 Staunch Defenders
+Staunch-Hearted Warrior
 Steam Frigate
 Storm Fleet Swashbuckler
 Submerge
@@ -196,6 +202,7 @@ Wall of Lost Thoughts
 Warren Soultrader
 Weaponize the Monsters
 Weirding Shaman
+Where Ancients Tread
 Whispering Shade
 Wild Colos
 Wild Onslaught
