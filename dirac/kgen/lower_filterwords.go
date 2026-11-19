@@ -142,6 +142,10 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7BottomLibrary), true
 	case "IsImprinted":
 		return int(kop.W7Imprinted), true // gated to a chain that writes the set (lower_imprintzone.go)
+	case "sharesCreatureTypeWith Commander":
+		// the evaluating controller's commanders (kop.W7CrCommander; Path of
+		// Ancestry's rider): needs no trigger object
+		return kop.W7SharesCrCommanderN(), true
 	case "sharesCreatureTypeWith TriggeredAttacker", "sharesCreatureTypeWith TriggeredAttackerLKICopy":
 		// the Attacks trigger's attacker (lowerCtx.referentGate holds it to
 		// an Attacks trigger's body, where trigObj is that attacker)

@@ -67,8 +67,16 @@ func (s *State) deferLifeSurvives(k *prep, p uint8, sl Slot) bool {
 // the source and its colour (tapGap's deferred arm). A second deferred source
 // floating beside the first would leave the first's spend unattributed: stall
 // loudly.
-func (s *State) floatDeferred(k *prep, p uint8, sl Slot) {
-	col := k.deferCol(s.cardAt(sl))
+func (s *State) floatDeferred(k *prep, p uint8, sl Slot) { s.floatDeferredAs(k, p, sl, -1) }
+
+// floatDeferredAs is floatDeferred for colour col (-1: the lowest of deferMask).
+func (s *State) floatDeferredAs(k *prep, p uint8, sl Slot, col int) {
+	if col < 0 {
+		col = bits.TrailingZeros8(s.deferMask(k, sl)) // the lowest colour (the fixed one when the source has just one)
+	}
+	if col >= kop.NumManaKinds {
+		return // an identity source with no commander identity makes no mana (CR 903.4f)
+	}
 	if d := s.g.defSrc[SeatIx(p)]; d != 0 && d != uint8(sl)+1 && s.pl[SeatIx(p)].pool[s.defColOf(p)] != 0 {
 		s.capFull(StallObsSrc)
 	}
@@ -158,7 +166,7 @@ func (s *State) scriptDeferred(k *prep, p uint8) slotMask {
 // their mana (CR 605.3a).
 func (s *State) addDeferredUnits(k *prep, p uint8, av *avail) {
 	for b := s.scriptDeferred(k, p); b.any(); b = b.rest() {
-		av.addUnits(1<<k.deferCol(s.cardAt(b.first())), 1)
+		av.addUnits(s.deferMask(k, b.first()), 1)
 	}
 }
 
