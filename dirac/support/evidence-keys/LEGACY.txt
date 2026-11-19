@@ -340,7 +340,6 @@ Atomic Microsizer
 Atraxa, Praetors' Voice
 Attended Healer
 Attercop
-Attune with Aether
 Attuned Hunter
 Audience with Trostani
 Augur of Autumn
@@ -578,7 +577,6 @@ Blazing Hellhound
 Blazing Specter
 Bleachbone Verge
 Blech, Loafing Pest
-Bleeding Woods
 Blessed Ghoul
 Blessed Light
 Blight
@@ -986,7 +984,6 @@ Cloud of Darkness
 Cloud, Ex-SOLDIER
 Cloud, Planet's Champion
 Cloudbound Moogle
-Cloudchaser Kestrel
 Cloudfin Raptor
 Cloudpost
 Cloudsculpt Technician
@@ -1101,7 +1098,6 @@ Courageous Outrider
 Courier of Comestibles
 Courser of Kruphix
 Court Archers
-Court of Grace
 Court of Ire
 Covenant of Blood
 Coveted Falcon
@@ -1141,7 +1137,6 @@ Cruel Edict
 Cruel Revival
 Cruel Somnophage
 Cruel Truths
-Cruel Ultimatum
 Cruel Witness
 Cruelclaw's Heist
 Crumble
@@ -1227,7 +1222,6 @@ Dark Matter Manipulator
 Dark Nourishment
 Dark Offering
 Dark Petition
-Dark Ritual
 Darklight Phoenix
 Darkness Descends
 Darkstar Augur
@@ -1294,7 +1288,6 @@ Decorated Champion
 Decorum Dissertation
 Decree of Annihilation
 Decree of Justice
-Decree of Silence
 Dedicated Commons
 Deep Reconnaissance
 Deep Space 9
@@ -1574,7 +1567,6 @@ Earthshaking Si
 East Wind Avatar
 East-Mark Cavalier
 Easterling Vanguard
-Eastfarthing Farmer
 Eat to Extinction
 Ebony Treefolk
 Echo of Eons
@@ -1582,7 +1574,6 @@ Echoing Ruin
 Eclipsed Boggart
 Eclipsed Elf
 Eclipsed Flamekin
-Eclipsed Kithkin
 Eclipsed Realms
 Eclipsed Steppe
 Ecstatic Awakener
@@ -1599,7 +1590,6 @@ Eerie Interference
 Efflorescence
 Effortless Master
 Ego Drain
-Eidolon of Countless Battles
 Eject the Warp Core
 Ekundu Griffin
 El-Hajjâj
@@ -1648,10 +1638,8 @@ Elvish Aberration
 Elvish Archivist
 Elvish Berserker
 Elvish Clancaller
-Elvish Eulogist
 Elvish Hexhunter
 Elvish Lookout
-Elvish Mystic
 Elvish Refueler
 Elvish Skysweeper
 Embalmed Ascendant
@@ -2137,7 +2125,6 @@ Gathering of Darkness
 Gavony Silversmith
 Gearbane Orangutan
 Gearseeker Serpent
-Geier Reach Sanitarium
 Geist of Saint Thalia
 Geist-Fueled Scarecrow
 Geistflame Reservoir
@@ -2182,7 +2169,6 @@ Ghastly Death Tyrant
 Ghave, Guru of Spores
 Ghired, Mirror of the Wilds
 Ghor-Clan Savage
-Ghost Vacuum
 Ghost of Illyria
 Ghost, Spectral Saboteur
 Ghostway
@@ -2722,7 +2708,6 @@ Inevitable End
 Infectious Bite
 Infectious Bloodlust
 Infernal Idol
-Infernal Phantom
 Inferno of the Star Mounts
 Infestation Expert
 Infested Thrinax
@@ -2917,7 +2902,6 @@ Kami of Celebration
 Kami of Fire's Roar
 Kami of Industry
 Kami of Old Stone
-Kami of the Hunt
 Kang, Temporal Tyrant
 Kapow!
 Karador, Ghost Chieftain
@@ -3308,7 +3292,6 @@ Lwaxana Troi, Charming Guest
 Lyna, Veil of Vengeance
 Lyra, Archangel of Dawn
 Lyra, Tolarian Archangel
-Lys Alana Bowmaster
 M'Ress, Crew Coordinator
 MACO Strike Team
 Mabel's Mettle
@@ -3698,7 +3681,6 @@ Naiad of Hidden Coves
 Nalia de'Arnise
 Nameless Inversion
 Nanoform Sentinel
-Nantuko Shaman
 Narcissism
 Narset of the Ancient Way
 Narset's Rebuke
@@ -4108,7 +4090,6 @@ Planetary Patrol
 Plasma Bolt
 Plasma Cascade
 Plasma Elemental
-Plateau
 Plated Rootwalla
 Plated Sliver
 Playful Shove
@@ -4941,7 +4922,6 @@ Shrine of Piercing Vision
 Shroofus Sproutsire
 Shrouded Serpent
 Shrouded Shepherd
-Shroudstomper
 Shu Yun, the Silent Tempest
 Shunt
 Shuttle Ace
@@ -5753,7 +5733,6 @@ The Holodeck
 The Huntsman's Redemption
 The Indomitable
 The Inner Light
-The Jolly Balloon Man
 The Key to the Vault
 The Last Ride
 The Last Ronin
@@ -6364,7 +6343,6 @@ Warren Elder
 Warren Torchmaster
 Warren Warleader
 Warship Flight Crew
-Wary Farmer
 Wasp Lancer
 Waste Not
 Wastewood Verge
@@ -6513,7 +6491,6 @@ Worf, Honor-Bound Warrior
 Worf, Intelligence Contractor
 Worf, Son of Mogh
 Worf, Still Not Merry
-World-Weary
 Worlds Within Worlds
 Worldsoul's Rage
 Worldwalker Helm

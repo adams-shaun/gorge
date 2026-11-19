@@ -209,6 +209,7 @@ Infernal Pet
 Inferno
 Infest
 Inspiration
+Intrepid Outlander
 Invasion of Ergamon
 Invasion of Innistrad
 Invasion of Tarkir
@@ -253,6 +254,7 @@ Luke Cage, Hero for Hire
 Lurking Arynx
 Malachite Golem
 Mana Seism
+Manabarbs
 Mantle of the Wolf
 Marchesa's Infiltrator
 Marsh Lurker

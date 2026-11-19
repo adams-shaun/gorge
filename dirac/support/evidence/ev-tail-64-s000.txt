@@ -6,6 +6,7 @@ All That Glitters
 Angel of Condemnation
 Angelic Renewal
 Arcbound Shikari
+Ascendant Spirit
 Ashen Firebeast
 Ashmouth Hound
 Atog
@@ -76,6 +77,7 @@ Genju of the Spires
 Gerrard, Weatherlight Hero
 Giant Crab
 Glint Raker
+Gloom Sower
 Goblin Trailblazer
 Greenwood Sentinel
 Grid Monitor
@@ -240,6 +242,7 @@ True Identity
 Tukatongue Thallid
 Uncontrolled Infestation
 Urborg Syphon-Mage
+Urza, Lord High Artificer
 Valkyrior Skyrider
 Veiled Sentry
 Venomous Brutalizer

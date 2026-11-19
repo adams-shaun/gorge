@@ -25,6 +25,7 @@ Boneclub Berserker
 Boulder Dash
 Brambleback Brute
 Bre of Clan Stoutarm
+Brigid's Command
 Bristlebane Battler
 Bristlebane Outrider
 Burdened Stoneback
@@ -61,6 +62,7 @@ Dream Seizer
 Dundoolin Weaver
 Eclipsed Boggart
 Eclipsed Flamekin
+Eclipsed Kithkin
 Eclipsed Merrow
 Eclipsed Realms
 Elder Auntie
@@ -73,6 +75,7 @@ Evolving Wilds
 Explosive Prodigy
 Feed the Flames
 Feisty Spikeling
+Figure of Fable
 Firdoch Core
 Flame-Chain Mauler
 Flamebraider
@@ -209,6 +212,7 @@ Tend the Sprigs
 Thirst for Identity
 Thoughtweft Charge
 Thoughtweft Imbuer
+Thoughtweft Lieutenant
 Timid Shieldbearer
 Tributary Vaulter
 Trystan, Callous Cultivator
@@ -227,6 +231,7 @@ Wanderbrine Trapper
 Wanderwine Distracter
 Wanderwine Farewell
 Warren Torchmaster
+Wary Farmer
 Wild Unraveling
 Wildvine Pummeler
 Wistfulness
