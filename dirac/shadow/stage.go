@@ -15,7 +15,8 @@ import (
 const (
 	ReasonOver     = "game-over"        // the game has ended
 	ReasonSeats    = "seats"            // not a two-seat view
-	ReasonStack    = "stack"            // the stack or the trigger queue is not empty
+	ReasonStack    = "stack"            // a stack entry that is not a plain token spell or a self-counter ability: a trigger, a target, a mode, an X, a copy
+	ReasonPending  = "pending"          // a trigger waiting to be put on the stack
 	ReasonDecision = "decision"         // the view's decision is not a priority decision
 	ReasonUnknown  = "unknown-card"     // a card name the table does not hold
 	ReasonUnmapped = "unmapped-object"  // an object the caller's index cannot place
@@ -31,7 +32,7 @@ const (
 
 // Reasons lists every reason WorldFromView returns that dirac does not.
 var Reasons = []string{
-	ReasonOver, ReasonSeats, ReasonStack, ReasonDecision, ReasonUnknown, ReasonUnmapped,
+	ReasonOver, ReasonSeats, ReasonStack, ReasonPending, ReasonDecision, ReasonUnknown, ReasonUnmapped,
 	ReasonHidden, ReasonExile, ReasonCounter, ReasonMark, ReasonPool, ReasonStepName,
 }
 
@@ -102,6 +103,9 @@ func WorldFromView(in *Input) (dirac.World, error) {
 			return w, err
 		}
 	}
+	if err := b.stack(&w); err != nil {
+		return w, err
+	}
 	if err := b.assemble(&w); err != nil {
 		return w, err
 	}
@@ -126,8 +130,8 @@ func checkScope(in *Input) (kop.Step, error) {
 	if len(v.Players) != 2 || int(v.Viewer) >= 2 {
 		return 0, bad(ReasonSeats, "%d players", len(v.Players))
 	}
-	if len(v.Stack) != 0 || len(v.Pending) != 0 {
-		return 0, bad(ReasonStack, "%d on the stack, %d pending", len(v.Stack), len(v.Pending))
+	if len(v.Pending) != 0 {
+		return 0, bad(ReasonPending, "%d pending", len(v.Pending))
 	}
 	if v.Decision != nil && v.Decision.Kind != "priority" {
 		return 0, bad(ReasonDecision, "%s", v.Decision.Kind)
