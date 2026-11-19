@@ -1925,19 +1925,17 @@ func (pk *planner) pickUnitColour(ty *utype, rem *[kop.NumManaKinds]int, remAny 
 // unit is planned by the kernel where gorge's witness has no unit
 // (planInertGrant); it stands in for the grant prefix search, whose ask order
 // is W U B R G (stepColours), so its first colour is the lowest of its mask,
-// not the planner's G-first Produces tie-break (pickColour). A granted Combo
-// with a printed order keeps the planner's tie-break: only an unordered Any
-// grant asks W U B R G.
+// not the planner's G-first Produces tie-break (pickColour). Only the grant's
+// own view stands in for that search: a restricted printed ability of the
+// same source (Helga, Skittish Seer under Clement, the Worrywort) is the
+// source's own and keeps the planner's tie-break. A granted Combo with a
+// printed order also keeps it: only an unordered Any grant asks W U B R G.
 func (s *State) planUnitColours(k *prep, pc *pcard, sl Slot, mask uint8, granted bool) (first, printed uint8) {
 	if granted && pc.manaCol == kop.ColAny && mask&0x1f != 0 {
-		ordered := false
-		if gi := s.grantIdx(k, sl); gi >= 0 {
-			if ab := s.stepAbility(k, sl, int16(gi), pc); ab != nil && ab.ManaColOrd != 0 && uint8(ab.ManaColors)&0x1f == mask&0x1f {
-				ordered = true
+		if gi := s.grantIdx(k, sl); gi >= 0 && k.gen != nil && pc == s.grantView(k.gen, int16(gi), sl) {
+			if ab := s.stepAbility(k, sl, int16(gi), pc); ab == nil || ab.ManaColOrd == 0 || uint8(ab.ManaColors)&0x1f != mask&0x1f {
+				first = uint8(bits.TrailingZeros8(mask&0x1f)) + 1
 			}
-		}
-		if !ordered {
-			first = uint8(bits.TrailingZeros8(mask&0x1f)) + 1
 		}
 	}
 	if pc.manaMulti && k.gen != nil {
