@@ -486,9 +486,20 @@ func (g *grantSrch) ctrBranch(t *State, i int, sl Slot) bool {
 	ctrOK := t.perms[sl].actUsed&(1<<uint(g.k.ctrAb[c])) == 0 &&
 		(a.Cost.Flags&kop.CostRemoveCtr == 0 || t.perms[sl].ctrN(t, int(a.Cost.Ctr)) >= int(a.Cost.N)) &&
 		(a.Cost.Flags&kop.CostTap == 0 || tap)
+	// The subsume run's colour asks keep only the colours the pool still
+	// lacks (subsumeCols: gorge's subsumeAnswers on the ask's answers, the
+	// pool read before the step's mana floats in, none kept no answer): the
+	// plain first ability's five-colour ask (off > 1) and the counter
+	// ability's any-colour one. An ask of one answer asks nothing.
+	ord := ctrNeedOrder(g.need)
+	ask1, ask2 := g.subsume && off > 1, g.subsume && ctrAnyColour(a)
 	for ans := 0; ans < g.k.ctrChainN(c); ans++ {
 		if ans < off && !tap || ans >= off && !ctrOK {
 			continue
+		}
+		if ans < off && ask1 && !g.subsumeKeeps(t, ord[ans]) ||
+			ans >= off && ask2 && !g.subsumeKeeps(t, ord[ans-off]) {
+			continue // a covered colour pays nothing more, so the line through it is dominated
 		}
 		if g.ctrTry(t, i, sl, ans) {
 			return true
