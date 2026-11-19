@@ -174,6 +174,9 @@ func (s *State) caChainTap(k *prep, p uint8, a Action, sl Slot, c int) {
 func (s *State) availCA(k *prep, p uint8, a *avail) {
 	for b := s.caGaps(k, p); b.any(); b = b.rest() {
 		sl := b.first()
+		if s.pickCommittedSrc(k, sl) {
+			continue // the pick taps it; removeSrc cannot take these units out (cast_xpicked.go)
+		}
 		if k.isReflAmt(s.cardAt(sl)) {
 			a.addUnits(uint8(kop.ColC), uint8(s.caAmount(k, sl)))
 			continue
