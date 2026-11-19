@@ -237,6 +237,7 @@ Radiant's Judgment
 Ragged Veins
 Rain of Salt
 Raise the Draugr
+Rakdos Ickspitter
 Ransom Note
 Raven Familiar
 Ray of Revelation
@@ -321,6 +322,7 @@ Thornhide Wolves
 Thought Scour
 Thundering Raiju
 Tidal Wave
+Titan's Strength
 Tormentor's Trident
 Treachery
 Treasure Hunter

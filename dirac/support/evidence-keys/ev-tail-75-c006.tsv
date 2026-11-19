@@ -30,7 +30,9 @@ Drillworks Mole	3e28842be3313a86	6	1/1		0/1	ix:resp
 Drossclaw	45681f91bd582e35	4	3/3		1/1	
 Dualcaster Mage	99286be00be1230f	5	1/1		1/1	
 Duplicant	bbb589d10e319964	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Emperor Crocodile	5a8629a1e375ce45	5	1/1		0/1	ix:resp
 Erstwhile Trooper	4de71381fff33796	4	1/1		0/1	ix:resp
+Farewell	60cbd609044c3546	5	0/0		1/2	ix:resp
 Fateful Showdown	16712446c3ddc5d1	3	0/0		1/2	ix:resp
 Feral Instinct	02ccc1ae5fb769a2	4	0/0		1/2	ix:resp
 Fetid Imp	ea1ab007dfd1789d	6	1/1		0/1	ix:resp
@@ -40,12 +42,15 @@ Gift of Fangs	49cc6cc04d154a07	6	0/0		1/2	ix:resp
 Great Defender	a82248cd82c9c7cd	4	0/0		1/2	ix:resp
 Honden of Life's Web	f24eec17cf548c1e	7	1/1		1/1	
 Hulk, Brutal Brawler	fc14624be05b6a75	28	1/1		1/1	
+Illicit Shipment	a1846b2f905e5094	3	0/0		1/2	ix:resp
 Imaginary Pet	0e7501875523b3a8	6	1/1		1/1	
 Incisor Steed	b63c79756c62d52d	5	0/0		0/0	
 Inspire Awe	4ba7bf93e292aa35	4	0/0		1/2	ix:resp
+Jalum Tome	3f04bd5cefa63fcd	8	1/1		1/1	
 Jolrael, Voice of Zhalfir	d820dbaa78d6c5dd	6	2/2		0/1	ix:resp
 Khenra Eternal	bbfaac847623256e	4	1/1		0/1	ix:resp
 Kodama's Reach	d19ff79f49b69152	12	0/0		2/2	
+Launch	0cbbba5fa13fc0f8	6	1/1		1/2	ix:resp
 Leyline of Punishment	a208ab9103b24afb	4	0/0		0/0	
 Lightwielder Paladin	51c47c5f3b89f4eb	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Lost in the Spirit World	ff870131f7c9ca10	7	0/0		1/2	ix:resp
@@ -53,6 +58,7 @@ Magma Vein	6e94436e204467e7	6	1/1		0/1	ix:resp
 Magmatic Insight	7901a11ab195cae6	4	0/0		1/2	ix:resp
 Malcator's Watcher	d42856a10f0dca0c	8	1/1		0/1	ix:resp
 Mammoth Spider	410d08abdb4992a4	3	0/0		0/0	
+Manalith	10e562077c0eb5e6	4	1/1		0/1	ix:resp
 Mardu Woe-Reaper	5366c241abe69207	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Markov Patrician	265ed96835478435	4	0/0		0/0	
 Masked Blackguard	a8a142ebd47fd68d	3	1/1		1/1	
@@ -62,6 +68,7 @@ Mystic Skull	e5c2c5d6f020d251	4	2/2		0/1	ix:resp
 Nakaya Shade	77d4ecf82513a3d3	3	1/1		0/1	ix:resp
 Obelisk of Grixis	69966ddbffaee50e	4	1/1		0/1	ix:resp
 Ogre Taskmaster	e40b726704d6de3b	3	0/0		0/0	
+One-Eyed Scarecrow	9669377b038f6ce4	7	0/0		0/0	
 Panic Attack	0a7af9390a6bd1c1	3	0/0		1/2	ix:resp
 Paradigm Shift	fd549080f8f56349	3	0/0		1/2	ix:resp
 Patrol Hound	6e56df4436bb59e9	18	1/1		1/1	
@@ -72,6 +79,7 @@ Rageblood Shaman	1509f9dfdd2cd18e	5	0/0		0/0
 Rampaging Cyclops	a138ac690caa5681	3	0/0		0/0	
 Reduce in Stature	bd3b48374957e827	4	0/0		1/2	ix:resp
 Return of the Nightstalkers	ae076966896c28c5	5	0/0		2/2	
+Rout	997bf004717e1754	4	0/0		1/2	ix:resp
 Rune-Cervin Rider	e0097db62c3e1ef5	4	1/1		1/1	
 Sacred Prey	6d70d4fc5e353f8a	10	1/1		1/1	
 Sanctify	2eb6f8c724bf7475	8	0/0		1/2	ix:resp
@@ -100,8 +108,11 @@ Urza's Rebuff	6a688924dc26caf4	6	0/0		1/2	ix:resp
 Urza, Powerstone Prodigy	4cba175f9f6d36d4	4	2/2		0/1	ix:resp
 Viscid Lemures	da8829643a0efa36	4	1/1		1/1	
 Voyager Staff	77b389b2300f95bd	4	1/1		0/1	ix:resp
+Wall of Vines	6774bb37bbfe991d	4	0/0		0/0	
 Waterknot	05167c17b6f76869	4	1/1		1/2	ix:resp
 Whiptail Moloch	a967abda94d124df	4	1/1		0/1	ix:resp
+Whiptail Wurm	abd9cc724c731b0d	3	0/0		0/0	
 Will-o'-the-Wisp	cd445fa01cff0f02	4	1/1		0/1	ix:resp
 Wolfwillow Haven	a509f4b6ecdab8a3	4	2/2		1/2	ix:resp
+Yoshimaru, Ever Faithful	14668ac55e175b70	6	1/1		0/1	ix:resp
 Zealot's Conviction	c407e402be3771ac	7	0/0		1/2	ix:resp

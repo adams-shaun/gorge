@@ -2,6 +2,7 @@ A-Canopy Tactician
 A-Luminarch Aspirant
 A-Navigation Orb
 A-Social Climber
+A-Teferi, Time Raveler
 Aang, Air Nomad
 Abbey Gargoyles
 Adrix and Nev, Twincasters
@@ -256,6 +257,7 @@ Necrotic Sliver
 Needlepeak Spider
 Neurok Prodigy
 Nezumi Shadow-Watcher
+Niambi, Esteemed Speaker
 Nicol Bolas, the Ravager
 Nightsquad Commando
 Nihil Spellbomb
@@ -355,6 +357,7 @@ Soul Shepherd
 Sparkmage Apprentice
 Sparring Collar
 Sphinx-Bone Wand
+Spire Patrol
 Spiritual Guardian
 Spitting Dilophosaurus
 Sporeweb Weaver

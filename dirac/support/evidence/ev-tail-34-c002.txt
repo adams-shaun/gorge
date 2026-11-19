@@ -48,6 +48,7 @@ Cathartic Adept
 Caustic Caterpillar
 Caustic Tar
 Cave of the Frost Dragon
+Ceta Sanctuary
 Charix, the Raging Isle
 Child of Thorns
 Choose Your Weapon
@@ -55,6 +56,7 @@ Chosen by Heliod
 Citywide Bust
 Clear the Mind
 Cleaving Sliver
+Condescend
 Conjurer's Mantle
 Consulate Turret
 Conversion
@@ -90,6 +92,7 @@ Elegant Entourage
 Elminster's Simulacrum
 Embersmith
 Encase in Ice
+Endrek Sahr, Master Breeder
 Endurance Bobblehead
 Enter the Unknown
 Era of Innovation
@@ -199,6 +202,7 @@ Oboro Breezecaller
 Ogre Jailbreaker
 Olivia's Wrath
 Ordeal of Erebos
+Order of Yawgmoth
 Painful Memories
 Paladin Danse, Steel Maverick
 Peace of Mind
@@ -249,6 +253,8 @@ Sever the Bloodline
 Shadow Rift
 Shatterskull Giant
 Showstopping Surprise
+Shrine of Boundless Growth
+Shu General
 Sibsig Icebreakers
 Siege Zombie
 Siegecraft
@@ -280,6 +286,7 @@ Summoning Materia
 Sunder Shaman
 Swamp
 Sylvia Brightspear
+Tajuru Archer
 Tangle Hulk
 Teardrop Kami
 The Roaring Toeclaws

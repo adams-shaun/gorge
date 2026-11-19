@@ -2,6 +2,7 @@ card	lir16	plays	keys	unused	branches	missing_branches
 A-Armory Veteran	b8519bf0a57c7b86	3	1/1		0/1	ix:resp
 A-Dokuchi Silencer	bbaaec6381c7fc5f	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 A-Orcish Bowmasters	ecb5e604fce415b1	16	1/1		1/1	
+Aerie Mystics	afa31da80f49fbca	11	1/1		0/1	ix:resp
 Alandra, Sky Dreamer	65a27e8139bfa024	5	2/2		0/1	ix:resp
 Alchemist's Gift	a45c2e153ae0aa99	9	0/0		1/2	ix:resp
 Altar of the Goyf	dd8c91d6c7562d24	10	1/1		0/1	ix:resp
@@ -43,6 +44,7 @@ Dire Fleet Poisoner	494217c759b9f7db	10	1/1		0/1	ix:resp
 Dispel	3f6b9f97fe866b83	5	0/0		2/2	
 Doomed Necromancer	9865f32d33699aa5	3	1/1		0/1	ix:resp
 Dragon-Cursed Halls	cc6ff18c5ac11773	23	2/2		1/1	
+Drana, Kalastria Bloodchief	77adc2c3b100c920	27	1/1		1/1	
 Dune Chanter	824dab577edd4813	4	1/1		1/1	
 Eccentric Farmer	0b956e7d6920c29d	3	1/1		0/1	ix:resp
 Elven Cache	aae6e25cfc439090	6	0/0		1/2	ix:resp
@@ -81,6 +83,7 @@ Inspirit	139f244df7f5bc15	4	0/0		1/2	ix:resp
 Iron Star	2d0f63aa01df1805	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Jeska, Warrior Adept	ac90e9e64b8a1341	8	1/1		1/1	
 Join the Dance	ab1f07a30c735be5	22	0/0		4/4	
+Kamahl's Druidic Vow	c3494f6c51edbf4c	5	0/0		2/4	f0/s/x0,ix:resp
 Kessig Naturalist	a13882d347a8fbb5	4	2/2		0/1	ix:resp
 Kin-Tree Warden	37dfc91b4bc21323	7	1/1		2/3	cast/alt:morphed
 Lair Delve	62ff25b8115c52d4	18	0/0		1/2	ix:resp
@@ -143,6 +146,7 @@ Sonic Seizure	dc3bac815150ef73	5	0/0		2/2
 Soulblade Corrupter	2cad0ab46a588150	33	2/2		1/1	
 Spawnwrithe	9f56d197be7f7d12	4	1/1		1/1	
 Spiked Ripsaw	3d29b3fced3aa4e6	31	2/2		0/1	ix:resp
+Spikefield Hazard	0c1fd064e357cc76	50	1/1		2/2	
 Spirit Summoning	a03893249e9499e8	6	0/0		2/2	
 Splatter Goblin	81d14be7962331a9	3	1/1		0/1	ix:resp
 Squee's Toy	d224394b2cda8678	16	1/1		1/1	

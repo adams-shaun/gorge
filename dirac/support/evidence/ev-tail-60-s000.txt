@@ -163,6 +163,7 @@ Oketra's Last Mercy
 One with the Machine
 Onslaught
 Opportunity
+Orchard Strider
 Otarian Juggernaut
 Outnumber
 Overgrown Battlement
@@ -210,6 +211,7 @@ Sigiled Starfish
 Silverstorm Samurai
 Sixth Sense
 Skeletal Grimace
+Skemfar Avenger
 Soltari Emissary
 Spawn of Thraxes
 Split-Tail Miko
@@ -238,6 +240,7 @@ Those Who Serve
 Thran Dynamo
 Thrill-Kill Assassin
 Thunderstaff
+Thurid, Mare of Destiny
 Tombfire
 Touch of Darkness
 Towashi Guide-Bot

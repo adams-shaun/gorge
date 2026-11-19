@@ -57,6 +57,7 @@ Cat Oven
 Cave-In
 Celestial Force
 Chameleon Colossus
+Chandra, Bold Pyromancer
 Chaplain's Blessing
 Chariot of the Sun
 Chasm Drake
@@ -315,6 +316,7 @@ Orgg
 Outmaneuver
 Oversold Cemetery
 Pack Rat
+Pain Kami
 Paradise Mantle
 Patagia Tiger
 Penumbra Wurm

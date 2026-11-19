@@ -38,6 +38,7 @@ Bog Smugglers
 Bonds of Mortality
 Bottomless Vault
 Brigone, Soldier of Meletis
+Browbeat
 Burrenton Shield-Bearers
 Canopy Claws
 Canopy Spider
@@ -76,6 +77,7 @@ Dispersal Technician
 Doomed Artisan
 Doomed Traveler
 Dragonlair Spider
+Dread Slag
 Drogskol Shieldmate
 Drossforge Bridge
 Earthen Goo
@@ -163,6 +165,7 @@ Iron Man, Titan of Innovation
 Iron-Heart Chimera
 Ironclaw Buzzardiers
 Island
+Jagged Lightning
 Juniper Order Advocate
 Juniper Order Rootweaver
 Junkyo Bell
@@ -195,6 +198,7 @@ Mad Dog
 Mahadi, Emporium Master
 Manifold Key
 March of the Drowned
+Martyrs' Tomb
 Masked Blackguard
 Melancholy
 Metal Fatigue
@@ -280,6 +284,7 @@ Scour from Existence
 Scrapwork Rager
 Scrivener
 Sea Drake
+Sea Gate
 Searchlight Geist
 Selvala's Enforcer
 Serra Avenger
@@ -322,6 +327,7 @@ Take into Custody
 Talara's Battalion
 Tapestry of the Ages
 Tectonic Rift
+Tenement Crasher
 Thalia's Lancers
 The Binding of the Titans
 The Immortal Weapons
