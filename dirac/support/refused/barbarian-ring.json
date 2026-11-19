@@ -1,0 +1,20 @@
+{
+  "card": "Barbarian Ring",
+  "class": "unmodelled-landgrant",
+  "why": "gorge offers both productions of a land granted a basic land type (CR 305.6: the intrinsic {T}: Add {B} beside its own) and the kernel's one-ability pcard holds a single production: a Barbarian Ring (pain on its {R}) under the granted Swamp type stalls landgrant, tail-32-s000 pair 21 (stall landgrant, static_landtype.go blgPlain)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "barbarian_ring_swamp_grant_over_a_pain_land_unmodelled"
+  },
+  "evidence": [
+    "ev-tail-32-c000",
+    "ev-tail-54-c000",
+    "ev-tail-54-c005",
+    "ev-tail-55-c000"
+  ]
+}
