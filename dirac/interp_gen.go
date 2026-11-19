@@ -1524,7 +1524,6 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 	var ctr kop.CounterKind
 	var ctrN uint8
 	src := NoSlot
-	s.exileRiderReset(k, sl) // repl_exilerider.go
 	if k.gen != nil && k.gen.anyRepl&rbExileOnLeave != 0 {
 		exileN, ctr, ctrN, src = s.exileOnLeaveN(k, sl)
 	}
@@ -1556,6 +1555,9 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 		// counter is stamped by applyExileOrder, not by a re-scan here
 		return kop.ZoneExile
 	}
+	// A fresh death decision clears the slot's rider record; an answered
+	// parked move keeps the one its order answer left (repl_exilerider.go).
+	s.exileRiderReset(k, sl)
 	if n > 1 {
 		s.capFull(StallReplLeave)
 		if exileN > 0 || exileEx || scopeN > 0 {
