@@ -73,11 +73,11 @@ func (e *Engine) abilityResolutionSVars(id state.ObjID, o *state.Object) map[str
 			// zone (CR 711.5a) while the granted body is its source's text
 			// (CR 113.7a). A one-face grantor picks its active face, exactly
 			// as before.
-			grantor := grantedBodySVars(g, o.Ability)
-			if grantor == nil {
-				grantor = g.Face().SVars
+			f := grantedBodyFace(g, o.Ability)
+			if f == nil {
+				f = g.Face()
 			}
-			if len(grantor) > 0 {
+			if grantor := f.SVars; len(grantor) > 0 {
 				if len(svars) > 0 {
 					merged := maps.Clone(svars)
 					maps.Copy(merged, grantor)
@@ -90,16 +90,16 @@ func (e *Engine) abilityResolutionSVars(id state.ObjID, o *state.Object) map[str
 	return svars
 }
 
-// grantedBodySVars is the multi-face read of a granted ability's grantor:
+// grantedBodyFace is the multi-face read of a granted ability's grantor:
 // the first face of the grantor's card, in the mint's own order (the active
 // face, then every face in index order, then LeftCopyFace), whose SVar table
 // defines a name the granted body's lines mention. nil when no face does --
-// the caller then keeps the active face's table, the pre-multi-face read.
+// the caller then keeps the grantor's active face, the pre-multi-face read.
 // The mention scan runs over the body's own Line texts (SubAbility$ chains
 // included) with word boundaries, so a name that is a substring of another
 // does not qualify a face by accident; the quantifier is existential, so the
 // map iteration order is irrelevant.
-func grantedBodySVars(g *state.Object, body *cards.SA) map[string]string {
+func grantedBodyFace(g *state.Object, body *cards.SA) *cards.Face {
 	if body == nil {
 		return nil
 	}
@@ -112,30 +112,36 @@ func grantedBodySVars(g *state.Object, body *cards.SA) map[string]string {
 	if len(lines) == 0 {
 		return nil
 	}
-	mentions := func(svars map[string]string) bool {
-		for name := range svars {
-			for _, ln := range lines {
-				if mentionsWord(ln, name) {
-					return true
-				}
-			}
-		}
-		return false
-	}
-	if f := g.Face(); f != nil && mentions(f.SVars) {
-		return f.SVars
+	if f := g.Face(); faceMentionsBody(f, lines) {
+		return f
 	}
 	if g.Card != nil {
 		for _, cf := range g.Card.Faces {
-			if cf != nil && mentions(cf.SVars) {
-				return cf.SVars
+			if faceMentionsBody(cf, lines) {
+				return cf
 			}
 		}
 	}
-	if g.LeftCopyFace != nil && mentions(g.LeftCopyFace.SVars) {
-		return g.LeftCopyFace.SVars
+	if f := g.LeftCopyFace; faceMentionsBody(f, lines) {
+		return f
 	}
 	return nil
+}
+
+// faceMentionsBody reports whether the face's SVar table names anything the
+// granted body's lines mention.
+func faceMentionsBody(f *cards.Face, lines []string) bool {
+	if f == nil {
+		return false
+	}
+	for name := range f.SVars {
+		for _, ln := range lines {
+			if mentionsWord(ln, name) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // mentionsWord reports whether line contains name between word boundaries.

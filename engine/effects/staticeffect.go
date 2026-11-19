@@ -440,7 +440,17 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 			grantTable = o.Face().SVars
 		}
 	}
-	addSVars := grantedSVarGrant(g.addSVarName, grantTable)
+	// The shape read is inlined because effects cannot import rules, where
+	// the identical parse lives (layers_static.go's parseSVarGrant); the two
+	// must keep the same "SVar:<Name>:<Value>" rule.
+	var addSVars map[string]string
+	if g.addSVarName != "" {
+		if rest, ok := strings.CutPrefix(grantTable[g.addSVarName], "SVar:"); ok {
+			if n, v, has := strings.Cut(rest, ":"); has && n != "" {
+				addSVars = map[string]string{n: v}
+			}
+		}
+	}
 	// A "ChosenType" element resolves against the moved card's own recorded
 	// "as this enters" choice (the static scanner's resolveChosenTypes
 	// direction); a card with no recorded choice fails closed to no grant
@@ -564,24 +574,6 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 		})
 	}
 	return registered
-}
-
-// grantedSVarGrant mirrors the printed-static walk's AddSVar$ read
-// (engine/rules/layers.go's parseSVarGrant): the named SVar's value must be
-// Forge's "SVar:<Name>:<Value>" grant shape for the affected object to GAIN a
-// named variable; any other shape (a granted ability's own references,
-// Count$... bodies) grants nothing. Split here because effects cannot import
-// rules; the two must keep the same shape rule.
-func grantedSVarGrant(name string, svars map[string]string) map[string]string {
-	rest, ok := strings.CutPrefix(svars[name], "SVar:")
-	if !ok {
-		return nil
-	}
-	n, v, ok := strings.Cut(rest, ":")
-	if !ok || n == "" {
-		return nil
-	}
-	return map[string]string{n: v}
 }
 
 // AffectedXStaticAmount is the shared per-affected-object convention for
