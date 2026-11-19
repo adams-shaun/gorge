@@ -30,6 +30,7 @@ func TestPrintedHeadsOfClassifiesAndVerifies(t *testing.T) {
 		{"Morph", Morph}, {"Megamorph", Megamorph}, {"Disguise", Disguise},
 		{"MayFlashCost:1", MayFlashCost},
 		{"AlternateAdditionalCost", AlternateAdditionalCost}, {"Impending", Impending},
+		{"Offering:Rat", Offering},
 	} {
 		got := Of(&cards.Face{Keywords: []string{tc.kw}})
 		if got != tc.want {

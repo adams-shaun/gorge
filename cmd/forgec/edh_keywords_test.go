@@ -10,6 +10,13 @@ import (
 // edhKeywordCards is the EDH keyword class this ticket covers: imported
 // Commander decks keep holding these, and each is blocked from full gorge
 // support only by one missing primitive key.
+//
+// Enduring Ideal, Eternal Dominion (kw:Epic) and Chorus of the Conclave (the
+// pay-any-amount additional-cost static) are deliberately absent: their
+// mechanisms were split into follow-up tickets (r2 report, "Split-off work") —
+// Epic needs copy-this-spell-at-upkeep machinery with no engine precedent and
+// Chorus a new pay-any-amount additional-cost class — and an unfinished
+// mechanism is never registered honestly.
 var edhKeywordCards = []string{
 	"Nazgûl",
 	"Seven Dwarves",
@@ -17,13 +24,10 @@ var edhKeywordCards = []string{
 	"Blast-Furnace Hellkite",
 	"Patron of the Nezumi",
 	"Nacatl War-Pride",
-	"Enduring Ideal",
-	"Eternal Dominion",
 	"Garza's Assassin",
 	"Icefall",
 	"Marhault Elsdragon",
 	"Fleshwrither",
-	"Chorus of the Conclave",
 }
 
 // TestEDHKeywordsSupported asserts every card in the EDH keyword class is

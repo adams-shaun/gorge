@@ -452,6 +452,9 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 	if kind == "sacrifice" && pc.emerge && pc.SacPart == 0 && len(chosen) == 1 {
 		pc.emergeSac = chosen[0].Obj
 	}
+	if kind == "sacrifice" && pc.offering && pc.SacPart == 0 && len(chosen) == 1 {
+		pc.offeringSac = chosen[0].Obj
+	}
 	if pay.RecordCastPaymentAnswer(&pc.CastPayment, pay.CastPayAnswer{Paid: &pc.PaidCost, Cost: &pc.cost, X: &pc.x, XDone: pc.xDone}, kind, chosen) {
 		return
 	}

@@ -1078,6 +1078,11 @@ func cloneFieldsEngineParked(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		}
 		c.echo = &p0
 	}
+	if e.recover != nil {
+		p0 := *e.recover
+		p0.amount = cloneCost(e.recover.amount)
+		c.recover = &p0
+	}
 	if e.attackPay != nil {
 		p0 := *e.attackPay
 		p0.chosen = append([]decision.Option(nil), e.attackPay.chosen...)

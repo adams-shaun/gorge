@@ -29,6 +29,7 @@ const (
 	phOverload                = printedHeads(scriptfacts.Overload)
 	phWarp                    = printedHeads(scriptfacts.Warp)
 	phEmerge                  = printedHeads(scriptfacts.Emerge)
+	phOffering                = printedHeads(scriptfacts.Offering)
 	phBestow                  = printedHeads(scriptfacts.Bestow)
 	phMutate                  = printedHeads(scriptfacts.Mutate)
 	phBuyback                 = printedHeads(scriptfacts.Buyback)

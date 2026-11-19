@@ -106,4 +106,7 @@ var paysPrintedManaCostSet = state.NewNameSet(
 	"jumpstart",
 	"warp_recast",
 	"mayplay",
+	// Offering (CR 702.46, engine/rules/offering.go): the cast pays the
+	// printed mana cost reduced by the sacrificed permanent's mana cost.
+	"offering",
 )
