@@ -321,7 +321,7 @@ func card(id string) CardDto {
 	return CardDto{
 		ID:            id,
 		Identity:      CardIdentity{Name: name, SetCode: "tst", CardNumber: "1"},
-		Color:         []string{},
+		Color:         "",
 		Types:         []string{"Creature"},
 		Subtypes:      []string{},
 		Supertypes:    []string{},
@@ -451,7 +451,7 @@ func TestLenientDecodeReportsUnknown(t *testing.T) {
 func TestEncodeIsCanonical(t *testing.T) {
 	p := PlayerDto{
 		ID:              "p0",
-		Counters:        map[PlayerCounterKind]int{CounterLoyalty: 1, "ZZZ": 2, "AAA": 3},
+		Counters:        map[PlayerCounterKind]int{CounterPoison: 1, "zzz": 2, "aaa": 3},
 		ManaPool:        map[ManaColor]int{ColorGreen: 1, ColorBlue: 2},
 		CommanderDamage: map[string]int{"p2": 1, "p1": 4},
 	}
@@ -468,8 +468,8 @@ func TestEncodeIsCanonical(t *testing.T) {
 		t.Fatalf("encode is not compact: %s", s)
 	}
 	for _, pair := range [][2]string{
-		{`"AAA":3`, `"ZZZ":2`},
-		{`"AAA":3`, `"Loyalty":1`},
+		{`"aaa":3`, `"zzz":2`},
+		{`"aaa":3`, `"poison":1`},
 		{`"G":1`, `"U":2`},
 		{`"p1":4`, `"p2":1`},
 	} {

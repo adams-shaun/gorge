@@ -262,6 +262,47 @@ func TestStreamSendsStateThenPrompt(t *testing.T) {
 	}
 }
 
+// TestRefusedAnswerResendsThePrompt: a refused answer's error is followed on
+// the stream by the still-open prompt, so a client that drops its refused
+// answer and waits for its next prompt -- ManaBrew's own seat client does --
+// is not left waiting on a decision the stream had already sent once (G2,
+// the Crew deadlock).
+func TestRefusedAnswerResendsThePrompt(t *testing.T) {
+	ts := newTestServer(t, []int{0}, 0, 0)
+	waitForPending(t, ts.reg, "t1", 1, 0)
+	s := openStream(t, ts.srv, "/t1/matches/1/stream", "s0")
+	defer s.close()
+	if _, ok := s.next(t).Value.(mb.StateUpdate); !ok {
+		t.Fatal("first frame is not a state")
+	}
+	first, ok := s.next(t).Value.(mb.PromptMessage)
+	if !ok {
+		t.Fatal("second frame is not a prompt")
+	}
+	code, pe := send(t, ts, "s0", mb.ClientMessage{Value: mb.ClientResponse{Kind: "response", PromptID: first.PromptID,
+		Action: mb.PromptOutput{Type: "chooseAction", Output: mb.PromptOutputData{Value: mb.ActOutput{ActionID: "opt-9999"}}}}})
+	if code != http.StatusBadRequest || pe.Code != mb.CodeUnknownActionID {
+		t.Fatalf("an unadvertised action: %d %+v, want 400 unknownActionId", code, pe)
+	}
+	// nonState skips the state frames a wake-up may interleave.
+	nonState := func() any {
+		for {
+			if m := s.next(t).Value; m != nil {
+				if _, st := m.(mb.StateUpdate); !st {
+					return m
+				}
+			}
+		}
+	}
+	if em, ok := nonState().(mb.ErrorMessage); !ok || em.Error.Code != mb.CodeUnknownActionID {
+		t.Fatalf("the refusal is not pushed first: %#v", em)
+	}
+	again, ok := nonState().(mb.PromptMessage)
+	if !ok || again.PromptID != first.PromptID {
+		t.Fatalf("after the refusal the stream sent %#v, want prompt %d again", again, first.PromptID)
+	}
+}
+
 // TestOtherSeatTokenForbidden pins the claim boundary: a token
 // bound to a different table is refused before any match state is
 // consulted, on every route, and an unresolved token is 401. There is no

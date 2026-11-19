@@ -189,10 +189,8 @@ func (s *ManaBrewSession) acknowledge(seat int, pm mb.PromptMessage) {
 func (s *ManaBrewSession) settleWindow(seat int, pm *mb.PromptMessage, in mb.PayManaCostInput) bool {
 	s.t.Helper()
 	var out mb.PromptOutputValue = mb.CancelOutput{}
-	for _, a := range in.Actions {
-		if a.Type == "autofill" {
-			out = mb.PayOutput{Auto: true}
-		}
+	if manabrew.PaymentOffersAutoFill(in) {
+		out = mb.PayOutput{Auto: true}
 	}
 	if _, cancel := out.(mb.CancelOutput); cancel && in.CanConfirmFromPool {
 		return false

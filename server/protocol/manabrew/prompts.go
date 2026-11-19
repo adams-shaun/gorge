@@ -47,6 +47,14 @@ type PromptPresentation struct {
 	Targets     []TargetRef `json:"targets"`
 }
 
+// MarshalJSON writes nil Targets as [] (ManaBrew's Vec rejects null).
+func (p PromptPresentation) MarshalJSON() ([]byte, error) {
+	type fields PromptPresentation
+	f := fields(p)
+	emptyList(&f.Targets)
+	return json.Marshal(f)
+}
+
 // PromptBase is the presentation-bearing prefix shared by most inputs. It is
 // embedded anonymously, so its fields flatten into the input object.
 type PromptBase struct {
@@ -184,8 +192,13 @@ type ChooseActionInput struct {
 func (ChooseActionInput) isPromptInput()     {}
 func (ChooseActionInput) PromptType() string { return "chooseAction" }
 
-// PaymentAction is UNDEFINED in the published spec; the example is
-// activateAbility-shaped, so the fields mirror ActivatableAbilityInfo.
+// PaymentAction is one payManaCost action, a union on type
+// (manabrew-protocol src/prompts/common.rs PaymentAction, flattened
+// PaymentActionKind): activateManaAbility (ActivatableAbilityInfo: cardId,
+// abilityIndex, description, isManaAbility, producedMana?), undoMana{cardId},
+// useResource/releaseResource{cardId, resource} and payLife{amount}. Like
+// AvailableAction it decodes flat, and MarshalJSON writes exactly the
+// member's fields, the required ones even when zero.
 type PaymentAction struct {
 	ID            string `json:"id"`
 	Type          string `json:"type,omitempty"`
@@ -194,6 +207,37 @@ type PaymentAction struct {
 	Description   string `json:"description,omitempty"`
 	IsManaAbility bool   `json:"isManaAbility,omitempty"`
 	ProducedMana  []Mana `json:"producedMana,omitempty"`
+	Resource      string `json:"resource,omitempty"`
+	Amount        int    `json:"amount,omitempty"`
+}
+
+// MarshalJSON writes the member Type names (see PaymentAction).
+func (a PaymentAction) MarshalJSON() ([]byte, error) {
+	switch a.Type {
+	case ActionActivateManaAbility:
+		return json.Marshal(abilityWire(a.ID, a.Type, a.CardID, a.AbilityIndex, a.Description, a.IsManaAbility,
+			false, "", a.ProducedMana))
+	case ActionUndoMana:
+		return json.Marshal(cardActionWire{ID: a.ID, Type: a.Type, CardID: a.CardID})
+	case ActionUseResource, ActionReleaseResource:
+		return json.Marshal(struct {
+			ID       string `json:"id"`
+			Type     string `json:"type"`
+			CardID   string `json:"cardId"`
+			Resource string `json:"resource"`
+		}{a.ID, a.Type, a.CardID, a.Resource})
+	case ActionPayLife:
+		return json.Marshal(struct {
+			ID     string `json:"id"`
+			Type   string `json:"type"`
+			Amount int    `json:"amount"`
+		}{a.ID, a.Type, a.Amount})
+	default:
+		// A type ManaBrew does not define (only a decoded foreign message
+		// carries one): its fields as they are.
+		type fields PaymentAction
+		return json.Marshal(fields(a))
+	}
 }
 
 // PayManaCostInput: payManaCost.
@@ -310,8 +354,28 @@ type ChooseBoardTargetsInput struct {
 	Intent        TargetingIntent `json:"intent"`
 	MinTargets    int             `json:"minTargets"`
 	MaxTargets    int             `json:"maxTargets"`
-	ChosenTargets []TargetRef     `json:"chosenTargets"`
+	ChosenTargets TargetCount     `json:"chosenTargets"`
 	Cancellable   bool            `json:"cancellable"`
+}
+
+// TargetCount is chooseBoardTargets' chosenTargets: how many targets are
+// already chosen, an i32 upstream (manabrew-protocol
+// src/prompts/choose_board_targets.rs). Decoding also accepts the list the
+// published docs' example carries, as its length.
+type TargetCount int
+
+func (c *TargetCount) UnmarshalJSON(b []byte) error {
+	var n int
+	if err := json.Unmarshal(b, &n); err == nil {
+		*c = TargetCount(n)
+		return nil
+	}
+	var list []json.RawMessage
+	if err := json.Unmarshal(b, &list); err != nil {
+		return err
+	}
+	*c = TargetCount(len(list))
+	return nil
 }
 
 func (ChooseBoardTargetsInput) isPromptInput()     {}

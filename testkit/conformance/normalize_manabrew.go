@@ -281,7 +281,7 @@ func checkPromptDisplay(promptType string, tree map[string]any) error {
 
 // chooseActionAnswers is passing, plus one answer per non-mana action. A cast is
 // cast/<card>/<mode>/<n>, with n its ordinal among that card's plays of that
-// mode, since a pay- action carries no mode; an opt- and a pay- action with the
+// mode (a pay- action's mode is its planned cast's); an opt- and a pay- action with the
 // same key are one answer, sent as the pay- action. An ability is
 // ability/<card>/<index>.
 func chooseActionAnswers(in mb.ChooseActionInput, names wireNames) (manaBrewAnswers, error) {
@@ -298,7 +298,7 @@ func chooseActionAnswers(in mb.ChooseActionInput, names wireNames) (manaBrewAnsw
 				if a.Label == "" {
 					return nil, fmt.Errorf("action %s has no label", a.ID)
 				}
-				base := fmt.Sprintf("cast/%s/%s", names.rename(a.CardID), a.Mode)
+				base := fmt.Sprintf("cast/%s/%s%s", names.rename(a.CardID), a.Mode.Type, a.Mode.Cost)
 				key = fmt.Sprintf("%s/%d", base, plays[base])
 				plays[base]++
 			case "activateAbility":

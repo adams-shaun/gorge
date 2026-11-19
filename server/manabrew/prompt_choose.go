@@ -2,6 +2,7 @@ package manabrew
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -325,10 +326,16 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 // Min cards one legal set. A sum bound's total is over each option's Value, which
 // needn't be anything on the card (a Pilot crews at its power plus 2, an exile
 // cost counts mana value), so the sentence cardValueSentence writes lists them.
+// Under a sum floor (MinSum) the cards come largest value first, so the first
+// min (sumFloorMin) cards reach it: the same first-Min-cards-are-legal shape.
 func (t *Translator) chooseCardsInput(d *decision.Decision, v *view.View, pres mb.PromptBase) mb.ChooseCardsInput {
 	opts := orderTargetOptions(d)
 	if opts == nil {
 		opts = d.Options
+	}
+	if d.MinSum > 0 {
+		opts = slices.Clone(opts)
+		sort.SliceStable(opts, func(i, j int) bool { return opts[i].Value > opts[j].Value })
 	}
 	cards := make([]mb.CardDto, 0, len(opts))
 	for _, o := range opts {
@@ -339,7 +346,35 @@ func (t *Translator) chooseCardsInput(d *decision.Decision, v *view.View, pres m
 			pres.Presentation.Description += " " + sentence
 		}
 	}
-	return mb.ChooseCardsInput{PromptBase: pres, Cards: cards, Min: d.Min, Max: d.Max}
+	return mb.ChooseCardsInput{PromptBase: pres, Cards: cards, Min: sumFloorMin(d), Max: d.Max}
+}
+
+// sumFloorMin is a chooseCards prompt's min under a sum floor (Decision.MinSum:
+// Crew N totals power): the fewest cards whose values can reach the floor --
+// the largest values first -- and never below d.Min or above d.Max.
+// ManaBrew's ChooseCardsInput has no sum field, so a client reading only min
+// and max (ManaBrew's SimpleAi) would otherwise answer d.Min cards, a set
+// Decision.Validate refuses (Crew 3 over 1/1s: min 1, so one Myr). The floor
+// itself still rides the description (cardValueSentence) and Validate still
+// rules the answer: min is the smallest count that CAN reach the floor, not
+// one every set of that size does. An unreachable floor leaves d.Min.
+func sumFloorMin(d *decision.Decision) int {
+	if d.MinSum <= 0 {
+		return d.Min
+	}
+	values := make([]int, 0, len(d.Options))
+	for _, o := range d.Options {
+		values = append(values, o.Value)
+	}
+	sort.Sort(sort.Reverse(sort.IntSlice(values)))
+	sum := 0
+	for k, n := range values {
+		sum += n
+		if sum >= d.MinSum {
+			return min(max(k+1, d.Min), d.Max)
+		}
+	}
+	return d.Min
 }
 
 // cardValueSentence lists what each offered card counts for under the decision's
@@ -729,7 +764,7 @@ func (t *Translator) optionCard(v *view.View, o decision.Option) mb.CardDto {
 			return card
 		}
 	}
-	return mb.CardDto{ID: cardID(o.Obj), Identity: mb.CardIdentity{Name: name}, Types: []string{}, Subtypes: []string{}, Supertypes: []string{}, Choices: []mb.CardChoiceDto{}, AttachmentIDs: []string{}, MergedCardIDs: []string{}, Color: []string{}, Counters: map[string]int{}}
+	return mb.CardDto{ID: cardID(o.Obj), Identity: mb.CardIdentity{Name: name}, Types: []string{}, Subtypes: []string{}, Supertypes: []string{}, Choices: []mb.CardChoiceDto{}, AttachmentIDs: []string{}, MergedCardIDs: []string{}, Counters: map[string]int{}}
 }
 
 // allPayPipOptions reports whether every option of a KChoose decision is one
