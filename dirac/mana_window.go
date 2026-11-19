@@ -544,6 +544,13 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			if decided && k.gen.flags[c]&gfRestr != 0 && uint8(k.t.Cards[c].Abilities[k.gen.restr(c)].ManaColors)&want == 0 {
 				continue // the clamp reads a fixed colour; a Tender's has none and stays
 			}
+			if decided && k.gen.flags[c]&gfDeferred != 0 && s.deferMask(k, o)&want == 0 {
+				// a deferred source's colours (Gilanra's {G}) the cost no longer
+				// owes: gorge's window lists only the useful sources
+				// (paymentSourceUseful), so a black-only X (Crypt Rats) never
+				// taps it
+				continue
+			}
 			return o, true
 		}
 		if k.gen != nil && k.gen.anyFiltFirst && s.windowFiltFirstUsable(k, p, o) && (!decided || s.windowFiltUseful(k, p, o, want)) && !s.windowFeeStalls(k, p, o, useful, anyColor) {
@@ -3925,7 +3932,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 // finishBuild (bsPay): the walk stops at the source, the build waits on the pick
 // (bflWinTap, ChWindowTap), and the answer taps, floats the mana and lets the stage run
 // again from its start, the pool already holding what the walk took. Everything is behind
-// prep.tapMana; an activation's own window and a probe on a fork still take the first candidate.
+// prep.tapMana, an activation's mana-step window too; a probe on a fork still takes the first candidate.
 
 // DebugNoCastWinTap leaves a tap-another source out of the cast window (the mutation test).
 var DebugNoCastWinTap bool
@@ -3938,9 +3945,10 @@ func (s *State) castTapX(k *prep) bool {
 	}
 	b := s.bld()
 	if b.e.kind == seAbility {
-		// an activation's window lists them only beside a sacrifice-another
-		// source, the one case it is modelled for (sacXWindowPays)
-		return b.stage == bsMana && b.bfl&bflManaStep != 0 && s.sacXLive(k, b.e.ctrl)
+		// an activation's manual window (bsMana, its mana step) lists them in
+		// battlefield order too (Springleaf Drum paying Figure of Fable's pip;
+		// beside a sacrifice-another source, sacXWindowPays)
+		return b.stage == bsMana && b.bfl&bflManaStep != 0
 	}
 	return b.e.kind == seSpell && (b.stage == bsMana || b.stage == bsPay || b.stage == bsAltAdd)
 }
