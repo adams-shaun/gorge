@@ -2834,6 +2834,10 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 }
 
 // potentialCovers reports whether the pool others covers cost's pips and total.
+// A hybrid pip ({B/R}) needs one of its two colours beside the coloured pips
+// (gorge pays it from the pool's colours, never from a generic mana), so a
+// Plains does not fund Graven Cairns' {B/R} fee. A twobrid or Phyrexian cost
+// keeps the total-only read.
 func potentialCovers(others *[kop.NumManaKinds]int, cost *kop.ManaCost) bool {
 	total := 0
 	for c, n := range others {
@@ -2842,7 +2846,38 @@ func potentialCovers(others *[kop.NumManaKinds]int, cost *kop.ManaCost) bool {
 		}
 		total += n
 	}
-	return total >= cost.MV()
+	if total < cost.MV() {
+		return false
+	}
+	if cost.Hyb[0] == 0 || cost.Hyb[0] == kop.HybTwobrid {
+		return true
+	}
+	left := *others
+	for c := range left {
+		left[c] -= int(cost.Pips[c])
+	}
+	return hybridCovered(&left, cost.Hyb[:])
+}
+
+// hybridCovered assigns each hybrid pip (mask of its two colours) one mana of a
+// colour it names, trying both faces of a pip.
+func hybridCovered(left *[kop.NumManaKinds]int, hyb []kop.ColorMask) bool {
+	if len(hyb) == 0 || hyb[0] == 0 {
+		return true
+	}
+	for m := hyb[0]; m != 0; m &= m - 1 {
+		c := bits.TrailingZeros8(uint8(m))
+		if left[c] == 0 {
+			continue
+		}
+		left[c]--
+		ok := hybridCovered(left, hyb[1:])
+		left[c]++
+		if ok {
+			return true
+		}
+	}
+	return false
 }
 
 // --- applying a priority action ---
