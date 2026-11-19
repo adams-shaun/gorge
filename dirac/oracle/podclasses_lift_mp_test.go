@@ -280,3 +280,69 @@ func TestFourSeatTithesBlockMutation(t *testing.T) {
 	}
 	t.Logf("mutation diverged in %d of %d games", st.divs, st.games)
 }
+
+// Encore: "for each opponent, create a token copy of it. Those tokens attack
+// that opponent this turn if able. They gain haste. Sacrifice them at the
+// beginning of the next end step." gorge mints one copy per opponent from the
+// activator in turn order, each carrying its opponent (CardToken's
+// EncoreAttackDefender), and one end-step sacrifice for the group
+// (effEncore); the attackers decision offers each copy its opponent alone
+// while the duty binds (combat.encoreAttackDefender; CR 508.1d). dirac walks
+// the same opponents (kw_encore.go). The mutation (DebugEncoreOneCopy) makes
+// the first opponent's copy alone, the two-seat reading.
+var encorePodDeck = []cardset.Entry{
+	{Name: "Impulsive Pilferer", Count: 8}, {Name: "Spellbinding Soprano", Count: 6},
+	{Name: "Kinsbaile Courier", Count: 4}, {Name: "Shock", Count: 4},
+	{Name: "Mountain", Count: 12}, {Name: "Plains", Count: 6},
+}
+
+// encoreWatch: gorge asks for the active player's attackers while an Encore
+// copy of this turn is on their battlefield, three or more players alive.
+func encoreWatch(c *PickCtx) bool {
+	g := c.G.E.G
+	d := c.G.fr.d
+	if d == nil || d.Kind != decision.KAttackers || podAlive(g) < 3 {
+		return false
+	}
+	for _, id := range g.Zone(state.ZBattlefield, g.Active) {
+		if o := g.Obj(id); o != nil && o.IsToken && o.EncoreAttackTurn == g.Turn {
+			return true
+		}
+	}
+	return false
+}
+
+// TestFourSeatEncoreLockstep: four-seat Encore games play in lockstep, a copy
+// for each opponent attacking that opponent.
+func TestFourSeatEncoreLockstep(t *testing.T) {
+	podClassLockstep(t, encorePodDeck, 24, 10, encoreWatch, &dirac.DebugEncoreOneCopy)
+}
+
+// Myriad: "whenever this creature attacks, for each opponent other than
+// defending player, you may create a token that's a copy of this creature
+// that's tapped and attacking that player or a planeswalker they control.
+// Exile the tokens at end of combat." gorge asks the controller about each
+// opponent but the defending player in turn order (a "yes" / "no" KChoose,
+// resumed with the next opponent), mints a yes's copy tapped and attacking
+// that player (MyriadCopy names the player; no planeswalker is offered) and
+// exiles the copies as the end of combat step ends (effMyriad,
+// MyriadCleanup). dirac asks the same (kw_myriad.go); Blade of Selves grants
+// the trigger. The deck holds no planeswalker. The mutation
+// (DebugMyriadNoOpp) asks about no opponent, the two-seat reading.
+var myriadPodDeck = []cardset.Entry{
+	{Name: "Genasi Enforcers", Count: 10}, {Name: "Blade of Selves", Count: 2},
+	{Name: "Savannah Lions", Count: 6}, {Name: "Goblin Piker", Count: 2},
+	{Name: "Mountain", Count: 12}, {Name: "Plains", Count: 8},
+}
+
+// myriadWatch: gorge asks a Myriad trigger's controller about an opponent.
+func myriadWatch(c *PickCtx) bool {
+	d := c.G.fr.d
+	return d != nil && d.ResumeKind == "myriad"
+}
+
+// TestFourSeatMyriadLockstep: four-seat Myriad games play in lockstep, each
+// opponent but the defending player asked about.
+func TestFourSeatMyriadLockstep(t *testing.T) {
+	podClassLockstep(t, myriadPodDeck, 24, 10, myriadWatch, &dirac.DebugMyriadNoOpp)
+}

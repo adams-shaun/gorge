@@ -178,9 +178,7 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					if in.Ext() == kop.ExtRenown {
 						u[mechRenowned] = true // the only writer; a read alone needs no mask (act_renown.go)
 					}
-					if in.Ext() == kop.ExtGrantEncore {
-						u[mechEncore] = true // kw_encoregrant.go
-					}
+					encoreUses(&in, &u) // kw_encore.go: Encore, its grant, Myriad
 				case kop.OpGrantKeyword:
 					// grantFB is the only writer of the flashback planes, so a pool
 					// without such a grant reads 0 grants (cast.go's b.fbGrants too)

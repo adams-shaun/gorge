@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtEncore
+value: next
+forge: Encore
+state: code 0
+status: active
+doc: ExtEncore: AB$ Encore (CR 702.141a; gorge effEncore): for each opponent, from the resolving controller in turn order, one token copy of Obj (B and C as OpCopyAsTokenEx), which attacks that opponent this turn if able; one AtEOT$ sacrifice trigger for all of them. dirac/kw_encore.go.
