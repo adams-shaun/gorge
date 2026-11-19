@@ -7,6 +7,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+func init() { effects.RegisterNonAPI("repl:Cascade") }
+
 // cascadeReplacementEvent builds the synthetic Cascade proposal
 // ProposeCascadeReplacement holds out to the replacement matcher. It is never
 // logged: the IDs carry the ordered exiled batch the body's ReplacedCards
@@ -88,4 +90,22 @@ func (e *Engine) CascadeReplacement(source state.ObjID, controller state.PlayerI
 	_, handled := e.applyReplacements(cascadeReplacementEvent(source, controller, batch))
 	e.cascadeResidue = saved
 	return handled
+}
+
+// cascadeReplacementMatches is the matcher arm of the cascade instruction's
+// replacement boundary (CR 614.4; Averna, the Chaos Bloom's replacement on
+// its controller, active on the battlefield). Only the synthetic proposal
+// reaches here, so there is no logged event and no ValidCard$: the caster
+// is ev.Player and ValidPlayer$ scopes it exactly as the Draw/ProduceMana
+// classes do.
+func cascadeReplacementMatches(h replClassHost, r cards.Repl, ev events.Event,
+	you state.PlayerID, condHolds func() bool) bool {
+	if ev.Kind != events.Cascade {
+		return false
+	}
+	if vp, ok := r.Param(cards.PKValidPlayer); ok &&
+		!effects.MatchesPlayerSpec(h.Game(), vp, ev.Player, you) {
+		return false
+	}
+	return condHolds()
 }

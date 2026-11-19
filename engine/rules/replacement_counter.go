@@ -38,6 +38,13 @@ import (
 // zero, and the oracle's "that many minus one" then places none). An
 // unpriceable body is skipped, never read as zero.
 func (e *Engine) applyAddCounterReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	// The sign routes the two counter classes apart, the same routing
+	// replacementEventKind uses to map the event: a REMOVAL (negative
+	// amount, never one of the engine's own status markers) is the R:Event$
+	// RemoveCounter class and is prohibited, never modified.
+	if ev.Amount < 0 && !state.InternalCounterMarker(ev.Counter) {
+		return applyRemoveCounterReplacements(e, ev, matches)
+	}
 	var cands []replMatch
 	for _, m := range matches {
 		body := m.repl.With
