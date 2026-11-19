@@ -234,7 +234,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) && !s.convPoolPays(k, p, o, &cost) {
 			return // (the any-colour conversion's pool route: mana_convertcreature.go)
 		}
-	} else if !s.freeCastRaisePayable(k, p, c, o, av) {
+	} else if !s.freeCastRaisePayable(k, p, c, o, unpriced, av) {
 		return
 	}
 	// a graveyard card cast through the permission is on the stack when its
@@ -280,8 +280,10 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 // taps the sources (Urza's Gelatinous Genesis under Thorn of Amethyst: the
 // untapped Island pays the {1}, tail-64 pair 38). That plan covers only the
 // graveyard and exile (mayPlayPlannedZone), so a hand or top-of-library
-// permission still follows the ordinary pool-only gate.
-func (s *State) freeCastRaisePayable(k *prep, p uint8, c CardID, o Obj, av *avail) bool {
+// permission still follows the ordinary pool-only gate. An offer the planner
+// leaves unpriced (two matching permissions: "ambiguous") is never reached by
+// a potential play, so it keeps the pool-only gate too.
+func (s *State) freeCastRaisePayable(k *prep, p uint8, c CardID, o Obj, unpriced bool, av *avail) bool {
 	if !s.freeOwes(k) {
 		return true
 	}
@@ -292,7 +294,7 @@ func (s *State) freeCastRaisePayable(k *prep, p uint8, c CardID, o Obj, av *avai
 	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
 		return false
 	}
-	if s.cfg&cfgGorgeAutopay == 0 && (s.cfg&cfgGorgeLowering == 0 || mayPlayPlannedZone(s.objs[o].zone)) {
+	if !unpriced && s.cfg&cfgGorgeAutopay == 0 && (s.cfg&cfgGorgeLowering == 0 || mayPlayPlannedZone(s.objs[o].zone)) {
 		return true
 	}
 	return s.windowPoolPays(p, &cost, false)
