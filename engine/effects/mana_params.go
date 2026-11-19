@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects/params"
 )
@@ -38,4 +40,28 @@ func ManaEachNum(p *ManaParams, h Host, c *Ctx, def int32) int32 {
 // Amount$.
 func ManaAmountResolvedStrict(p *ManaParams, h Host, c *Ctx, def int32) (int32, bool) {
 	return numResolvedStrictText(h, c, p.Amount, def)
+}
+
+// ManaAmountIsZero reports whether p's Amount$ resolves, by the same strict
+// evaluator ManaAmountResolvedStrict uses, to exactly zero or less: a
+// production known to add nothing, as opposed to one the evaluator can't
+// resolve. An inline Count$ body is re-checked with EvalCountOK, which Strict
+// does not do itself.
+func ManaAmountIsZero(sa *cards.SA, h Host, c *Ctx) bool {
+	p := ManaOf(sa)
+	if p.AmountTrim == "" {
+		return false
+	}
+	if p.AmountIsLit {
+		return p.AmountLit <= 0
+	}
+	n, ok := ManaAmountResolvedStrict(p, h, c, 1)
+	if !ok || n > 0 {
+		return false
+	}
+	if ref := strings.TrimLeft(p.AmountTrim, "+-"); strings.HasPrefix(ref, "Count$") {
+		_, evaluated := EvalCountOK(h, c, ref)
+		return evaluated
+	}
+	return true
 }
