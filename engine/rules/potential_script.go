@@ -666,6 +666,16 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 		if scriptManaAskHoists(asPayer(c), c.manaActivation, p, d) {
 			answers = scriptOrderAnswers(d, answers, sr.need)
 		}
+		// A mana ability that yields nothing is no branch (an idle storage land's
+		// tap stays one: gorge's search takes it and the kernel's mirrors that,
+		// mbc_idle_storage_tap).
+		answers = scriptDropEmptyManaAnswers(c.manaActivation, p, d, answers, func(ab *cards.SA) bool {
+			if _, storage := announcedSourceSubCounter(c.abilityCompiledCost(ab).Cost); storage {
+				return false
+			}
+			o := c.G.Obj(d.Source)
+			return o != nil && o.Face() != nil && c.manaAbilityYieldsNothing(p, d.Source, o.Face(), ab)
+		})
 		if sr.subsume {
 			answers = sr.subsumeAnswers(c, d, answers)
 		}
