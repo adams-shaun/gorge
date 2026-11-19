@@ -48,6 +48,18 @@ func gainedFacesEqual(a, b []state.GainedFace) bool {
 }
 
 // continuousEffectEqual is reflect.DeepEqual(*a, *b) for two effects.
+//
+// gainControlGateEqual is the control-static slice of that equality, split
+// out so continuousEffectEqual keeps its complexity row: the GainControl$
+// value plus the CheckSVar$/SVarCompare$ gate pair an EFFECT-delivered
+// registration carries (MayPlayCheckSVar's twin), all written once at
+// registration and never mutated.
+func gainControlGateEqual(a, b *ContinuousEffect) bool {
+	return a.GainControl == b.GainControl &&
+		a.GainControlCheckSVar == b.GainControlCheckSVar &&
+		a.GainControlSVarCompare == b.GainControlSVarCompare
+}
+
 func continuousEffectEqual(a, b *ContinuousEffect) bool {
 	return true &&
 		a.Source == b.Source &&
@@ -149,9 +161,7 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		a.TriggerGrantor == b.TriggerGrantor &&
 		a.AbilityGrantor == b.AbilityGrantor &&
 		cards.StringMapEqual(a.AddSVars, b.AddSVars) &&
-		a.GainControl == b.GainControl &&
-		a.GainControlCheckSVar == b.GainControlCheckSVar &&
-		a.GainControlSVarCompare == b.GainControlSVarCompare &&
+		gainControlGateEqual(a, b) &&
 		a.MayLookAt == b.MayLookAt &&
 		a.MayLookAtAll == b.MayLookAtAll &&
 		a.MayPlayPlayer == b.MayPlayPlayer &&

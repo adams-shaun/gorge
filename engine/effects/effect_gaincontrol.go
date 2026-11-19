@@ -78,20 +78,62 @@ func effectImprintedObjects(h Host, c *Ctx, sa *cards.SA, ep *EffectParams) ([]s
 	return out, true
 }
 
+// effectGainControlDelivered registers one Effect-delivered control static
+// (Garland, Royal Kidnapper's "gain control of target creature that player
+// controls for as long as they're the monarch", Shield Broker's
+// shield-counter steal): the StaticAbilities$ body carries GainControl$, a
+// rules-mod like MayPlay that changes no characteristic, so it is registered
+// into the continuous registry as a GainControl-carrying grant the same
+// shape the printed S: scan emits (engine/rules/control_static.go's
+// staticControlWants) -- but read from the live REGISTRATION, with the
+// body's CheckSVar$/SVarCompare$ intervening-if re-evaluated on EVERY
+// derivation against the grant's own SVar table and remembered players,
+// because a delivered static has no printed scan to re-run the gate for it.
+// The grant's memory is the union of the Effect's own capture (Shield
+// Broker's RememberObjects$ Targeted) and its ImprintCards$ set (Garland's
+// Targeted), so the Affected$ IsImprinted clause (normalized to IsRemembered:
+// the predicate reads a source OBJECT's exile-scoped association and the
+// Effect has no object of its own) matches exactly what the resolution
+// captured. The line must be entirely readable
+// (gainControlStaticKeysReadable) or nothing registers and effEffect keeps
+// its honest unimplemented Note rather than a half-read transfer. Lifetime
+// is the Effect's own, the same shape every registration in effEffect
+// writes: Duration$ Permanent with FromEffect keeps the grant alive past its
+// source (AddContinuous's CR 611.2a rule) and the ForgetOnMoved$/
+// ForgetCounter$ ends are its own expiry. effEffect calls this whole arm
+// (the registration included) because effEffect is at its codeshape ceiling.
+func effectGainControlDelivered(h Host, c *Ctx, sa *cards.SA, ep *EffectParams,
+	params map[string]string, remembered []state.ObjID, effectName, rawDur, dur,
+	forgetOn, exileOn, forgetCounter string, imprintOnHost bool) bool {
+	if !gainControlStaticKeysReadable(params) {
+		return false
+	}
+	ce, ok := effectGainControlGrant(h, c, sa, ep, params, remembered)
+	if !ok {
+		return false
+	}
+	ce.UntilEOT = effectUntilEOT(h, c.Source, rawDur)
+	ce.Duration = dur
+	ce.Permanent = strings.EqualFold(strings.TrimSpace(rawDur), "Permanent")
+	ce.ForgetOnMoved = forgetOn
+	ce.ExileOnMoved = exileOn
+	ce.ForgetCounter = forgetCounter
+	ce.ImprintOnHost = imprintOnHost
+	ce.Name = effectName
+	effectContinuous(h, ce)
+	return true
+}
+
 // effectGainControlGrant builds the ContinuousEffect one Effect-delivered
 // control static registers (mode/params as parseStaticLine split them, the
 // api:Effect's compiled parameters, the capture effectRemembered already
-// resolved). The grant's memory is the union of that capture -- Shield
-// Broker's RememberObjects$ Targeted -- and the ImprintCards$ set Garland's
-// Targeted names; the remembered PLAYERS ride alongside (Garland's
+// resolved). The remembered PLAYERS ride alongside (Garland's
 // RememberObjects$ TriggeredPlayer: the monarch the gate's
-// PlayerCountRememberedPlayer body counts). The Affected$ spec rides with
-// IsImprinted normalized to IsRemembered, SVars is the RESOLVING face's
+// PlayerCountRememberedPlayer body counts); SVars is the RESOLVING face's
 // table (the gate's named SVar resolves against the face that wrote it,
-// even after the source moved), and the gate text is carried for rules' live
-// evaluation. ok=false is the fail-closed grant: the caller registers
-// nothing and keeps its Note. Lifetime fields are the caller's, the same
-// shape every registration in effEffect writes.
+// even after the source moved), and the gate text is carried for rules'
+// live evaluation. ok=false is the fail-closed grant: nothing registers and
+// the caller keeps its Note. Lifetime fields are the caller's.
 func effectGainControlGrant(h Host, c *Ctx, sa *cards.SA, ep *EffectParams,
 	params map[string]string, remembered []state.ObjID) (state.ContinuousEffect, bool) {
 	imprinted, ok := effectImprintedObjects(h, c, sa, ep)

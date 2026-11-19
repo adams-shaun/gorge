@@ -1122,44 +1122,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				}
 				effectContinuous(h, ce)
 				registered = true
-			} else if gainControlStaticKeysReadable(params) {
-				// A control static delivered by the Effect (Garland, Royal
-				// Kidnapper's "gain control of target creature that player
-				// controls for as long as they're the monarch", Shield
-				// Broker's shield-counter steal): the StaticAbilities$ body
-				// carries GainControl$, a rules-mod like MayPlay that changes
-				// no characteristic, so it is registered into the continuous
-				// registry as a GainControl-carrying grant the same shape the
-				// printed S: scan emits (engine/rules/control_static.go's
-				// staticControlWants) -- but read from the live REGISTRATION,
-				// with the body's CheckSVar$/SVarCompare$ intervening-if
-				// re-evaluated on EVERY derivation against the grant's own
-				// SVar table and remembered players, because a delivered
-				// static has no printed scan to re-run the gate for it. The
-				// grant's memory is the union of the Effect's own capture and
-				// its ImprintCards$ set, so the Affected$ IsImprinted clause
-				// (normalized to IsRemembered: the predicate reads a source
-				// OBJECT's exile-scoped association and the Effect has no
-				// object) matches exactly what the resolution captured. The
-				// line must be entirely readable (gainControlStaticKeysReadable)
-				// or it falls to the honest unimplemented Note below rather
-				// than registering a half-read transfer. Lifetime is the
-				// Effect's own: Duration$ Permanent with FromEffect keeps the
-				// grant alive past its source (AddContinuous's CR 611.2a rule)
-				// and the ForgetOnMoved$/ForgetCounter$ ends are its own
-				// expiry.
-				if ce, ok := effectGainControlGrant(h, c, sa, ep, params, remembered); ok {
-					ce.UntilEOT = effectUntilEOT(h, c.Source, rawDur)
-					ce.Duration = dur
-					ce.Permanent = strings.EqualFold(strings.TrimSpace(rawDur), "Permanent")
-					ce.ForgetOnMoved = forgetOn
-					ce.ExileOnMoved = exileOn
-					ce.ForgetCounter = forgetCounter
-					ce.ImprintOnHost = imprintOnHost
-					ce.Name = effectName
-					effectContinuous(h, ce)
-					registered = true
-				}
+			} else if effectGainControlDelivered(h, c, sa, ep, params, remembered, effectName, rawDur, dur, forgetOn, exileOn, forgetCounter, imprintOnHost) {
+				registered = true // Effect-delivered control static: effect_gaincontrol.go
 			} else if goadStaticGrantReadable(params) {
 				// A Goad$ True static delivered by the Effect (staticgoad1:
 				// Hot Pursuit's IsGoaded body, Immortal Obligation's Static --
