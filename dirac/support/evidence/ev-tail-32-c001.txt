@@ -1,3 +1,4 @@
+A-Elderleaf Mentor
 Abstruse Interference
 Advocate of the Beast
 Aeolipile
@@ -8,11 +9,13 @@ Akoum Warrior
 Alabaster Wall
 Alchor's Tomb
 Amulet of Kroog
+Ancient Silver Dragon
 Annoyed Altisaur
 Apprentice Sorcerer
 Archfiend of Sorrows
 Arctic Treeline
 Arena Athlete
+Ashling the Pilgrim
 Atarka Beastbreaker
 Attrition
 Axgard Armory
@@ -22,6 +25,7 @@ Blade Splicer
 Blasted Landscape
 Blood Age General
 Blood Rites
+Bloodcrusher of Khorne
 Bloodfire Colossus
 Blue Sun's Zenith
 Blunt the Assault
@@ -33,11 +37,13 @@ Brand
 Brawl-Bash Ogre
 Brood Birthing
 Bull Hippo
+Cartouche of Zeal
 Cast Down
 Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
 Celestial Purge
+Charging Monstrosaur
 Chatter of the Squirrel
 Cho-Arrim Bruiser
 Clot Sliver
@@ -61,6 +67,7 @@ Definitely Not a Turtle
 Demystify
 Dormant Sliver
 Drana, Liberator of Malakir
+Draugr Thought-Thief
 Dryad Greenseeker
 Dwarven Warriors
 Dwell on the Past
@@ -93,11 +100,13 @@ Footfall Crater
 Forest
 Forget
 Fourth Bridge Prowler
+Frogtosser Banneret
 Frontline Devastator
 Geier Reach Sanitarium
 Genasi Enforcers
 Ghastly Demise
 Ghostly Visit
+Gisa's Bidding
 Glimmerbell
 Goblin Bombardment
 Goblin Hero
@@ -125,6 +134,7 @@ Ignition Team
 Inferno
 Into Thin Air
 Into the Maw of Hell
+Invasion of Segovia
 Ioreth of the Healing House
 Irini Sengir
 Island
@@ -205,6 +215,7 @@ Rhox Brute
 Rhox Meditant
 Righteousness
 Riot Gear
+Rofellos, Llanowar Emissary
 Root Greevil
 Ruin Ghost
 Rust Monster
@@ -231,6 +242,7 @@ Spontaneous Flight
 Sporocyst
 Stampeding Horncrest
 Star of Extinction
+Steady Progress
 Steel Golem
 Steeple Roc
 Storm Crow

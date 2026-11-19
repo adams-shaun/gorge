@@ -62,6 +62,7 @@ Chainweb Aracnir
 Change the Equation
 Chaos Lord
 Chaotic Backlash
+Chord of Calling
 Cinder Shade
 Clear a Path
 Clip Wings
@@ -166,6 +167,7 @@ Leapfrog
 Leyline of Punishment
 Lightwielder Paladin
 Lonis, Genetics Expert
+Lord of Tresserhorn
 Lorthos, the Tidemaker
 Lost in the Mist
 Lost in the Spirit World
@@ -300,6 +302,7 @@ Thirst for Discovery
 Thistledown Duo
 Thopter Assembly
 Thopter Mechanic
+Thraximundar
 Threnody Singer
 Thrilling Encore
 Thundersteel Colossus

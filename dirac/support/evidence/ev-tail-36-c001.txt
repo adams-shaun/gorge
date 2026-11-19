@@ -56,6 +56,7 @@ Capital Guard
 Castle Ardenvale
 Cemetery Gate
 Cephalid Scout
+Chain of Vapor
 Champion of Lambholt
 Chaos Harlequin
 Charge of the Mites
@@ -287,6 +288,7 @@ Springleaf Parade
 Staff of Domination
 Staff of the Mind Magus
 Steel Exemplar
+Stomping Slabs
 Storm, Queen of Wakanda
 Stream of Unconsciousness
 Sultai Banner

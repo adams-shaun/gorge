@@ -30,6 +30,8 @@ Damning Verdict
 Death's Presence
 Death-Hood Cobra
 Dementia Bat
+Demon of Loathing
+Demonic Tutor
 Dismiss
 Draugr Thought-Thief
 Drown in Ichor
@@ -116,6 +118,7 @@ Pygmy Pyrosaur
 Raging Spirit
 Rakka Mar
 Rakshasa's Secret
+Ranger Class
 Ravenous Harpy
 Reckless Imp
 Redwood Treefolk

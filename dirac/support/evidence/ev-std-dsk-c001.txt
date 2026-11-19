@@ -2,14 +2,19 @@ Abandoned Campground
 Acrobatic Cheerleader
 Anthropede
 Balustrade Wurm
+Baseball Bat
 Bear Trap
 Beastie Beatdown
 Break Down the Door
 Broodspinner
 Cathartic Parting
+Clammy Prowler
 Come Back Wrong
+Commune with Evil
 Conductive Machete
+Cracked Skull
 Creeping Peeper
+Cursed Recording
 Cursed Windbreaker
 Dissection Tools
 Diversion Specialist
@@ -17,17 +22,23 @@ Enduring Courage
 Enduring Curiosity
 Enduring Innocence
 Enter the Enigma
+Ethereal Armor
 Exorcise
 Fear of Being Hunted
 Fear of Immobility
 Fear of Impostors
+Fear of Lost Teeth
+Fear of Surveillance
 Flesh Burrower
 Forest
+Found Footage
 Frantic Strength
+Friendly Ghost
 Friendly Teddy
 Get Out
 Ghostly Keybearer
 Glimmer Seeker
+Glimmerburst
 Glimmerlight
 Grasping Longneck
 Hardened Escort
@@ -40,8 +51,11 @@ Living Phone
 Malevolent Chandelier
 Most Valuable Slayer
 Mountain
+Norin, Swift Survivalist
+Overlord of the Boilerbilges
 Overlord of the Floodpits
 Overlord of the Mistmoors
+Paranormal Analyst
 Patched Plaything
 Peer Past the Veil
 Piggy Bank
@@ -55,8 +69,10 @@ Razorkin Hordecaller
 Reluctant Role Model
 Rip, Spawn Hunter
 Ripchain Razorkin
+Savior of the Small
 Saw
 Scorching Dragonfire
+Shardmage's Rescue
 Sheltered by Ghosts
 Shrewd Storyteller
 Silent Hallcreeper
@@ -68,6 +84,7 @@ Turn Inside Out
 Twitching Doll
 Tyvar, the Pummeler
 Under the Skin
+Unnerving Grasp
 Unwanted Remake
 Vanish from Sight
 Vengeful Possession

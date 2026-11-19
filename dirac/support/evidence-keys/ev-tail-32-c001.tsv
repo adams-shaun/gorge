@@ -1,17 +1,23 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Elderleaf Mentor	9dedcdf1565aada2	4	1/1		0/1	ix:resp
 Abstruse Interference	8e3a9496a8e7136b	3	0/0		1/2	ix:resp
 Advocate of the Beast	7ae5e7d97b2c2997	4	1/1		0/1	ix:resp
 Akki Rockspeaker	1c877c1f66b78259	4	1/1		1/1	
+Ancient Silver Dragon	df645b3c75227396	4	1/1		0/1	ix:resp
 Arena Athlete	5a45afd37bf395da	8	1/1		0/1	ix:resp
+Ashling the Pilgrim	f4b22dd4dbc992b4	8	1/1		0/1	ix:resp
 Attrition	0ef985a4765623fd	4	1/1		0/1	ix:resp
 Blade Splicer	4bf7b38627473819	6	1/1		0/1	ix:resp
 Blood Rites	52d32a5b24499be7	3	1/1		0/1	ix:resp
+Bloodcrusher of Khorne	82f674575c36ed1f	3	0/0		0/0	
 Blunt the Assault	0a9df5063530adf1	3	0/0		2/2	
 Border Guard	66f3fd32e845afd1	6	0/0		0/0	
 Boreal Elemental	54202da3062daaa9	5	0/0		0/0	
 Brawl-Bash Ogre	61090b900dad4022	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Bull Hippo	555877f6a29d6648	3	0/0		0/0	
+Cartouche of Zeal	e6e0191f2f3d783b	4	1/1		1/2	ix:resp
 Celestial Purge	fc7614349e489e95	4	0/0		1/2	ix:resp
+Charging Monstrosaur	9bfd313317e938bd	4	0/0		0/0	
 Chatter of the Squirrel	1b2ac842c78713d3	4	0/0		3/4	ix:resp
 Cho-Arrim Bruiser	8da9466c6dc4cc46	3	1/1		0/1	ix:resp
 Cloud Elemental	dc4854121b224215	4	0/0		0/0	
@@ -25,6 +31,7 @@ Cut	7b1b4871806241d5	6	0/0		4/7	f1/s,f1/s/x+,f1/s/x0
 Darksteel Angel	390c64cd170b7e78	6	0/0		0/0	
 Death's Presence	fb2c2b24647bb67f	3	1/1		0/1	ix:resp
 Death-Hood Cobra	d778d66aca808390	8	2/2		1/1	
+Draugr Thought-Thief	eafff8feb9916d5a	9	1/1		0/1	ix:resp
 Dryad Greenseeker	10da06049d9715a6	6	1/1		0/1	ix:resp
 Elas il-Kor, Sadistic Pilgrim	4cceb7c3633ef5a2	4	2/2		0/1	ix:resp
 Ertai Resurrected	e1bd5cb95e80692e	4	1/1		0/1	ix:resp
@@ -37,13 +44,16 @@ Feral Abomination	f1081f770e37d37f	4	0/0		0/0
 Filigree Fracture	670dceaaa8bb9af1	5	0/0		1/2	ix:resp
 Floating-Dream Zubera	520f297966eac78a	4	1/1		0/1	ix:resp
 Flying Dolphin-Fish	71421889e414afcb	3	0/0		0/0	
+Frogtosser Banneret	755c354027fd2824	4	0/0		0/0	
 Genasi Enforcers	7ae475822fe905c5	4	2/2		1/1	
+Gisa's Bidding	222d17a4cd4c92c6	4	0/0		1/2	ix:resp
 Hamza, Might of the Yathan	877b4e8b741d79e1	19	2/2		1/1	
 Hasran Ogress	8939eb42c6436bd1	4	1/1		0/1	ix:resp
 Honor the Past	ae5a9461d21425d8	4	0/0		2/2	
 Idle Thoughts	69de54507b1835c1	8	1/1		1/1	
 Inferno	afc7d8d6b7bad2a9	4	0/0		1/2	ix:resp
 Into Thin Air	7b4a90205f1f1a80	4	0/0		1/2	ix:resp
+Invasion of Segovia	d28a230e9692bac2	3	2/2		0/1	ix:resp
 Krosan Restorer	d92fd6b84181b468	4	2/2		1/1	
 Kruin Striker	dbb51f5c9bae5ba2	4	1/1		0/1	ix:resp
 Kukemssa Pirates	0273c4e4bed563ba	5	1/1		0/1	ix:resp
@@ -69,6 +79,7 @@ Rakka Mar	c7acdf82078f50bc	10	1/1		0/1	ix:resp
 Ravenous Harpy	0104258b9627be58	6	1/1		1/1	
 Reckless Imp	3a4c602681840bb2	9	0/0		2/2	
 Rhox Meditant	82f31e157ebac6ad	4	1/1		0/1	ix:resp
+Rofellos, Llanowar Emissary	24abf4b73e08de73	4	1/1		0/1	ix:resp
 Root Greevil	def19c81f79ab70e	6	1/1		0/1	ix:resp
 Scragnoth	c16a2b2dcc6bc954	6	0/0		0/0	
 Shanna, Sisay's Legacy	7f2b94337e08e70d	4	0/0		0/0	
@@ -76,6 +87,7 @@ Sizzle	068432165589f605	3	0/0		1/2	ix:resp
 Sokka, Swordmaster	57eafca79c98ec24	4	1/1		1/1	
 Soul Bleed	4c4338ec96c1e1fb	6	1/1		1/2	ix:resp
 Stampeding Horncrest	3494b9ec62af1d10	7	0/0		0/0	
+Steady Progress	a4cef3e6d4be2954	8	0/0		2/2	
 Storm Crow	68ab9f2ac1943e67	4	0/0		0/0	
 Strandwalker	3587eaca0aecb313	6	2/2		0/1	ix:resp
 Territorial Aetherkite	e68a92eabadf7237	4	1/1		0/1	ix:resp

@@ -1,3 +1,4 @@
+A-Dungeon Descent
 Academy Wall
 Accumulated Knowledge
 Acolyte of the Inferno
@@ -249,6 +250,7 @@ Kami of Whispered Hopes
 Karfell Kennel-Master
 Kargan Dragonlord
 Karoo
+Kasmina, Enigmatic Mentor
 Keeper of the Lens
 Kemba's Skyguard
 Kill! Maim! Burn!

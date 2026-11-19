@@ -11,6 +11,7 @@ Benevolent Ancestor
 Benevolent Blessing
 Betrayal of Flesh
 Bitterbow Sharpshooters
+Blink of an Eye
 Blood Curdle
 Blur
 Bone Shredder
@@ -65,9 +66,11 @@ Nahiri's Machinations
 Nature's Claim
 Oakhame Adversary
 Order of Yawgmoth
+Orochi Eggwatcher
 Otherworldly Journey
 Overrun
 Perimeter Captain
+Phyrexian Ingester
 Pir, Imaginative Rascal
 Pit Keeper
 Plagon, Lord of the Beach
@@ -75,8 +78,10 @@ Plains
 Pox
 Pressure Point
 Prison Term
+Rapacious One
 Rishadan Port
 Secret Rendezvous
+Secrets of the Golden City
 Shower of Coals
 Shrike Force
 Silver Myr
@@ -95,6 +100,7 @@ Thunderwave
 Tibalt's Rager
 Toby, Beastie Befriender
 Tolaria West
+Toski, Bearer of Secrets
 Totally Lost
 Trollbred Guardian
 Twisted Image
@@ -107,5 +113,6 @@ Vastwood Surge
 Veteran Armorer
 Vile Consumption
 Vine Mare
+Walker of Secret Ways
 Whip Silk
 You Find Some Prisoners

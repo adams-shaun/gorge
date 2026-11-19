@@ -4,6 +4,7 @@ A-Manticore
 A-Ready to Rumble
 A-Tenured Inkcaster
 Aardvark Sloth
+Abattoir Ghoul
 Academy Rector
 Acceptable Losses
 Act of Aggression
@@ -29,6 +30,7 @@ Battering Krasis
 Beacon of Creation
 Beckon Apparition
 Big Mother Mouser
+Black Sun's Zenith
 Blessed Hippogriff
 Blind Obedience
 Bloodgift Demon
@@ -48,18 +50,22 @@ Cateran Kidnappers
 Charging Troll
 Chasm Guide
 Chief of the Scale
+Chilling Apparition
 Cloudkin Seer
 Colossal Majesty
 Combo Attack
 Consulate Turret
 Coral Helm
+Daze
 Deathbringer Thoctar
+Deathforge Shaman
 Dematerialize
 Dig Up the Body
 Dinosaur Egg
 Disperse
 Distorted Curiosity
 Diversionary Tactics
+Divine Favor
 Dominating Licid
 Drag to the Bottom
 Dragon Arch
@@ -67,6 +73,7 @@ Dragonsguard Elite
 Dramatic Reversal
 Dream Thrush
 Dromoka Warrior
+Duskwielder
 Dying Wish
 Earthquake
 Eidolon of Astral Winds
@@ -75,6 +82,7 @@ Elemental, My Dear
 Elf Replica
 Emergent Growth
 Entrapment Maneuver
+Exotic Curse
 Expendable Lackey
 Explosive Apparatus
 Fabled Hero
@@ -126,6 +134,7 @@ Humble Budoka
 Hydrosurge
 Illness in the Ranks
 Illuminate History
+Infernal Tribute
 Inferno Titan
 Initiate's Companion
 Invasion of Xerex
@@ -137,6 +146,7 @@ Keen Glidemaster
 Keldon Halberdier
 Kindred Dominance
 Kinjalli's Caller
+Knight of the New Coalition
 Kodama of the West Tree
 Krark-Clan Ogre
 Lava Coil
@@ -150,11 +160,13 @@ Lodestone Golem
 Lost in Memories
 Loxodon Punisher
 Lunarch Mantle
+Lurching Rotbeast
 Mahamoti Djinn
 Make Disappear
 Mana Vault
 Marker Beetles
 Masterwork of Ingenuity
+Maw of the Mire
 Melancholy
 Merchant of Truth
 Merciless Repurposing
@@ -170,6 +182,7 @@ Moldervine Reclamation
 Mountain
 Murmuring Mystic
 Nessian Courser
+Night Incarnate
 Night of Souls' Betrayal
 Nip Gwyllion
 Norn's Wellspring
@@ -199,6 +212,8 @@ Raise the Palisade
 Rapid Decay
 Ratchet Bomb
 Recruiter of the Guard
+Reflective Golem
+Resistance Skywarden
 Return Upon the Tide
 Reyhan, Last of the Abzan
 Roots of Wisdom
@@ -219,6 +234,7 @@ Sigiled Sentinel
 Silverquill Pledgemage
 Skybind
 Slashing Tiger
+Sleeping Potion
 Slinking Serpent
 Slippery Scoundrel
 Slith Firewalker
@@ -278,10 +294,12 @@ Vow of Torment
 Wall of Granite
 Warden of the Beyond
 Warrior's Charge
+Watchful Automaton
 Wei Infantry
 Well of Lost Dreams
 Wild Griffin
 Wilderness Reclamation
+Wilt
 Wintermoor Commander
 Wipe Away
 Woodcutter's Grit
