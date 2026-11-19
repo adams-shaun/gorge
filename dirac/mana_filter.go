@@ -419,13 +419,19 @@ func (s *State) filtMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail, anyCol
 		n++
 	}
 	if k.restrSrc {
-		// the restricted sources an announced ability's payment may spend (a
-		// Powerstone's {C}, CR 106.6) fund a filter's fee, itself an
-		// activation, as any other mana; a spell's restricted mana cannot
-		if d := s.payDescNow(NoObj); d.class == pdAct {
-			t, _, _ := s.restrSrcAvail(k, p, d, av, d.src)
-			av = &t
+		// the restricted sources the announced payment may spend (a
+		// Powerstone's {C}, CR 106.6) count beside the filters: an
+		// ability's fund a filter's fee, itself an activation, as any other
+		// mana, and a spell's the artifact spell itself, so the larger X is
+		// the filters' net plus them (a Powerstone pays the spell, a basic
+		// the Bog's fee)
+		d := s.payDescNow(NoObj)
+		skip := NoSlot
+		if d.class == pdAct {
+			skip = d.src
 		}
+		t, _, _ := s.restrSrcAvail(k, p, d, av, skip)
+		av = &t
 	}
 	best := -1
 	w := filtWalk{s: s, k: k, filt: &filt, cost: cost, anyColor: anyColor}
