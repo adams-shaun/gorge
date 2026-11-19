@@ -90,7 +90,7 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 				one = t // the restricted sources a non-spell payment may spend count once each too
 			}
 		}
-		mx = min(mx, one.total)
+		mx = min(mx, one.total-s.trigXFiltExcess(k, p))
 	}
 	s.g.pickF = skip
 	s.g.pickZ = kop.PayManaX
@@ -98,6 +98,21 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	s.g.pickP = p
 	s.res.ask, s.res.askP = raTrigX, p
 	return false
+}
+
+// trigXFiltExcess is the mana the census's gap units add for p's filters past
+// their free taps (a Mystic Gate's "{W/U},{T}: Add two mana" beside its
+// "{T}: Add {C}"). gorge's triggeredCostXSupply prices a source once, at the
+// largest production among its fee-free alternatives (triggeredCostXFeeFree),
+// so a filter with a free tap adds nothing: it turns one mana into two, and the
+// tap gives one anyway (CR 605.3b). A filter that is its card's first and only
+// ability has no free tap in gorge's census and is priced net of its fee by
+// triggeredCostXPaidNet, so it keeps its units here.
+func (s *State) trigXFiltExcess(k *prep, p uint8) int {
+	if k.gen == nil || !k.gen.anyFilt || k.gen.anyFiltFirst {
+		return 0
+	}
+	return s.filtBoundExtra(k, p)
 }
 
 // trigXTapExtras is the mana the controller's tap triggers add across every
