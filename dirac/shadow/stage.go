@@ -39,6 +39,7 @@ var Reasons = []string{
 var stepOf = map[string]kop.Step{
 	"upkeep": kop.StepUpkeep, "draw": kop.StepDraw, "main1": kop.StepMain1,
 	"main2": kop.StepMain2, "end": kop.StepEnd,
+	"begin-combat": kop.StepBeginCombat, "declare-attackers": kop.StepAttackers, "declare-blockers": kop.StepBlockers,
 }
 
 // Card is one hidden card the caller dealt: its object index and its name.
@@ -87,7 +88,7 @@ func StageFromView(in *Input) (*dirac.State, error) {
 // outside the minimal staging scope.
 func WorldFromView(in *Input) (dirac.World, error) {
 	var w dirac.World
-	step, err := checkScope(in)
+	step, pose, err := checkScope(in)
 	if err != nil {
 		return w, err
 	}
@@ -106,6 +107,9 @@ func WorldFromView(in *Input) (dirac.World, error) {
 	if err := b.stack(&w); err != nil {
 		return w, err
 	}
+	if err := b.combat(); err != nil {
+		return w, err
+	}
 	if err := b.assemble(&w); err != nil {
 		return w, err
 	}
@@ -115,35 +119,65 @@ func WorldFromView(in *Input) (dirac.World, error) {
 	w.Step = step
 	w.Active = uint8(v.Active)
 	w.Prio = uint8(v.Priority)
+	w.Pose = pose
 	return w, nil
 }
 
-// checkScope refuses a view outside the minimal scope and returns its step.
-func checkScope(in *Input) (kop.Step, error) {
+// checkScope refuses a view outside the minimal scope and returns its step and
+// the decision it poses.
+func checkScope(in *Input) (kop.Step, dirac.Pose, error) {
 	v := &in.View
 	if in.Tbl == nil {
-		return 0, bad(dirac.ReasonTable, "no table")
+		return 0, 0, bad(dirac.ReasonTable, "no table")
 	}
 	if v.Over {
-		return 0, bad(ReasonOver, "")
+		return 0, 0, bad(ReasonOver, "")
 	}
 	if len(v.Players) != 2 || int(v.Viewer) >= 2 {
-		return 0, bad(ReasonSeats, "%d players", len(v.Players))
+		return 0, 0, bad(ReasonSeats, "%d players", len(v.Players))
 	}
 	if len(v.Pending) != 0 {
-		return 0, bad(ReasonPending, "%d pending", len(v.Pending))
-	}
-	if v.Decision != nil && v.Decision.Kind != "priority" {
-		return 0, bad(ReasonDecision, "%s", v.Decision.Kind)
+		return 0, 0, bad(ReasonPending, "%d pending", len(v.Pending))
 	}
 	step, ok := stepOf[v.Step]
 	if !ok {
 		if v.Step == "" {
-			return 0, bad(ReasonStepName, "empty")
+			return 0, 0, bad(ReasonStepName, "empty")
 		}
-		return 0, bad(dirac.ReasonStep, "%s", v.Step)
+		return 0, 0, bad(dirac.ReasonStep, "%s", v.Step)
 	}
-	return step, nil
+	pose, err := poseOf(v, step)
+	return step, pose, err
+}
+
+// poseOf is the decision v poses. A view shows its decision only to the seat
+// that makes it, so an observer sees none at a combat step and cannot tell a
+// pose from the priority round after a declaration that made no pick: that is
+// ReasonDecision unless the combat marks settle it (attackers on the board at
+// the declare attackers step, blocks at the declare blockers step).
+func poseOf(v *view.View, step kop.Step) (dirac.Pose, error) {
+	if d := v.Decision; d != nil {
+		switch {
+		case d.Kind == "priority":
+			return dirac.PosePriority, nil
+		case d.Kind == "attackers" && step == kop.StepAttackers:
+			return dirac.PoseAttackers, nil
+		case d.Kind == "blockers" && step == kop.StepBlockers:
+			return dirac.PoseBlockers, nil
+		}
+		return 0, bad(ReasonDecision, "%s at %s", d.Kind, v.Step)
+	}
+	if step != kop.StepAttackers && step != kop.StepBlockers {
+		return dirac.PosePriority, nil
+	}
+	for _, p := range v.Players {
+		for i := range p.Battlefield {
+			if c := &p.Battlefield[i]; step == kop.StepAttackers && c.Attacking || step == kop.StepBlockers && c.Blocked {
+				return dirac.PosePriority, nil
+			}
+		}
+	}
+	return 0, bad(ReasonDecision, "no decision shown at %s: priority or a pose", v.Step)
 }
 
 // placed is one object of the staged game, keyed by its object index.
@@ -181,6 +215,9 @@ func (b *builder) add(obj uint8, name string, owner, pos int, z kop.Zone, cv *vi
 			return err
 		}
 		if z == kop.ZoneBattlefield {
+			if err := markAttack(&o, cv, name); err != nil {
+				return err
+			}
 			o.Tapped, o.Sick = cv.Tapped, cv.SummonSick
 			o.Damage, o.P1P1 = uint8(cv.Damage), uint16(cv.Counters["P1P1"])
 		}
@@ -215,8 +252,8 @@ func checkCard(cv *view.CardView, name string, owner int, z kop.Zone) error {
 	if err := checkMarks(cv, name, z); err != nil {
 		return err
 	}
-	if cv.FaceDown || cv.Flags != 0 || cv.Attacking ||
-		cv.AttackingPermanent || cv.Blocked || len(cv.BlockedBy) != 0 ||
+	if cv.FaceDown || cv.Flags != 0 || cv.AttackingPermanent ||
+		z != kop.ZoneBattlefield && (cv.Attacking || cv.Blocked || len(cv.BlockedBy) != 0) ||
 		len(cv.GoadedBy) != 0 || len(cv.Imprinted) != 0 || len(cv.ExiledCards) != 0 {
 		return bad(ReasonMark, "%s", name)
 	}

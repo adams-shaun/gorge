@@ -16,6 +16,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/shadow"
 	"github.com/adams-shaun/gorge/dirac/vanilla"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -71,7 +72,10 @@ type stageEnv struct {
 	kernel oracle.SideFactory
 	// want reports whether a staged position of game seed is worth
 	// verifying (a game that wants none takes the first stageable one).
-	want func(seed uint64, v *view.View) bool
+	want func(seed uint64, v *view.View, d *decision.Decision) bool
+	// combat also stages at the declare attackers and declare blockers
+	// decisions, the viewer the seat that decides them.
+	combat bool
 }
 
 func vanillaEnv() *stageEnv {
@@ -80,7 +84,7 @@ func vanillaEnv() *stageEnv {
 		// seeds 0 mod 4 take the first stageable position, seeds 1 and 2 mod 4
 		// wait for damage or a counter, seeds 3 mod 4 for an ability on the
 		// stack and seeds 4 mod 8 for any spell or ability on it
-		want: func(seed uint64, v *view.View) bool {
+		want: func(seed uint64, v *view.View, _ *decision.Decision) bool {
 			switch seed % 8 {
 			case 1, 2, 5, 6:
 				return hasMarks(v)
@@ -98,6 +102,7 @@ type stageStats struct {
 	tried, staged int
 	reasons       map[string]int
 	byStep        map[string]int
+	byKind        map[string]int // staged positions by decision kind and step
 	contSteps     int
 	damaged       int               // staged positions with a damaged creature
 	countered     int               // staged positions with a +1/+1 counter
@@ -134,10 +139,13 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 			return nil
 		}
 		d := ref.Pending()
-		if d == nil || d.Kind != "priority" {
+		if d == nil || d.Kind != "priority" && !(env.combat && (d.Kind == decision.KAttackers || d.Kind == decision.KBlockers)) {
 			return nil
 		}
 		viewer := state.PlayerID(r.IntN(2))
+		if d.Kind != "priority" {
+			viewer = d.Player
+		}
 		g := ref.E.G
 		v := view.ProjectFor(g, ref.E, viewer, view.Seat, d)
 		// the hidden zones as the harness knows them: the one place gorge's own state is read
@@ -150,7 +158,7 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 				hidden.Library[p] = append(hidden.Library[p], card(ref, g, id))
 			}
 		}
-		if !env.want(seed, &v) {
+		if !env.want(seed, &v, d) {
 			return nil
 		}
 		st.tried++
@@ -192,6 +200,7 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 		}
 		st.staged++
 		st.byStep[v.Step]++
+		st.byKind[string(d.Kind)+"@"+v.Step]++
 		fail = compareAndPlay(kstate, staged, seed, n, st)
 		return errDone
 	}
@@ -304,7 +313,7 @@ func diff(a, b *dirac.Projection) string {
 // TestStageMatchesReplay is the acceptance verifier (see the file comment).
 func TestStageMatchesReplay(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	st := &stageStats{reasons: map[string]int{}, byStep: map[string]int{}}
+	st := &stageStats{reasons: map[string]int{}, byStep: map[string]int{}, byKind: map[string]int{}}
 	failed := 0
 	for seed := uint64(1); seed <= stageGames; seed++ {
 		if msg := stageGame(reg, vanillaEnv(), seed, st, nil); msg != "" {
@@ -390,6 +399,7 @@ func TestStageMutationsAreCaught(t *testing.T) {
 		},
 	}
 	runMutations(t, reg, vanillaEnv(), muts)
+	runMutations(t, reg, combatEnv(), combatMutations())
 	cenv := cardsEnv(t)
 	runMutations(t, reg, cenv, cardsMutations(cenv.tbl))
 }
@@ -399,7 +409,7 @@ func runMutations(t *testing.T, reg *cards.Registry, env *stageEnv, muts map[str
 	t.Helper()
 	for name, mut := range muts {
 		caught := false
-		st := &stageStats{reasons: map[string]int{}, byStep: map[string]int{}}
+		st := &stageStats{reasons: map[string]int{}, byStep: map[string]int{}, byKind: map[string]int{}}
 		for seed := uint64(1); seed <= 120 && !caught; seed++ {
 			func() {
 				defer func() {
