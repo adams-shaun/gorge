@@ -616,6 +616,10 @@ func (s *State) ctrChainTap(k *prep, p uint8, a Action, sl Slot, ctr, restr slot
 		s.sba(k) // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
 		return
 	}
+	if restr.has(sl) && k.gen.anyDeferred && k.deferIdent(s.cardAt(sl)) {
+		s.deferChainTap(k, p, a, sl, ans) // a deferred identity source's colour ask (mana_deferident.go)
+		return
+	}
 	s.tapGap(k, p, sl, restr, held)
 }
 
@@ -720,6 +724,9 @@ func (s *State) ctrScript(k *prep, a Action, p uint8, order []Slot, ctr, restr s
 			j := depth - 1
 			c := s.cardAt(order[j])
 			nch := max(k.ctrChainN(c), 1)
+			if restr.has(order[j]) && k.gen.anyDeferred && k.deferIdent(c) {
+				nch = int(s.deferAnswers(k, order[j])) // the identity's colour ask (mana_deferident.go)
+			}
 			if int(path[j])+1 < nch {
 				path[j]++
 				break

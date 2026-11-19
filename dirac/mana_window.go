@@ -319,6 +319,10 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			if k.gen.anyComboAny && s.windowGapTap(k, p, sl, s.cardAt(sl), cost, useful, clamp, noOwed) {
 				continue
 			}
+			if k.gen.anyDeferred && k.gen.has(s.cardAt(sl), gfDeferred) && k.deferIdent(s.cardAt(sl)) {
+				s.windowDeferIdentTap(k, p, sl, cost, useful, clamp, noOwed) // the identity's colour ask (mana_deferident.go)
+				continue
+			}
 			if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) {
 				s.windowWideTap(k, p, sl, cost, useful, clamp, noOwed, &held)
 				continue
@@ -1081,7 +1085,7 @@ func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 		k.gen.anyCantAct && s.actForbidden(k, sl, true) { // a CantBeActivated lock (cast_cantactivate.go), the same gate gapMask applies
 		return false
 	}
-	if k.gen.flags[c]&gfDeferred != 0 && !s.deferLifeOK(k, p, sl) {
+	if k.gen.flags[c]&gfDeferred != 0 && (!s.deferLifeOK(k, p, sl) || s.deferNoMana(k, sl)) {
 		return false
 	}
 	if k.gen.flags[c]&(gfEachCol|gfRestr) == gfRestr {
@@ -1975,6 +1979,10 @@ func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, an
 		s.ctrChainTap(k, p, a, sl, ctr, restr, c, &[kop.NumManaKinds]uint8{})
 		return true
 	}
+	if restr.has(sl) && k.gen.anyDeferred && k.deferIdent(s.cardAt(sl)) {
+		s.deferChainTap(k, p, a, sl, c) // a deferred identity source's colour ask (mana_deferident.go)
+		return true
+	}
 	if tapsDef.has(sl) && s.riderPlainFirst(k, sl) {
 		s.riderPlainGap(k, p, a, sl, c) // the plain first ability and the rider's colours are one ask (mana_rider.go)
 		return true
@@ -2272,18 +2280,12 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 				nch = s.anyRAnswers(k, order[j])
 			case tapsDef.has(order[j]):
 				nch = s.deferGapAnswers(k, order[j])
+			case restr.has(order[j]) && k.gen.anyDeferred && k.deferIdent(s.cardAt(order[j])):
+				nch = s.deferAnswers(k, order[j]) // the identity's colour ask (mana_deferident.go)
 			case life.has(order[j]):
 				nch = s.lifeGapAnswers(k, order[j])
 			case ca.has(order[j]):
-				if s.anyDifferentAt(k, order[j]) {
-					// an AnyDifferent source's distinct-colour answers, not the
-					// Combo Any amount caAmount reads (mana_distinctcolours.go)
-					nch = uint8(anyDifferentAnswers(max(int(s.anyDifferentAbilityAt(k, order[j]).ManaN), 1)))
-				} else if k.isReflAmt(s.cardAt(order[j])) {
-					nch = s.reflAmtAnswers(k, order[j]) // the reflected Amount$ source's colour ask (mana_reflamt.go)
-				} else {
-					nch = uint8(caAnswerCount(s.caAmount(k, order[j]))) // the colour ask's answers (mana_comboany.go)
-				}
+				nch = s.caGapAnswers(k, order[j])
 			}
 			if path[j]+1 < nch {
 				path[j]++
