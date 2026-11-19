@@ -29,8 +29,9 @@ import (
 
 const stageGames = 200
 
-// stagePool is vanilla's lands and its creatures without an ability
-// (Llanowar Elves and Jeskai Student have one and are left out).
+// stagePool is vanilla's lands, its creatures without an ability and Hungry
+// Ghoul, whose one ability puts a +1/+1 counter on itself (Llanowar Elves and
+// Jeskai Student have others and are left out). Damage comes from combat.
 func stagePool() (lands, creatures []kop.CardID) {
 	for id := vanilla.Plains; id <= vanilla.Forest; id++ {
 		lands = append(lands, id)
@@ -38,6 +39,7 @@ func stagePool() (lands, creatures []kop.CardID) {
 	for id := vanilla.SavannahLions; id <= vanilla.TundraWall; id++ {
 		creatures = append(creatures, id)
 	}
+	creatures = append(creatures, vanilla.HungryGhoul, vanilla.HungryGhoul, vanilla.HungryGhoul)
 	return
 }
 
@@ -64,6 +66,8 @@ type stageStats struct {
 	reasons       map[string]int
 	byStep        map[string]int
 	contSteps     int
+	damaged       int // staged positions with a damaged creature
+	countered     int // staged positions with a +1/+1 counter
 }
 
 var errDone = &oracle.Divergence{What: "stage-done"}
@@ -107,6 +111,9 @@ func stageGame(reg *cards.Registry, seed uint64, st *stageStats, mut func(*dirac
 				hidden.Library[p] = append(hidden.Library[p], card(ref, g, id))
 			}
 		}
+		if seed%2 == 1 && !hasMarks(&v) {
+			return nil // odd games wait for a position with damage or a counter
+		}
 		st.tried++
 		in := &shadow.Input{
 			View: v, Hidden: hidden, Tbl: vanilla.Table, Cfg: stageCfg(), Seed: seed,
@@ -117,6 +124,18 @@ func stageGame(reg *cards.Registry, seed uint64, st *stageStats, mut func(*dirac
 		if err == nil {
 			if mut != nil {
 				mut(&w)
+			}
+			for i := range w.Objs {
+				if w.Objs[i].Damage != 0 {
+					st.damaged++
+					break
+				}
+			}
+			for i := range w.Objs {
+				if w.Objs[i].P1P1 != 0 {
+					st.countered++
+					break
+				}
 			}
 			staged, err = dirac.NewFromWorld(&w)
 		}
@@ -139,6 +158,18 @@ func stageGame(reg *cards.Registry, seed uint64, st *stageStats, mut func(*dirac
 		return fmt.Sprintf("seed %d: the lockstep itself diverged: %s", seed, res.Div)
 	}
 	return fail
+}
+
+// hasMarks reports whether a battlefield card of v carries damage or counters.
+func hasMarks(v *view.View) bool {
+	for _, p := range v.Players {
+		for i := range p.Battlefield {
+			if c := &p.Battlefield[i]; c.Damage != 0 || len(c.Counters) != 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func card(ref *oracle.GorgeSide, g *state.Game, id state.ObjID) shadow.Card {
@@ -217,7 +248,11 @@ func TestStageMatchesReplay(t *testing.T) {
 			}
 		}
 	}
+	t.Logf("marks: %d staged positions held damage, %d held counters", st.damaged, st.countered)
 	t.Logf("%d games: %d positions tried, %d staged (by step %v), %d continuation decisions; unstageable by reason %v", stageGames, st.tried, st.staged, st.byStep, st.contSteps, st.reasons)
+	if st.damaged < 20 || st.countered < 20 {
+		t.Errorf("the pool exercised too little: %d damaged and %d counter positions staged", st.damaged, st.countered)
+	}
 	if st.staged < stageGames*9/10 {
 		t.Errorf("only %d of %d games staged a position", st.staged, stageGames)
 	}
@@ -265,12 +300,22 @@ func TestStageMutationsAreCaught(t *testing.T) {
 				}
 			}
 		},
+		"damage dropped": func(w *dirac.World) {
+			for i := range w.Objs {
+				w.Objs[i].Damage = 0
+			}
+		},
+		"counters dropped": func(w *dirac.World) {
+			for i := range w.Objs {
+				w.Objs[i].P1P1 = 0
+			}
+		},
 		"turn off": func(w *dirac.World) { w.Turn += 2 },
 	}
 	for name, mut := range muts {
 		caught := false
 		st := &stageStats{reasons: map[string]int{}, byStep: map[string]int{}}
-		for seed := uint64(1); seed <= 40 && !caught; seed++ {
+		for seed := uint64(1); seed <= 120 && !caught; seed++ {
 			func() {
 				defer func() {
 					if recover() != nil {
@@ -281,7 +326,7 @@ func TestStageMutationsAreCaught(t *testing.T) {
 			}()
 		}
 		if !caught {
-			t.Errorf("mutation %q passed the verifier in 40 games", name)
+			t.Errorf("mutation %q passed the verifier in 120 games", name)
 		}
 	}
 }
