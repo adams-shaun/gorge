@@ -17,7 +17,7 @@ func (s *State) devotion(k *prep, mask kop.ColorMask, p uint8) int {
 		if s.faceDown(k, m.first()) || s.cpxNoCost(k, m.first()) {
 			continue
 		}
-		c := &k.t.Cards[s.objs[s.perms[m.first()].obj].card].Cost
+		c := &k.t.Cards[s.cardAt(m.first())].Cost
 		for i := 0; i < 5; i++ {
 			if mask&(1<<i) != 0 {
 				n += int(c.Pips[i])
