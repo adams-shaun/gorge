@@ -752,10 +752,39 @@ func (s *State) activateNeedsEmptyStack(k *prep, a Action) bool {
 	return k.t.Cards[c].Abilities[ab].Cost.Flags&kop.CostSorcery != 0
 }
 
-// playNeedsEmptyStack is castNeedsEmptyStack or activateNeedsEmptyStack: the
-// play a is offered only with the stack empty.
+// specialNeedsEmptyStack reports whether the hand special action a follows
+// sorcery timing. The plot action is sorcery-speed on its own, whatever the
+// face's type (CR 702.170a; gorge's plot gate reads the engine's
+// sorcery-speed bool, legal_walk_hand.go). Suspend follows the card's own
+// cast timing (CR 702.62a's "any time you could begin to cast this card"),
+// so it is timed like the plain cast castNeedsEmptyStack prices: a
+// non-instant, unflashed card's suspension waits for the stack to empty, an
+// instant's (Suspended Sentence) or a flashed card's does not. The foretell
+// action needs only priority on its controller's own turn (CR 702.143a,
+// legal.go), so it is not one. gorge's walk prices these plays only where it
+// offers them -- a sorcery-timed play only with its stack empty (CR 307.1,
+// 117.1a) -- and its script search does not bridge the gap for them
+// (potential_script.go waitsForStack returns false for any Mode-bearing
+// play), so the kernel prices the play only after the prefix's stack is
+// resolved too.
+func (s *State) specialNeedsEmptyStack(k *prep, a Action) bool {
+	if a.Kind() != AkPlot {
+		return false
+	}
+	switch a.Mode() {
+	case 0:
+		return true // plot: sorcery timing on its own (CR 702.170a)
+	case plotModeSuspend:
+		c := s.objs[Obj(a.Source())].card
+		return !k.cards[c].instant && !s.castFlash(k, s.prio, c) // the card's own timing (CR 702.62a)
+	}
+	return false // foretell (plotForetell)
+}
+
+// playNeedsEmptyStack is castNeedsEmptyStack, activateNeedsEmptyStack or
+// specialNeedsEmptyStack: the play a is offered only with the stack empty.
 func (s *State) playNeedsEmptyStack(k *prep, a Action) bool {
-	return s.castNeedsEmptyStack(k, a) || s.activateNeedsEmptyStack(k, a)
+	return s.castNeedsEmptyStack(k, a) || s.activateNeedsEmptyStack(k, a) || s.specialNeedsEmptyStack(k, a)
 }
 
 // resolvePrefixStack drives what a scripted prefix left behind before the
