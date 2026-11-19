@@ -167,7 +167,18 @@ func (e *Engine) withOffStackMana(act manaColorActivation, run func()) bool {
 	// same whether it resolves at priority, inside a CR 601.2g payment
 	// window, or in response to an unrelated spell.
 	prevAdder := e.SetCounterAdder(act.player)
-	run()
+	// Mode$ ManaAdded's ValidSA$ SpellAbility.ManaAbility reads this frame's
+	// kind: an ACTIVATED mana ability's chain adds mana as a mana ability;
+	// the triggered-mana batch (act.trigger != nil) keeps the enclosing
+	// answer, and its own ManaAdds carry no producer fact anyway.
+	if act.trigger == nil && act.ability != nil {
+		savedManaAbilityAdds := e.manaAddFromManaAbility
+		e.manaAddFromManaAbility = true
+		run()
+		e.manaAddFromManaAbility = savedManaAbilityAdds
+	} else {
+		run()
+	}
 	e.SetCounterAdder(prevAdder)
 	e.offStackMana = saved
 	asked := f.asked
@@ -1248,18 +1259,23 @@ func (e *Engine) emitManaTap(p state.PlayerID, source state.ObjID, sa *cards.SA)
 	return immediate
 }
 
-// isTriggeredManaAbility recognises Forge's Static$ True marker for a
-// TapsForMana trigger. Forge uses that marker for CR 605.1b triggered mana
-// abilities; checking the real trigger by source/index avoids treating every
-// TapsForMana reaction (notably Manabarbs) as immediate. A target anywhere in
-// the linked effect chain keeps the trigger on the stack, as CR 605.1b
-// requires a mana ability not to require a target.
+// isTriggeredManaAbility recognises Forge's Static$ True marker for the two
+// triggered-mana modes: TapsForMana, and ManaAdded (Caged Sun's "whenever a
+// land's ability causes you to add ... mana" CR 605.1b line). Forge uses that
+// marker for CR 605.1b triggered mana abilities; checking the real trigger by
+// source/index avoids treating every TapsForMana reaction (notably Manabarbs)
+// as immediate. A target anywhere in the linked effect chain keeps the
+// trigger on the stack, as CR 605.1b requires a mana ability not to require a
+// target.
 func (e *Engine) isTriggeredManaAbility(pt pendingTrigger) bool {
 	t, ok := e.triggerOf(pt)
 	if !ok {
 		return false
 	}
-	if t.Mode != "TapsForMana" || !strings.EqualFold(t.ParamStr(cards.PKStatic), "True") {
+	if mk := t.ModeKind(); mk != cards.TriggerTapsForMana && mk != cards.TriggerManaAdded {
+		return false
+	}
+	if !t.StaticTrue() {
 		return false
 	}
 	for sa := pt.SA; sa != nil; sa = sa.Sub {
@@ -1282,6 +1298,32 @@ func (e *Engine) isTriggeredManaAbility(pt pendingTrigger) bool {
 // colour and continues the batch (answerManaColor). cast is the payment
 // window flag the parked activation carries back to the caller.
 func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast, cumulative bool) {
+	// trig:ManaAdded's Static$ True instances (Caged Sun's CR 605.1b
+	// triggered mana ability) resolve immediately with this batch, lifted out
+	// of pendingTriggers and appended after the tap's own TapsForMana half.
+	// A static ManaAdded trigger can only ever have been queued by a
+	// mana-ability resolution's own ManaAdd events -- the matcher needs the
+	// synchronous manaProducer fact, which only those resolutions establish
+	// -- so every entry found here belongs to the resolution whose batch (or
+	// resumed batch, after a colour ask) is resolving now, and a static one
+	// can never be parked across resolutions. Anything else this window
+	// queued (a non-mana reaction) keeps its ordinary placement.
+	var added []pendingTrigger
+	kept := e.pendingTriggers[:0]
+	for _, pt := range e.pendingTriggers {
+		if e.isTriggeredManaAbility(pt) {
+			if t, ok := e.triggerOf(pt); ok && t.ModeKind() == cards.TriggerManaAdded {
+				added = append(added, pt)
+				continue
+			}
+		}
+		kept = append(kept, pt)
+	}
+	if len(added) != 0 {
+		e.noteTrigShrink()
+		e.pendingTriggers = kept
+		triggers = append(triggers, added...)
+	}
 	e.stampTriggeredManaProduced(triggers)
 	for i := range triggers {
 		pt := triggers[i]
