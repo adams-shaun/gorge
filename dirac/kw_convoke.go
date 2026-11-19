@@ -95,13 +95,21 @@ func (s *State) convokeCredit(k *prep, p uint8, c CardID, o Obj, cost kop.ManaCo
 // already on the stack (the multikicker count ask) is no longer in the hand,
 // so its caller passes castFromHandBy.
 func (s *State) convokeCreditFrom(k *prep, p uint8, c CardID, o Obj, fromHand bool, cost kop.ManaCost) kop.ManaCost {
+	cost, _ = s.convokeCreditUsed(k, p, c, o, fromHand, cost)
+	return cost
+}
+
+// convokeCreditUsed is convokeCreditFrom with the greedy credit's committed
+// slots: used != 0 reports a live tap credit, gorge askMadnessCast's
+// creditless == no convoke or improvise creature committed and no delve.
+func (s *State) convokeCreditUsed(k *prep, p uint8, c CardID, o Obj, fromHand bool, cost kop.ManaCost) (kop.ManaCost, slotMask) {
 	if k.gen == nil || !k.gen.anyConvoke {
-		return cost
+		return cost, slotMask{}
 	}
 	convoke := s.hasConvoke(k, p, c, o, fromHand)
 	improvise := s.isImprovise(k, p, c, o, fromHand)
 	if !convoke && !improvise {
-		return cost
+		return cost, slotMask{}
 	}
 	var rem [5]uint8
 	for i := range rem {
@@ -143,13 +151,14 @@ func (s *State) convokeCreditFrom(k *prep, p uint8, c CardID, o Obj, fromHand bo
 				continue
 			}
 			gen--
+			used = used.with(sl) // the committed slot counts in madnessCastable's creditless read
 		}
 	}
 	for i := range rem {
 		cost.Pips[i] = rem[i]
 	}
 	cost.Generic = gen
-	return cost
+	return cost, used
 }
 
 // convokeApplyPicks subtracts the announced convoke picks from cost in pick
@@ -528,13 +537,19 @@ func (s *State) convokeHidden() slotMask {
 func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, anyColor bool) bool {
 	folded := xFolded(*cost, int(e.x)) // the picks are announced before X, and pay a generic of its total
 	red := s.convokeApplyPicks(k, folded)
-	saved := s.fork()
-	defer s.unfork()
 	hidden := s.convokeHidden()
 	s.occ = s.occ.andNot(hidden)
 	ok, held := s.windowTapUseful(k, e.ctrl, &red, &folded, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
 	if !ok {
-		s.CopyFrom(saved)
+		// gorge's abortCast keeps the CR 601.2g window's effects through the
+		// CR 733.1 reversal -- "may also reverse any legal mana abilities",
+		// which gorge does not -- so the window's taps stay and its mana keeps
+		// floating (payCastWindow's failure arm, cast_copycast.go), while the
+		// cast itself reverses and the announced creatures are unannounced
+		for c := range held {
+			s.pl[e.ctrl].pool[c] += held[c]
+		}
+		s.unhide(hidden)
 		s.reverseCast(k)
 		return false
 	}
