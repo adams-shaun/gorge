@@ -372,7 +372,15 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 		if anyColor {
 			return av.affordsAnyColor(&c, 0)
 		}
-		return av.affords(&c, pipMaskOf(&c), 0)
+		// A filter's net is a paid census gap (mana_filterfirst.go), so the
+		// plain census refuses a folded cost the window still pays: gorge's
+		// xAsk prices every X through castWindowPays, whose search funds a
+		// filter's fee from mana made earlier in the window (CR 601.2b with
+		// CR 601.2g, 605.3a-b). faceReachable is that walk, the one the
+		// window's strand check prices the credited cost through too
+		// (windowStranded), as xDelveWithinMx prices the delve credit through
+		// the same filters.
+		return s.faceReachable(k, e.ctrl, av, &c, 0)
 	}
 	n0 := d.N
 	fl := s.xFloor(k) // the announced X's floor (cost_sacx.go)
