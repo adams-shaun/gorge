@@ -150,6 +150,13 @@ func (d *Decision) FitAlone(choices []int) []int {
 		}
 		out = append(out, c)
 	}
+	// Dropping an only-attack-alone creature can leave a can't-attack-alone
+	// creature as the lone declaration (Errantry grants the former to a
+	// creature while another carries the latter): to declare nothing is
+	// always legal, so drop it too.
+	if !d.AloneLegal(out) {
+		out = out[:0]
+	}
 	if out == nil {
 		out = []int{}
 	}

@@ -70,3 +70,33 @@ func TestOnlyAloneRestrictedRepairsTheBotAnswer(t *testing.T) {
 		t.Errorf("ordinary option: %s", ordinary)
 	}
 }
+
+// TestOnlyAloneRestrictedMixedAnswerRepairs pins the mixed case: a can't-
+// attack-alone creature (AloneRestricted) beside an only-attack-alone creature
+// (OnlyAloneRestricted). Dropping the latter leaves the former alone, so the
+// repair must drop both; the repaired answer passes the wire validator.
+func TestOnlyAloneRestrictedMixedAnswerRepairs(t *testing.T) {
+	d := Decision{
+		Kind: KAttackers,
+		Options: []Option{
+			{Index: 0, Kind: "attacker", Obj: 7, AloneRestricted: true},
+			{Index: 1, Kind: "attacker", Obj: 8, OnlyAloneRestricted: true},
+		},
+	}
+	if err := d.validateAlone([]int{0, 1}); err == nil {
+		t.Fatal("validateAlone accepted the mixed pair")
+	}
+	got := d.FitAlone([]int{0, 1})
+	if len(got) != 0 {
+		t.Fatalf("FitAlone({0, 1}) = %v, want empty", got)
+	}
+	if err := d.validateAlone(got); err != nil {
+		t.Fatalf("repaired answer refused: %v", err)
+	}
+	// With a third, unrestricted attacker the only-alone one drops and the rest stand.
+	d.Options = append(d.Options, Option{Index: 2, Kind: "attacker", Obj: 9})
+	got = d.FitAlone([]int{0, 1, 2})
+	if err := d.validateAlone(got); err != nil {
+		t.Fatalf("repaired three-attacker answer %v refused: %v", got, err)
+	}
+}
