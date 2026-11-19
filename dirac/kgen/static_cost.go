@@ -105,9 +105,11 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 	sp := sc.sp
 	readF := sc.readF
 	var err error
-	if sp.str("Caster") != "You" || sp.str("ValidSA") != "Spell" {
+	caster := sp.str("Caster")
+	if caster != "You" && caster != "Player" || sp.str("ValidSA") != "Spell" {
 		return nil, true, refuse("CastWithFlash shape")
 	}
+	sc.st.AnyCaster = caster == "Player"
 	if sc.st.F, err = readF("ValidCard"); err != nil {
 		return nil, true, err
 	}

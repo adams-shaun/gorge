@@ -752,6 +752,12 @@ const StatCantTgtGrave StaticKind = 229
 // not the card's mana cost.
 const StFbOwnCost StaticFlags = 1 << 0
 
+// StFlashAnyCaster on a StatCastWithFlash static: the grant is for Caster$
+// Player, any player casting the matching spell (Quick Sliver, Vernal
+// Equinox), not only the static's controller (gorge castWithFlashTargets
+// actorMatches "Caster").
+const StFlashAnyCaster StaticFlags = 1 << 0
+
 // StatAsIfHaste (an explicit ordinal clear of the iota tail): the static's
 // controller may activate abilities of battlefield creatures matching Filter
 // (read with the static's controller as "you") as though they had haste
