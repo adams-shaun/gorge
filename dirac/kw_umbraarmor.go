@@ -77,12 +77,22 @@ func (s *State) umbraHeal(host Slot) {
 //
 //go:noinline
 func (s *State) umbraSpare(k *prep, host Slot) bool {
+	return s.umbraSpareIn(k, host, slotMask{})
+}
+
+// umbraSpareIn is umbraSpare for a batch of simultaneous departures: when the
+// Aura is itself one of the victims (CR 702.89a; a spell destroying the Aura
+// and the creature it enchants at the same time), the save still applies but
+// the Aura's own departure is the batch's, so it is not left here.
+func (s *State) umbraSpareIn(k *prep, host Slot, batch slotMask) bool {
 	aura := s.umbraAura(k, host, slotMask{})
 	if aura == NoSlot {
 		return false
 	}
 	s.umbraHeal(host)
-	s.leaveParked(k, aura)
+	if !batch.has(aura) {
+		s.leaveParked(k, aura)
+	}
 	return true
 }
 
