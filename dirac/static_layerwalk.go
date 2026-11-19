@@ -635,7 +635,7 @@ func (s *State) matchCurOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Sl
 		return true
 	case kop.PredSubtype:
 		return hasSubCur(k, cur, uint8(fl.PredN))
-	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE, kop.PredToughnessGE, kop.PredToughnessLEV, kop.PredPowerLTToughness, kop.PredHasKeyword, kop.PredPowerGTBase:
+	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE, kop.PredToughnessGE, kop.PredToughnessLEV, kop.PredPowerLTToughness, kop.PredHasKeyword, kop.PredPowerGTBase, kop.PredStatBox:
 		return false // refused by kgen on a walk filter (no re-entry)
 	}
 	if k.w8 && fl.Pred == kop.PredWord7 && fl.PredN&0xff >= kop.W7FaceUp {

@@ -178,6 +178,7 @@ const (
 	cmpRenowned       // IsRenowned (CmpN 1) / !IsRenowned (CmpN 0): the CR 702.112b renowned designation
 	cmpAttackingYou   // attackingYou: attacking, the evaluating controller its defending player (kop.PredAttackingYou; no operator)
 	cmpSharesCrCmdr   // sharesCreatureTypeWith Commander: a creature type shared with a commander of the evaluating controller (kop.PredSharesCrCmdr; no operator)
+	cmpPTBox          // two constant power/toughness compares in one clause (powerEQ1+toughnessEQ1, powerGE4+powerLE6): CmpN is the kop.PredStatBox bounds (ptBox; no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -1259,6 +1260,10 @@ func (c *lClause) setWho(dst *uint8, v uint8) error {
 
 func (c *lClause) setCmp(stat, op uint8, n int, x, counter string) error {
 	if c.CmpStat != cmpNone {
+		if box, ok := c.ptBoxWith(stat, op, n, x); ok {
+			c.CmpStat, c.CmpOp, c.CmpN = cmpPTBox, 0, box
+			return nil
+		}
 		return fmt.Errorf("two comparisons in one clause")
 	}
 	c.CmpStat, c.CmpOp, c.CmpN, c.CmpX, c.CmpCounter = stat, op, n, x, counter

@@ -2094,7 +2094,10 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 			o := pl.lib[int(pl.libLo)+i]
 			all[na] = o
 			na++
-			if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, NoObj) && (minCMC > 0 || found < want) && nf < len(fnd) {
+			// the revealed card as the object it is (gorge effDigUntil matches
+			// Valid$ on the library object): an object read such as
+			// sharesCreatureTypeWith TriggeredCard (Heirloom Blade) needs it
+			if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && (minCMC > 0 || found < want) && nf < len(fnd) {
 				fnd[nf] = o
 				nf++
 				found++
