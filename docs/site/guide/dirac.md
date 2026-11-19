@@ -20,6 +20,10 @@ read the same view and decisions as on gorge, and `make web` applies the same wa
 
 ## What it plays
 
+A dirac server seats two. The engine itself plays pods of up to four seats in lockstep with gorge, Commander pods
+included, but `dirac/adapter` hosts two-seat games only
+([Verification](../architecture/dirac/oracle.md#four-seat-pods)).
+
 Two-seat Constructed games on limited decks from two card sets, FDN and BLB, and two-seat Commander games on the five Foundations precons (`-format commander -dirac-sets cmd5 -decks testkit/testutil/decks`). `-dirac-sets` lists the sets to try,
 in order, defaulting to `fdn`, and a game plays on the first set holding both decks; `-dirac-sets blb` serves
 Bloomburrow. `-decks` left at its default serves the first set's decks in `dirac/testdata/bench/`. dirac plays only
@@ -45,7 +49,7 @@ Each of these says why, at startup or in the request's error.
 
 | Asked for | Answer |
 |---|---|
-| `-seats` other than 2 | dirac plays two seats; Commander is two-seat, one commander per seat, from a set that holds the decks (`-dirac-sets cmd5`) |
+| `-seats` other than 2 | the server's dirac tables seat two; a Commander table is two seats, one commander or a legal partner pair per seat, from a set that holds the decks (`-dirac-sets cmd5`) |
 | `-auto-mana=false`, `-bot-auto-mana=false` | dirac has no manual mana |
 | `-events`, a chosen starting player, sideboards | these need gorge |
 | `-<policy>-net`, `az-redeal`, any search policy | a search needs a root, and dirac deals none |

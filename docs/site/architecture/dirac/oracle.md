@@ -46,7 +46,7 @@ Both engines sit behind one interface, `Side`, over a canonical vocabulary (`Ste
 `Project`, `Dirty`, `Turn`, `Err`). Comparing results alone would hide almost every bug: two engines can disagree about a
 trigger on turn 3 and still reach the same winner. Lockstep compares, in order:
 
-1. **The options at every decision.** Options are sorted `Canon` values, packed `kind<<24 | src<<16 | tgt<<8 | mode` over the
+1. **The options at every decision.** Options are sorted `Canon` values, packed `kind<<26 | src<<17 | tgt<<8 | mode` (`dirac/canon/canon_default.go`) over the
    oracle's own kinds, so the comparison ignores order and catches a missing, extra or differently priced play. A
    card object is a canonical instance: deck *s*'s *i*-th card, then tokens and copies in creation order.
 2. **The decision's kind and player.** A priority decision must not become a declaration, and the wrong seat must not act.
@@ -78,7 +78,7 @@ fdn: 2 games (0 refused-card, 0 refused-pair, 0 error), 2 clean, 0 divergent, 0 
 ```
 
 Every pair that started a game is one of these. A pair that couldn't be built is outside the count, in the bracket.
-`make dirac-slices` plays both slices on both surfaces with `-absolute` and took 47 s on four cores on 2026-11-01.
+`make dirac-slices` plays both slices on both surfaces with `-absolute`.
 
 | Verdict | Meaning | Exit, plain | Exit, `-absolute` |
 |---|---|---|---|
@@ -119,6 +119,25 @@ When the two disagree, the engine that's wrong under the CR gets the fix. If gor
 against XMage and Forge first, the fix lands in gorge, and dirac keeps gorge's behaviour until its gorge pin moves past the
 fix. A card that lowers and still plays wrong can be refused by name until it's fixed
 ([Cards](cards.md#lowered-refused-evidenced)).
+
+## Four-seat pods
+
+dirac plays pods of three or four seats (`MaxSeats`) in lockstep with gorge, under the same comparison as a two-seat game.
+A Commander pod is four seats. `kfuzz -seats 3` or `-seats 4` plays pods of distinct decks (`oracle.PodAt`), `-pods N`
+of them, on `-kernel vanilla`, a `-synth` pool, or a Commander pool cut with `-cmd-mini`:
+
+```sh
+bin/kfuzz -kernel cmd5 -seats 4 -cmd-mini 60 -pods 100 -seed 1 -keep-going -shrink 0
+```
+
+The `TestFourSeat*` tests in `dirac/oracle` hold pod play in lockstep, one mechanic at a time.
+
+A card whose lowering reads the one opponent of a two-seat game (`kop.CardTwoSeat`) plays in a two-seat game, and dirac
+refuses a game of three or more seats holding it at its start, under the reason `StallTwoSeat`. That is a declared limit,
+counted, not a divergence. `TestCommanderPodTwoSeatCensus` counts the full Commander precons such cards hold to two seats,
+by class, against the goldens in `dirac/oracle/testdata/twoseat-census/`. Its log line ranks the classes by the pods each
+blocks, and the `4-seat` column of [`dirac/docs/support.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/support.md)
+counts the supported cards free of the limit.
 
 ## Where this runs
 
