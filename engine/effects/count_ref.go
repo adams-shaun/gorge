@@ -322,6 +322,36 @@ func rememberedExcludingCapture(h Host, c *Ctx) []state.Target {
 	return excludeCaptureOccurrences(c.Remembered, c.Captured)
 }
 
+// triggeredCardRemembered is a count's TriggeredCard$ referent set: the
+// fire-time capture rules seeded into Remembered, without what the resolving
+// body remembered after it. Monkey Cage's "sacrifice Monkey Cage and create X
+// Monkeys, where X is that creature's mana value" sacrifices with
+// RememberSacrificed$ True before its TriggeredCard$CardManaCost read, and
+// the raw Remembered list summed the Cage's own mana value into X (Forge's
+// TriggeredCard is the trigger's run parameter, never the remembered list). A
+// context with no capture, a reflexive or delayed one, or a body that wrote
+// nothing keeps the whole list, as before.
+func triggeredCardRemembered(c *Ctx) []state.Target {
+	if len(c.Captured) == 0 || c.Reflexive || len(c.DelayedRemembered) > 0 || len(c.Remembered) <= len(c.Captured) {
+		return c.Remembered
+	}
+	remaining := make(map[state.Target]int, len(c.Captured))
+	for _, t := range c.Captured {
+		remaining[t]++
+	}
+	var kept []state.Target
+	for _, t := range c.Remembered {
+		if remaining[t] > 0 {
+			remaining[t]--
+			kept = append(kept, t)
+		}
+	}
+	if len(kept) == 0 {
+		return c.Remembered
+	}
+	return kept
+}
+
 // excludeCaptureOccurrences is rememberedExcludingCapture over plain slices,
 // shared with selectRemembered so the capture-occurrence rule has one home.
 // The result is freshly allocated (nil when nothing remains).
@@ -460,7 +490,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		if c.EffectFrame.Carrier && c.TriggerCard != 0 && c.TriggerCard == c.DelayedObject {
 			return triggeredCardGroup(c), true
 		}
-		return c.Remembered, true
+		return triggeredCardRemembered(c), true
 	case refTargetsTriggeredAttacker:
 		// The singular attacker spellings (trig:Attacks and the
 		// AttackersDeclared family): prefer the fire-time TriggerCard role,
