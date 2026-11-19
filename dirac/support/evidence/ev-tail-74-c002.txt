@@ -1,3 +1,4 @@
+A-Dawnbringer Cleric
 A-Exhibition Magician
 A-Guide of Souls
 A-Plate Armor
@@ -13,6 +14,7 @@ Ajani's Mantra
 Aku Djinn
 Alchemist's Greeting
 Alley Grifters
+Ancient Animus
 Angelic Purge
 Aphotic Wisps
 Arashin Sovereign
@@ -52,6 +54,7 @@ Calculated Dismissal
 Capashen Unicorn
 Cartouche of Solidarity
 Casey Jones, Back Alley Brute
+Celestial Prism
 Cephalid Illusionist
 Chain Lightning
 Chaos Maw
@@ -117,6 +120,7 @@ Eternal of Harsh Truths
 Euroakus
 Fact or Fiction
 Fanatical Fever
+Fangs of Kalonia
 Feeding Frenzy
 Feldon, Ronom Excavator
 Ferocious Charge
@@ -192,12 +196,14 @@ Knights of Dol Amroth
 Kolvori, God of Kinship
 Kor Blademaster
 Kraken of the Straits
+Krosan Wayfarer
 Kuldotha Flamefiend
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
 Late to Dinner
 Lava Axe
+Leonin Relic-Warder
 Leonin Squire
 Lignify
 Liliana's Defeat
@@ -252,6 +258,7 @@ Orthodoxy Enforcer
 Outbreak
 Painwracker Oni
 Paladin Danse, Steel Maverick
+Path to the World Tree
 Pathbreaker Ibex
 Patient Rebuilding
 Peggy Carter, Secret Agent
@@ -320,6 +327,7 @@ Scroll of the Masters
 Search Party Captain
 Seismic Mage
 Selfless Spirit
+Servant of the Scale
 Shagrat, Loot Bearer
 She-Hulk, Jennifer Walters
 Shu Yun, the Silent Tempest
@@ -359,6 +367,7 @@ Sword of the Animist
 Talisman of Unity
 Tawnos's Tinkering
 Temporal Adept
+Territorial Baloth
 Tethered Griffin
 The Blue Spirit
 The Indomitable
@@ -377,6 +386,7 @@ Treetop Scout
 Triceraton Regenta
 Tuktuk Rubblefort
 Tuktuk the Explorer
+Turntimber Ascetic
 Tuya Bearclaw
 Twinshot Sniper
 Two-Headed Zombie
@@ -391,6 +401,7 @@ Venom, Eddie Brock
 Venser's Journal
 Verdant Touch
 Verge Rangers
+Vessel of Endless Rest
 Veteran Bodyguard
 Vhati il-Dal
 Viashino Bladescout

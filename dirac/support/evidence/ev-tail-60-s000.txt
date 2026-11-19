@@ -121,6 +121,7 @@ Kamahl, Heart of Krosa
 Kami of Whispered Hopes
 Kargan Dragonlord
 Karoo
+Kasmina, Enigmatic Mentor
 Kemba's Skyguard
 Knight of Sorrows
 Koskun Falls
@@ -217,6 +218,7 @@ Skemfar Avenger
 Snow-Covered Island
 Snow-Covered Mountain
 Snow-Covered Plains
+Snow-Covered Swamp
 Soltari Emissary
 Spawn of Thraxes
 Split-Tail Miko

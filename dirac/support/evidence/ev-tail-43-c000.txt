@@ -52,6 +52,7 @@ Cemetery Gate
 Choking Restraints
 Cinder Crawler
 Citadel Siege
+Clattering Skeletons
 Cloudcrown Oak
 Cloudheath Drake
 Code of Constraint

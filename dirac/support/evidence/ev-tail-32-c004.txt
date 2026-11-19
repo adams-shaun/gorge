@@ -13,6 +13,7 @@ Cut
 Dark Betrayal
 Definitely Not a Turtle
 Drana, Liberator of Malakir
+Dryad Greenseeker
 Dwell on the Past
 Enthusiastic Mechanaut
 Expedition Diviner
@@ -26,6 +27,7 @@ Goblin Bombardment
 Goblin Hero
 Haunted Cloak
 Hold the Line
+Honor the Past
 Hyalopterous Lemure
 Irini Sengir
 Island
@@ -38,6 +40,7 @@ Liliana's Defeat
 Liliana's Devotee
 Magma Phoenix
 Magnivore
+Manaweft Sliver
 Master Decoy
 Merrow Bonegnawer
 Mind Drain
@@ -47,14 +50,17 @@ Nephalia Smuggler
 Nyxborn Marauder
 Ogre Berserker
 Ondu Cleric
+Penance Stare
 Pest Infestation
 Pillar of Light
 Plains
+Provoke
 Psychic Spear
 Quicksilver Dagger
 Raging Spirit
 Raiding Nightstalker
 Raving Oni-Slave
+Rescue Retriever
 Rhox Brute
 Rotted Hulk
 Rust Monster
@@ -68,9 +74,11 @@ Slaughter Cry
 Soul Bleed
 Stampeding Horncrest
 Storm Crow
+Surreal Memoir
 Swamp
 The Royal Scions
 Thriving Ibex
+Titanic Brawl
 Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
@@ -78,6 +86,8 @@ Umbral Juke
 Valley Rannet
 Vaporkin
 Viashivan Dragon
+Vivid Revival
 Warleader's Helix
 Wilderness Elemental
 Windreader Sphinx
+Wose Pathfinder

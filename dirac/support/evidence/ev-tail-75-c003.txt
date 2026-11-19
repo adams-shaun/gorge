@@ -240,6 +240,7 @@ Reverberate
 Rimewood Falls
 Rishadan Cutpurse
 Rishkar's Expertise
+River Sneak
 Rockshard Elemental
 Rout
 Rune-Cervin Rider
@@ -249,6 +250,7 @@ Sage of Fables
 Sailor of Means
 Sanctify
 Sanctum of Stone Fangs
+Sarkhan's Unsealing
 Scalding Devil
 School of Piranha
 Scour All Possibilities

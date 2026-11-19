@@ -81,6 +81,7 @@ Foul Watcher	34c19bf13b614a4a	22	1/1		1/1
 Frightcrawler	fbddbe2c89e35b26	10	0/0		0/0	
 Fyndhorn Brownie	468ea46cdaf3e3bb	4	1/1		0/1	ix:resp
 Galvanic Blast	999ef8d4f7d0acac	6	0/0		1/2	ix:resp
+Garruk Wildspeaker	3493ff5336d68c0c	6	3/3		0/1	ix:resp
 Gauntlet of Might	69deeb76877f5348	4	1/1		0/1	ix:resp
 Geistflame	190dee6d85821474	36	0/0		4/4	
 Ghostly Wings	55376e45c07a7477	12	1/1		2/2	
@@ -161,6 +162,7 @@ Plains	82d63a695487e567	2225	1/1		0/1	ix:resp
 Planar Bridge	7458bd2b3987d21e	10	1/1		1/1	
 Political Triumph	6751aced31b8d9cc	4	2/2		0/1	ix:resp
 Primetime Suspect	9eb72f4768bd9525	14	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Protean Thaumaturge	da000ff0ff6266a8	8	1/1		1/1	
 Pyre-Sledge Arsonist	d0a08d35e9409858	10	1/1		1/1	
 Pyreswipe Hawk	22fa2b2e128c521d	4	2/2		1/1	
 Rakdos Drake	8c2bf3c50c10506d	4	0/0		0/0	
@@ -223,6 +225,7 @@ Vampire's Bite	2b7ad7f53aeaf55b	4	0/0		2/4	cast/alt:kicked,ix:resp
 Venser's Sliver	63f79430395a7b26	16	0/0		0/0	
 Vibranium Mining Mech	041cdf52c4755d02	22	4/4		1/1	
 Vigilant Sentry	688b0ab428807d44	4	0/0		0/0	
+Vogar, Necropolis Tyrant	9ec746f17daea4ee	14	2/2		1/1	
 Voracious Typhon	233a4f0c7871f466	12	0/0		1/2	cast/alt:escaped
 Vraska's Contempt	c1e1add8627b8776	17	0/0		2/2	
 Wall of Blossoms	bf3d399802a0ae97	10	1/1		1/1	

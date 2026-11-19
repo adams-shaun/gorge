@@ -484,6 +484,7 @@ Tukatongue Thallid
 Uncontrolled Infestation
 Unruly Krasis
 Urborg Syphon-Mage
+Urza, Lord High Artificer
 Valkyrior Skyrider
 Vampiric Tutor
 Vat Emergence

@@ -140,6 +140,7 @@ Psychic Spear	7dd0c7bc09ddd05f	10	0/0		2/2
 Psychotrope Thallid	c2338d3acf4114f9	25	3/3		1/1	
 Pulse of the Grid	662b4710c42c788a	37	0/0		2/2	
 Purifying Dragon	cf5750e94b05ddb6	10	1/1		0/1	ix:resp
+Quest for Pure Flame	497d8d9ea2f89b37	20	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Rally to Battle	9bd59f6f319a97cd	10	0/0		1/2	ix:resp
 Reckless Handling	20a50b964257e70a	20	0/0		1/2	ix:resp
 Renewed Faith	5061e68f7979ff7d	4	2/2		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -166,6 +167,8 @@ Skitter of Lizards	d4e631f743a34647	6	0/0		1/2	cast/alt:multikicked
 Skullscorch	f1230b4fdccb0515	12	0/0		1/2	ix:resp
 Sky Weaver	97a352d90a00aeb3	23	1/1		1/1	
 Snow-Covered Forest	a1a5f67cd8b33a1c	173	1/1		0/1	ix:resp
+Snow-Covered Island	3020b29d96f5b5b9	668	1/1		0/1	ix:resp
+Snow-Covered Mountain	3200469019de4aca	689	1/1		0/1	ix:resp
 Snow-Covered Plains	bdaf911aefce4749	659	1/1		0/1	ix:resp
 Snow-Covered Swamp	c7302ea4a23ed037	614	1/1		0/1	ix:resp
 Spearbreaker Behemoth	5c7db578bb26d526	14	1/1		1/1	
