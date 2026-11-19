@@ -995,6 +995,87 @@ func (e *Engine) PaymentActionsForPriority(p state.PlayerID, seq uint64) []decis
 	return (&decision.Decision{PaymentActions: Out}).Clone().PaymentActions
 }
 
+// plannedCastKind is what one candidate walk option plans: the plain
+// hand/command-zone cast, the untyped may-play cast, the primary flashback
+// cast, or the hand alternate-spell-face cast.
+type plannedCastKind uint8
+
+const (
+	planCastPlain plannedCastKind = iota + 1
+	planCastMayPlay
+	planCastFlashback
+	planCastAltFace
+)
+
+// plannedPriorityCast classifies one candidate walk option the offer builder
+// plans, and builds its PlannedCast. A V1 PlannedCast records the ordinary
+// printed-cost cast only: an AlternativeCost has no Mode marker, but
+// AltCostIndex identifies it, and accepting that option would build the same
+// PlannedCast and canonical action ID as the ordinary cast -- apart from
+// presenting the wrong cost, that duplicates IDs on the wire. The one other
+// plain shape is the untyped may-play cast of an exile/graveyard card
+// (Mode "mayplay"): a typed MayPlayText$ permission carries a MayPlayPerm and
+// stays withheld. And the hand's alternate-spell-face casts
+// (adventure_alt/omen_alt, CR 715.3a, 720.3) are the one Mode family beyond
+// those the builder plans: they ride the plain-cast body under the flip to
+// the spell face (planCastPaymentChecked's alternate-face arm). Every other
+// Mode -- the alternative-cost and additional-cost families, split_alt,
+// room_alt, modal_spell -- stays with the manual walk.
+//
+// The origin is derived from the object's actual zone (only the hand and the
+// command zone ever offer a plain cast, and only exile and the graveyard a
+// may-play one), and an alternate-spell-face option further requires the card
+// in its owner's hand at face 0 with the face function naming Faces[1]
+// (plannedAltSpellFace); anything else fails closed.
+func (e *Engine) plannedPriorityCast(opt decision.Option) (cast decision.PlannedCast, altFace *cards.Face, kind plannedCastKind, ok bool) {
+	if opt.Kind != "cast" || opt.AltCostIndex != 0 {
+		return cast, nil, 0, false
+	}
+	switch {
+	case opt.Mode == "":
+	case planCastPaymentCheckedCodes.Code(opt.Mode) == planCastPaymentCheckedMayPlayMode && opt.MayPlayPerm == "":
+		kind = planCastMayPlay
+	case planCastFlashbackOption(opt):
+		kind = planCastFlashback
+	case plannedAltFaceMode(opt.Mode):
+		kind = planCastAltFace
+	default:
+		return cast, nil, 0, false
+	}
+	o := e.G.Obj(opt.Obj)
+	if o == nil {
+		return cast, nil, 0, false
+	}
+	switch kind {
+	case planCastMayPlay:
+		if !plannedMayPlayZone(o.Zone) {
+			return cast, nil, 0, false
+		}
+		return decision.PlannedCast{Object: opt.Obj, Face: plannedCastFace(o), Origin: plannedMayPlayOrigin(o.Zone)}, nil, kind, true
+	case planCastFlashback:
+		if o.Zone != state.ZGraveyard {
+			return cast, nil, 0, false
+		}
+		return decision.PlannedCast{Object: opt.Obj, Face: plannedCastFace(o), Origin: decision.OriginFlashback}, nil, kind, true
+	case planCastAltFace:
+		if o.Zone != state.ZHand || int(o.FaceIdx) != 0 {
+			return cast, nil, 0, false
+		}
+		// The witness pays Face 1 (the spell face) in the cast's mode.
+		cast = decision.PlannedCast{Object: opt.Obj, Face: 1, Origin: "hand", Mode: opt.Mode}
+		af := plannedAltSpellFace(cast, o)
+		return cast, af, kind, af != nil
+	default:
+		switch o.Zone {
+		case state.ZHand:
+			return decision.PlannedCast{Object: opt.Obj, Face: plannedCastFace(o), Origin: "hand"}, nil, planCastPlain, true
+		case state.ZCommand:
+			return decision.PlannedCast{Object: opt.Obj, Face: plannedCastFace(o), Origin: "command_zone"}, nil, planCastPlain, true
+		}
+		return cast, nil, 0, false
+	}
+}
+
 // paymentActionsForPriority is the one-pass offer builder (spec 5 as amended:
 // the pending decision's Options and one hypothetical candidate walk, not a
 // full legal-action walk per candidate). options is the priority decision's
@@ -1086,82 +1167,23 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 		return census.relaxable && e.paymentPlanRelaxProof(census, verdict).Reason == pay.ReasonInsufficient
 	}
 	for _, opt := range candidates {
-		// A V1 PlannedCast records the ordinary printed-cost cast only.  An
-		// AlternativeCost has no Mode marker, but AltCostIndex identifies it;
-		// accepting that option would build the same PlannedCast and canonical
-		// action ID as the ordinary cast.  Apart from presenting the wrong
-		// cost, that produces duplicate IDs on the wire.
-		// The one other plain shape is the untyped may-play cast of an
-		// exile/graveyard card (Mode "mayplay"): a typed MayPlayText$
-		// permission carries a MayPlayPerm and stays withheld. And the hand's
-		// alternate-spell-face casts (adventure_alt/omen_alt, CR 715.3a,
-		// 720.3) are the one Mode family beyond those the builder plans:
-		// they ride the plain-cast body under the flip to the spell face
-		// (planCastPaymentChecked's alternate-face arm). Every other Mode --
-		// the alternative-cost and additional-cost families, split_alt,
-		// room_alt, modal_spell -- stays with the manual walk.
-		mayPlay := planCastPaymentCheckedCodes.Code(opt.Mode) == planCastPaymentCheckedMayPlayMode && opt.MayPlayPerm == ""
-		flashback := planCastFlashbackOption(opt)
-		altMode := ""
-		if plannedAltFaceMode(opt.Mode) {
-			altMode = opt.Mode
-		}
-		if opt.Kind != "cast" || (opt.Mode != "" && !mayPlay && !flashback && altMode == "") || opt.AltCostIndex != 0 {
+		cast, altFace, kind, ok := e.plannedPriorityCast(opt)
+		if !ok {
 			continue
-		}
-		// Derive the origin from the object's actual zone.  Only the hand and
-		// the command zone (Commander format) ever offer a plain cast
-		// (Mode "" AltCostIndex 0), and only exile and the graveyard a
-		// may-play one; anything else fails closed.
-		originObj := e.G.Obj(opt.Obj)
-		if originObj == nil {
-			continue
-		}
-		var origin string
-		switch {
-		case flashback && originObj.Zone == state.ZGraveyard:
-			origin = decision.OriginFlashback
-		case flashback:
-			continue
-		case mayPlay && plannedMayPlayZone(originObj.Zone):
-			origin = plannedMayPlayOrigin(originObj.Zone)
-		case mayPlay:
-			continue
-		case altMode != "":
-			// A hand alternate-spell-face cast: the card sits in its owner's
-			// hand at face 0 and the face function names Faces[1]
-			// (plannedAltSpellFace); anything else fails closed.
-			if originObj.Zone != state.ZHand || int(originObj.FaceIdx) != 0 ||
-				plannedAltSpellFace(decision.PlannedCast{Object: opt.Obj, Face: 1, Origin: "hand", Mode: altMode}, originObj) == nil {
-				continue
-			}
-			origin = "hand"
-		case originObj.Zone == state.ZHand:
-			origin = "hand"
-		case originObj.Zone == state.ZCommand:
-			origin = "command_zone"
-		default:
-			continue
-		}
-		cast := decision.PlannedCast{Object: opt.Obj, Face: plannedCastFace(originObj), Origin: origin}
-		var altFace *cards.Face
-		if altMode != "" {
-			// The witness pays Face 1 (the spell face) in the cast's mode.
-			cast.Face, cast.Mode = 1, altMode
-			altFace = plannedAltSpellFace(cast, originObj)
 		}
 		got := e.planCastPaymentMemo(p, cast, &statics, &legal)
 		e.PaymentStats.RecordOutcome(got)
 		if got.Plan == nil {
 			// The unpayable census names plain casts only
 			// (decision.PotentialUnpayableCasts); a flashback proof is not
-			// recorded there.
-			if !flashback && altMode == "" && got.Reason == pay.ReasonInsufficient && provesUnpayable(cast) {
+			// recorded there, nor an alternate-face one.
+			if kind != planCastFlashback && kind != planCastAltFace && got.Reason == pay.ReasonInsufficient && provesUnpayable(cast) {
 				unpayable = append(unpayable, opt.Obj)
 			}
 			// The plain casts declined for their cost's shape
 			// (decision.PotentialShapeCasts).
-			if !flashback && !mayPlay && altMode == "" && announcedShape(got) && !slices.Contains(shapes, opt.Obj) {
+			if kind != planCastFlashback && kind != planCastMayPlay && kind != planCastAltFace &&
+				announcedShape(got) && !slices.Contains(shapes, opt.Obj) {
 				shapes = append(shapes, opt.Obj)
 			}
 			continue

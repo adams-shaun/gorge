@@ -1291,11 +1291,19 @@ export interface WindowReason {
    * may-play permission grants a card there) -- or "flashback" (OriginFlashback),
    * the CR 702.34a flashback cast of a graveyard card for its primary flashback
    * cost, the one alternative-cost cast a V1 witness pays.
+   *
+   * Mode is the priority-option Mode the cast begins as: "adventure_alt" or
+   * "omen_alt" for a hand alternate-spell-face cast (CR 715.3a, 720.3 -- the
+   * card shows face 0, the witness pays Face 1's charge), empty for every
+   * other origin, whose CastMode() derives the mode from Origin alone. The
+   * identity encoding appends it only when non-empty, so every
+   * plain/flashback/may-play cast keeps its exact earlier identity.
    */
 export interface PlannedCast {
   object: number;
   face: number;
   origin: string;
+  mode?: string;
 }
 
   /**
