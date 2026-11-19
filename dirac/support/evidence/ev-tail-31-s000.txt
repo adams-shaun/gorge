@@ -32,13 +32,16 @@ Cabal Surgeon
 Cache Grab
 Cached Defenses
 Calix, Guided by Fate
+Caller of the Claw
 Carrion Wall
+Cast Down
 Celestial Flare
 Centaur Rootcaster
 Cephalid Inkshrouder
 Chandra, Fire Artisan
 Combine Chrysalis
 Conjurer's Closet
+Costly Plunder
 Crash Landing
 Crumb and Get It
 Crypt Rats
@@ -65,6 +68,7 @@ Ever After
 Experimental Aviator
 Explorer's Scope
 Faerie Bladecrafter
+Faerie Mechanist
 Famished Ghoul
 Fauna Shaman
 Femeref Scouts
@@ -180,6 +184,7 @@ Scrapheap Scrounger
 Scuttlegator
 Seismic Tutelage
 Selesnya Cluestone
+Sengir Vampire
 Serum Tank
 Setessan Champion
 Shadowstorm
@@ -190,6 +195,10 @@ Simic Growth Chamber
 Skyshroud Lookout
 Slice in Twain
 Snapping Gnarlid
+Snow-Covered Forest
+Snow-Covered Island
+Snow-Covered Mountain
+Snow-Covered Swamp
 Soldevi Heretic
 Solemn Offering
 Spectral Deluge
@@ -224,6 +233,7 @@ Tunneling Geopede
 Twiddle
 Tyvar's Stand
 Undead Augur
+Undercity Informer
 Undying Beast
 Unfulfilled Desires
 Updraft

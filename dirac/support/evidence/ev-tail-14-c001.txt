@@ -2,6 +2,7 @@ A-Dreamshackle Geist
 A-Splitting the Powerstone
 A-Tome Shredder
 Abyssal Nightstalker
+Aether Gale
 Agent of the Fates
 Akroan Line Breaker
 Alley Evasion
@@ -31,6 +32,7 @@ Blazethorn Scarecrow
 Bleeding Edge
 Blight Mamba
 Blight Titan
+Bloated Processor
 Blood Aspirant
 Bloodcrazed Socialite
 Blustersquall
@@ -43,6 +45,7 @@ Brinelin, the Moon Kraken
 Brothers of Fire
 Burning-Fist Minotaur
 Buy Your Silence
+Calcite Snapper
 Call to Serve
 Caravan Hurda
 Carnassid
@@ -52,6 +55,7 @@ Cement Shoes
 Centaur Glade
 Centaur Veteran
 Cessation
+Chalice of Life
 Chalice of the Void
 Chandra's Firemaw
 Charging Tuskodon
@@ -76,12 +80,16 @@ Darkling Stalker
 Dauthi Marauder
 Dauthi Mindripper
 Death Watch
+Deem Worthy
+Defiant Bloodlord
 Deglamer
 Deluge of Doom
 Denethor, Stone Seer
 Dewdrop Spy
 Dimir Keyrune
 Dire Undercurrents
+Dirgur Focusmage
+Dissipation Field
 Divine Verdict
 Dosan's Oldest Chant
 Double Vision
@@ -131,9 +139,11 @@ Forest
 Forgotten Sentinel
 Foul Presence
 Frost Bite
+Fungal Bloom
 Gaea's Bounty
 Gearsmith Guardian
 Glasses of Urza
+Glen Elendra Pranksters
 Glistening Deluge
 Goblin Berserker
 Goblin Firestarter
@@ -179,6 +189,7 @@ Hookblade Veteran
 Hound of Urabrask
 Hymn of Rebirth
 Illusionary Forces
+Inferno Project
 Initiate of Blood
 Inspiring Unicorn
 Ior Ruin Expedition
@@ -273,6 +284,7 @@ Phenomenon Investigators
 Phyrexian Broodlings
 Pia and Kiran Nalaar
 Pieces of the Puzzle
+Pit Spawn
 Pitfall Trap
 Pixie Illusionist
 Plague Myr
@@ -283,10 +295,12 @@ Presence of the Master
 Pride of Conquerors
 Priest of Ancient Lore
 Prismatic Ending
+Protect the Negotiators
 Psychic Pickpocket
 Puncture Bolt
 Puncturing Blow
 Quest for Ula's Temple
+Quest for the Necropolis
 Quicksand
 Quiet Contemplation
 Radiating Lightning
@@ -314,6 +328,7 @@ Reviving Melody
 Rhizome Lurcher
 Ribbon Snake
 Ring of Kalonia
+Ringwarden Owl
 Riptide Pilferer
 Rite of Passage
 Rock Lobster
@@ -324,6 +339,7 @@ Salivating Gremlins
 Sandwurm Convergence
 Saprazzan Legate
 Saruman's Trickery
+Scaldkin
 Scaled Herbalist
 Scavenging Scarab
 Scholar of Stars
@@ -366,6 +382,7 @@ Starnheim Aspirant
 Starved Rusalka
 Steel Dromedary
 Stensia Banquet
+Stoke the Flames
 Stone Kavu
 Storm Entity
 Storm's Wrath
@@ -419,6 +436,7 @@ Vandalblast
 Vanishing Verse
 Vanishment
 Vastwood Hydra
+Vault 87: Forced Evolution
 Vault Skyward
 Veldrane of Sengir
 Veteran Armorer

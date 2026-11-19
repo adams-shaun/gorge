@@ -1,5 +1,6 @@
 A-Ochre Jelly
 A-Warm Welcome
+Abbey Griffin
 Aberrant Return
 Acceptable Losses
 Aerial Caravan
@@ -37,10 +38,12 @@ Cadira, Caller of the Small
 Call to Glory
 Call to the Netherworld
 Calming Verse
+Cartouche of Solidarity
 Certain Death
 Chakram Retriever
 Chase Stein, Runaway
 Chill to the Bone
+Circle of Protection: Red
 Clockwork Fox
 Coercive Impetus
 Commence the Endgame
@@ -129,6 +132,7 @@ Lynx
 Magmaroth
 Magmatic Force
 Marionette Apprentice
+Marsh Casualties
 Mascot Exhibition
 Mass Diminish
 Memorial to Unity
@@ -169,6 +173,7 @@ Rat Colony
 Red XIII, Proud Warrior
 Relentless Rats
 Relic Bind
+Righteous Charge
 Righteous Fury
 Rob the Archives
 Rustspore Ram
@@ -228,5 +233,6 @@ Willow Elf
 Winds of Rath
 Wormhole Serpent
 Wu Scout
+Yavimaya Enchantress
 Yukora, the Prisoner
 Zanarkand, Ancient Metropolis

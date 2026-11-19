@@ -51,6 +51,7 @@ Charisma
 Chief of the Scale
 Chimney Goyf
 Chronomaton
+Circle of Protection: Black
 Coal Stoker
 Coastline Marauders
 Collector Ouphe
@@ -68,6 +69,7 @@ Darkling Stalker
 Dauthi Ghoul
 Dawn Gryff
 Dazzling Ramparts
+Deafening Clarion
 Death Cultist
 Deathgorge Scavenger
 Decorated Griffin
@@ -396,6 +398,7 @@ Wand of Vertebrae
 Wandering Ones
 War Report
 Warlord's Axe
+Waves of Aggression
 Weave Fate
 Webweaver Changeling
 Wicked Pact

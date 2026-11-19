@@ -8,6 +8,7 @@ Banishing Slash
 Barrowgoyf
 Battle Angels of Tyr
 Beast Within
+Bewilder
 Bhaal's Invoker
 Bitter Reunion
 Blasting Station
@@ -33,6 +34,7 @@ Expunge
 Exsanguinate
 Faerie Mechanist
 Falkenrath Noble
+Felidar Umbra
 Feral Hydra
 Flock Impostor
 Forest
@@ -48,13 +50,16 @@ Inferno Jet
 Intangible Virtue
 Island
 Kami of False Hope
+Kelpie Guide
 Kenrith's Transformation
 Killer Whale
 Kor Cartographer
 Kor Firewalker
+Leap
 Lore Weaver
 Madcap Skills
 Merciless Executioner
+Merfolk Seastalkers
 Molten Birth
 Mountain
 Myth Realized
@@ -75,6 +80,7 @@ Rogue's Passage
 Sage's Reverie
 Scholar of the Ages
 Sea Gate
+Sea Gate Oracle
 Sejiri Merfolk
 Send in the Pest
 Sheoldred, Whispering One
@@ -92,6 +98,7 @@ Sword Coast Serpent
 Trumpeting Herd
 Twinferno
 Ultimate Price
+Vigean Graftmage
 Volcanic Dragon
 Wall of Corpses
 Wall of Mulch

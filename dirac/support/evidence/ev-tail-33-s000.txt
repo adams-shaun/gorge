@@ -22,6 +22,7 @@ Ash Barrens
 Aura Extraction
 Autumnal Gloom
 Avaricious Dragon
+Azorius Guildgate
 Battlefront Krushok
 Blast Zone
 Blinkmoth Nexus
@@ -35,6 +36,7 @@ Bond of Passion
 Bonded Herdbeast
 Bontu the Glorified
 Book of Rass
+Boros Guildgate
 Bramblecrush
 Brazen Buccaneers
 Briarpack Alpha
@@ -50,14 +52,17 @@ Cordial Vampire
 Crawl from the Cellar
 Culmination of Studies
 Curse of Inertia
+Darling of the Masses
 Darwin, Adaptive Mutant
 Daryl, Hunter of Walkers
 Death Tyrant
 Deathbloom Thallid
 Deception
 Demonic Lore
+Depose
 Deranged Whelp
 Detonate
+Dimir Guildgate
 Dimir Machinations
 Diving Griffin
 Donate
@@ -97,10 +102,12 @@ Gleam of Authority
 Gluttonous Guest
 Goblin Rimerunner
 Godo, Bandit Warlord
+Golgari Guildgate
 Grateful Apparition
 Grimoire of the Dead
 Gristle Grinner
 Grozoth
+Gruul Guildgate
 Guildpact Informant
 Hammer of Purphoros
 Haunted Dead
@@ -118,7 +125,9 @@ Insurrection
 Invasive Species
 Ironclad Revolutionary
 Island
+Izzet Guildgate
 Izzet Guildmage
+Jelenn Sphinx
 Jhoira's Familiar
 Kambal, Consul of Allocation
 Kinscaer Harpoonist
@@ -152,6 +161,8 @@ Never
 Nezumi Freewheeler
 Nyxathid
 Ogre Arsonist
+Ordeal of Erebos
+Orzhov Guildgate
 Outland Boar
 Pack's Disdain
 Pashalik Mons
@@ -160,6 +171,8 @@ Plains
 Prickleboar
 Pride Guardian
 Quarantine Field
+Quirion Dryad
+Rakdos Guildgate
 Rattlechains
 Ravenous Leucrocota
 Raze
@@ -175,6 +188,7 @@ Research the Deep
 Reverent Hunter
 Riptide Chronologist
 Roar of the Wurm
+Roofstalker Wight
 Runehorn Hellkite
 Sabertooth Mauler
 Sage's Row Savant
@@ -197,13 +211,16 @@ Spore Cloud
 Stamina
 Stonework Packbeast
 Subversion
+Sunspire Gatekeepers
 Swamp
 Sylvan Hierophant
+Tajuru Warcaller
 Temple Elder
 Temporal Machinations
 The Tabernacle at Pendrell Vale
 Thraben Foulbloods
 Tin-Wing Chimera
+Tolsimir, Friend to Wolves
 Tower of Champions
 Towering Thunderfist
 Toxrill, the Corrosive

@@ -29,10 +29,12 @@ Curious Altisaur	4fd65777f2356619	5	1/1		0/1	ix:resp
 Cut	7b1b4871806241d5	10	0/0		3/7	f1/s,f1/s/x+,f1/s/x0,ix:resp
 Damning Verdict	1dccb20420d30c22	4	0/0		1/2	ix:resp
 Death's Presence	fb2c2b24647bb67f	4	1/1		0/1	ix:resp
+Death-Hood Cobra	d778d66aca808390	8	2/2		0/1	ix:resp
 Dementia Bat	7fefb2d594260e1b	10	1/1		1/1	
 Dismiss	98c54a5dacadbdcc	4	0/0		1/2	ix:resp
 Draugr Thought-Thief	eafff8feb9916d5a	4	1/1		0/1	ix:resp
 Drown in Ichor	43334b7985e29b44	10	0/0		1/2	ix:resp
+Dryad Greenseeker	10da06049d9715a6	8	1/1		0/1	ix:resp
 Duskhunter Bat	4f0b1730f213e3a8	10	0/0		0/0	
 Dwarven Warriors	4f547993319d89ea	4	1/1		0/1	ix:resp
 Elas il-Kor, Sadistic Pilgrim	4cceb7c3633ef5a2	13	2/2		1/1	
@@ -83,6 +85,7 @@ Light the Way	f11cb04f318b08e0	4	0/0		2/2
 Luminarch Ascension	38fdfddb010b3cd3	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Lydia Frye	e63eabc2879254f8	4	1/1		0/1	ix:resp
 Magus of the Candelabra	b116c1f49741c075	8	1/1		0/1	ix:resp
+Manaweft Sliver	8c556ca2a1e27b7e	10	0/0		0/0	
 Mandibular Kite	5f19e89369943863	8	2/2		0/1	ix:resp
 Memory Drain	c46fd829c51d7202	4	0/0		2/2	
 Mercurial Spelldancer	5140695b8f8e5b39	8	2/2		0/1	ix:resp
@@ -115,6 +118,7 @@ Ravenous Harpy	0104258b9627be58	6	1/1		0/1	ix:resp
 Redwood Treefolk	74772f6fadc55255	9	0/0		0/0	
 Relic of Progenitus	317974f6c8e368ec	4	2/2		0/1	ix:resp
 Rescue Retriever	a70a6817ff49a5aa	4	1/1		0/1	ix:resp
+Rofellos, Llanowar Emissary	24abf4b73e08de73	14	1/1		0/1	ix:resp
 Root Greevil	def19c81f79ab70e	4	1/1		0/1	ix:resp
 Scragnoth	c16a2b2dcc6bc954	8	0/0		0/0	
 Sewerdreg	dab87112e73f01b2	4	1/1		0/1	ix:resp
@@ -135,6 +139,7 @@ Swamp	342b413902f441c3	360	1/1		0/1	ix:resp
 Territorial Aetherkite	e68a92eabadf7237	8	1/1		0/1	ix:resp
 Tezzeret's Touch	498134adc120c39a	4	1/1		1/2	ix:resp
 The Unspeakable	ca366311c699b77c	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Thran Lens	7eae2099f3b2d778	12	0/0		0/0	
 Thunder Wall	b79042ece3c9e901	4	1/1		1/1	
 True Conviction	ba3973b3d50957e5	4	0/0		0/0	
 Turnabout	39f0619628aba853	6	0/0		1/2	ix:resp

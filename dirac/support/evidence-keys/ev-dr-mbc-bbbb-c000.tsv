@@ -1,32 +1,52 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Act on Impulse	4904f59abbd44bb1	9	0/0		1/2	ix:resp
 Angel of Vitality	deb06318f87d5b2d	10	0/0		0/0	
+Beanstalk Giant	ea8095902716622c	7	0/0		1/2	ix:resp
 Blessed Hippogriff	0b57b3203fbcfbb3	12	1/1		1/2	ix:resp
 Caltrops	e2e47cd4b5612bf1	5	1/1		1/1	
 Clinquant Skymage	e25f5daeb422f2a3	7	1/1		0/1	ix:resp
+Collected Company	7e5132d469fb586e	21	0/0		1/2	ix:resp
 Concentrate	7f1cbdbb28d88556	4	0/0		2/2	
 Counterspell	24d94fba7803eb31	8	0/0		2/2	
 Crimson Fleet Commodore	e3553de33b0d98c3	4	1/1		0/1	ix:resp
+Crop Rotation	3373cf322ad4259c	33	0/0		1/2	ix:resp
+Curse of Opulence	f9aca12a5d89b153	7	1/1		1/2	ix:resp
+Curse of Verbosity	d5ac42cd3694fb61	7	1/1		1/2	ix:resp
 Dauntless Bodyguard	f066be2b7ce840c8	6	1/1		0/1	ix:resp
+Dimir House Guard	3a0536071d9aba55	3	2/2		0/1	ix:resp
+Diregraf Horde	e0e2b8ceec3f033c	6	1/1		0/1	ix:resp
+Dwarven Miner	c992a50881d3ba4b	8	1/1		0/1	ix:resp
 Elite Scaleguard	c08311586bf76cf5	5	2/2		1/1	
 Executioner's Capsule	f9f475c2f410b08d	3	1/1		1/1	
 Falter	ba8e49a4b34db86a	8	0/0		1/2	ix:resp
 Fatal Push	7cdafa526f371ff7	3	0/0		1/2	ix:resp
 Fellwar Stone	582e6e1183bf3d78	9	1/1		1/1	
 Flesh-Eater Imp	5252612c3c9a98dc	6	1/1		0/1	ix:resp
+Fog	d70bf971da78ff3b	43	0/0		2/2	
 Fog Bank	8020bddbddbcf886	6	0/0		0/0	
 Footfall Crater	2fb0cc19b4c277cd	4	1/1		1/2	ix:resp
+Forest	6d0466c30f825dba	28	1/1		0/1	ix:resp
 Fungal Infection	5498250cf0a3647b	4	0/0		1/2	ix:resp
+Fyndhorn Elder	9875a97327415335	21	1/1		0/1	ix:resp
 Ganax, Astral Hunter	40d769909445302c	4	1/1		0/1	ix:resp
 Geistblast	be8415a5931eb40c	4	1/1		2/2	
 Ghostly Flicker	04dd5fb3424d36bf	4	0/0		2/2	
 Gideon's Lawkeeper	7a2058905e521158	4	1/1		0/1	ix:resp
+Glacier Godmaw	3a6defff102c7f72	13	2/2		0/1	ix:resp
+Go for the Throat	b3ce9a098400a815	3	0/0		1/2	ix:resp
 Goblin Bombardment	41b20dc39cb0aefb	4	1/1		0/1	ix:resp
 Goblin Recruiter	4432a0bbe7041d31	4	1/1		1/1	
 Grab the Reins	08ab3507cb477a91	6	0/0		2/2	
+Hollow Marauder	e7e3b991a0c1345a	3	1/1		0/1	ix:resp
+Hopeless Nightmare	083c72e2edc42fa2	4	3/3		0/1	ix:resp
 Illusory Ambusher	053815ddddbf17b5	6	1/1		0/1	ix:resp
+Irenicus's Vile Duplication	24caaf207d19cd9c	6	0/0		1/2	ix:resp
 Island	763c67ef7a27eaf5	68	1/1		0/1	ix:resp
+Kavu Predator	b4760652574840b7	22	1/1		0/1	ix:resp
+Konda, Lord of Eiganjo	1014f9c5176bab32	3	2/2		0/1	ix:resp
 Krark-Clan Ironworks	ecc76d8b539480eb	9	1/1		0/1	ix:resp
 Lunar Frenzy	436469a2456f5425	6	0/0		3/4	f0/s/x0
+Manabond	d6a52e24e7f1e146	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Mannichi, the Fevered Dream	19cc7b1f17e9e453	11	1/1		1/1	
 Mindbreak Trap	18576694c2c0ebe8	4	0/0		1/2	ix:resp
 Mischievous Mystic	48f049974d84687f	6	1/1		0/1	ix:resp
@@ -34,6 +54,7 @@ Moan of the Unhallowed	3590994582444abc	6	0/0		3/4	ix:resp
 Moment of Defiance	0f770a1161a18a18	6	0/0		1/2	ix:resp
 Moonglove Changeling	958303c9557edfac	4	1/1		1/1	
 Mountain	9e71388353e907ed	40	1/1		0/1	ix:resp
+Noose Constrictor	1e0b8c81aa0455e2	33	1/1		1/1	
 Noxious Ghoul	39f3344f342422fa	6	1/1		0/1	ix:resp
 Nyx-Fleece Ram	e8a4b762592fa811	3	1/1		0/1	ix:resp
 Omen of the Sea	cc1b600f0570de2a	10	2/2		0/1	ix:resp
@@ -43,19 +64,28 @@ Peat Bog	cfd5d7722f3577c0	10	1/1		0/1	ix:resp
 Pilgrim of the Ages	2b8986b9a1f9f576	10	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Plains	82d63a695487e567	109	1/1		0/1	ix:resp
 Power Matrix	71aaa76a87d83ba5	11	1/1		0/1	ix:resp
+Primal Growth	5854d350c25b4c4c	5	0/0		3/4	ix:resp
+Prizefight	7995ecc8d9a4a55d	5	0/0		2/2	
 Puppet Conjurer	d3ce7b8c9f8f40f7	4	2/2		1/1	
 Rapacious Dragon	1e6d7e34d78fcac2	6	1/1		0/1	ix:resp
 Seal of Fire	961ee3088b7e10c0	4	1/1		0/1	ix:resp
+Soul Warden	bc262ab83820fa1d	8	1/1		1/1	
 Spellstutter Sprite	78c30cf11081fc79	6	1/1		0/1	ix:resp
 Spiteful Prankster	025c7a09ccd30325	6	1/1		0/1	ix:resp
 Standstill	aed4a62f8d57b332	4	1/1		0/1	ix:resp
+Strangleroot Geist	1d2780654e7e66bb	11	1/1		1/1	
+Sudden Spinnerets	b2806ed9219d6dc2	3	0/0		2/2	
 Swamp	342b413902f441c3	19	1/1		0/1	ix:resp
+Symbiosis	a9d9cce102ace4b4	26	0/0		1/2	ix:resp
 The Rack	5474393ea2274c44	4	1/1		0/1	ix:resp
 Think Twice	b77b321783cf7766	12	0/0		3/4	ix:resp
 Thwart	386360a51b903404	4	0/0		1/2	ix:resp
 Tolabow, Loch Rascal	6be341365a8ef0a9	4	1/1		0/1	ix:resp
+Treasonous Ogre	d860ab7d73a6156e	31	2/2		1/1	
 Treasure Dredger	66f144b1c7ff6278	3	1/1		0/1	ix:resp
 Undo	8924a13c0a3b91dc	4	0/0		1/2	ix:resp
+Vile Requiem	e6b0fef7e796be0d	22	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Weatherseed Faeries	94b428b6252cc4c8	9	0/0		0/0	
 Wispweaver Angel	af2a95938ec697f1	11	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Witness Protection	c186ce7f6d9031f4	3	0/0		1/2	ix:resp
+Young Pyromancer	dc7526d6c060c127	23	1/1		0/1	ix:resp

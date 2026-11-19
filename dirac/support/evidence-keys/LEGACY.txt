@@ -129,11 +129,9 @@ Airlift Chaplain
 Airship Crash
 Airtight Alibi
 Aisling Leprechaun
-Ajani Resolute
 Ajani Unrelenting
 Ajani's Anguish
 Ajani's Response
-Ajani, Outland Chaperone
 Ajani, the Greathearted
 Akki Avalanchers
 Akki Coalflinger
@@ -142,7 +140,6 @@ Akroma's Vengeance
 Akroma, Angel of Fury
 Akul the Unrepentant
 Al Bhed Salvagers
-Alabaster Host Intercessor
 Alacrian Armory
 Alacrian Jaguar
 Aladdin
@@ -344,7 +341,6 @@ Artisan's Sorrow
 Asari Captain
 Ascend from Avernus
 Ascendant Dustspeaker
-Ascendant Evincar
 Asgardian Inspiration
 Ash, Party Crasher
 Ashe, Princess of Dalmasca
@@ -371,7 +367,6 @@ Assert Authority
 Assert Perfection
 Assimilation Assessor
 Astelli Reclaimer
-Astonishing Spider-Man
 Astral Cornucopia
 Astrid Peth
 Astute Terraformer
@@ -578,7 +573,6 @@ Betrayal
 Betrayal at the Vault
 Betrayer's Bargain
 Beverly Crusher, Ship's Doctor
-Bewilder
 Bewildering Blizzard
 Beyond the Quiet
 Beza, the Bounding Spring
@@ -659,13 +653,11 @@ Blinding Fog
 Blinding Light
 Blinding Mage
 Blinding Radiance
-Blink of an Eye
 Blinkmoth Well
 Blister Beetle
 Blitz Hellion
 Blitzball
 Blitzball Shot
-Bloated Processor
 Blood Crypt
 Blood Hustler
 Blood Knight
@@ -822,7 +814,6 @@ Brokers Ascendancy
 Brokers Charm
 Brokers Confluence
 Bronze Sable
-Brood Monitor
 Broodguard Elite
 Broodheart Engine
 Broodmate Dragon
@@ -944,7 +935,6 @@ Case of the Uneaten Feast
 Casey Jones, Jury-Rig Justiciar
 Casey Jones, Vigilante
 Cast Away Doubt
-Cast Down
 Castle Locthwain
 Castle Raptors
 Castle Vantress
@@ -982,7 +972,6 @@ Centaur Safeguard
 Centaur Veteran
 Cerebral Confiscation
 Cerebral Download
-Cerulean Drake
 Cetacean Ops
 Ceti Eel
 Cha'DIch Investigator
@@ -991,7 +980,6 @@ Chain Reaction
 Chainbreaker
 Chainsaw
 Chakram Slinger
-Chalice of Life
 Chameleon Blur
 Champion of Dusan
 Champion of the Clachan
@@ -1211,7 +1199,6 @@ Cori-Steel Cutter
 Cornered Crook
 Cornered by Black Mages
 Corporeal Projection
-Corpse Connoisseur
 Corpseberry Cultivator
 Corroding Dragonstorm
 Cosmic Larva
@@ -1259,7 +1246,6 @@ Crimson Manticore
 Crippling Blight
 Cromat
 Crook of Condemnation
-Crop Rotation
 Crosis's Catacombs
 Crosis's Charm
 Crosis, the Purger
@@ -1418,7 +1404,6 @@ Deadeye Plunderers
 Deadly Complication
 Deadly Embrace
 Deadshot Minotaur
-Deafening Clarion
 Deanna Troi, Psychic Counsel
 Death Cultist
 Death Is Irrelevant
@@ -1426,7 +1411,6 @@ Death Mutation
 Death Pulse
 Death in the Family
 Death's Oasis
-Death-Hood Cobra
 Deathbloom Ritualist
 Deathbringer Regent
 Deathcap Glade
@@ -1446,7 +1430,6 @@ Decree of Justice
 Decree of Savagery
 Decree of Silence
 Dedicated Commons
-Deem Worthy
 Deep Reconnaissance
 Deep Space 9
 Deep Space Scan
@@ -1464,7 +1447,6 @@ Defenders of Humanity
 Defenestrated Phantom
 Defense Force Aggressor
 Defensive Stance
-Defiant Bloodlord
 Defiant Khenra
 Defiant Survivor
 Defiled Crypt
@@ -1492,7 +1474,6 @@ Dense Canopy
 Deny the Divine
 Deny the Witch
 Deploy to the Front
-Depose
 Depressurize
 Derelict Attic
 Descendant of Storms
@@ -1533,7 +1514,6 @@ Dictate of Heliod
 Dig Site Inventory
 Dimension X
 Dimensional Exile
-Dimir House Guard
 Din of the Fireherd
 Dina's Guidance
 Dinosaur Stampede
@@ -1546,7 +1526,6 @@ Dire Fleet Warmonger
 Direct Hit
 Director Nick Fury
 Diregraf Captain
-Diregraf Horde
 Diresight
 Dirgur Island Dragon
 Dirgur Nemesis
@@ -2288,7 +2267,6 @@ Full Bore
 Fulminous Forte
 Fumarole
 Funeral Room
-Fungal Bloom
 Fungal Colossus
 Fungal Plots
 Fungal Shambler
@@ -2442,7 +2420,6 @@ Gix's Caress
 Gix's Command
 Glacial Dragonhunt
 Glacial Fortress
-Glacier Godmaw
 Glacierwood Siege
 Glade Watcher
 Gladecover Scout
@@ -2834,7 +2811,6 @@ Hobbit Hole
 Hobblefiend
 Hobgoblin Dragoon
 Hobgoblin, Mantled Marauder
-Hollow Marauder
 Hollow Scavenger
 Hollow Trees
 Hollowborn Barghest
@@ -2865,7 +2841,6 @@ Hop to It
 Hope Estheim
 Hope-Ender Coatl
 Hopeful Vigil
-Hopeless Nightmare
 Horizon Drake
 Horn of Deafening
 Horn of Gondor
@@ -3127,7 +3102,6 @@ Jecht, Reluctant Guardian
 Jedit Ojanen
 Jedit Ojanen of Efrava
 Jefferies Tube
-Jelenn Sphinx
 Jem Lightfoote, Sky Explorer
 Jenara, Asura of War
 Jennika's Technique
@@ -3230,7 +3204,6 @@ Kavaron Turbodrone
 Kavaron, Memorial World
 Kavu Mauler
 Kavu Monarch
-Kavu Predator
 Kaya's Ghostform
 Kaya, Spirits' Justice
 Kazandu Nectarpot
@@ -3255,7 +3228,6 @@ Kellan Joins Up
 Kellan's Lightblades
 Kellan, Inquisitive Prodigy
 Kellan, the Fae-Blooded
-Kelpie Guide
 Kelsien, the Plague
 Kemuri-Onna
 Kes, Evolving Telepath
@@ -3287,7 +3259,6 @@ Kinbinding
 Kindle the Inner Flame
 Kindled Heroism
 Kindlespark Duo
-Kindred Boon
 Kindred Judgment
 King Darien XLVIII
 King Suleiman
@@ -3374,7 +3345,6 @@ Krazy Kow
 Kree Sentinel
 Krenko, Baron of Tin Street
 Kresh the Bloodbraided
-Krond the Dawn-Clad
 Kros, Defense Contractor
 Krosan Beast
 Krosan Cloudscraper
@@ -3451,7 +3421,6 @@ Lead Pipe
 Leader's Talent
 Leafkin Avenger
 League Guildmage
-Leap
 Leapfrog
 Leaping Ambush
 Leatherhead, Swamp Stalker
@@ -3515,7 +3484,6 @@ Lilah, Undefeated Slickshot
 Liliana the Faultless
 Liliana the Repentant
 Liliana's Caress
-Liliana's Devotee
 Liliana's Reaver
 Liliana's Scrounger
 Liliana, the Last Hope
@@ -3700,7 +3668,6 @@ Malfegor
 Malfunctioning Holodeck
 Mammoth Bellow
 Mana Tithe
-Manaweft Sliver
 Mandroid Squadron
 Manhole Missile
 Manifest Dread
@@ -3775,7 +3742,6 @@ Maze Glider
 Mazzy, Truesword Paladin
 McCoy, Not a Bricklayer
 Meanders Guide
-Meat Locker
 Meathook Massacre II
 Mechan Assembler
 Mechan Navigator
@@ -4249,7 +4215,6 @@ Omen of Fire
 Omen of the Hunt
 Omenpath Journey
 Omenport Vigilante
-Omenspeaker
 Ominous Asylum
 Omnath, Locus of Creation
 Omnath, Locus of the Roil
@@ -4266,7 +4231,6 @@ One With the Wind
 One with the Kami
 One, Borg Evolved
 One-Clown Band
-Onulet
 Ooze Patrol
 Ooze Spill
 Opal Archangel
@@ -4486,7 +4450,6 @@ Piper of the Swarm
 Pippin's Bravery
 Piru, the Volatile
 Pit Scorpion
-Pit Spawn
 Pitchstone Wall
 Pitfall Trap
 Pitiless Carnage
@@ -4564,7 +4527,6 @@ Pride of the Road
 Pridemalkin
 Priest of Urabrask
 Priest of the Blood Rite
-Primal Growth
 Primal Surge
 Primal Visitation
 Primal Witchstalker
@@ -4619,7 +4581,6 @@ Psychic Impetus
 Psychic Membrane
 Psychic Miasma
 Psychotic Haze
-Psychotrope Thallid
 Pterafractyl
 PuPu UFO
 Public Thoroughfare
@@ -4686,13 +4647,11 @@ Questing Druid
 Queza, Augur of Agonies
 Quickening Licid
 Quicksand
-Quicksilver Dagger
 Quill-Blade Laureate
 Quilled Charger
 Quintessential Katana
 Quintorius Kand
 Quirion Beastcaller
-Quirion Dryad
 Qutrub Forayer
 Rabanastre, Royal City
 Rabaroo Troop
@@ -5105,7 +5064,6 @@ Saber-Tooth Moose-Lion
 Sabotage Strategist
 Sabotender
 Sachi, Daughter of Seshiro
-Sacred Cat
 Sacred Foundry
 Sacred Peaks
 Safehold Duo
@@ -5182,7 +5140,6 @@ Satsuki, the Living Lore
 Satyr Wayfinder
 Saurian Explorer
 Saurian Symbiote
-Savage Conception
 Savage Hunger
 Savage Knuckleblade
 Savage Land Dinosaur
@@ -5387,7 +5344,6 @@ She-Hulk, Attorney-at-Law
 Shefet Archfiend
 Shefet Monitor
 Shell Shield
-Sheltered Thicket
 Sheltering Landscape
 Sheltering Word
 Sheoldred's Restoration
@@ -5598,7 +5554,6 @@ Slimefoot and Squee
 Slimy Dualleech
 Slingbow Trap
 Slinn Voda, the Rising Deep
-Slipstream Eel
 Slither Blade
 Slithering Cryptid
 Sliver Construct
@@ -5802,7 +5757,6 @@ Splash Portal
 Splashy Spellcaster
 Splatter Technique
 Splendid Reclamation
-Splendor Mare
 Splinter's Technique
 Splinter, Hamato Yoshi
 Splinter, Radical Rat
@@ -6088,7 +6042,6 @@ Suurok-Class Science Vessel
 Suus Mahna Practitioner
 Swallowed by Leviathan
 Swallowing Plague
-Swampbenders
 Swarm Culler
 Swarm, Being of Bees
 Swat Away
@@ -6109,7 +6062,6 @@ Sylvan Caryatid
 Sylvan Yeti
 Sylvia Tilly, Joy of Discovery
 Sylvok Lifestaff
-Symbiosis
 Symbiote Spider-Man
 Synchronized Charge
 Syncopate
@@ -6149,7 +6101,6 @@ Talarian Hook Spider
 Talas Air Ship
 Talas Merchant
 Talas Scout
-Tale of Katara and Toph
 Talion's Messenger
 Talion, the Kindly Lord
 Talisman of Conviction
@@ -6508,7 +6459,6 @@ Tomik, Izzet Sparkmage
 Tonberry
 Tony Stark
 Tooth Collector
-Toph, Earthbending Master
 Toph, Hardheaded Teacher
 Toph, the First Metalbender
 Topiary Lecturer
@@ -6804,7 +6754,6 @@ Vash, Freelance Archaeologist
 Vastlands Scavenger
 Vastwood Fortification
 Vastwood Hydra
-Vault 87: Forced Evolution
 Vault Plunderer
 Vault of Champions
 Vaultbreaker
@@ -6948,7 +6897,6 @@ Vulture, Scheming Scavenger
 Wail of War
 Wake the Dragon
 Wake the Reflections
-Walker of Secret Ways
 Walking Sarcophagus
 Walking Wall
 Wall Crawl
@@ -7016,7 +6964,6 @@ Waterspout Warden
 Watery Grave
 Wave Goodbye
 Wave of Indifference
-Waves of Aggression
 Waveskimmer Aven
 Wax-Wane Witness
 Waxen Shapethief
@@ -7126,7 +7073,6 @@ Winter, Tormented Loner
 Winternight Stories
 Winterthorn Blessing
 Wipe Away
-Wirecat
 Wirefly Hive
 Wirewood Guardian
 Wirewood Symbiote

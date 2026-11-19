@@ -38,6 +38,7 @@ Captivating Cave
 Careening Mine Cart
 Cartographer's Companion
 Cavern Stomper
+Cavern of Souls
 Cavernous Maw
 Cenote Scout
 Chart a Course
@@ -207,6 +208,7 @@ Sinuous Benthisaur
 Skullcap Snail
 Soaring Sandwing
 Song of Stupefaction
+Sorcerous Spyglass
 Soulcoil Viper
 Souls of the Lost
 Spelunking

@@ -8,6 +8,7 @@ Ajani's Influence
 Alhammarret, High Arbiter
 Aligned Heart
 Altar of Bhaal
+Altar of Bone
 Amazing Alliance
 Ambush
 An-Havva Inn
@@ -49,6 +50,7 @@ Concord with the Kami
 Confound
 Consider
 Consign
+Constable of the Realm
 Contingency Plan
 Covert Operative
 Crackling Doom
@@ -95,6 +97,7 @@ Force of Vigor
 Forest
 Fortress Cyclops
 Furious Assault
+Genestealer Locus
 Ghost-Lit Raider
 Gift of Granite
 Gift of Wrath
@@ -115,6 +118,7 @@ Harvesttide Sentry
 Hatchery Spider
 Hawkeye, Trick Shot
 Heartless Pillage
+Heron's Grace Champion
 High Score
 Howlpack Wolf
 Huatli's Raptor
@@ -258,6 +262,7 @@ Spitting Drake
 Spotter Thopter
 Staff of the Storyteller
 Star Pupil
+Steam Spitter
 Steely Resolve
 Stern Scolding
 Stitched Mangler
@@ -292,6 +297,7 @@ Titans' Vanguard
 Towering Viewpoint
 Town Gossipmonger
 Trading Post
+Triumph of the Hordes
 Turn Aside
 Unbreakable Formation
 Uninvited Geist
@@ -317,5 +323,6 @@ Wrack with Madness
 Wretched Anurid
 Wrong Turn
 Wu Longbowman
+Yeva's Forcemage
 Yomiji, Who Bars the Way
 Zulaport Duelist

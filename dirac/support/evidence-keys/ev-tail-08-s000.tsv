@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Ochre Jelly	87963920a451fc5d	13	2/2		0/1	ix:resp
 A-Warm Welcome	e50b027f01b6c92d	13	0/0		1/2	ix:resp
+Abbey Griffin	1eb64f82022f6563	4	0/0		0/0	
 Aberrant Return	d0a3e7a79bd4103a	4	0/0		2/2	
 Acceptable Losses	f7d19de8f3cb12da	6	0/0		1/2	ix:resp
 Aerial Caravan	e7e106db2565047d	12	1/1		1/1	
@@ -38,10 +39,12 @@ Cadira, Caller of the Small	1c3d77afa9ad5b55	11	1/1		0/1	ix:resp
 Call to Glory	538ced5c6096c727	10	0/0		1/2	ix:resp
 Call to the Netherworld	b52b868aaf8fba78	3	0/0		1/2	ix:resp
 Calming Verse	20f956aaf878f52b	14	0/0		2/2	
+Cartouche of Solidarity	0cf0346af84d9bb4	52	1/1		2/2	
 Certain Death	545289d30bbfd585	8	0/0		1/2	ix:resp
 Chakram Retriever	3df15a928a26f2ca	15	2/2		0/1	ix:resp
 Chase Stein, Runaway	c1bae97e6462bb3a	10	1/1		1/1	
 Chill to the Bone	42fce76aa14cc97f	6	0/0		1/2	ix:resp
+Circle of Protection: Red	bd90304baa44ebc4	10	1/1		1/1	
 Clockwork Fox	11057fdaa717d304	15	1/1		1/1	
 Coercive Impetus	d053e8bc2c387aae	5	1/1		1/2	ix:resp
 Commence the Endgame	084f0d60749c8da4	24	0/0		2/2	
@@ -130,6 +133,7 @@ Lynx	dafb34074ff927a5	22	0/0		0/0
 Magmaroth	a1ab73672ab46a72	6	2/2		1/1	
 Magmatic Force	2e7ef105108b56c8	3	1/1		0/1	ix:resp
 Marionette Apprentice	d3532fd979c470a6	6	2/2		0/1	ix:resp
+Marsh Casualties	fcbcce46b55991fa	14	0/0		3/4	ix:resp
 Mascot Exhibition	d10d162b60c58ca7	3	0/0		1/2	ix:resp
 Mass Diminish	51d404a449d80d02	42	0/0		3/4	ix:resp
 Memorial to Unity	90345d4cadfbce7c	37	2/2		0/1	ix:resp
@@ -170,6 +174,7 @@ Rat Colony	c5ebae585bd2408c	10	0/0		0/0
 Red XIII, Proud Warrior	5305cbd1cc28fc75	12	1/1		0/1	ix:resp
 Relentless Rats	520193e0175f24ec	6	0/0		0/0	
 Relic Bind	8dc60ea51a80ce85	13	1/1		1/2	ix:resp
+Righteous Charge	0ccd123a379c89b6	4	0/0		1/2	ix:resp
 Righteous Fury	61faeff5113a7744	10	0/0		1/2	ix:resp
 Rob the Archives	0fb535cdc2e61b15	6	0/0		1/2	ix:resp
 Rustspore Ram	d26cb89a1ba142c4	16	1/1		0/1	ix:resp
@@ -229,5 +234,6 @@ Willow Elf	3cf41f0798dd8ca6	12	0/0		0/0
 Winds of Rath	b0d4a2890f25aec0	10	0/0		1/2	ix:resp
 Wormhole Serpent	06bf056fa91ab379	11	1/1		1/1	
 Wu Scout	253801312b17bc92	21	1/1		0/1	ix:resp
+Yavimaya Enchantress	1cfc978b6e7e811b	7	0/0		0/0	
 Yukora, the Prisoner	fc89723f7a79e9bd	13	1/1		0/1	ix:resp
 Zanarkand, Ancient Metropolis	02f6f9e02dd0220c	182	1/1		2/2	
