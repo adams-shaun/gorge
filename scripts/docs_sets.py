@@ -23,8 +23,14 @@ Two sources, joined by set code:
    dirac/docs/support.md (--dirac-support). The page needs the card corpus to
    generate, so it is committed; this script only reads it. The stamp's commit
    and date are those of the last commit that touched the page. The page has
-   no per-slice lockstep results, so the lockstep column and headline row
-   render only when a dirac dict carries them (the build's does not).
+   no per-slice lockstep results: those come from a third source.
+
+3. The lockstep results of the CI dirac-slices job (--slices): slices-summary.json,
+   written by scripts/dirac_slices_summary.py from kfuzz's summary lines and
+   uploaded as an artifact on main runs; the docs workflow downloads the
+   newest. It fills the lockstep column, the headline row and the "slices"
+   section (one row a run, the four-seat cmd5 and edh pods included). Without
+   the file those say "not measured"; the build still passes.
 
 Either source may be missing; the tables then say so. The output is one
 markdown fragment, docs/site/support/_generated_sets.md (gitignored, never
@@ -38,6 +44,8 @@ includes its sections through pymdownx.snippets:
               dirac's supported share as the tile's tint and figure, its
               unverified and refused counts, and gorge's playable share when
               gorge-compliance's status is present
+    slices    the lockstep slice table (--slices): games, clean, divergent,
+              capacity stalls and the rest, per slice and surface
     edh       Commander deck coverage (forgec edhcover's .coverage/edh.json,
               --edh): per list, decks fully supported, cards playable, dirac's
               share, and the top blocking cards
@@ -59,7 +67,7 @@ Per set:
 Stdlib only. Usage:
   scripts/docs_sets.py [status-A.jsonl|-] [--level-b status-B.jsonl]
                        [--meta meta.json] [--dirac-support dirac/docs/support.md]
-                       [--edh .coverage/edh.json]
+                       [--edh .coverage/edh.json] [--slices slices-summary.json]
                        [-o docs/site/support/_generated_sets.md]
                        [--commit SHA] [--date YYYY-MM-DD]
 """
@@ -216,6 +224,62 @@ def lockstep_cell(dd, code):
     return text + (" (%s)" % ", ".join(extra) if extra else "")
 
 
+SLICE_COUNTS = ("games", "clean", "divergent", "capacity", "twoseat", "unmodelled", "hang")
+SLICES_MISSING = ("*Lockstep results: not measured. The build found no `slices-summary.json` from a main run of the "
+                  "CI `dirac-slices` job, so the lockstep column says \u2014.*")
+
+
+def load_slices(path):
+    """slices-summary.json as a dict, or None when the file is missing or not a summary; the page then says not measured."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+        rows = d["slices"]
+        if not rows or not all(isinstance(r.get("slice"), str) and all(isinstance(r.get(k), int) for k in SLICE_COUNTS + ("seats",))
+                               for r in rows):
+            raise ValueError("need rows of integer counts")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
+        print("docs_sets: %s: %s; the lockstep slices render as not measured" % (path, e), file=sys.stderr)
+        return None
+    return d
+
+
+def lockstep_from_slices(sl):
+    """The two-seat, full-surface runs as dirac's lockstep dict, keyed by set code (agree = clean games, stalls =
+    capacity stalls, disagree = every other game that did not run clean)."""
+    out = {}
+    for r in (sl or {}).get("slices", []):
+        if r["seats"] != 2 or r.get("surface") != "full":
+            continue
+        other = r["games"] - r["clean"] - r["capacity"]
+        if other < 0:
+            continue
+        out[r["slice"].upper()] = {"games": r["games"], "agree": r["clean"], "stalls": r["capacity"], "disagree": other}
+    return out
+
+
+def render_slices(sl):
+    if not sl:
+        return SLICES_MISSING + "\n"
+    out = []
+    w = out.append
+    w("| Slice | Seats | Surface | Games | Clean | Divergent | Capacity stalls | Two-seat stalls | Unmodelled | Hang |")
+    w("|---|---:|---|---:|---:|---:|---:|---:|---:|---:|")
+    for r in sl["slices"]:
+        w("| %s | %d | %s | %s | %s | %s | %s | %s | %s | %s |" % (
+            cell(r["slice"]), r["seats"], cell(r.get("surface") or DASH),
+            *(num(r[k]) for k in SLICE_COUNTS)))
+    w("")
+    commit, date = sl.get("commit") or "", sl.get("date") or ""
+    stamp = "the CI `dirac-slices` job's `slices-summary.json`"
+    if commit:
+        stamp += " of %s at gorge `%s`" % (date or "an unknown date", commit[:9])
+    w("*Generated at build time from %s. The 4-seat rows are the cmd5 and edh Commander pods; a pool whose cards "
+      "dirac refuses plays no game and reports 0.*" % stamp)
+    w("")
+    return "\n".join(out) + "\n"
+
+
 def section(name, body):
     return "<!-- --8<-- [start:%s] -->\n%s<!-- --8<-- [end:%s] -->\n" % (name, body, name)
 
@@ -324,6 +388,8 @@ def render_headline(rows, level_b, meta, dd):
                     code, num(s["agree"]), num(s["games"]), s["stalls"], s["disagree"]))
             w("| dirac | lockstep slices against gorge | **%s** (%s) |" % (
                 ", ".join(sorted(ls)), "; ".join(parts)))
+        else:
+            w("| dirac | lockstep slices against gorge | not measured |")
     else:
         w("| dirac | supported | not available to this build |")
     w("")
@@ -548,7 +614,7 @@ def render_edh(edh, top=10):
     return "\n".join(out) + "\n"
 
 
-def render(rows, meta=None, level_b=None, dd=None, edh=None):
+def render(rows, meta=None, level_b=None, dd=None, edh=None, slices=None):
     level_b = level_b or {}
     return "".join([
         "<!-- Generated by scripts/docs_sets.py; never edit or commit. -->\n",
@@ -557,6 +623,7 @@ def render(rows, meta=None, level_b=None, dd=None, edh=None):
         section("sets", render_sets(rows, level_b, meta, dd)),
         section("rollup", render_rollup(rows, level_b, meta, dd)),
         section("charts", render_charts(rows, level_b, meta, dd)),
+        section("slices", render_slices(slices)),
         section("edh", render_edh(edh)),
     ])
 
@@ -571,6 +638,8 @@ def main(argv=None):
     ap.add_argument("--date", default="", help="measurement date (overrides --meta)")
     ap.add_argument("--dirac-support", default="", metavar="PAGE",
                     help="dirac's support page (dirac/docs/support.md), read for dirac's per-set figures")
+    ap.add_argument("--slices", default="", metavar="JSON",
+                    help="the CI dirac-slices job's slices-summary.json, for the lockstep column and table")
     ap.add_argument("--edh", default="", metavar="JSON",
                     help="forgec edhcover's edh.json, for the Commander deck coverage section")
     a = ap.parse_args(argv)
@@ -598,6 +667,9 @@ def main(argv=None):
     if meta:
         meta["current_forge_ref"] = forge_pin()
     dd = load_dirac(a.dirac_support) if a.dirac_support else None
+    sl = load_slices(a.slices) if a.slices else None
+    if dd and sl:
+        dd["lockstep"] = lockstep_from_slices(sl)
     edh = None
     if a.edh:
         try:
@@ -609,7 +681,7 @@ def main(argv=None):
         print("docs_sets: neither status rows nor dirac's support page; fragment not written", file=sys.stderr)
         return 1
     with open(a.out, "w", encoding="utf-8") as f:
-        f.write(render(rows, meta, level_b, dd, edh))
+        f.write(render(rows, meta, level_b, dd, edh, sl))
     print("docs_sets: wrote %d status sets, %d dirac sets to %s" % (
         len(rows), len((dd or {}).get("sets", {})), a.out), file=sys.stderr)
     return 0

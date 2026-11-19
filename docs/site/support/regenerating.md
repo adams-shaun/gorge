@@ -159,8 +159,10 @@ make dirac-tables
 DIRAC_UPDATE_SUPPORT=1 go test -run TestSupportDocIsCurrent ./dirac/kgen   # rewrites dirac/docs/support.md
 ```
 
-The renderer checks that each set's counts add up. The page carries no per-slice lockstep results, so the lockstep rows
-and column on the set tables are marked as not available; `make dirac-slices` still prints them. To ask about one pool's
+The renderer checks that each set's counts add up. The page carries no per-slice lockstep results. Those come from the
+CI `dirac-slices` job: it writes `slices-summary.json` (`scripts/dirac_slices_summary.py`, from kfuzz's summary lines) and
+uploads it as an artifact on main runs, and the docs workflow downloads the newest one for the lockstep column and the
+"Lockstep slices" table. With no artifact they say "not measured" and the build still passes. To ask about one pool's
 cards, `go run ./dirac/cmd/kgen -supported fdn` prints one line per card.
 
 **The evidence behind those counts** is in `dirac/support/evidence/`. `scripts/dirac-evidence.sh <out>` plays the evidence

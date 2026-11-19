@@ -421,7 +421,23 @@ jobs:
       - name: Stable mtimes for the Go test cache
         run: bash scripts/ci-stable-mtimes.sh .
       - name: Play the committed slices
-        run: make dirac-slices
+        # The four-seat Commander pods run too (a census, not a gate: dirac-pods is not -absolute). The log
+        # feeds slices-summary.json, which the docs site renders as its lockstep table.
+        run: |
+          set -o pipefail
+          make dirac-slices dirac-pods 2>&1 | tee slices.log
+      # Written even when a slice failed: a divergence is a number the docs table should show. Main only (nightly,
+      # push, dispatch), never a pull request or a queue batch; docs.yml downloads the newest.
+      - name: Summarize the slices for the docs site
+        if: ${{ !cancelled() && hashFiles('slices.log') != '' }}
+        run: python3 scripts/dirac_slices_summary.py slices.log -o slices-summary.json --commit "$GITHUB_SHA" --date "$(date -u +%F)"
+      - name: Upload the slice summary
+        if: ${{ !cancelled() && hashFiles('slices-summary.json') != '' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: slices-summary
+          path: slices-summary.json
+          retention-days: 90
       # 11-17: no batch ran a recorded repro (ci_shard.sh leaves dirac/oracle out, the oracle job is dispatch-only),
       # so main went red four times on repros only a later pull request's fast stage replays: a stale refusal (Maze
       # of Ith, Lotus Blossom), two halves of one fix (Sword Coast Serpent), and #832 drifting 18 recordings under
