@@ -166,10 +166,10 @@ const (
 	// string literal plus strings.EqualFold calls with a literal argument: the
 	// if-chain spelling of the `case "X":` dispatch stringCaseLiterals froze
 	// at zero.
-	stringLiteralCompares = 2772
+	stringLiteralCompares = 2765
 	// rawBoolParamParses is the strings.EqualFold calls whose argument holds a
 	// Param/ParamStr call: a flag parameter re-parsed at each use.
-	rawBoolParamParses = 267
+	rawBoolParamParses = 266
 	// stringKeyedParamReads is the string literals passed at the key position
 	// of a string-keyed parameter helper (effects.Num and kin, found
 	// automatically: codeshape.Metrics.StringKeyedParamHelpers): the helper
