@@ -2,6 +2,7 @@ Abrade
 Abuelo's Awakening
 Abuelo, Ancestral Echo
 Abyssal Gorestalker
+Aclazotz, Deepest Betrayal
 Acolyte of Aclazotz
 Acrobatic Leap
 Adaptive Gemguard
@@ -9,6 +10,7 @@ Akal Pakal, First Among Equals
 Akawalli, the Seething Tower
 Ancestors' Aid
 Ancestral Reminiscence
+Anim Pakal, Thousandth Moon
 Another Chance
 Armored Kincaller
 Attentive Sunscribe
@@ -23,6 +25,7 @@ Braided Net
 Brass's Tunnel-Grinder
 Brazen Blademaster
 Breeches, Eager Pillager
+Bringer of the Last Gift
 Broodrage Mycoid
 Buried Treasure
 Burning Sun Cavalry
@@ -33,6 +36,8 @@ Captain Storm, Cosmium Raider
 Captivating Cave
 Careening Mine Cart
 Cartographer's Companion
+Cavern Stomper
+Cavern of Souls
 Cenote Scout
 Chart a Course
 Child of the Volcano
@@ -65,6 +70,7 @@ Digsite Conservator
 Dinotomaton
 Disruptor Wanderglyph
 Disturbed Slumber
+Dowsing Device
 Dreadmaw's Ire
 Dusk Rose Reliquary
 Earthshaker Dreadmaw
@@ -120,6 +126,7 @@ Join the Dead
 Kaslem's Stonetree
 Kinjalli's Dawnrunner
 Kutzil's Flanker
+Kutzil, Malamet Exemplar
 Lodestone Needle
 Malamet Battle Glyph
 Malamet Brawler
@@ -137,11 +144,13 @@ Mineshaft Spider
 Mischievous Pup
 Molten Collapse
 Mountain
+Nicanzil, Current Conductor
 Oaken Siren
 Oltec Archaeologists
 Oltec Cloud Guard
 Orazca Puzzle-Door
 Oteclan Landmark
+Out of Air
 Over the Edge
 Palani's Hatcher
 Panicked Altisaur
@@ -165,6 +174,7 @@ Resplendent Angel
 Restless Anchorage
 Restless Reef
 Restless Ridgeline
+Restless Vents
 River Herald Guide
 River Herald Scout
 Roaming Throne
@@ -188,6 +198,7 @@ Souls of the Lost
 Spelunking
 Spring-Loaded Sawblades
 Spyglass Siren
+Squirming Emergence
 Staggering Size
 Stalactite Stalker
 Starving Revenant
@@ -204,8 +215,10 @@ Tectonic Hazard
 Tendril of the Mycotyrant
 Terror Tide
 The Ancient One
+The Belligerent
 The Mycotyrant
 Thousand Moons Crackshot
+Thousand Moons Smithy
 Thrashing Brontodon
 Threefold Thunderhulk
 Tinker's Tote

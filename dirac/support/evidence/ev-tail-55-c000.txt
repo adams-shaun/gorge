@@ -78,6 +78,7 @@ Burning Hands
 Burnt Offering
 Caldera Kavu
 Capsize
+Cascade Bluffs
 Caustic Wasps
 Cavalier of Night
 Centaur Rootcaster
@@ -411,6 +412,7 @@ Smash to Dust
 Snubhorn Sentry
 Soaring Seacliff
 Sokka's Sword Training
+Sol'Kanar the Tainted
 Soliton
 Songstitcher
 Soul Channeling

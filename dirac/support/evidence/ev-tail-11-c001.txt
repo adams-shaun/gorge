@@ -104,6 +104,7 @@ Dauthi Warlord
 Dawnbringer Cleric
 Day of the Dragons
 Deadeye Harpooner
+Deceiver Exarch
 Defiant Falcon
 Deglamer
 Demonic Consultation
@@ -359,6 +360,7 @@ Sentinels of Glen Elendra
 Setessan Griffin
 Shacklegeist
 Sheltered Thicket
+Shenanigans
 Shire Scarecrow
 Shire Terrace
 Shiv's Embrace

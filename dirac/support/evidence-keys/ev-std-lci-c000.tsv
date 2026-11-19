@@ -3,6 +3,7 @@ Abrade	c3ab9a67695d8dbb	6	0/0		1/2	ix:resp
 Abuelo's Awakening	902333c4112cf840	3	0/0		2/4	f0/s/x0,ix:resp
 Abuelo, Ancestral Echo	c09d0e5129c99ef2	4	2/2		0/1	ix:resp
 Abyssal Gorestalker	15de615a181d2ab8	4	1/1		0/1	ix:resp
+Aclazotz, Deepest Betrayal	6b7953e22740ac60	10	5/5		1/1	
 Acolyte of Aclazotz	d65323cee3abba62	5	1/1		0/1	ix:resp
 Acrobatic Leap	b51aafc1b62044c3	5	0/0		1/2	ix:resp
 Adaptive Gemguard	b20d36928abc2441	5	1/1		0/1	ix:resp
@@ -10,6 +11,7 @@ Akal Pakal, First Among Equals	56f013226cf92b0b	4	1/1		0/1	ix:resp
 Akawalli, the Seething Tower	5dda7f2e89dc257c	3	0/0		0/0	
 Ancestors' Aid	549a178ed3462a8e	9	0/0		1/2	ix:resp
 Ancestral Reminiscence	13f74da23113be6f	6	0/0		1/2	ix:resp
+Anim Pakal, Thousandth Moon	f282d9f001d96847	4	1/1		0/1	ix:resp
 Another Chance	bd0dc172bca648ec	3	0/0		1/2	ix:resp
 Armored Kincaller	74f3568a493a92be	7	1/1		1/1	
 Attentive Sunscribe	53dc7b106511aed5	12	1/1		1/1	
@@ -24,6 +26,7 @@ Braided Net	93ff8492460f72c7	5	3/3		1/1
 Brass's Tunnel-Grinder	dc97af09cc326512	9	4/4		0/1	ix:resp
 Brazen Blademaster	2aedb56bdac3f139	6	1/1		0/1	ix:resp
 Breeches, Eager Pillager	0d9387ee0ea15dfa	5	1/1		0/1	ix:resp
+Bringer of the Last Gift	9cdc31d7ded51001	6	1/1		0/1	ix:resp
 Broodrage Mycoid	c0eec8da4501260a	4	1/1		0/1	ix:resp
 Buried Treasure	c5c7219e2013b5d2	8	2/2		0/1	ix:resp
 Burning Sun Cavalry	92c6baaf5de2b1e1	4	2/2		0/1	ix:resp
@@ -34,6 +37,8 @@ Captain Storm, Cosmium Raider	d6c66e7bde9e1ce0	4	1/1		0/1	ix:resp
 Captivating Cave	11b24e94ee6ee8c1	7	3/3		0/1	ix:resp
 Careening Mine Cart	7b89ddaf951ddb02	4	2/2		0/1	ix:resp
 Cartographer's Companion	b1d129fc10fd9df7	8	1/1		1/1	
+Cavern Stomper	50be72022cee8753	16	2/2		1/1	
+Cavern of Souls	54fbff659a3b887d	179	2/2		0/1	ix:resp
 Cenote Scout	2143e3ecdffd6886	6	1/1		0/1	ix:resp
 Chart a Course	680d5db2ad529ef4	7	0/0		1/2	ix:resp
 Child of the Volcano	ed3b3fea246178e3	6	1/1		0/1	ix:resp
@@ -66,6 +71,7 @@ Digsite Conservator	1361c4835630d002	4	2/2		0/1	ix:resp
 Dinotomaton	2b1508210f1a0489	8	1/1		1/1	
 Disruptor Wanderglyph	85b7513c7b7cc42d	7	1/1		0/1	ix:resp
 Disturbed Slumber	fb733b0b1ca66d82	10	0/0		1/2	ix:resp
+Dowsing Device	08b3a3e4f7e55a20	17	3/3		1/1	
 Dreadmaw's Ire	6e2702eba3d661e0	4	0/0		1/2	ix:resp
 Dusk Rose Reliquary	c7f1b3de9d00dec9	4	2/2		0/1	ix:resp
 Earthshaker Dreadmaw	ff7a01f7dd0532df	5	1/1		0/1	ix:resp
@@ -121,6 +127,7 @@ Join the Dead	0e95789fe8a8fc79	4	0/0		1/2	ix:resp
 Kaslem's Stonetree	f97a19d7643ab912	4	2/2		1/1	
 Kinjalli's Dawnrunner	606bb59ef48d9c43	8	1/1		0/1	ix:resp
 Kutzil's Flanker	78d4c48296e086de	8	1/1		0/1	ix:resp
+Kutzil, Malamet Exemplar	64fb64715b884288	6	1/1		0/1	ix:resp
 Lodestone Needle	387030757eba24bb	6	3/3		0/1	ix:resp
 Malamet Battle Glyph	e765a3e7e2d178db	4	0/0		1/2	ix:resp
 Malamet Brawler	c37569d08e45b192	4	1/1		0/1	ix:resp
@@ -138,11 +145,13 @@ Mineshaft Spider	1749d8235a2f235d	6	1/1		1/1
 Mischievous Pup	c77714f7aa90f135	10	1/1		0/1	ix:resp
 Molten Collapse	64eb746d3ae000aa	3	0/0		1/2	ix:resp
 Mountain	9e71388353e907ed	58	1/1		0/1	ix:resp
+Nicanzil, Current Conductor	2da064556f52afa3	7	2/2		0/1	ix:resp
 Oaken Siren	5a7afaed53531b7e	6	1/1		0/1	ix:resp
 Oltec Archaeologists	d0f83e2a992b0936	8	1/1		0/1	ix:resp
 Oltec Cloud Guard	5e93d297bb35656c	6	1/1		0/1	ix:resp
 Orazca Puzzle-Door	a2e6b3d4b174bc45	4	1/1		0/1	ix:resp
 Oteclan Landmark	fb5dd9502fb928be	4	3/3		1/1	
+Out of Air	9b790b6cbc75eca8	10	0/0		1/2	ix:resp
 Over the Edge	6d6a757e520fa662	4	0/0		1/2	ix:resp
 Palani's Hatcher	89ae9abf5fee4586	3	2/2		0/1	ix:resp
 Panicked Altisaur	81c7c13dff151757	5	1/1		0/1	ix:resp
@@ -166,6 +175,7 @@ Resplendent Angel	65089fb80e8cd924	15	2/2		1/1
 Restless Anchorage	f3f52461b1c75046	12	3/3		1/1	
 Restless Reef	cd175428ae96242b	6	3/3		1/1	
 Restless Ridgeline	35ab2d1d8d1e8d8d	18	3/3		0/1	ix:resp
+Restless Vents	5aa597a05091ed07	32	3/3		1/1	
 River Herald Guide	e076fc6c3f258c9e	4	1/1		0/1	ix:resp
 River Herald Scout	e6aed756dd101861	5	1/1		1/1	
 Roaming Throne	d82cf0da161badf3	11	1/1		1/1	
@@ -189,6 +199,7 @@ Souls of the Lost	240b82cabe8c2258	3	0/0		0/0
 Spelunking	e4909044e9c162f3	11	1/1		0/1	ix:resp
 Spring-Loaded Sawblades	4644fb73c57e1323	10	4/4		1/1	
 Spyglass Siren	3fdc785249d60842	3	1/1		0/1	ix:resp
+Squirming Emergence	5e2cdd71c2af5e6a	4	0/0		1/2	ix:resp
 Staggering Size	c5849e1919498377	8	0/0		1/2	ix:resp
 Stalactite Stalker	a859c00d14c79c4b	8	2/2		1/1	
 Starving Revenant	17d1f42dd273f091	8	2/2		0/1	ix:resp
@@ -205,8 +216,10 @@ Tectonic Hazard	3b08b64a4d6f9962	4	0/0		1/2	ix:resp
 Tendril of the Mycotyrant	7de4e6f6b06173a0	4	1/1		0/1	ix:resp
 Terror Tide	1875a80f471aafe8	14	0/0		2/2	
 The Ancient One	357dacffc3a210ac	4	1/1		1/1	
+The Belligerent	5fdaf3f2daad7aad	16	2/2		0/1	ix:resp
 The Mycotyrant	f227957a41bb12d8	4	1/1		0/1	ix:resp
 Thousand Moons Crackshot	215567030b1fdf47	3	1/1		0/1	ix:resp
+Thousand Moons Smithy	8ece64891ae7f5e4	12	4/4		0/1	ix:resp
 Thrashing Brontodon	a611b46f02874e3b	6	1/1		0/1	ix:resp
 Threefold Thunderhulk	0212071299b69905	8	3/3		1/1	
 Tinker's Tote	b2be105e82f28d07	4	2/2		0/1	ix:resp

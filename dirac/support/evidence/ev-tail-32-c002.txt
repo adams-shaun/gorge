@@ -6,6 +6,7 @@ Alabaster Wall
 Alchor's Tomb
 Annoyed Altisaur
 Apprentice Sorcerer
+Arcbound Hybrid
 Archfiend of Sorrows
 Arctic Treeline
 Ashling the Pilgrim
@@ -32,12 +33,15 @@ Cast Down
 Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
+Celestial Purge
+Channel the Suns
 Chaotic Goo
 Clot Sliver
 Cold Storage
 Combust
 Copper Host Crusher
 Copper Myr
+Court Homunculus
 Cut
 Dakmor Plague
 Dark Betrayal
@@ -46,6 +50,8 @@ Dementia Bat
 Demystify
 Deploy the Gatewatch
 Drana, Liberator of Malakir
+Drown in Ichor
+Dwarven Warriors
 Dwell on the Past
 Elite Scaleguard
 Elspeth Tirel
@@ -53,6 +59,7 @@ Encroach
 Enthusiastic Mechanaut
 Essence Flare
 Evangel of Synthesis
+Evaporate
 Eviscerator's Insight
 Expedition Diviner
 Familiar Ground
@@ -71,6 +78,7 @@ Geier Reach Sanitarium
 Ghastly Demise
 Ghost-Spider, Gwen Stacy
 Ghostly Visit
+Glare of Subdual
 Glimmerbell
 Go-Shintai of Shared Purpose
 Goblin Bombardment
@@ -83,6 +91,7 @@ Hall of Oracles
 Hallowed Healer
 Haunted Cloak
 Hollowhenge Overlord
+Honor the Past
 Hour of Reckoning
 Howlpack Resurgence
 Hulking Cyclops
@@ -98,6 +107,7 @@ Ivory Crane Netsuke
 Izzet Charm
 Koilos Roc
 Krenko's Enforcer
+Krosan Restorer
 Lace with Moonglove
 Leo's Guidance
 Lesser Gargadon
@@ -111,9 +121,11 @@ Luminarch Ascension
 Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
+Magus of the Candelabra
 Master Decoy
 Meldweb Strider
 Memory Worm
+Mercurial Spelldancer
 Merrow Bonegnawer
 Mesa Lynx
 Metallic Mastery
@@ -123,6 +135,7 @@ Mirror Image
 Mistcutter Hydra
 Monstrous Hound
 Morbid Bloom
+Mortician Beetle
 Mountain
 Multiversal Recruitment
 Mystic Restraints
@@ -154,6 +167,8 @@ Returned Centaur
 Rhox Brute
 Righteousness
 Riot Gear
+Rofellos, Llanowar Emissary
+Root Greevil
 Ruin Ghost
 Rust Monster
 Salt Marsh
@@ -173,9 +188,11 @@ Smashing Spree
 Spellseeker
 Spitting Spider
 Spontaneous Flight
+Squall Line
 Star of Extinction
 Steel Golem
 Steeple Roc
+Storm Crow
 Strength of Arms
 Sunblade Angel
 Surreal Memoir
@@ -188,6 +205,7 @@ The Prydwen, Steel Flagship
 The Royal Scions
 Thorn Lieutenant
 Thraben Gargoyle
+Thran Lens
 Thriving Ibex
 Tidal Force
 Tolarian Sentinel

@@ -1,0 +1,109 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Adventuring Gear	2088a31cb9ee1ed0	6	2/2		0/1	ix:resp
+Aetherize	c06bbace91ef80a8	4	0/0		1/2	ix:resp
+Ambush Wolf	6e7457d61a776fc6	5	1/1		0/1	ix:resp
+Angel of Finality	cfd3c3494b5332be	4	1/1		0/1	ix:resp
+Arcanis the Omnipotent	df4640683d3cea35	9	2/2		1/1	
+Azorius Guildgate	0c6f7074e8fe3eac	6	1/1		0/1	ix:resp
+Battle-Rattle Shaman	022805f2d687bd9b	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Bear Cub	755723f4030a67fc	4	0/0		0/0	
+Bishop's Soldier	ba3c50b9f1c25586	6	0/0		0/0	
+Blanchwood Armor	099f8f9323392a35	7	0/0		1/2	ix:resp
+Blasphemous Edict	d42cfd1af19dba7d	4	0/0		1/2	ix:resp
+Bloodfell Caves	d44eeb6246b2db67	4	2/2		0/1	ix:resp
+Burst Lightning	4e791fe7bd67d888	4	0/0		3/4	cast/alt:kicked
+Bushwhack	d5be4edcbcc661aa	4	0/0		1/2	ix:resp
+Celestial Armor	22c1547b5d7659bb	8	2/2		0/1	ix:resp
+Cephalid Inkmage	047b0652ddf6ad8f	5	1/1		0/1	ix:resp
+Charming Prince	df6379b844fd3e42	4	1/1		0/1	ix:resp
+Chart a Course	680d5db2ad529ef4	4	0/0		1/2	ix:resp
+Claws Out	c848c8e79e08a13a	4	0/0		2/2	
+Consuming Aberration	3dc1c7e0e9a1ebaf	4	1/1		0/1	ix:resp
+Crusader of Odric	a394b00de9dd8c2e	4	0/0		0/0	
+Cryptic Caves	f9d09e90c9e5fb04	10	2/2		0/1	ix:resp
+Crystal Barricade	223fbf6d297cdb01	8	0/0		0/0	
+Curator of Destinies	c8d12adf1bf887bd	4	1/1		0/1	ix:resp
+Deadly Brew	85418b4954b2f176	4	0/0		1/2	ix:resp
+Deadly Riposte	b0b79e5c04e29079	6	0/0		2/2	
+Diregraf Ghoul	0a17f06af18f712d	4	0/0		0/0	
+Dismal Backwater	5e66080fc2bbd812	8	2/2		0/1	ix:resp
+Divine Resilience	d74777d203d1e3ca	4	0/0		3/4	ix:resp
+Doubling Season	648d0c3f638d0a90	10	0/0		0/0	
+Dragon Trainer	76686239f5ddb707	4	1/1		1/1	
+Dwynen, Gilt-Leaf Daen	be486f99b4a0c1a4	4	1/1		0/1	ix:resp
+Elementalist Adept	a937d7fa6fc2c5b5	6	1/1		1/1	
+Fake Your Own Death	3075b109001ea79d	12	0/0		2/2	
+Fleeting Flight	7797c06ff9e415a9	8	0/0		1/2	ix:resp
+Forest	6d0466c30f825dba	67	1/1		0/1	ix:resp
+Garruk's Uprising	8d9cdf0e9d9096d1	8	2/2		0/1	ix:resp
+Gatekeeper of Malakir	4c64acaef83893ff	5	1/1		3/3	
+Gateway Sneak	33e9a7645bf4afa4	10	2/2		1/1	
+Giant Growth	010ba87094de43e0	7	0/0		1/2	ix:resp
+Gnarlid Colony	7ba5677f1ea76991	4	0/0		1/2	cast/alt:kicked
+Goblin Smuggler	223b78f6ee48f73a	4	1/1		1/1	
+Grow from the Ashes	c208fcde354ca8a9	5	0/0		3/4	ix:resp
+Gutless Plunderer	2945d6ea8dada8a7	7	1/1		0/1	ix:resp
+Guttersnipe	ee8ce5bd50c06510	4	1/1		0/1	ix:resp
+Helpful Hunter	41dfc8b1026e22f3	6	1/1		0/1	ix:resp
+Herald of Eternal Dawn	db92bb559add26db	4	0/0		0/0	
+Heraldic Banner	e25c1028cd08c881	6	1/1		1/1	
+Hero's Downfall	0c06cf7312737315	10	0/0		1/2	ix:resp
+Into the Roil	24483411a5b14b54	4	0/0		2/4	cast/alt:kicked,ix:resp
+Involuntary Employment	221bf2cd00f0358f	4	0/0		2/2	
+Island	763c67ef7a27eaf5	59	1/1		0/1	ix:resp
+Joust Through	404f506373beac70	4	0/0		1/2	ix:resp
+Juggernaut	9ad39c8670ccd82b	4	0/0		0/0	
+Kargan Dragonrider	07df28cdf07e393c	4	0/0		0/0	
+Kindled Fury	47cc47f2c4485f91	4	0/0		1/2	ix:resp
+Knight of Malice	8df91191949e0d2a	6	0/0		0/0	
+Macabre Waltz	725c3b33ffebff7f	4	0/0		1/2	ix:resp
+Make Your Move	429dbfd63d7373c3	6	0/0		1/2	ix:resp
+Mazemind Tome	aa44dd73c9426603	8	3/3		0/1	ix:resp
+Mentor of the Meek	c10286fc41b98ef3	7	1/1		1/1	
+Mischievous Pup	c77714f7aa90f135	3	1/1		0/1	ix:resp
+Moment of Craving	64d3a8b45f19bb23	4	0/0		2/2	
+Moment of Triumph	34cf6d6093630881	4	0/0		1/2	ix:resp
+Mossborn Hydra	f53f3a9cb8c78a25	4	1/1		1/1	
+Mountain	9e71388353e907ed	28	1/1		0/1	ix:resp
+New Horizons	79272e61076f12bd	6	1/1		1/2	ix:resp
+Orzhov Guildgate	0b2b8b026a48ccd3	6	1/1		0/1	ix:resp
+Painful Quandary	09242fd0b617a843	4	1/1		0/1	ix:resp
+Pirate's Cutlass	31c9808d1134f456	4	2/2		0/1	ix:resp
+Plains	82d63a695487e567	55	1/1		0/1	ix:resp
+Prayer of Binding	006809cf4e0c88f6	4	1/1		0/1	ix:resp
+Primeval Bounty	147bf9eb52868ff5	3	3/3		0/1	ix:resp
+Quick Study	f8d11d7db5baeb21	4	0/0		1/2	ix:resp
+Rakdos Guildgate	eff7019a3a6da667	5	1/1		0/1	ix:resp
+Release the Dogs	933db8ff04c4cc81	3	0/0		1/2	ix:resp
+Revenge of the Rats	d3361d2c39dee7fe	4	0/0		3/4	ix:resp
+River's Rebuke	bbde8d3eb7c06d77	7	0/0		2/2	
+Rugged Highlands	c385c84ca50a88c5	4	2/2		0/1	ix:resp
+Sanguine Syphoner	054b1e7169f3ec0d	4	1/1		0/1	ix:resp
+Scavenging Ooze	344461eaf286fcd2	3	1/1		1/1	
+Scoured Barrens	2a8ad4d6c4d7dad0	4	2/2		0/1	ix:resp
+Seismic Rupture	51035720340331df	4	0/0		1/2	ix:resp
+Selesnya Guildgate	819deb8c240783dd	10	1/1		0/1	ix:resp
+Self-Reflection	7e3a43b253e8cbd6	6	0/0		4/4	
+Skeleton Archer	61e7499f80358e24	4	1/1		0/1	ix:resp
+Slumbering Cerberus	fb3195488da821b9	4	1/1		0/1	ix:resp
+Soul-Shackled Zombie	4c05cd1abe2690df	4	1/1		0/1	ix:resp
+Stroke of Midnight	f2235c1514c9f162	4	0/0		1/2	ix:resp
+Stromkirk Bloodthief	e308c4b74258c7de	4	1/1		0/1	ix:resp
+Surrak, the Hunt Caller	27e6a84f8757bae1	4	1/1		1/1	
+Swamp	342b413902f441c3	217	1/1		0/1	ix:resp
+Sylvan Scavenging	23057e0f8bcef8f6	4	1/1		1/1	
+Syr Alin, the Lion's Claw	450aff3b900d0652	3	1/1		0/1	ix:resp
+Temple of Abandon	22faf628c1b97997	4	2/2		0/1	ix:resp
+Temple of Deceit	6c442d92108d0cf9	6	2/2		0/1	ix:resp
+Temple of Enlightenment	556e52f0a647ac38	4	2/2		0/1	ix:resp
+Temple of Epiphany	ab477e7f802cff6e	10	2/2		0/1	ix:resp
+Temple of Silence	de1696173761ef66	4	2/2		0/1	ix:resp
+Thornwood Falls	b5faccb9100b5676	8	2/2		0/1	ix:resp
+Time Stop	c0e703fbe37b040f	3	0/0		2/2	
+Tranquil Cove	dc325700d59f5e6e	4	2/2		0/1	ix:resp
+Tribute to Hunger	04b3c82f78409a17	3	0/0		2/2	
+Uncharted Haven	0acf75ba4141b9c1	10	1/1		0/1	ix:resp
+Voracious Greatshark	a663960369a63cb7	3	1/1		1/1	
+Wardens of the Cycle	61d7fa303666bfdf	4	1/1		0/1	ix:resp
+Wishclaw Talisman	2ebe327de8c05205	79	1/1		1/1	
+Zombify	58d67ae8058292dc	6	0/0		2/2	

@@ -1,6 +1,7 @@
 About Face
 Against All Odds
 Ancient Hydra
+Angelic Exaltation
 Ballynock Cohort
 Banishing Slash
 Barrowgoyf
@@ -21,11 +22,15 @@ Darksteel Mutation
 Deceiver Exarch
 Dreadhound
 Dynacharge
+Eldrazi Skyspawner
 Engineered Explosives
+Evangel of Heliod
 Expunge
 Exsanguinate
+Faerie Mechanist
 Falkenrath Noble
 Feral Hydra
+Flock Impostor
 Forest
 Gloom Sower
 Goblinslide
@@ -34,10 +39,12 @@ Goldmeadow Harrier
 Halimar Depths
 Healer's Hawk
 Imperious Perfect
+Inferno Jet
 Intangible Virtue
 Island
 Kami of False Hope
 Kenrith's Transformation
+Kor Cartographer
 Kor Firewalker
 Madcap Skills
 Merciless Executioner
@@ -50,14 +57,19 @@ Nevermaker
 Nyxborn Hydra
 Plains
 Portent
+Prosperous Pirates
 Pyrohemia
 Quest for Pure Flame
+Quest for the Gravelord
 Renegade Warlord
+Reverent Mantra
 Rogue's Passage
 Sage's Reverie
 Sea Gate
+Sejiri Merfolk
 Send in the Pest
 Sheoldred, Whispering One
+Shimmering Glasskite
 Sign in Blood
 Skeletal Wurm
 Sparkmage Apprentice
@@ -65,6 +77,8 @@ Spitting Earth
 Stand Together
 Stromgald Crusader
 Swamp
+Sword Coast Serpent
+Trumpeting Herd
 Twinferno
 Ultimate Price
 Volcanic Dragon

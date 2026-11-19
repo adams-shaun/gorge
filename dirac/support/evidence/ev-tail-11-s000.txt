@@ -1,3 +1,4 @@
+A-Dwarfhold Champion
 A-Gnarlid Colony
 Agoraphobia
 Ajani, Strength of the Pride
@@ -6,16 +7,20 @@ Alabaster Mage
 Alpine Guide
 Angelic Voices
 Anje, Maid of Dishonor
+Annihilating Glare
 Aphemia, the Cacophony
 Archdemon of Paliano
+Arctic Aven
 Artful Dodge
 Assassin Initiate
 Astral Steel
 Barbarian Lunatic
 Black Market
+Blazing Rootwalla
 Blood-Toll Harpy
 Bloodbriar
 Brainbite
+Brute Strength
 Bucky Barnes, Eager Ally
 Caller of Gales
 Carnophage
@@ -28,6 +33,7 @@ Control of the Court
 Craven Hulk
 Curse Artifact
 Dakmor Sorceress
+Dawnbringer Cleric
 Deadeye Harpooner
 Deceiver Exarch
 Defiant Falcon
@@ -41,6 +47,7 @@ Disfigure
 Divine Verdict
 Dragonstalker
 Dream's Grip
+Druidic Satchel
 Dwarven Hammer
 Elven Rite
 Emry, Lurker of the Loch
@@ -58,8 +65,11 @@ Furnace Whelp
 Future Flight
 Galerider Sliver
 Gerrard's Wisdom
+Gift of Wrath
+Glamdring
 Glistener Seer
 Glorifier of Dusk
+Gnottvold Recluse
 Goblin Razerunners
 Goblin War Cry
 God-Pharaoh's Statue
@@ -68,6 +78,7 @@ Grim Flowering
 Grotag Thrasher
 Hellkite Whelp
 Hematite Golem
+Hideous Visage
 Hithlain Knots
 Hovermyr
 Icequake
@@ -75,6 +86,7 @@ Icy Prison
 Idyllic Beachfront
 Irresistible Prey
 Island
+Jace's Sanctum
 Jamie McCrimmon
 Judith, the Scourge Diva
 Juvenile Mist Dragon
@@ -85,6 +97,7 @@ Larder Zombie
 Lay Down Arms
 Lead Astray
 Leaden Myr
+Leonin Den-Guard
 Life Burst
 Llanowar Loamspeaker
 Loam Lion
@@ -94,12 +107,14 @@ Lotus Bloom
 Loxodon Wayfarer
 Malakir Rebirth
 Mana Cannons
+Mana Geyser
 Mer Man
 Metathran Transport
 Mind Knives
 Mindless Conscription
 Monstrous Growth
 Morgue Burst
+Mortal Obstinacy
 Mountain
 Multani's Harmony
 Myr Propagator
@@ -117,6 +132,7 @@ Parallax Tide
 Path of Bravery
 Pathway Arrows
 Petrified Plating
+Phyrexian Warhorse
 Piper Wright, Publick Reporter
 Pirate's Pillage
 Plains
@@ -130,14 +146,18 @@ Pygmy Kavu
 Raptor Hatchling
 Redirect
 Rock Slide
+Rotting Regisaur
 Sacrifice
 Sage's Row Denizen
 Sakashima's Student
+Sanctum Weaver
 Sanguine Statuette
 Scrapyard Recombiner
 Seachrome Coast
 Secrets of the Key
+Send to Sleep
 Sentinels of Glen Elendra
+Setessan Griffin
 Shacklegeist
 Shenanigans
 Silkenfist Order
@@ -149,12 +169,15 @@ Sledding Otter-Penguin
 Sleep of the Dead
 Smelted Chargebug
 Smoldering Crater
+Somberwald Beastmaster
 Sparkshaper Visionary
 Spike-Tailed Ceratops
 Spinneret Sliver
 Splendid Agony
+Sporeweb Weaver
 Squealing Devil
 Stampede Driver
+Steel Sabotage
 Stormrider Spirit
 Sudden Death
 Supreme Phantom
@@ -168,6 +191,7 @@ Territorial Scythecat
 The Revelations of Ezio
 Tidebinder Mage
 Tidepool Turtle
+Tomakul Honor Guard
 Tormentor Exarch
 Tortoise Formation
 Traverse Eternity
@@ -184,6 +208,7 @@ Vermiculos
 Vicious Offering
 Victimize
 Voice of Law
+Voidmage Prodigy
 Voracious Vampire
 Walking Sponge
 Wash Out

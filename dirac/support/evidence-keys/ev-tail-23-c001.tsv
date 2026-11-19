@@ -1,13 +1,18 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Ancient Ziggurat	0eafdb4e43dd7f9f	8	1/1		0/1	ix:resp
 Arvad the Cursed	dc6588ee2dd4ea90	4	0/0		0/0	
 Burakos, Party Leader	d40b7add4edb2412	4	1/1		0/1	ix:resp
 Cinder Glade	6e55cc1d8e98074d	71	2/2		0/1	ix:resp
 Exile	0c84550c04f6fe99	7	0/0		2/2	
 Hunting Pack	8b49d055703c8153	10	1/1		2/2	
+Mossfire Valley	46eb715f76d1f494	29	1/1		0/1	ix:resp
 No One Left Behind	39ef14603c291e76	9	0/0		2/2	
 Pitiless Pontiff	d982629746004f22	6	1/1		1/1	
+Riveteers Overlook	49dbb45dc5220084	6	1/1		0/1	ix:resp
+Sand Silos	8f01eba14c7a92ab	10	2/2		0/1	ix:resp
 Selfless Glyphweaver	6bdd25aa1c5492d9	8	1/1		2/2	
 Shivan Branch-Burner	5db213441c0d9d77	5	0/0		0/0	
 Silverfur Partisan	d7a8f2b9e092b1bd	12	1/1		0/1	ix:resp
 Stone Quarry	fdffc0ba84b5e940	22	1/1		0/1	ix:resp
+Sword of the Meek	93d50053c7fd78eb	40	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Venomous Fangs	68f3c50cee6ec491	10	1/1		2/2	

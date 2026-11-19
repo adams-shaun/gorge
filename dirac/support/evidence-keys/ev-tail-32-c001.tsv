@@ -2,6 +2,7 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Abstruse Interference	8e3a9496a8e7136b	3	0/0		1/2	ix:resp
 Advocate of the Beast	7ae5e7d97b2c2997	4	1/1		0/1	ix:resp
 Akki Rockspeaker	1c877c1f66b78259	4	1/1		1/1	
+Arena Athlete	5a45afd37bf395da	8	1/1		0/1	ix:resp
 Attrition	0ef985a4765623fd	4	1/1		0/1	ix:resp
 Blood Rites	52d32a5b24499be7	3	1/1		0/1	ix:resp
 Blunt the Assault	0a9df5063530adf1	3	0/0		2/2	
@@ -16,11 +17,13 @@ Conclave Mentor	1734751da5fc61e0	10	1/1		0/1	ix:resp
 Consuming Sinkhole	aaba51e0a0b7d214	4	0/0		1/2	ix:resp
 Copper Host Crusher	5f977d1c52fe5ad0	5	0/0		0/0	
 Court Homunculus	0ce5e66f433ca485	4	0/0		0/0	
+Cut	7b1b4871806241d5	6	0/0		4/7	f1/s,f1/s/x+,f1/s/x0
 Death's Presence	fb2c2b24647bb67f	3	1/1		0/1	ix:resp
 Dryad Greenseeker	10da06049d9715a6	6	1/1		0/1	ix:resp
 Elas il-Kor, Sadistic Pilgrim	4cceb7c3633ef5a2	4	2/2		0/1	ix:resp
 Ertai Resurrected	e1bd5cb95e80692e	4	1/1		0/1	ix:resp
 Eternal Skylord	8b6a49b6344af639	4	1/1		0/1	ix:resp
+Evaporate	3063c6f97bbe6f92	4	0/0		1/2	ix:resp
 Explosive Impact	72838393582bdc92	8	0/0		1/2	ix:resp
 Facevaulter	2909076beb61b45a	5	1/1		0/1	ix:resp
 Familiar Ground	9e019d807c452cca	4	0/0		0/0	
@@ -37,6 +40,7 @@ Kruin Striker	dbb51f5c9bae5ba2	4	1/1		0/1	ix:resp
 Kukemssa Pirates	0273c4e4bed563ba	5	1/1		0/1	ix:resp
 Mandibular Kite	5f19e89369943863	4	2/2		0/1	ix:resp
 Memory Drain	c46fd829c51d7202	12	0/0		1/2	ix:resp
+Mindless Null	a765b6fba3bc77f0	4	0/0		0/0	
 Mistcutter Hydra	2de897cc411ea6cb	4	0/0		0/0	
 Morbid Bloom	7b097cd23dea84d4	31	0/0		2/2	
 Night Scythe	8eaa9c81ea0207bf	6	2/2		0/1	ix:resp
@@ -48,13 +52,17 @@ Prized Statue	3fc6347c4a4dd774	4	2/2		0/1	ix:resp
 Provoke	1927cf5f31f1c64e	4	0/0		1/2	ix:resp
 Raging Spirit	f9ad9a26c24fae84	3	1/1		0/1	ix:resp
 Rakka Mar	c7acdf82078f50bc	10	1/1		0/1	ix:resp
+Ravenous Harpy	0104258b9627be58	6	1/1		1/1	
 Reckless Imp	3a4c602681840bb2	9	0/0		2/2	
 Root Greevil	def19c81f79ab70e	6	1/1		0/1	ix:resp
 Sokka, Swordmaster	57eafca79c98ec24	4	1/1		1/1	
+Soul Bleed	4c4338ec96c1e1fb	6	1/1		1/2	ix:resp
 Strandwalker	3587eaca0aecb313	6	2/2		0/1	ix:resp
 Territorial Aetherkite	e68a92eabadf7237	4	1/1		0/1	ix:resp
 Thran Lens	7eae2099f3b2d778	10	0/0		0/0	
+Valakut Fireboar	53ea89743e709d1d	4	1/1		0/1	ix:resp
 Vaporkin	e366e826894f1096	3	0/0		0/0	
 Wild Crocodile	953aede19e3ac2c4	4	1/1		0/1	ix:resp
 Wilderness Elemental	b1ffff6bdc456ae2	9	0/0		0/0	
+Witness of Tomorrows	f11687a9be46948c	6	1/1		0/1	ix:resp
 Wose Pathfinder	343f212c7c4d134f	6	2/2		0/1	ix:resp
