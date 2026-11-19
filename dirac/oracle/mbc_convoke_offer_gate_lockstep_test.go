@@ -8,7 +8,7 @@ import "testing"
 // affordable, with no census gap on the board. The kernel's lowering surface
 // refused the play as a planner shape:contribution and the offer vanished
 // (Worldsoul Colossus at decision 787 of tail-36 pair 1).
-func TestMBCWorldsoulColossusReprosLockstep(t *testing.T) {
+func TestMBCConvokeOfferGateReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "convoke_offer_gate")
 }
