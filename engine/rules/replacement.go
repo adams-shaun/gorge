@@ -422,31 +422,15 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	case events.DestroyProposal:
 		return e.continueDestroyReplacements(ev, matches)
 	case events.Damage:
-		matches = e.applicableDamageReplacements(ev, matches)
-		if len(matches) == 0 {
-			return ev, false
-		}
-		if (len(matches) > 1 && !allBarePreventions(matches)) || hasOptionalReplacement(matches) {
-			if p, ok := e.damageAffectedPlayer(ev); ok && !e.G.Players[p].Lost {
-				if applied, served := e.poseDamageReplacementChoice(ev, matches, e.replacementAskPlayer(matches, p)); served {
-					// Under the resolution kernel the ask was answered in place
-					// and the modified damage already landed: return the landed
-					// event so the emitting primitive (Host.EmitDamage's
-					// contract) reads the post-replacement amount for its
-					// ExcessSVar$/RememberDamaged$ riders. A fully prevented
-					// in-place hit arrives as the zero event and keeps the
-					// Note below, which the emitter reads as 0.
-					return applied, true
-				}
-				return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
-					Text: "damage awaiting replacement-order choice"}, true
-			}
-		}
-		return e.applyNonMoveReplacements(ev, matches)
+		return applyDamageClassReplacements(e, ev, matches)
 	case events.CounterChange, events.PlayerCounterChange:
 		return e.applyAddCounterReplacements(ev, matches)
 	case events.TurnFaceUp:
 		return e.applyTurnFaceUpReplacements(ev, matches)
+	case events.Proliferate:
+		// effProliferate's never-logged count proposal (the cascade kind's
+		// discipline): the rewritten count flows back through the event.
+		return applyProliferateReplacements(e, ev, matches)
 	case events.Cascade:
 		// The instruction proposal. Unlike every other kind here it has no
 		// logged event to emit or suppress: applyCascadeReplacements runs the
@@ -950,6 +934,17 @@ func replacementEventKind(ev events.Event) cards.ReplEvent {
 		// emitted, so no logged event can ever map here. The exiled batch
 		// rides ev.IDs and becomes Ctx.ReplacedCards on the body's context.
 		return cards.ReplCascade
+	case events.Proliferate:
+		// The proliferate-action replacement boundary (CR 614.4; Tekuthal,
+		// Inquiry Dominus). Only the synthetic PROPOSAL (effProliferate's
+		// CountReplacementProposed hold, the roll boundary's discipline)
+		// reaches the collection: the completed events.Proliferate markers
+		// the actions emit carry no proposal text, so they map no class --
+		// a replacement applies before the action, never to its record.
+		if ev.Text == events.ProliferateProposalText {
+			return cards.ReplProliferate
+		}
+		return 0
 	case events.MillProposal:
 		return cards.ReplMill
 	case events.Scry:
@@ -972,6 +967,14 @@ func replacementEventKind(ev events.Event) cards.ReplEvent {
 		// form (CounterChange) and the player form (PlayerCounterChange) share
 		// the class; the matcher splits them on ValidCard$/ValidObject$ vs
 		// ValidPlayer$.
+		//
+		// A REMOVAL (negative amount) is the R:Event$ RemoveCounter class
+		// instead (Fear of Sleep Paralysis's stun-counter lock): the two
+		// classes never share an event, so the sign routes them apart before
+		// either matcher runs.
+		if ev.Amount < 0 && !state.InternalCounterMarker(ev.Counter) {
+			return cards.ReplRemoveCounter
+		}
 		return cards.ReplAddCounter
 	case events.TurnFaceUp:
 		// The turn-up boundary itself (CR 614.1a with CR 708.6/702.36e):

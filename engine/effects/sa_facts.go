@@ -52,8 +52,11 @@ type SAFacts struct {
 	// MayAsk caches rules' resolution-kernel ask-free predicate over the
 	// ability and its SubAbility$ chain (engine/rules/resolve_mayask.go): a pure
 	// function of the text, filled on first use with an atomic store
-	// (0 unknown, 1 ask-free, 2 may ask).
-	MayAsk uint32
+	// (0 unknown, 1 ask-free, 2 may ask). uint64: the cache state packs the
+	// per-ReplEvent gate mask above its flag bits and the conditional reasons
+	// above the mask, and the mask's width is cards.ReplEventCount -- wide
+	// enough for 31 kinds (ReplProliferate, ReplRemoveCounter) only at 64.
+	MayAsk uint64
 
 	// The Charm/Pump/Draw compilers (charm_params.go,
 	// pump_params.go, draw_params.go): each is non-nil exactly when the
