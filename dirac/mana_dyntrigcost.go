@@ -7,21 +7,28 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // census source whose mana ability's amount is dynamic (AfManaDynamic, the
 // gfManaVar family: Lotus Blossom's "Add X mana of any one color, where X is
 // the number of petal counters on Lotus Blossom") while a source on the board
-// still yields mana now. gorge's potential walk (rules potential.go
-// addPotentialMana) prices such an amount potentialUnbounded -- an
-// indeterminate Amount$ is never priced at zero, whatever it reads now --
-// while the census prices the amount the source holds (gen.go varPC: zero
-// petals is zero mana and no planner unit, manaPCGen), so the gate's fold
-// (availPotentialFor) could not reach the cost and the ask was decline-only
-// while gorge offered pay beside decline (CR 118.3: the payer elects pay, the
-// charge fails, the payer declines).
+// still yields mana now and the ability's production covers the ask's cost
+// (dynCoversCost). gorge's potential walk (rules potential.go
+// addPotentialMana) prices such an amount potentialUnbounded in the
+// production's faces -- an indeterminate Amount$ is never priced at zero,
+// whatever it reads now -- while the census prices the amount the source
+// holds (gen.go varPC: zero petals is zero mana and no planner unit,
+// manaPCGen), so the gate's fold (availPotentialFor) could not reach the cost
+// and the ask was decline-only while gorge offered pay beside decline (CR
+// 118.3: the payer elects pay, the charge fails, the payer declines). The
+// over-bound's unbounded claim is per produced face, not per colour, and
+// gorge's gate still requires the potential pool to cover the cost's pips
+// (respay.go resPayNeedsMana over pay.CostPayablePool): a fixed-face
+// production (Elvish Archdruid's "one G per counter") prices G unbounded and
+// every other kind at zero, so a trigger's {2}{B}{B} stays decline-only on
+// both engines while the generic alone opens the gate.
 //
 // The dynamic source must be one gorge's own gate admits, and the admission is
 // the potential walk's, not the census's: dynSourceAdmits reads the walk's
 // membership gates (potentialRestrictionAdmits, potential.go) and the
 // activation's payability (manaAbilityPayablePool) without the census's
 // zero-amount exclusions.
-func (s *State) potentialDynOpen(k *prep, p uint8, d *payDesc) bool {
+func (s *State) potentialDynOpen(k *prep, p uint8, cost *kop.ManaCost, d *payDesc) bool {
 	if k.gen == nil || !s.anyLiveSource(k, p, d) {
 		return false
 	}
@@ -37,18 +44,58 @@ func (s *State) potentialDynOpen(k *prep, p uint8, d *payDesc) bool {
 			if a.Kind != kop.AbMana || a.AFlags&(kop.AfManaDynamic|kop.AfLatent) != kop.AfManaDynamic {
 				continue
 			}
-			// a commander-identity production prices unbounded only when the
-			// identity has colours (gorge potentialIdentityEmpty, CR 903.4f);
+			// a commander-identity production adds nothing unbounded to gorge's
+			// pool: addPotentialIdentityColours declines an indeterminate
+			// amount and the strip fallback adds nothing (potential.go), so
 			// the shape stays decline-only here
 			if a.ManaIdentity {
 				continue
 			}
-			if dynamicManaCost(a) && s.dynSourceAdmits(k, p, sl, j, a, d) {
+			if dynamicManaCost(a) && s.dynSourceAdmits(k, p, sl, j, a, d) && dynCoversCost(a, cost) {
 				return true
 			}
 		}
 	}
 	return false
+}
+
+// dynCoversCost reports whether a dynamic-amount production covers the ask's
+// cost under the over-bound's pricing, gorge's pool read for the trigger-cost
+// offer gate (respay.go resPayNeedsMana over pay.CostPayablePool): the pool
+// prices the indeterminate amount unbounded in exactly the produced faces
+// (rules potential.go addIndeterminatePotentialMana, CR 107.4a -- the faces
+// are the only colours the ability makes), so an open production ("mana of
+// any one color", ColAny) is unbounded in every kind and covers any cost,
+// while a fixed mask is unbounded in its faces alone and funds no pip outside
+// them; the generic part any face funds, for every kind of mana pays it.
+func dynCoversCost(a *kop.Ability, cost *kop.ManaCost) bool {
+	if cost == nil {
+		return true
+	}
+	if cost.Snow != 0 {
+		return false // the {S} bound: only the pool pays it (mana.go affords)
+	}
+	m := uint8(a.ManaColors)
+	if m == 0 {
+		m = uint8(kop.ColC) // a blank production is the executor's colourless default (potential.go addPotentialMana)
+	}
+	if m == uint8(kop.ColAny) {
+		return true // open production: the whole-pool open, every kind unbounded
+	}
+	for i, n := range cost.Pips {
+		if n > 0 && m&(1<<uint(i)) == 0 {
+			return false // a pip the produced faces do not make
+		}
+	}
+	for i, h := range cost.Hyb {
+		if h == 0 || i == 0 && cost.Tb != 0 || h == kop.HybPhyrexian {
+			continue // the twobrid marker pays as generic; a phyrexian pip stays the pool fold's
+		}
+		if uint8(h)&m == 0 {
+			return false // neither of the pip's faces lies among the produced faces
+		}
+	}
+	return true
 }
 
 // dynSourceAdmits is potentialAdmits without the census amount gates: the
