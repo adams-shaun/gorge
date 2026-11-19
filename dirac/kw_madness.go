@@ -61,27 +61,47 @@ func (s *State) resolveMadness(k *prep) {
 }
 
 // madnessCastable: the owner can cast exiled card o for its madness cost
-// (gorge offerCastable): the cost payable and every target slot feasible.
-// A card with Convoke or Improvise taps for part of the madness cost too (CR
-// 702.51a, 702.126a: the keyword applies to the spell whichever cost it is
-// cast for), so the tap-paid credit is taken first, as the hand offer does.
+// (gorge askMadnessCast's gate): the cost payable and every target slot
+// feasible. A card with Convoke or Improvise taps for part of the madness cost
+// too (CR 702.51a, 702.126a: the keyword applies to the spell whichever cost
+// it is cast for), so the tap-paid credit is taken first, as the hand offer
+// does. The credit decides which read prices the offer, as gorge's gate does:
+// with a live credit (a creature or artifact committed, or the card has
+// delve) the planner's "insufficient" verdict is converted to "unsupported
+// cost:credit" (potential_plan.go potentialModeCredit), which is no proof, so
+// the offer stands whenever gorge's potential bound affords the credited cost;
+// a creditless one keeps the proof, and the census and window price it.
 func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 	c := s.objs[o].card
-	cost := s.adjustCost(k, p, c, o, s.convokeCredit(k, p, c, o, k.t.Cards[c].MadnessCost))
+	fh := s.objs[o].zone == kop.ZoneHand
+	cost, used := s.convokeCreditUsed(k, p, c, o, fh, k.t.Cards[c].MadnessCost)
+	credited := used.any() || s.hasCastDelve(k, p, c, o, fh)
+	// the CR 601.2f modifiers compose over the credited cost (gorge
+	// offerCastablePotential: the gate composes the very charge the payment
+	// will make, engine/rules/mana.go), so a ReduceCost static may still
+	// afford a credited residual the census refuses, and a Thalia-style
+	// increase prices the offer the cast must pay
+	cost = s.adjustCost(k, p, c, o, cost)
 	ok := s.affordsFor(k, p, &cost) || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost) || s.filterCastAffords(k, p, o, &cost) ||
 		s.painCastAffords(k, p, &cost)
 	var stall uint8
 	if !ok {
-		// the failed window probe reports its fork's latched stall; this drop
-		// is final for the madness cast, so it declares it rather than losing
-		// the offer silently (tapXScript's shape)
-		ok, stall = s.windowAffords(k, p, &cost)
-	}
-	if !ok && k.gen != nil && k.gen.anyCondSplit {
-		// gorge prices the madness cast against the potential pool too, which
-		// counts a Condition-split source (River of Tears) the census defers
-		// (mana_condsplit.go); without one the census and window say the same
-		ok = s.potentialAffords(k, p, o, &cost)
+		if credited {
+			// the credited cast's gate is the potential bound alone (above)
+			ok = s.potentialAffords(k, p, o, &cost)
+		} else {
+			// the failed window probe reports its fork's latched stall; this
+			// drop is final for the madness cast, so it declares it rather
+			// than losing the offer silently (tapXScript's shape)
+			ok, stall = s.windowAffords(k, p, &cost)
+			if !ok && k.gen != nil && k.gen.anyCondSplit {
+				// gorge prices the madness cast against the potential pool
+				// too, which counts a Condition-split source (River of Tears)
+				// the census defers (mana_condsplit.go); without one the
+				// census and window say the same
+				ok = s.potentialAffords(k, p, o, &cost)
+			}
+		}
 	}
 	if !ok {
 		if stall != 0 {
