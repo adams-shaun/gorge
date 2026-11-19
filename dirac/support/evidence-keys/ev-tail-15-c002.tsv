@@ -24,6 +24,7 @@ Bloodflow Connoisseur	ea91caa4bafa6b7b	4	1/1		0/1	ix:resp
 Boon of Emrakul	17b803132c09f774	39	0/0		1/2	ix:resp
 Boonweaver Giant	0b5c662b200fc9aa	32	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bramble Wurm	972b7169d0a0bb11	15	2/2		1/1	
+Brood Butcher	514450aa230085a9	21	2/2		1/1	
 By Force	cc9582497b51a685	34	0/0		4/4	
 Carrion Howler	e5f23cbe5bc2f93a	41	1/1		1/1	
 Cartouche of Strength	23025413eab0fb8b	48	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
@@ -68,6 +69,7 @@ Giant Fly	bbc452c6a9849d38	3	1/1		0/1	ix:resp
 Giant Strength	112ede777b3f9bb0	46	0/0		2/2	
 Goblin Warchief	f6bccc69c3a114f8	6	0/0		0/0	
 Goliath Spider	b1d7c9638798ea3e	4	0/0		0/0	
+Gorma, the Gullet	a1833f92b1836cd7	8	1/1		1/1	
 Grim Guardian	40ca779a6aa4b623	6	1/1		0/1	ix:resp
 Growth-Chamber Guardian	e28293990f55ad2a	33	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Gustha Ebbasdotter	43c3ba211bfdeaf2	23	1/1		0/1	ix:resp
@@ -186,6 +188,7 @@ Treachery	3ce0072feacef208	3	1/1		1/2	ix:resp
 Trokin High Guard	7063ae8de6d1272e	4	0/0		0/0	
 Two-Headed Giant of Foriys	97fe9df449f4a528	16	0/0		0/0	
 Two-Headed Zombie	334a74a5250e0791	8	0/0		0/0	
+Undercity Uprising	bf4ed4515a2ca49a	3	0/0		1/2	ix:resp
 Urza's Rage	ce7960b72f854a29	91	0/0		3/4	cast/alt:kicked
 Valeron Outlander	d9d5231f2346cbaa	11	0/0		0/0	
 Valley Dasher	6ba9aba7bd8ce257	38	0/0		0/0	

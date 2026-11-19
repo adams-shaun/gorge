@@ -10,6 +10,7 @@ Ancestral Tribute
 Ancient Brontodon
 Archon of Cruelty
 Ardent Recruit
+Arms Dealer
 Aron, Benalia's Ruin
 Arrest
 Arrogant Vampire
@@ -65,6 +66,7 @@ Clear the Stage
 Cobbled Wings
 Confound
 Consume Spirit
+Copperline Gorge
 Courageous Outrider
 Court of Bounty
 Crossover Collaboration
@@ -77,6 +79,7 @@ Cyan, Vengeful Samurai
 Darksteel Relic
 Dazzling Lights
 Death Cultist
+Deathbloom Gardener
 Deathbringer Regent
 Deepfathom Skulker
 Defang
