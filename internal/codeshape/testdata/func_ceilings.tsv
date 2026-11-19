@@ -43,7 +43,7 @@ dirac (*State).priorityOptions	373	197
 dirac (*State).projObj	125	74
 dirac (*State).replDamage	96	70
 dirac (*State).resolveOptionsGen	314	107
-dirac (*State).resolveTop	237	121
+dirac (*State).resolveTop	237	122
 dirac (*State).sba	332	131
 dirac (*State).scriptOffers	149	105
 dirac (*State).windowColOwed	107	57
@@ -159,7 +159,7 @@ engine/effects effReveal	425	74
 engine/effects effSacrifice	341	57
 engine/effects effSearchLibrary	475	85
 engine/effects effToken	303	36
-engine/effects evalCountBodyCost	292	64
+engine/effects evalCountBodyCost	292	65
 engine/effects evalCountBodyDotted	320	60
 engine/effects evalCountBodyObjHeads	219	59
 engine/effects evalCountBodyPaid	508	99
