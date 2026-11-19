@@ -1671,9 +1671,9 @@ func (fs *filtSearch) fundTap(k *prep, t *State, sl Slot, rm uint8, free bool, f
 		pc := t.manaPCGen(k, sl)
 		mask := t.fundMaskAt(k, pc, sl) // a painland asks its painful colours too (mana_filtpain.go)
 		if bits.OnesCount8(mask) == 1 && zeroAsk && fs.zeroFiltAsks(k, t, sl) {
-			// the tap is the new gate's own (fundOne): its ask and the zero
-			// filter's colour search are charged there once, and the old
-			// gate's would charge the same tap's ask and search a second time
+			// the tap is the new gate's own (fundOne): its ask is charged
+			// there once, and the old gate's would charge the same tap's ask
+			// a second time
 			zeroAsk = false
 		}
 		if zeroAsk && !fs.tick() {
@@ -1690,9 +1690,6 @@ func (fs *filtSearch) fundTap(k *prep, t *State, sl Slot, rm uint8, free bool, f
 		} else if fs.fundOne(k, t, sl, pc, mask, funded, gapUsed) {
 			return true, true
 		}
-	}
-	if zeroAsk && fs.zeroFiltFund(k, t, sl, funded, gapUsed) {
-		return true, true
 	}
 	if bits.OnesCount8(rm) > 1 && !fs.tick() {
 		return false, true // the restricted ability's colour ask
@@ -1757,12 +1754,9 @@ func (fs *filtSearch) fundOne(k *prep, t *State, sl Slot, pc *pcard, mask uint8,
 	if fs.try(k, t, filtStep{sl: sl, ans: ans}, funded+1, gapUsed) {
 		return true
 	}
-	if zero && fs.zeroFiltColours(k, t, sl, funded+1, gapUsed) {
-		return true
-	}
-	// the pair's wide answer after the zero answers: gorge's ability ask lists
-	// both, and the search takes them in turn (filtStep.wide). No current card
-	// pairs a zero dynamic filter with a gate-on pair, so the order is
+	// the pair's wide answer after the zero filter's ask: gorge's ability ask
+	// lists both, and the search takes them in turn (filtStep.wide). No current
+	// card pairs a zero dynamic filter with a gate-on pair, so the order is
 	// untested against gorge's; the wide is kept rather than dropped.
 	return t.widePairAb(k, sl, pc) >= 0 && fs.tick() && fs.try(k, t, filtStep{sl: sl, ans: ans, wide: true}, funded+1, gapUsed)
 }
