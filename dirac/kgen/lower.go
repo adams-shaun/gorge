@@ -1681,12 +1681,10 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Spree = true
 		case head == "Convoke" && param == "":
 			// CR 702.51a: printed only (gorge hasCastConvoke reads derived
-			// keywords, but kgen refuses every grant). An {X} mana cost is
-			// refused: xOpen absorption and xAsk pricing are not ported.
-			if lc.out.Cost.X {
-				lc.refuseNode(node, "Convoke with {X}")
-				continue
-			}
+			// keywords, but kgen refuses every grant). An {X} mana cost
+			// lowers: the kernel's announcement offers the tentative pre-X
+			// generic picks and its X ask prices them (kw_convoke.go
+			// convokeXCost, convokeXHi), as for a granted Convoke.
 			if lc.out.Improvise {
 				lc.refuseNode(node, "Convoke with Improvise")
 				continue

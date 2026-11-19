@@ -86,7 +86,8 @@ func cedhPodRun(t *testing.T, name string, decks [][]cardset.Entry, lowered []st
 		res := Lockstep(m, seed, k, pol, rc)
 		CloseSide(k)
 		if d := res.Div; d != nil {
-			t.Fatalf("%d seats, seed %d: diverged at decision %d: %s %s %v\nref %q\nker %q\n%s", len(decks), seed, d.At, d.What, d.Field, d.Diff, d.RefOptions, d.KerOptions, d.Detail)
+			t.Fatalf("%d seats, seed %d: diverged at decision %d: %s %s %v\nref %q\nker %q\n%s\nlast %s; recent %v", len(decks), seed, d.At, d.What, d.Field, d.Diff, d.RefOptions, d.KerOptions, d.Detail,
+				d.LastSourced, res.RecentSources(m, 4))
 		}
 		if res.StallUnmodelled || strings.HasPrefix(res.Stall, KernelStallPrefix) {
 			t.Fatalf("%d seats, seed %d: kernel stopped: %s", len(decks), seed, res.Stall)
