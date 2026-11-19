@@ -1,7 +1,5 @@
 package cards
 
-import "strings"
-
 // replPrimitive is the registry label for one R: line: "repl:"+Event, or
 // "repl:<Event>.OtherShape" for an event whose implemented family covers only
 // one shape of the line (the api:Craft.OtherShape precedent), so registering
@@ -38,7 +36,7 @@ func RemoveCounterCantHappenShape(r Repl) bool {
 	if r.With != nil {
 		return false
 	}
-	if !strings.EqualFold(strings.TrimSpace(r.ParamStr(PKLayer)), "CantHappen") {
+	if !r.IsCantHappenLayer() {
 		return false
 	}
 	for k := range r.Params {

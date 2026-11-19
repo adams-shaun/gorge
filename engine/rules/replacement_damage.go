@@ -768,14 +768,14 @@ func (e *Engine) replMatchEffectCreated(m replMatch, ev events.Event) bool {
 // to the applicable ones, then -- CR 616.1 -- either poses the affected
 // player's order choice over non-commuting candidates, parks the event
 // behind the choice, or applies the whole set.
-func (e *Engine) applyDamageClassReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
-	matches = e.applicableDamageReplacements(ev, matches)
+func applyDamageClassReplacements(h damageClassHost, ev events.Event, matches []replMatch) (events.Event, bool) {
+	matches = h.applicableDamageReplacements(ev, matches)
 	if len(matches) == 0 {
 		return ev, false
 	}
 	if (len(matches) > 1 && !allBarePreventions(matches)) || hasOptionalReplacement(matches) {
-		if p, ok := e.damageAffectedPlayer(ev); ok && !e.G.Players[p].Lost {
-			if applied, served := e.poseDamageReplacementChoice(ev, matches, e.replacementAskPlayer(matches, p)); served {
+		if p, ok := h.damageAffectedPlayer(ev); ok && !h.Game().Players[p].Lost {
+			if applied, served := h.poseDamageReplacementChoice(ev, matches, h.replacementAskPlayer(matches, p)); served {
 				// Under the resolution kernel the ask was answered in place
 				// and the modified damage already landed: return the landed
 				// event so the emitting primitive (Host.EmitDamage's
@@ -789,5 +789,5 @@ func (e *Engine) applyDamageClassReplacements(ev events.Event, matches []replMat
 				Text: "damage awaiting replacement-order choice"}, true
 		}
 	}
-	return e.applyNonMoveReplacements(ev, matches)
+	return h.applyNonMoveReplacements(ev, matches)
 }

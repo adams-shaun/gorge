@@ -18,9 +18,10 @@ func init() { effects.RegisterNonAPI("repl:Proliferate") }
 // applies before the action and never to its own record. The rewrite is the
 // With's shared ReplaceCount$ arithmetic (applyProliferateReplacements), so
 // only a With-bearing line matches: a With-less line has no implemented
-// application and fails closed.
-func (e *Engine) proliferateReplacementMatches(r cards.Repl, ev events.Event,
-	you state.PlayerID, source state.ObjID, svars map[string]string) bool {
+// application and fails closed. condHolds is the shared condition gate over
+// the line's own frame (the caller's closure).
+func proliferateReplacementMatches(h replClassHost, r cards.Repl, ev events.Event,
+	you state.PlayerID, condHolds func() bool) bool {
 	if ev.Kind != events.Proliferate || ev.Text != events.ProliferateProposalText {
 		return false
 	}
@@ -28,10 +29,10 @@ func (e *Engine) proliferateReplacementMatches(r cards.Repl, ev events.Event,
 		return false
 	}
 	if vp, ok := r.Param(cards.PKValidPlayer); ok &&
-		!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+		!effects.MatchesPlayerSpec(h.Game(), vp, ev.Player, you) {
 		return false
 	}
-	return e.replacementConditionHoldsWith(r, source, you, svars)
+	return condHolds()
 }
 
 // applyProliferateReplacements rewrites a Proliferate proposal's action
@@ -49,13 +50,11 @@ func (e *Engine) proliferateReplacementMatches(r cards.Repl, ev events.Event,
 //
 // A body the shared arithmetic cannot price (a With whose VarName$ is not
 // Num, or whose value is not a ReplaceCount$Num/<op> body) is skipped,
-// never read as "no change": the cards layer keeps such shapes off the
-// registered key's books only when they exist; a resolvable body always
-// rewrites. CR 616.1e: each body reads the running count, so two
-// duplicating bodies compose.
-func (e *Engine) applyProliferateReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+// never read as "no change"; a resolvable body always rewrites. CR 616.1e:
+// each body reads the running count, so two duplicating bodies compose.
+func applyProliferateReplacements(h replCountPricer, ev events.Event, matches []replMatch) (events.Event, bool) {
 	for _, m := range matches {
-		if n, ok := e.replaceCount(m.id, m.repl, "Num", ev.Amount); ok {
+		if n, ok := h.replaceCount(m.id, m.repl, "Num", ev.Amount); ok {
 			ev.Amount = n
 		}
 	}

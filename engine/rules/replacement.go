@@ -422,17 +422,15 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	case events.DestroyProposal:
 		return e.continueDestroyReplacements(ev, matches)
 	case events.Damage:
-		return e.applyDamageClassReplacements(ev, matches)
+		return applyDamageClassReplacements(e, ev, matches)
 	case events.CounterChange, events.PlayerCounterChange:
-		// The sign routes the two counter classes apart (see
-		// replacementEventKind).
-		return e.counterChangeReplacements(ev, matches)
+		return e.applyAddCounterReplacements(ev, matches)
 	case events.TurnFaceUp:
 		return e.applyTurnFaceUpReplacements(ev, matches)
 	case events.Proliferate:
 		// effProliferate's never-logged count proposal (the cascade kind's
 		// discipline): the rewritten count flows back through the event.
-		return e.applyProliferateReplacements(ev, matches)
+		return applyProliferateReplacements(e, ev, matches)
 	case events.Cascade:
 		// The instruction proposal. Unlike every other kind here it has no
 		// logged event to emit or suppress: applyCascadeReplacements runs the
