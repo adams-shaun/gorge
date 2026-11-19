@@ -55,3 +55,15 @@ func (s *State) copyBlankLayer(k *prep, sl, tmpl Slot) bool {
 	s.touchSl(sl)
 	return true
 }
+
+// projFaceDown sets the projection flags of the face-down-valued permanent at
+// sl: a face-down one is ProjFaceDown, a token copy of one is nameless, and a
+// permanent copy of one keeps its printed card's name, as gorge projects it.
+func (s *State) projFaceDown(sl Slot, po *ProjObj) {
+	switch {
+	case !s.blankCopy(sl):
+		po.Flags |= ProjFaceDown
+	case !s.permBlank(sl):
+		po.Flags2 |= ProjNameless
+	}
+}
