@@ -506,10 +506,15 @@ func (s *State) filtMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail, anyCol
 	// An announced tap-paid pick pays one pip or one generic of the folded
 	// cost, so the bound prices the pick-folded cost the ask prices (gorge
 	// xAsk, paymentManaX): without it the bound stops one X short of what
-	// the window with the filter can pay.
-	if s.convokePickCount() > 0 || s.waterbendXBuilding(k) && s.waterbendPickCount() > 0 {
-		wbX := s.waterbendXBuilding(k) && s.waterbendPickCount() > 0
-		w.fold = func(x int) (kop.ManaCost, bool) { return s.xFoldCost(k, *cost, x, wbX) }
+	// the window with the filter can pay. The applied-pick arm is the same
+	// cost as the primary arm wherever that arm absorbs, so it covers both
+	// the ask's offers and its fallback offers. A cost modifier that reads
+	// the spell's mana value sees X and can make a larger X cheaper
+	// (cast_xreduced.go xCostDependsOnX), which breaks the sweep's monotone
+	// break, so the fold is installed only when no modifier reads X.
+	wbX := s.waterbendXBuilding(k) && s.waterbendPickCount() > 0
+	if !s.xCostDependsOnX(k) && (s.convokePickCount() > 0 || wbX) {
+		w.fold = func(x int) (kop.ManaCost, bool) { return s.xFoldCost(k, *cost, x, wbX, false) }
 	}
 	for set := 1; set < 1<<n; set++ {
 		best = max(best, w.activate(*av, filtPos{set: set}))
@@ -651,10 +656,11 @@ func (w *filtWalk) activate(t avail, st filtPos) int {
 // mana the announced X no longer needs, and the larger X the window (its
 // filters' fees funded, CR 605.3a) can still make must be offered (Chord of
 // Calling announced with two picks beside a Desolate Mire's {1},{T}).
-// The folded cost only grows with x, so the sweep breaks at the first value
-// the post-filter census cannot pay; a value whose picks cannot absorb
-// (ok=false, gorge xAsk's convokeAbsorbs) is skipped, not a break -- the
-// folded generic only grows, so a later, larger X absorbs again.
+// filtMaxX installs the fold only when no cost modifier reads the announced
+// X (cast_xreduced.go xCostDependsOnX), so the folded cost only grows with
+// x: the sweep breaks at the first value the post-filter census cannot pay.
+// A value whose Waterbend<X> picks exceed x (ok=false) is skipped, not a
+// break, since a later, larger X can absorb them.
 func (w *filtWalk) foldedMaxX(t avail) int {
 	best := -1
 	for x := 0; x < maxXAsk; x++ {
