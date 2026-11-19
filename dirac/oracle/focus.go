@@ -95,6 +95,11 @@ func focusPlayable(reg *cards.Registry, set cardset.Set, pool string) (map[strin
 	return playable, spells, lands, nil
 }
 
+// focusWithoutBasics is focus with its basic-land lines left out, as a new slice.
+func focusWithoutBasics(focus []FocusCard) []FocusCard {
+	return slices.DeleteFunc(slices.Clone(focus), func(fc FocusCard) bool { return cardset.IsSynthBasic(fc.Name) })
+}
+
 // FocusPool is FocusPoolWith over a set with no cards from other pools.
 func FocusPool(reg *cards.Registry, set cardset.Set, pool string, focus []FocusCard, perDeck int, seed uint64, nDecks int) ([]PoolDeck, map[string]deck.File, error) {
 	return FocusPoolWith(reg, set, nil, pool, focus, perDeck, seed, nDecks)
@@ -106,7 +111,9 @@ func FocusPool(reg *cards.Registry, set cardset.Set, pool string, focus []FocusC
 // card and up to perDeck-1 more focus cards fitting those colours, in list order from
 // there, two copies each, and every enabler they name that fits. The other spell
 // slots, the nonbasic lands and the basics are SynthPool's. A focus card or enabler
-// the set does not play is an error, so a stale list fails loudly.
+// the set does not play is an error, so a stale list fails loudly. Only a basic land a
+// list names is skipped, not an error: every deck holds basics whatever the list says,
+// and the evidence lists the loop writes always name them beside the cards they credit.
 //
 // extra names the cards of set that came from other pools (kfuzz -synth-with): they
 // resolve as enablers only. A focus card is never one, and the filler never deals one,
@@ -117,6 +124,9 @@ func FocusPool(reg *cards.Registry, set cardset.Set, pool string, focus []FocusC
 func FocusPoolWith(reg *cards.Registry, set cardset.Set, extra map[string]bool, pool string, focus []FocusCard, perDeck int, seed uint64, nDecks int) ([]PoolDeck, map[string]deck.File, error) {
 	if perDeck < 1 {
 		perDeck = 1
+	}
+	if focus = focusWithoutBasics(focus); len(focus) == 0 {
+		return nil, nil, fmt.Errorf("focus %s: no card but basic lands", pool)
 	}
 	playable, spells, lands, err := focusPlayable(reg, set, pool)
 	if err != nil {
