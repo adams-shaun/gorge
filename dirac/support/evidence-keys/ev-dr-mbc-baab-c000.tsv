@@ -2,16 +2,36 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Adamant Will	f5f8b32aba3239ec	4	0/0		1/2	ix:resp
 Agate Instigator	cfb71ff9166dba3c	8	2/2		2/3	ix:resp
 Ancient Grudge	90fbe88f3f1fc560	8	0/0		3/4	ix:resp
+Apprentice Necromancer	74a14d570248d376	6	1/1		1/1	
+Arc Lightning	8a8f0908aaf31976	12	0/0		2/2	
 Augur of Bolas	7b06bb126895a420	3	1/1		0/1	ix:resp
+Azra Oddsmaker	6faa160b06c97242	8	1/1		1/1	
 Baffling End	8e8051861cf923ba	4	2/2		0/1	ix:resp
+Bastion of Remembrance	ba6049c8e1f682fb	4	2/2		0/1	ix:resp
+Biogenic Upgrade	0a8f8ab77b17c7fe	3	0/0		1/2	ix:resp
+Bladewing's Thrall	065f369bfb76ee40	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Blazing Volley	bf3d795b3e0e94fc	4	0/0		1/2	ix:resp
+Bloodlust Inciter	177ec9bf37c3a69f	12	1/1		1/1	
+Boarding Party	35d8cf4563926d4b	8	0/0		0/0	
+Bookwurm	0d767b851e5b95c1	3	2/2		0/1	ix:resp
+Breath of Darigaaz	f60da5d605260e75	9	0/0		4/4	
 Briar Patch	e525ddcb03ec3394	14	1/1		1/1	
+Bristling Boar	90fc76f5f9b4907a	3	0/0		0/0	
 Broodhatch Nantuko	6a6fe46a23599605	12	1/1		2/5	cast/alt:morphed,f0/t0/opt:n,f0/t0/opt:y
 Cabal Pit	34bfba562cbbc2e4	31	2/2		0/1	ix:resp
+Chemister's Insight	04dbfa9dfab4dde4	4	0/0		2/4	cast/alt:jumpstart,ix:resp
+Contagion	2a3c5fdb451f4bc2	4	0/0		2/2	
 Corrupted Conviction	6419616efcc1e3b4	4	0/0		1/2	ix:resp
 Cryogen Relic	3aff98de245853e6	4	3/3		1/1	
+Crypt Rats	1da88e0ac05de886	8	1/1		1/1	
+Dauntless Cathar	d1f139f1ee4f478c	14	1/1		0/1	ix:resp
+Diamond Pick-Axe	60d1a4aaf5e0a7a6	8	1/1		1/1	
+Dreamscape Artist	7cb8d02102553e65	13	1/1		0/1	ix:resp
 Emerge Unscathed	7bbf4f768539fe25	9	0/0		2/2	
+Empty the Warrens	3d0f76364fe5b459	6	1/1		2/2	
+Evolution Charm	88c4e685f8c30480	4	0/0		1/2	ix:resp
 Evolutionary Escalation	2e6d8fdedfcd2981	12	1/1		1/1	
+Exclude	2a164347f5b33b61	9	0/0		2/2	
 Exhume	a4d9145e2a46b94f	4	0/0		2/2	
 Faerie Swarm	635d32a341839dd5	6	0/0		0/0	
 Faithbearer Paladin	476e5d94f50e852b	6	0/0		0/0	
@@ -21,40 +41,72 @@ Fiery Impulse	64cd4faa2adc7378	6	0/0		1/2	ix:resp
 Footbottom Feast	74c0fa3327591229	6	0/0		2/2	
 Forest	6d0466c30f825dba	230	1/1		0/1	ix:resp
 Gaea's Gift	3336d9ed890d5cfd	14	0/0		2/2	
+Geist of the Moors	0aed5be33427d852	5	0/0		0/0	
+Gilanra, Caller of Wirewood	dfbd92fe995f0c29	6	1/1		0/1	ix:resp
+God-Eternal Oketra	18963040ad49078b	4	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Grafted Exoskeleton	6cdc8e12681bc58f	10	2/2		0/1	ix:resp
 Hard Evidence	995dc58c3c9f9f9b	8	0/0		1/2	ix:resp
 Harvester Druid	fc130d35cbcb8be6	60	1/1		1/1	
+Havoc Demon	d96eff235787f52b	4	1/1		0/1	ix:resp
 Hedge Troll	53feff380aa28644	6	1/1		0/1	ix:resp
+Hydroblast	6ab1300dc404576a	7	0/0		1/2	ix:resp
 Island	763c67ef7a27eaf5	35	1/1		0/1	ix:resp
+Jeska, Warrior Adept	ac90e9e64b8a1341	4	1/1		0/1	ix:resp
+Joven and Chandler	2e356d08eb2a0f5d	10	2/2		0/1	ix:resp
 Kessig Flamebreather	85008e9d7d799a42	4	1/1		0/1	ix:resp
 Knight of Cliffhaven	fc4a61c24d1ebf9f	5	1/1		1/1	
 Lazotep Plating	9ee952db7188311d	4	0/0		1/2	ix:resp
+Leech Collector	03fd9f581c57322e	8	1/1		1/2	ix:resp
+Mana Geyser	4ea3ebca92ee52b9	8	0/0		1/2	ix:resp
 Mana Leak	dff236b6dfb2471f	4	0/0		1/2	ix:resp
 Masked Admirers	43e94374346bf43b	10	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Mindwrack Harpy	cd27cb5e3e83a7cd	6	1/1		1/1	
+Mistveil Plains	24c291918b439673	26	2/2		0/1	ix:resp
 Monastery Swiftspear	8cf1bbe1ffb8f33b	10	1/1		0/1	ix:resp
+Morbid Opportunist	24722ae9947e36da	4	1/1		0/1	ix:resp
 Mountain	9e71388353e907ed	72	1/1		0/1	ix:resp
+Mutagenic Growth	a031ee2441ff5bb3	9	0/0		1/2	ix:resp
 Night's Whisper	57c30c3a272643c4	4	0/0		1/2	ix:resp
+Ogre Arsonist	f956aa32c1982738	6	1/1		1/1	
+Orzhov Enforcer	755e39f604d0ab31	10	1/1		1/1	
 Overwhelming Encounter	74aedc99a2b43de8	4	0/0		1/2	ix:resp
+Phantom Tiger	2130a21f409ee6d8	4	0/0		0/0	
 Plains	82d63a695487e567	66	1/1		0/1	ix:resp
+Porcelain Legionnaire	4d7d483baa379c84	14	0/0		0/0	
 Primal Rage	2524f855585a01aa	6	0/0		0/0	
+Purifying Dragon	cf5750e94b05ddb6	4	1/1		0/1	ix:resp
 Rally the Peasants	cd8dd0bdd045fc9b	11	0/0		2/4	cast/alt:flashback,ix:resp
 Rebuff the Wicked	40f98cc6945cde36	4	0/0		1/2	ix:resp
 Reckless Barbarian	d5a839ac81afaf50	8	1/1		0/1	ix:resp
 Reckless Charge	c250361357bd70c4	12	0/0		4/4	
+Reckless Fireweaver	6b042704ee943fb5	16	1/1		0/1	ix:resp
+Referee Squad	128f900a98dc12b0	7	1/1		0/1	ix:resp
 Requisition Raid	ba9edd69537ffbd8	3	0/0		1/2	ix:resp
 Reverent Hoplite	19f5847d4cd74c01	5	1/1		1/1	
+Rograkh, Son of Rohgahh	d0e9e97bf4de816f	12	0/0		0/0	
+Roiling Dragonstorm	dbd28927d45d568a	14	2/2		0/1	ix:resp
+Sensor Splicer	976e5dddfa0fc4cb	4	1/1		0/1	ix:resp
+Seraph of Dawn	c1d0f32f1c5d03f1	4	0/0		0/0	
 Serpentine Curve	52027f209f38c3b7	8	0/0		1/2	ix:resp
 Settle Beyond Reality	cdbe9fadfa494357	6	0/0		1/2	ix:resp
 Sever Soul	7cf4fc44b5e49e95	4	0/0		1/2	ix:resp
+Shepherd of the Flock	f06e6144506327fc	20	0/0		1/2	ix:resp
+Shipwreck Dowser	404c888efa876be5	11	2/2		0/1	ix:resp
 Sky Crier	9f0229289ccbb45a	8	1/1		0/1	ix:resp
 Soltari Visionary	77a2e2738b5622e8	3	1/1		0/1	ix:resp
 Sorcerous Sight	4d2c43f82d54fd39	4	0/0		1/2	ix:resp
+Squee, Goblin Nabob	d9ba10141492d6ba	28	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Swamp	342b413902f441c3	59	1/1		0/1	ix:resp
 Temur Battle Rage	f255d265a3d2c2f5	8	0/0		1/2	ix:resp
 The Birth of Meletis	e50ebbb76265a813	5	0/0		0/0	
 Thraben Watcher	c0f4122f6ab187bb	10	0/0		0/0	
 Thrull Parasite	12f64dc43bc33730	4	2/2		1/1	
+Turtleshell Changeling	7a664fbb80e73809	9	1/1		1/1	
+Tyvar's Stand	214e409296439c2b	3	0/0		2/4	f0/s/x0,ix:resp
+Unbounded Potential	3b35b87faf9d9b30	6	0/0		1/2	ix:resp
+Unsubstantiate	ee71dbae075eb7bc	9	0/0		1/2	ix:resp
+Urborg Uprising	39df79c5845df371	8	0/0		1/2	ix:resp
 Wickerbough Elder	249f908914c2d428	6	1/1		0/1	ix:resp
 Wildheart Invoker	fbdd534688dca1a0	10	1/1		0/1	ix:resp
+Windstorm Drake	8231c5f21f7c6fb6	3	0/0		0/0	
 Wood Elves	bf2c249373003b5b	4	1/1		0/1	ix:resp

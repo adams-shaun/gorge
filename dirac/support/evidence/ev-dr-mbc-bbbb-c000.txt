@@ -1,7 +1,9 @@
+Abundant Growth
 Act on Impulse
 Angel of Vitality
 Beanstalk Giant
 Blessed Hippogriff
+Brood Monitor
 Caltrops
 Clinquant Skymage
 Collected Company
@@ -57,6 +59,7 @@ Noose Constrictor
 Noxious Ghoul
 Nyx-Fleece Ram
 Omen of the Sea
+Omenspeaker
 Pacifism
 Patriar's Seal
 Peat Bog
@@ -67,6 +70,11 @@ Primal Growth
 Prizefight
 Puppet Conjurer
 Rapacious Dragon
+Ravenform
+Regrowth
+Renewed Faith
+Rescind
+Reya Dawnbringer
 Seal of Fire
 Soul Warden
 Spellstutter Sprite
@@ -80,6 +88,7 @@ The Rack
 Think Twice
 Thwart
 Tolabow, Loch Rascal
+Touch the Spirit Realm
 Treasonous Ogre
 Treasure Dredger
 Undo

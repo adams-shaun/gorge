@@ -5,13 +5,22 @@ A-Psionic Snoop	f0635ede2d5c256c	25	1/1		1/1
 A-Urza, Powerstone Prodigy	186cc69c1a96aab8	20	2/2		1/1	
 Abzan Advantage	778053d396483654	38	0/0		2/2	
 Acrobatic Maneuver	247e280b17403cc2	13	0/0		2/2	
+Aesi, Tyrant of Gyre Strait	6b92eb6e8d2bab54	17	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Aether Chaser	56f00dc43d71e9c9	20	2/2		1/1	
 Aether Vial	200b053621535039	19	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Afterlife Insurance	7da3f443ae85ad97	14	0/0		2/2	
 Agent of Horizons	b4a3a041ff3ae210	9	1/1		1/1	
 Agent of Masks	20adb20a4d19c54a	15	1/1		1/1	
 Aid from the Cowl	d8a633ebd811f441	4	1/1		0/1	ix:resp
+Ajani Steadfast	e9418b032bc1b358	58	3/3		1/1	
+Ajani Unrelenting	9211358e0b90a1b7	29	4/4		1/1	
+Ajani's Comrade	fb823c89ea3409b7	242	1/1		1/1	
 Ajani's Sunstriker	084f33edf2c3ac42	13	0/0		0/0	
+Ajani, Adversary of Tyrants	2130b0926fac359d	43	3/3		1/1	
+Ajani, Caller of the Pride	edcb8283d97834b9	61	3/3		1/1	
+Ajani, Inspiring Leader	c025bd3a85631533	38	3/3		1/1	
+Ajani, Outland Chaperone	484387cf5c7de356	49	3/3		1/1	
+Ajani, Strength of the Pride	50bc14bde358cff5	57	3/3		1/1	
 Alharu, Solemn Ritualist	a7e07de3eeae37bf	17	2/2		1/1	
 Allay	5ba59f3c68bb7498	24	0/0		4/4	
 Anaba Bodyguard	76850732353b8d77	11	0/0		0/0	
@@ -134,6 +143,7 @@ Kambal, Consul of Allocation	b8b6dab84b1c3b2b	16	1/1		1/1
 Kinscaer Harpoonist	3d1d7e483f8c0e13	13	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Kjeldoran Javelineer	d523656ecd8fc455	12	2/2		0/1	ix:resp
 Krark-Clan Grunt	f2a876f6d40f6e47	31	1/1		0/1	ix:resp
+Kydele, Chosen of Kruphix	b01df17311195f2f	8	1/1		1/1	
 Lava Coil	b79c01444ed2f356	18	0/0		1/2	ix:resp
 Liege of the Pit	47a8e640afd5790b	4	1/1		1/3	cast/alt:morphed,ix:resp
 Lightning Elemental	6171252c797bc9e4	19	0/0		0/0	
@@ -202,6 +212,7 @@ Seeker	38c39e30d14ed784	11	0/0		2/2
 Seething Anger	4e8f75ebf047b4ca	25	0/0		4/4	
 Shattered Dreams	b972c93872aa182b	14	0/0		1/2	ix:resp
 Shepherd of Rot	2b7ebeef134633d9	18	1/1		0/1	ix:resp
+Shinen of Fear's Chill	320842c839d57697	4	1/1		0/1	ix:resp
 Shu Foot Soldiers	96fce6c355023150	13	0/0		0/0	
 Shu Grain Caravan	e22c18c8b373444c	22	1/1		1/1	
 Sifter of Skulls	19307352c2df7021	11	1/1		0/1	ix:resp
@@ -236,6 +247,7 @@ Undead Servant	7536eb058236285d	7	1/1		1/1
 Unyaro Bee Sting	23c8f0d15aad142d	4	0/0		1/2	ix:resp
 Urborg Shambler	ea4432ae6c68558a	8	0/0		0/0	
 Urza's Command	533ee3e8b613fd53	23	0/0		2/2	
+Vedalken Engineer	eba3a020a1d88753	17	1/1		0/1	ix:resp
 Verdant Embrace	de2fc11bc25856b7	8	0/0		1/2	ix:resp
 Vernal Fen	4f46f46a30745961	127	2/2		0/1	ix:resp
 Viashino Skeleton	b8ae49e3a5f6a8eb	17	1/1		0/1	ix:resp
@@ -249,6 +261,7 @@ Warden of the Wall	c051b3a7b1b237fd	27	1/1		1/1
 Warmonger's Chariot	33527bbdf90c77e9	17	1/1		1/1	
 Wayward Swordtooth	1e2ac23d169b6345	14	0/0		0/0	
 Weatherlight Compleated	e250646646ab0bcb	11	1/1		1/1	
+Weatherseed Totem	3a5ca8323765fb69	8	3/3		1/1	
 Wild Griffin	fee89a03f03ffa8b	8	0/0		0/0	
 Willow Faerie	0ce0ba65a1f1e850	14	0/0		0/0	
 Wilson, Refined Grizzly	b5b26a69e1373228	16	1/1		1/1	

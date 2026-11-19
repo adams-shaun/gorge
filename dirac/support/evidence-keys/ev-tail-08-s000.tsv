@@ -6,6 +6,7 @@ Aberrant Return	d0a3e7a79bd4103a	4	0/0		2/2
 Acceptable Losses	f7d19de8f3cb12da	6	0/0		1/2	ix:resp
 Aerial Caravan	e7e106db2565047d	12	1/1		1/1	
 Aether Herder	d8bb906aad871bde	15	2/2		0/1	ix:resp
+Age of Ultron	c3c818c99dab0579	5	0/0		0/0	
 Akoum Hellkite	de74c7ed98b7fb36	4	1/1		0/1	ix:resp
 Amnesia	1f8e40d137e355a7	11	0/0		1/2	ix:resp
 An Unexpected Party	006f3c35817da335	105	0/0		4/4	
@@ -39,7 +40,9 @@ Cadira, Caller of the Small	1c3d77afa9ad5b55	11	1/1		0/1	ix:resp
 Call to Glory	538ced5c6096c727	10	0/0		1/2	ix:resp
 Call to the Netherworld	b52b868aaf8fba78	3	0/0		1/2	ix:resp
 Calming Verse	20f956aaf878f52b	14	0/0		2/2	
+Cartouche of Ambition	cf7244d134f961cf	35	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
 Cartouche of Solidarity	0cf0346af84d9bb4	52	1/1		2/2	
+Cartouche of Strength	23025413eab0fb8b	230	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
 Certain Death	545289d30bbfd585	8	0/0		1/2	ix:resp
 Chakram Retriever	3df15a928a26f2ca	15	2/2		0/1	ix:resp
 Chase Stein, Runaway	c1bae97e6462bb3a	10	1/1		1/1	
@@ -101,6 +104,7 @@ Goggles of Night	d8838bbe55722e40	19	2/2		0/1	ix:resp
 Hag of Noxious Nightmares	4f7c386db1f80ad2	5	0/0		0/0	
 Hallowed Haunting	a5ce710f99f291aa	9	1/1		0/1	ix:resp
 Halvar, God of Battle	370b62d7de167454	17	3/3		1/3	f0/t0/opt:n,f0/t0/opt:y
+Heirloom Blade	1ec3163e478bb30b	24	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Hobbit's Sting	555db77207e416d3	4	0/0		1/2	ix:resp
 Honor-Worn Shaku	7adf63a102d3fbed	10	2/2		0/1	ix:resp
 Hornet Nest	6addaf8a489213f9	19	1/1		1/1	
@@ -115,12 +119,14 @@ Ishgard, the Holy See	f65f64c6437b4e03	42	1/1		1/2	ix:resp
 Island	763c67ef7a27eaf5	535	1/1		0/1	ix:resp
 Jidoor, Aristocratic Capital	ea2e78c3749a5600	79	1/1		1/2	ix:resp
 Joiner Adept	cd942cd03dc15865	12	0/0		0/0	
+Juju Bubble	e4697f30d319d5a4	31	4/4		1/1	
 Jukai Trainee	7ebb26d3795b8588	44	2/2		1/1	
 Juvenile Gloomwidow	22b233b127567bbe	10	0/0		0/0	
 Kaervek's Torch	8d29af72dc5ca193	5	0/0		3/4	f0/s/x0
 Kjeldoran Frostbeast	1fddbe0556eecbd0	6	1/1		0/1	ix:resp
 Kolaghan Warmonger	66e1ab631c7a0699	6	1/1		0/1	ix:resp
 Kor Haven	ac73174c8be39f81	20	2/2		0/1	ix:resp
+Kumano, Master Yamabushi	28f3ed382864337c	3	1/1		1/1	
 Last Breath	9765cec350508ba5	8	0/0		1/2	ix:resp
 Lat-Nam Adept	521b24cae5c89268	15	1/1		1/1	
 Lesser Werewolf	e7d3dce047207e25	3	1/1		0/1	ix:resp
@@ -130,15 +136,19 @@ Lindblum, Industrial Regency	122362f9aa5a86d9	62	1/1		2/2
 Living Totem	93104de022799def	26	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Loxodon Mystic	7a3b19a5c8eb29b7	12	1/1		0/1	ix:resp
 Lynx	dafb34074ff927a5	22	0/0		0/0	
+M.O.D.O.K., Evil Intellect	77b73345412db753	12	1/1		0/1	ix:resp
 Magmaroth	a1ab73672ab46a72	6	2/2		1/1	
 Magmatic Force	2e7ef105108b56c8	3	1/1		0/1	ix:resp
 Marionette Apprentice	d3532fd979c470a6	6	2/2		0/1	ix:resp
 Marsh Casualties	fcbcce46b55991fa	14	0/0		3/4	ix:resp
 Mascot Exhibition	d10d162b60c58ca7	3	0/0		1/2	ix:resp
 Mass Diminish	51d404a449d80d02	42	0/0		3/4	ix:resp
+Mawloc	65622bd92845fac6	9	2/2		0/1	ix:resp
 Memorial to Unity	90345d4cadfbce7c	37	2/2		0/1	ix:resp
 Meria, Scholar of Antiquity	ca65a29bf61fc16f	14	2/2		0/1	ix:resp
 Midgar, City of Mako	ee367af3148066aa	33	1/1		1/2	ix:resp
+Midnight Ritual	566b5ebce30f18b4	5	0/0		2/4	f0/s/x0,ix:resp
+Militia Bugler	22c10cc12bcc0f05	7	1/1		0/1	ix:resp
 Mind Slash	eb204d68b0d40d0f	4	1/1		0/1	ix:resp
 Mogg Squad	3b824e8f0e56e159	18	0/0		0/0	
 Moldering Karok	0b156a26a6195eb1	3	0/0		0/0	
@@ -189,6 +199,8 @@ Shared Triumph	e5e1d84553f03113	8	0/0		0/0
 Shrine of the Forsaken Gods	91a054b4cd2a6e59	36	2/2		0/1	ix:resp
 Six-Sided Die	2c51e57d10b3cd0d	4	0/0		1/2	ix:resp
 Skyblade's Boon	47703488bcb6a449	16	2/2		2/2	
+Slingshot Goblin	1c6aa1c248d448a0	6	1/1		0/1	ix:resp
+Snarespinner	8cfe4b15ddac0163	18	1/1		1/1	
 Soul Channeling	c14ca46acdd56d4f	13	1/1		2/2	
 Sphere of Reason	185b34203c181d44	4	0/0		0/0	
 Spontaneous Artist	1c1950618d558a4c	13	2/2		0/1	ix:resp
@@ -212,6 +224,7 @@ That Which Was Taken	1de9b7aec73e800f	11	1/1		0/1	ix:resp
 The Forgotten Place	c4068a64e2b52cf2	31	2/2		0/1	ix:resp
 The Terror of Serpent's Pass	9c55563de7067f15	9	0/0		0/0	
 Treasure Trove	57ef0500c7cb6ccd	12	1/1		0/1	ix:resp
+Trial of Strength	36b49022a41463a6	369	2/2		1/1	
 Troubled Healer	a16cb6d543717ec6	6	1/1		1/1	
 Troublesome Spirit	661981d12a9d3283	20	1/1		1/1	
 True Polymorph	94a50941e4752451	19	0/0		1/2	ix:resp

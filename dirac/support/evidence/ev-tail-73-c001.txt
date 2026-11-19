@@ -311,6 +311,7 @@ Ogre Errant
 Old Rutstein
 Oneirophage
 Orc Sureshot
+Orcish Settlers
 Orcish Vandal
 Ordeal of Heliod
 Ordered Migration
