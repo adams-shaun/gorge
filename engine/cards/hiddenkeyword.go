@@ -49,11 +49,11 @@ var canonicalKeywordHeads = map[string]string{
 	// CR 509.1c's exactly-one variant (Nacatl War-Pride): the MustBlock duty
 	// beside a one-blocker ceiling.
 	"cardname must be blocked by exactly one creature if able.": "MustBeBlockedByExactlyOne",
-	"all creatures able to block cardname do so.":                "AllMustBlock",
-	"cardname can't attack or block.":                            "CantAttackOrBlock",
-	"cardname can't attack or block alone.":                      "CantAttackOrBlockAlone",
-	"cardname can't attack alone.":                               "CantAttackAlone",
-	"cardname can't block alone.":                                "CantBlockAlone",
+	"all creatures able to block cardname do so.":               "AllMustBlock",
+	"cardname can't attack or block.":                           "CantAttackOrBlock",
+	"cardname can't attack or block alone.":                     "CantAttackOrBlockAlone",
+	"cardname can't attack alone.":                              "CantAttackAlone",
+	"cardname can't block alone.":                               "CantBlockAlone",
 	// CR 506.5's inverse polarity (Master of Cruelties): the creature may
 	// attack only when it is the WHOLE attacker declaration.
 	"cardname can only attack alone.": "OnlyAttackAlone",
