@@ -2888,6 +2888,9 @@ func (s *State) restrAbN(k *prep, sl Slot, ra *kop.Ability) uint8 {
 // play d describes, the restricted batches it may spend included (CR 106.6):
 // gorge's priority options price a cast against that pool (legalActions).
 func (s *State) floatPaysPlay(k *prep, p uint8, cost *kop.ManaCost, d payDesc) bool {
+	if !s.playTargetsFeasible(k, p, d) {
+		return false
+	}
 	var av avail
 	for c := 0; c < kop.NumManaKinds; c++ {
 		if n := s.pl[SeatIx(p)].pool[c]; n > 0 {
