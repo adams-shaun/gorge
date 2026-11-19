@@ -558,6 +558,7 @@ func (cb *cardBuilder) record() error {
 		d.Bargain = true
 		cb.bargain = true
 	}
+	d.HandMana = c.HandMana // a Spirit Guide's hand mana: no ability (lower_handmana.go)
 	if c.Storm {
 		// the printed K:Storm trigger is the kernel's own native trigger
 		// (dirac/kw_storm.go); no ability, no cast-action bit

@@ -288,6 +288,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.ExiledWith {
 		fmt.Fprintf(w, " exiledwith")
 	}
+	if c.HandMana != 0 {
+		fmt.Fprintf(w, " handmana=%#x", c.HandMana) // lower_handmana.go
+	}
 	if c.CombatHitRec {
 		fmt.Fprintf(w, " combathitrec")
 	}

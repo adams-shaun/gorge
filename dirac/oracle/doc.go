@@ -120,10 +120,13 @@
 // manual window is answered by its auto-fill, else a source making an owed
 // colour (Stats.Fallbacks).
 //
-// A fallback payment window can list a hand-zone source (Elvish Spirit Guide
-// or Simian Spirit Guide) that the kernel cannot pay with, so kgen refuses
-// those cards rather than lower an inert ability (TestSpiritGuideGorgeWindow
-// measures the window, TestSpiritGuideRefusal the refusal).
+// A cast's payment window can list a hand-zone source (Elvish Spirit Guide
+// or Simian Spirit Guide) after every battlefield source; the kernel's window
+// walk takes it there once no battlefield source is listed, and its
+// untapped-source gates count it (dirac/mana_handguide.go;
+// TestSpiritGuideGorgeWindow measures gorge's window). kgen still refuses the
+// guides: gorge's potential-play prefix search funds a filter's fee with a
+// hand guide, and the kernel's searches do not (kgen handManaSearchGap).
 //
 // Plays the planner cannot price (Reason
 // unsupported/ambiguous, or a dead-end script) are not options: gorge's

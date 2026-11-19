@@ -1020,6 +1020,11 @@ type filtStep struct {
 	// and the search takes each in turn; mana_gate.go gatedLargerPair), its
 	// mana srcYield's, where the census one makes manaN
 	wide bool
+	// hand: a funding step that exiles the hand guide at index hidx of the
+	// payer's hand (a Spirit Guide's hand mana ability, mana_handguide.go);
+	// sl is NoSlot
+	hand bool
+	hidx uint8
 	// other: a census gap that is no filter (mixed gaps, zmixgaps file), or
 	// an answer or a pass while a step's trigger resolves (act)
 	other otherStep
@@ -1099,6 +1104,8 @@ type filtSearch struct {
 	// (scriptSearch.visit) walks its gap list once: each gap activates at most
 	// once per path.
 	lifeUsed slotMask
+	// hands: the hand guides the path exiled so far (mana_handguide.go)
+	hands uint8
 }
 
 // filtFunded reports whether gorge's census funds the fees of the filter gaps f:
@@ -1213,6 +1220,10 @@ func (fs *filtSearch) tick() bool {
 
 // filtDo plays step st for p.
 func (s *State) filtDo(k *prep, p uint8, st filtStep) {
+	if st.hand {
+		s.handFundDo(k, p, st)
+		return
+	}
 	if st.other.kind != otherNone {
 		s.otherDo(k, p, st)
 		return
@@ -1449,6 +1460,13 @@ func (t *State) scriptKey(k *prep, p uint8, other slotMask) filtKey {
 		for c := 0; c < kop.NumManaKinds; c++ {
 			if a&(1<<c) != 0 {
 				key.typed[c] = key.pool[c] - rbPlain[c]
+				// gorge keys the tagged units by count: a Signpost's {G} beside
+				// an Elvish Spirit Guide's is not two tagged {G} (coldArtN)
+				if sx := coldArtN.of(t); sx != nil && !DebugArtKeyBit {
+					if n := sx[int(SeatIx(p))*kop.NumManaKinds+c]; n != 0 && n < key.typed[c] {
+						key.typed[c] = n
+					}
+				}
 			}
 		}
 		if a&poolArtRestr != 0 {
@@ -1550,7 +1568,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	// offers before it dedups: the colour-only key cannot tell a restricted
 	// unit from a filter's converted one, so a priced node can key equal to an
 	// earlier unpriced sibling.
-	if gapUsed {
+	if gapUsed || fs.hands > 0 { // (a guide's mana makes the raw priority list the play with no gap used)
 		var d Decision
 		t.restrOptions(k, &d, p) // (restricted mana floating is priced as ordinary: the search reads no restriction)
 		t.capGrantOvercounts(k, &d, p)
@@ -1655,6 +1673,9 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				return res
 			}
 		}
+	}
+	if funded < fs.fees && handManaOn(k) && fs.handFund(k, t, funded, gapUsed) {
+		return true // a hand guide funds after the battlefield's sources (mana_handguide.go)
 	}
 	return fs.passTrigger(k, t, funded)
 }

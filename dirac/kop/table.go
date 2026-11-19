@@ -220,6 +220,14 @@ type CardDef struct {
 	// and a copy of a permanent spell resolves into a token
 	// (genPrep.anyPermCopy; dirac/copy_permanentspell.go, CR 707.10f).
 	Storm bool
+	// HandMana is the colour mask (one WUBRG bit) of a hand-zone mana
+	// ability whose only cost exiles the card itself from its owner's hand
+	// (Simian / Elvish Spirit Guide: "Exile this card from your hand: Add
+	// {R}", CR 605.1a, 605.2a; 0 = none). It is no CardDef ability: the
+	// kernel reads it as a hand source of the manual payment windows and the
+	// untapped-source gates, as gorge's pay.ManaSourceIDs lists the hand after
+	// the battlefield (dirac/mana_handguide.go).
+	HandMana uint8
 	// OptCost, OptBehold: S:Mode$ OptionalCost ("as an additional cost to
 	// cast this spell, you may blight N / behold a <type>", CR 601.2b): the
 	// optional cast is the kicked cast (AkCast mode 1, gorge's
