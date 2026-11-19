@@ -25,6 +25,7 @@ const (
 
 // markFaceDown records the provenance of the face-down permanent at sl.
 func (s *State) markFaceDown(sl Slot, cloaked bool) {
+	s.perms[sl].spare &^= spareCopyFaceDown // now face down in its own right (copy_facedown.go)
 	if cloaked {
 		s.perms[sl].gty |= gtyCloaked
 		return
