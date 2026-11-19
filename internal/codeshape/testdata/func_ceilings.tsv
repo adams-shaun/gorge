@@ -185,7 +185,7 @@ engine/effects wordPredicate	317	96
 engine/rules (*Engine).appendAvailableManaAbilitiesGateCompute	381	122
 engine/rules (*Engine).applyReplacementsDispatch	407	126
 engine/rules (*Engine).askReplacementChoiceIn	169	54
-engine/rules (*Engine).beginCastWith	774	173
+engine/rules (*Engine).beginCastWith	781	173
 engine/rules (*Engine).candidatesForLimitInto	193	63
 engine/rules (*Engine).castAnswer	242	80
 engine/rules (*Engine).checkEventDelayedTriggers	356	59
@@ -194,7 +194,7 @@ engine/rules (*Engine).checkGrantedStaticTriggersUsing	269	62
 engine/rules (*Engine).continueCast	237	53
 engine/rules (*Engine).emit	851	241
 engine/rules (*Engine).forEachTriggerObject	170	53
-engine/rules (*Engine).handleChoose	413	105
+engine/rules (*Engine).handleChoose	414	105
 engine/rules (*Engine).handleReplacement	298	79
 engine/rules (*Engine).legalTargets	200	56
 engine/rules (*Engine).mayPlaySpellIdsBoard	178	54
@@ -203,7 +203,7 @@ engine/rules (*Engine).payCast	955	159
 engine/rules (*Engine).potentialModeCastPlan	175	55
 engine/rules (*Engine).pushTrigger	800	170
 engine/rules (*Engine).replacementMatchesRememberedUngatedBy	719	191
-engine/rules (*Engine).resolveTop	785	108
+engine/rules (*Engine).resolveTop	794	109
 engine/rules (*Engine).staticEffectsWalk	781	132
 engine/rules (*Engine).targetAsk	345	68
 engine/rules (*Engine).triggerConditionHoldsWithSVars	224	56
@@ -213,7 +213,7 @@ engine/rules (*Engine).xAsk	433	87
 engine/rules (*legalWalk).battlefieldWalk	758	169
 engine/rules (*legalWalk).exileCastsWalk	179	70
 engine/rules (*legalWalk).graveyardCastsOver	278	84
-engine/rules (*legalWalk).handWalk	701	167
+engine/rules (*legalWalk).handWalk	706	172
 engine/rules (*legalWalk).mayPlaySpellWalk	207	53
 engine/rules (*oracleRun).build	253	70
 engine/rules (*oracleRun).check	237	106
