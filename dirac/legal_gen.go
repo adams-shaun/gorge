@@ -237,8 +237,16 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	} else if s.freeOwes(k) {
 		// a free cast still pays the cost statics' increases (CR 601.2f, 118.9d)
 		cost := s.adjustCostGen(k, p, c, o, kop.ManaCost{})
-		if cost != (kop.ManaCost{}) && (!s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) || !s.windowPoolPays(p, &cost, false)) {
-			return // (a free cast is no potential play: the floating pool pays what it owes)
+		if cost != (kop.ManaCost{}) && !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
+			return
+		}
+		// The autopay surface lists only a free cast whose raise the floating
+		// pool pays, as gorge's ordinary walk does; the full surface reaches it
+		// by lowering a potential play, whose plan taps the sources (Urza's
+		// Gelatinous Genesis under Thorn of Amethyst: the untapped Island pays
+		// the {1}, tail-64 pair 38).
+		if cost != (kop.ManaCost{}) && s.cfg&cfgGorgeAutopay != 0 && !s.windowPoolPays(p, &cost, false) {
+			return
 		}
 	}
 	// a graveyard card cast through the permission is on the stack when its
