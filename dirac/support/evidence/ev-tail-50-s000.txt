@@ -15,6 +15,7 @@ Belligerent Whiptail
 Blazing Hope
 Bloodmark Mentor
 Boneshard Slasher
+Boomerang
 Boreal Centaur
 Brazen Wolves
 Briber's Purse
@@ -107,6 +108,7 @@ Orcish Hellraiser
 Parch
 Petrified Wood-Kin
 Phyrexian Broodstar
+Phyrexian Gargantua
 Plunder
 Power Word Kill
 Primal Empathy
@@ -142,6 +144,9 @@ Skirsdag High Priest
 Skywarp Skaab
 Skywing Aven
 Slash the Ranks
+Snow-Covered Forest
+Snow-Covered Plains
+Snow-Covered Swamp
 Soltari Champion
 Soratami Mindsweeper
 Soul Collector

@@ -1,36 +1,67 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Angel of Glory's Rise	9678428bbc3b6d63	40	1/1		0/1	ix:resp
+Arcbound Worker	297fd50c8b3d55d8	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Armory Guard	46e5ce6fe6fb5232	3	0/0		0/0	
 Brainspoil	796cfa650d08b72a	10	1/1		2/2	
+Chief of the Foundry	c24e1dd361f9fdef	12	0/0		0/0	
 Civic Wayfinder	cab883f247c9bcc9	30	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Constant Mists	a52095aed8e85dd0	35	0/0		4/4	
 Copper Myr	dbc0c30dbfdd5076	86	1/1		1/1	
 Crashing Footfalls	3be4e5ce0869dfd4	13	0/0		3/4	cast/alt:none
+Cruel Celebrant	75fe006b5db01ca6	6	1/1		0/1	ix:resp
 Crypt Creeper	1c250c875d042530	60	1/1		1/1	
+Defiant Strike	59f618ba87381764	12	0/0		1/2	ix:resp
 Dreadlight Monstrosity	af0294b19652cfcc	24	2/2		0/1	ix:resp
+Eel Umbra	4697d310786ff9be	5	0/0		1/2	ix:resp
 Ellivere of the Wild Court	40a6b62be70954f3	18	3/3		1/1	
 Extract from Darkness	46052cc3751ca8af	13	0/0		2/2	
+Falkenrath Torturer	8be0484b877500a5	6	1/1		0/1	ix:resp
+Frost Trickster	18027b775ad8b9f0	6	1/1		1/1	
 Glen Elendra Liege	86addef7b300a979	11	0/0		0/0	
 Goblin Bushwhacker	30f327ee3dcc5eca	56	1/1		3/3	
+Great Oak Guardian	2425ec1e321d0c15	4	1/1		0/1	ix:resp
 Hammerhead Shark	a2dd9eb3ecfc63f3	109	0/0		0/0	
 Hold at Bay	d077c16ccae1e9ba	59	0/0		2/2	
+Horizon Spellbomb	61c413d0a1658f1c	7	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Hormagaunt Horde	824dd4dc8cb69fee	28	2/2		0/1	ix:resp
 Jilt	5a0c926771f958f9	87	0/0		4/4	
 Kashi-Tribe Warriors	614dd51aba0ace4c	18	1/1		0/1	ix:resp
 Kraken Hatchling	4c617be6abac92b3	79	0/0		0/0	
 Kraum, Ludevic's Opus	393b9758818e519b	17	1/1		1/1	
 Lead by Example	54294b6548b8de64	67	0/0		2/2	
+Loamcrafter Faun	e6316c842a2c6bf8	4	1/1		0/1	ix:resp
 Maraleaf Pixie	30e67c73afd23b54	35	1/1		1/1	
 Mindculling	b7744e6ec4e10c3a	38	0/0		2/2	
+Nature's Embrace	719888e8c71f8240	6	0/0		1/2	ix:resp
+Norwood Archers	d832436039a5b906	6	0/0		0/0	
 Orochi Sustainer	38b97404e1df5f8d	40	1/1		0/1	ix:resp
+Pang Tong, "Young Phoenix"	ac9aa9b1094db720	4	1/1		0/1	ix:resp
 Rampant Rejuvenator	e504db6f718e1e0a	34	1/1		1/1	
+Renegade Warlord	dfd2b5c2f85093f0	3	1/1		1/1	
+Repel the Vile	f27b0f6d8327ba1b	4	0/0		1/2	ix:resp
 Reprieve	634b5bbc1822ccf8	75	0/0		2/2	
+Rhox Charger	2e7e863697834b9b	10	1/1		0/1	ix:resp
+Riptide Mangler	78e6a773eac76114	13	1/1		0/1	ix:resp
+Sacred Knight	0107f1b65e403ed9	13	0/0		0/0	
+Sanctum Custodian	b2a235634812fcbc	6	1/1		0/1	ix:resp
+School of Piranha	ee7e42b157a9f592	7	1/1		0/1	ix:resp
 Shinen of Life's Roar	a3d4b6be3f56367e	19	1/1		1/1	
 Silas Renn, Seeker Adept	a77f09601225d5d8	26	1/1		1/1	
+Spell Contortion	aab1b96a117e0252	5	0/0		2/4	cast/alt:multikicked,ix:resp
 Squee's Embrace	5895468b73d740d6	27	1/1		1/2	ix:resp
+Staff of the Storyteller	67691e37823e8dea	7	3/3		0/1	ix:resp
 Stick, Fearless Mentor	bbbc1e5d9060ff97	21	1/1		0/1	ix:resp
+Talrand's Invocation	c49de7bb188cb7fc	5	0/0		2/2	
+Tanglebloom	be0e433df23efb67	3	1/1		0/1	ix:resp
 The Destined Black Mage	6d153eec1aefa381	63	2/2		1/1	
+Treasure Vault	2a64935a59df2d74	22	2/2		1/1	
 Trench Gorger	55d0966722365ffa	24	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Trenchpost	ab01d02d02895b49	28	2/2		0/1	ix:resp
+Vendetta	f72b27e88fbf063e	6	0/0		1/2	ix:resp
+Vengeful Dreams	08c470597ad23c03	4	0/0		1/2	ix:resp
+Vivien's Grizzly	cd6cdbcac98c61c5	5	1/1		1/1	
 Wake the Past	15caee9f01cbccf1	7	0/0		1/2	ix:resp
+Walker of the Grove	4f198ccf0c6bd18a	3	1/1		1/3	cast/alt:none,ix:resp
 Weaver of Harmony	d9b41bf3497c7d27	42	1/1		1/1	
 Winterflame	e5eba1203dfc9bef	20	0/0		2/2	
 Wirewood Herald	86ceadb404b1556d	46	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp

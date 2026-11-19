@@ -4,6 +4,7 @@ Archaeomancer
 Ardent Elementalist
 Armored Ascension
 Aven Fisher
+Axebane Guardian
 Bad Deal
 Baird, Steward of Argive
 Baloth Woodcrasher
@@ -26,6 +27,7 @@ Diabolic Tutor
 Dragon Bell Monk
 Dream Fracture
 Errant Ephemeron
+Evincar's Justice
 Experiment One
 Exuberant Fuseling
 Fathom Fleet Swordjack
@@ -72,8 +74,10 @@ Rewind
 Ruinous Gremlin
 Savage Gorger
 Serum Visions
+Sheltering Word
 Shiv's Embrace
 Sneering Shadewriter
+Stinging Shot
 Stitch Together
 Strafe
 Strategic Planning

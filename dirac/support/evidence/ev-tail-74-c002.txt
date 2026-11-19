@@ -183,11 +183,13 @@ Involuntary Cooldown
 Island
 Jhoira's Familiar
 Jinxed Idol
+Journey to the Lost City
 Keldon Strike Team
 Khenra Charioteer
 Kindle
 Kjeldoran Pride
 Knights of Dol Amroth
+Kolvori, God of Kinship
 Kor Blademaster
 Kraken of the Straits
 Kuldotha Flamefiend
@@ -246,6 +248,7 @@ Novellamental
 Oran-Rief Ooze
 Orazca Frillback
 Oreskos Swiftclaw
+Orthodoxy Enforcer
 Outbreak
 Painwracker Oni
 Paladin Danse, Steel Maverick
@@ -257,6 +260,7 @@ Plague Fiend
 Plains
 Planar Incision
 Planar Portal
+Plow Under
 Pool Resources
 Portent of Betrayal
 Precision Bolt

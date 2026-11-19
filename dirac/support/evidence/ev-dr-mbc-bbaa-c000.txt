@@ -3,6 +3,7 @@ About Face
 Against All Odds
 Ancient Hydra
 Angelic Exaltation
+Assault Formation
 Ballynock Cohort
 Banishing Slash
 Barrowgoyf
@@ -75,6 +76,7 @@ Pyrohemia
 Quest for Pure Flame
 Quest for the Gravelord
 Reality Shift
+Relic Crush
 Renegade Warlord
 Reverent Mantra
 Rogue's Passage

@@ -7,6 +7,7 @@ Ambush	12160d948765b013	5	0/0		2/2
 Ancient Excavation	7db2ed64f1142f6e	10	1/1		1/2	ix:resp
 Arasta of the Endless Web	165a756ed19ce27a	11	1/1		0/1	ix:resp
 Ark of Blight	ada814c0b11e9678	12	1/1		0/1	ix:resp
+Arni Brokenbrow	a0f66776ee95aa02	32	1/1		1/1	
 Assembly-Worker	24e2bbae56dd1b4b	26	1/1		1/1	
 Axelrod Gunnarson	5fc9c912a61cc106	3	1/1		0/1	ix:resp
 Barrier of Bones	2f34065f7116121a	46	1/1		0/1	ix:resp
@@ -48,6 +49,7 @@ Forgotten Sentinel	9f5e4cfa049400d1	16	0/0		0/0
 Fortitude	5c2e338a429e8caa	11	2/2		2/2	
 Gather Courage	899e52043aebe72e	31	0/0		1/2	ix:resp
 Ghastly Gloomhunter	a01c1468a1bec099	26	0/0		2/2	
+Ghost Lantern	49d55e82fc5ae4e4	28	2/2		2/2	
 Ghostly Visit	51504ce14e38eff7	39	0/0		1/2	ix:resp
 Giltgrove Stalker	c4290c7db4205e09	21	0/0		0/0	
 Glinting Creeper	ae48d21ecf18867d	12	0/0		0/0	
@@ -69,6 +71,7 @@ Lattice-Blade Mantis	f9728fdc3ca9c692	17	1/1		0/1	ix:resp
 Lifespark Spellbomb	ab402f5226b4c4a1	43	2/2		1/1	
 Madcap Skills	cf357134ab1827b4	40	0/0		2/2	
 Master's Guidance	5e9570144be142a7	63	2/2		1/1	
+Melira, the Living Cure	3b91e1895067cb9a	30	1/1		0/1	ix:resp
 Mephitic Vapors	95790fe9771ebb80	50	0/0		2/2	
 Might of the Old Ways	ce03ae620bda9e7c	6	0/0		1/2	ix:resp
 Mishra's Helix	741a9a403b12dbf7	34	1/1		1/1	
@@ -85,6 +88,7 @@ Prehistoric Turtlesaurus	6634a6399cadb898	10	0/0		0/0
 Rakshasa Gravecaller	807d29f9eb537f88	26	2/2		1/1	
 Rend Flesh	4642b2dee32b3b73	34	0/0		2/2	
 Risk Factor	237ef09e7fee58e3	20	0/0		3/4	cast/alt:jumpstart
+Savage Hunger	4b28a7e0cafb6abc	3	1/1		2/2	
 Scampering Scorcher	0458bbdb9eca7610	27	1/1		1/1	
 Schema Thief	529347e609ad516d	44	1/1		0/1	ix:resp
 Seed the Land	56343db06a265df9	11	1/1		1/1	
@@ -92,6 +96,7 @@ Seizures	dd54ba81f17944b9	41	1/1		2/2
 Shambling Shell	52a4eedf3743accb	118	1/1		1/1	
 Shoreline Salvager	3ec318e4cecfb47d	18	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Sima Yi, Wei Field Marshal	e6d7592b39d3e28b	28	0/0		0/0	
+Sisterhood of Karn	6b84d05306c929a9	39	1/1		0/1	ix:resp
 Skithiryx, the Blight Dragon	5e9cdff96d32167a	7	2/2		1/1	
 Splitting Slime	c4f5915ed798b4fd	11	2/2		0/1	ix:resp
 Steal Strength	6f00cf53a9195b4b	30	0/0		2/2	
@@ -110,5 +115,6 @@ Vertigo	db08af084c3abdeb	18	0/0		2/2
 Viashino Slasher	155c16a67162a36a	41	1/1		1/1	
 Vines of the Recluse	a2ef79400b2c945b	23	0/0		2/2	
 Wing Splicer	3a4a8c024f9fbf44	20	1/1		1/1	
+Without Weakness	c5b1fbb19edce068	9	1/1		1/2	ix:resp
 Wurmcoil Engine	48001bd8043e0abb	18	1/1		1/1	
 Yarok's Fenlurker	044a3ed390b92ff7	22	2/2		1/1	
