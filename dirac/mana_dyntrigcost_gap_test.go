@@ -28,11 +28,12 @@ func dynGapTable(t *testing.T) (*kop.Table, CardID, CardID, CardID, CardID, Card
 			ManaColors: kop.ColB,
 		}}},
 		kop.CardDef{Name: "Test Each Colour Gap", Types: kop.TCreature, Power: 1, Toughness: 1, Abilities: []kop.Ability{{
-			Kind:       kop.AbMana,
-			Cost:       kop.Cost{Flags: kop.CostTap},
-			AFlags:     kop.AfManaEachColor,
-			ManaN:      1,
-			ManaColors: kop.ColAny,
+			Kind:   kop.AbMana,
+			Cost:   kop.Cost{Flags: kop.CostTap},
+			AFlags: kop.AfManaEachColor,
+			ManaN:  1,
+			// the real lowering leaves ManaColors 0 (kgen build_ab.go),
+			// so the census keeps no planner unit for the gap
 		}}},
 		kop.CardDef{Name: "Test Restricted Petals", Types: kop.TArtifact, Abilities: []kop.Ability{{
 			Kind:         kop.AbMana,
@@ -239,16 +240,28 @@ func TestDynTriggerCostPayFilterExtension(t *testing.T) {
 // (Bloom Tender's shape): the ability's production is not a fixed face set, so
 // gorge's payment fold prices it open in every colour even at a literal
 // Amount$ (potential.go producedOpen over addPotentialMana). The kernel's
-// census reads the colours among the board's permanents, which is one colour
-// on a board of one green creature, so the unbounded claim has to come from
-// the dynamic-shape fold.
+// census reads the colours among the board's permanents (zero on a board of
+// colourless permanents), so the unbounded claim has to come from the
+// dynamic-shape fold. The source is the real shape: an AfManaEachColor ability
+// with ManaColors 0 and no planner manaAb (kgen build_ab.go), so the live arm
+// under test is the each-colour arm of anyLiveSource, not a printed planner
+// unit.
 func TestDynTriggerCostPayEachColourExtension(t *testing.T) {
-	tbl, _, trig, _, each, _ := dynGapTable(t)
+	tbl, plains, trig, _, each, _ := dynGapTable(t)
+	green := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Green Bystander", Types: kop.TCreature, Colors: kop.ColG, Power: 1, Toughness: 1})
 	c6 := manaOf(6, 0)
+	ask := func(sc *scen) Decision { return dynPayAsk(t, sc, trig) }
 
+	// live: one white permanent makes the each-colour count nonzero, and the
+	// gap's open production covers the {6} unbounded.
 	sc := newScenTable(t, tbl, Config{NoElide: true})
 	le := sc.perm(each, 0)
+	sc.perm(plains, 0)
 	dynShapePreconditions(t, sc, le, "each-colour")
+	if c := sc.s.cardAt(sc.slot(le)); sc.k.cards[c].manaAb >= 0 || sc.k.gen.eachCol(c) < 0 {
+		t.Fatalf("precondition: the each-colour source is not a census gap (cardManaAb %d)", sc.k.cards[c].manaAb)
+	}
 	dynProbe(t, sc)
 	if !sc.s.potentialDynOpen(sc.k, 0, &c6, &payDesc{class: pdOther, subBound: true}) {
 		t.Fatal("potentialDynOpen refused the each-colour gap: gorge prices its open production unbounded")
@@ -258,8 +271,62 @@ func TestDynTriggerCostPayEachColourExtension(t *testing.T) {
 	}
 	scA := newScenTable(t, tbl, Config{NoElide: true})
 	scA.perm(each, 0)
-	if d := dynPayAsk(t, scA, trig); d.Sub != ChGenPay || d.N != 2 ||
+	scA.perm(plains, 0)
+	if d := ask(scA); d.Sub != ChGenPay || d.N != 2 ||
 		d.Options[0].Mode() != 0 || d.Options[1].Mode() != 1 {
-		t.Fatalf("each-colour ask %d options %v, want decline then pay", d.Sub, d.Options[:d.N])
+		t.Fatalf("each-colour live ask %d options %v, want decline then pay", d.Sub, d.Options[:d.N])
+	}
+
+	// alone: no permanent has a colour, so the each-colour count is zero and
+	// gorge's sources flag refuses the source that makes nothing now.
+	sc2 := newScenTable(t, tbl, Config{NoElide: true})
+	sc2.perm(each, 0)
+	dynProbe(t, sc2)
+	if sc2.s.potentialDynOpen(sc2.k, 0, &c6, &payDesc{class: pdOther, subBound: true}) ||
+		sc2.s.trigCostPotentialPays(sc2.k, 0, kop.PayMana, 0, 6, 0, 0) {
+		t.Fatal("the gate opened beside the each-colour gap with a zero count")
+	}
+	sc2A := newScenTable(t, tbl, Config{NoElide: true})
+	sc2A.perm(each, 0)
+	if d := ask(sc2A); d.Sub != ChGenPay || d.N != 1 || d.Options[0].Mode() != 0 {
+		t.Fatalf("each-colour alone ask %d options %v, want decline only", d.Sub, d.Options[:d.N])
+	}
+
+	// tapped: the walk skips the each-colour gap, and the one white source
+	// alone cannot fund the {6}.
+	sc3 := newScenTable(t, tbl, Config{NoElide: true})
+	l3 := sc3.perm(each, 0)
+	sc3.perm(plains, 0)
+	sc3.s.perms[sc3.slot(l3)].flags |= pfTapped
+	dynProbe(t, sc3)
+	if sc3.s.potentialDynOpen(sc3.k, 0, &c6, &payDesc{class: pdOther, subBound: true}) ||
+		sc3.s.trigCostPotentialPays(sc3.k, 0, kop.PayMana, 0, 6, 0, 0) {
+		t.Fatal("the gate opened beside a tapped each-colour gap")
+	}
+	sc3A := newScenTable(t, tbl, Config{NoElide: true})
+	l3A := sc3A.perm(each, 0)
+	sc3A.perm(plains, 0)
+	sc3A.s.perms[sc3A.slot(l3A)].flags |= pfTapped
+	if d := ask(sc3A); d.Sub != ChGenPay || d.N != 1 || d.Options[0].Mode() != 0 {
+		t.Fatalf("each-colour tapped ask %d options %v, want decline only", d.Sub, d.Options[:d.N])
+	}
+
+	// count: a green permanent makes the count nonzero, so the gap itself is
+	// the board's only source and still opens the gate (the each-colour
+	// analogue of a dynamic source holding counters).
+	sc4 := newScenTable(t, tbl, Config{NoElide: true})
+	sc4.perm(each, 0)
+	sc4.perm(green, 0)
+	dynProbe(t, sc4)
+	if !sc4.s.potentialDynOpen(sc4.k, 0, &c6, &payDesc{class: pdOther, subBound: true}) ||
+		!sc4.s.trigCostPotentialPays(sc4.k, 0, kop.PayMana, 0, 6, 0, 0) {
+		t.Fatal("the gate refused the {6} beside an each-colour gap whose count is nonzero")
+	}
+	sc4A := newScenTable(t, tbl, Config{NoElide: true})
+	sc4A.perm(each, 0)
+	sc4A.perm(green, 0)
+	if d := ask(sc4A); d.Sub != ChGenPay || d.N != 2 ||
+		d.Options[0].Mode() != 0 || d.Options[1].Mode() != 1 {
+		t.Fatalf("each-colour count ask %d options %v, want decline then pay", d.Sub, d.Options[:d.N])
 	}
 }
