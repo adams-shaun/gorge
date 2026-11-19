@@ -99,6 +99,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"kw_enchant.go":           {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_encore.go":            {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_equip.go":             {true, "keyword expansion registered at init; shapes compiled abilities"},
+	"kw_epic.go":              {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_etbcounter.go":        {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_etbreplacement.go":    {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_evolve.go":            {true, "keyword expansion registered at init; shapes compiled abilities"},

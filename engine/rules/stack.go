@@ -745,16 +745,12 @@ func (e *Engine) resolveTop() {
 			resolveSA = &head
 		}
 	}
-	// Cipher (CR 702.99a): the encode is the resolving spell's own tail
-	// instruction, not a triggered ability. engine/rules/cipher.go appends it to a
-	// copy of the chain so the ordinary suspension/continuation machinery runs
-	// it after the spell's effects and before the move off the stack below. A
-	// stack COPY (o.IsCopy) is not a card, so it cannot be encoded.
-	if !o.IsCopy {
-		if withCipher := cipherTailFor(f, resolveSA); withCipher != nil {
-			resolveSA = withCipher
-		}
-	}
+	// Cipher (CR 702.99a) and Epic (CR 702.50a) ride the resolving spell's
+	// own chain as tail instructions (spellTailSplices): a countered, fizzled
+	// or effect-bounced spell never resolves and never reaches them, and a
+	// stack COPY is excluded -- not a card (cipher), and made except for its
+	// epic ability (epic).
+	resolveSA = spellTailSplices(o, f, resolveSA)
 	if resolveSA != nil {
 		e.damaging = id
 		ctx := e.arenaCtx()
