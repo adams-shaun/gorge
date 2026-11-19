@@ -443,6 +443,7 @@ func (f *Face) derive() {
 	f.power, f.toughness, f.characteristicDefining = parsePT(f.PT)
 	f.allCreatureTypesCDA = cdaAllCreatureTypes(f.Statics)
 	f.cdaAddTypes = cdaAddTypes(f.Statics)
+	f.cdaAddGated = cdaAddGatedStatics(f.Statics)
 	f.cmc = cmcFromManaCost(f.ManaCost)
 	f.cmcSrc, f.cmcBound = f.ManaCost, true
 	if f.manaCostSlot == nil {
@@ -651,6 +652,19 @@ func CDAAddTypeWords(st Static) iter.Seq[string] {
 	}
 }
 
+// CDAAddTypeWordList is CDAAddTypeWords collected into a slice, for a caller
+// that must not capture its own parameters in a range-over-func body (the
+// closure escapes, which makes those parameters leak and forces every
+// caller's stack-built string onto the heap). It allocates, so it is for the
+// rare zone-gated static only.
+func CDAAddTypeWordList(st Static) []string {
+	var out []string
+	for w := range CDAAddTypeWords(st) {
+		out = append(out, w)
+	}
+	return out
+}
+
 // cdaAddTypePlaceholder reports whether an AddType$ word is one of Forge's
 // placeholder forms, byte-prefix scanned like the raw parameter keys above
 // (the strings ratchet holds the package's strings.* call count).
@@ -680,6 +694,24 @@ func cdaAddTypes(sts []Static) []string {
 			if !slices.Contains(out, w) {
 				out = append(out, w)
 			}
+		}
+	}
+	return out
+}
+
+// CDAAddGatedStatics is the indices into f.Statics of the face's zone-gated
+// characteristic-defining AddType$ statics (CDAAddGateZone), nil when it has
+// none. Derived once at load; see cdaAddGatedStatics.
+func (f *Face) CDAAddGatedStatics() []int32 { return f.cdaAddGated }
+
+// cdaAddGatedStatics collects the indices of the statics CDAAddTypeStatic
+// classifies CDAAddGateZone, so the filter tier's per-call read never scans
+// the static list.
+func cdaAddGatedStatics(sts []Static) []int32 {
+	var out []int32
+	for i := range sts {
+		if gate, ok := CDAAddTypeStatic(sts[i]); ok && gate == CDAAddGateZone {
+			out = append(out, int32(i))
 		}
 	}
 	return out
