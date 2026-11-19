@@ -2263,9 +2263,10 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			if !slices.Contains(out.gaps, id) {
 				out.gaps = append(out.gaps, id)
 			}
-			if !out.relaxable && !bounded {
-				continue
-			}
+			// No skip once an earlier gap cleared relaxable and bounded: a
+			// later repeatable fee-only gap still owes its funding (Energy
+			// Refractor after Mystic Gate, CR 605.3a), and both arms below
+			// are then no-ops.
 			relaxed, fee, repeats, once, ok := e.paymentPlanRelaxedAlternatives(p, id, ma, &probe)
 			if !ok && fee > 0 {
 				// a repeatable fee-only ability converts colour, not mana:

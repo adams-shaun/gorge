@@ -15,11 +15,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // and paymentPlanRelaxedAlternatives gives it no relaxed alternative (it is
 // repeatable and not a bounded tap part). The census is then unrelaxable and
 // unbounded, its funding fee x potentialScriptNodes, and every insufficient
-// play among the first potentialScriptPlays gets the prefix search.
-//
-// Not modelled: gorge's `!out.relaxable && !bounded` skip
-// (potential_plan.go paymentPlanCensusOf), which zeroes the funding when an
-// earlier gap in zone order already cleared both flags.
+// play among the first potentialScriptPlays gets the prefix search, whatever
+// gap before it in zone order cleared both flags (Mystic Gate before Energy
+// Refractor still funds Lavaclaw Reaches' animation).
 
 // filtRepeat: the filter at sl is a repeatable fee-only one.
 func (s *State) filtRepeat(k *prep, sl Slot) bool {
