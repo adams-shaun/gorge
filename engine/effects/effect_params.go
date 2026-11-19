@@ -59,6 +59,13 @@ type EffectParams struct {
 	ImprintOnHostTrue bool
 	// ForgetOnPhasedIn$ True.
 	ForgetOnPhasedIn bool
+	// ImprintCards$, trimmed: the capture an api:Effect's staticAbilities$
+	// grants read as their own memory (Garland, Royal Kidnapper's
+	// `ImprintCards$ Targeted` pairs with the GainControl static's
+	// Affected$ Card.IsImprinted). The shared readers resolve the value
+	// against this resolution's targets exactly as effectRemembered resolves
+	// RememberObjects$.
+	ImprintCards string
 	// RememberLKI$, SetChosenNumber$ and EffectOwner$, trimmed.
 	RememberLKI     string
 	SetChosenNumber string
@@ -170,6 +177,7 @@ func compileEffect(sa *cards.SA) *EffectParams {
 	}
 	p.ImprintOnHost = strings.TrimSpace(sa.ParamStr(cards.PKImprintOnHost))
 	p.ImprintOnHostTrue = strings.EqualFold(p.ImprintOnHost, "True")
+	p.ImprintCards = strings.TrimSpace(sa.ParamStr(cards.PKImprintCards))
 	p.ForgetOnPhasedIn = isTrue(sa.ParamStr(cards.PKForgetOnPhasedIn))
 	p.RememberLKI = strings.TrimSpace(sa.ParamStr(cards.PKRememberLKI))
 	p.SetChosenNumber = strings.TrimSpace(sa.ParamStr(cards.PKSetChosenNumber))
