@@ -622,23 +622,38 @@ func TestMyriadUsesRealCorpusCard(t *testing.T) {
 	if v := view.Project(e.G, nil, 0, nil); !viewShowsObject(v.Players[0].Battlefield, tokenID) {
 		t.Fatalf("Myriad token %d is missing from the attacking seat's battlefield view", tokenID)
 	}
-	// CR 702.109a exiles Myriad tokens as the end-of-combat step ends.
-	// passUntilStackEmpty leaves the end-of-combat priority ask outstanding;
-	// the merged engine defers finishStepBoundary while a decision is pending
-	// (main's BeginPhase-replacement guard), so clear it the same way main's
-	// own TestLeavingEndCombatRemovesAttackerBeforePostcombatMain does before
+	// CR 702.116a / CR 511.2 exiles Myriad tokens by a delayed triggered
+	// ability that fires at the beginning of the end of combat step and
+	// waits on the stack under priority: the drain above already resolved it
+	// (the engine gives priority while the stack holds the trigger, so the
+	// exile lands inside the step). The merged engine defers
+	// finishStepBoundary while a decision is pending (main's
+	// BeginPhase-replacement guard), so clear it the same way main's own
+	// TestLeavingEndCombatRemovesAttackerBeforePostcombatMain does before
 	// driving the transition by hand.
 	e.pending = nil
 	e.setStep(state.StepEndCombat)
 	e.advanceStep()
+	// Entering the step fired the exile delayed trigger; priorityRound puts
+	// it on the stack (CR 117.5) and it waits under priority while the token
+	// is still attacking. Pass priority until it resolves.
+	e.priorityRound()
+	passUntilStackEmpty(t, e, 20)
 	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
 		if e.G.Obj(id).IsMyriad {
 			t.Fatal("Myriad token remained on battlefield after combat")
 		}
 	}
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if e.G.Obj(id).IsMyriad {
+			t.Fatal("Myriad token remained on battlefield after combat")
+		}
+	}
+	// A token exiled this way ceases to exist (CR 704.5d): the exile is the
+	// resolution's logged battlefield-to-exile move of the minted token.
 	exiled := false
-	for _, o := range e.G.Objs {
-		if o.IsToken && o.IsCopy && o.Zone == state.ZExile {
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.MoveZone && ev.Obj == tokenID && ev.To == state.ZExile && ev.From == state.ZBattlefield {
 			exiled = true
 		}
 	}
