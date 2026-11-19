@@ -182,6 +182,7 @@ Ivory Cup
 Jace's Phantasm
 Join Forces
 Joraga Auxiliary
+Jungle Weaver
 Jwari Scuttler
 Kazandu Refuge
 Keeper of the Accord
@@ -316,6 +317,7 @@ Silence
 Silkbind Faerie
 Silver Myr
 Silverchase Fox
+Skeleton Ship
 Skittering Invasion
 Slate of Ancestry
 Snooping Newsie
