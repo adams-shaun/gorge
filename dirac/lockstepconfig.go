@@ -219,6 +219,9 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	// the caller asked for the gap mana).
 	if k.gen != nil && k.gen.anyDeferred && s.g.availX&3 == 0 {
 		for b := s.gapMask(k, p, gfDeferred); b.any(); b = b.rest() {
+			if s.pickCommittedSrc(k, b.first()) {
+				continue // a convoke/waterbend pick taps it (excludePickedSources)
+			}
 			a.addUnits(s.deferMask(k, b.first()), 1)
 		}
 	}
@@ -247,6 +250,9 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	// themselves (deferSkip is off there), so they add nothing here either.
 	if s.g.availX&(3|availWalk|availHyp) == 0 {
 		for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
+			if s.pickCommittedSrc(k, b.first()) {
+				continue // a convoke/waterbend pick taps it (excludePickedSources)
+			}
 			if ra, ok := s.riderAbilityOf(k, b.first()); ok {
 				if ra.ManaRider == kop.ManaRiderDeplete {
 					// A depletion land's activation costs a counter, so gorge's window
