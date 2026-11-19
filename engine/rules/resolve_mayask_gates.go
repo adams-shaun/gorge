@@ -58,6 +58,8 @@ var replEventGates = [cards.ReplEventCount]replEventGate{
 	cards.ReplScry:           {unreachable: "Scry is not allowlisted"},
 	cards.ReplTurnFaceUp:     {unreachable: "a turn-up is a special action; its tape boundary is turnup_tape.go"},
 	cards.ReplLoseMana:       {unreachable: "turn-structure ManaClear is not proposed by an allowlisted resolution"},
+	cards.ReplProliferate:    {unreachable: "Proliferate is not allowlisted (the action itself asks)"},
+	cards.ReplRemoveCounter:  {unreachable: "no allowlisted API removes counters (PutCounter/MultiplyCounter place)"},
 }
 
 // tapeMovedReplMayAsk is the Moved gate of an otherwise ask-free resolution

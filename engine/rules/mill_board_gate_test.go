@@ -18,7 +18,7 @@ func TestMillBoardGateCompetingReplacementsAsk(t *testing.T) {
 	bruvac := card(t, gateRepl("Gate Mill Twice", "Event$ Mill | ActiveZones$ Battlefield | ValidPlayer$ Player.Opponent | ReplaceWith$ X | Description$ x",
 		"X:DB$ ReplaceEffect | VarName$ Number | VarValue$ Y", "Y:ReplaceCount$Number/Twice"))
 	spell := card(t, "Name:Gate Mill Two\nManaCost:0\nTypes:Sorcery\nA:SP$ Mill | Defined$ Opponent | NumCards$ 2 | SpellDescription$ x\nOracle:x\n")
-	millGate := mayAskKnown | uint32(cards.ReplEventMask(1)<<cards.ReplMill)<<mayAskGateShift
+	millGate := mayAskKnown | uint64(cards.ReplEventMask(1)<<cards.ReplMill)<<mayAskGateShift
 	withoutSources, _ := tokenReplGame(t, 4244, spell)
 	if mayAskOnBoard(withoutSources, millGate) {
 		t.Fatal("no Mill replacement sources must not open the Mill gate")

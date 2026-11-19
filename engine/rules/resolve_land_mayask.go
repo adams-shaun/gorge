@@ -186,7 +186,7 @@ func tapeReplBodyWalk(e *Engine, bits uint32) bool {
 			if cards.ReplMayElect(r) || (r.With != nil && (cards.SAChainMayAsk(r.With, f.SVars, nil, false) ||
 				// An ask-free body can still open a board gate: Lich's
 				// GainLife -> Draw body meets a Dredge card's election.
-				mayAskOnBoard(e, mayAskKnown|uint32(cards.SAChainBoardGates(r.With, f.SVars))<<mayAskGateShift))) {
+				mayAskOnBoard(e, mayAskKnown|uint64(cards.SAChainBoardGates(r.With, f.SVars))<<mayAskGateShift))) {
 				ask = true
 				return
 			}
