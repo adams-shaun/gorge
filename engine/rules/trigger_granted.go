@@ -1116,6 +1116,13 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 // bodies apart by Execute$ instead.
 func (e *Engine) grantedDamageBatchAdmits(t cards.Trigger, line, ident *cards.Trigger, key triggerKey, stamp uint32, id state.ObjID, ev events.Event) bool {
 	mk := t.ModeKind()
+	if mk == cards.TriggerExcessDamage {
+		// The SINGULAR excess-damage mode is per event, never a batch latch:
+		// mirror the printed line's gate (trigger_match.go's damageAmount <=
+		// 0 skip) with no DamageDoneOnce-style referent latch.
+		return damageTriggerAmount(e.excessDamageBaseline, mk, ev,
+			damageSourceHasDeathtouch(e, e.damageSourceLKI, ev)) > 0
+	}
 	switch mk {
 	case cards.TriggerDamageDealtOnce, cards.TriggerDamageDoneOnce, cards.TriggerDamageAll, cards.TriggerExcessDamageAll:
 	default:

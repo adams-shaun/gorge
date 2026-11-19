@@ -947,6 +947,10 @@ const (
 	// dream counters, CR 704.5r). Read by rules' maxCounterSBA. Appended:
 	// earlier ordinals stay stable.
 	PKMaxNum
+	// ShuffleBySelfControlled$ True on a Mode$ Shuffled trigger (Widespread
+	// Panic's "causes its controller to shuffle"). Read by trigmatch's
+	// shuffledMatches. Appended: earlier ordinals stay stable.
+	PKShuffleBySelfControlled
 	paramKeyCount
 )
 
@@ -1786,6 +1790,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKEmbalm:                           "Embalm",
 	PKRemoveCost:                       "RemoveCost",
 	PKMaxNum:                           "MaxNum",
+	PKShuffleBySelfControlled:          "ShuffleBySelfControlled",
 }
 
 // String is the key's Forge text.

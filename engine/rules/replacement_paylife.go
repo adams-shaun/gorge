@@ -12,8 +12,14 @@ import (
 
 func init() { effects.RegisterNonAPI("repl:PayLife") }
 
+// payLifeProposalDispatcher carries the two engine entry points the marked
+// settlement's emit boundary needs: the replacement dispatch for the
+// positive proposal and the trigger walk for it (the existing checkTriggers,
+// reached through this interface so neither function grows the engine's
+// measured surface).
 type payLifeProposalDispatcher interface {
 	applyReplacementsDispatch(events.Event) (events.Event, bool)
+	checkTriggers(ev *events.Event, lki *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool)
 }
 
 // interceptPayLifeProposal turns a marked cost settlement into an unlogged,
@@ -35,11 +41,30 @@ func interceptPayLifeProposal(dispatch payLifeProposalDispatcher, ev *events.Eve
 	}
 	proposal := *ev
 	proposal.Amount = -proposal.Amount
-	if _, handled := dispatch.applyReplacementsDispatch(proposal); handled {
-		return true
+	handled := false
+	if _, h := dispatch.applyReplacementsDispatch(proposal); h {
+		handled = true
 	}
+	// trig:PayLife (Font of Agonies, edh-trigB) triggers off the same
+	// proposal when the payment settles. The cost was paid (CR 118.5 -- a
+	// cost payment is not an event), but a replacement that CONSUMED the
+	// proposal -- a CantLoseLife/CantChangeLife prevention, a wholly
+	// replacing body, a parked CR 616.1 order choice -- un-happens the loss,
+	// and the mode reads the settled loss exactly like any LifeChange
+	// trigger does. The proposal is unlogged and never folded, so the
+	// ordinary emit-tail trigger check can never see it; this queue-side
+	// check is the mode's only firing site. A replacement's own resolution
+	// above has already emitted and queued what it emits, so the payment
+	// trigger follows it in the queue.
+	if !handled {
+		dispatch.checkTriggers(&proposal, nil, 0, 0, false)
+	}
+	// The plain negative loss folds without the proposal mark (the contract
+	// at events.PayLifeProposalText), so the mark is never part of the
+	// replay log: the walk above reads the copied proposal, so the mark is
+	// cleared on the original before the caller carries and folds it.
 	ev.Text = ""
-	return false
+	return handled
 }
 
 type lifeReplacementMatcher interface {
