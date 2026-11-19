@@ -513,6 +513,9 @@ var triggerModeEventRows = [...]struct {
 	{cards.TriggerExcessDamage, 1 << events.Damage},
 	{cards.TriggerPayLife, 1 << events.LifeChange},
 	{cards.TriggerShuffled, 1 << events.Shuffle},
+	// Destroyed (edh-trigC, Karmic Justice) reads the effect-caused destroy
+	// move (MoveZone with Text "destroyed").
+	{cards.TriggerDestroyed, 1 << events.MoveZone},
 	// The mode fires on the STORED prevention Note (engine/rules/replacement.go's
 	// full-prevention arm and its ReplaceDamage/protection siblings), not
 	// on the Damage event the prevention replaces -- a prevented hit is a

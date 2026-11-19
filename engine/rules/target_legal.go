@@ -1318,6 +1318,14 @@ func (e *Engine) definedControllerPlayer(ref string, sc effects.SpecContext) (pl
 		}
 	case filterTargetsWithDefinedControllerTriggeredCardController:
 		player, ok = effects.TriggeredCardController(e.G, sc.TriggerContext, nil)
+	case filterTargetsWithDefinedControllerTriggeredCauser:
+		// The destroying spell or ability's controller (destroyedReferents
+		// binds it on TriggerPlayer). Karmic Justice's "target permanent that
+		// opponent controls": with no causer bound nothing is legal.
+		failClosed = true
+		if sc.TriggerPlayer.IsPlayer {
+			player, ok = sc.TriggerPlayer.Player, true
+		}
 	}
 	return player, ok, failClosed, nonTriggered
 }
@@ -1402,6 +1410,7 @@ const (
 	filterTargetsWithDefinedControllerTriggeredAttackingPlayer
 	filterTargetsWithDefinedControllerTriggeredAttackedTarget
 	filterTargetsWithDefinedControllerTriggeredCardController
+	filterTargetsWithDefinedControllerTriggeredCauser
 )
 
 var filterTargetsWithDefinedControllerCodes = state.NewStrCodes(
@@ -1412,6 +1421,7 @@ var filterTargetsWithDefinedControllerCodes = state.NewStrCodes(
 	state.StrEntry[filterTargetsWithDefinedControllerCode]{Key: "TriggeredAttackingPlayer", Val: filterTargetsWithDefinedControllerTriggeredAttackingPlayer},
 	state.StrEntry[filterTargetsWithDefinedControllerCode]{Key: "TriggeredAttackedTarget", Val: filterTargetsWithDefinedControllerTriggeredAttackedTarget},
 	state.StrEntry[filterTargetsWithDefinedControllerCode]{Key: "TriggeredCardController", Val: filterTargetsWithDefinedControllerTriggeredCardController},
+	state.StrEntry[filterTargetsWithDefinedControllerCode]{Key: "TriggeredCauser", Val: filterTargetsWithDefinedControllerTriggeredCauser},
 )
 
 // filterParentControllerTargets keeps only the candidates controlled by a

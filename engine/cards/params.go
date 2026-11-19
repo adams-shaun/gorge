@@ -951,6 +951,11 @@ const (
 	// Panic's "causes its controller to shuffle"). Read by trigmatch's
 	// shuffledMatches. Appended: earlier ordinals stay stable.
 	PKShuffleBySelfControlled
+	// ValidCauser$ on a Mode$ Destroyed trigger (Karmic Justice's "a spell or
+	// ability an opponent controls"): the player controlling the destroying
+	// stack object. Read by trigmatch's destroyedMatches. Appended: earlier
+	// ordinals stay stable.
+	PKValidCauser
 	paramKeyCount
 )
 
@@ -1791,6 +1796,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRemoveCost:                       "RemoveCost",
 	PKMaxNum:                           "MaxNum",
 	PKShuffleBySelfControlled:          "ShuffleBySelfControlled",
+	PKValidCauser:                      "ValidCauser",
 }
 
 // String is the key's Forge text.
