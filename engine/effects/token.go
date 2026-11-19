@@ -301,10 +301,12 @@ func tokenAttackingWalkerArm(raw string) bool {
 // the minted object's word ("token"/"copy") for the note text, and controller
 // is the seat that owns the mint the rider is for (CR 508.4's chooser: the
 // token's controller, not always the resolving source's controller).
+// battleSlot is whether the caller keeps the returned planeswalker (a copy
+// has no slot for it, so the walker arm stays a Note there).
 // The returned bool is whether every mint should be marked attacking,
 // state.PlayerID the defender it attacks, and state.ObjID the planeswalker or
 // battle defender (zero for a player).
-func tokenAttackingRider(h Host, c *Ctx, controller state.PlayerID, attack, noun string) (bool, state.PlayerID, state.ObjID) {
+func tokenAttackingRider(h Host, c *Ctx, controller state.PlayerID, attack, noun string, battleSlot bool) (bool, state.PlayerID, state.ObjID) {
 	switch {
 	case strings.EqualFold(attack, "True"):
 		if d, ok := resolveEnteringDefender(h, c, controller, noun == "token", noun); ok {
@@ -315,7 +317,8 @@ func tokenAttackingRider(h Host, c *Ctx, controller state.PlayerID, attack, noun
 		return false, 0, 0
 	}
 	seats, objectArm := tokenAttackingPlayers(h, c, attack)
-	if len(seats) > 0 && tokenAttackingWalkerArm(attack) && noun == "token" {
+	walkerArm := battleSlot && tokenAttackingWalkerArm(attack)
+	if len(seats) > 0 && walkerArm {
 		// "that player or a planeswalker they control" (Adeline): CR 508.4,
 		// the token's controller chooses between the seat and its walkers.
 		cands := []enteringDefender{{Player: seats[0]}}
@@ -333,7 +336,7 @@ func tokenAttackingRider(h Host, c *Ctx, controller state.PlayerID, attack, noun
 			Text: "TokenAttacking$ " + attack + " is not implemented; the " + noun + " enters but does not attack"})
 		return false, 0, 0
 	}
-	if objectArm && !tokenAttackingWalkerArm(attack) {
+	if objectArm && !walkerArm {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "TokenAttacking$ " + attack + ": the planeswalker arm is not implemented; the " + noun + " attacks the named player"})
 	}
@@ -735,7 +738,7 @@ func tokenAttackAssignments(h Host, c *Ctx, owners []state.PlayerID, attack, nou
 			continue
 		}
 		seen[owner] = true
-		ok, defender, battle := tokenAttackingRider(h, c, owner, attack, noun)
+		ok, defender, battle := tokenAttackingRider(h, c, owner, attack, noun, true)
 		if !ok {
 			continue
 		}
@@ -758,7 +761,7 @@ func copyAttackRider(h Host, c *Ctx, owners []state.PlayerID, attack string) (at
 	case strings.EqualFold(attack, "True"):
 		assigns = tokenAttackAssignments(h, c, owners, attack, "copy")
 	default:
-		attacking, selectorDefender, _ = tokenAttackingRider(h, c, c.Controller, attack, "copy")
+		attacking, selectorDefender, _ = tokenAttackingRider(h, c, c.Controller, attack, "copy", false)
 	}
 	return
 }
@@ -791,7 +794,7 @@ func (job *TokenJob) resolveAttack(h Host, c *Ctx, attack string, owners []state
 	case strings.EqualFold(attack, "True"):
 		job.AttackOwners = tokenAttackAssignments(h, c, owners, attack, "token")
 	default:
-		job.AttackCtx, job.AttackDefender, job.AttackBattle = tokenAttackingRider(h, c, c.Controller, attack, "token")
+		job.AttackCtx, job.AttackDefender, job.AttackBattle = tokenAttackingRider(h, c, c.Controller, attack, "token", true)
 	}
 }
 
