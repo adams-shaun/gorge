@@ -115,7 +115,8 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		// regeneration — it is its own replacement, not a shield. A batch that
 		// also destroys the Aura still saves the bearer (CR 702.89a, the
 		// 6/7/2024 ruling): the pre-read answer is used so victim order cannot
-		// decide it, and the Aura leaves once by its own batch departure.
+		// decide it, and an Aura an earlier member already moved is not moved
+		// again.
 		saved := false
 		if aura, ok := umbra[id]; ok {
 			saved = replaceUmbraArmor(h, id, aura)
