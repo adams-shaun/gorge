@@ -446,7 +446,7 @@ func (s *State) spWalkOpt(k *prep, e *spEv) bool {
 	save := s.g.ro
 	fe := fzEv{src: e.srcSl, dst: e.sl, n: int16(min(e.n, 1<<14)), card: e.srcCard, ctrl: e.srcCtrl, apl: e.rcp}
 	c := s.replOrderCandsFz(k, &fe)
-	mark := s.g.ro.spv&1 != 0 // read before the restore discards the probe's collection
+	mark := s.g.ro.spv&1 != 0 // seat-ok: ro.spv is the walk's candidate bitmask (read before the restore discards the probe's collection)
 	s.g.ro = save
 	return c == 1 && mark
 }

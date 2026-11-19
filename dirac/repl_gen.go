@@ -683,7 +683,7 @@ func (s *State) replOrderFreeze(k *prep, r *dmgRec, first bool) {
 	ask := false
 	for i := 0; i < int(nfz) && !ask; i++ {
 		c := s.replOrderCandsFz(k, &bd.fz[bd.ord[i]])
-		ask = c >= 2 || c == 1 && ro.spv&1 != 0 // the lone Optional$ line's "may" (repl_staticprevent.go)
+		ask = c >= 2 || c == 1 && ro.spv&1 != 0 // seat-ok: ro.spv is the walk's candidate bitmask; the lone Optional$ line's "may" (repl_staticprevent.go)
 	}
 	if !ask {
 		*bd = replBody{}
@@ -739,7 +739,7 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 			s.capFull(StallRedirOrder)
 			return false
 		}
-		if c := s.replOrderCandsFz(k, fe); c >= 2 || c == 1 && ro.spv&1 != 0 {
+		if c := s.replOrderCandsFz(k, fe); c >= 2 || c == 1 && ro.spv&1 != 0 { // seat-ok: ro.spv is the walk's candidate bitmask
 			ro.askS, ro.askD, ro.n, ro.used = fe.src, fe.dst, uint8(c), 0
 			ro.an, ro.ac, ro.apl = fe.n, uint8(c), fe.apl
 			if ro.plus != 0 && !s.roPlusPend() {
@@ -754,7 +754,7 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 					}
 				}
 			}
-			if c == 1 && ro.spv&1 != 0 {
+			if c == 1 && ro.spv&1 != 0 { // seat-ok: ro.spv is the walk's candidate bitmask
 				// the lone Optional$ line's "may" (CR 616.1g): its controller
 				// answers, not the affected player (gorge replacementAskPlayer),
 				// and the skip option (spOptions, mode ro.n) deals all of it
