@@ -1229,9 +1229,22 @@ func (s *State) twobridLowers(k *prep, p uint8, c CardID, o Obj, anyColor bool) 
 	cost = s.mayRiderCost(cost, anyColor)
 	d := payDesc{class: pdSpell, card: c, og: s.restrOriginOfObj(o)}
 	if s.affordsUngrantedCast(k, p, &cost, d) {
-		return true, false // the planner prices it; FeatPlannedCast offers it
+		return true, s.twobridSpentReader(k, p, o) // the planner prices it; FeatPlannedCast offers it
 	}
 	return true, k.gen != nil && (len(k.gen.grantPC) != 0 || s.scriptSourceLive(k, p) || k.gen.anyFilt && s.filtOnly(k, p)) && s.affordsFor(k, p, &cost)
+}
+
+// twobridSpentReader: the cast planner declines the twobrid spell only for a
+// mana-spent reader ("shape:mana_spent_reader"), which gorge's potential
+// planner prices from the composed cost with its pips resolved
+// (manaSpentReaderComposed, planTwobridCost): the play is the potential
+// route's, not FeatPlannedCast's (Magmablood Archaic's Converge).
+func (s *State) twobridSpentReader(k *prep, p uint8, o Obj) bool {
+	if _, ok := s.plannedCastCost(k, p, o, 0); ok {
+		return false
+	}
+	_, ok := s.plannedCastCostOf(k, p, o, 0, false, true)
+	return ok
 }
 
 // scriptSourceLive: p has a source the planner's census leaves a gap (an
