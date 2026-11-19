@@ -1154,6 +1154,21 @@ export interface Option {
    */
   alone_restricted?: boolean;
   /**
+   * OnlyAloneRestricted marks a KAttackers option whose creature carries
+   * CR 506.5's inverse polarity (Master of Cruelties' "CARDNAME can only
+   * attack alone."): declaring it is legal only when it is the WHOLE
+   * attacker declaration. The engine REJECTS a declaration beside any
+   * other attacker (combat.OnlyAttackAloneKeyword, read by the declaration
+   * validator), so a rules-ignorant client -- the bot policy included --
+   * needs the fact on the wire to build a legal declaration rather than
+   * have one refused. Decision.Validate enforces it and the shared repair
+   * (Decision.FitAlone, which botpolicy.Clamp runs) derives its rule from
+   * this same field, so the published fact cannot drift from the check.
+   * Blocking is unrestricted. omitempty: an unrestricted option emits no
+   * field, so every ordinary option list serialises byte-identically.
+   */
+  only_alone_restricted?: boolean;
+  /**
    * Mode distinguishes a "cast" option's payment kind: "" the card's own
    * cost, "kicked", "surged", "flashback", "miracle" -- what the engine
    * reads in beginCast's switch. A client renders a kicked/surged/
