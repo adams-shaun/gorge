@@ -711,7 +711,6 @@ func (s *State) newTurnGen() {
 	s.g.hist = [MaxSeats][3]uint8{}
 	clear(s.cold.castRing)
 	s.g.actRing = [MaxSeats][actRingN]Obj{}
-	s.g.actN = [MaxSeats]uint8{}
 	s.clearGrantActs()
 	if k := s.k(); k.gen != nil && k.gen.anyTurnF {
 		s.g.turnF = 0 // coin flips and Exhaust activations end with the turn (static_turnbits.go)

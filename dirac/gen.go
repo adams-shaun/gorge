@@ -2120,9 +2120,8 @@ type genState struct {
 	// readers name by slot (histSpells: spells cast), and the mana spent
 	// casting spells (expend). Kept only when genPrep.anyHist.
 	hist [MaxSeats][3]uint8
-	// actRing: per activator, the first actRingN abilities activated this turn, each as the source Obj+1 (0 = empty), actN the counts. Written only when genPrep.actRingOn; in no hash (cast_activationledger.go).
+	// actRing: per activator, the first actRingN distinct sources of abilities activated this turn, each packed with its push count (actPack; 0 = empty). Written only when genPrep.actRingOn; in no hash (cast_activationledger.go).
 	actRing [MaxSeats][actRingN]Obj
-	actN    [MaxSeats]uint8
 
 	// pending as-enters choices (colour / creature type) and the leyline ask
 	ask  [4]askRec

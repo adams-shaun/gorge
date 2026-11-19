@@ -37,6 +37,8 @@ func TestLimitPlanAllocatesNothing(t *testing.T) {
 		}
 	}
 	var ls limitSearch
+	var bnd lsBounds
+	ls.bnd = &bnd
 	ls.pk = pk
 	ls.census(sc.k, sc.s)
 	ls.order()

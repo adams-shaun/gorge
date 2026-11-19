@@ -6,7 +6,7 @@ import "testing"
 // slots used straddle every word boundary there is (none at MaxPerm <= 64).
 func TestSlotMask(t *testing.T) {
 	var picks []Slot
-	for _, sl := range []Slot{0, 1, 62, 63, 64, 65, 127, 128, MaxPerm / 2, MaxPerm - 2, MaxPerm - 1} {
+	for _, sl := range []Slot{0, 1, 62, 63, 64, 65, 127, 128, 129, 191, MaxPerm / 2, MaxPerm - 2, MaxPerm - 1} {
 		if int(sl) < MaxPerm {
 			dup := false
 			for _, p := range picks {

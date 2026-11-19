@@ -14,7 +14,7 @@ func TestMaxPermBoundary(t *testing.T) {
 	if !slotBit(MaxPerm - 1).has(MaxPerm - 1) {
 		t.Fatalf("slotBit(%d) is empty", MaxPerm-1)
 	}
-	for _, sl := range []Slot{MaxPerm, MaxPerm + 1, 127, 128, NoSlot} {
+	for _, sl := range []Slot{MaxPerm, MaxPerm + 1, 192, 200, NoSlot - 1, NoSlot} {
 		if b := slotBit(sl); b.any() {
 			t.Fatalf("slotBit(%d) = %+v, want empty", sl, b)
 		}
@@ -41,7 +41,7 @@ func TestMaxPermBoundary(t *testing.T) {
 }
 
 // maxPermScen is a board holding MaxPerm permanents (slots 0..MaxPerm-1,
-// the second slot-mask word included) on the generated path.
+// the second and third slot-mask words included) on the generated path.
 func maxPermScen(t *testing.T) *scen {
 	t.Helper()
 	tbl := *v.Table
@@ -54,8 +54,8 @@ func maxPermScen(t *testing.T) *scen {
 	if got := sc.s.occ.count(); got != MaxPerm {
 		t.Fatalf("board holds %d of %d permanents", got, MaxPerm)
 	}
-	if !sc.s.occ.has(64) || !sc.s.occ.has(MaxPerm-1) {
-		t.Fatalf("slots 64 and %d not occupied", MaxPerm-1)
+	if !sc.s.occ.has(64) || !sc.s.occ.has(128) || !sc.s.occ.has(MaxPerm-1) {
+		t.Fatalf("slots 64, 128 and %d not occupied", MaxPerm-1)
 	}
 	if sc.s.occ.has(MaxPerm) || sc.s.occ.has(NoSlot) {
 		t.Fatalf("out-of-range slot %d or NoSlot reads as occupied", MaxPerm)
@@ -66,12 +66,12 @@ func maxPermScen(t *testing.T) *scen {
 	return sc
 }
 
-// TestMaxPerm128: the battlefield holds MaxPerm permanents (slots 0..MaxPerm-1, the
-// second slot-mask word included), and the next one stalls loud with
+// TestMaxPermFull: the battlefield holds MaxPerm permanents (slots 0..MaxPerm-1, the
+// second and third slot-mask words included), and the next one stalls loud with
 // StallBoard instead of truncating. Both capacity draws are
 // covered: a token creation (the nearCapacity gate at MaxPerm-4) and a land
 // play at a full board (legal.go's occ.full() gate, the card-permanent path).
-func TestMaxPerm128(t *testing.T) {
+func TestMaxPermFull(t *testing.T) {
 	t.Run("token", func(t *testing.T) {
 		sc := maxPermScen(t)
 		sc.s.res.e.ctrl = 0
@@ -124,5 +124,56 @@ func TestSlotMaskSecondWord(t *testing.T) {
 	}
 	if n := m.not(); n.has(64) || n.has(65) || n.count() != MaxPerm-2 {
 		t.Fatalf("not of 64+65: count %d", n.count())
+	}
+}
+
+// oldMaxPerm is the battlefield's size before 2026-11-19 (112; 128 was the
+// two-word mask's ceiling).
+const oldMaxPerm = 112
+
+// TestBoardPastOldLimit: a token made onto a board of oldMaxPerm (and of 128)
+// permanents enters and the game plays on, where both used to stall
+// StallBoard; random-policy four-seat Commander pods reached 179.
+func TestBoardPastOldLimit(t *testing.T) {
+	for _, n := range []int{oldMaxPerm, 128} {
+		tbl := *v.Table
+		tbl.Cards = append([]kop.CardDef(nil), v.Table.Cards...)
+		tbl.Exprs = make([]kop.Expr, 1) // the generated path
+		sc := newScenTable(t, &tbl, Config{NoElide: true})
+		for i := 0; i < n; i++ {
+			sc.perm(v.GrizzlyBears, uint8(i%2))
+		}
+		sc.s.res.e.ctrl = 0
+		in := kop.Instr{Op: kop.OpCreateToken, Obj: kop.RefController, A: kop.Const(1), C: int16(v.GrizzlyBears)}
+		sc.s.execGen(sc.k, &in)
+		if sc.s.Stalled() {
+			t.Fatalf("a token onto %d permanents stalled %q", n, StallName(sc.s.StallReason()))
+		}
+		if got := sc.s.occ.count(); got != n+1 || !sc.s.occ.has(Slot(n)) {
+			t.Fatalf("board of %d after the token: %d permanents, slot %d occupied %v", n, got, n, sc.s.occ.has(Slot(n)))
+		}
+	}
+}
+
+// TestSlotMaskThirdWord covers the third word alone (words 0 and 1 empty).
+func TestSlotMaskThirdWord(t *testing.T) {
+	var m slotMask
+	m.set(128)
+	if !m.any() || m.count() != 1 || m.many() || m.first() != 128 || !m.has(128) || m.has(127) || m.has(64) {
+		t.Fatalf("slot 128 alone: any %v count %d many %v first %d", m.any(), m.count(), m.many(), m.first())
+	}
+	m = m.with(MaxPerm - 1)
+	if m.count() != 2 || !m.many() || m.first() != 128 || m.rest().first() != MaxPerm-1 {
+		t.Fatalf("slots 128+%d: count %d many %v", MaxPerm-1, m.count(), m.many())
+	}
+	two := slotBit(64).or(slotBit(128))
+	if !two.many() || two.count() != 2 || two.first() != 64 || two.rest().first() != 128 {
+		t.Fatalf("slots 64+128: count %d many %v first %d", two.count(), two.many(), two.first())
+	}
+	if n := m.not(); n.has(128) || n.has(MaxPerm-1) || n.count() != MaxPerm-2 || n.full() {
+		t.Fatalf("not of 128+%d: count %d", MaxPerm-1, n.count())
+	}
+	if got := m.without(128).without(MaxPerm - 1); got.any() {
+		t.Fatalf("without left %+v", got)
 	}
 }
