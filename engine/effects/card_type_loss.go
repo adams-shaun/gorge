@@ -34,8 +34,28 @@ type SubtypesKept struct {
 // when it is correlated with a card type the effect adds, unless the effect
 // also adds a subtype from that set, which replaces the set.
 func SubtypesKeptBy(added []string) SubtypesKept {
-	var k SubtypesKept
+	k := correlatedSet(added)
 	for _, t := range added {
+		k.creature = k.creature && !CreatureTypeWords(t)
+		k.land = k.land && !slices.Contains(chooseLandTypes, t)
+		k.artifact = k.artifact && !ArtifactTypeWord(t)
+		k.enchantment = k.enchantment && !EnchantmentTypeWord(t)
+	}
+	return k
+}
+
+// SubtypesCorrelatedWith reads the card type words named: which of the four
+// subtype sets are correlated with them (CR 205.1a). The RemoveType$ strip's
+// subtype follow-through (rules/chars) and SubtypesKeptBy share the one
+// dispatch, so the correlated-set vocabulary lives in a single place.
+func SubtypesCorrelatedWith(words []string) SubtypesKept {
+	return correlatedSet(words)
+}
+
+// correlatedSet is the one card-type-word dispatch behind both readers.
+func correlatedSet(words []string) SubtypesKept {
+	var k SubtypesKept
+	for _, t := range words {
 		switch t {
 		case "Creature":
 			k.creature = true
@@ -47,18 +67,21 @@ func SubtypesKeptBy(added []string) SubtypesKept {
 			k.enchantment = true
 		}
 	}
-	for _, t := range added {
-		k.creature = k.creature && !CreatureTypeWords(t)
-		k.land = k.land && !slices.Contains(chooseLandTypes, t)
-		k.artifact = k.artifact && !ArtifactTypeWord(t)
-		k.enchantment = k.enchantment && !EnchantmentTypeWord(t)
-	}
 	return k
 }
 
 // Creature reports whether creature subtypes survive, the all-creature-types
 // marker with them.
 func (k SubtypesKept) Creature() bool { return k.creature }
+
+// Land reports whether land subtypes participate.
+func (k SubtypesKept) Land() bool { return k.land }
+
+// Artifact reports whether artifact subtypes participate.
+func (k SubtypesKept) Artifact() bool { return k.artifact }
+
+// Enchantment reports whether enchantment subtypes participate.
+func (k SubtypesKept) Enchantment() bool { return k.enchantment }
 
 // Has reports whether the subtype word survives.
 func (k SubtypesKept) Has(word string) bool {
