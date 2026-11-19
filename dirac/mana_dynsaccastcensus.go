@@ -12,6 +12,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // list, though the census counted the Blossom and called it planned (tail-74
 // pair 6, decision 502).
 func (s *State) affordsUngrantedCast(k *prep, p uint8, cost *kop.ManaCost, d payDesc) bool {
+	av, ms := s.ungrCastCensus(k, p)
+	return s.affordsUngrantedAv(k, p, cost, NoSlot, d, &av, &ms)
+}
+
+// ungrCastCensus is the planner census affordsUngrantedCast prices over: the
+// pool and the printed mana sources, a dynamic sacrifice source excepted.
+func (s *State) ungrCastCensus(k *prep, p uint8) (avail, modalSet) {
 	var skip slotMask
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -22,5 +29,5 @@ func (s *State) affordsUngrantedCast(k *prep, p uint8, cost *kop.ManaCost, d pay
 	var av avail
 	var ms modalSet
 	s.ungrAvail(k, p, NoSlot, &av, &ms, skip)
-	return s.affordsUngrantedAv(k, p, cost, NoSlot, d, &av, &ms)
+	return av, ms
 }
