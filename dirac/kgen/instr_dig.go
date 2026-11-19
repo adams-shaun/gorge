@@ -106,6 +106,16 @@ func (ic *instrCtx) opPeek() error {
 			return err
 		}
 	}
+	if _, ok := fl["Hand"]; ok {
+		// peekHand always remembers (act_peekreveal.go peekHand), so the
+		// Remember$ intent rides on PeekHand itself, as the Public arm's
+		// PeekRemember does. Refuse a remember-less hand peek: it would
+		// silently lower to the remembering runtime.
+		if _, ok := fl["Remember"]; !ok {
+			return fmt.Errorf("peek hand without Remember$")
+		}
+		ki.C = int16(kop.PeekHand) // act_peekreveal.go peekHand
+	}
 	if _, ok := fl["Public"]; ok {
 		ki.C = int16(kop.PeekPublic)
 		if _, ok := fl["Remember"]; ok {

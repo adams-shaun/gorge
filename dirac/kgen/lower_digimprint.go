@@ -95,6 +95,11 @@ func (lc *lowerCtx) digImprintFound(ps *params, in lInstr, found, rev int) error
 // Harvest, Improvisation Capstone): every scanned card — found and
 // revealed, in scan order — joins the resolution's remembered set (the
 // kernel appends the scan window, DuRememberRevealed), both piles to exile.
+// A found card entering the battlefield (Madcap Experiment, Audacious
+// Reshapers) is refused by name: with a sac mana source in play the pod's
+// mana prefixes spin in (*State).resolvePrefixStack (mana_sacsource.go), a
+// lockstep pod with Chromatic Star hangs to the 5m watchdog. Untriaged;
+// fail closed until the loop is triaged.
 // MinTotalCMC$ bounds the scan by the matches' cumulative mana value
 // (DuMinTotalCMC, in.B). Only the exact shape gorge's effDigUntil reads
 // refuses; gorge's RememberRevealed arm with RememberFound$ REPLACES the
@@ -103,10 +108,13 @@ func (lc *lowerCtx) digRememberedRevealed(ps *params, in lInstr, found, rev int)
 	if _, ok := ps.get("RememberFound"); ok {
 		return refuse("DigUntil RememberFound$ beside RememberRevealed$")
 	}
+	if found == zBattlefield {
+		return refuse("DigUntil RememberRevealed$ with the found card entering the battlefield (untriaged sac-source prefix hang)")
+	}
 	if found == zNone && rev == zLibrary && in.CS == "revealed=Library|FoundWithRevealed" {
 		return lc.digRememberedLibraryReveal(in)
 	}
-	if in.A.Kind != vConst || in.A.N < 1 || in.A.N > 127 || found != zExile || rev != zExile || in.CS != "revealed=Exile" {
+	if in.A.Kind != vConst || in.A.N < 1 || in.A.N > 127 || !digRememberedShape(found, in.CS) {
 		return refuse("DigUntil RememberRevealed$ shape")
 	}
 	switch in.Obj.Kind {
@@ -228,4 +236,21 @@ func (lc *lowerCtx) digImprintFoundPut(ps *params) error {
 	lc.emit(lInstr{Op: "MayAsk", C: kop.MayGuardPut, Skip: 1, Note: "you may"})
 	lc.emit(in)
 	return nil
+}
+
+// digRememberedShape lists the (found zone, flag text) forms of DigUntil
+// RememberRevealed$ the kernel reads exactly (execDigUntil remembers the scan
+// window in scan order before it places a card, as gorge's walk does, whatever
+// the placements are): the found card and the rest both exiled (Dream
+// Harvest), the found card to the hand and the rest exiled (Spoils of the
+// Vault). The found card entering the battlefield is refused in
+// digRememberedRevealed: with a sac mana source the pod's mana prefixes spin
+// in (*State).resolvePrefixStack (mana_sacsource.go) — the Chromatic Star
+// lockstep pod hangs.
+func digRememberedShape(found int, cs string) bool {
+	switch cs {
+	case "revealed=Exile":
+		return found == zExile || found == zHand
+	}
+	return false
 }

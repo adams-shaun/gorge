@@ -434,6 +434,9 @@ func (lc *lowerCtx) refuseCrossAbilityRemembered() {
 		}
 	}
 	for _, a := range lc.out.Abilities {
+		if lc.abilityRefused(a) {
+			continue // its own refusal names the blocker; the reader's follows from it
+		}
 		var lines []string
 		if a.Trigger != nil {
 			t := a.Trigger
@@ -716,4 +719,24 @@ func (lc *lowerCtx) rememberedLKIRef(d string) (lRef, bool, error) {
 	// no remember-LKI Destroy: defined() reads it as the remembered set
 	// with a RememberLKI$ move's captured controller
 	return lRef{}, false, nil
+}
+
+// abilityRefused reports whether the ability's own source line (its Origin: an
+// A: line "A[i]" or a T: line "T[i]") already carries a node refusal, so the
+// census names that blocker rather than the cross-ability read that follows
+// from the writer it could not lower.
+func (lc *lowerCtx) abilityRefused(a *lAbility) bool {
+	if !a.OriginOK {
+		return false
+	}
+	label := fmt.Sprintf("A[%d]", a.Origin)
+	if a.Origin&0x80 != 0 {
+		label = fmt.Sprintf("T[%d]", a.Origin&0x7f)
+	}
+	for _, r := range lc.out.Refusals {
+		if r.Node == label || strings.HasPrefix(r.Node, label+" ") {
+			return true
+		}
+	}
+	return false
 }
