@@ -307,13 +307,12 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	case "Spawner>TriggeredTarget":
 		// the player the spawning trigger's source dealt combat damage to
 		// (gorge spawnerChain reads TriggeredTarget in the spawner's
-		// roles): two players, the one opponent (CR 506.4; the same
-		// reading as the ControlledBy form, lower_filterwords.go)
+		// roles): the trigger entry's damage seat, at any seat count (CR
+		// 506.4; the same reading as the ControlledBy form, lower_filterwords.go)
 		if !lc.spawnDmg {
 			return lRef{}, refuse("Defined$ %q outside an ImmediateTrigger spawned by Card.Self's combat damage to a player", v)
 		}
-		lc.twoSeat("Spawner>TriggeredTarget read as the one opponent")
-		return lRef{Kind: rEachOpp}, nil
+		return lRef{Kind: rTriggeredPlayer}, nil
 	case "Promised":
 		// the opponent the gift was promised to (CR 702.174a; gorge
 		// Object.GiftPromisedTo): the spell's election, or a permanent's

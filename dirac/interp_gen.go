@@ -788,9 +788,23 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			tobj, amt = s.reflexCapture(in.Obj) // zone_rememberwrites.go: RememberObjects$ Targeted
 		}
 		biteLKI := tobj != NoObj && s.reflexBites(k, e.card, uint8(in.C))
+		// CR 603.7c: the reflexive trigger inherits the parent's trigger
+		// player (the damaged seat of Kappa Tech-Wrecker's combat damage,
+		// the attacked seat of Ace's attack), not the controller it copies
+		// for a spell's reflexive.
+		tpl := e.ctrl
+		if e.kind == seTrigger {
+			tpl = e.trigPl
+		}
 		for i := 0; i < n; i++ {
 			m := s.npend
-			s.enqueue(e.obj, e.srcVer, e.card, uint8(in.C), e.ctrl, tobj, e.ctrl, amt)
+			s.enqueue(e.obj, e.srcVer, e.card, uint8(in.C), e.ctrl, tobj, tpl, amt)
+			if s.npend > m && e.kind == seTrigger && e.defSeat != 0 {
+				// the reflex is the spawner's own: an Attacks trigger's
+				// defending seat rides into the reflexive entry so
+				// defendingSeatF2 reads it (CR 506.4)
+				s.pend[m].defSeat = e.defSeat
+			}
 			if biteLKI && s.npend > m {
 				s.pend[m].li = s.snapLKI(tobj) // zone_rememberwrites.go: the captured creature's last known power
 			}
