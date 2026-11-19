@@ -876,7 +876,7 @@ func castWindowUnitFreeTap(u windowManaUnit) bool {
 // each caller already applies it.
 func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, snow state.Mana,
 	typed [8]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
-	ok, _ := e.castWindowReachableAfter(cwDeadAfter, p, cost, spellPool, snow, typed, life, conv, rider, units)
+	ok, _ := e.castWindowReachableAfter(cwDeadAfter, state.Mana{}, p, cost, spellPool, snow, typed, life, conv, rider, units)
 	return ok
 }
 
@@ -884,7 +884,14 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 // once its walk passes deadAfter nodes, and reporting the nodes it walked. A
 // negative deadAfter is the plain walk, with neither that memory nor the reach
 // caps (a test compares the two).
-func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost Cost, spellPool, snow state.Mana,
+//
+// feeExtra is mana the payment plan has already floated (castPlanPipsOutcome's
+// witness, lowered before this window opens): its production funds an
+// activation fee (a Selesnya Signet's "{1}: Add {W}{G}") beside the payer's
+// real pool, and the walk nets the fee's colours out of the spell pool that
+// production is already part of. The live callers pass the zero Mana: their
+// pool already holds everything that has floated.
+func (e *Engine) castWindowReachableAfter(deadAfter int, feeExtra state.Mana, p state.PlayerID, cost Cost, spellPool, snow state.Mana,
 	typed [8]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) (bool, int) {
 	// CR 119.8: under a CantChangeLife static no positive life may be paid,
 	// whether by the cost or by a PayLife source's activation.
@@ -911,7 +918,7 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 		}
 		budget += int(fee)
 	}
-	free := e.unrestrictedWindowPool(p)
+	free := pay.ManaAdd(e.unrestrictedWindowPool(p), feeExtra)
 	// Stable free-first ordering: a free alt sorts before a paid one; ties
 	// retain the zone walk's order, with the id as a determinism guard.
 	ordered := append([]windowManaUnit(nil), units...)
