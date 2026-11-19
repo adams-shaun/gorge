@@ -524,6 +524,21 @@ func (s *State) firePhase(k *prep, st kop.Step) {
 	}
 }
 
+// retAuraAskQueued reports a returning Aura's host ask queued by a
+// state-based departure (queueAskRet, an ask with no permanent slot).
+func (s *State) retAuraAskQueued() bool {
+	return s.g.nask > 0 && s.g.ask[0].sl == NoSlot
+}
+
+// ceaseTokensAllowed reports whether this pass's token cease sweep runs: a
+// generated table or a Commander game, and no returning Aura's host ask
+// queued by the pass. Gorge poses that ask inside the pass, before the next
+// pass's cease sweep (CR 610.3, 704.3), so the kernel holds its token cease
+// until the ask is answered.
+func (s *State) ceaseTokensAllowed(k *prep) bool {
+	return (k.gen != nil || s.cfg&cfgCommander != 0) && !s.retAuraAskQueued()
+}
+
 // sba performs state-based actions until none apply. It reports whether
 // the game ended.
 func (s *State) sba(k *prep) bool {
@@ -764,7 +779,7 @@ func (s *State) sba(k *prep) bool {
 			if k.gen != nil {
 				s.sbaChainEnd(k)
 			}
-			if k.gen != nil || s.cfg&cfgCommander != 0 {
+			if s.ceaseTokensAllowed(k) {
 				s.ceaseTokensGen()
 			}
 			if k.anySaga && s.sagaSBA(k) {
@@ -798,7 +813,7 @@ func (s *State) sba(k *prep) bool {
 			s.legSaga = s.sagasDue(k)
 			return true
 		}
-		if k.gen != nil || s.cfg&cfgCommander != 0 {
+		if s.ceaseTokensAllowed(k) {
 			s.ceaseTokensGen()
 		}
 		// gorge's order (rules/sba.go): the creature casualties (lethal
