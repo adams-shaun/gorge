@@ -86,6 +86,10 @@ var DebugNoPrevNext bool
 // code and the rider byte genState.prevX carries pxFrom (and pxRidGain,
 // kop.PrevNextGain) beside the controller's seat.
 func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
+	if in.C&kop.PrevNextChosen != 0 { // seat-ok: an instruction flag bit
+		s.prevChosenAdd(k, in) // repl_prevchosen.go
+		return
+	}
 	all := in.C&kop.PrevNextAll != 0 // seat-ok: an instruction flag bit
 	from := in.C&kop.PrevNextFrom != 0
 	if from && !all || in.C&(kop.PrevNextTokens|kop.PrevNextPlayers|kop.PrevNextEndCombat) != 0 && !from {
@@ -193,6 +197,9 @@ func (s *State) pnxMatches(i int, code TCode, srcSl Slot, combat bool) bool {
 	r := &s.g.prevCol[i]
 	if r.sc&prevNextSc == 0 || r.col == 0 || !combat && r.sc&prevNextCmb != 0 {
 		return false
+	}
+	if pnxChosenForm(s.g.prevX[i]) {
+		return s.pnxChosenMatches(i, code, srcSl) // repl_prevchosen.go
 	}
 	if s.g.prevX[i]&pxPlayers != 0 && !isPlayerTarget(code) {
 		return false

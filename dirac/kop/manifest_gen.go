@@ -1141,6 +1141,8 @@ const ExtMakeCard ExtOp = 11
 func init() { extOpNames[ExtMakeCard] = "MakeCard" }
 
 // api ChooseSource (dirac/manifest/ExtOp/ExtChooseSource)
+//
+// ExtChooseSource: ChooseSource (gorge effChooseSource): the resolving controller chooses a damage source among the battlefield permanents and stack spells the pool in C admits (0: every source; colour bits 0-4, kop.ChosenSrcArtifact, kop.ChosenSrcLand), in object order, into the chosen set; an empty pool asks nothing. Ext PreventNext with kop.PrevNextChosen reads it. dirac/act_choosesource.go.
 const ExtChooseSource ExtOp = 13
 
 func init() { extOpNames[ExtChooseSource] = "ChooseSource" }

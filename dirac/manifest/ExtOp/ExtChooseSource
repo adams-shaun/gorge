@@ -3,5 +3,6 @@ name: ExtChooseSource
 value: 13
 forge: ChooseSource
 census: api ChooseSource all=67 std=1 mbc=1 sole=0
-state: unbounded (prevention/effect records)
-status: blocked unbounded:prevention/effect-records
+state: code 0
+status: active
+doc: ExtChooseSource: ChooseSource (gorge effChooseSource): the resolving controller chooses a damage source among the battlefield permanents and stack spells the pool in C admits (0: every source; colour bits 0-4, kop.ChosenSrcArtifact, kop.ChosenSrcLand), in object order, into the chosen set; an empty pool asks nothing. Ext PreventNext with kop.PrevNextChosen reads it. dirac/act_choosesource.go.
