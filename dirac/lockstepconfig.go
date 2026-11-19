@@ -260,6 +260,16 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 				s.addTapsDeferUnits(k, b.first(), a) // its own production, an all-at-once pair included (mana_rider.go)
 				continue
 			}
+			if s.restrTapsGapShape(k, b.first()) {
+				// A restricted Taps-deferred gap (a Powerstone token under Relic
+				// Bind) floats its mana restricted, so it funds the X ask only
+				// when its restriction admits the payment being built (CR 106.6:
+				// a Powerstone's {C} is never spent on a nonartifact spell).
+				ab := &k.t.Cards[s.cardAt(b.first())].Abilities[k.gen.restrRecOf(s.cardAt(b.first())).ab]
+				if !s.restrSrcAdmits(k, p, b.first(), ab, &a.xd) {
+					continue
+				}
+			}
 			pc := s.manaPCGen(k, b.first())
 			if s.splitDeferred(k, b.first()) {
 				pc = s.splitWindowPC(k, b.first()) // gorge's window census reads a Condition-split root alone (mana_condsplit.go)
