@@ -633,6 +633,10 @@
       "tier": "dirac",
       "status": "EXT"
     },
+    "dirac/shadow": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
     "dirac/canon": {
       "tier": "dirac",
       "status": "EXT"
