@@ -570,7 +570,8 @@ func (e *Engine) paymentPlanSunburstGrantOut() bool {
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			// faceGrantsSunburstForPlan, memoised (face_scan_memo.go).
-			if o := e.G.Obj(id); o != nil && e.faceScanHas(o.Face(), faceScanSunburstGrantPlan) {
+			// CR 702.26b: a phased-out permanent grants nothing
+			if o := e.G.Obj(id); o != nil && !o.PhasedOut && e.faceScanHas(o.Face(), faceScanSunburstGrantPlan) {
 				return true
 			}
 		}
