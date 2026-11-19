@@ -13,7 +13,7 @@ const paidGapMax = 3
 // leaves it out. The index is the encounter order, which the fixpoint's first
 // pass fixes the same for every run, so gapSkip's bit i names the same
 // ability in each subset run (xBoundGapSubsets).
-func (d *payDesc) gapNote(sl Slot, j, fee int) bool {
+func (d *payDesc) gapNote(sl Slot, j, fee int, never bool) bool {
 	id := uint16(sl)<<4 | uint16(j)
 	for i := 0; i < int(d.gapN) && i < paidGapMax; i++ {
 		if d.gapID[i] == id {
@@ -23,6 +23,9 @@ func (d *payDesc) gapNote(sl Slot, j, fee int) bool {
 	i := int(d.gapN)
 	if i < paidGapMax {
 		d.gapID[i], d.gapFee[i] = id, uint8(min(fee, 255))
+		if never {
+			d.gapNever |= 1 << i
+		}
 	}
 	if d.gapN < 255 {
 		d.gapN++
@@ -53,7 +56,7 @@ func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, ab *kop.
 	case !boundedAny:
 		skip = true
 	case d != nil && d.gapTrack:
-		skip = d.gapNote(sl, j, fee.MV())
+		skip = d.gapNote(sl, j, fee.MV(), kop.HybridFilterManaAb(ab))
 		repeat = ab.Cost.Flags&(kop.CostTap|kop.CostSacSelf|kop.CostOncePerTurn|kop.CostOncePerGame) == 0
 	}
 	return paid, skip, repeat
@@ -81,7 +84,7 @@ type gapSubset struct {
 func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 	var pu [maxPotUnits]potUnit
 	var av avail
-	d.gapTrack, d.gapSkip, d.gapN, d.gapRepeats = true, 0, 0, false
+	d.gapTrack, d.gapSkip, d.gapN, d.gapRepeats, d.gapNever = true, 0, 0, false, 0
 	s.availPotentialFor(k, p, &av, &d, true, &pu)
 	n := int(d.gapN)
 	if n == 0 || n > paidGapMax || d.gapRepeats {
@@ -93,6 +96,13 @@ func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 	}
 	fees := d.gapFee
 	for m := 0; m < 1<<n; m++ {
+		if never := int(d.gapNever); m&never != 0 {
+			// a hybrid-fee filter funds nothing in gorge's prefix search (its
+			// fee is paid only from mana already floating), so a subset
+			// holding it is priced as the one without it, fee uncharged
+			gs.sub[m] = gs.sub[m&^never]
+			continue
+		}
 		dm := d
 		dm.gapSkip, dm.gapN = ^uint8(m), 0
 		var sub avail
