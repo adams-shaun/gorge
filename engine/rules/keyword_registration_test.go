@@ -15,6 +15,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 	t.Parallel()
 	sup := effects.Supported()
 	for kw, proof := range map[string]string{
+		"kw:As an additional cost to cast creature spells, you may pay any amount of mana. If you do, that creature enters with that many additional +1/+1 counters on it.": "TestEDHKeywordsChorusStaticIsRegistered",
 		"kw:Flash":          "TestFlashCreatureIsCastableOffTurn",
 		"kw:Ingest":         "TestIngestExilesTopCard",
 		"kw:Provoke":        "TestProvokeForcesBlock",

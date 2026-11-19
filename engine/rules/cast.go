@@ -275,6 +275,12 @@ type pendingCast struct {
 	squadTimes int32  `clone:"deep"`
 	squadDone  bool   `clone:"deep"`
 
+	// chorusDone marks the one pay-any-amount ask (chorusAsk) already posed;
+	// chorusPaid is the answered amount, which rides the cast's AddsCounters
+	// grants into the entering creature's +1/+1 counters.
+	chorusDone bool  `clone:"deep"`
+	chorusPaid int32 `clone:"deep"`
+
 	// multikickParam is the raw Multikicker keyword parameter (CR 702.43) a
 	// "multikicked" cast re-parses at ask and answer time; multikickTimes is
 	// the answered payment count (0 = declined: no flag, a plain cast) and
