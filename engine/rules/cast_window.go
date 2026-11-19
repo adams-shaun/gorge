@@ -739,8 +739,8 @@ func castWindowGenericCostShape(c Cost) bool {
 // payability gate prices it with (pay.ManaCostPayableFull), so promising it
 // in the reach never promises an activation the window will not offer.
 func castWindowHybridFeeCost(c Cost) bool {
-	return len(c.Hybrid) > 0 && c.Life == 0 && len(c.Sac) == 0 &&
-		pay.CastWindowHybridPartsAbsent(c)
+	return len(c.Hybrid) > 0 && len(c.Hybrid) <= maxHybridFeePips && c.Life == 0 &&
+		len(c.Sac) == 0 && pay.CastWindowHybridPartsAbsent(c)
 }
 
 // maxHybridFeePips caps the hybrid pips the probe expands: the assignments
