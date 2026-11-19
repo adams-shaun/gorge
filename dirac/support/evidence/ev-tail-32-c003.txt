@@ -1,6 +1,8 @@
 Abstruse Interference
 Aeolipile
 Aeronaut's Wings
+Aether Shockwave
+Akoum Warrior
 Alabaster Wall
 Amulet of Kroog
 Annoyed Altisaur
@@ -13,31 +15,44 @@ Bull Hippo
 Capenna Express
 Cast Down
 Cateran Enforcer
+Celestial Purge
+Channel the Suns
 Chatter of the Squirrel
 Cho-Arrim Bruiser
 Cloak of Feathers
 Clot Sliver
 Cloud Elemental
+Cloudchaser Kestrel
 Cold Storage
+Colossus of Akros
 Conclave Mentor
+Curious Altisaur
 Cut
 Dark Betrayal
 Death's Presence
+Death-Hood Cobra
 Definitely Not a Turtle
 Dementia Bat
 Demystify
 Drana, Liberator of Malakir
+Draugr Thought-Thief
 Drown in Ichor
 Dryad Greenseeker
 Duskhunter Bat
 Dwell on the Past
+Eidolon of Countless Battles
 Elas il-Kor, Sadistic Pilgrim
+Elvish Eulogist
+Endurance Bobblehead
 Enthusiastic Mechanaut
+Eternal Skylord
 Evangel of Synthesis
 Explosive Impact
+Eye of Nowhere
 Facevaulter
 Familiar Ground
 Farm
+Feral Abomination
 Feral Ridgewolf
 Filigree Fracture
 Floating-Dream Zubera
@@ -45,7 +60,10 @@ Forest
 Forget
 Fourth Bridge Prowler
 Frogtosser Banneret
+Geier Reach Sanitarium
 Ghastly Demise
+Gisa's Bidding
+Glare of Subdual
 Goblin Hero
 Goblin Tutor
 Goliath, Mass Manipulator
@@ -56,6 +74,9 @@ Heroic Charge
 Highway Robber
 Howlpack Resurgence
 Hyalopterous Lemure
+Idle Thoughts
+Into Thin Air
+Invasion of Segovia
 Irini Sengir
 Island
 Izzet Charm
@@ -63,7 +84,9 @@ Knight of Old Benalia
 Koilos Roc
 Krenko's Enforcer
 Krosan Restorer
+Kukemssa Pirates
 Lace with Moonglove
+Lancer Sliver
 Liliana's Defeat
 Liliana's Devotee
 Loam Lion
@@ -72,6 +95,8 @@ Magma Phoenix
 Magus of the Candelabra
 Manaweft Sliver
 Mandibular Kite
+Memory Drain
+Mercurial Spelldancer
 Merrow Bonegnawer
 Mesa Lynx
 Metallic Mastery
@@ -82,8 +107,10 @@ Monstrous Hound
 Mountain
 Mukotai Soulripper
 Nephalia Smuggler
+Night Scythe
 Nyxborn Marauder
 Oashra Cultivator
+Oni Possession
 Peer Through Depths
 Penance Stare
 Phantasmal Sphere
@@ -93,8 +120,13 @@ Provoke
 Psychic Spear
 Raiding Nightstalker
 Rakshasa's Secret
+Ranger Class
+Ravenloft Adventurer
 Raving Oni-Slave
 Reckless Imp
+Recross the Paths
+Redwood Treefolk
+Relic of Progenitus
 Rescue Retriever
 Rhox Brute
 Rofellos, Llanowar Emissary
@@ -103,28 +135,43 @@ Rust Monster
 Saddleback Lagac
 Salt Marsh
 Sandstone Warrior
+Sarcomancy
 Savage Thallid
 Seismic Strike
 Sewerdreg
 Shanna, Sisay's Legacy
+Shieldmate's Blessing
+Sizzle
 Slaughter Cry
+Sonic Screwdriver
 Soul Bleed
+Steady Progress
 Storm Crow
 Sunblade Angel
+Sure-Footed Infiltrator
 Swamp
+Thran Lens
+Thunder Wall
 Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
+Turnabout
 Umbral Juke
 Unholy Grotto
+Valakut Fireboar
 Valley Rannet
 Vaporkin
 Vexing Sphinx
 Viashivan Dragon
 Vindictive Flamestoker
 Viridian Zealot
+Vivid Revival
+Voda Sea Scavenger
+Walking Archive
 Wander in Death
 Warleader's Helix
+Wave-Wing Elemental
+Wild Crocodile
 Wilderness Elemental
 Windreader Sphinx
 Witness of Tomorrows

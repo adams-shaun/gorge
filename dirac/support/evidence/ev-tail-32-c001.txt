@@ -16,6 +16,7 @@ Archfiend of Sorrows
 Arctic Treeline
 Arena Athlete
 Ashling the Pilgrim
+Asylum Visitor
 Atarka Beastbreaker
 Attrition
 Axgard Armory
@@ -43,11 +44,13 @@ Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
 Celestial Purge
+Channel the Suns
 Charging Monstrosaur
 Chatter of the Squirrel
 Cho-Arrim Bruiser
 Clot Sliver
 Cloud Elemental
+Cloudchaser Kestrel
 Cold Storage
 Colossus of Akros
 Combust
@@ -64,6 +67,8 @@ Darksteel Angel
 Death's Presence
 Death-Hood Cobra
 Definitely Not a Turtle
+Dementia Bat
+Demonic Tutor
 Demystify
 Dormant Sliver
 Drana, Liberator of Malakir
@@ -71,9 +76,11 @@ Draugr Thought-Thief
 Dryad Greenseeker
 Dwarven Warriors
 Dwell on the Past
+Eidolon of Countless Battles
 Elas il-Kor, Sadistic Pilgrim
 Elite Scaleguard
 Elspeth Tirel
+Elvish Eulogist
 Encroach
 Enthusiastic Mechanaut
 Ertai Resurrected
@@ -96,23 +103,29 @@ Flamespeaker's Will
 Fleeting Aven
 Floating-Dream Zubera
 Flying Dolphin-Fish
+Flywheel Racer
 Footfall Crater
 Forest
 Forget
 Fourth Bridge Prowler
 Frogtosser Banneret
 Frontline Devastator
+Gaea's Embrace
+Garrison Griffin
 Geier Reach Sanitarium
 Genasi Enforcers
 Ghastly Demise
 Ghostly Visit
 Gisa's Bidding
+Glare of Subdual
 Glimmerbell
+Go-Shintai of Shared Purpose
 Goblin Bombardment
 Goblin Hero
 Goblin Tutor
 Goliath, Mass Manipulator
 Griffin Protector
+Grollub
 Hall of Oracles
 Hallowed Healer
 Hamza, Might of the Yathan
@@ -139,6 +152,7 @@ Ioreth of the Healing House
 Irini Sengir
 Island
 Ivory Crane Netsuke
+Kami of the Hunt
 Koilos Roc
 Krenko's Enforcer
 Krosan Restorer
@@ -148,11 +162,13 @@ Lace with Moonglove
 Leo's Guidance
 Lesser Gargadon
 Leyline Dowser
+Light the Way
 Liliana's Defeat
 Liliana's Devotee
 Lilting Refrain
 Loam Lion
 Loathsome Catoblepas
+Lys Alana Bowmaster
 Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
@@ -177,7 +193,9 @@ Misthios's Fury
 Monstrous Hound
 Morbid Bloom
 Mountain
+Mukotai Soulripper
 Multiversal Recruitment
+Mystic Restraints
 Nephalia Smuggler
 Night Scythe
 Nocturnal Raid
@@ -189,6 +207,7 @@ Ondu Cleric
 Oni Possession
 Ovalchase Daredevil
 Overrule
+Pattern of Rebirth
 Penance Stare
 Pestermite
 Phantasmal Sphere
@@ -200,14 +219,17 @@ Prized Statue
 Provoke
 Psychic Spear
 Purifying Dragon
+Pygmy Pyrosaur
 Quicksilver Dagger
 Raging Spirit
 Raiding Nightstalker
 Rakka Mar
+Ranger Class
 Ravenous Harpy
 Raving Oni-Slave
 Razorjaw Oni
 Reckless Imp
+Relic of Progenitus
 Renounce
 Rescue Retriever
 Returned Centaur
@@ -225,16 +247,20 @@ Scragnoth
 Scroll of Origins
 Seeker
 Seismic Strike
+Sewerdreg
 Shackles
 Shanna, Sisay's Legacy
 Shared Discovery
 Sizzle
 Skirk Shaman
 Skyclave Cleric
+Skyclave Shade
+Skyshroud Troll
 Skyswimmer Koi
 Slaughter Cry
 Smashing Spree
 Sokka, Swordmaster
+Sonic Screwdriver
 Soul Bleed
 Spellseeker
 Spitting Spider
@@ -262,6 +288,7 @@ Thraben Gargoyle
 Thran Lens
 Thriving Ibex
 Tidal Force
+Titanic Brawl
 Tolarian Sentinel
 Tomb Fortress
 Toph, Earthbending Master
@@ -282,6 +309,7 @@ Vaporkin
 Venomous Vines
 Vexing Sphinx
 Viashivan Dragon
+Vindictive Flamestoker
 Vivid Revival
 Voda Sea Scavenger
 Vraska's Contempt
@@ -292,6 +320,7 @@ Wild Crocodile
 Wilderness Elemental
 Wildfire Eternal
 Windreader Sphinx
+Witch's Mist
 Witness of Tomorrows
 Woodland Bellower
 Wose Pathfinder

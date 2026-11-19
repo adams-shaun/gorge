@@ -1,18 +1,24 @@
+A-Elderleaf Mentor
 Abstruse Interference
 Aeolipile
 Aeronaut's Wings
+Aether Shockwave
 Ageless Guardian
 Akki Rockspeaker
+Akoum Boulderfoot
 Alabaster Wall
 Alchor's Tomb
+Amulet of Kroog
 Annoyed Altisaur
 Apprentice Sorcerer
 Arcbound Hybrid
 Archfiend of Sorrows
 Arctic Treeline
+Arena Athlete
 Ashling the Pilgrim
 Atarka Beastbreaker
 Attrition
+Attune with Aether
 Axgard Armory
 Banish from Edoras
 Barbed Batterfist
@@ -23,6 +29,7 @@ Blood Age General
 Bloodcrusher of Khorne
 Bloodfire Colossus
 Blue Sun's Zenith
+Blunt the Assault
 Boggart Arsonists
 Book of Rass
 Border Guard
@@ -40,29 +47,42 @@ Cavalry Pegasus
 Celestial Purge
 Channel the Suns
 Chaotic Goo
+Charging Monstrosaur
 Clot Sliver
 Cold Storage
+Colossus of Akros
 Combust
+Consuming Sinkhole
 Copper Host Crusher
 Copper Myr
 Court Homunculus
+Court of Grace
+Curious Altisaur
 Cut
 Dakmor Plague
+Damning Verdict
 Dark Betrayal
+Dark Ritual
 Death-Hood Cobra
 Definitely Not a Turtle
 Dementia Bat
+Demonic Tutor
 Demystify
 Deploy the Gatewatch
 Dismiss
 Drana, Liberator of Malakir
 Draugr Thought-Thief
 Drown in Ichor
+Dryad Greenseeker
+Duskhunter Bat
 Dwarven Warriors
 Dwell on the Past
+Eastfarthing Farmer
 Elite Scaleguard
 Elspeth Tirel
+Elvish Eulogist
 Encroach
+Endurance Bobblehead
 Enthusiastic Mechanaut
 Essence Flare
 Evangel of Synthesis
@@ -75,6 +95,7 @@ Facevaulter
 Familiar Ground
 Farm
 Fault Riders
+Feral Abomination
 Feral Ridgewolf
 Filigree Fracture
 Flamespeaker's Will
@@ -87,6 +108,7 @@ Forget
 Fourth Bridge Prowler
 Frogtosser Banneret
 Frontline Devastator
+Frostweb Spider
 Geier Reach Sanitarium
 Genasi Enforcers
 Ghastly Demise
@@ -108,6 +130,8 @@ Hall of Oracles
 Hallowed Healer
 Hasran Ogress
 Haunted Cloak
+Heart Sliver
+Heroic Charge
 Hollowhenge Overlord
 Honor the Past
 Hour of Reckoning
@@ -120,6 +144,7 @@ Ifnir Deadlands
 Ignition Team
 Into Thin Air
 Into the Maw of Hell
+Invasion of Segovia
 Ioreth of the Healing House
 Irini Sengir
 Island
@@ -128,10 +153,12 @@ Izzet Charm
 Koilos Roc
 Krenko's Enforcer
 Krosan Restorer
+Kruin Striker
 Kukemssa Pirates
 Lace with Moonglove
 Leo's Guidance
 Lesser Gargadon
+Leyline Dowser
 Light the Way
 Liliana's Defeat
 Liliana's Devotee
@@ -143,15 +170,18 @@ Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
 Magus of the Candelabra
+Mandibular Kite
 Master Decoy
 Meldweb Strider
 Memory Worm
 Mercurial Spelldancer
 Merrow Bonegnawer
+Merrow Witsniper
 Mesa Lynx
 Metallic Mastery
 Mind Drain
 Mindless Null
+Mire Blight
 Mirrodin Avenged
 Mirror Image
 Mistcutter Hydra
@@ -173,16 +203,19 @@ Obliterate
 Ogre Berserker
 Ondu Cleric
 Oni Possession
+Ovalchase Daredevil
 Overrule
 Pattern of Rebirth
 Peer Through Depths
 Penance Stare
 Pestermite
+Phantasmal Sphere
 Phoenix Chick
 Pillar of Light
 Pious Evangel
 Pious Wayfarer
 Plains
+Plateau
 Precognition Field
 Provoke
 Psychic Spear
@@ -190,9 +223,13 @@ Purifying Dragon
 Pygmy Pyrosaur
 Quicksilver Dagger
 Raiding Nightstalker
+Rakka Mar
 Rakshasa's Secret
+Ravenous Harpy
 Raving Oni-Slave
 Razorjaw Oni
+Reckless Imp
+Recross the Paths
 Relic of Progenitus
 Renounce
 Resistance Squad
@@ -203,10 +240,12 @@ Righteousness
 Riot Gear
 Rofellos, Llanowar Emissary
 Root Greevil
+Rotted Hulk
 Ruin Ghost
 Rust Monster
 Salt Marsh
 Sandstone Warrior
+Sarcomancy
 Savage Thallid
 Scragnoth
 Scroll of Origins
@@ -216,12 +255,16 @@ Sewerdreg
 Shackles
 Shanna, Sisay's Legacy
 Shared Discovery
+Shieldmate's Blessing
 Sizzle
 Skirk Shaman
 Skyclave Cleric
+Skyclave Shade
 Skyswimmer Koi
 Slaughter Cry
 Smashing Spree
+Sokka, Swordmaster
+Sonic Screwdriver
 Soul Bleed
 Spellseeker
 Spitting Spider
@@ -232,7 +275,9 @@ Star of Extinction
 Steel Golem
 Steeple Roc
 Storm Crow
+Strandwalker
 Strength of Arms
+Strike It Rich
 Sunblade Angel
 Surreal Memoir
 Swamp
@@ -249,6 +294,7 @@ Thriving Ibex
 Tidal Force
 Tolarian Sentinel
 Tomb Fortress
+Toph, Earthbending Master
 Traumatic Revelation
 Tromell, Seymour's Butler
 True Conviction
@@ -260,6 +306,7 @@ Ugin's Insight
 Umbral Juke
 Unnatural Speed
 Untamed Wilds
+Valakut Fireboar
 Valkyrior Skyrider
 Vexing Sphinx
 Viashivan Dragon
@@ -270,6 +317,7 @@ Vraska's Contempt
 Wake of Destruction
 Wander in Death
 Warleader's Helix
+Wheel and Deal
 Wilderness Elemental
 Wildfire Eternal
 Windreader Sphinx

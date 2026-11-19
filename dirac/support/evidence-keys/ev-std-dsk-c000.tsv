@@ -2,6 +2,7 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Acrobatic Cheerleader	0a7272f66463a072	4	1/1		0/1	ix:resp
 Attack-in-the-Box	0bba887a37e04471	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Baseball Bat	3d8de30527de66a5	3	3/3		0/1	ix:resp
+Bleeding Woods	077a898a3203d61d	4	1/1		0/1	ix:resp
 Boilerbilges Ripper	0c0180bac4b0e3ab	6	1/1		0/1	ix:resp
 Broodspinner	7fd50caa7edd13e8	4	2/2		0/1	ix:resp
 Cackling Slasher	fd83930bebce7d9c	4	0/0		0/0	
@@ -20,6 +21,7 @@ Diversion Specialist	d69333498cc9578f	3	1/1		1/1
 Don't Make a Sound	c3c1abfac40eb435	4	0/0		1/2	ix:resp
 Emerge from the Cocoon	6ae3bff8b1bd3643	3	0/0		1/2	ix:resp
 Enduring Curiosity	442d7f321bb0091f	6	2/2		1/1	
+Enduring Innocence	2143fdbc9f5a3dcc	4	2/2		0/1	ix:resp
 Enduring Tenacity	f60b0dc51d75db08	4	2/2		0/1	ix:resp
 Enter the Enigma	7c3f1b3df9beb852	4	0/0		1/2	ix:resp
 Etched Cornfield	6d81bd2da4e0c413	6	1/1		0/1	ix:resp
@@ -29,6 +31,7 @@ Fanatic of the Harrowing	55ff899a13aacfd0	8	1/1		0/1	ix:resp
 Fear of Being Hunted	bbdf79e50162faaf	3	0/0		0/0	
 Fear of Burning Alive	d8570b55baddb459	4	2/2		0/1	ix:resp
 Fear of Failed Tests	7e8bc5c702aef65e	3	1/1		0/1	ix:resp
+Fear of Immobility	2e83ac63e24d6771	3	1/1		0/1	ix:resp
 Fear of Impostors	7d0b49016ae9ab66	6	1/1		0/1	ix:resp
 Fear of Lost Teeth	23aa4fe42424dbe7	4	1/1		0/1	ix:resp
 Fear of Missing Out	9ea2881f7b5096dc	4	2/2		0/1	ix:resp
@@ -39,9 +42,12 @@ Found Footage	0e1f873c65551f8f	5	1/1		0/1	ix:resp
 Friendly Ghost	be503c23b64aa3f1	4	1/1		0/1	ix:resp
 Funeral Room	ce634b176bc19121	3	2/2		0/1	ix:resp
 Get Out	27f299a127715960	4	0/0		1/2	ix:resp
+Ghost Vacuum	2793d3fd8cf8823a	4	2/2		0/1	ix:resp
 Ghostly Keybearer	4a3965ac10fe5b4e	4	1/1		1/1	
 Give In to Violence	7b9ebac919261d9f	4	0/0		1/2	ix:resp
 Glassworks	e889f086c24f8420	4	2/2		0/1	ix:resp
+Glimmer Seeker	663e0fcead1dff28	3	1/1		0/1	ix:resp
+Glimmerlight	b981658c06b621b8	3	2/2		0/1	ix:resp
 Grab the Prize	cc605a6d62df3c14	4	0/0		1/2	ix:resp
 Grand Entryway	ae6f8b2dbbf5a633	4	2/2		0/1	ix:resp
 Hardened Escort	21b05b149868ac20	4	1/1		0/1	ix:resp
@@ -71,6 +77,7 @@ Norin, Swift Survivalist	a31917a3160b5c56	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:
 Overlord of the Balemurk	8846f417c01f8d51	4	2/2		1/3	cast/alt:none,ix:resp
 Overlord of the Boilerbilges	8ef1c2a03d1c7503	5	2/2		2/3	ix:resp
 Paranormal Analyst	529a60bc4917151f	5	1/1		0/1	ix:resp
+Patched Plaything	86609f02c8d3e66c	5	0/0		0/0	
 Peculiar Lighthouse	8ef3cfa1a24408b3	4	1/1		0/1	ix:resp
 Piggy Bank	18db8ef80ae56f27	4	1/1		0/1	ix:resp
 Piranha Fly	991b8f051a53f3af	4	0/0		0/0	
@@ -86,14 +93,18 @@ Ripchain Razorkin	b6877ab3c7aa8b71	4	1/1		1/1
 Rite of the Moth	ca656f9e41fe8d18	3	0/0		3/4	ix:resp
 Roaring Furnace	f82661e2c3d0e1d7	4	2/2		0/1	ix:resp
 Savior of the Small	4d786340739ab83d	4	1/1		0/1	ix:resp
+Saw	871edee900abd90e	5	2/2		0/1	ix:resp
 Scorching Dragonfire	adc834b32cb69f21	3	0/0		1/2	ix:resp
 Seized from Slumber	154c9a0e3197acb4	3	0/0		1/2	ix:resp
 Sheltered by Ghosts	dd4ac65e51635908	4	1/1		1/2	ix:resp
+Shrewd Storyteller	a1f7418d52385b3f	4	1/1		0/1	ix:resp
+Shroudstomper	c5687fa4e9c9dc61	3	2/2		0/1	ix:resp
 Smoky Lounge	7ecc574e897abdc8	4	2/2		0/1	ix:resp
 Splitskin Doll	9565d946514b0916	4	1/1		0/1	ix:resp
 Strangled Cemetery	022ac16aeae341c9	4	1/1		0/1	ix:resp
 Surgical Suite	c98270f9328cd591	4	2/2		0/1	ix:resp
 Swamp	342b413902f441c3	47	1/1		0/1	ix:resp
+The Jolly Balloon Man	e7558d701fd17a38	4	1/1		0/1	ix:resp
 The Mindskinner	16527cfd2f2bc8b3	4	0/0		0/0	
 The Swarmweaver	a2723ebe441575fd	4	1/1		0/1	ix:resp
 Threats Around Every Corner	b31c898cd09052d3	3	2/2		0/1	ix:resp
@@ -108,8 +119,10 @@ Untimely Malfunction	9e98f272a3df51e0	4	0/0		1/2	ix:resp
 Unwanted Remake	cbe8c5fe66a2df20	4	0/0		1/2	ix:resp
 Valgavoth's Lair	f599fdf015575949	4	1/1		0/1	ix:resp
 Vanish from Sight	7150390cced0b929	3	0/0		1/2	ix:resp
+Vengeful Possession	1cde54610e118afd	4	0/0		1/2	ix:resp
 Veteran Survivor	98914fac917ff874	4	1/1		0/1	ix:resp
 Vile Mutilator	c30745bdcf422ae5	3	1/1		2/2	
 Waltz of Rage	15d31221e32b924c	4	0/0		1/2	ix:resp
+Wary Watchdog	030c0d8a0e3ef1aa	4	2/2		0/1	ix:resp
 Wildfire Wickerfolk	252aefec031ce2ab	4	0/0		0/0	
 Withering Torment	259059f284ea5be2	6	0/0		1/2	ix:resp
