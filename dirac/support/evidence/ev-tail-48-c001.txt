@@ -81,6 +81,7 @@ Dwarven Miner
 Earth-Cult Elemental
 Eliminate
 Elven Riders
+Elvish Mystic
 Emancipation Angel
 End Hostilities
 Environmental Sciences
@@ -196,6 +197,7 @@ Mirri, Cat Warrior
 Molting Skin
 Mountain
 Munda, Ambush Leader
+Nantuko Shaman
 Natural Selection
 Nature's Spiral
 Neck Snap
@@ -269,6 +271,7 @@ Snooping Newsie
 Sojourner's Companion
 Song of the Worldsoul
 Spark Harvest
+Spectral Procession
 Sprite Noble
 Squirrel Mob
 Steeple Creeper

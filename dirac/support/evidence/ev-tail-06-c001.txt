@@ -135,6 +135,7 @@ Falconer Adept
 Falter
 Fate Unraveler
 Felhide Minotaur
+Fifty Feet of Rope
 Fight as One
 Firebrand Ranger
 Flailing Manticore
@@ -298,6 +299,7 @@ Phyrexian Battleflies
 Phyrexian Bloodstock
 Phyrexian Debaser
 Phyrexian Marauder
+Pine Walker
 Plague Mare
 Plains
 Poison-Tip Archer

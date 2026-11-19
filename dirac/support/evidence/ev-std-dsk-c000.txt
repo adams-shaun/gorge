@@ -1,6 +1,7 @@
 Acrobatic Cheerleader
 Attack-in-the-Box
 Baseball Bat
+Bleeding Woods
 Boilerbilges Ripper
 Broodspinner
 Cackling Slasher
@@ -19,6 +20,7 @@ Diversion Specialist
 Don't Make a Sound
 Emerge from the Cocoon
 Enduring Curiosity
+Enduring Innocence
 Enduring Tenacity
 Enter the Enigma
 Etched Cornfield
@@ -28,6 +30,7 @@ Fanatic of the Harrowing
 Fear of Being Hunted
 Fear of Burning Alive
 Fear of Failed Tests
+Fear of Immobility
 Fear of Impostors
 Fear of Lost Teeth
 Fear of Missing Out
@@ -38,9 +41,12 @@ Found Footage
 Friendly Ghost
 Funeral Room
 Get Out
+Ghost Vacuum
 Ghostly Keybearer
 Give In to Violence
 Glassworks
+Glimmer Seeker
+Glimmerlight
 Grab the Prize
 Grand Entryway
 Hardened Escort
@@ -70,6 +76,7 @@ Norin, Swift Survivalist
 Overlord of the Balemurk
 Overlord of the Boilerbilges
 Paranormal Analyst
+Patched Plaything
 Peculiar Lighthouse
 Piggy Bank
 Piranha Fly
@@ -85,14 +92,18 @@ Ripchain Razorkin
 Rite of the Moth
 Roaring Furnace
 Savior of the Small
+Saw
 Scorching Dragonfire
 Seized from Slumber
 Sheltered by Ghosts
+Shrewd Storyteller
+Shroudstomper
 Smoky Lounge
 Splitskin Doll
 Strangled Cemetery
 Surgical Suite
 Swamp
+The Jolly Balloon Man
 The Mindskinner
 The Swarmweaver
 Threats Around Every Corner
@@ -107,8 +118,10 @@ Untimely Malfunction
 Unwanted Remake
 Valgavoth's Lair
 Vanish from Sight
+Vengeful Possession
 Veteran Survivor
 Vile Mutilator
 Waltz of Rage
+Wary Watchdog
 Wildfire Wickerfolk
 Withering Torment

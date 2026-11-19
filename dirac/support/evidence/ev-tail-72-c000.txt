@@ -119,6 +119,7 @@ Decision Paralysis
 Decorated Champion
 Defiling Daemogoth
 Defy Death
+Delver's Torch
 Demanding Dragon
 Demon of Catastrophes
 Depose
@@ -425,6 +426,7 @@ Scythecat Cub
 Seafloor Oracle
 Seafloor Stalker
 Searing Spear
+Secret Door
 Secure the Wastes
 Seed of Hope
 Seer's Sundial
