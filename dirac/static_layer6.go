@@ -220,8 +220,8 @@ func (s *State) l6Walk(k *prep, sl Slot, w *l6walk) (kw kop.KwMask, lts uint16, 
 	if eot := (p.eotKw | p.ovr.kw | ctlKw) &^ cpKw; eot != 0 {
 		if s.fxM.has(sl) {
 			for i := 0; i < int(s.g.nfx); i++ {
-				if r := &s.g.fx[i]; r.sl == sl && r.kind == fxKwGrant {
-					if g := kwGrantMask(r) & eot; g != 0 {
+				if r := &s.g.fx[i]; r.sl == sl && (r.kind == fxKwGrant || r.kind == fxControl && k.gen.fxNeed&fxNeedPromo != 0) {
+					if g := l6GrantMask(r) & eot; g != 0 {
 						w.l6add(l6e{add: g, ts: r.r.ts, kind: l6EOT})
 						eot &^= g
 					}
@@ -454,6 +454,22 @@ func (s *State) grantedKw6(k *prep, sl Slot, add func(kop.KwMask)) {
 // idx, fl and src bytes).
 func kwGrantMask(r *fxRec) kop.KwMask {
 	return kop.KwMask(r.r.idx) | kop.KwMask(r.r.fl)<<8 | kop.KwMask(r.r.src)<<16
+}
+
+// l6GrantMask is the keywords record r grants at its own timestamp: an
+// until-end-of-turn grant's (fxKwGrant), or the haste a control record
+// carries (fcHaste: gorge's AddKWs$ at the control effect's timestamp). Only
+// a table that promotes until-end-of-turn grants (fxNeedPromo) reads a
+// control record's timestamp, as promoKw records a grant's; elsewhere its
+// haste applies last with the other until-end-of-turn keywords.
+func l6GrantMask(r *fxRec) kop.KwMask {
+	if r.kind == fxControl {
+		if r.r.fl&fcHaste != 0 {
+			return kop.KwHaste
+		}
+		return 0
+	}
+	return kwGrantMask(r)
 }
 
 // promoKw: until-end-of-turn keywords m were granted to sl; a table that
