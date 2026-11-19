@@ -1629,7 +1629,7 @@ var stringMapParams = map[string]string{
 	// api:Effect's own parameters are the compiled EffectParams accessors.
 	"effects:gainControlStaticKeysReadable:params": "parseStaticLine-built static line (an SVar body), not a card Params map",
 	"effects:effectGainControlGrant:params":        "parseStaticLine-built static line (an SVar body), not a card Params map",
-	"effects:animateSelfMayPlayGrant:params":      "parseStaticLine-built static line (an SVar body) from Animate staticAbilities$, not a card Params map",
+	"effects:animateSelfMayPlayGrant:params":       "parseStaticLine-built static line (an SVar body) from Animate staticAbilities$, not a card Params map",
 	// engine/effects/staticline.go addTriggerGrantFromLine: params is the same
 	// parseStaticLine-built static line (AddTrigger$ is read by rules' printed
 	// static walk too); svars is the effect's SVar table, read by the
