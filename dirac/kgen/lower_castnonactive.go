@@ -29,3 +29,11 @@ func castNonActive(tr *lTrigger, mode, v string) (uint8, bool) {
 	}
 	return 0, false
 }
+
+// playerTurnGate applies a SpellCast trigger's PlayerTurn$ param on top of
+// castNonActive. castNonActive already sets OnlyYourTurn for
+// ValidActivatingPlayer$ Opponent.NonActive; PlayerTurn$ must not clear it, or
+// the trigger fires on the caster's own turn (March of the World Ooze).
+func playerTurnGate(tp *params, tr *lTrigger) {
+	tr.OnlyYourTurn = tr.OnlyYourTurn || tp.is("PlayerTurn", "True")
+}
