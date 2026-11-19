@@ -34,13 +34,14 @@ const (
 	ReasonBattlefield = "battlefield"   // more permanents than battlefield slots
 	ReasonToken       = "token"         // a token the table cannot rebuild: not on the battlefield, not a plain creature token, or out of the layout
 	ReasonAttach      = "attachment"    // an attachment the staging cannot rebuild: not an Aura or Equipment, off the battlefield, or on a non-creature
+	ReasonCombat      = "combat"        // a combat mark or pose the staging cannot rebuild (zone_stagecombat.go)
 )
 
 // UnstageableReasons lists every reason NewFromWorld returns.
 var UnstageableReasons = []string{
 	ReasonTable, ReasonSeats, ReasonLayout, ReasonCard, ReasonZone, ReasonControl,
 	ReasonPlace, ReasonStep, ReasonPriority, ReasonTurn, ReasonLife, ReasonBattlefield,
-	ReasonToken, ReasonAttach, ReasonStackEntry,
+	ReasonToken, ReasonAttach, ReasonStackEntry, ReasonCombat,
 }
 
 // ErrUnstageable is the error of a position that cannot be staged.
@@ -91,6 +92,17 @@ type WorldObj struct {
 	// is always attached; an Equipment may not be.
 	Attached bool
 	Host     uint8
+	// Combat marks of a battlefield creature (zone_stagecombat.go). Attacking
+	// is set on an attacker, with AtkSeat the player it attacks. Blocked marks
+	// an attacker that has blockers; a blocker has Blocking set, Blocks the
+	// object index of its attacker and BlockOrd its place (from 1) in that
+	// attacker's block order.
+	Attacking bool
+	AtkSeat   uint8
+	Blocked   bool
+	Blocking  bool
+	Blocks    uint8
+	BlockOrd  uint8
 }
 
 // World is one position, staged at a priority decision.
@@ -111,11 +123,15 @@ type World struct {
 	Prio        uint8 // the priority holder
 	Life        [2]int32
 	LandsPlayed [2]uint8
+	// Pose is the decision pending: a priority round (zero), or a declare
+	// attackers or declare blockers pose with no pick made yet.
+	Pose Pose
 }
 
-// stageSteps are the steps a position can be staged in: a priority round
-// with no combat in flight.
-var stageSteps = [...]kop.Step{kop.StepUpkeep, kop.StepDraw, kop.StepMain1, kop.StepMain2, kop.StepEnd}
+// stageSteps are the steps a position can be staged in: a priority round or
+// a combat pose before combat damage (zone_stagecombat.go).
+var stageSteps = [...]kop.Step{kop.StepUpkeep, kop.StepDraw, kop.StepMain1, kop.StepBeginCombat,
+	kop.StepAttackers, kop.StepBlockers, kop.StepMain2, kop.StepEnd}
 
 // combatKeywords are the keywords a staged creature may carry: they change
 // combat and nothing else.
@@ -281,7 +297,7 @@ func (w *World) validate() error {
 		if o.Ctrl >= 2 || (o.Zone == kop.ZoneBattlefield && o.Ctrl != o.Owner) || (o.Zone != kop.ZoneBattlefield && o.Ctrl != o.Owner) {
 			return unstageable(ReasonControl, "object %d owner %d controller %d", i, o.Owner, o.Ctrl)
 		}
-		if o.Zone != kop.ZoneBattlefield && (o.Tapped || o.Sick || o.Damage != 0 || o.P1P1 != 0) {
+		if o.Zone != kop.ZoneBattlefield && (o.Tapped || o.Sick || o.Damage != 0 || o.P1P1 != 0 || o.combatMarked()) {
 			return unstageable(ReasonZone, "object %d off the battlefield carries a mark", i)
 		}
 		count[o.Owner][z][0]++
@@ -292,6 +308,9 @@ func (w *World) validate() error {
 		}
 	}
 	if err := w.validateStack(); err != nil {
+		return err
+	}
+	if err := w.validateCombat(); err != nil {
 		return err
 	}
 	if count[0][2][0]+count[1][2][0] > MaxPerm {
@@ -407,6 +426,7 @@ func (s *State) initFromWorld(w *World) error {
 	}
 	s.stageAttached(k, w)
 	s.stageStack(k, w)
+	s.stageCombat(k, w)
 	for p := range w.Life {
 		s.pl[p].life = int16(w.Life[p])
 	}
@@ -428,6 +448,7 @@ func (s *State) initFromWorld(w *World) error {
 	} else if w.Prio != w.Active {
 		s.passes = 1
 	}
+	s.stagePose(w)
 	s.mullMax = 0
 	return nil
 }
