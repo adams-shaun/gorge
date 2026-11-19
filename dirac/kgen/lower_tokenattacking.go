@@ -35,10 +35,10 @@ func (lc *lowerCtx) triggeredDefenderOrPW(v string) (lRef, error) {
 }
 
 // tokenAttackingRemembered is Adeline's TokenAttacking$ inside a RepeatEach
-// over the opponents: gorge tokenAttackingPlayers resolves the
-// RememberedPlayer arm to the repeated opponent and, the Valid arm being
-// an unmodelled object selector, attacks that player with a Note (never
-// an ask).
+// over the opponents: gorge tokenAttackingRider attacks the repeated
+// opponent, or asks (CR 508.4) which of that player's planeswalkers it
+// attacks when there are any; the kernel attacks the player and stalls
+// (StallDefenderPW) when the opponent controls a planeswalker.
 const tokenAttackingRemembered = "RememberedPlayer & Valid Planeswalker.ControlledBy Remembered"
 
 // tokenAttacking lowers TokenAttacking$ (gorge effects/token.go

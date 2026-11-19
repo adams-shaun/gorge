@@ -26,9 +26,10 @@ import (
 // the controller's one opponent; a chosen or remembered one is not lowered)
 // and every other parameter, as an unread key.
 func (lc *lowerCtx) clash(ps *params) error {
-	// the one opponent (clashOpp -> State.oppsFrom): gorge's fallback scans
-	// g.AliveFrom(0), so a controller not seated first clashes with a
-	// different player at three or more seats
+	// the one opponent (clashOpp -> State.oppsFrom): gorge's controller
+	// chooses the opponent (CR 701.31a, chooseClashOpponent), an ask only at
+	// three or more seats, which the kernel does not model. The reason text
+	// is pinned by the two-seat census; do not reword it.
 	lc.twoSeat("Clash with the one opponent (gorge's fallback scans from seat 0)")
 	win, other := clashBranch(ps, "WinSubAbility"), clashBranch(ps, "OtherwiseSubAbility")
 	lc.emit(lInstr{Op: "Clash", Note: "clash with the opponent: result 1 won, 2 not"})

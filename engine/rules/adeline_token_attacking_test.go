@@ -80,10 +80,9 @@ func TestAdelineTokenAttackingRememberedPlayerAttacksThatOpponent(t *testing.T) 
 	if tok.Attacking != 1 {
 		t.Fatalf("Human attacks seat %d, want the RepeatEach opponent seat 1", tok.Attacking)
 	}
-	// The two-valued selector's planeswalker half is unmodelled and must say
-	// so loudly -- exactly once -- rather than silently dropping the choice.
-	// This also proves the selector handler ran: without the fix the call
-	// emits the does-not-attack degrade instead of this note.
+	// With no planeswalker to choose, the walker arm is modelled (CR 508.4:
+	// the choice is just the one player), so it emits no unimplemented Note;
+	// adeline_planeswalker_attack_test.go pins the choice itself.
 	var planeNotes, degradeNotes int
 	for _, ev := range e.L.Events {
 		if ev.Kind != events.Note {
@@ -96,8 +95,8 @@ func TestAdelineTokenAttackingRememberedPlayerAttacksThatOpponent(t *testing.T) 
 			degradeNotes++
 		}
 	}
-	if planeNotes != 1 {
-		t.Fatalf("%d planeswalker-arm notes, want exactly 1; log=%+v", planeNotes, e.L.Events)
+	if planeNotes != 0 {
+		t.Fatalf("%d planeswalker-arm notes, want none; log=%+v", planeNotes, e.L.Events)
 	}
 	if degradeNotes != 0 {
 		t.Fatalf("%d selector degrade notes, want none (the player half resolved)", degradeNotes)
