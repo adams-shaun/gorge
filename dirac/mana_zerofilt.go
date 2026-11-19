@@ -21,7 +21,10 @@ import (
 // in none within 160.
 
 // zeroFiltAsk reports whether the funding tap of sl poses the ask between its
-// free ability and a zero-amount dynamic filter the pool now pays for.
+// free ability and a zero-amount dynamic filter the pool now pays for. A tap
+// whose one answer fundOne reaches (one colour in fundMaskAt) is the other
+// gate's alone: fundTap yields it to zeroFiltAsks (mana_filtzerofund.go), so
+// the tap's ask and colour search are charged once, not by both gates.
 func (fs *filtSearch) zeroFiltAsk(k *prep, t *State, sl Slot) bool {
 	if !k.gen.anyDynFilt || !k.gen.has(t.cardAt(sl), gfFilt) || fs.gaps.has(sl) {
 		return false
