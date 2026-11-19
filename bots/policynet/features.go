@@ -278,7 +278,7 @@ func encodeStateWith(buf *StateBuf, fs FeatureSet, v *view.View, seat state.Play
 	// The mz rows are appended straight after the v1 bag, then the whole
 	// bag is stably sorted by row.
 	sk := &sink{fs: st.Sparse}
-	mzState(*v, seat, sk)
+	mzState(*v, seat, sk, fs == FeaturesPod)
 	if fs == FeaturesMZOwnLib {
 		ownLibState(*v, seat, sk.str)
 	}
@@ -365,7 +365,10 @@ func seatAvailable(pv *view.PlayerView) int32 {
 // hand, the stack, then the seat aggregates. Each token is hashed as it is
 // streamed (hashstream.go): the row is hashID of the token string the
 // comment beside it spells, which is never built.
-func mzState(v view.View, seat state.PlayerID, sk *sink) {
+//
+// pod (FeaturesPod) replaces the life and lethal rows with the per-opponent
+// ones (podLifeRows); every other set keeps them as they were.
+func mzState(v view.View, seat state.PlayerID, sk *sink, pod bool) {
 	var me *view.PlayerView
 	var othersBuf [8]*view.PlayerView
 	others := othersBuf[:0]
@@ -451,10 +454,15 @@ func mzState(v view.View, seat state.PlayerID, sk *sink) {
 			perm("bf-me", &me.Battlefield[i], &mine)
 		}
 	}
+	// oppPower[j] is others[j]'s own can-attack power (the pod lethal rows).
+	var oppPowerBuf [8]int32
+	oppPower := oppPowerBuf[:0]
 	for _, pv := range others {
+		before := theirs.canAttackPower
 		for i := range pv.Battlefield {
 			perm("bf-opp", &pv.Battlefield[i], &theirs)
 		}
+		oppPower = append(oppPower, theirs.canAttackPower-before)
 	}
 	var myAvail int32
 	if me != nil {
@@ -500,6 +508,10 @@ func mzState(v view.View, seat state.PlayerID, sk *sink) {
 	num("me|canblock-n", mine.canBlock, 6)
 	num("me|flyers", mine.flyers, 4)
 	num("opp|flyers", theirs.flyers, 4)
+	if me != nil && len(others) > 0 && pod {
+		podLifeRows(&v, me, others, mine.canAttackPower, oppPower, sk)
+		return
+	}
 	if me != nil && len(others) > 0 {
 		diff := me.Life - others[0].Life
 		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|lifediff="), mzClamp(diff/3+7, 14)), 1)

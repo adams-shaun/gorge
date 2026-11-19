@@ -142,3 +142,48 @@ func TestPodCheckpointRoundTrip(t *testing.T) {
 		t.Errorf("loaded pod model's value %v, written %v", b, a)
 	}
 }
+
+// TestMZLifeRowsSkipLostSeat (t1) pins the pod set's life and lethal rows
+// at four seats from seat 2's view: seat 1 has lost at 0 life, so the first
+// opponent slot is seat 3 (next in turn order), then seat 0; seat 1 has no
+// slot, and its 0 life switches on no lethal row. The mz set keeps its rows
+// (others[0], seat 0) as they were.
+func TestMZLifeRowsSkipLostSeat(t *testing.T) {
+	v := view.View{Turn: 5, Step: "main1", Active: 2, Priority: 2}
+	for p := 0; p < 4; p++ {
+		v.Players = append(v.Players, view.PlayerView{ID: state.PlayerID(p), Life: []int32{30, 0, 20, 12}[p]})
+	}
+	v.Players[1].Lost = true
+	v.Players[2].Battlefield = []view.CardView{{ID: 50, Name: "Bear", Types: "Creature", Power: 2, Toughness: 2, Controller: 2}}
+	st := EncodeStateWith(FeaturesPod, v, 2, nil)
+	has := func(fs []Feature, s string) bool {
+		r := hashID(s)
+		for _, f := range fs {
+			if f.Row == r {
+				return true
+			}
+		}
+		return false
+	}
+	for _, want := range []string{
+		"mz|pod|opp0|life=6",      // seat 3: 12/2
+		"mz|pod|lifediff0=9",      // (20-12)/3 + 7
+		"mz|pod|opp1|life=15",     // seat 0: 30/2
+		"mz|pod|lifediff1=" + "4", // (20-30)/3 + 7 = -3 + 7
+		"mz|me|life=10",
+	} {
+		if !has(st.Sparse, want) {
+			t.Errorf("pod set: no %q row", want)
+		}
+	}
+	for _, not := range []string{"mz|pod|opp2|life=0", "mz|me|lethal-unblocked", "mz|opp|lethal-unblocked", "mz|opp|life=15", "mz|lifediff=4"} {
+		if has(st.Sparse, not) {
+			t.Errorf("pod set: unexpected %q row", not)
+		}
+	}
+	// The mz set is unchanged: its rows read seat 0 (others[0]).
+	mz := EncodeStateWith(FeaturesMZ, v, 2, nil)
+	if !has(mz.Sparse, "mz|opp|life=15") || has(mz.Sparse, "mz|pod|opp0|life=6") {
+		t.Error("mz set: the life rows moved")
+	}
+}

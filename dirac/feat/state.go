@@ -525,6 +525,10 @@ func (e *Encoder) mzGlobal(seat uint8, me, opp *vplayer, mine, theirs *agg) {
 	num(&nkMeCanBlockN, mine.canBlock)
 	num(&nkMeFlyers, mine.flyers)
 	num(&nkOppFlyers, theirs.flyers)
+	if e.pod {
+		e.podLifeRows(me, mine)
+		return
+	}
 	diff := me.life - opp.life
 	e.push(rowsLifediff[clampI(diff/3+7, 14)], 1)
 	e.push(rowsOppLife[clampI(opp.life/2, lifeBucketHi)], 1)
