@@ -76,15 +76,17 @@ State-based actions run after each combat-damage pass.
 
 ## Decision and Action
 
-A `Decision` is a kind, a sub-kind, a player and up to 512 options (`MaxOptions`), 2,056 bytes in all, which is why
-`StepInto` exists. An `Action` is one packed `uint32`:
+A `Decision` is a kind, a sub-kind, a player and up to `MaxOptions` options, which is why `StepInto` exists. An
+`Action` is one packed `uint32`, with a five-bit kind, nine-bit source and target codes and an eight-bit mode
+(`dirac/seats.go`):
 
 ```text
-kind << 24 | source << 16 | target << 8 | mode
+kind << 26 | source << 17 | target << 8 | mode
 ```
 
-`source` and `target` are `Obj` indices. Bytes `0xF0` and up in a target are the two players and "none", which is why
-`MaxObj` can't pass 240. `MakeAction`, `Kind()`, `Source()`, `Target()` and `Mode()` encode and decode it. Each action
+`source` and `target` are target codes (`TCode`): objects below `MaxObj`, then the stack abilities from
+`StackTarget0`, one code per seat from `PlayerTarget0`, a departed stack target and "none" (`NoTarget`, 511), which is
+why `MaxObj` can't pass `StackTarget0`. `MakeAction`, `Kind()`, `Source()`, `Target()` and `Mode()` encode and decode it. Each action
 kind says which fields it uses: `AkCast`'s mode bits name the cast route, for example kicked, flashback or
 a play permission. A granted activated ability is `AkActivate` with the creature as source, the granting permanent
 as target and `0x80 | index` as mode.

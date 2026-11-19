@@ -74,7 +74,7 @@ for `pymdownx.snippets`, and `sets.md` includes each one by name:
 |---|---|
 | `headline` | one row per engine and measure, with the commits and corpus measured |
 | `sets` | the per-set table: every set gorge-compliance audits against a printed list, plus every set on dirac's support page, joined by set code |
-| `rollup` | the roll-up by set type, then every one of the 591 sets |
+| `rollup` | the roll-up by set type, then every set |
 | `charts` | one chart per engine over the Standard sets |
 | `edh` | Commander deck coverage from `forgec edhcover`'s `.coverage/edh.json` (`--edh`); "not available" without it |
 
