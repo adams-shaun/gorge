@@ -14,6 +14,7 @@ import (
 type feeOnlyBoardTally struct {
 	play, fee string
 	seen      bool
+	priced    bool
 }
 
 // check reads gorge's pending decision and battlefields.
@@ -24,6 +25,7 @@ func (y *feeOnlyBoardTally) check(ref *GorgeSide) {
 	}
 	g := ref.E.G
 	playOn, feeOn := false, false
+	var playID state.ObjID
 	for _, id := range g.Zone(state.ZBattlefield, d.Player) {
 		o := g.Obj(id)
 		if o == nil || o.Face() == nil {
@@ -31,12 +33,27 @@ func (y *feeOnlyBoardTally) check(ref *GorgeSide) {
 		}
 		switch o.Face().Name {
 		case y.play:
-			playOn = true
+			playOn, playID = true, id
 		case y.fee:
 			feeOn = true
 		}
 	}
 	y.seen = y.seen || (playOn && feeOn)
+	if !y.seen || y.priced {
+		return
+	}
+	// The play is priced when the planner's census-derived prefix search
+	// found its script: the row's reason is empty and it carries the script
+	// the seat pays by (the same route the offer gate reads). A row left
+	// "unsupported"/"census_incomplete" is the fee-only source the search
+	// starved on, which is exactly what the pin must never accept: both
+	// engines would omit the play together and agree vacuously.
+	for _, pp := range ref.E.PotentialPaymentPlans(d.Player) {
+		if pp.Action.Kind == "ability" && pp.Action.Obj == playID && pp.Reason == "" && len(pp.Script) > 0 {
+			y.priced = true
+			return
+		}
+	}
 }
 
 // Orzhova, the Church of Deals' "{3}{W}{B}, {T}: Target player loses 1 life
@@ -61,6 +78,6 @@ func TestMBCOrzhovaFeeOnlyCensusNotAProofLockstep(t *testing.T) {
 	y := &feeOnlyBoardTally{play: "Orzhova, the Church of Deals", fee: "Energy Refractor"}
 	stdReproLockstepReaching(t, "testdata/repro/orzhova_feeonly_funded_activation_offer.repro.json", "tail-02", func(ref *GorgeSide) bool {
 		y.check(ref)
-		return y.seen
+		return y.priced
 	})
 }
