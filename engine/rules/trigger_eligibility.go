@@ -516,6 +516,12 @@ var triggerModeEventRows = [...]struct {
 	// Destroyed (edh-trigC, Karmic Justice) reads the effect-caused destroy
 	// move (MoveZone with Text "destroyed").
 	{cards.TriggerDestroyed, 1 << events.MoveZone},
+	// Fight / FightOnce (edh-trigD) match the fight's own Damage events (the
+	// effects-side Host.SetDamageFlags(DamageFight) publication); AttackerBlockedOnce is queued
+	// by trigger_blocks.go's DeclareBlockers walk beside AttackerBlocked.
+	{cards.TriggerFight, 1 << events.Damage},
+	{cards.TriggerFightOnce, 1 << events.Damage},
+	{cards.TriggerAttackerBlockedOnce, 1 << events.DeclareBlockers},
 	// The mode fires on the STORED prevention Note (engine/rules/replacement.go's
 	// full-prevention arm and its ReplaceDamage/protection siblings), not
 	// on the Damage event the prevention replaces -- a prevented hit is a

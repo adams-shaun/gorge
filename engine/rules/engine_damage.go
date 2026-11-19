@@ -28,12 +28,14 @@ func (e *Engine) SetDamageSource(id state.ObjID) state.ObjID {
 	return prev
 }
 
-// SetDamageNoPrevention implements effects.Host: publish "the Damage event
-// the calling emitter is about to emit can't be prevented" (CR 615.12), read
-// by cantPreventDamage. See dmgNoPrevention's field doc for the discipline.
-func (e *Engine) SetDamageNoPrevention(on bool) (prev bool) {
-	prev = e.dmgNoPrevention
-	e.dmgNoPrevention = on
+// SetDamageFlags implements effects.Host: publish the provenance bits of the
+// Damage event the calling emitter is about to emit -- DamageNoPrevention
+// (CR 615.12, read by cantPreventDamage) and DamageFight (CR 701.14, read by
+// trigmatch's Mode$ Fight / FightOnce through Facts.FightDamaging). See
+// dmgFlags' field doc for the discipline.
+func (e *Engine) SetDamageFlags(f effects.DamageFlags) (prev effects.DamageFlags) {
+	prev = e.dmgFlags
+	e.dmgFlags = f
 	return prev
 }
 

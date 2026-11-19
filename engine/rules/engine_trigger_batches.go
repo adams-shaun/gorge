@@ -2,6 +2,7 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -338,9 +339,9 @@ type engineTriggerBatches struct {
 	// batchWindowDepth the open BatchDepartures calls (nested batches share
 	// the outermost board). Engine-transient like triggerBefore: nil/zero at
 	// every intent boundary, never cloned.
-	batchWindow      *triggerSnapshot `clone:"reset"`
-	batchWindowDepth int              `clone:"reset"`
-	dmgNoPrevention  bool             `clone:"reset"` // SetDamageNoPrevention's in-flight bit
+	batchWindow      *triggerSnapshot    `clone:"reset"`
+	batchWindowDepth int                 `clone:"reset"`
+	dmgFlags         effects.DamageFlags `clone:"reset"` // SetDamageFlags' in-flight bits (no-prevention, fight)
 	// batchReplSources lists every object that departed the battlefield
 	// while a simultaneous departure batch was open (replBatchDepth > 0:
 	// an effect's BatchDepartures or an SBA batch in sba.go). CR 614.6/616 with
