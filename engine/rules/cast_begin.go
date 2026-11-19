@@ -1242,7 +1242,7 @@ func (e *Engine) continueCast() {
 	// total cost (601.2f), so they are announced before the targets like the
 	// other reductions. Every other cost object is chosen at payment
 	// (costObjectAsks, CR 601.2h).
-	if pc := e.cast; pc != nil && (pc.emerge || pc.offering) && e.sacAsk() {
+	if pc := e.cast; pc != nil && pc.sacReducesCost() && e.sacAsk() {
 		return
 	}
 	// Suspend does not put a spell on the stack: its alternate action pays

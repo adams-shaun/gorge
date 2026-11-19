@@ -256,8 +256,7 @@ func optionEqual(a, b *decision.Option) bool {
 		a.Battle == b.Battle &&
 		a.Required == b.Required &&
 		a.BlockMust == b.BlockMust &&
-		a.AloneRestricted == b.AloneRestricted &&
-		a.OnlyAloneRestricted == b.OnlyAloneRestricted &&
+		aloneRestrictedEqual(a, b) &&
 		a.BlockMustAll == b.BlockMustAll &&
 		a.AttackMust == b.AttackMust && a.AttackMustTwo == b.AttackMustTwo &&
 		a.MinBlockers == b.MinBlockers &&
@@ -303,4 +302,10 @@ func optionsEqual(a, b []decision.Option) bool {
 		}
 	}
 	return true
+}
+
+// aloneRestrictedEqual compares the two "attacks alone" restriction flags
+// (CR 506.5) of an offered attack option.
+func aloneRestrictedEqual(a, b *decision.Option) bool {
+	return a.AloneRestricted == b.AloneRestricted && a.OnlyAloneRestricted == b.OnlyAloneRestricted
 }
