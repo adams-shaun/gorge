@@ -102,10 +102,26 @@ func (s *State) spreeModeAffordable(k *prep, m int) bool {
 	if k.tapMana {
 		// gorge's PotentialMana counts a tap-another or sacrifice-another
 		// source (Krark-Clan Ironworks' {C}{C}) the CR 601.2g window could
-		// activate; the potential walk above leaves it a census gap.
-		s.availTapX(k, e.ctrl, &av)
+		// activate; the potential walk above leaves the sacrifice one a
+		// census gap.
+		s.availTapXUnwalked(k, e.ctrl, &av)
 	}
 	return av.affords(&c, pipMaskOf(&c), 0)
+}
+
+// availTapXUnwalked is availTapX less the sources availPotentialFor already
+// counted: its fixpoint admits a tap-another source (Urza, Lord High
+// Artificer's artifact tap) through potentialGapCost's TapXMana arm, so
+// adding that unit again prices one mana gorge's PotentialMana does not have
+// and offers a Spree mode it withholds (CR 601.2b, 702.172a).
+func (s *State) availTapXUnwalked(k *prep, p uint8, av *avail) {
+	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+		a := k.tapXAbOf(s.cardAt(b.first()))
+		if k.gen != nil && kop.TapXMana(a) {
+			continue // a unit of the potential walk's fixpoint already
+		}
+		addTapXUnits(av, a)
+	}
 }
 
 // spreeAffordable: the chosen modes' total cost can be paid, by the sources
