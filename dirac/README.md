@@ -7,9 +7,10 @@ and it is judged against gorge, the rules engine in [`engine/`](../engine): gorg
 decision by decision (see [verification](docs/verification.md)). That speed is the point: self-play,
 search and policy training run millions of transitions.
 
-It is **not** a multiplayer engine, a card-database front end or a replacement
-for gorge. It plays two seats from a fixed card table, supports the mechanics the
-generated tables cover, and leaves everything else to gorge. A server reaches it
+It is **not** a card-database front end or a replacement for gorge. One build
+holds four seat slots and plays a duel or a four-seat pod from a fixed card
+table, supports the mechanics the generated tables cover, and leaves
+everything else to gorge. A server reaches it
 through `dirac/adapter` ([serving](docs/serving.md)).
 
 ## Quick start

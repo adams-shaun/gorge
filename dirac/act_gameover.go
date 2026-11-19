@@ -24,14 +24,14 @@ func (s *State) winGame(k *prep, p uint8) {
 			return
 		}
 	}
-	if MaxSeats > 2 {
+	if !s.duel() {
 		for q := uint8(0); q < s.nSeats(); q++ {
 			if q != p {
 				s.pl[q].lost = true // each other player loses (CR 104.2b)
 			}
 		}
 	} else {
-		s.pl[NextSeat(p)].lost = true
+		s.pl[s.nextSeat(p)].lost = true
 	}
 	s.checkOver()
 }

@@ -270,12 +270,13 @@ func TestCtrOverFullStalls(t *testing.T) {
 	}
 }
 
-// TestPermSize pins perm's size. The 16-bit counter kinds (ck) added three
-// bytes, attack-version bookkeeping (atkVer) one and the P/T-switch mark
-// byte (spare) one.
+// TestPermSize pins perm's size. The object index and the codes are sixteen
+// bits (obj, chosen, bord, atk: Obj, objWord, TCode). The 16-bit counter
+// kinds (ck) added three bytes, attack-version bookkeeping (atkVer) one and
+// the P/T-switch mark byte (spare) one.
 func TestPermSize(t *testing.T) {
 	var p perm
-	want := uintptr(64)
+	want := uintptr(68)
 	if got := unsafeSizeofPerm(&p); got != want {
 		t.Fatalf("perm is %d bytes, want %d", got, want)
 	}

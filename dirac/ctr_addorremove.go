@@ -66,7 +66,7 @@ func (s *State) addOrRemoveCounter(k *prep, in *kop.Instr) (ok, done bool) {
 		r.peekN, r.chosen = 1, 255
 		return s.aorNext(k, sl, false)
 	}
-	r.peekN, r.peekI, r.chosen, r.left = 0, uint8(in.C), uint8(in.C), 0
+	r.peekN, r.peekI, r.chosen, r.left = 0, uint8(in.C), objWord(uint8(in.C)), 0
 	r.ask, r.askP = raAddOrRemoveCounter, r.e.ctrl
 	return false, true
 }
@@ -76,7 +76,7 @@ func (s *State) aorNext(k *prep, sl Slot, fromAnswer bool) (ok, done bool) {
 	r := &s.res
 	if r.peekN != 0 {
 		if c, found := s.aorNextKind(sl); found {
-			r.peekI, r.chosen, r.left = c, c, 0
+			r.peekI, r.chosen, r.left = c, objWord(c), 0
 			r.ask, r.askP = raAddOrRemoveCounter, r.e.ctrl
 			return false, true
 		}
@@ -98,7 +98,7 @@ func (s *State) aorNextKind(sl Slot) (uint8, bool) {
 		if !kop.IsCounterKind(int(c)) || c == uint16(kop.CtrOther) {
 			continue
 		}
-		if s.res.chosen == 255 || uint8(c) > s.res.chosen {
+		if s.res.chosen == 255 || objWord(uint8(c)) > s.res.chosen {
 			return uint8(c), true
 		}
 	}

@@ -375,7 +375,7 @@ func (s *State) lose(p uint8) {
 }
 
 func (s *State) checkOver() {
-	if MaxSeats > 2 {
+	if !s.duel() {
 		s.checkOverN()
 		return
 	}
@@ -817,7 +817,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.dropAttLKI(o)
 	}
 	s.occ.clr(sl)
-	if MaxSeats == 2 {
+	if s.duel() {
 		s.ctrlM[0].clr(sl)
 		s.ctrlM[1].clr(sl)
 	} else {
