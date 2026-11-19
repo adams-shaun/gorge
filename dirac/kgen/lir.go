@@ -1160,6 +1160,8 @@ type lStatic struct {
 	// AddChosen: AddType$ ChosenType, the static's host's chosen creature
 	// type (kop.Static.AddChosen)
 	AddChosen bool
+	// AnyCaster: a CastWithFlash grant with Caster$ Player (kop.StFlashAnyCaster)
+	AnyCaster bool
 	// OutlivesLoss: the pump beside an override static with a part in layers
 	// 1 to 5 (kop.Static.OutlivesLoss)
 	OutlivesLoss bool

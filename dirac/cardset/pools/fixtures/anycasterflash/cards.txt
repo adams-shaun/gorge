@@ -1,0 +1,20 @@
+# Caster$ Player CastWithFlash grants: Quick Sliver (Slivers), Vernal
+# Equinox (creatures and enchantments) and Tidal Barracuda (any spell) let
+# every player, not only the controller, cast matching spells as though they had
+# flash, among slivers, sorceries, instants and basics
+# (dirac/oracle/anycasterflash_test.go)
+Quick Sliver
+Vernal Equinox
+Tidal Barracuda
+Muscle Sliver
+Gemhide Sliver
+Mulch
+Accumulate Wisdom
+Cloud Sprite
+Grizzly Bears
+Elite Vanguard
+Cancel
+Giant Growth
+Plains
+Island
+Forest

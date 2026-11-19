@@ -3079,6 +3079,9 @@ func (s *State) playLandNow(k *prep, o Obj, p uint8) {
 // p applies to card c being cast by p.
 func (s *State) castStatic(k *prep, sk kop.StaticKind, p uint8, c CardID) bool {
 	m := s.statM.and(s.ctrlM[p])
+	if sk == kop.StatCastWithFlash {
+		m = s.statM // a Caster$ Player grant reaches every player; per static below
+	}
 	for m.any() {
 		src := m.first()
 		m = m.rest()
@@ -3088,7 +3091,7 @@ func (s *State) castStatic(k *prep, sk kop.StaticKind, p uint8, c CardID) bool {
 		cd := &k.t.Cards[s.cardAt(src)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			if a.Kind == kop.AbStatic && a.Static.Kind == sk && (sk != kop.StatCastWithFlash || !cd.SelfFlash) && s.matchCard(k, a.Static.Filter, c, p, p) &&
+			if a.Kind == kop.AbStatic && a.Static.Kind == sk && (sk != kop.StatCastWithFlash || !cd.SelfFlash && (s.ctrlM[p].has(src) || a.Static.StFlags&kop.StFlashAnyCaster != 0)) && s.matchCard(k, a.Static.Filter, c, p, p) &&
 				(a.Static.Cond2 == 0 || s.condEval(k, a.Static.Cond2, evalCtx{src: s.perms[src].obj, srcSl: src, ctrl: p})) {
 				return true // the static's CheckSVar$/IsPresent$ gate, as gorge castWithFlash reads the static's conditions
 			}
