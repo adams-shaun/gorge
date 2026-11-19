@@ -29,8 +29,10 @@ var DebugNoTapsDeferYield bool
 
 // tapsWatchClass classifies a tap of sl for mana against the battlefield's
 // lowered Taps watchers: painN is the damage the tap deals its payer (the
-// Pain-class watchers' amounts, summed), deferSrc whether a Defer-class
-// watcher matches. p is the payer. Tables without the family walk nothing.
+// Pain-class watchers' amounts, plus a deferred TapsForMana watcher's
+// disclosed literal damage, kgen tapsDeferPain), deferSrc whether a
+// Defer-class watcher matches. p is the payer. Tables without the family
+// walk nothing.
 func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc bool) {
 	painN, deferSrc, _ = s.tapsWatchClassForeign(k, p, sl)
 	return painN, deferSrc
@@ -99,6 +101,11 @@ func (s *State) tapsWatchClassForeign(k *prep, p uint8, sl Slot) (painN int, def
 			}
 			if a.Trig.TapPlan == kop.TapPlanDefer {
 				deferSrc = true
+				// A deferred TapsForMana watcher whose body still names the
+				// tapper as literal damage (Manabarbs, kgen tapsDeferPain):
+				// the planner never taps the source, but the tap's damage is
+				// disclosed for the potential census's lethal guard.
+				painN += int(a.Trig.TapPainN)
 				if s.perms[w].ctrl == p || a.NTargets == 0 && a.NModes == 0 {
 					foreignOnly = false
 				}
@@ -238,6 +245,19 @@ func (s *State) tapsDeferred(k *prep, p uint8, sl Slot) bool {
 	}
 	_, d := s.tapsWatchClass(k, p, sl)
 	return d
+}
+
+// tapsCensusPain is the foreign tap damage the potential census's per-tap
+// view carries for sl (legal.go potCensus.tapPain): a Pain-class watcher's
+// amount, or a deferred TapsForMana watcher's disclosed literal payer damage
+// (Manabarbs). The over-bound walk still taps the source; only the units'
+// lethal guard (potUnitsAvail) consumes this read.
+func (s *State) tapsCensusPain(k *prep, p uint8, sl Slot) uint8 {
+	if k.gen == nil || !(k.gen.anyTapsDefer || k.gen.anyTapsPain) || !s.subs[kop.TrigTaps].any() {
+		return 0
+	}
+	pain, _ := s.tapsWatchClass(k, p, sl)
+	return uint8(min(max(pain, 0), 255))
 }
 
 // availLeavesOut reports whether availFor left the planner-deferred source at
