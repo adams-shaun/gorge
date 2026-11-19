@@ -32,12 +32,23 @@ var DebugNoTapsDeferYield bool
 // Pain-class watchers' amounts, summed), deferSrc whether a Defer-class
 // watcher matches. p is the payer. Tables without the family walk nothing.
 func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc bool) {
+	painN, deferSrc, _ = s.tapsWatchClassForeign(k, p, sl)
+	return painN, deferSrc
+}
+
+// tapsWatchClassForeign is tapsWatchClass that also reports whether every
+// Defer-class watcher matching the tap is a printed trigger another player
+// controls whose build poses a target or mode ask (Relic Bind's mode on an
+// enchanted Treasure), the shape gorge's prefix search cannot get past
+// (mana_foreignask.go). A granted watcher never counts as one.
+func (s *State) tapsWatchClassForeign(k *prep, p uint8, sl Slot) (painN int, deferSrc, foreignOnly bool) {
 	if k.gen == nil || !(k.gen.anyTapsDefer || k.gen.anyTapsPain) || DebugNoTapsDefer {
-		return 0, false
+		return 0, false, false
 	}
 	if s.reflTapsUnwatched(k, sl) {
-		return 0, false
+		return 0, false, false
 	}
+	foreignOnly = true
 	for m := s.subs[kop.TrigTaps]; m.any(); m = m.rest() {
 		w := m.first()
 		if !s.occ.has(w) || k.gen.flags[s.cardAt(w)]&(gfTapsDefer|gfTapsPain) == 0 || s.genLost(k, w) {
@@ -88,6 +99,9 @@ func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc b
 			}
 			if a.Trig.TapPlan == kop.TapPlanDefer {
 				deferSrc = true
+				if s.perms[w].ctrl == p || a.NTargets == 0 && a.NModes == 0 {
+					foreignOnly = false
+				}
 			} else {
 				painN += int(a.Trig.TapPainN)
 			}
@@ -105,12 +119,41 @@ func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc b
 		// reads the granted watcher over the recipient) and its prefix search
 		// taps the source before the play, the trigger flushing onto the stack
 		// beneath the play (CR 117.5; repro projection_stack_kind_hall).
+		wasDefer := deferSrc
 		s.grantedTapsClass(k, sl, p, &painN, &deferSrc)
+		if deferSrc && !wasDefer {
+			foreignOnly = false
+		}
 	}
 	if painN > 255 {
 		painN = 255
 	}
-	return painN, deferSrc
+	return painN, deferSrc, foreignOnly && deferSrc
+}
+
+// tapsDeferDeadSac is p's tap-and-sacrifice mana sources that the planner
+// defers and whose every deferring watcher is a foreign build ask
+// (tapsWatchClassForeign): gorge's census never lists such a source, and its
+// search, which gap-activates it, ends at the opponent's ask, so no payment or
+// prefix uses it and the plain availability leaves it out. A Treasure under an
+// opponent's Relic Bind has no {T}-only gap of its own for the script to model
+// (scriptTapsDefer), so without this it kept its census unit and the offer
+// priced a cast gorge's autopay surface withholds (census_incomplete).
+func (s *State) tapsDeferDeadSac(k *prep, p uint8) slotMask {
+	var m slotMask
+	if k.gen == nil || !k.gen.anyTapsDefer || !k.sacMana || !s.subs[kop.TrigTaps].any() {
+		return m
+	}
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
+		sl := b.first()
+		if !s.manaPCGen(k, sl).manaSac {
+			continue
+		}
+		if _, d, f := s.tapsWatchClassForeign(k, p, sl); d && f {
+			m = m.with(sl)
+		}
+	}
+	return m
 }
 
 // DebugNoReflTapsUnwatched drops reflTapsUnwatched (a reflected source's tap
