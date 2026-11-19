@@ -54,7 +54,7 @@ func TestNoncombatDamageLedgerSeparatesCombatAndTurns(t *testing.T) {
 	t.Parallel()
 	e, ids := pcdrEngine(t, "Grizzly Bears")
 	bears := ids["Grizzly Bears"]
-	if e.WasDealtNoncombatDamageThisTurn(1) || e.WasDealtNoncombatDamageLastTurn(1) {
+	if e.WasDealtNoncombatDamage(1, false) || e.WasDealtNoncombatDamage(1, true) {
 		t.Fatal("precondition: seat 1 already reads as dealt noncombat damage")
 	}
 	// Combat damage is not noncombat damage.
@@ -62,27 +62,27 @@ func TestNoncombatDamageLedgerSeparatesCombatAndTurns(t *testing.T) {
 	if got := e.G.Players[1].Life; got != 18 {
 		t.Fatalf("precondition: combat hit did not land (life %d)", got)
 	}
-	if e.WasDealtNoncombatDamageThisTurn(1) {
+	if e.WasDealtNoncombatDamage(1, false) {
 		t.Fatal("combat damage counted as noncombat damage")
 	}
 	// Spell/ability damage is.
 	burn(e, bears, "Opponent", 1)
-	if !e.WasDealtNoncombatDamageThisTurn(1) {
+	if !e.WasDealtNoncombatDamage(1, false) {
 		t.Fatal("ability damage to seat 1 not recorded as noncombat damage")
 	}
-	if e.WasDealtNoncombatDamageThisTurn(0) {
+	if e.WasDealtNoncombatDamage(0, false) {
 		t.Fatal("seat 0 recorded as damaged though it was not dealt damage")
 	}
 	e.priorityRound() // pcdrEngine clears the pending ask
 	passToNextTurn(t, e)
-	if e.WasDealtNoncombatDamageThisTurn(1) {
+	if e.WasDealtNoncombatDamage(1, false) {
 		t.Fatal("this-turn record survived the turn change")
 	}
-	if !e.WasDealtNoncombatDamageLastTurn(1) {
+	if !e.WasDealtNoncombatDamage(1, true) {
 		t.Fatal("last-turn record missing on the following turn")
 	}
 	passToNextTurn(t, e)
-	if e.WasDealtNoncombatDamageLastTurn(1) {
+	if e.WasDealtNoncombatDamage(1, true) {
 		t.Fatal("last-turn record survived two turn changes")
 	}
 }

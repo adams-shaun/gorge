@@ -456,6 +456,9 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 		if dt.EventMode == "" {
 			continue // a Phase registration (recurring or not) never matches an event
 		}
+		if e.staticFiringDT == dt.ID+1 {
+			continue // its own static fire is in flight (staticFiringDT)
+		}
 		// The event-matched modes: SpellCast (a spell's PutOnStack) and
 		// ChangesZone (a move, the Earthbend return promise). A Mode$ Phase
 		// registration carries no EventMode at all and is owned by
@@ -735,36 +738,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 		// inline; an ask the body poses parks through the ordinary direct
 		// resume machinery.
 		if f.static {
-			// Fail-closed guard: a static
-			// delayed registration carrying an OptionalDecider$ spec has no
-			// election channel on this path -- the body resolves inline,
-			// never minting a stack object, so resolveTop's CR 603.5 gate
-			// cannot pose the yes/no -- and running it would execute the
-			// "you may" mandatorily. effEffect withholds that shape at
-			// registration; this guard keeps any future "|OD=" minter from
-			// misexecuting here. Loud Note, registration consumed without
-			// execution (the same one-shot spend a declined placement is).
-			if dt.OptionalSpec != "" {
-				e.emit(events.Event{Kind: events.Note, Obj: dt.Source,
-					Player: dt.Controller,
-					Text:   "optional static delayed trigger has no election channel (not executed)"})
-				e.emit(events.Event{Kind: events.DelayedPush, Obj: dt.Source,
-					Player: dt.Controller, Amount: int32(dt.ID), Counter: dt.Execute,
-					Text: "static"})
-				continue
-			}
-			e.emit(events.Event{Kind: events.DelayedPush, Obj: dt.Source,
-				Player: dt.Controller, Amount: int32(dt.ID), Counter: dt.Execute,
-				Text: "static"})
-			ctx := effects.NewCtx(dt.Source, dt.Controller, effects.CtxInit{Remembered: f.remembered,
-				Captured:       f.remembered,
-				SVars:          f.svars,
-				EffectFrame:    effectDelayedFrame(dt),
-				TriggerContext: f.referents,
-				LKI:            f.lki,
-				Snap:           effects.LKISnapshots{Power: f.lkiPower, Toughness: f.lkiToughness, PTValid: f.lkiPTValid},
-			})
-			effects.Resolve(e, &ctx, f.sa)
+			fireStaticDelayed(e, &e.staticFiringDT, f)
 			continue
 		}
 		// CR 603.7d, as at the phase walk: earthbend's return records its creator.
@@ -810,6 +784,59 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 // (Host.EndEffectSource). A plain CR 603.7 promise (dt.EffectRepeat false)
 // carries no frame, so the self-exile idiom stays inert for it exactly as it
 // always has.
+// fireStaticDelayed resolves a static delayed registration's Execute body
+// inline at fire time (the walk's `f.static` arm): the static-marked
+// DelayedPush consumes the one-shot registration without minting a stack
+// object (events.Apply), then the body resolves synchronously, so the promise
+// it creates (Mistrise Village's "the next spell you cast this turn can't be
+// countered") is active before any player can respond to the cast. An ask the
+// body poses parks through the ordinary direct resume machinery. With
+// EffectRepeat the fire is marked in flight (*firing, the engine's
+// staticFiringDT) so the walk's re-entrancy gate skips the registration the
+// body itself re-mints; without it, a one-shot CR 603.7 static promise never
+// skips its own re-entry. The previous marker is restored on return,
+// preserving nesting. It is a free function over the narrow pieces it needs
+// (the Host to emit and resolve through, the in-flight marker, the fire), not
+// an Engine method.
+func fireStaticDelayed(h effects.Host, firing *uint32, f *delayedSpellCastFire) {
+	dt := &f.dt
+	// Fail-closed guard: a static
+	// delayed registration carrying an OptionalDecider$ spec has no
+	// election channel on this path -- the body resolves inline,
+	// never minting a stack object, so resolveTop's CR 603.5 gate
+	// cannot pose the yes/no -- and running it would execute the
+	// "you may" mandatorily. effEffect withholds that shape at
+	// registration; this guard keeps any future "|OD=" minter from
+	// misexecuting here. Loud Note, registration consumed without
+	// execution (the same one-shot spend a declined placement is).
+	if dt.OptionalSpec != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: dt.Source,
+			Player: dt.Controller,
+			Text:   "optional static delayed trigger has no election channel (not executed)"})
+		h.Emit(events.Event{Kind: events.DelayedPush, Obj: dt.Source,
+			Player: dt.Controller, Amount: int32(dt.ID), Counter: dt.Execute,
+			Text: "static"})
+		return
+	}
+	outerFiring := *firing
+	if dt.EffectRepeat {
+		*firing = dt.ID + 1
+	}
+	h.Emit(events.Event{Kind: events.DelayedPush, Obj: dt.Source,
+		Player: dt.Controller, Amount: int32(dt.ID), Counter: dt.Execute,
+		Text: "static"})
+	ctx := effects.NewCtx(dt.Source, dt.Controller, effects.CtxInit{Remembered: f.remembered,
+		Captured:       f.remembered,
+		SVars:          f.svars,
+		EffectFrame:    effectDelayedFrame(dt),
+		TriggerContext: f.referents,
+		LKI:            f.lki,
+		Snap:           effects.LKISnapshots{Power: f.lkiPower, Toughness: f.lkiToughness, PTValid: f.lkiPTValid},
+	})
+	effects.Resolve(h, &ctx, f.sa)
+	*firing = outerFiring
+}
+
 func effectDelayedFrame(dt *state.DelayedTrigger) effects.EffectFrame {
 	if dt == nil || !dt.EffectRepeat {
 		return effects.EffectFrame{}
