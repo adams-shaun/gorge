@@ -1622,7 +1622,14 @@ var stringMapParams = map[string]string{
 	// attributes it. (The AddHiddenKeyword$ readers in the same file are in
 	// effectStaticLineReaders instead -- rules has no printed read for them.)
 	"effects:adjustLandPlaysGrantFromLine:params": "parseStaticLine-built static line (an SVar body), not a card Params map",
-	"effects:animateSelfMayPlayGrant:params":      "parseStaticLine-built static line (an SVar body) from Animate staticAbilities$, not a card Params map",
+	// engine/effects/effect_gaincontrol.go gainControlStaticKeysReadable and
+	// effectGainControlGrant: params is the same parseStaticLine-built static
+	// line (an SVar body) the other Effect-delivered grant readers take, its
+	// GainControl$/CheckSVar$/SVarCompare$/Affected$ values read here; the
+	// api:Effect's own parameters are the compiled EffectParams accessors.
+	"effects:gainControlStaticKeysReadable:params": "parseStaticLine-built static line (an SVar body), not a card Params map",
+	"effects:effectGainControlGrant:params":        "parseStaticLine-built static line (an SVar body), not a card Params map",
+	"effects:animateSelfMayPlayGrant:params":       "parseStaticLine-built static line (an SVar body) from Animate staticAbilities$, not a card Params map",
 	// engine/effects/staticline.go addTriggerGrantFromLine: params is the same
 	// parseStaticLine-built static line (AddTrigger$ is read by rules' printed
 	// static walk too); svars is the effect's SVar table, read by the

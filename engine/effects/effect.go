@@ -455,7 +455,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// every TurnChange -- and its retirement is the Effect's own
 		// DBExileSelf body (Host.EndEffectSource), never a turn boundary.
 		permanentComeback := forgetOnPhasedIn && tr.Mode == "ChangesZone" &&
-			strings.EqualFold(strings.TrimSpace(rawDur), "Permanent")
+			effectDurationPermanent(rawDur)
 		// Only lifetimes the delayed registry can retire may arm a trigger.
 		// ForgetOnPhasedIn's comeback idiom retains its independent one-shot
 		// lifetime: the host's departure, not the source's departure, fires it.
@@ -1010,7 +1010,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					AddKeywords:       kws,
 					Name:              effectName,
 					UntilEOT:          effectUntilEOT(h, c.Source, rawDur),
-					Permanent:         strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"),
+					Permanent:         effectDurationPermanent(rawDur),
 					Duration:          dur,
 					Remembered:        remembered,
 					RememberedPlayers: effectRememberedPlayers(h, c, sa),
@@ -1036,7 +1036,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					AdjustLandPlays:   n,
 					Name:              effectName,
 					UntilEOT:          effectUntilEOT(h, c.Source, rawDur),
-					Permanent:         strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"),
+					Permanent:         effectDurationPermanent(rawDur),
 					Duration:          dur,
 					Remembered:        remembered,
 					RememberedPlayers: effectRememberedPlayers(h, c, sa),
@@ -1113,7 +1113,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ImprintOnHost:  imprintOnHost,
 					Name:           effectName,
 					UntilEOT:       effectUntilEOT(h, c.Source, rawDur),
-					Permanent:      strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"),
+					Permanent:      effectDurationPermanent(rawDur),
 					Duration:       dur,
 					Remembered:     remembered,
 					ForgetOnMoved:  forgetOn,
@@ -1122,6 +1122,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				}
 				effectContinuous(h, ce)
 				registered = true
+			} else if effectGainControlDelivered(h, c, sa, ep, params, remembered, effectName, rawDur, dur, forgetOn, exileOn, forgetCounter, imprintOnHost) {
+				registered = true // Effect-delivered control static: effect_gaincontrol.go
 			} else if goadStaticGrantReadable(params) {
 				// A Goad$ True static delivered by the Effect (staticgoad1:
 				// Hot Pursuit's IsGoaded body, Immortal Obligation's Static --
@@ -1177,7 +1179,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 						AddTrigger:        &t,
 						Name:              effectName,
 						UntilEOT:          effectUntilEOT(h, c.Source, rawDur),
-						Permanent:         strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"),
+						Permanent:         effectDurationPermanent(rawDur),
 						Duration:          dur,
 						Remembered:        remembered,
 						RememberedPlayers: effectRememberedPlayers(h, c, sa),
@@ -1211,7 +1213,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// this-turn default and an explicit Permanent/next-turn spelling
 				// keeps its real boundary through AddContinuous.
 				g.duration = dur
-				g.permanent = strings.EqualFold(strings.TrimSpace(rawDur), "Permanent")
+				g.permanent = effectDurationPermanent(rawDur)
 				g.untilEOT = effectUntilEOT(h, c.Source, rawDur)
 				lt := staticGrantLifetime{
 					Name:          effectName,
@@ -1537,7 +1539,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// registered walk).
 				ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
 			}
-			if mode == "CantGainLife" && strings.EqualFold(strings.TrimSpace(rawDur), "Permanent") {
+			if mode == "CantGainLife" && effectDurationPermanent(rawDur) {
 				// CR 611.2a: an explicit Duration$ Permanent restriction lasts
 				// until end of game REGARDLESS of its source ("for the rest of
 				// the game" -- Screaming Nemesis, Stigma Lasher, Welcome the
@@ -1647,7 +1649,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			untilEOT := effectUntilEOT(h, c.Source, rawDur)
 			permanent := false
 			switch {
-			case forgetOnCast != "" && strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"):
+			case forgetOnCast != "" && effectDurationPermanent(rawDur):
 				untilEOT, permanent = false, true
 			case strings.TrimSpace(rawDur) == "":
 				untilEOT = true
@@ -1899,4 +1901,10 @@ func untilUntapsBind(h Host, c *Ctx, rawDur string, ce *state.ContinuousEffect) 
 	ce.UntilEOT = false
 	ce.UntilUntapOf = c.Source
 	return true
+}
+
+// effectDurationPermanent reports whether an Effect's raw Duration$ names the
+// Permanent duration.
+func effectDurationPermanent(rawDur string) bool {
+	return strings.EqualFold(strings.TrimSpace(rawDur), "Permanent")
 }
