@@ -605,6 +605,29 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 			return false
 		}
 		if hasTarget {
+			// Confirm the announcement against a bounded potential mana.
+			// PotentialMana prices a storage land's "remove any number of
+			// storage counters: add that much {W}" (Cost$ T
+			// SubCounter<X/KIND>, Amount$ X) as unbounded, and the payment
+			// planner's census cannot execute that ability, so priceExactly
+			// cannot prove such an announcement unpayable (an unsupported
+			// shape "keeps the bound's answer"). The same bound with
+			// SubCounterBound reads each such ability at the counters it can
+			// remove (potential_subcounter.go), which is still an
+			// over-approximation of every real payment (the other sources
+			// keep their potential). A cost the bounded bound cannot pay has
+			// no real payment, so the X must not be offered (CR 107.3i
+			// announces X before CR 601.2b's targets, and CR 601.2h's payment
+			// must reach it). The cost rises with X, so a pricier
+			// announcement (and every later one) is unpayable too.
+			desc := offerPayment(id, ability, scope)
+			composed := e.offerCostForUsing(statics, p, id, announced, scope)
+			desc.Cost, desc.SubCounterBound = &composed, true
+			bounded := e.potentialManaFor(p, &desc)
+			cost := announced
+			if !e.offerCastableUsing(statics, p, id, &cost, scope, ability, &bounded) {
+				return false
+			}
 			return true
 		}
 	}
