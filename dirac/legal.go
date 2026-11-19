@@ -2508,12 +2508,46 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, len(units) != 0, anyAdd, &anyFree, &open) {
 					s.addOrMergeRepeat(&cen, sl, ab, d, abDrop, addAb, fold)
 				}
+				open = s.sacAnyRepeatUnits(k, p, sl, ab, abDrop, &cen, fold) || open
 			}
 		}
 	}
 	s.potentialBuildAvail(a, &pot, open, boundedAny, anyFree)
 	if len(units) != 0 {
 		*units[0] = cen.units
+	}
+	return open
+}
+
+// sacAnyRepeatUnits is availPotentialFor's census arm for a live sacrifice-any
+// mana source (Phyrexian Altar's "Sacrifice a creature: Add one mana of any
+// color", no {T}): it activates once per candidate in the same payment. gorge's
+// potential fold prices the open any-colour production unbounded in every
+// colour (potential.go producedOpen), so the bound admits the play and its
+// planner's prefix search funds it; the per-tap census keeps the repeats the
+// sacrifice can fund as cands units, one per candidate
+// (pay.ManaSacrificeCandidates) — the planner-shaped bound of the play (CR
+// 605.3b, 601.2g). With one candidate the one-unit record stands exact: the
+// sweep still refuses a play that one activation cannot fund, as gorge's
+// planner does.
+//
+// The unrecord takes back the pain the ordinary unit was recorded with
+// (cen.unitPain: abPain plus the tap's foreign damage the census carries for
+// the source); the replacement units carry cen.pain alone — the sacrifice
+// activations never tap the source, so the Taps watchers' damage prices no
+// repeat. It reports the production's open fold.
+func (s *State) sacAnyRepeatUnits(k *prep, p uint8, sl Slot, ab *kop.Ability, abDrop uint8, cen *potCensus, fold func(Slot, uint8, uint8)) (open bool) {
+	if !cen.on || !kop.SacAnyManaAb(ab) {
+		return false
+	}
+	var cs [MaxPerm]Slot
+	if n := s.sacXCands(k, p, sl, ab, &cs); n >= 2 {
+		open = true
+		if m := uint8(ab.ManaColors) &^ abDrop; m != 0 {
+			unrecordPotUnit(&cen.units, &cen.n, m, 1, cen.unitPain(), false)
+			recordPotUnit(&cen.units, &cen.n, m, uint8(min(n, 255)), cen.pain, false)
+			fold(sl, m, uint8(min(n, 255)))
+		}
 	}
 	return open
 }
