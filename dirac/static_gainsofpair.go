@@ -4,9 +4,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // StallGainsOf as a pair refusal (kop.PairGuard): a GainsAbilitiesOf$ static
 // beside a creature whose activated ability the gained-ability walk does not
-// model (gainedModelled: a once-per-game, once-each-turn or loyalty one,
-// exhaust, a host cost, an off-battlefield one, or an index past 63). A mana
-// ability stays a runtime stall, not a refusal. gorge counts a gained once-limited activation per (recipient, foreign
+// model (gainedModelled: a battlefield one with a once-per-game, once-each-turn
+// or loyalty cost, exhaust or a host cost). A mana ability, an off-battlefield
+// one (cycling, channel) and an index past 63 stay runtime stalls, not
+// refusals: recorded games hold a Marvin beside a cycling creature. gorge counts a gained once-limited activation per (recipient, foreign
 // object, ability index) over the recipient's stint (legal_granted.go
 // gainedActivationsUsed); the kernel holds no such record, and the walk stalls
 // the moment the recipient has the foreign creature in range
@@ -46,16 +47,18 @@ func hasBroadGainsOf(t *kop.Table, c *kop.CardDef) bool {
 }
 
 // gainsOfUnmodelledCreature: c is a creature with an active (non-mana)
-// activated ability the gained-ability walk stalls on. A mana ability is left
-// out: the walk stalls on it at runtime only when the creature reaches the
-// battlefield, and recorded games with such pairs never do.
+// battlefield activated ability the gained-ability walk stalls on for its
+// activation limit, exhaust or host cost. A mana ability and a hand-zone one
+// (cycling) are left out: the walk stalls on them at runtime only when the
+// creature reaches the battlefield, and recorded games with such pairs never
+// do.
 func gainsOfUnmodelledCreature(c *kop.CardDef) bool {
 	if c.Types&kop.TCreature == 0 {
 		return false
 	}
 	for j := range c.Abilities {
 		a := &c.Abilities[j]
-		if a.Kind != kop.AbActivated || a.AFlags&kop.AfLatent != 0 {
+		if a.Kind != kop.AbActivated || a.AFlags&kop.AfLatent != 0 || a.ActZone != kop.ZoneNone {
 			continue
 		}
 		if !gainedModelled(a, j) {
@@ -67,7 +70,7 @@ func gainsOfUnmodelledCreature(c *kop.CardDef) bool {
 
 // gainsOfStallPair is StallGainsOf's refusal text and halves.
 func gainsOfStallPair(t *kop.Table) (string, func(*kop.CardDef, int) bool, func(*kop.CardDef, int) bool) {
-	return "a GainsAbilitiesOf$ static beside a creature with a once-per-game, once-each-turn, loyalty, exhaust, host-cost or off-battlefield activated ability: gorge counts a gained once-limited activation per recipient and foreign object, the kernel keeps no such record",
+	return "a GainsAbilitiesOf$ static beside a creature with a battlefield activated ability with a once-per-game, once-each-turn, loyalty, exhaust or host cost: gorge counts a gained once-limited activation per recipient and foreign object, the kernel keeps no such record",
 		func(c *kop.CardDef, _ int) bool { return hasBroadGainsOf(t, c) },
 		func(c *kop.CardDef, _ int) bool { return gainsOfUnmodelledCreature(c) }
 }
