@@ -134,6 +134,15 @@ func paymentPlanAbilityShapeTier(e Engine, p state.PlayerID, id state.ObjID, ma 
 	deferred := func(detail string) (Tier, Consequence, string) {
 		return TierDeferred, Consequence{}, detail
 	}
+	if strings.TrimSpace(ma.ParamStr(cards.PKTriggersWhenSpent)) != "" {
+		// A tap-only source whose spent-mana rider is a bare scry pays like
+		// a plain one (Path of Ancestry); any other rider stays deferred.
+		if !PaymentPlanTapOnlyCost(cost) || strings.TrimSpace(ma.ParamStr(cards.PKSubAbility)) != "" ||
+			!PlanSpentRiderIsScry(e.Game(), id, ma) {
+			return deferred("source:special_production")
+		}
+		return TierNormal, Consequence{}, ""
+	}
 	if PlanRiderHasTarget(e.Game(), id, ma) {
 		return deferred("source:target")
 	}

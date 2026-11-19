@@ -391,15 +391,17 @@ func PlanLastResortCostOK(c Cost) bool {
 }
 
 // PlanHasSpecialProductionParam reports whether the ability's own head
-// carries a production special-effect parameter (spec 3.2: TriggersWhenSpent$,
-// AddsCounters$, AddsNoCounter$, PersistentMana$,
-// UnlessCost$, Defined$). Such production does something beyond adding plain
-// mana to the pool, so the ability is deferred.
+// carries a production special-effect parameter (spec 3.2: AddsCounters$,
+// AddsNoCounter$, PersistentMana$, UnlessCost$, Defined$). Such production
+// does something beyond adding plain mana to the pool, so the ability is
+// deferred. TriggersWhenSpent$ is NOT in this list: its rider is decided by
+// the source's own SVar body (PlanSpentRiderIsScry), so
+// PaymentPlanShapeTierOf hands it to the rider arm.
 func PlanHasSpecialProductionParam(ma *cards.SA) bool {
 	// An any-key test: key order cannot change the answer, so the keys are
 	// walked unsorted.
 	for key := range maps.Keys(ma.Params) {
-		if key == "TriggersWhenSpent" || key == "AddsCounters" || key == "AddsNoCounter" ||
+		if key == "AddsCounters" || key == "AddsNoCounter" ||
 			key == "PersistentMana" || key == "UnlessCost" || key == "Defined" {
 			return true
 		}
