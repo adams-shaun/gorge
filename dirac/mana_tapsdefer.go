@@ -829,7 +829,13 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 // while the Halls alone floats the {B} Planar Despair's {3}{B}{B} needs), is
 // that later sibling, and the script is the taps and answers along the first
 // line that offers the play, gorge's visit order (CR 601.2b with 605.4a).
-func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool) bool {
+//
+// cp != nil is the pre-push payment search (payCastPrefixRest): the node stop
+// is gorge's sr.priced check -- the planner prices the planned cast's payment
+// from the node's floats -- not the offer. gorge's offer of a planned cast is
+// insensitive to its payment (FeatPlannedCast), so the offer stop would take
+// the first line's taps whatever they float.
+func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool) bool {
 	if len(order) == 0 {
 		return false
 	}
@@ -875,19 +881,25 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 			found, foreign := replay, false
 			if replay {
 				t.hideDeferred(k, p, a, tapsDef)
-				var d Decision
-				t.restrOptions(k, &d, p)
 				foreign = t.foreignPendAsks(k, p, resolvePlay)
-				complete := len(used) == len(order)
-				found = hasOption(&d, a) && (t.npend == 0 || complete || !resolvePlay || post) && !foreign
-				if found && t.npend != 0 {
-					t.resolvePrefixPlay(k, a, p, t.sp, resolvePlay)
-					if t.over {
-						found = false // the prefix's triggers end the payer: the branch is dead
-					} else if resolvePlay {
-						var d2 Decision
-						t.restrOptions(k, &d2, p)
-						found = hasOption(&d2, a)
+				if cp != nil {
+					// the planned cast's payment: the node's floats price it,
+					// gorge's sr.priced node check (potential_script.go)
+					found = t.castRestPriced(k, p, cp.o, &cp.cost) && !foreign
+				} else {
+					var d Decision
+					t.restrOptions(k, &d, p)
+					complete := len(used) == len(order)
+					found = hasOption(&d, a) && (t.npend == 0 || complete || !resolvePlay || post) && !foreign
+					if found && t.npend != 0 {
+						t.resolvePrefixPlay(k, a, p, t.sp, resolvePlay)
+						if t.over {
+							found = false // the prefix's triggers end the payer: the branch is dead
+						} else if resolvePlay {
+							var d2 Decision
+							t.restrOptions(k, &d2, p)
+							found = hasOption(&d2, a)
+						}
 					}
 				}
 			}
@@ -941,8 +953,9 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 		}
 		// the pass that lets the queued triggers resolve, after every deeper
 		// activation failed (mana_scriptpost.go): the play is offered only
-		// once the stack is clear again
-		if resolvePlay && len(used) > 0 {
+		// once the stack is clear again. The payment search's stop reads no
+		// offer, so its queued triggers never stand between it and the play.
+		if cp == nil && resolvePlay && len(used) > 0 {
 			return walk(true)
 		}
 		return false

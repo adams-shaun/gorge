@@ -345,6 +345,92 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8) {
 	}
 }
 
+// castRestPay prices the Taps-deferred gaps' payment search's stop: the
+// planned cast o whose cost part the gap taps' floats must cover
+// (payCastPrefixRest). nil in the offer search (scriptPrefixAny,
+// scriptDeadEndAny).
+type castRestPay struct {
+	o    Obj
+	cost kop.ManaCost
+}
+
+// castRestPriced reports whether the planner prices the planned cast's
+// payment from the pool and census, tapping nothing (gorge's sr.priced node
+// check, potential_script.go: the search's nodes stop where the planner pays
+// the play from the floating pool). On a gap search's node copy the deferred
+// sources are already hidden (hideDeferred), so the census is the printed
+// sources' and the pool is the taps' floats. dry: the probe taps nothing;
+// try: the census without the Taps-deferred sources (gorge's census never
+// lists them); castPay: a cast's payment, so the dynamic {T}, sacrifice
+// sources stay out (planCastDynSacSkip); o: the card being cast is out of the
+// hand reserve.
+func (s *State) castRestPriced(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
+	var pk planner
+	pk.dry, pk.try, pk.castPay = true, true, true
+	s.tapNeed(&pk, p, cost, 0, false)
+	if pk.needT == 0 {
+		return true
+	}
+	s.plan(k, p, &pk, o)
+	return pk.found
+}
+
+// castRestRefuses reports whether cast a keeps manaStep's arm because
+// plannedCastCost prices a cost the offer prices differently: the offer's
+// price of these casts is grantPlayCost's (mana_grantedoffers.go), not
+// plannedCastCost's printed one, so the gate's two probes and the payment
+// search's stop would run against a cost the cast never charges.
+//
+//   - a special-target cast pays its alternative cost: impending, evoke,
+//     dash, foretell, overload, cleave, surge (the target byte's TCode, the
+//     card's feature beside it, as grantPlayCost and legal.go read it), the
+//     card's own mana alternative (castAltTgt, k.gen.altFree), a printed or
+//     granted escape cast and a beam me up cast (mode bit 2's target byte;
+//     kw_escape.go, kw_beammeup.go). The face-cast family is not affected:
+//     turnFaceCast rewrote the card to the face before this, so
+//     plannedCastCost reads the face's own cost.
+//   - a kicked cast pays the Kicker part on top of the printed cost:
+//     grantPlayCostRaise composes it at its call site (plannedCastCostOf's
+//     mode read strips bit 1).
+//   - a warp cast pays the warp alternative, which the build's cost arm
+//     composes from s.g.warpGrant; plannedCastCost never reads it.
+func (s *State) castRestRefuses(k *prep, o Obj, a Action) bool {
+	m := a.Mode()
+	if m&1 != 0 || m&castWarp != 0 {
+		return true // the kicker part and the warp grant are outside plannedCastCost's price
+	}
+	c := s.objs[o].card
+	cd := &k.t.Cards[c]
+	if m&2 != 0 {
+		// a mode-2 cast whose target byte names the escape or beam casts
+		return cd.Escape && a.Target() == TCode(castPrintedEscapeTgt) ||
+			k.gen != nil && k.gen.anyEscapeGrant && a.Target() == TCode(castEscapeTgt) ||
+			cd.BeamMeUp && (a.Target() == castBeamTgt || a.Target() == castBeamGrantTgt)
+	}
+	if m != 0 || k.gen == nil {
+		return false
+	}
+	switch {
+	case a.Target() == castAltTgt:
+		return k.gen.altFree != nil && k.gen.altFree[c] != 0
+	case a.Target() == castImpTgt:
+		return k.gen.anyImpending && cd.Impending > 0
+	case a.Target() == castEvokeTgt:
+		return k.gen.anyEvoke && cd.HasEvoke
+	case a.Target() == castDashTgt:
+		return k.gen.anyDash && cd.HasDash
+	case a.Target() == castForetellTgt:
+		return k.gen.anyForetell && cd.ForetellCost != (kop.ManaCost{})
+	case a.Target() == castOverloadTgt:
+		return k.gen.anyOverload && cd.HasOverload
+	case a.Target() == castCleaveTgt:
+		return k.gen.anyCleave && cd.CleaveAb != 0
+	case a.Target() == castSurgeTgt:
+		return k.gen.anySurge && cd.HasSurge
+	}
+	return false
+}
+
 // payCastPrefixRest pays, before the cast's build begins, what a prefix
 // search left of the cast's planned cost to the potential-play search. The
 // search's remaining gap taps fire at manaStep (bsMana), after bsPush has
@@ -365,6 +451,9 @@ func (s *State) payCastPrefixRest(k *prep, a Action, p uint8) {
 	cost, ok := s.plannedCastCost(k, p, o, a.Mode())
 	if !ok {
 		return // the cast planner declines the shape: manaStep's window arms keep their paths
+	}
+	if s.castRestRefuses(k, o, a) {
+		return // a cost the offer prices differently: manaStep's window arms keep their paths
 	}
 	if cost.X != 0 || cost.XPip != 0 || cost.Hyb[0] != 0 || cost.Tb != 0 || cost.Snow != 0 {
 		return // the build's X, twobrid and snow arms keep their paths
@@ -387,28 +476,16 @@ func (s *State) payCastPrefixRest(k *prep, a Action, p uint8) {
 	// (potential_script.go sr.priced). The kernel's prefix proved only the
 	// offer -- a planned cast stays offered without paying -- so the
 	// Taps-deferred unit its skip left behind is activated here, before the
-	// push, as the search's remaining steps. The probes are dry: they tap
-	// nothing. priced is the first pass, the planner's census (the
-	// Taps-deferred sources out, the card being cast out of the hand
-	// reserve, a cast's payment: the dynamic {T}, sacrifice sources stay
-	// out, planCastDynSacSkip); the second pass counts the Taps-deferred
-	// sources as units, so a play no gap subset prices keeps manaStep's
-	// window arm.
+	// push. The probes are dry: they tap nothing. The first is the planner's
+	// census (the Taps-deferred sources out, the card being cast out of the
+	// hand reserve, a cast's payment: the dynamic {T}, sacrifice sources stay
+	// out, planCastDynSacSkip); the second counts the Taps-deferred sources
+	// as units, so a play no gap subset prices keeps manaStep's window arm.
 	tapsDef := s.scriptTapsDefer(k, p)
 	if k.gen == nil || !k.gen.anyTapsDefer || DebugNoTapsDefer || !tapsDef.any() {
 		return // no Taps-deferred source can be the remainder: the post-push payment, as before
 	}
-	priced := func() bool {
-		var pk planner
-		pk.dry, pk.try, pk.castPay = true, true, true
-		s.tapNeed(&pk, p, &cost, 0, false)
-		if pk.needT == 0 {
-			return true
-		}
-		s.plan(k, p, &pk, o)
-		return pk.found
-	}
-	if priced() {
+	if s.castRestPriced(k, p, o, &cost) {
 		return // the planner prices the payment: it pays at payment, post-push, as before
 	}
 	var chk planner
@@ -418,19 +495,27 @@ func (s *State) payCastPrefixRest(k *prep, a Action, p uint8) {
 	if !chk.found {
 		return // a play no gap subset prices keeps manaStep's window arm
 	}
-	// the search's remaining steps: the gaps in battlefield order, tapped as
-	// the prefix taps them (scriptGapTap), each trigger flushed below the
-	// spell (mana_window.go scriptPrefixAny), until the planner prices the
-	// payment from the floats
-	var ord [MaxPerm]Slot
-	n := s.scriptGapOrder(k, a, p, tapsDef, ord[:])
-	var spill [kop.NumManaKinds]uint8
+	// the payment search's script, played: deferGapSearch explores the gaps'
+	// subsets, every answer each gap's activation poses (a two-colour Combo
+	// gap's colour ask), the line that ends the payer's line cut and the
+	// search's next sibling tried, and stops where the floats price the
+	// payment (castRestPriced); the replay is scriptPrefixAny's tapsDef
+	// branch (mana_window.go), each tap's trigger flushed below the spell
+	var order [MaxPerm]Slot
+	n := s.scriptGapOrder(k, a, p, tapsDef, order[:])
+	var ans [MaxPerm]uint8
+	var pick [MaxPerm]int8
+	var dead bool
+	cp := castRestPay{o: o, cost: cost}
+	if !s.deferGapSearch(k, a, p, order[:n], tapsDef, &cp, &ans, &pick, &dead) {
+		return // the search prices no line of gap taps: manaStep's arm keeps the post-push payment
+	}
 	for j := 0; j < n && !s.over; j++ {
-		sl := ord[j]
-		if !tapsDef.has(sl) || !s.occ.has(sl) || !s.tapsGapActivatable(k, sl) {
-			continue // tapped, spent or dead since the gaps were listed
+		if pick[j] < 0 {
+			continue // the found script went on without this gap
 		}
-		s.scriptGapTap(k, p, a, sl, slotMask{}, slotMask{}, slotMask{}, tapsDef, slotMask{}, 0, &spill)
+		var spill [kop.NumManaKinds]uint8
+		s.scriptGapTap(k, p, a, order[j], slotMask{}, slotMask{}, slotMask{}, tapsDef, slotMask{}, int(ans[j]), &spill)
 		if s.npend != 0 {
 			// gorge answers each gap's activation as its own decision, so
 			// the trigger queue is drained before the next tap (CR 603.3b)
@@ -438,9 +523,6 @@ func (s *State) payCastPrefixRest(k *prep, a Action, p uint8) {
 			if s.npend != 0 {
 				s.resolvePrefixStack(k, s.sp, false)
 			}
-		}
-		if priced() {
-			break
 		}
 	}
 }
