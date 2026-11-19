@@ -54,6 +54,22 @@ func (e *Engine) offerAsSpellOnStack(id state.ObjID, fn func() bool) bool {
 	probeHand = append(append(probeHand, hand[:i]...), hand[i+1:]...)
 	prevStack, prevZone := e.G.Stack, o.Zone
 	prevDepth, prevGen := e.derivedMemoDepth, e.derivedMemoGen
+	// The staticEffects memo (engine_layercache.go) is keyed on the log head
+	// and stamped at events; this probe moves a card with no event, so a memo
+	// whose recorded gate outcomes read the zone the card leaves (Condition$
+	// Hellbent's empty hand, an IsPresent$ over the source zone, a CheckSVar$
+	// graveyard count under a may-play probe) is stale inside it. Invalidate
+	// the memo for the probe so its reads re-evaluate every gate against the
+	// moved card (castprobe's seed case: Alena, Kessig Trapper's greatest-power
+	// amount read Demon's Jester's hellbent +2/+1 at the old hand), and leave
+	// it invalidated on the way out so the next read after the restore rebuilds
+	// it for the real board -- a rescan inside the probe, when one happened,
+	// stamped the probed board. Only a memo whose inputs are all reads a card
+	// move never touches -- every recorded gate in the
+	// staticGateDepActive/staticGateDepLife class (the active player, a life
+	// total) and a build that recorded no state read -- keeps its epoch
+	// (staticProbeStales).
+	probeStales := staticProbeStales(e.staticEpoch, len(e.L.Events), e.staticGatesKnown, e.staticMemoStateRead, e.staticGates)
 	e.G.SetZone(srcZone, o.Owner, probeHand)
 	e.G.Stack = append(slices.Clip(prevStack), id)
 	o.Zone = state.ZStack
@@ -62,6 +78,10 @@ func (e *Engine) offerAsSpellOnStack(id state.ObjID, fn func() bool) bool {
 	// move, whose fingerprint would outlive it.
 	e.offerProbeDepth++
 	e.retireCrossWalkMemo()
+	if probeStales {
+		e.staticEpoch = -1
+		e.activeEpoch = -1
+	}
 	defer func() {
 		e.offerProbeDepth--
 		o.Zone = prevZone
@@ -72,8 +92,52 @@ func (e *Engine) offerAsSpellOnStack(id state.ObjID, fn func() bool) bool {
 		if e.derivedMemoGen != prevGen {
 			e.derivedMemoGen++
 		}
+		if probeStales {
+			e.staticEpoch = -1
+			e.activeEpoch = -1
+		}
 	}()
 	return fn()
+}
+
+// staticProbeStales reports whether the staticEffects memo described by the
+// given fields can serve a stale answer inside an offerAsSpellOnStack probe
+// that moves a card out of its zone for the probe's duration. The memo is a
+// pure function of the board while its inputs are all reads a card move never
+// touches. The recorded inputs are the gates' dependency classes
+// (static_gatememo.go) -- exactly staticGateDepActive (the active player,
+// written by TurnChange) and staticGateDepLife (the controller's life and its
+// fixed starting value) -- and the build's state-read flag. A gate in any
+// other class -- Hellbent's empty hand, Metalcraft's or IsPresent's counts, a
+// CheckSVar$ body, the library top -- can flip when a card leaves its zone
+// (the hand for a plain cast, the graveyard or exile for a may-play probe),
+// so the memo must be rebuilt around the probe.
+//
+// A state-read build (staticMemoStateRead) must rebuild too, even with zero
+// recorded gates: some of its reads bake the moved card's zone into the memo
+// at scan time and are never re-evaluated at Derived time -- the
+// SharedKeywordsZone filter over the named zones (Eater of Virtue's exile,
+// Cairn Wanderer's graveyards), a GainsAbilitiesOf$/GainsTriggerAbsOf$ scoped
+// to those zones, AddType$ ImprintedCreatureType's last still-exiled creature
+// -- so a memo stamped over the real board would serve the real-board grant
+// to the probe. Not every recorded state read depends on the move: a CDA P/T
+// read is re-read off the face in derivedScalar in every zone, so it survives
+// -- but the flag does not say which read was made, so any recorded state read
+// forces the rebuild. An unknown or already-invalid memo (no records, or an epoch off the
+// log head) rebuilds inside the probe when its reads reach it, so the probe
+// must re-invalidate at both edges regardless.
+func staticProbeStales(epoch, events int, gatesKnown, stateRead bool, gates []staticGateRec) bool {
+	if epoch != events || !gatesKnown || stateRead {
+		return true
+	}
+	for i := range gates {
+		switch gates[i].dep {
+		case staticGateDepActive, staticGateDepLife:
+		default:
+			return true
+		}
+	}
+	return false
 }
 
 // castTargetsAvailableOnStack is castTargetsAvailable judged by
