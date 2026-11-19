@@ -77,6 +77,9 @@ func (f *Face) Primitives() []string {
 	}
 	for _, t := range f.Triggers {
 		set["trig:"+t.Mode] = struct{}{}
+		if k := triggerDeclineKey(&t); k != "" {
+			set[k] = struct{}{}
+		}
 		walk(t.Effect, 0)
 	}
 	for _, s := range f.Statics {
@@ -100,6 +103,9 @@ func (f *Face) Primitives() []string {
 	f.EachRawEffectChild(func(c EffectChild) {
 		if c.Trigger != nil {
 			set["trig:"+c.Trigger.Mode] = struct{}{}
+			if k := triggerDeclineKey(c.Trigger); k != "" {
+				set[k] = struct{}{}
+			}
 		} else if c.Static != nil {
 			set[statPrimitive(*c.Static)] = struct{}{}
 		} else if c.Repl != nil {
@@ -112,6 +118,21 @@ func (f *Face) Primitives() []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// triggerDeclineKey is the extra coverage key a trigger line needs beyond its
+// "trig:<Mode>" entry, or "" when it needs none. Mode$ PayCumulativeUpkeep's
+// Paid$ False is the DECLINE arm ("when a player doesn't pay", Heart of
+// Bogardan, Thought Lash): the settle marker rules' cumulative-upkeep window
+// emits fires only the paid arm and trigmatch refuses Paid$ False lines, so
+// without this key a decline-shaped carrier would report primitive-complete
+// while its printed trigger can never fire. Both trigger-walk sites of
+// Primitives go through it.
+func triggerDeclineKey(t *Trigger) string {
+	if t.Mode == "PayCumulativeUpkeep" && t.ParamStr(PKPaid) == "False" {
+		return "trig:PayCumulativeUpkeep.Decline"
+	}
+	return ""
 }
 
 // EachSVarAbility calls visit for every SVar body this face declares that

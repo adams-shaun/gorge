@@ -2557,6 +2557,14 @@ func (o *Object) CounterPTTotals() (dPower, dToughness int32) {
 	return dPower, dToughness
 }
 
+// CumulativeUpkeepPaidCounter is the engine's payment-settled marker for
+// cumulative upkeep (trig:PayCumulativeUpkeep, Hibernation's End): rules'
+// cumulative-upkeep window hands the trigger walk an unlogged proposal
+// CounterChange carrying it (engine/rules/cumulative.go), with Amount the
+// upkeep age paid and Obj the permanent whose upkeep was paid. It is never
+// an emitted event and never a recorded counter.
+const CumulativeUpkeepPaidCounter = "CumulativeUpkeepPaid"
+
 // InternalCounterMarker reports whether a counter name is one of the engine's
 // own status markers rather than a counter a card could name. Both ride an
 // ordinary CounterChange -- the engine has no per-object status field, so a
@@ -2569,6 +2577,10 @@ func (o *Object) CounterPTTotals() (dPower, dToughness int32) {
 //     assignment, engine/rules/replacement.go's replacement-applied damage,
 //     engine/effects/damage.go), read by engine/rules/sba.go's destruction check.
 //
+// CumulativeUpkeepPaidCounter rides the same exclusion though it is the one
+// marker that is never applied anywhere: it exists only on the unlogged
+// proposal the trigger walk reads.
+//
 // The helper lives in state because the two consumers sit on either side of
 // the dependency line: Object.Counter's "ALL" sum (this file, read by the
 // CardCounters.ALL count family) and engine/rules/replacement.go's AddCounter
@@ -2580,7 +2592,7 @@ func (o *Object) CounterPTTotals() (dPower, dToughness int32) {
 // "SHIELD" counter and never this marker. The markers themselves are written
 // directly by effRegenerate and combat and never pass through that fold.
 func InternalCounterMarker(name string) bool {
-	return name == "Shield" || name == "Deathtouched"
+	return name == "Shield" || name == "Deathtouched" || name == CumulativeUpkeepPaidCounter
 }
 
 // AddCounter adds n counters of a kind, creating the entry if needed. Counters

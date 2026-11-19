@@ -1721,6 +1721,9 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 		}
 		if announced.Priceable() &&
 			pay.PayManaCumulative(asPayer(e), cu.player, cu.source, announced, asEval(e).Conv(cu.player, cu.source, pay.SAOther)) {
+			noteCumulativeUpkeepPaid(e.G, cu, func(proposal *events.Event) {
+				e.checkTriggers(proposal, nil, 0, 0, false)
+			})
 			e.finishCumulative()
 			return
 		}
@@ -1781,6 +1784,28 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 		pay.PaySacrificeCost(asPayer(e), []state.ObjID{cu.source})
 	}
 	e.finishCumulative()
+}
+
+// noteCumulativeUpkeepPaid queues trig:PayCumulativeUpkeep (Hibernation's
+// End, edh-trigF) for a just-settled cumulative-upkeep payment, exactly the
+// way the pay-life settlement's marked proposal reaches the trigger walk
+// (interceptPayLifeProposal): the cost was paid (CR 118.5 -- a cost payment
+// is not an event), so the marker is handed to the walk unlogged and is never
+// part of the replay log. The marker rides state.CumulativeUpkeepPaidCounter,
+// an internal one (state.InternalCounterMarker), so no ordinary counter
+// trigger can match the proposal, and the proposal is never emitted, so no
+// counter is ever recorded. Amount is the upkeep age paid -- the AGE count at
+// the settle -- what TriggerAmount binds and what the body's
+// Count$CardCounters.AGE reads back at the same object. The queue drains
+// through the ordinary putTriggersOnStack boundary the answer's caller runs.
+func noteCumulativeUpkeepPaid(g *state.Game, cu *cumulativeUpkeep, queue func(*events.Event)) {
+	o := g.Obj(cu.source)
+	if o == nil || int(cu.player) < 0 || int(cu.player) >= len(g.Players) {
+		return
+	}
+	proposal := events.Event{Kind: events.CounterChange, Obj: cu.source, Player: cu.player,
+		Counter: state.CumulativeUpkeepPaidCounter, Amount: o.Counter("AGE")}
+	queue(&proposal)
 }
 
 func (e *Engine) finishCumulative() {
