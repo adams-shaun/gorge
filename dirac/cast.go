@@ -1354,6 +1354,26 @@ func max8(a, b uint8) uint8 {
 	return b
 }
 
+// modeTargetFeasible: the mode's target slot t has a candidate. The modes are
+// announced before X (CR 601.2b), so a slot bounded by X (Confront the Past's
+// "mana value X or less") is judged with X pending, as an offer's census does
+// (xBoundPending): no X makes a target of what the rest of the filter rules
+// out, and any other object may fit some X (gorge castModeAsk's xPending).
+func (s *State) modeTargetFeasible(k *prep, t *kop.TargetSpec) bool {
+	e := &s.bld().e
+	if s.g.probe.kind == 0 && xBoundTarget(k.t, t) {
+		if e.kind == seSpell {
+			s.g.probe = probe{kind: probeSpell, src: NoSlot, card: e.card, ctrl: e.ctrl}
+		} else {
+			s.g.probe = probe{kind: probeAbility, src: s.srcSlot(), ctrl: e.ctrl}
+		}
+		ok := s.hasTarget(k, t, e.ctrl, s.srcSlot(), e.obj)
+		s.g.probe = probe{}
+		return ok
+	}
+	return s.hasTarget(k, t, e.ctrl, s.srcSlot(), e.obj)
+}
+
 // modeFeasible: mode m's mandatory targets have candidates.
 func (s *State) modeFeasible(k *prep, a *kop.Ability, m int) bool {
 	if k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, s.srcSlot(), m) {
@@ -1364,7 +1384,7 @@ func (s *State) modeFeasible(k *prep, a *kop.Ability, m int) bool {
 		if t.UpTo || (a.TgtModes[i] != 0 && a.TgtModes[i]&(1<<m) == 0) {
 			continue
 		}
-		if !s.hasTarget(k, t, s.bld().e.ctrl, s.srcSlot(), s.bld().e.obj) {
+		if !s.modeTargetFeasible(k, t) {
 			return false
 		}
 	}
