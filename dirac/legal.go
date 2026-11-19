@@ -989,8 +989,10 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		// the planner's census has no granted source, so a cost only a granted ability
 		// pays is a census gap: gorge's prefix search taps it first and the cast is
 		// offered once the mana floats (Deadly Precision's {B} from Great Divide Guide's
-		// grant, the guide also the creature the cast sacrifices; CR 601.2g before 601.2h)
-		return k.gen != nil && (len(k.gen.grantPC) != 0 || s.scriptSourceLive(k, p)) && s.affordsFor(k, p, &cost)
+		// grant, the guide also the creature the cast sacrifices; CR 601.2g before 601.2h).
+		// A filter-only board is a script gap as well: the prefix search activates the
+		// filter first (Llanowar Envoy's {1}{G} makes the {B} Bone Shards costs; CR 601.2g)
+		return k.gen != nil && (len(k.gen.grantPC) != 0 || s.scriptSourceLive(k, p) || k.gen.anyFilt && s.filtOnly(k, p)) && s.affordsFor(k, p, &cost)
 	}
 	if ac := spellAddCost(k, c); ac.Flags&kop.CostTapX != 0 || ac.Flags&kop.CostSac != 0 && k.sacMana {
 		// a permanent tapped for the part is no mana source, and a source that
