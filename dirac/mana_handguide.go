@@ -101,3 +101,42 @@ func (s *State) windowHandMana(k *prep, p uint8, useful *kop.ManaCost, clamp, an
 // DebugNoHandMana leaves every hand guide out of the windows (mutation testing
 // only: the lockstep must catch it).
 var DebugNoHandMana bool
+
+// handFundDo plays a hand guide's funding step on s (filtDo).
+func (s *State) handFundDo(k *prep, p uint8, st filtStep) {
+	pl := &s.pl[SeatIx(p)]
+	if int(st.hidx) >= int(pl.handN) {
+		return
+	}
+	o := pl.hand[st.hidx]
+	if m := k.t.Cards[s.objs[o].card].HandMana; m != 0 {
+		s.handManaTap(p, o, bits.TrailingZeros8(m))
+	}
+}
+
+// handFund is the prefix search's funding pass over the payer's hand: after
+// every battlefield source, each hand guide in hand order is one funding
+// activation (gorge's scriptSearch.activations walks the raw priority's
+// activate options, which list the hand's guides after the battlefield).
+func (fs *filtSearch) handFund(k *prep, t *State, funded int, gapUsed bool) bool {
+	if DebugNoHandFund {
+		return false
+	}
+	pl := &t.pl[SeatIx(fs.p)]
+	for i := 0; i < int(pl.handN); i++ {
+		if k.t.Cards[t.objs[pl.hand[i]].card].HandMana == 0 {
+			continue
+		}
+		fs.hands++
+		ok := fs.try(k, t, filtStep{sl: NoSlot, hand: true, hidx: uint8(i)}, funded+1, gapUsed)
+		fs.hands--
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+// DebugNoHandFund leaves the hand guides out of the prefix search's funding
+// pass (mutation testing only: the lockstep must catch it).
+var DebugNoHandFund bool

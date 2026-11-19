@@ -1,0 +1,28 @@
+# the Spirit Guide pool (CR 605.1a, 605.2a): Simian and Elvish Spirit Guide's
+# hand-zone mana ability ("Exile this card from your hand: Add {R}/{G}") as a
+# hand source of every manual payment window and untapped-source gate, beside
+# the windows a natural game opens: unless counters (Mana Leak, Force Spike,
+# Spell Pierce), unless triggers (Rhystic Study, Esper Sentinel), ward
+# (Waterfall Aerialist) and an announced X (Banefire)
+# (dirac/oracle/spiritguide_lockstep_test.go)
+Simian Spirit Guide
+Elvish Spirit Guide
+Grizzly Bears
+Lightning Bolt
+Shock
+Giant Growth
+Banefire
+Mana Leak
+Force Spike
+Spell Pierce
+Counterspell
+Waterfall Aerialist
+Rhystic Study
+Esper Sentinel
+Wind Drake
+Mountain
+Forest
+Island
+Plains
+Simic Cluestone
+Signpost Scarecrow

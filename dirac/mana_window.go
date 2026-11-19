@@ -556,7 +556,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			}
 			return o, true
 		}
-		if k.gen != nil && k.gen.anyFiltFirst && s.windowFiltFirstUsable(k, p, o) && (!decided || s.windowFiltUseful(k, p, o, want)) && !s.windowFeeStalls(k, p, o, useful, anyColor) {
+		if k.gen != nil && k.gen.anyFiltFirst && s.windowFiltFirstUsable(k, p, o) && (!decided || s.windowFiltUseful(k, p, o, want)) && (!clamp && !DebugWinFeeStallsAlways || !s.windowFeeStalls(k, p, o, useful, anyColor)) {
 			return o, true
 		}
 		if k.gen != nil && k.gen.anyMultiR && (!decided || want != 0) && s.windowWide(k, p, o) {

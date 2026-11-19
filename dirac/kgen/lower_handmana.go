@@ -18,8 +18,8 @@ import (
 // only when no battlefield source is listed) and of every untapped-source gate
 // (hasUntappedManaSource), while gorge's planner and potential census price no
 // hand source and the oracle's canonical surface never activates a mana
-// ability at priority (dirac/mana_handguide.go). The line still refuses
-// (handManaSearchGap): gorge's prefix search funds with the guide.
+// ability at priority (dirac/mana_handguide.go). The prefix searches
+// fund with the guide too (filtSearch.handFund).
 func (lc *lowerCtx) handManaLine(sa *cards.SA) bool {
 	if sa.Kind != "AB" || sa.API != "Mana" || lc.out.HandMana != 0 {
 		return false
@@ -62,19 +62,6 @@ func (lc *lowerCtx) handManaLine(sa *cards.SA) bool {
 	lc.out.HandMana = uint8(col)
 	return true
 }
-
-// handManaSearchGap is the refusal that still holds on a lowered Spirit Guide
-// (measured with kfuzz -synth tail-45 -focus <the guide>, seed 7, pairs 13
-// and 204, both surfaces): gorge's potential-play prefix search
-// (rules scriptSearch.activations) walks the raw priority decision's
-// "activate" options, which list the hand guide, so a play priced after a
-// filter's fee (Signpost Scarecrow's {2}: Add one mana of any color, funding
-// Simic Cluestone's {G}{U} draw) is funded by exiling the guide; the
-// kernel's prefix searches (filtSearch.visit's funding pass and its kin) step
-// over battlefield slots only, so the kernel funds the same play without the
-// guide, which stays in its hand (the first divergence: the guide's zone). The windows and the untapped-source gates already
-// read CardDef.HandMana (dirac/mana_handguide.go).
-const handManaSearchGap = "hand-zone mana ability (Spirit Guide): gorge's potential-play prefix search funds a filter's fee by exiling the guide (its raw priority lists the guide's activate); the kernel's prefix searches fund from battlefield slots only"
 
 // handManaRefusal refuses a mana ability whose cost exiles its own source from
 // the hand in a shape handManaLine does not lower (another production, another

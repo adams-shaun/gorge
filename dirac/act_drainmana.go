@@ -21,6 +21,7 @@ func (s *State) drainMana(k *prep, in *kop.Instr) {
 	s.g.defSrc[p] = 0
 	s.setDefCol(p, 0)
 	s.g.poolTre[p] = [kop.NumManaKinds]uint8{}
+	s.artNClearSeat(p)
 	if sx := coldSnow.of(s); sx != nil { // the drained seat's snow tally empties with its pool (mana_snow.go)
 		clear(sx[int(p)*kop.NumManaKinds : int(p)*kop.NumManaKinds+kop.NumManaKinds])
 	}

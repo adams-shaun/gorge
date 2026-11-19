@@ -48,6 +48,11 @@ func (s *State) artTag(k *prep, p uint8, sl Slot, col int) {
 	s.snowTag(k, p, sl, col) // the snow half of the tag (mana_snow.go)
 	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
 		s.g.poolArt[SeatIx(p)] |= 1 << col
+		if sx := coldArtN.of(s); sx != nil {
+			if n := &sx[int(SeatIx(p))*kop.NumManaKinds+col]; *n < 255 {
+				*n++
+			}
+		}
 		if k.cards[s.cardAt(sl)].castSrc&csTreasure != 0 {
 			if n := &s.g.poolTre[SeatIx(p)][col]; *n < 255 {
 				*n++
@@ -109,6 +114,13 @@ func (s *State) artSync(p uint8) {
 		if a&(1<<c) != 0 && s.pl[SeatIx(p)].pool[c] == 0 {
 			a &^= 1 << c
 		}
+		// gorge spends a plain unit before a tagged one, so the tagged units
+		// left in a slot are the fewest it can hold (treSync's clamp)
+		if sx := coldArtN.of(s); sx != nil {
+			if n := &sx[int(SeatIx(p))*kop.NumManaKinds+c]; *n > s.pl[SeatIx(p)].pool[c] {
+				*n = s.pl[SeatIx(p)].pool[c]
+			}
+		}
 	}
 	s.g.poolArt[SeatIx(p)] = a
 	s.snowSync(p) // the snow half of the tag, before the Treasure clamp reads it (mana_snow.go)
@@ -118,3 +130,52 @@ func (s *State) artSync(p uint8) {
 		s.setDefCol(p, 0) // the deferred source's mana is spent (mana_deferred.go)
 	}
 }
+
+// coldArtN is the pool's tagged-unit tally, per seat and colour, for a table
+// with a typed producer (genPrep.anyArtN): gorge keys its prefix search on the
+// tagged units by count (Player.ManaUnits), where poolArt holds one bit per
+// colour. A cold region, as coldSnow is: a State field would fail
+// TestNoNewFixedStateFields. Clamped to the colour's units left (artSync).
+var coldArtN = newCold[uint8]("artn", func(g *genPrep) int {
+	if g.uses.has(useArtN) {
+		return MaxSeats * kop.NumManaKinds
+	}
+	return 0
+})
+
+// useArtN: the table holds a typed producer (the tally exists).
+var useArtN = newGenUse(tableAnyTypedMana)
+
+// tableAnyTypedMana reports whether any card's mana is typed (prep.go manaTyped).
+func tableAnyTypedMana(t *kop.Table) bool {
+	typed := typedManaSubtypes(t)
+	for i := range t.Cards {
+		c := &t.Cards[i]
+		if c.Types&kop.TArtifact != 0 || (c.Subtypes[0]&typed[0]|c.Subtypes[1]&typed[1]) != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// artNClearSeat empties seat p's tagged-unit tally (its pool emptied).
+func (s *State) artNClearSeat(p uint8) {
+	if sx := coldArtN.of(s); sx != nil {
+		clear(sx[int(SeatIx(p))*kop.NumManaKinds : int(SeatIx(p))*kop.NumManaKinds+kop.NumManaKinds])
+	}
+}
+
+// artNClearAll empties every seat's tagged-unit tally (a boundary that empties the pool).
+func (s *State) artNClearAll() {
+	if sx := coldArtN.of(s); sx != nil {
+		clear(sx)
+	}
+}
+
+// DebugArtKeyBit keys the prefix search's tagged units by their per-colour bit,
+// not their count (mutation testing only: the lockstep must catch it).
+var DebugArtKeyBit bool
+
+// DebugWinFeeStallsAlways applies the fee-only stall to a window with no
+// pending cast too (mutation testing only: the lockstep must catch it).
+var DebugWinFeeStallsAlways bool

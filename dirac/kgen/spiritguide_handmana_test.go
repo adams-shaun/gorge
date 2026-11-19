@@ -9,9 +9,7 @@ import (
 
 // TestSpiritGuideHandMana: a Spirit Guide's hand-zone mana ability (exile
 // this card from your hand: add one fixed colour) lowers onto
-// CardDef.HandMana, its colour, with no ability, and stays refused by exactly
-// one named reason (handManaSearchGap: gorge's prefix search funds with the
-// guide); the other ExileFromHand<1/CARDNAME> shapes (a non-mana hand
+// CardDef.HandMana, its colour, with no ability and no refusal; the other ExileFromHand<1/CARDNAME> shapes (a non-mana hand
 // ability) keep their own refusal and no HandMana.
 func TestSpiritGuideHandMana(t *testing.T) {
 	want := map[string]uint8{"Simian Spirit Guide": uint8(kop.ColR), "Elvish Spirit Guide": uint8(kop.ColG)}
@@ -21,7 +19,7 @@ func TestSpiritGuideHandMana(t *testing.T) {
 		seen[c.Name] = true
 		rs := lowerRefusals(c)
 		if col, ok := want[c.Name]; ok {
-			if c.HandMana != col || len(c.Abilities) != 0 || len(rs) != 1 || rs[0].Reason != handManaSearchGap {
+			if c.HandMana != col || len(c.Abilities) != 0 || len(rs) != 0 {
 				t.Errorf("%s: HandMana %#x (want %#x), %d abilities, refusals %v", c.Name, c.HandMana, col, len(c.Abilities), rs)
 			}
 			continue
