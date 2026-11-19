@@ -339,10 +339,14 @@ func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
 
 // sacXCands lists the permanents sacrifice-another source sl's cost can
 // sacrifice, in gorge's candidate order (pay.ManaSacrificeCandidates: p's
-// battlefield in entry order): those matching the cost's filter, never the
-// source, none a CantSacrifice static withholds, none the cast being paid
-// announced for convoke (it is tapped when that payment settles: CastCommitted).
-// Tapped ones are candidates.
+// battlefield in entry order): those matching the cost's filter, none a
+// CantSacrifice static withholds, none the cast being paid announced for
+// convoke (it is tapped when that payment settles: CastCommitted). Tapped
+// ones are candidates. The source itself is one when its own filter matches
+// it: "sacrifice a creature" can sacrifice the creature that is also the
+// source (CR 701.21a, 602.2b; Phyrexian Tower animated into a creature). The
+// filter's FOther arm is what excludes the source for "sacrifice ANOTHER
+// creature" (matchPerm), not this walk.
 func (s *State) sacXCands(k *prep, p uint8, sl Slot, ab *kop.Ability, out *[MaxPerm]Slot) int {
 	var spoken, m slotMask
 	if s.buildLive() {
@@ -350,7 +354,7 @@ func (s *State) sacXCands(k *prep, p uint8, sl Slot, ab *kop.Ability, out *[MaxP
 	}
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		x := b.first()
-		if x == sl && !kop.SacAnyManaAb(ab) || spoken.has(x) || !s.matchPerm(k, ab.Cost.Filter, x, p, sl) || s.sacBlocked(k, x) {
+		if spoken.has(x) || !s.matchPerm(k, ab.Cost.Filter, x, p, sl) || s.sacBlocked(k, x) {
 			continue
 		}
 		m = m.with(x)
