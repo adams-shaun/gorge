@@ -3840,6 +3840,15 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 				return refuse("delayed trigger Remembered over a ChangeZoneAll's changed set: %s", why)
 			}
 			lkiMany = true
+		} else if obj.Kind == rRemembered && lc.delayedChainSet() {
+			// the set's last write is one bounded ChangeZone of the set
+			// itself (Laezel's Acrobatics' 10-20 clause returns the sweep's
+			// set, then re-exiles it, each move re-remembering the moved
+			// ones): the same DpMany program (lower_delayedlkimany.go)
+			if why := lc.delayedChainManyShape(exec); why != "" {
+				return refuse("delayed trigger Remembered over a ChangeZone's re-remembered set: %s", why)
+			}
+			lkiMany = true
 		}
 	}
 	lat := lc.newLatent("DelayedTrigger")
