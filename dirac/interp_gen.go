@@ -2236,13 +2236,16 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 // copyCardToken is execCopyToken's creation of the token copies of card c,
 // shared with the named-card copy (copy_named.go), whose card is no object.
 func (s *State) copyCardToken(k *prep, in *kop.Instr, c CardID) bool {
+	if uint16(in.B.N)&kop.CopyNonRemCtrl != 0 {
+		return s.copyNonRem(k, in, c, s.res.e.ctrl, noSeat) // copy_nonremctrl.go: one copy per player
+	}
+	return s.copyCardTokenFor(k, in, c)
+}
+
+// copyCardTokenFor is copyCardToken for the resolving entry's controller.
+func (s *State) copyCardTokenFor(k *prep, in *kop.Instr, c CardID) bool {
 	s.res.flags &^= rfCopyGrp
 	e := &s.res.e
-	if uint16(in.B.N)&kop.CopyNonRemCtrl != 0 {
-		was := e.ctrl
-		e.ctrl = s.copyCtrl(in)
-		defer func() { e.ctrl = was }()
-	}
 	v := s.value(k, in.A)
 	if v <= 0 && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
 		// X = 0 makes no copy, but the AtEOT$ rider's delayed trigger is

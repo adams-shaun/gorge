@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"maps"
 	"reflect"
 	"slices"
 	"strconv"
@@ -42,6 +43,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			return refuse("Unearth$ shape")
 		}
 		ps.consume("Unearth")
+		ps.m = maps.Clone(ps.m) // the card's own map is the registry's, which gorge reads
 		delete(ps.m, "Unearth")
 		if err := lc.changeZoneMove(ps); err != nil {
 			return err
@@ -3469,14 +3471,15 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	if ps.str("Controller") == "NonRememberedController" {
 		// each player other than the remembered permanent's controller
 		// (its last-known controller once it left; gorge
-		// copyPermanentController's NonRememberedController): two-player,
-		// that controller's opponent (Fractured Identity)
+		// copyPermanentController's NonRememberedController), owner by
+		// owner from the controller (dirac copy_nonremctrl.go; Fractured
+		// Identity)
 		if obj.Kind != rRemembered {
 			return refuse("CopyPermanent Controller$ NonRememberedController over %v", obj)
 		}
+		ps.m = maps.Clone(ps.m) // the card's own map is the registry's, which gorge reads
 		delete(ps.m, "Controller") // read here, not as a copy exception
 		flags = append(flags, "NonRemCtrl")
-		lc.twoSeat("NonRememberedController read as the one opponent")
 	}
 	if n, ok := ps.get("NumCopies"); ok {
 		// gorge copyPermanentNumCopies: CalculateAmount (For the Common
