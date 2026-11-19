@@ -137,6 +137,9 @@ func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot
 		return s.attachedToWord(k, fl.PredN>>8, sl, ctrl, src)
 	}
 	if fl.PredN&0xff == kop.W7SharesCrTrigObj {
+		if fl.SharesCrCommander() {
+			return s.sharesCrCommander(k, s.perms[sl].obj, ctrl)
+		}
 		return s.sharesCrTrigObj(k, s.perms[sl].obj)
 	}
 	if fl.PredN&0xff == kop.W7Imprinted {
@@ -246,6 +249,9 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 		return s.bottomLibrary(o) == (n == kop.W7BottomLibrary)
 	}
 	if fl.PredN&0xff == kop.W7SharesCrTrigObj {
+		if fl.SharesCrCommander() {
+			return o != NoObj && s.sharesCrCommander(k, o, ctrl)
+		}
 		return o != NoObj && s.sharesCrTrigObj(k, o)
 	}
 	if fl.PredN&0xff == kop.W7Imprinted {
@@ -602,6 +608,23 @@ func (s *State) sharesCrTrigObj(k *prep, o Obj) bool {
 	rm, ra := s.crTypesOf(k, e.trigObj)
 	om, oa := s.crTypesOf(k, o)
 	return s.sharesCr(om, oa, rm, ra) != DebugSharesCrTrigObjFlip
+}
+
+// sharesCrCommander is kop.W7SharesCrTrigObj's commander referent for object o:
+// o shares a creature type with one of ctrl's commanders, each side read where
+// it now is (gorge sharesCreatureTypeWith over sharesTypeReferentsCommander:
+// Players[ctrl].Commanders, any zone). No commander fails closed.
+func (s *State) sharesCrCommander(k *prep, o Obj, ctrl uint8) bool {
+	om, oa := s.crTypesOf(k, o)
+	for j := 0; j < 2; j++ {
+		if c := s.cmdObj(ctrl, j); c != NoObj {
+			rm, ra := s.crTypesOf(k, c)
+			if s.sharesCr(om, oa, rm, ra) != DebugSharesCrTrigObjFlip {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // DebugSharesCrTrigObjFlip is the mutation switch: every

@@ -146,6 +146,20 @@ func (s *State) caPrefix(k *prep, a Action, p uint8) {
 	s.scriptPrefixAny(k, a, p, s.scriptRestr(k, p), s.caSpendable(k, a, p, s.scriptAnyR(k, p)), s.scriptTapsDefer(k, p), s.scriptCtr(k, p), s.caGaps(k, p))
 }
 
+// caGapAnswers is the colour ask's answer count of the census gap at sl in the
+// chain: an AnyDifferent source's distinct-colour answers (not the Combo Any
+// amount caAmount reads: mana_distinctcolours.go), a reflected Amount$ source's
+// colour ask (mana_reflamt.go), else the Combo Any allocation's answers.
+func (s *State) caGapAnswers(k *prep, sl Slot) uint8 {
+	switch {
+	case s.anyDifferentAt(k, sl):
+		return uint8(anyDifferentAnswers(max(int(s.anyDifferentAbilityAt(k, sl).ManaN), 1)))
+	case k.isReflAmt(s.cardAt(sl)):
+		return s.reflAmtAnswers(k, sl)
+	}
+	return uint8(caAnswerCount(s.caAmount(k, sl)))
+}
+
 // caChainTap taps Combo Any source sl for the scriptDFS chain's answer c of play
 // a: the c'th answer gorge's search tries (caRank).
 func (s *State) caChainTap(k *prep, p uint8, a Action, sl Slot, c int) {
