@@ -1403,8 +1403,21 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 	if !ok {
 		return fmt.Errorf("payment plan cost or version changed")
 	}
-	desc := pay.DescriptorFor(cast.Object, false, cost)
-	initial := pay.PlanPool(asPayer(e), p, &desc)
+	// The spend pool is read at the face being cast: a restricted batch
+	// ("Spend this mana only to cast instant and sorcery spells") admits an
+	// Adventure's Sorcery face but not its Artifact front, and the planner
+	// built the witness under the flip (planCastPaymentChecked).
+	var initial state.Mana
+	poolFor := func() bool {
+		desc := pay.DescriptorFor(cast.Object, false, cost)
+		initial = pay.PlanPool(asPayer(e), p, &desc)
+		return true
+	}
+	if altFace != nil {
+		e.offerAsFace(cast.Object, altFace, poolFor)
+	} else {
+		poolFor()
+	}
 	payment, ok := resolveManaWith(cost, pay.ManaAdd(initial, produced), state.Mana{}, [8]state.Mana{}, e.G.Players[p].Life, false, pipRider{}, nil)
 	expected := pay.Witness(cost, initial, produced, nil, payment.Pool)
 	if !ok || pay.ManaAmount(payment.Pool) != plan.PoolAfter || expected.PoolSpend != plan.PoolSpend {
