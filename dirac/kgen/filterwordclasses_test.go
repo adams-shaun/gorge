@@ -35,8 +35,22 @@ func TestFilterWordClasses(t *testing.T) {
 			t.Errorf("%s: got %s, %v", tc.expr, f, err)
 		}
 	}
-	// two comparisons in one clause still refuse (one predicate per clause)
-	for _, bad := range []string{"Creature.toughnessGE4+powerGE2", "Creature.hasXCost+cmcGE4"} {
+	// two constant power/toughness compares fold into one box (filter_ptbox.go)
+	for expr, want := range map[string][4]int{
+		"Creature.toughnessGE4+powerGE2": {2, kop.PTBoxOpen, 4, kop.PTBoxOpen},
+		"Creature.powerEQ1+toughnessEQ1": {1, 1, 1, 1},
+		"Creature.powerGE4+powerLE6":     {4, 6, kop.PTBoxOpen, kop.PTBoxOpen},
+		"Creature.powerGT0+powerLT3":     {1, 2, kop.PTBoxOpen, kop.PTBoxOpen},
+	} {
+		f, err := parseFilter(expr, known, known)
+		if err != nil || len(f.Clauses) != 1 || f.Clauses[0].CmpStat != cmpPTBox || kop.PTBoxUnpack(int16(f.Clauses[0].CmpN)) != want {
+			t.Errorf("%s: got %s, %v; want box %v", expr, f, err, want)
+		}
+	}
+	// any other pair of comparisons in one clause still refuses (one
+	// predicate per clause): a value bound, NE, a bound past 14, another stat
+	for _, bad := range []string{"Creature.hasXCost+cmcGE4", "Creature.powerGEX+toughnessEQ1", "Creature.powerNE1+toughnessEQ1",
+		"Creature.powerGE15+toughnessEQ1", "Creature.cmcEQ1+powerEQ1"} {
 		if f, err := parseFilter(bad, known, known); err == nil {
 			t.Errorf("%s: lowered to %s; want a refusal", bad, f)
 		}
