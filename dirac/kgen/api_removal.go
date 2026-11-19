@@ -209,11 +209,55 @@ func (lc *lowerCtx) apiSacrifice(sa *cards.SA, ps *params) error {
 		ps.consume("Mode")
 	}
 	if sv := strings.TrimSpace(ps.str("SacValid")); strings.Contains(sv, " & ") && ps.is("SacEachValid", "True") {
-		// "an artifact, a creature, and a land" (Tomb of Annihilation's
-		// Oubliette): gorge's spec grammar has no " & " conjunction and
-		// reads SacEachValid$ nowhere, so the SacValid$ matches no
-		// permanent and effSacrifice sacrifices nothing (no ask, no event)
-		ps.consume("Defined", "SacValid", "SacEachValid")
+		// SacEachValid$ True ("an artifact, a creature, and a land", Tomb of
+		// Annihilation's Oubliette room; Catch // Release, Perilous
+		// Predicament, To the Slaughter and Structural Collapse carry the
+		// same shape): the SacValid$ list splits on " & " into one ordinary
+		// Sacrifice per listed type, part by part (gorge effSacrifice's
+		// sacEachValidParts recursion). Each part is this same lowering over
+		// a fresh params copy carrying the part as SacValid$ and no
+		// SacEachValid$, so every other parameter is checked once per part
+		// and the parts resolve in list order -- a part's picks leave the
+		// battlefield before the next part's pool is taken, and a permanent
+		// answering two parts leaves with the first part that takes it and
+		// is never taken again. An empty entry is not a list: it refuses,
+		// the same fail-closed shape gorge's sacEachValidParts keeps the
+		// whole spec at.
+		for i, part := range strings.Split(sv, " & ") {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				return refuse("SacEachValid$ list with an empty entry")
+			}
+			m := make(map[string]string, len(ps.m))
+			for k, v := range ps.m {
+				m[k] = v
+			}
+			m["SacValid"] = part
+			delete(m, "SacEachValid")
+			if i > 0 {
+				// gorge reads the same cast-time targets for every part (its
+				// Defined() resolves a later part's ValidTgts$ to the targets
+				// already chosen), so a later part must not declare the
+				// target slot a second time: it names the first part's slot
+				// with Defined$ Targeted. A node carrying both spellings has
+				// no such subject to share; it refuses.
+				if _, ok := m["ValidTgts"]; ok {
+					if _, ok := m["Defined"]; ok {
+						return refuse("SacEachValid$ part with both ValidTgts$ and Defined$")
+					}
+					m["Defined"] = "Targeted"
+					delete(m, "ValidTgts")
+				}
+			}
+			if err := lc.apiSacrifice(sa, newParams(m)); err != nil {
+				return err
+			}
+		}
+		// The per-part lowerings (fresh params over the same keys) checked
+		// every parameter; this node's own check must see them read too.
+		for _, k := range sortedParamKeys(ps.m) {
+			ps.consume(k)
+		}
 		return nil
 	}
 	_, hasD := ps.get("Defined")
