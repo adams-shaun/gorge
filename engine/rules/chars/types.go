@@ -727,13 +727,31 @@ func applyTypeEffect(b Board, ce *state.ContinuousEffect, ty []string, allCreatu
 		}) {
 			allCreatureTypes = false
 		}
+		// CR 205.1a: the subtypes correlated with a card type the strip
+		// removed leave with it (the Theros gods' devotion statics:
+		// RemoveType$ Creature takes God with it). The derived list keeps
+		// subtype words tied to their card type, so an object without the
+		// Creature card type carries no creature subtype word to strip -- no
+		// per-word presence check is owed. A RemoveType$ naming a subtype or
+		// supertype word names no card type and strips exactly that word.
+		sets := effects.SubtypesCorrelatedWith(ce.RemoveTypes)
+		var landWords []string
+		if sets.Land() {
+			landWords = b.LandTypeWords()
+		}
 		kept := ty[:0]
 		for _, t := range ty {
-			if !slices.ContainsFunc(ce.RemoveTypes, func(remove string) bool { return strings.EqualFold(t, remove) }) {
+			if !slices.ContainsFunc(ce.RemoveTypes, func(remove string) bool { return strings.EqualFold(t, remove) }) &&
+				!correlatesWithRemovedCardType(t, sets, landWords) {
 				kept = append(kept, t)
 			}
 		}
 		ty = kept
+		if sets.Creature() {
+			// An all-creature-types grant cannot survive the object losing
+			// the Creature card type.
+			allCreatureTypes = false
+		}
 	}
 	if ce.RemoveLegendary {
 		// NonLegendary$ True (CR 205.4's supertype): drop only the
@@ -791,6 +809,22 @@ func applyTypeEffect(b Board, ce *state.ContinuousEffect, ty []string, allCreatu
 // typeMatchWordsKnown is effects.TypeMatchWords with the walk's full
 // knowledge: a list known to carry every vocabulary word is the list
 // TypeMatchWords itself returns for it, without re-checking.
+// correlatesWithRemovedCardType reports whether the subtype word t leaves
+// with a card type the RemoveType$ strip removed (CR 205.1a: the subtypes
+// correlated with a removed card type are removed with it, unless they are
+// also the subtypes of a card type the object still has -- no word belongs
+// to two of these sets, so "still has" never holds here). Only the sets the
+// package carries vocabularies for participate; the RemoveCardTypes strip
+// above shares the same four (effects.SubtypesKept shares them with the
+// one dispatch in effects.SubtypesCorrelatedWith). The land vocabulary is
+// the corpus's, fetched only when the land set participates.
+func correlatesWithRemovedCardType(t string, sets effects.SubtypesKept, landWords []string) bool {
+	return sets.Creature() && effects.CreatureTypeWords(t) ||
+		sets.Land() && slices.Contains(landWords, t) ||
+		sets.Artifact() && effects.ArtifactTypeWord(t) ||
+		sets.Enchantment() && effects.EnchantmentTypeWord(t)
+}
+
 func typeMatchWordsKnown(ty []string, all, full bool) []string {
 	if all && full {
 		return ty

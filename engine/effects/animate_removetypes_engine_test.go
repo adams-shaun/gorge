@@ -38,8 +38,10 @@ func TestWeepingAngelRemoveTypesChangesDerivedCharacteristics(t *testing.T) {
 	}
 	effects.Resolve(e, &effects.Ctx{Source: id, Controller: 0}, body)
 	d := e.Derived(id)
-	if !slices.Equal(d.Types, []string{"Artifact", "Alien", "Angel"}) || e.IsCreature(id) {
-		t.Fatalf("animated Angel types = %v creature = %v; want Artifact Alien Angel noncreature", d.Types, e.IsCreature(id))
+	// CR 205.1a: the creature subtypes leave with the Creature card type, since no
+	// remaining card type (Artifact) can carry them.
+	if !slices.Equal(d.Types, []string{"Artifact"}) || e.IsCreature(id) {
+		t.Fatalf("animated Angel types = %v creature = %v; want Artifact noncreature", d.Types, e.IsCreature(id))
 	}
 }
 
