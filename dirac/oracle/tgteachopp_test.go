@@ -180,8 +180,17 @@ func TestTgteachoppLockstep(t *testing.T) {
 	}
 }
 
+// ktgForced reports whether a target slot demands at least one pick: exactly
+// one (0,0 without UpTo) or a range whose minimum is one or more.
+func ktgForced(tg *kop.TargetSpec) bool {
+	if tg.UpTo {
+		return false
+	}
+	return tg.Min|tg.Max == 0 || tg.Min >= 1
+}
+
 // TestTgteachoppMutation rewrites Celebrate the Mountain-king's target slot
-// to a forced target (Min 1: UpTo cleared) and requires the lockstep to
+// to a forced target (UpTo cleared, Min raised to 1) and requires the lockstep to
 // diverge: gorge still offers the zero-target choice.
 func TestTgteachoppMutation(t *testing.T) {
 	reg, set, decks, tbl := ktgSetup(t)
@@ -195,7 +204,19 @@ func TestTgteachoppMutation(t *testing.T) {
 		abs := append([]kop.Ability(nil), mut.Cards[i].Abilities...)
 		for j := range abs {
 			if abs[j].NTargets == 1 && abs[j].Targets[0].UpTo {
-				abs[j].Targets[0].UpTo = false
+				// Since #1851 the slot is TargetMax$ OneEach read for any seat
+				// count (Min 0, Max 3, TgfDiffController): its optionality lives
+				// in Min as well as UpTo (multiTargetStep), so clearing UpTo
+				// alone left the slot up-to and the mutation inert. Force a
+				// pick in both places; ktgForced below refuses an inert rewrite.
+				tg := &abs[j].Targets[0]
+				tg.UpTo = false
+				if tg.Min|tg.Max != 0 && tg.Min == 0 {
+					tg.Min = 1
+				}
+				if !ktgForced(tg) {
+					t.Fatalf("mutated Celebrate slot still allows zero targets: %+v", *tg)
+				}
 				hit = true
 			}
 		}
