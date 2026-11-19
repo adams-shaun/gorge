@@ -24,6 +24,29 @@ import (
 // Tf2ManaFromSelf; mana_spendtrigger.go). genState.defSrc holds the source's
 // slot + 1 while its {R} floats; pay compares the pool's {R} across the payment.
 
+// dryDeferPriced is the dry census walk's step over a gap source windowPick
+// gap-listed through the deferred arm (windowGap's gfDeferred): the walk
+// prices the activation's own production the way gorge's window census prices
+// the unit (castWindowUnits prices a deferred ability's fixed one-colour
+// production; a Tender's, restricted or Combo Any source's, or an
+// AnyDifferent source's gap stays with the caller's probe, as does a chosen,
+// dynamic, typed, snow, identity or reflected view). The TriggersWhenSpent
+// rider does not change what the window can pay: it fires on spending, after
+// the payment's reach is fixed, so the census reads the plain mana alone
+// (CR 601.2g). The real walk floats the same mana (floatDeferred below), so
+// the census neither understates nor overstates what the window pays.
+func (s *State) dryDeferPriced(k *prep, sl Slot, pc *pcard) bool {
+	c := s.cardAt(sl)
+	if k.gen == nil || !k.gen.has(c, gfDeferred) || k.gen.flags[c]&(gfEachCol|gfRestr) != 0 ||
+		k.gen.anyComboAny && (k.isComboAny(c) || k.isReflAmt(c)) {
+		return false
+	}
+	return pc.manaN > 0 && pc.manaCol != 0 && pc.manaCol != kop.ColAny &&
+		pc.manaCol&(pc.manaCol-1) == 0 &&
+		!pc.manaChosen && !pc.manaFixedChosen && !pc.manaDyn && !pc.manaOne &&
+		!pc.manaTyped && !pc.manaSnow && !pc.manaIdent && !pc.manaRefl && pc.blgFirst == 0
+}
+
 // deferCol is the colour (a kop.W..kop.G index) of card c's deferred mana
 // ability: Pyromancer's Goggles' {R}, Gilanra's {G}. Every "{R}" above is this.
 func (k *prep) deferCol(c CardID) int {
