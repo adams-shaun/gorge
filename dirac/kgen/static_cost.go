@@ -2,6 +2,8 @@ package kgen
 
 import (
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // The bodies of the cost and casting statics (static_mode.go).
@@ -105,9 +107,11 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 	sp := sc.sp
 	readF := sc.readF
 	var err error
-	if sp.str("Caster") != "You" || sp.str("ValidSA") != "Spell" {
+	caster := sp.str("Caster")
+	if caster != "You" && caster != "Player" || sp.str("ValidSA") != "Spell" {
 		return nil, true, refuse("CastWithFlash shape")
 	}
+	sc.st.AnyCaster = caster == "Player"
 	if sc.st.F, err = readF("ValidCard"); err != nil {
 		return nil, true, err
 	}
@@ -174,4 +178,12 @@ func (sc *staticCtx) modeManaConvert() ([]lStatic, bool, error) {
 		return nil, true, err // lower_manaconvert.go
 	}
 	return nil, false, nil
+}
+
+// flashCasterFlag is a CastWithFlash static's Static.StFlags caster bit.
+func (s lStatic) flashCasterFlag() kop.StaticFlags {
+	if s.AnyCaster {
+		return kop.StFlashAnyCaster
+	}
+	return 0
 }
