@@ -93,6 +93,7 @@ Engineered Plague
 Enthrall
 Ephara's Warden
 Erebos's Emissary
+Erebos, Bleak-Hearted
 Essence Capture
 Eternal Skylord
 Ethereal Ambush
@@ -279,6 +280,7 @@ Sigardian Priest
 Sign in Blood
 Sindbad
 Sip of Hemlock
+Skeletal Kathari
 Skirsdag Cultist
 Skullslither Worm
 Skyclave Pick-Axe

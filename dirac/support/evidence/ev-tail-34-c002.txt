@@ -13,12 +13,14 @@ Araba Mothrider
 Arbor Elf
 Arcane Flight
 Archangel's Light
+Archmage of Echoes
 Archon of Redemption
 Ardent Militia
 Arm-Mounted Anchor
 Arrogant Bloodlord
 Aura Mutation
 Aven Trailblazer
+Bala Ged Recovery
 Bar the Door
 Bast, Panther Goddess
 Bat Whisperer
@@ -56,6 +58,7 @@ Chosen by Heliod
 Citywide Bust
 Clear the Mind
 Cleaving Sliver
+Cloud Djinn
 Condescend
 Conjurer's Mantle
 Consulate Turret
@@ -197,6 +200,7 @@ Nightwing Shade
 Nimana Sell-Sword
 Nissa's Chosen
 Nissa's Renewal
+Notorious Assassin
 Numbing Dose
 Nurturer Initiate
 Oboro Breezecaller
@@ -239,6 +243,7 @@ Ringskipper
 Riot Piker
 Rise from the Grave
 Rising of the Day
+Rolling Hamsphere
 Rukh Egg
 Saheeli's Silverwing
 Salvage Slasher
@@ -318,6 +323,7 @@ Unlikely Aid
 Unnatural Growth
 Vault of the Archangel
 Venerable Monk
+Venom, Eddie Brock
 Veteran's Powerblade
 Veteran's Voice
 Viashino Outrider

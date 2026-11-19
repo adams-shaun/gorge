@@ -15,6 +15,7 @@ Cloud Pirates
 Coma Veil
 Crack Open
 Crash the Ramparts
+Cytoplast Root-Kin
 Darksteel Axe
 Deal Broker
 Elephant Resurgence
@@ -25,6 +26,7 @@ Forest
 Gargoyle Sentinel
 Gate to Manorborn
 Geothermal Kami
+Gigantomancer
 Glimmervoid
 Glissa's Courier
 Golden Hind

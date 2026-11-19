@@ -41,6 +41,7 @@ Crystal Golem	9baffb74578b56b7	4	1/1		0/1	ix:resp
 Death Wind	549e3f93cda0478e	9	0/0		2/4	f0/s/x0,ix:resp
 Death's Duet	ab69d1205960c10d	4	0/0		1/2	ix:resp
 Deathbringer Liege	7706f257b52822f5	5	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
+Delve too Deep	11f9d7bcc5666eec	5	0/0		3/4	f0/s/x0
 Denizen of the Deep	0100507157527215	6	1/1		1/1	
 Devil's Play	c7e78c0a610e6b0a	17	0/0		5/6	ix:resp
 Devouring Deep	1700f61f0a9542af	17	0/0		0/0	
@@ -114,6 +115,8 @@ Polar Kraken	d7ef7ba3a3361c6f	3	1/1		0/1	ix:resp
 Possessed Barbarian	54f87b6572fd0cce	5	0/0		0/0	
 Primal Adversary	c1f7908b4a2fe6f6	4	1/1		0/1	ix:resp
 Propagator Drone	c24127f420fd493c	4	1/1		0/1	ix:resp
+Puca's Covenant	f81c5bd347965915	45	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Quickbeam, Upstart Ent	a93582754ff1f1ac	16	1/1		0/1	ix:resp
 Quietus Spike	7b739e57d0c81c44	17	2/2		1/1	
 Rain of Filth	aa43a8d4f09ec311	53	0/0		2/2	
 Rat Colony	c5ebae585bd2408c	12	0/0		0/0	
@@ -127,6 +130,7 @@ Rustwing Falcon	c3e1ca2297a1b401	4	0/0		0/0
 Ruthless Deathfang	cbf39e455abe9c4c	26	1/1		1/1	
 Screeching Bat	0f94336f8859d316	19	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f1/t0/opt:n,f1/t0/opt:y
 Scroll of Fate	5e4b50a04a101645	40	1/1		1/1	
+Secluded Steppe	98c0ef11e369122c	170	2/2		1/1	
 Selfless Cathar	b54f6149c5dd4db3	6	1/1		0/1	ix:resp
 Six-Sided Die	2c51e57d10b3cd0d	8	0/0		1/2	ix:resp
 Slingshot Goblin	1c6aa1c248d448a0	10	1/1		1/1	
@@ -158,6 +162,7 @@ Vampiric Sliver	29bd51205bc0bf68	21	0/0		0/0
 Vectis Silencers	e8c51798a55a3018	34	1/1		1/1	
 Victory's Herald	b971eeb6bd83a389	6	1/1		1/1	
 Vrock	aa8a27b47e014106	10	1/1		0/1	ix:resp
+Wardscale Crocodile	a9861a16724e47dc	35	0/0		0/0	
 Warlord's Elite	d1353e9b1bb7a28a	4	0/0		1/2	ix:resp
 Warped Tusker	785707a4e74b3195	3	3/3		1/1	
 Willow Elf	3cf41f0798dd8ca6	22	0/0		0/0	
