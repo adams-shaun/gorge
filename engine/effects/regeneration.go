@@ -21,14 +21,15 @@ import (
 // replacement, not a new replaceable one — no Indestructible or shield
 // consultation for the Aura.
 func ReplaceUmbraArmor(h Host, id state.ObjID) bool {
-	return replaceUmbraArmor(h, id, h.UmbraArmorAura(id), true)
+	return replaceUmbraArmor(h, id, h.UmbraArmorAura(id))
 }
 
 // replaceUmbraArmor is ReplaceUmbraArmor with the Aura chosen by the caller.
-// moveAura is false when the Aura is itself one of a simultaneous destroy
-// batch's victims: CR 702.89a still saves the bearer, and the Aura is destroyed
-// once by its own departure in that batch rather than twice here.
-func replaceUmbraArmor(h Host, id, aura state.ObjID, moveAura bool) bool {
+// A simultaneous destroy batch reads the Aura before its first move, so the
+// bearer is saved even when the Aura is itself a victim; the zone check below
+// keeps that Aura from being moved twice (CR 702.89a: the same as destroying it
+// once).
+func replaceUmbraArmor(h Host, id, aura state.ObjID) bool {
 	if aura == 0 {
 		return false
 	}
@@ -47,43 +48,30 @@ func replaceUmbraArmor(h Host, id, aura state.ObjID, moveAura bool) bool {
 	// (b) destroy this Aura instead (CR 702.90). A plain MoveZone with the
 	// same "destroyed" text every destruction path emits. An Aura that an
 	// earlier batch member already moved is not moved again.
-	if moveAura {
-		if a := h.Game().Obj(aura); a != nil && a.Zone == state.ZBattlefield {
-			h.Emit(events.Event{Kind: events.MoveZone, Obj: aura,
-				From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
-		}
+	if a := h.Game().Obj(aura); a != nil && a.Zone == state.ZBattlefield {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: aura,
+			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 	}
 	return true
 }
 
-// umbraBatchSave is one victim's umbra armor answer, read from the board
-// before a simultaneous destroy batch's first move.
-type umbraBatchSave struct {
-	aura state.ObjID
-	move bool // the Aura is not itself a victim; the batch loop moves it here
-}
-
-// umbraBatchAuras reads every victim's umbra Aura before the batch's first
-// move. A destroy batch destroys the Aura and the creature it enchants at the
-// same time; CR 702.89a still saves the creature, and the Aura is destroyed
-// once (by its own departure when it is a victim) rather than twice. Without
-// the pre-read, the answer would depend on whether the Aura came first in the
-// victim order (the Relic Crush repro).
-func umbraBatchAuras(h Host, victims []state.ObjID) map[state.ObjID]umbraBatchSave {
+// umbraBatchAuras reads every victim's umbra Aura before a simultaneous
+// destroy batch's first move. A destroy batch destroys the Aura and the
+// creature it enchants at the same time; CR 702.89a still saves the creature,
+// and the Aura is destroyed once rather than twice. Without the pre-read, the
+// answer would depend on whether the Aura came first in the victim order (the
+// Relic Crush repro).
+func umbraBatchAuras(h Host, victims []state.ObjID) map[state.ObjID]state.ObjID {
 	if len(victims) < 2 {
 		return nil
 	}
-	inBatch := make(map[state.ObjID]bool, len(victims))
-	for _, id := range victims {
-		inBatch[id] = true
-	}
-	var out map[state.ObjID]umbraBatchSave
+	var out map[state.ObjID]state.ObjID
 	for _, id := range victims {
 		if aura := h.UmbraArmorAura(id); aura != 0 {
 			if out == nil {
-				out = make(map[state.ObjID]umbraBatchSave, len(victims))
+				out = make(map[state.ObjID]state.ObjID, len(victims))
 			}
-			out[id] = umbraBatchSave{aura: aura, move: !inBatch[aura]}
+			out[id] = aura
 		}
 	}
 	return out

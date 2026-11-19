@@ -117,8 +117,8 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		// 6/7/2024 ruling): the pre-read answer is used so victim order cannot
 		// decide it, and the Aura leaves once by its own batch departure.
 		saved := false
-		if save, ok := umbra[id]; ok {
-			saved = replaceUmbraArmor(h, id, save.aura, save.move)
+		if aura, ok := umbra[id]; ok {
+			saved = replaceUmbraArmor(h, id, aura)
 		} else {
 			saved = ReplaceUmbraArmor(h, id)
 		}
@@ -302,8 +302,8 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 			// Umbra armor after the shield: see effDestroy's note.
 			saved := false
-			if save, ok := umbra[id]; ok {
-				saved = replaceUmbraArmor(h, id, save.aura, save.move)
+			if aura, ok := umbra[id]; ok {
+				saved = replaceUmbraArmor(h, id, aura)
 			} else {
 				saved = ReplaceUmbraArmor(h, id)
 			}
