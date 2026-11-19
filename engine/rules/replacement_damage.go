@@ -740,7 +740,9 @@ func (e *Engine) finishChosenDamage(rc replChoice, inPlace bool) events.Event {
 		// Alchemist's optional prevention, declined or applying a 0-amount
 		// prevent, both land here). The same Obj == 0 guard applies: a
 		// redirect ONTO a permanent dealt no player.
-		recordMonarchSteal(e, applied.Player, rc.damaging)
+		if pt, ok := monarchStealFor(e.G, applied.Player, rc.damaging); ok {
+			e.pendingTriggers = append(e.pendingTriggers, pt)
+		}
 		// CR 726.2's SECOND collection site, mirroring the ledger append's
 		// twin path: a parked player-targeted combat hit never reaches
 		// runCombatAssignments' synchronous CR 726.2 collection, so its
