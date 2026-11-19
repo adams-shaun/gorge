@@ -3208,6 +3208,16 @@ const preReturn uint8 = 3
 // as-enters choice: the answer runs the op again.
 const preReturnOp uint8 = 4
 
+// preReturnAura is preReturnOp for an Aura a resolution's return op parked
+// with its as-enters record ask (enterChoiceKind: a colour, a type, a
+// number, a name): gorge asks it at the CR 614.12 entry boundary with the
+// card still in its zone, once the CR 303.4f enchant ask is answered
+// (engine/rules/replacement_etb.go applyETBChoiceReplacement), and the
+// answered choice is read by the enters program on the re-run (runReplProgAs,
+// state 2). val holds the answered host slot + 1 until the answer replaces it
+// with the choice (interp_ask.go's raGenRetChoice arm).
+const preReturnAura uint8 = 10
+
 // preReturnPay is preReturn for a card a cost's sacrifice set aside (the
 // source of its exile left as the payment's pick): gorge asks the choice at
 // once, before the rest of the resolution, and the answer enters the card

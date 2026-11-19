@@ -858,6 +858,33 @@ func (s *State) continueRes(k *prep, n uint8) {
 	s.runProg(k)
 }
 
+// answerReturnAuraChoice applies the answer to a resolution return's parked
+// Aura record ask (returnChoicePark), false when the ask is not one: val
+// still holds the enchant answer's host + 1; the assignment replaces it with
+// the choice the enters program reads on the re-run (runReplProgAs, state 2),
+// and the Aura enters attached to that host (CR 614.12,
+// engine/rules/replacement_etb.go).
+func (s *State) answerReturnAuraChoice(k *prep, r *resCtx, a Action) bool {
+	if s.g.pre.state != preReturnAura {
+		return false
+	}
+	o := s.g.pre.obj
+	host := Slot(s.g.pre.val - 1)
+	r.ask = raNone
+	s.g.pre.val = objWord(a.Mode())
+	if s.g.pre.kind == akType {
+		s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
+	}
+	s.g.pre.state = 2
+	s.returnAura(k, o, host)
+	s.g.pre = preAsk{}
+	if s.eachReturnResume(k) {
+		return true // the multi-target return's remaining targets (zone_eachreturnask.go)
+	}
+	s.continueRes(k, 0)
+	return true
+}
+
 func (s *State) applyResolveGen(k *prep, a Action) {
 	r := &s.res
 	switch r.ask {
@@ -1381,6 +1408,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.continueRes(k, 0)
 			return
 		}
+		if s.answerReturnAuraChoice(k, r, a) {
+			return
+		}
 		s.g.pre.val = objWord(a.Mode())
 		if s.g.pre.kind == akType {
 			s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
@@ -1450,15 +1480,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenEnchant:
 		in := &s.prog(k)[r.pc]
 		switch in.Op {
-		case kop.OpReturnEx:
+		case kop.OpReturnEx, kop.OpReturn:
 			r.ask = raNone
-			s.execReturn(k, in, s.objs[a.Source()].slot)
-			s.continueRes(k, 0)
-			return
-		case kop.OpReturn:
-			r.ask = raNone
-			s.returnAura(k, s.returningObj(in), s.objs[a.Source()].slot)
-			s.continueRes(k, 0)
+			s.resumeEnchantReturn(k, r, in, a)
 			return
 		case kop.OpChooseMove:
 			r.ask = raNone
