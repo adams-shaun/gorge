@@ -149,8 +149,18 @@ type Face struct {
 	toughness              int32
 	characteristicDefining bool
 	allCreatureTypesCDA    bool
-	cmc                    int32
-	manaProduction         ManaProduction
+	// cdaAddTypes is the type words the face's own unconditional
+	// characteristic-defining AddType$ static adds (Veteran Adventurer's
+	// "CARDNAME is also a Cleric, Rogue, Warrior, and Wizard"), nil when it
+	// prints none. Derived once at load; see CDAAddTypes.
+	cdaAddTypes []string
+	// cdaAddGated is the indices into Statics of the zone-gated
+	// characteristic-defining AddType$ statics (CDAAddGateZone), nil for
+	// nearly every face: the filter tier's zone-evaluated read walks only
+	// these, so a hasType on an ordinary face costs no static scan.
+	cdaAddGated    []int32
+	cmc            int32
+	manaProduction ManaProduction
 
 	// colourIdentity is the face's colour identity, a bitmask over the five
 	// colours (see ColourIdentity in face.go), derived once at load from the
