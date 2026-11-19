@@ -51,13 +51,13 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// ev.Obj is the targeting spell/ability. TriggerTarget is the TARGETED
 		// object the trigger matched (CR 603.3d), which for a ValidTarget$
 		// watcher (Pawpatch Recruit) is not the trigger's source.
-		// BecomesTargetOnce carries the same roles -- its batch latch is the
-		// queue-time gate, not this capture -- so the plural-mode body
-		// resolves TriggeredSourceSA/TriggeredSourceSAController exactly as
-		// the per-target mode does (Leyline of Combustion's payout).
+		// BecomesTargetOnce carries the same roles (its batch latch is the
+		// queue-time gate, not this capture), so the plural-mode body resolves
+		// TriggeredSourceSA/TriggeredSourceSAController as the per-target mode does.
 		c.TriggerTarget = e.becomesTargetReferent(t, source, ev)
 		c.TriggerSource = e.protectionSource(ev.Obj)
 		c.TriggerStack = ev.Obj
+		c.TriggerSourceController = targetingController(e.G, ev.Obj, e.controllerOf)
 	case cards.TriggerDamageDone, cards.TriggerDamageDealtOnce, cards.TriggerDamageDoneOnce, cards.TriggerDamageAll, cards.TriggerExcessDamageAll, cards.TriggerExcessDamage:
 		// The damage source the causing event names: the published override
 		// when a DamageSource$ emitter set one (Kediss' DamageAll with
@@ -792,6 +792,17 @@ func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID
 	// Goblin-killer would not offer a creature a static made a Goblin (the
 	// AGENTS.md row this closes).
 	return e.withNames(sc)
+}
+
+// targetingController is the controller of the targeting spell or ability as it
+// targeted (CR 608.2h), so a source that has left by resolution (a stolen Mogg
+// Fanatic sacrificed to target the Regent) still names that controller rather
+// than its owner. Absent when ev.Obj is no longer an object.
+func targetingController(g *state.Game, obj state.ObjID, controllerOf func(state.ObjID) state.PlayerID) state.Target {
+	if g.Obj(obj) == nil {
+		return state.Target{}
+	}
+	return state.Target{Player: controllerOf(obj), IsPlayer: true}
 }
 
 // becomesTargetReferent is the "that creature/player" a BecomesTarget(Once)
