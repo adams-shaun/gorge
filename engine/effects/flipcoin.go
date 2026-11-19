@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -42,7 +43,35 @@ func FlipCoinWin(h Host, p state.PlayerID) bool {
 	if FlipCoinForced(h, p) {
 		return true
 	}
-	return h.Rand(2) == 0
+	return coinResult(h, p, 0)
+}
+
+// coinResult is one coin's random outcome (heads = win) for flipper p. Under
+// a FlipCoinDoubler static (Krark's Thumb: "If you would flip a coin, instead
+// flip two coins and ignore one") two coins are drawn from the seeded
+// generator; when they agree that is the result, and when they differ the
+// flipper chooses which to keep (a Thumb's replacement applies once per flip,
+// so several statics change nothing). The unserved stand-in keeps the heads
+// coin: the flip's win, the side every corpus flip rewards. Without the
+// static the draw is the single h.Rand(2) it always was.
+func coinResult(h Host, p state.PlayerID, source state.ObjID) bool {
+	if youStaticCount(h.Game(), p, ModeFlipCoinDoubler) == 0 {
+		return h.Rand(2) == 0
+	}
+	first, second := h.Rand(2) == 0, h.Rand(2) == 0
+	if first == second {
+		return first
+	}
+	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: source, ResumeKind: "flipcoinkeep",
+		Prompt: "Coin-flip doubler: keep heads or tails"}
+	d.Options = append(d.Options,
+		decision.Option{Index: 0, Kind: "coin", Label: "heads", Player: p},
+		decision.Option{Index: 1, Kind: "coin", Label: "tails", Player: p})
+	if ans, ok := AskTape(h, d); ok && len(ans) > 0 {
+		return ans[0].Index == 0
+	}
+	return true
 }
 
 // FlipCoinForced reports whether player p's next batch of coin flips comes up
@@ -339,7 +368,7 @@ func effFlipCoin(h Host, c *Ctx, sa *cards.SA) {
 		for i := int32(0); untilLose || i < amount; i++ {
 			win := forced && (i == 0 || !untilLose)
 			if !win {
-				win = h.Rand(2) == 0
+				win = coinResult(h, p, c.Source)
 			}
 			h.Emit(FlipCoinNote(c.Source, p, win))
 			flipRecord(h, c, p, win, rememberResult, rememberKind)

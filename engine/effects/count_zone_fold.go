@@ -55,7 +55,10 @@ func devotionCount(g *state.Game, controller state.PlayerID, mask uint8) int32 {
 		}
 		n += cards.ManaCostChroma(f.ManaCost, mask)
 	}
-	return n
+	// Altar of the Pantheon: "Your devotion to each color and each
+	// combination of colors is increased by one" -- one more symbol per
+	// static, for any queried colour or pair.
+	return n + int32(youStaticCount(g, controller, ModeDevotion))
 }
 
 // countZone maps a Count$ head to the zone it scopes over. ValidAll is NOT
