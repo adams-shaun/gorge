@@ -29,7 +29,7 @@ dirac (*State).execGen	892	322
 dirac (*State).execReturnObj	141	76
 dirac (*State).expr	157	64
 dirac (*State).exprCold	304	125
-dirac (*State).finishBuild	205	82
+dirac (*State).finishBuild	205	83
 dirac (*State).finishDigAt	151	62
 dirac (*State).manaStep	279	105
 dirac (*State).matchCardOneAt	264	131
@@ -144,7 +144,7 @@ engine/effects effAttach	553	117
 engine/effects effChangeZone	602	152
 engine/effects effChangeZoneAll	356	72
 engine/effects effClone	632	130
-engine/effects effCopyPermanent	833	180
+engine/effects effCopyPermanent	833	177
 engine/effects effCopySpellAbility	294	57
 engine/effects effDealDamage	343	74
 engine/effects effDig	676	184
