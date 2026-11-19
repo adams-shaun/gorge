@@ -395,7 +395,7 @@ func (s *State) finishAttacks(k *prep) {
 	fresh := 0 // attackers not declared in an earlier combat this turn
 	m := s.ctrlM[s.active]
 	if k.anyOppsAtt {
-		s.noteOppsAttacked(m) // before any Attacks trigger reads it
+		s.noteOppsAttacked(k, m) // before any Attacks trigger reads it
 	}
 	if k.gen != nil && k.gen.anyAtkLast {
 		s.noteAtkSeats(k, m) // trig_atklastturn.go

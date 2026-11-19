@@ -123,3 +123,70 @@ func TestFourSeatZoneLoopDefenderMutation(t *testing.T) {
 	}
 	t.Logf("mutation diverged in %d of %d games", st.divs, st.games)
 }
+
+// Melee and The Beacon of Kahless. Melee's pump is "+1/+1 for each opponent
+// you attacked this combat": gorge captures the declaration's distinct
+// defending seats as the trigger is queued, a planeswalker's attack counting
+// its controller (meleeRemembered, cards.MeleePumpCount; CR 702.121a-b), and
+// dirac reads the declaration's seat mask (ExOppsAttacked N 1,
+// value_oppsattacked.go). The Beacon's Battlefront ability adds one mana of
+// a chosen colour per opponent attacked this turn (the players named as
+// defenders, gorge OpponentsAttackedThisTurn): gorge's census unit holds
+// both abilities, the second at its amount, and its planner and castability
+// read it; dirac plans it as the per-count pair view (mana_dynpair.go, kgen
+// dynamicLargerAnyColour). The mutation (DebugMeleeOne) counts one opponent,
+// the two-seat reading.
+var meleePodDeck = []cardset.Entry{
+	{Name: "Ferocious Colonist", Count: 8}, {Name: "Glory to the Empire!", Count: 4},
+	{Name: "The Beacon of Kahless", Count: 4}, {Name: "Savannah Lions", Count: 4},
+	{Name: "Goblin Piker", Count: 2},
+	{Name: "Mountain", Count: 12}, {Name: "Plains", Count: 6},
+}
+
+// meleeWatch: gorge asks a player to act in the declare-attackers step of a
+// declaration that attacked two or more players, three or more alive.
+func meleeWatch(c *PickCtx) bool {
+	g := c.G.E.G
+	if podAlive(g) < 3 || g.Step != state.StepDeclareAttackers {
+		return false
+	}
+	var seats [8]bool
+	n := 0
+	for _, id := range g.Zone(state.ZBattlefield, g.Active) {
+		if o := g.Obj(id); o != nil && o.IsAttacking && o.Attacking >= 0 && int(o.Attacking) < len(seats) && !seats[o.Attacking] {
+			seats[o.Attacking] = true
+			n++
+		}
+	}
+	return n >= 2
+}
+
+// TestFourSeatMeleeLockstep: four-seat melee games play in lockstep, the
+// pumps counting every opponent the declaration attacked.
+func TestFourSeatMeleeLockstep(t *testing.T) {
+	podClassLockstep(t, meleePodDeck, 24, 10, meleeWatch, &dirac.DebugMeleeOne)
+}
+
+// beaconWatch: gorge asks a player who controls an untapped Beacon of
+// Kahless after attacking two or more players this turn (its Battlefront
+// ability then adds more than its first).
+func beaconWatch(c *PickCtx) bool {
+	g := c.G.E.G
+	p := state.PlayerID(c.G.fr.d.Player)
+	if p != g.Active || c.G.E.OpponentsAttackedThisTurn(p) < 2 {
+		return false
+	}
+	for _, id := range g.Zone(state.ZBattlefield, p) {
+		if o := g.Obj(id); o != nil && !o.Tapped && o.Face() != nil && o.Face().Name == "The Beacon of Kahless" {
+			return true
+		}
+	}
+	return false
+}
+
+// TestFourSeatBeaconLockstep: four-seat Beacon of Kahless games play in
+// lockstep after attacks at two or more players; the mutation
+// (DebugOppsAttOne) reads the opponents attacked this turn as at most one.
+func TestFourSeatBeaconLockstep(t *testing.T) {
+	podClassLockstep(t, meleePodDeck, 24, 10, beaconWatch, &dirac.DebugOppsAttOne)
+}

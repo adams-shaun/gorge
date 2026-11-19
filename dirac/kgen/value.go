@@ -280,16 +280,15 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	case "TriggeredCapturedPlayers":
 		// cards.MeleePumpCount: gorge captures one player per distinct
 		// opponent attacked in the declaration (rules/melee.go
-		// meleeRemembered). In a two-player game every attack is at the
-		// one opponent (gorge counts a planeswalker's or battle's attack
-		// as its controller's or protector's, combat.go finishAttackers),
-		// so the capture is one.
+		// meleeRemembered), a planeswalker's or battle's attack counting
+		// as its controller's or protector's (combat.go finishAttackers):
+		// ExOppsAttacked N 1, the declaration's defending seats (dirac
+		// value_oppsattacked.go)
 		if rest != "Amount" || !lc.mlTrigger || !lc.trigBody {
 			err = fmt.Errorf("value head TriggeredCapturedPlayers$%s outside a Melee trigger", rest)
 			break
 		}
-		lc.twoSeat("the melee capture counted as one")
-		v = cst(1)
+		v = lValue{Kind: vOppsAttacked, N: 1}
 	case "PlayerCountOpponents":
 		// the living opponents in seat order (gorge opponentGroup): seat-exact
 		switch {

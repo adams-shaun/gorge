@@ -67,9 +67,6 @@ func (lc *lowerCtx) refuseMultiMana() {
 		if a == ms[0] || !redundantMana(ms[0], a) {
 			return false
 		}
-		if a.Mana.Amount.Kind == vOppsAttacked {
-			lc.twoSeat("the opponents attacked this turn read as at most one")
-		}
 		return true
 	})
 	if lc.refuseEachMana(ms) || lc.refuseGatedMana(ms) || lc.refuseReflectedMana(ms) || lc.refuseCtrRiderBeside(ms) {
@@ -104,7 +101,7 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// guarded as a painland's damage (kernel painLife)
 		return
 	}
-	if len(ms) == 2 && dynamicLargerSameColour(ms[0], ms[1]) {
+	if len(ms) == 2 && (dynamicLargerSameColour(ms[0], ms[1]) || dynamicLargerAnyColour(ms[0], ms[1])) {
 		// {T}: Add {G}, then {T}: Add {G} for each creature you control
 		// (Itlimoc, Cradle of the Sun): gorge's census unit holds both
 		// alternatives (the evaluated one at its count, payment_plan.go's
@@ -239,11 +236,26 @@ func redundantMana(first, a *lAbility) bool {
 	switch v.Kind {
 	case vCount, vValidAgg:
 		return commanderFilter(v.F)
-	case vOppsAttacked:
-		return v.Mul == 0 && v.Div == 0 && plainTapMana(first, false) && unrestrictedOne(first) &&
-			first.Mana.Colors == "WUBRG" && !first.Mana.Choice && !first.Mana.Each
 	}
 	return false
+}
+
+// dynamicLargerAnyColour: a plain {T} "add one mana of any color" first
+// ability beside a plain {T} "choose a color, add one of it per opponent you
+// attacked this turn" (The Beacon of Kahless's Battlefront). gorge's census
+// unit holds both alternatives, the second at its evaluated amount, and the
+// planner takes the best per payment; the kernel's per-count pair view
+// (mana_dynpair.go) plans it, N of any one colour when N >= 2.
+func dynamicLargerAnyColour(first, a *lAbility) bool {
+	if !plainTapMana(first, false) || !unrestrictedOne(first) || first.Mana.Colors != "WUBRG" || first.Mana.Choice || first.Mana.Each {
+		return false
+	}
+	if !plainTapMana(a, false) || a.Mana.Colors != "WUBRG" || a.Mana.Choice || a.Mana.Each ||
+		a.Mana.Restrict != nil || a.Mana.RestrictAb != nil || a.Mana.NonSpell {
+		return false
+	}
+	v := a.Mana.Amount
+	return v.Kind == vOppsAttacked && v.N == 0 && v.Add == 0 && v.Mul == 0 && v.Div == 0 && !v.Neg && len(v.Sub) == 0
 }
 
 // commanderFilter reports whether every clause of f requires a commander
@@ -311,7 +323,7 @@ func manaGapModelled(first, a *lAbility) bool {
 		// Mage-Ring Network): the kernel's counter-X script gap removes
 		// every counter and makes that many mana (mana_countercost.go).
 		return true
-	case dynamicLargerSameColour(first, a):
+	case dynamicLargerSameColour(first, a), dynamicLargerAnyColour(first, a):
 		return true
 	case hybridFilterMana(first, a):
 		// {W/B}, {T}: Add {W}{W}, {W}{B} or {B}{B} beside {T}: Add {C} (Fetid
