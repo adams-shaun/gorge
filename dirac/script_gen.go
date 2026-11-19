@@ -31,8 +31,9 @@ const (
 	availGaps  uint16 = 1
 	availAny   uint16 = 2
 	availPlain uint16 = 4
-	availWalk  uint16 = 8   // the real mana, no offer surface (grantCap)
-	availHyp   uint16 = 128 // with availWalk: gorge's PotentialMana bound, a choice source counting every colour it can make (mana_owncolours.go)
+	availWalk  uint16 = 8    // the real mana, no offer surface (grantCap)
+	availHyp   uint16 = 128  // with availWalk: gorge's PotentialMana bound, a choice source counting every colour it can make (mana_owncolours.go)
+	availOwn   uint16 = 1024 // with availGaps: an activation's own {T} source stays in the census, as gorge's PotentialMana bound counts it (mana_ownwalk.go)
 )
 
 // scriptGaps: p's activatable each-colour sources, a slot mask.
@@ -379,12 +380,12 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		cand[j], key[j] = a, kk
 		nc++
 	}
-	var lifeWalk Decision
-	lifeBuilt := false
+	var lifeWalk, ownWalk Decision
+	lifeBuilt, ownBuilt := false, false
 	searched := 0
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
-		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive {
+		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
 			if !relax {
 				searched++
 			}
