@@ -1,0 +1,12 @@
+# "shares a creature type with the triggered card" filters (gorge's
+# sharesCreatureTypeWith TriggeredCard / TriggeredCardLKICopy): Heirloom
+# Blade's dies-trigger DigUntil and Mana Echoes' ETB-trigger count beside
+# Bears, Giants and changelings (dirac/oracle/sharescrzone_lockstep_test.go)
+Heirloom Blade
+Mana Echoes
+Grizzly Bears
+Woodland Changeling
+Hill Giant
+Shock
+Mountain
+Forest

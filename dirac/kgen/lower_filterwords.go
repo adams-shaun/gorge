@@ -150,6 +150,12 @@ func filterWordPred3(p string) (n int, ok bool) {
 		// the Attacks trigger's attacker (lowerCtx.referentGate holds it to
 		// an Attacks trigger's body, where trigObj is that attacker)
 		return int(kop.W7SharesCrTrigObj), true
+	case "sharesCreatureTypeWith TriggeredCard", "sharesCreatureTypeWith TriggeredCardLKICopy":
+		// the zone-change trigger's moving card (gorge sharesTypeReferents
+		// reads TriggerCard for both spellings, its current types wherever it
+		// now is). lowerCtx.referentGate holds it to a Dies or ETB trigger's
+		// body, where trigObj is that card
+		return int(kop.W7SharesCrTrigObj), true
 	case "blockingTriggeredAttacker":
 		// a creature blocking the become-blocked trigger's attacker
 		// (lowerCtx.referentGate holds it to an AttackerBlocked trigger's

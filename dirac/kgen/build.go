@@ -1827,6 +1827,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredHasXCost
 	case cmpPowerLTToughness:
 		kf.Pred, kf.PredN = kop.PredPowerLTToughness, int16(c.CmpN)
+	case cmpPTBox:
+		kf.Pred, kf.PredN = kop.PredStatBox, int16(uint16(c.CmpN)) // filter_ptbox.go
 	case cmpMultiColor:
 		kf.Pred = kop.PredMultiColor
 	case cmpHistoric:
