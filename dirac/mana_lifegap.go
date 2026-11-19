@@ -177,6 +177,9 @@ func (fs *filtSearch) lifeGap(k *prep, t *State, sl Slot, funded int, try func(o
 func (s *State) availLifeGap(k *prep, p uint8, a *avail) {
 	for b := s.lifeGapMask(k, p); b.any(); b = b.rest() {
 		sl := b.first()
+		if s.pickCommittedSrc(k, sl) {
+			continue // the pick taps it; removeSrc cannot take these units out (cast_xpicked.go)
+		}
 		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.gapOther(s.cardAt(sl))]
 		n := max(ab.ManaN, 1)
 		if ab.ManaColors == kop.ColAny {
