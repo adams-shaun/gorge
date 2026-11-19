@@ -168,6 +168,7 @@ Kederekt Leviathan
 Key to the City
 Khalni Garden
 Knotvine Paladin
+Kolaghan, the Storm's Fury
 Korlessa, Scale Singer
 Lampad of Death's Vigil
 Lash of the Balrog
@@ -203,6 +204,7 @@ Momo, Rambunctious Rascal
 Monster Mashup
 Mother Bear
 Mountain
+Mycologist
 Necromantic Summons
 Nessian Asp
 Nessian Wanderer
@@ -289,6 +291,7 @@ Soulshriek
 Sparkspitter
 Sphere Grid
 Spike Breeder
+Spinal Graft
 Spinal Parasite
 Springjaw Trap
 Sram, Senior Edificer

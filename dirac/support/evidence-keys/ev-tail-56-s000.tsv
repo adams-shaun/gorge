@@ -11,6 +11,7 @@ Anchor to the Aether	2b930f84d8935f67	32	0/0		2/2
 Angelic Gift	246e1162b0c6fc6f	15	1/1		1/2	ix:resp
 Arachnogenesis	2fa45df8c77a6919	17	0/0		1/2	ix:resp
 Archon of Cruelty	93c7dd4800c9c847	15	2/2		1/1	
+Arrogant Outlaw	c84654ae20e2abfd	16	1/1		0/1	ix:resp
 Ascendant Packleader	cf20ccad851798fe	38	1/1		1/1	
 Aura Fracture	9eb34f8b84b898b5	10	1/1		1/1	
 Aven Smokeweaver	2b3c00f22de23697	23	0/0		0/0	
@@ -32,6 +33,8 @@ Burning-Tree Emissary	788c115dfbb7571b	13	1/1		1/1
 Cartographer's Survey	8413d0bb41512481	31	0/0		2/2	
 Cathedral of War	d15341c1d6079488	103	2/2		1/1	
 Champion of Dusk	936707da482188e0	12	1/1		0/1	ix:resp
+Chief of the Wilds	8e59af957b0340a7	12	1/1		1/1	
+Chimeric Egg	13641280d6a1fcf0	20	2/2		0/1	ix:resp
 Citywide Bust	d2ed58603d9065b5	16	0/0		2/2	
 Cleansing Meditation	0390253e826c802f	5	0/0		1/2	ix:resp
 Clear	15975f004027a44c	7	1/1		1/2	ix:resp
@@ -55,6 +58,7 @@ Elven Lyre	cd8f296e785a6c86	16	1/1		0/1	ix:resp
 Enhanced Awareness	2882e51b6ba5c9a7	12	0/0		2/2	
 Faerie Harbinger	eb0301f948917cfc	23	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Feldon of the Third Path	155641984b1f56e9	25	1/1		1/1	
+Felidar Guardian	cb0bb7c042d967d0	27	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Finishing Blow	07fc81002402eb4f	26	0/0		2/2	
 Fire Ambush	46b33bacd7c21160	20	0/0		1/2	ix:resp
 Fires of Yavimaya	e085258174c0e0cd	12	1/1		0/1	ix:resp
@@ -90,6 +94,7 @@ Invasion of Belenon	aca2671c9762940d	9	1/1		1/1
 Irregular Cohort	feb368db3a21c6cd	13	1/1		1/1	
 Island	763c67ef7a27eaf5	541	1/1		0/1	ix:resp
 Jagged-Scar Archers	6aee5eb00e8ba231	16	1/1		1/1	
+Joraga Warcaller	428f48be7a2a6cf3	39	0/0		2/2	
 Kamahl, Fist of Krosa	4f0d933adf8cfdb5	12	2/2		1/1	
 Kefnet the Mindful	fec7edf865b18a66	19	1/1		0/1	ix:resp
 Keldon Champion	46ac4f5416ae933d	16	2/2		0/1	ix:resp
@@ -105,6 +110,7 @@ Marchesa's Emissary	13bfcba5d291d7ef	26	1/1		1/1
 Massive Might	aa2e2cbb04321f15	48	0/0		2/2	
 Master of Winds	cb144cab9bb6eca4	19	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Mechanized Warfare	9db54bb3aa8a7bc1	13	0/0		0/0	
+Memnarch	2c36b5a627e48844	10	2/2		1/1	
 Mirran Banesplitter	200625146099ee2e	32	2/2		0/1	ix:resp
 Mirror of Life Trapping	6562a7b7d991eb21	21	1/1		1/1	
 Mogg Toady	2c2e82530507bf71	20	0/0		0/0	
@@ -170,6 +176,7 @@ Squall Drifter	0245af2368ebf1c7	11	1/1		1/1
 Startling Development	b661ddb464e31bdc	7	1/1		1/2	ix:resp
 Statute of Denial	b902a93cf06bf6e1	18	0/0		2/2	
 Stormtide Leviathan	dbdba37554acab3e	11	0/0		0/0	
+Submerged Boneyard	7644c00f861386ac	97	1/1		0/1	ix:resp
 Sunmane Pegasus	7c4aa0642994d0d8	23	1/1		1/1	
 Swamp	342b413902f441c3	351	1/1		0/1	ix:resp
 Swan Song	cef94229e9f8c6db	13	0/0		2/2	
@@ -185,6 +192,7 @@ Tolarian Winds	9a3caa63037f9c41	24	0/0		2/2
 Treetop Bracers	47af02810d61d176	18	0/0		1/2	ix:resp
 Treetop Sentinel	f8569fba6f0bf240	14	0/0		0/0	
 Tribal Flames	6660bf22125d0624	12	0/0		1/2	ix:resp
+Troll of Khazad-dûm	8ffe82df292e19b7	4	1/1		1/1	
 Tsabo's Decree	d4f928fc860d28b2	5	0/0		1/2	ix:resp
 Tusked Colossodon	a666408dd2cc37e0	9	0/0		0/0	
 Upriser Renegade	beb3c2b6f586938f	14	0/0		0/0	

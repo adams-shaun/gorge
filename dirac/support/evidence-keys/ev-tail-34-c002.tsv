@@ -3,6 +3,7 @@ Aboshan's Desire	f81bf3d1bcc1ff9a	8	0/0		1/2	ix:resp
 Aether Mutation	d0c5e63dffa1371e	5	0/0		1/2	ix:resp
 Ageless Guardian	bb7f45f844f1ae93	13	0/0		0/0	
 Agent of the Shadow Thieves	3c4ce50ecd4b403b	64	0/0		0/0	
+Alms of the Vein	ae5e9ae4fa1bd025	30	0/0		1/2	ix:resp
 Ambitious Farmhand	19c2c74aaf777c0e	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Appeal	19acb28395e8ccdb	147	0/0		4/5	f1/s
 Araba Mothrider	79e7d61b231112f0	18	2/2		0/1	ix:resp
@@ -24,6 +25,7 @@ Boggart Brute	37fdaa583b60d57d	38	0/0		0/0
 Borrowed Time	d493f30f5d5648e5	18	1/1		0/1	ix:resp
 Bottle-Cap Blast	116d7c74137c9f2b	6	0/0		1/2	ix:resp
 Breath Weapon	6c72fcf95e6c8301	9	0/0		1/2	ix:resp
+Brutal Nightstalker	1897205843323e73	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bushmeat Poacher	04c0b5564a227308	51	1/1		1/1	
 Butterbur, Bree Innkeeper	4ed37bb3ca156da9	52	1/1		1/1	
 Caustic Tar	ad3c068f85a4a1ea	23	0/0		1/2	ix:resp
@@ -44,6 +46,7 @@ Devious Cover-Up	ed7f2da9b625f962	5	0/0		2/2
 Drowner of Secrets	8e20471d9f471955	18	1/1		1/1	
 Dust Elemental	fdc7f8006602e759	4	1/1		0/1	ix:resp
 Edric, Spymaster of Trest	827cbe2027337694	35	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Eidolon of Blossoms	0b762ec0fc912194	39	1/1		1/1	
 Elminster's Simulacrum	0c1a18b47c9739e5	5	0/0		1/2	ix:resp
 Enter the Unknown	b111a1eb5722507d	79	0/0		2/2	
 Era of Innovation	6faf958ca167ef65	16	2/2		0/1	ix:resp
@@ -55,16 +58,20 @@ Ezuri's Brigade	3868a71e6236d84d	22	0/0		0/0
 Feeling of Dread	241a982a8cdc587a	46	0/0		3/4	ix:resp
 Feral Ridgewolf	47515d89963aed0f	13	1/1		1/1	
 Flamespeaker Adept	e9ce9e1d4bb3da02	36	1/1		1/1	
+Gaea's Gift	3336d9ed890d5cfd	54	0/0		2/2	
 Gnottvold Hermit	17456bf0bd6d7170	41	2/2		1/1	
 Goblin Lackey	c44a234eb3e63298	23	1/1		0/1	ix:resp
 Goreclaw, Terror of Qal Sisma	a23def3dc0c69956	45	1/1		1/1	
+Grafted Butcher	de4c1c8d1bca5086	25	2/2		0/1	ix:resp
 Grazing Kelpie	53c041338f07ad29	5	2/2		0/1	ix:resp
 Grim Haruspex	ddfe9b290e4c7638	33	1/1		3/3	
 Grim Return	d32880dca6728345	14	0/0		2/2	
+Grizzled Outrider	27ef5282afa84d54	42	0/0		0/0	
 Ground Seal	81eef44c3c8e342a	84	1/1		1/1	
 Hapatra, the Desert Fang	89e030171ffc9c77	26	1/1		1/1	
 Harvest Gwyllion	0911e2de55b4e48a	8	0/0		0/0	
 Haunt of the Dead Marshes	3cfc5bde39a344e3	33	2/2		1/1	
+Heartstone	417546d6e4ecb6bd	57	0/0		0/0	
 Henrika Domnathi	835b564915531b3d	29	2/2		0/1	ix:resp
 Herald of Serra	a564b75196026c1d	5	1/1		0/1	ix:resp
 Heroes for Hire	c94a2583b2aad250	10	2/2		1/1	
@@ -77,6 +84,7 @@ Infest	b598d28c543e0cb4	62	0/0		2/2
 Invasion of Tarkir	c21d35b737585aa4	31	2/2		1/1	
 Jace's Phantasm	bf47f871eee1cc32	20	0/0		0/0	
 Join Forces	2422c0b8b2a61d80	11	0/0		1/2	ix:resp
+Joraga Auxiliary	7e589c25a61ff5bd	65	1/1		1/1	
 Jwari Scuttler	70501809c4814686	20	0/0		0/0	
 Keldon Halberdier	05e21f0e4ff8304f	4	0/0		2/2	
 Killian, Ink Duelist	93cd8523562f5287	22	0/0		0/0	
@@ -156,6 +164,7 @@ Storm Fleet Sprinter	8d2eba06897c9f40	35	0/0		0/0
 Storm Sculptor	6556e0afce3e3bd1	6	1/1		0/1	ix:resp
 Stun	5b50bb57ff62b8df	20	0/0		1/2	ix:resp
 Subterranean Spirit	9d0fbd4400ee2fb0	11	1/1		1/1	
+Suffocating Blast	118db99e30a86e43	12	0/0		1/2	ix:resp
 Summoning Materia	90e0c2d43a478ab7	69	1/1		1/1	
 Sylvia Brightspear	527d771e76259f2e	6	1/1		0/1	ix:resp
 Tangle Hulk	5a7d5ae3e890e59f	6	1/1		0/1	ix:resp
@@ -168,6 +177,7 @@ Treacherous Link	607546a8a4cdbc1a	72	0/0		2/2
 Ulamog's Crusher	b22fd6b4d0b1da13	10	1/1		0/1	ix:resp
 Ulvenwald Captive	a5afc3fc5efc4a7a	73	3/3		1/1	
 Undercity Necrolisk	e9e27229d758fc3f	35	1/1		1/1	
+Unhallowed Phalanx	f1aa2a0c1e034e34	18	0/0		0/0	
 Unnatural Growth	d99b640ec4a701a4	11	1/1		0/1	ix:resp
 Vault of the Archangel	e1b51cf4d24117e3	36	2/2		1/1	
 Venerable Monk	84f3a878d25902cc	11	1/1		0/1	ix:resp
@@ -180,5 +190,7 @@ Vow of Lightning	e180579a5e57f2bc	20	0/0		2/2
 Wasteful Harvest	d67686b9dd990148	70	0/0		2/2	
 Watchwing Scarecrow	3036c6ba62c4b2f6	10	0/0		0/0	
 Wild Elephant	c0da4b57d8cc968a	51	0/0		0/0	
+Wild Ox	74a34628104805d7	56	0/0		0/0	
 Winds of Qal Sisma	42bbc9518ed75395	65	0/0		2/2	
 Xerex Strobe-Knight	1a4a0896685e5240	18	1/1		0/1	ix:resp
+Yavimaya Scion	84b806380a546b3b	26	0/0		0/0	

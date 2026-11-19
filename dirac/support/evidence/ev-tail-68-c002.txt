@@ -130,6 +130,7 @@ Jace's Scrutiny
 James, Wandering Dad
 Jarad's Orders
 Jeskai Runemark
+Joven
 Kasmina's Transmutation
 Keeper of Fables
 King Harald's Revenge
@@ -252,6 +253,7 @@ Trespasser il-Vec
 Treva's Ruins
 Tune the Narrative
 Twin-Silk Spider
+Tyrant of Kher Ridges
 Urgoros, the Empty One
 Valiant Veteran
 Valor
@@ -261,6 +263,7 @@ Weatherseed Elf
 Whispering Wizard
 White Shield Crusader
 Windrider Wizard
+Wingmate Roc
 Wolfbriar Elemental
 Wooden Sphere
 Yavimaya Elder

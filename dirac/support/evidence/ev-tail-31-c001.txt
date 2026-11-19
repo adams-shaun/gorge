@@ -31,6 +31,7 @@ Baloth Pup
 Barrage of Expendables
 Basim Ibn Ishaq
 Battered Golem
+Battlewand Oak
 Beloved Chaplain
 Bespoke Bō
 Black Knight
@@ -75,6 +76,7 @@ Crack Open
 Crag Puca
 Crash Landing
 Crucible of Worlds
+Crypt Rats
 Crystacean
 Daily Regimen
 Dancing Scimitar
@@ -181,6 +183,7 @@ Jiang Yanggu
 Jund Panorama
 Jungle Creeper
 Justice Strike
+Kami of Tattered Shoji
 Kami of Transience
 Kaysa
 Keen Glidemaster
@@ -192,6 +195,7 @@ Kitsune Loreweaver
 Kumena's Awakening
 Laccolith Titan
 Laccolith Whelp
+Languish
 Lantern of Revealing
 Legions of Lim-Dûl
 Lim-Dûl's High Guard

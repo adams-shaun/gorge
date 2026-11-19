@@ -1,5 +1,6 @@
 A-Armory Veteran
 A-Dokuchi Silencer
+A-Orcish Bowmasters
 A-The Meathook Massacre
 Academy Elite
 Aerial Guide
@@ -88,6 +89,7 @@ Elvish Piper
 Embereth Paladin
 Enduring Victory
 Ensnare
+Evolution Charm
 Expedition Envoy
 Extract from Darkness
 Fall of the Thran
@@ -122,6 +124,7 @@ Growth Cycle
 Guardian Automaton
 Guardian Lions
 Gut, True Soul Zealot
+Harbinger of the Seas
 Harnessed Lightning
 Hateflayer
 Haze of Pollen

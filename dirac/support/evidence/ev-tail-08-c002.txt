@@ -99,6 +99,7 @@ False Demise
 Fearless Liberator
 Feast of the Unicorn
 Feast or Famine
+Feedback
 Final Payment
 Fists of Flame
 Flare
@@ -228,6 +229,7 @@ Reverent Mantra
 Riddle Gate Gargoyle
 Righteous Charge
 Righteous Fury
+Rilsa Rael, Kingpin
 Rob the Archives
 Rustspore Ram
 Rustwing Falcon
@@ -282,6 +284,7 @@ Talisman of Unity
 Tangle Asp
 Taunting Arbormage
 Tempest of Light
+Territorial Maro
 Teval's Judgment
 Teysa, Envoy of Ghosts
 Thalia's Lieutenant
@@ -289,6 +292,7 @@ That Which Was Taken
 Thraben Valiant
 Thran War Machine
 Tor Giant
+Treasure Trove
 Treespring Lorian
 Troubled Healer
 Troublesome Spirit

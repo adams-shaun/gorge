@@ -87,6 +87,8 @@ Ethereal Investigator
 Evolving Adaptive
 Faerie Noble
 Falkenrath Marauders
+Familiar's Ruse
+Farewell
 Fateful Showdown
 Feral Instinct
 Ferocious Zheng
@@ -106,6 +108,7 @@ Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
 Goblin Deathraiders
+Great Defender
 Greater Harvester
 Grim Tutor
 Grixis Slavedriver
@@ -167,6 +170,7 @@ Neonate's Rush
 Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper
+Obelisk of Grixis
 Ogre Taskmaster
 One-Eyed Scarecrow
 Order of the Sacred Torch

@@ -33,6 +33,7 @@ Counterintelligence	05283e8aa0033b1f	36	0/0		2/2
 Cover of Darkness	ec8be9f87f8d5499	4	0/0		0/0	
 Crystal Golem	9baffb74578b56b7	3	1/1		0/1	ix:resp
 Death Speakers	00c0e195593c7843	11	0/0		0/0	
+Death Wind	549e3f93cda0478e	20	0/0		2/4	f0/s/x0,ix:resp
 Death's Duet	ab69d1205960c10d	8	0/0		1/2	ix:resp
 Diamond Knight	bde0bfba7910254a	6	1/1		0/1	ix:resp
 Disposal Mummy	cee2f5c13cabe676	6	1/1		0/1	ix:resp
@@ -43,6 +44,7 @@ Elite Javelineer	d786df8370f927db	6	1/1		0/1	ix:resp
 Engulf the Shore	454b898bf485ef85	5	0/0		1/2	ix:resp
 False Demise	cf715abaf80af88e	13	1/1		1/2	ix:resp
 Feast of the Unicorn	b7d7909b92925769	4	0/0		2/2	
+Feedback	d98cfa21f06b2e6b	40	1/1		2/2	
 Fists of Flame	e41591b5e089b2d4	21	0/0		2/2	
 Flare	c582e0cb82afe2fa	14	0/0		2/2	
 Flay	e42d995f61acce9a	8	0/0		1/2	ix:resp
@@ -100,6 +102,7 @@ Selfless Cathar	b54f6149c5dd4db3	6	1/1		0/1	ix:resp
 Serra's Boon	deaf36301a869299	10	0/0		1/2	ix:resp
 Shared Triumph	e5e1d84553f03113	6	0/0		0/0	
 Six-Sided Die	2c51e57d10b3cd0d	3	0/0		1/2	ix:resp
+Skyblade's Boon	47703488bcb6a449	105	2/2		2/2	
 Soul Channeling	c14ca46acdd56d4f	13	1/1		2/2	
 Static Net	8991e249399e8699	5	2/2		0/1	ix:resp
 Staunch Shieldmate	8b1e52a4dcaed16a	8	0/0		0/0	

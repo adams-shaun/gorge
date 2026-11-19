@@ -10,6 +10,7 @@ Anchor to the Aether
 Angelic Gift
 Arachnogenesis
 Archon of Cruelty
+Arrogant Outlaw
 Ascendant Packleader
 Aura Fracture
 Aven Smokeweaver
@@ -31,6 +32,8 @@ Burning-Tree Emissary
 Cartographer's Survey
 Cathedral of War
 Champion of Dusk
+Chief of the Wilds
+Chimeric Egg
 Citywide Bust
 Cleansing Meditation
 Clear
@@ -54,6 +57,7 @@ Elven Lyre
 Enhanced Awareness
 Faerie Harbinger
 Feldon of the Third Path
+Felidar Guardian
 Finishing Blow
 Fire Ambush
 Fires of Yavimaya
@@ -89,6 +93,7 @@ Invasion of Belenon
 Irregular Cohort
 Island
 Jagged-Scar Archers
+Joraga Warcaller
 Kamahl, Fist of Krosa
 Kefnet the Mindful
 Keldon Champion
@@ -104,6 +109,7 @@ Marchesa's Emissary
 Massive Might
 Master of Winds
 Mechanized Warfare
+Memnarch
 Mirran Banesplitter
 Mirror of Life Trapping
 Mogg Toady
@@ -169,6 +175,7 @@ Squall Drifter
 Startling Development
 Statute of Denial
 Stormtide Leviathan
+Submerged Boneyard
 Sunmane Pegasus
 Swamp
 Swan Song
@@ -184,6 +191,7 @@ Tolarian Winds
 Treetop Bracers
 Treetop Sentinel
 Tribal Flames
+Troll of Khazad-dûm
 Tsabo's Decree
 Tusked Colossodon
 Upriser Renegade

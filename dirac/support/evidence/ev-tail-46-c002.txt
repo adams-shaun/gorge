@@ -141,6 +141,7 @@ Hammer of Purphoros
 Heir of the Ancient Fang
 Heir of the Wilds
 Helionaut
+Helium Squirter
 Herald of Secret Streams
 Holy Day
 Honor's Reward
@@ -150,6 +151,7 @@ Hunting Grounds
 Immolation
 Impassioned Orator
 Incisor Steed
+Infuse with Vitality
 Intimidator Initiate
 Introduction to Prophecy
 Irontread Crusher
@@ -173,6 +175,7 @@ Level Up
 Leyline of the Meek
 Lifeline
 Lightning Blow
+Liquimetal Coating
 Longshot, Rebel Bowman
 Lorehold Pledgemage
 Lost in the Woods
@@ -183,7 +186,9 @@ Marshal of Zhalfir
 Master Symmetrist
 Match the Odds
 Meditation Puzzle
+Memory Deluge
 Merfolk Branchwalker
+Merfolk of the Pearl Trident
 Midnight Guard
 Might of Old Krosa
 Millicent, Restless Revenant
@@ -294,6 +299,7 @@ Spore Frog
 Squallmonger
 Stab Wound
 Stalwart Shield-Bearers
+Steam Augury
 Steel of the Godhead
 Steelgaze Griffin
 Steward of Solidarity

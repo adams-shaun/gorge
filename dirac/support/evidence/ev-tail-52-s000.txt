@@ -6,6 +6,7 @@ Ambush Commander
 Ancestor's Chosen
 Angel of Retribution
 Artificer's Epiphany
+Avenging Angel
 Axegrinder Giant
 Balduvian Atrocity
 Balduvian Horde
@@ -67,6 +68,7 @@ Frilled Oculus
 Frost Marsh
 Furnace Skullbomb
 Ghirapur Guide
+Gilded Goose
 Gitaxian Probe
 Goblin Bruiser
 Goblin Offensive
@@ -83,6 +85,7 @@ Hate Weaver
 Headwater Sentries
 Healing Hands
 Herald of Torment
+Hipparion
 Honored Hydra
 Hysterical Blindness
 Imperial Aerosaur
@@ -114,6 +117,7 @@ Lunarch Mantle
 Mana Prism
 Mana Skimmer
 Mask of Avacyn
+Maular, the Next Evolution
 Megatherium
 Meng Huo's Horde
 Mental Agony

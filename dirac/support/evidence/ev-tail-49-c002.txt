@@ -179,6 +179,7 @@ Jaya, Venerated Firemage
 Jetting Glasskite
 Junktroller
 Kaldra Compleat
+Karn, Silver Golem
 Kayla's Command
 Kazandu Blademaster
 Kei Takahashi
@@ -215,6 +216,7 @@ Mark of the Vampire
 Mask of Law and Grace
 Mass Hysteria
 Masticore
+Maze Skullbomb
 Memory Plunder
 Merciless Eternal
 Merfolk Observer

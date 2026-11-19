@@ -3,13 +3,16 @@ A-Elven Bow	0f947781e39737eb	34	2/2		0/1	ix:resp
 A-Forge Boss	b137bad57961d3bf	24	1/1		1/1	
 Accorder's Shield	2b6f5664769c2816	81	1/1		0/1	ix:resp
 Akoum Battlesinger	ce9c2632997c0365	24	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Akroma's Memorial	2dec80aa5696fd4f	27	0/0		0/0	
 Alexi's Cloak	62b4107cf857737b	8	0/0		1/2	ix:resp
 Amber Prison	01d30eba56832cda	5	1/1		0/1	ix:resp
 Amoeboid Changeling	d5ea262dde8aa102	14	2/2		1/1	
 Angelheart Protector	818e41f3ee65d23d	4	1/1		0/1	ix:resp
 Arbor Colossus	85b2dc9ebe24db9a	23	2/2		1/1	
+Avacyn's Memorial	eff100239abb159d	14	0/0		0/0	
 Barbtooth Wurm	7edfce8b68c0ed58	35	0/0		0/0	
 Battlegrace Angel	54964fcdf41a3118	7	2/2		0/1	ix:resp
+Bellowing Tanglewurm	43304e0cdfa71fa0	16	0/0		0/0	
 Bird Maiden	0d1b90121105c3ea	10	0/0		0/0	
 Blood Cultist	e733f22ac05fce1c	25	2/2		1/1	
 Boggart Birth Rite	18678b53e1369cf9	6	0/0		1/2	ix:resp
@@ -24,6 +27,7 @@ Carnivorous Canopy	61610b99acaca508	4	0/0		1/2	ix:resp
 Casey Jones, Asphalt Hooligan	706e40d551bf5e64	29	1/1		1/1	
 Cast into the Fire	275c39df0574af08	17	0/0		2/2	
 Cavern Thoctar	bfb18c260991a4ad	4	1/1		0/1	ix:resp
+Chandra, Hope's Beacon	c06f0439cfd1a3e7	14	4/4		1/1	
 Children of Korlis	c718492bcb42bcd9	18	1/1		1/1	
 Chub Toad	e281f4d80e231a42	45	2/2		1/1	
 Cliffhaven Sell-Sword	e037be0343c34ff3	10	0/0		0/0	
@@ -35,6 +39,7 @@ Cradle of Safety	2c130177029dabc8	6	1/1		1/2	ix:resp
 Dawnhart Disciple	df8ad3b250f7b2f5	42	1/1		0/1	ix:resp
 Dawnhart Rejuvenator	7a9dee0575e13cb5	12	2/2		0/1	ix:resp
 Deal Gone Bad	e5f4a922e6a8788e	6	0/0		1/2	ix:resp
+Debtors' Transport	331c91dea9a1fa84	19	1/1		0/1	ix:resp
 Decisive Denial	d06d03116fec4e05	4	0/0		2/2	
 Deep Spawn	f037bcdff2014a81	22	2/2		1/1	
 Dirty Wererat	3cf36210c480042e	4	1/1		0/1	ix:resp
@@ -56,6 +61,7 @@ Gatekeeper Gargoyle	efa39d125d711a3f	3	0/0		0/0
 Ghoulcaller Gisa	2ea71929427d4278	36	1/1		1/1	
 Goblin Replica	2041dce2449c4abb	41	1/1		1/1	
 Green Goblin, Back for More	e4fafd2c1dfc0a5a	21	1/1		1/3	cast/alt:mayhem,ix:resp
+Gruul Scrapper	49d59fc30aa37bf7	46	1/1		1/1	
 Gruul Signet	b1dcf1d646ccc8de	4	1/1		0/1	ix:resp
 Hammerheim Deadeye	224911f2f05ceed0	25	2/2		1/1	
 Havengul Runebinder	e55aae12775585e5	4	1/1		0/1	ix:resp
@@ -65,18 +71,21 @@ Hindering Touch	592e05b7611c65a1	4	1/1		0/2	f0/s,ix:resp
 Howling Banshee	958fe23e62033882	32	1/1		0/1	ix:resp
 Icatian Scout	0fd81c82eef70e86	4	1/1		0/1	ix:resp
 Intrusive Packbeast	a397e63370f6a24e	3	1/1		1/1	
+Jalira, Master Polymorphist	04dc3149273ff586	61	1/1		0/1	ix:resp
 Jousting Lance	6a869198143eadbf	31	1/1		0/1	ix:resp
 Kodama of the North Tree	525a12605f290454	4	0/0		0/0	
 Krovikan Elementalist	217bf7e7442ce4aa	51	2/2		1/1	
 Leonardo, Worldly Warrior	ae91b7fd26db6bf7	4	0/0		0/0	
 Littjara Glade-Warden	a9dda80f103d169e	41	1/1		1/1	
 Living Wall	7feb02d5750241c4	9	1/1		1/1	
+Lost Leonin	d820c41355826eaa	49	0/0		0/0	
 Master of Diversion	daa86c5a27fa2d3d	4	1/1		0/1	ix:resp
 Mental Journey	61be8e6a1a976acb	3	1/1		1/2	ix:resp
 Mind Games	ba103d3fc0359106	31	0/0		4/4	
 Mistford River Turtle	0a89d6df173025bb	3	1/1		0/1	ix:resp
 Moku, Meandering Drummer	a19e63cf876f6fa0	31	1/1		1/1	
 Mudhole	6d948ea543bb0a68	38	0/0		2/2	
+Myojin of Cryptic Dreams	3430da82eca4b48b	19	1/1		1/1	
 Myr Battlesphere	e9d40446864ef9e5	8	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Mystic of the Hidden Way	cd90d80acef5fcad	4	0/0		1/2	cast/alt:morphed
 Nahiri's Binding	3c7fe2bcf911a35b	4	0/0		1/2	ix:resp
@@ -88,6 +97,7 @@ Nyxborn Shieldmate	49e2992ec50e2f3a	11	0/0		2/2
 Octomancer	977e70787db80531	4	1/1		1/3	cast/alt:none,ix:resp
 Ornamental Courage	f7ad7d09cbd8bfb2	65	0/0		2/2	
 Pendrell Mists	64c5668d3cabd950	4	0/0		0/0	
+Phyrexian Rebirth	8e581b4415b25bed	28	0/0		2/2	
 Plague Sliver	de3aeace9ef75ded	6	0/0		0/0	
 Plow Through Reito	c9ec71bfdca733d2	23	0/0		2/2	
 Press into Service	adcb0d0f9319520e	15	0/0		2/2	
@@ -100,6 +110,7 @@ Ramosian Lieutenant	a44f108689fa878b	4	1/1		0/1	ix:resp
 Return of the Mole Man	6f845e1bfe8d1d8d	46	2/2		1/1	
 Revoke Demise	16bffd30ec203616	15	0/0		1/2	ix:resp
 River's Favor	98d389b84c2f0aaa	4	0/0		2/2	
+Root Spider	c6ae018179b08894	34	1/1		0/1	ix:resp
 Sai of the Shinobi	1bc04f28dc9db7dc	60	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Saltwater Stalwart	d21e76171df0c382	35	1/1		1/1	
 Scavenging Scarab	5bb217ce21f1db43	49	0/0		0/0	
@@ -120,6 +131,7 @@ Squeeze	3d2db8c904020be1	4	0/0		0/0
 Stabbing Pain	85f589dcc0176ef5	4	0/0		1/2	ix:resp
 Stampede	66a5a5924a139857	26	0/0		2/2	
 Steelshaper Apprentice	1f07be3cc3f57fe9	21	1/1		1/1	
+Stormcloud Djinn	aee1831c832ba499	50	1/1		1/1	
 Strategic Planning	416d82c088afe0de	48	0/0		2/2	
 Talisman of Resilience	c350055f341b9158	12	2/2		0/1	ix:resp
 Tar Pit Warrior	da15fd6d84f3d5ab	11	1/1		0/1	ix:resp

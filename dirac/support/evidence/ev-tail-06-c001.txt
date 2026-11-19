@@ -15,6 +15,7 @@ An-Zerrin Ruins
 Anaba Spirit Crafter
 Ancestral Mask
 Ancestral Vengeance
+Angelic Sell-Sword
 Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
@@ -273,6 +274,7 @@ Ordruun Veteran
 Outnumber
 Outrider of Jhess
 Overwhelmed Apprentice
+Overwhelming Intellect
 Owlbear
 Ox of Agonas
 P-Joven and Chandler

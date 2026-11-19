@@ -1,15 +1,31 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Pseudodragon Familiar	3dfafeb37d8887f4	4	1/1		0/1	ix:resp
 Balefire Dragon	d12d852d86600855	5	1/1		0/1	ix:resp
+Dredge	468d46873f0f2067	4	0/0		1/2	ix:resp
+Elemental Spectacle	7c7d7c73d0f172dd	4	0/0		1/2	ix:resp
+Final Flare	283165cabc918fcb	10	0/0		1/2	ix:resp
 Getaway Car	921141ee625ab862	4	3/3		0/1	ix:resp
 Hivestone	92f595393965010e	3	0/0		0/0	
+Hungry for More	03bc6e4bcc15173b	6	0/0		4/4	
+Ignoble Hierarch	75a6d3c09ba759c1	3	2/2		1/1	
 Inferno Elemental	24e29de2d761e0f0	10	2/2		1/1	
+Llanowar Scout	3f50c8558bf33d3f	3	1/1		1/1	
+Luke Cage, Hero for Hire	9056c6f86a70a0c0	4	1/1		1/1	
+Magefire Wings	549e7b47e290be55	4	0/0		1/2	ix:resp
 Mycologist	041a52db69eab698	4	3/3		0/1	ix:resp
 Psionic Entity	5f8ea3f34cf4ff07	3	1/1		0/1	ix:resp
+Pyrohemia	ea83acaa6c386b7e	4	2/2		0/1	ix:resp
+Rockslide Elemental	8a2b4d28942c5cbc	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Rooftop Nuisance	81b475785397a5ab	6	0/0		1/2	ix:resp
+Rotlung Reanimator	29206cc71bfb3a3d	4	1/1		1/1	
 Sage of the Unknowable	40b101d658bc51ca	3	1/1		0/1	ix:resp
+Seasoned Pyromancer	ebf0c4cd7619721e	3	2/2		0/1	ix:resp
 Sejiri Steppe	4782f00e1511a1cc	4	2/2		0/1	ix:resp
+Selfless Samurai	3c3a902ba9904f90	4	2/2		0/1	ix:resp
+Skyblade of the Legion	c707699d1ad3585c	4	0/0		0/0	
 Solve the Equation	6ceb9ee7c1408e2e	6	0/0		2/2	
 Sword of the Chosen	54397b8c8428b014	3	1/1		0/1	ix:resp
+Vengeant Earth	64b38622d64d1030	4	0/0		1/2	ix:resp
 Vivid Crag	43df72df6db79a6f	8	2/2		0/1	ix:resp
 Volley of Boulders	354117a8f9a7e71f	5	0/0		4/4	
 Wu Spy	1b54d51185dc8a1c	4	1/1		0/1	ix:resp

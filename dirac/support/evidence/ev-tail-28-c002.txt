@@ -1,4 +1,5 @@
 A-Celestial Regulator
+A-Cobbled Lancer
 A-Falcon Abomination
 A-Manticore
 A-Ready to Rumble
@@ -12,6 +13,7 @@ Alaborn Grenadier
 Alisaie Leveilleur
 Allied Teamwork
 Alora, Merry Thief
+Alphinaud Leveilleur
 Altar's Light
 Ancient Lumberknot
 Ancient Runes
@@ -34,6 +36,7 @@ Beacon of Creation
 Beckon Apparition
 Beyeen Veil
 Big Mother Mouser
+Black Sun's Zenith
 Blessed Hippogriff
 Blind Obedience
 Bloodgift Demon
@@ -59,22 +62,29 @@ Cateran Kidnappers
 Cavalier of Flame
 Chasm Guide
 Chief of the Scale
+Clan Crafter
 Cloudkin Seer
 Colossal Majesty
 Combo Attack
 Consulate Turret
 Coral Helm
+Court of Ambition
 Crashing Drawbridge
+Curse of Stalked Prey
 Daze
+Death Pit Offering
 Deathbringer Thoctar
 Deathforge Shaman
 Dematerialize
+Diamond City
 Dig Up the Body
 Dinosaur Egg
 Dinosaurs on a Spaceship
 Disperse
 Distorted Curiosity
 Diversionary Tactics
+Divert
+Divine Favor
 Dominating Licid
 Doomed Dissenter
 Drag to the Bottom
@@ -92,14 +102,17 @@ Elven Rite
 Embrace the Unknown
 Emergent Growth
 Enchantmentize
+Entrapment Maneuver
 Ethereal Ambush
 Exclude
 Exotic Curse
+Expedition Lookout
 Expendable Lackey
 Explosive Apparatus
 Fabled Hero
 Faerie Trickery
 Faith Unbroken
+Fangblade Brigand
 Farfinder
 Fell the Profane
 Fen Stalker
@@ -124,7 +137,11 @@ Ghostfire Slice
 Giant Spectacle
 Gift of the Deity
 Gigapede
+Golden-Tail Disciple
+Gonti, Lord of Luxury
 Gravecrawler
+Griffin Protector
+Halcyon Glaze
 Hammerhead, Maggia Boss
 Hand of Emrakul
 Hanna's Custody
@@ -132,10 +149,12 @@ Harbor Serpent
 Harrier Griffin
 Hellraiser Goblin
 Herald of Dromoka
+Herald of the Sun
 Heron-Blessed Geist
 Hormagaunt Horde
 Howling Moon
 Huang Zhong, Shu General
+Humble Budoka
 Hydrosurge
 Hypervolt Grasp
 Illness in the Ranks
@@ -165,9 +184,11 @@ Lancers en-Kor
 Lava Coil
 Lavastep Raider
 Leering Gargoyle
+Leonin Lightbringer
 Ley Druid
 Lifecrafter's Bestiary
 Lifecrafter's Gift
+Liliana, Death's Majesty
 Lithatog
 Llanowar Envoy
 Lodestone Golem
@@ -175,6 +196,8 @@ Lost in Memories
 Loxodon Punisher
 Lunar Mystic
 Lunarch Mantle
+Lurching Rotbeast
+Make Disappear
 Mana Vault
 Marker Beetles
 Masterwork of Ingenuity
@@ -194,13 +217,16 @@ Mold Folk
 Moon-Blessed Cleric
 Mountain
 Murmuring Mystic
+Nameless One
 Nessian Courser
+Night Incarnate
 Night of Souls' Betrayal
 Nip Gwyllion
 Norn's Wellspring
 Nylea's Emissary
 Oblivion Strike
 Ondu Spiritdancer
+Opaline Unicorn
 Orazca Raptor
 Orchard Spirit
 Ordeal of Purphoros
@@ -233,7 +259,9 @@ Raging Poltergeist
 Raise the Palisade
 Rakalite
 Rapid Decay
+Ratchet Bomb
 Recruiter of the Guard
+Reflective Golem
 Resistance Skywarden
 Return Upon the Tide
 Revitalize
@@ -243,6 +271,7 @@ Roots of Wisdom
 Runeboggle
 Sacellum Archers
 Sacred Guide
+Saruli Caretaker
 Scoria Elemental
 Scrapper Champion
 Scurry Oak
@@ -275,18 +304,24 @@ Stoke the Flames
 Stone Golem
 Stonybrook Schoolmaster
 Storm Strike
+Sunlit Hoplite
 Surrakar Spellblade
 Survivor of the Unseen
 Swamp
+Sylvok Battle-Chair
+Tail Swipe
+Tales of Master Seshiro
 Taunting Elf
 Teroh's Vanguard
 Terror of Towashi
 The Hive
+Thing from the Deep
 Thistledown Liege
 Thoughtpicker Witch
 Thraben Valiant
 Thran Vigil
 Thundering Tanadon
+Tin Street Market
 Titania's Command
 Transluminant
 Transmogrifying Wand
@@ -297,6 +332,7 @@ Unnatural Endurance
 Urza's Science Fair Project
 Vampire Aristocrat
 Vengeance
+Vexing Gull
 Vigilante Justice
 Village Rites
 Viridian Joiner
@@ -310,14 +346,17 @@ Warden of the Beyond
 Warrior's Charge
 Watchful Automaton
 Wei Infantry
+Well of Lost Dreams
 Wild Griffin
 Wilderness Reclamation
+Wilt
 Wintermoor Commander
 Wipe Away
 Woodcutter's Grit
 Worldgorger Dragon
 Wu Infantry
 Yeva, Nature's Herald
+You're Confronted by Robbers
 Zamriel, Seraph of Steel
 Zodiac Monkey
 Zombie Apocalypse

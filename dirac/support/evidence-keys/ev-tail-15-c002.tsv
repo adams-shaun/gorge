@@ -21,16 +21,20 @@ Bedeck	266aef6a9c2b490d	3	0/0		1/3	f1/s,ix:resp
 Bird Admirer	8901dabaa22f4f8f	10	0/0		0/0	
 Black Widow, Agile Avenger	6aa34680b81ddc9f	20	1/1		1/1	
 Bloodflow Connoisseur	ea91caa4bafa6b7b	4	1/1		0/1	ix:resp
+Boon of Emrakul	17b803132c09f774	39	0/0		1/2	ix:resp
 Boonweaver Giant	0b5c662b200fc9aa	32	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bramble Wurm	972b7169d0a0bb11	15	2/2		1/1	
 By Force	cc9582497b51a685	34	0/0		4/4	
+Carrion Howler	e5f23cbe5bc2f93a	41	1/1		1/1	
 Cartouche of Strength	23025413eab0fb8b	48	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
 Char	87e447d24c46247d	8	0/0		2/2	
+Chime of Night	5b83acc81d4ad4f4	56	1/1		2/2	
 Chishiro, the Shattered Blade	bb0d8769ddd3e10f	8	2/2		0/1	ix:resp
 Chrome Cat	019954283153ccf8	3	1/1		0/1	ix:resp
 Conclave's Blessing	5af9dfb31f932465	8	0/0		2/2	
 Corpse Hauler	27ecc9234ab3e274	4	1/1		0/1	ix:resp
 Corrupted Resolve	3baf5d16004767bf	61	0/0		2/2	
+Crucible of Worlds	8d2ea0313646d32d	84	0/0		0/0	
 Cryptolith Rite	dd93f79887a0dcd9	29	0/0		0/0	
 Deb Thomas	9092562d0ac0831c	4	3/3		1/1	
 Defy Gravity	98f2ddc7257662ef	86	0/0		3/4	ix:resp
@@ -48,6 +52,7 @@ Dáin of the Ancient Halls	973591bf34314c68	31	1/1		0/1	ix:resp
 Elspeth Tirel	39898d6fd8843a3d	31	3/3		1/1	
 Elvish Scout	dd9caac66eb8ed8c	23	1/1		0/1	ix:resp
 Ephara's Warden	2472951f13911000	4	1/1		1/1	
+Essence Capture	0e36051c67fc229b	43	0/0		2/2	
 Everflame Eidolon	afd03ff322e2e637	83	1/1		3/3	
 Executioner's Hood	f2cb0bb5bced647e	9	1/1		0/1	ix:resp
 Faithful Pikemaster	380f2a965954a029	21	1/1		1/1	
@@ -86,6 +91,7 @@ Learn from the Past	5c2e6fab150c86ea	4	0/0		1/2	ix:resp
 Leeching Bite	303a713e3881094e	45	0/0		2/2	
 Leonin Battlemage	7de74dd9532ef6c7	27	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Lifespring Druid	3fd3a453897c96aa	35	1/1		0/1	ix:resp
+Locus Cobra	8dea819d39ea7c92	51	1/1		1/1	
 Lose Calm	c288de9dc1c920ce	8	0/0		1/2	ix:resp
 Lumengrid Warden	64cb01284365b8c1	36	0/0		0/0	
 Lychguard	6291625f68b9a10f	7	1/1		1/1	
@@ -109,10 +115,12 @@ Nefarox, Overlord of Grixis	a9aacbfe586ae325	39	2/2		1/1
 Nightscape Familiar	5c488d18479da3b1	14	1/1		1/1	
 Nightshade Assassin	25e10d5dbf513315	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Nimble Pilferer	953b62840166e05e	5	0/0		0/0	
+Nyxborn Marauder	2bc1f3a1990b06be	60	0/0		0/0	
 Ochre Jelly	ebc622363ba712ae	14	1/1		1/1	
 Ogre Gatecrasher	3d49f02f14de222a	9	1/1		0/1	ix:resp
 Ogre Sentry	abecd93936433d57	5	0/0		0/0	
 Oji, the Exquisite Blade	b77bd7e223f6fb7f	12	2/2		0/1	ix:resp
+Okiba Salvage	4eb798346bff9329	28	0/0		1/2	ix:resp
 Ozox, the Clattering King	06dfd9ed321a1eb0	3	1/1		1/1	
 Palladium Myr	ca6a2edb4503fb35	47	1/1		1/1	
 Path of Peril	3b0f778ff2c30850	12	0/0		2/2	
@@ -135,6 +143,7 @@ Roving Harper	0c1aebdec205843b	4	1/1		0/1	ix:resp
 Rust Tick	4907e82ccff4ab39	51	1/1		1/1	
 Sacred Nectar	ce0f509afe7adcdd	30	0/0		1/2	ix:resp
 Saddleback Lagac	2ead5a82d123d7f6	30	1/1		1/1	
+Scuttling Sentinel	3e7044c079b753ad	16	1/1		1/1	
 Sea's Claim	5a85ed60f30c7230	22	0/0		1/2	ix:resp
 Seer's Vision	0523ea1db7149a8d	4	1/1		0/1	ix:resp
 Selesnya Evangel	994e7181c514b662	19	1/1		1/1	
@@ -149,7 +158,9 @@ Skyfisher Spider	1cb931195e09aaf1	4	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Skyshroud Ranger	1dee78610bfa14b6	35	1/1		1/1	
 Slagwurm Armor	ef2993bb142112b8	8	1/1		0/1	ix:resp
 Sludge Monster	e44b71b9981afd1a	27	2/2		1/1	
+Slum Reaper	3aa570dd8fc34304	35	1/1		1/1	
 Smitten Swordmaster	ebb42a373252c22e	3	0/0		1/2	ix:resp
+Song of Eärendil	3a0f2a3c25c6877e	37	0/0		0/0	
 Spawning Grounds	bba18e07fbd42872	3	0/0		1/2	ix:resp
 Spiketail Drakeling	fa3b58a9587dce03	37	1/1		1/1	
 Splinter, the Mentor	50698de4e09b835f	9	1/1		0/1	ix:resp
@@ -165,6 +176,7 @@ Teysa Karlov	cf7ead8791572676	16	0/0		0/0
 The Prydwen, Steel Flagship	23535f5b61730bec	29	2/2		1/1	
 The Wasp, Winsome Avenger	79bad488e13c5f6a	62	2/2		1/1	
 Tidal Wave	a63e7bf9dac65c88	10	0/0		2/2	
+Tormentor's Trident	38735b7a18e1bac3	101	1/1		1/1	
 Treachery	3ce0072feacef208	3	1/1		1/2	ix:resp
 Trokin High Guard	7063ae8de6d1272e	4	0/0		0/0	
 Two-Headed Giant of Foriys	97fe9df449f4a528	16	0/0		0/0	
@@ -176,6 +188,7 @@ Vine Trellis	6abdc8240bf3189d	38	1/1		1/1
 Viridian Acolyte	1946a09c45e2cbbb	20	1/1		0/1	ix:resp
 Wall of Omens	9a60928592432c58	4	1/1		1/1	
 Whisperer of the Wilds	0a131e268283daac	13	2/2		0/1	ix:resp
+Wild Hunger	1325a305941d9b30	47	0/0		4/4	
 Wind Sail	2f5fe82ae6989fd1	23	0/0		2/2	
 Wintermoor Commander	c0b24dd5df6eec28	22	1/1		0/1	ix:resp
 Wound Reflection	9702a6df00cea4e6	4	1/1		1/1	
