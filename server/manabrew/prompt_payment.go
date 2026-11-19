@@ -23,8 +23,10 @@ import (
 // window's per-source offer, and "undo_tap"), mirroring promptPriority's own
 // exclusion of pass/concede from its Actions list: "done", "autofill" and
 // "cancel_cast" are answered through pay/cancel outputs instead of act, so
-// listing them as actionable "act" targets would be misleading. autofill
-// still gets a row so the client can show what it taps.
+// listing them as actionable "act" targets would be misleading. ManaBrew's
+// PaymentAction has no autofill member (its auto-pay is the pay{auto:true}
+// output), so an offered autofill is told in the presentation description
+// instead -- its label, "Auto-fill: tap ...", which says what it taps.
 //
 // CanConfirmFromPool is true exactly when a "done" option is offered: the
 // legacy window always offers one (Done finalises whatever is currently
@@ -48,21 +50,22 @@ func (t *Translator) promptPayment(d *decision.Decision, v *view.View) (mb.Promp
 		cost = paymentCostString(d.ManaPayment.Cost)
 	}
 	actions := make([]mb.PaymentAction, 0, len(d.Options))
+	autofill := ""
 	for _, opt := range d.Options {
 		switch opt.Kind {
 		case "mana", "activate":
-			actions = append(actions, mb.PaymentAction{ID: actionID(opt.Index), Type: "activateAbility",
+			actions = append(actions, mb.PaymentAction{ID: actionID(opt.Index), Type: mb.ActionActivateManaAbility,
 				CardID: cardID(opt.Obj), AbilityIndex: opt.Ability, Description: opt.Label,
 				IsManaAbility: true, ProducedMana: manaProductions(v, opt.Obj)})
 		case decision.OptUndoTap:
-			actions = append(actions, mb.PaymentAction{ID: actionID(opt.Index), Type: "undoMana",
+			actions = append(actions, mb.PaymentAction{ID: actionID(opt.Index), Type: mb.ActionUndoMana,
 				CardID: cardID(opt.Obj), Description: opt.Label})
 		case decision.OptAutoFill:
-			actions = append(actions, mb.PaymentAction{ID: actionID(opt.Index), Type: "autofill", Description: opt.Label})
+			autofill = opt.Label
 		}
 	}
 	in := mb.PayManaCostInput{
-		PromptBase:         mb.PromptBase{Presentation: mb.PromptPresentation{Title: d.Prompt, Targets: []mb.TargetRef{}}},
+		PromptBase:         mb.PromptBase{Presentation: mb.PromptPresentation{Title: d.Prompt, Description: autofill, Targets: []mb.TargetRef{}}},
 		CardID:             cardID(d.Source),
 		CardName:           name,
 		ManaCost:           cost,
@@ -196,4 +199,12 @@ func (t *Translator) parsePayManaCost(out mb.PromptOutputValue, p *Pending) Outc
 		return Outcome{Err: errCode(mb.CodeWrongPromptType,
 			fmt.Sprintf("prompt payManaCost does not take a %s response", out.OutputType()), idPtr(cur))}
 	}
+}
+
+// PaymentOffersAutoFill reports whether a payManaCost prompt this package
+// built offers auto-fill, so a client's pay{auto:true} is accepted: the
+// window's description is set exactly then (promptPayment), to the
+// auto-fill's own label.
+func PaymentOffersAutoFill(in mb.PayManaCostInput) bool {
+	return in.Presentation.Description != ""
 }

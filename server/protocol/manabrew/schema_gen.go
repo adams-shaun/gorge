@@ -70,6 +70,7 @@ var (
 	schemaPayManaCostInput                  = &schema{kind: schemaStruct}
 	schemaPayOutput                         = &schema{kind: schemaStruct}
 	schemaPaymentAction                     = &schema{kind: schemaStruct}
+	schemaPlayCardMode                      = &schema{kind: schemaStruct}
 	schemaPlayerDto                         = &schema{kind: schemaStruct}
 	schemaPromptBase                        = &schema{kind: schemaStruct}
 	schemaPromptInput                       = &schema{kind: schemaStruct}
@@ -95,6 +96,10 @@ var (
 	schemaTargetRef                         = &schema{kind: schemaStruct}
 	schemaVisibleCard                       = &schema{kind: schemaStruct}
 	schemaZoneDto                           = &schema{kind: schemaStruct}
+	schemaabilityActionWire                 = &schema{kind: schemaStruct}
+	schemacardActionWire                    = &schema{kind: schemaStruct}
+	schemacardDtoFields                     = &schema{kind: schemaStruct}
+	schemacastActionWire                    = &schema{kind: schemaStruct}
 	schemaschema                            = &schema{kind: schemaStruct}
 )
 
@@ -131,7 +136,7 @@ func init() {
 		"isClassLevelUp": nil,
 		"isManaAbility":  nil,
 		"label":          nil,
-		"mode":           nil,
+		"mode":           schemaPlayCardMode,
 		"producedMana":   &schema{kind: schemaList, elem: schemaMana},
 		"type":           nil,
 	}
@@ -154,15 +159,21 @@ func init() {
 	}
 	schemaCancelOutput.fields = map[string]*schema{}
 	schemaCardBackFaceSummary.fields = map[string]*schema{
-		"manaCost":  nil,
-		"name":      nil,
-		"power":     nil,
-		"toughness": nil,
-		"types":     nil,
+		"manaCost":   nil,
+		"name":       nil,
+		"oracleText": nil,
+		"typeLine":   nil,
+		"uris":       schemaCardImageUris,
 	}
 	schemaCardChoiceDto.fields = map[string]*schema{
-		"id":    nil,
-		"label": nil,
+		"colors":   nil,
+		"count":    nil,
+		"kind":     nil,
+		"name":     nil,
+		"names":    nil,
+		"playerId": nil,
+		"value":    nil,
+		"values":   nil,
 	}
 	schemaCardDto.fields = map[string]*schema{
 		"attachedTo":        nil,
@@ -228,6 +239,7 @@ func init() {
 		"border_crop": nil,
 		"large":       nil,
 		"normal":      nil,
+		"png":         nil,
 		"small":       nil,
 	}
 	schemaCardView.fields = map[string]*schema{}
@@ -248,7 +260,7 @@ func init() {
 	schemaChooseBoardTargetsInput.fields = map[string]*schema{
 		"cancellable":   nil,
 		"candidates":    &schema{kind: schemaList, elem: schemaTargetRef},
-		"chosenTargets": &schema{kind: schemaList, elem: schemaTargetRef},
+		"chosenTargets": nil,
 		"hostile":       nil,
 		"intent":        nil,
 		"maxTargets":    nil,
@@ -299,10 +311,9 @@ func init() {
 		"presentation": schemaPromptPresentation,
 	}
 	schemaClassLevelDto.fields = map[string]*schema{
-		"abilities": nil,
-		"level":     nil,
-		"maxLevel":  nil,
-		"minLevel":  nil,
+		"cost":   nil,
+		"level":  nil,
+		"oracle": nil,
 	}
 	schemaClientDirective.fields = map[string]*schema{
 		"directive": schemaDirectiveInput,
@@ -502,12 +513,18 @@ func init() {
 	}
 	schemaPaymentAction.fields = map[string]*schema{
 		"abilityIndex":  nil,
+		"amount":        nil,
 		"cardId":        nil,
 		"description":   nil,
 		"id":            nil,
 		"isManaAbility": nil,
 		"producedMana":  &schema{kind: schemaList, elem: schemaMana},
+		"resource":      nil,
 		"type":          nil,
+	}
+	schemaPlayCardMode.fields = map[string]*schema{
+		"cost": nil,
+		"type": nil,
 	}
 	schemaPlayerDto.fields = map[string]*schema{
 		"activeSchemeNames":   nil,
@@ -588,8 +605,8 @@ func init() {
 		"zone":          nil,
 	}
 	schemaSagaChapterDto.fields = map[string]*schema{
-		"ability": nil,
-		"chapter": nil,
+		"chapters": nil,
+		"oracle":   nil,
 	}
 	schemaScryDecision.fields = map[string]*schema{
 		"zoneCardIds": nil,
@@ -695,6 +712,81 @@ func init() {
 		"count":   nil,
 		"ownerId": nil,
 		"zone":    nil,
+	}
+	schemaabilityActionWire.fields = map[string]*schema{
+		"abilityIndex":   nil,
+		"cardId":         nil,
+		"cost":           nil,
+		"description":    nil,
+		"id":             nil,
+		"isClassLevelUp": nil,
+		"isManaAbility":  nil,
+		"producedMana":   &schema{kind: schemaList, elem: schemaMana},
+		"type":           nil,
+	}
+	schemacardActionWire.fields = map[string]*schema{
+		"cardId": nil,
+		"id":     nil,
+		"type":   nil,
+	}
+	schemacardDtoFields.fields = map[string]*schema{
+		"attachedTo":        nil,
+		"attachmentIds":     nil,
+		"attackTargetId":    nil,
+		"attackingPlayerId": nil,
+		"basePower":         nil,
+		"baseToughness":     nil,
+		"choices":           &schema{kind: schemaList, elem: schemaCardChoiceDto},
+		"classLevel":        nil,
+		"classLevels":       &schema{kind: schemaList, elem: schemaClassLevelDto},
+		"cmc":               nil,
+		"color":             nil,
+		"commanderTax":      nil,
+		"controllerId":      nil,
+		"counters":          nil,
+		"damage":            nil,
+		"effectiveManaCost": nil,
+		"exerted":           nil,
+		"finalChapter":      nil,
+		"flashbackCost":     nil,
+		"foil":              nil,
+		"id":                nil,
+		"identity":          schemaCardIdentity,
+		"isAttacking":       nil,
+		"isBestowed":        nil,
+		"isCopy":            nil,
+		"isCrewed":          nil,
+		"isDoubleFaced":     nil,
+		"isFaceDown":        nil,
+		"isMadnessExiled":   nil,
+		"isPlotted":         nil,
+		"isRingBearer":      nil,
+		"isTransformed":     nil,
+		"isWarpExiled":      nil,
+		"keywords":          nil,
+		"kickerCost":        nil,
+		"madnessCost":       nil,
+		"manaCost":          nil,
+		"mergedCardIds":     nil,
+		"ownerId":           nil,
+		"phasedOut":         nil,
+		"power":             nil,
+		"sagaChapters":      &schema{kind: schemaList, elem: schemaSagaChapterDto},
+		"subtypes":          nil,
+		"summoningSick":     nil,
+		"supertypes":        nil,
+		"tapped":            nil,
+		"text":              nil,
+		"toughness":         nil,
+		"types":             nil,
+		"wouldDieInCombat":  nil,
+	}
+	schemacastActionWire.fields = map[string]*schema{
+		"cardId": nil,
+		"id":     nil,
+		"label":  nil,
+		"mode":   schemaPlayCardMode,
+		"type":   nil,
 	}
 	schemaschema.fields = map[string]*schema{}
 }
@@ -838,6 +930,8 @@ func schemaOfTarget(v any) (s *schema, ok bool) {
 		return schemaPayOutput, x != nil
 	case *PaymentAction:
 		return schemaPaymentAction, x != nil
+	case *PlayCardMode:
+		return schemaPlayCardMode, x != nil
 	case *PlayerDto:
 		return schemaPlayerDto, x != nil
 	case *PromptBase:
@@ -888,6 +982,14 @@ func schemaOfTarget(v any) (s *schema, ok bool) {
 		return schemaVisibleCard, x != nil
 	case *ZoneDto:
 		return schemaZoneDto, x != nil
+	case *abilityActionWire:
+		return schemaabilityActionWire, x != nil
+	case *cardActionWire:
+		return schemacardActionWire, x != nil
+	case *cardDtoFields:
+		return schemacardDtoFields, x != nil
+	case *castActionWire:
+		return schemacastActionWire, x != nil
 	case *schema:
 		return schemaschema, x != nil
 	}

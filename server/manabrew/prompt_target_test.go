@@ -128,17 +128,18 @@ func TestBoardTargetsIntentTable(t *testing.T) {
 	}
 }
 
-// TestTargetPromptWithoutEffectContext pins the no-context shape: intent
-// empty (omitted on the refs), hostile false, candidates still one per
-// option.
+// TestTargetPromptWithoutEffectContext pins the no-context shape: the ask's
+// required intent is the conservative friendly (ManaBrew's TargetingIntent
+// has no empty value), each ref's optional intent omitted, hostile false,
+// candidates still one per option.
 func TestBoardTargetsWithoutEffectContext(t *testing.T) {
 	d := &decision.Decision{Seq: 4, Player: 1, Kind: decision.KTarget, Min: 1, Max: 1, Prompt: "Choose a card",
 		Options: []decision.Option{{Index: 0, Kind: "permanent", Label: "Bear", Obj: 2}}}
 	v := smallView()
 	msg := pendingMustBuild(t, d, v)
 	in := msg.Input.Value.(mb.ChooseBoardTargetsInput)
-	if in.Intent != "" || in.Hostile {
-		t.Fatalf("no-context ask must be intent-empty and non-hostile, got %q/%v", in.Intent, in.Hostile)
+	if in.Intent != mb.IntentFriendly || in.Hostile {
+		t.Fatalf("no-context ask must be friendly and non-hostile, got %q/%v", in.Intent, in.Hostile)
 	}
 	if len(in.Candidates) != 1 || in.Candidates[0].Intent != "" || in.Candidates[0].Oracle != "Bear" {
 		t.Fatalf("candidates = %#v", in.Candidates)
