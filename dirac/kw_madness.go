@@ -152,10 +152,25 @@ func (s *State) restrCastAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) bo
 // gaps census (offerSourcesAfford) is the hand cast's read of the same
 // sources, a net-negative filter counting for less, never for more.
 func (s *State) filterCastAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
-	if k.gen == nil || !k.gen.anyFilt {
+	if k.gen == nil || !k.gen.anyFilt || !s.filtFundsMadness(k, p) {
 		return false
 	}
 	return s.offerSourcesAfford(k, p, s.objs[o].card, o, cost)
+}
+
+// filtFundsMadness: some filter of p's may fund the madness cast. A
+// hybrid-fee filter (Graven Cairns' "{B/R}, {T}: Add {B}{B}, {B}{R}, or
+// {R}{R}") funds nothing unless p already floats its fee: gorge's census
+// cannot relax it (mana_filterhybrid.go) and its potential bound refuses it,
+// while the gaps census charges its {B/R} as generic mana, so a Plains and a
+// green land would look like they fund {1}{R}{R} (CR 107.4e, 601.2g-h).
+func (s *State) filtFundsMadness(k *prep, p uint8) bool {
+	for b := s.scriptFilt(k, p); b.any(); b = b.rest() {
+		if _, _, hyb := s.filtHyb(k, b.first()); !hyb || s.filtPaid(k, p, b.first()) {
+			return true
+		}
+	}
+	return false
 }
 
 // keywordCastAffords: p can pay cost for card o's keyword cast its resolving
