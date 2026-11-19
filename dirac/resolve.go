@@ -63,6 +63,7 @@ func (s *State) resolveTop(k *prep) {
 	if e.kind == seTrigger && e.li != 0 && e.trigObj != NoObj && s.objs[e.trigObj].ver > s.lk(e.li).ver+1 {
 		s.res.flags |= rfTrigGone
 	}
+	s.btSrcCtrlRes(k, &e) // gorge reads TriggeredSourceController now (trig_srcctrllive.go)
 	if k.gen != nil {
 		s.g.nimp = 0
 		s.impSeedOnResolve(k, &e)               // its source's kept Imprinted (zone_imprint.go)

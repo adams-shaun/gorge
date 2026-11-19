@@ -629,8 +629,11 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			} else if !blocked {
 				s.untapEffect(k, sl)
 			}
-			s.grantEOT(sl, kop.KwHaste)
-			s.promoKw(k, sl, kop.KwHaste)
+			// the haste lasts as long as the control effect (gorge
+			// dropControlKeywords): it ends early when the controller leaves
+			// the game (CR 800.4a), so the record carries it, at the
+			// record's timestamp in the layer-6 walk (l6GrantMask)
+			s.g.fx[s.g.nfx-1].r.fl |= fcHaste // the record gainControl just appended
 		}
 	case kop.OpSetPT:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {

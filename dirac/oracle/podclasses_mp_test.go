@@ -312,3 +312,43 @@ func thunderbreakWatch(c *PickCtx) bool {
 func TestFourSeatThunderbreakLockstep(t *testing.T) {
 	podClassLockstep(t, thunderbreakPodDeck, 24, 10, thunderbreakWatch, &dirac.DebugSrcCtrlListener)
 }
+
+// The Regent's "that player" once the targeting spell or ability has left
+// the stack before the trigger resolves. gorge reads TriggeredSourceController
+// at resolution (effects.TriggeredSourceController): the live controller of
+// the targeting spell, or of an ability's source object, and its owner once
+// that object has left the stack and the battlefield (a spell countered in
+// response, a Mogg Fanatic sacrificed as the cost). It is not last-known
+// information (CR 608.2h). dirac reads the same object again as the trigger
+// resolves (trig_srcctrllive.go). The mutation (DebugBtSrcCtrlGone) names the
+// Regent's controller for a departed source and must diverge.
+var thunderbreakCounterPodDeck = []cardset.Entry{
+	{Name: "Thunderbreak Regent", Count: 7}, {Name: "Mogg Fanatic", Count: 6},
+	{Name: "Shock", Count: 3}, {Name: "Counterspell", Count: 5},
+	{Name: "Act of Treason", Count: 3},
+	{Name: "Mountain", Count: 10}, {Name: "Island", Count: 6},
+}
+
+// TestFourSeatThunderbreakCounteredLockstep: four-seat games where Regent
+// triggers resolve after their targeting spell was countered or their
+// targeting ability's source was sacrificed.
+func TestFourSeatThunderbreakCounteredLockstep(t *testing.T) {
+	t.Run("clean", func(t *testing.T) {
+		var bt dirac.BtStats
+		dirac.DebugBtStats = &bt
+		defer func() { dirac.DebugBtStats = nil }()
+		st := runPodClass(t, thunderbreakCounterPodDeck, 24, thunderbreakWatch, &dirac.DebugBtSrcCtrlGone, false)
+		t.Logf("%d games, %d divergences, %d stalls, %d watched decisions; %d live reads, %d departed sources",
+			st.games, st.divs, st.stalls, st.hits, bt.SrcCtrlReads, bt.SrcGone)
+		if bt.SrcGone < 10 {
+			t.Errorf("the games reached %d departed sources, want >= 10", bt.SrcGone)
+		}
+	})
+	t.Run("mutation", func(t *testing.T) {
+		st := runPodClass(t, thunderbreakCounterPodDeck, 24, thunderbreakWatch, &dirac.DebugBtSrcCtrlGone, true)
+		if st.divs == 0 {
+			t.Fatalf("mutation left %d games with no divergence", st.games)
+		}
+		t.Logf("mutation diverged in %d of %d games", st.divs, st.games)
+	})
+}
