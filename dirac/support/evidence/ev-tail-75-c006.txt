@@ -6,6 +6,7 @@ Archwing Dragon
 Artificer Class
 Ashen Monstrosity
 Aspect of Lamprey
+Banishment
 Bathe in Dragonfire
 Belligerent Sliver
 Black Widow, Intel Expert
@@ -27,6 +28,7 @@ Burning Fields
 Chainweb Aracnir
 Chaotic Backlash
 Clip Wings
+Continue?
 Creakwood Liege
 Crosstown Courier
 Curiosity Crafter
@@ -57,6 +59,7 @@ Gift of Fangs
 Gift of Paradise
 Glimmervoid
 Gnarled Effigy
+Great Defender
 Grixis Slavedriver
 Guul Draz Mucklord
 Haazda Officer
@@ -104,6 +107,7 @@ Nakaya Shade
 Nezumi Freewheeler
 Nyx-Fleece Ram
 Oak Street Innkeeper
+Obelisk of Grixis
 Ogre Taskmaster
 Panic Attack
 Paradigm Shift
@@ -139,6 +143,7 @@ Skyline Cascade
 Songstitcher
 Spike Breeder
 Spindrift Drake
+Spiteful Squad
 Sultai Emissary
 Sunscorched Desert
 Surge Engine

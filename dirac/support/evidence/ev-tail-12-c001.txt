@@ -40,6 +40,7 @@ Briarblade Adept
 Broodstar
 Budoka Pupil
 Butch DeLoria, Tunnel Snake
+Cackling Witch
 Call to Serve
 Catalyst Elemental
 Cathartic Pyre
@@ -160,9 +161,11 @@ Leonardo, Worldly Warrior
 Leonin Armorguard
 Levitation
 Lich's Caress
+Loch Dragon
 Loyal Fire Sage
 MACH-1, Swooping Scoundrel
 Macabre Mockery
+Magus of the Coffers
 Mana Confluence
 Manaplasm
 Mantle of Leadership
@@ -192,6 +195,7 @@ Nether Spirit
 Niblis of the Mist
 Nikara, Lair Scavenger
 Nissa, Worldwaker
+Nucklavee
 Nyxborn Triton
 Ominous Cemetery
 Ophiomancer
@@ -232,6 +236,7 @@ Restless Bones
 Restoration Angel
 Retrofitter Foundry
 Revel of the Fallen God
+Ria Ivor, Bane of Bladehold
 Rise to the Challenge
 Rishadan Pawnshop
 Rix Maadi, Dungeon Palace

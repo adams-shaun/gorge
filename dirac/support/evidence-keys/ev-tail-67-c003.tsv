@@ -1,23 +1,35 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Eyes of the Beholder	cfc896dd5611f208	13	0/0		1/2	ix:resp
 A-Most Wanted	87f4354a07d46c3a	38	1/1		2/2	
 A-Umara Mystic	cecfcf975ea10856	4	1/1		0/1	ix:resp
 Accelerated Evolution	6d1c1078a0453060	65	1/1		2/2	
 Animate Land	ca96eda71bd0e7e8	45	0/0		2/2	
 Archon of Absolution	00883525e009a507	3	0/0		0/0	
+Armor Thrull	743550c0ba174684	6	1/1		0/1	ix:resp
 Asphodel Wanderer	dddb88ef0a12584b	62	1/1		1/1	
 Azorius Ploy	9c7b7b4c208b0cac	43	0/0		2/2	
+Beast Attack	26212472d9149b66	13	0/0		4/4	
+Biting Rain	6c2c845cd955b3c5	8	0/0		1/2	ix:resp
 Blight Sickle	bf230f6d4d8c3624	22	1/1		0/1	ix:resp
 Blossom Dryad	8af86815052638c7	19	1/1		1/1	
 Caldera Pyremaw	dcc4cc669da4ed08	36	1/1		1/1	
 Caravan Escort	4ea3d5efd4fb1f1d	7	1/1		0/1	ix:resp
 Case the Joint	fe67e10ff42b98c6	66	0/0		2/2	
 Castle	bdd747c6541de8c3	4	0/0		0/0	
+Champion's Helm	c055e38b89f07e79	8	1/1		1/1	
 Clackbridge Troll	212b01c55c3d7779	6	2/2		1/1	
 Cling to Dust	eff2a23663600334	6	0/0		3/4	cast/alt:escaped
+Clutch of Undeath	892157b3eb04fe49	14	0/0		1/2	ix:resp
 Company Commander	a13a9f47cb7aae86	4	2/2		0/1	ix:resp
 Confront the Unknown	9e6bc09c325c062b	5	0/0		1/2	ix:resp
+Consuming Vapors	c83f01583ff9e220	6	0/0		1/2	ix:resp
+Contagion	2a3c5fdb451f4bc2	14	0/0		2/2	
+Corrupted Zendikon	0dfc1c99d01f2497	5	1/1		2/2	
+Corrupting Licid	63508a3b6371f137	5	1/1		1/1	
+Corsairs of Umbar	7f1ba796f6278fd3	3	2/2		0/1	ix:resp
 Crackling Triton	efe82492bd59cd4c	16	1/1		0/1	ix:resp
 Crypt Incursion	26651cf26a7e40c3	42	0/0		2/2	
+Custodi Soulbinders	4515064808315608	6	1/1		1/1	
 Daily Bugle Newspaper	257150d1bbbbb46a	46	1/1		1/1	
 Death Rattle	cd23c9ed59e46eba	9	0/0		1/2	ix:resp
 Death's-Head Buzzard	396fcc5df2bc166d	7	1/1		1/1	
@@ -27,13 +39,24 @@ Dismantling Blow	ad70ec28a7086ec2	16	0/0		4/4
 Dwarven Vigilantes	794af72b66324574	18	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Eidolon of Rhetoric	3afd9a2a76a4eccb	10	0/0		0/0	
 Emerge Unscathed	7bbf4f768539fe25	54	0/0		2/2	
+Essence Feed	ae27113ec5bc8d48	14	0/0		1/2	ix:resp
+Eyes of Gitaxias	3d0557c1c7275d43	5	0/0		2/2	
+Faerie Mastermind	1443f6fc8449d5e5	25	2/2		1/1	
 Farbog Boneflinger	d90d58ce93fd7b06	33	1/1		1/1	
 Femeref Healer	8b1f484912cdb668	6	1/1		1/1	
+Final-Sting Faerie	a1ba605360ed1362	11	1/1		1/1	
+Foe-liage	a7a12c473a81af79	9	1/1		0/1	ix:resp
+Fog of Gnats	9c8ec3441dddab2b	8	1/1		1/1	
 Galvanic Iteration	ada8cf8d366b9ccb	8	0/0		3/4	ix:resp
 Gnome-Made Engine	e17a2e3ef946bd26	47	1/1		1/1	
 Goblin Glider	d3adead6b92a74c8	36	0/0		0/0	
+Guardian Kirin	ea4c832a663e816a	4	1/1		1/1	
+Helitrooper	7df52cfb92bded47	10	1/1		1/1	
+Heroes' Podium	1eba0b74102dcf0e	8	1/1		1/1	
 Idol of Oblivion	028a282dc5e0ebfa	31	2/2		1/1	
+Implement of Ferocity	8864bda92317400c	25	2/2		1/1	
 Indigo Faerie	5a93545a79599469	31	1/1		1/1	
+Knight of the Keep	1f491da90b7a6d1d	4	0/0		0/0	
 Kor Castigator	465c9bb276e94804	11	0/0		0/0	
 Lagrella, the Magpie	4342f3dbfed23979	4	1/1		0/1	ix:resp
 Liliana's Steward	22240af609010c06	54	1/1		1/1	
@@ -41,43 +64,70 @@ Lucas, the Sharpshooter	a721a5a1ac39c102	4	1/1		0/1	ix:resp
 Lyla, Holographic Assistant	26184d855c63ee37	4	1/1		0/1	ix:resp
 Mana Matrix	fef226569f8c91ea	4	0/0		0/0	
 Might Weaver	84cf9afe434c065e	25	1/1		1/1	
+Morkrut Necropod	ec955e86e9b55b75	14	2/2		1/1	
 Mortal's Ardor	1945c394c93c5fa4	4	0/0		1/2	ix:resp
 Mother of Runes	980010c5a3abbb75	11	1/1		0/1	ix:resp
+Mourning	6af883be95647e15	40	1/1		2/2	
+Novice Dissector	256c9c0c86285e4a	14	1/1		1/1	
 Obscura Initiate	90678c7f08ff45b3	5	1/1		1/1	
 Orcish Bowmasters	a50b2aa31d289afd	4	2/2		0/1	ix:resp
 Orim's Touch	4c922ff4753d4574	4	0/0		3/4	ix:resp
+Phyrexian Etchings	6748596d16a13291	13	3/3		1/1	
+Phyrexian Obliterator	95dcb6a8a8a9e8ba	9	1/1		1/1	
 Preeminent Captain	ab5c7e026cc68025	6	1/1		1/1	
 Prizefighter Construct	21d2689bcf6f422a	24	0/0		0/0	
 Progenitor Mimic	68ebcea0b63fe655	3	0/0		0/0	
 Protector of Gondor	e0e575c6407e0e46	5	1/1		0/1	ix:resp
 Prowling Pangolin	2aa62652a21f2b9f	7	1/1		1/1	
+Psychic Spear	7dd0c7bc09ddd05f	17	0/0		1/2	ix:resp
+Purifying Dragon	cf5750e94b05ddb6	7	1/1		1/1	
 Rally to Battle	9bd59f6f319a97cd	5	0/0		2/2	
 Reparations	3d88111cda8f06e1	27	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Replenish	2ad4870ef3cb850c	4	0/0		1/2	ix:resp
+Rhox Oracle	50401e5ef015d855	3	1/1		1/1	
+Samite Pilgrim	57df9d7b355d20f6	5	1/1		1/1	
 Scepter of Celebration	b9fd15a3f2b8dd7d	21	2/2		1/1	
 Scion of Oona	11b97b36b823bc68	69	0/0		0/0	
 Secure the Scene	18387e00adabd9c6	5	0/0		2/2	
 Selective Memory	75cd0507b773e2b3	19	0/0		2/2	
+Settle the Score	be02feab1c11d4e3	12	0/0		2/2	
 Shadowspear	69a2db86f43c128a	38	2/2		1/1	
+Sheoldred	e2f7955e83dc042d	10	2/2		1/1	
 Shore Keeper	29c31f28707b7105	28	1/1		1/1	
 Simic Keyrune	5bc53667b2daacf7	50	2/2		1/1	
+Simplify	8bf5cf4e3cfe4cde	4	0/0		1/2	ix:resp
+Skullscorch	f1230b4fdccb0515	4	0/0		1/2	ix:resp
 Sky Terror	99e813f094a5b37f	6	0/0		0/0	
 Spearbreaker Behemoth	5c7db578bb26d526	8	1/1		1/1	
 Spectral Shepherd	5fc11137890f9e2b	17	1/1		1/1	
 Spellweaver Eternal	23c9e8a67bac3365	45	2/2		1/1	
 Spirit Weaver	d64347872e01aafa	8	1/1		0/1	ix:resp
+Sporogenesis	e51a23b6eb91ce7a	6	3/3		1/3	f0/t0/opt:n,f0/t0/opt:y
+Stinging Barrier	6d5b31969994594e	7	1/1		1/1	
 Streetbreaker Wurm	ba7f07849b6cdc62	5	0/0		0/0	
 Sultai Scavenger	7d5698fd1b14ee7a	4	0/0		0/0	
+Symmetry Sage	53f3872c934afd19	16	1/1		1/1	
+Tactical Advantage	43ab34c6992fad14	5	0/0		2/2	
 Task Force	636071612b04b5ba	19	1/1		1/1	
+Tawnos's Wand	c9b21b3818bdbc11	15	1/1		1/1	
+Temporal Cascade	96f3b4fce993c6f0	3	0/0		1/2	ix:resp
 Tenza, Godo's Maul	c39ec9f842215c71	22	1/1		1/1	
 The Bloodsky Massacre	2456000bc5c62281	6	0/0		0/0	
 Thrull Retainer	1cfb9626adab31c2	9	1/1		1/2	ix:resp
 Thundering Sparkmage	d2640051049ba9dd	28	1/1		1/1	
 Tibor and Lumia	ba4382482e9246f2	16	2/2		1/1	
+Tidal Bore	e1941b586b593dd3	21	0/0		2/2	
+Titan Hunter	7c8ac31bf43be3b7	5	2/2		0/1	ix:resp
+Topan Freeblade	daf29a4a64f76fe6	4	1/1		0/1	ix:resp
+Tranquil Frillback	771a4b82caf0eba5	7	1/1		0/1	ix:resp
 Transcendent Master	bc2e8409a1409c12	14	1/1		1/1	
 Trigon of Rage	e338cc69305a890d	42	2/2		1/1	
 Unwilling Ingredient	f5972371134e7e6d	52	1/1		1/1	
+Vampire Lacerator	de252312e424672b	28	1/1		1/1	
+Venomcrawler	9337f283dc8c0715	11	1/1		1/1	
 Voldaren Stinger	01731e8150e7e76d	13	1/1		1/1	
 Well-Laid Plans	ec50d8aae541990f	6	0/0		0/0	
+Whack	320835820407e3b6	3	0/0		1/2	ix:resp
 Windgrace Acolyte	58988c529a1349bf	6	1/1		0/1	ix:resp
 Writhing Necromass	ef632a4adcd1f489	6	0/0		0/0	
 Young Blue Dragon	94b8d84fa4903e19	13	0/0		1/2	ix:resp

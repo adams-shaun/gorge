@@ -2,6 +2,7 @@ Aboshan's Desire
 Aether Mutation
 Ageless Guardian
 Agent of the Shadow Thieves
+Alms of the Vein
 Ambitious Farmhand
 An-Havva Inn
 Ancient Amphitheater
@@ -38,6 +39,7 @@ Borrowed Time
 Bottle-Cap Blast
 Brambleweft Behemoth
 Breath Weapon
+Brutal Nightstalker
 Bushmeat Poacher
 Butterbur, Bree Innkeeper
 Carrion Grub
@@ -76,6 +78,7 @@ Dust Elemental
 Ebony Charm
 Ebony Horse
 Edric, Spymaster of Trest
+Eidolon of Blossoms
 Electric Revelation
 Electrozoa
 Elegant Entourage
@@ -95,17 +98,20 @@ Feral Ridgewolf
 Flamespeaker Adept
 Folk of An-Havva
 Forest
+Gaea's Gift
 Ghalma's Warden
 Glimmer of Genius
 Gnottvold Hermit
 Goblin Lackey
 Goreclaw, Terror of Qal Sisma
 Gossamer Phantasm
+Grafted Butcher
 Grazing Kelpie
 Grim Bounty
 Grim Guardian
 Grim Haruspex
 Grim Return
+Grizzled Outrider
 Ground Seal
 Guise of Fire
 Hapatra, the Desert Fang
@@ -113,6 +119,7 @@ Harsh Scrutiny
 Harvest Gwyllion
 Haunt of the Dead Marshes
 Hawkeye, Clint Barton
+Heartstone
 Henrika Domnathi
 Herald of Serra
 Heroes for Hire
@@ -128,6 +135,7 @@ Invasion of Tarkir
 Island
 Jace's Phantasm
 Join Forces
+Joraga Auxiliary
 Jwari Scuttler
 Kazandu Refuge
 Keldon Halberdier
@@ -254,6 +262,7 @@ Storm Fleet Sprinter
 Storm Sculptor
 Stun
 Subterranean Spirit
+Suffocating Blast
 Summoning Materia
 Sunder Shaman
 Swamp
@@ -282,6 +291,7 @@ Ulamog's Crusher
 Ulvenwald Captive
 Undercellar Myconid
 Undercity Necrolisk
+Unhallowed Phalanx
 Unlikely Aid
 Unnatural Growth
 Vault of the Archangel
@@ -301,8 +311,10 @@ Wasteful Harvest
 Watchwing Scarecrow
 Whisper of the Dross
 Wild Elephant
+Wild Ox
 Winds of Qal Sisma
 Witness the End
 Woolly Loxodon
 Xenk, Paladin Unbroken
 Xerex Strobe-Knight
+Yavimaya Scion

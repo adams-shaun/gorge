@@ -45,6 +45,7 @@ Border Guard
 Boreal Elemental
 Bottle Golems
 Brand
+Brawl-Bash Ogre
 Brood Birthing
 Bull Hippo
 Cartouche of Zeal
