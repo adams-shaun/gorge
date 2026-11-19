@@ -71,6 +71,7 @@ Courier's Briefcase
 Covert Operative
 Crackling Doom
 Crested Herdcaller
+Crush of Wurms
 Curious Killbot
 Daggerdrome Imp
 Daredevil, Fearless Fighter
@@ -248,6 +249,7 @@ Phyrexian Archivist
 Pianna, Nomad Captain
 Pillar Tombs of Aku
 Pincer Spider
+Pirate Ship
 Plague Rats
 Plains
 Planar Atlas

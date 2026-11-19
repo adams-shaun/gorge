@@ -39,6 +39,7 @@ Declare Dominance
 Delightful Discovery
 Deluge of Doom
 Desecration Elemental
+Despoiler of Souls
 Dingus Staff
 Drossclaw
 Dusk
@@ -106,6 +107,7 @@ Maralen of the Mornsong
 Mardu Outrider
 Maro
 Marshmist Titan
+Mending Hands
 Michiko's Reign of Truth
 Mind Knives
 Mindwarper
@@ -143,6 +145,7 @@ Sanguine Glorifier
 Seal of Fire
 Shared Trauma
 Sibsig Host
+Sigardian Priest
 Sign in Blood
 Sip of Hemlock
 Skeletal Kathari

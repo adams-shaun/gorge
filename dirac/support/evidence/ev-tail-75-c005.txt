@@ -117,6 +117,7 @@ Precinct Captain
 Quest for Renewal
 Rally the Peasants
 Rampaging Cyclops
+Raugrin Triome
 Reckless Barbarian
 Reclaim the Wastes
 Reduce in Stature
@@ -168,6 +169,7 @@ Voyager Staff
 Wall of Vines
 Waterknot
 Will-o'-the-Wisp
+Winding Canyons
 Wingsteed Rider
 Wizard Replica
 Woodland Stream
