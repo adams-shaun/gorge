@@ -206,7 +206,7 @@ func (s *State) filtUnits(k *prep, sl Slot) int {
 // relaxedPaidLimit, each dynamic amount at least one and at most six
 // (rules/potential_plan.go paymentPlanRelaxedAlternatives).
 func (s *State) filtRelaxable(k *prep, f slotMask) bool {
-	if f.count() > relaxedPaidLimit || s.filtRepeatIn(k, f) || s.filtHybIn(k, f) { // (a hybrid fee or a repeatable one has no relaxed alternative: mana_filterhybrid.go, gorge once=false)
+	if f.count() > relaxedPaidLimit || s.filtRepeatIn(k, f) || s.filtHybIn(k, f) { // (a hybrid fee or a repeatable one has no relaxed alternative: mana_filterhybrid.go, gorge ok=false)
 		return false
 	}
 	for ; f.any(); f = f.rest() {
