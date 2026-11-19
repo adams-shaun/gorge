@@ -19,6 +19,7 @@ Avenging Druid
 Awakening Zone
 Barl's Cage
 Battle Squadron
+Battletide Alchemist
 Beacon Hawk
 Bitter Downfall
 Black Widow, Daring Operative
@@ -32,6 +33,7 @@ Borrowed Grace
 Bow of Nylea
 Break Through the Line
 Bumi, Eclectic Earthbender
+Calibrated Blast
 Captivating Unicorn
 Carrion Screecher
 Cave of Temptation

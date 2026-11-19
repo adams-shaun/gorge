@@ -88,6 +88,7 @@ Disciple of Kangee
 Donatello's Science Lesson
 Douse in Gloom
 Dream Stalker
+Dreampod Druid
 Dripping-Tongue Zubera
 Dross Hopper
 Dross Ripper
@@ -191,6 +192,7 @@ Kalonian Twingrove
 Kaya's Ghostform
 Keen Sense
 Keldon Warlord
+Killing Glare
 Kithkin Billyrider
 Kitsune Bonesetter
 Knight Exemplar
@@ -236,6 +238,7 @@ Naya Battlemage
 Necroskitter
 Needle Storm
 Nettletooth Djinn
+New Frontiers
 Nick Fury, Spymaster
 Nighthawk, Dark Defender
 Nimbus Swimmer
@@ -283,6 +286,7 @@ Ranger Class
 Ranger-Captain of Eos
 Ravages of War
 Raven Wings
+Ravenous Sailback
 Regent's Authority
 Reject
 Rejuvenating Springs
@@ -327,6 +331,7 @@ Shielded by Faith
 Shocker
 Show of Confidence
 Sigiled Skink
+Silent Clearing
 Silverclad Ferocidons
 Siren of the Silent Song
 Skittering Invasion
@@ -351,6 +356,7 @@ Sphinx's Insight
 Spidersilk Net
 Spire Golem
 Spitemare
+Spreading Algae
 Spring
 Springsage Ritual
 Stabbing Pain

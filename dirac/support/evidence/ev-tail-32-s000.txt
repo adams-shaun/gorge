@@ -58,6 +58,7 @@ Frontline Devastator
 Garrison Griffin
 Genasi Enforcers
 General Kreat, the Boltbringer
+Ghitu Journeymage
 Ghost-Lit Stalker
 Ghost-Spider, Gwen Stacy
 Gisa's Bidding
@@ -112,9 +113,11 @@ Pious Evangel
 Plains
 Precognition Field
 Pygmy Pyrosaur
+Raging Spirit
 Rakka Mar
 Rakshasa's Secret
 Ravenous Harpy
+Reckless Imp
 Redwood Treefolk
 Relic of Progenitus
 Rescue Retriever

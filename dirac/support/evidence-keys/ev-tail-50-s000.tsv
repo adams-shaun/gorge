@@ -16,6 +16,7 @@ Belligerent Whiptail	d884fac16d4efd37	6	1/1		0/1	ix:resp
 Blazing Hope	de123716215a8c6f	8	0/0		1/2	ix:resp
 Bloodmark Mentor	77561e4f2b212a83	14	0/0		0/0	
 Boneshard Slasher	e680b0ec342ef61d	20	0/0		0/0	
+Boomerang	6c4c3d6a44a35400	46	0/0		2/2	
 Boreal Centaur	64c4791879ad9625	264	1/1		1/1	
 Brazen Wolves	89c1a76fab268c29	15	1/1		0/1	ix:resp
 Briber's Purse	e77c6cc38f6b24b7	53	1/1		0/1	ix:resp
@@ -108,6 +109,7 @@ Orcish Hellraiser	806a5ea6b710d1f8	3	2/2		0/1	ix:resp
 Parch	59680773ba59d6be	13	0/0		2/2	
 Petrified Wood-Kin	0d87c8e38bfab4c9	7	0/0		0/0	
 Phyrexian Broodstar	e4f03952b48fe949	10	0/0		0/0	
+Phyrexian Gargantua	23aede10b514e6ca	18	1/1		0/1	ix:resp
 Plunder	b244c34cfa001166	9	0/0		3/4	ix:resp
 Power Word Kill	45318a71ccacfe63	29	0/0		2/2	
 Primal Empathy	b43066bab1f00666	10	1/1		0/1	ix:resp
@@ -143,6 +145,9 @@ Skirsdag High Priest	9c164175e8123932	16	1/1		0/1	ix:resp
 Skywarp Skaab	069610244a91fdc6	17	1/1		0/1	ix:resp
 Skywing Aven	564389085140aa01	150	1/1		1/1	
 Slash the Ranks	90d7005522f8bc5f	14	0/0		1/2	ix:resp
+Snow-Covered Forest	a1a5f67cd8b33a1c	262	1/1		0/1	ix:resp
+Snow-Covered Plains	bdaf911aefce4749	1072	1/1		0/1	ix:resp
+Snow-Covered Swamp	c7302ea4a23ed037	1004	1/1		0/1	ix:resp
 Soltari Champion	88b0d68d5b1e65bc	24	1/1		0/1	ix:resp
 Soratami Mindsweeper	c0f7757d96f5ed1e	33	1/1		1/1	
 Soul Collector	01d1c7f1403e22d2	4	1/1		1/3	cast/alt:morphed,ix:resp

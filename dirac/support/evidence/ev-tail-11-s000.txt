@@ -14,6 +14,7 @@ Annihilating Glare
 Aphemia, the Cacophony
 Archdemon of Paliano
 Arctic Aven
+Arctic Treeline
 Artful Dodge
 Ascendant Evincar
 Assassin Initiate
@@ -237,6 +238,7 @@ Walking Sponge
 Wash Out
 Welding Jar
 Welkin Hawk
+Wild Instincts
 Wildwood Geist
 Wirewood Channeler
 Wirewood Hivemaster

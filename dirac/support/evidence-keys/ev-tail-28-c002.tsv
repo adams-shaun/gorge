@@ -5,6 +5,7 @@ A-Tenured Inkcaster	acbd1c3e81947a75	46	2/2		0/1	ix:resp
 Abattoir Ghoul	10291551e9b5448b	38	1/1		1/1	
 Academy Rector	5a4cda381a3ede55	33	1/1		1/1	
 Ad Nauseam	bc4cfa5cf0e3a8e0	6	0/0		1/2	ix:resp
+Air Servant	bfc27301b7b94848	8	1/1		1/1	
 Alaborn Grenadier	c99b31456c15f494	49	0/0		0/0	
 Alisaie Leveilleur	4c5b49e6d920a434	42	1/1		1/1	
 Alora, Merry Thief	7fa470c3fd0868de	72	1/1		1/1	
@@ -105,6 +106,7 @@ Grimdancer	9683bf52cf0acf5a	5	0/0		0/0
 Halcyon Glaze	511aa7cff7be1629	34	1/1		0/1	ix:resp
 Hand of Emrakul	bd26534733b50e54	15	1/1		1/1	
 Hanna's Custody	170460c24b7b0593	29	0/0		0/0	
+Haunting Figment	f8a9e4eefeea77d9	22	0/0		0/0	
 Hellraiser Goblin	c1f325ead8645b47	4	0/0		0/0	
 Herald of the Sun	2b12594c01daa799	24	1/1		1/1	
 Howling Moon	3a945cd5000701c2	40	2/2		1/1	
@@ -207,6 +209,7 @@ Slinking Serpent	dace2a9a9323a9c6	26	0/0		0/0
 Slippery Scoundrel	68c56121b1a6b75d	28	0/0		0/0	
 Slith Firewalker	dc8a2e9f8475cf98	44	1/1		1/1	
 Spectacle Mage	7d034858f7aca851	17	0/0		0/0	
+Spell Rupture	c5449466259f4ce6	12	0/0		2/2	
 Spread the Sickness	0faabb17881f84cb	23	0/0		2/2	
 Star of Extinction	916461638578817b	40	0/0		2/2	
 Stitchwing Skaab	c7ccd7a84880b75f	44	1/1		1/1	

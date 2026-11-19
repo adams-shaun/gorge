@@ -1,0 +1,226 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A Realm Reborn	15a3c6e912644d13	11	0/0		0/0	
+Adelbert Steiner	039de38c35bf2500	8	0/0		0/0	
+Adventurer's Airship	3c999b371057e6ee	12	2/2		1/1	
+Adventurer's Inn	a768808f725a15a9	41	2/2		0/1	ix:resp
+Aerith Gainsborough	33ca47247a630a27	25	2/2		1/1	
+Aettir and Priwen	f762d69680e3681a	16	1/1		0/1	ix:resp
+Ahriman	ea987011bcf4811b	10	1/1		1/1	
+Al Bhed Salvagers	010fcccae5ae89f9	10	1/1		1/1	
+Ambrosia Whiteheart	f3ca68b7089fac47	16	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Ashe, Princess of Dalmasca	afc6767198366011	13	1/1		1/1	
+Auron's Inspiration	96417a15a0e0f5e9	30	0/0		4/4	
+Balamb Garden, SeeD Academy	5248952c7e7c235e	46	4/4		1/1	
+Bard's Bow	3bf41ab18a9bde08	7	2/2		0/1	ix:resp
+Baron, Airship Kingdom	c93fae483649b37f	48	1/1		0/1	ix:resp
+Barret Wallace	56025b00411a5b72	5	1/1		0/1	ix:resp
+Battle Menu	6ce228ae387c03c6	14	0/0		2/2	
+Blitzball	7bdef38c29e62d8e	14	2/2		0/1	ix:resp
+Blitzball Shot	6b768e5943d94130	16	0/0		2/2	
+Buster Sword	f82c80e173689e63	18	2/2		0/1	ix:resp
+Cactuar	0590c25a77cbdf8c	8	1/1		0/1	ix:resp
+Call the Mountain Chocobo	8067592cb8cea1f7	12	0/0		4/4	
+Capital City	0afcf9590bdb71ee	12	3/3		0/1	ix:resp
+Cargo Ship	32401af28f4e8b20	7	2/2		1/1	
+Carrot Cake	04788d63ce018b41	154	3/3		1/1	
+Choco-Comet	0a343c937ee31f58	5	0/0		3/4	f0/s/x0
+Chocobo Kick	0b750b3cabcee955	8	0/0		3/4	ix:resp
+Chocobo Racetrack	2792680862e4ffc4	20	1/1		1/1	
+Circle of Power	191919e292e3826b	14	0/0		1/2	ix:resp
+Clash of the Eikons	3a845459e87dc2ed	8	0/0		1/2	ix:resp
+Clive's Hideaway	4babf99a0635df91	46	3/3		1/1	
+Clive, Ifrit's Dominant	75ecf9fa4b0c1a1c	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Cloud, Midgar Mercenary	f7d8f4237d346f00	20	1/1		0/1	ix:resp
+Coeurl	b1f877951f5e8308	16	1/1		1/1	
+Coliseum Behemoth	0930ad2980b6fdd6	3	1/1		0/1	ix:resp
+Combat Tutorial	bd9e51681ee3aa63	6	0/0		1/2	ix:resp
+Commune with Beavers	c10a3c4034f55c5d	11	0/0		1/2	ix:resp
+Coral Sword	9ead0b41f0bd7804	18	2/2		0/1	ix:resp
+Cornered by Black Mages	ec00b40f79a9b9dd	5	0/0		2/2	
+Crossroads Village	17f5a6462c61f778	84	1/1		0/1	ix:resp
+Crystal Fragments	eade11fc21ada4a7	14	2/2		0/1	ix:resp
+Dark Confidant	946eb16ed95b9334	11	1/1		0/1	ix:resp
+Deadly Embrace	8dfcad8eacb04fc2	6	0/0		2/2	
+Delivery Moogle	e4a68a1f54baaae7	6	1/1		0/1	ix:resp
+Demon Wall	6eb3da216de7b6e1	8	1/1		0/1	ix:resp
+Diamond Weapon	e133508daf81d9f7	10	0/0		0/0	
+Dion, Bahamut's Dominant	ac1466503a818f50	16	2/2		1/1	
+Dragoon's Lance	b7e4fa1aea0a99d7	17	2/2		0/1	ix:resp
+Dragoon's Wyvern	069ebaabca71823c	15	1/1		1/1	
+Dreams of Laguna	3800f4c54cd0683f	27	0/0		4/4	
+Dwarven Castle Guard	a14cb5741c86cce7	16	1/1		0/1	ix:resp
+Eden, Seat of the Sanctum	c0c9b0c71b242026	50	2/2		1/1	
+Edgar, King of Figaro	0040df6632e284ae	12	1/1		0/1	ix:resp
+Eject	fba824b57dc388ad	13	0/0		1/2	ix:resp
+Elixir	b092d999c7a8a32f	24	1/1		1/1	
+Esper Origins	9431d6785b112e82	17	0/0		3/4	ix:resp
+Excalibur II	5878306e0698dba8	22	2/2		0/1	ix:resp
+Fate of the Sun-Cryst	eac73a95ae0b43e1	7	0/0		2/2	
+Fight On!	4c575aa2acaf4f29	8	0/0		2/2	
+Fire Magic	018c70d2d0a8c7ab	6	0/0		2/2	
+Forest	6d0466c30f825dba	412	1/1		0/1	ix:resp
+From Father to Son	3b9e8551d0f63d5a	29	0/0		3/4	ix:resp
+Gaelicat	e2cc5aaa6c8c8bbc	9	0/0		0/0	
+Gaius van Baelsar	24c4f33bfa5fcad1	8	1/1		0/1	ix:resp
+Galuf's Final Act	bda9d40193eee3e4	14	0/0		2/2	
+Genji Glove	d9e0df147abf929d	9	2/2		0/1	ix:resp
+Gigantoad	465268ed82b5db0c	9	0/0		0/0	
+Gohn, Town of Ruin	b44496c202ec233b	26	1/1		0/1	ix:resp
+Golbez, Crystal Collector	f01753725695432b	99	2/2		1/1	
+Gongaga, Reactor Town	7911ffd5d863ee5c	48	1/1		0/1	ix:resp
+Goobbue Gardener	ab14c9c41697f2d8	11	1/1		0/1	ix:resp
+Gossip's Talent	7d9ccefdf83dded6	474	5/5		1/3	f0/t2/opt:n,f0/t2/opt:y
+Gran Pulse Ochu	2adfbcf62a7bf41e	4	1/1		0/1	ix:resp
+Guadosalam, Farplane Gateway	38216258382136b2	82	1/1		0/1	ix:resp
+Gysahl Greens	de4b7ead390efa15	15	0/0		3/4	ix:resp
+Haste Magic	dc2b20b7cdac8c28	9	0/0		2/2	
+Hecteyes	0d96ceaf31356bf3	15	1/1		0/1	ix:resp
+Hope Estheim	c976e605da339684	6	1/1		0/1	ix:resp
+Ice Magic	27e9c1c6a45bd382	13	0/0		1/2	ix:resp
+Ignis Scientia	c10c4ae20e84cb29	20	2/2		0/1	ix:resp
+Il Mheg Pixie	5e1f75d86bad34cd	482	1/1		1/1	
+Insomnia, Crown City	a4c17b6ed4fa4689	51	1/1		0/1	ix:resp
+Instant Ramen	4109e4a3176a0dd6	18	2/2		1/1	
+Iron Giant	72f38a4eab65ef5e	13	0/0		0/0	
+Ishgard, the Holy See	f65f64c6437b4e03	50	1/1		1/2	ix:resp
+Island	763c67ef7a27eaf5	1670	1/1		0/1	ix:resp
+Item Shopkeep	2221217ea3b81d55	11	1/1		0/1	ix:resp
+Jecht, Reluctant Guardian	854c1f46c3e041f2	8	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Jidoor, Aristocratic Capital	ea2e78c3749a5600	23	1/1		2/2	
+Judgment Bolt	5b6505c431eb83a3	11	0/0		2/2	
+Jumbo Cactuar	2c42a6e394eec665	8	1/1		1/1	
+Laughing Mad	fb573be1149239bd	13	0/0		4/4	
+Light of Judgment	a8134c7a23c51bf5	8	0/0		2/2	
+Lightning, Security Sergeant	8fe8bca0e6b5ec24	15	1/1		1/1	
+Lindblum, Industrial Regency	122362f9aa5a86d9	67	1/1		2/2	
+Lion Heart	1749636f021c0f07	13	2/2		1/1	
+Locke Cole	162b4408dac0e759	9	1/1		0/1	ix:resp
+Loporrit Scout	d2efbbf1e3bf66cb	5	1/1		0/1	ix:resp
+Louisoix's Sacrifice	42a7be328c16cd43	7	0/0		1/2	ix:resp
+Lunatic Pandora	5406d0c00a6d3d5d	16	2/2		1/1	
+Magic Damper	9637e77233484ac1	13	0/0		1/2	ix:resp
+Magitek Armor	459b38bdf33cc07b	8	2/2		1/1	
+Magitek Infantry	7cb646c82f84e902	16	1/1		1/1	
+Magitek Scythe	29a46a68a1129e22	22	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Matoya, Archon Elder	28f4e5fff0c0b842	388	2/2		1/1	
+Midgar, City of Mako	ee367af3148066aa	33	1/1		0/2	f1/s,ix:resp
+Minwu, White Mage	ed9afc7bc5f0c2f2	3	1/1		0/1	ix:resp
+Monk's Fist	9f7f518223cdbec4	15	2/2		1/1	
+Moogles' Valor	3b43dc2f342d3fd0	24	0/0		2/2	
+Mountain	9e71388353e907ed	309	1/1		0/1	ix:resp
+Mysidian Elder	35c151677dc4cd55	16	1/1		1/1	
+Namazu Trader	c3435c30bb2ed1e5	14	2/2		0/1	ix:resp
+Nibelheim Aflame	a82ab7def45a9ac3	11	0/0		4/4	
+Ninja's Blades	a8fc7b09000d4ff2	14	2/2		0/1	ix:resp
+Opera Love Song	be79ce0f6cd89bcd	10	0/0		1/2	ix:resp
+Overkill	477d03dcda8c5db8	12	0/0		2/2	
+Paladin's Arms	bd6d0c0e7b401d49	7	2/2		0/1	ix:resp
+Phantom Train	72b838695cb25e3a	18	1/1		1/1	
+Phoenix Down	82d418e00a15208a	15	1/1		0/1	ix:resp
+Plains	82d63a695487e567	524	1/1		0/1	ix:resp
+Poison the Waters	b33609a8d8fcfbc6	8	0/0		1/2	ix:resp
+Prishe's Wanderings	b0f812c5d8216ab2	15	0/0		1/2	ix:resp
+PuPu UFO	caffdd1b334131f7	29	2/2		1/1	
+Qiqirn Merchant	7b37a95fff15e0da	6	2/2		0/1	ix:resp
+Queen Brahne	022ff6516b6f0a0e	11	2/2		1/1	
+Qutrub Forayer	e4df537de0f1f88d	8	1/1		0/1	ix:resp
+Rabanastre, Royal City	65b78f8f555a92f3	25	1/1		0/1	ix:resp
+Random Encounter	fab3ec668900c39c	8	0/0		4/4	
+Raubahn, Bull of Ala Mhigo	8462db95137f629a	10	2/2		1/1	
+Reach the Horizon	40a561592ebcf585	23	0/0		1/2	ix:resp
+Red Mage's Rapier	2b1e78bed79df8ac	18	2/2		1/1	
+Relentless X-ATM092	9c55a6b2f0c24804	9	1/1		0/1	ix:resp
+Relm's Sketching	3d1a086f5e7ae150	20	0/0		2/2	
+Reno and Rude	5d2ce12ca799f04a	10	1/1		0/1	ix:resp
+Resentful Revelation	e96ceb9d8261e50e	13	0/0		3/4	cast/alt:flashback
+Restoration Magic	4901489274646493	13	0/0		1/2	ix:resp
+Retrieve the Esper	ef5231b502ae7acc	12	0/0		3/4	ix:resp
+Ride the Shoopuf	4a5a53962434698c	13	2/2		1/1	
+Ring of the Lucii	cbdd4677d5063360	19	2/2		0/1	ix:resp
+Rook Turret	905695e67c0542e2	8	1/1		1/1	
+Rosa, Resolute White Mage	7478dca8d367fd00	6	1/1		1/1	
+Rydia's Return	9583740bf49077af	9	0/0		1/2	ix:resp
+Sabotender	5347dabfcd3f12d2	18	1/1		0/1	ix:resp
+Sage's Nouliths	31c20985e5684ea9	14	2/2		0/1	ix:resp
+Sahagin	fc524a7641ce8261	7	1/1		0/1	ix:resp
+Samurai's Katana	f7f8f813b8954768	7	2/2		1/1	
+Sandworm	30ec1619976b49e0	3	1/1		0/1	ix:resp
+Sazh Katzroy	b5fbdcad10a4a20e	13	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Sazh's Chocobo	b5688480afe4b730	10	1/1		1/1	
+Scorpion Sentinel	824954fd7c31b6c2	15	0/0		0/0	
+Seifer Almasy	b54b268f82d16432	8	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Sephiroth's Intervention	f4bdc487981be23d	10	0/0		1/2	ix:resp
+Sephiroth, Planet's Heir	d8e7d5223bb03206	10	2/2		1/1	
+Seymour Flux	f043e03ea86ff054	9	1/1		0/1	ix:resp
+Shambling Cie'th	bfdd4500789b3a95	21	1/1		0/1	ix:resp
+Shantotto, Tactician Magician	2b6310f9ab62c956	21	1/1		0/1	ix:resp
+Sharlayan, Nation of Scholars	dedc474f3d053312	26	1/1		0/1	ix:resp
+Shinra Reinforcements	3f3171f73d27dd54	6	1/1		0/1	ix:resp
+Sidequest: Card Collection	a0b169405c952144	10	3/3		1/1	
+Sidequest: Catch a Fish	54d9ffefb7bcdffd	7	3/3		0/1	ix:resp
+Simulacrum Synthesizer	c8119b9d9f65debb	412	2/2		1/1	
+Slash of Light	48ba4250db56e190	12	0/0		1/2	ix:resp
+Snow Villiers	b946b29cd2aa6f5b	15	0/0		0/0	
+Sorceress's Schemes	7b2768950b38647e	7	0/0		4/4	
+Starting Town	6fb4e62a514b4dce	40	2/2		0/1	ix:resp
+Stiltzkin, Moogle Merchant	1971bfeddb2b03df	9	1/1		1/1	
+Stuck in Summoner's Sanctum	2f9d1cf33a145069	12	1/1		2/2	
+Summon: Anima	b2e2133cc0fbb9ad	6	0/0		0/0	
+Summon: Bahamut	20f6ad1b3ce2f4ff	6	0/0		0/0	
+Summon: Choco/Mog	a90d6a9170702f1a	10	0/0		0/0	
+Summon: Esper Ramuh	b2710dac952b1fde	8	0/0		0/0	
+Summon: Fat Chocobo	ad19fdb6cda4d562	12	0/0		0/0	
+Summon: G.F. Cerberus	5dfd532a99e60e45	44	0/0		0/0	
+Summon: G.F. Ifrit	3c3da79a38a163c2	14	0/0		0/0	
+Summon: Knights of Round	13f872531d39e752	6	0/0		0/0	
+Summon: Leviathan	0abb9fac6ab5ec81	10	1/1		0/1	ix:resp
+Summon: Primal Garuda	9afe1baad00bc288	7	0/0		0/0	
+Summon: Primal Odin	14d66211a4788969	7	0/0		0/0	
+Summon: Shiva	efec57b63c278b02	5	0/0		0/0	
+Summon: Titan	6d0d78ce481a2b07	7	0/0		0/0	
+Swallowed by Leviathan	ca35b05d17f5aafd	9	0/0		1/2	ix:resp
+Swamp	342b413902f441c3	332	1/1		0/1	ix:resp
+Syncopate	542c29a08e90e2d9	7	0/0		2/4	f0/s/x0,ix:resp
+Tellah, Great Sage	ffc1a9e6e21f0cea	3	1/1		0/1	ix:resp
+The Crystal's Chosen	40b4cedf36f4e7e4	3	0/0		1/2	ix:resp
+The Earth Crystal	9fa2391b5c767d3b	6	1/1		0/1	ix:resp
+The Final Days	f0f592df28cf30c5	16	0/0		4/4	
+The Gold Saucer	24de56c06c17c0b0	30	3/3		1/1	
+The Lunar Whale	2d299ffee636259d	10	1/1		1/1	
+The Prima Vista	395e27f275861292	11	2/2		1/1	
+The Regalia	5714bb1f280ade47	14	2/2		1/1	
+The Wind Crystal	5552d9139f9cc7c4	3	1/1		1/1	
+Thief's Knife	4c73f9679bc765b8	7	2/2		0/1	ix:resp
+Thunder Magic	0dd64fb1d9f85667	7	0/0		1/2	ix:resp
+Tidus, Blitzball Star	dbd566c90c9eee7b	15	2/2		1/1	
+Tifa Lockhart	3052747a8667cd61	10	1/1		1/1	
+Tifa's Limit Break	31255c81aa62764f	4	0/0		1/2	ix:resp
+Tonberry	395ce7889eaa2a73	10	0/0		0/0	
+Torgal, A Fine Hound	1ebb2ea852504c06	8	2/2		0/1	ix:resp
+Town Greeter	167379dcd6fd1e06	20	1/1		0/1	ix:resp
+Travel the Overworld	10664d3d0540caa9	3	0/0		1/2	ix:resp
+Traveling Chocobo	9fda1191330729fb	15	0/0		0/0	
+Treno, Dark City	087496926c842636	30	1/1		0/1	ix:resp
+Ultima	1fec8de2610f75c4	4	0/0		1/2	ix:resp
+Ultima Weapon	4804022b157bd372	6	2/2		0/1	ix:resp
+Ultimecia, Temporal Threat	e78b3c091822d21f	10	2/2		1/1	
+Ultros, Obnoxious Octopus	d15eb23915a58abb	9	2/2		0/1	ix:resp
+Undercity Dire Rat	0d7a5b2b580086a6	7	1/1		0/1	ix:resp
+Valkyrie Aerial Unit	8c31451c20114de9	233	1/1		1/1	
+Vayne's Treachery	a4af511d9486e83a	8	0/0		3/4	cast/alt:kicked
+Vector, Imperial Capital	0497ee9e05f45c52	58	1/1		0/1	ix:resp
+Venat, Heart of Hydaelyn	aca00b6d4f29d315	12	3/3		0/1	ix:resp
+Vincent's Limit Break	f64f87f63f629025	6	0/0		2/2	
+Warrior's Sword	46935971d43d031b	7	2/2		1/1	
+Wastes	9ddaa8061ecdf9f6	33	1/1		0/1	ix:resp
+Weapons Vendor	a904601a84b80d7d	13	2/2		1/1	
+White Auracite	7e5c5ae59aad6a04	11	2/2		0/1	ix:resp
+White Mage's Staff	313834dff1336444	13	2/2		0/1	ix:resp
+Windurst, Federation Center	0db736182c65b2b7	38	1/1		0/1	ix:resp
+World Map	93e16a54cf7b8ded	14	2/2		0/1	ix:resp
+Xande, Dark Mage	18447d7c5a3e8e05	4	0/0		0/0	
+Y'shtola Rhul	4fc62375e2563b64	5	1/1		0/1	ix:resp
+You're Not Alone	023c3ab4e2c5f507	18	0/0		1/2	ix:resp
+Zack Fair	d9e575ca20648fa0	5	1/1		0/1	ix:resp
+Zanarkand, Ancient Metropolis	02f6f9e02dd0220c	45	1/1		1/2	ix:resp
+Zell Dincht	76855f4e386fe152	8	1/1		0/1	ix:resp

@@ -1,58 +1,158 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Cobbled Lancer	0e005d60e2cc01a8	6	1/1		1/2	ix:resp
+A-Tenured Inkcaster	acbd1c3e81947a75	10	2/2		1/1	
+Academy Rector	5a4cda381a3ede55	11	1/1		1/1	
+Ad Nauseam	bc4cfa5cf0e3a8e0	12	0/0		2/2	
+Air Servant	bfc27301b7b94848	4	1/1		0/1	ix:resp
+Alora, Merry Thief	7fa470c3fd0868de	24	1/1		1/1	
+Ancient Lumberknot	4f2079a46a6fd3ad	5	0/0		0/0	
+Aquastrand Spider	0e9ddac905982797	9	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Aven of Enduring Hope	07aa6188b51108a1	5	1/1		1/1	
 Basilica Guards	df604e5bd25e938a	8	1/1		1/1	
+Battering Krasis	914e2d3ae14b067e	9	1/1		0/1	ix:resp
+Beacon of Creation	c07d01114e055f04	15	0/0		1/2	ix:resp
 Beckon Apparition	32772571ff60eec3	14	0/0		1/2	ix:resp
+Big Mother Mouser	02b7478ff8c8d9ed	9	2/2		1/1	
+Blind Obedience	3612931ac86d18ed	4	1/1		1/1	
+Bloodgift Demon	d99dafd4a9a6291b	4	1/1		1/1	
+Bond of Flourishing	b39a9e8d3837ec18	4	0/0		2/2	
 Bone Shards	c0ab5d30c539457c	12	0/0		2/2	
+Breath of Fire	f5cd46838f49d639	14	0/0		2/2	
+Brightling	f74c8578e39a7e98	9	4/4		1/1	
+Brindle Boar	428e9f237302b7c1	9	1/1		1/1	
+Bringer of the Black Dawn	86f7c1a6ac13b84d	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Caress of Phyrexia	dcc458ed5efb922a	10	0/0		2/2	
 Carrion Grub	df51286d573ce789	3	1/1		0/1	ix:resp
 Charging Troll	cd22110c55857cd9	4	1/1		1/1	
 Chasm Guide	6fd2ae12ec9aea38	5	1/1		0/1	ix:resp
 Chief of the Scale	b2c3a59713cc87f7	21	0/0		0/0	
+Cloudkin Seer	8b11ce063101e068	6	1/1		1/1	
+Colossal Majesty	db90b4d625c40567	14	1/1		1/1	
+Combo Attack	57ea5b2dcc2a9fa4	10	0/0		1/2	ix:resp
 Deathbringer Thoctar	5db9954502b38543	22	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Dematerialize	ea892e51d7ce4140	21	0/0		4/4	
+Dinosaur Egg	1649cf67ee3f0d52	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Disperse	5e2a2942602ca9bc	11	0/0		1/2	ix:resp
 Distorted Curiosity	cb2e0eac4e458f84	18	0/0		1/2	ix:resp
 Dragonsguard Elite	e62af9e139858b41	10	2/2		0/1	ix:resp
 Dramatic Reversal	37ab582746521d2c	17	0/0		2/2	
 Dream Thrush	bbe7984cf11758b2	14	1/1		1/1	
 Dromoka Warrior	6b3e631a383b6932	12	0/0		0/0	
 Dying Wish	257b2c4dd99fc25f	19	1/1		2/2	
+Elemental Appeal	0c578c3e2d34d64d	3	0/0		2/4	cast/alt:kicked,ix:resp
 Elemental, My Dear	f2ca0640f50f3b99	5	0/0		2/4	f0/s/x0,ix:resp
+Elf Replica	744cfad62a09de5c	8	1/1		0/1	ix:resp
+Emergent Growth	682500fa46246736	7	0/0		1/2	ix:resp
 Entrapment Maneuver	021f6e5df7a0d7ab	28	0/0		2/2	
+Fabled Hero	1bd2b2aaf3e18679	6	1/1		1/1	
 Faerie Trickery	1254a55de5830cbb	31	0/0		1/2	ix:resp
 Falthis, Shadowcat Familiar	5fdbd447c97d099d	18	0/0		0/0	
 Fell the Profane	9ae068f23c9536df	36	1/1		2/2	
 Feral Krushok	b541766c53f50cac	10	0/0		0/0	
 Fervent Cathar	0b96cdaf91d95684	21	1/1		1/1	
+Fire Urchin	853db15f4dd6af6f	10	1/1		0/1	ix:resp
+Forced Worship	438ac6c053d8efc3	12	1/1		2/2	
+Gatecreeper Vine	ca2cc9dc7bfe146b	13	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Ghostfire Slice	418949423e4b473e	21	0/0		2/2	
 Giant Spectacle	c09c5b27e137685a	29	0/0		2/2	
 Gift of the Deity	d9e9a8f1d6335f87	3	0/0		1/2	ix:resp
+Griffin Protector	095ac4e377b917d9	3	1/1		1/1	
+Halcyon Glaze	511aa7cff7be1629	9	1/1		0/1	ix:resp
 Hand of Emrakul	bd26534733b50e54	3	1/1		1/1	
 Hanna's Custody	170460c24b7b0593	12	0/0		0/0	
 Haunting Figment	f8a9e4eefeea77d9	23	0/0		0/0	
 Hellraiser Goblin	c1f325ead8645b47	4	0/0		0/0	
 Herald of the Sun	2b12594c01daa799	5	1/1		1/1	
+Howling Moon	3a945cd5000701c2	12	2/2		0/1	ix:resp
 Huang Zhong, Shu General	95da4f0ad48c7bd4	13	0/0		0/0	
+Humble Budoka	8154a7d159f78ba9	10	0/0		0/0	
+Illuminate History	690f846ef04af5cb	6	0/0		2/2	
+Inferno Titan	f913ce031eb0bcf2	7	3/3		1/1	
+Initiate's Companion	5b027b21af4c30e8	8	1/1		0/1	ix:resp
 Invasion of Xerex	af4570654054d025	21	1/1		1/1	
 Kathari Remnant	5ea6315078f2bab8	22	1/1		1/1	
+Keen Glidemaster	e56a3f63ed2c01e8	12	1/1		1/1	
+Kindred Dominance	5d9ae875ad7466dc	5	0/0		1/2	ix:resp
 Kodama of the West Tree	82e5583096486aa9	5	1/1		0/1	ix:resp
 Krark-Clan Ogre	6fa1920bf87c69b0	17	1/1		0/1	ix:resp
+Leonin Lightbringer	9dd21f7956f1e806	10	1/1		1/1	
+Ley Druid	53d544447d7d9b2d	11	1/1		1/1	
+Lifecrafter's Gift	bd85f5540d9a4130	7	0/0		1/2	ix:resp
+Llanowar Envoy	0a6462fd38ebfae9	12	1/1		0/1	ix:resp
+Lodestone Golem	cbfcdd843719c184	14	0/0		0/0	
+Lost in Memories	d98ed2f2f54a7cff	9	0/0		1/2	ix:resp
+Loxodon Punisher	308eeee2a964cbba	6	0/0		0/0	
 Mahamoti Djinn	8d99d45493c6b84d	15	0/0		0/0	
+Make Disappear	1c6b0682d93e9c88	10	0/0		1/2	ix:resp
+Mana Vault	fe9ccb7ff7706bff	9	3/3		1/3	f0/t0/opt:n,f0/t0/opt:y
+Marker Beetles	f2c1efad291614b0	4	2/2		0/1	ix:resp
 Merchant of Truth	4636b865278ddf25	16	1/1		1/1	
 Mesa Unicorn	d0f0a272a7f64e45	20	0/0		0/0	
+Midnight Assassin	a93221e020036108	19	0/0		0/0	
 Mind Sludge	8e1a132715ac4137	22	0/0		1/2	ix:resp
+Mob Mentality	8f9f779dbce15467	8	1/1		1/2	ix:resp
+Mobilize	e616ffb6e299807b	7	0/0		1/2	ix:resp
+Mold Folk	4093fe48f9438f9e	14	1/1		0/1	ix:resp
+Nessian Courser	7dd56b0a5d656889	4	0/0		0/0	
+Night of Souls' Betrayal	d4624ccbd9c508dc	17	0/0		0/0	
+Norn's Wellspring	153c1811a5e2b653	13	2/2		1/1	
 Nylea's Emissary	63bb29123658604d	4	0/0		2/2	
+Ondu Spiritdancer	f90cc9e3e0fa6893	14	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Orchard Spirit	2ec64d11ee1797c0	14	0/0		0/0	
+Origin of the Hidden Ones	c369c87307d3c796	12	0/0		0/0	
+Original Skullclamp	6794f6eb7a50d349	5	2/2		0/1	ix:resp
+Overwhelming Encounter	74aedc99a2b43de8	3	0/0		1/2	ix:resp
+Pearled Unicorn	0dc8aa9cb7b7ddd4	9	0/0		0/0	
+Perish	72d356cc4bd0549e	10	0/0		1/2	ix:resp
+Petals of Insight	dbb45b18b56cf7f5	9	0/0		1/2	ix:resp
 Phantasmal Fiend	14f61414543b5243	25	2/2		1/1	
+Ratchet Bomb	1021e6df220b89ef	20	2/2		1/1	
+Reyhan, Last of the Abzan	38589b50add8b945	9	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Sacellum Archers	bc2956509ca5ccdc	13	1/1		0/1	ix:resp
 Sacred Guide	539794e1fa122352	6	1/1		0/1	ix:resp
+Saruli Caretaker	5df8455fdb0c2970	12	1/1		0/1	ix:resp
 Savra, Queen of the Golgari	ec9bb43db0bbbc66	11	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
+Scurry Oak	245852f3d48fed81	13	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Search for Glory	98c87b624cced10e	12	0/0		2/2	
+Secure Detention	dd678129b6cfe252	17	1/1		2/2	
+Shackles	7687cdb38457721d	33	1/1		2/2	
+Shadows of the Past	f51535c3f1bc489e	11	2/2		1/1	
+Slashing Tiger	2723aee594612199	7	1/1		0/1	ix:resp
 Slinking Serpent	dace2a9a9323a9c6	13	0/0		0/0	
 Slippery Scoundrel	68c56121b1a6b75d	21	0/0		0/0	
+Slith Firewalker	dc8a2e9f8475cf98	12	1/1		0/1	ix:resp
 Spectacle Mage	7d034858f7aca851	14	0/0		0/0	
+Spell Rupture	c5449466259f4ce6	11	0/0		1/2	ix:resp
 Spread the Sickness	0faabb17881f84cb	9	0/0		1/2	ix:resp
+Star of Extinction	916461638578817b	4	0/0		1/2	ix:resp
+Stitchwing Skaab	c7ccd7a84880b75f	7	1/1		0/1	ix:resp
+Stone Golem	9b75943b940a2bfa	11	0/0		0/0	
+Storm Strike	dd3ee6b6917394be	12	0/0		2/2	
+Sunlit Hoplite	35e68ee59a754799	11	0/0		0/0	
+Sylvok Battle-Chair	dad1b20d158e84c8	11	2/2		1/1	
+Tales of Master Seshiro	950d3953a52482a0	7	0/0		0/0	
+The Hive	6ba597287dc63cd3	19	1/1		1/1	
+Thoughtpicker Witch	d7ef1719c6dfd08a	7	1/1		1/1	
+Thraben Valiant	70bace089d791e6d	5	0/0		0/0	
+Thundering Tanadon	de3890299e05ea78	13	0/0		0/0	
+Tin Street Market	0a07578928242b01	10	0/0		2/2	
+Titania's Command	c63d25a9ef4f866d	4	0/0		1/2	ix:resp
 Transluminant	eb229df58cc53ef1	19	1/1		0/1	ix:resp
 Transmogrifying Wand	b661749ef18640a2	31	1/1		1/1	
+Trespasser's Curse	edc908c8d2ecba36	17	1/1		1/2	ix:resp
+Tribal Unity	05384ddfd8c2aa86	3	0/0		2/4	f0/s/x0,ix:resp
 Urza's Science Fair Project	f0bfa3736c4c7775	17	1/1		1/1	
 Vexing Gull	89725a71903dc519	7	0/0		0/0	
+Vigilante Justice	02cb0c067ea92625	10	1/1		1/1	
 Village Rites	2d131fdc4a4fb925	34	0/0		2/2	
 Vodalian Hypnotist	86b4626f7f7a5e99	19	1/1		1/1	
+Vow of Torment	8b6f1681de8e9f02	5	0/0		2/2	
+Wall of Granite	8289f1284e63ce00	3	0/0		0/0	
+Warden of the Beyond	54ec2ec8dc82e374	7	0/0		0/0	
 Wei Infantry	bdac5666619788d7	36	0/0		0/0	
+Well of Lost Dreams	322fe0941ab85e1b	11	1/1		1/1	
+Woodcutter's Grit	98a8ac5f1342ef6f	7	0/0		1/2	ix:resp
+Worldgorger Dragon	8562634021a0132b	6	2/2		0/1	ix:resp
 Wu Infantry	f3461659282df738	18	0/0		0/0	
+Zamriel, Seraph of Steel	1e151204b074b87d	14	0/0		0/0	
+Zombie Apocalypse	52367485b385b7d9	8	0/0		1/2	ix:resp
