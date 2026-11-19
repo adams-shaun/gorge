@@ -91,6 +91,9 @@ func (ic *instrCtx) opToLibrary() error {
 	if _, rem := fl["Remember"]; rem && in.C == 1 && in.Obj.Kind == rDelayedRemembered && fl["from"] == "Battlefield" {
 		ki.C = kop.LibBottomRememberBF // dirac/zone_tolibrarybfremember.go
 	}
+	if _, rem := fl["Remember"]; rem && in.C == 1 && in.Obj.Kind == rTarget && fl["from"] == "Exile" {
+		ki.C = kop.LibBottomRememberExile // dirac/zone_tolibrarybfremember.go
+	}
 	if _, rem := fl["Remember"]; rem && in.C == 0 && in.Obj.Kind == rSelf && fl["from"] == "Battlefield" {
 		ki.C = kop.LibTopRememberBF // dirac/zone_tolibrarybfremember.go
 	}
