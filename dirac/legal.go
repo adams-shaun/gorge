@@ -2261,6 +2261,9 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				}
 			}
 			if k.gen != nil && pc.manaAb < 0 {
+				if s.reflAmtPotential(k, sl, pc, &done, fold) {
+					continue // a reflected Amount$ source's {C}-only fold (mana_reflamt.go)
+				}
 				s.potentialReflNone(k, sl, &done) // a reflected view with no colour makes no mana: the walk below must not admit the printed ability open
 			}
 			continue

@@ -154,6 +154,14 @@ type Ability struct {
 	// free bit. The restriction batch it floats is its own kind
 	// (dirac mana_nocounter.go), so a payment that spends it stamps the spell.
 	ManaNoCounter bool
+	// ManaGrave: with AfManaReflect, the reflected read scans every alive
+	// seat's graveyard, not the battlefield (The Grey Havens' "any color
+	// among legendary creature cards in your graveyard"; Valid$
+	// "Defined.ValidGraveyard <spec>", gorge effects.reflectedDefinedExtras).
+	// The colours are the union of the matching cards' colours, {C} dropped,
+	// matched with the source's controller as "you". A table byte:
+	// AbilityFlags has no free bit.
+	ManaGrave bool
 	// SplitGate, SplitCtr, SplitCols: a Condition-split mana ability (River of
 	// Tears' "{T}: Add {U}. If you played a land this turn, add {B}
 	// instead"; Gemstone Caverns' "{T}: Add {C}. If this has a luck counter on
@@ -747,12 +755,27 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SoleLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a):
+	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SoleLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a), ReflLifeManaAb(a):
 		return true
 	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true
 	}
 	return false
+}
+
+// ReflLifeManaAb reports whether a is a printed reflected mana ability whose
+// cost is {T} plus paying N life (Horizon of Progress' "{T}, Pay 1 life: Add
+// one mana of any type that a land you control could produce"): its kernel
+// model is the lone imprint views' pain (dirac mana_reflected.go
+// prepManaRefl's life, mana_imprint.go), gorge's planner prices it last-resort
+// Consequence{Life: N} (pay.PaymentPlanShapeTierOf's cost.Life arm) and lists
+// it in the census — no gap, no prefix search.
+func ReflLifeManaAb(a *Ability) bool {
+	if a.Kind != AbMana || a.AFlags&(AfManaReflect|AfLatent) != AfManaReflect || a.ManaRestrict != 0 || a.ManaRestrictAb != 0 ||
+		len(a.Prog) != 0 || a.ManaEach || a.Cost.Flags != CostTap|CostPayLife || a.Cost.N < 1 || a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 {
+		return false
+	}
+	return true
 }
 
 // SoleLifeManaAb reports whether ability j of cd is the card's only own mana

@@ -52,14 +52,31 @@ func prepManaRefl(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 			break
 		}
 	}
-	if ra < 0 || g.has(id, gfManaVar) || pc.manaAb < 0 {
+	if ra < 0 || g.has(id, gfManaVar) {
 		return
 	}
-	if c.Abilities[ra].ManaAmong == 0 || loneManaAb(c) {
+	a := &c.Abilities[ra]
+	if reflAmtManaAb(a) {
+		// (Incubation Druid) the reflected Amount$ source is no planner unit
+		// at all: gorge's planner defers it, its census a gap the prefix
+		// search activates (mana_reflamt.go, gen.go's gfGapOther), so no
+		// views
+		return
+	}
+	life := uint8(0)
+	if n, ok := manaLifePain(a); ok {
+		// (Horizon of Progress) the lone reflected ability's cost pays life:
+		// gorge's planner prices it last-resort, Consequence{Life: N}
+		// (pay.PaymentPlanShapeTierOf's cost.Life arm), which the views
+		// carry as pain (mana_pain.go)
+		life = n
+	}
+	if a.ManaAmong == 0 || loneManaAb(c) {
 		// the imprint mox (mana_imprint.go), or a filter-reflected ability
-		// that is the card's only mana ability (Mox Amber): the same
-		// per-colour views, the colours read from the filter (reflColours)
-		prepManaImprint(g, id, pc, c.Abilities[ra].ManaIdentity)
+		// that is the card's only mana ability (Mox Amber, Horizon of
+		// Progress): the same per-colour views, the colours read from the
+		// filter (reflColours)
+		prepManaImprint(g, id, pc, a.ManaIdentity, ra, life)
 		return
 	}
 	g.setFlag(id, gfManaVar|gfManaRefl)
@@ -108,16 +125,19 @@ func (s *State) potentialReflNone(k *prep, sl Slot, done *[MaxPerm]uint16) {
 // M ManaProduce, what the matching permanents' mana abilities could
 // produce, the opponents' or its own by the filter's control property
 // (ReflectProperty$ Produce: Exotic Orchard, Fellwar Stone, Star Compass;
-// gorge effects.producibleSymbols over Face.ManaAbilities), {C} dropped.
+// gorge effects.producibleSymbols over Face.ManaAbilities), {C} dropped,
+// or, with ManaGrave, the cards of every alive seat's graveyard matching
+// it (The Grey Havens; graveReflColours).
 func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 	cd := &k.t.Cards[c]
 	var f kop.FilterID
-	var produce, ident bool
+	var produce, ident, grave bool
 	for j := range cd.Abilities {
 		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfManaReflect != 0 {
 			f = a.ManaAmong
 			produce = a.ManaProduce
 			ident = a.ManaIdentity
+			grave = a.ManaGrave
 			break
 		}
 	}
@@ -126,6 +146,9 @@ func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 	}
 	if f == 0 {
 		return s.imprintColours(k, sl) // the imprint mox (mana_imprint.go)
+	}
+	if grave {
+		return s.graveReflColours(k, sl, f)
 	}
 	if produce {
 		return s.produceColours(k, sl, f)
@@ -136,6 +159,35 @@ func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 		o := b.first()
 		if s.matchPerm(k, f, o, p, sl) {
 			m |= s.colorsAt(k, o)
+		}
+	}
+	return m & kop.ColAny
+}
+
+// graveReflColours is the colours a graveyard-read reflected ability (kop.
+// Ability.ManaGrave, The Grey Havens' "any color among legendary creature
+// cards in your graveyard") of the source at sl reads: the union of the
+// matching cards' colours over every alive seat's graveyard, the spec
+// matched with the source's controller as "you" (gorge effects
+// reflectedDefinedExtras' ValidGraveyard arm, AliveFrom(0) x zone order; a
+// union, so the order never reaches a view or an ask), {C} dropped. A card
+// copy that reached the graveyard ceased (matchCardGen's copyCeased); a
+// token waiting there for the next state-based check still matches, its
+// colours are its face's (gorge reads the object the zone holds).
+func (s *State) graveReflColours(k *prep, sl Slot, f kop.FilterID) kop.ColorMask {
+	p := s.perms[sl].ctrl
+	var m kop.ColorMask
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
+		pl := &s.pl[pp]
+		for i := 0; i < int(pl.graveN); i++ {
+			o := pl.grave[i]
+			c := s.objs[o].card
+			if s.matchCardGen(k, f, c, pp, p, o) {
+				m |= k.t.Cards[c].Colors
+			}
 		}
 	}
 	return m & kop.ColAny
