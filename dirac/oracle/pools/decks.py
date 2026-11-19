@@ -23,6 +23,10 @@ strict pool.
 commander is refused is skipped). --four-seat also replaces the cards the kernel plays at two seats only, which
 stall a four-seat pod at its start (the mbc pool: draftsim -set MBC -collation draft -format commander
 -deck-size 50 -structure none -decks-out DIR, then --from-decks DIR --deck-size 50 --allow-unverified --four-seat).
+The edh pool is the MTGJSON Commander precons `forgec edhcover` counts fully supported whose commander the kernel
+lowers and that hold at most 20 kernel-refused copies, less Sultai Arisen (TDC), whose Dauthi Voidwalker sizes the
+exile-counter cold region past the State bar (TestEveryPoolFitsTheStateBar), each deck named "<name> (<SET>)":
+--set EDH --from-decks DIR --deck-size 100 --max-refused 20 --allow-unverified --label mtgjson.
 
 --emit-cards PATH writes the sorted card names of the CSV header (the kgen -card-list input for a
 new set) and exits. --from-decks DIR applies the same rule to gorge deck JSONs in DIR instead of a
@@ -201,7 +205,7 @@ def main():
     ap.add_argument("--four-seat", action="store_true", help="count a card the kernel plays at two seats only as refused (kgen -supported -four-seat): a pool for kfuzz -seats 4")
     ap.add_argument("--emit-cards", metavar="PATH", help="write the CSV's card names (kgen -card-list input) and exit")
     ap.add_argument("--from-decks", metavar="DIR", help="gorge deck JSONs instead of a CSV")
-    ap.add_argument("--label", choices=["17lands", "sim", "mtggoldfish"], default="17lands")
+    ap.add_argument("--label", choices=["17lands", "sim", "mtggoldfish", "mtgjson"], default="17lands")
     args = ap.parse_args()
     SET = args.set
     if SET != SET.upper() or not SET:
