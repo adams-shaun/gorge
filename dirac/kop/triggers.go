@@ -262,7 +262,9 @@ type Trigger struct {
 
 	// TapPlan classes a lowered non-Self TrigTaps watcher for the payment
 	// planner (TapPlan); TapPainN is the vetted literal damage amount of a
-	// TapPlanPain watcher. Both are read only on a TrigTaps trigger.
+	// TapPlanPain watcher, or the disclosed literal payer damage of a
+	// TapPlanDefer TapsForMana watcher (Manabarbs). Both are read only on a
+	// TrigTaps trigger.
 	TapPlan  TapPlan
 	TapPainN uint8
 }

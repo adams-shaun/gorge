@@ -1897,11 +1897,26 @@ type potCensus struct {
 	// (abPainOf, saturated; 0 for the floats and a production the walk does
 	// not price): every unit rec records carries it.
 	pain uint8
+	// tapPain is the foreign damage this source's tap deals its payer
+	// (tapsCensusPain: a Pain-class Taps watcher, or a deferred TapsForMana
+	// watcher's disclosed literal damage such as Manabarbs'): the units carry
+	// it too, so potUnitsAvail's lethal guard caps what one plan may tap.
+	tapPain uint8
+}
+
+// unitPain is the pain one recorded unit carries: the activation's own pain
+// plus the foreign tap damage, saturated.
+func (c *potCensus) unitPain() uint8 {
+	n := int(c.pain) + int(c.tapPain)
+	if n > 255 {
+		return 255
+	}
+	return uint8(n)
 }
 
 func (c *potCensus) rec(mask, n uint8) {
 	if c.on {
-		recordPotUnit(&c.units, &c.n, mask, n, c.pain, false)
+		recordPotUnit(&c.units, &c.n, mask, n, c.unitPain(), false)
 	}
 }
 
@@ -1938,14 +1953,14 @@ func (c *potCensus) recPickDrop(sl Slot, mask, n, drop uint8) {
 	if mask &^= drop; mask == 0 {
 		return
 	}
-	recordPotUnit(&c.units, &c.n, mask, n, c.pain, true)
-	c.tap[sl] = potUnit{mask: mask, n: n, pain: c.pain, pick: true}
+	recordPotUnit(&c.units, &c.n, mask, n, c.unitPain(), true)
+	c.tap[sl] = potUnit{mask: mask, n: n, pain: c.unitPain(), pick: true}
 }
 
 // tapRec notes sl's tap production (already recorded) for mergeTap.
 func (c *potCensus) tapRec(sl Slot, mask, n uint8) {
 	if c.on && mask != 0 && n > 0 {
-		c.tap[sl] = potUnit{mask: mask, n: n, pain: c.pain}
+		c.tap[sl] = potUnit{mask: mask, n: n, pain: c.unitPain()}
 	}
 }
 
@@ -1990,7 +2005,7 @@ func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n, drop uint8) bool {
 	unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
 	// the widened unit keeps the cheaper pain: the over-bound the census is
 	// (a tap makes one mana through whichever of its abilities is cheapest)
-	t = potUnit{mask: t.mask | uint8(ab.ManaColors)&^drop, n: max(t.n, n), pain: min(t.pain, c.pain), pick: t.pick}
+	t = potUnit{mask: t.mask | uint8(ab.ManaColors)&^drop, n: max(t.n, n), pain: min(t.pain, c.unitPain()), pick: t.pick}
 	recordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
 	c.tap[sl] = t
 	return true
@@ -2247,6 +2262,10 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
 		cen.pain = 0
+		cen.tapPain = 0
+		if cen.on {
+			cen.tapPain = s.tapsCensusPain(k, p, sl)
+		}
 		pc := &k.cards[s.cardAt(sl)]
 		if k.gen != nil {
 			pc = s.manaPCGen(k, sl)
@@ -2360,6 +2379,10 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		progressed = false
 		for m := s.ctrlM[p]; m.any(); m = m.rest() {
 			sl := m.first()
+			cen.tapPain = 0
+			if cen.on {
+				cen.tapPain = s.tapsCensusPain(k, p, sl)
+			}
 			cd := &k.t.Cards[s.cardAt(sl)]
 			others := pot
 			for c := range others {

@@ -941,7 +941,7 @@ type lTrigger struct {
 	OptSrcCtrl    bool  // Optional, DamageDone: the damage source's controller answers (OptionalDecider$ TriggeredSourceController; kop.Tf5OptSrcCtrl)
 	NamedCast     bool  // SpellCast lowered from Mode$ SpellAbilityCast over the source's chosen card name: also fires on an activation of a source with that name (kop.Tf4NamedCast; lower_choosename.go)
 	TapPlan       uint8 // kop.TapPlan; Taps, non-Self ValidCard$: the payment-planner class of the watcher body (lower_tapsclass.go)
-	TapPainN      uint8 // TapPlanPain: the vetted literal damage amount
+	TapPainN      uint8 // TapPlanPain's vetted literal damage, or a TapPlanDefer TapsForMana watcher's disclosed literal payer damage (lower_tapsformana.go)
 	CauseTarget   bool  // DamageDone: ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ Creature.targetedBy (kop.Tf4SingleCauseTarget)
 	// CauseSpell: LifeLost/LifeLostAll/TurnFaceUp ValidCause$
 	// SpellAbility[.<qual>], the event's cause is the spell or ability
