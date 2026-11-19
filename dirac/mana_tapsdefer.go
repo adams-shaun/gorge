@@ -840,6 +840,74 @@ func seenSet(seen map[deferSeenKey]struct{}, used []int8, pool [kop.NumManaKinds
 	return false
 }
 
+// deferInUsed reports whether gap i is already tapped on the search's path.
+func deferInUsed(used []int8, i int) bool {
+	for _, u := range used {
+		if int(u) == i {
+			return true
+		}
+	}
+	return false
+}
+
+// deferDuplicate reports whether the replayed node is a state gorge's visited
+// set (scriptStateKey) already reached: the same tapped set, pool and pending
+// stack in another tap order. A post node is the pass that resolves the stack,
+// not a tap state gorge's key marks, so it is never a duplicate. t is the
+// node's fork.
+func deferDuplicate(replay, post bool, seen map[deferSeenKey]struct{}, t *State, p uint8, used []int8) bool {
+	return replay && !post && seenSet(seen, used, t.pl[SeatIx(p)].pool, t.npend)
+}
+
+// deferAskNodes charges the activation's colour ask as gorge's search prices
+// it (scriptSearch.visit): an ask with more than one answer is a clone of its
+// own beside the one per answer, so the walk pays one extra node for it.
+func deferAskNodes(n int) int {
+	if n > 1 {
+		return 1
+	}
+	return 0
+}
+
+// deferReplay taps the path's gaps on the node fork t, in tap order, with the
+// answer each was chosen at. It reports whether every tap was payable: a
+// life-only gap the path's earlier activation made unpayable ends the replay.
+func deferReplay(t *State, k *prep, p uint8, a Action, order []Slot, used []int8, answers []uint8, tapsDef slotMask, spill *[kop.NumManaKinds]uint8) bool {
+	for u := range used {
+		if !t.scriptGapTap(k, p, a, order[used[u]], slotMask{}, slotMask{}, slotMask{}, tapsDef, slotMask{}, int(answers[u]), spill) {
+			return false
+		}
+	}
+	return true
+}
+
+// deferChainCharge returns the clones gorge's pass chain and the answers under
+// its intermediate resolutions add to the post node walked on fork t (the node
+// itself already counted): one per queued trigger resolved short of the last,
+// and, under each of those, the answers of every remaining gap, each an
+// activation ask gorge's scriptSearch.visit branches. The child term is a
+// floor on the walk's clones: one node per gap undercharged a multi-answer ask
+// (the answer count is what the subtree visits first), while pricing the whole
+// subtree at its worst over-withholds plays the walk still finds (Charix,
+// Grasping Dunes). The chain term uses t.npend, the chain's longest line (a
+// line whose payer dies ends sooner), so a trigger that does not damage the
+// payer is not undercharged. The bool reports whether nodes plus the charge
+// stays inside gorge's potentialScriptNodes.
+func (s *State) deferChainCharge(k *prep, t *State, nodes int, order []Slot, used []int8, replay, post, resolvePlay bool) (int, bool) {
+	if !replay || !post || !resolvePlay || t.npend == 0 {
+		return 0, true
+	}
+	sub := 0
+	for i := 0; i < len(order); i++ {
+		if !deferInUsed(used, i) {
+			sub += int(s.deferGapAnswers(k, order[i]))
+		}
+	}
+	chain := int(t.npend)
+	charge := chain - 1 + (chain-1)*sub
+	return charge, nodes+charge <= potentialScriptNodes
+}
+
 // deferGapSearch is the Taps-deferred gaps' search on a board whose only
 // census gaps are those sources: gorge's one prefix search (potential_script.go
 // scriptSearch.visit), whose visit explores every subset of the gaps -- a
@@ -870,14 +938,6 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 	seen := map[deferSeenKey]struct{}{}
 	used := make([]int8, 0, len(order)) // the tapped gaps, in tap order
 	answers := make([]uint8, 0, len(order))
-	inUsed := func(i int) bool {
-		for _, u := range used {
-			if int(u) == i {
-				return true
-			}
-		}
-		return false
-	}
 	// walk is one visit of gorge's search at the used subset: the replay on a
 	// fork and the play's offered check, then the children, then the pass.
 	var walk func(post bool) bool
@@ -892,32 +952,19 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 			t := s.fork()
 			t.g.noGrant = noGrant
 			var spill [kop.NumManaKinds]uint8
-			replay := true
-			for u := range used {
-				if !t.scriptGapTap(k, p, a, order[used[u]], slotMask{}, slotMask{}, slotMask{}, tapsDef, slotMask{}, int(answers[u]), &spill) {
-					replay = false // a life-only gap the path's earlier activation made unpayable
-					break
-				}
-			}
+			replay := deferReplay(t, k, p, a, order, used, answers, tapsDef, &spill)
 			if stall == 0 {
 				stall = t.g.stalled
 			}
-			if replay && post && resolvePlay && t.npend > 0 {
-				// gorge's pass that lets the queued triggers resolve is a chain
-				// of clones, one per trigger resolved (a dying payer's last one
-				// included): the post node above counted one of them
-				chain := min(int(t.npend), max(s.painPlanLife(p), 1))
-				// and every resolution short of the last leaves the other gaps
-				// as children of its own, each a clone beside the chain's
-				nodes += chain - 1 + (chain-1)*(len(order)-len(used))
-				if nodes > potentialScriptNodes {
-					s.unfork()
-					if stall != 0 {
-						s.capFull(stall)
-					}
-					return false
+			charge, fits := s.deferChainCharge(k, t, nodes, order, used, replay, post, resolvePlay)
+			if !fits {
+				s.unfork()
+				if stall != 0 {
+					s.capFull(stall)
 				}
+				return false
 			}
+			nodes += charge
 			found, foreign := replay, false
 			if replay {
 				t.hideDeferred(k, p, a, tapsDef)
@@ -965,7 +1012,7 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 			}
 			j := used[len(used)-1]
 			cut[j] = foreign && (answers[len(answers)-1] == 0 || cut[j])
-			dup := replay && !post && seenSet(seen, used, t.pl[SeatIx(p)].pool, t.npend)
+			dup := deferDuplicate(replay, post, seen, t, p, used)
 			s.unfork()
 			if foreign {
 				return false // the line ends at another player's ask: no deeper activation under it
@@ -978,14 +1025,14 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 			return false // the pass is the node's last line: nothing deeper under it
 		}
 		for i := 0; i < len(order); i++ {
-			if cut[i] || removed[i] || inUsed(i) {
+			if cut[i] || removed[i] || deferInUsed(used, i) {
 				continue
 			}
 			n := int(s.deferGapAnswers(k, order[i]))
-			if n > 1 {
+			if add := deferAskNodes(n); add != 0 {
 				// the activation's colour ask is a clone of gorge's search of its
 				// own, beside the one per answer (scriptSearch.visit)
-				if nodes++; nodes > potentialScriptNodes {
+				if nodes += add; nodes > potentialScriptNodes {
 					if stall != 0 {
 						s.capFull(stall)
 					}
