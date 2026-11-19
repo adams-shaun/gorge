@@ -25,11 +25,11 @@ func hasType(o *state.Object, t string) bool { return hasTypeID(o, t, 0) }
 // hasTypeID is hasType with t's precompiled cards.InternTypeWord ordinal (0 =
 // none): the printed type-line test is one bit test when the face is bound.
 func hasTypeID(o *state.Object, t string, id cards.TypeWordID) bool {
-	d, _ := hasTypePrinted(o, t, id)
+	d, f := hasTypePrinted(o, t, id)
 	if d != typeUndecided {
 		return d == typeYes
 	}
-	if cdaAddTypeHas(o, t) {
+	if cdaAddTypeHas(o, f, t) {
 		return true
 	}
 	// Intrinsic type-defining abilities, answered in every zone (CR 613.4a):
@@ -51,19 +51,20 @@ func hasTypeID(o *state.Object, t string, id cards.TypeWordID) bool {
 // the object's zone (cdaAddTypeGatedHas). A face-down permanent has no
 // abilities (CR 708.2), and the layer walk's published list (which evaluates
 // the same statics on the battlefield, conditions included) is authoritative
-// where it exists, so the fallback never outranks it.
-func cdaAddTypeHas(o *state.Object, t string) bool {
-	if o == nil || o.FaceDownHidden() {
-		return false
-	}
-	f := o.Face()
-	if f == nil {
+// where it exists, so the fallback never outranks it. f is the face
+// hasTypePrinted already resolved: a second o.Face() would re-derive it in a
+// test binary (faceVerify) and allocate on the hot filter path.
+func cdaAddTypeHas(o *state.Object, f *cards.Face, t string) bool {
+	if o == nil || f == nil || o.FaceDownHidden() {
 		return false
 	}
 	for _, x := range f.CDAAddTypes() {
 		if strings.EqualFold(x, t) {
 			return true
 		}
+	}
+	if len(f.CDAAddGatedStatics()) == 0 {
+		return false
 	}
 	return cdaAddTypeGatedHas(f, o.Zone, t)
 }
@@ -79,16 +80,14 @@ func cdaAddTypeHas(o *state.Object, t string) bool {
 // (cards.CDAAddGateRefused — Grand Master of Flowers' IsPresent$ loyalty
 // threshold) the same classifier refuses, staying the layer walk's, fail
 // closed.
+//
+//go:noinline
 func cdaAddTypeGatedHas(f *cards.Face, z state.Zone, t string) bool {
-	for i := range f.Statics {
-		gate, ok := cards.CDAAddTypeStatic(f.Statics[i])
-		if !ok || gate != cards.CDAAddGateZone {
-			continue
-		}
+	for _, i := range f.CDAAddGatedStatics() {
 		if !cdaAddZoneAdmits(&f.Statics[i], z) {
 			continue
 		}
-		for w := range cards.CDAAddTypeWords(f.Statics[i]) {
+		for _, w := range cards.CDAAddTypeWordList(f.Statics[i]) {
 			if strings.EqualFold(w, t) {
 				return true
 			}
@@ -132,11 +131,11 @@ func cdaEffectZoneAdmits(v string, z state.Zone) bool {
 // involved is pure, so reading sub first only skips the keyword probe for a
 // word no Changeling can grant.
 func hasTypeSub(o *state.Object, t string, id cards.TypeWordID, sub bool) bool {
-	d, _ := hasTypePrinted(o, t, id)
+	d, f := hasTypePrinted(o, t, id)
 	if d != typeUndecided {
 		return d == typeYes
 	}
-	if cdaAddTypeHas(o, t) {
+	if cdaAddTypeHas(o, f, t) {
 		return true
 	}
 	return sub && IntrinsicAllCreatureTypes(o)
