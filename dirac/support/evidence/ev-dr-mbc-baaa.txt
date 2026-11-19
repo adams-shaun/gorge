@@ -5,6 +5,7 @@ Amphin Pathmage
 Ancient Craving
 Angelic Page
 Ashaya's Enduring Bond
+Ashaya, Soul of the Wild
 Aven Mindcensor
 Bane's Invoker
 Birds of Paradise
@@ -97,6 +98,7 @@ Swelter
 Thoughtcast
 Thrummingbird
 Tide Skimmer
+Titania, Protector of Argoth
 Tolarian Kraken
 Tolarian Terror
 Tor Wauki the Younger

@@ -36,6 +36,7 @@ Bladehold War-Whip
 Blessed Respite
 Bog Smugglers
 Bonds of Mortality
+Boseiju, Who Shelters All
 Bottomless Vault
 Brigone, Soldier of Meletis
 Browbeat
@@ -82,6 +83,7 @@ Drogskol Shieldmate
 Drossforge Bridge
 Earthen Goo
 Eerie Soultender
+Elemental Bond
 Ellie, Vengeful Hunter
 Elves of Deep Shadow
 Elvish Warrior
@@ -223,6 +225,7 @@ Ondu Inversion
 Opal Acrolith
 Open Fire
 Oran-Rief Hydra
+Orbs of Warding
 Orcish Spy
 Orim's Prayer
 Pallid Mycoderm
