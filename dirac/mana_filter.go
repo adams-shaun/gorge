@@ -1148,11 +1148,25 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			return false
 		}
 	}
+	if zzFilt {
+		zzOn = a.Kind() == AkCast && a.Mode() == 2
+		if zzOn {
+			zzPrint("FILT enter gaps=", s.zzM(k, fs.gaps), " other=", s.zzM(k, fs.other),
+				" fees=", itoaZ(fs.fees), " dead=", s.zzM(k, fs.dead), "\n")
+		}
+		defer func() {
+			if zzOn {
+				zzPrint("FILT exit nodes=", itoaZ(fs.nodes), " stall=", itoaZ(int(fs.stall)),
+					" spill=", itoaZ(int(fs.spill)), " path=", fs.zzPath(s, k), "\n")
+				zzOn = false
+			}
+		}()
+	}
 	t := s.fork()
 	defer s.unfork()
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
-	if !fs.visit(k, t, 0, false) {
+	if found := fs.visit(k, t, 0, false); !found {
 		if fs.stall != 0 {
 			// every line failed and one ran into a rule gap the kernel stalls by
 			// name: declare it, not "no payment" (tapXScript's stall; a found
@@ -1364,6 +1378,9 @@ func poolTotal(pl *player) int {
 
 // try plays st on a copy of t and continues the search there.
 func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bool) bool {
+	if zzOn && zzFilt {
+		zzPrint("T d=", itoaZ(fs.n), " ", fs.zzStepDesc(t, k, t, st), "\n")
+	}
 	if fs.n == maxFiltPath {
 		return false
 	}
@@ -1555,13 +1572,19 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	// offers before it dedups: the colour-only key cannot tell a restricted
 	// unit from a filter's converted one, so a priced node can key equal to an
 	// earlier unpriced sibling.
+	opt := false
 	if gapUsed {
 		var d Decision
 		t.restrOptions(k, &d, p) // (restricted mana floating is priced as ordinary: the search reads no restriction)
 		t.capGrantOvercounts(k, &d, p)
-		if hasOption(&d, fs.a) && !t.grantRefusedPrices(k, p, fs.a) && !fs.witnessEats(k, t) {
+		opt = hasOption(&d, fs.a)
+		if opt && !t.grantRefusedPrices(k, p, fs.a) && !fs.witnessEats(k, t) {
 			return true
 		}
+	}
+	if zzOn && zzFilt {
+		zzPrint("V d=", itoaZ(fs.n), " gu=", itoaZ(b2iZ(gapUsed)), " opt=", itoaZ(b2iZ(opt)),
+			" funded=", itoaZ(funded), " ", zzPool(t, fs.p), "\n")
 	}
 	key := fs.stateKey(k, t)
 	for i := 0; i < fs.nseen; i++ {
@@ -1596,6 +1619,18 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 					return true
 				}
 				continue
+			}
+			if zzOn && zzFilt {
+				skip := fs.skipSlot(k, t, sl, gap)
+				isGap := fs.gaps.has(sl)
+				ff, fr := 0, 0
+				if gap && isGap && !skip {
+					ff = b2iZ(t.filtPaid(k, p, sl))
+					fr = b2iZ(t.canTapForMana(k, sl))
+				}
+				zzPrint("G d=", itoaZ(fs.n), " pass=", itoaZ(pass), " sl=", t.zzN(k, sl),
+					" skip=", itoaZ(b2iZ(skip)), " other=", itoaZ(b2iZ(fs.other.has(sl))),
+					" free=", itoaZ(fr), " filt=", itoaZ(ff), "\n")
 			}
 			if fs.skipSlot(k, t, sl, gap) {
 				continue
