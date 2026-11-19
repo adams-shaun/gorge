@@ -71,6 +71,9 @@ func (s *State) replOrderEnd(k *prep, r *dmgRec) {
 	if k.gen.anyMonarch {
 		s.monarchCombat(r) // CR 725.2 (act_monarch.go)
 	}
+	if k.gen.ringOn() {
+		s.ringCombatHit(k, r) // the Ring emblem's level 4 (act_ring.go)
+	}
 }
 
 // entBatch is one resolution's battlefield entrants (CR 603.6a, gorge

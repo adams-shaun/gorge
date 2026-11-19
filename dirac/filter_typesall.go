@@ -63,6 +63,13 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 	if fl.Pred == kop.PredMonstrous {
 		return s.monstrousAt(sl) // act_monstrosity.go
 	}
+	if fl.Pred == kop.PredRingBearer {
+		// the Ring-bearer designation (CR 701.54e; gorge filter_word.go
+		// wordRingBearer): the candidate is its controller's Ring-bearer on
+		// the battlefield. PredN 1: the positive IsRingbearer word; PredN 0:
+		// the negated !IsRingbearer word.
+		return s.ringLegend(k, sl) == (fl.PredN == 1)
+	}
 	if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV) && s.xBoundPending(fl) {
 		return true
 	}
@@ -178,6 +185,9 @@ func predCardCold(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 	}
 	if fl.Pred == kop.PredSuspected {
 		return fl.PredN == 0 // off the battlefield nothing is suspected (gorge Object.Suspected clears on the move)
+	}
+	if fl.Pred == kop.PredRingBearer {
+		return fl.PredN == 0 // off the battlefield nothing is a Ring-bearer (gorge clears the designation on the move); a negated word is true
 	}
 	if fl.Pred == kop.PredRenowned {
 		return fl.PredN == 0 // off the battlefield nothing is renowned (gorge Object.Renowned clears on the move)

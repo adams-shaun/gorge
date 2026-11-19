@@ -1551,6 +1551,12 @@ func (cb *cardBuilder) clauseSubtype2(c lClause, kf *kop.Filter) error {
 	return nil
 }
 
+// ringBearerPred sets the Ring-bearer designation word: the polarity rides in
+// PredN (1 positive, 0 negated), as the renowned/suspected words do.
+func ringBearerPred(kf *kop.Filter, c lClause) {
+	kf.Pred, kf.PredN = kop.PredRingBearer, int16(c.CmpN)
+}
+
 func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	var kf kop.Filter
 	kf.Zone = zone
@@ -1854,6 +1860,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredHasCounters
 	case cmpMonstrous, cmpNoCounters, cmpMonoColor, cmpSharesCrCmdr:
 		kf.Pred = bareCmpPreds[c.CmpStat]
+	case cmpRingBearer:
+		ringBearerPred(&kf, c)
 	case cmpLacksKw:
 		kf.Pred, kf.PredN = kop.PredLacksKeyword, int16(c.CmpN)
 	case cmpHasManaAbility:
@@ -2370,6 +2378,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vCtrAdded:           kop.ExCtrAdded,
 	vSacrificedThisTurn: kop.ExSacrificedThisTurn,
 	vDiscardedThisTurn:  kop.ExDiscardedThisTurn,
+	vRingTempted:        kop.ExRingTempted,
 	vScriedThisTurn:     kop.ExScriedThisTurn,
 	vDilemmasFaced:      kop.ExDilemmasFaced,
 	vExiledWithN:        kop.ExExiledWithN,
