@@ -10,28 +10,31 @@ const raDredge uint8 = 146
 // ask (dirac/manifest/ask/raAddOrRemoveCounter)
 const raAddOrRemoveCounter uint8 = 147
 
+// ask (dirac/manifest/ask/raChooseSource)
+const raChooseSource uint8 = 148
+
 // ask (dirac/manifest/ask/raDefeatCast)
 //
 // the transformed free cast ask of a resolving Siege defeat trigger (CR 310.12b, ChDefeatCast; face_battle.go resolveSiegeDefeat)
-const raDefeatCast uint8 = 148
+const raDefeatCast uint8 = 149
 
 // ask (dirac/manifest/ask/raDredgeRes)
-const raDredgeRes uint8 = 149
+const raDredgeRes uint8 = 150
 
 // ask (dirac/manifest/ask/raGenClash)
-const raGenClash uint8 = 150
+const raGenClash uint8 = 151
 
 // ask (dirac/manifest/ask/raGenMyriad)
-const raGenMyriad uint8 = 151
+const raGenMyriad uint8 = 152
 
 // ask (dirac/manifest/ask/raGenPileOpp)
-const raGenPileOpp uint8 = 152
+const raGenPileOpp uint8 = 153
 
 // ask (dirac/manifest/ask/raGenRepeatOptional)
-const raGenRepeatOptional uint8 = 153
+const raGenRepeatOptional uint8 = 154
 
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 154
+const raPodClashOpp uint8 = 155
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -720,6 +723,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 	switch kop.ExtOp(in.A.N) {
 	case kop.ExtAddOrRemoveCounter:
 		return s.addOrRemoveCounter(k, in) // ctr_addorremove.go
+	case kop.ExtChooseSource:
+		return s.chooseSourceExt(k, in) // act_choosesource.go
 	case kop.ExtClash:
 		return s.clashExt(k, in) // act_clash.go
 	case kop.ExtClearNamedCard:
@@ -763,6 +768,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raAddOrRemoveCounter:
 		s.aorOptions(k, d) // ctr_addorremove.go
 		return true
+	case raChooseSource:
+		s.chooseSourceOptions(k, d) // act_choosesource.go
+		return true
 	case raDefeatCast:
 		s.defeatCastOptions(k, d) // face_battle.go
 		return true
@@ -787,6 +795,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 	switch s.res.ask {
 	case raAddOrRemoveCounter:
 		s.aorAnswer(k, a) // ctr_addorremove.go
+		return true
+	case raChooseSource:
+		s.chooseSourceAnswer(k, a) // act_choosesource.go
 		return true
 	case raDefeatCast:
 		s.defeatCastApply(k, a) // face_battle.go

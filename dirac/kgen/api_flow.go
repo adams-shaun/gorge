@@ -34,6 +34,9 @@ func (lc *lowerCtx) apiEffect(sa *cards.SA, ps *params) error {
 	if lc.prevColor {
 		return lc.preventColorEffect(ps)
 	}
+	if lc.chosenSrc {
+		return lc.chosenSrcEffect(ps) // lower_choosesource.go
+	}
 	if lc.colGrant {
 		return lc.colorGrantEffect(ps) // (Skrelv)
 	}

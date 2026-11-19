@@ -1,0 +1,24 @@
+# ChooseSource and the next-damage prevention it feeds (Circle of Protection,
+# Rune of Protection, Invulnerability, Righteous Aura, Pentagram of the Ages,
+# Greater Realm of Preservation, Haazda Shield Mate): dirac/act_choosesource.go,
+# dirac/repl_prevchosen.go (dirac/oracle/choosesource_lockstep_test.go)
+Circle of Protection: Red
+Circle of Protection: Artifacts
+Rune of Protection: Lands
+Rune of Protection: White
+Greater Realm of Preservation
+Invulnerability
+Righteous Aura
+Pentagram of the Ages
+Haazda Shield Mate
+Savannah Lions
+Grizzly Bears
+Hill Giant
+Raging Goblin
+Shock
+Lightning Bolt
+Short Sword
+Mind Stone
+Plains
+Mountain
+Forest

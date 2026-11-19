@@ -33,4 +33,20 @@ const (
 	PrevNextTokens    = 16
 	PrevNextEndCombat = 32
 	PrevNextPlayers   = 64
+	// PrevNextChosen: the source-keyed shield's source is the kernel's chosen
+	// set (the ChooseSource ask before it, dirac/act_choosesource.go) and its
+	// recipient is the resolving controller as a player (ValidTarget$ You):
+	// "the next time the chosen source would deal damage to you this turn,
+	// prevent that damage" (Circle of Protection: Red). B is the
+	// ChosenSrc* mask the source must still meet when the damage is dealt
+	// (ValidSource$ Card.ChosenCardStrict+RedSource). It requires PrevNextAll
+	// and PrevNextFrom and carries no rider.
+	PrevNextChosen = 128
+
+	// ChosenSrc* are the type bits of a ChooseSource pool mask and of the
+	// shield's damage-time re-check, beside the colour bits (kop.ColW ... ColG,
+	// bits 0-4): a source qualifies when it has any named colour or type, and
+	// a mask of 0 admits every source.
+	ChosenSrcArtifact = 1 << 5
+	ChosenSrcLand     = 1 << 6
 )
