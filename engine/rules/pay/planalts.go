@@ -8,6 +8,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/effects/params"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -133,6 +134,19 @@ func paymentPlanAbilityShapeTier(e Engine, p state.PlayerID, id state.ObjID, ma 
 	}
 	deferred := func(detail string) (Tier, Consequence, string) {
 		return TierDeferred, Consequence{}, detail
+	}
+	if effects.ManaOf(ma).TriggersWhenSpent != "" {
+		// A tap-only source whose spent-mana rider is a bare scry pays like
+		// a plain one (Path of Ancestry); any other rider stays deferred.
+		// The carve-out is for games of three or more seats: the dirac
+		// kernel is two-seat and still leaves such a source out of payment
+		// (kgen lowerMana's ColorIdentity case), so a two-seat game keeps the
+		// deferral until the kernel models the rider's commander-type filter.
+		if len(e.Game().Players) <= 2 || !PaymentPlanTapOnlyCost(cost) ||
+			!paymentPlanSubFree(ma) || !PlanSpentRiderIsScry(e.Game(), id, ma) {
+			return deferred("source:special_production")
+		}
+		return TierNormal, Consequence{}, ""
 	}
 	if PlanRiderHasTarget(e.Game(), id, ma) {
 		return deferred("source:target")

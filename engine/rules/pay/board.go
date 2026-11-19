@@ -7,6 +7,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -247,6 +248,32 @@ func PlanRiderHasTarget(g *state.Game, id state.ObjID, mana *cards.SA) bool {
 		}
 	}
 	return false
+}
+
+// PlanSpentRiderIsScry reports whether mana's TriggersWhenSpent$ rider is a
+// SpellCast/SpellAbilityCast trigger whose Execute$ body is a bare Scry (Path
+// of Ancestry's "scry 1" when its mana pays a creature spell sharing a type
+// with the commander). Such a rider only adds a library-order decision after
+// the spell is cast: it cannot change what the mana pays, the spell or the
+// payment, so the planner may spend the source like a plain one. Every other
+// rider (a copy, a token, an animation, life or cards) stays out of the plan:
+// choosing to spend that mana is a play decision, not a payment detail.
+func PlanSpentRiderIsScry(g *state.Game, id state.ObjID, mana *cards.SA) bool {
+	o := g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	svars := o.Face().SVars
+	body, ok := svars[effects.ManaOf(mana).TriggersWhenSpent]
+	if !ok {
+		return false
+	}
+	t, ok := cards.ParseTriggerLine(body)
+	if !ok || (t.Mode != "SpellCast" && t.Mode != "SpellAbilityCast") {
+		return false
+	}
+	exec := cards.ResolveSVar(svars, t.ParamStr(cards.PKExecute))
+	return exec != nil && exec.API == "Scry" && paymentPlanSubFree(exec)
 }
 
 // PlanController is the controller of source id, or seat 0 for a
