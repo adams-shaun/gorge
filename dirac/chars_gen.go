@@ -712,7 +712,7 @@ func (s *State) ptGen(k *prep, sl Slot) (int, int) {
 		bp += dp
 		bt += dt
 	}
-	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {
+	if s.statM.any() || s.anyEmb() {
 		s.eachStaticC(k, sclsPT, func(st statSrc) bool {
 			a := st.a
 			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous {
@@ -784,7 +784,7 @@ func (s *State) kwGen(k *prep, sl Slot) kop.KwMask {
 			m |= s.suspectKw(k, sl) // CR 701.60a: a base keyword, as the cloak's ward (static_layer6.go)
 		}
 	}
-	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {
+	if s.statM.any() || s.anyEmb() {
 		s.eachStaticC(k, sclsKw, func(st statSrc) bool {
 			a := st.a
 			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.Kw == 0 || m&a.Static.Kw == a.Static.Kw {
@@ -1326,7 +1326,7 @@ func (s *State) grantedKwGen(k *prep, sl Slot, add func(kop.KwMask)) {
 			add(o.AddKw)
 		}
 	})
-	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {
+	if s.statM.any() || s.anyEmb() {
 		s.eachStaticC(k, sclsKw, func(st statSrc) bool {
 			a := st.a
 			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.Kw != 0 && (!lost || s.grantTs(st) >= lts) &&

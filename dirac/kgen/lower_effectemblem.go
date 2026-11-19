@@ -257,7 +257,14 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 			// two-player "other than you" spelling is exact
 			return lStatic{}, refuse("Effect static MustAttack$ %q", v)
 		}
-		lc.twoSeat("MustAttack$ Player.Other read as the one opponent")
+		if s.Params["MustAttack"] != "" {
+			// a requirement naming the defender: at three or more seats
+			// "a player other than you" is a choice the kernel does not ask
+			lc.twoSeat("MustAttack$ Player.Other read as the one opponent")
+		}
+		// a bare MustAttack (Bident of Thassa) is "attacks if able" with any
+		// defender (CR 508.1d): at more than two seats the kernel asks each
+		// such attacker's defender as gorge does (mustAttackAsked)
 		// staticBody has no field for the player reference; the check
 		// above makes the two-player reading exact, so drop the key
 		// before lowering.

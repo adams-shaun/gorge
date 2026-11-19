@@ -17,6 +17,9 @@ func (s *State) staticFlagGen(k *prep, sk kop.StaticKind, sl Slot) bool {
 		if a.Kind == kop.AbStatic && a.Static.Kind == sk && s.statCond(k, st) &&
 			(st.emb == 0 || s.embCaptureOK(k, st.emb, sl)) &&
 			s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerFull) {
+			if DebugMustAttackOneOpp && sk == kop.StatMustAttack && st.emb != 0 && s.perms[sl].ctrl != s.nextAlive(st.ctrl) {
+				return true // the mutation: only the one opponent's creatures must attack
+			}
 			hit = true
 			return false
 		}
