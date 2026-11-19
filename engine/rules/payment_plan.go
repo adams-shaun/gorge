@@ -323,6 +323,25 @@ func planManaUnderRider(pe pay.Engine, p state.PlayerID, life int32, cast decisi
 			return retry
 		}
 	}
+	// A board whose coloured units span several colours funds the rider's
+	// pips with a coloured unit of ANY colour, so no single-colour pin has to
+	// cover them all (four {W/U} pips under MayPlayIgnoreColor$ beside
+	// U1 B3 R1: every pin asks four units of one colour, three is the
+	// largest, yet Island U, two Swamps B and a Mountain R pay the cast).
+	// One more alternative spreads the pips over the colours the payment
+	// census can fund, largest supply first in WUBRG tie-break order; the
+	// witness verifies the plan against the real rider cost exactly as it
+	// verifies every pin, so a spread that over-asks one colour only costs a
+	// failed attempt and the cast stays withheld (CR 107.4c: colourless mana
+	// still pays no pip).
+	if spread := pay.PlanManaUnderRiderSpread(pe, p, real, rider); spread != nil {
+		desc := pay.DescriptorFor(cast.Object, false, *spread)
+		retry := plan(*spread, &desc)
+		if retry.Plan != nil && retry.Reason == "" &&
+			planPaysManaUnderRider(pe, p, life, *retry.Plan, &desc, real, rider) {
+			return retry
+		}
+	}
 	return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
 }
 
