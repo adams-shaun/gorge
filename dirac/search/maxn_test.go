@@ -1,6 +1,11 @@
 package search
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/adams-shaun/gorge/dirac"
+)
 
 // TestMaxNTwoSeatsTakesOldPath: with two living seats max^n and paranoid
 // coincide, so MaxN on runs the scalar path: every search of a two-seat game
@@ -106,5 +111,37 @@ func TestMaxNValidate(t *testing.T) {
 		if x.Validate() == nil {
 			t.Fatalf("MaxN validated with NodeCache %d Batch %d", x.NodeCache, x.Batch)
 		}
+	}
+}
+
+// TestMaxNScalarRefused: MaxN over a scalar evaluator (one with no value
+// vector) is refused by ValidateEval, naming its ValueK, unless
+// MaxNScalarFallback allows the counted paranoid split; a VecEvaluator leaf
+// and MaxN off need nothing.
+func TestMaxNScalarRefused(t *testing.T) {
+	o := DefaultOptions()
+	o.MaxN = true
+	if dirac.MaxSeats <= 2 {
+		if err := o.ValidateEval(&fakeNet{}); err != nil {
+			t.Fatalf("a two-seat build refused max^n: %v", err)
+		}
+		return
+	}
+	err := o.ValidateEval(&fakeNet{})
+	if err == nil || !strings.Contains(err.Error(), "ValueK 0") {
+		t.Fatalf("a scalar evaluator under max^n: err %v, want a refusal naming ValueK 0", err)
+	}
+	if err := o.ValidateEval(HeuristicLeaf{}); err != nil {
+		t.Fatalf("the heuristic vector leaf: %v", err)
+	}
+	fb := o
+	fb.MaxNScalarFallback = true
+	if err := fb.ValidateEval(&fakeNet{}); err != nil {
+		t.Fatalf("with MaxNScalarFallback: %v", err)
+	}
+	off := o
+	off.MaxN = false
+	if err := off.ValidateEval(&fakeNet{}); err != nil {
+		t.Fatalf("MaxN off: %v", err)
 	}
 }

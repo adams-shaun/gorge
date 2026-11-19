@@ -319,7 +319,18 @@ type Options struct {
 	// living seats the two coincide and the scalar path runs unchanged; a
 	// game of more than maxVecSeats seats runs paranoid and counts
 	// Stats.MaxNFallbacks. It acts only with OpponentNodes.
+	//
+	// A network leaf needs a K-way value head of at least maxVecSeats+1
+	// outcomes (policynet Model.ValueK, or its External's ValueK): from a
+	// scalar head the vector is 1-v split evenly over the opponents, which
+	// maximised per opponent is minimising v, paranoid search under max^n's
+	// name. Validate refuses MaxN over such a network unless
+	// MaxNScalarFallback allows that split, which then counts every leaf it
+	// takes (Stats.MaxNScalarFallbacks) and the seat logs it once per game.
 	MaxN bool
+	// MaxNScalarFallback lets MaxN run over a network without a K-way value
+	// head, splitting its scalar (the paranoid backup), counted and logged.
+	MaxNScalarFallback bool
 	// SkipPass makes the search's world engines auto-pass every priority
 	// window outside a main phase with an empty stack (rules.Engine.SetSkipPass):
 	// no legal-action walk, payment build or bot answer is paid for it, and the
@@ -520,6 +531,9 @@ type Stats struct {
 	// of more seats than a value vector holds (maxVecSeats) and ran
 	// paranoid instead.
 	MaxNFallbacks int
+	// MaxNScalarFallbacks counts the max^n leaves whose value vector was a
+	// scalar network value split over the opponents (MaxNScalarFallback).
+	MaxNScalarFallbacks int
 
 	// The walk's cost counters. They count work, not outcomes: the node
 	// cache (Options.NodeCache) changes them, and EnvSteps above, and
@@ -704,6 +718,7 @@ func (s *Stats) Add(o Stats) {
 	s.OppPoints += o.OppPoints
 	s.OppExpanded += o.OppExpanded
 	s.MaxNFallbacks += o.MaxNFallbacks
+	s.MaxNScalarFallbacks += o.MaxNScalarFallbacks
 	s.Truncated += o.Truncated
 	s.RootTruncated += o.RootTruncated
 	s.LeafPlies += o.LeafPlies

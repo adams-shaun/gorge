@@ -80,7 +80,14 @@ type Options struct {
 	// unchanged (Stats.MaxN stays 0). It acts only with OpponentNodes, and
 	// Validate refuses it with NodeCache or Batch, whose backups carry the
 	// scalar alone.
-	MaxN               bool
+	MaxN bool
+	// MaxNScalarFallback lets MaxN run over an evaluator with no value
+	// vector for the game's seats, its value split evenly over the
+	// opponents (splitVec): paranoid search under max^n's name, so
+	// ValidateEval refuses MaxN without it, and with it every leaf that
+	// split is counted (Stats.ScalarFallbacks). gorge azmcts
+	// Options.MaxNScalarFallback.
+	MaxNScalarFallback bool
 	AbsoluteUnvisitedQ bool
 	UnvisitedQ         float64
 	// NodeCache > 0 enables the per-world node-state cache (only with
