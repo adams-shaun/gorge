@@ -27,14 +27,14 @@ func TestClonePermanentCopyBasisSVarWinsOverPriorCopy(t *testing.T) {
 	become.Link()
 	// The first copy source defines X with a body of its own.
 	first, _ := cards.ParseBytes("first.txt", []byte("Name:Newsie Shape\nManaCost:U B\nTypes:Creature Human Rogue\nPT:2/2\n"+
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigMill\n"+
-		"SVar:TrigMill:DB$ Mill | NumCards$ 2 | Defined$ You\n"+
-		"SVar:X:Count$ValidGraveyard Card.YouOwn$DifferentCardManaCost\nOracle:x\n"))
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigFixture\n"+
+		"SVar:TrigFixture:DB$ Mill | NumCards$ 7 | Defined$ You\n"+
+		"SVar:X:Number$1\nOracle:x\n"))
 	first.Link()
 	// The second copy source defines the SAME name with a different body.
 	second, _ := cards.ParseBytes("second.txt", []byte("Name:Knight Shape\nManaCost:2 U\nTypes:Creature Human Knight\nPT:2/2\n"+
 		"A:AB$ GainLife | Cost$ T | CheckSVar$ X | SVarCompare$ GE2 | LifeAmount$ 1\n"+
-		"SVar:X:Count$ThisTurnCast_Card.YouCtrl\nOracle:x\n"))
+		"SVar:X:Number$2\nOracle:x\n"))
 	second.Link()
 
 	firstID := g.AddObject(first, 0).ID
