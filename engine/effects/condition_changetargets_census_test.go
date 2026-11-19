@@ -1,17 +1,14 @@
 package effects
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
-// TestEmissaryOfGrudgesStaysUnmodelled: Emissary of Grudges' ChangeTargets
-// ability carries the two target-shape keys this build now evaluates AND
-// ConditionPlayerDefined$/ConditionPlayerContains$, which stay unmodelled, so
-// the gate must keep failing CLOSED on it (unmodelledConditionKey returns the
-// first sorted bad key). Meddle, which carries only the two evaluated keys,
-// no longer reports unmodelled.
-func TestEmissaryOfGrudgesStaysUnmodelled(t *testing.T) {
+// TestEmissaryOfGrudgesPlayerGateIsModelled: Emissary of Grudges' ChangeTargets
+// ability carries the two target-shape keys AND ConditionPlayerDefined$/
+// ConditionPlayerContains$. conditionMetCore now evaluates the player pair
+// through the shared player-referent resolver (EffectOwnerPlayers), so the
+// gate no longer reports an unmodelled key on it, like Meddle, which carries
+// only the two target-shape keys.
+func TestEmissaryOfGrudgesPlayerGateIsModelled(t *testing.T) {
 	_, em := corpusSA(t, "Emissary of Grudges", "")
 	if em.API != "ChangeTargets" {
 		t.Fatalf("precondition: Emissary ability API = %q, want ChangeTargets", em.API)
@@ -22,10 +19,8 @@ func TestEmissaryOfGrudgesStaysUnmodelled(t *testing.T) {
 	if _, ok := em.Params["ConditionTargetValidTargeting"]; !ok {
 		t.Fatal("precondition: Emissary ability carries no ConditionTargetValidTargeting$")
 	}
-	// unmodelledConditionKey returns the FIRST SORTED bad key: of the two
-	// player keys Emissary carries, ConditionPlayerContains sorts first.
-	if detail, bad := UnmodelledCondition(em); !bad || !strings.HasPrefix(detail, "ConditionPlayer") {
-		t.Fatalf("UnmodelledCondition(Emissary) = (%q, %v), want a still-unmodelled player key", detail, bad)
+	if detail, bad := UnmodelledCondition(em); bad {
+		t.Fatalf("Emissary's player gate is still unmodelled: %s", detail)
 	}
 
 	_, meddle := corpusSA(t, "Meddle", "")

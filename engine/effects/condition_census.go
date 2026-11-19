@@ -97,10 +97,10 @@ var conditionUnmodelledBare = newConditionNames(
 // conditionUnmodelledKeys is every Condition* key the corpus carries that
 // conditionMetCore does not read (the keys are read through the raw Params
 // map; the evaluated set is conditionEvaluatedKeys). Counts measured
-// 2026-10-04.
+// 2026-10-04; ConditionPlayerDefined/ConditionPlayerContains left this list
+// 2026-11-18, when conditionMetCore began evaluating the pair through the
+// shared player-referent resolver.
 var conditionUnmodelledKeys = newConditionNames(
-	"ConditionPlayerDefined",     // 9
-	"ConditionPlayerContains",    // 9
 	"ConditionChosenColor",       // 5
 	"ConditionLifeTotal",         // 4
 	"ConditionLifeAmount",        // 4

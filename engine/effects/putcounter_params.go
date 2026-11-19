@@ -170,7 +170,7 @@ var putCounterKnownKeys = [...]string{
 	"ChooseFromList", "Chooser", "ClassBand", "ClearImprinted", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
-	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn",
+	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerContains", "ConditionPlayerDefined", "ConditionPlayerTurn",
 	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionTargetValidTargeting", "ConditionTargetsSingleTarget", "ConditionZone", "CopyCard", "Cost", "CostDesc",
 	"CounterMapValues", "CounterNum", "CounterNumPerDefined", "CounterType", "CounterTypePerDefined", "CounterTypes",
 	"Defined", "DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Divided",
