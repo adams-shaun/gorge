@@ -1122,6 +1122,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				}
 				effectContinuous(h, ce)
 				registered = true
+			} else if effectGainControlDelivered(h, c, sa, ep, params, remembered, effectName, rawDur, dur, forgetOn, exileOn, forgetCounter, imprintOnHost) {
+				registered = true // Effect-delivered control static: effect_gaincontrol.go
 			} else if goadStaticGrantReadable(params) {
 				// A Goad$ True static delivered by the Effect (staticgoad1:
 				// Hot Pursuit's IsGoaded body, Immortal Obligation's Static --
