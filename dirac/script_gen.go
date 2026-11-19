@@ -276,13 +276,6 @@ func (s *State) plainCastUnsearched(k *prep, p uint8, a Action) bool {
 }
 
 // scriptOffers adds to d the plays a scripted prefix pays.
-// filtMixOpen: the filter/mix searches' branch takes the play — a filter or
-// mix board the search can fund the fee from — and no tap-two source has
-// disabled those searches for it (filtFundable, tapXTwoLive).
-func filtMixOpen(filt slotMask, mix, tapTwo bool) bool {
-	return (filt.any() || mix) && !tapTwo
-}
-
 func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
 	tapsDef := s.scriptTapsDefer(k, p)
@@ -317,8 +310,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// Ironworks' plays are the gaps walk's and those gorge's PotentialMana bound
 	// pays on its own (sacAny; tapXSacAnyBound; sacPotPays).
 	sacAny, sacOpen := s.tapXSacAnyBound(k, p)
-	tapTwo := k.tapMana && s.tapXTwoLive(k, p)
-	twoLive := tapTwo || sacOpen
+	twoLive := k.tapMana && s.tapXTwoLive(k, p) || sacOpen
 	relax := s.scriptRelax(k, p, filt, ca || twoLive || sacAny)
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
@@ -411,7 +403,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if !s.caSearch(k, a, p, restr, anyR, tapsDef, caM) {
 				continue // no script within gorge's search: no colour answers pay the play (mana_comboany.go)
 			}
-		} else if filtMixOpen(filt, mix, tapTwo) && s.liveGrantGap(k, p) {
+		} else if (filt.any() || mix) && s.liveGrantGap(k, p) {
 			// a cast beside a filter and a live grant needs both: the grant
 			// search's filter step funds the filter's fee from a granted
 			// sacrifice ability (Rain of Filth's lands; grantSearch's
@@ -429,7 +421,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 					continue // no script within gorge's one search's budget (grantActScript)
 				}
 			}
-		} else if filtMixOpen(filt, mix, tapTwo) {
+		} else if filt.any() || mix {
 			if !s.filtScript(k, a, p, false) {
 				continue // no script within gorge's search budget
 			}
