@@ -142,3 +142,51 @@ func (e *Encoder) podSparse() {
 		}
 	}
 }
+
+// podLifeRowTables are policynet's podLifeRows bucket rows per slot:
+// "mz|pod|lifediff<j>=" and "mz|pod|opp<j>|life=".
+var podRowsLifediff, podRowsOppLife = func() (d, o [maxSeatBlocks - 1][]uint16) {
+	for j := range d {
+		d[j] = bucketRows("mz|pod|lifediff"+string(rune('0'+j))+"=", 14)
+		o[j] = bucketRows("mz|pod|opp"+string(rune('0'+j))+"|life=", lifeBucketHi)
+	}
+	return
+}()
+
+// podLifeRows is policynet's podLifeRows: the opponents in turn order from
+// the viewer, a departed seat skipped, one life slot each, and the lethal
+// rows read one opponent at a time.
+func (e *Encoder) podLifeRows(me *vplayer, mine *agg) {
+	v := &e.v
+	e.push(rowsMeLife[clampI(me.life/2, lifeBucketHi)], 1)
+	slot := 0
+	meLethal, oppLethal := false, false
+	for r := 1; r < int(v.n); r++ {
+		p := v.relPlayer(r)
+		if e.st0.FeatLost(p) {
+			continue
+		}
+		pl := &v.players[p]
+		if slot < maxSeatBlocks-1 {
+			e.push(podRowsLifediff[slot][clampI((me.life-pl.life)/3+7, 14)], 1)
+			e.push(podRowsOppLife[slot][clampI(pl.life/2, lifeBucketHi)], 1)
+		}
+		slot++
+		if mine.canAttackPower >= pl.life {
+			meLethal = true
+		}
+		var theirs agg
+		for _, ci := range pl.bf {
+			theirs.add(&v.cards[ci])
+		}
+		if theirs.canAttackPower >= me.life {
+			oppLethal = true
+		}
+	}
+	if meLethal {
+		e.push(rowMeLethal, 1)
+	}
+	if oppLethal {
+		e.push(rowOppLethal, 1)
+	}
+}

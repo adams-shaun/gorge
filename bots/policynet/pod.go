@@ -222,3 +222,51 @@ func NewPodModel(rows, h, hidden, k int, rng *rand.Rand) (*Model, error) {
 	}
 	return m, nil
 }
+
+// podLifeRows are the pod set's life and lethal rows (t1): the viewer's
+// "mz|me|life=" bucket, then the opponents in turn order from the viewer,
+// a seat that has left the game skipped, each in its own slot j (the first
+// maxSeatBlocks-1): "mz|pod|lifediff<j>=" over (my life - its life)/3+7 and
+// "mz|pod|opp<j>|life=" over its life/2. The lethal rows read each opponent
+// alone, never every opponent's power summed: "mz|me|lethal-unblocked" when
+// my untapped attackers' power reaches some live opponent's life,
+// "mz|opp|lethal-unblocked" when some live opponent's own reaches mine.
+// others is every other seat in seat order and oppPower[j] others[j]'s
+// can-attack power.
+func podLifeRows(v *view.View, me *view.PlayerView, others []*view.PlayerView, myPower int32, oppPower []int32, sk *sink) {
+	sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|me|life="), mzClamp(me.Life/2, mzLifeBucketHi)), 1)
+	n := len(v.Players)
+	meIdx := 0
+	for i := range v.Players {
+		if v.Players[i].ID == me.ID {
+			meIdx = i
+		}
+	}
+	slot := 0
+	meLethal, oppLethal := false, false
+	for r := 1; r < n; r++ {
+		pv := &v.Players[(meIdx+r)%n]
+		if pv.Lost {
+			continue
+		}
+		if slot < maxSeatBlocks-1 {
+			sk.h(fnvAddInt(fnvAdd(fnvAddInt(fnvAdd(fnvOffset, "mz|pod|lifediff"), int64(slot)), "="), mzClamp((me.Life-pv.Life)/3+7, 14)), 1)
+			sk.h(fnvAddInt(fnvAdd(fnvAddInt(fnvAdd(fnvOffset, "mz|pod|opp"), int64(slot)), "|life="), mzClamp(pv.Life/2, mzLifeBucketHi)), 1)
+		}
+		slot++
+		if myPower >= pv.Life {
+			meLethal = true
+		}
+		for j, o := range others {
+			if o == pv && oppPower[j] >= me.Life {
+				oppLethal = true
+			}
+		}
+	}
+	if meLethal {
+		sk.h(fnvAdd(fnvOffset, "mz|me|lethal-unblocked"), 1)
+	}
+	if oppLethal {
+		sk.h(fnvAdd(fnvOffset, "mz|opp|lethal-unblocked"), 1)
+	}
+}
