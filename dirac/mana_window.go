@@ -2214,6 +2214,9 @@ func scriptSkipCost(path []uint8, n int) int {
 // in dead, whether the oracle cannot complete it: restricted mana floats
 // and the play's pool does not pay it (the planner refuses that pool).
 // Mana only adds up, so skipping a gap never prices what tapping it does
+// not -- unless the tap costs the payer (a Taps-deferred watcher that
+// hurts it, scriptSkip below), and the chain with its branches is the
+// search's order.
 // not, and the chain with its branches is the search's order.
 //
 // The walk is iterative over one copy of s (a recursive walk's per-node
