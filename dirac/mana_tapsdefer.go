@@ -817,6 +817,29 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 	}
 }
 
+// deferSeenKey is gorge's scriptStateKey over the deferred gaps' search: the
+// tapped gaps (a set, not their order), the floating pool and the stack the
+// taps queued.
+type deferSeenKey struct {
+	taps [(MaxPerm + 63) / 64]uint64
+	pool [kop.NumManaKinds]uint8
+	pend uint8
+}
+
+// seenSet records the state of a search node and reports whether an earlier
+// node had already reached it.
+func seenSet(seen map[deferSeenKey]struct{}, used []int8, pool [kop.NumManaKinds]uint8, pend uint8) bool {
+	key := deferSeenKey{pool: pool, pend: pend}
+	for _, u := range used {
+		key.taps[u>>6] |= 1 << (uint(u) & 63)
+	}
+	if _, ok := seen[key]; ok {
+		return true
+	}
+	seen[key] = struct{}{}
+	return false
+}
+
 // deferGapSearch is the Taps-deferred gaps' search on a board whose only
 // census gaps are those sources: gorge's one prefix search (potential_script.go
 // scriptSearch.visit), whose visit explores every subset of the gaps -- a
@@ -844,6 +867,7 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 	nodes, stall := 0, uint8(0)
 	var cut [MaxPerm]bool // gap i: every answer so far ended the line at another player's ask
 	removed := make([]bool, len(order))
+	seen := map[deferSeenKey]struct{}{}
 	used := make([]int8, 0, len(order)) // the tapped gaps, in tap order
 	answers := make([]uint8, 0, len(order))
 	inUsed := func(i int) bool {
@@ -877,6 +901,22 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 			}
 			if stall == 0 {
 				stall = t.g.stalled
+			}
+			if replay && post && resolvePlay && t.npend > 0 {
+				// gorge's pass that lets the queued triggers resolve is a chain
+				// of clones, one per trigger resolved (a dying payer's last one
+				// included): the post node above counted one of them
+				chain := min(int(t.npend), max(s.painPlanLife(p), 1))
+				// and every resolution short of the last leaves the other gaps
+				// as children of its own, each a clone beside the chain's
+				nodes += chain - 1 + (chain-1)*(len(order)-len(used))
+				if nodes > potentialScriptNodes {
+					s.unfork()
+					if stall != 0 {
+						s.capFull(stall)
+					}
+					return false
+				}
 			}
 			found, foreign := replay, false
 			if replay {
@@ -925,9 +965,13 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 			}
 			j := used[len(used)-1]
 			cut[j] = foreign && (answers[len(answers)-1] == 0 || cut[j])
+			dup := replay && !post && seenSet(seen, used, t.pl[SeatIx(p)].pool, t.npend)
 			s.unfork()
 			if foreign {
 				return false // the line ends at another player's ask: no deeper activation under it
+			}
+			if dup {
+				return false // gorge's visited set (scriptStateKey): the same taps, pool and stack, reached in another order, is no node of its own
 			}
 		}
 		if post {
@@ -938,6 +982,16 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 				continue
 			}
 			n := int(s.deferGapAnswers(k, order[i]))
+			if n > 1 {
+				// the activation's colour ask is a clone of gorge's search of its
+				// own, beside the one per answer (scriptSearch.visit)
+				if nodes++; nodes > potentialScriptNodes {
+					if stall != 0 {
+						s.capFull(stall)
+					}
+					return false
+				}
+			}
 			for c := 0; c < n; c++ {
 				used = append(used, int8(i))
 				answers = append(answers, uint8(c))
