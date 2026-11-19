@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"sort"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // anyColorWitness mirrors gorge's witness for a may-play cast under the
 // MayPlayIgnoreColor rider (rules potential_plan.go potentialPinnedColourPlan).
@@ -12,6 +16,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // pips on one colour (pay.PlanManaUnderRiderPinned) -- a cast whose coloured
 // pips need two colours' sources and whose folded plan took the colourless
 // one has no witness, so gorge leaves it out of the autopay offers (unpriced).
+// Failing those, gorge's spread (pay.PlanManaUnderRiderSpread) pins the pips
+// over the colours the census can fund, largest supply first with the WUBRG
+// order breaking ties: each pip takes one coloured unit of any colour, so a
+// board whose coloured units span several colours still pays (spreadWitness).
 // cost is the printed cost, folded the planner's (planUnderRider).
 func (s *State) anyColorWitness(k *prep, p uint8, exclude Obj, cost, folded kop.ManaCost, av *avail) bool {
 	nCol := 0
@@ -47,5 +55,43 @@ func (s *State) anyColorWitness(k *prep, p uint8, exclude Obj, cost, folded kop.
 			return true
 		}
 	}
-	return false
+	return av.spreadWitness(folded, nCol)
+}
+
+// spreadWitness mirrors pay.PlanManaUnderRiderSpread: the census's coloured
+// supply per colour (a source counts once for each colour it can make, as the
+// payment census sums every alternative), nCol pips pinned over the colours
+// largest supply first with the WUBRG order breaking ties, generic reduced by
+// nCol; false when the coloured supply is below nCol. The spread pin is then
+// priced like the single-colour ones.
+func (a *avail) spreadWitness(folded kop.ManaCost, nCol int) bool {
+	var sup [kop.C]int
+	total := 0
+	for i := 0; i < a.n; i++ {
+		for c := 0; c < kop.C; c++ {
+			if a.mask[i]>>c&1 != 0 {
+				sup[c] += int(a.cnt[i])
+				total += int(a.cnt[i])
+			}
+		}
+	}
+	if total < nCol || int(folded.Generic) < nCol {
+		return false
+	}
+	order := make([]int, kop.C)
+	for c := range order {
+		order[c] = c
+	}
+	sort.SliceStable(order, func(i, j int) bool { return sup[order[i]] > sup[order[j]] })
+	pin := folded
+	pin.Generic -= uint8(nCol)
+	left := nCol
+	for _, c := range order {
+		take := min(sup[c], left)
+		pin.Pips[c] += uint8(take)
+		if left -= take; left == 0 {
+			break
+		}
+	}
+	return a.affords(&pin, pipMaskOf(&pin), 0)
 }
