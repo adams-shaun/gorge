@@ -114,7 +114,7 @@ type genPrep struct {
 	anyAloneAtk     bool // a card has printed "can't attack alone" (CardDef.AloneAtk; combat_alone.go)
 	anyAloneBlk     bool // a card has printed "can't block alone" (CardDef.AloneBlk; combat_alone.go)
 	anyStatGoad     bool // a card has a StatGoad static (act_goad.go)
-	anyTokEndCombat bool // some CreateTokenEx carries the AtEOT$ SacrificeCombat rider (trig_tokenateot.go)
+	anyTokEndCombat bool // some CreateTokenEx carries the AtEOT$ SacrificeCombat rider, or an ExtMyriad copy makes an end-of-combat exile promise (trig_tokenateot.go)
 	anyProwessGrant bool // some Continuous static grants prowess: onCast counts one trigger per static (kw_prowess.go)
 
 	anyMinBlk                bool // a card has a printed MinMaxBlocker floor (CardDef.MinBlockers; combat.go)

@@ -652,16 +652,12 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step, start ...int) 
 	// step (CR 724.2d), which skips the steps between.
 	if entering != leaving && (leaving == state.StepEndCombat ||
 		(leaving >= state.StepBeginCombat && leaving < state.StepEndCombat && entering > state.StepEndCombat)) {
-		// CR 702.109a exiles every Myriad token at end of combat before the
-		// combat-state reset. Emit only when one exists, so unrelated combats
-		// retain their established event stream while replay still folds the
-		// same deterministic cleanup whenever it matters.
-		for i := range e.G.Objs {
-			if o := &e.G.Objs[i]; o.IsMyriad && o.Zone == state.ZBattlefield {
-				e.emit(events.Event{Kind: events.MyriadCleanup})
-				break
-			}
-		}
+		// CR 702.116a / CR 511.2: the Myriad tokens are exiled by their own
+		// delayed triggered ability, fired at the BEGINNING of the end of
+		// combat step (checkDelayedTriggers on the StepChange), not by a
+		// turn-structure sweep here. A combat the phase structure skipped
+		// past (CR 724.2d) leaves no end-of-combat step to trigger in; the
+		// |TT= turn bound expires those promises with the turn.
 		// CR 511.3 removes creatures and planeswalkers from combat as the end
 		// of combat step ends, not when it begins. Keeping the leaving-step
 		// boundary here covers every transition made through setStep exactly

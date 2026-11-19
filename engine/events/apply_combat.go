@@ -392,8 +392,8 @@ func foldTokenAttacks(g *state.Game, e *Event) {
 	// A permanent marked attacking (TokenAttacking$ or a move body's
 	// Attacking$ True rider); it taps only when the effect says so, through
 	// its own entry Tap. Unlike MyriadCopy -- which MINTS
-	// a copy of the source card and flags IsMyriad, which MyriadCleanup
-	// exiles at end of combat -- this marks an ALREADY-EXISTING battlefield
+	// a copy of the source card and flags IsMyriad, whose end-of-combat
+	// exile is the token's own delayed trigger (CR 511.2) -- this marks an ALREADY-EXISTING battlefield
 	// object: Obj is the permanent, Player its controller and IDs[0] the
 	// defender it attacks. The object must
 	// still be on the battlefield and both players valid; anything else
@@ -459,6 +459,19 @@ func foldMyriadCopy(g *state.Game, e *Event) {
 		o.IsAttacking = true
 		if len(e.IDs) > 0 {
 			o.Attacking = state.PlayerID(e.IDs[0])
+		}
+		// CR 702.116a: the copy is "tapped and attacking that player or a
+		// planeswalker they control". IDs[1], when present, is the
+		// planeswalker (or battle) the copy attacks; the same shape
+		// foldTokenAttacks carries. The named permanent must still be on the
+		// battlefield; anything else keeps the copy attacking the player
+		// alone. AttackingBattleGen records the ZoneGen at the mint the way
+		// DeclareAttackers' fold does (CR 400.7 / 506.4c).
+		if len(e.IDs) > 1 {
+			if b := g.Obj(e.IDs[1]); b != nil && b.Zone == state.ZBattlefield {
+				o.AttackingBattle = b.ID
+				o.AttackingBattleGen = b.ZoneGen
+			}
 		}
 	}
 }

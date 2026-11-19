@@ -319,11 +319,10 @@ func foldCopyToken(g *state.Game, e *Event) {
 	// bitmask so a replay derives the identical object. Like MyriadCopy
 	// this only MINTS (in the untracked ZLibrary state AddObject leaves
 	// it in); the caller follows with a genuine MoveZone so the entry is
-	// an ordinary ChangesZone-matchable event. AtEOT$ ExileCombat flags
-	// IsMyriad so the existing end-of-combat cleanup -- the same fold and
-	// the same rules-side emit gate Myriad tokens already use -- exiles
-	// the copy with identical semantics (end of combat, battlefield
-	// only). Totality like every case: a missing source or an invalid
+	// an ordinary ChangesZone-matchable event. The AtEOT$ ExileCombat bit
+	// (CopyTokenExileCombat) flags IsMyriad for old-log replay only: live
+	// play exiles the copy by the delayed trigger copyAtEOTSide registers
+	// (CR 511.2), not by a sweep. Totality like every case: a missing source or an invalid
 	// player mints nothing.
 	if !validPlayer(g, e.Player) {
 		return

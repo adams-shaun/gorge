@@ -703,18 +703,8 @@ func init() {
 	mechName[mechEncSeat1] = "encSeat1"
 }
 
-// mech (dirac/manifest/mech/mechMyriad)
-//
-// slots whose token Myriad made: exiled as the combat ends (CR 702.116a; gorge IsMyriad, MyriadCleanup; kw_myriad.go)
-const mechMyriad mech = 58
-
-func init() {
-	mechWidth[mechMyriad] = wSlot
-	mechName[mechMyriad] = "myriad"
-}
-
 // numMech is one past the highest mech: the length of the arena's mech tables.
-const numMech mech = 59
+const numMech mech = 58
 
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).
