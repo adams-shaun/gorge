@@ -99,3 +99,21 @@ func (s *State) srcDepartRec(e *stackEntry) *lkiRec {
 	}
 	return nil
 }
+
+// srcDepartRecFresh is srcDepartRec without the hold requirement: a departure
+// snapshot taken since the last sweep still names its source. Only a snapLKI
+// can reuse a ref-0 pool slot, and the sweep it runs first re-holds a
+// departure record whose source still has a live ability entry
+// (srcDepartHold), so a snapshot read while the reader's own entry is the
+// live one cannot be stale. The Rack's upkeep trigger: exiled mid-upkeep by
+// Touch the Spirit Realm's channel, nothing snapshots anything between the
+// departure and the trigger's resolution, and the choice is read with
+// ref still 0 (repl_chooseplayer.go).
+func (s *State) srcDepartRecFresh(e *stackEntry) *lkiRec {
+	for i := range s.g.lki {
+		if r := &s.g.lki[i]; r.bits&lkiDepart != 0 && r.obj == e.obj && r.ver == e.srcVer {
+			return r
+		}
+	}
+	return nil
+}
