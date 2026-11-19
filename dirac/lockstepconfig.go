@@ -51,7 +51,7 @@ func xFolded(cost kop.ManaCost, x int) kop.ManaCost {
 func (s *State) xWindowPay(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 	c := xFolded(*cost, int(e.x))
 	anyColor := s.bld().bfl&bflAnyColor != 0
-	ok, held := s.windowTapWalk(k, e.ctrl, &c, &c, !anyColor, anyColor, false, false, true, false)
+	ok, held := s.windowTapWalk(k, e.ctrl, &c, &c, !anyColor, anyColor, false, false, true, false, true)
 	for col := range held {
 		s.pl[e.ctrl].pool[col] += held[col]
 	}
