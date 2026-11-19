@@ -47,8 +47,8 @@ func init() {
 // The clash opponent is, in order: the players a Defined$ names
 // (Marvo's `Defined$ TriggeredDefendingPlayer`), else the player targets the
 // ability chose (Pulling Teeth's `ValidTgts$ Player`), else the resolving
-// controller's first living opponent -- Forge's own "choose an opponent"
-// fallback, made deterministic rather than random. The resolving controller
+// controller's chosen opponent (CR 701.31a; chooseClashOpponent: no ask with
+// one opponent, the first living one without a host). The resolving controller
 // is always the first clashing player.
 func effClash(h Host, c *Ctx, sa *cards.SA) {
 	players := clashParticipants(h, c, sa)
@@ -175,13 +175,38 @@ func clashParticipants(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 			return out
 		}
 	}
-	for _, p := range g.AliveFrom(0) {
-		if p != c.Controller {
-			add(p)
-			break
-		}
+	if p, ok := chooseClashOpponent(h, c, sa); ok {
+		add(p)
 	}
 	return out
+}
+
+// chooseClashOpponent is CR 701.31a's "clash with an opponent": the clashing
+// player chooses which living opponent (AliveFrom(0) order, the first one the
+// no-host stand-in). One opponent is no choice and poses no ask.
+func chooseClashOpponent(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool) {
+	var opps []state.PlayerID
+	for _, p := range h.Game().AliveFrom(0) {
+		if p != c.Controller {
+			opps = append(opps, p)
+		}
+	}
+	if len(opps) == 0 {
+		return 0, false
+	}
+	if len(opps) == 1 {
+		return opps[0], true
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source,
+		ResumeKind: "clash_opponent", ResumeSA: sa, Prompt: "Choose an opponent to clash with"}
+	for _, p := range opps {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "player", Player: p,
+			Label: h.Game().SeatFacingName(p)})
+	}
+	if ans, ok := AskTape(h, d); ok && len(ans) == 1 {
+		return ans[0].Player, true
+	}
+	return opps[0], true
 }
 
 // ClashPlacementDecision builds the owner-routed, always-legal two-way choice

@@ -179,6 +179,13 @@ func chooseEnteringDefender(h Host, c *Ctx, controller state.PlayerID, fallback 
 		cands = slices.Delete(cands, i, i+1)
 	}
 	cands = slices.Insert(cands, 0, fallback)
+	return askEnteringDefender(h, c, controller, cands, noun)
+}
+
+// askEnteringDefender asks controller which of cands (the first is the no-host
+// stand-in) the entering noun attacks; one candidate is no choice.
+func askEnteringDefender(h Host, c *Ctx, controller state.PlayerID, cands []enteringDefender, noun string) enteringDefender {
+	fallback := cands[0]
 	if len(cands) < 2 {
 		return fallback
 	}

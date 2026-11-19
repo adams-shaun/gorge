@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -283,6 +284,14 @@ func tokenAttackingPlayers(h Host, c *Ctx, raw string) (seats []state.PlayerID, 
 	return seats, objectArm
 }
 
+// tokenAttackingWalkerArm reports a TokenAttacking$ value whose object half
+// is exactly "a planeswalker that player controls" (Adeline's
+// `RememberedPlayer & Valid Planeswalker.ControlledBy Remembered`), the one
+// object arm the rider models.
+func tokenAttackingWalkerArm(raw string) bool {
+	return strings.HasSuffix(raw, " & Valid Planeswalker.ControlledBy Remembered")
+}
+
 // tokenAttackingRider classifies a TokenAttacking$ body's attacking rider for
 // the TWO mint paths that carry it (api:Token's effToken and api:CopyPermanent's
 // effCopyPermanent): literal True attacks the firing Attacks trigger's captured
@@ -306,12 +315,25 @@ func tokenAttackingRider(h Host, c *Ctx, controller state.PlayerID, attack, noun
 		return false, 0, 0
 	}
 	seats, objectArm := tokenAttackingPlayers(h, c, attack)
+	if len(seats) > 0 && tokenAttackingWalkerArm(attack) && noun == "token" {
+		// "that player or a planeswalker they control" (Adeline): CR 508.4,
+		// the token's controller chooses between the seat and its walkers.
+		cands := []enteringDefender{{Player: seats[0]}}
+		for _, id := range h.Game().Zone(state.ZBattlefield, seats[0]) {
+			if o := h.Game().Obj(id); o != nil && o.Controller == seats[0] && !o.FaceDown &&
+				slices.Contains(h.Chars(id).Types, "Planeswalker") {
+				cands = append(cands, enteringDefender{Player: seats[0], Obj: id})
+			}
+		}
+		d := askEnteringDefender(h, c, controller, cands, noun)
+		return true, d.Player, d.Obj
+	}
 	if len(seats) == 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "TokenAttacking$ " + attack + " is not implemented; the " + noun + " enters but does not attack"})
 		return false, 0, 0
 	}
-	if objectArm {
+	if objectArm && !tokenAttackingWalkerArm(attack) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "TokenAttacking$ " + attack + ": the planeswalker arm is not implemented; the " + noun + " attacks the named player"})
 	}
