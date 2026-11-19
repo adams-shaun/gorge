@@ -266,7 +266,8 @@ func PaymentPlanProductions(e Engine, id state.ObjID, ma *cards.SA) []string {
 
 // PaymentPlanInterferenceCarriers lists, in object-ID order, every object
 // any of whose card faces or mutated under-cards prints a Taps/TapsForMana
-// trigger or a ProduceMana replacement. It is zone-agnostic -- the matchers
+// trigger, a ManaAdded triggered mana ability, or a ProduceMana
+// replacement. It is zone-agnostic -- the matchers
 // own the zone gates -- so it changes only when an object is created or a
 // logged event runs. The memo is incremental: Objs only ever grows (an
 // object's Card is set at creation and never reassigned), and carrier
@@ -313,14 +314,14 @@ func PaymentPlanInterferenceCarriers(e Engine) []state.ObjID {
 }
 
 // carrierFaceCarries is the printed-face carrier test of
-// PaymentPlanInterferenceCarriers: a Taps/TapsForMana trigger or a
-// ProduceMana replacement.
+// PaymentPlanInterferenceCarriers: a Taps/TapsForMana trigger, a
+// ManaAdded triggered mana ability, or a ProduceMana replacement.
 var carrierFaceCarries = func(f *cards.Face) bool {
 	if f == nil {
 		return false
 	}
 	for _, t := range f.Triggers {
-		if t.Mode == "Taps" || t.Mode == "TapsForMana" {
+		if mk := t.ModeKind(); mk == cards.TriggerTaps || mk == cards.TriggerTapsForMana || mk == cards.TriggerManaAdded {
 			return true
 		}
 	}
