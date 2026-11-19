@@ -59,24 +59,18 @@ const (
 	dieRollBatchNotePrefix = "rolls dice: "
 )
 
-// SyntheticNamespaceShift is the separate promptId namespace: a synthetic
-// promptId is -((event.Seq << SyntheticNamespaceShift) | n) - 1, n counting
-// the synthetic prompts minted from that one event (always 0 today -- one
-// event mints at most one synthetic prompt -- the shift leaves room for more
-// without renumbering). The NEGATION is what makes the namespace truly
-// disjoint rather than merely "far apart": an ordinary promptId is a bare
-// decision.Seq (ids.go's promptID), which is always >= 0, while every
-// synthetic id is < 0 -- so a later ordinary prompt can never reuse an
-// earlier synthetic id, no matter how the two magnitudes grow.
-// Within the negative side the encoding is injective in (eventSeq, n) for
-// any eventSeq below 2^55, where the shift cannot overflow int64; a match
-// with 2^55 events is not a reachable magnitude. (gameover.go's terminal
-// GameOverPromptID takes math.MaxInt64, the one positive id beyond any real
-// decision.Seq, completing the three-way split.)
-const SyntheticNamespaceShift = 8
-
-func syntheticPromptID(eventSeq uint64, n int) int64 {
-	return -(int64(eventSeq)<<SyntheticNamespaceShift | int64(n)) - 1
+// syntheticPromptID mints the promptId of the synthetic ack-only prompt an
+// event mints: SyntheticPromptIDTop - eventSeq, counting down from the top of
+// the u32 range (below the terminal GameOverPromptID). One event mints at most
+// one synthetic prompt, so there is no per-event index. ok is false when
+// eventSeq is past the synthetic space (id would fall below
+// SyntheticPromptIDFloor); the caller drops the optional prompt rather than
+// wrapping into the decision space.
+func syntheticPromptID(eventSeq uint64) (id int64, ok bool) {
+	if eventSeq >= uint64(SyntheticPromptIDTop-SyntheticPromptIDFloor) {
+		return 0, false
+	}
+	return SyntheticPromptIDTop - int64(eventSeq), true
 }
 
 // dieRollNote decodes a per-die roll Note (engine/effects/dice.go's DieRollNote):
@@ -147,14 +141,18 @@ func (t *Translator) Synthetic(evs []protocol.EventBody, v *view.View) []mb.Engi
 		}
 		if roller, _, ok := dieRollBatchNote(ev); ok {
 			if pending != nil && pending.player == roller && pending.source == ev.Obj && len(pending.naturals) > 0 {
-				out = append(out, t.diceRolledMessage(ev.Seq, v, pending))
+				if m, ok := t.diceRolledMessage(ev.Seq, v, pending); ok {
+					out = append(out, m)
+				}
 			}
 			pending = nil
 			continue
 		}
 		pending = nil
 		if revealer, ids, ok := isPublicRevealNote(ev); ok {
-			out = append(out, t.revealCardsMessage(ev.Seq, v, revealer, ids))
+			if m, ok := t.revealCardsMessage(ev.Seq, v, revealer, ids); ok {
+				out = append(out, m)
+			}
 		}
 	}
 	return out
@@ -170,7 +168,11 @@ func decidingPlayer(v *view.View, actor state.PlayerID) state.PlayerID {
 	return v.Viewer
 }
 
-func (t *Translator) diceRolledMessage(eventSeq uint64, v *view.View, g *diceGroup) mb.EngineMessage {
+func (t *Translator) diceRolledMessage(eventSeq uint64, v *view.View, g *diceGroup) (mb.EngineMessage, bool) {
+	pid, ok := syntheticPromptID(eventSeq)
+	if !ok {
+		return mb.EngineMessage{}, false
+	}
 	naturals := make([]int, len(g.naturals))
 	finals := make([]int, len(g.finals))
 	for i := range g.naturals {
@@ -190,13 +192,17 @@ func (t *Translator) diceRolledMessage(eventSeq uint64, v *view.View, g *diceGro
 		Rolls:      []mb.DiceRollEntry{entry},
 	}
 	return mb.EngineMessage{Value: mb.PromptMessage{Kind: "prompt", AgentPrompt: mb.AgentPrompt{
-		PromptID:         syntheticPromptID(eventSeq, 0),
+		PromptID:         pid,
 		DecidingPlayerID: playerID(decidingPlayer(v, g.player)),
 		Input:            mb.PromptInput{Value: input},
-	}}}
+	}}}, true
 }
 
-func (t *Translator) revealCardsMessage(eventSeq uint64, v *view.View, revealer state.PlayerID, ids []uint32) mb.EngineMessage {
+func (t *Translator) revealCardsMessage(eventSeq uint64, v *view.View, revealer state.PlayerID, ids []uint32) (mb.EngineMessage, bool) {
+	pid, ok := syntheticPromptID(eventSeq)
+	if !ok {
+		return mb.EngineMessage{}, false
+	}
 	cards := make([]mb.CardDto, 0, len(ids))
 	zone := mb.ZoneLibrary
 	zoneKnown := false
@@ -214,10 +220,10 @@ func (t *Translator) revealCardsMessage(eventSeq uint64, v *view.View, revealer 
 		OwnerPlayerID: playerID(revealer),
 	}
 	return mb.EngineMessage{Value: mb.PromptMessage{Kind: "prompt", AgentPrompt: mb.AgentPrompt{
-		PromptID:         syntheticPromptID(eventSeq, 0),
+		PromptID:         pid,
 		DecidingPlayerID: playerID(decidingPlayer(v, revealer)),
 		Input:            mb.PromptInput{Value: input},
-	}}}
+	}}}, true
 }
 
 // findPublicCard resolves an object id to its view.CardView and ManaBrew
