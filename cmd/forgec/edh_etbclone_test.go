@@ -15,9 +15,10 @@ import (
 // Infinite Reflection's body is the foreign-entry shape (an ETBReplacement on
 // OTHER entering creatures), offered by effects.CloneForeignEntryOffered.
 //
-// One card of the class stays gated and is NOT listed: it needs engine work
-// beyond a CopyExcept rider (follow-up ticket in the report): Vesuvan
-// Shapeshifter (Duration$ UntilFacedown plus its TurnFaceUp replacement).
+// Vesuvan Shapeshifter's Duration$ UntilFacedown is admitted: the copy rides
+// rules' event-driven expiry at its granted upkeep trigger's TurnFaceDown,
+// and its printed TurnFaceUp replacement re-offers the copy
+// (clone_vesuvan_facedown_test.go drives the whole loop).
 // Vizier of Many Faces' Embalm$ provenance rider ("if it was embalmed") is
 // offered since the Embalm$ gate: the gated RemoveCost$/SetColor$/AddTypes$
 // exceptions apply only to the card's own embalm token
@@ -30,6 +31,7 @@ var edhETBCloneCards = []string{
 	"Estrid's Invocation",
 	"Moritte of the Frost",
 	"Machine God's Effigy",
+	"Vesuvan Shapeshifter",
 	"Infinite Reflection",
 	"Vizier of Many Faces",
 }
