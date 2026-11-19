@@ -2,6 +2,27 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// pickCommittedSrc reports whether the build has committed the permanent at
+// sl to a waterbend or convoke pick: the pick taps it to pay a generic of the
+// cost, so it cannot also tap for mana (CR 701.67a, 702.51a, 601.2g-h). The
+// window census's gap arms (availXWindow's deferred, Combo Any, life-gap and
+// Taps-deferred sources, which availFor leaves out) skip it — removeSrc
+// cannot take their units out, the planner prices none for a gap source — and
+// gorge's castWindowUnits drops the committed source outright
+// (convokeCommitted).
+func (s *State) pickCommittedSrc(k *prep, sl Slot) bool {
+	b := s.bld()
+	for i := 0; i < int(b.pickN); i++ {
+		if b.pickKs[i] != pkWaterbend && !isConvokePick(b.pickKs[i]) {
+			continue
+		}
+		if ob := &s.objs[b.picks[i]]; ob.zone == kop.ZoneBattlefield && ob.slot == sl {
+			return true
+		}
+	}
+	return false
+}
+
 // excludePickedSources takes out of the X ask's census (availXWindow) each
 // permanent this build already committed to a waterbend or convoke pick: the
 // pick taps it to pay a generic of the cost, so it cannot also tap for mana
