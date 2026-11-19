@@ -28,8 +28,12 @@ func TestUmbraAllReadsThePreBatchBoard(t *testing.T) {
 	if got := s.umbraAura(k, bs, slotMask{}); got != as {
 		t.Fatalf("precondition: the bearer's umbra Aura is %d, want %d", got, as)
 	}
-	if s.perms[bs].damage != 0 {
-		t.Fatalf("precondition: bearer has damage %d, want 0", s.perms[bs].damage)
+	// Damage and a deathtouch mark the save must actually clear: with 0/0 the
+	// "healed" assertion could not fail.
+	s.perms[bs].damage = 2
+	s.perms[bs].flags |= pfDeathtouched
+	if s.perms[bs].damage == 0 || s.perms[bs].flags&pfDeathtouched == 0 {
+		t.Fatal("precondition: the bearer has damage and a deathtouch mark to heal")
 	}
 	out := s.umbraAll(k, slotBit(bs).with(as))
 	if !out.has(as) {

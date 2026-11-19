@@ -757,6 +757,27 @@ func (s *State) destroySparedIn(k *prep, sl Slot, noRegen bool, batch slotMask) 
 	return s.umbraSpareIn(k, sl, batch) // CR 702.89a, after the shield counter (kw_umbraarmor.go)
 }
 
+// destroySparedNoUmbra reports whether a replacement before umbra armor would
+// spare sl's destruction (indestructible, a destroy line, regeneration or a
+// shield counter), without applying it. A simultaneous destroy uses it to
+// tell the victims that are actually leaving from the ones a non-umbra
+// replacement spares: only the leavers form the umbra batch, so a spared
+// Aura is still moved by its bearer's save (CR 702.89a; gorge's
+// replaceUmbraArmor consults neither indestructible nor a shield for the
+// Aura).
+func (s *State) destroySparedNoUmbra(k *prep, sl Slot, noRegen bool) bool {
+	if s.kw(k, sl)&kop.KwIndestructible != 0 {
+		return true
+	}
+	if s.destroyLineMatch(k, sl, !noRegen) != drNone {
+		return true
+	}
+	if !noRegen && s.canRegen(sl) {
+		return true
+	}
+	return k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldN(sl) > 0
+}
+
 // moveRef moves the object a Ref names to zone z (its owner's).
 func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 	o := s.objRefObj(r)
