@@ -291,7 +291,7 @@ func (h *fakeHost) ChooserFor(c *Ctx, sa *cards.SA) state.PlayerID {
 // ReplaceDestruction set up their own boards and never rely on an
 // Effect-registered CantRegenerate. Reporting false keeps the double honest
 // rather than inventing a registry it cannot answer for.
-func (h *fakeHost) RegenerationDisallowed(id state.ObjID) bool { return false }
+func (h *fakeHost) RestrictionApplies(mode string, id state.ObjID) bool { return false }
 
 // SacrificeBlocked has no registry to consult here (the engine-side
 // restriction lives in rules.Engine), the same discipline as
