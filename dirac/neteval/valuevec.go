@@ -26,6 +26,9 @@ func (w *Weights) ValueK() int {
 // and its even split otherwise.
 func (n *Net) HasValueVec(seats uint8) bool { return len(n.vk) >= int(seats)+1 }
 
+// ValueK is the network's K-way value head width, 0 for a scalar head.
+func (n *Net) ValueK() int { return len(n.vk) }
+
 // ValueVec is search.VecEvaluator (Options.MaxN): the head's probabilities
 // at s (pending decision d) from seat's view, the view Value reads, mapped
 // onto the search's vector as gorge's netLeafVec (bots/azmcts) maps them: a

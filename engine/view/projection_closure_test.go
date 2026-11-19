@@ -180,6 +180,9 @@ func TestViewMarshalsClosed(t *testing.T) {
 		// list, so it joins the public facts class here, never the hidden-zone
 		// class this test guards.
 		"has_initiative": true,
+		// is_monarch (CR 725) is the monarch designation, the initiative's
+		// public twin: which seat holds it, no card list, no hidden zone.
+		"is_monarch": true,
 		// archetype is the per-opponent
 		// archetype posterior the obs checklist's opp_archetype_posterior fact
 		// names. It is DERIVED from the public battlefield/graveyard/exile/

@@ -148,6 +148,9 @@ func (p *searchSeatPol) searcher(seat int) *search.Searcher {
 	if err := o.Validate(); err != nil {
 		panic(fmt.Sprintf("oracle: search seats: %v", err))
 	}
+	if err := o.ValidateEval(search.HeuristicLeaf{}); err != nil {
+		panic(fmt.Sprintf("oracle: search seats: %v", err))
+	}
 	if p.facts == nil {
 		p.facts = HBotFactsSet(p.reg, p.r.tbl, nil, p.set)
 	}

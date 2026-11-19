@@ -143,6 +143,24 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 // genOptionRest maps the asks genOption has no case of: ChGenClash's
 // "bottom" / "top" over the revealed card (dirac/act_clash.go), else a number.
 func genOptionRest(d *dirac.Decision, mode uint8, o *optIn) {
+	if d.Sub == dirac.ChGenDiscUnless {
+		// gorge effDiscard's discard_unless election: "unless" / "ordinary",
+		// no object (CR 701.9b)
+		o.kind, o.obj = okOrdinary, noObj
+		if mode == 1 {
+			o.kind = okUnless
+		}
+		return
+	}
+	if d.Sub == dirac.ChGenGift {
+		// gorge giftAsk: "gift_decline", then one "gift_promise" per
+		// opponent, none naming an object (canon/translate.go)
+		o.kind, o.obj = okGiftDecline, noObj
+		if mode > 0 {
+			o.kind = okGiftPromise
+		}
+		return
+	}
 	if d.Sub != dirac.ChGenClash {
 		o.kind, o.obj = okNumber, noObj
 		return

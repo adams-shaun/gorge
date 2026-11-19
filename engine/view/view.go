@@ -357,6 +357,10 @@ type PlayerView struct {
 	// means "this seat does not have the initiative", the Available
 	// convention.
 	HasInitiative bool `json:"has_initiative,omitempty"`
+	// IsMonarch is the CR 725 monarch designation: true for the one player
+	// who is the monarch. Public for every seat, like the initiative, and
+	// omitted when false, so a match without a monarch serialises as before.
+	IsMonarch bool `json:"is_monarch,omitempty"`
 	// CommanderCasts runs parallel to Commanders: entry k is how many times
 	// Commanders[k] has been cast from the command zone, the CR 903.8 tax
 	// base for its next command-zone cast (an additional {2} per prior
@@ -707,6 +711,7 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 			Commanders:        roster,
 			CompletedDungeons: p.CompletedDungeons,
 			HasInitiative:     g.IsInitiative(p.ID),
+			IsMonarch:         g.IsMonarch(p.ID),
 			CommanderCasts:    casts,
 		}
 		if len(p.Counters) > 0 {
