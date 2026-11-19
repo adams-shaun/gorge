@@ -29,6 +29,12 @@ func (w *legalWalk) turnFaceUpOffers(p state.PlayerID, id state.ObjID) {
 			offers = append(offers, mf)
 		}
 		offers = append(offers, manifestKeywordFaceUpCosts(o)...)
+	} else {
+		// CR 702.36d: an effect-turned-down permanent (no cast flag, no
+		// manifest/cloak) still turns up from its printed face's
+		// Morph-family keyword -- Vesuvan Shapeshifter's own upkeep trigger
+		// is the corpus carrier.
+		offers = append(offers, faceDownKeywordFaceUpCosts(o)...)
 	}
 	if len(offers) == 0 {
 		return

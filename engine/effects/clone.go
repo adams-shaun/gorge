@@ -955,8 +955,10 @@ func cloneDuration(dur string) (permanent, untilEOT bool, untilTurn int32, until
 		// Exactly the source-leaves lifetime the default arm gives an unknown
 		// duration, so no Note is needed (secret_invasion).
 		return false, false, 0, false, ""
-	case cloneDurationUntilEvent:
-		// Settled on the actual turn-down or untap event, not at cleanup.
+	case cloneDurationUntilFacedown, cloneDurationUntilEvent:
+		// Settled on the actual turn-down or untap event, not at cleanup
+		// (rules' expireClonesOnEvent matches UntilFacedown at the become
+		// object's TurnFaceDown).
 		return false, false, 0, false, ""
 	default:
 		return false, false, 0, false,
@@ -1004,6 +1006,12 @@ const (
 	cloneDurationUntilNextEndStep
 	cloneDurationUntilUnattached
 	cloneDurationUntilHostLeavesPlay
+	// cloneDurationUntilFacedown is the UntilFacedown spelling on its own
+	// code: the ETB shape gate admits exactly this spelling beside
+	// UntilEndOfTurn (Vesuvan Shapeshifter's copy lasts until its granted
+	// upkeep trigger turns it face down), while the shared event arm stays
+	// out of the gate for every other spelling (UntilTargetedUntaps).
+	cloneDurationUntilFacedown
 	cloneDurationUntilEvent
 )
 
@@ -1020,7 +1028,7 @@ var cloneDurationCodes = state.NewStrCodes(
 	state.StrEntry[cloneDurationCode]{Key: "untilnextendstep", Val: cloneDurationUntilNextEndStep},
 	state.StrEntry[cloneDurationCode]{Key: "untilunattached", Val: cloneDurationUntilUnattached},
 	state.StrEntry[cloneDurationCode]{Key: "untilhostleavesplay", Val: cloneDurationUntilHostLeavesPlay},
-	state.StrEntry[cloneDurationCode]{Key: "untilfacedown", Val: cloneDurationUntilEvent},
+	state.StrEntry[cloneDurationCode]{Key: "untilfacedown", Val: cloneDurationUntilFacedown},
 	state.StrEntry[cloneDurationCode]{Key: "untiltargeteduntaps", Val: cloneDurationUntilEvent},
 )
 

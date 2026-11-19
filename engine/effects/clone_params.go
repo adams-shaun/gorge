@@ -436,10 +436,18 @@ func cloneETBShapeOK(sa *cards.SA, p *CloneParams) bool {
 		return false
 	}
 	// Cursed Mirror's "until end of turn": the copy unit rides the ordinary
-	// UntilEOT lifetime (effClone). Every other spelling (UntilFacedown, an
-	// event duration) needs its own expiry route and stays withheld.
-	if p.Duration != "" && cloneDurationCodes.Code(strings.ToLower(p.Duration)) != cloneDurationUntilEndOfTurn {
-		return false
+	// UntilEOT lifetime (effClone). Vesuvan Shapeshifter's "until CARDNAME is
+	// turned face down" rides the event-driven lifetime: cloneDuration maps
+	// UntilFacedown to the event arm and rules' expireClonesOnEvent ends the
+	// copy at the become object's actual TurnFaceDown (the granted upkeep
+	// trigger's SetState TurnFaceDown). Every other spelling
+	// (UntilTargetedUntaps) stays withheld on this route.
+	if p.Duration != "" {
+		switch cloneDurationCodes.Code(strings.ToLower(p.Duration)) {
+		case cloneDurationUntilEndOfTurn, cloneDurationUntilFacedown:
+		default:
+			return false
+		}
 	}
 	return true
 }

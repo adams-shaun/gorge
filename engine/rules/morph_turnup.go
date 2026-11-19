@@ -313,6 +313,28 @@ func manifestKeywordFaceUpCosts(o *state.Object) []morphFaceUp {
 	if !o.Manifested && !o.Cloaked {
 		return nil
 	}
+	return keywordFaceUpCosts(o)
+}
+
+// faceDownKeywordFaceUpCosts is manifestKeywordFaceUpCosts for the third
+// provenance: a face-down permanent that was neither cast face down nor
+// manifested or cloaked -- an effect turned it down -- still carries its
+// printed face's morph-family keyword, and CR 702.36d prices a turn-up from
+// the keyword, not from the cast (Vesuvan Shapeshifter's own upkeep trigger
+// is the corpus carrier).
+func faceDownKeywordFaceUpCosts(o *state.Object) []morphFaceUp {
+	if o == nil || o.Zone != state.ZBattlefield || !o.FaceDown {
+		return nil
+	}
+	if o.CastFlags&(state.FlagMorphed|state.FlagMegamorphed|state.FlagDisguised) != 0 ||
+		o.Manifested || o.Cloaked {
+		return nil
+	}
+	return keywordFaceUpCosts(o)
+}
+
+// keywordFaceUpCosts is the head loop both non-cast provenances share.
+func keywordFaceUpCosts(o *state.Object) []morphFaceUp {
 	var out []morphFaceUp
 	for _, head := range []string{"Morph", "Megamorph", "Disguise"} {
 		if mf, ok := keywordFaceUp(o, head); ok {
@@ -326,8 +348,9 @@ func manifestKeywordFaceUpCosts(o *state.Object) []morphFaceUp {
 // empty mode is the historical cast-provenance offer; the named modes select
 // the manifest/cloak mana-cost procedure or a keyword alternative. faceCost
 // prices the printed face (the Engine dependency the free func needs). A
-// keyword mode is offered only to the same provenance the offer walk uses: a
-// manifested or cloaked card that was not cast face down. The nil check makes
+// keyword mode is priced from the printed face for every non-cast provenance
+// the offer walk uses: a manifested or cloaked card and an effect-turned-down
+// permanent (CR 702.36d). The nil check makes
 // a stale option for a removed object refuse rather than panic.
 func turnUpCostForMode(o *state.Object, mode string, faceCost func(*cards.Face) Cost) (morphFaceUp, bool) {
 	if o == nil {
@@ -345,9 +368,11 @@ func turnUpCostForMode(o *state.Object, mode string, faceCost func(*cards.Face) 
 	if o.CastFlags&(state.FlagMorphed|state.FlagMegamorphed|state.FlagDisguised) != 0 {
 		return morphFaceUp{}, false
 	}
-	if !o.Manifested && !o.Cloaked {
-		return morphFaceUp{}, false
-	}
+	// The keyword modes are priced from the printed face for every non-cast
+	// provenance: a manifested or cloaked card (CR 701.40c-d) and an
+	// effect-turned-down permanent (CR 702.36d, Vesuvan Shapeshifter's own
+	// turn-down trigger). A cast-provenance face-down permanent was refused
+	// above.
 	switch mode {
 	case "morph":
 		return keywordFaceUp(o, "Morph")
