@@ -79,7 +79,9 @@ func (s *State) crTypesOf(k *prep, o Obj) (m kop.SubMask, all bool) {
 }
 
 // sharesCr reports whether creature type sets a and b share a type: a side
-// with every type shares with any non-empty set.
+// with every type shares with any non-empty set. Every SubMask word counts:
+// a table's subtype indexes reach past the second word (an edh Wizard is 186),
+// so a two-word compare drops the types a card shares its commander by.
 func (s *State) sharesCr(am kop.SubMask, aAll bool, bm kop.SubMask, bAll bool) bool {
 	switch {
 	case aAll:
@@ -87,7 +89,12 @@ func (s *State) sharesCr(am kop.SubMask, aAll bool, bm kop.SubMask, bAll bool) b
 	case bAll:
 		return am.Any()
 	}
-	return am[0]&bm[0]|am[1]&bm[1] != 0
+	for i := range am {
+		if am[i]&bm[i] != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // crAcc is the running intersection of the kept objects' creature types
@@ -110,8 +117,9 @@ func (a *crAcc) merge(m kop.SubMask, all bool) {
 	case !a.have || a.all:
 		a.m, a.all = m, all
 	case !all:
-		a.m[0] &= m[0]
-		a.m[1] &= m[1]
+		for i := range a.m {
+			a.m[i] &= m[i]
+		}
 	}
 	a.have = true
 }
