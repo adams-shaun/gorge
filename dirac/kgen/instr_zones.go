@@ -206,6 +206,9 @@ func (ic *instrCtx) opReturn() error {
 func (ic *instrCtx) opExileUntilLeaves() error {
 	ki := &ic.ki
 	ki.Op = kop.OpExileUntilLeaves
+	if ic.moveFlags()&kop.MvRemember != 0 {
+		ki.C = kop.MvRemember // RememberChanged$ (lower_remembered_writers.go)
+	}
 	return nil
 }
 
