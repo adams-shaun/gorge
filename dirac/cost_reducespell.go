@@ -197,9 +197,13 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 		if s.bld().bfl&bflAnyColor != 0 {
 			ok = av.affordsAnyColor(&cost, 0) // the may-play any-colour rider prices each target too (CR 609.4b)
 		}
-		if !ok && !free {
+		if !ok {
 			// the plain sources fall short: gorge's probe then asks the CR 601.2g window, whose filters (a
-			// Signet's {1},{T}: add {G}{W}) and unpriced sources can still pay the taxed cost (castWindowReachable)
+			// Signet's {1},{T}: add {G}{W}) and unpriced sources can still pay the taxed cost (castWindowReachable).
+			// A free cast's taxed price is priced the same way: gorge's verdict runs for may-play casts too
+			// (cast_pricing.go affordableTargetCandidates has no free-cast exclusion), so Urza, Lord High
+			// Artificer's "{5}: ... you may play that card without paying its mana cost" still keeps a target
+			// whose raise the pool alone cannot pay
 			ok = !s.targetWindowShort(k, e, &cost, false)
 		}
 		if ok {
