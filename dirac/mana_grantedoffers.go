@@ -1638,7 +1638,7 @@ func (g *grantSrch) visit(t *State) bool {
 			continue
 		}
 		g.funded++
-		// The filter's own card taps here only for its plain {C}, whose
+		// The filter's own card taps here through its plain ability, whose
 		// one-bit mask poses no ask of its own; charge the zero-filter ask
 		// now, as the filter search does before its one answer
 		// (mana_filtzerofund.go).
