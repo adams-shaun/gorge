@@ -886,6 +886,11 @@ type planner struct {
 	kept slotMask
 	dry  bool
 	try  bool
+	// castPay: the pass prices a spell's payment with no live build (the
+	// prefix's pre-build payment, payCastPrefixRest), so the dynamic {T},
+	// sacrifice sources the live build's plan leaves untouched stay out
+	// (planCastDynSacSkip)
+	castPay bool
 	// pairs: some type has a pair (a painland in the last-resort phase);
 	// life: the payer's life, the lethal guard on summed pain
 	pairs bool
@@ -1485,7 +1490,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	}
 	// A cast's payment never prices a dynamic {T}, sacrifice source: see
 	// castPaySpellBuild for gorge's shape and the class (tail-74 pairs 31, 47).
-	castPay := s.castPaySpellBuild(k)
+	// A pre-build cast payment (payCastPrefixRest) arms the pass itself.
+	castPay := pk.castPay || s.castPaySpellBuild(k)
 	// phase 1: normal sources only; phase 2 (only when phase 1 proves no
 	// plan) adds the last-resort tap-and-sacrifice sources (Treasure),
 	// ranked by irreversible cost (gorge plancost.go:160-179, plan.go:104),

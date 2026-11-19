@@ -344,3 +344,103 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8) {
 		s.flushPrefixTriggers(k) // the tapped source's trigger below the play, not above it
 	}
 }
+
+// payCastPrefixRest pays, before the cast's build begins, what a prefix
+// search left of the cast's planned cost to the potential-play search. The
+// search's remaining gap taps fire at manaStep (bsMana), after bsPush has
+// placed the spell, so their Taps trigger lands above it; gorge's
+// potential-play search proves the cast by activating the gaps at its asks,
+// below the spell (a land's tap under an opponent's Manabarbs, a Spring
+// Cleaning cast). This is payPrefixRest's gate for the cast arm: the cost is
+// the cast planner's (plannedCastCost), whose planned=false return keeps
+// manaStep's window arm for every shape it cannot price (modal, additional,
+// optional and target-dependent costs, a mana-spent reader, a contribution;
+// kicker and flashback), and the build's X and pip arms keep their paths.
+// plannedCastCost strips the Phyrexian pips (gorge pay.PlanManaHalf), so the
+// Phyrexian guard reads the raw composed cost. restricted floating mana
+// keeps the shortened cost the planner pays. A cast has no {T}-costing host,
+// so payPrefixRest's held-tap block does not apply.
+func (s *State) payCastPrefixRest(k *prep, a Action, p uint8) {
+	o := Obj(a.Source())
+	cost, ok := s.plannedCastCost(k, p, o, a.Mode())
+	if !ok {
+		return // the cast planner declines the shape: manaStep's window arms keep their paths
+	}
+	if cost.X != 0 || cost.XPip != 0 || cost.Hyb[0] != 0 || cost.Tb != 0 || cost.Snow != 0 {
+		return // the build's X, twobrid and snow arms keep their paths
+	}
+	raw := k.cards[s.objs[o].card].cost
+	if a.Mode()&2 != 0 {
+		raw = s.flashbackCostOf(k, o) // the flashback face's own cost
+	}
+	if raw.Phyrexian() {
+		return
+	}
+	if s.poolPays(p, &cost) {
+		return // the prefix settled it
+	}
+	if s.restrActNow(k, p) != 0 {
+		return // admitted restricted mana shortens the cost the planner pays (mana_window.go)
+	}
+	// gorge's search proves the play at its asks by activating the census
+	// gaps until the planner prices the payment from the floats
+	// (potential_script.go sr.priced). The kernel's prefix proved only the
+	// offer -- a planned cast stays offered without paying -- so the
+	// Taps-deferred unit its skip left behind is activated here, before the
+	// push, as the search's remaining steps. The probes are dry: they tap
+	// nothing. priced is the first pass, the planner's census (the
+	// Taps-deferred sources out, the card being cast out of the hand
+	// reserve, a cast's payment: the dynamic {T}, sacrifice sources stay
+	// out, planCastDynSacSkip); the second pass counts the Taps-deferred
+	// sources as units, so a play no gap subset prices keeps manaStep's
+	// window arm.
+	tapsDef := s.scriptTapsDefer(k, p)
+	if k.gen == nil || !k.gen.anyTapsDefer || DebugNoTapsDefer || !tapsDef.any() {
+		return // no Taps-deferred source can be the remainder: the post-push payment, as before
+	}
+	priced := func() bool {
+		var pk planner
+		pk.dry, pk.try, pk.castPay = true, true, true
+		s.tapNeed(&pk, p, &cost, 0, false)
+		if pk.needT == 0 {
+			return true
+		}
+		s.plan(k, p, &pk, o)
+		return pk.found
+	}
+	if priced() {
+		return // the planner prices the payment: it pays at payment, post-push, as before
+	}
+	var chk planner
+	chk.dry, chk.try, chk.tapsIn, chk.castPay = true, true, true, true
+	s.tapNeed(&chk, p, &cost, 0, false)
+	s.plan(k, p, &chk, o)
+	if !chk.found {
+		return // a play no gap subset prices keeps manaStep's window arm
+	}
+	// the search's remaining steps: the gaps in battlefield order, tapped as
+	// the prefix taps them (scriptGapTap), each trigger flushed below the
+	// spell (mana_window.go scriptPrefixAny), until the planner prices the
+	// payment from the floats
+	var ord [MaxPerm]Slot
+	n := s.scriptGapOrder(k, a, p, tapsDef, ord[:])
+	var spill [kop.NumManaKinds]uint8
+	for j := 0; j < n && !s.over; j++ {
+		sl := ord[j]
+		if !tapsDef.has(sl) || !s.occ.has(sl) || !s.tapsGapActivatable(k, sl) {
+			continue // tapped, spent or dead since the gaps were listed
+		}
+		s.scriptGapTap(k, p, a, sl, slotMask{}, slotMask{}, slotMask{}, tapsDef, slotMask{}, 0, &spill)
+		if s.npend != 0 {
+			// gorge answers each gap's activation as its own decision, so
+			// the trigger queue is drained before the next tap (CR 603.3b)
+			s.flushPrefixTriggers(k)
+			if s.npend != 0 {
+				s.resolvePrefixStack(k, s.sp, false)
+			}
+		}
+		if priced() {
+			break
+		}
+	}
+}
