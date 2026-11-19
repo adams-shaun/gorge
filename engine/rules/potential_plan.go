@@ -806,7 +806,25 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 		// holds no engine.
 		witnessNeeded := func(plan decision.PaymentPlan) bool { return e.planWitnessOffersNeeded(f, plan) }
 		witnessOffers := func(plan decision.PaymentPlan) bool { return e.potentialWitnessOffers(p, o, plan) }
-		return potentialPinnedColourPlan(base, lo, rider, plan, xsearch, witnessNeeded, witnessOffers)
+		got := potentialPinnedColourPlan(base, lo, rider, plan, xsearch, witnessNeeded, witnessOffers)
+		if got.Plan != nil {
+			return got
+		}
+		// A coloured supply spread over several colours funds the rider's
+		// pips with a coloured unit of ANY colour, so no single-colour pin has
+		// to cover them all (four {W/U} pips under MayPlayIgnoreColor$ beside
+		// U1 B2 R1: every pin asks four units of one colour, yet Island, two
+		// Swamps and a Mountain pay the cast). One more witness spreads the
+		// pins over the census's colours (pay.PlanManaUnderRiderSpread); the
+		// offer walk verifies it like every pin, so a spread that over-asks a
+		// colour only costs a failed attempt. An X cost re-plans per X value
+		// inside the pins, so it keeps the pin shape alone.
+		if base.X == 0 {
+			if spread := e.potentialSpreadPlan(p, id, base, o, rider, compose, witnessNeeded, witnessOffers); spread.Plan != nil {
+				return spread
+			}
+		}
+		return got
 	}
 	return best
 }
@@ -821,6 +839,42 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 // Produced$ C | Produced$ Combo G U land). Without an AnyColor rider there is
 // nothing to re-plan -- an AnyType rider lets even colourless mana pay, so
 // there the fold needs no re-plan -- and the verdict stands.
+// potentialSpreadPlan is the board-spread witness's arm: after every
+// single-colour pin fails, a coloured supply spread over several colours can
+// still fund the rider's pips — one coloured unit of ANY colour pays each
+// relaxed pip (CR 107.4c) — so the pins are re-coloured over the census's
+// colours (pay.PlanManaUnderRiderSpread) and planned once; the offer walk
+// verifies the plan exactly as it verifies a pin's. The helper returns the
+// spread verdict when one pays and the plain unsupported verdict otherwise,
+// so a caller that holds a pin verdict keeps it.
+func (e *Engine) potentialSpreadPlan(p state.PlayerID, id state.ObjID, base Cost, o decision.Option,
+	rider pipRider, compose func(Cost) (Cost, bool),
+	witnessNeeded func(decision.PaymentPlan) bool, witnessOffers func(decision.PaymentPlan) bool) PaymentPlanOutcome {
+	unsupported := PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
+	if !rider.AnyColor || rider.AnyType {
+		return unsupported
+	}
+	composed, ok := compose(base)
+	if !ok {
+		return unsupported
+	}
+	spread := pay.PlanManaUnderRiderSpread(asPayer(e), p, composed, rider)
+	if spread == nil {
+		return unsupported
+	}
+	got := e.planComposedCost(p, id, *spread, false, false)
+	if e.planKeepSources && got.Plan != nil && paymentPlanConsumes(*got.Plan) {
+		return unsupported
+	}
+	if got.Plan == nil || got.Reason != "" {
+		return unsupported
+	}
+	if witnessNeeded(*got.Plan) && !witnessOffers(*got.Plan) {
+		return unsupported
+	}
+	return got
+}
+
 func potentialPinnedColourPlan(base Cost, lo int32, rider pipRider,
 	plan func(int32, int) PaymentPlanOutcome, xsearch func(int, PaymentPlanOutcome) PaymentPlanOutcome,
 	witnessNeeded, witnessOffers func(decision.PaymentPlan) bool) PaymentPlanOutcome {

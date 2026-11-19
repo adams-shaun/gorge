@@ -156,37 +156,49 @@ func PlanManaUnderRider(c Cost, r PipRider) Cost {
 // plain coloured pips coloured -- merged on the one concrete colour pin --
 // so the plan must fund them from that colour's units, a coloured unit the
 // grant then lets pay the printed pip; the rider's other work (the
-// hybrid/twobrid/Phyrexian pips it folds, the {C} it keeps) is unchanged.
-// The caller pins under an AnyColor rider only: an AnyType rider lets even
-// colourless mana pay, so there the fold needs no re-plan.
+// twobrid/Phyrexian pips it folds, the {C} it keeps) is unchanged. A HYBRID
+// pip is pinned like a coloured one: "any color" pays it with a coloured unit
+// of any colour (never {C}), so it too must be funded coloured. The caller
+// pins under an AnyColor rider only: an AnyType rider lets even colourless
+// mana pay, so there the fold needs no re-plan.
 func PlanManaUnderRiderPinned(c Cost, r PipRider, pin int) Cost {
-	n := int32(0)
-	for i := 0; i+1 < len(c.Colored); i++ {
-		n += c.Colored[i]
-	}
+	n := pipUnitsUnderRider(c, r)
 	c = PlanManaUnderRider(c, r)
 	c.Generic -= n
 	c.Colored[pin] = n
 	return c
 }
 
+// pipUnitsUnderRider is the number of pips an AnyColor pin must fund coloured:
+// every plain coloured pip (WUBRG; the trailing {C} slot is colourless and
+// stays colourless) plus, under the colour rider alone, every hybrid pip --
+// mana of any colour pays it, mana of no colour never does (CR 107.4c). An
+// AnyType rider lets colourless mana pay everything, so it pins nothing.
+func pipUnitsUnderRider(c Cost, r PipRider) int32 {
+	n := int32(0)
+	for i := 0; i+1 < len(c.Colored); i++ {
+		n += c.Colored[i]
+	}
+	if r.AnyColor && !r.AnyType {
+		n += int32(len(c.Hybrid))
+	}
+	return n
+}
+
 // PlanManaUnderRiderAlternatives is the ordered cost alternatives a plan may
 // fund under rider r: the folded cost first (PlanManaUnderRider), then, under
 // an AnyColor rider alone, one pinned per WUBRG colour
-// (PlanManaUnderRiderPinned) when plain coloured pips moved, then the unfolded
-// cost c when its wire form differs from the fold's. A pin holds the plain
-// coloured pips coloured on one concrete colour, so the plan must fund them
-// from that colour's units and the rider then lets those units pay the printed
-// pip. An AnyType rider lets even colourless mana pay, so it has no pins.
-// n is the number of alternatives.
+// (PlanManaUnderRiderPinned) when plain coloured pips or hybrid pips moved,
+// then the unfolded cost c when its wire form differs from the fold's. A pin
+// holds the coloured and hybrid pips coloured on one concrete colour, so the
+// plan must fund them from that colour's units and the rider then lets those
+// units pay the printed pip. An AnyType rider lets even colourless mana pay,
+// so it has no pins. n is the number of alternatives.
 func PlanManaUnderRiderAlternatives(c Cost, r PipRider) (alts [7]Cost, n int) {
 	folded := PlanManaUnderRider(c, r)
 	alts[0], n = folded, 1
 	if r.AnyColor && !r.AnyType {
-		moved := int32(0)
-		for i := 0; i+1 < len(c.Colored); i++ {
-			moved += c.Colored[i]
-		}
+		moved := pipUnitsUnderRider(c, r)
 		if moved != 0 {
 			for pin := state.MW; pin <= state.MG; pin++ {
 				alts[n] = PlanManaUnderRiderPinned(c, r, pin)
@@ -205,6 +217,18 @@ func PlanManaUnderRiderAlternatives(c Cost, r PipRider) (alts [7]Cost, n int) {
 // PlanManaUnderRiderAlternatives whose wire form is wire, scanning the same
 // order. A plan built for one alternative (the folded cost or a pinned one) is
 // settled against exactly that cost.
+//
+// A plan built for the board-spread pin (PlanManaUnderRiderSpread: the folded
+// cost's pinned units re-coloured across the WUBRG slots) matches by SHAPE,
+// not by a reconstructed alternative — the distribution the census funded at
+// plan time is in the wire itself, and re-deriving it from a later census
+// (an executor step has tapped sources) could name a different one. The shape
+// check admits exactly that family and nothing else: the AnyColor pin's pip
+// count n is pinned (the fold's generic minus n), the pinned units sit in the
+// WUBRG slots summing to n, and the {C} slot is the fold's own. The returned
+// cost is the re-coloured fold, and every settle of it (ValidateCastPayment,
+// each executor step) resolves it strictly per colour, so a wire the plan does
+// not fund fails the settle, never the payment.
 func PlanManaUnderRiderMatching(c Cost, r PipRider, wire decision.PaymentCost) (Cost, bool) {
 	alts, n := PlanManaUnderRiderAlternatives(c, r)
 	for i := 0; i < n; i++ {
@@ -212,7 +236,25 @@ func PlanManaUnderRiderMatching(c Cost, r PipRider, wire decision.PaymentCost) (
 			return alts[i], true
 		}
 	}
-	return Cost{}, false
+	pins := pipUnitsUnderRider(c, r)
+	folded := alts[0]
+	if !r.AnyColor || r.AnyType || pins == 0 || folded.Generic < pins ||
+		wire.Generic != uint32(folded.Generic-pins) {
+		return Cost{}, false
+	}
+	sum := int32(0)
+	for i := state.MW; i <= state.MG; i++ {
+		sum += int32(wire.Mana[i])
+	}
+	if sum != pins || int32(wire.Mana[state.MC]) != folded.Colored[state.MC] {
+		return Cost{}, false
+	}
+	out := folded
+	out.Generic -= pins
+	for i := range out.Colored {
+		out.Colored[i] = int32(wire.Mana[i])
+	}
+	return out, true
 }
 
 func PlanCostDetail(c Cost) string {
