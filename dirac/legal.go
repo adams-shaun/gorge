@@ -2394,6 +2394,18 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, j, ab, d) {
 					continue
 				}
+				if cen.on && ab.AFlags&kop.AfManaDynamic != 0 && ab.ManaV.K != kop.VX && ab.ManaV.K != kop.VNegX && !kop.StoreManaAb(ab) && s.dynManaN(k, ab, sl) <= 0 {
+					// gorge's planner window never taps the ability
+					// (manaAbilityYieldsNothing: a non-literal Amount$
+					// resolving to zero or less now, an unannounced X apart
+					// from the storage batteries' own): the census prices its
+					// tap at nothing -- no gap, no unit, no fold (Baldur's
+					// Gate's second ability with no other Gates, its {2} fee
+					// gapping the census and leaving an X-bound sweep the
+					// over-bound open pool; CR 601.2g)
+					done[sl] |= 1 << j
+					continue
+				}
 				paidGap, skip, repeat := d.paidGapProbe(len(units) != 0, boundedAny, sl, j, ab)
 				if skip {
 					continue
