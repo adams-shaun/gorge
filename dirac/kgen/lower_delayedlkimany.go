@@ -125,10 +125,40 @@ func (lc *lowerCtx) delayedAllManyShape(exec *cards.SA) string {
 	if !lc.delayedAllSet() {
 		return "the remembered set is not one ChangeZoneAll RememberChanged$ sweep"
 	}
-	if exec.API != "ChangeZone" || exec.Sub != nil || len(exec.Params) != 3 ||
-		exec.Params["Defined"] != "DelayTriggerRememberedLKI" ||
-		exec.Params["Origin"] != "Exile" || exec.Params["Destination"] != "Battlefield" {
-		return "the body is not one ChangeZone Exile->Battlefield of DelayTriggerRememberedLKI"
+	return delayedLKIReturnBody(exec)
+}
+
+// delayedChainSet reports the ability's program's last remembering write is
+// one bounded ChangeZone of the set itself — obj=Remembered, RememberChanged$
+// True, ForgetOtherRemembered$ True on an Exile or Return (Laezel's
+// Acrobatics' 10-20 clause: its sweep's set is returned, then re-exiled, and
+// each move forgets the rest and re-remembers the moved ones). The set is
+// exactly that write's moved objects, several of them, so the kernel's
+// one-object delayed record would return only the first; the write itself
+// still stalls beyond the four objects the DpMany carrier holds.
+func (lc *lowerCtx) delayedChainSet() bool {
+	last := -1
+	for i, in := range lc.ab.Prog {
+		if kremWrites(in) {
+			last = i
+		}
 	}
-	return ""
+	if last < 0 {
+		return false
+	}
+	in := lc.ab.Prog[last]
+	return in.Obj.Kind == rRemembered && (in.Op == "Exile" || in.Op == "Return") &&
+		strings.Contains("|"+in.CS, "|Remember") && strings.Contains("|"+in.CS, "|ForgetOther")
+}
+
+// delayedChainManyShape admits a delayed trigger whose RememberObjects$
+// Remembered names the set the chain's last bounded ChangeZone re-remembered
+// (delayedChainSet): the same DpMany program, for the one shape it returns
+// exactly — one ChangeZone Origin$ Exile, Destination$ Battlefield of
+// Defined$ DelayTriggerRememberedLKI and nothing else.
+func (lc *lowerCtx) delayedChainManyShape(exec *cards.SA) string {
+	if !lc.delayedChainSet() {
+		return "the set's last write is not one ChangeZone of the set itself"
+	}
+	return delayedLKIReturnBody(exec)
 }
