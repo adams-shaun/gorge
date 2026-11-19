@@ -139,7 +139,7 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 // It runs the plain cast's own feasibility gates first (targets, additional
 // costs), which the hand walk's `continue` on the affordability gate skipped.
 func (s *State) offerKickedPotentialOnly(k *prep, d *Decision, p uint8, c CardID, o Obj, base kop.ManaCost, preDelve, plainBase *kop.ManaCost, cav, av *avail) {
-	if s.cfg&cfgGorgeAutopay == 0 || s.g.availX != 0 {
+	if s.cfg&cfgGorgeAutopay == 0 || s.g.availX != 0 || s.castHeldOut(o) { // gorge holds the card's whole cast out after a second undo (CR 733.2)
 		return
 	}
 	if !s.spellTargetsFeasibleFrom(k, c, p, o) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, plainBase, false, false, av) {
