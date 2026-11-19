@@ -127,8 +127,8 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 	}
 	if fl.Sub != 0 || fl.NotSub != 0 {
 		has := func(i uint8) bool {
-			if s.faceDown(k, sl) {
-				return false // CR 708.2: no subtypes
+			if s.faceDown(k, sl) && (layer == layerSub || !s.blankCopy(sl)) {
+				return false // CR 708.2: no subtypes; a copy of one has its exceptions' (CR 707.9b), from the walk
 			}
 			if layer == layerSub {
 				return int(i) < len(k.t.Subtypes) && k.t.Cards[s.cardAt(sl)].Subtypes.Has(int(i))
