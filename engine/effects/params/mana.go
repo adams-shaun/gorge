@@ -234,7 +234,7 @@ var manaKnownKeys = [...]string{
 	"ChoiceTitleAppend", "ChoiceZone", "Choices", "ChooseFromList", "Chooser", "ClearImprinted", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
-	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
+	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerContains", "ConditionPlayerDefined", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionTargetValidTargeting", "ConditionTargetsSingleTarget", "ConditionZone", "CopyCard", "Cost", "CostDesc", "Defined", "DefinedCards",
 	"DefinedDesc", "DefinedTarget", "Description", "Each", "Exclude", "Exhaust", "ForgetOtherTargets", "FromDesc", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW",
