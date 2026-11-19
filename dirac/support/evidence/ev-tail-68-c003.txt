@@ -46,6 +46,7 @@ Clockwork Vorrac
 Clot Sliver
 Cloudreader Sphinx
 Clutch of the Undercity
+Cold Storage
 Colorful Feiyi Sparrow
 Coral Net
 Corpulent Corpse
@@ -236,6 +237,7 @@ Windrider Wizard
 Wingmate Roc
 Wolfbriar Elemental
 Wooden Sphere
+Yavimaya Elder
 Yavimaya Granger
 Yotian Frontliner
 Zephyr Falcon

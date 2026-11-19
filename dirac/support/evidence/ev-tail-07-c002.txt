@@ -7,6 +7,7 @@ Abduction
 Aberrant Researcher
 Aether Channeler
 Airborne Aid
+Ajani Steadfast
 Akoum Hellhound
 Alabaster Host Intercessor
 Alisaie Leveilleur
@@ -32,6 +33,7 @@ Baird, Argivian Recruiter
 Banewhip Punisher
 Barge In
 Barrage of Expendables
+Basri, Devoted Paladin
 Battle-Mad Ronin
 Bilbo's Burglaring
 Biogenic Ooze
@@ -81,6 +83,7 @@ Distorting Wake
 Divine Offering
 Druid of the Anima
 Dunes of the Dead
+Dust to Dust
 Eager Cadet
 Ekundu Griffin
 Embodiment of Spring
@@ -105,6 +108,7 @@ Fire Dragon
 Firebreathing
 Firemantle Mage
 Flare of Denial
+Flying Crane Technique
 Force Spike
 Forest
 Foriysian Interceptor
@@ -131,6 +135,7 @@ Gods' Eye, Gate to the Reikai
 Gouged Zealot
 Graceblade Artisan
 Grasp of Fate
+Hallowed Burial
 Hallowed Respite
 Harness Infinity
 Headhunter
@@ -223,7 +228,9 @@ Purge
 Purple-Crystal Crab
 Putrid Goblin
 Quagmire Lamprey
+Queen's Commission
 Quick-Draw Dagger
+Quiet Speculation
 Rabble-Rouser
 Rabid Bloodsucker
 Rampaging Brontodon
@@ -236,6 +243,7 @@ Resurrection
 Riddlekeeper
 Righteous Avengers
 Ring of Thune
+Ripscale Predator
 Riptide Director
 Rishadan Dockhand
 Rite of Belzenlok
@@ -246,6 +254,7 @@ Rona's Vortex
 Rootwater Mystic
 Rubblebelt Rioters
 Rust Elemental
+Sage's Reverie
 Salvage
 Samut, Voice of Dissent
 Sanguine Statuette
@@ -267,6 +276,7 @@ Sethron, Hurloon General
 Settlement Blacksmith
 Sharding Sphinx
 Sharpened Pitchfork
+Shattering Blow
 Sheoldred's Edict
 Shimmer Myr
 Shimmering Barrier
@@ -275,6 +285,7 @@ Shoreline Raider
 Siphon Insight
 Skarrg Goliath
 Skull of Orm
+Soulcipher Board
 Spaceshift
 Spark Mage
 Spark Reaper
@@ -294,6 +305,7 @@ Stinging Shot
 Stoneforge Mystic
 Storm Skreelix
 Sudden Spinnerets
+Sunblade Samurai
 Suntouched Myr
 Supernatural Stamina
 Swamp

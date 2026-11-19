@@ -3,6 +3,7 @@ A-Hobbling Zombie	4800edc2ffd4f813	20	1/1		0/1	ix:resp
 A-Llanowar Loamspeaker	7a50d41414adaa0e	14	2/2		0/1	ix:resp
 A.I.M. Bot	98685fd9935a3fff	26	0/0		0/0	
 Abbey Gargoyles	ff9a1c9be5a7c99c	10	0/0		0/0	
+Abolish	0ef68ef586d04323	3	0/0		1/2	ix:resp
 Accelerate	7bc701ebe48e3957	16	0/0		2/2	
 Admiral's Order	593fd22a10359e16	20	0/0		2/2	
 Aerie Ouphes	3d1dfb0fb4443d14	9	2/2		0/1	ix:resp
@@ -134,6 +135,7 @@ Oracle's Insight	4c6a25704f15629a	26	0/0		1/2	ix:resp
 Oreskos Sun Guide	2be20e840e9cc998	16	1/1		0/1	ix:resp
 Peema Aether-Seer	de15d286dfa94bef	10	2/2		0/1	ix:resp
 Pegasus Courser	ec8dced2562f2a83	23	1/1		0/1	ix:resp
+Pelt Collector	beaae49fdab3a544	18	2/2		1/1	
 Plague Witch	2f91e78abbec7160	15	1/1		1/1	
 Plains	82d63a695487e567	517	1/1		0/1	ix:resp
 Power Plant Worker	f8839a8143596f63	18	1/1		0/1	ix:resp
@@ -181,6 +183,7 @@ Spoils of Adventure	3d31f4debdb1229a	34	0/0		2/2
 Sprouting Phytohydra	d67ba2c0df93e0a6	9	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Staff of Titania	c434a4b6d5e9c9bc	30	2/2		0/1	ix:resp
 Stag Beetle	89bef8a940c9fc2c	10	0/0		0/0	
+Stand Together	38eb655d7f939356	32	0/0		2/2	
 Summit Apes	0debefbcde7d14f3	14	0/0		0/0	
 Summit Prowler	3094f3fc40efc3e6	10	0/0		0/0	
 Sunder	a6809c035b676358	22	0/0		1/2	ix:resp

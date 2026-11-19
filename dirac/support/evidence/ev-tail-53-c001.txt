@@ -110,6 +110,7 @@ Discordant Piper
 Divination
 Domineer
 Domri's Ambush
+Doom Cannon
 Drag Under
 Dream Fracture
 Dregscape Zombie
@@ -201,6 +202,7 @@ Kelpie Guide
 Khabál Ghoul
 Kitchen Imp
 Knight of Meadowgrain
+Knollspine Invocation
 Krosan Reclamation
 Kuldotha Forgemaster
 Lava Dart

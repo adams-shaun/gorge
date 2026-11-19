@@ -69,6 +69,7 @@ Consign to Dream
 Corrupted Roots
 Courageous Outrider
 Court Cleric
+Craw Giant
 Creeperhulk
 Crimson Cowl, Master of Evil
 Crocanura
@@ -94,6 +95,7 @@ Dawnray Archer
 Day's Undoing
 Deathcurse Ogre
 Deceive the Messenger
+Decoction Module
 Defenestrate
 Demogorgon's Clutches
 Dense Foliage
@@ -322,6 +324,7 @@ Sheltering Boughs
 Shield of the Avatar
 Shivan Gorge
 Shriek of Dread
+Sicken
 Siege Dragon
 Sigil of Distinction
 Signal Pest
@@ -329,6 +332,7 @@ Silburlind Snapper
 Sink into Takenuma
 Siren Reaver
 Siren's Ruse
+Skaab Goliath
 Sky Crier
 Skyshroud Elite
 Skystrike Officer

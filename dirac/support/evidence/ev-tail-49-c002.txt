@@ -25,6 +25,7 @@ Barbarian Outcast
 Batroc the Leaper
 Batterbone
 Battle Mammoth
+Benthic Behemoth
 Blightbeetle
 Blistering Barrier
 Bloodthrone Vampire
@@ -65,6 +66,7 @@ Cradle Clearcutter
 Crash
 Crimson Cowl, Master of Evil
 Cultist of the Absolute
+Cyberdrive Awakener
 Damping Matrix
 Daredevil's Billy Club
 Dark Bargain
@@ -81,6 +83,7 @@ Dimir Signet
 Disciple of Perdition
 Disentomb
 Dismember
+Domri, City Smasher
 Double Trouble
 Dragon Whelp
 Drake Haven
@@ -105,6 +108,7 @@ Evernight Shade
 Exhaustion
 Expedite
 Extinguish the Light
+Eye Spy
 Faerie Duelist
 Fallen Shinobi
 Fallowsage
@@ -172,6 +176,7 @@ Island
 Island of Wak-Wak
 Jadecraft Artisan
 Jaya, Venerated Firemage
+Jetting Glasskite
 Junktroller
 Kaldra Compleat
 Kayla's Command
@@ -185,12 +190,14 @@ Kor Cartographer
 Kor Entanglers
 Kor Outfitter
 Kor Scythemaster
+Krosan Druid
 Kuldotha Rebirth
 Kyoshi Warrior Guard
 Lantern Spirit
 Lantern of Revealing
 Lantern of the Lost
 Lapis Lazuli Talisman
+Laquatus's Creativity
 Last Caress
 Lavamancer's Skill
 Lawmage's Binding
@@ -204,6 +211,7 @@ Maned Serval
 Manic Scribe
 Manifold Key
 Manta Riders
+Mark of the Vampire
 Mask of Law and Grace
 Mass Hysteria
 Masticore
@@ -265,6 +273,7 @@ Quicksilver Fisher
 RMS Titanic
 Radha, Heart of Keld
 Rain of Salt
+Raise Dead
 Raking Claws
 Rampaging Cyclops
 Raptor Companion

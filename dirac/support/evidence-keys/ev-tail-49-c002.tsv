@@ -10,6 +10,7 @@ Augmenting Automaton	a366cc21df06ab2b	44	1/1		1/1
 Balan, Wandering Knight	c7f8061e03231a50	16	1/1		1/1	
 Barbarian Outcast	da16308a1489a674	6	1/1		0/1	ix:resp
 Battle Mammoth	440d543dd22aa0d9	21	1/1		2/5	cast/alt:foretold,f0/t0/opt:n,f0/t0/opt:y
+Benthic Behemoth	bd3ffbd16680c461	7	0/0		0/0	
 Bloodthrone Vampire	e9c9dc6cd94dcf03	15	1/1		0/1	ix:resp
 Briarhorn	f5c680fa451f2443	28	1/1		3/3	
 Call the Scions	c2a90de5aeb066b9	7	0/0		1/2	ix:resp
@@ -19,16 +20,19 @@ Chandra's Outburst	2dd9a5bc74c899e0	3	0/0		2/2
 Changeling Outcast	fb65f690e367c9f8	22	0/0		0/0	
 Citanul Centaurs	848afe8f55a6cccc	22	1/1		1/1	
 Cradle Clearcutter	fddc54b76554f17c	21	1/1		2/3	ix:resp
+Cyberdrive Awakener	bc83658da0b3c16d	35	1/1		1/1	
 Damping Matrix	5354a03d680f9537	3	0/0		0/0	
 Darksteel Myr	d3ac69d0d5b79203	15	0/0		0/0	
 Daru Encampment	dc7564af2926aeb5	10	2/2		0/1	ix:resp
 Denying Wind	ec2609c22e33dc7c	12	0/0		2/2	
+Domri, City Smasher	cd6c5cc5cc4cfe64	19	3/3		1/1	
 Dregs of Sorrow	4e2b9ab505ae4f92	10	0/0		2/4	f0/s/x0,ix:resp
 Druid's Deliverance	e48adaa0ef84f3e1	26	0/0		2/2	
 Elvish Piper	8b1d61bd4087900c	23	1/1		0/1	ix:resp
 Elvish Promenade	ee7a6aa8069406ac	3	0/0		1/2	ix:resp
 Escape Velocity	915cf8c53df30df7	11	0/0		3/4	cast/alt:escaped
 Exhaustion	5184ca486b79ec49	16	0/0		2/2	
+Eye Spy	d87f70db788af587	46	0/0		2/2	
 Fallowsage	e8ee4a5deac6c231	46	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Fencing Ace	27cf254e45689a37	8	0/0		0/0	
 Fireball	38e57e53e1b89980	7	0/0		3/4	f0/s/x0
@@ -48,14 +52,18 @@ Hewed Stone Retainers	16cafb239bc4eeb9	15	0/0		0/0
 Inferno Fist	e8861bf424d3a1dd	8	1/1		2/2	
 Invigorating Boon	435cd032b9c4cc66	18	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Jadecraft Artisan	139644955077e22b	4	1/1		0/1	ix:resp
+Jetting Glasskite	c28b4ce3df8c9183	16	1/1		1/1	
 Junktroller	5c0d7a2a7207f624	4	1/1		0/1	ix:resp
 Kiri-Onna	ee9bb8f29ddb8aaf	63	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Kiss of Death	a87775e07ae415c5	16	0/0		2/2	
 Kor Cartographer	1d0b9a025e607225	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Krosan Druid	fbc0c21a7c58dccc	56	1/1		3/3	
 Lantern Spirit	8d124c8410e33915	128	1/1		1/1	
+Laquatus's Creativity	f3eefe4e90547639	34	0/0		1/2	ix:resp
 Lavamancer's Skill	2ecf231ad9ce3ec5	36	0/0		2/2	
 Life	0c45fe542bc0fe7a	4	0/0		1/3	f1/s,ix:resp
 Lu Su, Wu Advisor	1c4aed38d393128b	5	1/1		1/1	
+Mark of the Vampire	5d25d0cdb07cc789	45	0/0		2/2	
 Metamorphic Wurm	685044cf70e47a57	4	0/0		0/0	
 Mindmelter	2187cf6a1beebfe8	48	1/1		1/1	
 Moldgraf Scavenger	ca89884c3bacdbaf	16	0/0		0/0	
@@ -70,6 +78,7 @@ Overflowing Basin	4d4ceae66c1a4110	8	1/1		0/1	ix:resp
 Pallid Mycoderm	b50a4c7124c23600	9	3/3		1/1	
 Peace Strider	47989bd15b09a511	29	1/1		0/1	ix:resp
 Pip-Boy 3000	207e7f3c0d8ffdb1	6	2/2		0/1	ix:resp
+Raise Dead	a7cd065f9abb4b29	50	0/0		1/2	ix:resp
 Raptor Companion	92f4b872ec206aa7	9	0/0		0/0	
 Razortide Bridge	69eb353533e4d95d	24	1/1		0/1	ix:resp
 Rishkar's Expertise	77e9f8f2e480da42	12	0/0		1/2	ix:resp

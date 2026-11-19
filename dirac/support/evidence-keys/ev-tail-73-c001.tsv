@@ -2,12 +2,14 @@ card	lir16	plays	keys	unused	branches	missing_branches
 A-Base Camp	e843345b39dca820	16	2/2		0/1	ix:resp
 A-Circuit Mender	e9cd413212ed7980	3	2/2		0/1	ix:resp
 Aetherworks Marvel	19f9a02acc606771	4	2/2		1/1	
+Archon of Falling Stars	62583ff2fafac5ca	30	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Aurochs	9eb6b9cef49b4179	3	1/1		0/1	ix:resp
 Bedlam Reveler	6882af0c51bfe607	6	2/2		0/1	ix:resp
 Blight Grenade	0d00033f8f15cf95	6	0/0		1/2	ix:resp
 Blood Money	e95204a55398d86e	6	0/0		1/2	ix:resp
 Boreal Shelf	cd40b29b7f702bce	31	1/1		0/1	ix:resp
 Cinder Barrens	f87915e3959061db	23	1/1		0/1	ix:resp
+Claws of Wirewood	35cb8b80745c09fd	5	1/1		1/2	ix:resp
 Countersquall	27d88ae0f2a0c4b2	4	0/0		1/2	ix:resp
 Cryptothrall	46c57c3f356a2d74	8	0/0		0/0	
 Dreamstone Hedron	dd0546c1484e331e	4	2/2		0/1	ix:resp
@@ -21,6 +23,7 @@ Fierce Witchstalker	3ec69647c8ba5b7f	4	1/1		0/1	ix:resp
 Fire Juggler	1529cc4d33a0e938	5	1/1		0/1	ix:resp
 Fireforger's Puzzleknot	c70431a48baf2099	6	2/2		1/1	
 Frenetic Sliver	c4d9685e9dde430b	5	0/0		0/0	
+Frostveil Ambush	14b6901af1bce8ea	14	1/1		2/2	
 Glacial Revelation	5b5708e9f6911eb9	8	0/0		1/2	ix:resp
 Goliath Beetle	671f384791de91e2	4	0/0		0/0	
 Grave-Shell Scarab	095a5b3bfcee3106	9	1/1		0/1	ix:resp
@@ -35,11 +38,14 @@ Mox Diamond	95846392ce7ab93e	8	1/1		1/1
 Nin, the Pain Artist	b7c76ff6587307e3	4	1/1		0/1	ix:resp
 Oathsworn Knight	0ca5d1928707b688	6	0/0		0/0	
 Penumbra Wurm	5d9e7a8c3eb37cb5	5	1/1		0/1	ix:resp
+Pestilent Cauldron	8c2039d66b1283ac	20	3/3		2/2	
 Pilgrim of the Fires	92fbe3622a94d0c0	3	0/0		0/0	
 Raging Ravine	ed05a7ef39f95116	16	2/2		0/1	ix:resp
+Roalesk, Apex Hybrid	7d5b9289c1a42e40	38	2/2		1/1	
 Saddled Rimestag	2e0dc69beac1b8eb	5	0/0		0/0	
 Scabland	f92b22e141293bb5	25	2/2		0/1	ix:resp
 Shadowblood Ridge	8622200b7fcd1c2f	15	1/1		0/1	ix:resp
 Skyshroud Vampire	aa76b56d735c9d4b	9	1/1		0/1	ix:resp
 Sliver Hive	d712dca4802ae933	24	3/3		0/1	ix:resp
+Sterling Grove	fc4dc8dbabb3f7e4	28	1/1		0/1	ix:resp
 Transmutation	cc94f668ecc9e3b7	71	0/0		2/2	
