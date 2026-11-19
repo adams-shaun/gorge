@@ -320,6 +320,13 @@ var addedAfterTheSplit = []string{
 	// modelled -- before that the attribute was a Note -- so the pre-split
 	// switch had nothing to dispatch it on.
 	"CaseSolved",
+	// edh-manaadded: "Whenever a land's ability causes you to add one or
+	// more mana of the chosen color" (Caged Sun, CR 605.1b triggered mana
+	// ability). It matches the ordinary ManaAdd events the mana-ability
+	// resolution already emitted, but no pre-split mode read that event and
+	// the MODE name is new, so no pre-split switch arm could have dispatched
+	// it.
+	"ManaAdded",
 }
 
 func allRegisteredModeNames() []string {

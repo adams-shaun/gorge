@@ -61,6 +61,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"equal.go":                {false, "typed deep equality for engine memo verification; runtime only"},
 	"face.go":                 {true, "Face derive (mana cost, CMC, word sets) runs during compile"},
 	"face_hasmanaability.go":  {false, "HasManaAbility reads a compiled face at filter/lowering time; compile never calls it"},
+	"trigshape.go":            {false, "runtime shape classification of compiled trigger lines (the CR 605.1b fold's grammar words and key closed worlds); compile never calls it"},
 	"face_runtime.go":         {false, "runtime copy-basis setters events.Apply calls; compile never runs them"},
 	"textchange.go":           {false, "CR 612 text-changed runtime faces events.Apply builds; compile never runs them"},
 	"fetch.go":                {false, "git fetch of the corpus and its Lock record; corpus changes are caught by cacheFresh's mtimes"},

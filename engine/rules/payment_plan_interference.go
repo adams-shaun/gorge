@@ -207,13 +207,19 @@ func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
 func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerID, produced string, whole bool) (damage uint32, extra state.Mana, by state.ObjID, ok bool) {
 	// The synchronous context emitManaTap/emitTap establish around the Tap
 	// event, restored before return: this is matcher scratch, not game state.
+	// The mana facts mirror what resolveManaEffectColor establishes around a
+	// mana ability's ManaAdd emissions, so a Mode$ ManaAdded line matches the
+	// synthetic add exactly as it will match the real one.
 	savedObj, savedPlayer, savedEntering := e.tapObj, e.tapPlayer, e.tapEntering
 	savedMana, savedProduced := e.tappingForMana, e.tappingManaProduced
+	savedProducer, savedManaAbility := e.manaProducer, e.manaAddFromManaAbility
 	e.tapObj, e.tapPlayer, e.tapEntering = id, activator, false
 	e.tappingForMana, e.tappingManaProduced = id, produced
+	e.manaProducer, e.manaAddFromManaAbility = id, true
 	defer func() {
 		e.tapObj, e.tapPlayer, e.tapEntering = savedObj, savedPlayer, savedEntering
 		e.tappingForMana, e.tappingManaProduced = savedMana, savedProduced
+		e.manaProducer, e.manaAddFromManaAbility = savedProducer, savedManaAbility
 	}()
 	ev := events.Event{Kind: events.Tap, Obj: id}
 	ok = true
@@ -238,6 +244,26 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 		}
 		for _, fc := range walk {
 			for _, t := range fc.face.Triggers {
+				if t.ModeKind() == cards.TriggerManaAdded {
+					// A Mode$ ManaAdded line is first matched against the
+					// synthetic ManaAdd batches, exactly as the real
+					// resolution's add will match them (the mana facts above
+					// stand in for emitManaTap's). A line its own filters
+					// reject -- Caged Sun's ValidSA$ SpellAbility.!ManaAbility
+					// Secondary line on a mana-ability add, a land-source or
+					// chosen-colour gate that fails -- cannot fire on this
+					// production and is silent, not deferring. A deferring
+					// line reports through deferBy like every other unvetted
+					// observer, and the walk's tail check returns it: the
+					// partial extra it may have built is discarded with ok.
+					mo := manaAddedFold{
+						face:     fc.face,
+						matches:  e.triggerMatches,
+						replaced: e.paymentPlanExtraReplaced,
+					}
+					mo.observe(t, oid, activator, produced, deferBy, &extra)
+					continue
+				}
 				if !tapMode(t.Mode) || !e.triggerMatches(t, oid, ev, nil) {
 					continue
 				}
@@ -352,6 +378,58 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 		return 0, extra, by, false
 	}
 	return damage, extra, 0, true
+}
+
+// manaAddedFold is the feature struct paymentPlanTapObservers runs a Mode$
+// ManaAdded line through. It holds only the two walks the fold needs -- the
+// real trigger matcher against a synthetic ManaAdd batch, and the
+// ProduceMana-replacement walk on the folded bonus -- so its method is not
+// engine surface.
+type manaAddedFold struct {
+	face     *cards.Face
+	matches  func(t cards.Trigger, oid state.ObjID, ev events.Event, lki *state.Object) bool
+	replaced func(oid state.ObjID, activator state.PlayerID, m state.Mana) (state.ObjID, bool)
+}
+
+// observe folds the ManaAdded bonus of trigger t on carrier oid into extra:
+// it matches t's own filters against one synthetic ManaAdd batch per symbol
+// the planned production names (exactly as the real resolution's adds will
+// match, the mana facts standing in for emitManaTap's), and credits one unit
+// per matched batch -- one batch of a symbol triggers the printed "add one
+// or more mana" once, whatever its amount, the batch cadence effMana's
+// coalescing and the real resolution agree on. A line whose own filters
+// reject every batch -- Caged Sun's ValidSA$ SpellAbility.!ManaAbility
+// Secondary line on a mana-ability add, a land-source or chosen-colour gate
+// that fails -- is silent on the planned tap, not deferring (the chosen
+// colour read sits inside the matcher's Produced$ ChosenColor arm, so a
+// carrier with no colour recorded neither folds nor defers). A matched line
+// the classifier cannot vet, or whose bonus a ProduceMana replacement would
+// act on, defers the tap through deferBy, the direction every unmodelled
+// observer takes. It reports whether a line deferred the tap; the walk's
+// tail check returns it, and the caller discards the partial extra with ok.
+func (f *manaAddedFold) observe(t cards.Trigger, oid state.ObjID, activator state.PlayerID, produced string, deferBy func(state.ObjID) bool, extra *state.Mana) bool {
+	counts, _ := cards.ProducedCounts(produced)
+	for i, n := range counts {
+		if n <= 0 {
+			continue
+		}
+		evAdd := events.Event{Kind: events.ManaAdd, Player: activator, Counter: string(cards.ManaSymbol(i))}
+		if !f.matches(t, oid, evAdd, nil) {
+			continue
+		}
+		if !pay.PaymentPlanFoldableManaAdded(f.face, t) {
+			deferBy(oid)
+			return true
+		}
+		var unit state.Mana
+		unit[i] = 1
+		if rby, replaced := f.replaced(oid, activator, unit); replaced {
+			deferBy(rby)
+			return true
+		}
+		(*extra)[i]++
+	}
+	return false
 }
 
 // paymentPlanExtraReplaced reports the first ProduceMana replacement that

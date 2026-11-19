@@ -149,6 +149,13 @@ type Facts struct {
 	// TappingManaProduced the mana it produced.
 	TappingForMana      state.ObjID
 	TappingManaProduced string
+	// ManaProducer is the ability source whose resolution is emitting mana
+	// right now (engine/rules/mana_activation.go's manaProducer), and
+	// ManaAddFromAbility whether that resolution is a CR 605.1a mana
+	// ability's (ValidSA$ SpellAbility.ManaAbility). Both are zero/false for
+	// every ManaAdd emitted outside a mana-ability resolution.
+	ManaProducer       state.ObjID
+	ManaAddFromAbility bool
 	// GoadProbe is the static-goad derivation's re-entry guard: above zero a
 	// matcher must not bind the static goad set into an IsGoaded filter.
 	GoadProbe int

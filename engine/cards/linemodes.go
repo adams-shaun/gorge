@@ -154,7 +154,11 @@ const (
 	TriggerCountered       TriggerMode = 107
 	TriggerMilledOnce      TriggerMode = 108
 	TriggerAbilityResolves TriggerMode = 109
-	TriggerModeCount                   = 110 // one past the last; sizes a dense per-TriggerMode array
+	// ManaAdded ("whenever a land's ability causes you to add one or more
+	// mana of the chosen color", Caged Sun's CR 605.1b triggered mana
+	// ability), appended so every earlier ordinal is unchanged.
+	TriggerManaAdded TriggerMode = 110
+	TriggerModeCount             = 111 // one past the last; sizes a dense per-TriggerMode array
 )
 
 var triggerModeNames = [TriggerModeCount]string{
@@ -267,6 +271,7 @@ var triggerModeNames = [TriggerModeCount]string{
 	TriggerCountered:                  "Countered",
 	TriggerMilledOnce:                 "MilledOnce",
 	TriggerAbilityResolves:            "AbilityResolves",
+	TriggerManaAdded:                  "ManaAdded",
 }
 
 var triggerModeCodes = func() StrCodes[TriggerMode] {

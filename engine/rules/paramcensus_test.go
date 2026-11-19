@@ -2393,7 +2393,18 @@ var handRoots = struct {
 	// (triggerReferents) and the stack-optional query (StackOptional). All are
 	// mode-SHARED machinery; each mode still adds its own dispatch branch on
 	// top.
-	trig: []string{"EntryLandReturn", "Engine.pushTrigger", "Engine.triggerLabel", "Engine.abilityLabel",
+	trig: []string{
+		// PaymentPlanFoldableManaAdded (engine/rules/pay/planshape.go) is the
+		// planner's closed-world shape test of a matched Mode$ ManaAdded
+		// line: it reads the line's own keys through Trigger.Param's
+		// membership list and the gates (Static$/Produced$/Player$) through
+		// the cards.Trigshape helpers, matched already through the real
+		// matcher (Engine.triggerMatches) by manaAddedFold.observe -- a call
+		// through that struct's func fields, which the closure walk cannot
+		// trace, so the reads are attributed here like the other
+		// dedicated-hook roots above.
+		"PaymentPlanFoldableManaAdded",
+		"EntryLandReturn", "Engine.pushTrigger", "Engine.triggerLabel", "Engine.abilityLabel",
 		"Engine.resolveTop", "Engine.isTriggeredManaAbility", "Engine.triggerReferents",
 		"Engine.StackOptional", "Engine.optionalDecider",
 		// putTriggersOnStack is the queue drain's root: its

@@ -78,6 +78,13 @@ type engineEmitCtx struct {
 	// resolving. They are synchronous context rather than ManaAdd fields.
 	manaFromTap  bool        `clone:"reset"`
 	manaProducer state.ObjID `clone:"reset"`
+	// manaAddFromManaAbility says the ManaAdd emissions currently in flight
+	// come from a CR 605.1a mana ability's resolution (Mode$ ManaAdded's
+	// ValidSA$ SpellAbility.ManaAbility), as opposed to a rider's or a
+	// replacement's. Set and restored by withOffStackMana alongside
+	// manaProducer's set/restore sites, so a replay re-derives it the same
+	// way; zero/false at every clone boundary like the other scratch.
+	manaAddFromManaAbility bool `clone:"reset"`
 	// gainedOfferConv is the ManaConversion$ of the GainsAbilitiesOf$ grant
 	// whose gained ability the legal-actions walk is pricing right now
 	// (manaConversionParts reads it at offer time, when no cast exists yet).

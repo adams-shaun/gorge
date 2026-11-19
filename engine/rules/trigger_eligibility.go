@@ -262,6 +262,10 @@ var triggerModeEventRows = [...]struct {
 	{cards.TriggerAttackerUnblockedOnce, 1 << events.DeclareBlockers},
 	{cards.TriggerBlocks, 1 << events.DeclareBlockers},
 	{cards.TriggerUntaps, 1 << events.Untap},
+	// trig:ManaAdded (CR 605.1b, Caged Sun) matches the ManaAdd events a mana
+	// ability's resolution emits (trigmatch.manaAddedMatches); the producing
+	// source rides the synchronous manaProducer fact, not the event.
+	{cards.TriggerManaAdded, 1 << events.ManaAdd},
 	// The event Kind is beyond this mask's bit width; allow the matcher
 	// to inspect the full event and keep this mode's candidate set narrow.
 	{cards.TriggerSpecializes, 0},

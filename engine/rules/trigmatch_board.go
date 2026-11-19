@@ -46,6 +46,8 @@ func (b *trigBoard) Facts() trigmatch.Facts {
 		TapEntering:            b.tapEntering,
 		TappingForMana:         b.tappingForMana,
 		TappingManaProduced:    b.tappingManaProduced,
+		ManaProducer:           b.manaProducer,
+		ManaAddFromAbility:     b.manaAddFromManaAbility,
 		GoadProbe:              b.goadProbe,
 		LifeLossBatch:          b.lifeLossBatch,
 		FinishingLifeLossBatch: b.finishingLifeLossBatch,

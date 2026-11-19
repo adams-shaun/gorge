@@ -316,9 +316,11 @@ func (e *Engine) potentialSpareGrew(p state.PlayerID, payment *paymentDescriptor
 }
 
 // tapExtraTriggerOnBoard reports whether any object prints a static
-// TapsForMana trigger (CR 605.1b), the only carriers whose extra mana a
-// source's tap adds to the bound. The carrier list is memoised and the
-// common board's is empty, so the scan is the list walk itself.
+// triggered-mana-ability trigger (CR 605.1b) -- TapsForMana, or ManaAdded
+// (Caged Sun's chosen-colour rider, folded by paymentPlanTapObservers's
+// ManaAdded arm) -- the only carriers whose extra mana a source's tap adds
+// to the bound. The carrier list is memoised and the common board's is
+// empty, so the scan is the list walk itself.
 func (e *Engine) tapExtraTriggerOnBoard() bool {
 	for _, oid := range pay.PaymentPlanInterferenceCarriers(asPayer(e)) {
 		o := e.G.Obj(oid)
@@ -326,7 +328,7 @@ func (e *Engine) tapExtraTriggerOnBoard() bool {
 			continue
 		}
 		for _, t := range o.Face().Triggers {
-			if t.Mode == "TapsForMana" {
+			if mk := t.ModeKind(); mk == cards.TriggerTapsForMana || mk == cards.TriggerManaAdded {
 				return true
 			}
 		}

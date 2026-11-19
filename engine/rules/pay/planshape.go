@@ -595,6 +595,68 @@ func paymentPlanStaticTapManaBody(f *cards.Face, t cards.Trigger, api string) *c
 	return body
 }
 
+// PaymentPlanFoldableManaAdded classifies a `Mode$ ManaAdded | Static$ True`
+// trigger of face f whose body adds one mana of the trigger source's own
+// chosen colour (Caged Sun's `DB$ Mana | Produced$ Chosen | Amount$ 1`, the
+// CR 605.1b triggered mana ability), closed-world as
+// PaymentPlanFoldableTapMana. The mana is object state
+// (state.Object.ChosenColor), so the classifier only vets the SHAPE and the
+// caller reads the carrier's chosen colour, crediting one unit per ManaAdd
+// batch the production emits in that colour -- the batch cadence effMana
+// and the real resolution agree on. Player$ You is required: the bonus goes
+// to the carrier's controller, which is who the fold credits. A non-foldable
+// ManaAdded line defers its carrier instead, the direction every unvetted
+// observer takes. The zone question is not re-vetted here: the planner only
+// classifies lines the real matcher has already matched, and the matchers
+// own the zone gates.
+func PaymentPlanFoldableManaAdded(f *cards.Face, t cards.Trigger) bool {
+	body := paymentPlanStaticManaAddedBody(f, t, "Mana")
+	if body == nil {
+		return false
+	}
+	if !cards.ManaBodyKeysAdmitted(body) {
+		return false
+	}
+	switch ref := params.DefinedRefOf(body); ref.Kind {
+	case params.RefAbsent, params.RefYou:
+	default:
+		return false
+	}
+	mp := params.ManaOf(body)
+	if !cards.ProducedIsChosen(mp.Produced) {
+		return false
+	}
+	if mp.Amount.Present && (!mp.AmountIsLit || mp.AmountLit != 1) {
+		return false
+	}
+	return true
+}
+
+// paymentPlanStaticManaAddedBody is the body of a `Mode$ ManaAdded |
+// Static$ True` trigger of face f whose parameters are all in the closed
+// world paymentPlanManaAddedLineKeys names, whose Produced$ names the
+// trigger source's own chosen colour and whose Player$ You binds the bonus
+// to the carrier's controller; its body is one api ability with no
+// SubAbility$, or nil.
+func paymentPlanStaticManaAddedBody(f *cards.Face, t cards.Trigger, api string) *cards.SA {
+	if t.ModeKind() != cards.TriggerManaAdded || !t.StaticTrue() || !t.ProducedChosenColour() || !t.PlayerIsYou() {
+		return nil
+	}
+	if !t.ManaAddedLineKeysAdmitted() {
+		return nil
+	}
+	body := t.Effect
+	if body == nil && f != nil {
+		// parseParams trims every parameter value at load, so the stored
+		// SVar value is resolved directly.
+		body = cards.ResolveSVar(f.SVars, t.ParamStr(cards.PKExecute))
+	}
+	if body == nil || body.API != api || body.Sub != nil || body.ParamStr(cards.PKSubAbility) != "" {
+		return nil
+	}
+	return body
+}
+
 // PaymentPlanReflectedTapMana classifies a static TapsForMana trigger of
 // face f whose body adds one mana of the type the tap produced (a
 // ManaReflected of the produced type: Lavaleaper, Mana Flare; CR 106.12a,
