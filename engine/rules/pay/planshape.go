@@ -114,7 +114,7 @@ func PaymentPlanShapeTierOf(ma *cards.SA, cost costvocab.Cost) (tier Tier, c Con
 	}
 	// A TriggersWhenSpent$ rider's verdict reads the source's SVar body, so
 	// the source-aware arm (paymentPlanAbilityShapeTier) decides it.
-	if strings.TrimSpace(ma.ParamStr(cards.PKTriggersWhenSpent)) != "" {
+	if effects.ManaOf(ma).TriggersWhenSpent != "" {
 		return TierDeferred, Consequence{}, "", true
 	}
 	if cost.XMin != 0 || cost.X != 0 || cost.Generic != 0 || cost.Colored.Total() != 0 || len(cost.Discard)+len(cost.SubCounter)+len(cost.Exile)+len(cost.ExileFromTop)+len(cost.TapPermanent)+len(cost.Energy)+len(cost.LifeX) != 0 {

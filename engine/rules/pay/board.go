@@ -7,6 +7,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -263,7 +264,7 @@ func PlanSpentRiderIsScry(g *state.Game, id state.ObjID, mana *cards.SA) bool {
 		return false
 	}
 	svars := o.Face().SVars
-	body, ok := svars[strings.TrimSpace(mana.ParamStr(cards.PKTriggersWhenSpent))]
+	body, ok := svars[effects.ManaOf(mana).TriggersWhenSpent]
 	if !ok {
 		return false
 	}
@@ -271,8 +272,8 @@ func PlanSpentRiderIsScry(g *state.Game, id state.ObjID, mana *cards.SA) bool {
 	if !ok || (t.Mode != "SpellCast" && t.Mode != "SpellAbilityCast") {
 		return false
 	}
-	exec := cards.ResolveSVar(svars, strings.TrimSpace(t.ParamStr(cards.PKExecute)))
-	return exec != nil && exec.API == "Scry" && strings.TrimSpace(exec.ParamStr(cards.PKSubAbility)) == ""
+	exec := cards.ResolveSVar(svars, t.ParamStr(cards.PKExecute))
+	return exec != nil && exec.API == "Scry" && paymentPlanSubFree(exec)
 }
 
 // PlanController is the controller of source id, or seat 0 for a
