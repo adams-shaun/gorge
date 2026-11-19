@@ -175,7 +175,15 @@ const (
 	// opponent controls destroys a noncreature permanent you control", Cobra
 	// Trap's tracker), appended so every earlier ordinal is unchanged.
 	TriggerDestroyed TriggerMode = 115
-	TriggerModeCount             = 116 // one past the last; sizes a dense per-TriggerMode array
+
+	// EDH fight-family modes (edh-trigD): Fight (Foe-Razer Regent's "whenever
+	// a creature you control fights"), FightOnce (Neyith of the Dire Hunt's
+	// "whenever one or more creatures you control fight") and
+	// AttackerBlockedOnce (Neyith's "...or become blocked").
+	TriggerFight               TriggerMode = 116
+	TriggerFightOnce           TriggerMode = 117
+	TriggerAttackerBlockedOnce TriggerMode = 118
+	TriggerModeCount                       = 119 // one past the last; sizes a dense per-TriggerMode array
 )
 
 var triggerModeNames = [TriggerModeCount]string{
@@ -292,6 +300,9 @@ var triggerModeNames = [TriggerModeCount]string{
 	TriggerExcessDamage:               "ExcessDamage",
 	TriggerPayLife:                    "PayLife",
 	TriggerShuffled:                   "Shuffled",
+	TriggerFight:                      "Fight",
+	TriggerFightOnce:                  "FightOnce",
+	TriggerAttackerBlockedOnce:        "AttackerBlockedOnce",
 	TriggerAdapt:                      "Adapt",
 	TriggerDestroyed:                  "Destroyed",
 }

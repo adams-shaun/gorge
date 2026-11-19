@@ -1660,7 +1660,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 						continue // ResolvedLimit$: already resolved enough this turn.
 					}
 				}
-				if mk == cards.TriggerDamageDealtOnce || mk == cards.TriggerDamageDoneOnce || mk == cards.TriggerDamageAll || mk == cards.TriggerExcessDamageAll {
+				if damageBatchLatchMode(mk) {
 					if !e.latchDamageBatch(t, &fc.face.Triggers[ti], mk, key, grantedLine{}, id, *ev, damageAmount) {
 						continue
 					}
@@ -2269,7 +2269,7 @@ func (e *Engine) latchDamageBatch(t cards.Trigger, line *cards.Trigger, mk cards
 	if ev.Amount <= 0 {
 		return true
 	}
-	bk := damageBatchKey{triggerKey: key, grant: grant, dealt: mk == cards.TriggerDamageDealtOnce, all: mk == cards.TriggerDamageAll || mk == cards.TriggerExcessDamageAll}
+	bk := damageBatchKey{triggerKey: key, grant: grant, dealt: mk == cards.TriggerDamageDealtOnce, all: mk == cards.TriggerDamageAll || mk == cards.TriggerExcessDamageAll || mk == cards.TriggerFightOnce}
 	var allSrc state.ObjID
 	var allTgt state.Target
 	if bk.dealt {
@@ -2342,6 +2342,17 @@ func (e *Engine) latchDamageBatch(t cards.Trigger, line *cards.Trigger, mk cards
 	// this gate was batch-scoped; closeDamageBatch patches its referent amount to
 	// the batch total.
 	return true
+}
+
+// damageBatchLatchMode reports the modes latchDamageBatch gates to one
+// instance per open damage batch: the four DamageDealtOnce-family modes plus
+// FightOnce (edh-trigD), whose fight is one batch.
+func damageBatchLatchMode(mk cards.TriggerMode) bool {
+	switch mk {
+	case cards.TriggerDamageDealtOnce, cards.TriggerDamageDoneOnce, cards.TriggerDamageAll, cards.TriggerExcessDamageAll, cards.TriggerFightOnce:
+		return true
+	}
+	return false
 }
 
 // openDamageBatch opens a damage batch: the Damage events emitted until the
@@ -3222,7 +3233,7 @@ func init() {
 
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblocked", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce", "trig:CounterPlayerAddedAll", "trig:CounterAddedAll", "trig:CounterTypeAddedAll",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerBlockedOnce", "trig:AttackerUnblocked", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce", "trig:CounterPlayerAddedAll", "trig:CounterAddedAll", "trig:CounterTypeAddedAll",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana", "trig:Untaps",
 		// trig:ManaAdded: "Whenever a land's ability causes you to add one or
 		// more mana of the chosen color, add an additional one mana of that

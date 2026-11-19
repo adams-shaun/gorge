@@ -530,6 +530,8 @@ var modeRejectsHighKindsTab = [cards.TriggerModeCount]bool{
 	cards.TriggerPayLife:             true,
 	cards.TriggerShuffled:            true,
 	cards.TriggerDestroyed:           true,
+	cards.TriggerFight:               true,
+	cards.TriggerFightOnce:           true,
 	cards.TriggerCounterAdded:        true,
 	cards.TriggerCounterAddedOnce:    true,
 	cards.TriggerCounterAddedAll:     true,

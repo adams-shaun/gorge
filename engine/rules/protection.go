@@ -436,7 +436,7 @@ func protecColourLetter(q string) rune {
 func (e *Engine) cantPreventDamage(damageSource, target state.ObjID) bool {
 	// CR 615.12: the dealing ability said its damage can't be prevented
 	// (DealDamage's NoPrevention$).
-	if e.dmgNoPrevention {
+	if e.dmgFlags&effects.DamageNoPrevention != 0 {
 		return true
 	}
 	// Effect-created restrictions (Skullcrack, Call In a Professional, and
