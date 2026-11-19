@@ -86,7 +86,7 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	// chooses which half they are casting). The object check below requires
 	// cast.Face to be the object's current face, so a bogus value still fails
 	// closed.
-	// V1 plans four ordinary-cast origins: the hand (the original shape),
+	// V1 plans the ordinary-cast origins: the hand (the original shape),
 	// the command zone (the CR 903.8 plain taxed cast; alternate
 	// command-zone casts -- dash, evoke, bestow, ... -- carry a Mode and are
 	// withheld, as everywhere else), and the exile zone and graveyard, where
@@ -95,10 +95,11 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	// alternative cost, are withheld).  Any other origin fails closed, and
 	// the object must actually sit in its origin's zone: a mislabeled origin
 	// would compose a cost (and, from ZCommand, a commander tax) that
-	// beginCast would never charge.
+	// beginCast would never charge. The hand's alternate-spell-face casts
+	// (adventure_alt, omen_alt) ride the same body under the flip to the
+	// spell face (plannedAltSpellFace, faceprobe.go).
 	originZone := state.ZHand
 	flashback := false
-	targetPaid := false
 	switch planCastPaymentCheckedCodes.Code(string(cast.Origin)) {
 	case planCastPaymentCheckedHand:
 	case planCastPaymentCheckedCommandZone:
@@ -120,10 +121,69 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	// A may-play permission can grant an opponent's card (Intellect
 	// Devourer), so the owner check is relaxed for those origins only; the
 	// offer's own controller check already gates who may cast it.
+	if o == nil || o.Zone != originZone || (!mayPlay && o.Owner != p) || o.Face() == nil {
+		return PaymentPlanOutcome{Reason: "unsupported"}
+	}
+	// A hand alternate-spell-face cast (adventure_alt/omen_alt, CR 715.3a,
+	// 720.3) is priced the way beginCast charges it: one FlipFace to the
+	// spell face BEFORE the ordinary cast transaction, so the whole body
+	// below reads the FLIPPED face (faceprobe.go) -- base cost, altAdd parts,
+	// cost statics, and the FaceIdx check (FaceIdx == cast.Face == 1 under
+	// the flip, so a cast whose face function names nothing still fails
+	// closed at the body's own check). The shared cost statics are
+	// re-collected under the flip when either face carries a cost-modifier
+	// static of its own, exactly the rule offerCastableAsFace
+	// (legal_walk.go) implements.
+	if altFace := plannedAltSpellFace(cast, o); altFace != nil {
+		// The candidate walk's own offer gates read the object at its LIVE
+		// face (appendAlternateSpellFace's FaceIdx-0 guard), so the set is
+		// filled here, before the probe: a membership query inside the flip
+		// would run a fresh walk that cannot re-list the alternate-face
+		// option the live-face walk offered.
+		if !candidates.hasAlt(cast.Object, cast.Mode) {
+			return PaymentPlanOutcome{Reason: "unsupported"}
+		}
+		liveFace := o.Face()
+		var out PaymentPlanOutcome
+		e.offerAsFace(cast.Object, altFace, func() bool {
+			src := statics
+			if faceHasCostStatics(liveFace) || faceHasCostStatics(altFace) {
+				// A fresh lazy source: the caller's may already have been
+				// collected at the live face, and a get() here collects
+				// under the flip (probe-local, retired at both edges).
+				src = &costStaticSource{e: e}
+			}
+			out = e.planCastPaymentCheckedBody(p, cast, src, candidates, originZone, flashback, mayPlay, altFace)
+			return true
+		})
+		return out
+	}
+	if int(o.FaceIdx) != cast.Face {
+		return PaymentPlanOutcome{Reason: "unsupported"}
+	}
+	return e.planCastPaymentCheckedBody(p, cast, statics, candidates, originZone, flashback, mayPlay, nil)
+}
+
+// planCastPaymentCheckedBody is planCastPaymentChecked's body, from the
+// object check through the witness. altFace non-nil runs under the flip to
+// that alternate spell face (faceprobe.go), with the composition in the cast
+// mode's scope.
+func (e *Engine) planCastPaymentCheckedBody(p state.PlayerID, cast decision.PlannedCast, statics *costStaticSource, candidates *paymentCastCandidates, originZone state.Zone, flashback, mayPlay bool, altFace *cards.Face) PaymentPlanOutcome {
+	targetPaid := false
+	o := e.G.Obj(cast.Object)
+	// A may-play permission can grant an opponent's card (Intellect
+	// Devourer), so the owner check is relaxed for those origins only; the
+	// offer's own controller check already gates who may cast it.
 	if o == nil || o.Zone != originZone || (!mayPlay && o.Owner != p) || o.Face() == nil || int(o.FaceIdx) != cast.Face {
 		return PaymentPlanOutcome{Reason: "unsupported"}
 	}
 	scope := plannedCastScope(o.Zone, flashback)
+	if altFace != nil {
+		// The alternate spell face's charge is composed in the cast mode's
+		// scope, exactly beginCast's (pendingCastScope's spellScope(pc.mode),
+		// cast_pricing.go) -- never plannedCastScope's empty hand scope.
+		scope = spellScope(cast.Mode)
+	}
 	altAdd := len(altAddCostParts(o.Face())) != 0
 	beholdAltAdd := false
 	if altAdd {
@@ -142,6 +202,15 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	detail := e.paymentPlanCastShapeDetailScoped(statics.get(), p, cast.Object, scope)
 	if detail != "" {
 		switch {
+		case altFace != nil:
+			// The alternate-spell-face body prices the flipped face's printed
+			// cost alone, exactly the offer walk's base for the mode
+			// (appendAlternateSpellFace's ParseCost(af.ManaCost)): a shape the
+			// plain body special-cases -- a target-paid price, an either-or
+			// additional cost -- stays with the manual window, as the
+			// potential planner keeps it (potentialModeCastPlan composes a
+			// Mode cast's printed cost alone).
+			return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
 		case targetPaidShape(detail) && !flashback && !mayPlay && e.targetPaidNeedsPlannedPayment(p, cast.Object):
 			// A witness whose target pays for it is the target-paid path's
 			// (see targetPaidNeedsPlannedPayment); keep it first.
@@ -166,6 +235,10 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		}
 	case mayPlay:
 		if !candidates.has(cast.Object, true) {
+			return PaymentPlanOutcome{Reason: "unsupported"}
+		}
+	case altFace != nil:
+		if !candidates.hasAlt(cast.Object, cast.Mode) {
 			return PaymentPlanOutcome{Reason: "unsupported"}
 		}
 	default:
@@ -221,7 +294,7 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		// stay out of the mana plan (one permanent pays one cost).
 		base, improviseTaps = e.improviseCost(p, cast.Object, base, nil)
 		base = pay.WithSpellAbilityExtras(o.Face(), base)
-		cost = e.offerCostForUsing(statics.get(), p, cast.Object, base, spellScope(""))
+		cost = e.offerCostForUsing(statics.get(), p, cast.Object, base, scope)
 	}
 	if targetPaid {
 		cost = pay.PlanTargetPaidManaHalf(cost)
@@ -576,6 +649,17 @@ type paymentCastCandidates struct {
 	// fbIDs are the primary-instance flashback casts (Mode "flashback", no
 	// Option.Cost) the same walk listed, for decision.OriginFlashback.
 	fbIDs []state.ObjID
+	// altIDs are the hand's alternate-spell-face casts (Mode
+	// "adventure_alt"/"omen_alt") the same walk listed, for the planner's
+	// alternate-face arm.
+	altIDs []altCastCandidate
+}
+
+// altCastCandidate is one alternate-spell-face cast the candidate walk
+// listed: the object and the mode it is cast in.
+type altCastCandidate struct {
+	id   state.ObjID
+	mode string
 }
 
 // pricedCandidatesVerify: see derivedMemoVerify. Set by the rules test binary.
@@ -623,6 +707,8 @@ func (c *paymentCastCandidates) fill() {
 			c.mayIDs = append(c.mayIDs, opt.Obj)
 		case planCastFlashbackOption(opt):
 			c.fbIDs = append(c.fbIDs, opt.Obj)
+		case plannedAltFaceMode(opt.Mode):
+			c.altIDs = append(c.altIDs, altCastCandidate{id: opt.Obj, mode: opt.Mode})
 		}
 	}
 	c.e.optRelease(opts)
@@ -650,6 +736,27 @@ func (c *paymentCastCandidates) hasFlashback(id state.ObjID) bool {
 // additional cost, no may-play permission.
 func planCastFlashbackOption(opt decision.Option) bool {
 	return opt.Kind == optCast && opt.Mode == "flashback" && opt.Cost == "" && opt.AltCostIndex == 0 && opt.MayPlayPerm == ""
+}
+
+// hasAlt is has for a planned hand alternate-spell-face cast: membership of
+// the (id, mode) pairs the same walk listed (altIDs). A priced set answers
+// true, exactly as has does, and verify mode checks it.
+func (c *paymentCastCandidates) hasAlt(id state.ObjID, mode string) bool {
+	if c.priced && !pricedCandidatesVerify {
+		return true
+	}
+	c.fill()
+	found := false
+	for _, cand := range c.altIDs {
+		if cand.id == id && cand.mode == mode {
+			found = true
+			break
+		}
+	}
+	if c.priced && !found {
+		panic(fmt.Sprintf("payment plan: priced-walk alternate-face cast %d mode %q missing from the huge-pool walk", id, mode))
+	}
+	return found
 }
 
 // paymentPlanCastShapeOK excludes plain casts whose announced cost or result
@@ -986,10 +1093,20 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 		// cost, that produces duplicate IDs on the wire.
 		// The one other plain shape is the untyped may-play cast of an
 		// exile/graveyard card (Mode "mayplay"): a typed MayPlayText$
-		// permission carries a MayPlayPerm and stays withheld.
+		// permission carries a MayPlayPerm and stays withheld. And the hand's
+		// alternate-spell-face casts (adventure_alt/omen_alt, CR 715.3a,
+		// 720.3) are the one Mode family beyond those the builder plans:
+		// they ride the plain-cast body under the flip to the spell face
+		// (planCastPaymentChecked's alternate-face arm). Every other Mode --
+		// the alternative-cost and additional-cost families, split_alt,
+		// room_alt, modal_spell -- stays with the manual walk.
 		mayPlay := planCastPaymentCheckedCodes.Code(opt.Mode) == planCastPaymentCheckedMayPlayMode && opt.MayPlayPerm == ""
 		flashback := planCastFlashbackOption(opt)
-		if opt.Kind != "cast" || (opt.Mode != "" && !mayPlay && !flashback) || opt.AltCostIndex != 0 {
+		altMode := ""
+		if plannedAltFaceMode(opt.Mode) {
+			altMode = opt.Mode
+		}
+		if opt.Kind != "cast" || (opt.Mode != "" && !mayPlay && !flashback && altMode == "") || opt.AltCostIndex != 0 {
 			continue
 		}
 		// Derive the origin from the object's actual zone.  Only the hand and
@@ -1010,6 +1127,15 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 			origin = plannedMayPlayOrigin(originObj.Zone)
 		case mayPlay:
 			continue
+		case altMode != "":
+			// A hand alternate-spell-face cast: the card sits in its owner's
+			// hand at face 0 and the face function names Faces[1]
+			// (plannedAltSpellFace); anything else fails closed.
+			if originObj.Zone != state.ZHand || int(originObj.FaceIdx) != 0 ||
+				plannedAltSpellFace(decision.PlannedCast{Object: opt.Obj, Face: 1, Origin: "hand", Mode: altMode}, originObj) == nil {
+				continue
+			}
+			origin = "hand"
 		case originObj.Zone == state.ZHand:
 			origin = "hand"
 		case originObj.Zone == state.ZCommand:
@@ -1018,18 +1144,24 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 			continue
 		}
 		cast := decision.PlannedCast{Object: opt.Obj, Face: plannedCastFace(originObj), Origin: origin}
+		var altFace *cards.Face
+		if altMode != "" {
+			// The witness pays Face 1 (the spell face) in the cast's mode.
+			cast.Face, cast.Mode = 1, altMode
+			altFace = plannedAltSpellFace(cast, originObj)
+		}
 		got := e.planCastPaymentMemo(p, cast, &statics, &legal)
 		e.PaymentStats.RecordOutcome(got)
 		if got.Plan == nil {
 			// The unpayable census names plain casts only
 			// (decision.PotentialUnpayableCasts); a flashback proof is not
 			// recorded there.
-			if !flashback && got.Reason == pay.ReasonInsufficient && provesUnpayable(cast) {
+			if !flashback && altMode == "" && got.Reason == pay.ReasonInsufficient && provesUnpayable(cast) {
 				unpayable = append(unpayable, opt.Obj)
 			}
 			// The plain casts declined for their cost's shape
 			// (decision.PotentialShapeCasts).
-			if !flashback && !mayPlay && announcedShape(got) && !slices.Contains(shapes, opt.Obj) {
+			if !flashback && !mayPlay && altMode == "" && announcedShape(got) && !slices.Contains(shapes, opt.Obj) {
 				shapes = append(shapes, opt.Obj)
 			}
 			continue
@@ -1039,14 +1171,16 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 		// before 601.2c). A one-click plan whose mandatory targets vanish
 		// when the card leaves the hand would only reverse (CR 733.1), so
 		// it is not offered (castprobe.go).
-		if !e.castTargetsAvailableOnStack(p, opt.Obj) {
+		if !e.castTargetsAvailableOnStackFace(p, opt.Obj, altFace) {
 			continue
 		}
 		// Likewise the plan executes in the CR 601.2g window, after the card
 		// left the hand: a planned source whose activation restriction or
 		// amount reads the hand must still hold there, or the step falls
-		// back source_changed and the cast reverses (castprobe.go).
-		if !e.paymentPlanHoldsOnStack(p, opt.Obj, *got.Plan) {
+		// back source_changed and the cast reverses (castprobe.go). For an
+		// alternate-spell-face cast the reads are judged under the flip to
+		// the face beginCast flips to.
+		if !e.paymentPlanHoldsOnStackFace(p, opt.Obj, altFace, *got.Plan) {
 			continue
 		}
 		plan := *got.Plan
@@ -1161,6 +1295,10 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 	// "mayplay" scope -- exactly planCastPaymentChecked and beginCast. Pricing
 	// it here in plain scope would under-charge a raised cast and reject the
 	// witness the planner just built.
+	altFace := (*cards.Face)(nil)
+	if o := e.G.Obj(cast.Object); o != nil {
+		altFace = plannedAltSpellFace(cast, o)
+	}
 	settleBase := pay.RawBaseCost(asPayer(e), p, cast.Object)
 	settleScope := spellScope("")
 	if cast.Origin == decision.OriginFlashback {
@@ -1178,18 +1316,35 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 			}
 			settleBase = settleBase.Plus(raise)
 		}
-	} else {
+	} else if altFace == nil {
 		// A plain cast's Improvise credit, as planCastPaymentChecked prices it.
 		settleBase, _ = e.improviseCost(p, cast.Object, settleBase, nil)
 	}
-	cost := pay.PlanManaHalf(e.offerCostFor(p, cast.Object, pay.WithSpellAbilityExtras(e.G.Obj(cast.Object).Face(), settleBase), settleScope))
+	var cost Cost
+	rider := pay.ConvRider(asEval(e).Conv(p, cast.Object, pay.SASpell))
+	if altFace != nil {
+		// An alternate-spell-face cast settles the flipped face's composed
+		// charge in the cast mode's scope, exactly planCastPaymentChecked's
+		// plain arm and beginCast charge it: the improvise credit and the
+		// printed cost read the flip, the CR 601.2f statics price under it
+		// (faceprobe.go), and the pip rider is the flip's own conversion.
+		e.offerAsFace(cast.Object, altFace, func() bool {
+			settleBase = pay.RawBaseCost(asPayer(e), p, cast.Object)
+			settleBase, _ = e.improviseCost(p, cast.Object, settleBase, nil)
+			settleScope = spellScope(cast.Mode)
+			cost = pay.PlanManaHalf(e.offerCostFor(p, cast.Object, pay.WithSpellAbilityExtras(e.G.Obj(cast.Object).Face(), settleBase), settleScope))
+			rider = pay.ConvRider(asEval(e).Conv(p, cast.Object, pay.SASpell))
+			return true
+		})
+	} else {
+		cost = pay.PlanManaHalf(e.offerCostFor(p, cast.Object, pay.WithSpellAbilityExtras(e.G.Obj(cast.Object).Face(), settleBase), settleScope))
+	}
 	if got.Plan != nil {
 		// The witness planned the mandatory either-or additional cost's
 		// chosen part (planCastAltAdd); settle the same total or the exact
 		// witness re-check at the end rejects a plan that pays.
 		cost = e.planCastAltAddSettleCost(p, cast, cost, *got.Plan)
 	}
-	rider := pay.ConvRider(asEval(e).Conv(p, cast.Object, pay.SASpell))
 	if o := e.G.Obj(cast.Object); o != nil && plannedMayPlayZone(o.Zone) && cast.Origin != decision.OriginFlashback {
 		rider = rider.Or(asPayer(e).Eval().MayPlayRider(p, cast.Object))
 	}
@@ -1203,10 +1358,18 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 		// A planned target-paid cast witnesses the cheapest legal target
 		// set's composed price (planCastPaymentChecked's targetPaid arm), not
 		// the printed composition: re-derive that enumeration so the settle
-		// proves the price the target ask will charge.
-		base := pay.WithSpellAbilityExtras(e.G.Obj(cast.Object).Face(), settleBase)
-		if priced, alt := e.targetPricedPlan(e.collectCostStatics(), p, cast.Object, base, settleScope, rider); alt.Plan != nil && alt.Reason == "" {
-			cost, ok = pay.PlanManaUnderRiderMatching(pay.PlanManaHalf(priced), rider, got.Plan.Cost)
+		// proves the price the target ask will charge. An
+		// alternate-spell-face cast's composition reads the flip too.
+		retry := func() {
+			base := pay.WithSpellAbilityExtras(e.G.Obj(cast.Object).Face(), settleBase)
+			if priced, alt := e.targetPricedPlan(e.collectCostStatics(), p, cast.Object, base, settleScope, rider); alt.Plan != nil && alt.Reason == "" {
+				cost, ok = pay.PlanManaUnderRiderMatching(pay.PlanManaHalf(priced), rider, got.Plan.Cost)
+			}
+		}
+		if altFace != nil {
+			e.offerAsFace(cast.Object, altFace, func() bool { retry(); return true })
+		} else {
+			retry()
 		}
 	}
 	if !ok {
@@ -1515,7 +1678,9 @@ var planCastPaymentCheckedCodes = state.NewStrCodes(
 // plannedCastScope is the cost-static scope a planned cast from zone z is
 // priced in: "flashback" for a planned flashback cast, "mayplay" for a
 // may-play origin (exile, graveyard), "" for the hand and command zone --
-// the scope beginCast charges each one's option Mode in.
+// the scope beginCast charges each one's option Mode in. A hand
+// alternate-spell-face cast composes in its own Mode's scope instead
+// (planCastPaymentChecked's alternate-face arm).
 func plannedCastScope(z state.Zone, flashback bool) costScope {
 	switch {
 	case flashback:
@@ -1524,6 +1689,68 @@ func plannedCastScope(z state.Zone, flashback bool) costScope {
 		return spellScope("mayplay")
 	}
 	return spellScope("")
+}
+
+// plannedAltFaceMode reports whether mode is one of the two hand
+// alternate-spell-face cast modes the payment planner plans (CR 715.3a
+// adventure_alt, CR 720.3 omen_alt): the same word dispatch cast_targets.go's
+// modeFlagsCodes owns. Every other Mode -- the alternative-cost and
+// additional-cost families, split_alt, room_alt, modal_spell -- is planned
+// nowhere and stays withheld.
+func plannedAltFaceMode(mode string) bool {
+	switch modeFlagsCodes.Code(mode) {
+	case modeFlagsAdventureAlt, modeFlagsOmenAlt:
+		return true
+	}
+	return false
+}
+
+// plannedAltSpellFace is the alternate spell face (adventure.go's
+// adventureSpellFace/omenSpellFace, face 1 -- ALTERNATE starts face 1) a
+// planned hand cast of o in one of the planner's two alternate-face modes
+// flips to, or nil when cast is not such a cast: the origin is the hand, the
+// object shows face 0, and the face function names Faces[cast.Face].
+func plannedAltSpellFace(cast decision.PlannedCast, o *state.Object) *cards.Face {
+	if cast.Origin != "hand" || cast.Face != 1 || o == nil || o.Card == nil || int(o.FaceIdx) != 0 {
+		return nil
+	}
+	switch modeFlagsCodes.Code(cast.Mode) {
+	case modeFlagsAdventureAlt:
+		return adventureSpellFace(o)
+	case modeFlagsOmenAlt:
+		return omenSpellFace(o)
+	}
+	return nil
+}
+
+// castTargetsAvailableOnStackFace is castTargetsAvailableOnStack for a
+// planned alternate-spell-face cast: the census the CR 601.2c target ask
+// runs with the card on the stack AND flipped to the face beginCast flips to
+// (faceprobe.go -- the same probe offerCastableAsFace prices under). The
+// stack probe nests inside the face probe; each restores its own reads.
+// altFace nil answers castTargetsAvailableOnStack unchanged.
+func (e *Engine) castTargetsAvailableOnStackFace(p state.PlayerID, id state.ObjID, altFace *cards.Face) bool {
+	if altFace == nil {
+		return e.castTargetsAvailableOnStack(p, id)
+	}
+	return e.offerAsFace(id, altFace, func() bool {
+		return e.castTargetsAvailableOnStack(p, id)
+	})
+}
+
+// paymentPlanHoldsOnStackFace is paymentPlanHoldsOnStack for a planned
+// alternate-spell-face cast: the plan executes in the CR 601.2g window with
+// the card on the stack at the face beginCast flips to, so an activation
+// restriction or amount reading the caster's hand card's characteristics is
+// judged under the flip too (faceprobe.go). altFace nil answers
+// paymentPlanHoldsOnStack unchanged.
+func (e *Engine) paymentPlanHoldsOnStackFace(p state.PlayerID, id state.ObjID, altFace *cards.Face, plan decision.PaymentPlan) bool {
+	if altFace == nil {
+		return e.paymentPlanHoldsOnStack(p, id, plan)
+	}
+	return e.offerAsFace(id, altFace, func() bool {
+		return e.paymentPlanHoldsOnStack(p, id, plan)
+	})
 }
 
 // plannedFlashbackCost is the cost a planned flashback cast of id locks in
@@ -1541,10 +1768,20 @@ func (e *Engine) plannedFlashbackCost(statics costStaticViews, p state.PlayerID,
 // plannedCastComposedCost is the cost a planned cast locks in, read for the
 // submit-time checks (ValidateCastPayment's sacrifice feasibility): the
 // primary flashback cost in "flashback" scope for decision.OriginFlashback,
-// else the printed cost with its extras in the origin zone's scope.
+// the alternate spell face's composed cost under the flip in the cast mode's
+// scope for a hand alternate-spell-face cast, else the printed cost with its
+// extras in the origin zone's scope.
 func (e *Engine) plannedCastComposedCost(p state.PlayerID, cast decision.PlannedCast, o *state.Object) Cost {
 	if cast.Origin == decision.OriginFlashback {
 		return e.plannedFlashbackCost(e.collectCostStatics(), p, cast.Object)
+	}
+	if af := plannedAltSpellFace(cast, o); af != nil {
+		var composed Cost
+		e.offerAsFace(cast.Object, af, func() bool {
+			composed = e.offerCostFor(p, cast.Object, pay.WithSpellAbilityExtras(af, pay.RawBaseCost(asPayer(e), p, cast.Object)), spellScope(cast.Mode))
+			return true
+		})
+		return composed
 	}
 	return e.offerCostFor(p, cast.Object, pay.WithSpellAbilityExtras(o.Face(), pay.RawBaseCost(asPayer(e), p, cast.Object)), plannedCastScope(o.Zone, false))
 }
