@@ -118,7 +118,7 @@ func TestSnowCostPays(t *testing.T) {
 		}
 	})
 
-	// Coldsteel Heart's shape: a snow artifact's mana is typed, not snow
+	// Coldsteel Heart's shape (a non-snow typed artifact made Snow only after prep)
 	// (effects.ManaProducerTag), so it never pays {S}; DebugSnowTypedIsSnow
 	// (the mutation switch) tags it snow.
 	t.Run("typed_source_pays_no_snow", func(t *testing.T) {

@@ -34,9 +34,12 @@ var coldSnow = newCold[uint8]("snow", func(g *genPrep) int {
 const poolArtSnow = 1 << 7
 
 // snowMana is the snow tag's precedence (prep.go's pcard.manaSnow): a card's
-// mana is snow when its types hold Snow and no typed word (CR 106.3, 205.4a;
-// gorge's ManaProducerTag, the typed word wins).
-func snowMana(c *kop.CardDef, typed bool) bool { return c.Snow && !typed }
+// mana is snow when its types hold Snow and no typed subtype word (Treasure,
+// Cave, Desert: the word wins; CR 106.3, 205.4a; gorge's ManaProducerTag). The
+// Artifact type is no such word: a Snow Artifact's unit is an Artifact unit and
+// a snow unit both (gorge's "SArtifact<colour>" tag), so Replicating Ring's
+// mana pays {S}.
+func snowMana(c *kop.CardDef, typedWord bool) bool { return c.Snow && !typedWord }
 
 // DebugSnowTypedIsSnow lets a typed snow source tag snow — a source whose
 // types hold a typed word and Snow both (mutation testing only, ticket 03):
