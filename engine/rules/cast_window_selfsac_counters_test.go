@@ -20,10 +20,10 @@ import (
 // the menu offered only 0..4 (CR 601.2b, 601.2f, 605.3b).
 const (
 	cwLotusSrc = "Name:Lotus\nManaCost:2\nTypes:Artifact\n" +
-		"A:AB$ Mana | Cost$ T Sac<1/CARDNAME> | Produced$ Any | Amount$ X | SpellDescription$ Add X mana of any one color.\n" +
-		"SVar:X:Count$CardCounters.PETAL\nOracle:x\n"
+		"A:AB$ Mana | Produced$ Any | Amount$ Count$CardCounters.PETAL | Cost$ T Sac<1/CARDNAME>\n" +
+		"Oracle:x\n"
 	cwTorchSrc = "Name:Torch\nManaCost:X R\nTypes:Instant\n" +
-		"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ 2 | ValidTarget$ Permanent.Blue | EffectZone$ All\n" +
+		"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | ValidTarget$ Permanent.Blue | Amount$ 2 | EffectZone$ All\n" +
 		"A:SP$ DealDamage | ValidTgts$ Creature | NumDmg$ X\n" +
 		"SVar:X:Count$xPaid\nOracle:x\n"
 	cwBlueSrc = "Name:Blue\nManaCost:1 U\nTypes:Creature Merfolk\nPT:1/1\nOracle:x\n"
