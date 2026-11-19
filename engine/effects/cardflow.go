@@ -101,7 +101,7 @@ func drawFor(h Host, p state.PlayerID, cursor int, resumeSA *cards.SA, upto draw
 	if h.Suspended() {
 		h.Emit(events.Event{Kind: events.Note, Player: p,
 			Text: "drew without a dredge choice: another decision is already pending"})
-		h.Emit(events.Event{Kind: events.Draw, Player: p, Obj: lib[0],
+		h.Emit(events.Event{Kind: events.Draw, Player: p, Obj: LibraryDrawCard(g, p, lib),
 			From: state.ZLibrary, To: state.ZHand, Secret: true})
 		return false
 	}
@@ -132,7 +132,7 @@ func drawFor(h Host, p state.PlayerID, cursor int, resumeSA *cards.SA, upto draw
 			return true
 		}
 	}
-	h.Emit(events.Event{Kind: events.Draw, Player: p, Obj: lib[0],
+	h.Emit(events.Event{Kind: events.Draw, Player: p, Obj: LibraryDrawCard(g, p, lib),
 		From: state.ZLibrary, To: state.ZHand, Secret: true})
 	return false
 }

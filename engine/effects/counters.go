@@ -173,6 +173,12 @@ func effRadiationDrain(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	n := g.Players[p].Counter("RAD")
+	// Strong, the Brutish Thespian: "You gain life rather than lose life
+	// from radiation" -- the drain's one life per nonland card is gained.
+	lifeDelta := int32(-1)
+	if youStaticCount(g, p, ModeGainLifeRadiation) > 0 {
+		lifeDelta = 1
+	}
 	for _, id := range millSnapshot(g, p, n) {
 		if !slices.Contains(g.Zone(state.ZLibrary, p), id) {
 			continue
@@ -189,7 +195,7 @@ func effRadiationDrain(h Host, c *Ctx, sa *cards.SA) {
 		}
 		h.Emit(events.Mill(id, p))
 		if !land {
-			h.Emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -1})
+			h.Emit(events.Event{Kind: events.LifeChange, Player: p, Amount: lifeDelta})
 			h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p, Counter: "RAD", Amount: -1})
 		}
 	}

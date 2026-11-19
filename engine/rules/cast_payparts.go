@@ -1,10 +1,18 @@
 package rules
 
 import (
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
+
+// libraryDrawCard is the library card player p's next draw takes: the top
+// card, or the bottom one under a DrawFromBottom static (River Song). Every
+// rules-side draw site names its card through it, beside effects' own.
+func libraryDrawCard(g *state.Game, p state.PlayerID, lib []state.ObjID) state.ObjID {
+	return effects.LibraryDrawCard(g, p, lib)
+}
 
 // drawCostCard emits the ordinary Draw event one card of a cost payment
 // draws: the library's top card moves to the payer's hand, and a draw from
@@ -16,7 +24,7 @@ func (e *Engine) drawCostCard(p state.PlayerID) {
 		e.markDrawEmpty(p)
 		return
 	}
-	e.emit(events.Event{Kind: events.Draw, Player: p, Obj: lib[0],
+	e.emit(events.Event{Kind: events.Draw, Player: p, Obj: libraryDrawCard(e.G, p, lib),
 		From: state.ZLibrary, To: state.ZHand, Secret: true})
 }
 

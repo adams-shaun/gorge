@@ -240,6 +240,15 @@ type Option struct {
 	// an attacker carrying both obeys one unit with one blocker and two with
 	// two. Server-side only, like AttackMust.
 	AttackMustTwo bool `json:"-"`
+	// AttackOne marks an attacker option that discharges a player-level
+	// "must attack with at least one creature each combat" duty (a
+	// PlayerMustAttack static: Seeker of Slaanesh, Trove of Temptation): when
+	// any option is marked, a legal declaration includes at least one marked
+	// option (CR 508.1d). The rules layer marks only options a legal
+	// declaration can pick within the decision's own bounds, so the duty never
+	// leaves the decision unanswerable. AttackOneSatisfied is the one rule.
+	// Server-side only (json:"-"), like AttackMust.
+	AttackOne bool `json:"-"`
 	// MinBlockers/MaxBlockers are the CR 509.1a MinMaxBlocker bounds on the
 	// ATTACKER this block option names (Min$ N: the attacker can be blocked
 	// only by 0 or at least N creatures; Max$ N: by at most N; both set)
@@ -1607,6 +1616,9 @@ func (d *Decision) Validate(in Intent) error {
 	}
 	if d.Kind == KAttackers && !d.AttackRequirementsSatisfied(in.Choices) {
 		return fmt.Errorf("declaration does not satisfy an AttackRequirement static's whole-declaration closure")
+	}
+	if d.Kind == KAttackers && !d.AttackOneSatisfied(in.Choices) {
+		return fmt.Errorf("declaration attacks with no creature a must-attack-with-at-least-one static requires")
 	}
 	if len(in.Rest) > 0 {
 		if d.Kind != KArrange {

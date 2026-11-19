@@ -24,7 +24,7 @@ const (
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
-	optionFieldCount           = 48
+	optionFieldCount           = 49
 	grantFieldCount            = 3
 )
 
@@ -258,7 +258,7 @@ func optionEqual(a, b *decision.Option) bool {
 		a.BlockMust == b.BlockMust &&
 		a.AloneRestricted == b.AloneRestricted &&
 		a.BlockMustAll == b.BlockMustAll &&
-		a.AttackMust == b.AttackMust && a.AttackMustTwo == b.AttackMustTwo &&
+		attackerDutyFlagsEqual(a, b) &&
 		a.MinBlockers == b.MinBlockers &&
 		a.MaxBlockers == b.MaxBlockers &&
 		a.Controller == b.Controller &&
@@ -302,4 +302,9 @@ func optionsEqual(a, b []decision.Option) bool {
 		}
 	}
 	return true
+}
+
+// attackerDutyFlagsEqual compares the three attack-duty marks on an option.
+func attackerDutyFlagsEqual(a, b *decision.Option) bool {
+	return a.AttackMust == b.AttackMust && a.AttackMustTwo == b.AttackMustTwo && a.AttackOne == b.AttackOne
 }
