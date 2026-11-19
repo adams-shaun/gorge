@@ -692,6 +692,7 @@ MaxTargets	untyped int	5
 MayGuardAnimateAll	untyped int	7
 MayGuardAttach	untyped int	1
 MayGuardCloneCopy	untyped int	8
+MayGuardCopyParent	untyped int	13
 MayGuardDamage	untyped int	6
 MayGuardDigUntil	untyped int	12
 MayGuardDraw	untyped int	5
