@@ -2,6 +2,7 @@ A-Death-Priest of Myrkul
 A-Goggles of Night
 Abnormal Endurance
 Abyssal Hunter
+Aegis of the Meek
 Agent of the Iron Throne
 Akroan Horse
 Alchemist's Retrieval
@@ -165,6 +166,7 @@ Island
 Ixalli's Diviner
 Jhovall Queen
 Jinxed Ring
+Jubilant Skybonder
 Jungle Wurm
 Kamahl, Heart of Krosa
 Kazarov, Sengir Pureblood

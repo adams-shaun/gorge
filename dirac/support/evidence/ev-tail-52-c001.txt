@@ -114,6 +114,7 @@ Faerie Mastermind
 Faerie Tauntings
 Fanatic of Mogis
 Felhide Minotaur
+Felidar Umbra
 Fendeep Summoner
 Ferocious Zheng
 Fervent Strike

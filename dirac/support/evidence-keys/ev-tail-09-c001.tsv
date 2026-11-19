@@ -1,4 +1,5 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Aegis of the Meek	592dfdb9a706ea29	46	1/1		1/1	
 Arni Brokenbrow	a0f66776ee95aa02	3	1/1		0/1	ix:resp
 Carrion Rats	32c94f3176d88116	18	2/2		1/1	
 Colossal Dreadmaw	d7df553a84c0f2be	5	0/0		0/0	
@@ -7,6 +8,7 @@ Fae Offering	2673882d2a0a6567	57	1/1		1/1
 Grim Giganotosaurus	33a379457e6a8f72	9	2/2		1/1	
 Hand of the Praetors	c1b5942a30ac5df2	11	1/1		0/1	ix:resp
 Igneous Pouncer	b32afe96715d4d6e	3	2/2		0/1	ix:resp
+Jubilant Skybonder	0ced50c9dafb8a22	6	0/0		0/0	
 Risk Factor	237ef09e7fee58e3	31	0/0		3/4	cast/alt:jumpstart
 Shambling Shell	52a4eedf3743accb	18	1/1		0/1	ix:resp
 Shoreline Salvager	3ec318e4cecfb47d	39	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y

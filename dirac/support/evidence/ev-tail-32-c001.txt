@@ -27,6 +27,7 @@ Blunt the Assault
 Boggart Arsonists
 Book of Rass
 Border Guard
+Boreal Elemental
 Brand
 Brawl-Bash Ogre
 Brood Birthing
@@ -228,6 +229,7 @@ Sporocyst
 Star of Extinction
 Steel Golem
 Steeple Roc
+Storm Crow
 Strandwalker
 Strength of Arms
 Strike It Rich
@@ -246,6 +248,7 @@ Thriving Ibex
 Tidal Force
 Tolarian Sentinel
 Tomb Fortress
+Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
 Tromell, Seymour's Butler
