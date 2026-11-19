@@ -397,9 +397,13 @@ func (s *State) availTappedSac(k *prep, p uint8, a *avail) {
 // "may", that runs through without suspending (runsPreCast, tried on a copy).
 // One that asks is answered by the lowering's default (botpolicy.Clamp on an
 // empty intent: the fewest, first options), and stays pending here for the
-// ordinary stack path; so do a program that adds mana (the lowering's pool
-// check would end the witness) and an optional trigger. A trigger that
-// mills, loses life, gains life, draws or damages for a target player is
+// ordinary stack path; so does a program that adds mana (the lowering's pool
+// check would end the witness). An optional trigger is asked only when it
+// resolves, so a sorcery-speed cast (whose empty-stack requirement makes the
+// lowering pass priority until the stack is empty) resolves it "yes" like any
+// other trigger; an instant-speed cast is offered with the trigger still on
+// the stack, so its optional ask stays for the ordinary stack path. A trigger
+// that mills, loses life, gains life, draws or damages for a target player is
 // answered with the first player gorge's default answer names.
 //
 // The caller states whether the cast being lowered is instant-speed: the offer
@@ -444,7 +448,14 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		// player gorge's default answer names (Al Bhed Salvagers: target opponent loses
 		// 1 life and you gain 1)
 		plRun := !single && plTgt && lifeRun(a.Prog)
-		if a.Kind != kop.AbTriggered || a.NModes != 0 || a.Trig.Flags&kop.TfOptional != 0 {
+		// A sorcery-speed cast's lowering passes priority until the trigger
+		// resolves (the stack must be empty to offer the cast), so an
+		// optional trigger is answered "yes" by the lowering's default and
+		// resolved here like any other. An instant-speed cast is offered
+		// while the trigger is still on the stack (the instant branch below
+		// places it below the cast), so its optional ask belongs to the
+		// ordinary stack path, not to the lowering.
+		if a.Kind != kop.AbTriggered || a.NModes != 0 || a.Trig.Flags&kop.TfOptional != 0 && instant {
 			i++
 			continue
 		}
