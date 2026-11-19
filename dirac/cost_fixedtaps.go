@@ -53,13 +53,27 @@ func (s *State) affordsReservingAv(k *prep, p uint8, cost *kop.ManaCost, ex Slot
 			return true
 		}
 		if k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, SeatIx(p), d, cost, &b, ex, 0) {
-			// restricted mana the plain avail cannot show: keep the old answer
-			return true
+			// restricted mana the plain avail cannot show: keep the old
+			// answer, and for a tapX part keep its candidates apart from the
+			// restricted units too (CR 601.2g-h): the plan whose restricted
+			// mana taps a candidate the part needs prices the play one
+			// candidate short (Creeping Peeper's enchantment-only {U} beside
+			// Fear of Exposure's tap-two, gorge planReserving).
+			if c.Flags&kop.CostTapX == 0 || s.restrSrcReserves(k, p, cost, ex, d, c, src, &b, pm) {
+				return true
+			}
 		}
 	}
 	return false
 }
 
+// restrSrcReserves is costPartDisjointD over the restricted-extended avail
+// (spellPartDisjoint's restricted arm): the tapX part's candidates keep
+// their units -- census or restricted (rd) -- out of the mana it prices.
+func (s *State) restrSrcReserves(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, c *kop.Cost, src Slot, b *avail, pm uint8) bool {
+	t, _, _ := s.restrSrcAvail(k, p, d, b, ex)
+	return s.costPartDisjointD(k, p, src, c, cost, &t, pm, &d)
+}
 
 // restrTapUnit is the restricted unit p's source at x adds for payment d
 // (restrSrcAvail's rkExt arm), when d may spend it.

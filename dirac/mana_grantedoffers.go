@@ -2900,5 +2900,17 @@ func (s *State) floatPaysPlay(k *prep, p uint8, cost *kop.ManaCost, d payDesc) b
 	if m := s.restrFloatAdmits(k, SeatIx(p), &d); m != 0 {
 		s.restrAvailAdd(SeatIx(p), m, &av)
 	}
-	return av.affords(cost, pipMaskOf(cost), 0)
+	if !av.affords(cost, pipMaskOf(cost), 0) {
+		return false
+	}
+	// a fixed-taps cast's part keeps its candidates apart from the pool too
+	// (CR 601.2g-h): the walk's gate prices the mana from the pool and the
+	// part against the real state, so a pool that pays only by tapping a
+	// candidate the part needs is no offer -- after the prefix tapped the
+	// granted mana, only the summoning-sick Kona is left for Fear of
+	// Exposure's tap-two (gorge planReserving; cost_fixedtaps.go).
+	if d.hasPlay && k.t != nil && s.fixedTapsCast(k, d.play) {
+		return s.costPartDisjointD(k, p, NoSlot, spellAddCost(k, s.objs[d.play.Source()].card), cost, &av, pipMaskOf(cost), &d)
+	}
+	return true
 }
