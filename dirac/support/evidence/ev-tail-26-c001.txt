@@ -202,6 +202,7 @@ Satyr Grovedancer
 Savage Swipe
 Scarwood Treefolk
 Scathe Zombies
+Sensei's Divining Top
 Sentinel
 Serpent Warrior
 Shambling Goblin
@@ -217,6 +218,7 @@ Slate Street Ruffian
 Slate of Ancestry
 Slip Through Space
 Snake Pit
+Sokenzan, Crucible of Defiance
 Spark Elemental
 Sparkspitter
 Spell Burst

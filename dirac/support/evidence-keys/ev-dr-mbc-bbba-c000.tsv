@@ -1,8 +1,11 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Academy Journeymage	918ca6dfc0b38236	13	1/1		1/1	
 Aethersnipe	c600147e2ded99e4	13	1/1		2/3	ix:resp
+Ainok Survivalist	47674f7c81cc4b69	11	1/1		1/3	cast/alt:none,ix:resp
 Ambition's Cost	afb287a128d21107	6	0/0		1/2	ix:resp
+Amoeboid Changeling	d5ea262dde8aa102	68	2/2		1/1	
 Anax, Hardened in the Forge	29f717791fe07aad	13	1/1		0/1	ix:resp
+Angel of Light	0ed3e6853837e1ef	5	0/0		0/0	
 Arc Trail	0753543a0fdcc51c	11	0/0		1/2	ix:resp
 Archfiend of Sorrows	c2ba82213b6a92bf	3	2/2		0/1	ix:resp
 Autumn Willow, Harmony	0d7673c0515d0a50	4	2/2		0/1	ix:resp
@@ -18,13 +21,18 @@ Briarblade Adept	cdff9f0c65c8ecff	24	2/2		0/1	ix:resp
 Burst Lightning	4e791fe7bd67d888	14	0/0		4/4	
 Caligo Skin-Witch	888ada107e03baba	15	1/1		2/3	ix:resp
 Canopy Surge	c51c67b66855252a	4	0/0		3/4	ix:resp
+Catacomb Crocodile	12fd702755ed32aa	13	0/0		0/0	
 Chaos Warp	0b9de0035d6cff8f	6	0/0		1/2	ix:resp
 Clip Wings	2da80eae63135807	4	0/0		1/2	ix:resp
 Commune with the Gods	2a1acb4476e3d074	10	0/0		1/2	ix:resp
 Contraband Livestock	922c6234e76b376b	6	0/0		1/2	ix:resp
+Dead	e8f9e9b0488ad82d	6	0/0		2/3	f1/s
 Deepchannel Mentor	c052135a7c3bf533	15	0/0		0/0	
+Descent into Avernus	13b601b3938160e5	22	1/1		1/1	
 Dreampod Druid	7d33cd3e34246fba	21	1/1		0/1	ix:resp
 Electrickery	a940da22b81a3c0b	15	0/0		4/4	
+Encampment Keeper	3481b3147850acca	3	1/1		0/1	ix:resp
+Equilibrium	f81fc6ba6f744cb4	28	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Expel from Orazca	5ff12c5253e99f2a	6	0/0		1/2	ix:resp
 Exultant Skymarcher	521cb4e7911b1fda	10	0/0		0/0	
 Fain, the Broker	12ab8cd51273c884	7	4/4		0/1	ix:resp
@@ -37,19 +45,31 @@ Frogify	53ad391387f97871	19	0/0		1/2	ix:resp
 Future Sight	cc937b144a2e6438	10	0/0		0/0	
 Gemhide Sliver	06e379c9610495f3	5	0/0		0/0	
 General Kreat, the Boltbringer	690ad04671b9a6d7	19	2/2		1/1	
+Genju of the Fields	9f6d7eeeecd10fe3	28	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
+Grakk the Pacifist	2e26d84f7ce7d6a5	6	1/1		0/1	ix:resp
+Gray Merchant of Asphodel	6acf3c57d9c1a96c	32	1/1		1/1	
+Grinding Station	c7083e2b738fb48d	37	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Hada Spy Patrol	5f2cfd05961a8bff	12	1/1		1/1	
 Hand of Death	38779f54405f5503	7	0/0		1/2	ix:resp
+Havoc Jester	57cc390607c11422	19	1/1		1/1	
 Hunger of the Howlpack	74e7fc40ad3aabd2	7	0/0		1/2	ix:resp
 Innocent Blood	996bd3e767d659b9	8	0/0		1/2	ix:resp
+Irregular Cohort	feb368db3a21c6cd	17	1/1		1/1	
 Island	763c67ef7a27eaf5	55	1/1		0/1	ix:resp
 Jubilant Mascot	ed5eb732fb37a132	6	1/1		0/1	ix:resp
 Kami of the Crescent Moon	caa3bdadf1aba236	11	1/1		1/1	
+Karoo	1913cf6f880e9d53	187	2/2		1/1	
+Keldon Strike Team	57c2c998db0656b0	20	1/1		2/3	ix:resp
 Knight of the Tusk	49a369028efb3e79	3	0/0		0/0	
+Kor Celebrant	6360d9e1207555ad	14	1/1		0/1	ix:resp
+Lagonna-Band Trailblazer	489f0bf0edd4c5f5	8	1/1		1/1	
 Legacy's Allure	808fbe46c68d3a68	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Ley Weaver	d42c2e021e9b3a08	4	2/2		0/1	ix:resp
 Man-o'-War	c438e2ad51c1ba33	42	1/1		1/1	
+Master of Arms	1b5eb4e7e4bd5c1a	13	1/1		0/1	ix:resp
 Master's Rebuke	af2233382bb4b503	10	0/0		1/2	ix:resp
 Memory Lapse	f368eef37c2781dd	12	0/0		1/2	ix:resp
+Momentary Blink	07c1227092d137d5	12	0/0		4/4	
 Mothdust Changeling	b417968044716945	16	1/1		1/1	
 Mountain	9e71388353e907ed	70	1/1		0/1	ix:resp
 Multani, Yavimaya's Avatar	e3fcf5a6bd4a2eb4	7	1/1		0/1	ix:resp
@@ -61,11 +81,17 @@ Pollenbright Druid	eb817b6a04738212	23	1/1		1/1
 Pongify	012fe218295ea7c3	17	0/0		1/2	ix:resp
 Presence of Gond	5458956cb20bdee4	11	0/0		1/2	ix:resp
 Priest of Gix	28a5775320daef44	3	1/1		0/1	ix:resp
+Pyreheart Wolf	192cef54f5cd52d7	53	2/2		0/1	ix:resp
 Rain of Filth	aa43a8d4f09ec311	6	0/0		2/2	
+Rapid Hybridization	21bd5d681243a4cf	18	0/0		2/2	
 Reanimate	d361331ccb02a18a	3	0/0		2/2	
+Reconnaissance Mission	392e44e5a88e28db	5	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Rending Volley	b0f6ec257dcbf647	5	0/0		1/2	ix:resp
+Ricochet Trap	f466e65bb72cc6d7	14	0/0		1/2	ix:resp
 Rite of Consumption	fee8e2428d21c9b5	5	0/0		2/2	
 Roar of Challenge	354b386b3b4c204d	6	0/0		1/2	ix:resp
 Rootborn Defenses	14ee7f76c120c037	6	0/0		1/2	ix:resp
+Sandstone Needle	2183ac3101a4fd4b	345	1/1		0/1	ix:resp
 Saprazzan Skerry	9ee494a4b9ab659a	64	1/1		0/1	ix:resp
 Scrapwork Mutt	ee97479c0744cdc6	6	2/2		0/1	ix:resp
 Searing Spear	fdb46443d78a84c0	13	0/0		1/2	ix:resp
@@ -74,15 +100,22 @@ Shiny Impetus	ee14c71a590023a1	8	1/1		1/2	ix:resp
 Skyline Despot	b9815b97b0efb4b9	5	2/2		0/1	ix:resp
 Skyshroud Claim	3d7601e8d557f52f	11	0/0		1/2	ix:resp
 Souldrinker	4bd74da490bb73ec	6	1/1		1/1	
+Striped Riverwinder	93b4ed1989a13a51	5	1/1		1/1	
+Submerge	217bcf9d98726757	24	0/0		2/2	
 Swamp	342b413902f441c3	146	1/1		0/1	ix:resp
 Syr Alin, the Lion's Claw	450aff3b900d0652	4	1/1		0/1	ix:resp
+Tabaxi Toucaneers	bd83d09250cdd012	7	1/1		1/1	
+Tavern Swindler	8a1b28b175477f68	20	1/1		1/1	
+Tectonic Rift	4d38ed4c42eec8a7	12	0/0		2/2	
 Telekinetic Sliver	c358dc1b1c61b081	15	0/0		0/0	
 Temur Sabertooth	c0f268f292cba88f	8	1/1		1/1	
+Tevesh Szat, Doom of Fools	5872e69f8020c239	11	3/3		0/1	ix:resp
 Thassa's Oracle	85de9cbd667cfb14	15	1/1		1/1	
 Thermo-Alchemist	cdf1a8421b6b2d4d	14	2/2		0/1	ix:resp
 Thunderclap	91de5517f97b2d49	4	0/0		1/2	ix:resp
 Tibalt, Rakish Instigator	f822b641316334b3	9	1/1		0/1	ix:resp
 Toothy, Imaginary Friend	45bae41c2254fb93	4	3/3		0/1	ix:resp
+Trostani's Judgment	338f265b502ba146	5	0/0		1/2	ix:resp
 Unchained Berserker	8320b4e3f504b660	7	0/0		0/0	
 Valakut Invoker	d67150a95150f854	13	1/1		0/1	ix:resp
 Vandalize	3cddfa2fb3677a75	8	0/0		2/2	

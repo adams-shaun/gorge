@@ -1,25 +1,37 @@
 About Face
 Against All Odds
+Ancient Hydra
 Ballynock Cohort
 Banishing Slash
 Barrowgoyf
 Battle Angels of Tyr
 Beast Within
+Bhaal's Invoker
+Bitter Reunion
 Blasting Station
+Boggart Harbinger
+Carrion Imp
 Claustrophobia
 Cloud Spirit
 Condemn
+Control of the Court
+Corpse Harvester
 Cytoplast Root-Kin
 Darksteel Mutation
 Deceiver Exarch
 Dreadhound
+Dynacharge
+Engineered Explosives
 Expunge
+Exsanguinate
+Falkenrath Noble
 Feral Hydra
 Forest
 Gloom Sower
 Goblinslide
 Goldlust Triad
 Goldmeadow Harrier
+Halimar Depths
 Healer's Hawk
 Imperious Perfect
 Intangible Virtue
@@ -33,6 +45,7 @@ Molten Birth
 Mountain
 Myth Realized
 Nature's Way
+Neheb, the Eternal
 Nevermaker
 Nyxborn Hydra
 Plains
@@ -40,17 +53,24 @@ Portent
 Pyrohemia
 Quest for Pure Flame
 Renegade Warlord
+Rogue's Passage
 Sage's Reverie
+Sea Gate
 Send in the Pest
 Sheoldred, Whispering One
+Sign in Blood
 Skeletal Wurm
+Sparkmage Apprentice
 Spitting Earth
 Stand Together
 Stromgald Crusader
 Swamp
+Twinferno
 Ultimate Price
+Volcanic Dragon
 Wall of Corpses
 Wall of Mulch
 Wall of Roots
 War Priest of Thune
 Woodland Changeling
+Young Red Dragon

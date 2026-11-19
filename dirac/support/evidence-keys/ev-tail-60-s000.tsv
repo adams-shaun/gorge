@@ -62,6 +62,7 @@ Earth Servant	4db207328b3c5f2e	3	0/0		0/0
 Earth-Origin Yak	febf26f345134419	5	1/1		0/1	ix:resp
 Echoing Decay	a8542f9d6616d6bf	18	0/0		1/2	ix:resp
 Elixir of Immortality	041032273eae2714	41	1/1		0/1	ix:resp
+Endless Obedience	11f0ab56b7b1bde4	6	0/0		1/2	ix:resp
 Enthusiastic Mechanaut	655ca335b9fbd851	13	0/0		0/0	
 Eternal Flame	d4a80cde046427d3	3	0/0		1/2	ix:resp
 Ethersworn Sphinx	7441c8b0a779e5b0	5	0/0		0/0	
@@ -214,6 +215,9 @@ Silverstorm Samurai	304af09f2d489867	9	2/2		0/1	ix:resp
 Sixth Sense	59b67ff6744dd13e	18	0/0		2/2	
 Skeletal Grimace	2415ea7857f18dd2	23	0/0		1/2	ix:resp
 Skemfar Avenger	66d0e8b825565b93	14	1/1		0/1	ix:resp
+Snow-Covered Island	3020b29d96f5b5b9	759	1/1		0/1	ix:resp
+Snow-Covered Mountain	3200469019de4aca	699	1/1		0/1	ix:resp
+Snow-Covered Plains	bdaf911aefce4749	688	1/1		0/1	ix:resp
 Soltari Emissary	ff1484bb27439109	22	1/1		1/1	
 Spawn of Thraxes	d2228d23961038bc	3	1/1		1/1	
 Split-Tail Miko	c3d082b69e84700f	4	1/1		0/1	ix:resp

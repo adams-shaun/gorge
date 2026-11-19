@@ -324,6 +324,7 @@ Rusted Slasher
 Safehold Duo
 Safehold Sentry
 Sanctum of Tranquil Light
+Sandstone Needle
 Saproling Burst
 Saproling Migration
 Saw It Coming

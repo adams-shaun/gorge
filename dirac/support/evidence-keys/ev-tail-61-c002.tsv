@@ -12,6 +12,7 @@ Avabruck Caretaker	b03bcc5ed0663c1e	25	2/2		1/1
 Avenger en-Dal	2a025402d3645256	5	1/1		0/1	ix:resp
 Avenging Hunter	4e2b8b7e1638525e	10	1/1		1/1	
 Bastion Enforcer	7e5903b39c1fa63d	44	0/0		0/0	
+Blasted Landscape	f23570c3fe04cfe5	9	2/2		0/1	ix:resp
 Bootleggers' Stash	75b5a07aaa6eca86	7	0/0		0/0	
 Brainwash	ac79a1487b6187ca	4	0/0		1/2	ix:resp
 Bumbling Pangolin	e8e351564e9adaac	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -80,6 +81,7 @@ Humble	8e83f8987fd8c821	8	0/0		1/2	ix:resp
 Hunting Moa	596e30abfb225bc9	14	3/3		0/1	ix:resp
 Imaginary Friends	0e37cd3d9ce42fd9	3	0/0		2/2	
 Implode	786a9b0dee7fea69	9	0/0		2/2	
+Incremental Blight	be7f120b6b999009	4	0/0		1/2	ix:resp
 Incubation Sac	b593d8f8a96e1373	5	1/1		0/1	ix:resp
 Indicate	ef1c064712e2c983	38	0/0		2/2	
 Infected Vermin	b6f04c9c20407746	16	2/2		1/1	
@@ -90,6 +92,7 @@ Jade Guardian	42898c050f4cbfb0	6	1/1		1/1
 Just the Wind	9d9bd38171f106e1	7	0/0		2/2	
 K-9, Mark I	35fcf32105586f4a	4	1/1		0/1	ix:resp
 Kaleidoscorch	0c9f3c314590c461	19	0/0		3/4	ix:resp
+Karn's Bastion	98a6081c501e9670	23	2/2		1/1	
 Kor Duelist	c3a67f40baebbbcf	32	0/0		0/0	
 Koth's Courier	2b8f5704c3cb2d1b	7	0/0		0/0	
 Krosan Archer	9323b5807b64e75d	7	1/1		0/1	ix:resp
@@ -98,6 +101,7 @@ Llawan, Cephalid Empress	60345dd22540fb45	22	1/1		1/1
 Lumbering Satyr	fcb70906bc9941af	6	0/0		0/0	
 Magma Sliver	e53615a1fa7b9a4b	4	0/0		0/0	
 Makindi Aeronaut	449a691455986f62	15	0/0		0/0	
+Manta Ray	7cf0b6d007820e18	56	1/1		1/1	
 Mardu Outrider	7e5bf24f180185f7	19	0/0		1/2	ix:resp
 Maximize Velocity	346700ed0380e48b	34	0/0		3/4	cast/alt:jumpstart
 Mending Touch	b5fbfdec3d16a30e	94	0/0		2/2	
@@ -180,6 +184,7 @@ Surge of Righteousness	6d143e2632c0d2d4	6	0/0		1/2	ix:resp
 Survivor of Korlis	c40f87aa8e0e3daa	12	1/1		1/1	
 Swordwise Centaur	77cdf0f946eb8a47	32	0/0		0/0	
 Syndicate Messenger	c69d9c97d802c895	6	1/1		0/1	ix:resp
+Talon Gates of Madara	f068cc7cf417b8ff	9	4/4		0/1	ix:resp
 Teardrop Kami	760fcdadac4a9284	22	1/1		1/1	
 Tectonic Rift	4d38ed4c42eec8a7	9	0/0		2/2	
 Tempest Owl	f68ab55e41c70fb5	8	1/1		2/3	ix:resp

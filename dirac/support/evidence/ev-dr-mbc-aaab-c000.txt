@@ -1,53 +1,111 @@
 Abrade
 Acidic Slime
 Aggressive Urge
+Anara, Wolvid Familiar
 Avatar of Growth
+Aven Squire
 Banisher Priest
+Banshee of the Dread Choir
 Bassara Tower Archer
 Benevolent Ancestor
 Benevolent Blessing
+Betrayal of Flesh
+Bitterbow Sharpshooters
 Blood Curdle
+Blur
+Bone Shredder
 Broken Wings
 Campfire
+Cathartic Pyre
 Cephalid Illusionist
+Chandra's Pyrohelix
 Claws of Gix
 Colossal Dreadmaw
+Cone of Flame
 Consul's Lieutenant
+Convulsing Licid
+Dauthi Horror
+Desert of the Fervent
+Dyfed, the Guiding Hand
 Elspeth's Smite
+Elvish Visionary
+Energy Flux
+Exile
+Explosive Vegetation
+Explosive Welcome
+Extinguish All Hope
+Fell Gravship
 Filth
 Fireball
 Forest
 Ghost Lantern
+Gideon's Sacrifice
+Gifted Aetherborn
 Heart Warden
 Hoodwink
+Infernal Vessel
 Inner Demon
+Insidious Fungus
 Island
 Kavu Primarch
+Kor Hookmaster
 Kyren Negotiations
 Lightning Bolt
+Lotus Petal
+Mana Short
+Memnite
 Mentor of the Meek
 Mind Stone
+Mindcrank
 Mirri's Guile
 Mortuary
 Mountain
+Mystic Retrieval
+Nahiri's Machinations
 Nature's Claim
 Oakhame Adversary
 Order of Yawgmoth
+Otherworldly Journey
+Overrun
+Perimeter Captain
 Pir, Imaginative Rascal
 Pit Keeper
+Plagon, Lord of the Beach
 Plains
+Pox
 Pressure Point
 Prison Term
+Rishadan Port
 Secret Rendezvous
+Shower of Coals
+Shrike Force
+Silver Myr
+Smash to Dust
+Spectral Sliver
+Spirit Link
+Sprite Noble
+Stoke the Flames
+Subjugator Angel
 Supreme Will
 Swamp
 Tainted Strike
 Temporal Fissure
+Thunderdrum Soloist
 Thunderwave
+Tibalt's Rager
 Toby, Beastie Befriender
+Tolaria West
+Totally Lost
 Trollbred Guardian
 Twisted Image
 Two-Handed Axe
+Undercity Informer
+Unseal the Necropolis
+Valakut Predator
 Vanish into Eternity
+Vastwood Surge
 Veteran Armorer
+Vile Consumption
+Vine Mare
 Whip Silk
+You Find Some Prisoners

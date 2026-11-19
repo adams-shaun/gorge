@@ -21,6 +21,7 @@ Angelic Protector
 Appetite for Brains
 Arcbound Tracker
 Archon of Falling Stars
+Ardenvale Paladin
 Arm-Mounted Anchor
 Arrogant Poet
 Ashen Rider
@@ -257,6 +258,7 @@ Lord of the Accursed
 Lore Seeker
 Lunar Frenzy
 Lydia Frye
+Maelstrom Colossus
 Magmatic Sprinter
 Malanthrope
 Malevolent Awakening

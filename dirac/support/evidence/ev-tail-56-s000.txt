@@ -168,6 +168,7 @@ Shattered Angel
 Shepherd of the Flock
 Silkwrap
 Skorpekh Destroyer
+Skullport Merchant
 Snow Devil
 Somber Hoverguard
 Somberwald Alpha
@@ -199,6 +200,7 @@ Tsabo's Decree
 Turntimber Grove
 Tusked Colossodon
 Upriser Renegade
+Vanquisher's Banner
 Viashino Racketeer
 Vintara Snapper
 Volrath's Stronghold
