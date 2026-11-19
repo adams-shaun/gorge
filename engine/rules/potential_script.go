@@ -666,6 +666,7 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 		if scriptManaAskHoists(asPayer(c), c.manaActivation, p, d) {
 			answers = scriptOrderAnswers(d, answers, sr.need)
 		}
+		answers = c.scriptDropEmptyManaAnswers(p, d, answers)
 		if sr.subsume {
 			answers = sr.subsumeAnswers(c, d, answers)
 		}
