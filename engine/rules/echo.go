@@ -310,12 +310,13 @@ func (e *Engine) echoAnswer(chosen []decision.Option) {
 		// CR 702.59: paying returns the card to its owner's hand, otherwise it
 		// is exiled; a source that left the graveyard in response is not moved.
 		if o := e.G.Obj(ef.source); o != nil && o.Zone == state.ZGraveyard {
-			to, text := state.ZExile, "recover declined"
 			if paid {
-				to, text = state.ZHand, "recovered"
+				e.emit(events.Event{Kind: events.MoveZone, Obj: ef.source,
+					From: state.ZGraveyard, To: state.ZHand, Text: "recovered"})
+			} else {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: ef.source,
+					From: state.ZGraveyard, To: state.ZExile, Text: "recover declined"})
 			}
-			e.emit(events.Event{Kind: events.MoveZone, Obj: ef.source,
-				From: state.ZGraveyard, To: to, Text: text})
 		}
 	} else if !paid && pay.ExistsOnBattlefield(e.G.Obj(ef.source)) {
 		pay.PaySacrificeCost(asPayer(e), []state.ObjID{ef.source})
