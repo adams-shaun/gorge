@@ -1123,6 +1123,14 @@ func (s *State) priorityGenReadsAv(k *prep, p uint8) bool {
 // srcSl its permanent. ok is false when no targeting is in progress.
 func (s *State) tgtSource(k *prep) (spell bool, card CardID, c kop.ColorMask, srcSl Slot, ok bool) {
 	srcSl = NoSlot
+	// a spell probe is the spell a feasibility check is pricing, even while
+	// another entry resolves: a free cast from the resolving Sword of Once
+	// and Future's trigger asks whether the candidate spell (its colours)
+	// could be cast, not whether the trigger's source could target
+	if s.g.probe.kind == probeSpell {
+		card = s.g.probe.card
+		return true, card, k.t.Cards[card].Colors, NoSlot, true
+	}
 	if e := s.curEntry(); e != nil {
 		spell, card = e.kind == seSpell, e.card
 		c = k.t.Cards[e.card].Colors
