@@ -472,7 +472,7 @@ func prepare(t *kop.Table) *prep {
 		}
 	}
 	for i := range t.Cards {
-		if prepSelfTapsPain(&t.Cards[i], &p.cards[i]) || prepPainOnlyLife(&t.Cards[i], &p.cards[i]) || prepSoleLifeMana(&t.Cards[i], &p.cards[i]) {
+		if prepPainSource(&t.Cards[i], &p.cards[i]) {
 			p.painMana = true
 		}
 		p.phyMana = p.phyMana || t.Cards[i].Cost.Phyrexian()

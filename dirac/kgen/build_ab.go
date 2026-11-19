@@ -980,6 +980,68 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	return ka, nil
 }
 
+// manaReflected lowers a Special "Reflected" mana read (lower_reflectedmana.go).
+// It reports whether m is one it lowered. A production read with a
+// non-constant Amount$ (Incubation Druid), or one mana of any colour among
+// the matched permanents' colours (Plaza of Heroes), or among what the
+// matching permanents' mana abilities could produce (Ability.ManaProduce,
+// every Valid$ alternative OppCtrl: Exotic Orchard). A Graveyard read (The
+// Grey Havens) scans every alive seat's graveyard instead (Ability.ManaGrave;
+// its spec compiles zone-free like the Count$ValidGraveyard precedent — the
+// read is the zone).
+func (cb *cardBuilder) manaReflected(m *lMana, ka *kop.Ability) (bool, error) {
+	if m.Special != "Reflected" || m.Restrict != nil || m.RestrictAb != nil {
+		return false, nil
+	}
+	if m.Produce && !m.Amount.isConst() {
+		// (Incubation Druid) the production read with a non-constant Amount$
+		// ("one mana ... add three of that type instead"): gorge's planner
+		// defers the amount (pay.PaymentPlanReflectedShape rejects
+		// mr.Amount.Present), so its census leaves the source a gap
+		// (censusGapMana's reflected Amount$ shape, dirac mana_reflamt.go)
+		// and the fold prices the amount open; the prefix search evaluates it
+		// at the activation (kop.AfManaDynamic + ManaV). One mana of any
+		// colour among the matched permanents' cards' producible colours
+		// (Ability.ManaProduce, {C} of the census read dropped), scaled by the
+		// Amount$ expression evaluated with the source
+		id, err := cb.filter(m.SpecialF, kop.ZoneBattlefield)
+		if err != nil {
+			return true, err
+		}
+		v, err := cb.value(m.Amount)
+		if err != nil {
+			return true, err
+		}
+		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect | kop.AfManaDynamic
+		ka.ManaProduce = true
+		ka.ManaAmong = id
+		ka.ManaColors = kop.ColAny
+		ka.ManaN = 1
+		ka.ManaV = v
+		return true, nil
+	}
+	if !m.Amount.isConst() || m.Amount.N != 1 {
+		return false, nil
+	}
+	zone := kop.ZoneBattlefield
+	if m.Graveyard {
+		zone = kop.ZoneNone
+	}
+	id, err := cb.filter(m.SpecialF, zone)
+	if err != nil {
+		return true, err
+	}
+	ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
+	if m.Produce {
+		ka.ManaProduce = true
+	}
+	ka.ManaGrave = m.Graveyard
+	ka.ManaAmong = id
+	ka.ManaColors = kop.ColAny
+	ka.ManaN = 1
+	return true, nil
+}
+
 func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	if m.Special == "EachColorAmong" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
 		// one mana of each colour among the matching permanents: gorge's
@@ -994,23 +1056,9 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.ManaN = 1
 		return nil
 	}
-	if m.Special == "Reflected" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
-		// one mana of any colour among the matching permanents' colours
-		// (Plaza of Heroes), or among what the matching permanents' mana
-		// abilities could produce (Ability.ManaProduce, every Valid$ alternative
-		// OppCtrl: Exotic Orchard; lower_reflectedmana.go)
-		id, err := cb.filter(m.SpecialF, kop.ZoneBattlefield)
-		if err != nil {
-			return err
-		}
-		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
-		if m.Produce {
-			ka.ManaProduce = true
-		}
-		ka.ManaAmong = id
-		ka.ManaColors = kop.ColAny
-		ka.ManaN = 1
-		return nil
+	done, err := cb.manaReflected(m, ka)
+	if err != nil || done {
+		return err
 	}
 	if m.Special == "ReflectedImprint" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
 		// (Chrome Mox) a printed AfManaReflect with no ManaAmong filter

@@ -50,6 +50,27 @@ func manaLifePain(a *kop.Ability) (uint8, bool) {
 	return a.Cost.N, true
 }
 
+// prepPainSource reports whether c's mana production pains its controller: a
+// self-Taps line (prepSelfTapsPain, mana_tapsdefer.go), a pain-only or a
+// sole-life source (below), or a printed reflected ability whose cost pays
+// life (reflLifePain, Horizon of Progress). prepare's painMana flag reads it.
+func prepPainSource(c *kop.CardDef, pc *pcard) bool {
+	return prepSelfTapsPain(c, pc) || prepPainOnlyLife(c, pc) || prepSoleLifeMana(c, pc) || reflLifePain(c)
+}
+
+// reflLifePain reports whether c has a printed reflected mana ability whose
+// cost pays life (Horizon of Progress): its lone imprint view is the kernel's
+// pain-only unit (mana_imprint.go prepManaImprint's view fields), so the
+// board prices pain like any other pain source's.
+func reflLifePain(c *kop.CardDef) bool {
+	for j := range c.Abilities {
+		if a := &c.Abilities[j]; reflLifeManaAb(a) {
+			return true
+		}
+	}
+	return false
+}
+
 // abPainOf is a mana ability's own activation pain: the life its cost pays
 // (lifeCostOwed) PLUS the damage its rider deals (manaPain) — gorge's
 // lethal guard (pay/search.go) sums both when it cuts a plan, never one or
@@ -96,10 +117,16 @@ func primaryNormalAb(b *kop.Ability) bool {
 // two mana abilities are a normal alternative ({C}, one colour, or a
 // two-colour choice: Starting Town, Haunted Screen) and a, {T} and N life
 // for one or more colours. gorge's planner prices that cost as a last-resort
-// choice (pay.PlanLastResortCostOK), not a census gap.
+// choice (pay.PlanLastResortCostOK), not a census gap. A lone reflected one
+// whose colours are the reflected read is the same last-resort tier (Horizon
+// of Progress, kop.ReflLifeManaAb; the views' pain, mana_reflected.go
+// prepManaRefl).
 func lifePainLandAb(c *kop.CardDef, a *kop.Ability) bool {
 	if _, ok := manaLifePain(a); !ok {
 		return false
+	}
+	if reflLifeManaAb(a) {
+		return true
 	}
 	n, self := 0, -1
 	first := true
@@ -118,6 +145,12 @@ func lifePainLandAb(c *kop.CardDef, a *kop.Ability) bool {
 	}
 	// (n == 1: Mana Confluence's sole paid-life ability, no normal alternative)
 	return n == 2 && first || n == 1 && self >= 0 && kop.SoleLifeManaAb(c, self)
+}
+
+// reflLifeManaAb reports whether a is a printed reflected mana ability whose
+// cost is {T} plus paying N life (Horizon of Progress, kop.ReflLifeManaAb).
+func reflLifeManaAb(a *kop.Ability) bool {
+	return kop.ReflLifeManaAb(a)
 }
 
 // prepPainOnlyLife prices a card whose only mana ability is "{T}, Pay N life:

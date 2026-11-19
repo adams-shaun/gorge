@@ -313,8 +313,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				}
 				continue
 			}
-			if k.gen.anyComboAny && k.isComboAny(s.cardAt(sl)) {
-				s.windowComboTap(k, p, sl, cost, useful, clamp, noOwed)
+			if k.gen.anyComboAny && s.windowGapTap(k, p, sl, s.cardAt(sl), cost, useful, clamp, noOwed) {
 				continue
 			}
 			if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) {
@@ -1106,8 +1105,8 @@ func (s *State) windowPoolPays(p uint8, cost *kop.ManaCost, anyColor bool) bool 
 // ward / unless mana window; a restricted one only when the payment may spend its mana.
 func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 	c := s.cardAt(sl)
-	if k.gen.anyComboAny && k.isComboAny(c) {
-		return s.caGaps(k, p).has(sl) // a Combo Any source: the window's own tap (windowComboTap)
+	if k.gen.anyComboAny && (k.isComboAny(c) || k.isReflAmt(c)) {
+		return s.caGaps(k, p).has(sl) // a Combo Any source: the window's own tap (windowComboTap); a reflected Amount$ one too (windowReflAmtTap, mana_reflamt.go)
 	}
 	if k.gen.flags[c]&(gfEachCol|gfRestr|gfDeferred) == 0 {
 		return false
@@ -2001,6 +2000,10 @@ func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, an
 			s.anyDifferentTap(k, p, sl, anyDifferentRank(n, &need, c))
 			return true
 		}
+		if k.isReflAmt(s.cardAt(sl)) {
+			s.reflAmtChainTap(k, p, a, sl, c) // a reflected Amount$ source's colour ask (mana_reflamt.go)
+			return true
+		}
 		s.caChainTap(k, p, a, sl, c) // a Combo Any source's colour ask (mana_comboany.go)
 		return true
 	}
@@ -2312,6 +2315,8 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 					// an AnyDifferent source's distinct-colour answers, not the
 					// Combo Any amount caAmount reads (mana_distinctcolours.go)
 					nch = uint8(anyDifferentAnswers(max(int(s.anyDifferentAbilityAt(k, order[j]).ManaN), 1)))
+				} else if k.isReflAmt(s.cardAt(order[j])) {
+					nch = s.reflAmtAnswers(k, order[j]) // the reflected Amount$ source's colour ask (mana_reflamt.go)
 				} else {
 					nch = uint8(caAnswerCount(s.caAmount(k, order[j]))) // the colour ask's answers (mana_comboany.go)
 				}

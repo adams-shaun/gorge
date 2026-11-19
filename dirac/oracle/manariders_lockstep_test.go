@@ -94,6 +94,61 @@ var manaRidersDecks = []fixtureDecks{{
 		{Name: "Utopia Sprawl", Count: 6}, {Name: "Forest", Count: 12}, {Name: "Mountain", Count: 4}, {Name: "Grizzly Bears", Count: 6},
 		{Name: "Goblin Roughrider", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Lightning Bolt", Count: 4},
 	},
+}, {
+	// Horizon of Progress: the {T} + pay 1 life reflected Produce read (the
+	// pain-gated lone shape). Its mana is the planner's last resort
+	// (Consequence{Life:1}), so the payer taps it under a cost it cannot fund
+	// otherwise, at 1 life a pop
+	{
+		{Name: "Horizon of Progress", Count: 5}, {Name: "Grizzly Bears", Count: 6}, {Name: "Isamaru, Hound of Konda", Count: 4},
+		{Name: "Shock", Count: 6}, {Name: "Lightning Bolt", Count: 3}, {Name: "Plains", Count: 5}, {Name: "Mountain", Count: 5}, {Name: "Wastes", Count: 6},
+	},
+	manaRidersCounters,
+}, {
+	manaRidersCounters,
+	{
+		{Name: "Horizon of Progress", Count: 5}, {Name: "Grizzly Bears", Count: 6}, {Name: "Isamaru, Hound of Konda", Count: 4},
+		{Name: "Shock", Count: 6}, {Name: "Lightning Bolt", Count: 3}, {Name: "Plains", Count: 5}, {Name: "Mountain", Count: 5}, {Name: "Wastes", Count: 6},
+	},
+}, {
+	// The Grey Havens: the reflected Is read over the graveyard ("any color
+	// among legendary creature cards in your graveyard") beside {T}: Add {C}.
+	// The vanilla legendaries (Isamaru white, Happy Hogan red, Kalakscion
+	// black) die to the burn deck, so the read's candidates move as they fall
+	{
+		{Name: "The Grey Havens", Count: 5}, {Name: "Isamaru, Hound of Konda", Count: 4}, {Name: "Happy Hogan, Dauntless Driver", Count: 4}, {Name: "Kalakscion, Hunger Tyrant", Count: 4},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Lightning Bolt", Count: 4}, {Name: "Plains", Count: 5}, {Name: "Mountain", Count: 5}, {Name: "Swamp", Count: 5},
+	},
+	{
+		{Name: "Goblin Piker", Count: 10}, {Name: "Shock", Count: 8}, {Name: "Lightning Bolt", Count: 8}, {Name: "Mountain", Count: 14},
+	},
+}, {
+	{
+		{Name: "Goblin Piker", Count: 10}, {Name: "Shock", Count: 8}, {Name: "Lightning Bolt", Count: 8}, {Name: "Mountain", Count: 14},
+	},
+	{
+		{Name: "The Grey Havens", Count: 5}, {Name: "Isamaru, Hound of Konda", Count: 4}, {Name: "Happy Hogan, Dauntless Driver", Count: 4}, {Name: "Kalakscion, Hunger Tyrant", Count: 4},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Lightning Bolt", Count: 4}, {Name: "Plains", Count: 5}, {Name: "Mountain", Count: 5}, {Name: "Swamp", Count: 5},
+	},
+}, {
+	// Incubation Druid: the reflected Produce read with an Amount$
+	// (Count$Compare over its +1/+1 counters). gorge's planner defers the
+	// amount, so its census leaves the source a gap and the one prefix search
+	// evaluates it at the activation; the Adapt 3 activation puts the counters
+	// on, so both amounts run. The table holds no filter, no tap-another
+	// source, no granted mana ability, no Lion's Eye Diamond and no
+	// reflected-view source beside it (StallComboAnyMix refuses the mix).
+	{
+		{Name: "Incubation Druid", Count: 6}, {Name: "Grizzly Bears", Count: 6}, {Name: "Savannah Lions", Count: 4}, {Name: "Giant Growth", Count: 4},
+		{Name: "Forest", Count: 10}, {Name: "Plains", Count: 4}, {Name: "Mountain", Count: 6},
+	},
+	manaRidersCounters,
+}, {
+	manaRidersCounters,
+	{
+		{Name: "Incubation Druid", Count: 6}, {Name: "Grizzly Bears", Count: 6}, {Name: "Savannah Lions", Count: 4}, {Name: "Giant Growth", Count: 4},
+		{Name: "Forest", Count: 10}, {Name: "Plains", Count: 4}, {Name: "Mountain", Count: 6},
+	},
 }}
 
 // manaRidersCounters is the counterspell deck the AddsNoCounter$ matchups face.
@@ -105,6 +160,7 @@ var manaRidersCounters = []cardset.Entry{
 var manaRidersWatch = map[string]bool{
 	"Star Compass": true, "Reflecting Pool": true, "Gond Gate": true, "Shock": true, "Lightning Bolt": true, "Isamaru, Hound of Konda": true,
 	"Goblin Piker": true, "Utopia Sprawl": true, "Goblin Roughrider": true, "Mogg Fanatic": true, "Delighted Halfling": true, "Savannah Lions": true,
+	"Horizon of Progress": true, "Incubation Druid": true, "The Grey Havens": true, "Happy Hogan, Dauntless Driver": true, "Kalakscion, Hunger Tyrant": true,
 	"Boseiju, Who Shelters All": true, "Searing Spear": true, "Lava Axe": true,
 }
 
@@ -115,7 +171,7 @@ func TestManaRidersLockstep(t *testing.T) {
 	dirac.DebugUncounterStats = true
 	dirac.NoCounterHeld, dirac.DeferNoCounterStamped = 0, 0
 	defer func() { dirac.DebugUncounterStats = false }()
-	run := runFixtureLockstep(t, "manariders", manaRidersDecks, manaRidersWatch, 400, true, nil)
+	run := runFixtureLockstep(t, "manariders", manaRidersDecks, manaRidersWatch, 900, true, nil)
 	t.Logf("%d games, %d divergences, %d stalls, casts %v, counters stopped by AddsNoCounter$ mana %d", run.games, run.divs, run.stalls, run.casts, dirac.NoCounterHeld)
 	if run.casts["Shock"] < 40 {
 		t.Errorf("only %d Shock casts: the mana windows never ran", run.casts["Shock"])

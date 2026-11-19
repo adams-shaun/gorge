@@ -1113,7 +1113,12 @@ type lMana struct {
 	// Produce: the reflected read is what the matching permanents' mana
 	// abilities could PRODUCE, not their colours (ReflectProperty$ Produce,
 	// every Valid$ alternative OppCtrl: Exotic Orchard, Fellwar Stone).
-	Produce    bool
+	Produce bool
+	// Graveyard: the reflected Is read scans every alive seat's graveyard
+	// (Valid$ "Defined.ValidGraveyard <spec>", The Grey Havens; kop.Ability.
+	// ManaGrave; kernel mana_reflected.go graveReflColours), not the
+	// battlefield.
+	Graveyard  bool
 	NoCounter  bool     // AddsNoCounter$ True beside a spell restriction: the spell this mana pays for can't be countered (kop.Ability.ManaNoCounter; lower_manaspent.go)
 	Deferred   bool     // a TriggersWhenSpent$ source gorge's planner defers (kop.Ability.ManaDeferred; lower_deferredmana.go)
 	Split      *lSplit  // a Condition-split production's arm (kop.Ability.SplitGate; lower_condsplit.go)

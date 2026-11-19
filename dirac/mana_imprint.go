@@ -38,10 +38,16 @@ var debugImprintMutate uint8
 func SetDebugImprintMutate(m uint8) { debugImprintMutate = m }
 
 // prepManaImprint builds card id's 32 views (prepManaRefl's arm for the
-// imprint shape): view m makes one mana of a colour of m.
+// imprint shape): view m makes one mana of a colour of m. A life-cost
+// reflected ability (Horizon of Progress, life > 0) is gorge's last-resort
+// Consequence{Life: N} with no normal alternative (pay
+// PaymentPlanShapeTierOf's cost.Life arm), so its views carry the life as
+// the kernel's pain-only unit's fields (mana_pain.go painUnit, manaLifePain)
+// and name the ability themselves (kop.ReflLifeManaAb: the gen walk honours
+// the cost, but the base pc prices no colours — the views are the unit).
 //
 //go:noinline
-func prepManaImprint(g *genPrep, id CardID, pc *pcard, ident bool) {
+func prepManaImprint(g *genPrep, id CardID, pc *pcard, ident bool, ra int, life uint8) {
 	g.setFlag(id, gfManaVar|gfManaRefl)
 	g.smallFor(id).manaVar = int16(len(g.varPC))
 	for m := 0; m < 32; m++ {
@@ -49,6 +55,15 @@ func prepManaImprint(g *genPrep, id CardID, pc *pcard, ident bool) {
 		v.manaCol, v.manaMulti, v.manaRefl, v.manaIdent = kop.ColorMask(m), false, !ident, ident
 		if m == 0 {
 			v.manaAb = -1 // nothing to reflect: gorge lists no such ability
+		} else {
+			v.manaAb = int8(ra)
+			if life != 0 {
+				// its {T} is an ordinary one: the life is the painful
+				// alternative's cost (prepPainOnlyLife's read of Mana
+				// Confluence)
+				v.manaTap = true
+				v.painCol, v.painN, v.painOnly, v.painLife = v.manaCol, life, true, true
+			}
 		}
 		g.varPC = append(g.varPC, v)
 	}
