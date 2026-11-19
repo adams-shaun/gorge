@@ -1672,15 +1672,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				if dm[i] != 0 {
 					dmk = dm[i]
 				}
-				var first, printed uint8
-				if pc.manaMulti && k.gen != nil {
-					if c0, ok := s.vergeAbility0Col(k, sl); ok {
-						first = uint8(c0) + 1
-					}
-					if pc.blgFirst != 0 {
-						printed = s.blgPrintedMask(k, sl)
-					}
-				}
+				first, printed := s.planUnitColours(k, pc, sl, mask, granted[i])
 				if intr[i] != 0 && rv[i] == rkWiden {
 					printed = mask &^ intr[i] // the restricted ability's colours and the own printed ones follow
 				}
@@ -1931,6 +1923,36 @@ func (pk *planner) pickUnitColour(ty *utype, rem *[kop.NumManaKinds]int, remAny 
 		return pk.pickColour(ty.printed, 0, int(ty.n), rem, remAny, tys, from, n)
 	}
 	return pk.pickColour(ty.mask, ty.first, int(ty.n), rem, remAny, tys, from, n)
+}
+
+// planUnitColours is the (first, printed) colour hint of the plan unit at sl:
+// first is 1 + the colour the unit's first alternative makes, printed the own
+// colours of a nonbasic under a granted basic land type. A granted any-colour
+// unit is planned by the kernel where gorge's witness has no unit
+// (planInertGrant); it stands in for the grant prefix search, whose ask order
+// is W U B R G (stepColours), so its first colour is the lowest of its mask,
+// not the planner's G-first Produces tie-break (pickColour). Only the grant's
+// own view stands in for that search: a restricted printed ability of the
+// same source (Helga, Skittish Seer under Clement, the Worrywort) is the
+// source's own and keeps the planner's tie-break. A granted Combo with a
+// printed order also keeps it: only an unordered Any grant asks W U B R G.
+func (s *State) planUnitColours(k *prep, pc *pcard, sl Slot, mask uint8, granted bool) (first, printed uint8) {
+	if granted && pc.manaCol == kop.ColAny && mask&0x1f != 0 {
+		if gi := s.grantIdx(k, sl); gi >= 0 && k.gen != nil && pc == s.grantView(k.gen, int16(gi), sl) {
+			if ab := s.stepAbility(k, sl, int16(gi), pc); ab == nil || ab.ManaColOrd == 0 || uint8(ab.ManaColors)&0x1f != mask&0x1f {
+				first = uint8(bits.TrailingZeros8(mask&0x1f)) + 1
+			}
+		}
+	}
+	if pc.manaMulti && k.gen != nil {
+		if c0, ok := s.vergeAbility0Col(k, sl); ok {
+			first = uint8(c0) + 1
+		}
+		if pc.blgFirst != 0 {
+			printed = s.blgPrintedMask(k, sl)
+		}
+	}
+	return
 }
 
 // pickColour picks the colour a unit of mask produces, given the pips still
