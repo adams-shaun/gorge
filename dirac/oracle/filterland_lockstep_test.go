@@ -11,16 +11,12 @@ import (
 // The Shadowmoor/Eventide filter lands' "{W/B}, {T}: Add {W}{W}, {W}{B}, or
 // {B}{B}" beside "{T}: Add {C}" (Fetid Heath), played decision by decision
 // against gorge on the table built from the repro's own decks (pool
-// "custom"). gorge's census never funds a hybrid fee (an unrelaxable gap, no
-// funding), so a cast that needs a Heath's filter is never offered, and a
-// game with no Swamp never casts Aron, Benalia's Ruin ({W}{W}{B}) at all
-// (measured: 35 decisions, no cast, no mana activation). A Heath's filter is
-// reached only inside a payment window gorge opens for a cast it could
-// already fund (a Swamp's {B}): the seat floats Plains, a Plains' {W} pays the
-// Heath's hybrid fee, and the Heath adds {B}{B}, whose ask lists {C} then the
-// Combo's one option per colour of the amount ({W}{W}, {B}{B}). Exsanguinate's
-// X payment is the case that does it; Aron paid off a Heath's {B}{B} was not
-// reached in 40 seeds (gorge pays its {B} from a Swamp).
+// "custom"). Gorge's census funds a hybrid fee like any other paid gap: the
+// prefix search taps a covered source, floats its mana, and the Heath's
+// {W/B} fee then makes {W}{W} or {B}{B}, whose ask lists {C} then the Combo's
+// one option per colour of the amount. A cast that needs a Heath's filter is
+// therefore offered, and the recorded game reaches Aron, Benalia's Ruin
+// ({W}{W}{B}) off a Heath's {B}{B} after another source's {B} pays the fee.
 //
 // TestFilterLandLockstep replays the recorded game and requires a black spell
 // to be cast straight after a Heath's {B}{B} (blackOffAHeath): a lockstep entry
