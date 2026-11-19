@@ -94,6 +94,7 @@ Destructive Digger
 Detainment Spell
 Dictate of Heliod
 Diplomatic Immunity
+Direct Current
 Distorting Wake
 Divine Retribution
 Divine Transformation

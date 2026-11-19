@@ -57,6 +57,7 @@ Dragon-Cursed Halls	cc6ff18c5ac11773	23	2/2		0/1	ix:resp
 Dragonscale General	7a6aaaa43d0eef3b	4	1/1		0/1	ix:resp
 Dune Chanter	824dab577edd4813	4	1/1		0/1	ix:resp
 Eccentric Farmer	0b956e7d6920c29d	4	1/1		0/1	ix:resp
+Elvish Visionary	285286eb146ffcae	6	1/1		1/1	
 Embereth Paladin	d30b91f1917c7291	4	0/0		0/0	
 Enduring Victory	8819a503a0d14628	6	0/0		1/2	ix:resp
 Ensnare	865fa0c454464cc9	3	0/0		1/2	ix:resp
@@ -140,14 +141,17 @@ Pyrogoyf	91f9e5534b0f9bb4	6	1/1		0/1	ix:resp
 Raving Oni-Slave	b5c332280de08f81	8	2/2		0/1	ix:resp
 Recruit the Worthy	f7e9a66721df085c	4	0/0		3/4	ix:resp
 Release the Ants	b9d20c74029a1d32	91	0/0		2/2	
+Restock	f5446cdf56232fc5	7	0/0		1/2	ix:resp
 Retribution of the Meek	f3150ac00cdbd5a1	4	0/0		1/2	ix:resp
 Revolutionary Rebuff	c1b196d9d6c83645	4	0/0		1/2	ix:resp
 Revolutionist	d4870f58c58ea065	5	1/1		0/1	ix:resp
+Rishkar, Peema Renegade	a2f64e3304e2399d	3	1/1		1/1	
 Roc Hatchling	018d1b1ab75bedb4	4	1/1		0/1	ix:resp
 Scalding Salamander	e36590bb5b634519	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Scarab Feast	eca3d263be66e9dc	3	1/1		1/2	ix:resp
 Scion Summoner	226cba92fd23e5b0	4	1/1		1/1	
 Scoria Wurm	9c941a33cfa8aee7	4	1/1		0/1	ix:resp
+Scryb Sprites	c60d213844e9473e	3	0/0		0/0	
 Season of Growth	66316655539797b2	6	2/2		1/1	
 Season of Renewal	3c9363e95359c018	6	0/0		1/2	ix:resp
 Serene Heart	3f6244b660d3b2c1	9	0/0		1/2	ix:resp
@@ -176,6 +180,7 @@ The Cauldron of Eternity	7013e700c01a0de4	4	2/2		0/1	ix:resp
 Thornwatch Scarecrow	35fa37f0528020f9	6	0/0		0/0	
 Threnody Singer	597e8166ed861121	4	1/1		0/1	ix:resp
 Thunderous Might	d1117f8754afa33a	4	1/1		2/2	
+Tooth and Nail	a7bdf13be9494253	4	0/0		1/2	ix:resp
 Tormod's Crypt	4b6e7b1b4e574562	4	1/1		1/1	
 Torture	2975ed8810399cb2	4	1/1		1/2	ix:resp
 Tragic Fall	81c28691707e6a56	6	0/0		2/2	
@@ -186,6 +191,7 @@ Vantress Paladin	03d4db0fce57330d	3	0/0		0/0
 Viashino Firstblade	468549dfc788e0b1	4	1/1		0/1	ix:resp
 Vodalian Soldiers	a71e76be34f94445	6	0/0		0/0	
 Voltaic Brawler	e05c42c1c622026c	4	2/2		1/1	
+Webspinner Cuff	25b85a53f01e99e0	4	2/2		0/1	ix:resp
 Weight of Memory	c0538f988aeb8bd0	6	0/0		1/2	ix:resp
 Weldfast Wingsmith	b9938309dc9fe321	13	1/1		0/1	ix:resp
 Whirlermaker	baa90d61ef0bed8f	3	1/1		0/1	ix:resp

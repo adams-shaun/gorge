@@ -23,6 +23,7 @@ Armored Cancrix
 Armored Skaab
 Artisan of Forms
 Artistic Refusal
+Astarion, the Decadent
 Atomize
 Augur of Skulls
 Awaken the Sky Tyrant
@@ -382,6 +383,7 @@ Sword of Feast and Famine
 Sylvan Bounty
 Take to the Streets
 Talara's Battalion
+Tamiyo's Journal
 Tatyova, Steward of Tides
 Teferi's Ageless Insight
 Teleportation Circle

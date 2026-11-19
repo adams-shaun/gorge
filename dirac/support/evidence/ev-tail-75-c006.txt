@@ -35,7 +35,9 @@ Curiosity Crafter
 Dawning Angel
 Death's Shadow
 Deepwood Wolverine
+Dense Foliage
 Deputized Protester
+Dragon-Scarred Bear
 Drainpipe Vermin
 Dream Thief
 Dreamshackle Geist
@@ -48,6 +50,7 @@ Erstwhile Trooper
 Evolving Adaptive
 Faerie Noble
 Fateful Showdown
+Feral Instinct
 Ferocious Zheng
 Fetid Imp
 Fireblade Charger
@@ -103,6 +106,7 @@ Mountain
 Mox Tantalite
 Muck Rats
 Mystic Repeal
+Mystic Skull
 Nakaya Shade
 Nezumi Freewheeler
 Nyx-Fleece Ram
@@ -125,6 +129,7 @@ Rally the Peasants
 Rampaging Cyclops
 Reclaim the Wastes
 Reduce in Stature
+Return of the Nightstalkers
 Rishkar's Expertise
 Rooftop Nuisance
 Rune-Cervin Rider
@@ -170,6 +175,7 @@ Verdant Sun's Avatar
 Viscid Lemures
 Voyager Staff
 Waterknot
+Whiptail Moloch
 Will-o'-the-Wisp
 Wizard Replica
 Wolfwillow Haven

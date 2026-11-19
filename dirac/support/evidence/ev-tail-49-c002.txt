@@ -84,6 +84,7 @@ Disciple of Perdition
 Disentomb
 Dismember
 Domri, City Smasher
+Doran, the Siege Tower
 Double Trouble
 Dragon Whelp
 Drake Haven
@@ -242,6 +243,7 @@ Nico Minoru, Runaway
 Nightshade Seer
 Nim Grotesque
 Noose Constrictor
+Numot, the Devastator
 Nylea's Colossus
 Nylea's Forerunner
 Oath of Nissa
@@ -276,6 +278,7 @@ RMS Titanic
 Radha, Heart of Keld
 Rain of Salt
 Raise Dead
+Rakdos Cackler
 Raking Claws
 Rampaging Cyclops
 Raptor Companion
@@ -344,6 +347,7 @@ Soul Shred
 Soulshriek
 Spawn-Gang Commander
 Spine of Ish Sah
+Sprouting Thrinax
 Squirrel Sanctuary
 Stinging Hivemaster
 Stone Catapult
@@ -397,6 +401,7 @@ Vector Asp
 Vengeful Dead
 Vengeful Rebirth
 Verix Bladewing
+Vihaan, Goldwaker
 Viridian Harvest
 Virtue's Ruin
 Vitu-Ghazi Guildmage
@@ -416,6 +421,7 @@ Whirlwind Technique
 Wildwood Geist
 Willow Faerie
 Willow-Wind
+Windborn Muse
 Wing Puncture
 Woodland Wanderer
 Woodwraith Strangler

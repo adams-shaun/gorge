@@ -62,6 +62,7 @@ Cateran Kidnappers
 Cavalier of Flame
 Chasm Guide
 Chief of the Scale
+Chilling Apparition
 Clan Crafter
 Cloudkin Seer
 Colossal Majesty
@@ -98,8 +99,10 @@ Duskwielder
 Dying Wish
 Earth Rift
 Earthquake
+Ebony Fly
 Eidolon of Astral Winds
 Elemental Appeal
+Elf Replica
 Elven Rite
 Embrace the Unknown
 Emergent Growth
@@ -137,6 +140,7 @@ Geist of the Moors
 Ghitu Chronicler
 Ghostfire Slice
 Giant Spectacle
+Giant's Ire
 Gift of the Deity
 Gigapede
 Golden-Tail Disciple
@@ -223,6 +227,7 @@ Nameless One
 Nessian Courser
 Night Incarnate
 Night of Souls' Betrayal
+Nikko-Onna
 Nip Gwyllion
 Norn's Wellspring
 Nylea's Emissary
@@ -327,6 +332,7 @@ Tin Street Market
 Titania's Command
 Transluminant
 Transmogrifying Wand
+Trespasser's Curse
 Tribal Unity
 Tromokratis
 Ultimate Alliance
