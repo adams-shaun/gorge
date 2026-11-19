@@ -126,6 +126,7 @@ the SpellBench v2 engine may.
 | `dirac/neteval` | Only `bots/netsimd`, `bots/gonet` and `bots/policynet`, the networks and their input types; never the engine. |
 | `dirac/oracle` | Yes: it runs gorge as the oracle. |
 | `dirac/shadow` | `engine/view` and its types only (an observation); never `engine/rules`, `engine/replay` or `dirac/oracle` outside its tests. |
+| `dirac/lab` | `engine/deck` only, to read gorge deck files; never `engine/rules`, `engine/state` or `dirac/oracle`. |
 | `dirac/kgen` | Yes: it lowers gorge's card IR into `kop` tables. |
 | `dirac/adapter` | Yes, gorge's view, decision and card types, and never `engine/rules` itself, `engine/replay` or `dirac/oracle`: it serves a game with no rules engine built. |
 | `dirac/cmd/sbv2dirac` | Yes: it runs gorge as the lockstep shadow. |
@@ -144,6 +145,7 @@ A new import in the no column is a review failure even if the tests pass.
 | `dirac/cardset/pools` | One directory per card pool, with its committed inputs, `cards.txt` and `ids.tsv`. `fdn`, `blb` and `pauper` are full-set pools; the pools under `fixtures/` exercise one mechanic at a time. |
 | `dirac/oracle` | The engine-neutral seam to gorge: `Side`, `GorgeSide`, `RealKernel`/`FDNSide`, `Lockstep`, `Fuzz`, `Replay`, `Repro` and the policies. "Lockstep" means both engines get the same decks and seed and every decision and projection is compared. Its commands are `dirac/oracle/cmd/kfuzz` (lockstep fuzzer), `dirac/oracle/cmd/khbot` (dirac heuristic-bot parity) and `dirac/oracle/cmd/ksbt` (dirac sb-tactical parity). |
 | `dirac/shadow` | Stages a `dirac.State` from a seat's observation (`engine/view`) plus a caller-supplied assignment of the hidden zones, through `dirac.NewFromWorld`; a position outside the minimal scope (two seats, lands and combat-keyword creatures, quiet priority step) is a typed `dirac.ErrUnstageable`. Reads no gorge game state. |
+| `dirac/lab` | A small wrapper to play games and set up experiments on dirac from Go: games from deck lists with readable actions, `Fork`, a position `Hash`, the `Random`, `HBot` and `Search` policies, and `Play`/`Batch` with win rates and Wilson intervals. No gym or Python binding. See [engines/lab.md](../docs/site/engines/lab.md). |
 | `dirac/adapter` | A dirac game behind `engine/game`: what `gorged -engine dirac` serves, with a log and views derived from positions. See [serving](docs/serving.md). |
 | `dirac/canon` | The canonical vocabulary the oracle and the adapter share, and dirac's translation into it. |
 | `dirac/support` | Which cards are supported: the `evidence` and `refused` lists. |
