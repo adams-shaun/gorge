@@ -329,15 +329,15 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 		return
 	}
 	atk := PlayerCode(s.nextAlive(SeatIx(p)))
-	if in.B.N&kop.TokAttackAsk == 0 && s.opponentHasWalker(k, p) {
+	if in.B.N&kop.TokAttackAsk == 0 {
+		atk = s.riderSeat(p)
+	}
+	if in.B.N&kop.TokAttackAsk == 0 && !s.g.tokDefSet && s.opponentHasWalker(k, p) {
 		// Adeline's "that player or a planeswalker they control": gorge asks
-		// (CR 508.4, tokenAttackingRider) when the opponent controls one;
-		// the kernel does not model the pick.
+		// (CR 508.4, tokenAttackingRider); tokenDefenderAsk poses the pick
+		// before the mint, so only a mint path without it (a batch) lands here.
 		s.capFull(StallDefenderPW)
 		return
-	}
-	if in.B.N&kop.TokAttackAsk == 0 && s.g.repEnd != 0 && !DebugTokAtkNextSeat {
-		atk = PlayerCode(s.g.eachPl) // Adeline: the repeated opponent
 	}
 	if s.g.tokDefSet {
 		atk = s.g.tokDef
@@ -430,6 +430,9 @@ func (s *State) tokenCombatWindow(p uint8) bool {
 //
 //go:noinline
 func (s *State) tokenDefenderAsk(k *prep, in *kop.Instr, p uint8) bool {
+	if in.B.N&kop.TokAttacking != 0 && in.B.N&kop.TokAttackAsk == 0 && !s.g.tokDefSet {
+		return s.riderDefenderAsk(k, p)
+	}
 	if in.B.N&(kop.TokAttacking|kop.TokAttackAsk) != kop.TokAttacking|kop.TokAttackAsk || s.g.tokDefSet || !s.tokenCombatWindow(p) {
 		return false
 	}
@@ -447,6 +450,62 @@ func (s *State) tokenDefenderAsk(k *prep, in *kop.Instr, p uint8) bool {
 	}
 	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, p, objWord(uint8(NoSlot))
 	return true
+}
+
+// riderSeat is the player a TokenAttacking$ rider names for a token p mints:
+// the next live seat, or Adeline's repeated opponent (s.g.eachPl).
+func (s *State) riderSeat(p uint8) TCode {
+	if s.g.repEnd != 0 && !DebugTokAtkNextSeat {
+		return PlayerCode(s.g.eachPl)
+	}
+	return PlayerCode(s.nextAlive(SeatIx(p)))
+}
+
+// riderDefenderCands lists Adeline's CR 508.4 defenders in gorge's option
+// order (tokenAttackingRider): the rider's seat, then the planeswalkers that
+// seat controls in battlefield order (no battles: its grammar names none).
+func (s *State) riderDefenderCands(k *prep, p uint8, buf *[MaxOptions]TCode) int {
+	seat := CodeSeat(s.riderSeat(p))
+	buf[0] = PlayerCode(seat)
+	n := 1
+	var m slotMask
+	for q := s.ctrlM[seat]; q.any(); q = q.rest() {
+		if sl := q.first(); s.typesGen(k, sl)&kop.TPlaneswalker != 0 && !s.faceDown(k, sl) {
+			m = m.with(sl)
+		}
+	}
+	var order [MaxPerm]Slot
+	c := s.battlefieldOrder(seat, m, order[:], 0)
+	for _, sl := range order[:c] {
+		if n < MaxOptions {
+			buf[n] = TCode(s.perms[sl].obj)
+			n++
+		}
+	}
+	return n
+}
+
+// riderDefenderAsk poses the pick for a TokenAttacking$ rider that is not
+// the plain True form (Adeline: "that player or a planeswalker they control"),
+// before the mint as tokenDefenderAsk does; its answer is stored as tokDef.
+// Not combat-window gated: gorge asks wherever the rider resolves. true: posed.
+func (s *State) riderDefenderAsk(k *prep, p uint8) bool {
+	var buf [MaxOptions]TCode
+	if s.riderDefenderCands(k, p, &buf) < 2 {
+		return false
+	}
+	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, p, objWord(uint8(NoSlot))
+	return true
+}
+
+// riderAskPending reports the pending raGenEnterDefender ask as riderDefenderAsk's
+// (its mint instruction carries TokAttacking without TokAttackAsk).
+func (s *State) riderAskPending(k *prep) bool {
+	if s.res.ask != raGenEnterDefender || Slot(s.res.chosen) != NoSlot {
+		return false
+	}
+	in := &s.prog(k)[s.res.pc]
+	return in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokAttacking|kop.TokAttackAsk) == kop.TokAttacking
 }
 
 // sacSelfMana reports whether the permanent at sl is a mana source whose

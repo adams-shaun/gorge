@@ -108,6 +108,9 @@ func (s *State) askOptionsCzParams(k *prep, d *Decision) bool {
 // enteringDefenders order (chooseEnteringDefender). stall: a trigger with no
 // bound defending player stalls (enterDefenderFallback); false only reads.
 func (s *State) enterDefenderOptions(k *prep, buf *[MaxOptions]TCode, stall bool) int {
+	if s.riderAskPending(k) {
+		return s.riderDefenderCands(k, s.res.askP, buf) // filter_combatwords.go
+	}
 	n := s.enteringDefenderCands(k, s.res.askP, buf)
 	if !s.duel() && s.res.e.kind == seTrigger {
 		fb, unbound := s.enterDefenderFallbackOf(k, s.res.askP)
