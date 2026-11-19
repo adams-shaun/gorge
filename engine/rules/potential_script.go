@@ -689,7 +689,14 @@ func (sr *scriptSearch) priced(pool *Engine, c *Engine) bool {
 	if sr.phased && !sr.consumes(c) {
 		return false // the fallback's scope: only a play whose own cost consumes a permanent
 	}
-	if paymentPlanConsumes(*got.Plan) && !c.witnessReachesFrom(pool, sr.p, o, *got.Plan) {
+	if paymentPlanConsumes(*got.Plan) && !c.witnessReachesMode(pool, sr.p, o, *got.Plan, true) {
+		// winOK: a payment whose own sacrifice trigger ends the game in the
+		// payer's favour still reaches the play (CR 104.3, 603.3b), exactly
+		// as the plan offer counts it (payment_plan.go's witnessReachesMode
+		// call). Without it the replay rejects the winning line and the
+		// prefix search drops a legal cast (dr-mbc-bbba, Briarblade Adept at
+		// decision 449: the Havoc Jester trigger from a Treasure sacrifice is
+		// lethal and every branch then fails).
 		if sr.nodePlans {
 			sr.unproven = true
 		}
