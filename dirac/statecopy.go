@@ -83,6 +83,11 @@ type ForkPool struct {
 	// gorge's unlessWindowUnits does: a source's own mana, never a
 	// Produced$ Chosen TapsForMana trigger's extra (addGatedExtra).
 	census bool
+	// inFilt: filtScript's search is running (nesting count). Its trial nodes'
+	// plain walk lists only what the census itself pays, so legal.go
+	// actScriptPays declines there. Pooled, not a State field: a fixed field
+	// fails TestNoNewFixedStateFields.
+	inFilt int
 }
 
 // warmForkDepth is past the deepest nesting measured, 5 in random play.

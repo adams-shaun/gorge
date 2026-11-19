@@ -722,7 +722,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 			if !s.phyActAffords(k, sl, a, p.ctrl, manaCost, av) {
 				return false
 			}
-		} else if !s.abilityAffords(k, sl, a, &manaCost, av) {
+		} else if !s.abilityAffords(k, sl, a, &manaCost, av) && !s.actScriptPays(k, sl, ab, a) {
 			return false
 		}
 	}
@@ -782,6 +782,52 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 		return s.costManaDisjoint(k, sl, a, av, pm)
 	}
 	return true
+}
+
+// availNoActScript is an availX mode bit for scriptPrefix's "does the plain
+// walk list this play" probe: the listing it reads is the plain census's own,
+// not the one actScriptPays adds, so a play only the filter script pays still
+// gets that script played at its prefix (CR 601.2g-h) rather than reaching the
+// mana step with no plan.
+const availNoActScript uint16 = 2048
+
+// actScriptPays prices an activation whose plain census is short against the
+// filter script (mana_filter.go filtScript), the route scriptOffers gives a
+// play the census itself lists: on a board with a first-only filter beside
+// plain mana — Viridescent Bog's "{1},{T}: Add {B}{G}" beside the Prism
+// token's tap-sacrifice in the repro — the offer census counts neither
+// (availFilt's filtOnly/mixBoard gate, mana_filter.go), while gorge's planner
+// prices the chain: the Prism's mana pays the Bog's fee, the Bog's {B}{G} pays
+// the activation (CR 605.3a-b, mana_filterfirst.go filtFirstAdmit). The search
+// is the payment itself, so its verdict is exact — it pays the equip {2} and
+// refuses a {3} one.
+//
+// A board holding a net-negative filter (fee above production) keeps the older
+// scripts' answer: the fallback declines wholesale, because the search prices
+// that fee as part of the payment (the Orzhova board's Energy Refractor ran
+// the filter search inside its own search until the cap). That withholds a
+// mixed board's play which its positive filters could fund; the census/prefix
+// route owns only some of those shapes. Narrowing the gate needs a search that
+// skips the net-negative filters, not a board-wide test.
+//
+// Only a plain printed cost is priced (plainPricedCost): an X, hybrid, snow,
+// Phyrexian, own-reduce, power-up, waterbend, tap-X or sacrifice cost needs
+// the asks the build poses first, so the offer filtScript priced (a target-0
+// action) is not the plan the play's mana step needs (the Mana Rig's {X}{X}{X}).
+func (s *State) actScriptPays(k *prep, sl Slot, ai int, a *kop.Ability) bool {
+	// A table without a generated extension has k.gen == nil (prep.go), so
+	// scriptFilt would dereference nil. A granted/gained ability's index (255)
+	// names no printed ability, so its MakeAction could never list.
+	if k.gen == nil || ai >= 255 || a.Kind == kop.AbMana || !plainPricedCost(a) || s.g.availX&availNoActScript != 0 || s.pool != nil && s.pool.inFilt != 0 {
+		return false
+	}
+	p := s.perms[sl].ctrl
+	f := s.scriptFilt(k, p)
+	if !f.any() || s.filtNetNegative(k, f) != 0 {
+		return false
+	}
+	pa := MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai))
+	return s.filtScript(k, pa, p, false)
 }
 
 // countUntapped counts p's untapped permanents matching f.
