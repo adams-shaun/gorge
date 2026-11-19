@@ -216,8 +216,8 @@ func (s *State) lkiSubs(k *prep, sl Slot) kop.SubMask {
 		// A copy exception's changeling is a copiable all-creature-types
 		// mark, not a printed CDA (Dominion Infiltration's token); the view
 		// line is unchanged, so FeatViewTypes does not report it.
-		subs = subs.Or(s.copyExcSubs(k, sl))
-		all = all || s.copyExcAll(k, sl)
+		subs = s.copyExcSubs(k, sl, subs)
+		all = all && !s.copyExcSetsSub(k, sl) || s.copyExcAll(k, sl)
 	}
 	if all && k.gen != nil {
 		subs = subs.Or(k.gen.creatSub)

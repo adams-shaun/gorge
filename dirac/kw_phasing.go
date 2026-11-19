@@ -404,20 +404,11 @@ func (s *State) phasedPTShown(k *prep, sl Slot) (bool, int, int) {
 //
 //go:noinline
 func (s *State) phasedBasePT(k *prep, sl Slot) (int, int) {
-	p := &s.perms[sl]
 	cid := s.cardAt(sl)
 	pc := &k.cards[cid]
 	bp, bt := int(pc.power), int(pc.tough)
 	if k.gen == nil || !k.gen.has(cid, gfCDAPT) || s.genLost(k, sl) {
 		return bp, bt
 	}
-	cd := &k.t.Cards[cid]
-	for i := range cd.Abilities {
-		a := &cd.Abilities[i]
-		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCDAPT {
-			ctx := evalCtx{src: p.obj, srcSl: sl, ctrl: p.ctrl}
-			bp, bt = s.evalV(k, a.Static.VA, ctx), s.evalV(k, a.Static.VB, ctx)
-		}
-	}
-	return bp, bt
+	return s.cdaPT(k, sl, cid, bp, bt, false) // a conditioned CDA rides the battlefield scan, which skips it
 }
