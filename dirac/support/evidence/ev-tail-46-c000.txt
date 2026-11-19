@@ -17,6 +17,7 @@ Aphetto Alchemist
 Arc Lightning
 Arcane Melee
 Arcane Teachings
+Arcbound Wanderer
 Archfiend of Despair
 Argivian Phalanx
 Argothian Opportunist

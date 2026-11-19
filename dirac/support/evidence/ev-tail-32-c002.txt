@@ -164,6 +164,8 @@ Ogre Berserker
 Ondu Cleric
 Oni Possession
 Overrule
+Pattern of Rebirth
+Peer Through Depths
 Penance Stare
 Pestermite
 Phoenix Chick

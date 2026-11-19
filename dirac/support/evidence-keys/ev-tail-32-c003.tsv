@@ -2,8 +2,10 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Amulet of Kroog	45e61056e1e6a801	13	1/1		1/1	
 Bull Hippo	555877f6a29d6648	3	0/0		0/0	
 Chatter of the Squirrel	1b2ac842c78713d3	18	0/0		3/4	ix:resp
+Cho-Arrim Bruiser	8da9466c6dc4cc46	8	1/1		0/1	ix:resp
 Cloud Elemental	dc4854121b224215	11	0/0		0/0	
 Conclave Mentor	1734751da5fc61e0	6	1/1		0/1	ix:resp
+Cut	7b1b4871806241d5	8	0/0		3/7	f1/s,f1/s/x+,f1/s/x0,ix:resp
 Dryad Greenseeker	10da06049d9715a6	6	1/1		1/1	
 Explosive Impact	72838393582bdc92	4	0/0		2/2	
 Familiar Ground	9e019d807c452cca	7	0/0		0/0	
@@ -21,8 +23,10 @@ Phantasmal Sphere	1b1889e3eb82d388	4	2/2		0/1	ix:resp
 Rakshasa's Secret	c17edfcfb9c791fb	6	0/0		1/2	ix:resp
 Rescue Retriever	a70a6817ff49a5aa	4	1/1		0/1	ix:resp
 Rofellos, Llanowar Emissary	24abf4b73e08de73	5	1/1		1/1	
+Rotted Hulk	ae6b6407731b5db7	4	0/0		0/0	
 Savage Thallid	3e541ab1599bc217	3	3/3		0/1	ix:resp
 Shanna, Sisay's Legacy	7f2b94337e08e70d	3	0/0		0/0	
+Soul Bleed	4c4338ec96c1e1fb	4	1/1		1/2	ix:resp
 Toph, Earthbending Master	2ad409b3c7cd55a4	3	2/2		1/1	
 Vexing Sphinx	3f85457aabccf346	8	2/2		1/1	
 Vindictive Flamestoker	38f5dcccbad881ad	4	2/2		0/1	ix:resp

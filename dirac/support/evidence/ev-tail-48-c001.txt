@@ -1,4 +1,5 @@
 Abyssal Nocturnus
+Ace, Fearless Rebel
 Aether Figment
 Aether Rift
 Aid the Fallen
@@ -69,6 +70,7 @@ Dictate of Karametra
 Disperse
 Divine Light
 Doom's Servo-Guards
+Dovin's Veto
 Dragon's Presence
 Draining Whelk
 Drake Haven
@@ -166,6 +168,7 @@ Lifelink
 Liliana's Reaver
 Living Lies of Loki
 Living Plane
+Llanowar Visionary
 Loathsome Chimera
 Loch Korrigan
 Lorehold Pledgemage
@@ -233,6 +236,7 @@ Runed Stalactite
 Rushwood Legate
 Ryusei, the Falling Star
 Saber Ants
+Satsuki, the Living Lore
 Scale Up
 Scarwood Bandits
 Scavenged Weaponry
@@ -306,4 +310,5 @@ Wormfang Behemoth
 You Come to a River
 Yuki-Onna
 Zodiac Rat
+Zodiac Tiger
 Zuberi, Golden Feather

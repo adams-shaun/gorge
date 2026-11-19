@@ -1,8 +1,10 @@
 Acrobatic Cheerleader
+Attack-in-the-Box
 Boilerbilges Ripper
 Broodspinner
 Cackling Slasher
 Cautious Survivor
+Clammy Prowler
 Clockwork Percussionist
 Conductive Machete
 Cursed Recording
@@ -34,6 +36,7 @@ Horrid Vigor
 Impossible Inferno
 Innocuous Rat
 Insidious Fungus
+Intruding Soulrager
 Irreverent Gremlin
 Island
 Keys to the House
@@ -41,6 +44,7 @@ Killer's Mask
 Let's Play a Game
 Leyline of the Void
 Live or Die
+Marina Vendrell's Grimoire
 Meat Locker
 Midnight Mayhem
 Mirror Room
@@ -59,6 +63,7 @@ Rampaging Soulrager
 Razorkin Hordecaller
 Razorkin Needlehead
 Razortrap Gorge
+Restricted Office
 Ripchain Razorkin
 Rite of the Moth
 Savior of the Small

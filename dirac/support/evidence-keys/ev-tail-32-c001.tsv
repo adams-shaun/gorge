@@ -11,6 +11,7 @@ Brawl-Bash Ogre	61090b900dad4022	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Bull Hippo	555877f6a29d6648	3	0/0		0/0	
 Celestial Purge	fc7614349e489e95	4	0/0		1/2	ix:resp
 Chatter of the Squirrel	1b2ac842c78713d3	4	0/0		3/4	ix:resp
+Cho-Arrim Bruiser	8da9466c6dc4cc46	3	1/1		0/1	ix:resp
 Cloud Elemental	dc4854121b224215	4	0/0		0/0	
 Colossus of Akros	f965b58ddd1e5fe2	3	1/1		1/1	
 Combust	201f5d6ee6aec5b7	3	0/0		1/2	ix:resp
@@ -19,6 +20,7 @@ Consuming Sinkhole	aaba51e0a0b7d214	4	0/0		1/2	ix:resp
 Copper Host Crusher	5f977d1c52fe5ad0	5	0/0		0/0	
 Court Homunculus	0ce5e66f433ca485	4	0/0		0/0	
 Cut	7b1b4871806241d5	6	0/0		4/7	f1/s,f1/s/x+,f1/s/x0
+Darksteel Angel	390c64cd170b7e78	6	0/0		0/0	
 Death's Presence	fb2c2b24647bb67f	3	1/1		0/1	ix:resp
 Death-Hood Cobra	d778d66aca808390	8	2/2		1/1	
 Dryad Greenseeker	10da06049d9715a6	6	1/1		0/1	ix:resp
@@ -55,6 +57,7 @@ Oni Possession	e0f135010e3f4566	4	1/1		1/2	ix:resp
 Ovalchase Daredevil	da6eba29cc55f47c	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Overrule	338a725121618a58	4	0/0		2/4	f0/s/x0,ix:resp
 Penance Stare	f6dd18f79d56e3e0	6	0/0		1/2	ix:resp
+Phantasmal Sphere	1b1889e3eb82d388	4	2/2		0/1	ix:resp
 Pious Evangel	3405162343c2afb3	4	3/3		0/1	ix:resp
 Prized Statue	3fc6347c4a4dd774	4	2/2		0/1	ix:resp
 Provoke	1927cf5f31f1c64e	4	0/0		1/2	ix:resp
@@ -65,6 +68,7 @@ Reckless Imp	3a4c602681840bb2	9	0/0		2/2
 Rhox Meditant	82f31e157ebac6ad	4	1/1		0/1	ix:resp
 Root Greevil	def19c81f79ab70e	6	1/1		0/1	ix:resp
 Scragnoth	c16a2b2dcc6bc954	6	0/0		0/0	
+Shanna, Sisay's Legacy	7f2b94337e08e70d	4	0/0		0/0	
 Sokka, Swordmaster	57eafca79c98ec24	4	1/1		1/1	
 Soul Bleed	4c4338ec96c1e1fb	6	1/1		1/2	ix:resp
 Strandwalker	3587eaca0aecb313	6	2/2		0/1	ix:resp
@@ -73,6 +77,7 @@ Thran Lens	7eae2099f3b2d778	10	0/0		0/0
 Valakut Fireboar	53ea89743e709d1d	4	1/1		0/1	ix:resp
 Vaporkin	e366e826894f1096	3	0/0		0/0	
 Vivid Revival	0d44b681287d8277	4	0/0		1/2	ix:resp
+Warleader's Helix	370fb45690050f6d	4	0/0		1/2	ix:resp
 Wild Crocodile	953aede19e3ac2c4	4	1/1		0/1	ix:resp
 Wilderness Elemental	b1ffff6bdc456ae2	9	0/0		0/0	
 Witness of Tomorrows	f11687a9be46948c	6	1/1		0/1	ix:resp

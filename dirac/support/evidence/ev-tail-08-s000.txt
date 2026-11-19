@@ -5,6 +5,7 @@ Aberrant Return
 Acceptable Losses
 Aerial Caravan
 Aether Herder
+Age of Ultron
 Akoum Hellkite
 Amnesia
 An Unexpected Party
@@ -38,7 +39,9 @@ Cadira, Caller of the Small
 Call to Glory
 Call to the Netherworld
 Calming Verse
+Cartouche of Ambition
 Cartouche of Solidarity
+Cartouche of Strength
 Certain Death
 Chakram Retriever
 Chase Stein, Runaway
@@ -100,6 +103,7 @@ Goggles of Night
 Hag of Noxious Nightmares
 Hallowed Haunting
 Halvar, God of Battle
+Heirloom Blade
 Hobbit's Sting
 Honor-Worn Shaku
 Hornet Nest
@@ -114,12 +118,14 @@ Ishgard, the Holy See
 Island
 Jidoor, Aristocratic Capital
 Joiner Adept
+Juju Bubble
 Jukai Trainee
 Juvenile Gloomwidow
 Kaervek's Torch
 Kjeldoran Frostbeast
 Kolaghan Warmonger
 Kor Haven
+Kumano, Master Yamabushi
 Last Breath
 Lat-Nam Adept
 Lesser Werewolf
@@ -129,15 +135,19 @@ Lindblum, Industrial Regency
 Living Totem
 Loxodon Mystic
 Lynx
+M.O.D.O.K., Evil Intellect
 Magmaroth
 Magmatic Force
 Marionette Apprentice
 Marsh Casualties
 Mascot Exhibition
 Mass Diminish
+Mawloc
 Memorial to Unity
 Meria, Scholar of Antiquity
 Midgar, City of Mako
+Midnight Ritual
+Militia Bugler
 Mind Slash
 Mogg Squad
 Moldering Karok
@@ -188,6 +198,8 @@ Shared Triumph
 Shrine of the Forsaken Gods
 Six-Sided Die
 Skyblade's Boon
+Slingshot Goblin
+Snarespinner
 Soul Channeling
 Sphere of Reason
 Spontaneous Artist
@@ -211,6 +223,7 @@ That Which Was Taken
 The Forgotten Place
 The Terror of Serpent's Pass
 Treasure Trove
+Trial of Strength
 Troubled Healer
 Troublesome Spirit
 True Polymorph

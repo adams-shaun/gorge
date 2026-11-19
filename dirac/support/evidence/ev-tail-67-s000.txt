@@ -18,6 +18,7 @@ Bastion Inventor
 Beast Attack
 Biting Rain
 Blight Sickle
+Boldwyr Intimidator
 Bolrac-Clan Basher
 Bubble Smuggler
 Buccaneer's Bravado
@@ -32,6 +33,7 @@ Chain Lightning
 Champion's Helm
 Clackbridge Troll
 Claim the Firstborn
+Cling to Dust
 Clutch of Undeath
 Collective Resistance
 Common Iguana
@@ -74,6 +76,7 @@ Furnace Celebration
 Furnace Hellkite
 Galvanic Iteration
 Gilt-Leaf Palace
+Gnome-Made Engine
 Goblin Glider
 Goblin Racketeer
 Golden Egg
@@ -145,6 +148,7 @@ Samite Pilgrim
 Savage Conception
 Scepter of Celebration
 Scion of Oona
+Scuttling Butler
 Searing Blood
 Secure the Scene
 Selective Memory

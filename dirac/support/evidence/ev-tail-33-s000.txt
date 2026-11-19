@@ -4,13 +4,22 @@ A-Psionic Snoop
 A-Urza, Powerstone Prodigy
 Abzan Advantage
 Acrobatic Maneuver
+Aesi, Tyrant of Gyre Strait
 Aether Chaser
 Aether Vial
 Afterlife Insurance
 Agent of Horizons
 Agent of Masks
 Aid from the Cowl
+Ajani Steadfast
+Ajani Unrelenting
+Ajani's Comrade
 Ajani's Sunstriker
+Ajani, Adversary of Tyrants
+Ajani, Caller of the Pride
+Ajani, Inspiring Leader
+Ajani, Outland Chaperone
+Ajani, Strength of the Pride
 Alharu, Solemn Ritualist
 Allay
 Anaba Bodyguard
@@ -133,6 +142,7 @@ Kambal, Consul of Allocation
 Kinscaer Harpoonist
 Kjeldoran Javelineer
 Krark-Clan Grunt
+Kydele, Chosen of Kruphix
 Lava Coil
 Liege of the Pit
 Lightning Elemental
@@ -201,6 +211,7 @@ Seeker
 Seething Anger
 Shattered Dreams
 Shepherd of Rot
+Shinen of Fear's Chill
 Shu Foot Soldiers
 Shu Grain Caravan
 Sifter of Skulls
@@ -235,6 +246,7 @@ Undead Servant
 Unyaro Bee Sting
 Urborg Shambler
 Urza's Command
+Vedalken Engineer
 Verdant Embrace
 Vernal Fen
 Viashino Skeleton
@@ -248,6 +260,7 @@ Warden of the Wall
 Warmonger's Chariot
 Wayward Swordtooth
 Weatherlight Compleated
+Weatherseed Totem
 Wild Griffin
 Willow Faerie
 Wilson, Refined Grizzly

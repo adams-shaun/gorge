@@ -55,6 +55,7 @@ Campaign of Vengeance
 Canyon Lurkers
 Captivating Gyre
 Cat Oven
+Catapult Master
 Cathedral Sanctifier
 Caustic Caterpillar
 Cerebral Eruption
@@ -163,6 +164,7 @@ Horn of Gondor
 Hostile Minotaur
 Huatli's Snubhorn
 Humble
+Hydroblast
 Hydrolash
 Imposing Visage
 Inspirit
