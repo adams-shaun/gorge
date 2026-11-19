@@ -368,11 +368,11 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 			return uint8(pc.painCol) & 0x3f
 		}
 		if pc.painCol == kop.ColAny && !pc.painLife {
-			// a painland whose pain ability is Produced$ Any (Grand
-			// Coliseum): the census pins it one alt per colour beside its
-			// normal ability (unlessWindowUnits, a colour chosen on
-			// activation), with no lethal guard. A two-colour Combo painland
-			// stays its normal ability alone.
+			// a painland whose painful ability is a free "Add one mana of any
+			// color" (Grand Coliseum, CR 605.1a): gorge's unless census
+			// (unlessWindowUnits) pins that ability to every colour beside
+			// the normal one, the damage rider unpriced
+			// (A two-colour Combo painland stays its normal ability alone.)
 			return prim | uint8(pc.painCol)&0x3f
 		}
 		return prim
