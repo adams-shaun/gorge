@@ -1697,6 +1697,10 @@ func (s *State) flushSac(k *prep) {
 		bOld = s.batchOpen() // one sacrifice batch (trig_oneormore.go)
 	}
 	hr := s.holdOpen(k)
+	// the pool merely holding an until-leaves card is no hold: only a return
+	// that waits on this flush (a link on a sacrificed permanent, a departed
+	// one's cards held) cannot be placed after a parked move (sacReturnHold)
+	holds := hr.on && s.sacReturnHold(ord[:n])
 	// The moves before the first parked one (repl_sacbatch.go) go now, as
 	// gorge's earlier emits did; the parked ones are sacrificed and move after
 	// the answer, in the same batch.
@@ -1718,7 +1722,7 @@ func (s *State) flushSac(k *prep) {
 	for i, sl := range ord[:w] {
 		s.removePerm(k, sl, zs[i], false)
 	}
-	if parked && hr.on {
+	if parked && holds {
 		// gorge holds an until-leaves return to the end of the whole flush;
 		// the parked moves run after this frame closes, so it cannot be told
 		// apart from a return between the moves.
