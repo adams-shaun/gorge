@@ -142,7 +142,7 @@ func (s *State) windowUnpricedOpenIf(k *prep, e *stackEntry, open bool) bool {
 			return true
 		}
 	}
-	return false
+	return s.handManaAny(k, e.ctrl) // a hand guide (mana_handguide.go)
 }
 
 // restrManaUntapped: sl is an untapped permanent with a restricted mana ability.
@@ -286,6 +286,9 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		// under Contaminated Ground's Taps watcher) is taken in its place, whoever calls
 		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor, s.deferLive(k), potential, census)
 		if sl == NoSlot {
+			if !census && s.windowHandMana(k, p, useful, clamp, anyColor) {
+				continue // a hand guide, listed after every battlefield source (mana_handguide.go); the unless census prices none (unlessWindowUnits)
+			}
 			return false, held
 		}
 		if gap {
