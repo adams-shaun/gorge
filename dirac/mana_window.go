@@ -336,6 +336,13 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		if s.payWinHybFilt(k, p, sl, noOwed && !clamp && !anyColor && !potential) {
 			continue // payWindow: a hybrid-fee filter's lowest Combo answer (mana_paywinanswer.go)
 		}
+		if clamp && !anyColor && s.windowFiltOwedPick(k, p, sl, useful) {
+			// the clamp kept the source for a filter beside a plain ability: the
+			// owed window lists it first (mana_filter.go windowFiltOwedPick), and
+			// its colour ask answers what the cost still owes
+			s.windowFiltFirst(k, p, sl, useful, false)
+			continue
+		}
 		own := &k.cards[s.cardAt(sl)]
 		pc := s.windowGrantPC(k, sl)
 		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && own.castSrc != 0 {

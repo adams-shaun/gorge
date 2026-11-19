@@ -585,6 +585,9 @@ func (w *filtWalk) activate(t avail, st filtPos) int {
 		if col, ok := s.filtFeePip(k, sl); ok && !t.canMake(col) {
 			continue // no mana made so far can be the fee's {c}: another filter may make it first
 		}
+		if a, b, ok := s.filtHyb(k, sl); ok && !t.canMakeAny(uint8(1)<<uint(a)|uint8(1)<<uint(b)) {
+			continue // no mana made so far can be the fee's {a/b}: another filter may make one first
+		}
 		if pc != nil {
 			if !s.filterOwnTakes(k, &t, sl, pc) {
 				// The filter's own production was already spent as an earlier
@@ -606,6 +609,13 @@ func (w *filtWalk) activate(t avail, st filtPos) int {
 		// the total-only reading.
 		if col, ok := s.filtFeePip(k, sl); ok {
 			return w.spendPip(t, st, sl, fee, col) // the fee's {c} needs mana that can be c (CR 107.4)
+		}
+		if a, b, ok := s.filtHyb(k, sl); ok {
+			// the fee's {a/b} needs mana that can be a or b (CR 107.4c): the
+			// hybrid fee is no generic part (gorge's castWindowPays funds it
+			// through the ordinary pip payment, mana_filterhybrid.go
+			// filtPayHyb), so spendPip's colour set is the two faces'
+			return w.spendPipMask(t, st, sl, fee, uint8(1)<<uint(a)|uint8(1)<<uint(b))
 		}
 		if fee == 0 || t.pain.on || t.nOne != 0 { // (a one-colour source's group and entry move together or not at all)
 			t.total -= fee
@@ -638,14 +648,32 @@ func (a *avail) canMake(col int) bool {
 	return false
 }
 
+// canMakeAny: some unit of a can be a colour of mask m (a hybrid fee's two
+// faces: CR 107.4c, either pays the pip).
+func (a *avail) canMakeAny(m uint8) bool {
+	for g := 0; g < a.n; g++ {
+		if a.cnt[g] != 0 && a.mask[g]&m != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // spendPip pays the fee pip of colour col out of a group that can make col
 // (gorge's castWindowPays funds {U} with blue mana, not any mana), each such
 // group tried, then the rest of the fee (fee-1 generic) as spendFee does. It
 // returns -1 when no unit made so far can be col.
 func (w *filtWalk) spendPip(t avail, st filtPos, sl Slot, fee, col int) int {
+	return w.spendPipMask(t, st, sl, fee, uint8(1)<<uint(col))
+}
+
+// spendPipMask is spendPip over a colour mask: each of its colours may pay
+// the pip (a hybrid fee's two faces, CR 107.4c), so a group that can make any
+// of them may fund it.
+func (w *filtWalk) spendPipMask(t avail, st filtPos, sl Slot, fee int, pip uint8) int {
 	best := -1
 	for g := 0; g < t.n; g++ {
-		if t.cnt[g] == 0 || t.mask[g]&(1<<uint(col)) == 0 {
+		if t.cnt[g] == 0 || t.mask[g]&pip == 0 {
 			continue
 		}
 		u := t
@@ -716,6 +744,30 @@ func (s *State) windowFiltUseful(k *prep, p uint8, sl Slot, want uint8) bool {
 		return pl.pool[a] >= 1 || pl.pool[b] >= 1 // the plain pool, as the pip arm above reads it
 	}
 	return poolTotal(&s.pl[SeatIx(p)]) >= s.filtFee(k, sl)
+}
+
+// windowFiltOwedPick: the clamp kept sl (windowClampSkip read no colour of the
+// cost still owed in its plain tap) only for a filter beside a plain ability,
+// whose colours windowFiltUseful makes. gorge's window lists the
+// owed-colour abilities first (pay.owedAbilitiesFirst, a stable partition of
+// the source's ability order), so the answer takes the filter, whose colour
+// ask answers what the cost still owes (windowFiltFirst) -- the paid window's
+// payWinHybFilt arm, which lists the filter first for its lowest symbol, on
+// the window whose ask carries the cost. An unsettled generic keeps the
+// listing order: gorge lists the plain tap first and takes it.
+func (s *State) windowFiltOwedPick(k *prep, p uint8, sl Slot, useful *kop.ManaCost) bool {
+	if k.gen == nil || !k.gen.has(s.cardAt(sl), gfFilt) || s.filtFirstOnly(k, sl) || !s.filtUsable(k, sl) {
+		return false
+	}
+	want, decided := s.windowUseful(k, p, useful)
+	if !decided {
+		return false
+	}
+	if (s.windowSrcMask(k, sl)|s.windowEachMask(k, sl))&want != 0 {
+		return false // the plain tap answers an owed colour first: the stable partition keeps it
+	}
+	r := s.windowFiltUseful(k, p, sl, want)
+	return r
 }
 
 // windowRestrUseful: sl has a restricted tap mana ability that makes a colour in
