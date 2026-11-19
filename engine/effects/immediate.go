@@ -98,10 +98,15 @@ func effImmediateTrigger(h Host, c *Ctx, sa *cards.SA) {
 	// shared helper refTargets' TriggerRemembered case also uses (so the two
 	// cannot disagree about what Forge's host list holds).
 	parent := rememberedExcludingCapture(h, c)
-	// TriggerAmount$ against the capture-excluded ctx, so the Remembered$-
-	// anchored count heads see exactly what the script remembered.
+	// TriggerAmount$ against the ctx's own Remembered and Captured: every
+	// Remembered$-anchored count head (Count$RememberedNumber, Remembered$Amount,
+	// ...) applies rememberedExcludingCapture itself, so it sees exactly what
+	// the script remembered. Handing it the already-excluded parent set
+	// excluded the capture TWICE: Auron, Venerated Guardian's attack trigger
+	// captures Auron and its RememberAmount$ counter entry is Auron too, so the
+	// second pass ate that entry and "when you do" never triggered (CR 603.12).
 	amountCtx := *c
-	amountCtx.Remembered = append([]state.Target(nil), parent...)
+	amountCtx.Remembered = copyTargets(c.Remembered)
 	amount := Num(h, &amountCtx, sa, "TriggerAmount", 1)
 	if amount < 0 {
 		amount = 0

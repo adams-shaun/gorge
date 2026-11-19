@@ -117,8 +117,12 @@ func (e *Engine) startEcho(stackObj, source state.ObjID, sa *cards.SA) {
 	o := e.G.Obj(source)
 	stack := e.G.Obj(stackObj)
 	// A source that left, or phased out in response (CR 702.26b: treated as
-	// though it does not exist), is asked nothing and sacrificed by nothing.
-	if !pay.ExistsOnBattlefield(o) || stack == nil {
+	// though it does not exist), is asked nothing and sacrificed by nothing;
+	// so is one that left and returned since the trigger went on the stack
+	// (CR 400.7: Blur flickering Bone Shredder in response makes a new
+	// object the echo trigger has no relation to; XMage's EchoEffect reads
+	// getSourceObjectIfItStillExists the same way).
+	if !pay.ExistsOnBattlefield(o) || stack == nil || effects.SourceIsNewObject(e.G, stack) {
 		e.finishResumption(stackObj)
 		return
 	}
