@@ -59,6 +59,7 @@ Prize Pig
 Renegade Freighter
 Ring of Gix
 Sandals of Abdallah
+Scholar of the Ages
 Scrapskin Drake
 Serrated Biskelion
 Serum Visionary
@@ -70,6 +71,9 @@ Soulknife Spy
 Spell Snuff
 Spire Monitor
 Squirrel Mob
+Steamcore Weird
+Super Mutant Scavenger
+Synth Infiltrator
 Tangle Mantis
 Terravore
 Thaumaturge's Familiar

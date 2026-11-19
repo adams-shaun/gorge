@@ -55,9 +55,11 @@ Hypnotic Grifter	fdfeaa4e4c77f064	3	1/1		0/1	ix:resp
 Impaler Shrike	ab71ae5a00143b18	4	1/1		0/1	ix:resp
 In Oketra's Name	21604e5c6e3ed615	8	0/0		1/2	ix:resp
 Inspiring Bard	439cc9c9157013cb	6	1/1		0/1	ix:resp
+Inventor's Goggles	6b1755026f14542c	12	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Iridescent Blademaster	85a5013a9d2fff22	8	1/1		0/1	ix:resp
 Iron-Craw Crusher	1d8ddbf5eae4a270	12	1/1		3/3	
 Jet Medallion	c33ce849c3bb6cfa	10	0/0		0/0	
+Lammastide Weave	67e9234575690637	4	0/0		2/2	
 Leaf Gilder	f10d26dbfaa03666	12	1/1		1/1	
 Leery Fogbeast	ef1a022c46f31fe5	6	1/1		0/1	ix:resp
 Leyline of the Meek	986941bb9d747664	3	0/0		0/0	
@@ -84,6 +86,7 @@ Planar Birth	f5ac93e59125fb92	4	0/0		1/2	ix:resp
 Presence of Gond	5458956cb20bdee4	4	0/0		1/2	ix:resp
 Prey's Vengeance	18687a8202d2dd04	8	0/0		2/2	
 Primal Order	0140d7fc4c7af360	4	1/1		0/1	ix:resp
+Primeval Titan	241f735ca800f294	3	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Rapid Decay	25628604350d8801	6	1/1		2/2	
 Reach of Branches	5261660bd3b82f41	11	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Reject Imperfection	7a9732c355b28d32	8	0/0		2/2	
@@ -123,6 +126,7 @@ Thriving Rhino	a069032a813bb848	21	2/2		1/1
 Tidal Kraken	a5fdfc19be3e9500	3	0/0		0/0	
 Titan of Eternal Fire	94ef666f34e726ed	4	0/0		0/0	
 Tree Monkey	a5f8de427e39cb68	6	0/0		0/0	
+Treefolk Umbra	90275ff41d2a1084	9	0/0		1/2	ix:resp
 Triton Waverider	b17f1c2cd2dc170d	23	1/1		1/1	
 Turtleshell Changeling	7a664fbb80e73809	6	1/1		0/1	ix:resp
 Uktabi Drake	bea45489967bc1f7	8	1/1		0/1	ix:resp

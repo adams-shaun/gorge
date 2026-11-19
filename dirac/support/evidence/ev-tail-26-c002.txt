@@ -1,3 +1,4 @@
+A-Riveteers Initiate
 A-Stimulus Package
 Accursed Centaur
 Act on Impulse
@@ -106,6 +107,7 @@ Killer Bees
 King Crab
 Kithkin Mourncaller
 Knight of Dawn's Light
+Laccolith Grunt
 Lava Axe
 Leela, Sevateem Warrior
 Legion Leadership
@@ -119,6 +121,7 @@ Makeshift Battalion
 Markov Enforcer
 Merrow Bonegnawer
 Mizzium Skin
+Moat Piranhas
 Molting Harpy
 Monster Manual
 Moss Kami

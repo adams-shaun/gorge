@@ -12,6 +12,7 @@ Amy Rose
 Ancient Amphitheater
 Angelic Blessing
 Anje's Ravager
+Apex Devastator
 Aphelia, Viper Whisperer
 Archangel of Thune
 Arctic Aven
@@ -197,6 +198,7 @@ Illicit Shipment
 Illusory Demon
 Impending Disaster
 In Bolas's Clutches
+Indrik Umbra
 Infectious Host
 Ingenuity Engine
 Insatiable Souleater
@@ -393,6 +395,7 @@ Treasure Hunt
 Triangle of War
 Triskelion
 Ukkima, Stalking Shadow
+Undermountain Adventurer
 Underworld Connections
 Unhinge
 Unholy Indenture

@@ -46,6 +46,7 @@ Breaching Hippocamp
 Brimstone Volley
 Burning Fields
 Burning Hands
+Burning Oil
 Captain's Hook
 Carnage Wurm
 Carrion Call
@@ -70,10 +71,12 @@ Crooked Custodian
 Cruel Witness
 Cystbearer
 Dark Prophecy
+Dauthi Embrace
 Dawn Evangel
 Dawnbringer Charioteers
 Delraich
 Dire Fleet Warmonger
+Disciple of Malice
 Disciple of the Vault
 Djeru's Resolve
 Dread Slaver

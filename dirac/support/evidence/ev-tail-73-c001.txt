@@ -20,6 +20,7 @@ Ancient Stirrings
 Angelic Protector
 Appetite for Brains
 Arcbound Tracker
+Archon of Falling Stars
 Arm-Mounted Anchor
 Arrogant Poet
 Ashen Rider
@@ -62,6 +63,7 @@ Chasm Drake
 Chorus of the Tides
 Cinder Barrens
 Cinder Wall
+Claws of Wirewood
 Cleansing Ray
 Cleaving Sliver
 Cleon, Merry Champion
@@ -153,6 +155,7 @@ Fortitude
 Fortress Crab
 Frenetic Sliver
 Frilled Sandwalla
+Frostveil Ambush
 Funeral March
 Fungal Plots
 Furtive Analyst
@@ -315,6 +318,7 @@ Pack Rat
 Paradise Mantle
 Patagia Tiger
 Penumbra Wurm
+Pestilent Cauldron
 Phantasmal Sphere
 Pheres-Band Warchief
 Phyrexian Crusader
@@ -348,6 +352,7 @@ Reito Lantern
 Reprocess
 Reroute
 Rhystic Study
+Roalesk, Apex Hybrid
 Roiling Waters
 Rotted Hystrix
 Rotting Legion
@@ -415,6 +420,7 @@ Spore Frog
 Starlit Mantle
 Steelform Sliver
 Steppe Glider
+Sterling Grove
 Stern Dismissal
 Sticky Fingers
 Stingerfling Spider

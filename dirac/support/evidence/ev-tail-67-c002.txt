@@ -16,6 +16,7 @@ Akroan Crusader
 Alms Beast
 Angelic Field Marshal
 Animate Land
+Appa, the Vigilant
 Aquatic Incursion
 Armor Thrull
 Asphodel Wanderer
@@ -288,6 +289,7 @@ Thunder Drake
 Thundering Sparkmage
 Thwart the Grave
 Tibor and Lumia
+Tidal Bore
 Titan Hunter
 Titan's Strength
 Topan Freeblade

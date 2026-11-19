@@ -2,6 +2,7 @@ Abbey Griffin
 Aberrant Return
 Acceptable Losses
 Aerial Caravan
+Aether Herder
 Age of Ultron
 Agent of Stromgald
 Akoum Hellkite
@@ -25,6 +26,7 @@ Battle Sliver
 Benalish Marshal
 Benalish Missionary
 Bequeathal
+Bestial Menace
 Black Market Tycoon
 Blind-Spot Giant
 Blizzard Strix
@@ -66,6 +68,7 @@ Darien, King of Kjeldor
 Death Speakers
 Death Wind
 Death's Duet
+Deathbringer Liege
 Denizen of the Deep
 Devil's Play
 Devouring Deep
@@ -280,6 +283,7 @@ Tangle Asp
 Taunting Arbormage
 Tempest of Light
 Teval's Judgment
+Teysa, Envoy of Ghosts
 Thalia's Lieutenant
 That Which Was Taken
 Thraben Valiant
@@ -301,6 +305,7 @@ Updraft
 Urborg Drake
 Valorous Steed
 Vampire Outcasts
+Vampire Slayer
 Vampiric Sliver
 Vectis Silencers
 Veilborn Ghoul

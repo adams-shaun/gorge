@@ -1,12 +1,17 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Arm with Aether	d8e8b1fe7508cac8	14	0/0		1/2	ix:resp
 Biblioplex Assistant	b25918b9f9a5e38f	4	1/1		1/1	
 Bladestitched Skaab	3b5c9a178b466c6b	12	0/0		0/0	
+Boar Umbra	1e770ae1ec04610a	41	0/0		2/2	
 Boros Cluestone	8f90e681b0387fa5	30	2/2		1/1	
+Bringer of the Red Dawn	aa7235bdf53f3ccc	3	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Charnel Serenade	950cb5c04184b9ea	34	0/0		4/4	
 Choking Miasma	2a20039f393c1314	37	0/0		4/4	
 Courier Bat	12fe5ebe16cf6ffa	49	1/1		1/1	
 Curse of Wizardry	438f7e761e459c7e	22	1/1		1/1	
 Dark Salvation	4843a6c813fe2a6a	25	0/0		2/4	f0/s/x0,ix:resp
+Deep Dish Pizza	e06fdbfa5fd9fa5b	20	1/1		2/3	cast/alt:none
+Drift of Phantasms	062138a54af7a9fd	29	1/1		0/1	ix:resp
 Drowner of Hope	a794ca93a3c89510	13	2/2		1/1	
 Echoing Decay	a8542f9d6616d6bf	45	0/0		2/2	
 Endless Obedience	11f0ab56b7b1bde4	3	0/0		1/2	ix:resp
@@ -17,6 +22,7 @@ Goblin Arsonist	f725a7fa636479dc	63	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Goblin Kaboomist	f78ded4557814052	31	1/1		1/1	
 Gore-House Chainwalker	9e99b84c18da89b6	28	0/0		0/0	
 Guildpact Informant	a8156007b5a14e5e	15	1/1		0/1	ix:resp
+Hawkeye, Bowslinger	c7356ddaa51b5996	39	1/1		0/1	ix:resp
 Hulk, Always Angry	bb20d88766294e79	14	1/1		1/1	
 Illness in the Ranks	c6727279a80a776e	24	0/0		0/0	
 Indentured Oaf	2d62388fd68e413b	17	0/0		0/0	
@@ -33,9 +39,11 @@ Nezahal, Primal Tide	1011263ce51111b6	13	2/2		1/1
 Ochran Assassin	9b669415e82677e3	36	0/0		0/0	
 Opportunity	a8e504e9deca6bf7	22	0/0		2/2	
 Pillardrop Rescuer	80ac38b499b4bce2	4	1/1		0/1	ix:resp
+Priest of the Haunted Edge	950c09681fd158e3	31	1/1		0/1	ix:resp
 Rabid Rats	be74a5eef4ffbe80	30	1/1		0/1	ix:resp
 Rampage of the Valkyries	179026eff11cd9f7	14	2/2		0/1	ix:resp
 Sawtooth Thresher	95787fda1bfbd219	11	1/1		1/1	
+Scatter the Seeds	7a0f837f9751ff28	16	0/0		1/2	ix:resp
 Scuttling Sliver	0d9415dfd7b0f50c	43	0/0		0/0	
 Shaleskin Plower	2c726cc76aafb7b7	443	1/1		2/3	cast/alt:morphed
 Silverstorm Samurai	304af09f2d489867	21	2/2		1/1	
@@ -50,6 +58,7 @@ Tombfire	1ed009276e623a64	54	0/0		1/2	ix:resp
 Triton Shorestalker	4179a558b32570bb	26	0/0		0/0	
 Undead Slayer	82b57f9a1dad10fe	28	1/1		0/1	ix:resp
 Undergrowth Champion	0ddcc44a340be610	6	1/1		0/1	ix:resp
+Unfathomable Truths	a54245622cbcbbc4	30	0/0		2/2	
 Vapor Snare	564583652c4e5361	25	1/1		2/2	
 Volcanic Rambler	6d79313cae6e979a	19	1/1		1/1	
 Wall of Wonder	f7cc4b61383187ab	15	1/1		0/1	ix:resp
