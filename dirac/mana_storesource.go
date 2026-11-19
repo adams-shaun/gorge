@@ -30,3 +30,32 @@ func (s *State) storePotential(open bool, sl Slot, ab *kop.Ability, d *payDesc, 
 	}
 	return open
 }
+
+// storeBatteryPotential is availPotentialFor's storage-battery arm (kept out
+// of the fixpoint's body): a battery's announced X (Count$xPaid) is
+// indeterminate to gorge's potentialAmount, which folds it unbounded in every
+// colour (potentialUnbounded) for the view and a cast. A trigger's own cost
+// reads it at the counters it can remove, one mana each (rules
+// potential_subcounter.go: pay ManaSubCounterXBound). The census (cen.on)
+// reads the battery at the counters it can remove, one mana each, never the
+// unbounded fold the over-bound pool keeps: gorge's relaxed census bounds a
+// gap source at its natural amount, so a battery holding no counter makes
+// nothing there (Dwarven Hold beside a kicked Flourishing Strike). Returns
+// whether the ability was a battery the walk consumed (the caller skips it).
+func (s *State) storeBatteryPotential(sl Slot, ab *kop.Ability, d *payDesc, cen *potCensus, drop uint8, addAb, fold func(Slot, uint8, uint8), open *bool) bool {
+	if !kop.StoreManaAb(ab) {
+		return false
+	}
+	if cen.on {
+		// a battery that taps beside the source's plain {T}: {C}
+		// (Mage-Ring Network) is the same tap, so its counters
+		// replace that unit's one mana instead of adding to it
+		if n := s.perms[sl].ctrN(s, int(ab.Cost.Ctr)); n > 0 {
+			cen.recStore(sl, ab, n, drop)
+		}
+		*open = s.storePotential(*open, sl, ab, d, fold)
+		return true
+	}
+	*open = s.storePotential(*open, sl, ab, d, addAb)
+	return true
+}
