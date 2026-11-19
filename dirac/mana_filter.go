@@ -1164,9 +1164,13 @@ type filtSearch struct {
 	useful   kop.ManaCost
 	usefulOK bool
 	// feeOnly: the search's gaps hold a fee-only repeatable filter (gorge's
-	// scriptSearch.feeOnly). The activation-site, one-shot and twin cuts are
-	// scoped to it, so a board with no such source keeps the base node walk
-	// other searches share a budget with (the granted-mana prefix).
+	// scriptSearch.feeOnly). The activation-site and one-shot cuts are scoped
+	// to it, so a board with no such source keeps the base node walk other
+	// searches share a budget with (the granted-mana prefix). The twin cut
+	// runs on this fee-only path and for activated plays: two indistinguishable
+	// sources reach the same payer states, and the skip is what prices a
+	// fee-carrying gap beside a row of identical basics (tail-26 pair 26),
+	// while an ordinary cast keeps the node walk the cast tables price.
 	feeOnly bool
 	// hands: the hand guides the path exiled so far (mana_handguide.go)
 	hands uint8
@@ -1854,7 +1858,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				}
 				continue
 			}
-			if fs.feeOnly && fs.twinTried(k, t, sl, tried[:ntried]) {
+			if (fs.feeOnly || fs.a.Kind() == AkActivate) && fs.twinTried(k, t, sl, tried[:ntried]) {
 				continue // an indistinguishable earlier source already walked this subtree
 			}
 			if gap && k.gen.anyFiltFirst {

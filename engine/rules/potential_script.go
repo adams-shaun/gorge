@@ -59,6 +59,11 @@ const (
 // prices (the covered-source spendability prune is cast-only).
 const potentialCastKind = "cast"
 
+// potentialAbilityKind is an activated ability's potential play kind: the
+// twin cut runs for these, where a fee-carrying gap beside a row of identical
+// basics otherwise spends the budget ordering the basics (tail-26 pair 26).
+const potentialAbilityKind = "ability"
+
 // potentialPrefixScript searches, on clones of the engine, for a sequence
 // of activations of the census's uncovered sources (gaps: the mana
 // abilities the planner census cannot price, e.g. Saruli Caretaker's
@@ -263,12 +268,13 @@ type scriptSearch struct {
 	// past, never refuse one it found.
 	subsume bool
 	// feeOnly: the census's gaps include a fee-only repeatable source (Energy
-	// Refractor's "{2}: Add one mana of any color"). The activation-site,
-	// one-shot and twin cuts below are scoped to it: they exist to float that
-	// source's fee before it is activated, and applying them to a board with
-	// no such source only moves the node walk other searches share a budget
-	// with (the granted-mana prefix's capSpent). The landed ask prune
-	// (feeStall) stays on every plain run.
+	// Refractor's "{2}: Add one mana of any color"). The activation-site and
+	// one-shot cuts below are scoped to it: they exist to float that source's
+	// fee before it is activated, and applying them to a board with no such
+	// source only moves the node walk other searches share a budget with (the
+	// granted-mana prefix's capSpent). The landed ask prune (feeStall) stays
+	// on every plain run; the twin cut (scriptTwin) runs on this fee-only
+	// path and for activated plays.
 	feeOnly bool
 	// feeStall arms the plain run's doomed-branch prune (feeOnlyAskPrune): a
 	// fee-only repeatable gap's colour ask drops the answers whose colour
@@ -923,7 +929,12 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 // the other is not a twin). Two such sources' activation subtrees are
 // isomorphic -- the same mana for the same cost -- so the branch through the
 // later one reaches no payer state the earlier one's does not, and the
-// search skips it (the kernel's filtSearch.twinTried on the same pair).
+// search skips it (the kernel's filtSearch.twinTried on the same pair). The
+// skip runs on the fee-only path and for every activated play: a fee-carrying
+// gap beside a row of identical basics otherwise spends the budget ordering
+// the basics and never prices the ability (tail-26 pair 26). A cast outside
+// the fee-only path keeps the older walk, where the cast tables price its
+// node count.
 func scriptTwin(g *state.Game, d *decision.Decision, a, b state.ObjID) bool {
 	if a == b || a == 0 || b == 0 {
 		return false
@@ -1040,7 +1051,7 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 					break
 				}
 			}
-			if sr.feeOnly && twin {
+			if (sr.feeOnly || sr.play.Kind == potentialAbilityKind) && twin {
 				continue // an indistinguishable earlier source already walked this subtree
 			}
 			if !gap && !sr.coveredSpendable(c, p, opt.Obj) {
