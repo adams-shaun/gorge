@@ -78,3 +78,14 @@ func (g *grantSrch) subsumeCols(t *State, cols []uint8, ask, named bool) []uint8
 	}
 	return out
 }
+
+// subsumeKeeps is subsumeCols' keep-rule for one enumerated answer c of a
+// multi-answer colour ask the search's gap branches walk themselves (the
+// counter-cost, wide and Taps-deferred ones): the subsume run keeps only the
+// colours the pool, its unspendable units too, holds fewer of than the cost
+// asks. The read is the ask's pool, before the step's mana floats in, as
+// branchSel's is; the branches apply it after charging the ask's node, and
+// every ask of the plain run keeps its answers whole.
+func (g *grantSrch) subsumeKeeps(t *State, c uint8) bool {
+	return g.costCol[c] > t.pl[SeatIx(g.p)].pool[c]+g.ghost[c]
+}
