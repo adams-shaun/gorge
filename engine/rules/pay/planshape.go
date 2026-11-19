@@ -937,12 +937,15 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 	}
 	budget := cost.ManaPipCount()
 	for i := range units {
-		fee := int32(0)
-		for _, a := range units[i].Alts {
-			fee = max(fee, a.Fee())
-		}
-		budget += int(fee)
+		budget += int(unitMaxFee(units[i]))
 	}
+	// The walk takes units in index order, so a fee-carrying unit listed
+	// before the source that funds its fee would never see that mana (a Mire's
+	// {1} beside a later Bridge). The payer taps in any order (askUnlessMana),
+	// so price the fee-free units first: a stable sort keeps the census order
+	// within each class and the answer deterministic.
+	units = slices.Clone(units)
+	slices.SortStableFunc(units, func(a, b WindowUnit) int { return int(unitMaxFee(a)) - int(unitMaxFee(b)) })
 	if budget <= 0 {
 		return false
 	}
@@ -993,6 +996,15 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 		return false
 	}
 	return rec(0, budget, state.Mana{}, life)
+}
+
+// unitMaxFee is the largest literal mana fee among a window unit's alts.
+func unitMaxFee(u WindowUnit) int32 {
+	fee := int32(0)
+	for _, a := range u.Alts {
+		fee = max(fee, a.Fee())
+	}
+	return fee
 }
 
 // feeFromMana pays one activation's literal mana fee (WindowAlt.CostGeneric
