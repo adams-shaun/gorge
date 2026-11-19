@@ -3210,6 +3210,8 @@ func atkScopeBits(st *kop.Static, which string, flags []string) error {
 			bit = kop.StCantAtkPlayer
 		case which == "CantAttack" && fl == "AtkWalker":
 			bit = kop.StCantAtkWalker
+		case which == "CantAttack" && fl == "AtkUnlessDef":
+			bit = kop.StCantAtkDef
 		case which == "CantAttackUnless" && fl == "TaxPlayer":
 			bit = kop.StAtkTaxPlayer
 		case which == "CantAttackUnless" && fl == "TaxWalker":
