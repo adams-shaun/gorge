@@ -367,6 +367,14 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 		if pc.painOnly {
 			return uint8(pc.painCol) & 0x3f
 		}
+		if pc.painCol == kop.ColAny && !pc.painLife {
+			// a painland whose pain ability is Produced$ Any (Grand
+			// Coliseum): the census pins it one alt per colour beside its
+			// normal ability (unlessWindowUnits, a colour chosen on
+			// activation), with no lethal guard. A two-colour Combo painland
+			// stays its normal ability alone.
+			return prim | uint8(pc.painCol)&0x3f
+		}
 		return prim
 	}
 	m := uint8(0)

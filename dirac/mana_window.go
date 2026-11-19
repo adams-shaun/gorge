@@ -333,6 +333,9 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful, noOwed) {
 			continue
 		}
+		if s.payWinHybFilt(k, p, sl, noOwed && !clamp && !anyColor && !potential) {
+			continue // payWindow: a hybrid-fee filter's lowest Combo answer (mana_paywinanswer.go)
+		}
 		own := &k.cards[s.cardAt(sl)]
 		pc := s.windowGrantPC(k, sl)
 		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && own.castSrc != 0 {
@@ -341,25 +344,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				s.bld().obsWin |= obsWinTapped // a pre-payment tap; one by the payment's own window spends its mana
 			}
 		}
-		var owed kop.ManaCost
-		col := s.windowColOwed(k, p, cost, s.windowOwedCost(k, p, cost, &owed), sl, pc, anyColor, noOwed)
-		if noOwed && clamp && !anyColor {
-			if pc.manaMulti {
-				// a cast's ability ask lists what the cost owes first (gorge owedAbilitiesFirst)
-				col = s.windowAbilityAskCol(k, p, useful, sl, pc)
-			} else if want, decided := s.windowUseful(k, p, useful); decided {
-				// the colour ask lists only what the clamp keeps (gorge
-				// paymentUsefulColours): with the generic covered, an
-				// any-colour ability answers the owed pip
-				if c, ok := s.painAnyOwed(p, useful, pc); ok {
-					col = c
-				} else if m := s.windowSrcMask(k, sl) & want; m != 0 {
-					col = bits.TrailingZeros8(m)
-				}
-			} else if c, ok := s.windowGrantFirstCol(k, p, sl, useful); ok {
-				col = c // the unsettled generic keeps every colour: the grant that makes the owed pip is listed first (mana_grantfirst.go)
-			}
-		}
+		col := s.windowWalkCol(k, p, cost, useful, sl, pc, clamp, anyColor, noOwed, potential)
 		pc = s.windowGrantAnswer(k, sl, col, pc) // the answer is a colour only a granted ability makes: the tap is the grant's (mana_grantcost.go)
 		sacOnly := windowSacOnly(k, pc)          // printed or granted (mana_grantcost.go)
 		noTap := windowNoTapPain(k, pc)          // a life-only pain unit: the pain arm below pays its life (mana_pain.go)
