@@ -520,7 +520,7 @@ func (e *Engine) payCast() {
 	// emits). The capture is already filtered to rider-bearing batches and
 	// keeps one record per spent unit, so a cast that spent ordinary (or only
 	// restricted) mana emits no rider event and stays byte-identical.
-	pc.addsCounterGrants = append([]state.ManaAddsCounterGrant(nil), e.ManaSpentAddsCounters...)
+	pc.addsCounterGrants = pay.AppendAnyAmountGrant(append([]state.ManaAddsCounterGrant(nil), e.ManaSpentAddsCounters...), pc.chorusPaid)
 	pc.addsKeywordGrants = append([]state.ManaAddsKeywordGrant(nil), e.ManaSpentAddsKeywords...)
 	// The spent mana's producing sources, from the same capture (it is
 	// consumed by fireManaSpentTriggers below, so it is read here).
