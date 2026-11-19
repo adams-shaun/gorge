@@ -21,6 +21,22 @@ import (
 // needs a choice, an event or a resource this probe does not model is
 // refused, as is any token the parser did not understand.
 func CastWindowOtherPartsAbsent(c costvocab.Cost) bool {
+	return castWindowPartsAbsent(c, false)
+}
+
+// CastWindowHybridPartsAbsent is CastWindowOtherPartsAbsent with the hybrid
+// pip lifted: a hybrid pip is pip-shaped mana (one of its pair's colours is
+// the payer's announcement, CR 107.4b), not an "other part" whose payment
+// needs an unmodelled resource. The paid-cost layer that admits the shape
+// resolves the pip itself. Every other pip form stays refused (fail closed).
+func CastWindowHybridPartsAbsent(c costvocab.Cost) bool {
+	return castWindowPartsAbsent(c, true)
+}
+
+func castWindowPartsAbsent(c costvocab.Cost, hybridOK bool) bool {
+	if !hybridOK && len(c.Hybrid) != 0 {
+		return false
+	}
 	return len(c.Discard) == 0 && len(c.SubCounter) == 0 && len(c.AddCounter) == 0 &&
 		len(c.Exile) == 0 && len(c.ExileFromTop) == 0 && len(c.Reveal) == 0 && len(c.RevealOrChoose) == 0 && len(c.RevealChosen) == 0 &&
 		len(c.Behold) == 0 && len(c.TapPermanent) == 0 && len(c.Blight) == 0 &&
@@ -29,7 +45,7 @@ func CastWindowOtherPartsAbsent(c costvocab.Cost) bool {
 		len(c.GainLife) == 0 &&
 		len(c.Return) == 0 && len(c.PutToLib) == 0 && len(c.MoveToGrave) == 0 &&
 		len(c.Mill) == 0 && len(c.Evidence) == 0 && len(c.RollDice) == 0 &&
-		len(c.Unknown) == 0 && len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 &&
+		len(c.Unknown) == 0 && len(c.Phyrexian) == 0 &&
 		len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0 && c.Snow == 0 && c.X == 0
 }
 
