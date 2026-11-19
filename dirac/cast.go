@@ -1301,7 +1301,14 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 	// restricted grant (Mm'menon's blue for a spell cast from anywhere other
 	// than the hand) is no unit of a pip ask the building hand warp cannot
 	// spend it on, as gorge's announceFeasible probes the same sources the
-	// window can activate (the X ask's availXWindow keeps the same rule)
+	// window can activate (the X ask's availXWindow keeps the same rule).
+	// A dynamic {T}, sacrifice source (Lotus Blossom) is one of those too:
+	// manaWindowAsk lists every untapped mana-ability source (CR 601.2g), so
+	// announcing its colour face leaves the cost payable through it even
+	// though the cast's payment planner prices no cast with it
+	// (planCastDynSacSkip) -- the face's feasibility is the window's read,
+	// not the planner's (tail-74 pair 25, Nature's Chant's {G/W}).
+	av.dynSac = true
 	av.xd, av.xdOn = s.payDescNow(NoObj), true
 	s.availCastWindowFor(k, e.ctrl, &av)
 	if e.kind == seAbility {
