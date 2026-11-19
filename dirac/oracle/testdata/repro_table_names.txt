@@ -1028,3 +1028,4 @@ support_returned_source custom
 trigger_x_pay_offered_when_potential_covers_x custom
 xwitness_census_total_omits_pain_units custom
 restricted_later_chosen_ability_pays_the_activation custom
+treasure_funded_red_sorcery_not_offered dr-mbc-aabb
