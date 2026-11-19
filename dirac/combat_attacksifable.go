@@ -45,3 +45,17 @@ func attackDutyOn(k *prep) bool {
 // attackDuty reports whether the permanent at sl attacks this turn if able
 // by an Effect's mark.
 func (s *State) attackDuty(k *prep, sl Slot) bool { return s.mSl(k, mechAttacksIfAble, sl) }
+
+// attackDutyLive is attackDuty with an Encore duty binding only while its
+// opponent can be attacked (encoreSeat; gorge encoreAttackDefender drops an
+// impossible duty). At two seats, and for every other duty, it is attackDuty.
+func (s *State) attackDutyLive(k *prep, sl Slot) bool {
+	if !s.attackDuty(k, sl) {
+		return false
+	}
+	if s.duel() || k.gen.ix[mechEncSeat0] == arenaNone || !s.mSl(k, mechAttacksPlayer, sl) {
+		return true
+	}
+	_, ok := s.encoreSeat(k, sl)
+	return ok
+}

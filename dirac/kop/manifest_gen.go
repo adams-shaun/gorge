@@ -1522,6 +1522,20 @@ const ExtPutCounterChoice ExtOp = 98
 
 func init() { extOpNames[ExtPutCounterChoice] = "PutCounterChoice" }
 
+// Encore (dirac/manifest/ExtOp/ExtEncore)
+//
+// ExtEncore: AB$ Encore (CR 702.141a; gorge effEncore): for each opponent, from the resolving controller in turn order, one token copy of Obj (B and C as OpCopyAsTokenEx), which attacks that opponent this turn if able; one AtEOT$ sacrifice trigger for all of them. dirac/kw_encore.go.
+const ExtEncore ExtOp = 99
+
+func init() { extOpNames[ExtEncore] = "Encore" }
+
+// Myriad (dirac/manifest/ExtOp/ExtMyriad)
+//
+// ExtMyriad: DB$ Myriad (CR 702.116a; gorge effMyriad): for each opponent other than the defending player, from the controller in turn order, the controller is asked (ChGenMyriad yes/no) and a yes makes a token copy of Obj (B and C as OpCopyAsTokenEx) tapped and attacking that player, exiled as the combat ends. dirac/kw_myriad.go.
+const ExtMyriad ExtOp = 102
+
+func init() { extOpNames[ExtMyriad] = "Myriad" }
+
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
 

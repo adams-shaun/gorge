@@ -76,6 +76,8 @@ func (s *State) mustBlockNewTurn(k *prep) {
 	s.mSlZero(k, mechLurePost)
 	s.mSlZero(k, mechAttacksIfAble) // combat_attacksifable.go
 	s.mSlZero(k, mechAttacksPlayer) // combat_attacksifable.go
+	s.mSlZero(k, mechEncSeat0)     // kw_encore.go
+	s.mSlZero(k, mechEncSeat1)
 	s.mSlZero(k, mechBlocksIfAble)  // combat_blocksifable.go
 	clear(s.mbaRecs())              // combat_mustblockatk.go
 }

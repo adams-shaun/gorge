@@ -53,14 +53,15 @@ func (s *State) copyGrantRecs(sl Slot, out *[maxOvr]cgrantRef) (n int) {
 // each time (gorge foldCopyExcept), so a copy of a copy of the same
 // exception has two instances (CR 707.3, 707.9b). The AddTriggers$ trigger
 // is the granted trigger with a program: Myriad's grant (lower_myriad.go) is
-// an Attacks trigger with none, kept once like a keyword.
+// an Attacks trigger whose program is the one ExtMyriad, kept once like a
+// keyword.
 func (k *prep) copyGrantOnce(g cgrantRef) bool {
 	ov := &k.t.Overrides[g.idx-1]
 	for _, a := range ov.Grant {
 		if a == 0 {
 			continue
 		}
-		if ab := &k.t.Cards[g.src].Abilities[a-1]; ab.Kind == kop.AbTriggered && len(ab.Prog) > 0 {
+		if ab := &k.t.Cards[g.src].Abilities[a-1]; ab.Kind == kop.AbTriggered && len(ab.Prog) > 0 && !myriadProg(ab.Prog) {
 			return false
 		}
 	}

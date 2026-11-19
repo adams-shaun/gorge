@@ -888,6 +888,7 @@ const (
 	// res.left, the answer finishes the draw step).
 	rfBodyOp
 	rfBodyTurn
+	rfOppCopy // a per-opponent copy walk is entering its copies (kw_encore.go ExtEncore, kw_myriad.go ExtMyriad): copyTokenEnterFrom gives each the duty or attack that names the opponent res.left
 )
 
 // resCtx is a resolution in progress.
