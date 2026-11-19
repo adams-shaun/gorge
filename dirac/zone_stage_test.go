@@ -50,6 +50,8 @@ func TestUnstageableReasons(t *testing.T) {
 		dirac.ReasonPriority: func(w *dirac.World) { w.Prio = 2 },
 		dirac.ReasonTurn:     func(w *dirac.World) { w.Turn = 0 },
 		dirac.ReasonLife:     func(w *dirac.World) { w.Life[0] = 1 << 20 },
+		dirac.ReasonToken:    func(w *dirac.World) { w.Objs[3].Token = true },
+		dirac.ReasonAttach:   func(w *dirac.World) { w.Objs[3].Attached, w.Objs[3].Host = true, 4 },
 		dirac.ReasonBattlefield: func(w *dirac.World) {
 			w.Objs = nil
 			for p := uint8(0); p < 2; p++ {

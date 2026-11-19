@@ -13,26 +13,26 @@ import (
 // an observation shows. Every ErrUnstageable this package returns carries one
 // of these or one of dirac's.
 const (
-	ReasonOver     = "game-over"       // the game has ended
-	ReasonSeats    = "seats"           // not a two-seat view
-	ReasonStack    = "stack"           // the stack or the trigger queue is not empty
-	ReasonDecision = "decision"        // the view's decision is not a priority decision
-	ReasonUnknown  = "unknown-card"    // a card name the table does not hold
-	ReasonUnmapped = "unmapped-object" // an object the caller's index cannot place
-	ReasonHidden   = "hidden"          // the dealt hidden zones disagree with the counts the view shows
-	ReasonExile    = "exile"           // exile or the command zone holds a card
-	ReasonToken    = "token"           // a token or a copy
-	ReasonCounter  = "counter"         // a counter other than a nonzero +1/+1 count on a battlefield card
-	ReasonAttach   = "attachment"      // an Aura, Equipment or Fortification attached to something, or a player
-	ReasonMark     = "mark"            // counters, damage, an attachment, a combat mark, face-down, a flag
-	ReasonPool     = "pool"            // floating mana
-	ReasonStepName = "step-name"       // a step name this package does not know
+	ReasonOver     = "game-over"        // the game has ended
+	ReasonSeats    = "seats"            // not a two-seat view
+	ReasonStack    = "stack"            // the stack or the trigger queue is not empty
+	ReasonDecision = "decision"         // the view's decision is not a priority decision
+	ReasonUnknown  = "unknown-card"     // a card name the table does not hold
+	ReasonUnmapped = "unmapped-object"  // an object the caller's index cannot place
+	ReasonHidden   = "hidden"           // the dealt hidden zones disagree with the counts the view shows
+	ReasonExile    = "exile"            // exile or the command zone holds a card
+	ReasonToken    = dirac.ReasonToken  // a copy, or a token the table has no plain creature token for
+	ReasonCounter  = "counter"          // a counter other than a nonzero +1/+1 count on a battlefield card
+	ReasonAttach   = dirac.ReasonAttach // an attachment dirac cannot rebuild, or one attached to a player
+	ReasonMark     = "mark"             // counters, damage, an attachment, a combat mark, face-down, a flag
+	ReasonPool     = "pool"             // floating mana
+	ReasonStepName = "step-name"        // a step name this package does not know
 )
 
 // Reasons lists every reason WorldFromView returns that dirac does not.
 var Reasons = []string{
 	ReasonOver, ReasonSeats, ReasonStack, ReasonDecision, ReasonUnknown, ReasonUnmapped,
-	ReasonHidden, ReasonExile, ReasonToken, ReasonCounter, ReasonAttach, ReasonMark, ReasonPool, ReasonStepName,
+	ReasonHidden, ReasonExile, ReasonCounter, ReasonMark, ReasonPool, ReasonStepName,
 }
 
 var stepOf = map[string]kop.Step{
@@ -159,12 +159,21 @@ type builder struct {
 // mark the staging cannot rebuild.
 func (b *builder) add(obj uint8, name string, owner, pos int, z kop.Zone, cv *view.CardView) error {
 	id, ok := b.byName[name]
+	if cv != nil && cv.IsToken {
+		id, ok = b.tokenCard(cv)
+		if !ok {
+			return bad(ReasonToken, "%s", name)
+		}
+	}
 	if !ok {
 		return bad(ReasonUnknown, "%q", name)
 	}
 	o := dirac.WorldObj{Card: id, Owner: uint8(owner), Zone: z, Pos: uint8(pos), Ctrl: uint8(owner)}
 	if cv != nil {
 		if err := checkCard(cv, name, owner, z); err != nil {
+			return err
+		}
+		if err := b.markTokenAttach(&o, cv, name); err != nil {
 			return err
 		}
 		if z == kop.ZoneBattlefield {
@@ -193,10 +202,10 @@ func checkMarks(cv *view.CardView, name string, z kop.Zone) error {
 
 // checkCard refuses a shown card the minimal scope cannot stage.
 func checkCard(cv *view.CardView, name string, owner int, z kop.Zone) error {
-	if cv.IsToken || cv.IsCopy {
+	if cv.IsCopy || cv.IsToken && z != kop.ZoneBattlefield {
 		return bad(ReasonToken, "%s", name)
 	}
-	if cv.AttachedTo != 0 || cv.AttachedToPlayer {
+	if cv.AttachedToPlayer || cv.AttachedTo != 0 && z != kop.ZoneBattlefield {
 		return bad(ReasonAttach, "%s", name)
 	}
 	if err := checkMarks(cv, name, z); err != nil {
@@ -291,13 +300,20 @@ func (b *builder) seat(w *dirac.World, p *view.PlayerView, viewer bool) error {
 	return nil
 }
 
-// assemble orders the gathered objects by index; the indices must be 0..n-1.
+// assemble orders the gathered objects by index. The cards of the decks take
+// 0..m-1, as dirac.World lays them out, and the tokens the view shows follow;
+// a gap before a token is a token the view no longer shows. (A token that left
+// after the last shown one leaves no gap: the staged game just holds fewer
+// objects than the one that made it.)
 func (b *builder) assemble(w *dirac.World) error {
 	all := b.all
 	sort.SliceStable(all, func(a, c int) bool { return all[a].obj < all[c].obj })
 	w.Objs = make([]dirac.WorldObj, len(all))
 	for i, p := range all {
 		if int(p.obj) != i {
+			if p.wo.Token {
+				return bad(ReasonToken, "a token left the view: object index %d at %d", p.obj, i)
+			}
 			return bad(ReasonUnmapped, "object indices are not 0..%d (index %d at %d)", len(all)-1, p.obj, i)
 		}
 		w.Objs[i] = p.wo

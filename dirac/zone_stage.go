@@ -32,12 +32,15 @@ const (
 	ReasonTurn        = "turn"          // turn 0, or an active seat out of range
 	ReasonLife        = "life"          // a life total outside the int16 range
 	ReasonBattlefield = "battlefield"   // more permanents than battlefield slots
+	ReasonToken       = "token"         // a token the table cannot rebuild: not on the battlefield, not a plain creature token, or out of the layout
+	ReasonAttach      = "attachment"    // an attachment the staging cannot rebuild: not an Aura or Equipment, off the battlefield, or on a non-creature
 )
 
 // UnstageableReasons lists every reason NewFromWorld returns.
 var UnstageableReasons = []string{
 	ReasonTable, ReasonSeats, ReasonLayout, ReasonCard, ReasonZone, ReasonControl,
 	ReasonPlace, ReasonStep, ReasonPriority, ReasonTurn, ReasonLife, ReasonBattlefield,
+	ReasonToken, ReasonAttach,
 }
 
 // ErrUnstageable is the error of a position that cannot be staged.
@@ -78,6 +81,16 @@ type WorldObj struct {
 	// Damage above zero was dealt damage this turn (WasDealtDamageThisTurn).
 	Damage uint8
 	P1P1   uint16
+	// Token marks a token: a plain creature token (a CardDef with TToken) on
+	// the battlefield. Tokens come after every card of the decks in Objs, in
+	// the order they were made, so their object indices are the ones the
+	// game gave them; their owner is their controller.
+	Token bool
+	// Attached marks an Aura or Equipment on the battlefield attached to the
+	// creature at object index Host (any seat's). An Aura on the battlefield
+	// is always attached; an Equipment may not be.
+	Attached bool
+	Host     uint8
 }
 
 // World is one position, staged at a priority decision with an empty stack.
@@ -108,13 +121,31 @@ const combatKeywords = kop.KwFlying | kop.KwReach | kop.KwFirstStrike | kop.KwDo
 	kop.KwDeathtouch | kop.KwLifelink | kop.KwTrample | kop.KwVigilance | kop.KwHaste |
 	kop.KwMenace | kop.KwDefender
 
-// stageableCard reports why def is outside the minimal scope, "" when it is a
-// basic-style land (mana abilities only) or a creature with combat keywords
-// and no abilities.
-func stageableCard(def *kop.CardDef) string {
+// stageableCard reports why def is outside the staging scope, "" when it is
+// a basic-style land (mana abilities only), a creature with combat keywords
+// and at most a self +1/+1 counter ability, a plain creature token (token),
+// an Aura or Equipment of the shape zone_stageattach.go admits, or a spell
+// that only makes tokens.
+func stageableCard(def *kop.CardDef, token bool) string {
 	if def.Face != 0 || def.FaceMode != 0 || len(def.Faces) != 0 {
 		return "multi-face"
 	}
+	if token != (def.Types&kop.TToken != 0) {
+		return "token"
+	}
+	switch {
+	case token:
+		return stageableToken(def)
+	case def.Types&(kop.TAura|kop.TEquipment) != 0:
+		return stageableAttachment(def)
+	case def.Types&(kop.TSorcery|kop.TInstant) != 0:
+		return stageableTokenSpell(def)
+	}
+	return stageableBody(def)
+}
+
+// stageableBody is stageableCard for a land or a creature.
+func stageableBody(def *kop.CardDef) string {
 	const allowed = kop.TLand | kop.TBasic | kop.TCreature
 	if def.Types&^allowed != 0 || def.Types&(kop.TLand|kop.TCreature) == 0 {
 		return "type"
@@ -199,19 +230,30 @@ func (w *World) validate() error {
 	}
 	var n [2]int
 	var count [2][5][2]int // owner, zone (lib, hand, bf, grave), ctrl
-	prev := uint8(0)
+	prev, firstToken := uint8(0), -1
+	if len(w.Objs) > MaxObj {
+		return unstageable(ReasonLayout, "%d objects", len(w.Objs))
+	}
 	for i := range w.Objs {
 		o := &w.Objs[i]
-		if o.Owner >= 2 || o.Owner < prev {
+		if o.Owner >= 2 || (o.Owner < prev && !o.Token) {
 			return unstageable(ReasonLayout, "object %d owner %d", i, o.Owner)
 		}
-		prev = o.Owner
-		n[o.Owner]++
+		if !o.Token {
+			prev = o.Owner
+			n[o.Owner]++
+		}
 		if int(o.Card) >= len(w.Tbl.Cards) {
 			return unstageable(ReasonCard, "object %d card %d outside the table", i, o.Card)
 		}
-		if why := stageableCard(&w.Tbl.Cards[o.Card]); why != "" {
+		if why := stageableCard(&w.Tbl.Cards[o.Card], o.Token); why != "" {
+			if o.Token || why == "token" {
+				return unstageable(ReasonToken, "%s: %s", w.Tbl.Cards[o.Card].Name, why)
+			}
 			return unstageable(ReasonCard, "%s: %s", w.Tbl.Cards[o.Card].Name, why)
+		}
+		if err := w.checkTokenAttach(i, &firstToken); err != nil {
+			return err
 		}
 		z := 0
 		switch o.Zone {
@@ -272,7 +314,9 @@ func (s *State) initFromWorld(w *World) error {
 	}
 	var decks [MaxSeats][]CardID
 	for i := range w.Objs {
-		decks[w.Objs[i].Owner] = append(decks[w.Objs[i].Owner], w.Objs[i].Card)
+		if !w.Objs[i].Token {
+			decks[w.Objs[i].Owner] = append(decks[w.Objs[i].Owner], w.Objs[i].Card)
+		}
 	}
 	cfg := w.Cfg
 	cfg.Mulligans = 0
@@ -298,6 +342,9 @@ func (s *State) initFromWorld(w *World) error {
 		ob.zone = kop.ZoneNone
 		s.touch(Obj(i))
 		_ = o
+	}
+	if !s.stageTokens(w) {
+		return unstageable(ReasonToken, "the tokens do not take the objects after the decks")
 	}
 	// The order each zone is filled in is its Pos order.
 	idx := make([]int, len(w.Objs))
@@ -334,7 +381,9 @@ func (s *State) initFromWorld(w *World) error {
 			if o.Zone != kop.ZoneBattlefield || o.Owner != p {
 				continue
 			}
-			s.objs[i].of |= ofInHand
+			if !o.Token {
+				s.objs[i].of |= ofInHand
+			}
 			sl := s.enterNF(k, Obj(i), o.Ctrl, o.Tapped, kop.ZoneNone, 0)
 			if !o.Sick {
 				s.perms[sl].flags &^= pfSick
@@ -343,6 +392,7 @@ func (s *State) initFromWorld(w *World) error {
 			s.touchSl(sl)
 		}
 	}
+	s.stageAttached(k, w)
 	for p := range w.Life {
 		s.pl[p].life = int16(w.Life[p])
 	}
