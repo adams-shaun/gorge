@@ -46,8 +46,6 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -78,12 +76,14 @@ func offeringSacrificeSpec(f *cards.Face) (CostPart, bool) {
 	if !ok {
 		return CostPart{}, false
 	}
-	if i := strings.IndexByte(s, ':'); i >= 0 {
-		s = s[:i]
-	}
-	s = strings.TrimSpace(s)
-	if s == "" || strings.ContainsAny(s, " \t") {
+	s, _ = keywordColonField(s, 0)
+	if s == "" {
 		return CostPart{}, false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] == ' ' || s[i] == '\t' {
+			return CostPart{}, false
+		}
 	}
 	return CostPart{N: 1, Spec: s}, true
 }
