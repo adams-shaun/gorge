@@ -92,7 +92,7 @@ var effectKnownKeys = [...]string{
 	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerContains", "ConditionPlayerDefined", "ConditionPlayerTurn",
 	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionTargetValidTargeting", "ConditionTargetsSingleTarget", "ConditionZone", "CopyCard", "Cost", "CostDesc",
 	"Defined", "DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Duration",
-	"EffectOwner", "EffectZone", "Exclude", "Execute", "Exhaust", "ExileOnLost", "ExileOnMoved",
+	"EffectOwner", "EffectZone", "Exclude", "ExcludeZone", "Execute", "Exhaust", "ExileOnLost", "ExileOnMoved",
 	"FirstCombat", "ForgetCounter", "ForgetOnCast", "ForgetOnMoved", "ForgetOnPhasedIn",
 	"ForgetOtherRemembered", "ForgetOtherTargets", "FromDesc", "GameActivationLimit", "GiftDescription", "IfDesc", "Image", "ImprintCards",
 	"ImprintOnHost", "ImprintPlayed", "InstantSpeed", "IsCurse",

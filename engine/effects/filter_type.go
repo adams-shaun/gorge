@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -24,9 +25,12 @@ func hasType(o *state.Object, t string) bool { return hasTypeID(o, t, 0) }
 // hasTypeID is hasType with t's precompiled cards.InternTypeWord ordinal (0 =
 // none): the printed type-line test is one bit test when the face is bound.
 func hasTypeID(o *state.Object, t string, id cards.TypeWordID) bool {
-	d, _ := hasTypePrinted(o, t, id)
+	d, f := hasTypePrinted(o, t, id)
 	if d != typeUndecided {
 		return d == typeYes
+	}
+	if cdaAddTypeHas(o, f, t) {
+		return true
 	}
 	// Intrinsic type-defining abilities, answered in every zone (CR 613.4a):
 	// Changeling's keyword and the characteristic-defining
@@ -37,14 +41,102 @@ func hasTypeID(o *state.Object, t string, id cards.TypeWordID) bool {
 	return IntrinsicAllCreatureTypes(o) && changelingType(t)
 }
 
+// cdaAddTypeHas is the intrinsic tail's AddType$ CDA member. Two halves,
+// classified once by cards.CDAAddTypeStatic: the face's every-zone
+// characteristic-defining AddType$ statics (Veteran Adventurer's "CARDNAME is
+// also a Cleric, Rogue, Warrior, and Wizard") are in the derived list and CR
+// 613.4a answers them in every zone — a hand card's types are what its
+// printed text and its characteristic-defining abilities say, not the
+// battlefield layer walk's — while the ZONE-GATED ones are answered against
+// the object's zone (cdaAddTypeGatedHas). A face-down permanent has no
+// abilities (CR 708.2), and the layer walk's published list (which evaluates
+// the same statics on the battlefield, conditions included) is authoritative
+// where it exists, so the fallback never outranks it. f is the face
+// hasTypePrinted already resolved: a second o.Face() would re-derive it in a
+// test binary (faceVerify) and allocate on the hot filter path.
+func cdaAddTypeHas(o *state.Object, f *cards.Face, t string) bool {
+	if o == nil || f == nil || o.FaceDownHidden() {
+		return false
+	}
+	for _, x := range f.CDAAddTypes() {
+		if strings.EqualFold(x, t) {
+			return true
+		}
+	}
+	if len(f.CDAAddGatedStatics()) == 0 {
+		return false
+	}
+	return cdaAddTypeGatedHas(f, o.Zone, t)
+}
+
+// cdaAddTypeGatedHas answers the zone-gated half of the intrinsic AddType$
+// read: the face's self-scoped characteristic-defining AddType$ statics that
+// carry an ExcludeZone$/EffectZone$ zone gate (cards.CDAAddGateZone — the
+// every-zone derivation cdaAddTypes excludes them) admit their words where
+// their gate admits the object's zone. Grist, the Hunger Tide on the
+// battlefield must read as a planeswalker and nothing else: its static is
+// excluded there, and before the gate existed the fallback granted Creature
+// and Insect in every zone. A gate the read cannot evaluate
+// (cards.CDAAddGateRefused — Grand Master of Flowers' IsPresent$ loyalty
+// threshold) the same classifier refuses, staying the layer walk's, fail
+// closed.
+//
+//go:noinline
+func cdaAddTypeGatedHas(f *cards.Face, z state.Zone, t string) bool {
+	for _, i := range f.CDAAddGatedStatics() {
+		if !cdaAddZoneAdmits(&f.Statics[i], z) {
+			continue
+		}
+		for _, w := range cards.CDAAddTypeWordList(f.Statics[i]) {
+			if strings.EqualFold(w, t) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// cdaAddZoneAdmits mirrors the layer walk's source-zone gate (rules/chars'
+// StaticZoneAdmits) over the same two keys, with this package's zone
+// grammar: an ExcludeZone$ naming the object's zone (or All) denies, an
+// unparseable one is read as absent, and EffectZone$ decides otherwise —
+// empty means the battlefield, Forge's default, and an unknown word denies
+// (the fail-closed direction every unparseable zone qualifier takes).
+func cdaAddZoneAdmits(st *cards.Static, z state.Zone) bool {
+	ez := st.ParamStr(cards.PKEffectZone)
+	if xz := strings.TrimSpace(st.ParamStr(cards.PKExcludeZone)); xz != "" {
+		zones, all, ok := ParseZones(xz)
+		if ok {
+			if all || slices.Contains(zones, z) {
+				return false
+			}
+			return ez == "" || cdaEffectZoneAdmits(ez, z)
+		}
+	}
+	return cdaEffectZoneAdmits(ez, z)
+}
+
+// cdaEffectZoneAdmits is chars' EffectZoneOK over this package's grammar
+// (ZoneListOf): an empty EffectZone$ is Forge's battlefield default, an
+// unknown word denies.
+func cdaEffectZoneAdmits(v string, z state.Zone) bool {
+	if strings.TrimSpace(v) == "" {
+		return z == state.ZBattlefield
+	}
+	return ZoneListOf(v).Admits(z)
+}
+
 // hasTypeSub is hasType with changelingType(t) supplied precomputed as sub
 // (the compiled filter form classifies its type words once). Every function
 // involved is pure, so reading sub first only skips the keyword probe for a
 // word no Changeling can grant.
 func hasTypeSub(o *state.Object, t string, id cards.TypeWordID, sub bool) bool {
-	d, _ := hasTypePrinted(o, t, id)
+	d, f := hasTypePrinted(o, t, id)
 	if d != typeUndecided {
 		return d == typeYes
+	}
+	if cdaAddTypeHas(o, f, t) {
+		return true
 	}
 	return sub && IntrinsicAllCreatureTypes(o)
 }
