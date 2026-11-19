@@ -3479,16 +3479,19 @@ func (s *State) manaStep(k *prep) bool {
 				s.reverseCast(k)
 				return true
 			}
-		} else if s.bld().pipN != 0 && s.bld().bfl&bflLowered != 0 {
-			// a hybrid pip was announced on a LOWERED cast: gorge's cast
-			// planner refuses a hybrid cost (pay.PlanCostDetail "cost:hybrid"),
-			// so the cast is paid through its manual CR 601.2g window, which
-			// activates sources in battlefield order (pay.ManaSourceIDs), not
-			// the planner's ObjID-ordered witness (pay.CompareSteps). A
-			// PLANNED flexible-pip cast (twobrid, whose pips the planner now
-			// resolves) falls through to tapForSpellPlain: its announced faces
-			// are folded into the cost, so the planner ranks the resolved
-			// coloured/generic requirement exactly as gorge's plan does.
+		} else if s.bld().pipN != 0 && (s.bld().bfl&bflLowered != 0 || !s.buildIsTb(k)) {
+			// a hybrid pip was announced: gorge's cast planner refuses a
+			// hybrid cost (pay.PlanCostDetail "cost:hybrid"), so it is paid
+			// through its manual CR 601.2g window, which activates sources in
+			// battlefield order (pay.ManaSourceIDs), not the planner's
+			// ObjID-ordered witness (pay.CompareSteps). That holds for a
+			// lowered cast and for a hybrid cast offered as a potential play
+			// (which sets no bflLowered). A PLANNED flexible-pip cast
+			// (twobrid, whose pips the planner resolves) falls through to
+			// tapForSpellPlain: its announced faces are folded into the cost,
+			// so the planner ranks the resolved coloured/generic requirement
+			// exactly as gorge's plan does; a witness it cannot find pays
+			// through the same manual window there.
 			if !s.tapForHyb(k, e.ctrl, &cost, int(e.x), e.obj, anyColor) {
 				return true // stranded: the cast was reversed (static_landtype.go)
 			}
