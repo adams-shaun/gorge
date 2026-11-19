@@ -410,6 +410,10 @@ components:
           maximum: 65535
           minimum: 0
           type: "integer"
+        goaded_by:
+          contentEncoding: "base64"
+          description: "GoadedBy lists, in seat order, every seat that goads this permanent (CR 701.15: a live goad designation or a Goad$ True static it controls), nil when none does. Public like the attack it compels; omitted when empty, so a view without a goad serialises as before."
+          type: "string"
         id:
           maximum: 4294967295
           minimum: 0
@@ -2400,6 +2404,9 @@ components:
           type: "integer"
         has_initiative:
           description: "HasInitiative is the CR 726.1 initiative designation: true for the one player who currently has it. Public for every seat -- like the monarch, the designation is open information and drives attacking decisions. It carries omitempty so a match with no initiative (the common case) serialises byte-identically to before this field existed; an absent key means \"this seat does not have the initiative\", the Available convention."
+          type: "boolean"
+        is_monarch:
+          description: "IsMonarch is the CR 725 monarch designation: true for the one player who is the monarch. Public for every seat, like the initiative, and omitted when false, so a match without a monarch serialises as before."
           type: "boolean"
         land_drop_spent:
           description: "LandDropSpent is true when the seat may not play another land this turn by the land-drop count alone (lands played this turn has reached the allowance, Exploration-style extras included): the negation of MageZero's CanPlayLand, stated this way so the ordinary state -- a land still playable -- is the omitted zero. Timing (whose turn, which step, the stack) is deliberately not folded in: the fact is the count's."
