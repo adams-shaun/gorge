@@ -21,7 +21,9 @@ func (lc *lowerCtx) discardCost(c *lCost, parts []string, n int, t string) error
 		}
 		return refuse("discard cost %q: more than one discard part", t)
 	}
-	if (len(parts) == 2 || len(parts) == 3) && parts[1] == "CARDNAME" && n == 1 {
+	if (len(parts) == 2 || len(parts) == 3) && (parts[1] == "CARDNAME" || parts[1] == "NICKNAME") && n == 1 {
+		// NICKNAME is Forge's self-reference spelling of CARDNAME; gorge's
+		// pay.costparts reads both as the source (channel)
 		c.DiscardSelf = true // cycling (CR 702.29a): see costHand
 		return nil
 	}
