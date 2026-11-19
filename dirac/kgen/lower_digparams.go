@@ -214,3 +214,12 @@ func pickConstraintFilter(f *lFilter, budget lValue, hasBudget, distinct bool) *
 	f.PickDistinctPower = distinct
 	return f
 }
+
+// digFaceDownShape reports whether ExileFaceDown$ and WithMayLook$ form a
+// combination the kernel reads exactly: both or neither with an exile
+// destination, or a blind face-down exile the blind-dig arm handles
+// (lower_blinddig.go). A blind face-down exile, a look on a non-exile move and
+// one flag without the other all refuse.
+func digFaceDownShape(fd, look, blind bool, dest int) bool {
+	return (fd == look || blind) && (!fd || dest == zExile)
+}

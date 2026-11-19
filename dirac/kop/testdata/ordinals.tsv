@@ -982,6 +982,7 @@ PaySac	untyped int	3
 PaySacSelf	untyped int	8
 PaySubCounter	untyped int	12
 PayTapX	untyped int	13
+PeekHand	untyped int	8
 PeekMayReveal	untyped int	4
 PeekPublic	untyped int	1
 PeekRemember	untyped int	2
