@@ -706,14 +706,7 @@ func payManaCostAnswer(in mb.PayManaCostInput, d *decision.Decision, want decisi
 		}
 		return mb.ActOutput{ActionID: id}, nil
 	case decision.OptAutoFill:
-		advertised := false
-		for _, a := range in.Actions {
-			if a.Type == "autofill" {
-				advertised = true
-				break
-			}
-		}
-		if !advertised {
+		if !manabrew.PaymentOffersAutoFill(in) {
 			return nil, errors.New("autofill is not advertised")
 		}
 		return mb.PayOutput{Auto: true}, nil

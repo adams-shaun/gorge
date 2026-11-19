@@ -23,38 +23,65 @@ func (t *Translator) promptPriority(d *decision.Decision, v *view.View) (mb.Prom
 			// The pass and the concession are answered as outputs/directive,
 			// never as act targets.
 			continue
-		case "play_land":
-			// PlayCardMode is undefined upstream; gorge's land play is
-			// a cast with mode "play".
-			actions = append(actions, mb.AvailableAction{ID: actionID(opt.Index), Type: "cast",
-				CardID: cardID(opt.Obj), Mode: "play", Label: opt.Label})
-		case "cast":
-			actions = append(actions, mb.AvailableAction{ID: actionID(opt.Index), Type: "cast",
-				CardID: cardID(opt.Obj), Mode: opt.Mode, Label: opt.Label})
+		case "play_land", "cast":
+			// ManaBrew plays a land through a cast action too
+			// (PlayCardMode normal, or backFaceLand for a modal back face).
+			actions = append(actions, mb.AvailableAction{ID: actionID(opt.Index), Type: mb.ActionCast,
+				CardID: cardID(opt.Obj), Mode: playCardMode(opt.Mode), Label: opt.Label})
 		case "activate":
-			actions = append(actions, mb.AvailableAction{ID: actionID(opt.Index), Type: "activateAbility",
+			actions = append(actions, mb.AvailableAction{ID: actionID(opt.Index), Type: mb.ActionActivateAbility,
 				CardID: cardID(opt.Obj), AbilityIndex: opt.Ability, Description: opt.Label,
 				IsManaAbility: true, ProducedMana: manaProductions(v, opt.Obj)})
-		case "ability", "granted", "station", "unlock", "specialize", "turn_face_up":
-			actions = append(actions, mb.AvailableAction{ID: actionID(opt.Index), Type: "activateAbility",
-				CardID: cardID(opt.Obj), AbilityIndex: opt.Ability, Description: opt.Label})
 		default:
-			// A later priority option kind folds into activateAbility,
-			// labelled.
-			actions = append(actions, mb.AvailableAction{ID: actionID(opt.Index), Type: "activateAbility",
+			// "ability", "granted", "station", "unlock", "specialize",
+			// "turn_face_up", and any later priority option kind: a labelled
+			// activateAbility.
+			actions = append(actions, mb.AvailableAction{ID: actionID(opt.Index), Type: mb.ActionActivateAbility,
 				CardID: cardID(opt.Obj), AbilityIndex: opt.Ability, Description: opt.Label})
 		}
 	}
 	for _, a := range d.PaymentActions {
 		// The id is namespaced pay-<ID> (payActionID in ids.go) so a client
 		// that echoes it back can never collide with an opt-<index> action.
-		actions = append(actions, mb.AvailableAction{ID: payActionID(a.ID), Type: "cast",
-			CardID: cardID(a.Cast.Object), Label: a.Label})
+		actions = append(actions, mb.AvailableAction{ID: payActionID(a.ID), Type: mb.ActionCast,
+			CardID: cardID(a.Cast.Object), Mode: playCardMode(a.Cast.CastMode()), Label: a.Label})
 	}
 	prompt := mb.AgentPrompt{PromptID: promptID(d), DecidingPlayerID: playerID(d.Player),
 		SourceCard: t.sourceCard(v, d.Source),
 		Input:      mb.PromptInput{Value: mb.ChooseActionInput{Actions: actions}}}
 	return mb.PromptMessage{Kind: "prompt", AgentPrompt: prompt}, nil
+}
+
+// castModes maps a cast option's gorge Mode (decision.Option.Mode) onto
+// ManaBrew's PlayCardMode (manabrew-protocol src/prompts/common.rs
+// PlayCardMode, AlternativeCostKind). A mode with no ManaBrew counterpart --
+// an ordinary cast, a kicker or other additional cost, an adventure half,
+// a may-play permission -- is a normal cast: the mode names how the card is
+// played, and those play it normally.
+var castModes = map[string]mb.PlayCardMode{
+	"flashback":     {Type: mb.ModeAlternative, Cost: "flashback"},
+	"harmonize":     {Type: mb.ModeAlternative, Cost: "harmonize"},
+	"escape":        {Type: mb.ModeAlternative, Cost: "escape"},
+	"disturb":       {Type: mb.ModeAlternative, Cost: "disturb"},
+	"mayhem":        {Type: mb.ModeAlternative, Cost: "mayhem"},
+	"emerged":       {Type: mb.ModeAlternative, Cost: "emerge"},
+	"surged":        {Type: mb.ModeAlternative, Cost: "surge"},
+	"mutated":       {Type: mb.ModeAlternative, Cost: "mutate"},
+	"suspend":       {Type: mb.ModeAlternative, Cost: "suspend"},
+	"plot":          {Type: mb.ModeAlternative, Cost: "plot"},
+	"plot_cast":     {Type: mb.ModeAlternative, Cost: "plotted"},
+	"foretell_cast": {Type: mb.ModeAlternative, Cost: "foretell"},
+	"foretell":      {Type: mb.ModeForetellExile},
+	"room_alt":      {Type: mb.ModeRoomRightSplit},
+	"modal_land":    {Type: mb.ModeBackFaceLand},
+}
+
+// playCardMode is castModes' lookup, normal for every mode it does not name.
+func playCardMode(mode string) mb.PlayCardMode {
+	if m, ok := castModes[mode]; ok {
+		return m
+	}
+	return mb.PlayCardMode{Type: mb.ModeNormal}
 }
 
 // passOptionIndex is the index of the decision's pass option, or -1.

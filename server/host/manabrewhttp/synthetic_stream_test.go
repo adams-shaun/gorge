@@ -266,7 +266,7 @@ func actFor(t *testing.T, v *view.View, in mb.ChooseActionInput, castName string
 		}
 	}
 	for _, a := range in.Actions {
-		if a.Type == "cast" && a.Mode == "play" {
+		if a.Type == "cast" && strings.HasPrefix(a.Label, "Play ") {
 			return mb.ActOutput{ActionID: a.ID}
 		}
 	}
@@ -417,8 +417,8 @@ func TestSyntheticPromptsOverStream(t *testing.T) {
 		for seat, c := range map[state.PlayerID]*syntheticCollector{0: c0, 1: c1} {
 			syns, fresh := c.syntheticOf()
 			for _, pm := range syns[len(syns)-fresh:] {
-				if pm.PromptID >= 0 {
-					t.Fatalf("seat %d's synthetic %s carries promptId %d, outside the disjoint negative space", seat, pm.Input.Value.PromptType(), pm.PromptID)
+				if pm.PromptID < manabrew.SyntheticPromptIDFloor || pm.PromptID > manabrew.SyntheticPromptIDTop {
+					t.Fatalf("seat %d's synthetic %s carries promptId %d, outside the disjoint synthetic space", seat, pm.Input.Value.PromptType(), pm.PromptID)
 				}
 				switch pm.Input.Value.(type) {
 				case mb.RevealCardsInput:

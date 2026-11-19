@@ -31,7 +31,7 @@ func TestMockStopsActingForTheTurnAtItsBudget(t *testing.T) {
 // is still left: the client confirms from the pool once its steps are spent.
 func TestMockLeavesAPaymentWindowThatKeepsOfferingASource(t *testing.T) {
 	in := mb.PayManaCostInput{CardID: "o1", CanConfirmFromPool: true,
-		Actions: []mb.PaymentAction{{ID: "opt-0", Type: "activateAbility"}}}
+		Actions: []mb.PaymentAction{{ID: "opt-0", Type: mb.ActionActivateManaAbility}}}
 	c := NewSeededRandomClient(1)
 	for range maxPaymentSteps {
 		if _, step := c.answerPayManaCost(in).(mb.ActOutput); !step {

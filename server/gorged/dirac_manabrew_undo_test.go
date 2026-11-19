@@ -86,10 +86,23 @@ func landUndoGame(t *testing.T, game int, undo bool) {
 		s, _ := do(http.MethodPost, wire+"/send", raw)
 		return s
 	}
-	landOf := func(pm *mb.PromptMessage) string {
+	// landOf is the cast action that plays a land from seat 0's hand: ManaBrew
+	// plays a land through a normal cast, so the card it names tells it apart.
+	landOf := func(gv mb.GameViewDto, pm *mb.PromptMessage) string {
+		lands := map[string]bool{}
+		for _, z := range gv.Zones {
+			if z.Zone != mb.ZoneHand || z.OwnerID != "player-0" {
+				continue
+			}
+			for _, c := range z.Cards {
+				if v, ok := c.Value.(mb.VisibleCard); ok && slices.Contains(v.Types, "Land") {
+					lands[v.ID] = true
+				}
+			}
+		}
 		if in, ok := pm.Input.Value.(mb.ChooseActionInput); ok {
 			for _, a := range in.Actions {
-				if a.Type == "cast" && a.Mode == "play" {
+				if a.Type == "cast" && lands[a.CardID] {
 					return a.ID
 				}
 			}
@@ -159,7 +172,7 @@ func landUndoGame(t *testing.T, game int, undo bool) {
 		if pm == nil {
 			t.Fatalf("game %d over before a land", game)
 		}
-		if land := landOf(pm); land != "" {
+		if land := landOf(gv, pm); land != "" {
 			if respond(pm, mb.ActOutput{ActionID: land}) != http.StatusNoContent {
 				t.Fatalf("game %d: land refused", game)
 			}
@@ -170,7 +183,7 @@ func landUndoGame(t *testing.T, game int, undo bool) {
 		respond(pm, mb.PassOutput{})
 	}
 	{
-		_, pm := next("after the land")
+		gv, pm := next("after the land")
 		after := pm.PromptID
 		respond(pm, mb.PassOutput{})
 		if s, b := do(http.MethodPost, native+"/undo?seat=0", []byte("{}")); s != http.StatusNoContent {
@@ -186,12 +199,12 @@ func landUndoGame(t *testing.T, game int, undo bool) {
 			t.Fatalf("restoreSnapshot: %d", s)
 		}
 		for {
-			_, pm = next("after restoreSnapshot")
+			gv, pm = next("after restoreSnapshot")
 			if pm.PromptID == landAt {
 				break
 			}
 		}
-		land := landOf(pm)
+		land := landOf(gv, pm)
 		if land == "" || respond(pm, mb.ActOutput{ActionID: land}) != http.StatusNoContent {
 			t.Fatalf("game %d: the land is not offered again at %d", game, pm.PromptID)
 		}
@@ -204,7 +217,7 @@ func landUndoGame(t *testing.T, game int, undo bool) {
 		if pm == nil {
 			return
 		}
-		if land := landOf(pm); land != "" {
+		if land := landOf(gv, pm); land != "" {
 			if respond(pm, mb.ActOutput{ActionID: land}) == http.StatusNoContent {
 				plays++
 				playedOn[gv.Turn] = true

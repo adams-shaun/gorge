@@ -197,9 +197,9 @@ func comparePlayer(t *testing.T, where string, p view.PlayerView, dto mb.PlayerD
 	if dto.Name != p.Name {
 		t.Errorf("%s: player %s name=%q native=%q", where, dto.ID, dto.Name, p.Name)
 	}
-	wantStatus := mb.PlayerStatus("active")
+	wantStatus := mb.PlayerPlaying
 	if p.Lost {
-		wantStatus = "lost"
+		wantStatus = mb.PlayerLost
 	}
 	if dto.Status != wantStatus {
 		t.Errorf("%s: player %s status=%q native=%q", where, dto.ID, dto.Status, wantStatus)

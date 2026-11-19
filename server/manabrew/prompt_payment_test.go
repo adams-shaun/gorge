@@ -42,16 +42,18 @@ func TestPayManaCostAnnounce(t *testing.T) {
 	if in.CanConfirmFromPool {
 		t.Fatal("CanConfirmFromPool must be false: this window offers no \"done\" option")
 	}
-	// Actions carries the per-step activation options: "mana" and "autofill",
-	// never "cancel_cast" (answered through cancel, not act).
-	if len(in.Actions) != 2 {
-		t.Fatalf("Actions = %+v, want 2 entries (mana, autofill)", in.Actions)
+	// Actions carries the per-step activation options only: never
+	// "cancel_cast" (answered through cancel, not act) and never "autofill",
+	// which ManaBrew's PaymentAction has no member for -- its label rides the
+	// description and pay{auto:true} selects it.
+	if len(in.Actions) != 1 {
+		t.Fatalf("Actions = %+v, want 1 entry (mana)", in.Actions)
 	}
-	if in.Actions[0].Type != "activateAbility" || !in.Actions[0].IsManaAbility {
-		t.Fatalf("Actions[0] = %+v, want an activateAbility mana action", in.Actions[0])
+	if in.Actions[0].Type != mb.ActionActivateManaAbility || !in.Actions[0].IsManaAbility {
+		t.Fatalf("Actions[0] = %+v, want an activateManaAbility action", in.Actions[0])
 	}
-	if in.Actions[1].Type != "autofill" {
-		t.Fatalf("Actions[1] = %+v, want autofill", in.Actions[1])
+	if in.Presentation.Description != "Auto-fill: tap Island" || !PaymentOffersAutoFill(in) {
+		t.Fatalf("description = %q, want the auto-fill label", in.Presentation.Description)
 	}
 
 	pending := &Pending{Prompt: msg, Decision: d}
@@ -114,8 +116,11 @@ func TestPayManaCostLegacy(t *testing.T) {
 	if !in.CanConfirmFromPool {
 		t.Fatal("CanConfirmFromPool must be true: the legacy window always offers \"done\"")
 	}
-	if len(in.Actions) != 1 || in.Actions[0].Type != "activateAbility" {
-		t.Fatalf("Actions = %+v, want exactly one activateAbility action", in.Actions)
+	if len(in.Actions) != 1 || in.Actions[0].Type != mb.ActionActivateManaAbility {
+		t.Fatalf("Actions = %+v, want exactly one activateManaAbility action", in.Actions)
+	}
+	if PaymentOffersAutoFill(in) {
+		t.Fatalf("the legacy window offers no auto-fill, yet its description is %q", in.Presentation.Description)
 	}
 
 	pending := &Pending{Prompt: msg, Decision: d}

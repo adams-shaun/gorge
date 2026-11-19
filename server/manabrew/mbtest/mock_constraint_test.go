@@ -19,7 +19,7 @@ import (
 func boardTargetInputFor(cands ...string) mb.ChooseBoardTargetsInput {
 	in := mb.ChooseBoardTargetsInput{
 		Candidates:    make([]mb.TargetRef, 0, len(cands)),
-		ChosenTargets: []mb.TargetRef{},
+		ChosenTargets: 0,
 	}
 	for _, id := range cands {
 		in.Candidates = append(in.Candidates, mb.TargetRef{Kind: mb.RefCard, ID: id})
