@@ -80,7 +80,7 @@ func (f *Face) Primitives() []string {
 		walk(t.Effect, 0)
 	}
 	for _, s := range f.Statics {
-		set["stat:"+s.Mode] = struct{}{}
+		set[statPrimitive(s)] = struct{}{}
 	}
 	for _, r := range f.Repls {
 		set[replPrimitive(f, r)] = struct{}{}
@@ -101,7 +101,7 @@ func (f *Face) Primitives() []string {
 		if c.Trigger != nil {
 			set["trig:"+c.Trigger.Mode] = struct{}{}
 		} else if c.Static != nil {
-			set["stat:"+c.Static.Mode] = struct{}{}
+			set[statPrimitive(*c.Static)] = struct{}{}
 		} else if c.Repl != nil {
 			set[replPrimitive(f, *c.Repl)] = struct{}{}
 		}

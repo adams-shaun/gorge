@@ -179,6 +179,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"rider_shape.go":          {true, "prevention rider param shape; kept in the compiler fingerprint"},
 	"saga.go":                 {false, "runtime SagaChapters parse of K:Chapter"},
 	"slot.go":                 {false, "runtime memo slots held in unexported fields gob never encodes"},
+	"stat_shape.go":           {false, "coverage stat shape labels (CantAttach Equipment shape), computed on demand, not stored"},
 	"strtab.go":               {true, "interned string tables used by compiled params"},
 	"subset.go":               {true, "writeSegments: the .seg file written beside the cache"},
 	"svar_activator.go":       {false, "runtime query SVarGrantHasActivator"},
