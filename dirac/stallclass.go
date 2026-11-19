@@ -170,6 +170,18 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 	return StallNone
 }
 
+// initStall is genPrep.initStall plus the stall flags that live on prep (the
+// fixed-State inventory is pinned, so a new flag cannot join genPrep).
+func (p *prep) initStall(nseat uint8) uint8 {
+	if why := p.gen.initStall(nseat); why != StallNone {
+		return why
+	}
+	if p.gainsOfPair {
+		return StallGainsOf // static_gainsofpair.go gainsOfPairOn
+	}
+	return StallNone
+}
+
 // pairRefusal is kop.PairGuard: why a game on t would stall at its start, and which
 // cards carry the two halves. It prepares a throwaway copy of t's header, the same
 // prepare Init runs on the table, so it refuses exactly what Init would stall. It
@@ -194,7 +206,7 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 	if g == nil {
 		return nil
 	}
-	why := g.initStall(uint8(nseat))
+	why := pp.initStall(uint8(nseat))
 	if why == StallNone {
 		return nil
 	}
@@ -273,6 +285,8 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 		b = func(_ *kop.CardDef, i int) bool { return caMixGap(tt, g, pp, i) }
 	case StallTokRewrite:
 		text, a, b = tokListAdderPair() // repl_toklistadd.go
+	case StallGainsOf:
+		text, a, b = gainsOfStallPair(t) // static_gainsofpair.go
 	case StallDiamondMix:
 		text = "a Lion's Eye Diamond beside another mana census-gap kind (a filter, a restricted or any-colour restricted source, a counter-cost or tap-another source, a deferred source, a granted mana ability, an each-colour source): gorge's one prefix search activates both and the kernel models the Diamond alone"
 		a = abilityOn(kop.DiscardHandManaAb)
