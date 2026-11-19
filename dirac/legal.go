@@ -1445,8 +1445,12 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 		if a.ModesPick > 1 || a.ModesFew != 0 || a.Repeats() {
 			return s.charmFeasible(k, a, p, src)
 		}
+		srcObj := NoObj
+		if src != NoSlot {
+			srcObj = s.perms[src].obj
+		}
 		for m := 0; m < int(a.NModes); m++ {
-			if k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, src, m) {
+			if k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, srcObj, m) {
 				continue // ChoiceRestriction$: chosen before (modal_charmpick.go)
 			}
 			if s.abilityTargetsFeasible(k, a, p, src, 1<<m) {

@@ -89,7 +89,7 @@ func (s *State) witnessKeepsTargets(k *prep, p uint8, c CardID, o Obj, cost *kop
 				}
 			}
 			for mm := 0; mm < int(a.NModes) && !ok; mm++ {
-				if covered&(1<<mm) == 0 && !(k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, NoSlot, mm)) {
+				if covered&(1<<mm) == 0 && !(k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, o, mm)) {
 					ok = true
 				}
 			}
