@@ -35,3 +35,14 @@ Utopia Sprawl
 Boseiju, Who Shelters All
 Searing Spear
 Lava Axe
+# dirac-manareflected-leftovers: the remaining ManaReflected shapes — Horizon of
+# Progress ({T} + pay 1 life), Incubation Druid (Amount$ Count$Compare over its
+# +1/+1 counters, the reflected Amount$ gap class) and The Grey Havens (the
+# reflected Is read over the graveyard, with vanilla legendary creatures to fill
+# it and a burn deck to kill them)
+Horizon of Progress
+Incubation Druid
+The Grey Havens
+Happy Hogan, Dauntless Driver
+Kalakscion, Hunger Tyrant
+Giant Growth
