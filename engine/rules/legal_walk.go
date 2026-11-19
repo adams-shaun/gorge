@@ -255,6 +255,13 @@ func (w *legalWalk) castRestrictedAsFace(p state.PlayerID, id state.ObjID, face 
 // owns); hyp==nil is the ordinary castable, hyp!=nil prices the same
 // composed cost against the hypothetical pool.
 func (w *legalWalk) affordable(q state.PlayerID, id state.ObjID, c Cost, ability bool) bool {
+	// The zero-spend shape's cast (stat:ManaRestriction, Hogaak) may spend no
+	// mana, so a composed cost priced against a pool says nothing: the may-play
+	// and escape routes take the one offer gate that prices the credits
+	// (offerCastableUsingExtra's NoMana arm, over the raw cost).
+	if !ability && manaSpendCastBan(w.e.G, id) {
+		return w.e.offerCastableUsing(w.costStatics.get(), q, id, &c, spellScope("mayplay"), false, w.pricing())
+	}
 	hyp := w.pricing()
 	if hyp == nil {
 		return w.e.castable(q, id, c, ability)

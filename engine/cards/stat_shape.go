@@ -9,7 +9,46 @@ func statPrimitive(s Static) string {
 	if s.Mode == "CantAttach" && !CantAttachEquipmentShape(s) {
 		return "stat:CantAttach.OtherShape"
 	}
+	if s.Mode == "ManaRestriction" && !ManaRestrictionZeroSpendShape(s) {
+		return "stat:ManaRestriction.OtherShape"
+	}
 	return "stat:" + s.Mode
+}
+
+// ManaRestrictionZeroSpendShape reports whether an S:Mode$ ManaRestriction
+// line is the implemented zero-spend shape: "You can't spend mana to cast
+// this spell" (Hogaak, Arisen Necropolis) -- ValidSource$ Card,Emblem with
+// InvertValidSource$ True, scoped by nothing but EffectZone$ All, so the
+// static applies from every zone its source sits in and restricts the casting
+// of its own source. rules' manaSpendCastBan enforces it: every unit of that
+// cast's cost must come from its Convoke and Delve credits, and any mana left
+// makes the cast illegal. The mode's source-restricted shapes (Myr Superion's
+// Creature.inZoneBattlefield, Imperiosaur's Land.Basic+inZoneBattlefield)
+// need per-source pool provenance state.Player does not track, so they stay
+// registered as stat:ManaRestriction.OtherShape.
+func ManaRestrictionZeroSpendShape(s Static) bool {
+	for k := range s.Params {
+		switch k {
+		case "Mode", "ValidSource", "InvertValidSource", "EffectZone", "Description":
+		default:
+			return false
+		}
+	}
+	for _, r := range zeroSpendShape {
+		if s.Params[r.key] != r.val {
+			return false
+		}
+	}
+	return true
+}
+
+// zeroSpendShape is the parameter values ManaRestrictionZeroSpendShape
+// requires (the mode itself included, so callers need not re-check it).
+var zeroSpendShape = [...]struct{ key, val string }{
+	{"Mode", "ManaRestriction"},
+	{"ValidSource", "Card,Emblem"},
+	{"InvertValidSource", "True"},
+	{"EffectZone", "All"},
 }
 
 // CantAttachEquipmentShape reports whether an S:Mode$ CantAttach line is the

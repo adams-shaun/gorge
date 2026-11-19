@@ -120,11 +120,17 @@ func (e *Engine) manaFeasiblePricedP(p state.PlayerID, desc paymentDescriptor, c
 	var pool state.Mana
 	var typed [8]state.Mana
 	switch {
+	case desc.NoMana:
+		// The zero-spend shape's payment (stat:ManaRestriction, Hogaak): the
+		// payment may spend no mana, whatever a hypothetical bound or a
+		// restricted batch would widen it to. AvailableFor answers the same
+		// empty pool for the descriptor-based entries below.
+		pool, typed = state.Mana{}, [8]state.Mana{}
 	case hyp != nil:
 		// A hypothetical bound is a pure mana bound (see costPayablePool),
 		// so its typed partition is the raw tally.
 		pool, typed = e.potentialPoolFor(p, desc.Priced(c), *hyp), pl.ManaUnits()
-	case len(pl.RestrictedMana) == 0 && desc.OnlyTag == "":
+	case len(pl.RestrictedMana) == 0 && desc.OnlyTag == "" && !desc.NoMana:
 		pool, typed = pl.Pool, pl.ManaUnits()
 	default:
 		// The restricted pool is real, and its admission can depend on the
