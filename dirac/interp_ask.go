@@ -327,6 +327,13 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 				return true
 			}
 		}
+		// a later tap-another ability beside a plain {T} first one (Relic of Legends'
+		// "tap an untapped legendary creature": Add one mana of any color) is a source
+		// while its own {T} is spent: gorge's untappedManaSourceFor lists the ability
+		// whenever its permanent to tap is there (CR 605.3a)
+		if c := s.cardAt(sl); k.tapXSecond(c) && s.potentialAdmits(k, p, sl, int(k.tapXAb[c]), &k.t.Cards[c].Abilities[k.tapXAb[c]], nil) {
+			return true
+		}
 		// an each-colour source (Bloom Tender) is a census gap with no manaAb,
 		// yet gorge's walk counts it, and reads its production as open
 		if c := s.cardAt(sl); k.gen.eachCol(c) >= 0 && s.potentialAdmits(k, p, sl, int(k.gen.eachCol(c)), &k.t.Cards[c].Abilities[k.gen.eachCol(c)], nil) {
