@@ -224,6 +224,12 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			if a.ManaEach {
 				prepEachMana(a, &v)
 			}
+			// A tap of it always floats restricted: a plan can leave part of
+			// the unit unspent (an announced X below what it over-tapped for,
+			// or a reversed cast), and the leftover keeps its restriction
+			// (CR 106.6; Vodalian Arcanist's instant-or-sorcery {C} left over
+			// from Pull from Tomorrow's over-tap paid for a creature spell).
+			v.restrFloat = true
 			if n > 1 {
 				// a restricted ability of more than one mana with no census
 				// alternative (Steelswarm Operator's activation {U}{U}, Mishra's
@@ -232,7 +238,6 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 				// payRestrX's route. What a cheaper spell leaves of Workshop's
 				// three stays under "artifact spells only" and no activation
 				// may spend it (CR 106.6).
-				v.restrFloat = true
 				g.rs.over = true
 			}
 			g.rs.views = append(g.rs.views, v)
