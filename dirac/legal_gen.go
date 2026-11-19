@@ -234,12 +234,8 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) && !s.convPoolPays(k, p, o, &cost) {
 			return // (the any-colour conversion's pool route: mana_convertcreature.go)
 		}
-	} else if s.freeOwes(k) {
-		// a free cast still pays the cost statics' increases (CR 601.2f, 118.9d)
-		cost := s.adjustCostGen(k, p, c, o, kop.ManaCost{})
-		if cost != (kop.ManaCost{}) && (!s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) || !s.windowPoolPays(p, &cost, false)) {
-			return // (a free cast is no potential play: the floating pool pays what it owes)
-		}
+	} else if !s.freeCastRaisePayable(k, p, c, o, unpriced, av) {
+		return
 	}
 	// a graveyard card cast through the permission is on the stack when its
 	// targets are chosen (CR 601.2a, 601.2c): it is no candidate for them
@@ -275,6 +271,33 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		}
 	}
 	d.add(MakeAction(AkCast, TCode(o), 0, mode))
+}
+
+// freeCastRaisePayable reports whether a cost-waived cast of o can pay the
+// cost statics' increases (CR 601.2f, 118.9d). The autopay surface lists only
+// a free cast whose raise the floating pool pays, as gorge's ordinary walk
+// does; the full surface reaches it by lowering a potential play, whose plan
+// taps the sources (Urza's Gelatinous Genesis under Thorn of Amethyst: the
+// untapped Island pays the {1}, tail-64 pair 38). That plan covers only the
+// graveyard and exile (mayPlayPlannedZone), so a hand or top-of-library
+// permission still follows the ordinary pool-only gate. An offer the planner
+// leaves unpriced (two matching permissions: "ambiguous") is never reached by
+// a potential play, so it keeps the pool-only gate too.
+func (s *State) freeCastRaisePayable(k *prep, p uint8, c CardID, o Obj, unpriced bool, av *avail) bool {
+	if !s.freeOwes(k) {
+		return true
+	}
+	cost := s.adjustCostGen(k, p, c, o, kop.ManaCost{})
+	if cost == (kop.ManaCost{}) {
+		return true
+	}
+	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
+		return false
+	}
+	if !unpriced && s.cfg&cfgGorgeAutopay == 0 && (s.cfg&cfgGorgeLowering == 0 || mayPlayPlannedZone(s.objs[o].zone)) {
+		return true
+	}
+	return s.windowPoolPays(p, &cost, false)
 }
 
 // poolOfferPays is the pool half of gorge's may-play offer gate (castable's
