@@ -1,4 +1,5 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Teferi, Time Raveler	7d19ac53e72fef06	43	2/2		1/1	
 Aeromoeba	93cf093bf2ec38b2	114	1/1		1/1	
 Ancestral Blade	cc70cc290be5f866	36	2/2		0/1	ix:resp
 Animal Sanctuary	11e2f6a0e253f36f	600	2/2		1/1	
@@ -19,6 +20,7 @@ Lightning Blow	2461230e25c31d49	65	0/0		2/2
 Luminous Wake	2f13859ab8eb2362	24	2/2		2/2	
 Memorial to Genius	5b4989c58f852e87	12	2/2		0/1	ix:resp
 Mirrorpool	79fe6d7df017e3f7	596	3/3		1/1	
+Niambi, Esteemed Speaker	1d1fa8ec003176ae	48	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Nicol Bolas, the Ravager	ba0ec63ffdf0d13d	491	6/6		1/1	
 Pillar of Origins	d9cb16ab5784cf26	106	1/1		0/1	ix:resp
 Ravenform	2f76f1de4e369607	85	0/0		3/4	cast/alt:foretold
@@ -26,5 +28,6 @@ Restoration Specialist	c3c8249538849220	47	1/1		0/1	ix:resp
 Rootborn Defenses	14ee7f76c120c037	53	0/0		2/2	
 Sejiri Refuge	4fea7a1e6613d0b7	12	2/2		0/1	ix:resp
 Sol'kanar the Swamp King	51c184946c7f2a20	67	1/1		1/1	
+Spire Patrol	36a2c2b53e3c3397	76	1/1		1/1	
 Sword Coast Serpent	83de716a8959c970	112	0/0		2/2	
 Triton Wavebreaker	c354f5419878ec5c	80	0/0		2/2	

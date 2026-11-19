@@ -1,6 +1,8 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Dueling Coach	12893c29e4ec4e51	22	2/2		0/1	ix:resp
 Aetherling	dde72ac586d59c15	42	4/4		1/1	
+Aethersnipe	c600147e2ded99e4	13	1/1		2/3	cast/alt:none
+Aethersquall Ancient	3cb0b620c9ace4b5	3	2/2		0/1	ix:resp
 Agent of Erebos	c234bd8f186b0d6a	3	1/1		0/1	ix:resp
 Akroan Mastiff	658680ac84b11368	83	1/1		1/1	
 Ambush Krotiq	d0fefc576710d889	3	1/1		1/1	
@@ -8,6 +10,7 @@ Angelic Captain	d1cd6567de77f61c	37	1/1		1/1
 Aven Fateshaper	b414b11b35b3fa86	4	2/2		0/1	ix:resp
 Bail Out	6946f53cae2f1d71	71	0/0		4/4	
 Balduvian Dead	543bfb9442223e6e	49	1/1		1/1	
+Battle of Hoover Dam	27df9a8dfcc09351	18	0/0		0/0	
 Black Market Connections	9e670f9b3acf1bea	29	1/1		1/1	
 Blighted Agent	b49f88d0e8ee737e	20	0/0		0/0	
 Bloated Contaminator	c63c51219c421145	15	1/1		0/1	ix:resp
@@ -20,6 +23,7 @@ Cabal Slaver	7610142082c3e9d3	8	1/1		0/1	ix:resp
 Cabaretti Initiate	f98e6e7c5178247c	11	1/1		0/1	ix:resp
 Cadaver Imp	4f6f90741f802f20	53	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Careless Celebrant	198e83c3b40ea5bc	6	1/1		0/1	ix:resp
+Cartouche of Ambition	cf7244d134f961cf	17	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
 Cateran Persuader	f490f5ebba950d2e	10	1/1		0/1	ix:resp
 Cathedral Acolyte	2301a0a35fffd752	56	1/1		1/1	
 Ceaseless Conflict	5ed4ac35c2e32f28	16	0/0		1/2	ix:resp
@@ -30,6 +34,7 @@ Cloak and Dagger	31b40bebe93a5a24	108	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Coastal Hornclaw	a5a1d78164668656	58	1/1		1/1	
 Coiling Woodworm	da6f0438e82d510f	10	0/0		0/0	
 Collar the Culprit	ebc03b21fa908de6	15	0/0		2/2	
+Contagion Engine	7063abd6cf34e8f0	18	2/2		0/1	ix:resp
 Conversion Chamber	a08b6249cc317c6e	70	2/2		1/1	
 Cudgel Troll	b08c000ad4ab58cc	13	1/1		1/1	
 Darkwater Egg	b5a1f0f22a95cf0d	7	1/1		1/1	
@@ -41,6 +46,7 @@ Denethor, Stone Seer	df7f7e23705c610d	5	2/2		0/1	ix:resp
 Depths of Desire	5dc7073d1f4e6e1c	9	0/0		1/2	ix:resp
 Doomskar Titan	8cf7439f2e72e14c	4	1/1		1/3	cast/alt:foretold,ix:resp
 Doubtless One	8b275e10ace696b6	105	1/1		1/1	
+Draconian Cylix	4b4e384c89e13f55	27	1/1		1/1	
 Dragonshift	58fa433aa0139f60	8	0/0		2/4	cast/alt:overloaded,ix:resp
 Dread Reaper	30b72f7c68bcdbf5	10	1/1		0/1	ix:resp
 Duskfang Mentor	882e5e0ee3057853	21	2/2		1/1	
@@ -54,10 +60,14 @@ Farmstead Gleaner	af16600b3a809d46	43	1/1		1/1
 Fascination	27bf44720d1901cd	3	0/0		2/4	f0/s/x0,ix:resp
 Felhide Petrifier	ae253cfcb6462568	20	0/0		0/0	
 Fervent Denial	11400443d72f1f62	33	0/0		4/4	
+Fetid Heath	a56daea08a965374	135	2/2		0/1	ix:resp
 Filigree Angel	56ceda607931d047	38	1/1		0/1	ix:resp
+Fleeting Spirit	31a7df4eab8e6af0	14	2/2		1/1	
 Flowstone Embrace	3783de364c382bcd	22	1/1		2/2	
 Forerunner of the Legion	b6b3cbb3f078d2d4	25	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Frontline Medic	a74b8f52daf3cd0f	36	2/2		1/1	
 Galvanic Arc	7cd7dbb7f3a52149	17	1/1		2/2	
+Gate to the Citadel	881a4cac40ab6c22	143	2/2		0/1	ix:resp
 Generous Visitor	9e6b8bbf08a4333f	26	1/1		1/1	
 Genesis Chamber	b17b8bb7429dace6	96	1/1		1/1	
 Get the Point	ce708615adf2a9c7	8	0/0		2/2	
@@ -73,6 +83,7 @@ Goblin War Drums	97dc8b6ec881a0c4	8	0/0		0/0
 Grendel, Spawn of Knull	aa336db940770411	19	0/0		0/0	
 Grotag Siege-Runner	1597c2d9625a147e	6	1/1		0/1	ix:resp
 Guardian Naga	af616cebb82ce6ec	149	0/0		2/2	
+Haazda Marshal	44b31175c180ce8d	30	1/1		1/1	
 Hard Evidence	995dc58c3c9f9f9b	34	0/0		1/2	ix:resp
 Headless Specter	3311cf6498c5d6a2	29	1/1		1/1	
 Heavy Ballista	6c551715a9293cc1	8	1/1		0/1	ix:resp
@@ -83,6 +94,7 @@ Hulk, Bruce Banner	479530df5e32b289	3	0/0		0/0
 Ichthyomorphosis	e336d5ad9f2f1cba	9	0/0		1/2	ix:resp
 Illusionary Servant	f636cf5308ae1826	47	1/1		0/1	ix:resp
 Illustrious Wanderglyph	8e0f0c79cd1ae820	16	1/1		1/1	
+Imperial Recruiter	11372e7d0aaaa19a	11	1/1		1/1	
 Improvised Weaponry	c5f4f99c63759283	27	0/0		1/2	ix:resp
 Incendiary	7ade24e5543188c7	15	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
 Ingot Chewer	8448f93c163f6ac9	22	1/1		1/3	cast/alt:none,ix:resp
@@ -182,6 +194,7 @@ The Modern Age	34cff785f7dd3409	9	0/0		0/0
 Thraben Standard Bearer	81a2a041fbb4966e	102	1/1		1/1	
 Thrasios, Triton Hero	b1d703346fec15c1	5	1/1		0/1	ix:resp
 Thraxodemon	8b9f3531b6d4e263	14	1/1		0/1	ix:resp
+Thriving Moor	24a9864625ca5e71	120	1/1		0/1	ix:resp
 Thriving Skyclaw	a7ca056b06488cb7	7	2/2		0/1	ix:resp
 Tithe Drinker	18f8beff4370d274	33	1/1		0/1	ix:resp
 Tizerus Charger	6621347f156abc5b	63	0/0		1/2	cast/alt:escaped
@@ -203,6 +216,8 @@ Voracious Fell Beast	58669ad3be815545	29	1/1		1/1
 Vow of Wildness	3c3b59fbd1250410	9	0/0		2/2	
 Walk the Plank	1c782fde252a08ad	13	0/0		1/2	ix:resp
 War Screecher	ecc5d287c5e28ea5	43	1/1		1/1	
+Warded Battlements	6ff8f4799e6705a7	26	0/0		0/0	
+Watcher for Tomorrow	411c8bcae54a813f	33	2/2		1/1	
 Weaver of Blossoms	f30242c05e480360	26	2/2		1/1	
 Wind Dancer	1749bdccc39b89a0	15	1/1		1/1	
 Wing Puncture	9df6a6de6f5c9d2e	24	0/0		1/2	ix:resp

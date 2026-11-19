@@ -84,6 +84,7 @@ Drillworks Mole
 Drossclaw
 Dualcaster Mage
 Dune Mover
+Eccentric Pestfinder
 Enrage
 Erstwhile Trooper
 Etched Monstrosity
@@ -118,6 +119,7 @@ Guardian of the Guildpact
 Guul Draz Mucklord
 Haazda Officer
 Harbinger of Night
+Harmless Assault
 Herd Gnarr
 Hibernation
 Honden of Life's Web
@@ -212,8 +214,10 @@ Reduce in Stature
 Rimewood Falls
 Rishkar's Expertise
 Riven Turnbull
+River Sneak
 Rockshard Elemental
 Rooftop Nuisance
+Rout
 Rune-Cervin Rider
 Sacred Prey
 Sage Aven

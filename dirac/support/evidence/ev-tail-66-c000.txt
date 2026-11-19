@@ -124,6 +124,7 @@ Field Marshal
 Fiend Artisan
 Fiery Finish
 Filth
+Fire-Lit Thicket
 Fireblade Artist
 Fireblast
 Flametongue Kavu

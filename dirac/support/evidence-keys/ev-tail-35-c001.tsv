@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-You Come to a River	7fa8c19f9782e870	11	0/0		2/2	
+Abomination, World Ravager	c2b110192f1ab78c	3	0/0		1/2	cast/alt:mayhem
 Absolute Law	eab4d838c675d3f9	6	0/0		0/0	
 Aeolipile	56e4ecbe9344b8f1	10	1/1		1/1	
 Aerial Boost	09da50258d6fb356	9	0/0		1/2	ix:resp
@@ -7,6 +8,7 @@ Alibou, Ancient Witness	4e498a1573e5557b	3	1/1		0/1	ix:resp
 Anax, Hardened in the Forge	29f717791fe07aad	4	1/1		1/1	
 Auntie Blyte, Bad Influence	3d1678c13cdfbd2f	12	2/2		0/1	ix:resp
 Ballynock Trapper	811f5bd97555e6bc	6	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Benalish Missionary	4a07bdde6a9ef807	4	1/1		0/1	ix:resp
 Benevolent Bodyguard	5522cf237f2ee779	6	1/1		0/1	ix:resp
 Blessing of Belzenlok	9d7e43ac994b86b4	8	0/0		1/2	ix:resp
 Blinding Spray	f51434d92221d4d6	4	0/0		1/2	ix:resp
@@ -28,6 +30,7 @@ Death Pits of Rath	1f2743bbd826eada	11	1/1		1/1
 Deekah, Fractal Theorist	c00eef8634398ce1	4	2/2		1/1	
 Deeproot Historian	31a560d0ef9197c6	3	0/0		0/0	
 Dwarven Thaumaturgist	8ed59c212d4dec6f	26	1/1		1/1	
+Dyfed, the Guiding Hand	7bc7b88bc36d8a46	4	3/3		0/1	ix:resp
 Ebonblade Reaper	eaac43afe6f42456	4	2/2		1/3	cast/alt:morphed,ix:resp
 Expedition Diviner	a5f02a0c7446a7c5	22	0/0		0/0	
 False Peace	8c0c4d3d67126784	4	0/0		2/2	
@@ -129,6 +132,7 @@ Thriving Grubs	e27ccd23d4217cca	6	2/2		0/1	ix:resp
 Thriving Rhino	a069032a813bb848	21	2/2		1/1	
 Tidal Kraken	a5fdfc19be3e9500	3	0/0		0/0	
 Titan of Eternal Fire	94ef666f34e726ed	4	0/0		0/0	
+Tolarian Emissary	d5e9d9b355244895	8	1/1		2/3	ix:resp
 Tree Monkey	a5f8de427e39cb68	6	0/0		0/0	
 Treefolk Umbra	90275ff41d2a1084	9	0/0		1/2	ix:resp
 Triton Waverider	b17f1c2cd2dc170d	23	1/1		1/1	

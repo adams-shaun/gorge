@@ -30,10 +30,12 @@ Brutal Nightstalker	1897205843323e73	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bushmeat Poacher	04c0b5564a227308	51	1/1		1/1	
 Butterbur, Bree Innkeeper	4ed37bb3ca156da9	52	1/1		1/1	
 Caustic Tar	ad3c068f85a4a1ea	23	0/0		1/2	ix:resp
+Ceta Sanctuary	5a376aab91a4ef6b	30	1/1		1/1	
 Charix, the Raging Isle	414e86cbf2df4ac5	7	1/1		1/1	
 Chosen by Heliod	1bdac22cea7a3c77	14	1/1		1/2	ix:resp
 Clear the Mind	235f1d7b2472568d	22	0/0		2/2	
 Cleaving Sliver	b9af3baeb11fe97f	16	0/0		0/0	
+Condescend	304bf14391dbea3e	5	0/0		2/4	f0/s/x0,ix:resp
 Conjurer's Mantle	2d1d6a410eb60a1e	18	2/2		0/1	ix:resp
 Consulate Turret	c27fb123ea5e8358	6	2/2		0/1	ix:resp
 Conversion	a42a844cb2bb5fe2	17	1/1		1/1	
@@ -53,6 +55,7 @@ Dust Elemental	fdc7f8006602e759	4	1/1		0/1	ix:resp
 Edric, Spymaster of Trest	827cbe2027337694	35	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Eidolon of Blossoms	0b762ec0fc912194	39	1/1		1/1	
 Elminster's Simulacrum	0c1a18b47c9739e5	5	0/0		1/2	ix:resp
+Endrek Sahr, Master Breeder	150ac0fa90fd635e	8	2/2		0/1	ix:resp
 Enter the Unknown	b111a1eb5722507d	79	0/0		2/2	
 Era of Innovation	6faf958ca167ef65	16	2/2		0/1	ix:resp
 Etherium-Horn Sorcerer	6d9c42903e49bca3	55	1/1		1/1	
@@ -129,6 +132,7 @@ Nissa's Renewal	1ba65c1494ffa31a	27	0/0		2/2
 Numbing Dose	b565153b63a19de2	5	1/1		2/2	
 Oboro Breezecaller	ab6c8717f5e9e17a	22	1/1		1/1	
 Olivia's Wrath	1aa4b8814b090c4d	25	0/0		2/2	
+Order of Yawgmoth	b0c1addfe8a7586f	9	1/1		1/1	
 Paladin Danse, Steel Maverick	a1735ac996e00df3	5	1/1		0/1	ix:resp
 Peace of Mind	25da9ab3f00e9608	111	1/1		1/1	
 Pearl Dragon	daa859625f1f6c80	3	1/1		1/1	
@@ -159,6 +163,8 @@ Serum Visions	ea85da7f4b2f9e4f	12	0/0		2/2
 Sever the Bloodline	829d8106a7d5c97d	76	0/0		4/4	
 Shatterskull Giant	3088a48f7193a4b9	13	0/0		0/0	
 Showstopping Surprise	20f4b23c5ac5bbac	17	0/0		2/2	
+Shrine of Boundless Growth	822d053a7557c6f3	21	3/3		1/1	
+Shu General	9d82c170ea89508e	18	0/0		0/0	
 Silver Myr	ea8a105cab238527	59	1/1		0/1	ix:resp
 Silverchase Fox	1b5b02d90c0d7f1f	9	1/1		0/1	ix:resp
 Smokebraider	224c83fda0cd551a	13	1/1		0/1	ix:resp
@@ -180,6 +186,7 @@ Subterranean Spirit	9d0fbd4400ee2fb0	11	1/1		1/1
 Suffocating Blast	118db99e30a86e43	12	0/0		1/2	ix:resp
 Summoning Materia	90e0c2d43a478ab7	69	1/1		1/1	
 Sylvia Brightspear	527d771e76259f2e	6	1/1		0/1	ix:resp
+Tajuru Archer	29f7ee658f19ac71	16	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Tangle Hulk	5a7d5ae3e890e59f	6	1/1		0/1	ix:resp
 Then, Dreadmaws Ate Everyone	d501b3a8e6ec0e7e	8	0/0		3/4	f0/s/x0
 Thief of Existence	e32b079e2e9b3a12	46	1/1		1/1	

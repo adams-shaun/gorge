@@ -21,6 +21,7 @@ Blessed Respite	0d0f8f62fa794727	6	0/0		1/2	ix:resp
 Bog Smugglers	bc63d6cd1ceb6ef1	10	0/0		0/0	
 Bonds of Mortality	13981241ecd12a03	6	2/2		1/1	
 Bottomless Vault	54ec0746063e5f9c	18	2/2		0/1	ix:resp
+Browbeat	c4408527d68298f1	6	0/0		1/2	ix:resp
 Canopy Claws	f94675e1bfdab05a	31	0/0		4/4	
 Canopy Spider	fefece1dc0a9fef0	28	0/0		0/0	
 Caravan Hurda	8644b55471d567c4	4	0/0		0/0	
@@ -45,6 +46,7 @@ Dig Up	07aeec06e4ec9047	4	0/0		2/2
 Dismiss into Dream	9f595038d537523d	4	0/0		0/0	
 Dispersal Technician	c4d920631e9767ca	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Doomed Traveler	06b83a26a8100886	10	1/1		1/1	
+Dread Slag	c3bdffd97d2677c6	4	0/0		0/0	
 Earthen Goo	ee748ae7aa39d4e4	5	1/1		0/1	ix:resp
 Ellie, Vengeful Hunter	b29a1a9da473e281	6	1/1		0/1	ix:resp
 Elvish Warrior	6071722c645fa67c	8	0/0		0/0	
@@ -89,6 +91,7 @@ Howlpack Resurgence	25c60d2f5d5f2ab8	9	0/0		0/0
 Immersturm Raider	bcb162f62c57876e	3	1/1		0/1	ix:resp
 Ingenious Smith	16b3b5a1ff7682d6	11	2/2		1/1	
 Invisible Woman	b369c6470bfb09c4	41	2/2		0/1	ix:resp
+Jagged Lightning	21d68db9acaa1b18	7	0/0		2/2	
 Juniper Order Advocate	1101bd89c959798a	4	0/0		0/0	
 Juniper Order Rootweaver	337d1993111d5677	4	1/1		2/3	ix:resp
 Junkyo Bell	c4e41c007da6c322	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -105,6 +108,7 @@ Liu Bei, Lord of Shu	1d4cf5802d25b71f	5	0/0		0/0
 Mahadi, Emporium Master	9983e6c14d8b98e0	4	1/1		0/1	ix:resp
 Manifold Key	1d63b91b1a7d4ef7	4	2/2		0/1	ix:resp
 March of the Drowned	acd2a0cb97d855dd	7	0/0		2/2	
+Martyrs' Tomb	90e24558110d5d3f	14	1/1		1/1	
 Melancholy	04971487420a5ef9	11	2/2		2/2	
 Metal Fatigue	b7bf69bed8c921d7	10	0/0		1/2	ix:resp
 Mirran Bardiche	a03a0594b3244150	9	2/2		1/1	
@@ -151,6 +155,7 @@ Sands of Delirium	c1a03ef556706a4e	5	1/1		0/1	ix:resp
 Sandstone Warrior	5dabc06a4406d89f	4	1/1		1/1	
 Sangrite Surge	1d1ec8579e40237d	4	0/0		1/2	ix:resp
 Sea Drake	429e016d4a6fdf61	5	1/1		0/1	ix:resp
+Sea Gate	efaa5aa35469a6a4	4	1/1		0/1	ix:resp
 Selvala's Enforcer	6187557e5f1a72d7	3	1/1		0/1	ix:resp
 Shadow Rift	4d9732402115cea9	4	0/0		1/2	ix:resp
 Shard of the Void Dragon	3553dd64af55081f	3	2/2		0/1	ix:resp
@@ -169,6 +174,7 @@ Stoic Champion	6b62472d44a504cf	6	1/1		0/1	ix:resp
 Storm Fleet Negotiator	d5083686dab65708	6	1/1		1/1	
 Sunscape Familiar	b1fe50a915ae032a	6	0/0		0/0	
 Superior Numbers	b314537bb08c9be9	6	0/0		1/2	ix:resp
+Tenement Crasher	ab086a28bd953fc0	7	0/0		0/0	
 Thalia's Lancers	fa6e589dd1986b7c	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 The Immortal Weapons	8c583e27431836e7	8	2/2		0/1	ix:resp
 The Stasis Coffin	1d48a6742cab949b	8	1/1		0/1	ix:resp
