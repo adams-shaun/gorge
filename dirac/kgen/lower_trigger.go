@@ -1530,7 +1530,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// resolution recheck (trigger_condition.go), the kernel's
 		// AfCheckOnTrigger. A condition that is not an IsPresent$ stays
 		// refused (a life total, a hand size or an X threshold has no
-		// re-check site here).
+		// re-check site here); so is a PresentZone$ naming a hand, library
+		// or graveyard -- the kernel has no re-check site at a move in or
+		// out of those zones either, so only the default Battlefield zone
+		// lowers.
 		if zone != "" {
 			return refuse("Always trigger on an Effect")
 		}
@@ -1543,6 +1546,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		if err := alwaysCounterThreshold(ip); err != nil {
 			return err
+		}
+		if pz := tp.str("PresentZone"); pz != "" && pz != "Battlefield" {
+			return refuse("Always PresentZone$ %q", pz)
 		}
 		for _, k := range sortedParamKeys(t.Params) {
 			switch k {

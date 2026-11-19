@@ -154,6 +154,31 @@ func TestCounterFilterThresholdBounds(t *testing.T) {
 	}
 }
 
+// TestStateCounterArmRefusesNonBattlefieldZone: the kernel's state-trigger
+// cadence (dirac/trig_statectr.go) re-checks board and counter conditions
+// only — there is no re-check site at a hand, library or graveyard move — so
+// a PresentZone$ naming one must be refused at lowering, while the default
+// PresentZone$ Battlefield stays accepted.
+func TestStateCounterArmRefusesNonBattlefieldZone(t *testing.T) {
+	for _, zone := range []string{"Hand", "Graveyard", "Library"} {
+		refusals, _ := stateCtrProbe(t, "Card.YouCtrl | PresentZone$ "+zone+" | PresentCompare$ EQ0", nil)
+		if len(refusals) == 0 {
+			t.Fatalf("PresentZone$ %s accepted, want an Always PresentZone$ refusal", zone)
+		}
+		if !strings.Contains(refusals[0], "Always PresentZone$") {
+			t.Fatalf("PresentZone$ %s refusals[0] = %q, want an Always PresentZone$ refusal", zone, refusals[0])
+		}
+	}
+	// Controls, asserting their own precondition: the default zone lowers
+	// with nothing to refuse, and the counter-threshold shape is untouched.
+	if refusals, _ := stateCtrProbe(t, "Card.YouCtrl | PresentZone$ Battlefield | PresentCompare$ EQ0", nil); len(refusals) != 0 {
+		t.Fatalf("PresentZone$ Battlefield refused: %v", refusals)
+	}
+	if refusals, _ := stateCtrProbe(t, "Card.Self+counters_GE4_PAGE", nil); len(refusals) != 0 {
+		t.Fatalf("GE4 shape refused: %v", refusals)
+	}
+}
+
 // TestStateCounterArmRefusals: every Always shape outside the lowered one
 // keeps a refusal, and the unlisted-parameter refusal names the sorted-first
 // key on every run (the map's iteration order must not reach it).
