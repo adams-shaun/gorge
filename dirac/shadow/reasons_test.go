@@ -63,6 +63,7 @@ func TestWorldFromViewReasons(t *testing.T) {
 		shadow.ReasonOver:     func(in *shadow.Input) { in.View.Over = true },
 		shadow.ReasonSeats:    func(in *shadow.Input) { in.View.Players = in.View.Players[:1] },
 		shadow.ReasonStack:    func(in *shadow.Input) { in.View.Stack = []view.StackView{{}} },
+		shadow.ReasonPending:  func(in *shadow.Input) { in.View.Pending = []view.PendingView{{}} },
 		shadow.ReasonDecision: func(in *shadow.Input) { in.View.Decision = &decision.Decision{Kind: decision.KTarget} },
 		shadow.ReasonUnknown:  func(in *shadow.Input) { in.View.Players[0].Hand[0].Name = "Black Lotus" },
 		shadow.ReasonUnmapped: func(in *shadow.Input) { in.ObjOf = func(int) (uint8, bool) { return 0, false } },
@@ -77,6 +78,10 @@ func TestWorldFromViewReasons(t *testing.T) {
 		dirac.ReasonStep:      func(in *shadow.Input) { in.View.Step = "declare-blockers" },
 		dirac.ReasonControl:   func(in *shadow.Input) { bf(in, view.CardView{Controller: 1}) },
 		dirac.ReasonTable:     func(in *shadow.Input) { in.Tbl = nil },
+		dirac.ReasonStackEntry: func(in *shadow.Input) {
+			// a Savannah Lions "ability" entry: not a self-counter ability
+			in.View.Stack = []view.StackView{{Kind: "ability", Source: 0, Card: &view.CardView{Name: "Hungry Ghoul"}}}
+		},
 	}
 	for _, r := range shadow.Reasons {
 		if _, ok := cases[r]; !ok {
