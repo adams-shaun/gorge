@@ -730,7 +730,7 @@ func (s *State) ovDurFl(dur int16) uint8 {
 	case kop.DurEOT:
 		return ovEOT
 	case kop.DurUntilYourNextTurn:
-		s.ovNTArm(s.res.e.ctrl) // static_ovnt_leave.go
+		s.ovNTArm(s.res.e.ctrl) // static_ovntleave.go
 		return ovNT | (s.res.e.ctrl<<ovNTWhoShift)&ovNTWho
 	}
 	return 0
@@ -747,7 +747,7 @@ func (s *State) dropNextTurnOv() (ended slotMask) {
 			have |= 1 << ((r.r.fl & ovNTWho) >> ovNTWhoShift)
 		}
 	}
-	ends := s.ovNTEnding(have) // static_ovnt_leave.go: a controller that left ends at its frozen boundary
+	ends := s.ovNTEnding(have) // static_ovntleave.go: a controller that left ends at its frozen boundary
 	n := 0
 	s.fxM = slotMask{}
 	for i := 0; i < int(s.g.nfx); i++ {
