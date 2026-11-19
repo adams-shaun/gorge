@@ -22,7 +22,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 var DebugIgnoreGoad bool
 
 // prepGoad sets anyGoad: some program goads, or a static goads
-// (kop.StatGoad, anyStatGoad).
+// (kop.StatGoad, anyStatGoad). A granted static goad holds a pod's table to
+// two seats (tableGrantsStatGoad).
 func prepGoad(t *kop.Table, g *genPrep) {
 	g.anyStatGoad = tableHasStatic(t, kop.StatGoad)
 	g.anyGoad = g.anyStatGoad
@@ -33,14 +34,57 @@ func prepGoad(t *kop.Table, g *genPrep) {
 			}
 		}
 	}
-	if MaxSeats > 2 && g.anyStatGoad {
-		// a static Goad$ True has no goader in the kernel (no resolving
-		// controller owns it, so its marks have no seat to record): the
-		// CR 701.15b defender gate in attackOffersN cannot read it, so a
-		// larger game refuses such a table at its start (StallTwoSeat)
+	if MaxSeats > 2 && tableGrantsStatGoad(t) {
+		// a Goad$ True static an Animate staticAbilities$ grant switches on
+		// (static_ovgate.go grantedStaticFlag) has no seat the kernel reads
+		// as its goader: the CR 701.15b defender gate in attackOffersN
+		// cannot name it, so a larger game refuses such a table at its
+		// start (StallTwoSeat). A printed static's goader is its
+		// controller (goadedBy).
 		g.twoSeatOnly = true
 	}
 }
+
+// tableGrantsStatGoad reports whether a card of t carries a StatGoad static
+// that a grant switches on (kop.StatGoadGranted).
+func tableGrantsStatGoad(t *kop.Table) bool {
+	for i := range t.Cards {
+		if kop.StatGoadGranted(&t.Cards[i]) {
+			return true
+		}
+	}
+	return false
+}
+
+// goadedBy reports whether seat p goads the permanent at sl (gorge
+// combat.GoadedBy): an OpGoad mark p made, or a live printed Goad$ True
+// static p controls (gorge staticGoaders: the static's controller is the
+// goader; Psychic Impetus, Shiny Impetus).
+func (s *State) goadedBy(k *prep, sl Slot, p uint8) bool {
+	if s.mSl(k, goadMech(p), sl) {
+		return true
+	}
+	if !k.gen.anyStatGoad || DebugStatGoadNoGoader {
+		return false
+	}
+	hit := false
+	s.eachStatic(k, func(st statSrc) bool {
+		a := st.a
+		if st.ctrl == p && a.Kind == kop.AbStatic && a.Static.Kind == kop.StatGoad && s.statCond(k, st) &&
+			(st.emb == 0 || s.embCaptureOK(k, st.emb, sl)) &&
+			s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerFull) {
+			hit = true
+			return false
+		}
+		return true
+	})
+	return hit
+}
+
+// DebugStatGoadNoGoader is the pod lockstep mutation: a static goad names
+// no goader, so attackOffersN offers its controller as a defender
+// (TestFourSeatStaticGoadMutation must then diverge).
+var DebugStatGoadNoGoader bool
 
 // goadOn reports whether goad bookkeeping is live for k's table.
 func goadOn(k *prep) bool { return k.gen != nil && k.gen.anyGoad }

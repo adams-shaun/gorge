@@ -12,6 +12,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // A static with neither bit is the whole-defender shape and canAttack
 // blocks its creature blind (combat.go).
 
+// DebugCantAtkPodBlind is the lockstep mutation of the pod offers: a pod's
+// attackOffersN offers every defender's pairs as if no scoped CantAttack
+// static stood (TestFourSeatVowLockstep must then diverge).
+var DebugCantAtkPodBlind bool
+
 // prepCantAtkScope sets genPrep.anyCantAtk and genPrep.anyCantAtkScope: the
 // first when a card or emblem static of t is a StatCantAttack at all (the
 // blind read's cheap skip), the second when one carries a scope bit (the
@@ -118,7 +123,9 @@ func (s *State) cantAtkPairPlayer(k *prep, sl Slot, def uint8) bool {
 // poses no decision at all: attackOffersCompute's option list comes out
 // empty and askAttackers emits the silent empty declaration instead of
 // asking (engine/rules/combat.go), leaving the step's CR 508.2 priority
-// round. The player pair is its own test; when it is forbidden,
+// round. Each living opponent's player pair is its own test (a Vow of Duty
+// forbids its controller alone, so a pod's other opponents stand); when
+// every one is forbidden,
 // attackOffersCompute's player-pair block skips that defender's
 // planeswalker pairs with it, so only a battle pair can still carry an
 // offer -- and a goad or an Encore duty is satisfied by attacking a player
@@ -126,8 +133,10 @@ func (s *State) cantAtkPairPlayer(k *prep, sl Slot, def uint8) bool {
 // drops those pairs too. anyAttacker gates its candidates with this
 // (combat.go), the way atkTaxAnyOffer gates a priced-out board.
 func (s *State) cantAtkEveryPair(k *prep, sl Slot) bool {
-	if !s.cantAtkPairPlayer(k, sl, s.nextAlive(s.active)) {
-		return false // the player pair stands: it is an offer
+	for q := uint8(0); q < s.nSeats(); q++ {
+		if q != s.active && !s.out(q) && !s.cantAtkPairPlayer(k, sl, q) {
+			return false // a player pair stands: it is an offer (each living opponent in a pod)
+		}
 	}
 	if k.gen != nil && k.gen.anyBattle && !s.attackPlayerOnly(k, sl) &&
 		!(goadOn(k) && s.goadedAt(k, sl)) && s.someBattleOffers(k, sl) {
