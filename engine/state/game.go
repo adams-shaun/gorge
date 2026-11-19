@@ -51,6 +51,16 @@ type Player struct {
 	LifeGainedThisTurn    int32
 	LifeLostThisTurn      int32
 	TokensCreatedThisTurn int32
+	// SearchedLibraryThisTurn counts the completed searches of this seat's
+	// OWN library this turn (Forge's Player.librarySearched, which the
+	// ChangeZoneEffect search path increments only when the searcher and
+	// the library owner are the same seat). Folded only by events.Apply
+	// from the SearchedLibrary marker (Amount 0 marks an own-library
+	// search) and cleared at TurnChange with the other turn watchers, so a
+	// log-only replay rebuilds it exactly; clone copies this scalar. It is
+	// what Count$SearchedLibrary.<Player> reads (Archive Trap's
+	// alternative-cost gate).
+	SearchedLibraryThisTurn int32
 	// WasDealtDamageThisTurn is the seat-side twin of state.Object's flag of
 	// the same name: a positive Damage event dealt this seat damage since the
 	// last TurnChange, poison-replaced or not (the same read Forge's
@@ -496,11 +506,18 @@ type Game struct {
 	// replay-exact shape CombatsThisTurn uses, so no new event is needed.
 	MainPhasesThisTurn int32
 	// UpkeepsThisTurn counts the upkeep steps BEGUN this turn (one per
-	// StepUpkeep StepChange, folded in engine/events/apply_turn.go, reset at
-	// TurnChange): 1 in the ordinary upkeep, 2 once an api:AddPhase-spliced
-	// extra upkeep begins. It backs the trigger-side FirstUpkeep$ True gate
-	// (Paradox Haze), the CombatsThisTurn/FirstCombat$ shape, so an extra
-	// upkeep cannot re-fire the trigger that granted it.
+	// StepUpkeep StepChange, folded in engine/events/apply_turn.go beside
+	// the EndSteps sibling, reset at TurnChange): 1 in the turn's upkeep
+	// step, 2 once an api:AddPhase-spliced extra upkeep begins. It backs
+	// Forge's PhaseHandler.getNumUpkeep, which Count$FinishedUpkeepsThisTurn
+	// (Reset's "cast this spell only during an opponent's turn after their
+	// upkeep step" gate) answers as UpkeepsThisTurn minus one while the
+	// walk is currently IN an upkeep step -- Forge's
+	// getNumUpkeep() - is(UPKEEP). It also backs the trigger-side
+	// FirstUpkeep$ True gate (Paradox Haze), the CombatsThisTurn/FirstCombat$
+	// shape, so an extra upkeep cannot re-fire the trigger that granted it.
+	// The same event-folded, replay-exact shape EndStepsThisTurn uses, so no
+	// new event is needed.
 	UpkeepsThisTurn int32
 	// ResolvedThisTurn counts, per resolving ability, how many times THAT
 	// ability has resolved this turn, INCLUDING the resolution whose tally is

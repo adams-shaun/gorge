@@ -1610,6 +1610,14 @@ type Object struct {
 	ChosenType   string
 	ChosenNumber int32
 	ChosenColor  string
+	// ChosenColors records the letters of a multi-colour as-enters choice
+	// (Seal of the Guildpact's K:ETBReplacement ChooseColor with
+	// TwoColors$ True: "choose two colors"): each logged Choose answer
+	// appends its WUBRG letter to this string, in choice order. It is what
+	// Count$HasNumChosenColors reads (Tablet of the Guilds' cost-reduction
+	// static counts the chosen colours the priced spell shares) and resets
+	// alongside Chosen* when the object leaves the battlefield.
+	ChosenColors string
 	// RiotChoice is set by the logged as-enters Riot choice. It survives the
 	// hand/stack path and Move consumes it on battlefield entry.
 	RiotChoice string

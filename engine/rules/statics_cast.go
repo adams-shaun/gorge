@@ -1404,7 +1404,7 @@ func (e *Engine) spellTimingPre(p state.PlayerID, id state.ObjID, f *cards.Face,
 	// Feast of Blood). An unmet condition withholds the offer (CR 601.3)
 	// rather than fizzling at resolution. Only the spell's own SA is read: a
 	// SubAbility's IsPresent$ is a resolution condition, not a restriction.
-	if !e.activationPhasesOK(p, sa) || (sa != nil && sa.MayHaveAnyParam(spellPresentKeys) && !e.abilityPresentHolds(p, id, sa)) {
+	if !e.activationPhasesOK(p, sa) || (sa != nil && sa.MayHaveAnyParam(spellPresentKeys) && !e.abilityPresentHolds(p, id, sa)) || !spellSVarGateOK(e, p, id, f, sa) {
 		return false, false
 	}
 	if sorcery || f.IsInstant() || e.spellFaceHasFlash(id, f) || mayFlashSacFace(f) {

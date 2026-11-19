@@ -1345,6 +1345,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			// FlagPromisedGift bit is cleared with CastFlags just above.
 			o.GiftPromisedTo = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
+			o.ChosenColors = ""
 			o.ETBCloneChoice, o.ETBCloneChoiceValid = 0, false
 			o.Protector, o.ProtectorValid = 0, false
 			o.LastNotedMana = ""

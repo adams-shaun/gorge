@@ -273,7 +273,15 @@ func applyKind(g *state.Game, e *Event) {
 		foldCastBattlefield(g, e)
 	case SearchedLibrary:
 		// Pure marker for one completed library search; all resulting card
-		// moves and the shuffle have their own events.
+		// moves and the shuffle have their own events. The searcher's
+		// per-turn tally folds here too: Forge's Count$SearchedLibrary
+		// (Archive Trap's alternative-cost gate) reads it, and Forge's
+		// search path counts only searches of the searcher's OWN library --
+		// which the event's Amount 0 encodes (a non-zero Amount is another
+		// seat's library, the searcher's seat + 1).
+		if e.Amount == 0 && validPlayer(g, e.Player) {
+			g.Players[e.Player].SearchedLibraryThisTurn++
+		}
 	case KeywordAbilityPush:
 		foldKeywordAbilityPush(g, e)
 	case Discover, Seek, Surveil, Scry, Proliferate, ElementalBend:

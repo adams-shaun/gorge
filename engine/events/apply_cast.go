@@ -226,9 +226,20 @@ func foldNoteNumber(g *state.Game, e *Event) {
 	}
 }
 
+// chooseColorsCounter is the Choose event's Counter for a multi-colour ask.
+const chooseColorsCounter = "colors"
+
 // foldChoose folds Kind Choose into state.
 func foldChoose(g *state.Game, e *Event) {
 	if o := g.Obj(e.Obj); o != nil {
+		if e.Counter == chooseColorsCounter {
+			// A two-colour as-enters ask (Seal of the Guildpact's
+			// TwoColors$ ChooseColor: "choose two colors"): each logged
+			// answer appends its WUBRG letter, in choice order, so
+			// Count$HasNumChosenColors reads the full pair.
+			o.ChosenColors += e.Text
+			return
+		}
 		switch e.Counter {
 		case "name":
 			o.ChosenName = e.Text

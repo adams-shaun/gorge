@@ -359,6 +359,17 @@ func evalLKIOrDungeonsHeadOK(h Host, c *Ctx, expr string, depth int) (n int32, o
 		n, ok = evalReplacedCardLKIOK(h, c, body, depth)
 		return n, ok, true
 	}
+	// An Emerged$<Property> body answers a question about the creature
+	// sacrificed to cast the resolving spell for its Emerge cost (CR
+	// 702.118a; Adipose Offspring's Emerged$CardToughness, the <yes> operand
+	// of its Count$Emerged.T.1), read from the capture the emerge payment
+	// stored (see evalEmergedOK). A property outside the modelled family is
+	// not handled and falls through, so every shape that was zero stays zero.
+	if body, found := strings.CutPrefix(expr, "Emerged$"); found {
+		if n, ok = evalEmergedOK(h, c, strings.TrimSpace(body)); ok {
+			return n, true, true
+		}
+	}
 	body, found := strings.CutPrefix(expr, "DungeonsCompleted$")
 	if !found || strings.TrimSpace(body) != "Amount" {
 		return 0, false, false
@@ -725,6 +736,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return v, ok
 	}
 	if v, ok, matched := evalCountBodyObjHeads(h, c, g, head, arg, depth); matched {
+		return v, ok
+	}
+	if v, ok, matched := evalCountBodyEDH(h, c, g, head, arg, depth); matched {
 		return v, ok
 	}
 	if v, ok, matched := evalCountBodyDotted(h, c, g, head, arg, depth); matched {

@@ -449,6 +449,19 @@ const (
 	evalCountBodyCostNonCombatDamageThisTurn
 	evalCountBodyCostCrewSize
 	evalCountBodyCostIntensity
+	// The five EDH-count heads evalCountBodySimple claims, plus the bare
+	// Chroma head: appended after the phase's original entries, per the
+	// enum's own append-only precedent.
+	evalCountBodyCostFinishedUpkeepsThisTurn
+	evalCountBodyCostNumInAllHands
+	evalCountBodyCostExactManaCostGraveyard
+	evalCountBodyCostImprintedCardManaCost
+	evalCountBodyCostSecondMostProminentColor
+	evalCountBodyCostSearchedLibrary
+	// The dotted EDH heads (Count$<Head>.<tail>), dispatched by
+	// evalCountBodyDottedEDH off the head's text before the first dot.
+	evalCountBodyCostEmerged
+	evalCountBodyCostHasNumChosenColors
 	// The edh-countA class's scalar heads: the no-fallback as-cast
 	// battlefield count, bloodthirst's damage-to-opponents and the
 	// greatest single-source damage this turn (count_damage.go /
@@ -483,6 +496,14 @@ var evalCountBodyCostCodes = state.NewStrCodes(
 	state.StrEntry[evalCountBodyCostCode]{Key: "NonCombatDamageThisTurn", Val: evalCountBodyCostNonCombatDamageThisTurn},
 	state.StrEntry[evalCountBodyCostCode]{Key: "CrewSize", Val: evalCountBodyCostCrewSize},
 	state.StrEntry[evalCountBodyCostCode]{Key: "Intensity", Val: evalCountBodyCostIntensity},
+	state.StrEntry[evalCountBodyCostCode]{Key: "FinishedUpkeepsThisTurn", Val: evalCountBodyCostFinishedUpkeepsThisTurn},
+	state.StrEntry[evalCountBodyCostCode]{Key: "NumInAllHands", Val: evalCountBodyCostNumInAllHands},
+	state.StrEntry[evalCountBodyCostCode]{Key: "ExactManaCostGraveyard", Val: evalCountBodyCostExactManaCostGraveyard},
+	state.StrEntry[evalCountBodyCostCode]{Key: "ImprintedCardManaCost", Val: evalCountBodyCostImprintedCardManaCost},
+	state.StrEntry[evalCountBodyCostCode]{Key: "SecondMostProminentColor", Val: evalCountBodyCostSecondMostProminentColor},
+	state.StrEntry[evalCountBodyCostCode]{Key: "SearchedLibrary", Val: evalCountBodyCostSearchedLibrary},
+	state.StrEntry[evalCountBodyCostCode]{Key: "Emerged", Val: evalCountBodyCostEmerged},
+	state.StrEntry[evalCountBodyCostCode]{Key: "HasNumChosenColors", Val: evalCountBodyCostHasNumChosenColors},
 	state.StrEntry[evalCountBodyCostCode]{Key: "LastStateBattlefield", Val: evalCountBodyCostLastStateBattlefield},
 	state.StrEntry[evalCountBodyCostCode]{Key: "BloodthirstAmount", Val: evalCountBodyCostBloodthirstAmount},
 	state.StrEntry[evalCountBodyCostCode]{Key: "SingleMaxDamageThisTurn", Val: evalCountBodyCostSingleMaxDamageThisTurn},

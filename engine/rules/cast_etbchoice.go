@@ -193,6 +193,28 @@ func (e *Engine) faceETBChoice(o *state.Object, f *cards.Face, ev events.Event, 
 		if kind == "type" && effects.ChooseTypeAtRandom(r.With) {
 			continue
 		}
+		// The plain TwoColors$ ChooseColor body ("choose two colors", Seal
+		// of the Guildpact and Tablet of the Guilds) spans TWO ordinals: the
+		// second pick excludes the colour the first one recorded (the
+		// appended ChosenColors letters -- events.Choose's "colors" fold).
+		// Only the PLAIN shape is served: a body carrying any of the
+		// parameters the plain ask cannot honour (UpTo$/ColorsFrom$/OrColors$/
+		// Random$, the same list effects' chooseColorOptions declines) keeps
+		// today's single-colour ask, because the entry machinery suspends
+		// one pick per ordinal and cannot honestly pose a derived-list or
+		// up-to ask (Desert Cenote's UpTo$/ColorsFrom$ ChooseColors is the
+		// corpus carrier of that shape). A copied template's ask is skipped:
+		// the copy election lands the template's own choices on the entrant,
+		// and a template face is served by the ordinary path.
+		if !fromTemplate && etbPlainTwoColours(r.With) {
+			if *seen == ordinal || *seen+1 == ordinal {
+				opts := e.etbOptions(you, o.ID, kind, "", "", "",
+					commaSeparatedLetters(o.ChosenColors), "")
+				return etbChoice{kind: "color", options: opts}, true
+			}
+			*seen += 2
+			continue
+		}
 		// The ETB Clone slice is deliberately narrow: offering a copy while
 		// dropping an exception rider is worse than retaining today's loud
 		// unimplemented-API fallback. A body outside the whitelist is not a
@@ -316,6 +338,62 @@ func etbColourLetter(name string) string {
 		}
 	}
 	return ""
+}
+
+// commaSeparatedLetters spells a colour-letter string ("WU") as the
+// comma-separated list etbOptions' exclusion argument takes ("W,U").
+func commaSeparatedLetters(letters string) string {
+	out := make([]byte, 0, 2*len(letters))
+	for i := 0; i < len(letters); i++ {
+		if i > 0 {
+			out = append(out, ',')
+		}
+		out = append(out, letters[i])
+	}
+	return string(out)
+}
+
+// etbPlainTwoColours reports whether an entry's ChooseColor body is the
+// exact "choose two colors" shape the two-ordinal ask serves: TwoColors$
+// True and NONE of the parameters the plain ask cannot honour -- UpTo$
+// ("up to two colors", an optional second pick), ColorsFrom$ (the colours
+// ranged over), OrColors$ ("one or both of two colors"), Random$ (an
+// engine-drawn pick) -- the same list effects' chooseColorOptions declines
+// as unaskable, so the entry ask and the mid-resolution ask cannot
+// disagree about what a TwoColors$ body means. A non-plain body keeps
+// today's single-colour ask rather than mis-posing a shape the ordinal
+// machinery cannot suspend twice (Desert Cenote's UpTo$/ColorsFrom$
+// ChooseColors is the corpus carrier of that shape).
+func etbPlainTwoColours(r *cards.SA) bool {
+	if r == nil || r.ParamStr(cards.PKTwoColors) == "" {
+		return false
+	}
+	for _, k := range []cards.ParamKey{cards.PKUpTo, cards.PKColorsFrom, cards.PKOrColors, cards.PKRandom} {
+		if r.ParamStr(k) != "" {
+			return false
+		}
+	}
+	return true
+}
+
+// etbTwoColourEntry reports whether o's entry poses the plain two-colour
+// ask: an ETBReplacement ChooseColor body of the etbPlainTwoColours shape
+// on o's printed face. It is the read both ask sites share, so the ask
+// that poses two picks and the record that appends them cannot disagree.
+func etbTwoColourEntry(o *state.Object) bool {
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	for i := range o.Face().Repls {
+		r := &o.Face().Repls[i]
+		if r.With == nil || !r.IsETBReplacementKeyword() {
+			continue
+		}
+		if etbPlainTwoColours(r.With) {
+			return true
+		}
+	}
+	return false
 }
 
 // etbOptions builds the option list for one "as this enters" choice. It is a

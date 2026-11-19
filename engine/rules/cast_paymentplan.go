@@ -510,4 +510,7 @@ func (e *Engine) installPaidCostLists(pc *pendingCast) {
 		}
 		e.castReturned[pc.stackObj] = append([]state.ObjID(nil), pc.returns...)
 	}
+	if ev, ok := emergeCaptureEvent(e.G, pc, e.sacrificedLKI[pc.stackObj]); ok {
+		e.emit(ev)
+	}
 }

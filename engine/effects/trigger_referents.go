@@ -107,6 +107,18 @@ type TriggerContext struct {
 	DefenderObj   state.ObjID
 	TriggerPlayer state.Target
 	TriggerCard   state.ObjID
+	// TriggerCardFrom is the ORIGIN ZONE the triggering zone change moved
+	// TriggerCard out of (events.MoveZone's From), bound for Mode$
+	// ChangesZone triggers beside TriggerCard. It is what a count body's
+	// `TriggeredCardLKI$Valid Card.inZone<Zone>` read checks the capture's
+	// origin against (Fblthp, the Lost's "If it entered from your library"):
+	// at body time the object has already moved, so only the triggering
+	// event records where it came from. Zero for every other trigger mode
+	// and for a zone change whose origin the event carried as unset.
+	// state.ZLibrary is the zero Zone, so TriggerCardFromSet says whether
+	// the origin was bound at all: a library origin reads as a bound zero.
+	TriggerCardFrom    state.Zone
+	TriggerCardFromSet bool
 	// DelayedSelf is the AFFECTED object a delayed registration's body names
 	// as Defined$ Self when the delayed trigger's SOURCE is a different
 	// permanent (CR 603.7d: the AtEOT$ rider's source is the card that

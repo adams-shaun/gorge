@@ -152,16 +152,21 @@ func foldStepChange(g *state.Game, e *Event) {
 	if e.Step.Valid() && e.Step == state.StepEnd {
 		g.EndStepsThisTurn++
 	}
+	// The per-turn upkeep count (Forge PhaseHandler.getNumUpkeep): one
+	// increment per Upkeep ENTRY, so an api:AddPhase-spliced extra upkeep
+	// counts a second time. TurnChange resets it below. Reading the count
+	// while currently in the upkeep step and subtracting one reproduces
+	// Forge's `getNumUpkeep() - (is(UPKEEP) ? 1 : 0)`, the figure
+	// Count$FinishedUpkeepsThisTurn answers (Reset); the trigger-side
+	// FirstUpkeep$ True gate reads the same count.
+	if e.Step.Valid() && e.Step == state.StepUpkeep {
+		g.UpkeepsThisTurn++
+	}
 	// The per-turn main-phase count (Forge PhaseHandler.nMainsThisTurn): one
 	// increment per Main1/Main2 ENTRY, so an api:AddPhase-spliced extra main
 	// phase counts again. TurnChange resets it below.
 	if e.Step.Valid() && (e.Step == state.StepMain1 || e.Step == state.StepMain2) {
 		g.MainPhasesThisTurn++
-	}
-	// The per-turn upkeep count: one increment per Upkeep ENTRY, so an
-	// api:AddPhase-spliced extra upkeep counts again (FirstUpkeep$).
-	if e.Step.Valid() && e.Step == state.StepUpkeep {
-		g.UpkeepsThisTurn++
 	}
 }
 
@@ -290,6 +295,7 @@ func foldTurnChange(g *state.Game, e *Event) {
 		g.EndStepsThisTurn = 0
 		// The per-turn main-phase count is dropped with them.
 		g.MainPhasesThisTurn = 0
+		// The per-turn upkeep count is dropped with them.
 		g.UpkeepsThisTurn = 0
 		// The per-ability resolution tally is a per-turn fact (CR 608.2m
 		// counts resolutions in the turn), so it is dropped at the turn

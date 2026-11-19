@@ -216,7 +216,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	case cards.TriggerTaps:
 		c.TriggerActivator = player(trigmatch.TapActor(boardOf(e), ev))
 	case cards.TriggerChangesZone, cards.TriggerLandPlayed:
-		c.TriggerCard = ev.Obj
+		c.TriggerCard, c.TriggerCardFrom, c.TriggerCardFromSet = ev.Obj, ev.From, true
 		e.captureEvolveSnapshot(t, ev, &c)
 	case cards.TriggerChangesZoneAll, cards.TriggerPhaseOutAll:
 		// An unbatched event is a batch of one; closeZoneBatch overrides the

@@ -74,7 +74,7 @@ func TypeLineMasks(line string) (fold, exact TypeMask) {
 func ManaCostPips(cost string) (ColourMask, int) {
 	cost = strings.TrimSpace(manaBraceForm.Replace(cost))
 	var colours ColourMask
-	if cost == "" || strings.EqualFold(cost, "no cost") {
+	if IsNoManaCost(cost) {
 		return 0, 0
 	}
 	mv := 0

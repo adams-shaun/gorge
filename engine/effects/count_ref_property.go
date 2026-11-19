@@ -348,26 +348,18 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			// Remembered ref). Players in the list do not count.
 			n++
 		case prop == "Valid" || strings.HasPrefix(prop, "Valid "):
-			spec := strings.TrimSpace(strings.TrimPrefix(prop, "Valid"))
+			spec, admitted := refValidSpec(c, ref, strings.TrimSpace(strings.TrimPrefix(prop, "Valid")), t.Obj)
 			sc := c.SpecContext(c.Controller)
 			sc.DerivedPTs = append(sc.DerivedPTs, GreatestPowerDerivedPTs(g, spec, h)...)
-			// A copy the resolution itself remembered (a destroy-all's token
-			// copy, now in the graveyard) still exists until the next
-			// state-based check (CR 111.7, 707.10a), so the plain Remembered
-			// read matches it past the ceased-copy rejection, as the
-			// remembered-set condition reader does (conditions.go).
-			if lki && c.Snap.PTValid {
-				// The zone-change snapshot's power and toughness are its last
-				// known ones, every continuous effect applied (CR 608.2h): Ensign
-				// Harry Kim, Operations' "if it has greater power" over an
-				// entrant that died in response reads it as it last existed on
-				// the battlefield (CR 603.4, 603.10), not its printed card.
-				sc.DerivedPower, sc.DerivedToughness, sc.HasDerivedPT = c.Snap.Power, c.Snap.Toughness, true
-			}
+			// A copy the resolution itself remembered (a destroy-all's token copy,
+			// now in the graveyard) still exists until the next state-based check
+			// (CR 111.7, 707.10a), so the plain Remembered read matches it past
+			// the ceased-copy rejection, as the remembered-set reader does.
+			applySnapPT(c, &sc, lki)
 			remembered := ref == "Remembered" && !lki
-			if (lki && MatchesObjectCtx(g, spec, o, sc)) ||
+			if admitted && ((lki && MatchesObjectCtx(g, spec, o, sc)) ||
 				(remembered && matchesZoneSpecObj(g, spec, o, sc, o.Zone)) ||
-				(!lki && !remembered && matchesZoneSpecCtx(g, spec, t.Obj, sc, o.Zone)) {
+				(!lki && !remembered && matchesZoneSpecCtx(g, spec, t.Obj, sc, o.Zone))) {
 				n++
 			}
 		case prop == "Converge":
@@ -900,3 +892,14 @@ var evalPlayerRefPropertyCodes = state.NewStrCodes(
 	state.StrEntry[evalPlayerRefPropertyCode]{Key: "TriggeredPlayersTargets", Val: evalPlayerRefPropertyTriggeredPlayersTargets},
 	state.StrEntry[evalPlayerRefPropertyCode]{Key: "TriggeredPlayersAttackedTarget", Val: evalPlayerRefPropertyTriggeredPlayersAttackedTarget},
 )
+
+// applySnapPT seeds sc with the zone-change snapshot's power and toughness
+// when the read is last-known-information: they are its last known ones,
+// every continuous effect applied (CR 608.2h). Ensign Harry Kim, Operations'
+// "if it has greater power" over an entrant that died in response reads it as
+// it last existed on the battlefield (CR 603.4, 603.10), not its printed card.
+func applySnapPT(c *Ctx, sc *SpecContext, lki bool) {
+	if lki && c.Snap.PTValid {
+		sc.DerivedPower, sc.DerivedToughness, sc.HasDerivedPT = c.Snap.Power, c.Snap.Toughness, true
+	}
+}

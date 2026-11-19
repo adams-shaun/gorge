@@ -237,7 +237,17 @@ func (e *Engine) resumeETBEntry(chosen []decision.Option) state.ObjID {
 		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "number", Amount: int32(opt.Amount)})
 	case resumeETBEntryColor:
 		if letter := etbColourLetter(opt.Label); letter != "" {
-			e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "color", Text: letter})
+			// A two-colour entry ask (the etbPlainTwoColours shape, Seal of
+			// the Guildpact) appends each pick to the accumulating
+			// ChosenColors instead of overwriting the single ChosenColor, so
+			// Count$HasNumChosenColors reads the pair. The same printed-face
+			// read the ask itself takes decides the counter, so the two
+			// sites cannot disagree.
+			counter := "color"
+			if etbTwoColourEntry(e.G.Obj(move.Obj)) {
+				counter = "colors"
+			}
+			e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: counter, Text: letter})
 		}
 	case resumeETBEntryEvenOdd:
 		quality := strings.ToLower(opt.Label)

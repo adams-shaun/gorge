@@ -251,6 +251,13 @@ const (
 	// Forge's "source not enchanting a player" arm.
 	wordEnchantedPlayerCtrl
 	wordChosenColor
+	// wordAnyChosenColor is Forge's CardStateProperty AnyChosenColor
+	// (Tablet of the Guilds' `ValidCard$ Card.AnyChosenColor` trigger): the
+	// candidate shares AT LEAST ONE colour with the source's chosen colours
+	// -- the ChosenColor/ChosenColors union, Forge's one chosenColors list.
+	// A source with no recorded choice fails closed (the ChosenColor
+	// sibling's rule), so neither spelling can silently widen.
+	wordAnyChosenColor
 	// wordHasNonBasicLandType is Forge's Card.hasANonBasicLandType: the object
 	// is a LAND that has at least one land type outside CR 205.3i's five
 	// basic land types (Desert, Gate, Locus, Urza's, Cave, ...). It is NOT
@@ -741,6 +748,8 @@ func targetedPredicateWord(p string) (wordKind, bool) {
 		return wordNotDefinedTargeted, true
 	case wordPredicateWordTargetedBy:
 		return wordTargetedBy, true
+	case wordPredicateWordAnyChosenColor:
+		return wordAnyChosenColor, true
 	default:
 		return wordUnknown, false
 	}
@@ -766,8 +775,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return sharesNameReferentMatches(g, o, sc, key)
 	case wordColor:
 		return strings.Contains(colorsCtx(o, &sc), key)
-	case wordChosenColor:
-		return chosenColorMatches(g, o, sc)
+	case wordChosenColor, wordAnyChosenColor:
+		return chosenColorMatchesKind(kind, g, o, sc)
 	case wordType:
 		return hasTypePredicateCtx(o, key, sc)
 	case wordFullyUnlocked:
@@ -1413,6 +1422,11 @@ func contextPredicateBound(g *state.Game, kind wordKind, key string, sc SpecCont
 		return o != nil && o.Zone == state.ZBattlefield && o.HasAttachedPlayer
 	case wordImprinted, wordChosenColor:
 		return sc.Source != 0
+	case wordAnyChosenColor:
+		// AnyChosenColor is bound when the source carries a recorded choice
+		// at all: a source with none must not answer (the '!' spelling would
+		// otherwise match every object).
+		return sc.Source != 0 && chosenColoursMask(g, sc.Source) != 0
 	case wordCountersReceived:
 		// The per-turn counter ledger is bound only where a caller publishes
 		// it (counterAddsFor); without it the word must not answer, or the
@@ -1548,6 +1562,9 @@ const (
 	wordPredicateWordDealtCombatDamageToAny
 	wordPredicateWordBottomLibrary
 	wordPredicateWordFaceUp
+	// The two chosen-set words: appended after the enum's original entries,
+	// per its own append-only precedent.
+	wordPredicateWordAnyChosenColor
 )
 
 var wordPredicateWordCodes = state.NewStrCodes(
@@ -1556,6 +1573,7 @@ var wordPredicateWordCodes = state.NewStrCodes(
 	state.StrEntry[wordPredicateWordCode]{Key: "MonoColor", Val: wordPredicateWordMonoColor},
 	state.StrEntry[wordPredicateWordCode]{Key: "Worthy", Val: wordPredicateWordWorthy},
 	state.StrEntry[wordPredicateWordCode]{Key: "ChosenColor", Val: wordPredicateWordChosenColor},
+	state.StrEntry[wordPredicateWordCode]{Key: "AnyChosenColor", Val: wordPredicateWordAnyChosenColor},
 	state.StrEntry[wordPredicateWordCode]{Key: "wasCast", Val: wordPredicateWordWasCast},
 	// copiedSpell is Forge's own spelling (CardProperty's
 	// startsWith("copiedSpell")), so Card.copiedSpell and its '!' negation

@@ -456,7 +456,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 			return c.AllTargets, true
 		}
 		return c.Targets, true
-	case refTargetsTriggeredCard:
+	case refTargetsTriggeredCard, refTargetsTriggeredCardLKI:
 		if c.EffectFrame.Carrier && c.TriggerCard != 0 && c.TriggerCard == c.DelayedObject {
 			return triggeredCardGroup(c), true
 		}
@@ -930,6 +930,7 @@ const (
 	refTargetsParentTarget
 	refTargetsAllTargeted
 	refTargetsTriggeredCard
+	refTargetsTriggeredCardLKI
 	refTargetsTriggeredAttacker
 	refTargetsRememberedLKI
 	refTargetsTriggerRemembered
@@ -960,6 +961,7 @@ var refTargetsCodes = state.NewStrCodes(
 	state.StrEntry[refTargetsCode]{Key: "ParentTargeted", Val: refTargetsParentTarget},
 	state.StrEntry[refTargetsCode]{Key: "AllTargeted", Val: refTargetsAllTargeted},
 	state.StrEntry[refTargetsCode]{Key: "TriggeredCard", Val: refTargetsTriggeredCard},
+	state.StrEntry[refTargetsCode]{Key: "TriggeredCardLKI", Val: refTargetsTriggeredCardLKI},
 	state.StrEntry[refTargetsCode]{Key: "TriggeredCardLKICopy", Val: refTargetsTriggeredCard},
 	// TriggeredObject is Forge's alias for the triggering event's object
 	// (AbilityUtils' "TriggeredObject" -> "Card" replacement, and the

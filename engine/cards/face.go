@@ -818,10 +818,18 @@ func (f *Face) ManaValue() int32 { return cmcFromManaCost(f.ManaCost) }
 // is the same one Face.ManaValue uses, so the two cannot drift.
 func ManaValueOfCost(mc string) int32 { return cmcFromManaCost(mc) }
 
+// IsNoManaCost reports whether a printed mana cost is absent: empty (after
+// trimming) or the "no cost" spelling (a land, a back face, a Living End
+// card). It is the one read cmcFromManaCost and the distinct-cost counts share.
+func IsNoManaCost(mc string) bool {
+	mc = strings.TrimSpace(mc)
+	return mc == "" || strings.EqualFold(mc, "no cost")
+}
+
 func cmcFromManaCost(mc string) int32 {
 	mc = manaBraceForm.Replace(mc)
 	mc = strings.TrimSpace(mc)
-	if mc == "" || strings.EqualFold(mc, "no cost") {
+	if IsNoManaCost(mc) {
 		return 0
 	}
 	var n int32

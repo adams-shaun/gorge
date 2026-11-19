@@ -842,6 +842,16 @@ func faceWantsTimesKicked(f *cards.Face) bool {
 	return f.Mentions("Count$TimesKicked")
 }
 
+// faceWantsEmerged is the emerge-capture emission gate (the
+// faceWantsTimesKicked pattern): true when the face's strings mention the
+// Count$Emerged head, the reader the sacrificed creature's toughness is
+// stored for (Adipose Offspring's `N:Count$Emerged.T.1`). Only that
+// face's emerge cast carries the pay-time StoreSVar capture, so every other
+// emerge cast keeps its byte-identical event stream.
+func faceWantsEmerged(f *cards.Face) bool {
+	return f.Mentions("Count$Emerged")
+}
+
 // manaExpendReaderOut is the ManaExpend emission gate (the
 // triggeredConvergeReaderOut pattern): true when the CASTING player's own
 // battlefield holds a permanent whose live faces carry a Mode$ ManaExpend
