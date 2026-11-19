@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"path/filepath"
 	"slices"
 	"testing"
 
@@ -56,9 +57,26 @@ func twobridFourSeatDeck(t *testing.T, set cardset.Set) ([]string, []string, []s
 	return deck[:40], tw, refused
 }
 
+// twobridReproDeck is a recorded game's first seat as a deck: the shape the
+// recording pins is a filter land funding a twobrid cast from the floated
+// pool (hybrid_cast_filter_fee_from_floated_pool) and the flexible source
+// whose first-colour tap strands a later pip (twobrid_window_taps_flexible_source).
+// The generated twobrid pool deals twobrid cards and basics only, so the
+// filter land and the flexible source no deck of that pool carries are read
+// from the recording's own table.
+func twobridReproDeck(t *testing.T, name string) (cardset.Set, []string) {
+	t.Helper()
+	r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return globSet(t, r.Pool, r), r.Cards[0]
+}
+
 // twobridFourSeat plays seats of deck against each other at four seats under
-// the twobrid policy, returning the first divergence and the seeds played.
-func twobridFourSeat(t *testing.T, set cardset.Set, deck []string, seeds uint64, mutate func(*kop.Table)) (int, *Divergence) {
+// the twobrid policy, returning the first divergence, the seeds played, and
+// whether the kernel stalled before one (a stall is a failure, never a pass).
+func twobridFourSeat(t *testing.T, set cardset.Set, deck []string, seeds uint64, mutate func(*kop.Table)) (int, *Divergence, bool) {
 	t.Helper()
 	reg := synthReg(t)
 	var list []cardset.Entry
@@ -95,21 +113,24 @@ func twobridFourSeat(t *testing.T, set cardset.Set, deck []string, seeds uint64,
 			t.Fatal(err)
 		}
 		pol := ktwobridPolicy(seed, nil)
-		res := Lockstep(m, seed, k, pol, RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 25})
+		res := Lockstep(m, seed, k, pol, RunConfig{Config: cfg, MaxDecisions: 8000, MaxTurns: 100})
 		CloseSide(k)
 		if res.Div != nil {
 			div++
-			return div, res.Div
+			return div, res.Div, false
 		}
 		if res.StallUnmodelled || res.Stall != "" {
-			return div, &Divergence{At: res.Decisions, What: "stall", Field: res.Stall}
+			return div, &Divergence{At: res.Decisions, What: "stall", Field: res.Stall}, true
 		}
 	}
-	return div, nil
+	return div, nil, false
 }
 
 // TestTwobridFourSeatLockstep: every corpus twobrid card plays the same game
-// at four seats, under both oracle surfaces, over the generated twobrid pool.
+// at four seats, under both oracle surfaces, over the generated twobrid pool,
+// and over the recorded filter-fee and flexible-source decks, whose shapes the
+// generated pool cannot deal. The recordings themselves are replayed too: they
+// are the shortest game that pins the planner-versus-window split.
 func TestTwobridFourSeatLockstep(t *testing.T) {
 	t.Parallel()
 	cardsettest.Require(t, "twobrid")
@@ -120,8 +141,23 @@ func TestTwobridFourSeatLockstep(t *testing.T) {
 	}
 	t.Logf("twobrid census: %d corpus cards, %d pool-playable %v, refused %v", len(tw)+len(refused), len(tw), tw, refused)
 	const seeds = 24
-	if div, d := twobridFourSeat(t, set, deck, seeds, nil); div != 0 {
+	if div, d, stalled := twobridFourSeat(t, set, deck, seeds, nil); stalled {
+		t.Fatalf("stalled at %d: %+v", d.At, d)
+	} else if div != 0 {
 		t.Fatalf("diverged: %+v", d)
+	}
+	for _, name := range []string{"hybrid_cast_filter_fee_from_floated_pool", "twobrid_window_taps_flexible_source"} {
+		t.Run(name+"_four_seat", func(t *testing.T) {
+			set, deck := twobridReproDeck(t, name)
+			if div, d, stalled := twobridFourSeat(t, set, deck, 24, nil); stalled {
+				t.Fatalf("stalled at %d: %+v", d.At, d)
+			} else if div != 0 {
+				t.Fatalf("diverged: %+v", d)
+			}
+		})
+		t.Run(name+"_replay", func(t *testing.T) {
+			stdReproNamed(t, name)
+		})
 	}
 }
 
@@ -145,7 +181,11 @@ func TestTwobridFourSeatMutation(t *testing.T) {
 			c.Cost.Tb, c.Cost.Hyb[0] = 0, 0
 		}
 	}
-	if div, d := twobridFourSeat(t, set, deck, 24, mutate); div == 0 {
+	div, d, stalled := twobridFourSeat(t, set, deck, 24, mutate)
+	if stalled {
+		t.Fatalf("stalled at %d: %+v", d.At, d)
+	}
+	if div == 0 {
 		t.Fatalf("the every-pip-its-colour mutation never diverged: %v", d)
 	}
 }

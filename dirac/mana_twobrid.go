@@ -88,6 +88,47 @@ func (s *State) adjustFit(k *prep, av *avail, p uint8, c CardID, o Obj, base kop
 	return s.adjustPlain(gen, k, p, c, o, base)
 }
 
+// hybWitnessTb resolves an unannounced twobrid cost the way the cast
+// planner's planTwobridCost does: the first face assignment (the colour face
+// first, then the two-generic one, as AnnouncePip orders them) that a
+// affords, with the leaf delve credit taken (CR 702.66a). The cost unchanged
+// when none is affordable. The offer's stack-hold probe
+// (planHoldsOnStack) uses it, because a payment announces its pips first and
+// the hybrid witness refuses the marker.
+func (a *avail) hybWitnessTb(cost kop.ManaCost, x int, anyColor bool) kop.ManaCost {
+	n := cost.TbN()
+	phy := cost.Phyrexian()
+	for m := 0; m < 1<<n; m++ {
+		if phy && 2*bits.OnesCount(uint(m)) > int(a.life) {
+			continue // the two-life faces must be payable (CR 119.4)
+		}
+		r := cost
+		for i := 0; i < n; i++ {
+			r = r.ResolveTb(m>>i&1 != 0)
+		}
+		rx := r.AtX(x)
+		ex := 0
+		if a.delve > 0 {
+			// the composed leaf takes the credit off the resolved generic
+			// first, then the {X} part's remainder (gorge delveAsk's order)
+			cr := min(int(rx.Generic)+ex, a.delve)
+			g := min(int(rx.Generic), cr)
+			rx.Generic -= uint8(g)
+			ex -= cr - g
+		}
+		var ok bool
+		if anyColor {
+			ok = a.affordsAnyColor(&rx, ex)
+		} else {
+			ok = a.affords(&rx, pipMaskOf(&rx), ex)
+		}
+		if ok {
+			return r
+		}
+	}
+	return cost
+}
+
 // affordsTb: some face assignment of cost's twobrid pips is affordable
 // (gorge pay.ResolveManaWith expands each pip to {colour, two generic}).
 func (a *avail) affordsTb(cost *kop.ManaCost, extra int, anyColor bool) bool {
