@@ -24,7 +24,7 @@ const (
 	staticFieldCount   = 5
 	replFieldCount     = 8
 	paramSetFieldCount = 6
-	faceFieldCount     = 52
+	faceFieldCount     = 54
 )
 
 func sliceEq[T comparable](a, b []T) bool {
@@ -169,7 +169,8 @@ func FaceEqual(a, b *Face) bool {
 		a.ManaCost != b.ManaCost || a.PT != b.PT || a.Loyalty != b.Loyalty || a.Defense != b.Defense ||
 		a.Colors != b.Colors || a.Oracle != b.Oracle ||
 		a.power != b.power || a.toughness != b.toughness || a.characteristicDefining != b.characteristicDefining ||
-		a.allCreatureTypesCDA != b.allCreatureTypesCDA || a.cmc != b.cmc || a.manaProduction != b.manaProduction ||
+		a.allCreatureTypesCDA != b.allCreatureTypesCDA || !slices.Equal(a.cdaAddTypes, b.cdaAddTypes) || !slices.Equal(a.cdaAddGated, b.cdaAddGated) ||
+		a.cmc != b.cmc || a.manaProduction != b.manaProduction ||
 		a.colourIdentity != b.colourIdentity || a.copyColours != b.copyColours ||
 		a.copyPTSet != b.copyPTSet || a.copyNoManaCost != b.copyNoManaCost ||
 		a.compiledTriggerInterests != b.compiledTriggerInterests ||
