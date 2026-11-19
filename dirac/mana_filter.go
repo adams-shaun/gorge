@@ -1672,12 +1672,18 @@ func (fs *filtSearch) fundTap(k *prep, t *State, sl Slot, rm uint8, free bool, f
 		return false, true // the ask between its census and its restricted ability
 	}
 	zeroAsk := free && rm == 0 && fs.zeroFiltAsk(k, t, sl)
-	if zeroAsk && !fs.tick() {
-		return false, true // the ask between its free ability and a zero filter (mana_zerofilt.go)
-	}
 	if free {
 		pc := t.manaPCGen(k, sl)
 		mask := t.fundMaskAt(k, pc, sl) // a painland asks its painful colours too (mana_filtpain.go)
+		if bits.OnesCount8(mask) == 1 && zeroAsk && fs.zeroFiltAsks(k, t, sl) {
+			// the tap is the new gate's own (fundOne): its ask and the zero
+			// filter's colour search are charged there once, and the old
+			// gate's would charge the same tap's ask and search a second time
+			zeroAsk = false
+		}
+		if zeroAsk && !fs.tick() {
+			return false, true // the ask between its free ability and a zero filter (mana_zerofilt.go)
+		}
 		if bits.OnesCount8(mask) > 1 && !fs.tick() {
 			return false, true // the colour ask
 		}
@@ -1748,10 +1754,21 @@ func (fs *filtSearch) witnessEats(k *prep, t *State) bool {
 // for a gate-on pair's larger one: gorge's ability ask lists both and the
 // search takes them in turn (filtStep.wide).
 func (fs *filtSearch) fundOne(k *prep, t *State, sl Slot, pc *pcard, mask uint8, funded int, gapUsed bool) bool {
+	zero := fs.zeroFiltAsks(k, t, sl)
+	if zero && !fs.tick() {
+		return false // the ask beside a zero filter (mana_filtzerofund.go)
+	}
 	ans := uint8(bits.TrailingZeros8(mask))
 	if fs.try(k, t, filtStep{sl: sl, ans: ans}, funded+1, gapUsed) {
 		return true
 	}
+	if zero && fs.zeroFiltColours(k, t, sl, funded+1, gapUsed) {
+		return true
+	}
+	// the pair's wide answer after the zero answers: gorge's ability ask lists
+	// both, and the search takes them in turn (filtStep.wide). No current card
+	// pairs a zero dynamic filter with a gate-on pair, so the order is
+	// untested against gorge's; the wide is kept rather than dropped.
 	return t.widePairAb(k, sl, pc) >= 0 && fs.tick() && fs.try(k, t, filtStep{sl: sl, ans: ans, wide: true}, funded+1, gapUsed)
 }
 
