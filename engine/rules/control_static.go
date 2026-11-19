@@ -107,13 +107,24 @@ func (e *Engine) staticControlWants() []staticWant {
 // effectGainControlGrant creates (engine/effects/effect_gaincontrol.go --
 // Garland, Royal Kidnapper's monarch steal, Shield Broker's shield-counter
 // steal). The same derivation the printed route runs, but read from the
-// live registrations rather than the static scan: the gate is re-evaluated
-// on EVERY derivation (this function runs at the same fixed points
-// expireControl does), so a delivered "for as long as ..." transfer holds
-// exactly while its condition does and ends through grantEnded when it
-// stops -- a delivered static has no printed scan whose gate could re-run
-// for it. An unreadable gate fails closed (effectControlGateHolds), the
-// same convention the printed scan's checkSVarHolds documents.
+// live registrations rather than the static scan: the CheckSVar$ gate is
+// re-evaluated on EVERY derivation (this function runs at the same fixed
+// points expireControl does), so a delivered "for as long as ..." transfer
+// holds exactly while its condition does and ends through grantEnded when
+// it stops -- a delivered static has no printed scan whose gate could
+// re-run for it.
+//
+// The gate (Garland's CheckSVar$ X over PlayerCountRememberedPlayer$
+// HasPropertyisMonarch, "for as long as they're the monarch"; CR 611.2a/b)
+// is evaluated through the ONE shared statics evaluator -- the wrapper
+// mayplay.go's effectMayPlayGateHolds is for the may-play twin. It reads
+// the REGISTRATION's own captured set: its remembered objects and its
+// remembered PLAYERS (Garland's RememberObjects$ TriggeredPlayer, the
+// monarch the body counts), with the resolving face's SVar table the
+// registration bound -- not the source card's memory, which does not
+// survive the Effect. A gate this build cannot evaluate fails CLOSED: the
+// transfer is withheld, never silently always-applied (the statics
+// convention checkSVarHoldsRaw documents). An empty CheckSVar$ is no gate.
 //
 // There is no source-zone check here, unlike the printed route: the
 // registration's own lifetime machinery (active()'s liveness -- Permanent,
@@ -127,8 +138,16 @@ func (e *Engine) effectControlWants(w []staticWant) []staticWant {
 		if !ce.FromEffect || ce.GainControl == "" {
 			continue
 		}
-		if !e.effectControlGateHolds(ce) {
-			continue
+		if ce.GainControlCheckSVar != "" {
+			remembered := pay.RememberedTargets(ce.Remembered)
+			for _, p := range ce.RememberedPlayers {
+				remembered = append(remembered, state.Target{IsPlayer: true, Player: p})
+			}
+			ctx := effects.NewCtxPtr(ce.Source, ce.Controller, effects.CtxInit{SVars: ce.SVars, Remembered: remembered})
+			holds, evaluated := effects.CheckSVarHolds(e, ctx, ce.GainControlCheckSVar, ce.GainControlSVarCompare)
+			if !evaluated || !holds {
+				continue
+			}
 		}
 		ctrl, ok := staticGainControlController(e.G, ce.GainControl, ce.Controller, ce.Source)
 		if !ok {
@@ -139,7 +158,19 @@ func (e *Engine) effectControlWants(w []staticWant) []staticWant {
 		}
 		for _, p := range e.G.AliveFrom(0) {
 			for _, id := range e.G.Zone(state.ZBattlefield, p) {
-				if !e.effectControlAffects(ce, id) {
+				// The Affected$ spec matches against the registration's
+				// captured set: the remembered objects answer the
+				// Card.IsRemembered clause (effectGainControlGrant
+				// normalized IsImprinted to it), the remembered players
+				// ride alongside for a <base>.RememberedPlayerCtrl
+				// qualifier, and the spec context carries the same layer
+				// tables every rules-side spec match resolves through
+				// (specCtx) -- the binding mayplay.go's
+				// effectGrantSpecContext makes for the may-play walk.
+				sc := e.specCtx(ce.Source, ce.Controller)
+				sc.Remembered = pay.RememberedTargets(ce.Remembered)
+				sc.RememberedPlayers = ce.RememberedPlayers
+				if !e.matchesSpec(ce.Affects, id, sc) {
 					continue
 				}
 				o := e.G.Obj(id)
@@ -153,47 +184,6 @@ func (e *Engine) effectControlWants(w []staticWant) []staticWant {
 		}
 	}
 	return w
-}
-
-// effectControlGateHolds evaluates an Effect-delivered control static's
-// CheckSVar$/SVarCompare$ intervening-if (Garland's CheckSVar$ X over
-// PlayerCountRememberedPlayer$ HasPropertyisMonarch, "for as long as
-// they're the monarch"; CR 611.2a/b) through the ONE shared statics
-// evaluator -- the wrapper mayplay.go's effectMayPlayGateHolds is for the
-// may-play twin. The gate reads the REGISTRATION's own captured set: its
-// remembered objects and its remembered PLAYERS (Garland's RememberObjects$
-// TriggeredPlayer, the monarch the body counts), with the resolving face's
-// SVar table the registration bound -- not the source card's memory, which
-// does not survive the Effect. A gate this build cannot evaluate fails
-// CLOSED: the transfer is withheld, never silently always-applied (the
-// statics convention checkSVarHoldsRaw documents). An empty CheckSVar$ is
-// no gate.
-func (e *Engine) effectControlGateHolds(ce *state.ContinuousEffect) bool {
-	if ce.GainControlCheckSVar == "" {
-		return true
-	}
-	remembered := pay.RememberedTargets(ce.Remembered)
-	for _, p := range ce.RememberedPlayers {
-		remembered = append(remembered, state.Target{IsPlayer: true, Player: p})
-	}
-	ctx := effects.NewCtxPtr(ce.Source, ce.Controller, effects.CtxInit{SVars: ce.SVars, Remembered: remembered})
-	holds, evaluated := effects.CheckSVarHolds(e, ctx, ce.GainControlCheckSVar, ce.GainControlSVarCompare)
-	return evaluated && holds
-}
-
-// effectControlAffects matches an Effect-delivered control static's Affected$
-// spec against a battlefield object with the registration's captured set
-// bound: the remembered objects answer the Card.IsRemembered clause
-// (effectGainControlGrant normalized IsImprinted to it), the remembered
-// players ride alongside for a <base>.RememberedPlayerCtrl qualifier, and
-// the spec context carries the same layer tables every rules-side spec
-// match resolves through (specCtx). This is the binding mayplay.go's
-// effectGrantSpecContext makes for the may-play grant walk.
-func (e *Engine) effectControlAffects(ce *state.ContinuousEffect, id state.ObjID) bool {
-	sc := e.specCtx(ce.Source, ce.Controller)
-	sc.Remembered = pay.RememberedTargets(ce.Remembered)
-	sc.RememberedPlayers = ce.RememberedPlayers
-	return e.matchesSpec(ce.Affects, id, sc)
 }
 
 // staticGainControlController resolves a GainControl$ static VALUE to the
