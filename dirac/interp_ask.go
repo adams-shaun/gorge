@@ -278,6 +278,9 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	c := s.numTimesCost(k, amt, pips)
 	s.payManaHyb(k, life, &c) // cost_trighybrid.go
 	s.announcedHyb(&c)
+	if s.potentialDynOpen(k, p, &c, &other) {
+		return true // a dynamic-amount source's potentialUnbounded fold (mana_dyntrigcost.go)
+	}
 	var av avail
 	s.availPotentialFor(k, p, &av, &other, false)
 	s.availSacAny(k, p, &av, &other)

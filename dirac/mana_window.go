@@ -278,8 +278,8 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			other := payDesc{class: pdOther, subBound: s.g.winMode == winTrig} // a trigger's own cost reads the trigger pay gate's bound (mana_repeatpotential.go)
 			s.availPotentialFor(k, p, &pot, &other, false)
 			s.availSacAny(k, p, &pot, &other) // a sacrifice-any source's fixed production, once (trigCostPotentialPays)
-			if !pot.affords(cost, pipMaskOf(cost), 0) {
-				return false, held
+			if !pot.affords(cost, pipMaskOf(cost), 0) && !s.potentialDynOpen(k, p, cost, &other) {
+				return false, held // a dynamic-amount source's potentialUnbounded fold (mana_dyntrigcost.go)
 			}
 		}
 		var order [MaxPerm]Slot
