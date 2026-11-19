@@ -9,10 +9,11 @@ import (
 )
 
 // cantAttack lowers S:Mode$ CantAttack (gorge combat.AttackBlocked's face
-// static walk) to kop.StatCantAttack. The kernel is two-player, so the
-// defender-dependent parameters map exactly only in these shapes:
+// static walk) to kop.StatCantAttack. The defender-dependent parameters map
+// exactly only in these shapes:
 //   - Target$ absent: every defender (canAttack blocks the creature blind).
-//   - Target$ You: only the attack on the static's controller (StCantAtkPlayer);
+//   - Target$ You: only the attack on the static's controller (StCantAtkPlayer;
+//     the kernel judges each defender's pair, so a pod plays it);
 //     Planeswalker.YouCtrl: only an attack on a planeswalker that player
 //     controls (StCantAtkWalker); You,Planeswalker.YouCtrl: both. A battle is
 //     neither target, so a scoped static never blocks a battle pair (gorge
@@ -30,13 +31,10 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 	if t, ok := sp.get("Target"); ok {
 		switch {
 		case strings.ReplaceAll(t, " ", "") == "You,Planeswalker.YouCtrl":
-			lc.twoSeat("CantAttack Target$ you and your planeswalkers read per attack target")
 			st.Flags = append(st.Flags, "AtkPlayer", "AtkWalker")
 		case t == "You":
-			lc.twoSeat("CantAttack Target$ you reads per attack target")
 			st.Flags = append(st.Flags, "AtkPlayer")
 		case t == "Planeswalker.YouCtrl":
-			lc.twoSeat("CantAttack Target$ your planeswalkers reads per attack target")
 			st.Flags = append(st.Flags, "AtkWalker")
 		case t == ownerAttackTarget && vc == "Card.Self":
 			// Xantcha, Sleeper Agent: gorge RestrictionTargetMatches blocks the

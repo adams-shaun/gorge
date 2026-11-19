@@ -283,12 +283,18 @@ func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool)
 		if sick && !s.atkHasteOK(k, sl, q) {
 			continue // CanAttackIfHaste exempts it against q's pairs no more (static_canattackifhaste.go)
 		}
+		if !DebugCantAtkPodBlind && s.cantAtkPairPlayer(k, sl, q) {
+			// a scoped CantAttack static (Target$ You: Vow of Duty) forbids
+			// q's player pair, and gorge attackOffersCompute's AttackBlocked
+			// test skips q's planeswalker pairs with it (combat_cantattack.go)
+			continue
+		}
 		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0))
 		if goaded {
 			continue
 		}
 		for pm := s.ctrlM[q]; pm.any(); pm = pm.rest() {
-			if w := pm.first(); s.typesAt(k, w)&kop.TPlaneswalker != 0 {
+			if w := pm.first(); s.typesAt(k, w)&kop.TPlaneswalker != 0 && (DebugCantAtkPodBlind || !s.cantAtkPairWalker(k, sl, w)) {
 				d.add(MakeAction(AkAttack, TCode(o), TCode(s.perms[w].obj), 0))
 			}
 		}
@@ -296,15 +302,16 @@ func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool)
 }
 
 // goadDefenderBanned reports whether defender seat q is banned for the
-// goaded creature at sl (gorge combat.GoadMayAttack): q goaded it and some
+// goaded creature at sl (gorge combat.GoadMayAttack): q goaded it (a mark
+// or a static q controls: goadedBy) and some
 // live seat other than the attacker's controller did not, so attacking q
 // can satisfy every goad while attacking that other seat would.
 func (s *State) goadDefenderBanned(k *prep, sl Slot, q uint8) bool {
-	if !s.mSl(k, goadMech(q), sl) {
+	if !s.goadedBy(k, sl, q) {
 		return false
 	}
 	for r := uint8(0); r < s.nSeats(); r++ {
-		if r != s.active && !s.out(r) && !s.mSl(k, goadMech(r), sl) {
+		if r != s.active && !s.out(r) && !s.goadedBy(k, sl, r) {
 			return true
 		}
 	}
