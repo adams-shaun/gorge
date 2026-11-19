@@ -54,7 +54,7 @@ func (s *State) sacrificedLKICount(k *prep, f kop.FilterID, li uint8, typeRead b
 	if fl.Types != 0 && l.types&fl.Types == 0 {
 		return 0, true
 	}
-	if int(fl.Sub-1) >= len(k.t.Subtypes) || !l.subs.Has(int(fl.Sub-1)) {
+	if int(fl.Sub-1) >= len(k.t.Subtypes) || !s.lkSubs(li).Has(int(fl.Sub-1)) {
 		return 0, true
 	}
 	return 1, true

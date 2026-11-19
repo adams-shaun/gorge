@@ -41,14 +41,14 @@ func (a lsAlt) step() int { return (int(a.ab)+1)*8 + 5 - int(a.col) }
 
 // lsClass is pay.Class: the units whose alternatives are interchangeable.
 type lsClass struct {
-	units [maxUnits]uint8
-	n     int32
-	ty    uint8
-	amt   int32
-	irr   int32 // pay.ConsequenceCost of one unit: a sacrificed source's 10 (20 a creature)
-	alts  [planLimitAlts]lsAlt
-	na    int
-	pick  [planLimitAlts]uint8 // alternatives in witness-step order
+	off  int32 // its units are limitSearch.cu[off:off+n], ascending (unitAt)
+	n    int32
+	ty   uint8
+	amt  int32
+	irr  int32 // pay.ConsequenceCost of one unit: a sacrificed source's 10 (20 a creature)
+	alts [planLimitAlts]lsAlt
+	na   int
+	pick [planLimitAlts]uint8 // alternatives in witness-step order
 }
 
 type lsLevel struct{ class, alt uint8 }
@@ -122,12 +122,12 @@ func (a *lsKeys) cmp(b *lsKeys) int {
 type limitSearch struct {
 	pk       planner
 	classes  [maxUnits]lsClass
+	cu       [maxUnits]uint8 // every class's units, class by class (lsClass.off); one shared list, not one of maxUnits per class, keeps the search under the 128 KiB stack limit at MaxPerm 192
 	nc       int
 	levels   [maxUnits * planLimitAlts]lsLevel
 	nl       int
 	hereCols [maxUnits * planLimitAlts]uint8 // level l: the colours of its class's alternatives from l on
-	later    [maxUnits]lsStats               // class c: the stats of the classes after it
-	laterCap [maxUnits][planLimitAny + 1]int32
+	bnd      *lsBounds                       // limitPlan's other local: the per-class bound tables
 	counts   [maxUnits][planLimitAlts]int32
 	used     [maxUnits]int32
 	produced [kop.NumManaKinds]int32
@@ -144,6 +144,14 @@ type limitSearch struct {
 	wU       [maxUnits]uint8
 	wA       [maxUnits]lsAlt
 	granted  bool // some source has a granted basic land type (unitAltsChoice's gate)
+}
+
+// lsBounds are the search's per-class bound tables, a second local of
+// limitPlan beside the search (each declared variable must stay under the
+// compiler's 128 KiB; at MaxPerm 192 the two together do not).
+type lsBounds struct {
+	later    [maxUnits]lsStats // class c: the stats of the classes after it
+	laterCap [maxUnits][planLimitAny + 1]int32
 }
 
 // limitPlan replays the search over pk's phase-1 census and, when it reaches
@@ -168,6 +176,8 @@ func (s *State) limitPlan(k *prep, pk *planner) {
 		return
 	}
 	var ls limitSearch
+	var bnd lsBounds
+	ls.bnd = &bnd
 	ls.pk = *pk
 	ls.granted = granted
 	ls.census(k, s)
@@ -187,7 +197,9 @@ func (s *State) limitPlan(k *prep, pk *planner) {
 // census groups the units into classes in order of each class's first unit.
 func (ls *limitSearch) census(k *prep, s *State) {
 	pk := &ls.pk
+	var ucls [maxUnits]uint8 // each unit's class, 255 none
 	for u := 0; u < pk.nu; u++ {
+		ucls[u] = 255
 		if pk.types[pk.utyp[u]].inert {
 			continue // a classless census position (planInertGrant): no alternatives, never chosen
 		}
@@ -212,11 +224,27 @@ func (ls *limitSearch) census(k *prep, s *State) {
 				}
 			}
 		}
-		cl := &ls.classes[ci]
-		cl.units[cl.n] = uint8(u)
-		cl.n++
+		ls.classes[ci].n++
+		ucls[u] = uint8(ci)
+	}
+	// lay the classes' unit lists out back to back, each ascending
+	var fill [maxUnits]int32
+	off := int32(0)
+	for c := 0; c < ls.nc; c++ {
+		ls.classes[c].off = off
+		off += ls.classes[c].n
+	}
+	for u := 0; u < pk.nu; u++ {
+		if c := ucls[u]; c != 255 {
+			cl := &ls.classes[c]
+			ls.cu[cl.off+fill[c]] = uint8(u)
+			fill[c]++
+		}
 	}
 }
+
+// unitAt is class cl's j-th unit (ascending).
+func (ls *limitSearch) unitAt(cl *lsClass, j int) uint8 { return ls.cu[int(cl.off)+j] }
 
 // sameClassType reports whether unit types a and b read the same in pay.Class:
 // what the rank and the witness see of a source is its alternatives, its
@@ -307,7 +335,7 @@ func (ls *limitSearch) order() {
 		if ty.mask&shortMask != 0 {
 			pips = 0
 		}
-		return int(cl.irr), creature, pips, int(ty.flex), cl.units[0]
+		return int(cl.irr), creature, pips, int(ty.flex), ls.unitAt(cl, 0)
 	}
 	less := func(a, b *lsClass) bool {
 		a0, a1, a2, a3, a4 := rank(a)
@@ -362,8 +390,8 @@ func (ls *limitSearch) order() {
 			cols |= 1 << col
 			ls.hereCols[l] = cols
 		}
-		ls.later[c] = later
-		ls.laterCap[c] = laterCap
+		ls.bnd.later[c] = later
+		ls.bnd.laterCap[c] = laterCap
 		for m := range laterCap {
 			laterCap[m] += cl.n * inClass.most[m]
 		}
@@ -462,11 +490,11 @@ func (ls *limitSearch) promising(level int, short *[kop.NumManaKinds]int32, tota
 	if avail != 0 {
 		here = ls.hereStats(level)
 	}
-	rest := here.merge(&ls.later[lv.class])
+	rest := here.merge(&ls.bnd.later[lv.class])
 	if !rest.any {
 		return false
 	}
-	cap := &ls.laterCap[lv.class]
+	cap := &ls.bnd.laterCap[lv.class]
 	if avail*here.most[planLimitAny]+cap[planLimitAny] < total || rest.most[planLimitAny] == 0 {
 		return false
 	}
@@ -589,7 +617,7 @@ func (ls *limitSearch) materialize() {
 	var next [maxUnits]int32
 	limit := func(c int) int {
 		cl := &ls.classes[c]
-		return int(cl.units[cl.n-owed[c]])
+		return int(ls.unitAt(cl, int(cl.n-owed[c])))
 	}
 	const none = int(^uint(0) >> 1)
 	for i := 0; i < int(ls.sources); i++ {
@@ -619,10 +647,10 @@ func (ls *limitSearch) materialize() {
 				upper = min(upper, other-1)
 			}
 			cl := &ls.classes[c]
-			for j := next[c]; j < cl.n && int(cl.units[j]) <= upper; j++ {
-				id := pk.uobj[cl.units[j]]
+			for j := next[c]; j < cl.n && int(ls.unitAt(cl, int(j))) <= upper; j++ {
+				id := pk.uobj[ls.unitAt(cl, int(j))]
 				if bestC < 0 || id < bestID {
-					bestC, bestPos, bestID = c, int(cl.units[j]), id
+					bestC, bestPos, bestID = c, int(ls.unitAt(cl, int(j))), id
 				}
 			}
 		}
@@ -639,7 +667,7 @@ func (ls *limitSearch) materialize() {
 		owedAlt[bestC][alt]--
 		for c := 0; c < ls.nc; c++ {
 			m := &ls.classes[c]
-			for next[c] < m.n && int(m.units[next[c]]) <= bestPos {
+			for next[c] < m.n && int(ls.unitAt(m, int(next[c]))) <= bestPos {
 				next[c]++
 			}
 		}
