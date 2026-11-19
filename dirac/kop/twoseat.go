@@ -8,10 +8,6 @@ func TwoSeatInstr(in *Instr) bool {
 	switch in.Op {
 	case OpReturnEx:
 		return in.B.N&RetUnderOpponent != 0 // under the chosen opponent's control
-	case OpCopyAsTokenEx:
-		return uint16(in.B.N)&CopyNonRemCtrl != 0 // for the remembered controller's opponent
-	case OpCreateTokenEx:
-		return in.B.N&(TokAttacking|TokAttackAsk) == TokAttacking // attacking the controller's opponent (TokenAttacking$ True asks, at any seat count)
 	case OpMayPlay:
 		return in.B.N&MayPlayOpponent != 0 // the exiler: the controller's opponent
 	}

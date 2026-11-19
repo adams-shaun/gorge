@@ -518,9 +518,10 @@ const CopyPumpShift = 8
 const CopyPumpEOT = 1 << 14
 
 // CopyNonRemCtrl: OpCopyAsTokenEx B.N bit 15, as a uint16 image (the int16
-// sign bit): the tokens are created for the opponent of the copied
+// sign bit): the tokens are created for each living player but the copied
 // remembered permanent's controller, its last-known controller once it left
-// the battlefield (Controller$ NonRememberedController, two-player).
+// the battlefield, owner by owner from the resolving controller
+// (Controller$ NonRememberedController).
 const CopyNonRemCtrl = 1 << 15
 
 // TokenFlags (OpCreateTokenEx B.N).
@@ -791,3 +792,9 @@ const (
 	PumpEachPower = 1
 	PumpEachTough = 2
 )
+
+// RepeatEachZoneBatch is OpRepeatEachPlayer's C bit 2 (ChangeZoneTable$
+// True): the loop's entries are one zone batch, their enters checks held to
+// the loop's end (gorge effRepeatEach's zone bracket around the whole loop;
+// Adeline's tokens; dirac zone_repeatbatch.go).
+const RepeatEachZoneBatch = 4

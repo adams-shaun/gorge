@@ -16,7 +16,10 @@ import (
 // view by evaluating the second ability's amount (dynManaN, so the
 // StallDynMana ceiling holds), and the planner reaches restrPairUnit through
 // the same arm. The window answers ability 0 (the plain {G}). kgen lowers
-// only a count tapping cannot change (dynamicLargerSameColour).
+// only a count tapping cannot change (dynamicLargerSameColour). The Beacon
+// of Kahless is the same pair over any colour: one mana of any colour beside
+// N of one chosen colour, N the opponents attacked this turn
+// (dynamicLargerAnyColour); its wide view is N of any one colour.
 
 // prepManaDynPair builds card c's per-count views when it is that pair
 // (prepareGen, once per card).
@@ -67,7 +70,7 @@ func dynPairShape(c *kop.CardDef, pc *pcard) bool {
 	a0, a := &c.Abilities[pc.manaAb], &c.Abilities[dj]
 	return a0.AFlags == 0 && a0.ManaRestrict == 0 && a0.Cost.Flags == kop.CostTap && a.AFlags&^kop.AfManaDynamic == 0 &&
 		a.ManaRestrict == 0 && a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && !a.ManaEach && !a0.ManaEach &&
-		a.ManaColors == a0.ManaColors && bits.OnesCount8(uint8(a.ManaColors&0x3f)) == 1
+		a.ManaColors == a0.ManaColors && (bits.OnesCount8(uint8(a.ManaColors&0x3f)) == 1 || a.ManaColors&kop.ColAny == kop.ColAny)
 }
 
 // dynPairView is manaPCGen's arm for such a card: the view for the second

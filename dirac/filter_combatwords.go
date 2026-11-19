@@ -316,7 +316,9 @@ func (s *State) attackedObjOr(k *prep, code TCode) TCode {
 // attack trigger always resolves inside that window, so the gate
 // (tokenCombatWindow) costs the trigger carriers nothing and is what a spell
 // carrier (The Last Ronin's Technique, sneaked) needs. Adeline's
-// RememberedPlayer form (no TokAttackAsk) names its defender and is not gated.
+// RememberedPlayer form (no TokAttackAsk) names its defender, the opponent
+// its RepeatEach binds (s.g.eachPl; gorge tokenAttackingPlayers' remembered
+// player, the planeswalker arm unmodelled), and is not gated.
 //
 //go:noinline
 func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
@@ -333,6 +335,9 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 		// the kernel does not model the pick.
 		s.capFull(StallDefenderPW)
 		return
+	}
+	if in.B.N&kop.TokAttackAsk == 0 && s.g.repEnd != 0 && !DebugTokAtkNextSeat {
+		atk = PlayerCode(s.g.eachPl) // Adeline: the repeated opponent
 	}
 	if s.g.tokDefSet {
 		atk = s.g.tokDef

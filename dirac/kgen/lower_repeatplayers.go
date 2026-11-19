@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -46,13 +47,14 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 	default:
 		return refuse("RepeatEach RepeatPlayers %q", rp)
 	}
+	c := 1
 	if who.Kind == rEachOpp && ps.is("ChangeZoneTable", "True") {
 		// gorge repeateach.go: the loop's zone changes reach Mode$
-		// ChangesZoneAll once, after the loop, as one batch. Two players:
-		// one opponent, one iteration, so the bracket is the iteration's
-		// own (Adeline)
+		// ChangesZoneAll once, after the loop, as one batch; the kernel
+		// holds the entries' enters checks to the loop's end (dirac
+		// zone_repeatbatch.go; Adeline)
 		ps.consume("ChangeZoneTable")
-		lc.twoSeat("ChangeZoneTable over the opponents read as one iteration's batch")
+		c |= kop.RepeatEachZoneBatch
 	}
 	if v, ok := ps.get("StartingWith"); ok && strings.TrimSpace(v) != "You" {
 		// The kernel's RepeatEachPlayer walks the controller first (C&1);
@@ -100,7 +102,7 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 		}
 	}
 	at, nt := len(lc.ab.Prog), len(lc.ab.Targets)
-	lc.emit(lInstr{Op: "RepeatEach", Obj: who, C: 1})
+	lc.emit(lInstr{Op: "RepeatEach", Obj: who, C: c})
 	lc.repeatPl++
 	err := lc.chain(body, nil)
 	lc.repeatPl--
