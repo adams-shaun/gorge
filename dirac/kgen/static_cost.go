@@ -2,6 +2,8 @@ package kgen
 
 import (
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // The bodies of the cost and casting statics (static_mode.go).
@@ -176,4 +178,12 @@ func (sc *staticCtx) modeManaConvert() ([]lStatic, bool, error) {
 		return nil, true, err // lower_manaconvert.go
 	}
 	return nil, false, nil
+}
+
+// flashCasterFlag is a CastWithFlash static's Static.StFlags caster bit.
+func (s lStatic) flashCasterFlag() kop.StaticFlags {
+	if s.AnyCaster {
+		return kop.StFlashAnyCaster
+	}
+	return 0
 }
