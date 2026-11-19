@@ -138,8 +138,12 @@ func paymentPlanAbilityShapeTier(e Engine, p state.PlayerID, id state.ObjID, ma 
 	if effects.ManaOf(ma).TriggersWhenSpent != "" {
 		// A tap-only source whose spent-mana rider is a bare scry pays like
 		// a plain one (Path of Ancestry); any other rider stays deferred.
-		if !PaymentPlanTapOnlyCost(cost) || !paymentPlanSubFree(ma) ||
-			!PlanSpentRiderIsScry(e.Game(), id, ma) {
+		// The carve-out is for games of three or more seats: the dirac
+		// kernel is two-seat and still leaves such a source out of payment
+		// (kgen lowerMana's ColorIdentity case), so a two-seat game keeps the
+		// deferral until the kernel models the rider's commander-type filter.
+		if len(e.Game().Players) <= 2 || !PaymentPlanTapOnlyCost(cost) ||
+			!paymentPlanSubFree(ma) || !PlanSpentRiderIsScry(e.Game(), id, ma) {
 			return deferred("source:special_production")
 		}
 		return TierNormal, Consequence{}, ""
