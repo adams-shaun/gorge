@@ -2,15 +2,14 @@ package oracle
 
 import "testing"
 
-// CR 601.2c, 601.2f, 601.2g: Urza, Lord High Artificer's "tap an untapped
-// artifact: add {U}" can't be paid with no untapped artifact, and tapping only
-// removes candidates, so the source is blocked for the whole payment window.
-// A Chain of Vapor cast free from Urza's exile under Kasmina's {2} tax, with
-// one untapped Plains, therefore has no affordable opposing-creature target:
-// the kernel withheld them (decision 355 of dr-mbc-baaa pair 191), while the
-// gorge side treated Urza as an unpriced source, left its window census
-// incomplete and offered the taxed targets only to abort the cast at payment.
+// CR 601.2c, 601.2f, 601.2g: a Chain of Vapor cast free from Urza, Lord High
+// Artificer's exile under the opponent's Kasmina ({2} more for a spell that
+// targets her side's creatures), with one untapped Plains. Urza's artifact tap
+// is a source gorge's window census can't price, so gorge keeps every target on
+// the menu (affordableTargetCandidates' census fallback); the kernel skipped
+// the window probe for a free cast and withheld the taxed ones (decision 355 of
+// dr-mbc-baaa pair 191, Aven Mindcensor among them).
 func TestMBCAvenMindcensorReprosLockstep(t *testing.T) {
 	t.Parallel()
-	stdReproNamed(t, "mana_tap_artifact_source_without_artifact_leaves_window_census_complete")
+	stdReproNamed(t, "free_cast_taxed_target_menu_asks_window_census")
 }
