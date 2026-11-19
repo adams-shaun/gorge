@@ -3752,6 +3752,22 @@ func (s *State) paymentStrandedPlan(k *prep, e *stackEntry, cost *kop.ManaCost, 
 		defer s.unfork()
 		c := *cost
 		ok, _ = s.windowTapRider(k, e.ctrl, &c, false, anyColor)
+		if !ok && s.g.stalled == 0 {
+			// The window's answer takes the source's first listed ability, so a
+			// restricted unit whose colour a fixed pip still owes is one the
+			// plain walk above cannot take: it answers the plain {C}
+			// (Castle Doom's) and the pip stays unpaid. The clamp arm takes it
+			// (windowRestrOwedTap: the ability is owed when the plain one's
+			// colour is not), and the settlement reads the pool the payment
+			// may spend, so a unit the spell admits settles (CR 106.6,
+			// 601.2g-h; gorge's census prices the restricted unit in its typed
+			// pool, castWindowReachable). The walk is a probe: rerun it from
+			// the saved state with the clamp on, whose skips only list sources
+			// a still-owed pip colour — a settled pool ends the loop first.
+			s.CopyFrom(saved)
+			c = *cost
+			ok, _ = s.windowTapRider(k, e.ctrl, &c, true, anyColor)
+		}
 		stall := s.g.stalled // (read before CopyFrom puts the saved state back)
 		s.CopyFrom(saved)
 		if !ok && stall != 0 {
