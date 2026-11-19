@@ -210,6 +210,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if k.gen == nil || !k.gen.anySacX || !s.sacXPoolOffer(k, p, o) {
 				// the bestow cost needs no affordable mana cost (CR 702.103a)
 				s.offerBestowIfPrinted(k, d, p, o, c, &av)
+				if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker {
+					s.offerKickedPotentialOnly(k, d, p, c, o, pc.cost, preDelve, &base, cav, &av) // kw_multikicker.go
+				}
 				continue // (an announced Sac<X> the floating pool pays at some X is offered, cost_sacx.go)
 			}
 		}
