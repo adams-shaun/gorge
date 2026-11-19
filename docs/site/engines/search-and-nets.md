@@ -14,12 +14,12 @@ flowchart LR
 
 | Search | gorge | dirac |
 |---|:-:|:-:|
-| PUCT tree over redealt worlds (`bots/azmcts`) | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> | <span class="gg-dot gg-dot--none" title="not in this repository"></span><span class="gg-sr">none</span> |
+| PUCT tree over redealt worlds (`bots/azmcts`, `dirac/search`) | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> (`dirac/search`) |
 | Determinised rollouts (`bots/searchseat`) | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> | <span class="gg-dot gg-dot--none" title="not in this repository"></span><span class="gg-sr">none</span> |
 | Heuristic bot, no search | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> (`hbot`) |
 | Search primitives: copy, step, hide, redeal | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> |
 
-dirac ships the primitives a search uses and its own bot. It ships no tree search, and `gorged -engine dirac` refuses a search policy.
+dirac ships the primitives a search uses, its own bot (`hbot`) and a PUCT tree search, `dirac/search`: gorge's `bots/azmcts` ported onto dirac state, with the same algorithm and the production config as `DefaultOptions`. `gorged -engine dirac` still refuses a search policy.
 [What dirac offers a search](../architecture/dirac/search.md) lists the operations.
 
 ## gorge's tree search
