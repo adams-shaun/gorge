@@ -48,7 +48,7 @@ func (s *State) offerOverloadHand(k *prep, d *Decision, p uint8, o Obj, c CardID
 		s.walkHandAvail(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}, &ha)
 		av = &ha
 	}
-	if !av.affords(&oc, pipMaskOf(&oc), 0) && !s.dynSacPays(k, p, &oc) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &oc, av)) {
+	if !av.affords(&oc, pipMaskOf(&oc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &oc, av)) {
 		return
 	}
 	if !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastable(k, c, p, o, &oc, av) {
@@ -68,23 +68,4 @@ func (s *State) overloadProg(k *prep) []kop.Instr {
 		return k.t.Cards[e.card].OverloadProg
 	}
 	return nil
-}
-
-// dynSacPays reports whether cost oc is paid once p's dynamic {T}, sacrifice
-// sources (Lotus Blossom) are counted at their evaluated amount. gorge's
-// cast planner never plans such an indeterminate amount, but a play the
-// census's other sources cannot pay is a potential play whose prefix search
-// activates the source first (potentialPrefixScript: the census lists it as a
-// gap), so the overloaded cast it then pays is offered (CR 601.2g: mana
-// abilities are activated while paying). A plain cast the same prefix pays is
-// the autopay surface's drop (autopayDropsPlainCast); an alternative-cost
-// cast keeps its own action.
-func (s *State) dynSacPays(k *prep, p uint8, oc *kop.ManaCost) bool {
-	if k.gen == nil || len(k.gen.varPC) == 0 {
-		return false
-	}
-	var dv avail
-	dv.dynSac = true
-	s.availFor(k, p, &dv)
-	return dv.affords(oc, pipMaskOf(oc), 0)
 }
