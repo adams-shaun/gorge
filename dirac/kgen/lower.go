@@ -2000,7 +2000,9 @@ func (lc *lowerCtx) lowerKeywords() {
 			}
 			lc.out.Leyline = true
 		case head == "MayEffectFromOpeningHand":
-			lc.refuseNode(node, "%s", refuseOpeningGated(param)) // (lower_gemstone.go)
+			if why := lc.lowerOpeningGated(param); why != "" { // (lower_gemstone.go)
+				lc.refuseNode(node, "%s", why)
+			}
 		case strings.HasPrefix(k, "A deck can have any number of cards named"):
 			// Deck construction only.
 		case head == "Partner" && deckOnlyPartner(param):

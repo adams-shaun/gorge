@@ -1067,6 +1067,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChGenPip:
 		// gorge's pip announcement (rules manaAsk): pay_W..pay_G
 		return Pack(kind("pay"), RefNone, RefNone, mode), true
+	case dirac.ChGenOpeningExile:
+		// gorge's Gemstone Caverns hand-exile pick (opening_exile)
+		return Pack(kind("opening_exile"), Ref(src), RefNone, 0), true
 	case dirac.ChGenLeyline:
 		if mode == 1 {
 			return Pack(kind("opening_yes"), Ref(src), RefNone, 0), true

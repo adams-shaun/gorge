@@ -130,6 +130,14 @@ type CardDef struct {
 	// Society).
 	WardPoison uint8
 	Leyline    bool // may begin the game on the battlefield from the opening hand
+	// LeylineGem marks the Leyline ask's Gemstone shape (Gemstone Caverns,
+	// CR 103.6a; gorge rules/opening_hand.go): the starting player is not
+	// asked (!PlayFirst), the card enters with LeylineCtrN counters of
+	// LeylineCtr, then its player exiles a card from their hand (gorge's
+	// opening_exile pick; kernel turn_gemstone.go).
+	LeylineGem  bool
+	LeylineCtr  CounterKind
+	LeylineCtrN uint8
 	// UmbraArmor is printed K:Umbra armor (CR 702.89a, kop.KwUmbraArmor): the
 	// Aura's enchanted permanent, were it destroyed, instead loses all its
 	// damage and this Aura is destroyed (kernel kw_umbraarmor.go).

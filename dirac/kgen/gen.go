@@ -396,6 +396,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Leyline {
 		fmt.Fprintf(w, " leyline")
 	}
+	if c.LeylineGem {
+		fmt.Fprintf(w, " leyline-gem=%d/%d", c.LeylineCtr, c.LeylineCtrN)
+	}
 	if c.World {
 		fmt.Fprintf(w, " world")
 	}

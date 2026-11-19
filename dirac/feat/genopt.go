@@ -130,6 +130,8 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 		if mode == 6 {
 			o.kind, o.amount = okPayGeneric, 2 // a twobrid pip's generic face: gorge pay_generic, Amount 2
 		}
+	case dirac.ChGenOpeningExile:
+		o.kind = okOpeningExile
 	case dirac.ChGenLeyline:
 		o.kind = okOpeningNo
 		if mode == 1 {
