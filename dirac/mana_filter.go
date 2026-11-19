@@ -1108,6 +1108,41 @@ type filtSearch struct {
 	hands uint8
 }
 
+// deferGapLeft: the search still holds an untapped filter gap whose tap
+// queues a Taps trigger (a land under Manabarbs). That tap is gorge's
+// window's colour-asked tap: it must resolve at its ask, before the ability
+// is pushed, so its trigger lands below the ability it paid for. A filter
+// whose tap queues no trigger keeps the offer check (the planner pays it
+// after the push, as a cast's does), and a node with no such gap left has
+// spent the taps that matter.
+func (fs *filtSearch) deferGapLeft(k *prep, t *State) bool {
+	for m := fs.gaps; m.any(); m = m.rest() {
+		sl := m.first()
+		if t.perms[sl].flags&pfTapped != 0 || sl == fs.own || fs.dead.has(sl) {
+			continue
+		}
+		if t.tapsDeferred(k, fs.p, sl) {
+			return true
+		}
+	}
+	return false
+}
+
+// poolPaysPlay: the floating pool pays activation a's reduced mana cost, the
+// point a filter prefix's payment window has tapped everything it needs. A
+// cost the walk cannot read, or one with an announced {X}, keeps the offer
+// check: the search cannot price it and must not keep tapping.
+func (s *State) poolPaysPlay(k *prep, p uint8, a Action) bool {
+	if isGainedMode(a.Mode()) || a.Mode()&0x80 != 0 {
+		return true // a gained or granted ability: no own index to price
+	}
+	m, _, ok := s.activationMana(k, Obj(a.Source()), a.Mode())
+	if !ok || m.X != 0 || m.XPip != 0 {
+		return true
+	}
+	return s.poolPays(p, &m)
+}
+
 // filtFunded reports whether gorge's census funds the fees of the filter gaps f:
 // an unrelaxable census (or a live tap-X pair, or a live no-{T} sacrifice
 // source: Skirk Prospector's "Sacrifice a Goblin: Add {R}", whose cost is not
@@ -1597,7 +1632,18 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		t.restrOptions(k, &d, p) // (restricted mana floating is priced as ordinary: the search reads no restriction)
 		t.capGrantOvercounts(k, &d, p)
 		if hasOption(&d, fs.a) && !t.grantRefusedPrices(k, p, fs.a) && !fs.witnessEats(k, t) {
-			return true
+			// An activation's prefix is its payment window (gorge's
+			// manaWindowAsk, before the push). A filter gap whose own tap
+			// queues a Taps trigger is the window's colour-asked tap: the
+			// offer still counting it untapped has not activated it yet, so
+			// keep tapping until the floating pool pays the ability's
+			// reduced cost. Its trigger then lands below the ability, as
+			// gorge's does. A filter whose tap queues no trigger, and every
+			// cast, keeps the offer check (the planner pays those after the
+			// push by the same convention).
+			if fs.a.Kind() != AkActivate || !fs.deferGapLeft(k, t) || t.poolPaysPlay(k, p, fs.a) {
+				return true
+			}
 		}
 	}
 	key := fs.stateKey(k, t)
