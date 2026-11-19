@@ -274,6 +274,7 @@ Sophic Centaur
 Soul Shred
 Soul of Innistrad
 Souldrinker
+Sphinx Summoner
 Sphinx of Magosi
 Spinneret Sliver
 Spirit of the Spires
@@ -296,6 +297,7 @@ Thanos, Death's Consort
 Thassa, Deep-Dwelling
 Thaumatic Compass
 The Circle of Loyalty
+The Grey Havens
 Third Path Savant
 Thumbscrews
 Thundering Chariot

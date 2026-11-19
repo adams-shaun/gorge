@@ -146,6 +146,7 @@ Loam Dryad
 Lone Rider
 Lorehold Command
 Lorescale Coatl
+Lull
 Malakir Bloodwitch
 Malleable Impostor
 Matt Murdock, Justice Seeker
@@ -215,6 +216,7 @@ Slaughterhouse Bouncer
 Sledding Otter-Penguin
 Slither Blade
 Snag
+Soul of Eternity
 Soulhunter Rakshasa
 Soulstealer Axe
 Spark Jolt
@@ -239,6 +241,7 @@ Swift Spinner
 Sword of Once and Future
 Tangleclaw Werewolf
 Tarfire
+Tasigur, the Golden Fang
 Tattered Mummy
 Tel-Jilad Justice
 Terra Eternal

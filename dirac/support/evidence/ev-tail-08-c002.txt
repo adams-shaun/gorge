@@ -1,3 +1,4 @@
+A-Warm Welcome
 Abbey Griffin
 Aberrant Return
 Acceptable Losses
@@ -111,9 +112,11 @@ Forest
 Foundry Inspector
 Frenetic Efreet
 Fruit of Tizerus
+Funnel-Web Recluse
 Garruk's Horde
 Gavony Silversmith
 Ghost Council of Orzhova
+Ghost-Lit Nourisher
 Ghost-Lit Raider
 Glarewielder
 Glimpse the Future
@@ -154,6 +157,7 @@ Ishai, Ojutai Dragonspeaker
 Island
 Jeskai Elder
 Joiner Adept
+Juju Bubble
 Jukai Trainee
 Kaervek's Torch
 Kavu Howler
@@ -211,6 +215,7 @@ Pestilent Wolf
 Pious Wayfarer
 Pitchburn Devils
 Plains
+Polar Kraken
 Portable Hole
 Possessed Barbarian
 Precinct Captain

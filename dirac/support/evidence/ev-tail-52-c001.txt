@@ -314,6 +314,7 @@ Sigarda's Summons
 Simic Growth Chamber
 Sinister Sabotage
 Sir Shandlar of Eberyn
+Skaab Ruinator
 Skinwing
 Skyline Despot
 Skyrider Patrol
@@ -365,6 +366,7 @@ Tireless Tribe
 Titanium Golem
 Towering Titan
 Tribune of Rot
+Twisted Image
 Urza's Guilt
 Utter Insignificance
 Valley Rannet

@@ -41,6 +41,7 @@ Chill
 Chittering Dispatcher
 Citizen's Crowbar
 Clutch of Undeath
+Colossal Dreadmaw
 Conduit of Ruin
 Contagion
 Corpsehatch
@@ -74,10 +75,12 @@ Erratic Visionary
 Etched Monstrosity
 Everythingamajig
 Evincar's Justice
+Explore
 Fae Offering
 Farmstead
 Fate Foretold
 Fathom Fleet Firebrand
+Fathom Mage
 Feral Lightning
 Festering March
 Fit of Rage
@@ -151,6 +154,7 @@ Lulu, Stern Guardian
 Madcap Skills
 Magus of the Bazaar
 Marauding Dreadship
+Master's Guidance
 Mephitic Vapors
 Might of the Old Ways
 Mishra's Helix
@@ -170,6 +174,7 @@ Nomads' Assembly
 Numbing Jellyfish
 Nyxborn Courser
 Okina Nightwatch
+Oko's Hospitality
 Old One Eye
 Onakke Ogre
 Oran-Rief Survivalist
@@ -254,6 +259,7 @@ Treasured Find
 Tresserhorn Sinks
 Turn to Frog
 Tymna the Weaver
+Ulamog, the Ceaseless Hunger
 Unicycle
 Upriser Renegade
 Vault Robber

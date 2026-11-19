@@ -3,44 +3,55 @@ Act of Treason
 Affa Protector
 Akroan Crusader
 Alaborn Trooper
+Ancestral Statue
 Arixmethes, Slumbering Isle
 Arm with Aether
 Aven Gagglemaster
 Awesome Presence
 Azorius Skyguard
+Battlegrowth
 Biblioplex Assistant
 Bladestitched Skaab
 Bloodrage Vampire
 Bloodtracker
 Boros Reckoner
 Brave the Elements
+Bridgeworks Battle
 Cabal Initiate
 Call the Gatewatch
 Canyon Jerboa
+Centaur Battlemaster
 Choking Miasma
 Cliffside Lookout
+Cogworker's Puzzleknot
 Collective Nightmare
 Combat Thresher
 Coral Merfolk
 Counterspell
 Court Cleric
 Crenellated Wall
+Crimson Fleet Commodore
 Curse of Wizardry
 Dauntless Cathar
 Dead
+Deep Dish Pizza
 Demon of Wailing Agonies
 Disruptive Pitmage
 Dreadfeast Demon
 Drift of Phantasms
 Drowner of Hope
 Earth Servant
+Earth-Origin Yak
 Echoing Decay
 Elixir of Immortality
 Enthusiastic Mechanaut
 Eternal Flame
 Ethersworn Sphinx
 Execute
+Experiment Kraj
 Extract the Truth
+Faithless Looting
+Fallaji Dragon Engine
 Felhide Brawler
 Festival of Trokin
 Fleetfeather Cockatrice
@@ -61,28 +72,40 @@ Hammers of Moradin
 Hardened Scales
 Harmattan Efreet
 Harnessed Lightning
+Harrier Naga
 Hawkeye, Bowslinger
 Hellhole Rats
+Hulk, Strongest There Is
+Hungry Mist
 Illness in the Ranks
 Implement of Combustion
 Ironclaw Buzzardiers
 Island
 Ivory Crane Netsuke
+Jadelight Ranger
 Janjeet Sentry
 Journey of Discovery
 Journey to Eternity
+Kami of Whispered Hopes
 Kargan Dragonlord
+Kemba's Skyguard
 Knight of Sorrows
 Krile Baldesion
+Kruphix's Insight
+Lightning-Core Excavator
+Lithophage
 Llanowar Stalker
 Loathsome Catoblepas
 Lockjaw Snapper
 Lore Broker
 Lorehold Excavation
 Marble Chalice
+Mardu Blazebringer
 Mardu Shadowspear
+Mark of the Oni
 Master Thief
 Maw of Kozilek
+Menagerie Liberator
 Mer-Ek Nightblade
 Midnight Clock
 Mind Harness
@@ -91,17 +114,22 @@ Mind Ravel
 Mind Sculpt
 Minotaur, Roxxon CEO
 Mirror-Sigil Sergeant
+Mischief and Mayhem
+Mist Leopard
 Mist-Cloaked Herald
 Moria Marauder
 Mountain
 Murkfiend Liege
 Nezahal, Primal Tide
 Ochran Assassin
+Ohran Frostfang
 Oketra's Last Mercy
 One with the Machine
 Opportunity
+Orchard Strider
 Otarian Juggernaut
 Outnumber
+Path of Discovery
 Pillardrop Rescuer
 Pir, Imaginative Rascal
 Plains
@@ -109,24 +137,35 @@ Planar Cleansing
 Poison the Blade
 Priest of the Haunted Edge
 Qarsi High Priest
+Quiet Disrepair
+Rabid Rats
 Ramosian Captain
 Rampage of the Valkyries
+Ramunap Hydra
+Ravenous Baloth
 Razor Golem
 Razortooth Rats
 Refresh
 Restoration Gearsmith
+Retreat to Kazandu
 Reviving Dose
 Ricochet Trap
+Rofellos's Gift
 Ronom Unicorn
+Rootgrapple
 Rootwalla
 Sardian Cliffstomper
+Scion of Ugin
 Scuttling Sliver
 Sigiled Starfish
 Silverstorm Samurai
+Sixth Sense
 Skeletal Grimace
+Skemfar Avenger
 Soltari Emissary
 Spawn of Thraxes
 Split-Tail Miko
+Sporecap Spider
 Spurnmage Advocate
 Stasis Field
 Steadfast Sentry
@@ -135,32 +174,45 @@ Stitched Assistant
 Sudden Insight
 Sulfurous Blast
 Sultai Skullkeeper
+Sumala Rumblers
 Sun Ce, Young Conquerer
 Swamp
+Sword of Fire and Ice and War and Peace
+Sylvok Explorer
 Syphon Flesh
 Tainted Strike
+Tarkir Charm
 Tek
 The Bears of Littjara
+Thornscape Master
 Those Who Serve
 Thran Dynamo
 Thrill-Kill Assassin
 Thunderstaff
+Thurid, Mare of Destiny
 Tombfire
 Touch of Darkness
 Towashi Guide-Bot
 Triton Shorestalker
+Undead Slayer
+Undergrowth Champion
 Vapor Snare
 Venomous Hierophant
+Vestige of Emrakul
 Viridian Claw
 Volcanic Rambler
 Voldaren Pariah
+Wall of Wonder
 Warpath
 Warrior's Honor
 Waterwhirl
 Wave Elemental
 Wetland Sambar
 Whip Sergeant
+Wicker Warcrawler
 Wight
+Wind Shear
 Witherbloom Pledgemage
 Wort, Boggart Auntie
+Wrath of Sod
 Zof Shade

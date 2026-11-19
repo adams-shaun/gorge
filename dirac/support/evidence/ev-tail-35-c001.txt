@@ -1,6 +1,7 @@
 A-Elderleaf Mentor
 A-Nael, Avizoa Aeronaut
 A-You Come to a River
+Abomination, World Ravager
 Absolute Law
 Abundant Countryside
 Acidic Sliver
@@ -22,6 +23,7 @@ Auntie Blyte, Bad Influence
 Ballynock Trapper
 Beacon of Unrest
 Bedevil
+Benalish Missionary
 Benevolent Bodyguard
 Biogenic Ooze
 Black Widow, Natasha Romanoff
@@ -82,6 +84,7 @@ Divine Light
 Drake Familiar
 Dreamshackle Geist
 Dwarven Thaumaturgist
+Dyfed, the Guiding Hand
 Ebonblade Reaper
 Elder Druid
 Elder Gargaroth
@@ -299,6 +302,7 @@ Thundering Ceratok
 Tidal Kraken
 Tiller of Flesh
 Titan of Eternal Fire
+Tolarian Emissary
 Tor Wauki the Younger
 Tranquil Frillback
 Tree Monkey

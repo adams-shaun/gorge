@@ -86,6 +86,7 @@ Deathknell Berserker
 Deepfire Elemental
 Deepwater Hypnotist
 Defender en-Vec
+Diamond Kaleidoscope
 Diamond Knight
 Disentomb
 Dispel

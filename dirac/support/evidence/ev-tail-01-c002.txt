@@ -5,6 +5,8 @@ A-Tatyova, Steward of Tides
 A-Urza, Powerstone Prodigy
 Aether Mutation
 Aetherling
+Aethersnipe
+Aethersquall Ancient
 Agent of Erebos
 Aim for the Head
 Ainok Artillerist
@@ -25,6 +27,7 @@ Balduvian Dead
 Balefire Dragon
 Barkchannel Pathway
 Batterhorn
+Battle of Hoover Dam
 Battleflight Eagle
 Bereavement
 Black Market Connections
@@ -50,6 +53,7 @@ Cadaver Imp
 Careless Celebrant
 Carrion Howler
 Carrion Locust
+Cartouche of Ambition
 Cateran Persuader
 Cathedral Acolyte
 Ceaseless Conflict
@@ -68,6 +72,7 @@ Coastal Tower
 Coiling Woodworm
 Collar the Culprit
 Confidence from Strength
+Contagion Engine
 Conversion Chamber
 Corpsehatch
 Costly Plunder
@@ -93,6 +98,7 @@ Dig Up
 Dispersing Orb
 Doomskar Titan
 Doubtless One
+Draconian Cylix
 Dragon's Smile
 Dragonshift
 Dread Reaper
@@ -114,9 +120,11 @@ Fascination
 Felhide Petrifier
 Fellwar Stone
 Fervent Denial
+Fetid Heath
 Filigree Angel
 Flamekin Brawler
 Flashfires
+Fleeting Spirit
 Flinthoof Boar
 Flowstone Embrace
 Fog
@@ -124,10 +132,12 @@ Font of Fertility
 Forerunner of the Legion
 Forest
 Fortifying Draught
+Frontline Medic
 Frostweb Spider
 Fíli and Kíli, Joyous
 Gaea's Cradle
 Galvanic Arc
+Gate to the Citadel
 Generous Stray
 Generous Visitor
 Genesis Chamber
@@ -151,6 +161,7 @@ Grotag Siege-Runner
 Guardian Naga
 Guardian of the Great Conduit
 Guild Artisan
+Haazda Marshal
 Hard Evidence
 Harvest Wurm
 Hatred
@@ -168,6 +179,7 @@ Hyperion's Atomic Vision
 Ichthyomorphosis
 Illusionary Servant
 Illustrious Wanderglyph
+Imperial Recruiter
 Implement of Examination
 Improvised Weaponry
 Incendiary
@@ -365,6 +377,7 @@ Thraben Standard Bearer
 Thrasios, Triton Hero
 Thraxodemon
 Thrilling Discovery
+Thriving Moor
 Thriving Skyclaw
 Thunderous Snapper
 Tithe Drinker
@@ -405,7 +418,9 @@ Vow of Wildness
 Walk the Plank
 Wanderguard Sentry
 War Screecher
+Warded Battlements
 Warg Rider
+Watcher for Tomorrow
 Waterwhirl
 Weaver of Blossoms
 Wind Dancer

@@ -7,6 +7,7 @@ Agent of Acquisitions
 Air Bladder
 Air-Cult Elemental
 Altar's Reap
+Arcbond
 Archangel's Light
 Archers of Qarsi
 Argothian Pixies
@@ -34,6 +35,7 @@ Centaur's Herald
 Chain of Plasma
 Champion's Drake
 Chief of the Edge
+Cho-Arrim Legate
 Chrome Host Seedshark
 Citizen V, Helmut Zemo
 Clairvoyance
@@ -55,6 +57,7 @@ Darkness
 Deadbridge Shaman
 Deal Broker
 Deathbringer Regent
+Decompose
 Deer-Dog
 Delightful Discovery
 Demon of Wailing Agonies
@@ -120,7 +123,9 @@ Karlach, Fury of Avernus
 Kasimir the Lone Wolf
 Kavu Climber
 Kavu Glider
+Kindred Denial
 King's Assassin
+Kitsune Diviner
 Knight of Cliffhaven
 Kolaghan Monument
 Lazotep Reaver
@@ -136,6 +141,7 @@ Malevolent Rumble
 Marionette Master
 Markov Blademaster
 Master Apothecary
+Maulfist Doorbuster
 Meishin, the Mind Cage
 Midnight Scavengers
 Millennial Gargoyle
@@ -149,10 +155,12 @@ Mystifying Maze
 Navigation Orb
 Nearheath Chaplain
 Niambi, Faithful Healer
+Norika Yamazaki, the Poet
 Off Balance
 Organ Hoarder
 Orochi Merge-Keeper
 Paralyzing Grasp
+Peregrine Griffin
 Pestilent Souleater
 Phyrexian Etchings
 Plains
@@ -160,6 +168,7 @@ Pradesh Gypsies
 Prakhata Club Security
 Presence of Gond
 Presence of the Master
+Priest of the Crossing
 Primal Empathy
 Professor Hulk
 Protomatter Powder
@@ -175,8 +184,11 @@ Ral's Outburst
 Ravenous Skirge
 Reach of Branches
 Reduce to Dreams
+Rejuvenation Chamber
+Rekindled Flame
 Rhox Oracle
 Riptide
+Roar of Reclamation
 Robot Chicken
 Rootwater Commando
 Rubblebelt Runner
@@ -187,15 +199,18 @@ Scorch Spitter
 Scrubland
 Sea Legs
 Sejiri Shelter
+Shadow Lance
 Shadowfeed
 Shatterstorm
 Shimmering Mirage
 Shrieking Mogg
 Sickle Ripper
+Siege Smash
 Silkguard
 Silundi Vision
 Skyway Sniper
 Snapping Voidcraw
+Soltari Priest
 Soratami Rainshaper
 Sorin's Vengeance
 Soul Reap
@@ -215,6 +230,7 @@ Tainted Indulgence
 Tangle Mantis
 Tangled Islet
 Target Minotaur
+Tattermunge Duo
 Tenth District Veteran
 Tergrid's Shadow
 Terminal Agony
@@ -234,6 +250,7 @@ Wakedancer
 Walking Archive
 Walking Corpse
 Warped Physique
+Wayfaring Giant
 Wei Elite Companions
 Whisper Squad
 Wicker Witch

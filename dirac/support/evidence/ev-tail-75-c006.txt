@@ -46,9 +46,11 @@ Drossclaw
 Dualcaster Mage
 Dune Mover
 Duplicant
+Emperor Crocodile
 Erstwhile Trooper
 Evolving Adaptive
 Faerie Noble
+Farewell
 Fateful Showdown
 Feral Instinct
 Ferocious Zheng
@@ -73,11 +75,13 @@ Howl of the Night Pack
 Huatli, Radiant Champion
 Hulk, Brutal Brawler
 Hurloon Battle Hymn
+Illicit Shipment
 Imaginary Pet
 Incisor Steed
 Inspire Awe
 Island
 Jace's Erasure
+Jalum Tome
 Jolrael, Voice of Zhalfir
 Kayla's Reconstruction
 Kazandu Tuskcaller
@@ -85,6 +89,7 @@ Khenra Eternal
 Kher Keep
 Kjeldoran Outrider
 Kodama's Reach
+Launch
 Leyline of Punishment
 Lightwielder Paladin
 Lost in the Spirit World
@@ -96,6 +101,7 @@ Malanthrope
 Malcator's Watcher
 Mammoth Spider
 Mana Vault
+Manalith
 Mardu Woe-Reaper
 Markov Patrician
 Masked Blackguard
@@ -113,6 +119,7 @@ Nyx-Fleece Ram
 Oak Street Innkeeper
 Obelisk of Grixis
 Ogre Taskmaster
+One-Eyed Scarecrow
 Panic Attack
 Paradigm Shift
 Parallel Lives
@@ -132,6 +139,7 @@ Reduce in Stature
 Return of the Nightstalkers
 Rishkar's Expertise
 Rooftop Nuisance
+Rout
 Rune-Cervin Rider
 Sacred Prey
 Sage Aven
@@ -174,11 +182,14 @@ Venomous Changeling
 Verdant Sun's Avatar
 Viscid Lemures
 Voyager Staff
+Wall of Vines
 Waterknot
 Whiptail Moloch
+Whiptail Wurm
 Will-o'-the-Wisp
 Wizard Replica
 Wolfwillow Haven
 Woodland Stream
+Yoshimaru, Ever Faithful
 Zap
 Zealot's Conviction

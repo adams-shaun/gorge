@@ -5,6 +5,7 @@ A-Skull Skaab
 A-The Meathook Massacre
 Academy Elite
 Aerial Guide
+Aerie Mystics
 Aether Swooper
 Alaborn Cavalier
 Alandra, Sky Dreamer
@@ -107,6 +108,7 @@ Double Trouble
 Dragon-Cursed Halls
 Dragonscale General
 Drake Familiar
+Drana, Kalastria Bloodchief
 Dune Chanter
 Dying Wail
 Earthshaker Giant
@@ -208,6 +210,7 @@ Join the Dance
 Journey for the Elixir
 Junk Jet
 K-9, Mark I
+Kamahl's Druidic Vow
 Karametra's Favor
 Kardur's Vicious Return
 Keepsake Gorgon
@@ -353,6 +356,7 @@ Soulblade Corrupter
 Soulcatcher
 Spawnwrithe
 Spiked Ripsaw
+Spikefield Hazard
 Spirit Summoning
 Splatter Goblin
 Squee's Toy

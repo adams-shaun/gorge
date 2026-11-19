@@ -314,6 +314,7 @@ Whispering Wizard
 White Shield Crusader
 Wildfire Cerberus
 Windrider Wizard
+Wingmate Roc
 Wolfbriar Elemental
 Wooden Sphere
 Yavimaya Elder

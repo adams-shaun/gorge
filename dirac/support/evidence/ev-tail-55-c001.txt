@@ -17,6 +17,7 @@ Alluring Scent
 Ancient Brontodon
 Ancient Tomb
 Angelic Sleuth
+Animate Wall
 Anoint
 Anointer of Champions
 Anvilwrought Raptor
@@ -92,6 +93,7 @@ Cruel Edict
 Crystal Slipper
 Curiosity
 Cybermen Squadron
+Cytospawn Shambler
 Damping Matrix
 Deep-Sea Terror
 Defiant Salvager

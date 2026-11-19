@@ -220,6 +220,7 @@ Snake Pit
 Sokenzan, Crucible of Defiance
 Spark Elemental
 Sparkspitter
+Spell Burst
 Spellbook
 Spined Fluke
 Spite

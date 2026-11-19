@@ -166,6 +166,7 @@ Military Discipline
 Militia Bugler
 Mind Slash
 Mogg Maniac
+Mogg Squad
 Moldering Karok
 Moonsilver Key
 Moroii

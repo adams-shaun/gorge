@@ -5,6 +5,7 @@ Aberrant Return
 Abuna Acolyte
 Acclaimed Contender
 Adanto Vanguard
+Aetherflux Car
 Aggressive Sabotage
 Akki Drillmaster
 Alaborn Cavalier
@@ -21,8 +22,10 @@ Archetype of Aggression
 Argivian Archaeologist
 Arrow Volley Trap
 Assault Intercessor
+Atzocan Archer
 Auriok Steelshaper
 Avacyn's Pilgrim
+Aviation Pioneer
 Azra Oddsmaker
 Backwoods Survivalists
 Baleful Ammit
@@ -30,6 +33,7 @@ Balthor the Defiled
 Balthor the Stout
 Barishi
 Battlewise Aven
+Belltower Sphinx
 Benalish Emissary
 Biolume Egg
 Black Oak of Odunos
@@ -37,9 +41,11 @@ Blademane Baku
 Bladewing's Thrall
 Blessed Reversal
 Blightspeaker
+Blizzard Elemental
 Bloodshot Cyclops
 Bond of Agony
 Braidwood Cup
+Bramble Creeper
 Bramblewood Paragon
 Branded Brawlers
 Break Down
@@ -53,6 +59,8 @@ Castle Ardenvale
 Cathar's Shield
 Cazur, Ruthless Stalker
 Cemetery Gate
+Cephalid Scout
+Champion of Lambholt
 Chaos Harlequin
 Charge of the Mites
 Charmed Stray
@@ -60,6 +68,7 @@ Chief of the Edge
 Collar the Culprit
 Collision
 Combat Professor
+Compost
 Conclave Equenaut
 Conduit Goblin
 Corrupt Eunuchs
@@ -71,9 +80,11 @@ Crux of Fate
 Cryptic Serpent
 Curse of Death's Hold
 Dawn Elemental
+Death Denied
 Defile
 Descendant of Kiyomaro
 Dispersal Shield
+Downpour
 Drumbellower
 Dwarven Berserker
 Dwarven Priest
@@ -83,6 +94,7 @@ Eat to Extinction
 Elesh Norn, Grand Cenobite
 Elspeth, Knight-Errant
 Elven Fortress
+Elvish Bard
 Ember Hauler
 Emeria's Call
 Epitaph Golem
@@ -90,6 +102,7 @@ Erdwal Ripper
 Essence Harvest
 Etherium-Horn Sorcerer
 Exotic Disease
+Failed Inspection
 Fairgrounds Warden
 Faithful Watchdog
 False Defeat
@@ -107,9 +120,12 @@ Gift of Tusks
 Gift of the Deity
 Gilt-Leaf Seer
 Glare of Heresy
+Glitch Interpreter
 Golden-Tail Trainer
 Goldnight Commander
+Goliath Sphinx
 Goliath Truck
+Graceful Adept
 Great Desert Prospector
 Great Whale
 Grixis Illusionist
@@ -122,19 +138,28 @@ Heat Ray
 Heaven
 Hecatomb
 Hero of the Winds
+Hidden Path
+Hoarding Ogre
 Honden of Infinite Rage
 Hunted Troll
+Hurricane
+Hymn to Tourach
 Hypochondria
 Illuminator Virtuoso
 Insolent Neonate
 Inspired Fire
+Iron Apprentice
 Isamaru and Yoshimaru
 Island
+It's Clobberin' Time!
 Jace's Ruse
+Jace's Triumph
 Jackdaw
 Jugan, the Rising Star
 Jungleborn Pioneer
+Juniper Order Druid
 Kamahl's Sledge
+Kami of the Crescent Moon
 Kargan Warleader
 Kathari Remnant
 Kaya's Onslaught
@@ -149,14 +174,18 @@ Leech Fanatic
 Leonin Snarecaster
 Lich's Caress
 Lingering Death
+Lion Umbra
 Liturgy of Blood
 Lone Missionary
+Longtusk Cub
 Loxodon Mender
 Luminarch Aspirant
+Lurking Deadeye
 Luxa River Shrine
 MJ, Rising Star
 Malefic Scythe
 Mass Mutiny
+Megaton's Fate
 Mending Hands
 Mikaeus, the Lunarch
 Mike, the Dungeon Master
@@ -173,19 +202,25 @@ Myr Scrapling
 Necrogen Mists
 Necrosquito
 Netherborn Phalanx
+Network Terminal
+Neurok Hoversail
 Nightmare Incursion
 Nightwind Glider
+Nimble Innovator
 Novice Knight
 Null Brooch
 Olivia, Mobilized for War
+Oneirophage
 Orcish Siegemaster
 Phyrexian Vivisector
 Pious Warrior
 Pitiless Plunderer
 Plague Witch
 Plains
+Plaxcaster Frogling
 Praetor's Counsel
 Pride of Conquerors
+Primordial Wurm
 Psychic Membrane
 Pulsemage Advocate
 Punish the Enemy
@@ -203,6 +238,8 @@ Renowned Weaver
 Rescuer Chwinga
 Rhox Faithmender
 Righteous Cause
+Rookie Mistake
+Rootwater Alligator
 Rootwater Mystic
 Rot-Tide Gargantua
 Rousing Read
@@ -217,10 +254,12 @@ Sanguimancy
 Sanitarium Skeleton
 Scepter of Dominance
 Scorched Rusalka
+Scour from Existence
 Seer's Lantern
 Segovian Angel
 Seize the Storm
 Serum Visions
+Setessan Skirmisher
 Settle Beyond Reality
 Shambling Ghast
 Shellshock
@@ -228,22 +267,32 @@ Shriekgeist
 Silvan Reveler
 Silvergill Douser
 Skarrg Guildmage
+Skitter Eel
 Skulking Fugitive
 Skull Collector
 Skyblade of the Legion
 Skyshroud Ridgeback
 Slimefoot's Survey
+Snow-Covered Wastes
+Somberwald Spider
 Soul Partition
+Soul of Ravnica
 Soulscour
 Spawnwrithe
 Specter's Shroud
+Spike Worker
 Splinterfright
+Spreading Seas
 Staff of Domination
+Staff of the Mind Magus
 Steel Exemplar
 Storm, Queen of Wakanda
+Stream of Unconsciousness
 Sultai Banner
 Summoner's Pact
+Sunbaked Canyon
 Sundering Vitae
+Surge Node
 Svyelun of Sea and Sky
 Swamp
 Sword of Kaldra
@@ -255,9 +304,11 @@ Tendershoot Dryad
 Tezzeret's Gatebreaker
 The Third Doctor
 Thicket Crasher
+Thought Scour
 Thran Spider
 Thrill of the Hunt
 Throwing Knife
+Thundersteel Colossus
 Titanic Bulvox
 Transcendent Envoy
 Travel Preparations
@@ -266,12 +317,18 @@ Triplicate Spirits
 Triumphant Reckoning
 Twilight Shepherd
 Ulamog's Dreadsire
+Urza's Chalice
 Veteran Explorer
 Veteran of the Depths
+Vex
+Vitalizing Wind
 Wandering Stream
 War Machine, James Rhodes
+War Mammoth
 Warren-Scourge Elf
+Well of Ideas
 Wheel and Deal
+Wild Beastmaster
 Wildfire Emissary
 Wipe Clean
 Witches' Eye
