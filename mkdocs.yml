@@ -166,6 +166,7 @@ nav:
       - web/index.md
       - Run a server: guide/index.md
       - Play in the browser: guide/play.md
+      - Play in ManaBrew's client: guide/manabrew.md
       - Table layouts: web/layouts.md
       - Gameplay options: web/gameplay.md
       - How replays work: web/replays.md
