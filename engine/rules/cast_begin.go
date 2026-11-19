@@ -1170,7 +1170,9 @@ func (e *Engine) continueCast() {
 	// any number of times) is announced the same way. No corpus carrier pairs
 	// Squad with Replicate/Multikicker/Kicker (measured over the 15 K:Squad
 	// files), so the asks never coexist on one cast.
-	if e.squadAsk() {
+	// Chorus of the Conclave's pay-any-amount additional cost (CR 601.2b)
+	// follows the squad ask in the same stage.
+	if preCostAsks(e) {
 		return
 	}
 	// CR 702.78a: the Conspire tap election (two untapped creatures that
