@@ -463,14 +463,12 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 	case ctlAttackers:
 		// the attackers arm of scr (scratch.go): the pose's declared set,
 		// which every pick's option reads distinguish the served picks by
-		h = hmix(h, s.atkArm().poseMask.lo)
-		h = hmix(h, s.atkArm().poseMask.hi)
+		h = hmixSlots(h, s.atkArm().poseMask)
 	case ctlBlockers:
 		// the blockers arm of scr (scratch.go): the pose's declared set,
 		// which every pick's static blocking-state read lifts the served
 		// picks by (blkLifted)
-		h = hmix(h, s.blkArm().poseMask.lo)
-		h = hmix(h, s.blkArm().poseMask.hi)
+		h = hmixSlots(h, s.blkArm().poseMask)
 	}
 	if s.g.on {
 		// a generated table's decision context: the multi-object target
@@ -510,10 +508,9 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 	}
 	h = hmix(h, uint64(s.npend)|uint64(s.orderLeft)<<8|uint64(s.orderN)<<16|uint64(s.orderPlace)<<24|
 		uint64(s.discardLeft)<<32|uint64(s.legP)<<40|uint64(s.legCard)<<48)
-	h = hmix(h, s.legDie.lo)
-	h = hmix(h, s.legDie.hi)
+	h = hmixSlots(h, s.legDie)
 	if s.legSaga.any() {
-		h = hmix(hmix(h, s.legSaga.lo), s.legSaga.hi)
+		h = hmixSlots(h, s.legSaga)
 	}
 	h = hbytes(h, unsafe.Pointer(&s.ordList[0]), uintptr(len(s.ordList))*unsafe.Sizeof(s.ordList[0]))
 	h = hmix(h, uint64(s.mullOrder[0])|uint64(s.mullOrder[1])<<8|uint64(s.mullCur)<<16|uint64(s.mullLeft)<<24|
@@ -534,8 +531,7 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 	if s.scrCombatLive() {
 		dd = s.combatArm().divDone
 	}
-	h = hmix(h, dd.lo)
-	h = hmix(h, dd.hi)
+	h = hmixSlots(h, dd)
 	h = hmix(h, fl)
 	if s.ctl == ctlDivide {
 		h = hbytes(h, unsafe.Pointer(&s.combatArm().divAmt), unsafe.Sizeof(s.combatArm().divAmt))
@@ -554,4 +550,15 @@ func CheckMarks(s *State, base *[MaxObj]uint64) (Obj, bool) {
 		}
 	}
 	return 0, true
+}
+
+// hmixSlots mixes slot set m into h: its first two words always, the third
+// (slots 128 and up) only when it holds a slot, so a board below 128 slots
+// hashes as it did when the set was two words.
+func hmixSlots(h uint64, m slotMask) uint64 {
+	h = hmix(hmix(h, m.lo), m.mid)
+	if m.hi != 0 {
+		h = hmix(h, m.hi)
+	}
+	return h
 }

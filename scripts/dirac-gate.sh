@@ -49,9 +49,12 @@ INSTR_PB_MAX=${INSTR_PB_MAX:-1.02}
 INSTR_CORE=${INSTR_CORE:-20}
 PERF_MAX=${PERF_MAX:-1.06}
 # The accepted program base: instructions per op before the instruction budget was set, re-based
-# 2026-11-18 when dirac became one four-seat build (operator 11-18; main measured FDN 55386, BLB 65407).
-INSTR_PB_FDN=57488
-INSTR_PB_BLB=67945
+# 2026-11-18 when dirac became one four-seat build (operator 11-18; main measured FDN 55386, BLB 65407),
+# and 2026-11-19 when the capacity limits were raised for four-seat Commander pods (operator: land
+# unless more than 10% slower; MaxPerm 192's three-word slot masks cost FDN +3.8% and BLB +3.9%
+# instructions per op against the merge base, 57488 and 67945 scaled by those ratios).
+INSTR_PB_FDN=59647
+INSTR_PB_BLB=70566
 
 top=$(git rev-parse --show-toplevel) || exit 2
 cd "$top" || exit 2
