@@ -91,6 +91,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 			return nil
 		}
 		sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == optAbility
+		sr.twinCut = potentialTwinCut(o)
 		for _, id := range gaps {
 			for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
 				if repeatableFeeOnlyMana(e, p, id, ma) {
@@ -269,8 +270,16 @@ type scriptSearch struct {
 	// source only moves the node walk other searches share a budget with (the
 	// granted-mana prefix's capSpent). The landed ask prune (feeStall) stays
 	// on every plain run; the twin cut (scriptTwin) runs on this fee-only
-	// path and for printed or gained activated plays.
+	// path and for the activated plays potentialTwinCut classifies as printed
+	// or gained.
 	feeOnly bool
+	// twinCut: run the twin cut even outside the fee-only path. The prefix
+	// search sets it from the play's full option (potentialTwinCut: printed or
+	// gained only -- an SVar grant is Kind "ability" too, but dirac encodes it
+	// 0x80|ability like the max-speed and exile grants it cannot tell it apart
+	// from). The public PotentialPlayScript cannot see the grant anchors (its
+	// action's wire form has none) and keeps its Kind "ability" cut.
+	twinCut bool
 	// feeStall arms the plain run's doomed-branch prune (feeOnlyAskPrune): a
 	// fee-only repeatable gap's colour ask drops the answers whose colour
 	// cannot bring the play closer to paid (CR 605.3a: a line that skips the
@@ -918,6 +927,20 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 	return false
 }
 
+// potentialTwinCut reports whether the twin cut (scriptTwin) runs for the
+// potential play o on the plain walk: a printed activation (no SVar grant and
+// no gained anchor) or a gained one (GainedSource, the 0xC0 encoding). It is
+// the gorge half of dirac's isAbilityPlay: an SVar grant is also Kind
+// "ability" here, but dirac gives it the same 0x80|ability encoding as the
+// max-speed and exile grants it cannot tell it apart from, so those keep the
+// older walk on both sides.
+func potentialTwinCut(o decision.Option) bool {
+	if o.Kind != optAbility {
+		return false
+	}
+	return o.GainedSource != 0 || (o.SVar == "" && o.GrantSource == 0)
+}
+
 // scriptTwin reports whether a and b are indistinguishable mana sources for
 // the search's purposes: the same printed face, both untapped, no counters
 // and nothing attached to either, and the same activate options on the
@@ -927,11 +950,12 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 // later one reaches no payer state the earlier one's does not, and the
 // search skips it (the kernel's filtSearch.twinTried on the same pair). The
 // skip runs on the fee-only path and for a printed or gained activated play
-// (Kind "ability"; a granted play is a separate Kind and keeps the older
-// walk): a fee-carrying gap beside a row of identical basics otherwise spends
-// the budget ordering the basics and never prices the ability (tail-26 pair
-// 26). A cast outside the fee-only path also keeps the older walk, where the
-// cast tables price its node count.
+// (potentialTwinCut; an SVar grant is Kind "ability" too, but dirac encodes
+// it like a max-speed grant and walks it, so the cut must not run): a
+// fee-carrying gap beside a row of identical basics otherwise spends the
+// budget ordering the basics and never prices the ability (tail-26 pair 26).
+// A cast outside the fee-only path also keeps the older walk, where the cast
+// tables price its node count.
 func scriptTwin(g *state.Game, d *decision.Decision, a, b state.ObjID) bool {
 	if a == b || a == 0 || b == 0 {
 		return false
@@ -1048,7 +1072,7 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 					break
 				}
 			}
-			if (sr.feeOnly || sr.play.Kind == optAbility) && twin {
+			if (sr.feeOnly || sr.twinCut) && twin {
 				continue // an indistinguishable earlier source already walked this subtree
 			}
 			if !gap && !sr.coveredSpendable(c, p, opt.Obj) {
@@ -2207,6 +2231,12 @@ func (e *Engine) PotentialPlayScript(p state.PlayerID, a decision.PotentialActio
 		return nil, "unsupported"
 	}
 	sr.passes = true
+	// A potential action carries no grant anchor (its wire form has no SVar or
+	// GainedSource), so this public fallback cannot narrow the twin cut the
+	// way the prefix search does. The lockstep path is the prefix search
+	// (potentialPrefixScript), whose full option tells an SVar grant from a
+	// printed activation; here a Kind "ability" action keeps the walk it had.
+	sr.twinCut = a.Kind == optAbility
 	var census paymentPlanCensus
 	var plain PaymentPlanOutcome
 	func() {
@@ -2230,6 +2260,7 @@ func (e *Engine) PotentialPlayScript(p state.PlayerID, a decision.PotentialActio
 		// back to the full search with the budget left.
 		full := e.newScriptSearch(p, a, -1, budget-sr.nodes)
 		full.passes, full.gaps = true, census.gaps
+		full.twinCut = a.Kind == optAbility
 		sr = full
 	}
 	if script, found := sr.run(e); found {
