@@ -172,7 +172,7 @@ func (w *World) validate() error {
 	if w.Prio >= 2 {
 		return unstageable(ReasonPriority, "holder %d", w.Prio)
 	}
-	for p := 0; p < 2; p++ {
+	for p := range w.Life {
 		if w.Life[p] != int32(int16(w.Life[p])) {
 			return unstageable(ReasonLife, "seat %d life %d", p, w.Life[p])
 		}
@@ -214,7 +214,7 @@ func (w *World) validate() error {
 		}
 		count[o.Owner][z][0]++
 	}
-	for p := 0; p < 2; p++ {
+	for p := range w.Life {
 		if n[p] < openingHand || n[p] > MaxDeck {
 			return unstageable(ReasonLayout, "seat %d has %d cards", p, n[p])
 		}
@@ -322,7 +322,7 @@ func (s *State) initFromWorld(w *World) error {
 			s.touchSl(sl)
 		}
 	}
-	for p := 0; p < 2; p++ {
+	for p := range w.Life {
 		s.pl[p].life = int16(w.Life[p])
 	}
 	s.pl[w.Active].landsPlayed = w.LandsPlayed[w.Active]
@@ -331,7 +331,7 @@ func (s *State) initFromWorld(w *World) error {
 	// the starting player took the odd turns
 	s.startPl = w.Active
 	if w.Turn%2 == 0 {
-		s.startPl = 1 - w.Active
+		s.startPl = s.nextSeat(w.Active)
 	}
 	s.step = w.Step
 	s.carry = carryNone
