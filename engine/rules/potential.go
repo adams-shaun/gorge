@@ -225,11 +225,16 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 									prod = bounded
 								}
 							}
-							e.addPotentialManaOf(&out, prod)
-							addPotentialRepeatable(e, &out, p, id, ma)
 							// A Condition-split ability adds its sub's production instead
-							// when the gate holds (mana_condsplit.go): count both.
-							if sub := condSplitLiveSub(e, p, id, ma); sub != nil {
+							// when the gate holds (mana_condsplit.go): the sub is counted,
+							// and the root too unless its own gate provably fails (River
+							// of Tears after a land drop makes {B}, never {U}).
+							sub := condSplitLiveSub(e, p, id, ma)
+							if !condSplitRootSuperseded(e, p, id, ma, sub) {
+								e.addPotentialManaOf(&out, prod)
+							}
+							addPotentialRepeatable(e, &out, p, id, ma)
+							if sub != nil {
 								e.addPotentialManaOf(&out, sub)
 							}
 						}
