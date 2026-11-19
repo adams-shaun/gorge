@@ -718,7 +718,12 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 			// filter's fee — the filter script's funding would tap a printed
 			// land the search leaves untapped, so grantPrefix applies it
 			// instead (CR 601.2g-h)
-			if !hasOption(&d, a) && !s.grantGapLive(k, p) {
+			// A Phyrexian plain cast whose pip-free half the planner prices
+			// runs no prefix: gorge announces the pips first (CR 601.2b) and
+			// its CR 601.2g window then activates the filter with the plan's
+			// mana (Moltensteel Dragon beside a Selesnya Signet), so a script
+			// tapped ahead of the pip ask parts at the first tap flag.
+			if !hasOption(&d, a) && !s.grantGapLive(k, p) && !(s.autopayDropsPlainCast(a) && s.phyHalfPlanned(k, p, a)) {
 				s.filtScript(k, a, p, true)
 			}
 		}
