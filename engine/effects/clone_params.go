@@ -144,6 +144,14 @@ type CloneParams struct {
 	// The SVar-table half (each
 	// StaticNames member readable) is the caller's.
 	ETBShapeOK bool
+	// ETBForeignShapeOK is the foreign-entry as-enters shape (Infinite
+	// Reflection's "nontoken creatures you control enter as a copy of
+	// enchanted creature"): a body on ANOTHER permanent's ETBReplacement:Copy
+	// line whose only operands are Defined$ Enchanted (its referent code, the
+	// carrier's attached creature, is the copy source, read
+	// from the carrier) and CloneTarget$ ReplacedCard (the entering object).
+	// No election and no exception rider: anything else fails closed.
+	ETBForeignShapeOK bool
 
 	// Unread are the parameters present on the ability that no Clone reader
 	// consumes: the resolution Notes them once.
@@ -297,6 +305,7 @@ func compileClone(sa *cards.SA, dr *DefinedParams) *CloneParams {
 	}
 
 	p.ETBShapeOK = cloneETBShapeOK(sa, p)
+	p.ETBForeignShapeOK = cloneETBForeignShapeOK(sa, p)
 	p.Unread = unreadKeys(sa, cloneKnownKeys[:])
 	return p
 }
@@ -433,6 +442,20 @@ func cloneETBShapeOK(sa *cards.SA, p *CloneParams) bool {
 		return false
 	}
 	return true
+}
+
+// cloneETBForeignShapeOK is ETBForeignShapeOK's computation: Defined$ and
+// CloneTarget$ are the only keys beside SpellDescription$, read through the
+// Defined-referent code table (Enchanted, the carrier's attached creature;
+// ReplacedCard, the entering object).
+func cloneETBForeignShapeOK(sa *cards.SA, p *CloneParams) bool {
+	keys := 2
+	if sa.HasParam(cards.PKSpellDescription) {
+		keys++
+	}
+	return len(sa.Params) == keys &&
+		definedSpecCodes.Code(p.Defined) == definedSpecEquipped &&
+		definedSpecCodes.Code(p.CloneTarget) == definedSpecReplacedCard
 }
 
 // cloneSplitIfNew moves every "IfNew <keyword>" member of a Clone's
