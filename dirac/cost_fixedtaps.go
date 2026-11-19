@@ -60,6 +60,7 @@ func (s *State) affordsReservingAv(k *prep, p uint8, cost *kop.ManaCost, ex Slot
 	return false
 }
 
+
 // restrTapUnit is the restricted unit p's source at x adds for payment d
 // (restrSrcAvail's rkExt arm), when d may spend it.
 func (s *State) restrTapUnit(k *prep, p uint8, x Slot, d *payDesc) (*pcard, bool) {
