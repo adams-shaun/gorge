@@ -2381,11 +2381,16 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 				// a repeatable fee-only ability converts colour, not mana:
 				// each activation spends its fee from other sources, so the
 				// prefix search must be allowed to tap one source per fee per
-				// activation, up to its own node budget. Read whatever the
-				// zone order put before it: an earlier unrelaxable gap (Mystic
-				// Gate's hybrid fee) must not drop the funding of a later one
-				// (Energy Refractor's {2}).
-				out.fund += int(fee) * potentialScriptNodes
+				// activation, up to its own node budget. A once-only fee (a
+				// hybrid filter such as Fetid Heath) is spent once, so it
+				// funds exactly its fee. Read whatever the zone order put
+				// before it: an earlier unrelaxable gap must not drop the
+				// funding of a later one (Energy Refractor's {2}).
+				if once {
+					out.fund += int(fee)
+				} else {
+					out.fund += int(fee) * potentialScriptNodes
+				}
 			}
 			if out.relaxable {
 				if !ok || !once || (fee > 0 && len(out.paid) >= relaxedPaidLimit) {
@@ -2488,7 +2493,7 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 		return nil, 0, 0, false, false
 	}
 	cost := e.manaAbilityCC(p, id, ma).Cost
-	if cost.X != 0 || cost.XMin != 0 || len(cost.Hybrid)+len(cost.Phyrexian)+len(cost.Twobrid)+len(cost.HybridPhyrexian) != 0 || cost.Snow != 0 {
+	if cost.X != 0 || cost.XMin != 0 || cost.Snow != 0 {
 		return nil, 0, 0, false, false
 	}
 	// The fee is the mana the activation spends whatever else follows: a
@@ -2504,6 +2509,19 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 	}
 	for _, part := range cost.Return {
 		once = once || pay.PlanSelfCost(part, id)
+	}
+	if len(cost.Phyrexian)+len(cost.Twobrid)+len(cost.HybridPhyrexian) != 0 {
+		return nil, 0, 0, false, false
+	}
+	if len(cost.Hybrid) != 0 {
+		// A hybrid pip has no sound relaxed alternative (the fee's colour is
+		// announced, CR 107.4b, not a mask the relaxed proof enumerates), but
+		// the prefix search still has to fund it: one mana per pip from
+		// another source, exactly like a plain fee. Fetid Heath's "{W/B}, {T}:
+		// Add {W}{W}, {W}{B} or {B}{B}" needs a Plains's {W} floating before
+		// its second activation can make the {B} a cast spends.
+		fee += int32(len(cost.Hybrid))
+		return nil, fee, 0, once, false
 	}
 	if once {
 		repeats = 1
