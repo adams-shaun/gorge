@@ -17,6 +17,8 @@ func init() {
 	instrOp("CopyNamed", (*instrCtx).opCopyAsToken)
 	instrOp("CopyPicked", (*instrCtx).opCopyAsToken)
 	instrOp("CopyExiledWith", (*instrCtx).opCopyAsToken)
+	instrOp("Encore", (*instrCtx).opCopyAsToken) // kop.ExtEncore (dirac/kw_encore.go)
+	instrOp("Myriad", (*instrCtx).opCopyAsToken) // kop.ExtMyriad (dirac/kw_myriad.go)
 	instrOp("CopyAsTokenCtr", (*instrCtx).opCopyAsTokenCtr)
 	instrOp("BecomeCopy", (*instrCtx).opBecomeCopy)
 }
@@ -160,6 +162,12 @@ func (ic *instrCtx) opCopyAsToken() error {
 			return err
 		}
 		ki.C = int16(i + 1)
+	}
+	switch in.Op {
+	case "Encore":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtEncore)) // Obj, B and C as above
+	case "Myriad":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtMyriad))
 	}
 	if in.Op == "CopyPicked" {
 		// kop.ExtCopyPicked: Obj the picked card, B and C as above

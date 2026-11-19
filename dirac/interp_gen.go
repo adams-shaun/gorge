@@ -136,6 +136,7 @@ const (
 	ChGenTapOrUntapAll                        // no source; mode 1 = tap all / 0 = untap all (gorge effTapOrUntapAll's "tap" / "untap", in that order; act_taporuntapall.go)
 	ChGenUnleash                              // source = the entering permanent; mode 1 = enter with the +1/+1 counter, 0 = without (gorge's "unleash" KChoose, option 0 = the counter, CR 702.86; kw_unleash.go)
 	ChGenClash                                // source = the clasher's revealed top card; mode 0 = bottom / 1 = top of its owner's library (gorge's clash_placement "bottom" / "top"; act_clash.go)
+	ChGenMyriad                               // source = the Myriad creature; mode 1 = create the copy attacking the asked-about opponent / 0 = don't (gorge effMyriad's "yes" / "no", both over the source; kw_myriad.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -2395,6 +2396,9 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	s.touch(t)
 	if uint16(in.B.N)&(kop.CopyAttacking|0x3f<<kop.CopyPumpShift) == kop.CopyAttacking && s.occ.has(sl) {
 		s.copyEnterAttacking(k, sl, e.ctrl) // ExtCopyPicked's TokenAttacking$ True (copy_picked.go)
+	}
+	if s.res.flags&rfOppCopy != 0 && s.occ.has(sl) {
+		s.oppCopyEnter(k, in, sl) // kw_encore.go: Encore's duty, Myriad's attack
 	}
 	// a token that elected a copy as it entered (ctr_entryperkind.go): the
 	// elected template is its basis and replaces the copy's own exceptions

@@ -1,7 +1,5 @@
 package kgen
 
-import "github.com/adams-shaun/gorge/dirac/kop"
-
 // AB$ Encore (gorge kw_encore.go's expansion of K:Encore:<cost>, CR
 // 702.141a): for each opponent, create a token copy of the source card that
 // attacks that opponent this turn if able and gains haste until end of turn;
@@ -9,14 +7,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // of the next end step (CR 603.10a; gorge effects.Encore registers one
 // end-step DelayedTrigger remembering the whole group).
 //
-// The kernel is two-seat (kop.CardDef.TwoSeat): the one opponent, one copy,
-// and "attacks that opponent this turn if able" is the this-turn attack duty
-// the MustAttack machinery reads (ExtAttacksIfAble,
-// dirac/combat_attacksifable.go; gorge's RequirementSet names the sole
-// defender, attack.go's encoreAttackDefender, and both engines force or
-// withhold the declaration the same way the Heckling Fiends mark does). The
-// duty names the opponent, so the op carries kop.AttacksOpponent and the
-// copy is offered the player alone, never a planeswalker or battle of theirs.
+// One OpExt ExtEncore (dirac/kw_encore.go) walks the opponents from the
+// resolving controller in turn order (gorge AliveFrom), one copy each, and
+// gives each copy the this-turn attack duty that names its opponent (gorge
+// Object.EncoreAttackDefender; combat.encoreAttackDefender): the attackers
+// decision offers the copy that player alone, never a planeswalker or battle
+// of theirs, while that player is in the game and can be attacked.
 //
 // The copy is the copy op's CpSacAtEndDly rider (gorge scheduleAtEOT's
 // __kwEncoreSacrifice, untracked: still put on the stack when the token
@@ -34,10 +30,7 @@ func (lc *lowerCtx) encore(ps *params) error {
 		// cost's payment)
 		return refuse("AB$ Encore outside the keyword expansion's shape")
 	}
-	lc.twoSeat("one copy for each opponent read as one copy")
-	lc.emit(lInstr{Op: "CopyAsToken", Obj: lRef{Kind: rSelf}, A: cst(1),
-		CS: "SacAtEndDly|PumpEOT=Haste", Note: "one token copy per opponent (two seats: one)"})
-	lc.emit(lInstr{Op: "AttacksIfAble", Obj: lRef{Kind: rLastCreated}, C: kop.AttacksOpponent,
-		Note: "the copy attacks the opponent this turn if able"})
+	lc.emit(lInstr{Op: "Encore", Obj: lRef{Kind: rSelf}, A: cst(1),
+		CS: "SacAtEndDly|PumpEOT=Haste", Note: "one token copy per opponent, each attacking that opponent this turn if able"})
 	return nil
 }

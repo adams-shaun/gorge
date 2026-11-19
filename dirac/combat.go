@@ -273,6 +273,10 @@ func (s *State) mustAttackAsked() bool {
 //go:noinline
 func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool) {
 	sick := s.atkHasteSick(k, sl)
+	if q, ok := s.encoreSeat(k, sl); ok {
+		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0)) // kw_encore.go: the named opponent alone (CR 508.1d)
+		return
+	}
 	for q := uint8(0); q < s.nSeats(); q++ {
 		if q == s.active || s.out(q) {
 			continue
@@ -326,7 +330,7 @@ func (s *State) mustAttackLeft(k *prep) bool {
 	}
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDuty(k, sl) || s.mustAttackGoad(k, sl)) &&
+		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDutyLive(k, sl) || s.mustAttackGoad(k, sl)) &&
 			!(s.aloneAtk(k, sl) && !s.alonePartner(k, sl)) && !s.cantAtkEveryPair(k, sl) {
 			return true
 		}

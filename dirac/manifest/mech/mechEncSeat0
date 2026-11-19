@@ -1,0 +1,6 @@
+family: mech
+name: mechEncSeat0
+value: next
+state: slotbit 16/16
+status: active
+doc: bit 0 of the seat an Encore token must attack this turn (CR 702.141a; gorge EncoreAttackDefender; kw_encore.go)

@@ -1,0 +1,6 @@
+family: mech
+name: mechMyriad
+value: next
+state: slotbit 16/16
+status: active
+doc: slots whose token Myriad made: exiled as the combat ends (CR 702.116a; gorge IsMyriad, MyriadCleanup; kw_myriad.go)

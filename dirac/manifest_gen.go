@@ -21,8 +21,11 @@ const raDredgeRes uint8 = 149
 // ask (dirac/manifest/ask/raGenClash)
 const raGenClash uint8 = 150
 
+// ask (dirac/manifest/ask/raGenMyriad)
+const raGenMyriad uint8 = 151
+
 // ask (dirac/manifest/ask/raGenPileOpp)
-const raGenPileOpp uint8 = 151
+const raGenPileOpp uint8 = 152
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -680,8 +683,38 @@ func init() {
 	mechName[mechBtTurn] = "btTurn"
 }
 
+// mech (dirac/manifest/mech/mechEncSeat0)
+//
+// bit 0 of the seat an Encore token must attack this turn (CR 702.141a; gorge EncoreAttackDefender; kw_encore.go)
+const mechEncSeat0 mech = 56
+
+func init() {
+	mechWidth[mechEncSeat0] = wSlot
+	mechName[mechEncSeat0] = "encSeat0"
+}
+
+// mech (dirac/manifest/mech/mechEncSeat1)
+//
+// bit 1 of the seat an Encore token must attack this turn (CR 702.141a; gorge EncoreAttackDefender; kw_encore.go)
+const mechEncSeat1 mech = 57
+
+func init() {
+	mechWidth[mechEncSeat1] = wSlot
+	mechName[mechEncSeat1] = "encSeat1"
+}
+
+// mech (dirac/manifest/mech/mechMyriad)
+//
+// slots whose token Myriad made: exiled as the combat ends (CR 702.116a; gorge IsMyriad, MyriadCleanup; kw_myriad.go)
+const mechMyriad mech = 58
+
+func init() {
+	mechWidth[mechMyriad] = wSlot
+	mechName[mechMyriad] = "myriad"
+}
+
 // numMech is one past the highest mech: the length of the arena's mech tables.
-const numMech mech = 56
+const numMech mech = 59
 
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).
@@ -695,8 +728,12 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.clashExt(k, in) // act_clash.go
 	case kop.ExtClearNamedCard:
 		return s.clearNamedCardExt(k, in) // repl_namecard.go
+	case kop.ExtEncore:
+		return s.encoreExt(k, in) // kw_encore.go
 	case kop.ExtMustBlock:
 		return s.mustBlockAtkExt(k, in) // combat_mustblockatk.go
+	case kop.ExtMyriad:
+		return s.myriadExt(k, in) // kw_myriad.go
 	case kop.ExtNameCard:
 		return s.nameCardExt(k, in) // repl_namecard.go
 	case kop.ExtPutContract:

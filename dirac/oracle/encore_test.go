@@ -237,22 +237,26 @@ func TestEncoreLockstepMutationSac(t *testing.T) {
 	}
 }
 
-// kencoreDropAttack Nops every ExtAttacksIfAble mark (the copies' "attacks
-// that opponent this turn if able").
+// kencoreDropAttack drops the copies' "attacks that opponent this turn if
+// able": ExtEncore becomes the plain copy op it reads B and C as (one copy, no
+// duty), and every ExtAttacksIfAble mark is Nopped.
 func kencoreDropAttack(tbl *kop.Table) {
 	kencoreWalk(tbl, func(p *kop.Instr) {
-		if p.Op == kop.OpExt && p.Ext() == kop.ExtAttacksIfAble {
+		switch {
+		case p.Op == kop.OpExt && p.Ext() == kop.ExtEncore:
+			p.Op, p.A = kop.OpCopyAsTokenEx, kop.Const(1)
+		case p.Op == kop.OpExt && p.Ext() == kop.ExtAttacksIfAble:
 			*p = kop.Instr{Op: kop.OpNop}
 		}
 	})
 }
 
-// kencoreDropSac clears OpCopyAsTokenEx's CpSacAtEndDly rider (the copies'
-// next-end-step sacrifice; the pool's only copy rider of that kind is
-// Encore's).
+// kencoreDropSac clears the CpSacAtEndDly rider of ExtEncore and
+// OpCopyAsTokenEx (the copies' next-end-step sacrifice; the pool's only copy
+// rider of that kind is Encore's).
 func kencoreDropSac(tbl *kop.Table) {
 	kencoreWalk(tbl, func(p *kop.Instr) {
-		if p.Op == kop.OpCopyAsTokenEx && p.B.K == kop.VConst {
+		if (p.Op == kop.OpCopyAsTokenEx || p.Op == kop.OpExt && p.Ext() == kop.ExtEncore) && p.B.K == kop.VConst {
 			cf := uint16(p.B.N)
 			if cf&uint16(kop.CpSacAtEndDly) != 0 {
 				p.B = kop.Const(int(int16(cf &^ uint16(kop.CpSacAtEndDly))))
