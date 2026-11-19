@@ -151,7 +151,15 @@ func (e *Engine) convokeAsk() bool {
 	// (CR 702.51a). The announcement is gated on pc.noMana, so every
 	// ordinary convoke ask offers the same options it always did.
 	mana := e.manaToPay(pc)
+	colourBudget := 0
 	if pc.noMana {
+		// The announcement's exact size: every coloured slot (a hybrid pip's
+		// face included) needs its own coloured tap, and the generic left
+		// after the Delve potential needs one tap per unit
+		// (manaSpendConvokeCovers). The ask publishes both, so a rules-ignorant
+		// answerer (the bot) can build a covering announcement without
+		// recomposing the cost.
+		colourBudget, minTaps = manaSpendAnnouncementShape(e, pc, mana)
 		for _, p := range mana.Hybrid {
 			for _, c := range []byte{p.A, p.B} {
 				mana.Colored[state.ManaIndex(c)]++
@@ -159,7 +167,7 @@ func (e *Engine) convokeAsk() bool {
 		}
 	}
 	return pay.ConvokeAsk(asPayer(e), &pc.CastPayment, &pc.PaidCost, pay.ConvokeOffer{
-		Player: pc.player, Card: pc.card, MinTaps: minTaps,
+		Player: pc.player, Card: pc.card, MinTaps: minTaps, ColourBudget: colourBudget,
 		Convoke: isConvoke, Harmonize: isHarmonize, Improvise: isImprovise, Waterbend: isWaterbend,
 		CreatureMana: creatureMana, SourceTaps: pc.cost.Tap,
 		Mana: mana, HasX: pc.cost.X > 0,

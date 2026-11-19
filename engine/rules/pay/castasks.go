@@ -40,6 +40,13 @@ type ConvokeOffer struct {
 	WaterbendOpen bool
 	// MinTaps is how many contributions the payment can't finish without.
 	MinTaps int
+	// ColourBudget, when > 0, is the exact number of coloured contributions
+	// the announcement may make: each coloured option carries Value 1 and the
+	// ask publishes MaxSum = ColourBudget, the one budget Validate, Clamp and
+	// the bot arm all read. A cast that may not spend mana (stat:ManaRestriction)
+	// sets it, because its hybrid pips are offered under both faces and a
+	// coloured pick past the pips would pay nothing.
+	ColourBudget int
 }
 
 // harmonizePaymentGroup is the one exclusivity group every harmonize option
@@ -217,8 +224,24 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 		d.Max = 1
 	}
 	d.Min = min(in.MinTaps, d.Max)
+	publishColourBudget(d, in.ColourBudget)
 	e.Ask(AskCast, d)
 	return true
+}
+
+// publishColourBudget publishes ConvokeOffer.ColourBudget on the ask: every
+// coloured convoke option carries Value 1 and MaxSum caps their sum. A zero
+// budget leaves the ask untouched.
+func publishColourBudget(d *decision.Decision, budget int) {
+	if budget <= 0 {
+		return
+	}
+	for i := range d.Options {
+		if k := d.Options[i].Kind; len(k) == len("convoke_W") && k[:len("convoke_")] == "convoke_" && k != "convoke_generic" {
+			d.Options[i].Value = 1
+		}
+	}
+	d.MaxSum = budget
 }
 
 // ManaAsk offers the payer's choice for the next unsettled hybrid or

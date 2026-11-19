@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -151,9 +149,10 @@ func manaSpendOfferCovers(e manaSpendOfferBoard, p state.PlayerID, id state.ObjI
 			}
 			ok := false
 			for _, r := range slots[si].colors {
-				if strings.ContainsRune(cands[ci], r) {
-					ok = true
-					break
+				for _, cr := range cands[ci] {
+					if cr == r {
+						ok = true
+					}
 				}
 			}
 			if !ok {
@@ -260,4 +259,21 @@ func manaSpendConvokeCovers(e manaSpendBoard, pc *pendingCast, pays []convokePay
 		gy = len(e.Game().Zone(state.ZGraveyard, pc.player))
 	}
 	return need <= int32(gy)
+}
+
+// manaSpendAnnouncementShape is the zero-spend shape's Convoke announcement
+// size for the composed total m (manaToPay, before the ask's hybrid face
+// expansion): the coloured taps it needs (one per coloured unit and per
+// unresolved hybrid pip) and the fewest taps in all -- those plus the generic
+// the Delve potential cannot cover. It is manaSpendConvokeCovers's coverage
+// rule read the other way round: an announcement of fewer taps, or with more
+// coloured ones than slots, is exactly one that rule refuses.
+func manaSpendAnnouncementShape(e manaSpendBoard, pc *pendingCast, m Cost) (colour, taps int) {
+	colour = int(m.Colored.Total()) + len(m.Hybrid)
+	generic := m.Generic + 2*int32(len(m.Twobrid))
+	gy := int32(0)
+	if !pc.isAbility() && e.hasCastDelve(pc.card, false) {
+		gy = int32(len(e.Game().Zone(state.ZGraveyard, pc.player)))
+	}
+	return colour, colour + int(max(generic-gy, 0))
 }
