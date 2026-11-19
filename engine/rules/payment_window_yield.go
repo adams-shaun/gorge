@@ -117,8 +117,14 @@ func (e *Engine) scriptDropEmptyManaAnswers(p state.PlayerID, d *decision.Decisi
 			if op.Index != in.Choices[0] {
 				continue
 			}
-			return op.Kind == "mana" && !op.Granted && op.Ability >= 0 && op.Ability < len(ma.abilities) &&
-				e.manaAbilityYieldsNothing(p, d.Source, o.Face(), ma.abilities[op.Ability])
+			if op.Kind != "mana" || op.Granted || op.Ability < 0 || op.Ability >= len(ma.abilities) {
+				return false
+			}
+			ab := ma.abilities[op.Ability]
+			if _, storage := announcedSourceSubCounter(e.abilityCompiledCost(ab).Cost); storage {
+				return false // an idle storage land's tap stays a branch: the kernel's search takes it (mbc_idle_storage_tap)
+			}
+			return e.manaAbilityYieldsNothing(p, d.Source, o.Face(), ab)
 		}
 		return false
 	}
