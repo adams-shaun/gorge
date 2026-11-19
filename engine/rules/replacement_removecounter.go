@@ -1,11 +1,53 @@
 package rules
 
 import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 func init() { effects.RegisterNonAPI("repl:RemoveCounter") }
+
+// removeCounterReplacementMatches is the matcher arm of the counter-removal
+// class (Fear of Sleep Paralysis's stun-counter lock). Only a
+// negative-amount object CounterChange is a removal -- the sign guard
+// mirrors the AddCounter class's, and the engine's own status markers
+// riding a CounterChange are excluded with it. The class's corpus shape is
+// Layer$ CantHappen only (the cards layer keeps Deification's ReplaceWith$
+// damage arm on repl:RemoveCounter.OtherShape), and the object form carries
+// no player, so a ValidPlayer$-scoped line is unmodelled: fail closed.
+func (e *Engine) removeCounterReplacementMatches(r cards.Repl, ev events.Event,
+	you state.PlayerID, source state.ObjID, svars map[string]string) bool {
+	if ev.Kind != events.CounterChange || ev.Amount >= 0 {
+		return false
+	}
+	if state.InternalCounterMarker(ev.Counter) {
+		return false
+	}
+	if !strings.EqualFold(strings.TrimSpace(r.ParamStr(cards.PKLayer)), "CantHappen") {
+		return false
+	}
+	if r.With != nil {
+		return false
+	}
+	if ct := strings.TrimSpace(r.ParamStr(cards.PKValidCounterType)); ct != "" && ct != ev.Counter {
+		return false
+	}
+	spec := strings.TrimSpace(r.ParamStr(cards.PKValidCard))
+	if spec == "" {
+		spec = strings.TrimSpace(r.ParamStr(cards.PKValidObject))
+	}
+	if spec != "" && !e.matchesSpecFrom(spec, ev.Obj, you, source) {
+		return false
+	}
+	if _, ok := r.Param(cards.PKValidPlayer); ok {
+		return false
+	}
+	return e.replacementConditionHoldsWith(r, source, you, svars)
+}
 
 // applyRemoveCounterReplacements is the counter-removal class's pass: the
 // event is a negative-amount CounterChange the collection matched to

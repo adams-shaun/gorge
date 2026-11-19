@@ -817,62 +817,9 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		}
 		return e.replacementConditionHoldsWith(r, source, you, svars)
 	case cards.ReplProliferate:
-		// The proliferate-action replacement class (Tekuthal, Inquiry
-		// Dominus: "if you would proliferate, proliferate twice instead").
-		// Only the synthetic PROPOSAL (effProliferate's CountReplacementProposed
-		// hold, the roll boundary's discipline) reaches here; the completed
-		// events.Proliferate markers the actions emit carry no proposal text
-		// and map no class, so a replacement applies before the action and
-		// never to its own record. The rewrite is the With's shared
-		// ReplaceCount$ arithmetic (applyProliferateReplacements), so only a
-		// With-bearing line matches: a With-less line has no implemented
-		// application and fails closed.
-		if ev.Kind != events.Proliferate || ev.Text != events.ProliferateProposalText {
-			return false
-		}
-		if r.With == nil {
-			return false
-		}
-		if vp, ok := r.Param(cards.PKValidPlayer); ok &&
-			!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
-			return false
-		}
-		return e.replacementConditionHoldsWith(r, source, you, svars)
+		return e.proliferateReplacementMatches(r, ev, you, source, svars)
 	case cards.ReplRemoveCounter:
-		// The counter-removal class (Fear of Sleep Paralysis's stun-counter
-		// lock). Only a negative-amount object CounterChange is a removal --
-		// the sign guard mirrors the AddCounter class's, and the engine's own
-		// status markers riding a CounterChange are excluded with it. The
-		// class's corpus shape is Layer$ CantHappen only (the cards layer
-		// keeps Deification's ReplaceWith$ damage arm on
-		// repl:RemoveCounter.OtherShape), and the object form carries no
-		// player, so a ValidPlayer$-scoped line is unmodelled: fail closed.
-		if ev.Kind != events.CounterChange || ev.Amount >= 0 {
-			return false
-		}
-		if state.InternalCounterMarker(ev.Counter) {
-			return false
-		}
-		if !strings.EqualFold(strings.TrimSpace(r.ParamStr(cards.PKLayer)), "CantHappen") {
-			return false
-		}
-		if r.With != nil {
-			return false
-		}
-		if ct := strings.TrimSpace(r.ParamStr(cards.PKValidCounterType)); ct != "" && ct != ev.Counter {
-			return false
-		}
-		spec := strings.TrimSpace(r.ParamStr(cards.PKValidCard))
-		if spec == "" {
-			spec = strings.TrimSpace(r.ParamStr(cards.PKValidObject))
-		}
-		if spec != "" && !e.matchesSpecFrom(spec, ev.Obj, you, source) {
-			return false
-		}
-		if _, ok := r.Param(cards.PKValidPlayer); ok {
-			return false
-		}
-		return e.replacementConditionHoldsWith(r, source, you, svars)
+		return e.removeCounterReplacementMatches(r, ev, you, source, svars)
 	case cards.ReplRollPlanarDice:
 		// The planar-dice replacement class (Ichor Elixir):
 		// "if you would roll one or more planar dice, instead roll that many
@@ -888,19 +835,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		}
 		return e.replacementConditionHoldsWith(r, source, you, svars)
 	case cards.ReplCascade:
-		// The cascade instruction's replacement boundary (CR 614.4;
-		// Averna, the Chaos Bloom's replacement on its controller, active
-		// on the battlefield). Only the synthetic proposal reaches here, so there
-		// is no logged event and no ValidCard$: the caster is ev.Player and
-		// ValidPlayer$ scopes it exactly as the Draw/ProduceMana classes do.
-		if ev.Kind != events.Cascade {
-			return false
-		}
-		if vp, ok := r.Param(cards.PKValidPlayer); ok &&
-			!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
-			return false
-		}
-		return e.replacementConditionHoldsWith(r, source, you, svars)
+		return e.cascadeReplacementMatches(r, ev, you, source, svars)
 	case cards.ReplGameLoss, cards.ReplGameWin:
 		// The "you can't lose the game" / "your opponents can't win the
 		// game" class (CR 104.3 / 704.5a-c). Only

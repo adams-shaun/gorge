@@ -422,41 +422,16 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	case events.DestroyProposal:
 		return e.continueDestroyReplacements(ev, matches)
 	case events.Damage:
-		matches = e.applicableDamageReplacements(ev, matches)
-		if len(matches) == 0 {
-			return ev, false
-		}
-		if (len(matches) > 1 && !allBarePreventions(matches)) || hasOptionalReplacement(matches) {
-			if p, ok := e.damageAffectedPlayer(ev); ok && !e.G.Players[p].Lost {
-				if applied, served := e.poseDamageReplacementChoice(ev, matches, e.replacementAskPlayer(matches, p)); served {
-					// Under the resolution kernel the ask was answered in place
-					// and the modified damage already landed: return the landed
-					// event so the emitting primitive (Host.EmitDamage's
-					// contract) reads the post-replacement amount for its
-					// ExcessSVar$/RememberDamaged$ riders. A fully prevented
-					// in-place hit arrives as the zero event and keeps the
-					// Note below, which the emitter reads as 0.
-					return applied, true
-				}
-				return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
-					Text: "damage awaiting replacement-order choice"}, true
-			}
-		}
-		return e.applyNonMoveReplacements(ev, matches)
+		return e.applyDamageClassReplacements(ev, matches)
 	case events.CounterChange, events.PlayerCounterChange:
 		// The sign routes the two counter classes apart (see
-		// replacementEventKind): a removal is prohibited, never modified.
-		if ev.Amount < 0 && !state.InternalCounterMarker(ev.Counter) {
-			return e.applyRemoveCounterReplacements(ev, matches)
-		}
-		return e.applyAddCounterReplacements(ev, matches)
+		// replacementEventKind).
+		return e.counterChangeReplacements(ev, matches)
 	case events.TurnFaceUp:
 		return e.applyTurnFaceUpReplacements(ev, matches)
 	case events.Proliferate:
-		// The instruction proposal. Like the cascade kind it is never
-		// logged: effProliferate reads the rewritten action count straight
-		// off the returned event, and each action it then runs emits its own
-		// completed marker.
+		// effProliferate's never-logged count proposal (the cascade kind's
+		// discipline): the rewritten count flows back through the event.
 		return e.applyProliferateReplacements(ev, matches)
 	case events.Cascade:
 		// The instruction proposal. Unlike every other kind here it has no

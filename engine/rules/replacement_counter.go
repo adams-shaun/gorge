@@ -604,3 +604,16 @@ var counterSpellQualifiersCodes = state.NewStrCodes(
 	state.StrEntry[counterSpellQualifiersCode]{Key: "hasKeywordFlash", Val: counterSpellQualifiersHasKeywordFlash},
 	state.StrEntry[counterSpellQualifiersCode]{Key: "wasCastByYou", Val: counterSpellQualifiersWasCastByYou},
 )
+
+// counterChangeReplacements routes one CounterChange/PlayerCounterChange
+// replacement pass by the event's sign, the same routing
+// replacementEventKind uses to map the event to its class: a REMOVAL
+// (negative amount, never one of the engine's own status markers) is the
+// R:Event$ RemoveCounter class and is prohibited, never modified; a
+// placement is the AddCounter class.
+func (e *Engine) counterChangeReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	if ev.Amount < 0 && !state.InternalCounterMarker(ev.Counter) {
+		return e.applyRemoveCounterReplacements(ev, matches)
+	}
+	return e.applyAddCounterReplacements(ev, matches)
+}
