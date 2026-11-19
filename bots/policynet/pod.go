@@ -270,3 +270,199 @@ func podLifeRows(v *view.View, me *view.PlayerView, others []*view.PlayerView, m
 		sk.h(fnvAdd(fnvOffset, "mz|opp|lethal-unblocked"), 1)
 	}
 }
+
+// ---- the pod entity layout (FeaturesPod) ----------------------------------
+//
+// The entity set's 100 raw columns, then, appended:
+//
+//	100..103  the controller's relative seat, one-hot (viewer 0, then turn
+//	          order from it; a seat past the fourth sets none)
+//	104..107  the owner's relative seat, one-hot
+//	108..111  an attacker's defending player's relative seat (the player, or
+//	          the attacked planeswalker's controller or battle's protector)
+//	112       it attacks a planeswalker or a battle (view AttackingPermanent)
+//	113..116  each seat that goads it, by relative seat (view GoadedBy)
+//	117       it is in the command zone
+//	118       it is a commander (some seat's roster)
+//	119       reserved
+//
+// entMine is left zero: the controller one-hot's first column says it.
+// The pooled groups are the battlefield of each relative seat (0..3; a seat
+// past the fourth pools with the fourth), the viewer's hand, the stack and
+// the command zone; the command-zone commanders are listed after the stack,
+// every seat's in seat order.
+const (
+	// EntityRawWidthPod is FeaturesPod's entity raw width.
+	EntityRawWidthPod = EntityRawWidth + 20
+	// EntityGroupsPod is FeaturesPod's pooled group count.
+	EntityGroupsPod = maxSeatBlocks + 3
+
+	PodEntCtrl0       = EntityRawWidth
+	PodEntOwner0      = EntityRawWidth + 4
+	PodEntAttacked0   = EntityRawWidth + 8
+	PodEntAttacksPerm = EntityRawWidth + 12
+	PodEntGoadedBy0   = EntityRawWidth + 13
+	PodEntCommandZone = EntityRawWidth + 17
+	PodEntCommander   = EntityRawWidth + 18
+
+	PodGroupHand    = maxSeatBlocks
+	PodGroupStack   = maxSeatBlocks + 1
+	PodGroupCommand = maxSeatBlocks + 2
+
+	// podZoneCommand is the entity zone class of a command-zone card (the
+	// entZone* classes are the battlefield, hand and stack).
+	podZoneCommand = PodEntCommandZone
+)
+
+// EntityRawW is fs's entity raw width.
+func (fs FeatureSet) EntityRawW() int {
+	if fs == FeaturesPod {
+		return EntityRawWidthPod
+	}
+	return EntityRawWidth
+}
+
+// EntityGroupsN is fs's pooled entity group count.
+func (fs FeatureSet) EntityGroupsN() int {
+	if fs == FeaturesPod {
+		return EntityGroupsPod
+	}
+	return EntityGroups
+}
+
+// podRel is player p's relative seat from seat (turn order, the view's
+// player order), -1 when either is not in the view.
+func podRel(v *view.View, seat, p state.PlayerID) int {
+	si, pi := -1, -1
+	for i := range v.Players {
+		if v.Players[i].ID == seat {
+			si = i
+		}
+		if v.Players[i].ID == p {
+			pi = i
+		}
+	}
+	if si < 0 || pi < 0 {
+		return -1
+	}
+	n := len(v.Players)
+	return (pi - si + n) % n
+}
+
+// podOneHot sets raw[off+r] for a relative seat r in 0..3.
+func podOneHot(raw []float32, off, r int) {
+	if r >= 0 && r < maxSeatBlocks {
+		raw[off+r] = 1
+	}
+}
+
+// walkPodEntityOrder is the pod entity order: my battlefield, every other
+// battlefield in seat order (each grouped by its controller's relative
+// seat), my hand, the stack, then every seat's command-zone commanders.
+func walkPodEntityOrder(v *view.View, seat state.PlayerID, f func(cv *view.CardView, group uint8, zone int, sv *view.StackView)) {
+	bfGroup := func(p state.PlayerID) uint8 {
+		r := podRel(v, seat, p)
+		if r < 0 || r >= maxSeatBlocks {
+			r = maxSeatBlocks - 1
+		}
+		return uint8(r)
+	}
+	var me *view.PlayerView
+	for i := range v.Players {
+		if v.Players[i].ID == seat {
+			me = &v.Players[i]
+		}
+	}
+	if me != nil {
+		for i := range me.Battlefield {
+			f(&me.Battlefield[i], 0, entZoneBf, nil)
+		}
+	}
+	for i := range v.Players {
+		if v.Players[i].ID == seat {
+			continue
+		}
+		g := bfGroup(v.Players[i].ID)
+		for j := range v.Players[i].Battlefield {
+			f(&v.Players[i].Battlefield[j], g, entZoneBf, nil)
+		}
+	}
+	if me != nil {
+		for i := range me.Hand {
+			f(&me.Hand[i], PodGroupHand, entZoneHand, nil)
+		}
+	}
+	for i := range v.Stack {
+		if sv := &v.Stack[i]; sv.Card != nil {
+			f(sv.Card, PodGroupStack, entZoneStack, sv)
+		}
+	}
+	for i := range v.Players {
+		pv := &v.Players[i]
+		for j := range pv.Command {
+			if isCommander(pv, pv.Command[j].ID) {
+				f(&pv.Command[j], PodGroupCommand, podZoneCommand, nil)
+			}
+		}
+	}
+}
+
+// podEntity writes the pod raw columns of cv (listed in zone).
+func podEntity(raw []float32, cv *view.CardView, zone int, v *view.View, seat state.PlayerID) {
+	raw[entMine] = 0
+	podOneHot(raw, PodEntCtrl0, podRel(v, seat, cv.Controller))
+	podOneHot(raw, PodEntOwner0, podRel(v, seat, cv.Owner))
+	if zone == entZoneBf && cv.Attacking && cv.AttackingPlayer != nil {
+		podOneHot(raw, PodEntAttacked0, podRel(v, seat, *cv.AttackingPlayer))
+		if cv.AttackingPermanent {
+			raw[PodEntAttacksPerm] = 1
+		}
+	}
+	if zone == entZoneBf {
+		for _, p := range cv.GoadedBy {
+			podOneHot(raw, PodEntGoadedBy0, podRel(v, seat, p))
+		}
+	}
+	if zone == podZoneCommand {
+		raw[PodEntCommandZone] = 1
+	}
+	for i := range v.Players {
+		if isCommander(&v.Players[i], cv.ID) {
+			raw[PodEntCommander] = 1
+			break
+		}
+	}
+}
+
+// PodSeatLeafWidth is the width of one relative seat's dense facts
+// (PodSeatVector): its seat block, Commander block and pod block.
+const PodSeatLeafWidth = seatBlockWidth + commanderBlockWidth + PodSeatWidth
+
+// PodSeatVector copies relative seat r's dense facts out of a FeaturesPod
+// dense vector into dst (PodSeatLeafWidth): the seat block, the Commander
+// block, the pod block (a graph network's player-node leaf). Columns a
+// shorter vector lacks read as zero.
+func PodSeatVector(dense []float32, r int, dst []float32) {
+	clear(dst[:PodSeatLeafWidth])
+	part := func(off, base, w int) {
+		for i := 0; i < w; i++ {
+			if base+i < len(dense) {
+				dst[off+i] = dense[base+i]
+			}
+		}
+	}
+	part(0, denseSeat0+r*seatBlockWidth, seatBlockWidth)
+	part(seatBlockWidth, denseCmd0+r*commanderBlockWidth, commanderBlockWidth)
+	part(seatBlockWidth+commanderBlockWidth, DenseWidth+r*PodSeatWidth, PodSeatWidth)
+}
+
+// PodCardOwner is a FeaturesPod entity card's owner relative seat (its
+// owner one-hot), -1 when none is set.
+func PodCardOwner(c *EntityCard) int {
+	for r := 0; r < maxSeatBlocks; r++ {
+		if PodEntOwner0+r < len(c.Raw) && c.Raw[PodEntOwner0+r] != 0 {
+			return r
+		}
+	}
+	return -1
+}

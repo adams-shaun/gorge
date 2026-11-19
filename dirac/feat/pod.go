@@ -190,3 +190,102 @@ func (e *Encoder) podLifeRows(me *vplayer, mine *agg) {
 		e.push(rowOppLethal, 1)
 	}
 }
+
+// The pod entity layout (policynet pod.go's): the entity set's raw columns,
+// then the controller, owner, attacked-player and goader relative-seat
+// one-hots, the attacks-a-permanent, command-zone and commander bits.
+const (
+	EntityRawWidthPod = EntityRawWidth + 20
+	EntityGroupsPod   = maxSeatBlocks + 3
+
+	podEntCtrl0       = EntityRawWidth
+	podEntOwner0      = EntityRawWidth + 4
+	podEntAttacked0   = EntityRawWidth + 8
+	podEntAttacksPerm = EntityRawWidth + 12
+	podEntGoadedBy0   = EntityRawWidth + 13
+	podEntCommandZone = EntityRawWidth + 17
+	podEntCommander   = EntityRawWidth + 18
+
+	podGroupHand    = maxSeatBlocks
+	podGroupStack   = maxSeatBlocks + 1
+	podGroupCommand = maxSeatBlocks + 2
+
+	// entZoneCommand is the entity zone class of a command-zone card
+	// (policynet podZoneCommand).
+	entZoneCommand = podEntCommandZone
+)
+
+func podOneHot(raw *[EntityRawWidthPod]float32, off, r int) {
+	if r >= 0 && r < maxSeatBlocks {
+		raw[off+r] = 1
+	}
+}
+
+// podBfGroup is the pooled group of a battlefield controlled by seat p.
+func (v *vview) podBfGroup(p uint8) uint8 {
+	return uint8(min(v.relSeat(p), maxSeatBlocks-1))
+}
+
+// podEntities is policynet's pod entity order: my battlefield, every other
+// battlefield in seat order (each grouped by its controller's relative
+// seat), my hand, the stack, then every seat's command-zone commanders.
+func (e *Encoder) podEntities(seat uint8, me *vplayer, one func(ci int32, group uint8, zone int)) {
+	v := &e.v
+	for _, ci := range me.bf {
+		one(ci, 0, entZoneBf)
+	}
+	for p := uint8(0); p < v.n; p++ {
+		if p == seat {
+			continue
+		}
+		g := v.podBfGroup(p)
+		for _, ci := range v.players[p].bf {
+			one(ci, g, entZoneBf)
+		}
+	}
+	for _, ci := range me.hand {
+		one(ci, podGroupHand, entZoneHand)
+	}
+	for i := range v.stack {
+		if ci := v.stack[i].cv; ci >= 0 {
+			one(ci, podGroupStack, entZoneStack)
+		}
+	}
+	for p := uint8(0); p < v.n; p++ {
+		for _, ci := range v.players[p].cmd {
+			one(ci, podGroupCommand, entZoneCommand)
+		}
+	}
+}
+
+// podEntity is policynet's podEntity: the pod raw columns of c.
+func (e *Encoder) podEntity(raw *[EntityRawWidthPod]float32, c *vcard, zone int) {
+	v := &e.v
+	s := e.st0
+	raw[entMine] = 0
+	po := e.po(c.obj)
+	podOneHot(raw, podEntCtrl0, v.relSeat(c.ctrl))
+	podOneHot(raw, podEntOwner0, v.relSeat(po.Owner))
+	if zone == entZoneBf && c.attacking && po.Attacks != dirac.NoTarget {
+		podOneHot(raw, podEntAttacked0, v.relSeat(s.FeatAttackDefender(po.Attacks)))
+		if !dirac.FeatAttacksPlayer(po.Attacks) {
+			raw[podEntAttacksPerm] = 1
+		}
+	}
+	if zone == entZoneBf {
+		for p := uint8(0); p < v.n; p++ {
+			if s.FeatGoadedBy(c.obj, p) {
+				podOneHot(raw, podEntGoadedBy0, v.relSeat(p))
+			}
+		}
+	}
+	if zone == entZoneCommand {
+		raw[podEntCommandZone] = 1
+	}
+	for p := uint8(0); p < v.n; p++ {
+		if s.FeatCommanderN(p, 0) == c.obj || s.FeatCommanderN(p, 1) == c.obj {
+			raw[podEntCommander] = 1
+			break
+		}
+	}
+}

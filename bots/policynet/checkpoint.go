@@ -188,7 +188,7 @@ func WriteOracleCheckpoint(m *Model, w io.Writer) error {
 }
 
 func writeCheckpoint(m *Model, w io.Writer) error {
-	return writeCheckpointAs(m, w, encoderHashForDenseW(m.Features, m.StateDenseW(), m.OptDenseW()), EntityRawWidth, m.EntW)
+	return writeCheckpointAs(m, w, encoderHashForDenseW(m.Features, m.StateDenseW(), m.OptDenseW()), m.Features.EntityRawW(), m.EntW)
 }
 
 // writeCheckpointAs writes a checkpoint under an explicit encoder hash and
@@ -395,7 +395,7 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 		}
 	}
 	entK := 0
-	entRaw := EntityRawWidth
+	entRaw := features.EntityRawW()
 	if version == CheckpointVersionEntity || version == CheckpointVersionValueVecEntity {
 		if entK, err = get32("entity width"); err != nil {
 			return nil, err
@@ -403,7 +403,7 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 		if entRaw, err = get32("entity raw width"); err != nil {
 			return nil, err
 		}
-		wantRaw := EntityRawWidth
+		wantRaw := features.EntityRawW()
 		if legacyEnt {
 			wantRaw = EntityRawWidthV1
 		}
@@ -484,9 +484,9 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 			n    int
 			set  func(fs []float32)
 		}{
-			{"entity encoder", entK * (entRaw + hh), func(fs []float32) { m.EntW = widenEntW(fs, entK, entRaw, hh) }},
+			{"entity encoder", entK * (entRaw + hh), func(fs []float32) { m.EntW = widenEntW(fs, entK, entRaw, features.EntityRawW(), hh) }},
 			{"entity encoder bias", entK, func(fs []float32) { m.EntB = fs }},
-			{"entity projection", EntityGroups * 2 * entK * hh, func(fs []float32) { m.EntP = fs }},
+			{"entity projection", features.EntityGroupsN() * 2 * entK * hh, func(fs []float32) { m.EntP = fs }},
 		}...)
 	}
 	for _, blk := range blocks {
@@ -511,21 +511,21 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 }
 
 // widenEntW turns a loaded entity encoder block of raw width entRaw into the
-// build's EntityRawWidth layout. A row is [raw | emb]; the new raw columns
+// build's layout of raw width want (the feature set's EntityRawW). A row is [raw | emb]; the new raw columns
 // are zero, so the loaded weights score exactly as they did at entRaw (the
 // extra inputs multiply by zero). A block already at the build width is
 // returned as is.
-func widenEntW(fs []float32, entK, entRaw, hh int) []float32 {
-	if entRaw == EntityRawWidth {
+func widenEntW(fs []float32, entK, entRaw, want, hh int) []float32 {
+	if entRaw == want {
 		return fs
 	}
-	inW, outW := entRaw+hh, EntityRawWidth+hh
+	inW, outW := entRaw+hh, want+hh
 	out := make([]float32, entK*outW)
 	for q := 0; q < entK; q++ {
 		src := fs[q*inW : (q+1)*inW]
 		dst := out[q*outW : (q+1)*outW]
 		copy(dst[:entRaw], src[:entRaw])
-		copy(dst[EntityRawWidth:], src[entRaw:])
+		copy(dst[want:], src[entRaw:])
 	}
 	return out
 }

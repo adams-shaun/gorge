@@ -472,6 +472,16 @@ func (e *Encoder) entRef(o dirac.Obj) int32 {
 		return false
 	}
 	me, opp := v.sides()
+	if e.pod {
+		// the pod entity order (podEntities); after the hit the walk only
+		// finishes
+		e.podEntities(v.seat, me, func(ci int32, _ uint8, _ int) {
+			if hit == 0 {
+				visit(ci)
+			}
+		})
+		return hit
+	}
 	for _, l := range [3][]int32{me.bf, opp.bf, me.hand} {
 		for _, ci := range l {
 			if visit(ci) {

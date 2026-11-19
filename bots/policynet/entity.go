@@ -206,6 +206,17 @@ func entityCards(v view.View, seat state.PlayerID) ([]EntityCard, map[state.ObjI
 // walkEntityOrder visits the entity order's cards, duplicates included:
 // my battlefield, every other battlefield (seat order), my hand, the stack.
 func walkEntityOrder(v *view.View, seat state.PlayerID, f func(cv *view.CardView, group uint8, zone int, sv *view.StackView)) {
+	walkEntityOrderFS(v, seat, false, f)
+}
+
+// walkEntityOrderFS is walkEntityOrder; pod (FeaturesPod) groups each
+// battlefield by its controller's relative seat and lists every seat's
+// command-zone commanders after the stack (podGroup*).
+func walkEntityOrderFS(v *view.View, seat state.PlayerID, pod bool, f func(cv *view.CardView, group uint8, zone int, sv *view.StackView)) {
+	if pod {
+		walkPodEntityOrder(v, seat, f)
+		return
+	}
 	var me *view.PlayerView
 	for i := range v.Players {
 		if v.Players[i].ID == seat {
@@ -294,6 +305,14 @@ func (b *entityBoard) controller(id state.ObjID) (state.PlayerID, bool) {
 // carved out of one slab each (capacity-capped, so an append never reaches
 // a neighbour).
 func entityCardList(buf *StateBuf, v *view.View, seat state.PlayerID) []EntityCard {
+	return entityCardListFS(buf, v, seat, FeaturesEntity)
+}
+
+// entityCardListFS is entityCardList under entity set fs (FeaturesEntity or
+// FeaturesPod: the pod order, groups and raw columns).
+func entityCardListFS(buf *StateBuf, v *view.View, seat state.PlayerID, fs FeatureSet) []EntityCard {
+	pod := fs == FeaturesPod
+	rawW := fs.EntityRawW()
 	var me *view.PlayerView
 	for i := range v.Players {
 		if v.Players[i].ID == seat {
@@ -309,6 +328,9 @@ func entityCardList(buf *StateBuf, v *view.View, seat state.PlayerID) []EntityCa
 	for i := range v.Players {
 		pv := &v.Players[i]
 		total += len(pv.Battlefield)
+		if pod {
+			total += len(pv.Command)
+		}
 		if pv.ID == seat {
 			total += len(pv.Hand)
 		}
@@ -364,13 +386,13 @@ func entityCardList(buf *StateBuf, v *view.View, seat state.PlayerID) []EntityCa
 		clear(sc.seen)
 		sc.gen = 1
 	}
-	out, raw, rows := buf.entitySlabs(total)
-	walkEntityOrder(v, seat, func(cv *view.CardView, group uint8, zone int, sv *view.StackView) {
+	out, raw, rows := buf.entitySlabs(total, rawW)
+	walkEntityOrderFS(v, seat, pod, func(cv *view.CardView, group uint8, zone int, sv *view.StackView) {
 		if !sc.markNew(cv.ID) {
 			return
 		}
 		k := len(out)
-		r := raw[k*EntityRawWidth : (k+1)*EntityRawWidth : (k+1)*EntityRawWidth]
+		r := raw[k*rawW : (k+1)*rawW : (k+1)*rawW]
 		start := len(rows)
 		rows = entityCard(r, rows, cv, zone, seat, avail, b.blocking(cv.ID), b.hosts(cv.ID), &b)
 		var cr []Feature
@@ -378,6 +400,9 @@ func entityCardList(buf *StateBuf, v *view.View, seat state.PlayerID) []EntityCa
 			cr = rows[start:len(rows):len(rows)]
 		}
 		entityRelations(r, cv, zone, sv, seat, &b, foeBuf[:0])
+		if pod {
+			podEntity(r, cv, zone, v, seat)
+		}
 		out = append(out, EntityCard{Group: group, Raw: r, Rows: cr})
 	})
 	entityScratches.Put(sc)
@@ -540,10 +565,10 @@ func entityCard(raw []float32, rows []Feature, cv *view.CardView, zone int, seat
 
 // entInW is the per-card encoder's input width: the raw scalars plus the
 // hashed identity embedding (H).
-func (m *Model) entInW() int { return EntityRawWidth + m.H }
+func (m *Model) entInW() int { return m.Features.EntityRawW() + m.H }
 
 // entPoolW is the pooled vector's width.
-func (m *Model) entPoolW() int { return EntityGroups * 2 * m.EntK }
+func (m *Model) entPoolW() int { return m.Features.EntityGroupsN() * 2 * m.EntK }
 
 // entCache is one state's entity forward: per card the encoder input and
 // activation, the pooled vector and, per pooled max slot, the card that won.
@@ -561,6 +586,7 @@ func (m *Model) entForward(st State) *entCache {
 		return nil
 	}
 	k, inW := m.EntK, m.entInW()
+	rawW, groups := m.Features.EntityRawW(), m.Features.EntityGroupsN()
 	c := &entCache{u: make([][]float32, len(st.Cards)), h: make([][]float32, len(st.Cards)),
 		pool: make([]float32, m.entPoolW()), argmax: make([]int, m.entPoolW())}
 	for i := range c.argmax {
@@ -572,7 +598,7 @@ func (m *Model) entForward(st State) *entCache {
 		for _, f := range card.Rows {
 			row := m.Table[int(f.Row)*m.H : int(f.Row)*m.H+m.H]
 			for j := range row {
-				u[EntityRawWidth+j] += row[j] * f.Value
+				u[rawW+j] += row[j] * f.Value
 			}
 		}
 		h := make([]float32, k)
@@ -590,7 +616,7 @@ func (m *Model) entForward(st State) *entCache {
 		}
 		c.u[ci], c.h[ci] = u, h
 		g := int(card.Group)
-		if g >= EntityGroups {
+		if g >= groups {
 			continue
 		}
 		base := g * 2 * k
@@ -648,6 +674,7 @@ func (m *Model) entBackward(c *entCache, st State, ds []float32, dh [][]float32,
 		return
 	}
 	k, inW := m.EntK, m.entInW()
+	rawW, groups := m.Features.EntityRawW(), m.Features.EntityGroupsN()
 	// Projection: dEntP[p,j] += P[p]·ds[j]; dP[p] = Σ_j EntP[p,j]·ds[j].
 	dP := make([]float32, len(c.pool))
 	for p, v := range c.pool {
@@ -667,7 +694,7 @@ func (m *Model) entBackward(c *entCache, st State, ds []float32, dh [][]float32,
 	}
 	for ci, card := range st.Cards {
 		gidx := int(card.Group)
-		if gidx >= EntityGroups {
+		if gidx >= groups {
 			continue
 		}
 		base := gidx * 2 * k
@@ -715,7 +742,7 @@ func (m *Model) entBackward(c *entCache, st State, ds []float32, dh [][]float32,
 			continue
 		}
 		for _, f := range st.Cards[ci].Rows {
-			g.addTable(int(f.Row), du[EntityRawWidth:], f.Value)
+			g.addTable(int(f.Row), du[rawW:], f.Value)
 		}
 	}
 }

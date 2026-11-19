@@ -460,10 +460,17 @@ export interface CardView {
    */
   attacking_player?: number | null;
   /**
-   * GoadedBy lists, in seat order, every seat that goads this permanent
-   * (CR 701.15: a live goad designation or a Goad$ True static it
-   * controls), nil when none does. Public like the attack it compels;
-   * omitted when empty, so a view without a goad serialises as before.
+   * AttackingPermanent is true while the creature attacks a planeswalker
+   * or a battle (CR 508.1b, 310.7) rather than a player; AttackingPlayer
+   * then names that permanent's controller or protector.
+   */
+  attacking_permanent?: boolean;
+  /**
+   * GoadedBy lists, in seat order, every seat with a goad designation on
+   * this permanent in force (CR 701.15; state.Object.Goads), nil when none.
+   * A Goad$ True static's goad is derived, not state, and is not listed.
+   * Public like the attack it compels; omitted when empty, so a view
+   * without a goad serialises as before.
    */
   goaded_by?: string;
   blocked_by?: number[];

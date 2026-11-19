@@ -192,8 +192,8 @@ func (rec *OnPolicyRecord) Example() (Example, error) {
 		if err != nil {
 			return ex, fmt.Errorf("state card %d: %w", i, err)
 		}
-		if len(c.Raw) != EntityRawWidth {
-			return ex, fmt.Errorf("state card %d: %d raw floats, want %d", i, len(c.Raw), EntityRawWidth)
+		if len(c.Raw) != EntityRawWidth && len(c.Raw) != EntityRawWidthPod {
+			return ex, fmt.Errorf("state card %d: %d raw floats, want %d or %d", i, len(c.Raw), EntityRawWidth, EntityRawWidthPod)
 		}
 		ex.State.Cards = append(ex.State.Cards, EntityCard{Group: c.Group, Raw: append([]float32(nil), c.Raw...), Rows: rows})
 	}

@@ -39,7 +39,9 @@ const (
 // Card is one entity card (policynet.EntityCard).
 type Card struct {
 	Group uint8
-	Raw   [EntityRawWidth]float32
+	// Raw is EntityRawWidthPod wide; only the first EntityRawWidth columns
+	// are written with the pod encoding off (SetPod).
+	Raw   [EntityRawWidthPod]float32
 	Rows  [2]Feature
 	NRows uint8
 }
@@ -740,6 +742,13 @@ func (e *Encoder) entities(seat uint8, me, opp *vplayer) {
 		e.seen[c.obj] = e.gen
 		e.cards = append(e.cards, Card{Group: group})
 		e.entityCard(&e.cards[len(e.cards)-1], c, zone, seat, me.avail)
+		if e.pod {
+			e.podEntity(&e.cards[len(e.cards)-1].Raw, c, zone)
+		}
+	}
+	if e.pod {
+		e.podEntities(seat, me, one)
+		return
 	}
 	for _, ci := range me.bf {
 		one(ci, 0, entZoneBf)

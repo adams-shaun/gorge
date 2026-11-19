@@ -284,6 +284,10 @@
         "attacking": {
           "type": "boolean"
         },
+        "attacking_permanent": {
+          "description": "AttackingPermanent is true while the creature attacks a planeswalker or a battle (CR 508.1b, 310.7) rather than a player; AttackingPlayer then names that permanent's controller or protector.",
+          "type": "boolean"
+        },
         "attacking_player": {
           "description": "AttackingPlayer is the seat this creature is attacking while Attacking is true, nil otherwise; BlockedBy lists the creatures blocking it. Both exist for the arrow overlay and come straight from the object's combat fields, which EndCombatReset clears. Blocked is true from the moment a creature is blocked until combat ends, even after every blocker has left the battlefield (CR 509.1h); BlockedBy then lists fewer creatures than blocked it, or none.",
           "maximum": 255,
@@ -364,7 +368,7 @@
         },
         "goaded_by": {
           "contentEncoding": "base64",
-          "description": "GoadedBy lists, in seat order, every seat that goads this permanent (CR 701.15: a live goad designation or a Goad$ True static it controls), nil when none does. Public like the attack it compels; omitted when empty, so a view without a goad serialises as before.",
+          "description": "GoadedBy lists, in seat order, every seat with a goad designation on this permanent in force (CR 701.15; state.Object.Goads), nil when none. A Goad$ True static's goad is derived, not state, and is not listed. Public like the attack it compels; omitted when empty, so a view without a goad serialises as before.",
           "type": "string"
         },
         "id": {
