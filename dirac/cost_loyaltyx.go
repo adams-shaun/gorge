@@ -37,14 +37,23 @@ func (s *State) loyaltyXOptions(k *prep, d *Decision) bool {
 		have = s.perms[sl].ctrLow(int(a.Cost.Ctr))
 	}
 	d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
+	n0 := d.N
 	for x := 0; x <= have; x++ {
 		// CR 601.2c: an X the body's target bounds read ("untap X target
 		// artifacts", Dyfed, the Guiding Hand) is offered only while the
 		// target ask could answer it, the same filter the mana X ask applies
 		// (gorge xAsk's targetsAnnounceableAt, cast_subcounter.go; xAnswerable
-		// for the shared ask). X = 0 is always answerable, so the ask never
-		// comes up empty.
+		// for the shared ask).
 		if s.xAnswerable(k, a, e, x) {
+			d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
+		}
+	}
+	if d.N == n0 {
+		// No X is answerable (Quillmane Baku's Creature.cmcLEX with no
+		// creature of mana value 0..have): gorge xAsk keeps the whole payable
+		// range and the target ask reverses the activation (CR 601.2b, 733.1),
+		// as addXOptions does for a mana X.
+		for x := 0; x <= have; x++ {
 			d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
 		}
 	}

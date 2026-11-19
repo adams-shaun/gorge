@@ -1787,10 +1787,13 @@ func (s *State) finishBuild(k *prep) {
 		s.passes = 0
 		s.ctl = ctlPriority
 	case seAbility:
-		// gorge composes the mana cost before any cost is paid: a sacrificed
-		// source (a Clue's {2}, sacrifice) must still read its reduction
+		// gorge composes the mana cost before any cost is paid (CR 601.2f
+		// before 601.2h): a sacrificed source (a Clue's {2}, sacrifice) must
+		// still read its reduction, and an own ReduceCost$ counting the
+		// source's counters still reads them after the source is sacrificed
+		// (Exploding Barrel, Quest for the Necropolis)
 		var pre kop.ManaCost
-		early := k.gen != nil && k.gen.anyAbReduce
+		early := k.gen != nil && (k.gen.anyAbReduce || k.gen.anyOwnReduce)
 		if early {
 			pre = s.buildCostCharge(k)
 		}
