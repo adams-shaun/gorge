@@ -39,6 +39,12 @@ func (s *State) excludePickedSources(k *prep, av *avail) {
 			continue
 		}
 		sl := ob.slot
+		// A Combo Any or reflected Amount$ source is a census gap: the plain
+		// walk leaves it out (manaAb < 0) but availXWindow still counts its
+		// units through availCA, so canTapForMana is false for it. The pick
+		// taps it for the payment all the same, and the X window cannot spend
+		// that tap again (CR 601.2g-h): take its window units out here too.
+		s.removeCA(k, av, sl)
 		if !s.canTapForMana(k, sl) {
 			continue
 		}
