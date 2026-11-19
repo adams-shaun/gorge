@@ -1725,7 +1725,11 @@ func (s *State) flushSac(k *prep) {
 	for i, sl := range ord[:w] {
 		s.removePerm(k, sl, zs[i], false)
 	}
-	if parked && hr.on {
+	// the pool merely holding an until-leaves card is no hold: only a return
+	// that waits on this flush (a moved one's cards held, or a link on a
+	// parked one still on the battlefield) cannot be placed after a parked
+	// move (sacReturnHold), so it is asked after the moves above
+	if parked && hr.on && s.sacReturnHold(ord[w:n]) {
 		// gorge holds an until-leaves return to the end of the whole flush;
 		// the parked moves run after this frame closes, so it cannot be told
 		// apart from a return between the moves.
