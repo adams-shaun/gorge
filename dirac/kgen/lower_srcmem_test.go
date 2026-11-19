@@ -8,7 +8,7 @@ import (
 // TestSrcMemShapes: a card whose leaves or watch trigger reads what another
 // ability of the card remembered lowers with CardDef.SrcMem (the kernel's
 // per-source memory, dirac/zone_srcmem.go); a Remembered written outside the
-// whitelisted writers (Hostage Taker's Effect RememberObjects$) stays refused.
+// whitelisted writers stays refused; Hostage Taker now lowers through OpExileUntilLeaves remembering the exiled card (TestRemExileUntilRememberFourSeatLockstep), not through SrcMem.
 func TestSrcMemShapes(t *testing.T) {
 	for _, name := range []string{"Dance of Many", "Hypnox"} {
 		lc := lowerCorpusCard(t, name)
@@ -24,8 +24,8 @@ func TestSrcMemShapes(t *testing.T) {
 		}
 	}
 	hostage := lowerCorpusCard(t, "Hostage Taker")
-	if r := probeRefusals(hostage); r == "" {
-		t.Errorf("Hostage Taker lowers, want it refused")
+	if r := probeRefusals(hostage); r != "" {
+		t.Errorf("Hostage Taker refused: %s (lowers since the RememberChanged exile-until-leaves writer)", r)
 	}
 	if hostage.SrcMem {
 		t.Errorf("Hostage Taker carries SrcMem")
