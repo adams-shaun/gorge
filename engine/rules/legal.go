@@ -1,9 +1,6 @@
 package rules
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -175,9 +172,6 @@ func (e *Engine) legalActionsWalkWithWindow(p state.PlayerID, hyp *state.Mana, c
 		}
 	} else if forAsk && hyp == nil && !castsOnly && e.potentialFullDemand && e.WalkRecDemand {
 		w.rec = e.walkBlockRecorder(p)
-	}
-	if forAsk && hyp == nil {
-		fmt.Fprintf(os.Stderr, "EQDBG-WALK forAsk p=%v sorcery=%v pool=%v step=%v stack=%d\n", p, w.sorcery, e.G.Players[p].Pool, e.G.Step, len(e.G.Stack))
 	}
 	w.handWalk()
 	w.mayPlayLandWalk()

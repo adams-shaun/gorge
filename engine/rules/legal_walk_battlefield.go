@@ -436,10 +436,7 @@ func (w *legalWalk) battlefieldWalk() {
 						// offered, and the ability is withheld only when NEITHER cost is
 						// payable.
 						altCost, hasAlt := e.abilityAlternateCostFor(p, ab)
-						_dbgOC := w.offerCastable(p, id, cost, abilityScope(ab), true)
-						_dbgAP := w.autoPayOffer(p, id, i, cost, ab)
-						dbgEquip(o, "SUB oc=%v ap=%v ab=%d", _dbgOC, _dbgAP, i)
-						printedOK := _dbgOC || _dbgAP
+						printedOK := w.offerCastable(p, id, cost, abilityScope(ab), true) || w.autoPayOffer(p, id, i, cost, ab)
 						altOK := hasAlt && w.offerCastable(p, id, altCost, abilityScope(ab), true)
 						if !printedOK && !altOK {
 							continue

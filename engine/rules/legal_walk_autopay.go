@@ -55,9 +55,7 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 // confirm its witness with the engine's own offer gate, exactly as autoPayOffer
 // always did before the fast path existed.
 func (w *legalWalk) autoPayPlan(p state.PlayerID, id state.ObjID, idx int, base Cost, scope costScope, statics costStaticViews) bool {
-	out := w.e.planAbilityPayment(p, id, idx)
-	dbgEquipObj(w.e, id, "PLAN idx=%d reason=%q detail=%q", idx, out.Reason, out.Detail)
-	return w.autoPayConfirm(p, id, base, scope, statics, out)
+	return w.autoPayConfirm(p, id, base, scope, statics, w.e.planAbilityPayment(p, id, idx))
 }
 
 // autoPayPhyrexian is the autopay offer for a cost carrying Phyrexian pips
