@@ -2460,6 +2460,12 @@ var handRoots = struct {
 	// phase resume callback is passed as a function value, so the scanner cannot
 	// infer this edge from handleReplacement; declare its read root explicitly.
 	repl: []string{"Engine.applyReplacements", "Engine.handleReplacement", "Engine.resumeParkedPhase",
+		// applyNonMoveReplacements is the shared "apply the matched bodies"
+		// tail of several dispatch arms; the Damage arm (the free function
+		// applyDamageClassReplacements, extracted from the dispatcher for
+		// codeshape) reaches it through the damageClassHost interface, whose
+		// edge the static scan cannot follow, so it is attributed directly.
+		"Engine.applyNonMoveReplacements",
 		// The entry-counter body scan (entryBodyCounterGrants, from
 		// foldEntryMove) reads the as-enters clone repl's Keyword$ directly --
 		// the same direct-scan shape mustAttackRequired has for statics: the
