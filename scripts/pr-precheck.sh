@@ -42,9 +42,13 @@ if grep -q '^dirac/' <<<"$changed"; then
   ledger='^(TestSupportDocIsCurrent|TestEvidenceAndRefusedAreDisjoint|TestRefusedEntriesWellFormed|TestRefusedReproParses|TestSupportHasNoScriptText)$'
   "${cap[@]}" go test -timeout 5m -run "$ledger" ./dirac/kgen >"$log" 2>&1 || { cat "$log"; fail "support ledger: $(grep -m1 -A1 -- '--- FAIL' "$log" | tr '\n' ' ') (a stale page: scripts/pr-regen.sh dirac/docs/support.md)"; }
   # #1836 added dirac/stallclass_twoseatcauses.go — stallclass is core, not a topic — and pr-precheck said ok: no
-  # step here runs TestDiracFileNames, and the batch failed on it. Only an added file can introduce a bad name; the
-  # topic list is dirac/filenames_test.go's (doc.go lists the topics).
-  if git diff --name-only --diff-filter=A "$base"...HEAD -- 'dirac/' | grep -q '\.go$'; then
+  # step here runs TestDiracFileNames, and the batch failed on it. Only an added file can introduce a bad name, so
+  # --no-renames surfaces a rename into one as an added file too; the topic list is dirac/filenames_test.go's
+  # (doc.go lists the topics). The list is captured first: with `| grep -q` under pipefail, git diff's next write
+  # after grep exits at the first match gets SIGPIPE (exit 141) and the if reads false — the step silently skips
+  # exactly on the large dirac PRs it exists for.
+  added=$(git diff --name-only --no-renames --diff-filter=A "$base"...HEAD -- 'dirac/')
+  if grep -q '\.go$' <<<"$added"; then
     "${cap[@]}" go test -timeout 3m -run '^TestDiracFileNames$' ./dirac >"$log" 2>&1 || { cat "$log"; fail "dirac file names: $(grep -m1 -E 'neither core|named for where|ends in a number' "$log" | sed 's/^[[:space:]]*//' | cut -c1-200) — rename it <topic>_<mechanic>.go (doc.go lists the topics; rounds of one mechanic share a file, no digits)"; }
   fi
 fi
