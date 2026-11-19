@@ -248,7 +248,52 @@ func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost
 		return false
 	}
 	pool[col] += uint8(amount)
-	return feeOnlyShort(&useful.Pips, &pool) >= before
+	if feeOnlyShort(&useful.Pips, &pool) >= before {
+		return true // the colour fills no fixed pip the play still lacks (windowFeeStalls' arm)
+	}
+	// The second cut: a colour a free bare-tap source can make is dominated
+	// even when it fills a pip. This is the swapped-line domination written
+	// at gorge's home too (scriptSearch.feeOnlyFreeTapColour,
+	// engine/rules/potential_script.go): the fee-only repeatable source S
+	// makes colour c for fee F, but a first-only free source X (a bare tap)
+	// can make c instead, leaving c filled and F floating; S stays untapped
+	// (it has no {T}), so every continuation of the dominated branch is
+	// reachable -- if the continuation uses X again, S makes the same colour
+	// for F, paid from the saved F, and the endpoint after both activations
+	// is the same. A repeatable free source is the same argument with X never
+	// spent. S makes any colour, so it can stand in for every colour X can;
+	// a source whose cost also spends a counter, a permanent or life is a
+	// different class (the swap would lose that other use) and fails open.
+	return s.filtFreeTapColour(k, p, sl, col)
+}
+
+// filtFreeTapColour reports whether p controls an untapped source other than
+// sl whose bare-tap mana ability can make col: the free unit the plain source
+// census prices (pcard.manaTap), and the kernel mirror of gorge's
+// scriptSearch.feeOnlyFreeTapColour (engine/rules/potential_script.go).
+func (s *State) filtFreeTapColour(k *prep, p uint8, skip Slot, col int) bool {
+	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
+		sl := b.first()
+		if sl == skip || s.perms[sl].flags&pfTapped != 0 || s.genLost(k, sl) || s.activationSick(k, sl) {
+			continue
+		}
+		if k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
+			continue
+		}
+		var pc *pcard
+		if k.gen != nil {
+			pc = s.manaPCGen(k, sl)
+		} else {
+			pc = &k.cards[s.cardAt(sl)]
+		}
+		if pc.manaAb < 0 || !pc.manaTap || pc.manaSac || !s.canTapForManaPC(k, sl, pc) {
+			continue
+		}
+		if s.srcMaskAt(pc, sl)&(1<<uint(col)) != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // filtOneShotColStalls: the one-shot flexible gap at sl producing col cannot
