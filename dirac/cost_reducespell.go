@@ -200,8 +200,10 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 		if !ok {
 			// the plain sources fall short: gorge's probe then asks the CR 601.2g window, whose filters (a
 			// Signet's {1},{T}: add {G}{W}) and unpriced sources can still pay the taxed cost (castWindowReachable).
-			// A free cast owing only a raise asks it too (Urza's exile cast under Kasmina's {2}): the census
-			// gap of an unpriceable source keeps the candidate
+			// A free cast's taxed candidates run the same window: its raise (an opponent's Kasmina, Enigmatic
+			// Mentor) landed on the empty cost, and gorge's probe (cast_pricing.go) keeps such a candidate
+			// whenever the census is incomplete -- a tap-another source (Urza, Lord High Artificer) it prices
+			// not -- whatever the pool, so withholding it outright is a menu the engine never offered.
 			ok = !s.targetWindowShort(k, e, &cost, false)
 		}
 		if ok {
