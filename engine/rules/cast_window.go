@@ -512,6 +512,13 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 		if pay.ActivationTapCostUnavailable(o, &cost) {
 			continue
 		}
+		// A tapXType<N/Spec> part with too few untapped matches (Urza, Lord
+		// High Artificer's artifact tap with no untapped artifact) can't be
+		// paid in this window either: tapping only removes candidates, so the
+		// ability is blocked like a tapped source, not left unpriced.
+		if len(cost.TapPermanent) > 0 && !pay.ManaTapsPayable(asPayer(e), p, id, cost, nil) {
+			continue
+		}
 		if mp.RestrictValid != "" {
 			if pay.RestrictValidMatches(asPayer(e), p, desc, mp.RestrictValid, id) {
 				return true
