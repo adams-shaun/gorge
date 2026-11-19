@@ -282,7 +282,7 @@ func lfxApply4(k *prep, e *lfx, c *dchars) {
 		c.subs = c.subs.And(o.KeepSub).Or(o.SetSub)
 		c.all = false
 	}
-	if o.RemoveCreatureSub && !DebugRmCreatSubKeep {
+	if ovrCreatSub(o) && !DebugRmCreatSubKeep {
 		c.subs, c.all = c.subs.AndNot(k.gen.creatSub), false
 	}
 	if o.SetLandSub {

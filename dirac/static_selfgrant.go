@@ -26,7 +26,7 @@ func (s *State) selfGrantKept(k *prep, sl, src Slot) (keep kop.SubMask, outside 
 		if o.HasSub {
 			keep, outside = keep.And(o.KeepSub), false
 		}
-		if o.RemoveCreatureSub && !DebugRmCreatSubKeep {
+		if ovrCreatSub(o) && !DebugRmCreatSubKeep {
 			keep, outside = keep.AndNot(k.gen.creatSub), false
 		}
 		if o.SetLandSub {
