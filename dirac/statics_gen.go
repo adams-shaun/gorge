@@ -609,7 +609,8 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 		return n
 	}
 	if e.flags&sfFree != 0 {
-		// a free cast: only a target-dependent raise prices it
+		// a free cast: only a raise prices it, and then its own target-gated
+		// reduction too (dropTargetsOwing)
 		if k.gen.anyRaise {
 			n = s.freeDropTargets(k, buf, n)
 		}
