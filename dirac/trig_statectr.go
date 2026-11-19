@@ -16,7 +16,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // returns are still held, so the intermediate board a Last Laugh "when there
 // are no creatures" needs is seen there; mbc state_trigger_momentary_batch),
 // at the clean end of a state-based
-// pass (sbaClean) and at the points above. The
+// pass (sbaClean) and at the points above. There is no re-check site at a
+// hand, library or graveyard move (an empty-hand "discard your hand, then
+// draw that many" trigger would fire in gorge and not here), so the lowering
+// refuses a Mode$ Always condition reading one of those zones and only the
+// default PresentZone$ Battlefield lowers. The
 // finish-only cadence is sound only while no lowered counter shape removes
 // the source mid-resolution and no lowered ability-counter adds a trigger in
 // that same resolution: gorge would queue on the counter's move before the
