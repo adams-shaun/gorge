@@ -8,34 +8,42 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// dynPayTable builds a two-seat matchup holding Lotus Blossom ("Add X mana of
-// any one color, where X is the number of petal counters on Lotus Blossom") and
-// Island, plus a synthetic 1/1 whose attack trigger carries an optional
-// own-cost ask: OpIfPaid {6} (C 17 = the PayMana kind with an empty skip
-// nibble, as mana_rider_trigcost_test.go's rider), then draw a card.
-func dynPayTable(t *testing.T) (*kop.Table, map[string]CardID, CardID) {
+// dynPayTable builds a two-seat matchup over a pool table with a synthetic
+// counter-scaled sacrifice mana source appended ("Add X mana of any one
+// color, where X is the number of PETAL counters on this", Lotus Blossom's
+// shape: dynamicManaCost's {T}, SacSelf with an AfManaDynamic amount) and a
+// synthetic 1/1 whose attack trigger carries an optional own-cost ask:
+// OpIfPaid {6} (C 17 = the PayMana kind with an empty skip nibble, as
+// mana_rider_trigcost_test.go's rider), then draw a card. The pool table's
+// own cards stay out of the boards.
+func dynPayTable(t *testing.T) (*kop.Table, CardID, CardID, CardID) {
 	t.Helper()
-	set := cardsettest.Synth(t, "tail-74")
-	deck := []cardset.Entry{{Name: "Lotus Blossom", Count: 4}, {Name: "Island", Count: 8}}
+	set := cardsettest.Set(t, "mbc")
+	deck := []cardset.Entry{{Name: "Plains", Count: 8}}
 	tbl, da, _, err := set.Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
-	trig := CardID(len(tbl.Cards))
-	tbl.Cards = append(tbl.Cards, kop.CardDef{
-		Name: "Test Dyn Trigger Cost", Types: kop.TCreature, Power: 1, Toughness: 1,
-		Abilities: []kop.Ability{{Kind: kop.AbTriggered,
-			Trig: kop.Trigger{Event: kop.TrigAttacks, Flags: kop.TfSelf},
-			Prog: []kop.Instr{
-				{Op: kop.OpIfPaid, Obj: kop.RefController, A: kop.Const(6), B: kop.Const(0), C: 17},
-				{Op: kop.OpDraw, Obj: kop.RefController, A: kop.Const(1)},
-			}}},
-	})
-	return tbl, id, trig
+	plains := da[0]
+	lotus := CardID(len(tbl.Cards))
+	trig := lotus + 1
+	tbl.Cards = append(tbl.Cards,
+		kop.CardDef{Name: "Test Petals", Types: kop.TArtifact, Abilities: []kop.Ability{{
+			Kind:       kop.AbMana,
+			Cost:       kop.Cost{Flags: kop.CostTap | kop.CostSacSelf},
+			AFlags:     kop.AfManaDynamic,
+			ManaV:      kop.ValueRef{K: kop.VCountersSelf, N: int16(kop.CtrPetal)},
+			ManaColors: kop.ColAny,
+		}}},
+		kop.CardDef{Name: "Test Dyn Trigger Cost", Types: kop.TCreature, Power: 1, Toughness: 1,
+			Abilities: []kop.Ability{{Kind: kop.AbTriggered,
+				Trig: kop.Trigger{Event: kop.TrigAttacks, Flags: kop.TfSelf},
+				Prog: []kop.Instr{
+					{Op: kop.OpIfPaid, Obj: kop.RefController, A: kop.Const(6), B: kop.Const(0), C: 17},
+					{Op: kop.OpDraw, Obj: kop.RefController, A: kop.Const(1)},
+				}}}},
+	)
+	return tbl, plains, lotus, trig
 }
 
 // dynPayAsk fires the synthetic attack trigger and walks to the next choose
@@ -58,9 +66,8 @@ func dynPayAsk(t *testing.T, sc *scen, trig CardID) Decision {
 	return d
 }
 
-// dynProbePoses the trigger-cost gate's inputs on a state whose payer's
-// permanents were just built: the resolution is a trigger's and the pool is
-// empty, as gorge's ask reads it.
+// dynProbe poses the trigger-cost gate's inputs: the resolution is a
+// trigger's and the pool is empty, as gorge's ask reads it.
 func dynProbe(t *testing.T, sc *scen) {
 	t.Helper()
 	for i := range sc.s.pl[0].pool {
@@ -83,55 +90,53 @@ func dynProbe(t *testing.T, sc *scen) {
 // while gorge offered pay and decline (CR 118.3: the payer elects pay, the
 // charge fails, the payer declines).
 func TestDynTriggerCostPay(t *testing.T) {
-	tbl, id, trig := dynPayTable(t)
-	lotus := id["Lotus Blossom"]
-	isl := id["Island"]
+	tbl, plains, lotus, trig := dynPayTable(t)
 
 	// live: beside a source that yields now, the gate opens and the ask offers
 	// decline then pay
-	sc := newScenTableLib(t, tbl, isl, Config{NoElide: true})
+	sc := newScenTable(t, tbl, Config{NoElide: true})
 	l := sc.perm(lotus, 0)
-	sc.perm(isl, 0)
+	sc.perm(plains, 0)
 	if c := sc.s.cardAt(sc.slot(l)); sc.k.gen.flags[c]&gfManaVar == 0 || sc.k.gen.manaVar(c) < 0 {
-		t.Fatal("precondition: Lotus Blossom is not the table's dynamic-amount source")
+		t.Fatal("precondition: the petal source is not the table's dynamic-amount source")
 	}
 	dynProbe(t, sc)
 	if !sc.s.potentialDynOpen(sc.k, 0, nil) || !sc.s.trigCostPotentialPays(sc.k, 0, kop.PayMana, 0, 6, 0, 0) {
-		t.Fatal("trigCostPotentialPays refused the {6} beside the petal-less Lotus Blossom")
+		t.Fatal("trigCostPotentialPays refused the {6} beside the counter-less petal source")
 	}
-	scA := newScenTableLib(t, tbl, isl, Config{NoElide: true})
+	scA := newScenTable(t, tbl, Config{NoElide: true})
 	scA.perm(lotus, 0)
-	scA.perm(isl, 0)
+	scA.perm(plains, 0)
 	if d := dynPayAsk(t, scA, trig); d.Sub != ChGenPay || d.N != 2 ||
 		d.Options[0].Mode() != 0 || d.Options[1].Mode() != 1 {
 		t.Fatalf("live ask %d options %v, want decline then pay: gorge's potential prices the dynamic amount unbounded", d.Sub, d.Options[:d.N])
 	}
 
 	// alone: no source yields now, gorge's sources flag is false, decline only
-	sc2 := newScenTableLib(t, tbl, isl, Config{NoElide: true})
+	sc2 := newScenTable(t, tbl, Config{NoElide: true})
 	sc2.perm(lotus, 0)
 	dynProbe(t, sc2)
 	if sc2.s.trigCostPotentialPays(sc2.k, 0, kop.PayMana, 0, 6, 0, 0) {
-		t.Fatal("trigCostPotentialPays offered the {6} beside a petal-less Lotus Blossom alone")
+		t.Fatal("trigCostPotentialPays offered the {6} beside a counter-less petal source alone")
 	}
-	sc2A := newScenTableLib(t, tbl, isl, Config{NoElide: true})
+	sc2A := newScenTable(t, tbl, Config{NoElide: true})
 	sc2A.perm(lotus, 0)
 	if d := dynPayAsk(t, sc2A, trig); d.Sub != ChGenPay || d.N != 1 || d.Options[0].Mode() != 0 {
 		t.Fatalf("alone ask %d options %v, want decline only", d.Sub, d.Options[:d.N])
 	}
 
 	// tapped: gorge's walk skips the source, decline only
-	sc3 := newScenTableLib(t, tbl, isl, Config{NoElide: true})
+	sc3 := newScenTable(t, tbl, Config{NoElide: true})
 	l3 := sc3.perm(lotus, 0)
-	sc3.perm(isl, 0)
+	sc3.perm(plains, 0)
 	sc3.s.perms[sc3.slot(l3)].flags |= pfTapped
 	dynProbe(t, sc3)
 	if sc3.s.trigCostPotentialPays(sc3.k, 0, kop.PayMana, 0, 6, 0, 0) {
-		t.Fatal("trigCostPotentialPays offered the {6} beside a tapped Lotus Blossom")
+		t.Fatal("trigCostPotentialPays offered the {6} beside a tapped petal source")
 	}
-	sc3A := newScenTableLib(t, tbl, isl, Config{NoElide: true})
+	sc3A := newScenTable(t, tbl, Config{NoElide: true})
 	l3A := sc3A.perm(lotus, 0)
-	sc3A.perm(isl, 0)
+	sc3A.perm(plains, 0)
 	sc3A.s.perms[sc3A.slot(l3A)].flags |= pfTapped
 	if d := dynPayAsk(t, sc3A, trig); d.Sub != ChGenPay || d.N != 1 || d.Options[0].Mode() != 0 {
 		t.Fatalf("tapped ask %d options %v, want decline only", d.Sub, d.Options[:d.N])
@@ -139,14 +144,14 @@ func TestDynTriggerCostPay(t *testing.T) {
 
 	// petals: the source itself yields two now, and the amount is still
 	// indeterminate, so the gate opens with no other source on the board
-	sc4 := newScenTableLib(t, tbl, isl, Config{NoElide: true})
+	sc4 := newScenTable(t, tbl, Config{NoElide: true})
 	l4 := sc4.perm(lotus, 0)
 	sc4.s.perms[sc4.slot(l4)].setCtrN(sc4.s, int(kop.CtrPetal), 2)
 	dynProbe(t, sc4)
 	if !sc4.s.trigCostPotentialPays(sc4.k, 0, kop.PayMana, 0, 6, 0, 0) {
-		t.Fatal("trigCostPotentialPays refused the {6} beside a two-petal Lotus Blossom")
+		t.Fatal("trigCostPotentialPays refused the {6} beside a two-petal petal source")
 	}
-	sc4A := newScenTableLib(t, tbl, isl, Config{NoElide: true})
+	sc4A := newScenTable(t, tbl, Config{NoElide: true})
 	l4A := sc4A.perm(lotus, 0)
 	sc4A.s.perms[sc4A.slot(l4A)].setCtrN(sc4A.s, int(kop.CtrPetal), 2)
 	if d := dynPayAsk(t, sc4A, trig); d.Sub != ChGenPay || d.N != 2 ||
