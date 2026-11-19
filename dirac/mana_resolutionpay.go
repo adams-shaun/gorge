@@ -375,6 +375,14 @@ func (s *State) castRestPriced(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool
 	return pk.found
 }
 
+// castRestPricedModes are the AkCast mode bits plannedCastCostOf prices as the
+// offer does: bit 1 (flashback: flashbackCostOf), castFace (turnFaceCast
+// rewrote the card to the face, whose own cost it reads) and castMayPlay (the
+// any-type/any-colour riders it applies). Every other bit is an alternative or
+// added cost it does not read: bit 0 kicker, castWarp/castWarpRecast (warp,
+// airbend), castFree, castFaceDown (altPlayCost).
+const castRestPricedModes = 2 | castFace | castMayPlay
+
 // castRestRefuses reports whether cast a keeps manaStep's arm because
 // plannedCastCost prices a cost the offer prices differently: the offer's
 // price of these casts is grantPlayCost's (mana_grantedoffers.go), not
@@ -394,10 +402,16 @@ func (s *State) castRestPriced(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool
 //     mode read strips bit 1).
 //   - a warp cast pays the warp alternative, which the build's cost arm
 //     composes from s.g.warpGrant; plannedCastCost never reads it.
+//   - a face-down cast pays {3} and a free cast nothing (altPlayCost's cases);
+//     plannedCastCostOf never reads castFaceDown or castFree, so it would
+//     price the printed cost.
+//
+// The mode check is an allowlist (castRestPricedModes), so an alternative-cost
+// mode added later stays refused until it is audited against altPlayCost.
 func (s *State) castRestRefuses(k *prep, o Obj, a Action) bool {
 	m := a.Mode()
-	if m&1 != 0 || m&castWarp != 0 {
-		return true // the kicker part and the warp grant are outside plannedCastCost's price
+	if m&^castRestPricedModes != 0 {
+		return true // a mode bit plannedCastCost's price never reads (see castRestPricedModes)
 	}
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
