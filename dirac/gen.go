@@ -2817,6 +2817,20 @@ func (s *State) dynManaN(k *prep, a *kop.Ability, sl Slot) int {
 	return n
 }
 
+// dynManaYieldsNothing reads a further dynamic mana ability the way gorge's
+// planner window does (engine/rules payment_window_yield.go
+// manaAbilityYieldsNothing): a non-literal amount (ManaV, not the unannounced
+// {X} of an X-counting ability or a storage battery's own Count$xPaid) that
+// resolves to zero or less now makes nothing, so the window never taps it and
+// availPotentialFor's per-tap census prices its tap at nothing -- no gap, no
+// unit, no fold (Baldur's Gate's second ability with no other Gates, whose
+// {2} fee gapping the census left an X-bound sweep the over-bound open pool;
+// CR 601.2g).
+func (s *State) dynManaYieldsNothing(k *prep, ab *kop.Ability, sl Slot) bool {
+	return ab.AFlags&kop.AfManaDynamic != 0 && ab.ManaV.K != kop.VX && ab.ManaV.K != kop.VNegX &&
+		!kop.StoreManaAb(ab) && s.dynManaN(k, ab, sl) <= 0
+}
+
 // eachOvRec calls f for sl's override records in application order. It
 // walks the pool directly instead of materialising an array: a slot with
 // no records costs one mask test, and the hot layer walks never build a
