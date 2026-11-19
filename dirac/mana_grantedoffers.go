@@ -1497,25 +1497,7 @@ func (g *grantSrch) visit(t *State) bool {
 		// "choose a mana ability" ask, one node, the printed ability's
 		// answers first (gorge flattens a Combo's colours into that ask;
 		// an Any ability still asks its colour)
-		alts := 0
-		if grants {
-			alts = t.grantAlts(g.k, g.p, sl, &g.gi[i], int(g.ng[i]))
-		}
-		if g.dual[i] && (!tx || t.canTapForMana(g.k, sl)) { // (a tapped Relic of Legends asks only its tap-another ability)
-			alts++
-			if grants && t.gatedPairWide(g.k, sl) > 0 {
-				alts++ // the gate-on pair's larger {T} ability is an answer of the ask too (mana_gatedpair_grant.go)
-			}
-			if t.ownManaUsable(g.k, sl) && t.ownRestrAb(g.k, sl) != nil {
-				alts++ // (the restricted printed ability beside the usable one is an answer of the ask)
-			}
-		}
-		if fok {
-			alts++
-		}
-		if tx {
-			alts++
-		}
+		alts := g.printedAlts(t, i, sl, grants, fok, tx)
 		if alts > 1 && !g.node() {
 			return false
 		}
@@ -1679,6 +1661,34 @@ func (g *grantSrch) visit(t *State) bool {
 		return ok
 	}
 	return false
+}
+
+// printedAlts counts the answers a holder offers beside its grants in the
+// "choose a mana ability" ask: its printed {T} ability (g.dual[i], one more
+// when it is a gate-on pair's larger alternative or a restricted ability
+// beside the usable one), its filter's colour ask (fok) and its tap- or
+// sacrifice-another ability (tx); with no grants the grants alone.
+func (g *grantSrch) printedAlts(t *State, i int, sl Slot, grants, fok, tx bool) int {
+	alts := 0
+	if grants {
+		alts = t.grantAlts(g.k, g.p, sl, &g.gi[i], int(g.ng[i]))
+	}
+	if g.dual[i] && (!tx || t.canTapForMana(g.k, sl)) { // (a tapped Relic of Legends asks only its tap-another ability)
+		alts++
+		if grants && t.gatedPairWide(g.k, sl) > 0 {
+			alts++ // the gate-on pair's larger {T} ability is an answer of the ask too (mana_gatedpair_grant.go)
+		}
+		if t.ownManaUsable(g.k, sl) && t.ownRestrAb(g.k, sl) != nil {
+			alts++ // (the restricted printed ability beside the usable one is an answer of the ask)
+		}
+	}
+	if fok {
+		alts++
+	}
+	if tx {
+		alts++
+	}
+	return alts
 }
 
 // remember records key as a seen node, while the table has room.
