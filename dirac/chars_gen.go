@@ -419,7 +419,10 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 	if outsideSub(k, i) {
 		// a printed changeling has every creature type (CR 702.73a; gorge
 		// sets AllCreatureTypes), until a subtype-setting effect
-		all := k.t.Cards[s.cardAt(sl)].AllCreatureTypes || s.fxM.has(sl) && k.gen.cpxSub && s.copyExcAll(k, sl)
+		all := k.t.Cards[s.cardAt(sl)].AllCreatureTypes
+		if s.fxM.has(sl) && k.gen.cpxSub {
+			all = all && !s.copyExcSetsSub(k, sl) || s.copyExcAll(k, sl)
+		}
 		s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
 			if o.HasSub || ovrCreatSub(o) {
 				all = false
@@ -439,7 +442,7 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 	m := k.t.Cards[s.cardAt(sl)].Subtypes
 	all := false
 	if s.fxM.has(sl) && k.gen.cpxSub {
-		m = m.Or(s.copyExcSubs(k, sl))
+		m = s.copyExcSubs(k, sl, m)
 		all = s.copyExcAll(k, sl) // a copy's changeling: every creature type, until a later set
 	}
 	s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
@@ -515,7 +518,8 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 		if s.fxM.has(sl) && k.gen.cpxSub {
 			// a copy's added subtype is a copiable value (layer 1): a later
 			// subtype-setting effect replaces it
-			m = m.Or(s.copyExcSubs(k, sl))
+			m = s.copyExcSubs(k, sl, m)
+			allOut = allOut && !s.copyExcSetsSub(k, sl) || copyAll
 		}
 		s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
 			if o.HasSub {
@@ -595,14 +599,7 @@ func (s *State) basePTGen(k *prep, sl Slot) (int, int) {
 	pc := &k.cards[cid]
 	bp, bt := int(pc.power), int(pc.tough)
 	if k.gen.has(cid, gfCDAPT) && !s.genLost(k, sl) {
-		cd := &k.t.Cards[cid]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCDAPT {
-				ctx := evalCtx{src: p.obj, srcSl: sl, ctrl: p.ctrl}
-				bp, bt = s.evalV(k, a.Static.VA, ctx), s.evalV(k, a.Static.VB, ctx)
-			}
-		}
+		bp, bt = s.cdaPT(k, sl, cid, bp, bt, true)
 	}
 	if s.fxM.has(sl) && k.gen.cpxPT {
 		// layer 1: a copy's set P/T (CR 707.9b, 707.9d; copy_exceptions.go)
@@ -1360,4 +1357,29 @@ func (s *State) FeatNameCard(o Obj) (CardID, bool) {
 		return 0, false
 	}
 	return CardID(nc - 1), true
+}
+
+// cdaPT is sl's characteristic-defining P/T (StatCDAPT, CR 604.3) over the printed bp, bt:
+// each such static of the card in script order, the last one in force winning. A static with
+// a condition (Condition$ PlayerTurn / NotPlayerTurn, IsPresent$: Angry Mob, Gaea's Liege) is
+// in force only while it holds, as gorge's battlefield static scan applies it: gorge's
+// CDAPTStatic whitelist leaves a conditioned CDA to that scan, which reads the condition.
+// live false (a phased-out permanent, which that scan skips) leaves every conditioned one out.
+//
+//go:noinline
+func (s *State) cdaPT(k *prep, sl Slot, cid CardID, bp, bt int, live bool) (int, int) {
+	p := &s.perms[sl]
+	ctx := evalCtx{src: p.obj, srcSl: sl, ctrl: p.ctrl}
+	cd := &k.t.Cards[cid]
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatCDAPT {
+			continue
+		}
+		if a.Static.Cond2 != 0 && (!live || !s.condEval(k, a.Static.Cond2, ctx)) {
+			continue
+		}
+		bp, bt = s.evalV(k, a.Static.VA, ctx), s.evalV(k, a.Static.VB, ctx)
+	}
+	return bp, bt
 }

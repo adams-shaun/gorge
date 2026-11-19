@@ -68,6 +68,8 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.toLibraryRememberBF(k, in, true) // zone_tolibrarybfremember.go
 		case kop.LibTopRememberBF:
 			s.toLibraryRememberBF(k, in, false)
+		case kop.LibBottomRememberExile:
+			s.toLibraryRememberFrom(k, in, true, kop.ZoneExile)
 		case 0:
 			s.moveRef(k, in.Obj, kop.ZoneLibrary, false)
 		case 1:

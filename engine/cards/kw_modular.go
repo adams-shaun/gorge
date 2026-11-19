@@ -12,7 +12,7 @@ package cards
 // The entry half is the Graft/Sunburst shape: a Moved -> Battlefield Updated
 // replacement whose body puts the counters. N is a literal, or the word
 // Sunburst (Arcbound Wanderer), which counts the distinct colours spent to
-// cast it (Count$Converge, the same read kwSunburst makes). The dies half is
+// cast it (Count$Converge in its own SVar, the read kwSunburst makes). The dies half is
 // an optional ChangesZone trigger that reads the dying permanent's own
 // last-known +1/+1 count (TriggeredCard$CardCounters.P1P1). Both lines carry
 // Keyword$ Modular: the rules package's Triggered.Modular cause qualifier
@@ -20,11 +20,16 @@ package cards
 // keyword.
 func kwModular(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
 	n := param
-	if n == "Sunburst" {
-		n = "Count$Converge"
-	}
 	if n == "" {
 		return
+	}
+	if n == "Sunburst" {
+		// its own SVar, so the face reads Count$Converge where the cast's
+		// converge gate looks (rules faceWantsConverge: an SVar whose body is
+		// the count). Inline in CounterNum$ the gate missed it and the cast
+		// recorded no colours: Arcbound Wanderer entered with no counters.
+		n = "__kwModularSunburst"
+		f.setSVar(n, "Count$Converge")
 	}
 	if !has("R", k) {
 		put := "__kwModularPut"

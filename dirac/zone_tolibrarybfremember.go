@@ -10,8 +10,19 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //go:noinline
 func (s *State) toLibraryRememberBF(k *prep, in *kop.Instr, bottom bool) {
+	s.toLibraryRememberFrom(k, in, bottom, kop.ZoneBattlefield)
+}
+
+// toLibraryRememberFrom is the remembering library move from origin: the
+// object moves only if it is still in origin (gorge effChangeZone's Origin$
+// precondition), and a card that reached the library joins the remembered
+// set (RememberChanged$). kop.LibBottomRememberExile reads it from exile
+// (Time Reaper).
+//
+//go:noinline
+func (s *State) toLibraryRememberFrom(k *prep, in *kop.Instr, bottom bool, origin kop.Zone) {
 	o := s.objRefObj(in.Obj)
-	if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
+	if o == NoObj || s.objs[o].zone != origin {
 		return
 	}
 	s.moveRef(k, in.Obj, kop.ZoneLibrary, bottom)

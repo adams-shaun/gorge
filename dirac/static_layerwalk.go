@@ -334,14 +334,14 @@ func (s *State) charsFx(k *prep, sl Slot, upTo uint8, fx *[maxLfx]lfx, np *int) 
 		c.subs = cd.Subtypes
 	}
 	if s.fxM.has(sl) && k.gen.cpxSub {
-		c.subs = c.subs.Or(s.copyExcSubs(k, sl)) // layer 1: a copy's added subtype
+		c.subs = s.copyExcSubs(k, sl, c.subs) // layer 1: a copy's subtype exceptions
 	}
 	if exc && s.fxM.has(sl) && k.gen.cpxCol {
 		c.cols = s.copyExcCol(k, sl, c.cols) // layer 1: a copy's colour exceptions
 	}
 	// layer 4: the changeling CDA first (CR 613.3), then the effects in
 	// dependency order
-	c.all = !fd && cd.AllCreatureTypes || exc && s.fxM.has(sl) && k.gen.cpxSub && s.copyExcAll(k, sl)
+	c.all = s.walkAllSeed(k, sl, cd.AllCreatureTypes && !fd, exc)
 	var done [maxLfx]bool
 	for left := n; left > 0; left-- {
 		pick := -1
@@ -474,14 +474,7 @@ func (s *State) basePT7a(k *prep, sl Slot) (int, int) {
 	if s.faceDown(k, sl) {
 		bp, bt = 2, 2 // CR 708.2
 	} else if k.gen.has(cid, gfCDAPT) && !s.genLost(k, sl) {
-		cd := &k.t.Cards[cid]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCDAPT {
-				ctx := evalCtx{src: p.obj, srcSl: sl, ctrl: p.ctrl}
-				bp, bt = s.evalV(k, a.Static.VA, ctx), s.evalV(k, a.Static.VB, ctx)
-			}
-		}
+		bp, bt = s.cdaPT(k, sl, cid, bp, bt, true)
 	}
 	if s.fxM.has(sl) && k.gen.cpxPT {
 		// layer 1: a copy's set P/T (CR 707.9b, 707.9d; copy_exceptions.go)
@@ -897,4 +890,12 @@ func (s *State) ovStaticOn(k *prep, sl Slot) bool {
 		}
 	}
 	return false
+}
+
+// walkAllSeed is the layer-4 changeling seed (CR 613.3): a printed changeling
+// (printed, not face down) unless a copy exception replaced the subtypes, or a
+// copy exception's own changeling (exc: the exceptions apply).
+func (s *State) walkAllSeed(k *prep, sl Slot, printed, exc bool) bool {
+	cpx := s.fxM.has(sl) && k.gen.cpxSub
+	return printed && !(cpx && s.copyExcSetsSub(k, sl)) || exc && cpx && s.copyExcAll(k, sl)
 }
