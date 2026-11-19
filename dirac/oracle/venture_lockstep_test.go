@@ -9,6 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // ventureCounts counts the dungeon events of a finished gorge log.
@@ -17,11 +18,18 @@ type ventureCounts struct {
 	rooms     int            // DungeonRoom: the marker moved
 	completes int            // DungeonComplete: a dungeon was completed
 	byKey     map[string]int // DungeonCreate by dungeon token script
+	exiled    map[string]int // lands that moved from exile to the battlefield, by name (a Runestone Caverns pick)
 }
 
 func countVentureEvents(g *GorgeSide) (c ventureCounts) {
 	c.byKey = map[string]int{}
+	c.exiled = map[string]int{}
 	for _, e := range g.E.L.Events {
+		if e.Kind == events.MoveZone && e.From == state.ZExile && e.To == state.ZBattlefield {
+			if o := g.E.G.Obj(e.Obj); o != nil && o.Face() != nil && o.Face().IsLand() {
+				c.exiled[o.Face().Name]++
+			}
+		}
 		switch e.Kind {
 		case events.DungeonCreate:
 			c.enters++
@@ -66,19 +74,25 @@ func venturePodEntries() [4][]cardset.Entry {
 }
 
 type venturePod struct {
-	reg *cards.Registry
-	set cardset.Set
-	tbl *kop.Table
+	reg   *cards.Registry
+	set   cardset.Set
+	tbl   *kop.Table
+	decks [4][]cardset.Entry
 }
 
 func newVenturePod(t *testing.T) venturePod {
+	t.Helper()
+	return newVenturePodOf(t, venturePodEntries())
+}
+
+// newVenturePodOf is newVenturePod over the given four decks.
+func newVenturePodOf(t *testing.T, decks [4][]cardset.Entry) venturePod {
 	t.Helper()
 	reg := synthReg(t)
 	set, err := cardset.RawByName("venture")
 	if err != nil {
 		t.Fatal(err)
 	}
-	decks := venturePodEntries()
 	lists := make([][]cardset.Entry, len(decks))
 	for i, d := range decks {
 		n := 0
@@ -94,7 +108,7 @@ func newVenturePod(t *testing.T) venturePod {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return venturePod{reg: reg, set: set, tbl: tbl}
+	return venturePod{reg: reg, set: set, tbl: tbl, decks: decks}
 }
 
 // play plays one seed of the four-seat pod and returns the dungeon events and
@@ -103,7 +117,7 @@ func newVenturePod(t *testing.T) venturePod {
 // choice's printed arrow order are checked decision by decision.
 func (p venturePod) play(t *testing.T, seed uint64, maxTurns int32) (Result, ventureCounts, dirac.VentureStats) {
 	t.Helper()
-	decks := venturePodEntries()
+	decks := p.decks
 	expand := func(d []cardset.Entry) []string {
 		var out []string
 		for _, e := range d {
