@@ -89,6 +89,7 @@ Dyfed, the Guiding Hand
 Earthen Goo
 Eidolon of Rhetoric
 Ekthi, Contaminator Priest
+Elspeth, Undaunted Hero
 Emerge Unscathed
 Erratic Visionary
 Essence Feed
@@ -113,6 +114,7 @@ Fog of Gnats
 Forest
 Fungal Sprouting
 Furnace Celebration
+Furnace Hellkite
 Galvanic Iteration
 Gluttonous Zombie
 Gnome-Made Engine
@@ -134,9 +136,11 @@ Horseshoe Crab
 Hound of the Farbogs
 Idol of Oblivion
 Implement of Ferocity
+Improvised Armor
 Independent Troops
 Indigo Faerie
 Infernal Pet
+Infested Fleshcutter
 Inkrise Infiltrator
 Inspiring Refrain
 Intrepid Ace

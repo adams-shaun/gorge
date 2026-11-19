@@ -33,6 +33,7 @@ Bottle-Cap Blast
 Briarbridge Tracker
 Broken Fall
 Bumbling Pangolin
+Butcher's Glee
 Canopy Gorger
 Carrion Ants
 Cartouche of Knowledge
@@ -42,6 +43,7 @@ Charity Extractor
 Chimney Goyf
 Choking Restraints
 Chorus of Might
+Churning Eddy
 Clattering Augur
 Cloakwood Swarmkeeper
 Cogwork Spy
@@ -102,6 +104,7 @@ Gift of Wrath
 Gilt-Blade Prowler
 Gobbling Ooze
 Goblin Artillery
+Goblin Cadets
 Goblin Champion
 Goblin Chariot
 Goblin Chieftain
@@ -251,6 +254,7 @@ Sheltering Light
 Shoreline Ranger
 Sigiled Paladin
 Simic Signet
+Sip of Hemlock
 Skirk Commando
 Skittering Crustacean
 Sky-Blessed Samurai

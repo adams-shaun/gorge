@@ -1,16 +1,19 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Aeronaut Cavalry	ec229f71c5ac196a	4	1/1		1/1	
+Arcbond	93270215701109f9	95	0/0		2/2	
 Aven Reedstalker	56d7208a852ea7d3	38	0/0		0/0	
 Big Wheel	c0f074235ec161b9	36	2/2		1/1	
 Boseiju Reaches Skyward	4b113478ba1c9090	4	0/0		0/0	
 Calamity of Cinders	01425dbbb10b23f7	6	0/0		0/2	f0/s,ix:resp
 Cave-In	eaca251af87f5862	12	0/0		1/2	ix:resp
+Cho-Arrim Legate	a4231da49b1d0165	49	0/0		0/0	
 Citizen V, Helmut Zemo	ab25d2092ee8dfc2	6	1/1		0/1	ix:resp
 Cloudreach Cavalry	97fd6e0cc3b35b44	4	0/0		0/0	
 Concordia Pegasus	4efb7c9e348cd98f	6	0/0		0/0	
 Crawling Chorus	b5052dab41745c8e	6	1/1		0/1	ix:resp
 Crimson Kobolds	0f2d01aca3491bb1	10	0/0		0/0	
 Damn	d5b31a85005c7dfd	4	0/0		2/4	cast/alt:overloaded,ix:resp
+Decompose	59767f29dbfce664	43	0/0		2/2	
 Deer-Dog	5aea8724fdef3aba	16	0/0		0/0	
 Delightful Discovery	9035d3390578123a	37	0/0		2/2	
 Drag to the Underworld	c68296002d014b00	61	0/0		2/2	
@@ -37,13 +40,16 @@ Jhessian Lookout	065ab3b653e870ba	8	0/0		0/0
 Jungle Delver	bfbcfee8e2689362	8	1/1		0/1	ix:resp
 Kasimir the Lone Wolf	78c785de3fe378d7	6	0/0		0/0	
 Kavu Glider	d04733c3b2b0ce2a	7	2/2		1/1	
+Kindred Denial	7c9bb1c76021a7b5	26	0/0		2/2	
 King's Assassin	dfe1fe5e5a471823	10	1/1		0/1	ix:resp
+Kitsune Diviner	3a760e5e03e7366e	28	1/1		0/1	ix:resp
 Knight of Cliffhaven	fc4a61c24d1ebf9f	8	1/1		1/1	
 Kolaghan Monument	bc7e675dc68c6a91	4	2/2		0/1	ix:resp
 Loxodon Anchorite	91a388a6a3857e90	4	1/1		0/1	ix:resp
 Loxodon Gatekeeper	aaa8b49302a6e3bb	13	0/0		0/0	
 Lux Cannon	48ace2ba06f11b1d	3	2/2		1/1	
 Markov Blademaster	822cd770a4203da3	10	1/1		0/1	ix:resp
+Maulfist Doorbuster	be02558213000e2e	48	2/2		1/1	
 Meishin, the Mind Cage	d275fcb7fe6e5aef	5	0/0		0/0	
 Millennial Gargoyle	ce78493f6ee6fe13	6	0/0		0/0	
 Mindstatic	d1c1e142ce4a73f4	23	0/0		2/2	
@@ -51,9 +57,12 @@ Morbid Plunder	1a686ceeb493b8a2	6	0/0		1/2	ix:resp
 Navigation Orb	caf5f6b5d9d782b4	8	1/1		0/1	ix:resp
 Nearheath Chaplain	2ae6900efbe7d8d8	8	1/1		0/1	ix:resp
 Niambi, Faithful Healer	0bbe4dc113bb3863	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Norika Yamazaki, the Poet	96de22ae57ae2ada	28	1/1		0/1	ix:resp
 Off Balance	96654645d252db3e	4	0/0		1/2	ix:resp
 Orochi Merge-Keeper	b439ea757aa771f3	10	1/1		0/1	ix:resp
+Peregrine Griffin	4e830617623ef6a7	26	0/0		0/0	
 Prakhata Club Security	0f9648731fceef0b	7	0/0		0/0	
+Priest of the Crossing	adc3328e4ab23daf	42	1/1		1/1	
 Professor Hulk	64586d5418d88954	4	1/1		1/1	
 Psionic Sliver	55d0c16736dca096	29	0/0		0/0	
 Pulse of the Tangle	30e49bdb6fef2594	8	0/0		2/2	
@@ -61,19 +70,26 @@ Qilin's Blessing	1efcb25d423edb07	8	0/0		1/2	ix:resp
 Quicksilver Gargantuan	e307a708b04121bf	11	0/0		0/0	
 Ral's Outburst	4a0fea81a40e3123	12	0/0		2/2	
 Reduce to Dreams	a233e9e6b51a096a	19	0/0		2/2	
+Rejuvenation Chamber	59f0da793fefe898	50	2/2		1/1	
+Rekindled Flame	2fbffa295953bf2e	38	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
 Riptide	23324485de5e0002	26	0/0		2/2	
+Roar of Reclamation	4bc69b17ba8a3eeb	12	0/0		2/2	
 Scalding Tongs	42911a35fe19de26	6	1/1		0/1	ix:resp
 Scorch Spitter	4665654d638d2244	9	1/1		1/1	
 Sea Legs	d2225b81da308199	53	0/0		2/2	
+Shadow Lance	50538dd2d2444d30	34	1/1		1/2	ix:resp
 Shadowfeed	906fb886d5971f13	10	0/0		1/2	ix:resp
 Sickle Ripper	775d2c6386c3ebf5	7	0/0		0/0	
+Siege Smash	6371abd9e36f54d9	81	0/0		2/2	
 Silundi Vision	e401a663eb87dee5	46	1/1		2/2	
+Soltari Priest	6c82ec1f8fa7951f	33	0/0		0/0	
 Soratami Rainshaper	306366b2855ec26c	38	1/1		1/1	
 Spellheart Chimera	7e89425e214a30ee	12	0/0		0/0	
 Spineless Thug	eb0996f4dc5620fc	14	0/0		0/0	
 Stand Firm	fc9b50d923996b7e	4	0/0		1/2	ix:resp
 Tainted Adversary	e55761634e8401c8	4	1/1		0/1	ix:resp
 Tangled Islet	1a416ce4b38875bb	33	2/2		0/1	ix:resp
+Tattermunge Duo	0b0f83a416418ca9	24	2/2		1/1	
 Tenth District Veteran	b82281232cc16bfe	8	1/1		0/1	ix:resp
 Tergrid's Shadow	2844bde8da901579	8	0/0		2/4	cast/alt:foretold,ix:resp
 Terminal Agony	be02c194ad3352e6	33	0/0		2/2	
@@ -85,6 +101,7 @@ Undead Butler	d342c5189de9a0b8	38	2/2		1/1
 Wakedancer	cc2a06ef169e3042	8	1/1		0/1	ix:resp
 Walking Corpse	a8f89f413b100b65	5	0/0		0/0	
 Warped Physique	db3735d652034c6c	8	0/0		1/2	ix:resp
+Wayfaring Giant	65e5d630f6993a86	20	0/0		0/0	
 Wei Elite Companions	dbd696c10d04a30f	3	0/0		0/0	
 Wielding the Green Dragon	17ea603cc0f72f93	10	0/0		1/2	ix:resp
 Wring Flesh	442455b492052584	6	0/0		1/2	ix:resp

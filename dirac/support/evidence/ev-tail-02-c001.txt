@@ -88,6 +88,7 @@ Endless One
 Energy Refractor
 Erebos, God of the Dead
 Expedition Envoy
+Expunge
 Exterminatus
 Faceless Butcher
 Faithbearer Paladin
@@ -114,6 +115,7 @@ Glimmerdust Nap
 Gods Willing
 Grapple with the Past
 Gravewaker
+Gustcloak Skirmisher
 Hapatra, the Desert Frost
 Harried Artisan
 Haughty Djinn
@@ -189,6 +191,7 @@ Obsianus Golem
 Ohabi Caleria
 Ojutai Interceptor
 Ojutai's Breath
+Ominous Seas
 On the Trail
 Ondu Cleric
 Orzhova, the Church of Deals
@@ -256,6 +259,7 @@ Stolen Vitality
 Subterranean Scout
 Swamp
 Sword Dancer
+Symbol of Unsummoning
 Syndic of Tithes
 Take Vengeance
 Tel-Jilad Fallen

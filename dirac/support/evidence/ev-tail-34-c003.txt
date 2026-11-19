@@ -9,6 +9,7 @@ Angelic Wall
 Appeal
 Araba Mothrider
 Arcane Flight
+Archangel's Light
 Archon of Redemption
 Ardent Militia
 Arm-Mounted Anchor
@@ -24,6 +25,7 @@ Blockbuster
 Blood Clock
 Bloodied Ghost
 Boon of Safety
+Borrowed Time
 Brazen Borrower
 Breath Weapon
 Bushmeat Poacher
@@ -31,21 +33,28 @@ Butterbur, Bree Innkeeper
 Cartouche of Zeal
 Cathartic Adept
 Cave of the Frost Dragon
+Charix, the Raging Isle
+Chosen by Heliod
+Condescend
 Conjurer's Mantle
+Consulate Turret
 Conversion
 Crash the Party
 Crash the Ramparts
 Crown of Empires
 Cruel Deceiver
 Crystal Ball
+Crystalline Nautilus
 Culmination of Studies
 Custodian of the Trove
 Customs Depot
 Cut Down
+Cynette, Jelly Drover
 Dai Li Censor
 Dark Inquiry
 Death-Priest of Myrkul
 Dirty Rat
+Disappearing Act
 Dizzy Spell
 Douse
 Drelnoch
@@ -64,6 +73,7 @@ Enter the Unknown
 Era of Innovation
 Etherium-Horn Sorcerer
 Ethersworn Sphinx
+Evanescent Intellect
 Exoskeletal Armor
 Experimental Augury
 False Peace
@@ -101,13 +111,17 @@ Island
 Jace's Phantasm
 Join Forces
 Joraga Auxiliary
+Keldon Halberdier
 Kitesail Apprentice
 Kitsune Dawnblade
+Kolaghan Skirmisher
 Kronch Wrangler
 Krosan Avenger
 Labyrinth Champion
 Launch Mishap
+Leaf-Crowned Visionary
 Lionheart Maverick
+Locthwain Gargoyle
 Loran's Escape
 Lost Legion
 Loyal Cathar
@@ -120,18 +134,23 @@ Master of the Pearl Trident
 Maze Sentinel
 Merciless Javelineer
 Midnight Entourage
+Mind Over Matter
 Ministrant of Obligation
 Minn, Wily Illusionist
 Morinfen
 Moriok Scavenger
 Mountain
+Naga Oracle
 Nefashu
+Neurok Stealthsuit
 Nissa's Chosen
 Notorious Assassin
 Nurturer Initiate
+Oboro Breezecaller
 Ogre Jailbreaker
 Painful Memories
 Paladin Danse, Steel Maverick
+Peace of Mind
 Pegasus Stampede
 Perilous Myr
 Pharika's Chosen
@@ -145,6 +164,7 @@ Quirion Sentinel
 Rain of Rust
 Raise the Alarm
 Reclusive Wight
+Reduce
 Resurrection Orb
 Retreat to Coralhelm
 Revenge of the Hunted
@@ -156,13 +176,16 @@ Ruination
 Rukh Egg
 Saheeli's Silverwing
 Seagraf Skaab
+Senseless Rage
 Serum Visions
 Shadow Rift
 Showstopping Surprise
+Shu General
 Sibsig Icebreakers
 Siege Zombie
 Siegecraft
 Silkbind Faerie
+Silver Myr
 Silverchase Fox
 Snooping Newsie
 Sokka's Charge
@@ -171,12 +194,16 @@ Songs of the Damned
 Soul's Might
 Sound the Call
 Sphere of Grace
+Spiked Corridor
 Spire Owl
 Spitting Dilophosaurus
 Sprite Dragon
 Squelching Leeches
+Storm Fleet Sprinter
 Storm Sculptor
+Stun
 Suffocating Blast
+Summoning Materia
 Sunder Shaman
 Swamp
 Teardrop Kami
@@ -199,7 +226,9 @@ Typhoid Rats
 Undercity Necrolisk
 Unhallowed Phalanx
 Unlikely Aid
+Unnatural Growth
 Venerable Monk
+Veteran's Voice
 Viashino Outrider
 Viral Drake
 Vodalian Arcanist
@@ -207,6 +236,8 @@ Voice of All
 Warpath Ghoul
 Wasteful Harvest
 Wild Elephant
+Wild Ox
 Winds of Qal Sisma
 Witness the End
+Xerex Strobe-Knight
 Yavimaya Scion

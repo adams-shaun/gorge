@@ -102,6 +102,7 @@ Earthquake
 Ebony Fly
 Eidolon of Astral Winds
 Elemental Appeal
+Elemental, My Dear
 Elf Replica
 Elven Rite
 Embrace the Unknown
@@ -203,6 +204,7 @@ Loxodon Punisher
 Lunar Mystic
 Lunarch Mantle
 Lurching Rotbeast
+Mahamoti Djinn
 Make Disappear
 Mana Vault
 Marker Beetles
@@ -279,6 +281,7 @@ Runeboggle
 Sacellum Archers
 Sacred Guide
 Saruli Caretaker
+Savra, Queen of the Golgari
 Scoria Elemental
 Scrapper Champion
 Scurry Oak

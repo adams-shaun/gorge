@@ -1,4 +1,5 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Warm Welcome	e50b027f01b6c92d	24	0/0		2/2	
 Abbey Griffin	1eb64f82022f6563	9	0/0		0/0	
 Acceptable Losses	f7d19de8f3cb12da	14	0/0		1/2	ix:resp
 Aerial Caravan	e7e106db2565047d	11	1/1		0/1	ix:resp
@@ -63,8 +64,10 @@ Flay	e42d995f61acce9a	14	0/0		1/2	ix:resp
 Flourishing Strike	6ca6b646d38f16db	4	0/0		1/2	ix:resp
 Foundry Inspector	2e4f1b595fdda667	16	0/0		0/0	
 Frenetic Efreet	2dd0d20fe39996bf	18	1/1		1/1	
+Funnel-Web Recluse	ab868df9ea9f3ec7	13	1/1		1/1	
 Garruk's Horde	f773a437b74be249	5	0/0		0/0	
 Ghost Council of Orzhova	b18f97c19d6dc918	13	2/2		1/1	
+Ghost-Lit Nourisher	4c3f609734d00e05	18	2/2		0/1	ix:resp
 Glimpse the Future	00263b11d0f556c2	4	0/0		1/2	ix:resp
 Gloomlance	39803635ea919bd6	7	0/0		2/2	
 Goblin Heelcutter	0985148ad319b657	5	1/1		2/3	ix:resp
@@ -80,6 +83,7 @@ Invasion of Theros	d2727feb4f73a8b4	8	2/2		0/1	ix:resp
 Iron Verdict	51e98a5b1e0040d5	4	0/0		2/4	cast/alt:foretold,ix:resp
 Ishai, Ojutai Dragonspeaker	847aa3f7263802f7	23	1/1		1/1	
 Joiner Adept	cd942cd03dc15865	5	0/0		0/0	
+Juju Bubble	e4697f30d319d5a4	63	4/4		1/1	
 Jukai Trainee	7ebb26d3795b8588	4	2/2		0/1	ix:resp
 Kjeldoran Frostbeast	1fddbe0556eecbd0	10	1/1		0/1	ix:resp
 Last Breath	9765cec350508ba5	6	0/0		2/2	
@@ -103,6 +107,7 @@ Okiba-Gang Shinobi	8ca54897872da686	9	2/2		0/1	ix:resp
 Orim's Thunder	db00461199bddbea	3	0/0		2/4	cast/alt:kicked,ix:resp
 Paradise Druid	5e15417a7ccc740b	6	1/1		0/1	ix:resp
 Pestilent Wolf	aac997a8b181ffa3	8	1/1		0/1	ix:resp
+Polar Kraken	d7ef7ba3a3361c6f	3	1/1		0/1	ix:resp
 Possessed Barbarian	54f87b6572fd0cce	5	0/0		0/0	
 Primal Adversary	c1f7908b4a2fe6f6	4	1/1		0/1	ix:resp
 Propagator Drone	c24127f420fd493c	4	1/1		0/1	ix:resp

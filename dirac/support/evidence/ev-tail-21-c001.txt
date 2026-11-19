@@ -16,6 +16,7 @@ Arrogant Vampire
 Artillery Blast
 Artistic Refusal
 Aspect of Mongoose
+Aurora Champion
 Avacynian Missionaries
 Backup Agent
 Balduvian Rage
@@ -248,6 +249,7 @@ Mortuary
 Mothdust Changeling
 Mountain
 Murderer's Axe
+Myojin of Night's Reach and Grim Betrayal
 Naban, Dean of Iteration
 Necra Sanctuary
 Nested Ghoul
@@ -290,6 +292,7 @@ Prying Blade
 Psychic Barrier
 Pyroconvergence
 Queen's Commission
+Rabid Elephant
 Radha, Heir to Keld
 Rageblood Shaman
 Raging Kronch
@@ -352,6 +355,7 @@ Soltari Monk
 Song of Freyalise
 Soul Bleed
 Sparkshaper Visionary
+Spinning Wheel Kick
 Spirit Link
 Spit Flame
 Spring of Eternal Peace
@@ -382,6 +386,7 @@ Thoughtbound Phantasm
 Thraben Watcher
 Thrash
 Thunder Totem
+Timberpack Wolf
 Tinker
 Tomb of the Spirit Dragon
 Tori D'Avenant, Fury Rider

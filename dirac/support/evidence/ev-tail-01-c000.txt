@@ -418,6 +418,7 @@ Thraxodemon
 Thrilling Discovery
 Thriving Moor
 Thriving Skyclaw
+Tithe
 Tithe Drinker
 Tizerus Charger
 Tobias Andrion
@@ -474,6 +475,7 @@ Witherscale Wurm
 Woodcutter's Grit
 Woodland Changeling
 Wrenn and Seven
+Yoked Plowbeast
 Zealots en-Dal
 Zenith Festival
 Zhentarim Bandit

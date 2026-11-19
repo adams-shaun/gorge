@@ -10,10 +10,12 @@ Avenging Hunter	4e2b8b7e1638525e	10	1/1		1/1
 Bastion Enforcer	7e5903b39c1fa63d	44	0/0		0/0	
 Bootleggers' Stash	75b5a07aaa6eca86	7	0/0		0/0	
 Bumbling Pangolin	e8e351564e9adaac	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Butcher's Glee	62513fb873bcfe1d	12	0/0		2/2	
 Canopy Gorger	e7b54aa82bec474c	12	0/0		0/0	
 Cartouche of Knowledge	8cb24379910756af	6	1/1		1/2	ix:resp
 Charity Extractor	53ec04d96dc36c53	14	0/0		0/0	
 Choking Restraints	bd7585c4089a79d9	18	1/1		2/2	
+Churning Eddy	39e3a3133096a784	11	0/0		1/2	ix:resp
 Cloakwood Swarmkeeper	58e95b05d2fc5463	40	1/1		1/1	
 Cogwork Spy	b5a25b41cc931247	12	0/0		0/0	
 Concord with the Kami	bbe13543ee348442	15	1/1		0/1	ix:resp
@@ -46,6 +48,7 @@ Furious Assault	1e33149c6f74fda9	28	1/1		1/1
 Genestealer Locus	45a8e93717d62e71	8	2/2		1/1	
 Gilt-Blade Prowler	5cc07ae2cf9efd1e	22	1/1		1/1	
 Goblin Artillery	d0da9d4503322c5a	12	1/1		1/1	
+Goblin Cadets	c7e983b40ba5128c	14	2/2		0/1	ix:resp
 Goblin Champion	9fc07f38c302164a	4	1/1		0/1	ix:resp
 Goblin Goon	28646cb1bcb0215c	11	0/0		0/0	
 Godsire	0db8825a910a1172	5	1/1		1/1	
@@ -127,6 +130,7 @@ Security Bypass	e89db1b0398e7e77	6	0/0		1/2	ix:resp
 Sengir Autocrat	2e039fdb09205f62	3	2/2		0/1	ix:resp
 Shatterskull Recruit	521d559f11b83a04	3	0/0		0/0	
 Simic Signet	cd035891212300a7	4	1/1		1/1	
+Sip of Hemlock	4cbdf03734466b17	5	0/0		1/2	ix:resp
 Skittering Crustacean	804e741b34148458	22	1/1		1/1	
 Slinza, the Spiked Stampede	7a30ae0da51256da	4	1/1		0/1	ix:resp
 Slobad, Goblin Tinkerer	9a11576374b76b88	18	1/1		0/1	ix:resp
