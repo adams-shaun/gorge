@@ -24,7 +24,10 @@ func TestBlockFloorsSpareSlotMatching(t *testing.T) {
 		{giant, frostwalla}, {dungeoneer, elephant}, {walker, frostwalla},
 	}
 	for i, p := range pairs {
-		o := decision.Option{Index: i, Obj: p.b, Attacker: p.a, Group: "brave"}
+		// AttackMust routes the kernel to blockerOptionsReq, whose search
+		// counts a declared blocker's spare slot; the plain blocksCompletable
+		// path does not.
+		o := decision.Option{Index: i, Obj: p.b, Attacker: p.a, Group: "brave", AttackMust: p.a == token}
 		if p.a == token {
 			o.MinBlockers = 2
 		}
@@ -60,7 +63,7 @@ func TestBlockFloorsSpareSlotExhausted(t *testing.T) {
 		{giant, frostwalla}, {walker, frostwalla},
 	}
 	for i, p := range pairs {
-		o := decision.Option{Index: i, Obj: p.b, Attacker: p.a, Group: "brave"}
+		o := decision.Option{Index: i, Obj: p.b, Attacker: p.a, Group: "brave", AttackMust: p.a == token}
 		if p.a == token {
 			o.MinBlockers = 2
 		}

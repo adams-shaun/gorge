@@ -1431,10 +1431,12 @@ func blockFloorsMatchable(fr *frame, chosen []int) bool {
 	if len(missing) == 0 {
 		return true
 	}
-	// Free blocker slots: one entry per pair a blocker still has to spare (its
-	// group cap less its chosen pairs; block_attack_must.go builds the same),
-	// not just blockers in no chosen pair — a declared blocker's spare slot
-	// can still meet a floor (CR 509.1a, Brave the Sands).
+	// A declared blocker's spare slot counts only on the kernel's requirement
+	// path (blockerOptionsReq: a must-block attacker, a block duty, or a lure
+	// its mbReach/mbQuota searches): its plain offer (blocksCompletable) counts
+	// one slot per blocker in no chosen pair, so the candidate cannot be its
+	// own second blocker and a spare slot is not offered there.
+	spareSlots := blockRequirementPath(d)
 	var free []state.ObjID
 	slotsSeen := map[state.ObjID]bool{}
 	for i := range d.Options {
@@ -1444,12 +1446,15 @@ func blockFloorsMatchable(fr *frame, chosen []int) bool {
 		}
 		slotsSeen[o.Obj] = true
 		spare := 1
-		if o.Group != "" {
+		if spareSlots && o.Group != "" {
 			spare = d.GroupCapFor(o.Group)
 		}
 		for spare -= usedSlots[o.Obj]; spare > 0; spare-- {
 			free = append(free, o.Obj)
 		}
+	}
+	if len(free) < len(missing) {
+		return false
 	}
 	canBlock := func(b, a state.ObjID) bool {
 		if usedPair[[2]state.ObjID{b, a}] {
@@ -1462,28 +1467,95 @@ func blockFloorsMatchable(fr *frame, chosen []int) bool {
 		}
 		return false
 	}
-	match := make([]int, len(free)) // free blocker -> missing entry, -1 none
-	for i := range match {
-		match[i] = -1
+	return blockFloorSlots(missing, free, canBlock)
+}
+
+// blockRequirementPath reports whether the kernel offers this blockers
+// decision through its requirement search (blockerOptionsReq), which counts a
+// blocker's group-cap spare slots, rather than the plain blocksCompletable
+// path, which counts one slot per blocker in no chosen pair. The requirement
+// search is reached for a must-block attacker, a block duty, or a lure; each
+// marks its offered pairs (AttackMust, BlockMust/Required, BlockMustAll).
+func blockRequirementPath(d *decision.Decision) bool {
+	for i := range d.Options {
+		o := &d.Options[i]
+		if o.BlockMust || o.Required || o.BlockMustAll || o.AttackMust || o.AttackMustTwo {
+			return true
+		}
 	}
-	var augment func(m int, seen []bool) bool
-	augment = func(m int, seen []bool) bool {
-		for j, b := range free {
-			if seen[j] || !canBlock(b, missing[m]) {
-				continue
-			}
-			seen[j] = true
-			if match[j] < 0 || augment(match[j], seen) {
-				match[j] = m
-				return true
+	return false
+}
+
+// blockFloorSlots reports whether every missing floor entry can take a free
+// blocker slot: distinct slots, and one blocker blocks one attacker at most
+// once (CR 509.1a), so a blocker's two spare slots may not cover two deficits
+// of the same attacker. A maximum flow over the blockers' spare capacities,
+// one unit per (attacker, blocker) pair; canBlock reports the offered pairs
+// the answer has not used.
+func blockFloorSlots(missing, free []state.ObjID, canBlock func(b, a state.ObjID) bool) bool {
+	var atk, blk []state.ObjID
+	demand := map[state.ObjID]int{}
+	supply := map[state.ObjID]int{}
+	for _, a := range missing {
+		if demand[a] == 0 {
+			atk = append(atk, a)
+		}
+		demand[a]++
+	}
+	for _, b := range free {
+		if supply[b] == 0 {
+			blk = append(blk, b)
+		}
+		supply[b]++
+	}
+	// Node 0 is the source, then one per attacker, one per blocker, the sink.
+	src, sink := 0, 1+len(atk)+len(blk)
+	n := sink + 1
+	type edge struct{ to, rev, cap int }
+	g := make([][]edge, n)
+	add := func(u, v, cap int) {
+		g[u] = append(g[u], edge{v, len(g[v]), cap})
+		g[v] = append(g[v], edge{u, len(g[u]) - 1, 0})
+	}
+	for i, a := range atk {
+		add(src, 1+i, demand[a])
+		for j, b := range blk {
+			if canBlock(b, a) {
+				add(1+i, 1+len(atk)+j, 1)
 			}
 		}
-		return false
 	}
-	for m := range missing {
-		if !augment(m, make([]bool, len(free))) {
+	for j, b := range blk {
+		add(1+len(atk)+j, sink, supply[b])
+	}
+	flow := 0
+	for flow < len(missing) {
+		seen := make([]bool, n)
+		seen[src] = true
+		var augment func(u, f int) int
+		augment = func(u, f int) int {
+			if u == sink {
+				return f
+			}
+			for i := range g[u] {
+				e := &g[u][i]
+				if e.cap <= 0 || seen[e.to] {
+					continue
+				}
+				seen[e.to] = true
+				if d := augment(e.to, min(f, e.cap)); d > 0 {
+					e.cap -= d
+					g[e.to][e.rev].cap += d
+					return d
+				}
+			}
+			return 0
+		}
+		f := augment(src, len(missing)-flow)
+		if f == 0 {
 			return false
 		}
+		flow += f
 	}
 	return true
 }
