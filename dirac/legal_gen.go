@@ -244,8 +244,12 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		// pool pays, as gorge's ordinary walk does; the full surface reaches it
 		// by lowering a potential play, whose plan taps the sources (Urza's
 		// Gelatinous Genesis under Thorn of Amethyst: the untapped Island pays
-		// the {1}, tail-64 pair 38).
-		if cost != (kop.ManaCost{}) && s.cfg&cfgGorgeAutopay != 0 && !s.windowPoolPays(p, &cost, false) {
+		// the {1}, tail-64 pair 38). That plan covers only the graveyard and
+		// exile (mayPlayPlannedZone), so a hand or top-of-library permission
+		// still follows the ordinary pool-only gate.
+		if cost != (kop.ManaCost{}) && (s.cfg&cfgGorgeAutopay != 0 ||
+			s.cfg&cfgGorgeLowering != 0 && !mayPlayPlannedZone(s.objs[o].zone)) &&
+			!s.windowPoolPays(p, &cost, false) {
 			return
 		}
 	}
