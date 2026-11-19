@@ -174,7 +174,7 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 	// and a priced candidate set across them (castPlanShare).
 	share := castPlanShare{statics: costStaticSource{e: e}, candidates: paymentCastCandidates{e: e, p: p, priced: true}}
 	censused := false // the census (and its relaxed alternatives) was read
-	scripts := 0      // prefix searches run (potentialScriptPlays bounds them)
+	scripts := 0      // prefix searches run (scriptPlays bounds them)
 	var census paymentPlanCensus
 	var out []PotentialPlan
 	for oi, o := range opts {
@@ -194,7 +194,7 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 		got := verdict()
 		if needed, mayPlayUnpriced := potentialCensusNeeded(o, got); needed {
 			var script []ScriptStep
-			got, script = potentialCensusFallback(e, p, o, hyp, got, mayPlayUnpriced, verdict, &census, &censused, &scripts)
+			got, script = potentialCensusFallback(e, p, o, hyp, got, mayPlayUnpriced, verdict, scriptPlays, &census, &censused, &scripts)
 			pp.Script = script
 		}
 		if witness && got.Plan != nil && got.Reason == "" && paymentPlanConsumes(*got.Plan) && !e.potentialWitnessReaches(p, o, *got.Plan) {
@@ -249,7 +249,7 @@ type potentialCensusHost interface {
 
 // potentialCensusFallback is potentialPlans' census/prefix fallback. It fills
 // the walk's census on first use (censused and scripts are the walk-wide
-// state: one census read and potentialScriptPlays prefix searches across
+// state: one census read and at most scriptPlays prefix searches across
 // every play). An insufficient verdict re-asks with the census's relaxed
 // alternatives and becomes insufficient/relaxed_census only when even those
 // cannot pay. A may-play rider's witness_not_offered keeps its own verdict:
@@ -258,7 +258,7 @@ type potentialCensusHost interface {
 // The prefix search is bounded by scriptPlays and returns the script that
 // priced the play, or nil.
 func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision.Option, hyp state.Mana,
-	got PaymentPlanOutcome, mayPlayUnpriced bool, verdict func() PaymentPlanOutcome,
+	got PaymentPlanOutcome, mayPlayUnpriced bool, verdict func() PaymentPlanOutcome, scriptPlays int,
 	census *paymentPlanCensus, censused *bool, scripts *int) (PaymentPlanOutcome, []ScriptStep) {
 	if !*censused {
 		*census, *censused = e.paymentPlanCensusOf(p, &hyp), true
@@ -279,7 +279,7 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 			}
 		}
 	}
-	if got.Reason == pay.ReasonInsufficient || *scripts >= potentialScriptPlays || e.potentialTargetPriced(p, o) {
+	if got.Reason == pay.ReasonInsufficient || *scripts >= scriptPlays || e.potentialTargetPriced(p, o) {
 		return got, nil
 	}
 	// Payable, if at all, only through an uncovered source: search the
@@ -453,7 +453,7 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			return got, true
 		}
 		if !e.potentialWitnessOffers(p, o, *got.Plan) {
-			return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}, true
+			return PaymentPlanOutcome{Reason: "unsupported", Detail: pay.DetailWitnessNotOffered}, true
 		}
 		return got, true
 	}
@@ -931,7 +931,7 @@ func potentialSpreadSupply(src pay.Engine, p state.PlayerID, rider pipRider,
 func potentialSpreadPlan(base Cost, rider pipRider, spreadOf func(Cost) (Cost, bool),
 	plan func(Cost) PaymentPlanOutcome, keepSources bool,
 	witnessNeeded func(decision.PaymentPlan) bool, witnessOffers func(decision.PaymentPlan) bool) PaymentPlanOutcome {
-	unsupported := PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
+	unsupported := PaymentPlanOutcome{Reason: "unsupported", Detail: pay.DetailWitnessNotOffered}
 	if !rider.AnyColor || rider.AnyType || base.X != 0 {
 		return unsupported
 	}
@@ -955,7 +955,7 @@ func potentialSpreadPlan(base Cost, rider pipRider, spreadOf func(Cost) (Cost, b
 func potentialPinnedColourPlan(base Cost, lo int32, rider pipRider,
 	plan func(int32, int) PaymentPlanOutcome, xsearch func(int, PaymentPlanOutcome) PaymentPlanOutcome,
 	witnessNeeded, witnessOffers func(decision.PaymentPlan) bool) PaymentPlanOutcome {
-	unsupported := PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
+	unsupported := PaymentPlanOutcome{Reason: "unsupported", Detail: pay.DetailWitnessNotOffered}
 	if !rider.AnyColor || rider.AnyType {
 		return unsupported
 	}
@@ -1028,7 +1028,7 @@ func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.Play
 	_, got = e.targetPricedPlan(statics, p, o.Obj, base, scope, rider)
 	if got.Plan != nil && got.Reason == "" && len(e.PaymentPlanRelaxed) == 0 &&
 		e.planWitnessOffersNeeded(e.G.Obj(o.Obj).Face(), *got.Plan) && !e.potentialWitnessOffers(p, o, *got.Plan) {
-		return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
+		return PaymentPlanOutcome{Reason: "unsupported", Detail: pay.DetailWitnessNotOffered}
 	}
 	return got
 }
