@@ -45,6 +45,16 @@ func chainReadsChosenPlayer(n *cards.SA) bool {
 		if strings.TrimSpace(n.Params["Chooser"]) == "ChosenPlayer" {
 			return true
 		}
+		// a GainControl's new controller and a ChangeZone's GainControl$
+		// (Akroan Horse, Wishclaw Talisman, Zuko, Conflicted): the kernel
+		// reads the resolution's choice (static_control.go ctrlPlayerRef,
+		// zone_returndefender.go retUnderOppSeat)
+		for _, k := range []string{"NewController", "GainControl"} {
+			switch strings.TrimSpace(n.Params[k]) {
+			case "ChosenPlayer", "Player.Chosen":
+				return true
+			}
+		}
 		if strings.Contains(n.Params["ChangeType"], "ChosenCtrl") {
 			return true
 		}

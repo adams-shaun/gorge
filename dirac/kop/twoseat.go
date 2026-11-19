@@ -3,11 +3,11 @@ package kop
 // TwoSeatInstr reports whether in carries an operand that names the
 // controller's one opponent, a reading the kernel has not generalised past
 // two seats. ChooseOpp is not one: the kernel's chooser is the source's
-// controller at any seat count.
+// controller at any seat count. Nor is RetUnderOpponent: the return enters
+// under the resolution's chosen opponent (dirac retUnderOppSeat), and kgen
+// marks the one-opponent ChoosePlayer that lowers it otherwise two-seat.
 func TwoSeatInstr(in *Instr) bool {
 	switch in.Op {
-	case OpReturnEx:
-		return in.B.N&RetUnderOpponent != 0 // under the chosen opponent's control
 	case OpMayPlay:
 		return in.B.N&MayPlayOpponent != 0 // the exiler: the controller's opponent
 	}

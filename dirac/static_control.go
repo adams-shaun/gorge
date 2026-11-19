@@ -698,6 +698,16 @@ func (s *State) ctrlPlayerRef(r kop.Ref) (uint8, bool) {
 		if o := e.trigObj; o != NoObj {
 			return s.ctrlOfObj(o), true
 		}
+	case kop.RefChosenPlayer:
+		// NewController$ ChosenPlayer: the opponent this resolution's
+		// ChoosePlayer chose (Akroan Horse, Wishclaw Talisman; gorge
+		// controlPlayer's Defined read of Ctx.Chosen)
+		if DebugChosenNextSeat {
+			return s.nextAlive(e.ctrl), true // seat-ok: a test-only mutation
+		}
+		if p := s.chosenPlayerSeat(e); p != 255 {
+			return p, true
+		}
 	}
 	return 0, false
 }

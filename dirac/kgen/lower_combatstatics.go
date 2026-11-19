@@ -18,9 +18,13 @@ import (
 //     controls (StCantAtkWalker); You,Planeswalker.YouCtrl: both. A battle is
 //     neither target, so a scoped static never blocks a battle pair (gorge
 //     RestrictionTargetMatches; combat_cantattack.go).
-//   - UnlessDefender$ [!]controls<spec> on ValidCard$ Card.Self: the
-//     defender is the opponent of the static's controller, so the gate is
-//     IsPresent$ <spec>+OppCtrl (EQ0 for the positive form, GE1 negated).
+//   - UnlessDefender$ [!]controls<spec> on ValidCard$ Card.Self: the gate
+//     is IsPresent$ <spec>+DefenderCtrl (EQ0 for the positive form, GE1
+//     negated) and the static is judged per defender (AtkUnlessDef,
+//     kop.StCantAtkDef): gorge AttackBlocked reads the predicate on each
+//     (attacker, defending player) pair, so in a pod the creature may
+//     attack one opponent and not another. Two-player the defender is the
+//     static controller's one opponent (combat_cantattack.go).
 //
 // Any other Target$ / UnlessDefender$ refuses.
 func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
@@ -54,19 +58,22 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 		if vc != "Card.Self" {
 			return refuse("UnlessDefender$ on ValidCard$ %q", vc)
 		}
+		if len(st.Flags) != 0 {
+			return refuse("UnlessDefender$ beside a Target$ scope")
+		}
+		st.Flags = append(st.Flags, "AtkUnlessDef")
+		lc.unlessDef = true
+		defer func() { lc.unlessDef = false }()
 		ud = strings.TrimSpace(ud)
 		if t, ok := fewerInPlayType(ud); ok {
 			// gorge UnlessDefenderHolds' hasFewer<Type>sInPlayThanYou: the
 			// defender controls strictly fewer <Type>s than the static's
 			// controller, so the creature may attack exactly then and the
 			// RESTRICTION holds when the defender's count is at least the
-			// controller's. The kernel is two-player, the defender is the
-			// controller's opponent (Monstrous Hound's lands, Mogg Toady
-			// and Goblin Goon's creatures); the counts are value-vs-value
-			// over the battlefield, so the gate holds for every defender
-			// the two-seat read names.
-			lc.twoSeat("UnlessDefender$ hasFewer<Type>sInPlayThanYou read as the static controller's opponent")
-			fOpp, err := lc.filter(t + ".OppCtrl")
+			// controller's (Monstrous Hound's lands, Mogg Toady and Goblin
+			// Goon's creatures): the counts are value-vs-value over the
+			// battlefield, the defender's read per pair (DefenderCtrl).
+			fOpp, err := lc.filter(t + ".DefenderCtrl")
 			if err != nil {
 				return err
 			}
@@ -77,14 +84,13 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 			st.Cond = andCond(st.Cond, lCond{Kind: cValue,
 				A: lValue{Kind: vCount, F: fOpp}, Op: opGE, B: lValue{Kind: vCount, F: fYou}})
 		} else {
-			lc.twoSeat("UnlessDefender$ read as the static controller's opponent")
 			neg := strings.HasPrefix(ud, "!")
 			ud = strings.TrimPrefix(ud, "!")
 			spec, ok := strings.CutPrefix(ud, "controls")
 			if !ok || spec == "" || strings.ContainsAny(spec, "_") || strings.Contains(spec, "Ctrl") {
 				return refuse("UnlessDefender$ %q", ud)
 			}
-			f, err := lc.filter(addFilterProp(spec, "OppCtrl"))
+			f, err := lc.filter(addFilterProp(spec, "DefenderCtrl"))
 			if err != nil {
 				return err
 			}
