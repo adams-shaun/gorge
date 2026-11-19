@@ -1576,7 +1576,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	default:
 		return refuse("trigger mode %s", t.Mode)
 	}
-	tr.OnlyYourTurn = tp.is("PlayerTurn", "True")
+	// castNonActive (lower_castnonactive.go) also gates Opponent.NonActive on
+	// the listener's turn; PlayerTurn$ must not clear it.
+	tr.OnlyYourTurn = tr.OnlyYourTurn || tp.is("PlayerTurn", "True")
 	if err := lc.trigOncePerTurn(tp, tr); err != nil {
 		return err
 	}
