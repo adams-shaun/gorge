@@ -53,6 +53,7 @@ func paymentForCast(pc *pendingCast, cost Cost) paymentDescriptor {
 	d := paymentFor(pc.card, pc.isAbility(), cost)
 	d.XAnnounced = pc.cost.X > 0
 	d.OnlyTag = pc.altOnlyTag
+	d.NoMana = pc.noMana
 	return d
 }
 

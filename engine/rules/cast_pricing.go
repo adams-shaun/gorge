@@ -1209,11 +1209,27 @@ func (e *Engine) convokeCountCredit(pc *pendingCast, m Cost) Cost {
 // there (xOpen) and xAsk prices the announcement against every candidate X
 // with xOpen false, m already X-folded.
 func (e *Engine) convokeAbsorbs(pc *pendingCast, m Cost, pays []convokePayment, xOpen bool) bool {
+	// The zero-spend shape's pips (stat:ManaRestriction, Hogaak): an
+	// unresolved hybrid pip carries no Colored unit yet (its face is
+	// announced later, manaAsk), but its colour face is exactly one unit a
+	// convoke creature of that colour pays (CR 702.51a) -- the only payment
+	// a cast that may not spend mana has for it. Each unresolved pip absorbs
+	// one colour contribution of a colour it carries; pipsLeft bounds the
+	// number of such contributions, so a third {B} against two {B/G} pips
+	// still reduces nothing.
+	pipsLeft := int32(0)
+	if pc.noMana {
+		pipsLeft = int32(len(m.Hybrid))
+	}
 	for _, pay := range pays {
 		if pay.Color != 0 {
 			i := state.ManaIndex(pay.Color)
 			if m.Colored[i] <= 0 {
-				return false
+				if pipsLeft <= 0 || !hybridPipCarries(m, pay.Color) {
+					return false
+				}
+				pipsLeft--
+				continue
 			}
 			m.Colored[i]--
 			continue
