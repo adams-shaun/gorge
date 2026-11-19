@@ -16,7 +16,7 @@ Two rules shape everything here.
 
 `Hidden` is the caller's. A determinization deals it from the seat's own deck list and the counts the view shows; the verifier supplies the true zones. The staging code cannot tell which.
 
-## What stages today (chunks C4, C5 and C5b)
+## What stages today (chunks C4, C5, C5b and C6)
 
 - Two seats.
 - Lands and creatures with no abilities beyond combat keywords, and creatures whose only ability is "put a +1/+1 counter on this" (`selfCounterAbility`: activated, no target, no once-per-turn state).
@@ -25,9 +25,12 @@ Two rules shape everything here.
 - Attached Auras and Equipment (C5b), on a creature of either seat: `WorldObj.Attached` and `Host` (the bearer's object index), staged by `attachTo`. The card must be an Aura or Equipment whose abilities are statics that commute (a P/T or keyword grant, can't attack, can't block, no condition) plus the Equip ability. An attachment's layer timestamp is the order the staging attaches in, the battlefield list order, not the order the game did, which an observation does not show; that is exact for the statics admitted and is why only commuting ones are.
 - A sorcery or instant whose whole spell ability creates tokens, in any hidden zone, the graveyard or the hand (a card carries no state there).
 - Library, hand, graveyard and battlefield order, tapped and summoning-sick marks, life, land drop, turn, step and priority holder.
-- Quiet priority steps only: upkeep, draw, first main, second main, end.
+- The stack (C6), public and shown in `view.View.Stack`: spells with no target, mode, X or kicker (a token-making instant or sorcery, a creature, an Equipment; an Aura targets and is refused) and activated self-counter abilities ("{1}, sacrifice another creature: put a +1/+1 counter on this") whose source is a battlefield creature. A spell is an object in the stack zone (`WorldStack`, `dirac/zone_stagestack.go`); its cost shows in the tapped lands, the sacrificed creature and the graveyard. Priority over a non-empty stack: the holder of the top entry's controller has passed no one (0 passes); any other holder was passed to (1). The active seat holding priority over the other seat's top entry is refused as `priority`: after a pass or after a resolution, and the view cannot say which.
+- Quiet priority steps only: upkeep, draw, first main, second main, end (the stack, when non-empty, is one of these steps').
 
-Everything else is refused with a reason. dirac's reasons: `table`, `seats`, `object-layout`, `card`, `zone`, `control`, `place`, `step`, `priority`, `turn`, `life`, `battlefield`, `token`, `attachment`. The shadow adds: `game-over`, `seats`, `stack`, `decision`, `unknown-card`, `unmapped-object`, `hidden`, `exile`, `counter`, `mark`, `pool`, `step-name`. Each has a test that provokes it (`TestUnstageableReasons`, `TestWorldFromViewReasons`).
+Everything else is refused with a reason. dirac's reasons: `table`, `seats`, `object-layout`, `card`, `zone`, `control`, `place`, `step`, `priority`, `turn`, `life`, `battlefield`, `token`, `attachment`, `stack-entry`. The shadow adds: `game-over`, `seats`, `stack`, `decision`, `pending`, `unknown-card`, `unmapped-object`, `hidden`, `exile`, `counter`, `mark`, `pool`, `step-name`. Each has a test that provokes it (`TestUnstageableReasons`, `TestWorldFromViewReasons`).
+
+Still refused, as typed reasons: a trigger on the stack, a stack entry with a target, mode, X, kick or a copy (`stack`; dirac's `stack-entry` for a card it cannot rebuild as an entry), any trigger waiting to be put on the stack (`pending`), and the active seat's priority over the other's entry (`priority`). Delayed triggers, replacement and prevention shields and per-source remembered memory (`SrcMem`, `RemPersist`, `prevNext`) are not observable and are made only by cards `stageableCard` already refuses (`card`), so no position holding one stages. Widening them needs a card of that kind in the admitted set and a `View` field that shows its state, which the view does not carry today.
 
 Still refused: copies (`token`), any other counter kind, a zero count, or a counter or damage off the battlefield (`counter`, `mark`), an Aura or Equipment of another shape, attached to a non-creature or a player, or an Aura on the battlefield attached to nothing (`attachment`), a token that is not a plain creature token or that the table cannot name (`token`). Both new reasons are dirac's (`dirac.ReasonToken`, `dirac.ReasonAttach`); the shadow reuses them.
 
@@ -46,9 +49,9 @@ Not carried: the RNG draw count (the verifier masks `Projection.Draws`) and the 
 
 Last run (C5): 197 of 200 games staged a position (719 tried; 476 refused as a non-quiet step, 46 for a non-empty stack), 40 staged positions held damage and 71 held +1/+1 counters, 103,742 continuation decisions, 0 mismatches. The test fails if fewer than 20 staged positions hold each mark.
 
-`TestStageCardsMatchReplay` (`dirac/shadow/stage_cards_test.go`) is the same verifier on a corpus pool from the `mbc` set, every card supported with evidence: Plains and Mountain, eleven creatures with combat keywords, Pacifism (an Aura), Swiftfoot Boots (an Equipment) and Dragon Fodder (two Goblin tokens). A quarter of the games wait for a position holding an attachment and a quarter for one holding a token. Last run (C5b): 181 of 200 games staged a position, 85 staged positions held an attachment and 117 a token, 114,034 continuation decisions, 0 mismatches. The test fails if fewer than 20 positions hold each.
+`TestStageCardsMatchReplay` (`dirac/shadow/stage_cards_test.go`) is the same verifier on a corpus pool from the `mbc` set, every card supported with evidence: Plains and Mountain, eleven creatures with combat keywords, Pacifism (an Aura), Swiftfoot Boots (an Equipment) and Dragon Fodder (two Goblin tokens). A quarter of the games wait for a position holding an attachment and a quarter for one holding a token. Last run (C6): 173 of 200 games staged a position, 76 staged positions held an attachment, 119 a token and 54 a spell on the stack (a token-making instant, a creature, an Equipment), 109,175 continuation decisions, 0 mismatches. The test fails if fewer than 20 positions hold each. The vanilla pool of `TestStageMatchesReplay` stages a Hungry Ghoul ability on the stack: 44 positions, 188 of 200 games staged, 94,709 continuation decisions, 0 mismatches, fails below 20. Games that wait for a stack position may never see a stageable one, so the staged floor of the corpus pool is 160.
 
-`TestStageMutationsAreCaught` drops each of tapped, summoning-sick, damage, +1/+1 counters, life, land drop, library order, graveyard order and turn from the staging in turn, and on the corpus pool drops an Equipment's attachment, moves an Aura to another creature and drops the tokens, and requires the verifier to fail on each. A feature that staging silently dropped would be caught.
+`TestStageMutationsAreCaught` drops each of tapped, summoning-sick, damage, +1/+1 counters, life, land drop, library order, graveyard order and turn from the staging in turn, drops a stack ability, and on the corpus pool drops an Equipment's attachment, a stack spell (to the graveyard), moves an Aura to another creature and drops the tokens, and requires the verifier to fail on each. A feature that staging silently dropped would be caught.
 
 ## Fork and rollout (chunk C8)
 
@@ -63,7 +66,7 @@ Each later chunk widens the refused set and keeps the same verifier, run on a po
 | Chunk | Adds |
 |---|---|
 | C5 (partly done: damage, +1/+1 counters; C5b: attached Auras and Equipment, plain creature tokens) | other counter kinds, attachments with abilities beyond a static grant, tokens with abilities, copies |
-| C6 | stack, triggers, replacement effects, per-source remembered memory |
+| C6 (partly done: spells and self-counter abilities on the stack) | triggers on the stack and pending, targets and modes on stack entries, delayed triggers, replacement effects, per-source remembered memory |
 | C7 | mid-turn positions: declare attackers and blockers, targets |
 | C8 | `CopyFrom` fork and rollout loop (landed, below) |
 | C13 | four-seat pods |

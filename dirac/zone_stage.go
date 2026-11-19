@@ -40,7 +40,7 @@ const (
 var UnstageableReasons = []string{
 	ReasonTable, ReasonSeats, ReasonLayout, ReasonCard, ReasonZone, ReasonControl,
 	ReasonPlace, ReasonStep, ReasonPriority, ReasonTurn, ReasonLife, ReasonBattlefield,
-	ReasonToken, ReasonAttach,
+	ReasonToken, ReasonAttach, ReasonStackEntry,
 }
 
 // ErrUnstageable is the error of a position that cannot be staged.
@@ -93,7 +93,7 @@ type WorldObj struct {
 	Host     uint8
 }
 
-// World is one position, staged at a priority decision with an empty stack.
+// World is one position, staged at a priority decision.
 type World struct {
 	Tbl  *kop.Table
 	Cfg  Config // as the game is played; Mulligans is ignored (the round is over)
@@ -101,7 +101,9 @@ type World struct {
 	// Objs are the game's cards by Obj index: seat 0's deck, then seat 1's,
 	// as Init lays them out. A caller that does not know a hidden card's
 	// object index deals them any consistent way.
-	Objs        []WorldObj
+	Objs []WorldObj
+	// Stack is the stack, bottom to top (see zone_stagestack.go).
+	Stack       []WorldStack
 	NSeat       uint8 // 2
 	Turn        uint16
 	Step        kop.Step
@@ -201,6 +203,23 @@ func NewFromWorld(w *World) (*State, error) {
 	return s, nil
 }
 
+// stageZone is the index validate counts a zone of a World object under.
+func stageZone(z kop.Zone) (int, bool) {
+	switch z {
+	case kop.ZoneLibrary:
+		return 0, true
+	case kop.ZoneHand:
+		return 1, true
+	case kop.ZoneBattlefield:
+		return 2, true
+	case kop.ZoneGraveyard:
+		return 3, true
+	case kop.ZoneStack:
+		return 4, true
+	}
+	return 0, false
+}
+
 func (w *World) validate() error {
 	if w.Tbl == nil {
 		return unstageable(ReasonTable, "no table")
@@ -255,17 +274,8 @@ func (w *World) validate() error {
 		if err := w.checkTokenAttach(i, &firstToken); err != nil {
 			return err
 		}
-		z := 0
-		switch o.Zone {
-		case kop.ZoneLibrary:
-			z = 0
-		case kop.ZoneHand:
-			z = 1
-		case kop.ZoneBattlefield:
-			z = 2
-		case kop.ZoneGraveyard:
-			z = 3
-		default:
+		z, ok := stageZone(o.Zone)
+		if !ok {
 			return unstageable(ReasonZone, "object %d in zone %d", i, o.Zone)
 		}
 		if o.Ctrl >= 2 || (o.Zone == kop.ZoneBattlefield && o.Ctrl != o.Owner) || (o.Zone != kop.ZoneBattlefield && o.Ctrl != o.Owner) {
@@ -280,6 +290,9 @@ func (w *World) validate() error {
 		if n[p] < openingHand || n[p] > MaxDeck {
 			return unstageable(ReasonLayout, "seat %d has %d cards", p, n[p])
 		}
+	}
+	if err := w.validateStack(); err != nil {
+		return err
 	}
 	if count[0][2][0]+count[1][2][0] > MaxPerm {
 		return unstageable(ReasonBattlefield, "%d permanents", count[0][2][0]+count[1][2][0])
@@ -393,6 +406,7 @@ func (s *State) initFromWorld(w *World) error {
 		}
 	}
 	s.stageAttached(k, w)
+	s.stageStack(k, w)
 	for p := range w.Life {
 		s.pl[p].life = int16(w.Life[p])
 	}
@@ -409,7 +423,9 @@ func (s *State) initFromWorld(w *World) error {
 	s.ctl = ctlPriority
 	s.prio = w.Prio
 	s.passes = 0
-	if w.Prio != w.Active {
+	if len(w.Stack) != 0 {
+		s.passes = w.stackPasses()
+	} else if w.Prio != w.Active {
 		s.passes = 1
 	}
 	s.mullMax = 0

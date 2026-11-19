@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -76,7 +77,20 @@ type stageEnv struct {
 func vanillaEnv() *stageEnv {
 	return &stageEnv{
 		tbl: vanilla.Table, deck: stageDeck, kernel: oracle.RealKernel(vanilla.Table, nil, oracle.Config{}),
-		want: func(seed uint64, v *view.View) bool { return seed%2 == 0 || hasMarks(v) }, // odd games wait for damage or a counter
+		// seeds 0 mod 4 take the first stageable position, seeds 1 and 2 mod 4
+		// wait for damage or a counter, seeds 3 mod 4 for an ability on the
+		// stack and seeds 4 mod 8 for any spell or ability on it
+		want: func(seed uint64, v *view.View) bool {
+			switch seed % 8 {
+			case 1, 2, 5, 6:
+				return hasMarks(v)
+			case 3, 7:
+				return slices.ContainsFunc(v.Stack, func(e view.StackView) bool { return e.Kind == "ability" })
+			case 4:
+				return len(v.Stack) != 0
+			}
+			return true
+		},
 	}
 }
 
@@ -90,6 +104,8 @@ type stageStats struct {
 	attached      int               // staged positions with an attached Aura or Equipment
 	tokens        int               // staged positions with a token
 	firstDetail   map[string]string // the first error text of each reason, for a log
+	spells        int               // staged positions with a spell on the stack
+	abilities     int               // staged positions with an ability on the stack
 	deadTok       int               // positions skipped: a token had left the view after the last one shown
 }
 
@@ -188,7 +204,14 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 
 // count tallies the features a staged world holds, once per position.
 func (st *stageStats) count(w *dirac.World) {
-	var dmg, ctr, att, tok bool
+	var dmg, ctr, att, tok, spell, abil bool
+	for i := range w.Stack {
+		if w.Stack[i].Ability {
+			abil = true
+		} else {
+			spell = true
+		}
+	}
 	for i := range w.Objs {
 		o := &w.Objs[i]
 		dmg, ctr, att, tok = dmg || o.Damage != 0, ctr || o.P1P1 != 0, att || o.Attached, tok || o.Token
@@ -196,7 +219,7 @@ func (st *stageStats) count(w *dirac.World) {
 	for _, f := range []struct {
 		on bool
 		n  *int
-	}{{dmg, &st.damaged}, {ctr, &st.countered}, {att, &st.attached}, {tok, &st.tokens}} {
+	}{{dmg, &st.damaged}, {ctr, &st.countered}, {att, &st.attached}, {tok, &st.tokens}, {spell, &st.spells}, {abil, &st.abilities}} {
 		if f.on {
 			*f.n++
 		}
@@ -291,9 +314,10 @@ func TestStageMatchesReplay(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("marks: %d staged positions held damage, %d held counters", st.damaged, st.countered)
+	t.Logf("marks: %d staged positions held damage, %d held counters, %d an ability on the stack", st.damaged, st.countered, st.abilities)
 	t.Logf("%d games: %d positions tried, %d staged (by step %v), %d continuation decisions; unstageable by reason %v", stageGames, st.tried, st.staged, st.byStep, st.contSteps, st.reasons)
-	if st.damaged < 20 || st.countered < 20 {
+	t.Logf("first detail of each reason: %v", st.firstDetail)
+	if st.damaged < 20 || st.countered < 20 || st.abilities < 20 {
 		t.Errorf("the pool exercised too little: %d damaged and %d counter positions staged", st.damaged, st.countered)
 	}
 	if st.staged < stageGames*9/10 {
@@ -355,6 +379,15 @@ func TestStageMutationsAreCaught(t *testing.T) {
 			}
 		},
 		"turn off": func(w *dirac.World) { w.Turn += 2 },
+		"stack ability dropped": func(w *dirac.World) {
+			var keep []dirac.WorldStack
+			for _, e := range w.Stack {
+				if !e.Ability {
+					keep = append(keep, e)
+				}
+			}
+			w.Stack = keep
+		},
 	}
 	runMutations(t, reg, vanillaEnv(), muts)
 	cenv := cardsEnv(t)
