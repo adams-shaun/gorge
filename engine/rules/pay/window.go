@@ -75,22 +75,25 @@ type WindowAlt struct {
 	LifeKeep bool
 	// CostGeneric is the literal generic mana the activation pays BEFORE the
 	// production is added (a "{N}, {T}: add ..." activation cost). Every alt
-	// the shared windowManaUnits builds carries 0 (a free tap), so the field
-	// is inert for the attack/unless payment windows. The cast-payment
-	// probe's paid-cost layer sets it and the cast-only ordered eligibility
-	// search (castWindowReachable) pays it from the pool this window has
-	// already accumulated, so a generic fee can be funded by an earlier
-	// same-window activation -- the exact sequence the live CR 601.2g window
-	// can perform, one source at a time. It is deliberately NOT netted into
-	// counts/amt: a multi-colour production cannot express "minus N" without
-	// choosing which colour the generic consumed, and the choice is the
-	// payer's at activation time.
+	// the shared windowManaUnits builds carries 0 (a free tap). Two census
+	// layers set it: the cast-payment probe's paid-cost layer, whose cast-only
+	// ordered eligibility search (castWindowReachable) pays it from the pool
+	// this window has already accumulated, and the unless-cost census's fee
+	// arm (unlessWindowUnits, Apprentice Wizard's "{U}, {T}: Add {C}{C}{C}"),
+	// whose reach walk pays it from the floating mana an earlier same-window
+	// activation produced (UnlessManaReachable's fee transition, CR 605.3b).
+	// Both price the exact sequence the live CR 601.2g window can perform, one
+	// source at a time. It is deliberately NOT netted into counts/amt: a
+	// multi-colour production cannot express "minus N" without choosing which
+	// colour the generic consumed, and the choice is the payer's at
+	// activation time.
 	CostGeneric int32
 	// CostColored is the coloured mana the activation pays beside
 	// CostGeneric (Uthros, Titanic Godcore's "{U}, {T}: add {U} for each
-	// artifact you control"). Like CostGeneric it is set only by the
-	// cast-payment probe and paid by castWindowReachable from the pool the
-	// window has already accumulated.
+	// artifact you control"). Like CostGeneric it is set by the cast-payment
+	// probe's paid-cost layer and the unless-cost census's fee arm, and paid
+	// by castWindowReachable / UnlessManaReachable from the mana the window
+	// has already accumulated.
 	CostColored state.Mana
 	// FreeTap marks a bare (or empty-cost) tap activation, so it leaves the
 	// source on the battlefield and a no-tap self-sacrifice ability may

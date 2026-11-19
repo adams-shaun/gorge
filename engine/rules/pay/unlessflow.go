@@ -345,7 +345,14 @@ func askUnlessMana(e Engine) {
 				// exists (CR 605.3b), so a fee the pool cannot cover is not
 				// offered: the activation would fail its payability gate,
 				// and the census must not promise it. The reach check prices
-				// the remaining sources from the pool after the fee.
+				// the remaining sources from the pool after the fee. The fee
+				// is funded under the UNLESS payment's own conversion set,
+				// the same read the reach check beside it consults: the alt
+				// carries no conversion of its own, so one conv prices the
+				// whole window (a ManaConvert static scoping the unless
+				// payment alone would scope the fee's funding too; no corpus
+				// card draws that line, and the census keeps the single-conv
+				// convention).
 				after := ManaAdd(pool, a.Mana())
 				if fee := a.Fee(); fee > 0 {
 					funded, ok := feeFromMana(a, pool, e.Eval().Conv(u.Payer, u.StackObj, SAOther))

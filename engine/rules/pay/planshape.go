@@ -1008,5 +1008,8 @@ func feeFromMana(a WindowAlt, pool state.Mana, conv *Conv) (state.Mana, bool) {
 	if !ok {
 		return state.Mana{}, false
 	}
-	return ManaSub(pool, paid.Pool), true
+	// Payment.Pool is the pool the fee LEFT (solve.go's Payment carries the
+	// remaining floating mana, spent = before - after); returning it directly
+	// prices every later branch against the mana the fee did not consume.
+	return paid.Pool, true
 }
