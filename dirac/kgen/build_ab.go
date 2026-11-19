@@ -2508,6 +2508,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "CastWithFlash":
 		st.Kind = kop.StatCastWithFlash
+		st.StFlags |= s.flashCasterFlag()
 		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
 			return ka, nil, err
 		}
