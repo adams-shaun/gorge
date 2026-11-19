@@ -48,8 +48,8 @@ func TestCastWindowReachableDeadStatesChangeNoAnswer(t *testing.T) {
 		}
 		var pool state.Mana
 		pool[rng.IntN(6)] = int32(rng.IntN(2))
-		with, _ := e.castWindowReachableAfter(0, 0, ParseCost(cost), pool, state.Mana{}, [8]state.Mana{}, 20, nil, pipRider{}, units)
-		without, _ := e.castWindowReachableAfter(-1, 0, ParseCost(cost), pool, state.Mana{}, [8]state.Mana{}, 20, nil, pipRider{}, units)
+		with, _ := e.castWindowReachableAfter(0, state.Mana{}, 0, ParseCost(cost), pool, state.Mana{}, [8]state.Mana{}, 20, nil, pipRider{}, units)
+		without, _ := e.castWindowReachableAfter(-1, state.Mana{}, 0, ParseCost(cost), pool, state.Mana{}, [8]state.Mana{}, 20, nil, pipRider{}, units)
 		if with != without {
 			t.Fatalf("trial %d cost %q: the optimised walk answers %v, the plain walk %v; units %+v", trial, cost, with, without, units)
 		}
