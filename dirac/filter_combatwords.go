@@ -195,9 +195,29 @@ func (s *State) noteDmgBy(k *prep, src, dst Slot) {
 	if src == NoSlot || dst == NoSlot || !s.occ.has(src) || !s.occ.has(dst) {
 		return
 	}
-	if c := s.cardAt(src); int(c) < len(k.gen.dmgBy) && k.gen.dmgBy[c] {
+	if c := s.cardAt(src); int(c) < len(k.gen.dmgBy) && k.gen.dmgBy[c] || s.dmgByGrantHost(k, src) {
 		s.markSrc(smDamaged, s.perms[src].obj, dst)
 	}
+}
+
+// dmgByGrantHost reports whether the permanent at src is the host of a granting
+// static (an Aura or Equipment, grantM) whose card's abilities read DamagedBy:
+// the granted trigger belongs to the host, so the host's damage is recorded
+// even though the host's own card reads no DamagedBy (Vampiric Embrace's
+// enchanted creature, gorge's layer-6 AddTrigger$ grant).
+//
+//go:noinline
+func (s *State) dmgByGrantHost(k *prep, src Slot) bool {
+	for g := s.grantM; g.any(); g = g.rest() {
+		a := g.first()
+		if s.perms[a].attached != src {
+			continue
+		}
+		if c := s.cardAt(a); int(c) < len(k.gen.dmgBy) && k.gen.dmgBy[c] {
+			return true
+		}
+	}
+	return false
 }
 
 // noteDmgByRec records a combat damage pass's events (dmgRec.ev: each
