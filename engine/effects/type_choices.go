@@ -66,7 +66,15 @@ var chooseCardTypes = []string{
 // Derived from the committed corpus's own planeswalker type lines and checked
 // as a sorted set: it includes the Un-set and Universes-Beyond subtypes
 // (B.O.B., Duck, Monopoly, You, Dungeon Master's "Dungeon"/"Master") because
-// those are real planeswalker subtypes the corpus prints.
+// those are real planeswalker subtypes the corpus prints. It is also the
+// walker set the RemoveCardTypes$ reader consults (SubtypesKeptBy, Has): the
+// word list for the name-word set whose strip side reads the corpus-derived
+// vocabulary (rules/chars' CorpusPlaneswalkerTypeWords), because no
+// RemoveCardTypes$ carrier adds the Planeswalker card type. The two lists are
+// two readings of one corpus fact and must stay equal:
+// TestWalkerNameVocabularyMatchesPlaneswalkerTypeChoices (engine/rules) holds
+// the derived vocabulary against this list, so a walker face lands here and
+// in the corpus together.
 var choosePlaneswalkerTypes = []string{
 	"Ajani", "Aminatou", "Angrath", "Arlinn", "Arzakon", "Ashiok", "B.O.B.",
 	"Bahamut", "Basri", "Bolas", "Calix", "Chandra", "Comet", "Dack",
@@ -78,7 +86,7 @@ var choosePlaneswalkerTypes = []string{
 	"Liliana", "Lolth", "Lukka", "Master", "Minsc", "Monopoly",
 	"Mordenkainen", "Nahiri", "Narset", "Niko", "Nissa", "Nixilis", "Oko",
 	"Quintorius", "Ral", "Rowan", "Saheeli", "Samut", "Sarkhan", "Serra",
-	"Sifa", "Sivitri", "Sorin", "Stone", "Szat", "Tamiyo", "Tasha", "Teferi",
+	"Sifa", "Sivitri", "Sorin", "Stone", "Svega", "Szat", "Tamiyo", "Tasha", "Teferi",
 	"Teyo", "Tezzeret", "Thomil", "Tibalt", "Tyvar", "Ugin", "Urza",
 	"Venser", "Vivien", "Vraska", "Vronos", "Will", "Windgrace", "Worzel",
 	"Wrenn", "Xenagos", "Yanggu", "Yanling", "You", "Zariel",
