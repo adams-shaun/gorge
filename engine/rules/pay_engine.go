@@ -54,6 +54,7 @@ func paymentForCast(pc *pendingCast, cost Cost) paymentDescriptor {
 	d.XAnnounced = pc.cost.X > 0
 	d.OnlyTag = pc.altOnlyTag
 	d.NoMana = pc.noMana
+	d.Prototype = !pc.isAbility() && castModeCodes.Code(pc.mode) == castModePrototype
 	return d
 }
 
@@ -218,7 +219,8 @@ func offerPayment(id state.ObjID, ability bool, scope costScope) paymentDescript
 		class = paymentActivated
 	}
 	return paymentDescriptor{ID: id, Class: class, OnlyTag: scope.OnlyTag,
-		Bestowed: !ability && scope.Kind == "Spell" && scope.Mode == altMode(altBestow)}
+		Bestowed:  !ability && scope.Kind == "Spell" && scope.Mode == altMode(altBestow),
+		Prototype: !ability && scope.Kind == "Spell" && castModeCodes.Code(scope.Mode) == castModePrototype}
 }
 
 func (pe *payer) Game() *state.Game                 { return pe.G }
@@ -226,11 +228,20 @@ func (pe *payer) Emit(ev events.Event) events.Event { return (*Engine)(pe).emit(
 func (pe *payer) Verify() bool                      { return walkCacheVerify }
 func (pe *payer) Log() *events.Log                  { return pe.L }
 func (pe *payer) AsFace(id state.ObjID, faceIdx int, fn func() bool) bool {
+	e := (*Engine)(pe)
+	if faceIdx == pay.PrototypeRead {
+		// The prototyped-cast read (CR 718.3a/718.3b), scoped like
+		// offerAsFace: nothing is written and no event is emitted.
+		prev := e.prototypeRead
+		e.prototypeRead = true
+		defer func() { e.prototypeRead = prev }()
+		return fn()
+	}
 	var face *cards.Face
-	if o := pe.G.Obj(id); o != nil && o.Card != nil && faceIdx >= 0 && faceIdx < len(o.Card.Faces) {
+	if o := e.G.Obj(id); o != nil && o.Card != nil && faceIdx >= 0 && faceIdx < len(o.Card.Faces) {
 		face = o.Card.Faces[faceIdx]
 	}
-	return (*Engine)(pe).offerAsFace(id, face, fn)
+	return e.offerAsFace(id, face, fn)
 }
 func (pe *payer) MatchesSpecFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool {
 	e := (*Engine)(pe)
@@ -266,6 +277,11 @@ func (pe *payer) MatchesSpellFrom(spec string, id state.ObjID, you state.PlayerI
 	// Only the fused offer (pricingFused) reads both halves (CR 702.102b).
 	if o := e.G.Obj(id); o != nil && o.Zone != state.ZStack && (o.FaceIdx != 0 || splitFrontHalfRead(o, e.pricingFused)) {
 		sc.AsSpellHalf = true
+	}
+	// A prototyped-cast read (CR 718.3a/718.3b) sees the K:Prototype inset
+	// mana value, colour and P/T, set by payer.AsFace(pay.PrototypeRead).
+	if e.prototypeRead {
+		sc = e.prototypeSpellSpecCtx(sc, id)
 	}
 	return e.matchesSpec(spec, id, sc)
 }
