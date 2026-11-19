@@ -93,10 +93,14 @@ func (s *State) payPlotRestr(k *prep, p uint8, cost *kop.ManaCost, o Obj) {
 	s.payFromPool(p, cost, 0)
 }
 
-// nonSpellRestrAffords: p pays cost, a payment that is no spell's (a ward's {N}),
-// counting the restricted mana its restriction admits there (CR 106.6): the
-// floating batches and the restricted sources, Hydraulic Helper's mana "can't be
-// spent to cast a nonartifact spell" paying a ward.
+// nonSpellRestrAffords: p pays cost, a payment that is no spell's (a ward's {N},
+// an unless), counting the restricted mana its restriction admits there (CR
+// 106.6): the floating batches and the restricted sources, Hydraulic Helper's
+// mana "can't be spent to cast a nonartifact spell" paying a ward. The census
+// reads the payment (canPayGen's shape, interp_ask.go): a granted mana ability
+// whose spend restriction names spells only (Galazeth Prismari's "spend this
+// mana only to cast an instant or sorcery spell") is no unit of a non-spell
+// payment, so the fallback cannot offer the pay a restricted source cannot fund.
 //
 //go:noinline
 func (s *State) nonSpellRestrAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
