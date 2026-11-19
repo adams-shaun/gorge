@@ -745,7 +745,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			// (resolve.go), gorge's persists on the source: the targets
 			// must be read later in this chain (a flicker), not by
 			// another ability (Journey to Nowhere's leaves trigger).
-			if !lc.restReadsRemembered() && !lc.remPersistShape() { // lower_rempersist.go
+			if !lc.restReadsRemembered() && !lc.remPersistShape() && !lc.srcMemWriterOK() { // lower_rempersist.go, lower_srcmem.go
 				return refuse("RememberTargets read outside its own resolution")
 			}
 			if !(dest == zExile && tz == zBattlefield) && !(origin == zGraveyard && dest == zHand) {
@@ -4496,30 +4496,10 @@ func (lc *lowerCtx) restReadsAny(subs ...string) bool {
 }
 
 // restReadsRemembered reports whether a node after the one being lowered in
-// its chain names the remembered set (Defined$ Remembered and the like).
+// its chain names the remembered set (Defined$ Remembered and the like), in
+// its params, an amount SVar or a branch it runs (lower_remembered_rest.go).
 func (lc *lowerCtx) restReadsRemembered() bool {
-	if lc.curNode == nil {
-		return false
-	}
-	for n := lc.curNode.Sub; n != nil; n = n.Sub {
-		for _, v := range n.Params {
-			if strings.Contains(v, "Remembered") {
-				return true
-			}
-		}
-		if n.API == "DelayedTrigger" {
-			// the delayed trigger names the set only in its Execute$ SVar
-			// (Mobilize's RememberChain$ False group program)
-			if sv := cards.ResolveSVar(lc.face.SVars, n.Params["Execute"]); sv != nil {
-				for _, v := range sv.Params {
-					if strings.Contains(v, "Remembered") {
-						return true
-					}
-				}
-			}
-		}
-	}
-	return false
+	return lc.curNode != nil && lc.remRestReads(lc.curNode.Sub)
 }
 
 // playLoneCondition reports whether a Play node's only condition parameter
