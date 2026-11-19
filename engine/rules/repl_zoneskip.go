@@ -395,15 +395,17 @@ var replEventBits = [cards.ReplEventCount]uint32{
 	// a zone whose summary mask cannot see it, so an every-event body scan
 	// (tapeAnyReplBodyMayAsk's ^0) would miss its asking body.
 	// TestReplEventBitCensus holds every kind reachable.
-	cards.ReplGainLife:    1 << 16,
-	cards.ReplLifeReduced: 1 << 17,
-	cards.ReplCounter:     1 << 18,
-	cards.ReplBeginTurn:   1 << 19,
-	cards.ReplGameLoss:    1 << 20,
-	cards.ReplGameWin:     1 << 21,
-	cards.ReplMill:        1 << 22,
-	cards.ReplPayLife:     1 << 23,
-	cards.ReplLoseMana:    1 << 24,
-	cards.ReplConnive:     1 << 25,
-	cards.ReplDestroy:     1 << 26,
+	cards.ReplGainLife:      1 << 16,
+	cards.ReplLifeReduced:   1 << 17,
+	cards.ReplCounter:       1 << 18,
+	cards.ReplBeginTurn:     1 << 19,
+	cards.ReplGameLoss:      1 << 20,
+	cards.ReplGameWin:       1 << 21,
+	cards.ReplMill:          1 << 22,
+	cards.ReplPayLife:       1 << 23,
+	cards.ReplLoseMana:      1 << 24,
+	cards.ReplConnive:       1 << 25,
+	cards.ReplDestroy:       1 << 26,
+	cards.ReplProliferate:   1 << 27,
+	cards.ReplRemoveCounter: 1 << 28,
 }
