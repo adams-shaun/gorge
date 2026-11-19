@@ -74,6 +74,26 @@ func (s *State) witnessKeepsTargets(k *prep, p uint8, c CardID, o Obj, cost *kop
 				ok = f.specKeepsTarget(k, p, o, &a.Targets[j], cost)
 			}
 		}
+		// A mode no target slot covers announces no targets at all (CR 700.2,
+		// 601.2c): the payment strands nothing of its requirement, so it keeps
+		// the cast announceable the way a standing candidate does -- Destructive
+		// Tampering's can't-block mode beside a plan that consumes the Treasure
+		// its destroy-artifact mode would target (dr-mbc-aabb pair 116).
+		if !ok && a.NModes > 1 {
+			var covered uint8
+			for i := 0; i < int(a.NTargets); i++ {
+				if tm := a.TgtModes[i]; tm == 0 {
+					covered = 0xff // a slot without a mode bound announces targets in every mode
+				} else {
+					covered |= tm
+				}
+			}
+			for mm := 0; mm < int(a.NModes) && !ok; mm++ {
+				if covered&(1<<mm) == 0 && !(k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, NoSlot, mm)) {
+					ok = true
+				}
+			}
+		}
 	}
 	f.g.availX = m
 	return ok
