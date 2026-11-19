@@ -99,39 +99,35 @@ func (e *Engine) staticControlWants() []staticWant {
 			}
 		}
 	}
-	return e.effectControlWants(w)
-}
-
-// effectControlWants appends the wanted transfers of the EFFECT-delivered
-// control statics: the GainControl-carrying ContinuousEffect registrations
-// effectGainControlGrant creates (engine/effects/effect_gaincontrol.go --
-// Garland, Royal Kidnapper's monarch steal, Shield Broker's shield-counter
-// steal). The same derivation the printed route runs, but read from the
-// live registrations rather than the static scan: the CheckSVar$ gate is
-// re-evaluated on EVERY derivation (this function runs at the same fixed
-// points expireControl does), so a delivered "for as long as ..." transfer
-// holds exactly while its condition does and ends through grantEnded when
-// it stops -- a delivered static has no printed scan whose gate could
-// re-run for it.
-//
-// The gate (Garland's CheckSVar$ X over PlayerCountRememberedPlayer$
-// HasPropertyisMonarch, "for as long as they're the monarch"; CR 611.2a/b)
-// is evaluated through the ONE shared statics evaluator -- the wrapper
-// mayplay.go's effectMayPlayGateHolds is for the may-play twin. It reads
-// the REGISTRATION's own captured set: its remembered objects and its
-// remembered PLAYERS (Garland's RememberObjects$ TriggeredPlayer, the
-// monarch the body counts), with the resolving face's SVar table the
-// registration bound -- not the source card's memory, which does not
-// survive the Effect. A gate this build cannot evaluate fails CLOSED: the
-// transfer is withheld, never silently always-applied (the statics
-// convention checkSVarHoldsRaw documents). An empty CheckSVar$ is no gate.
-//
-// There is no source-zone check here, unlike the printed route: the
-// registration's own lifetime machinery (active()'s liveness -- Permanent,
-// UntilEOT, ForgetOnMoved$) is what keeps the registration live, and a
-// Duration$ Permanent Effect grant outlives its source (CR 611.2a), so the
-// want stamps no source (fromEffect: sourceStamp stays zero).
-func (e *Engine) effectControlWants(w []staticWant) []staticWant {
+	// Then the wanted transfers of the EFFECT-delivered
+	// control statics: the GainControl-carrying ContinuousEffect registrations
+	// effectGainControlGrant creates (engine/effects/effect_gaincontrol.go --
+	// Garland, Royal Kidnapper's monarch steal, Shield Broker's shield-counter
+	// steal). The same derivation the printed route runs, but read from the
+	// live registrations rather than the static scan: the CheckSVar$ gate is
+	// re-evaluated on EVERY derivation (this derivation runs at the same fixed
+	// points expireControl does), so a delivered "for as long as ..." transfer
+	// holds exactly while its condition does and ends through grantEnded when
+	// it stops -- a delivered static has no printed scan whose gate could
+	// re-run for it.
+	//
+	// The gate (Garland's CheckSVar$ X over PlayerCountRememberedPlayer$
+	// HasPropertyisMonarch, "for as long as they're the monarch"; CR 611.2a/b)
+	// is evaluated through the ONE shared statics evaluator -- the wrapper
+	// mayplay.go's effectMayPlayGateHolds is for the may-play twin. It reads
+	// the REGISTRATION's own captured set: its remembered objects and its
+	// remembered PLAYERS (Garland's RememberObjects$ TriggeredPlayer, the
+	// monarch the body counts), with the resolving face's SVar table the
+	// registration bound -- not the source card's memory, which does not
+	// survive the Effect. A gate this build cannot evaluate fails CLOSED: the
+	// transfer is withheld, never silently always-applied (the statics
+	// convention checkSVarHoldsRaw documents). An empty CheckSVar$ is no gate.
+	//
+	// There is no source-zone check here, unlike the printed route: the
+	// registration's own lifetime machinery (active()'s liveness -- Permanent,
+	// UntilEOT, ForgetOnMoved$) is what keeps the registration live, and a
+	// Duration$ Permanent Effect grant outlives its source (CR 611.2a), so the
+	// want stamps no source (fromEffect: sourceStamp stays zero).
 	ces := e.active()
 	for i := range ces {
 		ce := &ces[i]
