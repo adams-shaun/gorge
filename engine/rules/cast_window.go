@@ -512,6 +512,12 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 		if pay.ActivationTapCostUnavailable(o, &cost) {
 			continue
 		}
+		if len(cost.TapPermanent) > 0 && !pay.ManaTapsPayable(asPayer(e), p, id, cost, nil) {
+			// tapXType<..> with no untapped permanent to tap (Urza, Lord High
+			// Artificer's "tap an untapped artifact" with no artifact): tap-blocked
+			// like a tapped source, so it offers nothing and leaves the census complete.
+			continue
+		}
 		if mp.RestrictValid != "" {
 			if pay.RestrictValidMatches(asPayer(e), p, desc, mp.RestrictValid, id) {
 				return true
