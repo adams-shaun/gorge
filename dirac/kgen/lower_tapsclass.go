@@ -44,6 +44,36 @@ func tapsPlanClass(body *cards.SA) (kop.TapPlan, uint8) {
 	return kop.TapPlanDefer, 0
 }
 
+// tapsDeferPain is tapsPlanClass's complementary read for a body gorge's
+// planner defers but whose damage to the tapper is still literal:
+// `Mode$ TapsForMana` with `Defined$ TriggeredActivator` (Manabarbs),
+// the player who tapped the land for mana, i.e. the payer. The planner
+// defers the source (a TapsForMana body is no vetted payer-damage row,
+// lower_tapsformana.go), but the tap still costs the payer the literal
+// amount, so the kernel's potential census carries it in the per-tap
+// lethal guard (mana_tapsdefer.go tapsWatchClass, legal.go potCensus).
+// The closed world is tapsPlanClass's; any other referent is 0.
+func tapsDeferPain(body *cards.SA) uint8 {
+	if body == nil || body.API != "DealDamage" || strings.TrimSpace(body.ParamStr(cards.PKSubAbility)) != "" {
+		return 0
+	}
+	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
+		switch k {
+		case "API", "Defined", "NumDmg", "DamageSource", "SpellDescription", "StackDescription":
+		default:
+			return 0
+		}
+	}
+	n, err := strconv.ParseUint(strings.TrimSpace(body.ParamStr(cards.PKNumDmg)), 10, 8)
+	if err != nil || n < 1 {
+		return 0
+	}
+	if strings.TrimSpace(body.ParamStr(cards.PKDefined)) != "TriggeredActivator" {
+		return 0
+	}
+	return uint8(n)
+}
+
 // tapsAttachedClass is the payment-planner class of the AttachedBy Taps
 // watcher: a body whose only effect is to destroy the tapped permanent itself
 // (Brink of Disaster's, Cryoshatter's) is a post-payment consequence gorge's
