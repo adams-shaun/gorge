@@ -85,13 +85,7 @@ func TestDelayedSacrificeLinkStalls(t *testing.T) {
 	sc.perm(id["Leyline of the Void"], 0)
 	sc.perm(id["Leyline of the Void"], 0)
 	bears := sc.perm(id["Grizzly Bears"], 1)
-	s.g.links[0] = struct {
-		src  Obj
-		sver uint8
-		obj  Obj
-		ts   uint16
-	}{src: bears, sver: s.objs[bears].ver - 1, obj: bears, ts: s.ts}
-	s.g.nlinks = 1
+	exiledUntilLeaves(sc, bears, id["Plains"], 1) // a live link: sver is the on-battlefield version
 	e := stackEntry{kind: seTrigger, obj: bears, srcVer: s.objs[bears].ver, card: s.objs[bears].card,
 		ab: abDelayed, ctrl: 1, trigObj: bears, trigPl: 1, trigAmt: int16(kop.OpSacrifice)}
 	s.resolveDelayed(k, &e)
