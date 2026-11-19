@@ -3414,8 +3414,10 @@ func (s *State) manaStep(k *prep) bool {
 			if s.phyCastPlanSettles(k, e, hs, cs) {
 				cost = cs
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
-			} else {
-				s.phyPay(k, e.ctrl, &cost, int(e.x), e.obj)
+			} else if filtOnly := s.phyFilterStranded(k, e.ctrl, &cost); !s.phyPay(k, e.ctrl, &cost, int(e.x), e.obj) && filtOnly && !s.winPaused() {
+				s.releaseCostTaps(k, &saved) // the window ended short of a cost only a filter reached
+				s.reverseCast(k)
+				return true
 			}
 		} else if s.bld().pipN != 0 {
 			// a hybrid pip was announced: gorge's cast planner refuses a
