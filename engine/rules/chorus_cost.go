@@ -48,6 +48,13 @@ func printsChorusLine(kws []string) bool {
 	return false
 }
 
+// preCostAsks runs the additional-cost count asks of the cast announcement in
+// order (squad, then Chorus's pay-any-amount), reporting whether one posed a
+// decision. One stage keeps continueCast's branch count flat.
+func preCostAsks(e *Engine) bool {
+	return e.squadAsk() || chorusAsk(e)
+}
+
 // chorusAsk poses the amount question once per creature-spell cast made while
 // the static applies: how much extra mana to pay (0 declines), bounded by the
 // most the caster can still pay on top of the pending cost (the same
