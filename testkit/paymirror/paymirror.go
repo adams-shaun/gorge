@@ -704,9 +704,12 @@ func mirrorFloat(b *rules.Engine, rep *Report, res *RouteResult, aEvents []event
 		setUnmirrorable(res, "cast_not_offered_after_float", why)
 		return
 	}
-	res.floatTriggered = floatAddedAbility(b, stackBefore)
 	res.floatStack = stackBefore
 	res.floatCreated = floatCreatedTriggers(b, rep.forkObjs)
+	// A float trigger with no legal target is removed as it is put on the
+	// stack (CR 603.3d), so it never shows on the stack here; its created
+	// object still reordered the ability objects the cast then makes.
+	res.floatTriggered = floatAddedAbility(b, stackBefore) || len(res.floatCreated) > 0
 	if err := submitChoices(b, d, []int{idx}); err != nil {
 		setUnmirrorable(res, "cast_rejected", err.Error())
 		return

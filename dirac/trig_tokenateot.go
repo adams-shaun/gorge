@@ -204,13 +204,35 @@ func (s *State) fireDlyEndCombat(k *prep) {
 	s.ndly = keep
 }
 
+// dropDlyEndCombat discards the dlyEndCombat records still pooled, in order
+// of the others: end-the-turn (CR 723.1) jumps to cleanup, so this turn's end of
+// combat never comes and gorge's |TT= expiry (TurnChange) removes the
+// registration. Without it the record would outlive its turn and fire at a
+// later turn's end of combat step.
+func (s *State) dropDlyEndCombat() {
+	n := s.ndly
+	var keep uint8
+	for i := uint8(0); i < n; i++ {
+		if d := s.dly[i]; d.when != dlyEndCombat {
+			s.dly[keep] = d
+			keep++
+		}
+	}
+	for i := keep; i < n; i++ {
+		s.dly[i] = delayed{}
+	}
+	s.ndly = keep
+}
+
 // prepTokAtEOT sets anyTokEndCombat when a table's CreateTokenEx carries the
-// SacrificeCombat rider.
+// SacrificeCombat rider, or an ExtMyriad copy makes an end-of-combat exile
+// promise (kw_myriad.go).
 func prepTokAtEOT(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
-				if in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) == kop.TokSacAtEnd|kop.TokExileAtEnd && in.B.N>>8 == kop.TokAtEOTSacCombat {
+				if (in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) == kop.TokSacAtEnd|kop.TokExileAtEnd && in.B.N>>8 == kop.TokAtEOTSacCombat) ||
+					(in.Op == kop.OpExt && in.Ext() == kop.ExtMyriad) {
 					g.anyTokEndCombat = true
 				}
 			}
