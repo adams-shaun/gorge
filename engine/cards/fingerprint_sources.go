@@ -105,6 +105,7 @@ import "embed"
 //go:embed kw_rampage.go
 //go:embed kw_ravenous.go
 //go:embed kw_reconfigure.go
+//go:embed kw_recover.go
 //go:embed kw_reinforce.go
 //go:embed kw_renown.go
 //go:embed kw_replicate.go
@@ -116,6 +117,7 @@ import "embed"
 //go:embed kw_storm.go
 //go:embed kw_sunburst.go
 //go:embed kw_training.go
+//go:embed kw_transfigure.go
 //go:embed kw_transmute.go
 //go:embed kw_tribute.go
 //go:embed kw_typecycling.go
