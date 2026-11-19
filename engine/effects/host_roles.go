@@ -325,6 +325,12 @@ type HostRestrictions interface {
 	// Counter replacement effects are rules, not a MoveZone replacement: they
 	// stop Counter before it emits the move off the stack.
 	CounterAllowed(target, cause state.ObjID) bool
+	// AdaptsAsIfNoCounters reports whether a live CanAdapt grant (an
+	// Effect-delivered Mode$ CanAdapt static: Biomancer's Familiar's "the next
+	// time target creature adapts this turn, it adapts as though it had no
+	// +1/+1 counters on it") covers id, so an Adapt$ put lands its counters
+	// even though id holds +1/+1 counters (CR 702.35a's condition).
+	AdaptsAsIfNoCounters(id state.ObjID) bool
 }
 
 // HostReplacements is the replacement role: the CR 614 replacement and modification

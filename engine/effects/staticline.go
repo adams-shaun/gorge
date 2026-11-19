@@ -694,6 +694,10 @@ const (
 	ModeFlipCoinMod                   = "FlipCoinMod"
 	ModeCantPhaseIn                   = "CantPhaseIn"
 	ModeCantPhaseOut                  = "CantPhaseOut"
+	// ModeCanAdapt is Biomancer's Familiar's `Mode$ CanAdapt` static ("adapts
+	// as though it had no +1/+1 counters on it"), delivered by its Effect's
+	// StaticAbilities$ and read by rules' AdaptsAsIfNoCounters.
+	ModeCanAdapt = "CanAdapt"
 )
 
 // staticKeysReadable fails closed when a delivered static carries an unread
