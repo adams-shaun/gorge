@@ -575,9 +575,19 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 	}
 	if ac := spellAddCost(k, s.objs[o].card); ac.Flags&kop.CostSac != 0 && k.sacMana {
 		// a source that sacrifices itself can use up what the part must
-		// sacrifice (CR 601.2g-h; gorge planReserving)
+		// sacrifice (CR 601.2g-h; gorge planReserving). The reservation is
+		// priced against the planner's census (ungrCastCensus), never the
+		// full availability: the witness cannot spend a granted mana ability
+		// (pay/board.go PaymentAbility), so a part whose candidate must be
+		// held back from census mana that only a granted tap makes
+		// (Elven Chorus's token taps beside the Spawn's own {C}) leaves the
+		// planner short and the cast is scripted, not priced.
 		var av avail
-		s.availFor(k, p, &av)
+		if k.gen != nil {
+			av, _ = s.ungrCastCensus(k, p)
+		} else {
+			s.availFor(k, p, &av)
+		}
 		if !s.costPartDisjoint(k, p, NoSlot, ac, &cost, &av, pipMaskOf(&cost)) {
 			return false
 		}
