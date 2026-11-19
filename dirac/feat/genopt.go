@@ -130,8 +130,6 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 		if mode == 6 {
 			o.kind, o.amount = okPayGeneric, 2 // a twobrid pip's generic face: gorge pay_generic, Amount 2
 		}
-	case dirac.ChGenOpeningExile:
-		o.kind = okOpeningExile
 	case dirac.ChGenLeyline:
 		o.kind = okOpeningNo
 		if mode == 1 {
@@ -143,8 +141,13 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 }
 
 // genOptionRest maps the asks genOption has no case of: ChGenClash's
-// "bottom" / "top" over the revealed card (dirac/act_clash.go), else a number.
+// "bottom" / "top" over the revealed card (dirac/act_clash.go), Gemstone
+// Caverns' "opening_exile" hand pick, else a number.
 func genOptionRest(d *dirac.Decision, mode uint8, o *optIn) {
+	if d.Sub == dirac.ChGenOpeningExile {
+		o.kind = okOpeningExile // obj: the hand card to exile
+		return
+	}
 	if d.Sub == dirac.ChGenDiscUnless {
 		// gorge effDiscard's discard_unless election: "unless" / "ordinary",
 		// no object (CR 701.9b)
