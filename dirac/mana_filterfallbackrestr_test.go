@@ -8,14 +8,15 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// A fallback window's filter answers its colour after its fee, and the fee
-// spends the floating restricted mana the activation admits before any
-// ordinary unit (filtDo, gorge's carve): Abzan Devotee's {1} takes the
-// Optimizer's restricted {U} and keeps the {W}, so for {1}{B} the {W} covers
-// the generic, the clamp is decided and the colour is {B} (CR 601.2g, 106.6).
-// A simulation that spent the {W} instead leaves the window undecided and
-// answers the lowest colour {W}, stranding the {B}.
-func TestFallbackFilterFeeSpendsRestrictedManaFirst(t *testing.T) {
+// A fallback window's filter answers its colour after its fee, and the fee is
+// paid as gorge's payment spends it (filtDo, filtFeeSpend): the visible pool in
+// C W U B R G order, the restricted mana the activation admits in line with the
+// plain units, so the plain {W} comes before the Optimizer's restricted {U}
+// (ResolveMana's plain-first unit search; CR 601.2g, 106.6). Abzan Devotee's
+// {1} for {1}{B} therefore takes the {W} and keeps the {U}; the restricted {U}
+// cannot pay Doom Blade, so the clamp is undecided and the colour is the
+// lowest, {W}.
+func TestFallbackFilterFeeSpendsPlainManaInColourOrder(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Abzan Devotee", Count: 1}, {Name: "Guidelight Optimizer", Count: 1},
 		{Name: "Doom Blade", Count: 1}, {Name: "Grizzly Bears", Count: 1},
 		{Name: "Plains", Count: 8}, {Name: "Swamp", Count: 8}}
@@ -43,10 +44,10 @@ func TestFallbackFilterFeeSpendsRestrictedManaFirst(t *testing.T) {
 	cost := kop.ManaCost{Generic: 1}
 	cost.Pips[kop.B] = 1
 	sc.s.windowFiltFirstFallback(sc.k, 0, dev, &cost)
-	if sc.s.rbAny(0) {
-		t.Errorf("restricted %v, want the restricted {U} spent on the fee", sc.s.rb[0])
+	if sc.s.restrN(0) != 1 {
+		t.Errorf("restricted %v, want the restricted {U} kept: the fee takes the plain {W} first", sc.s.rb[0])
 	}
-	if got := sc.s.pl[0].pool; got[kop.W] != 1 || got[kop.B] != 1 {
-		t.Fatalf("pool %v, want the {W} kept and the colour {B} (the owed pip)", got)
+	if got := sc.s.pl[0].pool; got[kop.W] != 1 || got[kop.B] != 0 {
+		t.Fatalf("pool %v, want the filter's {W} (the fee spent the {W}; the clamp is undecided, so the lowest colour)", got)
 	}
 }

@@ -101,13 +101,7 @@ func (s *State) eachProduce(k *prep, p uint8, sl Slot, ans uint8) {
 			return
 		}
 		dc, dn := s.deferSnap(p) // a deferred source's unit the fee spends is gone (mana_deferred.go)
-		fee -= s.filtFeeRestr(k, p, sl, fee)
-		for _, c := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {
-			for fee > 0 && pl.pool[c] > 0 {
-				pl.pool[c]--
-				fee--
-			}
-		}
+		fee = s.filtFeeSpend(k, p, sl, fee)
 		if k.artMana {
 			s.artSync(p) // a slot the fee emptied no longer holds an artifact's mana
 		}
