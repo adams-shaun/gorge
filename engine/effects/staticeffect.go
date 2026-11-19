@@ -55,9 +55,13 @@ type staticGrant struct {
 	setColors                                   []string // SetColor$ overwrites (layer 5)
 	addKeywords                                 []string
 	abilities                                   []string // AddAbility$/AddAbilities$ SVar names
-	removeAbilities                             bool
-	powerExpr, toughExp                         string
-	hasPower, hasTough                          bool
+	// addSVarName is the AddSVar$ NAME the body grants: an SVar looked up on
+	// the grant's own table at registration (addSVarsFor below), mirroring the
+	// printed-static walk's read (engine/rules/layers.go).
+	addSVarName         string
+	removeAbilities     bool
+	powerExpr, toughExp string
+	hasPower, hasTough  bool
 	// addPowerExpr/addToughExpr are the layer-7c ADDITIVE P/T parameters
 	// (AddPower$/AddToughness$), distinct from the layer-7b SET parameters
 	// above. They ride the continuous effect's expression fields so the layer
@@ -147,6 +151,7 @@ func parseStaticEffectGrant(params map[string]string, rememberedAsSelf bool) (st
 			}
 		}
 	}
+	g.addSVarName = strings.TrimSpace(params["AddSVar"])
 	g.removeAbilities = strings.EqualFold(strings.TrimSpace(params["RemoveAllAbilities"]), "True")
 	if _, has := params["SetPower"]; has {
 		g.powerExpr, g.hasPower = strings.TrimSpace(params["SetPower"]), true
@@ -418,6 +423,24 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 		h.AddContinuous(ce)
 		registered = true
 	}
+	// A named-variable grant (AddSVar$): the name is looked up on the grant's
+	// own SVar table -- the resolution's table (c.SVars), else the source
+	// face's -- and a value in Forge's "SVar:<Name>:<Value>" grant shape
+	// records the affected objects' gained variable, exactly as the
+	// printed-static walk's AddSVar$ branch does (engine/rules/layers.go's
+	// parseSVarGrant read). Any other value shape (a granted ability's own
+	// references, e.g. Arlinn, Embraced by the Moon's SVar:ArlinnX
+	// Count$CardPower) records nothing: the AddAbility$ body those names feed
+	// resolves them through the grantor's table (rules'
+	// abilityResolutionSVars), so the two delivery routes cannot disagree
+	// about what the body grants.
+	grantTable := c.SVars
+	if grantTable == nil {
+		if o := h.Game().Obj(id); o != nil && o.Face() != nil {
+			grantTable = o.Face().SVars
+		}
+	}
+	addSVars := grantedSVarGrant(g.addSVarName, grantTable)
 	// A "ChosenType" element resolves against the moved card's own recorded
 	// "as this enters" choice (the static scanner's resolveChosenTypes
 	// direction); a card with no recorded choice fails closed to no grant
@@ -449,7 +472,7 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 			RemoveArtifactTypes: g.removeArtifactTypes, RemoveEnchantmentTypes: g.removeEnchantmentTypes,
 			AffectedZone: g.affectedZone,
 			Duration:     g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
-			SVars: c.SVars,
+			SVars: c.SVars, AddSVars: addSVars,
 		})
 	}
 	if chosenMissing {
@@ -466,6 +489,7 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 			OverwriteColors: true,
 			AffectedZone:    g.affectedZone,
 			Duration:        g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
+			AddSVars: addSVars,
 		})
 	}
 	if len(g.addColors) > 0 {
@@ -475,6 +499,7 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 			AddColors:    g.addColors,
 			AffectedZone: g.affectedZone,
 			Duration:     g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
+			AddSVars: addSVars,
 		})
 	}
 	// CR 613.1f: the ability removal, the keyword grants and the ability
@@ -497,7 +522,7 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 			AddAbilities:    g.abilities,
 			AffectedZone:    g.affectedZone,
 			Duration:        g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
-			SVars: c.SVars,
+			SVars: c.SVars, AddSVars: addSVars,
 		})
 	}
 	if g.hasPower || g.hasTough {
@@ -514,7 +539,7 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 			HasSet:               true,
 			AffectedZone:         g.affectedZone,
 			Duration:             g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
-			SVars: c.SVars,
+			SVars: c.SVars, AddSVars: addSVars,
 		})
 	}
 	// The layer-7c ADDITIVE half (AddPower$/AddToughness$, the +X/+X a lord or
@@ -535,10 +560,28 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 			AddToughnessAffected: g.addToughAffected,
 			AffectedZone:         g.affectedZone,
 			Duration:             g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
-			SVars: c.SVars,
+			SVars: c.SVars, AddSVars: addSVars,
 		})
 	}
 	return registered
+}
+
+// grantedSVarGrant mirrors the printed-static walk's AddSVar$ read
+// (engine/rules/layers.go's parseSVarGrant): the named SVar's value must be
+// Forge's "SVar:<Name>:<Value>" grant shape for the affected object to GAIN a
+// named variable; any other shape (a granted ability's own references,
+// Count$... bodies) grants nothing. Split here because effects cannot import
+// rules; the two must keep the same shape rule.
+func grantedSVarGrant(name string, svars map[string]string) map[string]string {
+	rest, ok := strings.CutPrefix(svars[name], "SVar:")
+	if !ok {
+		return nil
+	}
+	n, v, ok := strings.Cut(rest, ":")
+	if !ok || n == "" {
+		return nil
+	}
+	return map[string]string{n: v}
 }
 
 // AffectedXStaticAmount is the shared per-affected-object convention for
@@ -553,4 +596,4 @@ func AffectedXStaticAmount(expr string) bool {
 	return expr == "AffectedX"
 }
 
-var effectStaticGrantReadableKeys = state.NewNameSet("Mode", "Affected", "AffectedZone", "Description", "AddTypes", "AddType", "AddAllCreatureTypes", "RemoveCreatureTypes", "RemoveCardTypes", "RemoveLandTypes", "RemoveArtifactTypes", "RemoveEnchantmentTypes", "AddColor", "AddColors", "SetColor", "SetColors", "AddKeyword", "AddAbility", "AddAbilities", "RemoveAllAbilities", "SetPower", "SetToughness", "AddPower", "AddToughness")
+var effectStaticGrantReadableKeys = state.NewNameSet("Mode", "Affected", "AffectedZone", "Description", "AddTypes", "AddType", "AddAllCreatureTypes", "RemoveCreatureTypes", "RemoveCardTypes", "RemoveLandTypes", "RemoveArtifactTypes", "RemoveEnchantmentTypes", "AddColor", "AddColors", "SetColor", "SetColors", "AddKeyword", "AddAbility", "AddAbilities", "AddSVar", "RemoveAllAbilities", "SetPower", "SetToughness", "AddPower", "AddToughness")

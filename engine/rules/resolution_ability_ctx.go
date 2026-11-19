@@ -63,17 +63,99 @@ func (e *Engine) abilityResolutionSVars(id state.ObjID, o *state.Object) map[str
 		// keeps its id after it leaves the battlefield, and the ability
 		// exists apart from it (CR 113.7a), so a gone grantor still names
 		// its table.
-		if g := e.G.Obj(o.GrantedBy); g != nil && g.Face() != nil && len(g.Face().SVars) > 0 {
-			grantor := g.Face().SVars
-			if len(svars) > 0 {
-				merged := maps.Clone(svars)
-				maps.Copy(merged, grantor)
-				grantor = merged
+		if g := e.G.Obj(o.GrantedBy); g != nil && g.Face() != nil {
+			// Multi-face grantor: the mint (events.ResolveSVarAcrossFaces)
+			// took the body from the first face whose table names it -- the
+			// active face, then every face in index order, then what a copy
+			// left behind. The body's own SVar references resolve against
+			// THAT face's table, not whatever face the grantor shows now: a
+			// DFC grantor that left the battlefield is front-face-up in its
+			// zone (CR 711.5a) while the granted body is its source's text
+			// (CR 113.7a). A one-face grantor picks its active face, exactly
+			// as before.
+			grantor := grantedBodySVars(g, o.Ability)
+			if grantor == nil {
+				grantor = g.Face().SVars
 			}
-			svars = grantor
+			if len(grantor) > 0 {
+				if len(svars) > 0 {
+					merged := maps.Clone(svars)
+					maps.Copy(merged, grantor)
+					grantor = merged
+				}
+				svars = grantor
+			}
 		}
 	}
 	return svars
+}
+
+// grantedBodySVars is the multi-face read of a granted ability's grantor:
+// the first face of the grantor's card, in the mint's own order (the active
+// face, then every face in index order, then LeftCopyFace), whose SVar table
+// defines a name the granted body's lines mention. nil when no face does --
+// the caller then keeps the active face's table, the pre-multi-face read.
+// The mention scan runs over the body's own Line texts (SubAbility$ chains
+// included) with word boundaries, so a name that is a substring of another
+// does not qualify a face by accident; the quantifier is existential, so the
+// map iteration order is irrelevant.
+func grantedBodySVars(g *state.Object, body *cards.SA) map[string]string {
+	if body == nil {
+		return nil
+	}
+	var lines []string
+	for ab := body; ab != nil; ab = ab.Sub {
+		if ab.Line != "" {
+			lines = append(lines, ab.Line)
+		}
+	}
+	if len(lines) == 0 {
+		return nil
+	}
+	mentions := func(svars map[string]string) bool {
+		for name := range svars {
+			for _, ln := range lines {
+				if mentionsWord(ln, name) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	if f := g.Face(); f != nil && mentions(f.SVars) {
+		return f.SVars
+	}
+	if g.Card != nil {
+		for _, cf := range g.Card.Faces {
+			if cf != nil && mentions(cf.SVars) {
+				return cf.SVars
+			}
+		}
+	}
+	if g.LeftCopyFace != nil && mentions(g.LeftCopyFace.SVars) {
+		return g.LeftCopyFace.SVars
+	}
+	return nil
+}
+
+// mentionsWord reports whether line contains name between word boundaries.
+func mentionsWord(line, name string) bool {
+	if name == "" {
+		return false
+	}
+	for i := 0; i+len(name) <= len(line); i++ {
+		if line[i:i+len(name)] != name {
+			continue
+		}
+		if (i == 0 || !isWordByte(line[i-1])) && (i+len(name) == len(line) || !isWordByte(line[i+len(name)])) {
+			return true
+		}
+	}
+	return false
+}
+
+func isWordByte(b byte) bool {
+	return b == '_' || (b >= '0' && b <= '9') || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z')
 }
 
 // printedFaceOfActivated is the printed face owning sa for a source that became a

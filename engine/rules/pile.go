@@ -159,7 +159,12 @@ func pileAbilityRefOf(o *state.Object, sa *cards.SA) (idx, merged int, ok bool) 
 // the activation would silently no-op. So the faces are walked in the pile's
 // own deterministic order, top face first: a non-mutated grantor resolves
 // byte-identically to the old Face().SVars read, and the first face that
-// names the SVar with an AB body wins.
+// names the SVar with an AB body wins. A multi-face grantor whose active
+// face does not name the body is then read the way the mint's fold reads it
+// (events.ResolveSVarAcrossFaces): every face in index order, then
+// LeftCopyFace -- a DFC grantor that left the battlefield is front-face-up
+// (CR 711.5a) while the granted body lives on the face that granted it
+// (CR 113.7a), so this walk must never be narrower than the mint's.
 //
 // Nothing here is an index decode: a granted activation carries ability == -1
 // and is anchored by NAME, so the flat pile-ability index never applies to it.
@@ -177,6 +182,28 @@ func (e *Engine) grantedSAFrom(grantor, recipient state.ObjID, svar string) *car
 			continue
 		}
 		if ab := cards.ResolveSVar(pf.Face.SVars, svar); ab != nil && ab.Kind == "AB" {
+			return ab
+		}
+	}
+	// The mint's own walk (events.ResolveSVarAcrossFaces, which
+	// foldGrantAbilityPush resolves the name through): the active face's
+	// table, then every face of the card in index order, then what a copy
+	// left behind. A multi-face grantor's non-active face may name the body:
+	// a transforming DFC grantor that left the battlefield is front-face-up
+	// in its zone (CR 711.5a), but the granted body it minted lives on the
+	// face that granted it (CR 113.7a). This guard exists so a legally
+	// offered activation cannot be a silent no-op, so it must search no less
+	// than the mint's fold does -- a body found here is a body the mint finds
+	// too (this walk's space is the fold's, the pile's top-first order first).
+	if o.Card != nil {
+		for _, cf := range o.Card.Faces {
+			if ab := cards.ResolveSVar(cf.SVars, svar); ab != nil && ab.Kind == "AB" {
+				return ab
+			}
+		}
+	}
+	if o.LeftCopyFace != nil {
+		if ab := cards.ResolveSVar(o.LeftCopyFace.SVars, svar); ab != nil && ab.Kind == "AB" {
 			return ab
 		}
 	}
