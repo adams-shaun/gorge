@@ -82,6 +82,13 @@ type TriggerContext struct {
 	// TriggerTargetLKIValid.
 	TriggerTargetAttacking bool
 	TriggerSource          state.ObjID
+	// TriggerSourceController is the controller of the spell or ability that
+	// caused a BecomesTarget trigger, captured when the trigger fired (CR
+	// 608.2h, 113.7a): Thunderbreak Regent's "that player" is the opponent
+	// who controlled it when it targeted, even after a stolen source has
+	// been sacrificed and its zone move reset Controller to its owner. Zero
+	// IsPlayer (absent) for every other mode, which read the live object.
+	TriggerSourceController state.Target
 	// TriggerStack is the actual spell/ability object that caused a targeting
 	// event. Unlike TriggerSource it is not unwrapped to its source permanent,
 	// because Ward must counter that stack object itself.
@@ -517,6 +524,9 @@ func TriggeredCardController(g *state.Game, tc TriggerContext, remembered []stat
 // form. Remembered[0]'s controller is the fallback for a trigger that
 // captured no source role. ok is false when no live object resolves.
 func TriggeredSourceController(g *state.Game, tc TriggerContext, remembered []state.Target) (state.PlayerID, bool) {
+	if tc.TriggerSourceController.IsPlayer {
+		return tc.TriggerSourceController.Player, true
+	}
 	ref := tc.TriggerSource
 	if ref == 0 && len(remembered) > 0 {
 		ref = remembered[0].Obj
