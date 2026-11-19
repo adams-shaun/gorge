@@ -907,14 +907,18 @@ func correlatesWithRemovedCardType(t string, sets effects.SubtypesKept, landWord
 // one the object never carried (Drake Stone's Stone: an artifact word with no
 // Artifact card type on the face).
 func staysOnARemainingCardType(t string, ty, remove, landWords []string) bool {
-	stillHas := func(ct string) bool {
-		return slices.ContainsFunc(ty, func(w string) bool { return IsCardType(w) && strings.EqualFold(w, ct) }) &&
-			!slices.ContainsFunc(remove, func(r string) bool { return strings.EqualFold(r, ct) })
+	var has, removed cards.TypeMask
+	for _, w := range ty {
+		has |= cards.TypeMaskOfName(w)
 	}
-	return effects.CreatureTypeWords(t) && stillHas("Creature") ||
-		effects.ArtifactTypeWord(t) && stillHas("Artifact") ||
-		effects.EnchantmentTypeWord(t) && stillHas("Enchantment") ||
-		slices.Contains(landWords, t) && stillHas("Land")
+	for _, r := range remove {
+		removed |= cards.TypeMaskOfName(r)
+	}
+	stillHas := func(ct cards.TypeMask) bool { return has&^removed&ct != 0 }
+	return effects.CreatureTypeWords(t) && stillHas(cards.TypeCreature) ||
+		effects.ArtifactTypeWord(t) && stillHas(cards.TypeArtifact) ||
+		effects.EnchantmentTypeWord(t) && stillHas(cards.TypeEnchantment) ||
+		slices.Contains(landWords, t) && stillHas(cards.TypeLand)
 }
 
 func typeMatchWordsKnown(ty []string, all, full bool) []string {
