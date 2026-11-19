@@ -18,6 +18,11 @@ type feeOnlyBoardTally struct {
 	// options at a class decision -- the offer gate's printedOK/autoPayOffer
 	// accepted it, priced (the prefix script found) or not.
 	offered bool
+	// priced: at a class decision the play was offered AND the planner's
+	// potential-plan row for it carries the prefix script the seat pays by
+	// (reason empty, script found), so the offer is a priced one and not an
+	// unpriced offer both engines would pass over alike.
+	priced bool
 }
 
 // check reads gorge's pending decision and battlefields.
@@ -54,6 +59,21 @@ func (y *feeOnlyBoardTally) check(ref *GorgeSide) {
 		}
 		if src := g.Obj(o.Obj); src != nil && src.Face() != nil && src.Face().Name == y.play {
 			y.offered = true
+			y.pricedRow(ref, d.Player, o.Obj)
+		}
+	}
+}
+
+// pricedRow marks the play priced when its potential-plan row is payable with
+// a prefix script.
+func (y *feeOnlyBoardTally) pricedRow(ref *GorgeSide, p state.PlayerID, play state.ObjID) {
+	if y.priced {
+		return
+	}
+	for _, pp := range ref.E.PotentialPaymentPlans(p) {
+		if pp.Action.Kind == "ability" && pp.Action.Obj == play && pp.Reason == "" && len(pp.Script) > 0 {
+			y.priced = true
+			return
 		}
 	}
 }
@@ -72,9 +92,22 @@ func (y *feeOnlyBoardTally) check(ref *GorgeSide) {
 // reaches the line through the same funded prefix space -- parts at the
 // offer (the filing run's decisions 393 and 746).
 //
-// The pin: the game reaches the class board and the two engines agree on
+// The pin: the game reaches the class board, the play is offered and priced
+// there (the plain prefix run finds its script), and the two engines agree on
 // every decision to its end. Reverting paymentPlanCensusOf's funding hunk
-// (b0e2ddde34) parts the same game at decision 393, so the pin bites.
+// (b0e2ddde34) parts the same game at decision 393, so the pin bites on it.
+//
+// It does NOT bite on the swapped-line cut (feeOnlyAskPrune's second cut,
+// feeOnlyFreeTapColour / filtFreeTapColour): measured at d29d39ab40 with the
+// cut reverted, the plain run still finds this game's script at 34-80 nodes
+// (25-57 with the cut), far inside the 160-node budget, and on the bare class
+// board (feeOnlyClassBoard) the plain run starves but the phased fallback
+// prices the play. Starving all three runs (plain, phased, subsume, 160 nodes
+// each) needs a class shape ~6x deeper than any board reachable here, so no
+// oracle-level witness exists. That cut's biting witness is the unit test
+// TestFeeOnlySwappedLineCutFindsTheLine (budget 10); its oracle-level claim is
+// only this priced-offer route: the cut may not change which script prices the
+// play.
 func TestMBCOrzhovaFeeOnlyCensusNotAProofLockstep(t *testing.T) {
 	t.Parallel()
 	y := &feeOnlyBoardTally{play: "Orzhova, the Church of Deals", fee: "Energy Refractor"}
@@ -84,5 +117,8 @@ func TestMBCOrzhovaFeeOnlyCensusNotAProofLockstep(t *testing.T) {
 	}, func(ref *GorgeSide) bool {
 		y.check(ref)
 		return y.offered
+	}, func(ref *GorgeSide) bool {
+		y.check(ref)
+		return y.priced
 	})
 }
