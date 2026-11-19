@@ -276,6 +276,39 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 				units = pay.AppendUnitAlt(units, id, a)
 			}
 		}
+		// A literal mana fee (Apprentice Wizard's "{U}, {T}: Add {C}{C}{C}")
+		// is the one further non-free shape this census prices, and it walks
+		// the GATE-BYPASSING member list: a fee the current pool cannot yet
+		// cover is exactly the source this census must still list, because
+		// the reach search pays the fee from the floating mana an earlier
+		// same-window activation produced (castWindowReachable's fee
+		// transition), and the live window offers the source once that fee
+		// is payable (manaAbilityPayablePool in the live member list), so
+		// the offer never promises an activation the window will not pose.
+		// The fee rides the alt (CostGeneric/CostColored, never netted into
+		// the production). A choice-shaped production, a colour chosen on
+		// activation, a restricted ability and an unmodelled Condition$
+		// stay out: each would promise a sub-ask the unless window's tape
+		// run cannot serve (fail closed, the census convention).
+		for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
+			if pay.InstantSpeedOnly(ma) || manaAbilityAddsNothing(ma) {
+				continue
+			}
+			fmf := e.manaStaticFor(p, id, ma)
+			if fmf.RestrictValid || fmf.FreeCost || fmf.Any || fmf.Amount <= 0 || effects.ManaOf(ma).NeedsChosen {
+				continue
+			}
+			fee := e.manaAbilityCC(p, id, ma).Cost
+			if pay.ActivationTapCostUnavailable(o, &fee) {
+				continue
+			}
+			if castWindowGenericCostShape(fee) {
+				for _, a := range pinnedManaAlts(windowManaAlt{Ma: ma, Amt: fmf.Amount,
+					CostGeneric: fee.Generic, CostColored: fee.Colored}, fmf.Counts) {
+					units = pay.AppendUnitAlt(units, id, a)
+				}
+			}
+		}
 	}
 	if len(pay.PaymentPlanInterferenceCarriers(asPayer(e))) > 0 {
 		units = e.windowTapExtras(units)

@@ -1086,3 +1086,15 @@ func ManaAdd(a, b state.Mana) state.Mana {
 	}
 	return m
 }
+
+// ManaSub returns a-b elementwise. A component may go negative: the reach
+// walks keep a floating-mana delta whose components only ever sum with the
+// base pool again, so an intermediate debit below the base's colour is
+// exact, never an underspend.
+func ManaSub(a, b state.Mana) state.Mana {
+	var m state.Mana
+	for i := range m {
+		m[i] = a[i] - b[i]
+	}
+	return m
+}

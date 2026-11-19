@@ -340,7 +340,21 @@ func askUnlessMana(e Engine) {
 				if a.Life > 0 && a.Life >= life {
 					continue
 				}
-				if safe != (UnlessManaReachable(e, u.Payer, u.Cost, ManaAdd(pool, a.Mana()), snow, typed, life-a.Life,
+				// A fee-carrying alt (the unless window's own census layer)
+				// pays its fee from the floating mana BEFORE its production
+				// exists (CR 605.3b), so a fee the pool cannot cover is not
+				// offered: the activation would fail its payability gate,
+				// and the census must not promise it. The reach check prices
+				// the remaining sources from the pool after the fee.
+				after := ManaAdd(pool, a.Mana())
+				if fee := a.Fee(); fee > 0 {
+					funded, ok := feeFromMana(a, pool, e.Eval().Conv(u.Payer, u.StackObj, SAOther))
+					if !ok {
+						continue
+					}
+					after = ManaAdd(funded, a.Mana())
+				}
+				if safe != (UnlessManaReachable(e, u.Payer, u.Cost, after, snow, typed, life-a.Life,
 					e.Eval().Conv(u.Payer, u.StackObj, SAOther), rest)) {
 					continue
 				}
