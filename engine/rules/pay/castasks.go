@@ -71,10 +71,7 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 	d := &decision.Decision{Player: in.Player, Kind: decision.KChoose, Min: 0, Source: in.Card}
 	sawCreature, sawArtifact := false, false
 	// colourValue prices each coloured convoke option under ColourBudget (MaxSum).
-	colourValue := 0
-	if in.ColourBudget > 0 {
-		colourValue = 1
-	}
+	colourValue := min(in.ColourBudget, 1)
 	var creatureMana map[state.ObjID]bool
 	if in.CreatureMana {
 		creatureMana = make(map[state.ObjID]bool)
@@ -229,9 +226,7 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 		d.Max = 1
 	}
 	d.Min = min(in.MinTaps, d.Max)
-	if in.ColourBudget > 0 {
-		d.MaxSum = in.ColourBudget
-	}
+	d.MaxSum = in.ColourBudget
 	e.Ask(AskCast, d)
 	return true
 }

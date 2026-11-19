@@ -255,7 +255,7 @@ func manaSpendConvokeCovers(e manaSpendBoard, pc *pendingCast, pays []convokePay
 	}
 	need := m.Generic + 2*int32(len(m.Twobrid))
 	gy := 0
-	if !pc.isAbility() && e.hasCastDelve(pc.card, pc.isAbility()) {
+	if !pc.isAbility() && e.hasCastDelve(pc.card, false) {
 		gy = len(e.Game().Zone(state.ZGraveyard, pc.player))
 	}
 	return need <= int32(gy)
