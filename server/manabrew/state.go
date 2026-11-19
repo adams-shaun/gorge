@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
@@ -17,7 +18,7 @@ func (t *Translator) gameView(v view.View) mb.GameViewDto {
 		CombatAssignments: combatAssignments(v), ActivePlayerID: playerID(v.Active),
 		PriorityPlayerID: playerID(v.Priority), Players: make([]mb.PlayerDto, 0, len(v.Players)),
 		Zones: make([]mb.ZoneDto, 0, len(v.Players)*5), Stack: make([]mb.StackObjectDto, 0, len(v.Stack)),
-		GameOver: v.Over, MonarchID: nil, InitiativeHolderID: nil,
+		GameOver: v.Over, MonarchID: nil, InitiativeHolderID: nil, DayTime: dayTime(v.DayNight),
 	}
 	if v.Winner != nil {
 		id := playerID(*v.Winner)
@@ -115,10 +116,23 @@ func stepKind(s string) mb.StepKind {
 	}
 }
 
+// dayTimes maps view.View.DayNight (CR 731: "day", "night", or empty
+// before either designation exists) onto ManaBrew's DayTime.
+var dayTimes = map[string]mb.DayTime{"day": mb.DayTimeDay, "night": mb.DayTimeNight}
+
+func dayTime(dayNight string) mb.DayTime {
+	if d, ok := dayTimes[dayNight]; ok {
+		return d
+	}
+	return mb.DayTimeNeither
+}
+
 func player(p view.PlayerView) mb.PlayerDto {
-	status := mb.PlayerStatus("active")
+	// The view records a loss, not how it came about, so a concession reads
+	// as lost.
+	status := mb.PlayerPlaying
 	if p.Lost {
-		status = "lost"
+		status = mb.PlayerLost
 	}
 	casts := make(map[string]int, len(p.Commanders))
 	for i, c := range p.Commanders {
@@ -221,24 +235,14 @@ func (t *Translator) visibleCard(c view.CardView) mb.CardView {
 		identity.IsToken = c.IsToken
 	}
 	power, toughness := strconv.Itoa(int(c.Power)), strconv.Itoa(int(c.Toughness))
-	card := mb.CardDto{ID: cardID(c.ID), Identity: identity, Color: []string{}, ManaCost: c.ManaCost, EffectiveManaCost: c.EffectiveManaCost, Types: []string{}, Subtypes: []string{}, Supertypes: []string{}, Power: &power, Toughness: &toughness,
+	colours, manaValue := cards.ManaCostPips(c.ManaCost)
+	card := mb.CardDto{ID: cardID(c.ID), Identity: identity, Color: colorText(colours), CMC: manaValue, ManaCost: c.ManaCost, EffectiveManaCost: c.EffectiveManaCost, Types: []string{}, Subtypes: []string{}, Supertypes: []string{}, Power: &power, Toughness: &toughness,
 		ClassLevels: []mb.ClassLevelDto{}, SagaChapters: []mb.SagaChapterDto{}, Text: text, Choices: []mb.CardChoiceDto{}, ControllerID: playerID(c.Controller), OwnerID: playerID(c.Owner), Tapped: c.Tapped,
 		IsAttacking: c.Attacking, Keywords: append([]string{}, c.Keywords...), Counters: make(map[string]int), Damage: int(c.Damage), SummoningSick: c.SummonSick, IsCopy: c.IsCopy && !c.FaceDown, IsDoubleFaced: false, IsTransformed: false, IsFaceDown: c.FaceDown, IsBestowed: false, PhasedOut: false, Exerted: false, AttachmentIDs: []string{}, MergedCardIDs: []string{}}
 	for k, v := range c.Counters {
 		card.Counters[k] = int(v)
 	}
-	typeLine := strings.SplitN(c.Types, "—", 2)
-	for _, typ := range strings.Fields(typeLine[0]) {
-		switch typ {
-		case "Basic", "Legendary", "Snow", "World":
-			card.Supertypes = append(card.Supertypes, typ)
-		default:
-			card.Types = append(card.Types, typ)
-		}
-	}
-	if len(typeLine) == 2 {
-		card.Subtypes = strings.Fields(typeLine[1])
-	}
+	card.Types, card.Subtypes, card.Supertypes = splitTypeLine(c.Types)
 	if c.AttackingPlayer != nil {
 		card.AttackingPlayerID = playerID(*c.AttackingPlayer)
 	}
@@ -247,6 +251,56 @@ func (t *Translator) visibleCard(c view.CardView) mb.CardView {
 	}
 	return mb.CardView{Value: mb.VisibleCard{Visibility: "visible", CardDto: card}}
 }
+
+// colourLetters are the WUBRG letters in ManaBrew's colour-string order, by
+// cards.ColourMask bit.
+var colourLetters = [...]struct {
+	mask   cards.ColourMask
+	letter string
+}{{cards.ColourMaskWhite, "W"}, {cards.ColourMaskBlue, "U"}, {cards.ColourMaskBlack, "B"},
+	{cards.ColourMaskRed, "R"}, {cards.ColourMaskGreen, "G"}}
+
+// colorText renders a colour mask as ManaBrew's colour string ("WU"; "" for
+// colourless -- colourless is no colour, CR 105.2c). The card's colours are
+// read off its mana cost: the view carries no other colour fact.
+func colorText(m cards.ColourMask) mb.ColorText {
+	out := ""
+	for _, c := range colourLetters {
+		if m&c.mask != 0 {
+			out += c.letter
+		}
+	}
+	return mb.ColorText(out)
+}
+
+// supertypeWords and cardTypeWords classify the words of a type line
+// (CR 205.4a, 205.2a); every other word is a subtype (CR 205.3).
+var (
+	supertypeWords = map[string]bool{"Basic": true, "Legendary": true, "Ongoing": true, "Snow": true, "World": true}
+	cardTypeWords  = map[string]bool{"Artifact": true, "Battle": true, "Conspiracy": true, "Creature": true,
+		"Dungeon": true, "Enchantment": true, "Instant": true, "Kindred": true, "Land": true, "Phenomenon": true,
+		"Plane": true, "Planeswalker": true, "Scheme": true, "Sorcery": true, "Tribal": true, "Vanguard": true}
+)
+
+// splitTypeLine splits a projected type line ("Legendary Creature Fox
+// Shaman", or the printed "... — Fox Shaman" form) into ManaBrew's three
+// lists. Each list is non-nil.
+func splitTypeLine(line string) (types, subtypes, supertypes []string) {
+	types, subtypes, supertypes = []string{}, []string{}, []string{}
+	for _, w := range strings.Fields(line) {
+		switch {
+		case w == "—" || w == "-":
+		case supertypeWords[w]:
+			supertypes = append(supertypes, w)
+		case cardTypeWords[w]:
+			types = append(types, w)
+		default:
+			subtypes = append(subtypes, w)
+		}
+	}
+	return types, subtypes, supertypes
+}
+
 func combatAssignments(v view.View) []mb.CombatAssignmentDto {
 	out := make([]mb.CombatAssignmentDto, 0)
 	for _, p := range v.Players {

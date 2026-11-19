@@ -209,7 +209,9 @@ func (t *Translator) revealCardsMessage(eventSeq uint64, v *view.View, revealer 
 	for _, id := range ids {
 		dto, z, ok := t.revealedCardDto(v, state.ObjID(id))
 		cards = append(cards, dto)
-		if ok && !zoneKnown {
+		// ManaBrew has no stack zone: a card revealed on the stack leaves the
+		// default.
+		if ok && !zoneKnown && z != mb.ZoneStack {
 			zone, zoneKnown = z, true
 		}
 	}
@@ -280,7 +282,7 @@ func findPublicCard(v *view.View, id state.ObjID) (*view.CardView, mb.ZoneKind) 
 // has no hidden-card union member of its own.
 func blankRevealCard(id state.ObjID) mb.CardDto {
 	return mb.CardDto{
-		ID: cardID(id), Identity: mb.CardIdentity{}, Color: []string{}, Types: []string{}, Subtypes: []string{},
+		ID: cardID(id), Identity: mb.CardIdentity{}, Types: []string{}, Subtypes: []string{},
 		Supertypes: []string{}, ClassLevels: []mb.ClassLevelDto{}, SagaChapters: []mb.SagaChapterDto{},
 		Choices: []mb.CardChoiceDto{}, Keywords: []string{}, Counters: map[string]int{},
 		AttachmentIDs: []string{}, MergedCardIDs: []string{},

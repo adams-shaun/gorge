@@ -239,6 +239,43 @@ func TestCreatePodRefusesAnUnsupportedDeckNamingTheCards(t *testing.T) {
 	}
 }
 
+// TestCreatePodAcceptsManaBrewsOwnDeckShape: the deck a real ManaBrew client
+// submits (manabrew-protocol src/deck_dto.rs Deck / DeckCard) carries each
+// card's colour as a string ("color":"", "W"), an image-URI set with png, and
+// the deck's colour, editor metadata and cover face as a string, an object and
+// a number. Typing any of them as gorge's old guesses (a colour list, an
+// editor string) refused every real deck with a 400 (F5).
+func TestCreatePodAcceptsManaBrewsOwnDeckShape(t *testing.T) {
+	srv, _, _ := podServer(t, config{}, []string{"p1", "p2", "p3", "p4"})
+	raw, err := json.Marshal(podLegal("ManaBrew shaped", 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var deck map[string]any
+	if err := json.Unmarshal(raw, &deck); err != nil {
+		t.Fatal(err)
+	}
+	deck["color"] = "W"
+	deck["editor"] = map[string]any{"layout": map[string]any{"groupBy": "type"}}
+	deck["coverCardFace"] = 0
+	for _, list := range []string{"cards", "commanders"} {
+		for i, c := range deck[list].([]any) {
+			card := c.(map[string]any)
+			card["color"] = ""
+			if i%2 == 1 {
+				card["color"] = "W"
+			}
+			card["colorIdentity"] = []string{}
+			card["uris"] = map[string]any{"small": "", "normal": "", "large": "", "png": "", "art_crop": "", "border_crop": ""}
+		}
+	}
+	code, body := podPost(t, srv.URL, podBody(t, map[string]any{
+		"format": "commander", "seats": 4, "humans": 4, "decks": []map[string]any{{"seat": 0, "deck": deck}}}))
+	if code != http.StatusOK {
+		t.Fatalf("a ManaBrew-shaped deck was refused: %d %s", code, body)
+	}
+}
+
 // TestCreatePodRefusesDiracUntilItSeatsFour: -engine dirac plays two seats, so
 // a pod, and a submitted deck it never checked, are refused before any table
 // is built.
