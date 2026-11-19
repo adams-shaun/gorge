@@ -692,7 +692,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 		}
 	}
-	if ev.Kind == events.MoveZone {
+	if ev.Kind == events.MoveZone || ev.Kind == events.Draw {
 		// Effect-created continuous effects' move-driven lifetimes (the
 		// ForgetOnMoved$/ExileOnMoved$ sweep) run after the move is applied
 		// and before this event's triggers are checked, so a may-play grant's
@@ -701,7 +701,10 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// exists for is a may-play cast's Exile→Stack move — which rides
 		// PutOnStack, the event kind a cast pushes with — and a remembered
 		// card can also leave the ForgetOnMoved$ zone from the graveyard or
-		// the hand.
+		// the hand. A draw is such a move as well (From Library, To Hand,
+		// CR 400.7: the drawn card is a new object), so a grant registered
+		// in the library ends with the draw and can never be revived by the
+		// card's later replay.
 		e.effectMoveSweep(ev)
 		e.sweepEffectDelayed(ev)
 	}
