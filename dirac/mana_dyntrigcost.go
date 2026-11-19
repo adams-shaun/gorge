@@ -183,10 +183,10 @@ func (s *State) dynFeePayable(k *prep, p uint8, sl Slot, cost *kop.ManaCost) boo
 	}
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		o := m.first()
-		if o == sl || !s.canTapForManaPC(k, o, s.manaPCGen(k, o)) {
+		pc := s.manaPCGen(k, o)
+		if o == sl || !s.canTapForManaPC(k, o, pc) {
 			continue
 		}
-		pc := s.manaPCGen(k, o)
 		mask, n := s.srcMaskAt(pc, o), s.srcYieldAt(k, o, pc)
 		for c := 0; c < kop.NumManaKinds; c++ {
 			if mask&(1<<uint(c)) != 0 {
