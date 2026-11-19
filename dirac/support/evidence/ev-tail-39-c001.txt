@@ -147,6 +147,7 @@ Game-Trail Changeling
 Garrison Cat
 Gatebreaker Ram
 Geistflame Reservoir
+Geralf's Mindcrusher
 Gerrard's Battle Cry
 Ghost Lantern
 Ghost Quarter
@@ -256,6 +257,7 @@ Nether Horror
 Night Out in Vegas
 Nissa's Defeat
 Oblivion Crown
+Oblivion's Hunger
 Ogre Berserker
 Oona's Grace
 Orchard Spirit

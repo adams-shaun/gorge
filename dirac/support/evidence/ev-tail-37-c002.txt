@@ -17,6 +17,7 @@ Ancient Tomb
 Angel of the Dawn
 Angelsong
 Arcane Adaptation
+Arcbond
 Archangel's Light
 Archers of Qarsi
 Ardoz, Cobbler of War
@@ -214,6 +215,7 @@ Nearheath Chaplain
 Niambi, Faithful Healer
 Nishoba Brawler
 Norika Yamazaki, the Poet
+Noxious Dragon
 Nullify
 Off Balance
 Organ Hoarder

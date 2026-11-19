@@ -1,3 +1,4 @@
+A-Pseudodragon Familiar
 A-The One Ring
 Aerial Modification
 Air Nomad Student
@@ -50,16 +51,19 @@ Disciple of Perdition
 Discontinuity
 Diviner of Mist
 Doubtless One
+Dredge
 Drinker of Sorrow
 Dust Bowl
 Earthbending Student
 Egon, God of Death
+Elemental Spectacle
 Elvish Skysweeper
 Ensoul Artifact
 Explosive Vegetation
 Fade from Memory
 Fae of Wishes
 Favored of Iroas
+Final Flare
 Firefiend Elemental
 Fledgling Griffin
 Forced March
@@ -85,7 +89,9 @@ Hero's Heirloom
 Heroic Teamwork
 Hivestone
 Hordeling Outburst
+Hungry for More
 Hunting Grounds
+Ignoble Hierarch
 Imperial Subduer
 Impetuous Sunchaser
 Inferno Elemental
@@ -101,10 +107,13 @@ Lava Spike
 Lightning Bolt
 Lightning Stormkin
 Llanowar Augur
+Llanowar Scout
 Long Road Home
 Lucas, the Sharpshooter
+Luke Cage, Hero for Hire
 Luminous Wake
 Machine Man, Model X-51
+Magefire Wings
 Maraxus of Keld
 Mardu Strike Leader
 Marsh Viper
@@ -136,6 +145,7 @@ Port Inspector
 Powerstone Engineer
 Prism Array
 Psionic Entity
+Pyrohemia
 Radha's Firebrand
 Rampart Crawler
 Raving Visionary
@@ -149,7 +159,9 @@ Riot Ringleader
 Rip-Clan Crasher
 Ripjaw Raptor
 Roaming Ghostlight
+Rockslide Elemental
 Rooftop Nuisance
+Rotlung Reanimator
 Sabertooth Wyvern
 Sage of the Unknowable
 Saheeli's Silverwing
@@ -157,9 +169,11 @@ Sanctum Gargoyle
 Sandblast
 Satyr Piper
 Scryb Ranger
+Seasoned Pyromancer
 Seismic Elemental
 Sejiri Steppe
 Selesnya Cluestone
+Selfless Samurai
 Serra's Liturgy
 Serum Visionary
 Shady Traveler
@@ -170,6 +184,7 @@ Sightless Ghoul
 Silk Net
 Skaab Wrangler
 Skophos Warleader
+Skyblade of the Legion
 Smite the Monstrous
 Smog Elemental
 Solve the Equation
@@ -212,6 +227,7 @@ Turn the Earth
 Underworld Rage-Hound
 Undying Rage
 Untamed Kavu
+Vengeant Earth
 Vincent, Vengeful Atoner
 Vivid Crag
 Volley of Boulders

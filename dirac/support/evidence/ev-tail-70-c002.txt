@@ -13,6 +13,7 @@ Apprentice Necromancer
 Artful Takedown
 Artifact Mutation
 Ashen Powder
+Augury Raven
 Aurochs Herd
 Awakening
 Baloth Cage Trap
@@ -22,6 +23,7 @@ Bayou Groff
 Bladed Pinions
 Blood-Chin Rager
 Bloodhusk Ritualist
+Bloodletter Quill
 Bloodthirsty Adversary
 Bog Tatters
 Bonded Horncrest
@@ -32,6 +34,7 @@ Cathartic Reunion
 Cavalry Drillmaster
 Chain Devil
 Champion's Drake
+Chandra, Flamecaller
 Charge
 Chrome Host Seedshark
 Cloak of Confusion
@@ -169,6 +172,7 @@ Plains
 Planar Gate
 Plated Onslaught
 Predatory Nightstalker
+Price of Glory
 Primal Frenzy
 Primal Rage
 Putrid Cyclops

@@ -31,6 +31,7 @@ Blazing Rootwalla
 Blinding Radiance
 Bloodflow Connoisseur
 Bloodied Ghost
+Boon of Emrakul
 Boonweaver Giant
 Bramble Wurm
 Brightclimb Pathway
@@ -39,10 +40,12 @@ Buoyancy
 Burden of Guilt
 By Force
 Canopy Tactician
+Carrion Howler
 Cartouche of Strength
 Char
 Chatterstorm and Awaken the Woods
 Child of Night
+Chime of Night
 Chishiro, the Shattered Blade
 Chrome Cat
 Cleanse
@@ -53,6 +56,7 @@ Corpse Hauler
 Corrupted Resolve
 Courier Griffin
 Crimson Roc
+Crucible of Worlds
 Cryptolith Rite
 Cursed Totem
 Cyclone Summoner
@@ -87,6 +91,7 @@ Engineered Plague
 Enthrall
 Ephara's Warden
 Erebos's Emissary
+Essence Capture
 Eternal Skylord
 Ethereal Ambush
 Everflame Eidolon
@@ -164,6 +169,7 @@ Leonin Battlemage
 Leshrac's Sigil
 Lifespring Druid
 Lightning Blast
+Locus Cobra
 Lose Calm
 Lumengrid Warden
 Lychguard
@@ -200,11 +206,13 @@ Nightstalker Engine
 Nimble Pilferer
 Nissa's Triumph
 Novellamental
+Nyxborn Marauder
 Obelisk of Esper
 Ochre Jelly
 Ogre Gatecrasher
 Ogre Sentry
 Oji, the Exquisite Blade
+Okiba Salvage
 Otherworld Atlas
 Oxidize
 Ozox, the Clattering King
@@ -249,6 +257,7 @@ Sacred Nectar
 Saddleback Lagac
 Sanguine Glorifier
 Saprazzan Outrigger
+Scuttling Sentinel
 Sea's Claim
 Seal of Fire
 Seer's Vision
@@ -271,7 +280,9 @@ Skyfisher Spider
 Skyshroud Ranger
 Slagwurm Armor
 Sludge Monster
+Slum Reaper
 Smitten Swordmaster
+Song of Eärendil
 Sorcerer's Wand
 Soulblade Corrupter
 Spawning Grounds
@@ -307,6 +318,7 @@ Thornhide Wolves
 Thought Scour
 Thundering Raiju
 Tidal Wave
+Tormentor's Trident
 Treachery
 Treasure Hunter
 Trokin High Guard
@@ -330,6 +342,7 @@ Waterknot
 Whipflare
 Whirlermaker
 Whisperer of the Wilds
+Wild Hunger
 Wind Sail
 Wintermoor Commander
 Woeleecher

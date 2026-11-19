@@ -75,6 +75,7 @@ Hapatra, the Desert Fang
 Harsh Scrutiny
 Harvest Gwyllion
 Hawkeye, Clint Barton
+Heartstone
 Hired Poisoner
 Hydroid Krasis
 Inspiration
@@ -87,6 +88,7 @@ Krosan Avenger
 Labyrinth Champion
 Loran's Escape
 Lost Legion
+Loyal Cathar
 Luke Cage, Hero for Hire
 Malachite Golem
 Mana Seism
@@ -143,6 +145,7 @@ Thief of Existence
 Thrull Surgeon
 Thumbscrews
 Thunder Wall
+Tide Drifter
 Tombfire
 Touch of Death
 Toxic Scorpion
@@ -150,6 +153,7 @@ Trickster Mage
 Troll-Horn Cameo
 Typhoid Rats
 Unlikely Aid
+Vodalian Arcanist
 Voice of All
 Warpath Ghoul
 Wasteful Harvest
