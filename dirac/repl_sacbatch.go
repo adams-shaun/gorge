@@ -21,7 +21,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // sacReturnHold reports whether an until-leaves return waits where a sacrifice
 // would park its CR 616.1 ask (sacDelayPark): a departed permanent's cards wait
 // to come back (nretHeld), the returns batch is already parked on an ask
-// (retHold), or the permanent to sacrifice holds a link to return — gorge
+// (retHold), or a permanent of ord, still on the battlefield, holds a live
+// link to return (its version is the link's sver until it moves) — gorge
 // returns after the whole departure batch, which the parked move cannot
 // reproduce once the frame has closed (zone_untilleavesbatch.go). The
 // sacrifice then happens now and dieZone stalls by name, as before.
@@ -32,7 +33,7 @@ func (s *State) sacReturnHold(ord []Slot) bool {
 	for _, sl := range ord {
 		o := s.perms[sl].obj
 		for i := 0; i < int(s.g.nlinks); i++ {
-			if l := &s.g.links[i]; l.src == o && s.objs[o].ver == l.sver+1 {
+			if l := &s.g.links[i]; l.src == o && s.objs[o].ver == l.sver {
 				return true
 			}
 		}
