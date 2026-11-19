@@ -2,53 +2,111 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Abrade	c3ab9a67695d8dbb	18	0/0		2/2	
 Acidic Slime	7e790b3c2be57b1e	3	1/1		0/1	ix:resp
 Aggressive Urge	1ddf15f9d43939e4	10	0/0		1/2	ix:resp
+Anara, Wolvid Familiar	71fb56be82919c8c	4	0/0		0/0	
 Avatar of Growth	e59650bd50c6ffd3	4	1/1		0/1	ix:resp
+Aven Squire	4a7d02901d06c223	5	1/1		0/1	ix:resp
 Banisher Priest	bb69c68e7f40e247	5	1/1		0/1	ix:resp
+Banshee of the Dread Choir	5743fa20e80c8f87	156	2/2		1/1	
 Bassara Tower Archer	3a8f578dc1154ec4	7	0/0		0/0	
 Benevolent Ancestor	7ed85cd621a9c74b	6	1/1		0/1	ix:resp
 Benevolent Blessing	6a1a3afe3a12df03	3	0/0		1/2	ix:resp
+Betrayal of Flesh	356bd2dfb10485c4	10	0/0		1/2	ix:resp
+Bitterbow Sharpshooters	24121c643ac8e2ec	12	0/0		0/0	
 Blood Curdle	9b8bfae51740eb62	9	0/0		2/2	
+Blur	8edd24bd2057e3a6	22	0/0		2/2	
+Bone Shredder	9d0b40221dfe6869	9	2/2		1/1	
 Broken Wings	eae39ac5e149163b	4	0/0		2/2	
 Campfire	d674630374ad1699	12	2/2		0/1	ix:resp
+Cathartic Pyre	939472b0b110fa34	6	0/0		1/2	ix:resp
 Cephalid Illusionist	2dae8cf10f762032	27	2/2		1/1	
+Chandra's Pyrohelix	d6f4b39445ab8374	6	0/0		1/2	ix:resp
 Claws of Gix	af3e400c17dbf4d7	10	1/1		1/1	
 Colossal Dreadmaw	d7df553a84c0f2be	3	0/0		0/0	
+Cone of Flame	4026360280ae9854	20	0/0		2/2	
 Consul's Lieutenant	36b80b1f22a0160a	4	2/2		0/1	ix:resp
+Convulsing Licid	ff3f240c7b56e20b	14	1/1		0/1	ix:resp
+Dauthi Horror	0bf9082e5cfaa26e	36	0/0		0/0	
+Desert of the Fervent	cb1d41f59d8d4625	101	2/2		0/1	ix:resp
+Dyfed, the Guiding Hand	7bc7b88bc36d8a46	11	3/3		1/1	
 Elspeth's Smite	404ed57a605dc9f4	4	0/0		1/2	ix:resp
+Elvish Visionary	285286eb146ffcae	22	1/1		0/1	ix:resp
+Energy Flux	a4c11cf3ffcc5202	7	0/0		0/0	
+Exile	0c84550c04f6fe99	4	0/0		1/2	ix:resp
+Explosive Vegetation	711cdee9d03870ca	14	0/0		1/2	ix:resp
+Explosive Welcome	c57d5caa1358e0b7	14	0/0		1/2	ix:resp
+Extinguish All Hope	2ec47796f273c5a2	14	0/0		1/2	ix:resp
+Fell Gravship	13badd8996aa3131	22	1/1		0/1	ix:resp
 Filth	40fb7b3d9c03de08	16	0/0		0/0	
 Fireball	38e57e53e1b89980	8	0/0		3/4	f0/s/x0
 Forest	6d0466c30f825dba	55	1/1		0/1	ix:resp
 Ghost Lantern	49d55e82fc5ae4e4	12	2/2		1/2	ix:resp
+Gideon's Sacrifice	79986ec702009674	4	0/0		1/2	ix:resp
+Gifted Aetherborn	6ad61d26c6d5648c	25	0/0		0/0	
 Heart Warden	226472cab9cb7403	13	2/2		0/1	ix:resp
 Hoodwink	80140563819d9fef	6	0/0		1/2	ix:resp
+Infernal Vessel	3621533b0342961a	28	1/1		1/1	
 Inner Demon	daee124ca357b776	10	1/1		2/2	
+Insidious Fungus	312308efacecb7b3	22	1/1		1/1	
 Island	763c67ef7a27eaf5	40	1/1		0/1	ix:resp
 Kavu Primarch	be6e53cf9601bc31	4	0/0		1/2	cast/alt:kicked
+Kor Hookmaster	837f77534ebb11f0	6	1/1		0/1	ix:resp
 Kyren Negotiations	680d71a643aeafdd	8	1/1		1/1	
 Lightning Bolt	c7296d7fd250d1ad	26	0/0		2/2	
+Lotus Petal	cb1ea04b3373f2d0	35	1/1		0/1	ix:resp
+Mana Short	e27ea6e50cbd4aae	8	0/0		1/2	ix:resp
+Memnite	44a29d684ae93618	28	0/0		0/0	
 Mentor of the Meek	c10286fc41b98ef3	10	1/1		1/1	
 Mind Stone	2742f5d9d34776f2	7	2/2		0/1	ix:resp
+Mindcrank	cda00a71cd9e0589	16	1/1		1/1	
 Mirri's Guile	f64b6988fde4ac80	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Mortuary	acbabc2b90435a56	13	1/1		1/1	
 Mountain	9e71388353e907ed	81	1/1		0/1	ix:resp
+Mystic Retrieval	ff5f545c893e9b7f	12	0/0		3/4	ix:resp
+Nahiri's Machinations	3a1ea40ab8f636ec	10	2/2		0/1	ix:resp
 Nature's Claim	48bf5768f92fa86f	8	0/0		1/2	ix:resp
 Oakhame Adversary	d6186de28511996b	7	1/1		0/1	ix:resp
 Order of Yawgmoth	b0c1addfe8a7586f	11	1/1		0/1	ix:resp
+Otherworldly Journey	7f9c333161040bf8	6	0/0		1/2	ix:resp
+Overrun	6984e9c5d6eb987b	14	0/0		1/2	ix:resp
+Perimeter Captain	91c3661c5d7f043f	12	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Pir, Imaginative Rascal	683c7203f2c30d32	6	1/1		0/1	ix:resp
 Pit Keeper	73f5a1db523ed703	15	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Plagon, Lord of the Beach	5fbe5f5fe38d0e68	28	2/2		1/1	
 Plains	82d63a695487e567	42	1/1		0/1	ix:resp
+Pox	b1c61284fe29fddc	14	0/0		2/2	
 Pressure Point	a410cc7b95af74cb	5	0/0		1/2	ix:resp
 Prison Term	18d73d1049a27b00	4	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Rishadan Port	d53e638d151d99fc	104	2/2		1/1	
 Secret Rendezvous	98dfd55a67c6407a	4	0/0		1/2	ix:resp
+Shower of Coals	5eaff37a86f1ecd9	9	0/0		2/2	
+Shrike Force	5bcfb391f7551426	18	0/0		0/0	
+Silver Myr	ea8a105cab238527	16	1/1		1/1	
+Smash to Dust	4aef52d119f57b61	3	0/0		1/2	ix:resp
+Spectral Sliver	3a744e83d5d210f9	4	0/0		0/0	
+Spirit Link	ffd3f0afc7dc5712	16	1/1		1/2	ix:resp
+Sprite Noble	15c6cd4ba7399876	18	1/1		0/1	ix:resp
+Stoke the Flames	7ab12626ec7c7821	4	0/0		2/2	
+Subjugator Angel	24809d64a0dbe873	14	1/1		1/1	
 Supreme Will	cc84ba4df15f11a2	23	0/0		2/2	
 Swamp	342b413902f441c3	247	1/1		0/1	ix:resp
 Tainted Strike	18d4af8099c42a09	11	0/0		2/2	
 Temporal Fissure	0b2431c85dd59a07	8	1/1		2/2	
+Thunderdrum Soloist	445440d85b1cf4a4	4	1/1		0/1	ix:resp
 Thunderwave	39013f2d6d531430	19	0/0		1/2	ix:resp
+Tibalt's Rager	3f4a5ddea626862f	4	2/2		1/1	
 Toby, Beastie Befriender	93c52fb20767606d	4	1/1		0/1	ix:resp
+Tolaria West	970782725cd9a846	97	2/2		0/1	ix:resp
+Totally Lost	e92a6e40b9f79382	21	0/0		2/2	
 Trollbred Guardian	35e4b0e58c89e9b8	5	1/1		0/1	ix:resp
 Twisted Image	5d04a4eac85d91e0	14	0/0		2/2	
 Two-Handed Axe	936208c1888a15ba	32	2/2		2/2	
+Undercity Informer	9be00bd6bb7dc985	23	1/1		1/1	
+Unseal the Necropolis	376421d3be6938d3	31	0/0		2/2	
+Valakut Predator	af3960f975908611	16	1/1		1/1	
 Vanish into Eternity	5554d11c25568b37	3	0/0		2/2	
+Vastwood Surge	f6dc0b45e9c6a4b1	14	0/0		2/4	cast/alt:kicked,ix:resp
 Veteran Armorer	0d842a17c7357ec9	3	0/0		0/0	
+Vile Consumption	1060ee87bdf1e01f	10	0/0		0/0	
+Vine Mare	7157d20075228088	12	0/0		0/0	
 Whip Silk	2e28bb3166ddfa66	8	1/1		2/2	
+You Find Some Prisoners	6aadde6623d824af	23	0/0		2/2	

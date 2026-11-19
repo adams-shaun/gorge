@@ -11,15 +11,18 @@ Arctic Treeline
 Ashling the Pilgrim
 Atarka Beastbreaker
 Axgard Armory
+Banish from Edoras
 Barbed Batterfist
 Bazaar Trademage
 Blade Splicer
 Blasted Landscape
 Blood Age General
+Bloodcrusher of Khorne
 Bloodfire Colossus
 Blue Sun's Zenith
 Boggart Arsonists
 Book of Rass
+Border Guard
 Brand
 Brawl-Bash Ogre
 Brood Birthing
@@ -33,10 +36,13 @@ Chaotic Goo
 Clot Sliver
 Cold Storage
 Combust
+Copper Host Crusher
 Copper Myr
+Cut
 Dakmor Plague
 Dark Betrayal
 Definitely Not a Turtle
+Dementia Bat
 Demystify
 Deploy the Gatewatch
 Drana, Liberator of Malakir
@@ -49,7 +55,9 @@ Essence Flare
 Evangel of Synthesis
 Eviscerator's Insight
 Expedition Diviner
+Familiar Ground
 Farm
+Fault Riders
 Feral Ridgewolf
 Flamespeaker's Will
 Fleeting Aven
@@ -58,14 +66,19 @@ Footfall Crater
 Forest
 Forget
 Fourth Bridge Prowler
+Frontline Devastator
 Geier Reach Sanitarium
 Ghastly Demise
+Ghost-Spider, Gwen Stacy
 Ghostly Visit
 Glimmerbell
+Go-Shintai of Shared Purpose
 Goblin Bombardment
 Goblin Hero
+Goblin Tutor
 Goliath, Mass Manipulator
 Griffin Protector
+Grollub
 Hall of Oracles
 Hallowed Healer
 Haunted Cloak
@@ -94,6 +107,7 @@ Liliana's Devotee
 Lilting Refrain
 Loam Lion
 Loathsome Catoblepas
+Luminarch Ascension
 Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
@@ -106,12 +120,14 @@ Metallic Mastery
 Mind Drain
 Mirrodin Avenged
 Mirror Image
+Mistcutter Hydra
 Monstrous Hound
 Morbid Bloom
 Mountain
 Multiversal Recruitment
 Mystic Restraints
 Nephalia Smuggler
+Night Scythe
 Nocturnal Raid
 Nymris, Oona's Trickster
 Nyxborn Marauder
@@ -123,7 +139,10 @@ Overrule
 Penance Stare
 Pestermite
 Pillar of Light
+Pious Evangel
+Pious Wayfarer
 Plains
+Provoke
 Psychic Spear
 Purifying Dragon
 Raiding Nightstalker
@@ -139,6 +158,8 @@ Ruin Ghost
 Rust Monster
 Salt Marsh
 Sandstone Warrior
+Savage Thallid
+Scragnoth
 Scroll of Origins
 Seeker
 Seismic Strike
@@ -183,6 +204,7 @@ Untamed Wilds
 Valkyrior Skyrider
 Vexing Sphinx
 Viashivan Dragon
+Voda Sea Scavenger
 Vraska's Contempt
 Wake of Destruction
 Wander in Death
@@ -190,4 +212,5 @@ Warleader's Helix
 Wildfire Eternal
 Windreader Sphinx
 Woodland Bellower
+Wose Pathfinder
 Zuko's Offense

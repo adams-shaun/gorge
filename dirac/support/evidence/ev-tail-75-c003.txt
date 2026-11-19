@@ -166,6 +166,7 @@ Lost in the Spirit World
 Magma Vein
 Magmatic Insight
 Malcator's Watcher
+Malicious Advice
 Mammoth Spider
 Mana Vault
 Manalith
@@ -228,6 +229,7 @@ Rampaging Cyclops
 Raugrin Triome
 Reclaim the Wastes
 Reduce in Stature
+Return from Extinction
 Reverberate
 Rimewood Falls
 Rishadan Cutpurse
@@ -284,6 +286,7 @@ Tectonic Edge
 Tempestra, Dame of Games
 Territorial Boar
 Thirst for Discovery
+Thistledown Duo
 Thopter Assembly
 Thopter Mechanic
 Thoughtweft Gambit

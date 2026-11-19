@@ -1,26 +1,79 @@
+Absorb Vis
+Ajani's Welcome
 Archaeomancer
+Ardent Elementalist
+Armored Ascension
 Aven Fisher
+Bad Deal
 Barrage of Boulders
+Battle Screech
 Bloodchief's Thirst
+Careful Study
+Cast Out
+Conifer Strider
+Dawnbringer Cleric
+Daxos, Blessed by the Sun
 Devouring Light
 Diabolic Tutor
+Dragon Bell Monk
+Dream Fracture
+Errant Ephemeron
 Exuberant Fuseling
 Fathom Fleet Swordjack
 Fencing Ace
 Forest
+Forest Bear
+Gaea's Anthem
 Goblin Wardriver
+Heartless Act
 Hellspark Elemental
 Horizon Scholar
+Humble
+Ideas Unbound
 Island
+Jaya, Venerated Firemage
+Journey to Nowhere
+Kavu Climber
+Keldon Halberdier
+Kinsbaile Courier
+Lassoed by the Law
+Lingering Souls
 Mana Flare
+Merchant Scroll
 Merfolk Trickster
+Mesmeric Fiend
+Metastatic Evangel
+Mistwalker
+Mogg Raider
 Mountain
+Omen
+Omen of the Sun
+Parasitic Impetus
+Pegasus Guardian
+Plague Spitter
 Plains
 Rakdos Charm
 Reckless Abandon
+Restock
+Ruinous Gremlin
+Serum Visions
+Shiv's Embrace
+Sneering Shadewriter
+Stitch Together
 Strafe
+Strategic Planning
 Swamp
 Talrand, Sky Summoner
 The Reality Chip
+Torpor Orb
+Traveling Minister
+Up the Beanstalk
 Vapor Snag
+Varchild, Betrayer of Kjeldor
+Venomspout Brackus
+Wakestone Gargoyle
+Whirler Rogue
 Wicked Pact
+Wizard Class
+Words of Wisdom
+You're Confronted by Robbers

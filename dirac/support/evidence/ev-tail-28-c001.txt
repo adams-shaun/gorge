@@ -65,6 +65,8 @@ Carrion Grub
 Cast into Darkness
 Cateran Kidnappers
 Cavalier of Flame
+Centaur Peacemaker
+Charging Troll
 Chasm Guide
 Chief of the Scale
 Chilling Apparition
@@ -267,6 +269,7 @@ Nip Gwyllion
 Norn's Wellspring
 Nylea's Emissary
 Oblivion Strike
+Ohabi Caleria
 Ondu Spiritdancer
 Opaline Unicorn
 Orazca Raptor

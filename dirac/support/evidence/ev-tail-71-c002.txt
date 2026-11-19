@@ -5,6 +5,7 @@ A-Skull Skaab
 A-The Meathook Massacre
 Academy Elite
 Aerial Guide
+Alandra, Sky Dreamer
 Alchemax Slayer-Bots
 Alchemist's Gift
 Alluring Suitor
@@ -249,6 +250,7 @@ Plains
 Planar Despair
 Predator's Strike
 Predatory Wurm
+Primal Boost
 Prized Elephant
 Puppet's Verdict
 Pyrogoyf

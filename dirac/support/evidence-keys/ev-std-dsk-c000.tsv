@@ -1,26 +1,67 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Acrobatic Cheerleader	0a7272f66463a072	4	1/1		0/1	ix:resp
+Boilerbilges Ripper	0c0180bac4b0e3ab	6	1/1		0/1	ix:resp
+Broodspinner	7fd50caa7edd13e8	4	2/2		0/1	ix:resp
+Cautious Survivor	ec3f07467de424ab	3	1/1		0/1	ix:resp
+Clockwork Percussionist	54d3e6bbb72048b0	6	1/1		0/1	ix:resp
 Conductive Machete	00b704910893c666	4	2/2		0/1	ix:resp
+Cursed Recording	9ad02f6e62247dae	4	2/2		0/1	ix:resp
+Cursed Windbreaker	24a29e4c6fc5d243	6	2/2		1/1	
 Dazzling Theater	6eb5ee9df4f4cdc4	6	0/0		0/0	
+Disturbing Mirth	df1a36fcb9a84e4b	4	2/2		0/1	ix:resp
+Diversion Specialist	d69333498cc9578f	3	1/1		1/1	
+Don't Make a Sound	c3c1abfac40eb435	4	0/0		1/2	ix:resp
+Enduring Curiosity	442d7f321bb0091f	6	2/2		1/1	
 Enter the Enigma	7c3f1b3df9beb852	4	0/0		1/2	ix:resp
+Etched Cornfield	6d81bd2da4e0c413	6	1/1		0/1	ix:resp
+Ethereal Armor	f366ac2a380a3093	4	0/0		2/2	
+Exorcise	877a3a380a6761e8	4	0/0		1/2	ix:resp
+Fear of Being Hunted	bbdf79e50162faaf	3	0/0		0/0	
+Fear of Burning Alive	d8570b55baddb459	4	2/2		0/1	ix:resp
+Fear of Missing Out	9ea2881f7b5096dc	4	2/2		0/1	ix:resp
 Final Vengeance	5a59d3f6fb567fe9	4	0/0		1/2	ix:resp
 Forest	6d0466c30f825dba	63	1/1		0/1	ix:resp
+Ghostly Keybearer	4a3965ac10fe5b4e	4	1/1		1/1	
 Give In to Violence	7b9ebac919261d9f	4	0/0		1/2	ix:resp
+Grab the Prize	cc605a6d62df3c14	4	0/0		1/2	ix:resp
+Grand Entryway	ae6f8b2dbbf5a633	4	2/2		0/1	ix:resp
 Horrid Vigor	0484f0f668b72d06	4	0/0		1/2	ix:resp
+Impossible Inferno	8fba96a3ca8b4939	3	0/0		2/2	
+Innocuous Rat	07c8b6062d337f6f	6	1/1		0/1	ix:resp
+Insidious Fungus	312308efacecb7b3	8	1/1		0/1	ix:resp
+Irreverent Gremlin	3179d317ddb861b8	6	1/1		0/1	ix:resp
 Island	763c67ef7a27eaf5	52	1/1		0/1	ix:resp
+Killer's Mask	fab8c77fa054e4b6	6	2/2		0/1	ix:resp
 Let's Play a Game	b0044296fa43c9a1	8	0/0		1/2	ix:resp
 Leyline of the Void	34d3310d76eeafd3	4	0/0		0/0	
 Live or Die	a311a03fbbcf8f83	4	0/0		1/2	ix:resp
+Midnight Mayhem	3d29376d6bf95c94	4	0/0		1/2	ix:resp
+Mirror Room	2d2cb7f3646890d7	4	1/1		0/1	ix:resp
 Mountain	9e71388353e907ed	56	1/1		0/1	ix:resp
+Murder	cb5577a7bce1d337	4	0/0		1/2	ix:resp
+Murky Sewer	5bf439d4052dc0e0	5	1/1		0/1	ix:resp
+Norin, Swift Survivalist	a31917a3160b5c56	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Paranormal Analyst	529a60bc4917151f	5	1/1		0/1	ix:resp
 Peculiar Lighthouse	8ef3cfa1a24408b3	4	1/1		0/1	ix:resp
 Piggy Bank	18db8ef80ae56f27	4	1/1		0/1	ix:resp
 Piranha Fly	991b8f051a53f3af	4	0/0		0/0	
 Plains	82d63a695487e567	44	1/1		0/1	ix:resp
 Rampaging Soulrager	017e76c0d50be8ac	4	0/0		0/0	
 Razorkin Hordecaller	d61f74d592c99622	4	1/1		1/1	
+Razorkin Needlehead	4a508afe3e1a1104	6	1/1		0/1	ix:resp
+Razortrap Gorge	63886ad147e81fa6	13	1/1		0/1	ix:resp
+Ripchain Razorkin	b6877ab3c7aa8b71	4	1/1		1/1	
 Rite of the Moth	ca656f9e41fe8d18	3	0/0		3/4	ix:resp
 Savior of the Small	4d786340739ab83d	4	1/1		0/1	ix:resp
+Seized from Slumber	154c9a0e3197acb4	3	0/0		1/2	ix:resp
 Sheltered by Ghosts	dd4ac65e51635908	4	1/1		1/2	ix:resp
 Splitskin Doll	9565d946514b0916	4	1/1		0/1	ix:resp
 Swamp	342b413902f441c3	47	1/1		0/1	ix:resp
+The Mindskinner	16527cfd2f2bc8b3	4	0/0		0/0	
 The Swarmweaver	a2723ebe441575fd	4	1/1		0/1	ix:resp
+Threats Around Every Corner	b31c898cd09052d3	3	2/2		0/1	ix:resp
+Unable to Scream	dd571358e095685f	3	0/0		1/2	ix:resp
+Unnerving Grasp	330b4d11c652cc64	4	0/0		1/2	ix:resp
+Untimely Malfunction	9e98f272a3df51e0	4	0/0		1/2	ix:resp
+Veteran Survivor	98914fac917ff874	4	1/1		0/1	ix:resp
+Waltz of Rage	15d31221e32b924c	4	0/0		1/2	ix:resp

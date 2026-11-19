@@ -7,9 +7,11 @@ Bloodfire Expert
 Buried Alive
 Cartouche of Strength
 Cloudreader Sphinx
+Confound
 Constricting Sliver
 Coruscation Mage
 Court of Embereth
+Dauthi Embrace
 Demand Answers
 Desperate Lunge
 Destroy Evil
@@ -18,6 +20,7 @@ Doomsday
 Elven Bow
 Exhaustion
 Exquisite Huntmaster
+Extract from Darkness
 Fatestitcher
 Felidar Guardian
 Fiend Hunter
@@ -70,12 +73,14 @@ Silver Knight
 Snap
 Spin into Myth
 Sting-Slinger
+Stinging Barrier
 Stronghold Rats
 Surge of Salvation
 Swamp
 Take Up the Shield
 Temple Acolyte
 Thornwind Faeries
+Thought Courier
 Torch Breath
 Trove Tracker
 Unexpected Fangs
@@ -86,3 +91,4 @@ Volatile Claws
 Wanderer's Strike
 You See a Pair of Goblins
 Young Wolf
+Zombie Cutthroat
