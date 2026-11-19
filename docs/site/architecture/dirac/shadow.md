@@ -40,6 +40,12 @@ Last run: 200 of 200 positions staged (462 tried; 243 refused as a non-quiet ste
 
 `TestStageMutationsAreCaught` drops each of tapped, summoning-sick, life, land drop, library order, graveyard order and turn from the staging in turn, and requires the verifier to fail on each. A feature that staging silently dropped would be caught.
 
+## Fork and rollout (chunk C8)
+
+`dirac.Rollout` (`dirac/driver.go`) owns one working `State` on its own `ForkPool`. `Fork(src)` is `State.CopyFrom(src)` into it; `src` is never written. `Run(src, pol, max)` forks and plays the fork with a caller-supplied `Picker` (`Pick(*Decision) Action`; `RandomPolicy` fits) and returns a `RolloutResult`: exactly one of `Over` (with `Winner`, -1 a draw), `Stalled` (with `Reason`) or `Truncated` (the decision cap). A stall is never a draw: `Rollout.Stalls[reason]` counts it and the search must drop that sample. The loop allocates nothing; the working `State` and the decision buffer are allocated once. A `Rollout` is for one goroutine. `dirac/shadow` and a search use it through the public API.
+
+Tests (`dirac/fork_rollout_mp_test.go`): `TestForkLeavesOriginal`, `TestRolloutFourSeatsEnds`, `TestRolloutStallIsCountedNotDraw`, `TestRolloutTruncates`, `TestRolloutDeterministic`, `TestRolloutStepAllocsZero`.
+
 ## Extending it
 
 Each later chunk widens the refused set and keeps the same verifier, run on a pool that uses the new feature.
@@ -49,7 +55,7 @@ Each later chunk widens the refused set and keeps the same verifier, run on a po
 | C5 | counters, damage, auras, equipment, tokens |
 | C6 | stack, triggers, replacement effects, per-source remembered memory |
 | C7 | mid-turn positions: declare attackers and blockers, targets |
-| C8 | `CopyFrom` fork and rollout loop |
+| C8 | `CopyFrom` fork and rollout loop (landed, below) |
 | C13 | four-seat pods |
 
 A new feature needs: a field on `World` (or `WorldObj`), the staging code in `zone_stage.go`, the mapping in `shadow.WorldFromView`, a mutation in `TestStageMutationsAreCaught`, and a refusal reason for the cases it still cannot rebuild. Keep `dirac.State` rules: no references, no allocation in the transition loop, no growth of `stateCore`.
