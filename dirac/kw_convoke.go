@@ -363,7 +363,18 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	// manaToPay); the oracle then drops every pick the announced cost no
 	// longer absorbs, so a fully paid announcement still poses a Done-only
 	// menu. Offer only the picks the post-pick remainder absorbs.
+	//
+	// The announcement runs at CR 601.2b, before the targets (601.2c), so
+	// manaToPay is the pre-target snapshot: ValidTarget$ cost statics are
+	// excluded until repriceForTargets (Caetus's convoke grant beside
+	// Banish from Edoras's own {2}-less-per-tapped-target reduce must not
+	// shrink the generic the announcement can tap). The payment itself
+	// reprices with the targets; a pick the real cost cannot absorb is
+	// simply tapped for nothing, exactly as gorge's.
+	noTgtRed := s.g.noTgtRed
+	s.g.noTgtRed = true
 	raw := s.convokeCost(k) // the pips gorge's ask reads, before an any-type rider's fold
+	s.g.noTgtRed = noTgtRed
 	fromHand := s.castFromHandBy(e, e.ctrl)
 	convoke := s.hasConvoke(k, e.ctrl, e.card, e.obj, fromHand)
 	improvise := s.isImprovise(k, e.ctrl, e.card, e.obj, fromHand)
