@@ -2,6 +2,7 @@ card	lir16	plays	keys	unused	branches	missing_branches
 About Face	f6c8796991030b6a	8	0/0		1/2	ix:resp
 Against All Odds	8c621690ec89e21e	7	0/0		1/2	ix:resp
 Ancient Hydra	1d6b1f03245622a0	23	2/2		1/1	
+Angelic Exaltation	e5f94b01be3a78b9	12	1/1		0/1	ix:resp
 Ballynock Cohort	2a8977159e26a462	9	0/0		0/0	
 Banishing Slash	febf18b340355138	4	0/0		1/2	ix:resp
 Barrowgoyf	832ad4ab055efb28	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -22,11 +23,15 @@ Darksteel Mutation	e7c8fac27a36752d	10	0/0		2/2
 Deceiver Exarch	2b21a5f4f8601e6e	4	1/1		0/1	ix:resp
 Dreadhound	9ec4acad7524cafc	6	3/3		0/1	ix:resp
 Dynacharge	ab87a6da0e82fe16	28	0/0		4/4	
+Eldrazi Skyspawner	e623e0ccd875b260	24	1/1		1/1	
 Engineered Explosives	b83f46106a9e57ba	31	1/1		1/1	
+Evangel of Heliod	a07259ed7a66b942	18	1/1		0/1	ix:resp
 Expunge	acab15ef5633eda8	3	1/1		2/2	
 Exsanguinate	1132aca7332a5ed5	17	0/0		3/4	f0/s/x0
+Faerie Mechanist	8853bef975cea2b8	16	1/1		0/1	ix:resp
 Falkenrath Noble	b85338ebee1a65ab	30	1/1		1/1	
 Feral Hydra	6077a7089b2cbe25	4	1/1		1/1	
+Flock Impostor	04fcb7352439d021	6	1/1		0/1	ix:resp
 Forest	6d0466c30f825dba	61	1/1		0/1	ix:resp
 Gloom Sower	59f32076a85977fe	10	1/1		0/1	ix:resp
 Goblinslide	8a27c2612f6d80f0	6	1/1		0/1	ix:resp
@@ -35,10 +40,12 @@ Goldmeadow Harrier	b91c521e10039418	4	1/1		0/1	ix:resp
 Halimar Depths	7493fed802903935	106	2/2		0/1	ix:resp
 Healer's Hawk	8f8feddee07aade2	12	0/0		0/0	
 Imperious Perfect	4b38802053176ad6	3	1/1		0/1	ix:resp
+Inferno Jet	b0616f368e7a65cb	7	1/1		2/2	
 Intangible Virtue	1b6b1833d16a530c	12	0/0		0/0	
 Island	763c67ef7a27eaf5	205	1/1		0/1	ix:resp
 Kami of False Hope	d2be1c3946e2a958	9	1/1		0/1	ix:resp
 Kenrith's Transformation	ce5d204ed9f1641b	5	1/1		1/2	ix:resp
+Kor Cartographer	1d0b9a025e607225	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Kor Firewalker	dfb876411ab03679	16	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Madcap Skills	cf357134ab1827b4	4	0/0		2/2	
 Merciless Executioner	e813a9b8a926e850	15	1/1		0/1	ix:resp
@@ -51,14 +58,19 @@ Nevermaker	e9c7e078f8b28d76	8	1/1		2/3	ix:resp
 Nyxborn Hydra	9c25b758482a9cc4	11	0/0		2/2	
 Plains	82d63a695487e567	67	1/1		0/1	ix:resp
 Portent	fa4b5839839d69a8	10	0/0		2/2	
+Prosperous Pirates	42aa175306eb1b53	24	1/1		1/1	
 Pyrohemia	ea83acaa6c386b7e	6	2/2		1/1	
 Quest for Pure Flame	497d8d9ea2f89b37	12	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Quest for the Gravelord	5fd7720e1de61f2b	19	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Renegade Warlord	dfd2b5c2f85093f0	5	1/1		1/1	
+Reverent Mantra	b6d100c622180da9	4	0/0		1/2	ix:resp
 Rogue's Passage	f4ce658cd3cc9ea4	113	2/2		1/1	
 Sage's Reverie	d6466dc7d7560781	4	1/1		1/2	ix:resp
 Sea Gate	efaa5aa35469a6a4	109	1/1		0/1	ix:resp
+Sejiri Merfolk	f230e9ed6a92627c	32	0/0		0/0	
 Send in the Pest	2c3ae66b17de743c	13	0/0		2/2	
 Sheoldred, Whispering One	d851189ee73e198f	6	2/2		0/1	ix:resp
+Shimmering Glasskite	3dda422322364257	33	1/1		1/1	
 Sign in Blood	f57e2b0b7a937a0b	70	0/0		2/2	
 Skeletal Wurm	1953baf555acca48	5	1/1		1/1	
 Sparkmage Apprentice	e1a322295080ed29	16	1/1		0/1	ix:resp
@@ -66,6 +78,8 @@ Spitting Earth	165a13c062540255	4	0/0		1/2	ix:resp
 Stand Together	38eb655d7f939356	4	0/0		1/2	ix:resp
 Stromgald Crusader	d997c13e23aa7c1a	6	2/2		0/1	ix:resp
 Swamp	342b413902f441c3	46	1/1		0/1	ix:resp
+Sword Coast Serpent	83de716a8959c970	69	0/0		2/2	
+Trumpeting Herd	2514362987e6ef18	19	0/0		2/2	
 Twinferno	8d38211c9bc6a051	33	0/0		2/2	
 Ultimate Price	d4b34ea3ed7fd1c6	3	0/0		1/2	ix:resp
 Volcanic Dragon	9853a02151354b85	14	0/0		0/0	

@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Riveteers Initiate	c45e5fbfc0b9f77c	61	1/1		1/1	
+A-Tyvar Kell	37c06aec02dc380b	3	3/3		1/1	
 Akroan Hoplite	6cedab37cdd3e57e	5	1/1		0/1	ix:resp
 Arena Trickster	18e75b5000675e3f	12	1/1		1/1	
 Asceticism	2ffb80fed3fec39d	3	1/1		1/1	
@@ -12,6 +13,7 @@ Bloodhall Priest	3d9fe149b2ed6e8f	54	2/2		1/1
 Blue Scarab	71b862d5637e23d6	4	0/0		2/2	
 Bringer of the Blue Dawn	0be2e3715ce4b357	8	1/1		1/1	
 Chastise	88f485b985554995	9	0/0		1/2	ix:resp
+City of Shadows	837ffd332a488745	20	2/2		0/1	ix:resp
 Cloud Manta	05890e73449cc88c	9	0/0		0/0	
 Colossal Badger	5ab467cf8d4241ae	22	1/1		2/2	
 Crossbow Infantry	0c262d10c490dce1	11	1/1		0/1	ix:resp
@@ -28,6 +30,7 @@ Graceful Cat	eec039cca980e648	4	1/1		0/1	ix:resp
 Grappling Sundew	6cc6c7d51cd6e7ca	26	1/1		1/1	
 Gravity Well	cdeb9b54c41cc6c3	13	1/1		0/1	ix:resp
 Hammer Mage	b238e1189cc972fb	44	1/1		0/1	ix:resp
+Henge of Ramos	4ebbe576e9377a21	5	2/2		0/1	ix:resp
 Hero of Precinct One	5dc5f22bd373fb2d	14	1/1		1/1	
 Jewel-Eyed Cobra	8c8a668126d22d7b	18	1/1		0/1	ix:resp
 Karakas	136cf132e12205b7	51	2/2		1/1	
@@ -37,8 +40,10 @@ Leisure Bicycle	29bd00581b164b0b	13	3/3		1/1
 Living Lands	28b004316ff7c0e7	3	0/0		0/0	
 Make Your Mark	348b72ca7cd139ec	10	0/0		2/2	
 Makeshift Battalion	e2b092d86759b278	6	1/1		0/1	ix:resp
+Mercadian Bazaar	a9cab6ec16fd43ee	22	2/2		1/1	
 Moat Piranhas	d462f1cac953b19d	53	0/0		0/0	
 Monster Manual	6edc892ed8f9e367	13	1/1		1/2	ix:resp
+Necroblossom Snarl	d5367d8d8bbced04	18	1/1		0/1	ix:resp
 Necrogen Spellbomb	4926ea90bad8ba88	9	2/2		1/1	
 No Escape	e2e4d0f63775b8a9	18	0/0		1/2	ix:resp
 Nullmage Advocate	942c672d50e1d673	4	1/1		0/1	ix:resp
@@ -80,4 +85,5 @@ Vivien's Arkbow	fd7d0acd4b97c04a	6	1/1		1/1
 War Machine, James Rhodes	26e27ad86b289168	7	1/1		1/1	
 Wasp, Shrinking Savior	7c5b34a6fb9b1a2d	133	1/1		1/1	
 Wicked Guardian	1f407523d7cf9309	32	1/1		1/1	
+Wooded Foothills	38a8ddd6bd08d8e5	14	1/1		0/1	ix:resp
 Yahenni's Expertise	7b46ece9e9bef37c	6	0/0		1/2	ix:resp

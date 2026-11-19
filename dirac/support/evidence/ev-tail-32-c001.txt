@@ -12,6 +12,7 @@ Annoyed Altisaur
 Apprentice Sorcerer
 Archfiend of Sorrows
 Arctic Treeline
+Arena Athlete
 Atarka Beastbreaker
 Attrition
 Axgard Armory
@@ -46,6 +47,7 @@ Copper Host Crusher
 Copper Myr
 Court Homunculus
 Court of Grace
+Cut
 Dakmor Plague
 Dark Betrayal
 Death's Presence
@@ -64,6 +66,7 @@ Enthusiastic Mechanaut
 Ertai Resurrected
 Essence Flare
 Eternal Skylord
+Evaporate
 Eviscerator's Insight
 Expedition Diviner
 Explosive Impact
@@ -144,6 +147,7 @@ Mesa Falcon
 Mesa Lynx
 Metallic Mastery
 Mind Drain
+Mindless Null
 Mirrodin Avenged
 Mirror Image
 Mistcutter Hydra
@@ -176,6 +180,7 @@ Quicksilver Dagger
 Raging Spirit
 Raiding Nightstalker
 Rakka Mar
+Ravenous Harpy
 Raving Oni-Slave
 Razorjaw Oni
 Reckless Imp
@@ -201,6 +206,7 @@ Skyswimmer Koi
 Slaughter Cry
 Smashing Spree
 Sokka, Swordmaster
+Soul Bleed
 Spellseeker
 Spitting Spider
 Spontaneous Flight
@@ -237,6 +243,7 @@ Umbral Juke
 Unnatural Speed
 Untamed Wilds
 Unwavering Initiate
+Valakut Fireboar
 Valkyrior Skyrider
 Vaporkin
 Venomous Vines
@@ -250,6 +257,7 @@ Wild Crocodile
 Wilderness Elemental
 Wildfire Eternal
 Windreader Sphinx
+Witness of Tomorrows
 Woodland Bellower
 Wose Pathfinder
 Zuko's Offense

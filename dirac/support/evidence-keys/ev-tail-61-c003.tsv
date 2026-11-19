@@ -1,30 +1,40 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Abyssal Hunter	3986eadd9696d649	7	1/1		0/1	ix:resp
+Aeronaut Admiral	cad8136cfcb286cd	4	0/0		0/0	
 Alhammarret, High Arbiter	db51cbc43c0513fc	7	0/0		0/0	
 Aligned Heart	ac48147005e691dc	3	1/1		0/1	ix:resp
 Altar of Bhaal	2c178e2719583076	12	1/1		1/2	ix:resp
 Avenging Hunter	4e2b8b7e1638525e	5	1/1		1/1	
 Bastion Enforcer	7e5903b39c1fa63d	16	0/0		0/0	
 Bumbling Pangolin	e8e351564e9adaac	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Butcher's Glee	62513fb873bcfe1d	10	0/0		1/2	ix:resp
+Cartouche of Knowledge	8cb24379910756af	6	1/1		1/2	ix:resp
+Centaur Garden	ff58b4102c496896	8	2/2		0/1	ix:resp
 Charity Extractor	53ec04d96dc36c53	4	0/0		0/0	
+Churning Eddy	39e3a3133096a784	3	0/0		1/2	ix:resp
 Cloakwood Swarmkeeper	58e95b05d2fc5463	12	1/1		1/1	
 Cogwork Spy	b5a25b41cc931247	33	0/0		0/0	
+Consider	7a4cba30568ede20	3	0/0		2/2	
 Covert Operative	8380f3330f8fa4a4	3	0/0		0/0	
 Crested Herdcaller	9580d51fd54ab725	3	1/1		0/1	ix:resp
 Crush of Wurms	705286b175426a16	4	0/0		4/4	
 Curious Killbot	ad94f791ec91bb5c	3	0/0		0/0	
+Davriel's Shadowfugue	f30c39bf525f91c5	4	0/0		1/2	ix:resp
 Defiant Elf	c1ca20a64b2ea853	50	0/0		0/0	
 Demoralize	8c643af1328a02e4	7	0/0		2/2	
 Endless Cockroaches	68fd180a2299bafa	7	1/1		0/1	ix:resp
 Entish Restoration	441b5885a3ad77b0	6	0/0		1/2	ix:resp
 Eyeblight's Ending	df15c2d9de9e471a	4	0/0		1/2	ix:resp
+False Mourning	03790b6fe8423d8b	3	0/0		1/2	ix:resp
 Fire Whip	c6ea78ff4dbc02ae	6	1/1		2/2	
 Fireblade Artist	d5aec96de0185bb7	3	1/1		1/1	
 Fires of Victory	cd3d3622b1897ac2	4	0/0		2/4	cast/alt:kicked,ix:resp
 Firewing Phoenix	7070fe7456006d9e	11	1/1		1/1	
 Furious Assault	1e33149c6f74fda9	4	1/1		0/1	ix:resp
+Gilt-Blade Prowler	5cc07ae2cf9efd1e	13	1/1		0/1	ix:resp
 Goldnight Commander	36e236bd55a5f133	7	1/1		1/1	
 Grisly Spectacle	6877473beb789280	6	0/0		1/2	ix:resp
+Hanabi Blast	31d7129bdd3c21db	6	0/0		1/2	ix:resp
 Harsh Scrutiny	13a49b8b2e68ed1f	6	0/0		1/2	ix:resp
 Heartless Pillage	9b87700dbb54534d	4	0/0		1/2	ix:resp
 High Score	453d855d72eb9ce0	7	1/1		0/1	ix:resp
@@ -48,16 +58,22 @@ Makindi Aeronaut	449a691455986f62	3	0/0		0/0
 Mardu Outrider	7e5bf24f180185f7	4	0/0		1/2	ix:resp
 Maximize Velocity	346700ed0380e48b	6	0/0		3/4	ix:resp
 Mending Touch	b5fbfdec3d16a30e	7	0/0		1/2	ix:resp
+Mindeye Drake	94333a4d244f6059	6	1/1		0/1	ix:resp
 Moira, Urborg Haunt	9ccb823fd95a477f	5	1/1		1/1	
 Monumental Corruption	47b496655b99664a	4	0/0		1/2	ix:resp
 Mysterious Tome	3fcfa031868cda98	6	2/2		1/1	
+Nagao, Bound by Honor	c963f31e43b98e23	8	3/3		0/1	ix:resp
 Nightshade Harvester	d7b18cad0b22e186	6	1/1		0/1	ix:resp
 Ogre Menial	d243ad0faf12bf89	4	1/1		0/1	ix:resp
 Ongoing Investigation	8ff683239d14bcb1	5	2/2		1/1	
+Orazca Relic	238259f37324f721	4	2/2		0/1	ix:resp
 Peel from Reality	f26d4bf1edaad46d	3	0/0		2/2	
+Peppersmoke	7c56d2dd41dd7cf8	8	0/0		2/2	
 Phalanx Vanguard	8a915419d1a05b18	10	1/1		1/1	
+Pharika's Libation	2936a677678ff142	8	0/0		2/2	
 Phyresis	d5fb2fbfd4930794	8	0/0		1/2	ix:resp
 Phyrexian Archivist	1ec7fb658ba821bb	9	1/1		0/1	ix:resp
+Pincer Spider	44d62b335ecde8f0	3	0/0		1/2	cast/alt:none
 Pirate Ship	f92410f4ae555a6e	6	2/2		1/1	
 Plague Rats	7449453badb85bc8	5	0/0		0/0	
 Planar Atlas	4e0f6300b1759c80	5	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -67,10 +83,13 @@ Prince Imrahil the Fair	f20af11bec664ce9	4	1/1		0/1	ix:resp
 Relic Barrier	7dbf9a9d52a57e3a	12	1/1		1/1	
 Relic Vial	135468eae14250bb	5	1/1		1/1	
 Rhonas's Monument	fccc040cfe42c311	9	1/1		0/1	ix:resp
+Rhovanion Rampager	e413e73d11e2a414	3	2/2		0/1	ix:resp
 Rogue Refiner	8c65b973d01c2a8f	8	1/1		0/1	ix:resp
+Safe Haven	3aac8cb7b7606633	14	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Savage Silhouette	174fab95fd12466b	3	0/0		1/2	ix:resp
 Security Bypass	e89db1b0398e7e77	6	0/0		1/2	ix:resp
 Selesnya Locket	bde29f5e232c15bf	4	2/2		0/1	ix:resp
+Sengir Autocrat	2e039fdb09205f62	6	2/2		0/1	ix:resp
 Shatterskull Recruit	521d559f11b83a04	13	0/0		0/0	
 Sip of Hemlock	4cbdf03734466b17	4	0/0		1/2	ix:resp
 Skittering Crustacean	804e741b34148458	4	1/1		0/1	ix:resp
@@ -78,11 +97,15 @@ Skull Raid	8ca66909036a042c	3	0/0		2/4	cast/alt:foretold,ix:resp
 Slinza, the Spiked Stampede	7a30ae0da51256da	4	1/1		0/1	ix:resp
 Songbird, Sonic Screamer	fd92cb1d9e286f97	4	1/1		1/1	
 Soul's Majesty	7af9badfc9a6985c	5	0/0		2/2	
+Spitting Drake	c64ca2747c765529	3	1/1		0/1	ix:resp
 Star Pupil	2fda6678e3c83515	5	1/1		0/1	ix:resp
 Steely Resolve	0a25dc23549283d8	4	0/0		0/0	
+Stormscape Master	68822a6832f57eb9	4	2/2		0/1	ix:resp
+Stream of Consciousness	74d7eea58e074b03	10	0/0		2/2	
 Strength of the Pack	b9a36872db415715	4	0/0		1/2	ix:resp
 Struggle for Skemfar	4c8d1011a102b213	5	0/0		2/4	cast/alt:foretold,ix:resp
 Sunweb	e78de795fc8ef5e3	20	0/0		0/0	
+Survivor of Korlis	c40f87aa8e0e3daa	8	1/1		0/1	ix:resp
 Swordwise Centaur	77cdf0f946eb8a47	4	0/0		0/0	
 Teardrop Kami	760fcdadac4a9284	4	1/1		0/1	ix:resp
 Teroh's Faithful	d7042fac72e476bd	3	1/1		0/1	ix:resp
@@ -90,11 +113,13 @@ Thassa's Rebuff	79775571de92280e	8	0/0		2/2
 The Falcon, Airship Restored	ecbce2bddc8699e6	4	3/3		1/1	
 Timeless Lotus	272cbb2b4c8772b9	4	1/1		0/1	ix:resp
 Town Gossipmonger	17f61654f1b790d3	14	2/2		1/1	
+Unbreakable Formation	877d8d4eb1b192db	4	0/0		1/2	ix:resp
 Viscerid Deepwalker	54d829cce69e9a42	3	1/1		2/3	cast/alt:none
 Vizier of the Scorpion	4d12eb1e9c976a21	7	1/1		0/1	ix:resp
 Wakandan Tusker	ab3a1ac521046de6	3	1/1		0/1	ix:resp
 Ward Sliver	678b440aee128df1	8	0/0		0/0	
 Wildest Dreams	44f94149c2d4f52b	3	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
+Wrong Turn	9bbe71d52570827d	6	0/0		1/2	ix:resp
 Wu Longbowman	79893f17cb5954b5	4	1/1		0/1	ix:resp
 Yomiji, Who Bars the Way	f17ffaf1303afa6e	4	1/1		0/1	ix:resp
 Zulaport Duelist	65ec7b4adbdbeac0	4	1/1		0/1	ix:resp

@@ -110,6 +110,7 @@ Duskwielder
 Dying Wish
 Earth Rift
 Earthquake
+Ebony Fly
 Eidolon of Astral Winds
 Elemental Appeal
 Elemental, My Dear
@@ -320,6 +321,7 @@ Runeboggle
 Sacellum Archers
 Sacred Guide
 Salivating Gremlins
+Sanctum of Ugin
 Saruli Caretaker
 Savage Offensive
 Savra, Queen of the Golgari

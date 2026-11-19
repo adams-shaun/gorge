@@ -1,4 +1,5 @@
 A-Kona, Rescue Beastie
+A-Master of Winds
 Absorb
 Afterlife
 Agility Bobblehead
@@ -239,6 +240,7 @@ Rout
 Rune-Cervin Rider
 Sacred Prey
 Sage Aven
+Sage of Fables
 Sailor of Means
 Sanctify
 Sanctum of Stone Fangs

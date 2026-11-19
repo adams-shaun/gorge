@@ -8,6 +8,7 @@ Angelic Renewal
 Arcbound Shikari
 Ashmouth Hound
 Atog
+Baleful Beholder
 Binding Agony
 Bitterbow Sharpshooters
 Bleed Dry
@@ -16,6 +17,7 @@ Bloodmad Vampire
 Blue Dragon
 Butcher's Cleaver
 Canopy Cover
+Canopy Tactician
 Celestial Kirin
 Cerulean Wyvern
 Citizen's Arrest
@@ -47,6 +49,7 @@ Eldrazi Skyspawner
 Elvish Soultiller
 Enlarge
 Erinis, Gloom Stalker
+Eureka Moment
 Eviscerator
 Fallaji Archaeologist
 Fatal Frenzy
@@ -123,6 +126,7 @@ Liliana's Standard Bearer
 Liliana, Death Wielder
 Liquimetal Torque
 Live Fast
+Longshot Squad
 Lotus Path Djinn
 Mannichi, the Fevered Dream
 Manta Riders
@@ -130,6 +134,7 @@ Marang River Prowler
 Marble Diamond
 March of the Returned
 Marrow-Gnawer
+Maverick Thopterist
 Maximus, Knight Apparent
 Midnight Haunting
 Mindleech Ghoul
@@ -140,6 +145,7 @@ Mogg Maniac
 Molder Slug
 Mountain
 Muscle Sliver
+Myojin of Seeing Winds
 Nantuko Husk
 Nature's Resurgence
 Nebelgast Intruder
@@ -166,11 +172,14 @@ Recantation
 Reckless Rage
 Renegade Krasis
 Repentant Vampire
+Repudiate
 Retrieve
 Revive
 Rise of the Hobgoblins
 Ritual of Steel
+Rooftop Bypass
 Rouse
+Run for Your Life
 Rustvale Bridge
 Sanguine Spy
 Scourge Servant
@@ -206,6 +215,7 @@ Tenacity
 The Rack
 Thorn of Amethyst
 Thresher Lizard
+Thundering Djinn
 Thunderous Orator
 Tiamat's Fanatics
 Time Reversal

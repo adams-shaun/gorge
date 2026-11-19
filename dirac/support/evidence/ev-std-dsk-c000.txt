@@ -15,13 +15,16 @@ Enter the Enigma
 Etched Cornfield
 Ethereal Armor
 Exorcise
+Fanatic of the Harrowing
 Fear of Being Hunted
 Fear of Burning Alive
 Fear of Missing Out
 Final Vengeance
 Forest
+Found Footage
 Ghostly Keybearer
 Give In to Violence
+Glassworks
 Grab the Prize
 Grand Entryway
 Horrid Vigor
@@ -30,6 +33,7 @@ Innocuous Rat
 Insidious Fungus
 Irreverent Gremlin
 Island
+Keys to the House
 Killer's Mask
 Let's Play a Game
 Leyline of the Void
@@ -59,8 +63,11 @@ Swamp
 The Mindskinner
 The Swarmweaver
 Threats Around Every Corner
+Turn Inside Out
 Unable to Scream
 Unnerving Grasp
 Untimely Malfunction
+Vanish from Sight
 Veteran Survivor
 Waltz of Rage
+Wildfire Wickerfolk

@@ -25,6 +25,7 @@ Artificer Class
 Assimilate Essence
 Atreus, Impulsive Son
 Aven Gagglemaster
+Awesome Presence
 Azorius Skyguard
 Back to Basics
 Back to Nature
@@ -413,6 +414,7 @@ Theoretical Duplication
 Those Who Serve
 Thousand-Year Elixir
 Thran Dynamo
+Thrill-Kill Assassin
 Thriving Moor
 Thunderstaff
 Thurid, Mare of Destiny

@@ -1,12 +1,14 @@
 A-Blood Artist
 Aegis of the Gods
 Aetherstorm Roc
+Agonizing Syphon
 Alchemist's Apprentice
 Allied Assault
 Alpine Watchdog
 Altac Bloodseeker
 Altar of the Brood
 Amarant Coral
+Amphin Mutineer
 Anarchy
 Ancient Crab
 Apes of Rath
@@ -37,15 +39,20 @@ Boros Recruit
 Boseiju Reaches Skyward
 Bottomless Pit
 Bounding Krasis
+Bountiful Landscape
+Brink of Disaster
 Broken Ambitions
 Bronzebeak Moa
 Brotherhood Outcast
 Brushstrider
+Buried Alive
 Burning Sands
 Canopy Dragon
 Captain of the Mists
 Captured Sunlight
+Carrion Beetles
 Cathar's Shield
+Chitterspitter
 Chromatic Sphere
 Cloak of Mists
 Cobalt Golem
@@ -63,6 +70,7 @@ Deathforge Shaman
 Deft Duelist
 Deliberate
 Demonic Taskmaster
+Destroy the Evidence
 Dinrova Horror
 Dispersing Orb
 Douser of Lights
@@ -115,6 +123,7 @@ Geistflame
 Ghor-Clan Bloodscale
 Ghoulcaller's Accomplice
 Giant Ladybug
+Giant Octopus
 Gift of Strands
 Glacial Floodplain
 Glint-Horn Buccaneer
@@ -125,9 +134,11 @@ God-Favored General
 Goldmane Griffin
 Gossamer Phantasm
 Grim Lavamancer
+Gruul Locket
 Guul Draz Specter
 Gyre Engineer
 Harsh Deceiver
+Harvestguard Alseids
 Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
@@ -153,6 +164,7 @@ Island
 Jewel Thief
 Joven
 Kangee, Sky Warden
+Kataki, War's Wage
 Krosan Constrictor
 Lagac Lizard
 Lamentation
@@ -200,6 +212,7 @@ Nyxborn Wolf
 Offalsnout
 Old Ghastbark
 Onyx Goblet
+Orcish Squatters
 Ornery Goblin
 Orzhov Keyrune
 Out of the Way
@@ -213,6 +226,7 @@ Phoenix of Ash
 Phyrexian Pegasus
 Pilgrim of the Ages
 Plains
+Pretender's Claim
 Promise of Power
 Pygmy Kavu
 Python
@@ -226,6 +240,7 @@ Rhystic Deluge
 Ripscale Predator
 Rise of the Hobgoblins
 Rite of Flame
+Ritual of Soot
 Riven Turnbull
 Rotlung Reanimator
 Sage of the Falls
@@ -239,6 +254,7 @@ Seashell Cameo
 Sedraxis Alchemist
 Seek New Knowledge
 Selesnya Signet
+Serpentine Curve
 Serra Paladin
 Shadowstorm Vizier
 Shivan Hellkite
@@ -250,6 +266,7 @@ Silt Crawler
 Silumgar Monument
 Skinrender
 Skull Rend
+Skyclave Plunder
 Skyshroud Poacher
 Smother
 Snake Basket
@@ -274,8 +291,10 @@ Survivor of Korlis
 Swamp
 Swiftgear Drake
 Swooping Lookout
+Sword of Sinew and Steel
 Sword of War and Peace
 Sylvok Explorer
+Syphon Life
 Tail Slash
 Tainted Isle
 Tattermunge Maniac
@@ -290,6 +309,8 @@ Thrull Retainer
 Thrull Surgeon
 Timmy, Power Gamer
 Tonic Peddler
+Tormented Thoughts
+Trained Condor
 Troubled Healer
 Tundra Wolves
 Twinferno
@@ -300,8 +321,10 @@ Vedalken Infiltrator
 Vengeful Devil
 Venser's Journal
 Vertigo Spawn
+Veteran's Powerblade
 Viconia, Drow Apostate
 Vildin-Pack Outcast
+Visara the Dreadful
 Vodalian Hexcatcher
 Void Shatter
 Volcanic Hammer

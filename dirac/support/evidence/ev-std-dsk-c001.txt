@@ -16,14 +16,17 @@ Diversion Specialist
 Enduring Courage
 Enduring Curiosity
 Enduring Innocence
+Enter the Enigma
 Exorcise
 Fear of Being Hunted
 Fear of Immobility
 Fear of Impostors
 Flesh Burrower
 Forest
+Frantic Strength
 Friendly Teddy
 Get Out
+Ghostly Keybearer
 Glimmer Seeker
 Glimmerlight
 Grasping Longneck
@@ -42,6 +45,7 @@ Overlord of the Mistmoors
 Patched Plaything
 Peer Past the Veil
 Piggy Bank
+Piranha Fly
 Plains
 Possessed Goat
 Pyroclasm
@@ -63,6 +67,7 @@ Tunnel Surveyor
 Turn Inside Out
 Twitching Doll
 Tyvar, the Pummeler
+Under the Skin
 Unwanted Remake
 Vanish from Sight
 Vengeful Possession

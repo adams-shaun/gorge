@@ -104,6 +104,7 @@ I Am Iron Man
 Invisible Woman, Sue Storm
 Iron Lad, Diverging Destiny
 Iron Man, Master of Machines
+Ironheart, Clever Champion
 Island
 Jennifer Walters
 Jessica Jones, Private Eye
@@ -197,6 +198,7 @@ Team Tactics
 The Astonishing Ant-Man
 The Coming of Galactus
 The Masters of Evil
+The Mighty Thor, Jane Foster
 The Ruinous Wrecking Crew
 The Scarlet Witch
 The Sentry, Golden Guardian

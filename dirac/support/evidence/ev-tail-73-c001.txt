@@ -356,6 +356,7 @@ Reclaim
 Reito Lantern
 Reprocess
 Reroute
+Reya Dawnbringer
 Rhystic Study
 Roalesk, Apex Hybrid
 Roiling Waters
