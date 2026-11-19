@@ -39,19 +39,22 @@ var tapeCheckpointAll, tapeExemptAll bool
 // gates (cards.SAChainBoardGates) shifted by mayAskGateShift. ReplEvent 0 is no
 // event and has no gate, so mayAskText sits in its position.
 const (
-	mayAskUnknown   uint32 = 0
-	mayAskKnown     uint32 = 1
-	mayAskText      uint32 = 2
+	mayAskUnknown   uint64 = 0
+	mayAskKnown     uint64 = 1
+	mayAskText      uint64 = 2
 	mayAskGateShift        = 1
 	// Keep the conditional reasons above every replacement-event gate bit:
 	// adding a new ReplEvent must not masquerade as a target-entry reason.
 	mayAskCondShift = mayAskGateShift + cards.ReplEventCount
-	mayAskGateMask  = uint32(1)<<cards.ReplEventCount - 1
+	mayAskGateMask  = uint64(1)<<cards.ReplEventCount - 1
 )
 
-// The highest conditional reason must still fit the uint32 cache state: a
-// constant overflow here is a compile error, not a silent alias.
-const _ uint32 = cards.MayAskCondParentSub << mayAskCondShift
+// The highest conditional reason must still fit the cache state: a constant
+// overflow here is a compile error, not a silent alias. The state widened
+// to uint64 when ReplEventCount reached 31 (ReplProliferate,
+// ReplRemoveCounter): 31 gate bits + flags + the conditional reasons no
+// longer fit a uint32.
+const _ uint64 = uint64(cards.MayAskCondParentSub) << mayAskCondShift
 
 // tapeMayAsk reports whether resolving the top of the stack may pose a
 // decision, judged from text and the stack object. true is always safe.
@@ -246,12 +249,12 @@ func tapeTextMayAsk(e *Engine) bool {
 // saMayAskState is the text judgement of sa's chain as a cache state.
 // A Token body's minted face is the match's (e.G.Tokens): its entry asks
 // are judged here, with the text (cards.SAChainTokenEntryMayAsk).
-func saMayAskState(e *Engine, sa *cards.SA, svars map[string]string, self *cards.Face) uint32 {
+func saMayAskState(e *Engine, sa *cards.SA, svars map[string]string, self *cards.Face) uint64 {
 	may, cond := cards.SAChainMayAskCond(sa, svars, self, true)
 	if may || cards.SAChainTokenEntryMayAsk(sa, svars, e.G.Tokens) {
 		return mayAskKnown | mayAskText
 	}
-	return mayAskKnown | uint32(cards.SAChainBoardGates(sa, svars))<<mayAskGateShift | cond<<mayAskCondShift
+	return mayAskKnown | uint64(cards.SAChainBoardGates(sa, svars))<<mayAskGateShift | uint64(cond)<<mayAskCondShift
 }
 
 // mayAskObjOnBoard is mayAskOnBoard for the resolving stack object o whose
@@ -259,11 +262,11 @@ func saMayAskState(e *Engine, sa *cards.SA, svars map[string]string, self *cards
 // is settled from o's chosen targets and the board. MayAskCondTargetEntry:
 // the root moves its chosen targets onto the battlefield, so it asks only if
 // one of them asks as it enters (tapeEntryMayAsk).
-func mayAskObjOnBoard(e *Engine, st uint32, id state.ObjID, o *state.Object, sa *cards.SA) bool {
+func mayAskObjOnBoard(e *Engine, st uint64, id state.ObjID, o *state.Object, sa *cards.SA) bool {
 	if mayAskOnBoard(e, st) {
 		return true
 	}
-	cond := st >> mayAskCondShift
+	cond := uint32(st >> mayAskCondShift)
 	if cond&cards.MayAskCondTargetEntry != 0 {
 		for _, t := range o.Targets {
 			if !t.IsPlayer && tapeEntryMayAsk(e, t.Obj) {
@@ -326,11 +329,11 @@ func tapeParentSubMayAsk(e *Engine, id state.ObjID, o *state.Object, sa *cards.S
 
 // mayAskOnBoard resolves a cache state against the board: an ask-free text
 // asks only through a board gate it opens (replEventGates).
-func mayAskOnBoard(e *Engine, st uint32) bool {
+func mayAskOnBoard(e *Engine, st uint64) bool {
 	if st&mayAskText != 0 {
 		return true
 	}
-	g := cards.ReplEventMask(st >> mayAskGateShift & mayAskGateMask)
+	g := cards.ReplEventMask(uint32(st >> mayAskGateShift & mayAskGateMask))
 	for g != 0 {
 		k := cards.ReplEvent(bits.TrailingZeros32(uint32(g)))
 		g &^= 1 << k
@@ -407,15 +410,15 @@ func tapeReplMayAsk(e *Engine, event string) bool {
 // memoised on its facts record as a cache state. An ability with no record
 // (runtime-built) is judged every time; a root's answer covers its whole
 // SubAbility$ chain.
-func saMayAskCached(e *Engine, sa *cards.SA, self *cards.Face) uint32 {
+func saMayAskCached(e *Engine, sa *cards.SA, self *cards.Face) uint64 {
 	f := e.compiledText.factsOf(sa)
 	if f == nil {
 		return saMayAskState(e, sa, self.SVars, self)
 	}
-	if st := atomic.LoadUint32(&f.MayAsk); st != mayAskUnknown {
+	if st := atomic.LoadUint64(&f.MayAsk); st != mayAskUnknown {
 		return st
 	}
 	st := saMayAskState(e, sa, self.SVars, self)
-	atomic.StoreUint32(&f.MayAsk, st)
+	atomic.StoreUint64(&f.MayAsk, st)
 	return st
 }

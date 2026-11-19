@@ -13,13 +13,14 @@ func TestLoseManaGateDoesNotAliasTargetEntry(t *testing.T) {
 		t.Fatal("precondition: LoseMana is not a replacement event")
 	}
 	// Check the full gate mask, not only LoseMana: future vocabulary additions
-	// must move the conditional bits too.
-	gates := uint32((cards.ReplEventMask(1)<<cards.ReplEventCount)-1) << mayAskGateShift
-	loseMana := uint32(1) << (mayAskGateShift + cards.ReplLoseMana)
+	// must move the conditional bits too (the cache state widened to uint64
+	// when ReplEventCount reached 31).
+	gates := uint64((cards.ReplEventMask(1)<<cards.ReplEventCount)-1) << mayAskGateShift
+	loseMana := uint64(1) << (mayAskGateShift + cards.ReplLoseMana)
 	if gates&loseMana == 0 || gates == 0 {
 		t.Fatal("precondition: LoseMana is not present in the packed gate mask")
 	}
-	for _, reason := range []uint32{cards.MayAskCondTargetEntry, cards.MayAskCondParentSub} {
+	for _, reason := range []uint64{uint64(cards.MayAskCondTargetEntry), uint64(cards.MayAskCondParentSub)} {
 		packed := reason << mayAskCondShift
 		if packed == 0 {
 			t.Fatalf("conditional reason %d does not fit the cache", reason)
