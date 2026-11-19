@@ -130,6 +130,24 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 	}
 }
 
+// offerKickedPotentialOnly is the hand walk's kicked offer for a card whose
+// plain cast the real census cannot pay: under gorge's autopay surface the
+// planner still prices the kicked cast against the potential walk's bound
+// (potentialModeCastPlan), so a census gap (Sandstone Needle's {R}{R}, beside
+// Gemhide Sliver's any-colour grant) that the plain cast needs too is no
+// reason to drop the kicked offer (offerKickedHand's potential arm decides).
+// It runs the plain cast's own feasibility gates first (targets, additional
+// costs), which the hand walk's `continue` on the affordability gate skipped.
+func (s *State) offerKickedPotentialOnly(k *prep, d *Decision, p uint8, c CardID, o Obj, base kop.ManaCost, preDelve, plainBase *kop.ManaCost, cav, av *avail) {
+	if s.cfg&cfgGorgeAutopay == 0 || s.g.availX != 0 || s.castHeldOut(o) { // gorge holds the card's whole cast out after a second undo (CR 733.2)
+		return
+	}
+	if !s.spellTargetsFeasibleFrom(k, c, p, o) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, plainBase, false, false, av) {
+		return
+	}
+	s.offerKickedHand(k, d, p, c, o, base, cav)
+}
+
 // kickedArmOffer reports whether action a is a kicked cast (the mode-1 AkCast
 // offerKickedHand makes) on a kicker or multikicker card: grantCap's
 // walk-not-listed pruning does not drop it, because the walk's plainOptions
