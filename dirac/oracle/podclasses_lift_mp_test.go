@@ -72,3 +72,54 @@ func nonRemWatch(c *PickCtx) bool {
 func TestFourSeatNonRememberedControllerLockstep(t *testing.T) {
 	podClassLockstep(t, nonRemPodDeck, 24, 10, nonRemWatch, &dirac.DebugNonRemOneOpp)
 }
+
+// Adeline, Resplendent Cathar: "whenever you attack, for each opponent,
+// create a 1/1 white Human creature token that's tapped and attacking that
+// player or a planeswalker they control" (RepeatEach RepeatPlayers$ Opponent
+// | ChangeZoneTable$ True). gorge's effRepeatEach brackets the whole loop as
+// one zone batch, so the tokens' enters checks fire together after the last
+// opponent's (CR 603.6a; Cloakwood Swarmkeeper's "whenever one or more tokens
+// you control enter, put a +1/+1 counter on it" triggers once, not once a
+// token), and each token's defender among a player and their
+// planeswalkers is asked in turn (CR 508.4). dirac holds the entries to the
+// loop's end across those asks (zone_repeatbatch.go). The mutation
+// (DebugZoneLoopPerIteration) fires each iteration's own.
+var zoneLoopPodDeck = []cardset.Entry{
+	{Name: "Adeline, Resplendent Cathar", Count: 8}, {Name: "Cloakwood Swarmkeeper", Count: 5},
+	{Name: "Ajani Goldmane", Count: 3}, {Name: "Savannah Lions", Count: 4},
+	{Name: "Plains", Count: 12}, {Name: "Forest", Count: 8},
+}
+
+// zoneLoopWatch: an Adeline trigger is on the stack with three or more
+// players alive, as its controller holds priority.
+func zoneLoopWatch(c *PickCtx) bool {
+	g := c.G.E.G
+	d := c.G.fr.d
+	if d == nil || d.Kind != decision.KPriority || podAlive(g) < 3 {
+		return false
+	}
+	for _, id := range g.Zone(state.ZStack, 0) {
+		if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Adeline, Resplendent Cathar" && o.Controller == state.PlayerID(d.Player) {
+			return true
+		}
+	}
+	return false
+}
+
+// TestFourSeatZoneLoopLockstep: four-seat Adeline games play in lockstep,
+// her tokens entering as one batch across the opponents.
+func TestFourSeatZoneLoopLockstep(t *testing.T) {
+	podClassLockstep(t, zoneLoopPodDeck, 24, 10, zoneLoopWatch, &dirac.DebugZoneLoopPerIteration)
+}
+
+// TestFourSeatZoneLoopDefenderMutation: Adeline's token attacks the opponent
+// its iteration binds (gorge tokenAttackingPlayers' remembered player); the
+// mutation (DebugTokAtkNextSeat) attacks the next living seat with every
+// token, the two-seat reading, and must diverge.
+func TestFourSeatZoneLoopDefenderMutation(t *testing.T) {
+	st := runPodClass(t, zoneLoopPodDeck, 24, zoneLoopWatch, &dirac.DebugTokAtkNextSeat, true)
+	if st.divs == 0 {
+		t.Fatalf("mutation left %d games with no divergence", st.games)
+	}
+	t.Logf("mutation diverged in %d of %d games", st.divs, st.games)
+}

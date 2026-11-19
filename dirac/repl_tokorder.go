@@ -540,7 +540,7 @@ func (s *State) mintTokens(k *prep, in *kop.Instr, p uint8, n int) bool {
 			s.g.tokMade++
 			s.tokenMemos(in, o) // zone_tokrem.go
 		}
-		sl := s.enter(k, o, p, tapped, kop.ZoneLibrary)
+		sl := s.enterTok(k, o, p, tapped) // zone_repeatbatch.go
 		if in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) != 0 {
 			s.tokenAtEOT(in, o)
 		}

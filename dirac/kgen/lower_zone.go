@@ -3477,7 +3477,7 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		if obj.Kind != rRemembered {
 			return refuse("CopyPermanent Controller$ NonRememberedController over %v", obj)
 		}
-		ps.m = maps.Clone(ps.m) // the card's own map is the registry's, which gorge reads
+		ps.m = maps.Clone(ps.m)    // the card's own map is the registry's, which gorge reads
 		delete(ps.m, "Controller") // read here, not as a copy exception
 		flags = append(flags, "NonRemCtrl")
 	}

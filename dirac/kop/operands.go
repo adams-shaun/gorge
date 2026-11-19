@@ -792,3 +792,9 @@ const (
 	PumpEachPower = 1
 	PumpEachTough = 2
 )
+
+// RepeatEachZoneBatch is OpRepeatEachPlayer's C bit 2 (ChangeZoneTable$
+// True): the loop's entries are one zone batch, their enters checks held to
+// the loop's end (gorge effRepeatEach's zone bracket around the whole loop;
+// Adeline's tokens; dirac zone_repeatbatch.go).
+const RepeatEachZoneBatch = 4

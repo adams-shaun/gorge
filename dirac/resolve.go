@@ -603,7 +603,7 @@ func (s *State) runProg(k *prep) {
 // it jumps back while iterations remain.
 func (s *State) loopBack(k *prep) {
 	if k.gen != nil {
-		s.loopBackGen()
+		s.loopBackGen(k)
 	}
 	r := &s.res
 	for r.loopD > 0 {
