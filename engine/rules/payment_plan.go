@@ -367,8 +367,8 @@ func planPaysManaUnderRider(pe pay.Engine, p state.PlayerID, life int32, plan de
 type castPlanPipsWindow interface {
 	castWindowUnits(pc *pendingCast) []windowManaUnit
 	castWindowCensusComplete(pc *pendingCast, units []windowManaUnit) bool
-	castWindowReachable(p state.PlayerID, cost Cost, spellPool, snow state.Mana,
-		typed [8]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool
+	castWindowReachableAfter(deadAfter int, feeExtra state.Mana, p state.PlayerID, cost Cost, spellPool, snow state.Mana,
+		typed [8]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) (bool, int)
 }
 
 // castPlanPipsOutcome withholds a cast plan whose Phyrexian pips the payer's
@@ -409,7 +409,13 @@ func castPlanPipsOutcome(w castPlanPipsWindow, p state.PlayerID, cost Cost, pc *
 			kept = append(kept, u)
 		}
 	}
-	if w.castWindowReachable(p, cost, pay.ManaAdd(pool, produced), snow, typed, life, conv, rider, kept) {
+	// The plan's production floats in the payer's pool before this window
+	// opens (the witness is lowered at priority), so it funds an activation
+	// fee beside the payer's real pool: a Selesnya Signet's "{1}: Add {W}{G}"
+	// is payable from it (CR 601.2g-h), and a pip's colour face the fee's
+	// production then settles keeps the cast offered (dr-mbc-msd pair 55,
+	// Moltensteel Dragon's two {R/P} at 3 life).
+	if ok, _ := w.castWindowReachableAfter(cwDeadAfter, produced, p, cost, pay.ManaAdd(pool, produced), snow, typed, life, conv, rider, kept); ok {
 		return out
 	}
 	return PaymentPlanOutcome{Reason: "insufficient", Detail: "phyrexian_window"}

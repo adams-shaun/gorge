@@ -77,7 +77,7 @@ func TestCastWindowColourCapRefusesUnreachablePips(t *testing.T) {
 		t.Fatalf("precondition: the board must make 7 red and at least 8 mana, got %d red of %d", reds, total)
 	}
 	walk := func(c Cost, rider pipRider, conv *manaConv) (bool, int) {
-		return e.castWindowReachableAfter(cwDeadAfter, 0, c, state.Mana{}, state.Mana{}, [8]state.Mana{}, 20, conv, rider, units)
+		return e.castWindowReachableAfter(cwDeadAfter, state.Mana{}, 0, c, state.Mana{}, state.Mana{}, [8]state.Mana{}, 20, conv, rider, units)
 	}
 	if ok, nodes := walk(red(7), pipRider{}, nil); !ok {
 		t.Fatalf("seven red pips are payable from this board (fees from the Forests), walk refused after %d nodes", nodes)
