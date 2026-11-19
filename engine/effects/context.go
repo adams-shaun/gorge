@@ -3302,6 +3302,9 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "TriggeredSource", Val: definedSpecTriggeredSource},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredSources", Val: definedSpecTriggeredSource},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredSourceLKICopy", Val: definedSpecTriggeredSource},
+	// TriggeredFighterLKICopy: the creature a Mode$ Fight trigger fired for
+	// (Foe-Razer Regent), the fight hit's source role.
+	state.StrEntry[definedSpecCode]{Key: "TriggeredFighterLKICopy", Val: definedSpecTriggeredSource},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredSourceSAController", Val: definedSpecTriggeredSourceSAController},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredSourceController", Val: definedSpecTriggeredSourceSAController},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredTargetController", Val: definedSpecTriggeredSourceSAController},

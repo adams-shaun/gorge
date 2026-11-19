@@ -341,6 +341,10 @@ var addedAfterTheSplit = []string{
 	// off the resolving stack object (ActionCause); no pre-split arm
 	// dispatched the mode.
 	"Destroyed",
+	// edh-trigD: Fight and FightOnce match the fight's own Damage events
+	// through Facts.FightDamaging (effects' SetDamageFlags(DamageFight) publication); no
+	// pre-split arm could dispatch the new mode names.
+	"Fight", "FightOnce",
 	// edh-trigE: Adapt (Biomancer's Familiar) matches the AlterAttribute
 	// "Adapted" marker a resolving Adapt$ put emits; the mode name is new.
 	"Adapt",

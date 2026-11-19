@@ -328,7 +328,13 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 			return
 		}
 		for ti, t := range e.printedTriggersOf(o, f) {
-			if t.Mode != "AttackerBlocked" && (byEffect || t.Mode != "AttackerBlockedByCreature") {
+			switch t.ModeKind() {
+			case cards.TriggerAttackerBlocked, cards.TriggerAttackerBlockedOnce:
+			case cards.TriggerAttackerBlockedByCreature:
+				if byEffect {
+					continue
+				}
+			default:
 				continue
 			}
 			e.queueAttackerBlockedTrigger(t, id, o.Controller, ti, false, 0, ev)
@@ -354,7 +360,9 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 // grant. granted/grantor/Execute carry the GrantTriggerPush provenance a
 // granted instance needs and are left zero for a printed one.
 func (e *Engine) queueAttackerBlockedTrigger(t cards.Trigger, source state.ObjID, controller state.PlayerID, idx int, granted bool, grantor state.ObjID, ev events.Event) {
-	if t.Mode != "AttackerBlocked" && t.Mode != "AttackerBlockedByCreature" {
+	switch t.ModeKind() {
+	case cards.TriggerAttackerBlocked, cards.TriggerAttackerBlockedByCreature, cards.TriggerAttackerBlockedOnce:
+	default:
 		return
 	}
 	// t.Effect is nil for a printed trigger with no body; the queue gate below
@@ -459,7 +467,15 @@ func (e *Engine) queueAttackerBlockedTrigger(t cards.Trigger, source state.ObjID
 		}
 		return
 	}
-	for _, pr := range e.attackerBlockedCandidates(t, source, ev) {
+	cands := e.attackerBlockedCandidates(t, source, ev)
+	if t.ModeKind() == cards.TriggerAttackerBlockedOnce && len(cands) > 1 {
+		// Mode$ AttackerBlockedOnce ("whenever one or more creatures ... become
+		// blocked", Neyith of the Dire Hunt) is ONE instance per declaring
+		// event however many attackers matched; the first matching attacker is
+		// the referent.
+		cands = cands[:1]
+	}
+	for _, pr := range cands {
 		reserve()
 		e.triggerFireCount[key]++
 		e.queueTrigger(e, pendingTrigger{

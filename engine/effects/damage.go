@@ -150,7 +150,21 @@ type damageRider struct {
 	// gates skip it. It rides the rider so a DamageMap mark carries its own
 	// ability's flag to the DamageResolve flush.
 	noPrevention bool
+	// fight marks the rider as one direction of a fight (CR 701.14);
+	// emitDamageEvent publishes it as DamageFight.
+	fight bool
 }
+
+// DamageFlags are the in-flight provenance bits Host.SetDamageFlags publishes
+// around one Damage event (engine-transient, never on the logged event).
+type DamageFlags uint8
+
+const (
+	// DamageNoPrevention: the damage can't be prevented (CR 615.12).
+	DamageNoPrevention DamageFlags = 1 << iota
+	// DamageFight: the damage is one direction of a fight (CR 701.14).
+	DamageFight
+)
 
 // resolveSourceObject unwraps one object id to the permanent a damage rider
 // gates on: an ability stack object (minted by AbilityPush/TriggerPush, Card
@@ -427,14 +441,22 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 }
 
 // emitDamageEvent emits one non-combat Damage event, publishing the rider's
-// NoPrevention$ bit around it (set and restored exactly as SetDamageSource
-// is) so the "can't be prevented" fact reaches every prevention gate.
+// NoPrevention$ and fight bits around it (set and restored exactly as
+// SetDamageSource is) so the "can't be prevented" fact reaches every
+// prevention gate and a fight hit is recognisable to Mode$ Fight triggers.
 func emitDamageEvent(r damageRider, ev events.Event) events.Event {
-	if !r.noPrevention {
+	var f DamageFlags
+	if r.noPrevention {
+		f |= DamageNoPrevention
+	}
+	if r.fight {
+		f |= DamageFight
+	}
+	if f == 0 {
 		return r.h.EmitDamage(ev)
 	}
-	prev := r.h.SetDamageNoPrevention(true)
-	defer r.h.SetDamageNoPrevention(prev)
+	prev := r.h.SetDamageFlags(f)
+	defer r.h.SetDamageFlags(prev)
 	return r.h.EmitDamage(ev)
 }
 
@@ -735,6 +757,9 @@ func fightUnreadNote(h Host, c *Ctx, sa *cards.SA, key string) {
 // sources).
 func emitFightHit(h Host, src, dst state.ObjID, amount int32) int32 {
 	rider := fightRider(h, src, amount)
+	// Fight provenance for Mode$ Fight / FightOnce (see trigmatch/fight.go),
+	// published by emitDamageEvent.
+	rider.fight = true
 	prev := h.SetDamageSource(rider.source)
 	dealt := emitObjectDamage(rider, dst)
 	h.SetDamageSource(prev)
