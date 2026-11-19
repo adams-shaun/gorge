@@ -818,11 +818,25 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 		// pins over the census's colours (pay.PlanManaUnderRiderSpread); the
 		// offer walk verifies it like every pin, so a spread that over-asks a
 		// colour only costs a failed attempt. An X cost re-plans per X value
-		// inside the pins, so it keeps the pin shape alone.
-		if base.X == 0 {
-			if spread := e.potentialSpreadPlan(p, id, base, o, rider, compose, witnessNeeded, witnessOffers); spread.Plan != nil {
-				return spread
-			}
+		// inside the pins, so it keeps the pin shape alone: the helper's own
+		// guard refuses it, like the pinned arm's xsearch does. The supply
+		// read and the attempt itself live on the helpers below so this arm
+		// holds no more of the function's complexity row than the pin's.
+		spreadOf := potentialSpreadSupply(asPayer(e), p, rider, compose)
+		// The spread's plan runs under the same planFace/planSpecial guards
+		// the pinned re-plan does: a face-dependent tax or a special-action
+		// class reads the same board for both witnesses.
+		spreadPlan := func(c Cost) PaymentPlanOutcome {
+			prev := e.planFace
+			e.planFace = castFace
+			defer func() { e.planFace = prev }()
+			prevSpecial := e.planSpecial
+			e.planSpecial = pay.SpecialOfCastMode(o.Mode)
+			defer func() { e.planSpecial = prevSpecial }()
+			return e.planComposedCost(p, id, c, false, false)
+		}
+		if spread := potentialSpreadPlan(base, rider, spreadOf, spreadPlan, e.planKeepSources, witnessNeeded, witnessOffers); spread.Plan != nil {
+			return spread
 		}
 		return got
 	}
@@ -839,6 +853,25 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 // Produced$ C | Produced$ Combo G U land). Without an AnyColor rider there is
 // nothing to re-plan -- an AnyType rider lets even colourless mana pay, so
 // there the fold needs no re-plan -- and the verdict stands.
+// potentialSpreadSupply is the board-spread arm's supply read over the pay
+// engine: it composes the cast and asks PlanManaUnderRiderSpread for the
+// spread that re-colours the rider's pips over the census's colours, so
+// potentialModeCastPlan holds only the attempt itself.
+func potentialSpreadSupply(src pay.Engine, p state.PlayerID, rider pipRider,
+	compose func(Cost) (Cost, bool)) func(Cost) (Cost, bool) {
+	return func(c Cost) (Cost, bool) {
+		composed, ok := compose(c)
+		if !ok {
+			return Cost{}, false
+		}
+		sp := pay.PlanManaUnderRiderSpread(src, p, composed, rider)
+		if sp == nil {
+			return Cost{}, false
+		}
+		return *sp, true
+	}
+}
+
 // potentialSpreadPlan is the board-spread witness's arm: after every
 // single-colour pin fails, a coloured supply spread over several colours can
 // still fund the rider's pips — one coloured unit of ANY colour pays each
@@ -846,24 +879,21 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 // colours (pay.PlanManaUnderRiderSpread) and planned once; the offer walk
 // verifies the plan exactly as it verifies a pin's. The helper returns the
 // spread verdict when one pays and the plain unsupported verdict otherwise,
-// so a caller that holds a pin verdict keeps it.
-func (e *Engine) potentialSpreadPlan(p state.PlayerID, id state.ObjID, base Cost, o decision.Option,
-	rider pipRider, compose func(Cost) (Cost, bool),
+// so a caller that holds a pin verdict keeps it. An X cost re-plans per X
+// value inside the pins (xsearch), so its guard refuses it the same way.
+func potentialSpreadPlan(base Cost, rider pipRider, spreadOf func(Cost) (Cost, bool),
+	plan func(Cost) PaymentPlanOutcome, keepSources bool,
 	witnessNeeded func(decision.PaymentPlan) bool, witnessOffers func(decision.PaymentPlan) bool) PaymentPlanOutcome {
 	unsupported := PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
-	if !rider.AnyColor || rider.AnyType {
+	if !rider.AnyColor || rider.AnyType || base.X != 0 {
 		return unsupported
 	}
-	composed, ok := compose(base)
+	c, ok := spreadOf(base)
 	if !ok {
 		return unsupported
 	}
-	spread := pay.PlanManaUnderRiderSpread(asPayer(e), p, composed, rider)
-	if spread == nil {
-		return unsupported
-	}
-	got := e.planComposedCost(p, id, *spread, false, false)
-	if e.planKeepSources && got.Plan != nil && paymentPlanConsumes(*got.Plan) {
+	got := plan(c)
+	if keepSources && got.Plan != nil && paymentPlanConsumes(*got.Plan) {
 		return unsupported
 	}
 	if got.Plan == nil || got.Reason != "" {
