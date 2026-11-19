@@ -14,6 +14,7 @@ Bala Ged Recovery
 Bar the Door
 Bast, Panther Goddess
 Bazaar Krovod
+Blink Dog
 Boon of Safety
 Borrowed Time
 Brawn
@@ -29,8 +30,10 @@ Crash the Ramparts
 Crown of Empires
 Cruel Deceiver
 Crystal Ball
+Cynette, Jelly Drover
 Dakmor Lancer
 Dark Salvation
+Devious Cover-Up
 Dewdrop Spy
 Dirty Rat
 Drelnoch
@@ -40,6 +43,7 @@ Eidolon of Blossoms
 Electric Revelation
 Electrozoa
 Elegant Entourage
+Elminster's Simulacrum
 Embersmith
 Encase in Ice
 Era of Innovation
@@ -72,12 +76,14 @@ Kronch Wrangler
 Krosan Avenger
 Leyline of Anticipation
 Lightfoot Rogue
+Locthwain Gargoyle
 Loran's Escape
 Mantle of the Wolf
 Master of the Pearl Trident
 Merciless Javelineer
 Mind Over Matter
 Ministrant of Obligation
+Mirari
 Morinfen
 Mountain
 Nefashu
@@ -90,6 +96,7 @@ Ogre Jailbreaker
 Pharika's Chosen
 Pillar of Light
 Plains
+Platoon Dispenser
 Press into Service
 Quilled Wolf
 Quirion Explorer
@@ -97,12 +104,15 @@ Quirion Sentinel
 Rain of Rust
 Ramosian Sergeant
 Reclusive Wight
+Resurrection Orb
 Retreat to Coralhelm
 Revenge of the Hunted
 Rile
 Rising of the Day
 Ruin Crab
 Rukh Egg
+Saheeli's Silverwing
+Seagraf Skaab
 Serum Visions
 Shadow Rift
 Siegecraft
@@ -115,6 +125,7 @@ Spike-Tailed Ceratops
 Spire Owl
 Sprite Dragon
 Squelching Leeches
+Storm Sculptor
 Sunder Shaman
 Swamp
 Teardrop Kami

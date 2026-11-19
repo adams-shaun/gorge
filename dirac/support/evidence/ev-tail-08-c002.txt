@@ -160,6 +160,7 @@ Jeskai Elder
 Joiner Adept
 Juju Bubble
 Jukai Trainee
+Juvenile Gloomwidow
 Kaervek's Torch
 Kavu Howler
 Keeper of the Cadence
@@ -207,6 +208,7 @@ Nomads en-Kor
 O'aka, Traveling Merchant
 Okiba-Gang Shinobi
 Orim's Thunder
+Otherworld Atlas
 Overtaker
 Paradise Druid
 Paradox Engine
@@ -225,6 +227,7 @@ Propagator Drone
 Protector of the Wastes
 Queen's Agent
 Quietus Spike
+Rain of Filth
 Rain of Revelation
 Ral's Outburst
 Rally at the Hornburg

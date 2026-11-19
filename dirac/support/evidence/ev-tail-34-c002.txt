@@ -81,6 +81,7 @@ Death-Priest of Myrkul
 Devious Cover-Up
 Dirty Rat
 Drowner of Secrets
+Durable Coilbug
 Dust Elemental
 Ebony Charm
 Ebony Horse
@@ -273,6 +274,7 @@ Spidersilk Armor
 Spike-Tailed Ceratops
 Spiked Corridor
 Spire Owl
+Spitting Dilophosaurus
 Spring Cleaning
 Sprite Dragon
 Squelching Leeches

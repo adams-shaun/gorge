@@ -113,6 +113,7 @@ Dwarven Demolition Team
 Dwarven Pony
 Ebony Charm
 Edge of Autumn
+Eland Umbra
 Eldrazi Mimic
 Elvish Rejuvenator
 Emberwilde Caliph
@@ -122,6 +123,7 @@ Empty-Shrine Kannushi
 Enraged Ceratok
 Epicenter
 Erdwal Ripper
+Ethereal Absolution
 Evil Eye of Urborg
 Experimental Armor
 Explosive Entry
@@ -280,6 +282,7 @@ Overwhelming Intellect
 Owlbear
 Ox of Agonas
 P-Joven and Chandler
+Paragon of the Amesha
 Pardic Firecat
 Pariah
 Peek

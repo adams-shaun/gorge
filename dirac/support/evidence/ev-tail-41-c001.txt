@@ -11,6 +11,7 @@ Anje's Ravager
 Antagonize
 Aphetto Vulture
 Arachnoform
+Arbaaz Mir
 Arcade Cabinet
 Arcane Laboratory
 Armor Sliver
@@ -225,6 +226,7 @@ Minister of Pain
 Misfortune's Gain
 Mister Fantastic
 Mogg Fanatic
+Moira Brown, Guide Author
 Moorland Drifter
 Morale
 Morbid Hunger
