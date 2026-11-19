@@ -21,6 +21,9 @@ const raDredgeRes uint8 = 149
 // ask (dirac/manifest/ask/raGenClash)
 const raGenClash uint8 = 150
 
+// ask (dirac/manifest/ask/raGenPileOpp)
+const raGenPileOpp uint8 = 151
+
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
 

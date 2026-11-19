@@ -155,9 +155,9 @@ var repeatPlayerOps = map[string]bool{
 // "a creature with the greatest power among creatures they control"
 // (Choices$ Creature.greatestPowerControlledByRemembered, Mandatory$,
 // RememberChosen$; gorge choose_control.go), the SacrificeAll IsRemembered
-// after the loop reading it. Two players: the repeated player is the
-// opponent, so the greatest power is Count$Valid Creature.OppCtrl's from
-// the resolving controller's view; the chooser's filter is a creature it
+// after the loop reading it. The greatest power is the repeated player's
+// (Count$Valid Creature.RememberedPlayerCtrl, kop.CtrlEachPl), read inside
+// the body at any seat count; the chooser's filter is a creature it
 // controls with power >= that (kop.PredPowerGEV). ok false: not this shape.
 func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error) {
 	if body.API != "ChooseCard" || body.Sub != nil || who.Kind != rEachOpp {
@@ -170,12 +170,16 @@ func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error)
 	if !ps.is("Mandatory", "True") || !ps.is("RememberChosen", "True") {
 		return true, refuse("RepeatEach greatest-power ChooseCard shape")
 	}
-	lc.twoSeat("the repeated opponent's greatest power read as OppCtrl's")
 	ps.consume("Choices", "Defined", "Mandatory", "RememberChosen", "Reveal", "ChoiceTitle", "SpellDescription", "StackDescription")
 	if left := ps.unread(); len(left) > 0 {
 		return true, refuse("RepeatEach greatest-power ChooseCard: unread params %v", left)
 	}
-	maxV, err := lc.svarValue("Count$Valid Creature.OppCtrl$GreatestCardPower", 0)
+	// the greatest power among the repeated player's creatures (gorge
+	// greatestPowerControlledByRemembered reads the iteration's player),
+	// evaluated inside the body where the kernel binds that player
+	lc.repeatPl++
+	maxV, err := lc.svarValue("Count$Valid Creature.RememberedPlayerCtrl$GreatestCardPower", 0)
+	lc.repeatPl--
 	if err != nil {
 		return true, err
 	}

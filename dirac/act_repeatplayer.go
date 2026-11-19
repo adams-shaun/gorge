@@ -14,12 +14,21 @@ func (s *State) ctrlEachPl(pc, ctrl uint8) bool {
 	if DebugEachPlCtrlYou {
 		return pc == ctrl
 	}
+	if DebugEachPlOppCtrl {
+		return pc != ctrl
+	}
 	return s.g.repEnd != 0 && pc == s.g.eachPl
 }
 
 // DebugEachPlCtrlYou makes CtrlEachPl match the resolving controller instead
 // of the repeated player. Test-only: the repeatpl lockstep's mutation proof.
 var DebugEachPlCtrlYou bool
+
+// DebugEachPlOppCtrl makes CtrlEachPl match any opponent of the resolving
+// controller, the two-seat reading of Crackling Doom's greatest power
+// (OppCtrl's across every opponent). Test-only: TestFourSeatGreatestPowerLockstep
+// must diverge.
+var DebugEachPlOppCtrl bool
 
 // sacForcedBatch sacrifices every match of one player's Sacrifice effect
 // together (gorge effSacrifice moves a player's whole batch at once: a

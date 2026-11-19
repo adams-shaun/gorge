@@ -1004,7 +1004,7 @@ func (s *State) FeatTargetGroup() bool {
 // it is false, an object whose own fields are unchanged has its derived
 // P/T and keywords unchanged too.
 func (s *State) FeatDerivedLive() bool {
-	if s.statM.any() || s.k().cda || s.k().tapMana || s.g.nemb[0]+s.g.nemb[1] != 0 {
+	if s.statM.any() || s.k().cda || s.k().tapMana || s.anyEmb() {
 		return true
 	}
 	for m := s.occ; m.any(); m = m.rest() {
@@ -1135,7 +1135,7 @@ func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all,
 			for i := 0; i < len(k.t.Subtypes) && i < kop.MaxSubtypes; i++ {
 				subs = subs.With(i)
 			}
-		} else if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {
+		} else if s.statM.any() || s.anyEmb() {
 			s.eachStaticC(k, sclsSub, func(st statSrc) bool {
 				a := st.a
 				if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous {
@@ -1233,7 +1233,7 @@ func (s *State) FeatStaticKey() uint64 {
 	if anyGyStatic(k) {
 		h = s.gyStaticKey(k, h) // static_gycont.go
 	}
-	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {
+	if s.statM.any() || s.anyEmb() {
 		s.eachStatic(k, func(st statSrc) bool {
 			a := st.a
 			if a.Kind != kop.AbStatic {

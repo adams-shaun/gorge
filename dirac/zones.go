@@ -439,7 +439,7 @@ func (s *State) objReferenced(o Obj) bool {
 	if s.g.ndp != 0 && s.dprogReferenced(o) {
 		return true // a delayed program's source (trig_delayedspell.go)
 	}
-	return s.enteredReferenced(o) || s.heldReferenced(o)
+	return s.enteredReferenced(o) || s.heldReferenced(o) || s.trigSAReferenced(o)
 }
 
 // enter puts o onto the battlefield under ctrl's control and fires ETB
