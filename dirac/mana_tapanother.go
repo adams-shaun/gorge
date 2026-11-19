@@ -98,11 +98,13 @@ func (s *State) scriptTapX(k *prep, p uint8) slotMask {
 
 // tapXCensusGap: p's tap-another-permanent sources gorge's window census
 // leaves unpriced (castWindowSourceExcluded): its probe admits a mana ability
-// without reading whether the tap part is payable (ignorePayable), so an
-// untapped Springleaf Drum with no untapped creature to tap still makes the
-// census incomplete (CR 601.2g).
+// whose tapXType cost it cannot price, so such a source makes the census
+// incomplete (CR 601.2g). One with too few untapped candidates to tap right now
+// is no gap: like a tapped source it has nothing to offer this window
+// (castWindowTapPartsShort), so an untapped Springleaf Drum beside no untapped
+// creature leaves the census complete.
 func (s *State) tapXCensusGap(k *prep, p uint8) slotMask {
-	return s.tapXSources(k, p, false)
+	return s.tapXSources(k, p, true)
 }
 
 // tapXSources: scriptTapX, the candidate count read only when cands is set.
