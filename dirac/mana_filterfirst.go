@@ -114,6 +114,9 @@ func (s *State) filtFirstMask(k *prep, p uint8) slotMask {
 	havePot := false
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
+		if s.pickedForMana(s.perms[sl].obj) {
+			continue // a Convoke/Waterbend pick is tapped for that cast, not for mana
+		}
 		if !k.gen.has(s.cardAt(sl), gfFilt) || !s.filtUsable(k, sl) {
 			continue
 		}

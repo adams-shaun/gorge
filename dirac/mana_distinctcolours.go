@@ -79,7 +79,11 @@ func (s *State) anyDifferentGaps(k *prep, p uint8) slotMask {
 		return m
 	}
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
-		if sl := b.first(); s.anyDifferentAt(k, sl) {
+		sl := b.first()
+		if s.pickedForMana(s.perms[sl].obj) {
+			continue // a Convoke/Waterbend pick is tapped for that cast, not for mana
+		}
+		if s.anyDifferentAt(k, sl) {
 			m = m.with(sl)
 		}
 	}
