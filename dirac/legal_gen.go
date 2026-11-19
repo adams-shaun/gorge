@@ -917,10 +917,16 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 			// a restricted source (Heartwood Crafter's {C}) or floating restricted
 			// mana (Boommobile's activated-only units) pays an activated ability
 			// from the graveyard as from the hand (CR 106.6)
+			mana := &a.Cost.Mana
+			var red kop.ManaCost
+			if k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
+				red = s.ownReduced(k, a, o, p) // a graveyard ability's own ReduceCost$ (cost_ownreduce.go)
+				mana = &red
+			}
 			gd := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
-			if !av.affords(&a.Cost.Mana, pipMaskOf(&a.Cost.Mana), 0) &&
-				!(k.restrSrc && s.restrSrcAffords(k, p, gd, &a.Cost.Mana, av, NoSlot, 0)) &&
-				!s.actPoolAffordsDesc(k, p, &a.Cost.Mana, gd, av) {
+			if !av.affords(mana, pipMaskOf(mana), 0) &&
+				!(k.restrSrc && s.restrSrcAffords(k, p, gd, mana, av, NoSlot, 0)) &&
+				!s.actPoolAffordsDesc(k, p, mana, gd, av) {
 				continue
 			}
 			if a.Trig.Cond != 0 && !s.graveActCond(k, a, p, o) {
@@ -950,7 +956,7 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 				if !s.pickCostPayable(k, p, &a.Cost, o) {
 					continue
 				}
-				if (f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana) && !s.costPartDisjoint(k, p, NoSlot, &a.Cost, &a.Cost.Mana, av, pipMaskOf(&a.Cost.Mana)) {
+				if (f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana) && !s.costPartDisjoint(k, p, NoSlot, &a.Cost, mana, av, pipMaskOf(mana)) {
 					continue
 				}
 			}

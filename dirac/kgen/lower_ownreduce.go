@@ -3,7 +3,7 @@ package kgen
 import "strings"
 
 // lower_ownreduce.go: an activated ability's own ReduceCost$
-// (Channel, battlefield). gorge legal_activation.go
+// (Channel, battlefield, graveyard). gorge legal_activation.go
 // ownReduceCost evaluates the value through the source face's SVars and
 // subtracts it from the cost's generic part, floored at zero (CR 601.2f);
 // the offer gate (legal_walk_battlefield.go), the planner witness
@@ -21,8 +21,8 @@ import "strings"
 // ReduceCost$ (Kami of Jealous Thirst's ReduceCost$ 4 B) is
 // ownManaReduction's shape and refuses.
 func (lc *lowerCtx) ownReduce(ab *lAbility, cost lCost, v string) error {
-	if ab.Kind != akActivated || ab.Latent || ab.Zone != zHand && ab.Zone != zNone && ab.Zone != zBattlefield {
-		return refuse("ReduceCost$ outside a printed hand or battlefield ability")
+	if ab.Kind != akActivated || ab.Latent || ab.Zone != zHand && ab.Zone != zNone && ab.Zone != zBattlefield && ab.Zone != zGraveyard {
+		return refuse("ReduceCost$ outside a printed hand, battlefield or graveyard ability")
 	}
 	if cost.Mana.X || cost.Mana.XX || len(cost.Mana.Hybrid) != 0 {
 		return refuse("ReduceCost$ beside an {X} or hybrid symbol")
