@@ -609,18 +609,21 @@ func (s *State) ringCombatHit(k *prep, r *dmgRec) {
 // ringLootDiscard is the loot's discard half (gorge's Discard You TgtChoose
 // 1): with no card in hand nothing; with exactly one the strict-supersets
 // rule discards it silently; with more the player is asked (raRingLoot).
+// It never pops: the caller owns the resolution's one finish (resolveTop's
+// abDelayed arm for the emblem trigger, dredgeResTail for the dredge resume,
+// ringAskLootAnswer for the ask).
 //
 //go:noinline
 func (s *State) ringLootDiscard(k *prep, p uint8) {
 	pl := &s.pl[p]
 	switch {
 	case pl.handN == 0:
-		s.finishResolve(k, false)
+		return
 	case int(pl.handN) == 1 && s.objs[pl.hand[0]].of&ofCopy == 0:
 		s.discardObj(k, pl.hand[0])
-		s.finishResolve(k, false)
+		return
 	case int(pl.handN) == 1:
-		s.finishResolve(k, false) // the only card is a copy, not a discardable card
+		return // the only card is a copy, not a discardable card
 	default:
 		s.res.ask, s.res.askP, s.res.left = raRingLoot, p, 1
 		s.res.chosen = objWord(p)
