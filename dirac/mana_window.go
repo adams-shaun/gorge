@@ -518,8 +518,8 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			return o, true // the unless census's fixed counter-fee source (ctrCensusOffer)
 		}
 		if s.windowSourceUsable(k, o, p) {
-			if !takeDeferred && s.planDeferred(k, p, o) {
-				continue // the window's answer follows the planner's tier: gorge's bot never picks a deferred source (mana_tapsdefer.go)
+			if !takeDeferred && s.planDeferred(k, p, o) && !s.blgIntrinsicUnit(k, o) {
+				continue // the window's answer follows the planner's tier: gorge's bot never picks a deferred source (mana_tapsdefer.go); a granted basic land type's intrinsic unit is the exception (blgIntrinsicUnit)
 			}
 			if s.windowClampSkip(k, p, o, decided, want) {
 				continue
@@ -586,6 +586,14 @@ func (s *State) windowTapCost(k *prep, sl Slot, noTap bool) bool {
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
+	if k.gen != nil && k.gen.anyManaRider && s.manaPCGen(k, sl).manaIntrinsic {
+		// the view is the granted types' intrinsic unit (blgView): manaTapped
+		// ran no rider for it (trig_taps.go), but the window's answer is the
+		// card's own ability -- gorge lists printed abilities before the
+		// appended intrinsics and takes the first (payexec.WindowAnswer), so
+		// the rider resolves with the tap (CR 605.3b)
+		s.manaRider(k, sl)
+	}
 	return true
 }
 
@@ -660,12 +668,15 @@ func (s *State) windowGrantPC(k *prep, sl Slot) *pcard {
 		}
 	}
 	if len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || s.ownManaUsable(k, sl) {
-		return s.manaPCGen(k, sl)
+		// the window lists the card's own ability: a rider source whose view
+		// is a granted basic land type's intrinsic unit reads its rider
+		// (blgGapPC, CR 605.3b)
+		return s.blgGapPC(k, sl)
 	}
 	var gi [maxGrants]int16
 	n := s.grantIdxs(k, sl, &gi)
 	if n == 0 {
-		return s.manaPCGen(k, sl)
+		return s.blgGapPC(k, sl) // the card's own ability, the rider of an intrinsic-unit source (blgGapPC)
 	}
 	d := s.payDescNow(NoObj)
 	if n = s.grantsAdmitted(k, sl, &gi, n, &d); n == 0 {
@@ -2113,7 +2124,7 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 	} else if a, ok := s.riderAbilityOf(k, sl); ok {
 		mask = uint8(a.ManaColors)
 	} else {
-		pc := s.manaPCGen(k, sl)
+		pc := s.blgGapPC(k, sl) // an intrinsic-unit rider source's answers are its rider's colours (blgGapPC)
 		mask = s.srcMaskAt(pc, sl)
 		if pc.manaChosen {
 			chosenPC = pc
@@ -2179,6 +2190,13 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
 		s.manaTapped(k, sl)
+		if k.gen != nil && k.gen.anyManaRider && s.manaPCGen(k, sl).manaIntrinsic {
+			// the view is the granted types' intrinsic unit (blgView): the tap
+			// is still the deferred rider's activation, the prefix search's
+			// relaxed alternative -- its rider resolves with the mana
+			// (manaRider's riderDeferred gate; CR 605.3b)
+			s.manaRider(k, sl)
+		}
 		s.tapDeferFloat(k, p, sl, c)
 		return
 	}
