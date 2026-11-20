@@ -30,6 +30,7 @@ Black Cat
 Blessings of Nature
 Blight Keeper
 Blistering Dieflyn
+Bloodbraid Marauder
 Bloodscent
 Bloodshot Trainee
 Bloodthorn Taunter
@@ -362,6 +363,7 @@ Thallid Germinator
 The Haunt of Hightower
 The Hunger Tide Rises
 The Odd Acorn Gang
+The Rani
 The Restoration of Eiganjo
 Thraben Charm
 Thraben Heretic

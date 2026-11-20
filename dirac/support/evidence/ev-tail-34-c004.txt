@@ -11,6 +11,7 @@ Arbalest Engineers
 Arbor Elf
 Arcane Flight
 Archangel's Light
+Archon of Redemption
 Aura Mutation
 Aven Trailblazer
 Avenging Arrow
@@ -22,6 +23,7 @@ Bat Whisperer
 Bazaar Krovod
 Belbe's Percher
 Billiard Room
+Blackcleave Cliffs
 Blink Dog
 Blisterspit Gremlin
 Bloodboil Sorcerer
@@ -29,6 +31,7 @@ Bloodrock Cyclops
 Boggart Brute
 Boon of Safety
 Borrowed Time
+Botanical Plaza
 Bottle-Cap Blast
 Brawn
 Breath Weapon
@@ -43,6 +46,8 @@ Cave of the Frost Dragon
 Ceta Sanctuary
 Charix, the Raging Isle
 Child of Thorns
+Chosen by Heliod
+Clear the Mind
 Cleaving Sliver
 Cloud Djinn
 Compy Swarm
@@ -97,6 +102,7 @@ Forest
 Fungal Bloom
 Gaea's Gift
 Generous Pup
+Ghost Quarter
 Glimmer of Genius
 Gnottvold Hermit
 Goblin Lackey
@@ -129,6 +135,7 @@ Island
 Jace's Phantasm
 Join Forces
 Joraga Auxiliary
+Keldon Halberdier
 Kitesail Apprentice
 Kitsune Dawnblade
 Kobold Drill Sergeant
@@ -146,6 +153,7 @@ Loxodon Warhammer
 Lurking Arynx
 Mana Seism
 Mantle of the Wolf
+Marsh Lurker
 Master of the Pearl Trident
 Merciless Javelineer
 Miara, Thorn of the Glade
@@ -153,6 +161,7 @@ Mind Over Matter
 Ministrant of Obligation
 Mirari
 Mogis's Warhound
+Molten Rebuke
 Morinfen
 Moriok Scavenger
 Mountain
@@ -193,6 +202,7 @@ Reduce
 Resurrection Orb
 Retreat to Coralhelm
 Revenge of the Hunted
+Reyav, Master Smith
 Rile
 Ringskipper
 Riot Piker
@@ -204,6 +214,7 @@ Sapseep Forest
 Seagraf Skaab
 See the Unwritten
 Senseless Rage
+Serra Advocate
 Serum Visions
 Sever the Bloodline
 Shadow Rift
@@ -257,8 +268,13 @@ Trickster Mage
 Troll-Horn Cameo
 Typhoid Rats
 Ulvenwald Captive
+Umara Wizard
 Undercity Necrolisk
+Unhallowed Phalanx
+Unknown Shores
 Unlikely Aid
+Vault of the Archangel
+Venerable Monk
 Venom, Eddie Brock
 Veteran's Voice
 Viashino Outrider
@@ -271,6 +287,7 @@ Vow of Lightning
 Warpath Ghoul
 Wasp, Shrinking Savior
 Wasteful Harvest
+Watchwing Scarecrow
 Wild Elephant
 Wild Ox
 Winds of Qal Sisma
