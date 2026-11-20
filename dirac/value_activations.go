@@ -31,6 +31,11 @@ func (s *State) activationsOfResolving() int {
 // ConditionActivationLimit$ gate never holds.
 var DebugNoActCount bool
 
+// DebugXWindowSkipLifeOnly (TestXWindowLifeOnlySourceMutation): the {X}
+// witness census skips a life-only mana source (Treasonous Ogre), as it did
+// when availUngranted's tap gate ran before the pain arm.
+var DebugXWindowSkipLifeOnly bool
+
 // activationsOfSource is ExActivations N 1: the evaluating source's non-mana
 // activations this turn, the ActivationLimit$ N offer gate (gorge
 // legal_loyalty.go activationLimitBlocked reads activationUsedCount before
