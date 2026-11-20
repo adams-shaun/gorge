@@ -189,6 +189,13 @@ type Override struct {
 	// CantAttack: the permanent can't attack (HiddenKeywords$ CARDNAME can't
 	// attack or block., beside AddKw KwCantBlock; KwMask has no free bit).
 	CantAttack bool
+	// EndCombat: the record ends on the transition that leaves the
+	// end-of-combat step (Pump Duration$ UntilEndOfCombat; gorge
+	// expireUntilEndOfCombat, CR 511.2), or at cleanup when no combat ran
+	// (gorge EndOfTurnCleanup's untilEndOfCombat backstop). The record is
+	// applied with no duration bits (no ovEOT), so the end-of-turn drop
+	// leaves it to the end-of-combat one.
+	EndCombat bool
 	// NoCost: a copy exception's "with no mana cost" (CR 707.9b; embalm's
 	// RemoveCost$): the copy's mana value is 0.
 	NoCost bool
