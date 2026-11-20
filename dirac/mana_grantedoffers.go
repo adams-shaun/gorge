@@ -1164,6 +1164,23 @@ func (g *grantSrch) exHolds(s *State) bool {
 // colour it makes, its fee paid from the pool).
 const stepFilt int16 = -2
 
+// filtFirstFreeFee reports a first-and-only filter whose fee gorge's
+// unrelaxable census does not count: it has a sound relaxed alternative, so
+// it is no `fund` entry, while an unrelaxable census has already cleared the
+// `paid` list that would have carried the fee. A hybrid or repeatable fee is
+// no free unit (its `fund` entry is counted), and a relaxable census counts
+// the fee in `paid`. The helper is read only where the census is unrelaxable
+// (filtFunding).
+func (s *State) filtFirstFreeFee(k *prep, sl Slot) bool {
+	if !k.gen.anyFiltFirst || !s.filtFirstOnly(k, sl) {
+		return false
+	}
+	if _, _, hyb := s.filtHyb(k, sl); hyb {
+		return false
+	}
+	return !s.filtRepeat(k, sl)
+}
+
 // candidates lists p's permanents with a granted mana ability (granted only, or
 // beside their own) in battlefield order. On a board where a grant is in force the
 // filters join them: gorge's census misses a filter's paid ability as it does a
