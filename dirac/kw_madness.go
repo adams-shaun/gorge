@@ -94,14 +94,16 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 			// drop is final for the madness cast, so it declares it rather
 			// than losing the offer silently (tapXScript's shape)
 			ok, stall = s.windowAffords(k, p, &cost)
-			if !ok && k.gen != nil && (k.gen.anyCondSplit || s.scriptTapsDefer(k, p).any()) {
+			if !ok && (k.gen != nil && (k.gen.anyCondSplit || s.scriptTapsDefer(k, p).any()) || s.sacOtherManaLive(k, p)) {
 				// gorge prices the madness cast against the potential pool
 				// too, which counts a source the census defers (mana_condsplit.go's
 				// River of Tears, and a Taps-deferred one: Burning Earth beside
 				// the nonbasic lands whose tap fires its watcher -- its census
 				// leaves the source unlisted and so cannot prove the cast
-				// unpayable, mana_tapsdefer.go); without either the census and
-				// window say the same
+				// unpayable, mana_tapsdefer.go), and one that sacrifices another
+				// permanent for its mana (Jungle Patrol's "Sacrifice a token
+				// named Wood: Add {R}", potentialGapCost's CostSac arm; CR
+				// 601.2g); without either the census and window say the same
 				ok = s.potentialAffords(k, p, o, &cost)
 			}
 		}
@@ -113,6 +115,43 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 		return false
 	}
 	return s.spellTargetsFeasible(k, c, p)
+}
+
+// sacOtherManaLive reports whether p controls a live mana ability that
+// sacrifices another permanent for its mana (Jungle Patrol's "Sacrifice a token
+// named Wood: Add {R}"): a census gap (gfGapOther) the unless window does not
+// model but the potential walk prices (potentialGapCost's CostSac arm, CR
+// 605.1a). The ability's cost need not tap, so a tapped source still counts;
+// only a {T} cost reads the tap and summoning sickness.
+func (s *State) sacOtherManaLive(k *prep, p uint8) bool {
+	if k.gen == nil {
+		return false
+	}
+	for b := s.ctrlM[p]; b.any(); b = b.rest() {
+		sl := b.first()
+		c := s.cardAt(sl)
+		if !k.gen.has(c, gfGapOther) || s.genLost(k, sl) || s.pickedForMana(s.perms[sl].obj) {
+			continue
+		}
+		j := k.gen.gapOther(c)
+		if j < 0 || int(j) >= len(k.t.Cards[c].Abilities) {
+			continue
+		}
+		a := &k.t.Cards[c].Abilities[j]
+		if a.Kind != kop.AbMana || a.Cost.Flags&kop.CostSac == 0 || a.Cost.Flags&kop.CostSacSelf != 0 || a.Cost.N == 0 {
+			continue
+		}
+		if a.Cost.Flags&kop.CostTap != 0 && (s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl)) {
+			continue
+		}
+		if k.gen.anyCantAct && s.actForbidden(k, sl, true) {
+			continue
+		}
+		if s.countCostSac(k, p, &a.Cost, sl) >= int(a.Cost.N) {
+			return true
+		}
+	}
+	return false
 }
 
 // painCastAffords: a painland's painful colour funds the madness cost (CR
