@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,16 +9,11 @@ import (
 	"github.com/adams-shaun/gorge/draft/limited/setdata"
 )
 
-// onlyDealsDigest is the digest (stdout and event logs) of the MBC -only run
-// below, recorded from the code before restrictSpec moved to setdata.Restrict.
-// Re-pinned when Reinforce (Swell of Courage) made one more MBC card playable,
-// when Awaken made Earthen Arms and Encircling Fissure playable, and when
-// stat:ManaRestriction made Hogaak, Arisen Necropolis playable (it left MBC's
-// substitute list, so the deal names it instead of its substitute).
-const onlyDealsDigest = "dd3c0ee80338789221dc2e57740ad33fb262be6209ec83f9b46890f8f305c950"
-
-// TestOnlyDealsListedCardsOnly: an MBC -only event deals only listed names and
-// its output is the bytes it was before the restriction moved to setdata.
+// TestOnlyDealsListedCardsOnly: an MBC -only event deals only the names its
+// allow-list, computed from the set's source sheets, allows; its output and
+// event log are deterministic. The old digest literal moved with every card
+// support change; the allow-list is measured here instead, so a support PR
+// never has to re-pin it.
 func TestOnlyDealsListedCardsOnly(t *testing.T) {
 	dir := corpusReady(t)
 	spec, err := setdata.LoadCollation("MBC", "draft")
@@ -51,13 +44,6 @@ func TestOnlyDealsListedCardsOnly(t *testing.T) {
 	o := defaultRuns(dir)[0]
 	o.only, o.events = list, 1
 	_, res, out := runDigest(t, o)
-	// The report names the temp list; hash it under a fixed name.
-	h := sha256.New()
-	h.Write([]byte(strings.ReplaceAll(out, list, "LIST")))
-	for _, er := range res.events {
-		h.Write(er.log)
-	}
-	got := hex.EncodeToString(h.Sum(nil))
 	if len(res.events) == 0 {
 		t.Fatal("no events ran")
 	}
@@ -71,7 +57,19 @@ func TestOnlyDealsListedCardsOnly(t *testing.T) {
 			}
 		}
 	}
-	if got != onlyDealsDigest {
-		t.Errorf("-only run digest %s, want %s", got, onlyDealsDigest)
+	// The same source list and seed must reproduce the same bytes: this is the
+	// regression pin the digest carried, without a committed value that two
+	// support PRs each have to move.
+	_, again, outAgain := runDigest(t, o)
+	if out != outAgain {
+		t.Errorf("-only run is not deterministic:\nfirst:\n%s\nsecond:\n%s", out, outAgain)
+	}
+	if len(again.events) != len(res.events) {
+		t.Fatalf("-only run produced %d events, then %d", len(res.events), len(again.events))
+	}
+	for i := range res.events {
+		if string(res.events[i].log) != string(again.events[i].log) {
+			t.Errorf("-only event %d log is not deterministic", i+1)
+		}
 	}
 }

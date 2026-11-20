@@ -184,6 +184,9 @@ jobs:
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/') && !startsWith(github.head_ref, 'hotfix/') && 'gorge-pr' || 'gorge-box') || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The ratchet guard compares the branch's own head tree with the merge base.
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -195,6 +198,15 @@ jobs:
           path: ~/.cache/go-build
           key: gocache-lint-${{ github.sha }}
           restore-keys: gocache-lint-
+      - name: Ratchets lower only post-merge
+        if: github.event_name == 'pull_request'
+        env:
+          # The daily bot branch and merge-queue branches are exempt (codeshape.GuardExempt); a
+          # fork's branch name is withheld so it cannot claim the exemption.
+          HEAD_REF: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref || '' }}
+          # The PR's own tree. The checkout is the merge ref, which carries main's later operations.
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: go run ./cmd/checkratchet "${{ github.event.pull_request.base.sha }}" "$HEAD_REF" "$HEAD_SHA"
       - name: gofmt
         run: |
           out=$(gofmt -l $(find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print))
