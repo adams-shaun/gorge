@@ -34,7 +34,9 @@ func stationProbeRefusals(t *testing.T, lines ...string) string {
 // amount), so the same shape is probed inline. It is a printed census gap the
 // kernel's gate view does not price, and refused; so is a Station-gated one
 // whose fee is not the colour it makes, has two pips or a generic part, or a
-// literal amount, and a Station grant of any other costed mana ability.
+// literal amount, and a Station grant of any other costed mana ability (the
+// granted {T}, Sacrifice shape lowered with the tap-and-sacrifice grant, so
+// its case asserts the lowering).
 func TestUngatedFixedColourFilterStaysRefused(t *testing.T) {
 	for _, c := range []struct {
 		name, want string
@@ -50,11 +52,17 @@ func TestUngatedFixedColourFilterStaysRefused(t *testing.T) {
 			stationProbe("AB$ Mana | Cost$ G G T | Produced$ G | Amount$ ProbeCount")},
 		{"Station-gated {G},{T}: Add {G} (literal amount)", "a coloured-fee mana ability the kernel does not model",
 			stationProbe("AB$ Mana | Cost$ G T | Produced$ G | Amount$ 2")},
-		{"Station-granted {T}, Sacrifice mana ability", "granted mana ability whose cost is not {T}",
+		{"Station-granted {T}, Sacrifice mana ability (the granted tap-and-sacrifice shape lowers; dirac mana_grantcost.go)", "",
 			stationProbe("AB$ Mana | Cost$ T Sac<1/CARDNAME> | Produced$ G")},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			got := stationProbeRefusals(t, c.lines...)
+			if c.want == "" {
+				if got != "" {
+					t.Errorf("a supported shape is refused: %s", got)
+				}
+				return
+			}
 			if got == "" || !strings.Contains(got, c.want) {
 				t.Errorf("want a refusal containing %q, got %q", c.want, got)
 			}
