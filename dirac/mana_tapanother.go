@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -646,6 +648,10 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) (bool, uint8)
 	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
 	rs.own, rs.src = NoSlot, NoObj
 	if a.Kind() == AkActivate {
+		if tapDbg {
+			oo := s.objs[Obj(a.Source())]
+			fmt.Fprintf(os.Stderr, "KDBG tapXScript act src=%v zone=%v slot=%v ab=%d costflags=%v\n", a.Source(), oo.zone, oo.slot, a.Mode(), k.t.Cards[oo.card].Abilities[a.Mode()].Cost.Flags)
+		}
 		_, rs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
 		rs.src = Obj(a.Source())
 		rs.srcZ = s.objs[rs.src].zone
@@ -657,6 +663,9 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) (bool, uint8)
 		// beside a sacrifice-any source the grant holders are gaps of this search (mana_tapxgrant.go)
 		rs.grants, _ = s.tapXGrantGaps(k, p, rs.gaps)
 		rs.gaps = rs.gaps.or(rs.grants)
+	}
+	if tapDbg {
+		fmt.Fprintf(os.Stderr, "KDBG tapXScript enter kind=%v src=%v own=%v gaps=%v\n", a.Kind(), a.Source(), rs.own, rs.gaps.first())
 	}
 	t := s.fork()
 	defer s.unfork()
@@ -673,6 +682,12 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) (bool, uint8)
 		// untried. A found path is not this: tapXPlay replays it on s, and a
 		// stall on it latches there of its own (filtSearch's fs.spill).
 		return false, rs.stall
+	}
+	if tapDbg {
+		for i := 0; i < rs.n; i++ {
+			st := rs.path[i]
+			fmt.Fprintf(os.Stderr, "KDBG tapXScript step kind=%d sl=%v cand=%v cand2=%v col=%d\n", st.kind, st.sl, st.cand, st.cand2, st.col)
+		}
 	}
 	if apply {
 		s.tapXPlay(k, p, rs.path[:rs.n])

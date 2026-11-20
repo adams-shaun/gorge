@@ -56,6 +56,7 @@ func (s *State) selfGrantLive(k *prep, p uint8) bool {
 // addGrantUnits adds a source's unit to a: whole (a unit makes one of its
 // colours), or under availHyp one unit per colour (PotentialMana's bound).
 func (s *State) addGrantUnits(a *avail, mask, n uint8) {
+
 	if s.g.availX&availHyp == 0 || mask&(mask-1) == 0 {
 		a.addUnits(mask, n)
 		return

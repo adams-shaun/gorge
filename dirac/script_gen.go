@@ -1,10 +1,14 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
+
+var tapDbg = true
 
 // Scripted plays (Bloom Tender). gorge's payment-planner census cannot
 // price a "one mana of each colour among permanents you control" ability,
@@ -437,7 +441,13 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				continue // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go); a cast too: Quest for Renewal's Taps watcher defers Gold Myr, so five mana from two Mountains, the Myr and two Saprolings under Brightcap Badger pays Quakebringer only by that search
 			}
 		} else if tx.any() && !s.tapXDeadEndRoute(k, p, tx, tapsDef) && s.tapXBoard(k, p) {
+			if tapDbg && a.Source() != 0 {
+				fmt.Fprintf(os.Stderr, "KDBG scriptOffers tapX arm a kind=%v src=%v mode=%v\n", a.Kind(), a.Source(), a.Mode())
+			}
 			if offered, stall := s.tapXScriptOffered(k, a, p); !offered {
+				if tapDbg {
+					fmt.Fprintf(os.Stderr, "KDBG scriptOffers tapX refused a=%v\n", a)
+				}
 				// every route gave the play up and one of the search's lines
 				// ran into a rule gap the kernel stalls by name: declare it,
 				// not a dropped offer. The drop is final — grantCap ran
@@ -469,6 +479,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				s.capStall(stall)
 				continue // no script within gorge's budget (mana_countercost.go ctrScript; a counter-cost gap alone, no restricted source beside it)
 			}
+		}
+		if tapDbg {
+			fmt.Fprintf(os.Stderr, "KDBG scriptOffers ADDED kind=%v src=%v mode=%v\n", a.Kind(), a.Source(), a.Mode())
 		}
 		d.add(a)
 	}
