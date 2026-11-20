@@ -2135,7 +2135,7 @@ const StatWitherDamage StaticKind = 68
 
 // StaticKind (dirac/manifest/StaticKind/StatExtraBlock)
 //
-// StatExtraBlock is a printed S:Mode$ Continuous | Affected$ <filter> | CanBlockAmount$ 1 (Brave the Sands, High Ground; CR 509.1a): each creature matching Filter, relative to the static's controller, can block an additional creature each combat (gorge combat.BlockCapacity). The kernel reads it in blockCap beside CardDef.ExtraBlocks; two sources on one blocker are a capacity three the kernel does not model.
+// StatExtraBlock is a printed S:Mode$ Continuous | Affected$ <filter> | CanBlockAmount$ 1 (Brave the Sands, High Ground; CR 509.1a): each creature matching Filter, relative to the static's controller, can block an additional creature each combat (gorge combat.BlockCapacity). The kernel reads it in blockCap beside CardDef.ExtraBlocks; two sources on one blocker are a capacity three the kernel does not model. Static.A = kop.ExtraBlocksAny is CanBlockAny$ True (Entangler's enchanted creature): any number of attackers (combat_blockany.go).
 const StatExtraBlock StaticKind = 69
 
 // ManaConvert (dirac/manifest/StaticKind/StatAnyColorSpells)

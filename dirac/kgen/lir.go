@@ -1181,6 +1181,9 @@ type lStatic struct {
 	Amount      lValue
 	Cost        lCost
 	Zone        int
+	// BlockAmount: an ExtraBlock grant's kop.ExtraBlocksAny (CanBlockAny$
+	// True), 0 for the amount-1 grant
+	BlockAmount int
 	Override    *lOverride
 	// ProtFrom: a Continuous grant's protection qualities (kop.Static.ProtFrom)
 	ProtFrom *lFilter

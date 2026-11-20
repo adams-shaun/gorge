@@ -1,0 +1,20 @@
+# the CanBlockAny$ True pool: the creatures that can block any number of
+# creatures (Avatar of Hope, Guardian of the Gateless, Ironfist Crusher,
+# Palace Guard, Wall of Glare) and the Aura that grants it (Entangler), beside
+# go-wide token makers and cheap attackers so a blocker faces three or more
+# attackers (dirac/oracle/canblockany_lockstep_test.go)
+Avatar of Hope
+Entangler
+Guardian of the Gateless
+Ironfist Crusher
+Palace Guard
+Wall of Glare
+Raise the Alarm
+Dragon Fodder
+Krenko's Command
+Hordeling Outburst
+Raging Goblin
+Gray Ogre
+Viashino Runner
+Plains
+Mountain
