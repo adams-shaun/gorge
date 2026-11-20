@@ -1945,7 +1945,12 @@ func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8,
 		needFirst(order[:no], g.need)
 	}
 	cols := g.subsumeCols(t, order[:no], ask, named)
-	if sel != 0 {
+	switch {
+	case sel != 0 && g.grantHoisted(t, sl, gi, mask):
+		if sel == 2 {
+			return false // walked in pass 1, ahead of the printed abilities (mana_grantnamed.go)
+		}
+	case sel != 0:
 		cols = g.selColours(cols, mask, sel, named)
 	}
 	for _, c := range cols {
