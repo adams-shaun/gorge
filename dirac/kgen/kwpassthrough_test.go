@@ -101,6 +101,17 @@ func TestKwPassThroughFlankingStaysRefused(t *testing.T) {
 	}
 }
 
+// TestKwPassThroughWithoutItsLinesRefuses: the pass-through consumes a node
+// only when the face carries the expansion's own line. A printed keyword
+// whose expander minted nothing (bare K:Amplify: the expander needs its
+// parameter) would otherwise drop silently.
+func TestKwPassThroughWithoutItsLinesRefuses(t *testing.T) {
+	const src = "Name:Probe\nManaCost:2 R R\nTypes:Creature Dragon\nPT:2/3\nK:Amplify\nOracle:x\n"
+	if rf := lowerScript(t, "Amplify Probe", src); !anyRefusal(rf, `keyword "Amplify"`) {
+		t.Fatalf("bare K:Amplify refusals %v, want one containing the keyword refusal", rf)
+	}
+}
+
 // kwpassthroughLIRPin is testdata/kwpassthrough_lirkeys.tsv: the LIRKeys of
 // every FDN, BLB and MBC card that accepted with no refusal before the
 // pass-through landed, pinned so the pass-through can be shown to change no
