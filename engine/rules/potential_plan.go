@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
@@ -139,6 +140,9 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 	}
 	for i := range opts {
 		a := &opts[i]
+		if mireDebug != "" && a.Obj == 20 {
+			fmt.Printf("DBG-OPTS walk opt kind=%s obj=%d ability=%d mode=%q\n", a.Kind, a.Obj, a.Ability, a.Mode)
+		}
 		if !potentialPlayKind(a.Kind) {
 			continue
 		}
@@ -219,6 +223,9 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 			plan := decision.ClonePaymentPlan(*got.Plan)
 			pp.Plan = &plan
 		}
+		if mireDebug != "" && o.Obj == 20 {
+			fmt.Printf("DBG-PP kind=%s obj=%d ability=%d reason=%v/%v plan=%v script=%d\n", o.Kind, o.Obj, o.Ability, got.Reason, got.Detail, pp.Plan != nil, len(pp.Script))
+		}
 		out = append(out, pp)
 	}
 	return out
@@ -262,6 +269,10 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 	census *paymentPlanCensus, censused *bool, scripts *int) (PaymentPlanOutcome, []ScriptStep) {
 	if !*censused {
 		*census, *censused = e.paymentPlanCensusOf(p, &hyp), true
+		if mireDebug != "" {
+			fmt.Printf("DBG-PLAN census incomplete=%v relaxable=%v gaps=%v onceGap=%v gapGains=%v for %s obj%d %q\n",
+				!census.complete, census.relaxable, census.gaps, census.onceGap, census.gapGains, o.Kind, o.Obj, o.Label)
+		}
 	}
 	if census.complete {
 		return got, nil
@@ -280,6 +291,9 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 		}
 	}
 	if got.Reason == pay.ReasonInsufficient || *scripts >= scriptPlays || e.potentialTargetPriced(p, o) {
+		if mireDebug != "" && o.Obj == 20 && o.Kind == "ability" {
+			fmt.Printf("DBG-SCRIPT skip reason=%v/%v scripts=%d limit=%d targetPriced=%v\n", got.Reason, got.Detail, *scripts, scriptPlays, e.potentialTargetPriced(p, o))
+		}
 		return got, nil
 	}
 	// Payable, if at all, only through an uncovered source: search the
@@ -300,11 +314,20 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 	// verdict exactly as before.
 	skip := !census.relaxable && census.bounded &&
 		e.paymentPlanRelaxProof(census.boundedProof(), verdict).Reason == pay.ReasonInsufficient
+	if mireDebug != "" && o.Obj == 20 && o.Kind == "ability" {
+		fmt.Printf("DBG-SKIP skip=%v bounded=%v relaxable=%v fund=%d gaps=%v\n", skip, census.bounded, census.relaxable, census.fees(), census.gaps)
+	}
 	if skip {
 		return got, nil
 	}
 	if script, ok := e.potentialPrefixScript(p, o, census.gaps, census.fees()); ok {
+		if mireDebug != "" && o.Obj == 20 && o.Kind == "ability" {
+			fmt.Printf("DBG-FOUND script len=%d\n", len(script))
+		}
 		return PaymentPlanOutcome{}, script
+	}
+	if mireDebug != "" && o.Obj == 20 && o.Kind == "ability" {
+		fmt.Printf("DBG-NOFOUND\n")
 	}
 	return got, nil
 }
@@ -1820,6 +1843,13 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	statics := e.collectCostStatics()
 	composed := e.offerCostForUsing(statics, p, id, cost, scope)
 	out := e.planComposedCost(p, id, composed, true, true)
+	if mireDebug != "" && id == 20 {
+		seq := uint64(0)
+		if e.pending != nil {
+			seq = e.pending.Seq
+		}
+		fmt.Printf("DBG-ABIL seq=%d id=%d out=%v/%v plan=%v\n", seq, id, out.Reason, out.Detail, out.Plan != nil)
+	}
 	if (out.Plan == nil || out.Reason != "") && statics.validTarget {
 		// No plan at the untargeted price: a ValidTarget$ cost static
 		// (Cloud, Planet's Champion's "Equip abilities that target Cloud cost
@@ -2373,6 +2403,15 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			face = o.Face()
 		}
 		for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
+			if mireDebug != "" {
+				ob := e.G.Obj(id)
+				nm := ""
+				if ob != nil && ob.Face() != nil {
+					nm = ob.Face().Name
+				}
+				fmt.Printf("DBG-CENSUS id=%d %s ma=%s prod=%q yieldsNothing=%v payablePool=%v hyp=%v tapped=%v\n",
+					id, nm, ma.Line, ma.ParamStr(cards.PKProduced), e.manaAbilityYieldsNothing(p, id, face, ma), e.manaAbilityPayablePool(p, id, ma, hyp), hyp, ob != nil && ob.Tapped)
+			}
 			// An ability that makes nothing -- "any color in your commander's
 			// color identity" with no such colour (CR 903.4f), an Amount$ that
 			// resolves to zero -- can, like a tapped land's, contribute

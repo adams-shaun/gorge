@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -1369,6 +1371,30 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			s.capFull(fs.stall)
 		}
 		return false
+	}
+	if os.Getenv("DIRAC_DBG_MIRE") != "" {
+		fmt.Fprintf(os.Stderr, "DBG-KMIRE filtscript FOUND a=%d n=%d path:", fs.a, fs.n)
+		for b := t.ctrlM[SeatIx(fs.p)]; b.any(); b = b.rest() {
+			sl := b.first()
+			fmt.Fprintf(os.Stderr, " [sl=%d obj=%d %q types=%x tapped=%v]", sl, t.perms[sl].obj,
+				k.t.Cards[t.cardAt(sl)].Name, t.typesAt(k, sl), t.perms[sl].flags&pfTapped != 0)
+		}
+		fmt.Fprintln(os.Stderr)
+		for i := 0; i < fs.n && i < len(fs.path); i++ {
+			st := &fs.path[i]
+			extra := ""
+			if st.sl != NoSlot && st.sl < MaxPerm {
+				pc := t.manaPCGen(k, st.sl)
+				extra = fmt.Sprintf(" obj=%d card=%d name=%q pc={ab=%d col=%x n=%d tap=%v chosen=%v dyn=%v} tapped=%v grant=%v blg=%x blgOn=%v abs=%d",
+					t.perms[st.sl].obj, t.cardAt(st.sl), k.t.Cards[t.cardAt(st.sl)].Name,
+					pc.manaAb, pc.manaCol, pc.manaN, pc.manaTap, pc.manaChosen, pc.manaDyn,
+					t.perms[st.sl].flags&pfTapped != 0, t.manaGranted(k, st.sl),
+					t.blgMask(k, st.sl), k.gen != nil && k.gen.blgOn, len(k.t.Cards[t.cardAt(st.sl)].Abilities))
+			}
+			fmt.Fprintf(os.Stderr, " {sl=%d%s gap=%v ans=%d hand=%v other=%d sacOnly=%v}",
+				st.sl, extra, st.gap, st.ans, st.hand, st.other.kind, st.sacOnly)
+		}
+		fmt.Fprintln(os.Stderr)
 	}
 	if fs.spill != 0 {
 		s.capFull(fs.spill) // (the fork the step ran on latched it; the real state must)

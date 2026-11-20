@@ -20,6 +20,9 @@ import (
 )
 
 // Config is a lockstep run's knobs that both sides must agree on.
+
+// TEMPORARY DEBUG (cli-20261120T135444Z): remove before landing.
+func mireDebugOS() bool { return os.Getenv("GORGE_DEBUG_MIRE") != "" }
 type Config struct {
 	// PassElision mirrors the kernel's elision (dirac.Config.NoElide off):
 	// a canonical decision -- or multi-pick step -- with exactly one option
@@ -414,6 +417,14 @@ func (g *GorgeSide) Step() CDecision {
 			continue
 		}
 		g.Stats.Decisions++
+		if mireDebugOS() {
+			for _, o := range d.Options {
+				fmt.Printf("DBG-CANON raw seq=%d kind=%s obj=%d idx=%d\n", d.Seq, o.Kind, o.Obj, o.Index)
+			}
+			for _, a := range fr.cur.Options {
+				fmt.Printf("DBG-CANON cur seq=%d act=%d\n", d.Seq, a)
+			}
+		}
 		return fr.cur
 	}
 }
@@ -737,6 +748,9 @@ func paymentCastAction(pa decision.PaymentAction, ref func(state.ObjID) Ref) (a 
 func (g *GorgeSide) priorityVocabulary(fr *frame) {
 	d := fr.d
 	e := g.E
+	if mireDebugOS() && d.Player == 0 {
+		fmt.Printf("DBG-VOCAB seq=%d pool=%v hand=%v\n", d.Seq, e.G.Players[0].Pool, len(e.G.Zone(1, 0)))
+	}
 	// The cast cost a convoke frame filters by is the CURRENT decision's
 	// plain hand offers. Dropping last decision's entries keeps a card cast
 	// from hand earlier and later cast through a permission (or a

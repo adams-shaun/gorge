@@ -742,6 +742,9 @@ func (sr *scriptSearch) priced(pool *Engine, c *Engine) bool {
 	defer pay.PaymentPlanQueryEnd(asPayer(c), pay.PaymentPlanQueryBegin(asPayer(c)))
 	o := sr.option()
 	got, _ := c.potentialPlayVerdict(sr.p, o)
+	if mireDebug != "" && sr.play.Obj == 20 && sr.play.Kind == "ability" {
+		fmt.Printf("DBG-NODE nodes=%d pool=%v verdict=%v/%v plan=%v\n", sr.nodes, c.G.Players[sr.p].Pool, got.Reason, got.Detail, got.Plan != nil)
+	}
 	// Only a search that leans on these verdicts for its proof (nodePlans)
 	// is weakened by one that proves nothing; the full search's proof is
 	// its own exhaustion.
@@ -859,6 +862,14 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 	sr.nodes++
 	p := sr.p
 	d := c.Pending()
+	if mireDebug != "" && sr.play.Obj == 20 && sr.play.Kind == "ability" && d != nil && d.Player == p && d.Kind == decision.KPriority {
+		fmt.Printf("DBG-VISIT nodes=%d pool=%v stack=%d opts:", sr.nodes, c.G.Players[sr.p].Pool, len(c.G.Stack))
+		for i := range d.Options {
+			o := &d.Options[i]
+			fmt.Printf(" [%s obj=%d idx=%d]", o.Kind, o.Obj, o.Index)
+		}
+		fmt.Println()
+	}
 	// Another player's decision (their priority while a trigger resolves,
 	// or the order of their simultaneous triggers the line set off, CR
 	// 603.3b): the searched line assumes they pass, or order the triggers
@@ -1023,9 +1034,14 @@ func scriptTwin(g *state.Game, d *decision.Decision, a, b state.ObjID) bool {
 	if oa.Counters != nil || ob.Counters != nil {
 		return false
 	}
-	for _, id := range g.Zone(state.ZBattlefield, oa.Controller) {
-		if o := g.Obj(id); o != nil && (o.AttachedTo == a || o.AttachedTo == b) {
-			return false
+	// Every seat's battlefield: the attachment may belong to the opponent
+	// (a Sea's Claim on the payer's land), and a twin pair one attachment
+	// touches is two subtrees.
+	for seat := range g.Players {
+		for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(seat)) {
+			if o := g.Obj(id); o != nil && (o.AttachedTo == a || o.AttachedTo == b) {
+				return false
+			}
 		}
 	}
 	return scriptOptionKey(d, a) == scriptOptionKey(d, b)
@@ -1119,6 +1135,9 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 				}
 			}
 			if sr.ownTapSource(c, opt.Obj) {
+				if mireDebug != "" && sr.play.Obj == 20 && sr.play.Kind == "ability" {
+					fmt.Printf("DBG-ACTSKIP phase=%d obj=%d ownTap\n", i, opt.Obj)
+				}
 				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
 			}
 			twin := false
@@ -1127,6 +1146,9 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 					twin = true
 					break
 				}
+			}
+			if mireDebug != "" && sr.play.Obj == 20 && sr.play.Kind == "ability" {
+				fmt.Printf("DBG-ACTPROBE phase=%d obj=%d gap=%v twin=%v tried=%v cutOn=%v\n", i, opt.Obj, gap, twin, tried, sr.feeOnly || sr.twinCut)
 			}
 			if (sr.feeOnly || sr.twinCut) && twin {
 				continue // an indistinguishable earlier source already walked this subtree
@@ -1160,6 +1182,9 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 				// The gap activation's opening pool was stashed above for the
 				// fee-stall run; its source is what the ask's prune reads.
 				sr.actSrc = opt.Obj
+			}
+			if mireDebug != "" && sr.play.Obj == 20 && sr.play.Kind == "ability" {
+				fmt.Printf("DBG-ACT phase=%d gap=%v obj=%d label=%q funded=%d sym=%q\n", i, gap, opt.Obj, opt.Label, funded, opt.ManaSymbol)
 			}
 			if sr.try(pool, c, d, decision.Intent{Seq: d.Seq, Player: p, Choices: []int{opt.Index}}, next, gapUsed || gap) {
 				return true

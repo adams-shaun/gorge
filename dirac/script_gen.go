@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -426,7 +428,13 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			}
 		} else if filt.any() || mix {
 			if !s.filtScript(k, a, p, false) {
+				if os.Getenv("DIRAC_DBG_MIRE") != "" {
+					fmt.Fprintf(os.Stderr, "DBG-KMIRE scriptoffer FILT-DROP a=%v\n", a)
+				}
 				continue // no script within gorge's search budget
+			}
+			if os.Getenv("DIRAC_DBG_MIRE") != "" {
+				fmt.Fprintf(os.Stderr, "DBG-KMIRE scriptoffer FILT-KEEP a=%v\n", a)
 			}
 		} else if tapsDef.any() && s.liveGrantGap(k, p) {
 			if ga, gstall := s.grantActScript(k, a, p); !ga {

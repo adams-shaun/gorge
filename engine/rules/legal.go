@@ -187,7 +187,14 @@ func (e *Engine) legalActionsWalkWithWindow(p state.PlayerID, hyp *state.Mana, c
 	if w.rec != nil {
 		w.rec.finish(out)
 	}
-	return w.postWalkTail(out, walkHW, tail, scratch, window, forAsk, temp, dst)
+	if mireDebug != "" {
+		mireWalkOut(out, hyp != nil, castsOnly, forAsk)
+	}
+	ret := w.postWalkTail(out, walkHW, tail, scratch, window, forAsk, temp, dst)
+	if mireDebug != "" && forAsk {
+		mireWalkOut(ret, hyp != nil, castsOnly, forAsk)
+	}
+	return ret
 }
 
 // postWalkTail is the offer walk's post-walk tail, extracted verbatim from
