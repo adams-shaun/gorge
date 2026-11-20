@@ -166,7 +166,7 @@ func (s *State) prevRiderApply(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardI
 		return // prevented before the replacement: no rider
 	}
 	if s.noPrev(k, combat) || s.g.ro.on || s.parkedAny() || hits > 1 || s.pnxOn(code, combat) || s.pnxFromOn(srcSl, combat) ||
-		s.replOthersCompete(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
+		s.replOthersCompete(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, false) {
 		s.capFull(StallPrevRider) // loud: gorge runs the rider where the kernel cannot
 		return
 	}
