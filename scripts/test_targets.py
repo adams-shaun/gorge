@@ -148,9 +148,11 @@ class Result:
 
 def is_changed(changed, pkg, test):
     """Whether (pkg import path, top-level test) is a test the diff adds or changes; changed is {(dir, test)}
-    as changed_tests returns it. A package matches its directory by import-path suffix (the module's own
-    prefix is not needed, and a directory is never a bare suffix of another: the match is on a '/')."""
-    return any(t == test and (pkg == d or pkg.endswith("/" + d)) for d, t in changed or ())
+    as changed_tests returns it, with the repo root keyed by its module import path (diff_changed_tests does
+    that: `go test -json` reports the import path, never "."). A package matches its directory by import-path
+    suffix (the module's own prefix is not needed, and a directory is never a bare suffix of another: the
+    match is on a '/')."""
+    return any(t == test and (pkg == d or (d != "." and pkg.endswith("/" + d))) for d, t in changed or ())
 
 
 def classify(lines, rc=0, named=(), changed=None, fallback=""):
@@ -165,7 +167,7 @@ def classify(lines, rc=0, named=(), changed=None, fallback=""):
     failed = []  # (package, test) in order
     pkg_fail = []
     raw = []
-    budget = env = empty = False
+    budget = over_budget = env = empty = False
     named = set(named)
     for ln in lines:
         ln = ln.rstrip("\n")
@@ -218,7 +220,7 @@ def classify(lines, rc=0, named=(), changed=None, fallback=""):
                 res.slow.append("changed test over the %.0fs budget, not enforced at the fallback cap (CPUQuota %s): %s %s %.1fs"
                                 % (TEST_BUDGET_S, fallback, pkg, test, el))
             else:
-                budget = True
+                over_budget = True
                 res.slow.append("BUDGET: changed test over the %.0fs budget: %s %s %.1fs; split it into chunk tests, "
                                 "shard it or tag it nightly" % (TEST_BUDGET_S, pkg, test, el))
         else:
@@ -240,8 +242,11 @@ def classify(lines, rc=0, named=(), changed=None, fallback=""):
     if budget:
         res.status = "BUDGET"
     elif failed or pkg_fail or rc != 0:
-        # A real failure wins over an environment skip: the code, not the box, decided the run.
+        # A real failure wins over an environment skip and over a changed slow test: the code, not the box or
+        # the wall clock, decided the run. A timeout or kill above still wins over both.
         res.status = "FAIL"
+    elif over_budget:
+        res.status = "BUDGET"
     elif env:
         res.status = "ENV"
     elif empty or res.ran == 0:
@@ -561,9 +566,14 @@ def census_pkgs(changes, dirmap, deps, candidates):
 
 def diff_changed_tests(base):
     """changed_tests for the working tree against base; empty when the diff cannot be read (a base that does
-    not resolve): the budget is then only reported, never enforced."""
+    not resolve): the budget is then only reported, never enforced. A root-package test is keyed by the
+    module import path `go test -json` reports for it (the dir is "." in the diff)."""
     try:
-        return changed_tests(diff_changes(base), added_files(base), read_lines)
+        changed = changed_tests(diff_changes(base), added_files(base), read_lines)
+        if any(d == "." for d, _ in changed):
+            root = sh("go", "list", "-m").strip()
+            changed = {(root if d == "." else d, t) for d, t in changed}
+        return changed
     except SystemExit:
         return set()
 

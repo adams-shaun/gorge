@@ -80,9 +80,56 @@ def test_finish_prints_the_budget_verdict_and_exit_5(tmp_path):
     assert tt.finish("one", str(f), 1, "s", ["./leaf"], 3, [], out=out, fallback="200%", changed={("leaf", "TestSlow")}) == 75
 
 
+def test_a_changed_slow_test_does_not_hide_a_real_failure():
+    evs = stream(70) + [json.dumps({"Action": "fail", "Package": SLOW, "Test": "TestOther", "Elapsed": 0.01})]
+    res = tt.classify(evs, rc=1, changed={("leaf", "TestSlow")})
+    assert res.status == "FAIL", res.status
+    # a timeout or kill still outranks the failure: the run did not finish
+    timed = evs + [json.dumps({"Action": "output", "Package": SLOW, "Output": "panic: test timed out after 5m0s\n"})]
+    assert tt.classify(timed, rc=1, changed={("leaf", "TestSlow")}).status == "BUDGET"
+
+
+def test_a_changed_root_package_test_is_budget(tmp_path):
+    """The root package's JSON Package is its module import path, not ".": a root test the diff changes is
+    still recognised, and the same test unchanged is only reported."""
+    import subprocess
+    repo = tmp_path / "r"
+    repo.mkdir()
+    g = lambda *a: subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *a], cwd=repo, check=True, capture_output=True)
+    g("init", "-q", "-b", "main")
+    (repo / "go.mod").write_text("module example.com/gorge\n\ngo 1.21\n")
+    (repo / "root_test.go").write_text("package gorge\n\nfunc TestRootSlow(t *testing.T) {\n}\n")
+    g("add", "."), g("commit", "-q", "-m", "base")
+    log = tmp_path / "t.json"
+    log.write_text(json.dumps({"Action": "pass", "Package": "example.com/gorge", "Test": "TestRootSlow", "Elapsed": 70.0}))
+    run = lambda: subprocess.run([sys.executable, "-I", str(HERE / "test_targets.py"), "finish", "--mode", "one", "--json", str(log),
+                                  "--sha", "s", "--pkgs", ".", "--base", "main"], cwd=repo, capture_output=True, text=True)
+    r = run()  # unchanged: reported, not failed
+    assert r.returncode == 0 and "not changed by this diff" in r.stdout, r.stdout
+    (repo / "root_test.go").write_text("package gorge\n\nfunc TestRootSlow(t *testing.T) {\n\t// changed\n}\n")
+    r = run()
+    assert r.returncode == 5, r.stdout
+    assert "BUDGET: changed test over the 60s budget: example.com/gorge TestRootSlow 70.0s" in r.stdout
+
+
 # The tests over the budget that the repo owns up to, with their owner action. Rows leave when the test is
-# fixed; never add one. Keep it in step with docs/agents/known-slow.md (empty until seeded: see its Seeding).
-KNOWN_SLOW_PINS = frozenset()
+# fixed; never add one. Keep it in step with docs/agents/known-slow.md (the 13-row seed from the precheck
+# audit's slowest-50 table; see its Seeding).
+KNOWN_SLOW_PINS = frozenset({
+    ("dirac/oracle", "TestGraveReduceLockstep"),
+    ("dirac/oracle", "TestGrantSearchPainlandFundingLockstep"),
+    ("engine/rules", "TestKernelWorldsInFuzzGame2"),
+    ("dirac/kgen", "TestTableBuildDeterministic"),
+    ("dirac/oracle", "TestCountheadsLockstep"),
+    ("dirac/oracle", "TestFiredmgLockstep"),
+    ("dirac/oracle", "TestCascadeLockstep"),
+    ("dirac/oracle", "TestMBCTheWorldTreeReprosLockstep"),
+    ("dirac/oracle", "TestCopyTokenTappedLockstep"),
+    ("dirac/oracle", "TestEclblightLockstep"),
+    ("dirac/oracle", "TestDividedXTotalClassLockstep"),
+    ("engine/rules", "TestKernelWorldsInFuzzGame5Shard1"),
+    ("dirac/oracle", "TestLeftzoneMutation"),
+})
 ACTIONS = {"split", "shard", "nightly"}
 
 
