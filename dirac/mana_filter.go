@@ -1175,9 +1175,14 @@ type filtSearch struct {
 	useful   kop.ManaCost
 	usefulOK bool
 	// feeOnly: the search's gaps hold a fee-only repeatable filter (gorge's
-	// scriptSearch.feeOnly). The activation-site, one-shot and twin cuts are
-	// scoped to it, so a board with no such source keeps the base node walk
-	// other searches share a budget with (the granted-mana prefix).
+	// scriptSearch.feeOnly). The activation-site and one-shot cuts are scoped
+	// to it, so a board with no such source keeps the base node walk other
+	// searches share a budget with (the granted-mana prefix). The twin cut
+	// runs on this fee-only path and for a printed or gained activated play
+	// (isAbilityPlay): two indistinguishable sources reach the same payer
+	// states, and the skip is what prices a fee-carrying gap beside a row of
+	// identical basics (tail-26 pair 26). An ordinary cast and every 0x80
+	// grant keep their older walk.
 	feeOnly bool
 	// hands: the hand guides the path exiled so far (mana_handguide.go)
 	hands uint8
@@ -1827,7 +1832,11 @@ func (fs *filtSearch) twinTried(k *prep, t *State, sl Slot, tried []Slot) bool {
 // name and the same activate options; the card definition plus the shared
 // abilities is that same pair (a granted ability is read through the same
 // card's state, so a grant that reaches one reaches the other).
-func (fs *filtSearch) twinSlot(k *prep, t *State, a, b Slot) bool {
+func (fs *filtSearch) twinSlot(k *prep, t *State, a, b Slot) bool { return twinSlotOf(t, a, b) }
+
+// twinSlotOf is twinSlot's test, which reads no search state: the grant
+// search's funding loop asks it too (grantSrch.fundTwinTried).
+func twinSlotOf(t *State, a, b Slot) bool {
 	if a == b || !t.occ.has(a) || !t.occ.has(b) {
 		return false
 	}
@@ -2033,7 +2042,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				}
 				continue
 			}
-			if fs.feeOnly && fs.twinTried(k, t, sl, tried[:ntried]) {
+			if (fs.feeOnly || isAbilityPlay(fs.a)) && fs.twinTried(k, t, sl, tried[:ntried]) {
 				continue // an indistinguishable earlier source already walked this subtree
 			}
 			if gap && k.gen.anyFiltFirst {
@@ -2418,6 +2427,23 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 // printed cost, or an activation.
 func gapFilteredPlay(a Action) bool {
 	return a.Kind() == AkActivate || a.Kind() == AkCast && a.Mode() == 0
+}
+
+// isAbilityPlay: action a is one of the activated plays gorge's twin cut
+// runs for -- a printed activation or a gained one (the 0xC0 mode pair,
+// static_gainsof.go), the two option shapes gorge's potentialTwinCut
+// classifies as printed or gained. The 0x80 bit alone is every grant dirac
+// cannot tell apart by encoding: a max-speed grant (legal_gen.go) and an
+// exile grant (cast_exilegrant.go) are Kind "granted", but a non-max-speed
+// SVar grant (Fishing Pole's ability granted to the equipped creature) is
+// Kind "ability" too. Gorge narrows its cut to the printed/gained option
+// shapes precisely because dirac cannot split those grants, so the cut must
+// not run on 0x80 here.
+func isAbilityPlay(a Action) bool {
+	if a.Kind() != AkActivate {
+		return false
+	}
+	return a.Mode()&0x80 == 0 || isGainedMode(a.Mode())
 }
 
 // gapSpendableMask drops from m each source whose every mana ability, printed
