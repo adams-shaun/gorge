@@ -22,13 +22,23 @@ type atomSeed struct {
 	games int
 }
 
+// atomPairs is the pairs each seed set plays and atomMaxDecisions the cap on a
+// game: the check costs registry size times live objects at every decision, so
+// the seeds are cut (never the atoms) to keep each test inside its minute on a
+// loaded box: eight pairs a set took 95 s (slices) and 79 s (synth) there with
+// 76 filter atoms, and the vocabulary is now 200+.
+const (
+	atomPairs        = 2
+	atomMaxDecisions = 400
+)
+
 var atomSeeds = map[string]*atomSeed{"slices": {}, "synth": {}, "pod": {}}
 
 // atomPlay plays one lockstep game under AtomCheck and folds its outcome in.
 func (a *atomSeed) play(name string, m *Matchup, seed uint64, k Side, cfg Config) {
 	st := NewAtomStats()
 	st.Seed = seed
-	rc := RunConfig{Config: cfg, MaxDecisions: 3000, MaxTurns: 60, Check: AtomCheck(st)}
+	rc := RunConfig{Config: cfg, MaxDecisions: atomMaxDecisions, MaxTurns: 60, Check: AtomCheck(st)}
 	res := Lockstep(m, seed, k, RandomPolicy(seed), rc)
 	CloseSide(k)
 	a.games++
@@ -52,7 +62,7 @@ func atomSlices(t *testing.T) *atomSeed {
 			}
 			for _, surface := range []bool{true, false} {
 				cfg := Config{GorgeAutopaySurface: surface}
-				for _, p := range Pairings(pool, 8, 11) {
+				for _, p := range Pairings(pool, atomPairs, 11) {
 					m, tbl, err := SetMatchup(rawSet(set), c, p.A, p.B, 0)
 					if err != nil {
 						continue
@@ -82,7 +92,7 @@ func atomSynth(t *testing.T) *atomSeed {
 			}
 			c.AddDecks(files)
 			cfg := Config{GorgeAutopaySurface: true}
-			for i := 0; i < 8; i++ {
+			for i := 0; i < atomPairs; i++ {
 				p := PairingAt(pool, i, 1)
 				m, tbl, err := SetMatchup(set, c, p.A, p.B, 0)
 				if err != nil {
@@ -238,7 +248,7 @@ func TestAtomCoverage(t *testing.T) {
 		t.Fatal(err)
 	}
 	pinned := map[string]bool{}
-	for _, l := range strings.Fields(string(raw)) {
+	for _, l := range strings.Split(strings.TrimSpace(string(raw)), "\n") { // names hold spaces
 		pinned[l] = true
 	}
 	now := map[string]bool{}

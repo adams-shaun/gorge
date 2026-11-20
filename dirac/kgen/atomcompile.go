@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -62,14 +63,22 @@ func (a *AtomCompiler) Filter(spec string, zone kop.Zone) (kop.FilterID, error) 
 	}
 	// The pool's Saga index is what Historic carries out of lowering; a
 	// matchup renumbers it (cardset remapSubtypePreds), and a matchup with no
-	// Saga keeps 0: artifact or legendary only.
+	// Saga keeps 0: artifact or legendary only. That sentinel is the matchup's
+	// own form, a read the kernel answers, not a subtype the table lacks: the
+	// Saga miss Historic's lowering recorded is dropped when the spec itself
+	// names no Saga (Outlaw's missing types still skip, Missing).
+	remapped := false
 	for f := id; f != 0; f = a.cb.pt.filters[f].Or {
 		if fl := &a.cb.pt.filters[f]; fl.Pred == kop.PredHistoric && fl.PredN > 0 {
 			fl.PredN = 0
 			if i, ok := a.cb.pt.subIdx["Saga"]; ok {
 				fl.PredN = int16(i) + 1
 			}
+			remapped = true
 		}
+	}
+	if remapped && !strings.Contains(spec, "Saga") {
+		delete(a.cb.pt.missing, "Saga")
 	}
 	return id, nil
 }

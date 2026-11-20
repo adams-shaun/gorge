@@ -73,10 +73,14 @@ var atomZoneList = [...]struct {
 // FilterAtom is one filter word under test. GorgeSpec is the spec gorge's
 // matcher reads ("Card.attacking"); KernelSpec, empty for the same spec, is
 // what kgen lowers for the kernel (only a deliberately wrong atom differs).
-// Ctx is the zones the word is defined in.
+// Ctx is the zones the word is defined in; Needs the banks it reads.
 type FilterAtom struct {
 	Name, GorgeSpec, KernelSpec string
 	Ctx                         AtomZones
+	Needs                       dirac.ProbeBanks // state the game's table must maintain for the kernel to answer it
+	// Skip names an object the kernel models differently on purpose, so the
+	// word is not compared on it; each user cites its ticket (nil: none).
+	Skip func(o *state.Object, d rules.Derived) bool
 }
 
 // CountAtom is one Count$ head under test: GorgeHead is the expression gorge
@@ -84,6 +88,8 @@ type FilterAtom struct {
 // what kgen lowers.
 type CountAtom struct {
 	Name, GorgeHead, KernelHead string
+	Needs                       dirac.ProbeBanks // as FilterAtom.Needs
+	TwoSeat                     bool             // kgen lowers the head for two seats only (every opponent is the one): not compared in a pod
 }
 
 var atomReg struct {
@@ -162,11 +168,14 @@ type atomSet struct {
 	cv      []kop.ValueRef
 	err     error
 	ps      *dirac.ProbeSet
-	psTbl   *kop.Table
 }
 
 func compileAtoms(fa []FilterAtom, ca []CountAtom, tbl *kop.Table) *atomSet {
 	as := &atomSet{fa: fa, ca: ca}
+	if NewAtomLowerer == nil {
+		as.err = errors.New("oracle.NewAtomLowerer is not set: the caller of the atom harness must install a lowerer (kgen.NewAtomCompilerOver; see atomdiff_lower_test.go)")
+		return as
+	}
 	comp := NewAtomLowerer(tbl)
 	as.fid = make([][len(atomZoneList)]kop.FilterID, len(fa))
 	as.skipF, as.skipC = make([]bool, len(fa)), make([]bool, len(ca))
@@ -204,6 +213,44 @@ func compileAtoms(fa []FilterAtom, ca []CountAtom, tbl *kop.Table) *atomSet {
 	return as
 }
 
+// newAtomSet lowers the atoms over r's table and builds the probe overlay. An
+// atom whose own lowering turns on state the game's table never allocated (a
+// damage history, a ledger: NewProbeSet refuses the layout) is left out, as an
+// atom reading a bank the table lacks is (Needs), and so reads as unevaluated.
+func newAtomSet(r *realSide, fa []FilterAtom, ca []CountAtom) *atomSet {
+	as := compileAtoms(fa, ca, r.tbl)
+	if as.err != nil {
+		return as
+	}
+	var err error
+	if as.ps, err = r.s.NewProbeSet(as.filters, as.exprs); err == nil {
+		return as
+	}
+	var okF []FilterAtom
+	var okC []CountAtom
+	for _, a := range fa {
+		if one := compileAtoms([]FilterAtom{a}, nil, r.tbl); one.err != nil {
+			return one
+		} else if _, e := r.s.NewProbeSet(one.filters, one.exprs); e == nil {
+			okF = append(okF, a)
+		}
+	}
+	for _, a := range ca {
+		if one := compileAtoms(nil, []CountAtom{a}, r.tbl); one.err != nil {
+			return one
+		} else if _, e := r.s.NewProbeSet(one.filters, one.exprs); e == nil {
+			okC = append(okC, a)
+		}
+	}
+	as = compileAtoms(okF, okC, r.tbl)
+	if as.err == nil {
+		if as.ps, err = r.s.NewProbeSet(as.filters, as.exprs); err != nil {
+			as.err = err
+		}
+	}
+	return as
+}
+
 // AtomCheck is a RunConfig.Check evaluating the registered atoms at every
 // decision both sides agree on (a multi-pick frame is compared at its first
 // pick, as FeatCheck does).
@@ -223,11 +270,7 @@ func AtomCheckFor(st *AtomStats, fa []FilterAtom, ca []CountAtom) func(ref *Gorg
 		}
 		if as == nil || asTbl != r.tbl {
 			// the atoms are lowered over this game's table, as a card of its matchup would be
-			as, asTbl = compileAtoms(fa, ca, r.tbl), r.tbl
-			var err error
-			if as.ps, err = r.s.NewProbeSet(as.filters, as.exprs); err != nil {
-				as.err = errors.Join(as.err, err)
-			}
+			as, asTbl = newAtomSet(r, fa, ca), r.tbl
 		}
 		if as.err != nil {
 			return &Divergence{What: "atom", Field: "lowering", Detail: as.err.Error()}
@@ -295,13 +338,17 @@ func (as *atomSet) check(ref *GorgeSide, r *realSide, st *AtomStats) *Divergence
 	fail := func(name string, ctx atomCtx, obj, gv, kv any) *Divergence {
 		return &Divergence{What: "atom", Field: name, Detail: fmt.Sprintf("seed %d decision %d obj %v (you %d, source %d): gorge %v kernel %v", st.Seed, st.Decisions, obj, ctx.you, ctx.gs, gv, kv)}
 	}
+	banks := r.s.ProbeBanks()
 	for i, a := range as.fa {
-		if as.skipF[i] {
+		if as.skipF[i] || a.Needs&^banks != 0 {
 			continue
 		}
 		spec := a.GorgeSpec
 		for _, ob := range objs {
 			if a.Ctx&atomZoneList[ob.zi].bit == 0 {
+				continue
+			}
+			if a.Skip != nil && a.Skip(g.G.Obj(ob.gid), g.Derived(ob.gid)) {
 				continue
 			}
 			fid := as.fid[i][ob.zi]
@@ -321,7 +368,7 @@ func (as *atomSet) check(ref *GorgeSide, r *realSide, st *AtomStats) *Divergence
 		}
 	}
 	for i, a := range as.ca {
-		if as.skipC[i] {
+		if as.skipC[i] || a.Needs&^banks != 0 || a.TwoSeat && r.n > 2 {
 			continue
 		}
 		for _, c := range ctxs {

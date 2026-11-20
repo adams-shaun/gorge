@@ -37,6 +37,29 @@ func (s *State) NewProbeSet(filters []kop.Filter, exprs []kop.Expr) (*ProbeSet, 
 	return ps, nil
 }
 
+// ProbeBanks is a set of state the kernel keeps only when the game's own
+// table asks for it: an atom that reads one is comparable only in a game whose
+// table maintains it (the probe overlay cannot turn it on in a running State).
+type ProbeBanks uint8
+
+// The banks an atom may need.
+const (
+	BankEntered   ProbeBanks = 1 << iota // the entered ledger (ThisTurnEntered reads, the entered-from words)
+	BankYourTurns                        // each player's count of turns begun (Count$YourTurns)
+)
+
+// ProbeBanks is the banks s's table maintains.
+func (s *State) ProbeBanks() ProbeBanks {
+	var b ProbeBanks
+	if s.g.enteredOn && s.turn != 0 { // before the first turn the ledger records nothing (noteEnter)
+		b |= BankEntered
+	}
+	if s.k().anyYourTurns {
+		b |= BankYourTurns
+	}
+	return b
+}
+
 // ProbeFilter reports whether object o matches the overlay filter f (its
 // whole Or chain) for a source src controlled by ctrl; src is NoObj for none.
 // A battlefield object reads the permanent matcher at the current layer, any
