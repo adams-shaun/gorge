@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -294,6 +296,24 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 						units = pay.AppendUnitAlt(units, id, a)
 					}
 				}
+			}
+			if mf.FreeCost && mf.Amount == 1 && !((mf.Tap && o.Tapped) || (mf.Untap && !o.Tapped)) &&
+				pay.IsColourIdentityProduced(effects.ManaOf(ma).Produced) {
+				// "Add one mana of any color in your commander's color
+				// identity" (Command Tower, CR 903.4, 605.3a) is a finite
+				// colour pick: one pinned alt per identity colour, so the
+				// offer gate prices it exactly as the activation it later
+				// taps. No identity colour prices nothing (fail closed).
+				var counts [6]int32
+				for _, c := range pay.CommanderIdentityColours(asPayer(e), p) {
+					if i := strings.Index("WUBRG", c); i >= 0 {
+						counts[i] = 1
+					}
+				}
+				for _, a := range pinnedManaAlts(windowManaAlt{Ma: ma, Amt: mf.Amount}, counts) {
+					units = pay.AppendUnitAlt(units, id, a)
+				}
+				continue
 			}
 			if !mf.Any || !mf.FreeCost || mf.Amount <= 0 ||
 				(mf.Tap && o.Tapped) || (mf.Untap && !o.Tapped) {
