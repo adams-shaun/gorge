@@ -133,7 +133,7 @@ func protectionColourLetter(tok string) string {
 // "Artifact") is itself.
 func (lc *lowerCtx) protectionChoiceQualities(choices string) ([]string, []*lFilter, error) {
 	if choices == "" {
-		return nil, nil, refuse("Protection Choices$ %q (only AnyColor lowers)", choices)
+		return nil, nil, refuse("Protection Choices$ %q: no qualities listed", choices)
 	}
 	var qs []string
 	var fs []*lFilter
@@ -149,9 +149,13 @@ func (lc *lowerCtx) protectionChoiceQualities(choices string) ([]string, []*lFil
 		return add(protectionColourWord(l), &lFilter{Clauses: []lClause{{Colors: l}}}, nil)
 	}
 	quality := func(q string) error {
-		f, err := lc.qualityFilter(q)
+		spec := q
+		if q == "colorless" {
+			spec = "Card.Colorless" // the filter grammar's no-colour property
+		}
+		f, err := lc.qualityFilter(spec)
 		if err != nil {
-			return refuse("Protection Choices$ %q (only AnyColor lowers)", choices)
+			return refuse("Protection Choices$ %q: quality %q does not lower", choices, q)
 		}
 		return add(q, f, nil)
 	}
@@ -185,7 +189,7 @@ func (lc *lowerCtx) protectionChoiceQualities(choices string) ([]string, []*lFil
 				}
 				continue
 			}
-			return nil, nil, refuse("Protection Choices$ %q (only AnyColor lowers)", choices)
+			return nil, nil, refuse("Protection Choices$ %q: unknown quality %q", choices, tok)
 		}
 	}
 	return qs, fs, nil

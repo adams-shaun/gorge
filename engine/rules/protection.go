@@ -360,7 +360,7 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	// with no colour at all (CR 702.16c). objColors has already applied
 	// Devoid, so a Devoid artefact reads colourless here as it does to every
 	// other colour reader.
-	if strings.EqualFold(q, "colorless") {
+	if q == "colorless" { // protectionChoiceOffers spells it exactly so
 		return e.objColors(o) == ""
 	}
 	// MonoColor and EnemyColor are Forge's colour-class predicates, rather

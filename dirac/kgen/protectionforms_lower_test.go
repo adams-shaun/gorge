@@ -18,6 +18,7 @@ var protectionFormCards = []string{
 	"Keeper of Kookus", "Masked Gorgon", "Obsidian Acolyte",
 	"Pristine Angel", "Red Ward", "Spare from Evil", "Spectra Ward", "Tattoo Ward",
 	"Tel-Jilad Defiance", "Tower of the Magistrate", "White Ward", "Willow Priestess",
+	"Giver of Runes", "Apostle's Blessing", "Jeweled Spirit", "Razor Barrier", "Pippin, Guard of the Citadel",
 }
 
 // protectionFormDeferred are the ticket's cards that stay refused, each by a
