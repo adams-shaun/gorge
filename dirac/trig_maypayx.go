@@ -211,9 +211,6 @@ func (s *State) trigXCensusPays(k *prep, p uint8, amt int, pips int16) bool {
 		}
 	}
 	av.xdOn = false
-	if m := s.restrFloatAdmits(k, p, &av.xd); m != 0 {
-		s.restrAvailAdd(p, m, &av) // floating restricted mana a non-spell payment may spend (CR 106.6; gorge AvailableFor)
-	}
 	if av.affords(&c, pipMaskOf(&c), 0) {
 		return true
 	}
