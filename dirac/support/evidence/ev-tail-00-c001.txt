@@ -123,6 +123,7 @@ Flowstone Sculpture
 Fodder Cannon
 Foresee
 Forest
+Forge Boss
 Form of the Dragon
 Foundry of the Consuls
 Fully Grown
@@ -272,6 +273,7 @@ Prism Ring
 Prismatic Omen
 Prodigious Growth
 Psychic Symbiont
+Pus Kami
 Quarry Beetle
 Raffine's Tower
 Raging Poltergeist

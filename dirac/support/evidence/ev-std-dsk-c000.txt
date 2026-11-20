@@ -54,6 +54,7 @@ Enduring Tenacity
 Enduring Vitality
 Enter the Enigma
 Entity Tracker
+Erratic Apparition
 Etched Cornfield
 Ethereal Armor
 Exorcise
@@ -112,6 +113,7 @@ Lakeside Shack
 Let's Play a Game
 Leyline of Hope
 Leyline of Resonance
+Leyline of Transformation
 Leyline of the Void
 Lionheart Glimmer
 Live or Die
@@ -119,6 +121,7 @@ Living Phone
 Malevolent Chandelier
 Manifest Dread
 Marina Vendrell's Grimoire
+Marvin, Murderous Mimic
 Meat Locker
 Meathook Massacre II
 Miasma Demon
@@ -129,6 +132,7 @@ Most Valuable Slayer
 Mountain
 Murder
 Murky Sewer
+Nashi, Searcher in the Dark
 Neglected Manor
 Norin, Swift Survivalist
 Oblivious Bookworm

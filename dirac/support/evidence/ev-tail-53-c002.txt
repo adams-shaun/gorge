@@ -3,6 +3,7 @@ A-Death-Priest of Myrkul
 A-Geological Appraiser
 A-Glittermonger
 A-Midnight Assassin
+Access Tunnel
 Aegis of the Heavens
 Aeromunculus
 Aeronaut Tinkerer
@@ -52,6 +53,7 @@ Captivating Unicorn
 Cat Burglar
 Challenger Troll
 Chandra's Pyrohelix
+Chilling Grasp
 Chlorophant
 Cinder Shade
 Cleanup Crew
@@ -144,6 +146,7 @@ Jwar Isle Avenger
 Kabuto Moth
 Kazandu Stomper
 Kitchen Imp
+Knollspine Invocation
 Krosan Reclamation
 Kuldotha Forgemaster
 Lava Dart
@@ -167,6 +170,7 @@ Merchant of Truth
 Mindbreak Trap
 Mine Bearer
 Mirozel
+Mobilized District
 Molten Blast
 Moonsnare Specialist
 Moorland Drifter
@@ -218,6 +222,7 @@ Rage Reflection
 Ranger's Path
 Rebuild
 Recalibrate
+Reflecting Pool
 Rescue, Pepper Potts
 Resolute Rider
 River's Favor
@@ -231,6 +236,7 @@ Scavenging Harpy
 Scepter of Dominance
 Scourge of Valkas
 Scrabbling Claws
+Scrubland
 Sea Gate Banneret
 Seascape Aerialist
 Second Sight
@@ -268,6 +274,7 @@ Swooping Lookout
 Sylvan Yeti
 Syndicate Messenger
 Tahngarth's Rage
+Taiga Stadium
 Tail Swipe
 Tattered Apparition
 Tempest Caller
@@ -288,7 +295,9 @@ Underworld Coinsmith
 Unyaro Bees
 Upheaval
 Urban Daggertooth
+Urborg Volcano
 Vampire of the Dire Moon
+Veteran Dungeoneer
 Vigilant Drake
 Viral Drake
 Viscera Seer

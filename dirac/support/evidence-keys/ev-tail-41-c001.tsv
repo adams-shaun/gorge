@@ -13,12 +13,14 @@ Bloodforged Battle-Axe	e2d5036ece3e89f7	5	2/2		1/1
 Bloody Betrayal	bb490616508f8caa	4	0/0		1/2	ix:resp
 Bone Splinters	503598597fdaad0f	18	0/0		2/2	
 Borne Upon a Wind	51ecfffee7f03912	12	0/0		1/2	ix:resp
+Cabal Coffers	241c5ed9b3554cdc	45	1/1		0/1	ix:resp
 Chill of the Grave	ded5d73997d39c04	5	0/0		1/2	ix:resp
 Cindervines	35500c5fd2c0890b	4	2/2		0/1	ix:resp
 Coercion	3a9682d132b1fc04	35	0/0		2/2	
 Colossus of Sardia	c8e762245d0631ea	4	1/1		0/1	ix:resp
 Conqueror's Flail	ddc3034c8c9ba0d9	14	1/1		0/1	ix:resp
 Consult the Necrosages	bd52fefc64455e00	8	0/0		1/2	ix:resp
+Crevasse	9d2582ddad0306e2	4	0/0		0/0	
 Crypt Sliver	4235122259f4119c	6	0/0		0/0	
 Curse of Marit Lage	7c80529ef57d6f25	5	1/1		0/1	ix:resp
 Deadeye Tracker	22bfede22f2ce3f9	14	1/1		0/1	ix:resp
@@ -94,6 +96,7 @@ Secret Passage	eb6858c7e2f99c04	7	2/2		0/1	ix:resp
 Secrets of the Golden City	5160d9ef3b24f891	8	0/0		1/2	ix:resp
 Seedguide Ash	3504eff292af21f5	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Selesnya Eulogist	e70bf7852e867655	14	1/1		1/1	
+Selesnya Guildmage	ad1b33bb99b3d0b2	21	2/2		1/1	
 Sensor Splicer	976e5dddfa0fc4cb	5	1/1		0/1	ix:resp
 Shadow Glider	c63c4cc62d39e6d1	6	0/0		0/0	
 Sheltering Light	c68cf0cbe86ee8e9	10	0/0		2/2	
@@ -119,6 +122,7 @@ Trustworthy Scout	fb8ace2233041c72	6	1/1		1/1
 Tunneler Wurm	8aab655dd4b07967	3	1/1		0/1	ix:resp
 Venomthrope	8132ed680ab3a341	8	0/0		0/0	
 Verdant Field	db9f6aa345482306	9	0/0		2/2	
+Warrior's Oath	fb83f0582c02198f	4	0/0		1/2	ix:resp
 Weirding Shaman	e34053a6ef6b2c49	10	1/1		1/1	
 Where Ancients Tread	bcd9449c5db5ebdf	14	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Whispering Shade	8377000dde624060	29	1/1		1/1	

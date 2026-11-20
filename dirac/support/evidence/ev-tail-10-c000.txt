@@ -126,6 +126,7 @@ Dromosaur
 Duskborne Skymarcher
 Dwarven Bloodboiler
 Dáin of the Ancient Halls
+Earthbrawn
 Eater of the Dead
 Elaborate Firecannon
 Eldrazi Aggressor
@@ -324,6 +325,7 @@ Pointed Discussion
 Pontiff of Blight
 Prison Realm
 Prodigal Sorcerer
+Promised Kannushi
 Prophetic Flamespeaker
 Prophetic Ravings
 Proteus Staff

@@ -5,9 +5,11 @@ A-Rockslide Sorcerer
 A-Umara Mystic
 Accelerated Evolution
 Aerial Assault
+Alela, Cunning Conqueror
 Angelic Field Marshal
 Animate Land
 Appa, the Vigilant
+Archon of Absolution
 Armor Thrull
 Asphodel Wanderer
 Auron, Venerated Guardian
@@ -21,6 +23,7 @@ Biting Rain
 Blight Sickle
 Boldwyr Intimidator
 Bolrac-Clan Basher
+Branch of Vitu-Ghazi
 Bubble Smuggler
 Buccaneer's Bravado
 Burning Palm Efreet
@@ -60,6 +63,7 @@ Drifting Meadow
 Dwarven Vigilantes
 Eidolon of Rhetoric
 Ekthi, Contaminator Priest
+Elspeth, Undaunted Hero
 Emerge Unscathed
 Essence Feed
 Etched Oracle
@@ -77,6 +81,7 @@ Fountain of Cho
 Furnace Celebration
 Furnace Hellkite
 Galvanic Iteration
+Garenbrig Squire
 Gilt-Leaf Palace
 Gnome-Made Engine
 Goblin Glider
@@ -98,7 +103,9 @@ Infested Fleshcutter
 Irencrag Pyromancer
 Iron Bully
 Island
+Ixidor, Reality Sculptor
 Keen-Eyed Raven
+Keeper of Kookus
 Knight of the Keep
 Kor Castigator
 Lightning Hounds
@@ -119,6 +126,7 @@ Mother of Runes
 Mothrider Patrol
 Mountain
 Mourning
+Mummy Paramount
 Novice Dissector
 Obscura Initiate
 Onulet
