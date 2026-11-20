@@ -65,7 +65,19 @@ func (s *State) lowerHybridActivation(k *prep, c *kop.ManaCost) {
 	if rm != 0 {
 		r = s.restrShortAdm(p, rm, r)
 	}
-	s.tapFor(k, p, &r, 0, NoObj)
+	// what the witness taps of a restricted source floats under its
+	// restriction, as a spell's witness does (lowerWitnessEx): a hybrid pip
+	// answered with another colour leaves the witness's mana unspent (the
+	// taps stand), and Eclipsed Realms' leftover {R} keeps "Spell.ChosenType,
+	// Activated.ChosenType" (CR 106.6; gorge emits the batch at the tap)
+	if k.restrSrc {
+		pool, untapped := s.pl[p].pool, s.untappedRestrSrcs(k, p)
+		var pk planner
+		s.tapForPK(k, p, &r, 0, NoObj, false, false, &pk)
+		s.witnessManaRestricted(k, p, &pool, untapped, &pk)
+	} else {
+		s.tapFor(k, p, &r, 0, NoObj)
+	}
 	if held {
 		s.perms[sl].flags &^= pfTapped
 	}
