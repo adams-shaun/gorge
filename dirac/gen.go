@@ -2805,7 +2805,17 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 		}
 	}
 	if k.gen.blgOn {
-		return s.blgView(k, sl, c, pc) // a granted basic land type's intrinsic abilities (static_landtype.go)
+		pc = s.blgView(k, sl, c, pc) // a granted basic land type's intrinsic abilities (static_landtype.go)
+	}
+	if pc.manaChosen && s.perms[sl].chosen > 4 {
+		// no colour chosen yet: the as-enters choice is not a copiable value
+		// (CR 707.6) and a copy of the permanent made no choice of its own,
+		// so its chosen production advertises nothing -- not the mask-0 unit
+		// a fallback read would count as generic mana (gorge addAvailable
+		// fails closed: substituteChosenProduced leaves the raw token, and a
+		// unit it cannot substitute yields no mana; mana_activation.go's
+		// recorded-choice read). Sunken Citadel copied by Deepfathom Echo.
+		return &noManaPC
 	}
 	return pc
 }
