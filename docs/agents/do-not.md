@@ -134,3 +134,7 @@ these hurt someone other than you.
   is not a `seat.PaymentPlanConsumer` answering true silently plays its
   fallback's manual mana taps. Bots default to true; an opt-out needs a stated reason in
   `bots/all`'s `paymentOptOut`.
+- **Don't add a Go test for a recording.** Add the JSON under
+  `dirac/oracle/testdata/repro` with `"named": true` (and `"served": true` to
+  require the whole recorded prefix be served); `TestReproManifest` replays it
+  as a subtest. A recording whose pool a glob test replays needs no mark.
