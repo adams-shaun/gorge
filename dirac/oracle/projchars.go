@@ -276,6 +276,12 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 		// target, block and damage options); black and red keep their bits
 		return 0, true
 	}
+	if strings.HasPrefix(s, "Protection from ") {
+		// a granted protection from a type or another quality that gorge
+		// spells with the "from" form (a Protection effect's Gains$ Artifact):
+		// the kernel holds it as the same quality filter (kop.Override.ProtFrom)
+		return 0, true
+	}
 	if strings.HasPrefix(s, "Protection:") {
 		// a granted "Protection:<spec>" quality the kernel models as a
 		// filter (kop.Static.ProtFrom, kop.Override.ProtFrom): compared
@@ -290,6 +296,26 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 		return 0, true
 	}
 	return 0, false
+}
+
+// protColourSpelling reads a granted "Protection:Card.<Colour>:<desc>[:<exc>]"
+// keyword (a Ward Aura's) as the "Protection from <colour>" it says: the
+// kernel holds both spellings as one colour clause of a quality filter and
+// projects the black and red bits of it.
+func protColourSpelling(k string) string {
+	rest, ok := strings.CutPrefix(k, "Protection:Card.")
+	if !ok {
+		return k
+	}
+	switch spec, _, _ := strings.Cut(rest, ":"); spec {
+	case "Black":
+		return "Protection from black"
+	case "Red":
+		return "Protection from red"
+	case "nonColorless":
+		return "Protection from each color" // Spectra Ward: any source with a colour
+	}
+	return k
 }
 
 // gorgeChars is battlefield object oid's CharsProj from gorge's derived
@@ -312,11 +338,12 @@ func gorgeChars(e *rules.Engine, v *charVocab, oid state.ObjID) (CharsProj, stri
 	kws := d.Keywords
 	eachColor := false
 	for _, k := range kws {
-		eachColor = eachColor || k == "Protection from each color"
+		eachColor = eachColor || k == "Protection from each color" || protColourSpelling(k) != k
 	}
 	if len(printed) > 0 || eachColor {
 		kws = make([]string, 0, len(d.Keywords))
 		for _, k := range d.Keywords {
+			k = protColourSpelling(k)
 			if printed[k] && strings.HasPrefix(k, "Protection from ") && k != "Protection from everything" {
 				continue
 			}
