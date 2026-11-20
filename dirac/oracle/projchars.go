@@ -243,6 +243,19 @@ var gorgeKwElsewhere = map[string]string{
 	"Afterlife":         "gorge kwAfterlife's expansion: a dies trigger making 1/1 flying Spirit tokens (kgen expandedKeywords; compared through the stack and the tokens), no battlefield characteristic",
 	"Afflict":           "gorge kwAfflict's expansion: a becomes-blocked trigger making the defending player lose N life (kgen expandedKeywords; compared through the stack and life), no battlefield characteristic",
 	"For Mirrodin":      "gorge kwForMirrodin's expansion: an ETB trigger making a 2/2 red Rebel token and attaching the Equipment to it (kgen expandedKeywords; compared through the token and the attachment), no battlefield characteristic",
+	// T05's keyword pass-through heads (cards.KeywordExpansionOnly, kgen
+	// lower_kwpassthrough.go): each expansion's own lines lower like a
+	// printed ability, so the printed keyword is no battlefield
+	// characteristic.
+	"Amplify":    "gorge kwAmplify's expansion: an entering Moved replacement revealing hand cards of a shared creature type and putting N +1/+1 counters per revealed card (kgen lowers the expansion's nodes; compared through the reveal, the memory and the counters), no battlefield characteristic",
+	"Champion":   "gorge kwChampion's expansion: an ETB trigger exiling another object of the named types or sacrificing the champion, the exile's UntilHostLeavesPlay returning it as the champion leaves (kgen lowers the expansion's node; compared through the exile, the return and the sacrifice), no battlefield characteristic",
+	"Devour":     "gorge kwDevour's expansion: an entering Moved replacement optionally sacrificing creatures and putting a +1/+1 counter per sacrificed (kgen lowers the expansion's nodes; compared through the sacrifice, the memory and the counters), no battlefield characteristic",
+	"Gravestorm": "gorge kwGravestorm's expansion: a SpellCast trigger copying the spell once per permanent put into a graveyard from the battlefield this turn (kgen lowers the expansion's node; compared through the copies), no battlefield characteristic",
+	"Ingest":     "gorge kwIngest's expansion: a combat-damage-to-a-player trigger digging the damaged player's top card into exile (kgen lowers the expansion's node; compared through the exile move), no battlefield characteristic",
+	"Provoke":    "gorge kwProvoke's expansion: an Attacks trigger untapping a defender's creature and binding it to block (kgen lowers the expansion's node; compared through the untap and the block), no battlefield characteristic",
+	"Reinforce":  "gorge kwReinforce's expansion: a hand activated ability discarding the card for its cost and putting N +1/+1 counters on a creature (kgen lowers the expansion's line; compared through the activate options, the discard and the counters), no battlefield characteristic",
+	"Soulshift":  "gorge kwSoulshift's expansion: a dies trigger returning a target Spirit card of mana value N or less from the graveyard to its owner's hand (kgen lowers the expansion's node; compared through the zone move), no battlefield characteristic",
+	"Undaunted":  "gorge kwUndaunted's expansion: a ReduceCost static reading the live opponent count (kgen lowers the expansion's static; compared through the cast options), no battlefield characteristic",
 }
 
 // gorgeKw maps one gorge keyword to its kernel bit. ok is false for a
