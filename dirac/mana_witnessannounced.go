@@ -11,10 +11,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // {C}: the Spawn is not Confound's target, the Larger Than Life is. A spell
 // whose every candidate is consumed stays refused (Larger Than Life on the
 // Spawn alone), as does a spell with a second target slot, which this
-// census does not read. A slot announcing at least Min targets ("six target
-// nonland permanents", Aether Gale) needs Min survivors, not one (gorge's
-// survivorsCanTarget). It mirrors gorge's witnessAnnouncesBeforePaying
-// (engine/rules/potential_witness_targets.go).
+// census does not read. What the survivors must make legal is the survivor
+// census targetsKept documents once, below. It mirrors gorge's
+// witnessAnnouncesBeforePaying (engine/rules/potential_witness_targets.go).
 func (s *State) announcedTargetKept(k *prep, t *State, c CardID, p uint8) bool {
 	ab := spellAb(k, c)
 	sp := tspec(k, c, ab, 0)
@@ -35,10 +34,14 @@ var DebugMinTargetsOneSurvivor bool
 
 // targetsKept is gorge's survivorsCanTarget over sp's candidates on the board
 // s: those the witness fork t left standing (a player is consumed by no
-// payment) must still make a legal declaration, the slot's resolved minimum
-// (targetOfferMin) beside them. A minimum that reads an unannounced X binds
-// nothing here (its dynamic early-true): such a slot needs one survivor. self
-// is the cast object the census leaves out (CR 115.5), NoObj for none.
+// payment) must still make a legal declaration beside the slot's resolved
+// minimum. The census is gorge's targetChoiceFeasible (engine/rules/
+// legal_targets.go) with the capacities its tail applies to a full one
+// (hasTargetsMin's: the survivors come from one seat, from that many seats,
+// or hold one creature type that often), not a plain count. A minimum that
+// reads an unannounced X binds nothing here (gorge's targetOfferMin dynamic
+// early-true): such a slot needs one survivor. self is the cast object the
+// census leaves out (CR 115.5), NoObj for none.
 func (s *State) targetsKept(k *prep, p uint8, sp *kop.TargetSpec, t *State, self Obj) bool {
 	var buf [MaxOptions]TCode
 	n := s.targetCands(k, sp, p, NoSlot, self, &buf)
@@ -46,16 +49,46 @@ func (s *State) targetsKept(k *prep, p uint8, sp *kop.TargetSpec, t *State, self
 	if sp.TFlags&kop.TgfBoundsV == 0 && int(sp.Min) > need && !DebugMinTargetsOneSurvivor {
 		need = int(sp.Min)
 	}
-	kept := 0
+	// the survivors, compacted in place over the candidate buffer
+	m := 0
 	for i := 0; i < n; i++ {
-		if isPlayerOrNone(buf[i]) {
-			kept++
-		} else if o := Obj(buf[i]); t.objs[o].zone == s.objs[o].zone && t.objs[o].ver == s.objs[o].ver {
-			kept++
-		}
-		if kept >= need {
-			return true
+		tc := buf[i]
+		if isPlayerOrNone(tc) {
+			buf[m] = tc
+			m++
+		} else if o := Obj(tc); t.objs[o].zone == s.objs[o].zone && t.objs[o].ver == s.objs[o].ver {
+			buf[m] = tc
+			m++
 		}
 	}
-	return false
+	if m < need {
+		return false
+	}
+	if need == 1 {
+		return true // the dynamic (or one-survivor) minimum binds nothing
+	}
+	// the capacities over the survivors; kgen refuses a shared-type slot
+	// beside the controller bits, so the branches never meet.
+	if sp.TFlags&kop.TgfSharedCrType != 0 {
+		return s.tgtSetCap(k, sp, buf[:m]) >= sp.Min // tgt_setconstraints.go
+	}
+	if sp.TFlags&kop.TgfSameController != 0 {
+		var per [MaxSeats]uint8
+		for i := 0; i < m; i++ {
+			if isObjTarget(buf[i]) {
+				per[SeatIx(s.ctrlOfObj(Obj(buf[i])))]++
+			}
+		}
+		return seatMax(&per) >= sp.Min
+	}
+	if sp.TFlags&kop.TgfDiffController != 0 {
+		var seen [MaxSeats]bool
+		for i := 0; i < m; i++ {
+			if isObjTarget(buf[i]) {
+				seen[SeatIx(s.ctrlOfObj(Obj(buf[i])))] = true
+			}
+		}
+		return seatCount(&seen) >= sp.Min
+	}
+	return true
 }
