@@ -3397,6 +3397,30 @@ func (lc *lowerCtx) latentTrigger(name string) (int, error) {
 	return idx, nil
 }
 
+// copyNonRemController consumes CopyPermanent Controller$ for the two
+// per-player complements: NonRememberedController over a Defined$ Remembered
+// source, and NonTargetedController over a Defined$ Targeted one. Both ride
+// the same CopyNonRemCtrl walk (dirac copy_nonremctrl.go); the source read
+// differs (the RememberLKI$ capture versus the target's LKI snapshot), and
+// the copy's controller read stays the kernel's. The key is deleted after
+// this read so copyExceptions does not see it as a copy exception.
+func (lc *lowerCtx) copyNonRemController(ps *params, obj lRef) (bool, error) {
+	ctrl := ps.str("Controller")
+	if ctrl != "NonRememberedController" && ctrl != "NonTargetedController" {
+		return false, nil
+	}
+	want := rRemembered
+	if ctrl == "NonTargetedController" {
+		want = rTarget
+	}
+	if obj.Kind != want {
+		return false, refuse("CopyPermanent Controller$ %s over %v", ctrl, obj)
+	}
+	ps.m = maps.Clone(ps.m)    // the card's own map is the registry's, which gorge reads
+	delete(ps.m, "Controller") // read here, not as a copy exception
+	return true, nil
+}
+
 func (lc *lowerCtx) copyPermanent(ps *params) error {
 	if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(strings.TrimSpace(d), "Valid ") {
 		if _, ok := ps.m["ValidTgts"]; ok {
@@ -3478,17 +3502,11 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		in.Op = "CopyPicked"
 	}
 	var flags []string
-	if ps.str("Controller") == "NonRememberedController" {
-		// each player other than the remembered permanent's controller
-		// (its last-known controller once it left; gorge
-		// copyPermanentController's NonRememberedController), owner by
-		// owner from the controller (dirac copy_nonremctrl.go; Fractured
-		// Identity)
-		if obj.Kind != rRemembered {
-			return refuse("CopyPermanent Controller$ NonRememberedController over %v", obj)
-		}
-		ps.m = maps.Clone(ps.m)    // the card's own map is the registry's, which gorge reads
-		delete(ps.m, "Controller") // read here, not as a copy exception
+	nonRem, err := lc.copyNonRemController(ps, obj)
+	if err != nil {
+		return err
+	}
+	if nonRem {
 		flags = append(flags, "NonRemCtrl")
 	}
 	if n, ok := ps.get("NumCopies"); ok {
