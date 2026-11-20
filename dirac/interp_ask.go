@@ -716,6 +716,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}
+	case raGenPayETB:
+		s.payETBOptions(k, d) // repl_paybeforeetb.go
 	case raGenCmdZone:
 		s.cmdZoneOptions(d) // zone_cmdzone.go
 	case raRecruitDiscard:
@@ -1528,6 +1530,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		s.continueRes(k, 0)
+	case raGenPayETB:
+		if !s.payETBAnswer(k, a) { // repl_paybeforeetb.go
+			panic("kernel: bad resolution answer")
+		}
 	case raGenCmdZone:
 		s.cmdZoneAnswer(k, a) // zone_cmdzone.go
 	case raRecruitDiscard:
@@ -1841,7 +1847,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 // an Attacking$ entry's CR 508.4 defender (zone_changezoneparams.go).
 func (s *State) moveAsked() bool {
 	return s.res.ask == raGenTopBottom || s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder ||
-		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone
+		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone || s.res.ask == raGenPayETB
 }
 
 // searchPick poses a search's (or a choose-move's) first pick, or finishes
@@ -2138,6 +2144,16 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 					continue
 				}
 				s.enterOnto(host)
+			}
+		}
+		if z == kop.ZoneBattlefield && host == NoSlot {
+			switch s.payETBEntry(k, o, ep) {
+			case payETBPark: // the pay-before-entering election is posed: the cards from this one on wait for its answer (repl_paybeforeetb.go)
+				n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
+				s.g.nlook = uint8(n)
+				return
+			case payETBGrave:
+				continue // the decline branch: the card went to its owner's graveyard instead
 			}
 		}
 		if z == kop.ZoneBattlefield && s.handAuraArmed(k) {
