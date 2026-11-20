@@ -106,7 +106,11 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			return Pack(ActBottom, ref(o.Obj), RefNone, 0), true
 		}
 	case decision.KTriggerOrder:
-		return Pack(ActOrder, ref(o.Obj), RefNone, 0), true
+		// Two simultaneous triggers from one source share their Obj, so the
+		// option's occurrence among that source's options disambiguates the
+		// order: the kernel's AkOrder mode is exactly that occurrence
+		// (types.go, cast.go orderOccurrence).
+		return Pack(ActOrder, ref(o.Obj), RefNone, uint8(triggerOrderOccurrence(d, o))), true
 	case decision.KTriggerOptional:
 		switch o.Kind {
 		case "yes":
@@ -167,9 +171,10 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			}
 			return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(mode)), true
 		}
-		if o.Kind == "multikick" {
-			// CR 702.43: gorge multikickAsk's count pick (Option.Amount),
-			// the kernel's DkChoose/ChMultikick
+		if isRepeatedCountKind(o.Kind) {
+			// CR 702.43/702.56a/702.157a: the count pick of gorge's
+			// multikickAsk / replicateAsk / squadAsk (Option.Amount), the
+			// kernel's one DkChoose/ChMultikick ask for all three
 			code, _ := chooseCode("multikick")
 			return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(o.Amount)), o.Amount >= 0 && o.Amount < 256
 		}
@@ -496,4 +501,26 @@ func (g *GorgeSide) addOrRemoveKindAction(o *decision.Option) (Canon, bool) {
 	}
 	code, _ := chooseCode(arm)
 	return Pack(ActChoose+CanonKind(code), g.id.ref(g.E.G, o.Obj), RefNone, uint8(c)), true
+}
+
+// triggerOrderOccurrence is a trigger-order option's position among the
+// same source's options (the kernel's AkOrder mode, cast.go orderOccurrence).
+func triggerOrderOccurrence(d *decision.Decision, o *decision.Option) int {
+	occ := 0
+	for i := range d.Options {
+		oi := &d.Options[i]
+		if oi == o {
+			break
+		}
+		if oi.Obj == o.Obj {
+			occ++
+		}
+	}
+	return occ
+}
+
+// isRepeatedCountKind reports the three repeated-additional-cost count picks
+// the kernel poses as one DkChoose/ChMultikick ask.
+func isRepeatedCountKind(kind string) bool {
+	return kind == "multikick" || kind == "replicate" || kind == "squad"
 }
