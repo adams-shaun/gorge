@@ -4,6 +4,7 @@ About Face
 Active Volcano
 Adventurous Impulse
 Aether Meltdown
+Agent of Treachery
 Amrou Scout
 Ancestral Recall
 Anticipate
@@ -28,6 +29,7 @@ Blight Pile
 Blightbelly Rat
 Blood Artist
 Body Dropper
+Bogardan Phoenix
 Bojuka Brigand
 Borrowed Grace
 Bow of Nylea
@@ -102,6 +104,7 @@ Goblin War Party
 Goldmeadow Harrier
 Goliath Paladin
 Guard Duty
+Guildscorn Ward
 Gurgling Anointer
 Haldir, Lórien Lieutenant
 Hamlet Captain

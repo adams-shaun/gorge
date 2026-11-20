@@ -16,11 +16,13 @@ Aragorn and Arwen, Wed
 Argivian Blacksmith
 Ark of Blight
 Asha's Favor
+Atraxi Warden
 Atsushi, the Blazing Sky
 Attended Knight
 Augur il-Vec
 Aura Blast
 Avabruck Caretaker
+Avenger en-Dal
 Avenging Hunter
 Awakening Zone
 Azra Smokeshaper
@@ -41,6 +43,7 @@ Cartouche of Knowledge
 Centaur Garden
 Cerodon Yearling
 Charity Extractor
+Choking Restraints
 Chorus of Might
 Churning Eddy
 Clattering Augur
@@ -52,6 +55,7 @@ Consider
 Consign
 Constable of the Realm
 Contingency Plan
+Courier's Briefcase
 Covert Operative
 Crackling Doom
 Crested Herdcaller
@@ -63,6 +67,7 @@ Daredevil, Fearless Fighter
 Daring Apprentice
 Davriel's Shadowfugue
 Dawnhart Geist
+Daxos's Torment
 Death Frenzy
 Death's Duet
 Deeproot Waters
@@ -76,6 +81,7 @@ Dreadmalkin
 Duskworker
 Elemental Summoning
 Ellyn Harbreeze, Busybody
+Empty City Ruse
 Endless Cockroaches
 Entish Restoration
 Etherium Abomination
@@ -111,6 +117,7 @@ Goldnight Commander
 Gravel-Hide Goblin
 Grimdancer
 Grisly Spectacle
+Grovetender Druids
 Guardian Seraph
 Hanabi Blast
 Harsh Scrutiny
@@ -122,6 +129,7 @@ Heron's Grace Champion
 High Score
 Howlpack Wolf
 Huatli's Raptor
+Humble
 Hungering Hydra
 Hunted Ghoul
 Hunting Moa
@@ -132,6 +140,7 @@ Implode
 Incremental Blight
 Incubation Sac
 Indicate
+Infected Vermin
 Infuriate
 Insatiable Gorgers
 Iridescent Angel
@@ -152,6 +161,7 @@ Koth's Courier
 Kranioceros
 Krosan Archer
 Leech Gauntlet
+Leshrac's Rite
 Lingering Phantom
 Llawan, Cephalid Empress
 Lumbering Satyr
@@ -182,6 +192,7 @@ Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
 Nekrataal
+Nettle Drone
 Nightshade Harvester
 Nissa, Resurgent Animist
 Ogre Menial
@@ -213,6 +224,7 @@ Prescient Chimera
 Primordial Sage
 Prince Imrahil the Fair
 Prismari Apprentice
+Pygmy Troll
 Ravenous Lindwurm
 Razor Swine
 Reckless Pangolin
@@ -226,6 +238,7 @@ Reverberate
 Rhonas's Monument
 Rhovanion Rampager
 Rhystic Study
+Roc Egg
 Rogue Refiner
 Safe Haven
 Safehold Sentry
@@ -264,6 +277,7 @@ Staff of the Storyteller
 Star Pupil
 Steam Spitter
 Steely Resolve
+Steppe Lynx
 Stern Scolding
 Stitched Mangler
 Stolen Grain
@@ -312,7 +326,9 @@ Volcanic Spite
 Volcano Imp
 Vrock
 Wakandan Tusker
+Wall of Limbs
 Ward Sliver
+Watchful Giant
 Waterlogged Teachings
 Wave of Terror
 Whelming Wave

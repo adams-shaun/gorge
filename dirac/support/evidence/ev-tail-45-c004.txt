@@ -1,33 +1,51 @@
 A-Exhibition Magician
+Abyssal Specter
 Acolyte of Xathrid
+Acridian
+Aether Barrier
 Alchemist's Vial
+Ambitious Aetherborn
 Arc Lightning
+Argothian Opportunist
 Arisen Gorgon
 Ashes to Ashes
 Atzocan Archer
+Ayumi, the Last Visitor
+Bag End Banquet
 Balduvian Horde
 Barrier Breach
 Basic Conjuration
 Battering Craghorn
+Bearscape
 Belbe's Armor
+Blade of the Sixth Pride
 Blessed Light
+Blighted Gorge
+Blightstep Pathway
+Blood Pet
+Bonders' Enclave
 Bonesplitter Sliver
+Boundless Realms
 Brazen Freebooter
 Brine Seer
+Call of the Death-Dweller
 Callous Dismissal
 Carnage Altar
 Chameleon Spirit
+Clairvoyance
 Clock of Omens
 Constricting Sliver
 Copper Longlegs
 Corrupted Harvester
 Dakkon, Shadow Slayer
+Dark Inquiry
 Dark Tutelage
 Darkslick Shores
 Defiler of Souls
 Detained by Legionnaires
 Devoted Paladin
 Dinosaur Stampede
+Distract
 Domri's Nodorog
 Dragonshift
 Dreamscape Artist
@@ -38,6 +56,7 @@ Drown in Shapelessness
 Dungeon Geists
 Duskmantle, House of Shadow
 Dwarven Grunt
+Ecstatic Awakener
 Elspeth, Undaunted Hero
 Elven Palisade
 Eviscerator
@@ -49,98 +68,175 @@ Finale of Devastation
 Fires of Undeath
 Flailing Soldier
 Flame Slash
+Flare of Faith
 Fledgling Dragon
+Fly
 Forest
 Foundry Helix
 Freewind Falcon
 Garbage Elemental
 Garruk Wildspeaker
+General's Kabuto
 Ghostly Sentinel
+Glade Watcher
 Gleam of Authority
+Goblin Fireleaper
+Golgari Signet
 Great Hart
+Grinning Demon
 Guardian Augmenter
+Haazda Officer
 Hag of Death's Legion
+Haze of Pollen
+Hazel's Brewmaster
 Heart Sliver
+Heartbeat of Spring
 Hellfire Mongrel
 Herald of Kozilek
 Herald of Secret Streams
 Hero's Demise
+Heronblade Elite
 Hill Giant Herdgorger
 Honored Hydra
+Hua Tuo, Honored Physician
+Hunter's Insight
+Ikiral Outrider
 Improbable Alliance
+Inquisition of Kozilek
+Ironclad Slayer
 Island
 Jalum Tome
+Jawbone Skulkin
+Jolrael, Empress of Beasts
 Joust
 Jund Panorama
+Kavu Aggressor
+Keening Banshee
+Kiku, Night's Flower
+King Harald's Revenge
 Kraul Raider
 Laser Screwdriver
+Leatherback Baloth
+Lonely Sandbar
 Magister Sphinx
+Magus of the Order
+Many Partings
 March of the Drowned
+Marrow Bats
 Martyr for the Cause
+Mercurial Pretender
 Meteor Storm
+Moaning Spirit
 Molten Ravager
+Monk Idealist
 Mountain
 Mudhole
+Naga Vitalist
+Nath's Elite
 Necrogen Censer
+Nest Invader
 Nightmare's Thirst
 Nyx-Fleece Ram
 Nyxathid
+Ogre Jailbreaker
 Ogre Warrior
 Omenspeaker
 Onulet
 Patron Wizard
+Pilfering Imp
 Plains
 Quicksilver, Pietro Maximoff
+Quirion Ranger
+Rancid Rats
+Rath's Edge
+Rathi Intimidator
+Razorclaw Bear
 Reckless Fireweaver
+Reclaim the Wastes
 Redcap Heelslasher
 Redwood Treefolk
 Regenerate
+Regress
+Remote Isle
+Renata, Called to the Hunt
+Repeal
 Repentant Blacksmith
+Respite
 Reverent Hunter
+River Boa
+River Darter
+Roaring Slagwurm
 Rootbreaker Wurm
 Runaway Carriage
 Safehold Sentry
+Saproling Burst
 Saproling Migration
 Scalebane's Elite
 Scattershot
 Seasoned Pyromancer
+Seekers' Squire
+Sensory Deprivation
 Shambling Remains
+Shield of Duty and Reason
 Silverglade Pathfinder
+Simic Cluestone
 Sire of Stagnation
 Skarrgan Skybreaker
 Smothering Abomination
 Soul of Shandalar
 Soulmender
 Sovereign's Bite
+Spare Supplies
 Sparksmith
+Spectator Seating
+Spider-Man, Miles Morales
+Spire Winder
 Spoils of Evil
+Sporesower Thallid
+Springing Tiger
 Stasis Cell
+Steel-Plume Marshal
 Stew the Coneys
 Storm of Steel
+Stormchaser Chimera
 Stronghold Overseer
+Succumb to Temptation
 Sunbathing Rootwalla
+Surgehacker Mech
 Swamp
 Swift Warden
 Sylvan Scrying
+Syr Konrad, the Grim
 Tajic, Blade of the Legion
 Telekinetic Sliver
 Tempestra, Dame of Games
+Territorial Roc
+Thallid Soothsayer
 The Antiquities War
 The Immortal Weapons
 Thoughtflare
 Thrashing Wumpus
+Thud
+Toxic Abomination
+Undercity's Embrace
+Untamed Kavu
 Utility Knife
 Vampire Bats
 Vampire of the Dire Moon
 Vengeful Reaper
+Verdant Catacombs
 Voracious Vacuum
 Wake of Vultures
 Webweaver Changeling
 Welding Sparks
 Willow Elf
+Windstorm
 Winged Hive Tyrant
+Wings of Velis Vel
 Withstand Death
+Wizard's Staff
 Wrecking Ogre
 Wriggling Grub
 Wu Elite Cavalry
 Yargle and Multani
+Zombie Mob

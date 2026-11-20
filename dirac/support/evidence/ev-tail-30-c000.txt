@@ -56,6 +56,7 @@ Blood Host
 Bloodline Culling
 Blot Out the Sky
 Boarded Window
+Body of Jukai
 Boggart Harbinger
 Bojuka Bog
 Bontu's Monument
@@ -214,6 +215,8 @@ Judge's Familiar
 Jukai Naturalist
 Juntu Stakes
 Kaervek, the Spiteful
+Kami of Lunacy
+Kami of the Tended Garden
 Keldon Raider
 Kelsien, the Plague
 Kessig Naturalist
@@ -445,6 +448,7 @@ Wellspring
 White Sun's Zenith
 White Widow, Yelena Belova
 Wildwood Tracker
+Willow Priestess
 Winding Way
 Winding Wurm
 Witherbloom Apprentice

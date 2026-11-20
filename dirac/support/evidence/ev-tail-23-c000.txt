@@ -373,6 +373,7 @@ Storm, Shaker of Skies
 Story Seeker
 Suit Up
 Sunflare Shaman
+Sunken Ruins
 Sunrise Seeker
 Sunseed Nurturer
 Swamp
@@ -391,6 +392,7 @@ Toils of Night and Day
 Tolarian Serpent
 Tortured Existence
 Towering Gibbon
+Track Down
 Traxos, Scourge of Kroog
 Treetop Sentinel
 Tribal Golem
