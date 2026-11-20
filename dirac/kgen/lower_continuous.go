@@ -122,12 +122,12 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, lc.beamGrant(sp, st, aff) // lower_beammeup.go
 	}
 	if az, ok := sp.get("AffectedZone"); ok {
-		done, err := lc.affectedZone(sp, st, aff, az) // lower_offzone.go
+		extra, done, err := lc.affectedZone(sp, st, aff, az) // lower_offzone.go
 		if err != nil {
 			return nil, err
 		}
 		if done {
-			return nil, nil
+			return extra, nil
 		}
 	}
 	if sp.is("MayPlay", "True") {

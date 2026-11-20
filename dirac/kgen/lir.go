@@ -1530,6 +1530,10 @@ type lEmblem struct {
 	// NumAmount and Once: the frozen number rides the trigger as its amount,
 	// and the emblem ends after it fires once (OneOff$ True)
 	NumAmount, Once bool
+	// Forget: an Effect's ForgetOnCast$ for a StackKw / ReduceCost static:
+	// the emblem ends when the first completed cast matching this filter
+	// happens (kop.Emblem.Forget)
+	Forget *lFilter
 }
 
 type refusal struct {
