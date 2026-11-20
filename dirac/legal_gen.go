@@ -198,7 +198,8 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	s.offerBargainPlay(k, d, p, o, c, mode, anyMana, av) // kw_bargain.go
 	if mode&castFree == 0 {
 		base := pc.cost
-		if k.gen.anyConvoke && s.tapPays(k, p, c, o, false) {
+		if k.gen.anyConvoke && s.tapPays(k, s.creditReader(p, o), c, o, false) {
+			// gorge castOfferBase reads the keyword off the card's own controller (creditReader): p's Ironheart over the other seat's exiled card is no credit
 			base = s.convokeCredit(k, p, c, o, base) // gorge castOfferBase: a permission cast convokes too
 		}
 		av.delve = s.tbDelveCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand) // the faces' credit (CR 702.66a)
