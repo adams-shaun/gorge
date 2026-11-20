@@ -32,6 +32,13 @@ func (d *Decision) AloneLegal(choices []int) bool {
 	return d.aloneViolator(choices) < 0
 }
 
+// aloneBound reports that the option's creature carries a declaration rule
+// AloneLegal checks: it can't be declared alone, can only be declared alone,
+// or needs companions.
+func (o *Option) aloneBound() bool {
+	return o.AloneRestricted || o.AloneOnly || o.CompanionNeed > 0
+}
+
 // aloneViolator is the position in choices of the first option whose
 // declaration rule the answer breaks, or -1 when none does (and on every
 // decision that is not a KAttackers/KBlockers set).
@@ -44,7 +51,7 @@ func (d *Decision) aloneViolator(choices []int) int {
 			continue
 		}
 		o := &d.Options[c]
-		if !o.AloneRestricted && !o.AloneOnly && o.CompanionNeed == 0 {
+		if !o.aloneBound() {
 			continue
 		}
 		others, partners := 0, 0
@@ -93,7 +100,9 @@ func (d *Decision) aloneVerb() string {
 }
 
 // alonePartner returns the cheapest option (ties: lowest index) naming another
-// creature that can be declared beside attacker option c, or -1.
+// creature that can be declared beside attacker option c, or -1. The pair must
+// satisfy AloneLegal, so an only-alone creature never has a partner and a
+// companion-bound one only the creatures it names.
 func (d *Decision) alonePartner(c int) int {
 	best := -1
 	if d.maxChoices() < 2 {
@@ -106,7 +115,7 @@ func (d *Decision) alonePartner(c int) int {
 		}
 		pair := []int{c, i}
 		if d.BudgetsFit(d.Options[c].Value+o.Value, d.Options[c].Value2+o.Value2) &&
-			d.ChargeOptionsFit(pair) && !d.groupCapExceeded(pair) {
+			d.ChargeOptionsFit(pair) && !d.groupCapExceeded(pair) && d.AloneLegal(pair) {
 			best = i
 		}
 	}

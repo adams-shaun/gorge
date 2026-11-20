@@ -52,7 +52,7 @@ var canonicalKeywordHeads = map[string]string{
 	"cardname can't attack alone.":                               "CantAttackAlone",
 	"cardname can't block alone.":                                "CantBlockAlone",
 	// CR 509.1c / 508.1c-d: the combat requirement and restriction sentences
-	// whose behaviour combat.ParseHiddenKeyword reads (companionkeyword.go).
+	// whose behaviour combat.ParseHiddenKeyword reads (engine/rules/combat/restrictions.go).
 	"cardname must be blocked by exactly one creature if able.":                "MustBeBlockedByOne",
 	"cardname can only attack alone.":                                          "CanOnlyAttackAlone",
 	"cardname can't attack unless a creature with greater power also attacks.": "CantAttackUnlessGreaterPower",
