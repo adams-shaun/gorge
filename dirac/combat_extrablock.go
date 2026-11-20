@@ -45,7 +45,7 @@ func (s *State) xblkRecs() []xblkRec { return coldXblk.of(s) }
 
 var coldXblk = newCold[xblkRec]("xblk", func(g *genPrep) int {
 	switch {
-	case g.anyBlockAny:
+	case g.uses.has(useBlockAny):
 		return maxXblkAny
 	case g.anyExtraBlock:
 		return maxXblk

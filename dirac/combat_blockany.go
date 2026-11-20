@@ -27,9 +27,10 @@ const maxXblkAny = 64
 // blockCapAny is blockCap's answer for a blocker without a limit.
 const blockCapAny = 255
 
-// A table with a CanBlockAny$ source sizes the larger further-block table
-// (coldXblk) and reads the unbounded capacity: genPrep.anyBlockAny, set in
-// prepareGen (gen.go).
+// useBlockAny: a table with a CanBlockAny$ source sizes the larger
+// further-block table (coldXblk) and reads the unbounded capacity.
+var useBlockAny = newGenUse(tableHasBlockAny)
+
 func tableHasBlockAny(t *kop.Table) bool {
 	for i := range t.Cards {
 		c := &t.Cards[i]
@@ -62,7 +63,7 @@ func isBlockAnyGrant(a *kop.Ability) bool {
 // dominates every CanBlockAmount$ source, as gorge's BlockCapacity returns at
 // the first CanBlockAny$ one.
 func (s *State) blockAny(k *prep, b Slot) bool {
-	if k.gen == nil || !k.gen.anyBlockAny {
+	if k.gen == nil || !k.gen.uses.has(useBlockAny) {
 		return false
 	}
 	if k.t.Cards[s.cardAt(b)].ExtraBlocks == kop.ExtraBlocksAny && !s.genLost(k, b) {
@@ -103,7 +104,7 @@ func (s *State) blockAnyRoom(k *prep, b Slot) bool {
 // blockAnyInPlay: a defending creature that can block any number of creatures
 // is ready or already blocking.
 func (s *State) blockAnyInPlay(k *prep) bool {
-	if k.gen == nil || !k.gen.anyBlockAny {
+	if k.gen == nil || !k.gen.uses.has(useBlockAny) {
 		return false
 	}
 	for bm := s.ctrlM[s.blockDef()]; bm.any(); bm = bm.rest() {

@@ -57,7 +57,7 @@ func (lc *lowerCtx) extraBlockStatic(s cards.Static) (bool, error) {
 func extraBlockRefusal(sp *params) error {
 	for _, key := range []string{"CanBlockAmount", "CanBlockAny"} {
 		if v, ok := sp.get(key); ok {
-			return refuse("%s$ %q: a blocker of several attackers (CR 509.1a, 510.1d) outside the CanBlockAmount$ 1 and CanBlockAny$ True shapes is unmodelled in dirac", key, v)
+			return refuse("%s$ %q: a blocker of several attackers (CR 509.1a, 510.1d) outside the lowered amount-1 and any-number shapes is unmodelled in dirac", key, v)
 		}
 	}
 	return nil

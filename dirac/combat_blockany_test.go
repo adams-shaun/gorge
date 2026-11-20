@@ -28,8 +28,8 @@ func baScen(t *testing.T, cfg Config) *scen {
 		Conds:   []kop.Cond{},
 	}
 	sc := newScenTableLib(t, tbl, baBear, cfg)
-	if sc.k.gen == nil || !sc.k.gen.anyBlockAny || !sc.k.gen.anyExtraBlock {
-		t.Fatal("the table is not a generated one with anyBlockAny")
+	if sc.k.gen == nil || !sc.k.gen.uses.has(useBlockAny) || !sc.k.gen.anyExtraBlock {
+		t.Fatal("the table is not a generated one with useBlockAny")
 	}
 	if len(sc.s.xblkRecs()) != maxXblkAny {
 		t.Fatalf("xblk records = %d, want %d", len(sc.s.xblkRecs()), maxXblkAny)
