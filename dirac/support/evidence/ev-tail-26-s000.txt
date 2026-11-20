@@ -6,35 +6,53 @@ Arc Lightning
 Arena Trickster
 Armor of Shadows
 Arno Dorian
+Ashcoat Bear
+Auriok Sunchaser
+Auspicious Ancestor
 Barrel Down Sokenzan
+Birchlore Rangers
+Birthing Pod
 Bloodscale Prowler
+Blue Scarab
 Boulder Salvo
 Brimstone Dragon
+Brindle Shoat
 Bringer of the Blue Dawn
 Butch DeLoria, Tunnel Snake
+Candlelight Vigil
+Castle Raptors
+Celebrity Fencer
 Chakram Slinger
 Chasm Drake
+Chastise
 Chrome Mox
 City of Shadows
 Cloud Manta
+Cloud's Limit Break
+Colossal Badger
 Contested Game Ball
 Contract Killing
 Copper Tablet
 Coveted Falcon
+Crossbow Infantry
 Crossroads Candleguide
 Curse of Shallow Graves
 Cutthroat Negotiator
 Cyclopean Snare
 Cyclops Superconductor
+Cystbearer
 Dark Temper
 Deadly Dispute
 Death of a Thousand Stings
 Despondent Killbot
 Dirty Rat
+Divebomber Griffin
 Dragon Hatchling
 Dramatist's Puppet
 Drider
+Eel-Hounds
 Empty the Warrens
+Empyrial Armor
 Enigma Eidolon
 Excogitator Sphinx
 Famished Foragers
@@ -42,26 +60,40 @@ Fast Forward
 Feast of Dreams
 Festering Wound
 Flowstone Crusher
+Force of Savagery
 Frantic Inventory
 Furnace Scamp
+Galadhrim Ambush
 Gate to the Afterlife
 Gerrard's Irregulars
+Gideon's Lawkeeper
 Gloom Pangolin
 Goblin Firebug
+Graceful Cat
+Grappling Sundew
 Grave Betrayal
+Greenseeker
+Grizzly Ghoul
 Hammer Mage
 Harmless Offering
+Harrow
 Henge of Ramos
 Hesitation
 Island
+Jewel-Eyed Cobra
 Kain, Traitorous Dragoon
 Kami of Fire's Roar
 Karakas
+Kithkin Mourncaller
+Knight of Dawn's Light
 Laccolith Grunt
 Lava Axe
 Leisure Bicycle
 Lightning Prowess
+Living Lands
+Lord of Extinction
 Magma Rift
+Makeshift Battalion
 Markov Enforcer
 Mercadian Bazaar
 Merrow Bonegnawer
@@ -69,6 +101,7 @@ Mizzium Skin
 Moat Piranhas
 Molten Frame
 Molting Harpy
+Monster Manual
 Mountain
 Necra Sanctuary
 Necroblossom Snarl
@@ -78,6 +111,7 @@ Nested Shambler
 Nighthawk Scavenger
 Nightmarish End
 No Escape
+Nullmage Advocate
 Orochi Soul-Reaver
 Orzhov Racketeers
 Paradise Mantle
@@ -97,15 +131,24 @@ Reality Ripple
 Reckless Air Strike
 Reptilian Recruiter
 Rise from the Nether
+Road of Return
 Rootwater Diver
 Rundvelt Hordemaster
+Sacred Cat
+Saiba Trespassers
+Savage Swipe
+Scarwood Treefolk
 Sensei's Divining Top
 Sentinel
 Shambling Goblin
+Shessra, Death's Whisper
 Shrieking Affliction
 Silent Specter
 Sivriss, Nightmare Speaker
 Skulltap
+Skyhunter Cub
+Skyhunter Prowler
+Skyway Sniper
 Slate Street Ruffian
 Slate of Ancestry
 Slip Through Space
@@ -116,22 +159,33 @@ Spell Burst
 Spellbook
 Spined Fluke
 Spontaneous Combustion
+Sporeback Troll
+Stony Strength
 Storm of Memories
+Sunscape Master
+Sunspire Griffin
 Swamp
+Swift Maneuver
+Taranika, Akroan Veteran
+Tel-Jilad Chosen
+Tenth District Guard
 The Surgical Bay
 The Wretched
 Tigereye Cameo
 Tower of Calamities
+Triad of Fates
 Turbulent Dreams
 Unholy Strength
 Urabrask's Anointer
 Urza's Filter
 Vapor Snag
+Vivien's Arkbow
 Warkite Marauder
 Wasp, Shrinking Savior
 Watchful Blisterzoa
 Wei Night Raiders
 Wicked Guardian
+Winter Soldier, Bucky Barnes
 Wishclaw Talisman
 Wishful Merfolk
 Wooded Foothills

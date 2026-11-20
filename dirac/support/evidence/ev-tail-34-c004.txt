@@ -8,6 +8,7 @@ Angel's Mercy
 Angelic Wall
 Appeal
 Arbalest Engineers
+Arbor Elf
 Arcane Flight
 Archangel's Light
 Aura Mutation
@@ -28,9 +29,11 @@ Bloodrock Cyclops
 Boggart Brute
 Boon of Safety
 Borrowed Time
+Bottle-Cap Blast
 Brawn
 Breath Weapon
 Bringer of the Black Dawn
+Bushmeat Poacher
 Butterbur, Bree Innkeeper
 Calix, Guided by Fate
 Cartouche of Zeal
@@ -81,18 +84,21 @@ Encase in Ice
 Enter the Unknown
 Era of Innovation
 Etherium-Horn Sorcerer
+Evanescent Intellect
 Exoskeletal Armor
 Experimental Augury
 Ezuri's Brigade
 Feeling of Dread
 Feral Ridgewolf
 First Volley
+Flamespeaker Adept
 Flip the Switch
 Forest
 Fungal Bloom
 Gaea's Gift
 Generous Pup
 Glimmer of Genius
+Gnottvold Hermit
 Goblin Lackey
 Godhunter Octopus
 Goreclaw, Terror of Qal Sisma
@@ -100,6 +106,7 @@ Gossamer Phantasm
 Grafted Butcher
 Grazing Kelpie
 Grim Guardian
+Grim Return
 Grizzled Outrider
 Ground Seal
 Harsh Scrutiny
@@ -119,13 +126,16 @@ Intrepid Outlander
 Invasion of Ergamon
 Invasion of Tarkir
 Island
+Jace's Phantasm
 Join Forces
 Joraga Auxiliary
 Kitesail Apprentice
 Kitsune Dawnblade
+Kobold Drill Sergeant
 Kolaghan Skirmisher
 Kronch Wrangler
 Krosan Avenger
+Launch Mishap
 Leyline of Anticipation
 Lidless Gaze
 Lightfoot Rogue
@@ -179,6 +189,7 @@ Rampaging Ferocidon
 Rapacious One
 Reality Hemorrhage
 Reclusive Wight
+Reduce
 Resurrection Orb
 Retreat to Coralhelm
 Revenge of the Hunted
@@ -192,6 +203,7 @@ Saheeli's Silverwing
 Sapseep Forest
 Seagraf Skaab
 See the Unwritten
+Senseless Rage
 Serum Visions
 Sever the Bloodline
 Shadow Rift
@@ -200,8 +212,10 @@ Showstopping Surprise
 Shu General
 Siegecraft
 Silkbind Faerie
+Silverchase Fox
 Slate of Ancestry
 Slinza, the Spiked Stampede
+Smokebraider
 Soltari Trooper
 Songs of the Damned
 Soul's Might
@@ -235,6 +249,7 @@ Thief of Existence
 Thrull Surgeon
 Thumbscrews
 Thunder Dragon
+Tide Drifter
 Tombfire
 Touch of Death
 Toxic Scorpion
@@ -261,3 +276,4 @@ Wild Ox
 Winds of Qal Sisma
 Witness the End
 Xerex Strobe-Knight
+Yavimaya Scion
