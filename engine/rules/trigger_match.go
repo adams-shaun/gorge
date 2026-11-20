@@ -1423,7 +1423,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 	evAll, evMask := compiledTriggerInterestEvent(ev.Kind)
 	visit := func(id state.ObjID) {
 		o := observer.G.Obj(id)
-		if o == nil || o.PhasedOut {
+		if o == nil || phasedOutSkipsWalk(ev, id, o) {
 			return
 		}
 		f := o.Face()
@@ -3002,6 +3002,9 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 	if e.disableTriggersExcludes(t, source, ev) {
 		return false
 	}
+	if ev.Kind == events.PhaseOut && !phasedOutSourceAdmits(e.G, &t, source) {
+		return false
+	}
 	// NotThisAbility$ True: the event being matched must not have been caused
 	// by the resolution of THIS very trigger instance (Kodama of the East
 	// Tree -- the corpus's one carrier, 1 of 38000+ card files -- is the
@@ -3285,6 +3288,11 @@ func init() {
 		"trig:Discover", "trig:SeekAll", "trig:AbilityTriggered",
 		"trig:Surveil", "trig:Scry",
 		"trig:PhaseOutAll",
+		// trig:PhaseIn / trig:PhaseOut (CR 702.26): matched by
+		// trigmatch.phaseInMatches / phaseOutMatches off the events.PhaseOut
+		// marker (Amount -1 in, 1 out); a phased-out source is admitted only
+		// for its own phased-out look-back (phasedOutSourceAdmits).
+		"trig:PhaseIn", "trig:PhaseOut",
 		// trig-proliferate: "Whenever you proliferate ..." (CR 701.27; the 6
 		// corpus carriers at the pin, Voidwing Hybrid and Ezuri Stalker of
 		// Spheres among them). Matched by trigmatch.proliferateMatches on the
