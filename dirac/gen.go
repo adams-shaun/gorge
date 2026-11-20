@@ -3264,6 +3264,10 @@ type preAsk struct {
 	// clone election (copy_templatechoice.go); ask2 is its kind, val2 the answer
 	ask2 uint8
 	val2 uint8
+	// ley: a Leyline begun from the opening hand (CR 103.6a) with an as-enters
+	// choice, asked while it is still in the hand (CR 614.12); the answered
+	// choice enters it from the opening round, as a played land's does.
+	ley bool
 }
 
 // preEnterAsk poses e's as-enters choice before the permanent spell
