@@ -99,11 +99,24 @@ func (s *State) attachRemembered(k *prep, dst Slot) {
 // auraRefuses is gorge's attachRefused for an Aura (CR 701.3b, 303.4f): an
 // Aura whose enchant restriction (a hexproof-blind host test, protection
 // still counted) does not admit the destination does not move, and keeps its
-// bearer. A player-enchanting Aura and every non-Aura answer false.
+// bearer. A player-enchanting Aura can't be attached to a permanent at all
+// (CR 701.3a), so an object destination is refused; every non-Aura answers
+// false.
 func (s *State) auraRefuses(k *prep, src, dst Slot) bool {
 	c := s.objs[s.perms[src].obj].card
-	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
+	if k.gen == nil || k.cards[c].types&kop.TAura == 0 {
 		return false
 	}
-	return !s.enchantHostOK(k, c, s.perms[src].ctrl, dst)
+	switch k.t.Cards[c].Enchant.Kind {
+	case kop.TgtPlayer:
+		// CR 701.3a: an Aura can't be attached to a permanent it couldn't
+		// enchant. Codsworth, Handy Helper's "attach target Aura you control
+		// to target creature you control" can name a Curse of Bounty
+		// ("Enchant player"); the attach does nothing and the curse stays on
+		// its seat (gorge's attachRefused > auraStillMatchesEnchant).
+		return true
+	case kop.TgtObject:
+		return !s.enchantHostOK(k, c, s.perms[src].ctrl, dst)
+	}
+	return false
 }
