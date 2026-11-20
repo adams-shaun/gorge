@@ -17,7 +17,7 @@ import (
 // seven Plains, 13 cards in each library, the opponent holding seven.
 func reasonsInput() *shadow.Input {
 	in := &shadow.Input{Tbl: vanilla.Table, Cfg: dirac.LockstepConfig(dirac.SurfaceFull)}
-	in.ObjOf = func(id int) (uint8, bool) { return uint8(id), true }
+	in.ObjOf = func(id int) (dirac.Obj, bool) { return dirac.Obj(id), true }
 	v := &in.View
 	v.Viewer, v.Turn, v.Step, v.Active, v.Priority = 0, 1, "main1", 0, 0
 	for p := 0; p < 2; p++ {
@@ -26,11 +26,11 @@ func reasonsInput() *shadow.Input {
 			if p == 0 {
 				pv.Hand = append(pv.Hand, view.CardView{ID: state.ObjID(i), Name: "Plains"})
 			} else {
-				in.Hidden.Hand[1] = append(in.Hidden.Hand[1], shadow.Card{Obj: uint8(20 + i), Name: "Plains"})
+				in.Hidden.Hand[1] = append(in.Hidden.Hand[1], shadow.Card{Obj: dirac.Obj(20 + i), Name: "Plains"})
 			}
 		}
 		for i := 0; i < 13; i++ {
-			in.Hidden.Library[p] = append(in.Hidden.Library[p], shadow.Card{Obj: uint8(p*20 + 7 + i), Name: "Savannah Lions"})
+			in.Hidden.Library[p] = append(in.Hidden.Library[p], shadow.Card{Obj: dirac.Obj(p*20 + 7 + i), Name: "Savannah Lions"})
 		}
 		v.Players = append(v.Players, pv)
 	}
