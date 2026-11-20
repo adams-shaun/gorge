@@ -314,7 +314,13 @@ func batchOrderAskable(k *prep) bool {
 	if replPlusOnly(g) {
 		return true
 	}
-	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&(rbShield|rbPrevMill) == 0 && !k.anyRedNC && !g.uses.has(useStaticPrev)
+	// A SHIELD counter beside the addition is askable: the answer spends the
+	// counter at the pick (replNCPickShield / replNCAutoShield) and the
+	// re-executed hit deals nothing from the kept prevented record
+	// (replPlusAskedResume, replDamagePend). A Prevent-Next shield beside it
+	// is not (its amount is picked as made).
+	shieldOK := g != nil && (g.anyRepl&rbShield == 0 || g.anyRepl&rbPrevCol == 0)
+	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbPrevMill == 0 && shieldOK && !k.anyRedNC && !g.uses.has(useStaticPrev)
 }
 
 // dealHitsLatched is dealHits with rl, whose dmgRec it fills, as the batch's
