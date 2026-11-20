@@ -1721,9 +1721,12 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 			e.cumulativePaymentAsk()
 			return
 		}
-		if announced.Priceable() &&
-			pay.PayManaCumulative(asPayer(e), cu.player, cu.source, announced, asEval(e).Conv(cu.player, cu.source, pay.SAOther)) {
-			noteCumulativeUpkeepPaid(e.G, cu, func(proposal *events.Event) {
+		paid, spent := false, state.Mana{}
+		if announced.Priceable() {
+			paid, spent = pay.PayManaCumulativeSpent(asPayer(e), cu.player, cu.source, announced, asEval(e).Conv(cu.player, cu.source, pay.SAOther))
+		}
+		if paid {
+			noteCumulativeUpkeepPaid(e.G, cu, spent, func(proposal *events.Event) {
 				e.checkTriggers(proposal, nil, 0, 0, false)
 			})
 			e.finishCumulative()
@@ -1800,13 +1803,16 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 // the settle -- what TriggerAmount binds and what the body's
 // Count$CardCounters.AGE reads back at the same object. The queue drains
 // through the ordinary putTriggersOnStack boundary the answer's caller runs.
-func noteCumulativeUpkeepPaid(g *state.Game, cu *cumulativeUpkeep, queue func(*events.Event)) {
+func noteCumulativeUpkeepPaid(g *state.Game, cu *cumulativeUpkeep, spent state.Mana, queue func(*events.Event)) {
 	o := g.Obj(cu.source)
 	if o == nil || int(cu.player) < 0 || int(cu.player) >= len(g.Players) {
 		return
 	}
+	// Text carries the per-colour mana the payment spent (the proposal is
+	// never logged), what Count$TriggeredPayingMana reads back.
 	proposal := events.Event{Kind: events.CounterChange, Obj: cu.source, Player: cu.player,
-		Counter: state.CumulativeUpkeepPaidCounter, Amount: o.Counter("AGE")}
+		Counter: state.CumulativeUpkeepPaidCounter, Amount: o.Counter("AGE"),
+		Text: events.ManaColorSpentText(spent)}
 	queue(&proposal)
 }
 
