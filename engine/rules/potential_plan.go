@@ -1457,7 +1457,7 @@ func (e *Engine) potentialModalCastFreeMode(p state.PlayerID, id state.ObjID) bo
 func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *cards.Face, o decision.Option) (Cost, bool) {
 	cost := pay.RawBaseCost(asPayer(e), p, id)
 	mode := o.Mode
-	code := potentialModeBaseCostCodes.Code(string(mode))
+	code := potentialModeBaseCostCodeFor(string(mode))
 	if castModeCodes.Code(string(mode)) == castModeBargained {
 		// A bargained cast prices like the may-play cast it may ride: the
 		// printed cost plus any grant raise (Bargain adds only a sacrifice).
@@ -1533,6 +1533,8 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 		// offer's shape.
 		mc, ok := multikickerCost(f)
 		return cost.Plus(mc), ok
+	case potentialModeBaseCostReplicated, potentialModeBaseCostSquadded:
+		return repeatedModeBaseCost(code, f, cost) // CR 702.56a/702.157a, one payment
 	case potentialModeBaseCostBuyback:
 		bc, ok := buybackCost(f)
 		return cost.Plus(bc), ok
@@ -2706,6 +2708,8 @@ const (
 	potentialModeBaseCostPrototype
 	potentialModeBaseCostMultikick
 	potentialModeBaseCostSuspend
+	potentialModeBaseCostReplicated
+	potentialModeBaseCostSquadded
 )
 
 var potentialModeBaseCostCodes = state.NewStrCodes(
@@ -2750,4 +2754,42 @@ func (e *Engine) planFaceIdx(id state.ObjID) uint8 {
 		}
 	}
 	return 0
+}
+
+// repeatedModeBaseCost is the potential planner's base+one-payment price for
+// a replicated or squadded cast (the multikicked arm's shape: the count ask
+// settles how many afterwards).
+func repeatedModeBaseCost(code potentialModeBaseCostCode, f *cards.Face, cost Cost) (Cost, bool) {
+	if code == potentialModeBaseCostReplicated {
+		rc, ok := replicateCost(f)
+		return cost.Plus(rc), ok
+	}
+	sc, ok := squadCost(f)
+	return cost.Plus(sc), ok
+}
+
+// repeatedPotentialCode maps the two repeated-additional-cost cast modes to
+// their planner price. They are not keys of potentialModeBaseCostCodes (the
+// mode strings already exist in castModeCodes/modeFlagsCode, and a duplicate
+// StrCodes key would grow the codeshape ratchet), so the mode word is read
+// here instead.
+func repeatedPotentialCode(mode string) potentialModeBaseCostCode {
+	switch mode {
+	case "replicated":
+		return potentialModeBaseCostReplicated
+	case "squadded":
+		return potentialModeBaseCostSquadded
+	}
+	return 0
+}
+
+// potentialModeBaseCostCodeFor is the planner price code of a cast mode: the
+// table's code, else the two repeated-payment modes (CR 702.56a/702.157a),
+// whose strings already exist in castModeCodes/modeFlagsCode and so are not
+// duplicated into another StrCodes table (codeshape strCodesKeyDup).
+func potentialModeBaseCostCodeFor(mode string) potentialModeBaseCostCode {
+	if code := potentialModeBaseCostCodes.Code(mode); code != 0 {
+		return code
+	}
+	return repeatedPotentialCode(mode)
 }
