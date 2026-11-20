@@ -325,6 +325,7 @@ Rib Cage Spider
 Riot Ringleader
 Rip-Clan Crasher
 Ripjaw Raptor
+Risen Riptide
 Roaming Ghostlight
 Rockslide Elemental
 Rooftop Nuisance
@@ -346,6 +347,7 @@ Scryb Ranger
 Sealock Monster
 Seaside Haven
 Seasoned Pyromancer
+Segovian Sword
 Seismic Elemental
 Sejiri Steppe
 Selesnya Cluestone

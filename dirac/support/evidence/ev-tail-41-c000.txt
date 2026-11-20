@@ -44,6 +44,7 @@ Borne Upon a Wind
 Borrowed Time
 Bring Low
 Brotherhood Outcast
+Burr Grafter
 Butterbur, Bree Innkeeper
 Cabal Coffers
 Cabaretti Courtyard
@@ -81,6 +82,7 @@ Courier Hawk
 Court of Garenbrig
 Crack the Earth
 Crackle with Power
+Crevasse
 Criminal Enterprise
 Crypt Sliver
 Curse of Death's Hold

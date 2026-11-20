@@ -42,6 +42,7 @@ Bontu's Last Reckoning
 Bramble Armor
 Branching Bolt
 Brazen Borrower
+Brighthearth Banneret
 Brood Sliver
 Brute Force
 Call to the Feast
@@ -160,6 +161,7 @@ Hideous Visage
 Hoofprints of the Stag
 Hookblade
 Hoverguard Observer
+Hundred-Talon Kami
 Hypnotic Grifter
 Hyrax Tower Scout
 Impaler Shrike
@@ -271,6 +273,7 @@ Rimeshield Frost Giant
 Rise from the Tides
 Roil's Retribution
 Royal Trooper
+Rustic Clachan
 Sacred Rites
 Sadistic Obsession
 Saprazzan Raider
@@ -313,6 +316,7 @@ Stensia Uprising
 Stone Haven Pilgrim
 Storm Caller
 Stratadon
+Street Savvy
 Striped Bears
 Subterranean Shambler
 Sumala Woodshaper
