@@ -92,6 +92,32 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		}
 		sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == optAbility
 		sr.twinCut = potentialTwinCut(o)
+		sr.feeGaps = map[state.ObjID]bool{}
+		for _, id := range gaps {
+			for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
+				cc := e.manaAbilityCC(p, id, ma)
+				mp := effects.ManaOf(ma)
+				units := availableAmount(ma)
+				if !mp.CountsAny {
+					// Counts is the colour superset for an "Any"/"Combo"
+					// production (five colours for one unit), so only a
+					// fixed multi-colour string counts its units directly.
+					total := int32(0)
+					for _, n := range mp.Counts {
+						total += n
+					}
+					units *= total
+				}
+				if cc != nil && units >= 2 && (cc.Cost.CMC() > 0 || cc.Cost.X > 0) {
+					sr.feeGaps[id] = true
+					break
+				}
+			}
+		}
+		if phased && o.Kind == "cast" && o.Mode == "" && o.AltCostIndex == 0 &&
+			len(sr.feeGaps) != 0 && !sr.phasedScope(e) {
+			sr.feeOrder = true
+		}
 		for _, id := range gaps {
 			for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
 				if repeatableFeeOnlyMana(e, p, id, ma) {
@@ -244,6 +270,22 @@ type scriptSearch struct {
 	// real-payable gates (potentialPrefixScript's fallback run). The plain
 	// run keeps the order and node walk dirac's mirror prices plays by.
 	phased bool
+	// feeOrder is the phased run's generic mana-fee order: the covered
+	// funding first, then the fee-carrying gaps, then the fee-free gaps. A
+	// fee-carrying gap's fee is a mana payment the engine settles from the
+	// floating pool; settling it before an any-colour free gap has floated
+	// the play's own pip strands that pip (the generic deduction spends
+	// WUBRG order: Shadowblood Ridge's {1} takes the Treasure's {U} before a
+	// Cinder Barrens {B} beside it), while funding first leaves the fee a
+	// colour the play can spare. The order is a fallback only, like phased:
+	// the plain run keeps the node walk dirac's mirror prices plays by.
+	feeOrder bool
+	// feeGaps marks the census gaps whose mana ability costs mana and makes
+	// more than one unit. A one-unit fee source is a filter: its net
+	// production after the fee is zero, so the fee-only paths price it, and
+	// funding it first only changes the node walk. feeOrder walks the
+	// multi-unit fee gaps between the funding and the free gaps.
+	feeGaps map[state.ObjID]bool
 	// plainLimited is set on the phased run when the plain run exhausted its
 	// node budget on a board with a repeatable fee-only filter (Signpost
 	// Scarecrow's "{2}: Add one mana of any color"), whose fee branches the
@@ -755,6 +797,9 @@ func (sr *scriptSearch) phasedOutOfScope(c *Engine) bool {
 // node-for-node mirror prices, so the fallback must leave its offer as the
 // plain search found it.
 func (sr *scriptSearch) phasedScope(c *Engine) bool {
+	if sr.feeOrder {
+		return true
+	}
 	o := sr.option()
 	obj := c.G.Obj(o.Obj)
 	if o.Kind != "cast" || obj == nil || obj.Face() == nil {
@@ -1038,9 +1083,15 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 	if sr.phased {
 		n = 3
 	}
+	if sr.feeOrder {
+		n = 3
+	}
 	for i := 0; i < n; i++ {
-		ph := scriptPhaseAt(sr.phased, i)
+		ph := sr.phaseAt(i)
 		if !ph.gap && sr.gapsOnly && funded >= sr.funding {
+			if sr.feeOrder {
+				continue // the funding floated: the fee gaps that follow pay their fees from it
+			}
 			break // under gapsOnly, while funding lasts: a covered source tapped to pay a filter's fee
 		}
 		var tried []state.ObjID
@@ -1052,6 +1103,11 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 			gap := scriptGap(gaps, opt.Obj)
 			if gap != ph.gap {
 				continue
+			}
+			if sr.feeOrder && gap {
+				if ph.feeOnly != sr.feeGaps[opt.Obj] {
+					continue
+				}
 			}
 			if ph.gate || ph.free {
 				real, free := sr.payable(c, opt.Obj)
@@ -1173,12 +1229,28 @@ func (sr *scriptSearch) coveredSpendable(c *Engine, p state.PlayerID, id state.O
 // (free), gated on a legally activatable one (gate).
 type scriptPhase struct {
 	gap, free, gate bool
+	// feeOnly is set on a feeOrder pass: the pass walks the fee-carrying
+	// gaps when true and the fee-free ones when false.
+	feeOnly bool
 }
 
 // scriptPhaseAt is pass i of the visit activation loop: the plain run's
 // two passes, the uncovered sources then the others; the phased run's
 // three, the fee-free gaps, the covered funding, then the fee-carrying
 // gaps.
+func (sr *scriptSearch) phaseAt(i int) scriptPhase {
+	if sr.feeOrder {
+		switch i {
+		case 0:
+			return scriptPhase{gate: true}
+		case 1:
+			return scriptPhase{gap: true, gate: true, feeOnly: true}
+		}
+		return scriptPhase{gap: true, gate: true}
+	}
+	return scriptPhaseAt(sr.phased, i)
+}
+
 func scriptPhaseAt(phased bool, i int) scriptPhase {
 	if !phased {
 		if i == 0 {
