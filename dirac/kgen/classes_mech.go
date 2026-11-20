@@ -9,12 +9,13 @@ import (
 )
 
 // Mechanism families are the kernel taxonomy a refusal class belongs to. The
-// list and its order are the reference census's MECH list: the first matching
-// family wins, so a class about an imprinted object is object memory before it
-// is a filter program. Kind is atom for a class that names one vocabulary item;
-// an `other:` class distinguishes a missing value (it quotes a `"_"` value)
-// from a guard (a shape the kernel does not model). These are classifications
-// only: no refusal text, class string or lowering depends on them.
+// list and its order are the reference census's MECH list (repro/mech.py): the
+// first matching family wins, so a class about an imprinted object is object
+// memory before it is a filter program. Kind is atom for a class that names one
+// vocabulary item; an `other:` class distinguishes a missing value (it quotes a
+// `"_"` value) from a guard (a shape the kernel does not model). These are
+// classifications only: no refusal text, class string or lowering depends on
+// them.
 type mechFamily struct {
 	id   string
 	name string
@@ -22,27 +23,28 @@ type mechFamily struct {
 }
 
 var mechFamilies = []mechFamily{
-	{"M0", "non-paper", regexp.MustCompile(`(?i)seek|conjure|spellbook|perpetual|intensity`)},
-	{"M1", "token", regexp.MustCompile(`(?i)token`)},
-	{"M2", "object memory", regexp.MustCompile(`(?i)remember|imprint|cleanup|exileonmoved|forgetonmoved|exiledwithsource`)},
-	{"M3", "reference algebra", regexp.MustCompile(`(?i)defined|targeted|target|origin|destination|reference`)},
-	{"M4", "duration/Effect", regexp.MustCompile(`(?i)duration|effect|pump|animate|continuous`)},
-	{"M5", "filter program", regexp.MustCompile(`(?i)filter|valid|affected|choices|target|tgt`)},
-	{"M6", "value/condition", regexp.MustCompile(`Amount|Condition|SVar|Compare|Power|Toughness|^count:|^head:|^Num|Count\$|value`)},
-	{"M7", "keyword", regexp.MustCompile(`^kw:`)},
-	{"M8", "mode tables", regexp.MustCompile(`^(trig|stat|repl):|(?i)mode|trigger|static|replacement`)},
-	{"M9", "cost", regexp.MustCompile(`(?i)cost|kicker|additional|alternate|reduce|raise`)},
-	{"M10", "mana", regexp.MustCompile(`(?i)mana|produced`)},
-	{"M11", "choice", regexp.MustCompile(`(?i)optional|choose|choice|vote|chooser|random|mandatory`)},
-	{"M12", "API/param atom", regexp.MustCompile(`^(api|param|prop):`)},
-	{"M13", "effect shape", regexp.MustCompile(`^other:`)},
+	{"M0", "non-paper (park)", regexp.MustCompile(`Perpetual|ChaosEnsues|PlaneswalkedTo|PlaneswalkedFrom|SetInMotion|Sticker|Contraption|Attraction|api:Draft|MakeCard|Specializ|Double team|\bSeek\b|Conjure|api:Abandon|PlanarDice|api:Planeswalk|kw:Visit|Hidden agenda|Vanguard|DeckLimit|\bante\b|api:Heist|NewGame|Subgame|DBPlaneswalk`)},
+	{"M1", "token (transitive)", regexp.MustCompile(`^other:token refused$`)},
+	{"M2", "object memory store", regexp.MustCompile(`Remember|Imprint|ExiledWith|Forget|Note[dC]|NoteCards|StoreSVar|ChosenCard|TempRemember|Pair|Soulbond|Haunt|Champion|ExileOnMoved|RememberedLKI|LKI\$|Clear[A-Z]|Exiled\$|Tribut|Mentor|Conspire|Replicate|Squad|SetChosen`)},
+	{"M3", "reference algebra (SetExpr)", regexp.MustCompile(`Defined|Targeted|Triggered|ParentTarget|target slot|no target|Spawner|unknown filter head|DefinedPlayer|DefinedCards|RepeatPlayers|Chooser|Choser|EffectOwner|Activator|ActivatingPlayer|AttachedTo\$|DamageSource|TargetedController|value head [A-Z][A-Za-z]*\$|Controller "|Caster "|referent`)},
+	{"M4", "duration / Effect object", regexp.MustCompile(`Duration|AtEOT|Until|^other:Effect |^param:Effect\.|delayed trigger|emblem|Effect static|Effect replacement|Effect trigger`)},
+	{"M5", "filter program", regexp.MustCompile(`^prop:|filter|ValidSA|Valid[A-Z][A-Za-z]*\$? "|^count:Valid|shares|TgtZone|TargetType|ChangeType|compar|quality|^param:[A-Za-z]+\.Valid|ValidCard|ValidBlocker|ValidAttacker|ValidTgts|CardChoices`)},
+	{"M6", "value / condition expr", regexp.MustCompile(`^count:|SVar|amount|Amount|Condition|Compare|\bX=|IsPresent|CheckSVar|Repeat`)},
+	{"M7", "keyword desugar", regexp.MustCompile(`^kw:`)},
+	{"M8", "ability-shape tables (trig/static/repl)", regexp.MustCompile(`^trig:|^stat:|^repl:|^param:trigger\.|^param:static\.|replacement|trigger|TriggerZones|Mode=|AffectedZone|MayPlay|MayLook|CantBe|CantAttack|CantBlock|MustBlock|MustAttack|Taps |Attacks |Blocks |ChangesZone|AttackersDeclared|AttackerBlocked|CounterRemoved|SpellCast|AbilityCast|static|Drawn |grant`)},
+	{"M9", "cost program", regexp.MustCompile(`[Cc]ost|^cost:|kicker|morph|cumulative|alternat`)},
+	{"M10", "mana", regexp.MustCompile(`[Mm]ana`)},
+	{"M11", "choice vocabulary", regexp.MustCompile(`Choose|Choice|Vote|NameCard|TwoPiles|Piles|GenericChoice|ChooseEach`)},
+	{"M12", "API / effect atom", regexp.MustCompile(`^api:|^param:`)},
+	{"M13", "effect shape (other)", regexp.MustCompile(`.`)},
 }
 
-// reMechGuard matches the `other:` shapes that are guards rather than a value
-// the kernel lacks. It only decides kind: the family comes from mechFamilies.
-var reMechGuard = regexp.MustCompile(`(?i)outside|without|empty|two comparisons|in one clause|no |not |unknown|missing|unread|refused|requires|need|only|ambiguous|conflict|must|before|after|beyond|partial|conditional|unbounded|no longer|unsupported|not supported|not a |is not |cannot|can't|fails|failed|expected`)
+// reMechGuard is the reference's GUARD regex (repro/mech.py), verbatim. It only
+// decides kind: the family comes from mechFamilies.
+var reMechGuard = regexp.MustCompile(`outside|shape|beside|without|with no|with an? |\bon an? |\bonly\b|other than|not an? |not the|names no|over an? |beyond|the kernel|in an? |of an? |gorge |\(|->|to an? `)
 
-// classMechanism returns a refusal class's mechanism family and kind.
+// classMechanism returns a refusal class's mechanism family and kind. M13 is
+// the reference's catch-all, so every class has a family.
 func classMechanism(class string) (fam, kind string) {
 	for _, f := range mechFamilies {
 		if f.re.MatchString(class) {
@@ -52,8 +54,8 @@ func classMechanism(class string) (fam, kind string) {
 	return "M13", classKind(class)
 }
 
-// classKind is atom outside `other:`, where a guard wording wins over the
-// value marker and anything else is a guard.
+// classKind is atom outside `other:`, where a guard wording wins over the value
+// marker and anything else is a guard.
 func classKind(class string) string {
 	if !strings.HasPrefix(class, "other:") {
 		return "atom"
@@ -67,40 +69,39 @@ func classKind(class string) string {
 	return "guard"
 }
 
-// paramFamilies is the PFAM list for params a refusal left unread. It is
-// separate from mechFamilies because a bare param name carries no class
-// prefix: `ValidTgts` is a filter param even though no `filter` appears.
+// paramFamilies is the reference's PFAM list (repro/partial.py) for params a
+// refusal left unread. It is separate from mechFamilies because a bare param
+// name carries no class prefix: `ValidTgts` is a filter param even though no
+// `filter` appears. M13 is its catch-all.
 var paramFamilies = []mechFamily{
-	{"M0", "non-paper", regexp.MustCompile(`(?i)seek|conjure|spellbook|perpetual|intensity`)},
-	{"M1", "token", regexp.MustCompile(`(?i)token`)},
-	{"M2", "object memory", regexp.MustCompile(`(?i)cleanup|imprint|remember|exileonmoved|forgetonmoved|exiledwithsource`)},
-	{"M3", "reference algebra", regexp.MustCompile(`^Defined|^Origin|^Destination|^Reference`)},
-	{"M4", "duration/Effect", regexp.MustCompile(`(?i)duration|effect|pump|animate|continuous`)},
-	{"M5", "filter program", regexp.MustCompile(`(?i)valid|affected|choices|filter|target|tgt`)},
-	{"M6", "value/condition", regexp.MustCompile(`Amount|Num|Condition|SVar|Compare|Power|Toughness|Life|Damage|^Count|^Value`)},
-	{"M7", "keyword", regexp.MustCompile(`KW|Keyword`)},
-	{"M8", "mode tables", regexp.MustCompile(`(?i)mode|trigger|static|replacement`)},
-	{"M9", "cost", regexp.MustCompile(`(?i)cost|kicker|additional|alternate|reduce|raise`)},
-	{"M10", "mana", regexp.MustCompile(`(?i)mana|produced`)},
-	{"M11", "choice", regexp.MustCompile(`(?i)choose|choice|optional|vote|random|mandatory`)},
+	{"M2", "object memory store", regexp.MustCompile(`Remember|Imprint|Forget|ExileOnMoved|Note|Chosen|Pair|Haunt|LKI`)},
+	{"M3", "reference algebra (SetExpr)", regexp.MustCompile(`^Defined|Targeted|Triggered|Chooser|Choser|Activator|DefinedPlayer|DefinedCards|RepeatPlayers|TgtPrompt|TargetMin|TargetMax|TargetUnique|MayChooseTarget|TargetsWith`)},
+	{"M4", "duration / Effect object", regexp.MustCompile(`Duration|AtEOT|Until|Static|Triggers|ReplacementEffects|Effect`)},
+	{"M5", "filter program", regexp.MustCompile(`Valid|Type|ChangeType|TgtZone|Shares|Restriction`)},
+	{"M6", "value / condition expr", regexp.MustCompile(`Condition|Amount|Num|SVar|Count|Check|IsPresent|PresentCompare|X|Repeat`)},
+	{"M8", "ability-shape tables (trig/static/repl)", regexp.MustCompile(`Mode|Trigger|Replace|Affected|CharacteristicDefining|Mana`)},
+	{"M9", "cost program", regexp.MustCompile(`Cost|Kicker|Optional`)},
+	{"M11", "choice vocabulary", regexp.MustCompile(`Choice|Choose|Vote|Random`)},
+	{"M13", "effect shape (other)", regexp.MustCompile(`.`)},
 }
 
-// paramMechanism returns the family of one unread param name. An unmatched
-// name is an API/param atom, M12.
+// paramMechanism returns the family of one unread param name. M13 is the
+// reference's catch-all (there is no keyword, mana or API family here).
 func paramMechanism(param string) string {
 	for _, f := range paramFamilies {
 		if f.re.MatchString(param) {
 			return f.id
 		}
 	}
-	return "M12"
+	return "M13"
 }
 
 // reUnreadAfterRefusal is the reason lower.go's noteUnreadable writes.
 var reUnreadAfterRefusal = regexp.MustCompile(`^unread after refusal \[(.*)\]$`)
 
 // partialMechanismFamilies returns the sorted set of param families in an
-// unread-after-refusal reason.
+// unread-after-refusal reason. The bracketed list is split on whitespace, like
+// the reference's `m.group(1).split()`.
 func partialMechanismFamilies(reason string) []string {
 	m := reUnreadAfterRefusal.FindStringSubmatch(reason)
 	if m == nil {
