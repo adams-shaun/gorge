@@ -1200,6 +1200,19 @@ type filtSearch struct {
 	// identical basics (tail-26 pair 26). An ordinary cast and every 0x80
 	// grant keep their older walk.
 	feeOnly bool
+	// feeOrder: gorge's feeOrder walk (potential_script.go phaseAt): the
+	// covered funding first, then the fee-carrying gaps, then the fee-free
+	// ones. Gorge's fallback run takes it for a plain cast whose census gaps
+	// include a source that makes at least two mana for a mana fee (a
+	// combination filter: Baxter Building's {4}, {T}: four mana in any
+	// combination). The plain walk tries the filter's free {T} ability at
+	// every funding node before the pool can pay its fee, so it can exhaust
+	// its node budget without ever reaching the filter.
+	feeOrder bool
+	// feeGaps: the fee-carrying gaps feeOrder walks in its second pass
+	// (gorge's sr.feeGaps: an ability that makes at least two mana for a
+	// mana fee).
+	feeGaps slotMask
 	// hands: the hand guides the path exiled so far (mana_handguide.go)
 	hands uint8
 	// pay: a payment search's cost (filtPay): the terminal is the pool
@@ -1317,6 +1330,61 @@ func (fs *filtSearch) phasedFallback() bool {
 	return fs.feeOnly && !fs.other.any() && fs.pay == nil && fs.nodes >= potentialScriptNodes
 }
 
+// filtFeeGaps: gorge's sr.feeGaps over the search's gap sources: one whose
+// mana ability makes at least two units for a mana fee (potential_script.go
+// build: units >= 2 and cc.Cost.CMC() > 0 || cc.Cost.X > 0). Gorge marks the
+// whole object, whichever of its mana abilities carries the fee.
+func (s *State) filtFeeGaps(k *prep, gaps slotMask) slotMask {
+	var m slotMask
+	for b := gaps; b.any(); b = b.rest() {
+		if sl := b.first(); s.feeGapSource(k, sl) {
+			m = m.with(sl)
+		}
+	}
+	return m
+}
+
+// feeGapSource reports whether some mana ability of the source at sl makes at
+// least two mana for a mana fee (filtFeeGaps).
+func (s *State) feeGapSource(k *prep, sl Slot) bool {
+	cd := &k.t.Cards[s.cardAt(sl)]
+	for j := range cd.Abilities {
+		a := &cd.Abilities[j]
+		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 || a.AFlags&kop.AfManaDynamic != 0 ||
+			(a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0) {
+			continue
+		}
+		if max(a.ManaN, 1) >= 2 {
+			return true
+		}
+	}
+	return false
+}
+
+// feeOrderOutOfScope: gorge's phasedScope exclusions that keep the feeOrder
+// fallback from taking the play (potential_script.go build): a play whose own
+// base cost sacrifices or returns a permanent, and a gap whose fee is a
+// hybrid pip. Both keep the plain order's script.
+func (s *State) feeOrderOutOfScope(k *prep, a Action, gaps slotMask) bool {
+	c := s.objs[Obj(a.Source())].card
+	if ac := spellAddCost(k, c); ac.Flags&(kop.CostSac|kop.CostReturn|kop.CostReturnSelf) != 0 {
+		return true
+	}
+	for b := gaps; b.any(); b = b.rest() {
+		if _, _, ok := s.filtHyb(k, b.first()); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// feeOrderPlay: the play takes gorge's feeOrder fallback walk: a plain cast
+// (not an activation, not a kicked or otherwise moded cast) on a board with a
+// fee-carrying gap, and in feeOrderOutOfScope's scope.
+func (s *State) feeOrderPlay(k *prep, a Action, feeGaps, gaps slotMask) bool {
+	return feeGaps.any() && a.Kind() == AkCast && a.Mode() == 0 && !s.feeOrderOutOfScope(k, a, gaps)
+}
+
 // filtScript reports whether gorge's prefix search finds a script for play
 // a of p; with apply it plays the script on s (the play's prefix).
 //
@@ -1332,6 +1400,12 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
 	}
 	fs.fees = s.filtFunding(k, p, fs.gaps)
+	fs.feeGaps = s.filtFeeGaps(k, fs.gaps.or(fs.other))
+	// feeOrderOK is the fallback run's order, not the plain run's: gorge's
+	// build(false) walks the plain order first, and only its phased build
+	// (build(true)) sets sr.feeOrder. The plain run must stay the order the
+	// pre-existing scripts price.
+	feeOrderOK := s.feeOrderPlay(k, a, fs.feeGaps, fs.gaps.or(fs.other))
 	hadOther := fs.other.any() // a dropped gap still asks for the dead-end check
 	if gapFilteredPlay(a) && (fs.gaps.any() || fs.other.any()) {
 		d := s.grantPayDesc(k, a)
@@ -1348,12 +1422,15 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	s.pool.inFilt++ // (fork made the pool)
 	found := fs.visit(k, t, 0, false)
-	if !found && fs.phasedFallback() {
-		// gorge's plain run spent its node budget on a repeatable fee-only
-		// filter's branches: its phased run walks the funding line the plain
-		// order walked past (potentialPrefixScript)
+	if !found && (feeOrderOK || fs.phasedFallback()) {
+		// gorge's fallback run: its feeOrder walk when a fee-carrying gap
+		// needs funding first (the combination filter), else the plain
+		// phased order the repeatable fee-only filter's exhaustion needs
+		// (potentialPrefixScript builds both with phased true; feeOrder is
+		// set inside build for a plain cast with such a gap).
 		ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
-			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true}
+			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true,
+			feeOrder: feeOrderOK, feeGaps: fs.feeGaps}
 		if found = ph.visit(k, t, 0, false); found {
 			fs = ph
 		} else if fs.stall == 0 {
@@ -2030,11 +2107,12 @@ func (fs *filtSearch) orderFunders(k *prep, t *State, order []Slot, gap bool) {
 }
 
 // passCount is the passes of visit's activation loop: the plain run's gaps,
-// funding sources and life-only source, and the phased run's (gorge's
-// fallback) gaps whose ability costs no mana, funding sources, gaps, then the
-// life-only source.
+// funding sources and life-only source; the phased run's (gorge's fallback)
+// gaps whose ability costs no mana, funding sources, gaps, then the life-only
+// source; and the feeOrder run's funding sources, fee-carrying gaps, fee-free
+// gaps, then the life-only source.
 func (fs *filtSearch) passCount() int {
-	if fs.phased {
+	if fs.phased || fs.feeOrder {
 		return 4
 	}
 	return 3
@@ -2044,6 +2122,22 @@ func (fs *filtSearch) passCount() int {
 // skipped: the funding passes are once the funding is spent (gorge's phase
 // loop breaks there, so the phased run's last gap pass goes with it).
 func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOnly, skip bool) {
+	if fs.feeOrder {
+		// gorge's feeOrder phases: the covered funding, then the
+		// fee-carrying gaps, then the fee-free ones (potential_script.go
+		// phaseAt). The last pass is the life-only source.
+		switch pass {
+		case 0:
+			if funded >= fs.fees {
+				*feeGapsOut = true
+				return false, false, true
+			}
+			return false, false, false
+		case 1, 2:
+			return true, false, false
+		}
+		return false, false, false
+	}
 	gap = pass == 0 || fs.phased && pass == 2
 	freeOnly = fs.phased && pass == 0
 	if gap {
@@ -2084,8 +2178,10 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	passes := fs.passCount()
 	feeGapsOut := false
 	for pass := 0; pass < passes; pass++ {
-		// pass 0: the gaps; pass 1: the funding sources; pass 2: a life-only
-		// source, the last resort (gorge pays a filter's fee from a land
+		// The passes are passShape's: the plain run's gaps then funding,
+		// the phased run's free gaps then funding then gaps, the feeOrder
+		// run's funding then fee-carrying gaps then fee-free gaps, and
+		// last a life-only source (gorge pays a filter's fee from a land
 		// before it pays life, so a life gap must not pre-empt that funding).
 		if pass == passes-1 {
 			if fs.lifePass(k, t, order[:n], funded) {
@@ -2102,6 +2198,9 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		ntried := 0
 		for i := 0; i < n; i++ {
 			sl := order[i]
+			if gap && fs.feeOrder && fs.feeGaps.has(sl) != (pass == 1) {
+				continue // feeOrder: the fee-carrying gaps, then the fee-free ones
+			}
 			if !gap && fs.deadFunder(k, t, sl) {
 				if fs.deadFund(k, t, sl, funded, gapUsed) {
 					return true

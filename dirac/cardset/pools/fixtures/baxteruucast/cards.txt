@@ -1,0 +1,11 @@
+# Baxter Building's "{4}, {T}: Add four mana in any combination of colours"
+# funds Attuma, Atlantean Warlord ({2}{U}{U}) from an empty floating pool,
+# with Island, Plains, Fisk Tower and Training Compound untapped: the plain
+# search spends its node budget and gorge prices the cast on its feeOrder run
+# (dirac/baxter_uucast_test.go).
+Attuma, Atlantean Warlord
+Baxter Building
+Island
+Plains
+Fisk Tower
+Training Compound
