@@ -142,6 +142,7 @@ Geier Reach Sanitarium
 Genasi Enforcers
 General Kreat, the Boltbringer
 Ghastly Demise
+Ghitu Journeymage
 Ghost-Lit Stalker
 Ghost-Spider, Gwen Stacy
 Ghostly Visit
@@ -388,12 +389,14 @@ Viashivan Dragon
 Vindictive Flamestoker
 Viridian Zealot
 Vivid Revival
+Vivisection
 Voda Sea Scavenger
 Vraska's Contempt
 Wake of Destruction
 Walking Archive
 Wander in Death
 Warleader's Helix
+Wave-Wing Elemental
 Wheel and Deal
 Wild Crocodile
 Wilderness Elemental

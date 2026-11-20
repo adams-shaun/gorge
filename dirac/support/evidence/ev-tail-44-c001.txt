@@ -46,6 +46,7 @@ Brain Gorgers
 Burrenton Shield-Bearers
 Butcher's Glee
 Cabal Patriarch
+Cabal Therapy
 Captain N'ghathrod
 Castle Raptors
 Catacomb Crocodile
@@ -54,6 +55,7 @@ Chaos Lord
 Chaos Warp
 Charge
 Chief of the Foundry
+Circle of Protection: Green
 Citadel of Pain
 Cleopatra, Exiled Pharaoh
 Cloistered Youth
