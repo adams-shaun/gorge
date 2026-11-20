@@ -1,7 +1,6 @@
 package dirac
 
 import (
-	"errors"
 	"math/rand/v2"
 	"slices"
 	"strings"
@@ -71,16 +70,10 @@ func memoDecks(set cardset.Set, n int, seed uint64) [][]cardset.Entry {
 	return out
 }
 
-// memoGames builds sixteen two-seat games on synthetic pool name, skipping the
-// test when the pools are not built.
+// memoGames builds sixteen two-seat games on synthetic pool name (skipping with
+// no corpus, see synthSet).
 func memoGames(t *testing.T, name string) []memoGame {
-	raw, err := cardset.SynthByName(name)
-	if err != nil {
-		if errors.Is(err, cardset.ErrNoTables) || errors.Is(err, cardset.ErrNoCorpus) {
-			t.Skipf("%s: %v", name, err)
-		}
-		t.Fatalf("%s: %v", name, err)
-	}
+	raw := synthSet(t, name)
 	set := cardset.AllowUnverified(raw)
 	decks := memoDecks(set, 64, 7)
 	var out []memoGame
