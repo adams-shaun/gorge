@@ -1224,9 +1224,6 @@ type filtSearch struct {
 	// source's free {T} beside every funding prefix and never reaches the
 	// funded activation.
 	feeOrder bool
-	// passNo is the pass the slot loop walks (the feeOrder passes split the
-	// gaps by fee).
-	passNo uint8
 }
 
 // deferGapLeft: the search still holds an untapped filter gap whose tap
@@ -1337,8 +1334,8 @@ func (fs *filtSearch) phasedFallback() bool {
 // or return part price in the phased order's own scope instead (gorge's
 // phasedScope), and a non-plain cast keeps the plain run's answer.
 func (s *State) filtFeeOrder(k *prep, p uint8, a Action, gaps slotMask) bool {
-	if a.Kind() != AkCast || a.Mode() != 0 {
-		return false
+	if a.Kind() != AkCast || a.Mode() != 0 || a.Target() == castAltTgt {
+		return false // an alternative-cost cast is gorge's AltCostIndex != 0 (build(true) leaves feeOrder false)
 	}
 	feeGap := false
 	for b := gaps; b.any(); b = b.rest() {
@@ -2100,9 +2097,13 @@ func (fs *filtSearch) passCount() int {
 // ph.feeOnly against the census's feeGaps), pass 2 the fee-free ones, and
 // both are gated on a legally activatable ability at the pool so far
 // (gorge's payable: the free {T} while untapped, the filter's fee while the
-// floated mana covers it). It reports whether sl is out of the pass.
-func (fs *filtSearch) feeOrderGap(k *prep, t *State, sl Slot, free, filt bool) bool {
-	if (fs.passNo == 1) != (t.filtFee(k, sl) > 0 && t.filtUnits(k, sl) >= 2) {
+// floated mana covers it). pass is the visiting frame's own pass, not a
+// search-wide field: a nested try's visit starts its pass loop at 0, so a
+// field would leave the caller's pass stale once the nested branch fails and
+// reorder the caller's remaining gaps. It reports whether sl is out of the
+// pass.
+func (fs *filtSearch) feeOrderGap(k *prep, t *State, sl Slot, pass int, free, filt bool) bool {
+	if (pass == 1) != (t.filtFee(k, sl) > 0 && t.filtUnits(k, sl) >= 2) {
 		return true
 	}
 	return !free && !(filt && t.filtUsable(k, sl))
@@ -2177,7 +2178,6 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		if skip {
 			continue
 		}
-		fs.passNo = uint8(pass)
 		fs.orderFunders(k, t, order[:n], gap)
 		var tried [MaxPerm]Slot
 		ntried := 0
@@ -2216,7 +2216,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if gap {
 				free := t.canTapForMana(k, sl)
 				filt := t.filtPaid(k, p, sl)
-				if fs.feeOrder && fs.feeOrderGap(k, t, sl, free, filt) {
+				if fs.feeOrder && fs.feeOrderGap(k, t, sl, pass, free, filt) {
 					continue
 				}
 

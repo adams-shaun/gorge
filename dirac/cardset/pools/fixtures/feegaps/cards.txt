@@ -1,0 +1,12 @@
+# The filter search's feeOrder scope with two fee-carrying gaps
+# (dirac/mana_filterfeeorder_test.go): Baxter Building's free {T} beside
+# its {4},{T} four-unit filter, and Viridescent Bog's {1},{T} two-unit one.
+# Blasphemous Edict is the alternative-cost cast filtFeeOrder's scope
+# excludes (a plain cast only); The Unbeatable Squirrel Girl is the plain
+# cast its feeOrder walk prices.
+Baxter Building
+Viridescent Bog
+The Unbeatable Squirrel Girl
+Blasphemous Edict
+Mountain
+Forest
