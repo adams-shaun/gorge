@@ -274,15 +274,21 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 }
 
 // freeCastRaisePayable reports whether a cost-waived cast of o can pay the
-// cost statics' increases (CR 601.2f, 118.9d). The autopay surface lists only
-// a free cast whose raise the floating pool pays, as gorge's ordinary walk
-// does; the full surface reaches it by lowering a potential play, whose plan
-// taps the sources (Urza's Gelatinous Genesis under Thorn of Amethyst: the
-// untapped Island pays the {1}, tail-64 pair 38). That plan covers only the
-// graveyard and exile (mayPlayPlannedZone), so a hand or top-of-library
-// permission still follows the ordinary pool-only gate. An offer the planner
-// leaves unpriced (two matching permissions: "ambiguous") is never reached by
-// a potential play, so it keeps the pool-only gate too.
+// cost statics' increases (CR 601.2f, 118.9d). A free cast whose raise the
+// floating pool pays is one of gorge's ordinary walk's offers; one it cannot
+// pay is still one of gorge's potential plays when the planner prices it: the
+// full surface reaches it by lowering a potential play, whose plan taps the
+// sources (Urza's Gelatinous Genesis under Thorn of Amethyst: the untapped
+// Island pays the {1}, tail-64 pair 38), and on the autopay surface a
+// planned-zone cast the census pays is one of those potential plays in its
+// own list (Urza's exile-held Lash Out and Vibrating Sphere under Thorn: the
+// Construct token's tap-another mana pays the {1}, tail-64 pair 75 -- the
+// plain walk drops it at the census, and the gaps walk plus scriptOffers
+// carry the tap-another prefix search). That plan covers only the graveyard
+// and exile (mayPlayPlannedZone), so a hand or top-of-library permission
+// still follows the ordinary pool-only gate. An offer the planner leaves
+// unpriced (two matching permissions: "ambiguous") is never reached by a
+// potential play, so it keeps the pool-only gate too.
 //
 // The script walks list the free cast even when the census cannot pay the
 // raise, so the prefix search can tap a source for it that the census leaves
@@ -303,7 +309,7 @@ func (s *State) freeCastRaisePayable(k *prep, p uint8, c CardID, o Obj, unpriced
 	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
 		return false
 	}
-	if !unpriced && s.cfg&cfgGorgeAutopay == 0 && (s.cfg&cfgGorgeLowering == 0 || mayPlayPlannedZone(s.objs[o].zone)) {
+	if !unpriced && (s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 || mayPlayPlannedZone(s.objs[o].zone)) {
 		return true
 	}
 	return s.windowPoolPays(p, &cost, false)
