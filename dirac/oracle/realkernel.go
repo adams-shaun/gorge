@@ -351,8 +351,11 @@ func (r *realSide) Project(p *Projection) {
 			}
 			c.Counters[slot] += int16(n)
 		}
-		for x, n := range o.CountersX {
-			c.Counters[CtrX+x] += int16(n)
+		// most objects carry no unfeaturized counter: one array compare skips the walk
+		if o.CountersX != ([kop.NumCounterKindsX]uint16{}) {
+			for x, n := range o.CountersX {
+				c.Counters[CtrX+x] += int16(n)
+			}
 		}
 		// gorge's deathtouch mark is a counter of its own (InternalCounterMarker)
 		c.Counters[CtrOther] += int16(r.s.FeatDeathtouchMark(dirac.Obj(i)))
