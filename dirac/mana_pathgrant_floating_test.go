@@ -46,12 +46,15 @@ func pathGrantScen(t *testing.T) (sc *scen, tyvar Obj, spawns []Obj) {
 	}
 	sc = newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
 	sc.perm(id["Path of Annihilation"], 0)
+	// Gilanra entered before the tokens Path's enter trigger makes, so gorge's
+	// prefix search (which lists the sources in battlefield order) reaches it
+	// before a tapped Spawn's printed sacrifice.
+	sc.perm(id["Gilanra, Caller of Wirewood"], 0)
 	for i := 0; i < 2; i++ {
 		o := sc.perm(id["c_0_1_eldrazi_spawn_sac"], 0)
 		sc.s.objs[o].of |= ofToken
 		spawns = append(spawns, o)
 	}
-	sc.perm(id["Gilanra, Caller of Wirewood"], 0)
 	sc.perm(id["Plains"], 0)
 	sc.perm(id["Plains"], 0)
 	tyvar = sc.perm(id["Tyvar, the Pummeler"], 0)
