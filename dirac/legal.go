@@ -1980,6 +1980,12 @@ type potCensus struct {
 	// watcher's disclosed literal damage such as Manabarbs'): the units carry
 	// it too, so potUnitsAvail's lethal guard caps what one plan may tap.
 	tapPain uint8
+	// tapX is the tap-another candidates this walk's census has already
+	// spent. Two Birchlore Rangers ("Tap two untapped Elves you control:
+	// Add one mana of any color") see the same two Elves, but one
+	// activation taps both, so the second source makes no unit (CR 601.2g;
+	// gorge's payment search elects and claims pay.ManaTapCandidates once).
+	tapX slotMask
 }
 
 // unitPain is the pain one recorded unit carries: the activation's own pain
@@ -2206,18 +2212,21 @@ const potentialOpenUnits = 2 * trigXCap
 // planner either (potentialTapUnit's lethal guard: City of Brass at 1 life,
 // CR 119.4; its damage is a trigger, so painDrop never sees it): the
 // over-bound keeps it, the census does not.
-func (s *State) censusOpenTap(k *prep, p uint8, sl Slot, pc *pcard, boundedAny bool, add, fold func(Slot, uint8, uint8), painDrop uint8, cen *potCensus) {
+func (s *State) censusOpenTap(k *prep, p uint8, sl Slot, pc *pcard, boundedAny bool, add, fold func(Slot, uint8, uint8), painDrop uint8, cen *potCensus) bool {
 	mask := s.srcMaskAt(pc, sl)
 	if mask == 0 {
-		return
+		return true
 	}
 	n := s.srcYieldAt(k, sl, pc)
 	if n == 0 {
-		return
+		return true
+	}
+	if !s.censusTapXClaim(k, p, sl, int(pc.manaAb), k.tapXAbOf(s.cardAt(sl)), cen) {
+		return false
 	}
 	if !boundedAny && pc.painOnly && int(pc.painN) >= int(s.pl[p].life) {
 		fold(sl, mask, n)
-		return
+		return true
 	}
 	if s.censusPickOwns(k, sl, pc, cen) {
 		// a reflected extra over the open tap: the grown amount is one tap's
@@ -2228,7 +2237,7 @@ func (s *State) censusOpenTap(k *prep, p uint8, sl Slot, pc *pcard, boundedAny b
 			fold(sl, mask, n)
 		}
 		cen.recPickDrop(sl, mask, n, painDrop)
-		return
+		return true
 	}
 	if !boundedAny {
 		add(sl, mask, n)
@@ -2236,6 +2245,7 @@ func (s *State) censusOpenTap(k *prep, p uint8, sl Slot, pc *pcard, boundedAny b
 	if painDrop == 0 {
 		cen.tapRec(sl, mask, n) // mergeTap's note, either mode
 	}
+	return true
 }
 
 // censusPickOwns reports whether censusOpenTap records sl's open tap in the
@@ -2254,8 +2264,13 @@ func (s *State) censusPickOwns(k *prep, sl Slot, pc *pcard, cen *potCensus) bool
 // 1 life; CR 119.4).
 //
 // add is the walk's painAdd (cenMaskAdd when the printed ability's own pain
-// reaches the life); painRefused withholds the mergeTap note then.
-func (s *State) potentialTapUnit(p uint8, sl Slot, pc *pcard, mask uint8, add, fold func(Slot, uint8, uint8), painRefused bool, cen *potCensus) {
+// reaches the life); painRefused withholds the mergeTap note then. The tap's
+// TapsForMana extra is recorded here too, after the production, as part of
+// the same tap (potentialTapExtra).
+func (s *State) potentialTapUnit(k *prep, p uint8, sl Slot, pc *pcard, mask uint8, add, fold func(Slot, uint8, uint8), painRefused bool, cen *potCensus) {
+	if !s.censusTapXClaim(k, p, sl, int(pc.manaAb), k.tapXAbOf(s.cardAt(sl)), cen) {
+		return
+	}
 	if pc.painOnly && int(pc.painN) >= int(s.pl[p].life) {
 		fold(sl, mask, pc.manaN)
 		return
@@ -2277,11 +2292,15 @@ func (s *State) potentialTapUnit(p uint8, sl Slot, pc *pcard, mask uint8, add, f
 			}
 		}
 		fold(sl, mask, pc.manaN)
-		return
+	} else {
+		add(sl, mask, pc.manaN)
+		if !painRefused {
+			cen.tapRec(sl, mask, pc.manaN)
+		}
 	}
-	add(sl, mask, pc.manaN)
-	if !painRefused {
-		cen.tapRec(sl, mask, pc.manaN)
+	cen.pain = 0 // the tap's extra is priced unpainted, as before the gate pair
+	if k.gen != nil && k.gen.anyTapExtra && !painRefused && !pc.painOnly {
+		s.potentialTapExtra(k, sl, pc, mask, fold, cen)
 	}
 }
 
@@ -2425,14 +2444,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			continue
 		}
 		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
-			if len(units) != 0 {
-				s.censusOpenTap(k, p, sl, pc, boundedAny, painAdd, fold, painDrop, &cen)
-			}
-			anyAdd := painAdd
-			if s.censusPickOwns(k, sl, pc, &cen) {
-				anyAdd = fold // censusOpenTap recorded the same-pick unit
-			}
-			open = s.potentialAnyColourUnit(k, sl, pc, boundedAny, anyAdd, &anyFree) || open
+			open = s.potentialOpenTap(k, p, sl, pc, boundedAny, painAdd, fold, painDrop, &anyFree, &cen) || open
 			continue
 		}
 		mask := s.srcMaskAt(pc, sl)
@@ -2443,11 +2455,8 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			mask = s.potentialFirstMask(k, sl, pc) // the walk below admits its other abilities, each once
 		}
 		// painAdd is cenMaskAdd when the lethal guard refuses the printed ability's production
-		s.potentialTapUnit(p, sl, pc, mask, painAdd, fold, painRefused, &cen)
+		s.potentialTapUnit(k, p, sl, pc, mask, painAdd, fold, painRefused, &cen)
 		cen.pain = 0 // the gate pair's and the granted units are priced unpainted
-		if k.gen != nil && k.gen.anyTapExtra && !painRefused && !pc.painOnly {
-			s.potentialTapExtra(k, sl, pc, mask, fold, &cen)
-		}
 		if n := gatePairPotential(pc); n != 0 {
 			add(sl, uint8(pc.wideCol), n) // gorge's walk sums both listed abilities of a gate-on pair
 		}
@@ -2487,6 +2496,12 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					continue
 				}
 				if !open && !potentialCovers(&others, &ab.Cost.Mana) {
+					continue
+				}
+				if !s.censusTapXClaim(k, p, sl, j, ab, &cen) {
+					// the tap-two candidates are already spent by an earlier
+					// activation of this walk: no unit, no gap (censusTapXClaim)
+					done[sl] |= 1 << j
 					continue
 				}
 				if paidGap {
@@ -2783,6 +2798,22 @@ func (s *State) potentialAnyColourUnit(k *prep, sl Slot, pc *pcard, boundedAny b
 	}
 	add(sl, mask, n)
 	return false
+}
+
+// potentialOpenTap records an open source's tap production in the potential
+// walk: the census unit(s) when the per-tap view is requested, then the
+// bounded any-colour unit. A tap-two source whose candidates an earlier
+// activation spent contributes nothing (censusTapXClaim). It returns the
+// walk's open flag.
+func (s *State) potentialOpenTap(k *prep, p uint8, sl Slot, pc *pcard, boundedAny bool, add, fold func(Slot, uint8, uint8), painDrop uint8, anyFree *int, cen *potCensus) bool {
+	if cen.on && !s.censusOpenTap(k, p, sl, pc, boundedAny, add, fold, painDrop, cen) {
+		return false
+	}
+	anyAdd := add
+	if s.censusPickOwns(k, sl, pc, cen) {
+		anyAdd = fold
+	}
+	return s.potentialAnyColourUnit(k, sl, pc, boundedAny, anyAdd, anyFree)
 }
 
 // potentialOpenProduction reports whether a mana view's production is open:
