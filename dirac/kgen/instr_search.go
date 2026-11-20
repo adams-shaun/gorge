@@ -31,6 +31,8 @@ func (ic *instrCtx) opSearch() error {
 			zone = kop.ZoneBattlefield
 		case "Exile":
 			zone = kop.ZoneExile // every seat's exile (zone_exiledwithpick.go)
+		case "Command":
+			zone = kop.ZoneCommand // Command Beacon's pick (dirac/zone_cmdpick.go)
 		case "Library":
 			zone = kop.ZoneLibrary // a hidden pick, not a search (Sanar's per-colour picks)
 		case "Graveyard,Exile":

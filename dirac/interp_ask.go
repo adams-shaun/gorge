@@ -1944,6 +1944,9 @@ func (s *State) searchCands(k *prep, d *Decision) {
 	case kop.ZoneExile:
 		s.exwPickCands(k, in, d) // zone_exiledwithpick.go: every seat's exile
 		return
+	case kop.ZoneCommand:
+		s.commandCands(k, in, d) // zone_cmdpick.go: Command Beacon's pick
+		return
 	default:
 		return
 	}
