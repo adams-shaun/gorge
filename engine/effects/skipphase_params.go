@@ -37,13 +37,8 @@ func compileSkipPhaseParams(sa *cards.SA) skipPhaseParams {
 		if phase != "" || start != "" {
 			return unmodelled
 		}
-		var step state.Step
-		switch stepName {
-		case "Untap":
-			step = state.StepUntap
-		case "Draw":
-			step = state.StepDraw
-		default:
+		step, ok := state.ParseStep(strings.ToLower(stepName))
+		if !ok || (step != state.StepUntap && step != state.StepDraw) {
 			return unmodelled
 		}
 		switch {
