@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // The fee-order fallback run (gorge's scriptSearch.feeOrder, built by
 // potentialPrefixScript's second build): a plain cast of the printed cost
 // beside a multi-unit fee gap (Baxter Building's {4},{T}: four mana in any
@@ -17,7 +19,7 @@ package dirac
 func (s *State) feeGapMask(k *prep, gaps slotMask) slotMask {
 	var m slotMask
 	for b := gaps; b.any(); b = b.rest() {
-		if sl := b.first(); s.filtUnits(k, sl) >= 2 && s.filtFee(k, sl) > 0 {
+		if sl := b.first(); s.filtAb(k, sl).AFlags&kop.AfManaDynamic == 0 && s.filtUnits(k, sl) >= 2 && s.filtFee(k, sl) > 0 {
 			m = m.with(sl)
 		}
 	}
