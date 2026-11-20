@@ -18,12 +18,13 @@ import (
 // ReflectProperty$ Produce, every Valid$ alternative OppCtrl). gorge
 // pay.PaymentPlanReflectedShape admits both over a Valid$ whose every
 // alternative carries the matching control property (YouCtrl or OppCtrl,
-// reflectsStableObjects); the census resolves the colours with the
-// resolution's own walk (effects.ManaReflectedObjects) and drops {C}
-// (PaymentPlanReflectedCounts). The kernel reads exactly: Cost$ T,
+// reflectsStableObjects); the census resolves the symbols with the
+// resolution's own walk (effects.ManaReflectedObjects; PaymentPlanReflectedCounts
+// keeps a ColorOrType$ Type read's {C}). The kernel reads exactly: Cost$ T,
 // ColorOrType$ Color, ReflectProperty$ Is with Valid$ <filter>[,<filter>]
-// each with YouCtrl, or ReflectProperty$ Produce with each with OppCtrl.
-// Anything else is refused.
+// each with YouCtrl, or ReflectProperty$ Produce with each with OppCtrl or
+// YouCtrl, its ColorOrType$ Type widening the read to {C}. Anything else is
+// refused.
 func (lc *lowerCtx) lowerManaReflected(sa *cards.SA, ps *params, ab *lAbility) error {
 	if ct := ps.str("ColorOrType"); ct != "Color" && !(ct == "Type" && ps.str("ReflectProperty") == "Produce") {
 		return refuse("ManaReflected ColorOrType$ %q", ct)
@@ -93,12 +94,15 @@ func (lc *lowerCtx) lowerManaReflected(sa *cards.SA, ps *params, ab *lAbility) e
 // controls", or YouCtrl, Gond Gate's "a Gate you control" and Star Compass's
 // "a basic land you control"): one mana of any colour among the matched
 // permanents' cards' producible colours (CardDef.ProduceCol; kernel
-// mana_reflected.go produceColours, gorge effects.producibleSymbols). The
-// kernel's walk covers every seat's permanents and the filter's control
-// property keeps one side out, the same read as gorge's object walk
-// (effects.ManaReflectedObjects over AliveFrom(0)).
+// mana_reflected.go produceColours, gorge effects.producibleSymbols), plus
+// {C} when ColorOrType$ Type and a matched permanent makes it (kernel
+// producesColourless; gorge effects.ManaReflectedFold). The kernel's walk
+// covers every seat's permanents and the filter's control property keeps one
+// side out, the same read as gorge's object walk (effects.ManaReflectedObjects
+// over AliveFrom(0)).
 func (lc *lowerCtx) lowerManaReflectedProduce(sa *cards.SA, ps *params, ab *lAbility) error {
 	valid := ps.str("Valid")
+	widenType := ps.str("ColorOrType") == "Type"
 	if valid == "" || strings.HasPrefix(valid, "Defined.") {
 		return refuse("ManaReflected Valid$ %q", valid)
 	}
@@ -129,13 +133,13 @@ func (lc *lowerCtx) lowerManaReflectedProduce(sa *cards.SA, ps *params, ab *lAbi
 		// prefix search evaluates it at the activation — the kernel's
 		// AfManaDynamic + ManaV over the Combo Any plumbing (dirac
 		// mana_reflamt.go)
-		m := &lMana{Colors: "WUBRG", Choice: true, Amount: amt, Special: "Reflected", Produce: true, SpecialF: f}
+		m := &lMana{Colors: "WUBRG", Choice: true, Amount: amt, Special: "Reflected", Produce: true, WidenType: widenType, SpecialF: f}
 		return lc.finishMana(sa, ps, ab, m)
 	}
 	if amt.N != 1 {
 		return refuse("ManaReflected Amount$ %d", amt.N)
 	}
-	m := &lMana{Colors: "WUBRG", Choice: true, Amount: cst(1), Special: "Reflected", Produce: true, SpecialF: f}
+	m := &lMana{Colors: "WUBRG", Choice: true, Amount: cst(1), Special: "Reflected", Produce: true, WidenType: widenType, SpecialF: f}
 	return lc.finishMana(sa, ps, ab, m)
 }
 
@@ -143,14 +147,17 @@ func (lc *lowerCtx) lowerManaReflectedProduce(sa *cards.SA, ps *params, ab *lAbi
 // (gorge effects manaReflectedReplacer).
 var reflectedProducedReplacer = strings.NewReplacer("{", "", "}", "", " ", "")
 
-// producibleMask is the colours the face's printed mana abilities could
-// produce ({C} dropped — the only consumer, a Produce-mode reflected
-// ability's ColorOrType$ Color, never admits it), gorge
-// effects.producibleSymbols over Face.ManaAbilities exactly: a blank,
-// "Any" or "Combo Any" Produced$ is every colour, "Combo <colours>" exactly
-// those, a plain brace/space-stripped list its coloured runes. Stored on
-// CardDef.ProduceCol; the kernel unions it over the matched permanents at
-// each use.
+// producibleMask is the coloured mana the face's printed mana abilities could
+// produce, gorge effects.producibleSymbols over Face.ManaAbilities exactly: a
+// blank, "Any" or "Combo Any" Produced$ is every colour, "Combo <colours>"
+// exactly those, a plain brace/space-stripped list its coloured runes when
+// every rune is a known mana symbol (a non-symbol word fails closed, so
+// "Combo ColorIdentity" contributes nothing). {C} is not in the mask: the
+// kernel reads it from the matched cards' abilities when the reflected
+// ability's ManaProduceType admits it (producesColourless), so a
+// ColorOrType$ Type read keeps it and a Color read drops it. Stored on
+// CardDef.ProduceCol; the kernel unions it over the matched permanents at each
+// use.
 func producibleMask(f *cards.Face) kop.ColorMask {
 	if f == nil {
 		return 0
@@ -169,7 +176,18 @@ func producibleMask(f *cards.Face) kop.ColorMask {
 			}
 			continue
 		}
-		for _, r := range reflectedProducedReplacer.Replace(p) {
+		runes := reflectedProducedReplacer.Replace(p)
+		valid := true
+		for _, r := range runes {
+			if !strings.ContainsRune(effects.ManaSymbols, r) {
+				valid = false
+				break
+			}
+		}
+		if !valid {
+			continue // a word, not a rune list: gorge's classifier fails closed
+		}
+		for _, r := range runes {
 			if i := strings.IndexRune("WUBRG", r); i >= 0 {
 				set |= 1 << uint(i)
 			}
