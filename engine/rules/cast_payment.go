@@ -466,10 +466,16 @@ func (e *Engine) manaConvertAsk() bool {
 }
 
 // noteEmergeSac remembers the creature an Emerge cast sacrifices (its first
-// sacrifice part's single pick).
+// sacrifice part's single pick), or the permanent an Offering cast does (under
+// offeringSac, the key applyOfferingReduction reads).
 func noteEmergeSac(pc *pendingCast, kind string, chosen []decision.Option) {
-	if kind == "sacrifice" && pc.emerge && pc.SacPart == 0 && len(chosen) == 1 {
-		pc.emergeSac = chosen[0].Obj
+	if kind == "sacrifice" && pc.SacPart == 0 && len(chosen) == 1 {
+		if pc.emerge {
+			pc.emergeSac = chosen[0].Obj
+		}
+		if offeringCast(pc) {
+			pc.offeringSac = chosen[0].Obj
+		}
 	}
 }
 

@@ -44,6 +44,7 @@ const (
 	phFreerunning             = printedHeads(scriptfacts.Freerunning)
 	phAwaken                  = printedHeads(scriptfacts.Awaken)
 	phSpectacle               = printedHeads(scriptfacts.Spectacle)
+	phOffering                = printedHeads(scriptfacts.Offering)
 	phAll                     = printedHeads(scriptfacts.All)
 )
 

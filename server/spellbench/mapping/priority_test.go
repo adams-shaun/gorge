@@ -228,6 +228,7 @@ func TestCastMethodTable(t *testing.T) {
 		{decision.Option{Kind: "cast"}, "", "normal", "", ""},
 		{decision.Option{Kind: "cast", Mode: "mayplay"}, "", "normal", "", ""},
 		{decision.Option{Kind: "cast", Mode: "mayflash"}, "", "normal", "", ""},
+		{decision.Option{Kind: "cast", Mode: "offering"}, "", "normal", "", ""},
 		{decision.Option{Kind: "cast", Mode: "flashback"}, "", "flashback", "", ""},
 		{decision.Option{Kind: "cast", Mode: "plot_cast"}, "", "plot", "", ""},
 		{decision.Option{Kind: "cast", Mode: "bestowed"}, "", "alternative", "", ""},
