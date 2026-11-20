@@ -110,9 +110,9 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 		return s.perms[sl].flags&(pfAttacking|pfBlocked) == pfAttacking|pfBlocked
 	}
 	if fl.Pred == kop.PredSolved {
-		// a Case's solved designation (OpSaddle C=1, the
-		// cseenSaddled bit; kw_crewsaddle.go)
-		return (s.perms[sl].cseen&cseenSaddled != 0) == (fl.PredN == 1)
+		// a Case's solved designation (OpSaddle C=1, the spareSolved
+		// bit; kw_crewsaddle.go), not the saddled designation
+		return (s.perms[sl].spare&spareSolved != 0) == (fl.PredN == 1)
 	}
 	if fl.Pred == kop.PredSuspected {
 		return s.suspected(k, sl) == (fl.PredN == 1)
