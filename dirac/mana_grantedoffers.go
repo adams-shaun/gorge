@@ -1020,6 +1020,10 @@ type grantSrch struct {
 	seen    [potentialScriptNodes]grantKey
 	np      int
 	path    [2 * MaxPerm]grantStep
+	// use is the play's printed mana cost, read by the fee-only repeatable
+	// filter's doomed-colour prune (filtFeeColStalls) at a colour ask.
+	use   kop.ManaCost
+	useOK bool
 
 	// stall: the first stall a node of the search latched on its fork
 	// (stallOf), StallNone none; the caller declares it where it finally drops
@@ -2024,8 +2028,30 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
 	if each {
 		n = 1
 	}
+	var doomed uint8
+	if n > 1 && g.useOK {
+		// A fee-only repeatable filter's colour that fills no fixed pip the
+		// play still owes after the fee is paid cannot bring the play closer
+		// to paid: activating it only converts pool mana into a colour it
+		// could make without the fee (CR 605.3a; gorge's
+		// scriptSearch.feeOnlyAskPrune, potential_script.go). Without the
+		// prune the search spends its node budget on those branches and
+		// starves the grant line that pays the play (Darksteel Forge beside
+		// Elven Chorus's granted any-colour mana and Prismite's {2} filter).
+		for j := 0; j < n; j++ {
+			if t.filtFeeColStalls(g.k, g.p, sl, &g.use, int(order[j])) {
+				doomed |= 1 << order[j]
+			}
+		}
+		if bits.OnesCount8(doomed) == n {
+			return false
+		}
+	}
 	for j := 0; j < n; j++ {
 		c := order[j]
+		if doomed&(1<<c) != 0 {
+			continue
+		}
 		u := t.fork()
 		// the restricted mana the filter's activation may not spend stands
 		// aside while its fee is paid (CR 106.6: gorge pays an activation's
@@ -2142,6 +2168,9 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 //go:noinline
 func (s *State) grantSearchRun(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, need [kop.NumManaKinds]bool, g *grantSrch, sub *[kop.NumManaKinds]uint8) bool {
 	*g = grantSrch{k: k, p: p, cost: *cost, ex: ex, d: d, sp0: s.sp, tapsLive: k.gen.manaTaps, need: need}
+	if d.hasPlay {
+		g.use, g.useOK = s.filtUsefulCost(k, d.play)
+	}
 	if sub != nil {
 		g.subsume, g.costCol = true, *sub
 	}
