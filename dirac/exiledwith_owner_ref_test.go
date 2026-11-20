@@ -3,6 +3,7 @@ package dirac
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -37,23 +38,55 @@ func TestExiledWithOwnerRefSeat(t *testing.T) {
 	}
 }
 
-// TestExiledWithOwnerManifestDread: OpManifestDread over RefExiledWithOwner
-// manifests dread for the linked card's owner's seat, and when no seat's
-// exile holds one it manifests dread for NOBODY -- never falling back to the
-// resolving controller (gorge effManifestDread over searchPlayers's empty
-// set).
-func TestExiledWithOwnerManifestDread(t *testing.T) {
-	sc, _, c := exwStatScen(t)
+// dreadOwnerScen is the Hovership's ETB->leave shape: a card whose program
+// first exiles its target and then manifests dread for the exiled card's
+// owner. reader is the card's own ExiledWith / ExiledWithRev mark (kgen's
+// lowering sets both); without them the kernel's exwRec gate records no
+// link.
+func dreadOwnerScen(t *testing.T, reader bool) (sc *scen, src, bear Obj, prog []kop.Instr) {
+	t.Helper()
+	var srcCard, bearCard CardID
+	sc, _ = newSetScenTweak(t, "fdn", []cardset.Entry{{Name: "Plains", Count: 20}}, func(tbl *kop.Table, _ map[string]CardID) {
+		srcCard = CardID(len(tbl.Cards))
+		bearCard = srcCard + 1
+		tbl.Cards = append(tbl.Cards,
+			kop.CardDef{Name: "T Dread Source", ExiledWith: reader, ExiledWithRev: reader,
+				Types: kop.TCreature, Power: 3, Toughness: 3,
+				Abilities: []kop.Ability{{Kind: kop.AbSpell, Prog: []kop.Instr{
+					{Op: kop.OpExile, Obj: kop.RefTarget0},
+					{Op: kop.OpManifestDread, Obj: kop.RefExiledWithOwner, A: kop.Const(1)},
+				}}}},
+			kop.CardDef{Name: "T Dread Bear", Types: kop.TCreature, Power: 2, Toughness: 2})
+	})
+	src = sc.perm(srcCard, 0)
+	bear = sc.perm(bearCard, 1)
+	prog = sc.k.t.Cards[srcCard].Abilities[0].Prog
+	return sc, src, bear, prog
+}
+
+// dreadResolve seats the scenario's program as the resolving entry (source
+// src, controller 0, ability 0), with bear as its target.
+func dreadResolve(sc *scen, src, bear Obj) {
 	s := sc.s
-	src := sc.perm(c["host"], 0)
-	prog := []kop.Instr{{Op: kop.OpManifestDread, Obj: kop.RefExiledWithOwner, A: kop.Const(1)}}
-	sc.k.t.Cards = append(sc.k.t.Cards, kop.CardDef{Name: "Test Dread Owner", Types: kop.TSorcery,
-		Abilities: []kop.Ability{{Kind: kop.AbSpell, Prog: prog}}})
-	s.res.active, s.res.e.obj, s.res.e.ctrl, s.res.e.card, s.res.e.ab, s.res.pc = true, src, 0, c["host"], 0, 0
+	s.res.active, s.res.e.obj, s.res.e.ctrl, s.res.e.ab = true, src, 0, 0
+	s.res.e.card = s.objs[src].card
+	s.res.e.nt, s.res.e.tgt[0], s.res.e.tver[0] = 1, TCode(bear), s.objs[bear].ver
+	s.res.pc, s.res.ask, s.res.askP = 0, raNone, 0
 	s.sp = 1
-	// With no link: the op completes with no ask and no manifest.
-	in := &prog[0]
-	if !s.exec(sc.k, in) {
+}
+
+// TestExiledWithOwnerManifestDread drives the whole ETB->leave sequence
+// through the kernel, from a real OpExile: the exile records the link only
+// because the card's reader bits (genPrep.exwRec) are set, and the leave
+// op's RefExiledWithOwner then asks the exiled card's owner's seat. With no
+// link it manifests dread for NOBODY -- never falling back to the resolving
+// controller (gorge effManifestDread over searchPlayers's empty set).
+func TestExiledWithOwnerManifestDread(t *testing.T) {
+	sc, src, bear, prog := dreadOwnerScen(t, true)
+	s := sc.s
+	dreadResolve(sc, src, bear)
+	// With no link yet: the leave op completes with no ask and no manifest.
+	if !s.exec(sc.k, &prog[1]) {
 		t.Fatalf("empty-exile op suspended (ask %d), want it to complete", s.res.ask)
 	}
 	if s.res.ask != raNone {
@@ -62,19 +95,48 @@ func TestExiledWithOwnerManifestDread(t *testing.T) {
 	if s.res.askP != 0 {
 		t.Fatalf("empty-exile ask seat %d, want none (0)", s.res.askP)
 	}
-	// Seat 1's exile then holds a card linked to the source (the manual exile
-	// runs with res.active down, as the other exw tests place their cards: an
-	// active resolution would route the place through the entry's program).
-	s.res.active = false
-	exwExile(sc, c["bear"], 1, src)
-	s.res.active = true
-	// The linked card: the ask is seat 1's manifest dread.
+	// The ETB exiles the bear through OpExile; the link is the kernel's own
+	// record, not a seeded one.
 	s.res.pc, s.res.ask, s.res.askP = 0, raNone, 0
-	in = &prog[0]
-	if s.exec(sc.k, in) || s.res.ask != raGenManifestDread {
+	if !s.exec(sc.k, &prog[0]) {
+		t.Fatalf("ETB exile suspended (ask %d), want it to complete", s.res.ask)
+	}
+	if z := s.objs[bear].zone; z != kop.ZoneExile {
+		t.Fatalf("ETB sent the bear to zone %d, want exile %d", z, kop.ZoneExile)
+	}
+	if got := s.exiledWithOwnerSeat(evalCtx{src: src, srcSl: sc.slot(src), ctrl: 0}); got != 1 {
+		t.Fatalf("after the ETB the linked card reads seat %d, want 1", got)
+	}
+	// The linked card: the ask is seat 1's manifest dread.
+	s.res.pc, s.res.ask, s.res.askP = 1, raNone, 0
+	if s.exec(sc.k, &prog[1]) || s.res.ask != raGenManifestDread {
 		t.Fatalf("ask %d, want seat 1's manifest dread", s.res.ask)
 	}
 	if s.res.askP != 1 {
 		t.Fatalf("ask seat %d, want 1 (the linked card's owner)", s.res.askP)
+	}
+}
+
+// TestExiledWithOwnerWithoutReaderBitsRecordsNothing is the other side of
+// the same kernel gate: the identical ETB with a card that lacks the
+// ExiledWith/ExiledWithRev marks (genPrep.exwRec stays zero) records no
+// link, so the leave op reads 255 and asks nobody. That is the state the
+// Hovership lowering produced before the reader bits were set.
+func TestExiledWithOwnerWithoutReaderBitsRecordsNothing(t *testing.T) {
+	sc, src, bear, prog := dreadOwnerScen(t, false)
+	s := sc.s
+	dreadResolve(sc, src, bear)
+	if !s.exec(sc.k, &prog[0]) {
+		t.Fatalf("ETB exile suspended (ask %d), want it to complete", s.res.ask)
+	}
+	if z := s.objs[bear].zone; z != kop.ZoneExile {
+		t.Fatalf("ETB sent the bear to zone %d, want exile %d", z, kop.ZoneExile)
+	}
+	if got := s.exiledWithOwnerSeat(evalCtx{src: src, srcSl: sc.slot(src), ctrl: 0}); got != 255 {
+		t.Fatalf("without the reader bits the link reads seat %d, want 255 (none)", got)
+	}
+	s.res.pc, s.res.ask, s.res.askP = 1, raNone, 0
+	if !s.exec(sc.k, &prog[1]) || s.res.ask != raNone {
+		t.Fatalf("no link: op suspended with ask %d, want it to complete with no ask", s.res.ask)
 	}
 }

@@ -56,6 +56,15 @@ func (lc *lowerCtx) definedPlayer(v string) (lRef, error) {
 		// matching seat, the carrier's ETB exiles at most one card, so at
 		// most one seat can match. Any other HasCardsIn spelling refuses:
 		// the kernel's ref is the exile zone only.
+		//
+		// The card's own text names the link, so gorge's
+		// exileProvenanceNeeded SVar scan stamps the ETB exile with both the
+		// forward ExiledCards list and the reverse ExiledWith scalar
+		// (context.go moveZoneEvent). Both reader bits are needed for the
+		// kernel to record it (genPrep.exwRec: read at exwExile, rev for the
+		// scalar); without them the exile records nothing and the leave
+		// trigger reads 255.
+		lc.out.ExiledWith, lc.out.ExwWord = true, true
 		return lRef{Kind: rExiledWithOwner}, nil
 	case "RememberedOwner":
 		// gorge definedSpecRememberedOwner: the remembered object's owner

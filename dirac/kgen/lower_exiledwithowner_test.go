@@ -72,6 +72,10 @@ func TestUnidentifiedHovershipExiledWithOwnerLowers(t *testing.T) {
 	if b.def.RemPersist {
 		t.Error("built card set CardDef.RemPersist")
 	}
+	if !b.def.ExiledWith || !b.def.ExiledWithRev {
+		t.Errorf("built card reader bits ExiledWith %v ExiledWithRev %v, want both: the ETB exile must record the link (genPrep.exwRec)",
+			b.def.ExiledWith, b.def.ExiledWithRev)
+	}
 	saw := false
 	for i := range b.def.Abilities {
 		for j := range b.def.Abilities[i].Prog {
