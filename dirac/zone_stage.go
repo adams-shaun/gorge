@@ -91,7 +91,7 @@ type WorldObj struct {
 	// creature at object index Host (any seat's). An Aura on the battlefield
 	// is always attached; an Equipment may not be.
 	Attached bool
-	Host     uint8
+	Host     Obj
 	// Combat marks of a battlefield creature (zone_stagecombat.go). Attacking
 	// is set on an attacker, with AtkSeat the player it attacks. Blocked marks
 	// an attacker that has blockers; a blocker has Blocking set, Blocks the
@@ -101,7 +101,7 @@ type WorldObj struct {
 	AtkSeat   uint8
 	Blocked   bool
 	Blocking  bool
-	Blocks    uint8
+	Blocks    Obj
 	BlockOrd  uint8
 }
 
@@ -121,8 +121,8 @@ type World struct {
 	Step        kop.Step
 	Active      uint8
 	Prio        uint8 // the priority holder
-	Life        [2]int32
-	LandsPlayed [2]uint8
+	Life        [MaxSeats]int32
+	LandsPlayed [MaxSeats]uint8
 	// Pose is the decision pending: a priority round (zero), or a declare
 	// attackers or declare blockers pose with no pick made yet.
 	Pose Pose
@@ -258,7 +258,7 @@ func (w *World) validate() error {
 	if w.Prio >= 2 {
 		return unstageable(ReasonPriority, "holder %d", w.Prio)
 	}
-	for p := range w.Life {
+	for p := 0; p < int(w.NSeat); p++ {
 		if w.Life[p] != int32(int16(w.Life[p])) {
 			return unstageable(ReasonLife, "seat %d life %d", p, w.Life[p])
 		}
@@ -302,7 +302,7 @@ func (w *World) validate() error {
 		}
 		count[o.Owner][z][0]++
 	}
-	for p := range w.Life {
+	for p := 0; p < int(w.NSeat); p++ {
 		if n[p] < openingHand || n[p] > MaxDeck {
 			return unstageable(ReasonLayout, "seat %d has %d cards", p, n[p])
 		}
@@ -427,7 +427,7 @@ func (s *State) initFromWorld(w *World) error {
 	s.stageAttached(k, w)
 	s.stageStack(k, w)
 	s.stageCombat(k, w)
-	for p := range w.Life {
+	for p := 0; p < int(w.NSeat); p++ {
 		s.pl[p].life = int16(w.Life[p])
 	}
 	s.pl[w.Active].landsPlayed = w.LandsPlayed[w.Active]
