@@ -2,6 +2,7 @@ package dirac
 
 import (
 	"math/bits"
+	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -838,17 +839,34 @@ type deferSeenKey struct {
 	pend uint8
 }
 
+// deferSeen is a search's visited set: the map it replaces, its keys scanned
+// in insertion order. It is a fixed array so the search allocates nothing;
+// seenSet records at most one key per node and the walk stops past its node
+// budget (potentialScriptNodes), so the array holds every key a search can
+// reach.
+type deferSeen struct {
+	n    int
+	keys [potentialScriptNodes]deferSeenKey
+}
+
 // seenSet records the state of a search node and reports whether an earlier
-// node had already reached it.
-func seenSet(seen map[deferSeenKey]struct{}, used []int8, pool [kop.NumManaKinds]uint8, rb [maxRB]rbatch, pend uint8) bool {
+// node had already reached it. Full reports not-a-duplicate: the search is
+// already past its node budget there, and the budget cuts the walk anyway.
+func (d *deferSeen) seenSet(used []int8, pool [kop.NumManaKinds]uint8, rb [maxRB]rbatch, pend uint8) bool {
 	key := deferSeenKey{pool: pool, rb: rb, pend: pend}
 	for _, u := range used {
 		key.taps[u>>6] |= 1 << (uint(u) & 63)
 	}
-	if _, ok := seen[key]; ok {
-		return true
+	for i := 0; i < d.n; i++ {
+		if d.keys[i] == key {
+			return true
+		}
 	}
-	seen[key] = struct{}{}
+	if d.n == len(d.keys) {
+		return false
+	}
+	d.keys[d.n] = key
+	d.n++
 	return false
 }
 
@@ -868,8 +886,8 @@ func deferInUsed(used []int8, i int) bool {
 // stack in another tap order. A post node is the pass that resolves the stack,
 // not a tap state gorge's key marks, so it is never a duplicate. t is the
 // node's fork.
-func deferDuplicate(replay, post bool, seen map[deferSeenKey]struct{}, t *State, p uint8, used []int8) bool {
-	return replay && !post && seenSet(seen, used, t.poolProj(p), t.rb[SeatIx(p)], t.npend)
+func deferDuplicate(replay, post bool, seen *deferSeen, t *State, p uint8, used []int8) bool {
+	return replay && !post && seen.seenSet(used, t.poolProj(p), t.rb[SeatIx(p)], t.npend)
 }
 
 // deferAskNodes charges the activation's colour ask as gorge's search prices
@@ -944,38 +962,64 @@ func (s *State) deferChainCharge(k *prep, t *State, nodes int, order []Slot, use
 // from the node's floats -- not the offer. gorge's offer of a planned cast is
 // insensitive to its payment (FeatPlannedCast), so the offer stop would take
 // the first line's taps whatever they float.
+// TapsDeferGapStats counts the subsets searches (deferGapSearch) the kernel
+// ran: the pool tests read it so a board that never reaches the subsets
+// search cannot pass vacuously.
+var TapsDeferGapStats struct {
+	Searches atomic.Int64
+}
+
+// deferGapScratch is the subsets search's recursion state, one per search in
+// the caller's frame: the walk function writes through its pointer and never
+// stores it, so the arrays stay on the stack and the search allocates nothing
+// (the sweep's map and slices were four heap objects a decision).
+type deferGapScratch struct {
+	cut     [MaxPerm]bool // gap i: every answer so far ended the line at another player's ask
+	removed [MaxPerm]bool // the gaps gorge's search goes on without (scriptDFS cutAll)
+	seen    deferSeen     // gorge's visited set (scriptStateKey)
+	used    [MaxPerm]int8 // the tapped gaps, in tap order (nu their count)
+	answers [MaxPerm]uint8
+	nu      int
+	nodes   int
+	stall   uint8
+}
+
 func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool) bool {
 	if len(order) == 0 {
 		return false
 	}
-	noGrant := a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
-	resolvePlay := s.playNeedsEmptyStack(k, a)
-	twinCut := cp == nil && isAbilityPlay(a) // gorge's potentialTwinCut on the prefix search
-	nodes, stall := 0, uint8(0)
-	var cut [MaxPerm]bool // gap i: every answer so far ended the line at another player's ask
-	removed := make([]bool, len(order))
-	seen := map[deferSeenKey]struct{}{}
-	used := make([]int8, 0, len(order)) // the tapped gaps, in tap order
-	answers := make([]uint8, 0, len(order))
-	// walk is one visit of gorge's search at the used subset: the replay on a
-	// fork and the play's offered check, then the children, then the pass.
-	var walk func(post bool) bool
-	walk = func(post bool) bool {
-		if nodes++; nodes > potentialScriptNodes {
-			if stall != 0 {
-				s.capFull(stall) // past gorge's search budget: no script
+	TapsDeferGapStats.Searches.Add(1)
+	var w deferGapScratch
+	return deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead,
+		a.Kind() == AkActivate && s.restrictedGrantLive(k, p),
+		s.playNeedsEmptyStack(k, a),
+		cp == nil && isAbilityPlay(a), // gorge's potentialTwinCut on the prefix search
+		&w, false)
+}
+
+// deferGapWalk is one visit of gorge's search at the used subset: the replay
+// on a fork and the play's offered check, then the children, then the pass.
+// The context is explicit parameters, not a struct: s and k flow into probes
+// that leak them, so a context struct holding them would be heap-allocated,
+// and with it every array the caller passes beside it.
+func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool, noGrant, resolvePlay, twinCut bool, w *deferGapScratch, post bool) bool {
+	n := len(order)
+	{
+		if w.nodes++; w.nodes > potentialScriptNodes {
+			if w.stall != 0 {
+				s.capFull(w.stall) // past gorge's search budget: no script
 			}
 			return false
 		}
-		if len(used) > 0 {
+		if w.nu > 0 {
 			t := s.fork()
 			t.g.noGrant = noGrant
 			var spill [kop.NumManaKinds]uint8
-			replay := deferReplay(t, k, p, a, order, used, answers, tapsDef, &spill)
-			if stall == 0 {
-				stall = t.g.stalled
+			replay := deferReplay(t, k, p, a, order, w.used[:w.nu], w.answers[:w.nu], tapsDef, &spill)
+			charge, fits := s.deferChainCharge(k, t, w.nodes, order, w.used[:w.nu], replay, post, resolvePlay, twinCut)
+			if w.stall == 0 {
+				w.stall = t.g.stalled
 			}
-			charge, fits := s.deferChainCharge(k, t, nodes, order, used, replay, post, resolvePlay, twinCut)
 			if !fits {
 				// Gorge's visit charges every clone until its budget saturates,
 				// then refuses every later node, so a genuinely too-long pass
@@ -988,12 +1032,12 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 				// unsaturated is deliberate, an approximation that may still
 				// find a line rather than a modelled clone count.
 				s.unfork()
-				if stall != 0 {
-					s.capFull(stall)
+				if w.stall != 0 {
+					s.capFull(w.stall)
 				}
 				return false
 			}
-			nodes += charge
+			w.nodes += charge
 			found, foreign := replay, false
 			if replay {
 				t.hideDeferred(k, p, a, tapsDef)
@@ -1005,7 +1049,7 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 				} else {
 					var d Decision
 					t.restrOptions(k, &d, p)
-					complete := len(used) == len(order)
+					complete := w.nu == n
 					found = hasOption(&d, a) && (t.npend == 0 || complete || !resolvePlay || post) && !foreign
 					if found && t.npend != 0 {
 						t.resolvePrefixPlay(k, a, p, t.sp, resolvePlay)
@@ -1019,8 +1063,8 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 					}
 				}
 			}
-			if !found && stall == 0 {
-				stall = t.g.stalled
+			if !found && w.stall == 0 {
+				w.stall = t.g.stalled
 			}
 			if found {
 				*dead = false
@@ -1034,14 +1078,14 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 				for i := range *pick {
 					(*pick)[i] = -1
 				}
-				for u := range used {
-					(*pick)[used[u]], (*ans)[used[u]] = int8(used[u]), answers[u]
+				for u := 0; u < w.nu; u++ {
+					(*pick)[w.used[u]], (*ans)[w.used[u]] = int8(w.used[u]), w.answers[u]
 				}
 				return true
 			}
-			j := used[len(used)-1]
-			cut[j] = foreign && (answers[len(answers)-1] == 0 || cut[j])
-			dup := deferDuplicate(replay, post, seen, t, p, used)
+			j := w.used[w.nu-1]
+			w.cut[j] = foreign && (w.answers[w.nu-1] == 0 || w.cut[j])
+			dup := deferDuplicate(replay, post, &w.seen, t, p, w.used[:w.nu])
 			s.unfork()
 			if foreign {
 				return false // the line ends at another player's ask: no deeper activation under it
@@ -1054,47 +1098,46 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 			return false // the pass is the node's last line: nothing deeper under it
 		}
 		var tw twinWalk // the gaps this node already walked, for gorge's twin cut
-		for i := 0; i < len(order); i++ {
-			if cut[i] || removed[i] || deferInUsed(used, i) {
+		for i := 0; i < n; i++ {
+			if w.cut[i] || w.removed[i] || deferInUsed(w.used[:w.nu], i) {
 				continue
 			}
 			if twinCut && tw.skip(s, order, i) {
 				continue // gorge's scriptTwin (potential_script.go activations): an indistinguishable earlier gap already walked this subtree
 			}
-			n := int(s.deferGapAnswers(k, order[i]))
-			if add := deferAskNodes(n); add != 0 {
+			na := int(s.deferGapAnswers(k, order[i]))
+			if add := deferAskNodes(na); add != 0 {
 				// the activation's colour ask is a clone of gorge's search of its
 				// own, beside the one per answer (scriptSearch.visit)
-				if nodes += add; nodes > potentialScriptNodes {
-					if stall != 0 {
-						s.capFull(stall)
+				if w.nodes += add; w.nodes > potentialScriptNodes {
+					if w.stall != 0 {
+						s.capFull(w.stall)
 					}
 					return false
 				}
 			}
-			for c := 0; c < n; c++ {
-				used = append(used, int8(i))
-				answers = append(answers, uint8(c))
-				ok := walk(false)
-				used, answers = used[:len(used)-1], answers[:len(answers)-1]
+			for ai := 0; ai < na; ai++ {
+				w.used[w.nu], w.answers[w.nu] = int8(i), uint8(ai)
+				w.nu++
+				ok := deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, w, false)
+				w.nu--
 				if ok {
 					return true
 				}
 			}
-			if cut[i] {
-				removed[i] = true // gorge's search goes on without i (scriptDFS cutAll)
+			if w.cut[i] {
+				w.removed[i] = true // gorge's search goes on without i (scriptDFS cutAll)
 			}
 		}
 		// the pass that lets the queued triggers resolve, after every deeper
 		// activation failed (mana_scriptpost.go): the play is offered only
 		// once the stack is clear again. The payment search's stop reads no
 		// offer, so its queued triggers never stand between it and the play.
-		if cp == nil && resolvePlay && len(used) > 0 {
-			return walk(true)
+		if cp == nil && resolvePlay && w.nu > 0 {
+			return deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, w, true)
 		}
 		return false
 	}
-	return walk(false)
 }
 
 // planTiered is plan with gorge's tiers: the sources a Taps watcher
