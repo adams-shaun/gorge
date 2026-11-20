@@ -340,4 +340,37 @@ func (s *State) exwCount(ctx evalCtx) int {
 	return n
 }
 
+// exiledWithOwnerSeat is RefExiledWithOwner: the first seat in seat order
+// whose exile zone holds a card exiled with the reading source (gorge
+// definedPlayerIDs over DefinedPlayer$
+// Player.HasCardsInExile_Card.ExiledWithSource_GE1, the shared player
+// filter's HasCardsIn property). The read is exwHas -- the ONE reader
+// exwCount (ExExiledWithN) and exwCard (PredExiledWith) already share -- so
+// a player ref and a count or filter cannot disagree about which cards the
+// link holds. 255 when no seat's exile holds one (gorge manifests dread for
+// nobody). gorge resolves the same grammar over every living seat and acts
+// on EACH match; the corpus carrier (Unidentified Hovership's leave
+// trigger) exiles at most one card, so at most one seat can match.
+func (s *State) exiledWithOwnerSeat(ctx evalCtx) uint8 {
+	if ctx.src == NoObj {
+		return 255
+	}
+	trig, fire := false, uint8(0)
+	if ctx.e != nil {
+		trig, fire = ctx.e.kind == seTrigger, ctx.e.srcVer
+	}
+	for p := 0; p < int(s.nSeats()); p++ {
+		if s.out(uint8(p)) {
+			continue
+		}
+		pl := &s.pl[p]
+		for j := 0; j < int(pl.exileN); j++ {
+			if s.exwHas(pl.exile[j], ctx.src, trig, fire) {
+				return uint8(p)
+			}
+		}
+	}
+	return 255
+}
+
 func init() { stallNames[StallExiledWith] = "exiledwith" }
