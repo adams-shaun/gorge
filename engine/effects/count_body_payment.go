@@ -22,25 +22,11 @@ import (
 //	                                      triggering payment
 //	Count$TriggeredManaCostDevotion.<C>   symbols in the triggering card's cost
 
-type evalCountBodyPaymentCode uint16
-
-const (
-	evalCountBodyPaymentTotalManaSpent evalCountBodyPaymentCode = iota + 1
-	evalCountBodyPaymentManaColorsPaid
-	evalCountBodyPaymentXColorPaid
-)
-
-var evalCountBodyPaymentCodes = state.NewStrCodes(
-	state.StrEntry[evalCountBodyPaymentCode]{Key: "TotalManaSpent", Val: evalCountBodyPaymentTotalManaSpent},
-	state.StrEntry[evalCountBodyPaymentCode]{Key: "ManaColorsPaid", Val: evalCountBodyPaymentManaColorsPaid},
-	state.StrEntry[evalCountBodyPaymentCode]{Key: "xColorPaid", Val: evalCountBodyPaymentXColorPaid},
-)
-
 // evalCountBodyPayment evaluates the heads above. matched is false when head
 // is none of them, so the dispatcher hands the body on.
 func evalCountBodyPayment(c *Ctx, g *state.Game, head, arg string) (int32, bool, bool) {
-	switch evalCountBodyPaymentCodes.Code(head) {
-	case evalCountBodyPaymentTotalManaSpent:
+	switch evalCountBodyPaidCodes.Code(head) {
+	case evalCountBodyPaidTotalManaSpent:
 		// The bare form is the total spent; "<Type>" selects the share paid
 		// with that producer type's mana (Treasure for Jetmir's Fixer),
 		// through the same byTag read CastTotalManaSpent makes.
@@ -48,7 +34,7 @@ func evalCountBodyPayment(c *Ctx, g *state.Game, head, arg string) (int32, bool,
 			return manaSpentTotalsOf(o).byTag(arg), true, true
 		}
 		return 0, true, true
-	case evalCountBodyPaymentManaColorsPaid:
+	case evalCountBodyPaidManaColorsPaid:
 		var n int32
 		if o := paymentRecordObject(g, c); o != nil {
 			for i := state.MW; i <= state.MG; i++ {
@@ -58,7 +44,7 @@ func evalCountBodyPayment(c *Ctx, g *state.Game, head, arg string) (int32, bool,
 			}
 		}
 		return n, true, true
-	case evalCountBodyPaymentXColorPaid:
+	case evalCountBodyPaidXColorPaid:
 		mask, ok := chromaColourMask(arg)
 		if !ok {
 			return 0, false, true

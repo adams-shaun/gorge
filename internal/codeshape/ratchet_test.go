@@ -54,7 +54,7 @@ const (
 	// Dispatch goes through cards.StrTable, cards.NameSet and cards.StrCodes
 	// (sorted dense slices, built once at init; one lookup, integer switch,
 	// vocabulary in one table).
-	stringCaseLiterals = 204
+	stringCaseLiterals = 202
 	// ctxLiterals, specContextLiterals and triggerContextLiterals are the
 	// effects.Ctx / SpecContext / TriggerContext composite literals in engine/rules/
 	// and engine/effects/ non-test files outside codeshape.CtxConstructorFiles.
@@ -166,7 +166,7 @@ const (
 	// string literal plus strings.EqualFold calls with a literal argument: the
 	// if-chain spelling of the `case "X":` dispatch stringCaseLiterals froze
 	// at zero.
-	stringLiteralCompares = 2763
+	stringLiteralCompares = 2757
 	// rawBoolParamParses is the strings.EqualFold calls whose argument holds a
 	// Param/ParamStr call: a flag parameter re-parsed at each use.
 	rawBoolParamParses = 266
