@@ -418,7 +418,18 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		return got, true
 	case o.Kind == "ability" && o.SVar == "" && o.Keyword == "" && o.GainedSource == 0 && o.AltCostIndex == 0:
 		if ob := e.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
-			return potentialAbilityPlan(e, p, ob, o.Ability, e.G.Players[p].Life), true
+			got := potentialAbilityPlan(e, p, ob, o.Ability, e.G.Players[p].Life)
+			pa, ok := ob.PileAbilityAt(o.Ability)
+			if ok && pa.SA != nil && got.Plan != nil && got.Reason == "" &&
+				abilityPlanUnreservedPart(e.abilityCompiledCost(pa.SA).Cost) &&
+				!e.potentialWitnessOffers(p, o, *got.Plan) {
+				// The planner prices only the mana half. A prefix activation
+				// that consumed a candidate of one of the cost's other parts
+				// (the unblocked attacker ninjutsu's Return<...> needs) leaves
+				// a plan that no longer pays the whole cost.
+				return PaymentPlanOutcome{Reason: "unsupported", Detail: pay.DetailWitnessNotOffered}, true
+			}
+			return got, true
 		}
 		return e.planAbilityPayment(p, o.Obj, o.Ability), true
 	case o.Kind == "cast" && (o.AltCostIndex == 0 || o.Mode == "mayplay"):
@@ -1742,6 +1753,22 @@ func potentialAbilityPlan(pl abilityPlanner, p state.PlayerID, o *state.Object, 
 		}
 	}
 	return out
+}
+
+// abilityPlanUnreservedPart reports whether c carries a cost part whose
+// candidates planComposedCost does not reserve (its planCostParts reserves only
+// TapPermanent and Sac<...>). A mana prefix the script search activates can
+// consume one of those candidates -- the unblocked attacker ninjutsu's
+// Return<1/Creature.YouCtrl+attacking+unblocked> is the measured case -- so
+// such a plan is only a witness after the offer gate confirms the whole cost
+// against the plan's pool.
+func abilityPlanUnreservedPart(c Cost) bool {
+	return len(c.Return) != 0 || len(c.Discard) != 0 || len(c.Exile) != 0 ||
+		len(c.ExileFromTop) != 0 || len(c.SubCounter) != 0 || len(c.AddCounter) != 0 ||
+		len(c.Reveal) != 0 || len(c.RevealOrChoose) != 0 || len(c.RevealChosen) != 0 ||
+		len(c.Behold) != 0 || len(c.PutToLib) != 0 || len(c.MoveToGrave) != 0 ||
+		len(c.Mill) != 0 || len(c.Energy) != 0 || len(c.Blight) != 0 ||
+		len(c.Evidence) != 0 || c.Forage || c.Waterbend != 0 || c.WaterbendX
 }
 
 // planAbilityPayment plans the mana part of printed activated ability
