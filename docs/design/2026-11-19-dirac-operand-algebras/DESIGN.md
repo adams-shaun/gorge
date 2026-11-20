@@ -598,7 +598,7 @@ operator moves the pool bar (OD-1).
 
 ## 7. Evidence throughput
 
-evloop measured at 20:14 (`/mnt/sata/gorge-training/fleet/evloop/status.json`, `box-cards.tsv`):
+evloop measured at 20:14 (the evidence loop's status and per-card files, kept outside this repository):
 
 | measure | value |
 |---|---:|
@@ -614,7 +614,7 @@ in 24 h).
 The design changes three things:
 1. **Burst.** D2-D7 each land 400-1,000 newly lowered cards at once. INFERRED: evloop clears 1,000 in about 1.5-3.5
    days at 12-30 credits an hour. T22 measures the real ceiling on the first D-phase burst and raises `EVL_*` caps
-   (four-yay) if need waits more than 24 h.
+   (in the evidence loop's own configuration) if need waits more than 24 h.
 2. **Key stability.** The additive rule keeps existing keys, so no burst of stale re-evidence. A PR that breaks this
    fails the `stale_max` ratchet.
 3. **Pods.** support.md says "no 4-seat game is in the evidence runs". So no supported card has pod evidence, and
@@ -698,7 +698,7 @@ Mergify queue at once.
 | P filters and expressions | T11 → T12 → T13a → T13b → T13c → T16 | `dirac/kop/filters.go`, `dirac/chars.go`, `filters_gen.go`, new `dirac/fw_*.go`, `dirac/kgen/filter.go`, `value*.go` |
 | E effects and modes | T14 → T15 → T17a → T17b → T17c | `dirac/gen.go` (fx), `static_emblemcold.go`, `dirac/kgen/lower_effect*.go`, `trig_*`, `static_*`, `repl_*` |
 | M costs | T18 (after T11) | `dirac/mana_*.go`, `cost_*.go`, `dirac/kgen/cost*.go` |
-| V evidence | T22 | `dirac/oracle/cmd/kfuzz`, `dirac/support/`, four-yay evloop |
+| V evidence | T22 | `dirac/oracle/cmd/kfuzz`, `dirac/support/`, the evidence loop |
 | W tail | T21 waves (after T13, T17) | per class |
 
 Cross-lane dependencies:
@@ -716,8 +716,7 @@ parallel from about day 15.
 
 ## 12. Reproduce
 
-The worktree is `/home/sadams/projects/gorge/.worktrees/dirac-scale-design`, detached at `9ce12ae3fb` with `.cards`
-linked. Every tool is in `repro/`. Heavy runs go in `systemd-run --user --scope -p MemoryMax=8G -p CPUQuota=400%`.
+Measured in a gorge worktree detached at `9ce12ae3fb` with `.cards` linked. Every tool is in `repro/`. Heavy runs go in `systemd-run --user --scope -p MemoryMax=8G -p CPUQuota=400%`.
 
 ```sh
 go build -trimpath -o bin/kgen ./dirac/cmd/kgen
