@@ -559,10 +559,10 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		src := c.Targets
 		if c.PickedTargets != nil {
 			src = c.PickedTargets
-		} else if len(src) == 0 {
-			// Later sub after a ChangeZone's own mid-resolution ask: the
-			// nearest targeting parent link's answer (chainTargets), the
-			// same binding context.go's Defined$ TargetedController uses.
+		} else {
+			// The root's list, else a ChangeZone sub's own mid-resolution
+			// answer (chainTargets), the same binding context.go's Defined$
+			// TargetedController uses.
 			src = chainTargets(c)
 		}
 		ts = controllersOf(h.Game(), src)

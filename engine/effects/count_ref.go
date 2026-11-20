@@ -466,9 +466,6 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 	}
 	switch refTargetsCodes.Code(string(ref)) {
 	case refTargetsTargeted:
-		// A sub link after a ChangeZone's own mid-resolution ask reads that
-		// link's answer (chainTargets: Ctx.Targets when the root answered
-		// any, else the nearest targeting parent link).
 		return chainTargets(c), true
 	case refTargetsParentTarget:
 		// The NEAREST targeting parent link's targets (parent_targets.go):

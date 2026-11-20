@@ -1097,9 +1097,6 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// the battlefield answers with the controller captured when the
 		// resolution began (CR 608.2h; Forge's getChangeZoneLKIInfo): the live
 		// object's controller was reset to its owner by the departure.
-		// chainTargets: the root's list, or the nearest targeting parent
-		// link's answer when the root chose none (a ChangeZone sub that
-		// asked for its own target mid-resolution -- Expel the Unworthy).
 		return controllersOf(g, targetsControllerLKI(g, c, objectTargets(chainTargets(c)))), true
 	case definedSpecTargetedPlayer:
 		return targetedPlayers(c), true
