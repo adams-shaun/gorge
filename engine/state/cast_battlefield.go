@@ -60,7 +60,7 @@ func FreezeBattlefield(src *Game, ids []ObjID, pt []FrozenPT) *CastBattlefield {
 	}
 	var maxID ObjID
 	for _, id := range ids {
-		if o := src.Obj(id); o != nil && o.Zone == ZBattlefield && int(o.Controller) < len(src.Players) && id > maxID {
+		if o := src.Obj(id); o != nil && frozenZone(o, len(src.Players)) && id > maxID {
 			maxID = id
 		}
 	}
@@ -75,12 +75,16 @@ func FreezeBattlefield(src *Game, ids []ObjID, pt []FrozenPT) *CastBattlefield {
 	out := &CastBattlefield{Game: f}
 	for _, id := range ids {
 		o := src.Obj(id)
-		if o == nil || o.Zone != ZBattlefield || int(o.Controller) >= len(f.Players) {
+		if o == nil || !frozenZone(o, len(f.Players)) {
 			continue
 		}
 		dst := &f.Objs[id-1]
 		o.CloneDeepInto(dst)
 		dst.CastBattlefield = nil
+		if o.Zone == ZGraveyard {
+			f.SetZone(ZGraveyard, o.Owner, append(f.Zone(ZGraveyard, o.Owner), id))
+			continue
+		}
 		f.SetZone(ZBattlefield, o.Controller, append(f.Zone(ZBattlefield, o.Controller), id))
 		for _, p := range pt {
 			if p.ID == id {
@@ -90,4 +94,17 @@ func FreezeBattlefield(src *Game, ids []ObjID, pt []FrozenPT) *CastBattlefield {
 		}
 	}
 	return out
+}
+
+// frozenZone reports whether o is an object a CastBattlefield freezes: a
+// battlefield permanent (listed under its controller) or, for the faces that
+// count the as-cast graveyards, a graveyard card (listed under its owner).
+func frozenZone(o *Object, players int) bool {
+	switch o.Zone {
+	case ZBattlefield:
+		return o.Controller >= 0 && int(o.Controller) < players
+	case ZGraveyard:
+		return o.Owner >= 0 && int(o.Owner) < players
+	}
+	return false
 }

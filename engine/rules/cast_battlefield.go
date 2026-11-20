@@ -36,6 +36,15 @@ func castBattlefieldEvent(g *state.Game, derived derivedPTReader, spell state.Ob
 			pairs = append(pairs, [2]state.ObjID{state.ObjID(uint32(derived.Power(id))), state.ObjID(uint32(derived.Toughness(id)))})
 		}
 	}
+	// A face that reads the as-cast graveyards (Count$LastStateGraveyard)
+	// freezes them beside the battlefield: their ids follow the battlefield's
+	// and carry no derived P/T pair (the fold pairs ids to Pairs by index, so
+	// a shorter Pairs slice leaves them unpaired).
+	if effects.SVarsReadCastGraveyard(o.Face().SVars) {
+		for p := range g.Players {
+			ids = append(ids, g.Zone(state.ZGraveyard, state.PlayerID(p))...)
+		}
+	}
 	return events.Event{Kind: events.CastBattlefield, Obj: spell, Player: caster, IDs: ids, Pairs: pairs}, true
 }
 
