@@ -1302,6 +1302,7 @@ SrAltOrigin	untyped int	16
 SrAltZoneShift	untyped int	5
 SrAttacking	untyped int	4096
 SrAuraEntry	untyped int	8
+SrBattleLink	untyped int	512
 SrChooserOpp	untyped int	1
 SrChooserYou	untyped int	64
 SrConfirm	untyped int	16
