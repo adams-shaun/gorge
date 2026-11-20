@@ -6,20 +6,48 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// vote lowers will of the council over a card ballot (gorge effVote's
-// VoteCard$ shape, effCardVote; CR 701.38a) as OpExt ExtVote. Every player
-// votes (Defined$ Player, gorge definedPlayers from the controller), each for
-// one battlefield permanent matching VoteCard$, and the kernel remembers the
-// most-voted, every member of a tie. The one VoteSubAbility$ that lowers is
-// the exile of that remembered set from the battlefield (Council's
-// Judgment), folded into the op as C bit 0: gorge moves the set as one
-// simultaneous departure batch, which the kernel's single-object Exile over
-// RefRemembered is not. VoteMessage$ is the prompt and AILogic$ a Forge AI
-// hint; neither changes the rules. The fixed-list and player ballots
-// (Choices$, VotePlayer$), the tally publishers (StoreVoteNum$,
-// RememberVotedObjects$), secret and up-to votes, a tie ability and any
-// other sub-ability refuse.
+// vote lowers will of the council (CR 701.38a). Two shapes:
+//
+//   - the card ballot (gorge effVote's VoteCard$ shape, effCardVote) as
+//     OpExt ExtVote. Every player votes (Defined$ Player, gorge
+//     definedPlayers from the controller), each for one battlefield
+//     permanent matching VoteCard$, and the kernel remembers the
+//     most-voted, every member of a tie. The one VoteSubAbility$ that lowers
+//     is the exile of that remembered set from the battlefield (Council's
+//     Judgment), folded into the op as C bit 0: gorge moves the set as one
+//     simultaneous departure batch, which the kernel's single-object Exile
+//     over RefRemembered is not.
+//
+//   - the fixed list (gorge effVote's Choices$ shape, askFixedVote and
+//     resolveVoteOutcomes): Choices$ names 2..4 SVar branches, each voter
+//     picks one index, and the winning branch runs. A tie runs
+//     VoteTiedAbility$ when present, else the first tied option. The op's C
+//     carries the kernel's fixed-list mode bit, the choice count and the
+//     tie-branch bit; the branches follow as OpBranch blocks (the
+//     GenericChoice shape).
+//
+// A fixed-list Vote on a triggered ability refuses: gorge's placement ask
+// treats a triggered Vote's Choices$ as modal (charm_params.go isModalSA), so
+// it poses a spurious CR 603.3c mode choice before the trigger goes on the
+// stack, and effVote never reads it. That is a gorge defect, not a rules
+// shape to copy; until gorge is fixed the card stays refused by name.
+//
+// VoteMessage$ is the prompt and AILogic$ a Forge AI hint; neither changes
+// the rules. Player ballots (VotePlayer$), the tally publishers
+// (StoreVoteNum$, RememberVotedObjects$), secret and up-to votes, and Zone$
+// refuse.
 func (lc *lowerCtx) vote(sa *cards.SA, ps *params) error {
+	if ps.str("VoteCard") != "" {
+		return lc.cardVote(ps)
+	}
+	if _, ok := ps.get("Choices"); ok {
+		return lc.fixedVote(ps)
+	}
+	return lc.cardVote(ps) // no ballot: the card shape's named refusal
+}
+
+// cardVote is vote's card-ballot shape (the pre-existing lowering).
+func (lc *lowerCtx) cardVote(ps *params) error {
 	for _, k := range sortedParamKeys(ps.m) {
 		switch {
 		case strings.HasPrefix(k, "Condition"):
@@ -53,6 +81,86 @@ func (lc *lowerCtx) vote(sa *cards.SA, ps *params) error {
 	}
 	ps.consume("VoteMessage", "AILogic")
 	lc.emit(lInstr{Op: "Vote", F: f, C: 1, Note: "each player votes; the most-voted are exiled"})
+	return nil
+}
+
+// fixedVote is vote's Choices$ shape: the choice branches and the optional
+// tie branch lower as OpBranch blocks after the ExtVote op, whose C carries
+// the fixed-list mode (bit 1), the option count (bits 2..4) and the tie
+// branch bit (bit 5), mirroring dirac/act_vote.go.
+func (lc *lowerCtx) fixedVote(ps *params) error {
+	for _, k := range sortedParamKeys(ps.m) {
+		switch {
+		case strings.HasPrefix(k, "Condition"):
+		case k == "Defined", k == "Choices", k == "VoteTiedAbility", k == "VoteMessage", k == "AILogic",
+			k == "EachVote", k == "StackDescription", k == "SpellDescription", k == "SubAbility",
+			k == "ValidTgts", k == "TgtZone", k == "TargetType",
+			k == "TargetMin", k == "TargetMax", k == "TargetUnique",
+			k == "TargetsWithSameController", k == "TargetsWithDifferentControllers", k == "TargetsWithDefinedController":
+		default:
+			return refuse("Vote param %q", k)
+		}
+	}
+	if d := ps.str("Defined"); d != "Player" {
+		return refuse("Vote Defined$ %q", d)
+	}
+	names := strings.Split(ps.str("Choices"), ",")
+	if len(names) < 2 || len(names) > 4 {
+		return refuse("Vote Choices$ %d options", len(names))
+	}
+	for i, name := range names {
+		names[i] = strings.TrimSpace(name)
+		if cards.ResolveSVar(lc.face.SVars, names[i]) == nil {
+			return refuse("Vote Choices$ %q", name)
+		}
+	}
+	tie := ps.str("VoteTiedAbility")
+	if tie != "" && cards.ResolveSVar(lc.face.SVars, tie) == nil {
+		return refuse("Vote VoteTiedAbility$ %q", tie)
+	}
+	if _, ok := ps.get("ValidTgts"); ok {
+		if _, err := lc.objOrTarget(ps, "", zBattlefield); err != nil {
+			return err
+		}
+	}
+	ps.consume("VoteMessage", "AILogic", "EachVote", "TargetType")
+	if lc.ab.Kind == akTriggered {
+		// gorge asks a spurious placement mode for a triggered fixed-list
+		// Vote (charm_params.go isModalSA); do not copy that defect.
+		return refuse("Vote on a triggered ability: gorge asks a spurious placement mode")
+	}
+	return lc.emitFixedVote(names, tie)
+}
+
+// emitFixedVote emits the ExtVote op and its winning/tie Branch blocks.
+func (lc *lowerCtx) emitFixedVote(names []string, tie string) error {
+	c := 1<<1 | len(names)<<2
+	if tie != "" {
+		c |= 1 << 5
+	}
+	lc.emit(lInstr{Op: "Vote", C: c, Note: "each player votes; the winning choice runs"})
+	for i, name := range names {
+		if err := lc.voteBranch(i, cards.ResolveSVar(lc.face.SVars, name)); err != nil {
+			return err
+		}
+	}
+	if tie != "" {
+		if err := lc.voteBranch(len(names), cards.ResolveSVar(lc.face.SVars, tie)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// voteBranch lowers one fixed-list branch as a Branch block: the kernel runs
+// C branch when the vote selected it (dirac's OpBranch).
+func (lc *lowerCtx) voteBranch(branch int, sa *cards.SA) error {
+	bat := len(lc.ab.Prog)
+	lc.emit(lInstr{Op: "Branch", C: branch})
+	if err := lc.chain(sa, nil); err != nil {
+		return err
+	}
+	lc.ab.Prog[bat].Skip = len(lc.ab.Prog) - bat - 1
 	return nil
 }
 

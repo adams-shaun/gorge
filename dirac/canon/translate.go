@@ -388,10 +388,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// gorge's draw_upto KChoose: option kind "card" over a top
 			// library card (a pick is only counted)
 			return ch("card", src, 0)
-		case dirac.ChVoteCard:
-			// gorge effCardVote's KChoose option kind "vote_card" over the
-			// permanent voted for (DChoose, the default KernelDKind arm)
-			return ch("vote_card", src, 0)
+		case dirac.ChVoteCard, dirac.ChVoteChoice:
+			return r.voteAction(src)
 		case dirac.ChRecruitDiscard:
 			// gorge effRecruit's KChoose option kind
 			// "discard" (its canonical kind is DChoose, the default
@@ -511,6 +509,18 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		return ch("number", RefNone, mode)
 	}
 	return Pack(CanonKind(0xFF), src, tgt, mode)
+}
+
+// voteAction is a vote KChoose option: the card ballot's "vote_card" over
+// the permanent voted for, or the fixed list's "vote" over the choice index
+// (gorge effCardVote / effVote).
+func (r *Translator) voteAction(src Ref) Canon {
+	kind := "vote_card"
+	if r.D.Sub == dirac.ChVoteChoice {
+		kind = "vote"
+	}
+	code, _ := ChooseCode(kind)
+	return Pack(ActChoose+CanonKind(code), src, RefNone, 0)
 }
 
 // FaceAbility maps a kernel CardDef ability index of object o's card to
