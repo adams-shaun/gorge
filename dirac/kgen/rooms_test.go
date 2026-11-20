@@ -78,23 +78,41 @@ func TestRoomsNameReadRefusal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var rooms, readers []string
-	for i, c := range all {
+	var rooms, readers []int
+	for i := range all {
 		if bs[i].def.FaceMode == kop.FaceRoom && i < len(p.names) {
-			rooms = append(rooms, c.Name)
+			rooms = append(rooms, i)
 		}
-		if bs[i].readsName {
-			readers = append(readers, c.Name)
+		if (bs[i].readsName || len(bs[i].readNames) > 0) && all[i].Name == "Hare Apparent" {
+			readers = append(readers, i)
 		}
 	}
-	if len(rooms) != 1 || rooms[0] != "Bottomless Pool" || len(readers) != 1 || readers[0] != "Hare Apparent" {
+	if len(rooms) != 1 || all[rooms[0]].Name != "Bottomless Pool" || len(readers) != 1 {
 		t.Fatalf("rooms %v, name readers %v", rooms, readers)
 	}
-	err = cardset.RoomNameRefusal(rooms, readers)
+	// Hare Apparent reads its own name, which is no door of the Room: the read
+	// is false of a Room in gorge and the kernel alike, so it is narrowed away.
+	if got := narrowNameReaders(p, all, bs, rooms, readers); len(got) != 0 {
+		t.Fatalf("a read of a non-door name kept: %v", got)
+	}
+	// the same reader reading a door's name (either door) is kept, as is an F2 read
+	for _, n := range []string{"Bottomless Pool", "Locker Room"} {
+		bs[readers[0]].readNames = []string{n}
+		if got := narrowNameReaders(p, all, bs, rooms, readers); len(got) != 1 {
+			t.Fatalf("a read of door %q dropped", n)
+		}
+	}
+	bs[readers[0]].readNames, bs[readers[0]].readsName = nil, true
+	if got := narrowNameReaders(p, all, bs, rooms, readers); len(got) != 1 {
+		t.Fatal("a SameNameAsSource read dropped")
+	}
+	rn, rd := []string{"Bottomless Pool"}, []string{"Hare Apparent"}
+	err = cardset.RoomNameRefusal(rn, rd)
+	readers = nil
 	if err == nil || !strings.HasPrefix(err.Error(), "Room name read: Hare Apparent reads a name and Bottomless Pool is a Room") {
 		t.Fatalf("refusal: %v", err)
 	}
-	if cardset.RoomNameRefusal(rooms, nil) != nil || cardset.RoomNameRefusal(nil, readers) != nil {
+	if cardset.RoomNameRefusal(rn, nil) != nil || cardset.RoomNameRefusal(nil, rd) != nil {
 		t.Fatal("a Room alone or a name reader alone refused")
 	}
 }
