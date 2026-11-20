@@ -18,7 +18,7 @@ const greatHallRepro = "sac_cost_activation_beside_net_negative_filter"
 // pricing a sacrifice part beside the filter search is far past bounded dirac
 // code. Great Hall is refused by name and its recorded game still diverges
 // with it implicated.
-func TestMBCGreatHallOfStarnheimReprosLockstep(t *testing.T) {
+func TestMBCSacCostNetNegativeFilterReprosLockstep(t *testing.T) {
 	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
 	if err != nil {
 		t.Fatal(err)
