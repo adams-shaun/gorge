@@ -33,11 +33,9 @@ import (
 type DamageStepReader interface {
 	// CombatDamageStep is "first-strike" in the priority round after the
 	// first-strike pass, "regular" in the one after the regular pass, and ""
-	// while a pass is dealing or asking for a damage division.
-	CombatDamageStep() string
-	// FirstStrikePass reports whether the combat damage step runs a first-strike
-	// pass.
-	FirstStrikePass() bool
+	// while a pass is dealing or asking for a damage division; firstStrikePass
+	// reports whether the combat damage step runs a first-strike pass.
+	CombatDamageStep() (round string, firstStrikePass bool)
 }
 
 // Chars is what the view asks the engine for: derived characteristics and
@@ -650,7 +648,7 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 	v.Phase = PhaseOf(g.Step)
 	if g.Step == state.StepCombatDamage {
 		if r, ok := ch.(DamageStepReader); ok {
-			v.DamageStep, v.FirstStrikeStep = r.CombatDamageStep(), r.FirstStrikePass()
+			v.DamageStep, v.FirstStrikeStep = r.CombatDamageStep()
 		}
 	}
 	v.Active = g.Active

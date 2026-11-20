@@ -1986,7 +1986,7 @@ func (e *Engine) divisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
 // round (CR 510.3/4); for the regular pass it moves to the end-combat step.
 func (e *Engine) finishCombatPass() {
 	pass := e.combatRound.pass
-	e.dealDamagePass(pass)
+	e.damageStep(pass) // consults the controller-collected divisions in combatRound.done (CR 510.1c)
 	if e.combatRound.assignments != nil {
 		return // a replacement-order decision parked this pass
 	}
@@ -2098,14 +2098,6 @@ func (e *Engine) dealCombatDamage() {
 		}
 	}
 	e.damageStep(false)
-}
-
-// dealDamagePass is the internal wrapper a combat damage pass uses: it deals
-// one pass's damage, optionally consulting the controller-collected divisions
-// in combatRound.done (CR 510.1c). dealCombatDamage (the whole two-pass
-// helper used by direct-call fixtures and older tests) keeps damageStep.
-func (e *Engine) dealDamagePass(pass bool) {
-	e.damageStep(pass)
 }
 
 // combatDefenderTarget returns the recipient of an attacking creature's
