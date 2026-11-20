@@ -856,7 +856,7 @@ func (s *State) continueRes(k *prep, n uint8) {
 		return // the answer made a departure frame park a return: ask it before the program goes on (zone_untilleavesbatch.go)
 	}
 	if n == 0 && k.gen != nil && s.setIterResume() {
-		s.runProg(k) // the RefSet instruction again, from the member after the one that parked (set_iter.go)
+		s.runProg(k) // the RefSet instruction again, from the member after the one that parked (value_setiter.go)
 		return
 	}
 	s.res.pc += n + 1

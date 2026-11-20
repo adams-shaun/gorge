@@ -212,7 +212,7 @@ func (s *State) dredgeDraws(k *prep, in *kop.Instr) bool {
 }
 
 // dredgeDrawsOver is dredgeDraws over the players q, in order (a RefSet's
-// player set, set_ops.go).
+// player set, value_setops.go).
 func (s *State) dredgeDrawsOver(k *prep, in *kop.Instr, q seatSeq) bool {
 	if q.n == 0 {
 		return true

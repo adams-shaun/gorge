@@ -4,8 +4,8 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// The ops that read RefSet (kop.RefSet; set_eval.go names the members,
-// set_iter.go walks them). execGen sends an instruction whose Obj is RefSet to
+// The ops that read RefSet (kop.RefSet; value_seteval.go names the members,
+// value_setiter.go walks them). execGen sends an instruction whose Obj is RefSet to
 // execSet; each arm runs the op's single-object body once per member, the
 // same ...On method the single-object path calls, so a set of one is the
 // single-object op.

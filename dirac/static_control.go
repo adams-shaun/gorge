@@ -624,7 +624,7 @@ func (s *State) opGainControl(k *prep, in *kop.Instr) {
 
 // gainControlList is OpGainControl's grant to each battlefield permanent of
 // list, in order: the tail opGainControl and a RefSet's members share
-// (set_ops.go).
+// (value_setops.go).
 func (s *State) gainControlList(k *prep, in *kop.Instr, list []Slot) {
 	e := &s.res.e
 	to := e.ctrl

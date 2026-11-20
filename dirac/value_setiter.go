@@ -4,7 +4,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// Iteration over an evaluated SetExpr (set_eval.go) and its suspension.
+// Iteration over an evaluated SetExpr (value_seteval.go) and its suspension.
 //
 // forSet evaluates the instruction's set on the Go stack and runs a member
 // body once per member. The body is passed as a method expression, a static
@@ -24,7 +24,7 @@ import (
 // OrderList set that suspended.
 const StallSetIter = 75
 
-// StallSetShape is a RefSet op shape the kernel does not serve (set_ops.go): an
+// StallSetShape is a RefSet op shape the kernel does not serve (value_setops.go): an
 // optional, defined or filtered discard, a bounce or library move with a
 // rider.
 const StallSetShape = 76
@@ -183,7 +183,7 @@ func (s *State) setThaw(k *prep, ref kop.SetRef, ctx evalCtx, it *setIter, v *se
 }
 
 // forSetPlayers is forSet over a players set. A member body that returns
-// false stops the loop; the ops that use it (life, set_ops.go) never suspend.
+// false stops the loop; the ops that use it (life, value_setops.go) never suspend.
 func (s *State) forSetPlayers(k *prep, e *stackEntry, in *kop.Instr, pc int, f func(*State, *prep, kop.Instr, uint8) bool) bool {
 	var v setVal
 	if !s.setLoad(k, e, pc, &v, true) {

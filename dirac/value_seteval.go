@@ -8,11 +8,11 @@ import (
 
 // SetExpr evaluation (kop.SetExpr, dirac/kop/sets.go): the one way the kernel
 // names any set of objects or players an effect acts on. evalSet runs a set's
-// postfix program on the Go stack and iteration (set_iter.go) visits the
+// postfix program on the Go stack and iteration (value_setiter.go) visits the
 // members; nothing here is State and nothing allocates.
 //
 // A members list is exact: an object a base names is a member whether or not
-// it is still where the base read it, and the member body (set_ops.go) applies
+// it is still where the base read it, and the member body (value_setops.go) applies
 // its own liveness check, as the single-object paths do. SoLKI (or SrLKI on
 // the instruction) only changes how a member that left the battlefield is read
 // by the ops that follow it: its controller is the departed slot's record, not

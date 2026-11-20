@@ -175,7 +175,7 @@ func (s *State) execPutCounterAt(k *prep, in *kop.Instr) bool {
 }
 
 // putCounterOnSlot is OpPutCounter's body for the permanent at sl, run by the
-// single-object path and by each member of a RefSet (set_ops.go). false: the
+// single-object path and by each member of a RefSet (value_setops.go). false: the
 // CR 616.1 order ask is posed and the instruction runs again.
 func (s *State) putCounterOnSlot(k *prep, in *kop.Instr, sl Slot) bool {
 	amt := s.value(k, in.A)

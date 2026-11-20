@@ -681,7 +681,7 @@ func (s *State) cond(k *prep, in *kop.Instr) bool {
 
 // destroyOn is OpDestroy's body for the permanent at sl: the one home of the
 // instruction's C flags, run by the single-object path and by each member of a
-// RefSet (set_ops.go).
+// RefSet (value_setops.go).
 func (s *State) destroyOn(k *prep, in *kop.Instr, sl Slot) {
 	if in.C&2 != 0 {
 		s.destroyRemember(k, sl, in.C) // RememberDestroyed$ (act_remember.go)
@@ -759,7 +759,7 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 
 // moveObjOn is moveRef for the object o that r names: the one home of the
 // move, run by the single-object path and by each member of a RefSet
-// (set_ops.go, r = RefSet).
+// (value_setops.go, r = RefSet).
 func (s *State) moveObjOn(k *prep, r kop.Ref, o Obj, z kop.Zone, bottom bool) {
 	if o == NoObj || s.freeQueued(o) || s.freeBegun(o) {
 		// gorge begins a Play's free cast at the answer, so an "if you don't
