@@ -495,7 +495,7 @@ func (s *State) finishAttacks(k *prep) {
 			n0 := s.npend
 			s.fireEmblemsAttack(k) // gorge: the delayed check after the event's face triggers
 			if !s.duel() && !DebugDropDefSeat {
-				s.stampDefSeat(n0, s.firstAtkSeat(k)) // the declaration's first event's seat
+				s.stampDefSeat(n0, s.firstAtkSeat(k), false) // the declaration's first event's seat (a player)
 			}
 		}
 		if s.subs[kop.TrigTaps].any() {
@@ -594,7 +594,7 @@ func (s *State) fireAttacksGen(k *prep) {
 				if !s.duel() {
 					s.g.atkDef = 0
 					if !DebugDropDefSeat {
-						s.stampDefSeat(n0, q)
+						s.stampDefSeat(n0, q, isObjTarget(def))
 					}
 				}
 				first = false
@@ -625,15 +625,52 @@ func (s *State) firstAtkSeat(k *prep) uint8 {
 	return q
 }
 
+// defSeatObj tags an attack trigger's defSeat whose attack event was on a
+// planeswalker or battle: the low bits are the defending seat + 1, this bit
+// says the attacker attacked an object. A defSeat without it names a player.
+const defSeatObj = 0x80
+
+// defSeatPack is an attack trigger's defSeat byte: defending seat q + 1,
+// tagged defSeatObj when the attack was on a planeswalker or battle; noSeat
+// packs none.
+func defSeatPack(q uint8, obj bool) uint8 {
+	if q == noSeat {
+		return 0
+	}
+	d := q + 1
+	if obj {
+		d |= defSeatObj
+	}
+	return d
+}
+
+// defSeatSeat is the defending seat a defSeat byte names (0 = none).
+func defSeatSeat(d uint8) uint8 { return (d &^ defSeatObj) - 1 }
+
 // stampDefSeat binds defending seat q to the pending triggers from n0 on
-// (pendingTrig.defSeat); noSeat binds none.
-func (s *State) stampDefSeat(n0 uint8, q uint8) {
+// (pendingTrig.defSeat, tagged when the attack event was on a planeswalker or
+// battle); noSeat binds none.
+func (s *State) stampDefSeat(n0 uint8, q uint8, obj bool) {
 	if q == noSeat {
 		return
 	}
+	d := defSeatPack(q, obj)
 	for i := n0; i < s.npend; i++ {
-		s.pend[i].defSeat = q + 1
+		s.pend[i].defSeat = d
 	}
+}
+
+// progHasOp reports whether an ability's program holds op (kgen's table). An
+// attack trigger whose body damages the attacked player carries
+// OpAtkPWGuard, whose queue-time defending seat the kernel binds even at two
+// seats.
+func progHasOp(a *kop.Ability, op kop.Op) bool {
+	for i := range a.Prog {
+		if a.Prog[i].Op == op {
+			return true
+		}
+	}
+	return false
 }
 
 // DebugAtkSeatsMerged is a test-only mutation: the attackers of every
@@ -643,6 +680,11 @@ var DebugAtkSeatsMerged bool
 // DebugDropDefSeat is a test-only mutation: an attack trigger keeps no
 // defending seat once queued.
 var DebugDropDefSeat bool
+
+// DebugAtkTriggerNoDefenderBind is a test-only mutation: an attack trigger at
+// two seats keeps no queue-time defending seat (the old behaviour, which
+// stalls when the attacker has left before the trigger resolves).
+var DebugAtkTriggerNoDefenderBind bool
 
 // fireAtkGroup runs the listeners in ord[:n] over one DeclareAttackers event
 // of fireAttacksGen: grp is the event's attackers, atk the declaration's;
@@ -681,7 +723,15 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 			if k.gen.anyAddPhase && a.Trig.Flags3&kop.Tf3FirstAttack != 0 && s.attackedBefore(k, s.perms[as].obj) {
 				continue // FirstAttack$ True: AttacksThisTurn == 1 (act_addphase.go)
 			}
+			n0 := s.npend
 			s.objTrigGen(k, kop.TrigAttacks, l, a, as, s.perms[as].obj, s.perms[as].ctrl, 0)
+			if s.duel() && !DebugAtkTriggerNoDefenderBind && progHasOp(a, kop.OpAtkPWGuard) {
+				// past two seats stampDefSeat binds every attack trigger of
+				// the event; at two seats only a TriggeredDefender damage
+				// reads the seat, and binding every trigger would change
+				// the others' reads.
+				s.stampDefSeat(n0, s.atkSeat(k, as), isObjTarget(s.perms[as].atk))
+			}
 		}
 	}
 	for _, sl := range ord[:n] {
