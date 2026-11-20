@@ -14,6 +14,7 @@ import (
 )
 
 func TestDiracManaBrewLandUndoKeepsLandPlays(t *testing.T) {
+	t.Parallel()
 	for game := 0; game < 3; game++ {
 		landUndoGame(t, game, false)
 	}
