@@ -2344,6 +2344,34 @@ func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw str
 	return nil
 }
 
+// pumpDuration lowers a Pump's Duration$ arm: a resolving-controller player
+// grant, a battlefield object's keyword grant until the controller's next turn
+// or next upkeep, or a layer-6 permanent grant (gorge AddContinuous
+// Permanent). done reports that the arm owned the Pump; the rest of pumpBody is
+// the ordinary end-of-turn path. A P/T change or any other duration refuses.
+func (lc *lowerCtx) pumpDuration(ps *params, obj lRef, zone int) (done bool, err error) {
+	d, ok := ps.get("Duration")
+	if !ok {
+		return false, nil
+	}
+	_, na := ps.m["NumAtt"]
+	_, nd := ps.m["NumDef"]
+	kw, hasKW := ps.get("KW")
+	if lc.pumpPlayerRef(obj) {
+		return true, lc.pumpPlayerGrant(ps, obj, zone, d, na, nd, kw, hasKW)
+	}
+	if done, err := lc.pumpTimedObject(ps, obj, zone, d, na, nd, kw, hasKW); done {
+		return true, err // lower_pumpendcombat.go
+	}
+	if d == "UntilYourNextUpkeep" && lc.pumpObjectRef(obj) && zone == zBattlefield {
+		return true, lc.pumpUntilUpkeepObject(obj, zone, na, nd, kw, hasKW)
+	}
+	if d != "Permanent" || na || nd || !hasKW || zone != zBattlefield {
+		return true, refuse("Pump Duration %q", d)
+	}
+	return true, lc.pumpPermanentKwGrant(kw, obj)
+}
+
 // pumpBody emits one Pump's effects for the already-resolved subject obj.
 // extra is the keyword a KWChoice$ branch chose (nil for a plain Pump).
 func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) error {
@@ -2359,24 +2387,8 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 	if done, err := lc.skipNextUntap(ps, obj, zone); done || err != nil {
 		return err
 	}
-	if d, ok := ps.get("Duration"); ok {
-		// Duration$ keyword grants only: a layer-6 permanent grant (gorge
-		// AddContinuous Permanent) or one lasting until the controller's
-		// next turn (the UntilTurn boundary, CR 611.2b), both the kernel's
-		// override record; a P/T change or any other duration refuses
-		_, na := ps.m["NumAtt"]
-		_, nd := ps.m["NumDef"]
-		kw, hasKW := ps.get("KW")
-		if lc.pumpPlayerRef(obj) {
-			return lc.pumpPlayerGrant(ps, obj, zone, d, na, nd, kw, hasKW)
-		}
-		if done, err := lc.pumpTimedObject(ps, obj, zone, d, na, nd, kw, hasKW); done {
-			return err // lower_pumpendcombat.go
-		}
-		if d != "Permanent" || na || nd || !hasKW || zone != zBattlefield {
-			return refuse("Pump Duration %q", d)
-		}
-		return lc.pumpPermanentKwGrant(kw, obj)
+	if done, err := lc.pumpDuration(ps, obj, zone); done || err != nil {
+		return err
 	}
 	att, def := lValue{}, lValue{}
 	if a, ok := ps.get("NumAtt"); ok {

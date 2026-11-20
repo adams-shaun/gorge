@@ -36,7 +36,7 @@ func TestOvNextTurnFourSeatController(t *testing.T) {
 		s.g.fx[0] = fxRec{kind: fxOverride, r: ovRec{idx: 1, fl: s.ovDurFl(kop.DurUntilYourNextTurn)}}
 		s.g.nfx = 1
 		want := s.nextActive() == ctrl
-		ended := s.dropNextTurnOv()
+		ended := s.dropNextTurnOv(&prep{t: &kop.Table{Overrides: make([]kop.Override, 1)}})
 		if got := ended.has(0); got != want {
 			t.Fatalf("ctrl=%d active=%d next=%d: dropped=%v want=%v", ctrl, active, s.nextActive(), got, want)
 		}

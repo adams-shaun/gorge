@@ -186,6 +186,11 @@ type Override struct {
 	// only when the host is tapped as it resolves. Its P/T is SetP/SetT
 	// (the record's P/T fields hold the host).
 	WhileTapped bool
+	// UntilUpkeep: the record lasts until the resolving effect's controller's
+	// next upkeep step begins (Duration$ UntilYourNextUpkeep; Erhnam Djinn).
+	// It rides the ovNT record bits but the cleanup drop skips it; the upkeep
+	// step drops it (dirac/static_untilupkeep.go).
+	UntilUpkeep bool
 	// CantAttack: the permanent can't attack (HiddenKeywords$ CARDNAME can't
 	// attack or block., beside AddKw KwCantBlock; KwMask has no free bit).
 	CantAttack bool

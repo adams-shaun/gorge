@@ -205,18 +205,19 @@ const (
 	DurPermanent    = 1 // for as long as the object stays in its zone
 	DurYourNextTurn = 2 // until the end of the controller's next turn
 	// appended for CR 613 layer 2 (OpGainControl / OpOverride)
-	DurWhileSource        = 3                    // for as long as the source stays on the battlefield (LoseControl$ LeavesPlay)
-	DurWhileControlSource = 4                    // for as long as the controller controls the source (LeavesPlay,LoseControl)
-	DurUntilYourNextTurn  = 5                    // until the controller's next turn begins (Duration$ UntilYourNextTurn: it ends at the preceding cleanup)
-	DurWarp               = 6                    // a warp exile's recast (CR 702.185a): for as long as the card remains exiled, and only on a later turn
-	DurPlot               = 7                    // the plotted designation (CR 702.170d): for as long as the card remains exiled, cast free at sorcery speed only on a later turn
-	DurPrepared           = 8                    // the prepared designation (CR 722.3a/c): obj/ver = the exile copy, turn = source Obj | source ver<<8; live while the source is on the battlefield with that ver
-	DurDefeated           = 9                    // retired: unused since a Siege's defeat became its stack trigger (face_battle.go abSiegeDefeat); the value stays
-	DurAirbend            = 10                   // an airbent card (CR 701.65a): its owner may cast it from exile for {2} for as long as obj/ver stays exiled
-	DurForetell           = 13                   // (11 and 12 are DurWhileSrcMay and DurWhileValid) a foretold card (CR 702.143a): its owner may cast it from exile for its foretell cost, only on a later turn than turn
-	DurSuspend            = 14                   // a suspended card (CR 702.62b): obj/ver = the exiled card, ctrl = its owner, turn = its time counters; kind marks the final-counter cast ask (kw_suspend.go)
-	DurWhileGrave         = 15                   // an Effect-delivered graveyard MayPlay grant: the record stays live for the rest of the turn when the card returns to the graveyard (gorge re-reads the effect's static, CR 611.2a)
-	DurWhileGraveForget   = DurWhileGrave | 0x10 // ... and ForgetOnMoved$ Exile: a move to exile ends the grant (the bit is a record's free used-count low bit)
+	DurWhileSource         = 3                    // for as long as the source stays on the battlefield (LoseControl$ LeavesPlay)
+	DurWhileControlSource  = 4                    // for as long as the controller controls the source (LeavesPlay,LoseControl)
+	DurUntilYourNextTurn   = 5                    // until the controller's next turn begins (Duration$ UntilYourNextTurn: it ends at the preceding cleanup)
+	DurWarp                = 6                    // a warp exile's recast (CR 702.185a): for as long as the card remains exiled, and only on a later turn
+	DurPlot                = 7                    // the plotted designation (CR 702.170d): for as long as the card remains exiled, cast free at sorcery speed only on a later turn
+	DurPrepared            = 8                    // the prepared designation (CR 722.3a/c): obj/ver = the exile copy, turn = source Obj | source ver<<8; live while the source is on the battlefield with that ver
+	DurDefeated            = 9                    // retired: unused since a Siege's defeat became its stack trigger (face_battle.go abSiegeDefeat); the value stays
+	DurAirbend             = 10                   // an airbent card (CR 701.65a): its owner may cast it from exile for {2} for as long as obj/ver stays exiled
+	DurForetell            = 13                   // (11 and 12 are DurWhileSrcMay and DurWhileValid) a foretold card (CR 702.143a): its owner may cast it from exile for its foretell cost, only on a later turn than turn
+	DurSuspend             = 14                   // a suspended card (CR 702.62b): obj/ver = the exiled card, ctrl = its owner, turn = its time counters; kind marks the final-counter cast ask (kw_suspend.go)
+	DurWhileGrave          = 15                   // an Effect-delivered graveyard MayPlay grant: the record stays live for the rest of the turn when the card returns to the graveyard (gorge re-reads the effect's static, CR 611.2a)
+	DurWhileGraveForget    = DurWhileGrave | 0x10 // ... and ForgetOnMoved$ Exile: a move to exile ends the grant (the bit is a record's free used-count low bit)
+	DurUntilYourNextUpkeep = 16                   // until the resolving effect's controller's next upkeep step begins (Duration$ UntilYourNextUpkeep)
 )
 
 // MoveFlags (OpExileEx C, OpReturnEx C>>3, OpChangeZoneAllEx C>>3).

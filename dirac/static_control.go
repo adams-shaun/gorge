@@ -732,6 +732,10 @@ func (s *State) ovDurFl(dur int16) uint8 {
 	case kop.DurUntilYourNextTurn:
 		s.ovNTArm(s.res.e.ctrl) // static_ovntleave.go
 		return ovNT | (s.res.e.ctrl<<ovNTWhoShift)&ovNTWho
+	case kop.DurUntilYourNextUpkeep:
+		// the same waiting-controller bits; the cleanup drop skips it and the
+		// upkeep step ends it (static_untilupkeep.go), so no expiry counter
+		return ovNT | (s.res.e.ctrl<<ovNTWhoShift)&ovNTWho
 	}
 	return 0
 }
@@ -740,10 +744,10 @@ func (s *State) ovDurFl(dur int16) uint8 {
 // controller's next turn when that turn is the next one: gorge ends an
 // UntilYourNextTurn effect at the cleanup before the turn begins
 // (layers_effect.go: UntilTurn = nextTurnFor - 1).
-func (s *State) dropNextTurnOv() (ended slotMask) {
+func (s *State) dropNextTurnOv(k *prep) (ended slotMask) {
 	var have uint8
 	for i := 0; i < int(s.g.nfx); i++ {
-		if r := &s.g.fx[i]; r.kind == fxOverride && r.r.fl&ovNT != 0 {
+		if r := &s.g.fx[i]; r.kind == fxOverride && r.r.fl&ovNT != 0 && !k.t.Overrides[r.r.idx-1].UntilUpkeep {
 			have |= 1 << ((r.r.fl & ovNTWho) >> ovNTWhoShift)
 		}
 	}
@@ -752,7 +756,7 @@ func (s *State) dropNextTurnOv() (ended slotMask) {
 	s.fxM = slotMask{}
 	for i := 0; i < int(s.g.nfx); i++ {
 		r := &s.g.fx[i]
-		if r.kind == fxOverride && r.r.fl&ovNT != 0 && ends&(1<<((r.r.fl&ovNTWho)>>ovNTWhoShift)) != 0 {
+		if r.kind == fxOverride && r.r.fl&ovNT != 0 && !k.t.Overrides[r.r.idx-1].UntilUpkeep && ends&(1<<((r.r.fl&ovNTWho)>>ovNTWhoShift)) != 0 {
 			s.touchSl(r.sl)
 			ended = ended.with(r.sl)
 			continue

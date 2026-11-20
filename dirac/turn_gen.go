@@ -856,7 +856,7 @@ func (s *State) cleanupGen(k *prep) {
 		}
 		s.dropFx(func(i int) bool { return ovCleanupEnds(k, &s.g.fx[i]) })
 		if k.gen.anyNTOv {
-			ended = ended.or(s.dropNextTurnOv()) // Duration$ UntilYourNextTurn (static_control.go)
+			ended = ended.or(s.dropNextTurnOv(k)) // Duration$ UntilYourNextTurn (static_control.go)
 		}
 		s.copyExcKwRestore(k, ended)
 	}
