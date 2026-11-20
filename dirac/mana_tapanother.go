@@ -186,6 +186,34 @@ func (s *State) tapXSacAnyLive(k *prep, p uint8) bool {
 	return false
 }
 
+// sacRepeatLive: a live kop.SacAnyManaAb source whose cost sacrifices dedicated
+// tokens -- the cost's filter requires a token (Jungle Patrol's "Sacrifice a
+// token named Wood: Add {R}") -- so gorge's paymentPlanRelaxedAlternatives once
+// is false on a closed bound too: the census is unrelaxable and runs no bounded
+// proof, so gorge searches every census-incomplete insufficient play, as beside
+// a live Baylen (tail-14-c000 pair 1: two Wood sacrifices and the untapped
+// land's {B} pay Bone Sabres' Equip {3}).
+//
+// A sacrifice of a permanent TYPE (Krark-Clan Ironworks' artifact, Ashnod's
+// Altar's or Phyrexian Altar's creature) is NOT this shape, though it too is
+// kop.SacAnyManaAb: its fodder may be a mana source or the source itself, so
+// the potential bound already prices the activations it can make and the KCI
+// recordings pin the closed-bound narrowing (sacDrops). A {T} sacrifice-another
+// one (Bolg's Company) is no shape either: its {T} makes once true, the relaxed
+// proof holds, and the closed-bound candidates stay the gaps walk's.
+func (s *State) sacRepeatLive(k *prep, p uint8) bool {
+	if !k.tapMana {
+		return false
+	}
+	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+		ab := k.tapXAbOf(s.cardAt(b.first()))
+		if kop.SacAnyManaAb(ab) && k.t.Filters[ab.Cost.Filter].Flags&kop.FToken != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // availSacAny adds each live sacrifice-any source's fixed production once to
 // av, the potential census for payment d: gorge's PotentialMana bound admits
 // the ability a single time. When the census already counted it -- the printed
@@ -1566,8 +1594,23 @@ func (s *State) gapsOrBoundPlay(k *prep, p uint8, sacAny bool, gaps *Decision, a
 	return hasOption(gaps, a) || sacAny && s.sacPotPays(k, p, a)
 }
 
+// sacRepeatBoard is scriptOffers' twoLive: the boards gorge's census is
+// unrelaxable on regardless of the PotentialMana bound — a live two-permanent
+// source (Baylen, tapXTwoLive), an open sacrifice-any bound (Krark-Clan
+// Ironworks, tapXSacAnyBound's open arm), or a live sacrifice-any one whose
+// cost sacrifices dedicated tokens (Jungle Patrol, sacRepeatLive). sacRepeat
+// reports the last of these, the one that lifts the closed-bound narrowing
+// (sacDrops).
+func (s *State) sacRepeatBoard(k *prep, p uint8, sacOpen bool) (sacRepeat, twoLive bool) {
+	sacRepeat = s.sacRepeatLive(k, p)
+	return sacRepeat, k.tapMana && s.tapXTwoLive(k, p) || sacOpen || sacRepeat
+}
+
 // sacDrops: on a closed sacrifice-any bound (sacAny) play a is neither the gaps
-// walk's nor one gorge's bound pays (gapsOrBoundPlay), so it is no candidate.
-func (s *State) sacDrops(k *prep, p uint8, sacAny bool, gaps *Decision, a Action) bool {
-	return sacAny && !s.gapsOrBoundPlay(k, p, sacAny, gaps, a)
+// walk's nor one gorge's bound pays (gapsOrBoundPlay), so it is no candidate —
+// unless a live repeatable sacrifice-any source makes gorge's census
+// unrelaxable (sacRepeatBoard): gorge searches every census-incomplete play
+// then, the closed bound's plays included.
+func (s *State) sacDrops(k *prep, p uint8, sacAny, sacRepeat bool, gaps *Decision, a Action) bool {
+	return sacAny && !sacRepeat && !s.gapsOrBoundPlay(k, p, sacAny, gaps, a)
 }
