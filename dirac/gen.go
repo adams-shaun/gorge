@@ -96,7 +96,7 @@ type genPrep struct {
 	anyBestow       bool // a card has printed bestow (CardDef.HasBestow; kw_bestow.go)
 	anyReconfigure  bool // a card has printed Reconfigure (CardDef.HasReconfigure; kw_reconfigure.go)
 	anyKickCost     bool // a card has a non-mana kicker cost (CardDef.KickerCost; kw_kicker.go)
-	anyMultikick    bool // a card has Multikicker (CardDef.HasMultikicker; cast.go's bsMulti, cold.mk)
+	anyMultikick    byte // a repeated additional cost, in bits (the byte its bool occupied): mkAny (cold.mkObj, any Multikicker/Squad/Replicate) and mkPerm (cold.mk, a pure Multikicker's permanent readers); a Squad self-ETB reads its captured count (kw_multikicker.go, kw_squadreplicate.go)
 	anyEvTargets    bool // a spell's CollectEvidence<X> is the targets' total mana value (kop.EvidenceTargetsMV; cost_collectevidencex.go)
 	anyOptCost      bool // a card has an OptionalCost part (CardDef.OptCost/OptBehold; cost_optional.go)
 	equipAnim       bool // an Equip ability and a Creature-adding override: an Equipment can be a creature (CR 704.5p sba arm; static_equipanimated.go)
@@ -1109,12 +1109,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.OptCost.Flags != 0 || c.OptBehold || c.OptWaterbend != 0 {
 			g.anyOptCost = true
 		}
-		if c.KickerCost.Flags != 0 {
-			g.anyKickCost = true
+		if hasKickPickCost(c) {
+			g.anyKickCost = true // a kicked cast's non-mana pick part (Kicker; Squad/Replicate's repeated pick)
 		}
-		if c.HasMultikicker {
-			g.anyMultikick = true
-		}
+		g.noteRepeatedCost(c)
 		g.anyBeam = g.anyBeam || c.BeamMeUp
 		if c.TapPays() || c.Harmonize {
 			g.anyConvoke = true

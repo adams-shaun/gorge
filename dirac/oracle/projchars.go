@@ -155,6 +155,8 @@ var gorgeKwElsewhere = map[string]string{
 	"Modular":             "gorge kwModular's entering-counters replacement and dies trigger (CR 702.43a, kgen expandedKeywords; compared through the +1/+1 counters and the zone moves)",
 	"Graft":               "gorge kwGraft's entering-counters replacement and another creature's enters trigger moving a +1/+1 counter (CR 702.58a, kgen expandedKeywords; compared through the +1/+1 counters and the trigger on the stack)",
 	"Rampage":             "gorge kwRampage's attacker-blocked trigger (CR 702.23a, kgen expandedKeywords; compared through the pump on the stack and P/T)",
+	"Squad":               "gorge kwSquad's self-entry trigger minting one token copy per squad payment (CR 702.157a, kgen expandedKeywords + Count$SquadPaid; compared through the tokens and the stack), no battlefield characteristic",
+	"Replicate":           "gorge kwReplicate's SpellCast trigger copying the spell once per replicate payment (CR 702.56a, kgen expandedKeywords + Count$ReplicatePaid; compared through the stack copies), no battlefield characteristic",
 	"Dredge":              "CardDef.Dredge, a replacement of the controller's draw read at every draw (CR 702.52a, kgen lower_dredge.go; compared through the dredge choice, the mill and the graveyard return), no battlefield characteristic",
 	"Umbra armor":         "CardDef.UmbraArmor, a destroy replacement read at every destruction (CR 702.89a, kgen lower_umbraarmor.go, kernel kw_umbraarmor.go; compared through the destroy, the damage and deathtouch clears and the Aura's move to the graveyard), no battlefield characteristic",
 	"Exalted":             "gorge's expanded attacks-alone trigger (kgen expandedKeywords, Tf2Alone; compared through the pump on the stack and P/T)",

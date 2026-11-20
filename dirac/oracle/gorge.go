@@ -965,12 +965,10 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "multikicked" {
-				// CR 702.43: the kernel's multikicked cast is its kicked cast
-				// (AkCast mode bit 0) plus the count ask that follows, so the
-				// priority option canonicalises as "kicked"
+			if repeatedCastMode(o.Mode) {
+				// CR 702.43/702.56a/702.157a: the kernel's repeated-payment cast is its kicked cast plus the count ask, canonical "kicked"
 				if o.AltCostIndex > 15 {
-					note("cast/multikicked")
+					note("cast/" + o.Mode)
 					continue
 				}
 				mc, _ := castModeCode("kicked")
@@ -1091,9 +1089,8 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				a = Pack(ActCastFace, ref(pa.Obj), RefNone, fc)
 			} else if pa.Mode == "impended" {
 				a = Pack(ActCastImpended, ref(pa.Obj), RefNone, 0) // kw_impending.go
-			} else if pa.Mode == "multikicked" {
-				// CR 702.43: the kernel's multikicked cast is its kicked cast
-				// plus the count ask that follows, canonical "kicked"
+			} else if repeatedCastMode(pa.Mode) {
+				// CR 702.43/702.56a/702.157a: the kernel's repeated-payment cast is its kicked cast plus the count ask, canonical "kicked"
 				mc, _ := castModeCode("kicked")
 				a = Pack(ActCast, ref(pa.Obj), RefNone, mc)
 			} else if pa.Mode == "suspend" {
@@ -2349,4 +2346,11 @@ func grantedOrGainedActivation(o *decision.Option, before []decision.Option, ref
 		return Pack(ActActivate, ref(o.Obj), ref(o.GainedSource), uint8(o.GainedIdx)), false, true
 	}
 	return 0, false, false
+}
+
+// repeatedCastMode reports the three repeated-additional-cost cast modes:
+// gorge's multikicked/replicated/squadded options all canonicalise to the
+// kernel's one kicked cast plus the count ask.
+func repeatedCastMode(mode string) bool {
+	return mode == "multikicked" || mode == "replicated" || mode == "squadded"
 }
