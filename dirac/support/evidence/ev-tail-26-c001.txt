@@ -11,6 +11,7 @@ Ancestral Vengeance
 Ancient Runes
 Angelic Overseer
 Arc Lightning
+Arena Trickster
 Armor of Shadows
 Armorcraft Judge
 Arno Dorian
@@ -101,9 +102,11 @@ Graceful Cat
 Grappling Sundew
 Grave Betrayal
 Gravity Well
+Great Wall
 Greenseeker
 Grizzly Ghoul
 Gruul Guildmage
+Hammer Mage
 Harrow
 Henge of Ramos
 Hermes, Overseer of Elpis
@@ -279,3 +282,4 @@ Wretched Throng
 Yahenni's Expertise
 You See a Guard Approach
 Zodiac Snake
+Zombie Ogre
