@@ -16,4 +16,8 @@ func TestMBCTail40ReprosLockstep(t *testing.T) {
 	// listener. Patron hears only its own controller's puts, so the per-kind
 	// order reaches no stack; the kernel stalled on it (StallProlif, pair 68).
 	stdReproNamed(t, "prolif_order_foreign_putter_listener")
+	// CR 701.34a: seat 1's Cankerbloom sacrifices to proliferate in its
+	// additional main phase; gorge asks which recipients get a counter and the
+	// kernel stalled on the ask (StallProlif, pair 47).
+	stdReproNamed(t, "prolif_choice")
 }
