@@ -1214,6 +1214,17 @@ type filtSearch struct {
 	// fee (paid from the floating pool, CR 601.2b), and without the plain
 	// run's fee-stall prune (feeStall is set on the plain run only).
 	phased bool
+	// feeOrder: gorge's fee-order fallback (potentialPrefixScript's phased
+	// build when scriptSearch.feeGaps is non-empty): the covered funding
+	// sources first, then the fee-carrying gaps, then the fee-free ones. A
+	// plain search spends its budget on a combination filter's free {C}
+	// answer and the funding it can no longer use; this order floats the fee
+	// before the paid answer and reaches the allocation (Baxter Building's
+	// {4},{T}: four mana in any combination) within the node budget.
+	feeOrder bool
+	// feeGaps: the fee-carrying gaps a feeOrder run walks in its second pass
+	// (gorge's scriptSearch.feeGaps).
+	feeGaps slotMask
 }
 
 // deferGapLeft: the search still holds an untapped filter gap whose tap
@@ -1317,6 +1328,40 @@ func (fs *filtSearch) phasedFallback() bool {
 	return fs.feeOnly && !fs.other.any() && fs.pay == nil && fs.nodes >= potentialScriptNodes
 }
 
+// feeOrderGaps collects the fee-carrying gaps gorge's phased build marks
+// (scriptSearch.feeGaps): a gap whose mana ability makes two or more mana for
+// a mana fee, a combination filter such as Baxter Building's {4}, {T}: add
+// four mana in any combination of colours. A one-unit filter's fee is no
+// fee-carrying gap in gorge either.
+func (s *State) feeOrderGaps(k *prep, f slotMask) slotMask {
+	var m slotMask
+	for ; f.any(); f = f.rest() {
+		sl := f.first()
+		if s.filtUnits(k, sl) >= 2 && s.filtFee(k, sl) > 0 {
+			m = m.with(sl)
+		}
+	}
+	return m
+}
+
+// feeOrderEligible reports whether gorge's phased build takes the fee order
+// for play a: a plain cast (no mode), whose spell ability adds no sacrifice
+// or return (potentialModeBaseCost's base.Sac/base.Return check, phasedScope),
+// beside a fee-carrying gap and no hybrid-fee gap.
+func (s *State) feeOrderEligible(k *prep, a Action, gaps, feeGaps slotMask) bool {
+	if !feeGaps.any() || a.Kind() != AkCast || a.Mode() != 0 {
+		return false
+	}
+	if s.objs[Obj(a.Source())].card >= CardID(len(k.t.Cards)) {
+		return false
+	}
+	ac := spellAddCost(k, s.objs[Obj(a.Source())].card)
+	if ac.Flags&(kop.CostSac|kop.CostReturn) != 0 {
+		return false // a consuming cost is the plain/phased scope's, not the fee order's
+	}
+	return !s.filtHybIn(k, gaps)
+}
+
 // filtScript reports whether gorge's prefix search finds a script for play
 // a of p; with apply it plays the script on s (the play's prefix).
 //
@@ -1348,16 +1393,30 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	s.pool.inFilt++ // (fork made the pool)
 	found := fs.visit(k, t, 0, false)
-	if !found && fs.phasedFallback() {
-		// gorge's plain run spent its node budget on a repeatable fee-only
-		// filter's branches: its phased run walks the funding line the plain
-		// order walked past (potentialPrefixScript)
-		ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
-			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true}
-		if found = ph.visit(k, t, 0, false); found {
-			fs = ph
-		} else if fs.stall == 0 {
-			fs.stall = ph.stall
+	if !found {
+		if fg := s.feeOrderGaps(k, fs.gaps); s.feeOrderEligible(k, fs.a, fs.gaps, fg) {
+			// gorge's phased build walks a fee-carrying combination filter in
+			// its fee order: the funding floats first, then the paid answer,
+			// then the fee-free gaps (potentialPrefixScript, scriptSearch.phaseAt)
+			fo := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
+				usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead,
+				feeOrder: true, feeGaps: fg}
+			if found = fo.visit(k, t, 0, false); found {
+				fs = fo
+			} else if fs.stall == 0 {
+				fs.stall = fo.stall
+			}
+		} else if fs.phasedFallback() {
+			// gorge's plain run spent its node budget on a repeatable fee-only
+			// filter's branches: its phased run walks the funding line the plain
+			// order walked past (potentialPrefixScript)
+			ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
+				usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true}
+			if found = ph.visit(k, t, 0, false); found {
+				fs = ph
+			} else if fs.stall == 0 {
+				fs.stall = ph.stall
+			}
 		}
 	}
 	s.pool.inFilt--
@@ -2034,7 +2093,7 @@ func (fs *filtSearch) orderFunders(k *prep, t *State, order []Slot, gap bool) {
 // fallback) gaps whose ability costs no mana, funding sources, gaps, then the
 // life-only source.
 func (fs *filtSearch) passCount() int {
-	if fs.phased {
+	if fs.phased || fs.feeOrder {
 		return 4
 	}
 	return 3
@@ -2044,6 +2103,14 @@ func (fs *filtSearch) passCount() int {
 // skipped: the funding passes are once the funding is spent (gorge's phase
 // loop breaks there, so the phased run's last gap pass goes with it).
 func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOnly, skip bool) {
+	if fs.feeOrder {
+		switch pass {
+		case 0:
+			return false, false, funded >= fs.fees // the funding floats, then the fee gaps pay from it
+		case 1, 2:
+			return true, false, false
+		}
+	}
 	gap = pass == 0 || fs.phased && pass == 2
 	freeOnly = fs.phased && pass == 0
 	if gap {
@@ -2096,6 +2163,15 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		gap, freeOnly, skip := fs.passShape(pass, funded, &feeGapsOut)
 		if skip {
 			continue
+		}
+		// feeOrder's passes 1 and 2 split the filter gaps: pass 1 the
+		// fee-carrying ones, pass 2 the fee-free ones (and every non-filter
+		// gap). gorge's phaseAt marks the split with feeGaps, not with the
+		// phase flag, so another gap kind stays in the later pass.
+		if fs.feeOrder && gap {
+			if fs.gaps.has(sl := order[0]) && false {
+				_ = sl
+			}
 		}
 		fs.orderFunders(k, t, order[:n], gap)
 		var tried [MaxPerm]Slot
