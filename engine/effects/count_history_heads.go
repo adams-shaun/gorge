@@ -50,7 +50,7 @@ func svarsReadPresence(svars map[string]string) bool {
 
 // evalHistoryPrefixHead answers the heads whose spelling carries its argument
 // inside the head token (no space): Count$Random.<min>.<max> and
-// Count$HasNumChosenColors.<Ref>. handled is false for any other head.
+// Count$SearchedLibrary.<PlayerSpec>. handled is false for any other head.
 func evalHistoryPrefixHead(h Host, c *Ctx, g *state.Game, head string) (n int32, ok, handled bool) {
 	if rest, found := strings.CutPrefix(head, "Random."); found {
 		lo, hi, okRange := parseRandomRange(rest)
@@ -72,10 +72,6 @@ func evalHistoryPrefixHead(h Host, c *Ctx, g *state.Game, head string) (n int32,
 		}
 		return count, true, true
 	}
-	if ref, found := strings.CutPrefix(head, "HasNumChosenColors."); found {
-		n, ok = chosenColorsShared(h, c, g, ref)
-		return n, ok, true
-	}
 	return 0, false, false
 }
 
@@ -95,30 +91,15 @@ func parseRandomRange(s string) (lo, hi int32, ok bool) {
 }
 
 // chosenColorsShared is Count$HasNumChosenColors.<Ref>: how many of the
-// source's chosen colours the referenced card is. TriggeredCard is the card
-// the trigger fired on (Tablet of the Guilds); OriginalHost is the object the
-// ability prices or applies to -- the spell a cost reduction is read against
-// (Seal of the Guildpact) -- falling back to the source itself.
-func chosenColorsShared(h Host, c *Ctx, g *state.Game, ref string) (int32, bool) {
+// source's chosen colours the target card is. The target is the card the
+// trigger fired on for TriggeredCard (Tablet of the Guilds) and the object the
+// ability prices or applies to for OriginalHost -- the spell a cost reduction
+// is read against (Seal of the Guildpact) -- falling back to the source itself.
+func chosenColorsShared(h Host, c *Ctx, g *state.Game, target state.ObjID) int32 {
 	src := g.Obj(c.Source)
-	if src == nil {
-		return 0, true
-	}
-	var target state.ObjID
-	switch strings.TrimSpace(ref) {
-	case "TriggeredCard":
-		target = c.TriggerCard
-	case "OriginalHost":
-		target = c.AffectedObj
-		if target == 0 {
-			target = c.Source
-		}
-	default:
-		return 0, false
-	}
 	o := g.Obj(target)
-	if o == nil {
-		return 0, true
+	if src == nil || o == nil {
+		return 0
 	}
 	chosen := src.ChosenColor
 	letters, known := colorLetters(chosen)
@@ -136,7 +117,7 @@ func chosenColorsShared(h Host, c *Ctx, g *state.Game, ref string) (int32, bool)
 			n++
 		}
 	}
-	return n, true
+	return n
 }
 
 // evalHistoryHead answers the space-argument heads of this file.
@@ -177,6 +158,14 @@ func evalHistoryHead(h Host, c *Ctx, g *state.Game, code evalCov3HeadCode, arg s
 		return totalKeywordValue(h, c, arg), true
 	case evalCov3HeadSecondMostProminentColor:
 		return secondMostProminentColorCount(h, c, g, arg), true
+	case evalCov3HeadHasNumChosenColorsTriggeredCard:
+		return chosenColorsShared(h, c, g, c.TriggerCard), true
+	case evalCov3HeadHasNumChosenColorsOriginalHost:
+		target := c.AffectedObj
+		if target == 0 {
+			target = c.Source
+		}
+		return chosenColorsShared(h, c, g, target), true
 	case evalCov3HeadDevoured:
 		return devouredCount(g, c, arg), true
 	case evalCov3HeadLastStateGraveyard, evalCov3HeadLastStateGraveyardWithFallback:
@@ -355,37 +344,37 @@ func historyBranchHolds(c *Ctx, g *state.Game, pred string) (holds, ok bool) {
 	case cov3BranchHoldsNight:
 		// CR 731: it is night.
 		return g.DayNight == state.DayNightNight, true
-	case cov3BranchHoldsMaxSpeed:
-		// CR 702.179e: the resolving controller has max speed.
-		return valid && g.Players[you].Speed >= maxSpeed, true
 	case cov3BranchHoldsEscaped:
 		// CR 702.138: the source was cast with its Escape cost (the flag
 		// survives onto the permanent for the ETB counters).
 		return src != nil && !src.IsCopy && src.CastFlags&state.FlagEscaped != 0, true
-	case cov3BranchHoldsWasCastFromYourLibrary:
+	}
+	if playerSpecQualifierCodes.Code(pred) == playerSpecQualifierMaxSpeed {
+		// CR 702.179e: the resolving controller has max speed (the player
+		// spec's own MaxSpeed word).
+		return valid && g.Players[you].Speed >= maxSpeed, true
+	}
+	if pred == "wasCastFromYourLibrary" {
+		// The source's latest cast came from a library (Fblthp, the Lost).
 		return src != nil && !src.IsCopy && src.HasLatestCast && src.LatestCastFrom == state.ZLibrary, true
 	}
 	return false, false
 }
 
-// sumPlayerHistoryProperty answers the PlayerCount<group>$<Prop> reads that
-// sum a per-seat figure over the group: hand size, and the life gained this
-// turn (Needlebite Trap's opponents). ok is false for any other property.
-func sumPlayerHistoryProperty(h Host, g *state.Game, players []state.PlayerID, prop string) (int32, bool) {
-	var n int32
-	switch strings.TrimSpace(prop) {
-	case "CardsInHand":
-		for _, p := range players {
-			if int(p) >= 0 && int(p) < len(g.Players) {
-				n += int32(len(g.Zone(state.ZHand, p)))
-			}
-		}
-	case "LifeGainedThisTurn":
-		for _, p := range players {
-			n += h.LifeGainedThisTurn(p)
-		}
-	default:
+// sumPlayerScalarProperty answers the PlayerCount<group>$<Prop> reads that sum
+// a per-seat figure (playerScalarProperty's vocabulary: hand size, graveyard
+// and library size, cards drawn, life, life gained this turn) over the group --
+// Enemy of Enlightenment's opponents' hands, Needlebite Trap's life gained. ok
+// is false for any other property.
+func sumPlayerScalarProperty(h Host, g *state.Game, players []state.PlayerID, prop string) (int32, bool) {
+	prop = strings.TrimSpace(prop)
+	if _, known := playerScalarProperty(h, g, 0, prop); !known {
 		return 0, false
+	}
+	var n int32
+	for _, p := range players {
+		v, _ := playerScalarProperty(h, g, p, prop)
+		n += v
 	}
 	return n, true
 }
@@ -430,4 +419,16 @@ func devouredCount(g *state.Game, c *Ctx, spec string) int32 {
 		}
 	}
 	return n
+}
+
+// nonActivePlayers is the PlayerCountNonActive$ group: every living player but
+// the active one, in seat order.
+func nonActivePlayers(g *state.Game) []state.PlayerID {
+	var out []state.PlayerID
+	for _, p := range g.AliveFrom(0) {
+		if p != g.Active {
+			out = append(out, p)
+		}
+	}
+	return out
 }

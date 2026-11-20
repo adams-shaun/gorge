@@ -133,10 +133,10 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	// The recipient matcher may retain its context for damage-time type
 	// filtering. Keep the caller's Ctx on the stack for every other count
 	// head (in particular the allocation-free Valid zone scan).
-	code := evalCountBodyCostCodes.Code(head)
+	code := costHeadCode(head)
 	if isDamageHistoryCode(code) {
 		damageCtx := *c
-		return evalDamageHistory(h, &damageCtx, g, head, arg)
+		return evalDamageHistory(h, &damageCtx, g, code, arg)
 	}
 	if head == "TotalDamageDoneByThisTurn" && arg == "" {
 		return evalTotalDamageDoneThisTurn(h, c), true, true
@@ -496,7 +496,6 @@ var evalCountBodyCostCodes = state.NewStrCodes(
 	state.StrEntry[evalCountBodyCostCode]{Key: "BloodthirstAmount", Val: evalCountBodyCostBloodthirstAmount},
 	state.StrEntry[evalCountBodyCostCode]{Key: "SingleMaxDamageThisTurn", Val: evalCountBodyCostSingleMaxDamageThisTurn},
 	state.StrEntry[evalCountBodyCostCode]{Key: "NumCombatDamageThisTurn", Val: evalCountBodyCostNumCombatDamageThisTurn},
-	state.StrEntry[evalCountBodyCostCode]{Key: "DamageThisTurn", Val: evalCountBodyCostDamageThisTurn},
 	state.StrEntry[evalCountBodyCostCode]{Key: "TotalDamageThisTurn", Val: evalCountBodyCostTotalDamageThisTurn},
 )
 

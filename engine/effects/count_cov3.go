@@ -308,6 +308,8 @@ func playerScalarProperty(h Host, g *state.Game, p state.PlayerID, prop string) 
 		return h.CardsDrawnThisTurn(p), true
 	case playerScalarPropertyLifeTotal:
 		return g.Players[p].Life, true
+	case playerScalarPropertyLifeGainedThisTurn:
+		return h.LifeGainedThisTurn(p), true
 	}
 	return 0, false
 }
@@ -387,11 +389,7 @@ func evalCov3PlayerHead(h Host, c *Ctx, head, arg string, depth int) (int32, boo
 	case cov3PlayerGroupPlayerCountNonActive:
 		// Every living player but the active one, in seat order (Greener
 		// Pastures' and Rivalry's "each player other than the active player").
-		for _, p := range g.AliveFrom(0) {
-			if p != g.Active {
-				players = append(players, p)
-			}
-		}
+		players = nonActivePlayers(g)
 		sharedProps = true
 	case cov3PlayerGroupPlayerCountRememberedOwner, cov3PlayerGroupPlayerCountRememberedPlayer,
 		cov3PlayerGroupPlayerCountDefinedTriggeredPlay,
@@ -953,6 +951,8 @@ const (
 	evalCov3HeadLastStateGraveyard
 	evalCov3HeadLastStateGraveyardWithFallback
 	evalCov3HeadDevoured
+	evalCov3HeadHasNumChosenColorsTriggeredCard
+	evalCov3HeadHasNumChosenColorsOriginalHost
 )
 
 var evalCov3HeadCodes = state.NewStrCodes(
@@ -980,6 +980,8 @@ var evalCov3HeadCodes = state.NewStrCodes(
 	state.StrEntry[evalCov3HeadCode]{Key: "LastStateGraveyard", Val: evalCov3HeadLastStateGraveyard},
 	state.StrEntry[evalCov3HeadCode]{Key: "LastStateGraveyardWithFallback", Val: evalCov3HeadLastStateGraveyardWithFallback},
 	state.StrEntry[evalCov3HeadCode]{Key: "Devoured", Val: evalCov3HeadDevoured},
+	state.StrEntry[evalCov3HeadCode]{Key: "HasNumChosenColors.TriggeredCard", Val: evalCov3HeadHasNumChosenColorsTriggeredCard},
+	state.StrEntry[evalCov3HeadCode]{Key: "HasNumChosenColors.OriginalHost", Val: evalCov3HeadHasNumChosenColorsOriginalHost},
 )
 
 type cov3BranchHoldsCode uint16
@@ -997,9 +999,7 @@ const (
 	cov3BranchHoldsMadness
 	cov3BranchHoldsInitiative
 	cov3BranchHoldsNight
-	cov3BranchHoldsMaxSpeed
 	cov3BranchHoldsEscaped
-	cov3BranchHoldsWasCastFromYourLibrary
 )
 
 var cov3BranchHoldsCodes = state.NewStrCodes(
@@ -1015,9 +1015,7 @@ var cov3BranchHoldsCodes = state.NewStrCodes(
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Madness", Val: cov3BranchHoldsMadness},
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Initiative", Val: cov3BranchHoldsInitiative},
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Night", Val: cov3BranchHoldsNight},
-	state.StrEntry[cov3BranchHoldsCode]{Key: "MaxSpeed", Val: cov3BranchHoldsMaxSpeed},
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Escaped", Val: cov3BranchHoldsEscaped},
-	state.StrEntry[cov3BranchHoldsCode]{Key: "wasCastFromYourLibrary", Val: cov3BranchHoldsWasCastFromYourLibrary},
 )
 
 type playerScalarPropertyCode uint16
@@ -1028,6 +1026,7 @@ const (
 	playerScalarPropertyCardsInLibrary
 	playerScalarPropertyCardsDrawn
 	playerScalarPropertyLifeTotal
+	playerScalarPropertyLifeGainedThisTurn
 )
 
 var playerScalarPropertyCodes = state.NewStrCodes(
@@ -1036,6 +1035,7 @@ var playerScalarPropertyCodes = state.NewStrCodes(
 	state.StrEntry[playerScalarPropertyCode]{Key: "CardsInLibrary", Val: playerScalarPropertyCardsInLibrary},
 	state.StrEntry[playerScalarPropertyCode]{Key: "CardsDrawn", Val: playerScalarPropertyCardsDrawn},
 	state.StrEntry[playerScalarPropertyCode]{Key: "LifeTotal", Val: playerScalarPropertyLifeTotal},
+	state.StrEntry[playerScalarPropertyCode]{Key: "LifeGainedThisTurn", Val: playerScalarPropertyLifeGainedThisTurn},
 )
 
 type cov3PlayerGroupCode uint16
