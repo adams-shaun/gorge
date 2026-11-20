@@ -217,6 +217,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 				if drawFor(h, p, int(c.Draw.Done), sa, drawUptoRider{idx: idx, count: c.Draw.UptoCount}) {
 					// A Dredge answer, already applied: on past this draw.
 					tapeReentry()
+					recordServedDraw(h, c, p, before, lib, remember, dp.RememberDrawnAll)
 					c.Draw.Done++
 					continue
 				}
@@ -259,6 +260,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 		if drawFor(h, p, int(c.Draw.Done), sa, drawUptoRider{}) {
 			// A Dredge answer, already applied: on past this draw.
 			tapeReentry()
+			recordServedDraw(h, c, p, before, lib, remember, dp.RememberDrawnAll)
 			c.Draw.Done++
 			continue
 		}
@@ -314,6 +316,26 @@ func recordDrawn(h Host, c *Ctx, p state.PlayerID, before, top []state.ObjID, al
 			eventRemember(h, c, id)
 		}
 	}
+}
+
+// recordServedDraw records what a draw whose Dredge ask was served in place
+// moved into the hand. The answer record already performed the draw (the
+// "Draw card" answer) or the replacement (a Dredge answer), so the caller's own
+// recordDrawn never runs; without this an answered "Draw card" was missing from
+// Remembered$Amount (Laquatus's Creativity discarded one card too many). A
+// Dredge answer milled the pre-draw top card, so True records only a top card
+// that is now in the drawing player's hand, and AllReplaced's snapshot read
+// skips cards that left the library for the graveyard.
+func recordServedDraw(h Host, c *Ctx, p state.PlayerID, before, top []state.ObjID, remember, all bool) {
+	if !remember {
+		return
+	}
+	if !all {
+		if len(top) == 0 || !slices.Contains(zoneOf(h.Game(), state.ZHand, p), top[0]) {
+			return
+		}
+	}
+	recordDrawn(h, c, p, before, top, all)
 }
 
 // drawBatchConsumed offers one draw instruction's batch to the DrawCards
