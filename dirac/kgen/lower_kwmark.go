@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// Granted intimidate and infect (CR 702.13a, 702.90). Neither keyword has a
+// Granted intimidate, infect and skulk (CR 702.13a, 702.90, 702.118a). None has a
 // kop.KwMask bit (all 32 are taken), and printed ones are CardDef fields
 // (Evasion EvIntimidate, Infect), so a grant is carried apart from the
 // keyword bits, the way a granted landwalk is (lower_landwalkgrant.go):
@@ -33,6 +33,8 @@ func splitKwMarks(kw string) (rest string, marks int) {
 			marks |= kop.KwMarkIntimidate
 		case "Infect":
 			marks |= kop.KwMarkInfect
+		case "Skulk":
+			marks |= kop.KwMarkSkulk
 		default:
 			if cards.IsHiddenSwitchPTKeyword(k) {
 				// CR 613.4d until end of turn (gorge PumpGrant.SwitchPT, a
@@ -59,6 +61,9 @@ func splitStaticKwMarks(kw string) (rest string, evasion uint8, infect bool) {
 	if marks&kop.KwMarkIntimidate != 0 {
 		evasion = kop.EvIntimidate
 	}
+	if marks&kop.KwMarkSkulk != 0 {
+		evasion |= kop.EvSkulk
+	}
 	return rest, evasion, marks&kop.KwMarkInfect != 0
 }
 
@@ -70,6 +75,9 @@ func kwMarkNames(marks int) string {
 	}
 	if marks&kop.KwMarkInfect != 0 {
 		w = append(w, "Infect")
+	}
+	if marks&kop.KwMarkSkulk != 0 {
+		w = append(w, "Skulk")
 	}
 	if marks&kop.KwMarkSwitchPT != 0 {
 		w = append(w, "SwitchPT")

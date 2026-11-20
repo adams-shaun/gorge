@@ -15,7 +15,13 @@ func (s *State) landwalkEvades(k *prep, b, a Slot) bool {
 	if f := k.t.Cards[s.cardAt(a)].Landwalk; f != 0 && !s.genLost(k, a) && s.landwalkHit(k, f, b, a) {
 		return true
 	}
-	return s.landwalkGranted(k, b, a) || s.landwalkPumped(k, b, a)
+	if s.landwalkGranted(k, b, a) || s.landwalkPumped(k, b, a) {
+		if DebugLandwalkStats != nil {
+			DebugLandwalkStats.GrantedEvades++
+		}
+		return true
+	}
+	return false
 }
 
 // landwalkPumped: an override record on attacker a carrying a Landwalk filter
@@ -41,6 +47,9 @@ func (s *State) landwalkPumped(k *prep, b, a Slot) bool {
 // landwalkHit: the defending player (blocker b's controller) controls a land
 // matching the landwalk filter f of attacker a.
 func (s *State) landwalkHit(k *prep, f kop.FilterID, b, a Slot) bool {
+	if k.gen != nil && k.gen.uses.has(useIgnoreLandWalk) {
+		return s.landwalkHitLinks(k, f, b, a) // static_ignorelandwalk.go
+	}
 	def := s.perms[b].ctrl
 	for m := s.ctrlM[def]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -71,6 +80,9 @@ func (s *State) landwalkGranted(k *prep, b, a Slot) bool {
 		if s.statCond(k, st) && s.matchPermGen(k, ab.Static.Filter, a, st.ctrl, st.sl, layerKw) &&
 			s.landwalkHit(k, ab.Static.Landwalk, b, a) {
 			hit = true
+			if DebugLandwalkStats != nil && k.t.Filters[ab.Static.Filter].Flags&kop.FAttachedBySrc != 0 {
+				DebugLandwalkStats.AttachedEvades++ // an Aura's or an Equipment's grant
+			}
 			return false
 		}
 		return true
@@ -237,5 +249,8 @@ func (s *State) evasionEvades(k *prep, b, a Slot) bool {
 func (s *State) skulkEvades(k *prep, b, a Slot) bool {
 	bp, _ := s.ptGen(k, b)
 	ap, _ := s.ptGen(k, a)
+	if bp > ap && DebugLandwalkStats != nil && k.t.Cards[s.cardAt(a)].Evasion&kop.EvSkulk == 0 {
+		DebugLandwalkStats.GrantedSkulk++ // no printed skulk: a static's or a mark's grant
+	}
 	return bp > ap
 }
