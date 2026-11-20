@@ -382,6 +382,13 @@ type ExcessDamageVictim struct {
 // Game is the complete authoritative state. Everything a client sees is a
 // projection of this. Only the events package may mutate it.
 type Game struct {
+	// warpExileSeen is set when events.Apply folds a DelayedPush of the
+	// warp end-step exile (Counter "__kwWarpExile") and is never cleared.
+	// While it is false no warp provenance exists, so the rules engine's
+	// log-scan for a warp recast (warpRecastAvailable) cannot succeed and
+	// is skipped. A pure function of the applied events (replay rebuilds
+	// it); Clone copies it with the struct.
+	warpExileSeen bool
 	// goadsSeen is set the first time any object gains a goad (events.Apply's
 	// Goad fold calls NoteGoad) and is never cleared, so while it is false no
 	// object carries a goad and a goad prune has nothing to visit. It is a
@@ -1044,6 +1051,13 @@ func (g *Game) NoteGoad() { g.goadsSeen = true }
 
 // GoadsSeen reports whether any object has ever gained a goad in this game.
 func (g *Game) GoadsSeen() bool { return g.goadsSeen }
+
+// NoteWarpExile records that a warp end-step exile trigger was pushed (see
+// warpExileSeen).
+func (g *Game) NoteWarpExile() { g.warpExileSeen = true }
+
+// WarpExileSeen reports whether any warp exile trigger was ever pushed.
+func (g *Game) WarpExileSeen() bool { return g.warpExileSeen }
 
 // NoteBlockers records that some object's BlockedBy may be non-empty (see
 // blockersLive).
