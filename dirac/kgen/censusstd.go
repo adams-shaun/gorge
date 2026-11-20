@@ -220,7 +220,7 @@ func computeStdCensusAll(dir, allPath, cardsDir string, std []string) (*stdCensu
 	stdNeed := map[string]int{}
 
 	for _, l := range lists {
-		lr, err := lowerStdList(l, cardsDir)
+		lr, err := lowerStdList(l, cardsDir, censusAllBlockers)
 		if err != nil {
 			return nil, err
 		}
@@ -397,12 +397,13 @@ func computeStdCensusAll(dir, allPath, cardsDir string, std []string) (*stdCensu
 }
 
 // lowerStdList lowers one set list alone and unpacks its token refusals.
-func lowerStdList(l stdList, cardsDir string) (*listResult, error) {
+// allBlockers keeps lowering past a refusal, as -all-blockers does.
+func lowerStdList(l stdList, cardsDir string, allBlockers bool) (*listResult, error) {
 	p, err := loadCardNames(append([]string(nil), l.names...), cardsDir)
 	if err != nil {
 		return nil, err
 	}
-	p.allBlockers = censusAllBlockers
+	p.allBlockers = allBlockers
 	lw := lowerPool(p)
 	if _, _, _, err := buildPool(lw); err != nil {
 		return nil, err
@@ -953,7 +954,7 @@ func stdSetCodes(flagValue string) ([]string, error) {
 	return out, nil
 }
 
-// runStdCensus prints the eight -census-std tables and, if asked, writes the
+// runStdCensus prints the -census-std tables and, if asked, writes the
 // per-refusal TSV dump, whose manifest column reads dirac/manifest from the
 // working directory, the module root.
 func runStdCensus(dir, cardsDir string, std []string, tsvPath string, w io.Writer) error {
@@ -1005,6 +1006,8 @@ func writeStdCensus(w io.Writer, res *stdCensusResult) {
 			i+1, mdEscape(r.class), r.tier, r.cards, r.sole, stdSetCounts(r.sets), r.corpusCards)
 	}
 	fmt.Fprintln(w)
+
+	writeMechanismSection(w, res.tsv)
 
 	fmt.Fprintln(w, "## Per set: classes to 90 % accepted (card completion)")
 	fmt.Fprintln(w)
@@ -1082,19 +1085,23 @@ func writeJointSection(w io.Writer, title, noun string, j stdJoint, tierOf func(
 }
 
 // writeStdTSV writes the per-refusal dump: set, card, via, node, class,
-// reason, label and manifest, the entry the refusal needs (manifestColumn;
-// "-" with no man). An accepted card's row has only set and card.
+// reason, label, manifest, family and kind, the entry the refusal needs
+// (manifestColumn; "-" with no man). An accepted card's row has only set and
+// card; a partial row's family is the comma-joined param families and its kind
+// is hidden.
 func writeStdTSV(w io.Writer, res *stdCensusResult, man *manifest.Tree) error {
 	for _, r := range res.tsv {
 		if r.class == "" {
-			if _, err := fmt.Fprintf(w, "%s\t%s\t\t\t\t\t\t\n", tsvField(r.set), tsvField(r.card)); err != nil {
+			if _, err := fmt.Fprintf(w, "%s\t%s\t\t\t\t\t\t\t\t\n", tsvField(r.set), tsvField(r.card)); err != nil {
 				return err
 			}
 			continue
 		}
-		if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		family, kind := rowMechanism(r)
+		if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			tsvField(r.set), tsvField(r.card), tsvField(r.via), tsvField(r.node),
-			tsvField(r.class), tsvField(r.reason), tsvField(r.label), manifestColumn(man, r.class, r.reason)); err != nil {
+			tsvField(r.class), tsvField(r.reason), tsvField(r.label), manifestColumn(man, r.class, r.reason),
+			tsvField(family), tsvField(kind)); err != nil {
 			return err
 		}
 	}
