@@ -20,7 +20,7 @@ import (
 func TestTapsDeferSeenKeyKeepsRestrictedColours(t *testing.T) {
 	var st State
 	st.pl[0].pool[kop.C] = 1 // the ordinary pool is the same at every node
-	seen := map[deferSeenKey]struct{}{}
+	seen := &deferSeen{}
 	used := []int8{0} // gap 0 tapped on every path: the used set does not tell the answers apart
 	for _, c := range []int{kop.W, kop.U, kop.B, kop.R, kop.G} {
 		var n [kop.NumManaKinds]uint8
