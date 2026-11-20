@@ -1859,6 +1859,53 @@ func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap, freeOnly bool) b
 	return life
 }
 
+// feePending reports whether a plain funder's tap can still change the play
+// search's answer: a filter gap is activatable and the floating mana does not
+// yet pay its fee (filtPaid), so a funding tap may make its activation
+// payable. The plain funders' branches are the fee's mirror (gorge's
+// clone payment pays a fee from the census), so with no such gap the walk
+// leaves them out (visit's skip, the fee-carrying filter beside a row of
+// basics). A pay search, or a board holding another census-gap kind whose
+// float the terminal's census does not price, keeps today's walk.
+func (fs *filtSearch) feePending(k *prep, t *State) bool {
+	if fs.pay != nil || fs.other.any() {
+		return true
+	}
+	for b := fs.gaps; b.any(); b = b.rest() {
+		sl := b.first()
+		if fs.dead.has(sl) || sl == fs.own {
+			continue // a first-and-only filter costs no {T}: a tapped one still activates (Abzan Devotee)
+		}
+		if k.gen.anyFiltFirst && !t.filtUsable(k, sl) {
+			continue
+		}
+		if !t.filtPaid(k, fs.p, sl) {
+			return true // the gap branch's own payability read (pips included)
+		}
+	}
+	return false
+}
+
+// censedFunder reports whether a plain funder's tap is fully priced by the
+// terminal's census and no filter gap's fee is pending, so it is no search
+// branch: gorge's search walks the census gaps only (potential_script.go
+// scriptSearch.visit), its clone's own payment machinery pays a fee from the
+// census, so gorge's nodes never walk a plain funder whose mana the offer
+// check reads untapped anyway. A fee-carrying filter beside a row of
+// identical basics otherwise spends the search's budget ordering the basics,
+// and the fee branch is never reached (The Coming of Galactus's
+// {2}{B}{B}{G} beside Baxter Building's {4},{T} combination, whose dead {C}
+// answer costs a full funding subtree at every node). A pay search (its
+// funding is the point), an activation play (its prefix is its payment
+// window: poolPaysPlay), a board with other census-gap kinds (mana that the
+// terminal's census does not price), a live tap-extra, a sacrifice-only or
+// restricted funder, and a source the census leaves out keep today's walk.
+func (fs *filtSearch) censedFunder(k *prep, t *State, sl Slot, free bool, rm uint8) bool {
+	return free && rm == 0 && fs.pay == nil && fs.a.Kind() != AkActivate &&
+		!fs.other.any() && !t.tapExtraLive(k) && !fs.feePending(k, t) &&
+		t.canTapForMana(k, sl) && t.manaPCGen(k, sl).manaAb >= 0
+}
+
 // twinTried reports whether an earlier slot this pass is indistinguishable
 // from sl (twinSlot): its activation subtree is isomorphic -- the same mana
 // for the same cost -- so the branch through sl reaches no payer state the
@@ -2177,6 +2224,14 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				if t.canSacOnlyNowAt(k, sl) && fs.try(k, t, filtStep{sl: sl, sacOnly: true}, funded+1, gapUsed) {
 					return true // a Spawn funds beside the Treasures (mana_filtfund.go)
 				}
+				continue
+			}
+			// A plain funder whose tap the terminal's census prices is no search
+			// branch while no filter gap's fee is pending (censedFunder: the
+			// fee-carrying filter beside a row of identical basics otherwise
+			// spends the search's budget ordering the basics, and the fee
+			// branch is never reached — The Coming of Galactus, pair 129).
+			if fs.censedFunder(k, t, sl, free, rm) {
 				continue
 			}
 			if res, stop := fs.fundTap(k, t, sl, rm, free, funded, gapUsed); stop {
