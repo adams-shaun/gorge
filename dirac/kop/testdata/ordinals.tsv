@@ -1696,6 +1696,8 @@ VTargetPower	VKind	4
 VTargetToughness	VKind	11
 VTriggerAmount	VKind	8
 VX	VKind	1
+VoteBranchStore	untyped int	128
+VoteStore	untyped int	64
 W	untyped int	0
 W7AttachedTo	int16	19
 W7AttackingAlone	int16	3

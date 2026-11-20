@@ -5,18 +5,19 @@ import (
 	"testing"
 )
 
-// TestVoteChoicesLowers pins the Choices$ fixed-list Vote lowering. The three
-// non-triggered carriers (the sorceries) lower end to end. A fixed-list Vote
-// on a triggered ability refuses by name: gorge's placement ask poses a
-// spurious mode choice for it (charm_params.go isModalSA), a gorge defect this
-// lowering must not copy. The remaining carriers still refuse at a branch or
-// build shape (design item 3: a branch that refuses keeps the card refused by
-// that branch's reason, never by the vote's own Choices$ parameter). No card
-// refuses the vote parameter itself. A StoreVoteNum$ or Secretly$ vote still
-// refuses that parameter by name.
+// TestVoteChoicesLowers pins the Choices$ fixed-list Vote lowering. The four
+// non-triggered carriers (the sorceries) lower end to end; Capital Punishment
+// is the StoreVoteNum$ form (TestVoteStoreNumLowers). A fixed-list Vote on a
+// triggered ability without StoreVoteNum$ refuses by name: gorge's placement
+// ask poses a spurious mode choice for it (charm_params.go isModalSA), a gorge
+// defect this lowering must not copy. The remaining carriers still refuse at a
+// branch or build shape (design item 3: a branch that refuses keeps the card
+// refused by that branch's reason, never by the vote's own Choices$
+// parameter). No card refuses the vote parameter itself. A Secretly$ vote
+// still refuses that parameter by name.
 func TestVoteChoicesLowers(t *testing.T) {
 	const triggered = "Vote on a triggered ability: gorge asks a spurious placement mode"
-	lowered := []string{"Bite of the Black Rose", "Plea for Power", "Tyrant's Choice"}
+	lowered := []string{"Bite of the Black Rose", "Capital Punishment", "Plea for Power", "Tyrant's Choice"}
 	refused := map[string]string{
 		"Coercive Portal":        triggered,
 		"Council Guardian":       triggered,
@@ -30,7 +31,7 @@ func TestVoteChoicesLowers(t *testing.T) {
 	names := append([]string{}, lowered...)
 	names = append(names, "Expropriate", "Coercive Portal", "Council Guardian",
 		"Galadriel, Elven-Queen", "Magister of Worth", "Sail into the West",
-		"Split Decision", "Trial of a Time Lord", "Capital Punishment", "Mob Verdict")
+		"Split Decision", "Trial of a Time Lord", "Mob Verdict")
 	kp := kfhBuild(t, names, nil)
 
 	for _, n := range lowered {
@@ -43,20 +44,15 @@ func TestVoteChoicesLowers(t *testing.T) {
 			t.Errorf("%s: refusals %q, want %q", n, got, want)
 		}
 	}
-	// The vote itself admits Choices$ on all eleven: no card is refused at
+	// The vote itself admits Choices$ on all twelve: no card is refused at
 	// the parameter any more.
-	for _, n := range names[:len(names)-2] {
+	for _, n := range names[:len(names)-1] {
 		if got := refusalText(kp.cards[n]); strings.Contains(got, `Vote param "Choices"`) {
 			t.Errorf("%s: still refuses the fixed-list vote parameter: %s", n, got)
 		}
 	}
-	for n, want := range map[string]string{
-		"Capital Punishment": `Vote param "StoreVoteNum"`,
-		"Mob Verdict":        `Vote param "Secretly"`,
-	} {
-		if got := refusalText(kp.cards[n]); !strings.Contains(got, want) {
-			t.Errorf("%s: refusals %q, want %q", n, got, want)
-		}
+	if got := refusalText(kp.cards["Mob Verdict"]); !strings.Contains(got, `Vote param "Secretly"`) {
+		t.Errorf("Mob Verdict: refusals %q, want Vote param \"Secretly\"", got)
 	}
 
 	// A lowered spell carries one Vote op with its branches following it.

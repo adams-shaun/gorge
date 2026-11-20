@@ -31,6 +31,14 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 		}
 		return cst(n), nil
 	}
+	if raw == voteTallyName {
+		v, err := lc.voteTallyValue()
+		if err != nil {
+			return lValue{}, err
+		}
+		v.Neg = neg
+		return v, nil
+	}
 	if strings.Contains(raw, "$") && !neg {
 		// An inline expression (ImmediateTrigger's TriggerAmount$).
 		return lc.svarValue(raw, 0)
@@ -142,12 +150,35 @@ func (lc *lowerCtx) triggeredAttackerValue(rest string) (lValue, error) {
 	return lValue{}, fmt.Errorf("TriggeredAttacker$%s", rest)
 }
 
+// svarHead lowers an SVar$ body: another SVar of the face, or (inside a
+// StoreVoteNum$ option branch) the current tally.
+func (lc *lowerCtx) svarHead(rest string, depth int) (lValue, error) {
+	if rest == voteTallyName {
+		return lc.voteTallyValue()
+	}
+	body, ok := lc.face.SVars[rest]
+	if fv, fok := lc.flipSideValue(rest); !ok && fok {
+		return fv, nil
+	}
+	if !ok {
+		return lValue{}, fmt.Errorf("value head SVar$%s names no SVar", rest)
+	}
+	v, err := lc.svarValue(body, depth+1)
+	if err != nil {
+		return lValue{}, fmt.Errorf("SVar$%s=%q: %w", rest, body, err)
+	}
+	return v, nil
+}
+
 // svarValue lowers an SVar value body.
 func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	if depth > 4 {
 		return lValue{}, fmt.Errorf("SVar nesting too deep")
 	}
 	body = strings.TrimSpace(body)
+	if body == voteTallyName {
+		return lc.voteTallyValue()
+	}
 	if n, err := strconv.Atoi(body); err == nil {
 		return cst(n), nil
 	}
@@ -661,18 +692,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	case "PlayerCountDefinedNonTriggeredTarget":
 		v, err = lc.nonTrigTargetExtreme(rest) // value_trigreferents.go
 	case "SVar":
-		// gorge count.go: SVar$<name>[/Op] reads another SVar on the face
-		body, ok := lc.face.SVars[rest]
-		if fv, fok := lc.flipSideValue(rest); !ok && fok {
-			v = fv
-			break
-		}
-		if !ok {
-			return lValue{}, fmt.Errorf("value head SVar$%s names no SVar", rest)
-		}
-		if v, err = lc.svarValue(body, depth+1); err != nil {
-			return lValue{}, fmt.Errorf("SVar$%s=%q: %w", rest, body, err)
-		}
+		v, err = lc.svarHead(rest, depth)
 	case "Discarded":
 		// gorge refTargetsDiscarded (cr-discarded-cost-value-ref): the card
 		// the spell's own Discard<1/...> cost discarded, read where it is

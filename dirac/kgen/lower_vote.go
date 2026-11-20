@@ -3,6 +3,7 @@ package kgen
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -26,16 +27,22 @@ import (
 //     tie-branch bit; the branches follow as OpBranch blocks (the
 //     GenericChoice shape).
 //
-// A fixed-list Vote on a triggered ability refuses: gorge's placement ask
-// treats a triggered Vote's Choices$ as modal (charm_params.go isModalSA), so
-// it poses a spurious CR 603.3c mode choice before the trigger goes on the
-// stack, and effVote never reads it. That is a gorge defect, not a rules
-// shape to copy; until gorge is fixed the card stays refused by name.
+// A fixed-list Vote on a triggered ability whose StoreVoteNum$ is absent
+// refuses: gorge's placement ask treats a triggered Vote's Choices$ as modal
+// (charm_params.go isModalSA), so it poses a spurious CR 603.3c mode choice
+// before the trigger goes on the stack, and effVote never reads it. That is a
+// gorge defect, not a rules shape to copy; until gorge is fixed the card stays
+// refused by name. The StoreVoteNum$ form reproduces that placement ask (the
+// carriers this lowering admits cannot lockstep without it) and resolves the
+// vote once, behind the chosen mode's OpCharm block.
 //
 // VoteMessage$ is the prompt and AILogic$ a Forge AI hint; neither changes
-// the rules. Player ballots (VotePlayer$), the tally publishers
-// (StoreVoteNum$, RememberVotedObjects$), secret and up-to votes, and Zone$
-// refuse.
+// the rules. StoreVoteNum$ True makes every option body resolve with VoteNum
+// bound to that option's own tally (gorge resolveVoteOutcomes); the option
+// branches lower with the tally value kind and the kernel runs them all in
+// Choices$ order. A read of VoteNum outside an option branch refuses by name.
+// Player ballots (VotePlayer$), RememberVotedObjects$, secret and up-to votes,
+// and Zone$ refuse.
 func (lc *lowerCtx) vote(sa *cards.SA, ps *params) error {
 	if ps.str("VoteCard") != "" {
 		return lc.cardVote(ps)
@@ -94,6 +101,7 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 		case strings.HasPrefix(k, "Condition"):
 		case k == "Defined", k == "Choices", k == "VoteTiedAbility", k == "VoteMessage", k == "AILogic",
 			k == "EachVote", k == "StackDescription", k == "SpellDescription", k == "SubAbility",
+			k == "StoreVoteNum",
 			k == "ValidTgts", k == "TgtZone", k == "TargetType",
 			k == "TargetMin", k == "TargetMax", k == "TargetUnique",
 			k == "TargetsWithSameController", k == "TargetsWithDifferentControllers", k == "TargetsWithDefinedController":
@@ -103,6 +111,16 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 	}
 	if d := ps.str("Defined"); d != "Player" {
 		return refuse("Vote Defined$ %q", d)
+	}
+	store := false
+	if v := ps.str("StoreVoteNum"); v != "" {
+		switch {
+		case strings.EqualFold(v, "True"):
+			store = true
+		case strings.EqualFold(v, "False"):
+		default:
+			return refuse("Vote StoreVoteNum$ %q", v)
+		}
 	}
 	names := strings.Split(ps.str("Choices"), ",")
 	if len(names) < 2 || len(names) > 4 {
@@ -123,41 +141,103 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 			return err
 		}
 	}
-	ps.consume("VoteMessage", "AILogic", "EachVote", "TargetType")
+	ps.consume("VoteMessage", "AILogic", "EachVote", "TargetType", "StoreVoteNum")
 	if lc.ab.Kind == akTriggered {
-		// gorge asks a spurious placement mode for a triggered fixed-list
-		// Vote (charm_params.go isModalSA); do not copy that defect.
-		return refuse("Vote on a triggered ability: gorge asks a spurious placement mode")
+		if !store {
+			// gorge asks a spurious placement mode for a triggered fixed-list
+			// Vote (charm_params.go isModalSA), a gorge defect the general
+			// lowering does not copy. The StoreVoteNum$ carriers this change
+			// admits cannot lower without that ask, so only that form
+			// reproduces it.
+			return refuse("Vote on a triggered ability: gorge asks a spurious placement mode")
+		}
+		return lc.triggeredFixedVote(names, tie, store)
 	}
-	return lc.emitFixedVote(names, tie)
+	if store && tie != "" {
+		// gorge's StoreVoteNum branch returns before the tie branch, so a
+		// VoteTiedAbility$ beside StoreVoteNum$ never resolves; do not hide
+		// a shape the corpus does not carry.
+		return refuse("Vote StoreVoteNum$ beside VoteTiedAbility$")
+	}
+	return lc.emitFixedVote(names, tie, store)
 }
 
-// emitFixedVote emits the ExtVote op and its winning/tie Branch blocks.
-func (lc *lowerCtx) emitFixedVote(names []string, tie string) error {
+// triggeredFixedVote lowers a StoreVoteNum$ fixed-list Vote on a triggered
+// ability. Gorge treats a triggered Vote's Choices$ as modal at trigger
+// placement (charm_params.go isModalSA) and asks the controller one mode
+// before the trigger goes on the stack; effVote never reads that answer. The
+// kernel asks the same placement mode only when the ability carries modes, so
+// the vote (and its branches) is repeated once per mode behind an OpCharm
+// block: the chosen mode runs its copy, the others are skipped, and every
+// copy resolves the same vote.
+func (lc *lowerCtx) triggeredFixedVote(names []string, tie string, store bool) error {
+	if lc.ab.Modes != 0 {
+		return refuse("Vote on an ability that is already modal")
+	}
+	lc.ab.Modes, lc.ab.ModesPick, lc.ab.ModesMin = len(names), 1, 1
+	for i := range names {
+		at := len(lc.ab.Prog)
+		lc.emit(lInstr{Op: "Charm", C: i})
+		if err := lc.emitFixedVote(names, tie, store); err != nil {
+			return err
+		}
+		lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
+	}
+	return nil
+}
+
+// emitFixedVote emits the ExtVote op and its branch blocks.
+func (lc *lowerCtx) emitFixedVote(names []string, tie string, store bool) error {
 	c := 1<<1 | len(names)<<2
-	if tie != "" {
+	if store {
+		c |= kop.VoteStore
+	} else if tie != "" {
 		c |= 1 << 5
 	}
 	lc.emit(lInstr{Op: "Vote", C: c, Note: "each player votes; the winning choice runs"})
 	for i, name := range names {
-		if err := lc.voteBranch(i, cards.ResolveSVar(lc.face.SVars, name)); err != nil {
+		if err := lc.voteBranch(i, cards.ResolveSVar(lc.face.SVars, name), store); err != nil {
 			return err
 		}
 	}
-	if tie != "" {
-		if err := lc.voteBranch(len(names), cards.ResolveSVar(lc.face.SVars, tie)); err != nil {
+	if tie != "" && !store {
+		if err := lc.voteBranch(len(names), cards.ResolveSVar(lc.face.SVars, tie), false); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
+// voteTallyName is the SVar Forge rebinds at each StoreVoteNum$ option:
+// resolveVoteOutcomes writes "Number$<count>" into a private SVar copy.
+const voteTallyName = "VoteNum"
+
+// voteTallyValue lowers a VoteNum read inside a StoreVoteNum$ option branch to
+// the current branch's tally. Anywhere else it refuses by name: the value is
+// defined only while an option branch resolves (gorge binds it per option).
+func (lc *lowerCtx) voteTallyValue() (lValue, error) {
+	if !lc.voteTally {
+		return lValue{}, refuse("%s outside a vote option branch", voteTallyName)
+	}
+	return lValue{Kind: vVoteTally}, nil
+}
+
 // voteBranch lowers one fixed-list branch as a Branch block: the kernel runs
-// C branch when the vote selected it (dirac's OpBranch).
-func (lc *lowerCtx) voteBranch(branch int, sa *cards.SA) error {
+// C branch when the vote selected it (dirac's OpBranch). In StoreVoteNum$
+// mode the branch is flagged so the kernel runs every option in order, and
+// VoteNum reads resolve to the branch's tally while the body lowers.
+func (lc *lowerCtx) voteBranch(branch int, sa *cards.SA, store bool) error {
 	bat := len(lc.ab.Prog)
-	lc.emit(lInstr{Op: "Branch", C: branch})
-	if err := lc.chain(sa, nil); err != nil {
+	c := branch
+	if store {
+		c |= kop.VoteBranchStore
+	}
+	lc.emit(lInstr{Op: "Branch", C: c})
+	prev := lc.voteTally
+	lc.voteTally = store
+	err := lc.chain(sa, nil)
+	lc.voteTally = prev
+	if err != nil {
 		return err
 	}
 	lc.ab.Prog[bat].Skip = len(lc.ab.Prog) - bat - 1

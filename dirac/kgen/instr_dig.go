@@ -57,10 +57,15 @@ func (ic *instrCtx) opDigUntil() error {
 	rev := zoneNames[fl["revealed"]]
 	df := int(zoneMap[rev])
 	if p, ok := fl["pos"]; ok {
-		if p != "-1" {
+		switch p {
+		case "0":
+			// RevealedLibraryPosition$ 0/absent is the stay-in-place default
+			// (gorge effDigUntil: no move of the revealed rest)
+		case "-1":
+			df |= kop.DuRestBottom
+		default:
 			return fmt.Errorf("dig-until position %s", p)
 		}
-		df |= kop.DuRestBottom
 	}
 	if _, ok := fl["RandomOrder"]; ok {
 		df |= kop.DuRandomOrder
