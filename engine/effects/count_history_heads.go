@@ -141,7 +141,7 @@ func evalHistoryHead(h Host, c *Ctx, g *state.Game, code evalCov3HeadCode, arg s
 		}
 		return max(n, 0), true
 	case evalCov3HeadExactManaCostGraveyard:
-		return distinctGraveyardManaCosts(g, c, arg), true
+		return distinctGraveyardManaCosts(h, g, c, arg), true
 	case evalCov3HeadImprintedCardManaCost:
 		// Psychic Battle's imprinted top card: the mana value of the source's
 		// imprinted cards, summed (a lone imprint is its own mana value).
@@ -178,11 +178,12 @@ func evalHistoryHead(h Host, c *Ctx, g *state.Game, code evalCov3HeadCode, arg s
 // of Agonies): the number of different printed mana costs among the matching
 // graveyard cards (CR 202.1: {2}{B} and {1}{B}{B} differ). A card with no mana
 // cost has none to contribute.
-func distinctGraveyardManaCosts(g *state.Game, c *Ctx, spec string) int32 {
+func distinctGraveyardManaCosts(h Host, g *state.Game, c *Ctx, spec string) int32 {
 	if strings.TrimSpace(spec) == "" {
 		spec = "Card"
 	}
 	sc := c.SpecContext(c.Controller)
+	bindSpecLayerTables(h, &sc.Layers, spec, false)
 	seen := map[string]bool{}
 	for p := range g.Players {
 		for _, id := range g.Zone(state.ZGraveyard, state.PlayerID(p)) {
@@ -262,6 +263,7 @@ func secondMostProminentColorCount(h Host, c *Ctx, g *state.Game, spec string) i
 		return 0
 	}
 	sc := c.SpecContext(c.Controller)
+	bindSpecLayerTables(h, &sc.Layers, spec, false)
 	var tally [5]int32
 	for p := range g.Players {
 		for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(p)) {
