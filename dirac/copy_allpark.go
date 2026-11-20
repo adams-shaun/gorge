@@ -87,10 +87,10 @@ func (s *State) sweepRun(k *prep, in *kop.Instr, w *sweepSusp, eb *entBatch, seg
 			kind := s.enterChoiceKind(k, c)
 			if kind == 0 && k.gen.anyBecomeCopy {
 				kind = s.cloneAskKind(k, c) // ctr_entryperkind.go: a copy of a clone card is asked the clone election
-				if kind != 0 && s.perms[sl].ovr.flags&ovCopy != 0 {
-					// a token copy of a permanent that is itself a copy is
-					// minted on that permanent's printed card while it waits
-					// for the answer (copyTokenBasis): not modelled
+				if kind != 0 && s.perms[sl].ovr.flags&ovCopy != 0 && s.cardAt(sl) != s.perms[sl].card {
+					// a token copy of a copy whose copied face is another
+					// card is minted on that face while it waits for the
+					// answer (copyTokenBasis): not modelled
 					s.capFull(StallCopyAllAsk)
 					return true
 				}
