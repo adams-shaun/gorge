@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"fmt"
 	"math/bits"
 	"slices"
 	"strings"
@@ -264,6 +265,14 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 	if !*censused {
 		*census, *censused = e.paymentPlanCensusOf(p, &hyp), true
 	}
+	if gorgeDbgOK && o.Obj == 38 && o.Mode == "mayplay" {
+		ids := ""
+		for _, g := range census.gaps {
+			ids += fmt.Sprintf(",%d", int(g))
+		}
+		gorgeDbg("cf38", got.Reason, got.Detail, mayPlayUnpriced, census.complete, census.relaxable, census.bounded, ids, *scripts, scriptPlays,
+			e.potentialTargetPriced(p, o))
+	}
 	if census.complete {
 		return got, nil
 	}
@@ -304,7 +313,11 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 	if skip {
 		return got, nil
 	}
-	if script, ok := e.potentialPrefixScript(p, o, census.gaps, census.fees()); ok {
+	funding := census.fees()
+	if gorgeDbgOK && o.Obj == 38 && o.Mode == "mayplay" {
+		funding = 16
+	}
+	if script, ok := e.potentialPrefixScript(p, o, census.gaps, funding); ok {
 		return PaymentPlanOutcome{}, script
 	}
 	return got, nil
@@ -2474,6 +2487,9 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			// Refractor after Mystic Gate, CR 605.3a), and both arms below
 			// are then no-ops.
 			relaxed, fee, repeats, once, ok := e.paymentPlanRelaxedAlternatives(p, id, ma, &probe)
+			if gorgeDbgOK {
+				gorgeDbg("gap", int(id), ok, fee, repeats, once, len(relaxed), out.relaxable, bounded, out.fund)
+			}
 			if !ok && once {
 				out.onceGap = true
 			}
@@ -2523,6 +2539,13 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 	}
 	if out.complete {
 		out.relaxable, out.relaxed, out.paid, out.gaps = false, nil, nil, nil
+	}
+	if gorgeDbgOK {
+		ids := ""
+		for _, g := range out.gaps {
+			ids += fmt.Sprintf(",%d", int(g))
+		}
+		gorgeDbg("census", out.complete, out.relaxable, bounded, ids, len(out.paid), len(out.boundPaid), out.fund)
 	}
 	out.bounded = bounded && !out.complete && !out.relaxable
 	if !out.bounded {

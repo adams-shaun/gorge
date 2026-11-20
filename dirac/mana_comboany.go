@@ -72,6 +72,13 @@ func (s *State) caGaps(k *prep, p uint8) slotMask {
 	if !k.gen.anyComboAny {
 		return slotMask{}
 	}
+	if dbgAvail {
+		for b := s.gapMask(k, p, gfGapOther); b.any(); b = b.rest() {
+			sl := b.first()
+			a := k.comboAnyAb(s.cardAt(sl))
+			diracDbg("cagap", p, int(sl), int(s.cardAt(sl)), int(a.Cost.Flags), int(a.Cost.Mana.MV()), int(a.Cost.Mana.X), int(a.ManaN), s.caAmount(k, sl), k.isComboAny(s.cardAt(sl)))
+		}
+	}
 	m := s.gapMask(k, p, gfGapOther)
 	for b := m; b.any(); b = b.rest() {
 		sl := b.first()
@@ -172,6 +179,9 @@ func (s *State) caChainTap(k *prep, p uint8, a Action, sl Slot, c int) {
 // {C} alone (mana_reflamt.go reflAmtPotential), so a coloured pip the pool
 // cannot cover keeps the window unafforded, as gorge's potential fold does.
 func (s *State) availCA(k *prep, p uint8, a *avail) {
+	if dbgAvail {
+		diracDbg("availCA-in", p, availDump(a))
+	}
 	for b := s.caGaps(k, p); b.any(); b = b.rest() {
 		sl := b.first()
 		if s.pickCommittedSrc(k, sl) {

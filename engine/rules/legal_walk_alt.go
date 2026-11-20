@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"fmt"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -183,6 +185,14 @@ func (w *legalWalk) mayPlaySpellWalk() {
 					continue
 				}
 				base = base.Plus(off.raise)
+			}
+			if gorgeDbgOK && id == 38 {
+				var hp string
+				if w.hyp != nil {
+					hp = fmt.Sprint(*w.hyp)
+				}
+				gorgeDbg("mp38", printed, e.mayPlayFreeCast(p, id), w.castRestrictedCost(p, id, base),
+					w.mayPlayAffordable(p, id, f, base), w.hyp != nil, hp, w.castsOnly)
 			}
 			if printed && !w.castRestrictedCost(p, id, base) && w.mayPlayAffordable(p, id, f, base) {
 				label := "Cast " + f.Name

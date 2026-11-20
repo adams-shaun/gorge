@@ -80,8 +80,12 @@ func (e *Engine) manaFeasibleDescriptorKind(p state.PlayerID, d paymentDescripto
 			return leafAv.Pool, leafAv.Typed
 		}
 	}
-	return mods.FeasibleAnyAvail(c, av.Pool, pl.Snow, av.Typed, pl.Life, taxGeneric, delve,
+	r := mods.FeasibleAnyAvail(c, av.Pool, pl.Snow, av.Typed, pl.Life, taxGeneric, delve,
 		asEval(e).PayLifeInsteadOfB(p), rider, asEval(e).Conv(p, d.ID, kind), avail)
+	if o := e.G.Obj(d.ID); o != nil && o.ID == 38 {
+		gorgeDbg("thor", int(o.ID), r, c.Generic, fmt.Sprint(c.Colored), fmt.Sprint(av.Pool), fmt.Sprint(av.Typed))
+	}
+	return r
 }
 
 // manaFeasiblePoolP is manaFeasiblePool over pointers: *c and *mods are only
@@ -139,11 +143,7 @@ func (e *Engine) manaFeasiblePricedP(p state.PlayerID, desc paymentDescriptor, c
 		return e.manaFeasibleDescriptorKind(p, desc.Priced(c), *c, *mods, taxGeneric, delve,
 			asEval(e).MayPlayRider(p, desc.ID), pay.SAKindFor(desc.Class == paymentActivated))
 	}
-	r := e.manaFeasiblePoolP(p, desc.ID, desc.Class == paymentActivated, c, mods, taxGeneric, delve, pool, typed)
-	if o := e.G.Obj(desc.ID); o != nil && o.ID == 38 {
-		println("DBG thor", o.ID, r, c.Generic, hyp != nil)
-	}
-	return r
+	return e.manaFeasiblePoolP(p, desc.ID, desc.Class == paymentActivated, c, mods, taxGeneric, delve, pool, typed)
 }
 
 // effectZoneOK reports whether a static whose EffectZone$ reads v applies

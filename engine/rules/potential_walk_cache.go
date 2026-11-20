@@ -2,6 +2,8 @@ package rules
 
 import (
 	"fmt"
+	"path/filepath"
+	"runtime"
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -376,6 +378,11 @@ func (e *Engine) planCastPaymentAtDecision(p state.PlayerID, cast decision.Plann
 // (walkCacheVerify) re-plans every hit with fresh inputs and panics on any
 // difference.
 func (e *Engine) planCastPaymentMemo(p state.PlayerID, cast decision.PlannedCast, statics *costStaticSource, candidates *paymentCastCandidates) PaymentPlanOutcome {
+	if gorgeDbgOK && cast.Object == 38 && cast.Origin == "exile" {
+		_, file, line, _ := runtime.Caller(1)
+		gorgeDbg("memo38", filepath.Base(file), line, e.PaymentPlanRelaxed != nil, e.PaymentPlanRelaxedFee, e.PlanAltsWant,
+			e.potentialWalkUsable(), e.potentialWalkHit(p, false))
+	}
 	if e.PaymentPlanRelaxed != nil || e.PaymentPlanRelaxedFee != 0 || e.PlanAltsWant > 1 ||
 		!e.potentialWalkUsable() || !e.potentialWalkHit(p, false) {
 		return e.planCastPaymentChecked(p, cast, statics, candidates)

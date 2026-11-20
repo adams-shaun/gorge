@@ -304,6 +304,10 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 		}
 		return pay.NonManaCastableP(asPayer(e), p, id, &composed, ability, tapCostSAKind(scope.Ab))
 	}
+	if gorgeDbgOK {
+		feas := e.manaFeasiblePricedP(p, desc, base, &mods, tax, delve, hyp)
+		gorgeDbg("castable", int(id), ability, base.Generic, fmt.Sprint(base.Colored), base.X, feas, hyp != nil)
+	}
 	if !e.manaFeasiblePricedP(p, desc, base, &mods, tax, delve, hyp) {
 		// A target-dependent reducer cannot be in the ordinary pre-target
 		// snapshot, but it may make one legal target choice payable. Retry with

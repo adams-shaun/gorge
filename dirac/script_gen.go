@@ -129,6 +129,11 @@ func (s *State) eachColorOut(k *prep, p uint8, sl Slot) kop.ColorMask {
 
 // availScript adds the availFor mode's extra mana.
 func (s *State) availScript(k *prep, p uint8, a *avail) {
+	if dbgAvail {
+		diracDbg("script-in", p, int(s.g.availX), k.gen.anyComboAny, s.caBoard(k, p), k.gen.anyDiscHand && s.dhBoard(k, p), int(s.gapMask(k, p, gfGapOther).first()))
+		mk := func(tag string) func() { return func() { if dbgAvail { diracDbg("script-"+tag, p, availDump(a)) } } }
+		_ = mk
+	}
 	if s.g.availX&availAny != 0 {
 		a.addUnits(0x3f, 99)
 		return
@@ -184,6 +189,9 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	// rule is the search's, scriptDeadEndAny), an over-bound like the census's
 	// (mana_distinctcolours.go)
 	for b := s.anyDifferentGaps(k, p); b.any(); b = b.rest() {
+		if dbgAvail {
+			diracDbg("anydiff", p, int(b.first()), int(s.cardAt(b.first())), anyDifferentUnits(s.anyDifferentAbilityAt(k, b.first())))
+		}
 		a.addUnits(0x1f, anyDifferentUnits(s.anyDifferentAbilityAt(k, b.first())))
 	}
 	if k.gen.anyFilt && s.g.availX&availNoFilt == 0 && (s.filtOnly(k, p) || s.mixBoard(k, p)) {
@@ -477,6 +485,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				s.capStall(stall)
 				continue // no script within gorge's budget (mana_countercost.go ctrScript; a counter-cost gap alone, no restricted source beside it)
 			}
+		}
+		if a.Kind() == AkCast && Obj(a.Source()) == 37 {
+			diracDbg("scrAdd37", "i", i, "mode", int(a.Mode()), "availX", int(s.g.availX))
 		}
 		d.add(a)
 	}

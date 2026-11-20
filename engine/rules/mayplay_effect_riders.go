@@ -37,6 +37,10 @@ func (e *Engine) mayPlayEffectReaches(p state.PlayerID, o *state.Object) bool {
 // set loaded. A library card is covered only by a grant that NAMES the
 // library; the no-zone fallback means graveyard and exile only.
 func (e *Engine) mayPlayEffectCoversCard(ce *state.ContinuousEffect, p state.PlayerID, o *state.Object, limited *lazyMayPlays) bool {
+	dbg := o.ID == 38
+	if dbg {
+		gorgeDbg("cov", int(o.ID), int(p), ce.MayPlay, ce.MayPlayNoZone, mayPlayEffectBenefits(ce, o, p), len(ce.Remembered), ce.AffectedZone, ce.Affects)
+	}
 	if !ce.MayPlay || ce.MayPlayNoZone || !mayPlayEffectBenefits(ce, o, p) {
 		return false
 	}
