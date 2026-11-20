@@ -7,6 +7,12 @@ import "sort"
 type Coverage struct {
 	Cards     int
 	Supported int
+	// Excluded counts the cards the registry's Excluded hook reports: cards
+	// the paper rules ban in every format, so no engine work can ever make
+	// them playable. They are neither playable, unplayable nor gaps — the
+	// report diagnoses them on their own line — so they stay out of Cards,
+	// Supported and Missing alike.
+	Excluded int
 	// Missing counts, per unimplemented primitive, how many cards it blocks.
 	Missing map[string]int
 }
@@ -60,6 +66,10 @@ func (r *Registry) Coverage(supported map[string]bool) Coverage {
 	cv := Coverage{Missing: map[string]int{}}
 	for _, c := range r.AllCards() {
 		if !c.named() {
+			continue
+		}
+		if r.Excluded != nil && r.Excluded(c) {
+			cv.Excluded++
 			continue
 		}
 		cv.Cards++
