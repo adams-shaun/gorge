@@ -1361,6 +1361,14 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.continueRes(k, 0)
 	case raGenRetChoice:
 		o := s.g.pre.obj
+		if s.g.pre.state == preReturnCloneAura {
+			// the elected Aura template's host (copy_cloneenter.go): the copy
+			// answer stays in val, the host in val2 for becomeCopyEnter
+			s.g.pre.val2 = uint8(s.objs[a.Source()].slot)
+			s.g.pre.ask2, s.g.pre.kind = akEnchant, akClone
+			s.rerunReturn(k)
+			return
+		}
 		if s.g.pre.kind == akEntryOrder {
 			s.answerReturnOrder(k, a)
 			return
@@ -1441,39 +1449,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		s.continueRes(k, 0)
 	case raGenTokChoice:
-		in := &s.prog(k)[r.pc]
-		s.g.pre.val = objWord(a.Mode())
-		if s.g.pre.kind == akClone {
-			s.g.pre.val = cloneAnswer(a) // a copy token's clone election (ctr_entryperkind.go)
-		}
-		if s.g.pre.kind == akType {
-			s.g.pre.val = objWord(s.typeVocabCode(k, int(a.Target())<<8|int(a.Mode())))
-		}
-		s.g.pre.state = 2
-		t := r.lastTok
-		s.objs[t].of &^= ofPending
-		was := r.e.ctrl
-		r.e.ctrl = s.copyCtrl(in)
-		var parked bool
-		if s.g.sweep.on { // copy_allpark.go: a copy-all sweep's parked copy
-			parked = s.sweepAnswer(k, in, t, s.g.sweep.host) // the enters program reads the choice
-		} else {
-			s.copyResumedEnter(k, in, t, NoSlot) // the enters program reads the choice
-			s.g.pre = preAsk{}
-			r.ask = raNone
-			parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
-			if !parked {
-				parked = s.eachResume(k, in) // copy_eachtarget.go: the targets after it
-			}
-			if !parked {
-				parked = s.nonRemResume(k, in, was, r.e.ctrl) // copy_nonremctrl.go: the owners after it
-			}
-		}
-		r.e.ctrl = was
-		if parked {
-			return
-		}
-		s.continueRes(k, 0)
+		s.answerGenTokChoice(k, r, a)
+		return
 	case raGenEnchant:
 		in := &s.prog(k)[r.pc]
 		switch in.Op {
@@ -1538,6 +1515,56 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			panic("kernel: bad resolution answer")
 		}
 	}
+}
+
+// answerGenTokChoice applies the answer to a copy token's clone election or to
+// the elected Aura template's CR 303.4f host ask (copy_noncreature.go), then
+// enters the parked token and resumes the copy program.
+func (s *State) answerGenTokChoice(k *prep, r *resCtx, a Action) {
+	in := &s.prog(k)[r.pc]
+	host := NoSlot
+	if s.g.pre.state == preTokenAura {
+		// the elected Aura template's host (copy_noncreature.go): the
+		// clone answer stays in val, the host is handed to the entry
+		host = s.objs[a.Source()].slot
+		s.g.pre.ask2, s.g.pre.kind = 0, akClone
+	} else {
+		s.g.pre.val = objWord(a.Mode())
+		if s.g.pre.kind == akClone {
+			s.g.pre.val = cloneAnswer(a) // a copy token's clone election (ctr_entryperkind.go)
+			if s.cloneTokenAuraPark(k) {
+				return // the elected Aura's host ask (copy_noncreature.go)
+			}
+		}
+		if s.g.pre.kind == akType {
+			s.g.pre.val = objWord(s.typeVocabCode(k, int(a.Target())<<8|int(a.Mode())))
+		}
+	}
+	s.g.pre.state = 2
+	t := r.lastTok
+	s.objs[t].of &^= ofPending
+	was := r.e.ctrl
+	r.e.ctrl = s.copyCtrl(in)
+	var parked bool
+	if s.g.sweep.on { // copy_allpark.go: a copy-all sweep's parked copy
+		parked = s.sweepAnswer(k, in, t, s.g.sweep.host) // the enters program reads the choice
+	} else {
+		s.copyResumedEnter(k, in, t, host) // the enters program reads the choice
+		s.g.pre = preAsk{}
+		r.ask = raNone
+		parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
+		if !parked {
+			parked = s.eachResume(k, in) // copy_eachtarget.go: the targets after it
+		}
+		if !parked {
+			parked = s.nonRemResume(k, in, was, r.e.ctrl) // copy_nonremctrl.go: the owners after it
+		}
+	}
+	r.e.ctrl = was
+	if parked {
+		return
+	}
+	s.continueRes(k, 0)
 }
 
 // payDone finishes an unless / if-you-do / ward payment.

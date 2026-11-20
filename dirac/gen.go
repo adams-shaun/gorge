@@ -3217,6 +3217,18 @@ const preReturnOp uint8 = 4
 // with the choice (interp_ask.go's raGenRetChoice arm).
 const preReturnAura uint8 = 10
 
+// preReturnCloneAura is preReturnOp for a clone that elected an Aura template
+// on its way back to the battlefield: the CR 303.4f host ask posed after the
+// copy election (copy_cloneenter.go cloneReturnAuraPark), whose answer
+// (val2) enters the copy attached.
+const preReturnCloneAura uint8 = 11
+
+// preTokenAura is preAsk.state for a token that elected an Aura template as it
+// entered: the CR 303.4f host ask posed after the clone election
+// (ctr_entryperkind.go cloneTokenAuraPark), whose answer enters the token
+// attached.
+const preTokenAura uint8 = 12
+
 // preReturnPay is preReturn for a card a cost's sacrifice set aside (the
 // source of its exile left as the payment's pick): gorge asks the choice at
 // once, before the rest of the resolution, and the answer enters the card

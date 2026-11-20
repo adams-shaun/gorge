@@ -596,7 +596,7 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 				if st.Ability != 255 && copyGrantedAbilityOf(src, int(st.Ability)) {
 					st.Ability = 255 // an as-enters copy's AddAbilities$: the kernel's latent ability
 				}
-				if grantedTriggerAt(m, g, src, st.Ability) {
+				if grantedTriggerAt(m, e, src, st.Ability) {
 					st.Ability = 255 // a copy's "except it has myriad", a Clone AddTriggers$ or GainThisAbility$: the kernel's latent trigger
 				}
 			}
@@ -633,14 +633,14 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 // copy's "except it has myriad" or Clone AddTriggers$ trigger
 // (copyGrantedTriggerOf, copyAddTriggerOf) or a trigger a Clone's
 // GainThisAbility$ kept on the copy (cloneKeptTriggerOf).
-func grantedTriggerAt(m *Matchup, g *state.Game, o *state.Object, ab uint8) bool {
+func grantedTriggerAt(m *Matchup, e *rules.Engine, o *state.Object, ab uint8) bool {
 	if ab&0x80 == 0 || ab == 255 {
 		return false
 	}
-	if printsTriggersOf(m, o.Face()) {
+	if cloneLayerNewName(e, o) == "" && printsTriggersOf(m, o.Face()) {
 		return false // a plain copy of a card that prints its triggers (Mirror Image as Herald of the Host): the kernel lists them under the copied card
 	}
-	return grantedTriggerOf(g, o, ab) || copyGrantedTriggerAt(m, o, int(ab&0x7F))
+	return grantedTriggerOf(e, o, ab) || copyGrantedTriggerAt(m, o, int(ab&0x7F))
 }
 
 // printsTriggersOf reports whether a card of the matchup's decks or

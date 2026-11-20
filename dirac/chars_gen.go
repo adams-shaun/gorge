@@ -1370,6 +1370,9 @@ func (s *State) FeatNameCard(o Obj) (CardID, bool) {
 		return s.walkName(k, ob.slot) // the layer walk's layer 3 (static_layer6.go)
 	}
 	nc := uint16(0)
+	if s.fxM.has(ob.slot) {
+		nc = s.copyExcName(k, ob.slot) // a copy's NewName$ (layer 1), under any later rename (copy_noncreature.go)
+	}
 	s.eachOverride(k, ob.slot, func(ov *kop.Override, _ CardID) {
 		if ov.NameCard != 0 {
 			nc = ov.NameCard

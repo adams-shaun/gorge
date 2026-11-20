@@ -48,14 +48,17 @@ type objectStint struct {
 }
 
 // loyaltyPrefix is loyaltyActivationsThisTurn's fold of id's battlefield
-// stint and face over the log before pos (the events before the current
-// turn), as of card: FlipFace's bound reads the object's face count.
+// stint, face and copy basis over the log before pos (the events before the
+// current turn), as of card: FlipFace's bound reads the object's face count
+// and a ClonePermanent's locked layer is found by its sequence.
 type loyaltyPrefix struct {
-	id   state.ObjID
-	card *cards.Card
-	pos  int
-	onBF bool
-	face int
+	id       state.ObjID
+	card     *cards.Card
+	pos      int
+	onBF     bool
+	face     int
+	copyFace *cards.Face
+	cloneSeq int32
 }
 
 // activationIndex is the engine's table of both folds.
@@ -295,7 +298,7 @@ func (e *Engine) turnStart() int {
 
 // loyaltyStintAt returns id's folded battlefield stint and face at the
 // current turn's start (turnStart), from the index's kept prefix.
-func (e *Engine) loyaltyStintAt(o *state.Object, start int) (onBF bool, face int) {
+func (e *Engine) loyaltyStintAt(o *state.Object, start int) (onBF bool, face int, copyFace *cards.Face, cloneSeq int32) {
 	x := e.activationIdx()
 	var c *loyaltyPrefix
 	for i := range x.loyalty {
@@ -312,7 +315,8 @@ func (e *Engine) loyaltyStintAt(o *state.Object, start int) (onBF bool, face int
 	if c.pos > start || c.card != o.Card {
 		*c = loyaltyPrefix{id: o.ID, card: o.Card}
 	}
-	for _, ev := range e.L.Events[c.pos:start] {
+	for i := c.pos; i < start; i++ {
+		ev := &e.L.Events[i]
 		switch ev.Kind {
 		case events.MoveZone:
 			if ev.Obj == o.ID && ev.To.Valid() {
@@ -322,8 +326,72 @@ func (e *Engine) loyaltyStintAt(o *state.Object, start int) (onBF bool, face int
 			if ev.Obj == o.ID && ev.Amount >= 0 && int(ev.Amount) < len(o.Card.Faces) {
 				c.face = int(ev.Amount)
 			}
+		case events.ClonePermanent:
+			if ev.Obj == o.ID {
+				c.copyFace = cloneFaceStep(e.G, ev, o, &c.cloneSeq)
+			}
 		}
 	}
 	c.pos = start
-	return c.onBF, c.face
+	return c.onBF, c.face, c.copyFace, c.cloneSeq
+}
+
+// cloneFaceStep applies one ClonePermanent event for o to a historical face
+// fold: the copy basis it installs, the live layer a re-base keeps, or nil
+// when the basis is cleared. The layer is found by its sequence in the
+// object's locked CloneLayers (CR 707.2b/c); a layer a later clear pruned
+// falls back to the source's copiable face.
+func cloneFaceStep(g *state.Game, ev *events.Event, o *state.Object, seq *int32) *cards.Face {
+	named := ev.Counter == "chosen-name" || (len(ev.IDs) > 0 && ev.IDs[0] != 0)
+	if named {
+		*seq++
+		if f := cloneLayerAt(o, *seq); f != nil {
+			return f
+		}
+		if ev.Counter == "chosen-name" {
+			return namedCloneFace(g, ev.Text)
+		}
+		if src := g.Obj(ev.IDs[0]); src != nil {
+			return src.CopiableFace()
+		}
+		return nil
+	}
+	if ev.Text != "" {
+		if seqs := events.ParseCloneLive(ev.Text); len(seqs) > 0 {
+			if f := cloneLayerAt(o, seqs[len(seqs)-1]); f != nil {
+				return f
+			}
+			if len(ev.IDs) > 1 && ev.IDs[1] != 0 {
+				if src := g.Obj(ev.IDs[1]); src != nil {
+					return src.CopiableFace()
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// cloneLayerAt returns the locked copy-basis face with sequence seq, if the
+// layer survives in o's final CloneLayers.
+func cloneLayerAt(o *state.Object, seq int32) *cards.Face {
+	for i := len(o.CloneLayers) - 1; i >= 0; i-- {
+		if o.CloneLayers[i].Seq == seq {
+			return o.CloneLayers[i].Face
+		}
+	}
+	return nil
+}
+
+// namedCloneFace resolves a chosen-name copy's face (CR 201.4b-f), the
+// NameUniverse lookup foldClonePermanent uses.
+func namedCloneFace(g *state.Game, name string) *cards.Face {
+	if g.NameUniverse != nil {
+		if i, j, ok := g.NameUniverse.FaceByName(name); ok {
+			return g.NameUniverse.Card(i).Faces[j]
+		}
+	}
+	if c := g.NamedCard(name); c != nil && len(c.Faces) > 0 {
+		return c.Faces[0]
+	}
+	return nil
 }

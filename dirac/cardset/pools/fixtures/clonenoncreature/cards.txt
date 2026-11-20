@@ -1,0 +1,50 @@
+# the clonenoncreature pool: the 21 cards the three clone refusal classes
+# blocked (an as-enters copy whose template may be a land, an enchantment or a
+# planeswalker, an as-enters copy with NewName$, and a resolving Clone on the
+# battlefield with NewName$), plus the permanents to copy: cheap creatures,
+# Auras, planeswalkers, non-Aura enchantments and nonbasic lands.
+Absorbing Man
+Chameleon, Master of Disguise
+Clever Impersonator
+Copy Enchantment
+Copy Land
+Echoing Deeps
+Estrid's Invocation
+Ezri Dax, Newly Joined
+Hulkling, Young Avenger
+Impossible Man
+Irma, Part-Time Mutant
+Kimahri, Valiant Guardian
+Lazav, Dimir Mastermind
+Lazav, the Multifarious
+Mirrormade
+Sakashima the Impostor
+Sakashima's Protege
+Sarkhan, Soul Aflame
+Sunfrill Imitator
+Taskmaster, Mercenary Mimic
+Vesuva
+Grizzly Bears
+Savannah Lions
+Binding the Old Gods
+Flicker
+Flickering Ward
+Nissa, Voice of Zendikar
+Chandra, Acolyte of Flame
+Liliana of the Veil
+Ajani's Mantra
+Absolute Law
+Dark Favor
+Alien Symbiosis
+Divine Favor
+Evolving Wilds
+Rupture Spire
+Command Tower
+Reliquary Tower
+Lightning Bolt
+Giant Growth
+Plains
+Island
+Swamp
+Mountain
+Forest

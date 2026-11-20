@@ -131,7 +131,10 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	if t == NoObj || s.objs[t].zone != kop.ZoneBattlefield {
 		return
 	}
-	if s.g.pre.ask2 != 0 {
+	host := NoSlot
+	if s.g.pre.ask2 == akEnchant {
+		host, s.g.pre.ask2 = Slot(s.g.pre.val2), 0 // the copied Aura's host, answered on the stack (copy_noncreature.go)
+	} else if s.g.pre.ask2 != 0 {
 		// the template's choice was answered on the stack: its enters
 		// program takes it below (runReplProgAs)
 		s.g.pre.val, s.g.pre.state, s.g.pre.ask2 = objWord(s.g.pre.val2), 2, 0
@@ -176,6 +179,9 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	// the battlefield, the queued as-enters ask)
 	// A face-down template's values have none (copy_facedown.go).
 	pc := &k.cards[c]
+	if !blank && (pc.types&(kop.TPlaneswalker|kop.TAura|kop.TBattle) != 0 || pc.sagaN != 0) {
+		s.copyEnterTypes(k, sl, c, host) // a planeswalker's or Saga's or Battle's entry state, an Aura's host (copy_noncreature.go)
+	}
 	if pc.enterTap && !blank {
 		p.flags |= pfTapped
 	}

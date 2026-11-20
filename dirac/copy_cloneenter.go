@@ -118,6 +118,9 @@ func (s *State) finishCloneReturn(k *prep) {
 //go:noinline
 func (s *State) rerunReturn(k *prep) {
 	o := s.g.pre.obj
+	if s.cloneReturnAuraPark(k) {
+		return // the elected Aura's host ask is posed before the move (copy_noncreature.go)
+	}
 	s.g.pre.state = 2
 	in := &s.prog(k)[s.res.pc]
 	switch in.Op {

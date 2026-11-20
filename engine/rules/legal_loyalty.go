@@ -125,13 +125,13 @@ func (e *Engine) loyaltyActivationsThisTurn(id state.ObjID) int {
 		return 0
 	}
 	// The count resets at the current turn's TurnChange, so only this turn's
-	// events can count; the stint and face they start from is the kept
-	// prefix fold (activation_count_index.go).
+	// events can count; the stint, face and copy basis they start from are the
+	// kept prefix fold (activation_count_index.go).
 	start := e.turnStart()
-	onBattlefield, faceIdx := e.loyaltyStintAt(o, start)
-	used := e.loyaltyActivationsFrom(o, start, onBattlefield, faceIdx)
+	onBattlefield, faceIdx, copyFace, cloneSeq := e.loyaltyStintAt(o, start)
+	used := e.loyaltyActivationsFrom(o, start, onBattlefield, faceIdx, copyFace, cloneSeq)
 	if walkCacheVerify {
-		if want := e.loyaltyActivationsFrom(o, 0, false, 0); want != used {
+		if want := e.loyaltyActivationsFrom(o, 0, false, 0, nil, 0); want != used {
 			panic(fmt.Sprintf("rules: loyalty activations of obj %d from the turn start %d, the whole-log fold %d", id, used, want))
 		}
 	}
@@ -170,8 +170,8 @@ func activationCounted(ev events.Event) (events.Event, int) {
 }
 
 // loyaltyActivationsFrom is loyaltyActivationsThisTurn's fold over the log
-// from index from, starting at the given stint and face.
-func (e *Engine) loyaltyActivationsFrom(o *state.Object, from int, onBattlefield bool, faceIdx int) int {
+// from index from, starting at the given stint, face and copy basis.
+func (e *Engine) loyaltyActivationsFrom(o *state.Object, from int, onBattlefield bool, faceIdx int, copyFace *cards.Face, cloneSeq int32) int {
 	id := o.ID
 	used := 0
 	if o.IsToken {
@@ -209,14 +209,30 @@ func (e *Engine) loyaltyActivationsFrom(o *state.Object, from int, onBattlefield
 			}
 			onBattlefield = nextOnBattlefield
 
+		case events.ClonePermanent:
+			// The copy basis in force WHEN the push happened, not the
+			// object's current Face(): a copy-again effect later in the turn
+			// must not re-index an earlier activation (CR 613.1a, 707.2).
+			if ev.Obj == id {
+				copyFace = cloneFaceStep(e.G, &ev, o, &cloneSeq)
+			}
+
 		case events.AbilityPush:
 			if ev.Obj != id || !onBattlefield || int(ev.Player) >= len(e.G.Players) ||
 				ev.Amount < 0 || faceIdx >= len(o.Card.Faces) {
 				continue
 			}
 			// Amount indexes the active face's ability list. Check the exact
-			// face and bounds that events.Apply used at push time.
+			// face and bounds that events.Apply used at push time. A copy's
+			// active face is its copy basis (CR 707.2), not the printed card
+			// the object was cast as: a Clever Impersonator copying a
+			// planeswalker activates the copied loyalty ability, and CR 606.3
+			// counts it against the same permanent. The basis is the folded
+			// historical one, so a later copy-again effect cannot re-index it.
 			f := o.Card.Faces[faceIdx]
+			if copyFace != nil {
+				f = copyFace
+			}
 			if f != nil && int(ev.Amount) < len(f.Abilities) && e.isLoyaltyAbility(f.Abilities[int(ev.Amount)]) {
 				used += sign
 			}

@@ -24,7 +24,7 @@ import (
 // refuses by name before copyExceptions (which reads some of them for
 // CopyPermanent) can lower it.
 var cloneCopyRefused = []string{
-	"NewName", "AddTypes", "AddColors", "SetColor", "SetPower", "SetToughness", "RemoveCost",
+	"AddTypes", "AddColors", "SetColor", "SetPower", "SetToughness", "RemoveCost",
 	"Controller", "AddTriggers", "AddAbilities", "AddStaticAbilities",
 	"ExcludeChosen", "ChoiceZone", "TgtZone", "CloneZone", "ChoiceOptional", "PumpKeywords",
 	"PumpDuration", "RemoveCardTypes", "RemoveCreatureTypes", "RemoveSubTypes", "CopyFromChosenName",
@@ -292,8 +292,7 @@ func flagsEOT(flags int) bool { return flags&kop.CloneEOT != 0 }
 // GainThisAbility$ True (the copy has the resolving ability: the printed
 // ability this Clone is the body of) returns a grant-only override, which the
 // kernel applies as the copy's granted ability (it follows exc in the override
-// pool, kop.CloneGrant). NewName$ stays refused: the kernel's copy exceptions
-// carry no name. AddSVars$ only carries the SVars that ability's chain reads, which the
+// pool, kop.CloneGrant). AddSVars$ only carries the SVars that ability's chain reads, which the
 // kernel's own ability already has, so it lowers only beside GainThisAbility$.
 // A grant makes *hasExc true: the pair stays together.
 func (lc *lowerCtx) cloneGrant(ps *params, flags *int, hasExc *bool) (*lOverride, error) {
@@ -359,6 +358,9 @@ func (lc *lowerCtx) cloneExceptions(ps *params, flags *int, batch bool) (exc *lO
 		}
 	}
 	if exc, has, err = lc.copyExceptions(ps); err != nil {
+		return
+	}
+	if err = lc.cloneNewName(ps, exc, &has, "Clone"); err != nil { // lower_clonenewname.go
 		return
 	}
 	grant, err = lc.cloneGrant(ps, flags, &has)

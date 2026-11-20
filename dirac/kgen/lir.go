@@ -1255,6 +1255,7 @@ type lOverride struct {
 	AddKw             []string
 	GrantAbility      []int    // latent ability indexes granted
 	Name              string   // SetName: the layer-3 name (a name card, lowerPool)
+	NameOf            string   // a copy exception's NewName$: the pool card printing that name is the copy's name (cloneNewName; kop.Override.NameCard)
 	KeepP, KeepT      bool     // a set of base toughness / power only (Maha)
 	RemoveKw          []string // RemoveKeyword$: keywords removed (layer 6)
 	CantHaveKw        []string // CantHaveKeyword$: keywords the affected can't have or gain (a final layer-6 filter)

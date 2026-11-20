@@ -58,8 +58,8 @@ func (lc *lowerCtx) cloneEnterCounterRider(ps *params, sa *cards.SA) error {
 // permanents matching Choices$ (gorge etbOptions: seat 0's battlefield,
 // then seat 1's), plus "enter as itself" when the keyword line is
 // :Optional (or nothing matches). Exceptions: copyExceptions' list
-// (AddTypes$, AddKeywords$, SetPower$/SetToughness$, colours...); NewName$
-// and AddKeywords$ Changeling refuse by name.
+// (AddTypes$, AddKeywords$, SetPower$/SetToughness$, colours...) and NewName$
+// (cloneNewName); AddKeywords$ Changeling refuses by name.
 func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 	if node != sa || len(lc.ab.Prog) != 0 {
 		return refuse("ETB copy in a chain")
@@ -88,20 +88,13 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 	if err != nil {
 		return err
 	}
-	for _, c := range f.Clauses {
-		// a copied Aura must attach and a copied planeswalker enters with
-		// its loyalty: neither is modelled, so the templates are creatures
-		// and artifacts only
-		if c.Types&^(tCreature|tArtifact) != 0 || c.Types == 0 && c.Subtype != "Equipment" {
-			return refuse("ETB copy of %q (not a creature or artifact)", ch)
-		}
-	}
+	// every permanent type gorge's selector offers is a template: a copied
+	// Aura is asked its CR 303.4f host as it enters (copy_asenters.go
+	// cloneAuraHost), a copied planeswalker enters with its printed loyalty
+	// (copyEnterLoyalty), a land and an enchantment copy as a creature does
 	// the copy exceptions (CR 707.9b), read through the shared
-	// copyExceptions; a name change and the Changeling CDA are not copy
-	// exceptions gorge applies the same way (clone.go L531), refused by name
-	if _, ok := ps.get("NewName"); ok {
-		return refuse("ETB copy NewName$")
-	}
+	// copyExceptions; the Changeling CDA is not a copy exception gorge
+	// applies the same way (clone.go L531), refused by name
 	if k, ok := ps.get("AddKeywords"); ok {
 		for _, w := range strings.Split(k, "&") {
 			if strings.TrimSpace(w) == "Changeling" {
@@ -115,6 +108,9 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 	}
 	exc, hasExc, myriads, err := lc.copyExceptionsMyriad(ps, true)
 	if err != nil {
+		return err
+	}
+	if err := lc.cloneNewName(ps, exc, &hasExc, "ETB copy"); err != nil { // lower_clonenewname.go
 		return err
 	}
 	grant, err := lc.cloneEnterGrant(ps) // lower_cloneentergrant.go

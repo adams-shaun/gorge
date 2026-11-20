@@ -27,7 +27,17 @@ func (s *State) cloneTemplateAsk(k *prep) bool {
 	if k.gen == nil || t == NoObj || s.objs[t].zone != kop.ZoneBattlefield {
 		return false
 	}
-	kind := s.enterChoiceKind(k, s.cardAt(s.objs[t].slot))
+	tc := s.cardAt(s.objs[t].slot)
+	kind := s.enterChoiceKind(k, tc)
+	if k.cards[tc].types&kop.TAura != 0 {
+		// the copied Aura's host (copy_noncreature.go); when there is no host
+		// ask (zero or one legal host) the template's own pre-entry choice is
+		// still asked, as gorge asks it after the (absent) CR 303.4f host ask
+		asked, ok := s.cloneAuraAsk(k, tc, kind != 0)
+		if !ok || asked {
+			return asked
+		}
+	}
 	switch kind {
 	case akColor, akType, akNumber, akName, akNameAny, akNameLook:
 	default:

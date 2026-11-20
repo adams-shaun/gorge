@@ -403,6 +403,9 @@ func (s *State) walkName(k *prep, sl Slot) (CardID, bool) {
 	var nf int
 	c := s.charsFx(k, sl, upTo4, &fx, &nf)
 	nc := uint16(0)
+	if s.fxM.has(sl) {
+		nc = s.copyExcName(k, sl) // a copy's NewName$ (layer 1), under any later rename (copy_noncreature.go)
+	}
 	for i := 0; i < nf; i++ {
 		e := &fx[i]
 		if e.o == nil || e.o.NameCard == 0 {

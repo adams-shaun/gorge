@@ -1233,6 +1233,9 @@ func (s *State) applyGen(k *prep, a Action) {
 			if s.g.pre.kind == akType {
 				s.g.pre.val2 = s.typeVocabCode(k, int(a.Target())<<8|int(a.Mode()))
 			}
+			if s.g.pre.kind == akEnchant {
+				s.g.pre.val2 = s.cloneAuraAnswer(a) // the copied Aura's host slot (copy_noncreature.go)
+			}
 			s.g.pre.kind = akClone
 		} else {
 			s.g.pre.val = objWord(a.Mode())
@@ -1491,6 +1494,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akMode {
 		siegeModeOptions(d) // face_siegemode.go
+		return
+	}
+	if kind == akEnchant && s.g.pre.ask2 == akEnchant {
+		s.cloneAuraOptions(k, d) // the copied Aura's host, asked with the copy election (copy_noncreature.go)
 		return
 	}
 	if kind == akEnchant {

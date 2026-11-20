@@ -2687,6 +2687,13 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	if o.Name != "" {
 		ko.NameCard = uint16(cb.pt.tokenIdx[nameCardKey+o.Name] + 1)
 	}
+	if o.NameOf != "" {
+		i, ok := cb.pt.cardIdx[o.NameOf]
+		if !ok {
+			return 0, fmt.Errorf("copy exception names %q, no card of the pool", o.NameOf)
+		}
+		ko.NameCard = uint16(i + 1)
+	}
 	set, err := cb.subIndexes(o.SetSubtypes)
 	if err != nil {
 		return 0, err

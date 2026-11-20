@@ -1,0 +1,51 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Absolute Law
+1	card	Absorbing Man
+2	card	Ajani's Mantra
+3	card	Alien Symbiosis
+4	card	Chameleon, Master of Disguise
+5	card	Chandra, Acolyte of Flame
+6	card	Clever Impersonator
+7	card	Command Tower
+8	card	Copy Enchantment
+9	card	Copy Land
+10	card	Dark Favor
+11	card	Divine Favor
+12	card	Echoing Deeps
+13	card	Estrid's Invocation
+14	card	Evolving Wilds
+15	card	Ezri Dax, Newly Joined
+16	card	Forest
+17	card	Giant Growth
+18	card	Grizzly Bears
+19	card	Hulkling, Young Avenger
+20	card	Impossible Man
+21	card	Irma, Part-Time Mutant
+22	card	Island
+23	card	Kimahri, Valiant Guardian
+24	card	Lazav, Dimir Mastermind
+25	card	Lazav, the Multifarious
+26	card	Lightning Bolt
+27	card	Liliana of the Veil
+28	card	Mirrormade
+29	card	Mountain
+30	card	Nissa, Voice of Zendikar
+31	card	Plains
+32	card	Reliquary Tower
+33	card	Rupture Spire
+34	card	Sakashima the Impostor
+35	card	Sakashima's Protege
+36	card	Sarkhan, Soul Aflame
+37	card	Savannah Lions
+38	card	Sunfrill Imitator
+39	card	Swamp
+40	card	Taskmaster, Mercenary Mimic
+41	card	Vesuva
+42	token	g_0_1_plant
+43	token	r_1_1_elemental
+44	card	Binding the Old Gods
+45	card	Flicker
+46	card	Flickering Ward
+47	card	Invasion of Segovia
+48	card	face:Invasion of Segovia#1
+49	token	u_1_1_kraken_trample

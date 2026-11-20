@@ -1,0 +1,10 @@
+# the clonenoncreature Battle pool: Clever Impersonator copying a Siege, for
+# the as-enters copy's CR 310.4/310.10 entry state (defense counters and
+# protector). A Battle is two-seat in the kernel, so this pool is its own.
+Clever Impersonator
+Invasion of Segovia
+Grizzly Bears
+Plains
+Island
+Mountain
+Forest
