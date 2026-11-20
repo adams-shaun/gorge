@@ -22,7 +22,7 @@ func TestXBoundTargetOfferWithholdsUnpayableSignet(t *testing.T) {
 	const rock = "Name:Rock\nManaCost:1\nTypes:Artifact\nOracle:x\n"
 	const island = "Name:Island\nTypes:Basic Land Island\nOracle:x\n"
 	const signet = "Name:Golgari Signet\nManaCost:1\nTypes:Artifact\n" +
-		"A:AB$ Mana | Cost$ 1 T | Produced$ B G | SpellDescription$ Add {B}{G}.\nOracle:x\n"
+		"A:AB$ Mana | Produced$ B G | Cost$ 1 T | SpellDescription$ Make one black and one green.\nOracle:x\n"
 	offered := func(t *testing.T, spell string, board ...string) bool {
 		e := handEngine(t, card(t, spell))
 		for _, c := range board {
