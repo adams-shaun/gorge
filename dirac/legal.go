@@ -2304,6 +2304,17 @@ func (s *State) potentialTapUnit(k *prep, p uint8, sl Slot, pc *pcard, mask uint
 	}
 }
 
+// markCensusAbDone marks the printed ability a source's view is as done in
+// availPotentialFor's fixpoint. An intrinsic view (manaIntrinsic, blgView) is
+// the granted basic land type's unit and marks no ability: the card's own
+// rider is the walk's admission below (potentialManaFor counts the printed
+// abilities beside the appended intrinsics, CR 305.6, 605.3b).
+func markCensusAbDone(pc *pcard, sl Slot, done *[MaxPerm]uint16) {
+	if pc.manaAb >= 0 && !pc.manaIntrinsic {
+		done[sl] = 1 << pc.manaAb
+	}
+}
+
 // availPotentialFor is availPotential; payment prices one mana payment (gorge
 // potentialManaFor with a descriptor, a trigger's own cost): an ability whose
 // RestrictValid$ refuses it adds nothing and a chosen colour is exact (CR 106.6).
@@ -2392,9 +2403,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			}
 			continue
 		}
-		if pc.manaAb >= 0 {
-			done[sl] = 1 << pc.manaAb
-		}
+		markCensusAbDone(pc, sl, &done)
 		// the printed ability's own activation pain: when it reaches the
 		// life its production is no census unit, the fold keeps it (a
 		// pain-only source makes nothing there, a paid face beside a normal
