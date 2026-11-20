@@ -2705,8 +2705,8 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	}
 	// Colour predicates must use the layer-5 derived colours when rules
 	// supplies them: the map's legacy colour functions carry no SpecContext,
-	// so with a table bound they fall through to the word path below.
-	if fn, ok := predicates[p]; ok && !((len(sc.Layers.DerivedColors) != 0 || splitReadAsSpell(o, &sc) || sc.AsPrototype) && colourMapPredicate(p)) {
+	// so a table bound (or the AsFaceDown entry, CR 708.2a) takes the word path.
+	if fn, ok := predicates[p]; ok && !colourMapSkip(p, o, &sc) {
 		return fn(g, o, sc.You, predicateSource(p, &sc)), true
 	}
 	if res, ok := numericPred(p, g, o, sc); ok {
@@ -3310,12 +3310,14 @@ func matchesObjectPtr(g *state.Game, spec string, o *state.Object, sc *SpecConte
 	// here to the one object that actually carries a change.
 	cs := compiledSpecFor(spec)
 	// A split card read as the spell being cast (splitReadAsSpell) is the
-	// same kind of override: the programs read its combined colours.
+	// same kind of override: the programs read its combined colours. The
+	// AsFaceDown entry override is another: the programs' colour terms read
+	// the printed face, which a face-down entry does not have (CR 708.2a).
 	// A ceased copy is left to compiledMatch's rejection; the programs have no
 	// such check.
 	if ps := sc.PredicatePrograms; ps != nil && !copyCeased(o, sc) && !hasEffectiveNamePtr(o, sc) && !hasDerivedTypeEntryPtr(o, sc) &&
 		(len(sc.Layers.DerivedColors) == 0 || !hasDerivedColorEntryPtr(o, sc)) && !splitReadAsSpell(o, sc) &&
-		!sc.AsPrototype {
+		!sc.AsPrototype && !sc.AsFaceDown {
 		switch ps.evaluateCS(cs, spec, g, o, sc) {
 		case PredicateYes:
 			return true

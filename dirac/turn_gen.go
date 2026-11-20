@@ -250,6 +250,14 @@ func (s *State) runOwnEnterPrograms(k *prep, sl Slot, o Obj, cid CardID, ctrl, f
 	s.res.e.x = selfX
 }
 
+// DebugFaceDownFilterPrinted is the lockstep's mutation switch
+// (TestFaceDownEntryCreatureFilterMutation): a face-down ENTRANT is matched
+// by its printed card characteristics during the other permanents'
+// enter-replacement filter, so a `Creature.faceDown` entry filter over a
+// cloaked or manifested noncreature refuses it again (gorge's pre-fix
+// printed-face read), and the same games diverge.
+var DebugFaceDownFilterPrinted bool
+
 // runOthersEnterPrograms applies the "as this enters" replacement of each
 // permanent in m that matches the entrant at sl.
 func (s *State) runOthersEnterPrograms(k *prep, sl Slot, g *genPrep, m slotMask) {
@@ -270,7 +278,29 @@ func (s *State) runOthersEnterPrograms(k *prep, sl Slot, g *genPrep, m slotMask)
 				continue
 			}
 			s.occ.set(sl) // the filter reads the entering object
+			// The mutation hook presents the entrant face up for the match
+			// (enterNF's gtyFaceDown | TCreature mark, its ovGenTy flag and
+			// walk flag), so the filter reads the printed card the way
+			// gorge's pre-fix filter did: bytes restored before the next
+			// ability, no mark and no changed byte left behind.
+			fdPrinted := DebugFaceDownFilterPrinted && s.faceDown(k, sl)
+			var (
+				saveGty   kop.TypeMask
+				saveFlags uint8
+				saveWalk  uint8
+			)
+			if fdPrinted {
+				p := &s.perms[sl]
+				saveGty, saveFlags, saveWalk = p.gty, p.ovr.flags, p.ovr.walk
+				p.gty = 0
+				p.ovr.flags &^= ovGenTy
+				p.ovr.walk = 0
+			}
 			ok := s.matchPermGen(k, a.Repl.Filter, sl, sp.ctrl, src, layerFull)
+			if fdPrinted {
+				p := &s.perms[sl]
+				p.gty, p.ovr.flags, p.ovr.walk = saveGty, saveFlags, saveWalk
+			}
 			s.occ.clr(sl)
 			if ok && a.Repl.Cond != 0 && DebugKiraMutate != 2 {
 				// IsPresent$ (Kira Nerys): the entering object is not yet among

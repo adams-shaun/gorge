@@ -338,6 +338,14 @@ func ColorMaskFromLetters(letters string) ColorMask {
 // printed read (ColorMaskOf). It returns a plain mask, never data sourced
 // from the context, so the context does not leak (see hasEffectiveName).
 func colorMaskCtx(o *state.Object, sc *SpecContext) ColorMask {
+	// The AsFaceDown entry override (CR 708.2a, 708.5; 614.12, 701.58a): an
+	// object entering face down is colourless -- the face-down set has no
+	// mana cost and no colour indicator, and the entry's marker is not folded
+	// onto the object until the intercepted move applies, so the printed read
+	// below would answer the origin-zone card.
+	if sc.AsFaceDown {
+		return 0
+	}
 	if o != nil {
 		for i := range sc.Layers.DerivedColors {
 			if sc.Layers.DerivedColors[i].ID == o.ID {
@@ -400,6 +408,17 @@ func colourMapPredicate(p string) bool {
 	}
 	_, is := colorLetter[p]
 	return is
+}
+
+// colourMapSkip is the one read both filter dispatches (matchPositive and
+// its compiled twin) share for when a colour word must NOT take the printed
+// legacy map function: a context the map cannot see — bound derived colours,
+// a split card read as the spell being cast, a prototype inset, or the
+// AsFaceDown entry override (a face-down entry is colourless, CR 708.2a) —
+// routes the word through wordMatches/colorMaskCtx instead.
+func colourMapSkip(p string, o *state.Object, sc *SpecContext) bool {
+	return (len(sc.Layers.DerivedColors) != 0 || splitReadAsSpell(o, sc) || sc.AsPrototype || sc.AsFaceDown) &&
+		colourMapPredicate(p)
 }
 
 type colorLettersCode uint16
