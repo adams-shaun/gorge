@@ -91,7 +91,7 @@
 //
 // A filter word (family FilterWord, a literal of a kop.PredProg filter
 // program) has one handler, "//kmanifest:fword FwFoo" on func (s *State)
-// m(c *fctx, l *kop.FLit) bool in its own file dirac/fw_<name>.go; gen writes
+// m(c *fctx, l *kop.FLit) bool in its own file dirac/filter_<name>.go; gen writes
 // fwRun, the switch filterProg runs each literal through, and fwHandled.
 //
 // # Late binding

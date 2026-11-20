@@ -3,7 +3,7 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Filter programs (kop.PredProg): a filter whose predicate is a conjunction of
-// literals, each a kop.FilterWord with its own handler (dirac/fw_<name>.go,
+// literals, each a kop.FilterWord with its own handler (dirac/filter_<name>.go,
 // "//kmanifest:fword FwX"; gen writes fwRun and fwHandled, manifest_gen.go). A matcher
 // applies the filter's struct fields first and, for PredProg, evaluates the
 // program with an fctx built from what the matcher has.

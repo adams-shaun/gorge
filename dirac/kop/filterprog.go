@@ -14,7 +14,7 @@ type FilterProgID = int16
 // FilterWord names the test one literal of a filter program applies. The
 // codes are the manifest's FilterWord family (dirac/manifest/FilterWord, Fw*);
 // 0 is no word. Each word has one kernel handler (//kmanifest:fword, one file
-// dirac/fw_<name>.go) and declares the matcher kinds it supports in its
+// dirac/filter_<name>.go) and declares the matcher kinds it supports in its
 // manifest entry's contexts line, which kgen holds a lowering to.
 type FilterWord uint16
 

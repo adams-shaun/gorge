@@ -859,21 +859,21 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 	switch l.W {
 	case kop.FwAttacking:
-		return s.fwAttacking(c, l) // fw_attacking.go
+		return s.fwAttacking(c, l) // filter_attacking.go
 	case kop.FwCMCCmp:
-		return s.fwCMCCmp(c, l) // fw_cmccmp.go
+		return s.fwCMCCmp(c, l) // filter_cmccmp.go
 	case kop.FwCountersCmp:
-		return s.fwCountersCmp(c, l) // fw_counterscmp.go
+		return s.fwCountersCmp(c, l) // filter_counterscmp.go
 	case kop.FwKeyword:
-		return s.fwKeyword(c, l) // fw_keyword.go
+		return s.fwKeyword(c, l) // filter_keyword.go
 	case kop.FwPowerCmp:
-		return s.fwPowerCmp(c, l) // fw_powercmp.go
+		return s.fwPowerCmp(c, l) // filter_powercmp.go
 	case kop.FwSubtype:
-		return s.fwSubtype(c, l) // fw_subtype.go
+		return s.fwSubtype(c, l) // filter_subtype.go
 	case kop.FwTapped:
-		return s.fwTapped(c, l) // fw_tapped.go
+		return s.fwTapped(c, l) // filter_tapped.go
 	case kop.FwToughnessCmp:
-		return s.fwToughnessCmp(c, l) // fw_toughnesscmp.go
+		return s.fwToughnessCmp(c, l) // filter_toughnesscmp.go
 	}
 	panic("kernel: filter word not implemented")
 }

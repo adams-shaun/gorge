@@ -43,7 +43,7 @@ import (
 //	func (s *State) fwFoo(c *fctx, l *kop.FLit) bool { ... }
 //
 // fword: a filter word (kop.FilterWord, a literal of a PredProg program, one
-// file per word, dirac/fw_<name>.go); gen writes fwTable, the package data
+// file per word, dirac/filter_<name>.go); gen writes fwTable, the package data
 // filterProg indexes by word.
 const (
 	ExtDirective      = "//kmanifest:ext"

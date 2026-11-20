@@ -1881,7 +1881,7 @@ const PredNamedCard Pred = 35
 
 // Pred (dirac/manifest/Pred/PredProg)
 //
-// PredProg: the filter's predicate is a program of literals (PredN: kop.FilterProgID, an index into Table.FilterProgs). The matcher applies the struct's own fields first (types, colours, controller, zone, flags, the Or chain), which are the program's first conjuncts, then evaluates each kop.FLit in order and stops at the first that fails; a literal's Neg inverts its word. Each word is a kop.FilterWord with one kernel handler (dirac/fw_<name>.go). A word reading a field its matcher does not have fails closed, as gorge's unbound context does. kgen lowers no PredProg yet.
+// PredProg: the filter's predicate is a program of literals (PredN: kop.FilterProgID, an index into Table.FilterProgs). The matcher applies the struct's own fields first (types, colours, controller, zone, flags, the Or chain), which are the program's first conjuncts, then evaluates each kop.FLit in order and stops at the first that fails; a literal's Neg inverts its word. Each word is a kop.FilterWord with one kernel handler (dirac/filter_<name>.go). A word reading a field its matcher does not have fails closed, as gorge's unbound context does. kgen lowers no PredProg yet.
 const PredProg Pred = 36
 
 // pred IsRingbearer (dirac/manifest/Pred/PredRingBearer)

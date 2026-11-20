@@ -23,17 +23,17 @@ func fwordFixture(t *testing.T) fstest.MapFS {
 // switch arm that runs it and the fwHandled case.
 func TestScanFWord(t *testing.T) {
 	m := fwordFixture(t)
-	m["dirac/fw_foo.go"] = &fstest.MapFile{Data: []byte(fwordSrc)}
+	m["dirac/filter_foo.go"] = &fstest.MapFile{Data: []byte(fwordSrc)}
 	h, err := ScanKernel(m)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := (WordHandler{Word: "FwFoo", Method: "fwFoo", File: "dirac/fw_foo.go"}); len(h.Word) != 1 || h.Word[0] != want {
+	if want := (WordHandler{Word: "FwFoo", Method: "fwFoo", File: "dirac/filter_foo.go"}); len(h.Word) != 1 || h.Word[0] != want {
 		t.Fatalf("Word = %+v, want %+v", h.Word, want)
 	}
 	out := string(generate(t, m)[DiracGen])
 	for _, want := range []string{
-		"func (s *State) fwRun(c *fctx, l *kop.FLit) bool {\n\tswitch l.W {\n\tcase kop.FwFoo:\n\t\treturn s.fwFoo(c, l) // fw_foo.go\n\t}\n",
+		"func (s *State) fwRun(c *fctx, l *kop.FLit) bool {\n\tswitch l.W {\n\tcase kop.FwFoo:\n\t\treturn s.fwFoo(c, l) // filter_foo.go\n\t}\n",
 		"func fwHandled(w kop.FilterWord) bool {\n\tswitch w {\n\tcase kop.FwFoo:\n\t\treturn true\n\t}\n\treturn false\n}\n",
 	} {
 		if !strings.Contains(out, want) {
@@ -57,7 +57,7 @@ func TestScanFWordRefuses(t *testing.T) {
 		m := fwordFixture(t)
 		m["dirac/zz_case.go"] = &fstest.MapFile{Data: []byte(handlerSrc + c.src)}
 		if c.name == "twice" {
-			m["dirac/fw_foo.go"] = &fstest.MapFile{Data: []byte(fwordSrc)}
+			m["dirac/filter_foo.go"] = &fstest.MapFile{Data: []byte(fwordSrc)}
 		}
 		_, err := ScanKernel(m)
 		if err == nil || !strings.Contains(err.Error(), c.want) || !strings.Contains(err.Error(), "dirac/") {
