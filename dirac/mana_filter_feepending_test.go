@@ -46,15 +46,16 @@ func feependingBoard(t *testing.T) (*scen, CardID) {
 	return sc, baxter
 }
 
-// TestComboFilterFeeBranchReached: the search's plain funder taps are the fee's
-// mirror (gorge's clone payment pays a fee from the census, scriptSearch.visit
-// walks the gaps only), so with no filter gap's fee pending a plain funder
-// whose tap the terminal's census prices is no branch. A fee-carrying filter
-// beside a row of identical basics otherwise spends the search's budget
-// ordering the basics — the fee-carrying source's dead {C} answer alone costs
-// a full funding subtree at every node, none of whose states dedup (the key
-// reads the tapped set) — and its fee branch is never reached: the cast is
-// dropped while gorge offers it (The Coming of Galactus, pair 129).
+// TestComboFilterFeeBranchReached: a fee-carrying combination filter beside a
+// row of identical basics otherwise spends the search's node budget ordering
+// the basics — the fee-carrying source's dead {C} answer alone costs a full
+// funding subtree at every node, none of whose states dedup (the key reads
+// the tapped set) — and its fee branch is never reached: the cast is dropped
+// while gorge offers it (The Coming of Galactus, pair 129). The doomed-node
+// bound (filtSearch.doomed) ends those dead subtrees at their first funding
+// node — the offer check has failed there and nothing the line can still do
+// adds mana it does not already count — so the live line's fee branch is
+// reached within the budget.
 func TestComboFilterFeeBranchReached(t *testing.T) {
 	sc, baxter := feependingBoard(t)
 	s, k := sc.s, sc.k
