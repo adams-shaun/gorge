@@ -149,7 +149,7 @@ func NewSpecContext(you state.PlayerID, source state.ObjID) SpecContext {
 // and "this creature" cannot.
 func (c *Ctx) CostSpecContext(g *state.Game, payer state.PlayerID) SpecContext {
 	sc := c.SpecContext(payer)
-	if SourceIsNewObject(g, g.Obj(c.ResolvingObj)) {
+	if delayedSourceReturned(g, c) {
 		sc.Source = 0
 	}
 	return sc
