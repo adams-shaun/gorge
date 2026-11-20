@@ -10,12 +10,19 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // and stays the manual window's (a greedy credit is no proof of unpayable).
 
 // improviseLifted reports whether gorge's cast planner prices p's cast of c
-// (object o, fromHand) at the improvise credit: a plain hand cast with the one
+// (object o, fromHand) at the improvise credit: a plain hand or command-zone
+// (CR 903.8; the planner's scope is "" for both) cast with the one
 // keyword, no X, and no sacrificed or tapped permanent beside the mana
 // (payment_plan.go paymentPlanCastShapeDetailAltAdd). Convoke and delve keep
 // "shape:contribution".
 func (s *State) improviseLifted(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
-	if !fromHand || k.t.Cards[c].Cost.X != 0 || !s.isImprovise(k, p, c, o, fromHand) ||
+	return s.improviseLiftedFrom(k, p, c, o, fromHand, fromHand)
+}
+
+// improviseLiftedFrom is improviseLifted with plain set for a hand or
+// command-zone origin: the keyword grants still read fromHand.
+func (s *State) improviseLiftedFrom(k *prep, p uint8, c CardID, o Obj, fromHand, plain bool) bool {
+	if !plain || k.t.Cards[c].Cost.X != 0 || !s.isImprovise(k, p, c, o, fromHand) ||
 		s.hasConvoke(k, p, c, o, fromHand) || s.hasCastDelve(k, p, c, o, fromHand) {
 		return false
 	}
@@ -80,7 +87,7 @@ func (s *State) improviseSourcesPay(k *prep, p uint8, o Obj, res slotMask, cost 
 func (s *State) improvisePlanned(k *prep, e *stackEntry) (plan, manual, printed bool) {
 	if k.gen == nil || !k.gen.anyConvoke || !s.bld().impPlan || e.kind != seSpell ||
 		e.flags&(sfMayPlay|sfFlashback|sfKicked) != 0 || !s.tapPaysEntry(k, e) ||
-		!s.improviseLifted(k, e.ctrl, e.card, e.obj, s.bld().origin == kop.ZoneHand) {
+		!s.improviseLiftedFrom(k, e.ctrl, e.card, e.obj, s.bld().origin == kop.ZoneHand, s.bld().origin == kop.ZoneHand || s.bld().origin == kop.ZoneCommand) {
 		return false, false, false
 	}
 	if s.convokePickCount() > 0 {
