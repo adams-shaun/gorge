@@ -1656,7 +1656,8 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 			// (xask_self_spell_target: the cmcEQX ask of Spell Blast's X)
 			return false
 		}
-		return s.matchCardAt(k, t.Filter, ob.card, s.stackCtrl(o), p, o) && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingleSpell(o))
+		ok := s.matchCardAt(k, t.Filter, ob.card, s.stackCtrl(o), p, o) && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingleSpell(o))
+		return ok
 	case kop.TgtCard:
 		z := k.t.Filters[t.Filter].Zone
 		if z == kop.ZoneNone {
@@ -2513,6 +2514,10 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					// 601.2g). The record is incomplete (no bounded view) and
 					// the over-bound pool takes the filter.
 					cen.gap()
+					// the sweep's gap bookkeeping: the gap named, its fee
+					// recorded, and gapGain when its production can exceed
+					// the fee (mana_xboundgap.go)
+					paidGapBooked(d, sl, j, ab, k.gen != nil && k.gen.anyTapExtra)
 					if repeat {
 						// an admitted repeatable gap is one of gorge's
 						// census's non-once abilities: its census is not

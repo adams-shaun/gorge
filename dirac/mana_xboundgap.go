@@ -62,6 +62,23 @@ func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, ab *kop.
 	return paid, skip, repeat
 }
 
+// paidGapBooked is availPotentialFor's bookkeeping for an admitted paid gap:
+// the census was already marked incomplete (cen.gap), so the gap is named for
+// the subset pricing (gapNote) and gapGain set when its production can exceed
+// its fee — a dynamic amount, an each-colour or reflected read, a tap extra —
+// for then the ability raises the mana a payment can spend and the covered
+// census alone is no honest supply bound for the X-bound sweep's count arm
+// (gorge paymentPlanCensus.gapGains, manaFeeNetsNoMana; CR 106.1, 605.3b).
+func paidGapBooked(d *payDesc, sl Slot, j int, ab *kop.Ability, genTapExtra bool) {
+	if d == nil {
+		return
+	}
+	d.gapNote(sl, j, int(ab.Cost.Mana.MV()), kop.HybridFilterManaAb(ab))
+	if int(max(ab.ManaN, 1)) > int(ab.Cost.Mana.MV()) || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor|kop.AfManaChoice|kop.AfManaReflect) != 0 || ab.ManaIdentityPotential || genTapExtra {
+		d.gapGain = true
+	}
+}
+
 // gapSubsets prices an X-bound target's announcement the way gorge's relaxed
 // payment proof does when the planner's census misses paid abilities (Golgari
 // Signet's {1},{T}: Add {B}{G}): for each subset of those abilities, the
