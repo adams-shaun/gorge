@@ -1262,6 +1262,7 @@ type lOverride struct {
 	RemoveKw          []string // RemoveKeyword$: keywords removed (layer 6)
 	CantHaveKw        []string // CantHaveKeyword$: keywords the affected can't have or gain (a final layer-6 filter)
 	Dedup             bool     // share a byte-identical pool record across cards (Earthbend)
+	UntilUpkeep       bool     // Duration$ UntilYourNextUpkeep: the Override row carries the class (kop.Override.UntilUpkeep)
 	WhileHost         bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
 	WhileTapped       bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
 	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
