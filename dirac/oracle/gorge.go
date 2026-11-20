@@ -3,6 +3,7 @@ package oracle
 import (
 	"fmt"
 	"maps"
+	"math/rand/v2"
 	"os"
 	"slices"
 	"sort"
@@ -1981,6 +1982,29 @@ func (g *GorgeSide) runScript(pe prioEntry) {
 	}
 }
 
+// yieldAnswer answers a decision a play's witness does not model (a trigger
+// the plan's own activations stacked, an optional trigger) while lowering
+// that play. A target ask is aimed by the targeting policy: its R1 never
+// aims the deciding seat's own face while an opposing option exists, so a
+// ping the plan's own sacrifice stacked cannot be pointed at the payer and
+// end the game before the play is made (the positional repair clamp's top-up
+// answers lowest-index options, the payer's own face — Spiteful Prankster
+// beside a Treasonous Ogre life payment). The policy consumes no rng for a
+// target ask; the source keeps every answer deterministic. Every other kind
+// keeps the positional repair, which passes and concedes benignly.
+func (g *GorgeSide) yieldAnswer(d *decision.Decision) decision.Intent {
+	if d.Kind == decision.KTarget {
+		var brd botpolicy.Board
+		b := botpolicy.BoardFromGameInto(g.E.G, g.E, d.Player, &brd)
+		in := botpolicy.Decide(b, d, rand.New(rand.NewPCG(0, 0)))
+		in.Seq, in.Player = d.Seq, d.Player
+		return in
+	}
+	in := botpolicy.Clamp(d, decision.Intent{Seq: d.Seq, Player: d.Player})
+	in.Seq, in.Player = d.Seq, d.Player
+	return in
+}
+
 // lower pays a potential play by its witness (payexec): activate each plan
 // source at priority, answer the colour asks, then pick the play's option.
 var debugLower = os.Getenv("KFEAT_DEBUG") != ""
@@ -2036,8 +2060,7 @@ func (g *GorgeSide) lower(pe prioEntry) (done bool) {
 				return false
 			case payexec.Yield:
 				g.Stats.Yields++
-				in = botpolicy.Clamp(d, decision.Intent{Seq: d.Seq, Player: d.Player})
-				in.Seq, in.Player = d.Seq, d.Player
+				in = g.yieldAnswer(d)
 			}
 		}
 		g.Stats.Internal++
