@@ -35,6 +35,14 @@ func (s *State) lowerHybridActivation(k *prep, c *kop.ManaCost) {
 	if s.poolPays(p, c) {
 		return
 	}
+	// The restricted mana floating from an earlier ability (Eclipsed Realms'
+	// {G} for Activated abilities of the chosen type) pays the activation too
+	// (CR 106.6; gorge AvailableFor), so the witness taps only what it leaves.
+	d := payDesc{class: pdAct, card: s.bld().e.card, src: s.srcSlot()}
+	rm := s.restrFloatActMask(k, p, &d)
+	if rm != 0 && s.restrFloatPays(p, rm, c) {
+		return
+	}
 	// A lowered hybrid activation's witness is printed-only, like gorge's
 	// planHybridCost (dirac/mana.go's noGrant rule, CR 107.4e's mana
 	// objects: a granted ability is the grant search, phase 2): the
@@ -52,8 +60,11 @@ func (s *State) lowerHybridActivation(k *prep, c *kop.ManaCost) {
 	if held {
 		s.perms[sl].flags |= pfTapped
 	}
-	r := s.hybResolve(k, p, *c, 0)
+	r := s.hybResolveAct(k, p, c, &d, rm, sl)
 	s.g.noGrant, s.g.availX = ng, ax
+	if rm != 0 {
+		r = s.restrShortAdm(p, rm, r)
+	}
 	s.tapFor(k, p, &r, 0, NoObj)
 	if held {
 		s.perms[sl].flags &^= pfTapped
@@ -539,4 +550,53 @@ func (s *State) payCastPrefixRest(k *prep, a Action, p uint8) {
 			}
 		}
 	}
+}
+
+// DebugRestrictedFloatIgnored (TestRestrictedFloatLoweredActivationMutation):
+// a lowered activation reads no floating restricted mana, as before the fix.
+var DebugRestrictedFloatIgnored bool
+
+// restrFloatActMask is the mask of p's floating restricted batches (State.rb)
+// the activated-ability payment d describes may spend (restrFloatAdmits, so
+// Activated.* restrictions match as Spell.* do); 0 for any other payment.
+func (s *State) restrFloatActMask(k *prep, p uint8, d *payDesc) uint8 {
+	if DebugRestrictedFloatIgnored || d.class != pdAct || !s.rbAny(p) {
+		return 0
+	}
+	return s.restrFloatAdmits(k, p, d)
+}
+
+// restrFloatPays reports whether p's pool with its restricted batches of mask
+// m pays cost.
+func (s *State) restrFloatPays(p, m uint8, cost *kop.ManaCost) bool {
+	var av avail
+	for c, n := range s.pl[SeatIx(p)].pool {
+		if n > 0 {
+			av.addUnits(1<<c, n)
+		}
+	}
+	s.restrAvailAdd(SeatIx(p), m, &av)
+	return av.affords(cost, pipMaskOf(cost), 0)
+}
+
+// hybResolveAct is hybResolve for the activation d describes: the witness's
+// first affordable pip resolution counts the floating restricted mana of the
+// batches in rm and the restricted sources the activation may spend (gorge's
+// planHybridCost reads the planner's pool for it: Eclipsed Realms' any-colour
+// {G} pays the {G/W} before a Plains' {W}).
+func (s *State) hybResolveAct(k *prep, p uint8, c *kop.ManaCost, d *payDesc, rm uint8, skip Slot) kop.ManaCost {
+	if DebugRestrictedFloatIgnored {
+		return s.hybResolve(k, p, *c, 0)
+	}
+	var av avail
+	s.availFor(k, p, &av)
+	if rm != 0 {
+		s.restrAvailAdd(p, rm, &av)
+	}
+	var multi [2]dynUnit
+	nm := 0
+	if k.restrSrc {
+		av, multi, nm = s.restrSrcAvail(k, p, *d, &av, skip)
+	}
+	return av.hybWitnessRiderMulti(*c, 0, false, multi[:nm])
 }
