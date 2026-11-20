@@ -129,11 +129,15 @@ func (e *Engine) castWindowUnits(pc *pendingCast) []windowManaUnit {
 	return out
 }
 
-// windowTapExtras adds to each single-symbol alternative the mana a tap
-// trigger brings with it (Forsaken Monument's additional {C}): the tap that
-// makes the alternative floats both, so the window's reach is the sum. The
-// alternative keeps its symbol and the extra joins its count; each unit gets
-// a fresh Alts slice, as the census spans may share backing.
+// windowTapExtras adds to each priced alternative the mana a tap trigger
+// brings with it (Forsaken Monument's additional {C}, Wolfwillow Haven's
+// additional {G} on an enchanted land's {W}{B} filter): the tap that makes the
+// alternative floats both, so the window's reach is the sum. A
+// single-symbol alternative folds under the produced symbol's name; a
+// multi-symbol one reads its own Produced$ (the trigger fires on the tap,
+// whatever the split). The alternative keeps its symbols and the extra joins
+// their counts; each unit gets a fresh Alts slice, as the census spans may
+// share backing.
 func (e *Engine) windowTapExtras(units []windowManaUnit) []windowManaUnit {
 	for ui := range units {
 		u := &units[ui]
@@ -145,19 +149,27 @@ func (e *Engine) windowTapExtras(units []windowManaUnit) []windowManaUnit {
 					sym, n = i, n+1
 				}
 			}
-			if n != 1 || a.Ma == nil || a.Any {
+			if n == 0 || a.Ma == nil || a.Any {
 				continue
 			}
-			extra := e.paymentPlanTapExtraMana(u.ID, string(rune(cards.ManaSymbol(sym))))
+			produced := string(rune(cards.ManaSymbol(sym)))
+			if n > 1 {
+				produced = effects.ManaOf(a.Ma).Produced
+			}
+			extra := e.paymentPlanTapExtraMana(u.ID, produced)
 			if extra == (state.Mana{}) {
 				continue
 			}
 			if alts == nil {
 				alts = append(make([]windowManaAlt, 0, len(u.Alts)), u.Alts...)
 			}
-			// one count per mana: the amount is 1 and the symbol's count is
+			// one count per mana: the amount is 1 and each symbol's count is
 			// what the tap makes plus the extra
-			alts[ai].Counts[sym] = a.Counts[sym] * a.Amt
+			if a.Amt != 1 {
+				for i := range alts[ai].Counts {
+					alts[ai].Counts[i] = a.Counts[i] * a.Amt
+				}
+			}
 			alts[ai].Amt = 1
 			for i := range alts[ai].Counts {
 				alts[ai].Counts[i] += extra[state.ManaIndex(cards.ManaSymbol(i))]
