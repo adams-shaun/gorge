@@ -13,22 +13,23 @@ import (
 // alternative OppCtrl: Exotic Orchard's "{T}: Add one mana of any color
 // that a land an opponent controls could produce") or the controller's own
 // (every alternative YouCtrl: Gond Gate, Star Compass, and Reflecting Pool's
-// ColorOrType$ Type, whose {C} the kernel's view drops as gorge's census
-// does). kgen admits it alone, as {T}: Add {C}; {T}: reflected, or as the
-// third of {T}: Add {C}; {T}: Add one mana of any color (restricted, the
-// Courtyard gap genPrep.anyR); {T}: reflected (dirac/kgen
-// lower_reflectedmana.go).
+// ColorOrType$ Type, whose {C} the kernel's view keeps beside the colours
+// when a reflected permanent can make it). kgen admits it alone, as {T}: Add
+// {C}; {T}: reflected, or as the third of {T}: Add {C}; {T}: Add one mana of
+// any color (restricted, the Courtyard gap genPrep.anyR); {T}: reflected
+// (dirac/kgen lower_reflectedmana.go).
 //
 // gorge's planner census (rules paymentPlanManaUnitsOnlyCompute) lists the
-// source as one unit: the shared census's {C}, the reflected colours (the
-// resolution's object walk, {C} dropped: pay.PaymentPlanReflectedCounts),
-// and the restricted any colour, which the planner defers
-// (paymentPlanAbilityShapeTier: RestrictValid$). The kernel's planner view
-// is therefore the kmana2 union {C} | the reflected colours, a function of
-// the board: varPC holds one view per reflected colour set (32), and
-// manaPCGen picks the live one (manaReflView). The payment window asks
-// "Choose a mana ability" and the oracle answers ability 0 ({C}):
-// vergeAbility0Col reads view 0 ({C} alone) through anyVergeOrder.
+// source as one unit: the shared census's {C}, the reflected symbols (the
+// resolution's object walk; pay.PaymentPlanReflectedCounts keeps a
+// ColorOrType$ Type reflection's {C}), and the restricted any colour, which
+// the planner defers (paymentPlanAbilityShapeTier: RestrictValid$). The
+// kernel's planner view is therefore the kmana2 union {C} | the reflected
+// colours, a function of the board: varPC holds a view per reflected symbol
+// set (32, or 64 for a Type read whose bit 5 is {C}), and manaPCGen picks the
+// live one (manaReflView). The payment window asks "Choose a mana ability"
+// and the oracle answers ability 0 ({C}): vergeAbility0Col reads view 0
+// ({C} alone) through anyVergeOrder.
 
 // debugReflMutate is the test-only mutation switch (0 none; 1 the reflected
 // colours are never read: the view is {C} alone; 2 the relaxed proof counts
@@ -40,8 +41,10 @@ var debugReflMutate uint8
 // SetDebugReflMutate sets the mutation switch; tests only.
 func SetDebugReflMutate(m uint8) { debugReflMutate = m }
 
-// prepManaRefl builds card c's 32 reflected views (prepareGen, once per
-// card): view m is the first ability's {C} with the colours m beside it.
+// prepManaRefl builds card c's reflected views (prepareGen, once per card):
+// view m is the first ability's {C} with the colours m beside it. A
+// ColorOrType$ Type Produce read (widen) also has bit 5 {C}: 64 views, so a
+// reflected {C} can coexist with the coloured masks.
 //
 //go:noinline
 func prepManaRefl(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
@@ -63,6 +66,7 @@ func prepManaRefl(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 		// views
 		return
 	}
+	widen := a.ManaProduce && a.ManaProduceType
 	life := uint8(0)
 	if n, ok := manaLifePain(a); ok {
 		// (Horizon of Progress) the lone reflected ability's cost pays life:
@@ -76,12 +80,16 @@ func prepManaRefl(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 		// that is the card's only mana ability (Mox Amber, Horizon of
 		// Progress): the same per-colour views, the colours read from the
 		// filter (reflColours)
-		prepManaImprint(g, id, pc, a.ManaIdentity, ra, life)
+		prepManaImprint(g, id, pc, a.ManaIdentity, ra, life, widen)
 		return
 	}
 	g.setFlag(id, gfManaVar|gfManaRefl)
 	g.smallFor(id).manaVar = int16(len(g.varPC))
-	for m := 0; m < 32; m++ {
+	n := 32
+	if widen {
+		n = 64
+	}
+	for m := 0; m < n; m++ {
 		v := *pc
 		v.manaCol = pc.manaCol | kop.ColorMask(m)
 		v.manaMulti = m != 0
@@ -125,17 +133,20 @@ func (s *State) potentialReflNone(k *prep, sl Slot, done *[MaxPerm]uint16) {
 // M ManaProduce, what the matching permanents' mana abilities could
 // produce, the opponents' or its own by the filter's control property
 // (ReflectProperty$ Produce: Exotic Orchard, Fellwar Stone, Star Compass;
-// gorge effects.producibleSymbols over Face.ManaAbilities), {C} dropped,
-// or, with ManaGrave, the cards of every alive seat's graveyard matching
-// it (The Grey Havens; graveReflColours).
+// gorge effects.producibleSymbols over Face.ManaAbilities), with {C} beside
+// the colours under ColorOrType$ Type when a matched permanent makes it
+// (gorge effects.ManaReflectedFold; prepManaImprint's bit-5 views), or, with
+// ManaGrave, the cards of every alive seat's graveyard matching it (The Grey
+// Havens; graveReflColours).
 func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 	cd := &k.t.Cards[c]
 	var f kop.FilterID
-	var produce, ident, grave, lifeCost bool
+	var produce, ident, grave, lifeCost, widen bool
 	for j := range cd.Abilities {
 		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfManaReflect != 0 {
 			f = a.ManaAmong
 			produce = a.ManaProduce
+			widen = a.ManaProduceType
 			ident = a.ManaIdentity
 			grave = a.ManaGrave
 			_, lifeCost = manaLifePain(a)
@@ -153,8 +164,15 @@ func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 	}
 	if produce {
 		m := s.produceColours(k, sl, f)
-		if m == 0 && lifeCost && s.producesColourless(k, sl, f) {
-			return kop.ColC // prepManaImprint's colourless view
+		if s.producesColourless(k, sl, f) {
+			if widen {
+				// ColorOrType$ Type: {C} coexists with the coloured masks
+				// (prepManaImprint's 64 views), or stands alone when the
+				// reflection names no colour.
+				m |= kop.ColC
+			} else if m == 0 && lifeCost {
+				return kop.ColC // prepManaImprint's colourless view
+			}
 		}
 		return m
 	}

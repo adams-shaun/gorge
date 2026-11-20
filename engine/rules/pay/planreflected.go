@@ -66,17 +66,23 @@ func reflectsStableObjects(spec, property string) bool {
 	return true
 }
 
-// PaymentPlanReflectedCounts is the census's per-colour production of a
-// PaymentPlanReflectedShape ability: one count per colour cols names (the
+// PaymentPlanReflectedCounts is the census's per-symbol production of a
+// PaymentPlanReflectedShape ability: one count per symbol cols names (the
 // resolution's candidate list), in the WindowAlt Counts convention a
-// Produced$ Any alternative already uses. ok is false when no colour is
+// Produced$ Any alternative already uses. ok is false when no symbol is
 // named.
+//
+// {C} is a real candidate when the reflection admits it (ColorOrType$ Type
+// and a reflected mana ability that can produce colourless: Horizon of
+// Progress beside A-Faceless Haven). It must not be dropped: a reflected
+// source can be the ONLY untapped colourless producer, so excluding it
+// withholds a cast the board can pay. The empty fold stays fail-closed;
+// ProducedCounts' blank-value {C} default must not invent a candidate.
 func PaymentPlanReflectedCounts(cols []string) (counts [6]int32, ok bool) {
+	if len(cols) == 0 {
+		return counts, false
+	}
 	counts, _ = cards.ProducedCounts(strings.Join(cols, " "))
-	// {C} stays out: the planner's choice expansion offers coloured
-	// alternatives only (appendUnitAlternatives), and the census bound must
-	// agree with it. A colourless pip is paid by the board's real {C} sources.
-	counts[state.MC] = 0
 	for _, n := range counts {
 		if n > 0 {
 			return counts, true

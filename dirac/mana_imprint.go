@@ -37,20 +37,26 @@ var debugImprintMutate uint8
 // SetDebugImprintMutate sets the mutation switch; tests only.
 func SetDebugImprintMutate(m uint8) { debugImprintMutate = m }
 
-// prepManaImprint builds card id's 32 views (prepManaRefl's arm for the
-// imprint shape): view m makes one mana of a colour of m. A life-cost
-// reflected ability (Horizon of Progress, life > 0) is gorge's last-resort
-// Consequence{Life: N} with no normal alternative (pay
-// PaymentPlanShapeTierOf's cost.Life arm), so its views carry the life as
-// the kernel's pain-only unit's fields (mana_pain.go painUnit, manaLifePain)
-// and name the ability themselves (kop.ReflLifeManaAb: the gen walk honours
-// the cost, but the base pc prices no colours — the views are the unit).
+// prepManaImprint builds card id's views (prepManaRefl's arm for the imprint
+// shape): view m makes one mana of a colour of m. A ColorOrType$ Type Produce
+// read (widen, Reflecting Pool) has 64 views: bit 5 is {C}, so a reflected
+// {C} coexists with the coloured masks. A life-cost reflected ability
+// (Horizon of Progress, life > 0) is gorge's last-resort Consequence{Life: N}
+// with no normal alternative (pay PaymentPlanShapeTierOf's cost.Life arm), so
+// its views carry the life as the kernel's pain-only unit's fields
+// (mana_pain.go painUnit, manaLifePain) and name the ability themselves
+// (kop.ReflLifeManaAb: the gen walk honours the cost, but the base pc prices
+// no colours — the views are the unit).
 //
 //go:noinline
-func prepManaImprint(g *genPrep, id CardID, pc *pcard, ident bool, ra int, life uint8) {
+func prepManaImprint(g *genPrep, id CardID, pc *pcard, ident bool, ra int, life uint8, widen bool) {
 	g.setFlag(id, gfManaVar|gfManaRefl)
 	g.smallFor(id).manaVar = int16(len(g.varPC))
-	for m := 0; m < 32; m++ {
+	n := 32
+	if widen {
+		n = 64
+	}
+	for m := 0; m < n; m++ {
 		v := *pc
 		v.manaCol, v.manaMulti, v.manaRefl, v.manaIdent = kop.ColorMask(m), false, !ident, ident
 		if m == 0 {
@@ -67,13 +73,14 @@ func prepManaImprint(g *genPrep, id CardID, pc *pcard, ident bool, ra int, life 
 		}
 		g.varPC = append(g.varPC, v)
 	}
-	if life != 0 && !ident {
+	if life != 0 && !ident && !widen {
 		// the colourless view (reflColours' kop.ColC index): a land beside the
 		// source could make {C} and nothing coloured (Horizon of Progress
 		// beside a Dragon-Cursed Halls). gorge's fold keeps the {C} (ColorOrType$
-		// Type) while the census counts only coloured production, so the
-		// ability is no planner unit there and the gaps walk plays it for {C};
-		// the kernel prices it as the same last-resort pain unit, of {C}.
+		// Type), so the ability is no planner unit there and the gaps walk
+		// plays it for {C}; the kernel prices it as the same last-resort pain
+		// unit, of {C}. A Type read's 64 views already hold this view at index
+		// 32.
 		v := *pc
 		v.manaCol, v.manaMulti, v.manaRefl, v.manaIdent = kop.ColC, false, true, false
 		v.manaAb, v.manaTap = int8(ra), true

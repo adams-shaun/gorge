@@ -73,11 +73,19 @@ type Ability struct {
 	// permanents' colours (AB$ ManaReflected, ReflectProperty$ Produce,
 	// every Valid$ alternative OppCtrl: Exotic Orchard, Fellwar Stone,
 	// Quirion Explorer, Sylvok Explorer). The colours are the union of the
-	// matched permanents' cards' ProduceCol at each use, {C} dropped (gorge
+	// matched permanents' cards' ProduceCol at each use (gorge
 	// effects.producibleSymbols over Face.ManaAbilities with
-	// ReflectProperty$ Produce). Kernel mana_reflected.go produceColours.
+	// ReflectProperty$ Produce); colourless is ManaProduceType's read, not
+	// ProduceCol's. Kernel mana_reflected.go produceColours.
 	// AbilityFlags has no free bit, so this is a table bool, not State.
 	ManaProduce bool
+	// ManaProduceType: with ManaProduce, ColorOrType$ Type admits colourless
+	// (Reflecting Pool, Horizon of Progress): the reflected read names {C}
+	// beside the coloured productions when a matched permanent's printed mana
+	// ability makes it (gorge effects.ManaReflectedFold keeps it; kernel
+	// mana_reflected.go producesColourless). A ColorOrType$ Color read drops
+	// it. A table bool, not State.
+	ManaProduceType bool
 	// ManaIdentity: with AfManaReflect and no ManaAmong, the reflected read is
 	// the colour identity of the controller's commanders (CR 903.4: Arcane
 	// Signet, Command Tower, Commander's Sphere, Hidden Hideout; Produced$
