@@ -274,6 +274,7 @@ Mist Dragon
 Mnemonic Wall
 Mogg Alarm
 Moment of Heroism
+Moment of Silence
 Moment's Peace
 Monstrous Onslaught
 Morgue Theft
@@ -336,6 +337,7 @@ Razorfin Hunter
 Reiterate
 Reito Lantern
 Reiver Demon
+Relentless Rohirrim
 Relic Bane
 Relic Sloth
 Repercussion

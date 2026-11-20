@@ -92,6 +92,7 @@ Gray Merchant of Asphodel
 Guardian Kirin
 Hall
 Helitrooper
+Heroes of the Revel
 Heroes' Podium
 Hidden Blade
 Idol of Oblivion
@@ -110,6 +111,7 @@ Knight of the Keep
 Kor Castigator
 Lightning Hounds
 Liliana's Steward
+Living End
 Lowland Oaf
 Lucas, the Sharpshooter
 Lyla, Holographic Assistant

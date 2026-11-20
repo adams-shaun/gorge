@@ -131,6 +131,7 @@ Immersturm Raider
 Implement of Combustion
 Imps' Taunt
 Infested Fleshcutter
+Infested Thrinax
 Inquisitive Puppet
 Insight Engine
 Invigorating Surge
@@ -245,6 +246,7 @@ Savage Gorger
 Scalding Tarn
 Scarwood Bandits
 Scatter Ray
+Search Warrant
 Secure the Wastes
 Seismic Spike
 Sejiri Merfolk
@@ -320,6 +322,7 @@ Trusty Machete
 Tundra
 Twinferno
 Unchecked Growth
+Valakut Predator
 Vampire Champion
 Viral Drake
 Visions of Beyond
