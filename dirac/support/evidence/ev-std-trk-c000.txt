@@ -2,20 +2,29 @@
 Academy Instructor
 Adversary by Algorithm
 All Good Things . . .
+Amok Time
 Andoria
 Andromedan Automatons
 Antagonist Incorporator
 Anthropological Mission
 Artificial Anomaly
 Assault Drone
+Assembly Specialist
 Astute Terraformer
 Automated Warfare System
+Bat'leth
 Battle-Scarred Survivalist
+Beckett Mariner, Impetuous Ensign
+Blastoneuron
+Boarding Action
 Brad Boimler, Eager Ensign
 Breeding Pool
+Cantankerous Captain
 Captain James T. Kirk
 Captain Jonathan Archer
+Captain Michael Burnham
 Captain Pike, Fullness of Time
+Captain's Tutelage
 Cardassia Prime
 Cha'DIch Investigator
 Cloak and Phaser
@@ -26,17 +35,23 @@ Command Subadjunct
 Commander Raffi Musiker
 Conquest Mission
 Consider the Prime Directive
+Constable Odo
+Culber and Stamets, Star-Crossed
+Cybernetic Specialist
 D-7 Battle Cruiser
+DOT-7 Repair Squad
 Data, New Life
 David and Carol Marcus, Creators
 De-evolve
 Deanna Troi, Psychic Counsel
 Deep Space 9
+Dominion Saboteur
 Dominion Supervisor
 Dr. Joseph M'Benga
 Dr. Leonard "Bones" McCoy
 Dr. McCoy, Surly Surgeon
 Earth, Sector 001
+Eject the Warp Core
 Emergency Holographic Crew
 Emergency Medical Hologram
 Encounter the Unknown
@@ -46,11 +61,13 @@ Enterprise NX-01
 Erica Ortegas, Plucky Pilot
 Federation Field Medic
 Federation Outpost
+Federation Resupply
 Ferenginar
 Final Frontier
 First Contact
 Forest
 Gabriel Lorca, Mirror Menace
+Gaseous Anomaly
 General Chang, Cold Warrior
 Genesis Device
 Genesis Effect
@@ -63,12 +80,15 @@ Hemmer, Fixing What Is Broken
 Highly Illogical
 Hive Mind Coprocessor
 Hologram Janeway
+Hoshi Sato, Exolinguist
 I'm a Doctor, Not a . . .
 Impossible Choice
 Interstellar Effigy
 Island
 Isolinear Processor
+Jett Reno, Problem Solver
 Khaaaaaaaaaaaannn!
+Khan, Vengeful Heart
 Lieutenant Commander Data
 Lore, Positronic Provocateur
 Lt. Cmdr. Geordi La Forge
@@ -77,7 +97,9 @@ Make It So
 Marooned
 Miles O'Brien, Transporter Ops
 Mirror Universe Intrusion
+Moopsy
 Mountain
+Mr. Spock, Science Officer
 Munitions Enthusiast
 Neelix, Moral Support
 Ni'Var Science Academy
@@ -87,15 +109,18 @@ Open Communications
 Orion
 Overflow Submatrix
 Overgrown Tomb
+Pah-Wraith
 Pattern Buffer Preservation
 Perils of the Past
 Pet Sehlat
 Picard, Leading by Example
 Plains
 Plasma Cascade
+Primary Unimatrix Adjunct
 Pure Energy
 Q Continuum
 Q, Stacking the Deck
+Qo'noS
 Quark's Bar
 Reckless Impulse
 Red Alert!
@@ -108,12 +133,15 @@ Rules of Acquisition
 Rutherford, Upgraded Ensign
 Saavik, Stoic Student
 Saru, Unthreatened
+Savvy Profiteer
 Scotty, Miracle Worker
 Sela, Tal Shiar Paradox
 Set Phasers to . . .
 Seven of Nine
 Shields Up!
+Sickbay
 Spatial Anomaly
+Spock, Always Your Friend
 Stable Wormhole
 Starfleet Security
 Starfleet Spanner Jockey
@@ -121,8 +149,10 @@ Steam Vents
 Storied Veteran
 Subspace Anomaly
 Support Mission
+Suurok-Class Science Vessel
 Suus Mahna Practitioner
 Swamp
+Sylvia Tilly, Joy of Discovery
 Syndicate Liquidators
 Tactical Officer
 Tal Shiar Operative
@@ -131,8 +161,11 @@ Tasha Yar, Out of Time
 Tea, Earl Grey, Hot
 Tell Me What You See
 Temporal Anomaly
+Tenacious Drone
 Test of Conviction
 Test of Loyalty
+Test of Priorities
+The Holodeck
 The Measure of a Man
 The Naked Time
 The Needs of the Many
@@ -142,8 +175,11 @@ Those Old Scientists
 Transporter Malfunction
 Tricorder
 Troubling Tribbles
+Type-2 Phaser
+U.S.S. Cerritos, Following Up
 U.S.S. Discovery, at Black Alert
 U.S.S. Enterprise-D, Galaxy-Class
+U.S.S. Excelsior, Cutting Edge
 U.S.S. Reliant, From Hell's Heart
 Una Chin-Riley, Number One
 Unexplored Territory
@@ -151,8 +187,11 @@ Vengeance Mission
 Vexing Drone
 Vulcan
 Vulcan Mind-Meld
+Warp Core
 Warp Speed
 Watery Grave
 Wesley Crusher, Starfleet Cadet
 Xenobotanist
 Xindi Surveyors
+Year of Hell
+Zefram Cochrane, Warp Pioneer
