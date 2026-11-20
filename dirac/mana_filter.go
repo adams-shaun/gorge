@@ -1274,6 +1274,10 @@ type filtSearch struct {
 	// fee (paid from the floating pool, CR 601.2b), and without the plain
 	// run's fee-stall prune (feeStall is set on the plain run only).
 	phased bool
+	// feeOrder: gorge's fee-order fallback run (mana_filterfeeorder.go); feePass
+	// is the pass visit is walking
+	feeOrder bool
+	feePass  uint8
 }
 
 // deferGapLeft: the search still holds an untapped filter gap whose tap
@@ -1469,6 +1473,13 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 				found = true
 				break
 			}
+		}
+	} else if !found && fs.feeOrderScope(k, s, a) {
+		ph := fs.feeOrderRun() // gorge's fee-order fallback (mana_filterfeeorder.go)
+		if found = ph.visit(k, t, 0, false); found {
+			fs = ph
+		} else if fs.stall == 0 {
+			fs.stall = ph.stall
 		}
 	}
 	s.pool.inFilt--
@@ -1989,7 +2000,7 @@ func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap, freeOnly bool) b
 		return true
 	}
 	_, life := t.lifeGapSource(k, sl)
-	return life
+	return life || fs.feeOrderSkip(k, t, sl)
 }
 
 // twinTried reports whether an earlier slot this pass is indistinguishable
@@ -2167,7 +2178,7 @@ func (fs *filtSearch) orderFunders(k *prep, t *State, order []Slot, gap bool) {
 // fallback) gaps whose ability costs no mana, funding sources, gaps, then the
 // life-only source.
 func (fs *filtSearch) passCount() int {
-	if fs.phased {
+	if fs.phased || fs.feeOrder {
 		return 4
 	}
 	return 3
@@ -2177,6 +2188,10 @@ func (fs *filtSearch) passCount() int {
 // skipped: the funding passes are once the funding is spent (gorge's phase
 // loop breaks there, so the phased run's last gap pass goes with it).
 func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOnly, skip bool) {
+	if fs.feeOrder {
+		gap, skip = fs.feeOrderPassShape(pass, funded)
+		return gap, false, skip
+	}
 	gap = pass == 0 || fs.phased && pass == 2
 	freeOnly = fs.phased && pass == 0
 	if gap {
