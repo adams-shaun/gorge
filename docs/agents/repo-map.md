@@ -47,6 +47,7 @@ that touches `State`, and the import boundary. Generated support lists:
 | `dirac/search` | gorge `bots/azmcts`'s AlphaZero PUCT search ported onto dirac state (same algorithm, the production az config). | The search and its parity tests; `dirac/neteval` supplies the evaluator. |
 | `dirac/search/hbot` | The native port of gorge's auto-pay heuristic bot. | Mirror a gorge auto-pay change here; lockstep is the check. |
 | `dirac/search/mull` | gorge's London-mulligan policies as pure functions over a hand. | The same policy change as gorge's, kept pure. |
+| `dirac/shadowseat` | A gorge `seat.Seat` that stages its view with `dirac/shadow`, searches it on dirac and maps the answer onto gorge's options, with a fallback seat and counted reasons. | The seat, its mapping and its tests. |
 | `dirac/lab` | A small wrapper for playing games and setting up experiments on dirac alone: `Config`, `NewGame`, `Game`, `Policy`. Its example is the test that pins [`docs/site/engines/lab.md`](../site/engines/lab.md). | The wrapper; keep its example and that page in step. |
 | `dirac/manifest` | The namespace manifest: one small file per vocabulary code, under `dirac/manifest/<Family>/<GoName>`, giving each code its value once. | Entries via `dirac/cmd/kmanifest`; never renumber. |
 | `dirac/shadow` | Stages a dirac `State` from what one seat can see (a `view.View` plus a caller-supplied assignment of hidden zones), so a bot attached to another engine can search. | The staging and its tests. |
