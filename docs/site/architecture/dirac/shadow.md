@@ -51,8 +51,20 @@ Two, three or four seats (`dirac.MaxSeats`), every seat still in the game.
   declare blockers step in a pod is `decision` even with blocks shown, since another defender may still be to declare.
   The declare blockers step with no attacker on the board is `combat` (every attacker left, and a blocker of a departed
   attacker keeps blocking with no mark a view shows).
-  A seat that has left the game is `seat-left` (a finished game stays `game-over`); Commander stays refused (`exile`).
-  Status of the multiplayer shadow (C13): pods of every seat in the game are done; departed seats and Commander remain.
+  A seat that has left the game is `seat-left` (a finished game stays `game-over`).
+  Status of the multiplayer shadow (C13): pods of every seat in the game and four-seat Commander pods are done; departed
+  seats remain.
+
+- **Commander (CR 903).** A view whose players list a commander stages as `World.Commander`: one commander a seat
+  (`PlayerView.Commanders[0]` -> `World.Cmd`), in the command zone or any zone staging admits, its command-zone casts
+  (`CommanderCasts[0]` -> `CmdCasts`, the CR 903.8 tax) and each player's damage from each seat's commander
+  (`PlayerView.CmdDamage`, read by the commander's id -> `CmdDamage[damaged][commander's seat]`, CR 903.10a), at 40 life.
+  `stageableCard` admits a legendary creature with combat keywords (the legend rule is a state-based action staging never
+  performs). `initFromWorld` seats the commanders through `Config.Commanders` (so `InitN` runs `cmdGenesis`), places each
+  one where the World says and sets the cast count and tallies; a commander in a graveyard has its CR 903.9a ask marked
+  answered (`cmdAsk` = its `ver`), as no quiet position holds the ask pending. A partner pair is `commander`; a second
+  card in a command zone is `commander` in dirac and `exile` in the view (a command zone holds its commander only);
+  a commander in exile stays `exile`.
 
 - **Permanents.** Lands; creatures with combat keywords only, or whose only ability is a no-target, no-once-per-turn
   "put a +1/+1 counter on this" (`selfCounterAbility`); damage marked on a creature (also marked dealt-damage-this-turn,
@@ -89,7 +101,7 @@ blockers with no block, cannot tell the pose from the priority round after an em
 
 Everything else is refused with a reason. dirac's reasons are `dirac.UnstageableReasons` (`table`, `seats`,
 `object-layout`, `card`, `zone`, `control`, `place`, `step`, `priority`, `turn`, `life`, `battlefield`, `token`,
-`attachment`, `stack-entry`, `combat`). `shadow` adds the consts in `dirac/shadow/stage.go` (`game-over`, `seats`,
+`attachment`, `stack-entry`, `combat`, `commander`). `shadow` adds the consts in `dirac/shadow/stage.go` (`game-over`, `seats`,
 `seat-left`, `stack`, `pending`, `decision`, `unknown-card`, `unmapped-object`, `hidden`, `exile`, `counter`, `mark`, `pool`,
 `step-name`). `TestUnstageableReasons` (`dirac`) and `TestWorldFromViewReasons` (`dirac/shadow`) provoke them.
 
@@ -127,6 +139,8 @@ below a floor of staged positions per feature.
 | `TestStagePodsMatchReplay` | the vanilla pool at four seats; marks, a stack entry, an attack on a non-adjacent defender (160 games: 160 staged, 50 with marks, 43 with a stack entry, 41 with a non-adjacent attack) |
 | `TestStageCombatPodsMatchReplay` | the combat kinds at four seats plus the blockers pose of a later defender (240 games: 239 staged, 45 later-defender poses) |
 | `TestStagePodMutationsAreCaught` | seat 3 life, seat 2 library, the attacked seat, the asked defender and the priority holder each bent in turn |
+| `TestStageCommanderPodsMatchReplay` | the `cmd5` pool at four seats, each deck Terrian, World Tyrant (the commander), seven creatures and 32 Forests (120 pods: 114 staged, 107 with a commander in the command zone, 68 on the battlefield, 84 cast, 12 taxed, 36 with commander damage) |
+| `TestStageCommanderMutationsAreCaught` | commander damage, cast counts and a command-zone commander moved to its library each bent in turn |
 | `TestStageMutationsAreCaught` | drops each staged feature in turn (tapped, damage, counters, life, library order, the stack, combat marks, attachments, tokens) and requires the verifier to fail |
 
 ## Fork and rollout
