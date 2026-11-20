@@ -55,6 +55,7 @@ func mtime(t *testing.T, p string) time.Time {
 }
 
 func TestTestTargetsRemoteReusesTheSlotWorktree(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	slot := filepath.Join(r.box, "tt-wt", ".slot1.wt")
 	r.commit("other.txt", "v1\n")
@@ -102,6 +103,7 @@ func TestTestTargetsRemoteReusesTheSlotWorktree(t *testing.T) {
 
 // The slot's flock is what keeps two runs apart: with slot 1 held, the run takes slot 2 and its own worktree.
 func TestTestTargetsRemoteHeldSlotIsNeverShared(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	r.set("GORGE_REMOTE_MAX_RUNS=2")
 	r.mustPass("warm slot 1")
@@ -131,6 +133,7 @@ func TestTestTargetsRemoteHeldSlotIsNeverShared(t *testing.T) {
 // A run killed mid-checkout leaves the index lock and a half-written tree; one killed inside `worktree add` leaves no
 // .git file. Either way the next run in the slot recovers and runs the right head.
 func TestTestTargetsRemoteInterruptedSlotRecovers(t *testing.T) {
+	t.Parallel()
 	cases := map[string]func(t *testing.T, slot string){
 		"index lock and a dirty tree": func(t *testing.T, slot string) {
 			gd := strings.TrimSpace(sh(t, slot, "git", "rev-parse", "--absolute-git-dir"))
