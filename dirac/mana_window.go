@@ -2042,9 +2042,6 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 // through to the ordinary gap path would tap a source with no census ability
 // (eachFee's each-colour index is -1).
 func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, anyR, tapsDef, ca slotMask, c int, spill *[kop.NumManaKinds]uint8) bool {
-	if true {
-		return true
-	}
 	if _, life := s.lifeGapSource(k, sl); life {
 		if !s.lifeGapSurvives(k, p, sl) {
 			return false

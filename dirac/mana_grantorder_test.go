@@ -479,13 +479,6 @@ func TestGrantWalkOrderEquivalence(t *testing.T) {
 								played = i
 								return
 							}
-							if gi == 0 && i%10 == 0 {
-								nm := ""
-								for m2 := s.occ; m2.any(); m2 = m2.rest() {
-									nm += s.k().t.Cards[s.cardAt(m2.first())].Name + " "
-								}
-								t.Logf("DBG %s game0 i=%d: %s", name, i, nm)
-							}
 							k := s.k()
 							if k.gen != nil {
 								if compareGrantOrder(t, k, &s, fmt.Sprintf("%s game %d seed %d decision %d", name, gi, sd, i)) {

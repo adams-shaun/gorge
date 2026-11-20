@@ -970,9 +970,9 @@ var TapsDeferGapStats struct {
 }
 
 // deferGapScratch is the subsets search's recursion state, one per search in
-// the caller's frame: the walk method takes only its pointer, so the arrays
-// stay on the stack and the search allocates nothing (the sweep's map and
-// slices were four heap objects a decision).
+// the caller's frame: the walk function writes through its pointer and never
+// stores it, so the arrays stay on the stack and the search allocates nothing
+// (the sweep's map and slices were four heap objects a decision).
 type deferGapScratch struct {
 	cut     [MaxPerm]bool // gap i: every answer so far ended the line at another player's ask
 	removed [MaxPerm]bool // the gaps gorge's search goes on without (scriptDFS cutAll)
@@ -984,59 +984,26 @@ type deferGapScratch struct {
 	stall   uint8
 }
 
-// deferGapCtx is the subsets search's fixed context, the caller's frame: the
-// walk method's parameters beside the scratch, so the recursion is a method,
-// not a closure capture, and the search allocates nothing.
-type deferGapCtx struct {
-	s           *State
-	k           *prep
-	a           Action
-	p           uint8
-	order       []Slot
-	tapsDef     slotMask
-	cp          *castRestPay
-	ans         *[MaxPerm]uint8
-	pick        *[MaxPerm]int8
-	dead        *bool
-	n           int
-	noGrant     bool
-	resolvePlay bool
-	twinCut     bool
-}
-
 func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool) bool {
-	n := len(order)
-	if n == 0 {
+	if len(order) == 0 {
 		return false
 	}
 	TapsDeferGapStats.Searches.Add(1)
-	c := deferGapCtx{
-		s:           s,
-		k:           k,
-		a:           a,
-		p:           p,
-		order:       order,
-		tapsDef:     tapsDef,
-		cp:          cp,
-		ans:         ans,
-		pick:        pick,
-		dead:        dead,
-		n:           n,
-		noGrant:     a.Kind() == AkActivate && s.restrictedGrantLive(k, p),
-		resolvePlay: s.playNeedsEmptyStack(k, a),
-		twinCut:     cp == nil && isAbilityPlay(a), // gorge's potentialTwinCut on the prefix search
-	}
 	var w deferGapScratch
-	return c.walk(&w, false)
+	return deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead,
+		a.Kind() == AkActivate && s.restrictedGrantLive(k, p),
+		s.playNeedsEmptyStack(k, a),
+		cp == nil && isAbilityPlay(a), // gorge's potentialTwinCut on the prefix search
+		&w, false)
 }
 
-// walk is one visit of gorge's search at the used subset: the replay on a
-// fork and the play's offered check, then the children, then the pass.
-func (c *deferGapCtx) walk(w *deferGapScratch, post bool) bool {
-	s, k, a, p, order := c.s, c.k, c.a, c.p, c.order
-	n, tapsDef, cp := c.n, c.tapsDef, c.cp
-	ans, pick, dead := c.ans, c.pick, c.dead
-	noGrant, resolvePlay, twinCut := c.noGrant, c.resolvePlay, c.twinCut
+// deferGapWalk is one visit of gorge's search at the used subset: the replay
+// on a fork and the play's offered check, then the children, then the pass.
+// The context is explicit parameters, not a struct: s and k flow into probes
+// that leak them, so a context struct holding them would be heap-allocated,
+// and with it every array the caller passes beside it.
+func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool, noGrant, resolvePlay, twinCut bool, w *deferGapScratch, post bool) bool {
+	n := len(order)
 	{
 		if w.nodes++; w.nodes > potentialScriptNodes {
 			if w.stall != 0 {
@@ -1049,10 +1016,10 @@ func (c *deferGapCtx) walk(w *deferGapScratch, post bool) bool {
 			t.g.noGrant = noGrant
 			var spill [kop.NumManaKinds]uint8
 			replay := deferReplay(t, k, p, a, order, w.used[:w.nu], w.answers[:w.nu], tapsDef, &spill)
+			charge, fits := s.deferChainCharge(k, t, w.nodes, order, w.used[:w.nu], replay, post, resolvePlay, twinCut)
 			if w.stall == 0 {
 				w.stall = t.g.stalled
 			}
-			charge, fits := s.deferChainCharge(k, t, w.nodes, order, w.used[:w.nu], replay, post, resolvePlay, twinCut)
 			if !fits {
 				// Gorge's visit charges every clone until its budget saturates,
 				// then refuses every later node, so a genuinely too-long pass
@@ -1152,7 +1119,7 @@ func (c *deferGapCtx) walk(w *deferGapScratch, post bool) bool {
 			for ai := 0; ai < na; ai++ {
 				w.used[w.nu], w.answers[w.nu] = int8(i), uint8(ai)
 				w.nu++
-				ok := c.walk(w, false)
+				ok := deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, w, false)
 				w.nu--
 				if ok {
 					return true
@@ -1167,7 +1134,7 @@ func (c *deferGapCtx) walk(w *deferGapScratch, post bool) bool {
 		// once the stack is clear again. The payment search's stop reads no
 		// offer, so its queued triggers never stand between it and the play.
 		if cp == nil && resolvePlay && w.nu > 0 {
-			return c.walk(w, true)
+			return deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, w, true)
 		}
 		return false
 	}

@@ -74,9 +74,11 @@ func TestTapsDeferGapSearchAllocatesNothing(t *testing.T) {
 					// CopyFrom keeps dst's own fork pool, so the copy's first
 					// fork would allocate the pool and its State: give the
 					// segment a pooled one, warmed past the subsets search's
-					// nesting so no fork in the segment allocates its State.
+					// nesting (each level holds its replay's and chain's
+					// probes, so the walk's depth is past the gap count) so no
+					// fork in the segment allocates its State.
 					snap.UseForkPool(NewForkPool())
-					for d := 0; d < 24; d++ {
+					for d := 0; d < 64; d++ {
 						snap.fork()
 					}
 					snap.pool.depth = 0
