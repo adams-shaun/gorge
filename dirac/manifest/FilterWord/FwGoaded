@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwGoaded
+value: next
+contexts: perm
+status: active
+doc: FwGoaded: the battlefield permanent is goaded by any player (gorge filter.go positiveRecognised IsGoaded: an OpGoad mark, or a live Goad$ True static). An object off the battlefield fails closed; not read in a layer-walk view.
