@@ -72,7 +72,26 @@ func (s *State) pickLeaves(k *prep, o Obj, z kop.Zone) (parked bool) {
 		s.remember(o)
 	}
 	s.forgetFound(k, o)
+	s.pickLink(k, o)
 	return false
+}
+
+// pickLink links a battlefield pick's exiled card o to the resolving source
+// when the pick is until-leaves (SrBattleLink, Duration$ UntilHostLeavesPlay;
+// gorge recordExileReturnFor emits the link for a non-token card that is in
+// exile): the card returns to the battlefield under its owner's control when
+// the source leaves (returnLinked), the picked set in one entering batch.
+//
+//go:noinline
+func (s *State) pickLink(k *prep, o Obj) {
+	pr := s.prog(k)
+	if !s.res.active || int(s.res.pc) >= len(pr) {
+		return
+	}
+	if in := &pr[s.res.pc]; in.Op != kop.OpChooseMove || in.B.N&kop.SrBattleLink == 0 || s.objs[o].zone != kop.ZoneExile {
+		return
+	}
+	s.recordExileLink(s.res.e.obj, o)
 }
 
 // chooserOf is who answers a search / choose-move over player p's zone:
