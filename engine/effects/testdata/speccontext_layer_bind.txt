@@ -97,7 +97,6 @@ effects/zone_hand.go handMoveOwnersWalk
 effects/zone_hidden.go effHiddenPick
 effects/zone_search.go applyLibrarySearch
 effects/zone_search.go effSearchLibrary
-rules/combat/block.go LandwalkEvades
 rules/layers_types.go Engine.matchesWithCharsPTSlow
 rules/protection.go Engine.sourceHasQuality
 rules/replacement_match.go Engine.replacementMatchesRememberedUngatedBy
