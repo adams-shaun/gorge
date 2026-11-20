@@ -120,8 +120,9 @@ jobs:
         run: |
           # -exec /bin/true builds and vets each test binary and runs none of them.
           pkgs=$(bash scripts/ci_shard.sh all "$SHARDS" | awk '{print $2}')
+          # ./dirac/oracle too: ci_shard.sh leaves it out, and dirac-repros compiled it itself (~100-170 s, 11-20).
           # shellcheck disable=SC2086
-          go test -exec /bin/true $pkgs >/dev/null
+          go test -exec /bin/true $pkgs ./dirac/oracle >/dev/null
 
   # Two-step CI (Mergify): a pull request runs only this fast stage, the diff's packages and the tests that
   # import them (scripts/ci-fast.sh). The full suite runs once per queue batch, on mergify/merge-queue/* branches,
@@ -548,6 +549,12 @@ jobs:
     needs: [prior, prepare]
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && needs.prepare.result == 'success' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
+    # Two parts (11-20): alone, the replay was 326-335 s of tests plus ~100-170 s compiling ./dirac/oracle, and it set
+    # the batch's wall time (#2711's first batches: 441-519 s against dirac-slices' 204-223 s).
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [0, 1]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -595,7 +602,16 @@ jobs:
       - name: Replay the committed repros
         # Every test with Repro in its name, the set fast's REPLAYS selects (scripts/test_targets.py): 11-18 a
         # *ReprosReach replay went red on main because this step ran only *ReprosLockstep.
-        run: go test -timeout 12m -run 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle
+        # The part's half of the listed names, round robin over their sorted order; together the parts run exactly the
+        # tests the one call did (-list matches top-level names as -run does; their subtests all run).
+        env:
+          PART: ${{ matrix.part }}
+        run: |
+          names=$(go test -list 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle | grep -E '^Test' | sort)
+          [ -n "$names" ] || { echo "go test -list found no repro tests"; exit 1; }
+          rx=$(awk -v p="$PART" 'NR % 2 == p' <<<"$names" | paste -sd'|')
+          echo "part $PART: $(wc -w <<<"${rx//|/ }") of $(wc -l <<<"$names") tests"
+          go test -timeout 12m -run "^($rx)\$" ./dirac/oracle
 
   # The whole of ./dirac/oracle, on a pull request to main only. Its serial lockstep games
   # outlast one runner, so a matrix splits it (scripts/ci-oracle-shard.sh). No deck pool ships
