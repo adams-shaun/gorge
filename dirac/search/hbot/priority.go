@@ -372,13 +372,16 @@ func (bt *Bot) floatColour(d *dirac.Decision, src *cardF) int8 {
 // tier 2 makes none it can show. Within a tier the fewest colours first, then the
 // earlier option. A source that spends pool mana without tapping is a converter,
 // which the tap gate takes only when it provably helps; the port never does.
+// A source whose mana ability consumes a battlefield permanent (BoardSac,
+// botpolicy boardConvertCost: a sacrifice, a self-sacrifice, a battlefield
+// exile) is never a tap either; the port declines it like gorge.
 func (bt *Bot) tapToward(s *dirac.State, c *cardF) *cardF {
 	b := &bt.b
 	var best *cardF
 	bestTier, bestFlex := 3, 0
 	for i := 0; i < b.nCard; i++ {
 		x := &b.card[i]
-		if !x.own || !x.onBF || x.tapped || x.f.Converter || !s.FeatManaActivatable(x.obj) {
+		if !x.own || !x.onBF || x.tapped || x.f.Converter || x.f.BoardSac || !s.FeatManaActivatable(x.obj) {
 			continue
 		}
 		matches, shown := false, false
