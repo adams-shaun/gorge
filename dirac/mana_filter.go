@@ -2283,17 +2283,8 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				free := t.canTapForMana(k, sl)
 				filt := t.filtPaid(k, p, sl)
 
-				if rm := t.mixSrcMask(k, sl); free && rm != 0 {
-					if fs.mixSrcGap(k, t, sl, funded, rm, filt) { // (a restricted ability beside the filter: mana_mixsrc.go)
-						return true
-					}
-					continue
-				}
-				if free && fs.freeBranchHopeless(k, t, sl) {
-					// the free ability spends the play's only producer of a
-					// needed pip: take the paid ability now when its fee is
-					// paid, else leave the source to a later funding tap
-					if filt && fs.filtColours(k, t, sl, funded) {
+				if handled, res := fs.gapFreeSpecial(k, t, sl, funded, free, filt); handled {
+					if res {
 						return true
 					}
 					continue
@@ -2517,6 +2508,23 @@ func (fs *filtSearch) gapOneShot(k *prep, t *State, sl Slot) bool {
 	}
 	a := t.filtAb(k, sl)
 	return a.Cost.Mana.Generic == 0 && pipSum(&a.Cost.Mana.Pips) == 0 && a.Cost.Mana.Hyb == ([4]kop.ColorMask{})
+}
+
+// gapFreeSpecial handles the two gap-slot shapes visit settles before its
+// free/filter switch. handled reports the slot was settled here (visit then
+// returns true when res is set, else moves to the next slot): a restricted
+// ability beside the filter (mana_mixsrc.go), or a free ability whose
+// activation spends the play's only producer of a needed pip
+// (freeBranchHopeless), where the paid ability is taken now when its fee is
+// paid, else the source is left to a later funding tap.
+func (fs *filtSearch) gapFreeSpecial(k *prep, t *State, sl Slot, funded int, free, filt bool) (handled, res bool) {
+	if rm := t.mixSrcMask(k, sl); free && rm != 0 {
+		return true, fs.mixSrcGap(k, t, sl, funded, rm, filt)
+	}
+	if free && fs.freeBranchHopeless(k, t, sl) {
+		return true, filt && fs.filtColours(k, t, sl, funded)
+	}
+	return false, false
 }
 
 // freeBranchHopeless reports whether activating sl's free mana ability cannot
