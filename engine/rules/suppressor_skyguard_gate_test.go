@@ -68,16 +68,16 @@ func TestSuppressorSkyguardGateNeedsTheAttackRoles(t *testing.T) {
 	e := threeSeatEngine(t)
 	src := onBoardCard(t, e, 1, card(t, skyguardSrc))
 	const spec = "Player.OpponentOf TriggeredAttackingPlayer+!Defending"
-	if e.checkDefinedPlayerHolds(spec, src, 1) {
+	if e.checkDefinedPlayerHolds(spec, src, 1, nil) {
 		t.Fatal("no attack roles bound: the gate must fail closed")
 	}
 	atk := state.Target{Player: 0, IsPlayer: true}
 	tc := &effects.TriggerContext{AttackingPlayer: atk}
-	if checkDefinedPlayerHoldsCtx(e, spec, src, 1, tc) {
+	if e.checkDefinedPlayerHolds(spec, src, 1, tc) {
 		t.Fatal("attacking player bound but no defending player: `!Defending` must not invert the absence into a match")
 	}
 	tc.DefendingPlayer = state.Target{Player: 1, IsPlayer: true}
-	if !checkDefinedPlayerHoldsCtx(e, spec, src, 1, tc) {
+	if !e.checkDefinedPlayerHolds(spec, src, 1, tc) {
 		t.Fatal("seat 0 attacks seat 1 on a three-seat table: seat 2 is an unattacked opponent, the gate must hold")
 	}
 }

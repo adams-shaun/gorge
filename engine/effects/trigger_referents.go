@@ -589,6 +589,9 @@ func controlReferent(p string) (op, ref string, ok bool) {
 	case controlReferentTriggeredTarget:
 		return op, ref, true
 	}
+	if isDelayTriggerRemembered(ref) {
+		return op, ref, true
+	}
 	// Player.NotedFor<label> is a global player property resolved by the
 	// shared player-spec evaluator (controlReferentPlayers below), exactly like
 	// Player.EnchantedBy. The label is dynamic, so it is a prefix arm rather
@@ -765,7 +768,11 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		return players, true
 	}
 	var targets []state.Target
-	switch controlReferentPlayersCodes.Code(string(ref)) {
+	refCode := controlReferentPlayersCodes.Code(string(ref))
+	if isDelayTriggerRemembered(ref) {
+		refCode = controlReferentPlayersDelayTriggerRemembered
+	}
+	switch refCode {
 	case controlReferentPlayersTriggeredSourceSAController:
 		// The controller of the CAUSING spell/ability's source: the role a
 		// BecomesTarget/BecomesTargetOnce trigger captures in TriggerSource
@@ -1128,7 +1135,6 @@ var controlReferentCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentCode]{Key: "TriggeredSourceSAController", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "NextOpponentToYourLeft", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "NextPlayerToYourLeft", Val: controlReferentTriggeredTarget},
-	state.StrEntry[controlReferentCode]{Key: "DelayTriggerRemembered", Val: controlReferentTriggeredTarget},
 )
 
 type controlReferentPlayersCode uint16
@@ -1184,8 +1190,14 @@ var controlReferentPlayersCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.EnchantedBy", Val: controlReferentPlayersPlayerEnchantedBy},
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.Active", Val: controlReferentPlayersPlayerActive},
 	state.StrEntry[controlReferentPlayersCode]{Key: "ActivePlayer", Val: controlReferentPlayersPlayerActive},
-	state.StrEntry[controlReferentPlayersCode]{Key: "DelayTriggerRemembered", Val: controlReferentPlayersDelayTriggerRemembered},
 )
+
+// isDelayTriggerRemembered reports the delayed-trigger capture spelling. It reads
+// the word from the one vocabulary table (definedSpecCodes) that already names it
+// instead of keying it into the two control-referent tables.
+func isDelayTriggerRemembered(ref string) bool {
+	return definedSpecCodes.Code(ref) == definedSpecDelayTriggerRemembered
+}
 
 // rememberedPlayerReferent is the PLAYER half of a remembered set a control
 // referent names.
@@ -1204,7 +1216,7 @@ var controlReferentPlayersCodes = state.NewStrCodes(
 //     all leaves the referent unbound (the caller's tail returns ok=false).
 func rememberedPlayerReferent(sc SpecContext, ref string) ([]state.Target, bool) {
 	set := sc.Remembered
-	if ref == "DelayTriggerRemembered" {
+	if isDelayTriggerRemembered(ref) {
 		if set = sc.DelayedRemembered; len(set) == 0 && sc.Reflexive {
 			set = sc.Remembered
 		}
