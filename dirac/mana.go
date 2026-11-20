@@ -1,10 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
-	"runtime"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -300,10 +297,6 @@ func satAdd(a uint16, n uint8) uint16 {
 }
 
 func (a *avail) addUnits(mask, n uint8) {
-	if dbgUnits {
-		_, cf, cl, _ := runtime.Caller(1)
-		fmt.Fprintf(os.Stderr, "KDBG addUnits mask=%d n=%d from=%s:%d\n", mask, n, cf, cl)
-	}
 	a.total += int(n)
 	for i := 0; i < a.n; i++ {
 		if a.mask[i] == mask {
@@ -324,8 +317,6 @@ func (a *avail) addUnits(mask, n uint8) {
 
 // remove takes n units of mask out (a source paying its own {T} cost).
 func (a *avail) remove(mask, n uint8) { a.removeWide(mask, uint16(n)) }
-
-var dbgUnits = true
 
 // takeWide removes n units from group mask without touching the one-colour
 // entries: oneColourPays removes every entry itself, so it must keep their
@@ -535,9 +526,6 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		if k.painMana && pc.painCol != 0 {
 			s.addPainAvail(k, sl, pc, p, a, nil, true)
 			continue
-		}
-		if true {
-			fmt.Fprintf(os.Stderr, "KDBG avail source sl=%v card=%v tapped=%v mask=%v n=%v ctrl=%v\n", sl, k.t.CardName(s.cardAt(sl)), pm.flags&pfTapped != 0, s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc), pm.ctrl)
 		}
 		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 		if pc.manaOne {
@@ -1856,7 +1844,6 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		col := int(cols[i])
 		// a life-only census gap's unit pays its life, not a tap (mana_lifegap.go)
 		if !s.lifeGapPlanCost(k, p, sl) && !ty.sacOnly {
-			fmt.Fprintf(os.Stderr, "KDBG manatap sl=%v %s\n", sl, k.t.CardName(s.cardAt(sl)))
 			s.perms[sl].flags |= pfTapped
 			s.touchSl(sl)
 			s.manaTapped(k, sl)

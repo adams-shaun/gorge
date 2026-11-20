@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -651,7 +649,6 @@ func (s *State) grantTapNow(k *prep, sl Slot) bool {
 //go:noinline
 func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	mask, n := s.srcMaskAt(pc, sl), srcYield(pc) // a pair view's larger alternative, as availFor (mana_gate.go)
-	fmt.Fprintf(os.Stderr, "KDBG availGrant dec=%d sl=%v card=%s mask=%d own=%v\n", dbgDec, sl, k.t.CardName(s.cardAt(sl)), mask, s.ownManaUsable(k, sl))
 	var gi [maxGrants]int16
 	ng := s.grantIdxs(k, sl, &gi)
 	own := s.ownManaUsable(k, sl)
@@ -780,7 +777,6 @@ func (s *State) availGrantJoin(k *prep, sl Slot, pc *pcard, a *avail, gi *[maxGr
 	if u.mask == 0 {
 		u, su = su, grantUnit{}
 	}
-	fmt.Fprintf(os.Stderr, "KDBG grantJoin dec=%d sl=%v card=%s tapped=%v ownFace=%v/%v gu=%v/%v u=%v/%v su=%v/%v\n", dbgDec, sl, k.t.CardName(s.cardAt(sl)), s.perms[sl].flags&pfTapped != 0, ownFace.mask, ownFace.n, gu.mask, gu.n, u.mask, u.n, su.mask, su.n)
 	s.addGrantUnit(a, u)
 	s.addGrantUnit(a, su)
 	if pMask != 0 {

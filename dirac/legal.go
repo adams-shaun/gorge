@@ -1,10 +1,6 @@
 package dirac
 
 import (
-	"fmt"
-	"os"
-	"runtime"
-
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -66,10 +62,7 @@ func (s *State) kickedAffordsOrPoolPays(k *prep, p uint8, c CardID, o Obj, kc *k
 	return s.kickedAffords(k, p, c, o, kc, cav) || s.convPoolPays(k, p, o, kc)
 }
 
-var dbgDec int
-
 func (s *State) priorityOptions(k *prep, d *Decision) {
-	dbgDec++
 	p := s.prio
 	pl := &s.pl[p]
 	sorc := s.sorcerySpeed(p)
@@ -440,39 +433,6 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if k.gen != nil && k.gen.anySplitSecond && s.splitSecondHolds(k) {
 		s.filterSplitSecond(k, d) // kw_splitsecond.go
 	}
-	if dbgDec >= 380 {
-		nt := 0
-		for b := s.ctrlM[p].and(s.occ); b.any(); b = b.rest() {
-			if s.perms[b.first()].flags&pfTapped != 0 {
-				nt++
-			}
-		}
-		if dbgDec >= 395 && dbgDec <= 446 {
-			var names []string
-			for b := s.ctrlM[p].and(s.occ); b.any(); b = b.rest() {
-				sl := b.first()
-				if s.perms[sl].flags&pfTapped != 0 {
-					names = append(names, fmt.Sprintf("%v:%s", sl, k.t.CardName(s.cardAt(sl))))
-				}
-			}
-			fmt.Fprintf(os.Stderr, "KDBG tapped dec=%d p=%d n=%d %v\n", dbgDec, p, nt, names)
-		} else {
-			fmt.Fprintf(os.Stderr, "KDBG tapped dec=%d p=%d n=%d\n", dbgDec, p, nt)
-		}
-	}
-	if dbgDec >= 425 {
-		fmt.Fprintf(os.Stderr, "KDBG dec=%d p=%d N=%d opts:", dbgDec, p, d.N)
-		for x := 0; x < int(d.N); x++ {
-			a := d.Options[x]
-			nm := ""
-			if src := Obj(a.Source()); int(src) < len(s.objs) && s.objs[src].card != 0 && s.objs[src].slot != NoSlot {
-				nm = k.t.CardName(s.cardAt(s.objs[src].slot))
-			}
-			fmt.Fprintf(os.Stderr, " [%v src=%v %s]", a.Kind(), a.Source(), nm)
-		}
-		fmt.Fprintf(os.Stderr, "\n")
-	}
-
 	d.add(MakeAction(AkPass, 0, 0, 0))
 }
 
@@ -533,9 +493,6 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 				continue // a max-speed grant is offered from the floating pool alone (kw_maxspeed.go)
 			}
 			if s.canActivate(k, sl, ai, a, sorc, av) {
-				if true {
-					fmt.Fprintf(os.Stderr, "KDBG activateOffers ADDED dec=%d sl=%v ai=%d availX=%d total=%d\n", dbgDec, sl, ai, s.g.availX, av.total)
-				}
 				d.add(MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai)))
 				if st := DebugSnowStats; st != nil && a.Cost.Mana.Snow != 0 {
 					st.Offered++
@@ -771,10 +728,6 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	}
 	if mana.X == 0 && sacXCost(&a.Cost) && k.gen != nil && k.gen.anySacX {
 		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // cost_sacx.go
-	}
-	if a.Kind == kop.AbActivated && k.t.CardName(s.cardAt(sl)) == "Nephalia Smuggler" {
-		_, cf, cl, _ := runtime.Caller(1)
-		fmt.Fprintf(os.Stderr, "KDBG canActivateOK dec=%d caller=%s:%d avail total=%d n=%d masks=%v cnt=%v availX=%d pool=%v\n", dbgDec, cf, cl, av.total, av.n, av.mask[:6], av.cnt[:6], s.g.availX, s.pl[s.perms[sl].ctrl].pool)
 	}
 	return s.abilityTargetsFeasible(k, a, p.ctrl, sl, 0xff) && s.xBoundPayable(k, a, 0, p.ctrl, sl, &mana)
 }

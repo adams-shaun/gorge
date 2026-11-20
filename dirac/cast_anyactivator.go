@@ -1,11 +1,6 @@
 package dirac
 
-import (
-	"fmt"
-	"os"
-
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
+import "github.com/adams-shaun/gorge/dirac/kop"
 
 // "Any player may activate this ability" (Activator$ Player; Feral Hydra's
 // {3}: put a +1/+1 counter on it; CR 602.2). gorge's offer walk visits every
@@ -56,9 +51,6 @@ func (s *State) offerAnyActivations(k *prep, d *Decision, p uint8, sorc bool, av
 					*haveAv = true
 				}
 				if s.canActivateAny(k, sl, a, p, sorc, av) {
-					if true {
-						fmt.Fprintf(os.Stderr, "KDBG anyactivator ADDED\n")
-					}
 					d.add(MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai)))
 				}
 			}

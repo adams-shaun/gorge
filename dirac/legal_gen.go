@@ -1,9 +1,6 @@
 package dirac
 
 import (
-	"fmt"
-	"os"
-
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -1002,9 +999,6 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 				}
 			}
 			if s.probeAbilityFrom(k, a, p, s.objs[o].card) {
-				if true {
-					fmt.Fprintf(os.Stderr, "KDBG legal_gen ADDED o=%v ai=%d\n", o, ai)
-				}
 				d.add(MakeAction(AkActivate, TCode(o), 0, uint8(ai)))
 			}
 		}

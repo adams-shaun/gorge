@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"github.com/adams-shaun/gorge/dirac/kop"
-	"os"
 )
 
 // priorityHandAct offers the activated abilities that work from the hand
@@ -75,9 +73,6 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 			// withheld. abilityTargetsFeasible's bare probe carries no source
 			// (its colours 0), so protection from a colour never matched.
 			if s.probeAbilityFrom(k, a, p, s.objs[o].card) {
-				if true {
-					fmt.Fprintf(os.Stderr, "KDBG handactivate ADDED\n")
-				}
 				d.add(MakeAction(AkActivate, TCode(o), 0, uint8(ai)))
 			}
 		}

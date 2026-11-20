@@ -64,8 +64,13 @@ func (g *grantSrch) tapXBranch(t *State, i int, sl Slot) bool {
 	}
 	order, ncol := g.tapXColours(t, sl)
 	for j := 0; j < nc; j++ {
-		if nc > 1 && tapXOwnAnswer(g.ex, cs[j], NoSlot) {
-			continue // it would tap the play's own {T} source (CR 602.2b)
+		if tapXOwnAnswer(g.ex, cs[j], NoSlot) {
+			// it would tap the play's own {T} source (CR 602.2b); a forced
+			// single answer too, as tapXSearch skips it: the play could not
+			// be paid after it, and the node pricing, which reads no tapped
+			// state, would otherwise call it payable (Nephalia Smuggler's
+			// {3}{U},{T} whose only tap-another candidate is itself)
+			continue
 		}
 		if ncol > 1 && !g.node() { // the colour ask
 			return false
