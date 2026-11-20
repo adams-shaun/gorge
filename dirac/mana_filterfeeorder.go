@@ -13,9 +13,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // filtFeeGap: the filter at sl makes two or more mana for a mana fee (gorge's
 // feeGaps: a one-unit filter is priced by the fee-only paths and funding it
-// first only changes the node walk).
+// first only changes the node walk). A dynamic amount (Three Tree City's {2},{T})
+// is no fee gap: gorge's availableAmount reads a non-literal Amount$ as zero.
 func (s *State) filtFeeGap(k *prep, sl Slot) bool {
-	return s.filtUnits(k, sl) >= 2 && s.filtFee(k, sl) > 0
+	return s.filtAb(k, sl).AFlags&kop.AfManaDynamic == 0 && s.filtUnits(k, sl) >= 2 && s.filtFee(k, sl) > 0
 }
 
 // feeOrderScope reports whether gorge's fallback run for fs's play is the
