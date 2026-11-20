@@ -15,18 +15,18 @@ import (
 func TestSkipPhaseStepShapesLower(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	want := map[string]int{
-		"Avizoa":                     kop.SkipPhaseUntap,
-		"Brine Elemental":            kop.SkipPhaseUntap,
-		"Shisato, Whispering Hunter": kop.SkipPhaseUntap,
-		"Fatigue":                    kop.SkipPhaseDraw,
-		"Ivory Gargoyle":             kop.SkipPhaseDraw,
-		"Molten Firebird":            kop.SkipPhaseDraw,
-		"Elfhame Sanctuary":          kop.SkipPhaseDrawTurn,
-		"Blinding Angel":             kop.SkipPhaseCombat,
-		"Revenant Patriarch":         kop.SkipPhaseCombat,
-		"Stonehorn Dignitary":        kop.SkipPhaseCombat,
-		"Moment of Silence":          kop.SkipPhaseCombatTurn,
-		"False Peace":                kop.SkipPhaseAllCombat,
+		"Avizoa":                     skipC(kop.StepUntap, skipScopeNext),
+		"Brine Elemental":            skipC(kop.StepUntap, skipScopeNext),
+		"Shisato, Whispering Hunter": skipC(kop.StepUntap, skipScopeNext),
+		"Fatigue":                    skipC(kop.StepDraw, skipScopeNext),
+		"Ivory Gargoyle":             skipC(kop.StepDraw, skipScopeNext),
+		"Molten Firebird":            skipC(kop.StepDraw, skipScopeNext),
+		"Elfhame Sanctuary":          skipC(kop.StepDraw, skipScopeTurn),
+		"Blinding Angel":             skipC(kop.StepBeginCombat, skipScopeNext),
+		"Revenant Patriarch":         skipC(kop.StepBeginCombat, skipScopeNext),
+		"Stonehorn Dignitary":        skipC(kop.StepBeginCombat, skipScopeNext),
+		"Moment of Silence":          skipC(kop.StepBeginCombat, skipScopeTurn),
+		"False Peace":                0,
 	}
 	for name, grant := range want {
 		card, ok := reg.Lookup(name)

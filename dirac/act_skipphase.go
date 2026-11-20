@@ -16,13 +16,20 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // spliced after the end of combat step, which a skipping player never reaches.
 
 // The one-shot grants (Step$ Untap / Draw, Phase$ BeginCombat without Start$;
-// kop.SkipPhaseUntap and the rest) are one byte per seat in the cold region
+// an ExtSkipPhase whose C is not zero) are one byte per seat in the cold region
 // coldSkip, the bits of gorge's PhaseSkips (state.SkipUntapNext, SkipDrawNext,
 // SkipCombatOnce, SkipDrawTurn, SkipCombatTurn). The walk consumes a grant where
 // gorge's skipGrantedStep does: beginStep for the untap and draw steps,
 // skipCombatNext for a combat phase the ordinary walk enters (an extra combat
 // spliced by addPhaseNext is neither skipped by nor consumes it); beginTurn
 // drops the this-turn bits of every seat.
+// The scope of an ExtSkipPhase C (bits 4-5): gorge state.SkipScopeNext and
+// SkipScopeTurn (kgen's skipScopeNext / skipScopeTurn).
+const (
+	skipScopeNext = 1
+	skipScopeTurn = 2
+)
+
 const (
 	skUntap      uint8 = 1 << iota // the seat's next untap step
 	skDraw                         // its next draw step
@@ -62,28 +69,32 @@ func prepSkipPhase(t *kop.Table, g *genPrep) {
 	}
 }
 
-// skipPhaseGrant is ExtSkipPhase: player Obj skips what in.C names (the
-// kop.SkipPhase* grants).
+// skipPhaseGrant is ExtSkipPhase: player Obj skips what in.C names (zero: all
+// combat phases of the next turn; else the Step in bits 0-3 and the scope in
+// bits 4-5, kop's ExtSkipPhase).
 func (s *State) skipPhaseGrant(k *prep, in *kop.Instr) {
 	p := s.playerRef(k, in.Obj)
 	if p >= MaxSeats {
 		return
 	}
-	var bit uint8
-	switch in.C {
-	case kop.SkipPhaseAllCombat:
+	if in.C == 0 {
 		s.g.cskip |= 1 << p
 		return
-	case kop.SkipPhaseUntap:
+	}
+	var bit uint8
+	switch scope, step := in.C>>4, kop.Step(in.C&15); {
+	case step == kop.StepUntap && scope == skipScopeNext:
 		bit = skUntap
-	case kop.SkipPhaseDraw:
+	case step == kop.StepDraw && scope == skipScopeNext:
 		bit = skDraw
-	case kop.SkipPhaseCombat:
-		bit = skCombat
-	case kop.SkipPhaseDrawTurn:
+	case step == kop.StepDraw && scope == skipScopeTurn:
 		bit = skDrawTurn
-	case kop.SkipPhaseCombatTurn:
+	case step == kop.StepBeginCombat && scope == skipScopeNext:
+		bit = skCombat
+	case step == kop.StepBeginCombat && scope == skipScopeTurn:
 		bit = skCombatTurn
+	default:
+		return
 	}
 	if c := coldSkip.of(s); c != nil && !DebugSkipOneShotIgnored {
 		c[p] |= bit

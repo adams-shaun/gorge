@@ -160,7 +160,7 @@ func (ic *instrCtx) opAddPhase() error {
 
 func (ic *instrCtx) opSkipPhase() error {
 	ki := &ic.ki
-	// OpExt ExtSkipPhase, Obj the skipping player, C the kop.SkipPhase* grant
+	// OpExt ExtSkipPhase, Obj the skipping player, C the grant (lower_skipphase.go skipC)
 	// (dirac/act_skipphase.go)
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtSkipPhase)), int16(ic.in.C)
 	return nil

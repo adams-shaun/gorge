@@ -298,9 +298,11 @@ func init() {
 // ExtSkipPhase: the player Obj skips every combat phase of their next turn
 // (gorge effSkipPhase, DB$ SkipPhase with Phase$ BeginCombat, Start$ FromNext,
 // Duration$ UntilTheEndOfTargetedNextTurn; CR 614.10). False Peace, Empty City
-// Ruse. C selects the grant (SkipPhase*): zero is that one; the others skip the
-// player's next untap step, draw step or combat phase once, the draw step and
-// combat phase also in a this-turn form. dirac/act_skipphase.go.
+// Ruse. C selects the grant: zero is that one; otherwise C is the skipped Step in
+// bits 0-3 and the scope in bits 4-5 (1: the player's next such step, once;
+// 2: this turn only), gorge's events.SkipPhase Step and IDs[0]
+// (state.SkipScopeNext / SkipScopeTurn): Step$ Untap, Step$ Draw or Phase$
+// BeginCombat without Start$. dirac/act_skipphase.go.
 const ExtSkipPhase ExtOp = 313
 
 func init() {
