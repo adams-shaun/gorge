@@ -716,7 +716,7 @@ func faceWantsManaColorSpent(f *cards.Face) bool {
 	if f == nil {
 		return false
 	}
-	if f.Mentions("Count$Adamant") || f.Mentions("Count$EachSpentToCast") {
+	if f.Mentions("Count$Adamant") || f.Mentions("Count$EachSpentToCast") || f.Mentions("Count$xColorPaid") {
 		return true
 	}
 	if f.Mentions("ConditionManaSpent$") || f.Mentions("ConditionManaNotSpent$") ||

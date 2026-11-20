@@ -397,6 +397,11 @@ type TriggerContext struct {
 	TriggerManaSpent     int32
 	TriggerManaSnowSpent int32
 	TriggerManaTyped     [4]int32
+	// TriggerPayingMana is the per-colour mana a PayCumulativeUpkeep trigger's
+	// payment spent (rules' noteCumulativeUpkeepPaid), read by
+	// Count$TriggeredPayingMana.<Colour>[.<Colour>] (Balduvian Fallen's "for
+	// each {B} or {R} spent this way"). Zero for any other trigger.
+	TriggerPayingMana state.Mana
 	// TriggerBlocker is the BLOCKING creature of the DeclareBlockers pair a
 	// Mode$ Blocks trigger fired for (engine/rules/trigger_match.go's
 	// checkBlocksTriggers). A Blocks trigger's Remembered carries the pair's
