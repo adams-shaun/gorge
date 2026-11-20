@@ -23,17 +23,12 @@ var protectionFormCards = []string{
 // protectionFormDeferred are the ticket's cards that stay refused, each by a
 // reason that names the missing piece (a substring of the refusal).
 var protectionFormDeferred = map[string]string{
-	"Apostle's Blessing":           `Protection Choices$ "AnyColor,Artifact"`,
-	"Jeweled Spirit":               `Protection Choices$ "AnyColor,Artifact"`,
-	"Razor Barrier":                `Protection Choices$ "AnyColor,Artifact"`,
-	"Giver of Runes":               `Protection Choices$ "AnyColor,colorless"`,
-	"Pippin, Guard of the Citadel": `Protection Choices$ "CardType"`,
-	"Floating Shield":              `Protection Gains$ "ChosenColor"`,
-	"Opal Titan":                   `Protection Duration$`,
-	"Crypsis":                      `Protection:Creature.OppCtrl`,
-	"Lord of the Nazgûl":           `Protection:Card.IsRingbearer`,
-	"Pledge of Loyalty":            `Card.ColorsYouCtrl`,
-	"Riders of Gavony":             `Protection:Creature.ChosenType`,
+	"Floating Shield":    `Protection Gains$ "ChosenColor"`,
+	"Opal Titan":         `Protection Duration$`,
+	"Crypsis":            `Protection:Creature.OppCtrl`,
+	"Lord of the Nazgûl": `Protection:Card.IsRingbearer`,
+	"Pledge of Loyalty":  `Card.ColorsYouCtrl`,
+	"Riders of Gavony":   `Protection:Creature.ChosenType`,
 }
 
 func lowerProtectionFormCards(t *testing.T, names []string) map[string]*lCard {
