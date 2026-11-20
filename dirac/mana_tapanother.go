@@ -1569,8 +1569,22 @@ func (s *State) gapsOrBoundPlay(k *prep, p uint8, sacAny bool, gaps *Decision, a
 	return hasOption(gaps, a) || sacAny && s.sacPotPays(k, p, a)
 }
 
+// sacRepeatBoard is scriptOffers' twoLive: the boards gorge's census is
+// unrelaxable on regardless of the PotentialMana bound — a live two-permanent
+// source (Baylen, tapXTwoLive), an open sacrifice-any bound (Krark-Clan
+// Ironworks, tapXSacAnyBound's open arm), or a live no-{T} sacrifice-another
+// one (Jungle Patrol, sacRepeatLive). sacRepeat reports the last of these, the
+// one that lifts the closed-bound narrowing (sacDrops).
+func (s *State) sacRepeatBoard(k *prep, p uint8, sacOpen bool) (sacRepeat, twoLive bool) {
+	sacRepeat = s.sacRepeatLive(k, p)
+	return sacRepeat, k.tapMana && s.tapXTwoLive(k, p) || sacOpen || sacRepeat
+}
+
 // sacDrops: on a closed sacrifice-any bound (sacAny) play a is neither the gaps
-// walk's nor one gorge's bound pays (gapsOrBoundPlay), so it is no candidate.
-func (s *State) sacDrops(k *prep, p uint8, sacAny bool, gaps *Decision, a Action) bool {
-	return sacAny && !s.gapsOrBoundPlay(k, p, sacAny, gaps, a)
+// walk's nor one gorge's bound pays (gapsOrBoundPlay), so it is no candidate —
+// unless a live repeatable sacrifice-any source makes gorge's census
+// unrelaxable (sacRepeatBoard): gorge searches every census-incomplete play
+// then, the closed bound's plays included.
+func (s *State) sacDrops(k *prep, p uint8, sacAny, sacRepeat bool, gaps *Decision, a Action) bool {
+	return sacAny && !sacRepeat && !s.gapsOrBoundPlay(k, p, sacAny, gaps, a)
 }
