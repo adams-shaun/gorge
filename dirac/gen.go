@@ -1841,7 +1841,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepTokListAdd(t, g)             // repl_toklistadd.go
 	p.gainsOfPair = gainsOfPairOn(t) // static_gainsofpair.go; on prep, not genPrep: the pinned fixed-State inventory is unchanged
 	prepCold(g, &p.cold)
-	prepGrantAct(t, p) // act_grantledger.go
+	prepGrantAct(t, p)     // act_grantledger.go
+	prepSkipPhaseOne(t, p) // act_skipphase.go
 	return g
 }
 
