@@ -70,6 +70,8 @@ default	field	stateCore.fbR	13596	4
 default	field	stateCore.rb	13600	128
 default	field	stateCore.pm	13728	24
 default	field	stateCore.pmOn	13752	1
+default	field	stateCore.sbaOK	13753	1
+default	field	stateCore.sbaT	13756	4
 default	field	stateCore.chg	13760	64
 default	field	stateCore.epoch	13824	4
 default	field	stateCore.touchN	13828	4
@@ -182,6 +184,7 @@ default	field	genState.probe	5012	8
 default	field	genState.tgtSelf	5020	2
 default	field	genState.inLoop	5022	1
 default	field	genState.each	5024	10
+default	field	genState.sbaFP	5034	6
 default	field	genState.tokFrz	5040	24
 default	field	genState.tokFrzOn	5064	1
 default	field	genState.sweep	5066	586
