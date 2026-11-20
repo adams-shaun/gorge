@@ -2392,7 +2392,12 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			}
 			continue
 		}
-		if pc.manaAb >= 0 {
+		if pc.manaAb >= 0 && !pc.manaIntrinsic {
+			// a rider source whose view is the granted types' intrinsic unit
+			// (blgView) marks no ability done: the view is the intrinsic unit
+			// and the card's own rider is gorge's potential walk's admission
+			// below (potentialManaFor counts the printed abilities beside the
+			// appended intrinsics, CR 305.6, 605.3b)
 			done[sl] = 1 << pc.manaAb
 		}
 		// the printed ability's own activation pain: when it reaches the

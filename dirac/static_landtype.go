@@ -219,6 +219,21 @@ func (s *State) blgIntrinsicUnit(k *prep, sl Slot) bool {
 	return k.gen != nil && k.gen.blgOn && s.riderDeferred(k, sl) && s.blgMask(k, sl) != 0
 }
 
+// blgGapPC is the gap and window view of slot sl: the card's own mana facts
+// when the planner view is a granted basic land type's intrinsic unit
+// (blgView). The census unit is the intrinsic one, but the Taps-deferred gap
+// the prefix search answers and the window's own listing are the card's
+// deferred rider -- its production, its colours, its rider (scriptTapsDefer's
+// planDeferred branch; gorge lists printed abilities before the appended
+// intrinsics and its window answer takes the first listed, CR 605.3b,
+// payexec.WindowAnswer).
+func (s *State) blgGapPC(k *prep, sl Slot) *pcard {
+	if pc := s.manaPCGen(k, sl); !pc.manaIntrinsic {
+		return pc
+	}
+	return &k.cards[s.cardAt(sl)]
+}
+
 // blgView is manaPCGen's view of slot sl (card c, own facts pc) on a table
 // with a basic land type grant: pc unless a granted type adds a colour pc
 // does not make.
@@ -306,6 +321,13 @@ func manaAbView(cd *kop.CardDef, pc *pcard) *kop.Ability {
 // Ground: gorge counts the printed abilities and one per granted type, CR 305.6),
 // so the colours the view holds beyond the card's own mana abilities belong here.
 func (s *State) potentialFirstMask(k *prep, sl Slot, pc *pcard) uint8 {
+	if pc.manaIntrinsic {
+		// the view is the granted types' intrinsic unit (blgView): its colours
+		// are the fold. The card's own abilities (its deferred rider) are the
+		// fixpoint's admissions beside it (availPotentialFor; gorge counts the
+		// printed abilities and one intrinsic per granted type, CR 305.6)
+		return uint8(pc.manaCol & 0x3f)
+	}
 	cd := &k.t.Cards[s.cardAt(sl)]
 	var mask uint8
 	if ab := manaAbView(cd, pc); ab != nil {

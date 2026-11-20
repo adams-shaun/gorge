@@ -910,7 +910,11 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) || deferGap.has(sl) && s.planDeferred(k, SeatIx(p), sl) {
+		// a granted basic land type's intrinsic unit is the deferred source's
+		// exception (blgIntrinsicUnit): gorge's census lists it like any
+		// printed source's (CR 305.6), so the witness reads it beside the
+		// source's own abilities
+		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) || deferGap.has(sl) && s.planDeferred(k, SeatIx(p), sl) && !s.blgIntrinsicUnit(k, sl) {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
