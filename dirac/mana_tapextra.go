@@ -719,7 +719,7 @@ func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
 		n = max(pc.manaN, 1)
 	}
 	if m != 0 && k.gen != nil && k.gen.anyTapExtra {
-		if _, _, r, ok := s.srcExtraPain(k, sl, pc); ok && r > 0 {
+		if _, _, r, ok := s.srcExtraPain(k, sl, pc); ok && r > 0 && (pc.painOnly || m&^(1<<kop.C) != 0) {
 			n += r // the reflected extra rode the unit's amount (addPainAvail)
 		}
 	}
@@ -800,13 +800,25 @@ func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms 
 	if m != 0 && k.gen != nil && k.gen.anyTapExtra {
 		xc, xp, r, ok = s.srcExtraPain(k, sl, pc)
 	}
+	both := m&(1<<kop.C) != 0
+	colours := m&^(1<<kop.C) != 0
+	if !colours && !pc.painOnly {
+		r = 0 // only the {C} ability is reachable (a life too low for the pain): its extra is xc's, no pick is made
+	}
+	// a painland's {C} ability and its coloured pick both make 1+r of one type
+	// when the reflected extra is the only thing the {C} ability's extra holds
+	// beyond the pick's (reflectOneType): the source is one tap of 1+r mana of
+	// one type, {C} or a colour of its mask
+	oneType := r > 0 && ok && both && colours && !pc.painOnly && reflectOneType(&xc, &xp, r)
 	if r > 0 {
 		// a reflected extra of a several-type production is one mana of the
 		// pick: the unit's amount carries it, and the one-colour limit keeps
 		// the bound exact (a {W} and a {U} are not payable from one tap). Only
-		// the whole-mask pain-only unit carries it; anything narrower or
-		// modal-priced asks the pick in a shape the bound cannot pose.
-		if !pc.painOnly || m != uint8(kop.ColAny) || s.g.availX&(availAny|availWin|availWinCol) != 0 || k.gen.anyContGrant {
+		// the whole-mask pain-only unit and the one-type painland carry it;
+		// anything narrower or modal-priced asks the pick in a shape the
+		// bound cannot pose.
+		whole := pc.painOnly && m == uint8(kop.ColAny)
+		if !whole && !oneType || s.g.availX&(availAny|availWin|availWinCol) != 0 || k.gen.anyContGrant && !oneType {
 			s.capFull(StallTapExtra)
 			return
 		}
@@ -814,15 +826,17 @@ func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms 
 	}
 	if m != 0 {
 		a.addUnits(m, n)
-		if r > 0 {
+		switch {
+		case oneType:
+			// the {C} face is the other alternative to the one-colour block
+			s.addOneColourAlt(a, m, n, 1<<kop.C, n)
+		case r > 0:
 			s.addOneColour(a, n) // the activation's mana is all one colour of the pick
 		}
 	}
 	if m == 0 || !ok {
 		return
 	}
-	both := m&(1<<kop.C) != 0
-	colours := m&^(1<<kop.C) != 0
 	for c := range xc {
 		nx := xp[c]
 		if both && !colours {
@@ -831,6 +845,9 @@ func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms 
 		if nx > 0 {
 			a.addUnits(1<<c, nx)
 		}
+	}
+	if oneType {
+		return // the extras above are the pick's too: nothing is modal
 	}
 	if r > 0 && both && colours {
 		// the modal model varies the base unit only: a pick-dependent extra
@@ -858,6 +875,21 @@ func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms 
 		return
 	}
 	a.nModal++
+}
+
+// reflectOneType reports whether a painland's {C} ability and its coloured
+// pick differ in their extras by the reflected mana r of {C} alone: the {C}
+// ability's extra xc holds r more {C} than the pick's xp (a reflect carrier
+// adds one mana of the type the tap produced, and a {C} tap produced {C}),
+// everything else equal. The source then makes 1+r mana of one type either
+// way, which addPainAvail holds as one unit with a {C} alternative.
+func reflectOneType(xc, xp *[kop.NumManaKinds]uint8, r uint8) bool {
+	d := *xc
+	if d[kop.C] < r {
+		return false
+	}
+	d[kop.C] -= r
+	return d == *xp
 }
 
 // modalSet holds the modal sources of a walk that tries each one's mode
