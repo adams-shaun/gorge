@@ -42,7 +42,10 @@ func TestStageWideObjectCodes(t *testing.T) {
 			Pos: uint8(j), Token: true,
 		})
 	}
-	attacker := len(w.Objs) - 1 // 259
+	attacker := len(w.Objs) - 1
+	if attacker != 259 {
+		t.Fatalf("the attacker is object %d, want 259", attacker)
+	}
 	w.Objs[attacker].Attacking, w.Objs[attacker].AtkSeat, w.Objs[attacker].Blocked = true, 1, true
 	w.Objs[lions].Blocking, w.Objs[lions].Blocks, w.Objs[lions].BlockOrd = true, dirac.Obj(attacker), 1
 
