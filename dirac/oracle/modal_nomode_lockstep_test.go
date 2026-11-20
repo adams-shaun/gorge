@@ -74,7 +74,10 @@ func TestModalCastNoModeReversal(t *testing.T) {
 // synthPoolWith finds a synthetic pool that holds every named card, rather
 // than naming one: buildSynthList splits a tail-* bucket when a newly lowered
 // card pushes its table over a size limit, and a pinned bucket name would
-// then fail an unrelated landing. Plains is in every pool.
+// then fail an unrelated landing. A pool is usable only where every witness is
+// playable (Supported, not just lowered): Synth's lowered view still holds an
+// inert stand-in for StatusNotLowered, which MatchupN would refuse. Plains is
+// in every pool.
 func synthPoolWith(t *testing.T, cards ...string) (string, cardset.Set) {
 	t.Helper()
 	for _, name := range cardsettest.SynthNames(t) {
@@ -82,7 +85,7 @@ func synthPoolWith(t *testing.T, cards ...string) (string, cardset.Set) {
 		ok := true
 		for _, card := range cards {
 			i, has := set.Lookup(card)
-			if !has || set.Status(i) == cardset.StatusRefused {
+			if !has || !set.Supported()[i] {
 				ok = false
 				break
 			}
