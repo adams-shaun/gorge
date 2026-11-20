@@ -3843,8 +3843,8 @@ func (s *State) manaStep(k *prep) bool {
 				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
 				return true
 			}
-		case a.Cost.Flags&kop.CostSac != 0 && k.sacMana:
-			s.tapForSacKept(k, e.ctrl, &cost, int(e.x), a, sl)
+		case a.Cost.Flags&kop.CostSac != 0:
+			s.tapForSacCost(k, e.ctrl, &cost, int(e.x), a, sl)
 		case a.Cost.Flags&kop.CostSacSelf != 0 && k.sacMana && sl != NoSlot && s.sacSelfMana(k, sl):
 			s.tapForSacSelf(k, e.ctrl, &cost, int(e.x), sl) // filter_combatwords.go
 		case a.Cost.Flags&kop.CostTapX != 0 && s.committedPicks():
