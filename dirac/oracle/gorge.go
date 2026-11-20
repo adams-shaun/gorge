@@ -155,12 +155,6 @@ type GorgeSide struct {
 	// plan fell back to carries no ManaPayment, so the owed colour of an
 	// any-colour mana ability's colour ask is this demand less the pool.
 	payPips [6]uint8
-	// selfTarget records that a lowered play's unmodelled target ask was
-	// answered at the deciding seat's own face (the positional clamp).
-	// safeTargets reruns such a lowering aiming at an opposing face, for a
-	// line the positional answer ended by killing the payer.
-	selfTarget  bool
-	safeTargets bool
 }
 
 // frame is the canonical view of one posed gorge decision.
@@ -272,10 +266,6 @@ type prioEntry struct {
 	play    payexec.Play
 	plan    decision.PaymentPlan
 	script  []rules.ScriptStep
-	// safeTargets marks a prLower whose positional lowering ended by the
-	// payer's own damage trigger, so the real play must aim that pick at an
-	// opposing face (lowerCompletes' retry, selected on its clone).
-	safeTargets bool
 }
 
 // NewGorgeSide starts gorge on m with seed, exactly as gorge self-play does
@@ -1854,9 +1844,7 @@ func (g *GorgeSide) answer(fr *frame, pe prioEntry) {
 		}
 	case prLower:
 		g.Stats.Lowered++
-		g.safeTargets = pe.safeTargets
 		g.lower(pe)
-		g.safeTargets = false
 	case prScript:
 		g.Stats.Scripted++
 		g.runScript(pe)
@@ -1889,27 +1877,26 @@ func (g *GorgeSide) scriptCompletes(pe prioEntry) bool {
 // whether it made the play: no abort, no failure, and not a lowering that
 // only passed until the game ended.
 func (g *GorgeSide) lowerCompletes(pe *prioEntry) bool {
-	c, ok := g.lowerProbe(*pe, false)
-	if ok || !c.selfTarget {
-		return ok
+	c, ok := g.lowerProbe(*pe)
+	if ok {
+		return true
 	}
-	// The positional answer aimed the plan's own trigger at the payer and
-	// the line ended with them losing before the play. Retry off their face:
-	// the play is legal (the payer would choose another target), so the
-	// offer must not be dropped just because the repair's lowest index was
-	// self-damage.
-	if _, ok = g.lowerProbe(*pe, true); !ok {
-		return false
-	}
-	pe.safeTargets = true
-	return true
+	// A positional line that ends the game completes the offer: the kernel's
+	// own play of the cast answers the same plan-foreign target asks with
+	// the same lowest index (a self-damaging payment trigger, Spiteful
+	// Prankster beside a Treasonous Ogre life payment, resolves at the
+	// payer's face), so its line ends the game the same way and the cast is
+	// one neither engine makes. Aiming the pick at an opposing face instead
+	// (the former safe-target retry) kept the payer alive but split the two
+	// engines' pings: the kernel's payment still resolved them at the payer
+	// and died while the lowered line cast on (dr-mbc-bbbb, decision 466).
+	return c.E.G.Over
 }
 
-// lowerProbe runs pe's lowering on a clone, in the positional answer or the
-// opposing-face retry, and reports the clone's side (selfTarget records the
-// shape) and whether the play was made.
-func (g *GorgeSide) lowerProbe(pe prioEntry, safe bool) (*GorgeSide, bool) {
-	c := &GorgeSide{E: g.E.Clone(), M: g.M, Cfg: g.Cfg, hyp: g.hyp, safeTargets: safe}
+// lowerProbe runs pe's lowering on a clone in the positional answer and
+// reports the clone's side and whether the play was made.
+func (g *GorgeSide) lowerProbe(pe prioEntry) (*GorgeSide, bool) {
+	c := &GorgeSide{E: g.E.Clone(), M: g.M, Cfg: g.Cfg, hyp: g.hyp}
 	c.id = identity{inst: append([]Ref(nil), g.id.inst...), obj: append([]state.ObjID(nil), g.id.obj...), scanned: g.id.scanned, lay: g.id.lay, ncard: g.id.ncard, gen: g.id.gen}
 	ok := func() (ok bool) {
 		defer func() {
@@ -2039,53 +2026,13 @@ func (g *GorgeSide) runScript(pe prioEntry) {
 // the plan's own activations stacked, an optional trigger) while lowering
 // that play, with the positional repair clamp that answers lowest-index
 // options and concedes benignly. A target ask's lowest index is often the
-// deciding seat's own face, which the plan's own sacrifice trigger can then
-// damage; selfTarget records that shape so lowerCompletes can retry a
-// lowering that ended with the payer losing (Spiteful Prankster beside a
-// Treasonous Ogre life payment). The retry aims such a pick at an opposing
-// face, keeping every other answer positional: a recording whose positional
-// line does complete keeps the target it recorded.
+// deciding seat's own face; the kernel's own play of the cast answers the
+// same ask the same way, so the two engines' lines stay together even where
+// the pick is self-damage (lowerCompletes accepts the game that line ends).
 func (g *GorgeSide) yieldAnswer(d *decision.Decision) decision.Intent {
 	in := botpolicy.Clamp(d, decision.Intent{Seq: d.Seq, Player: d.Player})
-	if d.Kind == decision.KTarget {
-		if ownFaceOption(d, in.Choices) >= 0 {
-			g.selfTarget = true
-			if g.safeTargets && d.Min == 1 && d.Max == 1 && len(in.Choices) == 1 {
-				if opp, ok := opposingFaceOption(d); ok {
-					in.Choices[0] = opp
-				}
-			}
-		}
-	}
 	in.Seq, in.Player = d.Seq, d.Player
 	return in
-}
-
-// ownFaceOption reports the first pick that names the deciding seat's own
-// face, or -1. Only a player option counts: a permanent you control that
-// the trigger damages is no self-kill by the seat's own face.
-func ownFaceOption(d *decision.Decision, picks []int) int {
-	for _, c := range picks {
-		if c >= 0 && c < len(d.Options) {
-			o := &d.Options[c]
-			if o.Kind == "player" && o.Player == d.Player {
-				return c
-			}
-		}
-	}
-	return -1
-}
-
-// opposingFaceOption is the first option naming another seat's face: the
-// benign target for a damage trigger whose positional answer was the payer.
-func opposingFaceOption(d *decision.Decision) (int, bool) {
-	for i := range d.Options {
-		o := &d.Options[i]
-		if o.Kind == "player" && o.Player != d.Player {
-			return o.Index, true
-		}
-	}
-	return 0, false
 }
 
 // lower pays a potential play by its witness (payexec): activate each plan
