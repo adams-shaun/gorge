@@ -332,9 +332,7 @@ func run() int {
 		*kernel = "gorge"
 	}
 	if *seats > 2 && *kernel != "gorge" {
-		// a registered pool (a Commander pool's full precons among them), a
-		// -synth pool or vanilla plays a pod
-		podKernel := *kernel == "vanilla" || *kernel == "fdn"
+		podKernel := *kernel == "vanilla" || *kernel == "fdn" // any registered pool or -synth pool
 		switch {
 		case !podKernel:
 			fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: a kernel game of more than two seats plays -kernel vanilla, a registered pool or a -synth pool; -kernel %s plays two seats (-kernel gorge plays any)\n", *seats, *kernel)
@@ -379,9 +377,7 @@ func run() int {
 	}
 	sliced := false // the pool is a committed slice
 	if *kernel == "fdn" && *synth == "" && *v2Mode == "" && !explicit["decks"] && !explicit["pool"] && !explicit["pairs-file"] && oracle.NeedDecks(*decksDir) != nil {
-		// a pod is drawn from pool.tsv alone (oracle.PodAt), at any seed; the
-		// slice's pairs.tsv holds two-seat pairs only
-		if *seats == 2 && (*seed != oracle.SliceSeed || *split != "all" || *firstPair+*pairs > oracle.SlicePairs) {
+		if *seats == 2 && !slicePairsHold(*seed, *split, *firstPair, *pairs) {
 			fmt.Fprintf(os.Stderr, "kfuzz: no %s pool on disk, and its committed slice holds only -split all -seed %d pairs 0 to %d: set GORGE_POOLS for others\n", *setName, oracle.SliceSeed, oracle.SlicePairs-1)
 			return 1
 		}
@@ -392,11 +388,7 @@ func run() int {
 		}
 		defer remove()
 		beforeExec = append(beforeExec, remove) // a continuation's exec skips the defer
-		*decksDir, *poolPath = filepath.Join(dir, "decks"), filepath.Join(dir, "pool.tsv")
-		if *seats == 2 {
-			*pairsFile = filepath.Join(dir, "pairs.tsv")
-			explicit["pairs"] = true
-		}
+		*decksDir, *poolPath, *pairsFile = filepath.Join(dir, "decks"), filepath.Join(dir, "pool.tsv"), slicePairsFile(dir, *seats, explicit)
 		sliced = true
 	}
 	if *lead != "gorge" && *lead != "kernel" {
@@ -614,10 +606,7 @@ func run() int {
 		}
 		res := rep.Rerun(m, mk, 200)
 		if res.Div == nil {
-			fmt.Printf("repro: no divergence in %d decisions\n", res.Decisions)
-			if res.Stall != "" {
-				fmt.Printf("repro: stall %q (unmodelled=%v)\n", res.Stall, res.StallUnmodelled)
-			}
+			printReproClean(&res)
 			return 0
 		}
 		printDiv(res.Div)
@@ -807,10 +796,7 @@ func runRepro(c *oracle.Corpus, path, lead string, rc oracle.RunConfig, newSide 
 	}
 	oracle.CloseSide(k)
 	if res.Div == nil {
-		fmt.Printf("repro: no divergence in %d decisions\n", res.Decisions)
-		if res.Stall != "" {
-			fmt.Printf("repro: stall %q (unmodelled=%v)\n", res.Stall, res.StallUnmodelled)
-		}
+		printReproClean(&res)
 		return 0
 	}
 	printDiv(res.Div)
@@ -2021,4 +2007,31 @@ func sortedCounts(m map[string]int) string {
 		s += fmt.Sprintf("%s=%d ", k, m[k])
 	}
 	return s
+}
+
+// slicePairsHold reports whether a two-seat run's pairs lie inside a
+// committed slice's pairs.tsv (-split all, -seed SliceSeed, pairs 0 to
+// SlicePairs-1).
+func slicePairsHold(seed uint64, split string, first, n int) bool {
+	return seed == oracle.SliceSeed && split == "all" && first+n <= oracle.SlicePairs
+}
+
+// slicePairsFile is the committed slice's pairs.tsv for a two-seat run; past
+// two seats a pod is drawn from pool.tsv alone (oracle.PodAt) at any seed, and
+// the slice's two-seat pairs do not apply.
+func slicePairsFile(dir string, seats int, explicit map[string]bool) string {
+	if seats != 2 {
+		return ""
+	}
+	explicit["pairs"] = true
+	return filepath.Join(dir, "pairs.tsv")
+}
+
+// printReproClean reports a repro that replayed with no divergence, and the
+// kernel stall that ended it, if one did.
+func printReproClean(res *oracle.Result) {
+	fmt.Printf("repro: no divergence in %d decisions\n", res.Decisions)
+	if res.Stall != "" {
+		fmt.Printf("repro: stall %q (unmodelled=%v)\n", res.Stall, res.StallUnmodelled)
+	}
 }

@@ -126,7 +126,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	s.ctl = ctlBuild
 	if k.gen != nil && k.gen.anyConvoke && mode&3 == 0 && s.tapPays(k, p, c, o, ob.zone == kop.ZoneHand) {
 		if _, planned := s.plannedCastCostOf(k, p, o, mode, false, false); planned {
-			if s.improviseLiftedFrom(k, p, c, o, ob.zone == kop.ZoneHand, ob.zone == kop.ZoneHand || ob.zone == kop.ZoneCommand) {
+			if s.improviseLiftedFrom(k, p, c, o, ob.zone == kop.ZoneHand, plainCastZone(ob.zone)) {
 				s.bld().impPlan = true // (bflTargetPaid once shared its bit with the retired bflDefeatCast)
 			} else {
 				s.bld().bfl |= bflTargetPaid
