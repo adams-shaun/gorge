@@ -120,6 +120,7 @@ Desmond Miles
 Detainment Spell
 Devil Dinosaur
 Dire Fleet Warmonger
+Door to Nothingness
 Dovin's Dismissal
 Drag Under
 Dragon Whelp
@@ -495,6 +496,7 @@ Unholy Grotto
 Urbis Protector
 Urborg Justice
 Urgoros, the Empty One
+Vacuumelt
 Vampiric Tutor
 Vastwood Animist
 Vengevine
