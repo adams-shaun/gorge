@@ -961,9 +961,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	// prepSpellCond first: it sets anySpellCond, which an || must not skip
 	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast)
-	prepCastLimit(t, g) // static_castlimit.go
-	prepCantSac(t, g)   // static_cantsacrifice.go, before prepCantAct reads it
-	prepCantAct(t, g)   // cast_cantactivate.go
+	prepCastLimit(t, g)  // static_castlimit.go
+	prepCantSac(t, g)    // static_cantsacrifice.go, before prepCantAct reads it
+	prepCantAct(t, p, g) // cast_cantactivate.go
 	g.anyCantTgt = tableHasStatic(t, kop.StatCantTarget)
 	g.anyMaxBlk = tableHasStatic(t, kop.StatMaxBlockers)
 	g.anyUntapOther = tableHasStatic(t, kop.StatUntapOther)
