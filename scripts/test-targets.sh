@@ -153,7 +153,7 @@ gojson() {
 }
 finish() { # finish NAMED_IMPORT_PATHS: classify $json, print detail and the verdict, exit
 	local out pyrc vline st
-	out=$("${py[@]}" finish --mode "$mode" --json "$json" --rc "$rc" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) --named "$1" ${fbcap:+--fallback "$fbcap"})
+	out=$("${py[@]}" finish --mode "$mode" --json "$json" --rc "$rc" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) --named "$1" --base "$BASE" ${fbcap:+--fallback "$fbcap"})
 	pyrc=$?
 	printf '%s\n' "$out"
 	if [ "$mode" = smart ]; then
@@ -510,7 +510,7 @@ elif [ "$smart" = narrow ]; then
 	done
 	# A named run that matched nothing is EMPTY, not a pass: classify the stream before step 5 replaces it.
 	nm=$(IFS=,; echo "${named[*]-}")
-	"${py[@]}" finish --mode "$mode" --json "$json" --rc 0 --sha "$sha" --pkgs "$pkgs_label" --seconds 0 --named "$nm" ${fbcap:+--fallback "$fbcap"} >/dev/null || finish "$nm"
+	"${py[@]}" finish --mode "$mode" --json "$json" --rc 0 --sha "$sha" --pkgs "$pkgs_label" --seconds 0 --named "$nm" --base "$BASE" ${fbcap:+--fallback "$fbcap"} >/dev/null || finish "$nm"
 else
 	echo "== 4 skipped (GORGE_TEST_SMART_GATES=0: the lander runs the affected and dirac gates)"
 	if [ -n "$(git diff --name-only "$mb" HEAD -- 'dirac/oracle/testdata/repro/')" ]; then
