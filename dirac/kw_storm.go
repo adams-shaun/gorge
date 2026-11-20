@@ -57,7 +57,9 @@ func (s *State) queueStorm(k *prep, e *stackEntry) {
 	if k.t.Cards[e.card].Storm {
 		return
 	}
+	saved := s.hideInflightCast(e)
 	g, _ := s.stackKwN(k, kop.StackKwStorm, e.card, e.obj, e.ctrl, s.castFromHandBy(e, e.ctrl))
+	s.restoreInflightCast(e.ctrl, saved)
 	if g == 0 {
 		return
 	}

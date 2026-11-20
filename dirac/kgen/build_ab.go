@@ -3,7 +3,6 @@ package kgen
 import (
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -82,6 +81,13 @@ func (cb *cardBuilder) abilities() error {
 		ke.WhileHost = e.WhileHost
 		ke.CaptureLapse = e.CaptureLapse
 		ke.CaptureRem, ke.Source, ke.NumAmount, ke.Once, ke.NotHere = e.CaptureRem, e.Source, e.NumAmount, e.Once, e.NotHere
+		if e.Forget != nil {
+			f, ferr := cb.filter(e.Forget, kop.ZoneStack)
+			if ferr != nil {
+				return bfail(cb.node, "%v", ferr)
+			}
+			ke.Forget = f
+		}
 		if e.CaptureSet {
 			r, err := cb.ref(e.Capture)
 			if err != nil {
@@ -2667,59 +2673,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			}
 		}
 	case "StackKw":
-		// AffectedZone$ Stack keyword grant (lower_stackkw.go): the filter
-		// matches the spell being cast (a card in hand or on the stack)
-		st.Kind = kop.StatStackKw
-		if st.Filter, err = filter(s.F, kop.ZoneStack); err != nil {
+		// AffectedZone$ Stack keyword grant (lower_stackkw.go)
+		if err := cb.stackKwStatic(st, s); err != nil {
 			return ka, nil, err
-		}
-		if len(s.Kw) != 1 {
-			return ka, nil, fmt.Errorf("stack keyword grant with %d keywords", len(s.Kw))
-		}
-		head, param, _ := strings.Cut(s.Kw[0], ":")
-		switch head {
-		case "Cascade", "Improvise", "Convoke":
-			if param != "" {
-				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
-			}
-			st.A = kop.StackKwCascade
-			switch head {
-			case "Improvise":
-				st.A = kop.StackKwImprovise
-			case "Convoke":
-				st.A = kop.StackKwConvoke
-			}
-		case "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate":
-			if param != "" {
-				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
-			}
-			st.A = kop.StackKwLifelink
-			switch head {
-			case "Demonstrate":
-				st.A = kop.StackKwDemonstrate
-			case "Conspire":
-				st.A = kop.StackKwConspire
-			case "Storm":
-				st.A = kop.StackKwStorm
-			case "Split second":
-				st.A = kop.StackKwSplitSecond
-			case "Delve":
-				st.A = kop.StackKwDelve
-			}
-		case "Casualty":
-			n, err := strconv.Atoi(param)
-			if err != nil || n < 1 || n > 127 {
-				return ka, nil, fmt.Errorf("stack keyword grant %q", s.Kw[0])
-			}
-			st.A, st.B = kop.StackKwCasualty, int16(n)
-		default:
-			return ka, nil, fmt.Errorf("stack keyword grant %q", s.Kw[0])
-		}
-		for _, fl := range s.Flags {
-			if fl != "CastHand" {
-				return ka, nil, fmt.Errorf("stack keyword grant flag %q", fl)
-			}
-			st.Zone = kop.ZoneHand // wasCastFromYourHand
 		}
 	case "Override":
 		st.Kind = kop.StatOverride
