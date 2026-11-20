@@ -908,12 +908,19 @@ func readNames(path string) (map[string]bool, error) {
 
 // writeEvidence writes the names cov's games evidence to path, one a line, and
 // prints the count. A card in refused stays out whatever its games did: it is known
-// to diverge somewhere.
-func writeEvidence(path string, refused map[string]bool, cov *oracle.Coverage) error {
+// to diverge somewhere. A run of more than two seats appends its seat count to every
+// row (Name\t<seats>); the evidence lander
+// (scripts/dirac-first-refusals.py evidence --pools pod-<pool>) copies those rows into
+// dirac/support/evidence and records the column as the card's clean pod games, and
+// readers of the lists take the name and ignore trailing columns.
+func writeEvidence(path string, seats int, refused map[string]bool, cov *oracle.Coverage) error {
 	names := slices.DeleteFunc(cov.Evidence(), func(n string) bool { return refused[n] })
 	var b strings.Builder
 	for _, n := range names {
 		b.WriteString(n)
+		if seats > 2 {
+			fmt.Fprintf(&b, "\t%d", seats)
+		}
 		b.WriteByte('\n')
 	}
 	if err := os.WriteFile(path, []byte(b.String()), 0o644); err != nil {
@@ -1765,7 +1772,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 		return 1
 	}
 	if evidencePath != "" {
-		if err := writeEvidence(evidencePath, o.refused, cov); err != nil {
+		if err := writeEvidence(evidencePath, o.seats, o.refused, cov); err != nil {
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
 			return 1
 		}
