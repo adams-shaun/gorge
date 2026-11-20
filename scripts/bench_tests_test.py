@@ -127,3 +127,63 @@ def test_summarize_cli_prints_header_rows_and_exits_with_the_package_status(tmp_
     assert lines[0].split("\t") == bt.HEADER
     assert lines[1].split("\t")[:2] == ["pkg", "m/p"]
     assert lines[1].split("\t")[4:7] == ["0.2", "0.50", "2.0"]
+
+
+def test_shell_runs_each_package_in_one_4g_scope_with_the_cost_flags(tmp_path):
+    """The shell contract the Python parser cannot see: one systemd scope per package, MemoryMax=4G,
+    GOMAXPROCS=4, GOFLAGS='-p=1 -trimpath', and go test -count=1 -json -timeout 15m. Fake systemd-run and
+    go make it a sub-second test that still fails if any of those is dropped."""
+    import os
+    import subprocess
+
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    go = bindir / "go"
+    go.write_text("""#!/usr/bin/env bash
+[ "${1:-}" = test ] || { echo "unexpected go $*" >&2; exit 99; }
+printf '%s\\n' "$@" >"$FAKE_GO_ARGS"
+printf 'GOMAXPROCS=%s\\nGOFLAGS=%s\\n' "$GOMAXPROCS" "$GOFLAGS" >"$FAKE_GO_ENV"
+printf '%s\\n' \\
+  '{"Action":"run","Package":"m/fake","Test":"TestFake"}' \\
+  '{"Action":"pass","Package":"m/fake","Test":"TestFake","Elapsed":0.01}' \\
+  '{"Action":"pass","Package":"m/fake","Elapsed":0.02}'
+""")
+    go.chmod(0o755)
+    sd = bindir / "systemd-run"
+    sd.write_text("""#!/usr/bin/env python3
+import os
+import sys
+args = sys.argv[1:]
+with open(os.environ["FAKE_SD_ARGS"], "a") as f:
+    f.write(" ".join(args) + "\\n")
+i = 0
+while i < len(args):
+    a = args[i]
+    if a in ("--user", "--scope", "-q"):
+        i += 1
+    elif a in ("-p", "--property"):
+        i += 2
+    elif a.startswith("-p") or a.startswith("--property="):
+        i += 1
+    else:
+        break
+os.execvp(args[i], args[i:])
+""")
+    sd.chmod(0o755)
+    env = dict(os.environ, PATH="%s:/usr/local/go/bin:/usr/bin:/bin" % bindir, PKGS="./fake",
+               BENCH_LOG_DIR=str(tmp_path / "logs"), FAKE_GO_ARGS=str(tmp_path / "go.args"),
+               FAKE_GO_ENV=str(tmp_path / "go.env"), FAKE_SD_ARGS=str(tmp_path / "sd.args"))
+    r = subprocess.run(["bash", str(HERE / "bench-tests.sh")], cwd=HERE.parent, env=env,
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    lines = r.stdout.splitlines()
+    assert lines[0].split("\t") == bt.HEADER
+    assert any(line.startswith("pkg\t./fake\t") for line in lines)
+    assert any(line.startswith("test\t./fake\tTestFake\t") for line in lines)
+    args = (tmp_path / "go.args").read_text().splitlines()
+    for want in ("-count=1", "-json", "-timeout", "15m"):
+        assert want in args, (want, args)
+    assert "GOMAXPROCS=4" in (tmp_path / "go.env").read_text().splitlines()
+    assert "GOFLAGS=-p=1 -trimpath" in (tmp_path / "go.env").read_text().splitlines()
+    assert any("MemoryMax=4G" in line for line in (tmp_path / "sd.args").read_text().splitlines())
+    assert (tmp_path / "logs" / "fake.json").exists()
