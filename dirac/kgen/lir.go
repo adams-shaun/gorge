@@ -789,6 +789,7 @@ type lCost struct {
 	Return         *lFilter // Return<N/Spec>: return ReturnN permanents you control matching (a resolution cost only)
 	ReturnN        int
 	DrawN          int      // Draw<N/Who>: draw N cards (a trigger's own or an unless cost)
+	DrawBy         *lValue  // Draw<X/Who>: the face's SVar:X drawn as the cost is paid (Champion of Wits)
 	DrawWho        string   // the drawing player's Forge selector (You, Player.targetedBy, Player.TriggeredPlayer)
 	DamageYouN     int      // DamageYou<N>: the resolving source deals N damage to the payer (an unless cost)
 	DiscardX       bool     // Discard<X/Spec>: discard the announced X hand cards (a spell's or activated ability's own cost; kop.Cost.DiscardX)
@@ -813,7 +814,7 @@ func (c lCost) pureMana() bool {
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && !c.DiscardX && c.Discard2N == 0 && c.Loyalty == 0 && !c.LoyaltyX &&
 		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.ReturnSelf &&
-		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
+		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DrawBy == nil && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
 		c.pureManaTail()
 }
 
