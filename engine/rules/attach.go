@@ -6,6 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -582,12 +583,17 @@ func (e *Engine) hasType(o *state.Object, t string) bool {
 		return false
 	}
 	if o.Zone == state.ZBattlefield {
-		for _, x := range e.typeCharacteristics(o.ID, 0) {
+		ty, all := chars.TypesAndAllCreatureTypes(asChars(e), e.active(), o.ID, 0)
+		for _, x := range ty {
 			if strings.EqualFold(x, t) {
 				return true
 			}
 		}
-		return false
+		// CR 702.73a: a Changeling (or an all-types grant) is every creature
+		// type; the walk reports that as a marker, never a materialised list,
+		// so a creature-subtype read (Changeling Outcast as a Flagbearer)
+		// answers it here.
+		return all && effects.CreatureTypeWords(t)
 	}
 	f := o.Face()
 	if f == nil {
