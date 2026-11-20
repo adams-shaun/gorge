@@ -11,7 +11,9 @@ import (
 // offered the activation. gorge's prefix search branches a tapped Spawn's
 // printed sacrifice and spends its 160-node budget before reaching the play;
 // the kernel's grantSrch skipped that branch (printedSacPass) and so reached
-// it. Both engines now spend the budget alike and neither offers it.
+// it. Both engines now cut an indistinguishable funder twice over (gorge's
+// scriptTwin, the grant search's fundTwinTried), reach the play inside the
+// budget and offer it.
 func TestMBCEmeraldDragonflyReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "granted_mana_tap_pays_activation")
