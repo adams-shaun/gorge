@@ -204,7 +204,12 @@ func TestLinkReturnsAreTheirOwnBatch(t *testing.T) {
 func TestDepartureFrameLeavesShieldsAlone(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Driftgloom Coyote", Count: 2}, {Name: "Stickytongue Sentinel", Count: 2},
 		{Name: "Valley Mightcaller", Count: 2}, {Name: "Island", Count: 4}, {Name: "Plains", Count: 4}}
-	sc, id := newBLBScen(t, deck)
+	sc, id := newBLBScenTweak(t, deck, func(tbl *kop.Table, id map[string]CardID) {
+		// a regenerating card in the table gives the shields their arena bits
+		c := &tbl.Cards[id["Stickytongue Sentinel"]]
+		c.Abilities = append(append([]kop.Ability(nil), c.Abilities...),
+			kop.Ability{Kind: kop.AbSpell, Prog: []kop.Instr{{Op: kop.OpRegenerate, Obj: kop.RefSelf}}})
+	})
 	s := sc.s
 	if !sc.k.gen.anyLinkRet {
 		t.Fatal("table has no until-leaves exiler")
