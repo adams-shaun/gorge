@@ -255,7 +255,11 @@ func globbedPools(t *testing.T) map[string]bool {
 	if err != nil {
 		t.Fatal(err)
 	}
-	quoted := regexp.MustCompile(`"([a-z][a-z-]*)"`)
+	// The pool names a test replays, quoted on the stdReprosGlob* call line.
+	// Digits are in the class for the synthetic evidence pools' names
+	// (tail-36 and friends), the first recordings whose pool is not a std-*
+	// set or a dr-mbc batch.
+	quoted := regexp.MustCompile(`"([a-z][a-z0-9-]*)"`)
 	pools := make(map[string]bool)
 	for _, f := range files {
 		b, err := os.ReadFile(f)

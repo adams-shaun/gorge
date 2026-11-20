@@ -1274,6 +1274,12 @@ type filtSearch struct {
 	// fee (paid from the floating pool, CR 601.2b), and without the plain
 	// run's fee-stall prune (feeStall is set on the plain run only).
 	phased bool
+	// feeOrder: the phased run's generic mana-fee order (gorge's
+	// scriptSearch.feeOrder, set for a plain cast beside a multi-unit
+	// fee-carrying gap, mana_filterfeeorder.go): the covered funding first,
+	// then the fee-carrying gaps (feeGaps), then the other gaps.
+	feeOrder bool
+	feeGaps  slotMask
 }
 
 // deferGapLeft: the search still holds an untapped filter gap whose tap
@@ -1469,6 +1475,18 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 				found = true
 				break
 			}
+		}
+	}
+	if !found && s.feeOrderRun(k, a, &fs) {
+		// gorge's plain run found none: its fee-order run walks the funding
+		// first and the multi-unit fee gaps after it (mana_filterfeeorder.go)
+		fo := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
+			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true,
+			feeOrder: true, feeGaps: s.feeOrderGaps(k, fs.gaps)}
+		if found = fo.visit(k, t, 0, false); found {
+			fs = fo
+		} else if fs.stall == 0 {
+			fs.stall = fo.stall
 		}
 	}
 	s.pool.inFilt--
@@ -2177,6 +2195,12 @@ func (fs *filtSearch) passCount() int {
 // skipped: the funding passes are once the funding is spent (gorge's phase
 // loop breaks there, so the phased run's last gap pass goes with it).
 func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOnly, skip bool) {
+	if fs.feeOrder {
+		// the fee-order run: funding, the fee-carrying gaps, the other gaps;
+		// the funding pass is skipped once it is spent and the gap passes
+		// still run (gorge's activations `continue`s there)
+		return pass != 0, false, pass == 0 && funded >= fs.fees
+	}
 	gap = pass == 0 || fs.phased && pass == 2
 	freeOnly = fs.phased && pass == 0
 	if gap {
@@ -2257,6 +2281,9 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			if fs.skipSlot(k, t, sl, gap, freeOnly) {
 				continue
+			}
+			if fs.feeOrder && gap && fs.feeGaps.has(sl) != (pass == 1) {
+				continue // the fee-order run's pass 1 walks the fee-carrying gaps, pass 2 the rest
 			}
 			if gap && fs.other.has(sl) {
 				if fs.otherGap(k, t, sl, funded) {
