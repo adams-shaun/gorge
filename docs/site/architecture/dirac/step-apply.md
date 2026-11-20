@@ -1,8 +1,7 @@
 # Step and Apply
 
-dirac has no event loop and no host. A game is driven by two methods on the `State` value: `Step` runs the game
-forward to its next question, and `Apply` answers it. This page is for anyone who wants to know what a driver, a
-bot or a search would write against dirac, and how its decisions compare with gorge's
+dirac has no event loop and no host. Two methods on `State` drive a game: `Step` runs to the next question and `Apply`
+answers it. This page is for driver, bot and search authors, and compares dirac's decisions with gorge's
 [Game loop and decisions](../gorge/game-loop.md).
 
 ## The loop
@@ -28,18 +27,16 @@ over, winner := s.Terminal()     // winner -1 is a draw
 | Answers per decision | a subset | exactly one pick; a multi-select becomes a sequence of picks |
 | Recorded | the intent is appended to the log | nothing; `Decisions` counts the answers |
 
-`StepInto` does two things to each decision before returning it. It sorts the options into a canonical order,
-so a policy's choice doesn't depend on storage order. By default it also answers a decision with one option in
-place and counts it in `State.Skipped`, chiefly the priority rounds where passing is the only legal action.
-`Config.NoElide` turns that off, as the oracle does.
+`StepInto` sorts each decision's options into a canonical order, so a policy's choice doesn't depend on storage
+order. By default it also answers a one-option decision in place and counts it in `State.Skipped`, chiefly priority
+rounds where passing is the only legal action. `Config.NoElide` turns that off, as the oracle does.
 
 ## The control-state machine
 
 `Step` and `Apply` both dispatch on one byte, `State.ctl`, which says where the game is waiting. `Step` does the
-rules work for the current state (turn-based actions, state-based actions, triggers, resolving the top of the
-stack) until a state produces a decision. `Apply` performs the answer and moves on. Everything needed to resume is
-in the value (the entry being built, a suspended program's position), so a game can stop in the middle of a cast
-or a resolution with no Go stack to save.
+rules work for the current state (turn-based actions, state-based actions, triggers, resolving the top of the stack)
+until a decision arises; `Apply` performs the answer. Everything needed to resume is in the value (the entry being
+built, a suspended program's position), so a game can stop mid-cast or mid-resolution with no Go stack to save.
 
 ```mermaid
 stateDiagram-v2
@@ -70,26 +67,25 @@ stateDiagram-v2
 ```
 
 The turn structure follows gorge's `engine/rules` exactly, because lockstep compares every priority decision. Untap
-and cleanup pose no priority. Every other step runs a full priority round even when nothing can happen. The starting
-player skips the turn-1 draw. With no attackers declared the game jumps from declare attackers to end of combat.
+and cleanup pose no priority; every other step runs a full priority round even when nothing can happen. The starting
+player skips the turn-1 draw. With no attackers declared, the game jumps from declare attackers to end of combat.
 State-based actions run after each combat-damage pass.
 
 ## Decision and Action
 
-A `Decision` is a kind, a sub-kind, a player and up to `MaxOptions` options, which is why `StepInto` exists. An
-`Action` is one packed `uint32`, with a five-bit kind, nine-bit source and target codes and an eight-bit mode
-(`dirac/seats.go`):
+A `Decision` is a kind, a sub-kind, a player and up to `MaxOptions` options (which is why `StepInto` exists). An
+`Action` is one packed `uint32` (`dirac/seats.go`):
 
 ```text
 kind << 26 | source << 17 | target << 8 | mode
 ```
 
-`source` and `target` are target codes (`TCode`): objects below `MaxObj`, then the stack abilities from
-`StackTarget0`, one code per seat from `PlayerTarget0`, a departed stack target and "none" (`NoTarget`, 511), which is
-why `MaxObj` can't pass `StackTarget0`. `MakeAction`, `Kind()`, `Source()`, `Target()` and `Mode()` encode and decode it. Each action
-kind says which fields it uses: `AkCast`'s mode bits name the cast route, for example kicked, flashback or
-a play permission. A granted activated ability is `AkActivate` with the creature as source, the granting permanent
-as target and `0x80 | index` as mode.
+That is a five-bit kind, nine-bit source and target and an eight-bit mode. `source` and `target` are target codes
+(`TCode`): objects below `MaxObj`, then stack abilities from `StackTarget0`, one code per seat from `PlayerTarget0`,
+a departed stack target and `NoTarget` (511), which is why `MaxObj` can't pass `StackTarget0`. `MakeAction`, `Kind()`,
+`Source()`, `Target()` and `Mode()` encode and decode it. Each action kind says which fields it uses: `AkCast`'s mode
+bits name the cast route (kicked, flashback, a play permission); a granted activated ability is `AkActivate` with the
+creature as source, the granting permanent as target and `0x80 | index` as mode.
 
 ## Decision kinds against gorge's
 
@@ -111,7 +107,7 @@ pick.
 | `arrange` | `DkChoose`/`ChArrange` | scry and surveil: each pick is the next card from the top, closed by `AkDone` |
 | `replacement` | `DkChoose`/`ChGenReplOrder` | the CR 616.1 order among competing replacement effects |
 | `starting_player` | not posed | the toss winner takes the first turn, as with gorge's plain `rules.New` |
-| `commander_zone` | not applicable | no Commander |
+| `commander_zone` | `DkChoose`/`ChCommanderZone` | the commander-to-command-zone ask, per seat in a Commander pod |
 
 Generated card tables raise further `Sub` values (a hybrid pip's colour, a pile split, a card to cast free). A bot
 that only understands the common ones can still answer the rest, because every option is a complete `Action`.
@@ -119,27 +115,26 @@ that only understands the common ones can still answer the rest, because every o
 ## RNG
 
 gorge's engine RNG is `math/rand/v2`'s PCG seeded with `(seed, seed ^ 0x9e3779b97f4a7c15)`, drawn through
-`rand.Rand.IntN`, with a counter of every draw. A `rand.Rand` holds an interface, which the core of `State` may not
+`rand.Rand.IntN`, with a counter of every draw. A `rand.Rand` holds an interface, which `State`'s core may not
 contain, so dirac keeps the bare PCG in the value and reimplements `IntN` with the same reduction. The draw order
-also matches: the coin toss first, then each seat's Fisher-Yates shuffle of its whole library in seat order, then seven
+matches too: the coin toss, then each seat's Fisher-Yates shuffle of its whole library in seat order, then seven
 cards. A London mulligan puts the hand on the library, shuffles and draws seven, then bottoms one pick per card.
 
-That is what makes lockstep possible:
+This makes lockstep possible:
 
-- **Same seed, same game.** With the same decks, seed and answers, both engines deal the same hands and resolve every
-  random effect alike, so they can be compared position by position.
-- **An early alarm.** The draw count is in both projections. If one engine draws a random number the other doesn't, the
-  next comparison fails on that field instead of many turns later when a different card shows up.
+- **Same seed, same game.** Same decks, seed and answers deal the same hands and resolve every random effect alike.
+- **An early alarm.** The draw count is in both projections, so an extra draw on one side fails the next comparison
+  on that field rather than turns later.
 - **Replay across engines.** With `Config.RecordChance`, dirac records the bound of every draw and `ChanceTranscript`
-  recomputes the values. The oracle forces those outcomes on gorge, so a game dirac played alone can be re-executed in
-  gorge and checked ([Verification](oracle.md#finding-and-reproducing-a-difference)).
+  recomputes the values. The oracle forces them on gorge, so a game dirac played alone can be re-executed in gorge
+  ([Verification](oracle.md#finding-and-reproducing-a-difference)).
 
-A search re-seeds a simulated world with `ReseedChance` and re-deals what the searching seat can't see. Those are
-deliberate departures from the real game's stream, made only on copies.
+A search re-seeds a simulated world with `ReseedChance` and re-deals what the searching seat can't see: a deliberate
+departure from the real stream, made only on copies.
 
 ## Configuration that changes behaviour
 
-The defaults are what a search wants. The `Gorge*` switches exist so that the oracle can match gorge's option surface.
+The defaults are what a search wants. The `Gorge*` switches let the oracle match gorge's option surface (`dirac/state.go`).
 
 | Switch | Off (default) | On |
 |---|---|---|

@@ -1,14 +1,13 @@
 # Agent guide
 
-Documentation for coding agents (and humans) working in gorge. `AGENTS.md` at
-the repo root is the always-loaded summary. This directory holds the detail,
-so it can stay out of every turn's context.
+Detail for coding agents (and humans). `AGENTS.md` at the repo root is the
+always-loaded summary; this directory keeps the rest out of every turn's context.
 
 | Read | When |
 |---|---|
 | [repo-map.md](repo-map.md) (the index) and its per-domain files (`repo-map-engine.md`, `repo-map-internal.md`, `repo-map-paths.md`) | Finding where something lives, or where a kind of change goes. |
-| `go run ./cmd/pkgmap` (classification: `docs/site/architecture/packages.tiers.json`) | Every package with its purpose, LOC, reverse importers, tier and status, plus the tier-dependency graph; `-check` fails on an unclassified package. |
-| [invariants.md](invariants.md) | Before changing engine code. It lists each design invariant, what enforces it, and the legitimate way to change it, and ends with the contributor workflow. |
+| `go run ./cmd/pkgmap` | Every package with purpose, LOC, reverse importers, tier and status, plus the tier graph; `-check` fails on a package missing from `docs/site/architecture/packages.tiers.json`. |
+| [invariants.md](invariants.md) | Before changing engine code: each invariant, what enforces it, how to change it legitimately, and the contributor workflow (including how a PR lands through the Mergify queue). Long form: [site Invariants](../site/architecture/invariants.md). |
 | [do-not.md](do-not.md) | Before you touch git, run a server, or merge. Every entry has happened here. |
 | [runtime-behavior.md](runtime-behavior.md) | When changing trigger-relative filters, cast provenance, host observer hooks, or seat privacy/session handling. |
 | [repro.md](repro.md) | Turning a player's bug report into a failing test. |
@@ -16,13 +15,14 @@ so it can stay out of every turn's context.
 | [`docs/design/2026-09-22-engine-contracts.md`](../design/2026-09-22-engine-contracts.md) | Behaviour that looks like a bug but is a deliberate contract. |
 | [`docs/design/`](../design/ARCHIVE.md) and [`docs/decisions/`](../decisions/0001-repo-layout.md) | Living designs (flat, date-prefixed) and architecture decisions. Finished records were parked; `docs/design/ARCHIVE.md` indexes them. |
 
-## The six rules that matter most
+## The rules that matter most ([invariants.md](invariants.md))
 
 1. Every state write goes through `events.Apply`, and `events.Kind` is
    append-only.
 2. No wall clock, no unseeded randomness, no map order reaching an event. The
    engine is a pure function of `(Config, intents)`.
 3. Never commit Forge scripts (GPL-3.0). No cgo, no third-party dependencies.
+   A card dirac supports plays identically to gorge.
 4. Seats see a `view.View`, never the engine. Clairvoyance never reaches a
    hosted or rated game.
 5. Work in a git worktree that has `.cards/` linked, and leave `main`'s

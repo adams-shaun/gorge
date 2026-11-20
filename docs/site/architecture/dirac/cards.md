@@ -1,10 +1,9 @@
 # Cards
 
-dirac doesn't read card scripts. A generator, `dirac/kgen`, lowers gorge's compiled card IR into binary tables of
-integer ops, and a hand-written interpreter runs them. This page is for readers who want to know how a card gets into
-dirac, what a refusal means and why a lowered card isn't yet a supported one.
-
-`kgen` is `dirac/cmd/kgen` and `kfuzz` is `dirac/oracle/cmd/kfuzz`.
+dirac doesn't read card scripts. A generator, `dirac/kgen`, lowers gorge's compiled card IR into binary tables of integer
+ops, and a hand-written interpreter runs them. This page covers how a card gets in, what a refusal means and why a
+lowered card isn't yet a supported one. The commands are `dirac/cmd/kgen` and `dirac/oracle/cmd/kfuzz` (`kfuzz`); the
+contributor guide is [`dirac/docs/cards.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/cards.md).
 
 ## The pipeline
 
@@ -24,15 +23,16 @@ flowchart TB
   lower -. "not lowered: named in the coverage report, inert stand-in" .-> tab
 ```
 
-**kgen lowers gorge's compiled IR, not the script.** dirac therefore inherits gorge's reading of every card: keyword
-expansion, SVar resolution, what each parameter means. That is what lets lockstep demand equal behaviour, and it avoids
-a second script parser. It also means a misreading in gorge is a misreading in dirac
+**kgen lowers gorge's compiled IR, not the script.** dirac inherits gorge's reading of every card (keyword expansion,
+SVar resolution, what each parameter means), which lets lockstep demand equal behaviour and avoids a second script
+parser. A misreading in gorge is therefore a misreading in dirac
 ([what lockstep doesn't prove](oracle.md#what-lockstep-proves-and-what-it-doesnt)).
 
 ## Binary tables
 
-Tables are generated and never committed, because they are mechanical translations of GPL-3.0 scripts. `make dirac-tables`
-writes them into the gitignored corpus directory, one subdirectory per key:
+Tables are mechanical translations of GPL-3.0 scripts, so they are generated and never committed. `make dirac-tables`
+writes them into the gitignored corpus directory, one subdirectory per key (the synthetic evidence pools go under
+`kernel-synth-tables/<key>/`):
 
 ```text
 .cards/kernel-tables/<key>/manifest.tsv         pool, card and token counts, payload digest
@@ -40,17 +40,18 @@ writes them into the gitignored corpus directory, one subdirectory per key:
 .cards/kernel-tables/<key>/<pool>.coverage.md   kgen's refusal report
 ```
 
-The key is 16 hex digits of the corpus lock's digest and 16 of a hash over kgen, kop, the pool lists and the gorge
-packages kgen builds against, so a key's bytes never change. The binary embeds its half of the key. A tree with stale
-tables fails with an error naming the command to rebuild them, and there is no fallback. `DIRAC_TABLES` points a deployed binary at a copy of the tables and needs no corpus. Without a corpus or
-tables, the hand-written `dirac/vanilla` table (basic lands, vanilla creatures and simple spells) still plays a game.
+The key is 16 hex digits of the corpus lock's digest and 16 of `gorge.TableSourceHash` (`tablesrc.go`: kgen, kop, the
+pool lists and the gorge packages kgen builds against), so a key's bytes never change. The binary embeds its half. A
+tree with stale tables fails with an error naming the command to rebuild them; there is no fallback. `DIRAC_TABLES`
+points a deployed binary at a copy of the tables and needs no corpus. Without a corpus or tables, the hand-written
+`dirac/vanilla` table still plays a game.
 
 ## The op vocabulary
 
 A `kop.Table` holds what's printed: per card a `CardDef` (cost, types, P/T, keyword bits, abilities), and per ability a
-program of `Instr` values. An `Instr` is an op and fixed integer operands, with no strings or closures. Shared
-filters, values and conditions are interned in the table and named by index. Every enum is append-only, so a recorded
-table or a stored ability index keeps its meaning.
+program of `Instr` values. An `Instr` is an op and fixed integer operands, with no strings or closures. Shared filters,
+values and conditions are interned in the table and named by index. Every enum is append-only, so a recorded table or
+stored ability index keeps its meaning.
 
 An ability's program runs front to back against the stack entry's source, controller, targets, modes and X.
 
@@ -61,8 +62,8 @@ An ability's program runs front to back against the stack entry's source, contro
 - An op that raises a decision suspends the resolution. dirac poses the `Decision` and resumes at the same instruction.
 - An op the interpreter doesn't implement panics naming itself. It is never a silent no-op.
 
-`kgen -ops <pool>` writes the interpreter contract: every op kgen uses, its exact semantics, the decisions it implies and
-the cards that use it. `kgen -show <pool> <card>` prints one card's `CardDef`.
+`kgen -ops <pool> -out FILE` writes the interpreter contract: every op the pool uses, its semantics, the decisions it
+implies and the cards that use it. `kgen -show <pool> <card>` prints one card's `CardDef`.
 
 ## Lowering: read every parameter or refuse
 
@@ -79,10 +80,11 @@ A refused card still has a row in the table, as an **inert stand-in**: printed c
 abilities. `Matchup` refuses a deck holding one, so a game never plays such a card as vanilla by accident. The
 whole-pool table keeps the row, so a search world dealing hidden cards from a pool can still deal it.
 
-Two ratchets pin what lowers: a per-set count over each set's card list and a corpus-wide count, held as data in
-`dirac/kgen/testdata/acceptance.tsv`. A fall fails, and a rise is re-pinned; CI holds every pin exact
-(`DIRAC_PIN_STRICT=1`). `kgen -census-std` prints the per-set table and ranks refusal classes by how many
-Standard cards each one blocks.
+Ratchets pin what lowers: a per-set count over each set's card list and a corpus-wide count, held in
+`dirac/kgen/testdata/acceptance.tsv` (`TestSetAcceptance`, `TestCorpusAcceptance`; `build_acceptance.tsv` and
+`TestCorpusBuildAcceptance` pin the build step). A fall fails and a rise is re-pinned; the nightly CI run and main's
+regeneration scripts hold every pin exact (`DIRAC_PIN_STRICT=1`). `kgen -census-std` prints the per-set table and ranks
+refusal classes by how many Standard cards each blocks.
 
 ## Lowered, refused, evidenced
 
@@ -98,12 +100,13 @@ kgen computes one status per pool entry when it builds a table:
 **Refused** is for a card that lowers and plays wrongly. `kgen -refuse <card> -why <text> -repro <repro>` writes the entry,
 with the kind of difference and the game (pool, surface, pair, policy) that shows it.
 
-**Evidence** is earned in lockstep. `kfuzz -evidence` writes the cards that clean games played at least three times with
-every ability the card has used. A token earns no evidence of its own, since it is played through the card that makes it.
-A card no human deck holds earns it through **synthetic evidence pools**: tables built from a set's list or from the
-lowered corpus outside the Standard lists, which exist only to be played in lockstep. The evidence corpus is the FDN and BLB
-slices, the pauper real decks and one synthetic pool per Standard list, on both surfaces, at mulligan limits 0 and 1, and `scripts/dirac-evidence.sh`
-plays it. A card is listed when it meets the floor across its runs.
+**Evidence** is earned in lockstep. `kfuzz -evidence` writes the cards that clean games played at least
+`oracle.EvidenceMinPlays` times with every ability key the card has used (`oracle.EvidenceAllKeys`). A token earns none
+of its own, since it is played through the card that makes it. A card no human deck holds earns it through **synthetic
+evidence pools**: tables built from a set's list, a draft list, a focus list or the lowered corpus outside the Standard
+lists, which exist only to be played in lockstep. The evidence corpus is the real deck pools, those synthetic pools and
+the focus pools, on both surfaces at mulligan limits 0 and 1; `scripts/dirac-evidence.sh` plays it (its header lists the
+corpus) and a card is listed when it meets the floor across its runs.
 
 **A pair can be refused when neither card is.** A few interactions are refused at matchup time because the game would
 stall at its start, or because the two cards' effects need an order dirac doesn't model. `kfuzz` counts these as

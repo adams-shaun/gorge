@@ -1,6 +1,6 @@
 # Use the engines
 
-You can run either engine from the command line or from Go. Both need the card corpus once: `make fetch-cards compile-cards`. dirac also needs its tables: `make dirac-tables`.
+Run either engine from the command line or from Go. Both need the card corpus (`make fetch-cards compile-cards`); dirac also needs its tables (`make dirac-tables`).
 
 === "Command line"
 
@@ -26,7 +26,7 @@ You can run either engine from the command line or from Go. Both need the card c
     Import `engine/rules` to play a game, `bots/` for a policy and `server/host` to serve tables.
     The [Go embedding guide](../api/go.md) walks each entry point with code that compiles.
     dirac has a value API of its own: build a table with `dirac/cardset`, then loop `Step` and `Apply`
-    ([dirac](../architecture/dirac/index.md#why-a-second-engine)).
+    ([dirac](../architecture/dirac/index.md#why-a-second-engine)). [`dirac/lab`](lab.md) wraps that for experiments.
 
 <div class="grid cards" markdown>
 

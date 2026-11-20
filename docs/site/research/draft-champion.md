@@ -2,7 +2,7 @@
 
 *A tuned FDN drafter and builder, selectable beside the default*
 
-`champion` is a bot persona for Foundations (FDN) drafts. It drafts with the [knobbed drafter](drafting.md) under a tuned set of knobs, and both its drafting and its deck building read a table of card values fitted from simulated games instead of the 17Lands ratings. In a measured comparison it built decks that won 64.5% of their games against 17Lands decks, where the default persona's decks won 43.9%. That comparison has limits, listed below, and it is not a claim about human opponents.
+`champion` is a bot persona for Foundations (FDN) drafts. It drafts with the [knobbed drafter](drafting.md) under a tuned set of knobs, and both its drafting and its deck building read a table of card values fitted from simulated games instead of the 17Lands ratings. In a measured comparison it built decks that won 64.5% of their games against 17Lands decks, where the default persona's decks won 43.9%. The comparison has limits (see Caveats) and says nothing about human opponents.
 
 ## What it is
 
@@ -40,13 +40,11 @@ The gap between the champion and the default is +20.6 points, and the intervals 
 
 For context, in self-play between bot-drafted pods on the same engine the same pair scored 56.7% [55.9, 57.3], against 39.5% [38.7, 40.1] for the committed drafter on 17Lands ratings (1,500 pods, 60,640 games, 2026-11-05). The human-deck figure above is the one that shows the advantage carries over to human-drafted decks.
 
-This is not yet a gorge-engine number: every game above ran on dirac.
-
-Read the figure as "against 17Lands decks played by the heuristic bot", not as a win rate against human players.
+Read it as "against 17Lands decks played by the heuristic bot", not as a win rate against human players.
 
 ## Caveats
 
-1. The games ran on the dirac engine with the heuristic bot as pilot, not on the gorge engine, so the figure is not yet a gorge-engine human-deck number.
+1. Every game ran on the dirac engine, not the gorge engine, with the heuristic bot as pilot.
 2. A deck holding a card dirac refuses to play is dropped from the match-ups; the most common refusals were Genesis Wave, Ajani, Caller of the Pride and Fiend Artisan, so the sign of that bias is unknown.
 3. The measured pods had 8 seats and hosted events have 4.
 4. The opponents are 17Lands decks of mixed quality, and the same bot pilots both sides.
