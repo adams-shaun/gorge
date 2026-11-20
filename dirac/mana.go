@@ -1299,9 +1299,11 @@ func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost, unless bool) (pa
 }
 
 // planTapCol is the colour plan taps unit i with: the search's witness when
-// keepCols, else pickUnitColour, or the window's answer for a payment gorge
-// takes through its manual window when that answer still leaves the rest
-// payable (planWindowCol).
+// keepCols, else pickUnitColour, the window's answer for a payment gorge takes
+// through its manual window when that answer still leaves the rest payable
+// (planWindowCol), or a granted basic land type's colour for a payment gorge's
+// witness executes, whose search ranks the granted ability's plan over the
+// printed one (witnessGrantCol).
 func (s *State) planTapCol(k *prep, p uint8, pk *planner, i int, ty *utype, rem *[kop.NumManaKinds]int, remAny int) int {
 	if pk.keepCols {
 		return int(pk.bestCol[i])
@@ -1311,6 +1313,12 @@ func (s *State) planTapCol(k *prep, p uint8, pk *planner, i int, ty *utype, rem 
 		if c, ok := s.planWindowCol(k, p, &pk.winCost, pk.units[pk.bestSeq[i]]); ok &&
 			pk.colourKeepsPayable(c, int(ty.n), rem, remAny, &pk.bestTy, i+1, pk.bestN) {
 			return c // the window's answer, when it still leaves the rest payable
+		}
+		return col
+	}
+	if s.cfg&cfgGorgeSurface != 0 && !DebugWindowColourPlanner {
+		if c, ok := s.witnessGrantCol(k, p, pk, i, ty, rem, remAny); ok {
+			return c // the granted ability's plan wins the rank tie
 		}
 	}
 	return col
