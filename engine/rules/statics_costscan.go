@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
@@ -18,13 +19,31 @@ import (
 // deterministic: AliveFrom(0) seats, a fixed zone order, slice order inside
 // each zone, and each face's own Statics order.
 func (e *Engine) collectCostStatics() costStaticViews {
+	dbg := func(v costStaticViews, src string) costStaticViews {
+		has := false
+		inHand := false
+		for _, sv := range v.reduce {
+			if so := e.G.Obj(sv.Source); so != nil && so.Face() != nil && so.Face().Name == "Hearth Elemental" {
+				has = true
+			}
+		}
+		for _, id := range e.G.Zone(state.ZHand, 0) {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Hearth Elemental" {
+				inHand = true
+			}
+		}
+		if !has && inHand {
+			fmt.Printf("DBG-HE collect nep=%d %s MISSING depth=%d probe=%d\n", len(e.L.Events), src, e.derivedMemoDepth, e.offerProbeDepth)
+		}
+		return v
+	}
 	if c, ok := e.boardStaticsRef(); ok {
 		v := &c.v.cost
-		return costStaticViews{raise: slices.Clip(v.raise), reduce: slices.Clip(v.reduce),
+		return dbg(costStaticViews{raise: slices.Clip(v.raise), reduce: slices.Clip(v.reduce),
 			set: slices.Clip(v.set), optional: slices.Clip(v.optional), validTarget: v.validTarget,
-			manaReaching: v.manaReaching}
+			manaReaching: v.manaReaching}, "fused")
 	}
-	return e.scanCostStatics()
+	return dbg(e.scanCostStatics(), "fresh")
 }
 
 func (e *Engine) scanCostStatics() costStaticViews {

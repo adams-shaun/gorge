@@ -304,6 +304,16 @@ func planCastPaymentCheckedBody(b *planCastBody, p state.PlayerID, cast decision
 		base, improviseTaps = e.improviseCost(p, cast.Object, base, nil)
 		base = pay.WithSpellAbilityExtras(o.Face(), base)
 		cost = e.offerCostForUsing(statics.get(), p, cast.Object, base, scope)
+		if o.Face().Name == "Hearth Elemental" && altFace == nil {
+			views := statics.get()
+			fmt.Printf("DBG-HE cost base G=%d composed G=%d reduceN=%d srcs=[", base.Generic, cost.Generic, len(views.reduce))
+			for _, sv := range views.reduce {
+				if so := e.G.Obj(sv.Source); so != nil {
+					fmt.Printf(" %s(z%d)", so.Face().Name, so.Zone)
+				}
+			}
+			fmt.Printf(" ]\n")
+		}
 	}
 	if targetPaid {
 		cost = pay.PlanTargetPaidManaHalf(cost)
@@ -349,6 +359,9 @@ func planCastPaymentCheckedBody(b *planCastBody, p state.PlayerID, cast decision
 		})
 	}
 	out := planManaUnderRider(asPayer(e), p, e.G.Players[p].Life, cast, mana, rider, plan)
+	if o.Face().Name == "Hearth Elemental" && altFace == nil {
+		fmt.Printf("DBG-HE planout reason=%q detail=%q manaG=%d\n", out.Reason, out.Detail, mana.Generic)
+	}
 	if len(cost.Phyrexian) != 0 {
 		// The witness funds only the pip-free mana half (pay.PlanManaHalf),
 		// so a Phyrexian pip the payer's life total cannot pay must take its

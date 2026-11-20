@@ -148,6 +148,25 @@ func (e *Engine) walkBuildSeq() uint64 {
 // ok=false outside a walk. A reader of one list clips that list itself
 // rather than copying the whole boardStatics.
 func (e *Engine) boardStaticsRef() (*boardStaticsCache, bool) {
+	tag := "outside"
+	dbgMissing := func(tag string) {
+		has := false
+		for _, sv := range e.boardStaticsCache.v.cost.reduce {
+			if so := e.G.Obj(sv.Source); so != nil && so.Face() != nil && so.Face().Name == "Hearth Elemental" {
+				has = true
+			}
+		}
+		inHand := false
+		for _, id := range e.G.Zone(state.ZHand, 0) {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Hearth Elemental" {
+				inHand = true
+			}
+		}
+		if !has && inHand {
+			fmt.Printf("DBG-HE ref %s nep=%d gen=%d\n", tag, len(e.L.Events), e.derivedMemoGen)
+		}
+	}
+	defer func() { dbgMissing(tag) }()
 	now, ok := e.walkKeyNow()
 	if !ok {
 		return nil, false
@@ -155,12 +174,14 @@ func (e *Engine) boardStaticsRef() (*boardStaticsCache, bool) {
 	c := &e.boardStaticsCache
 	switch {
 	case c.key.gen != 0 && e.walkKeyHit(c.key, now):
+		tag = "hit"
 		if walkCacheVerify {
 			e.verifyBoardStatics(c.v)
 		}
 	case e.walkCrossHit(c.key, c.seq, now):
 		// An earlier walk's scan at an unchanged board (walkCrossHit):
 		// re-stamp it into this scope.
+		tag = "cross"
 		if walkCacheVerify {
 			e.verifyBoardStatics(c.v)
 		}
@@ -180,11 +201,13 @@ func (e *Engine) boardStaticsRef() (*boardStaticsCache, bool) {
 			// The printed scan of an unchanged static board
 			// (static_scan_reuse.go): keep it, and recompute only the
 			// Effect-delivered cost statics after it.
+			tag = "reappend"
 			c.v.cost = e.reappendEffectCostStatics(c.v.cost, c.printed)
 			if walkCacheVerify {
 				e.verifyBoardStatics(c.v)
 			}
 		} else {
+			tag = "rebuild"
 			var into boardStatics
 			if earlier {
 				into = boardStaticsArrays(c.v)
@@ -201,9 +224,50 @@ func (e *Engine) boardStaticsRef() (*boardStaticsCache, bool) {
 			seq = 0 // active() rebuilt mid-scan: never reuse across walks
 		}
 		c.key, c.seq = now, seq
+		e.dbgHearthCacheWrite(tag)
 		c.ver++
 	}
 	return c, true
+}
+
+// dbgHearthCacheWrite is temporary instrumentation: it prints one line for a
+// fused board-statics cache write while Hearth Elemental sits in p0's hand,
+// naming the write's backing pointer, whether Hearth's own static survived it
+// and the face Hearth showed at write time.
+func (e *Engine) dbgHearthCacheWrite(tag string) {
+	inHand := false
+	for _, id := range e.G.Zone(state.ZHand, 0) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Hearth Elemental" {
+			inHand = true
+		}
+	}
+	if !inHand {
+		return
+	}
+	has := false
+	for _, sv := range e.boardStaticsCache.v.cost.reduce {
+		if so := e.G.Obj(sv.Source); so != nil && so.Face() != nil && so.Face().Name == "Hearth Elemental" {
+			has = true
+		}
+	}
+	fi, zn := -1, -1
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Face() != nil && o.Face().Name == "Hearth Elemental" {
+			fi, zn = int(o.FaceIdx), int(o.Zone)
+		}
+	}
+	fmt.Printf("DBG-HE write nep=%d %s back=%p hearth=%v faceidx=%d zone=%d gen=%d depth=%d ents=[",
+		len(e.L.Events), tag, e.boardStaticsCache.v.cost.reduce, has, fi, zn, e.derivedMemoGen, e.derivedMemoDepth)
+	for _, sv := range e.boardStaticsCache.v.cost.reduce {
+		so := e.G.Obj(sv.Source)
+		if so == nil {
+			fmt.Printf(" #%d<nil>", sv.Source)
+			continue
+		}
+		fmt.Printf(" #%d(%s z%d)", sv.Source, so.Face().Name, so.Zone)
+	}
+	fmt.Printf(" ]\n")
 }
 
 // boardStaticsArrays is v's slices emptied (cleared, so the dead views pin
@@ -237,12 +301,37 @@ func (e *Engine) reappendEffectCostStatics(cost costStaticViews, printed [4]int)
 // scanBoardStaticsPrintedLists is the printed walk over lists, the zone
 // lists gatherBoardScan collected in the walk's order.
 func (e *Engine) scanBoardStaticsPrintedLists(out boardStatics, lists []boardScanList) boardStatics {
+	dbg := false
+	for _, l := range lists {
+		for _, id := range l.ids {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Hearth Elemental" {
+				dbg = true
+			}
+		}
+	}
+	if dbg {
+		handHot := ""
+		for _, l := range lists {
+			if l.z == state.ZHand {
+				for _, id := range l.ids {
+					if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Hearth Elemental" {
+						fmt.Printf("DBG-HE buildlist nep=%d handHearth=%v staticsOn=%v\n", len(e.L.Events), true, e.walkClassOf(id).staticHot(l.z))
+					}
+				}
+				handHot = handHot + fmt.Sprint(len(l.ids)) + " "
+			}
+		}
+		fmt.Printf("DBG-HE build nep=%d handlists=%s\n", len(e.L.Events), handHot)
+	}
 	for _, l := range lists {
 		z := l.z
 		{
 			for _, id := range l.ids {
 				o := e.G.Obj(id)
 				if o == nil || o.Face() == nil || offBattlefieldStaticsInert(z, o) {
+					if o != nil && o.Face() != nil && o.Face().Name == "Hearth Elemental" {
+						fmt.Printf("DBG-HE fusedskip nep=%d z=%d face=%q faceidx=%d objzone=%d cast=%v probe=%d\n", len(e.L.Events), z, o.Face().Name, int(o.FaceIdx), o.Zone, e.cast != nil, e.offerProbeDepth)
+					}
 					continue
 				}
 				// CR 702.25b/d: a phased-out permanent is treated as though it

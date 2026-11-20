@@ -1,7 +1,9 @@
 package rules
 
 import (
+	"fmt"
 	"math"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -394,6 +396,9 @@ func (e *Engine) costModifiersCompose(statics costStaticViews, p state.PlayerID,
 // cost-composition exclusion, a graveyard-priced composition, a face probe --
 // fall straight through to the body.
 func (e *Engine) costModifiersCompose0(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool, x int32, mayApply *bool) costMods {
+	if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Hearth Elemental" && !potential {
+		fmt.Printf("DBG-HE compose0 usable=%v\n", e.costComposeUsable())
+	}
 	if !e.costComposeUsable() {
 		return e.costModifiersComposeEval(statics, p, id, scope, targets, potential, x, mayApply)
 	}
@@ -401,6 +406,31 @@ func (e *Engine) costModifiersCompose0(statics costStaticViews, p state.PlayerID
 }
 
 func (e *Engine) costModifiersComposeEval(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool, x int32, mayApply *bool) costMods {
+	if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Hearth Elemental" && !potential && scope.Kind == "Spell" && scope.Mode == "" {
+		has := false
+		for _, sv := range statics.reduce {
+			if sv.Source == id {
+				has = true
+			}
+		}
+		fmt.Printf("DBG-HE eval nep=%d face=%q faceidx=%d probe=%d hearthInStatics=%v memoDepth=%d gypriced=%d suspend=%d castEv=%d stack=", len(e.L.Events), o.Face().Name, int(o.FaceIdx), e.offerProbeDepth, has, e.derivedMemoDepth, e.pricedFromGraveyard, e.costComposeSuspend, e.costCompositionEvent)
+		for i := 1; i <= 9; i++ {
+			pc, f, l, ok := runtime.Caller(i)
+			if !ok {
+				break
+			}
+			fn := runtime.FuncForPC(pc)
+			name := ""
+			if fn != nil {
+				name = fn.Name()
+				if k := strings.LastIndexByte(name, '.'); k >= 0 {
+					name = name[k+1:]
+				}
+			}
+			fmt.Printf(" %s(%s:%d)", name, f[strings.LastIndexByte(f, '/')+1:], l)
+		}
+		fmt.Printf("\n")
+	}
 	// Each pass owns the provenance capture: cleared here, set by
 	// costStaticApplies when a ValidCard$ carries a cast-provenance token.
 	e.CostProvenanceSeen = false
@@ -446,10 +476,29 @@ func (e *Engine) costModifiersComposeEval(statics costStaticViews, p state.Playe
 				}
 			}
 			if ok, indepFail := e.costStaticGatePlanned(sv, mode, p, id, scope, targets, xBound, plan); !ok {
+				if so := e.G.Obj(sv.Source); so != nil && so.Face() != nil && so.Face().Name == "Hearth Elemental" && sv.Source == id {
+					fmt.Printf("DBG-HE SELF gate deny ok=false indep=%v idZone=%d scope=%v\n", indepFail, e.G.Obj(id).Zone, scope.Kind)
+				}
 				if !indepFail && mayApply != nil {
 					*mayApply = true
 				}
 				continue
+			}
+			if so := e.G.Obj(sv.Source); so != nil && so.Face() != nil && so.Face().Name == "Hearth Elemental" && mode == "ReduceCost" && sv.Source == id {
+				amount := e.modAmountX(sv, newCostSubject(p, id, scope), x, amountTargets)
+				fmt.Printf("DBG-HE SELF gate pass p=%d idZone=%d amount=%d scope=%v mode=%q nep=%d probe=%d usable=%v gy0=[", p, e.G.Obj(id).Zone, amount, scope.Kind, scope.Mode, len(e.L.Events), e.offerProbeDepth, e.costComposeUsable())
+				for _, gid := range e.G.Zone(state.ZGraveyard, 0) {
+					if go2 := e.G.Obj(gid); go2 != nil && go2.Face() != nil {
+						fmt.Printf(" %s", go2.Face().Name)
+					}
+				}
+				fmt.Printf(" ] gy1=[")
+				for _, gid := range e.G.Zone(state.ZGraveyard, 1) {
+					if go2 := e.G.Obj(gid); go2 != nil && go2.Face() != nil {
+						fmt.Printf(" %s", go2.Face().Name)
+					}
+				}
+				fmt.Printf(" ]\n")
 			}
 			if mayApply != nil {
 				*mayApply = true
@@ -512,6 +561,9 @@ func (e *Engine) costModifiersComposeEval(statics costStaticViews, p state.Playe
 				}
 			} else {
 				red.Generic = e.modAmountX(sv, sub, x, amountTargets)
+			}
+			if so := e.G.Obj(sv.Source); so != nil && so.Face() != nil && so.Face().Name == "Hearth Elemental" && sv.Source == id {
+				fmt.Printf("DBG-HE red append potential=%v mode=%q amount=%d\n", potential, scope.Mode, red.Generic)
 			}
 			mods.Reduces = append(mods.Reduces, red)
 		}

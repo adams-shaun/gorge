@@ -315,6 +315,21 @@ func (e *Engine) staticSourceIDs(p state.PlayerID, z state.Zone) []state.ObjID {
 	if staticZoneSkipVerify {
 		e.staticZoneSkipVerifyOnce(i, z, cur, hot)
 	}
+	if z == state.ZHand && p == 0 {
+		for _, id := range cur {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Hearth Elemental" {
+				in := false
+				for _, hid := range hot {
+					if hid == id {
+						in = true
+					}
+				}
+				if !in {
+					fmt.Printf("DBG-HE coldhand nep=%d hotN=%d curN=%d from=%d\n", len(e.L.Events), len(hot), len(cur), from)
+				}
+			}
+		}
+	}
 	return hot
 }
 
