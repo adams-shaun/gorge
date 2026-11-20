@@ -920,7 +920,18 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 // next (an Essence Flux return) sees the stolen permanent.
 func (s *State) ctrlExpireAfterLeave(k *prep) {
 	if k.gen.ctrlSBA && s.g.nfx != 0 {
+		// A permanent that went back to its controller changes the affected
+		// set of every controller-keyed read cached in perm.gty (the Ring
+		// emblem's Legendary on a bearer whose designation just ended, CR
+		// 701.54b), so the types refresh like ctrlSBA's (gorge reads them live).
+		var start [MaxPerm]uint8
+		for m := s.occ; m.any(); m = m.rest() {
+			start[m.first()] = s.perms[m.first()].ctrl
+		}
 		s.ctrlExpire(k, false)
+		if s.ctrlMoved(&start) {
+			s.refreshTy(k)
+		}
 	}
 }
 
