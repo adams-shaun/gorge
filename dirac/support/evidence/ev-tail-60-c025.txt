@@ -13,5 +13,6 @@ Molder Slug
 Monstrify
 Mountain
 Plains
+Smiting Helix
 Swamp
 Tragic Fall

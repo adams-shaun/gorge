@@ -104,6 +104,7 @@ Saproling Migration
 Scattershot
 Seasoned Pyromancer
 Silverglade Pathfinder
+Smiting Helix
 Smothering Abomination
 Soul of Shandalar
 Soulmender

@@ -276,6 +276,7 @@ Skinwing
 Sky Terror
 Skyreach Manta
 Smelted Chargebug
+Smiting Helix
 Soltari Emissary
 Spectral Guardian
 Spider Spawning

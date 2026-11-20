@@ -23,6 +23,7 @@ Mistmeadow Skulk
 Mountain
 Plains
 Silent Specter
+Smiting Helix
 Swamp
 Tenacity
 Tragic Fall

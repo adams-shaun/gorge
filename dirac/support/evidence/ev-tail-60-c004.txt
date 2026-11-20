@@ -104,6 +104,7 @@ Skin Invasion
 Skinwing
 Sling-Gang Lieutenant
 Smelted Chargebug
+Smiting Helix
 Spectral Guardian
 Spider Spawning
 Stern Proctor

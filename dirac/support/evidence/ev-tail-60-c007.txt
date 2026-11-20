@@ -91,6 +91,7 @@ Skin Invasion
 Sky Terror
 Sling-Gang Lieutenant
 Smelted Chargebug
+Smiting Helix
 Spider Spawning
 Swamp
 Tenacity
