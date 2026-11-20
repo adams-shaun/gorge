@@ -969,6 +969,12 @@ const (
 	// effects' sacrificeParams (sacEachValidParts). Appended: earlier
 	// ordinals stay stable.
 	PKSacEachValid
+	// FirstTimeCrewed$ True and ValidCrewAmount$ N on a Mode$ BecomesCrewed
+	// trigger (CR 702.122e; Mindlink Mech, Mighty Servant of Leuk-o). Read by
+	// trigmatch's becomesCrewedMatches. Appended: earlier ordinals stay
+	// stable.
+	PKFirstTimeCrewed
+	PKValidCrewAmount
 	paramKeyCount
 )
 
@@ -1104,6 +1110,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKFirstForetell:                    "FirstForetell",
 	PKFirstTime:                        "FirstTime",
 	PKFirstTimeSaddled:                 "FirstTimeSaddled",
+	PKFirstTimeCrewed:                  "FirstTimeCrewed",
 	PKForgetOtherRemembered:            "ForgetOtherRemembered",
 	PKFoundSearchingLibrary:            "FoundSearchingLibrary",
 	PKGainControl:                      "GainControl",
@@ -1611,6 +1618,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKValidDefenders:                   "ValidDefenders",
 	PKValidEnlisted:                    "ValidEnlisted",
 	PKValidCrew:                        "ValidCrew",
+	PKValidCrewAmount:                  "ValidCrewAmount",
 	PKValidSaddled:                     "ValidSaddled",
 	PKValidExplored:                    "ValidExplored",
 	PKValidExplorer:                    "ValidExplorer",
