@@ -1153,6 +1153,7 @@ type filtSearch struct {
 	// fund nothing (grantSrch.candidates).
 	dead  slotMask
 	fees  int   // the funding the search may activate
+	fundN int   // the untapped non-gap sources that can fund that fee
 	own   Slot  // the source whose {T} is the play's own cost (NoSlot: none)
 	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	nodes int
@@ -1317,6 +1318,22 @@ func (fs *filtSearch) phasedFallback() bool {
 	return fs.feeOnly && !fs.other.any() && fs.pay == nil && fs.nodes >= potentialScriptNodes
 }
 
+// filtFunders counts p's untapped battlefield sources that are no gap and
+// can fund a filter's fee: the funding pass's own sources.
+func (s *State) filtFunders(k *prep, p uint8, gap slotMask) int {
+	n := 0
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
+		sl := b.first()
+		if gap.has(sl) || s.perms[sl].flags&pfTapped != 0 {
+			continue
+		}
+		if s.canTapForMana(k, sl) || s.fundsBySac(k, sl) {
+			n++
+		}
+	}
+	return n
+}
+
 // filtScript reports whether gorge's prefix search finds a script for play
 // a of p; with apply it plays the script on s (the play's prefix).
 //
@@ -1336,6 +1353,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
 	}
 	fs.fees = s.filtFunding(k, p, fs.gaps)
+	fs.fundN = s.filtFunders(k, p, fs.gaps.or(fs.other))
 	hadOther := fs.other.any() // a dropped gap still asks for the dead-end check
 	if gapFilteredPlay(a) && (fs.gaps.any() || fs.other.any()) {
 		d := s.grantPayDesc(k, a)
@@ -1861,6 +1879,18 @@ func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap, freeOnly bool) b
 		return true
 	}
 	if !gap {
+		if fs.a.Kind() == AkCast && fs.a.Mode()&castFace != 0 {
+			// A face cast's funding source must be able to pay the face's
+			// cost: gorge's prefix search drops a restricted source the
+			// payment cannot spend (scriptSpendableGaps, CR 106.6). A plain
+			// cast keeps such a source, whose mana may still pay a filter's
+			// fee (Hydraulic Helper's artifact-only {U} funding Baxter
+			// Building's {4} for Shuri).
+			d := t.grantPayDesc(k, fs.a)
+			if !t.gapSpendable(k, sl, &d) {
+				return true
+			}
+		}
 		return false
 	}
 	if freeOnly && !t.canTapForMana(k, sl) {
@@ -2070,6 +2100,16 @@ func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOn
 	return gap, freeOnly, false
 }
 
+// holdDualFilter reports whether sl is a lone dual filter on a cast whose
+// fee the funding pass can pay: its free {C} tap must wait, or it spends the
+// 160-node budget before the fee floats and the paid activation is never
+// reached (Baxter Building beside four lands, King T'Challa). A board with a
+// second filter or with too few funders keeps the plain walk's free tap.
+func (fs *filtSearch) holdDualFilter(k *prep, t *State, sl Slot) bool {
+	return fs.gaps.count() == 1 && fs.a.Kind() == AkCast && fs.fees > 0 &&
+		fs.fundN >= fs.fees && comboFiltAb(t.filtAb(k, sl))
+}
+
 func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	if !fs.tick() {
 		return false
@@ -2169,6 +2209,9 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 						return true
 					}
 				case free:
+					if fs.holdDualFilter(k, t, sl) {
+						continue
+					}
 					if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
 						return true
 					}
