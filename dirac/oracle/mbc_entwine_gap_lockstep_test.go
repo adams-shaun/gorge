@@ -2,13 +2,12 @@ package oracle
 
 import "testing"
 
-// Grab the Reins (CR 702.42a) is an entwine spell. Dr-mbc-bbbb pair 67: an
-// untapped Krark-Clan Ironworks and two artifacts make the entwined cast
-// (printed {3}{R} plus entwine {2}{R}) payable by activating the Ironworks
-// twice ({C}{C} each, sacrificing The Rack and then the Ironworks), but
-// gorge's potential bound counts a sacrifice-mana ability once and its
-// potential walk therefore never lists the entwined mode. The kernel's script
-// gap walk listed it, so the engines parted at the priority decision.
+// Grab the Reins (CR 702.42a) is an entwine spell. Dr-mbc-bbbb pair 67: Plains,
+// three Mountains and two artifacts (The Rack, Krark-Clan Ironworks) cannot
+// pay the entwined cast ({3}{R} plus entwine {2}{R}) by gorge's potential
+// bound, which counts the fixed-colour sacrifice ability {C}{C} once. The
+// kernel's potential census marked that source open and folded one {C}{C} per
+// sacrifice candidate, so it offered the entwined cast gorge never lists.
 func TestMBCGrabTheReinsReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "entwine_gap")
