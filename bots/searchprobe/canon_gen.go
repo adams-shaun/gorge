@@ -50,6 +50,22 @@ func (e *canonEncoder) encview_View(v *view.View) error {
 	} else {
 		e.buf = append(e.buf, 0)
 	}
+	if len(v.DamageStep) == 0 {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		e.appendString(string(v.DamageStep))
+	}
+	if !v.FirstStrikeStep {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		if v.FirstStrikeStep {
+			e.buf = append(e.buf, 1)
+		} else {
+			e.buf = append(e.buf, 0)
+		}
+	}
 	if v.Winner == nil {
 		e.buf = append(e.buf, 0)
 	} else {
@@ -1075,6 +1091,16 @@ func (e *canonEncoder) encview_CardView(v *view.CardView) error {
 	} else {
 		e.buf = append(e.buf, 1)
 		if v.Blocked {
+			e.buf = append(e.buf, 1)
+		} else {
+			e.buf = append(e.buf, 0)
+		}
+	}
+	if !v.Blocking {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		if v.Blocking {
 			e.buf = append(e.buf, 1)
 		} else {
 			e.buf = append(e.buf, 0)
