@@ -21,11 +21,13 @@ func TestMBCTail39ReplplusOrderLockstep(t *testing.T) {
 		t.Fatal(err)
 	}
 	asked := false
+	askSeq, askOpts := -1, 0
 	pol := &ScriptPolicy{Actions: r.Actions, Tail: PolicyFunc(func(c *PickCtx) Canon {
 		if asked || len(c.D.Options) < 2 {
 			return c.D.Options[0]
 		}
 		asked = true // the first tail decision with a choice: the order ask
+		askSeq, askOpts = c.Seq, len(c.D.Options)
 		return c.D.Options[1]
 	})}
 	reg := synthReg(t)
@@ -33,6 +35,13 @@ func TestMBCTail39ReplplusOrderLockstep(t *testing.T) {
 	res := replayDecodedScript(t, reg, set, r, pol)
 	if !asked {
 		t.Fatal("the replay never reached a tail decision with two or more options: no order ask was posed")
+	}
+	// Pin the ask the latch took: the first tail decision, right after the
+	// recorded actions. A re-recording that adds an earlier multi-option tail
+	// decision moves it and must fail here rather than quietly test the
+	// plus-first order through FirstPolicy.
+	if askSeq != len(r.Actions) {
+		t.Fatalf("the latch took decision %d (%d options), want the order ask at %d", askSeq, askOpts, len(r.Actions))
 	}
 	if msg := reproSkipFailure(r, pol); msg != "" {
 		t.Fatal(msg)

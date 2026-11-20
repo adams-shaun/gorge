@@ -550,7 +550,7 @@ func (s *State) replOrderCandsSeat(k *prep, fe *fzEv, p, sc, rcp uint8, n int) i
 	ro := &s.g.ro
 	var bf [MaxPerm]Slot
 	for _, b := range bf[:s.battlefieldOrder(p, s.statM.and(s.ctrlM[p]), bf[:], 0)] {
-		if g.replBits[s.cardAt(b)]&rbDblDmg != 0 && !s.genLost(k, b) && (!g.anyFiltRepl || s.dblDmgMatch(k, b, sc, fe.src, fe.card, NoObj, rcp, fe.dst, true)) {
+		if g.replBits[s.cardAt(b)]&rbDblDmg != 0 && !s.genLost(k, b) && s.dblDmgMatch(k, b, sc, fe.src, fe.card, NoObj, rcp, fe.dst, true) {
 			if n == len(ro.cand) {
 				s.capFull(StallReplCands) // loud: never truncate the candidates
 				return -1
