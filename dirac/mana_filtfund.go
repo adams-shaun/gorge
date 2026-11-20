@@ -128,9 +128,13 @@ func (s *State) fundSacOnly(k *prep, p uint8, sl Slot) {
 	s.sacFilterSource(k, sl)
 }
 
-// fundOut: sl is tapped and cannot fund by sacrifice either.
+// fundOut: sl is tapped and cannot fund by sacrifice or by life either.
 func (s *State) fundOut(k *prep, sl Slot) bool {
-	return s.perms[sl].flags&pfTapped != 0 && !s.fundsBySac(k, sl)
+	if s.perms[sl].flags&pfTapped == 0 || s.fundsBySac(k, sl) {
+		return false
+	}
+	_, life := s.soleLifeSource(k, s.perms[sl].ctrl, sl) // a life-only source taps nothing (mana_solelifefund.go)
+	return !life
 }
 
 // fundFree: sl funds a filter now, tapped for mana or sacrificed.
