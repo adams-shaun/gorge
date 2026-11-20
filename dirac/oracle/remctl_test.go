@@ -46,12 +46,16 @@ func TestRemCtlLockstep(t *testing.T) {
 // as reading the permanent's controller after the control change would: the
 // lockstep must diverge.
 func TestRemCtlMutation(t *testing.T) {
+	rewrites := 0
 	run := runFixtureLockstep(t, "remctl", remCtlDecks, remCtlWatch, 64, false, func(tbl *kop.Table) {
-		mutateCard(t, tbl, "Rules of Acquisition", func(a *kop.Ability, in *kop.Instr) {
+		rewrites += mutateCard(t, tbl, "Rules of Acquisition", func(a *kop.Ability, in *kop.Instr) {
 			if in.Op == kop.OpDraw && (in.Obj == kop.RefResChosenPlayer || in.Obj == kop.RefTargetController || in.Obj == kop.RefEachOpponent || in.Obj == kop.RefOpponent) {
 				in.Obj = kop.RefController
 			}
 		})
 	})
+	if rewrites == 0 {
+		t.Fatalf("Rules of Acquisition: the mutation rewrote no instruction, so the run is a control; the lowering's Draw operand no longer matches the predicate")
+	}
 	run.requireDivergence(t, "the caster draws for the remembered player")
 }
