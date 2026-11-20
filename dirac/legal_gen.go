@@ -106,6 +106,7 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	if k.gen.anyHandAct {
 		s.priorityHandAct(k, d, p, sorc, &av)
 	}
+	s.priorityEmbalmGrant(k, d, p, sorc, &av) // kw_embalmgrant.go
 	if k.gen.anyExileGrant {
 		s.priorityExileGrant(k, d, p) // cast_exilegrant.go
 	}
@@ -602,7 +603,11 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 func (s *State) activateGen(k *prep, a Action) bool {
 	o := Obj(a.Source())
 	ob := &s.objs[o]
-	if isGainedMode(a.Mode()) {
+	if a.Mode() == EmbalmGrantMode && k.anyEmbalmGrant && ob.zone == kop.ZoneGraveyard {
+		// a granted embalm (kw_embalmgrant.go): the granting card's latent
+		// body run with the embalmed card as its source
+		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: k.embalmCard, ab: k.embalmAb, ctrl: s.prio, trigObj: NoObj}}
+	} else if isGainedMode(a.Mode()) {
 		// a gained ability (static_gainsof.go): the foreign card's body,
 		// activated as the recipient's own ability (no granting host)
 		host := Obj(a.Target())
