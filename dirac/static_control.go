@@ -118,8 +118,10 @@ func prepCtrl(t *kop.Table, g *genPrep) {
 			if in.Op == kop.OpGainControl && (in.A.N == kop.DurWhileSource || in.A.N == kop.DurWhileControlSource) {
 				g.ctrlSBA = true
 			}
-			if (in.Op == kop.OpOverride || in.Op == kop.OpOverrideAll) && in.A.K == kop.VConst && in.A.N == kop.DurUntilYourNextTurn {
-				g.anyNTOv = true
+			if (in.Op == kop.OpOverride || in.Op == kop.OpOverrideAll) && in.A.K == kop.VConst {
+				if in.A.N == kop.DurUntilYourNextTurn {
+					g.anyNTOv = true
+				}
 			}
 		}
 	}
@@ -732,6 +734,8 @@ func (s *State) ovDurFl(dur int16) uint8 {
 	case kop.DurUntilYourNextTurn:
 		s.ovNTArm(s.res.e.ctrl) // static_ovntleave.go
 		return ovNT | (s.res.e.ctrl<<ovNTWhoShift)&ovNTWho
+	case kop.DurUntilYourNextUpkeep:
+		return 0 // the class is the Override row's UntilUpkeep; p carries the controller (static_untilnextupkeep.go)
 	}
 	return 0
 }
