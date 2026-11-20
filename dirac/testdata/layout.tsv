@@ -1,6 +1,6 @@
 # Generated State layout pins (layout_pins_test.go); do not edit by hand. Regenerate: DIRAC_UPDATE_LAYOUT=1 go test -run 'TestStateLayoutPinned|TestNoNewFixedStateFields|TestCapacityHashPins' ./dirac
 # class	key	value; field rows: class	field	Type.field	offset	size
-default	size	37560
+default	size	38072
 default	perms%64	0
 default	ObjHash	0x1840693a7b08d20b
 default	ViewHash	0x30fbf5c02563bccf
@@ -84,8 +84,9 @@ default	field	stateCore.stamp	13856	488
 default	field	stateCore.Skipped	14344	16
 default	field	stateCore.nlC	14360	8
 default	field	stateCore.g	14368	9752
-default	field	stateCore.Decisions	24120	4
-default	field	stateCore.payHyb	24124	1
+default	field	stateCore.outCode	24120	512
+default	field	stateCore.Decisions	24632	4
+default	field	stateCore.payHyb	24636	1
 default	field	genState.graveKept	0	1
 default	field	genState.cskip	1	1
 default	field	genState.fx	2	768

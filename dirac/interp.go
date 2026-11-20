@@ -1066,7 +1066,7 @@ func (s *State) applyResolve(k *prep, a Action) {
 		} else if isBasicLandChoose(&s.prog(k)[r.pc]) {
 			r.chosen = objWord(basicLandAnswer(k, a)) // act_choosebasicland.go
 		} else {
-			r.chosen = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
+			r.chosen = objWord(s.typeVocabCode(k, int(a.Target())<<8|int(a.Mode())))
 		}
 		r.bad |= resChosenType
 		if o, sl := s.resolutionTypeSource(); sl != NoSlot {

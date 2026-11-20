@@ -1229,7 +1229,7 @@ func (s *State) applyGen(k *prep, a Action) {
 			// the copy template's own choice (copy_templatechoice.go)
 			s.g.pre.val2 = a.Mode()
 			if s.g.pre.kind == akType {
-				s.g.pre.val2 = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+				s.g.pre.val2 = s.typeVocabCode(k, int(a.Target())<<8|int(a.Mode()))
 			}
 			s.g.pre.kind = akClone
 		} else {
@@ -1241,7 +1241,7 @@ func (s *State) applyGen(k *prep, a Action) {
 				}
 			}
 			if s.g.pre.kind == akType {
-				s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
+				s.g.pre.val = objWord(s.typeVocabCode(k, int(a.Target())<<8|int(a.Mode())))
 			}
 		}
 		s.g.pre.state = 2
@@ -1341,7 +1341,7 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		p.chosen = objWord(a.Mode())
 	} else {
 		v := int(a.Target())<<8 | int(a.Mode())
-		p.chosen = objWord(typeVocabSub(k, v))
+		p.chosen = objWord(s.typeVocabCode(k, v))
 	}
 	if ask.card != NoCard {
 		saveRep := s.g.replaced
