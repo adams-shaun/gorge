@@ -35,28 +35,33 @@ func TestRestrictedFloatLoweredActivationMutation(t *testing.T) {
 }
 
 // restrFloatDeck holds Eclipsed Realms (restricted mana for the chosen type's
-// spells and abilities) and Figure of Fable's {G/W} hybrid activations. Parcel
-// Myr and Myr Reservoir are outside the std-ecl pool, so the Kithkin
-// creatures stand for the restricted activations.
+// spells and abilities), Figure of Fable's {G/W} hybrid activations and
+// Plains. Parcel Myr and Myr Reservoir are outside the std-ecl pool, so the
+// Figure stands for the restricted activations. The Plains is the plain source
+// a witness blind to restricted mana taps for the {G/W} where gorge's witness
+// taps Eclipsed Realms, so the mutation (restricted mana ignored) diverges on
+// a four-seat seed: the pod reaches the changed lowering.
 var restrFloatDeck = []string{
-	"Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms",
-	"Figure of Fable", "Figure of Fable", "Figure of Fable", "Figure of Fable", "Figure of Fable", "Figure of Fable",
-	"Kinscaer Sentry", "Eclipsed Kithkin", "Thoughtweft Lieutenant", "Safewright Cavalry", "Selfless Safewright",
-	"Forest", "Forest", "Forest", "Forest", "Forest", "Forest",
+	"Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms",
+	"Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms", "Eclipsed Realms",
+	"Figure of Fable", "Figure of Fable", "Figure of Fable", "Figure of Fable", "Figure of Fable", "Figure of Fable", "Figure of Fable", "Figure of Fable",
+	"Plains", "Plains", "Plains", "Plains", "Plains", "Plains", "Plains", "Plains", "Plains", "Plains",
 }
 
 // TestRestrictedFloatLoweredActivationFourSeat plays a four-seat pod of
-// restricted-mana decks: no divergence, and an activation was paid from
-// floating restricted mana at least once (so the test cannot pass empty).
+// restricted-mana decks: no divergence, an activation was paid from floating
+// restricted mana at least once (so the test cannot pass empty), and with the
+// mutation (dirac.DebugRestrictedFloatIgnored, the old behaviour) a seed
+// diverges, so the pod provably reaches the changed lowering.
 func TestRestrictedFloatLoweredActivationFourSeat(t *testing.T) {
 	set := cardsettest.Synth(t, "std-ecl")
-	paid, last := 0, 0
+	restrictedSpends, last := 0, 0
 	check := func(g *GorgeSide, _ Side) *Divergence {
 		evs := g.E.L.Events
 		for ; last < len(evs); last++ {
 			e := &evs[last]
 			if e.Kind == events.ManaAdd && e.Amount < 0 && strings.HasPrefix(e.Text, "mana-restriction:") && strings.Contains(e.Text, "Activated.") {
-				paid++
+				restrictedSpends++
 			}
 		}
 		return nil
@@ -68,8 +73,11 @@ func TestRestrictedFloatLoweredActivationFourSeat(t *testing.T) {
 		return base(seed)
 	}
 	fourSeatAtkClean(t, play, 20)
-	t.Logf("%d activations paid from floating restricted mana", paid)
-	if paid == 0 {
-		t.Error("no activation was paid from floating restricted mana: the mechanism was never reached")
+	if !fourSeatAtkMutated(t, play, 20, &dirac.DebugRestrictedFloatIgnored) {
+		t.Fatal("restricted float ignored: no four-seat seed diverged, so the pod does not reach the lowering")
+	}
+	t.Logf("%d restricted-mana spends whose restriction names Activated.", restrictedSpends)
+	if restrictedSpends == 0 {
+		t.Error("no restricted mana was spent on an ability: the mechanism was never reached")
 	}
 }
