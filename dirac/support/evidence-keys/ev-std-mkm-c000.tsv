@@ -1,0 +1,89 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A Killer Among Us	0f73644c2ceac0ff	8	2/2		0/1	ix:resp
+Aftermath Analyst	497292469b5a6e84	3	2/2		0/1	ix:resp
+Agency Coroner	1aa259fec77fc3e3	5	1/1		0/1	ix:resp
+Airtight Alibi	1a72d6e5bcc02a43	7	1/1		2/2	
+Analyze the Pollen	2d6da5b77c53f7d4	7	0/0		1/2	ix:resp
+Archdruid's Charm	324da5282a0bdc0e	10	0/0		2/2	
+Assassin's Trophy	94fc08b077ff4f51	11	0/0		1/2	ix:resp
+Audience with Trostani	64e648d533c07115	4	0/0		1/2	ix:resp
+Axebane Ferox	3cecd15ec3dc031e	15	1/1		0/1	ix:resp
+Barbed Servitor	08e3d79b4425ef64	12	3/3		1/1	
+Basilica Stalker	137d79d2299f6810	9	1/1		1/3	cast/alt:disguised,ix:resp
+Bite Down on Crime	aff3b20be8149a00	4	0/0		2/2	
+Case of the Gorgon's Kiss	d6f0cc7ca8b68cba	11	2/2		0/1	ix:resp
+Case of the Shattered Pact	7309a8ddcfee59b4	27	3/3		1/1	
+Case of the Stashed Skeleton	ae2288c38c10dfff	17	3/3		0/1	ix:resp
+Case of the Trampled Garden	3b3cfd07bb367f8c	10	3/3		0/1	ix:resp
+Cerebral Confiscation	2a47ca273ae14532	9	0/0		1/2	ix:resp
+Chalk Outline	23709fbce6aaa304	6	1/1		0/1	ix:resp
+Clandestine Meddler	0b1406aa1181999d	10	2/2		1/1	
+Commercial District	258e1f537352928b	64	3/3		0/1	ix:resp
+Elegant Parlor	325445d71ca7b819	124	3/3		0/1	ix:resp
+Escape Tunnel	d52cf5b130679874	13	2/2		0/1	ix:resp
+Extract a Confession	b4d49555aec54a1c	3	0/0		1/2	ix:resp
+Fanatical Strength	b9b090a4abef5882	10	0/0		1/2	ix:resp
+Festerleech	b23585853610199e	6	2/2		0/1	ix:resp
+Forest	6d0466c30f825dba	218	1/1		0/1	ix:resp
+Get a Leg Up	f3cafbf1e124f8f7	9	0/0		2/2	
+Glint Weaver	e492367ef087baa8	8	1/1		0/1	ix:resp
+Gravestone Strider	a1d10dd5f4be22d5	13	2/2		0/1	ix:resp
+Hard-Hitting Question	edb77589e2d23ed1	9	0/0		2/2	
+Hedge Maze	ba81bac29d85fac2	42	3/3		0/1	ix:resp
+Hedge Whisperer	70bfec47e7beb9e3	12	1/1		0/1	ix:resp
+Homicide Investigator	6208da91cc63693e	6	1/1		0/1	ix:resp
+Hunted Bonebrute	299b10b854be975b	11	2/2		1/3	cast/alt:disguised,ix:resp
+Illicit Masquerade	a36bb899dde70be3	9	2/2		1/1	
+Insidious Roots	aadd3fb32eabb728	8	1/1		0/1	ix:resp
+It Doesn't Add Up	dd96ee1cd4dbdd42	17	0/0		1/2	ix:resp
+Izoni, Center of the Web	ba891bc583b728ce	10	3/3		1/1	
+Kraul Whipcracker	0780b3cb412919dd	7	1/1		1/1	
+Lead Pipe	311255d21f5e2e33	128	3/3		1/1	
+Leering Onlooker	fba0a4455470b185	6	1/1		0/1	ix:resp
+Long Goodbye	d3f94d7de0f178a3	11	0/0		2/2	
+Loxodon Eavesdropper	0497acedaf8039f4	11	2/2		0/1	ix:resp
+Lumbering Laundry	53ba9ce8dd003f09	10	1/1		2/3	cast/alt:disguised
+Lush Portico	ecc67034378f9480	104	3/3		1/1	
+Macabre Reconstruction	2be7d8a4aaee895c	6	0/0		2/2	
+Magnetic Snuffler	5d50d152ae12047f	19	2/2		0/1	ix:resp
+Magnifying Glass	a1c4ef9c4fea3e86	9	2/2		0/1	ix:resp
+Massacre Girl, Known Killer	ea7182cf7669f926	11	1/1		1/1	
+Meticulous Archive	5f367871da61292c	19	3/3		0/1	ix:resp
+Murder	cb5577a7bce1d337	32	0/0		2/2	
+Nightdrinker Moroii	522503dd7b5911d1	18	1/1		2/3	cast/alt:disguised
+Outrageous Robbery	067c1cbe2b8ab83d	7	0/0		2/4	f0/s/x0,ix:resp
+Persuasive Interrogators	81bf372b9c054dde	9	2/2		0/1	ix:resp
+Pick Your Poison	4a7c1a77422d3be7	10	0/0		1/2	ix:resp
+Polygraph Orb	f92fd4c51c10ac3d	6	2/2		0/1	ix:resp
+Pompous Gadabout	c52be76d545643ab	14	0/0		0/0	
+Presumed Dead	1659a2ecc298f4fa	18	0/0		2/2	
+Public Thoroughfare	4c8629341c3c5af9	9	2/2		0/1	ix:resp
+Rakish Scoundrel	0d971953be06a2c9	3	2/2		2/3	cast/alt:none
+Raucous Theater	0b5bf2b32f9ae030	15	3/3		0/1	ix:resp
+Repeat Offender	66fa82d98cebfced	16	1/1		0/1	ix:resp
+Rope	e80cae970f69ae4b	36	2/2		0/1	ix:resp
+Rot Farm Mortipede	e4c6e5ee92a5a3e8	13	1/1		0/1	ix:resp
+Rubblebelt Maverick	9aa3fbd530dbe1f4	9	2/2		1/1	
+Sample Collector	869363c4515d787c	6	1/1		0/1	ix:resp
+Sanitation Automaton	19b42ae2b6b7778d	10	1/1		0/1	ix:resp
+Scene of the Crime	5d7ffcb1cf81d07b	9	3/3		0/1	ix:resp
+Sharp-Eyed Rookie	8672f1b65fb121f8	35	1/1		0/1	ix:resp
+Slice from the Shadows	753cea6110cffef0	4	0/0		3/4	f0/s/x0
+Slime Against Humanity	73c82ee1001f3c1c	9	0/0		1/2	ix:resp
+Slimy Dualleech	69d320441b36cac7	15	1/1		0/1	ix:resp
+Snarling Gorehound	336a60769e87626a	9	1/1		0/1	ix:resp
+Soul Enervation	48d73b4147aebffe	6	2/2		1/1	
+Swamp	342b413902f441c3	223	1/1		0/1	ix:resp
+The Pride of Hull Clade	af3f89c1bc7ac9a4	33	1/1		0/1	ix:resp
+They Went This Way	982f67c5bb258f8f	6	0/0		1/2	ix:resp
+Thinking Cap	f35c50c733f4d307	10	2/2		0/1	ix:resp
+Thundering Falls	35886fc473e67573	32	3/3		0/1	ix:resp
+Toxin Analysis	7bcaf4ab9b4d0e88	6	0/0		1/2	ix:resp
+Tunnel Tipster	b948286cec7ee0fa	101	2/2		0/1	ix:resp
+Undercity Eliminator	6cff1dda1b75c314	10	1/1		0/1	ix:resp
+Undercity Sewers	4c25ffe381d6c798	107	3/3		0/1	ix:resp
+Underground Mortuary	f8a3eadbe0d28ac0	6	3/3		0/1	ix:resp
+Undergrowth Recon	83337588e138ec6b	10	1/1		0/1	ix:resp
+Unscrupulous Agent	2958fe2a1604d090	6	1/1		0/1	ix:resp
+Urgent Necropsy	40e10e8a4125d827	5	0/0		1/2	ix:resp
+Vein Ripper	1ae92b1d42bf02f0	10	2/2		0/1	ix:resp

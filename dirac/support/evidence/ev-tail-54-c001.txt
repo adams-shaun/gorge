@@ -34,6 +34,7 @@ Bontu's Last Reckoning
 Brambleweft Behemoth
 Brine Giant
 Brought Back
+Bulwark Giant
 Burst of Strength
 Carnival
 Catapult Squad
@@ -81,6 +82,7 @@ Esper Panorama
 Euroakus
 Explosive Welcome
 Fade from History
+Farideh's Fireball
 Festercreep
 Fiery Temper
 Fire Nation Ambushers
@@ -106,6 +108,7 @@ Golden Demise
 Goldmeadow Lookout
 Grazing Whiptail
 Great Furnace
+Grinding Station
 Grond, the Gatebreaker
 Harbor Bandit
 Harsh Sustenance
@@ -113,6 +116,7 @@ Harvester of Souls
 Haunter of Nightveil
 Haunting Figment
 Heartwood Treefolk
+Hedonist's Trove
 Hedron Rover
 Hellrider
 Hero of Precinct One
@@ -157,6 +161,7 @@ Launch Party
 Lava Dart
 Leveler
 Lhurgoyf
+Lich Lord of Unx
 Life's Legacy
 Liliana's Specter
 Liliana's Steward
@@ -254,6 +259,7 @@ Sengir Connoisseur
 Sensor Splicer
 Setessan Champion
 Shadow of Mortality
+Shipwreck Singer
 Shivan Fire
 Shivan Phoenix
 Shock Troops
