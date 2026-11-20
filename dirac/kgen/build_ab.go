@@ -58,7 +58,7 @@ func (cb *cardBuilder) abilities() error {
 	}
 	for i, s := range c.GrantedStatics {
 		cb.node = fmt.Sprintf("granted static[%d] %s", i, s.Kind)
-		ka, _, err := cb.static(s)
+		ka, _, err := cb.staticIn(s)
 		if err != nil {
 			return bfail(cb.node, "%v", err)
 		}
@@ -1919,7 +1919,7 @@ func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
 	if s.Kind == "IgnoreLandWalk" {
 		return cb.ignoreLandWalkAbility(s) // static_ignorelandwalk.go
 	}
-	return cb.static(s)
+	return cb.staticIn(s)
 }
 
 // combatAmountFilter builds the two combat-assignment statics (CR 510.1):

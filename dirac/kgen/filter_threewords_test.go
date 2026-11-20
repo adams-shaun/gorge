@@ -64,8 +64,9 @@ func TestFilterTwoSubtypes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := cb.clause(c, kop.ZoneLibrary); err == nil || !strings.Contains(err.Error(), "two subtypes beside a compare") {
-		t.Fatalf("two subtypes beside a compare: got %v", err)
+	// the compare has a filter word, so both go to a program (filter_spill.go)
+	if kf, err := cb.clause(c, kop.ZoneLibrary); err != nil || kf.Pred != kop.PredProg {
+		t.Fatalf("two subtypes beside a compare: got Pred %d, %v", kf.Pred, err)
 	}
 }
 
