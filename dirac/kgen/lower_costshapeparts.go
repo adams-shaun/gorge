@@ -12,7 +12,7 @@ func waterbendOtherPart(c lCost) bool {
 		c.Loyalty != 0 || c.SubCtr > 0 || c.PayLife > 0 || c.TapN > 0 || c.TapHost ||
 		c.SacHost || c.TapPowN != 0 || c.Forage != nil || c.ExileG != nil ||
 		c.Energy != 0 || c.ReturnSelf || c.ExileSelf || c.Untap || c.Return != nil ||
-		c.DrawN > 0 || c.DamageYouN > 0
+		c.DrawN > 0 || c.DrawBy != nil || c.DamageYouN > 0
 }
 
 // counterPlacingOtherPart reports a cost part the counter-placing shape
@@ -21,6 +21,6 @@ func counterPlacingOtherPart(c lCost) bool {
 	return c.Sac != nil || c.DiscardN > 0 || c.DiscardX || c.Loyalty != 0 || c.SubCtr > 0 ||
 		c.SubAmongN > 0 || c.PayLife > 0 || c.TapN > 0 || c.TapPowN > 0 ||
 		c.Forage != nil || c.ExileG != nil || c.Energy > 0 || c.Return != nil ||
-		c.DrawN > 0 || c.DamageYouN > 0 || c.Waterbend > 0 || c.WaterbendX ||
+		c.DrawN > 0 || c.DrawBy != nil || c.DamageYouN > 0 || c.Waterbend > 0 || c.WaterbendX ||
 		c.BlightN > 0 || c.EvidenceN > 0
 }
