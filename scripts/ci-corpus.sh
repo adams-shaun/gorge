@@ -23,6 +23,21 @@ tablesrc_paths() {
 dk=$(tablesrc_paths | tr '\n' '\0' | xargs -0 git ls-files -z -- | tr '\0' '\n' | grep -v '_test\.go$' | sort | tr '\n' '\0' | xargs -0 cat | sha256sum | cut -c1-12)
 root=${CI_CORPUS_ROOT:-$HOME/gorge-cards}; base=$root/base/$ck; tree=$root/tree/$ck-$dk
 mkdir -p "$root/base" "$root/tree"
+# Orphaned temp dirs (11-20: metal2's / sat at 80% for hours with ~1.1 TB in this user's /tmp: go-build work dirs and
+# test temp dirs from 11-17 on, left by jobs the merge queue cancelled; go removes its work dir only on a clean exit).
+# Every job removes this user's top-level temp directories whose newest entry is older than CI_TMP_TRIM_MIN (720)
+# minutes, twice GitHub's 6 h job cap, so no live job's dir qualifies. One job at a time, and before the corpus lock,
+# so a long first pass never holds up another job's corpus.
+(
+  exec 8>"$root/.tmp-trim.lock"; flock -n 8 || exit 0
+  age=${CI_TMP_TRIM_MIN:-720}; me=$(id -u); n=0
+  for d in "${CI_TMP_DIR:-/tmp}"/*; do
+    [ -d "$d" ] && [ ! -L "$d" ] && [ "$(stat -c %u "$d")" = "$me" ] || continue
+    [ -n "$(find "$d" -mmin -"$age" -print -quit 2>/dev/null)" ] && continue
+    rm -rf -- "$d" 2>/dev/null || true; n=$((n + 1))
+  done
+  [ "$n" -eq 0 ] || echo "ci-corpus: removed $n orphaned temp dirs (older than $age min)"
+) || true
 exec 9>"$root/.lock"; flock 9
 if ! grep -qs "$ref" "$base/cards.lock"; then
   rm -rf "$base.tmp"; mkdir -p "$base.tmp"; rm -rf .cards; ln -sfn "$base.tmp" .cards
@@ -40,11 +55,12 @@ touch "$tree"
 find "$root/tree" -mindepth 1 -maxdepth 1 -type d -mtime +2 -exec rm -rf {} + 2>/dev/null || true
 # Disk pressure (11-17 22:50: metal's / hit 100%, and runners died "No space left on device" mid-step). Nothing else
 # trims what this box's runners write: the trees above (a full copy per table key, dozens a day) and the shared Go
-# cache. At CI_DISK_TRIM_PCT (85) percent used, remove trees not used for 3 h and Go cache files not used for 6 h.
+# cache. At CI_DISK_TRIM_PCT (65) percent used, remove trees not used for 3 h and Go cache files not used for 6 h.
 # Both are safe while jobs run: a job's .cards is hard links (it keeps its data if its tree goes), and go refreshes
 # a cache entry's mtime at most hourly when it uses it, so a 6 h idle entry is not live work.
+# 65, not 85: metal2's cross-engine farm stops launching at 70% used, so a trim that waits for 85% starves it.
 used=$(df --output=pcent / | tail -1 | tr -dc 0-9)
-if [ "${used:-0}" -ge "${CI_DISK_TRIM_PCT:-85}" ]; then
+if [ "${used:-0}" -ge "${CI_DISK_TRIM_PCT:-65}" ]; then
   echo "ci-corpus: / is ${used}% used; trimming idle corpus trees and Go cache"
   find "$root/tree" -mindepth 1 -maxdepth 1 -type d ! -path "$tree" -mmin +180 -exec rm -rf {} + 2>/dev/null || true
   gc=$(go env GOCACHE 2>/dev/null || true)
