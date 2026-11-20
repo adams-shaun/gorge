@@ -1214,6 +1214,14 @@ type filtSearch struct {
 	// fee (paid from the floating pool, CR 601.2b), and without the plain
 	// run's fee-stall prune (feeStall is set on the plain run only).
 	phased bool
+	// feeOrder: the phased run's generic mana-fee order (gorge's
+	// scriptSearch.feeOrder, potentialPrefixScript's second build for a plain
+	// cast beside a multi-unit fee gap): the covered funding first, then the
+	// fee gaps (feeGaps), then the fee-free gaps. feePass is the pass visit's
+	// loop is on: 0 the funding, 1 the fee gaps, 2 the fee-free ones.
+	feeOrder bool
+	feePass  uint8
+	feeGaps  slotMask
 }
 
 // deferGapLeft: the search still holds an untapped filter gap whose tap
@@ -1317,6 +1325,33 @@ func (fs *filtSearch) phasedFallback() bool {
 	return fs.feeOnly && !fs.other.any() && fs.pay == nil && fs.nodes >= potentialScriptNodes
 }
 
+// feeGapsOf: the gaps whose ability costs mana and makes at least two units (a
+// combination filter, Baxter Building's {4},{T}), gorge's scriptSearch.feeGaps.
+// A one-unit fee source is a filter: its net production after the fee is zero.
+func (fs *filtSearch) feeGapsOf(k *prep, s *State) (m slotMask) {
+	for b := fs.gaps; b.any(); b = b.rest() {
+		if sl := b.first(); s.filtFee(k, sl) > 0 && s.filtUnits(k, sl) >= 2 {
+			m = m.or(slotBit(sl))
+		}
+	}
+	return m
+}
+
+// feeOrderFallback: the plain run found no script and the play is a plain cast
+// of the printed cost beside a multi-unit fee gap on a board whose gaps are
+// filters alone: gorge's phased run then takes the fee order (potentialPrefixScript),
+// unless the cast's own cost sacrifices or returns a permanent or a gap has a
+// hybrid fee (phasedScope: the ordinary phased order prices those).
+func (fs *filtSearch) feeOrderFallback(k *prep, s *State, a Action) bool {
+	if fs.pay != nil || fs.other.any() || a.Kind() != AkCast || a.Mode() != 0 || !fs.feeGapsOf(k, s).any() {
+		return false
+	}
+	if sc := k.t.Cards[s.objs[a.Source()].card].SpellCost; sc.Flags&(kop.CostSac|kop.CostReturn) != 0 {
+		return false
+	}
+	return !s.filtHybIn(k, fs.gaps)
+}
+
 // filtScript reports whether gorge's prefix search finds a script for play
 // a of p; with apply it plays the script on s (the play's prefix).
 //
@@ -1348,12 +1383,14 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	s.pool.inFilt++ // (fork made the pool)
 	found := fs.visit(k, t, 0, false)
-	if !found && fs.phasedFallback() {
+	feeOrder := !found && fs.feeOrderFallback(k, s, a)
+	if !found && (feeOrder || fs.phasedFallback()) {
 		// gorge's plain run spent its node budget on a repeatable fee-only
 		// filter's branches: its phased run walks the funding line the plain
 		// order walked past (potentialPrefixScript)
 		ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
-			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true}
+			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true,
+			feeOrder: feeOrder, feeGaps: fs.feeGapsOf(k, s)}
 		if found = ph.visit(k, t, 0, false); found {
 			fs = ph
 		} else if fs.stall == 0 {
@@ -1849,6 +1886,9 @@ func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap, freeOnly bool) b
 	if !gap {
 		return false
 	}
+	if fs.feeOrder && fs.feeGaps.has(sl) != (fs.feePass == 1) {
+		return true // the fee order walks the fee gaps and the fee-free ones in separate passes
+	}
 	if freeOnly && !t.canTapForMana(k, sl) {
 		return true // a fee-carrying gap is the phased run's third pass
 	}
@@ -2044,6 +2084,12 @@ func (fs *filtSearch) passCount() int {
 // skipped: the funding passes are once the funding is spent (gorge's phase
 // loop breaks there, so the phased run's last gap pass goes with it).
 func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOnly, skip bool) {
+	if fs.feeOrder {
+		// the fee order: funding, the fee gaps, the fee-free gaps; a spent
+		// funding skips its pass alone (gorge's phase loop continues)
+		fs.feePass = uint8(pass)
+		return pass != 0, false, pass == 0 && funded >= fs.fees
+	}
 	gap = pass == 0 || fs.phased && pass == 2
 	freeOnly = fs.phased && pass == 0
 	if gap {
