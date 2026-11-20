@@ -299,7 +299,6 @@ var knownUnknownFilterPredicates = []string{
 	"numColorsEQ3",
 	"numColorsEQX",
 	"numTargets EQ1",
-	"phasedOutSelf",
 	"setARN",
 	"setATQ",
 	"setHML",
