@@ -42,6 +42,31 @@ func (s *State) filtHybIn(k *prep, f slotMask) bool {
 	return false
 }
 
+// gapFaceHybIn reports whether some mana ability of a gap's face carries a
+// true hybrid pip: gorge's phasedScope reads every mana ability of each gap's
+// face (its priced cost's Hybrid pips), not just the filter ability — a gap's
+// second mana ability can carry the fee. dirac reads the printed cost, which
+// a cost static reaching mana abilities could differ from. The sentinels
+// HybTwobrid and HybPhyrexian are not hybrid pips: gorge's phasedScope reads
+// only Cost.Hybrid, not Twobrid, Phyrexian or HybridPhyrexian.
+func (s *State) gapFaceHybIn(k *prep, f slotMask) bool {
+	for ; f.any(); f = f.rest() {
+		c := s.cardAt(f.first())
+		for i := range k.t.Cards[c].Abilities {
+			m := k.t.Cards[c].Abilities[i].Cost.Mana
+			if k.t.Cards[c].Abilities[i].Kind != kop.AbMana {
+				continue
+			}
+			for _, h := range m.Hyb {
+				if h != 0 && h != kop.HybTwobrid && h != kop.HybPhyrexian {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // filtHybHeld is how much of the hybrid fee's colours the filter at sl may
 // spend: p's pool and the restricted mana its activation may use.
 func (s *State) filtHybHeld(k *prep, p uint8, sl Slot, a, b int) int {
