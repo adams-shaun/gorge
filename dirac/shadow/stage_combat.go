@@ -19,11 +19,13 @@ func (b *builder) markAttack(o *dirac.WorldObj, cv *view.CardView, name string) 
 	return nil
 }
 
-// combat adds the blocks the view shows. A view lists a blocker only on the
-// attacker it blocks, in block order; a blocker listed under two attackers, one
-// that is not on a battlefield the view shows, or an attacker blocked with no
-// blocker listed (a block whose blocker has left, as after combat damage) is
-// not rebuildable.
+// combat adds the blocks the view shows. A view lists a blocker on the attacker
+// it blocks, in block order, and marks every blocker Blocking: one marked and
+// listed nowhere blocks nothing (its attacker has left combat, CR 506.4). A
+// blocker listed under two attackers, or one that is not on a battlefield the
+// view shows, is not rebuildable. An attacker blocked with no blocker listed
+// (every blocker has left, CR 509.1h) is dirac's to place: legal from the
+// damage steps on.
 func (b *builder) combat() error {
 	at := map[dirac.Obj]int{} // object index -> its place in b.all
 	for i := range b.all {
@@ -38,7 +40,24 @@ func (b *builder) combat() error {
 			}
 		}
 	}
+	b.orphans(at)
 	return nil
+}
+
+// orphans marks the blockers no attacker lists as blockers of nothing.
+func (b *builder) orphans(at map[dirac.Obj]int) {
+	for _, p := range b.in.View.Players {
+		for i := range p.Battlefield {
+			cv := &p.Battlefield[i]
+			if !cv.Blocking {
+				continue
+			}
+			o, _ := b.in.ObjOf(int(cv.ID))
+			if k, ok := at[o]; ok && !b.all[k].wo.Blocking {
+				b.all[k].wo.Blocking, b.all[k].wo.Blocks = true, dirac.NoObj
+			}
+		}
+	}
 }
 
 // blocks marks the blockers of attacker cv.

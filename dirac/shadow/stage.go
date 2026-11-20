@@ -41,7 +41,11 @@ var stepOf = map[string]kop.Step{
 	"upkeep": kop.StepUpkeep, "draw": kop.StepDraw, "main1": kop.StepMain1,
 	"main2": kop.StepMain2, "end": kop.StepEnd,
 	"begin-combat": kop.StepBeginCombat, "declare-attackers": kop.StepAttackers, "declare-blockers": kop.StepBlockers,
+	"end-combat": kop.StepEndCombat,
 }
+
+// damageStepOf maps View.DamageStep to dirac's damage step.
+var damageStepOf = map[string]kop.Step{"first-strike": kop.StepFirstStrikeDamage, "regular": kop.StepDamage}
 
 // Card is one hidden card the caller dealt: its object index and its name.
 type Card struct {
@@ -121,6 +125,7 @@ func WorldFromView(in *Input) (dirac.World, error) {
 	w.Active = uint8(v.Active)
 	w.Prio = uint8(v.Priority)
 	w.Pose = pose
+	w.FirstStrike = v.FirstStrikeStep
 	if pose == dirac.PoseBlockers {
 		w.BlkDef = uint8(v.Decision.Player) // the defender asked (read only at more than two seats)
 	}
@@ -144,6 +149,12 @@ func checkScope(in *Input) (kop.Step, dirac.Pose, error) {
 		return 0, 0, bad(ReasonPending, "%d pending", len(v.Pending))
 	}
 	step, ok := stepOf[v.Step]
+	if v.Step == "combat-damage" {
+		// gorge runs one step with two priority rounds; dirac has two steps
+		if step, ok = damageStepOf[v.DamageStep]; !ok {
+			return 0, 0, bad(ReasonStepName, "combat-damage with damage step %q", v.DamageStep)
+		}
+	}
 	if !ok {
 		if v.Step == "" {
 			return 0, 0, bad(ReasonStepName, "empty")
@@ -259,7 +270,7 @@ func checkCard(cv *view.CardView, name string, owner int, z kop.Zone) error {
 		return err
 	}
 	if cv.FaceDown || cv.Flags != 0 || cv.AttackingPermanent ||
-		z != kop.ZoneBattlefield && (cv.Attacking || cv.Blocked || len(cv.BlockedBy) != 0) ||
+		z != kop.ZoneBattlefield && (cv.Attacking || cv.Blocked || cv.Blocking || len(cv.BlockedBy) != 0) ||
 		len(cv.GoadedBy) != 0 || len(cv.Imprinted) != 0 || len(cv.ExiledCards) != 0 {
 		return bad(ReasonMark, "%s", name)
 	}

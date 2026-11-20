@@ -46,7 +46,7 @@ func TestUnstageableReasons(t *testing.T) {
 		dirac.ReasonZone:    func(w *dirac.World) { w.Objs[3].Zone = kop.ZoneExile },
 		dirac.ReasonControl: func(w *dirac.World) { w.Objs[3].Zone, w.Objs[3].Ctrl, w.Objs[3].Pos = kop.ZoneBattlefield, 1, 0 },
 		dirac.ReasonPlace:   func(w *dirac.World) { w.Objs[3].Pos = 9 },
-		dirac.ReasonStep:    func(w *dirac.World) { w.Step = kop.StepDamage },
+		dirac.ReasonStep:    func(w *dirac.World) { w.Step = kop.StepCleanup },
 		dirac.ReasonCombat: func(w *dirac.World) {
 			w.Objs[3].Zone, w.Objs[3].Pos, w.Objs[3].Blocked = kop.ZoneBattlefield, 0, true // blocked and not attacking
 		},

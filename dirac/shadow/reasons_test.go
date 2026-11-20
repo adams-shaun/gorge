@@ -88,7 +88,7 @@ func TestWorldFromViewReasons(t *testing.T) {
 		shadow.ReasonMark:     func(in *shadow.Input) { bf(in, view.CardView{FaceDown: true}) },
 		shadow.ReasonPool:     func(in *shadow.Input) { in.View.Players[0].Pool = map[string]int32{"R": 1} },
 		shadow.ReasonStepName: func(in *shadow.Input) { in.View.Step = "" },
-		dirac.ReasonStep:      func(in *shadow.Input) { in.View.Step = "combat-damage" },
+		dirac.ReasonStep:      func(in *shadow.Input) { in.View.Step = "cleanup" },
 		dirac.ReasonCombat:    func(in *shadow.Input) { bf(in, view.CardView{Blocked: true}) },
 		dirac.ReasonControl:   func(in *shadow.Input) { bf(in, view.CardView{Controller: 1}) },
 		dirac.ReasonTable:     func(in *shadow.Input) { in.Tbl = nil },
@@ -142,6 +142,26 @@ func TestStageCombatPositions(t *testing.T) {
 		"begin combat":       func(in *shadow.Input) { in.View.Step = "begin-combat" },
 		"attackers declared": func(in *shadow.Input) { attack(in, view.CardView{Attacking: true, AttackingPlayer: &seat1}) },
 		"blocks declared":    block,
+		"end of combat":      func(in *shadow.Input) { in.View.Step = "end-combat" },
+		// the first striker's victim has died: the attacker is blocked by no one
+		"first-strike damage round": func(in *shadow.Input) {
+			block(in)
+			in.View.Step, in.View.DamageStep, in.View.FirstStrikeStep = "combat-damage", "first-strike", true
+			in.View.Players[0].Battlefield[0].BlockedBy = nil
+			in.View.Players[1].Battlefield = nil
+			in.View.Players[1].GraveyardSize = 1
+			in.View.Players[1].Graveyard = []view.CardView{{ID: 20, Name: "Savannah Lions", Owner: 1, Controller: 1}}
+		},
+		"regular damage round, no first strike": func(in *shadow.Input) {
+			block(in)
+			in.View.Step, in.View.DamageStep = "combat-damage", "regular"
+		},
+		"a blocker of a departed attacker": func(in *shadow.Input) {
+			block(in)
+			in.View.Step, in.View.DamageStep = "combat-damage", "regular"
+			in.View.Players[0].Battlefield[0].BlockedBy = nil
+			in.View.Players[1].Battlefield[0].Blocking = true
+		},
 		"declare attackers pose": func(in *shadow.Input) {
 			attack(in, view.CardView{})
 			in.View.Decision = &decision.Decision{Kind: decision.KAttackers}
@@ -165,8 +185,16 @@ func TestStageCombatPositions(t *testing.T) {
 	}{
 		"declare attackers, no decision shown, no attacker": {shadow.ReasonDecision, func(in *shadow.Input) { attack(in, view.CardView{}) }},
 		"attackers decision at main":                        {shadow.ReasonDecision, func(in *shadow.Input) { in.View.Decision = &decision.Decision{Kind: decision.KAttackers} }},
-		"combat damage":                                     {dirac.ReasonStep, func(in *shadow.Input) { in.View.Step = "combat-damage" }},
-		"end of combat":                                     {dirac.ReasonStep, func(in *shadow.Input) { in.View.Step = "end-combat" }},
+		"combat damage, no damage step shown":               {shadow.ReasonStepName, func(in *shadow.Input) { in.View.Step = "combat-damage" }},
+		"a first-strike round of a combat with none": {dirac.ReasonCombat, func(in *shadow.Input) {
+			block(in)
+			in.View.Step, in.View.DamageStep = "combat-damage", "first-strike"
+		}},
+		"a blocker of nothing before damage": {dirac.ReasonCombat, func(in *shadow.Input) {
+			block(in)
+			in.View.Players[0].Battlefield[0].BlockedBy = nil
+			in.View.Players[1].Battlefield[0].Blocking = true
+		}},
 		"blocked with no blocker listed": {dirac.ReasonCombat, func(in *shadow.Input) {
 			block(in)
 			in.View.Players[0].Battlefield[0].BlockedBy = nil

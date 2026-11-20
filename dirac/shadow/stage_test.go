@@ -218,6 +218,9 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 		st.staged++
 		st.byStep[v.Step]++
 		st.byKind[string(d.Kind)+"@"+v.Step]++
+		if v.DamageStep != "" {
+			st.byKind[string(d.Kind)+"@"+v.Step+"/"+v.DamageStep]++
+		}
 		fail = compareAndPlay(kstate, staged, seed, n, st)
 		return errDone
 	}

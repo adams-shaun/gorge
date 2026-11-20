@@ -129,12 +129,18 @@ type World struct {
 	// BlkDef is the defender asked at PoseBlockers when NSeat > 2 (read nowhere
 	// at two seats: the defender is the active seat's one opponent).
 	BlkDef uint8
+	// FirstStrike: a first-strike damage step happens this combat (a first
+	// striker that has died still made it). It sets the combat's first-strike
+	// flag at the two damage steps, and is false at any other step.
+	FirstStrike bool
 }
 
 // stageSteps are the steps a position can be staged in: a priority round or
-// a combat pose before combat damage (zone_stagecombat.go).
+// a combat pose before combat damage, and the priority rounds of the two
+// damage steps and of end of combat (zone_stagecombat.go).
 var stageSteps = [...]kop.Step{kop.StepUpkeep, kop.StepDraw, kop.StepMain1, kop.StepBeginCombat,
-	kop.StepAttackers, kop.StepBlockers, kop.StepMain2, kop.StepEnd}
+	kop.StepAttackers, kop.StepBlockers, kop.StepFirstStrikeDamage, kop.StepDamage, kop.StepEndCombat,
+	kop.StepMain2, kop.StepEnd}
 
 // combatKeywords are the keywords a staged creature may carry: they change
 // combat and nothing else.
@@ -468,6 +474,7 @@ func (s *State) initFromWorld(w *World) error {
 	s.prio = w.Prio
 	s.passes = w.roundPasses()
 	s.stagePose(w)
+	s.stageDamageStep(k, w)
 	s.mullMax = 0
 	return nil
 }

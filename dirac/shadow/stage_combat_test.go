@@ -16,24 +16,29 @@ import (
 // seed mod combatModes): a priority round at the beginning of combat, the
 // declare attackers step with attackers declared, the declare blockers step
 // with blocks declared, the declare attackers decision, the declare blockers
-// decision, the first decision of a turn and the last. The position is staged
+// decision, the first decision of a turn and the last, priority at the
+// first-strike damage step with a first striker in combat, at the regular damage
+// step and at end of combat. The position is staged
 // from the deciding seat's view and held to the replayed state, then both are
 // played to the game's end.
 
 const MaxObjs = dirac.MaxObj
 
 const (
-	combatGames    = 320
-	combatModes    = 8
+	combatGames    = 400
+	combatModes    = 11
 	combatMinKind  = 20
-	modeBegin      = 0 // priority at the beginning of combat
-	modeAtkPrio    = 1 // priority with attackers declared
-	modeBlkPrio    = 2 // priority with blocks declared
-	modeAtkPose    = 3 // the declare attackers decision
-	modeBlkPose    = 4 // the declare blockers decision
-	modeFirst      = 5 // the first decision of a turn
-	modeLast       = 6 // the last decision of a turn
-	modeBlkPrioAny = 7 // priority at the declare blockers step, blocks or none
+	modeBegin      = 0  // priority at the beginning of combat
+	modeAtkPrio    = 1  // priority with attackers declared
+	modeBlkPrio    = 2  // priority with blocks declared
+	modeAtkPose    = 3  // the declare attackers decision
+	modeBlkPose    = 4  // the declare blockers decision
+	modeFirst      = 5  // the first decision of a turn
+	modeLast       = 6  // the last decision of a turn
+	modeBlkPrioAny = 7  // priority at the declare blockers step, blocks or none
+	modeFSDamage   = 8  // priority at the first-strike damage step
+	modeRegDamage  = 9  // priority at the regular damage step
+	modeEndCombat  = 10 // priority at end of combat with attackers
 )
 
 func hasCombat(v *view.View, f func(*view.CardView) bool) bool { return hasBF(v, f) }
@@ -59,6 +64,12 @@ func combatEnv() *stageEnv {
 			return prio && v.Step == "upkeep" && v.Turn >= 2
 		case modeLast:
 			return prio && v.Step == "end" && v.Priority != v.Active
+		case modeFSDamage:
+			return prio && v.DamageStep == "first-strike"
+		case modeRegDamage:
+			return prio && v.DamageStep == "regular"
+		case modeEndCombat:
+			return prio && v.Step == "end-combat" && hasCombat(v, func(c *view.CardView) bool { return c.Attacking || c.Blocking })
 		}
 		return prio && v.Step == "declare-blockers"
 	}
@@ -87,7 +98,8 @@ func TestStageCombatMatchesReplay(t *testing.T) {
 	sort.Strings(kinds)
 	t.Logf("%d games: %d tried, %d staged, %d continuation decisions; staged by kind@step %v; unstageable by reason %v", combatGames, st.tried, st.staged, st.contSteps, kinds, st.reasons)
 	t.Logf("first detail of each reason: %v", st.firstDetail)
-	for _, k := range []string{"priority@begin-combat", "priority@declare-attackers", "priority@declare-blockers", "attackers@declare-attackers", "blockers@declare-blockers", "priority@upkeep", "priority@end"} {
+	for _, k := range []string{"priority@begin-combat", "priority@declare-attackers", "priority@declare-blockers", "attackers@declare-attackers", "blockers@declare-blockers", "priority@upkeep", "priority@end",
+		"priority@combat-damage/first-strike", "priority@combat-damage/regular", "priority@end-combat"} {
 		if st.byKind[k] < combatMinKind {
 			t.Errorf("only %d staged positions of %s, want %d", st.byKind[k], k, combatMinKind)
 		}
@@ -147,5 +159,19 @@ func combatMutations() map[string]func(*dirac.World) {
 			}
 		},
 		"pose dropped": func(w *dirac.World) { w.Pose = dirac.PosePriority },
+		// the first-strike round staged as the regular step and the other way
+		"damage step swapped": func(w *dirac.World) {
+			switch {
+			case w.Step == kop.StepFirstStrikeDamage:
+				w.Step = kop.StepDamage
+			case w.Step == kop.StepDamage && w.FirstStrike:
+				w.Step = kop.StepFirstStrikeDamage
+			}
+		},
+		"orphan blocker dropped": each(func(o *dirac.WorldObj) {
+			if o.Blocking && o.Blocks == dirac.NoObj {
+				o.Blocking = false
+			}
+		}),
 	}
 }
