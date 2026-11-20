@@ -41,17 +41,16 @@ var stringsRatchetMax = map[string]stringsCounts{
 // stringsRatchetAllowlist names the boundary and reporting files the
 // ratchet does not count, each with its reason.
 var stringsRatchetAllowlist = map[string]string{
-	"engine/rules/oracle_run.go":     "the oracle-scenario runner: reads scenario JSON and reports mismatches",
-	"engine/rules/clone_gen.go":      "generated clone code: its map[string] copies mirror fields counted at their declaration",
-	"engine/rules/cost/parse.go":     "the cost-text parser: the boundary every compiled cost is built at",
-	"engine/rules/cost/format.go":    "FormatCost: the cost rendering labels and the wire carry",
-	"engine/cards/parse.go":          "the card-script parser (load-time boundary)",
-	"engine/cards/canon_upstream.go": "the card-script normaliser: rewrites upstream spellings at load, before the parser",
-	"engine/cards/cache_codec.go":    "the IR cache's byte format",
-	"engine/cards/image_build.go":    "the compiled catalog image's string table",
-	"engine/cards/registry.go":       "corpus loading: card files, names and the cache",
-	"bots/policynet/checkpoint.go":   "the .dzgw checkpoint format",
-	"bots/azmcts/record.go":          "visit records written for training",
+	"engine/rules/oracle_run.go":   "the oracle-scenario runner: reads scenario JSON and reports mismatches",
+	"engine/rules/clone_gen.go":    "generated clone code: its map[string] copies mirror fields counted at their declaration",
+	"engine/rules/cost/parse.go":   "the cost-text parser: the boundary every compiled cost is built at",
+	"engine/rules/cost/format.go":  "FormatCost: the cost rendering labels and the wire carry",
+	"engine/cards/parse.go":        "the card-script parser (load-time boundary)",
+	"engine/cards/cache_codec.go":  "the IR cache's byte format",
+	"engine/cards/image_build.go":  "the compiled catalog image's string table",
+	"engine/cards/registry.go":     "corpus loading: card files, names and the cache",
+	"bots/policynet/checkpoint.go": "the .dzgw checkpoint format",
+	"bots/azmcts/record.go":        "visit records written for training",
 }
 
 type stringsCounts struct{ calls, sprint, strconv, maps int }
