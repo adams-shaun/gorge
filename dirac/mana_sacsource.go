@@ -20,6 +20,12 @@ import (
 // diverges).
 var DebugIgnoreSpawnMana bool
 
+// DebugSacManaAfterPay restores the {X} witness census that dropped a
+// sacrifice-only mana source (the pre-fix availUngranted admission), so the
+// sac-mana-source payment mutation test can replay the locked repro and
+// watch the divergence come back. Only the mutation test sets it.
+var DebugSacManaAfterPay bool
+
 // anySacSource reports whether p controls a source a payment plan could
 // sacrifice: an untapped tap-and-sacrifice source (a Treasure) or any
 // sacrifice-only one (a Spawn, tapped or not). It is the cheap gate before
