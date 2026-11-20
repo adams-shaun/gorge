@@ -225,6 +225,11 @@ type SnowStats struct {
 // DebugSnowStats is the test hook; nil in normal play.
 var DebugSnowStats *SnowStats
 
+// temp traces (delete before commit)
+var DebugCanActTrace bool
+
+var DebugGrantCensusPays bool
+
 // snowPay pays n {S} pips from p's pool, after its coloured pips: each takes
 // the first colour of W U B R G C whose snow tally is non-zero (gorge
 // ResolveManaWith alt.Snow), decrementing the pool and the tally. The tally is
