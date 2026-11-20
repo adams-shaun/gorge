@@ -18,6 +18,9 @@ const thermopodGrantRepro = "thermopod_ashaya_grant_over_a_sacrifice_mana_creatu
 // is refused by name, as Blanket of Night is, and the recorded game still shows
 // the divergence with it implicated.
 func TestMBCDrMbcBaaaReprosLockstep(t *testing.T) {
+	if landGrantReplay(t) {
+		return
+	}
 	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
 	if err != nil {
 		t.Fatal(err)

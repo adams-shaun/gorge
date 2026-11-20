@@ -225,7 +225,13 @@ func TestRefusedEntriesStillDiverge(t *testing.T) {
 			continue
 		}
 		t.Run(e.Card, func(t *testing.T) {
-			t.Parallel()
+			if landGrantRefusedCards[e.Card] {
+				if landGrantReplay(t) {
+					return // its pair is refused at deal now: replayed alone with that refusal off
+				}
+			} else {
+				t.Parallel()
+			}
 			checkRefusedEntry(t, e)
 		})
 	}
