@@ -15,7 +15,7 @@ const tinybonesSrc = `Name:Tinybones Probe
 ManaCost:1 B
 Types:Legendary Creature Skeleton Rogue
 PT:1/2
-A:AB$ LoseLife | Cost$ 4 B B | Defined$ Player.Opponent+HasCardsInHand_Card_EQ0 | LifeAmount$ 10 | SpellDescription$ Each opponent with no cards in hand loses 10 life.
+A:AB$ LoseLife | LifeAmount$ 10 | Defined$ Player.Opponent+HasCardsInHand_Card_EQ0 | Cost$ 4 B B
 Oracle:{4}{B}{B}: Each opponent with no cards in hand loses 10 life.
 `
 

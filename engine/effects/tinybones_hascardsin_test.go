@@ -12,7 +12,7 @@ import (
 // whose hand holds no card loses the life, an opponent holding a card does
 // not, and the controller never does.
 func TestTinybonesHasCardsInHand(t *testing.T) {
-	const line = "DB$ LoseLife | Defined$ Player.Opponent+HasCardsInHand_Card_EQ0 | LifeAmount$ 10"
+	const line = "DB$ LoseLife | LifeAmount$ 10 | Defined$ Player.Opponent+HasCardsInHand_Card_EQ0"
 	for _, tc := range []struct {
 		name  string
 		hands [3]int // cards in hand for seats 0..2
