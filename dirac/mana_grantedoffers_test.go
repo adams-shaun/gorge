@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -409,4 +410,16 @@ func TestGrantSacOnlyPrefix(t *testing.T) {
 			}
 		})
 	}
+}
+
+// grantSweepPool loads an equivalence test's pool. This file is one of
+// TestOnlyTheOracleReadsRawTables' synthetic-pool readers, so the raw
+// selector lives here and the grant walk's order test
+// (mana_grantorder_test.go) stays off the register.
+func grantSweepPool(tb testing.TB, name string) cardset.Set {
+	tb.Helper()
+	if strings.HasPrefix(name, "std-") {
+		return cardsettest.Synth(tb, name)
+	}
+	return cardsettest.Set(tb, name)
 }
