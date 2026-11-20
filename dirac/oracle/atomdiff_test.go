@@ -20,6 +20,9 @@ type atomSeed struct {
 	st    *AtomStats
 	fails []string
 	games int
+	// done is set when the set ran to its end: a set an environment gap
+	// skipped (no BLB deck pool, no cmd5 table) leaves it false
+	done bool
 }
 
 // atomPairs is the pairs each seed set plays and atomMaxDecisions the cap on a
@@ -75,6 +78,7 @@ func atomSlices(t *testing.T) *atomSeed {
 				}
 			}
 		}
+		a.done = true
 	})
 	return a
 }
@@ -105,6 +109,7 @@ func atomSynth(t *testing.T) *atomSeed {
 				a.play(name+" "+p.A+" vs "+p.B, m, p.Seed, k, cfg)
 			}
 		}
+		a.done = true
 	})
 	return a
 }
@@ -134,6 +139,7 @@ func atomPod(t *testing.T) *atomSeed {
 			t.Fatal(err)
 		}
 		a.play("pod", m, p.Seed, k, cfg)
+		a.done = true
 	})
 	return a
 }
@@ -216,8 +222,14 @@ func TestAtomCoverage(t *testing.T) {
 		}
 	})
 	total := NewAtomStats()
-	for _, f := range seeds {
-		total.Add(f(t).st)
+	for _, name := range []string{"slices", "synth", "pod"} {
+		a := seeds[name](t)
+		if !a.done {
+			// the pin is a measurement over all three sets: over a partial
+			// run (the precheck has no GORGE_POOLS) it would only mismatch
+			t.Skipf("seed set %s did not run to its end in this environment: the unproven pin is not comparable", name)
+		}
+		total.Add(a.st)
 	}
 	fa, ca := RegisteredAtoms()
 	var unproven []string
