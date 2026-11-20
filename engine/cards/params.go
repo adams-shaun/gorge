@@ -976,6 +976,12 @@ const (
 	// stable.
 	PKFirstTimeCrewed
 	PKValidCrewAmount
+	// ValidCardToTarget$ on an S:Mode$ CantAttach line that scopes the
+	// ATTACHING object by targeting legality rather than by a ValidCard$
+	// filter (Guardian Beast's "ValidCardToTarget$ Aura.!Attached"). Read by
+	// cards.CantAttachAuraShape and rules' cantAttachAuraBlocks. Appended:
+	// earlier ordinals stay stable.
+	PKValidCardToTarget
 	paramKeyCount
 )
 
@@ -1270,6 +1276,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKValidBlocker:                     "ValidBlocker",
 	PKValidCard:                        "ValidCard",
 	PKValidCards:                       "ValidCards",
+	PKValidCardToTarget:                "ValidCardToTarget",
 	PKValidCause:                       "ValidCause",
 	PKValidChoices:                     "ValidChoices",
 	PKValidCreature:                    "ValidCreature",

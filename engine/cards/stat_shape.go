@@ -6,7 +6,7 @@ package cards
 // precedent), so registering the mode name cannot certify a shape the engine
 // leaves inert.
 func statPrimitive(s Static) string {
-	if s.Mode == "CantAttach" && !CantAttachEquipmentShape(s) {
+	if s.Mode == "CantAttach" && !CantAttachEquipmentShape(s) && !CantAttachAuraShape(s) {
 		return "stat:CantAttach.OtherShape"
 	}
 	if s.Mode == "ManaRestriction" && !ManaRestrictionZeroSpendShape(s) {
@@ -51,15 +51,65 @@ var zeroSpendShape = [...]struct{ key, val string }{
 	{"EffectZone", "All"},
 }
 
+// CantAttachAuraShape reports whether an S:Mode$ CantAttach line is one of
+// the two implemented "another Aura can't enchant this bearer" shapes:
+//
+//   - ValidCard$ Aura.Other + Target$ <bearer relative to the source>: the
+//     attached Aura itself is the restriction's source (Anti-Magic Aura,
+//     Consecrate Land), so the bearer named by Target$ (Creature.EnchantedBy,
+//     Land.EnchantedBy) is the one the source enchants and the second Aura is
+//     any other. rules' cantAttachAuraBlocks enforces it on the Aura's
+//     targeting (the spell's target census and the CR 608.2b recheck) and on
+//     the CR 303.4f entry choice.
+//   - ValidCardToTarget$ Aura.!Attached + Target$ <bearer>, optionally
+//     IsPresent$-gated (Guardian Beast: only while untapped, and only
+//     artifacts you control). The IsPresent$ gate is read by rules'
+//     presentGate, the one static IsPresent$ home.
+//
+// Both are attach-side only: a restriction never un-attaches (Guardian
+// Beast's printed "This effect doesn't remove Auras already attached" is the
+// same rule stated per card), so nothing reads these shapes from the CR
+// 704.5m detach SBA. Anything else fails closed and stays
+// stat:CantAttach.OtherShape.
+func CantAttachAuraShape(s Static) bool {
+	tgt := s.ParamStr(PKTarget)
+	if tgt == "" {
+		return false
+	}
+	switch s.ParamStr(PKValidCard) {
+	case "Aura.Other":
+		for k := range s.Params {
+			switch k {
+			case "Mode", "ValidCard", "Target", "Description":
+			default:
+				return false
+			}
+		}
+		return true
+	}
+	switch s.ParamStr(PKValidCardToTarget) {
+	case "Aura.!Attached":
+		for k := range s.Params {
+			switch k {
+			case "Mode", "ValidCardToTarget", "Target", "IsPresent", "Description":
+			default:
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
 // CantAttachEquipmentShape reports whether an S:Mode$ CantAttach line is the
 // implemented Equipment shape: ValidCard$ names the attaching Equipment
 // (Card.Self on the Equipment itself -- O-Naginata, Konda's Banner, Gate
 // Smasher -- or Card.Equipment on the bearer -- Goblin Brawler), Target$ the
 // bearer it can't be attached to, and nothing else scopes it. rules'
 // cantAttachForbids enforces it through the Equipment arms of the
-// equip/attach refusal and the CR 704.5n SBA. The Aura shapes (Anti-Magic Aura's
-// Aura.Other, Guardian Beast's ValidCardToTarget$/IsPresent$) also restrict an
-// Aura spell's targets, which nothing here gates, so they stay unregistered.
+// equip/attach refusal and the CR 704.5n SBA. The Aura shapes (Anti-Magic
+// Aura's Aura.Other, Guardian Beast's ValidCardToTarget$/IsPresent$) are
+// CantAttachAuraShape's, read at the Aura's own enforcement points.
 func CantAttachEquipmentShape(s Static) bool {
 	for k := range s.Params {
 		switch k {
