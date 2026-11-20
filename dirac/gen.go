@@ -2747,7 +2747,7 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 		// a granted ability beside the card's own usable one: the own one
 		// is the planner's (mana_grantedoffers.go, grantAlt)
 		if found := s.grantIdx(k, sl); found >= 0 && !s.ownManaUsable(k, sl) {
-			if g.blgOn {
+			if g.blgOn && !s.blgGrantCovers(k, sl, int16(found)) {
 				s.blgStall(k, sl, s.cardAt(sl))
 			}
 			return s.grantView(g, int16(found), sl)

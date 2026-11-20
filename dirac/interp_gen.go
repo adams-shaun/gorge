@@ -1205,7 +1205,15 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 	s.g.inLoop = true
 	w := eachSusp{slot: i, t: saveT, v: saveV, bad: saveBad, hold: hr}
 	n0 := s.g.nask
-	if ok := s.exec(k, in); !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
+	ok := s.exec(k, in)
+	if s.res.ask == raGenCmdZone && cmdZoneEach(in) {
+		// CR 903.9b: a commander's bounce parked before it happens; the
+		// answer reruns the instruction, so no later target moves first
+		e.tgt[i], e.tver[i], s.res.bad = saveT, saveV, saveBad
+		s.g.inLoop = false
+		return false
+	}
+	if !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
 		w.j = 1 // the extra targets wait for the answer (copy_eachtarget.go, zone_eachreturnask.go)
 		s.g.each = w
 		s.g.inLoop = false
