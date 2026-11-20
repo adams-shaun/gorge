@@ -269,6 +269,7 @@ func optionEqual(a, b *decision.Option) bool {
 		a.Required == b.Required &&
 		a.BlockMust == b.BlockMust &&
 		a.AloneRestricted == b.AloneRestricted &&
+		a.AloneOnly == b.AloneOnly && a.CompanionNeed == b.CompanionNeed && sliceEq(a.CompanionFrom, b.CompanionFrom) &&
 		a.BlockMustAll == b.BlockMustAll &&
 		attackerDutyFlagsEqual(a, b) &&
 		a.MinBlockers == b.MinBlockers &&

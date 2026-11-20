@@ -51,6 +51,15 @@ var canonicalKeywordHeads = map[string]string{
 	"cardname can't attack or block alone.":                      "CantAttackOrBlockAlone",
 	"cardname can't attack alone.":                               "CantAttackAlone",
 	"cardname can't block alone.":                                "CantBlockAlone",
+	// CR 509.1c / 508.1c-d: the combat requirement and restriction sentences
+	// whose behaviour combat.ParseHiddenKeyword reads (companionkeyword.go).
+	"cardname must be blocked by exactly one creature if able.":                "MustBeBlockedByOne",
+	"cardname can only attack alone.":                                          "CanOnlyAttackAlone",
+	"cardname can't attack unless a creature with greater power also attacks.": "CantAttackUnlessGreaterPower",
+	"cardname can't block unless a creature with greater power also blocks.":   "CantBlockUnlessGreaterPower",
+	"cardname can't attack unless at least two other creatures attack.":        "CantAttackUnlessTwoOthers",
+	"cardname can't block unless at least two other creatures block.":          "CantBlockUnlessTwoOthers",
+	"cardname can't attack unless a black or green creature also attacks.":     "CantAttackUnlessBlackOrGreen",
 }
 
 // HiddenUntapNextStepKeyword is the EXACT Forge sentence a Pump/PumpAll `KW$
@@ -135,6 +144,14 @@ const (
 	HiddenKeywordCantBlockAlone
 	HiddenKeywordAllMustBlock
 	HiddenKeywordMustBeBlockedByTwo
+	HiddenKeywordMustBeBlockedByOne
+	HiddenKeywordMustBeBlockedByAll
+	HiddenKeywordCanOnlyAttackAlone
+	HiddenKeywordCantAttackUnlessGreaterPower
+	HiddenKeywordCantBlockUnlessGreaterPower
+	HiddenKeywordCantAttackUnlessTwoOthers
+	HiddenKeywordCantBlockUnlessTwoOthers
+	HiddenKeywordCantAttackUnlessBlackOrGreen
 	HiddenKeywordCount
 )
 
@@ -162,6 +179,24 @@ var hiddenKeywordHeadCodes = NewStrCodes(
 	StrEntry[HiddenKeyword]{Key: "all creatures able to block cardname do so.", Val: HiddenKeywordAllMustBlock},
 	StrEntry[HiddenKeyword]{Key: "mustbeblockedbytwo", Val: HiddenKeywordMustBeBlockedByTwo},
 	StrEntry[HiddenKeyword]{Key: "cardname must be blocked by two or more creatures if able.", Val: HiddenKeywordMustBeBlockedByTwo},
+	StrEntry[HiddenKeyword]{Key: "mustbeblockedbyone", Val: HiddenKeywordMustBeBlockedByOne},
+	StrEntry[HiddenKeyword]{Key: "cardname must be blocked by exactly one creature if able.", Val: HiddenKeywordMustBeBlockedByOne},
+	// MustBeBlockedByAll:<blocker filter>:<text> is the printed Lure with a
+	// blocker filter (Marble Priest, Talruum Piper); the filter rides the
+	// keyword line, read by combat.ParseHiddenKeyword.
+	StrEntry[HiddenKeyword]{Key: "mustbeblockedbyall", Val: HiddenKeywordMustBeBlockedByAll},
+	StrEntry[HiddenKeyword]{Key: "canonlyattackalone", Val: HiddenKeywordCanOnlyAttackAlone},
+	StrEntry[HiddenKeyword]{Key: "cardname can only attack alone.", Val: HiddenKeywordCanOnlyAttackAlone},
+	StrEntry[HiddenKeyword]{Key: "cantattackunlessgreaterpower", Val: HiddenKeywordCantAttackUnlessGreaterPower},
+	StrEntry[HiddenKeyword]{Key: "cardname can't attack unless a creature with greater power also attacks.", Val: HiddenKeywordCantAttackUnlessGreaterPower},
+	StrEntry[HiddenKeyword]{Key: "cantblockunlessgreaterpower", Val: HiddenKeywordCantBlockUnlessGreaterPower},
+	StrEntry[HiddenKeyword]{Key: "cardname can't block unless a creature with greater power also blocks.", Val: HiddenKeywordCantBlockUnlessGreaterPower},
+	StrEntry[HiddenKeyword]{Key: "cantattackunlesstwoothers", Val: HiddenKeywordCantAttackUnlessTwoOthers},
+	StrEntry[HiddenKeyword]{Key: "cardname can't attack unless at least two other creatures attack.", Val: HiddenKeywordCantAttackUnlessTwoOthers},
+	StrEntry[HiddenKeyword]{Key: "cantblockunlesstwoothers", Val: HiddenKeywordCantBlockUnlessTwoOthers},
+	StrEntry[HiddenKeyword]{Key: "cardname can't block unless at least two other creatures block.", Val: HiddenKeywordCantBlockUnlessTwoOthers},
+	StrEntry[HiddenKeyword]{Key: "cantattackunlessblackorgreen", Val: HiddenKeywordCantAttackUnlessBlackOrGreen},
+	StrEntry[HiddenKeyword]{Key: "cardname can't attack unless a black or green creature also attacks.", Val: HiddenKeywordCantAttackUnlessBlackOrGreen},
 )
 
 // HiddenKeywordOf resolves one keyword line to its HiddenKeyword code,

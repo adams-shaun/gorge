@@ -40,6 +40,21 @@ type HiddenKeywordFlags struct {
 	// blocker obeys none of it; it is a separate unit from MustBlock, which
 	// the same attacker usually carries too.
 	MustBeBlockedByTwo bool
+	// MustBeBlockedByOne is CR 509.1c's "CARDNAME must be blocked by exactly
+	// one creature if able." (Nacatl War-Pride): a block requirement whose
+	// only obeying declaration is one blocker, so MinMaxBlockerBounds pins
+	// the blocker count of the attacker to [1,1].
+	MustBeBlockedByOne bool
+	// AllMustBlockSpec narrows AllMustBlock to the blockers matching the
+	// filter ("MustBeBlockedByAll:Creature.Wall:...", Marble Priest): empty
+	// is every creature able to block (the Lure sentence).
+	AllMustBlockSpec string
+	// AttackCompanion / BlockCompanion are CR 508.1c's whole-declaration
+	// restrictions on declaring this creature as an attacker / blocker beside
+	// others ("can only attack alone", "can't attack unless a creature with
+	// greater power also attacks"); see companion.go.
+	AttackCompanion Companion
+	BlockCompanion  Companion
 }
 
 // ParseHiddenKeyword reads one derived keyword line into its combat meaning.
@@ -94,6 +109,24 @@ func ParseHiddenKeyword(k string) HiddenKeywordFlags {
 		// CR 509.1c: every creature able to block this attacker must block
 		// it; a per-pair duty read by askBlockers.
 		return HiddenKeywordFlags{AllMustBlock: true}
+	case cards.HiddenKeywordMustBeBlockedByAll:
+		// The same duty, bound only to the blockers the keyword's filter
+		// names (its first parameter).
+		return HiddenKeywordFlags{AllMustBlock: true, AllMustBlockSpec: keywordParam(k)}
+	case cards.HiddenKeywordMustBeBlockedByOne:
+		return HiddenKeywordFlags{MustBeBlockedByOne: true}
+	case cards.HiddenKeywordCanOnlyAttackAlone:
+		return HiddenKeywordFlags{AttackCompanion: CompanionOnlyAlone}
+	case cards.HiddenKeywordCantAttackUnlessGreaterPower:
+		return HiddenKeywordFlags{AttackCompanion: CompanionGreaterPower}
+	case cards.HiddenKeywordCantBlockUnlessGreaterPower:
+		return HiddenKeywordFlags{BlockCompanion: CompanionGreaterPower}
+	case cards.HiddenKeywordCantAttackUnlessTwoOthers:
+		return HiddenKeywordFlags{AttackCompanion: CompanionTwoOthers}
+	case cards.HiddenKeywordCantBlockUnlessTwoOthers:
+		return HiddenKeywordFlags{BlockCompanion: CompanionTwoOthers}
+	case cards.HiddenKeywordCantAttackUnlessBlackOrGreen:
+		return HiddenKeywordFlags{AttackCompanion: CompanionBlackOrGreen}
 	case cards.HiddenKeywordMustBeBlockedByTwo:
 		return HiddenKeywordFlags{MustBeBlockedByTwo: true}
 	}
@@ -114,8 +147,22 @@ func DerivedHiddenFlags(b Board, id state.ObjID) HiddenKeywordFlags {
 		f.UntapNextStep = f.UntapNextStep || g.UntapNextStep
 		f.CantAttackAlone = f.CantAttackAlone || g.CantAttackAlone
 		f.CantBlockAlone = f.CantBlockAlone || g.CantBlockAlone
+		if g.AllMustBlock {
+			// An unfiltered lure binds every blocker, so it wins over a
+			// filtered one; two filtered lines keep the first filter.
+			if !f.AllMustBlock || g.AllMustBlockSpec == "" {
+				f.AllMustBlockSpec = g.AllMustBlockSpec
+			}
+		}
 		f.AllMustBlock = f.AllMustBlock || g.AllMustBlock
 		f.MustBeBlockedByTwo = f.MustBeBlockedByTwo || g.MustBeBlockedByTwo
+		f.MustBeBlockedByOne = f.MustBeBlockedByOne || g.MustBeBlockedByOne
+		if f.AttackCompanion == CompanionNone {
+			f.AttackCompanion = g.AttackCompanion
+		}
+		if f.BlockCompanion == CompanionNone {
+			f.BlockCompanion = g.BlockCompanion
+		}
 	}
 	return f
 }
@@ -451,7 +498,30 @@ func MinMaxBlockerBounds(b Board, attacker state.ObjID) (min, max int, minOK, ma
 			}
 		}
 	}
+	if DerivedHiddenFlags(b, attacker).MustBeBlockedByOne {
+		// CR 509.1c "must be blocked by exactly one creature if able": the
+		// only obeying declaration puts one blocker on the attacker, so the
+		// requirement pins the per-attacker count to [1,1] (an unblocked
+		// declaration stays the "if able" fallback the offer decides).
+		if !minOK || min < 1 {
+			min, minOK = 1, true
+		}
+		if !maxOK || max > 1 {
+			max, maxOK = 1, true
+		}
+	}
 	return min, max, minOK, maxOK, all
+}
+
+// keywordParam is the first parameter of a keyword line ("Head:<param>:text"),
+// empty when the line carries none.
+func keywordParam(k string) string {
+	_, rest, ok := strings.Cut(k, ":")
+	if !ok {
+		return ""
+	}
+	param, _, _ := strings.Cut(rest, ":")
+	return strings.TrimSpace(param)
 }
 
 // literalBlockCount parses a Min$/Max$ bound: a non-negative integer, the

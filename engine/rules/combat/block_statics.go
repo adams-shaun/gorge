@@ -33,6 +33,30 @@ func blockTappedAllowed(b Board, blocker state.ObjID) bool {
 	return false
 }
 
+// blockLiftedByStatic reports whether an active static of the given mode
+// (CanBlockIfShadow, CanBlockIfReach) lets blocker block attacker past the
+// evasion rule the mode names: "can block creatures with shadow as though they
+// didn't have shadow", "can block Dragons as though it had reach". ValidBlocker$
+// and ValidAttacker$ resolve against the pair with the static's host as the
+// spec source, so Creature.EnchantedBy reaches the Aura's creature only; an
+// absent filter matches any creature; a gated static whose condition does not
+// hold lifts nothing.
+func blockLiftedByStatic(b Board, mode string, blocker, attacker state.ObjID) bool {
+	for _, sv := range b.Statics(mode) {
+		if !b.StaticGateHolds(sv) {
+			continue
+		}
+		if vb := sv.ParamStr(cards.PKValidBlocker); vb != "" && !b.MatchesStaticSpec(vb, blocker, sv) {
+			continue
+		}
+		if va := sv.ParamStr(cards.PKValidAttacker); va != "" && !b.MatchesStaticSpec(va, attacker, sv) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
 // BlockRestrictLimit is the CR 509.1b ceiling on how many creatures defender
 // may declare as blockers this combat, and whether any applies: the smallest
 // MaxBlockers$ among the BlockRestrict statics whose ValidDefender$ names the

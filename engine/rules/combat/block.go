@@ -64,7 +64,9 @@ func CanBlock(b Board, blocker, attacker state.ObjID) bool {
 	// CR 702.27/702.28: Shadow creatures can block only Shadow creatures,
 	// and a Shadow creature is blockable only by one. Fear permits only an
 	// artifact or black creature to block it.
-	if b.HasKW(attacker, KWShadow) != b.HasKW(blocker, KWShadow) {
+	// A CanBlockIfShadow static (Aether Web, Heartwood Dryad) lets its blocker
+	// block a shadow attacker as though the shadow rule were absent.
+	if b.HasKW(attacker, KWShadow) != b.HasKW(blocker, KWShadow) && !blockLiftedByStatic(b, "CanBlockIfShadow", blocker, attacker) {
 		return false
 	}
 	if b.HasKW(attacker, KWFear) && !isArtifactCreature(b, blocker, bo) && !strings.ContainsRune(b.ObjectColors(bo), 'B') {
@@ -97,7 +99,10 @@ func CanBlock(b Board, blocker, attacker state.ObjID) bool {
 	if b.HasKW(attacker, KWHorsemanship) && !b.HasKW(blocker, KWHorsemanship) {
 		return false
 	}
-	if b.HasKW(attacker, KWFlying) && !b.HasKW(blocker, KWFlying) && !b.HasKW(blocker, KWReach) {
+	// A CanBlockIfReach static (Dragon Hunter) lets its blocker block the
+	// flyers it names as though it had reach.
+	if b.HasKW(attacker, KWFlying) && !b.HasKW(blocker, KWFlying) && !b.HasKW(blocker, KWReach) &&
+		!blockLiftedByStatic(b, "CanBlockIfReach", blocker, attacker) {
 		return false
 	}
 	// CR 702.14: a creature with landwalk can't be blocked as long as the
