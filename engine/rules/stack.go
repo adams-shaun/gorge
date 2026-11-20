@@ -1281,7 +1281,7 @@ func zoneIn(z state.Zone, zones []state.Zone) bool {
 // ability's effect.
 func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 	targets []state.Target, sa *cards.SA, svars map[string]string) {
-	e.resolveAbilitySacrificing(source, controller, targets, sa, svars, nil)
+	e.resolveAbilitySacrificing(source, controller, targets, sa, svars, nil, nil)
 }
 
 // resolveAbilitySacrificing is resolveAbility with the permanents an
@@ -1291,12 +1291,16 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 // Soldevi Adnate, Furgul Quag Nurturer) prices the object it just paid away
 // rather than reading zero. Spell and triggered-ability callers bind the
 // same list from their own captured LKI (engine/rules/stack.go, engine/rules/resolution.go);
-// this is the mana ability path's one home for it.
+// this is the mana ability path's one home for it. exiles binds the same
+// activation cost's Exile<...> cards to Ctx.Paid.Exiled, the list
+// Exiled$<Property> reads.
 func (e *Engine) resolveAbilitySacrificing(source state.ObjID, controller state.PlayerID,
-	targets []state.Target, sa *cards.SA, svars map[string]string, sacLKI []state.SacrificedInfo) {
+	targets []state.Target, sa *cards.SA, svars map[string]string, sacLKI []state.SacrificedInfo,
+	exiles []state.ObjID) {
 	ctx := e.arenaCtx()
 	*ctx = effects.NewCtx(source, controller, effects.CtxInit{Targets: targets})
 	ctx.Sacrificed = append(ctx.Sacrificed, sacLKI...)
+	ctx.Paid.Exiled = append(ctx.Paid.Exiled, exiles...)
 	// Forge's Count$ResolvedThisTurn: the same (source, root Ability$ body)
 	// tally resolveTop's ability branch binds, so a DBTransform gated on the
 	// fourth resolution of the turn reads it here too. Zero for a synthetic
