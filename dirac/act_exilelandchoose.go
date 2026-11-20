@@ -10,11 +10,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //   - ExtExileLandChoose: gorge's RepeatEach Opponent { ChooseCard Defined$
 //     You Choices$ Land.IsRemembered+RememberedPlayerOwn ChoiceZone$ Exile
-//     Mandatory$ True ImprintChosen$ True }. The dirac engine is two-seat, so
-//     the one opponent is the whole loop: the controller picks one of the
-//     remembered exiled land cards that opponent owns (a mandatory
-//     ChGenChooseCard ask, also posed with one candidate), none and no ask
-//     when there is none. The pick is the chosen set (the imprint). No new
+//     Mandatory$ True ImprintChosen$ True }, lowered as an
+//     OpRepeatEachPlayer whose body is this op: for each living opponent in
+//     turn, the controller picks one of the remembered exiled land cards that
+//     opponent owns (a mandatory ChGenChooseCard ask, also posed with one
+//     candidate), none and no ask when there is none. The picks accumulate in
+//     the chosen set (the imprint) so the chain's tail sees them all. No new
 //     State: the chosen set, ask code and pick progress are existing fields.
 //   - OpMayPlay over RefChosen (cast_mayplayremembered.go): a per-card play
 //     permission record (genState.may) for each chosen card still in exile,
@@ -43,8 +44,11 @@ func (s *State) exileLandCand(k *prep, o Obj, p uint8) bool {
 //go:noinline
 func (s *State) exileLandStart(k *prep) bool {
 	e := &s.res.e
-	s.g.nchosen = 0
-	p := s.nextAlive(e.ctrl) // two live seats only (kop.TwoSeatInstr: ExtExileLandChoose)
+	p := s.g.eachPl // the OpRepeatEachPlayer iteration's opponent
+	if s.g.repEnd == 0 {
+		s.g.nchosen = 0 // a table lowered before the per-opponent loop
+		p = s.nextAlive(e.ctrl)
+	}
 	if DebugExileLandOwn {
 		p = e.ctrl
 	}
@@ -78,7 +82,7 @@ func (s *State) askOptionsExileLand(k *prep, d *Decision) bool {
 //go:noinline
 func (s *State) applyAskExileLand(k *prep, a Action) bool {
 	s.res.ask = raNone
-	s.g.chosen[0], s.g.nchosen = Obj(a.Source()), 1
+	s.imprintChosen(Obj(a.Source())) // one pick per opponent accumulates
 	s.continueRes(k, 0)
 	return true
 }

@@ -13,11 +13,11 @@ import "github.com/adams-shaun/gorge/engine/cards"
 //
 // followed directly by an Effect over RememberObjects$ Imprinted that grants
 // the play permission (exileLandPlay, via partitionMayPlay) and the Cleanup
-// of the chosen, remembered and imprinted sets. The kernel's ExtExileLandChoose
-// is the whole loop: the dirac engine is two-seat, so "each opponent" is the
-// one other player (one iteration) and the controller picks for it, none and
-// no ask without a candidate. Any other RepeatEach-ChooseCard-from-exile shape
-// stays refused by name.
+// of the chosen, remembered and imprinted sets. The lowering is seat-exact:
+// an OpRepeatEachPlayer over the living opponents whose body is
+// ExtExileLandChoose, so the controller picks one land for each opponent that
+// owns one (none and no ask for an opponent without a candidate). Any other
+// RepeatEach-ChooseCard-from-exile shape stays refused by name.
 func (lc *lowerCtx) repeatExileLand(who lRef, ps *params, body *cards.SA) (bool, error) {
 	if body.API != "ChooseCard" || body.Params["ImprintChosen"] != "True" || body.Params["ChoiceZone"] != "Exile" {
 		return false, nil
@@ -25,7 +25,6 @@ func (lc *lowerCtx) repeatExileLand(who lRef, ps *params, body *cards.SA) (bool,
 	if who.Kind != rEachOpp || body.Sub != nil {
 		return true, refuse("RepeatEach imprint ChooseCard from exile shape")
 	}
-	lc.twoSeat("RepeatEach over the opponents read as one iteration")
 	bp := newParams(body.Params)
 	for _, w := range [][2]string{
 		{"Choices", "Land.IsRemembered+RememberedPlayerOwn"},
@@ -54,7 +53,13 @@ func (lc *lowerCtx) repeatExileLand(who lRef, ps *params, body *cards.SA) (bool,
 	if n := lc.curNode.Sub; n == nil || n.API != "Effect" || n.Params["RememberObjects"] != "Imprinted" {
 		return true, refuse("RepeatEach imprint ChooseCard from exile without the Imprinted Effect")
 	}
+	// the chosen set accumulates across the loop's picks (one per opponent),
+	// so clear it once here, not inside each iteration.
+	lc.emit(lInstr{Op: "ClearChosen"})
+	at := len(lc.ab.Prog)
+	lc.emit(lInstr{Op: "RepeatEach", Obj: who, C: 1})
 	lc.emit(lInstr{Op: "ExileLandChoose"})
+	lc.ab.Prog[at].Skip = 1
 	lc.exileLandStage = 1
 	return true, nil
 }

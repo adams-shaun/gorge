@@ -774,7 +774,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			if !instGateOK(t, amt, latch, rl) {
 				return // trig_atleastone.go: AtLeastOneInstance$
 			}
-			if s.g.dmgBOn && dmgBatchOnce(a) && s.dmgBatchSeen(srcObj, l, amt) {
+			if s.g.dmgBOn && dmgBatchOnce(a) && s.dmgBatchSeen(dmgBatchKey(a, srcObj), l, amt) {
 				return // a DamageAll sweep's batch latched the line: this matching event only accumulates (trig_dmgbatch.go)
 			}
 			if once {
@@ -792,7 +792,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			n0 := s.npend
 			s.queueTrig(k, l, a, tobj, tpl, n)
 			if s.g.dmgBOn && dmgBatchOnce(a) && latch == nil && s.npend > n0 {
-				s.dmgBatchArm(srcObj, l, amt, n0) // the sweep batch's entry for the line: the close patches the amount (trig_dmgbatch.go)
+				s.dmgBatchArm(dmgBatchKey(a, srcObj), l, amt, n0) // the sweep batch's entry for the line: the close patches the amount (trig_dmgbatch.go)
 			}
 		})
 	}
@@ -872,13 +872,13 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 		if !instGateOK(t, amt, nil, rl) {
 			return // trig_atleastone.go: AtLeastOneInstance$
 		}
-		if s.g.dmgBOn && dmgBatchOnce(a) && s.dmgBatchSeen(o, l, amt) {
+		if s.g.dmgBOn && dmgBatchOnce(a) && s.dmgBatchSeen(dmgBatchKey(a, o), l, amt) {
 			return // a DamageAll sweep's batch latched the line: this matching event only accumulates (trig_dmgbatch.go)
 		}
 		n0 := s.npend
 		s.queueTrig(k, l, a, tobj, tpl, n)
 		if s.g.dmgBOn && dmgBatchOnce(a) && rl == nil && s.npend > n0 {
-			s.dmgBatchArm(o, l, amt, n0) // the sweep batch's entry for the line: the close patches the amount (trig_dmgbatch.go)
+			s.dmgBatchArm(dmgBatchKey(a, o), l, amt, n0) // the sweep batch's entry for the line: the close patches the amount (trig_dmgbatch.go)
 		}
 	}
 	for _, ev := range evs {

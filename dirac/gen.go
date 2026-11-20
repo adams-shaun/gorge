@@ -830,6 +830,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if t.Exprs[i].Kind == kop.ExThisTurnCast && t.Exprs[i].N == 0 {
 			g.anyHist = true // Count$ThisTurnCast reads the history bank's spell count
 		}
+		g.anyHist = g.anyHist || exprReadsOppSpellsCast(&t.Exprs[i])
 		if t.Exprs[i].Kind == kop.ExThisTurnCastSpec {
 			g.castRingOn, g.anyHist = true, true // the push count is in the history bank
 		}
@@ -3408,4 +3409,11 @@ func (s *State) capStall(why uint8) {
 	if why != 0 {
 		s.capFull(why)
 	}
+}
+
+// exprReadsOppSpellsCast reports whether x is the ExOppExtreme group count
+// over the opponents' spells-cast tallies: the cast path then records the
+// per-caster turn tally (histSpells) the figure reads.
+func exprReadsOppSpellsCast(x *kop.Expr) bool {
+	return x.Kind == kop.ExOppExtreme && int(x.N)&0xff == kop.OppExtSpellsCast
 }

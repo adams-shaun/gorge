@@ -56,11 +56,12 @@ func (s *State) eachStatic(k *prep, f func(st statSrc) bool) {
 		}
 	}
 	for pp := uint8(0); pp < s.nSeats(); pp++ {
-		if s.out(pp) {
-			continue
-		}
+		lost := s.out(pp)
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			e := &k.t.Emblems[s.embIdx(pp, i)-1]
+			if lost && !e.UntilNextTurn {
+				continue // a departed controller's next-turn emblem lasts to the boundary gorge froze (static_effectdelivered.go)
+			}
 			sl, obj := NoSlot, NoObj
 			if e.HostBound() {
 				// a host-bound emblem reads its host as the source

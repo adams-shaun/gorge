@@ -147,8 +147,8 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		}
 		o := s.perms[sl].obj
 		if !s.duel() {
-			s.attackOffersN(k, d, o, sl, gd && s.goadedAt(k, sl))
-			if k.gen != nil && k.gen.anyBattle {
+			playerOnly := s.attackOffersN(k, d, o, sl, gd && s.goadedAt(k, sl))
+			if k.gen != nil && k.gen.anyBattle && !playerOnly {
 				s.addBattleOffers(k, d, o, sl) // CR 310.7
 			}
 			continue
@@ -262,6 +262,29 @@ func (s *State) mustAttackAsked() bool {
 	return s.cfg&cfgGorgeMustAttack != 0 || !s.duel()
 }
 
+// mustAttackOther reports, as a seat mask, the controllers a
+// MustAttack$ Player.Other static withholds as defenders ("attacks a player
+// other than you if able"; CR 508.1d, Kardur, Doomscourge; Maximum Carnage).
+// Several such statics can apply at once (both cards under different
+// controllers), so every one is collected. The exclusion is
+// StatMustAttack.B, seat-exact: attackOffersN skips those controllers while
+// another living player is a legal defender for the attacker. At two seats
+// the only opponent already is that other player.
+func (s *State) mustAttackOther(k *prep, sl Slot) (uint8, bool) {
+	var mask uint8
+	s.eachStatic(k, func(st statSrc) bool {
+		a := st.a
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMustAttack &&
+			a.Static.B != 0 && s.statCond(k, st) &&
+			(st.emb == 0 || s.embCaptureOK(k, st.emb, sl)) &&
+			s.matchPerm(k, a.Static.Filter, sl, st.ctrl, st.sl) {
+			mask |= 1 << st.ctrl
+		}
+		return true
+	})
+	return mask, mask != 0
+}
+
 // attackOffersN appends attacker o's offers at more than two seats: each
 // opponent still in the game in ascending seat order (gorge
 // attackOffersCompute walks AliveFrom(0)), the player and then each
@@ -270,12 +293,31 @@ func (s *State) mustAttackAsked() bool {
 // seats), and a seat that goaded it is offered only when every other live
 // seat goaded it too (CR 701.15b; gorge combat.GoadMayAttack).
 //
+// It reports whether the offers are players only: under a
+// MustAttack$ Player.Other requirement with another player legal, gorge's
+// named-duty offer filter keeps only the player pairs that satisfy the
+// requirement (SatisfiedByOffer returns NamedPerm 0 for a walker or battle
+// pair, while a legal player pair scores 1), so the caller must not add the
+// battles either (attackerOptions).
+//
 //go:noinline
-func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool) {
+func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool) (playerOnly bool) {
 	sick := s.atkHasteSick(k, sl)
+	excl, exclOK := s.mustAttackOther(k, sl)
+	otherLegal := false
+	if exclOK {
+		for q := uint8(0); q < s.nSeats(); q++ {
+			if q == s.active || excl>>q&1 != 0 || s.out(q) || s.cantAtkPairPlayer(k, sl, q) ||
+				sick && !s.atkHasteOK(k, sl, q) || goaded && s.goadDefenderBanned(k, sl, q) {
+				continue
+			}
+			otherLegal = true
+			break
+		}
+	}
 	if q, ok := s.encoreSeat(k, sl); ok {
 		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0)) // kw_encore.go: the named opponent alone (CR 508.1d)
-		return
+		return false
 	}
 	for q := uint8(0); q < s.nSeats(); q++ {
 		if q == s.active || s.out(q) {
@@ -293,8 +335,15 @@ func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool)
 			// test skips q's planeswalker pairs with it (combat_cantattack.go)
 			continue
 		}
+		if exclOK && otherLegal && excl>>q&1 != 0 {
+			continue // MustAttack$ Player.Other: another player is a legal defender
+		}
 		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0))
-		if goaded {
+		if goaded || exclOK && otherLegal {
+			// a goad is satisfied by a player only (CR 701.15b), and under
+			// MustAttack$ Player.Other another legal player pair satisfies
+			// the named duty, so gorge's offer filter drops every walker
+			// and battle pair (attack_cost.go SatisfiedByOffer)
 			continue
 		}
 		for pm := s.ctrlM[q]; pm.any(); pm = pm.rest() {
@@ -303,6 +352,7 @@ func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool)
 			}
 		}
 	}
+	return exclOK && otherLegal
 }
 
 // goadDefenderBanned reports whether defender seat q is banned for the

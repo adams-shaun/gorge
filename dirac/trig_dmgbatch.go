@@ -99,10 +99,28 @@ func (s *State) dmgBatchClose() {
 	s.g.dmgBn = 0
 }
 
-// dmgBatchOnce reports whether line a takes the sweep batch's DamageDealtOnce
-// latch: a DamageDealtOnce line without the per-referent read (gorge Mode$
+// dmgBatchOnce reports whether line a takes the sweep batch's latch: a
+// DamageDealtOnce line without the per-referent read (gorge Mode$
 // DamageDoneOnce; a DamageDealtOnce line never carries it, but the flag is
-// the kernel's per-referent key).
+// the kernel's per-referent key), or a DamageAll line, lowered as a
+// batch-level DamageDone (Tf2Batch without Tf2PerReferent; gorge
+// trigger_match.go damageBatchKey's all latch: one trigger per damage batch,
+// however many opponents were dealt damage).
 func dmgBatchOnce(a *kop.Ability) bool {
-	return a.Trig.Event == kop.TrigDamageDealtOnce && a.Trig.Flags2&kop.Tf2PerReferent == 0
+	t := &a.Trig
+	if t.Event == kop.TrigDamageDealtOnce && t.Flags2&kop.Tf2PerReferent == 0 {
+		return true
+	}
+	return t.Event == kop.TrigDamageDone && t.Flags2&kop.Tf2Batch != 0 && t.Flags2&kop.Tf2PerReferent == 0
+}
+
+// dmgBatchKey is the source half of the batch key: a DamageAll line latches
+// on the trigger line alone (gorge's all key carries no referent and no
+// source), so every matching source in the batch accumulates into one
+// trigger.
+func dmgBatchKey(a *kop.Ability, src Obj) Obj {
+	if a.Trig.Event == kop.TrigDamageDone && a.Trig.Flags2&kop.Tf2Batch != 0 && a.Trig.Flags2&kop.Tf2PerReferent == 0 {
+		return NoObj
+	}
+	return src
 }

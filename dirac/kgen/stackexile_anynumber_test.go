@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // TestStackExileAnyNumber: a Mindbreak Trap-shaped instant, "exile any number
@@ -12,8 +13,9 @@ import (
 // the stack count) with a free alternative cost gated on an opponent having
 // cast three or more spells this turn, lowers to an up-to slot over the stack
 // whose program moves each target to exile (OpCounter CtrDestExile |
-// CtrDestMove) and marks the card two-seat for the opponent read. Any other
-// bound or condition head still refuses by name.
+// CtrDestMove) and counts the opponents whose own spells-cast tally reaches
+// three (ExOppExtreme with OppExtCountCmp|OppExtSpellsCast), seat-exact. Any
+// other bound or condition head still refuses by name.
 func TestStackExileAnyNumber(t *testing.T) {
 	const head = "Name:Trap Probe\nManaCost:2 U U\nTypes:Instant Trap\n"
 	src := func(cond, maxSV, dest string) string {
@@ -27,8 +29,20 @@ func TestStackExileAnyNumber(t *testing.T) {
 	if len(rs) != 0 {
 		t.Fatalf("refused: %v", rs)
 	}
-	if !d.TwoSeat {
-		t.Error("the opponent's spell count did not mark the card two-seat")
+	if d.TwoSeat {
+		t.Error("the opponent's spell count still marks the card two-seat")
+	}
+	lc := stackexileLower(t, "Trap Probe", src("PlayerCountOpponents$ConditionGE3 SpellsCastThisTurn", "Count$ValidStack Card", "Exile"))
+	var cond *lCond
+	for i := range lc.Statics {
+		if lc.Statics[i].Kind == "AlternativeCost" {
+			cond = &lc.Statics[i].Cond
+		}
+	}
+	if cond == nil || cond.Kind != cValue || cond.A.Kind != vOppExtreme ||
+		cond.A.N&kop.OppExtCountCmp == 0 || cond.A.N&0xff != kop.OppExtSpellsCast ||
+		cond.A.Op != opGE || len(cond.A.Sub) != 1 || cond.A.Sub[0].N != 3 {
+		t.Errorf("alternative-cost gate = %+v, want a GE 3 opponents' spells-cast group count", cond)
 	}
 	var ctr *kop.Instr
 	var slot *kop.TargetSpec
@@ -70,4 +84,27 @@ func TestStackExileAnyNumber(t *testing.T) {
 	if _, rs := kwardpowBuild(t, "Trap Probe", single); !strings.Contains(kpaylifexReasons(rs), "ChangeZone Origin$ Stack shape") {
 		t.Errorf("one-target exile: refusals %q, want the ChangeZone shape", kpaylifexReasons(rs))
 	}
+}
+
+// stackexileLower lowers one synthetic card and returns its lowered entry, so
+// the test can read the condition the built CardDef does not carry (the
+// Expr table is built later).
+func stackexileLower(t *testing.T, name, src string) *lCard {
+	t.Helper()
+	card, diags := cards.ParseBytes("stackexile_probe.txt", []byte(src))
+	if card == nil {
+		t.Fatalf("parse: %v", diags)
+	}
+	if d := card.Link(); len(d) != 0 {
+		t.Fatalf("link: %v", d)
+	}
+	p := &pool{names: []string{name}, byName: map[string]*cards.Card{name: card}, nDecks: map[string]int{}, reg: &cards.Registry{}}
+	lw := lowerPool(p)
+	for _, c := range lw.cards {
+		if c.Name == name && !c.Token {
+			return c
+		}
+	}
+	t.Fatalf("%s did not lower", name)
+	return nil
 }
