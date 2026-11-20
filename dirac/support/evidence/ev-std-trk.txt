@@ -2,6 +2,7 @@
 A Good Day to Die
 Academy Instructor
 Adversary by Algorithm
+All Good Things . . .
 Amok Time
 Andoria
 Andromedan Automatons
@@ -56,6 +57,7 @@ Crystalline Entity
 Culber and Stamets, Star-Crossed
 Cybernetic Specialist
 D'Ghor Bloodletter
+D'Vana Tendi, Optimistic Ensign
 D-7 Battle Cruiser
 DOT-7 Repair Squad
 Dahar Master
@@ -268,6 +270,7 @@ The Inner Light
 The Measure of a Man
 The Naked Time
 The Needs of the Many
+The Traveler
 The Unicomplex
 The Wrath of Khan
 There's Coffee in that Nebula

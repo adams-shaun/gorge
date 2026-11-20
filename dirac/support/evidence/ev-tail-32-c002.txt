@@ -42,6 +42,7 @@ Brood Birthing
 Bull Hippo
 Bushi Tenderfoot
 Capenna Express
+Cartouche of Zeal
 Cast Down
 Castaway's Despair
 Cateran Enforcer
@@ -55,6 +56,7 @@ Cloak of Feathers
 Clot Sliver
 Cloud Elemental
 Cloudchaser Kestrel
+Cognivore
 Cold Storage
 Colossus of Akros
 Combust
@@ -86,6 +88,7 @@ Dwarven Warriors
 Dwell on the Past
 Eastfarthing Farmer
 Eidolon of Countless Battles
+Electric Revelation
 Elite Scaleguard
 Elspeth Tirel
 Elvish Eulogist
@@ -93,6 +96,7 @@ Encroach
 Endurance Bobblehead
 Enthusiastic Mechanaut
 Essence Flare
+Eternal Skylord
 Evangel of Synthesis
 Evaporate
 Eviscerator's Insight
@@ -106,10 +110,12 @@ Fault Riders
 Feral Abomination
 Feral Ridgewolf
 Filigree Fracture
+Flamekin Harbinger
 Flamespeaker's Will
 Fleeting Aven
 Floating-Dream Zubera
 Flying Dolphin-Fish
+Flywheel Racer
 Footfall Crater
 Forest
 Forget
@@ -121,6 +127,7 @@ Frostweb Spider
 Gaea's Embrace
 Geier Reach Sanitarium
 Genasi Enforcers
+General Kreat, the Boltbringer
 Ghastly Demise
 Ghitu Journeymage
 Ghost-Spider, Gwen Stacy
@@ -181,12 +188,14 @@ Lilting Refrain
 Loam Lion
 Loathsome Catoblepas
 Luminarch Ascension
+Lure
 Luxury Suite
 Lys Alana Bowmaster
 Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
 Magus of the Candelabra
+Manaweft Sliver
 Mandibular Kite
 Master Decoy
 Meldweb Strider
@@ -236,6 +245,7 @@ Pious Evangel
 Pious Wayfarer
 Plains
 Plateau
+Prakhata Pillar-Bug
 Precognition Field
 Provoke
 Psychic Spear
@@ -267,6 +277,7 @@ Riot Gear
 Rofellos, Llanowar Emissary
 Root Greevil
 Rotted Hulk
+Rotting Mastodon
 Ruin Ghost
 Rust Monster
 Salt Marsh
@@ -299,6 +310,7 @@ Spontaneous Flight
 Squall Line
 Stampeding Horncrest
 Star of Extinction
+Steady Progress
 Steel Golem
 Steeple Roc
 Storm Crow
@@ -340,6 +352,7 @@ Valakut Fireboar
 Valkyrior Skyrider
 Value Town
 Vaporkin
+Veilborn Ghoul
 Vexing Sphinx
 Viashivan Dragon
 Vindictive Flamestoker
@@ -351,6 +364,7 @@ Wake of Destruction
 Walking Archive
 Wander in Death
 Warleader's Helix
+Wave-Wing Elemental
 Wheel and Deal
 Wild Crocodile
 Wilderness Elemental
@@ -359,4 +373,5 @@ Windreader Sphinx
 Witch's Mist
 Woodland Bellower
 Wose Pathfinder
+Xanthic Statue
 Zuko's Offense

@@ -56,6 +56,7 @@ Chaotic Goo
 Charging Monstrosaur
 Chatter of the Squirrel
 Cho-Arrim Bruiser
+Cloak of Feathers
 Clot Sliver
 Cloud Elemental
 Cloudchaser Kestrel
@@ -90,10 +91,12 @@ Dwell on the Past
 Eastfarthing Farmer
 Eidolon of Countless Battles
 Elas il-Kor, Sadistic Pilgrim
+Electric Revelation
 Elite Scaleguard
 Elspeth Tirel
 Elvish Eulogist
 Encroach
+Endurance Bobblehead
 Enthusiastic Mechanaut
 Ertai Resurrected
 Essence Flare
@@ -127,6 +130,7 @@ Gaea's Embrace
 Garrison Griffin
 Geier Reach Sanitarium
 Genasi Enforcers
+General Kreat, the Boltbringer
 Ghastly Demise
 Ghost-Spider, Gwen Stacy
 Ghostly Visit
@@ -150,6 +154,7 @@ Haunted Cloak
 Heart Sliver
 Heliod's Pilgrim
 Heroic Charge
+Highway Robber
 Hold the Line
 Hollowhenge Overlord
 Honor the Past
@@ -176,6 +181,8 @@ Krosan Restorer
 Kruin Striker
 Kukemssa Pirates
 Lace with Moonglove
+Lancer Sliver
+Lavakin Brawler
 Leo's Guidance
 Lesser Gargadon
 Levitating Statue
@@ -214,6 +221,7 @@ Misthios's Fury
 Mistmeadow Skulk
 Monstrous Hound
 Morbid Bloom
+Mortician Beetle
 Mountain
 Mukotai Soulripper
 Multiversal Recruitment
@@ -233,6 +241,7 @@ Overrule
 Pattern of Rebirth
 Peer Through Depths
 Penance Stare
+Pest Infestation
 Pestermite
 Phantasmal Sphere
 Pillar of Light
@@ -241,6 +250,7 @@ Pious Wayfarer
 Plains
 Plateau
 Pollenbright Wings
+Prakhata Pillar-Bug
 Precognition Field
 Prized Statue
 Provoke
@@ -259,6 +269,7 @@ Raving Oni-Slave
 Razorjaw Oni
 Reckless Imp
 Recross the Paths
+Redwood Treefolk
 Relic of Progenitus
 Renounce
 Rescue Retriever
@@ -356,6 +367,7 @@ Wake of Destruction
 Walking Archive
 Wander in Death
 Warleader's Helix
+Wheel and Deal
 Wild Crocodile
 Wilderness Elemental
 Wildfire Eternal

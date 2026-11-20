@@ -27,6 +27,7 @@ Byrke, Long Ear of the Law
 Byway Barterer
 Cache Grab
 Calamitous Tide
+Camellia, the Seedmiser
 Caretaker's Talent
 Carrot Cake
 Charmed Sleep
@@ -251,4 +252,5 @@ Wick's Patrol
 Wick, the Whorled Mind
 Wildfire Howl
 Wishing Well
+Ygra, Eater of All
 Zoraline, Cosmos Caller
