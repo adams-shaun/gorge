@@ -150,6 +150,13 @@ func (s *State) replDamagePend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, 
 		}
 		return n
 	}
+	if s.g.plusBatchAsked && s.g.nc.n < 0 && s.g.nc.n != ncPend && s.g.nc.code == code && s.g.nc.src == srcObj {
+		// a parked, prevented event (a SHIELD candidate beside a plus-N
+		// addition): the answer spent the counter as picked, so the event
+		// deals nothing and replDamage must not read the spent counter again
+		s.g.nc = ncDmg{}
+		return 0
+	}
 	return s.replDamage(k, ctrl, srcSl, srcCard, code, false, n)
 }
 
@@ -161,7 +168,7 @@ func (s *State) replDamagePend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, 
 // event too, since the order cannot change the sum. The walk is dropped and
 // the op re-executes.
 func (s *State) replPlusAskedResume(k *prep) {
-	if s.g.ro.ac != 0 {
+	if s.g.ro.ac != 0 || s.g.ro.shld != 0 && s.g.nc.n < 0 {
 		s.g.ro = replOrd{}
 	} else {
 		s.g.ro, s.g.nc = replOrd{}, ncDmg{}
