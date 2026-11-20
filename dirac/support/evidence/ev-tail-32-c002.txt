@@ -1,5 +1,6 @@
 A-Elderleaf Mentor
 Abstruse Interference
+Advocate of the Beast
 Aeolipile
 Aeronaut's Wings
 Aether Shockwave
@@ -330,8 +331,10 @@ Tail Slash
 Telim'Tor's Edict
 Territorial Aetherkite
 Tervigon
+Tezzeret's Touch
 The Prydwen, Steel Flagship
 The Royal Scions
+The Unspeakable
 Thorn Lieutenant
 Thraben Gargoyle
 Thran Lens
