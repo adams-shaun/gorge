@@ -68,3 +68,24 @@ func TestRiderGrantIntrinsicPotentialMask(t *testing.T) {
 		t.Fatalf("potentialFirstMask %d, want the two granted colours %d: the fold prices the view, not the rider's any-colour", got, want)
 	}
 }
+
+// TestRiderGrantIntrinsicWitness: the {X} witness's census is gorge's planner
+// census (potentialModeCastPlan): it lists the intrinsic unit of a
+// rider-deferred source under a granted basic land type like any printed
+// source's (CR 305.6), the deferred rider beside it as the relaxed
+// alternative it is. The witness reaches {1}{U} over the mine alone.
+func TestRiderGrantIntrinsicWitness(t *testing.T) {
+	sc, _, objs := blgRiderBoardSubs(t, Config{}, []string{"Island"}, "Gemstone Mine")
+	sl := sc.slot(objs["Gemstone Mine"])
+	a, ok := sc.s.riderAbilityOf(sc.k, sl)
+	if !ok {
+		t.Fatal("precondition: Gemstone Mine is not the bounded-rider shape")
+	}
+	blgRiderReady(sc, sl, int(a.ManaRiderCtr), 3)
+	var av avail
+	sc.s.availUngranted(sc.k, 0, &av)
+	c := cost(1, kop.U)
+	if !av.affords(&c, pipMaskOf(&c), 0) {
+		t.Fatalf("the X witness does not count the intrinsic {U}: gorge's census lists it (CR 305.6)")
+	}
+}
