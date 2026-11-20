@@ -39,7 +39,13 @@ func (lc *lowerCtx) skipPhase(ps *params) error {
 		return err
 	}
 	switch who.Kind {
-	case rYou, rEachOpp, rTriggeredPlayer: // the opponent (two seats), the trigger's player
+	case rYou, rEachOpp, rTriggeredPlayer:
+		// The kernel's ExtSkipPhase resolves RefEachOpponent as one opponent
+		// (playerRef -> oneOpp), so "each opponent" is a two-seat reading; a
+		// "you" or trigger-player skip is seat-exact.
+		if who.Kind == rEachOpp {
+			lc.twoSeat("a SkipPhase of each opponent read as the one opponent")
+		}
 	case rTarget:
 		if t := lc.ab.Targets[who.N]; t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 {
 			return refuse("SkipPhase of a non-player target")
