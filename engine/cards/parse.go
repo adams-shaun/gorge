@@ -237,6 +237,18 @@ func normalizeImplicitTarget(api string, p map[string]string) {
 	}
 }
 
+// normalizeCraftMaterialBody rewrites Forge's ';' or-list inside a Craft
+// material body to the spec matcher's ',' (Ore-Rich Stalactite's
+// "Instant.Red+Other;Sorcery.Red+Other"). The rewrite is a load-time
+// card-script text normalisation, so it lives at the parser boundary beside
+// the other SA rewrites: the Craft expander parses the normalised body, and
+// every reader of the material part's Spec then evaluates the printed or-list
+// with the matcher's own separator. The display text after the spec's "/" is
+// prose; no corpus display spelling carries a ';'.
+func normalizeCraftMaterialBody(body string) string {
+	return strings.ReplaceAll(body, ";", ",")
+}
+
 // splitStaticModes splits a Static's Mode$ value on commas. The corpus
 // prints compound statics as ONE S: line naming several modes over the same
 // parameters (Pacifism's one static line naming both CantAttack and CantBlock
