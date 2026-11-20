@@ -12,14 +12,16 @@ import (
 // pay.PaymentPlanReflectedTapMana folds it per colour a token's tap makes; the
 // kernel prices it on the pick, dirac/mana_tapextra.go). Out-of-shape variants
 // still refuse by name: an extra of the colour chosen on an Aura, which also
-// needs its SetColor lowered (Shimmerwilds Growth), and an extra of any colour
-// (Buried in the Garden). A reflected body over a land lowers, as
+// needs its SetColor lowered (Shimmerwilds Growth), an extra of any colour
+// (Buried in the Garden) lowers as StTapAnyCol, and Regal Behemoth's monarch
+// gate refuses by name. A reflected body over a land lowers, as
 // TestLowerTapsformanaAnycolour asserts.
 func TestLowerTapsformanaChoice(t *testing.T) {
 	want := map[string][]string{
 		"Roxanne, Starfall Savant": nil,
 		"Shimmerwilds Growth":      {`SetColor "ChosenColor"`},
-		"Buried in the Garden":     {"extra of any colour"},
+		"Buried in the Garden":     {"anycol"},
+		"Regal Behemoth":           {"CheckDefinedPlayer"},
 	}
 	var names []string
 	for n := range want {
@@ -33,6 +35,25 @@ func TestLowerTapsformanaChoice(t *testing.T) {
 			continue
 		}
 		seen++
+		if len(reasons) == 1 && reasons[0] == "anycol" {
+			if len(c.Refusals) != 0 {
+				t.Errorf("%s refused: %v", c.Name, c.Refusals)
+			}
+			n := 0
+			for _, st := range c.Statics {
+				if st.Kind != "TapExtra" {
+					continue
+				}
+				n++
+				if !slices.Contains(st.Flags, "TapAnyCol") || slices.Contains(st.Flags, "TapReflect") {
+					t.Errorf("%s: TapExtra flags %v, want TapAnyCol alone", c.Name, st.Flags)
+				}
+			}
+			if n != 1 {
+				t.Errorf("%s: %d TapExtra statics, want 1", c.Name, n)
+			}
+			continue
+		}
 		for _, reason := range reasons {
 			refused := false
 			for _, r := range c.Refusals {
