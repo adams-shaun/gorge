@@ -873,6 +873,15 @@ func (s *State) restrFallback(k *prep, p uint8, c CardID, og restrOrigin, cost *
 //
 //go:noinline
 func (s *State) payRiderRestr(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) {
+	// an activation spends the floating restricted mana it may (CR 106.6,
+	// Eclipsed Realms' {G} for the chosen type's abilities) before the plan
+	// taps for the rest
+	if d := s.payDescNow(exclude); d.class == pdAct {
+		if m := s.restrFloatActMask(k, p, &d); m != 0 {
+			s.payRestrX(k, p, m, cost, x, exclude, anyColor)
+			return
+		}
+	}
 	sv := s.rb[SeatIx(p)]
 	var pk planner
 	s.tapForPK(k, p, cost, x, exclude, false, anyColor, &pk)
