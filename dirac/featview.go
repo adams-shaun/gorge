@@ -675,14 +675,8 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 		// gorge's planner declines the shape (modal_cost, additional_cost,
 		// optional_cost, mana_spent_reader, contribution, target_dependent_cost)
 		// except for a cast payable only by paying with a permanent its own
-		// announcements need (targetPaidPlanned). A card's own ValidTarget$ cost
-		// static (Vanish into Eternity's RaiseCost) is never that target-paid
-		// shape: gorge's planner prices no such cast at the offer (its
-		// "shape:target_dependent_cost"; the potential section's targetPricedPlan
-		// is dropped from the autopay vocabulary), so the escape must not lift
-		// the refusal here (dr-mbc-aaab pair 94: the kernel offered the plain
-		// cast, gorge dropped it).
-		if mode&3 != 0 || cardTgtDepCost(&k.t.Cards[c]) || planNeverPricesCore(k, c, hyb, composed, true) || !s.targetPaidPlanned(k, p, o) {
+		// announcements need (targetPaidPlanned)
+		if mode&3 != 0 || planNeverPricesCore(k, c, hyb, composed, true) || !s.targetPaidPlanned(k, p, o) {
 			return kop.ManaCost{}, false
 		}
 	}

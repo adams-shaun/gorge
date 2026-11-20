@@ -332,7 +332,9 @@ func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
 	n0 := t.npend
 	var pk planner
 	pk.try = true
-	t.tapForPK(k, p, &payCost, 0, NoObj, false, false, &pk)
+	// the witness pays for this spell (gorge plans the cast option): a restricted
+	// source that cannot pay a spell (a Powerstone's {C}) is no unit of it
+	t.tapForPK(k, p, &payCost, 0, o, false, false, &pk)
 	consumes := pk.found && plannerConsumesSac(&pk)
 	reaches := false
 	// a witness whose sacrifices stack more triggers than the wait budget lets
