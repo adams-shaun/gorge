@@ -114,7 +114,7 @@ func (s *State) setIterResume() bool {
 // Order. It returns false when a member suspended on a decision (res.ask is
 // set), true otherwise: a parked move leaves the iteration frozen for
 // continueRes and returns true, as the single-object op does.
-func (s *State) forSet(k *prep, e *stackEntry, in *kop.Instr, pc int, f func(*State, *prep, *kop.Instr, Obj) bool) bool {
+func (s *State) forSet(k *prep, e *stackEntry, in *kop.Instr, pc int, f func(*State, *prep, kop.Instr, Obj) bool) bool {
 	ab := s.setAbility(k, e)
 	if ab == nil {
 		panic("kernel: RefSet in a program with no ability")
@@ -142,7 +142,7 @@ func (s *State) forSet(k *prep, e *stackEntry, in *kop.Instr, pc int, f func(*St
 		s.evalSetAs(k, ref.Set, ctx, ref.Flags, &v)
 	}
 	for ; i < int(v.n) && !s.over; i++ {
-		if !f(s, k, in, v.objs[i]) {
+		if !f(s, k, *in, v.objs[i]) {
 			s.setSuspend(k, ref, it, &v, pc, i, false)
 			return false
 		}
@@ -184,13 +184,13 @@ func (s *State) setThaw(k *prep, ref kop.SetRef, ctx evalCtx, it *setIter, v *se
 
 // forSetPlayers is forSet over a players set. A member body that returns
 // false stops the loop; the ops that use it (life, set_ops.go) never suspend.
-func (s *State) forSetPlayers(k *prep, e *stackEntry, in *kop.Instr, pc int, f func(*State, *prep, *kop.Instr, uint8) bool) bool {
+func (s *State) forSetPlayers(k *prep, e *stackEntry, in *kop.Instr, pc int, f func(*State, *prep, kop.Instr, uint8) bool) bool {
 	var v setVal
 	if !s.setLoad(k, e, pc, &v, true) {
 		return true
 	}
 	for i := uint16(0); i < v.n && !s.over; i++ {
-		if !f(s, k, in, uint8(v.objs[i])) {
+		if !f(s, k, *in, uint8(v.objs[i])) {
 			return false
 		}
 	}

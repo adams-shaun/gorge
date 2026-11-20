@@ -128,43 +128,43 @@ func (s *State) bfSlot(o Obj) Slot {
 // The member bodies: a RefSet member o is read as the permanent it is on the
 // battlefield. They are method expressions passed to forSet.
 
-func (s *State) putCounterMember(k *prep, in *kop.Instr, o Obj) bool {
+func (s *State) putCounterMember(k *prep, in kop.Instr, o Obj) bool {
 	if sl := s.bfSlot(o); sl != NoSlot {
-		return s.putCounterOnSlot(k, in, sl)
+		return s.putCounterOnSlot(k, &in, sl)
 	}
 	return true
 }
 
-func (s *State) pumpMember(k *prep, in *kop.Instr, o Obj) bool {
+func (s *State) pumpMember(k *prep, in kop.Instr, o Obj) bool {
 	if sl := s.bfSlot(o); sl != NoSlot {
-		s.pumpOn(k, in, sl)
+		s.pumpOn(k, &in, sl)
 	}
 	return true
 }
 
-func (s *State) tapMember(k *prep, in *kop.Instr, o Obj) bool {
+func (s *State) tapMember(k *prep, in kop.Instr, o Obj) bool {
 	if sl := s.bfSlot(o); sl != NoSlot {
-		s.tapOn(k, in, sl)
+		s.tapOn(k, &in, sl)
 	}
 	return true
 }
 
-func (s *State) untapMember(k *prep, in *kop.Instr, o Obj) bool {
+func (s *State) untapMember(k *prep, in kop.Instr, o Obj) bool {
 	if sl := s.bfSlot(o); sl != NoSlot {
 		s.untapOn(k, sl)
 	}
 	return true
 }
 
-func (s *State) destroyMember(k *prep, in *kop.Instr, o Obj) bool {
+func (s *State) destroyMember(k *prep, in kop.Instr, o Obj) bool {
 	if sl := s.bfSlot(o); sl != NoSlot {
-		s.destroyOn(k, in, sl)
+		s.destroyOn(k, &in, sl)
 	}
 	return true
 }
 
 // moveMember moves o to the op's fixed destination, from wherever it is.
-func (s *State) moveMember(k *prep, in *kop.Instr, o Obj) bool {
+func (s *State) moveMember(k *prep, in kop.Instr, o Obj) bool {
 	switch in.Op {
 	case kop.OpExile:
 		s.moveObjOn(k, kop.RefSet, o, kop.ZoneExile, false)
@@ -248,14 +248,14 @@ func (s *State) execSetPlayers(k *prep, in *kop.Instr, e *stackEntry, pc int) bo
 	return s.startSac(k, in, q.at(0))
 }
 
-func (s *State) gainLifeMember(k *prep, in *kop.Instr, p uint8) bool {
+func (s *State) gainLifeMember(k *prep, in kop.Instr, p uint8) bool {
 	s.gainLife(k, p, s.value(k, in.A))
 	return true
 }
 
 // loseLifeMember adds the life lost to ExLastLifeLost's tally (the single-object
 // op sets it once, after its players).
-func (s *State) loseLifeMember(k *prep, in *kop.Instr, p uint8) bool {
+func (s *State) loseLifeMember(k *prep, in kop.Instr, p uint8) bool {
 	n := s.value(k, in.A)
 	s.loseLife(k, p, n)
 	s.g.lostAmt += int16(max(n, 0))

@@ -174,19 +174,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		// not the slot's pick order), never execEachTarget
 		slot := uint8(sl)
 		if s.slotHasExtra(e, slot) {
-			if in.Op == kop.OpSacrifice && in.C&kop.OptAsk == 0 {
-				// a sacrifice over several targeted players asks each of
-				// them in turn (eachPlayersSac)
-				if ok, done := s.eachPlayersSac(k, in, slot); done {
-					return ok, true
-				}
-			}
-			if in.Op == kop.OpDiscard && in.F == 0 && in.C == kop.ChooseSelf {
-				if ok, done := s.eachPlayersDiscard(k, in, slot); done {
-					return ok, true
-				}
-			}
-			return !s.execEachTarget(k, in, slot), true
+			return s.execExtraTargets(k, in, slot)
 		}
 	}
 	switch in.Op {
@@ -1150,6 +1138,24 @@ func (s *State) xtLegalBase(k *prep, e *stackEntry, j int) bool {
 		}
 	}
 	return s.targetOK(k, t, e.ctrl, src, e.obj, c)
+}
+
+// execExtraTargets is execGen's arm for a target slot that holds extra
+// targets: the player sacrifice and discard chains, else the op once per object.
+func (s *State) execExtraTargets(k *prep, in *kop.Instr, slot uint8) (ok, done bool) {
+	if in.Op == kop.OpSacrifice && in.C&kop.OptAsk == 0 {
+		// a sacrifice over several targeted players asks each of
+		// them in turn (eachPlayersSac)
+		if ok, done := s.eachPlayersSac(k, in, slot); done {
+			return ok, true
+		}
+	}
+	if in.Op == kop.OpDiscard && in.F == 0 && in.C == kop.ChooseSelf {
+		if ok, done := s.eachPlayersDiscard(k, in, slot); done {
+			return ok, true
+		}
+	}
+	return !s.execEachTarget(k, in, slot), true
 }
 
 // execEachTarget runs in once per object of target slot i. It returns true
