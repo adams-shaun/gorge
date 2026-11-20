@@ -386,16 +386,9 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	for i := 0; i < int(a.NTargets); i++ {
 		bound = bound || xBoundTarget(k.t, &a.Targets[i])
 	}
-	// a protection quality reads a spell's own mana value, X in it
-	// (protSpellXMV). The arm only arms the sweep's target halves: its
-	// affordability proofs are the sweep's priceExactly, which gorge prices
-	// only when a ValidTgts$ filter bounds the target (TgtValidXBound). A
-	// count bound alone (Dregs of Sorrow's "X target creatures") leaves
-	// gorge's xBoundTargetPayable an early true, so its priced route offers
-	// the cast off the potential pool alone and the arm's honest census may
-	// not refuse it (the kernel once withheld the cast there).
-	protArm := k.gen != nil && k.gen.anyProtF && src == NoSlot && a.NTargets != 0
-	if !bound && !protArm {
+	// a protection quality reads a spell's own mana value, X in it (protSpellXMV)
+	bound = bound || k.gen != nil && k.gen.anyProtF && src == NoSlot && a.NTargets != 0
+	if !bound {
 		return true
 	}
 	var pot, ex avail
@@ -436,7 +429,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	var gs gapSubsets
 	countKnown := false
 	var countEx avail
-	if bound && !exactKnown {
+	if !exactKnown {
 		s.xBoundGapSubsets(k, p, d, &gs) // the paid gaps' fees, as gorge's relaxed proof charges them (mana_xboundgap.go)
 		// A repeatable paid gap's subsets are never priced (xBoundGapSubsets's
 		// gapRepeats arm), so the over-bound stands. When every gap it kept
@@ -469,7 +462,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		// total mana proves it unpayable, while a colour-infeasible covered
 		// census does not (a repeatable converter may change colours at a
 		// mana loss, and the count arm has no proof against it).
-		if bound && (exactKnown && !ex.affords(&cx, pipMaskOf(&cx), 0) || gs.n != 0 && !gs.affords(&cx) || countKnown && xBoundCountProof(&countEx, &cx)) {
+		if exactKnown && !ex.affords(&cx, pipMaskOf(&cx), 0) || gs.n != 0 && !gs.affords(&cx) || countKnown && xBoundCountProof(&countEx, &cx) {
 			break
 		}
 		s.g.probe.x = uint8(x + 1)
