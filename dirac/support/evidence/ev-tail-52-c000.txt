@@ -6,6 +6,7 @@ Aboshan, Cephalid Emperor
 Abzan Runemark
 Acid-Spewer Dragon
 Adorable Kitten
+Adorned Pouncer
 Ajani, Valiant Protector
 Alabaster Host Sanctifier
 Alarum
@@ -309,6 +310,7 @@ Noble Steeds
 Noggle Bandit
 Novijen, Heart of Progress
 Oak Street Innkeeper
+Oath of Teferi
 Occult Epiphany
 Ondu Champion
 Order of Yawgmoth
@@ -496,6 +498,7 @@ Viashino Grappler
 Visara the Dreadful
 Vision, Spectral Synthezoid
 Visions of Beyond
+Volcanic Strength
 Voldaren Duelist
 Vona's Hunger
 Vraska's Scorn
