@@ -1,0 +1,8 @@
+# The Pump Duration$ UntilYourNextUpkeep pool (Erhnam Djinn): the Djinn's
+# upkeep trigger grants forestwalk to an opponent's creature until the
+# controller's next upkeep, beside sizes and the Forests that make the
+# keyword matter (dirac/oracle/pumpupkeep_lockstep_test.go)
+Erhnam Djinn
+Forest
+Grizzly Bears
+Hill Giant
