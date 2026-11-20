@@ -224,7 +224,7 @@ func pipSum(p *[kop.NumManaKinds]uint8) (n int) {
 // branches and starved the line that pays the play without the filter, whose
 // offer then went missing. useful nil (the play's printed pips unread,
 // filtUsefulCost) fails open: the branch is explored.
-func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int) bool {
+func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, own Slot, useful *kop.ManaCost, col int) bool {
 	if useful == nil || useful.Hyb[0] != 0 || s.g.winMode == winTrig || !s.filtRepeat(k, sl) {
 		return false
 	}
@@ -262,23 +262,25 @@ func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost
 	// spent. S makes any colour, so it can stand in for every colour X can;
 	// a source whose cost also spends a counter, a permanent or life is a
 	// different class (the swap would lose that other use) and fails open.
-	return s.filtFreeTapColour(k, p, sl, col)
+	return s.filtFreeTapColour(k, p, sl, own, col)
 }
 
 // filtFreeTapColour reports whether p controls an untapped source other than
 // sl whose bare-tap mana ability can make col: the free unit the plain source
 // census prices (pcard.manaTap), and the kernel mirror of gorge's
 // scriptSearch.feeOnlyFreeTapColour (engine/rules/potential_script.go).
+// own, the play's own {T}-cost source, is no substitute: its tap is already
+// owed to the play's cost (CR 602.2b), so the swap would not be free.
 // A source whose ability also pays life (Mana Confluence's "{T}, Pay 1 life")
 // is not this class (pc.painLife): the swapped line would spend that life,
 // which the dominated branch saved, so the endpoint after both activations is
 // not the same and the cut fails open (gorge's PaymentPlanTapOnlyCost reads
 // the same class, pay.ManaFreeCost's c.Life == 0; canTapForManaPC only holds
 // the lethal band out, life < painN, which is not enough here).
-func (s *State) filtFreeTapColour(k *prep, p uint8, skip Slot, col int) bool {
+func (s *State) filtFreeTapColour(k *prep, p uint8, skip, own Slot, col int) bool {
 	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 		sl := b.first()
-		if sl == skip || s.perms[sl].flags&pfTapped != 0 || s.genLost(k, sl) || s.activationSick(k, sl) {
+		if sl == skip || sl == own || s.perms[sl].flags&pfTapped != 0 || s.genLost(k, sl) || s.activationSick(k, sl) {
 			continue
 		}
 		if k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {

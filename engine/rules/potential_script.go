@@ -1902,9 +1902,11 @@ func (sr *scriptSearch) feeOnlyAskPrune(c *Engine, d *decision.Decision, answers
 // untapped source other than skip whose activation costs no mana -- a bare
 // tap, the class the kernel's plain source census prices as a free unit
 // (dirac's filtFreeTapColour, mana_filterrepeat.go) -- and whose production
-// can make colour. A source whose activation also spends a counter, a
-// permanent or life is not this class: the swap below would lose that other
-// use, so the cut fails open there.
+// can make colour. The play's own {T}-cost source is no substitute: its tap is
+// already owed to the play's cost (CR 602.2b), so ownTapSource skips it. A
+// source whose activation also spends a counter, a permanent or life is not
+// this class: the swap below would lose that other use, so the cut fails open
+// there.
 //
 // The cut is the swapped-line domination. At the ask the fee-only repeatable
 // source S (one mana of any colour, fee F no larger than its production, no
@@ -1925,7 +1927,7 @@ func (sr *scriptSearch) feeOnlyAskPrune(c *Engine, d *decision.Decision, answers
 // reachable from the other after both activations.
 func (sr *scriptSearch) feeOnlyFreeTapColour(c *Engine, skip state.ObjID, colour int) bool {
 	for _, id := range c.G.Zone(state.ZBattlefield, sr.p) {
-		if id == skip {
+		if id == skip || sr.ownTapSource(c, id) {
 			continue
 		}
 		o := c.G.Obj(id)
