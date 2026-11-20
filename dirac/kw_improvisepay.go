@@ -69,9 +69,14 @@ func (s *State) improviseSourcesPay(k *prep, p uint8, o Obj, res slotMask, cost 
 // improvisePlanned classifies the mana step of spell entry e when gorge's planner
 // priced its Improvise cast (build.impPlan, set at the cast). With artifacts
 // announced the planned payment is re-armed on what they leave (rearmAutoPay):
-// plan. With none announced beside a credit the offer's witness no longer matches
-// the price (cost_changed) and the cast falls back to the manual window: manual.
-// With no credit at all the witness stands at the printed cost: printed.
+// plan. With none announced beside a credit the cast is the cost_changed
+// fallback (manual: the manual window) only when the unannounced credit lowered
+// the composed price; when the credited price still equals the payment's
+// composed cost (the statics already zeroed the generic the credit covered,
+// CR 601.2f after CR 702.126a) gorge's paymentPlanCheck re-derives the plan's
+// cost from the announcements, matches it, and keeps the offer's witness, so
+// the planned payment runs with the credit's artifacts held back: plan. With no
+// credit at all the witness stands at the printed cost: printed.
 func (s *State) improvisePlanned(k *prep, e *stackEntry) (plan, manual, printed bool) {
 	if k.gen == nil || !k.gen.anyConvoke || !s.bld().impPlan || e.kind != seSpell ||
 		e.flags&(sfMayPlay|sfFlashback|sfKicked) != 0 || !s.tapPaysEntry(k, e) ||
@@ -82,9 +87,30 @@ func (s *State) improvisePlanned(k *prep, e *stackEntry) (plan, manual, printed 
 		return true, false, false
 	}
 	if s.improviseReserved(k, e.ctrl, k.cards[e.card].cost.Generic).any() {
-		return false, true, false
+		if DebugPlannerFlexCensus || s.improviseCreditPrice(k, e, true) != s.improviseCreditPrice(k, e, false) {
+			return false, true, false
+		}
+		return true, false, false
 	}
 	return false, false, true
+}
+
+// improviseCreditPrice is the offer's credited price composed the way
+// plannedCastCostOf composes it (the credit before the statics, CR 702.126a
+// then 601.2f): the printed cost, then the greedy credit when credit is set,
+// then the cost statics. The offer's cast is plain (cast.go's impPlan arm: a
+// hand cast, no X, no may-play, flashback or alternate shape), so nothing else
+// folds here; convokeCreditFrom reads the offer's hand origin whatever zone the
+// build has moved the card to.
+func (s *State) improviseCreditPrice(k *prep, e *stackEntry, credit bool) kop.ManaCost {
+	cost := k.cards[e.card].cost
+	if credit {
+		cost = s.convokeCreditFrom(k, SeatIx(e.ctrl), e.card, e.obj, true, cost)
+	}
+	if s.statM.any() || k.gen != nil {
+		cost = s.featCost(k, SeatIx(e.ctrl), e.card, e.obj, cost)
+	}
+	return cost
 }
 
 // improvisePlanPay pays an Improvise cast gorge's planner priced, with the
@@ -115,7 +141,8 @@ func (s *State) improvisePlanPay(k *prep, e *stackEntry, cost *kop.ManaCost, any
 	si := SeatIx(e.ctrl)
 	ctrl := s.ctrlM[si]
 	hold := hidden
-	if g := s.improviseReserved(k, e.ctrl, k.cards[e.card].cost.Generic); g.count() == hidden.count() {
+	skipPlan := false
+	if g := s.improviseReserved(k, e.ctrl, k.cards[e.card].cost.Generic); g.count() == hidden.count() || (!DebugPlannerFlexCensus && hidden.count() == 0) {
 		c := *cost
 		t := s.fork()
 		t.ctrlM[si] = ctrl.andNot(g)
@@ -126,19 +153,27 @@ func (s *State) improvisePlanPay(k *prep, e *stackEntry, cost *kop.ManaCost, any
 			}
 		}
 		s.unfork()
-		if !conflict {
+		if conflict && hidden.count() == 0 && !DebugPlannerFlexCensus {
+			// The plan armed at the offer (priced with the greedy credit's
+			// artifacts held back) replans to nothing, so the payment falls
+			// back the way gorge's cost_changed does -- the manual CR 601.2g
+			// window (manaStep).
+			skipPlan = true
+		} else if !conflict {
 			hold = g
 		}
 	}
-	s.ctrlM[si] = ctrl.andNot(hold)
-	paid = s.tapForTry(k, e.ctrl, cost, int(e.x), e.obj, anyColor)
-	// Restore the artifacts this payment withheld, not the whole saved mask: the
-	// plan behind tapForTry may have sacrificed an Eldrazi Scion (or another
-	// sacrifice source) to fund the cost, and removePerm cleared its control bit
-	// while its occupancy bit went with it. Putting the old mask back would leave
-	// the sacrificed source in ctrlM with no occupancy, and attackerOptions reads
-	// ctrlM without s.occ: a stale token would be offered as an attacker.
-	s.ctrlM[si] = s.ctrlM[si].or(hold.and(s.occ))
+	if !skipPlan {
+		s.ctrlM[si] = ctrl.andNot(hold)
+		paid = s.tapForTry(k, e.ctrl, cost, int(e.x), e.obj, anyColor)
+		// Restore the artifacts this payment withheld, not the whole saved mask: the
+		// plan behind tapForTry may have sacrificed an Eldrazi Scion (or another
+		// sacrifice source) to fund the cost, and removePerm cleared its control bit
+		// while its occupancy bit went with it. Putting the old mask back would leave
+		// the sacrificed source in ctrlM with no occupancy, and attackerOptions reads
+		// ctrlM without s.occ: a stale token would be offered as an attacker.
+		s.ctrlM[si] = s.ctrlM[si].or(hold.and(s.occ))
+	}
 	if paid {
 		return false, true
 	}
