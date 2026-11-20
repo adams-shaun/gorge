@@ -41,9 +41,11 @@ Two seats only.
   turn, step, priority holder.
 - **The stack** (`dirac/zone_stagestack.go`). Spells with no target, mode, X or kicker, and "{1}, sacrifice another
   creature: put a +1/+1 counter on this" abilities whose source is a battlefield creature. Priority over a non-empty
-  stack: the top entry's controller has passed no one (0 passes); any other holder was passed to (1). The active seat
-  holding priority over the other seat's top entry is refused as `priority`, because the view cannot say whether that is
-  after a pass or a resolution.
+  stack: a stack whose top entry is not the active seat's is refused as `priority`, whoever holds priority. Such a round
+  may have started at that entry's controller after a cast or activation (no pass) or at the active seat after a
+  resolution (also no pass), and the view cannot say which; the two differ by one pass once the active seat passes. When
+  the top entry is the active seat's, the round is settled: the active seat holds it with 0 passes, any other holder
+  with 1.
 - **Combat before damage** (`dirac/zone_stagecombat.go`, `dirac/shadow/stage_combat.go`). A priority round at upkeep,
   draw, first main, beginning of combat, declare attackers, declare blockers, second main and end; and the attackers and
   blockers decisions at their pose with no pick made (`PoseAttackers`, `PoseBlockers`). The view shows a block only on
@@ -67,6 +69,7 @@ Everything else is refused with a reason. dirac's reasons are `dirac.Unstageable
 | Refused | Reason |
 |---|---|
 | a trigger on the stack, or an entry with a target, mode, X, kicker or copy | `stack` (dirac: `stack-entry`) |
+| priority over a stack whose top entry is not the active seat's, whoever holds it (the round may have started there or after a resolution) | `priority` |
 | any trigger waiting to be put on the stack | `pending` |
 | combat damage and end of combat steps (the view's `combat-damage` is both dirac steps, and a blocker whose attacker left still counts as blocking, CR 506.4) | `step` |
 | a creature attacking a planeswalker or battle | `mark` |

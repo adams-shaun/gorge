@@ -94,21 +94,22 @@ func (w *World) validateStack() error {
 	return w.validateStackPriority()
 }
 
-// validateStackPriority refuses the one priority an observation leaves
-// ambiguous. The holder of a just-cast entry's controller has passed no one
-// (passes 0); any other holder was passed to (1); but the active player also
-// holds priority with no pass after a resolution, and the view does not tell
-// the two apart when the top entry is the other seat's.
+// validateStackPriority refuses every priority over a stack whose top entry is
+// not the active seat's. Such a round may have started at the entry's
+// controller after a cast or activation (no pass) or at the active seat after
+// a resolution (also no pass); a view shows neither, and the two differ by one
+// pass as soon as the active seat passes.
 func (w *World) validateStackPriority() error {
-	if n := len(w.Stack); n != 0 && w.Prio == w.Active && w.Stack[n-1].Ctrl != w.Active {
-		return unstageable(ReasonPriority, "the active seat holds priority over the other seat's entry: a pass or a resolution")
+	if n := len(w.Stack); n != 0 && w.Stack[n-1].Ctrl != w.Active {
+		return unstageable(ReasonPriority, "the top entry is not the active seat's: the round may have started at it or after a resolution")
 	}
 	return nil
 }
 
-// stackPasses is the pass count of the priority round at w's stack.
+// stackPasses is the pass count of the priority round at w's stack: the
+// active seat starts a round with none; any other holder was passed to (1).
 func (w *World) stackPasses() uint8 {
-	if n := len(w.Stack); n != 0 && w.Stack[n-1].Ctrl == w.Prio {
+	if w.Prio == w.Active {
 		return 0
 	}
 	return 1
