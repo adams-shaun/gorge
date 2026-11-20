@@ -119,11 +119,8 @@ func prepCtrl(t *kop.Table, g *genPrep) {
 				g.ctrlSBA = true
 			}
 			if (in.Op == kop.OpOverride || in.Op == kop.OpOverrideAll) && in.A.K == kop.VConst {
-				switch in.A.N {
-				case kop.DurUntilYourNextTurn:
+				if in.A.N == kop.DurUntilYourNextTurn {
 					g.anyNTOv = true
-				case kop.DurUntilYourNextUpkeep:
-					g.anyUpkeepOv = true
 				}
 			}
 		}

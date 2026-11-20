@@ -22,11 +22,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // fail.
 var DebugNoUpkeepDrop bool
 
-func init() { genNeed(tableHasUpkeepOv) }
+// useUpkeepOv is the genPrep.uses bit for such a table: a registered use, not a
+// genPrep field, so the fixed layout (TestNoNewFixedStateFields) is unchanged.
+var useUpkeepOv = newGenUse(tableHasUpkeepOv)
 
 // tableHasUpkeepOv reports a table that carries an OpOverride /
 // OpOverrideAll with DurUntilYourNextUpkeep, prepareGen's gate for
-// genPrep.anyUpkeepOv.
+// genPrep.uses' useUpkeepOv bit.
 func tableHasUpkeepOv(t *kop.Table) bool {
 	hit := func(prog []kop.Instr) bool {
 		for i := range prog {
@@ -57,7 +59,7 @@ func tableHasUpkeepOv(t *kop.Table) bool {
 // upkeepStep is beginStep's StepUpkeep entry: it drops the
 // until-your-next-upkeep records before the step's triggers are queued.
 func (s *State) upkeepStep(k *prep) {
-	if k.gen != nil && k.gen.anyUpkeepOv {
+	if k.gen != nil && k.gen.uses.has(useUpkeepOv) {
 		s.dropUpkeepOv(k)
 	}
 }

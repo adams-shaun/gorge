@@ -9,7 +9,7 @@ import (
 
 // upkeepOvTable returns a scenario table carrying one until-your-next-upkeep
 // keyword grant record. The card's program is what the table scan reads to
-// set genPrep.anyUpkeepOv; the tests apply the record themselves.
+// set genPrep.uses (useUpkeepOv); the tests apply the record themselves.
 func upkeepOvTable(t *testing.T) (kop.Table, int16) {
 	t.Helper()
 	tbl := *vanilla.Table
@@ -45,8 +45,8 @@ func TestPumpUpkeepDropsOnEnteringUpkeep(t *testing.T) {
 	tbl, ov := upkeepOvTable(t)
 	sc := newScenTable(t, &tbl, Config{NoElide: true})
 	s, k := sc.s, sc.k
-	if !k.gen.anyUpkeepOv {
-		t.Fatal("anyUpkeepOv off: the table scan did not see DurUntilYourNextUpkeep")
+	if !k.gen.uses.has(useUpkeepOv) {
+		t.Fatal("useUpkeepOv off: the table scan did not see DurUntilYourNextUpkeep")
 	}
 	victim := sc.perm(vanilla.SavannahLions, 0)
 	sl := sc.slot(victim)
