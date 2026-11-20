@@ -36,7 +36,9 @@ func (lc *lowerCtx) animateAtEOT(ps *params, obj lRef) (func(), error) {
 // oneObjectSubject reports whether ref names at most one object: Self, one
 // object-target slot with no TargetMax$ (a single target), or the remembered
 // set when exactly one earlier instruction of this ability remembers and it
-// moved (or destroyed) one targeted object.
+// moved (or destroyed) one targeted object, or is a ChooseMove/Dig whose
+// pick count is the constant 1 (a hand pick or a one-card dig remembers at
+// most the one card it moved: Arms Race, Impromptu Raid, Sneak Attack).
 func (lc *lowerCtx) oneObjectSubject(obj lRef) bool {
 	switch obj.Kind {
 	case rSelf:
@@ -55,9 +57,14 @@ func (lc *lowerCtx) oneObjectSubject(obj lRef) bool {
 				one = in.Obj.Kind == rTarget && lc.singleObjectSlot(in.Obj.N)
 			}
 			for _, f := range strings.Split(in.CS, "|") {
-				if f == "Remember" {
+				if f == "Remember" || f == "RememberChanged" {
 					n++
-					one = in.Obj.Kind == rTarget && lc.singleObjectSlot(in.Obj.N)
+					switch {
+					case (in.Op == "ChooseMove" || in.Op == "Dig") && in.A.isConst() && in.A.N == 1:
+						one = true // the pick count is 1: at most one remembered card
+					default:
+						one = in.Obj.Kind == rTarget && lc.singleObjectSlot(in.Obj.N)
+					}
 				}
 			}
 		}
@@ -147,9 +154,10 @@ func (lc *lowerCtx) changeZoneAtEOT(ps *params) (act int, ok bool, err error) {
 
 // emitChangeZoneAtEOT schedules the AtEOT promise on the one object a
 // Defined$ Remembered return moved. The kernel's OpAtEOT takes one object, so
-// the remembered set must be the one targeted object the same ability
-// remembered (oneObjectSubject); the move must be a single Return, which the
-// ability's condition then skips along with the promise.
+// the remembered set must be the one object the same ability remembered —
+// the one targeted object, or a one-card pick (oneObjectSubject); the move
+// must be a single Return, which the ability's condition then skips along
+// with the promise.
 func (lc *lowerCtx) emitChangeZoneAtEOT(start, act int) error {
 	moves := 0
 	for _, in := range lc.ab.Prog[start:] {
