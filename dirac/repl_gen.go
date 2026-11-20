@@ -539,6 +539,39 @@ func (s *State) appendPrevGrants(ro *replOrd, n int, k *prep, sl Slot, from, to 
 	return n, m
 }
 
+// replOrderCandsSeat appends the doubling and plus-N candidates on seat p's
+// battlefield to ro.cand for the frozen combat event fe, in entry order, and
+// returns the new count (or -1 when the list overflows, which has stalled).
+// Every seat's battlefield is scanned because a plus-N line need not belong to
+// the source's controller: the recipient's Tok-Tok, Volcano Born raises a red
+// source's damage to a player beside the source controller's doubler.
+func (s *State) replOrderCandsSeat(k *prep, fe *fzEv, p, sc, rcp uint8, n int) int {
+	g := k.gen
+	ro := &s.g.ro
+	var bf [MaxPerm]Slot
+	for _, b := range bf[:s.battlefieldOrder(p, s.statM.and(s.ctrlM[p]), bf[:], 0)] {
+		if g.replBits[s.cardAt(b)]&rbDblDmg != 0 && !s.genLost(k, b) && (!g.anyFiltRepl || s.dblDmgMatch(k, b, sc, fe.src, fe.card, NoObj, rcp, fe.dst, true)) {
+			if n == len(ro.cand) {
+				s.capFull(StallReplCands) // loud: never truncate the candidates
+				return -1
+			}
+			ro.cand[n] = s.perms[b].obj
+			n++
+		} else if g.replBits[s.cardAt(b)]&rbPlusDmg != 0 && !s.genLost(k, b) {
+			if _, raise, ok := s.replPlusCand(k, b, fe.src, fe.card, sc, rcp, fe.dst, true, int(fe.n)); ok && raise == 0 {
+				if n == len(ro.cand) {
+					s.capFull(StallReplCands) // loud: never truncate the candidates
+					return -1
+				}
+				ro.cand[n] = s.perms[b].obj
+				ro.plus |= 1 << n
+				n++
+			}
+		}
+	}
+	return n
+}
+
 // replOrderCandsFz fills s.g.ro's candidates for the frozen combat event fe
 // (its amount before the replacements is fe.n) and returns their number.
 func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
@@ -573,26 +606,8 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 			if s.out(p) {
 				continue
 			}
-			var bf [MaxPerm]Slot
-			for _, b := range bf[:s.battlefieldOrder(p, s.statM.and(s.ctrlM[p]), bf[:], 0)] {
-				if g.replBits[s.cardAt(b)]&rbDblDmg != 0 && !s.genLost(k, b) && (!g.anyFiltRepl || s.dblDmgMatch(k, b, sc, fsl, fe.card, NoObj, rcp, fe.dst, true)) {
-					if n == len(ro.cand) {
-						s.capFull(StallReplCands) // loud: never truncate the candidates
-						return 0
-					}
-					ro.cand[n] = s.perms[b].obj
-					n++
-				} else if g.replBits[s.cardAt(b)]&rbPlusDmg != 0 && !s.genLost(k, b) {
-					if _, raise, ok := s.replPlusCand(k, b, fsl, fe.card, sc, rcp, fe.dst, true, int(fe.n)); ok && raise == 0 {
-						if n == len(ro.cand) {
-							s.capFull(StallReplCands) // loud: never truncate the candidates
-							return 0
-						}
-						ro.cand[n] = s.perms[b].obj
-						ro.plus |= 1 << n
-						n++
-					}
-				}
+			if n = s.replOrderCandsSeat(k, fe, p, sc, rcp, n); n < 0 {
+				return 0
 			}
 		}
 	}
