@@ -1138,6 +1138,9 @@ const ExSrcRemCounters ExprKind = 165
 // ExStaticExileKw (F, N): exiled cards matching F (every player's exile, F.Owner narrows) that print the keyword N names, read off the printed card (CR 400.7, gorge effects.PrintedChars). N below 32 is a KwMask bit index; N 32 and up is the protection colour (N-32, in kop.ExileKwProtN order) in the card's printed ProtColors. It is the per-keyword gate of a SharedKeywordsZone$ Exile static (Rayami, First of the Fallen). dirac/value_exilekw.go.
 const ExStaticExileKw ExprKind = 166
 
+// ExprKind (dirac/manifest/ExprKind/ExVoteTally)
+const ExVoteTally ExprKind = 167
+
 // api MakeCard (dirac/manifest/ExtOp/ExtMakeCard)
 const ExtMakeCard ExtOp = 11
 

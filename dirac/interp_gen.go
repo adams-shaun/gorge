@@ -152,6 +152,25 @@ const (
 	sfMayPlay   uint8 = 1 << 7
 )
 
+// branchRuns reports whether an OpBranch runs: a StoreVoteNum$ option branch
+// in all-options mode always runs (setting the current tally first), and
+// otherwise the selected branch index must match.
+func (s *State) branchRuns(in *kop.Instr) bool {
+	if in.C&kop.VoteBranchStore == 0 {
+		return s.g.branch == uint8(in.C)
+	}
+	b := uint8(in.C & 7)
+	a := s.resArm()
+	a.voteCur = b
+	if a.voteAll {
+		if b == a.voteAllN {
+			a.voteAll = false // the last option branch: the chain goes on
+		}
+		return true
+	}
+	return s.g.branch == b
+}
+
 func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	s.refreshTy(k)
 	e := &s.res.e
@@ -226,7 +245,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.res.pc += uint8(in.A.N)
 		}
 	case kop.OpBranch:
-		if s.g.branch != uint8(in.C) {
+		if !s.branchRuns(in) {
 			s.res.pc += uint8(in.A.N)
 		}
 	case kop.OpChooseBranch:
@@ -2155,8 +2174,12 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 		entering := fz == kop.ZoneBattlefield && fl&kop.DuFoundWithRevealed == 0
 		// a library reveal with no bottom position leaves the revealed cards
 		// where they are (gorge effDigUntil's stay-in-place arm: no reorder,
-		// no RNG draw)
-		stay := rz == kop.ZoneLibrary && fl&kop.DuRestBottom == 0 && !entering
+		// no RNG draw). A battlefield-entering dig returns the rest to the
+		// bottom only with RevealRandomOrder$ (gorge digUntilReturnRest's
+		// restBottom: revealRandomOrder && foundDest == Battlefield &&
+		// !foundWithRevealed && restPos absent/"0"); without it the rest
+		// stays put even though the found card entered.
+		stay := rz == kop.ZoneLibrary && fl&kop.DuRestBottom == 0 && (fl&kop.DuRandomOrder == 0 || !entering)
 		if !entering && !stay {
 			s.digPop(pl, nr+nf, rev[:nr], fnd[:nf])
 		}
@@ -2221,7 +2244,7 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 			}
 			s.digMove(k, p, fnd[i], fz, fnd[i+1:nf], rev[:nr])
 		}
-		if entering {
+		if entering && !stay {
 			s.digPop(pl, nr, rev[:nr], nil)
 		}
 		if fl&kop.DuRandomOrder != 0 && !stay {

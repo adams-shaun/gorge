@@ -21,6 +21,11 @@ var DebugNoExtraTurnBegun bool
 //go:noinline
 func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	switch x.Kind {
+	case kop.ExVoteTally:
+		// the StoreVoteNum option branch being resolved (act_vote.go): the
+		// per-option tally the vote wrote after the last voter. Only a
+		// flagged vote branch sets voteCur, so no other read sees a value.
+		return int(s.resArm().voteCounts[s.resArm().voteCur])
 	case kop.ExOppsAttacked:
 		return s.exOppsAttacked(x.N, ctx) // value_oppsattacked.go
 	case kop.ExTargetPlayers:
