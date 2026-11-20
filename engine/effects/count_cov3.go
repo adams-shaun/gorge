@@ -43,7 +43,14 @@ func domainCount(h Host, c *Ctx, p state.PlayerID, depth int) int32 {
 // head/argument split.
 func evalCov3Head(h Host, c *Ctx, head, arg string, depth int) (int32, bool) {
 	g := h.Game()
-	switch evalCov3HeadCodes.Code(string(head)) {
+	if n, ok, handled := evalHistoryPrefixHead(h, c, g, head); handled {
+		return n, ok
+	}
+	code := evalCov3HeadCodes.Code(string(head))
+	if code >= evalCov3HeadNumInAllHands {
+		return evalHistoryHead(h, c, g, code, arg, depth)
+	}
+	switch code {
 	case evalCov3HeadDomain:
 		// "for each basic land type among lands you control" (62 corpus
 		// carriers: Tribal Flames, Draco's cost reduction, Allied Strategies).
@@ -187,6 +194,9 @@ func evalCov3Head(h Host, c *Ctx, head, arg string, depth int) (int32, bool) {
 // does not know.
 func cov3BranchHolds(h Host, c *Ctx, pred string, depth int) (holds, ok bool) {
 	g := h.Game()
+	if typ, found := strings.CutPrefix(pred, "Presence_"); found {
+		return presenceHolds(h, c, g, typ), true
+	}
 	you := c.Controller
 	valid := you >= 0 && int(you) < len(g.Players)
 	switch cov3BranchHoldsCodes.Code(string(pred)) {
@@ -276,7 +286,7 @@ func cov3BranchHolds(h Host, c *Ctx, pred string, depth int) (holds, ok bool) {
 		}
 		return h.SpellsCastThisTurnMatching(you, "Card.CastSa Spell.Warp", TriggerContext{}) > 0, true
 	}
-	return false, false
+	return historyBranchHolds(c, g, pred)
 }
 
 // playerScalarProperty is one player's own numeric property for the
@@ -374,8 +384,20 @@ func evalCov3PlayerHead(h Host, c *Ctx, head, arg string, depth int) (int32, boo
 		// resolution's remembered objects (Deadly Cover-Up's survivor search).
 		players = cov3RememberedOwners(g, c)
 		sharedProps = true
+	case cov3PlayerGroupPlayerCountNonActive:
+		// Every living player but the active one, in seat order (Greener
+		// Pastures' and Rivalry's "each player other than the active player").
+		for _, p := range g.AliveFrom(0) {
+			if p != g.Active {
+				players = append(players, p)
+			}
+		}
+		sharedProps = true
 	case cov3PlayerGroupPlayerCountRememberedOwner, cov3PlayerGroupPlayerCountRememberedPlayer,
-		cov3PlayerGroupPlayerCountDefinedTriggeredPlay:
+		cov3PlayerGroupPlayerCountDefinedTriggeredPlay,
+		cov3PlayerGroupPlayerCountDefinedTriggeredSourceController,
+		cov3PlayerGroupPlayerCountDefinedTriggeredCardOwner,
+		cov3PlayerGroupPlayerCountDefinedTriggeredAttackedTargetAndYou:
 		players = playerPropGroupMembers(g, c, cov3PlayerGroupCodes.Code(string(group)))
 		sharedProps = true
 	case cov3PlayerGroupPlayerCountRegisteredOpponen:
@@ -750,7 +772,10 @@ func cov3SharedPlayerProps(h Host, c *Ctx, g *state.Game, players []state.Player
 		}
 		return n, true
 	}
-	return 0, false
+	// The Highest/Lowest extremes over the group (PlayerCountOther$HighestValid
+	// Creature.YouCtrl, PlayerCountNonActive$HighestValid Land.YouCtrl): the same
+	// reduction the opponents' group reads.
+	return playerCountExtreme(h, g, c, players, prop, arg)
 }
 
 // cov3RememberedOwners returns the distinct OWNERS of the resolution's
@@ -916,6 +941,18 @@ const (
 	evalCov3HeadTypesSharedWith
 	evalCov3HeadMostProminentCreatureType
 	evalCov3HeadCreaturesAttackedThisTurn
+	// The count_history_heads.go heads: every code from here on is answered by
+	// evalHistoryHead.
+	evalCov3HeadNumInAllHands
+	evalCov3HeadFinishedUpkeepsThisTurn
+	evalCov3HeadExactManaCostGraveyard
+	evalCov3HeadImprintedCardManaCost
+	evalCov3HeadAbilityYouCtrl
+	evalCov3HeadTotalValue
+	evalCov3HeadSecondMostProminentColor
+	evalCov3HeadLastStateGraveyard
+	evalCov3HeadLastStateGraveyardWithFallback
+	evalCov3HeadDevoured
 )
 
 var evalCov3HeadCodes = state.NewStrCodes(
@@ -933,6 +970,16 @@ var evalCov3HeadCodes = state.NewStrCodes(
 	state.StrEntry[evalCov3HeadCode]{Key: "TypesSharedWith", Val: evalCov3HeadTypesSharedWith},
 	state.StrEntry[evalCov3HeadCode]{Key: "MostProminentCreatureType", Val: evalCov3HeadMostProminentCreatureType},
 	state.StrEntry[evalCov3HeadCode]{Key: "CreaturesAttackedThisTurn", Val: evalCov3HeadCreaturesAttackedThisTurn},
+	state.StrEntry[evalCov3HeadCode]{Key: "NumInAllHands", Val: evalCov3HeadNumInAllHands},
+	state.StrEntry[evalCov3HeadCode]{Key: "FinishedUpkeepsThisTurn", Val: evalCov3HeadFinishedUpkeepsThisTurn},
+	state.StrEntry[evalCov3HeadCode]{Key: "ExactManaCostGraveyard", Val: evalCov3HeadExactManaCostGraveyard},
+	state.StrEntry[evalCov3HeadCode]{Key: "ImprintedCardManaCost", Val: evalCov3HeadImprintedCardManaCost},
+	state.StrEntry[evalCov3HeadCode]{Key: "AbilityYouCtrl", Val: evalCov3HeadAbilityYouCtrl},
+	state.StrEntry[evalCov3HeadCode]{Key: "TotalValue", Val: evalCov3HeadTotalValue},
+	state.StrEntry[evalCov3HeadCode]{Key: "SecondMostProminentColor", Val: evalCov3HeadSecondMostProminentColor},
+	state.StrEntry[evalCov3HeadCode]{Key: "LastStateGraveyard", Val: evalCov3HeadLastStateGraveyard},
+	state.StrEntry[evalCov3HeadCode]{Key: "LastStateGraveyardWithFallback", Val: evalCov3HeadLastStateGraveyardWithFallback},
+	state.StrEntry[evalCov3HeadCode]{Key: "Devoured", Val: evalCov3HeadDevoured},
 )
 
 type cov3BranchHoldsCode uint16
@@ -949,6 +996,10 @@ const (
 	cov3BranchHoldsFreerunning
 	cov3BranchHoldsMadness
 	cov3BranchHoldsInitiative
+	cov3BranchHoldsNight
+	cov3BranchHoldsMaxSpeed
+	cov3BranchHoldsEscaped
+	cov3BranchHoldsWasCastFromYourLibrary
 )
 
 var cov3BranchHoldsCodes = state.NewStrCodes(
@@ -963,6 +1014,10 @@ var cov3BranchHoldsCodes = state.NewStrCodes(
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Freerunning", Val: cov3BranchHoldsFreerunning},
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Madness", Val: cov3BranchHoldsMadness},
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Initiative", Val: cov3BranchHoldsInitiative},
+	state.StrEntry[cov3BranchHoldsCode]{Key: "Night", Val: cov3BranchHoldsNight},
+	state.StrEntry[cov3BranchHoldsCode]{Key: "MaxSpeed", Val: cov3BranchHoldsMaxSpeed},
+	state.StrEntry[cov3BranchHoldsCode]{Key: "Escaped", Val: cov3BranchHoldsEscaped},
+	state.StrEntry[cov3BranchHoldsCode]{Key: "wasCastFromYourLibrary", Val: cov3BranchHoldsWasCastFromYourLibrary},
 )
 
 type playerScalarPropertyCode uint16
@@ -998,6 +1053,12 @@ const (
 	cov3PlayerGroupPlayerCountRememberedOwner
 	cov3PlayerGroupPlayerCountRememberedPlayer
 	cov3PlayerGroupPlayerCountDefinedTriggeredPlay
+	// The count_history_heads.go groups: every living player but the active
+	// one, and the trigger-defined members PlayerCountDefined<Ref>$ names.
+	cov3PlayerGroupPlayerCountNonActive
+	cov3PlayerGroupPlayerCountDefinedTriggeredSourceController
+	cov3PlayerGroupPlayerCountDefinedTriggeredCardOwner
+	cov3PlayerGroupPlayerCountDefinedTriggeredAttackedTargetAndYou
 )
 
 var cov3PlayerGroupCodes = state.NewStrCodes(
@@ -1013,6 +1074,10 @@ var cov3PlayerGroupCodes = state.NewStrCodes(
 	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountRememberedOwner", Val: cov3PlayerGroupPlayerCountRememberedOwner},
 	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountRememberedPlayer", Val: cov3PlayerGroupPlayerCountRememberedPlayer},
 	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountDefinedTriggeredPlayer", Val: cov3PlayerGroupPlayerCountDefinedTriggeredPlay},
+	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountNonActive", Val: cov3PlayerGroupPlayerCountNonActive},
+	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountDefinedTriggeredSourceController", Val: cov3PlayerGroupPlayerCountDefinedTriggeredSourceController},
+	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountDefinedTriggeredCardOwner", Val: cov3PlayerGroupPlayerCountDefinedTriggeredCardOwner},
+	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountDefinedTriggeredAttackedTargetAndYou", Val: cov3PlayerGroupPlayerCountDefinedTriggeredAttackedTargetAndYou},
 )
 
 type cov3PlayerPropCode uint16

@@ -462,6 +462,11 @@ const (
 	evalCountBodyCostBloodthirstAmount
 	evalCountBodyCostSingleMaxDamageThisTurn
 	evalCountBodyCostNumCombatDamageThisTurn
+	// The damage-ledger sums: Count$DamageThisTurn <source> <recipient> (every
+	// hit, combat or not) and Count$TotalDamageThisTurn <source> (the damage
+	// dealt to the host card itself).
+	evalCountBodyCostDamageThisTurn
+	evalCountBodyCostTotalDamageThisTurn
 )
 
 var evalCountBodyCostCodes = state.NewStrCodes(
@@ -491,6 +496,8 @@ var evalCountBodyCostCodes = state.NewStrCodes(
 	state.StrEntry[evalCountBodyCostCode]{Key: "BloodthirstAmount", Val: evalCountBodyCostBloodthirstAmount},
 	state.StrEntry[evalCountBodyCostCode]{Key: "SingleMaxDamageThisTurn", Val: evalCountBodyCostSingleMaxDamageThisTurn},
 	state.StrEntry[evalCountBodyCostCode]{Key: "NumCombatDamageThisTurn", Val: evalCountBodyCostNumCombatDamageThisTurn},
+	state.StrEntry[evalCountBodyCostCode]{Key: "DamageThisTurn", Val: evalCountBodyCostDamageThisTurn},
+	state.StrEntry[evalCountBodyCostCode]{Key: "TotalDamageThisTurn", Val: evalCountBodyCostTotalDamageThisTurn},
 )
 
 // isDamageHistoryCode reports whether a count head is one of the per-turn
@@ -498,7 +505,8 @@ var evalCountBodyCostCodes = state.NewStrCodes(
 func isDamageHistoryCode(code evalCountBodyCostCode) bool {
 	switch code {
 	case evalCountBodyCostMaxCombatDamageThisTurn, evalCountBodyCostNumDamageThisTurn,
-		evalCountBodyCostNonCombatDamageThisTurn, evalCountBodyCostNumCombatDamageThisTurn:
+		evalCountBodyCostNonCombatDamageThisTurn, evalCountBodyCostNumCombatDamageThisTurn,
+		evalCountBodyCostDamageThisTurn, evalCountBodyCostTotalDamageThisTurn:
 		return true
 	}
 	return false

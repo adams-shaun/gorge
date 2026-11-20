@@ -21,6 +21,10 @@ func evalDamageHistory(h Host, c *Ctx, g *state.Game, head, arg string) (int32, 
 	sourceSpec, recipientSpec := fields[0], "Any"
 	if len(fields) > 1 {
 		recipientSpec = fields[1]
+	} else if code == evalCountBodyCostTotalDamageThisTurn {
+		// TotalDamageThisTurn names only the damaging sources: the recipient
+		// is the host card itself (Blazing Effigy's "dealt to CARDNAME").
+		recipientSpec = "Card.Self"
 	}
 	var total int32
 	for i := range g.Objs {
