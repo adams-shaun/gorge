@@ -83,26 +83,7 @@ func (e *Engine) resPayNeedsMana(player state.PlayerID, source state.ObjID, amou
 	// desc's side: a triggered or upkeep cost is neither a spell cast nor an
 	// activation, so no ValidSA$ ManaConvert widens it (CR 609.4b).
 	return sources && pay.CostPayablePool(asPayer(e), player, source, desc.SAKind(), amount,
-		e.potentialManaFor(player, &desc), pay.AvailableFor(asPayer(e), player, desc).Typed) &&
-		!e.resPayProvenShort(player, source, amount, class)
-}
-
-// resPayProvenShort reports whether the payment planner PROVES amount's mana
-// unfundable from the pool and every untapped source (pay.ReasonInsufficient).
-// The potential pool resPayNeedsMana reads is an over-bound -- an any-colour
-// source prices unbounded in every colour -- so a cost it clears can still be
-// out of reach (a lone Eldrazi Spawn tapped for any colour and then sacrificed
-// is two mana, not {2}{G}); offering "pay" there can only fail at the charge
-// (CR 601.2h). An unsupported or unplanned shape is not a proof.
-func (e *Engine) resPayProvenShort(player state.PlayerID, source state.ObjID, amount Cost, class paymentClass) bool {
-	planned := amount
-	planned.Life = 0
-	if pay.PlanCostDetail(planned) != "" {
-		return false
-	}
-	desc := paymentDescriptor{ID: source, Class: class, Cost: &amount}
-	got := pay.PlanPaymentCost(asPayer(e), player, decision.PlannedCast{Object: source, Origin: "resolution"}, planned, &desc)
-	return got.Plan == nil && got.Reason == pay.ReasonInsufficient
+		e.potentialManaFor(player, &desc), pay.AvailableFor(asPayer(e), player, desc).Typed)
 }
 
 // resPayPlan is the planner's witness for amount's mana from the current
