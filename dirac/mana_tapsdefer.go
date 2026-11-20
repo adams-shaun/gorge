@@ -273,7 +273,7 @@ func (s *State) availLeavesOut(k *prep, sl Slot) bool {
 		return false
 	}
 	p := s.perms[sl].ctrl
-	return s.scriptTapsDefer(k, p).has(sl) && s.planDeferred(k, p, sl)
+	return s.scriptTapsDefer(k, p).has(sl) && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl)
 }
 
 // deferSelfTapped is the slot an activated play's cost taps on its own
@@ -406,7 +406,10 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			// remains, which landSetGap below reads.
 			continue
 		}
-		pc := s.manaPCGen(k, sl)
+		// a rider source whose view is the granted types' intrinsic unit
+		// (blgView) qualifies here on its card's own facts: the gap is its
+		// deferred rider, not the intrinsic unit (blgGapPC)
+		pc := s.blgGapPC(k, sl)
 		if pc.manaAb < 0 || !pc.manaTap || !tapsDeferColour(kop.ColorMask(s.srcMaskAt(pc, sl))) ||
 			pc.manaFixedChosen || pc.manaOne || !tapsDeferYield(pc, s.srcMaskAt(pc, sl)) {
 			continue
@@ -638,7 +641,7 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 		av.addUnits(uint8(a.ManaColors), n)
 		return
 	}
-	pc := s.manaPCGen(k, sl)
+	pc := s.blgGapPC(k, sl) // an intrinsic-unit rider source's gap unit is its rider's (blgGapPC)
 	if s.splitDeferred(k, sl) {
 		pc = s.splitCensusPC(k, sl) // the root's production plus the arm's while its gate holds (mana_condsplit.go)
 		if av.pipWin {
@@ -701,7 +704,7 @@ func (s *State) deferGapAnswers(k *prep, sl Slot) uint8 {
 		}
 		return n
 	}
-	pc := s.manaPCGen(k, sl)
+	pc := s.blgGapPC(k, sl) // an intrinsic-unit rider source's answers are its rider's colours (blgGapPC)
 	mask := s.srcMaskAt(pc, sl)
 	n := uint8(bits.OnesCount8(mask))
 	if _, ok := tapsDeferPainCol(k, pc, mask); ok && int(s.pl[SeatIx(s.perms[sl].ctrl)].life) >= int(pc.painN) {
@@ -798,7 +801,7 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 		}
 		return
 	}
-	pc := s.manaPCGen(k, sl)
+	pc := s.blgGapPC(k, sl)     // an intrinsic-unit rider source floats its rider's mana (blgGapPC)
 	mask := s.srcMaskAt(pc, sl) // a Combo Chosen source (Cliffgate) reads its chosen colour beside the printed one
 	if pcol, ok := tapsDeferPainCol(k, pc, mask); ok && c == bits.OnesCount8(mask) {
 		// the paid-life ability's answer: its colour and its life (painDamage reads painLife)
