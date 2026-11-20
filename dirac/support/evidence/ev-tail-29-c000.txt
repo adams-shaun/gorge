@@ -124,6 +124,7 @@ Heated Debate
 Hieromancer's Cage
 High Ground
 Hindering Touch
+Horses of the Bruinen
 Howling Banshee
 Icatian Scout
 Ideas Unbound
@@ -186,6 +187,7 @@ Octomancer
 Odric's Outrider
 Omnispell Adept
 Oppressive Will
+Order of Sacred Dusk
 Ornamental Courage
 Pendrell Mists
 Penregon Strongbull
@@ -195,6 +197,7 @@ Plague Sliver
 Plains
 Plow Through Reito
 Polyraptor
+Portal Mage
 Press into Service
 Prickly Marmoset
 Priest of Titania

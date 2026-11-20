@@ -179,6 +179,7 @@ Luminarch Aspirant
 Lurking Deadeye
 Luxa River Shrine
 MJ, Rising Star
+Macetail Hystrodon
 Magmatic Scorchwing
 Malefic Scythe
 Mardu Hordechief
@@ -194,6 +195,7 @@ Mind Warp
 Mindstab
 Minotaur Abomination
 Mobilization
+Molten Firebird
 Mona Lisa, Ever Adaptable
 Morbid Hunger
 Mountain

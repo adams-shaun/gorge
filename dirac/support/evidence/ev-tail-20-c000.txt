@@ -124,6 +124,7 @@ Femeref Healer
 Field of Reality
 Fire Nation's Conquest
 Flay
+Flummoxed Cyclops
 Folk Medicine
 Forest
 Frenzied Fugue
@@ -383,6 +384,7 @@ Thraxodemon
 Time of Need
 Tishana, Voice of Thunder
 Titania's Chosen
+Train of Thought
 Tramway Station
 Transmogrifying Licid
 Traproot Kami
