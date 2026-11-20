@@ -34,6 +34,10 @@ flowchart LR
 
     Which searches run where, and the net runtime.
 
+-   [**Play dirac from Go**](lab.md)
+
+    Games, forks, policies and batches in a few lines.
+
 -   [**Training data and nets**](training-data.md)
 
     Record games, load a trained net.

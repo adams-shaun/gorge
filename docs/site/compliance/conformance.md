@@ -35,11 +35,11 @@ The engine is a pure function of its config and intents, so a game's event log
 hashes to a chain head. Golden heads pin those.
 
 - `TestHeads`: deterministic bot games over the Legacy repo decks at 2, 4, 6 and
-  8 seats, goldens in `engine/rules/testdata/heads/`.
+  8 seats, plus one four-seat Commander game; goldens in `engine/rules/testdata/heads/`.
 - `TestSetHeads`: small two-seat games over decks from the Standard sets, chosen to
   play mechanics the first family leaves unplayed. Games and goldens are under
   `engine/rules/testdata/setheads/`.
-- `make sim` plays verified four-seat games and replays each.
+- `make sim` plays 20 verified four-seat games (`mtgsim -seats 4 -games 20 -verify`) and replays each.
 
 A changed head means a change altered what happens. If intended, re-pin with the
 environment variable named in the test and say in the commit message which event
@@ -90,10 +90,15 @@ failing test skeleton. See
 
 ## What runs where
 
-1. **While you work:** focused tests with `-run`, capped, with the corpus linked.
-2. **Before a PR:** `TestHeads`, `make sim`, and the guards for the files you touched.
-3. **After merge and in CI:** the full suite, with the per-test budget (4 GB, 4 vCPU, 1 minute).
-4. **Nightly in gorge-compliance:** verdict, ratchet and drift reports.
+1. **While you work:** `make test-one` and `make test-targeted`, capped, with the corpus linked.
+2. **Before a PR:** `make test-smart`, `make sim`, and `TestHeads`.
+3. **On the PR:** `fast` (the diff's packages and their test importers, `-short`) and `lint`.
+4. **On each merge-queue batch:** the full suite in six shards, `examples`, `wire-matrix` and
+   `dirac-slices` (`.github/workflows/ci.yml`). The whole `dirac/oracle` runs on `main` about
+   every 6 hours (`.github/workflows/oracle.yml`), never on a PR or batch.
+5. **Nightly:** `ci.yml`'s scheduled run (`-count=1`, wire tests, byte-for-byte support-page check),
+   and gorge-compliance's verdict, ratchet and drift reports.
 
-Never run `go test ./...` as an inner loop. Missing `.cards` makes corpus tests
-skip and the package still prints `ok`, so check with `-v`.
+Every test fits the per-test budget (4 GB, 4 vCPU, 1 minute;
+[Testing](../contributing/testing.md#the-per-test-budget)). A missing `.cards` shows up as `ENV`
+from the make targets, never as green.
