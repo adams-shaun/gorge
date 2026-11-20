@@ -11,7 +11,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | BIG | 30 | 26 | 0 | 2 | 24 | 24 |
 | BLB | 278 | 261 | 1 | 0 | 260 | 260 |
 | DFT | 276 | 255 | 0 | 0 | 255 | 255 |
-| DSK | 276 | 255 | 2 | 4 | 249 | 249 |
+| DSK | 276 | 256 | 2 | 4 | 250 | 250 |
 | ECL | 273 | 247 | 0 | 1 | 246 | 246 |
 | EOE | 266 | 251 | 0 | 0 | 251 | 251 |
 | FDN | 517 | 517 | 0 | 0 | 517 | 516 |
@@ -27,11 +27,11 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TDM | 276 | 259 | 1 | 0 | 258 | 258 |
 | TLA | 285 | 261 | 1 | 0 | 260 | 260 |
 | TMT | 194 | 184 | 0 | 0 | 184 | 184 |
-| TRC | 337 | 301 | 0 | 29 | 272 | 272 |
+| TRC | 337 | 302 | 0 | 30 | 272 | 272 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 310 |
 | WOE | 281 | 265 | 0 | 4 | 261 | 261 |
 | MBC | 2210 | 1979 | 4 | 26 | 1949 | 1947 |
-| ALL | 34480 | 25491 | 23 | 428 | 25040 | 25035 |
+| ALL | 34480 | 25493 | 23 | 429 | 25041 | 25036 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 

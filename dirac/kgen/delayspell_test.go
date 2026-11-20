@@ -22,7 +22,10 @@ func TestDelayspellRefusals(t *testing.T) {
 			"Flamehold Grappler", "Loki Laufeyson", "Mistrise Village", "Theorist's Proxy",
 			"Way of the Cryomancer"},
 		map[string]string{
-			"Narset Transcendent":  "delayed SpellCast without ThisTurn$",
+			// upstream gave Narset's delayed trigger ThisTurn$; its
+			// from-your-hand filter now refuses it instead
+			"Narset Transcendent":  "a cast-provenance word outside a SpellCast ValidCard$",
+			"Bloodrage Alpha":      "delayed SpellCast without ThisTurn$",
 			"Storm King's Thunder": `delayed SpellCast body reads "X"`,
 			"Sea Gate Stormcaller": `delayed SpellCast body reads "X"`,
 		},

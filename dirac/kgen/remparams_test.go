@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // kremparamsAccepted are the carriers that lower and
@@ -113,8 +115,11 @@ func TestRemparamsLowering(t *testing.T) {
 		{"Mirkwood Nurturer", kop.OpBounce, func(in kop.Instr) bool { return in.C == kop.MvRemember }, "MvRemember"},
 		{"Wanderwine Farewell", kop.OpBounce, func(in kop.Instr) bool { return in.C == kop.MvRemember }, "MvRemember"},
 		{"Bob, Reluctant HYDRA Agent", kop.OpBounce, func(in kop.Instr) bool { return in.C == kop.MvRemember }, "MvRemember"},
-		{"Boomerang Basics", kop.OpBounce, func(in kop.Instr) bool { return in.C == kop.MvRemember|kop.MvLKI }, "MvRemember|MvLKI"},
-		{"Unyielding Gatekeeper", kop.OpCreateToken, func(in kop.Instr) bool { return in.Obj == kop.RefRememberedController }, "Obj RefRememberedController"},
+		// Boomerang Basics carried the bounce's RememberLKI$ until upstream
+		// Forge read its condition off Targeted; Nurturing Pixie still does
+		{"Nurturing Pixie", kop.OpBounce, func(in kop.Instr) bool { return in.C == kop.MvRemember|kop.MvLKI }, "MvRemember|MvLKI"},
+		// upstream's TokenOwner$ TargetedController (was RememberedController)
+		{"Unyielding Gatekeeper", kop.OpCreateToken, func(in kop.Instr) bool { return in.Obj == kop.RefTargetController }, "Obj RefTargetController"},
 		{"Stiltzkin, Moogle Merchant", kop.OpGainControl, func(in kop.Instr) bool { return in.B.N&kop.GcRemember != 0 }, "GcRemember"},
 		{"The Black Arrow", kop.OpDealDamageEx, func(in kop.Instr) bool { return in.C&kop.DmgRemember != 0 }, "DmgRemember"},
 		{"Neutralize the Guards", kop.OpPumpAll, func(in kop.Instr) bool { return in.Obj == kop.RefTarget0 }, "Obj RefTarget0 (the player target slot)"},
@@ -129,4 +134,51 @@ func TestRemparamsLowering(t *testing.T) {
 			t.Errorf("%s: %s %+v, want %s", c.card, c.op, in, c.want)
 		}
 	}
+}
+
+// TestRememberedControllerTokenOwner: a token made for the controller of the
+// card a RememberLKI$ exile moved builds over kop.RefRememberedController.
+// Unyielding Gatekeeper carried the shape until upstream Forge respelled it
+// TargetedController (TestRemparamsLowering), and no lowered corpus card
+// carries it now, so a synthetic probe keeps it covered.
+func TestRememberedControllerTokenOwner(t *testing.T) {
+	const probe = `Name:Remembered Owner Probe
+ManaCost:1 W
+Types:Creature Human
+PT:2/2
+T:Mode$ ChangesZone | Destination$ Battlefield | Origin$ Any | ValidCard$ Card.Self | Execute$ PrbAway | TriggerDescription$ probe enters
+SVar:PrbAway:DB$ ChangeZone | ValidTgts$ Permanent.nonLand+Other | Origin$ Battlefield | Destination$ Exile | RememberLKI$ True | IsCurse$ True | TgtPrompt$ probe target | SubAbility$ PrbMake
+SVar:PrbMake:DB$ Token | TokenScript$ wu_2_2_detective | TokenOwner$ RememberedController | SubAbility$ PrbClear
+SVar:PrbClear:DB$ Cleanup | ClearRemembered$ True
+`
+	card, diags := cards.ParseBytes("probe.txt", []byte(probe))
+	if card == nil || len(diags) != 0 {
+		t.Fatalf("parse: %v", diags)
+	}
+	if d := card.Link(); len(d) != 0 {
+		t.Fatalf("link: %v", d)
+	}
+	const name = "Remembered Owner Probe"
+	p := &pool{names: []string{name}, byName: map[string]*cards.Card{name: card}, nDecks: map[string]int{}, reg: testutil.CorpusRegistry(t)}
+	all, bs, _, err := buildPool(lowerPool(p))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, c := range all {
+		if c.Name != name {
+			continue
+		}
+		if r := lowerRefusals(c); len(r) > 0 {
+			t.Fatalf("probe refused: %v", r)
+		}
+		for _, a := range bs[i].def.Abilities {
+			for _, in := range a.Prog {
+				if in.Op == kop.OpCreateToken && in.Obj == kop.RefRememberedController {
+					return
+				}
+			}
+		}
+		t.Fatal("probe: no CreateToken over RefRememberedController")
+	}
+	t.Fatal("probe not lowered")
 }

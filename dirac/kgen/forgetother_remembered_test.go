@@ -22,7 +22,7 @@ A:AB$ ChangeZone | Cost$ 1 | Origin$ Hand | Destination$ Exile | ChangeType$ Car
 	}
 
 	cardsDir := ratchetCards(t)
-	p, err := loadCardNames([]string{"Cultivator Colossus", "Primal Surge", "Tidehollow Sculler"}, cardsDir)
+	p, err := loadCardNames([]string{"Cultivator Colossus", "Primal Surge"}, cardsDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ A:AB$ ChangeZone | Cost$ 1 | Origin$ Hand | Destination$ Exile | ChangeType$ Car
 	for i, c := range all {
 		byName[c.Name] = i
 	}
-	for _, n := range []string{"Cultivator Colossus", "Primal Surge", "Tidehollow Sculler"} {
+	for _, n := range []string{"Cultivator Colossus", "Primal Surge"} {
 		if _, ok := byName[n]; !ok {
 			t.Errorf("%s: not lowered", n)
 		}
@@ -48,7 +48,6 @@ A:AB$ ChangeZone | Cost$ 1 | Origin$ Hand | Destination$ Exile | ChangeType$ Car
 		dest kop.Zone
 	}{
 		{"Cultivator Colossus", kop.ZoneBattlefield},
-		{"Tidehollow Sculler", kop.ZoneExile},
 	} {
 		i, ok := byName[c.card]
 		if !ok {
@@ -68,6 +67,38 @@ A:AB$ ChangeZone | Cost$ 1 | Origin$ Hand | Destination$ Exile | ChangeType$ Car
 		}
 		if !found {
 			t.Errorf("%s: no built OpChooseMove from the hand to %v with SrForgetOther", c.card, c.dest)
+		}
+	}
+
+	// A hand move into exile: Tidehollow Sculler carried it until upstream
+	// Forge rewrote its return to Defined$ ExiledWith, so a synthetic probe
+	// keeps the shape.
+	const hand = `Name:Hand Exile Probe
+ManaCost:W B
+Types:Creature Zombie
+PT:2/2
+T:Mode$ ChangesZone | Destination$ Battlefield | Origin$ Any | ValidCard$ Card.Self | Execute$ PrbTake | TriggerDescription$ probe enters
+SVar:PrbTake:DB$ ChangeZone | ValidTgts$ Opponent | DefinedPlayer$ Targeted | Origin$ Hand | Destination$ Exile | Chooser$ You | ChangeType$ Card.nonLand | ChangeNum$ 1 | Mandatory$ True | IsCurse$ True | ForgetOtherRemembered$ True | RememberChanged$ True
+T:Mode$ ChangesZone | Destination$ Any | Origin$ Battlefield | ValidCard$ Card.Self | Execute$ PrbGive | TriggerDescription$ probe leaves
+SVar:PrbGive:DB$ ChangeZone | Destination$ Hand | Origin$ Exile | Defined$ Remembered | SubAbility$ PrbClear
+SVar:PrbClear:DB$ Cleanup | ClearRemembered$ True
+`
+	hc := lowerScriptCard(t, "Hand Exile Probe", hand)
+	if r := lowerRefusals(hc); len(r) > 0 {
+		t.Errorf("Hand Exile Probe: refused: %v", r)
+	} else if _, hb, _, err := buildPool(&lowered{cards: []*lCard{hc}}); err != nil {
+		t.Errorf("Hand Exile Probe: build: %v", err)
+	} else {
+		found := false
+		for _, a := range hb[0].def.Abilities {
+			for _, in := range a.Prog {
+				if in.Op == kop.OpChooseMove && kop.Zone(in.C&7) == kop.ZoneExile && in.C>>3&kop.SrForgetOther != 0 {
+					found = true
+				}
+			}
+		}
+		if !found {
+			t.Errorf("Hand Exile Probe: no built OpChooseMove from the hand to %v with SrForgetOther", kop.ZoneExile)
 		}
 	}
 
