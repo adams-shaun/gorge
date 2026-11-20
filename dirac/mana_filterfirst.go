@@ -229,10 +229,13 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 
 // windowFiltFirstUsable: the live payment window lists the first-only filter at
 // sl: it is usable and the floating mana pays its fee (gorge's window abilities,
-// manaAbilityPayablePool). It is still no unit of the census above.
+// manaAbilityPayablePool). It is still no unit of the census above. A filter
+// whose dynamic amount resolves to nothing is not listed: gorge's
+// windowSourceYields drops a source that adds no mana (payment_window_yield.go).
 func (s *State) windowFiltFirstUsable(k *prep, p uint8, sl Slot) bool {
 	c := s.cardAt(sl)
-	return k.gen.has(c, gfFilt) && s.filtFirstOnly(k, sl) && s.filtUsable(k, sl) && s.filtPaid(k, p, sl)
+	return k.gen.has(c, gfFilt) && s.filtFirstOnly(k, sl) && s.filtUsable(k, sl) && s.filtPaid(k, p, sl) &&
+		!s.dynManaYieldsNothing(k, s.filtAb(k, sl), sl) // a dynamic amount at zero makes nothing, so the window never lists it (Cabal Coffers with no Swamp, CR 605.1a)
 }
 
 // windowFiltFirst activates that filter in the window, for the first colour it
