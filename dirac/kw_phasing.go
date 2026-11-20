@@ -184,6 +184,9 @@ func (s *State) phaseOut(k *prep, sl Slot, indirect bool) {
 		z = kop.ZonePhasedInd
 	}
 	s.objs[o].zone = z
+	if k.gen != nil && k.gen.anyWhileHost {
+		s.ovAsLongAsControlDrop(k, o) // gorge expireAsLongAsControl: a phase-out is for good
+	}
 	for m := s.occ; m.any(); m = m.rest() {
 		if q := m.first(); s.occ.has(q) && s.perms[q].attached == sl {
 			s.phaseOut(k, q, true)

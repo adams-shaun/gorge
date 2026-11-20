@@ -2291,6 +2291,42 @@ func (lc *lowerCtx) pumpPermanentKwGrant(kw string, obj lRef) error {
 	return nil
 }
 
+// pumpKwDuration lowers the Duration$ keyword grants pumpBody has no earlier
+// arm for: Permanent (any object), AsLongAsControl (an object the host
+// controls). noKw says the pump is not a battlefield keyword-only grant;
+// that, and any other duration, refuses.
+func (lc *lowerCtx) pumpKwDuration(d, kw string, obj lRef, noKw bool) error {
+	switch {
+	case noKw:
+	case d == "Permanent":
+		return lc.pumpPermanentKwGrant(kw, obj)
+	case d == "AsLongAsControl" && lc.pumpObjectRef(obj):
+		return lc.pumpAsLongAsControl(kw, obj)
+	}
+	return refuse("Pump Duration %q", d)
+}
+
+// pumpAsLongAsControl lowers a battlefield object's Pump Duration$
+// AsLongAsControl keyword grant: one host-anchored override record
+// (WhileHost + AsLongAsControl) that gorge starts only while the activator
+// controls the host and ends at the host's control change or phase-out. The
+// can't-attack-or-block sentence is CantAttack beside AddKw CantBlock, so both
+// halves ride the one record.
+func (lc *lowerCtx) pumpAsLongAsControl(kw string, obj lRef) error {
+	o := &lOverride{WhileHost: true, AsLongAsControl: true}
+	rest, both := splitKWSentence(kw, cantAttackOrBlockKW)
+	rest, atk := splitKWSentence(rest, cantAttackKW)
+	o.CantAttack = both || atk
+	if err := lc.protKwInto(o, rest); err != nil {
+		return err
+	}
+	if both {
+		o.AddKw = append(o.AddKw, "CantBlock")
+	}
+	lc.emitOverride(obj, o, "WhileHost")
+	return nil
+}
+
 // pumpNextTurnObject lowers a battlefield object's Pump Duration$
 // UntilYourNextTurn: a keyword grant is the ovNT override record (gorge's
 // durationTiming UntilTurn boundary, CR 611.2b; The Undercity's Throne), a
@@ -2373,10 +2409,7 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		if done, err := lc.pumpTimedObject(ps, obj, zone, d, na, nd, kw, hasKW); done {
 			return err // lower_pumpendcombat.go
 		}
-		if d != "Permanent" || na || nd || !hasKW || zone != zBattlefield {
-			return refuse("Pump Duration %q", d)
-		}
-		return lc.pumpPermanentKwGrant(kw, obj)
+		return lc.pumpKwDuration(d, kw, obj, na || nd || !hasKW || zone != zBattlefield)
 	}
 	att, def := lValue{}, lValue{}
 	if a, ok := ps.get("NumAtt"); ok {
