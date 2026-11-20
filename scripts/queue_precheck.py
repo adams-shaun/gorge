@@ -216,7 +216,9 @@ def plan(files, census_pkgs):
     code = any(f.startswith("dirac/") and f.endswith(".go") and not f.endswith("_test.go")
                and not f.startswith("dirac/kgen/") for f in files)
     replays = code or any(f.startswith("dirac/oracle/testdata/repro/") for f in files)
-    return pk, kgen, replays, code
+    # The State bar also follows kgen's output: lowering more cards into a pool grows its cold arrays without any
+    # dirac/*.go change. So it runs whenever kgen does (dirac/, engine/, tablesrc.go); it takes about a second.
+    return pk, kgen, replays, kgen
 
 
 def census_packages(path):

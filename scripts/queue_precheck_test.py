@@ -106,8 +106,10 @@ def test_generated_files_run_dirac_freshness_pins():
 def test_dirac_code_runs_the_state_bar():
     # 11-20 batch #2874: tail-18 at 45184 B against the 45056 bar, summed over the batch's PRs (register cause 96).
     assert qp.plan(["dirac/coldstore.go"], [])[3]
-    assert not qp.plan(["dirac/oracle/testdata/repro/x.repro.json"], [])[3]
-    assert not qp.plan(["dirac/kgen/lower.go", "dirac/state_test.go"], [])[3]
+    assert qp.plan(["dirac/kgen/lower.go"], [])[3]  # kgen's lowering sizes the pools' cold arrays
+    assert qp.plan(["dirac/support/refused"], [])[3]  # so does the supported set
+    assert qp.plan(["engine/effects/a.go"], [])[3]
+    assert not qp.plan(["server/gorged/main.go", "bots/x.go"], [])[3]
     import re
     for n in ("TestEveryPoolFitsTheStateBar", "TestStateSize", "TestColdArraysHoldNoPointers"):
         assert re.match(qp.STATE_BAR, n)
