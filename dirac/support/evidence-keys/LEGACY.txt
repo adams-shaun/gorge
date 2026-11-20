@@ -168,7 +168,6 @@ Ancient Den
 Ancient Gold Dragon
 Ancient Greenwarden
 Ancient Ooze
-Ancient Runes
 Ancient Silverback
 Ancient Spider
 Andúril, Narsil Reforged
@@ -412,7 +411,6 @@ Baron Bertram Graywater
 Barony Vampire
 Barrage Tyrant
 Barrage of Expendables
-Barrel Down Sokenzan
 Barrensteppe Siege
 Barrenton Medic
 Barret, Avalanche Leader
@@ -584,7 +582,6 @@ Bloodhusk Ritualist
 Bloodline Keeper
 Bloodline Recollector
 Bloodline Shaman
-Bloodscale Prowler
 Bloodshot Trainee
 Bloodstone Goblin
 Bloombrute
@@ -686,7 +683,6 @@ Brightspear Zealot
 Brilliance Unleashed
 Brilliant Restoration
 Brimaz, Blight of Oreskos
-Brimstone Dragon
 Brimstone Mage
 Brimstone Roundup
 Brimstone Trebuchet
@@ -843,7 +839,6 @@ Cetacean Ops
 Ceti Eel
 Chain Devil
 Chain Reaction
-Chakram Slinger
 Chameleon Blur
 Champion of Dusan
 Champion of the Path
@@ -870,7 +865,6 @@ Charmed Sleep
 Charming Scoundrel
 Charnelhoard Wurm
 Chase Inspiration
-Chasm Drake
 Checkpoint Officer
 Cheeky House-Mouse
 Cheerful Osteomancer
@@ -898,7 +892,6 @@ Chromanticore
 Chrome Companion
 Chrome Dome
 Chrome Host Seedshark
-Chrome Mox
 Chrome Prowler
 Chrome Steed
 Chromium, the Mutable
@@ -1015,7 +1008,6 @@ Cool but Rude
 Cooped Up
 Coordinated Maneuver
 Copper Longlegs
-Copper Tablet
 Copper-Leaf Angel
 Copy Catchers
 Coral Atoll
@@ -1046,7 +1038,6 @@ Courser of Kruphix
 Court Archers
 Court of Ire
 Covenant of Blood
-Coveted Falcon
 Cowabunga!
 Cracked Earth Technique
 Cradle of Vitality
@@ -1126,7 +1117,6 @@ Curzon Dax, Bound by Blood
 Cut In
 Cut Propulsion
 Cut the Earthly Bond
-Cutthroat Negotiator
 Cutthroat il-Dal
 Cyclone Summoner
 Cyclopean Mummy
@@ -1275,7 +1265,6 @@ Desperate Bloodseeker
 Desperate Farmer
 Desperate Futurescribe
 Desperate Plea
-Despondent Killbot
 Destructive Flow
 Destructive Force
 Destructive Revelry
@@ -1383,7 +1372,6 @@ Drafna, Founder of Lat-Nam
 Drag Under
 Drag the Canal
 Drag to the Roots
-Dragon Hatchling
 Dragon Mantle
 Dragon Roost
 Dragon Tyrant
@@ -1609,7 +1597,6 @@ Energy Tap
 Enforcer Griffin
 Engine Rat
 Engineered Plague
-Enigma Eidolon
 Enlightened Confidant
 Ennis, Debate Moderator
 Enormous Baloth
@@ -1873,7 +1860,6 @@ Flourishing Defenses
 Flow State
 Flowerfoot Swordmaster
 Flowering Field
-Flowstone Crusher
 Flowstone Salamander
 Flubs, the Fool
 Flurry of Wings
@@ -1928,7 +1914,6 @@ Fractal Mascot
 Fractal Tender
 Fractalize
 Frantic Firebolt
-Frantic Inventory
 Frantic Search
 Free Borg Revolutionaries
 Freestrider Commando
@@ -2152,7 +2137,6 @@ Goblin Chirurgeon
 Goblin Cohort
 Goblin Dynamo
 Goblin Fire Fiend
-Goblin Firebug
 Goblin Fireslinger
 Goblin Gardener
 Goblin Glasswright
@@ -2499,7 +2483,6 @@ Hullcarver
 Hulldrifter
 Humble Naturalist
 Humbling Elder
-Humpback Whales
 Hundred-Battle Veteran
 Hungering Puppetbeast
 Hungry Graffalon
@@ -2985,7 +2968,6 @@ Lasting Tarfire
 Lasyd Prowler
 Late to Dinner
 Laughing Jasper Flint
-Lava Axe
 Lava Dart
 Lava Zombie
 Lavaborn Muse
@@ -3240,7 +3222,6 @@ Marisi's Twinclaws
 Marketback Walker
 Marketwatch Phantom
 Markov Dreadknight
-Markov Enforcer
 Markov Warlord
 Marneus Calgar
 Maro
@@ -3331,7 +3312,6 @@ Meticulous Archive
 Meticulous Artisan
 Meticulous Commons
 Metropolis Reformer
-Miasma Demon
 Mica, Reader of Ruins
 Michelangelo's Technique
 Michelangelo, Game Master
@@ -3791,7 +3771,6 @@ Palladia-Mors
 Palladia-Mors, the Ruiner
 Panther Warriors
 Pantlaza, Sun-Favored
-Paradise Mantle
 Paradox Gardens
 Paradox Shaper
 Paradox Surveyor
@@ -3940,7 +3919,6 @@ Pompous Gadabout
 Pond Prophet
 Ponder
 Port Town
-Portal to Phyrexia
 Portcullis Vine
 Possibility Technician
 Postmortem Professor
@@ -4034,7 +4012,6 @@ Push the Limit
 Putrid Goblin
 Putrid Pals
 Putrid Warrior
-Pyretic Charge
 Pyretic Ritual
 Pyrewood Gearhulk
 Pyric Salamander
@@ -4167,7 +4144,6 @@ Razorclaw Bear
 Razzle-Dazzler
 Reach for the Sky
 Ready
-Reality Ripple
 Realm Razer
 Realm Seekers
 Reap What Is Sown
@@ -4180,7 +4156,6 @@ Rebel Salvo
 Rebellious Strike
 Reborn Hope
 Rebuild the City
-Reckless Air Strike
 Reckless Detective
 Reckless Ransacking
 Reclaim the Wastes
@@ -4233,7 +4208,6 @@ Repel the Abominable
 Repel the Darkness
 Reprobation
 Reprocess
-Reptilian Recruiter
 Repulsive Mutation
 Repurposed Enforcer
 Repurposing Bay
@@ -4398,7 +4372,6 @@ Run Amok
 Run Behind
 Run Over
 Runaway Boulder
-Rundvelt Hordemaster
 Rune-Brand Juggler
 Runebound Wolf
 Runescale Stormbrood
@@ -4950,7 +4923,6 @@ Spaceshift
 Spark Mage
 Sparkcaster
 Sparkhunter Masticore
-Sparkspitter
 Spawnbinder Mage
 Spawning Bed
 Spearpoint Oread
@@ -5670,7 +5642,6 @@ Touch of Brilliance
 Tough Cookie
 Tower Winder
 Tower Worker
-Tower of Calamities
 Tower of Murmurs
 Towering Gibbon
 Toxic Deluge
@@ -6062,7 +6033,6 @@ Warg Tactics
 Wargate
 Wargling
 Warhorn Blast
-Warkite Marauder
 Warleader's Call
 Warmaker Gunship
 Warmonger Hellkite
@@ -6259,7 +6229,6 @@ Yoshimaru, Scrappy Stray
 Yotian Dissident
 You Find the Villains' Lair
 You Hear Something on Watch
-You See a Guard Approach
 Your Fate Ends Here
 Youthful Knight
 Youthful Scholar
