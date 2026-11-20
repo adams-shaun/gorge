@@ -227,19 +227,27 @@ func (s *State) trigWindowCharge(k *prep, p uint8, c *kop.ManaCost) bool {
 // planner is paid the same way before the push, not by manaStep's post-push tap
 // (payPrefixRest). A prefix that ran without tapping priced the play by
 // planning; gorge pays that at payment, after the push, as manaStep does.
-func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool) bool {
+func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool) (ran, tapX bool) {
 	pool0 := s.prefixPoolMana(p)
-	ran := false
+	grantFirstRun := false
 	if grantFirst {
 		s.grantPrefix(k, a, p)
-		ran = true
+		ran, grantFirstRun = true, true
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k)
 		}
 	}
 	if s.scriptAny(k) && isScriptPlayKind(a.Kind()) {
+		// The tapX search's prefix taps the plan's needed colours before the
+		// play (mana_tapanother.go), as gorge's one search does: a gap-funded
+		// activation's printed share is floated here, before the target ask,
+		// not by the post-push planner.
+		tapXBefore := !grantFirstRun && (k.tapMana || k.ctrMana) && s.scriptTapXModelled(k, p).any()
 		s.scriptPrefix(k, a, p) // a play only a scripted activation pays (script_gen.go)
 		ran = true
+		if tapXBefore && !s.scriptTapXModelled(k, p).any() {
+			tapX = true
+		}
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k) // its trigger resolves before the play (seed 640)
 		}
@@ -258,7 +266,7 @@ func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool)
 			s.flushPrefixTriggers(k)
 		}
 	}
-	return ran && s.prefixPoolMana(p) > pool0
+	return ran && s.prefixPoolMana(p) > pool0, tapX
 }
 
 // prefixPoolMana is p's floating pool total: the prefix section's taps (and
@@ -286,7 +294,7 @@ func (s *State) prefixPoolMana(p uint8) int {
 // plain planner settles takes this -- one it cannot price keeps its manaStep
 // window arm (sacXWindowPays, equipGapWindowPays, the hybrid arms), and
 // restricted floating mana keeps the shortened cost the planner pays.
-func (s *State) payPrefixRest(k *prep, a Action, p uint8) {
+func (s *State) payPrefixRest(k *prep, a Action, p uint8, force bool) {
 	o, ab := Obj(a.Source()), a.Mode()
 	ob := &s.objs[o]
 	cd := &k.t.Cards[s.cardAt(ob.slot)]
@@ -326,7 +334,28 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8) {
 	if chk.needT == 0 {
 		return
 	}
-	if k.gen == nil || !k.gen.anyTapsDefer || DebugNoTapsDefer {
+	force = force && abn.NTargets > 0
+	if force {
+		// The tapX search's prefix taps the plan's needed-colour sources
+		// before the play (mana_tapanother.go), as gorge's one search does:
+		// float them here so the target ask sees the same board. The
+		// remaining generic is the post-push planner's, as it is in gorge.
+		held := sl != NoSlot && abn.Cost.Flags&kop.CostTap != 0 && s.perms[sl].flags&pfTapped == 0
+		if held {
+			s.perms[sl].flags |= pfTapped
+		}
+		// Leave one unit (the generic remainder) to the post-push planner, as
+		// gorge's prefix search does.
+		s.payNeededColours(k, p, &cost, max(cost.MV()-1, 0))
+		if held {
+			s.perms[sl].flags &^= pfTapped
+		}
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k) // the tapped source's trigger below the play, not above it
+		}
+		return
+	}
+	if k.gen == nil || (!k.gen.anyTapsDefer || DebugNoTapsDefer) {
 		return // no Taps-deferred source can be the remainder: the post-push payment, as before
 	}
 	saved := chk
@@ -353,6 +382,37 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8) {
 	}
 	if s.npend != 0 {
 		s.flushPrefixTriggers(k) // the tapped source's trigger below the play, not above it
+	}
+}
+
+// payNeededColours taps p's untapped sources of cost's coloured pips until
+// target mana is floating or no such source is left, in the planner's source
+// order. It is the pre-push half of a tapX-funded activation's payment: gorge's
+// prefix search taps the play's needed-colour sources before the play, and the
+// generic remainder after it, so the target ask sees the same board
+// (mana_tapanother.go's tapXPrefix).
+func (s *State) payNeededColours(k *prep, p uint8, cost *kop.ManaCost, target int) {
+	for {
+		if s.prefixPoolMana(p) >= target {
+			return
+		}
+		tappedOne := false
+		for c := 0; c < kop.NumManaKinds; c++ {
+			if cost.Pips[c] == 0 {
+				continue
+			}
+			var one kop.ManaCost
+			one.Pips[c] = s.pl[SeatIx(p)].pool[c] + 1
+			before := s.prefixPoolMana(p)
+			s.tapFor(k, p, &one, 0, NoObj)
+			if s.prefixPoolMana(p) > before {
+				tappedOne = true
+				break
+			}
+		}
+		if !tappedOne {
+			return
+		}
 	}
 }
 
