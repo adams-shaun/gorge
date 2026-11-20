@@ -136,13 +136,19 @@ func (s *State) retraceLive(k *prep, o Obj) bool {
 // morph card's retrace cast is the plain face-up one -- the printed cost plus
 // the discard, never face down (morph is not an additional cost on the
 // face-up cast).
+// X and Convoke are neither: the announced X (CR 107.3) and the convoke picks
+// (CR 702.51a) apply to the spell whatever zone it was cast from, and the cast
+// build's bsX and bsConvoke stages ask them for a retrace cast as for any
+// other; offerRetraceCasts credits the picks in its price (convokeCredit,
+// gorge castOfferBase) and retraceConvoked keeps the planner's pre-discard
+// tapping off a convoked retrace cast. Improvise stays barred.
 func retraceGrantBarred(k *prep, c CardID) bool {
 	cd := &k.t.Cards[c]
 	if DebugRetraceBarMorph && cd.MorphCost != (kop.ManaCost{}) {
 		return true
 	}
 	return cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp || cd.Escape ||
-		cd.Convoke || cd.Improvise || cd.Cost.X != 0 ||
+		cd.Improvise ||
 		cd.HasPlot || cd.HasSneak || cd.Impending != 0 || cd.HasBestow ||
 		cd.SpellCost.Flags != 0 || cd.HasAltAdd || cd.Offspring || cd.Gift ||
 		cd.Casualty != 0 || cd.Bargain || cd.OptCost.Flags != 0 || cd.Teamwork != 0 || cd.HasModeCost || cd.HasMadness ||
@@ -183,7 +189,11 @@ func (s *State) offerRetraceCasts(k *prep, d *Decision, p uint8, sorc bool, av *
 			s.availFor(k, p, av)
 			have = true
 		}
-		fc := s.adjustCost(k, p, c, o, cd.Cost)
+		base := cd.Cost
+		if k.gen != nil && k.gen.anyConvoke && s.tapPays(k, p, c, o, false) {
+			base = s.convokeCredit(k, p, c, o, base) // gorge castOfferBase: the graveyard cast convokes too (CR 702.51a)
+		}
+		fc := s.adjustCost(k, p, c, o, base)
 		av.delve = s.tbDelveCredit(k, p, c, o, false) // the faces' credit (CR 702.66a)
 		if !av.tbLeafCredited(&fc) {
 			fc = s.delveOfferCredit(k, p, c, o, false, fc) // gorge's choke point credits the generic at this walk too
@@ -219,4 +229,14 @@ func (s *State) offerRetraceCasts(k *prep, d *Decision, p uint8, sorc bool, av *
 func (s *State) FeatRetraceCard(o Obj) bool {
 	k := s.k()
 	return k.t.Cards[s.objs[o].card].Retrace || s.retraceLive(k, o)
+}
+
+// retraceConvoked reports whether e is a retrace cast that announces convoke
+// picks. Gorge's planner plans no retrace mode, so the cast's mana comes from
+// the floating pool the offer gate priced at the convoke-credited base
+// (FeatPoolPays mode 2|8), and the discard being chosen taps no source: the
+// planner's pre-discard tapping (payCastParts) is for a planned cast and would
+// tap lands for the unreduced cost the picks already pay.
+func (s *State) retraceConvoked(k *prep, e *stackEntry) bool {
+	return retraceEntry(e) && k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, e)
 }
