@@ -42,7 +42,9 @@ func TestExiledWithOwnerRefSeat(t *testing.T) {
 // first exiles its target and then manifests dread for the exiled card's
 // owner. reader is the card's own ExiledWith / ExiledWithRev mark (kgen's
 // lowering sets both); without them the kernel's exwRec gate records no
-// link.
+// link. A second reader keeps genPrep.anyExW on when the source's bits are
+// cleared, so the negative case reaches exwExile's per-card exwRec gate
+// rather than skipping the link code entirely.
 func dreadOwnerScen(t *testing.T, reader bool) (sc *scen, src, bear Obj, prog []kop.Instr) {
 	t.Helper()
 	var srcCard, bearCard CardID
@@ -56,7 +58,9 @@ func dreadOwnerScen(t *testing.T, reader bool) (sc *scen, src, bear Obj, prog []
 					{Op: kop.OpExile, Obj: kop.RefTarget0},
 					{Op: kop.OpManifestDread, Obj: kop.RefExiledWithOwner, A: kop.Const(1)},
 				}}}},
-			kop.CardDef{Name: "T Dread Bear", Types: kop.TCreature, Power: 2, Toughness: 2})
+			kop.CardDef{Name: "T Dread Bear", Types: kop.TCreature, Power: 2, Toughness: 2},
+			kop.CardDef{Name: "T Other Reader", ExiledWith: true, ExiledWithRev: true,
+				Types: kop.TCreature, Power: 1, Toughness: 1})
 	})
 	src = sc.perm(srcCard, 0)
 	bear = sc.perm(bearCard, 1)
