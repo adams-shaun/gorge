@@ -204,6 +204,13 @@ type prep struct {
 	// the initiative's Undercity (genPrep.dungeon). Prep data like cards,
 	// never a pinned genPrep field (TestNoNewFixedStateFields).
 	dungeons []CardID
+	// embalmCard / embalmAb: the granting card and ability index of the
+	// latent embalm body a table's OpGrantEmbalmOwnCost names (prepEmbalmGrant;
+	// kw_embalmgrant.go); anyEmbalmGrant is set when the table grants embalm.
+	// Prep data, never a pinned genPrep field (TestNoNewFixedStateFields).
+	embalmCard     CardID
+	embalmAb       uint8
+	anyEmbalmGrant bool
 	// costObj: some card's cost forages or exiles cards from a graveyard
 	// (kop.CostForage / kop.CostExileGrave; act_forage.go): guards their
 	// payability and pick paths
