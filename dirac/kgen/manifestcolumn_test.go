@@ -54,7 +54,7 @@ func TestManifestColumn(t *testing.T) {
 	if err := writeStdTSV(&sb, res, man); err != nil {
 		t.Fatal(err)
 	}
-	want := "ZZZ\tOk\t\t\t\t\t\t\nZZZ\tClasher\t\tA:1\tapi:Clash\tapi Clash\tapi:Clash\tExtOp/ExtClash\n"
+	want := "ZZZ\tOk\t\t\t\t\t\t\t\t\nZZZ\tClasher\t\tA:1\tapi:Clash\tapi Clash\tapi:Clash\tExtOp/ExtClash\tM12\tatom\n"
 	if sb.String() != want {
 		t.Errorf("TSV:\n%q\nwant:\n%q", sb.String(), want)
 	}
