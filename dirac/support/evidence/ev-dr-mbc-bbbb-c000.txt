@@ -1,6 +1,7 @@
 Abundant Growth
 Act on Impulse
 Angel of Vitality
+Angel of the Ruins
 Beanstalk Giant
 Blessed Hippogriff
 Bloodthrone Vampire
@@ -38,6 +39,7 @@ Geistblast
 Ghostly Flicker
 Gideon's Lawkeeper
 Glacier Godmaw
+Gloomfang Mauler
 Go for the Throat
 Goblin Bombardment
 Goblin Recruiter
@@ -51,6 +53,7 @@ Island
 Kavu Predator
 Konda, Lord of Eiganjo
 Krark-Clan Ironworks
+Lively Dirge
 Lunar Frenzy
 Manabond
 Mannichi, the Fevered Dream
@@ -74,6 +77,7 @@ Power Matrix
 Primal Growth
 Prizefight
 Puppet Conjurer
+Quakefoot Cyclops
 Rapacious Dragon
 Ravenform
 Regrowth

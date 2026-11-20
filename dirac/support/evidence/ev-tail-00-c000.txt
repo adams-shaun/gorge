@@ -253,6 +253,7 @@ Mental Journey
 Mind Flayer
 Mirrormere Guardian
 Mold Shambler
+Moonlit Strider
 Morgue Thrull
 Mortis Dogs
 Mountain
@@ -356,6 +357,7 @@ Shivan Wumpus
 Shrink
 Shrivel
 Sickle Ripper
+Siege of Towers
 Silence
 Simic Initiate
 Sinuous Vermin

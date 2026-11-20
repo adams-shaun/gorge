@@ -205,6 +205,7 @@ Mace of the Valiant
 Magus of the Bazaar
 Manticore of the Gauntlet
 Marshal's Anthem
+Mass Polymorph
 Meatsqueak, Hoard Lord
 Meltdown
 Merfolk Thaumaturgist
@@ -348,6 +349,7 @@ Titan of Eternal Fire
 Tolarian Emissary
 Tor Wauki the Younger
 Tranquil Frillback
+Transmogrify
 Tree Monkey
 Treefolk Umbra
 Tribal Flames
