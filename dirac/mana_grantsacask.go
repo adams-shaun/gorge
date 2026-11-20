@@ -57,3 +57,17 @@ func (s *State) answerOrderAsksFirst(k *prep) {
 	}
 	s.Decisions = n
 }
+
+// leaveManaSac moves a source the plan sacrifices for mana when its move could
+// not park (plan's sacrifice branch). A witness probe (xWitnessEats, pk.try) and
+// a lowered cast's prefix taps (lowerWitness) have nothing to resume after gorge's
+// CR 616.1 order ask, which gorge poses inside the activation, so they move the
+// source as the first answer settles it, as a granted sacrifice does
+// (leaveAskedFirst); any other route moves it and lets dieZone stall a competition.
+func (s *State) leaveManaSac(k *prep, sl Slot, pk *planner) {
+	if pk.try || s.buildLive() && s.bld().bfl&bflLowered != 0 {
+		s.leaveAskedFirst(k, sl)
+		return
+	}
+	s.leave(k, sl, kop.ZoneGraveyard, false)
+}
