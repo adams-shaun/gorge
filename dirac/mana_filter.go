@@ -1192,6 +1192,12 @@ type filtSearch struct {
 	// and its gap set is filtered to the census units at the root.
 	pay    *kop.ManaCost
 	census bool
+	// phased: gorge's fallback run (potentialPrefixScript's second build, the
+	// phased order of scriptSearch.activations): the gaps whose ability costs
+	// no mana, then the covered funding sources, then the gaps that carry a
+	// fee (paid from the floating pool, CR 601.2b), and without the plain
+	// run's fee-stall prune (feeStall is set on the plain run only).
+	phased bool
 }
 
 // deferGapLeft: the search still holds an untapped filter gap whose tap
@@ -1286,6 +1292,15 @@ func (s *State) storeGapLive(k *prep, p uint8) bool {
 	return false
 }
 
+// phasedFallback: the plain run found no script after spending its whole node
+// budget on a board whose gaps are filters alone, one of them a repeatable
+// fee-only one -- the case gorge's phased run takes outside its own scope
+// (scriptSearch.plainLimited). Boards with another kind of gap keep the plain
+// run's answer.
+func (fs *filtSearch) phasedFallback() bool {
+	return fs.feeOnly && !fs.other.any() && fs.pay == nil && fs.nodes >= potentialScriptNodes
+}
+
 // filtScript reports whether gorge's prefix search finds a script for play
 // a of p; with apply it plays the script on s (the play's prefix).
 //
@@ -1317,6 +1332,18 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	s.pool.inFilt++ // (fork made the pool)
 	found := fs.visit(k, t, 0, false)
+	if !found && fs.phasedFallback() {
+		// gorge's plain run spent its node budget on a repeatable fee-only
+		// filter's branches: its phased run walks the funding line the plain
+		// order walked past (potentialPrefixScript)
+		ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
+			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true}
+		if found = ph.visit(k, t, 0, false); found {
+			fs = ph
+		} else if fs.stall == 0 {
+			fs.stall = ph.stall
+		}
+	}
 	s.pool.inFilt--
 	if !found {
 		if fs.stall != 0 {
@@ -2008,20 +2035,33 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	}
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.ctrlM[SeatIx(p)].and(t.occ), order[:], 0)
-	for pass := 0; pass < 3; pass++ {
+	// The phased run (gorge's fallback) walks four: the gaps whose ability
+	// costs no mana, the funding sources, the gaps (the ones that carry a fee
+	// now find the pool the funding floated), then the life-only source.
+	passes, lifeAt := 3, 2
+	if fs.phased {
+		passes, lifeAt = 4, 3
+	}
+	feeGapsOut := false
+	for pass := 0; pass < passes; pass++ {
 		// pass 0: the gaps; pass 1: the funding sources; pass 2: a life-only
 		// source, the last resort (gorge pays a filter's fee from a land
 		// before it pays life, so a life gap must not pre-empt that funding).
-		if pass == 2 {
+		if pass == lifeAt {
 			if fs.lifePass(k, t, order[:n], funded) {
 				return true
 			}
 			continue
 		}
-		gap := pass == 0
+		gap := pass == 0 || fs.phased && pass == 2
+		if gap && feeGapsOut {
+			continue // gorge's phase loop breaks at the first funding pass once the funding is spent
+		}
 		if !gap && funded >= fs.fees {
+			feeGapsOut = fs.phased
 			continue
 		}
+		freeOnly := fs.phased && pass == 0
 		fs.orderFunders(k, t, order[:n], gap)
 		var tried [MaxPerm]Slot
 		ntried := 0
@@ -2083,7 +2123,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 					if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
 						return true
 					}
-				case filt:
+				case filt && !freeOnly: // (a fee-carrying gap is the phased run's third pass)
 					if fs.feeOnly && t.filtRepeat(k, sl) && fs.activationStalls(k, t, sl) {
 						continue // every colour the fee-only repeatable activation can make is doomed
 					}
@@ -2323,7 +2363,7 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 		if n > 1 && oneShot && t.filtOneShotColStalls(k, fs.p, sl, &fs.useful, int(c)) {
 			continue // a one-shot gap's colour that fills no fixed pip
 		}
-		if n > 1 && fs.usefulOK && t.filtFeeColStalls(k, fs.p, sl, &fs.useful, int(c)) {
+		if n > 1 && fs.usefulOK && !fs.phased && t.filtFeeColStalls(k, fs.p, sl, &fs.useful, int(c)) {
 			// the fee-only repeatable activation making c is doomed on this
 			// node (filtFeeColStalls: c fills no fixed pip the play's cost
 			// still lacks once the fee is paid): the ask offers the other
@@ -2346,7 +2386,7 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 // clamp cannot read -- an unpayable fee, an any-type rider, a producible
 // colour ManaColors does not name -- fails open.
 func (fs *filtSearch) activationStalls(k *prep, t *State, sl Slot) bool {
-	if !fs.usefulOK {
+	if !fs.usefulOK || fs.phased { // (the fee-stall prune is the plain run's alone)
 		return false
 	}
 	ab := t.filtAb(k, sl)
