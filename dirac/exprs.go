@@ -737,6 +737,9 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 	if r == kop.RefRememberedOwner {
 		return s.remOwner() // zone_rememberparams.go
 	}
+	if r == kop.RefExiledWithOwner {
+		return s.exiledWithOwnerSeat(ctx) // zone_exiledwith.go
+	}
 	return 255
 }
 

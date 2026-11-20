@@ -261,38 +261,12 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 		}
 		if qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
 			// The source-anchored chosen/remembered membership read, on EVERY
-			// base the grammar evaluates (Player/Any as always, plus the
-			// qualified You/Opponent/Other spellings -- Will the Wise's
-			// `Defined$ Opponent.!IsRemembered` "each opponent who doesn't"
-			// is the corpus carrier). Reading it only on Player/Any left the
-			// Opponent-base qualifier permanently false, which the `!`
-			// spelling inverted into admitting EVERY opponent. The base is
-			// checked FIRST, so a membership read cannot admit the source's
-			// own controller under an `Opponent` base (or an opponent under a
-			// `You` base); only the set membership is base-independent. The
-			// set is still the source object's own event-backed list, so every
-			// base reads one home.
-			if !playerBaseMatches(a.baseCode, p, you) {
-				continue
-			}
-			var set []state.Target
-			if qualifier == "IsRemembered" {
-				rem, ok := rememberedSetFor(g, &pc)
-				if !ok {
-					continue
-				}
-				set = rem
-			} else {
-				o := g.Obj(pc.Source)
-				if o == nil {
-					continue
-				}
-				set = o.Chosen
-			}
-			for _, t := range set {
-				if t.IsPlayer && t.Player == p {
-					return true
-				}
+			// base the grammar evaluates (Player/Any plus the qualified
+			// You/Opponent/Other spellings -- Will the Wise's `Defined$
+			// Opponent.!IsRemembered`): playerSourceMembershipMatches below is
+			// the ONE read, so the base check and the membership cannot drift.
+			if playerSourceMembershipMatches(g, p, you, pc, a.baseCode, qualifier) {
+				return true
 			}
 			continue
 		}
@@ -362,21 +336,12 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 		if rem, is := strings.CutPrefix(qualifier, "HasCardsIn"); is {
 			// Forge's Player.HasCardsIn<zone>_<objspec>[_<cmp><n>] property
 			// (PlayerProperty's HasCardsInHand family generalized to a full
-			// object filter: Unidentified Hovership's leave trigger,
-			// `DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1`
-			// -- "the player whose exile holds a card exiled with this
-			// source"). The zone word and the comparator token ride the ONE
-			// shared parsers the UnlessDefender$ HasCardsIn property uses
-			// (restrictions.go's unlessDefenderZone / unlessDefenderCompare),
-			// so a player filter and an attack restriction cannot disagree
-			// about what "HasCardsInExile_..._GE1" spells. The zone's cards
-			// are matched through the SAME nested object-filter binding
-			// playerControlsMatches evaluates its battlefield spec with, so
-			// ExiledWithSource resolves the shared exiledBySource link reader
-			// (the forward ExiledCards list plus the reverse ExiledWith
-			// scalar) and an unmodelled predicate fails closed inside the
-			// matcher. A seat whose named zone holds no matching card never
-			// qualifies.
+			// object filter): playerHasCardsInZoneMatches below is the ONE
+			// evaluator -- the zone word and count token ride the shared
+			// restrictions.go parsers, the object filter the same nested
+			// binding playerControlsMatches uses, so ExiledWithSource resolves
+			// the shared exiledBySource link reader. A seat whose named zone
+			// holds no matching card never qualifies.
 			if playerHasCardsInZoneMatches(g, p, you, pc, rem) {
 				return true
 			}
@@ -588,6 +553,40 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 					return true
 				}
 			}
+		}
+	}
+	return false
+}
+
+// playerSourceMembershipMatches is the source-anchored Chosen/IsRemembered
+// membership read, extracted from matchesPlayerSingleSpec so the one
+// evaluator keeps its shape. The base is checked FIRST (an `Opponent` base
+// must not admit the source's own controller, an `Opponent.!IsRemembered`
+// spelling must not flip the absence into admitting every opponent), then the
+// set membership: the bound capture when the caller supplied one, else the
+// source object's own event-backed list (rememberedSetFor / Object.Chosen),
+// so every base reads one home.
+func playerSourceMembershipMatches(g *state.Game, p, you state.PlayerID, pc PlayerSpecCtx, base playerSpecBaseCode, qualifier string) bool {
+	if !playerBaseMatches(base, p, you) {
+		return false
+	}
+	var set []state.Target
+	if qualifier == "IsRemembered" {
+		rem, ok := rememberedSetFor(g, &pc)
+		if !ok {
+			return false
+		}
+		set = rem
+	} else {
+		o := g.Obj(pc.Source)
+		if o == nil {
+			return false
+		}
+		set = o.Chosen
+	}
+	for _, t := range set {
+		if t.IsPlayer && t.Player == p {
+			return true
 		}
 	}
 	return false

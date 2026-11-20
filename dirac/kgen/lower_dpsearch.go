@@ -45,6 +45,18 @@ func (lc *lowerCtx) definedPlayer(v string) (lRef, error) {
 			return lRef{}, refuse("ChangeZone DefinedPlayer$ %s: %v", v, err)
 		}
 		return r, nil
+	case "Player.HasCardsInExile_Card.ExiledWithSource_GE1":
+		// gorge's shared player-filter grammar (MatchesPlayerSpecFrom, the
+		// Player.HasCardsIn<zone>_<objspec>[_<cmp><n>] property): the seat
+		// whose exile holds a card exiled with this source (gorge
+		// exiledBySource, the forward ExiledCards link plus the reverse
+		// ExiledWith scalar), the corpus carrier being Unidentified
+		// Hovership's leave trigger. The kernel's RefExiledWithOwner reads
+		// the same link (dirac zone_exiledwith.go); gorge acts on EVERY
+		// matching seat, the carrier's ETB exiles at most one card, so at
+		// most one seat can match. Any other HasCardsIn spelling refuses:
+		// the kernel's ref is the exile zone only.
+		return lRef{Kind: rExiledWithOwner}, nil
 	case "RememberedOwner":
 		// gorge definedSpecRememberedOwner: the remembered object's owner
 		// (CR 108.3). Only the remembered-persist shape lowers it — the
