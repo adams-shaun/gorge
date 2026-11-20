@@ -5,9 +5,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // StallGainsOf as a pair refusal (kop.PairGuard): a GainsAbilitiesOf$ static
 // beside a creature whose activated ability the gained-ability walk does not
 // model (gainedModelled: a battlefield one with a once-per-game, once-each-turn
-// or loyalty cost, exhaust or a host cost). A mana ability, an off-battlefield
-// one (cycling, channel) and an index past 63 stay runtime stalls, not
-// refusals: recorded games hold a Marvin beside a cycling creature. gorge counts a gained once-limited activation per (recipient, foreign
+// or loyalty cost, exhaust or a host cost). An off-battlefield one (cycling,
+// channel) and an index past 63 stay runtime stalls, not refusals: recorded
+// games hold a Marvin beside a cycling creature. A mana ability is neither:
+// it is never a priority option, so the offer walk skips it (gainedOffer),
+// and the matchup plays. gorge counts a gained once-limited activation per (recipient, foreign
 // object, ability index) over the recipient's stint (legal_granted.go
 // gainedActivationsUsed); the kernel holds no such record, and the walk stalls
 // the moment the recipient has the foreign creature in range
@@ -48,10 +50,11 @@ func hasBroadGainsOf(t *kop.Table, c *kop.CardDef) bool {
 
 // gainsOfUnmodelledCreature: c is a creature with an active (non-mana)
 // battlefield activated ability the gained-ability walk stalls on for its
-// activation limit, exhaust or host cost. A mana ability and a hand-zone one
-// (cycling) are left out: the walk stalls on them at runtime only when the
-// creature reaches the battlefield, and recorded games with such pairs never
-// do.
+// activation limit, exhaust or host cost. A mana ability is left out: it is
+// not a priority option, so the offer walk skips it (gainedOffer); the
+// payment planner's gained-source limit is not a refusal. A hand-zone one
+// (cycling) stays a runtime stall: recorded games with such pairs never reach
+// the battlefield with it.
 func gainsOfUnmodelledCreature(c *kop.CardDef) bool {
 	if c.Types&kop.TCreature == 0 {
 		return false
