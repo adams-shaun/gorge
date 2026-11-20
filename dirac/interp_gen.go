@@ -742,6 +742,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			r.t = s.tick() // gorge's AddContinuous ClockTick: a new continuous effect is newer than everything before it (CR 613.7)
 			s.embPut(p, n, r)
 			s.g.nemb[p]++
+			if k.t.Emblems[in.C].UntilNextTurn {
+				s.embNTArm(p) // an UntilYourNextTurn emblem's frozen boundary (static_effectdelivered.go)
+			}
 		} else {
 			s.capFull(StallEmblem)
 		}

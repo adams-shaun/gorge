@@ -17,12 +17,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 	case kop.OpNop:
 	case kop.OpDealDamage:
 		if !s.duel() && in.Obj == kop.RefEachOpponent {
-			// each opponent in turn, AliveFrom(controller) without it
-			q := s.oppsFrom(e.ctrl)
-			n := s.value(k, in.A)
-			for i := uint8(0); i < q.n; i++ {
-				s.damageTo(k, PlayerCode(q.s[i]), n)
-			}
+			s.execEachOpponentDamage(k, in)
 			break
 		}
 		code := s.refCode(k, in.Obj)
@@ -693,6 +688,38 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 // grant on a battlefield permanent; when A marks the grant as gorge's Effect
 // object, the effect source is recorded for a combat-damage prevention's
 // CR 616.1 option (combat_prevention.go).
+
+// execEachOpponentDamage runs OpDealDamage Obj=RefEachOpponent: each opponent
+// in turn, AliveFrom(controller) without it; the whole loop is one damage
+// batch, as gorge's BeginDamageBatch/EndDamageBatch around a multi-recipient
+// DealDamage (damage_deal.go), so a DamageAll line latches once. A CR 616.1
+// replacement-order ask parks one event and the op resumes after the answer
+// with the batch still open (damageSeqNext; interp_ask.go's raGenReplOrder
+// resume), never closing the batch around the parked event.
+func (s *State) execEachOpponentDamage(k *prep, in *kop.Instr) {
+	e := &s.res.e
+	n := s.value(k, in.A)
+	if k.gen != nil && s.g.dmgSeqOn {
+		s.damageSeqNext(k, n)
+		return
+	}
+	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen)) {
+		s.damageSeqStart(k, slotMask{}, false)
+		s.g.dmgSeqPl = seatBits(s.oppsFrom(e.ctrl))
+		s.damageSeqNext(k, n)
+		return
+	}
+	q := s.oppsFrom(e.ctrl)
+	wasOpen := s.g.dmgBOn
+	s.dmgBatchOpen()
+	for i := uint8(0); i < q.n; i++ {
+		s.damageTo(k, PlayerCode(q.s[i]), n)
+	}
+	if !wasOpen {
+		s.dmgBatchClose()
+	}
+}
+
 func (s *State) execGrantKeyword(k *prep, in *kop.Instr) {
 	sl := s.objRef(k, in.Obj)
 	if sl == NoSlot {

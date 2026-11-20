@@ -14,7 +14,7 @@ const (
 	StatCantBlockBy                // creatures matching Filter can't be blocked by creatures matching Filter2
 	StatAlternativeCost            // the card may be cast for alternative cost Ability.Cost (condition C)
 	StatCastWithFlash              // spells matching Filter may be cast any time you could cast an instant
-	StatMustAttack                 // creatures matching Filter attack each combat if able
+	StatMustAttack                 // creatures matching Filter attack each combat if able; B 1: a player other than the static's controller when another is legal (MustAttack$ Player.Other)
 	StatCantAttack                 // creatures matching Filter can't attack
 	StatIncreaseCost               // spells matching Filter cost A more (Ward-like taxes)
 

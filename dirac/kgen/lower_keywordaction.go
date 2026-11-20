@@ -75,12 +75,10 @@ func (lc *lowerCtx) investigate(ps *params) error {
 	var body []lInstr
 	switch {
 	case zeroOne(n):
-		if n.Kind == vOppsLostLife {
-			lc.twoSeat("the opponents who lost life counted as 0 or 1")
-		}
 		// one CreateToken of 0 or 1 is the TokenCreate stream of 0 or 1
-		// one-token ops (a 0/1 Num$, e.g. a Compare or the opponents who
-		// lost life)
+		// one-token ops (a constant 0/1 Num$ or a 0/1 Compare; the
+		// opponents who lost life take the general Repeat path below,
+		// seat-exact at 0..N)
 		body = []lInstr{{Op: "CreateToken", Obj: who, A: n, CS: clueToken}}
 	case !n.isConst():
 		body = []lInstr{{Op: "Repeat", A: n, Skip: 1}, {Op: "CreateToken", Obj: who, A: cst(1), CS: clueToken}}
