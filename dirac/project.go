@@ -374,6 +374,13 @@ func (s *State) projRest(p *Projection, lib bool) {
 		// a seat's two commanders project as one sum, as the oracle folds
 		// gorge's per-commander lists
 		p.CmdCast[pi] = satAdd8(pl.cmdCast, s.cmdCast2(uint8(pi)))
+		if s.cmdCastInFlight(uint8(pi)) {
+			// gorge counts the cast as it pushes the spell (CR 903.8), so a
+			// decision asked between the push and the commit (the Improvise
+			// helper pick, a target) sees it; the kernel counts at the commit
+			// (onCast)
+			p.CmdCast[pi] = satAdd8(p.CmdCast[pi], 1)
+		}
 		for q := range p.CmdDmg[pi] {
 			p.CmdDmg[pi][q] = satAdd8(pl.cmdDmg[q], s.cmdDmg2(uint8(pi), uint8(q)))
 		}
