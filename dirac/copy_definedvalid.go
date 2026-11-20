@@ -21,10 +21,10 @@ var DebugDefValidNoAnimateAsk bool
 var DebugDefValidMulti *uint32
 
 // StallCopyAllAsk: a copy of a copy that itself carries the as-enters clone
-// line would be minted on the copied permanent's printed card while it waits
-// for the answer (copyTokenBasis; the sweep checks its source's slot,
-// copy_allpark.go). A rider that would drop counters across an ask stalls
-// with it too (copyTokenCtr).
+// line, when its copied face is another card than its printed one, would be
+// minted on that face while it waits for the answer (copyTokenBasis; the
+// sweep checks its source's slot, copy_allpark.go). A rider that would drop
+// counters across an ask stalls with it too (copyTokenCtr).
 const StallCopyAllAsk = 124
 
 func init() { stallNames[StallCopyAllAsk] = "copyallask" }

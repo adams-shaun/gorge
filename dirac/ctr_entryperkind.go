@@ -248,11 +248,11 @@ func prepBecomeCopy(t *kop.Table, g *genPrep) {
 
 // cloneTokenAsk is akClone when the copiable card c of a token about to be
 // minted by in carries the as-enters copy line, else 0. A token copy of a
-// permanent that is itself a copy would be minted on that permanent's printed
-// card while it waits for the answer (copyTokenBasis): not modelled, it
-// stalls (StallCopyAllAsk). A copy-all sweep asks its source's slot itself
-// (sweepRun, copy_allpark.go), so a source that is not a copy poses the
-// election instead of stalling.
+// permanent that is itself a copy is minted on that permanent's printed card
+// while it waits for the answer (copyTokenBasis), so the election is posed
+// only when c is that printed card; a copied face of another card would be
+// minted differently while it waits, and stalls (StallCopyAllAsk). A copy-all
+// sweep poses the same election itself (sweepRun, copy_allpark.go).
 //
 //go:noinline
 func (s *State) cloneTokenAsk(k *prep, in *kop.Instr, c CardID) uint8 {
@@ -261,9 +261,12 @@ func (s *State) cloneTokenAsk(k *prep, in *kop.Instr, c CardID) uint8 {
 	}
 	kind := s.cloneAskKind(k, c)
 	if kind != 0 && in != nil {
-		if src := s.objRefObj(in.Obj); src != NoObj && s.objs[src].zone == kop.ZoneBattlefield && s.perms[s.objs[src].slot].ovr.flags&ovCopy != 0 {
-			s.capFull(StallCopyAllAsk)
-			return 0
+		if src := s.objRefObj(in.Obj); src != NoObj && s.objs[src].zone == kop.ZoneBattlefield {
+			sl := s.objs[src].slot
+			if s.perms[sl].ovr.flags&ovCopy != 0 && s.cardAt(sl) != s.perms[sl].card {
+				s.capFull(StallCopyAllAsk)
+				return 0
+			}
 		}
 	}
 	return kind
