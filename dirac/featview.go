@@ -669,7 +669,7 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
 	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
 	fromHand := s.objs[o].zone == kop.ZoneHand
-	lifted := !refused && !optRefused && !spendRefused && mode&3 == 0 && s.improviseLiftedFrom(k, p, c, o, fromHand, fromHand || s.objs[o].zone == kop.ZoneCommand)
+	lifted := !refused && !optRefused && !spendRefused && mode&3 == 0 && s.improviseLiftedFrom(k, p, c, o, fromHand, plainCastZone(s.objs[o].zone))
 	tapRefused := !refused && !optRefused && !spendRefused && !lifted && s.contribPays(k, p, c, o, fromHand)
 	if refused || optRefused || spendRefused || tapRefused {
 		// gorge's planner declines the shape (modal_cost, additional_cost,

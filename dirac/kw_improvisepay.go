@@ -87,7 +87,7 @@ func (s *State) improviseSourcesPay(k *prep, p uint8, o Obj, res slotMask, cost 
 func (s *State) improvisePlanned(k *prep, e *stackEntry) (plan, manual, printed bool) {
 	if k.gen == nil || !k.gen.anyConvoke || !s.bld().impPlan || e.kind != seSpell ||
 		e.flags&(sfMayPlay|sfFlashback|sfKicked) != 0 || !s.tapPaysEntry(k, e) ||
-		!s.improviseLiftedFrom(k, e.ctrl, e.card, e.obj, s.bld().origin == kop.ZoneHand, s.bld().origin == kop.ZoneHand || s.bld().origin == kop.ZoneCommand) {
+		!s.improviseLiftedFrom(k, e.ctrl, e.card, e.obj, s.bld().origin == kop.ZoneHand, plainCastZone(s.bld().origin)) {
 		return false, false, false
 	}
 	if s.convokePickCount() > 0 {
@@ -227,3 +227,7 @@ func (s *State) improviseRoute(k *prep, e *stackEntry, cost *kop.ManaCost, anyCo
 	}
 	return false, false
 }
+
+// plainCastZone reports whether a cast from zone z is a plain cast to gorge's
+// planner (scope ""): from a hand or, a commander, the command zone (CR 903.8).
+func plainCastZone(z kop.Zone) bool { return z == kop.ZoneHand || z == kop.ZoneCommand }
