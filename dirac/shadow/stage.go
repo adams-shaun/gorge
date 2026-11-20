@@ -158,7 +158,9 @@ func checkScope(in *Input) (kop.Step, dirac.Pose, error) {
 // that makes it, so an observer sees none at a combat step and cannot tell a
 // pose from the priority round after a declaration that made no pick: that is
 // ReasonDecision unless the combat marks settle it (attackers on the board at
-// the declare attackers step, blocks at the declare blockers step).
+// the declare attackers step, blocks at the declare blockers step; at more
+// than two seats blocks settle nothing, as another defender may still be to
+// declare).
 func poseOf(v *view.View, step kop.Step) (dirac.Pose, error) {
 	if d := v.Decision; d != nil {
 		switch {
@@ -176,7 +178,7 @@ func poseOf(v *view.View, step kop.Step) (dirac.Pose, error) {
 	}
 	for _, p := range v.Players {
 		for i := range p.Battlefield {
-			if c := &p.Battlefield[i]; step == kop.StepAttackers && c.Attacking || step == kop.StepBlockers && c.Blocked {
+			if c := &p.Battlefield[i]; step == kop.StepAttackers && c.Attacking || step == kop.StepBlockers && len(v.Players) == 2 && c.Blocked {
 				return dirac.PosePriority, nil
 			}
 		}

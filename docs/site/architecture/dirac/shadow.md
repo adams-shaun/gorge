@@ -49,6 +49,8 @@ Two, three or four seats (`dirac.MaxSeats`), every seat still in the game.
   (CR 509.1a). The declare blockers pose stages only while no block is declared yet, with `World.BlkDef` the defender asked
   (dirac's `blkDef`, read only in a pod); a later defender's pose after another's blocks is `combat`. An observer at the
   declare blockers step in a pod is `decision` even with blocks shown, since another defender may still be to declare.
+  The declare blockers step with no attacker on the board is `combat` (every attacker left, and a blocker of a departed
+  attacker keeps blocking with no mark a view shows).
   A seat that has left the game is `seat-left` (a finished game stays `game-over`); Commander stays refused (`exile`).
   Status of the multiplayer shadow (C13): pods of every seat in the game are done; departed seats and Commander remain.
 

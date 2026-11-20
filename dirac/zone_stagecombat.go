@@ -70,6 +70,9 @@ func (w *World) validateCombat() error {
 			if int(o.Blocks) >= len(w.Objs) || !atk[o.Blocks] || o.BlockOrd == 0 {
 				return combatBad("object %d blocks object %d, which is not attacking", i, o.Blocks)
 			}
+			if w.Objs[o.Blocks].AtkSeat != o.Ctrl {
+				return combatBad("object %d, controlled by seat %d, blocks object %d, which attacks seat %d", i, o.Ctrl, o.Blocks, w.Objs[o.Blocks].AtkSeat)
+			}
 			nBlock[o.Blocks]++
 		}
 	}
@@ -123,6 +126,12 @@ func (w *World) validateCombatStep(nAtk, nBlk int) error {
 	}
 	switch w.Pose {
 	case PosePriority:
+		// The step is skipped when nothing attacks, so no attacker at it means each
+		// one left combat; a blocker of a departed attacker keeps blocking (CR
+		// 506.4) and a view shows no mark of it.
+		if w.Step == kop.StepBlockers && nAtk == 0 {
+			return combatBad("the declare blockers step with no attacker: a blocker of a departed attacker is not in a view")
+		}
 	case PoseAttackers:
 		if w.Step != kop.StepAttackers || nAtk != 0 || len(w.Stack) != 0 {
 			return combatBad("the declare attackers pose with attackers, a stack or another step")
