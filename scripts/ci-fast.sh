@@ -24,9 +24,17 @@ if grep -qx './dirac/oracle' <<<"$whole"; then
 fi
 # ./dirac/kgen runs uncached (-count=1): its tests open the corpus ~88 times, and go spent 190-300 s hashing those
 # files for a test-result cache that a changed tree never hits, against ~110 s of tests (11-17; ci.yml's shards do the same).
+# CI_FAST_SKIP_KGEN=1 (ci.yml's fast job sets it) drops that run from a pull request: the queue batch runs the whole
+# package (not -short) in shard 0 of the same commit's merge, so the -short run here is a strict subset of work that
+# runs again before anything lands. Measured 11-20: 296 s of a 1266 s fast job on a dirac PR (0 of 25 packages cached).
+# A local `make test-targeted` / precheck still runs it (the variable is unset there).
 if grep -qx './dirac/kgen' <<<"$whole"; then
   whole=$(grep -vx './dirac/kgen' <<<"$whole" || true)
-  go test -timeout 20m -short -count=1 ./dirac/kgen || rc=1
+  if [ "${CI_FAST_SKIP_KGEN:-0}" = 1 ]; then
+    echo "ci-fast: ./dirac/kgen skipped here; the queue batch runs it in full"
+  else
+    go test -timeout 20m -short -count=1 ./dirac/kgen || rc=1
+  fi
 fi
 if [ -n "$whole" ]; then
   # shellcheck disable=SC2086
