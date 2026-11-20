@@ -154,7 +154,6 @@ Ambassador Laquatus
 Ambitious Augmenter
 Ambling Stormshell
 Ambush Gigapede
-Amok Time
 Amonkhet Raceway
 Amrou Scout
 Amugaba
@@ -311,7 +310,6 @@ Assault Zeppelid
 Assault on Osgiliath
 Assemble the Entmoot
 Assemble the Players
-Assembly Specialist
 Assert Authority
 Assert Perfection
 Assimilation Assessor
@@ -431,7 +429,6 @@ Basilica Bell-Haunt
 Basilisk Gate
 Basking Rootwalla
 Basri, Tomorrow's Champion
-Bat'leth
 Batterskull
 Battle Squadron
 Battle of Wolf 359
@@ -459,7 +456,6 @@ Beasts of Bogardan
 Bebop & Rocksteady
 Bebop, Warthog Warrior
 Beck
-Beckett Mariner, Impetuous Ensign
 Become Brutes
 Bedevil
 Bedhead Beastie
@@ -550,7 +546,6 @@ Bladed Bracers
 Bladed Pinions
 Blaring Recruiter
 Blasphemous Act
-Blastoneuron
 Blaze Commando
 Blazemire Verge
 Blazing Bomb
@@ -604,7 +599,6 @@ Blossom-Blessed Angel
 Blossombind
 Blossoming Tortoise
 Blot Out the Sky
-Boarding Action
 Bofur, Reliable Guardian
 Bog Tatters
 Boggart Cursecrafter
@@ -774,7 +768,6 @@ Candy Grapple
 Candy Trail
 Canoptek Scarab Swarm
 Canopy Vista
-Cantankerous Captain
 Cantankerous Keepers
 Canyon Crab
 Canyon Slough
@@ -789,11 +782,9 @@ Captain Janeway, Endgame
 Captain Jean-Luc Picard
 Captain Kathryn Janeway
 Captain Kirk, Boldly Going
-Captain Michael Burnham
 Captain N'ghathrod
 Captain of the Watch
 Captain's Defense
-Captain's Tutelage
 Caradora, Heart of Alacria
 Carapace Forger
 Carefree Swinemaster
@@ -1017,7 +1008,6 @@ Conciliator's Duelist
 Conduct Electricity
 Conduit Pylons
 Confusticate and Bebother
-Constable Odo
 Constrictor Sage
 Consumed by Greed
 Consuming Ashes
@@ -1119,7 +1109,6 @@ Crystal, Inhuman Princess
 Crystalline Entity
 Crystalline Sliver
 Cuboid Colony
-Culber and Stamets, Star-Crossed
 Culling Dais
 Culling Mark
 Culling Ritual
@@ -1144,11 +1133,9 @@ Cut Propulsion
 Cut the Earthly Bond
 Cutthroat Negotiator
 Cutthroat il-Dal
-Cybernetic Specialist
 Cyclone Summoner
 Cyclopean Mummy
 D'Ghor Bloodletter
-DOT-7 Repair Squad
 Daggerfang Duo
 Daggermaw Megalodon
 Dahar Master
@@ -1258,7 +1245,6 @@ Defenestrated Phantom
 Defense Force Aggressor
 Defensive Stance
 Defiant Khenra
-Defiant Survivor
 Deflecting Swat
 Dega Disciple
 Dega Sanctuary
@@ -1371,7 +1357,6 @@ Does Machines
 Dogmeat, Ever Loyal
 Dominion Assault Force
 Dominion Infiltration
-Dominion Saboteur
 Donatello's Technique
 Donatello, Gadget Master
 Donatello, Mutant Mechanic
@@ -1535,7 +1520,6 @@ Eerie Interference
 Efflorescence
 Effortless Master
 Ego Drain
-Eject the Warp Core
 Ekundu Griffin
 El-Hajjâj
 Elaborate Firecannon
@@ -1793,7 +1777,6 @@ Feather of Flight
 Featherbrained Filcher
 Fecund Greenshell
 Federation Probe
-Federation Resupply
 Feebleness
 Feed the Cauldron
 Feed the Cycle
@@ -2038,7 +2021,6 @@ Garruk's Companion
 Garruk, Curse Breaker
 Garruk, Unleashed
 Garza Zol, Plague Queen
-Gaseous Anomaly
 Gastal Blockbuster
 Gastal Raider
 Gastal Thrillroller
@@ -2502,7 +2484,6 @@ Hornet Cannon
 Horribly Awry
 Horrifying Revelation
 Horta
-Hoshi Sato, Exolinguist
 Host of the Hereafter
 Hostile Takeover
 Hot Dog Cart
@@ -2745,7 +2726,6 @@ Jeskai Revelation
 Jeskai Shrinekeeper
 Jet, Freedom Fighter
 Jetmir, Nexus of Revels
-Jett Reno, Problem Solver
 Jewel Thief
 Jhessian Balmgiver
 Jhessian Zombies
@@ -2861,7 +2841,6 @@ Khabál Ghoul
 Khalni Ambush
 Khalni Gem
 Khan, Despot by Design
-Khan, Vengeful Heart
 Kheru Dreadmaw
 Kickoff Celebrations
 Kill Shot
@@ -3486,7 +3465,6 @@ Moonring Island
 Moonrise Cleric
 Moonshaker Cavalry
 Moonstone Harbinger
-Moopsy
 Morbius the Living Vampire
 Morcant's Eyes
 Morcant's Loyalist
@@ -3515,7 +3493,6 @@ Mouth of the Storm
 Mox Jasper
 Mr. Foxglove
 Mr. Orfeo, the Boulder
-Mr. Spock, Science Officer
 Ms. Marvel, Elastic Ally
 Mtenda Lion
 Mu Yanling, Wind Rider
@@ -3818,7 +3795,6 @@ Oxidize
 Pacesetter Paragon
 Pacification Array
 Pactdoll Terror
-Pah-Wraith
 Pain 101
 Painful Lesson
 Painful Truths
@@ -4002,7 +3978,6 @@ Pridemalkin
 Priest of the Blood Rite
 Primal Witchstalker
 Primary Research
-Primary Unimatrix Adjunct
 Primordial Pachyderm
 Primordial Sage
 Prince of Thralls
@@ -4083,7 +4058,6 @@ Q, Your Illustrious Host
 Qal Sisma Behemoth
 Qarsi Revenant
 Qasali Pridemage
-Qo'noS
 Qo'noS Quartermaster
 Quag Feast
 Quagmire Lamprey
@@ -4295,7 +4269,6 @@ Restless Prairie
 Restless Vinestalk
 Restoration Seminar
 Restore with Empathy
-Resurrected Cultist
 Retaliator Griffin
 Retched Wretch
 Retreat to Coralhelm
@@ -4534,7 +4507,6 @@ Savanti Romero, Time's Exile
 Saved by the Shell
 Saving Grasp
 Savior of the Sleeping
-Savvy Profiteer
 Saw It Coming
 Sawtooth Loon
 Sawtooth Ogre
@@ -4763,7 +4735,6 @@ Shuttle Crew
 Shuttlecraft Galileo
 Sibsig Appraiser
 Sibsig Muckdraggers
-Sickbay
 Sickbay Orderly
 Sidequest: Hunt the Mark
 Sidequest: Raise a Chocobo
@@ -5087,7 +5058,6 @@ Splinter's Technique
 Splinter, Hamato Yoshi
 Splinter, Radical Rat
 Splinterfright
-Spock, Always Your Friend
 Spock, Logical Choice
 Spock, Voice of Reason
 Spoils of Evil
@@ -5331,7 +5301,6 @@ Susur Secundi, Void Altar
 Susurian Dirgecraft
 Susurian Voidborn
 Sutina, Speaker of the Tajuru
-Suurok-Class Science Vessel
 Swallowing Plague
 Swarm Culler
 Swarm, Being of Bees
@@ -5350,7 +5319,6 @@ Sydri, Galvanic Genius
 Sylvan Bounty
 Sylvan Caryatid
 Sylvan Yeti
-Sylvia Tilly, Joy of Discovery
 Sylvok Lifestaff
 Symbiote Spider-Man
 Synchronized Charge
@@ -5451,7 +5419,6 @@ Temur Battlecrier
 Temur Devotee
 Temur Monument
 Temur Tawnyback
-Tenacious Drone
 Tenacious Hunter
 Tenacious Tosk
 Tend the Pests
@@ -5481,7 +5448,6 @@ Tersa Lightshatter
 Tervigon
 Test of Courage
 Test of Identity
-Test of Priorities
 Tester of the Tangential
 Tether Technician
 Tethermage's Advantage
@@ -5541,7 +5507,6 @@ The Flesh Is Weak
 The Flux
 The Goose Mother
 The Great Goblin
-The Holodeck
 The Huntsman's Redemption
 The Indomitable
 The Inner Light
@@ -5821,7 +5786,6 @@ Twinflame Travelers
 Twining Twins
 Twinned Vision
 Twins of Maurer Estate
-Twist Reality
 Twisted Abomination
 Twisted Embrace
 Twisted Experiment
@@ -5834,16 +5798,13 @@ Two-Headed Hellkite
 Two-Headed Hunter
 Tymaret Calls the Dead
 Type-03 Borg Vessel
-Type-2 Phaser
 Tyrant's Familiar
 Tyrant's Machine
 Tyrant's Scorn
 Tyrranax Rex
-U.S.S. Cerritos, Following Up
 U.S.S. Defiant, Tough Little Ship
 U.S.S. Enterprise-A, Free Spirit
 U.S.S. Enterprise-E, Sovereign
-U.S.S. Excelsior, Cutting Edge
 U.S.S. Prometheus, Prototype
 U.S.S. Voyager, Lone Wanderer
 Ugin's Mastery
@@ -6032,7 +5993,6 @@ Vinereap Mentor
 Violent Echoes
 Violent Outburst
 Violent Ultimatum
-Violent Urge
 Virtue of Courage
 Virtue of Knowledge
 Virtue of Loyalty
@@ -6121,7 +6081,6 @@ Warmaker Gunship
 Warmonger Hellkite
 Warmth
 Warp Artifact
-Warp Core
 Warpath Ghoul
 Warped Researcher
 Warren Elder
@@ -6307,7 +6266,6 @@ Yavimaya Kavu
 Yavimaya Wurm
 Yawgmoth's Agenda
 Yawgmoth's Vile Offering
-Year of Hell
 Yenna, Redtooth Regent
 Yoshimaru, Beloved Companion
 Yoshimaru, Scrappy Stray
@@ -6331,7 +6289,6 @@ Zealous Guardian
 Zealous Lorecaster
 Zebra Unicorn
 Zedruu the Greathearted
-Zefram Cochrane, Warp Pioneer
 Zektar Shrine Expedition
 Zendikar Farguide
 Zephid
@@ -6342,7 +6299,6 @@ Zero Point Ballad
 Zero, Incorporeal Sensate
 Zhalfirin Void
 Zhao, Ruthless Admiral
-Zimone, All-Questioning
 Zimone, Mystery Unraveler
 Zodiac Horse
 Zodiark, Umbral God

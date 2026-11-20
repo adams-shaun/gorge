@@ -6,6 +6,7 @@ A-Ready to Rumble
 A-Tenured Inkcaster
 Aardvark Sloth
 Abattoir Ghoul
+Abundant Countryside
 Academy Rector
 Acceptable Losses
 Act of Aggression
@@ -82,6 +83,7 @@ Deathforge Shaman
 Dematerialize
 Diamond City
 Dig Up the Body
+Dino DNA
 Dinosaur Egg
 Dinosaurs on a Spaceship
 Disperse
@@ -143,6 +145,7 @@ Fyndhorn Elder
 Ganax, Astral Hunter
 Gatecreeper Vine
 Geist of the Moors
+Gemstone Mine
 Ghitu Chronicler
 Ghostfire Slice
 Giant Spectacle
@@ -152,6 +155,7 @@ Gigapede
 Golden-Tail Disciple
 Gonti, Lord of Luxury
 Gravecrawler
+Great Hall of Starnheim
 Griffin Protector
 Grimdancer
 Halcyon Glaze
@@ -295,6 +299,7 @@ Savra, Queen of the Golgari
 Scoria Elemental
 Scrapper Champion
 Scurry Oak
+Scurry of Squirrels
 Scytheclaw
 Sealock Monster
 Search for Glory
@@ -316,6 +321,7 @@ Spectral Grasp
 Spell Rupture
 Spelltithe Enforcer
 Sphere of Safety
+Spire Garden
 Spite of Mogis
 Spread the Sickness
 Star of Extinction
