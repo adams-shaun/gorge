@@ -2,6 +2,7 @@ package shadow
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -22,7 +23,7 @@ const (
 	ReasonUnknown  = "unknown-card"     // a card name the table does not hold
 	ReasonUnmapped = "unmapped-object"  // an object the caller's index cannot place
 	ReasonHidden   = "hidden"           // the dealt hidden zones disagree with the counts the view shows
-	ReasonExile    = "exile"            // exile or the command zone holds a card
+	ReasonExile    = "exile"            // exile holds a card, or the command zone a card that is not its commander
 	ReasonToken    = dirac.ReasonToken  // a copy, or a token the table has no plain creature token for
 	ReasonCounter  = "counter"          // a counter other than a nonzero +1/+1 count on a battlefield card
 	ReasonAttach   = dirac.ReasonAttach // an attachment dirac cannot rebuild, or one attached to a player
@@ -104,6 +105,9 @@ func WorldFromView(in *Input) (dirac.World, error) {
 		if err := b.seat(&w, &p, int(p.ID) == int(v.Viewer)); err != nil {
 			return w, err
 		}
+	}
+	if err := b.commanderDamage(&w); err != nil {
+		return w, err
 	}
 	if err := b.stack(&w); err != nil {
 		return w, err
@@ -308,8 +312,8 @@ func (b *builder) seat(w *dirac.World, p *view.PlayerView, viewer bool) error {
 	if s >= len(b.in.View.Players) {
 		return bad(ReasonSeats, "seat %d", s)
 	}
-	if len(p.Exile) != 0 || len(p.Command) != 0 {
-		return bad(ReasonExile, "seat %d", s)
+	if err := b.commander(w, p); err != nil {
+		return err
 	}
 	for _, n := range p.Pool {
 		if n != 0 {
@@ -329,6 +333,9 @@ func (b *builder) seat(w *dirac.World, p *view.PlayerView, viewer bool) error {
 	if err := b.shown(p.Graveyard, s, kop.ZoneGraveyard, true); err != nil {
 		return err
 	}
+	if err := b.shown(p.Command, s, kop.ZoneCommand, true); err != nil {
+		return err
+	}
 	var err error
 	if viewer {
 		err = b.shown(p.Hand, s, kop.ZoneHand, false)
@@ -343,6 +350,72 @@ func (b *builder) seat(w *dirac.World, p *view.PlayerView, viewer bool) error {
 	}
 	if p.GraveyardSize != len(p.Graveyard) {
 		return bad(ReasonHidden, "seat %d graveyard size", s)
+	}
+	return nil
+}
+
+// commander refuses an exile or command zone seat p's position cannot stage
+// (exile holds nothing; the command zone, its commander only) and reads the
+// commander: one a seat, its cast count, and each player's damage from it
+// (the damage is read once every seat's commander is known: commanderDamage).
+func (b *builder) commander(w *dirac.World, p *view.PlayerView) error {
+	s := int(p.ID)
+	if len(p.Exile) != 0 {
+		return bad(ReasonExile, "seat %d", s)
+	}
+	for i := range p.Command {
+		if !slices.ContainsFunc(p.Commanders, func(c view.CardView) bool { return c.ID == p.Command[i].ID }) {
+			return bad(ReasonExile, "seat %d command zone holds %s, not a commander", s, p.Command[i].Name)
+		}
+	}
+	if len(p.Commanders) > 1 {
+		return bad(dirac.ReasonCommander, "seat %d has %d commanders", s, len(p.Commanders))
+	}
+	if len(p.Commanders) == 0 {
+		w.Cmd[s] = dirac.NoObj
+		return nil
+	}
+	o, ok := b.in.ObjOf(int(p.Commanders[0].ID))
+	if !ok {
+		return bad(ReasonUnmapped, "seat %d commander %s (%d)", s, p.Commanders[0].Name, p.Commanders[0].ID)
+	}
+	w.Commander, w.Cmd[s] = true, o
+	if len(p.CommanderCasts) != 1 || p.CommanderCasts[0] < 0 || p.CommanderCasts[0] > 255 {
+		return bad(dirac.ReasonCommander, "seat %d commander casts %v", s, p.CommanderCasts)
+	}
+	w.CmdCasts[s] = uint8(p.CommanderCasts[0])
+	return nil
+}
+
+// commanderDamage reads each player's commander damage (CR 903.10a) into w:
+// for player q and seat p, what q took from p's commander. The map is read by
+// key, never ranged; a tally past a byte or on a card that is no seat's
+// commander is refused.
+func (b *builder) commanderDamage(w *dirac.World) error {
+	if !w.Commander {
+		return nil
+	}
+	v := &b.in.View
+	for q := range v.Players {
+		pq := &v.Players[q]
+		known := 0
+		for p := range v.Players {
+			if len(v.Players[p].Commanders) == 0 {
+				continue
+			}
+			id := v.Players[p].Commanders[0].ID
+			d, ok := pq.CmdDamage[id]
+			if ok {
+				known++
+			}
+			if d < 0 || d > 255 {
+				return bad(dirac.ReasonCommander, "seat %d commander damage %d", q, d)
+			}
+			w.CmdDamage[int(pq.ID)][int(v.Players[p].ID)] = uint8(d)
+		}
+		if known != len(pq.CmdDamage) {
+			return bad(dirac.ReasonCommander, "seat %d took damage from a card that is no seat's commander", q)
+		}
 	}
 	return nil
 }
