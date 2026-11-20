@@ -727,8 +727,28 @@ func init() {
 	mechName[mechEncSeat1] = "encSeat1"
 }
 
+// mech (dirac/manifest/mech/mechSkulk)
+//
+// slots whose permanent has skulk until end of turn (ExtKwMark KwMarkSkulk; kw_kwmark.go)
+const mechSkulk mech = 58
+
+func init() {
+	mechWidth[mechSkulk] = wSlot
+	mechName[mechSkulk] = "skulk"
+}
+
+// mech (dirac/manifest/mech/mechSkulkPost)
+//
+// slots marked skulk while their permanent had lost all abilities (CR 613.7)
+const mechSkulkPost mech = 59
+
+func init() {
+	mechWidth[mechSkulkPost] = wSlot
+	mechName[mechSkulkPost] = "skulkPost"
+}
+
 // numMech is one past the highest mech: the length of the arena's mech tables.
-const numMech mech = 58
+const numMech mech = 60
 
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).

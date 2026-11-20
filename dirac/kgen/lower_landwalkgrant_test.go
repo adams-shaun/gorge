@@ -33,15 +33,15 @@ func landwalkGrantProbe(t *testing.T, static string) (refusals, lir string) {
 
 // TestStaticLandwalkGrant: a Continuous static's AddKeyword$ Landwalk:<spec>
 // lowers to the static's Landwalk land filter (no keyword bit is free for it;
-// Goblin King, Lord of Atlantis), and a grant from an attached host or with no
-// land spec refuses by name.
+// Goblin King, Lord of Atlantis; an Aura's grant, Burrowing, lowers the same
+// way), and an Equipment's grant on a non-artifact or a grant with no land
+// spec refuses by name.
 func TestStaticLandwalkGrant(t *testing.T) {
 	checkForms(t, []formCase{
 		{card: "Goblin King", form: "static AddKeyword$ Landwalk:Mountain", lir: "landwalk="},
 		{card: "Lord of Atlantis", form: "static AddKeyword$ Landwalk:Island", lir: "landwalk="},
 	})
 	for _, c := range []struct{ name, static, want string }{
-		{"an Aura's grant refuses", "S:Mode$ Continuous | Affected$ Creature.EnchantedBy | AddKeyword$ Landwalk:Forest | Description$ x", "attached host"},
 		{"an Equipment's grant refuses", "S:Mode$ Continuous | Affected$ Creature.EquippedBy | AddKeyword$ Landwalk:Forest | Description$ x", "attached host"},
 		{"a landwalk with no spec refuses", "S:Mode$ Continuous | Affected$ Creature.Other+YouCtrl | AddKeyword$ Landwalk: | Description$ x", "no land spec"},
 	} {

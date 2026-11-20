@@ -1916,6 +1916,9 @@ func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
 	if s.Kind == "RetraceGrant" {
 		return cb.offKwGrantAbility(s)
 	}
+	if s.Kind == "IgnoreLandWalk" {
+		return cb.ignoreLandWalkAbility(s) // static_ignorelandwalk.go
+	}
 	return cb.static(s)
 }
 
