@@ -111,3 +111,17 @@ func (e *Engine) activationPhasesOK(p state.PlayerID, sa *cards.SA) bool {
 // activationPhaseKeys are the keys activationPhasesOK reads.
 var activationPhaseKeys = cards.ParamMaskOf(cards.PKActivationPhases, cards.PKActivationFirstCombat,
 	cards.PKActivationAfterBlockers, cards.PKPlayerTurn, cards.PKOpponentTurn)
+
+// activationGate is the narrow view grantedWindowOK needs of the engine.
+type activationGate interface {
+	activatorAllows(p state.PlayerID, id state.ObjID, ab *cards.SA) bool
+	activationPhasesOK(p state.PlayerID, sa *cards.SA) bool
+}
+
+// grantedWindowOK is the granted/gained-ability offer's Activator$ and
+// window gate: the same pair the printed loop applies, one call so the offer
+// walk's branch count does not grow (Necrotic Ooze's copy of Wu Longbowman's
+// "only during your turn, before attackers are declared").
+func grantedWindowOK(g activationGate, p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+	return g.activatorAllows(p, id, ab) && g.activationPhasesOK(p, ab)
+}
