@@ -6,9 +6,11 @@ A-Rockslide Sorcerer	80c1dd5898a0e48f	12	1/1		1/1
 A-Umara Mystic	cecfcf975ea10856	6	1/1		0/1	ix:resp
 Accelerated Evolution	6d1c1078a0453060	8	1/1		1/2	ix:resp
 Aerial Assault	9a59761c89086451	8	0/0		2/2	
+Alela, Cunning Conqueror	14711425a257b3a8	17	2/2		0/1	ix:resp
 Angelic Field Marshal	1f960b81be1ae51b	4	0/0		0/0	
 Animate Land	ca96eda71bd0e7e8	20	0/0		2/2	
 Appa, the Vigilant	d194add9ee323952	8	1/1		1/1	
+Archon of Absolution	00883525e009a507	4	0/0		0/0	
 Armor Thrull	743550c0ba174684	19	1/1		0/1	ix:resp
 Asphodel Wanderer	dddb88ef0a12584b	18	1/1		0/1	ix:resp
 Auron, Venerated Guardian	10e2b2b347c10f1f	12	1/1		1/1	
@@ -22,6 +24,7 @@ Biting Rain	6c2c845cd955b3c5	9	0/0		2/2
 Blight Sickle	bf230f6d4d8c3624	7	1/1		0/1	ix:resp
 Boldwyr Intimidator	04cde492aad58e36	5	2/2		1/1	
 Bolrac-Clan Basher	ed3daad830dbc9c6	41	0/0		1/2	cast/alt:disguised
+Branch of Vitu-Ghazi	e1ae654806d5a689	235	2/2		1/3	cast/alt:none,ix:resp
 Bubble Smuggler	a1de6f90724a9920	383	0/0		1/2	cast/alt:disguised
 Buccaneer's Bravado	36ef1c20561b371d	10	0/0		2/2	
 Burning Palm Efreet	a124a3e95d87454b	6	1/1		0/1	ix:resp
@@ -61,6 +64,7 @@ Drifting Meadow	47677ea212159e6a	38	2/2		1/1
 Dwarven Vigilantes	794af72b66324574	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Eidolon of Rhetoric	3afd9a2a76a4eccb	4	0/0		0/0	
 Ekthi, Contaminator Priest	a2324447f76b35fc	18	0/0		0/0	
+Elspeth, Undaunted Hero	8b9ca6ad3bfddcd5	3	3/3		0/1	ix:resp
 Emerge Unscathed	7bbf4f768539fe25	11	0/0		1/2	ix:resp
 Essence Feed	ae27113ec5bc8d48	10	0/0		1/2	ix:resp
 Etched Oracle	b4c4dd1f21dfe834	6	1/1		1/1	
@@ -78,6 +82,7 @@ Fountain of Cho	37d6fd9b8184315b	123	2/2		1/1
 Furnace Celebration	fd079f33d5d17e62	15	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Furnace Hellkite	78974a283bc2ed85	15	1/1		1/1	
 Galvanic Iteration	ada8cf8d366b9ccb	27	0/0		3/4	ix:resp
+Garenbrig Squire	afed862835858fb6	23	1/1		1/1	
 Gilt-Leaf Palace	9a2a3bf87ee5c8d5	115	1/1		0/1	ix:resp
 Gnome-Made Engine	e17a2e3ef946bd26	12	1/1		0/1	ix:resp
 Goblin Glider	d3adead6b92a74c8	11	0/0		0/0	
@@ -99,7 +104,9 @@ Infested Fleshcutter	f04b5704bad4ea4a	5	2/2		0/1	ix:resp
 Irencrag Pyromancer	e2e06bfc26890104	21	1/1		1/1	
 Iron Bully	59feb7b778c48bf3	11	1/1		1/1	
 Island	763c67ef7a27eaf5	1640	1/1		0/1	ix:resp
+Ixidor, Reality Sculptor	bef3cce26dfc90df	290	1/1		1/1	
 Keen-Eyed Raven	1aacb1686452b8ee	5	1/1		0/1	ix:resp
+Keeper of Kookus	da74f8eeb7ebe556	26	1/1		1/1	
 Knight of the Keep	1f491da90b7a6d1d	4	0/0		0/0	
 Kor Castigator	465c9bb276e94804	6	0/0		0/0	
 Lightning Hounds	264e30de4233ab00	10	0/0		0/0	
@@ -120,6 +127,7 @@ Mother of Runes	980010c5a3abbb75	8	1/1		1/1
 Mothrider Patrol	70db17fe2772c544	6	1/1		1/1	
 Mountain	9e71388353e907ed	434	1/1		0/1	ix:resp
 Mourning	6af883be95647e15	8	1/1		1/2	ix:resp
+Mummy Paramount	a9ebcc205aed95f4	4	1/1		0/1	ix:resp
 Novice Dissector	256c9c0c86285e4a	13	1/1		0/1	ix:resp
 Obscura Initiate	90678c7f08ff45b3	16	1/1		1/1	
 Onulet	b6100ee94aeacc84	29	1/1		0/1	ix:resp

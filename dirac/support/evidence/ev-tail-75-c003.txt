@@ -264,6 +264,7 @@ Sedgemoor Witch
 Seething Pathblazer
 Selhoff Occultist
 Shaman of Spring
+Shield of the Oversoul
 Shimmer of Possibility
 Show of Valor
 Shrine Keeper
@@ -286,6 +287,7 @@ Spindrift Drake
 Spirit Shackle
 Spirited Companion
 Spitebellows
+Spiteful Squad
 Spitfire Handler
 Sultai Emissary
 Sunscorched Desert

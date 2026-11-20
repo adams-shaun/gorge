@@ -196,6 +196,7 @@ Rhox Bodyguard
 River's Favor
 Road
 Root Spider
+Rugged Prairie
 Sai of the Shinobi
 Saltwater Stalwart
 Scavenging Scarab
@@ -274,5 +275,6 @@ Wind Zendikon
 Wing Commando
 Woodland Guidance
 Yellow Scarves Cavalry
+Yuna's Whistle
 Zar Ojanen, Scion of Efrava
 Zodiac Pig

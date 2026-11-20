@@ -72,6 +72,7 @@ Cemetery Reaper
 Centaur Peacemaker
 Cephalid Broker
 Certain Death
+Chained to the Rocks
 Chandra's Fury
 Chandra's Revolution
 Chartooth Cougar
@@ -281,6 +282,7 @@ Plaguemaw Beast
 Plains
 Plunder
 Polluted Mire
+Power Word Kill
 Prava of the Steel Legion
 Primal Empathy
 Prime Speaker Vannifar

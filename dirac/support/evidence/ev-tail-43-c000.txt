@@ -33,6 +33,7 @@ Blistering Dieflyn
 Bloodscent
 Bloodshot Trainee
 Bloodthorn Taunter
+Blue Ward
 Boggart Loggers
 Bonded Construct
 Bonescythe Sliver
@@ -372,6 +373,7 @@ Titania, Nature's Force
 Tooth Collector
 Topple
 Torrential Gearhulk
+Tower Above
 Triton Shorestalker
 Troll Ascetic
 Tuknir Deathlock

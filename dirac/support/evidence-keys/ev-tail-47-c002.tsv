@@ -3,6 +3,8 @@ Arcbound Mouser	26b4d818bfe3c22f	36	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Ardent Plea	98c5167262dcddd2	8	1/1		1/1	
 Arvad of the Weatherlight	38aabc5312f1bcba	34	1/1		0/1	ix:resp
 Avatar of Fury	d25fb04394bf2fef	4	1/1		1/1	
+Basilisk Gate	3a7c4e1074010955	10	2/2		0/1	ix:resp
+Behold the Multiverse	d543ee1a4d959790	6	0/0		2/4	cast/alt:foretold,ix:resp
 Berserkers' Onslaught	a88955e438a4ef83	4	0/0		0/0	
 Bruna, the Fading Light	fcdb8162a4602370	3	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Brutal Cathar	02a418d382deb39c	32	3/3		0/1	ix:resp
@@ -21,6 +23,7 @@ Electrolyze	ce8ae275e9f076fe	4	0/0		2/2
 Elspeth's Nightmare	cdfcea94406ed2f6	20	0/0		0/0	
 Embodiment of Insight	1dd55a9dce32491c	18	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Endangered Armodon	94041f1a8e13a88d	19	1/1		0/1	ix:resp
+Evangel of Heliod	a07259ed7a66b942	4	1/1		0/1	ix:resp
 Evincar's Justice	a3e67612b98098e8	3	0/0		3/4	cast/alt:buyback
 Eye Collector	94b790248e0c1f8b	4	1/1		0/1	ix:resp
 Fearless Skald	82ed65597f30c7a7	6	1/1		0/1	ix:resp
@@ -73,7 +76,12 @@ Thallid Germinator	4dd14f0a8fde2543	39	3/3		1/1
 Three Tragedies	8cb05eb076355d16	17	0/0		1/2	ix:resp
 Tragic Slip	18be260d67aef835	54	0/0		2/2	
 Ulgrotha Charm	b0dab69a74cc811e	4	0/0		1/2	ix:resp
+Utopia Sprawl	2ac20df01e770a9a	4	1/1		1/2	ix:resp
+Vampiric Embrace	a4fb490fde11100b	3	0/0		1/2	ix:resp
 Vengeful Dead	a7e72ec6ad24765d	22	1/1		0/1	ix:resp
+Vivid Grove	3606cc86b1c54ef8	11	2/2		0/1	ix:resp
+Vivid Marsh	f6e8cd4a55c2ccaa	3	2/2		0/1	ix:resp
 Vraska, Regal Gorgon	6f9134d331cf4df6	26	3/3		1/1	
 War Behemoth	b26d77a7acb438e4	28	0/0		1/2	cast/alt:morphed
 Warship Scout	46cc8218472c377a	25	0/0		0/0	
+Zhalfirin Void	2d0540d61eb9f695	8	2/2		0/1	ix:resp
