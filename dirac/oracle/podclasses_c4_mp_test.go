@@ -126,3 +126,31 @@ func chooseCtrlWatch(c *PickCtx) bool {
 func TestFourSeatChoosePlayerControlLockstep(t *testing.T) {
 	podClassLockstep(t, chooseCtrlPodDeck, 24, 10, chooseCtrlWatch, &dirac.DebugChosenNextSeat)
 }
+
+// Demonstrate (CR 702.152a: "choose an opponent to also copy it"). gorge's
+// demonstrate trigger asks the caster, after the may-copy election, which of
+// two or more living opponents also copies the spell (effDemonstrate stage
+// 1), and emits the caster's copy and that opponent's only once it is
+// answered. dirac asks the same (kw_demonstrate.go raTrigDemoOpp) and mints
+// nothing before it; it used to copy for every opponent at once (a stray copy
+// on the stack, an extra instance in the projection: Healing Technique in a
+// real 4-seat precon pod). The mutation (DebugDemoAllOpps) copies for every
+// opponent unasked, the two-seat reading.
+var demoPodDeck = []cardset.Entry{
+	{Name: "Excavation Technique", Count: 3}, {Name: "Healing Technique", Count: 3},
+	{Name: "Incarnation Technique", Count: 2}, {Name: "Replication Technique", Count: 2},
+	{Name: "Grizzly Bears", Count: 6}, {Name: "Hill Giant", Count: 3},
+	{Name: "Plains", Count: 7}, {Name: "Forest", Count: 7}, {Name: "Swamp", Count: 4}, {Name: "Island", Count: 4},
+}
+
+// demoWatch: gorge asks the demonstrate opponent with two or more candidates.
+func demoWatch(c *PickCtx) bool {
+	d := c.G.fr.d
+	return d != nil && d.ResumeKind == "demonstrate" && len(d.Options) >= 2 && d.Options[0].Kind == "player"
+}
+
+// TestFourSeatDemonstrateLockstep: four-seat demonstrate games play in
+// lockstep, the chosen opponent alone copying alongside the caster.
+func TestFourSeatDemonstrateLockstep(t *testing.T) {
+	podClassLockstep(t, demoPodDeck, 24, 3, demoWatch, &dirac.DebugDemoAllOpps)
+}
