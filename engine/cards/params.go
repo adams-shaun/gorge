@@ -220,6 +220,7 @@ const (
 	PKRemoveType
 	PKReplacementResult
 	PKRestrictValid
+	PKRevealed
 	PKReveal
 	PKRevolt
 	PKSVarCompare
@@ -1201,6 +1202,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRemoveType:                       "RemoveType",
 	PKReplacementResult:                "ReplacementResult",
 	PKRestrictValid:                    "RestrictValid",
+	PKRevealed:                         "Revealed",
 	PKReveal:                           "Reveal",
 	PKRevolt:                           "Revolt",
 	PKSVarCompare:                      "SVarCompare",
