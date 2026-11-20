@@ -859,7 +859,7 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		// stays at today's per-resolution lowering.
 		if c.Kind == cRefMatches && c.Ref.Kind == rRemembered &&
 			c.Op == opGE && c.A.Kind == vConst && c.A.N == 1 && !c.Neg &&
-			filterAnyCard(c.F) {
+			(filterAnyCard(c.F) || lc.selfSacrificeGate(c.F)) {
 			c = orCond(c, lCond{Kind: cRemMark})
 		}
 		// ConditionCheckSVar$ beside the present check is a conjunction
