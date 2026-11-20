@@ -1116,6 +1116,9 @@ func init() { enum[kop.KwID]("kop.KwStartingHandFive", kop.KwStartingHandFive) }
 // dirac/manifest/Pred/PredNamedCard
 func init() { enum[kop.Pred]("kop.PredNamedCard", kop.PredNamedCard) }
 
+// dirac/manifest/Pred/PredGoaded
+func init() { enum[kop.Pred]("kop.PredGoaded", kop.PredGoaded) }
+
 // dirac/manifest/Pred/PredProg
 func init() { enum[kop.Pred]("kop.PredProg", kop.PredProg) }
 

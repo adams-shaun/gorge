@@ -180,6 +180,7 @@ const (
 	cmpSharesCrCmdr   // sharesCreatureTypeWith Commander: a creature type shared with a commander of the evaluating controller (kop.PredSharesCrCmdr; no operator)
 	cmpPTBox          // two constant power/toughness compares in one clause (powerEQ1+toughnessEQ1, powerGE4+powerLE6): CmpN is the kop.PredStatBox bounds (ptBox; no operator)
 	cmpRingBearer     // IsRingbearer (CmpN 1) / !IsRingbearer (CmpN 0): the candidate is its controller's Ring-bearer (CR 701.54e; kop.PredRingBearer, act_ring.go ringLegend; no operator)
+	cmpGoaded         // IsGoaded (CmpN 1) / !IsGoaded (CmpN 0): the CR 701.15 goaded designation, by any player (kop.PredGoaded; no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -1249,13 +1250,13 @@ func (c *lClause) setWho(dst *uint8, v uint8) error {
 	return nil
 }
 
-// designationWord handles the renowned, Ring-bearer and suspected words.
-// Each is a designation read off the battlefield, CmpN 1 set and 0 not:
+// designationWord handles the renowned, Ring-bearer, suspected and goaded
+// words. Each is a designation read off the battlefield, CmpN 1 set and 0 not:
 // renowned (CR 702.112b; gorge filter.go IsRenowned: Object.Renowned,
 // cleared off the battlefield), the Ring-bearer (CR 701.54e; gorge
-// filter_word.go wordRingBearer, read live in act_ring.go ringLegend), and
-// suspected (CR 701.60; gorge filter.go IsSuspected). ok is false for any
-// other word.
+// filter_word.go wordRingBearer, read live in act_ring.go ringLegend),
+// suspected (CR 701.60; gorge filter.go IsSuspected) and goaded (CR 701.15b;
+// filter_goaded.go). ok is false for any other word.
 func (c *lClause) designationWord(p string) (ok bool, err error) {
 	n := 1
 	if strings.HasPrefix(p, "!") {
@@ -1268,6 +1269,8 @@ func (c *lClause) designationWord(p string) (ok bool, err error) {
 		return true, c.setCmp(cmpRingBearer, 0, n, "", "")
 	case "IsSuspected":
 		return true, c.setCmp(cmpSuspected, 0, n, "", "")
+	case "IsGoaded":
+		return true, c.goadedWord(n) // filter_goaded.go
 	}
 	return false, nil
 }
@@ -1349,4 +1352,4 @@ var bareCmpPreds = map[uint8]kop.Pred{cmpMonstrous: kop.PredMonstrous, cmpNoCoun
 
 // battlefieldPreds maps the compare words build.go's clause reads as one
 // battlefield-only predicate each.
-var battlefieldPreds = map[uint8]kop.Pred{cmpRenowned: kop.PredRenowned, cmpAttackingYou: kop.PredAttackingYou}
+var battlefieldPreds = map[uint8]kop.Pred{cmpRenowned: kop.PredRenowned, cmpAttackingYou: kop.PredAttackingYou, cmpGoaded: kop.PredGoaded}

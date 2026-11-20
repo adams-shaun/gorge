@@ -1,0 +1,25 @@
+# the ChangeCombatants / IsGoaded pool: the two Attacking$ True redirect
+# carriers (Misleading Signpost, Portal Mage) and the IsGoaded readers
+# (Baeloth Barrityl, Bothersome Quasit, Puppet Master, String Puller, The
+# Rani), beside goad sources already supported and aggressive creatures to
+# redirect or goad (dirac/oracle/combatantsgoad_lockstep_test.go).
+Misleading Signpost
+Portal Mage
+Baeloth Barrityl, Entertainer
+Bothersome Quasit
+Puppet Master, String Puller
+The Rani
+Taunting Kobold
+Goblin Racketeer
+Jeering Homunculus
+Disrupt Decorum
+Insufferable Balladeer
+Grizzly Bears
+Hill Giant
+Juggernaut
+Giant Growth
+Mountain
+Island
+Forest
+Swamp
+Plains
