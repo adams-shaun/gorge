@@ -336,6 +336,9 @@ func evalPlayerCountOpponents(h Host, c *Ctx, g *state.Game, rest, arg string, d
 	if n, ok2 := playerCountThanYou(h, g, c, opponentGroup(g, c), rest, arg, depth); ok2 {
 		return n, true, true
 	}
+	if n, ok2 := sumPlayerScalarProperty(h, g, opponentGroup(g, c), rest); ok2 {
+		return n, true, true
+	}
 	av, aok := playerCountExtreme(h, g, c, opponentGroup(g, c), rest, arg)
 	return av, aok, true
 }
