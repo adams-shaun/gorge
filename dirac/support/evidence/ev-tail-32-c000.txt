@@ -87,6 +87,7 @@ Definitely Not a Turtle
 Dementia Bat
 Demonic Tutor
 Demystify
+Deploy the Gatewatch
 Dismiss
 Dormant Sliver
 Drana, Liberator of Malakir
@@ -236,6 +237,7 @@ Mountain
 Mukotai Soulripper
 Multiversal Recruitment
 Mystic Restraints
+Nadier, Agent of the Duskenel
 Nephalia Smuggler
 Night Scythe
 Nimbus of the Isles
@@ -264,6 +266,7 @@ Pollenbright Wings
 Prakhata Pillar-Bug
 Precognition Field
 Prized Statue
+Proven Combatant
 Provoke
 Psychic Spear
 Pygmy Pyrosaur
@@ -347,12 +350,14 @@ Thraben Gargoyle
 Thran Lens
 Thriving Ibex
 Thunder Wall
+Titanic Brawl
 Tolarian Sentinel
 Tomb Fortress
 Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
 Tromell, Seymour's Butler
+True Conviction
 Turnabout
 Turntimber Ranger
 Tyranid Invasion

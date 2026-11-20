@@ -151,6 +151,7 @@ Evolving Adaptive
 Faerie Noble
 Falkenrath Marauders
 Familiar's Ruse
+Fanatic of Rhonas
 Farewell
 Fateful Showdown
 Feral Instinct
@@ -166,6 +167,7 @@ Flare of Denial
 Flatman
 Flowstone Charger
 Forest
+Forked-Branch Garami
 Foxfire Oak
 Frightcrawler
 From the Rubble

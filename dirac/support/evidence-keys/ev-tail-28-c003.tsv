@@ -6,8 +6,11 @@ Academy Rector	5a4cda381a3ede55	11	1/1		1/1
 Ad Nauseam	bc4cfa5cf0e3a8e0	12	0/0		2/2	
 Air Servant	bfc27301b7b94848	4	1/1		0/1	ix:resp
 Alora, Merry Thief	7fa470c3fd0868de	24	1/1		1/1	
+Alphinaud Leveilleur	c776dff79aadedc1	4	2/2		0/1	ix:resp
 Ancient Lumberknot	4f2079a46a6fd3ad	5	0/0		0/0	
 Aquastrand Spider	0e9ddac905982797	9	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Archetype of Imagination	49066222ff7d0096	8	0/0		0/0	
+Arnjlot's Ascent	7fb5724d1229a549	3	2/2		1/1	
 Aven of Enduring Hope	07aa6188b51108a1	5	1/1		1/1	
 Basilica Guards	df604e5bd25e938a	8	1/1		1/1	
 Battering Krasis	914e2d3ae14b067e	9	1/1		0/1	ix:resp
@@ -25,6 +28,7 @@ Brindle Boar	428e9f237302b7c1	9	1/1		1/1
 Bringer of the Black Dawn	86f7c1a6ac13b84d	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Caress of Phyrexia	dcc458ed5efb922a	10	0/0		2/2	
 Carrion Grub	df51286d573ce789	3	1/1		0/1	ix:resp
+Cast into Darkness	db790891c2269549	7	0/0		2/2	
 Charging Troll	cd22110c55857cd9	4	1/1		1/1	
 Chasm Guide	6fd2ae12ec9aea38	5	1/1		0/1	ix:resp
 Chief of the Scale	b2c3a59713cc87f7	21	0/0		0/0	
@@ -33,6 +37,7 @@ Cloudkin Seer	8b11ce063101e068	6	1/1		1/1
 Colossal Majesty	db90b4d625c40567	14	1/1		1/1	
 Combo Attack	57ea5b2dcc2a9fa4	10	0/0		1/2	ix:resp
 Daze	2a17c4b5c4257e3e	32	0/0		2/2	
+Death Pit Offering	629cf4352592090c	7	1/1		1/1	
 Deathbringer Thoctar	5db9954502b38543	22	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Deathforge Shaman	a60e26ed7eb3e79e	8	1/1		2/3	ix:resp
 Dematerialize	ea892e51d7ce4140	21	0/0		4/4	
@@ -40,6 +45,7 @@ Dinosaur Egg	1649cf67ee3f0d52	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Disperse	5e2a2942602ca9bc	11	0/0		1/2	ix:resp
 Distorted Curiosity	cb2e0eac4e458f84	18	0/0		1/2	ix:resp
 Divine Favor	cea7064b92e21c81	20	1/1		2/2	
+Doomgape	61e8c95dc2a9ae0c	3	1/1		0/1	ix:resp
 Dragonsguard Elite	e62af9e139858b41	10	2/2		0/1	ix:resp
 Dramatic Reversal	37ab582746521d2c	17	0/0		2/2	
 Dream Thrush	bbe7984cf11758b2	14	1/1		1/1	
@@ -49,6 +55,7 @@ Dying Wish	257b2c4dd99fc25f	19	1/1		2/2
 Elemental Appeal	0c578c3e2d34d64d	3	0/0		2/4	cast/alt:kicked,ix:resp
 Elemental, My Dear	f2ca0640f50f3b99	5	0/0		2/4	f0/s/x0,ix:resp
 Elf Replica	744cfad62a09de5c	8	1/1		0/1	ix:resp
+Embrace the Unknown	0588de6e232fd0ce	3	0/0		1/2	ix:resp
 Emergent Growth	682500fa46246736	7	0/0		1/2	ix:resp
 Entrapment Maneuver	021f6e5df7a0d7ab	28	0/0		2/2	
 Exotic Curse	672363a41090fabd	26	0/0		2/2	
@@ -78,6 +85,7 @@ Illuminate History	690f846ef04af5cb	6	0/0		2/2
 Infernal Tribute	6718d30934ab24da	20	1/1		1/1	
 Inferno Titan	f913ce031eb0bcf2	7	3/3		1/1	
 Initiate's Companion	5b027b21af4c30e8	8	1/1		0/1	ix:resp
+Inspired Sprite	37dbe1e7ae6498e0	10	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Invasion of Xerex	af4570654054d025	21	1/1		1/1	
 Kathari Remnant	5ea6315078f2bab8	22	1/1		1/1	
 Keen Glidemaster	e56a3f63ed2c01e8	12	1/1		1/1	
@@ -111,6 +119,7 @@ Night of Souls' Betrayal	d4624ccbd9c508dc	17	0/0		0/0
 Norn's Wellspring	153c1811a5e2b653	13	2/2		1/1	
 Nylea's Emissary	63bb29123658604d	4	0/0		2/2	
 Ondu Spiritdancer	f90cc9e3e0fa6893	14	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Opaline Unicorn	915fbede40e8f234	7	1/1		0/1	ix:resp
 Orchard Spirit	2ec64d11ee1797c0	14	0/0		0/0	
 Origin of the Hidden Ones	c369c87307d3c796	12	0/0		0/0	
 Original Skullclamp	6794f6eb7a50d349	5	2/2		0/1	ix:resp
@@ -119,6 +128,8 @@ Pearled Unicorn	0dc8aa9cb7b7ddd4	9	0/0		0/0
 Perish	72d356cc4bd0549e	10	0/0		1/2	ix:resp
 Petals of Insight	dbb45b18b56cf7f5	9	0/0		1/2	ix:resp
 Phantasmal Fiend	14f61414543b5243	25	2/2		1/1	
+Raging Cougar	c444c836ecb7341c	7	0/0		0/0	
+Raging Poltergeist	3e5dc38b44876d65	4	0/0		0/0	
 Ratchet Bomb	1021e6df220b89ef	20	2/2		1/1	
 Reflective Golem	23ee5736fa1f11e5	24	1/1		1/1	
 Resistance Skywarden	dabefd58bb318d98	3	0/0		0/0	

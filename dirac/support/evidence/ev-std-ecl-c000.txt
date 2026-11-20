@@ -3,35 +3,64 @@ Appeal to Eirdu
 Bark of Doran
 Bloom Tender
 Blossoming Defense
+Boldwyr Aggressor
+Boneclub Berserker
+Boulder Dash
+Brambleback Brute
+Bre of Clan Stoutarm
 Brigid's Command
 Bristlebane Battler
 Bristlebane Outrider
 Burdened Stoneback
+Catharsis
 Champion of the Clachan
+Champion of the Path
+Changeling Wayfinder
 Chomping Changeling
+Chronicle of Victory
+Cinder Strike
 Clachan Festival
 Crib Swap
 Crossroads Watcher
 Curious Colossus
 Dawn-Blessed Pennant
 Dundoolin Weaver
+Eclipsed Realms
+Elder Auntie
 Encumbered Reejerey
+End-Blaze Epiphany
+Enraged Flamecaster
 Evershrike's Gift
 Evolving Wilds
+Explosive Prodigy
+Feed the Flames
+Feisty Spikeling
 Figure of Fable
 Firdoch Core
+Flame-Chain Mauler
 Flock Impostor
 Forest
 Formidable Speaker
 Gallant Fowlknight
 Gathering Stone
+Giantfall
 Gilt-Leaf's Embrace
+Goatnap
 Goldmeadow Nomad
 Great Forest Druid
+Gristle Glutton
 Hallowed Fountain
+Hexing Squelcher
+Hovel Hurler
+Impolite Entrance
 Keep Out
 Kinbinding
+Kindle the Inner Flame
+Kinscaer Sentry
+Kirol, Attentive First-Year
 Kithkeeper
+Lasting Tarfire
+Lavaleaper
 Liminal Hold
 Lys Alana Informant
 Meanders Guide
@@ -39,29 +68,44 @@ Midnight Tilling
 Mirrormind Crown
 Mistmeadow Council
 Moonlit Lamenter
+Mountain
 Mutable Explorer
+Overgrown Tomb
+Personify
 Pitiless Fists
 Plains
 Prismabasher
 Prismatic Undercurrents
 Protective Response
 Pyrrhic Strike
+Reckless Ransacking
 Reluctant Dounguard
 Riverguard's Reflexes
 Rooftop Percher
 Sapling Nursery
+Scuzzback Scrounger
+Sear
 Shore Lurker
 Slumbering Walker
+Soulbright Seeker
+Sourbread Auntie
 Spiral into Solitude
 Springleaf Drum
+Squawkroaster
 Stalactite Dagger
+Steam Vents
+Sting-Slinger
+Sun-Dappled Celebrant
 Temple Garden
 Tend the Sprigs
 Thoughtweft Charge
 Thoughtweft Imbuer
 Thoughtweft Lieutenant
 Timid Shieldbearer
+Tributary Vaulter
+Tweeze
 Vinebred Brawler
 Virulent Emissary
+Wanderbrine Preacher
 Wanderbrine Trapper
 Wildvine Pummeler
