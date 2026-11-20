@@ -1843,7 +1843,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	// after prepLandGrant; on prep, not genPrep: the pinned fixed-State inventory is unchanged
 	p.landGrantPair = landGrantPairOn(t, p, g) // static_landgrantpair.go
 	prepCold(g, &p.cold)
-	prepGrantAct(t, p) // act_grantledger.go
+	prepGrantAct(t, p)     // act_grantledger.go
+	prepSkipPhaseOne(t, p) // act_skipphase.go
 	return g
 }
 
