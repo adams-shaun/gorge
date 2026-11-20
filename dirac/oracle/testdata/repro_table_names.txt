@@ -331,6 +331,7 @@ face_cast_restriction_reads_the_face std-woe
 face_down_creature_loses_granted_mana std-dsk
 face_down_exile_played_face_up_not_creature_entry std-spm
 face_down_granted_trigger std-mkm
+face_down_entry_creature_filter custom
 facedown_ward_of_a_printed_ward_card std-mkm
 fallers_faithful_destroyed_undamaged_target_draws_two custom
 fee_colour_hybrid_face std-mkm

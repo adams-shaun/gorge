@@ -2333,7 +2333,24 @@ func (o *Object) FaceDownTypeWords() []string {
 		}
 		return nil
 	}
-	set := strings.TrimSpace(o.FaceDownSetType)
+	return faceDownSetWords(o.FaceDownSetType)
+}
+
+// FaceDownEntryTypeWords is the base type set an object ENTERING face down
+// will carry (CR 708.4, 708.5): the folded FaceDownSetType when one was
+// granted, else {Creature}. Unlike FaceDownTypeWords it does not gate on
+// FaceDownHidden: a Moved replacement's ValidCard$ judges the entering object
+// before the move folds the face-down marker onto it (CR 614.12, 701.58a), so
+// the read answers the set the entry will carry, not the origin-zone card's
+// printed types.
+func (o *Object) FaceDownEntryTypeWords() []string {
+	return faceDownSetWords(o.FaceDownSetType)
+}
+
+// faceDownSetWords is a FaceDownSetType value's type-word set: {Creature} when
+// none was folded, else the set type split on Forge's " & " join.
+func faceDownSetWords(set string) []string {
+	set = strings.TrimSpace(set)
 	if set == "" {
 		return []string{"Creature"}
 	}
