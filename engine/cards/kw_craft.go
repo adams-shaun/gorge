@@ -87,18 +87,13 @@ func kwCraft(f *Face, _ int, k, _, param string, has func(kind, line string) boo
 	if has("A", k) || !CraftShapeSupported(param) {
 		return
 	}
-	body := craftMaterialBody(param)
 	// A material part's ";" multi-spec (every corpus spelling of it is a cost
 	// part: "ExileFromGrave<1/Artifact;Creature/artifact or creature card>",
-	// Ore-Rich Stalactite's red instant;sorcery pair) is FORGE's or-list, and
-	// the spec matcher's alternatives split is the comma
-	// (effects.filterAlternatives). The expander normalises the body once,
-	// here, so the part the cost parser binds and every reader of part.Spec
-	// (the payment candidates, the announced-X bound) evaluate the printed
-	// or-list with the matcher's own separator -- no reader re-implements the
-	// translation. The display text after the spec's "/" is prose; no corpus
-	// display spelling carries a ';'.
-	body = strings.ReplaceAll(body, ";", ",")
+	// Ore-Rich Stalactite's red instant;sorcery pair) is Forge's or-list; the
+	// parser normalises it to the matcher's ',' at load time, so the part the
+	// cost parser binds and every reader of part.Spec evaluate the printed
+	// or-list with the matcher's own separator.
+	body := normalizeCraftMaterialBody(craftMaterialBody(param))
 	cost := body + " Exile<1/CARDNAME>"
 	sa, _ := parseSA("", "AB$ ChangeZone | Cost$ "+cost+
 		" | ActivationZone$ Battlefield | SorcerySpeed$ True | Defined$ Self | Origin$ Exile | Destination$ Battlefield | Transformed$ True | Keyword$ Craft | SpellDescription$ Craft -- pay "+body+": return this transformed")
