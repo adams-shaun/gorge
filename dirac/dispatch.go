@@ -186,6 +186,18 @@ func (s *State) execCold4(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpAtEOT:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			s.atEOTRider(s.perms[sl].obj, in.C == 1)
+		} else if in.C == 0 {
+			// A next-end-step sacrifice is promised on the remembered object
+			// even when it is not on the battlefield: a one-card Dig that
+			// misses (no creature in the window) remembers the card it moved
+			// to the graveyard, and gorge's scheduleAtEOTRider still
+			// registers the untracked __kwEncoreSacrifice promise, so the end
+			// step puts a no-op trigger on the stack (CR 603.7). The exile
+			// rider is incarnation-tracked and is dropped once its object has
+			// left, so it keeps the battlefield-slot requirement.
+			if o := s.objRefObj(in.Obj); o != NoObj {
+				s.atEOTRider(o, false)
+			}
 		}
 	case kop.OpSkipNextUntap:
 		if in.F != 0 {
