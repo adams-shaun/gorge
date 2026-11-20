@@ -3873,18 +3873,7 @@ func (s *State) manaStep(k *prep) bool {
 				return true
 			}
 		default:
-			if !s.tapForTry(k, e.ctrl, &cost, int(e.x), NoObj, false) {
-				// The X ask can price an activation through the CR 601.2g window
-				// (availXWindow and a first-only filter's fee, filtMaxX; CR
-				// 605.3b), whose sources the planner's census does not price:
-				// pay it there, and reverse the activation only when the window
-				// cannot reach the cost either (CR 733.1), as gapWindowReverse's
-				// other arms do. A planner-priceable cost keeps its witness.
-				c := xFolded(cost, int(e.x))
-				if s.gapWindowReverse(k, e, &c, &saved, hostSl, sl, selfUntapped) {
-					return true
-				}
-			}
+			return s.abilityPlainMana(k, e, cost, &saved, hostSl, sl, selfUntapped)
 		}
 		s.bld().bfl &^= bflManaStep
 		if hostSl != NoSlot {
@@ -3913,6 +3902,31 @@ func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, sav
 		s.reverseActivation(k, saved, hostSl, sl, selfUntapped)
 		return true
 	}
+	return false
+}
+
+// abilityPlainMana is manaStep's plain-activation arm: the planner first, so an
+// ordinary cost keeps its witness, then the manual CR 601.2g window when the
+// census has none. The X ask can price an activation through that window
+// (availXWindow and a first-only filter's fee, filtMaxX; CR 605.3b), whose
+// sources the planner does not price. It runs the step's epilogue on every
+// path that keeps the activation, and reports true when the activation was
+// reversed because neither reaches the cost (CR 733.1).
+func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
+	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), NoObj, false) {
+		c := xFolded(cost, int(e.x))
+		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
+			return true
+		}
+	}
+	s.bld().bfl &^= bflManaStep
+	if hostSl != NoSlot {
+		s.perms[hostSl].flags &^= pfTapped
+	}
+	if selfUntapped {
+		s.perms[sl].flags &^= pfTapped
+	}
+	s.releaseCostTaps(k, saved)
 	return false
 }
 
