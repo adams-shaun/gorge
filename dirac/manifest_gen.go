@@ -758,6 +758,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.putCounterChoice(k, in) // ctr_choice.go
 	case kop.ExtRadiation:
 		return s.radiationExt(k, in) // act_radiation.go
+	case kop.ExtRememberPlayer:
+		return s.rememberPlayerOp(k, in) // act_rememberplayer.go
 	case kop.ExtRepeatOptional:
 		return s.repeatOptionalExt(k, in) // act_repeatoptional.go
 	case kop.ExtRingTemptsYou:

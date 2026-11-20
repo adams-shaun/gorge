@@ -573,6 +573,10 @@ func (lc *lowerCtx) pumpRememberOppController(t0 int) error {
 	lc.remOppLinks = links
 	lc.remOppSlot = t
 	lc.remOppAb = lc.ab
+	// The Draw runs after the GainControl, so the target's controller is
+	// captured here, as the Pump resolves (rememberedAlias reads it as
+	// RefResChosenPlayer).
+	lc.emit(lInstr{Op: "RememberPlayer", Obj: lRef{Kind: rTargetController, N: t}})
 	return nil
 }
 
@@ -606,28 +610,10 @@ func (lc *lowerCtx) remOppLink() bool {
 	return false
 }
 
-// reorderRemOppDraw puts a Pump-remembered controller's Draw ahead of the
-// GainControl it follows (Rules of Acquisition). The Pump captures the
-// target's controller as the Pump resolves, before the later GainControl:
-// the Draw's RefTargetController reads that player live, so it must run while
-// the target is still controlled by them. Both effects are part of one
-// resolution with no decision between, so the resolution's final state is
-// unchanged; a draw trigger that observes the permanent's controller sees it
-// one effect earlier than gorge does (a documented approximation).
-func (lc *lowerCtx) reorderRemOppDraw() {
-	if lc.remOppAb != lc.ab {
-		return // a nested ability's links, not this ability's
-	}
-	for i := 0; i+1 < len(lc.ab.Prog); i++ {
-		// seat-exact: the Draw names the target's controller, not a seat count
-		if lc.ab.Prog[i].Op == "GainControl" &&
-			lc.ab.Prog[i].Obj == (lRef{Kind: rTarget, N: lc.remOppSlot}) &&
-			lc.ab.Prog[i+1].Op == "Draw" &&
-			lc.ab.Prog[i+1].Obj == (lRef{Kind: rTargetController, N: lc.remOppSlot}) {
-			lc.ab.Prog[i], lc.ab.Prog[i+1] = lc.ab.Prog[i+1], lc.ab.Prog[i]
-			i++
-		}
-	}
+// clearRemOpp drops the lowering state a Pump RememberObjects$
+// TargetedController recorded (pumpRememberOppController). The chain's Draw
+// already read it through rememberedAlias; the next ability must not.
+func (lc *lowerCtx) clearRemOpp() {
 	lc.remOppLinks, lc.remOppSlot, lc.remOppAb = nil, 0, nil
 }
 

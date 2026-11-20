@@ -1,0 +1,5 @@
+family: ExtOp
+name: ExtRememberPlayer
+value: next
+status: active
+doc: Pump RememberObjects$ TargetedController: record the target's controller as the resolution's player (res.chPl) so the chained Draw can read it after the GainControl (Rules of Acquisition; CR 608.2c).

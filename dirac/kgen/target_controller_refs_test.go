@@ -70,21 +70,24 @@ func TestTargetControllerRefsAnySeats(t *testing.T) {
 		t.Fatal("no ExLifeLostThisTurn expression: the targeted-player life-lost lowering never ran")
 	}
 
-	// Rules of Acquisition: the third rule's Draw reads the Pump's
-	// remembered target controller (the other mode's Draw is You), and it
-	// runs before the GainControl so that controller is still the target's.
-	draws, tgt, drawAt, gainAt := 0, 0, -1, -1
+	// Rules of Acquisition: the third rule's Draw reads the player the Pump's
+	// RememberPlayer instruction captured (the other mode's Draw is You), and
+	// it runs after the GainControl, so the permanent's new controller does
+	// not see the old controller's draws (CR 608.2c).
+	draws, rem, recordAt, drawAt, gainAt := 0, 0, -1, -1, -1
 	for _, a := range cards["Rules of Acquisition"].Abilities {
 		for i, in := range a.Prog {
 			switch {
 			case in.Op == "Draw":
 				draws++
-				if in.Obj.Kind == rTargetController {
-					tgt++
+				if in.Obj.Kind == rResChosenPlayer {
+					rem++
 					if drawAt < 0 {
 						drawAt = i
 					}
 				}
+			case in.Op == "RememberPlayer" && recordAt < 0:
+				recordAt = i
 			case in.Op == "GainControl" && gainAt < 0:
 				gainAt = i
 			}
@@ -93,11 +96,14 @@ func TestTargetControllerRefsAnySeats(t *testing.T) {
 	if draws == 0 {
 		t.Fatal("Rules of Acquisition has no Draw instruction: the card was not lowered")
 	}
-	if tgt == 0 {
+	if rem == 0 {
 		t.Errorf("Rules of Acquisition's %d Draws: none reads the remembered target controller", draws)
 	}
-	if drawAt >= 0 && gainAt >= 0 && drawAt > gainAt {
-		t.Errorf("Rules of Acquisition draws for the remembered controller at %d after the GainControl at %d: the ref reads the new controller", drawAt, gainAt)
+	if recordAt < 0 || gainAt < 0 || recordAt > gainAt {
+		t.Errorf("Rules of Acquisition records the remembered controller at %d and gains control at %d: the Draw must record the controller before the GainControl", recordAt, gainAt)
+	}
+	if drawAt >= 0 && gainAt >= 0 && drawAt < gainAt {
+		t.Errorf("Rules of Acquisition draws for the remembered controller at %d before the GainControl at %d: the draw trigger sees the old controller", drawAt, gainAt)
 	}
 
 	// Legions to Ashes: the same-name token clause reads target 0's
