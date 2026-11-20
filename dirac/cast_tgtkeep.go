@@ -209,3 +209,24 @@ func (s *State) minTargetsKept(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cost
 	}
 	return t.spellTargetsFeasible(k, c, p) || r.targetsKept(k, p, sp, t, o) || t.witnessEndsGameWon(k, p, c, n0)
 }
+
+// plainCensusPays reports whether p's tier-1 census (availPlain: the pool and
+// the printed sources, no gaps and no grants) pays cost outright. gorge's
+// payment planner then prices the cast and attaches its planned payment
+// (payment_plan.go paymentActionsForPriority), which runs no witness replay:
+// the oracle plays that plan at payment (CR 601.2g-h), after the targets, and
+// no prefix search runs. A plan that sacrifices more sources than the replay's
+// wait budget lets resolve (Pain Distributor's trigger for each of five
+// Treasures, witnessWaits) is still the planned payment, whatever a granted
+// source (Rishkar's {T}: Add {G}) could do first.
+func (s *State) plainCensusPays(k *prep, p uint8, cost *kop.ManaCost) bool {
+	f := s.fork()
+	defer s.unfork()
+	m := f.g.availX
+	f.g.availX = availPlain
+	var av avail
+	f.availFor(k, p, &av)
+	ok := av.affords(cost, pipMaskOf(cost), 0)
+	f.g.availX = m
+	return ok
+}
