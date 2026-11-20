@@ -170,7 +170,7 @@ func (s *State) ctrBesideGrant(k *prep, p uint8) bool {
 	}
 	for b := m; b.any(); b = b.rest() {
 		a := k.ctrAbOf(s.cardAt(b.first()))
-		if !deadCtrAb(a) && !kop.StoreManaAb(a) {
+		if !deadCtrAb(a) && (!kop.StoreManaAb(a) || k.ctrSecond(s.cardAt(b.first()))) {
 			return true // the grant search lists the plain and counter-scaled sacrifice shapes (candidates)
 		}
 	}
