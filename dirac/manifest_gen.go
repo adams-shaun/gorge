@@ -57,6 +57,11 @@ const raRingBearer uint8 = 159
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
 const raRingLoot uint8 = 160
 
+// ask (dirac/manifest/ask/raTrigDemoOpp)
+//
+// the demonstrate trigger's opponent pick (CR 702.152a; gorge effDemonstrate stage 1): which living opponent also copies the spell, asked with two or more of them (kw_demonstrate.go).
+const raTrigDemoOpp uint8 = 160
+
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
 
