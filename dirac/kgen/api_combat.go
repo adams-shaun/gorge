@@ -7,6 +7,7 @@ import (
 // The api: effects for tapping, combat, attachment and control (lower_api.go).
 func init() {
 	apiPS("Airbend", (*lowerCtx).airbend) // lower_airbend.go
+	apiPS("Meld", (*lowerCtx).meld)       // lower_meld.go
 	apiOp("Tap", (*lowerCtx).apiTap)
 	apiOp("Untap", (*lowerCtx).apiTap)
 	apiPS("RemoveFromCombat", (*lowerCtx).removeFromCombat) // lower_removefromcombat.go

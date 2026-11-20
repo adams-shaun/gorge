@@ -879,6 +879,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 				return lCond{}, err
 			}
 			cmp, ok := ps.get("ConditionSVarCompare")
+			if !ok && lc.out.FaceMode == kop.FaceMeld {
+				cmp, ok = "GE1", true // Forge's default compare, gorge CheckSVarCompare (Urza, Hanweir Battlements: lower_meld.go)
+			}
 			if !ok {
 				return lCond{}, refuse("ConditionCheckSVar$ %q without ConditionSVarCompare$", cs)
 			}

@@ -115,6 +115,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtAirbend:
 		s.airbend(k, in) // act_airbend.go
 		return true, true
+	case kop.ExtMeld:
+		s.meld(k, in) // face_meld.go
+		return true, true
 	case kop.ExtSweepFrom:
 		s.sweepFrom(k, in) // act_sweepdamage.go
 		return true, true

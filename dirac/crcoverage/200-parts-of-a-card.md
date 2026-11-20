@@ -35,7 +35,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 202.3 | follows | `dirac/kop/costs.go#ManaCost.MV` | - | subrule gaps below |
 | 202.3a | follows | `dirac/kop/costs.go#ManaCost.MV` | - | - |
 | 202.3b | follows | `dirac/prep.go#prepare` `dirac/kop/costs.go#ManaCost.MV` | `TestBackFaceManaValueIsFront` `TestCopyOfBackFaceMV0` `TestFacesTransformLockstep` | a transforming DFC's back face has the front face's mana value (CR 712.8e); prep copies the front `total` into the back face's `pc.total`, so a CMC predicate reads 3 for Restoration of Eiganjo's back and 1 for Okiba Reckoner Raid's back; a copy's back face stays 0 (gorge mana_value.go's CopyFace branch) |
-| 202.3c | n/a | - | - | SILENT; melded permanent MV 0 |
+| 202.3c | follows | `dirac/kgen/lower_meld.go#lowerCtx.meldResultCost` | `TestKgenMeldResultCost` | a melded permanent's MV is the sum of its two cards' front faces (CR 712.8g); a copy's is 0 |
 | 202.3d | n/a | - | - | split card off stack uses first half's MV (probe) |
 | 202.3e | follows | `dirac/value_objectmv.go#State.objMV` `dirac/static_cda.go#State.stackXMV` `dirac/filters_gen.go#State.matchCardOne` | `TestMVOfStackSpellCountsX` | a spell's MV on the stack includes the chosen X; every Ref-based MV read (ExMVOf, targetMV, rememberedMV) goes through objMV |
 | 202.3f | follows | `dirac/kop/costs.go#ManaCost.MV` | `TestTwobridMV` `TestTwobridLockstep` | a twobrid pip ({2/B}) counts 2 (`ManaCost.MV` for the `HybTwobrid` marker), as gorge's `Face.Cmc` does at this pin (`face.go` twobridManaValue): {2/B}{2/B}{2/B} is 6, Karn, Gilded Guardian 10; the Eliminate (cmcLE3) and Despark / Kin-Tree (cmcGE4) counters of `TestTwobridLockstep` read it |

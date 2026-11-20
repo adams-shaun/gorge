@@ -138,6 +138,15 @@ func TestMeldVanilleFangRagnarok(t *testing.T) {
 			}
 			e.emit(events.Event{Kind: events.MoveZone, Obj: v, From: state.ZBattlefield, To: to})
 			assertSplit(t, e, to, map[state.ObjID]string{v: vanille, f: fang})
+			if to == state.ZGraveyard {
+				// Ragnarok's own "when this dies" line (its trigger 0) is pushed face-packed:
+				// the object has split back to Vanille, whose own trigger 0 is her ETB line,
+				// so a plain index would resolve the wrong ability (triggerPushAmount).
+				sa := e.G.Obj(v).Card.Faces[1].Triggers[0].Effect
+				if got, want := triggerPushAmount(e.G, pendingTrigger{Source: v, Idx: 0, SA: sa}), events.TriggerPushFaceAmount(1, 0); got != want {
+					t.Fatalf("triggerPushAmount = %d, want the face-packed %d", got, want)
+				}
+			}
 			if diff := diffGames(e.G, replayFromLog(t, cfg, e.L.Events)); diff != "" {
 				t.Fatalf("log-only replay differs:\n%s", diff)
 			}

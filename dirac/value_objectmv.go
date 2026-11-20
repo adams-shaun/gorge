@@ -168,7 +168,7 @@ func (s *State) mvPerm(k *prep, sl Slot) int {
 func (s *State) copiesBackFace(k *prep, sl Slot) bool {
 	c := s.cardAt(sl)
 	cd := &k.t.Cards[c]
-	if cd.FaceMode != kop.FaceTransform || cd.Face == 0 {
+	if cd.FaceMode != kop.FaceTransform && cd.FaceMode != kop.FaceMeld || cd.Face == 0 { // CR 712.8e / 202.3c: a copy of a melded face prints no cost
 		return false
 	}
 	return s.perms[sl].ovr.flags&ovCopy != 0 || s.objs[s.perms[sl].obj].of&ofCopy != 0
