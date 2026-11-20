@@ -1320,13 +1320,27 @@ func (s *State) storeGapLive(k *prep, p uint8) bool {
 }
 
 // phasedFallback: the plain run found no script after spending its whole node
-// budget on a board whose gaps are filters alone, one of them a repeatable
-// fee-only one or a multi-unit fee gap -- the cases gorge's phased run prices
-// outside the plain order (potentialPrefixScript's second build, feeOrder for
-// a cast with a multi-unit fee gap). Boards with another kind of gap keep the
-// plain run's answer.
-func (fs *filtSearch) phasedFallback() bool {
-	return (fs.feeOnly || fs.feeGap) && !fs.other.any() && fs.pay == nil && fs.nodes >= potentialScriptNodes
+// budget on a board whose gaps are filters alone. gorge's phased run may price
+// a play only where phasedScope puts it in scope: a plain run limited on a
+// repeatable fee-only filter (plainLimited), under which every play kind is in
+// scope, or a plain cast with a multi-unit fee gap (potential_script.go
+// build's feeOrder, which phasedScope makes in scope). A multi-unit fee gap is
+// a board property, so the feeGap arm is gated on the play's own scope: an
+// activation, kicked or otherwise moded cast, or alt-cost cast on the same
+// board keeps the plain run's answer, exactly as gorge's phasedOutOfScope
+// leaves it. Boards with another kind of gap keep the plain run's answer.
+func (s *State) phasedFallback(k *prep, fs *filtSearch, p uint8) bool {
+	if fs.other.any() || fs.pay != nil || fs.nodes < potentialScriptNodes {
+		return false
+	}
+	if fs.feeOnly {
+		return true // plainLimited: phasedOutOfScope lets every play kind through
+	}
+	// The other in-scope phasedScope shapes (a cast whose base cost sacrifices
+	// or returns a permanent, a hybrid-fee gap) are not opened by this arm:
+	// they are not gorge's feeOrder build, and the kernel's phased mirror for
+	// them is a separate scope. Only the feeOrder play is widened here.
+	return fs.feeGap && s.feeOrderCast(k, fs.a, p)
 }
 
 // filtFeeGapSlot reports whether the filter at sl is a multi-unit fee gap:
@@ -1350,10 +1364,12 @@ func (s *State) filtFeeGap(k *prep, f slotMask) bool {
 }
 
 // feeOrderCast reports a plain cast the feeOrder pass order is built for:
-// gorge builds feeOrder only for optCast with no mode, no alternative cost,
-// and no sacrifice or return in the play's base cost (phasedScope).
+// gorge builds feeOrder only for optCast with mode "", no alternative cost,
+// and no sacrifice or return in the play's base cost (phasedScope). A keyword
+// cast whose dirac action carries a sentinel target (cleave, beam me up,
+// dash, ...) is a non-empty mode in gorge, so the target test excludes it too.
 func (s *State) feeOrderCast(k *prep, a Action, p uint8) bool {
-	if a.Kind() != AkCast || a.Mode()&3 != 0 || a.Mode()&(castMayPlay|castFace|castWarp) != 0 || a.Target() != 0 {
+	if a.Kind() != AkCast || a.Mode() != 0 || a.Target() != 0 {
 		return false
 	}
 	if k.t.Cards[s.objs[Obj(a.Source())].card].SpellCost.Flags&(kop.CostSac|kop.CostReturn|kop.CostReturnSelf) != 0 {
@@ -1399,10 +1415,11 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	s.pool.inFilt++ // (fork made the pool)
 	found := fs.visit(k, t, 0, false)
-	if !found && fs.phasedFallback() {
+	if !found && s.phasedFallback(k, &fs, p) {
 		// gorge's plain run spent its node budget on a repeatable fee-only
-		// filter's branches: its phased run walks the funding line the plain
-		// order walked past (potentialPrefixScript)
+		// filter's branches or on a plain order that never reached a
+		// multi-unit fee gap after funding: its phased run walks the funding
+		// line the plain order walked past (potentialPrefixScript, feeOrder)
 		ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
 			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true, feeGap: fs.feeGap}
 		ph.feeOrder = fs.feeGap && s.feeOrderCast(k, fs.a, p)
