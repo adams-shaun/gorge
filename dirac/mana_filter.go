@@ -1274,6 +1274,10 @@ type filtSearch struct {
 	// fee (paid from the floating pool, CR 601.2b), and without the plain
 	// run's fee-stall prune (feeStall is set on the plain run only).
 	phased bool
+	// feeOrder: the phased run's generic mana-fee order (scriptSearch.feeOrder,
+	// mana_filterfeeorder.go): the covered funding, the multi-unit fee gaps,
+	// then the other gaps.
+	feeOrder bool
 }
 
 // deferGapLeft: the search still holds an untapped filter gap whose tap
@@ -1439,7 +1443,17 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	s.pool.inFilt++ // (fork made the pool)
 	found := fs.visit(k, t, 0, false)
 	nodes := fs.nodes
-	if !found && fs.phasedFallback() {
+	if !found && fs.feeOrderRun(k, s) {
+		// gorge's phased run in its fee order: a cast beside a multi-unit fee
+		// gap (Baxter Building) funds the fee before the gap is activated
+		// (mana_filterfeeorder.go)
+		fo := fs.feeOrderSearch()
+		if found = fo.visit(k, t, 0, false); found {
+			fs = fo
+		} else if fs.stall == 0 {
+			fs.stall = fo.stall
+		}
+	} else if !found && fs.phasedFallback() {
 		// gorge's plain run spent its node budget on a repeatable fee-only
 		// filter's branches: its phased run walks the funding line the plain
 		// order walked past (potentialPrefixScript)
@@ -2177,6 +2191,9 @@ func (fs *filtSearch) passCount() int {
 // skipped: the funding passes are once the funding is spent (gorge's phase
 // loop breaks there, so the phased run's last gap pass goes with it).
 func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOnly, skip bool) {
+	if fs.feeOrder {
+		return pass != 0, false, pass == 0 && funded >= fs.fees // (mana_filterfeeorder.go)
+	}
 	gap = pass == 0 || fs.phased && pass == 2
 	freeOnly = fs.phased && pass == 0
 	if gap {
@@ -2255,7 +2272,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				}
 				continue
 			}
-			if fs.skipSlot(k, t, sl, gap, freeOnly) {
+			if fs.skipSlot(k, t, sl, gap, freeOnly) || gap && fs.feeOrderSkip(k, t, sl, pass) {
 				continue
 			}
 			if gap && fs.other.has(sl) {
