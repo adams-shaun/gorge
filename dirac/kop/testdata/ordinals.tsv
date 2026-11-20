@@ -659,6 +659,7 @@ KwKicker	KwMask	2097152
 KwLifelink	KwMask	32
 KwMarkInfect	untyped int	2
 KwMarkIntimidate	untyped int	1
+KwMarkSkulk	untyped int	8
 KwMarkSwitchPT	untyped int	4
 KwMenace	KwMask	512
 KwPreventCombatDamageFrom	KwMask	536870912
@@ -1733,6 +1734,7 @@ W7Snow	int16	37
 W7WithDisguise	int16	22
 W7WithFlashback	int16	26
 W7WithInfect	int16	28
+W7WithSkulk	int16	40
 W7WithWarp	int16	11
 WhoseAny	Whose	0
 WhoseChosen	Whose	201

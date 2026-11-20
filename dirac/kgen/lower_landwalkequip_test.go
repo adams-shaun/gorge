@@ -34,14 +34,14 @@ func landwalkEquipProbe(t *testing.T, static string) (refusals, lir string) {
 
 // TestEquipmentLandwalkGrant: an Equipment's AddKeyword$ Landwalk:<spec>
 // (Trailblazer's Boots) lowers to the static's land filter beside its
-// equipped-creature filter; an Aura's grant still refuses by name.
+// equipped-creature filter, and an Aura's grant (Burrowing) lowers the same way.
 func TestEquipmentLandwalkGrant(t *testing.T) {
 	got, lir := landwalkEquipProbe(t, "S:Mode$ Continuous | Affected$ Creature.EquippedBy | AddKeyword$ Landwalk:Land.nonBasic:Nonbasic land | Description$ x")
 	if got != "" || !strings.Contains(lir, "landwalk=") {
 		t.Errorf("an Equipment's landwalk grant: refusals %q, lir %q", got, lir)
 	}
-	if got, _ := landwalkGrantProbe(t, "S:Mode$ Continuous | Affected$ Creature.EnchantedBy | AddKeyword$ Landwalk:Forest | Description$ x"); !strings.Contains(got, "attached host") {
-		t.Errorf("an Aura's landwalk grant: refusals %q, want the attached-host reason", got)
+	if got, lir := landwalkGrantProbe(t, "S:Mode$ Continuous | Affected$ Creature.EnchantedBy | AddKeyword$ Landwalk:Land.nonBasic:Nonbasic land | Description$ x"); got != "" || !strings.Contains(lir, "landwalk=") {
+		t.Errorf("an Aura's landwalk grant: refusals %q, lir %q, want it lowered", got, lir)
 	}
 }
 
