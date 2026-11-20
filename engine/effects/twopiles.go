@@ -380,14 +380,17 @@ func twoPilesBattlefieldSet(h Host, c *Ctx, sa *cards.SA, pool state.PlayerID) [
 
 // twoPilesGraveyardSet is the graveyard-pool shape's card set (Death or
 // Glory): the pool player's graveyard cards the ValidCards$ spec matches, in
-// zone order (deterministic).
+// zone order (deterministic). The spec can read a colour, keyword or P/T, so
+// the context binds the on-demand layer tables (CR 613.3) before matching.
 func twoPilesGraveyardSet(h Host, c *Ctx, sa *cards.SA, pool state.PlayerID) []state.ObjID {
 	g := h.Game()
 	spec := twoPilesValidCards(sa)
+	sc := c.SpecContext(c.Controller)
+	bindSpecLayerTables(h, &sc.Layers, spec, false)
 	var ids []state.ObjID
 	for _, id := range g.Zone(state.ZGraveyard, pool) {
 		if o := g.Obj(id); o != nil && o.Controller == pool &&
-			MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			MatchesSpecCtx(g, spec, id, sc) {
 			ids = append(ids, id)
 		}
 	}
