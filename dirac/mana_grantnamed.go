@@ -58,3 +58,27 @@ func (s *State) stepNamed(k *prep, sl Slot, gi int16, mask uint8) bool {
 	}
 	return mask&^cols == 0 // colours beyond the Combo's are the intrinsic abilities' (CR 305.7)
 }
+
+// grantHoisted reports whether the step on sl that taps granted ability gi is
+// one gorge's "choose a mana ability" ask walks ahead of the source's printed
+// abilities (scriptOrderManaAbilityAnswers): a granted fixed-colour ability
+// (no colour ask, no Combo flattening) that makes a colour the play needs.
+// Its colours form pass 1 of the ask (sel 1) and drop out of pass 2, so a
+// restricted printed ability's unspendable mana (Woodland Weavemaster's
+// Elf-only mana beside Citanul Hierophants' {T}: Add {G}) no longer floats
+// first and shadows the granted unit's identical payer state (CR 601.2g).
+func (g *grantSrch) grantHoisted(t *State, sl Slot, gi int16, mask uint8) bool {
+	if gi < 0 || mask == uint8(kop.ColAny) {
+		return false
+	}
+	ab := t.stepAbility(g.k, sl, gi, nil)
+	if ab == nil || uint8(ab.ManaColors)&0x3f == uint8(kop.ColAny) || t.stepNamed(g.k, sl, gi, mask) {
+		return false
+	}
+	for c := range g.need {
+		if g.need[c] && mask&(1<<c) != 0 {
+			return true
+		}
+	}
+	return false
+}
