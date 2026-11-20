@@ -430,6 +430,27 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 			}
 			for _, feeMask := range feeMasks {
 				if any {
+					// A Combo production allocates its Amount$ units one at a
+					// time, so a two-mana "add two mana in any combination of
+					// colors" source (Sage of the Maze) can pay
+					// {W}{G}: the split, not two units of one colour. The
+					// window's reach prices every bounded allocation; past the
+					// bound the single-colour alternatives stand, never fewer
+					// than the pre-split window. A plain "Any" is one colour by
+					// definition and keeps them too.
+					if effects.IsComboAllocation(mp.Produced) && !mp.NeedsChosen && !mp.AnyDifferent {
+						if combos := windowAnyCombinations(counts, amt); combos != nil {
+							for _, combo := range combos {
+								alt := windowManaAlt{Ma: ma, Counts: combo, Amt: 1, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac}
+								if post {
+									postAlts = append(postAlts, alt)
+								} else {
+									windowUnits = appendCastWindowAlt(windowUnits, id, alt)
+								}
+							}
+							continue
+						}
+					}
 					for colour, n := range counts {
 						if n == 0 {
 							continue
@@ -458,6 +479,49 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 		}
 	}
 	return windowUnits
+}
+
+// maxWindowAnyCombination bounds the concrete allocations windowAnyCombinations
+// expands a Combo production into: C(n+4,4) alternatives (15 at n=2, 70 at
+// n=4). Past it the single-colour alternatives stand, because the expansion is
+// a reach-walk cost, not a correctness fence.
+const maxWindowAnyCombination = 4
+
+// windowAnyCombinations returns every multiset of n mana over the colours
+// avail names, as concrete Counts vectors (Amt 1): a Combo production with
+// Amount$ n makes n mana in any combination of those colours (the card's own
+// text), not n mana of one colour. nil when n is outside the bounded range, or when fewer
+// than two colours are available (one colour's only split is the existing
+// single-colour alternative).
+func windowAnyCombinations(avail [6]int32, n int32) [][6]int32 {
+	if n < 2 || n > maxWindowAnyCombination {
+		return nil
+	}
+	var colours []int
+	for i, c := range avail {
+		if c > 0 {
+			colours = append(colours, i)
+		}
+	}
+	if len(colours) < 2 {
+		return nil
+	}
+	var out [][6]int32
+	var cur [6]int32
+	var walk func(i int, left int32)
+	walk = func(i int, left int32) {
+		if i == len(colours)-1 {
+			cur[colours[i]] = left
+			out = append(out, cur)
+			return
+		}
+		for k := int32(0); k <= left; k++ {
+			cur[colours[i]] = k
+			walk(i+1, left-k)
+		}
+	}
+	walk(0, n)
+	return out
 }
 
 // castWindowRestrictedSpendable reports whether a RestrictValid$ mana ability
