@@ -328,8 +328,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			pumpPermanent = true
 		case IsNextTurnDuration(pumpDuration):
 			// AddContinuous derives the UntilTurn boundary from the live rotation.
-		case strings.EqualFold(pumpDuration, "EOT") || strings.EqualFold(pumpDuration, "EndOfTurn") ||
-			strings.EqualFold(pumpDuration, "UntilEndOfTurn"):
+		case clonePumpDurationEOT(pumpDuration):
 			pumpUntilEOT = true
 		default:
 			emitNote(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,

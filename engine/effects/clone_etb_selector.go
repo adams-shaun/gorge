@@ -129,5 +129,5 @@ func CloneETBOffered(sa *cards.SA, svars map[string]string) bool {
 // creature through the ordinary Clone resolution, the become operand being
 // the replaced card.
 func CloneForeignEntryOffered(sa *cards.SA) bool {
-	return sa != nil && CloneOf(sa).ETBForeignShapeOK
+	return isCloneSA(sa) && CloneOf(sa).ETBForeignShapeOK
 }

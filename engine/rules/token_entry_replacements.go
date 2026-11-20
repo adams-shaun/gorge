@@ -128,7 +128,7 @@ func tokenEntryBody(result, destination string, with *cards.SA) bool {
 	// A foreign-entry as-enters copy (Essence of the Wild, Thunderbond
 	// Vanguard: a token is "a creature you control" entering): the token
 	// becomes a copy of the carrier before its entry triggers are matched.
-	if with.API == "Clone" && effects.CloneForeignEntryOffered(with) {
+	if effects.CloneForeignEntryOffered(with) {
 		return true
 	}
 	if result != "Updated" {
