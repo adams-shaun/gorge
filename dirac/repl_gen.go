@@ -1437,7 +1437,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 			return false
 		}
 		prev &^= pnx
-		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false) {
+		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false, false) {
 			s.capFull(StallPrevNext)
 			return false
 		}

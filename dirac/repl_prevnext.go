@@ -42,12 +42,19 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Godtoucher) prevents everything of every event to its recipient and is never
 // spent. It ends when the recipient leaves the battlefield (prevAllLeft: gorge's
 // ExileOnMoved$ Battlefield, and a creature that comes back is a new object) or
-// at the turn change. It never competes: beside a second shield or anything
-// prevNextCompetes reports, the kernel stalls StallPrevNext (a bounded pool
-// stalls at 255 too, so no real pool can look like the sentinel). Two or more
-// unbounded shields with no rider alone on one recipient (Wellgabber Apothecary
-// activated twice) are bare full preventions: no order ask, the first applies
-// (pnxBare, barePrevOnly).
+// at the turn change. It never competes: beside a second spending shield or
+// anything prevNextCompetes reports, the kernel stalls StallPrevNext (a bounded
+// pool stalls at 255 too, so no real pool can look like the sentinel). Two or
+// more unbounded shields with no rider alone on one recipient (Wellgabber
+// Apothecary activated twice), or a bare unbounded shield beside another bare
+// full prevention (a riderless colour or scope record, or the recipient's
+// printed/granted "prevent all" fact, as Guard Gomazoa beside Indestructible
+// Aura), are bare full preventions: whichever applies first prevents the event
+// whole and none is spent, so gorge asks no order and the first applies
+// (pnxBare, barePrevOnly, prevNextCompetes' bare flag). A matching colour or
+// scope record with a rider body is not bare: gorge asks the order and the
+// rider can gain life or mint, so the kernel stalls StallPrevNext instead of
+// applying the shield (prevColRiderHit).
 //
 // Ria Ivor's form adds riders to the unbounded shield: kop.PrevNextPlayers
 // matches a player recipient only, kop.PrevNextEndCombat ends the record with
@@ -260,7 +267,7 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 		s.capFull(StallPrevRider)
 		return n, false
 	}
-	if hit > 1 && bare < hit || s.prevNextCompetes(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
+	if hit > 1 && bare < hit || s.prevNextCompetes(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, hit == bare) {
 		if rider {
 			s.capFull(StallPrevRider) // a body is never a bare prevention: gorge asks the order
 		} else {
@@ -337,15 +344,22 @@ func (s *State) combatEvLess(r *dmgRec, ev *dmgEv, code TCode, d int) {
 // the battlefield scan does not read the other replacements' own filters; a
 // doubler is read through dblDmgN2, as the SHIELD counter's shieldOther reads
 // it: only the source controller's doublers that match the event compete, so
-// an opponent's Fire Servant is no candidate for this spell).
-func (s *State) prevNextCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool) bool {
-	return s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) || // a colour or scope record
-		s.replOthersCompete(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
+// an opponent's Fire Servant is no candidate for this spell). bare says every
+// matching shield is a bare unbounded one: then the other bare full
+// preventions (prevColHit, prevAnyTo, prevCombatTo, prevCombatFrom) do not
+// compete, because every order prevents the event whole and none is spent
+// (allBarePreventions); a matching colour or scope record with a rider body is
+// not a bare prevention and still competes (prevColRiderHit), and a spending
+// replacement still does.
+func (s *State) prevNextCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool, bare bool) bool {
+	return !bare && s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) || // a colour or scope record
+		bare && s.prevColRiderHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) || // a rider body is never bare
+		s.replOthersCompete(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, bare)
 }
 
 // replOthersCompete is prevNextCompetes without the colour and scope records:
 // every other replacement that would also be a candidate for the event.
-func (s *State) replOthersCompete(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool) bool {
+func (s *State) replOthersCompete(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool, bare bool) bool {
 	g := k.gen
 	if g.anyDmgMark && s.dmgMarkEv(rcp, srcCtrl) > 0 {
 		return true
@@ -357,11 +371,11 @@ func (s *State) replOthersCompete(k *prep, srcCtrl uint8, srcSl Slot, srcCard Ca
 		if g.anyRepl&rbShield != 0 && s.shieldN(sl) > 0 && !s.noPrev(k, combat) {
 			return true
 		}
-		if s.prevAnyTo(k, sl, combat) || combat && s.prevCombatTo(k, sl) {
+		if !bare && (s.prevAnyTo(k, sl, combat) || combat && s.prevCombatTo(k, sl)) {
 			return true
 		}
 	}
-	if combat && g.anyPrevFrom && srcSl != NoSlot && s.prevCombatFrom(k, srcSl) {
+	if combat && !bare && g.anyPrevFrom && srcSl != NoSlot && s.prevCombatFrom(k, srcSl) {
 		return true
 	}
 	if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) > 0 {
