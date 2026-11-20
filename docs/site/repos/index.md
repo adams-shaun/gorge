@@ -1,10 +1,9 @@
 # The three repositories
 
-gorge's work spans three Git repositories with one-way dependencies: the public engine, a public
-compliance repository that checks it, and a private module that builds on it. This page is for
-anyone deciding where a change belongs, or wondering why a file they expected isn't here. It
-covers what each holds, which way the imports run, licensing, pinning, and how changes reach
-`main`.
+Three Git repositories with one-way dependencies: the public engine, a public compliance
+repository that checks it, and a private module that builds on it. Read this to decide where a
+change belongs. It covers what each holds, which way imports run, licensing, pinning, and how
+changes reach `main`.
 
 | | **gorge** | **gorge-compliance** | **private companion** |
 |---|---|---|---|
@@ -51,9 +50,7 @@ covers what each holds, which way the imports run, licensing, pinning, and how c
 
 ## gorge (this repository)
 
-Both engines and everything needed to use them; [Repository layout](../contributing/repo-layout.md) has the
-tree, and [dirac](../architecture/dirac/index.md) is the second engine. This repository builds, tests and runs
-on its own. It exposes a few **extension seams**, which are ordinary exported API:
+Both engines and everything to use them ([layout](../contributing/repo-layout.md)); it builds, tests and runs alone. Its **extension seams** are exported API:
 
 | Seam | What plugs in |
 |---|---|
@@ -64,8 +61,7 @@ on its own. It exposes a few **extension seams**, which are ordinary exported AP
 | `engine/rules`' exported oracle runner (`RunOracleScenarioJSON`, `RunOracleAuditScenarioJSON`, `CheckOracleScenarioJSON`) | gorge-compliance's scenario drivers |
 | `testkit/` (`testutil`, `bench`, `paymirror`) and `cli/` | test fixtures, the head-to-head game runner, command-line plumbing |
 
-Changing one of these is an API change for the companions, so it is
-sequenced as described [below](#a-change-that-spans-repositories).
+Changing a seam is an API change for the companions: [sequence it](#a-change-that-spans-repositories).
 
 ## gorge-compliance
 
@@ -84,8 +80,8 @@ three independent references and holds the results to coverage targets:
   (`scenarios/xmageport/`).
 
 It drives gorge only through the exported oracle runner. gorge keeps that
-runner (`engine/rules/oracle_*.go`), its unit tests, and nine residual
-scenario files that its own card tests load
+runner (`engine/rules/oracle_*.go`), its unit tests, and the residual
+scenario files its own card tests load
 (`engine/rules/testdata/oracle/`), played by
 `engine/rules/oracle_contract_test.go` (`TestOracleRunnerContract`) as the
 runner's contract check. A scenario file lives in exactly one of the two
@@ -125,9 +121,8 @@ flowchart LR
 | Nothing private or generated is committed | `internal/archtest` `TestPublicBoundary`: no generated card tables, private paths, or imports of the private module. |
 | The companions use only exported gorge API | Go's own visibility rules, plus gorge's `internal/` packages, which no other module can import. |
 
-The direction matters for two reasons. gorge stays usable by anyone without
-access to the private repository, and a change in gorge can never be blocked
-on code its contributors cannot see.
+The direction keeps gorge usable without the private repository, and a gorge change can never be
+blocked on code its contributors cannot see.
 
 ## Licensing and the Forge card scripts
 
@@ -149,11 +144,10 @@ compiler for the script format and never the scripts themselves:
 - A script that disagrees with the printed card is fixed on the fork and offered
   upstream, never patched inside gorge.
 
-gorge-compliance follows the same rule with its own guard and reaches the corpus
-through a gitignored link to a gorge checkout's `.cards/`. Its `NOTICE` credits XMage
-(MIT), from which its set manifests and ported scenarios derive.
-[gorge's `NOTICE`](https://github.com/adams-shaun/gorge/blob/main/NOTICE) names every
-third-party data source gorge uses.
+gorge-compliance follows the same rule with its own guard and reaches the corpus through a
+gitignored link to a gorge checkout's `.cards/`. Its `NOTICE` credits XMage (MIT);
+[gorge's `NOTICE`](https://github.com/adams-shaun/gorge/blob/main/NOTICE) names every third-party
+data source.
 
 ## Pinning
 
@@ -176,14 +170,13 @@ and **reports** what would change without failing.
 Pinning gorge also pins the card corpus: the companions read `FORGE_REF` from
 the pinned gorge's `Makefile`.
 
-Neither companion commits a `go.work` or a `replace` directive for gorge:
-the pin is the only way gorge reaches them. To try gorge-compliance against
-unmerged gorge work locally, a gitignored `go.work` that points at your gorge
-checkout works; never commit one, because it overrides the pin.
+Neither companion commits a `go.work` or a `replace` for gorge; the pin is the only way gorge reaches
+them. To try gorge-compliance against unmerged gorge work, use a gitignored local `go.work`.
 
 ## Branch flow
 
-The repositories land work the same way, except where step 2 says otherwise:
+Both repositories merge with a merge commit, never a squash, and nothing pushes `main` directly.
+gorge lands through the Mergify queue (step 1); gorge-compliance differs (step 2).
 
 ```mermaid
 flowchart LR
@@ -192,26 +185,21 @@ flowchart LR
   main -->|"docs.yml"| site["this site"]
 ```
 
-1. Open pull requests against **`main`**, branching from `origin/main`
-   (`git worktree add ../gorge-myfix -b myfix origin/main`); `make pr` opens the
-   PR against origin's default branch, `main`. Mergify queues every non-draft PR
-   (no label, no approval) once its `fast` and `lint` checks pass. `fast` is
-   `scripts/ci-fast.sh`: the packages the diff touches, every package whose tests
-   import them, and the named test groups, run with `-short`. Mergify batches up
-   to 10 queued PRs on a `mergify/merge-queue/*` branch, where CI runs the full
-   suite once per batch: the six test shards plus `TestHeads`, `examples`,
-   `wire-matrix` and `dirac-slices` (and `browser`, which is not part of `ci-ok`).
-   The batch merges when `ci-ok` is green there; a red batch is split. A fix for
-   a red `main` goes on a `hotfix/*` branch (or carries the `hotfix` label); it is
-   batched first and may interrupt a running batch. The whole `dirac/oracle` runs
-   every 6 hours on `main` and on demand, never on a pull request or a batch.
-2. gorge-compliance still lands work on `develop` and snapshots it to a
-   `promote/develop-<stamp>` pull request to `main`; it merges when its checks
-   are green.
-3. Merges use **a merge commit, not a squash**, in both repositories, so
-   branches and `main` keep sharing history. Nothing pushes `main` directly.
-4. Pushes to `main` publish this site (`docs.yml`) and the card-coverage
-   tables (`coverage.yml`, as a workflow artifact).
+1. **gorge.** Branch from `origin/main` (`git worktree add ../gorge-myfix -b myfix origin/main`) and open
+   the PR against `main` (`make pr`). Mergify queues every non-draft PR (no label, no approval) once its
+   `fast` and `lint` checks pass; `fast` is `scripts/ci-fast.sh` (the diff's packages and their test
+   importers, with `-short`). Mergify batches up to 10 queued PRs on a `mergify/merge-queue/*` branch,
+   where `.github/workflows/ci.yml` runs the full suite once per batch: the six test shards, `examples`,
+   `wire-matrix` and `dirac-slices` (and `browser`, which is not part of `ci-ok`). The batch merges when
+   `ci-ok` is green; a red batch is split. A fix for a red `main` goes on a `hotfix/*` branch (or carries
+   the `hotfix` label) and is batched first. The whole `dirac/oracle` runs on `main` from
+   `.github/workflows/oracle.yml` about every 6 hours, never on a PR or a batch. Details:
+   [Contributing](../contributing/index.md#commits-and-pull-requests).
+2. **gorge-compliance** lands work on `develop` and snapshots it to a `promote/develop-<stamp>` pull
+   request to `main`; it merges when its checks are green.
+3. **Publishing.** A push to `main` publishes this site (`docs.yml`, which also builds on pull
+   requests, daily and on dispatch) and the card-coverage tables (`coverage.yml`, as a workflow
+   artifact).
 
 ## A change that spans repositories
 
@@ -228,16 +216,12 @@ sequenceDiagram
   Note over G,C: the private companion bumps its own pin the same way
 ```
 
-- **The gorge commit must be pushed** before a companion can pin it: the
-  pseudo-version is resolved through the module proxy.
-- **Prefer additive changes** to a seam (a new function beside the old one),
-  so the companion can move at its own pace. An incompatible change breaks
-  the companion only at its next pin bump, and the nightly drift report shows
-  it before that.
-- **Say so in the PR** when you change a seam listed [above](#gorge-this-repository),
-  or a file format a companion reads (`server/protocol`'s frames, the
-  `bots/gonet` network file, the `bots/policynet` checkpoint), so the
-  maintainers can schedule the matching bump.
+- **Push the gorge commit first**: the pseudo-version resolves through the module proxy.
+- **Prefer additive changes** to a seam (a new function beside the old one); the companion moves at
+  its own pace, and the nightly drift report shows an incompatible change before its next bump.
+- **Say so in the PR** when you change a seam [above](#gorge-this-repository) or a format a
+  companion reads (`server/protocol` frames, the `bots/gonet` network file, the `bots/policynet`
+  checkpoint).
 
 A change that fixes a card in gorge typically shows up in gorge-compliance as
 a stale ratchet row (a scenario that now passes) at the next pin bump; that

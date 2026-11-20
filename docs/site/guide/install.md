@@ -1,20 +1,17 @@
 # Install and build
 
-This page takes you from nothing to a checkout that can run games: the prerequisites, the
-card corpus, the binaries, the browser client and dirac's card tables. Only the corpus step is
-required for bot games. A contributor needs the same steps, then [Testing](../contributing/testing.md).
+From nothing to a checkout that can run games: prerequisites, the card corpus, binaries, the browser client and dirac's card tables. Bot games need only the corpus. Contributors then continue with [Testing](../contributing/testing.md).
 
-The output below is from 2026-11-08 at `fc2be1aabe`, on Linux x86-64 with Go 1.26.3. The maintainers test
-on Linux only.
+Output below is from 2026-11-08 at `fc2be1aabe`, on Linux x86-64 with Go 1.26.3. The maintainers test on Linux only.
 
 ## Prerequisites
 
 | Tool | Version | Why |
 |---|---|---|
-| Go | the `go` line of [`go.mod`](https://github.com/adams-shaun/gorge/blob/main/go.mod). An older Go 1.21 or later downloads the right toolchain itself under the default `GOTOOLCHAIN=auto` | builds everything |
+| Go | the `go` line of [`go.mod`](https://github.com/adams-shaun/gorge/blob/main/go.mod); Go 1.21 or later fetches it under the default `GOTOOLCHAIN=auto` | builds everything |
 | git | any recent | `make fetch-cards` runs a sparse, depth-1 `git fetch` |
 | GNU make, bash | any recent | the build targets; the `Makefile` runs its recipes under bash |
-| Node.js and npm | Node 20.19 or later, or 22.12 or later | only the browser client. Its unit tests need Node 22.12 or later ([`web/README.md`](https://github.com/adams-shaun/gorge/blob/main/web/README.md)) |
+| Node.js and npm | Node 20.19 or later (Vite 8) | only the browser client. `npm test` needs Node 22.12 or later ([`web/README.md`](https://github.com/adams-shaun/gorge/blob/main/web/README.md)) |
 
 gorge has no cgo and no third-party Go dependencies.
 
@@ -31,7 +28,7 @@ Apache-2.0, so they are downloaded into the gitignored `.cards/` and never commi
 `make fetch-cards` builds `bin/forgec` and fetches the scripts from gorge's fork of Forge at
 the commit pinned by `FORGE_REF` in the
 [`Makefile`](https://github.com/adams-shaun/gorge/blob/main/Makefile). Every game and replay
-is a function of that pin. The fetch leaves about 140 MB on disk.
+is a function of that pin. The fetch leaves about 140 MB on disk (the figure in [AGENTS.md](https://github.com/adams-shaun/gorge/blob/main/AGENTS.md)).
 
 ```text
 fetched 34444 card scripts and 864 token scripts from https://github.com/adams-shaun/forge.git at <commit> (<FORGE_REF>)
@@ -41,7 +38,7 @@ never commit them, never include them in a published image.
 
 Every tool opens the corpus through one loader, which parses the scripts into gorge's
 intermediate representation on first use and caches it as `.cards/ir-<fingerprint>.gob.gz`
-with a `.seg` file beside it (about 27 MB together). `make compile-cards` does that step
+with a `.seg` file beside it (about 27 MB together on 2026-11-08). `make compile-cards` does that step
 ahead of time, and `make report` prints the corpus coverage
 ([Getting started](../getting-started.md#1-fetch-and-compile-the-card-corpus) explains its
 output). The fingerprint is a hash of the card compiler's source, so a build that changes
@@ -99,7 +96,7 @@ seed 1: 4 seats,   1727 intents,   8429 events,  36 turns, winner=death-n-taxes,
   replay OK (chain 8d2ca1c1c1e7d333)
 ```
 
-The 20 games took about 5 seconds. A `replay diverged` or `FAILED` line is an engine bug
+The 20 games took about 5 seconds (2026-11-08). A `replay diverged` or `FAILED` line is an engine bug
 worth [reporting](troubleshooting.md#a-game-prints-livelock-did-not-terminate-or-replay-diverged).
 
 ## Build dirac's card tables, if you want them

@@ -1,6 +1,6 @@
 # Search and nets
 
-Search needs an engine that is cheap to copy and step. A net needs a runtime that evaluates it in pure Go. This page says what ships, and where each piece runs.
+Search needs an engine that is cheap to copy and step. A net needs a runtime that evaluates it in pure Go. This page says what ships and where it runs.
 
 ```mermaid
 flowchart LR
@@ -15,11 +15,13 @@ flowchart LR
 | Search | gorge | dirac |
 |---|:-:|:-:|
 | PUCT tree over redealt worlds (`bots/azmcts`, `dirac/search`) | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> (`dirac/search`) |
-| Determinised rollouts (`bots/searchseat`) | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> | <span class="gg-dot gg-dot--none" title="not in this repository"></span><span class="gg-sr">none</span> |
-| Heuristic bot, no search | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> (`hbot`) |
+| Sampled-world rollouts (`bots/searchseat`) | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> | <span class="gg-dot gg-dot--none" title="not in this repository"></span><span class="gg-sr">none</span> (only the `dirac.Rollout` primitive) |
+| Heuristic bot, no search | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> (`dirac/search/hbot`) |
+| Mulligan policies | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> (`dirac/search/mull`) |
 | Search primitives: copy, step, hide, redeal | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> | <span class="gg-dot gg-dot--full" title="full support"></span><span class="gg-sr">full</span> |
 
-dirac ships the primitives a search uses, its own bot (`hbot`) and a PUCT tree search, `dirac/search`: gorge's `bots/azmcts` ported onto dirac state, with the same algorithm and the production config as `DefaultOptions`. `gorged -engine dirac` still refuses a search policy.
+`dirac/search` is `bots/azmcts` ported onto dirac state: the same algorithm, with `DefaultOptions` set to the production config (`FullKinds`, top-6 priors, opponent nodes, closed deck list).
+`gorged -engine dirac` still refuses a search policy.
 [What dirac offers a search](../architecture/dirac/search.md) lists the operations.
 
 ## gorge's tree search
@@ -27,8 +29,8 @@ dirac ships the primitives a search uses, its own bot (`hbot`) and a PUCT tree s
 === "Settings"
 
     Defaults from `azmcts.DefaultOptions`: 100 simulations per decision, exploration constant 1.5, first-play reduction 0.1, at most 6 candidates, 1,000 steps per simulation.
-    Four decision kinds are searched: priority, attackers, blockers and target. `FullKinds` adds modes, may-triggers, small choices and multi-target picks.
-    Every other decision goes to the default bot. Simulations have no rollouts: each leaf is scored once, by a heuristic or by a net.
+    `AllKinds` (the default) searches priority, attackers, blockers and target. `FullKinds` adds modes, may-triggers, small choices and multi-target picks.
+    Every other decision goes to the default bot. There are no rollouts: each leaf is scored once, by a heuristic or by a net.
 
 === "Worlds"
 
@@ -44,8 +46,11 @@ dirac ships the primitives a search uses, its own bot (`hbot`) and a PUCT tree s
     `az-redeal` is the hosted entry: the `redeal` world, 100 simulations, no net, constructed or Commander, up to four seats, experimental tier.
     `gorged.RegisterNetBot` links a policy that loads a net at startup and adds `-<policy>-net`, `-<policy>-decks`, `-<policy>-belief` and related flags.
 
-The determinised-rollout seat (`bots/searchseat`) samples K worlds per decision (default 8), rolls each out and overrides the bot only when a candidate wins by a margin.
-By default it covers attackers and the cast choice.
+## gorge's sampled-rollout seat
+
+`bots/searchseat` is a different search, hosted as the `search` policy (experimental tier). It samples K worlds per decision
+(`searchseat.Defaults`: 8), rolls each candidate out to the end of the game (or a turn horizon), and overrides the bot only when a candidate beats its answer by a margin.
+It covers attackers and the cast choice by default.
 
 Per-simulation cost is on [Bot speed](../performance/bots.md).
 
@@ -61,7 +66,7 @@ Nets run in pure Go, with no cgo and no external ML runtime. Two packages read t
 
 -   **`bots/netsimd`**
 
-    Whole-layer AVX-512 kernels for the `mlp` net, with a scalar twin that gives the same bits. A library today; only its tests import it.
+    Whole-layer AVX-512 kernels for the `mlp` net, with a scalar twin that gives the same bits. `dirac/neteval` loads it first, and falls back to gonet for a shape it refuses.
 
 </div>
 
