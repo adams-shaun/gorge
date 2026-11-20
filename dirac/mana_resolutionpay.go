@@ -346,7 +346,7 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8, force bool) {
 		}
 		// Leave one unit (the generic remainder) to the post-push planner, as
 		// gorge's prefix search does.
-		s.payNeededColours(k, p, &cost, max(cost.MV()-1, 0))
+		s.payNeededColours(k, p, &cost, max(cost.MV()-1, 0), false)
 		if held {
 			s.perms[sl].flags &^= pfTapped
 		}
@@ -401,14 +401,28 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8, force bool) {
 // pays the rest, the pre-fix shape for a play whose prefix never fired
 // (TestTapxPrefixFloatSkipsUnfundablePip: Smuggler's {3}{U},{T} with Sentinel's
 // unit as the board's only {U}).
-func (s *State) payNeededColours(k *prep, p uint8, cost *kop.ManaCost, target int) {
+//
+// pipsOnly floats the cost's fixed pip share only (each colour up to its
+// printed pip count), leaving the generic remainder to the post-push planner:
+// the cast arm's shape (payCastPrefixRest). It tops up a pip colour the
+// prefix already floated; a colour with no unit floating is the census's to
+// pay after the push, not this pre-float's (the free_cast_raise_window
+// recording's Swelter: the prefix floated a {U} for its {3}{R}, and tapping a
+// red source before the target ask diverged). An activation keeps target's
+// generic fill.
+func (s *State) payNeededColours(k *prep, p uint8, cost *kop.ManaCost, target int, pipsOnly bool) {
 	for {
-		if s.prefixPoolMana(p) >= target {
+		if pipsOnly {
+			if s.pipsCovered(p, cost) {
+				return
+			}
+		} else if s.prefixPoolMana(p) >= target {
 			return
 		}
 		tappedOne := false
 		for c := 0; c < kop.NumManaKinds; c++ {
-			if cost.Pips[c] == 0 {
+			pool := s.pl[SeatIx(p)].pool[c]
+			if cost.Pips[c] == 0 || pipsOnly && (pool == 0 || pool >= cost.Pips[c]) {
 				continue
 			}
 			var one kop.ManaCost
@@ -430,6 +444,17 @@ func (s *State) payNeededColours(k *prep, p uint8, cost *kop.ManaCost, target in
 			return
 		}
 	}
+}
+
+// pipsCovered reports whether p's pool holds cost's fixed pip count in each
+// pip colour, payNeededColours' pipsOnly stop.
+func (s *State) pipsCovered(p uint8, cost *kop.ManaCost) bool {
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if s.pl[SeatIx(p)].pool[c] < cost.Pips[c] {
+			return false
+		}
+	}
+	return true
 }
 
 // castRestPay prices the Taps-deferred gaps' payment search's stop: the
@@ -532,6 +557,21 @@ func (s *State) castRestRefuses(k *prep, o Obj, a Action) bool {
 	return false
 }
 
+// castAsksTargets reports whether the plain cast of c poses a target ask
+// before its payment (at-resolution targets do not): the cast arm's target
+// gate, payPrefixRest's abn.NTargets read for an activation.
+func castAsksTargets(k *prep, c CardID) bool {
+	ab := spellAb(k, c)
+	for i := 0; i < kop.MaxTargets; i++ {
+		t := tspec(k, c, ab, i)
+		if t == nil || t.Kind == kop.TgtNone || t.TFlags&kop.TgfAtResolution != 0 {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
 // payCastPrefixRest pays, before the cast's build begins, what a prefix
 // search left of the cast's planned cost to the potential-play search. The
 // search's remaining gap taps fire at manaStep (bsMana), after bsPush has
@@ -546,8 +586,11 @@ func (s *State) castRestRefuses(k *prep, o Obj, a Action) bool {
 // plannedCastCost strips the Phyrexian pips (gorge pay.PlanManaHalf), so the
 // Phyrexian guard reads the raw composed cost. restricted floating mana
 // keeps the shortened cost the planner pays. A cast has no {T}-costing host,
-// so payPrefixRest's held-tap block does not apply.
-func (s *State) payCastPrefixRest(k *prep, a Action, p uint8) {
+// so payPrefixRest's held-tap block does not apply. force is runPrefixes'
+// tapX flag: the tapX search's prefix consumed the board's tapX sources, so
+// the cast's needed-colour share is floated here, before the target ask, as
+// payPrefixRest floats an activation's.
+func (s *State) payCastPrefixRest(k *prep, a Action, p uint8, force bool) {
 	o := Obj(a.Source())
 	cost, ok := s.plannedCastCost(k, p, o, a.Mode())
 	if !ok {
@@ -571,6 +614,20 @@ func (s *State) payCastPrefixRest(k *prep, a Action, p uint8) {
 	}
 	if s.restrActNow(k, p) != 0 {
 		return // admitted restricted mana shortens the cost the planner pays (mana_window.go)
+	}
+	if force && castAsksTargets(k, s.objs[o].card) {
+		// The tapX search's prefix taps the plan's needed-colour sources
+		// before the play (mana_tapanother.go), as gorge's one search does:
+		// top up the fixed pips of a colour it already floated so the target
+		// ask sees the same board. The generic remainder and a pip colour
+		// with nothing floating are the post-push planner's, as they are in
+		// gorge (free_cast_raise_window: Swelter's {3}{R} with a {U} floating
+		// from the prefix taps no red source before its target ask).
+		s.payNeededColours(k, p, &cost, 0, true)
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k) // the tapped source's trigger below the play, not above it
+		}
+		return
 	}
 	// gorge's search proves the play at its asks by activating the census
 	// gaps until the planner prices the payment from the floats
