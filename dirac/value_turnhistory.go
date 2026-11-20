@@ -100,7 +100,7 @@ const resolveMark = 0x80
 //go:noinline
 func (s *State) countResolve(k *prep, e *stackEntry) {
 	if int(s.g.nused) < maxUsed {
-		s.g.used[s.g.nused] = usedRec{obj: e.obj, ab: resolveMark | resolveTally(k, e), ver: e.srcVer}
+		s.g.used[s.g.nused] = usedRec{obj: e.obj, ab: resolveMark | resolveTally(k, e), ver: s.resolveVer(e)}
 		s.g.nused++
 	} else {
 		s.capFull(StallUsed)
@@ -139,14 +139,13 @@ func resolveTally(k *prep, e *stackEntry) uint8 {
 }
 
 // resolvedThisTurn is ExResolvedThisTurn: the resolving ability's
-// resolutions this turn (Count$ResolvedThisTurn). Keyed by the source object
-// and the ability body only, never the object's ver: gorge
-// events.ResolvedAbilityKey is (source ObjID, ability body) and the source
-// object's id survives its zone changes, so a permanent that left and
-// returned keeps the turn's count, as Forge's ActivationTable does (its key
-// is the host card's printed SpellAbility, which a zone change does not
-// replace). South Pole Voyager's tally still reads 2 after it is exiled and
-// returned (Airbender Ascension), so its second resolution still draws.
+// resolutions this turn (Count$ResolvedThisTurn). Keyed by the source object,
+// its ver and the ability body: gorge events.ResolvedAbilityKey is (source
+// ObjID, source ZoneGen, ability body), and a ver bump is dirac's zone change
+// (CR 400.7), so a permanent that left and returned is a new object whose
+// ability has not resolved this turn, as XMage's AbilityResolvedWatcher
+// (zone-change-counter key) and Forge both read it (farm window BLB-s111
+// xe:RAND:4:1:w11, Harvestrite Host blinked by Splash Portal).
 //
 //go:noinline
 func (s *State) resolvedThisTurn(k *prep) int {
@@ -155,11 +154,22 @@ func (s *State) resolvedThisTurn(k *prep) int {
 	}
 	e := &s.res.e
 	ab := resolveMark | resolveTally(k, e)
+	ver := s.resolveVer(e)
 	n := 0
 	for i := 0; i < int(s.g.nused); i++ {
-		if r := s.g.used[i]; r.obj == e.obj && r.ab == ab {
+		if r := s.g.used[i]; r.obj == e.obj && r.ab == ab && r.ver == ver {
 			n++
 		}
 	}
 	return n
+}
+
+// resolveVer is the source object's current ver, the dirac mirror of the
+// ZoneGen gorge keys the tally by (read at resolution time by both the count
+// and the read, so they always agree).
+func (s *State) resolveVer(e *stackEntry) uint8 {
+	if e.obj == NoObj {
+		return 0
+	}
+	return s.objs[e.obj].ver
 }
