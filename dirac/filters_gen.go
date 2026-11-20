@@ -126,15 +126,7 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 		}
 	}
 	if fl.Sub != 0 || fl.NotSub != 0 {
-		has := func(i uint8) bool {
-			if s.faceDown(k, sl) && (layer == layerSub || !s.blankCopy(sl)) {
-				return false // CR 708.2: no subtypes; a copy of one has its exceptions' (CR 707.9b), from the walk
-			}
-			if layer == layerSub {
-				return int(i) < len(k.t.Subtypes) && k.t.Cards[s.cardAt(sl)].Subtypes.Has(int(i))
-			}
-			return s.hasSubGen(k, sl, i)
-		}
+		has := func(i uint8) bool { return s.permHasSub(k, sl, i, layer) }
 		if fl.Sub != 0 && !has(fl.Sub-1) || fl.NotSub != 0 && has(fl.NotSub-1) {
 			return false
 		}
@@ -157,12 +149,28 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 		if isAttackingYou(fl) {
 			return s.attackingYou(k, sl, ctrl) // filter_attackingyou.go
 		}
+		if fl.Pred == kop.PredProg {
+			c := s.permFctx(k, sl, ctrl, src, layer)
+			return s.filterProg(fl.PredN, &c) // filter_prog.go
+		}
 		if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV && fl.PredN == 3) && src != NoSlot {
 			return s.powerGEVFrom(k, fl, sl, src) // filter_typesall.go
 		}
 		return s.predPermGen(k, fl, sl, src, layer)
 	}
 	return true
+}
+
+// permHasSub reports whether the permanent at sl has subtype index i, read at
+// layer (a layer-3 read is printed).
+func (s *State) permHasSub(k *prep, sl Slot, i uint8, layer uint8) bool {
+	if s.faceDown(k, sl) && (layer == layerSub || !s.blankCopy(sl)) {
+		return false // CR 708.2: no subtypes; a copy of one has its exceptions' (CR 707.9b), from the walk
+	}
+	if layer == layerSub {
+		return int(i) < len(k.t.Subtypes) && k.t.Cards[s.cardAt(sl)].Subtypes.Has(int(i))
+	}
+	return s.hasSubGen(k, sl, i)
 }
 
 // sharesColorRem: gorge sharesColorWithOther over the remembered set -- o
@@ -783,23 +791,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	}
 	if f2 := fl.Flags2; f2 != 0 {
 		if f2&kop.F2ChosenType != 0 {
-			// a card filter reads the resolution's mid-resolution
-			// ChooseType answer (Bloodline Shaman, Elvish Soultiller); a
-			// static source's choice is read by matchMayPlayFilter for a
-			// may-play static, so outside a resolution there is no
-			// choice to read here
-			ch, ok := s.chosenTypeSub(NoSlot)
-			if !ok {
-				return false
-			}
-			has := int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
-			if outsideSub(k, ch) {
-				has = cd.AllCreatureTypes // a printed changeling has every type
-			}
-			if s.res.bad&resChosenCard != 0 {
-				has = s.chosenCardTypeHas(cd.Types) // a chosen card type (Winding Way)
-			}
-			if !has {
+			if !s.cardChosenTypeOK(k, cd) {
 				return false
 			}
 			f2 &^= kop.F2ChosenType
@@ -887,6 +879,15 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		return false // only a battlefield permanent is modified or holds counters here
 	case kop.PredSameNameRem, kop.PredSameNameSelf:
 		return s.predSameNameCard(fl, c, o, fd, ctx)
+	case kop.PredProg:
+		fc := fctx{k: k, o: o, sl: NoSlot, c: c, owner: owner, ctrl: ctrl, src: NoSlot, srcObj: NoObj, fd: fd}
+		if ctx != nil {
+			fc.ctx, fc.hasCtx = *ctx, true
+		}
+		if o != NoObj {
+			fc.zone = s.objs[o].zone
+		}
+		return s.filterProg(fl.PredN, &fc) // filter_prog.go
 	case kop.PredSharesCrCmdr:
 		// the evaluating controller's commanders (a trigger's listener, a
 		// static's own controller); a face-down object has no creature type
@@ -944,6 +945,28 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	return true
 }
 
+// cardChosenTypeOK is F2ChosenType for card cd: it has the resolution's
+// ChooseType answer's subtype, or the chosen card type (matchCardOneAt).
+func (s *State) cardChosenTypeOK(k *prep, cd *kop.CardDef) bool {
+	// a card filter reads the resolution's mid-resolution
+	// ChooseType answer (Bloodline Shaman, Elvish Soultiller); a
+	// static source's choice is read by matchMayPlayFilter for a
+	// may-play static, so outside a resolution there is no
+	// choice to read here
+	ch, ok := s.chosenTypeSub(NoSlot)
+	if !ok {
+		return false
+	}
+	has := int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
+	if outsideSub(k, ch) {
+		has = cd.AllCreatureTypes // a printed changeling has every type
+	}
+	if s.res.bad&resChosenCard != 0 {
+		has = s.chosenCardTypeHas(cd.Types) // a chosen card type (Winding Way)
+	}
+	return has
+}
+
 // cardCtrlTgtOK reports whether a card matcher's CtrlTgt role holds (matchCardOneAt).
 // A target's controller is a battlefield role; a card matcher has no live
 // target to read, so it fails closed (kgen never lowers it off the
@@ -965,11 +988,10 @@ func (s *State) offFieldCountersGE(k *prep, n int, o Obj) bool {
 	return s.predCountersGECard(k, o, n)
 }
 
-// predCardPT is matchCardOneAt's power and toughness predicates (PredPowerLE,
-// PredPowerGE, PredToughnessLE, PredStatBox) for card c off the battlefield:
-// the printed P/T, a face-down spell's 2/2 (CR 708.4), the CDA's, or a moved
-// target's last known P/T (zone_lki.go).
-func (s *State) predCardPT(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj, fd bool) bool {
+// cardPT is card c's power and toughness off the battlefield: the printed
+// P/T, a face-down spell's 2/2 (CR 708.4), the CDA's, or a moved target's last
+// known P/T (zone_lki.go).
+func (s *State) cardPT(k *prep, c CardID, owner uint8, o Obj, fd bool) (int, int) {
 	pc := &k.cards[c]
 	s.offZonePTRead(k, c, owner, o) // static_offzonept.go
 	pw, t := int(pc.power), int(pc.tough)
@@ -982,6 +1004,15 @@ func (s *State) predCardPT(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj
 	if s.g.tli&tliOn != 0 {
 		pw, t = s.lkiPT()
 	}
+	return pw, t
+}
+
+// predCardPT is matchCardOneAt's power and toughness predicates (PredPowerLE,
+// PredPowerGE, PredToughnessLE, PredStatBox) for card c off the battlefield:
+// the printed P/T, a face-down spell's 2/2 (CR 708.4), the CDA's, or a moved
+// target's last known P/T (zone_lki.go).
+func (s *State) predCardPT(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj, fd bool) bool {
+	pw, t := s.cardPT(k, c, owner, o, fd)
 	n := int(fl.PredN)
 	switch fl.Pred {
 	case kop.PredStatBox:

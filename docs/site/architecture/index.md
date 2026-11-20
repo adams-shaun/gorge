@@ -2,36 +2,32 @@
 
 Part of [Engines](../engines/index.md).
 
-This section explains how gorge works inside: how a match is represented, how
-card text becomes behaviour, how the rules core applies the Comprehensive
-Rules (CR), and how the server drives all of it for players and bots. It is
-written for Go developers who want to read or change the engine. If you only
-want to run a game, start at [Getting started](../getting-started.md); if you
-want to fix your first card, see [Your first card fix](../contributing/first-card-fix.md).
+How gorge works inside, for Go developers who want to read or change the engine: how a match
+is represented, how card text becomes behaviour, how the rules core applies the Comprehensive
+Rules (CR), and how the server drives it for players and bots. To run a game, start at
+[Getting started](../getting-started.md); to fix a card, see [Your first card fix](../contributing/first-card-fix.md).
 
 ## The idea in one paragraph
 
-gorge does not hand-write cards. It compiles Forge's card scripts (fetched at
-build time, never committed, because they are GPL-3.0) into an intermediate
-representation (IR), and implements the small set of named **primitives** that
-IR refers to: effects such as `api:DealDamage`, trigger modes such as
-`trig:ChangesZone`, keywords such as `kw:Flying`. A card is *playable* when
-every primitive it uses is implemented. Every change to the game is an
-**event** folded into state by one function, `events.Apply`, and appended to a
-SHA-256 hash-chained log. With a seeded RNG and no clock reads, a match is a
-pure function of its starting configuration and the answers its players gave,
-so replay, history and undo, bug reproduction and search all reuse the same
-machinery. Players never touch the engine: each seat gets a redacted
-**view** and answers **decisions** drawn from a closed set of kinds.
+gorge does not hand-write cards. It compiles Forge's card scripts (fetched at build time, never
+committed: they are GPL-3.0) into an intermediate representation (IR), and implements the named
+**primitives** the IR refers to: effects such as `api:DealDamage`, trigger modes such as
+`trig:ChangesZone`, keywords such as `kw:Flying`. A card is *playable* when every primitive it uses
+is implemented.
 
-Limited play sits above this: [draft events](draft.md) drive whole events through
-the same tables and engine, and no draft concept reaches the rules core.
+Every change to the game is an **event**, folded into state by one function, `events.Apply`, and
+appended to a SHA-256 hash-chained log. With a seeded RNG and no clock reads, a match is a pure
+function of its starting configuration and its players' answers, so replay, undo, bug reproduction
+and search share one mechanism. Players never touch the engine: each seat gets a redacted **view**
+and answers **decisions** drawn from a closed set of kinds.
+
+Limited play sits above this: [draft events](draft.md) run through the same tables and engine, and
+no draft concept reaches the rules core.
 
 ## Two engines
 
-gorge is the full rules engine. **dirac** is a second, much smaller engine that
-plays the same game much faster, for two to four seats and the cards it supports. They do
-different jobs, and the smaller one is held to the larger one.
+gorge is the full rules engine. **dirac** is a second, much smaller engine that plays the same game
+much faster, for two to four seats and the cards it supports. gorge leads; dirac is held to it.
 
 <figure markdown>
 <svg viewBox="0 0 760 300" width="100%" role="img" aria-label="The gorge engine and the dirac engine side by side, joined by a lockstep oracle check">
@@ -68,28 +64,36 @@ different jobs, and the smaller one is held to the larger one.
   <text x="380" y="188" text-anchor="middle" class="dg-text-muted">same options,</text>
   <text x="380" y="204" class="dg-text-muted" text-anchor="middle">equal projections</text>
 </svg>
-<figcaption>gorge is the authority. dirac imports nothing from gorge at
-run time; its oracle package plays the same decks, seed and answers through
-both engines and requires the same canonical option list at every decision and
-the same canonical board projection after every action.</figcaption>
+<figcaption>gorge is the authority. dirac's core imports nothing from gorge; the oracle plays the same
+decks, seed and answers through both engines and requires the same canonical option list at every
+decision and the same board projection after every action.</figcaption>
 </figure>
 
 [dirac](dirac/index.md#how-it-relates-to-gorge) has the two engines side by side.
 
-A general engine that handles every card in the corpus needs open-ended data: arbitrary card
-text, variable-length zones, continuous effects that come and go. That shape makes it correct
-for everything and slower to copy and step. An engine that keeps every card's behaviour in a
-read-only generated table can lay the whole game out as one flat value and step it cheaply,
-which is what large-scale self-play and tree search want. Keeping gorge as the oracle means the
-fast engine never becomes a second source of rules truth. See [dirac](dirac/index.md) for
-its [State](dirac/state.md), its [Step/Apply loop](dirac/step-apply.md),
-how [cards are compiled](dirac/cards.md) for it and the
-[lockstep oracle](dirac/oracle.md).
+An engine for every card needs open-ended data (arbitrary card text, variable-length zones,
+continuous effects), which makes it correct but slow to copy and step. Keeping each card's behaviour
+in a read-only generated table lets dirac lay the whole game out as one flat value, which is what
+self-play and tree search want. Keeping gorge as the oracle means the fast engine never becomes a
+second source of rules truth.
+
+### The dirac pages
+
+| Page | What it covers |
+|---|---|
+| [dirac](dirac/index.md) | why a second engine, what it supports, how it relates to gorge |
+| [State](dirac/state.md) | the flat `State`, object identity, change marks, the size bar |
+| [Step and Apply](dirac/step-apply.md) | the control-state machine, `Decision` and `Action` |
+| [Cards](dirac/cards.md) | how `kgen` lowers gorge's IR into the card tables |
+| [Verification](dirac/oracle.md) | the lockstep oracle, what it proves and what it doesn't |
+| [Search and bots](dirac/search.md) | what dirac offers a search, `dirac/search`, `hbot`, `mull`, `neteval` |
+| [Staging from an observation](dirac/shadow.md) | `dirac/shadow`: a dirac `State` built from what one seat sees |
+| [Play and experiment from Go](../engines/lab.md) | `dirac/lab`: games, forks, policies and batches in a few lines |
 
 ## The engine seam
 
 A host doesn't run `rules.Engine` directly. Package `engine/game` is what a host needs from a
-running game, and each engine implements it:
+running game; each engine implements it:
 
 | Interface | What it gives a host |
 |---|---|
@@ -97,18 +101,12 @@ running game, and each engine implements it:
 | `game.Game` | `Board`, `Chars` and `Log` to project from, `Pending` and `Submit` to answer, `Fork` to copy |
 | `game.Caps` | what a game does beyond the interface (`SubBurstViews`, `ManualMana`, `SearchRoots`, `StartingAsk`). A false field is an honest absence: the host refuses or degrades and never substitutes |
 
-`engine/game/gorgegame` runs `engine/rules` behind these interfaces. `gorged -engine <name>` picks
-what a server's tables run on, and a name the binary doesn't link fails at startup. `server/host`
-names `rules` only in the few files that serve gorge-only features such as search and review, and
-`TestHostNamesRulesOnlyInGorgePaths` holds that list in both directions.
-[`testkit/conformance`](wires.md) plays one game on two engines through a client wire and reports the
-first thing the wire says differently.
+`engine/game/gorgegame` runs `engine/rules` behind these interfaces. `gorged -engine <name>` picks what a server runs; a name the binary doesn't link fails at startup. `server/host` names `rules` only in the files serving gorge-only features (search, review), and `TestHostNamesRulesOnlyInGorgePaths` holds that list in both directions. [`testkit/conformance`](wires.md) plays one game on two engines through a client wire and reports the first difference.
 
 ## The tier stack
 
-The repository is grouped by audience, and each group imports only the groups
-below it. The engine imports nothing outside `engine/`, and the root `go.mod` has
-no `require` lines. [dirac](dirac/index.md) sits beside the engine: its core imports
+Each group of the tree imports only the groups below it. The engine imports nothing outside
+`engine/`, and the root `go.mod` has no `require` lines. [dirac](dirac/index.md) sits beside the engine: its core imports
 nothing outside `dirac/`, and nothing in `engine/` imports it.
 
 <figure markdown>
@@ -148,14 +146,11 @@ nothing outside `dirac/`, and nothing in `engine/` imports it.
 </svg>
 <figcaption>An upper box may import a lower one, never the reverse. <code>draft/</code> sits above
 <code>server/</code> and <code>bots/</code> and is linked by <code>cmd/gorged</code>
-(<a href="draft/">Draft events</a>). <a href="packages/">Packages</a> has the sizes,
-generated at every site build.</figcaption>
+(<a href="draft/">Draft events</a>). Sizes: <a href="packages/">Packages</a>.</figcaption>
 </figure>
 
-Inside `engine/` the import graph is strictly layered. This is the real graph
-(`go list -f '{{.Imports}}'` per package, in-repo edges only, transitive edges
-dropped for readability). Arrows point from a package to the package it
-imports:
+Inside `engine/` the import graph is strictly layered. This is the real graph (in-repo edges from
+`go list`, transitive edges dropped). Arrows point from a package to what it imports:
 
 ```mermaid
 flowchart BT
@@ -192,28 +187,18 @@ flowchart BT
   gorgegame --> replay
 ```
 
-Three things in that graph carry the design:
+Three things carry the design:
 
-1. **`effects` never imports `rules`.** Card effects reach the engine only
-   through the `effects.Host` interface, which `*rules.Engine` implements. An
-   effect that needs something `Host` does not offer is doing rules work in
-   the wrong place.
-2. **The `rules` sub-packages read the game through narrow `Board`
-   interfaces** and never hold a `*rules.Engine`. They compute; `rules`
-   orchestrates and emits. `internal/archtest` pins each package's allowed
-   imports.
-3. **`view` and `seat` never import `rules`.** A seat is handed a
-   `view.View`, never a `*state.Game` or an `*Engine`, so a bot sees exactly
-   what a remote client would.
+1. **`effects` never imports `rules`.** Effects reach the engine only through `effects.Host`, which `*rules.Engine` implements. An effect needing more than `Host` offers is doing rules work in the wrong place.
+2. **The `rules` sub-packages read the game through narrow `Board` interfaces** and never hold a `*rules.Engine`: they compute, `rules` orchestrates and emits. `internal/archtest` pins each package's allowed imports.
+3. **`view` and `seat` never import `rules`.** A seat gets a `view.View`, never a `*state.Game` or `*Engine`, so a bot sees what a remote client would.
 
-The [Packages](packages.md) page lists every package with its size, and
-[Invariants](invariants.md) lists the rules above with the test that enforces
-each one.
+[Packages](packages.md) lists every package with its size; [Invariants](invariants.md) lists the
+rules above with the test that enforces each.
 
 ## How one decision flows
 
-Everything the engine does happens between two decisions. This is the loop
-the server, the test harness and every bot driver run:
+Everything the engine does happens between two decisions. The server, the test harness and every bot driver run this loop:
 
 ```mermaid
 sequenceDiagram
@@ -238,7 +223,7 @@ sequenceDiagram
   E->>L: record Intent
 ```
 
-Each step of that loop has its own page.
+Each step has its own page:
 
 ## The gorge engine, page by page
 

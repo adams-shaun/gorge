@@ -224,7 +224,7 @@ func pipSum(p *[kop.NumManaKinds]uint8) (n int) {
 // branches and starved the line that pays the play without the filter, whose
 // offer then went missing. useful nil (the play's printed pips unread,
 // filtUsefulCost) fails open: the branch is explored.
-func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int) bool {
+func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot) bool {
 	if useful == nil || useful.Hyb[0] != 0 || s.g.winMode == winTrig || !s.filtRepeat(k, sl) {
 		return false
 	}
@@ -262,7 +262,7 @@ func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost
 	// spent. S makes any colour, so it can stand in for every colour X can;
 	// a source whose cost also spends a counter, a permanent or life is a
 	// different class (the swap would lose that other use) and fails open.
-	return s.filtFreeTapColour(k, p, sl, col)
+	return s.filtFreeTapColourOwn(k, p, sl, own, col)
 }
 
 // filtFreeTapColour reports whether p controls an untapped source other than
@@ -274,11 +274,21 @@ func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost
 // which the dominated branch saved, so the endpoint after both activations is
 // not the same and the cut fails open (gorge's PaymentPlanTapOnlyCost reads
 // the same class, pay.ManaFreeCost's c.Life == 0; canTapForManaPC only holds
-// the lethal band out, life < painN, which is not enough here).
+// the lethal band out, life < painN, which is not enough here). The play's own
+// {T} source (filtFreeTapColourOwn) is no free alternative either: its tap is
+// the play's cost, so activating it for mana first leaves that cost unpayable
+// (CR 602.2b, 601.2h; gorge's scriptSearch.ownTapSource).
 func (s *State) filtFreeTapColour(k *prep, p uint8, skip Slot, col int) bool {
+	return s.filtFreeTapColourOwn(k, p, skip, NoSlot, col)
+}
+
+// filtFreeTapColourOwn is filtFreeTapColour for a play whose own {T} source
+// (own) cannot stand in for the filter: an activation's source is tapped by
+// the cost, so its mana is no free alternative (CR 602.2b).
+func (s *State) filtFreeTapColourOwn(k *prep, p uint8, skip, own Slot, col int) bool {
 	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 		sl := b.first()
-		if sl == skip || s.perms[sl].flags&pfTapped != 0 || s.genLost(k, sl) || s.activationSick(k, sl) {
+		if sl == skip || sl == own || s.perms[sl].flags&pfTapped != 0 || s.genLost(k, sl) || s.activationSick(k, sl) {
 			continue
 		}
 		if k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {

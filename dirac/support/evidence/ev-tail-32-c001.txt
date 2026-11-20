@@ -290,6 +290,7 @@ Rust Monster
 Salt Marsh
 Sandstone Warrior
 Sarcomancy
+Savage Thallid
 Scragnoth
 Scroll of Origins
 Seeker

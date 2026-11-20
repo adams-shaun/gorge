@@ -30,8 +30,9 @@ type GroupKey func(*Card) string
 
 // CoverageBy is Coverage split into rows. It applies exactly the same
 // supported/unsupported verdict as Coverage -- a card counts as playable when
-// Unsupported returns nothing -- and skips the same unnamed cards, so the row
-// totals always add up to Coverage's Cards and Supported.
+// Unsupported returns nothing -- and skips the same unnamed cards and the
+// same Excluded hook, so the row totals always add up to Coverage's Cards
+// and Supported.
 //
 // Rows come back sorted by Key so the output is stable run to run; a caller
 // wanting count order re-sorts the returned slice.
@@ -40,6 +41,9 @@ func (r *Registry) CoverageBy(supported map[string]bool, key GroupKey) []Coverag
 	var out []CoverageGroup
 	for _, c := range r.AllCards() {
 		if !c.named() {
+			continue
+		}
+		if r.Excluded != nil && r.Excluded(c) {
 			continue
 		}
 		k := key(c)

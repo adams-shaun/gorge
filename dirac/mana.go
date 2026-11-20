@@ -724,6 +724,38 @@ func (a *avail) hybWitnessRider(cost kop.ManaCost, x int, anyColor bool) kop.Man
 	return cost
 }
 
+// hybWitnessRiderMulti is hybWitnessRider with ns, the restricted evaluated
+// amounts (rkDyn: Helga, Vhal) restrSrcAvail returns beside the fixed units:
+// each is n mana of one colour of its mask, so a resolution one of them pays
+// is tried with affordsMulti, as lowerWitnessEx counts them (restrWitnessXPlus).
+// hybResolveAct is its only caller; anyColor is false there.
+func (a *avail) hybWitnessRiderMulti(cost kop.ManaCost, x int, anyColor bool, ns []dynUnit) kop.ManaCost {
+	if len(ns) == 0 {
+		return a.hybWitnessRider(cost, x, anyColor)
+	}
+	if cost.Hyb[0] == 0 {
+		return cost
+	}
+	if cost.Hyb[0] == kop.HybTwobrid {
+		panic("kernel: a twobrid cost reached the hybrid witness (every twobrid payment is announced first)")
+	}
+	n, f := hybFacesOf(&cost)
+	for m := 0; m < 1<<n; m++ {
+		r := f.resolve(cost, n, hybWitnessMask(m, n))
+		rx := r.AtX(x)
+		var ok bool
+		if anyColor {
+			ok = a.affordsAnyColor(&rx, 0)
+		} else {
+			ok = a.affordsMulti(&rx, 0, ns)
+		}
+		if ok {
+			return r
+		}
+	}
+	return cost
+}
+
 // maxXAsk bounds the X the kernel searches and asks: gorge's largest-X search is
 // bounded by the sources' total alone (rules potentialModeCastPlan), and a board of
 // Elves under two Priests of Titania pays 22.
@@ -1010,8 +1042,46 @@ func (s *State) tapForRider(k *prep, p uint8, cost *kop.ManaCost, x int, exclude
 	s.tapForPK(k, p, cost, x, exclude, false, anyColor, &pk)
 }
 
+// DebugTwobridNoWitnessGuard (TestTwobridUnannouncedWitnessMutation) restores
+// the pre-guard tapForPK behaviour, so an unannounced twobrid cost reaches the
+// hybrid witness and panics again. Only the mutation test sets it.
+var DebugTwobridNoWitnessGuard bool
+
+// TwobridWitnessStats is the four-seat test's hook (mana.go tapForPK): how
+// often an unannounced twobrid cost was priced before its pips were announced,
+// and how often a face had a plan. Priced is the mechanism's reach; the
+// test fails when it stays zero, so its no-divergence check cannot pass empty.
+type TwobridWitnessStats struct {
+	Priced   int
+	Resolved int
+}
+
+// DebugTwobridWitnessStats is nil in normal play, so the guard costs a nil
+// test per priced twobrid cost.
+var DebugTwobridWitnessStats *TwobridWitnessStats
+
 // tapForPK is tapForN with the caller's planner (its kept and dry set).
 func (s *State) tapForPK(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, first, anyColor bool, pk *planner) Slot {
+	if cost.Hyb[0] == kop.HybTwobrid && !DebugTwobridNoWitnessGuard {
+		if st := DebugTwobridWitnessStats; st != nil {
+			st.Priced++
+		}
+		// A twobrid cost can reach the witness before its pips are announced
+		// (a granted-offer search or a lowered plain cast prices the card
+		// while it is still unannounced). Resolve a face the way the cast
+		// planner does (planTwobridCost): the colour face first, then two
+		// generic, taking the first the payer's plan funds. No face with a
+		// plan taps nothing and is no plan, so a pk.try caller sees a clean
+		// miss; the hybrid witness's panic stays for an announced cost that
+		// still reaches it (a real invariant breach).
+		if _, ok := s.tbResolveTappable(k, p, cost, x, exclude, first, anyColor, pk); !ok {
+			return NoSlot // no face has a plan: a clean miss under pk.try
+		}
+		if st := DebugTwobridWitnessStats; st != nil {
+			st.Resolved++
+		}
+		return pk.lastSl // the winning face planned and tapped
+	}
 	if cost.Hyb[0] != 0 {
 		if _, ok := s.hybResolveTappable(k, p, cost, x, exclude, first, anyColor, pk); ok {
 			return pk.lastSl // the winning resolution planned and tapped
@@ -1111,6 +1181,44 @@ func (s *State) hybResolveTappable(k *prep, p uint8, cost *kop.ManaCost, x int, 
 			continue // this resolution has no source plan; try the next
 		}
 		tp.try, tp.noGrant = pk.try, pk.noGrant
+		*pk = tp
+		return r, true
+	}
+	return kop.ManaCost{}, false
+}
+
+// tbResolveTappable resolves cost's twobrid pips to the first face assignment
+// the planner funds, gorge's planTwobridCost order (the colour face first,
+// then two generic; pip 0 the fastest varying). The offer gate's availability
+// can afford a face the planner cannot (a granted ability is a prefix gap,
+// mana_grantedoffers.go), so the face is chosen by an actual plan, exactly as
+// hybResolveTappable does for hybrid: a resolution the availability pays but
+// the plan cannot would leave a face's mana unpaid ("autopay found no plan"),
+// or pay a different face than gorge's plan chose. A failed trial taps
+// nothing (pk.try); the winning one plans and taps. No face with a plan
+// leaves the cost unresolved, a clean miss under pk.try.
+func (s *State) tbResolveTappable(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, first, anyColor bool, pk *planner) (kop.ManaCost, bool) {
+	if cost.Hyb[0] != kop.HybTwobrid {
+		return kop.ManaCost{}, false
+	}
+	n := cost.TbN()
+	phy := cost.Phyrexian()
+	life := int(s.pl[p].life)
+	for m := 0; m < 1<<n; m++ {
+		if phy && 2*bits.OnesCount(uint(m)) > life {
+			continue // the two-life faces must be payable (CR 119.4)
+		}
+		r := *cost
+		for i := 0; i < n; i++ {
+			r = r.ResolveTb(m>>i&1 != 0)
+		}
+		tp := *pk
+		tp.found, tp.try = false, true
+		s.tapPlanNeed(k, p, &r, x, exclude, first, anyColor, &tp)
+		if tp.needT > 0 && !tp.found {
+			continue // this face has no source plan; try the next
+		}
+		tp.try = pk.try
 		*pk = tp
 		return r, true
 	}

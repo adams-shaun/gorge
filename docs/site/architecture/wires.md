@@ -1,25 +1,25 @@
 # Wires
 
 gorge serves three client protocols: its native HTTP API, ManaBrew (`gorged -manabrew`)
-and SpellBench v2 (`gorged -sbv2`). This page is for anyone writing a client or changing
-a wire. A wire counts as supported only where a test says so, in a gate that fails on it.
-This table is every such cell. A cell is an engine, a wire and the consumer reading it.
-`testkit/conformance` is the harness: it plays one game through a wire and diffs what two
-sessions read, after a normaliser named per wire removes what that wire documents as
-representation. `TestWireMatrixPageMatchesScript` holds this table to the script.
+and SpellBench v2 (`gorged -sbv2`). A wire counts as supported only where a test in a
+failing gate says so. The table below is every such cell: an engine, a wire and the
+consumer reading it. `TestWireMatrixPageMatchesScript` holds it to `scripts/wire-matrix.sh`.
 
-`scripts/wire-matrix.sh commit|nightly|pr` runs the cells of a tier, one line per
-cell, and exits non-zero if any fails. A skipped test counts as a failure, so it needs
-the corpus. `make wire-matrix` is the `commit` tier, and CI runs that as the job
-`wire-matrix`. The cells over the SpellBench and ManaBrew packages, whose tests sit behind
-the build tags `spellbench` and `manabrew`, run nightly only, so they do not gate a merge.
+`testkit/conformance` is the harness. It plays one game through a wire and diffs what two
+sessions read, after a per-wire normaliser removes what that wire documents as representation.
 
-`scripts/wire-nightly.sh` is the nightly run, on a seed that moves each day. It
-plays chunks of games on each wire (`TestConformanceChunk`), fuzzed decks through
-ManaBrew, and SpellBench v2 parity. v2 parity is reported and does not fail the
-run. A game that diffs is written to
-`wire-found-<date>.tsv`; once added to `testkit/conformance/testdata/found.tsv` it
-replays in `TestFoundPairs` for good.
+## Running the cells
+
+- `scripts/wire-matrix.sh commit|nightly|pr` runs one tier, prints a line per cell and
+  exits non-zero if any fails. A skipped test counts as a failure, so it needs the corpus.
+- `make wire-matrix` is the `commit` tier. The CI job `wire-matrix` runs it on every merge-queue batch.
+- Cells over the SpellBench and ManaBrew packages sit behind the build tags `spellbench` and
+  `manabrew`, so they run nightly only and do not gate a merge.
+- `scripts/wire-nightly.sh` runs in the scheduled CI run, on a seed that moves each day. It plays
+  chunks of games on each wire (`TestConformanceChunk`), fuzzed decks through ManaBrew, and
+  SpellBench v2 parity. Parity is reported and does not fail the run.
+- A game that diffs is written to `wire-found-<date>.tsv`. Once added to
+  `testkit/conformance/testdata/found.tsv`, it replays in `TestFoundPairs` for good.
 
 | Engine / wire / consumer | Asserts | Test or command | Tiers |
 |---|---|---|---|
@@ -43,15 +43,14 @@ replays in `TestFoundPairs` for good.
 Not every combination is a cell:
 
 - More than two seats, or Commander, on SpellBench v2. The protocol is two players:
-  `/api/sbv2` answers 409 and a client falls back to native. The web client does so without a notice.
-- Spectators on ManaBrew or SpellBench v2. Neither wire has one, so spectating stays
-  native.
+  `/api/sbv2` answers 409 and a client falls back to native without a notice.
+- Spectators on ManaBrew or SpellBench v2. Neither wire has one, so spectating stays native.
 
 The web client plays all three, chosen per browser by the Protocol setting ([Play](../guide/play.md)). It offers
 ManaBrew and SpellBench v2 where the server's page carries `<meta name="gorge-manabrew">` or
 `<meta name="gorge-sbv2">`. Its adapters are in `web/src/lib/manabrew` and `web/src/lib/sbv2`, with what they
-share in `web/src/lib/wire`. Vitest covers them, and `make smoke`, the CI job `browser`, plays a seated game in a
-browser over each wire on each engine. That job is outside this table: it needs Node and a browser, which the tiers don't.
+share in `web/src/lib/wire`. Vitest covers them, and `make smoke` (the CI job `browser`) plays a seated game in a
+browser over each wire on each engine. That job is outside this table: it needs Node and a browser.
 
 `-sbv2` costs a native seat nothing: a seat is played over v2 only once a v2 client
 [attaches to it](../api/spellbench-v2.md#attaching-a-seat), and goes back on its next native answer.

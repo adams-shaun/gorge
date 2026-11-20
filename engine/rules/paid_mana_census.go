@@ -327,23 +327,31 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 		// is payable (manaAbilityPayablePool in the live member list), so
 		// the offer never promises an activation the window will not pose.
 		// The fee rides the alt (CostGeneric/CostColored, never netted into
-		// the production). A choice-shaped production, a colour chosen on
-		// activation, a restricted ability and an unmodelled Condition$
-		// stay out: each would promise a sub-ask the unless window's tape
-		// run cannot serve (fail closed, the census convention).
+		// the production). A restricted ability and an unmodelled Condition$
+		// stay out (fail closed, the census convention). A colour chosen on
+		// activation joins as PINNED one-alt-per-colour alternatives, the
+		// same shape the free any-colour arm above prices, so the activation
+		// poses no colour sub-ask; its self-sacrifice joins through
+		// CastWindowSelfSacFeeCost, the deterministic shape whose only match
+		// is the source itself (Chromatic Star's "{1}, {T}, Sacrifice
+		// Chromatic Star: Add one mana of any color", CR 605.3a/b: the payer
+		// may activate mana abilities to meet the payment).
 		for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
 			if pay.InstantSpeedOnly(ma) || manaAbilityAddsNothing(ma) {
 				continue
 			}
 			fmf := e.manaStaticFor(p, id, ma)
-			if fmf.RestrictValid || fmf.FreeCost || fmf.Any || fmf.Amount <= 0 || effects.ManaOf(ma).NeedsChosen {
+			if fmf.RestrictValid || fmf.FreeCost || fmf.Amount <= 0 || effects.ManaOf(ma).NeedsChosen {
 				continue
 			}
 			fee := e.manaAbilityCC(p, id, ma).Cost
 			if pay.ActivationTapCostUnavailable(o, &fee) {
 				continue
 			}
-			for _, a := range unlessFeeAlts(ma, fmf, fee) {
+			// The fee's self-sacrifice shape is priced here, at the one call
+			// that owns the engine: the alts builder below stays free of it.
+			selfSac := pay.CastWindowSelfSacFeeCost(asPayer(e), p, id, fee)
+			for _, a := range unlessFeeAlts(ma, fmf, fee, selfSac) {
 				units = pay.AppendUnitAlt(units, id, a)
 			}
 		}
@@ -362,13 +370,20 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 // production). A fixed production over several colours ("Add {W}{B}") is
 // every colour at once, not a pick among them: one alt carries the whole
 // vector (CR 106.1); pinning it per colour would price a Desolate Mire at one
-// mana. An unpriced fee shape yields no alts (fail closed, the census
-// convention).
-func unlessFeeAlts(ma *cards.SA, fmf pay.ManaStatic, fee Cost) []windowManaAlt {
-	if !castWindowGenericCostShape(fee) {
+// mana. A colour chosen on activation is the reverse: one PINNED alt per
+// colour, so the activation poses no colour sub-ask. selfSac is the caller's
+// verdict that the fee's own cost is the self-sacrifice shape whose only
+// match is the source itself (Chromatic Star); without it or the bare-mana
+// shape the cast window prices, an unpriced fee yields no alts (fail closed,
+// the census convention).
+func unlessFeeAlts(ma *cards.SA, fmf pay.ManaStatic, fee Cost, selfSac bool) []windowManaAlt {
+	if !castWindowGenericCostShape(fee) && !selfSac {
 		return nil
 	}
 	feeAlt := windowManaAlt{Ma: ma, Amt: fmf.Amount, CostGeneric: fee.Generic, CostColored: fee.Colored}
+	if fmf.Any {
+		return pinnedManaAlts(feeAlt, fmf.Counts)
+	}
 	if a, ok := fixedMultiColourAlt(feeAlt, fmf.Counts); ok {
 		return []windowManaAlt{a}
 	}

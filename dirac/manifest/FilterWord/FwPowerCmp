@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwPowerCmp
+value: next
+contexts: perm,card,spell
+status: active
+doc: FwPowerCmp: the object's current power compares to V by Op (CmpGE, CmpLE, CmpEQ, CmpGT, CmpLT, CmpNE; gorge powerGE/powerLE/powerEQ...). The same read as PredPowerLE/PredPowerGE: the layered power on the battlefield, the printed or CDA one elsewhere, a face-down object 2. Not in a layer-walk view (no re-entry).

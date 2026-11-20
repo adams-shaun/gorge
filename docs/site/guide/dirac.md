@@ -1,9 +1,6 @@
 # Serving dirac
 
-`gorged -engine dirac` runs a server's tables on [dirac](../architecture/dirac/index.md) instead of gorge, with
-no rules engine built beside it. This page is for a host who wants those tables: how to start them, what they
-play and what they refuse. [`dirac/docs/serving.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/serving.md)
-has the complete list.
+`gorged -engine dirac` runs a server's tables on [dirac](../architecture/dirac/index.md), with no rules engine built beside it. This page covers starting them, what they play and what they refuse. [`dirac/docs/serving.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/serving.md) has the full list.
 
 ## Running it
 
@@ -20,20 +17,13 @@ read the same view and decisions as on gorge, and `make web` applies the same wa
 
 ## What it plays
 
-A dirac server seats two. The engine itself plays pods of up to four seats in lockstep with gorge, Commander pods
-included, but `dirac/adapter` hosts two-seat games only
-([Verification](../architecture/dirac/oracle.md#four-seat-pods)).
+A dirac server seats two. The engine plays pods of up to four seats in lockstep with gorge, Commander pods included, but `dirac/adapter` hosts two-seat games only ([Verification](../architecture/dirac/oracle.md#four-seat-pods)).
 
-Two-seat Constructed games on limited decks from two card sets, FDN and BLB, and two-seat Commander games on the five Foundations precons (`-format commander -dirac-sets cmd5 -decks testkit/testutil/decks`). `-dirac-sets` lists the sets to try,
-in order, defaulting to `fdn`, and a game plays on the first set holding both decks; `-dirac-sets blb` serves
-Bloomburrow. `-decks` left at its default serves the first set's decks in `dirac/testdata/bench/`. dirac plays only
-its [supported cards](../architecture/dirac/index.md#what-it-supports), so a deck holding any other card is logged at
-startup and listed in the lobby, disabled, with the reason, and the same goes for a directory you name with `-decks`.
-None of the Constructed decks in `testkit/testutil/decks` fits one table, so they don't play here; its Foundations precons are the Commander decks.
-
-A human can play a bot, or bots can play each other. `bot`, `lethal-pressure`, `forge-heuristic` and
-`forge-heuristic-hold` take a seat, and `sb-tactical` plays at a bot-only table. Undo, the game log, replay by event
-sequence, feedback reports, the ManaBrew wire and the SpellBench v2 wire all work.
+- **Constructed:** limited decks from the FDN and BLB sets.
+- **Commander:** the five Foundations precons (`-format commander -dirac-sets cmd5 -decks testkit/testutil/decks`).
+- `-dirac-sets` lists the sets to try, in order (default `fdn`); a game plays on the first set holding both decks. `-dirac-sets blb` serves Bloomburrow. `-decks` left at its default serves the first set's decks in `dirac/testdata/bench/`.
+- dirac plays only its [supported cards](../architecture/dirac/index.md#what-it-supports). A deck holding any other card is logged at startup and listed in the lobby, disabled, with the reason; the same goes for a directory you name with `-decks`. The Constructed decks in `testkit/testutil/decks` don't fit one table, so they don't play here.
+- A human can play a bot, or bots can play each other. `bot`, `lethal-pressure`, `forge-heuristic` and `forge-heuristic-hold` take a seat; `sb-tactical` plays at a bot-only table. Undo, the game log, replay by event sequence, feedback reports, the ManaBrew wire and the SpellBench v2 wire all work.
 
 ## What differs from a gorge server
 
