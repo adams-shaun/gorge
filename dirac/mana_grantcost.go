@@ -206,21 +206,40 @@ func (g *grantSrch) sacOnlyVisit(t *State, i int, sl Slot) bool {
 	return false
 }
 
-// printedSacPass is visit's last gap step: each holder whose granted {T}
-// ability is spent or unusable still has its PRINTED sacrifice-only mana
-// ability (an Eldrazi Spawn's), which costs no {T}. Gorge's prefix search
-// branches it after the token's tap floated its mana (CR 605.3b, 602.2b) but
-// only once the node is not priced and the other gaps are tried: a node the
-// play is already payable at ends the line there, so a later gap (Gilanra's
-// {G}) is reached before this sacrifice and the node it charges counts against
-// the same budget. A holder that could not activate its grant at the root (a
+// tappedHolderStep is visit's step for candidate i at sl when it cannot tap: its
+// granted sacrifice-only abilities, then its printed one (printedSacInPlace).
+func (g *grantSrch) tappedHolderStep(t *State, i int, sl Slot, stepped *slotMask) bool {
+	return g.ng[i] > 0 && (g.sacOnlyVisit(t, i, sl) || g.printedSacInPlace(t, i, sl, stepped))
+}
+
+// printedSacInPlace is visit's step for a gap holder that cannot tap its
+// granted ability now (spent by an earlier step) but still has its PRINTED
+// sacrifice-only mana ability (an Eldrazi Spawn's), which costs no {T}. Gorge's
+// prefix search lists every activation of the gap sources in battlefield
+// order, so the tapped holder's sacrifice is branched where its object sits,
+// before a later holder's tap, and a sacrifice whose dies trigger stacks
+// leaves the line waiting on it while the later holders are tried (CR 605.3b,
+// 602.2b). A holder that could not activate its grant at the root (idle: a
 // summoning-sick Spawn beside Path of Annihilation) is no gap of gorge's: its
 // printed sacrifice is the planner's, priced at each node, never a step (CR
-// 302.6, 605.1a).
-func (g *grantSrch) printedSacPass(t *State, sacd bool) bool {
+// 302.6, 605.1a). stepped records the holders taken here for printedSacPass.
+func (g *grantSrch) printedSacInPlace(t *State, i int, sl Slot, stepped *slotMask) bool {
+	if g.idle.has(sl) {
+		return false
+	}
+	*stepped = stepped.with(sl)
+	return g.printedSacVisit(t, i, sl)
+}
+
+// printedSacPass is visit's last gap step: each holder whose granted {T}
+// ability is spent or unusable still has its PRINTED sacrifice-only mana
+// ability (an Eldrazi Spawn's), which costs no {T}, and printedSacInPlace did
+// not already branch it (stepped). It is branched only once the node is not
+// priced and the other gaps are tried.
+func (g *grantSrch) printedSacPass(t *State, sacd bool, stepped slotMask) bool {
 	for i := 0; i < g.gapN; i++ {
 		sl := g.cand[i]
-		if g.ng[i] == 0 || g.idle.has(sl) || t.grantTapOK(g.k, sl) || g.tapx[i] && t.scriptTapX(g.k, g.p).has(sl) {
+		if g.ng[i] == 0 || g.idle.has(sl) || stepped.has(sl) || t.grantTapOK(g.k, sl) || g.tapx[i] && t.scriptTapX(g.k, g.p).has(sl) {
 			continue
 		}
 		if sacd && (!t.occ.has(sl) || t.perms[sl].obj != g.cobj[i]) {
