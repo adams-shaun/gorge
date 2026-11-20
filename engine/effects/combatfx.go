@@ -1636,10 +1636,25 @@ func protectionQualities(h Host, c *Ctx, sa *cards.SA) []string {
 			return []string{q}
 		}
 	}
-	if q := resolveGains(gains, choices, h.Game().Obj(c.Source)); q != "" {
+	q := resolveGains(gains, choices, h.Game().Obj(c.Source))
+	if q == "" {
+		return nil
+	}
+	if !strings.EqualFold(q, gains) {
+		// Choice (the ask above, or its stand-in) and ChosenColor each name one
+		// quality; a literal Gains$ resolves to itself.
 		return []string{q}
 	}
-	return nil
+	// a literal Gains$ list (Grotesque Hybrid's green,white) is one
+	// protection ability per quality (CR 702.16g), as Forge's ProtectEffect
+	// splits it; a "Protection from green,white" keyword names no quality
+	var out []string
+	for w := range strings.SplitSeq(q, ",") {
+		if w = strings.TrimSpace(w); w != "" {
+			out = append(out, w)
+		}
+	}
+	return out
 }
 
 // protectionColorWord is a colour's name as protection text spells it.

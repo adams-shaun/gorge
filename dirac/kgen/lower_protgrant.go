@@ -13,9 +13,11 @@ import (
 // so a source matching any of them is protected from). gorge reads the
 // derived keyword through protectionQuality and sourceHasQuality, a filter
 // over the source; the kernel reads kop.Static.ProtFrom the same way it
-// reads a printed CardDef.ProtFrom. Only plain type and colour terms
-// lower, and only in the bare "Protection:<spec>" form: a subtype term would need the matchup's subtype remap, and a
-// controller or player term (Player.Opponent) is a different rule.
+// reads a printed CardDef.ProtFrom. Only plain type, colour, subtype and
+// multicolored terms lower (qualityFilter), from any host: a controller or
+// player term (Player.Opponent) is a different rule. An exception field
+// (a Ward Aura's "doesn't remove CARDNAME", Spectra Ward's "doesn't remove
+// Auras") becomes st.ProtExc (protException).
 //
 // Protection:Card.ChosenColor:chosenColor (Ward Sliver, Pentarch Ward,
 // Benevolent Blessing) is the host's chosen colour, st.ProtChosen, from any
@@ -24,26 +26,21 @@ func (lc *lowerCtx) splitProtGrant(kw string, st *lStatic) (string, error) {
 	var rest []string
 	var out *lFilter
 	terms := 0
-	hostOK := lc.out.Types&(tArtifact|tEnchantment) != 0
 	for _, k := range strings.Split(kw, "&") {
 		k = strings.TrimSpace(k)
 		if c, ok := protColourKW(k); ok {
-			// On an artifact or enchantment host the colour spellings lower to
-			// colour-mask clauses of the same quality filter, not to kop
-			// keyword bits (KwMask has no free bits for white, blue or green):
-			// one ability per term, so a source matching any clause is
-			// protected from (CR 702.16g). On any other host the term falls
-			// through to pumpKeywords' printed route, which lowers the black
-			// and red spellings as the KwProtBlack / KwProtRed bits the kernel
-			// reads (Mystic Familiar's creature) and refuses the rest, as it
-			// always has.
+			// On every host the colour spellings lower to colour-mask clauses of
+			// the same quality filter, not to kop keyword bits (KwMask has no
+			// free bits for white, blue or green): one ability per term, so a
+			// source matching any clause is protected from (CR 702.16g; Pristine
+			// Angel's each color on a creature).
 			//
 			// Protection from black and from red keep their bits on every
 			// host (Akroma's Memorial, as before the colour clauses): gorge
 			// spells the granted keyword on the creature, and the feature
 			// encoder reads it from the bit (feat.KeywordNames), which a
 			// quality clause does not carry.
-			if !hostOK || c == "B" || c == "R" {
+			if c == "B" || c == "R" {
 				rest = append(rest, k)
 				continue
 			}
@@ -63,19 +60,16 @@ func (lc *lowerCtx) splitProtGrant(kw string, st *lStatic) (string, error) {
 			}
 			continue
 		}
-		// Only an Equipment's or an Aura's grant is lockstep-verified (Sword of
-		// Wealth and Power; Spirit Mantle, Unquestioned Authority).
-		if !hostOK {
-			return "", refuse("keyword %q: a granted protection from a non-artifact host", k)
-		}
 		// A description after the spec is part of the quality, not a rule:
 		// gorge protectionQuality reads only the first field. An exception
-		// field (an Aura's "doesn't remove CARDNAME", CR 702.16n and p) is
-		// not modelled by the kernel's enforcement sites, so such a grant
-		// stays refused.
+		// field (a Ward Aura's "doesn't remove CARDNAME", Spectra Ward's
+		// "doesn't remove Auras", CR 702.16) rides st.ProtExc, read only at the
+		// kernel's Aura state-based check (protException).
 		spec, desc, _ := strings.Cut(param, ":")
-		if _, _, hasExc := strings.Cut(desc, ":"); hasExc {
-			return "", refuse("keyword %q: protection with a description or exception field", k)
+		if _, exc, hasExc := strings.Cut(desc, ":"); hasExc {
+			if err := lc.protException(exc, terms == 1 && !strings.Contains(kw, "&"), st); err != nil {
+				return "", refuse("keyword %q: %v", k, err)
+			}
 		}
 		f, err := lc.qualityFilter(strings.TrimSpace(spec))
 		if err != nil {
@@ -109,22 +103,59 @@ func appendProtClause(out, f *lFilter) *lFilter {
 }
 
 // qualityFilter lowers one protection quality spec: the plain object
-// characteristics plainQuality reads (no controller, owner, comparison or
-// state terms), and no subtype term (the matchup's subtype remap does not
-// reach a protection quality).
+// characteristics plainQualityOf reads (no controller, owner, comparison or
+// state terms); a subtype term lowers as every filter's does (the matchup's
+// subtype remap renumbers every table filter, quality filters included).
 func (lc *lowerCtx) qualityFilter(spec string) (*lFilter, error) {
-	f, err := lc.filter(spec)
+	f, err := lc.filter(spellTypeQuality(spec))
 	if err == nil {
-		err = plainQuality(f)
-	}
-	if err == nil {
-		for _, c := range f.Clauses {
-			if c.Subtype != "" || c.NotSubtype != "" {
-				err = refuse("quality %s names a subtype", f)
-			}
-		}
+		err = plainQualityOf(f, true)
 	}
 	return f, err
+}
+
+// spellTypeQuality reads a quality's Spell.Instant and Spell.Sorcery terms
+// (Devoted Caretaker's "instant spells and sorcery spells") as the card types
+// themselves: an instant or sorcery is never a permanent, so the source of
+// damage, a block or a target is a spell of that type exactly when it is a
+// card of it, which is what the kernel's quality match reads (the filter
+// grammar has no Spell head outside a ReduceCost ValidTarget$). Any other
+// Spell term is left for the filter to refuse.
+func spellTypeQuality(spec string) string {
+	if !strings.Contains(spec, "Spell.") {
+		return spec
+	}
+	ts := strings.Split(spec, ",")
+	for i, t := range ts {
+		if t = strings.TrimSpace(t); t == "Spell.Instant" || t == "Spell.Sorcery" {
+			t = strings.TrimPrefix(t, "Spell.")
+		}
+		ts[i] = t
+	}
+	return strings.Join(ts, ",")
+}
+
+// splitProtSpecAll takes the "Protection:<spec>" terms out of a PumpAll's KW$
+// list into one end-of-turn override record's ProtFrom (splitProtFromKW over
+// those terms only: the colour spellings keep pumpAll's own routes). nil when
+// the list has none.
+func (lc *lowerCtx) splitProtSpecAll(kw string) (string, *lOverride, error) {
+	var rest, prot []string
+	for _, k := range strings.Split(kw, "&") {
+		if k = strings.TrimSpace(k); strings.HasPrefix(k, "Protection:") {
+			prot = append(prot, k)
+		} else if k != "" {
+			rest = append(rest, k)
+		}
+	}
+	if len(prot) == 0 {
+		return kw, nil, nil
+	}
+	o := &lOverride{}
+	if _, err := lc.splitProtFromKW(strings.Join(prot, " & "), o); err != nil {
+		return "", nil, err
+	}
+	return strings.Join(rest, " & "), o, nil
 }
 
 // splitProtFromKW takes the protection terms out of a granted KW$ list (a
@@ -181,13 +212,7 @@ func (lc *lowerCtx) splitProtFromKW(kw string, o *lOverride) (string, error) {
 }
 
 // chosenColorGrant lowers one Protection:Card.ChosenColor:<text>[:<exception>
-// [:SBA]] term. The exception (CR 702.16 "this effect doesn't remove ...")
-// is spared only at the kernel's Aura state-based check, so it lowers only
-// when it is the sole protection term, and only in the two forms whose
-// excepted source no other protection check can name: the host itself
-// (Card.CardUID_HostCardUID, Pentarch Ward) and, with the SBA flag, the
-// host's controller's attachments (<spec>.ControlledBy
-// Player.PlayerUID_HostCardControllerUID, Benevolent Blessing).
+// [:SBA]] term (the exception: protException).
 func (lc *lowerCtx) chosenColorGrant(param string, sole bool, st *lStatic) error {
 	f := strings.Split(param, ":")
 	if len(f) < 2 || f[1] != "chosenColor" || len(f) > 4 {
@@ -197,16 +222,32 @@ func (lc *lowerCtx) chosenColorGrant(param string, sole bool, st *lStatic) error
 	if len(f) == 2 {
 		return nil
 	}
-	sba := len(f) == 4
-	if sba && f[3] != "SBA" || !sole {
-		return refuse("a protection exception beside another protection term")
+	return lc.protException(strings.Join(f[2:], ":"), sole, st)
+}
+
+// protException lowers a granted protection's exception field,
+// "<clauses>[:SBA]" (CR 702.16 "this effect doesn't remove ..."). The
+// exception is spared only at the kernel's Aura state-based check, so it
+// lowers only when it is the sole protection term, and only in the forms
+// whose excepted source no other protection check can name: the host itself
+// (Card.CardUID_HostCardUID, Pentarch Ward and the Ward Auras), every Aura
+// (Aura, Spectra Ward) and, with the SBA flag, the host's controller's
+// attachments (<spec>.ControlledBy Player.PlayerUID_HostCardControllerUID,
+// Benevolent Blessing). Anything else refuses by name.
+func (lc *lowerCtx) protException(exc string, sole bool, st *lStatic) error {
+	fs := strings.Split(exc, ":")
+	sba := len(fs) == 2
+	if len(fs) > 2 || sba && fs[1] != "SBA" || !sole {
+		return refuse("a protection exception beside another protection term, or with an unread flag")
 	}
 	var clauses []string
-	for _, c := range strings.Split(f[2], ",") {
+	for _, c := range strings.Split(fs[0], ",") {
 		c = strings.TrimSpace(c)
 		switch {
 		case c == "Card.CardUID_HostCardUID" && !sba:
 			clauses = append(clauses, "Card.Self")
+		case c == "Aura":
+			clauses = append(clauses, "Card.Aura")
 		case sba && strings.HasSuffix(c, ".ControlledBy Player.PlayerUID_HostCardControllerUID"):
 			spec := strings.TrimSuffix(c, ".ControlledBy Player.PlayerUID_HostCardControllerUID")
 			if strings.Contains(spec, ".") {
@@ -225,10 +266,10 @@ func (lc *lowerCtx) chosenColorGrant(param string, sole bool, st *lStatic) error
 			return refuse("protection exception %q", c)
 		}
 	}
-	exc, err := lc.filter(strings.Join(clauses, ","))
+	exf, err := lc.filter(strings.Join(clauses, ","))
 	if err != nil {
 		return err
 	}
-	st.ProtExc = exc
+	st.ProtExc = exf
 	return nil
 }

@@ -2680,6 +2680,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	mustBlock, eachColor, marks := false, false, 0
 	var afterlives []int
+	var protAll *lOverride
 	var landwalk *lFilter
 	if kw, ok := ps.get("KW"); ok {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
@@ -2693,6 +2694,12 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 		kw, marks = splitKwMarks(kw) // lower_kwmark.go
 		if marks != 0 && scope.Kind != rNone {
 			return refuse("PumpAll KW$ %s with a ValidTgts$ player scope", kwMarkNames(marks))
+		}
+		if kw, protAll, err = lc.splitProtSpecAll(kw); err != nil { // lower_protgrant.go
+			return err
+		}
+		if protAll != nil && scope.Kind != rNone {
+			return refuse("PumpAll KW$ Protection:<spec> with a ValidTgts$ player scope")
 		}
 		if kw, landwalk, err = lc.splitLandwalkAll(kw, scope); err != nil { // lower_landwalkall.go
 			return err
@@ -2718,7 +2725,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if err := pumpAllHighKw(&in, hasAtt || hasDef); err != nil { // lower_pumpallhighkw.go
 		return err
 	}
-	if !(mustBlock || eachColor || marks != 0 || len(afterlives) > 0 || landwalk != nil) || in.CS != "" || hasAtt || hasDef {
+	if !(mustBlock || eachColor || marks != 0 || len(afterlives) > 0 || protAll != nil || landwalk != nil) || in.CS != "" || hasAtt || hasDef {
 		lc.emit(in)
 	}
 	if landwalk != nil {
@@ -2726,6 +2733,13 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	if err := lc.grantAfterlifeAll(f, afterlives); err != nil { // lower_afterlifegrant.go
 		return err
+	}
+	if protAll != nil {
+		// CR 702.16 + 611.2c: the permanents matching ValidCards$ as this
+		// resolves have protection from the quality until end of turn (Spare
+		// from Evil): an end-of-turn override record swept over them
+		lc.out.overrides = append(lc.out.overrides, protAll)
+		lc.emit(lInstr{Op: "OverrideAll", F: f, CS: "EOT", Note: overrideString(protAll), C: len(lc.out.overrides) - 1})
 	}
 	if eachColor {
 		// CR 702.16 + 611.2c: the permanents matching ValidCards$ as this
