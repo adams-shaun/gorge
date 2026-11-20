@@ -9,9 +9,9 @@ import (
 // graveyard target and every other card in your graveyard with its name)
 // lowers to one ChangeZoneAll whose Card.YouOwn clause reads
 // PredSameNameT0. Legions to Ashes' battlefield token sweep lowers to two
-// OR'd clauses (the target itself, then OppCtrl tokens reading
-// PredSameNameT0) exiling; The End's TargetedCard.sameName search refuses,
-// naming its spelling.
+// OR'd clauses (the target itself, then tokens controlled by the target's
+// controller reading PredSameNameT0) exiling; The End's
+// TargetedCard.sameName search refuses, naming its spelling.
 func TestChangeZoneAllSameNameLowers(t *testing.T) {
 	refused := map[string]string{
 		"The End": `"TargetedCard.sameName"`,
@@ -69,8 +69,8 @@ func TestChangeZoneAllSameNameLowers(t *testing.T) {
 }
 
 // checkLegionsToAshes: the sweep is one battlefield-to-exile ChangeZoneAll
-// whose filter is the target (targetedBy) OR an opponent-controlled token
-// reading PredSameNameT0.
+// whose filter is the target (targetedBy) OR a token controlled by target 0's
+// controller (CtrlTgt) reading PredSameNameT0.
 func checkLegionsToAshes(t *testing.T, c *lCard) {
 	t.Helper()
 	for _, r := range c.Refusals {
@@ -91,8 +91,8 @@ func checkLegionsToAshes(t *testing.T, c *lCard) {
 			if cl[0].Flags&fTargetedBy == 0 {
 				t.Errorf("%s: clause 0 %+v, want targetedBy", c.Name, cl[0])
 			}
-			if cl[1].Flags&fToken == 0 || cl[1].Ctrl != whoOpp || cl[1].CmpStat != cmpSameNameT0 {
-				t.Errorf("%s: clause 1 %+v, want a token OppCtrl clause reading PredSameNameT0", c.Name, cl[1])
+			if cl[1].Flags&fToken == 0 || cl[1].Ctrl != whoTgtOrCtrl || cl[1].CtrlTgt != 1 || cl[1].CmpStat != cmpSameNameT0 {
+				t.Errorf("%s: clause 1 %+v, want a token for target 0's controller (CtrlTgt) reading PredSameNameT0", c.Name, cl[1])
 			}
 			if in.C != zExile {
 				t.Errorf("%s: sweep goes to zone %d, want exile", c.Name, in.C)

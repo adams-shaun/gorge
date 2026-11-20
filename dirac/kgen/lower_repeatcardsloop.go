@@ -39,14 +39,16 @@ func (lc *lowerCtx) repeatEachCardsLoop(in lInstr, body *cards.SA) error {
 
 // rememberedAlias is what Defined$ Remembered reads when it is not the
 // resolution's remembered set: the repeated card of a RepeatEach-over-cards
-// body (repeatEachCardsLoop), the linked opponent (lower_remembered.go), or
-// the captured trigger source (lower_effeottrig.go capturedTriggerRef).
+// body (repeatEachCardsLoop), the Pump-remembered target's controller
+// (lower_remembered.go), or the captured trigger source
+// (lower_effeottrig.go capturedTriggerRef).
 func (lc *lowerCtx) rememberedAlias(v string) (lRef, bool) {
 	switch {
 	case v == "Remembered" && lc.repeatCard > 0:
 		return lRef{Kind: rEach}, true
 	case v == "Remembered" && lc.remOppLink():
-		return lRef{Kind: rEachOpp}, true
+		// seat-exact: the Pump's target controller, not the one opponent
+		return lRef{Kind: rTargetController, N: lc.remOppSlot}, true
 	}
 	return lc.capturedTriggerRef(v)
 }

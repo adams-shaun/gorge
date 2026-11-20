@@ -523,14 +523,13 @@ func (lc *lowerCtx) pumpRememberTargeted(ps *params, t0 int) error {
 // adds the target's controller, a player, to the remembered list
 // (effects/pump.go rememberDefinedObjects), and a later link's Defined$
 // Remembered names that player. The kernel's remembered set holds objects
-// only, but here the player is fixed: the slot's filter makes the target
-// opponent-controlled, a target that no longer is is illegal when the
-// spell resolves (CR 608.2b), so in two players the remembered player is
-// the opponent, captured before any later link changes control. It lowers
-// only when the rest of the chain reads the set solely as a Draw's
-// Defined$ Remembered and ends with Cleanup ClearRemembered$ True, so no
-// other reader sees the player; on those links defined lowers Defined$
-// Remembered as the opponent (remOppLink).
+// only, but the target slot names the player through its controller ref
+// (RefTargetController: a player target is that player, an object target
+// its controller), so the Draw reads that player at any seat count; with
+// one opponent it is the same seat as before. It lowers only when the rest
+// of the chain reads the set solely as a Draw's Defined$ Remembered and
+// ends with Cleanup ClearRemembered$ True, so no other reader sees the
+// player (remOppLink).
 func (lc *lowerCtx) pumpRememberOppController(t0 int) error {
 	t := lc.lastTarget()
 	if t < 0 || t == t0 {
@@ -545,7 +544,6 @@ func (lc *lowerCtx) pumpRememberOppController(t0 int) error {
 			return refuse("Pump RememberObjects$ TargetedController over a slot not limited to opponents' objects")
 		}
 	}
-	lc.twoSeat("the remembered target controller read as the one opponent")
 	var links []*cards.SA
 	cleared := false
 	for n := lc.curNode.Sub; n != nil; n = n.Sub {
@@ -573,6 +571,8 @@ func (lc *lowerCtx) pumpRememberOppController(t0 int) error {
 		return refuse("Pump RememberObjects$ TargetedController without a closing Cleanup ClearRemembered$")
 	}
 	lc.remOppLinks = links
+	lc.remOppSlot = t
+	lc.remOppAb = lc.ab
 	return nil
 }
 
@@ -595,12 +595,40 @@ func (lc *lowerCtx) chainReadsRememberedSVar(n *cards.SA) bool {
 // remOppLink reports whether the link being lowered follows a Pump
 // RememberObjects$ TargetedController (pumpRememberOppController).
 func (lc *lowerCtx) remOppLink() bool {
+	if lc.remOppAb != lc.ab {
+		return false
+	}
 	for _, n := range lc.remOppLinks {
 		if n == lc.curNode {
 			return true
 		}
 	}
 	return false
+}
+
+// reorderRemOppDraw puts a Pump-remembered controller's Draw ahead of the
+// GainControl it follows (Rules of Acquisition). The Pump captures the
+// target's controller as the Pump resolves, before the later GainControl:
+// the Draw's RefTargetController reads that player live, so it must run while
+// the target is still controlled by them. Both effects are part of one
+// resolution with no decision between, so the resolution's final state is
+// unchanged; a draw trigger that observes the permanent's controller sees it
+// one effect earlier than gorge does (a documented approximation).
+func (lc *lowerCtx) reorderRemOppDraw() {
+	if lc.remOppAb != lc.ab {
+		return // a nested ability's links, not this ability's
+	}
+	for i := 0; i+1 < len(lc.ab.Prog); i++ {
+		// seat-exact: the Draw names the target's controller, not a seat count
+		if lc.ab.Prog[i].Op == "GainControl" &&
+			lc.ab.Prog[i].Obj == (lRef{Kind: rTarget, N: lc.remOppSlot}) &&
+			lc.ab.Prog[i+1].Op == "Draw" &&
+			lc.ab.Prog[i+1].Obj == (lRef{Kind: rTargetController, N: lc.remOppSlot}) {
+			lc.ab.Prog[i], lc.ab.Prog[i+1] = lc.ab.Prog[i+1], lc.ab.Prog[i]
+			i++
+		}
+	}
+	lc.remOppLinks, lc.remOppSlot, lc.remOppAb = nil, 0, nil
 }
 
 // eachDamageRemembered is EachDamage DefinedDamagers$ Remembered's damager

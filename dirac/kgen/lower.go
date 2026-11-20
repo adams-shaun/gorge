@@ -359,9 +359,12 @@ type lowerCtx struct {
 	// (lower_chooseplayerres.go).
 	chosenResAb *lAbility
 	// remOppLinks are the chain links after a Pump RememberObjects$
-	// TargetedController whose Defined$ Remembered reads the one opponent
-	// (lower_remembered.go pumpRememberOppController).
+	// TargetedController whose Defined$ Remembered reads the target's
+	// controller (lower_remembered.go pumpRememberOppController);
+	// remOppSlot is that target slot, remOppAb the ability they belong to.
 	remOppLinks []*cards.SA
+	remOppSlot  int
+	remOppAb    *lAbility
 }
 
 // lowerCard lowers a card; a refusal is recorded in out.Refusals (the card
@@ -3682,6 +3685,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	if err := lc.chain(sa, ps); err != nil {
 		return err
 	}
+	lc.reorderRemOppDraw()        // lower_remembered.go
 	return anyActivatorWindow(ab) // lower_anyactivator.go: read once the chain has declared its targets
 }
 
