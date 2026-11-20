@@ -657,7 +657,7 @@ func (s *State) matchCardGenAt(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 // against the card, nothing else.
 func (s *State) matchCardChain(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, ctx *evalCtx) bool {
 	for f != 0 {
-		if s.matchCardOneAt(k, &k.t.Filters[f], c, owner, ctrl, o, ctx) {
+		if s.matchCardOneAt(k, &k.t.Filters[f], c, owner, ctrl, o, ctx, false) {
 			return true
 		}
 		f = k.t.Filters[f].Or
@@ -681,10 +681,14 @@ func (s *State) copyCeased(k *prep, o Obj) bool {
 }
 
 func (s *State) matchCardOne(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint8, o Obj) bool {
-	return s.matchCardOneAt(k, fl, c, owner, ctrl, o, nil)
+	return s.matchCardOneAt(k, fl, c, owner, ctrl, o, nil, false)
 }
 
-func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint8, o Obj, ctx *evalCtx) bool {
+// matchCardOneAt is a card matcher; spell true reads the card as the spell it
+// would be cast as: a split card off the stack shows only the half cast, not
+// both halves' combined types and colours (CR 601.2f, 709.3a; gorge's
+// spellSpecCtx AsSpellHalf).
+func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint8, o Obj, ctx *evalCtx, spell bool) bool {
 	if fl.CtrlTgt != 0 && !s.cardCtrlTgtOK(k, fl, owner) {
 		return false
 	}
@@ -733,7 +737,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	if fd {
 		cols = 0 // CR 708.2/708.4: a face-down permanent or spell is colourless
 	}
-	ty, cols = s.splitHalvesChars(k, c, o, fd, ty, cols) // CR 709.4: a split card off the stack has both halves' types and colours
+	ty, cols = s.splitHalvesChars(k, c, o, fd, spell, ty, cols) // CR 709.4: a split card off the stack has both halves' types and colours
 	if fl.Types != 0 && ty&fl.Types == 0 || ty&fl.NotTypes != 0 {
 		return false
 	}

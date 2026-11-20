@@ -7,11 +7,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // both halves' combined (CR 709.4, 709.4b/c; gorge state.Object.SplitHalves
 // read by effects.ColorMaskOf and hasTypeCtx), so Leave // Chance in a hand is
 // a white and a red instant and sorcery card. Anything else, a face-down card
-// included, keeps ty and cols. Cold: behind genPrep.anySplit.
+// included, keeps ty and cols; so does a read as the spell cast (spell: the
+// cast half alone, CR 601.2f, 709.3a). Cold: behind genPrep.anySplit.
 //
 //go:noinline
-func (s *State) splitHalvesChars(k *prep, c CardID, o Obj, fd bool, ty kop.TypeMask, cols kop.ColorMask) (kop.TypeMask, kop.ColorMask) {
-	if fd || k.gen == nil || !k.gen.anySplit {
+func (s *State) splitHalvesChars(k *prep, c CardID, o Obj, fd, spell bool, ty kop.TypeMask, cols kop.ColorMask) (kop.TypeMask, kop.ColorMask) {
+	if fd || spell || k.gen == nil || !k.gen.anySplit {
 		return ty, cols
 	}
 	cd := &k.t.Cards[c]
