@@ -1,0 +1,57 @@
+# TapsForMana triggers (gap4-02): the static any-colour extras, the stack
+# TapsForMana triggers, the reflected extras over nonland filters, the
+# until-end-of-turn Effect TapsForMana triggers and the gated/beyond-type
+# ValidCard$ shapes kgen refuses or lowers, with lands of every basic type,
+# mana rocks and cheap spells of each colour so payments run both the planned
+# and the manual window. dirac/oracle/tapsformana_anycol_lockstep_test.go
+# (Kinnan, Bonder Prodigy: the reflected extra over Permanent.nonLand).
+Blighted Burgeoning
+Buried in the Garden
+Dawn's Reflection
+Fertile Ground
+Market Festival
+Regal Behemoth
+Trace of Abundance
+Verdant Haven
+Glittering Frost
+Elvish Guidance
+Forbidden Orchard
+Gauntlet of Power
+Overabundance
+Sanctimony
+Savage Firecat
+Snowfall
+Treasure Nabber
+Vorinclex, Voice of Hunger
+Winter's Night
+Zhur-Taa Druid
+Kinnan, Bonder Prodigy
+Bubbling Muck
+High Tide
+Pyre Rhymer
+Barbflare Gremlin
+Mana Web
+War's Toll
+Sisay
+Eloren Wilds
+The Fertile Lands of Saulvinia
+Selesnya Loft Gardens
+Extraplanar Lens
+Plains
+Island
+Swamp
+Mountain
+Forest
+Wastes
+Sol Ring
+Mind Stone
+Arcane Signet
+Grizzly Bears
+Llanowar Elves
+Bear Cub
+Shock
+Opt
+Giant Growth
+Samite Healer
+Doom Blade
+Saruli Gatekeepers
