@@ -24,7 +24,7 @@ func SVarsReadCastBattlefield(svars map[string]string) bool {
 			return true
 		}
 	}
-	return false
+	return SVarsReadCastGraveyard(svars) || svarsReadPresence(svars)
 }
 
 // frozenHost answers the derived-P/T reads of a frozen battlefield from the
