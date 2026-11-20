@@ -2234,10 +2234,6 @@ type genState struct {
 	// the mark lives here; it ends with the permanent (removePerm) and with the turn.
 	declM    slotMask
 	replaced Obj // the object an as-enters replacement program is modifying
-	// replSrc is the slot+1 of the permanent whose replacement program runs
-	// (runReplProgAs), 0 when none: an others-enter amount reads that source,
-	// not the entrant (enterCountValue)
-	replSrc uint8
 
 	// OpCastFree: cards still castable this resolution
 	free  [maxFree]Obj

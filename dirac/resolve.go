@@ -797,13 +797,13 @@ var DebugOthersEnterEntrantValue bool
 // controller, not the effect's (All-Fates Stalker's return of Gigastorm Titan
 // under Bioengineered Future counts lands that entered under the Titan's
 // controller). A program running as another permanent's others-enter
-// replacement (s.g.replSrc) reads that source instead.
+// replacement (replSrcOf) reads that source instead.
 func (s *State) enterCountValue(k *prep, v kop.ValueRef, sl Slot, ctrl uint8) int {
 	if v.K == kop.VExpr {
 		c := s.ctxEntry(&s.res.e)
 		c.ctrl = ctrl
 		c.src, c.srcSl = s.perms[sl].obj, sl
-		if r := s.g.replSrc; r != 0 && Slot(r-1) != sl && !DebugOthersEnterEntrantValue {
+		if r := s.replSrcOf(); r != 0 && Slot(r-1) != sl && !DebugOthersEnterEntrantValue {
 			// another permanent's others-enter program (Arwen, Weaver of
 			// Hope): its amount is the source's, with the source's "you"
 			// (CR 614.12)
