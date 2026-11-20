@@ -1854,12 +1854,16 @@ func (s *State) finishBuild(k *prep) {
 // land played this turn can carry the lower object ID (tail-64 pair 75). A
 // free cast mid-resolution (Etali) has no priority plan and keeps the
 // window (pair 9954), as does a raise the plain planner cannot price (a
-// tap-another mana ability pays it), which the window's walk reaches.
+// tap-another mana ability pays it), which the window's walk reaches. The
+// plan's payment spends the restricted mana this cast admits before the
+// ordinary units of its colour (payRestrRider, CR 106.6), as every other
+// cast does (the s.rbAny arm below): Karn, Legacy Reforged's artifact-only
+// {C} pays the raise, and the census source stays untapped.
 func (s *State) payFreeCast(k *prep, e *stackEntry, cost *kop.ManaCost, anyColor bool) bool {
 	if e.flags&sfFree != 0 && e.flags&sfMayPlay != 0 && s.bld().bfl&bflLowered == 0 &&
 		e.flags&sfAnyMana == 0 && !anyColor && cost.X == 0 && e.x == 0 &&
 		s.castRestPriced(k, e.ctrl, e.obj, cost) {
-		s.payRider(k, e.ctrl, cost, int(e.x), e.obj, false)
+		s.payRestrRider(k, e.ctrl, cost, int(e.x), e.obj, false)
 		return true
 	}
 	return s.payCastWindow(k, e.ctrl, cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
