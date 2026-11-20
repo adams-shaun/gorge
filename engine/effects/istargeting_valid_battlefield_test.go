@@ -22,7 +22,7 @@ func TestIsTargetingValidIsBattlefieldOnlyClass(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct{ arg, want string }{
 		{"Valid Creature.YouCtrl", "Creature.YouCtrl+inZoneBattlefield"},
-		{"Valid Permanent,Player", "Permanent+inZoneBattlefield,Player+inZoneBattlefield"},
+		{"Valid Permanent,Player", "Permanent.inZoneBattlefield,Player"},
 		{"Valid Permanent.YouCtrl~Other", "Permanent.YouCtrl+Other+inZoneBattlefield"},
 		{"Valid Self", "Card.Self+inZoneBattlefield"},
 		{"Player", "Player"},

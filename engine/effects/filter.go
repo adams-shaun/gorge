@@ -1305,12 +1305,26 @@ func spellIsTargetingInner(arg string) (spec string, ok bool) {
 		// candidates from the BATTLEFIELD only (`ValidAll ` is the any-zone
 		// form). "A creature you control" is a permanent (CR 109.2, 110.1), so
 		// a creature card in a graveyard never satisfies it: every
-		// comma-alternative is pinned to the battlefield, and a player target
-		// (not a card) never matches the pinned spec. The bare forms stay
-		// zone-free.
+		// card comma-alternative is pinned to the battlefield; a player-base
+		// alternative is left as is. The bare forms stay zone-free.
 		alts := strings.Split(spec, ",")
 		for i, a := range alts {
-			alts[i] = strings.TrimSpace(a) + "+inZoneBattlefield"
+			a = strings.TrimSpace(a)
+			// A player-base alternative (`Valid Player`, `Opponent`, ...)
+			// names a player target, not a card; the battlefield pin is a
+			// card-zone fact, so it stays unpinned and keeps matching players.
+			if base, _, _ := strings.Cut(a, "."); base == "Player" || base == "Opponent" || base == "You" || base == "Any" {
+				alts[i] = a
+				continue
+			}
+			// The filter grammar is `Base.pred+pred`: a '+' directly after
+			// a bare base reads as part of the base name and matches
+			// nothing, so the first predicate needs the '.' separator.
+			if strings.Contains(a, ".") {
+				alts[i] = a + "+inZoneBattlefield"
+			} else {
+				alts[i] = a + ".inZoneBattlefield"
+			}
 		}
 		spec = strings.Join(alts, ",")
 	}
