@@ -14,7 +14,7 @@ import (
 // other play kind to the plain order unless the plain run was limited on a
 // repeatable fee-only filter. The feeGap arm must therefore stay a plain
 // cast's: an activation or a kicked cast on the same board keeps the plain
-// answer, exactly as gorG's phased run does. The {4}{R} activation is still
+// answer, exactly as gorge's phased run does. The {4}{R} activation is still
 // offered here -- the plain walk prices it -- so the control shows the gate
 // withholds no play the plain order finds.
 func TestComboAnyFilterPhasedFallbackStaysAPlainCast(t *testing.T) {
@@ -86,5 +86,11 @@ func TestComboAnyFilterPhasedFallbackStaysAPlainCast(t *testing.T) {
 	}
 	if fallback(MakeAction(AkCast, TCode(uint8(skrullHand)), 0, 1)) {
 		t.Fatal("the phased fallback opened for a kicked cast on the multi-unit fee-gap board")
+	}
+	// The plainLimited arm is not narrowed: a plain run limited on a repeatable
+	// fee-only filter is in scope for every play kind (phasedOutOfScope).
+	fs := filtSearch{a: MakeAction(AkActivate, TCode(uint8(skrull)), 0, uint8(dmg)), feeOnly: true, nodes: potentialScriptNodes}
+	if !sc.s.phasedFallback(sc.k, &fs, 0) {
+		t.Fatal("the plainLimited arm no longer opens for an activation")
 	}
 }
