@@ -98,7 +98,7 @@ func (s *State) holdReturns(sl Slot, o Obj) {
 				return
 			}
 			s.g.retHeld[s.g.nretHeld] = o
-			s.g.retCtrl |= s.perms[sl].ctrl << s.g.nretHeld
+			s.g.retCtrl |= uint16(s.perms[sl].ctrl) << (2 * s.g.nretHeld)
 			s.g.nretHeld++
 			return
 		}
@@ -117,14 +117,14 @@ func (s *State) flushReturns(k *prep) bool {
 	s.g.nretHeld, s.g.retCtrl = 0, 0
 	for i := 0; i < n; i++ {
 		was := s.g.pre.state
-		s.returnLinked(k, ctrl>>i&1, s.g.retHeld[i])
+		s.returnLinked(k, uint8(ctrl>>uint(2*i)&3), s.g.retHeld[i])
 		if was == 0 && s.g.pre.state == preReturn {
 			// a return's ask is parked: gorge asks it with the rest of the
 			// batch still in exile and returns them once it is answered
 			// (resumeReturns)
 			if i+1 < n {
 				copy(s.g.retHeld[:], s.g.retHeld[i+1:n])
-				s.g.retCtrl = ctrl >> uint(i+1)
+				s.g.retCtrl = ctrl >> uint(2*(i+1))
 				s.g.nretHeld = uint8(n - i - 1)
 			}
 			s.refreshTy(k)
