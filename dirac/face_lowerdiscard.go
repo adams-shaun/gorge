@@ -24,6 +24,7 @@ func (s *State) faceLowerDiscardsCast(k *prep, p uint8, o Obj, cost *kop.ManaCos
 	if !s.tapForPKFound(k, p, cost, &dry) || !plannerPaysLife(&dry) {
 		return false
 	}
+	z0 := s.objs[o].zone
 	t := s.fork()
 	defer s.unfork()
 	var pk planner
@@ -43,7 +44,7 @@ func (s *State) faceLowerDiscardsCast(k *prep, p uint8, o Obj, cost *kop.ManaCos
 		t.Apply(d.Options[0])
 		t.resolvePrefixStack(k, sp0, true)
 	}
-	return t.objs[o].zone != kop.ZoneHand
+	return t.objs[o].zone != z0
 }
 
 // plannerPaysLife reports whether the planner's chosen witness takes a unit
