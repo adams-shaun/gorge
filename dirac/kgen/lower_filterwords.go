@@ -261,6 +261,88 @@ func (c *lClause) faceUpDisguise(p string) (handled bool, err error) {
 	return false, nil
 }
 
+// rewriteFilterWords runs, in lc.filter's order, every expression rewrite a
+// filter parse applies before parseFilter; the first named refusal wins
+// (each word's gate lives on its own function here).
+func (lc *lowerCtx) rewriteFilterWords(expr string) (string, error) {
+	for _, rw := range []func(string) (string, error){
+		lc.spawnerTargetCtrl, lc.spawnerDefendingCtrl, lc.parentTargetCtrl,
+	} {
+		e, err := rw(expr)
+		if err != nil {
+			return "", err
+		}
+		expr = e
+	}
+	return expr, nil
+}
+
+// parentTargetCtrl rewrites the filter word "ControlledBy ParentTarget"
+// (gorge controlReferentPlayers ParentTarget, engine/effects/
+// trigger_referents.go: the parent chain link's chosen PLAYER targets -- an
+// object target binds nothing, the tail skips it -- Yosei, the Morning
+// Star's dying trigger, Cloak and Dagger Entwined, The Fall of Kroog, Yes
+// Man's ImmediateTrigger condition) onto TargetedPlayerCtrl's resolution
+// player-target set (kop.F2TgtPlayerCtrl, battlefield only). The kernel bit
+// reads every player target of the resolving entry, so the rewrite is exact
+// only while the parent's slot is the entry's only player-targeting one: a
+// second earlier link targeting a player would widen the kernel's set past
+// gorge's parent-only read, and a parent whose filter admits no player
+// binds nothing on either side -- both shapes refuse with a named reason.
+// The longer "ControlledBy ParentTargetedController" spelling is a
+// different, unmodelled referent and keeps its unknown-property refusal.
+// The boundary the parse-time gate cannot see: the filter's own link also
+// declaring player targets (a Player alternative beside the ParentTarget
+// clause in the same ValidTgts$); no corpus carrier has it, and the
+// TargetedPlayerCtrl word itself reads the same entry-wide set.
+func (lc *lowerCtx) parentTargetCtrl(expr string) (string, error) {
+	const word = "ControlledBy ParentTarget"
+	if !strings.Contains(expr, word) {
+		return expr, nil
+	}
+	t := lc.lastTarget()
+	if t < 0 {
+		return expr, refuse("filter %q: ControlledBy ParentTarget without an earlier target", expr)
+	}
+	pt := lc.ab.Targets[t]
+	if pt.F == nil || pt.F.Players == 0 {
+		return expr, refuse("filter %q: ControlledBy ParentTarget: the parent link's target admits no player", expr)
+	}
+	for _, i := range lc.chainT[:len(lc.chainT)-1] {
+		if f := lc.ab.Targets[i].F; f != nil && f.Players != 0 {
+			return expr, refuse("filter %q: ControlledBy ParentTarget beside another player-targeting link", expr)
+		}
+	}
+	return rewriteExactToken(expr, word, "TargetedPlayerCtrl"), nil
+}
+
+// rewriteExactToken replaces every occurrence of word in s that is the whole
+// token (the next byte does not continue an identifier), so a longer
+// spelling that merely starts with word keeps its own parser fate.
+func rewriteExactToken(s, word, repl string) string {
+	var b strings.Builder
+	for {
+		i := strings.Index(s, word)
+		if i < 0 {
+			b.WriteString(s)
+			return b.String()
+		}
+		end := i + len(word)
+		if end < len(s) && isIdentByte(s[end]) {
+			b.WriteString(s[:end])
+			s = s[end:]
+			continue
+		}
+		b.WriteString(s[:i])
+		b.WriteString(repl)
+		s = s[end:]
+	}
+}
+
+func isIdentByte(c byte) bool {
+	return c == '_' || c == '$' || c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
+}
+
 // spawnerTargetCtrl rewrites the filter word "ControlledBy
 // Spawner>TriggeredTarget" (gorge controlReferentPlayers spawnerChain: the
 // spawning trigger's target player) to trigPlayerCtrlWord inside an

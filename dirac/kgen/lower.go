@@ -2980,11 +2980,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 		return lc.sameNameT0OtherFilter() // lower_filterreferents.go
 	}
 	expr = lc.triggeredTargetCtrl(expr)
-	expr, err0 := lc.spawnerTargetCtrl(expr) // lower_filterwords.go
-	if err0 != nil {
-		return nil, err0
-	}
-	expr, err0 = lc.spawnerDefendingCtrl(expr) // lower_filterwords.go
+	expr, err0 := lc.rewriteFilterWords(expr) // lower_filterwords.go
 	if err0 != nil {
 		return nil, err0
 	}
