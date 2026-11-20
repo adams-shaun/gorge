@@ -240,6 +240,15 @@ func (g *grantSrch) seenPays(t *State, cost *kop.ManaCost, cheap bool) bool {
 		g.cheaper = cheap
 		return true
 	}
+	// An activation's offer reads the pool and the printed sources together
+	// (the walk's activateOffers), not the pool alone: a folded-equal node whose
+	// pool is spendable where the seen one's ghost unit was not (Woodland
+	// Weavemaster's granted {G} after its Elf-only printed mana, CR 106.6)
+	// still offers it, as gorge's node does.
+	if g.d.hasPlay && g.d.play.Kind() == AkActivate && t.affordsUngrantedPlay(g.k, g.p, g.d.play, cost, g.ex, g.d) && g.witnessKeeps(t, cost) {
+		g.cheaper = cheap
+		return true
+	}
 	return false
 }
 
