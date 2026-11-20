@@ -708,6 +708,38 @@ func turnUpPotentialAction(pa decision.PotentialAction, ref func(state.ObjID) Re
 	return Pack(ActSpecial, ref(pa.Obj), RefNone, c|sub<<4), true
 }
 
+// paymentCastAction is the canonical action of a planner-paid cast.
+// casualty, impended and conspired have their own action kinds; the full
+// cast-mode table's modes the table cannot hold use CastModeOther. A hand
+// alternate-spell-face route the planner prices (adventure_alt/omen_alt) is
+// not a distinct action: the legal walk already offers it as the ActCastFace
+// option when the payer can afford it, and that offer is the surface the
+// kernel mirrors, so skip is true and the witness is not an option (nor an
+// unknown kind: dr-mbc-bbbb pair 98). unknown names an unlisted cast mode.
+func paymentCastAction(pa decision.PaymentAction, ref func(state.ObjID) Ref) (a Canon, skip bool, unknown string) {
+	mode := pa.Cast.CastMode()
+	switch mode {
+	case "casualty":
+		return Pack(ActCastCasualty, ref(pa.Cast.Object), RefNone, 0), false, ""
+	case "impended":
+		return Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0), false, ""
+	case "conspired":
+		return Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4), false, ""
+	case "suspend", "bargained", "teamworked", "harmonize", "mayhem", "buyback", "entwined", "optionalcost", "web-slinging", "overloaded", "cleaved":
+		// CR 702.166: the full cast-mode table's castModeOther code, the
+		// same canonical form the offered option uses
+		return Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther), false, ""
+	}
+	if _, ok := faceCastCode(mode); ok {
+		return 0, true, ""
+	}
+	mc, ok := castModeCode(mode)
+	if !ok {
+		return 0, false, "payment/" + pa.Cast.Origin
+	}
+	return Pack(ActCast, ref(pa.Cast.Object), RefNone, mc), false, ""
+}
+
 // priorityVocabulary is the autopay priority vocabulary (doc.go): pass,
 // every land play, every cast gorge's planner pays (PaymentActions), every
 // potential play PotentialPaymentPlans prices, and every cast/ability/special
@@ -1032,33 +1064,13 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 		if len(pa.Plans) == 0 {
 			continue
 		}
-		var a Canon
-		if pa.Cast.CastMode() == "casualty" {
-			a = Pack(ActCastCasualty, ref(pa.Cast.Object), RefNone, 0)
-		} else if pa.Cast.CastMode() == "impended" {
-			a = Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0)
-		} else if pa.Cast.CastMode() == "conspired" {
-			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4)
-		} else if pa.Cast.CastMode() == "suspend" || pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "buyback" || pa.Cast.CastMode() == "entwined" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" || pa.Cast.CastMode() == "overloaded" || pa.Cast.CastMode() == "cleaved" {
-			// CR 702.166: the full cast-mode table's castModeOther code, the
-			// same canonical form the offered option uses
-			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther)
-		} else if _, ok := faceCastCode(pa.Cast.CastMode()); ok {
-			// A hand alternate-spell-face cast the planner prices
-			// (CastMode adventure_alt/omen_alt) is not a distinct action:
-			// the legal walk already offers it as the ActCastFace option
-			// when the payer can afford it, and that offer is the surface
-			// the kernel mirrors. The planner's witness is a payment route
-			// beneath it, so it is neither a new option nor an unknown
-			// kind (dr-mbc-bbbb pair 98).
+		a, skip, unknown := paymentCastAction(pa, ref)
+		if skip {
 			continue
-		} else {
-			mc, ok := castModeCode(pa.Cast.CastMode())
-			if !ok {
-				note("payment/" + pa.Cast.Origin)
-				continue
-			}
-			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, mc)
+		}
+		if unknown != "" {
+			note(unknown)
+			continue
 		}
 		replaced := false
 		for k := range fr.prio {
