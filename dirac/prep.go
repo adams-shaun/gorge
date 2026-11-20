@@ -79,7 +79,10 @@ type pcard struct {
 	// alone (Lotus Ring's equipped creature; mana_grantcost.go). Only the
 	// grant search, the gap readers and the manual window read it: the
 	// printed sacrifice readers (manaSacOnly) never see a grant.
-	grantSac    bool
+	grantSac bool
+	// cantAct: the card prints a StatCantActivate static (cast_cantactivate.go):
+	// actForbiddenBy walks only these cards plus emblems.
+	cantAct     bool
 	trigMask    uint32 // bit per kop.TrigEvent the card's triggers listen to
 	hasStat     bool
 	grantStat   bool  // an override static or a continuous static with a Grant
