@@ -352,6 +352,7 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 	ob.of |= ofInHand
 	pl.handN++
 	pl.drawnTurn++
+	s.g.zoneTurn.set(o) // put into the hand this turn, as place does
 	if s.g.enteredOn {
 		s.noteEnter(o, kop.ZoneHand, kop.ZoneLibrary, false)
 	}
