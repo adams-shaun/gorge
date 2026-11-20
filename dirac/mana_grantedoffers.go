@@ -1142,12 +1142,21 @@ func (g *grantSrch) exHolds(s *State) bool {
 // colour it makes, its fee paid from the pool).
 const stepFilt int16 = -2
 
-// filtFirstFreeFee reports a first-and-only filter whose gorger census
-// relaxation is a free coloured unit: its fee is no funding step (the
-// planner's relaxation needs none, so census.fees does not count it), though
-// the search still pays the fee from the pool when it activates the source.
+// filtFirstFreeFee reports a first-and-only filter whose fee gorge's
+// unrelaxable census does not count: it has a sound relaxed alternative, so
+// it is no `fund` entry, while an unrelaxable census has already cleared the
+// `paid` list that would have carried the fee. A hybrid or repeatable fee is
+// no free unit (its `fund` entry is counted), and a relaxable census counts
+// the fee in `paid`. The helper is read only where the census is unrelaxable
+// (filtFunding).
 func (s *State) filtFirstFreeFee(k *prep, sl Slot) bool {
-	return k.gen.anyFiltFirst && s.filtFirstOnly(k, sl)
+	if !k.gen.anyFiltFirst || !s.filtFirstOnly(k, sl) {
+		return false
+	}
+	if _, _, hyb := s.filtHyb(k, sl); hyb {
+		return false
+	}
+	return !s.filtRepeat(k, sl)
 }
 
 // candidates lists p's permanents with a granted mana ability (granted only, or
@@ -1196,7 +1205,7 @@ func (g *grantSrch) candidates(s *State) {
 		if plain && !s.gapSpendable(g.k, sl, &g.d) {
 			// gorge's prefix search drops a gap whose mana the play
 			// cannot spend (scriptSpendableGaps); its fee still counts
-			if fm.has(sl) && !s.filtFirstFreeFee(g.k, sl) {
+			if fm.has(sl) {
 				g.funding += s.filtFee(g.k, sl)
 			}
 			dropped = dropped.with(sl) // (nor a funding source: it makes no mana the play spends)
@@ -1207,7 +1216,7 @@ func (g *grantSrch) candidates(s *State) {
 			g.idle = g.idle.with(sl)
 		}
 		g.gap[g.n] = true
-		if fm.has(sl) && !s.filtFirstFreeFee(g.k, sl) {
+		if fm.has(sl) {
 			g.funding += s.filtFee(g.k, sl)
 		}
 		g.n++

@@ -103,7 +103,10 @@ func (s *State) filtRepeatPotential(k *prep, p uint8, sl Slot, av *avail, have *
 // step costs a node); otherwise the fundable filters' fees summed, none when
 // the search's funding is unrelaxable. A hybrid fee counts like any other:
 // its activation spends the pip from floating mana (mana_filterhybrid.go), so
-// the search must first tap a covered source to float it.
+// the search must first tap a covered source to float it. A first-and-only
+// filter's fee is a `paid` entry, which an unrelaxable census has cleared
+// (filtFirstFreeFee): it funds nothing there, while a relaxable census counts
+// it.
 func (s *State) filtFunding(k *prep, p uint8, f slotMask) int {
 	if s.filtRepeatIn(k, f) {
 		return potentialScriptNodes
@@ -112,9 +115,10 @@ func (s *State) filtFunding(k *prep, p uint8, f slotMask) int {
 	if !s.filtFundable(k, p, f) {
 		return 0
 	}
+	relaxable := s.filtRelaxable(k, f)
 	for ; f.any(); f = f.rest() {
-		if s.filtFirstFreeFee(k, f.first()) {
-			continue // a first-and-only filter's relaxation is a free unit: its fee is no funding step (census.fees)
+		if !relaxable && s.filtFirstFreeFee(k, f.first()) {
+			continue // an unrelaxable census clears paid: a first-and-only filter's fee is no funding step (census.fees)
 		}
 		n += s.filtFee(k, f.first())
 	}
