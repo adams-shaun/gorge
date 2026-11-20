@@ -31,8 +31,8 @@ func prepUmbra(t *kop.Table, g *genPrep) {
 
 // umbraAura is the Aura on the battlefield attached to host that carries
 // umbra armor, or NoSlot: the first by seat, then battlefield order. An Aura
-// in skip is already gone (a destroy-all's earlier victim) and does not
-// answer; one that lost its abilities does not carry the keyword.
+// in skip has already answered for another victim and does not answer again;
+// one that lost its abilities does not carry the keyword.
 func (s *State) umbraAura(k *prep, host Slot, skip slotMask) Slot {
 	if k.gen == nil || !k.gen.anyUmbra {
 		return NoSlot
@@ -77,12 +77,22 @@ func (s *State) umbraHeal(host Slot) {
 //
 //go:noinline
 func (s *State) umbraSpare(k *prep, host Slot) bool {
+	return s.umbraSpareIn(k, host, slotMask{})
+}
+
+// umbraSpareIn is umbraSpare for a batch of simultaneous departures: when the
+// Aura is itself one of the victims (CR 702.89a; a spell destroying the Aura
+// and the creature it enchants at the same time), the save still applies but
+// the Aura's own departure is the batch's, so it is not left here.
+func (s *State) umbraSpareIn(k *prep, host Slot, batch slotMask) bool {
 	aura := s.umbraAura(k, host, slotMask{})
 	if aura == NoSlot {
 		return false
 	}
 	s.umbraHeal(host)
-	s.leaveParked(k, aura)
+	if !batch.has(aura) {
+		s.leaveParked(k, aura)
+	}
 	return true
 }
 
@@ -100,10 +110,12 @@ func (s *State) umbraBatch(k *prep, host Slot) Slot {
 }
 
 // umbraAll is OpDestroyAll's umbra pass (after shieldAll): each victim of hit
-// that an Aura answers leaves hit and the Aura joins it. Victims run in
-// battlefield order and an Aura that is itself an earlier victim is already
-// gone when its bearer's turn comes (gorge destroys one victim at a time and
-// skips the ones that left).
+// that an Aura answers leaves hit and the Aura joins it. The answers are read
+// from the pre-batch board, as gorge effDestroyAll's pre-read does (CR
+// 702.89a): an Aura that is itself a victim still answers when its bearer's
+// turn comes, whichever of the two the seat/battlefield order visits first.
+// Only an Aura already consumed as an answer is skipped, so it saves at most
+// one bearer.
 //
 //go:noinline
 func (s *State) umbraAll(k *prep, hit slotMask) slotMask {
@@ -116,13 +128,12 @@ func (s *State) umbraAll(k *prep, hit slotMask) slotMask {
 		n = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), ord[:], n)
 	}
 	out := hit
-	var before, gone slotMask // victims already visited; Auras consumed
+	var gone slotMask // Auras already consumed as an answer
 	for _, sl := range ord[:n] {
 		if gone.has(sl) {
 			continue
 		}
-		aura := s.umbraAura(k, sl, before.and(hit))
-		before = before.with(sl)
+		aura := s.umbraAura(k, sl, gone)
 		if aura == NoSlot {
 			continue
 		}

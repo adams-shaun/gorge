@@ -75,9 +75,26 @@ func (s *State) leaveTogether(k *prep, in *kop.Instr, i uint8) bool {
 				}
 			}
 		}
+		// The victims leave together, so an umbra Aura among them already has
+		// its own departure: CR 702.89a still saves the bearer, but the Aura
+		// must die once, in the batch, not through a separate leave. Only the
+		// victims a non-umbra replacement does not spare are leaving, so a
+		// spared Aura is not in the batch: the bearer's save still moves it
+		// (gorge's replaceUmbraArmor consults neither indestructible nor a
+		// shield for the Aura).
+		noRegen := in.C&1 != 0 // seat-ok: an instruction flag bit
+		batch := slotMask{}
+		for _, o := range objs[:n] {
+			if !s.destroySparedNoUmbra(k, s.objs[o].slot, noRegen) {
+				batch = batch.with(s.objs[o].slot)
+			}
+		}
 		m := 0
 		for _, o := range objs[:n] {
-			if !s.destroySpared(k, s.objs[o].slot, in.C&1 != 0) { // seat-ok: an instruction flag bit
+			if s.objs[o].zone != kop.ZoneBattlefield {
+				continue // an earlier bearer's umbra save already moved this spared Aura
+			}
+			if !s.destroySparedIn(k, s.objs[o].slot, noRegen, batch) {
 				objs[m] = o
 				m++
 			}
