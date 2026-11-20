@@ -10,8 +10,9 @@ import (
 // controller of the opponent's permanent it targets, gains control of that
 // permanent, then has the remembered player draw three (CR 608.2c: the
 // player is read as the Pump link resolves, before control changes). gorge
-// remembers the player on the source; the kernel lowers the read as the one
-// opponent (dirac/kgen/lower_remembered.go pumpRememberOppController). The
+// remembers the player on the source; the kernel records the same player in a
+// RememberPlayer instruction (dirac/kgen/lower_remembered.go
+// pumpRememberOppController) and the Draw reads it after the GainControl. The
 // second mode gives one of your permanents to the targeted opponent and
 // draws only if it moved. The fixture pool is
 // dirac/cardset/pools/fixtures/remctl.
@@ -47,7 +48,7 @@ func TestRemCtlLockstep(t *testing.T) {
 func TestRemCtlMutation(t *testing.T) {
 	run := runFixtureLockstep(t, "remctl", remCtlDecks, remCtlWatch, 64, false, func(tbl *kop.Table) {
 		mutateCard(t, tbl, "Rules of Acquisition", func(a *kop.Ability, in *kop.Instr) {
-			if in.Op == kop.OpDraw && (in.Obj == kop.RefEachOpponent || in.Obj == kop.RefOpponent) {
+			if in.Op == kop.OpDraw && (in.Obj == kop.RefResChosenPlayer || in.Obj == kop.RefTargetController || in.Obj == kop.RefEachOpponent || in.Obj == kop.RefOpponent) {
 				in.Obj = kop.RefController
 			}
 		})

@@ -47,8 +47,9 @@ func (lc *lowerCtx) rememberedAlias(v string) (lRef, bool) {
 	case v == "Remembered" && lc.repeatCard > 0:
 		return lRef{Kind: rEach}, true
 	case v == "Remembered" && lc.remOppLink():
-		// seat-exact: the Pump's target controller, not the one opponent
-		return lRef{Kind: rTargetController, N: lc.remOppSlot}, true
+		// seat-exact: the Pump's recorded target controller, read after the
+		// GainControl (lower_remembered.go pumpRememberOppController)
+		return lRef{Kind: rResChosenPlayer}, true
 	}
 	return lc.capturedTriggerRef(v)
 }

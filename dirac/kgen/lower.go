@@ -3685,7 +3685,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	if err := lc.chain(sa, ps); err != nil {
 		return err
 	}
-	lc.reorderRemOppDraw()        // lower_remembered.go
+	lc.clearRemOpp()              // lower_remembered.go
 	return anyActivatorWindow(ab) // lower_anyactivator.go: read once the chain has declared its targets
 }
 
