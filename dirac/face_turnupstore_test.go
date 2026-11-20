@@ -9,13 +9,14 @@ import (
 )
 
 // TestTurnUpStoreShortBatteryNoOps: the keyword turn-up's offer is gorge's
-// potential read, which prices a storage battery's announced X unbounded even
-// when it holds no counter (mana_storecensus.go storeCensusPays). Taking the
-// action must re-prove the real payment first: activating a short battery
-// makes less mana than the offer assumed, so the turn-up has to degrade to the
-// no-op gorge's morphTurnUpPayableAs takes, not tap the battery and then ask
-// the planner for a plan it cannot find. A battery holding one counter does pay
-// a Morph {1}{B} beside a Plains and must still turn up. The battery is
+// potential play, which announces a storage battery's X against the counters
+// it holds (mana_storecensus.go storeCensusPays): a battery holding none funds
+// nothing, its plan is "insufficient", and the turn-up is not offered (tail-67
+// pair 44, Fountain of Cho with no counter beside Basilica Stalker's {4}{B}).
+// Taking the action anyway must still degrade to the no-op gorge's
+// morphTurnUpPayableAs takes, not tap the battery and then ask the planner for
+// a plan it cannot find. A battery holding one counter does pay a Morph
+// {1}{B} beside a Plains and must still turn up. The battery is
 // Bottomless Vault from the storagex pool and the morph creature is built
 // here, so the test reads no raw table.
 func TestTurnUpStoreShortBatteryNoOps(t *testing.T) {
@@ -55,7 +56,7 @@ func TestTurnUpStoreShortBatteryNoOps(t *testing.T) {
 		ctrs  int
 		turns bool
 	}{
-		{"a battery holding no counter no-ops", 0, false},
+		{"a battery holding no counter is not offered and no-ops", 0, false},
 		{"a battery holding one counter pays", 1, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -86,11 +87,15 @@ func TestTurnUpStoreShortBatteryNoOps(t *testing.T) {
 			if sc.s.sourcesPay(sc.k, 0, &c0) {
 				t.Fatalf("precondition: the untapped sources alone pay %+v", c0)
 			}
-			if !sc.s.storeCensusPays(sc.k, 0, &c0) {
-				t.Fatalf("precondition: the battery's potential read does not price %+v", c0)
+			if got := sc.s.storeCensusPays(sc.k, 0, &c0); got != tc.turns {
+				t.Fatalf("the battery's potential read prices %+v = %v, want %v", c0, got, tc.turns)
 			}
-			if n := sc.turnUpOffers(0); n != 1 {
-				t.Fatalf("the potential turn-up is not offered: %d options", n)
+			want := 0
+			if tc.turns {
+				want = 1
+			}
+			if n := sc.turnUpOffers(0); n != want {
+				t.Fatalf("the potential turn-up offers = %d options, want %d", n, want)
 			}
 
 			sc.s.turnFaceUp(sc.k, probe, 0)
