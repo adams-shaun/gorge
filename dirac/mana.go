@@ -510,7 +510,11 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 			}
 			continue
 		}
-		if deferSkip && deferGap.has(sl) && s.planDeferred(k, p, sl) {
+		// A deferred source that also carries a granted basic land type is
+		// the exception: its census unit is the intrinsic ability, not the
+		// gap its own ability makes (blgIntrinsicUnit, static_landtype.go),
+		// so it falls through to the ordinary unit below.
+		if deferSkip && deferGap.has(sl) && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
 			if dual && s.grantIdx(k, sl) >= 0 {
 				// its granted ability is a census gap of its own, which the
 				// grant search taps (Enduring Vitality on Twitching Doll):
@@ -1488,8 +1492,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		sl := m.first()
 		m = m.rest()
 		if s.planSourceUsable(k, p, sl, &rd) {
-			if deferSkip && s.planDeferred(k, p, sl) {
-				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
+			if deferSkip && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
+				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go); a granted basic land type's intrinsic unit is the exception (static_landtype.go)
 			}
 			if comboSkip && comboAnySrc(k, s.cardAt(sl)) {
 				continue // gorge's planner has no witness for a Combo Any source (mana_comboanyplan.go)

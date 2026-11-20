@@ -82,6 +82,24 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 		g.blgIdx[i] = -1
 		base := p.cards[i]
 		if !blgPlain(&t.Cards[i], &base) {
+			// A rider-first source (Gemstone Mine) is no census unit of its
+			// own under the planner's shape tier, but the intrinsic abilities
+			// a granted basic land type gives it are: one view per granted
+			// colour, running no rider (blgRiderFirst, blgView).
+			if !blgRiderFirst(&t.Cards[i], &base) {
+				continue
+			}
+			g.blgIdx[i] = int16(len(g.blgPC) / 32)
+			for m := 0; m < 32; m++ {
+				v := base
+				v.manaAb = 0 // the intrinsic one (manaAbView guards the reads)
+				v.manaIntrinsic = true
+				v.manaCol = kop.ColorMask(m)
+				v.manaN, v.manaTap = 1, true
+				v.manaMulti = bits.OnesCount8(uint8(v.manaCol&0x3f)) > 1
+				v.blgFirst = uint8(bits.TrailingZeros8(uint8(m)) + 1)
+				g.blgPC = append(g.blgPC, v)
+			}
 			continue
 		}
 		g.blgIdx[i] = int16(len(g.blgPC) / 32)
@@ -155,6 +173,27 @@ func blgPlain(c *kop.CardDef, pc *pcard) bool {
 	return true
 }
 
+// blgRiderFirst reports whether card c's first mana ability is a
+// planner-deferred bounded rider (mana_rider.go riderDeferred): a
+// source-anchored counter removal (Gemstone Mine's depletion cost) or a
+// counter-on-self rider (Twitching Doll). Such an ability is no planner
+// census unit, so under a granted basic land type the source's census unit
+// is the intrinsic ability alone (prepLandGrant, blgView).
+func blgRiderFirst(c *kop.CardDef, pc *pcard) bool {
+	if pc.manaAb < 0 || int(pc.manaAb) >= len(c.Abilities) {
+		return false
+	}
+	a := &c.Abilities[pc.manaAb]
+	if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
+		return false
+	}
+	if a.ManaRider != kop.ManaRiderNone {
+		return true
+	}
+	_, _, ok := cardManaRider(c)
+	return ok
+}
+
 // blgMask is the colours of the intrinsic abilities slot sl's granted
 // basic land types give it: a bit per basic type it has, when it is a land.
 //
@@ -172,14 +211,30 @@ func (s *State) blgMask(k *prep, sl Slot) kop.ColorMask {
 	return m
 }
 
+// blgIntrinsicUnit reports whether slot sl's plain census unit is the
+// intrinsic ability a granted basic land type gives it, not its own
+// planner-deferred rider (blgView): availFor counts it like any tap source,
+// as gorge's planner lists the intrinsic unit and defers the rider.
+func (s *State) blgIntrinsicUnit(k *prep, sl Slot) bool {
+	return k.gen != nil && k.gen.blgOn && s.riderDeferred(k, sl) && s.blgMask(k, sl) != 0
+}
+
 // blgView is manaPCGen's view of slot sl (card c, own facts pc) on a table
 // with a basic land type grant: pc unless a granted type adds a colour pc
 // does not make.
 //
+// A source whose own mana ability is a planner-deferred rider (Gemstone
+// Mine's "{T}, Remove a mining counter: Add one mana of any color") is not a
+// census unit of its own: gorge's planner lists only the intrinsic abilities
+// a granted basic land type gives it (planalts.go paymentPlanAbilityShapeTier
+// defers the SubCounter cost), so the view is the intrinsic one and runs no
+// rider (manaIntrinsic; a rider's own production is not appended, and the
+// granted colour is not the printed ability's).
+//
 //go:noinline
 func (s *State) blgView(k *prep, sl Slot, c CardID, pc *pcard) *pcard {
 	m := s.blgMask(k, sl)
-	if pc.manaAb >= 0 {
+	if pc.manaAb >= 0 && !s.riderDeferred(k, sl) {
 		m &^= pc.manaCol // gorge ManaAbilitiesProduce: a printed colour is not appended again
 	}
 	if m == 0 {
