@@ -1715,9 +1715,13 @@ var _ = [16 - FeatCtrKinds]struct{}{}
 
 // FeatDeathtouchMark is gorge's "Deathtouched" counter on object o: one
 // per deathtouch damage event since the cleanup (the kernel keeps two:
-// pfDeathtouched, pfDtMore).
+// pfDeathtouched, pfDtMore). A phased-out permanent still holds the mark:
+// phasing is not a zone change (CR 702.26d), so a phasing table reads the
+// slot on the phased zones too (kw_phasing.go).
 func (s *State) FeatDeathtouchMark(o Obj) uint8 {
-	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot && s.perms[ob.slot].flags&pfDeathtouched != 0 {
+	if ob := &s.objs[o]; (ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot ||
+		!DebugPhasedShieldsZero && s.k().phasing && ob.zone.Phased() && ob.slot != NoSlot) &&
+		s.perms[ob.slot].flags&pfDeathtouched != 0 {
 		if s.perms[ob.slot].flags&pfDtMore != 0 {
 			return 2
 		}
