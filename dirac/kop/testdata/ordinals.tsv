@@ -1273,6 +1273,11 @@ SacSumMV	untyped int	8
 SacSumPower	untyped int	2
 SacSumToughness	untyped int	4
 SacrificedFood	untyped int	2
+SkipPhaseAllCombats	untyped int	0
+SkipPhaseDraw	untyped int	2
+SkipPhaseNextCombat	untyped int	3
+SkipPhaseThisTurn	untyped int	4
+SkipPhaseUntap	untyped int	1
 SkipUntapLockAny	untyped int	3
 SkipUntapLockHostStep	untyped int	5
 SkipUntapLockStep	untyped int	2
