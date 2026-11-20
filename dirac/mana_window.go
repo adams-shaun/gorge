@@ -1290,6 +1290,16 @@ func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDefe
 	t.pool.census = was
 	stall := uint8(0)
 	if !ok {
+		// The greedy walk missed a filter-first source's fee-funded plan: its
+		// generic fee may need a funder the cost does not owe, and the funder
+		// may list before the filter (Overflowing Basin beside Power Depot).
+		// The filter payment search prices a fresh board exactly: the failed
+		// walk's taps and floating mana must not skew the plan.
+		ft := s.fork()
+		ok = ft.filtPay(k, p, cost)
+		s.unfork()
+	}
+	if !ok {
 		// the walk's taps and sacrifices latched a rule-gap stall (its next
 		// stepGen ends the game). A caller that keeps searching may still price
 		// the play through a sibling route, so the probe declares nothing: the

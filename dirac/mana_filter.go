@@ -32,6 +32,12 @@ import (
 
 const potentialScriptNodes = 160 // gorge rules/potential_script.go
 
+// paySearchNodes bounds a payment plan's search. A payment taps the cost's own
+// sources beside the filters' fees, so its tree is wider than a play prefix's;
+// the fixed-source-first funding order (filtSearch.visit) keeps ordinary
+// boards under it. It is a declared capacity bound: a search past it declines.
+const paySearchNodes = 1024
+
 // relaxedPaidLimit bounds the paid census gaps gorge's relaxed proof
 // enumerates (rules/potential_plan.go): with a fourth filter the census is
 // unrelaxable and its paid list empty, so no relaxed proof runs (every
@@ -1135,7 +1141,7 @@ type filtSearch struct {
 	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	nodes int
 	nseen int
-	seen  [potentialScriptNodes]filtKey
+	seen  [paySearchNodes]filtKey
 	n     int
 	path  [maxFiltPath]filtStep
 	// spill: a step of the path found floated restricted mana past what
@@ -1170,6 +1176,9 @@ type filtSearch struct {
 	feeOnly bool
 	// hands: the hand guides the path exiled so far (mana_handguide.go)
 	hands uint8
+	// pay: a payment search's cost (filtPay): the terminal is the pool
+	// paying it, not a play being offered.
+	pay *kop.ManaCost
 }
 
 // deferGapLeft: the search still holds an untapped filter gap whose tap
@@ -1317,6 +1326,45 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	return true
 }
 
+// filtPay is the unless / ward window's affordability probe for a filter-first
+// source's fee-funded chain: the same prefix search a cast's payment runs
+// (filtScript), with the terminal "the pool pays" instead of "the play is
+// offered". A filter's generic fee may need a funder the cost does not owe
+// (CR 605.3b), and the funder may list before the filter (Overflowing Basin's
+// {1}, {T}: Add {G}{U} beside Power Depot's {C}). Like gorge's reach walk, it
+// prices the offer; the window's own answer still decides the payment.
+func (s *State) filtPay(k *prep, p uint8, cost *kop.ManaCost) bool {
+	if k.gen == nil || !k.gen.anyFiltFirst || cost == nil {
+		return false
+	}
+	var fs filtSearch
+	fs.a = MakeAction(AkPass, 0, 0, 0)
+	fs.p, fs.gaps, fs.own, fs.sp0 = p, s.scriptFilt(k, p), NoSlot, s.sp
+	fs.other = s.otherGaps(k, p, fs.a)
+	// A payment plan taps the cost's own sources beside the filters' fees, so
+	// the funding bound is every slot rather than the fees summed (filtFunding
+	// limits a play's prefix, whose ordinary sources the planner counts, not
+	// taps). The terminal stops the search once the pool pays.
+	fs.fees = MaxPerm
+	fs.pay = cost
+	fs.useful, fs.usefulOK = *cost, true
+	t := s.fork()
+	defer s.unfork()
+	s.pool.inFilt++
+	found := fs.visit(k, t, 0, false)
+	s.pool.inFilt--
+	if !found {
+		if fs.stall != 0 {
+			s.capFull(fs.stall)
+		}
+		return false
+	}
+	if fs.spill != 0 {
+		s.capFull(fs.spill)
+	}
+	return true
+}
+
 // filtPlay plays a found path on s: each activation as the search made it,
 // each answer and pass as the decision then pending (the other player passes
 // while the trigger resolves, tapXPlay). Each tap fires its Taps triggers
@@ -1350,6 +1398,9 @@ var DebugFiltTryGapExempt bool
 // tick counts one visited node; false once the budget is spent.
 func (fs *filtSearch) tick() bool {
 	budget := potentialScriptNodes
+	if fs.pay != nil {
+		budget = paySearchNodes
+	}
 	if DebugFiltNodeBudget != 0 && DebugFiltNodeBudget < budget {
 		budget = DebugFiltNodeBudget
 	}
@@ -1791,6 +1842,54 @@ func (fs *filtSearch) offers(k *prep, t *State) bool {
 }
 
 // visit is one priority node of the search.
+// terminal reports whether the search reached its goal at t: a payment's
+// pool pays fs.pay, or a play's offer lists fs.a. The play's comment is the
+// original offer check: an activation's prefix is its payment window, so a
+// filter gap whose own tap queues a Taps trigger keeps tapping until the
+// floating pool pays the ability's reduced cost (gorge's manaWindowAsk runs
+// before the push).
+func (fs *filtSearch) terminal(k *prep, t *State, gapUsed bool) bool {
+	if fs.pay != nil {
+		return t.poolPays(fs.p, fs.pay)
+	}
+	if !(gapUsed || fs.hands > 0) || !fs.offers(k, t) { // (a guide's mana makes the raw priority list the play with no gap used)
+		return false
+	}
+	// A filter gap whose own tap queues a Taps trigger is the window's
+	// colour-asked tap: the offer still counting it untapped has not
+	// activated it yet, so keep tapping until the floating pool pays the
+	// ability's reduced cost. Its trigger then lands below the ability, as
+	// gorge's does. A filter whose tap queues no trigger, and every cast,
+	// keeps the offer check (the planner pays those after the push by the
+	// same convention).
+	return fs.a.Kind() != AkActivate || !fs.deferGapLeft(k, t) || t.poolPaysPlay(k, fs.p, fs.a)
+}
+
+// orderFunders puts a payment search's fixed-colour funders before its
+// flexible ones: a fixed source fills a pip the flexible one would otherwise
+// take (Overflowing Basin's {1} from Power Depot's {C}, then Lantern of
+// Revealing's any colour for the last pip). Gorge's planner ranks the fixed
+// sources first too.
+func (fs *filtSearch) orderFunders(k *prep, t *State, order []Slot, gap bool) {
+	if gap || fs.pay == nil {
+		return
+	}
+	var fixed, flex [MaxPerm]Slot
+	nf, nx := 0, 0
+	for i := range order {
+		sl := order[i]
+		if bits.OnesCount8(t.fundMaskAt(k, t.manaPCGen(k, sl), sl)) > 1 {
+			flex[nx] = sl
+			nx++
+		} else {
+			fixed[nf] = sl
+			nf++
+		}
+	}
+	copy(order[:nf], fixed[:nf])
+	copy(order[nf:], flex[:nx])
+}
+
 func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	if !fs.tick() {
 		return false
@@ -1800,19 +1899,8 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	// offers before it dedups: the colour-only key cannot tell a restricted
 	// unit from a filter's converted one, so a priced node can key equal to an
 	// earlier unpriced sibling.
-	if (gapUsed || fs.hands > 0) && fs.offers(k, t) { // (a guide's mana makes the raw priority list the play with no gap used)
-		// An activation's prefix is its payment window (gorge's
-		// manaWindowAsk, before the push). A filter gap whose own tap
-		// queues a Taps trigger is the window's colour-asked tap: the
-		// offer still counting it untapped has not activated it yet, so
-		// keep tapping until the floating pool pays the ability's
-		// reduced cost. Its trigger then lands below the ability, as
-		// gorge's does. A filter whose tap queues no trigger, and every
-		// cast, keeps the offer check (the planner pays those after the
-		// push by the same convention).
-		if fs.a.Kind() != AkActivate || !fs.deferGapLeft(k, t) || t.poolPaysPlay(k, p, fs.a) {
-			return true
-		}
+	if fs.terminal(k, t, gapUsed) {
+		return true
 	}
 	key := fs.stateKey(k, t)
 	for i := 0; i < fs.nseen; i++ {
@@ -1840,6 +1928,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		if !gap && funded >= fs.fees {
 			continue
 		}
+		fs.orderFunders(k, t, order[:n], gap)
 		var tried [MaxPerm]Slot
 		ntried := 0
 		for i := 0; i < n; i++ {
