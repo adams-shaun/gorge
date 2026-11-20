@@ -1437,13 +1437,9 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 			return false
 		}
 		prev &^= pnx
-		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false, false) {
-			if bp := s.pnxBareMask(&cand, pnx); !barePrevOnly(c, prev|bp, shld, pnx&^bp, plus) {
-				s.capFull(StallPrevNext)
-				return false
-			}
-			// every other candidate is a bare full prevention too: no order
-			// ask (repl_bareprev.go), so fall through to it
+		if pnx != 0 && c >= 2 && s.prevNextAskStalls(k, ctrl, srcSl, srcCard, rcp, sl, &cand, c, prev, shld, pnx, plus) {
+			s.capFull(StallPrevNext)
+			return false
 		}
 	}
 	if g.anyDmgMark && s.dmgMarkCompetesEv(rcp, ctrl, c) {

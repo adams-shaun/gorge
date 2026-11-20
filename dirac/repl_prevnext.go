@@ -387,6 +387,18 @@ func (s *State) replOthersCompete(k *prep, srcCtrl uint8, srcSl Slot, srcCard Ca
 	return false
 }
 
+// prevNextAskStalls reports whether a noncombat event's replacement ask must
+// stall at StallPrevNext: a shield competes with another replacement whose
+// order changes the result. A set of bare unbounded shields beside only bare
+// full preventions (barePrevOnly) poses no ask, so it does not stall.
+func (s *State) prevNextAskStalls(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, cand *[4]Obj, c int, prev, shld, pnx, plus uint8) bool {
+	if !s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false, false) {
+		return false
+	}
+	bp := s.pnxBareMask(cand, pnx)
+	return !barePrevOnly(c, prev|bp, shld, pnx&^bp, plus)
+}
+
 // prevNextCands appends the depleting shields matching a damage event to the
 // recipient code from the permanent at srcSl, in registration order, to the
 // candidates after its first c (cand holds the record's index, the option
