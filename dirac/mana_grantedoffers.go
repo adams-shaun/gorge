@@ -2727,7 +2727,12 @@ func (s *State) xFlashbackPlanCost(k *prep, p uint8, a Action) (cost kop.ManaCos
 // scriptNeedColours): a plain cast's printed mana cost, a printed ability's
 // compiled cost. An alternative, kicked, face-down or may-play cast, and the
 // impended/evoked alternative costs, leave it empty, as gorge's
-// scriptNeedColours does. The read is independent of grantPlayCost's ok: the
+// scriptNeedColours does -- except a plain graveyard cast (a mode-2 cast of
+// no special target), which announces the pips the cast pays
+// (graveyardCastNeedCost): the kernel's branch-order hint alone, never a
+// pricing read, so the budget-capped grant search reaches the announced
+// colour before the colours the play does not need and prices the cast the
+// census affords. The read is independent of grantPlayCost's ok: the
 // filter search also prices plays the grant search declines (a waterbend or
 // behold cast, a target-priced shape), and both searches must branch on the
 // same set. The card's printed cost is read unreduced (CR 601.2b announces
@@ -2735,8 +2740,70 @@ func (s *State) xFlashbackPlanCost(k *prep, p uint8, a Action) (cost kop.ManaCos
 func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
 	if m, _, ok := s.playBaseCost(k, a); ok {
 		need = grantNeedColours(m)
+	} else if m, ok := s.graveyardCastNeedCost(k, a); ok {
+		need = grantNeedColours(m)
 	}
 	return need
+}
+
+// graveyardCastNeedCost is the cost a plain graveyard cast (a mode-2 cast of
+// no special target) pays, playNeed's exception read only: the alternative
+// cost the cast prices -- the printed flashback cost, the printed mayhem,
+// harmonize, beam-me-up or escape cost (kop/table.go) -- or the printed mana
+// cost of a retrace, jump-start or aftermath cast (the printed cost's cast)
+// and a granted flashback instance (fbGrantCost: the card's mana cost, or a
+// live StFbOwnCost grant's own GrantCost, Iroh, Grand Lotus).
+// An {X} cost leaves it empty: the grant search
+// prices that cast through the fixed-part prefix search (xFlashbackPlanCost),
+// whose witness pays the X, and the announced pips would steer the search to
+// a plan gorge's census does not list (Devil's Play's {X}{R}{R}{R}
+// flashback). gorge prices no moded cast either (engine/rules
+// potential_script.go scriptPlayBaseCost leaves a mode unread): the read is
+// a hint for the colour-ask order, so nothing may price off it.
+func (s *State) graveyardCastNeedCost(k *prep, a Action) (m kop.ManaCost, ok bool) {
+	if a.Kind() != AkCast || a.Mode() != 2 || a.Target() != 0 {
+		return m, false
+	}
+	o := Obj(a.Source())
+	cd := &k.t.Cards[s.objs[o].card]
+	switch {
+	case cd.Mayhem || cd.Harmonize:
+		m = cd.AltCost
+	case cd.Keywords&kop.KwFlashback != 0 || cd.BeamMeUp || cd.Escape:
+		if s.graveyardCastGranted(k, o) {
+			m = s.fbGrantCost(k, s.objs[o].owner(), o, s.fbGranted(k, o))
+		} else {
+			m = cd.AltCost
+		}
+	default:
+		m = cd.Cost
+		if !s.g.fbProbe && (s.fbGranted(k, o) || s.fbLive(k, o)) {
+			m = s.fbGrantCost(k, s.objs[o].owner(), o, s.fbGranted(k, o)) // a card with no flashback of its own, cast through a grant
+		}
+	}
+	return m, m.X == 0
+}
+
+// graveyardCastGranted reports whether a mode-2 cast of no special target of
+// o pays a granted flashback instance rather than the card's own graveyard
+// alternative (flashbackBase's sfFbGranted). A printed Escape or Beam me up
+// card's own offers carry marker targets (castPrintedEscapeTgt, castBeamTgt),
+// so a target-0 cast of one is always the granted instance, priced at
+// cd.Cost (flashbackBase skips the KwFlashback/BeamMeUp arm for
+// sfFbGranted, and excludes BeamMeUp from the grant arm). A printed
+// flashback card's granted instance is the one the cast takes when the
+// printed instance is unaffordable (fbInstances' two && granted), and a
+// filter script's probe node keeps the printed instance (fbProbe).
+func (s *State) graveyardCastGranted(k *prep, o Obj) bool {
+	cd := &k.t.Cards[s.objs[o].card]
+	if cd.Escape || cd.BeamMeUp {
+		return true
+	}
+	if s.g.fbProbe || cd.Keywords&kop.KwFlashback == 0 || !(s.fbGranted(k, o) || s.fbLive(k, o)) {
+		return false
+	}
+	two, _, granted := s.fbInstances(k, s.objs[o].owner(), o)
+	return two && granted
 }
 
 // playBaseCost is the cost play a's printed base announces (gorge's
