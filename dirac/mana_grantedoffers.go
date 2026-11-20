@@ -922,17 +922,26 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 		// the witness prices an {X} one short and the payment taps one source
 		// fewer than gorge floats (Lunar Frenzy's X beside the Gold token).
 		sacOnly := !DebugSacManaAfterPay && s.canSacOnlyForMana(k, sl, pc)
+		// A life-only mana source (Treasonous Ogre's "Pay 3 life: Add {R}") is
+		// a census unit of the {X} witness too: its ability costs no {T}, so
+		// the source pays it tapped or untapped alike (CR 605.1a), and
+		// availForMode's census admits it beside a grant as this one must, or
+		// the witness prices an {X} one short and the payment taps one source
+		// fewer than gorge floats. canLifeOnlyMana keeps the lethal guard
+		// (lifeGapSurvives' CR 119.4 read): a payment that would reach the
+		// payer's life is no witness source.
+		lifeOnly := !DebugXWindowSkipLifeOnly && k.painMana && s.canLifeOnlyMana(k, sl, SeatIx(p))
 		// a granted basic land type's intrinsic unit is the deferred source's
 		// exception (blgIntrinsicUnit): gorge's census lists it like any
 		// printed source's (CR 305.6), so the witness reads it beside the
 		// source's own abilities
-		if pm.flags&pfTapped != 0 && !sacOnly || s.manaGranted(k, sl) || deferGap.has(sl) && s.planDeferred(k, SeatIx(p), sl) && !s.blgIntrinsicUnit(k, sl) {
+		if pm.flags&pfTapped != 0 && !sacOnly && !lifeOnly || s.manaGranted(k, sl) || deferGap.has(sl) && s.planDeferred(k, SeatIx(p), sl) && !s.blgIntrinsicUnit(k, sl) {
 			continue
 		}
 		if pc.manaDyn && pc.manaSac {
 			continue // gorge's witness census (paymentPlanManaUnitsOnlyCompute) prices no evaluated-amount source whose cost sacrifices it: the {T} probe needs a TapOnly shape
 		}
-		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) && !sacOnly {
+		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) && !sacOnly && !lifeOnly {
 			continue
 		}
 		if k.painMana && pc.painCol != 0 {
