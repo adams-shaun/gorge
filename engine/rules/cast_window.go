@@ -664,6 +664,100 @@ func (e *Engine) castWindowCensusComplete(pc *pendingCast, units []windowManaUni
 	return true
 }
 
+// castWindowProbeCeiling is the most mana an excluded window ability ma of
+// source id could add: an upper bound on what a source the census left
+// unpriced can still contribute to a payment. ok is false when the amount
+// cannot be resolved, so the caller cannot reason from the bound (fail open).
+func castWindowProbeCeiling(w castPlanPipsWindow, p state.PlayerID, id state.ObjID, ma *cards.SA) (int32, bool) {
+	mp := effects.ManaOf(ma)
+	counts, any := mp.Counts, mp.CountsAny
+	if mp.NeedsChosen {
+		chosen := pay.ChosenProducedColour(w.Game(), id)
+		if chosen == "" {
+			return 0, true // no recorded as-enters colour: the ability makes nothing
+		}
+		counts, any = cards.ProducedCounts(pay.SubstituteChosenProduced(mp.Produced, chosen))
+	}
+	if pay.IsColourIdentityProduced(mp.Produced) {
+		counts, any = w.castWindowIdentityCounts(p), true
+	}
+	total := int32(0)
+	for _, n := range counts {
+		total += n
+	}
+	if total <= 0 {
+		return 0, true
+	}
+	amt, ok := w.castWindowAmount(p, id, w.Game().Obj(id), ma)
+	if !ok {
+		return 0, false
+	}
+	if amt <= 0 {
+		return 0, true
+	}
+	if any {
+		return amt, true // one colour per activation: amt units
+	}
+	return amt * total, true
+}
+
+// castWindowUnpricedReach is castWindowCensusComplete's ceiling read: the
+// most mana the sources the census left unpriced could still add. bounded is
+// false when the incompleteness is not confined to those sources (a hand or
+// graveyard source, tap interference, an altered production) or an unpriced
+// ability's amount cannot be resolved; the caller must then keep the
+// historical fail-open. Each unpriced source sums every probe ability, an
+// over-estimate (one permanent's tap uses one ability), which keeps the bound
+// an upper one.
+func castWindowUnpricedReach(w castPlanPipsWindow, pc *pendingCast, units []windowManaUnit) (reach int32, bounded bool) {
+	p := pc.player
+	for _, z := range []state.Zone{state.ZHand, state.ZGraveyard} {
+		for _, id := range w.Game().Zone(z, p) {
+			if w.untappedManaSource(p, id) {
+				return 0, false
+			}
+		}
+	}
+	if w.paymentPlanManaInterference() {
+		return 0, false
+	}
+	for _, u := range units {
+		for _, a := range u.Alts {
+			if w.manaProductionAltered(u.ID, a.Ma) {
+				return 0, false
+			}
+		}
+	}
+	priced := make(map[state.ObjID]bool, len(units))
+	for _, u := range units {
+		priced[u.ID] = true
+	}
+	desc := paymentForCast(pc, pc.resolvedMana())
+	for _, id := range pay.BattlefieldManaSourceIDs(w.Game(), p) {
+		if w.convokeCommitted(pc, id) {
+			continue
+		}
+		if priced[id] {
+			if w.castWindowRestrictedAdmits(p, id, desc, units) {
+				return 0, false
+			}
+			continue
+		}
+		probe := w.castWindowProbeAbilities(p, id)
+		if len(probe) == 0 || !w.castWindowSourceExcluded(p, id, desc) {
+			continue
+		}
+		for _, ma := range probe {
+			n, ok := castWindowProbeCeiling(w, p, id, ma)
+			if !ok {
+				return 0, false
+			}
+			reach += n
+		}
+	}
+	return reach, true
+}
+
 // castWindowRestrictedAdmits reports whether a source priced by its plain mana
 // abilities also has a RestrictValid$ one this payment may spend (CR 106.6,
 // Tablet of Discovery's {R}{R} for an instant or sorcery): its units understate
