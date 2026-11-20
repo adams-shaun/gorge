@@ -161,6 +161,112 @@ func TestEvalSetBases(t *testing.T) {
 	}
 }
 
+// TestEvalSetPlayerUnion: a union of two player bases keeps every seat and the
+// membership mask, then OrderSeat reorders from the controller. The r1 probe:
+// RefEachOpponent u RefEachPlayer at seat 0 must be [0 1] with pl 0x3, not the
+// [1] the union's object push left behind.
+func TestEvalSetPlayerUnion(t *testing.T) {
+	st := newSetTbl(t, []kop.SetExpr{{Ops: []kop.SetOp{
+		{Kind: kop.SoBaseRef, R: kop.RefEachOpponent, Arg: 1},
+		{Kind: kop.SoBaseRef, R: kop.RefEachPlayer, Arg: 1},
+		{Kind: kop.SoUnion},
+	}, Players: true, Order: kop.OrderSeat}})
+	p := newSetPos(t, st)
+	var out setVal
+	p.sc.s.evalSet(p.sc.k, 1, p.ctxFor(0, p.a), &out)
+	if !out.isPl {
+		t.Fatal("the union is not a players set")
+	}
+	if got := members(&out); !slices.Equal(got, []Obj{0, 1}) {
+		t.Errorf("members %v, want [0 1]", got)
+	}
+	if out.pl != 0x3 {
+		t.Errorf("seat mask %#x, want 0x3", out.pl)
+	}
+}
+
+// TestSetThawPlayerSeats: suspending and thawing a players set keeps its members
+// and its seat mask. A thaw that rebuilds the members as objects loses both.
+func TestSetThawPlayerSeats(t *testing.T) {
+	st := newSetTbl(t, []kop.SetExpr{{Ops: []kop.SetOp{
+		{Kind: kop.SoBaseRef, R: kop.RefEachPlayer, Arg: 1},
+	}, Players: true, Order: kop.OrderSeat}})
+	p := newSetPos(t, st)
+	s, k := p.sc.s, p.sc.k
+	ctx := p.ctxFor(0, p.a)
+	ref := kop.SetRef{Set: 1}
+	var v setVal
+	s.evalSetAs(k, 1, ctx, 0, &v)
+	if got := members(&v); !slices.Equal(got, []Obj{0, 1}) || v.pl != 0x3 || !v.isPl {
+		t.Fatalf("precondition: members %v mask %#x players %v, want [0 1] 0x3 true", members(&v), v.pl, v.isPl)
+	}
+	it := &setIter{}
+	s.setSuspend(k, ref, it, &v, 0, 1, false)
+	var out setVal
+	s.setThaw(k, ref, ctx, it, &out)
+	if !out.isPl {
+		t.Fatal("the thawed set is not a players set")
+	}
+	if got := members(&out); !slices.Equal(got, []Obj{0, 1}) {
+		t.Errorf("thawed members %v, want [0 1]", got)
+	}
+	if out.pl != 0x3 {
+		t.Errorf("thawed seat mask %#x, want 0x3", out.pl)
+	}
+}
+
+// TestSetThawFrozenOrder: the frozen members keep the order they suspended in.
+// Rebuilding that order from the current controllers reorders the remaining
+// members when one changes seat, so the resumed iterator repeats or skips one.
+func TestSetThawFrozenOrder(t *testing.T) {
+	st := newSetTbl(t, nil)
+	st.t.Sets = []kop.SetExpr{{}, {Ops: []kop.SetOp{
+		{Kind: kop.SoBaseValid, F: st.fAnyC, Arg: int16(kop.ZoneBattlefield)},
+	}, Order: kop.OrderSeat}}
+	p := newSetPos(t, st)
+	s, k := p.sc.s, p.sc.k
+	ctx := p.ctxFor(0, p.a)
+	ref := kop.SetRef{Set: 1}
+	var v setVal
+	s.evalSetAs(k, 1, ctx, 0, &v)
+	if got := members(&v); !slices.Equal(got, []Obj{p.a, p.b, p.c}) {
+		t.Fatalf("precondition: members %v, want [%d %d %d] from seat 0", got, p.a, p.b, p.c)
+	}
+	it := &setIter{}
+	s.setSuspend(k, ref, it, &v, 0, 1, false) // suspended on B, the second member
+	// A leaves seat 0 for seat 1: thawing from the current controllers would put
+	// B (the suspended member) first and repeat A.
+	s.perms[p.sc.slot(p.a)].ctrl = 1
+	var out setVal
+	s.setThaw(k, ref, ctx, it, &out)
+	if got := members(&out); !slices.Equal(got, []Obj{p.a, p.b, p.c}) {
+		t.Errorf("thawed members %v, want the frozen order [%d %d %d]", got, p.a, p.b, p.c)
+	}
+}
+
+// TestForSetSelfMove: a RefSet member that is the resolving source with a
+// changed version makes no move. moveMember used to pass RefSet as the Ref, so
+// the single-object RefSelf incarnation guards never fired for a set.
+func TestForSetSelfMove(t *testing.T) {
+	st := newSetTbl(t, nil)
+	p := newSetPos(t, st)
+	s, k := p.sc.s, p.sc.k
+	o := p.a
+	// The ability's source is a new object since the ability was made.
+	s.res.e = stackEntry{kind: seAbility, obj: o, srcVer: s.objs[o].ver + 1}
+	in := kop.Instr{Op: kop.OpExile}
+	s.moveMember(k, in, o)
+	if got := s.objs[o].zone; got != kop.ZoneBattlefield {
+		t.Fatalf("the source as a set member moved to zone %d, want it to stay on the battlefield", got)
+	}
+	// Control: a member that is not the source moves.
+	s.res.e = stackEntry{kind: seAbility, obj: p.b, srcVer: s.objs[p.b].ver}
+	s.moveMember(k, in, o)
+	if got := s.objs[o].zone; got != kop.ZoneExile {
+		t.Fatalf("the non-source member is in zone %d, want exile", got)
+	}
+}
+
 // TestEvalSetLKI: a creature that left the battlefield is read as it last was:
 // SoLKI before SoController gives the controller it left under, not its owner.
 func TestEvalSetLKI(t *testing.T) {

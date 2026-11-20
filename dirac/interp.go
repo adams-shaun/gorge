@@ -754,13 +754,14 @@ func (s *State) destroySparedNoUmbra(k *prep, sl Slot, noRegen bool) bool {
 
 // moveRef moves the object a Ref names to zone z (its owner's).
 func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
-	s.moveObjOn(k, r, s.objRefObj(r), z, bottom)
+	s.moveObjOn(k, r, s.objRefObj(r), z, bottom, r == kop.RefSelf)
 }
 
 // moveObjOn is moveRef for the object o that r names: the one home of the
 // move, run by the single-object path and by each member of a RefSet
-// (value_setops.go, r = RefSet).
-func (s *State) moveObjOn(k *prep, r kop.Ref, o Obj, z kop.Zone, bottom bool) {
+// (value_setops.go, r = RefSet). self says o is the resolving source, which a
+// RefSet member can be: the incarnation guards key on that, not on the Ref.
+func (s *State) moveObjOn(k *prep, r kop.Ref, o Obj, z kop.Zone, bottom, self bool) {
 	if o == NoObj || s.freeQueued(o) || s.freeBegun(o) {
 		// gorge begins a Play's free cast at the answer, so an "if you don't
 		// cast it, move it" tail finds a spell, not a card in its zone
@@ -769,7 +770,7 @@ func (s *State) moveObjOn(k *prep, r kop.Ref, o Obj, z kop.Zone, bottom bool) {
 	ob := &s.objs[o]
 	switch ob.zone {
 	case kop.ZoneBattlefield:
-		if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
+		if self && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
 			return
 		}
 		s.leave(k, ob.slot, z, bottom) // leave applies the CR 903.9b gate itself
@@ -809,7 +810,7 @@ func (s *State) moveObjOn(k *prep, r kop.Ref, o Obj, z kop.Zone, bottom bool) {
 		// aimed at it does nothing (gorge changeZoneMoveSkip); it keeps its
 		// hidden slot (kw_phasing.go), which a detach would corrupt.
 	default:
-		if r == kop.RefSelf && (s.res.e.kind == seAbility || s.res.e.kind == seTrigger) && ob.ver != s.res.e.srcVer {
+		if self && (s.res.e.kind == seAbility || s.res.e.kind == seTrigger) && ob.ver != s.res.e.srcVer {
 			return // the ability's source left its zone: a new object (CR 400.7; Foul Familiar destroyed in response, Encroaching Dragonstorm destroyed with its return trigger on the stack)
 		}
 		if s.tokenLeftBattlefield(o) {

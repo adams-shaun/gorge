@@ -378,12 +378,21 @@ func (s *State) setInter(k *prep, f kop.FilterID, ctx evalCtx, v *setVal) {
 }
 
 // setUnion is SoUnion: a keeps its members and takes b's new ones, in order.
+// A players set's members are seats, so they join through setPushSeat: pushing
+// them as objects would keep the members but leave pl, the mask OrderSeat and
+// SoComplementPlayers read, behind.
 func (s *State) setUnion(a, b *setVal) {
 	if a.isPl != b.isPl {
 		panic("kernel: SoUnion of an object set and a players set")
 	}
-	for i := uint16(0); i < b.n; i++ {
-		s.setPushNew(a, Obj(b.objs[i]))
+	if a.isPl {
+		for i := uint16(0); i < b.n; i++ {
+			s.setPushSeat(a, uint8(b.objs[i]))
+		}
+	} else {
+		for i := uint16(0); i < b.n; i++ {
+			s.setPushNew(a, Obj(b.objs[i]))
+		}
 	}
 	a.lki = a.lki || b.lki
 }

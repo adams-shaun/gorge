@@ -13,11 +13,13 @@ import (
 // A member body may suspend for a decision: it returns false (the CR 616.1
 // counter-order ask: the instruction runs again, runProg) or leaves a parked
 // move waiting (the answer ends in continueRes). Either way the iteration is
-// frozen in coldSetIter: the members as bits, the member that suspended, and
-// which way it resumes. A table has the region only when a RefSet op the
-// kernel marks suspension-capable (setSuspOp) is in it. The members are bits,
-// so only OrderObj and OrderSeat sets can suspend; an OrderList set that does
-// is StallSetIter, as is a second live iterator (the depth is one).
+// frozen in coldSetIter: the members in their set order, the member that
+// suspended, and which way it resumes. A table has the region only when a
+// RefSet op the kernel marks suspension-capable (setSuspOp) is in it. The
+// members freeze in their ordered list, not as a set, so a member that changes
+// seats while the iteration is suspended keeps its place; only OrderObj and
+// OrderSeat sets may suspend, and an OrderList set that does is StallSetIter,
+// as is a second live iterator (the depth is one).
 
 // StallSetIter is a RefSet iteration that cannot be held: a second live
 // iterator, a member that suspended in a table with no setIter region, or an
@@ -34,13 +36,15 @@ func init() {
 	stallNames[StallSetShape] = "setshape"
 }
 
-// setIter is the one live iteration, about 72 B.
+// setIter is the one live iteration, frozen in its set's order. It is cold
+// (no table uses RefSet yet), so its size is not State's: about 392 B.
 type setIter struct {
-	members objBits // the frozen members: object indexes, or (pl) seats
-	cur     uint16  // the member that suspended, an index into the ordered members
-	pc      uint8   // the instruction iterating
-	pl      uint8   // 1: members is a players set
-	live    bool
+	order [setMax]objWord // the frozen members in the set's Order: objects, or (pl) seats
+	n     uint16          // members in order
+	cur   uint16          // the member that suspended, an index into order
+	pc    uint8           // the instruction iterating
+	pl    uint8           // 1: order holds seats
+	live  bool
 	// skip: the suspended member is complete, resume after it (a parked move
 	// answered through continueRes). Clear: it runs again (the order ask).
 	skip bool
@@ -154,16 +158,16 @@ func (s *State) forSet(k *prep, e *stackEntry, in *kop.Instr, pc int, f func(*St
 	return true
 }
 
-// setSuspend freezes the iteration of v at member i.
+// setSuspend freezes the iteration of v at member i. The members freeze in
+// their ordered list, objects or seats: a bitset would lose the players mask
+// and let a later thaw re-sort the seats by their current controllers.
 func (s *State) setSuspend(k *prep, ref kop.SetRef, it *setIter, v *setVal, pc, i int, skip bool) {
 	if it == nil || k.t.Sets[ref.Set].Order == kop.OrderList {
 		s.stall(StallSetIter)
 		return
 	}
-	it.members = objBits{}
-	for j := uint16(0); j < v.n; j++ {
-		it.members.set(Obj(v.objs[j]))
-	}
+	it.n = v.n
+	copy(it.order[:v.n], v.objs[:v.n])
 	it.pl = 0
 	if v.isPl {
 		it.pl = 1
@@ -171,15 +175,20 @@ func (s *State) setSuspend(k *prep, ref kop.SetRef, it *setIter, v *setVal, pc, 
 	it.cur, it.pc, it.live, it.skip = uint16(i), uint8(pc), true, skip
 }
 
-// setThaw rebuilds the ordered members of a suspended iteration from its bits.
+// setThaw rebuilds the frozen members of a suspended iteration in their set
+// order. It does not re-run setOrder: the set's Order was applied before the
+// suspension, and a member that changed seats must keep its frozen place.
 func (s *State) setThaw(k *prep, ref kop.SetRef, ctx evalCtx, it *setIter, v *setVal) {
 	v.reset(it.pl != 0, ref.Flags&kop.SrLKI != 0)
-	for o := Obj(0); o < MaxObj; o++ {
-		if it.members.has(o) {
-			s.setPush(v, o)
+	if it.pl != 0 {
+		for i := uint16(0); i < it.n; i++ {
+			s.setPushSeat(v, uint8(it.order[i]))
 		}
+		return
 	}
-	s.setOrder(v, k.t.Sets[ref.Set].Order, ctx)
+	for i := uint16(0); i < it.n; i++ {
+		s.setPush(v, Obj(it.order[i]))
+	}
 }
 
 // forSetPlayers is forSet over a players set. A member body that returns

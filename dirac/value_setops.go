@@ -163,15 +163,18 @@ func (s *State) destroyMember(k *prep, in kop.Instr, o Obj) bool {
 	return true
 }
 
-// moveMember moves o to the op's fixed destination, from wherever it is.
+// moveMember moves o to the op's fixed destination, from wherever it is. A set
+// member can be the resolving source, so the single-object incarnation guards
+// must fire for it: moveObjOn's self is o == the entry's object, not RefSet.
 func (s *State) moveMember(k *prep, in kop.Instr, o Obj) bool {
+	self := o == s.res.e.obj
 	switch in.Op {
 	case kop.OpExile:
-		s.moveObjOn(k, kop.RefSet, o, kop.ZoneExile, false)
+		s.moveObjOn(k, kop.RefSet, o, kop.ZoneExile, false, self)
 	case kop.OpBounce:
-		s.moveObjOn(k, kop.RefSet, o, kop.ZoneHand, false)
+		s.moveObjOn(k, kop.RefSet, o, kop.ZoneHand, false, self)
 	default:
-		s.moveObjOn(k, kop.RefSet, o, kop.ZoneLibrary, in.C == 1)
+		s.moveObjOn(k, kop.RefSet, o, kop.ZoneLibrary, in.C == 1, self)
 	}
 	return true
 }
@@ -199,14 +202,6 @@ func (s *State) execSetControl(k *prep, in *kop.Instr, e *stackEntry, pc int) bo
 
 // execSetPlayers is the ops whose set is a players set.
 func (s *State) execSetPlayers(k *prep, in *kop.Instr, e *stackEntry, pc int) bool {
-	switch in.Op {
-	case kop.OpGainLife:
-		return s.forSetPlayers(k, e, in, pc, (*State).gainLifeMember)
-	case kop.OpLoseLife:
-		s.g.lostAmt = 0
-		ok := s.forSetPlayers(k, e, in, pc, (*State).loseLifeMember)
-		return ok
-	}
 	var v setVal
 	if !s.setLoad(k, e, pc, &v, true) {
 		return true
@@ -216,6 +211,23 @@ func (s *State) execSetPlayers(k *prep, in *kop.Instr, e *stackEntry, pc int) bo
 		q.add(uint8(o))
 	}
 	switch in.Op {
+	case kop.OpGainLife:
+		n := s.value(k, in.A) // once, as the single-object arm reads it
+		for i := uint8(0); i < q.n; i++ {
+			s.gainLife(k, q.s[i], n)
+		}
+		return true
+	case kop.OpLoseLife:
+		n := s.value(k, in.A) // once, as the single-object arm reads it
+		lost := 0
+		for i := uint8(0); i < q.n; i++ {
+			s.loseLife(k, q.s[i], n)
+			lost += max(n, 0)
+		}
+		if k.gen != nil {
+			s.g.lostAmt = int16(lost) // ExLastLifeLost (interp.go's OpLoseLife)
+		}
+		return true
 	case kop.OpDraw:
 		if dredgeOn(k) {
 			return s.dredgeDrawsOver(k, in, q)
@@ -246,18 +258,4 @@ func (s *State) execSetPlayers(k *prep, in *kop.Instr, e *stackEntry, pc int) bo
 		return s.startOptSac(k, in, q.at(0))
 	}
 	return s.startSac(k, in, q.at(0))
-}
-
-func (s *State) gainLifeMember(k *prep, in kop.Instr, p uint8) bool {
-	s.gainLife(k, p, s.value(k, in.A))
-	return true
-}
-
-// loseLifeMember adds the life lost to ExLastLifeLost's tally (the single-object
-// op sets it once, after its players).
-func (s *State) loseLifeMember(k *prep, in kop.Instr, p uint8) bool {
-	n := s.value(k, in.A)
-	s.loseLife(k, p, n)
-	s.g.lostAmt += int16(max(n, 0))
-	return true
 }

@@ -145,6 +145,18 @@ func TestSetOpsPlayerArms(t *testing.T) {
 			t.Errorf("life %d %d, want %d %d", r.sc.s.pl[0].life, r.sc.s.pl[1].life, l0+3, l1+3)
 		}
 	})
+	t.Run("gain life reads the amount once", func(t *testing.T) {
+		r := newSetOpRun(t, each(kop.RefEachPlayer), kop.Instr{Op: kop.OpGainLife, A: kop.ValueRef{K: kop.VLifeGainedTurn}}, nil)
+		// The value reads the controller's life gained this turn. The
+		// single-object arm reads it once; re-reading it per member would feed
+		// member 0's gain into member 1's amount.
+		r.sc.s.pl[0].lifeGained = 5
+		l0, l1 := r.sc.s.pl[0].life, r.sc.s.pl[1].life
+		r.run(t)
+		if r.sc.s.pl[0].life != l0+5 || r.sc.s.pl[1].life != l1+5 {
+			t.Errorf("life %d %d, want %d %d (one read of the amount)", r.sc.s.pl[0].life, r.sc.s.pl[1].life, l0+5, l1+5)
+		}
+	})
 	t.Run("lose life", func(t *testing.T) {
 		r := newSetOpRun(t, each(kop.RefEachOpponent), kop.Instr{Op: kop.OpLoseLife, A: kop.Const(2)}, nil)
 		l0, l1 := r.sc.s.pl[0].life, r.sc.s.pl[1].life
