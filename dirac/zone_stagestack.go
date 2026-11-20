@@ -69,7 +69,7 @@ func (w *World) validateStack() error {
 	}
 	for i := range w.Stack {
 		e := &w.Stack[i]
-		if int(e.Obj) >= len(w.Objs) || e.Ctrl >= 2 {
+		if int(e.Obj) >= len(w.Objs) || e.Ctrl >= w.NSeat {
 			return unstageable(ReasonStackEntry, "entry %d: object %d controller %d", i, e.Obj, e.Ctrl)
 		}
 		o := &w.Objs[e.Obj]
@@ -106,13 +106,13 @@ func (w *World) validateStackPriority() error {
 	return nil
 }
 
-// stackPasses is the pass count of the priority round at w's stack: the
-// active seat starts a round with none; any other holder was passed to (1).
-func (w *World) stackPasses() uint8 {
-	if w.Prio == w.Active {
-		return 0
-	}
-	return 1
+// roundPasses is the pass count of the priority round at w. Every round starts
+// at the active seat with no pass (openPriority, afterResolve) and each pass
+// moves to the next seat, so the holder has been passed to (Prio - Active) seats
+// along. A stack's top entry is the active seat's (validateStackPriority), so
+// the same count holds over a stack.
+func (w *World) roundPasses() uint8 {
+	return (w.Prio + w.NSeat - w.Active) % w.NSeat
 }
 
 // stageStack puts w's stack entries on s, bottom to top.

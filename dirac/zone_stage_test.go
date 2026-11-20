@@ -40,7 +40,7 @@ func TestUnstageableReasons(t *testing.T) {
 	}
 	cases := map[string]func(*dirac.World){
 		dirac.ReasonTable:   func(w *dirac.World) { w.Tbl = nil },
-		dirac.ReasonSeats:   func(w *dirac.World) { w.NSeat = 3 },
+		dirac.ReasonSeats:   func(w *dirac.World) { w.NSeat = 5 },
 		dirac.ReasonLayout:  func(w *dirac.World) { w.Objs[0], w.Objs[39] = w.Objs[39], w.Objs[0] },
 		dirac.ReasonCard:    func(w *dirac.World) { w.Objs[3].Card = vanilla.LightningBolt },
 		dirac.ReasonZone:    func(w *dirac.World) { w.Objs[3].Zone = kop.ZoneExile },
