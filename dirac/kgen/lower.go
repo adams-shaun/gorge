@@ -2516,14 +2516,8 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			}
 			continue
 		}
-		if head == "RevealChosen" {
-			if err := lc.revealChosenCost(&c, parts, t); err != nil { // lower_revealchosen.go
-				return c, err
-			}
-			continue
-		}
-		if head == "Discard" && parts[0] == "X" {
-			if err := lc.discardXCost(&c, parts, t); err != nil { // lower_costtokenforms.go
+		if handled, err := lc.namedCostToken(&c, head, parts, t); handled { // lower_costtokenforms.go
+			if err != nil {
 				return c, err
 			}
 			continue
@@ -2920,7 +2914,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				parts++
 			}
 		}
-		if parts > 1 {
+		if parts > 1 && !(lc.actCost && parts == 2 && discardBesideSelfExile(c)) {
 			return c, refuse("cost %q: a forage / exile part beside another counted part", s)
 		}
 	}

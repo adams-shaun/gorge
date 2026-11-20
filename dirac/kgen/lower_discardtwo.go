@@ -36,6 +36,24 @@ func (lc *lowerCtx) altDiscardTwo(c *lCost, parts []string, n int, t string) err
 	return nil
 }
 
+// discardBesideSelfExile reports the one counted-discard-plus-exile shape: an
+// unfiltered Discard<N/Card> and ExileFromGrave<N/CARDNAME> of the same count,
+// the graveyard activated ability's self-exile (Sinuous Striker's and
+// Sunscourge Champion's eternalize cost). The two parts share Cost.N; the
+// exile's Self filter is Cost.Filter, which the unfiltered discard never
+// reads. No other part may share Cost.N/Cost.Filter.
+func discardBesideSelfExile(c lCost) bool {
+	if c.ExileG == nil || !c.exileGCard || c.ExileGSelf || c.ExileHand || c.ExileGBf ||
+		c.ExileGN < 1 || c.ExileGN != c.DiscardN ||
+		c.DiscardF != nil || c.DiscardHand || c.DiscardSelf || c.DiscardX || c.Discard2N != 0 {
+		return false
+	}
+	return c.Forage == nil && c.Sac == nil && !c.SacSelf && c.Loyalty == 0 && !c.LoyaltyX &&
+		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 &&
+		c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && c.TapN == 0 && c.TapPowN == 0 &&
+		c.EvidenceN == 0 && !c.EvidenceX && c.Return == nil
+}
+
 // filteredDiscardHome: a filtered Discard<N/Spec> part lowers in a spell's
 // own AlternativeCost (Abolish's Discard<1/Plains>, Foil's first part) or in
 // an instant's or sorcery's additional cost (Magmatic Insight's
