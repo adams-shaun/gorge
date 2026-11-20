@@ -217,6 +217,11 @@ const (
 	DurSuspend            = 14                   // a suspended card (CR 702.62b): obj/ver = the exiled card, ctrl = its owner, turn = its time counters; kind marks the final-counter cast ask (kw_suspend.go)
 	DurWhileGrave         = 15                   // an Effect-delivered graveyard MayPlay grant: the record stays live for the rest of the turn when the card returns to the graveyard (gorge re-reads the effect's static, CR 611.2a)
 	DurWhileGraveForget   = DurWhileGrave | 0x10 // ... and ForgetOnMoved$ Exile: a move to exile ends the grant (the bit is a record's free used-count low bit)
+	// DurUntilYourNextUpkeep is an OpOverride duration only (Erhnam Djinn): the
+	// grant lasts through its controller's untap step and ends as their upkeep
+	// begins (gorge dropUntilYourNextUpkeep). It sits above the OpMayPlay until
+	// byte's four duration bits, which this duration never enters.
+	DurUntilYourNextUpkeep = 16
 )
 
 // MoveFlags (OpExileEx C, OpReturnEx C>>3, OpChangeZoneAllEx C>>3).
