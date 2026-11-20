@@ -210,7 +210,9 @@ func globPools(t *testing.T, strict map[string]bool, pools ...string) {
 		t.Run(reproName(path), func(t *testing.T) {
 			// Each recording is its own game on a table of its own: run them side by
 			// side, or a pool of a few hundred is one serial pole of the package.
-			t.Parallel()
+			if landGrantRecordingReplay(t, reproName(path)) {
+				return
+			}
 			stallCheck(t, r, replayRecorded(t, reg, set, r), strict[reproName(path)])
 		})
 	}
