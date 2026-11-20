@@ -18,8 +18,9 @@ const (
 // or more mana for a mana fee (gorge's scriptSearch.feeGaps: Baxter Building's
 // {4},{T} for four mana in any combination), when the play is one whose phased
 // run takes the feeOrder (potentialPrefixScript: a plain cast, no hybrid-fee
-// gap). A one-unit filter (Surveillance Room's {1},{T}) nets no mana from its
-// fee, so it is no fee gap. Empty: the phased run is the ordinary one.
+// gap; a dynamic amount counts none, gorge's availableAmount). A one-unit
+// filter (Surveillance Room's {1},{T}) nets no mana from its fee, so it is no
+// fee gap. Empty: the phased run is the ordinary one.
 func (fs *filtSearch) feeOrderGaps(k *prep, t *State) slotMask {
 	if fs.a.Kind() != AkCast || fs.a.Mode() != 0 || fs.pay != nil {
 		return slotMask{}
@@ -30,7 +31,7 @@ func (fs *filtSearch) feeOrderGaps(k *prep, t *State) slotMask {
 		if kop.HybridFilterManaAb(t.filtAb(k, sl)) {
 			return slotMask{} // a hybrid-fee gap is the ordinary phased run's scope
 		}
-		if t.filtUnits(k, sl) >= 2 && t.filtFee(k, sl) > 0 {
+		if t.filtAb(k, sl).AFlags&kop.AfManaDynamic == 0 && t.filtUnits(k, sl) >= 2 && t.filtFee(k, sl) > 0 {
 			out = out.with(sl)
 		}
 	}
