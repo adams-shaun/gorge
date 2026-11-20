@@ -173,6 +173,9 @@ func (s *State) grantTs(st statSrc) uint16 {
 			return s.embStamp(p, i-1)
 		}
 	}
+	if st.obj != NoObj && st.sl == NoSlot { // a graveyard static: the layer stamp its card carried off the battlefield (static_gystamp.go)
+		return s.gyStampOf(st.obj)
+	}
 	return 0
 }
 
