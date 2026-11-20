@@ -1378,6 +1378,13 @@ func (s *State) feeOrderOutOfScope(k *prep, a Action, gaps slotMask) bool {
 	return false
 }
 
+// feeOrderPlay: the play takes gorge's feeOrder fallback walk: a plain cast
+// (not an activation, not a kicked or otherwise moded cast) on a board with a
+// fee-carrying gap, and in feeOrderOutOfScope's scope.
+func (s *State) feeOrderPlay(k *prep, a Action, feeGaps, gaps slotMask) bool {
+	return feeGaps.any() && a.Kind() == AkCast && a.Mode() == 0 && !s.feeOrderOutOfScope(k, a, gaps)
+}
+
 // filtScript reports whether gorge's prefix search finds a script for play
 // a of p; with apply it plays the script on s (the play's prefix).
 //
@@ -1398,7 +1405,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	// build(false) walks the plain order first, and only its phased build
 	// (build(true)) sets sr.feeOrder. The plain run must stay the order the
 	// pre-existing scripts price.
-	feeOrderOK := fs.feeGaps.any() && a.Kind() == AkCast && a.Mode() == 0 && !s.feeOrderOutOfScope(k, a, fs.gaps.or(fs.other))
+	feeOrderOK := s.feeOrderPlay(k, a, fs.feeGaps, fs.gaps.or(fs.other))
 	hadOther := fs.other.any() // a dropped gap still asks for the dead-end check
 	if gapFilteredPlay(a) && (fs.gaps.any() || fs.other.any()) {
 		d := s.grantPayDesc(k, a)

@@ -12,7 +12,7 @@ import (
 // property: gorge builds its feeOrder phased run only for a plain cast
 // (engine/rules/potential_script.go build), and phasedOutOfScope leaves every
 // other play kind to the plain order unless the plain run was limited on a
-// repeatable fee-only filter. The feeGap arm must therefore stay a plain
+// repeatable fee-only filter. The feeOrder arm (feeOrderPlay) must therefore stay a plain
 // cast's: an activation or a kicked cast on the same board keeps the plain
 // answer, exactly as gorge's phased run does. The {4}{R} activation is still
 // offered here -- the plain walk prices it -- so the control shows the gate
@@ -32,7 +32,7 @@ func TestComboAnyFilterPhasedFallbackStaysAPlainCast(t *testing.T) {
 	// gap, and the board holds no repeatable fee-only filter (so the feeGap
 	// arm, not plainLimited, is what could open the phased run).
 	filt := sc.s.scriptFilt(sc.k, 0)
-	if !filt.has(sc.slot(baxter)) || !sc.s.filtFeeGap(sc.k, filt) {
+	if !filt.has(sc.slot(baxter)) || !sc.s.filtFeeGaps(sc.k, filt).has(sc.slot(baxter)) {
 		t.Fatal("precondition: Baxter Building's {4},{T} Combo Any is not the board's multi-unit fee gap")
 	}
 	if sc.s.filtRepeatIn(sc.k, filt) {
@@ -74,9 +74,9 @@ func TestComboAnyFilterPhasedFallbackStaysAPlainCast(t *testing.T) {
 
 	// The gate itself: the feeOrder plain cast opens the phased fallback, and
 	// the non-feeOrder shapes on the same fee-gap board do not.
+	feeGaps := sc.s.filtFeeGaps(sc.k, filt)
 	fallback := func(a Action) bool {
-		fs := filtSearch{a: a, feeGap: true, nodes: potentialScriptNodes}
-		return sc.s.phasedFallback(sc.k, &fs, sc.s.perms[sc.slot(skrull)].ctrl)
+		return sc.s.feeOrderPlay(sc.k, a, feeGaps, filt)
 	}
 	if !fallback(MakeAction(AkCast, TCode(uint8(skrullHand)), 0, 0)) {
 		t.Fatal("the feeOrder plain cast did not open the phased fallback")
@@ -90,7 +90,7 @@ func TestComboAnyFilterPhasedFallbackStaysAPlainCast(t *testing.T) {
 	// The plainLimited arm is not narrowed: a plain run limited on a repeatable
 	// fee-only filter is in scope for every play kind (phasedOutOfScope).
 	fs := filtSearch{a: MakeAction(AkActivate, TCode(uint8(skrull)), 0, uint8(dmg)), feeOnly: true, nodes: potentialScriptNodes}
-	if !sc.s.phasedFallback(sc.k, &fs, 0) {
+	if !fs.phasedFallback() {
 		t.Fatal("the plainLimited arm no longer opens for an activation")
 	}
 }
