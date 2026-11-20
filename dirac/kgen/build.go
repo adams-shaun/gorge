@@ -699,8 +699,7 @@ func (cb *cardBuilder) record() error {
 		}
 	}
 	if c.Multikicker != nil {
-		d.HasMultikicker = true
-		if d.Multikicker, err = manaCostOf(*c.Multikicker); err != nil {
+		if err := cb.repeated(d, c); err != nil { // lower_squadreplicate.go
 			return err
 		}
 	}

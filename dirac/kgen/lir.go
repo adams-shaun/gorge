@@ -1322,6 +1322,8 @@ type lCard struct {
 	Flash          bool
 	Kicker         *manaCost
 	Multikicker    *manaCost   // K:Multikicker:<cost> (CR 702.43): the per-payment additional cost, paid any number of times
+	Repeated       *lCost      // K:Squad / K:Replicate: the full per-payment cost (lower_squadreplicate.go)
+	RepeatedKind   uint8       // kop.Repeat*: which keyword owns the multikicker slot
 	KickerCost     *lCost      // K:Kicker with one Sac<1/..> or Return<1/..> part: Kicker is then zero mana (lower_kickercost.go)
 	Spree          bool        // K:Spree (CR 702.172) or K:Tiered (CR 702.183): ModeCost holds each mode's additional mana cost
 	ModeCost       [4]manaCost // Spree/Tiered: mode i's ModeCost$
