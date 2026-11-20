@@ -19,6 +19,7 @@ func Parse(path string) (*Card, []Diag) {
 // ParseBytes parses a script already in memory. Kept separate from Parse so
 // tests never need fixture files on disk.
 func ParseBytes(path string, src []byte) (*Card, []Diag) {
+	src = canonicalizeUpstream(src)
 	c := &Card{Path: path}
 	cur := newFace()
 	c.Faces = append(c.Faces, cur)
@@ -212,7 +213,7 @@ func parseSA(path, val string) (*SA, []Diag) {
 	for _, kind := range [...]string{"SP", "AB", "DB", "ST"} {
 		if api, ok := p[kind]; ok {
 			delete(p, kind)
-			api = canonicalAPI(api)
+			api = canonicalAPI(api, p)
 			normalizeImplicitTarget(api, p)
 			return &SA{Kind: kind, API: api, Params: p, Line: val}, nil
 		}
@@ -226,10 +227,31 @@ func parseSA(path, val string) (*SA, []Diag) {
 // Forge effect body as before the split, so the rules behaviour is unchanged:
 // TargetOnly is a bare target, Bookkeeping a remember/imprint/forget step,
 // Nothing a choice label with no effect, EndOfTurn a delayed AtEOT action.
-func canonicalAPI(api string) string {
+//
+// Bookkeeping with RememberAll$ is the remember-what-it-matched half of the
+// old PumpAll ... RememberPumped$ True, so it maps there; PutCounter's
+// Defined$ TargetedCard and ParentTarget.Creature name the parent's targets
+// as ParentTarget did. p is edited in place.
+func canonicalAPI(api string, p map[string]string) string {
 	switch api {
-	case "TargetOnly", "Bookkeeping", "Nothing", "EndOfTurn":
+	case "Bookkeeping":
+		if f, ok := p["RememberAll"]; ok {
+			delete(p, "RememberAll")
+			p["ValidCards"], p["RememberPumped"] = f, "True"
+			if z, ok := p["RememberZone"]; ok {
+				delete(p, "RememberZone")
+				p["PumpZone"] = z
+			}
+			return "PumpAll"
+		}
 		return "Pump"
+	case "TargetOnly", "Nothing", "EndOfTurn":
+		return "Pump"
+	case "PutCounter":
+		switch p["Defined"] {
+		case "TargetedCard", "ParentTarget.Creature":
+			p["Defined"] = "ParentTarget"
+		}
 	}
 	return api
 }
