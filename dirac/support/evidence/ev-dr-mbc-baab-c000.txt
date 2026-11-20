@@ -7,6 +7,7 @@ Apprentice Necromancer
 Apprentice Wizard
 Arc Lightning
 Augur of Bolas
+Aven Liberator
 Azra Oddsmaker
 Baffling End
 Bastion of Remembrance
@@ -30,6 +31,7 @@ Dauntless Cathar
 Diamond Pick-Axe
 Dirge of Dread
 Dreamscape Artist
+Edric, Spymaster of Trest
 Emerge Unscathed
 Empty the Warrens
 Evolution Charm
@@ -39,6 +41,7 @@ Exhume
 Eyeblight's Ending
 Faerie Swarm
 Faithbearer Paladin
+Familiar's Ruse
 Fanatic of Mogis
 Feral Shadow
 Fiery Impulse
@@ -121,6 +124,7 @@ Thrull Parasite
 Tinder Wall
 Turtleshell Changeling
 Tyvar's Stand
+Tyvar, the Pummeler
 Unbounded Potential
 Unsubstantiate
 Urborg Uprising
@@ -129,3 +133,4 @@ Wickerbough Elder
 Wildheart Invoker
 Windstorm Drake
 Wood Elves
+Yidris, Maelstrom Wielder

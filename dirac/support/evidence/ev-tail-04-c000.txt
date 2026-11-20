@@ -94,6 +94,7 @@ Crawl from the Cellar
 Crovax the Cursed
 Crown of Skemfar
 Cutthroat il-Dal
+Dark Apostle
 Darkwater Catacombs
 Deadly Wanderings
 Death-Greeter's Champion
@@ -449,6 +450,7 @@ Think Tank
 Third Path Iconoclast
 Thran Foundry
 Thundercloud Elemental
+Thunderheads
 Ticking Gnomes
 Tidal Wave
 Tishana's Wayfinder

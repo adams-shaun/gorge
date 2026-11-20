@@ -147,6 +147,7 @@ Goblin Sky Raider
 God-Eternal Oketra
 Golgari Keyrune
 Goliath Beetle
+Gollum's Bite
 Gornog, the Red Reaper
 Graceful Cat
 Grave Birthing
@@ -227,6 +228,7 @@ Martial Coup
 Masked Vandal
 Megantic Sliver
 Mind Flayer
+Moonlit Strider
 Morgue Thrull
 Mortis Dogs
 Mountain
@@ -288,6 +290,7 @@ Repulsor Rays
 Requiem Angel
 Restoration Gearsmith
 Retreat to Emeria
+Ridge Rannet
 Righteous Avengers
 Rishadan Footpad
 Rot Farm Skeleton
