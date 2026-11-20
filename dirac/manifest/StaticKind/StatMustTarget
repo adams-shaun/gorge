@@ -4,4 +4,4 @@ value: 39
 forge: MustTarget
 census: stat MustTarget all=3 std=0 mbc=2 sole=3
 state: code 0
-status: reserved
+status: active

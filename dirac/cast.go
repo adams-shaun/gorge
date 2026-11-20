@@ -1192,6 +1192,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 					continue
 				}
 			}
+			n, narrowed := s.mustTargetSingle(k, e, &buf, n)
 			if n == 0 && !t.UpTo {
 				// no legal target: a trigger is removed (CR 603.3d)
 				if e.kind == seTrigger {
@@ -1233,12 +1234,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 					d.Player = e.trigPl
 				}
 			}
-			for i := 0; i < n; i++ {
-				d.add(MakeAction(AkTarget, 0, buf[i], 0))
-			}
-			if t.UpTo {
-				d.add(MakeAction(AkTarget, 0, NoTarget, 0))
-			}
+			addTargetOptions(d, buf[:n], n, t.UpTo && !narrowed)
 			return true
 		case bsDivide:
 			if s.bld().divLeft == 0 {
@@ -1355,6 +1351,17 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 		d.add(MakeAction(AkChoose, 0, 0, uint8(first)))
 	}
 	return true
+}
+
+// addTargetOptions adds a single-object target ask's candidates and, unless a
+// MustTarget static narrowed the ask, the empty answer of an "up to one".
+func addTargetOptions(d *Decision, cands []TCode, n int, upTo bool) {
+	for i := 0; i < n; i++ {
+		d.add(MakeAction(AkTarget, 0, cands[i], 0))
+	}
+	if upTo {
+		d.add(MakeAction(AkTarget, 0, NoTarget, 0))
+	}
 }
 
 func max8(a, b uint8) uint8 {
