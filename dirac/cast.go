@@ -2293,7 +2293,7 @@ func (s *State) takePending(k *prep, i int) {
 		}
 	}
 	s.bld().e.tgt = noTargets
-	if pt.trigSA != 0 {
+	if pt.saWord() != 0 {
 		// a BecomesTarget player half's targeted seat rides defSeat while
 		// pending (pendingTrig); it is a trigger referent, not an attack
 		// trigger's defender
