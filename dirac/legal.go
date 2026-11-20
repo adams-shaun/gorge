@@ -2505,28 +2505,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					continue
 				}
 				if paidGap {
-					// the sweep's per-tap view cannot price that filter:
-					// gorge's planner leaves it a census gap, so its
-					// "insufficient" is no proof against an X the relaxed
-					// census pays (Unknown Shores' {1},{T} beside Plains and
-					// Radiant Grove for Killing Glare, X=1; CR 605.3b,
-					// 601.2g). The record is incomplete (no bounded view) and
-					// the over-bound pool takes the filter.
-					cen.gap()
-					// the sweep's gap bookkeeping: the gap named, its fee
-					// recorded, and gapGain when the ability can raise the
-					// mana a payment spends (mana_xboundgap.go)
-					paidGapBooked(d, sl, j, ab, s.paidGapTapExtra(k, sl, ab))
-					if repeat {
-						// an admitted repeatable gap is one of gorge's
-						// census's non-once abilities: its census is not
-						// relaxable, so no subset pricing refuses the
-						// announcement and the over-bound stands
-						// (paymentPlanCensusOf's once gate, CR 605.3b). A gap
-						// the gate skipped above — a fee nothing covers, out
-						// of gorge's census entirely — marks nothing.
-						d.gapRepeats = true
-					}
+					s.bookPaidGap(k, d, sl, j, ab, &cen, repeat) // mana_xboundgap.go
 				}
 				done[sl] |= 1 << j
 				progressed = true
