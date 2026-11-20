@@ -348,7 +348,7 @@ func (e *Engine) tapExtraTriggerOnBoard() bool {
 // extra per colour over the colours the ability can produce, and an ability
 // that does not tap adds none.
 func (e *Engine) addPotentialTapExtra(m *state.Mana, p state.PlayerID, id state.ObjID, ma *cards.SA) {
-	most := e.potentialTapExtraChosen(p, id, ma)
+	most := e.potentialTapExtra(p, id, ma)
 	for i, n := range most {
 		if n > 0 {
 			m[i] = saturatingPotentialMana(m[i], n)
@@ -361,29 +361,20 @@ func (e *Engine) addPotentialTapExtra(m *state.Mana, p state.PlayerID, id state.
 // Condition-split sub can produce (mana_condsplit.go: the sub's production
 // is what the tap makes when its gate holds, so a Mana Flare beside a
 // River of Tears after a land drop reflects the {B} the sub adds, not only
-// the root's {U}); zero for an ability that does not tap.
-func (e *Engine) potentialTapExtra(p state.PlayerID, id state.ObjID, ma *cards.SA) state.Mana {
-	return e.potentialTapExtraMode(p, id, ma, false)
-}
-
-// potentialTapExtraChosen is potentialTapExtra with the Produced$ Chosen
-// riders (Utopia Sprawl) folded: the readers whose over-production a proof
-// or a bound may carry -- the relaxed census alternatives
-// (paymentPlanRelaxedAlternatives), the census gap's net-gain flags and the
-// potential bound (addPotentialTapExtra). A real tap of the source brings
-// both its mana and the choice, so each may over-produce by the choice --
-// and none may under-read it: the relaxed proof would prove a payable play
-// unpayable before the prefix search that floats the choice runs, and the
-// bound would price the choice out of the potential walk's gates. The
-// unless-window census keeps the plain walk (windowTapExtras): dirac's
+// the root's {U}); zero for an ability that does not tap. The Produced$
+// Chosen riders' (Utopia Sprawl) mana of the source's recorded choice folds
+// too: a real tap of the source brings both, so the readers here -- the
+// potential bound (addPotentialTapExtra), the census gap's net-gain flags
+// and the relaxed census alternatives (paymentPlanRelaxedAlternatives) --
+// may over-produce by the choice, and none may under-read it: the relaxed
+// proof would prove a payable play unpayable before the prefix search that
+// floats the choice runs, and the bound would price the choice out of the
+// potential walk's gates. The unless-window census keeps the plain walk
+// (windowTapExtras, paymentPlanTapExtraMana without chosenFold): dirac's
 // mirror of that census skips the chosen static (mana_tapextra.go
-// addGatedExtra), while its taps-deferred census unit and its hyp bound
-// carry the choice (mana_tapsdefer.go addChosenTapExtra).
-func (e *Engine) potentialTapExtraChosen(p state.PlayerID, id state.ObjID, ma *cards.SA) state.Mana {
-	return e.potentialTapExtraMode(p, id, ma, true)
-}
-
-func (e *Engine) potentialTapExtraMode(p state.PlayerID, id state.ObjID, ma *cards.SA, chosenFold bool) state.Mana {
+// addGatedExtra), while its taps-deferred census unit and its potential
+// bound carry the choice (mana_tapsdefer.go addChosenTapExtra).
+func (e *Engine) potentialTapExtra(p state.PlayerID, id state.ObjID, ma *cards.SA) state.Mana {
 	var most state.Mana
 	if !e.abilityCompiledCost(ma).Cost.Tap {
 		return most
@@ -408,10 +399,7 @@ func (e *Engine) potentialTapExtraMode(p state.PlayerID, id state.ObjID, ma *car
 		}
 	}
 	for _, produced := range productions {
-		x := e.paymentPlanTapExtraMana(id, produced)
-		if chosenFold {
-			x = e.paymentPlanTapExtraChosen(id, produced)
-		}
+		x := e.paymentPlanTapExtraMana(id, produced, true)
 		for i := range most {
 			most[i] = max(most[i], x[i])
 		}

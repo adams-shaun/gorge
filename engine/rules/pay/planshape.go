@@ -553,12 +553,8 @@ func PaymentPlanFoldableTapMana(f *cards.Face, t cards.Trigger) (PlanTapMana, bo
 	if body == nil {
 		return PlanTapMana{}, false
 	}
-	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
-		switch k {
-		case "API", "Produced", "Amount", "Defined", "SpellDescription", "StackDescription":
-		default:
-			return PlanTapMana{}, false
-		}
+	if !paymentPlanManaBodyParamsAllowed(body) {
+		return PlanTapMana{}, false
 	}
 	var out PlanTapMana
 	switch ref := params.DefinedRefOf(body); {
@@ -609,15 +605,8 @@ func PaymentPlanFoldableTapMana(f *cards.Face, t cards.Trigger) (PlanTapMana, bo
 // Taps line defers the source and whose tap floats it (addGatedExtra).
 func PaymentPlanChosenTapMana(f *cards.Face, t cards.Trigger, chosen string) (PlanTapMana, bool) {
 	body := paymentPlanStaticTapManaBody(f, t, "Mana")
-	if body == nil || chosen == "" {
+	if body == nil || chosen == "" || !paymentPlanManaBodyParamsAllowed(body) {
 		return PlanTapMana{}, false
-	}
-	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
-		switch k {
-		case "API", "Produced", "Amount", "Defined", "SpellDescription", "StackDescription":
-		default:
-			return PlanTapMana{}, false
-		}
 	}
 	if params.DefinedRefOf(body).Text != "TriggeredCardController" {
 		return PlanTapMana{}, false
@@ -636,13 +625,29 @@ func PaymentPlanChosenTapMana(f *cards.Face, t cards.Trigger, chosen string) (Pl
 	// The recorded choice is one of the five colours (CR 106.10a): the
 	// resolution's own substitution accepts exactly WUBRG (effects
 	// substituteManaChosen), and dirac's chosen byte reads only 0..4
-	// (mana_tapextra.go addGatedExtra).
-	if len(chosen) != 1 || !strings.ContainsRune("WUBRG", rune(chosen[0])) {
+	// (mana_tapextra.go addGatedExtra). ManaIndex maps anything else, {C}
+	// included, to MC.
+	if len(chosen) != 1 || state.ManaIndex(chosen[0]) == state.MC {
 		return PlanTapMana{}, false
 	}
 	out := PlanTapMana{ToTapped: true}
 	out.Mana[state.ManaIndex(chosen[0])] = int32(n)
 	return out, true
+}
+
+// paymentPlanManaBodyParamsAllowed reports whether a DB$ Mana body's
+// parameters are all in the closed world the tap-extra classifiers price
+// (the allowlist both PaymentPlanFoldableTapMana and PaymentPlanChosenTapMana
+// hold): one produced amount and its receiver, no other parameter.
+func paymentPlanManaBodyParamsAllowed(body *cards.SA) bool {
+	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
+		switch k {
+		case "API", "Produced", "Amount", "Defined", "SpellDescription", "StackDescription":
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // paymentPlanStaticTapManaBody is the body of a `Mode$ TapsForMana |

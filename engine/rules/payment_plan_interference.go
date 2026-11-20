@@ -164,26 +164,12 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 // tapped" loot beside Great Divide Guide's granted {T}) still gets every
 // folded trigger's mana when it taps (CR 605.4a), so the potential bound and
 // the relaxed proof, which may only over-produce, read it too.
-func (e *Engine) paymentPlanTapExtraMana(id state.ObjID, produced string) state.Mana {
+func (e *Engine) paymentPlanTapExtraMana(id state.ObjID, produced string, chosenFold bool) state.Mana {
 	src := e.G.Obj(id)
 	if src == nil {
 		return state.Mana{}
 	}
-	_, extra, _, _ := e.paymentPlanTapObservers(id, src.Controller, produced, true, false)
-	return extra
-}
-
-// paymentPlanTapExtraChosen is paymentPlanTapExtraMana with the Produced$
-// Chosen riders folded too (pay.PaymentPlanChosenTapMana): the relaxed
-// proof's reader, potential_plan.go potentialRelaxedTapExtra. The potential
-// bound and the unless-window census keep the plain walk -- their dirac
-// mirrors skip the chosen static (mana_tapextra.go).
-func (e *Engine) paymentPlanTapExtraChosen(id state.ObjID, produced string) state.Mana {
-	src := e.G.Obj(id)
-	if src == nil {
-		return state.Mana{}
-	}
-	_, extra, _, _ := e.paymentPlanTapObservers(id, src.Controller, produced, true, true)
+	_, extra, _, _ := e.paymentPlanTapObservers(id, src.Controller, produced, true, chosenFold)
 	return extra
 }
 
@@ -198,7 +184,7 @@ func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
 		productions = paymentPlanReflectedProductions(alt)
 	}
 	for _, produced := range productions {
-		if e.paymentPlanTapExtraMana(id, produced) != (state.Mana{}) {
+		if e.paymentPlanTapExtraMana(id, produced, false) != (state.Mana{}) {
 			return true
 		}
 	}
@@ -291,28 +277,7 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 				// Defined$ or You) or to the tapped permanent's controller, which
 				// is the payer; a ProduceMana replacement on that extra mana
 				// defers as it does for the source's own production.
-				tm, folds := pay.PaymentPlanFoldableTapMana(fc.face, t)
-				if !folds {
-					// a reflected body (Lavaleaper) folds as one mana of the
-					// single type this production names
-					if tm, folds = pay.PaymentPlanReflectedTapMana(fc.face, t); folds {
-						tm.Mana, folds = pay.PaymentPlanReflectedMana(produced)
-					}
-					if !folds && chosenFold {
-						// a Produced$ Chosen body (Utopia Sprawl) folds as one
-						// mana of the enchanted source's recorded choice, but
-						// only where a proof may over-produce: the relaxed
-						// census alternatives (potential_plan.go
-						// potentialRelaxedTapExtra). Every other reader keeps
-						// reading the tap without the choice and this line
-						// falls through to the tail, deferring the source as
-						// the StTapChosen lowering's class-only Taps line
-						// defers it (kop.TapPlanDefer).
-						if tm, folds = pay.PaymentPlanChosenTapMana(fc.face, t, o.ChosenColor); folds {
-							tm.ToTapped = true
-						}
-					}
-				}
+				tm, folds := paymentPlanTapFoldClass(fc.face, t, produced, o.ChosenColor, chosenFold)
 				if folds && (tm.ToTapped || o.Controller == activator) {
 					if rby, replaced := e.paymentPlanExtraReplaced(oid, activator, tm.Mana); replaced {
 						if deferBy(rby) {
@@ -458,6 +423,30 @@ func (f *manaAddedFold) observe(t cards.Trigger, oid state.ObjID, activator stat
 		(*extra)[i]++
 	}
 	return false
+}
+
+// paymentPlanTapFoldClass classifies a TapsForMana trigger's body for the
+// planned tap: the foldable literal shape (pay.PaymentPlanFoldableTapMana),
+// the reflected body over this production (Lavaleaper), and -- only where a
+// proof may over-produce (chosenFold: the relaxed census alternatives and the
+// potential bound, potential.go potentialTapExtra) -- the Produced$
+// Chosen body as one mana of the carrier's recorded choice to the tapped
+// permanent's controller (pay.PaymentPlanChosenTapMana, Utopia Sprawl). ok is
+// false when the line folds no extra: the caller's tail defers the source, as
+// the StTapChosen lowering's class-only Taps line defers it
+// (kop.TapPlanDefer).
+func paymentPlanTapFoldClass(f *cards.Face, t cards.Trigger, produced, chosen string, chosenFold bool) (pay.PlanTapMana, bool) {
+	if tm, ok := pay.PaymentPlanFoldableTapMana(f, t); ok {
+		return tm, true
+	}
+	if tm, ok := pay.PaymentPlanReflectedTapMana(f, t); ok {
+		tm.Mana, ok = pay.PaymentPlanReflectedMana(produced)
+		return tm, ok
+	}
+	if chosenFold {
+		return pay.PaymentPlanChosenTapMana(f, t, chosen)
+	}
+	return pay.PlanTapMana{}, false
 }
 
 // paymentPlanExtraReplaced reports the first ProduceMana replacement that

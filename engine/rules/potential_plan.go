@@ -2460,7 +2460,7 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 				continue
 			}
 			out.complete = false
-			gcost, gmp, gextra := e.manaAbilityCC(p, id, ma).Cost, effects.ManaOf(ma), e.potentialTapExtraChosen(p, id, ma)
+			gcost, gmp, gextra := e.manaAbilityCC(p, id, ma).Cost, effects.ManaOf(ma), e.potentialTapExtra(p, id, ma)
 			best := int32(0)
 			for _, a := range alts {
 				best = max(best, int32(a.Mana.Total()))
@@ -2666,10 +2666,10 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 	// The tap fires the static TapsForMana triggers whichever colour it takes,
 	// so each relaxed production carries the largest extra they add (CR 605.4a):
 	// a relaxation may only over-produce. The Produced$ Chosen riders' choice
-	// is over-production too (potentialTapExtraChosen): the real tap brings
-	// it, and under-reading it proves a payable play unpayable before the
-	// prefix search that floats it can run.
-	extra := e.potentialTapExtraChosen(p, id, ma)
+	// is over-production too (potentialTapExtra): the real tap brings it, and
+	// under-reading it proves a payable play unpayable before the prefix
+	// search that floats it can run.
+	extra := e.potentialTapExtra(p, id, ma)
 	var out []pay.Alt
 	add := func(m state.Mana) {
 		for i := range m {
