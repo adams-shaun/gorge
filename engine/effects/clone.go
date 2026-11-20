@@ -454,8 +454,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		switch {
 		case IsNextTurnDuration(pumpDuration):
 			pumpDur, pumpEOT, pumpTurn = pumpDuration, false, 0
-		case strings.EqualFold(pumpDuration, "EOT") || strings.EqualFold(pumpDuration, "EndOfTurn") ||
-			strings.EqualFold(pumpDuration, "UntilEndOfTurn"):
+		case clonePumpDurationEOT(pumpDuration):
 			pumpDur, pumpEOT, pumpTurn = "", true, 0
 		default:
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
