@@ -35,7 +35,8 @@ remspan=dirac/kgen/testdata/remspan.tsv
 ceilings=internal/codeshape/testdata/func_ceilings.tsv
 # A ticket's lowered function ceilings are hygiene, never needed by its own change (a growth cannot raise a row), and
 # they race: #853 lowered matchCardOneAt 131 -> 130 while #847 grew it to 131, each green alone, the batch red
-# (11-17). The PR keeps main's rows. Nothing re-lowers them on main: a regen PR lowering a row races a growth the same way.
+# (11-17). The PR keeps main's rows; a branch may not lower one at all (cmd/checkratchet, lint). The daily
+# ratchet-lower workflow lowers main's rows after merge, where no growth can race them.
 [ -n "$(changed "$ceilings")" ] && PKG=./internal/codeshape leave '^(TestFuncCeilingsLowerOnly|TestLongFunctionsOnlyShrink|TestComplexFunctionsOnlyShrink)$' "$ceilings"
 [ -n "$(changed dirac/docs/support.md "${pinfiles[@]}" "$remspan")" ] || exit 0
 source scripts/pr-cards.sh

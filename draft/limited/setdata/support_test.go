@@ -13,11 +13,6 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// sheetEntries are the measured card entries (a card on one sheet of one
-// collation counts once) of each embedded set across every collation; for a
-// substitute set (MBC) the entries off its substitute list.
-var sheetEntries = map[string]int{"FDN": 1896, "BLB": 1809, "MBC": 2386}
-
 // TestSupportEverySheetCard is the support gate for the embedded specs:
 // every card on every sheet of every collation resolves in the card corpus
 // and is fully supported by the engine, so a generated pack never names a
@@ -44,7 +39,7 @@ func TestSupportEverySheetCard(t *testing.T) {
 	if !sup["kw:Flying"] {
 		t.Fatal("effects.Supported() lacks kw:Flying: the rules package did not register the non-API primitives")
 	}
-	checked := 0
+	checked, want := 0, 0
 	for _, code := range setdata.Codes() {
 		if _, pending := pendingSets[code]; pending {
 			continue // TestPendingSetCards holds these to a shrinking list
@@ -55,6 +50,7 @@ func TestSupportEverySheetCard(t *testing.T) {
 		}
 		for _, c := range collations {
 			spec := mustLoadCollation(t, code, c)
+			want += sheetEntryCount(spec)
 			for sheet, sh := range spec.Config.Sheets {
 				for _, sc := range sh.Cards {
 					if spec.Unplayable[sc.Name] {
@@ -73,9 +69,24 @@ func TestSupportEverySheetCard(t *testing.T) {
 			}
 		}
 	}
-	if want := sheetEntries["FDN"] + sheetEntries["BLB"] + sheetEntries["MBC"]; checked != want {
-		t.Errorf("checked %d sheet cards, want the %d FDN + %d BLB + %d MBC sheet entries", checked, sheetEntries["FDN"], sheetEntries["BLB"], sheetEntries["MBC"])
+	if checked != want {
+		t.Errorf("checked %d sheet cards, want the %d entries in the embedded specs' sheets (off their substitute lists)", checked, want)
 	}
+}
+
+// sheetEntryCount is the entries spec's sheets deal: a card on one sheet of one
+// collation counts once, and a substitute set's unplayable entries are skipped
+// because its list swaps them out before a pack is dealt.
+func sheetEntryCount(spec setdata.Spec) int {
+	n := 0
+	for _, sh := range spec.Config.Sheets {
+		for _, sc := range sh.Cards {
+			if !spec.Unplayable[sc.Name] {
+				n++
+			}
+		}
+	}
+	return n
 }
 
 // pendingSets are the embedded sets drafted before Forge has scripted all

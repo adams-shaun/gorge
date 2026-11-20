@@ -193,6 +193,13 @@ lowers the rows to the measurement and drops stale ones; it never raises or adds
 one. A renamed or moved function takes its row under the new key in the same
 commit at no higher value.
 
+A pull request that lowers a row or a `ratchet_test.go` constant fails the
+lint job with "lowering is post-merge only": `cmd/checkratchet` compares the
+branch with its merge base. Lowering is post-merge only, so a lowering cannot
+race a branch that grows the same function into one queue batch. The daily
+`ratchet-lower` workflow runs the generator on main and opens a bot PR (rebuilt
+over main when it goes red or conflicting).
+
 **A ratchet is never raised by a branch.** That covers the coverage tables above,
 the constants and `func_ceilings.tsv` in `internal/codeshape`, the constants and
 allow-lists of `internal/archtest`, and `testkit/testutil/agentsdoc_test.go`.
