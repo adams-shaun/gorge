@@ -74,4 +74,19 @@ func TestObjSetsOrderAndGC(t *testing.T) {
 	if s.osHas(osRem, a, x, ver) || !s.osHas(osRem, a, y, ver) {
 		t.Fatalf("osForget left %v", srcMemRecs(s))
 	}
+
+	// full means stall: the 97th live record of any kind is StallObjSets
+	for i := range s.cold.objSets {
+		s.cold.objSets[i] = osRec{}
+	}
+	for i := 0; i < maxObjSets; i++ {
+		s.osAdd(osRem, a, Obj(i))
+	}
+	if s.Stalled() || s.osLen() != maxObjSets {
+		t.Fatalf("filling the store: len %d stalled %v", s.osLen(), s.Stalled())
+	}
+	s.exwPut(Obj(maxObjSets), a, ver, exwFwd, -1) // the exw writer stalls on the same full store
+	if s.StallReason() != StallObjSets || StallName(StallObjSets) != "objsets" {
+		t.Fatalf("the 97th record: stall %q, want objsets", StallName(s.StallReason()))
+	}
 }
