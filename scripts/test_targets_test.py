@@ -824,6 +824,39 @@ def test_repro_named_maps_a_recording_to_its_reader(repo):
     assert got == {}
 
 
+def test_repro_named_maps_a_named_recording_to_its_manifest_subtest(repo):
+    d = repo / "dirac/oracle/testdata/repro"
+    d.mkdir(parents=True)
+    (d / "marked.repro.json").write_text('{"named":true,"pool":"tail-01"}\n')
+    (d / "globbed.repro.json").write_text('{"pool":"custom"}\n')
+    (d / "served.repro.json").write_text('{"named":true,"pool":"tail-02","served":true}\n')
+    sh = lambda *a: subprocess.run(a, cwd=repo, check=True, capture_output=True)
+    sh("git", "add", "dirac/oracle")
+    dm = {"dirac/oracle": "m/dirac/oracle"}
+    read = lambda p: (repo / p).read_text().splitlines() if (repo / p).exists() else []  # as read_lines
+
+    def mapped(*names):
+        return tt.repro_named({"dirac/oracle/testdata/repro/%s.repro.json" % n: None for n in names}, dm, read, cwd=str(repo))
+    assert mapped("marked") == {"m/dirac/oracle": {"TestReproManifest/marked"}}
+    assert mapped("served", "marked") == {"m/dirac/oracle": {"TestReproManifest/marked", "TestReproManifest/served"}}
+    # a recording in a globbed pool is not marked: the glob test replays it, so nothing maps
+    assert mapped("globbed") == {}
+    # a deleted recording reads as empty and maps to nothing
+    assert mapped("gone") == {}
+
+
+def test_plan_runs_a_manifest_subtest_as_its_parent_test():
+    # `-run` splits at a slash outside brackets, so a `TestReproManifest/x` element would filter the subtests of
+    # the REPRO_TESTS tests too; the plan selects the parent and the whole manifest runs (about a minute)
+    recording = "dirac/oracle/testdata/repro/marked.repro.json"
+    got, _ = planned({recording: None}, repro_names={"m/dirac/oracle": {"TestReproManifest/marked"}})
+    kind, rx = got["./dirac/oracle"]
+    assert kind == "named" and rx.startswith("^(TestReproManifest)$|")
+    assert "/" not in rx
+    for name in ("TestReproCompactRoundTrip", "TestReproGlobMatchesTable", "ReprosLockstep"):
+        assert name in rx
+
+
 def test_census_selects_the_pin_and_registration_ratchets():
     # 11-17 #611: TestGrantedKeywordHeadsAreRegisteredOrPinned matched no census word, so fast never ran it on the
     # PR and it failed three Mergify batches. The pin ratchets must match, in the py selection and test-smart's C,
