@@ -64,6 +64,7 @@ Clip Wings
 Colossal Dreadmaw and Storm Crow
 Continue?
 Crackling Drake
+Creakwood Liege
 Creeping Corrosion
 Crookclaw Elder
 Crosstown Courier
@@ -100,6 +101,7 @@ Dualcaster Mage
 Dune Mover
 Duplicant
 Easy Prey
+Eccentric Pestfinder
 Elvish Dreadlord
 Emperor Crocodile
 Enrage

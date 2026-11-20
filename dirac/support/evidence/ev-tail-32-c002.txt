@@ -6,6 +6,7 @@ Aether Shockwave
 Ageless Guardian
 Akki Rockspeaker
 Akoum Boulderfoot
+Akoum Warrior
 Alabaster Wall
 Alchor's Tomb
 Amulet of Kroog
@@ -30,12 +31,14 @@ Blood Age General
 Blood Rites
 Bloodcrusher of Khorne
 Bloodfire Colossus
+Bloodthirsty Aerialist
 Blue Sun's Zenith
 Blunt the Assault
 Boggart Arsonists
 Book of Rass
 Border Guard
 Boreal Elemental
+Bottle Golems
 Brand
 Brawl-Bash Ogre
 Brood Birthing
@@ -71,6 +74,7 @@ Dakmor Plague
 Damning Verdict
 Dark Betrayal
 Dark Ritual
+Darksteel Angel
 Death's Presence
 Death-Hood Cobra
 Definitely Not a Turtle
@@ -150,6 +154,7 @@ Haunted Cloak
 Heart Sliver
 Heliod's Pilgrim
 Heroic Charge
+Highway Robber
 Hold the Line
 Hollowhenge Overlord
 Honor the Past
@@ -177,6 +182,7 @@ Kruin Striker
 Kukemssa Pirates
 Lace with Moonglove
 Lancer Sliver
+Lavakin Brawler
 Leo's Guidance
 Lesser Gargadon
 Levitating Statue
@@ -204,6 +210,7 @@ Memory Worm
 Mercurial Spelldancer
 Merrow Bonegnawer
 Merrow Witsniper
+Mesa Falcon
 Mesa Lynx
 Metallic Mastery
 Mind Drain
@@ -357,6 +364,7 @@ Vexing Sphinx
 Viashivan Dragon
 Vindictive Flamestoker
 Viridian Zealot
+Vivid Revival
 Vivisection
 Voda Sea Scavenger
 Vraska's Contempt
@@ -371,6 +379,7 @@ Wilderness Elemental
 Wildfire Eternal
 Windreader Sphinx
 Witch's Mist
+Witness of Tomorrows
 Woodland Bellower
 Wose Pathfinder
 Xanthic Statue

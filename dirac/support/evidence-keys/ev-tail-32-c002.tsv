@@ -4,6 +4,7 @@ Abstruse Interference	8e3a9496a8e7136b	4	0/0		1/2	ix:resp
 Aether Shockwave	75b10252b6ac44d2	4	0/0		2/2	
 Akki Rockspeaker	1c877c1f66b78259	14	1/1		0/1	ix:resp
 Akoum Boulderfoot	6620cb34c344358a	6	1/1		0/1	ix:resp
+Akoum Warrior	93c44d82dae98e49	4	1/1		0/1	ix:resp
 Amulet of Kroog	45e61056e1e6a801	4	1/1		0/1	ix:resp
 Arcbound Hybrid	3677aaa97f6a4c8c	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Arena Athlete	5a45afd37bf395da	5	1/1		0/1	ix:resp
@@ -15,10 +16,12 @@ Blade Banish	23ccd296f8fdd0db	6	0/0		1/2	ix:resp
 Blade Splicer	4bf7b38627473819	4	1/1		0/1	ix:resp
 Blood Rites	52d32a5b24499be7	4	1/1		1/1	
 Bloodcrusher of Khorne	82f674575c36ed1f	7	0/0		0/0	
+Bloodthirsty Aerialist	61faf54556940fd1	5	1/1		0/1	ix:resp
 Blunt the Assault	0a9df5063530adf1	10	0/0		1/2	ix:resp
 Boggart Arsonists	3efcd2e324918e16	6	1/1		1/1	
 Border Guard	66f3fd32e845afd1	4	0/0		0/0	
 Boreal Elemental	54202da3062daaa9	4	0/0		0/0	
+Bottle Golems	e3079004ea6eac43	4	1/1		0/1	ix:resp
 Brawl-Bash Ogre	61090b900dad4022	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Bull Hippo	555877f6a29d6648	6	0/0		0/0	
 Bushi Tenderfoot	0e239a08368a4403	63	3/3		1/1	
@@ -43,6 +46,7 @@ Curious Altisaur	4fd65777f2356619	5	1/1		0/1	ix:resp
 Cut	7b1b4871806241d5	13	0/0		4/7	f1/s,f1/s/x+,f1/s/x0
 Damning Verdict	1dccb20420d30c22	5	0/0		1/2	ix:resp
 Dark Ritual	4016e227d34cd7ba	12	0/0		2/2	
+Darksteel Angel	390c64cd170b7e78	3	0/0		0/0	
 Death's Presence	fb2c2b24647bb67f	25	1/1		0/1	ix:resp
 Death-Hood Cobra	d778d66aca808390	6	2/2		1/1	
 Dementia Bat	7fefb2d594260e1b	3	1/1		0/1	ix:resp
@@ -92,6 +96,7 @@ Hasran Ogress	8939eb42c6436bd1	4	1/1		0/1	ix:resp
 Heart Sliver	0dd78a85bc43e35d	6	0/0		0/0	
 Heliod's Pilgrim	05d3608d962c6c8e	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Heroic Charge	2d50c74879c0a100	8	0/0		3/4	ix:resp
+Highway Robber	4cc39da9a221e5ec	4	1/1		0/1	ix:resp
 Hold the Line	52dba1ebbf5ed907	4	0/0		1/2	ix:resp
 Honor the Past	ae5a9461d21425d8	3	0/0		1/2	ix:resp
 Idle Thoughts	69de54507b1835c1	4	1/1		1/1	
@@ -102,6 +107,7 @@ Krosan Restorer	d92fd6b84181b468	6	2/2		0/1	ix:resp
 Kruin Striker	dbb51f5c9bae5ba2	4	1/1		0/1	ix:resp
 Kukemssa Pirates	0273c4e4bed563ba	4	1/1		0/1	ix:resp
 Lancer Sliver	76a74b77bba6a153	5	0/0		0/0	
+Lavakin Brawler	f6629e87dd7865ad	4	1/1		0/1	ix:resp
 Levitating Statue	90119dadde7ea2ce	6	2/2		1/1	
 Leyline Dowser	a236a7d862f74f42	6	2/2		0/1	ix:resp
 Light the Way	f11cb04f318b08e0	3	0/0		2/2	
@@ -115,6 +121,7 @@ Mandibular Kite	5f19e89369943863	4	2/2		1/1
 Memory Drain	c46fd829c51d7202	3	0/0		1/2	ix:resp
 Mercurial Spelldancer	5140695b8f8e5b39	4	2/2		0/1	ix:resp
 Merrow Witsniper	4fb975d036efc4c7	12	1/1		0/1	ix:resp
+Mesa Falcon	903c7c457b5cb1e4	8	1/1		1/1	
 Mesa Lynx	7ccdbd32c1be062a	5	0/0		0/0	
 Mindless Null	a765b6fba3bc77f0	4	0/0		0/0	
 Mire Blight	98df71dfa6b06a3d	6	1/1		1/2	ix:resp
@@ -196,6 +203,7 @@ Veilborn Ghoul	5cdc9680114ac77a	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Vexing Sphinx	3f85457aabccf346	8	2/2		0/1	ix:resp
 Vindictive Flamestoker	38f5dcccbad881ad	4	2/2		0/1	ix:resp
 Viridian Zealot	e050a00bd5975a6f	8	1/1		0/1	ix:resp
+Vivid Revival	0d44b681287d8277	3	0/0		1/2	ix:resp
 Vivisection	154e638428835d9d	4	0/0		1/2	ix:resp
 Voda Sea Scavenger	7543fb8314fcaea4	4	1/1		0/1	ix:resp
 Walking Archive	4650562fe3985ab2	4	2/2		0/1	ix:resp
@@ -205,5 +213,6 @@ Wheel and Deal	a011dd397be5a912	4	0/0		1/2	ix:resp
 Wild Crocodile	953aede19e3ac2c4	9	1/1		0/1	ix:resp
 Wilderness Elemental	b1ffff6bdc456ae2	3	0/0		0/0	
 Witch's Mist	2e13e9b24d660c8c	5	1/1		1/1	
+Witness of Tomorrows	f11687a9be46948c	4	1/1		1/1	
 Wose Pathfinder	343f212c7c4d134f	4	2/2		0/1	ix:resp
 Xanthic Statue	9250703625a44a5a	3	1/1		1/1	
