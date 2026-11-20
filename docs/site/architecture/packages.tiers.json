@@ -645,6 +645,10 @@
       "tier": "dirac",
       "status": "EXT"
     },
+    "dirac/shadowseat": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
     "dirac/canon": {
       "tier": "dirac",
       "status": "EXT"

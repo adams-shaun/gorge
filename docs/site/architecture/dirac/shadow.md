@@ -123,6 +123,27 @@ and returns a `RolloutResult`: exactly one of `Over` (`Winner`, -1 a draw), `Sta
 decision cap). A stall is never a draw: `Rollout.Stalls[reason]` counts it and a search must drop that sample. The loop
 allocates nothing, and a `Rollout` is for one goroutine. Tests are in `dirac/fork_rollout_mp_test.go`.
 
+## The shadow seat
+
+`dirac/shadowseat` is the player over this staging: a gorge `seat.Seat` that searches on dirac. At each priority,
+declare-attackers and declare-blockers decision it stages the view it was handed (`Layout.Deal`, then `StageFromView`),
+steps the staged `State` to its decision (the config is `LockstepConfig(SurfaceFull)` with `NoElide`, so dirac poses
+gorge's decisions one for one), and runs `search.Searcher.SeatSearch`: the heuristic leaf and hbot priors, PIMC over
+`Worlds` cached deals. The staged root holds only the Layout's open-list deal, so every world the search deals is a
+function of the view and the deck lists; the seat never sets the clairvoyant option and cannot read gorge's hidden zones.
+
+The chosen dirac actions meet gorge's options at the canonical action (`dirac/canon`): pass, land play, plain activation,
+plain cast (a planned cast through `Decision.PaymentActions`, which wins over the plain option), attacker, blocker and
+target. A cast or activation keeps the staged `State` with the answer applied as a plan, and the target decision that
+follows is searched from it. Anything else, and any position the seat cannot stage or map, goes to the fallback seat
+(the heuristic bot in the harness). `Stats.Reasons` counts why: `stage/<reason>`, `kind/<kind>`, `continuation/<kind>`,
+`decision` and `unmapped/<action>`; `Stats.CardRefusals` keeps the card details of `stage/card`. gorge is the host, so
+its own `Submit` checks every answer. The tests are `TestShadowSeatMapsEveryOption`, `TestShadowSeatPlaysHeuristic`,
+`TestShadowSeatContinuesTargets`, `TestShadowSeatDeterministic` and `TestShadowSeatImports`.
+
+A closed list (an unknown opponent deck, `ClosedList` with a `search.Belief`) and pods are out of scope: a pod stages
+as `stage/seats` and falls back.
+
 ## Extending it
 
 A new feature needs a field on `World` or `WorldObj`, the staging code in `zone_stage.go`, the mapping in
