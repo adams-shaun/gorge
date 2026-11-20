@@ -516,6 +516,10 @@
             },
             "type": "array"
           },
+          "blocking": {
+            "description": "Blocking is true for a battlefield creature declared as a blocker this combat, after its attacker has left combat too (CR 506.4): BlockedBy lists a block only on the attacker, so a blocker of an attacker that is gone is shown only here.",
+            "type": "boolean"
+          },
           "card_name": {
             "description": "CardName is the object's PRINTED card name -- its card's front face, the name its genesis deck list (deck.Manifest) records -- when that differs from Name: a transformed or back-face-played double-faced card, a split or adventure half on the stack, a permanent a copy effect (CopyFace) or a SetName$ renamed. Empty when it equals Name, and on every redacted face-down CardView (the redaction rebuilds the view from a fresh literal). The physical card's identity is exactly as visible as the object carrying it: a copy or a transformed permanent is a public card whose printed front every player can read. The honest own-library composition (view.OwnLibrary) keys on it, so a Clone copying one of the seat's own cards is counted as the Clone it is, not as a second copy of what it copies.",
             "type": "string"
@@ -4340,6 +4344,10 @@
             "minimum": 0,
             "type": "integer"
           },
+          "damage_step": {
+            "description": "DamageStep names the priority round of the combat damage step the game is in: \"first-strike\" for the round after the first-strike pass, \"regular\" for the round after the regular pass; omitted elsewhere, and when the projector's Chars is not a DamageStepReader. FirstStrikeStep says whether this combat runs a first-strike pass, at the combat damage step only. Public for every seat, like the step they refine.",
+            "type": "string"
+          },
           "day_night": {
             "description": "DayNight is the CR 731 designation: \"day\", \"night\", or omitted while the game has neither; public for every seat.",
             "type": "string"
@@ -4348,6 +4356,9 @@
             "$ref": "#/components/schemas/Decision"
           },
           "draw": {
+            "type": "boolean"
+          },
+          "first_strike_step": {
             "type": "boolean"
           },
           "over": {
