@@ -4,4 +4,5 @@ value: 38
 forge: ChangeCombatants
 census: api ChangeCombatants all=10 std=1 mbc=2 sole=6
 state: code 0
-status: reserved
+status: active
+ticket: gap4-11-changecombatants-goad
