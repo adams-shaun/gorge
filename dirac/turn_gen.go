@@ -296,6 +296,9 @@ func (s *State) runReplProg(k *prep, sl Slot, c CardID, ab, pc uint8) {
 func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot) {
 	prog := k.t.Cards[c].Abilities[ab].Prog
 	saved := s.res
+	saveSrc := s.g.replSrc
+	s.g.replSrc = uint8(src) + 1
+	defer func() { s.g.replSrc = saveSrc }()
 	if !s.res.active {
 		// a value context for the program: the source as a resolving entry
 		sp := &s.perms[src]

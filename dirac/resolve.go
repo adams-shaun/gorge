@@ -785,7 +785,10 @@ func (s *State) ctrlOfObj(o Obj) uint8 {
 	return ob.owner()
 }
 
-// value evaluates a ValueRef.
+// DebugOthersEnterEntrantValue (TestOthersEnterCountersSourceValueMutation):
+// an others-enter program's amount reads the entering permanent again.
+var DebugOthersEnterEntrantValue bool
+
 // enterCountValue is value for the amount of an enters-with-counters
 // replacement, which counts for the entering permanent (sl, controlled by
 // ctrl): its "other" is that permanent, not the source of the effect that
@@ -793,12 +796,21 @@ func (s *State) ctrlOfObj(o Obj) uint8 {
 // Breacher, which counts the Skiff), and its "you" is that permanent's
 // controller, not the effect's (All-Fates Stalker's return of Gigastorm Titan
 // under Bioengineered Future counts lands that entered under the Titan's
-// controller).
+// controller). A program running as another permanent's others-enter
+// replacement (s.g.replSrc) reads that source instead.
 func (s *State) enterCountValue(k *prep, v kop.ValueRef, sl Slot, ctrl uint8) int {
 	if v.K == kop.VExpr {
 		c := s.ctxEntry(&s.res.e)
 		c.ctrl = ctrl
 		c.src, c.srcSl = s.perms[sl].obj, sl
+		if r := s.g.replSrc; r != 0 && Slot(r-1) != sl && !DebugOthersEnterEntrantValue {
+			// another permanent's others-enter program (Arwen, Weaver of
+			// Hope): its amount is the source's, with the source's "you"
+			// (CR 614.12)
+			src := Slot(r - 1)
+			c.ctrl = s.perms[src].ctrl
+			c.src, c.srcSl = s.perms[src].obj, src
+		}
 		return s.expr(k, v.N, c)
 	}
 	if v.K != kop.VCountFilter {
