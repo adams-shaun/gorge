@@ -120,3 +120,39 @@ func TestInternNameUniverseNamesSharesEqualLists(t *testing.T) {
 		t.Fatalf("no universe and no pin = %v, want nil", got)
 	}
 }
+
+// TestNameChoicesPureMatchesFiltered pins nameChoicesPure (the image-row,
+// type-signature walk) to the per-card matcher walk on the real corpus, for
+// the imaged universe and a plain-slice one, every pure spec word, strict
+// and not, with and without a ChooseFromList$.
+func TestNameChoicesPureMatchesFiltered(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	words := []string{"Card", "Creature", "Land", "Artifact", "Enchantment", "Planeswalker", "Instant", "Sorcery", "Battle"}
+	mods := []string{"", ".nonLand", ".nonBasic", ".Basic", ".Legendary", ".Snow", ".nonCreature", ".nonArtifact+nonLand",
+		".Land+nonBasic", ".Artifact+Creature", ".nonLegendary+Creature", ".nonSnow+Land"}
+	var specs []string
+	for _, w := range words {
+		for _, m := range mods {
+			specs = append(specs, w+m)
+		}
+	}
+	for _, u := range []*cards.Universe{reg.Universe(), cards.UniverseOf(reg.AllCards())} {
+		g := state.NewGame(names(2))
+		g.NameUniverse = u
+		g.NameUniverseNames = NameUniverseNames(u)
+		for _, spec := range specs {
+			if !pureNameSpec(spec) {
+				t.Fatalf("pureNameSpec(%q) = false", spec)
+			}
+			for _, list := range []string{"", "Island,Forest,Black Lotus"} {
+				for _, strict := range []bool{false, true} {
+					want := nameChoicesFiltered(g, spec, list, strict, nil)
+					got := nameChoicesPure(g, spec, list, strict, nil)
+					if !slices.Equal(got, want) {
+						t.Fatalf("spec %q list %q strict %v: pure %d names, filtered %d", spec, list, strict, len(got), len(want))
+					}
+				}
+			}
+		}
+	}
+}

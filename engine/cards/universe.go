@@ -139,6 +139,40 @@ func (u *Universe) eachNameableFace(fn func(ord, face int, name string)) {
 	}
 }
 
+// EachNameableFaceTypes calls fn(ord, face, name, mode, types) for every
+// non-nil nameable face (NameableFace), in ordinal then face order, with the
+// card's AlternateMode and the face's printed type words. On an imaged
+// universe it reads the image rows and never materializes; fn must not
+// retain types.
+func (u *Universe) EachNameableFaceTypes(fn func(ord, face int, name, mode string, types []string)) {
+	if u == nil {
+		return
+	}
+	if u.lz != nil {
+		im := u.lz.img
+		for i, r := range im.Cards {
+			mode := im.str(r.AlternateMode)
+			a, z := im.slice(r.Faces, len(im.Faces))
+			for j := a; j < z; j++ {
+				if f := im.Faces[j]; f.Nil == 0 && NameableFace(mode, j-a) {
+					fn(i, j-a, im.str(f.Name), mode, im.words(f.Types))
+				}
+			}
+		}
+		return
+	}
+	for i, c := range u.cs {
+		if c == nil {
+			continue
+		}
+		for j, f := range c.Faces {
+			if f != nil && NameableFace(c.AlternateMode, j) {
+				fn(i, j, f.Name, c.AlternateMode, f.Types)
+			}
+		}
+	}
+}
+
 // Names is the sorted, distinct, non-empty list of every nameable face name
 // (NameableFace; what a live match snapshots at genesis). Memoised and
 // SHARED: read-only.
