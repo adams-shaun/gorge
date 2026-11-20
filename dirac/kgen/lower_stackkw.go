@@ -55,72 +55,168 @@ import (
 //   - Demonstrate lowers to Kind "StackKw" too: gorge synthesizes the copy
 //     trigger when the cast spell is put on the stack
 //     (trigger_granted.go checkGrantedDemonstrateTriggers), so the kernel
-//     queues it as the cast completes, like Storm (kw_demonstrate.go). It is
-//     the one grant a Condition$ / CheckSVar$ gate may ride (Elda, Conjurer of
-//     Spectacle's "the first nonlegendary creature spell you cast each turn"):
-//     gorge reads the gate against the casts PRIOR to the in-flight one
-//     (hasKeywordPriorCasts), and the kernel evaluates the static's condition
-//     with that push hidden (queueDemonstrate).
-//   - Every other keyword has no printed form in the
-//     kernel and refuses by name.
-func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
+//     queues it as the cast completes, like Storm (kw_demonstrate.go).
+//   - A Condition$ / IsPresent$ / CheckSVar$ gate rides the cast-time heads
+//     whose grant gorge reads with the in-flight cast excluded: Cascade,
+//     Storm, Conspire, Demonstrate, Delve and Casualty (hasKeywordPriorCasts /
+//     the cast trigger walk), so "the first spell you cast each turn" holds
+//     for the very cast the grant is for (Elda, Conjurer of Spectacle;
+//     Abaddon the Despoiler's PlayerTurn; Anhelo's ThisTurnCast count). The
+//     kernel reads the same lowered condition with the in-flight push hidden
+//     (Dirac's hideInflightCast). Affinity's gate rides the ReduceCost static
+//     (the same cost-composition read). A gate body the condition lowering
+//     cannot represent refuses with that lowering's own named reason.
+//   - A gate on Convoke, Improvise, Lifelink or Split second refuses by name:
+//     gorge reads the first two at the CR 601.2b announcement, after the
+//     up-front CR 601.2a push, so a Count$ThisTurnCast gate counts the
+//     in-flight spell and the first-spell grant never reaches it; the last two
+//     are read at damage or priority time, with no cast-time carrier.
+//   - "Cascade & Cascade" is two instances of the one head, two grants: the
+//     kernel's per-static cascade count queues two triggers (CR 702.85c).
+//     Any other mixture refuses.
+//   - YouCtrl alone names the caster: under gorge's stack override the
+//     proposed spell's controller is its caster (cast_provenance.go), the
+//     same read wasCastByYou makes.
+//   - wasCastFromHand becomes the CastHand flag (the kernel's fromHand read),
+//     wasCastFromExile becomes the CastExile flag (the kernel's cast origin),
+//     and CastSa provenance is refused by name (no per-payment carrier).
+//   - Every other keyword has no printed form in the kernel and refuses by
+//     name.
+func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) ([]lStatic, error) {
 	kw := sp.str("AddKeyword")
-	if kw == "" || strings.Contains(kw, " & ") {
-		return refuse("AffectedZone Stack grant of %q", kw)
+	tokens, err := stackKwTokens(kw)
+	if err != nil {
+		return nil, err
 	}
-	head, param, _ := strings.Cut(kw, ":")
-	if st.Cond.Kind != cNone && head != "Demonstrate" {
-		return refuse("AffectedZone Stack grant with a Condition$ / IsPresent$ / CheckSVar$ gate")
-	}
-	if ez, ok := sp.get("EffectZone"); ok && strings.TrimSpace(ez) != "Battlefield" {
-		return refuse("AffectedZone Stack grant with EffectZone %q", ez)
+	head, _, _ := strings.Cut(tokens[0], ":")
+	selfStack := false
+	if ez, ok := sp.get("EffectZone"); ok {
+		switch strings.TrimSpace(ez) {
+		case "Battlefield":
+		case "Stack":
+			// a self grant that functions from the stack (Bloodbraid
+			// Marauder's "this spell has cascade as long as ..."): the
+			// carrier is the spell itself, its controller its caster
+			if strings.TrimSpace(aff) != "Card.Self" {
+				return nil, refuse("AffectedZone Stack grant with EffectZone %q", ez)
+			}
+			selfStack = true
+		default:
+			return nil, refuse("AffectedZone Stack grant with EffectZone %q", ez)
+		}
 	}
 	switch head {
 	case "Affinity", "Cascade", "Improvise", "Convoke", "Casualty", "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate":
 	default:
-		return refuse("AffectedZone Stack grant of %q", kw)
+		return nil, refuse("AffectedZone Stack grant of %q", kw)
 	}
-	expr, castHand, err := stackAffected(aff, head)
+	if st.Cond.Kind != cNone {
+		// A gate on the four heads the kernel cannot read at the same point
+		// gorge does refuses by name. gorge reads a Convoke/Improvise grant
+		// through stackKeywordPossibleH at the CR 601.2b announcement, after
+		// the up-front CR 601.2a push, so a Count$ThisTurnCast gate counts
+		// the in-flight spell itself and the first-spell grant never reaches
+		// it; a Lifetime/lifelink or split-second grant is read at damage or
+		// priority time, where the kernel has no cast-time carrier to match
+		// gorge's point in the cast.
+		switch head {
+		case "Improvise", "Convoke", "Lifelink", "Split second":
+			return nil, refuse("AffectedZone Stack %s grant with a condition", head)
+		}
+	}
+	expr, prov, err := stackAffected(aff, head, selfStack)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	if selfStack && prov != stackProvNone {
+		return nil, refuse("AffectedZone Stack self grant with a cast-origin word")
 	}
 	if st.F, err = lc.filter(expr); err != nil {
-		return err
+		return nil, err
 	}
-	switch head {
-	case "Affinity":
-		if castHand {
-			return refuse("AffectedZone Stack affinity grant restricted to spells cast from hand")
+	out := make([]lStatic, 0, len(tokens))
+	for _, tok := range tokens {
+		one := *st
+		one.Kw = []string{tok}
+		h, p, _ := strings.Cut(tok, ":")
+		switch h {
+		case "Affinity":
+			spec, _, _ := strings.Cut(p, ":")
+			if strings.TrimSpace(spec) == "" {
+				return nil, refuse("AffectedZone Stack affinity grant without a spec")
+			}
+			sep := "." // kw_affinity.go: a dotted spec joins with "+", a dot-less one with "."
+			if strings.Contains(spec, ".") {
+				sep = "+"
+			}
+			one.Kind = "ReduceCost"
+			if one.Amount, err = lc.value("Count$Valid " + spec + sep + "YouCtrl"); err != nil {
+				return nil, err
+			}
+		case "Cascade", "Improvise", "Convoke", "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate":
+			if p != "" {
+				return nil, refuse("AffectedZone Stack grant of %q", tok)
+			}
+			if (h == "Lifelink" || h == "Split second") && prov == stackProvHand {
+				return nil, refuse("AffectedZone Stack %s grant restricted to spells cast from hand", strings.ToLower(h))
+			}
+			one.Kind = "StackKw"
+		case "Casualty":
+			if n, err := strconv.Atoi(p); err != nil || n < 1 || n > 127 || strconv.Itoa(n) != p {
+				return nil, refuse("AffectedZone Stack grant of %q", tok)
+			}
+			one.Kind = "StackKw"
 		}
-		spec, _, _ := strings.Cut(param, ":")
-		if strings.TrimSpace(spec) == "" {
-			return refuse("AffectedZone Stack affinity grant without a spec")
+		// the full token: build_ab.go reads the casualty threshold and the
+		// affinity spec off it
+		one.Flags = prov.flags()
+		if selfStack {
+			one.Flags = append(one.Flags, "SelfStack")
 		}
-		sep := "." // kw_affinity.go: a dotted spec joins with "+", a dot-less one with "."
-		if strings.Contains(spec, ".") {
-			sep = "+"
-		}
-		st.Kind = "ReduceCost"
-		if st.Amount, err = lc.value("Count$Valid " + spec + sep + "YouCtrl"); err != nil {
-			return err
-		}
-		return nil
-	case "Cascade", "Improvise", "Convoke", "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate":
-		if param != "" {
-			return refuse("AffectedZone Stack grant of %q", kw)
-		}
-		if (head == "Lifelink" || head == "Split second") && castHand {
-			return refuse("AffectedZone Stack %s grant restricted to spells cast from hand", strings.ToLower(head))
-		}
-	case "Casualty":
-		if n, err := strconv.Atoi(param); err != nil || n < 1 || n > 127 || strconv.Itoa(n) != param {
-			return refuse("AffectedZone Stack grant of %q", kw)
+		out = append(out, one)
+	}
+	return out, nil
+}
+
+// stackKwTokens splits an AddKeyword$ value into its "A & A" instances. The
+// one supported mixture is two or more copies of the same token (Zhulodok's
+// "Cascade & Cascade"); a mixture of different keywords has no kernel form
+// and refuses under the grant's own name.
+func stackKwTokens(kw string) ([]string, error) {
+	if kw == "" {
+		return nil, refuse("AffectedZone Stack grant of %q", kw)
+	}
+	if !strings.Contains(kw, " & ") {
+		return []string{kw}, nil
+	}
+	tokens := strings.Split(kw, " & ")
+	for _, tok := range tokens {
+		if tok != tokens[0] {
+			return nil, refuse("AffectedZone Stack grant of %q", kw)
 		}
 	}
-	st.Kind = "StackKw"
-	st.Kw = []string{kw} // the full token: build_ab.go reads the casualty threshold off it
-	if castHand {
-		st.Flags = append(st.Flags, "CastHand")
+	return tokens, nil
+}
+
+// stackProv is a stack grant's Affected$ cast-origin restriction.
+type stackProv uint8
+
+const (
+	stackProvNone    stackProv = iota
+	stackProvHand              // wasCastFromHand / wasCastFromYourHand[ByYou]
+	stackProvNotHand           // !wasCastFromYourHand (anywhere but a hand)
+	stackProvExile             // wasCastFromExile
+)
+
+// flags is the kgen static flag the restriction lowers to (build_ab.go).
+func (p stackProv) flags() []string {
+	switch p {
+	case stackProvHand:
+		return []string{"CastHand"}
+	case stackProvNotHand:
+		return []string{"CastNotHand"}
+	case stackProvExile:
+		return []string{"CastExile"}
 	}
 	return nil
 }
@@ -129,24 +225,26 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 // gorge judges the proposed spell, still in hand with no PutOnStack, under
 // the stack override (cast_provenance.go): wasCastByYou holds iff the caster
 // is the static's controller, bare wasCast always holds, and
-// wasCastFromYourHand[ByYou] holds iff the caster is the controller and the
-// card is in its hand. The kernel tests "the caster is the static's
+// wasCastFromYourHand[ByYou] / wasCastFromHand hold iff the caster is the
+// controller and the card is in its hand; wasCastFromExile holds iff the
+// proposed cast comes from exile. The kernel tests "the caster is the static's
 // controller" structurally (ReduceCost's stc.ctrl == p; stackKwN's caster
 // argument), so those words and YouCtrl (the controller of the proposed
-// spell IS its caster) drop out of the filter, and the cast-from-hand word
+// spell IS its caster) drop out of the filter, and the cast-origin word
 // becomes a flag. An alternative that never names its caster (a bare wasCast
 // without YouCtrl would also match an opponent's spell) or carries any other
 // provenance word refuses. atDamage (a lifelink grant, read when the
 // resolving spell deals damage) inverts the provenance rule: the alternative
 // must name YouCtrl and carry no cast word.
-func stackAffected(aff, head string) (string, bool, error) {
-	atDamage, atCast := head == "Lifelink" || head == "Split second", head == "Storm" || head == "Conspire" || head == "Delve" || head == "Demonstrate"
+func stackAffected(aff, head string, selfStack bool) (string, stackProv, error) {
+	atDamage := head == "Lifelink" || head == "Split second"
 	var alts []string
-	hand, plain := false, false
+	prov, plain := stackProvNone, false
 	for _, alt := range strings.Split(aff, ",") {
 		alt = strings.TrimSpace(alt)
 		base, preds, _ := strings.Cut(alt, ".")
-		caster, cast, fromHand := false, false, false
+		caster, cast := false, false
+		altProv := stackProvNone
 		var keep []string
 		if preds != "" {
 			for _, p := range strings.Split(preds, "+") {
@@ -157,11 +255,15 @@ func stackAffected(aff, head string) (string, bool, error) {
 					cast = true
 				case "YouCtrl":
 					caster = true
-				case "wasCastFromYourHand", "wasCastFromYourHandByYou":
-					caster, cast, fromHand = true, true, true
+				case "wasCastFromYourHand", "wasCastFromYourHandByYou", "wasCastFromHand":
+					caster, cast, altProv = true, true, stackProvHand
+				case "!wasCastFromYourHand":
+					cast, altProv = true, stackProvNotHand
+				case "wasCastFromExile":
+					cast, altProv = true, stackProvExile
 				default:
 					if strings.Contains(p, "wasCast") || strings.Contains(p, "CastSa") {
-						return "", false, refuse("AffectedZone Stack grant: Affected$ word %q", p)
+						return "", stackProvNone, refuse("AffectedZone Stack grant: Affected$ word %q", p)
 					}
 					keep = append(keep, p)
 				}
@@ -172,30 +274,30 @@ func stackAffected(aff, head string) (string, bool, error) {
 			// time (srcKw): its controller must be named, a cast-time
 			// provenance word has no meaning there
 			if cast || !caster {
-				return "", false, refuse("AffectedZone Stack lifelink grant: Affected$ %q is not a plain YouCtrl spell filter", alt)
+				return "", stackProvNone, refuse("AffectedZone Stack lifelink grant: Affected$ %q is not a plain YouCtrl spell filter", alt)
 			}
-		} else if atCast {
-			// a storm grant is read as the spell is cast, off the spell on
-			// the stack: its controller is its caster, so YouCtrl names
-			// the caster as wasCastByYou does
-			if !caster {
-				return "", false, refuse("AffectedZone Stack grant: Affected$ %q does not name the caster of a cast spell", alt)
-			}
-		} else if !cast || !caster {
-			return "", false, refuse("AffectedZone Stack grant: Affected$ %q does not name the caster of a cast spell", alt)
+		} else if !caster && !selfStack {
+			// every cast-time head names its caster: YouCtrl alone is the
+			// caster under the stack override (Storm, Delve, Cascade,
+			// Improvise, Convoke, Casualty, Affinity); a stack self grant's
+			// Card.Self is the spell itself, its controller the caster
+			return "", stackProvNone, refuse("AffectedZone Stack grant: Affected$ %q does not name the caster of a cast spell", alt)
 		}
-		if fromHand {
-			hand = true
-		} else {
+		switch {
+		case altProv == stackProvNone:
 			plain = true
+		case prov == stackProvNone:
+			prov = altProv
+		case prov != altProv:
+			return "", stackProvNone, refuse("AffectedZone Stack grant: Affected$ mixes cast-origin alternatives")
 		}
 		if len(keep) > 0 {
 			base += "." + strings.Join(keep, "+")
 		}
 		alts = append(alts, base)
 	}
-	if hand && plain {
-		return "", false, refuse("AffectedZone Stack grant: Affected$ mixes cast-from-hand and plain alternatives")
+	if plain && prov != stackProvNone {
+		return "", stackProvNone, refuse("AffectedZone Stack grant: Affected$ mixes a cast-origin alternative and a plain one")
 	}
-	return strings.Join(alts, ","), hand, nil
+	return strings.Join(alts, ","), prov, nil
 }

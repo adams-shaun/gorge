@@ -348,6 +348,13 @@ type Emblem struct {
 	// the host already gone is unbounded and fires when the object leaves
 	// again).
 	NotHere bool
+	// Forget: an Effect's ForgetOnCast$ for a stack keyword grant (the "next
+	// spell you cast this turn has cascade" Effects): the whole emblem ends
+	// when the first completed cast matching this filter happens (gorge
+	// effectCastSweep; kernel embForgetOnCast). 0 = no such gate. A
+	// CastWithFlash Effect's own ForgetOnCast$ stays on its Static.Filter2
+	// (embFlashForget), the printed route.
+	Forget FilterID
 }
 
 // HostBound reports whether the emblem's lifetime follows its host object:
