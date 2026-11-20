@@ -140,7 +140,7 @@ func TestLayer4SubtypeTimestampOrderFourSeat(t *testing.T) {
 	if hits == 0 {
 		t.Fatal("no permanent reached two layer-4 subtype overrides with different timestamps")
 	}
-	t.Logf("20 seeds, %d decision with the ordering mechanism live", hits)
+	t.Logf("20 seeds, %d decisions with the ordering mechanism live", hits)
 }
 
 // TestLayer4SubtypeTimestampOrderMutation restores the old merge with
