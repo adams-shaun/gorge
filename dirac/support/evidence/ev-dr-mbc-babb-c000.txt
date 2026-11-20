@@ -58,6 +58,7 @@ Longshot Squad
 Mad Ratter
 Manor Gate
 Meatsqueak, Hoard Lord
+Misleading Signpost
 Mistmeadow Skulk
 Moment's Peace
 Mountain
@@ -92,6 +93,7 @@ Take Up the Shield
 Temple Acolyte
 Thornwind Faeries
 Thought Courier
+Titanoth Rex
 Torch Breath
 Trove Tracker
 Unexpected Fangs

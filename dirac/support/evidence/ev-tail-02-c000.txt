@@ -272,6 +272,7 @@ Primal Druid
 Prosperity
 Psychic Corrosion
 Psychic Miasma
+Puppet Master, String Puller
 Pyrokinesis
 Qarsi Sadist
 Quartzwood Crasher
@@ -401,4 +402,5 @@ Yorvo, Lord of Garenbrig
 You Are Already Dead
 Zealous Strike
 Zebra Unicorn
+Zephyrim
 Zodiac Dragon

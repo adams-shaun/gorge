@@ -2,6 +2,7 @@ A-Baleful Beholder
 A-Hobbling Zombie
 A-Prosperous Thief
 A-Skyclave Shadowcat
+Abaddon the Despoiler
 Act of Aggression
 Adric, Mathematical Genius
 Aegis Automaton

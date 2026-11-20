@@ -105,6 +105,7 @@ Didn't Say Please
 Dimir Cluestone
 Dimir House Guard
 Disrupt
+Dovin, Architect of Law
 Draconic Lore
 Dragon Tyrant
 Dragonfly Suit
@@ -136,6 +137,7 @@ Farbog Boneflinger
 Fathom Fleet Captain
 Favor of the Woods
 Feebleness
+Feline Sovereign
 Ferocious Charge
 Ferocity of the Wilds
 Festival Crasher
@@ -215,6 +217,7 @@ Horizon Canopy
 Horned Sliver
 Hoverguard Sweepers
 Hunter's Prowess
+Hunting Triad
 Icy Blast
 Ignite the Beacon
 Incursion Specialist
@@ -414,6 +417,7 @@ Tenth District Legionnaire
 Terashi's Grasp
 Thalakos Seer
 Thassa's Emissary
+The Gitrog Monster
 The Marvelous Scientist
 The Shire
 Thermal Glider
