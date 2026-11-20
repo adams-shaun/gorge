@@ -108,6 +108,7 @@ Golden Demise
 Goldmeadow Lookout
 Grazing Whiptail
 Great Furnace
+Greven, Predator Captain
 Grinding Station
 Grond, the Gatebreaker
 Harbor Bandit
@@ -175,6 +176,7 @@ Makindi Stampede
 Malignant Growth
 Mandroid Squadron
 Massive Might
+Merciless Executioner
 Mindstab Thrull
 Miss Highwater
 Momo's Heist
@@ -252,6 +254,7 @@ Scalding Tarn
 Scarwood Bandits
 Scatter Ray
 Search Warrant
+Searing Barrage
 Secure the Wastes
 Seismic Spike
 Sejiri Merfolk
@@ -282,6 +285,7 @@ Solid Ground
 Soltari Visionary
 Soul of the Harvest
 Soul's Attendant
+Sphere of Annihilation
 Sphinx of New Prahv
 Spirit Bonds
 Spirit Weaver

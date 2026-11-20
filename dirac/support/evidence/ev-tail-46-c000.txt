@@ -179,6 +179,7 @@ Gift of Strands
 Gilt-Leaf Ambush
 Gloomdrifter
 Gnarled Mass
+Gnarlroot Trapper
 Goblin Gaveleer
 Goblin Skycutter
 Goblins of the Flarg
@@ -429,6 +430,7 @@ Tethered Skirge
 Thallid Devourer
 The Everforger
 The Flux
+Thicket Elemental
 Throne of the High City
 Thunderbreak Regent
 Thundercloud Shaman
