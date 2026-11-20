@@ -1031,3 +1031,4 @@ xwitness_census_total_omits_pain_units custom
 restricted_later_chosen_ability_pays_the_activation custom
 treasure_funded_red_sorcery_not_offered dr-mbc-aabb
 gained_mana_ability_pays_creature_cast std-dsk
+cast_offer_funded_by_lone_combo_filter std-msh
