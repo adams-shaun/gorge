@@ -46,7 +46,7 @@ func TestTapsDeferFixedColourIsAScriptGap(t *testing.T) {
 			t.Fatalf("census total %d, want 1 (the Birds alone)", n)
 		}
 		before := sc.s.pl[0].pool
-		sc.s.tapDeferFloat(sc.k, 0, sc.slot(core), 0)
+		sc.s.tapDeferFloat(sc.k, 0, sc.slot(core), 0, 0)
 		want := before
 		want[kop.G]++
 		if sc.s.pl[0].pool != want {
@@ -89,7 +89,7 @@ func TestTapsDeferPainOnlyGapChargesItsDamage(t *testing.T) {
 		t.Fatal("precondition: the pain-only Core is no script gap")
 	}
 	life := sc.s.pl[0].life
-	sc.s.tapDeferFloat(sc.k, 0, sc.slot(core), 0)
+	sc.s.tapDeferFloat(sc.k, 0, sc.slot(core), 0, 0)
 	if sc.s.pl[0].pool[kop.G] != 1 {
 		t.Fatalf("pool %v, want one {G}", sc.s.pl[0].pool)
 	}
