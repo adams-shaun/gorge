@@ -1296,7 +1296,7 @@ func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, w
 		// makes no mana and a storage battery's X is announced, neither a
 		// branch of this search
 		a := g.k.ctrAbOf(s.cardAt(sl))
-		g.ctr[n] = !deadCtrAb(a) && !kop.StoreManaAb(a) // (mana_countercost.go, mana_sacctr.go)
+		g.ctr[n] = !deadCtrAb(a) && (!kop.StoreManaAb(a) || g.k.ctrSecond(s.cardAt(sl))) // (mana_countercost.go, mana_sacctr.go; a later storage battery beside its plain {T} is a chain, ctrBranch)
 	}
 }
 
