@@ -1159,6 +1159,9 @@ func overrideString(o *lOverride) string {
 	if o.HasSetColors {
 		p = append(p, "colors="+o.SetColors)
 	}
+	if o.UntilEndCombat {
+		p = append(p, "eoc")
+	}
 	if o.NoCost {
 		p = append(p, "nocost")
 	}
