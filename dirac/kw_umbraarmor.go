@@ -119,6 +119,13 @@ func (s *State) umbraBatch(k *prep, host Slot) Slot {
 //
 //go:noinline
 func (s *State) umbraAll(k *prep, hit slotMask) slotMask {
+	return s.umbraAllIn(k, hit, nil)
+}
+
+// umbraAllIn is umbraAll; u records each host -> Aura answer so the caller's
+// departure walk can put the Aura at its host's position (gorge's
+// effDestroyAll destroys it while it processes that victim).
+func (s *State) umbraAllIn(k *prep, hit slotMask, u *umbraOrder) slotMask {
 	if k.gen == nil || !k.gen.anyUmbra {
 		return hit
 	}
@@ -140,22 +147,58 @@ func (s *State) umbraAll(k *prep, hit slotMask) slotMask {
 		s.umbraHeal(sl)
 		out = out.without(sl).with(aura)
 		gone = gone.with(aura)
+		if u != nil {
+			u.add(sl, aura)
+		}
 	}
 	return out
 }
+
+// umbraOrder records the Auras a state-based pass's umbra armor destroys in
+// their hosts' place, so the pass's order build can put each at its host's
+// position in that seat's battlefield walk (gorge's replaceSBADestruction
+// destroys the Aura while it processes that victim). Fixed size: no State
+// field and no allocation.
+type umbraOrder struct {
+	pairs [MaxPerm][2]Slot
+	n     int
+}
+
+// add records that host was saved by destroying aura.
+func (u *umbraOrder) add(host, aura Slot) {
+	u.pairs[u.n] = [2]Slot{host, aura}
+	u.n++
+}
+
+// auraOf returns the Aura an umbra armor answer destroyed in host's place.
+func (u *umbraOrder) auraOf(host Slot) (Slot, bool) {
+	for i := 0; i < u.n; i++ {
+		if u.pairs[i][0] == host {
+			return u.pairs[i][1], true
+		}
+	}
+	return NoSlot, false
+}
+
+// DebugUmbraOwnSlotOrder (TestUmbraArmorGraveyardOrderMutation) restores the
+// old order build: an umbra-spared Aura enters the graveyard at its own
+// battlefield position instead of its host's.
+var DebugUmbraOwnSlotOrder bool
 
 // sbaSpare offers a lethal-damage casualty at sl to the shield counter and
 // then to umbra armor (gorge replaceSBADestruction's order), true when one
 // took the destruction. A shield counter leaves the damage marked, so the
 // pass runs once more; an umbra Aura joins die, to be destroyed with the
-// pass's other casualties.
-func (s *State) sbaSpare(k *prep, sl Slot, die *slotMask) bool {
+// pass's other casualties, and is recorded so the order build puts it at
+// sl's place in the walk.
+func (s *State) sbaSpare(k *prep, sl Slot, die *slotMask, umbra *umbraOrder) bool {
 	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(k, sl) {
 		s.cfgx |= cfgxShieldPass // CR 122.1c: the counter goes instead, the damage stays marked for the next pass
 		return true
 	}
 	if aura := s.umbraBatch(k, sl); aura != NoSlot {
 		*die = die.with(aura) // CR 702.89a: the damage left with the keyword's use
+		umbra.add(sl, aura)
 		return true
 	}
 	return false
@@ -165,8 +208,23 @@ func (s *State) sbaSpare(k *prep, sl Slot, die *slotMask) bool {
 // a shield counter loses one instead, then each an umbra Aura answers keeps
 // living and the Aura is destroyed instead.
 func (s *State) shieldUmbraAll(k *prep, hit slotMask) slotMask {
+	return s.shieldUmbraAllIn(k, hit, nil)
+}
+
+// shieldUmbraAllIn is shieldUmbraAll; u records the umbra answers for the
+// caller's departure walk.
+func (s *State) shieldUmbraAllIn(k *prep, hit slotMask, u *umbraOrder) slotMask {
 	if k.gen != nil && k.gen.anyRepl&rbShield != 0 {
 		hit = s.shieldAll(k, hit) // CR 122.1c
 	}
-	return s.umbraAll(k, hit)
+	return s.umbraAllIn(k, hit, u)
+}
+
+// shieldUmbraAllLeave runs OpDestroyAll's shield and umbra pass and moves the
+// remaining victims, each umbra-spared Aura at its host's position (gorge's
+// effDestroyAll destroys it while processing that victim).
+func (s *State) shieldUmbraAllLeave(k *prep, hit slotMask) {
+	var u umbraOrder
+	hit = s.shieldUmbraAllIn(k, hit, &u)
+	s.leaveAllUmbra(k, hit, kop.ZoneGraveyard, &u)
 }

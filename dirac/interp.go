@@ -470,8 +470,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if s.anyRegen(hit) {
 			hit = s.regenAll(hit)
 		}
-		hit = s.shieldUmbraAll(k, hit) // CR 122.1c then 702.89a, after regeneration (gorge effDestroyAll; kw_umbraarmor.go)
-		s.leaveAll(k, hit, kop.ZoneGraveyard)
+		s.shieldUmbraAllLeave(k, hit) // CR 122.1c then 702.89a, after regeneration (gorge effDestroyAll; kw_umbraarmor.go)
 	case kop.OpPumpAll:
 		if in.Obj != kop.RefNone {
 			s.pumpAllScoped(k, in) // zone_rememberparams.go
