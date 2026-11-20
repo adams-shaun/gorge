@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // The fee-order run of the filter search (gorge's scriptSearch.feeOrder,
 // potential_script.go potentialPrefixScript's second build). When the plain
 // run finds no script for a plain cast beside a multi-unit fee-carrying gap
@@ -14,11 +16,13 @@ package dirac
 
 // feeOrderGaps is the filters of gaps whose ability costs mana and makes more
 // than one unit (gorge's feeGaps): a one-unit filter nets nothing after its
-// fee, and funding it first only changes the node walk.
+// fee, and funding it first only changes the node walk. A dynamic amount
+// counts no unit there (availableAmount prices only a literal one), so Three
+// Tree City and Starfleet Academy are no fee gaps whatever they make.
 func (s *State) feeOrderGaps(k *prep, gaps slotMask) slotMask {
 	var m slotMask
 	for ; gaps.any(); gaps = gaps.rest() {
-		if sl := gaps.first(); s.filtFee(k, sl) > 0 && s.filtUnits(k, sl) >= 2 {
+		if sl := gaps.first(); s.filtAb(k, sl).AFlags&kop.AfManaDynamic == 0 && s.filtFee(k, sl) > 0 && s.filtUnits(k, sl) >= 2 {
 			m = m.with(sl)
 		}
 	}
