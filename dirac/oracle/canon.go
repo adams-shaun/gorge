@@ -220,14 +220,7 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 		}
 		code, known := chooseCode(chooseKindAlias(d, o))
 		if !known {
-			// An option kind the table lacks: still canonical as
-			// choose:other over its object (or its index when it names
-			// none); the caller counts it under Stats.Unknown.
-			g.Stats.note(&g.Stats.Unknown, "choose/"+o.Kind+" (as choose:other)")
-			if o.Obj != 0 {
-				return Pack(ActChoose+chooseOther, ref(o.Obj), RefNone, 0), true
-			}
-			return Pack(ActChoose+chooseOther, RefNone, RefNone, uint8(o.Index)), o.Index < 256
+			return g.chooseOtherAction(o)
 		}
 		k := ActChoose + CanonKind(code)
 		src, tgt := chooseSeatSlots(o, ref(o.Obj), pl(o.Player))
@@ -306,6 +299,23 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 		return Pack(k, src, tgt, uint8(mode)), true
 	}
 	return 0, false
+}
+
+// chooseOtherAction is a KChoose option whose kind ChooseKinds lacks: still
+// canonical as choose:other over its object (or its index when it names none),
+// and counted under Stats.Unknown. The Ring-bearer pick is the exception:
+// effRingTemptsYou's "ring_bearer" (CR 701.54a) is the kernel's
+// ChGenRingBearer lowering, choose:other over the creature, and the kind stays
+// out of ChooseKinds because its position is the choose ordinal.
+func (g *GorgeSide) chooseOtherAction(o *decision.Option) (Canon, bool) {
+	if o.Kind == "ring_bearer" {
+		return Pack(ActChoose+chooseOther, g.id.ref(g.E.G, o.Obj), RefNone, 0), true
+	}
+	g.Stats.note(&g.Stats.Unknown, "choose/"+o.Kind+" (as choose:other)")
+	if o.Obj != 0 {
+		return Pack(ActChoose+chooseOther, g.id.ref(g.E.G, o.Obj), RefNone, 0), true
+	}
+	return Pack(ActChoose+chooseOther, RefNone, RefNone, uint8(o.Index)), o.Index < 256
 }
 
 // chooseSeatSlots is the (source, target) of a KChoose option: the object's
