@@ -124,6 +124,7 @@ Fleshmad Steed
 Flycatcher Giraffid
 Font of Fertility
 Forest
+Forgestoker Dragon
 Fortified Rampart
 Foulmire Knight
 Foundry Street Denizen
@@ -277,6 +278,7 @@ Peace and Quiet
 Peak Eruption
 Peema Trailblazer
 Peregrine Mask
+Phantom Tiger
 Pharika's Disciple
 Phyrexia's Core
 Phyrexian Digester
@@ -316,6 +318,7 @@ Riptide Biologist
 Roc Charger
 Rona's Vortex
 Root Spider
+Roots
 Run Out of Town
 Sacred Prey
 Sage's Knowledge
@@ -331,6 +334,7 @@ Search Warrant
 Searing Barrage
 Secure the Wastes
 Seismic Spike
+Sejiri Merfolk
 Sengir Connoisseur
 Sensor Splicer
 Setessan Champion
@@ -382,6 +386,7 @@ Still Life
 Stonecloaker
 Stonehands
 Storm Fleet Negotiator
+Storm, Force of Nature
 Stormscape Familiar
 Strands of Undeath
 Summon: Ixion

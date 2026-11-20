@@ -24,6 +24,7 @@ Bequeathal	f6625072f167edc1	16	1/1		1/2	ix:resp
 Bestial Menace	a5c1b9a2dc5358aa	4	0/0		2/2	
 Bilbo Baggins, Burglar	cec4fba1373d9d04	269	1/1		2/2	
 Black Market Tycoon	fcd4caa4897dd69b	6	2/2		1/1	
+Blizzard Strix	c29d3360abd2e8ee	6	1/1		1/1	
 Blood Age General	40bf822a0abae631	6	1/1		0/1	ix:resp
 Blood Divination	f59909a0b22e65a6	11	0/0		2/2	
 Blood Glutton	5a5d7d53b1c4bacc	4	0/0		0/0	
@@ -68,10 +69,12 @@ Denizen of the Deep	0100507157527215	9	1/1		1/1
 Devil's Play	c7e78c0a610e6b0a	10	0/0		6/6	
 Devouring Deep	1700f61f0a9542af	19	0/0		0/0	
 Diamond Knight	bde0bfba7910254a	27	1/1		0/1	ix:resp
+Displacer Beast	46c70983211607f0	27	2/2		0/1	ix:resp
 Disposal Mummy	cee2f5c13cabe676	6	1/1		0/1	ix:resp
 Divest	931d1a738c02feb2	7	0/0		1/2	ix:resp
 Djinn of Infinite Deceits	ae1906bf66253971	8	1/1		1/1	
 Domestication	0f26e2045a93f353	12	1/1		2/2	
+Drana's Emissary	50dc4dda91909a67	11	1/1		1/1	
 Dread Specter	bd71d1ae875b8b99	12	2/2		1/1	
 Dream Prowler	1774f31e70ea87c2	16	0/0		0/0	
 Dwarven Hold	69b6baa16feaf023	43	2/2		1/1	
@@ -101,6 +104,7 @@ Gloomlance	39803635ea919bd6	6	0/0		1/2	ix:resp
 Goblin Heelcutter	0985148ad319b657	26	1/1		2/3	ix:resp
 Goblin Soothsayer	8bec39489421dacf	16	1/1		0/1	ix:resp
 Goggles of Night	d8838bbe55722e40	19	2/2		0/1	ix:resp
+Guardian of Faith	5356bd879f7dfd06	5	1/1		0/1	ix:resp
 Hag of Noxious Nightmares	4f7c386db1f80ad2	5	0/0		0/0	
 Hallowed Haunting	a5ce710f99f291aa	9	1/1		0/1	ix:resp
 Halvar, God of Battle	370b62d7de167454	17	3/3		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -191,6 +195,7 @@ Rustspore Ram	d26cb89a1ba142c4	16	1/1		0/1	ix:resp
 Rustwing Falcon	c3e1ca2297a1b401	9	0/0		0/0	
 Screeching Bat	0f94336f8859d316	6	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f1/t0/opt:n,f1/t0/opt:y,ix:resp
 Scroll of Fate	5e4b50a04a101645	17	1/1		0/1	ix:resp
+Scroll of Isildur	6a03793e30e18f60	4	0/0		0/0	
 Secluded Steppe	98c0ef11e369122c	44	2/2		0/1	ix:resp
 Selfless Cathar	b54f6149c5dd4db3	11	1/1		0/1	ix:resp
 Selfless Savior	dbb20cbf0c387942	9	1/1		0/1	ix:resp
@@ -233,6 +238,8 @@ Trusty Packbeast	61b8d3617ab01814	6	1/1		0/1	ix:resp
 Tyranid Harridan	a9ee50e1e1dc038f	6	2/2		0/1	ix:resp
 Tyranid Prime	341bb3dcb9fd1d51	30	1/1		1/1	
 Uncontrollable Anger	f4f973c7d836c03c	13	0/0		2/2	
+Underhanded Designs	f53313c307c4de09	17	2/2		1/1	
+Urborg Drake	c1f08979930ead28	4	0/0		0/0	
 Valorous Steed	c0242b513d6cac83	6	1/1		0/1	ix:resp
 Vampiric Sliver	29bd51205bc0bf68	8	0/0		0/0	
 Vectis Silencers	e8c51798a55a3018	9	1/1		1/1	
@@ -242,6 +249,7 @@ Vrock	aa8a27b47e014106	8	1/1		0/1	ix:resp
 Wall of Opposition	8a7d474ea16c3ad1	5	1/1		1/1	
 Wardscale Crocodile	a9861a16724e47dc	16	0/0		0/0	
 Warlord's Elite	d1353e9b1bb7a28a	6	0/0		1/2	ix:resp
+Warped Tusker	785707a4e74b3195	4	3/3		1/1	
 Weakness	35117485d8f34884	5	0/0		1/2	ix:resp
 Willow Elf	3cf41f0798dd8ca6	12	0/0		0/0	
 Winds of Rath	b0d4a2890f25aec0	10	0/0		1/2	ix:resp

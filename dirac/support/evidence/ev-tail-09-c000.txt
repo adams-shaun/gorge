@@ -17,6 +17,7 @@ Angry Mob
 Ant-Man, Elusive Avenger
 Arasta of the Endless Web
 Archon of Emeria
+Arco-Flagellant
 Argothian Pixies
 Arisen Gorgon
 Ark of Blight
@@ -150,6 +151,7 @@ Grim Giganotosaurus
 Grim Initiate
 Grotag Night-Runner
 Guul Draz Vampire
+Halimar Wavewatch
 Hand of the Praetors
 Harpoon Sniper
 Hoarding Recluse

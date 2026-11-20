@@ -23,6 +23,7 @@ Bequeathal
 Bestial Menace
 Bilbo Baggins, Burglar
 Black Market Tycoon
+Blizzard Strix
 Blood Age General
 Blood Divination
 Blood Glutton
@@ -67,10 +68,12 @@ Denizen of the Deep
 Devil's Play
 Devouring Deep
 Diamond Knight
+Displacer Beast
 Disposal Mummy
 Divest
 Djinn of Infinite Deceits
 Domestication
+Drana's Emissary
 Dread Specter
 Dream Prowler
 Dwarven Hold
@@ -100,6 +103,7 @@ Gloomlance
 Goblin Heelcutter
 Goblin Soothsayer
 Goggles of Night
+Guardian of Faith
 Hag of Noxious Nightmares
 Hallowed Haunting
 Halvar, God of Battle
@@ -190,6 +194,7 @@ Rustspore Ram
 Rustwing Falcon
 Screeching Bat
 Scroll of Fate
+Scroll of Isildur
 Secluded Steppe
 Selfless Cathar
 Selfless Savior
@@ -232,6 +237,8 @@ Trusty Packbeast
 Tyranid Harridan
 Tyranid Prime
 Uncontrollable Anger
+Underhanded Designs
+Urborg Drake
 Valorous Steed
 Vampiric Sliver
 Vectis Silencers
@@ -241,6 +248,7 @@ Vrock
 Wall of Opposition
 Wardscale Crocodile
 Warlord's Elite
+Warped Tusker
 Weakness
 Willow Elf
 Winds of Rath

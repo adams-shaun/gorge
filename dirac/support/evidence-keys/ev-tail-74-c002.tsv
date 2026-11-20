@@ -3,6 +3,7 @@ A-Dawnbringer Cleric	5f41daf368214f78	15	1/1		0/1	ix:resp
 A-Exhibition Magician	08f0c532efa1c889	65	1/1		1/1	
 Abhorrent Overlord	a0466c2ef994d218	53	2/2		1/1	
 Aim for the Head	bbe2abe1457badb7	87	0/0		2/2	
+Akroma, Angel of Wrath	58136bdf14048aad	5	0/0		0/0	
 Alchemist's Greeting	bcd907745f9cb253	31	0/0		2/2	
 Ancient Animus	6db66257cae4fd22	9	0/0		1/2	ix:resp
 Arashin Sovereign	470e063b07574ba5	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -14,7 +15,10 @@ Bellows Lizard	c15a80f329c5b4ff	55	1/1		1/1
 Benevolent Blessing	6a1a3afe3a12df03	49	0/0		1/2	ix:resp
 Big Game Hunter	351e8dadcc2bf7fb	70	1/1		1/1	
 Blackbloom Rogue	5120cf5c489853ad	79	1/1		0/1	ix:resp
+Blighted Steppe	1878380e559f2645	56	2/2		1/1	
 Blightwidow	3b40ce4448682213	23	0/0		0/0	
+Bojuka Bog	62e19e8dc1842c7e	80	2/2		0/1	ix:resp
+Buried Ruin	abe7cc1af5261971	47	2/2		0/1	ix:resp
 Calculated Dismissal	a1ead502bec99983	56	0/0		2/2	
 Cartouche of Solidarity	0cf0346af84d9bb4	74	1/1		2/2	
 Casey Jones, Back Alley Brute	a687ac58d4ed8d7c	55	2/2		0/1	ix:resp
@@ -25,6 +29,7 @@ Condemn	77893513c6bd5225	44	0/0		1/2	ix:resp
 Corrupt	2a59d3a221ef5502	49	0/0		2/2	
 Creature Bond	3e8675a5e82201b9	88	1/1		2/2	
 Cursed Totem	192d9603841806fb	104	0/0		0/0	
+Darkslick Shores	62bc22ffc94bbba9	55	1/1		0/1	ix:resp
 Darksteel Brute	4d3460679338872c	8	1/1		0/1	ix:resp
 Deadly Wanderings	40827d74c5e1fda6	73	0/0		0/0	
 Deft Dismissal	4b69cebd2571191f	25	0/0		2/2	
@@ -35,6 +40,8 @@ Drudge Reavers	e72fc295fe3d3d18	130	1/1		1/1
 Dwarven Recruiter	7454f156bd4df2d5	45	1/1		0/1	ix:resp
 Earthquake	3882ef316c40ec4f	26	0/0		3/4	f0/s/x0
 Elenda's Hierophant	6d86694d66a8bf2d	47	2/2		1/1	
+Enraged Huorn	93875840351ef59b	4	1/1		0/1	ix:resp
+Equestrian Skill	3dc5e814922966ce	14	0/0		1/2	ix:resp
 Eternal of Harsh Truths	393775e2bcb31072	69	2/2		1/1	
 Fact or Fiction	95f447018413c208	102	0/0		2/2	
 Fangs of Kalonia	3bd6385957e916d7	7	0/0		4/4	
@@ -68,16 +75,21 @@ Krosan Wayfarer	7651b79d528b67ba	16	1/1		1/1
 Kuldotha Flamefiend	743e4387375e42c0	24	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Leonin Relic-Warder	601cd122f103d3d5	9	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Leonin Squire	90a9d1d2a768e2db	56	1/1		0/1	ix:resp
+Lord Magnus	09c4f0654b20fc88	7	0/0		0/0	
+Lotus Blossom	514fbecf98eeedda	7	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Mad Auntie	a9664ab8a5c7745a	101	1/1		1/1	
 Malach of the Dawn	6d9043ef7cd664db	53	1/1		1/1	
 Maraxus of Keld	8218a8ac3bc9bbb6	17	0/0		0/0	
 Marsh Hulk	930550d6546a3a60	68	0/0		1/2	cast/alt:megamorphed
 Mega Flare	bd14bddd0a5a638f	43	0/0		4/4	
 Metallic Mastery	5307f7a591427c29	48	0/0		2/2	
+Midnight Angel Armor	f5c25bc41683fd72	7	2/2		0/1	ix:resp
 Midnight Duelist	81627d2d1d97fa85	68	0/0		0/0	
 Mistwalker	4d513573566dd30b	52	1/1		1/1	
 Moldervine Reclamation	e2055a5c04835215	37	1/1		1/1	
 Monastery Swiftspear	8cf1bbe1ffb8f33b	53	1/1		1/1	
+Mystic Enforcer	4e6ef35caff04ac1	4	0/0		0/0	
+Opal Champion	8175f0a2ba2a3563	12	1/1		0/1	ix:resp
 Orthodoxy Enforcer	271f7346c1748f51	33	0/0		0/0	
 Outbreak	dbd12725d65c3770	75	0/0		2/2	
 Path to the World Tree	2b8378fc7abaecdb	29	2/2		0/1	ix:resp
@@ -115,10 +127,12 @@ Thunderbolt	0340fcb38d42ba81	46	0/0		2/2
 Thunderhead Squadron	0d0d5d932f5f2c27	4	0/0		0/0	
 Tuktuk the Explorer	d7804807890a5d96	41	1/1		1/1	
 Turntimber Ascetic	540aabf21a191235	9	1/1		0/1	ix:resp
+Turntimber Symbiosis	535365e3b02c20ae	5	1/1		0/2	f0/s,ix:resp
 Vampire Envoy	06ed7a6ebc5114d8	91	1/1		1/1	
 Vengeful Vampire	70432ea62b8d6de0	55	1/1		1/1	
 Verdant Touch	a54c2fd48bdb41f2	53	0/0		4/4	
 Vessel of Endless Rest	15da7f6a07226f22	8	2/2		0/1	ix:resp
+Veteran Adventurer	db01220194d3ce94	3	0/0		0/0	
 Veteran Bodyguard	c780f6233c23bff6	33	0/0		0/0	
 Viashino Bladescout	e2af5aa26e4a9bbf	54	1/1		1/1	
 Vilis, Broker of Blood	fb180194b1075afe	35	2/2		1/1	

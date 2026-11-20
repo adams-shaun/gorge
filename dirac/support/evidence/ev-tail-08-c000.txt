@@ -342,6 +342,7 @@ Screeching Drake
 Scrib Nibblers
 Scroll Thief
 Scroll of Fate
+Scroll of Isildur
 Secluded Steppe
 Selesnya Charm
 Selfless Cathar
@@ -364,6 +365,7 @@ Skyblade's Boon
 Skyhunter Patrol
 Slimy Piper
 Slingshot Goblin
+Smoldering Stagecoach
 Snap
 Snarespinner
 Sorcerer's Strongbox

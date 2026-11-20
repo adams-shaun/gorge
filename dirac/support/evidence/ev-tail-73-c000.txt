@@ -25,6 +25,7 @@ Arcbound Tracker
 Archon of Falling Stars
 Ardenvale Paladin
 Arm-Mounted Anchor
+Arms Race
 Arrogant Poet
 Ashen Rider
 Aspect of Lamprey
@@ -39,6 +40,7 @@ Bankrupt in Blood
 Barrin, Master Wizard
 Beacon Behemoth
 Bedlam Reveler
+Bilbo, Retired Burglar
 Bionic Blow
 Black Market Tycoon
 Blight Grenade
@@ -138,6 +140,7 @@ Eternal Taskmaster
 Excommunicate
 Expedition Raptor
 Eye of Nowhere
+Fabled Path of Searo Point
 Faerie Guidemother
 Faithbearer Paladin
 Falter
