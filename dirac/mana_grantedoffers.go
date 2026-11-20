@@ -108,6 +108,49 @@ func prepOvrManaGrant(t *kop.Table, g *genPrep) {
 	}
 }
 
+// grantWalkKey is a slot's place in gorge's static walk as one number: the
+// controller's seat, then the permanent's timestamp (listenerOrder's order,
+// which is each seat's battlefield list in entry order). Equal keys keep
+// slot order, as the walk's stable timestamp sort does.
+func grantWalkKey(s *State, sl Slot) uint32 {
+	p := &s.perms[sl]
+	return uint32(p.ctrl)<<16 | uint32(p.ts)
+}
+
+// grantOrder writes the slots of statM whose card at cardAt can grant an
+// ability from a static (pc.grantStat: a StatOverride static, or a
+// Continuous static with a Grant -- prep.go's), in listenerOrder's order
+// (gorge's static walk: seat order, then timestamp), and returns their
+// count. It replaces listenerOrder's sort of EVERY static slot on each
+// query (the sweep's 37% of std-big): one pass over statM inserts only the
+// grant-capable slots in (seat, timestamp) order.
+//
+// grantStat is read off cardAt's card, so the list is the full walk
+// restricted to the slots it could name: every source grantSrc names --
+// grantsBetween's attached StatOverride and Continuous Grant statics, and
+// contGrants' gfContGrant cards -- carries it, so an order-preserving
+// restriction gives grantIdxs' place scan and contGrants' walk the same
+// relative order listenerOrder's list does. Equal keys keep slot order, as
+// the walk's stable sort does.
+func (s *State) grantOrder(k *prep, ord *[MaxPerm]Slot) int {
+	n := 0
+	for m := s.statM; m.any(); m = m.rest() {
+		sl := m.first()
+		if !k.cards[s.cardAt(sl)].grantStat {
+			continue
+		}
+		key := grantWalkKey(s, sl)
+		j := n
+		for j > 0 && grantWalkKey(s, ord[j-1]) > key {
+			ord[j] = ord[j-1]
+			j--
+		}
+		ord[j] = sl
+		n++
+	}
+	return n
+}
+
 // contGrants calls f for the mana abilities unattached Continuous grants
 // give sl: each contGrant static in force whose condition holds and whose
 // filter matches sl (a grant older than a "loses all abilities" effect on
@@ -119,9 +162,13 @@ func (s *State) contGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c Car
 	// gorge lists the grants in its static walk's order (collectActionStatics:
 	// each seat's battlefield in entry order), which the activation ask
 	// and the prefix search follow (the first grant's colours are tried
-	// first): every seat's sources in seat order, each in entry order
+	// first): every seat's sources in seat order, each in entry order.
+	// grantOrder's list is that walk's order restricted to the slots whose
+	// card at cardAt can grant a static ability (pc.grantStat); the loop's
+	// gfContGrant check keeps the ones f can be called for, in the same
+	// relative order.
 	var order [MaxPerm]Slot
-	n := s.listenerOrder(s.statM, &order)
+	n := s.grantOrder(k, &order)
 	for oi := 0; oi < n; oi++ {
 		src := order[oi]
 		cid := s.cardAt(src)
@@ -172,7 +219,12 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 	var order [MaxPerm]Slot
 	no := 0
 	if g.anyContGrant {
-		no = s.listenerOrder(s.statM, &order)
+		// the grant walk's order restricted to the slots whose card at
+		// cardAt can grant a static ability (pc.grantStat): grantsBetween's
+		// attached statics and contGrants' unattached ones, every source
+		// grantSrc names. The place scan below reads the same relative
+		// order off it as off listenerOrder's full walk.
+		no = s.grantOrder(k, &order)
 	}
 	var key [maxGrants]uint8
 	s.grantedAbilities(k, sl, func(c CardID, ab uint8) {
