@@ -163,8 +163,9 @@ type coldArrays struct {
 	ms []slotMask
 	// object-width mechanic masks (arena.go)
 	mo []objBits
-	// exiled-with links (zone_exiledwith.go)
-	exw []exwRec
+	// object-set records, one store for the per-source sets and the
+	// exiled-with links (zone_objsets.go)
+	objSets []osRec
 	// attacker groups; stackEntry.grp - 1 indexes it (trig_attackers.go)
 	atkGrp []objBits
 	// until-end-of-turn can't-be-blocked-except records (static_cantblockexcept.go)

@@ -57,10 +57,6 @@ func (s *State) payBeholdExilePicks(k *prep) {
 		}
 		o := s.bld().picks[i]
 		ob := &s.objs[o]
-		fl := exwRev
-		if ob.of&ofToken != 0 {
-			fl |= exwTok
-		}
 		switch ob.zone {
 		case kop.ZoneBattlefield:
 			s.leave(k, ob.slot, kop.ZoneExile, false)
@@ -74,7 +70,7 @@ func (s *State) payBeholdExilePicks(k *prep) {
 			// the stamp is the ver the spell's permanent will have (gorge
 			// stamps Incarnation(stack)+1, the permanent's): entering the
 			// battlefield advances the ver by one
-			s.exwPut(o, e.obj, s.objs[e.obj].ver+1, fl, int(e.card))
+			s.exwPut(o, e.obj, s.objs[e.obj].ver+1, exwRev, int(e.card))
 		}
 	}
 }

@@ -35,7 +35,7 @@ func TestImprintedWordTakesItsSource(t *testing.T) {
 	if !sc.s.impSource(sc.k, a) {
 		t.Fatal("the table did not keep an Imprinted list: the precondition is missing")
 	}
-	sc.s.smAdd(o, a, smImp|smImpAny)
+	sc.s.osAdd(osImp, a, o)
 	ctxA := &evalCtx{src: a, srcSl: sc.slot(a), ctrl: 0}
 	ctxB := &evalCtx{src: b, srcSl: sc.slot(b), ctrl: 1}
 	match := func(f kop.FilterID, cx *evalCtx) bool {
