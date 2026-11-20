@@ -50,6 +50,8 @@ ALWAYS = ("./internal/archtest", "./internal/codeshape")
 # by the recording's basename in the package's _test.go files) plus the fallback families below: the table
 # tests that glob the directory and the per-pool lockstep replays (about a minute, not the whole package).
 REPRO_DIR = "dirac/oracle/testdata/repro/"
+# The one Go test that replays the recordings marked "named":true, a subtest each (repro_manifest_test.go).
+MANIFEST_TEST = "TestReproManifest"
 REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
 # Every committed recording's replay (the Std pool families and the ~540 per-card `TestMBC*Repros*Lockstep`) and
 # the refusal-staleness check: about 2.5 min at 4 cores on ./dirac/oracle (11-18, against >15 min for every
@@ -312,7 +314,11 @@ def repro_named(changes, dirmap, lines_of, cwd=None):
     A re-recorded custom-pool recording usually leaves its reader's _test.go unchanged, so the recording's
     basename is the only link: one `git grep -l -F` per changed recording finds the test files that name it,
     and every test function of those files runs. Recordings no test file names (standard-pool replays) get
-    nothing here; the REPRO_TESTS families cover them."""
+    nothing here; the REPRO_TESTS families cover them.
+
+    A recording marked `"named":true` is replayed by TestReproManifest as the subtest of its own name, so it
+    maps to `TestReproManifest/<name>` (plan folds that to the parent test: a `/` in -run filters the
+    subtests of every other selected test too, which would turn the other tests into empty passes)."""
     out, files = {}, {}
     for path in sorted(changes):
         if not path.startswith(REPRO_DIR) or not path.endswith(".repro.json"):
@@ -321,6 +327,8 @@ def repro_named(changes, dirmap, lines_of, cwd=None):
         p = dirmap.get(path.split("/testdata/")[0])
         if p is None:
             continue
+        if '"named":true' in "".join(lines_of(path)):
+            out.setdefault(p, set()).add(MANIFEST_TEST + "/" + base)
         if base not in files:
             # git grep exits 1 on no match, which is an answer, not an error
             files[base] = sh("git", "grep", "-l", "-F", base, "--", path.split("/testdata/")[0] + "/*_test.go",
@@ -350,7 +358,8 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
     src, touched, named, forced_whole, repro = set(), set(), {}, set(), set()
     for p, names in (repro_names or {}).items():
         if names:
-            named.setdefault(p, set()).update(names)
+            # a subtest path (TestReproManifest/<name>) runs as its parent: see repro_named
+            named.setdefault(p, set()).update(n.split("/", 1)[0] for n in names)
     for path, ranges in sorted(changes.items()):
         if path.endswith(".md"):
             continue
