@@ -66,7 +66,7 @@ func TestWorldFromViewReasons(t *testing.T) {
 		shadow.ReasonPending:  func(in *shadow.Input) { in.View.Pending = []view.PendingView{{}} },
 		shadow.ReasonDecision: func(in *shadow.Input) { in.View.Decision = &decision.Decision{Kind: decision.KTarget} },
 		shadow.ReasonUnknown:  func(in *shadow.Input) { in.View.Players[0].Hand[0].Name = "Black Lotus" },
-		shadow.ReasonUnmapped: func(in *shadow.Input) { in.ObjOf = func(int) (uint8, bool) { return 0, false } },
+		shadow.ReasonUnmapped: func(in *shadow.Input) { in.ObjOf = func(int) (dirac.Obj, bool) { return 0, false } },
 		shadow.ReasonHidden:   func(in *shadow.Input) { in.Hidden.Library[1] = in.Hidden.Library[1][1:] },
 		shadow.ReasonExile:    func(in *shadow.Input) { in.View.Players[1].Exile = []view.CardView{{Name: "Plains"}} },
 		shadow.ReasonToken:    func(in *shadow.Input) { bf(in, view.CardView{IsToken: true}) },
