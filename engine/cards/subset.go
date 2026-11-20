@@ -573,7 +573,7 @@ func OpenCorpusSubset(dir string, names []string) (*Registry, error) {
 // already found fresh (or rebuilt).
 var (
 	segVerifiedMu sync.Mutex
-	segVerified   = map[string]bool{}
+	segVerified   []string // a process opens one or two roots: a slice, not a map (internal/codeshape's strings ratchet)
 )
 
 // OpenCorpusSubsetVerifiedOnce is OpenCorpusSubset for a corpus that does not
@@ -593,7 +593,7 @@ func openCorpusSubset(dir string, names []string, once bool) (*Registry, error) 
 		once = false
 	}
 	segVerifiedMu.Lock()
-	trusted := once && segVerified[key]
+	trusted := once && slices.Contains(segVerified, key)
 	segVerifiedMu.Unlock()
 	if !trusted {
 		if !segFresh(dir, cache, seg) {
@@ -603,7 +603,9 @@ func openCorpusSubset(dir string, names []string, once bool) (*Registry, error) 
 		}
 		if once {
 			segVerifiedMu.Lock()
-			segVerified[key] = true
+			if !slices.Contains(segVerified, key) {
+				segVerified = append(segVerified, key)
+			}
 			segVerifiedMu.Unlock()
 		}
 	}
