@@ -1,8 +1,7 @@
 # What NOT to do
 
-Every item here is something that has actually gone wrong in this repo.
-Several sessions may share one machine and one `main` checkout, so most of
-these hurt someone other than you.
+Every item here has actually gone wrong in this repo. Sessions share a
+machine and a `main` checkout, so most of these hurt someone else.
 
 ## Git and the shared checkout
 
@@ -72,22 +71,20 @@ these hurt someone other than you.
 - **Don't move `TestHeads` goldens without naming the first diverging event**
   in the commit body (`cmd/headdiff` finds it), and don't write head-move
   prose into `engine/rules/testdata/heads/`.
-- **Don't add a fuzz test to the default build.** A `Fuzz*` target or a
-  seed-sweep test starts with `//go:build fuzz` and runs via `make fuzz` or
-  `go test -tags fuzz`; the default suite skips it.
-  Regression tests pinning a fixed fuzz finding stay untagged.
+- **Don't add a fuzz test to the default build.** A `Fuzz*` target or seed-sweep
+  test starts with `//go:build fuzz` and runs via `make fuzz`. Regression tests
+  pinning a fixed fuzz finding stay untagged.
 - **Don't add a row to `wall_exceptions.txt` / `rss_exceptions.txt`** (`testkit/testutil/testdata/`): they only shrink. Split the over-budget test instead.
-- **Don't write or run a test outside the budget** (4 GB RSS, 4 vCPU, 1 min
-  wall). Don't call `cards.LoadRegistry` in a test (use
-  `testkit/testutil.CorpusRegistry`), don't pass `-count=1`, don't run
-  `go test ./...` or a whole package uncapped, and don't
-  run a known-heavy test whole "for a baseline": measure one chunk under the
-  4 GB cap. Split a heavy test into chunk tests sharing fixtures; never
-  delete assertions or shrink a census to make it fit.
-- **Don't grow `AGENTS.md` with detail.** It is loaded on every agent turn.
-  Put the detail in `docs/agents/` or `docs/design/` and link to it.
-- **Don't quote an unmeasured number as fact.** Name the command or report,
-  or label it a hypothesis.
+- **Don't write or run a test outside the budget** (4 GB RSS, 4 vCPU, 1 min wall;
+  [invariants.md](invariants.md#workflow)). No `cards.LoadRegistry` in a test (use
+  `testkit/testutil.CorpusRegistry`), no `-count=1`, no `go test ./...` or
+  uncapped whole package, no known-heavy test run whole "for a baseline". Split a
+  heavy test into chunk tests sharing fixtures; never delete assertions or shrink
+  a census to make it fit.
+- **Don't grow `AGENTS.md` with detail.** It is loaded on every agent turn; link
+  to `docs/agents/` or `docs/design/`.
+- **Don't quote an unmeasured number as fact.** Name the command or report, or
+  label it a hypothesis.
 - **Don't pin a synthetic pair by index alone.** A pair in `dirac/oracle` is two
   decks dealt from the lowered card list, so lowering one more card moves what
   every pair holds: a pair pinned by index goes silently empty, or red on a game
@@ -106,9 +103,9 @@ these hurt someone other than you.
 - **Don't stop a server with `pkill -f` or a bare `pgrep -f`.** It has killed a
   session here. Find the pid from the listening socket (`ss -lptn`) and signal
   that pid.
-- **Don't run heavy jobs unbounded or in parallel.** Run one at a time, under
-  a `systemd-run` scope with `MemoryMax`, and set `GOMEMLIMIT`.
-- **Don't put large data in a RAM-backed `/tmp`.**
+- **Don't run heavy jobs unbounded or in parallel.** The `make test-*` targets cap
+  themselves; for anything else use one `systemd-run` scope with `MemoryMax` and `GOMEMLIMIT`.
+- **Don't put large data or worktrees in a RAM-backed `/tmp`.**
 
 ## Dirac
 

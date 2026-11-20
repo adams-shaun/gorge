@@ -1,55 +1,43 @@
 # Running games, bots and measurements on dirac
 
-dirac is the second Magic rules engine in this repository. gorge is the
-engine it is checked against, and `dirac/oracle` is the seam between them. This page maps common
-jobs to the command or Go entry point that does them. It does not repeat the reference pages:
-`dirac/doc.go` is the API authority and `dirac/docs/verification.md` the lockstep authority.
-
-Terms used below:
-
-- **kop**: the card and op table package (`dirac/kop`): card records and instruction opcodes, no
-  gorge types.
-- **kgen**: the generator that turns gorge's compiled card IR into binary card tables.
-- **stall**: dirac stops a game it cannot continue correctly; the game ends as a draw with a
-  named reason.
-- **lockstep**: one game played by gorge and dirac action for action, with every field
-  compared. `kfuzz` (`dirac/oracle/cmd/kfuzz`) is the lockstep driver.
+This page maps common jobs to the command or Go entry point that does them. `dirac/doc.go` is the API authority and
+[verification.md](verification.md) the lockstep authority. Terms: [glossary](glossary.md).
 
 ## Setup
 
-Anything that reads a card set needs gorge's compiled card corpus and dirac's binary card tables. The
-corpus comes from Forge's GPL-3.0 scripts and the tables are translated from it, so neither is
-committed. From the repository root:
+Anything that reads a card set needs gorge's compiled card corpus and dirac's binary card tables. Both derive from
+Forge's GPL-3.0 scripts, so neither is committed. From the repository root:
 
 ```sh
-make fetch-cards     # once; about 140 MB
+make fetch-cards     # once
 make compile-cards
 make dirac-tables
 ```
 
-Run `make dirac-tables` again after a change to `dirac/kgen`, `dirac/kop`, `dirac/cardset`, a pool
-list, or the gorge packages kgen builds against. The tables live under the corpus, keyed by the
-corpus and those sources. `-cards` or `GORGE_CARDS` picks the corpus, and a deployed binary can point
-`DIRAC_TABLES` at a copy of a `kernel-tables` directory. Missing tables are an error naming the
-command, never a fallback.
+Run `make dirac-tables` again after a change to `dirac/kgen`, `dirac/kop`, `dirac/cardset`, a pool list or the gorge
+packages kgen builds against. The tables live under the corpus, keyed by the corpus and those sources
+([cards.md](cards.md#where-tables-live)). `-cards` or `GORGE_CARDS` picks the corpus; `DIRAC_TABLES` points a deployed
+binary at a copy of a `kernel-tables` directory. Missing tables are an error naming the command, never a fallback.
 
-Without a corpus the module still builds, corpus-dependent tests skip, and the hand-written
-`dirac/vanilla` table still plays: `go test -run Example ./dirac` runs a whole game on it.
+Without a corpus the module still builds, corpus-dependent tests skip, and the hand-written `dirac/vanilla` table
+still plays (`dirac/example_test.go` runs a whole game on it).
 
 ## Which command?
 
 | I want to … | use | what it does |
 |---|---|---|
-| play a game from Go | package `dirac` | the `Step`/`Apply` loop, below |
-| play games and see who wins, or how fast | `dirac/cmd/dplay` | seeded games on dirac alone, with a line per game and a summary; below |
-| play both engines and compare them | `dirac/oracle/cmd/kfuzz` | seeded lockstep games on a deck pool or a card list; see `dirac/docs/verification.md` |
-| ask whether a card is supported | `dirac/cmd/kgen -supported <pool>` | one line per card in the pool; see `dirac/docs/cards.md` |
-| build the card tables | `make dirac-tables`, which runs `dirac/cmd/kgen` | every pool's binary table, under the corpus |
-| compare the heuristic bots | `dirac/oracle/cmd/khbot` | gorge's auto-pay heuristic bot against its port on dirac, per decision kind |
-| compare sb-tactical | `dirac/oracle/cmd/ksbt` | gorge's sb-tactical answering through a view built from the dirac position |
-| serve games on dirac | `gorged -engine dirac` | a server's tables, see [serving](serving.md) |
-| serve dirac as a stdio SpellBench v2 engine | `dirac/cmd/sbv2dirac` | the engine role, with gorge as the lockstep shadow |
-| measure transition speed | `go test -bench` in `./dirac` | the transition benchmarks, below |
+| play a game from Go | package `dirac`, or `dirac/lab` ([lab page](../../docs/site/engines/lab.md)) | the `Step`/`Apply` loop, below |
+| play seeded games and see who wins, or how fast | `dirac/cmd/dplay` | dirac alone, a line per game and a summary |
+| play both engines and compare them | `dirac/oracle/cmd/kfuzz` | seeded lockstep games ([verification](verification.md)) |
+| ask whether a card is supported | `kgen -supported <pool>` | one line per card ([cards](cards.md)) |
+| build the card tables | `make dirac-tables` | every pool's binary table, under the corpus |
+| compare the heuristic bots | `dirac/oracle/cmd/khbot` | gorge's auto-pay bot against its dirac port, per decision kind |
+| compare sb-tactical | `dirac/oracle/cmd/ksbt` | sb-tactical answering through a view built from the dirac position |
+| write the card-by-card audit | `dirac/oracle/cmd/cardaudit` | one row per card joining gorge's claim, dirac's status and its evidence |
+| serve games on dirac | `gorged -engine dirac` | [serving](serving.md) |
+| serve dirac as a stdio SpellBench v2 engine | `dirac/cmd/sbv2dirac` | dirac as authority, gorge as lockstep shadow |
+| maintain the namespace manifest | `dirac/cmd/kmanifest` | `show`, `gen` ([README](../README.md#registering-an-op-stall-or-ext-sub-op-contributors)) |
+| measure transition speed | `go test -bench` in `./dirac` | [Performance](#performance) |
 | measure whole-game speed against other engines | `scripts/xengine-bench.sh dirac` | `dplay` on one pinned core; see `docs/site/performance/methodology.md` |
 
 ## A first lockstep run
@@ -63,33 +51,25 @@ bin/kfuzz -kernel fdn -first-pair 0 -pairs 2 -seed 1 -keep-going -surface autopa
 fdn: 2 games (0 refused-card, 0 refused-pair, 0 error), 2 clean, 0 divergent, 0 unmodelled [], 0 capacity [], 0 hang (lead gorge, surface autopay)
 ```
 
-A clone plays the committed slices in `dirac/oracle/testdata/slices`, the first 1500 pairs of the
-`fdn` and `blb` pools at seed 1, and `kfuzz -synth <pool>` deals synthetic decks from a card list. The
-full deck pools are not published and have no download. `make dirac-slices` plays both slices on both
-surfaces.
+A clone plays the committed slices in `dirac/oracle/testdata/slices` (the first 1500 pairs of the `fdn` and `blb` pools
+at seed 1), and `kfuzz -synth <pool>` deals synthetic decks from a card list. The full deck pools are not published.
+`make dirac-slices` plays both slices on both surfaces.
 
 ## Playing games with dplay
 
-`dirac/cmd/dplay` plays dirac alone, with no gorge game beside it. Every game runs under
-`dirac.LockstepConfig` on the table `Set.Matchup` builds for the pair, the configuration and table
-`kfuzz` verifies against gorge, so a clean lockstep of the same seed is the same game.
+`dirac/cmd/dplay` plays dirac alone. Every game runs under `dirac.LockstepConfig` on the table `Set.Matchup` builds for
+the pair, the configuration and table `kfuzz` verifies against gorge, so a clean lockstep of the same seed is the same game.
 
 ```sh
 go run -trimpath ./dirac/cmd/dplay -pairs 20 -a hbot -b random
 ```
 
-Each game is one line on stdout, and the summary goes to stderr:
-
-```
-{"pair":0,"decks":["FDN_top_18855_URpG","FDN_top_02809_WG"],"seed":13195997260158159602,"winner":0,"turns":18,"intents":115}
-```
-
-`winner` is 0 for seat A, 1 for seat B, and -1 for no winner. A stalled game adds `stall` (its reason)
-and `class`: `capacity` (a declared limit), `unmodelled` (a rule gap) or `cap` (`-max-turns` or
-`-max-intents`). A game that panicked adds `error`. The summary counts games, wins by seat, draws,
-stalls by class and reason, refusals, turns, decisions and the run's CPU and wall seconds, counted
-from after the first pair's table is built. The games file depends only on the flags, whatever
-`-workers` is, unless `-wall` ends the run.
+Each game is one JSON line on stdout (`pair`, `decks`, `seed`, `winner`, `turns`, `intents`); the summary goes to stderr.
+`winner` is 0 for seat A, 1 for seat B, -1 for no winner. A stalled game adds `stall` (its reason) and `class`:
+`capacity` (a declared limit), `unmodelled` (a rule gap) or `cap` (`-max-turns` or `-max-intents`). A game that
+panicked adds `error`. The summary counts games, wins by seat, draws, stalls by class and reason, refusals, turns,
+decisions and the run's CPU and wall seconds (from after the first pair's table is built). The games file depends only
+on the flags, whatever `-workers` is, unless `-wall` ends the run.
 
 | flag | default | meaning |
 |---|---|---|
@@ -125,15 +105,13 @@ option offered. `hbot` is `dirac/search/hbot`, the port of gorge's auto-pay heur
 gorge's sb-tactical answering through `dirac/oracle`. `hbot` and `sbt` read gorge's compiled cards, so
 they open the corpus; `random` and `first` read only the card tables.
 
-A clone with no deck pool plays the committed slice, which holds `-split all -seed 1` pairs 0 to 1499.
-Other pairs need `GORGE_POOLS`.
+A clone with no deck pool plays the committed slice: `-split all -seed 1` pairs 0 to 1499. Other pairs need
+`GORGE_POOLS`.
 
-A deck holding a card the set does not play is an error naming the card and why, before any game.
-With `-skip-refused` the pair is skipped: the summary's `refused_pairs` counts it, and `refused_cards`
-names the first such card of each refused deck. Two decks the set plays can still be refused together;
-that error names the pair when it comes up, and `refused_pair_reasons` counts it under
-`-skip-refused`. A card missing from the set altogether is always an error: those decks belong to
-another set.
+A deck holding a card the set does not play is an error naming the card and why, before any game. With `-skip-refused`
+the pair is skipped instead: the summary's `refused_pairs` counts it and `refused_cards` names the first such card of
+each refused deck. Two decks the set plays can still be refused together (the error names the pair; `refused_pair_reasons`
+counts it under `-skip-refused`). A card missing from the set altogether is always an error.
 
 ## Driving dirac from Go
 
@@ -153,14 +131,10 @@ for {
 over, winner := s.Terminal()
 ```
 
-`dirac.Table` is `kop.Table`. `State.Project(&p)` writes a fixed-size `Projection` for the whole
-position (zones, stack, P/T, counters, turn/step, players); `ProjectDelta` and `ProjectSince` write
-changes. A copy of `State` is a complete position, which is what a search clones.
-
-Read-only accessors for search and bot code live in `dirac/searchapi.go` (object card, owner,
-controller, zone, hidden/visible, hand and library sizes, `Rand`/re-deal helpers) and
-`dirac/hbotapi_combat.go` (block pairs, attack target, blocking, planeswalker test, projection flags).
-They allocate nothing.
+`State.Project(&p)` writes a fixed-size `Projection` of the whole position; `ProjectDelta` and `ProjectSince` write
+changes. A copy of `State` is a complete position, which is what a search clones. Read-only accessors for search and bot
+code are in `dirac/searchapi.go` (object card, owner, controller, zone, hidden/visible, hand and library sizes,
+re-deal helpers) and `dirac/hbotapi_combat.go` (block pairs, attack target, blocking). They allocate nothing.
 
 ## Bots on dirac
 
@@ -172,16 +146,14 @@ They allocate nothing.
 | `dirac/search/mull` | `KeepLands`, `KeepConstructed`, `KeepNever`, `CoinMulls` | gorge's London-mulligan policies, as pure functions over a hand |
 | `dirac/feat` | `NewPool(tbl, specs)`, `NewEncoder(pool)`, `EncodeState`, `EncodeOptions` | the policy-net input encoding: the same bytes `bots/policynet` produces from gorge's redacted view |
 
-`oracle.HBotFacts` and `oracle.FeatPool` build hbot facts and the feat pool from a gorge registry.
-In dirac-only code, `hbot.NewFacts` and `feat.NewPool` take only the `kop.Table` plus the
-string-derived specs.
+`oracle.HBotFacts` and `oracle.FeatPool` build hbot facts and the feat pool from a gorge registry; dirac-only code
+passes a `kop.Table` and string-derived specs to `hbot.NewFacts` and `feat.NewPool`. For a Go-side lab on top of these,
+see [`dirac/lab`](../lab/doc.go).
 
 ## SpellBench v2 on dirac
 
-SpellBench v2 is newline-delimited JSON over stdio: a **host** starts an **engine** child and two
-**agent** children, and relays an engine `decision` to the acting seat's agent as a `choose`, then
-the agent's `choice` back as a `step`. `dirac/cmd/sbv2dirac` is the engine role with dirac as the
-authority:
+SpellBench v2 is newline-delimited JSON over stdio: a **host** starts an **engine** child and two **agent** children and
+relays decisions between them. `dirac/cmd/sbv2dirac` is the engine role with dirac as the authority:
 
 - It answers `hello`, `reset`, `step` and `validate_deck`. One game runs in lockstep
   (`oracle.LockstepLed`): dirac leads, a gorge shadow (`oracle.GorgeSide`) follows action by
@@ -194,7 +166,7 @@ authority:
   stem). A deck containing a card dirac's set does not support is refused by
   `validate_deck`/`reset`, naming the cards.
 
-A handshake smoke, the same line a host sends first:
+A handshake smoke (the line a host sends first):
 
 ```sh
 go build -trimpath -o bin/sbv2dirac ./dirac/cmd/sbv2dirac
@@ -207,35 +179,23 @@ passed with `-decks`. The wire reference is [`docs/site/api/spellbench-v2.md`](.
 
 ## Performance
 
-Measure, do not assume. The transition benchmarks play real decks one core at a time, and report no
-allocations:
+The transition benchmarks play real decks one core at a time and report no allocations. Current figures, with date
+and commit, are on [Performance](../../docs/site/performance/index.md#transitions-and-copies).
 
 ```sh
 GOMAXPROCS=1 go test -run XXX -bench '^BenchmarkTransition(FDN|BLB|FDNPool)$' -benchmem ./dirac
 ```
 
-Time per operation moves with the machine and with code layout. Instructions per operation is the
-steadier number to compare two commits: run the test binary under `perf stat -e instructions:u` at two
-`-test.benchtime` counts, and divide the difference in instructions by the difference in counts.
+Time per operation moves with the machine and code layout. To compare two commits, use instructions per operation: run
+the test binary under `perf stat -e instructions:u` at two `-test.benchtime` counts and divide the difference in
+instructions by the difference in counts. `scripts/dirac-gate.sh <base>` holds the allocation and instruction steps.
 
-The rules that keep dirac fast are structural, not tuning:
-
-- `State` holds a fixed layout of plain values, cloned with `CopyFrom`. `go vet` rejects an
-  assignment. See `dirac/doc.go` for the value and projection rules and `dirac/README.md` for the rules
-  a change to dirac must keep.
-- The transition loop allocates nothing.
-- No map iteration order may reach an action, option list, record or output file. Same seed, same
-  game, byte for byte.
-- The oracle compares projections and decisions against gorge, not timing.
-
-When a change is in `dirac/` or `dirac/oracle/`, the cheap check is a `kfuzz` lockstep slice, described
-in `dirac/docs/verification.md`, rather than a full seeded sweep.
+The rules that keep dirac fast are structural ([`dirac/README.md`](../README.md#rules-for-code-that-touches-state)):
+a plain-value `State` cloned with `CopyFrom`, no allocation in the transition loop, no map iteration order reaching
+output. For a change in `dirac/` or `dirac/oracle/`, the cheap check is a `kfuzz` lockstep slice
+([verification](verification.md)).
 
 ## Where to read next
 
-- `dirac/doc.go`: the value, decision and projection API and the rules dirac follows.
-- `dirac/docs/DEVIATIONS.md`, `dirac/docs/GORGE-FINDINGS.md`: the differences from gorge.
-- `dirac/docs/README.md`: the documentation index.
-- `dirac/docs/cards.md`: kgen, card pools and tables, "is card X supported?".
-- `dirac/docs/verification.md`: lockstep, `kfuzz`, `khbot` and `ksbt`, and following a gorge change.
-- `dirac/README.md`: the package's change and registration rules.
+[`dirac/doc.go`](../doc.go) (API), [`README.md`](README.md) (index), [`cards.md`](cards.md), [`verification.md`](verification.md),
+[`DEVIATIONS.md`](DEVIATIONS.md), [`GORGE-FINDINGS.md`](GORGE-FINDINGS.md), [`dirac/README.md`](../README.md).

@@ -1,7 +1,8 @@
 # How it is measured
 
-This page says what the [engine comparison](index.md) measures, where engines aren't comparable, and how to measure it again on your
-own machine. It is for anyone who wants to check the numbers or add an engine.
+What the [engine comparison](index.md) measures, where engines aren't comparable, and how to measure again on your machine. For anyone
+checking the numbers or adding an engine. The harness is `scripts/xengine-bench.sh`; it only writes under `$OUT`, never into these pages.
+The pages' tables are transcribed from its summaries (and from `make enginebench-pair`) into [`data/perf.json`](https://github.com/adams-shaun/gorge/blob/main/docs/site/performance/data/perf.json).
 
 ## What one run is
 
@@ -9,30 +10,8 @@ A **run** is one process playing whole two-player games between two fixed decks,
 amount of CPU time. A **row** is one engine, one policy and one deck pair. Each row runs three times at once, on three different physical
 cores, and the tables report the median and the spread. Rows run one after another, never together.
 
-```mermaid
-flowchart LR
-  S[xengine-bench.sh] -->|"taskset -c CORE"| P1[rep 0]
-  S --> P2[rep 1]
-  S --> P3[rep 2]
-  P1 --> W{JVM?}
-  W -->|yes| WU[warm-up games,<br/>discarded]
-  W -->|no| M
-  WU --> M[measure: whole games<br/>for SECS CPU-seconds]
-  M --> R[runs.jsonl: games, turns,<br/>decisions, CPU s, peak RSS,<br/>load, core contention]
-  R --> T[summary table]
-```
-
-```mermaid
-flowchart LR
-  G[games played in the<br/>measured window] --> GPS[games per core-second]
-  CPU[process user + system CPU,<br/>GC and JIT included] --> GPS
-  CPU --> UT[µs per turn]
-  T[turns, both players'] --> UT
-  CPU --> UD[µs per decision]
-  DC[decisions, counted<br/>per engine] --> UD
-  RSS["max RSS from /usr/bin/time,<br/>corpus load included"] --> PR[peak RSS]
-  GPS & UT & UD & PR --> MED[median and min-max<br/>over the row's runs]
-```
+A run is repeated on three cores at once; each run prints games, turns, decisions, CPU seconds, peak RSS, load and core contention to
+`runs.jsonl`, and the summary table takes medians. JVM engines play warm-up games first, discarded.
 
 | Metric | Definition |
 |---|---|
@@ -42,11 +21,9 @@ flowchart LR
 | µs per decision | CPU µs ÷ decisions answered; decisions are counted differently per engine, below |
 | peak RSS | the process's maximum resident set from `/usr/bin/time`, corpus load included |
 
-**CPU time** is the process's user and system time, so it includes the garbage collector, and for a JVM the JIT compiler too. Forge's
-driver reports wall time per game, which on a pinned core is the core-time the game used.
-
-**Peak RSS is a distribution.** A Go process's peak depends on when the collector runs during corpus load, so one row's reps can fall in
-two clusters. The summary keeps the median and lists every rep.
+**CPU time** is user plus system, so it includes the garbage collector (and the JIT for a JVM). Forge's driver reports wall time per game,
+which on a pinned core is the core-time used. **Peak RSS is a distribution:** a Go process's peak depends on when the collector runs during
+corpus load, so one row's reps can fall in two clusters; the summary keeps the median and lists every rep.
 
 | Engine | A decision is |
 |---|---|
@@ -72,10 +49,10 @@ Premier Draft lists sourced from 17lands (CC BY 4.0):
 | A | `FDN_top_04956_UG` | `FDN_top_20626_WG` |
 | B | `FDN_top_07961_WR` | `FDN_top_02581_UR` |
 
-The second workload, the **Burn mirror** (`burn.json`), is the 60-card mono-red Pauper list from mtg-kernel's pool (MIT). gorge, XMage,
-Forge and mtg-kernel play it, and no dirac pool holds it. mtg-kernel lacks four cards of pair B, so it plays pair A and Burn.
+The second workload, the **Burn mirror** (`burn.json`), is the 60-card mono-red Pauper list from mtg-kernel's pool (MIT). gorge, XMage, Forge and
+mtg-kernel play it; no dirac pool holds it. mtg-kernel lacks four cards of pair B, so it plays pair A and Burn.
 
-Seats alternate every game, at 20 life with 7-card hands. The gorge and dirac runs have no mulligan round, while XMage's and Forge's AIs may mulligan.
+Seats alternate every game, at 20 life with 7-card hands. gorge and dirac runs have no mulligan round; XMage's and Forge's AIs may mulligan.
 Every game has a turn cap: 300 in `enginebench`, 100 in the other drivers.
 
 ## The player policies
@@ -100,21 +77,18 @@ Every game has a turn cap: 300 in `enginebench`, 100 in the other drivers.
 | XMage | `mad` | `ComputerPlayer7`, the client's default AI, at skill 1 (search depth 4, at most 3 s per decision) |
 | Forge | `ai` | `PlayerControllerAi` with the default profile on both seats |
 
-mtg-kernel has no row here. Its searchers are wired to its training contracts and have no standalone game runner.
+mtg-kernel has no AI row: its searchers are wired to its training contracts and have no standalone game runner.
 
 ## Pinning and noise
 
-- Every run is pinned with `taskset -c CORE`. Go runs with `GOMAXPROCS=1`, and a JVM pinned to one core picks the serial collector by itself, with heap
-  capped by `-Xmx2g`.
-- The harness records the 1-minute load before and after each run, and **core contention**: the core's busy time beyond the run's own CPU
-  time. A rep with more than a few per cent of other work on its core is rerun.
-- Three reps share the chip's L3 cache and memory bandwidth with each other and with anything else on the machine, so load still moves the
-  numbers. The min-max spread shows repeatability at that load and doesn't promise the same value on an idle machine.
-- **JVM warm-up.** A JVM starts interpreted, so each run plays `WARM` seconds of games and discards them before measuring. Start-up and
-  warm-up are excluded from the per-game numbers but included in peak RSS.
-- **The card cache is private.** Every compile keeps only the newest four IR caches in its directory, so a timed run on a shared `.cards` could pay a
-  whole-corpus recompile. The harness makes a private hardlink copy of the corpus under `$OUT/work`, warms each engine's cache there with one
-  untimed run, and records in `run.txt` any batch whose reps changed it.
+- Every run is pinned with `taskset -c CORE`. Go runs with `GOMAXPROCS=1`; a JVM pinned to one core picks the serial collector, heap capped by `-Xmx2g`.
+- The harness records the 1-minute load before and after each run and **core contention** (the core's busy time beyond the run's own CPU
+  time); a rep with more than a few per cent of other work on its core is rerun.
+- Reps share L3 and memory bandwidth, so load still moves the numbers. The spread shows repeatability at that load, not the idle-machine value.
+- **JVM warm-up.** Each run plays `WARM` seconds of games and discards them. Start-up and warm-up are excluded from per-game numbers but included in peak RSS.
+- **The card cache is private.** Every compile prunes other fingerprints' IR caches in its directory (`cards.PruneCaches`), so a timed run on
+  a shared `.cards` could pay a whole-corpus recompile. The harness hardlinks a private corpus under `$OUT/work`, warms each engine's cache with
+  one untimed run, and records in `run.txt` any batch whose reps changed it.
 
 ## Measuring again
 
@@ -133,15 +107,8 @@ OUT=/tmp/xengine CORES="24 26 30" SECS=20 scripts/xengine-bench.sh gorge
 OUT=/tmp/xengine-burn CORES="24 26 30" SECS=15 PAIRS=burn scripts/xengine-bench.sh gorge
 ```
 
-The output is one row per engine, policy and pair:
-
-```text
-| engine | policy | pair | reps | games/core-s | ms/game | µs/turn | µs/decision | turns/game | peak RSS MB | load1 | other busy | RSS reps MB |
-| gorge | random-autopay | A | 3 | 65.3 (64.7-66.9) | 15.3 (15.0-15.4) | 670 (659-672) | 28.0 (27.5-28.0) | 22.8 | 358 | 5-6 | max 0% | 353 358 358 |
-```
-
-`$OUT/runs.jsonl` holds one line per run and `$OUT/summary.jsonl` the same table as JSON. `python3 scripts/xengine-bench-summarize.py $OUT/runs.jsonl`
-reprints it.
+Output is one summary row per engine, policy and pair (columns: games/core-s, ms/game, µs/turn, µs/decision, turns/game, peak RSS, load1, other
+busy, RSS reps). `$OUT/runs.jsonl` holds one line per run and `$OUT/summary.jsonl` the table as JSON; `python3 scripts/xengine-bench-summarize.py $OUT/runs.jsonl` reprints it.
 
 ### XMage
 
@@ -177,10 +144,9 @@ OUT=/tmp/xengine CORES="2 4 6" SECS=60 WARM=40 scripts/xengine-bench.sh forge
 
 ### mtg-kernel
 
-Measured at `058d075e30532b15a6417cafd7086e5b98fd88da` on 2026-10-20. gorge adds a small mode to its benchmark, `--xengine-json`, that plays any two
-deck lists for a fixed CPU time with that benchmark's own policy. The mode is in
-[`cmd/enginebench/scripts/xengine/mtgkernel/`](https://github.com/adams-shaun/gorge/tree/main/cmd/enginebench/scripts/xengine/mtgkernel).
-Nothing from mtg-kernel is committed to gorge.
+Measured at `058d075e30532b15a6417cafd7086e5b98fd88da` on 2026-10-20. gorge adds a small `--xengine-json` mode to mtg-kernel's benchmark, which plays any two
+deck lists for a fixed CPU time with that benchmark's own policy
+([`cmd/enginebench/scripts/xengine/mtgkernel/`](https://github.com/adams-shaun/gorge/tree/main/cmd/enginebench/scripts/xengine/mtgkernel)); nothing from mtg-kernel is committed to gorge. The driver refuses a deck with a card mtg-kernel doesn't fully support.
 
 ```sh
 git clone https://github.com/jackmaiorino/mtg-kernel && cd mtg-kernel
@@ -197,17 +163,15 @@ MTGKERNEL_BENCH=../mtg-kernel/target/release/examples/bench_kernel MK_PAIRS=burn
   OUT=/tmp/xengine CORES="2 4 6" SECS=30 scripts/xengine-bench.sh mtg-kernel
 ```
 
-The driver refuses a deck with a card mtg-kernel doesn't fully support rather than measure something else.
-
 ### dirac
 
-The game rows use `dirac/cmd/dplay`, built from the checkout. It needs the corpus and dirac's tables (`make fetch-cards compile-cards dirac-tables`):
+The game rows use `dirac/cmd/dplay`, built from the checkout; it needs the corpus and dirac's tables (`make fetch-cards compile-cards dirac-tables`):
 
 ```sh
 OUT=/tmp/xengine CORES="24 26 30" SECS=20 scripts/xengine-bench.sh dirac
 ```
 
-Both rows play `-config lockstep-autopay`, the configuration lockstep verifies against gorge's auto-pay seat, on a table holding only the pair's two decks.
+Both rows use `dplay`'s default `-config lockstep-autopay`, the configuration lockstep verifies against gorge's auto-pay seat, on a table holding only the pair's two decks.
 
 The transition rows are Go benchmarks, one core, reporting no allocations:
 
@@ -216,17 +180,9 @@ GOMAXPROCS=1 taskset -c 26 go test -trimpath -run XXX \
   -bench '^Benchmark(Transition(FDN|BLB|FDNPool)|CloneFDN)$' -benchmem -count 5 -benchtime 2s ./dirac
 ```
 
-**Instructions per operation** don't depend on load the way nanoseconds do, so they are the number to compare between two commits. Run the test
-binary under `perf stat` at two fixed counts and difference them, which cancels setup:
-
-```sh
-go test -trimpath -c -o dirac.test ./dirac
-for n in 500000 1500000; do
-  GOMAXPROCS=1 perf stat -x, -e instructions:u -o perf-$n.txt taskset -c 26 \
-    ./dirac.test -test.run XXX -test.bench '^BenchmarkTransitionFDN$' -test.benchtime ${n}x
-done
-# (instructions at 1500000 - instructions at 500000) / 1000000
-```
+**Instructions per operation** don't depend on load the way nanoseconds do, so compare them between commits. Run the test binary under
+`perf stat -x, -e instructions:u` (build it with `go test -trimpath -c -o dirac.test ./dirac`; run `./dirac.test -test.run XXX -test.bench '^BenchmarkTransitionFDN$'`) at two fixed `-test.benchtime Nx` counts (500000 and 1500000, pinned with `taskset`, `GOMAXPROCS=1`) and
+difference them, which cancels setup: (instructions at 1500000 − at 500000) / 1000000.
 
 ## Adding an engine
 
