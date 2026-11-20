@@ -2,6 +2,7 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Abundant Growth	50e7bf49768dfbd1	6	1/1		1/2	ix:resp
 Act on Impulse	4904f59abbd44bb1	9	0/0		1/2	ix:resp
 Angel of Vitality	deb06318f87d5b2d	10	0/0		0/0	
+Angel of the Ruins	d857343afcedcf2c	3	2/2		1/1	
 Beanstalk Giant	ea8095902716622c	7	0/0		1/2	ix:resp
 Blessed Hippogriff	0b57b3203fbcfbb3	12	1/1		1/2	ix:resp
 Bloodthrone Vampire	e9c9dc6cd94dcf03	47	1/1		1/1	
@@ -39,6 +40,7 @@ Geistblast	be8415a5931eb40c	4	1/1		2/2
 Ghostly Flicker	04dd5fb3424d36bf	4	0/0		2/2	
 Gideon's Lawkeeper	7a2058905e521158	4	1/1		0/1	ix:resp
 Glacier Godmaw	3a6defff102c7f72	13	2/2		0/1	ix:resp
+Gloomfang Mauler	c001410e09a6e5f7	6	2/2		1/1	
 Go for the Throat	b3ce9a098400a815	3	0/0		1/2	ix:resp
 Goblin Bombardment	41b20dc39cb0aefb	4	1/1		0/1	ix:resp
 Goblin Recruiter	4432a0bbe7041d31	4	1/1		1/1	
@@ -52,6 +54,7 @@ Island	763c67ef7a27eaf5	68	1/1		0/1	ix:resp
 Kavu Predator	b4760652574840b7	22	1/1		0/1	ix:resp
 Konda, Lord of Eiganjo	1014f9c5176bab32	3	2/2		0/1	ix:resp
 Krark-Clan Ironworks	ecc76d8b539480eb	9	1/1		0/1	ix:resp
+Lively Dirge	9eba3a2b6b7d0f57	61	0/0		2/2	
 Lunar Frenzy	436469a2456f5425	6	0/0		3/4	f0/s/x0
 Manabond	d6a52e24e7f1e146	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Mannichi, the Fevered Dream	19cc7b1f17e9e453	11	1/1		1/1	
@@ -75,6 +78,7 @@ Power Matrix	71aaa76a87d83ba5	11	1/1		0/1	ix:resp
 Primal Growth	5854d350c25b4c4c	5	0/0		3/4	ix:resp
 Prizefight	7995ecc8d9a4a55d	5	0/0		2/2	
 Puppet Conjurer	d3ce7b8c9f8f40f7	4	2/2		1/1	
+Quakefoot Cyclops	d6267ef8b50bd064	3	3/3		1/1	
 Rapacious Dragon	1e6d7e34d78fcac2	6	1/1		0/1	ix:resp
 Ravenform	2f76f1de4e369607	15	0/0		3/4	cast/alt:foretold
 Regrowth	625c1932abc3b67a	10	0/0		1/2	ix:resp

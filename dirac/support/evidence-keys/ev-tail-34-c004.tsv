@@ -4,14 +4,19 @@ Aboshan's Desire	f81bf3d1bcc1ff9a	81	0/0		1/2	ix:resp
 Aether Mutation	d0c5e63dffa1371e	35	0/0		2/2	
 Ageless Guardian	bb7f45f844f1ae93	75	0/0		0/0	
 Agent of the Shadow Thieves	3c4ce50ecd4b403b	6	0/0		0/0	
+Alms of the Vein	ae5e9ae4fa1bd025	5	0/0		1/2	ix:resp
+Ambitious Farmhand	19c2c74aaf777c0e	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Appeal	19acb28395e8ccdb	162	0/0		4/5	f1/s
 Arbalest Engineers	767c0614e3a12272	4	1/1		0/1	ix:resp
 Arbor Elf	3804651cb503f964	4	1/1		0/1	ix:resp
 Archangel's Light	07393533216f0f67	22	0/0		2/2	
+Archmage of Echoes	20b5ecc2299fe225	3	2/2		0/1	ix:resp
 Archon of Redemption	0b985db5ba747b52	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Ardent Militia	f1cff3c9d9902327	3	0/0		0/0	
 Aura Mutation	45cb9713ee9c83ce	58	0/0		2/2	
 Aya of Alexandria	d2f7252bf9835ccb	4	1/1		0/1	ix:resp
 Bala Ged Recovery	401dd68eb61297e2	92	1/1		2/2	
+Barret, Avalanche Leader	49af98f47d25e75a	6	2/2		0/1	ix:resp
 Bat Whisperer	29747ad756f336ae	4	1/1		1/1	
 Belbe's Percher	b84ecdc7ad352072	4	0/0		0/0	
 Billiard Room	682c8acf7b85ad96	12	2/2		1/1	
@@ -36,6 +41,7 @@ Cleaving Sliver	b9af3baeb11fe97f	3	0/0		0/0
 Cloud Djinn	a812238101317d00	3	0/0		0/0	
 Conjurer's Mantle	2d1d6a410eb60a1e	6	2/2		0/1	ix:resp
 Consulate Turret	c27fb123ea5e8358	7	2/2		0/1	ix:resp
+Contaminated Ground	813d1cdca2882484	8	1/1		1/2	ix:resp
 Conversion	a42a844cb2bb5fe2	4	1/1		0/1	ix:resp
 Cowl Prowler	05ae4194008e303a	5	0/0		0/0	
 Crackle with Power	7e5e54cbb0bfc45d	4	0/0		2/4	f0/s/x+,f0/s/x0
@@ -93,13 +99,16 @@ Kolaghan Skirmisher	f2c3f688c8446fb8	4	0/0		1/2	cast/alt:dashed
 Kronch Wrangler	8beb916f3e4a2a81	70	1/1		1/1	
 Krosan Avenger	deabe1ea76b57596	83	1/1		1/1	
 Launch Mishap	abaaf3b3125e11c0	4	0/0		2/2	
+Leaf-Crowned Visionary	ca14aabe2781dd6b	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Lidless Gaze	495dcf90b40f79a5	8	0/0		3/4	ix:resp
+Lionheart Maverick	3a433069f3e79093	4	1/1		1/1	
 Locthwain Gargoyle	202af48886a2d64f	106	1/1		1/1	
 Lost Legion	5fbee4a9869e52ef	3	1/1		0/1	ix:resp
 Loxodon Warhammer	8f3a4d0d46f3dd63	3	1/1		0/1	ix:resp
 Lurking Arynx	ed64482f5f63363f	6	1/1		1/1	
 Mana Seism	2ec5efd0fe527406	4	0/0		1/2	ix:resp
 Mantle of the Wolf	e3b91b0829f0dda5	43	1/1		2/2	
+Marchesa's Infiltrator	d36f58a63a27ffa0	5	2/2		1/1	
 Marsh Lurker	28e25b261d594595	4	1/1		0/1	ix:resp
 Miara, Thorn of the Glade	8380b84c9e164401	4	1/1		0/1	ix:resp
 Mind Over Matter	9f19b7cd9139848c	30	1/1		1/1	
@@ -111,10 +120,12 @@ Naga Oracle	3435162dc3dc6d1b	6	1/1		0/1	ix:resp
 Neurok Stealthsuit	9d83b64a23d2a0e9	80	2/2		1/1	
 Nezumi Bladeblesser	2ed2e62c9aadeabe	4	0/0		0/0	
 Nissa's Chosen	9b3b58514151f257	4	0/0		0/0	
+Nissa's Renewal	1ba65c1494ffa31a	4	0/0		1/2	ix:resp
 Notorious Assassin	7e0615051d2c08b6	3	1/1		0/1	ix:resp
 Oboro Breezecaller	ab6c8717f5e9e17a	3	1/1		0/1	ix:resp
 Paladin Danse, Steel Maverick	a1735ac996e00df3	4	1/1		1/1	
 Peace of Mind	25da9ab3f00e9608	6	1/1		1/1	
+Pearl Dragon	daa859625f1f6c80	4	1/1		1/1	
 Perilous Myr	ad9494cd24ee8830	4	1/1		0/1	ix:resp
 Pillar of Light	fa1566e677279ecd	69	0/0		2/2	
 Platoon Dispenser	b39d233af17c0f10	58	3/3		1/1	
@@ -133,17 +144,21 @@ Revenge of the Hunted	9a415f4f87bf49ec	33	0/0		4/4
 Reyav, Master Smith	15450d628e945046	7	1/1		0/1	ix:resp
 Ringskipper	ffd3b94828592736	6	1/1		0/1	ix:resp
 Riot Piker	fbc7c74e669a6768	4	0/0		0/0	
+Rise from the Grave	9e955d6101b447c7	3	0/0		1/2	ix:resp
 Saheeli's Silverwing	e0dde5374110c68e	101	1/1		1/1	
 Sapseep Forest	e27d23c1b7535617	10	2/2		0/1	ix:resp
 Seagraf Skaab	1b1faa0b9a4b960c	85	0/0		0/0	
 See the Unwritten	91cd171fee3fb015	3	0/0		1/2	ix:resp
+Seeker of Skybreak	9202f7947cccb024	4	1/1		1/1	
 Senseless Rage	d300d6ef37f441c8	12	0/0		1/2	ix:resp
 Serra Advocate	7be94ef9e1606366	5	1/1		0/1	ix:resp
 Serum Visions	ea85da7f4b2f9e4f	78	0/0		2/2	
 Sever the Bloodline	829d8106a7d5c97d	10	0/0		4/4	
 Shatterskull Giant	3088a48f7193a4b9	3	0/0		0/0	
 Showstopping Surprise	20f4b23c5ac5bbac	3	0/0		1/2	ix:resp
+Shrine of Boundless Growth	822d053a7557c6f3	8	3/3		0/1	ix:resp
 Shu General	9d82c170ea89508e	4	0/0		0/0	
+Silver Myr	ea8a105cab238527	4	1/1		0/1	ix:resp
 Silverchase Fox	1b5b02d90c0d7f1f	4	1/1		0/1	ix:resp
 Smokebraider	224c83fda0cd551a	48	1/1		0/1	ix:resp
 Songs of the Damned	353fc655e2c6ab05	4	0/0		1/2	ix:resp
@@ -168,7 +183,9 @@ Then, Dreadmaws Ate Everyone	d501b3a8e6ec0e7e	3	0/0		2/4	f0/s/x+,f0/s/x0
 Thief of Existence	e32b079e2e9b3a12	30	1/1		1/1	
 Thunder Dragon	77e10d036e30174b	4	1/1		0/1	ix:resp
 Tide Drifter	d6941e075dce4027	4	0/0		0/0	
+Tilonalli's Crown	9c1f6d159b98937c	7	1/1		2/2	
 Toxic Scorpion	ad7d8ccb818cb28e	3	1/1		0/1	ix:resp
+Treacherous Link	607546a8a4cdbc1a	4	0/0		2/2	
 Ulvenwald Captive	a5afc3fc5efc4a7a	4	3/3		0/1	ix:resp
 Umara Wizard	b6b2c622f5783e4a	8	2/2		0/1	ix:resp
 Undercity Necrolisk	e9e27229d758fc3f	6	1/1		0/1	ix:resp
@@ -187,6 +204,7 @@ Wasteful Harvest	d67686b9dd990148	103	0/0		2/2
 Watchwing Scarecrow	3036c6ba62c4b2f6	4	0/0		0/0	
 Wild Elephant	c0da4b57d8cc968a	4	0/0		0/0	
 Wild Ox	74a34628104805d7	6	0/0		0/0	
+Wildsear, Scouring Maw	f11509f71944c717	3	0/0		0/0	
 Winds of Qal Sisma	42bbc9518ed75395	55	0/0		2/2	
 Xerex Strobe-Knight	1a4a0896685e5240	89	1/1		0/1	ix:resp
 Yavimaya Scion	84b806380a546b3b	4	0/0		0/0	
