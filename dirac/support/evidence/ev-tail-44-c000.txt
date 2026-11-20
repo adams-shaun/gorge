@@ -48,6 +48,7 @@ Bonepicker Skirge
 Bookwurm
 Boros Locket
 Brain Gorgers
+Burrenton Bombardier
 Burrenton Shield-Bearers
 Cabal Patriarch
 Cabal Therapy
@@ -313,6 +314,7 @@ Rise of Eagles
 Rise of the Witch-king
 Rise to Glory
 Rising of the Day
+Rootrunner
 Runehorn Hellkite
 Sabertooth Nishoba
 Saddle of the Cavalier
