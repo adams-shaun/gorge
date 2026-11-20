@@ -68,6 +68,7 @@ func newVoteChoicesPod(t *testing.T) voteChoicesPod {
 
 func newVoteChoicesPodOf(t *testing.T, decks [4][]cardset.Entry) voteChoicesPod {
 	t.Helper()
+	reg := synthReg(t) // skips without the corpus, before any table load
 	set, err := cardset.RawByName("votechoices")
 	if err != nil {
 		t.Fatal(err)
@@ -87,7 +88,7 @@ func newVoteChoicesPodOf(t *testing.T, decks [4][]cardset.Entry) voteChoicesPod 
 	if err != nil {
 		t.Fatal(err)
 	}
-	return voteChoicesPod{reg: synthReg(t), set: set, tbl: tbl, decks: decks}
+	return voteChoicesPod{reg: reg, set: set, tbl: tbl, decks: decks}
 }
 
 func voteChoicesExpand(d []cardset.Entry) []string {
