@@ -2018,6 +2018,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					// re-run cannot recover them from the source zone. Place
 					// them now (gorge moved them before the ask) and carry the
 					// per-owner prefix so the re-run keeps move order.
+					carry.bottom = true // zone_changezoneall.go: gorge's cards sit at the bottom until the answer
 					if nz == 2 {
 						pend.place(s, &carry)
 						pend = czallPend{}
@@ -2101,6 +2102,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 		}
 	}
 	pend.place(s, &carry)
+	carry.finish(s)
 	if mv&kop.MvGraveExile != 0 && in.B.N&kop.CzShuffleEach != 0 {
 		carry.shuffleEach(s) // after the placement: each library shuffles once all cards are in
 	}

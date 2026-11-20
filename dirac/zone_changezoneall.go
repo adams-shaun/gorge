@@ -262,6 +262,11 @@ type czallCarry struct {
 	// a CzShuffleEach sweep to shuffle the receiving libraries in gorge's order.
 	// k is at most MaxDeck (100), so bit 7 of each parked byte carries it.
 	first uint8
+	// bottom: the sweep parked (or is the re-run of a parked one), so its
+	// cards sit at the bottom of the destination libraries, as gorge's
+	// MoveZone appends them while the commander ask is open (the top placement
+	// is the sweep's tail, after the answer). finish rotates them to the top.
+	bottom bool
 }
 
 // load reads the carried prefix of an answered commander park at the
@@ -270,6 +275,7 @@ type czallCarry struct {
 // commander park never uses.
 func (c *czallCarry) load(pre *preAsk) {
 	if pre.kind == akCmdZone && (pre.state == preCmdZoneMove || pre.state == preCmdZoneCmd) {
+		c.bottom = true
 		c.k[0], c.k[1] = int(pre.val&0x7f), int(pre.val2&0x7f)
 		c.first = uint8(pre.val>>7) | pre.val2>>7<<1
 		if MaxSeats > 2 {
@@ -324,6 +330,15 @@ func (s *State) czallPlace(os []Obj, from []kop.Zone, c *czallCarry) {
 	if len(os) == 0 {
 		return
 	}
+	if c.bottom {
+		for i, o := range os {
+			s.placeFrom(o, kop.ZoneLibrary, true, from[i], false)
+			if s.objs[o].zone == kop.ZoneLibrary {
+				c.k[SeatIx(s.objs[o].owner())]++
+			}
+		}
+		return
+	}
 	s.libTopInOrder(os, from)
 	var m [MaxSeats]int
 	for _, o := range os {
@@ -351,4 +366,23 @@ func (s *State) libRotateTop(p uint8, total, m int) {
 	copy(tmp[:], pl.lib[lo+m:lo+total])
 	copy(tmp[total-m:], pl.lib[lo:lo+m])
 	copy(pl.lib[lo:lo+total], tmp[:total])
+}
+
+// finish is the tail of a parked sweep: the cards placed at the bottom while
+// the ask was open move to the top of their libraries in move order (gorge
+// libraryOrderPlacement), before any shuffle.
+func (c *czallCarry) finish(s *State) {
+	if !c.bottom {
+		return
+	}
+	for p := 0; p < MaxSeats; p++ {
+		pl := &s.pl[p]
+		if k := c.k[p]; k > 0 && k < pl.libLen() {
+			var tmp [MaxDeck]Obj
+			l := pl.lib[pl.libLo:pl.libHi]
+			n := copy(tmp[:], l[len(l)-k:])
+			copy(tmp[n:], l[:len(l)-k])
+			copy(l, tmp[:len(l)])
+		}
+	}
 }
