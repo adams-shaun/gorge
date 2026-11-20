@@ -23,6 +23,22 @@ Two rules shape it.
 `Hidden` is the caller's: a determinization deals it from the seat's own deck list and the view's counts, and the
 verifier supplies the true zones. Staging cannot tell which.
 
+## Staging from a seat's own view
+
+`shadow.NewLayout(tbl, lists)` takes the game's open deck lists, one card name per copy and one list per seat (every
+seat's list is known, the open-list assumption a determinization deal makes). `(*Layout).Deal(v, cfg, seed)` then
+builds both halves of an `Input` from the view and those lists alone: the `Hidden` deal and the object numbering
+`Input.ObjOf` exposes. Seat `s`'s cards take `base_s .. base_s+len(lists[s])-1`, the sum of the earlier lists. The
+physical cards the view shows take the low indices of that range in a fixed order (every player's battlefield for the
+seat's cards, its graveyard, exile, command zone, stack spells, then the viewer's hand); the unseen cards fill the rest
+in list order, the first `HandSize` of another seat's becoming its hand and the remainder its library. Current tokens
+are compacted after every deck, in first-seen order. A hidden multiset that is not exactly the count the view shows is
+`hidden`.
+
+The initial hidden order is deliberately arbitrary. `dirac/search` re-deals every zone a seat cannot see at each
+simulation (`redeal`), so the order carries no information and no guess. The deal reads only the view and the lists, so
+two `Layout`s over the same lists and views stage identically.
+
 ## What stages
 
 Two seats only.
