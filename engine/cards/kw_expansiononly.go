@@ -62,6 +62,7 @@ var keywordRulesReads = map[KeywordHeadID]string{
 	InternKeywordHead("Prowess"):     "engine/rules/scriptfacts/granted_keyword_trigger.go:32 — prowess grant",
 	InternKeywordHead("Renown"):      "engine/effects/putcounter_params.go:186 — renown counters",
 	InternKeywordHead("Replicate"):   "engine/rules/cast_altcost.go:140 — replicate copy count",
+	InternKeywordHead("Ripple"):      "engine/rules/trigger_granted.go:171 — granted-ripple cast trigger walk",
 	InternKeywordHead("Saddle"):      "engine/rules/pay/paidcost.go:260 — saddle tap-power cost payment",
 	InternKeywordHead("Scavenge"):    "engine/rules/quiet_facts.go:193 — scavenge cast facts",
 	InternKeywordHead("Soulbond"):    "engine/effects/soulbond.go:65 — soulbond pairing",
