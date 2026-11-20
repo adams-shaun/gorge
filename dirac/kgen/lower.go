@@ -567,6 +567,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseEvokeCombos()
 	lc.refuseDashCombos()          // lower_dash.go
 	lc.refuseMultikickerCombos()   // K:Multikicker beside another cast route
+	lc.refuseRepeatedCombos()      // K:Squad / K:Replicate (lower_squadreplicate.go)
 	lc.refuseSuspendCombos()       // lower_suspend.go
 	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
@@ -600,8 +601,8 @@ func (lc *lowerCtx) lowerImpending() {
 // by lowerKeywords.
 func (lc *lowerCtx) refuseMultikickerCombos() {
 	out := lc.out
-	if out.Multikicker == nil {
-		return
+	if out.Multikicker == nil || out.Repeated != nil {
+		return // a Squad/Replicate card's mana half is not a printed Multikicker (lower_squadreplicate.go)
 	}
 	if out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Flashback != nil || out.SpellCost != nil ||
 		out.AltAddCost != nil || out.Sneak != nil || out.Impending != nil || out.Bestow != nil || out.Mayhem != nil ||
@@ -1466,22 +1467,7 @@ func (lc *lowerCtx) lowerKeywords() {
 			}
 			lc.out.Kicker = &mc
 		case head == "Multikicker":
-			// CR 702.43: the per-payment additional cost, paid any number of
-			// times as the spell is cast. The kernel's kicked cast asks the
-			// count before X and the targets (multikick, cast.go), so only a
-			// plain mana parameter on a non-{X} spell is modelled; a non-mana,
-			// {X} parameter or {X} base cost refuses (the count bound would be
-			// read before the X announcement).
-			mc, err := parseManaCost(param)
-			if err != nil || param == "" || strings.Contains(param, ":") || mc.None || mc.X {
-				lc.refuseNode(node, "multikicker cost %q", param)
-				continue
-			}
-			if lc.out.Cost.X {
-				lc.refuseNode(node, "multikicker on an {X} spell")
-				continue
-			}
-			lc.out.Multikicker = &mc
+			lc.lowerMultikickerKeyword(node, param) // lower_squadreplicate.go
 		case head == "Morph" || head == "Megamorph" || head == "Disguise":
 			// CR 702.37/702.168/702.169: the keyword parameter is the
 			// turn-face-up cost. The kernel's turn-up action spends only
