@@ -1,0 +1,55 @@
+# The granted-protection forms of the gap4-05 ticket for the oracle's
+# constructed lockstep (dirac/oracle/protectiongrants_lockstep_test.go): a
+# Protection effect with a fixed Gains$ (Crimson Acolyte, Tower of the
+# Magistrate, Grotesque Hybrid's list), a granted Protection:<spec> with an
+# exception (the Ward Auras, Tattoo Ward, Spectra Ward), a granted protection
+# from a creature host (Feline Sovereign, Hungry Lynx, Masked Gorgon, Lord of
+# the Nazgul, Pristine Angel) and the quality forms the kernel reads off the
+# source (multicolored, a type, a negated subtype), with coloured, colourless,
+# artifact and multicoloured creatures, burn and removal on the other seats to
+# test the protection against (blocking, damage and targeting).
+Black Ward
+Blue Ward
+Green Ward
+Red Ward
+White Ward
+Tattoo Ward
+Spectra Ward
+Guildscorn Ward
+Crimson Acolyte
+Obsidian Acolyte
+Devoted Caretaker
+Spare from Evil
+Tel-Jilad Defiance
+Feline Sovereign
+Hungry Lynx
+Hexdrinker
+Willow Priestess
+Haytham Kenway
+Silver Knight
+Prowling Caracal
+Sanctuary Cat
+Pristine Angel
+Keeper of Kookus
+Goblin Wizard
+Hell-Bent Raider
+Grotesque Hybrid
+Masked Gorgon
+Lord of the Nazgûl
+Tower of the Magistrate
+Muck Rats
+Gutter Skulk
+Ornithopter
+Shock
+Lightning Bolt
+Terror
+Pacifism
+Hill Giant
+Grizzly Bears
+Savannah Lions
+Giant Growth
+Plains
+Mountain
+Forest
+Swamp
+Island

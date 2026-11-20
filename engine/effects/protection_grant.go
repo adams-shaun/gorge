@@ -24,13 +24,23 @@ import (
 var protectionColourWords = [...]string{"white", "blue", "black", "red", "green"}
 
 // ResolveGrantedProtection rewrites the Protection keywords of list that name
-// the host's chosen colour; every other keyword passes through unchanged.
+// the host's chosen colour, and the host placeholders of any other granted
+// Protection:<spec> exception; every other keyword passes through unchanged.
 func ResolveGrantedProtection(list []string, host *state.Object) []string {
 	const quality = "Protection:Card.ChosenColor"
 	var out []string
 	for i, kw := range list {
 		rest, ok := strings.CutPrefix(kw, quality)
 		if !ok || (rest != "" && rest[0] != ':') {
+			// any other granted Protection:<spec>:<desc>:<exception> names the
+			// host in its exception (a Ward Aura's Card.CardUID_HostCardUID)
+			if host != nil && strings.HasPrefix(kw, "Protection:") && strings.Contains(kw, "HostCard") {
+				if out == nil {
+					out = append(make([]string, 0, len(list)), list[:i]...)
+				}
+				kw = strings.ReplaceAll(kw, "HostCardControllerUID", strconv.Itoa(int(host.Controller)))
+				kw = strings.ReplaceAll(kw, "HostCardUID", strconv.Itoa(int(host.ID)))
+			}
 			if out != nil {
 				out = append(out, kw)
 			}
@@ -62,8 +72,10 @@ func ResolveGrantedProtection(list []string, host *state.Object) []string {
 // Protection keyword spares source (CR 702.16: "this effect doesn't remove
 // ..."). `Card.CardUID_<n>` names one object, and
 // `<spec>.ControlledBy Player.PlayerUID_<n>` an object of that spec under
-// seat n (hasSpec judges the spec). An SBA-flagged exception (Forge's fourth
-// field) spares only on the state-based attachment check (sba). A clause this
+// seat n (hasSpec judges the spec); any other clause is a bare spec of the
+// source (Spectra Ward's Aura), which spares only on the state-based
+// attachment check. An SBA-flagged exception (Forge's fourth field) spares
+// only there too (sba). A clause this
 // build cannot read spares nothing.
 func ProtectionExempt(kw string, source state.ObjID, sba bool, controller func(state.ObjID) state.PlayerID, hasSpec func(spec string) bool) bool {
 	const prefix = "Protection:"
@@ -87,6 +99,12 @@ func ProtectionExempt(kw string, source state.ObjID, sba bool, controller func(s
 		}
 		spec, seat, ok := strings.Cut(c, ".ControlledBy Player.PlayerUID_")
 		if !ok {
+			// a bare spec (Spectra Ward's Aura: "this effect doesn't remove
+			// Auras") spares every source of it, on the state-based
+			// attachment check only: a new Aura is still stopped
+			if sba && c != "" && hasSpec(c) {
+				return true
+			}
 			continue
 		}
 		if n, err := strconv.Atoi(seat); err == nil && int(controller(source)) == n && hasSpec(spec) {
