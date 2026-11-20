@@ -12,7 +12,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // tap and an untap are both left (CR 616.1f) and otherwise applies in scan
 // order. The kernel poses the same ask with the object still in its zone, on
 // the two routes that carry a land onto the battlefield in the lockstep
-// pools (a land play; a resolving program's hand or ChangeZone move; a
+// pools (a land play; a resolving program's hand, plain return or ChangeZone move; a
 // Hideaway's play of its hidden land, kw_hideaway.go), as
 // DkChoose + ChGenReplOrder over s.g.ro. A dig's or a search's found land (a
 // DigUntil, a Dig, a library search) is asked the same way with the card still
@@ -26,6 +26,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // DebugEntryOrderTapLast skips the ask and always applies the tap last (the
 // mutation test: gorge poses the order, so the lockstep must diverge).
 var DebugEntryOrderTapLast bool
+
+// DebugEntryOrderNoReturnPark restores the old plain-return route, which never
+// parked the ask (the mutation test: the return of an enters-tapped land beside
+// an "enters untapped" body stalls again).
+var DebugEntryOrderNoReturnPark bool
 
 // StallEntryOrder: a tap and an untap body compete over a permanent entering
 // by a route that cannot pose the order ask (a token not minted by a copy op, a clone, a spell
@@ -593,6 +598,27 @@ func (s *State) entryOrderClear() {
 // resolution is suspended on the ask.
 func (s *State) entryParkOp(k *prep, in *kop.Instr, o Obj, ctrl uint8) bool {
 	if k.gen == nil || !k.gen.anyEntUntap || !s.res.active || in != &s.prog(k)[s.res.pc] || in.C>>3&kop.MvForgetOther != 0 {
+		return false
+	}
+	if !s.entryOrderPark(k, o, ctrl, entOp) {
+		return false
+	}
+	s.res.ask, s.res.askP = raGenEntryOrder, s.g.ro.p
+	return true
+}
+
+// plainReturnParks parks the plain OpReturn move of o to the battlefield on
+// its first ask: the clone election, else the entry order.
+func (s *State) plainReturnParks(k *prep, o Obj, ctrl uint8) bool {
+	return s.cloneReturnPark(k, o, ctrl) || s.entryParkReturn(k, o, ctrl)
+}
+
+// entryParkReturn parks the plain OpReturn move of o to the battlefield under
+// ctrl (execReturnSimple), o still in its zone, the same ask as entryParkOp's;
+// the answer runs the instruction again (applyEntryResolve), and the move
+// consumes it as the permanent enters. true when the resolution is suspended.
+func (s *State) entryParkReturn(k *prep, o Obj, ctrl uint8) bool {
+	if DebugEntryOrderNoReturnPark || k.gen == nil || !k.gen.anyEntUntap || !s.res.active || s.res.ask != raNone {
 		return false
 	}
 	if !s.entryOrderPark(k, o, ctrl, entOp) {
