@@ -261,38 +261,12 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 		}
 		if qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
 			// The source-anchored chosen/remembered membership read, on EVERY
-			// base the grammar evaluates (Player/Any as always, plus the
-			// qualified You/Opponent/Other spellings -- Will the Wise's
-			// `Defined$ Opponent.!IsRemembered` "each opponent who doesn't"
-			// is the corpus carrier). Reading it only on Player/Any left the
-			// Opponent-base qualifier permanently false, which the `!`
-			// spelling inverted into admitting EVERY opponent. The base is
-			// checked FIRST, so a membership read cannot admit the source's
-			// own controller under an `Opponent` base (or an opponent under a
-			// `You` base); only the set membership is base-independent. The
-			// set is still the source object's own event-backed list, so every
-			// base reads one home.
-			if !playerBaseMatches(a.baseCode, p, you) {
-				continue
-			}
-			var set []state.Target
-			if qualifier == "IsRemembered" {
-				rem, ok := rememberedSetFor(g, &pc)
-				if !ok {
-					continue
-				}
-				set = rem
-			} else {
-				o := g.Obj(pc.Source)
-				if o == nil {
-					continue
-				}
-				set = o.Chosen
-			}
-			for _, t := range set {
-				if t.IsPlayer && t.Player == p {
-					return true
-				}
+			// base the grammar evaluates (Player/Any plus the qualified
+			// You/Opponent/Other spellings -- Will the Wise's `Defined$
+			// Opponent.!IsRemembered`): playerSourceMembershipMatches below is
+			// the ONE read, so the base check and the membership cannot drift.
+			if playerSourceMembershipMatches(g, p, you, pc, a.baseCode, qualifier) {
+				return true
 			}
 			continue
 		}
@@ -355,6 +329,20 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 			// damageGameRecordHas helper, as the object-side word -- never a
 			// parallel re-implementation.
 			if playerDamageByRefThisGame(g, p, you, pc, ref) {
+				return true
+			}
+			continue
+		}
+		if rem, is := strings.CutPrefix(qualifier, "HasCardsIn"); is {
+			// Forge's Player.HasCardsIn<zone>_<objspec>[_<cmp><n>] property
+			// (PlayerProperty's HasCardsInHand family generalized to a full
+			// object filter): playerHasCardsInZoneMatches below is the ONE
+			// evaluator -- the zone word and count token ride the shared
+			// restrictions.go parsers, the object filter the same nested
+			// binding playerControlsMatches uses, so ExiledWithSource resolves
+			// the shared exiledBySource link reader. A seat whose named zone
+			// holds no matching card never qualifies.
+			if playerHasCardsInZoneMatches(g, p, you, pc, rem) {
 				return true
 			}
 			continue
@@ -570,6 +558,40 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 	return false
 }
 
+// playerSourceMembershipMatches is the source-anchored Chosen/IsRemembered
+// membership read, extracted from matchesPlayerSingleSpec so the one
+// evaluator keeps its shape. The base is checked FIRST (an `Opponent` base
+// must not admit the source's own controller, an `Opponent.!IsRemembered`
+// spelling must not flip the absence into admitting every opponent), then the
+// set membership: the bound capture when the caller supplied one, else the
+// source object's own event-backed list (rememberedSetFor / Object.Chosen),
+// so every base reads one home.
+func playerSourceMembershipMatches(g *state.Game, p, you state.PlayerID, pc PlayerSpecCtx, base playerSpecBaseCode, qualifier string) bool {
+	if !playerBaseMatches(base, p, you) {
+		return false
+	}
+	var set []state.Target
+	if qualifier == "IsRemembered" {
+		rem, ok := rememberedSetFor(g, &pc)
+		if !ok {
+			return false
+		}
+		set = rem
+	} else {
+		o := g.Obj(pc.Source)
+		if o == nil {
+			return false
+		}
+		set = o.Chosen
+	}
+	for _, t := range set {
+		if t.IsPlayer && t.Player == p {
+			return true
+		}
+	}
+	return false
+}
+
 // damageGameRecordHas reports whether a game-long damage-by-source record
 // (state.Object.DamageTakenByGame or state.Player.DamageTakenByGame) names
 // src as a source that has dealt this recipient damage this game. It is the
@@ -758,6 +780,52 @@ func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, 
 	sc.Layers = pc.Layers
 	n := int32(0)
 	for _, id := range g.Zone(state.ZBattlefield, p) {
+		if MatchesObjectCtx(g, spec, g.Obj(id), sc) {
+			n++
+		}
+	}
+	if !counted {
+		return n > 0
+	}
+	return playerCompare(n, op, want)
+}
+
+// playerHasCardsInZoneMatches evaluates Forge's
+// Player.HasCardsIn<zone>_<objspec>[_<cmp><n>] qualifier in the shared player
+// filter (see the arm in matchesPlayerSingleSpec): the seat qualifies when
+// its named zone holds the compared number of cards matching <objspec> as a
+// full object filter. The zone word and the trailing count comparison ride
+// the shared parsers restrictions.go's UnlessDefender$ HasCardsIn property
+// uses, and the object filter is evaluated with the same SpecContext binding
+// playerControlsMatches carries, so the two families read the same words the
+// same way and the ExiledWithSource predicate resolves the one shared
+// exiledBySource link reader. An unreadable zone word, an empty object spec
+// or a bad comparator fails that seat closed (never qualifies), like every
+// unmodelled qualifier.
+func playerHasCardsInZoneMatches(g *state.Game, p, you state.PlayerID, pc PlayerSpecCtx, rem string) bool {
+	zoneWord, spec, ok := strings.Cut(rem, "_")
+	if !ok || strings.TrimSpace(spec) == "" {
+		return false
+	}
+	z, ok := unlessDefenderZone(zoneWord)
+	if !ok {
+		return false
+	}
+	if int(p) >= len(g.Players) {
+		return false
+	}
+	spec, op, want, counted := splitCountCompare(spec)
+	if strings.TrimSpace(spec) == "" {
+		return false
+	}
+	sc := NewSpecContext(you, pc.Source)
+	sc.DelayedRemembered = pc.DelayedRemembered
+	if pc.RememberedBound {
+		sc.Remembered = pc.Remembered
+	}
+	sc.Layers = pc.Layers
+	n := int32(0)
+	for _, id := range g.Zone(z, p) {
 		if MatchesObjectCtx(g, spec, g.Obj(id), sc) {
 			n++
 		}
