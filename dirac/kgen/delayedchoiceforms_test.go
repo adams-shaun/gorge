@@ -32,6 +32,7 @@ var delayedchoiceformsCarriers = map[string]struct{ form, lir string }{
 	"Tireless Provisioner":     {"a triggered ability's GenericChoice of the controller (placement: a one-mode charm)", "0 Charm skip=1"},
 	"Tomb Fortress":            {"a may graveyard pick onto the battlefield (gorge effHiddenPick Min 0)", "ChooseMove obj=You A=1 C=1 CS=from=Graveyard| F="},
 	"Arbalest Elite":           {"Effect Duration$ UntilTheEndOfYourNextUntap on itself (OpSkipUntap C=0)", "SkipUntap obj=Self"},
+	"Cinder Marsh":             {"Effect Duration$ UntilTheEndOfYourNextUntap as a mana ability's stay-tapped rider (ManaRiderStayTapped)", "mana BR x1 restrict=nil\n     0 SkipUntap obj=Self"},
 	"Bontu's Last Reckoning":   {"Effect Duration$ UntilTheEndOfYourNextUntap on your lands (OpSkipUntap C=1)", "SkipUntap C=1"},
 	"Horn of the Mark":         {"Mode$ AttackersDeclaredOneTarget AttackedTarget$ Player (Tf2DefPlayer)", "defender-player=1"},
 	"Honor the Past":           {"a return's StaticEffect$ AddType$ Artifact | RemoveCardTypes$ True (a set-types override)", "Override obj=Target0 CS=Permanent"},
@@ -54,7 +55,6 @@ var delayedchoiceformsRefused = map[string]string{
 	"Shifting Sky":                "SetColor \"ChosenColor\"",
 	"Saltskitter":                 "in a triggered ability (the trigger capture)",
 	"Crucias, Titan of the Waves": "GenericChoice of the controller below a triggered ability's head",
-	"Cinder Marsh":                "in a mana ability",
 	"Stoic Ephemera":              "delayed end-of-combat trigger ValidPlayer \"Opponent\"",
 }
 
