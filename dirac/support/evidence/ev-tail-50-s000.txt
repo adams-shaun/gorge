@@ -145,6 +145,8 @@ Skywarp Skaab
 Skywing Aven
 Slash the Ranks
 Snow-Covered Forest
+Snow-Covered Island
+Snow-Covered Mountain
 Snow-Covered Plains
 Snow-Covered Swamp
 Soltari Champion

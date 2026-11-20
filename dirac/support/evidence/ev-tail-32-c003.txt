@@ -4,6 +4,7 @@ Advocate of the Beast
 Aeolipile
 Aeronaut's Wings
 Aether Shockwave
+Akki Rockspeaker
 Akoum Boulderfoot
 Akoum Warrior
 Alabaster Wall
@@ -11,6 +12,7 @@ Amulet of Kroog
 Annoyed Altisaur
 Arcbound Hybrid
 Archfiend of Sorrows
+Asylum Visitor
 Atarka Beastbreaker
 Attrition
 Attune with Aether
@@ -47,6 +49,7 @@ Curious Altisaur
 Cut
 Dark Betrayal
 Dark Ritual
+Darksteel Angel
 Death's Presence
 Death-Hood Cobra
 Definitely Not a Turtle
@@ -93,6 +96,7 @@ Frostweb Spider
 Gaea's Embrace
 Garrison Griffin
 Geier Reach Sanitarium
+General Kreat, the Boltbringer
 Ghastly Demise
 Gisa's Bidding
 Glare of Subdual
@@ -146,6 +150,7 @@ Memory Drain
 Mercurial Spelldancer
 Merrow Bonegnawer
 Merrow Witsniper
+Mesa Falcon
 Mesa Lynx
 Metallic Mastery
 Mind Drain
@@ -165,6 +170,7 @@ Night Scythe
 Nyxborn Marauder
 Oashra Cultivator
 Oni Possession
+Ovalchase Daredevil
 Pattern of Rebirth
 Peer Through Depths
 Penance Stare
@@ -177,6 +183,7 @@ Precognition Field
 Prized Statue
 Provoke
 Psychic Spear
+Pygmy Pyrosaur
 Radiant Fountain
 Raging Spirit
 Raiding Nightstalker
@@ -193,6 +200,7 @@ Relic of Progenitus
 Rescue Retriever
 Rhox Brute
 Rofellos, Llanowar Emissary
+Root Greevil
 Rotted Hulk
 Rotting Mastodon
 Rust Monster
@@ -214,6 +222,7 @@ Sokka, Swordmaster
 Sonic Screwdriver
 Soul Bleed
 Squall Line
+Stampeding Horncrest
 Steady Progress
 Storm Crow
 Strandwalker
@@ -230,6 +239,7 @@ Traumatic Revelation
 Turnabout
 Umbral Juke
 Unholy Grotto
+Unnatural Speed
 Unwavering Initiate
 Urza's Cave
 Valakut Fireboar

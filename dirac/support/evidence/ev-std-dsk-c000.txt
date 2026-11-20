@@ -84,6 +84,7 @@ Marina Vendrell's Grimoire
 Meat Locker
 Midnight Mayhem
 Mirror Room
+Most Valuable Slayer
 Mountain
 Murder
 Murky Sewer
@@ -123,6 +124,7 @@ Shrewd Storyteller
 Shroudstomper
 Silent Hallcreeper
 Smoky Lounge
+Spineseeker Centipede
 Splitskin Doll
 Sporogenic Infection
 Stay Hidden, Stay Silent
