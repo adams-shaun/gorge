@@ -110,6 +110,17 @@ KERNEL_PAIR = ("TestKernelWorldsInFuzzGame5Shard0", "TestKernelWorldsInFuzzGame5
 PINS_TESTS = "^TestPinManifest$|^TestPinManifestCoversOldPins$"
 ARCH32 = "TestEngineCompilesFor32Bit"
 FAST_TIER = "dirac/oracle/testdata/fasttier.txt"
+# One -timeout per package, used by test-one, test-targeted, test-smart and the dirac gate's step 8.
+# -timeout is part of go's test-cache key: a package run at 5m in one mode and 10m in another runs twice.
+# ./dirac/oracle stays 5m: the protected dirac gate (read from BASE; its step 0 refuses an edit to it) runs the
+# same fast tier and repro families at 5m, so that is the one value both callers can use.
+PACKAGE_TIMEOUTS = {"./dirac/oracle": "5m"}
+DEFAULT_TIMEOUT = "5m"
+
+
+def timeout_for(pkg):
+    """The -timeout every mode uses for pkg, so its test-cache entry is the same one."""
+    return PACKAGE_TIMEOUTS.get(pkg, DEFAULT_TIMEOUT)
 
 
 def needs_386(changes):
@@ -703,6 +714,8 @@ def main(argv=None):
     s.add_argument("--narrow", action="store_true", help="test-smart's narrow precheck selection")
     c = sub.add_parser("census")
     c.add_argument("--base", default="origin/main")
+    t = sub.add_parser("timeout")
+    t.add_argument("--pkg", required=True)
     a = ap.parse_args(argv)
     pk = [p for p in a.pkgs.split(",") if p] if hasattr(a, "pkgs") else []
     if a.cmd == "verdict":
@@ -715,6 +728,9 @@ def main(argv=None):
                       changed=diff_changed_tests(a.base) if a.base else None)
     if a.cmd == "census":
         return cmd_census(a)
+    if a.cmd == "timeout":
+        print(timeout_for(a.pkg))
+        return 0
     return cmd_select(a)
 
 
