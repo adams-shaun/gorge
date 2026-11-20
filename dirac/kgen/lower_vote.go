@@ -28,13 +28,11 @@ import (
 //     GenericChoice shape).
 //
 // A fixed-list Vote on a triggered ability whose StoreVoteNum$ is absent
-// refuses: gorge's placement ask treats a triggered Vote's Choices$ as modal
-// (charm_params.go isModalSA), so it poses a spurious CR 603.3c mode choice
-// before the trigger goes on the stack, and effVote never reads it. That is a
-// gorge defect, not a rules shape to copy; until gorge is fixed the card stays
-// refused by name. The StoreVoteNum$ form reproduces that placement ask (the
-// carriers this lowering admits cannot lockstep without it) and resolves the
-// vote once, behind the chosen mode's OpCharm block.
+// stays refused by name (no lockstep evidence yet). Gorge once posed a
+// spurious CR 603.3c placement mode for a triggered Vote's Choices$ and the
+// StoreVoteNum$ form reproduced it behind an OpCharm block; gorge no longer
+// does (engine/rules askTriggerModes), so a triggered Vote lowers as a spell's
+// does, with no Charm and no modes on the ability.
 //
 // VoteMessage$ is the prompt and AILogic$ a Forge AI hint; neither changes
 // the rules. StoreVoteNum$ True makes every option body resolve with VoteNum
@@ -142,16 +140,13 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 		}
 	}
 	ps.consume("VoteMessage", "AILogic", "EachVote", "TargetType", "StoreVoteNum")
-	if lc.ab.Kind == akTriggered {
-		if !store {
-			// gorge asks a spurious placement mode for a triggered fixed-list
-			// Vote (charm_params.go isModalSA), a gorge defect the general
-			// lowering does not copy. The StoreVoteNum$ carriers this change
-			// admits cannot lower without that ask, so only that form
-			// reproduces it.
-			return refuse("Vote on a triggered ability: gorge asks a spurious placement mode")
-		}
-		return lc.triggeredFixedVote(names, tie, store)
+	if lc.ab.Kind == akTriggered && !store {
+		// Only the StoreVoteNum$ carriers are lowered on a triggered ability:
+		// gorge poses no placement mode for a triggered Vote (CR 701.38a is
+		// not CR 603.3c modal placement; engine/rules askTriggerModes), so the
+		// vote lowers exactly as a spell's. The other triggered carriers stay
+		// refused until a lockstep game covers them.
+		return refuse("Vote on a triggered ability: gorge asks a spurious placement mode")
 	}
 	if store && tie != "" {
 		// gorge's StoreVoteNum branch returns before the tie branch, so a
@@ -160,30 +155,6 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 		return refuse("Vote StoreVoteNum$ beside VoteTiedAbility$")
 	}
 	return lc.emitFixedVote(names, tie, store)
-}
-
-// triggeredFixedVote lowers a StoreVoteNum$ fixed-list Vote on a triggered
-// ability. Gorge treats a triggered Vote's Choices$ as modal at trigger
-// placement (charm_params.go isModalSA) and asks the controller one mode
-// before the trigger goes on the stack; effVote never reads that answer. The
-// kernel asks the same placement mode only when the ability carries modes, so
-// the vote (and its branches) is repeated once per mode behind an OpCharm
-// block: the chosen mode runs its copy, the others are skipped, and every
-// copy resolves the same vote.
-func (lc *lowerCtx) triggeredFixedVote(names []string, tie string, store bool) error {
-	if lc.ab.Modes != 0 {
-		return refuse("Vote on an ability that is already modal")
-	}
-	lc.ab.Modes, lc.ab.ModesPick, lc.ab.ModesMin = len(names), 1, 1
-	for i := range names {
-		at := len(lc.ab.Prog)
-		lc.emit(lInstr{Op: "Charm", C: i})
-		if err := lc.emitFixedVote(names, tie, store); err != nil {
-			return err
-		}
-		lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
-	}
-	return nil
 }
 
 // emitFixedVote emits the ExtVote op and its branch blocks.
