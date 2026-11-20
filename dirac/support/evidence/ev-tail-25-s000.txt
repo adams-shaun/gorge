@@ -52,6 +52,7 @@ Dormant Gomazoa
 Dromoka Monument
 Dromoka's Gift
 Duel for Dominance
+Dutiful Thrull
 Eater of Hope
 Eidolon of Philosophy
 Electropotence
@@ -64,6 +65,7 @@ Fallen Cleric
 Fang Dragon
 Fangren Hunter
 Fell Shepherd
+Fiery Inscription
 Fireslinger
 Forest
 Forging the Anchor
@@ -145,6 +147,7 @@ Quest for the Nihil Stone
 Rampaging Hippo
 Reckless Amplimancer
 Rejuvenating Springs
+Repulse
 Resistance Squad
 Return Upon the Tide
 Revered Unicorn
@@ -183,12 +186,14 @@ Stromkirk Mentor
 Summoner's Bane
 Svyelun of Sea and Sky
 Swamp
+Sweltering Suns
 Tajuru Beastmaster
 Talas Scout
 Tendrils of Despair
 The Spear of Leonidas
 Thorin, King of Durin's Folk
 Thornhide Wolves
+Thrummingbird
 Thrun, Breaker of Silence
 Thundering Rebuke
 Treacherous Vampire

@@ -172,6 +172,7 @@ Foxfire Oak
 Frightcrawler
 From the Rubble
 Furious Spinesplitter
+Gary Clone
 Gaze of Granite
 Genestealer Locus
 Geralf's Mindcrusher
@@ -481,6 +482,7 @@ Volcanic Upheaval
 Voyager Staff
 Wall of Vines
 Warmonger Hellkite
+Wasteland Raider
 Waterknot
 Weapon Rack
 Wedding Invitation
@@ -498,4 +500,5 @@ Yoshimaru, Ever Faithful
 Zap
 Zealot's Conviction
 Zendikar Farguide
+Zhulodok, Void Gorger
 Zuran Enchanter
