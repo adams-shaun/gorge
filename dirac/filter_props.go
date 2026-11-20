@@ -444,9 +444,14 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 
 // snowWordPerm is W7Snow and W7NonSnow on a battlefield permanent (false for
 // any other sub-kind): the printed Snow supertype; a face-down permanent has
-// only its face-down type words (CR 708.2) and is never snow.
+// only its face-down type words (CR 708.2) and is never snow. It is also the
+// tail of wordPerm3's sub-kinds, so W7WithSkulk (gorge withSkulk as withInfect:
+// the printed keyword or a granted one, kw_kwmark.go hasSkulkPerm) is read here.
 func (s *State) snowWordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
 	n := fl.PredN & 0xff
+	if n == kop.W7WithSkulk {
+		return s.hasSkulkPerm(k, sl)
+	}
 	if n != kop.W7Snow && n != kop.W7NonSnow {
 		return false
 	}
@@ -475,6 +480,8 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		ans = c != kop.NoCard && k.t.Cards[c].Keywords&kop.KwFlashback != 0
 	case kop.W7WithInfect:
 		ans = c != kop.NoCard && k.t.Cards[c].Infect
+	case kop.W7WithSkulk:
+		ans = c != kop.NoCard && k.t.Cards[c].Evasion&kop.EvSkulk != 0
 	case kop.W7Snow:
 		ans = (c != kop.NoCard && k.t.Cards[c].Snow && !fd) != DebugSnowWordFlip
 	case kop.W7NonSnow:

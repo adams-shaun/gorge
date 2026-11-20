@@ -589,6 +589,14 @@ const W7NonSnow int16 = 38
 // TrigReturn pick (Permanent.ExiledWithSource+!IsImprinted).
 const W7NotImprinted int16 = 39
 
+// W7WithSkulk (PredWord7 sub-kind 40): the permanent has skulk, the keyword
+// word withSkulk (gorge effects/filter.go keywordPredicates, as withInfect).
+// The printed CardDef.Evasion EvSkulk (none face down or after a
+// lose-all-abilities effect), or a granted one (a Continuous static's
+// Evasion or an ExtKwMark KwMarkSkulk, kw_kwmark.go); off the battlefield the
+// printed card in any zone. The Master, Mesmerist.
+const W7WithSkulk int16 = 40
+
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
 // (net power equal to net toughness) and PTRelNE its negation !equalPT, each

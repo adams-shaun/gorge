@@ -359,7 +359,6 @@ var knownUnknownFilterPredicates = []string{
 	"withMostPermanentInPlay",
 	"withPartner",
 	"withProtection",
-	"withSkulk",
 	"withTypeCycling",
 	"withoutAt the beginning of your upkeep",
 	"withoutCumulative upkeep",
