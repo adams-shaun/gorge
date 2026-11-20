@@ -472,9 +472,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			if in.C&kop.MvLKI != 0 {
 				s.markRemLKI(o) // zone_rememberparams.go
 			}
-			if s.value(k, in.A) > 0 && kop.CounterKind(in.B.N) == kop.CtrStash {
-				s.stashSet(k, o)
-			}
+			s.exileMoveCounter(k, in, o) // repl_exilectr.go: the stash counter, or a modelled kind's record
 			if k.gen.anySuspend && kop.CounterKind(in.B.N) == kop.CtrTime {
 				s.suspendExiled(k, o, s.value(k, in.A)) // a Suspend spell exiling itself with time counters (kw_suspend.go)
 			}

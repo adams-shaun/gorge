@@ -2,51 +2,53 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// A card exiled by a dies-to-exile replacement that puts a counter on it
-// (Dauthi Voidwalker's VOID, Draugr Necromancer's ICE) keeps the counter in
+// A card exiled with a counter on it (Dauthi Voidwalker's VOID, Draugr
+// Necromancer's ICE from a dies-to-exile replacement; Grolnok's CROAK and
+// Etrata's HIT from an "exile it with a counter" move) keeps the counter in
 // exile. The kernel stores counters on battlefield permanents only
-// (s.perms[].ctr), so the exiled card's counter lives in a one-byte
+// (s.perms[].ctr), so the exiled card's counter lives in a two-byte
 // per-object cold record: no hot State bytes. The record is version-keyed to
 // its entry move (CR 400.7: a zone change makes a new object and bumps ver),
 // so it answers only for the object that entered exile with it — a card that
 // leaves exile by any path (the cast push writes zone and bumps ver
 // directly, pushBuild) never lets its old record answer for a later exile of
-// a new object. The kinds the dies-to-exile bodies name are the
-// modelled codes, and kgen refuses any other kind or a count above the field
-// (exileBody, lower_repl.go).
-const maxExileCtrCount = 3
+// a new object. The modelled kinds are the exileCtrKinds table; kgen refuses
+// a dies-to-exile body with any other kind or a count above 3 (exileBody,
+// lower_repl.go), and an exile move's count past maxExileCtrCount is a
+// capacity stall (stampExileMoveCounter).
+const maxExileCtrCount = 15
 
-// exileCtr is one exiled card's counter record, packed in a byte so the
-// region is one byte per object (a pool at the State bar cannot pay more):
-// bits 0-3 are the entry ver (the object's ver just before the move that
-// brought it to exile, one bump, taken mod 16), bits 4-5 the kind's index in
-// exileCtrKinds, bits 6-7 the count 1..maxExileCtrCount (0: no record). The
+// exileCtr is one exiled card's counter record, packed in two bytes: bits 0-7
+// are the kind's 1-based index in exileCtrKinds, bits 8-11 the entry ver (the
+// object's ver just before the move that brought it to exile, one bump, taken
+// mod 16), bits 12-15 the count 1..maxExileCtrCount (0: no record). The
 // record answers only for the object that entered exile with it; a later
 // object in exile carries a different ver and reads nothing. clearExileCounter
 // zeroes it on the leave paths that run it, so the 4-bit ver only has to
 // separate the leave paths that do not (the cast push).
-type exileCtr uint8
+type exileCtr uint16
 
 func packExileCtr(ver uint8, code uint8, n uint8) exileCtr {
-	return exileCtr(ver&15 | (code-1)&3<<4 | n&3<<6)
+	return exileCtr(code) | exileCtr(ver&15)<<8 | exileCtr(n&15)<<12
 }
 
-func (e exileCtr) ver() uint8 { return uint8(e) & 15 }
+func (e exileCtr) ver() uint8 { return uint8(e >> 8 & 15) }
 
 // kind is the record's counter kind (0 when the record is empty).
 func (e exileCtr) kind() kop.CounterKind {
-	if e.n() == 0 {
+	code := int(e & 0xff)
+	if e.n() == 0 || code == 0 || code > len(exileCtrKinds) {
 		return 0
 	}
-	return exileCtrKinds[uint8(e)>>4&3]
+	return exileCtrKinds[code-1]
 }
 
-func (e exileCtr) n() uint8 { return uint8(e) >> 6 }
+func (e exileCtr) n() uint8 { return uint8(e >> 12) }
 
-// exileCtrKinds is the code table: a byte's low nibble is 1 + the index here.
-var exileCtrKinds = [...]kop.CounterKind{kop.CtrVoid, kop.CtrIce, kop.CtrBlood, kop.CtrHit}
+// exileCtrKinds is the code table: a record's low byte is 1 + the index here.
+var exileCtrKinds = [...]kop.CounterKind{kop.CtrVoid, kop.CtrIce, kop.CtrBlood, kop.CtrHit, kop.CtrCroak}
 
-// exileCtrCodeOf maps a counter kind to its 1..4 code (0: not modelled).
+// exileCtrCodeOf maps a counter kind to its 1-based code (0: not modelled).
 func exileCtrCodeOf(kind kop.CounterKind) uint8 {
 	for i, k := range exileCtrKinds {
 		if k == kind {
@@ -57,7 +59,7 @@ func exileCtrCodeOf(kind kop.CounterKind) uint8 {
 }
 
 // useExileCtr: some card's ReplExileOnLeave leaves a counter on the exiled
-// card. A registered per-table flag (genneed.go), not a genPrep field.
+// card, or some exile move carries a modelled counter rider (OpExileEx). A registered per-table flag (genneed.go), not a genPrep field.
 var useExileCtr = newGenUse(func(t *kop.Table) bool {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
@@ -70,7 +72,7 @@ var useExileCtr = newGenUse(func(t *kop.Table) bool {
 			}
 		}
 	}
-	return false
+	return tableExilesWithCounter(t)
 })
 
 // exileCtrNeed sizes the cold region: only a table whose cards include an
@@ -147,7 +149,7 @@ func (s *State) predCountersGECard(k *prep, o Obj, n int) bool {
 
 // projExileCounter writes o's exile counter into its projection.
 func (s *State) projExileCounter(k *prep, o Obj, po *ProjObj) {
-	if k.gen == nil || k.gen.exileOnLeave == nil || s.objs[o].zone != kop.ZoneExile {
+	if k.gen == nil || !k.gen.uses.has(useExileCtr) || s.objs[o].zone != kop.ZoneExile {
 		return
 	}
 	if kind, n := s.exileCounterAt(o); kind != 0 {
@@ -186,4 +188,58 @@ func exileCounterKind(t *kop.Table, c CardID, f kop.FilterID) (kop.CounterKind, 
 // and the count above it.
 func replExileCtr(a int16) (kop.CounterKind, uint8) {
 	return kop.CounterKind(uint8(a)), uint8(uint16(a) >> 8)
+}
+
+// abilityExilesWithCounter: a's program has an OpExileEx with a modelled
+// counter rider.
+func abilityExilesWithCounter(a *kop.Ability) bool {
+	for i := range a.Prog {
+		if in := &a.Prog[i]; in.Op == kop.OpExileEx && exileCtrCodeOf(kop.CounterKind(in.B.N)) != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// tableExilesWithCounter: some card's exile move (OpExileEx) carries a counter
+// rider of a kind the record models. Stash and Time keep their own stores and
+// are not in the code table.
+func tableExilesWithCounter(t *kop.Table) bool {
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			if abilityExilesWithCounter(&t.Cards[i].Abilities[j]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// DebugExileCounterDropped (TestExileWithCounterRecordMutation): an exile move
+// keeps no counter for a kind outside Stash and Time, the old behaviour.
+var DebugExileCounterDropped bool
+
+// exileMoveCounter handles the counter rider of an OpExileEx move that just
+// put o in exile (CR 122.1: the card keeps the counters it was exiled with):
+// Stash marks the object, any other modelled kind is recorded. Time (suspend)
+// has its own arm. A count past the record's field is a capacity stall, never
+// a clamp.
+func (s *State) exileMoveCounter(k *prep, in *kop.Instr, o Obj) {
+	kind := kop.CounterKind(in.B.N)
+	n := s.value(k, in.A)
+	if n <= 0 {
+		return
+	}
+	if kind == kop.CtrStash {
+		s.stashSet(k, o)
+		return
+	}
+	if DebugExileCounterDropped || exileCtrCodeOf(kind) == 0 {
+		return
+	}
+	if n > maxExileCtrCount {
+		s.capFull(StallBoard)
+		return
+	}
+	s.stampExileCounterMoved(o, kind, n)
 }
