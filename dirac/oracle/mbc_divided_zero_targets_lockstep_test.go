@@ -6,6 +6,8 @@ import "testing"
 // creatures you control") may be cast with no targets; the first target
 // decision must offer done on both engines.
 func TestMBCStormTheSeedcoreReprosLockstep(t *testing.T) {
-	t.Parallel()
+	if landGrantReplay(t) {
+		return
+	}
 	stdReproNamed(t, "divided_counters_up_to_zero_targets")
 }
