@@ -190,16 +190,15 @@ func (lc *lowerCtx) sameNameT0CardFilter(ps *params) (*lFilter, error) {
 // sameNameT0TokenFilter lowers czaSameNameTokens (Legions to Ashes): a
 // battlefield sweep taking target 0 itself and every token with its name that
 // the target's controller controls, as two OR'd clauses: A is Permanent
-// targetedBy (the spell's one target), B is Permanent.token+OppCtrl reading
-// PredSameNameT0 (the target, or a permanent with its name; State.sameNameT0).
-//
-// "ControlledBy TargetedController" is OppCtrl only under this gate: dirac is
-// a two-player engine, the one target is an opponent-controlled permanent
-// (every clause of its ValidTgts reads OppCtrl), and the spell resolves only
-// while that target is legal (CR 608.2b), so its controller is then the
-// caster's opponent. The sweep collects its whole match mask before it moves
-// anything (czallBattleHalf), so the target is still on the battlefield while
-// every candidate is matched.
+// targetedBy (the spell's one target), B is Permanent.token reading
+// PredSameNameT0 (the target, or a permanent with its name; State.sameNameT0)
+// whose controller is target 0's controller (CtrlTgt, the kernel's
+// TargetedOrController role: a player target is that player, an object target
+// its controller, CR 608.2h). The object target's controller is the target's
+// player at any seat count, not the caster's one opponent; with one opponent
+// they are the same seat. The sweep collects its whole match mask before it
+// moves anything (czallBattleHalf), so the target is still on the battlefield
+// while every candidate is matched.
 func (lc *lowerCtx) sameNameT0TokenFilter(ps *params) (*lFilter, error) {
 	const word = "same-name tokens ControlledBy TargetedController"
 	if strings.TrimSpace(ps.str("Origin")) != "Battlefield" || ps.peek("Defined") != "" {
@@ -217,12 +216,13 @@ func (lc *lowerCtx) sameNameT0TokenFilter(ps *params) (*lFilter, error) {
 	if err != nil || len(a.Clauses) != 1 {
 		return nil, refuse("%s: Permanent.targetedBy", word)
 	}
-	b, err := lc.filter("Permanent.token+OppCtrl")
+	b, err := lc.filter("Permanent.token")
 	if err != nil || len(b.Clauses) != 1 {
-		return nil, refuse("%s: Permanent.token+OppCtrl", word)
+		return nil, refuse("%s: Permanent.token", word)
 	}
+	b.Clauses[0].Ctrl = whoTgtOrCtrl
+	b.Clauses[0].CtrlTgt = 1 // target slot 0 (the ability has exactly one)
 	b.Clauses[0].CmpStat = cmpSameNameT0
-	lc.twoSeat("ControlledBy TargetedController read as OppCtrl")
 	return &lFilter{Clauses: []lClause{a.Clauses[0], b.Clauses[0]}}, nil
 }
 
