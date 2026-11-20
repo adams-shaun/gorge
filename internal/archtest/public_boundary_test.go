@@ -337,6 +337,7 @@ func walkPublicFiles(t *testing.T, visit func(path string, blob []byte)) map[str
 // ticket tags in the moved trees, engine/ and the draft commands (ADR 0002
 // decision 6).
 func TestPublicBoundary(t *testing.T) {
+	t.Parallel()
 	var bad []string
 	seen := walkPublicFiles(t, func(p string, blob []byte) {
 		bad = append(bad, publicBoundaryViolations(p, blob)...)

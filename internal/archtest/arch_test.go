@@ -41,24 +41,40 @@ type pkg struct {
 // `go build`) call openModulePackageDirs for the same side effect.
 func packages(t *testing.T) map[string]pkg {
 	t.Helper()
+	pkgsOnce.Do(func() { pkgsCache, pkgsErr = loadPackages() })
+	if pkgsErr != nil {
+		t.Fatal(pkgsErr)
+	}
+	openModulePackageDirs(t, pkgsCache)
+	return pkgsCache
+}
+
+// pkgsOnce shares one `go list` across every test in the binary; the result
+// is read-only (no caller mutates the map or its sets).
+var (
+	pkgsOnce  sync.Once
+	pkgsCache map[string]pkg
+	pkgsErr   error
+)
+
+func loadPackages() (map[string]pkg, error) {
 	out, err := exec.Command("go", "list", "-f", `{{.ImportPath}}|{{join .Imports " "}}|{{join .Deps " "}}|{{.Dir}}`, module+"/...").Output()
 	if err != nil {
-		t.Fatalf("go list: %v", err)
+		return nil, fmt.Errorf("go list: %v", err)
 	}
 	pkgs := map[string]pkg{}
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		parts := strings.SplitN(line, "|", 4)
 		if len(parts) != 4 {
-			t.Fatalf("unexpected go list line %q", line)
+			return nil, fmt.Errorf("unexpected go list line %q", line)
 		}
 		p := pkg{path: parts[0], imports: set(parts[1]), deps: set(parts[2]), dir: parts[3]}
 		pkgs[p.path] = p
 	}
 	if len(pkgs) < 10 {
-		t.Fatalf("go list found only %d packages", len(pkgs))
+		return nil, fmt.Errorf("go list found only %d packages", len(pkgs))
 	}
-	openModulePackageDirs(t, pkgs)
-	return pkgs
+	return pkgs, nil
 }
 
 // openModulePackageDirs opens every package directory in pkgs from the test
@@ -401,6 +417,7 @@ func TestManaBrewWireIsStdlibOnly(t *testing.T) {
 // of these type names (were state.GameX or rules.EngineY ever to exist)
 // still does not trip it.
 func TestNoExportLeaksAnEngineGame(t *testing.T) {
+	t.Parallel()
 	// `go doc` reads host's source through a subprocess, invisible to go
 	// test's result cache. packages() opens every module package directory
 	// so a source change invalidates this test's cached result (see its doc
@@ -620,6 +637,7 @@ func mustCwd() string {
 // the `/...` pattern never names them and this build cannot race their
 // cleanup.
 func TestEngineCompilesFor32Bit(t *testing.T) {
+	t.Parallel()
 	// `go build` reads the module's source through a subprocess, invisible to
 	// go test's result cache. packages() opens every module package directory
 	// so a source change invalidates this test's cached result (see its doc
