@@ -198,18 +198,40 @@ func TestPermcopyOmenCopyCeases(t *testing.T) {
 	}
 }
 
-// TestPermcopyFaceStall: a permanent-spell copy of a modal two-faced card stalls
-// loud (CR 707.10g is not modelled).
+// TestPermcopyFaceStall: a permanent-spell copy of a modal two-faced card cast
+// back face up stalls loud (CR 707.10g's back-face-up copy is not modelled).
 func TestPermcopyFaceStall(t *testing.T) {
-	sc, _, _, _ := permcopyCast(t, true)
-	for i := 0; i < 20 && sc.s.StallReason() == 0; i++ {
-		d := sc.s.Step()
-		if d.Kind == DkNone {
-			break
-		}
-		sc.s.Apply(d.Options[0])
+	tb, _, _, _, _ := permcopyTable()
+	front, back := CardID(len(tb.Cards)), CardID(len(tb.Cards)+1)
+	for i, name := range []string{"Test Modal Front", "Test Modal Back"} {
+		tb.Cards = append(tb.Cards, kop.CardDef{Name: name, Cost: kop.ManaCost{Generic: 1}, Types: kop.TCreature,
+			Power: 1, Toughness: 1, FaceMode: kop.FaceModal, Face: uint8(i), Faces: []CardID{front, back}})
+	}
+	sc := newScenTable(t, tb, Config{NoElide: true})
+	if sc.s.permCopyBlocked(sc.k, &stackEntry{card: front}) {
+		t.Fatal("a modal card cast front face up was blocked")
+	}
+	if sc.s.StallReason() != 0 {
+		t.Fatalf("front face stalled at %q", StallName(sc.s.StallReason()))
+	}
+	if !sc.s.permCopyBlocked(sc.k, &stackEntry{card: back}) {
+		t.Fatal("a modal card cast back face up was not blocked")
 	}
 	if got := sc.s.StallReason(); got != StallCopyFace {
 		t.Fatalf("stall reason %q, want copyface", StallName(got))
+	}
+}
+
+// TestPermcopyModalFrontResolves: the copy of a modal two-faced card's
+// front-face permanent spell resolves as an ordinary copy (CR 707.10f) with a
+// double-faced token (CR 707.10g): the game does not stall.
+func TestPermcopyModalFrontResolves(t *testing.T) {
+	sc, _, c, _ := permcopyCast(t, true)
+	sc.resolveAll(t)
+	if r := sc.s.StallReason(); r != 0 {
+		t.Fatalf("stalled at %q", StallName(r))
+	}
+	if n := len(sc.copiesOf(c)); n != 2 {
+		t.Fatalf("%d permanents of the card, want the original and its copy", n)
 	}
 }
