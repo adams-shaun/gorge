@@ -637,7 +637,34 @@ func grantedTriggerAt(m *Matchup, g *state.Game, o *state.Object, ab uint8) bool
 	if ab&0x80 == 0 || ab == 255 {
 		return false
 	}
+	if printsTriggersOf(m, o.Face()) {
+		return false // a plain copy of a card that prints its triggers (Mirror Image as Herald of the Host): the kernel lists them under the copied card
+	}
 	return grantedTriggerOf(g, o, ab) || copyGrantedTriggerAt(m, o, int(ab&0x7F))
+}
+
+// printsTriggersOf reports whether a card of the matchup's decks or
+// sideboards prints a face of f's name with as many triggers as f has. A copy
+// effect that adds a trigger (CR 707.9b: an "except it has myriad", an
+// AddTriggers$ or a kept GainThisAbility$) leaves f with more than the copied
+// card prints, so a face that matches one only holds printed triggers.
+func printsTriggersOf(m *Matchup, f *cards.Face) bool {
+	if m == nil || f == nil {
+		return false
+	}
+	for _, list := range [4][]*cards.Card{m.Decks[0], m.Decks[1], m.Sideboards[0], m.Sideboards[1]} {
+		for _, c := range list {
+			if c == nil {
+				continue
+			}
+			for _, cf := range c.Faces {
+				if cf != nil && cf.Name == f.Name && len(cf.Triggers) == len(f.Triggers) {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // seatFields points at seat s's per-seat Projection fields.
