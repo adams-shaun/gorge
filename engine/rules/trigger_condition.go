@@ -462,7 +462,7 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 			return false
 		}
 	}
-	if spec, ok := t.Param(cards.PKCheckDefinedPlayer); ok && !e.checkDefinedPlayerHoldsCtx(spec, source, you, tc) {
+	if spec, ok := t.Param(cards.PKCheckDefinedPlayer); ok && !checkDefinedPlayerHoldsCtx(e, spec, source, you, tc) {
 		// CR 603.4 intervening-if (Servant of the Stinger's "if you've
 		// committed a crime this turn"). Evaluated for EVERY trigger mode,
 		// and a predicate this build cannot read fails closed.
@@ -513,12 +513,13 @@ func (e *Engine) manaColourSpendHolds(source state.ObjID, tc *effects.TriggerCon
 // matches no seat for a qualifier it does not know). The corpus census in
 // engine/rules/check_defined_player_census_test.go pins which spellings are read.
 func (e *Engine) checkDefinedPlayerHolds(spec string, source state.ObjID, you state.PlayerID) bool {
-	return e.checkDefinedPlayerHoldsCtx(spec, source, you, nil)
+	return checkDefinedPlayerHoldsCtx(e, spec, source, you, nil)
 }
 
 // checkDefinedPlayerHoldsCtx is checkDefinedPlayerHolds with the triggering
-// event's roles supplied (nil for a replacement or a context-free caller).
-func (e *Engine) checkDefinedPlayerHoldsCtx(spec string, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext) bool {
+// event's roles supplied (nil for a replacement or a context-free caller). It
+// is a free function over the engine, not a method: the gate lives once.
+func checkDefinedPlayerHoldsCtx(e *Engine, spec string, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext) bool {
 	base, property, ok := strings.Cut(strings.TrimSpace(spec), ".")
 	if !ok || property == "" {
 		return false

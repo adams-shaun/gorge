@@ -3157,7 +3157,7 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 	// applied uniformly to every mode so the same T: line grammar (a
 	// LifeAmount$ or IsPresent$+PresentCompare$ clause on the trigger) is
 	// honoured wherever it appears.
-	if !e.triggerConditionHoldsWithSVars(t, source, e.controllerOf(source), e.attackDefenderContext(t, ev), ownedSVars) {
+	if !e.triggerConditionHoldsWithSVars(t, source, e.controllerOf(source), attackDefenderContext(e, t, ev), ownedSVars) {
 		return false
 	}
 	return true
@@ -3168,7 +3168,7 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 // resolution-time check does (Siege Dragon's "if defending player controls no
 // Walls"). Only the combat declaration modes carry a defender; every other
 // mode keeps the nil context.
-func (e *Engine) attackDefenderContext(t cards.Trigger, ev events.Event) *effects.TriggerContext {
+func attackDefenderContext(e *Engine, t cards.Trigger, ev events.Event) *effects.TriggerContext {
 	switch t.ModeKind() {
 	case cards.TriggerAttacks, cards.TriggerAttackersDeclared, cards.TriggerAttackersDeclaredOneTarget:
 		d := state.Target{Player: ev.Player, IsPlayer: true}

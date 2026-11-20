@@ -73,11 +73,11 @@ func TestSuppressorSkyguardGateNeedsTheAttackRoles(t *testing.T) {
 	}
 	atk := state.Target{Player: 0, IsPlayer: true}
 	tc := &effects.TriggerContext{AttackingPlayer: atk}
-	if e.checkDefinedPlayerHoldsCtx(spec, src, 1, tc) {
+	if checkDefinedPlayerHoldsCtx(e, spec, src, 1, tc) {
 		t.Fatal("attacking player bound but no defending player: `!Defending` must not invert the absence into a match")
 	}
 	tc.DefendingPlayer = state.Target{Player: 1, IsPlayer: true}
-	if !e.checkDefinedPlayerHoldsCtx(spec, src, 1, tc) {
+	if !checkDefinedPlayerHoldsCtx(e, spec, src, 1, tc) {
 		t.Fatal("seat 0 attacks seat 1 on a three-seat table: seat 2 is an unattacked opponent, the gate must hold")
 	}
 }
