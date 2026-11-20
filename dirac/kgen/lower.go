@@ -1338,14 +1338,6 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
-		case head == "Embalm":
-			// CR 702.128a: gorge expands it into a graveyard ability (AB$
-			// CopyPermanent | Cost$ <cost> ExileFromGrave<1/CARDNAME> |
-			// SorcerySpeed$, RemoveCost$, SetColor$ White, AddTypes$
-			// Zombie), lowered from that line
-			if !lc.hasKeywordLine(k) {
-				lc.refuseNode(node, "keyword %q without its ability", head)
-			}
 		case head == "Encore":
 			// CR 702.141a: gorge kwEncore expands it into one graveyard
 			// AB$ Encore (Cost$ <cost> ExileFromGrave<1/CARDNAME>,
