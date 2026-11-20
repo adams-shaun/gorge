@@ -75,7 +75,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	if done, err := lc.lowerTriggerSplit(t, zone); done {
 		return err
 	}
-	var atkMostLife, descended, dethrone bool // fire-time player gates
+	var descended, dethrone bool // fire-time player gates
 	ab := &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities)}
 	defer func(b bool) { lc.trigBody = b }(lc.trigBody)
 	lc.trigBody = false
@@ -315,9 +315,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		if v, ok := tp.get("Attacked"); ok {
 			// gorge attackedDefenderMatches, from the trigger controller's
-			// seat: only the player / your-planeswalker alternatives the
-			// two-player kernel answers exactly; the rest refuse
-			// (seat-exact but for Player.withMostLife, marked below)
+			// seat: the player / your-planeswalker alternatives the kernel
+			// answers exactly; the rest refuse
 			for _, alt := range strings.Split(v, ",") {
 				switch strings.TrimSpace(alt) {
 				case "You":
@@ -341,15 +340,15 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				case "Player.withMostLife":
 					// gorge attackedDefenderMatches over MatchesPlayerSpec:
 					// the attacked player has the most life or is tied
-					// (playerHasMost Life), read at the declaration only;
-					// two-player, the defending player is the opponent
-					// (Preacher of the Schism)
+					// (playerHasMost Life), read at the declaration only.
+					// seat-exact: the gate is dethroneCond's comparison over
+					// the defended seat (kop.RefDefendingPlayer), not the one
+					// opponent (Preacher of the Schism, Undercover Butler).
 					if strings.Contains(v, ",") {
 						return refuse("Attacks Attacked %q", v)
 					}
 					tr.Attacked |= atkOpp
-					atkMostLife = true
-					lc.twoSeat("Attacked$ Player.withMostLife read as the one opponent")
+					dethrone = true
 				default:
 					return refuse("Attacks Attacked %q", v)
 				}
@@ -1591,7 +1590,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	// Intervening-if conditions.
 	noResolve := tp.is("NoResolvingCheck", "True")
 	var conds []lCond
-	fireOnly, err := lc.kvfTriggerConds(tp, &conds, atkMostLife, descended)
+	fireOnly, err := lc.kvfTriggerConds(tp, &conds, descended)
 	if err != nil {
 		return err
 	}
