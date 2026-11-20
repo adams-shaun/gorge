@@ -388,13 +388,14 @@ func interchangeableAttackers(d *Decision, candidates []blocker) [][]state.ObjID
 
 // blockSearchMemoizable reports that what's still legal in the team search reads
 // only the blockers per attacker, not which ones: no budget, life charge, shared
-// group or can't-block-alone creature.
+// group or declaration-bound creature (can't block alone, only alone, or
+// needing companions): AloneLegal reads WHICH blockers were chosen.
 func (d *Decision) blockSearchMemoizable(lifeBound int32) bool {
 	if d.HasBudget() || lifeBound >= 0 {
 		return false
 	}
 	for i := range d.Options {
-		if o := &d.Options[i]; o.BlockMustAll || o.Group != "" || o.AloneRestricted {
+		if o := &d.Options[i]; o.BlockMustAll || o.Group != "" || o.aloneBound() {
 			return false
 		}
 	}
