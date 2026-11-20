@@ -1225,6 +1225,11 @@ type filtSearch struct {
 	// stall: the first stall a failed line's fork latched (stallOf), StallNone
 	// none; filtScript declares it when the whole search fails
 	stall uint8
+	// offerKnown/offerOK: the current node's offer check (the terminal's
+	// read, run when a gap has been used or a guide exiled). The doomed-node
+	// bound reads it before the passes recurse, so a nested visit's value
+	// never reaches it.
+	offerKnown, offerOK bool
 	// need is the colours the play's printed base announces (playNeed, the
 	// set the grant search reads too): the filter's colour ask tries one of
 	// those first, the mirror of gorge's scriptOrderAnswers on the same ask.
@@ -1992,6 +1997,68 @@ func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap, freeOnly bool) b
 	return life
 }
 
+// usableGap reports whether a filter gap of the search can still be
+// activated at t: its production is mana a live line still banks on, so a
+// node holding one is never doomed (fundDoomed).
+func (fs *filtSearch) usableGap(k *prep, t *State) bool {
+	for b := fs.gaps; b.any(); b = b.rest() {
+		sl := b.first()
+		if fs.dead.has(sl) || sl == fs.own {
+			continue
+		}
+		if t.filtUsable(k, sl) {
+			return true
+		}
+	}
+	return false
+}
+
+// doomed reports whether no continuation of this node's line can reach the
+// terminal: the node's own offer check already failed (a cast-only, pay-free
+// node whose terminal priced the offer), and nothing the line can still do
+// adds mana the offer check does not already count. No filter gap can still
+// activate (its production is the pool mana a live line banks on), no
+// hand-mana card sits in the hand to exile, no life-only source remains, no
+// trigger pass is on the stack (a deeper one is the path's to resolve), and
+// no tap queues a Taps trigger. A plain funder's tap only moves its census
+// unit into the pool, which the offer check prices alike, so the check
+// cannot flip and the node's funding branches are pure budget (The Coming of
+// Galactus's {2}{B}{B}{G} beside Baxter Building's {4},{T} combination: the
+// dead {C} answer's subtree spent the search's budget ordering the basics,
+// and the fee branch was never reached).
+func (fs *filtSearch) doomed(k *prep, t *State) bool {
+	if !fs.offerKnown || fs.offerOK || fs.pay != nil || fs.a.Kind() != AkCast || fs.other.any() {
+		return false
+	}
+	if t.tapExtraLive(k) || t.sp > fs.sp0 {
+		return false
+	}
+	if fs.usableGap(k, t) {
+		return false
+	}
+	if handManaOn(k) {
+		if o, _ := t.handManaPick(k, fs.p, false, 0); o != NoObj {
+			return false
+		}
+	}
+	if k.gen != nil && k.gen.uses.has(useLifeGap) && t.lifeGapMask(k, fs.p).any() {
+		return false
+	}
+	if k.gen != nil && k.gen.manaTaps && (t.subs[kop.TrigTaps].any() || k.gen.anyTapAll) {
+		return false
+	}
+	return true
+}
+
+// fundDoomed reports whether a plain funder's tap is no branch at a doomed
+// node (doomed): the tap moves a census unit the offer check already prices
+// into the pool it also prices, so it cannot flip the failed check, and the
+// branch is one node closer to the budget a live line still needs.
+func (fs *filtSearch) fundDoomed(doom bool, k *prep, t *State, sl Slot, free bool, rm uint8) bool {
+	return doom && free && rm == 0 &&
+		t.canTapForMana(k, sl) && t.manaPCGen(k, sl).manaAb >= 0
+}
+
 // twinTried reports whether an earlier slot this pass is indistinguishable
 // from sl (twinSlot): its activation subtree is isomorphic -- the same mana
 // for the same cost -- so the branch through sl reaches no payer state the
@@ -2124,7 +2191,13 @@ func (fs *filtSearch) terminal(k *prep, t *State, gapUsed bool) bool {
 	if fs.pay != nil {
 		return t.poolPays(fs.p, fs.pay)
 	}
-	if !(gapUsed || fs.hands > 0) || !fs.offers(k, t) { // (a guide's mana makes the raw priority list the play with no gap used)
+	fs.offerKnown = gapUsed || fs.hands > 0
+	ok := false
+	if fs.offerKnown {
+		ok = fs.offers(k, t) // (a guide's mana makes the raw priority list the play with no gap used)
+		fs.offerOK = ok
+	}
+	if !ok {
 		return false
 	}
 	// A filter gap whose own tap queues a Taps trigger is the window's
@@ -2230,6 +2303,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	n := t.battlefieldOrder(p, t.ctrlM[SeatIx(p)].and(t.occ), order[:], 0)
 	passes := fs.passCount()
 	feeGapsOut := false
+	doom := fs.doomed(k, t)
 	for pass := 0; pass < passes; pass++ {
 		// pass 0: the gaps; pass 1: the funding sources; pass 2: a life-only
 		// source, the last resort (gorge pays a filter's fee from a land
@@ -2336,6 +2410,19 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				if t.canSacOnlyNowAt(k, sl) && fs.try(k, t, filtStep{sl: sl, sacOnly: true}, funded+1, gapUsed) {
 					return true // a Spawn funds beside the Treasures (mana_filtfund.go)
 				}
+				continue
+			}
+			// At a doomed node (doomed: the offer check has failed here and no
+			// continuation of the line can change it) a plain funder's tap is
+			// no branch: it moves a census unit the check already prices into
+			// the pool it also prices, and the branch is one node closer to
+			// the budget a live line still needs (The Coming of Galactus's
+			// {2}{B}{B}{G} beside Baxter Building's {4},{T} combination,
+			// whose dead {C} answer otherwise spends the search's budget
+			// ordering the basics at every node). A sacrifice-only,
+			// restricted or dead funder keeps its branch: its mana is one the
+			// offer check does not already count.
+			if fs.fundDoomed(doom, k, t, sl, free, rm) {
 				continue
 			}
 			if res, stop := fs.fundTap(k, t, sl, rm, free, funded, gapUsed); stop {
