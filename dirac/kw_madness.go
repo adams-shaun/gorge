@@ -103,8 +103,26 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 				// unpayable, mana_tapsdefer.go), and one that sacrifices another
 				// permanent for its mana (Jungle Patrol's "Sacrifice a token
 				// named Wood: Add {R}", potentialGapCost's CostSac arm; CR
-				// 601.2g); without either the census and window say the same
+				// 601.2g); without either the census and window say the same.
+				// The over-bound alone is gorge's offerCastablePotential leg:
+				// its gate still runs provenUnpayable (altcast.go askMadnessCast),
+				// whose verdict here is the failed probe's "insufficient" and
+				// whose census is incomplete -- the arm's premise -- so the
+				// proof is the relaxed census's (paymentPlanRelaxProof: each
+				// once-only relaxed alternative is one tap, its largest
+				// production), the count's (potential_nogain.go
+				// costOutrunsSupply, beside a census whose gaps net no mana),
+				// or nothing, when a gap gains mana and gorge prices the offer
+				// on the bound alone (madnessDeferProofClass)
 				ok = s.potentialAffords(k, p, o, &cost)
+				if ok {
+					complete, relaxable, gains := s.madnessDeferProofClass(k, p, o)
+					if complete ||
+						relaxable && s.madnessRelaxProven(k, p, o, &cost) ||
+						!gains && s.madnessCountProven(k, p, o, &cost) {
+						ok = false // proven unpayable: the offer drops with gorge's
+					}
+				}
 			}
 		}
 	}
@@ -115,6 +133,150 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 		return false
 	}
 	return s.spellTargetsFeasible(k, c, p)
+}
+
+// madnessDeferProofClass classes p's census gaps for the creditless madness
+// cast's unpayability proofs (gorge provenUnpayable's legs, altcast.go
+// askMadnessCast, over paymentPlanCensusOf's fields). complete prices every
+// mana ability of p's in the census the arms above read (no gap: the census's
+// own "insufficient" is the proof). relaxable is false when a gap cannot be
+// relaxed to a once-only alternative -- a rider's or repeatable activation,
+// an unpriced restricted or each-colour production, a store battery's, a
+// deplete or tapX cost, a paid filter or counter-cost one (gorge
+// paymentPlanRelaxedAlternatives: "a repeatable tap source is deliberately
+// not relaxable"). gains mirrors paymentPlanCensus.gapGains: a gap that
+// could still raise the mana the payment has to spend -- a sacrificed
+// permanent (a census gap gfGapOther), a tap trigger's extra beside the tap
+// (CR 605.4a), any of the repeatable shapes -- voids the count proof. The
+// census's unpriced sources are the walk windowCensusComplete reads
+// (act_waterbend.go), so the walk here is its, reading the same gaps into
+// three booleans.
+func (s *State) madnessDeferProofClass(k *prep, p uint8, o Obj) (complete, relaxable, gains bool) {
+	complete, relaxable = true, true
+	if k.gen == nil {
+		return true, true, false
+	}
+	d := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
+	var ord [MaxPerm]Slot
+	cnt := s.battlefieldOrder(p, s.ctrlM[SeatIx(p)].and(s.occ), ord[:], 0)
+	for _, sl := range ord[:cnt] {
+		pm := &s.perms[sl]
+		lost := s.genLost(k, sl)
+		// a tapped source's {T} can contribute nothing to this payment (CR
+		// 602.2b), so it is no census gap; a lost printed source is skipped
+		// when no grant survives it
+		if pm.flags&pfTapped != 0 || s.activationSick(k, sl) ||
+			lost && !s.manaGranted(k, sl) {
+			continue
+		}
+		// a planner-deferred source (a Taps watcher, a Condition-split one, a
+		// rider) is no unit of the census (CR 605.1b); its once-only relaxed
+		// alternatives -- one tap, the census fold's largest production -- are
+		// what madnessRelaxProven bounds. Its tap can gain mana, so it is a
+		// gaining gap too (gorge's paymentPlanCensus.gapGains: neither
+		// manaFeeNetsNoMana nor manaTapAbilityNetsNoMore holds a bare {T} one)
+		// -- the count proof is void beside it, the relaxed one is not
+		if s.windowCanTap(k, sl) && s.planDeferred(k, p, sl) {
+			complete, gains = false, true
+			if _, ok := s.riderAbilityOf(k, sl); ok {
+				// a repeatable or sacrifice-self rider is no once-only
+				// relaxation either
+				relaxable = false
+				continue
+			}
+			continue
+		}
+		if !lost {
+			cd := &k.t.Cards[s.cardAt(sl)]
+			for j := range cd.Abilities {
+				a := &cd.Abilities[j]
+				// an unpriced restricted ability the payment admits is a census
+				// gap its restriction bounds (CR 106.6), no once-only unit
+				if a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 &&
+					(a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && s.restrSrcAdmits(k, p, sl, a, &d) &&
+					!s.windowPricesRestr(k, sl, a) {
+					complete, relaxable, gains = false, false, true
+				}
+				// an unpriced each-colour production (Bloom Tender's) is one too
+				if k.gen.anyEachCol && k.gen.has(s.cardAt(sl), gfEachCol) && int(s.manaPCAt(k, sl).manaAb) < 0 &&
+					!(k.gen.anyCantAct && s.actForbidden(k, sl, true)) {
+					complete, relaxable, gains = false, false, true
+				}
+			}
+		}
+		if s.depleteCensusGap(k, p, sl) {
+			complete, relaxable, gains = false, false, true // its SubCounter cost is unpriced
+		}
+		// a tap trigger that adds mana beside a source's tap makes a production
+		// no census unit prices (CR 605.4a)
+		if k.gen.anyTapExtra {
+			if _, hit := s.srcExtraHit(k, sl, s.windowGrantPC(k, sl)); hit {
+				complete, relaxable, gains = false, false, true
+			}
+		}
+	}
+	if s.storeCensusGap(k, p) {
+		complete, relaxable, gains = false, false, true // a storage battery's SubCounter<X> cost is unpriced
+	}
+	if s.tapXCensusGap(k, p).and(s.occ).any() {
+		complete, relaxable, gains = false, false, true // its tapXType cost is unpriced
+	}
+	if s.scriptCtr(k, p).any() || s.scriptFilt(k, p).any() {
+		complete, relaxable, gains = false, false, true // a counter-cost or paid-filter activation is repeatable
+	}
+	if s.sacOtherManaLive(k, p) {
+		complete, relaxable, gains = false, false, true // the sacrificed permanent is no census source
+	}
+	return complete, relaxable, gains
+}
+
+// madnessRelaxProven: pool plus the capped census -- every source once, at its
+// largest production, the planner-deferred ones included (gorge's
+// paymentPlanRelaxedAlternatives relax a gap to one tap of the census fold's
+// largest production) -- cannot fund the composed cost. The bound prices every
+// relaxed run, so when it comes short, the verdict's "insufficient" is the
+// proof (gorge paymentPlanRelaxProof, CR 601.2g-h). The restricted sources the
+// spell may spend count through their admitted view (CR 106.6), as the count
+// proof's admits read does.
+func (s *State) madnessRelaxProven(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
+	var av avail
+	s.availForCapped(k, p, &av)
+	if k.restrSrc {
+		d := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
+		if t, _, nm := s.restrSrcAvailD(k, p, d, &av, NoSlot, true); nm == 0 {
+			av = t
+		}
+	}
+	return s.manaPoolTotal(k, p)+av.total < cost.MV()
+}
+
+// madnessCountProven mirrors gorge's costOutrunsSupply (potential_nogain.go):
+// the pool and every priced census source (each tapped once, at its largest
+// production) cannot fund the composed cost's mana count. A cost whose mana
+// count can fall after announcement ({X}, a Phyrexian pip's life face) is
+// never proven (gorge's c.X, XMin and Phyrexian arms).
+func (s *State) madnessCountProven(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
+	if cost.X != 0 || cost.XRed != 0 || cost.Phyrexian() {
+		return false
+	}
+	var av avail
+	s.availFor(k, p, &av)
+	if k.restrSrc {
+		d := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
+		if t, _, nm := s.restrSrcAvailD(k, p, d, &av, NoSlot, false); nm == 0 {
+			av = t
+		}
+	}
+	return s.manaPoolTotal(k, p)+av.total < cost.MV()
+}
+
+// manaPoolTotal is p's floating pool's mana count.
+func (s *State) manaPoolTotal(k *prep, p uint8) int {
+	n := 0
+	for c := 0; c < kop.NumManaKinds; c++ {
+		n += int(s.pl[p].pool[c])
+	}
+	return n
 }
 
 // sacOtherManaLive reports whether p controls a live mana ability that
