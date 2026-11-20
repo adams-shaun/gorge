@@ -691,6 +691,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if k.gen != nil && k.gen.anyAbReduce {
 		mana = s.abReduced(k, a, sl, p.ctrl, mana) // after the ability's own and Power-up reductions
 	}
+	poolOK := false
 	if k.gen != nil && k.gen.anyPowerUp && f&kop.CostPowerUp != 0 {
 		// The autopay planner prices the PRINTED cost composed with the cost
 		// statics (planAbilityPayment calls offerCostFor, which folds the
@@ -699,37 +700,51 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// printed cost it cannot witness is not offered (powerUpWitness; gorge seed-1
 		// Hercules: {4}{G} reduced to {2}, three untapped Forests, no offer).
 		// The floating pool paying the reduced cost is enough: the plan is
-		// then a pool choice. So: offered iff the pool pays the reduced cost
-		// or the sources pay the printed one AFTER the cost statics
+		// then a pool choice, and gorge prices that pool through
+		// pay.AvailableFor (manaFeasibleDescriptorKind, CR 106.6): the
+		// restricted batches the activation may spend count with it -- a
+		// CantCastNonArtifactSpells batch leaves every non-spell payment
+		// class free (pay/payment.go), so it pays a Power-up activation
+		// (powerup_offer_restrbatch_ignored: Hydraulic Helper's batch beside
+		// Loki Laufeyson's {3}). So: offered iff that pool pays the reduced
+		// cost or the sources pay the printed one AFTER the cost statics
 		// (powerup_cost_static_planner_prices_reduced_print_torch: Hulk, Gamma
 		// Goliath's {3} Power-up reduction makes Human Torch, Johnny Storm's
 		// {6}{R} affordable from the sources at {3}{R}); the charge is always
 		// the reduced one (buildCostCharge), and the plan/charge mismatch
 		// falls back to the manual mana window (powerUpPlanRejected,
-		// mana_window.go).
-		if !s.poolPays(p.ctrl, &mana) && !s.powerUpWitnessAffords(k, sl, a, p.ctrl, av) {
+		// mana_window.go). On the pool branch the untapped sources stay out
+		// of it -- gorge's pool branch prices the pool alone -- so the
+		// sources read below is skipped when poolOK held.
+		poolOK = s.poolPaysAct(k, p.ctrl, &mana, payDesc{class: pdAct, card: s.cardAt(sl), src: sl})
+		if !poolOK && !s.powerUpWitnessAffords(k, sl, a, p.ctrl, av) {
 			return false
 		}
 	}
-	if sourcesPay(&mana) {
-		manaCost := xFloorCost(mana, costXMin(&a.Cost)) // the cheapest legal announcement (cost_sacx.go)
-		if f&kop.CostWaterbend != 0 && k.gen != nil && k.gen.anyWaterbend {
-			manaCost = s.waterbendCredit(k, p.ctrl, sl, a, manaCost)
-		}
-		if k.phyMana && manaCost.Phyrexian() {
-			// offered while some colour / life mix of its pips is payable
-			// (mana_phyrexian.go)
-			if !s.phyActAffords(k, sl, a, p.ctrl, manaCost, av) {
-				return false
-			}
-		} else if !s.abilityAffords(k, sl, a, &manaCost, av) && !s.actScriptPays(k, sl, ab, a) {
-			return false
-		}
+	if sourcesPay(&mana) && !poolOK && !s.actSourcesAfford(k, sl, ab, a, mana, av) {
+		return false
 	}
 	if mana.X == 0 && sacXCost(&a.Cost) && k.gen != nil && k.gen.anySacX {
 		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // cost_sacx.go
 	}
 	return s.abilityTargetsFeasible(k, a, p.ctrl, sl, 0xff) && s.xBoundPayable(k, a, 0, p.ctrl, sl, &mana)
+}
+
+// actSourcesAfford is canActivate's untapped-sources read: the cheapest legal
+// announcement (cost_sacx.go), the Waterbend credit, then the sources or the
+// filter script pay it. It is the only mana read of an activation the
+// floating pool does not already pay.
+func (s *State) actSourcesAfford(k *prep, sl Slot, ab int, a *kop.Ability, mana kop.ManaCost, av *avail) bool {
+	manaCost := xFloorCost(mana, costXMin(&a.Cost)) // the cheapest legal announcement (cost_sacx.go)
+	if a.Cost.Flags&kop.CostWaterbend != 0 && k.gen != nil && k.gen.anyWaterbend {
+		manaCost = s.waterbendCredit(k, s.perms[sl].ctrl, sl, a, manaCost)
+	}
+	if k.phyMana && manaCost.Phyrexian() {
+		// offered while some colour / life mix of its pips is payable
+		// (mana_phyrexian.go)
+		return s.phyActAffords(k, sl, a, s.perms[sl].ctrl, manaCost, av)
+	}
+	return s.abilityAffords(k, sl, a, &manaCost, av) || s.actScriptPays(k, sl, ab, a)
 }
 
 // sourcesPay reports whether an activation's mana cost is priced against the
