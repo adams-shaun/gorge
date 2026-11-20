@@ -959,3 +959,19 @@ def test_fallback_timeout_is_busy_not_budget(tmp_path):
     f.write_text("\n".join([ev("fail", test="TestB"), ev("fail")]))
     rc, out, _ = run_cli(*base, "--fallback", "100%")
     assert rc == 1
+
+
+def test_table_data_change_runs_the_table_readers_whole():
+    # 11-20 #2803/#2804: a change to table data in a directory with no Go package (dirac/support evidence, pools,
+    # set lists) moved kgen's supported set and selected nothing; kfuzz's synth game count went red in the batch.
+    dm = dict(NDIRMAP, **{"dirac/cardset": "m/dirac/cardset", "dirac/oracle/cmd/kfuzz": "m/dirac/oracle/cmd/kfuzz"})
+    dp = dict(NDEPS, **{"m/dirac/cardset": {"m/dirac/cardset"},
+                        "m/dirac/oracle/cmd/kfuzz": {"m/dirac/oracle/cmd/kfuzz", "m/dirac/cardset"}})
+    for path in ("dirac/support/evidence-games.tsv", "dirac/cardset/pools/fdn/a.json",
+                 "dirac/cardset/setlists/FDN.txt", "dirac/manifest/mech/x"):
+        res, _ = tt.plan({path: None}, dm, dp, lambda p: [])
+        got = {p: k for k, p, _ in res}
+        assert got.get("./dirac/cardset") == "whole", (path, got)
+        assert got.get("./dirac/oracle/cmd/kfuzz") == "whole", (path, got)
+        res, _ = tt.plan({path: None}, dm, dp, lambda p: [], None, (), {"fast": [], "sha": "0"})
+        assert {p: k for k, p, _ in res}.get("./dirac/oracle/cmd/kfuzz") == "whole", path  # not narrowed to census

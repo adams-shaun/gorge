@@ -107,6 +107,14 @@ GUARDS = (("./dirac/kop", "^TestKopOrdinalsUnchanged$"),
 #    step runs their pins either way.
 #  - the lint packages of NARROW_LINT always run whole beside ALWAYS; internal/archtest skips the 386
 #    cross-build unless needs_386.
+# Table data (11-20): the non-Go files tablesrc.go embeds in directories with no Go package (evidence, refusals,
+# pools, set lists, the manifest's keys). A change there moves dirac's tables, and so kgen's supported set, but
+# maps to no package, so it selected nothing that reads the tables: #2803/#2804 went red on kfuzz
+# TestFuzzSynthWithFlag (a game count over the supported set) that no PR's fast had run. Such a change runs
+# TABLE_READERS whole: the tables' reader and kfuzz, whose tests play the synth pools.
+TABLE_DATA = ("dirac/support/", "dirac/cardset/pools/", "dirac/cardset/setlists/", "dirac/manifest/key/",
+              "dirac/manifest/mech/")
+TABLE_READERS = ("dirac/cardset", "dirac/oracle/cmd/kfuzz")
 RULES = "./engine/rules"
 ORACLE = "./dirac/oracle"
 ARCHTEST = "./internal/archtest"
@@ -483,6 +491,12 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
                 named.setdefault(p, set()).update(n for n in names if "/" not in n)
     for path, ranges in sorted(changes.items()):
         if path.endswith(".md"):
+            continue
+        if path.startswith(TABLE_DATA) and not path.endswith(".go"):
+            for d in TABLE_READERS:
+                if d in dirmap:
+                    touched.add(dirmap[d])
+                    forced_whole.add(dirmap[d])
             continue
         p = pkg_of(path, dirmap)
         if p is None:
