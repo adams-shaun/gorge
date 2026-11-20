@@ -228,6 +228,7 @@ Needlepeak Spider
 Nekrataal
 Nettle Drone
 Nightshade Harvester
+Nightsoil Kami
 Nightveil Specter
 Nissa, Resurgent Animist
 Novijen, Heart of Progress
@@ -310,6 +311,7 @@ Sigiled Paladin
 Silverquill Campus
 Simic Signet
 Sip of Hemlock
+Skeleton Key
 Skirk Commando
 Skittering Crustacean
 Skull Raid

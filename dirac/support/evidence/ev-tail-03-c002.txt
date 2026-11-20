@@ -118,6 +118,7 @@ Fauna Shaman
 Fen Hauler
 Festering Newt
 Fiery Confluence
+Firehoof Cavalry
 Flicker of Fate
 Flowstone Infusion
 Fogwalker
@@ -180,6 +181,7 @@ Invincible Hymn
 Iridescent Angel
 Island
 Jace, Memory Adept
+Jeskai Student
 Jolrael, Mwonvuli Recluse
 Just the Wind
 Kalonian Behemoth
