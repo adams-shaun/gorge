@@ -1346,8 +1346,13 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 // hand guides the census leaves out, and runs with the pool's census flag set
 // so a Produced$ Chosen TapsForMana extra never joins a tap. takeDeferred is
 // the census's: an unless / ward window takes a planner-deferred source once
-// the rest cannot cover the cost. The second return is the first rule-gap
-// stall a line latched (StallNone none); the caller declares it at its drop
+// the rest cannot cover the cost. The second return is a FAILED search's first
+// latched rule-gap stall (StallNone none), or a found census plan's own spill:
+// a found plan never carries a failed sibling line's stall (filtScript's
+// shape). A plain window's found spill stays zero: its five windowAffords
+// callers read a found probe as final and would drop it, so the scope keeps
+// their pre-found-spill answer (only the census probe is declared at its drop
+// sites, windowPays' callers). The caller declares the return at its drop
 // site, never the probe. s is not mutated.
 //
 // The live window's answer is not this plan: gorge's window taps in its
@@ -1381,17 +1386,26 @@ func (s *State) filtPay(k *prep, p uint8, cost *kop.ManaCost, takeDeferred bool)
 	found := fs.visit(k, t, 0, false)
 	s.pool.inFilt--
 	s.pool.census = was
-	stall := fs.stall
-	if st := t.g.stalled; st != 0 && stall == 0 {
-		stall = st
-	}
+	return found, filtPayStall(&fs, found, t.g.stalled)
+}
+
+// filtPayStall is filtPay's second return: a FAILED search's first latched
+// rule-gap stall (fs.stall, or the root fork's when the lines latched none),
+// never a found plan's; a found census plan's own spill (filtScript's shape:
+// fs.stall belongs to a failed line, fs.spill to the found one); and nothing
+// for a plain window's found plan, whose five windowAffords callers read a
+// found probe as final.
+func filtPayStall(fs *filtSearch, found bool, walkStall uint8) uint8 {
 	if !found {
-		return false, stall
+		if fs.stall != 0 {
+			return fs.stall
+		}
+		return walkStall
 	}
-	if fs.spill != 0 {
-		stall = fs.spill
+	if fs.census {
+		return fs.spill
 	}
-	return true, stall
+	return 0
 }
 
 // censusPayGaps is otherGaps as the unless / ward census prices it: the set
