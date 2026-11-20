@@ -724,6 +724,38 @@ func (a *avail) hybWitnessRider(cost kop.ManaCost, x int, anyColor bool) kop.Man
 	return cost
 }
 
+// hybWitnessRiderMulti is hybWitnessRider with ns, the restricted evaluated
+// amounts (rkDyn: Helga, Vhal) restrSrcAvail returns beside the fixed units:
+// each is n mana of one colour of its mask, so a resolution one of them pays
+// is tried with affordsMulti, as lowerWitnessEx counts them (restrWitnessXPlus).
+// hybResolveAct is its only caller; anyColor is false there.
+func (a *avail) hybWitnessRiderMulti(cost kop.ManaCost, x int, anyColor bool, ns []dynUnit) kop.ManaCost {
+	if len(ns) == 0 {
+		return a.hybWitnessRider(cost, x, anyColor)
+	}
+	if cost.Hyb[0] == 0 {
+		return cost
+	}
+	if cost.Hyb[0] == kop.HybTwobrid {
+		panic("kernel: a twobrid cost reached the hybrid witness (every twobrid payment is announced first)")
+	}
+	n, f := hybFacesOf(&cost)
+	for m := 0; m < 1<<n; m++ {
+		r := f.resolve(cost, n, hybWitnessMask(m, n))
+		rx := r.AtX(x)
+		var ok bool
+		if anyColor {
+			ok = a.affordsAnyColor(&rx, 0)
+		} else {
+			ok = a.affordsMulti(&rx, 0, ns)
+		}
+		if ok {
+			return r
+		}
+	}
+	return cost
+}
+
 // maxXAsk bounds the X the kernel searches and asks: gorge's largest-X search is
 // bounded by the sources' total alone (rules potentialModeCastPlan), and a board of
 // Elves under two Priests of Titania pays 22.
