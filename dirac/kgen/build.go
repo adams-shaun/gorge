@@ -2656,6 +2656,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.LoseAbilities = o.LoseAbilities
 	ko.KeepP, ko.KeepT = o.KeepP, o.KeepT
 	ko.WhileHost, ko.CantAttack = o.WhileHost, o.CantAttack
+	ko.UntilUpkeep = o.UntilUpkeep
 	ko.WhileTapped = o.WhileTapped
 	ko.UntilEndCombat = o.UntilEndCombat
 	ko.NoCost = o.NoCost
