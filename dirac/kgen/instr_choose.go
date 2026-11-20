@@ -36,9 +36,11 @@ func (ic *instrCtx) opChooseColorRes() error {
 func (ic *instrCtx) opVote() error {
 	ki := &ic.ki
 	in := &ic.in
-	// OpExt ExtVote, F the ballot (battlefield permanents), C bit 0
-	// exile the most-voted
-	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtVote)), int16(in.C&1)
+	// OpExt ExtVote, F the card ballot (battlefield permanents), C bit 0
+	// exile the most-voted; the fixed list packs mode bit 1, the choice
+	// count in bits 2..4 and the tie branch in bit 5 (lower_vote.go,
+	// dirac/act_vote.go)
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtVote)), int16(in.C)
 	if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
 		return err
 	}
