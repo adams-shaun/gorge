@@ -1,0 +1,60 @@
+# the AffectedZone$ Stack keyword-grant pool for the four gap4-06 shapes:
+# gated grants (Abaddon the Despoiler, Anhelo, Ashad, Bloodbraid Marauder,
+# Maelstrom Nexus, Peri Brown, Rain of Riches, The Fifteenth Doctor,
+# Wild-Magic Sorcerer), Effect-issued YouCtrl-only grants (Archway of
+# Innovation, Dark Apostle, Don & Raph Hard Science, Flockchaser Phantom,
+# Sloppity Bilepiper, Smoldering Stagecoach, Wand of the Worldsoul),
+# cast-from-hand grants (Wildsear, Scouring Maw; Yidris, Maelstrom Wielder)
+# and the two-instance grant (Zhulodok, Void Gorger). Cheap spells of each
+# type and cascade fodder let the grants fire and the cascades find a cast or
+# a bottom; Act on Impulse is the exile-cast enabler for Wild-Magic Sorcerer's
+# cast-from-exile grant, and Iridescent Tiger floats the mana the gated
+# Casualty cast mode needs (dirac/oracle/stackgrant4_lockstep_test.go).
+Abaddon the Despoiler
+Anhelo, the Painter
+Ashad, the Lone Cyberman
+Bloodbraid Marauder
+Maelstrom Nexus
+Peri Brown
+Rain of Riches
+The Fifteenth Doctor
+Wild-Magic Sorcerer
+Archway of Innovation
+Dark Apostle
+Don & Raph, Hard Science
+Flockchaser Phantom
+Sloppity Bilepiper
+Smoldering Stagecoach
+Wand of the Worldsoul
+Wildsear, Scouring Maw
+Yidris, Maelstrom Wielder
+Zhulodok, Void Gorger
+Grizzly Bears
+Savannah Lions
+Elite Vanguard
+Hill Giant
+Gray Ogre
+Pilgrim's Eye
+Ornithopter
+Memnite
+Mind Stone
+Sol Ring
+Lightning Bolt
+Shock
+Opt
+Act on Impulse
+Iridescent Tiger
+Giant Growth
+Divination
+Duress
+Rancor
+Pacifism
+Seal of Primordium
+Journey to Nowhere
+Ulamog's Crusher
+Myr Enforcer
+Forest
+Island
+Mountain
+Plains
+Swamp

@@ -6,6 +6,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // mutation test: the lockstep must diverge without it).
 var DebugIgnoreCascade bool
 
+// DebugGrantedCascade, when set, receives the number of cascade triggers a
+// live StatStackKw grant queued (the printed instances are not counted). The
+// oracle's cast-from-exile lockstep sets it, so a green game is not one where
+// the grant never reached the cast.
+var DebugGrantedCascade func(n int)
+
 // cascadeProg is the resolution of a cascade trigger (CR 702.85a, gorge
 // effects/cascade.go): exile until a cheaper nonland card (OpDiscover C=2),
 // offer its free cast, then bottom it if it is still in exile (C=3).
@@ -23,7 +29,14 @@ var cascadeProg = [3]kop.Instr{
 func (s *State) queueCascade(k *prep, e *stackEntry) {
 	n := int(k.t.Cards[e.card].Cascade)
 	if k.gen.anyStackKw {
+		// a gated grant reads the casts before this one (gorge
+		// hasKeywordPriorCasts): hide the in-flight push from the cast ring
+		saved := s.hideInflightCast(e)
 		g, _ := s.stackKwN(k, kop.StackKwCascade, e.card, e.obj, e.ctrl, s.castFromHandBy(e, e.ctrl)) // one more per granting static (cascadeInstances)
+		s.restoreInflightCast(e.ctrl, saved)
+		if DebugGrantedCascade != nil {
+			DebugGrantedCascade(g)
+		}
 		n += g
 	}
 	if n == 0 || s.isSpellCopy(e.obj) {

@@ -213,7 +213,14 @@ func (e *Engine) castAtAllBareAdmitsWindow(spec string, objID state.ObjID, pendi
 // "came from a hand" from the offer-time object's zone. The log read wins
 // whenever it has an answer.
 func (e *Engine) castFromHandAnyAdmitsWindow(spec string, objID state.ObjID, pendingCast bool) (string, bool) {
-	if strings.Contains(spec, "wasCastFromYourHandByYou") || !strings.Contains(spec, "wasCastFromYourHand") {
+	if strings.Contains(spec, "wasCastFromYourHandByYou") {
+		return spec, true
+	}
+	// wasCastFromHand (no "Your") is Forge's other bare any-caster hand
+	// spelling (Wildsear, Scouring Maw; Yidris, Maelstrom Wielder;
+	// Zhulodok, Void Gorger): the same latest-PutOnStack hand read as
+	// wasCastFromYourHand.
+	if !strings.Contains(spec, "wasCastFromYourHand") && !strings.Contains(spec, "wasCastFromHand") {
 		return spec, true
 	}
 	holds := false
@@ -223,7 +230,13 @@ func (e *Engine) castFromHandAnyAdmitsWindow(spec string, objID state.ObjID, pen
 			holds = o.Zone == state.ZHand
 		}
 	}
-	return admitProvenanceAlternatives(spec, "wasCastFromYourHand", holds)
+	var ok bool
+	for _, tok := range []string{"wasCastFromYourHand", "wasCastFromHand"} {
+		if spec, ok = admitProvenanceAlternatives(spec, tok, holds); !ok {
+			return "", false
+		}
+	}
+	return spec, true
 }
 
 // castProvenanceAdmits evaluates all four cast-provenance families of a
@@ -702,21 +715,25 @@ func (e *Engine) webSlingedAdmits(spec string, objID state.ObjID) (string, bool)
 // spec without a provenance token is returned unchanged, so every unrelated
 // cost evaluation is byte-identical.
 func (e *Engine) castProvenanceAdmitsPending(spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
-	if !strings.Contains(spec, "wasCastFromYourHand") && !strings.Contains(spec, "wasCastByYou") &&
-		!specCarriesCastOrigin(spec) && !strings.Contains(spec, bareGraveyardCastToken) {
+	// One scan for the token families the guards below test: re-used after the
+	// graveyard strip (a stale true only skips an early return, never changes
+	// the chain's answer).
+	handAny := strings.Contains(spec, "wasCastFromYourHand") || strings.Contains(spec, "wasCastFromHand")
+	byYou := strings.Contains(spec, "wasCastByYou")
+	grave := strings.Contains(spec, bareGraveyardCastToken)
+	if !handAny && !byYou && !specCarriesCastOrigin(spec) && !grave {
 		return spec, true
 	}
 	o := e.G.Obj(objID)
 	if o == nil {
 		return "", false
 	}
-	if strings.Contains(spec, bareGraveyardCastToken) {
+	if grave {
 		var ok bool
 		if spec, ok = e.bareGraveyardCastAdmitsPending(spec, o); !ok {
 			return "", false
 		}
-		if !strings.Contains(spec, "wasCastFromYourHand") && !strings.Contains(spec, "wasCastByYou") &&
-			!specCarriesCastOrigin(spec) {
+		if !handAny && !byYou && !specCarriesCastOrigin(spec) {
 			return spec, true
 		}
 	}
@@ -793,7 +810,7 @@ func computeProvenanceGate(spec string) provGate {
 	if specHasBareWasCast(spec) {
 		g.stages |= provBare
 	}
-	if !handByYou && strings.Contains(spec, "wasCastFromYourHand") {
+	if !handByYou && (strings.Contains(spec, "wasCastFromYourHand") || strings.Contains(spec, "wasCastFromHand")) {
 		g.stages |= provHandAny
 	}
 	if strings.Contains(spec, "CastSa") {
