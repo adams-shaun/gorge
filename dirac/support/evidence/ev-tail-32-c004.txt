@@ -1,34 +1,49 @@
 A-Elderleaf Mentor
 Aeronaut's Wings
 Arctic Treeline
+Attune with Aether
 Barbed Batterfist
+Blade Banish
 Blade Splicer
 Blood Age General
 Boreal Elemental
+Brawl-Bash Ogre
 Brood Birthing
+Castaway's Despair
 Cateran Enforcer
 Cho-Arrim Bruiser
 Clot Sliver
 Cut
 Dark Betrayal
+Death-Hood Cobra
 Definitely Not a Turtle
+Demonic Tutor
 Drana, Liberator of Malakir
 Dryad Greenseeker
+Duskhunter Bat
+Dwarven Warriors
 Dwell on the Past
+Elas il-Kor, Sadistic Pilgrim
 Enthusiastic Mechanaut
 Expedition Diviner
+Eye of Nowhere
 Feral Ridgewolf
 Filigree Fracture
 Floating-Dream Zubera
+Flying Dolphin-Fish
 Forest
 Fourth Bridge Prowler
+Gaea's Embrace
+Genasi Enforcers
 Ghastly Demise
 Goblin Bombardment
 Goblin Hero
 Haunted Cloak
+Heroic Charge
 Hold the Line
 Honor the Past
 Hyalopterous Lemure
+Inferno
 Irini Sengir
 Island
 Izzet Charm
@@ -38,33 +53,42 @@ Lace with Moonglove
 Lavakin Brawler
 Liliana's Defeat
 Liliana's Devotee
+Luminarch Ascension
 Magma Phoenix
 Magnivore
 Manaweft Sliver
+Mandibular Kite
 Master Decoy
 Merrow Bonegnawer
 Mind Drain
+Mindless Null
 Mistmeadow Skulk
 Mountain
+Mystic Restraints
 Nephalia Smuggler
 Nyxborn Marauder
 Ogre Berserker
 Ondu Cleric
+Pattern of Rebirth
+Peer Through Depths
 Penance Stare
 Pest Infestation
 Pillar of Light
 Plains
+Prakhata Pillar-Bug
 Provoke
 Psychic Spear
 Quicksilver Dagger
 Raging Spirit
 Raiding Nightstalker
 Raving Oni-Slave
+Recross the Paths
 Rescue Retriever
 Rhox Brute
 Rotted Hulk
 Rust Monster
 Sandstone Warrior
+Scragnoth
 Seismic Strike
 Showdown of the Skalds
 Skirk Shaman
@@ -73,9 +97,12 @@ Skyswimmer Koi
 Slaughter Cry
 Soul Bleed
 Stampeding Horncrest
+Steady Progress
 Storm Crow
+Sure-Footed Infiltrator
 Surreal Memoir
 Swamp
+Tezzeret's Touch
 The Royal Scions
 Thriving Ibex
 Titanic Brawl
@@ -86,7 +113,9 @@ Umbral Juke
 Valley Rannet
 Vaporkin
 Viashivan Dragon
+Viridian Zealot
 Vivid Revival
+Walking Archive
 Warleader's Helix
 Wilderness Elemental
 Windreader Sphinx
