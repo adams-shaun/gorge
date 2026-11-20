@@ -145,7 +145,7 @@ func cardsMutations(tbl *kop.Table) map[string]func(*dirac.World) {
 				}
 				for h := range w.Objs {
 					if h != int(o.Host) && isCreature(w, h) {
-						o.Host = uint8(h)
+						o.Host = dirac.Obj(h)
 						break
 					}
 				}

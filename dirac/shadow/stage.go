@@ -44,7 +44,7 @@ var stepOf = map[string]kop.Step{
 
 // Card is one hidden card the caller dealt: its object index and its name.
 type Card struct {
-	Obj  uint8
+	Obj  dirac.Obj
 	Name string
 }
 
@@ -53,8 +53,8 @@ type Card struct {
 // instead, and Hand[viewer] is ignored); Library[p] is seat p's library from
 // the top. Sizes must equal the counts the view shows.
 type Hidden struct {
-	Hand    [2][]Card
-	Library [2][]Card
+	Hand    [dirac.MaxSeats][]Card
+	Library [dirac.MaxSeats][]Card
 }
 
 // Input is everything WorldFromView reads.
@@ -64,7 +64,7 @@ type Input struct {
 	// ObjOf maps a card the view shows (its CardView.ID) to its object
 	// index in the staged game. The caller owns the numbering: seat 0's
 	// cards first, then seat 1's, as dirac.World's Objs.
-	ObjOf func(id int) (uint8, bool)
+	ObjOf func(id int) (dirac.Obj, bool)
 	Tbl   *kop.Table
 	Cfg   dirac.Config
 	Seed  uint64
@@ -182,7 +182,7 @@ func poseOf(v *view.View, step kop.Step) (dirac.Pose, error) {
 
 // placed is one object of the staged game, keyed by its object index.
 type placed struct {
-	obj uint8
+	obj dirac.Obj
 	wo  dirac.WorldObj
 }
 
@@ -195,7 +195,7 @@ type builder struct {
 
 // add records one card. A card the view shows (cv non-nil) must carry no
 // mark the staging cannot rebuild.
-func (b *builder) add(obj uint8, name string, owner, pos int, z kop.Zone, cv *view.CardView) error {
+func (b *builder) add(obj dirac.Obj, name string, owner, pos int, z kop.Zone, cv *view.CardView) error {
 	id, ok := b.byName[name]
 	if cv != nil && cv.IsToken {
 		id, ok = b.tokenCard(cv)
