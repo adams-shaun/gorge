@@ -25,6 +25,7 @@ Battlefield Raptor	1aa29e459ce8c032	10	0/0		0/0
 Bishop of Rebirth	3094599b0a7edbde	451	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Blessed Orator	57e650602677738b	528	0/0		0/0	
 Blisterpod	cf34fd583766ac9c	6	1/1		0/1	ix:resp
+Blood-Chin Fanatic	cd4f331a6bc25d14	8	1/1		0/1	ix:resp
 Bloodfire Mentor	2a2968b09eaf3ff9	18	1/1		1/1	
 Boneclad Necromancer	85d831d257fc123a	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Bottle of Suleiman	22e60bd35467dd5d	4	1/1		0/1	ix:resp
@@ -92,6 +93,7 @@ Glimmer Lens	ad9501380f53d331	4	3/3		0/1	ix:resp
 Gnoll War Band	834778baa84a000c	10	1/1		1/1	
 Go Blank	7613e85870e02cf9	10	0/0		2/2	
 Goblin Recruiter	4432a0bbe7041d31	16	1/1		1/1	
+Goblin Wizard	0d001d5ae6efb7a3	4	2/2		1/1	
 Graaz, Unstoppable Juggernaut	2762731a83de14e7	8	0/0		0/0	
 Granulate	e5c1c7907c29e9bc	10	0/0		1/2	ix:resp
 Grasp of Phantoms	2a77573e231b2a30	14	0/0		4/4	
@@ -119,6 +121,7 @@ Iroas's Champion	270d83ba494ed0f3	12	0/0		0/0
 Iron Lance	aea84959046668e3	16	1/1		1/1	
 Island	763c67ef7a27eaf5	680	1/1		0/1	ix:resp
 Island Fish Jasconius	c0e52c2b77d0862f	26	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Isperia the Inscrutable	ee2ae59345fce8c2	4	1/1		0/1	ix:resp
 Javelin of Lightning	87405ea69ea057e6	10	2/2		1/1	
 Jeweled Torque	50fe22878bbff85d	12	1/1		0/1	ix:resp
 Jump	cb548ef0ee8bf639	8	0/0		1/2	ix:resp
@@ -174,10 +177,12 @@ Redeem the Lost	a7ee522a30bc1392	16	0/0		2/2
 Regent's Authority	e1f9339790879031	8	0/0		2/2	
 Replication Technique	9a0eb5d277a02284	6	1/1		2/2	
 Restore the Peace	0cf62a4c515eba46	8	0/0		2/2	
+Return to the Ranks	d27c1d8a962d57d5	40	0/0		2/4	f0/s/x0,ix:resp
 Ring of Kalonia	26c9b2b3c93603d7	4	2/2		1/1	
 Ritual Guardian	53d9d94d50b9313b	4	1/1		0/1	ix:resp
 Root Out	a9f84aa519f39d4a	6	0/0		1/2	ix:resp
 Rotting Fensnake	4bd9f862f632fec2	12	0/0		0/0	
+Rust Goliath	a98a1281872fb8d2	8	0/0		2/2	
 Saiba Cryptomancer	413a2a36ffc3a533	12	1/1		1/1	
 Sailor of Means	96018a20dd8c5283	22	1/1		1/1	
 Salvage Scout	d073b8411e58a528	8	1/1		0/1	ix:resp
@@ -209,6 +214,8 @@ Sylvan Anthem	6e260811fc15690a	4	1/1		0/1	ix:resp
 Tavern Swindler	8a1b28b175477f68	7	1/1		1/1	
 Tempest Drake	2ed9d305b1b29d36	10	0/0		0/0	
 Temple Bell	1fad7e827d9f888a	4	1/1		0/1	ix:resp
+Thief of Hope	252dbeda23df1245	12	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Thing in the Ice	ce7a20f557c9ee72	22	2/2		0/1	ix:resp
 Thirst for Meaning	6ff3a103797a4749	6	0/0		2/2	
 Thorn of the Black Rose	50e50d5e0b1a1109	10	1/1		0/1	ix:resp
 Thriving Ibex	389eea5b9b736e7f	12	2/2		1/1	
@@ -229,6 +236,7 @@ Vogar, Necropolis Tyrant	9ec746f17daea4ee	14	2/2		1/1
 Voracious Typhon	233a4f0c7871f466	12	0/0		1/2	cast/alt:escaped
 Vraska's Contempt	c1e1add8627b8776	17	0/0		2/2	
 Wall of Blossoms	bf3d399802a0ae97	10	1/1		1/1	
+War-Wing Siren	b6df624902000224	6	1/1		0/1	ix:resp
 Warm Welcome	636d824535e39e2b	9	0/0		2/2	
 Waterfront District	f39100c1ed6ed6c6	188	2/2		1/1	
 Wayfaring Temple	f5b6bf022a0bfe20	4	1/1		0/1	ix:resp

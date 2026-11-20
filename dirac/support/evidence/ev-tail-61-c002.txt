@@ -25,6 +25,7 @@ Avenger en-Dal
 Avenging Hunter
 Azra Smokeshaper
 Bad Deal
+Ballroom
 Barbtooth Wurm
 Basilica Screecher
 Bastion Enforcer
@@ -110,6 +111,7 @@ Font of Progress
 Force of Vigor
 Forest
 Fortress Cyclops
+Fowl Strike
 Freyalise, Llanowar's Fury
 Frontier Mastodon
 Furious Assault
@@ -178,6 +180,7 @@ Kranioceros
 Krosan Archer
 Leech Gauntlet
 Legacy Weapon
+Leshrac's Rite
 Lingering Phantom
 Llawan, Cephalid Empress
 Lumbering Satyr
@@ -193,6 +196,7 @@ Maulfist Doorbuster
 Maximize Velocity
 Meishin, the Mind Cage
 Mending Touch
+Merfolk Seastalkers
 Merfolk of the Depths
 Meriadoc Brandybuck
 Mesa Unicorn
@@ -216,6 +220,7 @@ Nettle Drone
 Nightshade Harvester
 Nightveil Specter
 Nissa, Resurgent Animist
+Novijen, Heart of Progress
 Ogre Menial
 One with Nature
 Ongoing Investigation
@@ -266,6 +271,7 @@ Rhovanion Rampager
 Riders of Rohan
 Roc Egg
 Rogue Refiner
+Rune of Protection: Red
 Safe Haven
 Safehold Sentry
 Sage's Row Denizen
@@ -282,8 +288,10 @@ Shatterskull Recruit
 Sheltering Light
 Shoreline Ranger
 Sigiled Paladin
+Silverquill Campus
 Simic Signet
 Sip of Hemlock
+Skeleton Key
 Skirk Commando
 Skittering Crustacean
 Skull Raid

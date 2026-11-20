@@ -30,6 +30,7 @@ Bastion Protector
 Battle Cry Goblin
 Battle-Rage Blessing
 Beacon of Immortality
+Behind the Scenes
 Blisterstick Shaman
 Blood Burglar
 Bogstomper
@@ -354,4 +355,5 @@ Withstand Death
 Woodland Cemetery
 Wu Infantry
 Wurmcalling
+Zalto, Fire Giant Duke
 Zombie Master

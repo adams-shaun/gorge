@@ -217,6 +217,7 @@ Haunted Library
 Healing Technique
 Heavy Mattock
 Hellspark Elemental
+Hexdrinker
 Hog-Monkey Rampage
 Hostile Desert
 Hostile Realm
@@ -437,6 +438,7 @@ Spreading Flames
 Spring-Leaf Avenger
 Squee's Toy
 Squee, Goblin Nabob
+Staff of the Ages
 Starfield Mystic
 Stasis Cocoon
 Steadfast Guard
