@@ -1890,9 +1890,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		// off the battlefield nothing is solved (gorge clears Solved on
 		// the zone move)
 		kf.Pred, kf.PredN = kop.PredSolved, int16(c.CmpN)
-	case cmpRenowned, cmpAttackingYou:
-		// battlefield-only reads (kernel act_renown.go, attackingYou);
-		// off the battlefield nothing is renowned or attacks (predCardCold)
+	case cmpRenowned, cmpAttackingYou, cmpGoaded:
+		// battlefield-only reads (act_renown.go, attackingYou, filter_goaded.go)
 		kf.Pred, kf.PredN = battlefieldPreds[c.CmpStat], int16(c.CmpN)
 	case cmpSuspected:
 		// the arena designation bit (kernel predPermCold); off
