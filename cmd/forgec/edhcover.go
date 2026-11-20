@@ -229,6 +229,11 @@ func readDiracSupported(supportDir string) (map[string]bool, error) {
 			return nil, err
 		}
 		for _, l := range strings.Split(string(raw), "\n") {
+			// An evidence row's trailing tab-separated columns (a pod row's
+			// seats field) are not part of the card name.
+			if i := strings.IndexByte(l, '\t'); i >= 0 {
+				l = l[:i]
+			}
 			if l = strings.TrimSpace(l); l != "" && !strings.HasPrefix(l, "#") {
 				out[cards.NormalizeName(l)] = true
 			}
