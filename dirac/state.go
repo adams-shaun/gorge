@@ -504,7 +504,9 @@ type stackEntry struct {
 	trigSA    uint8
 	trigSASid uint8
 	// defSeat is an attack trigger's defending player + 1, bound as it was
-	// queued (pendingTrig.defSeat; 0 = none, and always 0 at two seats). A
+	// queued (pendingTrig.defSeat; 0 = none; defSeatObj tags an attack on a
+	// planeswalker or battle). At two seats only a TriggeredDefender damage
+	// trigger is bound, when the attacker may leave before it resolves. A
 	// Squad self-ETB trigger stores its cast's payment count here instead
 	// (1..maxMultikick; triggers_gen.go enqueueLKI copies it from the
 	// pending trigger), at every seat count, so a reader gates on the card's
@@ -620,8 +622,10 @@ type pendingTrig struct {
 	skw uint8
 	// defSeat is the defending player + 1 of the attack event that queued
 	// the trigger (gorge TriggerContext.DefendingPlayer, bound from the
-	// DeclareAttackers event; fireAttacksGen), 0 = none. Stamped only when
-	// MaxSeats > 2. It takes the struct's padding byte. A Squad self-ETB
+	// DeclareAttackers event; fireAttacksGen), 0 = none, with defSeatObj set
+	// when the attack was on a planeswalker or battle. Past two seats every
+	// attack trigger is stamped; at two seats only a TriggeredDefender
+	// damage trigger is. It takes the struct's padding byte. A Squad self-ETB
 	// trigger also stores its cast's payment count here (1..maxMultikick;
 	// triggers_gen.go enqueueLKI), at every seat count; a reader gates on the
 	// card's RepeatedKind and the trigger shape (exprs.go timesKicked).
