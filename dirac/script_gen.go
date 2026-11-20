@@ -683,6 +683,13 @@ func (s *State) plainListedPays(k *prep, a Action, p uint8, d *Decision) bool {
 	cost := s.abPlannedCost(k, ab, sl, p)
 	var pk planner
 	pk.dry, pk.noGrant = true, true
+	// the play's own payment descriptor: the walk probes the play before its
+	// build begins, so payDescNow is not yet the play's, and a restricted
+	// alternative the play admits (a creature-ability source beside a
+	// creature's ability) would drop from the census and send the play to the
+	// script prefix, whose taps gorge's plain plan never makes (gorge's
+	// potential planner prices the play with its own descriptor)
+	pk.rd, pk.rdSet = s.grantPayDescOf(k, a), !DebugPlannerFlexCensus
 	s.tapPlanNeed(k, p, &cost, 0, NoObj, false, false, &pk)
 	return !(pk.needT > 0 && !pk.found)
 }

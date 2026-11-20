@@ -947,6 +947,12 @@ type planner struct {
 	// sacrifice sources the live build's plan leaves untouched stay out
 	// (planCastDynSacSkip)
 	castPay bool
+	// rdSet: rd is the payment the pass prices, not payDescNow's: a probe
+	// run before the play's build begins (plainListedPays's dry probe) must
+	// admit the restricted alternatives the play itself admits, as gorge's
+	// potential planner prices the play with its own descriptor
+	rd    payDesc
+	rdSet bool
 	// pairs: some type has a pair (a painland in the last-resort phase);
 	// life: the payer's life, the lethal guard on summed pain
 	pairs bool
@@ -1619,6 +1625,16 @@ func (s *State) planLastResort(k *prep, p uint8, sl Slot, sac, noUntap bool) boo
 	return lastResortUnit(sac, noUntap) || s.cfg&cfgGorgeAutopay != 0 && s.lifeGapSurvives(k, p, sl)
 }
 
+// planSkipGates lifts the census-loop skip gates out of the loop: a
+// Taps-deferred source's classification (mana_tapsdefer.go) is a battlefield
+// fact, so without a live TrigTaps listener every source is an ordinary
+// census unit.
+func (s *State) planSkipGates(k *prep, pk *planner) (deferSkip, comboSkip bool) {
+	deferSkip = !pk.tapsIn && s.deferLive(k)
+	comboSkip = !pk.comboIn && k.gen != nil && k.gen.anyComboOff && !DebugComboAnyPlanned
+	return deferSkip, comboSkip
+}
+
 func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// units: fixed-production sources in battlefield (entry) order, then
 	// choice-shaped sources (any colour, a choice of colours) in battlefield
@@ -1629,12 +1645,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	var rd payDesc
 	if k.restrSrc {
 		rd = s.payDescNow(exclude) // the restricted sources this payment may spend
+		if pk.rdSet {
+			rd = pk.rd // the payment a probe prices (plainListedPays): the build is not the play's yet
+		}
 	}
-	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
-	// battlefield fact, so its gate lifts out of the loop: without a live
-	// TrigTaps listener every source is an ordinary census unit.
-	deferSkip := !pk.tapsIn && s.deferLive(k)
-	comboSkip := !pk.comboIn && k.gen != nil && k.gen.anyComboOff && !DebugComboAnyPlanned
+	deferSkip, comboSkip := s.planSkipGates(k, pk)
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
