@@ -3512,11 +3512,19 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 		s.unfork()
 	}
 	if ok {
-		_, held := s.windowTapRider(k, p, &c, true, anyColor)
+		real, held := s.windowTapRider(k, p, &c, true, anyColor)
 		for col := range held {
 			s.pl[p].pool[col] += held[col]
 		}
-		return true
+		if real || s.winPaused() {
+			return true
+		}
+		// The dry probe can be optimistic where the real walk pays a first-only
+		// filter's fee from a pip the cost still owes (windowDryFilter spares
+		// the pips; filtDo spends C W U B R G). Fall through: the planner may
+		// price what the window tapped, and hybStrand below reverses the cast
+		// (CR 601.2g-h, 733.1) when neither pays, rather than finishing the
+		// build short and panicking in finishBuild's plan.
 	}
 	if known && k.gen != nil && k.gen.blgOn {
 		return s.hybStrand(k, p, &c, anyColor)
@@ -3865,7 +3873,7 @@ func (s *State) manaStep(k *prep) bool {
 				return true
 			}
 		default:
-			s.tapFor(k, e.ctrl, &cost, int(e.x), NoObj)
+			return s.abilityPlainMana(k, e, cost, &saved, hostSl, sl, selfUntapped)
 		}
 		s.bld().bfl &^= bflManaStep
 		if hostSl != NoSlot {
@@ -3894,6 +3902,31 @@ func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, sav
 		s.reverseActivation(k, saved, hostSl, sl, selfUntapped)
 		return true
 	}
+	return false
+}
+
+// abilityPlainMana is manaStep's plain-activation arm: the planner first, so an
+// ordinary cost keeps its witness, then the manual CR 601.2g window when the
+// census has none. The X ask can price an activation through that window
+// (availXWindow and a first-only filter's fee, filtMaxX; CR 605.3b), whose
+// sources the planner does not price. It runs the step's epilogue on every
+// path that keeps the activation, and reports true when the activation was
+// reversed because neither reaches the cost (CR 733.1).
+func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
+	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), NoObj, false) {
+		c := xFolded(cost, int(e.x))
+		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
+			return true
+		}
+	}
+	s.bld().bfl &^= bflManaStep
+	if hostSl != NoSlot {
+		s.perms[hostSl].flags &^= pfTapped
+	}
+	if selfUntapped {
+		s.perms[sl].flags &^= pfTapped
+	}
+	s.releaseCostTaps(k, saved)
 	return false
 }
 
