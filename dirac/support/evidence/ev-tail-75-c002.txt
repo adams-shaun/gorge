@@ -102,6 +102,7 @@ Ethereal Investigator
 Evolving Adaptive
 Faerie Noble
 Falkenrath Marauders
+Familiar's Ruse
 Farewell
 Fateful Showdown
 Feral Instinct
@@ -122,6 +123,7 @@ Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
 Great Defender
+Greater Harvester
 Griffin Aerie
 Grim Tutor
 Grixis Slavedriver
@@ -216,6 +218,7 @@ Port Inspector
 Portent of Betrayal
 Power of Persuasion
 Precinct Captain
+Psychic Frog
 Pyrrhic Blast
 Quirion Explorer
 Radstorm
@@ -227,6 +230,7 @@ Reckless Barbarian
 Reclaim the Wastes
 Reduce in Stature
 Return from Extinction
+Return of the Nightstalkers
 Reverberate
 Rimewood Falls
 Rishadan Cutpurse
@@ -328,6 +332,7 @@ Wingsteed Rider
 Wizard Replica
 Wolfwillow Haven
 Woodland Stream
+Yoshimaru, Ever Faithful
 Zap
 Zealot's Conviction
 Zendikar Farguide

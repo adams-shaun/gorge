@@ -25,6 +25,9 @@ Celestial Purge	fc7614349e489e95	7	0/0		2/2
 Channel the Suns	6e9449f2faaba16f	3	0/0		1/2	ix:resp
 Chaotic Goo	5543eafb58cebe80	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Charging Monstrosaur	9bfd313317e938bd	6	0/0		0/0	
+Chatter of the Squirrel	1b2ac842c78713d3	6	0/0		3/4	ix:resp
+Cloud Elemental	dc4854121b224215	3	0/0		0/0	
+Cloudchaser Kestrel	1b4d06b603f67e1d	5	2/2		1/1	
 Colossus of Akros	f965b58ddd1e5fe2	4	1/1		0/1	ix:resp
 Combust	201f5d6ee6aec5b7	4	0/0		1/2	ix:resp
 Consuming Sinkhole	aaba51e0a0b7d214	69	0/0		2/2	
@@ -35,6 +38,7 @@ Curious Altisaur	4fd65777f2356619	5	1/1		0/1	ix:resp
 Cut	7b1b4871806241d5	13	0/0		4/7	f1/s,f1/s/x+,f1/s/x0
 Damning Verdict	1dccb20420d30c22	5	0/0		1/2	ix:resp
 Dark Ritual	4016e227d34cd7ba	12	0/0		2/2	
+Death's Presence	fb2c2b24647bb67f	25	1/1		0/1	ix:resp
 Death-Hood Cobra	d778d66aca808390	6	2/2		1/1	
 Dementia Bat	7fefb2d594260e1b	3	1/1		0/1	ix:resp
 Demonic Tutor	e78fccb54d2ffe91	10	0/0		1/2	ix:resp
@@ -59,6 +63,7 @@ Feral Abomination	f1081f770e37d37f	4	0/0		0/0
 Filigree Fracture	670dceaaa8bb9af1	6	0/0		2/2	
 Floating-Dream Zubera	520f297966eac78a	14	1/1		0/1	ix:resp
 Flying Dolphin-Fish	71421889e414afcb	6	0/0		0/0	
+Foul Orchard	13a8a74907ad50fa	12	1/1		0/1	ix:resp
 Frogtosser Banneret	755c354027fd2824	10	0/0		0/0	
 Frontline Devastator	277bee8fe4fac8a5	4	2/2		1/1	
 Frostweb Spider	b2db8676c700f7e1	8	1/1		0/1	ix:resp
@@ -74,6 +79,7 @@ Grollub	e3116e66fca8570d	4	1/1		0/1	ix:resp
 Hasran Ogress	8939eb42c6436bd1	4	1/1		0/1	ix:resp
 Heart Sliver	0dd78a85bc43e35d	6	0/0		0/0	
 Heroic Charge	2d50c74879c0a100	8	0/0		3/4	ix:resp
+Hold the Line	52dba1ebbf5ed907	4	0/0		1/2	ix:resp
 Honor the Past	ae5a9461d21425d8	3	0/0		1/2	ix:resp
 Idle Thoughts	69de54507b1835c1	4	1/1		1/1	
 Into Thin Air	7b4a90205f1f1a80	4	0/0		1/2	ix:resp
@@ -81,11 +87,16 @@ Invasion of Segovia	d28a230e9692bac2	4	2/2		1/1
 Krosan Restorer	d92fd6b84181b468	6	2/2		0/1	ix:resp
 Kruin Striker	dbb51f5c9bae5ba2	4	1/1		0/1	ix:resp
 Kukemssa Pirates	0273c4e4bed563ba	4	1/1		0/1	ix:resp
+Lancer Sliver	76a74b77bba6a153	5	0/0		0/0	
+Levitating Statue	90119dadde7ea2ce	6	2/2		1/1	
 Leyline Dowser	a236a7d862f74f42	6	2/2		0/1	ix:resp
 Light the Way	f11cb04f318b08e0	3	0/0		2/2	
 Luminarch Ascension	38fdfddb010b3cd3	7	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Luxury Suite	2362b0253117ef22	16	1/1		0/1	ix:resp
+Lys Alana Bowmaster	1fc7ab58554ea0a5	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Magus of the Candelabra	b116c1f49741c075	16	1/1		1/1	
 Mandibular Kite	5f19e89369943863	4	2/2		1/1	
+Memory Drain	c46fd829c51d7202	3	0/0		1/2	ix:resp
 Mercurial Spelldancer	5140695b8f8e5b39	4	2/2		0/1	ix:resp
 Merrow Witsniper	4fb975d036efc4c7	12	1/1		0/1	ix:resp
 Mesa Lynx	7ccdbd32c1be062a	5	0/0		0/0	
@@ -113,12 +124,16 @@ Precognition Field	ba9459db912443dc	4	1/1		1/1
 Provoke	1927cf5f31f1c64e	3	0/0		2/2	
 Pygmy Pyrosaur	03c0b2cbfb21db7e	4	1/1		0/1	ix:resp
 Quicksilver Dagger	7fc70a11bcf46bc9	4	0/0		2/2	
+Radiant Fountain	1e041f359ea30061	15	2/2		0/1	ix:resp
 Rakka Mar	c7acdf82078f50bc	4	1/1		1/1	
 Rakshasa's Secret	c17edfcfb9c791fb	4	0/0		1/2	ix:resp
+Ranger Class	47c93d9c14873a29	6	4/4		0/1	ix:resp
 Ravenous Harpy	0104258b9627be58	4	1/1		0/1	ix:resp
 Reckless Imp	3a4c602681840bb2	12	0/0		2/2	
 Recross the Paths	0f2572fcd43e9193	4	0/0		1/2	ix:resp
+Redwood Treefolk	74772f6fadc55255	7	0/0		0/0	
 Relic of Progenitus	317974f6c8e368ec	6	2/2		0/1	ix:resp
+Rescue Retriever	a70a6817ff49a5aa	5	1/1		0/1	ix:resp
 Rhox Meditant	82f31e157ebac6ad	3	1/1		1/1	
 Rofellos, Llanowar Emissary	24abf4b73e08de73	3	1/1		0/1	ix:resp
 Root Greevil	def19c81f79ab70e	3	1/1		1/1	
@@ -131,6 +146,7 @@ Shanna, Sisay's Legacy	7f2b94337e08e70d	6	0/0		0/0
 Shieldmate's Blessing	91f0ec1ede912277	6	0/0		2/2	
 Sizzle	068432165589f605	4	0/0		1/2	ix:resp
 Skyclave Shade	ecdcd108240338a1	3	1/1		1/3	cast/alt:kicked,ix:resp
+Skyshroud Troll	cb852c49e3bca104	4	1/1		1/1	
 Sokka, Swordmaster	57eafca79c98ec24	8	1/1		0/1	ix:resp
 Sonic Screwdriver	168f84b6aa170072	5	4/4		0/1	ix:resp
 Soul Bleed	4c4338ec96c1e1fb	7	1/1		2/2	
@@ -147,12 +163,21 @@ Toph, Earthbending Master	2ad409b3c7cd55a4	4	2/2		0/1	ix:resp
 True Conviction	ba3973b3d50957e5	5	0/0		0/0	
 Turnabout	39f0619628aba853	4	0/0		1/2	ix:resp
 Unnatural Speed	01959e87b61f6f48	6	0/0		1/2	ix:resp
+Unwavering Initiate	29b674f3413a81df	3	1/1		0/1	ix:resp
+Urborg, Tomb of Yawgmoth	b8a5b0958546ca96	7	0/0		0/0	
+Urza's Cave	5eaf7852b36bc0df	10	2/2		0/1	ix:resp
 Valakut Fireboar	53ea89743e709d1d	4	1/1		0/1	ix:resp
+Value Town	6f4e7c3e048046a1	24	1/1		0/2	f1/s,ix:resp
+Vaporkin	e366e826894f1096	4	0/0		0/0	
 Vexing Sphinx	3f85457aabccf346	8	2/2		0/1	ix:resp
 Vindictive Flamestoker	38f5dcccbad881ad	4	2/2		0/1	ix:resp
 Viridian Zealot	e050a00bd5975a6f	8	1/1		0/1	ix:resp
+Vivisection	154e638428835d9d	4	0/0		1/2	ix:resp
 Voda Sea Scavenger	7543fb8314fcaea4	4	1/1		0/1	ix:resp
+Walking Archive	4650562fe3985ab2	4	2/2		0/1	ix:resp
 Warleader's Helix	370fb45690050f6d	6	0/0		1/2	ix:resp
 Wheel and Deal	a011dd397be5a912	4	0/0		1/2	ix:resp
+Wild Crocodile	953aede19e3ac2c4	9	1/1		0/1	ix:resp
 Wilderness Elemental	b1ffff6bdc456ae2	3	0/0		0/0	
+Witch's Mist	2e13e9b24d660c8c	5	1/1		1/1	
 Wose Pathfinder	343f212c7c4d134f	4	2/2		0/1	ix:resp

@@ -1,9 +1,14 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Abandoned Campground	3443acda32ddc940	4	1/1		0/1	ix:resp
 Acrobatic Cheerleader	0a7272f66463a072	4	1/1		0/1	ix:resp
+Anthropede	6804f2f4fbdef81c	4	1/1		0/1	ix:resp
+Appendage Amalgam	40e78962d25f9e52	4	1/1		0/1	ix:resp
 Attack-in-the-Box	0bba887a37e04471	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Baseball Bat	3d8de30527de66a5	3	3/3		0/1	ix:resp
+Bear Trap	84c11baf5d45f604	4	1/1		0/1	ix:resp
 Bleeding Woods	077a898a3203d61d	4	1/1		0/1	ix:resp
 Boilerbilges Ripper	0c0180bac4b0e3ab	6	1/1		0/1	ix:resp
+Break Down the Door	900a4ac6cfc57a29	4	0/0		1/2	ix:resp
 Broodspinner	7fd50caa7edd13e8	4	2/2		0/1	ix:resp
 Cackling Slasher	fd83930bebce7d9c	4	0/0		0/0	
 Cautious Survivor	ec3f07467de424ab	3	1/1		0/1	ix:resp
@@ -39,6 +44,7 @@ Fear of Surveillance	0e8019863212e809	8	1/1		0/1	ix:resp
 Final Vengeance	5a59d3f6fb567fe9	4	0/0		1/2	ix:resp
 Forest	6d0466c30f825dba	63	1/1		0/1	ix:resp
 Found Footage	0e1f873c65551f8f	5	1/1		0/1	ix:resp
+Frantic Strength	ee92078e7f258344	4	0/0		1/2	ix:resp
 Friendly Ghost	be503c23b64aa3f1	4	1/1		0/1	ix:resp
 Funeral Room	ce634b176bc19121	3	2/2		0/1	ix:resp
 Get Out	27f299a127715960	4	0/0		1/2	ix:resp
@@ -64,6 +70,7 @@ Let's Play a Game	b0044296fa43c9a1	8	0/0		1/2	ix:resp
 Leyline of the Void	34d3310d76eeafd3	4	0/0		0/0	
 Lionheart Glimmer	ffe16451b5e0fb86	7	2/2		0/1	ix:resp
 Live or Die	a311a03fbbcf8f83	4	0/0		1/2	ix:resp
+Malevolent Chandelier	e0025b6ef6953c76	6	1/1		0/1	ix:resp
 Manifest Dread	f00eab46b3042b40	6	0/0		1/2	ix:resp
 Marina Vendrell's Grimoire	65c2c5be6101e2f6	5	3/3		0/1	ix:resp
 Meat Locker	2fbce01016432937	4	2/2		0/1	ix:resp
@@ -79,6 +86,7 @@ Overlord of the Boilerbilges	8ef1c2a03d1c7503	5	2/2		2/3	ix:resp
 Paranormal Analyst	529a60bc4917151f	5	1/1		0/1	ix:resp
 Patched Plaything	86609f02c8d3e66c	5	0/0		0/0	
 Peculiar Lighthouse	8ef3cfa1a24408b3	4	1/1		0/1	ix:resp
+Peer Past the Veil	4dbd3d6503780b1c	4	0/0		1/2	ix:resp
 Piggy Bank	18db8ef80ae56f27	4	1/1		0/1	ix:resp
 Piranha Fly	991b8f051a53f3af	4	0/0		0/0	
 Plains	82d63a695487e567	44	1/1		0/1	ix:resp

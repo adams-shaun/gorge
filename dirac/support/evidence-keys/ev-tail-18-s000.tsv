@@ -6,6 +6,7 @@ Angler Drake	f714ab2cad3ef5a2	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 April O'Neil, Human Element	8189d7537ea63861	24	1/1		0/1	ix:resp
 Arcbound Javelineer	04b06dcc80ddd5f3	11	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Ardent Soldier	879fc58679ee9c09	10	0/0		1/2	cast/alt:kicked
+Arrow Storm	ab1475f7fc10d534	13	0/0		2/2	
 Asha's Favor	dff219c383671a98	6	0/0		1/2	ix:resp
 Audacity	78feefbf756584b2	29	1/1		2/2	
 Avatar of Might	8842ab9126a215f5	18	0/0		0/0	
@@ -14,7 +15,9 @@ Awaken the Bear	1cd5bcf63f2b9c33	13	0/0		1/2	ix:resp
 Azorius Signet	cbef4535f06ed19c	26	1/1		1/1	
 Baird, Steward of Argive	5f4e4f769382922d	4	0/0		0/0	
 Balduvian Barbarians	21ff8bfd26576295	25	0/0		0/0	
+Bane's Invoker	928fb9ca6cb9408c	13	1/1		1/1	
 Baneslayer Angel	9140fba5c203e173	6	0/0		0/0	
+Basilica Stalker	137d79d2299f6810	39	1/1		2/3	cast/alt:disguised
 Beastmaster Ascension	174c4d3e405f6d7b	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Beregond of the Guard	f8248994abdef50e	13	1/1		0/1	ix:resp
 Bladebrand	0b87f0c8602f5390	20	0/0		2/2	
@@ -22,8 +25,11 @@ Bloodfire Dwarf	9280b7315d2724bd	18	1/1		0/1	ix:resp
 Bloodrage Brawler	7565b1b58835d452	49	1/1		0/1	ix:resp
 Blossoming Calm	d0b37cb5159006d0	14	0/0		1/2	ix:resp
 Blue Elemental Blast	03cbd3b2a523e2da	21	0/0		2/2	
+Blur	8edd24bd2057e3a6	4	0/0		2/2	
 Boing!	005248d6325a6407	30	0/0		2/2	
 Bold Defense	4488929f981a95c1	27	0/0		3/4	ix:resp
+Bolrac-Clan Basher	ed3daad830dbc9c6	260	0/0		1/2	cast/alt:disguised
+Bonethorn Valesk	33a78c8ac9caf22d	327	1/1		1/1	
 Boom	3d36448ffcfeccd8	12	0/0		2/3	f1/s
 Boompile	7cb31793138270d4	44	1/1		1/1	
 Boros Elite	d5423802b6246477	11	1/1		0/1	ix:resp
@@ -32,6 +38,7 @@ Branching Bolt	09171cdb9df1e072	12	0/0		1/2	ix:resp
 Branchloft Pathway	e8abd96cc7cc2f11	119	2/2		0/1	ix:resp
 Breath of Darigaaz	f60da5d605260e75	23	0/0		4/4	
 Brinelin, the Moon Kraken	62f05c24ff32278e	5	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Bubble Smuggler	a1de6f90724a9920	129	0/0		1/2	cast/alt:disguised
 Burning Sun's Avatar	6f5b1b6e9e67f2a3	13	1/1		0/1	ix:resp
 Cacophony Unleashed	386fd4da26bcfb66	10	2/2		1/1	
 Capital Guard	f4eea768da433c25	18	0/0		0/0	
@@ -51,6 +58,7 @@ Crossover Collaboration	1e0eae4d1f157313	18	0/0		2/2
 Crosswinds	cd7ffaf518d0031b	14	0/0		0/0	
 Cut of the Profits	56abd60c20aa7473	5	0/0		2/4	f0/s/x0,ix:resp
 Dagger Caster	582e16429bd8f1d9	14	1/1		0/1	ix:resp
+Darksteel Mutation	e7c8fac27a36752d	9	0/0		1/2	ix:resp
 Dauntless Onslaught	282a150162c4e5a1	4	0/0		1/2	ix:resp
 Deranged Hermit	d1a0e66f7a30cb6e	4	2/2		0/1	ix:resp
 Deserter's Quarters	49e81d77cc3445ab	32	1/1		1/1	
@@ -169,6 +177,7 @@ Rite of the Raging Storm	30e5b2929bda02dc	12	1/1		1/1
 Roiling Regrowth	148fa66fc9df3500	8	0/0		1/2	ix:resp
 Rusted Sentinel	1992385d193639b5	30	0/0		0/0	
 Ruthless Sniper	08475915c2b1a1f5	25	1/1		1/1	
+Sabertooth Wyvern	a1a297b7a63c01e4	12	0/0		0/0	
 Sage-Eye Avengers	8fa47cb11798e0b9	16	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Saheeli Rai	c4a989bc37baa7a2	35	3/3		1/1	
 Savage Offensive	702c14d445b1b7bd	21	0/0		3/4	cast/alt:kicked
