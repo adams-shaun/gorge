@@ -495,6 +495,26 @@ func (b Board) tapToward(d *decision.Decision, c Card) int {
 		if o.Kind != "activate" {
 			continue
 		}
+		if boardConvertCost(o.Cost) {
+			// A mana ability whose cost consumes a battlefield permanent is
+			// a trade, not a tap, and this gate never takes it (see
+			// boardConvertCost): it converts the seat's own board into
+			// floating mana toward a card the gate has not committed to
+			// casting, and unlike every source it otherwise ranks the
+			// trade is unbounded -- the seat's own casts re-supply the
+			// fodder. The measured shape is seed-129300 four-seat
+			// commander: Food Chain exiled the Eternal Scourge the bot had
+			// just cast, its production (1 mana, restricted) paid the next
+			// cast of that same Scourge, and the gate re-activated the
+			// ability every priority -- a 35-event cycle per iteration,
+			// 400+ events inside one main phase, until the engine's
+			// livelock watcher fired. The deliberate use of such an ability
+			// stays where a real cast is being paid: the payment-window
+			// gate (chooseManaWindow) still takes a non-converter source,
+			// and the ability ranking (chooseAbility, A1-A5) still governs
+			// non-mana activations. Consumes no rng.
+			continue
+		}
 		if conv, spend := converterCost(o.Cost); conv {
 			// A converter (see converterCost) is taken only when it
 			// provably moves the intended card closer to castable.
@@ -771,6 +791,29 @@ func converterCost(cost string) (bool, manaSpend) {
 		}
 	}
 	return spends && !tapped, sp
+}
+
+// boardConvertCost reports whether an "activate" option's engine-supplied
+// cost marker (decision.Option.Cost, the same marker converterCost reads)
+// consumes a battlefield permanent: a Sac<X/Spec> part, or the battlefield
+// Exile<X/Spec> part FormatCost (engine/rules/cost/format.go) renders for an
+// exile-from-battlefield cost. The zone-qualified heads never match this
+// prefix read: ExileFromGrave, ExileFromHand, ExileFromTop and
+// ExileCtrlOrGrave all continue with a letter, not the "<". The tap gate
+// never takes such an activation (tapToward): its job is floating mana the
+// seat would otherwise not spend, and every source it ranks is bounded --
+// a tap by the untapped set, a converter by the pool it spends. A
+// board-consuming cost has no such bound when the seat's own casts
+// re-supply the fodder, so the gate declines it outright and the ability's
+// real use stays with the window that pays a cast (chooseManaWindow) and
+// the ability ranking (chooseAbility).
+func boardConvertCost(cost string) bool {
+	for _, tok := range strings.Fields(cost) {
+		if strings.HasPrefix(tok, "Sac<") || strings.HasPrefix(tok, "Exile<") {
+			return true
+		}
+	}
+	return false
 }
 
 // manaSpend is a converter's mana cost: generic units, per-slot coloured

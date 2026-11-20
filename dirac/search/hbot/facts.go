@@ -54,7 +54,15 @@ type CardFacts struct {
 	PlainMana uint8
 	// Converter: every mana ability spends mana without tapping its source
 	// (botpolicy converterCost).
-	Converter     bool
+	Converter bool
+	// BoardSac: a mana ability whose cost consumes a battlefield permanent
+	// (a CostSac part: a sacrifice, a self-sacrifice, or the ExileBf
+	// battlefield-exile variant, botpolicy boardConvertCost). The tap gate
+	// never takes it: unlike a tap (bounded by the untapped set) or a
+	// converter (bounded by the pool it spends), its repetitions are
+	// bounded only by the fodder, and the seat's own casts re-supply that
+	// fodder.
+	BoardSac      bool
 	ProdAny       bool
 	ProdReflected bool
 	ProdIndet     bool
@@ -179,6 +187,7 @@ func NewFacts(tbl *kop.Table) *Facts {
 					c.FirstMana = int8(bits.TrailingZeros8(uint8(a.ManaColors)))
 				}
 				converter = converter || a.Cost.Mana != (kop.ManaCost{}) && a.Cost.Flags&kop.CostTap == 0
+				c.BoardSac = c.BoardSac || a.Cost.Flags&(kop.CostSac|kop.CostSacSelf) != 0
 				if a.AFlags&kop.AfLatent == 0 && a.Cost.Mana == (kop.ManaCost{}) && a.Cost.Flags&^kop.CostTap == 0 {
 					c.PlainMana |= uint8(a.ManaColors) & 0x1f
 				}
