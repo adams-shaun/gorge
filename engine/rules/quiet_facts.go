@@ -264,7 +264,7 @@ func computeQuietFaceFacts(f *cards.Face, hasAltCosts bool) quietFaceFacts {
 	// CR 107.4e), not the face's mana value: a mana-value floor would claim
 	// quiet below a payable twobrid cast (CR 202.3f).
 	q.castFloor, _ = quietManaFloor(&pay.FaceCostOf(f).Cost)
-	q.instantSpeed = f.IsInstant() || f.HasKeywordRef(kwRefFlash) || mayFlashSacFace(f) || faceHasCastWithFlash(f)
+	q.instantSpeed = f.IsInstant() || f.HasKeywordRef(kwRefFlash) || mayFlashSacFace(f) || offeringFace(f) || faceHasCastWithFlash(f)
 	if hasAltCosts {
 		q.castOpen = true
 	} else if r, open := quietCastOpen(f); open {
@@ -582,7 +582,7 @@ func quietStaticMayPlay(st *cards.Static) bool {
 var quietCastOpenHeads = [...]string{
 	"Convoke", "Delve", "Improvise", "Affinity", "Emerge", "Evoke", "Surge",
 	"Spectacle", "Prowl", "Madness", "Ninjutsu", "Dash", "Bargain", "Offspring",
-	"Blitz", "Sneak", "Web-slinging",
+	"Blitz", "Sneak", "Web-slinging", "Offering",
 	// Conditional flash / cost-permission riders: the face is castable on a
 	// timing or cost the plain classifier cannot price.
 	"Teamwork", "MayFlashSac", "MayFlashCost",
