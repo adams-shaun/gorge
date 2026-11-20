@@ -10,42 +10,42 @@ type Occupancy struct {
 
 // The pools Occupancy counts, in PoolNames order.
 const (
-	PoolObj        = iota // card instances (MaxObj)
-	PoolPerm              // battlefield slots (MaxPerm)
-	PoolStack             // stack entries (MaxStack)
-	PoolPending           // waiting triggers (MaxPending)
-	PoolDelayed           // delayed triggers (MaxDelayed)
-	PoolRem               // remembered objects (maxRem)
-	PoolChosen            // chosen objects (maxRem)
-	PoolMay               // play-from-zone permissions (maxMay)
-	PoolDProg             // delayed programs (maxDProg)
-	PoolEmb               // emblems of the player with most (maxEmbTotal)
-	PoolDmgMap            // damage-map entries (maxDmgMap)
-	PoolXTgt              // extra target objects of the fullest multi-target entry (maxXTgt)
-	PoolXTPool            // multi-target pool entries in use (maxXTPool)
-	PoolUsed              // once-per-turn records (maxUsed)
-	PoolKwRepX            // repeated keyword grant records (maxKwRepX)
-	PoolOvPool            // effect pool records, all permanents (maxFx)
-	PoolOvr               // override records on the permanent with most (maxOvr)
-	PoolTrigTurn          // triggers resolved this turn (maxTrigTurn)
-	PoolLinks             // exile-until-leaves links (gen.links)
-	PoolExiledWith        // exiled-with source links (gen.exw)
-	PoolFree              // cast-without-paying candidates (gen.free)
-	PoolFreeQ             // queued free casts (gen.freeQ)
-	PoolAsk               // queued as-enters choices (gen.ask)
-	PoolCtrKinds          // distinct counter kinds on the permanent with most (no cap)
-	PoolPtX               // pumps past the int8 range (maxPtX)
-	PoolTs                // the layer clock State.ts (uint16; this counts its peak)
+	PoolObj      = iota // card instances (MaxObj)
+	PoolPerm            // battlefield slots (MaxPerm)
+	PoolStack           // stack entries (MaxStack)
+	PoolPending         // waiting triggers (MaxPending)
+	PoolDelayed         // delayed triggers (MaxDelayed)
+	PoolRem             // remembered objects (maxRem)
+	PoolChosen          // chosen objects (maxRem)
+	PoolMay             // play-from-zone permissions (maxMay)
+	PoolDProg           // delayed programs (maxDProg)
+	PoolEmb             // emblems of the player with most (maxEmbTotal)
+	PoolDmgMap          // damage-map entries (maxDmgMap)
+	PoolXTgt            // extra target objects of the fullest multi-target entry (maxXTgt)
+	PoolXTPool          // multi-target pool entries in use (maxXTPool)
+	PoolUsed            // once-per-turn records (maxUsed)
+	PoolKwRepX          // repeated keyword grant records (maxKwRepX)
+	PoolOvPool          // effect pool records, all permanents (maxFx)
+	PoolOvr             // override records on the permanent with most (maxOvr)
+	PoolTrigTurn        // triggers resolved this turn (maxTrigTurn)
+	PoolLinks           // exile-until-leaves links (gen.links)
+	PoolObjSets         // object-set records (coldObjSets, zone_objsets.go)
+	PoolFree            // cast-without-paying candidates (gen.free)
+	PoolFreeQ           // queued free casts (gen.freeQ)
+	PoolAsk             // queued as-enters choices (gen.ask)
+	PoolCtrKinds        // distinct counter kinds on the permanent with most (no cap)
+	PoolPtX             // pumps past the int8 range (maxPtX)
+	PoolTs              // the layer clock State.ts (uint16; this counts its peak)
 	NumPools
 )
 
 // PoolNames names the pools; PoolCaps is each one's capacity (0 = none).
 var (
 	PoolNames = [NumPools]string{"obj", "perm", "stack", "pending", "delayed", "rem", "chosen", "may", "dprog",
-		"emblem", "dmgmap", "xtgt", "xtpool", "used", "kwrepx", "ovpool", "ovr", "trigturn", "links", "exiledwith", "free", "freeq", "ask", "ctrkinds", "ptx", "ts"}
+		"emblem", "dmgmap", "xtgt", "xtpool", "used", "kwrepx", "ovpool", "ovr", "trigturn", "links", "objsets", "free", "freeq", "ask", "ctrkinds", "ptx", "ts"}
 	PoolCaps = [NumPools]int{MaxObj, MaxPerm, MaxStack, MaxPending, MaxDelayed, maxRem, maxRem, maxMay + maxMayCold, maxDProg,
 		maxEmbTotal, maxDmgMap, maxXTgt, maxXTPool, maxUsed, maxKwRepX, maxFx, maxOvr, maxTrigTurn,
-		len(State{}.g.links), maxExw, len(State{}.g.free), len(State{}.g.freeQ), len(State{}.g.ask), 0, maxPtX, 1<<16 - 1}
+		len(State{}.g.links), maxObjSets, len(State{}.g.free), len(State{}.g.freeQ), len(State{}.g.ask), 0, maxPtX, 1<<16 - 1}
 )
 
 // Occupancy fills o with s's current pool occupancy.
@@ -75,7 +75,7 @@ func (s *State) Occupancy(o *Occupancy) {
 	o.N[PoolOvPool] = int(s.g.nfx)
 	o.N[PoolTrigTurn] = int(s.g.trigTurn)
 	o.N[PoolLinks] = int(s.g.nlinks)
-	o.N[PoolExiledWith] = int(s.g.nexw)
+	o.N[PoolObjSets] = s.osLen()
 	o.N[PoolFree] = int(s.g.nfree)
 	o.N[PoolFreeQ] = int(s.g.nfq)
 	o.N[PoolAsk] = int(s.g.nask)
