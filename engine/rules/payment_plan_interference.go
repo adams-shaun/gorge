@@ -145,7 +145,7 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 		// ManaAmount$ GE2 reads how much the production really is.
 		amount := availableAmount(ma)
 		if amount == 0 {
-			amount = e.manaEffectAmount(controller, id, ma, nil, pay.GainedManaRef{})
+			amount = e.manaEffectAmount(controller, id, ma, nil, nil, pay.GainedManaRef{})
 		}
 		if by, ok := e.paymentPlanProductionReplaced(id, controller, produced, amount, cost.Tap); ok {
 			return deferredBy(by)
