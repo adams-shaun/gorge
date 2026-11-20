@@ -26,6 +26,7 @@ Ardent Soldier
 Armored Ascension
 Armory Guard
 Ashiok's Adept
+Assemble the Legion
 Astral Dragon
 Attended Healer
 Audacious Infiltrator
@@ -109,6 +110,7 @@ Dread Slaver
 Dream Pillager
 Dross Crocodile
 Drownyard Explorers
+Duergar Mine-Captain
 Echoing Ruin
 Edge of the Divinity
 Eidolon of Inspiration
@@ -305,6 +307,7 @@ Phyrexian Denouncer
 Phyrexian Totem
 Piety
 Plains
+Planar Ally
 Polluted Mire
 Predatory Sliver
 Priests of Norn

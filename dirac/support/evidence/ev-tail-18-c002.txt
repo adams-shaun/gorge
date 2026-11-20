@@ -9,6 +9,7 @@ Ancient Copper Dragon
 Angler Drake
 April O'Neil, Human Element
 Ardent Soldier
+Arrow Storm
 Asha's Favor
 Audacity
 Aven Eternal
@@ -39,6 +40,7 @@ Bold Defense
 Bond of Passion
 Boom
 Boompile
+Borrowing 100,000 Arrows
 Branching Bolt
 Branchloft Pathway
 Breath of Darigaaz
@@ -49,6 +51,7 @@ Capital Guard
 Carnage Interpreter
 Cast into the Fire
 Caustic Hound
+Champion Lancer
 Charcoal Diamond
 Citadel Castellan
 Claim the Firstborn
@@ -77,6 +80,7 @@ Demonic Dread
 Deranged Hermit
 Deserter's Quarters
 Devastation Tide
+Diabolic Tutor
 Dictate of Karametra
 Didgeridoo
 Die Young
@@ -241,11 +245,13 @@ Reef Shaman
 Refurbished Familiar
 Relentless Assault
 Remand
+Renegade Tactics
 Resupply
 Rime Transfusion
 Rite of the Raging Storm
 Rush of Inspiration
 Rusted Sentinel
+Sabertooth Wyvern
 Sacred Guide
 Said
 Savage Offensive
@@ -255,6 +261,7 @@ Screaming Seahawk
 Seal Away
 Seal of Strength
 Searing Light
+Seasoned Marshal
 Seismic Stomp
 Seller of Songbirds
 Sentinel
@@ -266,6 +273,7 @@ Setessan Griffin
 Shadowfeed
 Shimmerdrift Vale
 Shinewend
+Shriekdiver
 Shrink
 Silverbeak Griffin
 Simian Grunts
@@ -319,6 +327,7 @@ The Juzam Master
 The Reaver Cleaver
 Then, Dreadmaws Ate Everyone
 Thirst
+Thopter Arrest
 Thor, Asgard's Avenger
 Thorn Mammoth
 Thunder Spirit

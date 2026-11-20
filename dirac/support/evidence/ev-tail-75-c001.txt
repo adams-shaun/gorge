@@ -123,6 +123,7 @@ Flare of Denial
 Flatman
 Flowstone Charger
 Forest
+Forked-Branch Garami
 Foxfire Oak
 Gift of Fangs
 Gift of Paradise
@@ -166,6 +167,7 @@ Launch
 Leapfrog
 Leyline of Punishment
 Lightwielder Paladin
+Liliana of the Veil
 Lonis, Genetics Expert
 Lord of Tresserhorn
 Lorthos, the Tidemaker

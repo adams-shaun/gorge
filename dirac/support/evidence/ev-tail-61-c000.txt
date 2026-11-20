@@ -127,6 +127,7 @@ Font of Progress
 Force of Vigor
 Forest
 Fortress Cyclops
+Fowl Strike
 Freyalise, Llanowar's Fury
 Frontier Mastodon
 Furious Assault
@@ -200,6 +201,7 @@ Kranioceros
 Krosan Archer
 Leech Gauntlet
 Legacy Weapon
+Leshrac's Rite
 Liliana's Scorn
 Lingering Phantom
 Llawan, Cephalid Empress
@@ -321,6 +323,7 @@ Sigiled Paladin
 Silverquill Campus
 Simic Signet
 Sip of Hemlock
+Skeleton Key
 Skirk Commando
 Skittering Crustacean
 Skull Raid
