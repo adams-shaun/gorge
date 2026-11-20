@@ -76,6 +76,7 @@ effects/mustblock_api.go effMustBlockChoicePool
 effects/namecard.go nameChoicesFiltered
 effects/phases.go phasesAffectedObjects
 effects/player_filter.go playerControlsMatches
+effects/player_filter.go playerHasCardsInZoneMatches
 effects/pump_params.go sharedPumpGrant
 effects/removecounter.go removeCounterChoose
 effects/resolve.go repeatDefinedGateHolds
