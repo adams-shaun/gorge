@@ -1,0 +1,19 @@
+{
+  "card": "Captain Marvel, Earth's Protector",
+  "class": "lockstep",
+  "why": "gorge prices Baxter Building's {4},{T}: Add four mana in any combination of colors in the cast window's paid layer (CR 601.2g, 605.3a/b: its four any-colour mana fund the second {W} of this card's {3}{W}{W} beside Hidden Lair's one) and offers the cast; the kernel's census prices Baxter at its cheapest {T}: Add {C} (pcard has no fee field, comboAnyMana wants a bare tap), so it offers no cast and its payment walk could not pay one",
+  "repro": {
+    "pool": "std-msh",
+    "surface": "full",
+    "seed": 30698,
+    "pair": 178,
+    "policy": "random",
+    "mulligans": 0
+  },
+  "evidence": [
+    "ev-std-msh-c000",
+    "ev-std-msh-c001",
+    "ev-std-msh",
+    "std-msh"
+  ]
+}
