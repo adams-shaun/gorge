@@ -45,7 +45,7 @@ func TestFiltFreeTapPainFailsOpen(t *testing.T) {
 	if s.srcMaskAt(pcConf, sc.slot(conf))&(1<<kop.W) == 0 {
 		t.Fatal("precondition: Mana Confluence cannot make W")
 	}
-	if s.filtFreeTapColour(k, 0, NoSlot, int(kop.W)) {
+	if s.filtFreeTapColour(k, 0, NoSlot, NoSlot, int(kop.W)) {
 		t.Fatal("the scan counted Mana Confluence's paid-life ability as a free bare tap")
 	}
 	pcElves := &k.cards[s.cardAt(sc.slot(elves))]
@@ -53,7 +53,7 @@ func TestFiltFreeTapPainFailsOpen(t *testing.T) {
 		t.Fatalf("precondition: Llanowar Elves are no plain tap census source (manaAb %d manaTap %v painLife %v)",
 			pcElves.manaAb, pcElves.manaTap, pcElves.painLife)
 	}
-	if !s.filtFreeTapColour(k, 0, NoSlot, int(kop.G)) {
+	if !s.filtFreeTapColour(k, 0, NoSlot, NoSlot, int(kop.G)) {
 		t.Fatal("precondition: the scan must still see Llanowar Elves' plain tap")
 	}
 }
