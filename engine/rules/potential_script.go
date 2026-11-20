@@ -114,7 +114,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 				}
 			}
 		}
-		if phased && o.Kind == "cast" && o.Mode == "" && o.AltCostIndex == 0 &&
+		if phased && o.Kind == optCast && o.Mode == "" && o.AltCostIndex == 0 &&
 			len(sr.feeGaps) != 0 && !sr.phasedScope(e) {
 			sr.feeOrder = true
 		}
