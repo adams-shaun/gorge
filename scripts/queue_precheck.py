@@ -27,18 +27,20 @@ On every push to main (.github/workflows/queue-precheck.yml) this script:
 Run: python3 scripts/queue_precheck.py [--dry-run] [--head N]   (GITHUB_TOKEN, GITHUB_REPOSITORY in the env)
 """
 import argparse
+import datetime
 import json
 import os
 import re
 import subprocess
 import sys
+import time
 import urllib.request
 
 CONTEXT = "queue-precheck"
 HEAD_N = 20
 PRIO_HOTFIX, PRIO_EVL, PRIO_DEFAULT = 3000, 2500, 2000
 # test-smart's census family (scripts/test-targets.sh C), the tests that read pinned data and ratchets.
-CENSUS = ("Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|OnlyFalls|IotaBlock|NoVerbatim|"
+CENSUS = ("Census|Covers|IsCurrent|Unchanged|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|OnlyFalls|IotaBlock|NoVerbatim|"
           "PublicBoundary|Acceptance|EnumConst|Pinned$|AreRegistered|ParamsAreRead|FilesWellFormed|KnownKeys|OnlyGrows")
 # Packages whose census tests are minutes long; the batch runs them (the oracle's lockstep census, engine/rules' heads).
 CENSUS_SKIP_PKGS = ("./dirac/oracle", "./engine/rules")
@@ -83,6 +85,8 @@ def queued(prs, repo):
         checks = pr.get("checks", {})
         if checks.get("fast", ("", ""))[0] != "SUCCESS" or checks.get("lint", ("", ""))[0] != "SUCCESS":
             continue
+        if pr.get("mergeable") == "CONFLICTING":
+            continue  # Mergify leaves a conflicting PR out of its batches too
         if checks.get(CONTEXT, ("", ""))[0] in ("FAILURE", "ERROR"):
             continue  # already dequeued by an earlier run, for this head
         at = max(checks["fast"][1] or "", checks["lint"][1] or "")
@@ -91,9 +95,40 @@ def queued(prs, repo):
     return out
 
 
+# Mergify's own order (11-20: #2744 was in batch #2869 but outside this script's estimate of the head, which also
+# held PRs Mergify had not batched). Mergify opens its batch PRs (mergify/merge-queue/*) 1-5 min after a push to
+# main, and each body names its PRs. The script waits up to BATCH_WAIT s for them, puts their PRs first, in the
+# order of the newest, largest batch, and fills the rest from the estimate.
+BATCH_WAIT = 360
+
+
+def batch_numbers(pulls, since):
+    """The PR numbers of Mergify's batch PRs opened at or after since (ISO time), from the largest newest batch's
+    body, in order; [] when none is open yet."""
+    best = []
+    for b in pulls:
+        if not b["head"]["ref"].startswith("mergify/merge-queue/") or b["created_at"] < since:
+            continue
+        nums = []
+        for m in re.findall(r"#(\d+)", b.get("body") or ""):
+            if int(m) not in nums and int(m) != b["number"]:
+                nums.append(int(m))
+        if len(nums) >= len(best):
+            best = nums
+    return best
+
+
+def head_order(batch, estimate, n):
+    """Mergify's batch PRs first (those still queued), then the estimate's, at most n."""
+    by = {p["number"]: p for p in estimate}
+    out = [by[x] for x in batch if x in by]
+    out += [p for p in estimate if p["number"] not in batch]
+    return out[:n]
+
+
 QUERY = """query($owner:String!,$name:String!,$after:String){repository(owner:$owner,name:$name){
 pullRequests(states:OPEN,baseRefName:"main",first:100,after:$after){pageInfo{hasNextPage endCursor}
-nodes{number isDraft baseRefName headRefName headRefOid headRepository{nameWithOwner} labels(first:20){nodes{name}}
+nodes{number isDraft mergeable baseRefName headRefName headRefOid headRepository{nameWithOwner} labels(first:20){nodes{name}}
 commits(last:1){nodes{commit{statusCheckRollup{contexts(first:100){nodes{
 __typename ... on CheckRun{name conclusion completedAt} ... on StatusContext{context state createdAt}}}}}}}}}}}"""
 
@@ -120,7 +155,7 @@ def list_prs(repo, token):
                     checks[c["name"]] = (c["conclusion"] or "", c["completedAt"])
                 else:
                     checks[c["context"]] = (c["state"], c["createdAt"])
-            prs.append({"number": n["number"], "isDraft": n["isDraft"], "baseRefName": n["baseRefName"],
+            prs.append({"number": n["number"], "isDraft": n["isDraft"], "mergeable": n.get("mergeable"), "baseRefName": n["baseRefName"],
                         "headRefName": n["headRefName"], "sha": n["headRefOid"],
                         "headRepo": (n["headRepository"] or {}).get("nameWithOwner"),
                         "labels": [l["name"] for l in n["labels"]["nodes"]], "checks": checks})
@@ -170,6 +205,11 @@ def plan(files, census_pkgs):
     dirs = {"./" + f.rsplit("/", 1)[0] for f in files if "/" in f}
     pk = sorted(p for p in census_pkgs if p in dirs and p not in CENSUS_SKIP_PKGS)
     kgen = any(f.startswith(("dirac/", "engine/", "tablesrc.go")) for f in files)
+    # Generated files and ordinals (11-20 #2744: ask ordinal 157 taken twice): their IsCurrent/Unchanged pins live
+    # in ./dirac (TestAskKindsUnchanged, TestManifestGenIsCurrent) and in the generator's own package.
+    if any(f.startswith("dirac/manifest/") or f.endswith("_gen.go") for f in files):
+        gen = {"./dirac"} | {"./" + f.rsplit("/", 1)[0] for f in files if f.endswith("_gen.go") and "/" in f}
+        pk = sorted(set(pk) | {p for p in census_pkgs if p in gen and p not in CENSUS_SKIP_PKGS})
     replays = any((f.startswith("dirac/") and f.endswith(".go") and not f.endswith("_test.go")
                    and not f.startswith("dirac/kgen/")) or f.startswith("dirac/oracle/testdata/repro/") for f in files)
     return pk, kgen, replays
@@ -261,7 +301,17 @@ def main():
     a = ap.parse_args()
     repo, token = os.environ["GITHUB_REPOSITORY"], os.environ["GITHUB_TOKEN"]
     base = sh("git", "rev-parse", a.base).stdout.strip()
-    order = queued(list_prs(repo, token), repo)[:a.head]
+    since = sh("git", "show", "-s", "--format=%cI", base).stdout.strip()
+    since = datetime.datetime.fromisoformat(since).astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    batch = []
+    for _ in range(BATCH_WAIT // 30 + 1):
+        pulls = api("/repos/%s/pulls?state=open&base=main&per_page=100" % repo, token)
+        batch = batch_numbers(pulls, since)
+        if batch or a.dry_run:
+            break
+        time.sleep(30)
+    print("Mergify's batches since %s: %s" % (since, " ".join("#%d" % x for x in batch) or "none yet"))
+    order = head_order(batch, queued(list_prs(repo, token), repo), a.head)
     print("queue head (%d): %s" % (len(order), " ".join("#%d" % p["number"] for p in order)))
     if not order:
         return 0
