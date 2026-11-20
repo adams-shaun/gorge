@@ -740,29 +740,57 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 // Warrior's ability, CR 106.6) count as the units they make, beside the filter
 // lands whose fee they can fund and whose coloured mana they can share a pip
 // with (gorge's cast window prices a RestrictValid$ ability its payment admits
-// like any other source, then walks the filters over what it made). A spell's
-// restricted mana that has already floated is av's (the pip ask's restrAvail),
-// but its UNTAPPED restricted sources are units of the same window read: an
-// untapped Jasmine Dragon Tea Shop's Ally-only one mana of any colour pays an
-// Ally spell's pip beside a filter's fee the pool funds (gorge's
-// castWindowRestrictedSpendable prices the ability, CR 106.6). The restricted
-// one is composed with the census unit swapped for it (restrView keeps a
-// tapped source out, so a floating batch is never counted twice), and a
-// dynamic restricted amount rides no avail group, as the activation arm's
-// census read leaves it to affordsMulti.
+// like any other source, then walks the filters over what it made).
+//
+// A non-activation payment's restricted units are the payment's, not a
+// filter's activation's (CR 106.6: an untapped Jasmine Dragon Tea Shop's
+// Ally-only mana pays an Ally spell's pip, never the {1} of a filter land's
+// mana ability). They are kept out of the walk's fees; the face the walk ends
+// on reads them (faceReachSet's restrFaceAffordsD), so the spell's pip is
+// still priced through them beside a fee the pool funds. A widened source's
+// census unit is reserved with them: the source taps once, for the restricted
+// alternative (restrView keeps a tapped source out, and an already-floated
+// batch is av's through the pip ask's restrAvail).
 //
 //go:noinline
 func (s *State) restrActFiltAvail(k *prep, p uint8, av *avail) avail {
-	if k.restrSrc {
-		d := s.payDescNow(NoObj)
-		if d.class == pdAct {
-			t, _, _ := s.restrSrcAvail(k, p, d, av, d.src)
-			return t
-		}
-		t, _, _ := s.restrSrcAvail(k, p, d, av, NoSlot)
+	if !k.restrSrc {
+		return *av
+	}
+	d := s.payDescNow(NoObj)
+	if d.class == pdAct {
+		t, _, _ := s.restrSrcAvail(k, p, d, av, d.src)
 		return t
 	}
-	return *av
+	t := *av
+	s.restrActFiltReserve(k, p, d, &t)
+	return t
+}
+
+// restrActFiltReserve takes the census units of p's widened restricted sources
+// out of t: payment d may spend their restricted alternative, which a filter
+// walk's fees may not (CR 106.6), and the source's one tap is the restricted
+// one. restrSrcAvail's rkWiden arm does the same before it adds the units.
+func (s *State) restrActFiltReserve(k *prep, p uint8, d payDesc, t *avail) {
+	if k.gen == nil {
+		return
+	}
+	deferSkip := s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0
+	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+		sl := m.first()
+		if k.gen.flags[s.cardAt(sl)]&gfRestrSrc == 0 {
+			continue
+		}
+		if deferSkip && s.planDeferred(k, p, sl) {
+			continue
+		}
+		own := s.manaPCGen(k, sl)
+		v, kind, _ := s.restrView(k, p, sl, own, &d)
+		if v == nil || kind != rkWiden || d.noPair && v.wideChosen {
+			continue
+		}
+		t.remove(s.srcMaskAt(own, sl), own.manaN)
+	}
 }
 
 // restrWideMask is the colour mask of a widened source's larger alternative:
@@ -995,7 +1023,13 @@ func (s *State) castAffordsR(k *prep, p uint8, c CardID, og restrOrigin, cost *k
 //
 //go:noinline
 func (s *State) restrFaceAffords(k *prep, p uint8, r *kop.ManaCost, av *avail, extra int) bool {
-	d := s.payDescNow(NoObj)
+	return s.restrFaceAffordsD(k, p, s.payDescNow(NoObj), r, av, extra)
+}
+
+// restrFaceAffordsD is restrFaceAffords for the described payment: the filter
+// walk's final face read uses it after the walk's fees, which the restricted
+// units could not pay (CR 106.6), so they still price the face.
+func (s *State) restrFaceAffordsD(k *prep, p uint8, d payDesc, r *kop.ManaCost, av *avail, extra int) bool {
 	skip := NoSlot
 	if d.class == pdAct {
 		skip = d.src
