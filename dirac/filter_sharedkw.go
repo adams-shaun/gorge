@@ -106,17 +106,65 @@ func (s *State) hasProtQuality(k *prep, sl Slot, spec kop.FilterID) bool {
 	return hit
 }
 
-// hasProtColor: the permanent at sl has protection from any colour in mask
-// among its derived keywords: printed ProtColors (and a chosen-colour grant,
+// hasProtColor: the permanent at sl has protection from a colour in mask among
+// its derived keywords: printed ProtColors (and a chosen-colour grant,
 // protPrinted), the KwProtBlack and KwProtRed bits (a printed or granted
 // spelling), or the colour clauses of a Continuous static's or override
-// record's ProtFrom (grantedProtColKw). "Protection from everything" is its
-// own keyword, read through PredHasKeyword.
+// record's ProtFrom (grantedProtColKw). A source whose colour set is all five
+// is the single "Protection from each color" spelling, not a colour word, and
+// does not answer a narrower mask: gorge's SharedKeywordSpellings shares exact
+// spellings. (A printed CardDef.ProtColors of all five cannot tell a printed
+// each-color from five printed colour words; the each-color form is the common
+// one and is excluded. A card holding the each-color spelling and a separate
+// colour grant is the other narrow edge: the union answers the colour word.)
+// "Protection from everything" is its own keyword, read through
+// PredHasKeyword.
 func (s *State) hasProtColor(k *prep, sl Slot, mask kop.ColorMask) bool {
 	if mask == 0 {
 		return false
 	}
-	return s.protColours(k, sl)&mask != 0
+	const all = kop.ColW | kop.ColU | kop.ColB | kop.ColR | kop.ColG
+	if p := k.t.Cards[s.cardAt(sl)].ProtColors; p != 0 && p != all && p&mask != 0 && !s.genLost(k, sl) {
+		return true
+	}
+	kw := s.kw(k, sl)
+	if kw&kop.KwProtBlack != 0 && mask&kop.ColB != 0 || kw&kop.KwProtRed != 0 && mask&kop.ColR != 0 {
+		return true
+	}
+	if k.gen.anyColGrant {
+		if c := s.colProtOf(k, sl); c != all && c&mask != 0 {
+			return true
+		}
+	}
+	if !k.gen.anyProtGrant {
+		return false
+	}
+	lts, lost := s.lossAt(k, sl)
+	hit := false
+	s.eachStatic(k, func(st statSrc) bool {
+		a := st.a
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.ProtFrom == 0 ||
+			lost && s.grantTs(st) < lts {
+			return true
+		}
+		if c := protColKwOf(k, a.Static.ProtFrom); c != all && c&mask != 0 &&
+			s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
+			hit = true
+			return false
+		}
+		return true
+	})
+	if hit {
+		return true
+	}
+	s.eachOverrideTs(k, sl, func(o *kop.Override, ts uint16) {
+		if o.ProtFrom != 0 && (!lost || ts >= lts) {
+			if c := protColKwOf(k, o.ProtFrom); c != all && c&mask != 0 {
+				hit = true
+			}
+		}
+	})
+	return hit
 }
 
 // hasProtEachColor: the permanent at sl has protection from every colour

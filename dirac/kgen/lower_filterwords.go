@@ -116,11 +116,6 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7WithDevoid), true // the same read for Devoid (a spell restriction's Spell.withDevoid)
 	case "withSkulk":
 		return int(kop.W7WithSkulk), true // lower_filterwords.go: the same read for Skulk
-	case "hasKeywordLandwalk:Island":
-		// the positive spelling of the negated exact-keyword word (only the
-		// Island parameter is read, as kop.W7LacksIslandwalk reads it):
-		// Merfolk Assassin's "destroy target creature with islandwalk"
-		return int(kop.W7HasIslandwalk), true
 	case "Snow":
 		// gorge hasType Snow: the printed supertype, never while face down
 		// (kop.W7Snow); TypeMask and FilterFlags2 have no bit left for it

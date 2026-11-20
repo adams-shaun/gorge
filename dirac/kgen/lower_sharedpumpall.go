@@ -78,6 +78,15 @@ func (lc *lowerCtx) sharedKeywordGrant(restrict, targets *lFilter, term string) 
 	case strings.HasPrefix(term, "Protection"):
 		return lc.sharedProtection(restrict, targets, term)
 	}
+	if term == "Hexproof" || term == "Trample" {
+		// gorge treats these as family words too (effects.SharedKeywordSpellings):
+		// a sharing card's own "Hexproof:<spec>" / "Trample:<spec>" spelling is
+		// granted, not the bare word. The kernel has no grant for those spellings,
+		// so a pool holding one refuses rather than grants the wrong keyword.
+		if err := lc.poolSharedPlainOnly(term); err != nil {
+			return err
+		}
+	}
 	ks, err := pumpKeywords(term)
 	if err != nil {
 		return err
@@ -98,6 +107,83 @@ func (lc *lowerCtx) sharedKeywordGrant(restrict, targets *lFilter, term string) 
 		lc.emit(in)
 		return nil
 	})
+}
+
+// poolSharedPlainOnly refuses a Hexproof or Trample family word when any card
+// of the pool can have a spelling other than the bare word: a printed
+// "Hexproof:<spec>"/"Trample:<spec>", a grant in an ability or static, or a
+// body held in an SVar (a sub-ability, a trigger's Execute, a replacement).
+// The lowering has no grant for those spellings; refusing the card is the
+// fail-closed direction (the Rayami helper poolSharesOnlyModelled refuses the
+// same way for its own family words).
+func (lc *lowerCtx) poolSharedPlainOnly(family string) error {
+	if lc.p == nil {
+		return refuse("PumpAll SharedKeywordsZone$ %s with no pool to read", family)
+	}
+	check := func(card, where, s string) error {
+		s = strings.TrimSpace(s)
+		if sharedKwFamily(s) == family && s != family {
+			return refuse("PumpAll SharedKeywordsZone$ %s: %s at %s is %q, which the kernel cannot grant", family, card, where, s)
+		}
+		return nil
+	}
+	tokens := func(card, where, body string) error {
+		for _, t := range strings.FieldsFunc(body, func(r rune) bool {
+			return r == '|' || r == '&' || r == ' ' || r == '\t' || r == '\n' || r == ','
+		}) {
+			if err := check(card, where, t); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	for _, n := range lc.p.names {
+		c := lc.p.byName[n]
+		if c == nil {
+			continue
+		}
+		for _, f := range c.Faces {
+			for _, k := range f.Keywords {
+				if err := check(n, "a printed keyword", k); err != nil {
+					return err
+				}
+			}
+			for _, sa := range f.Abilities {
+				for _, v := range sa.Params {
+					if err := tokens(n, "an ability", v); err != nil {
+						return err
+					}
+				}
+			}
+			for _, st := range f.Statics {
+				for _, v := range st.Params {
+					if err := tokens(n, "a static", v); err != nil {
+						return err
+					}
+				}
+			}
+			for _, t := range f.Triggers {
+				for _, v := range t.Params {
+					if err := tokens(n, "a trigger", v); err != nil {
+						return err
+					}
+				}
+			}
+			for _, r := range f.Repls {
+				for _, v := range r.Params {
+					if err := tokens(n, "a replacement", v); err != nil {
+						return err
+					}
+				}
+			}
+			for _, body := range f.SVars {
+				if err := tokens(n, "an SVar", body); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // sharedLandwalk emits one conditional landwalk grant per spelling: the KW$
@@ -233,7 +319,14 @@ func (lc *lowerCtx) sharedOverrideAll(f *lFilter, o *lOverride, note string) {
 // cards print or grant, sorted. The pool is the table's card list, so a
 // spelling no card of the pool can have is not emitted. Printed keywords,
 // a Continuous static's AddKeyword$, a Pump/PumpAll's KW$ and an Animate's
-// Keywords$ are read.
+// Keywords$ are read. The scan is the top-level card text: a spelling held
+// only in an SVar body (a sub-ability's KW$, a trigger's Execute$, a
+// replacement) is not seen, so that sharing card's spelling is not emitted
+// and the grant does not include it. The scan is deliberately not widened
+// here: an SVar can hold any nested body, and the SharedKeywordsZone$
+// PumpAll cards use the top-level forms. A pool whose family spelling is
+// SVar-only is therefore a known approximation (gorge shares it, the kernel
+// does not).
 func (lc *lowerCtx) poolSharedTerms(family string) []string {
 	if lc.p == nil {
 		return nil

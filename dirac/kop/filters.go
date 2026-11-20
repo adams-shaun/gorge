@@ -633,14 +633,6 @@ const W7HasProtColor int16 = 44
 // same derived protection colours as W7HasProtColor, all five required.
 const W7HasProtEachColor int16 = 45
 
-// W7HasIslandwalk (PredWord7 sub-kind 45): the positive spelling of the
-// existing !hasKeywordLandwalk:Island word (kop.W7LacksIslandwalk): the
-// permanent has a Landwalk naming Island among its derived keywords (printed
-// unless it lost its abilities, a Continuous static's grant, or a Pump's
-// override record). Merfolk Assassin's "destroy target creature with
-// islandwalk".
-const W7HasIslandwalk int16 = 45
-
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
 // (net power equal to net toughness) and PTRelNE its negation !equalPT, each

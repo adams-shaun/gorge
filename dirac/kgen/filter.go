@@ -836,7 +836,7 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// gorge equipped: an Equipment permanent is attached to it
 		return c.setCmp(cmpEquipped, 0, 0, "", "")
 	case "withDefender", "withDeathtouch", "withTrample", "withHaste", "withMenace", "withVigilance", "withReach",
-		"withLifelink", "withIndestructible", "withFirstStrike", "withDoubleStrike", "withShadow", "withHexproof", "withFear":
+		"withLifelink", "withIndestructible", "withFirstStrike", "withDoubleStrike", "withShadow", "withFear":
 		// gorge objectHasKeyword over the derived keywords (filter.go's
 		// with<Keyword> registry): PredHasKeyword
 		return c.setCmp(cmpHasKw, 0, withKwBit(p), "", "")
