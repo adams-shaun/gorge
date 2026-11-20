@@ -141,6 +141,9 @@ func (s *State) optDiscardAccept(k *prep) bool {
 	p := uint8(r.chosen) // a seat
 	pl := &s.pl[p]
 	if in.C&kop.OptAll != 0 { // Mode$ Hand: the whole hand
+		if k.gen != nil && k.gen.anyBatch {
+			defer s.batchClose(s.batchOpen()) // one discard action (gorge flushDiscards)
+		}
 		for pl.handN > 0 {
 			s.discardObj(k, pl.hand[0])
 		}
@@ -221,6 +224,9 @@ func (s *State) optaskPicked(o Obj) bool {
 // every later pick wait in the queue, competing or not: at the ask a later
 // answered card is still in hand.
 func (s *State) optaskFireDiscard(k *prep) {
+	if k.gen != nil && k.gen.anyBatch {
+		defer s.batchClose(s.batchOpen()) // one optional discard action (gorge flushDiscards)
+	}
 	r := &s.res
 	n := int(r.peekI) + int(r.peekN)
 	first := -1
