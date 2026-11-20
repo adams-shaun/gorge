@@ -56,3 +56,18 @@ func danithaFires(t *testing.T, scenario string) bool {
 	}
 	return false
 }
+
+// CR 109.2 / 110.1: "a creature you control" is a permanent, so a creature
+// CARD in a graveyard is not one. Forge reads `IsTargeting Valid <spec>`
+// through AbilityUtils.getDefinedObjects, whose `Valid ` form draws its
+// candidates from the battlefield only. Generous Revival targets a creature
+// card in p0's graveyard: Danitha must stay silent (cross-engine farm,
+// FRA-s102 xe:RAND:0:5:w8 step 17; Forge and XMage agree).
+func TestValidSAIsTargetingValidIsBattlefieldOnly(t *testing.T) {
+	sc := `{"name":"danitha-graveyard-target","cr":["109.2","110.1"],"why":"a spell targeting a creature card in a graveyard is not targeting a creature you control",
+ "setup":{"p0":{"battlefield":["Danitha, Sword of Hope"],"hand":["Generous Revival"],"graveyard":["Grizzly Bears"]},"p1":{"battlefield":["Grizzly Bears"]}},
+ "steps":[{"op":"cast","seat":0,"card":"p0:Generous Revival","mana":"CCW","targets":["p0:Grizzly Bears"]}]}`
+	if danithaFires(t, sc) {
+		t.Fatal("Danitha fired for a spell targeting a creature card in a graveyard")
+	}
+}

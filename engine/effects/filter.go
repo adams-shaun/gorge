@@ -1272,8 +1272,10 @@ func spellIsTargetingAlt(base, rest string) (arg string, neg, ok bool) {
 // idiom, rewritten to the filter grammar's own `+Other` conjunction so the
 // exclusion is the matcher's source-relative reading (predicates["Other"]).
 func spellIsTargetingInner(arg string) (spec string, ok bool) {
+	pinned := false
 	if inner, has := strings.CutPrefix(arg, "Valid "); has {
 		spec = strings.TrimSpace(inner)
+		pinned = true
 	} else if strings.HasPrefix(arg, "Valid") {
 		// A malformed `ValidX` is not a shape this evaluator reads.
 		return "", false
@@ -1296,6 +1298,21 @@ func spellIsTargetingInner(arg string) (spec string, ok bool) {
 	}
 	if inner, has := strings.CutSuffix(spec, "~Other"); has {
 		spec = strings.TrimSpace(inner) + "+Other"
+	}
+	if pinned {
+		// Forge resolves `IsTargeting Valid <spec>` through
+		// AbilityUtils.getDefinedObjects, whose `Valid ` form draws its
+		// candidates from the BATTLEFIELD only (`ValidAll ` is the any-zone
+		// form). "A creature you control" is a permanent (CR 109.2, 110.1), so
+		// a creature card in a graveyard never satisfies it: every
+		// comma-alternative is pinned to the battlefield, and a player target
+		// (not a card) never matches the pinned spec. The bare forms stay
+		// zone-free.
+		alts := strings.Split(spec, ",")
+		for i, a := range alts {
+			alts[i] = strings.TrimSpace(a) + "+inZoneBattlefield"
+		}
+		spec = strings.Join(alts, ",")
 	}
 	return spec, true
 }
