@@ -1,0 +1,23 @@
+# the Flagbearer rule (stat:MustTarget): the three paper carriers beside
+# targeted removal and pump spells of each colour, a multi-target pump, and
+# cheap creatures and basics for the four-seat pod, and a different-controllers
+# two-target spell (dirac/oracle/
+# musttarget_lockstep_test.go, dirac/kgen/musttarget_lower_test.go)
+Coalition Flag
+Coalition Honor Guard
+Standard Bearer
+Lightning Bolt
+Unsummon
+Doom Blade
+Pacifism
+Giant Growth
+Invigorated Rampage
+When We Were Young
+Grizzly Bears
+Savannah Lions
+Plains
+Island
+Swamp
+Mountain
+Forest
+Run Away Together
