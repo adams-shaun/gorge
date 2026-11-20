@@ -1723,19 +1723,7 @@ func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool,
 			// play's origin or class cannot spend prices nothing
 			g.skipPool = !g.grantAdmits(t, sl, gi)
 			ask := alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)
-			if pc.grantSac {
-				if g.sacBranch(t, i, sl, gi, pc, mask, ask) { // the step sacrifices the source (mana_grantcost.go)
-					return true, false
-				}
-				continue
-			}
-			if grantCostLife(pc) > 0 {
-				if g.costBranch(t, i, sl, gi, pc, mask, ask) { // the step pays its life (mana_grantcost.go)
-					return true, false
-				}
-				continue
-			}
-			if g.branch(t, i, sl, gi, mask, pc.manaN, ask) {
+			if g.grantStepBranch(t, i, sl, gi, pc, mask, ask) {
 				return true, false
 			}
 		}
@@ -2120,7 +2108,7 @@ func (g *grantSrch) needPass(t *State, i int, sl Slot) bool {
 		return false
 	}
 	for j := 0; j < int(g.ng[i]); j++ {
-		if pc := t.grantView(g.k.gen, g.gi[i][j], sl); pc.grantSac || grantCostLife(pc) > 0 {
+		if pc := t.grantView(g.k.gen, g.gi[i][j], sl); pc.grantSac || pc.manaSac || grantCostLife(pc) > 0 {
 			return false
 		}
 	}
@@ -2612,8 +2600,7 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			continue
 		}
 		if st.sac {
-			GrantManaStats.Sac.Add(1)   // the granted sacrifice-only step (mana_grantcost.go)
-			s.grantSacApply(k, g.p, st) // the mana, the sacrifice, the state-based check (mana_grantcost.go)
+			s.grantSacStepApply(k, g.p, st) // the sacrifice step's replay, sac-only or after the tap (mana_grantcost.go)
 			if s.npend != 0 {
 				passed = true
 				s.tapXNext(g.p, &d)
