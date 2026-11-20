@@ -190,6 +190,8 @@ func (lc *lowerCtx) headArm(head, t string, depth int) (lValue, error) {
 // false for any other head.
 func (lc *lowerCtx) countHeads8(rest string, depth int) (v lValue, ok bool, err error) {
 	switch {
+	case rest == "SquadPaid" || rest == "ReplicatePaid":
+		return lc.repeatedPaidValue(rest) // lower_squadreplicate.go
 	case strings.HasPrefix(rest, "InOwnMainPhase."):
 		parts := strings.Split(strings.TrimPrefix(rest, "InOwnMainPhase."), ".")
 		if len(parts) != 2 {

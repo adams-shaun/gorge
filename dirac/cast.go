@@ -455,7 +455,7 @@ func (s *State) syncBuild() {
 // these rows. A triggered ability is pushed by takePending before its
 // program starts.
 var buildProgram = [3][]uint8{
-	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsMulti, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
+	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsReplicate, bsMulti, bsSquad, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seAbility: {bsPush, bsModes, bsTapCost, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seTrigger: {bsModes, bsPips, bsTargets, bsDivide, bsPay},
 }
@@ -814,8 +814,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			s.nextStage(k)
 			continue
-		case bsMulti:
-			if s.multikickOptions(k, d) {
+		case bsReplicate, bsMulti, bsSquad:
+			if s.repeatCountOptions(k, d) {
 				return true
 			}
 			s.nextStage(k)
@@ -1527,7 +1527,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 			s.bld().pipN++
 			return
 		}
-		if s.bld().stage == bsMulti {
+		if s.repeatAnswerStage() {
 			s.answerMultikick(k, a)
 			return
 		}
@@ -1638,6 +1638,9 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	}
 	if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 {
 		s.payLifeCost(k, e.ctrl, pc, uint8(e.x))
+	}
+	if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayEnergy != 0 {
+		s.payEnergy(e.ctrl, pc) // a Squad/Replicate payment's energy part, scaled to the count (kw_squadreplicate.go)
 	}
 	if k.gen != nil && k.gen.anyRaiseLife {
 		s.payRaiseLife(k) // a RaiseCost PayLife<N> the chosen target owes (cost_raiselife.go)
@@ -2625,7 +2628,7 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 			return &cd.EscCost // the escape cost's exile parts (CR 702.138a; kw_escape.go)
 		}
 		if k.gen != nil && k.gen.anyKickCost {
-			if kc := kickerCostPick(k, e); kc != nil {
+			if kc := s.kickerCostPick(k, e); kc != nil {
 				return kc // a kicked cast's Sac/Return kicker part (kw_kicker.go)
 			}
 		}
