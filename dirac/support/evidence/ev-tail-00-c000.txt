@@ -159,6 +159,7 @@ Gods' Hall Guardian
 Goldnight Redeemer
 Golgari Keyrune
 Goliath Beetle
+Gollum's Bite
 Gornog, the Red Reaper
 Graceful Cat
 Grave Birthing
@@ -250,6 +251,7 @@ Masked Vandal
 Megantic Sliver
 Mental Journey
 Mind Flayer
+Mirrormere Guardian
 Mold Shambler
 Morgue Thrull
 Mortis Dogs
