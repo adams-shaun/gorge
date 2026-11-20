@@ -431,6 +431,11 @@ func warpGraveyardAllowed(f *cards.Face) bool {
 }
 
 func (e *Engine) warpRecastAvailable(id state.ObjID) bool {
+	// Step 3 needs a __kwWarpExile DelayedPush in the log; Apply notes the
+	// first one, so a game that never pushed one cannot offer a recast.
+	if !e.G.WarpExileSeen() {
+		return false
+	}
 	log := e.L.Events
 	exileIdx := -1
 	for i := len(log) - 1; i >= 0; i-- {

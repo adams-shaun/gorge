@@ -567,6 +567,9 @@ func applyKind(g *state.Game, e *Event) {
 	case DelayedRemove:
 		foldDelayedRemove(g, e)
 	case DelayedPush:
+		if e.Counter == "__kwWarpExile" {
+			g.NoteWarpExile()
+		}
 		foldDelayedPush(g, e)
 	case MergedTriggerPush:
 		foldMergedTriggerPush(g, e)
