@@ -69,7 +69,7 @@ func (s *State) declareMustAttack(k *prep) {
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
-		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDuty(k, sl) || s.mustAttackGoad(k, sl)) {
+		if s.canAttack(k, sl) && !s.atkHasteNoPair(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDuty(k, sl) || s.mustAttackGoad(k, sl)) {
 			if s.aloneAtk(k, sl) && !s.alonePartner(k, sl) {
 				continue // CR 508.1d: no declaration obeys it alone (combat_alone.go)
 			}
@@ -373,14 +373,15 @@ func (s *State) goadDefenderBanned(k *prep, sl Slot, q uint8) bool {
 }
 
 // mustAttackLeft reports whether a creature that must attack and can is
-// not declared yet (Config.GorgeMustAttack withholds Done).
+// not declared yet (Config.GorgeMustAttack withholds Done). A sick creature
+// exempt from summoning sickness against no live defender is not able (CR 508.1d).
 func (s *State) mustAttackLeft(k *prep) bool {
 	if !s.statM.any() && !(k.embComb && s.anyEmb()) && !goadOn(k) && !attackDutyOn(k) {
 		return false
 	}
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDutyLive(k, sl) || s.mustAttackGoad(k, sl)) &&
+		if s.canAttack(k, sl) && !s.atkHasteNoPair(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDutyLive(k, sl) || s.mustAttackGoad(k, sl)) &&
 			!(s.aloneAtk(k, sl) && !s.alonePartner(k, sl)) && !s.cantAtkEveryPair(k, sl) {
 			return true
 		}
