@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 )
@@ -175,10 +176,61 @@ func checkAcceptance(t *testing.T, cardsDir, list string) {
 	checkPin(t, acceptanceTSV, list, list, pin, [2]int{cv.lowered, cv.cards})
 }
 
+// The ALL list's lower+build pass, shared by the two corpus ratchets: they
+// lower the same corpus, so two full passes per package run became one. The
+// result is read-only — the callers hold its coverage against their own pins
+// (ratchet_test.go's ALL row and build_acceptance.tsv's).
+var (
+	corpusAccOnce sync.Once
+	corpusAccCv   coverage
+	corpusAccTook time.Duration
+	corpusAccErr  error
+)
+
+// corpusAcceptance runs that pass once per package run, in process and writing
+// nothing, and returns its coverage.
+func corpusAcceptance(t *testing.T) coverage {
+	t.Helper()
+	cardsDir := ratchetCards(t)
+	corpusAccOnce.Do(func() {
+		start := time.Now()
+		allPath, err := corpusAllList(cardsDir)
+		if err != nil {
+			corpusAccErr = err
+			return
+		}
+		p, err := loadCardList(allPath, cardsDir)
+		if err != nil {
+			corpusAccErr = err
+			return
+		}
+		// Lower AND build: buildPool appends the build-level refusals (counter
+		// kinds, cost shapes, filter compares) to each card, so the coverage
+		// equals what `generate` can emit, not just what the LIR pass accepts.
+		lw := lowerPool(p)
+		if _, _, _, err := buildPool(lw); err != nil {
+			corpusAccErr = fmt.Errorf("ALL: build: %v", err)
+			return
+		}
+		corpusAccCv = computeCoverage(p, lw)
+		corpusAccTook = time.Since(start)
+	})
+	if corpusAccErr != nil {
+		t.Fatal(corpusAccErr)
+	}
+	return corpusAccCv
+}
+
 // TestCorpusAcceptance is the corpus ratchet (the generated ALL list, ~3 s).
 func TestCorpusAcceptance(t *testing.T) {
 	heavyParallel(t)
-	checkAcceptance(t, ratchetCards(t), "ALL")
+	pin, ok := acceptancePins(t)["ALL"]
+	if !ok {
+		t.Fatalf("ALL.txt has no row in %s", acceptanceTSV)
+	}
+	cv := corpusAcceptance(t)
+	t.Logf("ALL: %d of %d accepted", cv.lowered, cv.cards)
+	checkPin(t, acceptanceTSV, "ALL", "ALL", pin, [2]int{cv.lowered, cv.cards})
 }
 
 // TestSetAcceptance is the per-set ratchet, one subtest per list.
