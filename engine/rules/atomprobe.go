@@ -9,6 +9,7 @@ import (
 type specMatcher interface {
 	matchesSpec(spec string, id state.ObjID, sc effects.SpecContext) bool
 	specCtx(source state.ObjID, you state.PlayerID) effects.SpecContext
+	LayerTables(want effects.LayerTableSet) effects.LayerTables
 	Game() *state.Game
 }
 
@@ -23,5 +24,13 @@ func MatchesSpecAtZone(e specMatcher, spec string, id, source state.ObjID, you s
 	if zone == state.ZBattlefield {
 		return e.matchesSpec(spec, id, e.specCtx(source, you))
 	}
-	return effects.MatchesSpecInZone(e.Game(), spec, id, e.specCtx(source, you), zone)
+	sc := e.specCtx(source, you)
+	if effects.SpecReadsPT(spec) {
+		// A Count$Valid over a hand, graveyard or library binds the CDA P/T
+		// table (bindSpecLayerTables), so a power or toughness word reads a
+		// characteristic-defining value in every zone (CR 604.3), not the
+		// printed star.
+		sc.Layers.CDAPTs = e.LayerTables(effects.LayerCDAPT).CDAPTs
+	}
+	return effects.MatchesSpecInZone(e.Game(), spec, id, sc, zone)
 }
