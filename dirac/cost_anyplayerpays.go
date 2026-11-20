@@ -34,17 +34,20 @@ func (s *State) payEachNext(k *prep) {
 
 // posePay sets the raGenPay ask for payer p (execPay's tail).
 func (s *State) posePay(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, amt int) {
+	stall := uint8(0)
 	if !s.canPayGen(k, p, kind, amt, in.B.N, in.F) {
-		ok, stall := s.windowPays(k, p, kind, skip, amt, in.B.N)
+		var ok bool
+		ok, stall = s.windowPays(k, p, kind, skip, amt, in.B.N)
 		if !ok {
 			skip |= pfNoPay
-			if stall != 0 {
-				// the drop is final (the payer is offered decline only) and a
-				// failed window probe's fork latched a rule gap the kernel
-				// stalls by name: declare it, not a silent unpayable cost
-				s.capFull(stall)
-			}
 		}
+	}
+	if stall != 0 {
+		// the drop is final (the payer is offered decline only) and a failed
+		// window probe's fork latched a rule gap the kernel stalls by name:
+		// declare it, not a silent unpayable cost. A found plan's spill is the
+		// same model gap and is declared too.
+		s.capFull(stall)
 	}
 	s.g.pickF = skip
 	s.g.pickZ = uint8(kind)

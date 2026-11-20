@@ -1335,7 +1335,7 @@ func (s *State) windowPays(k *prep, p uint8, kind int, skip uint16, amt int, pip
 		return false, 0
 	}
 	if ok, stall := s.windowAffordsN(k, p, amt, pips, skip&pfWard == 0); ok {
-		return true, 0
+		return true, stall // a found plan's spill is a capacity stall the caller declares
 	} else {
 		// An unless cost is no spell's payment: restricted mana whose restriction
 		// admits a non-spell payment (a Powerstone's {C}, CR 106.6) pays it, as it

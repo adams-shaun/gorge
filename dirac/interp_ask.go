@@ -239,6 +239,11 @@ func (s *State) payAnswerGate(k *prep, in *kop.Instr, p uint8, kind int, skip ui
 		noPay = !ok
 	}
 	if !noPay {
+		if stall != 0 {
+			// a found plan's spill is a capacity stall, declared rather than
+			// dropped
+			s.capFull(stall)
+		}
 		return skip
 	}
 	if !stackSelfGone && stall != 0 {
