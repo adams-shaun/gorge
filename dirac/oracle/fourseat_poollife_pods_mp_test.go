@@ -96,3 +96,45 @@ func TestFourSeatActivePlayerHandCountLockstep(t *testing.T) {
 		t.Errorf("%d decisions, the game must go past decision 2618", res.Decisions)
 	}
 }
+
+// Two more full four-seat edh pods (kfuzz -seed 2) that diverged on a priority
+// decision's options.
+//
+//   - signet_fee_x_bound_four_seat_pod (decision 1014): Sequence Engine's
+//     "{X},{T}: exile target creature card with mana value X" with Welcoming
+//     Vampire (mana value 3) in a graveyard, a Forest, an Island and a Simic
+//     Signet untapped. X = 3 is payable: the Forest pays the Signet's {1} and
+//     the Signet makes {G}{U} (CR 106.3, 605.3b). The kernel's per-tap census
+//     recorded the all-at-once {G}{U} as one mana of either colour, so the
+//     X-bound sweep stopped at X = 2 and withheld the activation gorge offers.
+//   - grant_signet_fee_order_four_seat_pod (decision 1027): Saheeli's Artistry
+//     ({4}{U}{U}) beside Weirding Wood's granted "{T}: Add two mana of any one
+//     color" and two Signets. Gorge's prefix search runs its generic mana-fee
+//     order (funding, the fee-carrying gaps, then the others) after the plain
+//     run spends its budget, and finds the payment; the kernel's grant search
+//     had no such order and dropped the cast (CR 601.2b, 601.2g).
+func TestFourSeatSignetXBoundActivationLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	res := fourSeatPodReproReplay(t, "signet_fee_x_bound_four_seat_pod", synthReg(t))
+	if res.Div != nil {
+		t.Errorf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	if res.Decisions <= 1014 {
+		t.Errorf("%d decisions, the game must go past decision 1014", res.Decisions)
+	}
+}
+
+func TestFourSeatGrantSignetFeeOrderLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	res := fourSeatPodReproReplay(t, "grant_signet_fee_order_four_seat_pod", synthReg(t))
+	if res.Div != nil {
+		t.Errorf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	if res.Decisions <= 1027 {
+		t.Errorf("%d decisions, the game must go past decision 1027", res.Decisions)
+	}
+}
