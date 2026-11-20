@@ -158,6 +158,11 @@ const (
 // untouched.
 const ChMultikick ChoiceKind = 254
 
+// ChVoteChoice is a fixed-list will-of-the-council vote pick (gorge effVote's
+// KChoose option kind "vote"; CR 701.38a): source = the choice index + 1, in
+// Choices$ order. Explicit ordinal beside ChMultikick (act_vote.go).
+const ChVoteChoice ChoiceKind = 215
+
 // Decision is the next question the game asks a player.
 type Decision struct {
 	Kind    DecisionKind
