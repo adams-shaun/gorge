@@ -203,6 +203,9 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 			n++
 		}
 	})
+	if g.gainedMana {
+		n = s.gainedIdxs(k, sl, out, n) // the mana abilities a GainsAbilitiesOf$ static gives sl (mana_gainedgrants.go)
+	}
 	return n
 }
 

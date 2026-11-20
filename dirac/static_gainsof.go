@@ -23,9 +23,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // StallGainsOf: a gained ability the walk does not model (an activation
 // limit, once each turn, a loyalty ability, one that works from another zone,
 // or an index past 63). A gained mana ability is not a priority option in
-// either engine, so the offer walk skips it (gainedOffer) rather than stalling:
-// its payment is the mana walk's business, which has no gained sources (a
-// declared kernel limit, not an option this walk can offer).
+// either engine, so the offer walk skips it (gainedOffer) rather than stalling,
+// unless it carries a limit the payment planner does not record
+// (gainedManaLimited): its payment is mana_gainedgrants.go's.
 const StallGainsOf = 182
 
 func init() { stallNames[StallGainsOf] = "gainsof" }
@@ -193,9 +193,13 @@ func (s *State) gainedOffer(k *prep, d *Decision, st statSrc, first int, fo Obj,
 		}
 		if a.Kind == kop.AbMana {
 			// A mana ability is never a priority option in either engine
-			// (gorge's mana walk activates it during a payment). Skipping it
-			// here keeps the offer menus equal; the kernel's payment planner
-			// has no gained sources, so this walk never offered one anyway.
+			// (gorge's mana walk activates it during a payment): its payment
+			// is mana_gainedgrants.go's. One whose limit the planner does not
+			// record stalls here, as a non-mana one does.
+			if gainedManaLimited(a) {
+				s.capFull(StallGainsOf)
+				return false
+			}
 			continue
 		}
 		if !gainedModelled(a, j) {

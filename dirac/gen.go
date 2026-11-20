@@ -44,6 +44,9 @@ type genPrep struct {
 	// grantRestr: parallel to grantPC, the grant's spend restriction (a
 	// cast-provenance word: Mm'menon's Spell.!wasCastFromYourHand; 0 none)
 	grantRestr []kop.FilterID
+	// gainedMana: some grantPC entry is a printed mana ability a GainsAbilitiesOf$
+	// recipient has (mana_gainedgrants.go); grantMay and grantsLive are then true
+	gainedMana bool
 	// mana abilities whose colour or amount is the permanent's own state
 	// (Heraldic Banner's chosen colour, Elvish Archdruid's count): per card
 	// the first of its precomputed planner views (gfManaVar marks one; the
@@ -1536,7 +1539,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				if int(g.filt(CardID(i))) != j && registersGapOther(&t.Cards[i], a, j) && g.gapOther(CardID(i)) < 0 {
 					g.prepCensusGap(CardID(i), j, a)
 				}
-				if a.AFlags&kop.AfLatent != 0 {
+				if g.isGrantMana(a) {
 					var gp pcard
 					gp.manaAb, gp.manaCol, gp.manaN = int8(j), a.ManaColors, max(a.ManaN, 1)
 					gp.manaOne = manaOneColour(a, gp.manaN) // a grant's "two mana of any one color" is one colour, whichever is chosen (availGrant's one-colour census, as the printed path's)
@@ -1547,10 +1550,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					if self {
 						g.prepSelfGrant(gp) // mana_owncolours.go
 					}
-					g.grantSelf = append(g.grantSelf, self)
-					g.grantPC = append(g.grantPC, gp)
-					g.grantRestr = append(g.grantRestr, a.ManaRestrict)
-					g.grantOf = append(g.grantOf, grantRef{CardID(i), uint8(j)})
+					g.addGrantPC(gp, self, a, CardID(i), uint8(j))
 				}
 				// Mana abilities the autopay planner can't run (chosen colour,
 				// dynamic amount, a spend restriction, a sacrifice cost, one the
