@@ -1214,6 +1214,10 @@ type filtSearch struct {
 	// fee (paid from the floating pool, CR 601.2b), and without the plain
 	// run's fee-stall prune (feeStall is set on the plain run only).
 	phased bool
+	// feeOrder: gorge's phased run in its generic mana-fee order (scriptSearch.
+	// feeOrder, mana_filterfeeorder.go): the covered funding, then the gaps whose
+	// fee makes several mana, then the other gaps.
+	feeOrder bool
 }
 
 // deferGapLeft: the search still holds an untapped filter gap whose tap
@@ -1358,6 +1362,17 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			fs = ph
 		} else if fs.stall == 0 {
 			fs.stall = ph.stall
+		}
+	}
+	if !found && fs.feeOrderFallback(k, t) {
+		// gorge's phased run in its fee order (scriptSearch.feeOrder): a plain cast
+		// whose gaps include a multi-mana fee filter, after the plain run spent its budget
+		fo := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
+			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true, feeOrder: true}
+		if found = fo.visit(k, t, 0, false); found {
+			fs = fo
+		} else if fs.stall == 0 {
+			fs.stall = fo.stall
 		}
 	}
 	s.pool.inFilt--
@@ -2094,6 +2109,10 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			continue
 		}
 		gap, freeOnly, skip := fs.passShape(pass, funded, &feeGapsOut)
+		sel := feeSelAny
+		if fs.feeOrder {
+			gap, sel, skip = fs.feeOrderShape(pass, funded)
+		}
 		if skip {
 			continue
 		}
@@ -2108,7 +2127,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				}
 				continue
 			}
-			if fs.skipSlot(k, t, sl, gap, freeOnly) {
+			if fs.skipSlot(k, t, sl, gap, freeOnly) || gap && sel != feeSelAny && t.feeGapSlot(k, sl, fs.gaps) != (sel == feeSelFee) {
 				continue
 			}
 			if gap && fs.other.has(sl) {
