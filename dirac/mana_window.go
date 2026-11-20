@@ -950,7 +950,8 @@ func (s *State) windowColOwed(k *prep, p uint8, cost, owed *kop.ManaCost, sl Slo
 }
 
 // windowDry runs windowTapRider's source walk without its effects: only the
-// pool and the tapped bits move, and both are restored before it returns.
+// pool, the tapped bits, the floating restricted batches and the artifact pool
+// tag move, and all are restored before it returns.
 // ok is whether the window pays cost; known is false when the walk reaches
 // a source whose activation does more than tap and add mana (a window gap
 // other than a first-only filter, a sacrificed source, a source that
@@ -978,6 +979,11 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 // mana_pain.go).
 func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known, restr, sacStop bool) {
 	pool := s.pl[p].pool
+	// A filter's fee is spent by the real fee arm (windowDryFilter ->
+	// filtFeeSpend), which carves the floating restricted batches and their
+	// artifact tag as the payment does; the walk restores both with the pool.
+	rb := s.rb[SeatIx(p)]
+	art := s.g.poolArt[SeatIx(p)]
 	var tapped [MaxPerm]Slot
 	var flags [MaxPerm]uint16
 	var used [MaxPerm]uint8
@@ -1032,13 +1038,18 @@ func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor boo
 		s.perms[tapped[i]].flags, s.perms[tapped[i]].actUsed = flags[i], used[i]
 	}
 	s.pl[p].pool = pool
+	s.rb[SeatIx(p)] = rb
+	s.g.poolArt[SeatIx(p)] = art
 	return ok, known, restr, sacStop
 }
 
-// windowDryFilter is windowDry's step over a first-only filter the floating mana
-// pays for (gorge's castWindowReachable, CR 605.3a): the fee comes from what cost
-// can spare and the filter makes a colour cost owes, so it never loses a pip. With
-// nothing to spare the swap gains nothing, and the filter only counts as spent.
+// windowDryFilter is windowDry's step over a first-only filter the floating
+// mana pays for (gorge's castWindowReachable, CR 605.3a): it spends the fee
+// exactly as the real window's filtDo does (the pip, repeat pip or hybrid pip
+// first, then filtFeeSpend's plain pool in C W U B R G order), so a fee that
+// takes a pip the cost still owes leaves the dry walk short just as it leaves
+// the real payment short. The filter's colour is then the one the remaining
+// pool still owes (windowFiltFirst's answer).
 func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
 	if s.filtRepeat(k, sl) {
 		// repeatable: no use to mark (mana_filterrepeat.go)
@@ -1049,19 +1060,17 @@ func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
 	}
 	pl := &s.pl[p]
 	fee := s.filtFee(k, sl)
-	spare := 0
-	for c := range pl.pool {
-		spare += int(pl.pool[c]) - min(int(pl.pool[c]), int(cost.Pips[c]))
+	if col, ok := s.filtPip(k, sl); ok {
+		s.filtPayPip(k, p, sl, col)
+		fee = 0
+	} else if col, ok := s.filtRepeatPip(k, sl); ok {
+		s.filtPayPip(k, p, sl, col) // a fee-only filter's pip first, then its generic part
+		fee--
+	} else if a, b, ok := s.filtHyb(k, sl); ok {
+		s.filtPayHyb(k, p, sl, a, b) // the hybrid pip, in its first printed colour when held
+		fee = 0
 	}
-	if spare < fee {
-		return
-	}
-	for c := range pl.pool {
-		for fee > 0 && pl.pool[c] > cost.Pips[c] {
-			pl.pool[c]--
-			fee--
-		}
-	}
+	s.filtFeeSpend(k, p, sl, fee)
 	ab := s.filtAb(k, sl)
 	if ab.ManaEach {
 		for c, n := range filtEachVec(ab) {
@@ -3521,12 +3530,13 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 		if real || s.winPaused() {
 			return true
 		}
-		// The dry probe can be optimistic where the real walk pays a first-only
-		// filter's fee from a pip the cost still owes (windowDryFilter spares
-		// the pips; filtDo spends C W U B R G). Fall through: the planner may
-		// price what the window tapped, and hybStrand below reverses the cast
-		// (CR 601.2g-h, 733.1) when neither pays, rather than finishing the
-		// build short and panicking in finishBuild's plan.
+		// A gap or a restricted source can still leave the dry census
+		// optimistic where the real walk's answers differ (a first-only
+		// filter's fee is now spent as filtDo spends it, windowDryFilter ->
+		// filtFeeSpend). Fall through: the planner may price what the window
+		// tapped, and hybStrand below reverses the cast (CR 601.2g-h, 733.1)
+		// when neither pays, rather than finishing the build short and
+		// panicking in finishBuild's plan.
 	}
 	if known && k.gen != nil && k.gen.blgOn {
 		return s.hybStrand(k, p, &c, anyColor)
