@@ -1,0 +1,58 @@
+# spend-restricted mana from a source whose cost is more than {T}: a mana fee, a self-sacrifice, a sacrifice of
+# another permanent, a tap of another permanent, a life payment (dirac/oracle/restrictedmana_lockstep_test.go)
+Plains
+Island
+Swamp
+Mountain
+Forest
+Castle Garenbrig
+Cormela, Glamour Thief
+Crucible of the Spirit Dragon
+Cryptic Trilobite
+Gnarlroot Trapper
+Grand Architect
+Great Hall of the Biblioplex
+Great Hall of the Citadel
+Hydro-Channeler
+Interplanar Beacon
+Jeweled Lotus
+Lord of the Forsaken
+Master of Dark Rites
+Orb of Dragonkind
+Ronin, Shadow Stalker
+Thieving Varmint
+Throne of Makindi
+Untaidake, the Cloud Keeper
+Voldaren Estate
+Corrupted Crossroads
+Life of Toshiro Umezawa
+Llanowar Elves
+Elvish Mystic
+Wirewood Symbiote
+Vampire Nighthawk
+Bloodthirsty Aerialist
+Serra Angel
+Craw Wurm
+Hill Giant
+Grizzly Bears
+Savannah Lions
+Prodigal Sorcerer
+Walking Ballista
+Lightning Bolt
+Divination
+Giant Growth
+Pacifism
+Shock
+Counterspell
+Mind Stone
+Sword of the Chosen
+Isamaru, Hound of Konda
+Kor Skyfisher
+Wind Drake
+Llanowar Visionary
+Sakura-Tribe Elder
+Guardian Idol
+Elvish Archdruid
+Elvish Champion
+Akroma, Angel of Wrath
+Kamahl, Pit Fighter
