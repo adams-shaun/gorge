@@ -199,12 +199,9 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 			}
 		}
 	}
-	if k, ok := sp.get("AddKeyword"); ok {
-		ks, err := pumpKeywords(k)
-		if err != nil {
-			return nil, err
-		}
-		o.AddKw = ks
+	landwalk, err := lc.overrideAddKeyword(sp, o) // lower_overridelandwalk.go
+	if err != nil {
+		return nil, err
 	}
 	if v, ok := sp.get("RemoveLandTypes"); ok {
 		if err := landTypeSetter(v, st, o, removeCard || removeCreature); err != nil {
@@ -291,9 +288,9 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		// CR 613.6: an override part before layer 6 keeps the whole effect,
 		// the pump beside it too, applying once its source loses all abilities
 		pump.OutlivesLoss = o.beginsBeforeLayer6()
-		return []lStatic{pump, *st}, nil
+		return lc.landwalkCompanion(landwalk, st, o, []lStatic{pump, *st})
 	}
-	return []lStatic{*st}, nil
+	return lc.landwalkCompanion(landwalk, st, o, []lStatic{*st})
 }
 
 // overrideAddTypeWord lowers one AddType$ word onto o: a card type, the

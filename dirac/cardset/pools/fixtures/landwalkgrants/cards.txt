@@ -1,0 +1,45 @@
+# the landwalk-grant pool (dirac/oracle/landwalkgrants_lockstep_test.go): an
+# Aura's landwalk grant, a one-shot PumpAll landwalk grant, a landwalk in a
+# level-up band, the IgnoreLandWalk static, and granted Skulk (static, Pump,
+# Equipment), beside printed-landwalk and small creatures and basics of every type.
+Burrowing
+Cave Sense
+Dryad's Favor
+Fishliver Oil
+Leshrac's Rite
+Volcanic Strength
+Nature's Cloak
+Halimar Wavewatch
+Crevasse
+Deadfall
+Gosta Dirk
+Great Wall
+Lord Magnus
+Quagmire
+Staff of the Ages
+Street Savvy
+Undertow
+Ur-Drago
+Behind the Scenes
+MacCready, Lamplight Mayor
+Skeleton Key
+The Master, Mesmerist
+Lost Soul
+Bog Wraith
+Mountain Goat
+Mountain Yeti
+River Boa
+Gorilla Chieftain
+Hill Giant
+Typhoid Rats
+Wind Drake
+Coral Merfolk
+Savannah Lions
+Glory Seeker
+White Knight
+Grizzly Bears
+Plains
+Island
+Swamp
+Mountain
+Forest
