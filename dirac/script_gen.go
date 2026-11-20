@@ -680,9 +680,17 @@ func (s *State) plainListedPays(k *prep, a Action, p uint8, d *Decision) bool {
 	if int(c) >= len(k.t.Cards) || ai >= len(k.t.Cards[c].Abilities) {
 		return true
 	}
-	ab := &k.t.Cards[c].Abilities[ai]
+	return !s.plainPlanNoWitness(k, p, o, ai)
+}
+
+// plainPlanNoWitness reports whether the planner's dry probe of the plain
+// activation ai of object o prices no payment from the sources as they stand:
+// the walk lists a play the planner holds no witness for.
+func (s *State) plainPlanNoWitness(k *prep, p uint8, o Obj, ai int) bool {
+	ob := &s.objs[o]
+	ab := &k.t.Cards[ob.card].Abilities[ai]
 	if !plainPricedCost(ab) {
-		return true
+		return false
 	}
 	sl := NoSlot
 	if ob.zone == kop.ZoneBattlefield {
@@ -699,7 +707,30 @@ func (s *State) plainListedPays(k *prep, a Action, p uint8, d *Decision) bool {
 	// potential planner prices the play with its own descriptor)
 	pk.rd, pk.rdSet = s.grantPayDescOf(k, a), !DebugPlannerFlexCensus
 	s.tapPlanNeed(k, p, &cost, 0, NoObj, false, false, &pk)
-	return !(pk.needT > 0 && !pk.found)
+	return pk.needT > 0 && !pk.found
+}
+
+// filtPrefixSpares applies the filter script of play a unless the script
+// leaves an activation's payment with no planner witness still: the funding
+// then waits on a live ask of the CR 601.2g window (a restricted mana source
+// the payment admits, Shang-Chi's creature-ability mana), which gorge poses
+// with nothing tapped, so a gap tapped ahead of it would be a premature tap
+// and float gorge never makes. The script is undone and the build's mana step
+// pays through the manual window (abilityPlainMana, gapWindowReverse).
+func (s *State) filtPrefixSpares(k *prep, a Action, p uint8) {
+	if a.Kind() != AkActivate {
+		s.filtScript(k, a, p, true)
+		return
+	}
+	saved := s.fork()
+	defer s.unfork()
+	if !s.filtScript(k, a, p, true) {
+		return
+	}
+	if o := Obj(a.Source()); o != 0 && int(o) < len(s.objs) && int(a.Mode()) < len(k.t.Cards[s.objs[o].card].Abilities) &&
+		s.plainPlanNoWitness(k, p, o, int(a.Mode())) {
+		s.CopyFrom(saved)
+	}
 }
 
 // plainPricedCost reports whether ab's printed cost is one the plain planner
@@ -801,7 +832,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 			// mana (Moltensteel Dragon beside a Selesnya Signet), so a script
 			// tapped ahead of the pip ask parts at the first tap flag.
 			if !s.plainListedPays(k, a, p, &d) && !s.grantGapLive(k, p) && !(s.autopayDropsPlainCast(a) && s.phyHalfPlanned(k, p, a)) {
-				s.filtScript(k, a, p, true)
+				s.filtPrefixSpares(k, a, p)
 			}
 		}
 		return
