@@ -2596,11 +2596,19 @@ func (s *State) sacAnyRepeatUnits(k *prep, p uint8, sl Slot, ab *kop.Ability, ab
 	}
 	var cs [MaxPerm]Slot
 	if n := s.sacXCands(k, p, sl, ab, &cs); n >= 2 {
-		open = true
+		// Only the any-colour production is open in gorge's fold. A
+		// fixed-colour one (Krark-Clan Ironworks' {C}{C}) counts once in
+		// PotentialMana, so its repeats are neither open nor folded: the
+		// bound stays gorge's and a cast only the repeats fund is no play
+		// (pair 67: Grab the Reins' entwined cast beside two artifacts).
+		anyCol := ab.ManaColors == kop.ColAny
+		open = anyCol
 		if m := uint8(ab.ManaColors) &^ abDrop; m != 0 {
 			unrecordPotUnit(&cen.units, &cen.n, m, 1, cen.unitPain(), false)
 			recordPotUnit(&cen.units, &cen.n, m, uint8(min(n, 255)), cen.pain, false)
-			fold(sl, m, uint8(min(n, 255)))
+			if anyCol {
+				fold(sl, m, uint8(min(n, 255)))
+			}
 		}
 	}
 	return open
