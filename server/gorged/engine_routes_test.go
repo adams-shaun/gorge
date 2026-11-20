@@ -190,6 +190,7 @@ func concede(t *testing.T, match, token string) {
 // TestEveryRouteAnswersOnADiracTable drives every route a server registers, on a live
 // dirac table and on the same table's finished match.
 func TestEveryRouteAnswersOnADiracTable(t *testing.T) {
+	t.Parallel()
 	c := diracConfig()
 	c.vsbot, c.botPolicy, c.manabrew = true, "bot", true
 	c.feedback = t.TempDir()

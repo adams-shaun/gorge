@@ -323,6 +323,7 @@ func startServe(t *testing.T, c config) (string, context.CancelFunc, <-chan erro
 // and by then serve must have exited. An open SSE connection keeps the HTTP
 // shutdown busy, so a helper that only signals cancel() fails this check.
 func TestStartServeCleanupWaitsForShutdown(t *testing.T) {
+	t.Parallel()
 	var stream *http.Response
 	t.Cleanup(func() {
 		if stream != nil {
