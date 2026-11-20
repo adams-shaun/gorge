@@ -478,6 +478,7 @@ ExX	ExprKind	2
 ExYourExtraTurns	ExprKind	227
 ExYourSpeed	ExprKind	44
 ExYourTurns	ExprKind	251
+ExileGraveLiveCount	untyped int	255
 ExtAddPhase	ExtOp	193
 ExtAegisClone	ExtOp	80
 ExtAirbend	ExtOp	95

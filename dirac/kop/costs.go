@@ -204,6 +204,13 @@ func (m ManaCost) Resolve(c int) ManaCost {
 	return m
 }
 
+// ExileGraveLiveCount is the Cost.N sentinel of a CostExileGrave part paid
+// with one card for each living opponent (PlayerCountOpponents$Amount; Araumi
+// of the Dead Tide). A literal ExileFromGrave<N/..> has 1 <= N <= 15, the
+// CARDNAME singleton N 1 and the announced X N 0, so 255 is free; payment
+// reads the live count (act_forage.go exileGraveCount, value_oppextreme.go).
+const ExileGraveLiveCount = 0xFF
+
 // Cost is a full cost.
 type Cost struct {
 	Mana  ManaCost
