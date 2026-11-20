@@ -387,7 +387,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		bound = bound || xBoundTarget(k.t, &a.Targets[i])
 	}
 	// a protection quality reads a spell's own mana value, X in it (protSpellXMV)
-	bound = bound || k.gen != nil && k.gen.anyProtF && src == NoSlot && a.NTargets != 0
+	bound = bound || src == NoSlot && protXBoundTarget(k, a)
 	if !bound {
 		return true
 	}
