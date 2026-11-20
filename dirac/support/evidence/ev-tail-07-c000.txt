@@ -59,6 +59,7 @@ Bonescythe Sliver
 Borborygmos Enraged
 Boreal Elemental
 Brimstone Volley
+Burrowing
 Camaraderie
 Canoptek Scarab Swarm
 Cantivore
@@ -392,6 +393,7 @@ Spitting Slug
 Stamina
 Starfield Mystic
 Starstorm
+Steadfast Sentinel
 Steel Dromedary
 Stench of Decay
 Stinging Shot

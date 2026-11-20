@@ -32,6 +32,7 @@ Barony Vampire
 Basilisk Gate
 Behold the Multiverse
 Berserkers' Onslaught
+Binding Mummy
 Biting Rain
 Blessing of Leeches
 Blisterstick Shaman
@@ -412,7 +413,9 @@ Twinblade Slasher
 Two-Headed Dragon
 Tyrranax
 Ulgrotha Charm
+Utopia Sprawl
 Vampire Champion
+Vampiric Embrace
 Vaporkin
 Vastwood Fortification
 Vastwood Zendikon

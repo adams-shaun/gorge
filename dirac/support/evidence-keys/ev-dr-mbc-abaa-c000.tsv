@@ -1,0 +1,62 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Arcane Denial	461e68c0170b4943	4	0/0		1/2	ix:resp
+Banishing Light	89f109021ba5dc0f	4	1/1		0/1	ix:resp
+Basking Broodscale	eb6b376961dcd8d7	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Bloom Hulk	c14ecbd34044674a	8	1/1		0/1	ix:resp
+Boldwyr Intimidator	04cde492aad58e36	4	2/2		1/1	
+Bulk Up	23883e204f228dc4	4	0/0		3/4	ix:resp
+Call of the Herd	7def438b6d89a3c2	6	0/0		3/4	ix:resp
+Canopy Cover	61655c8c3f450881	4	0/0		1/2	ix:resp
+Cephalid Broker	2ed8ab687aa26752	8	1/1		1/1	
+Changeling Outcast	fb65f690e367c9f8	6	0/0		0/0	
+Cheering Fanatic	070b39b072960418	4	1/1		0/1	ix:resp
+Coalition Honor Guard	693688a89c06c954	26	0/0		0/0	
+Congregate	e84a220aea5410fa	6	0/0		1/2	ix:resp
+Cudgel Troll	b08c000ad4ab58cc	4	1/1		1/1	
+Cunning Wish	7b2bb5cb855ecaac	6	0/0		1/2	ix:resp
+Curious Obsession	db99df3a4046b9ea	4	1/1		1/2	ix:resp
+Deekah, Fractal Theorist	c00eef8634398ce1	4	2/2		1/1	
+Deepwood Legate	7c6478e275ef7b7d	4	1/1		1/1	
+Diminish	dda5e7f0043791b8	4	0/0		1/2	ix:resp
+Faerie Guidemother	f3a103b7c899cc3d	10	0/0		1/2	ix:resp
+Fangs of Kalonia	3bd6385957e916d7	3	0/0		2/4	cast/alt:overloaded,ix:resp
+Fierce Retribution	8bd49df1facda18f	8	0/0		1/2	ix:resp
+Force Spike	bb1d9292964b2271	4	0/0		1/2	ix:resp
+Forest	6d0466c30f825dba	50	1/1		0/1	ix:resp
+Forge Devil	0e64e8186dfcaca1	4	1/1		0/1	ix:resp
+Frenzied Fugue	6771538259b25eef	6	2/2		1/2	ix:resp
+Gnoll War Band	834778baa84a000c	4	1/1		1/1	
+Greensleeves, Maro-Sorcerer	6279a4fcd3130869	4	1/1		0/1	ix:resp
+Invigorating Surge	8915b423f2f60958	4	0/0		1/2	ix:resp
+Island	763c67ef7a27eaf5	4	1/1		0/1	ix:resp
+Ivy Lane Denizen	ecffcf91aaa06703	8	1/1		0/1	ix:resp
+Kitsune Blademaster	e8d111ba3031ee1a	4	2/2		0/1	ix:resp
+Lightning Greaves	7258df2d03a77cf3	4	1/1		0/1	ix:resp
+Liliana's Caress	8017cecb0c1d5703	4	1/1		1/1	
+Miraculous Recovery	a4ff1a3bedc27d2a	4	0/0		1/2	ix:resp
+Mountain	9e71388353e907ed	28	1/1		0/1	ix:resp
+Onslaught	c5d2871b08f699bb	4	1/1		0/1	ix:resp
+Plains	82d63a695487e567	112	1/1		0/1	ix:resp
+Predator's Howl	6ed255551e0eacfd	8	0/0		1/2	ix:resp
+Psychic Corrosion	3740ad891496a16b	4	1/1		0/1	ix:resp
+Quirion Dryad	47b5fed203e29570	3	1/1		0/1	ix:resp
+Reaping the Graves	9f08d5896d991922	4	1/1		2/2	
+Roots	2aa71535cc9f6b09	4	1/1		1/2	ix:resp
+Rumor Gatherer	cb30fb7123947d56	6	1/1		0/1	ix:resp
+Shattered Angel	7b768c605305dc8a	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Skullsnatcher	3799a2e8471cb4d5	4	2/2		0/1	ix:resp
+Steadfast Unicorn	d2bde4a6caeb49d0	8	1/1		0/1	ix:resp
+Suture Priest	3b5edc1e58af34e8	10	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
+Swamp	342b413902f441c3	26	1/1		0/1	ix:resp
+Swords to Plowshares	203d447950b4b0cc	8	0/0		2/2	
+Symbol of Unsummoning	6c129f9ff64ed8cc	4	0/0		1/2	ix:resp
+Tempting Licid	859afe3e541fef5c	8	1/1		0/1	ix:resp
+Thassa, Deep-Dwelling	1b8a782579d57514	6	2/2		0/1	ix:resp
+Totem-Guide Hartebeest	ef0fd7cf64faf408	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Trailblazer's Boots	df26d304bee53251	4	1/1		0/1	ix:resp
+Triumph of Ferocity	1df8671cc2500282	4	1/1		0/1	ix:resp
+Typhoid Rats	63a29ae645939b9c	4	0/0		0/0	
+Ulamog's Crusher	b22fd6b4d0b1da13	4	1/1		0/1	ix:resp
+Valorous Stance	c3d72814e5d7ed6c	6	0/0		2/2	
+Vampire Gourmand	2dea790457c1c702	4	1/1		0/1	ix:resp
+Vedalken Dismisser	79d16a1f7192b687	4	1/1		1/1	
