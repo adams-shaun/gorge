@@ -2155,8 +2155,19 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 						return true
 					}
 				case free:
-					if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
-						return true
+					// A combination filter alone on the board is the one shape whose
+					// free first ability is always a dead line: tapping it spends
+					// the source the fee would, and its allocation ask fans out over
+					// up to 64 combinations, so trying the tap at every funding
+					// depth spends the node budget before the fee is floated
+					// (Baxter Building beside four lands, CR 605.3a). Beside
+					// another gap the tap can fund that gap's fee, and a single-unit
+					// filter has no allocation fan-out to exhaust the budget, so
+					// both keep the engine's order.
+					if fs.gaps.count() > 1 || fs.other.any() || !comboFiltAb(t.filtAb(k, sl)) {
+						if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
+							return true
+						}
 					}
 				case filt:
 					if fs.feeOnly && t.filtRepeat(k, sl) && fs.activationStalls(k, t, sl) {
