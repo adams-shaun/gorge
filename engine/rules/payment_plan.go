@@ -1557,6 +1557,15 @@ func (e *Engine) paymentPlanManaUnitsOnlyCompute(p state.PlayerID, only []state.
 				units, idx = setPaymentPlanUnitAlt(units, idx, id, alt)
 				continue
 			}
+			if pay.PaymentPlanReflectedShape(ma) {
+				// The shared census listed this reflected ability as its
+				// blank colourless stand-in. The reflection names nothing
+				// right now, so the ability produces nothing: drop the
+				// stand-in, or the choice expansion would read the stand-in's
+				// {C} as a real reflected colour.
+				units = dropPaymentPlanUnitAlt(units, idx, id, ma)
+				continue
+			}
 			if raw != "Any" && !pay.PaymentPlanChoiceShape(raw) {
 				continue
 			}

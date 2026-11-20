@@ -1120,6 +1120,9 @@ type lMana struct {
 	// abilities could PRODUCE, not their colours (ReflectProperty$ Produce,
 	// every Valid$ alternative OppCtrl: Exotic Orchard, Fellwar Stone).
 	Produce bool
+	// WidenType: the Produce read is ColorOrType$ Type, so it admits {C}
+	// (kop.Ability.ManaProduceType; Reflecting Pool, Horizon of Progress).
+	WidenType bool
 	// Graveyard: the reflected Is read scans every alive seat's graveyard
 	// (Valid$ "Defined.ValidGraveyard <spec>", The Grey Havens; kop.Ability.
 	// ManaGrave; kernel mana_reflected.go graveReflColours), not the
@@ -1339,7 +1342,7 @@ type lCard struct {
 	CombatHitRec   bool          // a filter reads wasDealtCombatDamageThisTurnBySource against the card itself: its objects' combat hits on players are recorded (CardDef.CombatHitRec)
 	SpendRead      bool          // an SVar body reads Count$CastTotalManaSpent: gorge's planner declines the cast
 	Identity       kop.ColorMask // the card's colour identity (CardDef.Identity; a commander-identity mana ability's read)
-	ProduceCol     kop.ColorMask // the face's printed mana abilities' produced colours ({C} dropped; CardDef.ProduceCol; a Produce-mode reflected ability's read)
+	ProduceCol     kop.ColorMask // the face's printed mana abilities' produced colours ({C} dropped; CardDef.ProduceCol; a Produce-mode reflected ability's read, with WidenType adding {C} from the matched cards' abilities)
 	FbCost         *lCost        // the flashback cost's non-mana part (Sac<N/Spec> or tapXType<N/Spec>)
 	Madness        *manaCost     // K:Madness:<cost> (CR 702.35a): the exile-cast cost
 	Miracle        *manaCost     // K:Miracle:<cost> (CR 702.94a): the hand-cast cost of the revealed first draw

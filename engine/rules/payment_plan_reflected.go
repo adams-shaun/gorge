@@ -93,6 +93,25 @@ func setPaymentPlanUnitAlt(units []windowManaUnit, idx int, id state.ObjID, alt 
 	return units, idx
 }
 
+// dropPaymentPlanUnitAlt removes the shared census's blank colourless stand-in
+// for a reflected ability on source id when the reflection resolves no symbol
+// (idx < 0: the census listed no unit, so there is nothing to drop). Without
+// it the stand-in's {C} would survive as a concrete choice even though the
+// reflected ability cannot produce {C} from the current board.
+func dropPaymentPlanUnitAlt(units []windowManaUnit, idx int, id state.ObjID, ma *cards.SA) []windowManaUnit {
+	if idx < 0 || idx >= len(units) || units[idx].ID != id {
+		return units
+	}
+	alts := units[idx].Alts[:0]
+	for _, a := range units[idx].Alts {
+		if a.Ma != ma {
+			alts = append(alts, a)
+		}
+	}
+	units[idx].Alts = alts
+	return units
+}
+
 // paymentPlanReflectedObjectRemovable reports whether a payment step could
 // remove battlefield object rid before a later reflected step runs: one of
 // its own mana abilities classifies as a plannable (non-deferred) step whose

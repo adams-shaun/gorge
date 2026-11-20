@@ -62,9 +62,9 @@ func TestManaReflectedProduceLowers(t *testing.T) {
 		}
 	}
 	// the pool cards' producible colours: Island U, Forest G. Command
-	// Tower nothing, gorge too: its Produced$ "Combo ColorIdentity" leaves
-	// producibleSymbols' rune walk a lone {C}, which ColorOrType$ Color
-	// drops (effects.producibleSymbols).
+	// Tower nothing: its Produced$ "Combo ColorIdentity" is a word, not a
+	// rune list, so both producibleSymbols and producibleMask fail closed
+	// (no phantom {C}).
 	want := map[string]kop.ColorMask{
 		"Island":        kop.ColU,
 		"Forest":        kop.ColG,

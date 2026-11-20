@@ -15,7 +15,7 @@ import (
 // control could produce"). The decks hold few lands of their own colours and
 // lean on the reflected sources, so the read moves as lands are played; the
 // Pool decks carry Wastes and Command Tower (the {C} a Type read adds, which
-// gorge's census drops and its manual asks offer) and Cackling Prowler's ward
+// gorge's census and dirac's reflected view keep) and Cackling Prowler's ward
 // so a payment window runs.
 var manaRidersDecks = []fixtureDecks{{
 	{

@@ -786,7 +786,9 @@ type CardDef struct {
 	// makes WUBRG, a "Combo <colours>" exactly those, a plain list its
 	// coloured runes). A Produce-mode reflected ability (Ability.ManaProduce)
 	// unions it over the matched permanents at each use (kernel
-	// mana_reflected.go produceColours).
+	// mana_reflected.go produceColours); the colourless symbol is read from
+	// the matched cards' abilities when the reflected ability's
+	// ManaProduceType admits it (producesColourless).
 	ProduceCol ColorMask
 	// Identity is the card's colour identity (cards.Card.ColourIdentity, every
 	// face's union, WUBRG in bits 0..4 as ColorMask): a commander-identity mana

@@ -117,8 +117,8 @@ func (s *State) reflAmtPotential(k *prep, sl Slot, pc *pcard, done *[MaxPerm]uin
 // offers (gorge effects.ManaReflectedCandidates over the Produce read): the
 // union of the matching permanents' cards' producible colours, colourless
 // included when a card's printed mana abilities make {C} (Wastes beside the
-// lands; gorge's manaReflectedOrder lists C), {C} of the CENSUS read dropped
-// (produceColours; gorge's PaymentPlanReflectedCounts).
+// lands; gorge's manaReflectedOrder lists C). The amount is deferred, so no
+// census alternative exists; the manual ask is the candidates' own read.
 func (s *State) reflAmtCols(k *prep, sl Slot) uint8 {
 	c := s.cardAt(sl)
 	f := k.t.Cards[c].Abilities[k.gen.gapOther(c)].ManaAmong

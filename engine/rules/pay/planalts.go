@@ -231,7 +231,11 @@ func appendUnitAlternatives(e Engine, dst []Alt, u WindowUnit) (grown, alts []Al
 			continue
 		}
 		for _, col := range planAltChoiceColours(e, u.ID, alt) {
-			i := strings.IndexByte("WUBRG", col[0])
+			// C is a real choice for a reflected ability whose ColorOrType$
+			// Type admits colourless (that source can be the board's only
+			// untapped colourless producer); the other choice shapes name
+			// WUBRG.
+			i := strings.IndexByte("WUBRGC", col[0])
 			if i < 0 {
 				continue
 			}
