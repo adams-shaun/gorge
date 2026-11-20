@@ -1,0 +1,53 @@
+# The merge queue's head, re-checked against each new main (operator P0, 11-20).
+#
+# A PR's own checks ran against the main of when it was pushed. By the time Mergify batches it, main has moved, and
+# 6 batches on 11-20 went red on PRs green alone: a duplicate map key (#2514), kgen refusal tests (#2579, #2597),
+# EnteredFrom (#2588), a pinned census (#2531) and a kfuzz game count. Each red cost a 10-PR batch plus a bisect.
+#
+# On every push to main, scripts/queue_precheck.py does the following:
+# - Merges the queue's next 20 PRs (Mergify's next two batches, in its order) onto the new main.
+# - Runs the cheap checks once: go vet ./..., the census and ratchet tests of the touched packages, and
+#   dirac/kgen -short when dirac/ or engine/ is touched.
+# - Green: posts a success status. Red: re-runs only the failing items on main plus each prefix of the queue, and
+#   posts a failing `queue-precheck` status on the PR that breaks them. .mergify.yml's queue_conditions then
+#   dequeue that PR before its batch runs.
+# A newer main cancels a running check: only the queue against the newest main matters.
+name: queue-precheck
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+concurrency:
+  group: queue-precheck
+  cancel-in-progress: true
+
+jobs:
+  precheck:
+    if: github.repository == 'adams-shaun/gorge'
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Keep the corpus on the box (self-hosted)
+        if: runner.environment == 'self-hosted'
+        run: bash scripts/ci-corpus.sh
+      - name: The queue's head against this main
+        if: runner.environment == 'self-hosted'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GOFLAGS: -p=4 -trimpath
+          GOMAXPROCS: "8"
+        run: python3 scripts/queue_precheck.py --head 20
