@@ -462,7 +462,8 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
         rec2pool = {r: pool for pool, rs in pools.items() for r in rs}
         for g, ps in sorted((reprosel.get("globs") or {}).items()):
             if g in slow:
-                continue  # over the 10 s wall: the batch replays it (unless a recording changed, below)
+                continue  # over the 10 s wall: the batch replays it; a changed recording of its pools
+                          # still joins another glob of the same pool (the aliases share theirs)
             ps = set(ps)
             lane = {r for pool in ps for r in pools.get(pool, ())
                     if r not in slow and slice_lane(r, reprosel.get("sha"))}
