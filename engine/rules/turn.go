@@ -40,6 +40,8 @@ func (e *Engine) beginTurn(active state.PlayerID, skipUntap ...bool) {
 	step := state.StepUntap
 	if len(skipUntap) > 0 && skipUntap[0] {
 		step = state.StepUpkeep
+	} else if skipGrantedStep(e.G, e.emit, state.StepUntap) {
+		step = state.StepUpkeep
 	}
 	prior := e.pending
 	e.setStep(step)
@@ -1326,6 +1328,9 @@ func (e *Engine) advanceStep() {
 		next = s
 	} else {
 		next = skipFirstDrawStep(e.G, next)
+		if skipGrantedStep(e.G, e.emit, next) {
+			next = skipStepLanding(next)
+		}
 	}
 	next = skipCombatPhase(e.G, next)
 	e.setStep(next)
@@ -1333,6 +1338,39 @@ func (e *Engine) advanceStep() {
 		return
 	}
 	e.finishEnteredStep()
+}
+
+// skipGrantedStep is the consumer of the one-shot DB$ SkipPhase grants
+// (Step$ Untap / Draw, Phase$ BeginCombat without Start$; state.SkipUntapNext
+// and friends): when the walk is about to enter step for the active seat and
+// the seat holds a grant for it, the grant is consumed (a SkipPhase event with
+// Amount -1) and true is returned, so the caller enters the step's successor.
+// Only the ordinary walk asks: an extra combat phase spliced by AddPhase is
+// neither skipped by, nor consumes, a one-combat grant.
+func skipGrantedStep(g *state.Game, emit func(events.Event) events.Event, step state.Step) bool {
+	var bits uint8
+	switch step {
+	case state.StepUntap:
+		bits = state.SkipUntapNext
+	case state.StepDraw:
+		bits = state.SkipDrawNext | state.SkipDrawTurn
+	case state.StepBeginCombat:
+		bits = state.SkipCombatOnce | state.SkipCombatTurn
+	}
+	if g.PhaseSkips[g.Active]&bits == 0 || g.Players[g.Active].Lost {
+		return false
+	}
+	emit(events.Event{Kind: events.SkipPhase, Player: g.Active, Step: step, Amount: -1})
+	return true
+}
+
+// skipStepLanding is the step the walk enters in place of a skipped draw step
+// or beginning of combat: the precombat main and the postcombat main phase.
+func skipStepLanding(skipped state.Step) state.Step {
+	if skipped == state.StepDraw {
+		return state.StepMain1
+	}
+	return state.StepMain2
 }
 
 // skipCombatPhase is the CR 614.10 skip of the combat phase (DB$ SkipPhase,

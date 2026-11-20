@@ -264,6 +264,28 @@ type ExtraTurn struct {
 const (
 	SkipCombatPending uint8 = 1 << iota
 	SkipCombatLive
+	// The one-shot grants (DB$ SkipPhase with a Step$, or with a Phase$ and
+	// no Start$): each is a pending "skip the next such step" that the turn
+	// walk consumes (a SkipPhase event with Amount -1) when it would enter
+	// the step. SkipUntapNext / SkipDrawNext skip the seat's next untap / draw
+	// step, SkipCombatOnce its next ordinary combat phase.
+	SkipUntapNext
+	SkipDrawNext
+	SkipCombatOnce
+	// SkipDrawTurn / SkipCombatTurn are the same grants with a this-turn
+	// expiry (Elfhame Sanctuary's Duration$ EndOfTurn draw skip, Moment of
+	// Silence's Duration$ NextThisTurn combat skip): the TurnChange fold drops
+	// them when the turn ends unconsumed.
+	SkipDrawTurn
+	SkipCombatTurn
+)
+
+// SkipScope values: events.SkipPhase carries one in IDs[0]. Zero is the
+// all-combat-phases-of-the-next-turn grant (False Peace); the others are the
+// one-shot grants above.
+const (
+	SkipScopeNext ObjID = 1 // skip the next such step, no expiry
+	SkipScopeTurn ObjID = 2 // skip the next such step, this turn only
 )
 
 // CombatSkipped reports whether seat skips every combat phase of the turn it

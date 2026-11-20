@@ -48,16 +48,69 @@ func foldSkipTurn(g *state.Game, e *Event) {
 	}
 }
 
-// foldSkipPhase folds Kind SkipPhase into state: the seat's combat phases are
-// skipped from its next turn on (state.Game.PhaseSkips). Only the combat
-// phase is modelled; any other Step is a no-op.
+// foldSkipPhase folds Kind SkipPhase into state.Game.PhaseSkips. IDs[0] is
+// the scope (state.SkipScope*): 0 arms the all-combat-phases-of-the-seat's-
+// next-turn skip (Step StepBeginCombat only); SkipScopeNext / SkipScopeTurn arm
+// a one-shot grant for Step (Untap, Draw or BeginCombat; Untap has no
+// this-turn form). Amount < 0 consumes every one-shot grant of Step, the
+// turn walk's report that it skipped the step. A shape that is not modelled
+// is a no-op.
 func foldSkipPhase(g *state.Game, e *Event) {
-	if validPlayer(g, e.Player) && e.Step == state.StepBeginCombat {
-		if g.PhaseSkips == nil {
-			g.PhaseSkips = map[state.PlayerID]uint8{}
-		}
-		g.PhaseSkips[e.Player] |= state.SkipCombatPending
+	if !validPlayer(g, e.Player) {
+		return
 	}
+	var scope state.ObjID
+	if len(e.IDs) > 0 {
+		scope = e.IDs[0]
+	}
+	set, clear := skipPhaseBits(e.Step, scope), uint8(0)
+	if e.Amount < 0 {
+		set, clear = 0, skipPhaseStepBits(e.Step)
+	}
+	if set == 0 && clear == 0 {
+		return
+	}
+	if g.PhaseSkips == nil {
+		g.PhaseSkips = map[state.PlayerID]uint8{}
+	}
+	v := g.PhaseSkips[e.Player]&^clear | set
+	if v == 0 {
+		delete(g.PhaseSkips, e.Player)
+		return
+	}
+	g.PhaseSkips[e.Player] = v
+}
+
+// skipPhaseStepBits is every one-shot PhaseSkips bit that skips step.
+func skipPhaseStepBits(step state.Step) uint8 {
+	switch step {
+	case state.StepUntap:
+		return state.SkipUntapNext
+	case state.StepDraw:
+		return state.SkipDrawNext | state.SkipDrawTurn
+	case state.StepBeginCombat:
+		return state.SkipCombatOnce | state.SkipCombatTurn
+	}
+	return 0
+}
+
+// skipPhaseBits is the PhaseSkips bit a SkipPhase grant of (step, scope) arms.
+func skipPhaseBits(step state.Step, scope state.ObjID) (set uint8) {
+	switch {
+	case step == state.StepBeginCombat && scope == 0:
+		set = state.SkipCombatPending
+	case step == state.StepBeginCombat && scope == state.SkipScopeNext:
+		set = state.SkipCombatOnce
+	case step == state.StepBeginCombat && scope == state.SkipScopeTurn:
+		set = state.SkipCombatTurn
+	case step == state.StepUntap && scope == state.SkipScopeNext:
+		set = state.SkipUntapNext
+	case step == state.StepDraw && scope == state.SkipScopeNext:
+		set = state.SkipDrawNext
+	case step == state.StepDraw && scope == state.SkipScopeTurn:
+		set = state.SkipDrawTurn
+	}
+	return set
 }
 
 // foldReverseTurnOrder folds Kind ReverseTurnOrder into state: each event
@@ -176,11 +229,11 @@ func foldStepChange(g *state.Game, e *Event) {
 }
 
 // advancePhaseSkips moves the phase skips to the turn beginning for seat: the
-// live ones (the turn now ending) are spent, and a pending one of the
-// beginning seat goes live for this turn.
+// live ones (the turn now ending) are spent, the this-turn one-shots expire,
+// and a pending one of the beginning seat goes live for this turn.
 func advancePhaseSkips(g *state.Game, seat state.PlayerID) {
 	for p, v := range g.PhaseSkips {
-		v &^= state.SkipCombatLive
+		v &^= state.SkipCombatLive | state.SkipDrawTurn | state.SkipCombatTurn
 		if p == seat && v&state.SkipCombatPending != 0 {
 			v = v&^state.SkipCombatPending | state.SkipCombatLive
 		}
