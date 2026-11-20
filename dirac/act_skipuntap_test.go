@@ -59,8 +59,7 @@ func TestSkipUntap(t *testing.T) {
 	skip := kop.Instr{Op: kop.OpSkipUntap, Obj: kop.RefSelf}
 	lands := kop.Instr{Op: kop.OpSkipUntap, C: 1}
 	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Freeze", Types: kop.TSorcery, Abilities: []kop.Ability{
-		{Kind: kop.AbSpell, Prog: []kop.Instr{skip, lands}},
-		{Kind: kop.AbSpell, Prog: []kop.Instr{{Op: kop.OpRegenerate, Obj: kop.RefSelf}}}}}) // a regenerating card: the table then keeps the shields' arena bits
+		{Kind: kop.AbSpell, Prog: []kop.Instr{skip, lands}}}})
 	sc := newScenTable(t, tbl, Config{NoElide: true})
 	if !sc.k.gen.anySkipUntap {
 		t.Fatalf("anySkipUntap %v, want true", sc.k.gen.anySkipUntap)
@@ -73,16 +72,16 @@ func TestSkipUntap(t *testing.T) {
 	}
 	s.res.e.ctrl, s.res.e.obj, s.res.e.srcVer = 0, lion, s.objs[lion].ver
 	for i := 0; i < 3; i++ {
-		s.addRegenShield(sc.slot(lion)) // the shields beyond the first live in the arena (repl_regenerate.go)
+		s.addRegenShield(sc.slot(lion)) // shields beyond the first live in perm.spare (spareRegenX)
 	}
 	s.exec(sc.k, &skip)
-	if n := s.regenShieldsAt(sc.slot(lion)); n != 3 {
+	if n := s.perms[sc.slot(lion)].regenShields(); n != 3 {
 		t.Fatalf("the skip mark changed the regeneration shields: %d, want 3", n)
 	}
 	s.exec(sc.k, &lands)
 	s.active, s.step = 0, kop.StepUntap
 	s.beginStep(sc.k)
-	if n := s.regenShieldsAt(sc.slot(lion)); n != 3 {
+	if n := s.perms[sc.slot(lion)].regenShields(); n != 3 {
 		t.Fatalf("the untap step changed the regeneration shields: %d, want 3", n)
 	}
 	if !sc.tapped(lion) || !sc.tapped(land) || sc.tapped(other) {

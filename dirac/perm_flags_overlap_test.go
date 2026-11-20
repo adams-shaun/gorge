@@ -20,6 +20,22 @@ var permFlagMasks = map[string]uint16{
 	"pfBatchGone": pfBatchGone, "pfLastBear": pfLastBear, "pfSkipUntap": pfSkipUntap,
 }
 
+// permSpareMasks is every bit mask of perm.spare (uint8).
+var permSpareMasks = map[string]uint8{
+	"spareSwitchPT": spareSwitchPT, "spareCopyFaceDown": spareCopyFaceDown, "spareRegenX": spareRegenX,
+}
+
+// TestPermSpareBitsDoNotOverlap: no two perm.spare constants share a bit.
+func TestPermSpareBitsDoNotOverlap(t *testing.T) {
+	var seen uint8
+	for _, n := range []string{"spareCopyFaceDown", "spareRegenX", "spareSwitchPT"} {
+		if both := seen & permSpareMasks[n]; both != 0 {
+			t.Errorf("%s shares bits %#02x with an earlier perm.spare constant", n, both)
+		}
+		seen |= permSpareMasks[n]
+	}
+}
+
 // TestPermFlagsDoNotOverlap: no two perm.flags constants share a bit (pfRegenX
 // once held bits 13-14, which pfBatchGone and pfLastBear own), and every
 // uint16 pf* constant declared in the package is in the table above.

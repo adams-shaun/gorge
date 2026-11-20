@@ -38,9 +38,9 @@ func TestArenaAssign(t *testing.T) {
 			t.Fatalf("empty table: mech %d at %d", m, v)
 		}
 	}
-	// regen alone is the first masks (its three shield bits), not mechRegen's enum position
+	// regen alone is the first mask, not mechRegen's enum position
 	ix, n, _ = arenaAssign(arenaTable(kop.OpRegenerate))
-	if n != 3 || ix[mechRegen] != 0 || ix[mechGoad0] != arenaNone || ix[mechMonstrous] != arenaNone {
+	if n != 1 || ix[mechRegen] != 0 || ix[mechGoad0] != arenaNone || ix[mechMonstrous] != arenaNone {
 		t.Fatalf("regen only: ix %v n %d", ix, n)
 	}
 	// goad takes a mask per seat (any player may goad) and monstrous one: the
@@ -55,11 +55,11 @@ func TestArenaAssign(t *testing.T) {
 			t.Fatalf("goad+monstrous: seat %d's goad at %d, want %d", sd, ix[goadMechs[sd]], sd+1)
 		}
 	}
-	// regen's three shield bits and kicker as well take four more, as many as the table uses
+	// regen and kicker as well take two more, as many as the table uses
 	five := arenaTable(kop.OpRegenerate, kop.OpGoad, kop.OpMonstrosity)
 	five.Cards[0].Keywords = kop.KwKicker
-	if _, n, _ = arenaAssign(five); n != MaxSeats+5 {
-		t.Fatalf("regen+goad+monstrous+kicker slot masks: n %d, want %d", n, MaxSeats+5)
+	if _, n, _ = arenaAssign(five); n != MaxSeats+3 {
+		t.Fatalf("regen+goad+monstrous+kicker slot masks: n %d, want %d", n, MaxSeats+3)
 	}
 	// kicked: Kicker, Bargain or Offspring on a card; exileEx: a damage op with the exile flag
 	kk := arenaTable()
@@ -156,7 +156,7 @@ func TestArenaAssignObj(t *testing.T) {
 	both.Cards[0].Abilities[0].Prog = append(both.Cards[0].Abilities[0].Prog, fbGrantTable().Cards[0].Abilities[0].Prog...)
 	both.Cards[0].Abilities[0].Prog = append(both.Cards[0].Abilities[0].Prog, kop.Instr{Op: kop.OpRegenerate})
 	ix, ns, no = arenaAssign(both)
-	if ns != 3 || no != 3 || ix[mechStash] != 0 || ix[mechFBLo] != 1 || ix[mechFBHi] != 2 || ix[mechRegen] != 0 {
+	if ns != 1 || no != 3 || ix[mechStash] != 0 || ix[mechFBLo] != 1 || ix[mechFBHi] != 2 || ix[mechRegen] != 0 {
 		t.Fatalf("stash+flashback+regen: ix %v ns %d no %d", ix, ns, no)
 	}
 	// the flashback helpers read both planes off fbLo's index (fbIx)

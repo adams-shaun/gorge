@@ -394,9 +394,7 @@ func (s *State) finishCleanup(k *prep) {
 	// each slot's inline pump is zeroed below
 	s.ptx, s.nptx = [maxPtX]ptRepX{}, 0
 
-	s.mSlZero(k, mechRegen) // the shields beyond the first (repl_regenerate.go), cleared with pfRegen below
-	s.mSlZero(k, mechRegenLo)
-	s.mSlZero(k, mechRegenHi)
+	s.mSlZero(k, mechRegen) // the shields' third bit (repl_regenerate.go), cleared with pfRegen below
 	m := s.occ
 	if k.phasing {
 		m = m.or(s.phasedSlots()) // damage and until-end-of-turn effects end on a phased-out permanent too
@@ -412,7 +410,7 @@ func (s *State) finishCleanup(k *prep) {
 		}
 		p.flags &^= pfDeathtouched | pfDtMore | pfRegen
 		p.eotP, p.eotT, p.eotKw, p.eotKwRep = 0, 0, 0, [2]kop.KwMask{}
-		p.spare &^= spareSwitchPT // spare: the P/T switch (kw_kwmark.go); the copied-face-down mark stays (copy_facedown.go)
+		p.spare &^= spareSwitchPT | spareRegenX // spare: the P/T switch (kw_kwmark.go); the copied-face-down mark stays (copy_facedown.go)
 		if p.ovr.flags&ovSetPTEOT != 0 {
 			p.ovr.flags &^= ovSetPTEOT
 		}
