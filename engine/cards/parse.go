@@ -212,11 +212,26 @@ func parseSA(path, val string) (*SA, []Diag) {
 	for _, kind := range [...]string{"SP", "AB", "DB", "ST"} {
 		if api, ok := p[kind]; ok {
 			delete(p, kind)
+			api = canonicalAPI(api)
 			normalizeImplicitTarget(api, p)
 			return &SA{Kind: kind, API: api, Params: p, Line: val}, nil
 		}
 	}
 	return nil, []Diag{{path, "ability with no SP$/AB$/DB$/ST$ head: " + val}}
+}
+
+// canonicalAPI maps the APIs upstream Forge split out of Pump (Card-Forge/forge
+// #12858 and its follow-ups: scripts that are not really a pump so the AI stops
+// treating them as combat tricks) back to Pump. They resolve through the same
+// Forge effect body as before the split, so the rules behaviour is unchanged:
+// TargetOnly is a bare target, Bookkeeping a remember/imprint/forget step,
+// Nothing a choice label with no effect, EndOfTurn a delayed AtEOT action.
+func canonicalAPI(api string) string {
+	switch api {
+	case "TargetOnly", "Bookkeeping", "Nothing", "EndOfTurn":
+		return "Pump"
+	}
+	return api
 }
 
 // normalizeImplicitTarget supplies the target spec a keyword action's own
