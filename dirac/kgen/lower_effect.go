@@ -2680,6 +2680,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	mustBlock, eachColor, marks := false, false, 0
 	var afterlives []int
+	var landwalk *lFilter
 	if kw, ok := ps.get("KW"); ok {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		if mustBlock && scope.Kind != rNone {
@@ -2692,6 +2693,9 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 		kw, marks = splitKwMarks(kw) // lower_kwmark.go
 		if marks != 0 && scope.Kind != rNone {
 			return refuse("PumpAll KW$ %s with a ValidTgts$ player scope", kwMarkNames(marks))
+		}
+		if kw, landwalk, err = lc.splitLandwalkAll(kw, scope); err != nil { // lower_landwalkall.go
+			return err
 		}
 		if kw != "" {
 			if kw, afterlives, err = splitAfterlifeGrant(kw); err != nil {
@@ -2714,8 +2718,11 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if err := pumpAllHighKw(&in, hasAtt || hasDef); err != nil { // lower_pumpallhighkw.go
 		return err
 	}
-	if !(mustBlock || eachColor || marks != 0 || len(afterlives) > 0) || in.CS != "" || hasAtt || hasDef {
+	if !(mustBlock || eachColor || marks != 0 || len(afterlives) > 0 || landwalk != nil) || in.CS != "" || hasAtt || hasDef {
 		lc.emit(in)
+	}
+	if landwalk != nil {
+		lc.grantLandwalkAll(f, landwalk)
 	}
 	if err := lc.grantAfterlifeAll(f, afterlives); err != nil { // lower_afterlifegrant.go
 		return err

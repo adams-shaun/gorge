@@ -112,6 +112,8 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7WithFlashback), true
 	case "withInfect":
 		return int(kop.W7WithInfect), true
+	case "withSkulk":
+		return int(kop.W7WithSkulk), true // lower_filterwords.go: the same read for Skulk
 	case "Snow":
 		// gorge hasType Snow: the printed supertype, never while face down
 		// (kop.W7Snow); TypeMask and FilterFlags2 have no bit left for it

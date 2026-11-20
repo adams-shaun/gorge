@@ -2,9 +2,9 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// Granted intimidate and infect (CR 702.13a, 702.90). Neither keyword has a
-// KwMask bit; the printed keyword is CardDef.Evasion EvIntimidate /
-// CardDef.Infect. A grant comes two ways, both read beside the printed field
+// Granted intimidate, infect and skulk (CR 702.13a, 702.90, 702.118a). None
+// has a KwMask bit; the printed keyword is CardDef.Evasion EvIntimidate /
+// EvSkulk or CardDef.Infect. A grant comes two ways, both read beside the printed field
 // by evasionAt and infectAt (so blocking, combat and noncombat damage, the
 // LKI snapshot and the withInfect filter word all see it, as gorge's derived
 // keywords are blind to where the keyword came from):
@@ -34,7 +34,7 @@ func prepKwMark(t *kop.Table, g *genPrep) {
 			for i := range a.Prog {
 				if in := &a.Prog[i]; in.Op == kop.OpExt && in.Ext() == kop.ExtKwMark {
 					g.anyKwMark = true
-					g.anyEvasionGrant = g.anyEvasionGrant || in.C&kop.KwMarkIntimidate != 0
+					g.anyEvasionGrant = g.anyEvasionGrant || in.C&(kop.KwMarkIntimidate|kop.KwMarkSkulk) != 0
 					g.anyInfectGrant = g.anyInfectGrant || in.C&kop.KwMarkInfect != 0
 				}
 			}
@@ -59,6 +59,9 @@ func kwMarkUses(in *kop.Instr, u *[numMech]bool) {
 	}
 	if in.C&kop.KwMarkInfect != 0 {
 		u[mechInfect], u[mechInfectPost] = true, true
+	}
+	if in.C&kop.KwMarkSkulk != 0 {
+		u[mechSkulk], u[mechSkulkPost] = true, true
 	}
 }
 
@@ -85,6 +88,9 @@ func (s *State) kwMark(k *prep, sl Slot, c int16) {
 	}
 	if c&kop.KwMarkInfect != 0 {
 		s.kwMarkSet(k, sl, mechInfect, mechInfectPost)
+	}
+	if c&kop.KwMarkSkulk != 0 {
+		s.kwMarkSet(k, sl, mechSkulk, mechSkulkPost)
 	}
 	if c&kop.KwMarkSwitchPT != 0 {
 		// CR 613.4d: each switch exchanges what the earlier ones left, so
@@ -125,8 +131,8 @@ func (s *State) kwMarked(k *prep, sl Slot, m, post mech) bool {
 // kwMarkClear ends the marks (the cleanup step, CR 514.2), touching each
 // permanent that held one.
 func (s *State) kwMarkClear(k *prep) {
-	held := s.mSlMask(k, mechIntimidate).or(s.mSlMask(k, mechInfect))
-	for _, m := range [...]mech{mechIntimidate, mechIntimidatePost, mechInfect, mechInfectPost} {
+	held := s.mSlMask(k, mechIntimidate).or(s.mSlMask(k, mechInfect)).or(s.mSlMask(k, mechSkulk))
+	for _, m := range [...]mech{mechIntimidate, mechIntimidatePost, mechInfect, mechInfectPost, mechSkulk, mechSkulkPost} {
 		s.mSlZero(k, m)
 	}
 	for m := held.and(s.occ); m.any(); m = m.rest() {
@@ -157,15 +163,20 @@ func (s *State) staticKwGrant(k *prep, sl Slot, has func(st *kop.Static) bool) b
 
 func staticGrantsIntimidate(st *kop.Static) bool { return st.Evasion&kop.EvIntimidate != 0 }
 func staticGrantsInfect(st *kop.Static) bool     { return st.Infect }
+func staticGrantsSkulk(st *kop.Static) bool      { return st.Evasion&kop.EvSkulk != 0 }
 
 // evasionGranted is the permanent at sl's granted CardDef.Evasion bits.
 //
 //go:noinline
 func (s *State) evasionGranted(k *prep, sl Slot) uint8 {
+	var ev uint8
 	if s.kwMarked(k, sl, mechIntimidate, mechIntimidatePost) || s.staticKwGrant(k, sl, staticGrantsIntimidate) {
-		return kop.EvIntimidate
+		ev = kop.EvIntimidate
 	}
-	return 0
+	if s.kwMarked(k, sl, mechSkulk, mechSkulkPost) || s.staticKwGrant(k, sl, staticGrantsSkulk) {
+		ev |= kop.EvSkulk
+	}
+	return ev
 }
 
 // infectGranted: the permanent at sl has a granted infect.
@@ -173,4 +184,14 @@ func (s *State) evasionGranted(k *prep, sl Slot) uint8 {
 //go:noinline
 func (s *State) infectGranted(k *prep, sl Slot) bool {
 	return s.kwMarked(k, sl, mechInfect, mechInfectPost) || s.staticKwGrant(k, sl, staticGrantsInfect)
+}
+
+// hasSkulkPerm is the withSkulk word on a battlefield permanent: the printed
+// keyword (none face down or after a lose-all-abilities effect) or a granted
+// one.
+func (s *State) hasSkulkPerm(k *prep, sl Slot) bool {
+	c := s.cardAt(sl)
+	return c != kop.NoCard && k.t.Cards[c].Evasion&kop.EvSkulk != 0 && !s.faceDown(k, sl) &&
+		s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0 ||
+		k.gen != nil && k.gen.anyEvasionGrant && s.evasionGranted(k, sl)&kop.EvSkulk != 0
 }
