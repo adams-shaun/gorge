@@ -1279,7 +1279,11 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 	// Types$: Gornog's "becomes a Coward") is a subtype setter too: re-applied
 	// after another subtype setter it takes the newest position, not the older
 	// application's (Majestic Metamorphosis between two of Gornog's triggers).
-	merge := !ov.HasPT && !ov.HasColors && ov.AddColors == 0 && !ov.HasTypes && !ov.HasSub && !ov.RemoveCreatureSub
+	// A subtype ADDITION (Butch DeLoria's "becomes a Rogue in addition") is
+	// timestamp-ordered the same way (CR 613.1d, 613.7): a repeat takes the
+	// newest position, or a later "becomes a Human" replacement is applied
+	// after the older copy of it (Wishful Merfolk).
+	merge := !ov.HasPT && !ov.HasColors && ov.AddColors == 0 && !ov.HasTypes && !ov.HasSub && !ov.RemoveCreatureSub && !subtypeAddStep(ov)
 	if merge && k.gen.anyOvrStat && s.ovStaticOn(k, sl) {
 		// An override static on the host (an Aura that removes card types)
 		// sits between the older application and this one in timestamp
