@@ -28,13 +28,11 @@ import (
 //     GenericChoice shape).
 //
 // A fixed-list Vote on a triggered ability whose StoreVoteNum$ is absent
-// refuses: gorge's placement ask treats a triggered Vote's Choices$ as modal
-// (charm_params.go isModalSA), so it poses a spurious CR 603.3c mode choice
-// before the trigger goes on the stack, and effVote never reads it. That is a
-// gorge defect, not a rules shape to copy; until gorge is fixed the card stays
-// refused by name. The StoreVoteNum$ form reproduces that placement ask (the
-// carriers this lowering admits cannot lockstep without it) and resolves the
-// vote once, behind the chosen mode's OpCharm block.
+// refuses: the lowering was written while gorge posed a spurious CR 603.3c
+// placement mode for a triggered Vote (fixed in gorge by ceace7cc00;
+// engine/rules askTriggerModes), and that shape has no lockstep coverage yet.
+// The StoreVoteNum$ form lowers like an activated one: the trigger goes on the
+// stack with no mode and resolves the vote once.
 //
 // VoteMessage$ is the prompt and AILogic$ a Forge AI hint; neither changes
 // the rules. StoreVoteNum$ True makes every option body resolve with VoteNum
@@ -151,7 +149,7 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 			// reproduces it.
 			return refuse("Vote on a triggered ability: gorge asks a spurious placement mode")
 		}
-		return lc.triggeredFixedVote(names, tie, store)
+		return lc.emitFixedVote(names, tie, store)
 	}
 	if store && tie != "" {
 		// gorge's StoreVoteNum branch returns before the tie branch, so a
@@ -160,30 +158,6 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 		return refuse("Vote StoreVoteNum$ beside VoteTiedAbility$")
 	}
 	return lc.emitFixedVote(names, tie, store)
-}
-
-// triggeredFixedVote lowers a StoreVoteNum$ fixed-list Vote on a triggered
-// ability. Gorge treats a triggered Vote's Choices$ as modal at trigger
-// placement (charm_params.go isModalSA) and asks the controller one mode
-// before the trigger goes on the stack; effVote never reads that answer. The
-// kernel asks the same placement mode only when the ability carries modes, so
-// the vote (and its branches) is repeated once per mode behind an OpCharm
-// block: the chosen mode runs its copy, the others are skipped, and every
-// copy resolves the same vote.
-func (lc *lowerCtx) triggeredFixedVote(names []string, tie string, store bool) error {
-	if lc.ab.Modes != 0 {
-		return refuse("Vote on an ability that is already modal")
-	}
-	lc.ab.Modes, lc.ab.ModesPick, lc.ab.ModesMin = len(names), 1, 1
-	for i := range names {
-		at := len(lc.ab.Prog)
-		lc.emit(lInstr{Op: "Charm", C: i})
-		if err := lc.emitFixedVote(names, tie, store); err != nil {
-			return err
-		}
-		lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
-	}
-	return nil
 }
 
 // emitFixedVote emits the ExtVote op and its branch blocks.
