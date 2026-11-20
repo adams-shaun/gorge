@@ -417,7 +417,6 @@ func (s *State) availTappedSac(k *prep, p uint8, a *avail) {
 // ctlBuild), so reading its entry there would take the speed of whichever card
 // was built or resolved last.
 func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
-	resolved := false
 	for i := int(n0); i < int(s.npend); {
 		if s.over {
 			return
@@ -512,17 +511,13 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		s.res = save
 		copy(s.pend[i:], s.pend[i+1:s.npend])
 		s.npend--
-		resolved = true
-	}
-	if resolved {
-		// The pre-cast trigger resolved; the priority it returns to runs its
-		// state-based check before the cast's build continues (CR 704.3). A
-		// drain that took the last opponent -- a Treasure spent for a
-		// lowered hybrid cast beside The Sackville-Bagginses -- ends the
-		// game here (CR 704.5a), before the cast, exactly as gorge's
-		// lowering visits the resulting priority, so the card stays in
-		// hand. resolvePrefixStack takes the same pass after its
-		// resolutions.
+		// Each resolved pre-cast trigger returns to a priority that runs its
+		// state-based check before the next one resolves (CR 117.5, 704.3),
+		// exactly as gorge's lowering does at the pass-round between two
+		// resolutions: a self-damaging ping that took the payer to 0 ends the
+		// game here (CR 704.5a), before a further trigger resolves and
+		// before the cast, so the card stays in hand. resolvePrefixStack
+		// takes the same pass after its resolutions.
 		s.sba(k)
 	}
 }
