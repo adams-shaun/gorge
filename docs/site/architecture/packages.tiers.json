@@ -169,6 +169,10 @@
       "tier": "cmd",
       "status": "TOOL"
     },
+    "cmd/checkratchet": {
+      "tier": "cmd",
+      "status": "TOOL"
+    },
     "cmd/codeshape": {
       "tier": "cmd",
       "status": "TOOL"

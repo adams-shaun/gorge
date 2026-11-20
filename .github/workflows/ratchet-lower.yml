@@ -1,0 +1,42 @@
+# Daily post-merge lowering of the shrink-only function ceilings (invariant 8). A branch may not
+# lower one: cmd/checkratchet refuses a diff that lowers a func_ceilings.tsv row or a ratchet_test.go
+# constant, so lowering happens here, on main, after any branch that grew the same function merged.
+#
+# The PR is opened by a token whose pushes start CI. Set the REGEN_TOKEN secret to a user token;
+# the fallback GITHUB_TOKEN opens the PR but GitHub starts no workflow for its push, so the queue
+# would have no fast/lint checks to read.
+name: ratchet-lower
+
+on:
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ratchet-lower
+  cancel-in-progress: false
+
+jobs:
+  lower:
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Authenticate git with the bot token
+        env:
+          GH_TOKEN: ${{ secrets.REGEN_TOKEN || github.token }}
+        run: gh auth setup-git
+      - name: Lower the ceilings and open the bot PR
+        env:
+          GH_TOKEN: ${{ secrets.REGEN_TOKEN || github.token }}
+        run: bash scripts/lower-ceilings.sh
