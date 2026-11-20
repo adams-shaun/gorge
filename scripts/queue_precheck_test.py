@@ -35,9 +35,9 @@ def test_queue_skips_what_mergify_does_not_queue():
 
 def test_plan_runs_census_of_touched_packages_and_kgen_for_dirac_or_engine():
     census = ["./dirac/kgen", "./dirac/manifest", "./engine/rules", "./dirac/oracle", "./internal/codeshape"]
-    pk, kgen, rp = qp.plan(["dirac/manifest/mech.go", "dirac/oracle/x_test.go", "engine/rules/a.go"], census)
+    pk, kgen, rp, _ = qp.plan(["dirac/manifest/mech.go", "dirac/oracle/x_test.go", "engine/rules/a.go"], census)
     assert pk == ["./dirac/manifest"] and kgen and rp  # the oracle and rules censuses are the batch's (minutes long)
-    pk, kgen, rp = qp.plan(["server/gorged/main.go", "internal/codeshape/a.go"], census)
+    pk, kgen, rp, _ = qp.plan(["server/gorged/main.go", "internal/codeshape/a.go"], census)
     assert pk == ["./internal/codeshape"] and not kgen and not rp
 
 
@@ -101,3 +101,13 @@ def test_generated_files_run_dirac_freshness_pins():
     assert "./dirac" not in qp.plan(["engine/effects/a.go"], census)[0]
     import re
     assert re.search(qp.CENSUS, "TestAskKindsUnchanged") and re.search(qp.CENSUS, "TestManifestGenIsCurrent")
+
+
+def test_dirac_code_runs_the_state_bar():
+    # 11-20 batch #2874: tail-18 at 45184 B against the 45056 bar, summed over the batch's PRs (register cause 96).
+    assert qp.plan(["dirac/coldstore.go"], [])[3]
+    assert not qp.plan(["dirac/oracle/testdata/repro/x.repro.json"], [])[3]
+    assert not qp.plan(["dirac/kgen/lower.go", "dirac/state_test.go"], [])[3]
+    import re
+    for n in ("TestEveryPoolFitsTheStateBar", "TestStateSize", "TestColdArraysHoldNoPointers"):
+        assert re.match(qp.STATE_BAR, n)

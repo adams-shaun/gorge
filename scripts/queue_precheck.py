@@ -51,6 +51,9 @@ KGEN = "./dirac/kgen"
 # kgen, or a recording, the precheck runs exactly the dirac-repros job's set: replays_rx reads its expression from
 # .github/workflows/ci.yml, so the two cannot drift (~7 min under load, once per main push).
 ORACLE = "./dirac/oracle"
+# dirac's State size and the per-pool bar sum every PR's growth (register cause 96; 11-20 batch #2874: #2708's cold
+# store put tail-18 at 45184 B against the 45056 bar). Only a merged check sees the sum; the tests are cheap.
+STATE_BAR = "^(TestEveryPoolFitsTheStateBar|TestStateSize|TestColdArraysHoldNoPointers)$"
 CI_YML = ".github/workflows/ci.yml"
 
 
@@ -201,7 +204,7 @@ def touched(path, base):
 
 
 def plan(files, census_pkgs):
-    """The checks for a set of changed files: (census packages, run kgen, run the replays)."""
+    """The checks for a set of changed files: (census packages, run kgen, run the replays, run the State bar)."""
     dirs = {"./" + f.rsplit("/", 1)[0] for f in files if "/" in f}
     pk = sorted(p for p in census_pkgs if p in dirs and p not in CENSUS_SKIP_PKGS)
     kgen = any(f.startswith(("dirac/", "engine/", "tablesrc.go")) for f in files)
@@ -210,9 +213,10 @@ def plan(files, census_pkgs):
     if any(f.startswith("dirac/manifest/") or f.endswith("_gen.go") for f in files):
         gen = {"./dirac"} | {"./" + f.rsplit("/", 1)[0] for f in files if f.endswith("_gen.go") and "/" in f}
         pk = sorted(set(pk) | {p for p in census_pkgs if p in gen and p not in CENSUS_SKIP_PKGS})
-    replays = any((f.startswith("dirac/") and f.endswith(".go") and not f.endswith("_test.go")
-                   and not f.startswith("dirac/kgen/")) or f.startswith("dirac/oracle/testdata/repro/") for f in files)
-    return pk, kgen, replays
+    code = any(f.startswith("dirac/") and f.endswith(".go") and not f.endswith("_test.go")
+               and not f.startswith("dirac/kgen/") for f in files)
+    replays = code or any(f.startswith("dirac/oracle/testdata/repro/") for f in files)
+    return pk, kgen, replays, code
 
 
 def census_packages(path):
@@ -221,7 +225,7 @@ def census_packages(path):
     return sorted({"./" + f.rsplit("/", 1)[0] for f in out if "/" in f})
 
 
-def run_checks(path, pk, kgen, replays=False, only=None):
+def run_checks(path, pk, kgen, replays=False, state=False, only=None):
     """Runs the checks in the tree at path; returns the failed items, each a (kind, package, test) tuple.
     only restricts the run to those items (attribution)."""
     env = dict(os.environ, GOFLAGS="-trimpath")
@@ -244,6 +248,8 @@ def run_checks(path, pk, kgen, replays=False, only=None):
             groups.append((pk, CENSUS))
         if kgen:
             groups.append(([KGEN], ""))
+        if state:
+            groups.append((["./dirac"], STATE_BAR))
         if replays:
             with open(os.path.join(path, CI_YML)) as f:
                 groups.append(([ORACLE], replays_rx(f.read())))
@@ -319,9 +325,10 @@ def main():
     t = Tree(wt, base)
     merged = [p for p in order if t.merge(p) or print("#%d conflicts; left to Mergify" % p["number"])]
     files = touched(wt, base)
-    pk, kgen, replays = plan(files, census_packages(wt))
-    print("checks: go vet ./...; census in %s; kgen=%s; replays=%s" % (" ".join(pk) or "-", kgen, replays))
-    fails = run_checks(wt, pk, kgen, replays)
+    pk, kgen, replays, state = plan(files, census_packages(wt))
+    print("checks: go vet ./...; census in %s; kgen=%s; replays=%s; state bar=%s" % (" ".join(pk) or "-", kgen,
+                                                                                 replays, state))
+    fails = run_checks(wt, pk, kgen, replays, state)
     t.close()
     short = base[:10]
     if not fails:
@@ -333,7 +340,7 @@ def main():
     def on_main(items):
         tm = Tree(wt, base)
         try:
-            return run_checks(wt, pk, kgen, replays, only=items)
+            return run_checks(wt, pk, kgen, replays, state, only=items)
         finally:
             tm.close()
 
@@ -342,7 +349,7 @@ def main():
         try:
             for p in merged[:k]:
                 tp.merge(p)
-            return run_checks(wt, pk, kgen, replays, only=items)
+            return run_checks(wt, pk, kgen, replays, state, only=items)
         finally:
             tp.close()
 
