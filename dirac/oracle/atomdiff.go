@@ -7,9 +7,9 @@ import (
 	"sync"
 
 	"github.com/adams-shaun/gorge/dirac"
-	"github.com/adams-shaun/gorge/dirac/kgen"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -23,6 +23,21 @@ import (
 // (kgen.AtomCompiler) turns the atom's spec into the literal filter or amount
 // the kernel's probes (dirac.ProbeFilter, ProbeValue) evaluate over a table
 // overlay, so the two sides cannot drift.
+
+// AtomLowerer lowers a filter spec or a Count$ head into kernel tables laid
+// over a game's own; kgen.AtomCompiler is the one implementation. dirac/kgen's
+// tests import this package, so it cannot import kgen: whoever runs the
+// harness sets NewAtomLowerer (atomdiff_lower_test.go for the tests; a kfuzz
+// mode would do the same from its main).
+type AtomLowerer interface {
+	Filter(spec string, zone kop.Zone) (kop.FilterID, error)
+	Count(head string) (kop.ValueRef, error)
+	Tables() ([]kop.Filter, []kop.Expr)
+	Missing() []string
+}
+
+// NewAtomLowerer builds the lowerer over a game's table.
+var NewAtomLowerer func(t *kop.Table) AtomLowerer
 
 // AtomZones is the set of zones an atom is defined in.
 type AtomZones uint8
@@ -152,7 +167,7 @@ type atomSet struct {
 
 func compileAtoms(fa []FilterAtom, ca []CountAtom, tbl *kop.Table) *atomSet {
 	as := &atomSet{fa: fa, ca: ca}
-	comp := kgen.NewAtomCompilerOver(tbl)
+	comp := NewAtomLowerer(tbl)
 	as.fid = make([][len(atomZoneList)]kop.FilterID, len(fa))
 	as.skipF, as.skipC = make([]bool, len(fa)), make([]bool, len(ca))
 	for i, a := range fa {
@@ -291,7 +306,7 @@ func (as *atomSet) check(ref *GorgeSide, r *realSide, st *AtomStats) *Divergence
 			}
 			fid := as.fid[i][ob.zi]
 			for _, c := range ctxs {
-				gv := g.MatchesSpecAtZone(spec, ob.gid, c.gs, c.you, atomZoneList[ob.zi].g)
+				gv := rules.MatchesSpecAtZone(g, spec, ob.gid, c.gs, c.you, atomZoneList[ob.zi].g)
 				kv := r.s.ProbeFilter(as.ps, fid, ob.k, c.ks, uint8(c.you))
 				st.Evals[a.Name]++
 				if gv {
