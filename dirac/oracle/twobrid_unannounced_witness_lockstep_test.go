@@ -32,8 +32,8 @@ func TestTwobridUnannouncedWitnessReprosLockstep(t *testing.T) {
 // twobridPodDeck holds every twobrid card at the two pre-announcement paths'
 // pieces: Curse of Opulence makes Gold (the sacrifice-only source the granted
 // offer search prices) and Gift of Paradise grants a land a mana ability (the
-// census gap the lowering/prefix search prices). The brief's dr-mbc-bbbb pool
-// holds only Flame Javelin of the three twobrid cards, so the pod builds the
+// census gap the lowering/prefix search prices). The dr-mbc-bbbb pool holds
+// only Flame Javelin of the three twobrid cards, so the pod builds the
 // table its own decks need, as reproSet does for a custom pool.
 func twobridPodDeck() []string {
 	return deckOf(12, "Flame Javelin",
