@@ -172,12 +172,13 @@ func (s *State) applyAskTrigX(k *prep, a Action) bool {
 	}
 	if !ok {
 		s.g.pickF |= pfNoPay // the X bound read no restriction; a pay reads the payment's (decline only)
-		if stall != 0 {
-			// the drop is final (decline only) and a failed window probe's fork
-			// latched a rule gap the kernel stalls by name: declare it, not a
-			// silent unpayable X (tapXScript's shape)
-			s.capFull(stall)
-		}
+	}
+	if stall != 0 {
+		// the drop is final (decline only) and a failed window probe's fork
+		// latched a rule gap the kernel stalls by name: declare it, not a
+		// silent unpayable X (tapXScript's shape). A found plan's spill is the
+		// same model gap and is declared too.
+		s.capFull(stall)
 	}
 	s.res.ask, s.res.askP = raGenPay, p
 	return true

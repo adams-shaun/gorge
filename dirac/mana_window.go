@@ -1296,12 +1296,20 @@ func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDefe
 	t.pool.census = was
 	stall := uint8(0)
 	if !ok {
-		// the walk's taps and sacrifices latched a rule-gap stall (its next
-		// stepGen ends the game). A caller that keeps searching may still price
-		// the play through a sibling route, so the probe declares nothing: the
-		// drop site declares the stall where every route failed (windowPays,
-		// payWardN, applyWardManaLife, the madness gates; tapXScript's shape).
-		stall = t.g.stalled
+		// The greedy walk missed a filter-first source's fee-funded plan: its
+		// generic fee may need a funder the cost does not owe, and the funder
+		// may list before the filter (Overflowing Basin beside Power Depot).
+		// The filter payment search prices a fresh board exactly: the failed
+		// walk's taps and floating mana must not skew the plan. It is the same
+		// census walk's source set, and its latched stall is returned to the
+		// caller, never declared by the probe.
+		ok, stall = s.filtPay(k, p, cost, takeDeferred)
+		if !ok {
+			walkStall := t.g.stalled
+			if walkStall != 0 {
+				stall = walkStall
+			}
+		}
 	}
 	return ok, stall
 }
@@ -1333,7 +1341,7 @@ func (s *State) windowPays(k *prep, p uint8, kind int, skip uint16, amt int, pip
 		return false, 0
 	}
 	if ok, stall := s.windowAffordsN(k, p, amt, pips, skip&pfWard == 0); ok {
-		return true, 0
+		return true, stall // a found plan's spill is a capacity stall the caller declares
 	} else {
 		// An unless cost is no spell's payment: restricted mana whose restriction
 		// admits a non-spell payment (a Powerstone's {C}, CR 106.6) pays it, as it
