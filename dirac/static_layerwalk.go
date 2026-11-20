@@ -162,6 +162,7 @@ func (s *State) layerSrcBuild(k *prep) *layerSrcList {
 		return nil
 	}
 	r := &l[0]
+	old := r.n
 	r.n = 0
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
@@ -213,6 +214,9 @@ func (s *State) layerSrcBuild(k *prep) *layerSrcList {
 		}
 		r.srcs[r.n] = layerSrc{src: src, cid: cid, abs: abs, rem: rem, kept: kept, flags: fl}
 		r.n++
+	}
+	if r.n < old {
+		clear(r.srcs[r.n:old]) // no stale tail: SameGame compares the cold bytes
 	}
 	r.valid = true
 	return r
