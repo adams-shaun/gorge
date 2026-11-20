@@ -538,6 +538,13 @@ func (s *State) restrViewW(k *prep, p uint8, sl Slot, own *pcard, d *payDesc) (v
 			if own.manaAb < 0 || !s.canTapForManaPC(k, sl, own) {
 				continue
 			}
+			if s.genLost(k, sl) {
+				// CR 613.1h: the permanent lost all abilities, its printed
+				// restricted one with them; the census unit that survived the
+				// loss (a granted ability, Honest Work's "{T}: Add {C}" on the
+				// enchanted land) is not widened by it
+				continue
+			}
 			if k.gen.landSet && s.landSetLost(k, sl) {
 				// CR 305.7: a land whose types a setter made basic lost its
 				// rules-text abilities, the restricted one with the census
