@@ -6,34 +6,34 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 `cardset.EnforceEvidence` is true: a game plays supported cards only, and a deck holding an unverified or refused card is turned away.
 
-| list | cards | lowered | refused | unverified | supported | 4-seat |
-|---|---:|---:|---:|---:|---:|---:|
-| BIG | 30 | 27 | 0 | 2 | 25 | 25 |
-| BLB | 278 | 261 | 1 | 0 | 260 | 260 |
-| DFT | 276 | 255 | 0 | 0 | 255 | 255 |
-| DSK | 276 | 256 | 2 | 4 | 250 | 250 |
-| ECL | 273 | 246 | 0 | 1 | 245 | 245 |
-| EOE | 266 | 251 | 0 | 0 | 251 | 251 |
-| FDN | 517 | 517 | 0 | 0 | 517 | 516 |
-| FIN | 312 | 279 | 0 | 0 | 279 | 279 |
-| FRA | 269 | 255 | 0 | 5 | 250 | 250 |
-| HOB | 172 | 160 | 0 | 0 | 160 | 160 |
-| LCI | 290 | 261 | 1 | 0 | 260 | 259 |
-| MKM | 279 | 252 | 2 | 9 | 241 | 241 |
-| MSH | 276 | 250 | 1 | 1 | 248 | 248 |
-| OTJ | 276 | 253 | 1 | 0 | 252 | 252 |
-| SOS | 270 | 259 | 0 | 0 | 259 | 259 |
-| SPM | 192 | 170 | 1 | 2 | 167 | 167 |
-| TDM | 276 | 259 | 1 | 0 | 258 | 258 |
-| TLA | 285 | 261 | 1 | 0 | 260 | 260 |
-| TMT | 194 | 184 | 0 | 0 | 184 | 184 |
-| TRC | 337 | 302 | 0 | 30 | 272 | 272 |
-| TRK | 311 | 311 | 0 | 0 | 311 | 310 |
-| WOE | 281 | 265 | 0 | 4 | 261 | 261 |
-| MBC | 2210 | 1975 | 4 | 23 | 1948 | 1946 |
-| ALL | 34442 | 25425 | 24 | 413 | 24988 | 24983 |
+| list | cards | lowered | refused | unverified | supported | 4-seat | pod-evidenced |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| BIG | 30 | 27 | 0 | 2 | 25 | 25 | 0 |
+| BLB | 278 | 261 | 1 | 0 | 260 | 260 | 0 |
+| DFT | 276 | 255 | 0 | 0 | 255 | 255 | 0 |
+| DSK | 276 | 256 | 2 | 4 | 250 | 250 | 0 |
+| ECL | 273 | 246 | 0 | 1 | 245 | 245 | 0 |
+| EOE | 266 | 251 | 0 | 0 | 251 | 251 | 0 |
+| FDN | 517 | 517 | 0 | 0 | 517 | 516 | 0 |
+| FIN | 312 | 279 | 0 | 0 | 279 | 279 | 0 |
+| FRA | 269 | 255 | 0 | 5 | 250 | 250 | 0 |
+| HOB | 172 | 160 | 0 | 0 | 160 | 160 | 0 |
+| LCI | 290 | 261 | 1 | 0 | 260 | 259 | 0 |
+| MKM | 279 | 252 | 2 | 9 | 241 | 241 | 0 |
+| MSH | 276 | 250 | 1 | 1 | 248 | 248 | 0 |
+| OTJ | 276 | 253 | 1 | 0 | 252 | 252 | 0 |
+| SOS | 270 | 259 | 0 | 0 | 259 | 259 | 0 |
+| SPM | 192 | 170 | 1 | 2 | 167 | 167 | 0 |
+| TDM | 276 | 259 | 1 | 0 | 258 | 258 | 0 |
+| TLA | 285 | 261 | 1 | 0 | 260 | 260 | 0 |
+| TMT | 194 | 184 | 0 | 0 | 184 | 184 | 0 |
+| TRC | 337 | 302 | 0 | 30 | 272 | 272 | 0 |
+| TRK | 311 | 311 | 0 | 0 | 311 | 310 | 0 |
+| WOE | 281 | 265 | 0 | 4 | 261 | 261 | 0 |
+| MBC | 2210 | 1975 | 4 | 23 | 1948 | 1946 | 0 |
+| ALL | 34442 | 25429 | 24 | 417 | 24988 | 24983 | 0 |
 
-`ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
+`ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 
 ## What supported covers
 
