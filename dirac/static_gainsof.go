@@ -21,10 +21,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // the foreign card's body (a cost's Self, and the effect's, is the recipient).
 
 // StallGainsOf: a gained ability the walk does not model (an activation
-// limit, once each turn, a loyalty ability, one that works from another zone,
-// or an index past 63). A gained mana ability is not a priority option in
-// either engine, so the offer walk skips it (gainedOffer) rather than stalling,
-// unless it carries a limit the payment planner does not record
+// limit, once each turn, a loyalty ability, a host cost, or an index past
+// 63). An ability that names a zone it functions from (CR 113.6b: cycling's
+// hand, embalm's graveyard) is not one of them: its copy lives on a
+// battlefield recipient, so it functions nowhere and the walk skips it, the
+// way it skips a mana ability. A gained mana ability is not a priority option
+// in either engine, so the offer walk skips it (gainedOffer) rather than
+// stalling, unless it carries a limit the payment planner does not record
 // (gainedManaLimited): its payment is mana_gainedgrants.go's.
 const StallGainsOf = 182
 
@@ -189,6 +192,14 @@ func (s *State) gainedOffer(k *prep, d *Decision, st statSrc, first int, fo Obj,
 	for j := range abs {
 		a := &abs[j]
 		if a.Kind != kop.AbActivated && a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
+			continue
+		}
+		if a.ActZone != kop.ZoneNone {
+			// CR 113.6b: the ability names the only zone it functions from
+			// (cycling's hand, embalm's graveyard); the copy the recipient
+			// holds lives on the battlefield, so it functions nowhere and
+			// neither engine offers it. Oliphaunt's cycling under Necrotic
+			// Ooze once stalled the walk here instead.
 			continue
 		}
 		if a.Kind == kop.AbMana {
