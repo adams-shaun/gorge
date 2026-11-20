@@ -1043,6 +1043,15 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			// CR 702.166: the full cast-mode table's castModeOther code, the
 			// same canonical form the offered option uses
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther)
+		} else if _, ok := faceCastCode(pa.Cast.CastMode()); ok {
+			// A hand alternate-spell-face cast the planner prices
+			// (CastMode adventure_alt/omen_alt) is not a distinct action:
+			// the legal walk already offers it as the ActCastFace option
+			// when the payer can afford it, and that offer is the surface
+			// the kernel mirrors. The planner's witness is a payment route
+			// beneath it, so it is neither a new option nor an unknown
+			// kind (dr-mbc-bbbb pair 98).
+			continue
 		} else {
 			mc, ok := castModeCode(pa.Cast.CastMode())
 			if !ok {
