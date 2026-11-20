@@ -260,6 +260,13 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 			if s.pickCommittedSrc(k, b.first()) {
 				continue // a convoke/waterbend pick taps it (excludePickedSources)
 			}
+			if k.gen.anyContGrant && s.grantIdx(k, b.first()) >= 0 && s.planDeferred(k, p, b.first()) && !s.blgIntrinsicUnit(k, b.first()) {
+				// availFor's deferGap arm already counted this source through its
+				// granted ability (availGrant): the permanent taps once for the
+				// window (CR 605.1a), and gorge's census lists one unit for it
+				// (Twitching Doll under Enduring Vitality made X one too many).
+				continue
+			}
 			if ra, ok := s.riderAbilityOf(k, b.first()); ok {
 				if ra.ManaRider == kop.ManaRiderDeplete {
 					// A depletion land's activation costs a counter, so gorge's window
