@@ -261,9 +261,20 @@ type ExtraTurn struct {
 
 // Game.PhaseSkips bits (events.SkipPhase, CR 614.10): the seat's combat
 // phases are skipped from its next turn (pending) through that turn (live).
+//
+// The one-shot shapes (DB$ SkipPhase with Step$ or without Start$): the seat's
+// next untap step (SkipUntapPending, consumed as its turn begins), its next
+// draw step (SkipDrawPending, consumed as the step would be entered), its next
+// combat phase (SkipNextCombat, any turn, consumed as the beginning of combat
+// would be entered) and its next combat phase THIS turn (SkipCombatThisTurn,
+// the same but dropped at the turn boundary: Moment of Silence).
 const (
 	SkipCombatPending uint8 = 1 << iota
 	SkipCombatLive
+	SkipUntapPending
+	SkipDrawPending
+	SkipNextCombat
+	SkipCombatThisTurn
 )
 
 // CombatSkipped reports whether seat skips every combat phase of the turn it

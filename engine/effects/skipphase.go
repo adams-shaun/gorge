@@ -10,18 +10,13 @@ func init() {
 	Register("SkipPhase", effSkipPhase)
 }
 
-// effSkipPhase implements DB$ SkipPhase (Forge's SkipPhaseEffect; CR 614.10),
-// in the one shape False Peace and Empty City Ruse carry: the targeted (or
-// Defined$) player skips every combat phase of their NEXT turn, extra combat
-// phases included. The grant is one events.SkipPhase per player, folded into
-// state.Game.PhaseSkips; the turn structure (engine/rules/turn.go's
-// advanceStep tail and extraPhaseBoundary) is the consumer, entering the
-// postcombat main phase instead of the beginning of combat. "Next turn" is the
-// next turn the player begins after this resolves, so a sorcery that targets
-// its own caster skips the caster's following turn, not the current one.
-//
-// Any other shape (the one-shot "next combat phase this turn" of Moment of
-// Silence, Blinding Angel's Defined$ form, Step$ Draw, ...) is a loud Note
+// effSkipPhase implements DB$ SkipPhase (Forge's SkipPhaseEffect; CR 614.10).
+// The shapes are skipPhaseParams': all combat phases of the next turn, the next
+// combat phase, the next untap step and the next draw step, each for the
+// defined or targeted player (the caster when neither). The grant is one
+// events.SkipPhase per player, folded into state.Game.PhaseSkips; the turn
+// structure (engine/rules/turn.go's beginTurn and advanceStep tail,
+// skipphase_steps.go) is the consumer. A shape outside those is a loud Note
 // and no grant, the AddPhase convention.
 func effSkipPhase(h Host, c *Ctx, sa *cards.SA) {
 	p := compileSkipPhaseParams(sa)
@@ -41,7 +36,7 @@ func effSkipPhase(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	for _, pl := range players {
 		if int(pl) >= 0 && int(pl) < len(g.Players) && !g.Players[pl].Lost {
-			h.Emit(events.Event{Kind: events.SkipPhase, Player: pl, Obj: c.Source, Step: p.step})
+			h.Emit(events.Event{Kind: events.SkipPhase, Player: pl, Obj: c.Source, Step: p.step, Amount: p.amount})
 		}
 	}
 }

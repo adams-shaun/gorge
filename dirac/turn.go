@@ -56,6 +56,9 @@ func (s *State) beginTurn(p uint8) {
 		s.embTurnStart(k, p) // UntilTheEndOfYourNextTurn: this turn is its last (static_emblemdurations.go)
 	}
 	s.step = kop.StepUntap
+	if k := s.k(); k.gen != nil && k.gen.anySkipPhase {
+		s.skipUntapTurn() // a pending untap skip enters the upkeep (act_skipphase.go)
+	}
 	s.ctl = ctlStepBegin
 	s.carry = carryNone
 	s.g.declM = slotMask{}
@@ -197,10 +200,8 @@ func (s *State) beginStep(k *prep) {
 		}
 		s.openPriority()
 	case kop.StepDraw:
-		if s.turn == 1 && s.nSeats() == 2 {
-			// CR 103.8a skips the starting player's first draw step in a
-			// two-player game only; CR 103.8c: no one skips it at more
-			s.step = kop.StepMain1
+		if s.drawStepSkipped(k) {
+			s.step = kop.StepMain1 // the draw step does not happen (act_skipphase.go)
 			return
 		}
 		s.g.drawFirst = true // repl_draw.go: the first card drawn in this draw step
@@ -345,7 +346,7 @@ func (s *State) advance(k *prep) {
 	if k.gen != nil && k.gen.anyAddPhase {
 		next = s.addPhaseNext(next) // extra phases and the phase ledger (act_addphase.go)
 	} else if k.gen != nil && k.gen.anySkipPhase {
-		next = s.skipCombatNext(next) // act_skipphase.go
+		next = s.skipCombatNext(next, false) // act_skipphase.go
 	}
 	s.endStep(next)
 }
