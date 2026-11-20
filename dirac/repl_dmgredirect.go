@@ -297,13 +297,13 @@ func (s *State) redirKw(k *prep, srcSl Slot, srcCard CardID) (kop.KwMask, bool) 
 // and joins the pass as a new event from the same source to the record's
 // recipient, which the loop then walks like any other. It reports whether the
 // event lost damage.
-func (s *State) redirCombat(k *prep, r *dmgRec, ev *dmgEv, ordered bool, code TCode, rcp uint8) bool {
+func (s *State) redirCombat(k *prep, r *dmgRec, ev *dmgEv, byOrd bool, code TCode, rcp uint8) bool {
 	at := s.redirMatch(k, s.perms[ev.src].ctrl, ev.src, s.cardAt(ev.src), code, rcp, ev.dst, true)
 	if at < 0 {
 		return false
 	}
-	if ordered || s.g.ro.on || r.nev >= len(r.ev) {
-		s.capFull(StallRedirOrder) // an event-by-event ordered walk, or no room for the new event
+	if byOrd || s.g.ro.on || r.nev >= len(r.ev) {
+		s.capFull(StallRedirOrder) // an order-sensitive walk, or no room for the new event
 		return false
 	}
 	m, tcode := s.redirSpend(at, int(ev.n))
