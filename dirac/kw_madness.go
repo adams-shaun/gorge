@@ -356,7 +356,11 @@ func (s *State) filterCastAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) b
 	if k.gen == nil || !k.gen.anyFilt || !s.filtFundsMadness(k, p) {
 		return false
 	}
-	return s.offerSourcesAfford(k, p, s.objs[o].card, o, cost)
+	// The gaps census lets a filter's own tap stand as its fee's mana (Unknown
+	// Shores alone reads {1}{T}: any colour beside its free {C}); one tap makes
+	// one of them (CR 605.1a), and gorge's askMadnessCast gate always runs the
+	// potential bound first, which leaves the source's own mana out of its fee.
+	return s.offerSourcesAfford(k, p, s.objs[o].card, o, cost) && s.potentialAffords(k, p, o, cost)
 }
 
 // filtFundsMadness: some filter of p's may fund the madness cast. A
