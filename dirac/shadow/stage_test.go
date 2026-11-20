@@ -76,6 +76,8 @@ type stageEnv struct {
 	// combat also stages at the declare attackers and declare blockers
 	// decisions, the viewer the seat that decides them.
 	combat bool
+	// seats is the pod size: 0 plays the two-seat game (its exact random draws).
+	seats int
 }
 
 func vanillaEnv() *stageEnv {
@@ -112,6 +114,10 @@ type stageStats struct {
 	spells        int               // staged positions with a spell on the stack
 	abilities     int               // staged positions with an ability on the stack
 	deadTok       int               // positions skipped: a token had left the view after the last one shown
+	marked        int               // staged positions with damage or a +1/+1 counter
+	stacked       int               // staged positions with a stack entry
+	farAttack     int               // staged positions with an attacker on a seat other than the active seat's next
+	farBlock      int               // staged declare blockers poses of a defender other than the active seat's next
 }
 
 var errDone = &oracle.Divergence{What: "stage-done"}
@@ -120,8 +126,19 @@ var errDone = &oracle.Divergence{What: "stage-done"}
 // first stageable one from there on. It returns a failure text or "".
 func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, mut func(*dirac.World)) string {
 	r := rand.New(rand.NewPCG(seed, 0x5748))
-	decks := [2][]kop.CardID{env.deck(r), env.deck(r)}
-	m, err := oracle.KernelMatchup(reg, env.tbl, [2]string{"a", "b"}, decks, nil, 0)
+	seats := max(env.seats, 2)
+	var m *oracle.Matchup
+	var err error
+	if env.seats == 0 {
+		decks := [2][]kop.CardID{env.deck(r), env.deck(r)}
+		m, err = oracle.KernelMatchup(reg, env.tbl, [2]string{"a", "b"}, decks, nil, 0)
+	} else {
+		decks := make([][]kop.CardID, seats)
+		for i := range decks {
+			decks[i] = env.deck(r)
+		}
+		m, err = oracle.KernelMatchupN(reg, env.tbl, []string{"a", "b", "c", "d"}[:seats], decks, nil, 0)
+	}
 	if err != nil {
 		return err.Error()
 	}
@@ -142,7 +159,7 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 		if d == nil || d.Kind != "priority" && !(env.combat && (d.Kind == decision.KAttackers || d.Kind == decision.KBlockers)) {
 			return nil
 		}
-		viewer := state.PlayerID(r.IntN(2))
+		viewer := state.PlayerID(r.IntN(seats))
 		if d.Kind != "priority" {
 			viewer = d.Player
 		}
@@ -150,7 +167,7 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 		v := view.ProjectFor(g, ref.E, viewer, view.Seat, d)
 		// the hidden zones as the harness knows them: the one place gorge's own state is read
 		hidden := shadow.Hidden{}
-		for p := state.PlayerID(0); p < 2; p++ {
+		for p := state.PlayerID(0); int(p) < seats; p++ {
 			for _, id := range g.Zone(state.ZHand, p) {
 				hidden.Hand[p] = append(hidden.Hand[p], card(ref, g, id))
 			}
@@ -213,7 +230,7 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 
 // count tallies the features a staged world holds, once per position.
 func (st *stageStats) count(w *dirac.World) {
-	var dmg, ctr, att, tok, spell, abil bool
+	var dmg, ctr, att, tok, spell, abil, far bool
 	for i := range w.Stack {
 		if w.Stack[i].Ability {
 			abil = true
@@ -224,6 +241,19 @@ func (st *stageStats) count(w *dirac.World) {
 	for i := range w.Objs {
 		o := &w.Objs[i]
 		dmg, ctr, att, tok = dmg || o.Damage != 0, ctr || o.P1P1 != 0, att || o.Attached, tok || o.Token
+		far = far || o.Attacking && o.AtkSeat != (w.Active+1)%w.NSeat
+	}
+	if dmg || ctr {
+		st.marked++
+	}
+	if len(w.Stack) != 0 {
+		st.stacked++
+	}
+	if far {
+		st.farAttack++
+	}
+	if w.Pose == dirac.PoseBlockers && w.NSeat > 2 && w.BlkDef != (w.Active+1)%w.NSeat {
+		st.farBlock++
 	}
 	for _, f := range []struct {
 		on bool
