@@ -395,9 +395,9 @@ def repro_named(changes, dirmap, lines_of, cwd=None):
     nothing here; the REPRO_TESTS families cover them.
 
     A recording marked `"named":true` is replayed by TestReproManifest as the subtest of its own name, so it
-    maps to `TestReproManifest/<name>`. plan never folds that to the parent test (a `/` in -run would filter
-    the subtests of every other selected test and pass them empty): the changed recording's subtest joins
-    plan's manifest -run (reprosel's msub), which matches the manifest test alone."""
+    maps to `TestReproManifest/<name>`. plan keeps that path when the run slices (the manifest's -run matches
+    the manifest test alone, so no other test's subtests are filtered) and folds it to the parent test in the
+    full-coverage fallback, where the whole manifest runs anyway (see replay_part)."""
     out, files = {}, {}
     for path in sorted(changes):
         if not path.startswith(REPRO_DIR) or not path.endswith(".repro.json"):
@@ -454,10 +454,15 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
                       if t not in exclude and t not in slow and slice_lane(t, reprosel.get("sha"))}
     for p, names in (repro_names or {}).items():
         if names:
-            # a manifest subtest path (TestReproManifest/<name>) no longer folds to its parent: the
-            # slice's -run matches the manifest test alone, so no other selected test's subtests are
-            # filtered to the slice's names and passed empty (see replay_part)
-            named.setdefault(p, set()).update(n for n in names if "/" not in n)
+            if reprosel is None:
+                # full coverage: a subtest path (TestReproManifest/<name>) runs as its parent, as
+                # before (a '/' in -run would filter the subtests of every other selected test, but
+                # the manifest is the only test here whose subtests matter)
+                named.setdefault(p, set()).update(n.split("/", 1)[0] for n in names)
+            else:
+                # the slice's -run matches the manifest test alone, so the subtest keeps its path and
+                # no other selected test's subtests are filtered to it (see replay_part)
+                named.setdefault(p, set()).update(n for n in names if "/" not in n)
     for path, ranges in sorted(changes.items()):
         if path.endswith(".md"):
             continue
