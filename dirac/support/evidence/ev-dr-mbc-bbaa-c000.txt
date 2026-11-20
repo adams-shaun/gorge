@@ -2,6 +2,7 @@ Abolish
 About Face
 Against All Odds
 Ancient Hydra
+Ancient Silverback
 Angelic Exaltation
 Assault Formation
 Ballynock Cohort
@@ -9,6 +10,7 @@ Banishing Slash
 Barrowgoyf
 Battle Angels of Tyr
 Beast Within
+Bellowing Aegisaur
 Bewilder
 Bhaal's Invoker
 Bitter Reunion
@@ -16,6 +18,7 @@ Blasting Station
 Boggart Harbinger
 Carrion Imp
 Challenger Troll
+Charging Monstrosaur
 Claustrophobia
 Cloud Djinn
 Cloud Spirit
@@ -34,16 +37,20 @@ Engineered Explosives
 Evangel of Heliod
 Expunge
 Exsanguinate
+Fae Offering
 Faerie Mechanist
 Falkenrath Noble
 Felidar Umbra
 Feral Hydra
 Flock Impostor
 Forest
+Generous Gift
+Giant Spider
 Gloom Sower
 Goblinslide
 Goldlust Triad
 Goldmeadow Harrier
+Guardian of Faith
 Halimar Depths
 Healer's Hawk
 Hieroglyphic Illumination
@@ -58,8 +65,10 @@ Killer Whale
 Kor Cartographer
 Kor Firewalker
 Leap
+Linvala, the Preserver
 Lore Weaver
 Madcap Skills
+Mage Slayer
 Merciless Executioner
 Merfolk Seastalkers
 Molten Birth
@@ -76,7 +85,10 @@ Prosperous Pirates
 Pyrohemia
 Quest for Pure Flame
 Quest for the Gravelord
+Quirion Elves
+Ramosian Rally
 Reality Shift
+Recross the Paths
 Relic Crush
 Renegade Warlord
 Reverent Mantra
@@ -99,7 +111,10 @@ Starlit Angel
 Stromgald Crusader
 Swamp
 Sword Coast Serpent
+The Everforger
+Tower of the Magistrate
 Trumpeting Herd
+Turnabout
 Twinferno
 Ultimate Price
 Vigean Graftmage

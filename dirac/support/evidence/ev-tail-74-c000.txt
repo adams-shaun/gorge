@@ -238,6 +238,7 @@ Liliana's Standard Bearer
 Loamdragger Giant
 Loathsome Troll
 Lokhust Heavy Destroyer
+Lord Magnus
 Lotus Blossom
 MACH-1, Swooping Scoundrel
 Mad Auntie
@@ -467,6 +468,7 @@ Veteran Bodyguard
 Vhati il-Dal
 Viashino Bladescout
 Vilis, Broker of Blood
+Vine Kami
 Vineweft
 Vintara Snapper
 Violet Pall

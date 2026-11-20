@@ -5,33 +5,55 @@ Arashin Cleric
 Artificer's Dragon
 Astrid Peth
 Aurochs
+Avacyn's Pilgrim
+Avarice Amulet
 Bag of Holding
+Barbed Field
 Basal Sliver
 Basal Thrull
+Battlefield Butcher
+Betrayal of Flesh
 Biting-Palm Ninja
 Black Market Connections
 Blaring Recruiter
 Blight Mamba
+Blighted Woodland
+Blinding Radiance
 Boggart Shenanigans
 Bond of Agony
 Bontu's Last Reckoning
+Brought Back
+Carnival
+Catapult Squad
 Chill of Foreboding
 Chimeric Egg
+Chronic Flooding
 Clarion Cathars
+Cloud Crusader
+Copper-Leaf Angel
 Copy Artifact
 Crippling Blight
+Crop Rotation
 Crushing Vines
 Crystal Rod
+Culling Sun
 Cursed Land
+Dark Depths
 Daryl, Hunter of Walkers
 Deathgreeter
+Deep Reconnaissance
 Demon's Due
+Demystify
 Destructive Tampering
 Disorient
 Dispense Justice
 Divination
+Downhill Charge
 Dreamcaller Siren
+Drooling Ogre
+Echoes of the Kin Tree
 Ekundu Griffin
+Eldrazi Displacer
 Elspeth's Devotee
 Elvish Champion
 Ember-Eye Wolf
@@ -39,7 +61,9 @@ Esior, Wardwing Familiar
 Esper Panorama
 Essence Capture
 Exile into Darkness
+Explosive Welcome
 Eye of Vecna
+Farideh's Fireball
 Festercreep
 Fiery Temper
 Fire Nation Ambushers
@@ -47,13 +71,20 @@ Flame Sweep
 Flame-Blessed Bolt
 Fleecemane Lion
 Fleshmad Steed
+Font of Fertility
 Forest
+Fortified Rampart
 Foulmire Knight
 Foundry Street Denizen
 Foxfire Oak
 Frillscare Mentor
+Game Trail
+Gavony Silversmith
+Generous Gift
+Ghastly Death Tyrant
 Ghoulcaller's Accomplice
 Giant-Man, Gargantuan Genius
+Gideon's Reproach
 Glistening Oil
 Gluntch, the Bestower
 Goblin Trashmaster
@@ -61,94 +92,168 @@ Golden Demise
 Goldmeadow Lookout
 Grazing Whiptail
 Great Furnace
+Grinding Station
 Grond, the Gatebreaker
 Harbor Bandit
 Harrowing Journey
 Harvester of Souls
 Heartwood Treefolk
+Hedonist's Trove
+Hedron Rover
+Hellrider
+High-Rise Sawjack
+Hitchclaw Recluse
 Hold the Line
 Homarid Explorer
+Honeymoon Hearse
+Honor Troll
 Hulk, Bruce Banner
+Hungry Spriggan
 Hunt the Weak
+Icatian Javelineers
 Immersturm Raider
 Implement of Combustion
+Imps' Taunt
 Incubation
 Infested Fleshcutter
+Infested Thrinax
+Inquisitive Puppet
+Insight Engine
 Invasion of Kaldheim
 Iridescent Blademaster
 Iron Man, Tony Stark
+Ironroot Treefolk
 Island
+Ithilien Kingfisher
+Jolt
 Jor Kadeen, First Goldwarden
 Jwar Isle Avenger
 Kabira Vindicator
+Kaervek the Merciless
 Karametra's Blessing
+Keldon Overseer
+Keymaster Rogue
 King Macar, the Gold-Cursed
 Kitchen Imp
+Knight of the Stampede
 Kobold Taskmaster
 Launch Party
 Lava Dart
+Lhurgoyf
+Lich Lord of Unx
 Life Insurance
 Lightning Rift
 Lightning Serpent
 Liliana's Specter
 Liliana's Steward
+Lord of Atlantis
 Lost Leonin
 Loyal Cathar
+Magus of the Future
 Makindi Stampede
 Malignant Growth
 Mandroid Squadron
 Massive Might
+Merciless Executioner
 Meteor Shower
 Mindstab Thrull
 Miss Highwater
+Momo's Heist
+Moonbow Illusionist
+Moonglove Winnower
+Moss Viper
 Mountain
 Multani's Harmony
+Murder Investigation
+Mystic Melting
+Natural Connection
+Night Terrors
+Nightmare
 Norwood Riders
 Nullmage Shepherd
 Nyx Weaver
+Okina, Temple to the Grandfathers
+Old Gnawbone
+Old Man Willow
+Olivia Voldaren
 Orim's Prayer
 Ostiary Thrull
 Pack Rat
 Paladin of the Bloodstained
+Parallel Lives
 Patch Up
+Peak Eruption
+Peregrine Mask
 Pharika's Disciple
+Phyrexia's Core
 Phyrexian Digester
 Plains
 Plasma Elemental
+Plated Rootwalla
 Poison-Blade Mentor
 Pridemalkin
 Prologue to Phyresis
 Promise of Aclazotz
+Pyre Zombie
 Pyromancer's Swath
+Pyrrhic Blast
 Quest for the Goblin Lord
 Racers' Ring
 Radioactive Man
 Rain of Blades
+Rain of Embers
+Ramosian Rally
+Ranger's Guile
 Raze to the Ground
+Recruitment Drive
 Relentless Assault
 Remote Isle
 Renegade Freighter
 Reya Dawnbringer
+Riptide Biologist
 Roc Charger
 Root Spider
+Roots
 Run Out of Town
 Sacred Prey
 Sandbar Merfolk
 Sandsower
 Sarulf's Packmate
+Scalding Tarn
 Scarwood Bandits
+Scatter Ray
 Scouring Swarm
 Secure the Wastes
+Sejiri Merfolk
+Sengir Connoisseur
 Sensor Splicer
 Shadow of Mortality
 Shinka Gatekeeper
+Shipwreck Singer
+Shivan Fire
+Shivan Phoenix
+Shock Troops
+Shower of Sparks
 Shu Elite Infantry
+Silent Artisan
+Silver Shroud Costume
+Skophos Warleader
+Sky Skiff
 Skyshroud Forest
+Skyshroud Sentinel
 Slimefoot, the Stowaway
 Slinking Serpent
+Sokka, Wolf Cove's Protector
 Soltari Visionary
 Soul's Attendant
+Sphere of Annihilation
+Spirit Bonds
 Spirit Weaver
+Spite
+Squire
+Staff of Nin
+Stalwart Aven
+Steadfast Guard
 Stensia Innkeeper
 Stonecloaker
 Stonehands
@@ -156,18 +261,34 @@ Storm Fleet Negotiator
 Stormscape Familiar
 Strands of Undeath
 Sunblast Angel
+Suq'Ata Assassin
 Survivors' Encampment
 Swamp
+Switcheroo
 Tail Swipe
+Take Down
+Tazeem Raptor
 Tempest Caller
 Temple Bell
 Terra Ravager
 The Duke, Rebel Sentry
+The Eldest Reborn
+Thousand-Year Elixir
 Thundermare
+Tideshaper Mystic
 Tin-Wing Chimera
+Torch Song
 Transplant Theorist
+Traveler's Amulet
+Trawler Drake
 Trespasser il-Vec
+Triton Cavalry
+Trusted Pegasus
 Trusty Machete
+Tundra
+Twinferno
+Unchecked Growth
+Valakut Predator
 Vampire Champion
 Visions of Beyond
 Volcanic Spray
@@ -175,7 +296,10 @@ Vraan, Executioner Thane
 Vulshok Heartstoker
 Wall of Hope
 War Priest of Thune
+Watercourser
 Weaponcraft Enthusiast
 Well of Life
+Wrecking Crew
 Zodiac Horse
+Zombie Goliath
 Éomer, King of Rohan

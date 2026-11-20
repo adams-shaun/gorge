@@ -219,6 +219,7 @@ Hapato's Might
 Haunted Library
 Heavy Mattock
 Hellspark Elemental
+Hexdrinker
 Hostile Desert
 Hostile Realm
 Hunters' Feast
@@ -448,6 +449,7 @@ Spreading Flames
 Spring-Leaf Avenger
 Squee's Toy
 Squee, Goblin Nabob
+Staff of the Ages
 Starfield Mystic
 Stasis Cocoon
 Steadfast Guard

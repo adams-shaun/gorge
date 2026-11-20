@@ -34,6 +34,7 @@ Azorius Cluestone
 Balshan Beguiler
 Bargain
 Barrage Ogre
+Barrowin of Clan Undurr
 Basilica Guards
 Battering Krasis
 Beacon of Creation
@@ -209,6 +210,7 @@ Isu the Abominable
 Ith, High Arcanist
 Jacked Rabbit
 Jasconian Isle
+Kami of the Honored Dead
 Kathari Remnant
 Kazuul's Toll Collector
 Keen Glidemaster
@@ -314,6 +316,7 @@ Reconstruction
 Recruiter of the Guard
 Reflective Golem
 Resistance Skywarden
+Restless Bloodseeker
 Return Upon the Tide
 Reyhan, Last of the Abzan
 Ridgescale Tusker
