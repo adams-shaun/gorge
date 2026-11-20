@@ -1108,14 +1108,19 @@ func mergeColours(a, b string) string {
 // plainQuality accepts a protection quality filter of object
 // characteristics only (no controller, owner, source-relative, comparison or
 // state terms), which reads the same on a spell and a permanent.
-func plainQuality(f *lFilter) error {
+func plainQuality(f *lFilter) error { return plainQualityOf(f, false) }
+
+// plainQualityOf is plainQuality; grant also admits the bare multicolored
+// predicate of a granted protection (Guildscorn Ward), which the printed
+// K:Protection route has not been verified for.
+func plainQualityOf(f *lFilter, grant bool) error {
 	if f == nil || f.Players != 0 || len(f.Clauses) == 0 {
 		return fmt.Errorf("quality %s", f)
 	}
 	for _, c := range f.Clauses {
-		if c.CmpStat == cmpMonoColor && c.Types == 0 && c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 && c.Subtype == "" && c.NotSubtype == "" && c.Colors == "" && c.NotColors == "" {
-			// gorge sourceHasQuality's monocolored class (Guardian of the
-			// Guildpact): exactly one colour of the source
+		if (c.CmpStat == cmpMonoColor || grant && c.CmpStat == cmpMultiColor) && c.Types == 0 && c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 && c.Subtype == "" && c.NotSubtype == "" && c.Colors == "" && c.NotColors == "" {
+			// gorge sourceHasQuality's colour classes: monocolored (Guardian of the
+			// Guildpact) and, for a grant, multicolored (Guildscorn Ward)
 			continue
 		}
 		if c.CmpStat == cmpCMC && (c.CmpOp == opGE || c.CmpOp == opLE) && c.CmpV == nil && c.Types == 0 && c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 && c.Subtype == "" && c.NotSubtype == "" && c.Colors == "" && c.NotColors == "" && c.CmpX == "" && c.CmpCounter == "" {
