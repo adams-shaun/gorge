@@ -1927,17 +1927,14 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredFaceDown // a face-down battlefield permanent (kernel faceDownPred)
 	case cmpPowerGTBase:
 		kf.Pred = kop.PredPowerGTBase // current power > base power (kernel powerGTBase)
+	case cmpHasLandwalk, cmpHasProtQuality, cmpHasProtColor, cmpHasProtEachColor:
+		return kf, cb.sharedKeywordClause(&kf, c)
 	case cmpWord7:
 		if c.CmpN == cmpNoNameGrave {
 			return kf, refuse("doesNotShareNameWith YourGraveyard without OtherYourBattlefield")
 		}
-		if c.CmpN == int(kop.W7NoAbilities) && zone == kop.ZoneBattlefield {
-			// a permanent's granted or lost abilities change the answer
-			return kf, refuse("NoAbilities on the battlefield")
-		}
-		if c.CmpN == int(kop.W7EnteredFromBF) && zone == kop.ZoneBattlefield {
-			// the word reads a card's latest arrival; a permanent has none to read
-			return kf, refuse("ThisTurnEnteredFrom_Battlefield on the battlefield")
+		if err := word7ZoneRefusal(c, zone); err != nil {
+			return kf, err
 		}
 		if c.CmpN == int(kop.W7EnchPlayerCtrl) && zone != kop.ZoneBattlefield {
 			// the kernel reads the source's enchanted seat against a permanent's controller

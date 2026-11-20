@@ -2997,30 +2997,10 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	}
 	for i := range f.Clauses {
 		c := &f.Clauses[i]
+		if err := lc.prepareFilterClause(c, expr); err != nil {
+			return nil, err
+		}
 		lc.foldImprintExiledWith(c)
-		if c.Flags&fNamedAsSource != 0 {
-			// every named<X> is a literal clause (gorge wordNamed ->
-			// sharesName reads the NAME, not the source; CR 201.2):
-			// build.go resolves Name against the pool, Pred = PredNamed.
-			// The source's own printed name is no exception: a
-			// source-relative read follows the source's current name (a
-			// layer-3 rename) and matches nothing once the source has left
-			// the battlefield (Hare Apparent killed in response to its own
-			// trigger), where gorge's literal name still matches
-			c.Flags &^= fNamedAsSource
-		}
-		if c.CmpX != "" {
-			v, err := lc.value(c.CmpX)
-			if err != nil {
-				return nil, err
-			}
-			if v.Kind == vX && lc.ab != nil && lc.ab.Cost.LoyaltyX {
-				// a mana-value bound by a planeswalker's [-X] (Tezzeret the
-				// Seeker, Sorin, Vengeful Bloodlord): no lockstep reads it yet
-				return nil, refuse("filter %q: bound %s reads a loyalty [-X]", expr, c.CmpX)
-			}
-			c.CmpV = &v
-		}
 		if c.CmpStat == cmpWasCast && lc.spellProvOK && !lc.wasCastOK {
 			if err := lc.spellSideCast(c, expr); err != nil { // the same words read on a spell on the stack
 				return nil, err

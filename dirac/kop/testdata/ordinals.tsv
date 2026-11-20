@@ -1732,6 +1732,10 @@ W7FaceUp	int16	5
 W7FaceUpDisguise	int16	23
 W7GreatestPower	int16	2
 W7GreatestPowerTgt	int16	12
+W7HasLandwalk	int16	42
+W7HasProtColor	int16	44
+W7HasProtEachColor	int16	45
+W7HasProtQuality	int16	43
 W7Imprinted	int16	25
 W7InZone	int16	4
 W7IsCommander	int16	16

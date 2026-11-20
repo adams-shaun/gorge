@@ -449,8 +449,17 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 // the printed keyword or a granted one, kw_kwmark.go hasSkulkPerm) is read here.
 func (s *State) snowWordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
 	n := fl.PredN & 0xff
-	if n == kop.W7WithSkulk {
+	switch n {
+	case kop.W7WithSkulk:
 		return s.hasSkulkPerm(k, sl)
+	case kop.W7HasLandwalk:
+		return s.hasLandwalkSpec(k, sl, kop.FilterID(uint16(fl.PredV.N))) // filter_sharedkw.go
+	case kop.W7HasProtQuality:
+		return s.hasProtQuality(k, sl, kop.FilterID(uint16(fl.PredV.N))) // filter_sharedkw.go
+	case kop.W7HasProtColor:
+		return s.hasProtColor(k, sl, kop.ColorMask(uint16(fl.PredV.N))) // filter_sharedkw.go
+	case kop.W7HasProtEachColor:
+		return s.hasProtEachColor(k, sl) // filter_sharedkw.go
 	}
 	if n == kop.W7WithDevoid {
 		// gorge withDevoid on a battlefield object: the printed keyword, none

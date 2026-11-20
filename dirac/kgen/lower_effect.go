@@ -2681,6 +2681,9 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if err != nil {
 		return err
 	}
+	if done, err := lc.sharedPumpAll(ps, f); done || err != nil {
+		return err // lower_sharedpumpall.go
+	}
 	if kw, ok := ps.m["KW"]; ok && strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(kw), "HIDDEN ")) == skipNextUntapKW {
 		return lc.skipNextUntapAll(ps, f) // Sleep
 	}
