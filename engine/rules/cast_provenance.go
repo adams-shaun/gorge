@@ -25,13 +25,16 @@
 //     only the log's casts and cannot tell such a re-entry apart.
 //
 //   - wasCastFromYourHand: the object's LATEST PutOnStack event
-//     names the cast AND that cast came from a hand — ANY caster. The bare
-//     spelling is the one the "from anywhere other than your hand" carriers
-//     print (Vega the Watcher, Bilbo Thief in the Night, Mm'menon's
-//     RestrictValid$); every carrier that needs player scoping supplies it
-//     elsewhere (ValidActivatingPlayer$ You on the trigger lines, YouCtrl or
-//     wasCastByYou in the same Affected$/Count spec), measured over the 46
-//     raw carrier files. A copy was never cast (the same IsCopy guard both
+//     names the cast AND that cast came from the hand of the "you" of the
+//     spec's context (CR 109.5: the trigger's or ability's controller), the
+//     same read Forge's CardProperty makes. The bare spelling is the one the
+//     "from anywhere other than your hand" carriers print (Vega the Watcher,
+//     Bilbo Thief in the Night); most also supply the player elsewhere
+//     (ValidActivatingPlayer$ You on the trigger lines, YouCtrl or
+//     wasCastByYou in the same Affected$/Count spec), where the two readings
+//     agree. Baron Helmut Zemo's trigger supplies none: an opponent's hand
+//     cast must not trigger it (farm MSH-s134-pool xe:RAND:1:15:w13).
+//     wasCastFromHand (no "Your") stays any caster. A copy was never cast (the same IsCopy guard both
 //     existing families take); a card never put on the stack reads false.
 //
 //   - the origin-zone family: wasCastFromExile,
@@ -212,7 +215,7 @@ func (e *Engine) castAtAllBareAdmitsWindow(spec string, objID state.ObjID, pendi
 // wasCastFromYourHand grant evaluated against the object being cast infers
 // "came from a hand" from the offer-time object's zone. The log read wins
 // whenever it has an answer.
-func (e *Engine) castFromHandAnyAdmitsWindow(spec string, objID state.ObjID, pendingCast bool) (string, bool) {
+func (e *Engine) castFromHandAnyAdmitsWindow(spec string, objID state.ObjID, you state.PlayerID, pendingCast bool) (string, bool) {
 	if strings.Contains(spec, "wasCastFromYourHandByYou") {
 		return spec, true
 	}
@@ -223,18 +226,21 @@ func (e *Engine) castFromHandAnyAdmitsWindow(spec string, objID state.ObjID, pen
 	if !strings.Contains(spec, "wasCastFromYourHand") && !strings.Contains(spec, "wasCastFromHand") {
 		return spec, true
 	}
-	holds := false
+	anyHolds, youHolds := false, false
 	if o := e.G.Obj(objID); o != nil && !o.IsCopy {
-		holds = e.WasCastFromHand(objID)
-		if !holds && pendingCast {
-			holds = o.Zone == state.ZHand
+		anyHolds = e.WasCastFromHand(objID)
+		youHolds = e.WasCastFromHandByYou(objID, you)
+		if pendingCast && o.Zone == state.ZHand {
+			anyHolds = true
+			youHolds = youHolds || o.Controller == you
 		}
 	}
 	var ok bool
-	for _, tok := range []string{"wasCastFromYourHand", "wasCastFromHand"} {
-		if spec, ok = admitProvenanceAlternatives(spec, tok, holds); !ok {
-			return "", false
-		}
+	if spec, ok = admitProvenanceAlternatives(spec, "wasCastFromYourHand", youHolds); !ok {
+		return "", false
+	}
+	if spec, ok = admitProvenanceAlternatives(spec, "wasCastFromHand", anyHolds); !ok {
+		return "", false
 	}
 	return spec, true
 }
@@ -288,7 +294,7 @@ func (e *Engine) castProvenanceAdmitsChain(spec string, objID state.ObjID, you s
 	if s, ok = e.castAtAllBareAdmitsWindow(s, objID, pendingCast); !ok {
 		return "", false
 	}
-	if s, ok = e.castFromHandAnyAdmitsWindow(s, objID, pendingCast); !ok {
+	if s, ok = e.castFromHandAnyAdmitsWindow(s, objID, you, pendingCast); !ok {
 		return "", false
 	}
 	if s, ok = e.castOriginAdmits(s, objID, you); !ok {
@@ -335,7 +341,7 @@ func (e *Engine) castProvenanceAdmitsMasked(spec string, gate provGate, objID st
 		changed = true
 	}
 	if changed || gate.stages&provHandAny != 0 {
-		if s, ok = e.castFromHandAnyAdmitsWindow(s, objID, pendingCast); !ok {
+		if s, ok = e.castFromHandAnyAdmitsWindow(s, objID, you, pendingCast); !ok {
 			return "", false
 		}
 		changed = true

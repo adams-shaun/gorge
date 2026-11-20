@@ -162,6 +162,21 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// fires from the cast spell itself
 			v = "Card.Self"
 		}
+		if k == "ValidCard" && t.Mode == "SpellCast" && strings.Contains(v, "wasCastFromYourHand") {
+			// the bare word on a SpellCast line with no ValidActivatingPlayer$
+			// is "your hand" of the trigger's controller (CR 109.5; gorge
+			// castFromHandAnyAdmitsWindow, Forge CardProperty), not any
+			// caster's: Baron Helmut Zemo. A positive word is then the ByYou
+			// read; a negated one has no carrier and refuses by name.
+			if _, scoped := tp.get("ValidActivatingPlayer"); !scoped {
+				if strings.Contains(v, "!wasCastFromYourHand") {
+					return nil, refuse("SpellCast !wasCastFromYourHand without ValidActivatingPlayer$")
+				}
+				if !strings.Contains(v, "wasCastFromYourHandByYou") {
+					v = strings.ReplaceAll(v, "wasCastFromYourHand", "wasCastFromYourHandByYou")
+				}
+			}
+		}
 		if k == "ValidCard" && (t.Mode == "ChangesZone" || t.Mode == "SpellCast") && !strings.Contains(v, ",") {
 			// "if you cast it from your hand" / "a spell from your hand"
 			// (Soulhunter Rakshasa, Jodah): read on the cast's stack entry
