@@ -14,7 +14,7 @@ func (s *State) tokenMemos(in *kop.Instr, o Obj) {
 		s.imprint(o) // zone_imprint.go
 	}
 	if uint16(in.B.N)&kop.TokRememberSrc != 0 && s.res.active && s.res.e.obj != NoObj {
-		s.osAddAt(osRem, s.res.e.obj, o, s.objs[o].ver+1) // the entry that follows bumps ver (zones.go)
+		s.osAddAt(osRem, o, s.res.e.obj, s.objs[o].ver+1) // the token (src key) remembers its creating source; the entry that follows bumps ver (zones.go)
 	}
 }
 
