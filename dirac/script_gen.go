@@ -312,10 +312,12 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// Krark-Clan Ironworks when the potential bound is open. On a closed bound the
 	// Ironworks' plays are the gaps walk's and those gorge's PotentialMana bound
 	// pays on its own (sacAny; tapXSacAnyBound; sacPotPays). A closed-bound
-	// sacrifice-any one whose sacrifice part is not the source (Jungle Patrol's
+	// sacrifice-any one whose cost sacrifices dedicated tokens (Jungle Patrol's
 	// "Sacrifice a token named Wood: Add {R}") is the Baylen shape, not this one:
 	// once is false there too, gorge runs no bounded proof, and every
-	// census-incomplete play takes a search slot (sacRepeatLive).
+	// census-incomplete play takes a search slot (sacRepeatLive). One that
+	// sacrifices a permanent type (Krark-Clan Ironworks' artifact) is not: its
+	// fodder can be a mana source the bound already prices.
 	sacAny, sacOpen := s.tapXSacAnyBound(k, p)
 	sacRepeat, twoLive := s.sacRepeatBoard(k, p, sacOpen)
 	relax := s.scriptRelax(k, p, filt, ca || twoLive || sacAny)
