@@ -245,6 +245,7 @@ const (
 	vCmdGreatestMV       // the greatest mana value among the controller's commanders on the battlefield or in the command zone (kop.ExCmdGreatestMV; value_cmdmv.go)
 	vBlessing            // Sub[0] if the controller has the city's blessing, else Sub[1] (Count$Blessing.<yes>.<no>, CR 702.131)
 	vSrcRemCounters      // counters of kind S on the object the evaluating source remembers (a token's creator, kop.ExSrcRemCounters; lower_tokenrem.go)
+	vVoteTally           // the resolution's current StoreVoteNum$ option tally (kop.ExVoteTally; lower_vote.go)
 	vCount_
 )
 
@@ -364,6 +365,7 @@ var valNames = [...]string{
 	vCmdGreatestMV:       "CmdGreatestMV",
 	vBlessing:            "Blessing",
 	vSrcRemCounters:      "SrcRemCounters",
+	vVoteTally:           "VoteTally",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in

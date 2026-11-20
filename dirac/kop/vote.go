@@ -11,4 +11,17 @@ package kop
 // and nothing is remembered. dirac/act_vote.go.
 const ExtVote ExtOp = 311
 
+// The fixed-list Vote's C bits (dirac/act_vote.go).
+const (
+	// VoteStore is StoreVoteNum$ True: after the last voter, every Choices$
+	// option branch runs in order with the tally register set to that
+	// option's count (gorge resolveVoteOutcomes' StoreVoteNum branch).
+	VoteStore = 1 << 6
+	// VoteBranchStore flags an OpBranch C as a StoreVoteNum option branch:
+	// in VoteStore mode the kernel runs every flagged branch in order and
+	// sets the current tally to the branch index; otherwise the branch
+	// compares its low three bits with the selected winner as usual.
+	VoteBranchStore = 1 << 7
+)
+
 func init() { extOpNames[ExtVote] = "Vote" }

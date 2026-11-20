@@ -30,10 +30,11 @@ const raVote = raGenManifestDread + 78
 
 // The ExtVote operand's mode bits (the op's C).
 const (
-	voteCExile = 1 << 0 // the card ballot's exile of the most-voted
-	voteCFixed = 1 << 1 // the fixed-list shape, not the card ballot
-	voteCTie   = 1 << 5 // a VoteTiedAbility$ branch exists
-	voteCShift = 2      // fixed-list choice count
+	voteCExile = 1 << 0        // the card ballot's exile of the most-voted
+	voteCFixed = 1 << 1        // the fixed-list shape, not the card ballot
+	voteCTie   = 1 << 5        // a VoteTiedAbility$ branch exists
+	voteCStore = kop.VoteStore // StoreVoteNum$: every option branch runs with its tally
+	voteCShift = 2             // fixed-list choice count
 	voteCMask  = 7
 )
 
@@ -43,10 +44,30 @@ type VoteStats struct {
 	Ties      int // of those, a shared maximum
 	NonTies   int // of those, a unique maximum
 	TieBranch int // of the ties, rounds whose VoteTiedAbility$ branch ran
+	// StoreRounds is the fixed-list votes resolved in StoreVoteNum$ mode,
+	// where every Choices$ option branch runs; StoreMulti is how many of
+	// those had two or more options with a nonzero tally.
+	StoreRounds int
+	StoreMulti  int
 }
 
 // DebugVoteStats is the test hook; nil in normal play.
 var DebugVoteStats *VoteStats
+
+// DebugVoteNumWinnerOnly (TestVoteStoreNumMutation): a StoreVoteNum$ vote
+// resolves only the winning option instead of every Choices$ option.
+var DebugVoteNumWinnerOnly bool
+
+// voteStoreAll arms the scratch for a StoreVoteNum$ fixed-list vote: every
+// option branch runs in Choices$ order, each with the current tally set to
+// its own count (gorge resolveVoteOutcomes' StoreVoteNum branch, zero-tally
+// options included).
+func (r *armRes) voteStoreAll(counts [voteCMask + 1]uint8, n int) {
+	r.voteCounts = counts
+	r.voteAllN = uint8(n - 1)
+	r.voteAll = true
+	r.voteCur = 0
+}
 
 // DebugVoteTieTakesFirst (TestVoteChoicesTieMutation): a tie resolves the
 // first tied option instead of the VoteTiedAbility$ branch.
@@ -176,6 +197,41 @@ func (s *State) voteFixedTally(k *prep, in *kop.Instr) {
 			continue
 		}
 		counts[j]++
+	}
+	if in.C&voteCStore != 0 {
+		// gorge resolveVoteOutcomes' StoreVoteNum branch: every option in
+		// Choices$ order resolves with VoteNum bound to its own tally,
+		// zero-tally options included. No winner is computed, so a
+		// VoteTiedAbility$ branch (which lifting never emits in this mode)
+		// never runs.
+		if st := DebugVoteStats; st != nil {
+			st.Rounds++
+			st.StoreRounds++
+			nz := 0
+			for j := 0; j < n; j++ {
+				if counts[j] != 0 {
+					nz++
+				}
+			}
+			if nz >= 2 {
+				st.StoreMulti++
+			}
+		}
+		s.resArm().voteStoreAll(counts, n)
+		if DebugVoteNumWinnerOnly {
+			// TestVoteStoreNumMutation: only the winning option (the first
+			// maximum, gorge voteWinner) resolves.
+			best := 0
+			for j := 1; j < n; j++ {
+				if counts[j] > counts[best] {
+					best = j
+				}
+			}
+			s.resArm().voteAll = false
+			s.g.branch = uint8(best)
+		}
+		s.continueRes(k, 0)
+		return
 	}
 	// gorge voteWinner: the first maximum, after every vote is counted.
 	best := 0

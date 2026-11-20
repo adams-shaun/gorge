@@ -1598,10 +1598,62 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 		}
 		in.CS += "|RememberFound"
 	}
+	var mayAsk = -1 // the guard's position once optional; the decline reaches past the shuffle too
 	if optional {
+		mayAsk = len(lc.ab.Prog)
 		lc.emit(lInstr{Op: "MayAsk", C: kop.MayGuardDigUntil, Obj: who, Skip: 1, Note: "may reveal"})
 	}
+	shuffle := false
+	if v, ok := ps.get("Shuffle"); ok {
+		// gorge effDigUntil: Shuffle$ True shuffles the dug player's library
+		// after the found move and the revealed-rest moves (Selvala's
+		// Stampede). ShuffleCondition$ NoneFound is not lowered: it changes
+		// WHEN the shuffle happens, not just whether this shape shuffles.
+		switch v {
+		case "True":
+			shuffle = true
+		case "False":
+		default:
+			return refuse("DigUntil Shuffle$ %q", v)
+		}
+		if _, ok := ps.get("ShuffleCondition"); ok {
+			return refuse("DigUntil ShuffleCondition$ with Shuffle$")
+		}
+	}
 	lc.emit(in)
+	if shuffle {
+		if err := lc.digUntilShuffle(who); err != nil {
+			return err
+		}
+		if mayAsk >= 0 {
+			// The decline covers the Shuffle too: gorge's effDigUntil declines
+			// with continue before the walk's shuffle tail
+			// (engine/effects/diguntil.go:208), so answering "no" (and the
+			// empty library's unasked guard) neither shuffles the library nor
+			// draws RNG (Thicket Elemental). The kernel reads the skip from
+			// the guard's A on both the declined ask (dispatch applyAskUnread)
+			// and the unasked guard (act_mayask drawAsks), each advancing pc
+			// past skip many instructions.
+			lc.ab.Prog[mayAsk].Skip = 2
+		}
+	}
+	return nil
+}
+
+// digUntilShuffle emits the dug player's shuffle behind DigUntil Shuffle$
+// True. The player is the same one the dig walked (gorge's p); the Shuffle
+// op's own player shapes are reused.
+func (lc *lowerCtx) digUntilShuffle(who lRef) error {
+	switch who.Kind {
+	case rYou, rTriggeredPlayer, rTargetController:
+	case rTarget:
+		if t := lc.ab.Targets[who.N]; t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 || !t.Max.isConst() || t.Max.N > 1 {
+			return refuse("DigUntil Shuffle$ of target slot %d", who.N)
+		}
+	default:
+		return refuse("DigUntil Shuffle$ of %s", who)
+	}
+	lc.emit(lInstr{Op: "Shuffle", Obj: who})
 	return nil
 }
 

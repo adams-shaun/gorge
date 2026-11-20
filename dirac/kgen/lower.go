@@ -112,6 +112,10 @@ type lowerCtx struct {
 	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
 
+	// voteTally: lowering a StoreVoteNum$ fixed-list Vote's option branch, so
+	// VoteNum is that branch's tally (lower_vote.go).
+	voteTally bool
+
 	// emblemBlocked: lowering the body of a capturing EOT emblem's AttackerBlocked trigger: RememberedLKI is the trigger object (the captured attacker) and blockingTriggeredAttacker reads it (lower_effeottrig.go)
 	emblemBlocked bool
 
