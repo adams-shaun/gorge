@@ -524,11 +524,11 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		}
 		ts.MaxV = ts.MinV
 		ts.TFlags |= kop.TgfBoundsV
-	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && (t.Divided == 0 || t.Divided == kop.DivMaxV || t.Divided == kop.DivValue) && t.Mode < 0 && t.ParentPlus1 == 0 &&
+	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && (t.Divided == 0 || t.Divided == kop.DivMaxV || t.Divided == kop.DivValue) && t.ParentPlus1 == 0 &&
 		tgtBoundV(t.Min, true) && tgtBoundV(t.Max, false):
-		// "up to" a value (TargetMax$ X over a count, X paid or
-		// the trigger amount): evaluated as the slot is announced (gorge
-		// resolvedTargetBounds). Min 0 keeps the slot offerable with no target.
+		// "up to" a value (TargetMax$ X over a count, X paid or the trigger
+		// amount): evaluated as the slot is announced (gorge resolvedTargetBounds);
+		// a mode's slot (Thraben Charm) is read when its mode is chosen (TgtModes).
 		var err error
 		if ts.MinV, err = cb.value(t.Min); err != nil {
 			return ts, fmt.Errorf("target count %s..%s: %w", t.Min, t.Max, err)

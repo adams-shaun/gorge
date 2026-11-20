@@ -18,7 +18,7 @@ var unreadForms = []formCase{
 	{card: "Gleeful Demolition", form: "RememberLKI$ + AlwaysRemember$ read by ConditionDefined$ RememberedLKI: the destroy's target", lir: "SkipIf if=RefMatches({types=0x0 ctrl=1},Target0,op1,1) skip=1"},
 	{card: "Thirst for Discovery", form: "Discard UnlessType$ Land.Basic: OpDiscardUnless (gorge discard_unless)", lir: "DiscardUnless obj=You A=2"},
 	{card: "Snap", form: "Untap UntapType$ Land Amount$ 2 UntapUpTo$: OpUntapChoose (gorge's untap KChoose, Min 0)", lir: "UntapChoose A=2 C=1 F={types=0x1}"},
-	{card: "Thraben Charm", form: "TargetMin$ 0 over target players: none targeted moves nothing (gorge cr-changezoneall-zero-targets)", lir: "target[2] mode=2 zone=0 min=0 max=2 F={players=3}"},
+	{card: "Thraben Charm", form: "TargetMin$ 0 over target players: none targeted moves nothing (gorge cr-changezoneall-zero-targets)", lir: "target[2] mode=2 zone=0 min=0 max=OppExtreme+1 F={players=3}"},
 	{card: "Glissa Sunslayer", form: "RemoveCounter CounterType$ Any + UpTo$: a kind pick per counter with Done (Ext RemoveCounterAny; gorge cr-removecounter-any-upto)", lir: "RemoveCounterAny obj=Target1 B=3 C=1"},
 	{card: "Sharp-Eyed Rookie", form: "Condition$ Evolve: the ETB trigger fires only for a creature with greater power or toughness (gorge evolveConditionHolds)", lir: "PutCounter obj=Self A=1 CS=P1P1"},
 }
