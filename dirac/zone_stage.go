@@ -21,7 +21,7 @@ import (
 // its own for what only an observation shows (shadow.Reasons).
 const (
 	ReasonTable       = "table"         // no table
-	ReasonSeats       = "seats"         // not a two-seat game
+	ReasonSeats       = "seats"         // not a game of 2..MaxSeats seats
 	ReasonLayout      = "object-layout" // objects not grouped by owner, or a deck outside 7..MaxDeck
 	ReasonCard        = "card"          // a card outside lands, creatures and combat keywords
 	ReasonZone        = "zone"          // an object outside library, hand, battlefield, graveyard
@@ -116,7 +116,7 @@ type World struct {
 	Objs []WorldObj
 	// Stack is the stack, bottom to top (see zone_stagestack.go).
 	Stack       []WorldStack
-	NSeat       uint8 // 2
+	NSeat       uint8 // 2..MaxSeats
 	Turn        uint16
 	Step        kop.Step
 	Active      uint8
@@ -126,6 +126,9 @@ type World struct {
 	// Pose is the decision pending: a priority round (zero), or a declare
 	// attackers or declare blockers pose with no pick made yet.
 	Pose Pose
+	// BlkDef is the defender asked at PoseBlockers when NSeat > 2 (read nowhere
+	// at two seats: the defender is the active seat's one opponent).
+	BlkDef uint8
 }
 
 // stageSteps are the steps a position can be staged in: a priority round or
@@ -240,10 +243,32 @@ func (w *World) validate() error {
 	if w.Tbl == nil {
 		return unstageable(ReasonTable, "no table")
 	}
-	if w.NSeat != 2 {
+	if err := w.validateSeats(); err != nil {
+		return err
+	}
+	bf, err := w.validateObjs()
+	if err != nil {
+		return err
+	}
+	if err := w.validateStack(); err != nil {
+		return err
+	}
+	if err := w.validateCombat(); err != nil {
+		return err
+	}
+	if bf > MaxPerm {
+		return unstageable(ReasonBattlefield, "%d permanents", bf)
+	}
+	return w.validatePlaces()
+}
+
+// validateSeats checks the seat count, the turn, the step, the priority holder
+// and the life totals.
+func (w *World) validateSeats() error {
+	if w.NSeat < 2 || w.NSeat > MaxSeats {
 		return unstageable(ReasonSeats, "%d seats", w.NSeat)
 	}
-	if w.Turn == 0 || w.Active >= 2 {
+	if w.Turn == 0 || w.Active >= w.NSeat {
 		return unstageable(ReasonTurn, "turn %d active %d", w.Turn, w.Active)
 	}
 	ok := false
@@ -253,9 +278,9 @@ func (w *World) validate() error {
 	if !ok {
 		return unstageable(ReasonStep, "step %d", w.Step)
 	}
-	// Prio: the active player holds a round that has just opened; the other
-	// holds it after one pass. Nothing else is a quiet round.
-	if w.Prio >= 2 {
+	// Prio: a round starts at the active seat and each pass moves to the next
+	// seat, so any holder below NSeat is a round some passes in (roundPasses).
+	if w.Prio >= w.NSeat {
 		return unstageable(ReasonPriority, "holder %d", w.Prio)
 	}
 	for p := 0; p < int(w.NSeat); p++ {
@@ -263,61 +288,62 @@ func (w *World) validate() error {
 			return unstageable(ReasonLife, "seat %d life %d", p, w.Life[p])
 		}
 	}
-	var n [2]int
-	var count [2][5][2]int // owner, zone (lib, hand, bf, grave), ctrl
+	return nil
+}
+
+// validateObjs checks every object of w and returns the battlefield total.
+func (w *World) validateObjs() (int, error) {
+	var n [MaxSeats]int
+	bf := 0
 	prev, firstToken := uint8(0), -1
 	if len(w.Objs) > MaxObj {
-		return unstageable(ReasonLayout, "%d objects", len(w.Objs))
+		return 0, unstageable(ReasonLayout, "%d objects", len(w.Objs))
 	}
 	for i := range w.Objs {
 		o := &w.Objs[i]
-		if o.Owner >= 2 || (o.Owner < prev && !o.Token) {
-			return unstageable(ReasonLayout, "object %d owner %d", i, o.Owner)
+		if o.Owner >= w.NSeat || (o.Owner < prev && !o.Token) {
+			return 0, unstageable(ReasonLayout, "object %d owner %d", i, o.Owner)
 		}
 		if !o.Token {
 			prev = o.Owner
 			n[o.Owner]++
 		}
 		if int(o.Card) >= len(w.Tbl.Cards) {
-			return unstageable(ReasonCard, "object %d card %d outside the table", i, o.Card)
+			return 0, unstageable(ReasonCard, "object %d card %d outside the table", i, o.Card)
 		}
 		if why := stageableCard(&w.Tbl.Cards[o.Card], o.Token); why != "" {
 			if o.Token || why == "token" {
-				return unstageable(ReasonToken, "%s: %s", w.Tbl.Cards[o.Card].Name, why)
+				return 0, unstageable(ReasonToken, "%s: %s", w.Tbl.Cards[o.Card].Name, why)
 			}
-			return unstageable(ReasonCard, "%s: %s", w.Tbl.Cards[o.Card].Name, why)
+			return 0, unstageable(ReasonCard, "%s: %s", w.Tbl.Cards[o.Card].Name, why)
 		}
 		if err := w.checkTokenAttach(i, &firstToken); err != nil {
-			return err
+			return 0, err
 		}
-		z, ok := stageZone(o.Zone)
-		if !ok {
-			return unstageable(ReasonZone, "object %d in zone %d", i, o.Zone)
+		if _, ok := stageZone(o.Zone); !ok {
+			return 0, unstageable(ReasonZone, "object %d in zone %d", i, o.Zone)
 		}
-		if o.Ctrl >= 2 || (o.Zone == kop.ZoneBattlefield && o.Ctrl != o.Owner) || (o.Zone != kop.ZoneBattlefield && o.Ctrl != o.Owner) {
-			return unstageable(ReasonControl, "object %d owner %d controller %d", i, o.Owner, o.Ctrl)
+		if o.Ctrl >= w.NSeat || o.Ctrl != o.Owner {
+			return 0, unstageable(ReasonControl, "object %d owner %d controller %d", i, o.Owner, o.Ctrl)
 		}
 		if o.Zone != kop.ZoneBattlefield && (o.Tapped || o.Sick || o.Damage != 0 || o.P1P1 != 0 || o.combatMarked()) {
-			return unstageable(ReasonZone, "object %d off the battlefield carries a mark", i)
+			return 0, unstageable(ReasonZone, "object %d off the battlefield carries a mark", i)
 		}
-		count[o.Owner][z][0]++
+		if o.Zone == kop.ZoneBattlefield {
+			bf++
+		}
 	}
 	for p := 0; p < int(w.NSeat); p++ {
 		if n[p] < openingHand || n[p] > MaxDeck {
-			return unstageable(ReasonLayout, "seat %d has %d cards", p, n[p])
+			return 0, unstageable(ReasonLayout, "seat %d has %d cards", p, n[p])
 		}
 	}
-	if err := w.validateStack(); err != nil {
-		return err
-	}
-	if err := w.validateCombat(); err != nil {
-		return err
-	}
-	if count[0][2][0]+count[1][2][0] > MaxPerm {
-		return unstageable(ReasonBattlefield, "%d permanents", count[0][2][0]+count[1][2][0])
-	}
-	// every zone's places are exactly 0..n-1
-	for p := uint8(0); p < 2; p++ {
+	return bf, nil
+}
+
+// validatePlaces requires every zone's places to be exactly 0..n-1.
+func (w *World) validatePlaces() error {
+	for p := uint8(0); p < w.NSeat; p++ {
 		for _, z := range []kop.Zone{kop.ZoneLibrary, kop.ZoneHand, kop.ZoneBattlefield, kop.ZoneGraveyard} {
 			var seen [MaxDeck]bool
 			m := 0
@@ -354,7 +380,7 @@ func (s *State) initFromWorld(w *World) error {
 	cfg.Mulligans = 0
 	cfg.Commander = false
 	cfg.SideN = [MaxSeats]uint8{}
-	s.InitN(w.Tbl, decks, 2, w.Seed, cfg)
+	s.InitN(w.Tbl, decks, w.NSeat, w.Seed, cfg)
 	if s.over || s.g.stalled != 0 {
 		return unstageable(ReasonLayout, "the table stalls at its start")
 	}
@@ -407,7 +433,7 @@ func (s *State) initFromWorld(w *World) error {
 	}
 	// Permanents enter owner by owner in list order: perm.ts is the order of
 	// the controller's battlefield list.
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < w.NSeat; p++ {
 		for _, i := range idx {
 			o := &w.Objs[i]
 			if o.Zone != kop.ZoneBattlefield || o.Owner != p {
@@ -434,21 +460,13 @@ func (s *State) initFromWorld(w *World) error {
 	s.turn = w.Turn
 	s.active = w.Active
 	s.g.exBase = w.Active // a staged position is on a normal turn: the rotation resumes after its holder
-	// the starting player took the odd turns
-	s.startPl = w.Active
-	if w.Turn%2 == 0 {
-		s.startPl = s.nextSeat(w.Active)
-	}
+	// the seat that took turn 1, when nobody took an extra turn
+	s.startPl = uint8((int(w.Active) + int(w.NSeat) - int(w.Turn-1)%int(w.NSeat)) % int(w.NSeat))
 	s.step = w.Step
 	s.carry = carryNone
 	s.ctl = ctlPriority
 	s.prio = w.Prio
-	s.passes = 0
-	if len(w.Stack) != 0 {
-		s.passes = w.stackPasses()
-	} else if w.Prio != w.Active {
-		s.passes = 1
-	}
+	s.passes = w.roundPasses()
 	s.stagePose(w)
 	s.mullMax = 0
 	return nil

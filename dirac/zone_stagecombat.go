@@ -49,7 +49,7 @@ func (w *World) validateCombat() error {
 			return combatBad("object %d: a combat mark off the battlefield or on a non-creature", i)
 		}
 		switch {
-		case o.Attacking && (o.Blocking || o.Ctrl != w.Active || o.AtkSeat >= 2 || o.AtkSeat == w.Active || o.Blocks != 0 || o.BlockOrd != 0):
+		case o.Attacking && (o.Blocking || o.Ctrl != w.Active || o.AtkSeat >= w.NSeat || o.AtkSeat == w.Active || o.Blocks != 0 || o.BlockOrd != 0):
 			return combatBad("object %d: an attacker the active seat does not attack with", i)
 		case o.Blocking && (o.Blocked || o.Ctrl == w.Active):
 			return combatBad("object %d: a blocker of the active seat's or a blocked one", i)
@@ -131,10 +131,29 @@ func (w *World) validateCombatStep(nAtk, nBlk int) error {
 		if w.Step != kop.StepBlockers || nAtk == 0 || nBlk != 0 || len(w.Stack) != 0 {
 			return combatBad("the declare blockers pose with no attacker, a block, a stack or another step")
 		}
+		return w.validateBlkDef()
 	default:
 		return combatBad("pose %d", w.Pose)
 	}
 	return nil
+}
+
+// validateBlkDef checks the defender asked at a pod's declare blockers pose: a
+// seat other than the active one that some attacker attacks. At two seats it is
+// the active seat's one opponent and is not read.
+func (w *World) validateBlkDef() error {
+	if w.NSeat == 2 {
+		return nil
+	}
+	if w.BlkDef >= w.NSeat || w.BlkDef == w.Active {
+		return combatBad("the defender %d of the declare blockers pose", w.BlkDef)
+	}
+	for i := range w.Objs {
+		if o := &w.Objs[i]; o.Attacking && o.AtkSeat == w.BlkDef {
+			return nil
+		}
+	}
+	return combatBad("no attacker attacks the defender %d of the declare blockers pose", w.BlkDef)
 }
 
 // stageCombat marks the attackers and blockers of w on s and sets the combat
@@ -184,20 +203,24 @@ func (s *State) stageCombat(k *prep, w *World) {
 // stagePose puts s at the decision w poses: a priority round is what the
 // caller has set; a pose of the attackers or blockers decision replaces it.
 // The priority holder a pose leaves is the one that passed last in the round
-// before it, the seat after the active one (the view's Priority names the
-// deciding seat, which is not the holder dirac projects).
+// before it, the seat before the active one, and the round had passed NSeat
+// times (the view's Priority names the deciding seat, which is not the holder
+// dirac projects). A pod's blockers pose asks the defender w.BlkDef.
 func (s *State) stagePose(w *World) {
 	if w.Pose == PosePriority {
 		return
 	}
 	s.lastPick = NoSlot
-	s.prio = s.nextSeat(w.Active)
-	s.passes = 2
+	s.prio = (w.Active + w.NSeat - 1) % w.NSeat
+	s.passes = w.NSeat
 	if w.Pose == PoseAttackers {
 		s.atkArm().poseMask = s.attackingMask()
 		s.ctl = ctlAttackers
 		return
 	}
 	s.blkArm().poseMask = s.blockingMask()
+	if w.NSeat > 2 {
+		s.g.blkDef = w.BlkDef
+	}
 	s.ctl = ctlBlockers
 }

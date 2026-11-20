@@ -14,7 +14,8 @@ import (
 // of these or one of dirac's.
 const (
 	ReasonOver     = "game-over"        // the game has ended
-	ReasonSeats    = "seats"            // not a two-seat view
+	ReasonSeats    = "seats"            // not a view of 2..dirac.MaxSeats players
+	ReasonSeatLeft = "seat-left"        // a seat has left the game while it goes on
 	ReasonStack    = "stack"            // a stack entry that is not a plain token spell or a self-counter ability: a trigger, a target, a mode, an X, a copy
 	ReasonPending  = "pending"          // a trigger waiting to be put on the stack
 	ReasonDecision = "decision"         // the view's decision is not a priority decision
@@ -32,7 +33,7 @@ const (
 
 // Reasons lists every reason WorldFromView returns that dirac does not.
 var Reasons = []string{
-	ReasonOver, ReasonSeats, ReasonStack, ReasonPending, ReasonDecision, ReasonUnknown, ReasonUnmapped,
+	ReasonOver, ReasonSeats, ReasonSeatLeft, ReasonStack, ReasonPending, ReasonDecision, ReasonUnknown, ReasonUnmapped,
 	ReasonHidden, ReasonExile, ReasonCounter, ReasonMark, ReasonPool, ReasonStepName,
 }
 
@@ -114,12 +115,15 @@ func WorldFromView(in *Input) (dirac.World, error) {
 		return w, err
 	}
 	w.Tbl, w.Cfg, w.Seed = in.Tbl, in.Cfg, in.Seed
-	w.NSeat = 2
+	w.NSeat = uint8(len(v.Players))
 	w.Turn = uint16(v.Turn)
 	w.Step = step
 	w.Active = uint8(v.Active)
 	w.Prio = uint8(v.Priority)
 	w.Pose = pose
+	if pose == dirac.PoseBlockers {
+		w.BlkDef = uint8(v.Decision.Player) // the defender asked (read only at more than two seats)
+	}
 	return w, nil
 }
 
@@ -133,7 +137,7 @@ func checkScope(in *Input) (kop.Step, dirac.Pose, error) {
 	if v.Over {
 		return 0, 0, bad(ReasonOver, "")
 	}
-	if len(v.Players) != 2 || int(v.Viewer) >= 2 {
+	if len(v.Players) < 2 || len(v.Players) > dirac.MaxSeats || int(v.Viewer) >= len(v.Players) {
 		return 0, 0, bad(ReasonSeats, "%d players", len(v.Players))
 	}
 	if len(v.Pending) != 0 {
@@ -215,7 +219,7 @@ func (b *builder) add(obj dirac.Obj, name string, owner, pos int, z kop.Zone, cv
 			return err
 		}
 		if z == kop.ZoneBattlefield {
-			if err := markAttack(&o, cv, name); err != nil {
+			if err := b.markAttack(&o, cv, name); err != nil {
 				return err
 			}
 			o.Tapped, o.Sick = cv.Tapped, cv.SummonSick
@@ -299,7 +303,7 @@ func (b *builder) dealt(cards []Card, s int, z kop.Zone, shown int, what string)
 // seat adds one player's zones and sets the player's life and land drop.
 func (b *builder) seat(w *dirac.World, p *view.PlayerView, viewer bool) error {
 	s := int(p.ID)
-	if s >= 2 {
+	if s >= len(b.in.View.Players) {
 		return bad(ReasonSeats, "seat %d", s)
 	}
 	if len(p.Exile) != 0 || len(p.Command) != 0 {
@@ -311,7 +315,7 @@ func (b *builder) seat(w *dirac.World, p *view.PlayerView, viewer bool) error {
 		}
 	}
 	if p.Lost {
-		return bad(ReasonOver, "seat %d lost", s)
+		return bad(ReasonSeatLeft, "seat %d", s)
 	}
 	w.Life[s] = p.Life
 	if p.LandDropSpent {
