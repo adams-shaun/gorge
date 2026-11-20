@@ -211,6 +211,7 @@ Guild Thief
 Gut, True Soul Zealot
 Gyre Sage
 Hail of Arrows
+Hand of Honor
 Happy Hogan, Dauntless Driver
 Hardened-Scale Armor
 Haunted Mire
@@ -327,6 +328,7 @@ Nimbus Champion
 Nissa's Expedition
 Norwood Priestess
 Novice Occultist
+Now for Wrath, Now for Ruin!
 Nylea's Intervention
 Obelisk of Jund
 Offalsnout

@@ -32,6 +32,7 @@ Battlewise Valor
 Beacon Bolt
 Benthic Giant
 Black Dragon
+Black Ward
 Blade Historian
 Bladewing, Deathless Tyrant
 Blessed Defiance

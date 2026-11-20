@@ -104,6 +104,7 @@ Dungrove Elder
 Dusk Feaster
 Dwarfhold Champion
 Dwarven Strike Force
+Dúnedain Rangers
 Early Frost
 Eccentric Farmer
 Elder Owyn Lyons
@@ -120,6 +121,7 @@ Explorer's Scope
 Fantastic Elasticity
 Farsight Mask
 Fateful Handoff
+Fatigue
 Festival Crasher
 Fire at Will
 Fists of Ironwood
