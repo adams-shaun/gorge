@@ -21,7 +21,7 @@ func TestUmbraArmorGraveyardOrderReprosLockstep(t *testing.T) {
 }
 
 // umbraOrderDeck is a focused W/U/R pod: Memnites for the umbra Auras to
-// enchant (0/2 under Felidar, 1/1 under Eel Umbra; both die to Pyroclasm's 2
+// enchant (1/1 under Felidar, 2/2 under Eel Umbra; both die to Pyroclasm's 2
 // damage), Pyroclasm to kill several creatures in one SBA batch, and lands.
 func umbraOrderDeck() []string {
 	var d []string
@@ -50,8 +50,8 @@ func umbraOrderDeck() []string {
 }
 
 // umbraOrderPolicy casts in preference to playing a land, so the deck reaches
-// an enchanted creature and a Massacre inside the pod's turn cap; other
-// decisions fall to the random policy.
+// an enchanted creature and a sweep inside the pod's turn cap; other decisions
+// fall to the random policy.
 func umbraOrderPolicy(seed uint64) Policy {
 	rnd := RandomPolicy(seed)
 	var cast, land []Canon
@@ -84,10 +84,9 @@ func umbraOrderPolicy(seed uint64) Policy {
 	})
 }
 
-// umbraOrderTally counts SBA batches where an umbra Aura answered for its
-// host: the Aura went to the graveyard and the host it enchanted stayed on the
-// battlefield. It tracks attachment from the Attach events so the host is
-// known after the Aura has moved.
+// umbraOrderTally counts umbra armor answers: the Aura went to the graveyard
+// and the host it enchanted stayed on the battlefield. It tracks attachment
+// from the Attach events so the host is known after the Aura has moved.
 type umbraOrderTally struct {
 	last   int
 	hostOf map[state.ObjID]state.ObjID
@@ -130,10 +129,10 @@ func (u *umbraOrderTally) check(g *GorgeSide, _ Side) *Divergence {
 	return nil
 }
 
-// TestUmbraArmorGraveyardOrderFourSeat plays 20 four-seat pods on the same
-// synthetic pool: a sweep kills several creatures at once, an umbra Aura saves
-// its host, and both engines must agree on the Aura's place among the
-// casualties in every seat's walk.
+// TestUmbraArmorGraveyardOrderFourSeat plays 20 four-seat pods: a damage
+// sweep kills several creatures at once, an umbra Aura saves its host, and
+// both engines must agree on the Aura's place among the casualties in every
+// seat's walk.
 func TestUmbraArmorGraveyardOrderFourSeat(t *testing.T) {
 	if isolate(t) {
 		return
@@ -227,7 +226,7 @@ func TestUmbraArmorGraveyardOrderDestroyAll(t *testing.T) {
 	dirac.DebugUmbraOwnSlotOrder = true
 	defer func() { dirac.DebugUmbraOwnSlotOrder = old }()
 	for seed := uint64(1); seed <= seeds; seed++ {
-		if res := base(seed); res.Div != nil {
+		if res := play(seed); res.Div != nil {
 			t.Logf("mutation: seed %d diverges at %d (%s %s)", seed, res.Div.At, res.Div.What, res.Div.Field)
 			return
 		}
