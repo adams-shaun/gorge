@@ -180,6 +180,7 @@ jobs:
       - name: Affected packages and their test importers
         env:
           CI_FAST_SKIP_KGEN: "1"
+          CI_FAST_SKIP_ORACLE_REPLAY: "1"
         run: bash scripts/ci-fast.sh ${{ github.event.pull_request.base.sha }}
 
   lint:
