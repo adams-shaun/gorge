@@ -91,6 +91,7 @@ Death's-Head Buzzard
 Decision Paralysis
 Decorated Champion
 Defiling Daemogoth
+Delver's Torch
 Demon of Catastrophes
 Desert Sandstorm
 Despoil
@@ -103,6 +104,7 @@ Djeru and Hazoret
 Djeru's Renunciation
 Dragonspark Reactor
 Drake Familiar
+Dromar's Cavern
 Drown in Shapelessness
 Drowned
 Dying Wail
@@ -165,6 +167,7 @@ Gyre Sage
 Hail of Arrows
 Happy Hogan, Dauntless Driver
 Hardened-Scale Armor
+Haunted Mire
 Haze of Pollen
 Hazoret's Favor
 Headless Horseman
@@ -260,6 +263,7 @@ Nissa's Expedition
 Norwood Priestess
 Novice Occultist
 Nylea's Intervention
+Obelisk of Jund
 Offalsnout
 Ondu Greathorn
 Oppressive Will
@@ -348,6 +352,7 @@ Scroll of Origins
 Scythecat Cub
 Seafloor Stalker
 Searing Spear
+Secret Door
 Secure the Wastes
 Seed of Hope
 Seer's Sundial
@@ -451,11 +456,13 @@ Wall of Swords
 War-Spike Changeling
 Weave Fate
 Wharf Infiltrator
+White Orchid Phantom
 Wild Wurm
 Wildsize
 Will of the All-Hunter
 Willow Geist
 Wirewood Channeler
+Woodland Chasm
 Woodland Weavemaster
 Woodwraith Corrupter
 Yasova Dragonclaw

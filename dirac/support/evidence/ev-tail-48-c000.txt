@@ -71,6 +71,7 @@ Corrupt Eunuchs
 Court of Grace
 Crater Hellion
 Crawling Chorus
+Crawling Filth
 Crucible of Fire
 Cryptic Serpent
 Crystal Chimes
@@ -357,6 +358,7 @@ Thoughtseize
 Tiger Claws
 Tilonalli's Crown
 Topan Ascetic
+Torii Watchward
 Treefolk Harbinger
 Treefolk Healer
 Tunneling Geopede

@@ -37,8 +37,10 @@ Brought Back
 Burst of Strength
 Carnival
 Catapult Squad
+Chaplain's Blessing
 Chill of Foreboding
 Chimeric Egg
+Chronic Flooding
 Clarion Cathars
 Cloud Crusader
 Commune with Dinosaurs
@@ -51,6 +53,7 @@ Crystal Rod
 Crystalline Sliver
 Cursed Land
 Cyclone Summoner
+Dark Depths
 Dark-Dweller Oracle
 Deathgreeter
 Deep Dish Pizza
@@ -183,6 +186,7 @@ Nightmare
 Norwood Riders
 Nullmage Shepherd
 Observant Alseid
+Ojutai Monument
 Okina, Temple to the Grandfathers
 Old Gnawbone
 Olivia Voldaren
@@ -221,6 +225,7 @@ Ramosian Rally
 Rampaging Brontodon
 Ranger's Guile
 Raze to the Ground
+Recruitment Drive
 Relentless Assault
 Remote Isle
 Renegade Freighter
@@ -242,6 +247,7 @@ Scarwood Bandits
 Scatter Ray
 Secure the Wastes
 Seismic Spike
+Sejiri Merfolk
 Sengir Connoisseur
 Sensor Splicer
 Setessan Champion

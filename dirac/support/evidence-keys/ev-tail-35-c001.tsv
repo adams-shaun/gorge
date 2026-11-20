@@ -12,6 +12,7 @@ Benalish Missionary	4a07bdde6a9ef807	4	1/1		0/1	ix:resp
 Benevolent Bodyguard	5522cf237f2ee779	6	1/1		0/1	ix:resp
 Blessing of Belzenlok	9d7e43ac994b86b4	8	0/0		1/2	ix:resp
 Blinding Spray	f51434d92221d4d6	4	0/0		1/2	ix:resp
+Brighthearth Banneret	b256ca494a69b7a8	6	1/1		0/1	ix:resp
 Brood Sliver	0258576895adc22b	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Call to the Feast	3cb64443c76c9434	6	0/0		1/2	ix:resp
 Celestial Enforcer	06929a1453ba3279	12	1/1		0/1	ix:resp
@@ -107,6 +108,7 @@ Reject Imperfection	7a9732c355b28d32	8	0/0		2/2
 Research Thief	e8e6a36eca6bad2f	10	1/1		1/1	
 Reservoir Walker	e22f807bf4fa31f6	6	1/1		1/1	
 Rise from the Tides	141a8e8b26f53af0	4	0/0		1/2	ix:resp
+Rustic Clachan	c9d4d3a960844b06	27	2/2		0/1	ix:resp
 Sacred Rites	64c629288e628ab0	8	0/0		1/2	ix:resp
 Saprazzan Raider	92d8258c5b94356c	11	1/1		0/1	ix:resp
 Seasoned Hallowblade	9afdf70319716b87	12	1/1		1/1	
@@ -122,6 +124,7 @@ Spiketail Drake	d499f012ead0ff56	20	1/1		1/1
 Stave Off	6d2408ac536bc8eb	16	0/0		2/2	
 Stensia Uprising	f7d68c1c00fb8c95	6	1/1		1/1	
 Stratadon	12dcb5ff23cf3790	4	0/0		0/0	
+Street Savvy	c9c174cc36519338	32	0/0		1/2	ix:resp
 Striped Bears	0d6e9ce25dbbe4c8	6	1/1		0/1	ix:resp
 Subterranean Shambler	81e76392af2e8dbe	5	3/3		0/1	ix:resp
 Sumala Woodshaper	49fa892a631343d1	3	1/1		0/1	ix:resp
@@ -150,9 +153,11 @@ Valakut, the Molten Pinnacle	b4a0d8a8225356d0	14	2/2		0/1	ix:resp
 Viashino Weaponsmith	6816773c87ad0120	3	1/1		1/1	
 Vibranium Strike Gauntlets	0752e20f7b806a4f	6	2/2		0/1	ix:resp
 Viridian Revel	a5660fd55eac9182	16	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Wandering Troubadour	036e26831ff4b9d2	5	1/1		0/1	ix:resp
 Watcher in the Mist	4b2e8b8fb11e61fa	4	1/1		0/1	ix:resp
 Weathered Wayfarer	f0988a337dd5c272	4	1/1		0/1	ix:resp
 Witch's Vengeance	9026bf88b8245e3e	8	0/0		1/2	ix:resp
 Witches' Eye	5f2905b697a3c108	4	1/1		0/1	ix:resp
 Worldly Counsel	2dbdfe954531c2d1	7	0/0		1/2	ix:resp
 Writhing Chrysalis	9b2150e6081e120d	3	2/2		1/1	
+Zealous Persecution	735d99292ea58e28	4	0/0		1/2	ix:resp
