@@ -10,10 +10,10 @@ import (
 // the seat's corpus.
 
 const kittProbe = "Name:Kitt Probe\nManaCost:1 R G W\nTypes:Legendary Creature Cat Bard\nPT:3/3\n" +
-	"T:Mode$ Phase | Phase$ BeginCombat | Execute$ TrigImmediateTrig | TriggerZones$ Battlefield | TriggerDescription$ x\n" +
-	"SVar:TrigImmediateTrig:AB$ ImmediateTrigger | Cost$ tapXType<2/Creature> | PARAMS | Execute$ TrigPump | TriggerDescription$ x\n" +
-	"SVar:TrigPump:DB$ Pump | ValidTgts$ Creature.ControlledBy DelayTriggerRemembered | TgtPrompt$ x | NumAtt$ +2 | NumDef$ +2 | KW$ Trample | SubAbility$ DBGoad\n" +
-	"SVar:DBGoad:DB$ Goad | Defined$ Targeted\nOracle:x\n"
+	"T:Mode$ Phase | Phase$ BeginCombat | TriggerZones$ Battlefield | Execute$ KProbeAsk | TriggerDescription$ Probe: each combat.\n" +
+	"SVar:KProbeAsk:AB$ ImmediateTrigger | Cost$ tapXType<2/Creature> | PARAMS | Execute$ KProbePump | TriggerDescription$ Probe: when you do.\n" +
+	"SVar:KProbePump:DB$ Pump | ValidTgts$ Creature.ControlledBy DelayTriggerRemembered | NumAtt$ +2 | NumDef$ +2 | KW$ Trample | SubAbility$ KProbeGoad\n" +
+	"SVar:KProbeGoad:DB$ Goad | Defined$ Targeted\nOracle:Probe.\n"
 
 // TestKittKantoDelayTriggerRemembered: `RememberObjects$ TriggeredPlayer` over a
 // Phase trigger makes the pump's "ControlledBy DelayTriggerRemembered" target
@@ -45,9 +45,9 @@ func TestKittKantoDelayTriggerRemembered(t *testing.T) {
 }
 
 const skyguardProbe = "Name:Sky Probe\nManaCost:2 W U\nTypes:Creature Human Knight\nPT:2/4\nK:Flying\n" +
-	"T:Mode$ AttackersDeclared | AttackingPlayer$ Player | PARAMS | CheckDefinedPlayer$ Player.OpponentOf TriggeredAttackingPlayer+!Defending | TriggerZones$ Battlefield | Execute$ TrigSuppression | TriggerDescription$ x\n" +
-	"SVar:TrigSuppression:DB$ Effect | ReplacementEffects$ RPrevent | Duration$ UntilEndOfCombat | AILogic$ Fog\n" +
-	"SVar:RPrevent:Event$ DamageDone | Prevent$ True | IsCombat$ True | ActiveZones$ Command | ValidTarget$ You | Description$ x\nOracle:x\n"
+	"T:Mode$ AttackersDeclared | TriggerZones$ Battlefield | AttackingPlayer$ Player | PARAMS | CheckDefinedPlayer$ Player.OpponentOf TriggeredAttackingPlayer+!Defending | Execute$ SkyProbeFog | TriggerDescription$ Probe: fog.\n" +
+	"SVar:SkyProbeFog:DB$ Effect | ReplacementEffects$ SkyProbeRepl | Duration$ UntilEndOfCombat\n" +
+	"SVar:SkyProbeRepl:Event$ DamageDone | Prevent$ True | IsCombat$ True | ActiveZones$ Command | ValidTarget$ You | Description$ Probe: prevent.\nOracle:Probe.\n"
 
 // TestSuppressorSkyguardGate: with two seats the attacker's only opponent is
 // the attacked seat, so the intervening-if never holds: it lowers as a

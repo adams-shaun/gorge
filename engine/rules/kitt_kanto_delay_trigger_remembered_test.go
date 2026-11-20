@@ -16,10 +16,10 @@ import (
 // (the 2026-11-20 corpus spelling; the seat's .cards still carries the older
 // ActivePlayerCtrl one).
 const kittKantoSrc = "Name:Kitt Probe\nManaCost:1 R G W\nTypes:Legendary Creature Cat Bard\nPT:3/3\n" +
-	"T:Mode$ Phase | Phase$ BeginCombat | Execute$ TrigImmediateTrig | TriggerZones$ Battlefield | TriggerDescription$ At the beginning of combat on each player's turn, you may tap two untapped creatures you control. When you do, target creature that player controls gets +2/+2 and gains trample until end of turn. Goad that creature.\n" +
-	"SVar:TrigImmediateTrig:AB$ ImmediateTrigger | Cost$ tapXType<2/Creature> | RememberObjects$ TriggeredPlayer | Execute$ TrigPump | TriggerDescription$ When you do, target creature that player controls gets +2/+2 and gains trample until end of turn. Goad that creature.\n" +
-	"SVar:TrigPump:DB$ Pump | ValidTgts$ Creature.ControlledBy DelayTriggerRemembered | TgtPrompt$ Select target creature that player controls | NumAtt$ +2 | NumDef$ +2 | KW$ Trample | SubAbility$ DBGoad\n" +
-	"SVar:DBGoad:DB$ Goad | Defined$ Targeted\nOracle:x\n"
+	"T:Mode$ Phase | Phase$ BeginCombat | TriggerZones$ Battlefield | Execute$ KProbeAsk | TriggerDescription$ Probe: each combat.\n" +
+	"SVar:KProbeAsk:AB$ ImmediateTrigger | Cost$ tapXType<2/Creature> | RememberObjects$ TriggeredPlayer | Execute$ KProbePump | TriggerDescription$ Probe: when you do.\n" +
+	"SVar:KProbePump:DB$ Pump | ValidTgts$ Creature.ControlledBy DelayTriggerRemembered | NumAtt$ +2 | NumDef$ +2 | KW$ Trample | SubAbility$ KProbeGoad\n" +
+	"SVar:KProbeGoad:DB$ Goad | Defined$ Targeted\nOracle:Probe.\n"
 
 const kittBearSrc = "Name:Bear%s\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 

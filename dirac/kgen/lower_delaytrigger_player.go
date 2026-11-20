@@ -73,3 +73,20 @@ func (lc *lowerCtx) attackerUnattackedOppCheck(cdp string, tr *lTrigger) (lCond,
 	lc.twoSeat("CheckDefinedPlayer OpponentOf TriggeredAttackingPlayer+!Defending: the attacker's one opponent is the defender")
 	return lCond{Kind: cValue, A: cst(0), Op: opGE, B: cst(1)}, true, nil
 }
+
+// checkDefinedPlayerCond lowers a trigger's CheckDefinedPlayer$ (gorge
+// trigger_condition.go checkDefinedPlayerHolds): the monarch spellings (CR 725,
+// lower_monarch.go), the crime one (CR 700.13) and Suppressor Skyguard's
+// attacker-opponent gate are read; every other one refuses.
+func (lc *lowerCtx) checkDefinedPlayerCond(cdp string, tr *lTrigger) (lCond, error) {
+	if c, ok := monarchCheck(cdp); ok {
+		return c, nil
+	}
+	if c, ok, err := lc.attackerUnattackedOppCheck(cdp, tr); err != nil || ok {
+		return c, err
+	}
+	if cdp != "You.committedCrimeThisTurn" {
+		return lCond{}, refuse("CheckDefinedPlayer %q", cdp)
+	}
+	return lCond{Kind: cValue, A: lValue{Kind: vCommittedCrime, Sub: []lValue{cst(1), cst(0)}}, Op: opGE, B: cst(1)}, nil
+}

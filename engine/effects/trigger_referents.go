@@ -873,37 +873,15 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 				targets = append(targets, t)
 			}
 		}
-	case controlReferentPlayersDelayTriggerRemembered:
-		// Kitt Kanto's `Creature.ControlledBy DelayTriggerRemembered`: the
-		// PLAYERS the delayed (or reflexive) trigger instance captured -- the
-		// ImmediateTrigger's `RememberObjects$ TriggeredPlayer`. A reflexive
-		// instance's capture rides its own Remembered (QueueReflexiveTrigger
-		// clears DelayedRemembered on purpose: the spawner's registration
-		// capture is not this ability's), so that is the read there, exactly
-		// as Defined$ DelayTriggerRemembered falls back to it. Never the
-		// source's own memory; a non-player entry names no seat, and no
-		// captured player at all is unbound (the tail returns ok=false).
-		set := sc.DelayedRemembered
-		if len(set) == 0 && sc.Reflexive {
-			set = sc.Remembered
-		}
-		for _, t := range set {
-			if t.IsPlayer {
-				targets = append(targets, t)
-			}
-		}
-	case controlReferentPlayersPlayerIsRemembered:
-		// The same remembered set the bare "Remembered" referent
-		// reads, PLAYERS ONLY -- the full player-spec spelling names the
-		// remembered player (a RepeatEach loop's subject), never a
-		// remembered object's controller.
-		if !sc.Resolving {
+	case controlReferentPlayersPlayerIsRemembered, controlReferentPlayersDelayTriggerRemembered:
+		// The same remembered set the bare "Remembered" referent reads,
+		// PLAYERS ONLY -- the full player-spec spelling names the remembered
+		// player (a RepeatEach loop's subject), never a remembered object's
+		// controller; DelayTriggerRemembered names the trigger instance's
+		// captured players instead (rememberedPlayerReferent).
+		var ok bool
+		if targets, ok = rememberedPlayerReferent(sc, ref); !ok {
 			return nil, false
-		}
-		for _, t := range sc.Remembered {
-			if t.IsPlayer {
-				targets = append(targets, t)
-			}
 		}
 	case controlReferentPlayersRememberedController:
 		// definedrem3: a remembered CARD contributes its controller (ControlledBy)
@@ -1208,3 +1186,36 @@ var controlReferentPlayersCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentPlayersCode]{Key: "ActivePlayer", Val: controlReferentPlayersPlayerActive},
 	state.StrEntry[controlReferentPlayersCode]{Key: "DelayTriggerRemembered", Val: controlReferentPlayersDelayTriggerRemembered},
 )
+
+// rememberedPlayerReferent is the PLAYER half of a remembered set a control
+// referent names.
+//
+//   - Player.IsRemembered: the players this resolution remembers; resolution-
+//     only (a non-resolving read is unbound).
+//   - DelayTriggerRemembered (Kitt Kanto's `Creature.ControlledBy
+//     DelayTriggerRemembered`): the players the delayed (or reflexive) trigger
+//     instance captured -- the ImmediateTrigger's `RememberObjects$
+//     TriggeredPlayer`. A reflexive instance's capture rides its own
+//     Remembered (QueueReflexiveTrigger clears DelayedRemembered on purpose:
+//     the spawner's registration capture is not this ability's), exactly the
+//     fallback Defined$ DelayTriggerRemembered takes. It is bound at the
+//     target offer as well, so it does not need Resolving. Never the source's
+//     own memory; a non-player entry names no seat, and no captured player at
+//     all leaves the referent unbound (the caller's tail returns ok=false).
+func rememberedPlayerReferent(sc SpecContext, ref string) ([]state.Target, bool) {
+	set := sc.Remembered
+	if ref == "DelayTriggerRemembered" {
+		if set = sc.DelayedRemembered; len(set) == 0 && sc.Reflexive {
+			set = sc.Remembered
+		}
+	} else if !sc.Resolving {
+		return nil, false
+	}
+	var out []state.Target
+	for _, t := range set {
+		if t.IsPlayer {
+			out = append(out, t)
+		}
+	}
+	return out, true
+}

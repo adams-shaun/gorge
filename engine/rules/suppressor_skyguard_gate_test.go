@@ -11,10 +11,10 @@ import (
 // TriggeredAttackingPlayer+!Defending`: "that player has another opponent who
 // isn't being attacked". Inline script (the 2026-11-20 corpus spelling).
 const skyguardSrc = "Name:Skyguard Probe\nManaCost:2 W U\nTypes:Creature Human Knight\nPT:2/4\nK:Flying\n" +
-	"T:Mode$ AttackersDeclared | AttackingPlayer$ Player | AttackedTarget$ You | CheckDefinedPlayer$ Player.OpponentOf TriggeredAttackingPlayer+!Defending | TriggerZones$ Battlefield | Execute$ TrigSuppression | TriggerDescription$ Whenever a player attacks you, if that player has another opponent who isn't being attacked, prevent all combat damage that would be dealt to you this combat.\n" +
-	"SVar:TrigSuppression:DB$ Effect | ReplacementEffects$ RPrevent | Duration$ UntilEndOfCombat | AILogic$ Fog\n" +
-	"SVar:RPrevent:Event$ DamageDone | Prevent$ True | IsCombat$ True | ActiveZones$ Command | ValidTarget$ You | Description$ Prevent all combat damage that would be dealt to you this combat.\n" +
-	"Oracle:x\n"
+	"T:Mode$ AttackersDeclared | TriggerZones$ Battlefield | AttackedTarget$ You | AttackingPlayer$ Player | CheckDefinedPlayer$ Player.OpponentOf TriggeredAttackingPlayer+!Defending | Execute$ SkyProbeFog | TriggerDescription$ Probe: fog.\n" +
+	"SVar:SkyProbeFog:DB$ Effect | ReplacementEffects$ SkyProbeRepl | Duration$ UntilEndOfCombat\n" +
+	"SVar:SkyProbeRepl:Event$ DamageDone | Prevent$ True | IsCombat$ True | ActiveZones$ Command | ValidTarget$ You | Description$ Probe: prevent.\n" +
+	"Oracle:Probe.\n"
 
 // skyguardPushes seats a Skyguard on seat 1, puts two ready attackers on seat
 // 0 and declares each at the given defender seat, returning how many triggers

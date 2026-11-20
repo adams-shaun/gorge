@@ -384,30 +384,8 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 					}
 				}
 			}
-		case playerSpecQualifierOpponentOfReplaced:
-			if (base == "Player" || base == "Any") && pc.Replaced.IsPlayer && p != pc.Replaced.Player {
-				return true
-			}
-		case playerSpecQualifierOpponentOfAttacking:
-			// Player.OpponentOf TriggeredAttackingPlayer: every seat but the
-			// attacking player the triggering event names. Unbound (a
-			// replacement, or a trigger with no attack role) matches nobody.
-			if (base == "Player" || base == "Any") && pc.AttackingPlayer.IsPlayer &&
-				int(pc.AttackingPlayer.Player) < len(g.Players) && p != pc.AttackingPlayer.Player {
-				return true
-			}
-		case playerSpecQualifierDefending:
-			// Player.Defending: a seat the triggering attack declaration
-			// targets -- the DefendingPlayer role (the trigger's
-			// AttackedTarget$ You capture), plus every other seat the bound
-			// attacking player's declared attackers are attacking (a split
-			// declaration batches into one trigger, so the role alone would
-			// call a second attacked opponent "not being attacked").
-			// Unbound matches nobody.
-			if pc.DefendingPlayer.IsPlayer && pc.DefendingPlayer.Player == p {
-				return true
-			}
-			if pc.DefendingPlayer.IsPlayer && playerAttackedBy(g, p, pc.AttackingPlayer) {
+		case playerSpecQualifierOpponentOfReplaced, playerSpecQualifierOpponentOfAttacking, playerSpecQualifierDefending:
+			if playerRoleQualifierMatches(g, a.qualCode, base, p, &pc) {
 				return true
 			}
 		case playerSpecQualifierIsCorrupted, playerSpecQualifierWasDealtDamageThisTurn:
@@ -1245,6 +1223,34 @@ func playerAttackedBy(g *state.Game, p state.PlayerID, attacker state.Target) bo
 		if o := g.Obj(id); o != nil && o.IsAttacking && o.Attacking == p {
 			return true
 		}
+	}
+	return false
+}
+
+// playerRoleQualifierMatches reads the event-role qualifiers of the player
+// grammar for seat p, base being the spec's already-matched base word:
+//
+//   - OpponentOf ReplacedPlayer: every seat but the draw-er of the replacement
+//     being resolved (Shared Fate).
+//   - OpponentOf TriggeredAttackingPlayer: every seat but the attacking player
+//     the triggering event names (Suppressor Skyguard).
+//   - Defending: a seat the triggering attack declaration targets -- the
+//     DefendingPlayer role (the trigger's AttackedTarget$ You capture), plus
+//     every seat the bound attacking player's declared attackers are
+//     attacking (a split declaration batches into one trigger, so the role
+//     alone would call a second attacked opponent "not being attacked").
+//
+// An unbound role matches nobody: a replacement has no attack role.
+func playerRoleQualifierMatches(g *state.Game, code playerSpecQualifierCode, base string, p state.PlayerID, pc *PlayerSpecCtx) bool {
+	switch code {
+	case playerSpecQualifierOpponentOfReplaced:
+		return (base == "Player" || base == "Any") && pc.Replaced.IsPlayer && p != pc.Replaced.Player
+	case playerSpecQualifierOpponentOfAttacking:
+		return (base == "Player" || base == "Any") && pc.AttackingPlayer.IsPlayer &&
+			int(pc.AttackingPlayer.Player) < len(g.Players) && p != pc.AttackingPlayer.Player
+	case playerSpecQualifierDefending:
+		return pc.DefendingPlayer.IsPlayer &&
+			(pc.DefendingPlayer.Player == p || playerAttackedBy(g, p, pc.AttackingPlayer))
 	}
 	return false
 }
