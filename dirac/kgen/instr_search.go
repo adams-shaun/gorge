@@ -218,12 +218,12 @@ func (ic *instrCtx) opSearch() error {
 		ki.W = r
 	}
 	if _, ok := fl["UntilLeaves"]; ok {
-		// Duration$ UntilHostLeavesPlay on a hand exile
-		// (Deep-Cavern Bat): B.N bit 0, the kernel's hand-return link
-		if in.Op != "ChooseMove" || zone != kop.ZoneHand || zoneMap[in.C] != kop.ZoneExile {
-			return fmt.Errorf("UntilLeaves on a %s", in.Op)
+		var bit int
+		bit, err = untilLeavesBit(in, zone)
+		if err != nil {
+			return err
 		}
-		sb |= 1
+		sb |= bit
 	}
 	if in.Op == "ChooseMove" && fl["from"] == "Hand,Graveyard" {
 		for _, bad := range []string{"Random", "UntilLeaves", "NoShuffle", "ForgetChanged"} {
@@ -270,4 +270,18 @@ func (ic *instrCtx) opSearch() error {
 		return err
 	}
 	return nil
+}
+
+// untilLeavesBit is the ChooseMove B bit of Duration$ UntilHostLeavesPlay: on a
+// hand exile (Deep-Cavern Bat) B.N bit 0, the kernel's hand-return link; on a
+// battlefield exile pick (Glorious Protector) kop.SrBattleLink, the link that
+// returns the picked set to the battlefield. Any other pick refuses.
+func untilLeavesBit(in *lInstr, zone kop.Zone) (int, error) {
+	if in.Op != "ChooseMove" || zoneMap[in.C] != kop.ZoneExile || zone != kop.ZoneHand && zone != kop.ZoneBattlefield {
+		return 0, fmt.Errorf("UntilLeaves on a %s", in.Op)
+	}
+	if zone == kop.ZoneHand {
+		return 1, nil
+	}
+	return kop.SrBattleLink, nil
 }
