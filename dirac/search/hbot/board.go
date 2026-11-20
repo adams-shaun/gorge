@@ -52,6 +52,9 @@ type board struct {
 	// bfPos is a battlefield object's index in its controller's entry
 	// order (gorge's battlefield zone list).
 	bfPos [dirac.MaxObj]uint8
+	// bfCard is a battlefield object's card (State.ObjCard), read once per
+	// fill by the creature census and reused by the card census.
+	bfCard [dirac.MaxObj]dirac.CardID
 
 	// cs is combat.go's scratch (attack and block declarations).
 	cs combatScratch
@@ -154,10 +157,14 @@ func (b *board) fillAs(s *dirac.State, f *Facts, me uint8, full bool) {
 	}
 
 	// creatures: every seat's battlefield, in seat then entry order
-	nobj := s.NumObjs()
-	for i := 0; i < nobj; i++ {
-		b.creX[i] = 0
-		b.cardX[i] = 0
+	// Only the last fill's entries are nonzero in creX and cardX: unset
+	// those (the tables' index entries are exactly cre[:nCre] and
+	// card[:nCard]'s objects), not every object the state holds.
+	for i := 0; i < b.nCre; i++ {
+		b.creX[b.cre[i].obj] = 0
+	}
+	for i := 0; i < b.nCard; i++ {
+		b.cardX[b.card[i].obj] = 0
 	}
 	b.nCre = 0
 	b.nCard = 0
@@ -167,6 +174,7 @@ func (b *board) fillAs(s *dirac.State, f *Facts, me uint8, full bool) {
 		for i, o := range objs {
 			b.bfPos[o] = uint8(i)
 			cid := s.ObjCard(o)
+			b.bfCard[o] = cid
 			// combat.go's census reads the effective type words: an animated
 			// land or a crewed Vehicle is in it, a creature that lost the type
 			// is not. A face-down permanent is a 2/2 creature (CR 708.2).
@@ -174,7 +182,8 @@ func (b *board) fillAs(s *dirac.State, f *Facts, me uint8, full bool) {
 				continue
 			}
 			fl := s.HBotPermFlags(o)
-			c := creature{obj: o, tapped: fl&dirac.ProjTapped != 0, ctrl: p,
+			c := &b.cre[b.nCre] // built in place: no copy of the entry
+			*c = creature{obj: o, tapped: fl&dirac.ProjTapped != 0, ctrl: p,
 				attacking: fl&dirac.ProjAttacking != 0, blocking: fl&dirac.ProjBlocking != 0,
 				sick: fl&dirac.ProjSick != 0, cardID: cid}
 			if full {
@@ -182,7 +191,6 @@ func (b *board) fillAs(s *dirac.State, f *Facts, me uint8, full bool) {
 				c.power, c.tough, c.damage = int32(int16(pw)), int32(int16(tg)), int32(s.Damage(o)) // the projection stores int16
 				c.kw, _ = s.FeatKeywords(o)
 			}
-			b.cre[b.nCre] = c
 			b.nCre++
 			b.creX[o] = int16(b.nCre)
 		}
@@ -217,9 +225,9 @@ func (b *board) fillAs(s *dirac.State, f *Facts, me uint8, full bool) {
 			continue
 		}
 		for _, o := range b.bf[p][:b.nbf[p]] {
-			cid := s.ObjCard(o)
-			cf := f.card(cid)
-			c := cardF{obj: o, f: cf, creature: b.creX[o] > 0, cmc: int32(cf.CMC), basic: cf.Basic,
+			cf := f.card(b.bfCard[o])
+			c := &b.card[b.nCard]
+			*c = cardF{obj: o, f: cf, creature: b.creX[o] > 0, cmc: int32(cf.CMC), basic: cf.Basic,
 				activated: int32(s.FeatActivations(o)), attached: dirac.NoObj}
 			if s.FeatFaceDown(o) {
 				// Another seat's face-down permanent shows only its
@@ -230,7 +238,6 @@ func (b *board) fillAs(s *dirac.State, f *Facts, me uint8, full bool) {
 			if i := b.creX[o]; i > 0 {
 				c.power, c.tough = b.cre[i-1].power, b.cre[i-1].tough
 			}
-			b.card[b.nCard] = c
 			b.nCard++
 			b.cardX[o] = int16(b.nCard)
 		}
@@ -252,9 +259,15 @@ func (b *board) oppLifeAtMost(me uint8, n int32) bool {
 // addOwn adds the seat's own object o (in zone z) to the card census.
 func (b *board) addOwn(o dirac.Obj, z kop.Zone, full bool) {
 	s, f := b.s, b.f
-	cid := s.ObjCard(o)
+	var cid dirac.CardID
+	if z == kop.ZoneBattlefield {
+		cid = b.bfCard[o]
+	} else {
+		cid = s.ObjCard(o)
+	}
 	cf := f.card(cid)
-	c := cardF{obj: o, f: cf, creature: cf.Creature, cmc: int32(cf.CMC), basic: cf.Basic, counter: cf.Counter,
+	c := &b.card[b.nCard] // built in place: no copy of the entry
+	*c = cardF{obj: o, f: cf, creature: cf.Creature, cmc: int32(cf.CMC), basic: cf.Basic, counter: cf.Counter,
 		activated: int32(s.FeatActivations(o)), attached: dirac.NoObj, own: true}
 	tbl := f.Tbl
 	if z == kop.ZoneBattlefield {
@@ -289,7 +302,6 @@ func (b *board) addOwn(o dirac.Obj, z kop.Zone, full bool) {
 		c.castable = z == kop.ZoneHand || (z == kop.ZoneGraveyard && kw&kop.KwFlashback != 0)
 		c.instant = cf.Instant || kw&kop.KwFlash != 0
 	}
-	b.card[b.nCard] = c
 	b.nCard++
 	b.cardX[o] = int16(b.nCard)
 }
