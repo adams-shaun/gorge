@@ -238,6 +238,9 @@ func (s *State) countPerm(k *prep, f kop.FilterID, ctx evalCtx) int {
 		if n, ok := s.selfDepartTappedCount(k, f, ctx); ok {
 			return n
 		}
+		if n, ok := s.selfDepartCountersCount(k, f, ctx); ok {
+			return n
+		}
 	}
 	n := 0
 	for m := s.occ; m.any(); m = m.rest() {
@@ -281,6 +284,42 @@ func (s *State) selfDepartTappedCount(k *prep, f kop.FilterID, ctx evalCtx) (int
 	}
 	return 1, true
 }
+
+// selfDepartCountersCount is selfDepartTappedCount for the counter compare: the
+// CR 603.4 intervening-if "Self has N counters" (Graft's IsPresent$
+// Card.Self+counters_GE1_P1P1) whose source left the battlefield reads the
+// departure snapshot's counters (CR 608.2h; gorge presentClauseHolds'
+// SourceLKIValid branch). The filter must be FSelf and the counter compare
+// alone; ok is false for any other shape and for a source with no departure
+// snapshot.
+func (s *State) selfDepartCountersCount(k *prep, f kop.FilterID, ctx evalCtx) (int, bool) {
+	if f == 0 || DebugGraftLiveCount {
+		return 0, false
+	}
+	fl := k.t.Filters[f]
+	if fl.Flags != kop.FSelf || (fl.Pred != kop.PredCountersGE && fl.Pred != kop.PredCountersLT) ||
+		fl.Or != 0 || fl.Types != 0 || fl.NotTypes != 0 || fl.Ctrl != 0 ||
+		fl.Colors != 0 || fl.NotColors != 0 || fl.Zone != 0 ||
+		fl.Owner != 0 || fl.Sub != 0 || fl.NotSub != 0 || fl.NotSubs != [4]uint8{} ||
+		fl.Flags2 != 0 || fl.PredV != (kop.ValueRef{}) || fl.Special != 0 || fl.Each ||
+		fl.PickSumMax != (kop.ValueRef{}) || fl.PickDistinctPower || fl.CtrlTgt != 0 {
+		return 0, false
+	}
+	i := s.srcDepartIdx(ctx.e)
+	if i == 0 {
+		return 0, false
+	}
+	have := s.lkiCounter(i, kop.CounterKind(fl.PredN&0xff))
+	if (fl.Pred == kop.PredCountersGE) != (have >= int(fl.PredN>>8)) {
+		return 0, true
+	}
+	return 1, true
+}
+
+// DebugGraftLiveCount (TestGraftDepartedSourceLKIMutation): a departed Self
+// source's counter compare counts the live battlefield again, so its
+// intervening-if reads no source and the trigger drops.
+var DebugGraftLiveCount bool
 
 // pwTypeCount is ExCount with N 1: the number of distinct planeswalker types
 // (CR 205.3j) among the battlefield permanents matching F, read off each
