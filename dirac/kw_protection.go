@@ -196,6 +196,25 @@ func (s *State) protSpellXMV(k *prep, srcCard CardID) int {
 	return 0
 }
 
+// protXBoundTarget: some target slot of a can take a permanent or card, so
+// a protection quality that reads the spell's announced X (protSpellXMV) can
+// leave it without a candidate at some X. A slot that takes only players has
+// no protection quality to read (gorge's xBoundTargetPayable judges an X cost
+// only for a target bounded by X, and its player slots carry no such bound:
+// Mind Shatter's "target player discards X cards at random" is payable at any
+// X its mana pays).
+func protXBoundTarget(k *prep, a *kop.Ability) bool {
+	if k.gen == nil || !k.gen.anyProtF {
+		return false
+	}
+	for i := 0; i < int(a.NTargets); i++ {
+		if a.Targets[i].Kind != kop.TgtPlayer {
+			return true
+		}
+	}
+	return false
+}
+
 // protGranted: a Continuous static's ProtFrom quality, granted to sl,
 // matches the source (CR 702.16; Sword of Wealth and Power's instants and
 // sorceries). A grant is a layer-6 effect, so it does not survive a later
