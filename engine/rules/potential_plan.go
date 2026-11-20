@@ -598,6 +598,33 @@ func faceModalFloorZero(f *cards.Face) bool {
 type relaxedPaid struct {
 	alts []pay.Alt
 	fee  int32
+	// plain: the production is a fixed one-mana-per-colour or one-mana-of-a-
+	// colour-choice (no extra, rider, restriction, colourless or dynamic
+	// part), so a lone use of it can be priced as a cut of the cost
+	// (paymentPlanRelaxProof's cutSelfFee).
+	plain bool
+}
+
+// relaxedCutPlain reports whether the paid gap's relaxed alternatives are a
+// plain production (relaxedPaid.plain): a TapsForMana extra, a Condition-split
+// arm, a chosen or dynamic or restricted production, or any colourless or
+// multiple-per-colour unit may add mana the cut does not model.
+func relaxedCutPlain(alts []pay.Alt, mp *effects.ManaParams, extra state.Mana, split bool) bool {
+	if split || extra != (state.Mana{}) || mp.NeedsChosen || mp.AnyDifferent || mp.RestrictValid != "" ||
+		mp.Each.Present || mp.AmountTrim != "" || len(alts) == 0 {
+		return false
+	}
+	for _, a := range alts {
+		if a.Mana[state.MC] != 0 {
+			return false
+		}
+		for _, n := range a.Mana {
+			if n > 1 {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // relaxedPaidLimit bounds the paid missed abilities a relaxed proof
@@ -627,7 +654,7 @@ func (e *Engine) paymentPlanRelaxProof(c paymentPlanCensus, verdict func() Payme
 				only = &c.paid[i]
 			}
 		}
-		if bits.OnesCount(uint(mask)) == 1 {
+		if c.cutSelfFee && bits.OnesCount(uint(mask)) == 1 && only.plain {
 			// A lone paid gap's output cannot pay its own fee (CR 601.2g-h):
 			// the run prices each alternative as a cut of the cost, never as a
 			// unit beside the sources that fund the fee. Two or more gaps may
@@ -2304,6 +2331,11 @@ type paymentPlanCensus struct {
 	// cost includes mana (a filter: Heap Gate's "{1}, {T}: Add one mana of
 	// any color"), each with its fee; relaxed holds the free ones.
 	paid []relaxedPaid
+	// cutSelfFee asks paymentPlanRelaxProof to price a lone plain paid gap as
+	// a cut of the cost, its fee charged against the sources without it (CR
+	// 601.2g-h: the gap's own output cannot pay its own fee). Set by the caller
+	// that wants the tighter proof (xBoundTargetPayable).
+	cutSelfFee bool
 	// fund is the prefix search's funding for a gap ability with no sound
 	// relaxation but a mana fee (a repeatable fee-only ability such as
 	// Orochi Leafcaller's "{G}: Add one mana of any color"): every
@@ -2466,7 +2498,8 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 					// and dirac's mirrored slot accounting.
 					out.relaxable, out.relaxed, out.paid = false, nil, nil
 				} else if fee > 0 {
-					out.paid = append(out.paid, relaxedPaid{alts: relaxed, fee: fee})
+					out.paid = append(out.paid, relaxedPaid{alts: relaxed, fee: fee,
+						plain: relaxedCutPlain(relaxed, gmp, gextra, condSplitLiveSub(e, p, id, ma) != nil)})
 				} else {
 					out.relaxed = append(out.relaxed, relaxed)
 				}
