@@ -181,3 +181,30 @@ func (s *State) sagasDue(k *prep) (m slotMask) {
 	}
 	return m
 }
+
+// sagaDepart appends to a pass's departure order the Sagas due for sacrifice
+// that the pass has not already listed, after the Role losers: gorge's
+// checkSagas runs in the pass of the creature casualties and unattached Auras
+// (CR 704.3, 714.4), so a Saga whose last chapter killed a creature leaves
+// before the Aura that creature wore, which only the next pass sees. Each
+// fires its Sacrificed triggers as sagaSBA does, before the batch moves it.
+func (s *State) sagaDepart(k *prep, order []Slot, n int) int {
+	if !k.anySaga {
+		return n
+	}
+	due := s.sagasDue(k)
+	if !due.any() {
+		return n
+	}
+	for _, q := range order[:n] {
+		due = due.andNot(slotMask{}.with(q))
+	}
+	m := n
+	for p := uint8(0); p < MaxSeats; p++ {
+		n = s.battlefieldOrder(p, due.and(s.ctrlM[p]), order, n)
+	}
+	for _, sl := range order[m:n] {
+		s.fireSac(k, sl)
+	}
+	return n
+}
