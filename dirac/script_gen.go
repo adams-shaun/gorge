@@ -950,7 +950,42 @@ func (s *State) mayPlayJoinCensusPays(k *prep, p uint8, a Action, cost *kop.Mana
 	}
 	var mav avail
 	s.availFor(k, p, &mav)
-	return mav.affords(cost, pipMaskOf(cost), 0)
+	if !mav.affords(cost, pipMaskOf(cost), 0) {
+		return false
+	}
+	return !s.ownSacTapNeeded(k, p, cost)
+}
+
+// ownSacTapNeeded reports whether the join census pays cost only by counting
+// the granted {T} of an untapped printed sacrifice-only source (an Eldrazi
+// Spawn under Elven Chorus) beside its printed sacrifice: two units of one
+// permanent (CR 602.2b, 605.1a). gorge's composed planner counts the source's
+// sacrifice alone and never its granted tap, so the cast is priced by its
+// prefix search, which a Spawn's sacrifice-first walk starves (the 160-node
+// budget): the offer falls to grantSearch's mirror of that budget, not the
+// census's.
+func (s *State) ownSacTapNeeded(k *prep, p uint8, cost *kop.ManaCost) bool {
+	if k.gen == nil || !k.sacOnlyMana || !k.gen.anyContGrant {
+		return false
+	}
+	var gap slotMask
+	var base avail
+	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
+		sl := m.first()
+		if pc := s.manaPCGen(k, sl); pc.manaSacOnly && s.ownSacGrantTap(k, sl) != nil {
+			gap.set(sl)
+		}
+	}
+	if !gap.any() {
+		return false
+	}
+	s.availForExcluding(k, p, &base, gap)
+	for m := gap; m.any(); m = m.rest() {
+		sl := m.first()
+		pc := s.manaPCGen(k, sl)
+		base.addUnits(s.srcMaskAt(pc, sl), pc.manaN) // its printed sacrifice stays one unit
+	}
+	return !base.affords(cost, pipMaskOf(cost), 0)
 }
 
 func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
