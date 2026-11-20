@@ -22,15 +22,19 @@ Call of the Death-Dweller	4fcffe687191e348	4	0/0		1/2	ix:resp
 Celestial Gatekeeper	43648c1d0c80e971	4	1/1		0/1	ix:resp
 Chainflinger	858fd94b525c9d21	5	2/2		0/1	ix:resp
 Clairvoyance	45abad37609386c8	4	0/0		1/2	ix:resp
+Colossus Hammer	b92699ede9a3c686	3	1/1		0/1	ix:resp
 Court Archers	5e396f7e2ec4f9f5	3	1/1		1/1	
 Culling Mark	1a4b952db118ee68	4	0/0		2/2	
 Dark Inquiry	082bd3dd7acbe1f6	3	0/0		1/2	ix:resp
 Distract	1a860691a0b16b10	10	0/0		2/2	
 Ecstatic Awakener	83a7c3a75cc8265e	6	1/1		1/1	
 Ethereal Elk	cbd82331f3febade	5	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Fiery Conclusion	de6ca95e7cce106a	6	0/0		2/2	
 Flare of Faith	06af245a6378cad1	6	0/0		1/2	ix:resp
 Fly	1543829a1832b8cc	4	0/0		1/2	ix:resp
+Garna, the Bloodflame	a65f6cf94629133f	6	1/1		0/1	ix:resp
 General's Kabuto	63bbb4f37ce0f2ab	6	1/1		1/1	
+Ghitu War Cry	09f89ea56e0d23e9	5	1/1		1/1	
 Glade Watcher	3595d7524029f496	4	1/1		1/1	
 Goblin Fireleaper	94c82dac9e84fbdd	6	2/2		0/1	ix:resp
 Goblin Hero	236c54abc0978c41	4	0/0		0/0	
@@ -52,9 +56,11 @@ Jawbone Skulkin	4efa3099e24419e6	3	1/1		0/1	ix:resp
 Jolrael, Empress of Beasts	e6de852b0a4393a2	6	1/1		1/1	
 Kavu Aggressor	0c2f0abcfd12ec1c	7	0/0		2/2	
 Keening Banshee	68b46cf3fb14718b	15	1/1		0/1	ix:resp
+Keldon Arsonist	ed412c79291bd7f9	9	1/1		1/1	
 Kiku, Night's Flower	5f6d87555b529d3d	11	1/1		1/1	
 King Harald's Revenge	0032104b79dfebad	8	0/0		1/2	ix:resp
 Leatherback Baloth	86809bd3c3e566e8	3	0/0		0/0	
+Lightning Reaver	0107badd4e038b51	4	2/2		0/1	ix:resp
 Lonely Sandbar	fa75b5f330ab2845	7	2/2		0/1	ix:resp
 MagicConsecrated Sphinx	63a144220e6d1bd0	3	1/1		1/1	
 Magus of the Order	d760f7c273691884	3	1/1		1/1	
@@ -72,6 +78,7 @@ Ogre Jailbreaker	8385f29192bc281f	5	0/0		0/0
 Omen of the Sea	cc1b600f0570de2a	3	2/2		0/1	ix:resp
 One with the Kami	c623a1e229fc4bc6	6	1/1		1/2	ix:resp
 Pilfering Imp	1e195679a7218cf3	12	1/1		1/1	
+Pollenbright Druid	eb817b6a04738212	5	1/1		0/1	ix:resp
 Quirion Ranger	bbc57eb24cb07dde	3	1/1		0/1	ix:resp
 Rancid Rats	f669da21d1ccc01c	13	0/0		0/0	
 Rath's Edge	52d6ff5dd852b89e	8	2/2		0/1	ix:resp
@@ -91,8 +98,10 @@ Saproling Burst	9b84733614b086a1	6	3/3		1/1
 Seekers' Squire	aae0df8425f93bfc	8	1/1		1/1	
 Sensory Deprivation	1d1c2e0e76f5c7b5	75	0/0		2/2	
 Shield of Duty and Reason	a10a8861f1833778	4	0/0		1/2	ix:resp
+Shivan Devastator	e2708c7511e5fc5e	3	0/0		0/0	
 Signpost Scarecrow	d3ed6396e6e65381	8	1/1		0/1	ix:resp
 Simic Cluestone	6e71ec5fa178d5d3	4	2/2		1/1	
+Sol Grail	8bab93c4e18a3309	4	1/1		0/1	ix:resp
 Spare Supplies	a270984f6886837e	5	2/2		0/1	ix:resp
 Spectator Seating	fdf425e28575a053	16	1/1		0/1	ix:resp
 Spider-Man, Miles Morales	c3d2919d90cf6475	4	2/2		0/1	ix:resp
@@ -116,7 +125,10 @@ Undercity's Embrace	614e51f9b10c436d	6	0/0		1/2	ix:resp
 Untamed Kavu	7c233c147084f83c	4	0/0		1/2	cast/alt:kicked
 Vedalken Mesmerist	17ce6bca0c72fa62	11	1/1		1/1	
 Verdant Catacombs	930ef8e319c968b4	21	1/1		0/1	ix:resp
+Volatile Arsonist	2d8f9a685322ffc4	34	2/2		1/1	
+Warhost's Frenzy	49eda2015139d902	3	0/0		3/4	cast/alt:kicked
 Weakstone	c05ebc4c59973e4e	4	0/0		0/0	
+Whimwader	c91b57db62d921f3	4	0/0		0/0	
 Windstorm	9611f84bd228222f	3	0/0		2/4	f0/s/x0,ix:resp
 Wings of Velis Vel	9e2fc8fa27b7260c	3	0/0		1/2	ix:resp
 Wipe Away	7e7391cabe5694ff	3	0/0		1/2	ix:resp
