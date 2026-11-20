@@ -2429,6 +2429,9 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		face = 1 // CR 707.2: its copiable values are the face-down characteristics
 	}
 	early := !k.gen.anyBecomeCopy && (in.C != 0 || tmpl != NoSlot && s.fxM.has(tmpl))
+	if !early && k.gen.anyBecomeCopy && s.embalmMint(k, in, t) {
+		early = true // the embalm token's mint mark is on the slot before its as-enters copy asks (copy_asenters.go becomeCopyEnter's Embalm$ gate)
+	}
 	if early {
 		s.g.entExc = entExcOn | uint32(tmpl)<<8 | uint32(uint8(in.C))
 	}
