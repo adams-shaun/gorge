@@ -167,6 +167,7 @@ Glyph Elemental
 Gnarlwood Dryad
 Gnat Alley Creeper
 Goblin Chainwhirler
+Goblin Dynamo
 Goblin King
 Goblinslide
 Golden Ratio

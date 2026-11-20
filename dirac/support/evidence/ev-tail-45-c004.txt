@@ -41,6 +41,7 @@ Chainflinger
 Chameleon Spirit
 Clairvoyance
 Clock of Omens
+Colossus Hammer
 Constricting Sliver
 Copper Longlegs
 Corrupted Harvester
@@ -74,6 +75,7 @@ Exorcist
 Farhaven Elf
 Feign Death
 Fendeep Summoner
+Fiery Conclusion
 Finale of Devastation
 Fires of Undeath
 Flailing Soldier
@@ -85,8 +87,10 @@ Forest
 Foundry Helix
 Freewind Falcon
 Garbage Elemental
+Garna, the Bloodflame
 Garruk Wildspeaker
 General's Kabuto
+Ghitu War Cry
 Ghostly Sentinel
 Glade Watcher
 Gleam of Authority
@@ -125,11 +129,13 @@ Joust
 Jund Panorama
 Kavu Aggressor
 Keening Banshee
+Keldon Arsonist
 Kiku, Night's Flower
 King Harald's Revenge
 Kraul Raider
 Laser Screwdriver
 Leatherback Baloth
+Lightning Reaver
 Lonely Sandbar
 MagicConsecrated Sphinx
 Magister Sphinx
@@ -163,6 +169,7 @@ Onulet
 Patron Wizard
 Pilfering Imp
 Plains
+Pollenbright Druid
 Quicksilver, Pietro Maximoff
 Quirion Ranger
 Rancid Rats
@@ -197,12 +204,14 @@ Seekers' Squire
 Sensory Deprivation
 Shambling Remains
 Shield of Duty and Reason
+Shivan Devastator
 Signpost Scarecrow
 Silverglade Pathfinder
 Simic Cluestone
 Sire of Stagnation
 Skarrgan Skybreaker
 Smothering Abomination
+Sol Grail
 Soul of Shandalar
 Soulmender
 Sovereign's Bite
@@ -250,11 +259,14 @@ Vampire of the Dire Moon
 Vedalken Mesmerist
 Vengeful Reaper
 Verdant Catacombs
+Volatile Arsonist
 Voracious Vacuum
 Wake of Vultures
+Warhost's Frenzy
 Weakstone
 Webweaver Changeling
 Welding Sparks
+Whimwader
 Willow Elf
 Windstorm
 Winged Hive Tyrant
