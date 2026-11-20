@@ -952,6 +952,12 @@ type planner struct {
 	// keepCols: bestCol is the search's witness (limitPlan), not the least
 	// colours the taps would choose
 	keepCols bool
+	// winCol: the payment is one gorge takes through its manual mana window
+	// (an activation whose sacrifice part follows the mana), so each tap's
+	// colour is the window's answer (windowCol), not pickUnitColour's
+	// Produces preference; winCost is the cost that answer reads.
+	winCol  bool
+	winCost kop.ManaCost
 	// noGrant: a hybrid resolution's trial leaves the granted sources out
 	// of the plan (phase 2): gorge's planHybridCost resolution has a
 	// witness only from printed sources
@@ -1167,6 +1173,24 @@ func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost, unless bool) (pa
 		s.pl[p].pool[c] += held[c]
 	}
 	return false, false
+}
+
+// planTapCol is the colour plan taps unit i with: the search's witness when
+// keepCols, else pickUnitColour, or the window's answer for a payment gorge
+// takes through its manual window when that answer still leaves the rest
+// payable (planWindowCol).
+func (s *State) planTapCol(k *prep, p uint8, pk *planner, i int, ty *utype, rem *[kop.NumManaKinds]int, remAny int) int {
+	if pk.keepCols {
+		return int(pk.bestCol[i])
+	}
+	col := pk.pickUnitColour(ty, rem, remAny, &pk.bestTy, i+1, pk.bestN)
+	if pk.winCol && s.cfg&cfgGorgeAutopay != 0 && !DebugWindowColourPlanner {
+		if c, ok := s.planWindowCol(k, p, &pk.winCost, pk.units[pk.bestSeq[i]]); ok &&
+			pk.colourKeepsPayable(c, int(ty.n), rem, remAny, &pk.bestTy, i+1, pk.bestN) {
+			return c // the window's answer, when it still leaves the rest payable
+		}
+	}
+	return col
 }
 
 // hybResolve is cost with its hybrid pips resolved as gorge's potential
@@ -1815,10 +1839,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	var cols, run [maxUnits]uint8
 	for i := 0; i < bn; i++ {
 		ty := &pk.types[pk.bestTy[i]]
-		col := int(pk.bestCol[i])
-		if !pk.keepCols {
-			col = pk.pickUnitColour(ty, &rem, remAny, &pk.bestTy, i+1, pk.bestN)
-		}
+		col := s.planTapCol(k, p, pk, i, ty, &rem, remAny)
 		cols[i] = uint8(col)
 		if pk.anyColor && col != kop.C {
 			remAny = max(remAny-int(ty.n), 0)
