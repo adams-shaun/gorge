@@ -10,9 +10,9 @@ import (
 )
 
 // painReflectScen: seat 0 holds an Adarkar Wastes ("{T}: Add {C}" beside the
-// painful "{T}: Add {W} or {U}. Deals 1 damage to you") and seat 0 a Mana
-// Flare-shaped reflect carrier, whose reflected extra (CR 106.12a) adds one mana of the type any
-// player's land tap produced. gorge's planner folds the extra into the pick, so
+// painful "{T}: Add {W} or {U}. Deals 1 damage to you") and also a Mana
+// Flare-shaped reflect carrier (also seat 0), whose reflected extra (CR 106.12a)
+// adds one mana of the type any player's land tap produced. gorge's planner folds the extra into the pick, so
 // the land is one tap of two mana of ONE type: {C}{C}, {W}{W} or {U}{U}.
 func painReflectScen(t *testing.T) (*scen, Slot) {
 	t.Helper()
