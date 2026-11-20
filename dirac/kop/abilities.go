@@ -57,6 +57,9 @@ type Ability struct {
 	// this the order. 0 = WUBRG order (single colours and Combo Any too).
 	ManaColOrd uint16
 	Prog       []Instr
+	// SetRefs binds each instruction whose Obj is RefSet to its set (at most
+	// MaxSetRefs; Table.Sets). Table data, never State.
+	SetRefs []SetRef
 
 	// Appended by dirac/kgen.
 	AFlags       AbilityFlags

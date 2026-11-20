@@ -163,6 +163,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.execUnion(k, in)
 		return true, true
 	}
+	if in.Obj == kop.RefSet {
+		return s.execSet(k, in), true // a SetExpr's members (set_ops.go)
+	}
 	// a multi-object target slot: run the op once per object
 	if sl, ok := tgtSlot(in.Obj); ok && !s.g.inLoop && s.xtOf(e).n > 0 &&
 		in.Op != kop.OpDealDamageDivided && in.Op != kop.OpRepeatEachPlayer && in.Op != kop.OpRepeatEach {

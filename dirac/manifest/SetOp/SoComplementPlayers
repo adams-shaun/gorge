@@ -1,0 +1,6 @@
+family: SetOp
+name: SoComplementPlayers
+value: next
+status: active
+ticket: dsd-t06
+doc: replace the top player set with the living players not in it, in seat order from the controller

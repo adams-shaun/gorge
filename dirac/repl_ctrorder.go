@@ -169,28 +169,36 @@ func (s *State) execPutCounter(k *prep, in *kop.Instr) bool {
 // published.
 func (s *State) execPutCounterAt(k *prep, in *kop.Instr) bool {
 	if sl := s.objRef(k, in.Obj); sl != NoSlot {
-		amt := s.value(k, in.A)
-		if k.gen != nil && s.ctrOrderPark(k, sl, int(in.C), amt) {
-			return false // the CR 616.1 order ask; the instruction runs again (repl_ctrorder.go)
+		return s.putCounterOnSlot(k, in, sl)
+	}
+	return true
+}
+
+// putCounterOnSlot is OpPutCounter's body for the permanent at sl, run by the
+// single-object path and by each member of a RefSet (set_ops.go). false: the
+// CR 616.1 order ask is posed and the instruction runs again.
+func (s *State) putCounterOnSlot(k *prep, in *kop.Instr, sl Slot) bool {
+	amt := s.value(k, in.A)
+	if k.gen != nil && s.ctrOrderPark(k, sl, int(in.C), amt) {
+		return false // the CR 616.1 order ask; the instruction runs again (repl_ctrorder.go)
+	}
+	n := s.placeCounters(k, sl, int(in.C), amt, s.perms[sl].ctrl, ctrPutEffect)
+	if n > 0 && k.anyCtrAdded {
+		s.ctrNote(k, sl, int(in.C))
+	}
+	if in.B.N >= kop.PutCtrCellFirst {
+		if in.B.N == kop.PutCtrCellFirst {
+			s.g.ctrCell.clr(sl)
 		}
-		n := s.placeCounters(k, sl, int(in.C), amt, s.perms[sl].ctrl, ctrPutEffect)
-		if n > 0 && k.anyCtrAdded {
-			s.ctrNote(k, sl, int(in.C))
-		}
-		if in.B.N >= kop.PutCtrCellFirst {
-			if in.B.N == kop.PutCtrCellFirst {
-				s.g.ctrCell.clr(sl)
-			}
-			s.fireCounterCell(k, sl, n) // trig_countercell.go
-		} else if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
-			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
-		}
-		if in.B.N != 0 {
-			if in.B.N == 1 {
-				s.putCounterRemAmount(k, in, n) // RememberAmount$ (act_remember.go)
-			} else if in.B.N == 2 {
-				s.putCounterRemPut(k, sl, n) // RememberPut$ (ctr_putparams.go)
-			}
+		s.fireCounterCell(k, sl, n) // trig_countercell.go
+	} else if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+		s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
+	}
+	if in.B.N != 0 {
+		if in.B.N == 1 {
+			s.putCounterRemAmount(k, in, n) // RememberAmount$ (act_remember.go)
+		} else if in.B.N == 2 {
+			s.putCounterRemPut(k, sl, n) // RememberPut$ (ctr_putparams.go)
 		}
 	}
 	return true

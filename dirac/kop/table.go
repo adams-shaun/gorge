@@ -917,6 +917,9 @@ type Table struct {
 	// included, ascending: the options of an ExtChooseName with B >= 1 (a
 	// NameCard with no ValidCards$, Sorcerous Spyglass).
 	NameCardsAny []CardID
+	// Sets are the SetExprs a RefSet instruction's SetRef names (SetRef.Set
+	// indexes this; Sets[0] is invalid; sets.go).
+	Sets []SetExpr
 }
 
 // Filter returns the filter with id f.

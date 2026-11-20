@@ -1977,6 +1977,46 @@ const ReplPreventDamageN ReplKind = 65
 // DamageDone (dirac/manifest/ReplKind/ReplDamageRedirect)
 const ReplDamageRedirect ReplKind = 66
 
+// SetOp (dirac/manifest/SetOp/SoBaseRef)
+//
+// push the objects or players an existing kop.Ref names (every existing referent: targets, remembered, chosen, each-player, ...); SetOp.R is the ref
+const SoBaseRef SetOpKind = 1
+
+// SetOp (dirac/manifest/SetOp/SoBaseValid)
+//
+// push every object matching SetOp.F in zone SetOp.Arg (kop.Zone)
+const SoBaseValid SetOpKind = 2
+
+// SetOp (dirac/manifest/SetOp/SoComplementPlayers)
+//
+// replace the top player set with the living players not in it, in seat order from the controller
+const SoComplementPlayers SetOpKind = 3
+
+// SetOp (dirac/manifest/SetOp/SoController)
+//
+// map the top object set to its controllers (a player set, deduplicated)
+const SoController SetOpKind = 4
+
+// SetOp (dirac/manifest/SetOp/SoInter)
+//
+// keep the members of the top set matching SetOp.F
+const SoInter SetOpKind = 5
+
+// SetOp (dirac/manifest/SetOp/SoLKI)
+//
+// read the top object set through last known information (gorge LKICopy): a member that left its zone is read as it last existed
+const SoLKI SetOpKind = 6
+
+// SetOp (dirac/manifest/SetOp/SoOwner)
+//
+// map the top object set to its owners (a player set, deduplicated)
+const SoOwner SetOpKind = 7
+
+// SetOp (dirac/manifest/SetOp/SoUnion)
+//
+// pop two sets, push their union (the lower first, then the upper's new members)
+const SoUnion SetOpKind = 8
+
 // stat OptionalAttackCost (dirac/manifest/StaticKind/StatOptionalAttackCost)
 const StatOptionalAttackCost StaticKind = 22
 

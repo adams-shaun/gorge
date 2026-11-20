@@ -1,0 +1,6 @@
+family: SetOp
+name: SoInter
+value: next
+status: active
+ticket: dsd-t06
+doc: keep the members of the top set matching SetOp.F

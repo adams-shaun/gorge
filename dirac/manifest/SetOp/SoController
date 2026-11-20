@@ -1,0 +1,6 @@
+family: SetOp
+name: SoController
+value: next
+status: active
+ticket: dsd-t06
+doc: map the top object set to its controllers (a player set, deduplicated)
