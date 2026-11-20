@@ -47,11 +47,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // pool stalls at 255 too, so no real pool can look like the sentinel). Two or
 // more unbounded shields with no rider alone on one recipient (Wellgabber
 // Apothecary activated twice), or a bare unbounded shield beside another bare
-// full prevention (a colour record, or the recipient's printed/granted "prevent
-// all" fact, as Guard Gomazoa beside Indestructible Aura), are bare full
-// preventions: whichever applies first prevents the event whole and none is
-// spent, so gorge asks no order and the first applies (pnxBare, barePrevOnly,
-// prevNextCompetes' bare flag).
+// full prevention (a riderless colour or scope record, or the recipient's
+// printed/granted "prevent all" fact, as Guard Gomazoa beside Indestructible
+// Aura), are bare full preventions: whichever applies first prevents the event
+// whole and none is spent, so gorge asks no order and the first applies
+// (pnxBare, barePrevOnly, prevNextCompetes' bare flag). A matching colour or
+// scope record with a rider body is not bare: gorge asks the order and the
+// rider can gain life or mint, so the kernel stalls StallPrevNext instead of
+// applying the shield (prevColRiderHit).
 //
 // Ria Ivor's form adds riders to the unbounded shield: kop.PrevNextPlayers
 // matches a player recipient only, kop.PrevNextEndCombat ends the record with
@@ -345,9 +348,12 @@ func (s *State) combatEvLess(r *dmgRec, ev *dmgEv, code TCode, d int) {
 // matching shield is a bare unbounded one: then the other bare full
 // preventions (prevColHit, prevAnyTo, prevCombatTo, prevCombatFrom) do not
 // compete, because every order prevents the event whole and none is spent
-// (allBarePreventions); a spending replacement still does.
+// (allBarePreventions); a matching colour or scope record with a rider body is
+// not a bare prevention and still competes (prevColRiderHit), and a spending
+// replacement still does.
 func (s *State) prevNextCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool, bare bool) bool {
 	return !bare && s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) || // a colour or scope record
+		bare && s.prevColRiderHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) || // a rider body is never bare
 		s.replOthersCompete(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, bare)
 }
 
