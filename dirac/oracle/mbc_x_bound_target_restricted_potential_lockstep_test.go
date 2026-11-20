@@ -18,4 +18,7 @@ func TestMBCSequenceEngineReprosLockstep(t *testing.T) {
 	// mana value 3 creature card in the graveyard (tail-29 pair 33, decision
 	// 588) while the kernel, which prices the announcement exactly, did not.
 	stdReproNamed(t, "sequence_engine")
+	// gorge offered the activation at a priority decision where the kernel
+	// offered only pass (tail-29-c000 pair 17, decision 325).
+	stdReproNamed(t, "sequence_engine_activation_offer")
 }
