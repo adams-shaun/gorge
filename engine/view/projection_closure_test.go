@@ -96,6 +96,9 @@ func TestViewMarshalsClosed(t *testing.T) {
 		"phase": true, "active": true, "priority": true, "over": true,
 		"draw": true, "winner": true, "players": true, "stack": true,
 		"pending": true, "decision": true, "day_night": true,
+		// public combat-step facts (a damage round's name, whether the combat
+		// had a first-strike pass): no hidden zone can ride on them
+		"damage_step": true, "first_strike_step": true,
 	})
 	// round is a projection of the public turn counter
 	// and the public per-seat lost flags -- how many full passes the surviving
