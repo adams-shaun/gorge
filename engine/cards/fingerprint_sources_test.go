@@ -46,6 +46,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"breakdown.go":            {false, "coverage-report grouping (CoverageGroup); report time only, nothing compiled"},
 	"cache_canon.go":          {true, "canonical gob encoding of the cache and segment bytes"},
 	"cache_codec.go":          {true, "the face codec: the cache and segment bytes of every Face"},
+	"canon_upstream.go":       {true, "rewrites upstream script spellings back to the ones the parser reads, before parsing"},
 	"cache_lock.go":           {false, "single-flight lock around compile+Save; never changes the bytes written"},
 	"cache_lock_flock.go":     {false, "flock implementation of the single-flight lock"},
 	"cache_lock_noflock.go":   {false, "no-op single-flight lock for platforms without flock"},
