@@ -1,7 +1,6 @@
 package dirac
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -42,13 +41,12 @@ type equipTable struct {
 	err  error
 }
 
-var equipTableOnce = sync.OnceValue(func() *equipTable {
+// equipTableMemo is set by the sweep's first scenario; only
+// TestCrudeBentBladeEquipAutopayPlans opens one, from one goroutine.
+var equipTableMemo *equipTable
+
+func equipTableOf(set cardset.Set) *equipTable {
 	et := &equipTable{}
-	set, err := cardset.RawByName("equipautopay")
-	if err != nil {
-		et.err = err
-		return et
-	}
 	names := []string{"Crude Bent Blade", "Dwarven Mauler", "Bolg's Company", "Fearsome Goblin Pair", "Mountain", "Swamp"}
 	deck := []cardset.Entry{}
 	for _, n := range names {
@@ -71,13 +69,15 @@ var equipTableOnce = sync.OnceValue(func() *equipTable {
 		et.id[tbl.Cards[c].Name] = c
 	}
 	return et
-})
+}
 
 func equipAutopayScen(t *testing.T, cfg Config, b equipBoard) *scen {
 	t.Helper()
-	et := equipTableOnce()
+	if equipTableMemo == nil {
+		equipTableMemo = equipTableOf(cardsettest.Set(t, "equipautopay"))
+	}
+	et := equipTableMemo
 	if et.err != nil {
-		cardsettest.Set(t, "equipautopay") // skips or fails exactly as before
 		t.Fatal(et.err)
 	}
 	if et.skip != "" {
