@@ -70,7 +70,9 @@ func evalCov3Head(h Host, c *Ctx, head, arg string, depth int) (int32, bool) {
 			return 0, true
 		}
 		if o := g.Obj(lib[0]); o != nil {
-			return objectProperty(g, o.ID, "CardManaCost"), true
+			// the card's mana value in the library: a split card's halves
+			// combined, a face-down one 0 (CR 202.3, 708.4), state.ManaValue
+			return state.ManaValue(g, o), true
 		}
 		return 0, true
 	case evalCov3HeadTotalOppPoisonCounters:
