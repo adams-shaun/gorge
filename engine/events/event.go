@@ -1358,10 +1358,13 @@ const (
 	ExileTurnFaceUp
 	// SkipPhase arms a CR 614.10 phase skip (Forge DB$ SkipPhase, False Peace's
 	// "target player skips all combat phases of their next turn"): Player is
-	// the skipping seat and Step the phase's first step (StepBeginCombat, the
-	// only phase modelled). Apply folds it into state.Game.PhaseSkips, where it
-	// waits for the seat's next turn; the TurnChange fold makes it live for that
-	// turn and drops it at the turn after. Appended after ExileTurnFaceUp so
+	// the skipping seat and Step the skipped step (StepBeginCombat, StepUntap
+	// or StepDraw). Apply folds it into state.Game.PhaseSkips: Amount 0 on
+	// StepBeginCombat waits for the seat's next turn, which the TurnChange fold
+	// makes live and drops at the turn after; Amount 1 (the seat's next combat
+	// phase) and 2 (the same, this turn only) and Amount 0 on StepUntap or
+	// StepDraw wait for the step itself; Amount -1 consumes the one-shot bit as
+	// the turn structure skips the step. Appended after ExileTurnFaceUp so
 	// every earlier ordinal, hash chain and golden replay is unchanged.
 	SkipPhase
 	// Haunt records CR 702.55b's exile-haunting-a-creature link: Obj is the
