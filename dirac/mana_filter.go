@@ -1327,8 +1327,9 @@ func (fs *filtSearch) phasedFallback() bool {
 // filtScript reports whether gorge's prefix search finds a script for play
 // a of p; with apply it plays the script on s (the play's prefix).
 //
-// When the search spends its whole 160-node budget on an activation, a
-// staged fallback reruns it with a funding cap at the play's mana value and
+// On the autopay surface, when the search spends its whole 160-node budget on
+// an activation, a staged fallback reruns it with a funding cap at the play's
+// mana value and
 // then one step at a time: a fixed cost needs at most its mana value's taps
 // from the covered sources plus the filters' fees, and the capped walk reaches
 // that funding line before the uncapped depth-first walk's dead permutations
@@ -1380,7 +1381,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			}
 		}
 	}
-	if !found && nodes >= potentialScriptNodes && a.Kind() == AkActivate && fs.usefulOK && fs.useful.MV() > 0 {
+	if !found && s.cfg&cfgGorgeAutopay != 0 && nodes >= potentialScriptNodes && a.Kind() == AkActivate && fs.usefulOK && fs.useful.MV() > 0 {
 		fees := 0
 		for m := fs.gaps; m.any(); m = m.rest() {
 			fees += s.filtFee(k, m.first())
