@@ -941,28 +941,7 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		}
 		return c.setCmp(cmpWasCast, 0, n, "", "")
 	case "wasCastFromYourHand", "!wasCastFromYourHand", "wasCastFromTheirHand", "!wasCastFromTheirHand", "wasCastFromHand", "!wasCastFromHand", "wasCastFromYourHandByYou", "wasCastFromExile":
-		// gorge's cast-provenance words (rules castProvenanceAdmits), read on
-		// a spell on the stack: lc.spellProvOK says the filter is a SpellCast
-		// ValidCard$ or a spell's own ConditionPresent$
-		n := spellHand
-		switch p {
-		case "!wasCastFromYourHand", "!wasCastFromTheirHand", "!wasCastFromHand":
-			// gorge reads wasCastFromTheirHand as a cast from a hand, any
-			// caster (cast_provenance.go): the same predicate as YourHand
-			n = spellHand | spellNot
-		case "wasCastFromYourHandByYou":
-			n = spellHandBy
-		case "wasCastFromExile":
-			n = spellExile
-		}
-		c.TheirHand = c.TheirHand || p == "wasCastFromTheirHand" || p == "!wasCastFromTheirHand" || p == "wasCastFromHand" || p == "!wasCastFromHand"
-		if c.CmpStat == cmpWasCast && c.CmpN == wasCastAny {
-			c.CmpStat, c.CmpN = cmpNone, 0 // wasCast+<word>: the word implies the cast
-			if n == spellHand|spellNot {
-				n = spellNotHand
-			}
-		}
-		return c.setCmp(cmpWasCastSpell, 0, n, "", "")
+		return c.castProvWord(p)
 	case "CastSa Spell.Mayhem", "!CastSa Spell.Mayhem":
 		// gorge castSaTokens FlagMayhem (cast_provenance.go): the resolving
 		// spell was cast for its mayhem cost; a stack copy never carries it.
@@ -1341,6 +1320,35 @@ func (c *lClause) setWho(dst *uint8, v uint8) error {
 	}
 	*dst = v
 	return nil
+}
+
+// castProvWord handles gorge's cast-provenance words (rules
+// castProvenanceAdmits), read on a spell on the stack: lc.spellProvOK says
+// the filter is a SpellCast ValidCard$ or a spell's own ConditionPresent$.
+func (c *lClause) castProvWord(p string) error {
+	n := spellHand
+	switch p {
+	case "!wasCastFromYourHand", "!wasCastFromTheirHand", "!wasCastFromHand":
+		// gorge reads wasCastFromTheirHand (and upstream's wasCastFromHand)
+		// as a cast from a hand, any caster (cast_provenance.go): the same
+		// predicate as YourHand
+		n = spellHand | spellNot
+	case "wasCastFromYourHandByYou":
+		n = spellHandBy
+	case "wasCastFromExile":
+		n = spellExile
+	}
+	switch p {
+	case "wasCastFromTheirHand", "!wasCastFromTheirHand", "wasCastFromHand", "!wasCastFromHand":
+		c.TheirHand = true
+	}
+	if c.CmpStat == cmpWasCast && c.CmpN == wasCastAny {
+		c.CmpStat, c.CmpN = cmpNone, 0 // wasCast+<word>: the word implies the cast
+		if n == spellHand|spellNot {
+			n = spellNotHand
+		}
+	}
+	return c.setCmp(cmpWasCastSpell, 0, n, "", "")
 }
 
 // designationWord handles the renowned, Ring-bearer, suspected, goaded (and the monarch controller)
