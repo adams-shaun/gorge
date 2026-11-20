@@ -332,19 +332,34 @@ func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
 	var m slotMask
 	// A creature the cast being paid for announced for convoke is tapped when
 	// that payment settles, so it is not untapped to tap again here (CR 601.2g-h;
-	// gorge pay.ManaTapCandidates, CastCommitted).
+	// gorge pay.ManaTapCandidates, CastCommitted). The activation being paid
+	// for likewise keeps the source its own {T} cost taps (buildSelfTap).
 	var spoken slotMask
+	selfTap := NoSlot
 	if s.buildLive() {
 		spoken = s.convokeHidden()
+		selfTap = s.buildSelfTap(k)
 	}
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		x := b.first()
-		if x == sl && ab.Cost.Flags&kop.CostTap != 0 || s.perms[x].flags&pfTapped != 0 || spoken.has(x) || !s.matchPerm(k, f, x, p, sl) {
+		if x == sl && ab.Cost.Flags&kop.CostTap != 0 || s.perms[x].flags&pfTapped != 0 || spoken.has(x) || x == selfTap || !s.matchPerm(k, f, x, p, sl) {
 			continue
 		}
 		m = m.with(x)
 	}
 	return s.battlefieldOrder(p, m, out[:], 0)
+}
+
+// buildSelfTap is the slot of the activation being paid for when its own cost
+// taps it for {T}: that permanent is committed to the payment and cannot also
+// pay a mana ability's tap or sacrifice part (CR 601.2g-h, the whole cost is
+// paid at once; gorge pay.ManaTapCandidates and pay.ManaSacrificeCandidates,
+// CastCommitted's pc.cost.Tap arm). NoSlot when no such activation is live.
+func (s *State) buildSelfTap(k *prep) Slot {
+	if c := s.buildPickCost(k); c != nil && c.Flags&kop.CostTap != 0 {
+		return s.srcSlot()
+	}
+	return NoSlot
 }
 
 // censusTapXClaim admits sl's tap-another mana ability j in the potential
@@ -386,7 +401,8 @@ func (s *State) censusTapXClaim(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 // sacrifice, in gorge's candidate order (pay.ManaSacrificeCandidates: p's
 // battlefield in entry order): those matching the cost's filter, none a
 // CantSacrifice static withholds, none the cast being paid announced for
-// convoke (it is tapped when that payment settles: CastCommitted). Tapped
+// convoke (it is tapped when that payment settles: CastCommitted), and none
+// the activation being paid for taps for its own {T} (buildSelfTap). Tapped
 // ones are candidates. The source itself is one when its own filter matches
 // it: "sacrifice a creature" can sacrifice the creature that is also the
 // source (CR 701.21a, 602.2b; Phyrexian Tower animated into a creature). The
@@ -394,12 +410,14 @@ func (s *State) censusTapXClaim(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 // creature" (matchPerm), not this walk.
 func (s *State) sacXCands(k *prep, p uint8, sl Slot, ab *kop.Ability, out *[MaxPerm]Slot) int {
 	var spoken, m slotMask
+	selfTap := NoSlot
 	if s.buildLive() {
 		spoken = s.convokeHidden()
+		selfTap = s.buildSelfTap(k)
 	}
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		x := b.first()
-		if spoken.has(x) || !s.matchPerm(k, ab.Cost.Filter, x, p, sl) || s.sacBlocked(k, x) {
+		if spoken.has(x) || x == selfTap || !s.matchPerm(k, ab.Cost.Filter, x, p, sl) || s.sacBlocked(k, x) {
 			continue
 		}
 		m = m.with(x)
