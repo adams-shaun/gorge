@@ -551,6 +551,8 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 	// potential-target retry), so an unpayable untargeted composition retries
 	// each potential target's composition; an unsupported shape is not a proof
 	// either way and keeps the bound's answer.
+	onceGap := false
+	haveCensus := false
 	priceExactly := func(cost Cost) bool {
 		// "insufficient" is a proof only while the planner's source census
 		// covers every mana ability the seat could activate, or a relaxation
@@ -568,6 +570,7 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 			defer e.endDerivedMemo()
 			defer pay.PaymentPlanQueryEnd(asPayer(e), pay.PaymentPlanQueryBegin(asPayer(e)))
 			census := e.paymentPlanCensusOf(p, &bound)
+			onceGap, haveCensus = census.onceGap, true
 			if census.complete {
 				return true
 			}
@@ -645,6 +648,32 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 			cost := announced
 			if !e.offerCastableUsing(statics, p, id, &cost, scope, ability, &bounded) {
 				return false
+			}
+			// A one-shot gap the census cannot relax is the shape the cast
+			// window can price source-exclusively: Wooded Bastion's
+			// "{G/W}, {T}: Add {G}{G}" spends the Plains's {W} for its fee,
+			// while the potential bound adds that production beside the same
+			// land's "{T}: Add {C}" and the Plains's own {W}. A repeatable
+			// fee-only gap keeps the historical potential answer (the spell
+			// burst recording pins it), so only a onceGap reaches this check.
+			// Refuse only when the window's census priced every ability the
+			// seat could activate (CR 601.2h), the same soundness gate the
+			// target menu's probe uses; an incomplete census keeps the
+			// potential bound rather than hiding a play it cannot price. A
+			// mode's own payment descriptor is not built here, so the check
+			// stays on the plain spell.
+			if haveCensus && onceGap && !ability && scope.Kind == "Spell" && scope.Mode == "" {
+				from := state.ZHand
+				if o := e.G.Obj(id); o != nil {
+					from = o.Zone
+				}
+				pcCost := composed
+				pcCost.X = base.X // XAnnounced on the window's descriptor; the cost is already folded
+				pc := &pendingCast{player: p, card: id, from: from, ability: -1, cost: pcCost}
+				units := e.castWindowUnits(pc)
+				if e.castWindowCensusComplete(pc, units) && !e.castWindowPays(pc, composed, units) {
+					return false
+				}
 			}
 			return true
 		}

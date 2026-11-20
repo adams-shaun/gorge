@@ -2299,6 +2299,16 @@ type paymentPlanCensus struct {
 	// gaps lists, in zone order, the sources with an ability the census
 	// misses (potentialPrefixScript activates them).
 	gaps []state.ObjID
+	// onceGap: a missed ability is one-shot (its cost taps, sacrifices or
+	// returns the source, or it has a once-only activation limit) and has no
+	// relaxed alternative. A one-shot paid production (a filter land's
+	// "{G/W}, {T}: Add {G}{G}") is the shape the cast window can price
+	// source-exclusively, so an X-bound offer may refuse an announcement the
+	// window cannot pay even though the potential census cannot prove it. A
+	// repeatable fee-only gap (Crossroads Candleguide's "{2}: Add one mana of
+	// any color") leaves the historical potential answer: its prefix search
+	// is the only bounded route, and dirac mirrors that answer.
+	onceGap bool
 	// gapGains: some ability the census misses may raise the mana a payment
 	// has to spend; false when every one nets no mana (manaAbilityNetsNoMana),
 	// so the covered sources and the pool bound the supply by count.
@@ -2404,6 +2414,9 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			// Refractor after Mystic Gate, CR 605.3a), and both arms below
 			// are then no-ops.
 			relaxed, fee, repeats, once, ok := e.paymentPlanRelaxedAlternatives(p, id, ma, &probe)
+			if !ok && once {
+				out.onceGap = true
+			}
 			if !ok && fee > 0 {
 				// a repeatable fee-only ability converts colour, not mana:
 				// each activation spends its fee from other sources, so the
