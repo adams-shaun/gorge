@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strconv"
@@ -44,7 +45,13 @@ type params struct {
 	used map[string]bool
 }
 
-func newParams(m map[string]string) *params { return &params{m: m, used: map[string]bool{}} }
+func newParams(m map[string]string) *params {
+	// m is the card's own map (the registry's, which gorge reads and every
+	// pool of a build shares), so a lowering's rewrite (static_cost.go's
+	// AlternativeCost Spell.Self re-spelling, earthbend's implicit target)
+	// is over a private copy, never the card's
+	return &params{m: maps.Clone(m), used: map[string]bool{}}
+}
 
 func (p *params) get(k string) (string, bool) {
 	v, ok := p.m[k]
