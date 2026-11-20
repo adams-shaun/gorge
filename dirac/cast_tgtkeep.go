@@ -143,7 +143,7 @@ func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cos
 // the census affords the cost with every protected production held out.
 func (s *State) minTargetsKept(k *prep, p uint8, sp *kop.TargetSpec, cost *kop.ManaCost, cands []TCode) bool {
 	kept := 0
-	var held []Obj
+	var held slotMask
 	for _, tc := range cands {
 		if kept >= int(sp.Min) {
 			return true
@@ -158,9 +158,10 @@ func (s *State) minTargetsKept(k *prep, p uint8, sp *kop.TargetSpec, cost *kop.M
 			continue
 		}
 		var c1 avail
-		s.availSansObjs(k, p, append(held, tobj), &c1)
+		next := held.with(s.objs[tobj].slot)
+		s.availSansSlots(k, p, next, &c1)
 		if c1.affords(cost, pipMaskOf(cost), 0) {
-			held = append(held, tobj)
+			held = next
 			kept++
 		}
 	}
@@ -183,18 +184,15 @@ func (s *State) minTargetsKept(k *prep, p uint8, sp *kop.TargetSpec, cost *kop.M
 // only when painTight left the units alone keeps the budget model's count
 // exact (a binding summed life guard is still the conservative answer).
 func (s *State) availSansObj(k *prep, p uint8, o Obj, a *avail) {
-	s.availSansObjs(k, p, []Obj{o}, a)
+	s.availSansSlots(k, p, slotMask{}.with(s.objs[o].slot), a)
 }
 
-// availSansObjs is availSansObj for several held-out objects at once.
-func (s *State) availSansObjs(k *prep, p uint8, objs []Obj, a *avail) {
-	var held slotMask
-	for _, o := range objs {
-		held = held.with(s.objs[o].slot)
-	}
+// availSansSlots is availSansObj for several held-out slots at once (a mask,
+// so the cast-offer path allocates nothing).
+func (s *State) availSansSlots(k *prep, p uint8, held slotMask, a *avail) {
 	s.availForMode(k, p, a, held, false)
-	for _, o := range objs {
-		sl := s.objs[o].slot
+	for b := held; b.any(); b = b.rest() {
+		sl := b.first()
 		m := s.g.availX
 		s.g.availX = availPlain
 		pc := s.manaPCGen(k, sl)
