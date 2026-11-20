@@ -265,6 +265,7 @@ type supportCounts struct {
 	list                                           string
 	cards, lowered, refused, unverified, supported int
 	fourSeat                                       int // supported and not two-seat only (CardDef.TwoSeat)
+	podEvidenced                                   int // 4-seat-capable cards whose evidence row carries a seats field; report only
 }
 
 func countSupport(t *testing.T, cardsDir, list string, s *supportLists) supportCounts {
@@ -292,6 +293,9 @@ func countSupport(t *testing.T, cardsDir, list string, s *supportLists) supportC
 			r.supported++
 			if !c.TwoSeat {
 				r.fourSeat++
+				if s.podEvidencedFor(c.Name) {
+					r.podEvidenced++
+				}
 			}
 		}
 	}
@@ -321,24 +325,29 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 	} else {
 		b.WriteString(", so unverified cards still play")
 	}
-	b.WriteString(".\n\n| list | cards | lowered | refused | unverified | supported | 4-seat |\n|---|---:|---:|---:|---:|---:|---:|\n")
+	b.WriteString(".\n\n| list | cards | lowered | refused | unverified | supported | 4-seat | pod-evidenced |\n|---|---:|---:|---:|---:|---:|---:|---:|\n")
 	codes, err := readCardList(filepath.Join(testRoot, standardListPath))
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, list := range append(append(codes, supportDraftLists...), "ALL") {
 		r := countSupport(t, cardsDir, list, s)
-		fmt.Fprintf(&b, "| %s | %d | %d | %d | %d | %d | %d |\n", r.list, r.cards, r.lowered, r.refused, r.unverified, r.supported, r.fourSeat)
+		fmt.Fprintf(&b, "| %s | %d | %d | %d | %d | %d | %d | %d |\n", r.list, r.cards, r.lowered, r.refused, r.unverified, r.supported, r.fourSeat, r.podEvidenced)
 	}
-	b.WriteString("\n`ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.\n\n## What supported covers\n\n")
+	b.WriteString("\n`ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.\n\n## What supported covers\n\n")
 	b.WriteString("Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per Standard set: 1,500 pairs each, seed 1, the random policy, both surfaces, mulligans 0 and 1, every run passing `kfuzz -absolute`. A synthetic pool deals its decks from the cards it plays, so no pair is lost to a refused card; it skips only a pair the kernel refuses together, so it can play fewer games, and its cards met the floor in these:\n\n| pool | games per run |\n|---|---:|\n")
 	games, err := os.ReadFile(filepath.Join(testRoot, "dirac", "support", "evidence-games.tsv"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, row := range strings.Fields(strings.ReplaceAll(string(games), "\t", ",")) {
-		pool, n, _ := strings.Cut(row, ",")
-		fmt.Fprintf(&b, "| %s | %s |\n", pool, n)
+		// A pod run's row carries a third column, its clean pod games; the table
+		// shows a run's games only, and readers of the file ignore extra columns.
+		f := strings.SplitN(row, ",", 3)
+		if len(f) < 2 {
+			continue
+		}
+		fmt.Fprintf(&b, "| %s | %s |\n", f[0], f[1])
 	}
 	b.WriteString("\nNothing else is covered. A card none of these runs reaches is unverified, whatever it does. A supported card has played clean in these games, not in every game: the standing sweep and census are separate runs, last measured at 164 and 244 divergent pairs, and are outside this claim.\n\n## Refused by name\n\n")
 	entries, err := cardset.ReadRefused(os.DirFS(testRoot))
@@ -417,7 +426,7 @@ type supportPage struct {
 }
 
 var (
-	supportRowLine   = regexp.MustCompile(`^\| ([A-Za-z0-9-]+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \|$`)
+	supportRowLine   = regexp.MustCompile(`^\| ([A-Za-z0-9-]+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \|$`)
 	refusedClassLine = regexp.MustCompile(`^\| ([^|]+) \| (\d+) \|$`)
 )
 
@@ -447,11 +456,11 @@ func parseSupportDoc(b []byte) (supportPage, error) {
 			return p, fmt.Errorf("list %s has two rows", m[1])
 		}
 		seen[m[1]] = true
-		var n [6]int
+		var n [7]int
 		for i := range n {
 			n[i], _ = strconv.Atoi(m[i+2])
 		}
-		p.rows = append(p.rows, supportCounts{list: m[1], cards: n[0], lowered: n[1], refused: n[2], unverified: n[3], supported: n[4], fourSeat: n[5]})
+		p.rows = append(p.rows, supportCounts{list: m[1], cards: n[0], lowered: n[1], refused: n[2], unverified: n[3], supported: n[4], fourSeat: n[5], podEvidenced: n[6]})
 	}
 	if len(p.rows) == 0 || !sawRefused {
 		return p, fmt.Errorf("not a support page: %d list rows, refused-by-name section %v", len(p.rows), sawRefused)
@@ -463,7 +472,8 @@ func parseSupportDoc(b []byte) (supportPage, error) {
 // supported or 4-seat count dropping or its refused count rising. A card refused by name
 // (a file in dirac/support/refused) is the one sanctioned fall, so a refused rise is a fall
 // only past the refusals the refused-by-name section added, and supported and 4-seat may
-// drop by as many cards as the list's refused count rose.
+// drop by as many cards as the list's refused count rose. pod-evidenced is report only:
+// the falls do not read it, either way a pod run's landing moves it.
 func supportFalls(stored, now supportPage) []string {
 	added := 0
 	for class, n := range now.byClass {
@@ -509,27 +519,28 @@ func TestSupportDocFallOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(stored.rows) != 3 || stored.rows[2] != (supportCounts{"ALL", 34442, 24129, 3, 18026, 6100, 6032}) ||
+	if len(stored.rows) != 3 || stored.rows[2] != (supportCounts{"ALL", 34442, 24129, 3, 18026, 6100, 6032, 1}) ||
 		stored.byClass["options"] != 2 || len(stored.byClass) != 2 {
 		t.Fatalf("parsed %+v", stored)
 	}
-	const blb = "| BLB | 278 | 261 | 2 | 0 | 259 | 258 |"
+	const blb = "| BLB | 278 | 261 | 2 | 0 | 259 | 258 | 1 |"
 	for _, c := range []struct {
 		name  string
 		edits []string // old, new pairs
 		falls int
 	}{
 		{"unchanged", nil, 0},
-		{"a card lowers and is evidenced", []string{blb, "| BLB | 278 | 262 | 2 | 0 | 260 | 259 |"}, 0},
-		{"lowered falls", []string{blb, "| BLB | 278 | 260 | 2 | 0 | 258 | 257 |"}, 3},
-		{"evidence lost", []string{blb, "| BLB | 278 | 261 | 2 | 1 | 258 | 258 |"}, 1},
-		{"4-seat falls", []string{blb, "| BLB | 278 | 261 | 2 | 0 | 259 | 257 |"}, 1},
-		{"refused rises with no refusal by name", []string{blb, "| BLB | 278 | 261 | 3 | 0 | 258 | 257 |"}, 1},
-		{"a refusal by name", []string{blb, "| BLB | 278 | 261 | 3 | 0 | 258 | 257 |", "| options | 2 |", "| options | 3 |"}, 0},
-		{"a refusal by name in a new class", []string{blb, "| BLB | 278 | 261 | 3 | 0 | 258 | 257 |", "| options | 2 |", "| options | 2 |\n| projection | 1 |"}, 0},
-		{"a refusal by name and evidence lost", []string{blb, "| BLB | 278 | 261 | 3 | 1 | 257 | 257 |", "| options | 2 |", "| options | 3 |"}, 1},
-		{"a refusal lifted", []string{blb, "| BLB | 278 | 261 | 1 | 0 | 260 | 259 |", "| options | 2 |", "| options | 1 |"}, 0},
-		{"a list gone", []string{"| FDN | 517 | 517 | 0 | 0 | 517 | 514 |\n", ""}, 1},
+		{"a card lowers and is evidenced", []string{blb, "| BLB | 278 | 262 | 2 | 0 | 260 | 259 | 1 |"}, 0},
+		{"lowered falls", []string{blb, "| BLB | 278 | 260 | 2 | 0 | 258 | 257 | 1 |"}, 3},
+		{"evidence lost", []string{blb, "| BLB | 278 | 261 | 2 | 1 | 258 | 258 | 1 |"}, 1},
+		{"4-seat falls", []string{blb, "| BLB | 278 | 261 | 2 | 0 | 259 | 257 | 1 |"}, 1},
+		{"pod-evidenced falls", []string{blb, "| BLB | 278 | 261 | 2 | 0 | 259 | 258 | 0 |"}, 0},
+		{"refused rises with no refusal by name", []string{blb, "| BLB | 278 | 261 | 3 | 0 | 258 | 257 | 1 |"}, 1},
+		{"a refusal by name", []string{blb, "| BLB | 278 | 261 | 3 | 0 | 258 | 257 | 1 |", "| options | 2 |", "| options | 3 |"}, 0},
+		{"a refusal by name in a new class", []string{blb, "| BLB | 278 | 261 | 3 | 0 | 258 | 257 | 1 |", "| options | 2 |", "| options | 2 |\n| projection | 1 |"}, 0},
+		{"a refusal by name and evidence lost", []string{blb, "| BLB | 278 | 261 | 3 | 1 | 257 | 257 | 1 |", "| options | 2 |", "| options | 3 |"}, 1},
+		{"a refusal lifted", []string{blb, "| BLB | 278 | 261 | 1 | 0 | 260 | 259 | 1 |", "| options | 2 |", "| options | 1 |"}, 0},
+		{"a list gone", []string{"| FDN | 517 | 517 | 0 | 0 | 517 | 514 | 0 |\n", ""}, 1},
 	} {
 		doc := base
 		for i := 0; i < len(c.edits); i += 2 {
@@ -546,7 +557,7 @@ func TestSupportDocFallOnly(t *testing.T) {
 			t.Errorf("%s: falls %q, want %d", c.name, falls, c.falls)
 		}
 	}
-	for _, bad := range []string{"", "| BLB | 1 | 1 | 0 | 0 | 1 | 1 |\n", strings.Replace(base, "## Refused by name", "## Refused", 1), strings.Replace(base, "| FDN |", "| BLB | 1 | 1 | 0 | 0 | 1 | 1 |\n| FDN |", 1)} {
+	for _, bad := range []string{"", "| BLB | 1 | 1 | 0 | 0 | 1 | 1 | 0 |\n", strings.Replace(base, "## Refused by name", "## Refused", 1), strings.Replace(base, "| FDN |", "| BLB | 1 | 1 | 0 | 0 | 1 | 1 | 0 |\n| FDN |", 1)} {
 		if _, err := parseSupportDoc([]byte(bad)); err == nil {
 			t.Errorf("%q parsed", bad)
 		}
