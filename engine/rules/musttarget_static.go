@@ -89,9 +89,12 @@ func (e *Engine) mustTargetOptions(d *decision.Decision, actor state.PlayerID, a
 		if zone != "" && zone != "Battlefield" {
 			continue
 		}
+		// The spec matcher, not hasType: a Changeling is every creature type
+		// (CR 702.73a), Flagbearer included, though the derived type list
+		// never materialises its types.
 		for i, o := range d.Options {
 			obj := e.G.Obj(o.Obj)
-			if o.Obj == 0 || obj == nil || obj.Zone != state.ZBattlefield || !e.hasType(obj, valid) {
+			if o.Obj == 0 || obj == nil || obj.Zone != state.ZBattlefield || !e.matchesSpecFrom(valid, obj.ID, sv.Controller, sv.Source) {
 				continue
 			}
 			if must == nil {
