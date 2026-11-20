@@ -1923,9 +1923,19 @@ func (sr *scriptSearch) feeOnlyAskPrune(c *Engine, d *decision.Decision, answers
 // needs X to sit before or after S in battlefield order: the two lines are
 // parallel branches of the same ask, and each one's continuations are
 // reachable from the other after both activations.
+//
+// The argument reads X's tap as spendable on the colour. The searched
+// ability's own {T} source spends its one tap on the play itself
+// (ownTapSource), so no continuation of the dominated branch can use it for
+// mana and the endpoint the argument saves is not reachable: the play that
+// taps it for its own cost is the one line there is. The Surgical Bay's
+// "{1}{U}, {T}, Sacrifice" beside its own "{T}: Add {U}" is the shape -- the
+// only free bare-tap source of {U} is the Bay, which the play taps -- so the
+// ask keeps {U} and the search prices the play it would otherwise leave
+// unoffered (CR 605.3a's line-holds argument needs the free tap).
 func (sr *scriptSearch) feeOnlyFreeTapColour(c *Engine, skip state.ObjID, colour int) bool {
 	for _, id := range c.G.Zone(state.ZBattlefield, sr.p) {
-		if id == skip {
+		if id == skip || sr.ownTapSource(c, id) {
 			continue
 		}
 		o := c.G.Obj(id)

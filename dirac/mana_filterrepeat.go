@@ -224,7 +224,16 @@ func pipSum(p *[kop.NumManaKinds]uint8) (n int) {
 // branches and starved the line that pays the play without the filter, whose
 // offer then went missing. useful nil (the play's printed pips unread,
 // filtUsefulCost) fails open: the branch is explored.
-func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int) bool {
+// own is the searched play's own {T} source (fs.own, the grant search's
+// g.ex; NoSlot none): the second cut below prices the exchange with a free
+// bare-tap source, and the play's own cost tap is not one -- its one tap pays
+// the play itself, so no continuation of the dominated branch can use it for
+// mana and the endpoint the argument saves is not reachable. The Surgical
+// Bay's "{1}{U}, {T}, Sacrifice" beside its own "{T}: Add {U}": the only free
+// bare-tap source of {U} is the Bay, which the play taps, so {U} stays in the
+// ask and the search prices the play (CR 605.3a's line-holds argument needs
+// the free tap).
+func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot) bool {
 	if useful == nil || useful.Hyb[0] != 0 || s.g.winMode == winTrig || !s.filtRepeat(k, sl) {
 		return false
 	}
@@ -262,7 +271,7 @@ func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost
 	// spent. S makes any colour, so it can stand in for every colour X can;
 	// a source whose cost also spends a counter, a permanent or life is a
 	// different class (the swap would lose that other use) and fails open.
-	return s.filtFreeTapColour(k, p, sl, col)
+	return s.filtFreeTapColour(k, p, sl, own, col)
 }
 
 // filtFreeTapColour reports whether p controls an untapped source other than
@@ -275,10 +284,10 @@ func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost
 // not the same and the cut fails open (gorge's PaymentPlanTapOnlyCost reads
 // the same class, pay.ManaFreeCost's c.Life == 0; canTapForManaPC only holds
 // the lethal band out, life < painN, which is not enough here).
-func (s *State) filtFreeTapColour(k *prep, p uint8, skip Slot, col int) bool {
+func (s *State) filtFreeTapColour(k *prep, p uint8, skip Slot, own Slot, col int) bool {
 	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 		sl := b.first()
-		if sl == skip || s.perms[sl].flags&pfTapped != 0 || s.genLost(k, sl) || s.activationSick(k, sl) {
+		if sl == skip || sl == own || s.perms[sl].flags&pfTapped != 0 || s.genLost(k, sl) || s.activationSick(k, sl) {
 			continue
 		}
 		if k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
