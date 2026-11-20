@@ -465,6 +465,13 @@ type pendingCast struct {
 	emergeDone bool        `clone:"deep"`
 	emergeSac  state.ObjID `clone:"deep"`
 
+	// offeringDone / offeringSac are emerge's siblings for an Offering cast
+	// (CR 702.48, offering.go; the "offering" mode is the mark): sacAsk
+	// records the chosen permanent in offeringSac, and the symbol-by-symbol
+	// reduction is applied once, guarded by offeringDone.
+	offeringDone bool        `clone:"deep"`
+	offeringSac  state.ObjID `clone:"deep"`
+
 	// suspendCastClear marks a suspend cast's time-counter clear as owed.
 	suspendCastClear bool `clone:"deep"`
 
