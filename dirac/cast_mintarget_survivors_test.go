@@ -12,7 +12,7 @@ import (
 // do (gorge's targetChoiceFeasible over survivorsCanTarget's survivors,
 // engine/rules/legal_targets.go), not by their count. A payment plan that
 // consumes one candidate of a Min-2 slot leaves two survivors whose count
-// passes while the slot's cross-target constraint refuses: "up to two target
+// passes while the slot's cross-target constraint refuses: "two target
 // creatures that share a controller" beside a plan consuming a candidate
 // leaves the two other creatures under DIFFERENT controllers -- the count is
 // two, but no one seat supplies two, so gorge refuses the cast and the census

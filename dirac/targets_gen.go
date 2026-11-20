@@ -350,28 +350,5 @@ func (s *State) hasTargetsMin(k *prep, t *kop.TargetSpec, p uint8, src Slot, sel
 	if n < int(t.Min) {
 		return false
 	}
-	if t.TFlags&kop.TgfSharedCrType != 0 {
-		// returns before the same/different-controller checks below: kgen
-		// refuses a shared-type slot beside SameCtrl/DiffCtrl, so they never meet.
-		return s.tgtSetCap(k, t, buf[:n]) >= t.Min // tgt_setconstraints.go
-	}
-	if t.TFlags&kop.TgfSameController != 0 {
-		var per [MaxSeats]uint8
-		for i := 0; i < n; i++ {
-			if isObjTarget(buf[i]) {
-				per[SeatIx(s.ctrlOfObj(Obj(buf[i])))]++
-			}
-		}
-		return seatMax(&per) >= t.Min
-	}
-	if t.TFlags&kop.TgfDiffController != 0 {
-		var seen [MaxSeats]bool
-		for i := 0; i < n; i++ {
-			if isObjTarget(buf[i]) {
-				seen[SeatIx(s.ctrlOfObj(Obj(buf[i])))] = true
-			}
-		}
-		return seatCount(&seen) >= t.Min
-	}
-	return true
+	return s.tgtCapsHold(k, t, buf[:n])
 }

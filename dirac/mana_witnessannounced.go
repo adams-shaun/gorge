@@ -67,28 +67,5 @@ func (s *State) targetsKept(k *prep, p uint8, sp *kop.TargetSpec, t *State, self
 	if need == 1 {
 		return true // the dynamic (or one-survivor) minimum binds nothing
 	}
-	// the capacities over the survivors; kgen refuses a shared-type slot
-	// beside the controller bits, so the branches never meet.
-	if sp.TFlags&kop.TgfSharedCrType != 0 {
-		return s.tgtSetCap(k, sp, buf[:m]) >= sp.Min // tgt_setconstraints.go
-	}
-	if sp.TFlags&kop.TgfSameController != 0 {
-		var per [MaxSeats]uint8
-		for i := 0; i < m; i++ {
-			if isObjTarget(buf[i]) {
-				per[SeatIx(s.ctrlOfObj(Obj(buf[i])))]++
-			}
-		}
-		return seatMax(&per) >= sp.Min
-	}
-	if sp.TFlags&kop.TgfDiffController != 0 {
-		var seen [MaxSeats]bool
-		for i := 0; i < m; i++ {
-			if isObjTarget(buf[i]) {
-				seen[SeatIx(s.ctrlOfObj(Obj(buf[i])))] = true
-			}
-		}
-		return seatCount(&seen) >= sp.Min
-	}
-	return true
+	return s.tgtCapsHold(k, sp, buf[:m]) // the capacities over the survivors
 }
