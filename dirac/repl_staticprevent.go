@@ -136,7 +136,7 @@ func (s *State) matchSourceCard(k *prep, f kop.FilterID, c CardID, owner, ctrl u
 		if fl.Flags&kop.FSelf != 0 {
 			continue
 		}
-		if s.matchCardOneAt(k, fl, c, owner, ctrl, NoObj, ctx) {
+		if s.matchCardOneAt(k, fl, c, owner, ctrl, NoObj, ctx, false) {
 			return true
 		}
 	}

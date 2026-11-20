@@ -162,7 +162,7 @@ func (s *State) attackedCardMatch(k *prep, f kop.FilterID, c CardID, owner uint8
 		if fl.Flags&kop.FOther != 0 && o == ctx.src || fl.Flags&kop.FSelf != 0 && o != ctx.src {
 			continue
 		}
-		if s.matchCardOneAt(k, fl, c, owner, ctx.ctrl, o, nil) {
+		if s.matchCardOneAt(k, fl, c, owner, ctx.ctrl, o, nil, false) {
 			return true
 		}
 	}
