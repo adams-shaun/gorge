@@ -214,6 +214,21 @@ jobs:
           # The PR's own tree. The checkout is the merge ref, which carries main's later operations.
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: go run ./cmd/checkratchet "${{ github.event.pull_request.base.sha }}" "$HEAD_REF" "$HEAD_SHA"
+      - name: Merge the current main
+        # A pull request's checkout is the merge ref GitHub computed when the event fired; the job may start much later
+        # (gorge-pr queue wait p90 ~22 min, max ~40, 11-20), and the PR then waits in the Mergify queue. 11-20 #2514
+        # re-added map rows main already had: green alone, a duplicate key once merged, and a red batch. Merging the
+        # main of now before vet (which compiles every package and its tests) catches that class here. A conflict is
+        # left to Mergify, which reports it; the checks below then run on the merge ref as before.
+        if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/')
+        run: |
+          git fetch -q origin "${{ github.event.pull_request.base.ref }}"
+          if git merge-base --is-ancestor FETCH_HEAD HEAD; then echo "the base has not moved since the merge ref"; exit 0; fi
+          if git -c user.email=ci@invalid -c user.name=ci merge -q --no-edit FETCH_HEAD; then
+            echo "merged the current base: $(git rev-parse --short FETCH_HEAD)"
+          else
+            git merge --abort; echo "::warning::conflicts with the current base; Mergify will report it"
+          fi
       - name: gofmt
         run: |
           out=$(gofmt -l $(find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print))
