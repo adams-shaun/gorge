@@ -1684,13 +1684,7 @@ func (s *State) finishBuild(k *prep) {
 		}
 		obsPool, obsOK := s.obsWinPool(e.ctrl)
 		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.madnessPlainPay(k, &e) || e.trigPl == trigPlMiracle {
-			// a free cast mid-resolution (Etali) pays the rest of its
-			// cost (Eaten Alive's {3}{B} part) through gorge's mana
-			// window, not the priority planner (pair 9954); a cost the
-			// window cannot finish (Reenact the Crime's copy of Officious
-			// Interrogation, whose per-target RaiseCost the pool lacks)
-			// reverses the cast (CR 733.1)
-			if !s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0) {
+			if !s.payFreeCast(k, &e, &cost, anyColor) {
 				return
 			}
 		} else if k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, &e) {
@@ -1851,6 +1845,28 @@ func (s *State) finishBuild(k *prep) {
 	if s.parkedWaiting() {
 		s.ctl = ctlExileOrder // a cost's parked move (repl_exilemark.go)
 	}
+}
+
+// payFreeCast pays what a cost-waived cast still owes (CR 601.2f, 118.9d).
+// A free may-play cast is one of gorge's potential plays when its planner
+// prices the raise, so the witness taps the sources by object ID
+// (pay.CompareSteps) rather than the manual window's battlefield order: a
+// land played this turn can carry the lower object ID (tail-64 pair 75). A
+// free cast mid-resolution (Etali) has no priority plan and keeps the
+// window (pair 9954), as does a raise the plain planner cannot price (a
+// tap-another mana ability pays it), which the window's walk reaches. The
+// plan's payment spends the restricted mana this cast admits before the
+// ordinary units of its colour (payRestrRider, CR 106.6), as every other
+// cast does (the s.rbAny arm below): Karn, Legacy Reforged's artifact-only
+// {C} pays the raise, and the census source stays untapped.
+func (s *State) payFreeCast(k *prep, e *stackEntry, cost *kop.ManaCost, anyColor bool) bool {
+	if e.flags&sfFree != 0 && e.flags&sfMayPlay != 0 && s.bld().bfl&bflLowered == 0 &&
+		e.flags&sfAnyMana == 0 && !anyColor && cost.X == 0 && e.x == 0 &&
+		s.castRestPriced(k, e.ctrl, e.obj, cost) {
+		s.payRestrRider(k, e.ctrl, cost, int(e.x), e.obj, false)
+		return true
+	}
+	return s.payCastWindow(k, e.ctrl, cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
 }
 
 func (s *State) push(e stackEntry) {
