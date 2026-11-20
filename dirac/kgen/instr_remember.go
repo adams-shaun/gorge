@@ -8,6 +8,7 @@ import (
 func init() {
 	instrOp("ClearRemembered", (*instrCtx).opClearRemembered)
 	instrOp("ClearChosen", (*instrCtx).opClearChosen)
+	instrOp("RememberPlayer", (*instrCtx).opRememberPlayer)
 	instrOp("ClearImprinted", (*instrCtx).opClearImprinted)
 	instrOp("RememberSearcher", (*instrCtx).opRememberSearcher)
 	instrOp("RememberAll", (*instrCtx).opRememberAll)
@@ -24,6 +25,15 @@ func (ic *instrCtx) opImprintTriggered() error {
 	ki := &ic.ki
 	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberAll))
 	ki.C = kop.RememberAllImprint
+	return nil
+}
+
+// opRememberPlayer records the player Obj names (a Pump's remembered target
+// controller) as the resolution's player, for the Draw that follows a
+// GainControl (lower_remembered.go pumpRememberOppController).
+func (ic *instrCtx) opRememberPlayer() error {
+	ki := &ic.ki
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberPlayer))
 	return nil
 }
 

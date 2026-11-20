@@ -1541,10 +1541,17 @@ const ExtMyriad ExtOp = 102
 
 func init() { extOpNames[ExtMyriad] = "Myriad" }
 
+// ExtOp (dirac/manifest/ExtOp/ExtRememberPlayer)
+//
+// Pump RememberObjects$ TargetedController: record the target's controller as the resolution's player (res.chPl) so the chained Draw can read it after the GainControl (Rules of Acquisition; CR 608.2c).
+const ExtRememberPlayer ExtOp = 103
+
+func init() { extOpNames[ExtRememberPlayer] = "RememberPlayer" }
+
 // RepeatOptional (dirac/manifest/ExtOp/ExtRepeatOptional)
 //
 // ExtRepeatOptional: an OpRepeatWhile body's RepeatOptional$ election (gorge effRepeat's repeat_optional "Repeat this process?"). B.N 0 at the body's head: C is the pass's progress condition, and a pass that starts without it is the last one, no election follows it (gorge's changed-nothing shortcut, CR 732.2a). B.N 1 at the body's tail: unless the pass was the last, the resolving controller is asked yes / no (ChGenConfirm); a no ends the loop. dirac/act_repeatoptional.go.
-const ExtRepeatOptional ExtOp = 103
+const ExtRepeatOptional ExtOp = 104
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 
