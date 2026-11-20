@@ -66,6 +66,15 @@ type ManaParams struct {
 	// bound share).
 	AnyDifferent bool
 
+	// PerUnitAlloc is Produced$'s "Combo " shape: the live colour ask poses
+	// one colour PER mana unit for it (mana_activation.go's allocation ask,
+	// effMana's allocation branch), while a plain Produced$ Any poses ONE
+	// colour for the whole Amount$ ("two mana of any one color"). Rules'
+	// cast-window reach prices a production's mixed multisets only for this
+	// shape, through the same compiled bit the live ask reads, so the probe
+	// and the ask cannot disagree on which shape allocates.
+	PerUnitAlloc bool
+
 	// EachLit/EachIsLit are Each$'s strconv literal (EachIsLit false for a
 	// blank or non-literal value).
 	EachLit   int
@@ -168,6 +177,7 @@ func compileMana(sa *cards.SA, dp *DefinedParams) *ManaParams {
 
 	p.PlainTap = strings.TrimSpace(sa.ParamStr(cards.PKCost)) == "T"
 	p.AnyDifferent = p.PlainTap && p.Produced == "Combo AnyDifferent"
+	p.PerUnitAlloc = strings.HasPrefix(p.Produced, "Combo ")
 	p.PlainSym, p.PlainAmt = plainManaParams(sa, p)
 	if sa.API == "Mana" {
 		p.Unread = unreadKeys(sa, manaKnownKeys[:])

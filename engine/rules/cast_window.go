@@ -430,34 +430,10 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 			}
 			for _, feeMask := range feeMasks {
 				if any {
-					// A Combo production allocates its Amount$ units one at a
-					// time, so a two-mana "add two mana in any combination of
-					// colors" source (Sage of the Maze) can pay
-					// {W}{G}: the split, not two units of one colour. The
-					// window's reach prices every bounded allocation; past the
-					// bound the single-colour alternatives stand, never fewer
-					// than the pre-split window. A plain "Any" is one colour by
-					// definition and keeps them too.
-					if effects.IsComboAllocation(mp.Produced) && !mp.NeedsChosen && !mp.AnyDifferent {
-						if combos := windowAnyCombinations(counts, amt); combos != nil {
-							for _, combo := range combos {
-								alt := windowManaAlt{Ma: ma, Counts: combo, Amt: 1, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac}
-								if post {
-									postAlts = append(postAlts, alt)
-								} else {
-									windowUnits = appendCastWindowAlt(windowUnits, id, alt)
-								}
-							}
-							continue
-						}
-					}
-					for colour, n := range counts {
-						if n == 0 {
-							continue
-						}
-						var single [6]int32
-						single[colour] = 1
-						alt := windowManaAlt{Ma: ma, Counts: single, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac}
+					// mp.PerUnitAlloc is the live ask's own compiled bit: the
+					// mixed multisets are priced only for the per-unit Combo
+					// shape a plain Produced$ Any cannot produce.
+					for _, alt := range castWindowAnyAlts(ma, mp.PerUnitAlloc, counts, amt, lifeCost, genericCost, feeMask, freeTap, selfSac) {
 						if post {
 							postAlts = append(postAlts, alt)
 						} else {
@@ -481,47 +457,89 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 	return windowUnits
 }
 
-// maxWindowAnyCombination bounds the concrete allocations windowAnyCombinations
-// expands a Combo production into: C(n+4,4) alternatives (15 at n=2, 70 at
-// n=4). Past it the single-colour alternatives stand, because the expansion is
-// a reach-walk cost, not a correctness fence.
-const maxWindowAnyCombination = 4
-
-// windowAnyCombinations returns every multiset of n mana over the colours
-// avail names, as concrete Counts vectors (Amt 1): a Combo production with
-// Amount$ n makes n mana in any combination of those colours (the card's own
-// text), not n mana of one colour. nil when n is outside the bounded range, or when fewer
-// than two colours are available (one colour's only split is the existing
-// single-colour alternative).
-func windowAnyCombinations(avail [6]int32, n int32) [][6]int32 {
-	if n < 2 || n > maxWindowAnyCombination {
-		return nil
-	}
+// castWindowAnyAlts enumerates one choice-shaped production's window
+// alternatives. perUnit (the compiled ManaParams bit, the same one the live
+// colour ask poses) says whether the production's amount is one unit of mana
+// of any of the colours counts
+// carries, chosen per mana unit as the ability resolves (CR 106.1b): one
+// Combo Any Amount 2 activation can select G then W, so {G}{W} is payable
+// from a single such source and an X ask bounded by the window must see every
+// multiset of amt units over those colours, single-colour ones and mixed ones
+// beside them (CR 601.2g; tail-36's convoke Worldsoul Colossus {X}{G}{W}
+// cast). For a PLAIN Produced$ Any the ask poses one colour for the whole
+// Amount$ (mana_activation.go's non-allocation ask), so only the
+// single-colour alternatives are legal: the amount as amt of one colour, and
+// the mixed multisets it cannot produce are never priced from it. The
+// multisets are emitted in ascending colour order, so the enumeration is
+// deterministic. When the multiset count passes castWindowAnyAltCombos, or
+// the amount is non-positive, the single-colour alternatives alone are kept:
+// the count grows combinatorially, and a dropped alternative only understates
+// the proven reach (a missing X is never offered) — it can never promise one
+// the window cannot pay.
+func castWindowAnyAlts(ma *cards.SA, perUnit bool, counts [6]int32, amt, lifeCost, genericCost int32, feeMask state.Mana, freeTap, selfSac bool) []windowManaAlt {
 	var colours []int
-	for i, c := range avail {
-		if c > 0 {
-			colours = append(colours, i)
+	for c, n := range counts {
+		if n > 0 {
+			colours = append(colours, c)
 		}
 	}
-	if len(colours) < 2 {
+	if len(colours) == 0 {
 		return nil
 	}
-	var out [][6]int32
+	single := func() []windowManaAlt {
+		out := make([]windowManaAlt, 0, len(colours))
+		for _, c := range colours {
+			var one [6]int32
+			one[c] = 1
+			out = append(out, windowManaAlt{Ma: ma, Counts: one, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac})
+		}
+		return out
+	}
+	if len(colours) == 1 || !perUnit || amt <= 0 ||
+		multisetCount(int64(amt), int64(len(colours))) > castWindowAnyAltCombos {
+		// One colour has a single multiset (amt of it), which the
+		// single-colour alternatives already carry as Amt=amt.
+		return single()
+	}
+	out := make([]windowManaAlt, 0, 1+len(colours))
 	var cur [6]int32
-	var walk func(i int, left int32)
-	walk = func(i int, left int32) {
-		if i == len(colours)-1 {
-			cur[colours[i]] = left
-			out = append(out, cur)
+	var rec func(remaining int32, from int)
+	rec = func(remaining int32, from int) {
+		if remaining == 0 {
+			out = append(out, windowManaAlt{Ma: ma, Counts: cur, Amt: 1, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac})
 			return
 		}
-		for k := int32(0); k <= left; k++ {
-			cur[colours[i]] = k
-			walk(i+1, left-k)
+		for i := from; i < len(colours); i++ {
+			cur[colours[i]]++
+			rec(remaining-1, i)
+			cur[colours[i]]--
 		}
 	}
-	walk(0, n)
+	rec(amt, 0)
 	return out
+}
+
+// castWindowAnyAltCombos caps the multiset enumeration of a per-unit
+// choice-shaped production's mixed alternatives: the guard is on the multiset
+// count C(amt+n-1, amt) (5 colours at amount 6 is 210), not on the amount
+// itself, and past it the window keeps the single-colour alternatives (see
+// castWindowAnyAlts).
+const castWindowAnyAltCombos = 128
+
+// multisetCount is the number of multisets of size amt over n colours
+// (C(amt+n-1, amt)); capped callers use it only at small sizes.
+func multisetCount(amt, n int64) int64 {
+	if n <= 0 || amt <= 0 {
+		return 0
+	}
+	count := int64(1)
+	for i := int64(1); i <= amt; i++ {
+		count = count * (n - 1 + i) / i
+		if count > 1<<20 {
+			return count
+		}
+	}
+	return count
 }
 
 // castWindowRestrictedSpendable reports whether a RestrictValid$ mana ability
