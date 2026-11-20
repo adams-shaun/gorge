@@ -863,7 +863,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// note below stays quiet.
 		targetAskPending = ans == nil
 		if ans != nil {
-			// This link's own answer is a later link's ParentTarget.
+			captureLinkTargetController(h, c, ans)
 			noteLinkAnswer(c, ans)
 		}
 	}
