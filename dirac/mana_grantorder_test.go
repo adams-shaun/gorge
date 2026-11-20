@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -401,13 +400,7 @@ func TestGrantWalkOrderEquivalence(t *testing.T) {
 	for _, name := range []string{"std-big", "edh", "std-tla"} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			var raw cardset.Set
-			if strings.HasPrefix(name, "std-") {
-				raw = cardsettest.Synth(t, name)
-			} else {
-				raw = cardsettest.Set(t, name)
-			}
-			set := cardset.AllowUnverified(raw)
+			set := cardset.AllowUnverified(grantSweepPool(t, name))
 			seats := 2
 			if name == "edh" {
 				seats = 4
