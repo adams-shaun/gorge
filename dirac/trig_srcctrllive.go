@@ -71,7 +71,7 @@ func (s *State) liveCtrlOf(o Obj) uint8 {
 // names o as its BecomesTarget targeting object (trigSA), so the token table
 // does not hand o's id to a new token before the trigger resolves.
 func (s *State) trigSAReferenced(o Obj) bool {
-	w := uint8(o + 1) // code-ok: trigSA stores the object + 1
+	w := objWord(o + 1) // code-ok: trigSA stores the object + 1
 	for i := 0; i < int(s.sp); i++ {
 		if s.stack[i].trigSA == w {
 			return true
