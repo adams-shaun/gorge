@@ -9,7 +9,7 @@ var DebugPropNegPositive bool
 
 // notF2Perm is PredNotF2 on a battlefield permanent: the F2 bit PredN is
 // absent (gorge matchPredicate '!'). None of the three negatable flags reads
-// the source or the layer.
+// the source or the layer. kicked reads the permanent's kicked mark.
 //
 //go:noinline
 func (s *State) notF2Perm(k *prep, fl *kop.Filter, sl Slot) bool {
@@ -20,8 +20,8 @@ func (s *State) notF2Perm(k *prep, fl *kop.Filter, sl Slot) bool {
 // of matchCardOneAt): EnteredThisTurn is the zone-change stamp, TargetedBy
 // reads the resolving entry, WasDamaged reads s.g.dmgTurn (which survives a
 // zone change like gorge's WasDealtDamageThisTurn, so a destroyed target in
-// the graveyard keeps its record); no object (o == NoObj) holds none of them.
-// kgen lowers no other bit.
+// the graveyard keeps its record), Kicked reads the spell's entry; no object
+// (o == NoObj) holds none of them. kgen lowers no other bit.
 //
 //go:noinline
 func (s *State) notF2Card(fl *kop.Filter, o Obj) bool {
@@ -35,6 +35,8 @@ func (s *State) notF2Card(fl *kop.Filter, o Obj) bool {
 			has = s.flags2Obj(f, o)
 		case kop.F2WasDamaged:
 			has = s.g.dmgTurn.has(o)
+		case kop.F2Kicked:
+			has = s.spellKicked(o) // a spell's kick flag; a card elsewhere was never cast kicked
 		}
 	}
 	return has == DebugPropNegPositive

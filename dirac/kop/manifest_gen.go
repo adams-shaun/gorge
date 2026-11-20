@@ -1570,30 +1570,45 @@ const FwCMCCmp FilterWord = 2
 // FwCountersCmp: the battlefield permanent's counters of kind Arg (a kop.CounterKind below 256) compare to V by Op (PredCountersGE, PredHasCounter). An object off the battlefield fails closed.
 const FwCountersCmp FilterWord = 3
 
+// FilterWord (dirac/manifest/FilterWord/FwEnteredFrom)
+//
+// FwEnteredFrom: the object was put into the zone it is in now from zone Arg (a kop.Zone) this turn, read off the entered ledger's latest entry naming it (gorge filter_word.go wordThisTurnEnteredFrom). A table with the word records the ledger.
+const FwEnteredFrom FilterWord = 4
+
+// FilterWord (dirac/manifest/FilterWord/FwFirstTurnControlled)
+//
+// FwFirstTurnControlled: the battlefield permanent came under its controller's control since their most recent turn began (gorge filter.go firstTurnControlled: Zone battlefield and SummonSick). An object off the battlefield fails closed, so its negation holds there.
+const FwFirstTurnControlled FilterWord = 5
+
+// FilterWord (dirac/manifest/FilterWord/FwGoaded)
+//
+// FwGoaded: the battlefield permanent is goaded by any player (gorge filter.go positiveRecognised IsGoaded: an OpGoad mark, or a live Goad$ True static). An object off the battlefield fails closed; not read in a layer-walk view.
+const FwGoaded FilterWord = 6
+
 // FilterWord (dirac/manifest/FilterWord/FwKeyword)
 //
 // FwKeyword: the object has keyword bit Arg of its current KwMask (PredHasKeyword).
-const FwKeyword FilterWord = 4
+const FwKeyword FilterWord = 7
 
 // FilterWord (dirac/manifest/FilterWord/FwPowerCmp)
 //
 // FwPowerCmp: the object's current power compares to V by Op (CmpGE, CmpLE, CmpEQ, CmpGT, CmpLT, CmpNE; gorge powerGE/powerLE/powerEQ...). The same read as PredPowerLE/PredPowerGE: the layered power on the battlefield, the printed or CDA one elsewhere, a face-down object 2. Not in a layer-walk view (no re-entry).
-const FwPowerCmp FilterWord = 5
+const FwPowerCmp FilterWord = 8
 
 // FilterWord (dirac/manifest/FilterWord/FwSubtype)
 //
 // FwSubtype: the object has subtype index Arg (Table.Subtypes; PredSubtype, Filter.Sub). A face-down object has none (CR 708.2).
-const FwSubtype FilterWord = 6
+const FwSubtype FilterWord = 9
 
 // FilterWord (dirac/manifest/FilterWord/FwTapped)
 //
 // FwTapped: the battlefield permanent is tapped (FTapped). An object off the battlefield fails closed.
-const FwTapped FilterWord = 7
+const FwTapped FilterWord = 10
 
 // FilterWord (dirac/manifest/FilterWord/FwToughnessCmp)
 //
 // FwToughnessCmp: the object's current toughness compares to V by Op, as FwPowerCmp reads power (PredToughnessLE).
-const FwToughnessCmp FilterWord = 8
+const FwToughnessCmp FilterWord = 11
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
