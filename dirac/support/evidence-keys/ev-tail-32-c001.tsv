@@ -73,6 +73,7 @@ Ghost-Spider, Gwen Stacy	3364cd27780b8394	6	1/1		0/1	ix:resp
 Gisa's Bidding	222d17a4cd4c92c6	4	0/0		1/2	ix:resp
 Glare of Subdual	e82f9ccbf8daa479	4	1/1		1/1	
 Go-Shintai of Shared Purpose	2e513825a4c9d0cd	4	1/1		0/1	ix:resp
+Grip of Desolation	a32d280394672b49	4	0/0		2/2	
 Grollub	e3116e66fca8570d	4	1/1		0/1	ix:resp
 Hamza, Might of the Yathan	877b4e8b741d79e1	19	2/2		1/1	
 Hasran Ogress	8939eb42c6436bd1	4	1/1		0/1	ix:resp
@@ -87,8 +88,10 @@ Knight of Old Benalia	c2e4f7038eb3f6ec	4	1/1		2/3	ix:resp
 Krosan Restorer	d92fd6b84181b468	4	2/2		1/1	
 Kruin Striker	dbb51f5c9bae5ba2	4	1/1		0/1	ix:resp
 Kukemssa Pirates	0273c4e4bed563ba	5	1/1		0/1	ix:resp
+Levitating Statue	90119dadde7ea2ce	10	2/2		1/1	
 Leyline Dowser	a236a7d862f74f42	4	2/2		1/1	
 Light the Way	f11cb04f318b08e0	4	0/0		1/2	ix:resp
+Luminarch Ascension	38fdfddb010b3cd3	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Luxury Suite	2362b0253117ef22	12	1/1		0/1	ix:resp
 Lys Alana Bowmaster	1fc7ab58554ea0a5	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Manaweft Sliver	8c556ca2a1e27b7e	6	0/0		0/0	
@@ -112,6 +115,7 @@ Peer Through Depths	d0bec7273520c057	4	0/0		2/2
 Penance Stare	f6dd18f79d56e3e0	6	0/0		1/2	ix:resp
 Phantasmal Sphere	1b1889e3eb82d388	4	2/2		0/1	ix:resp
 Pious Evangel	3405162343c2afb3	4	3/3		0/1	ix:resp
+Pious Wayfarer	c2ffbc6dec7b5ccc	3	1/1		0/1	ix:resp
 Plateau	9863c7d3c3d8d399	13	2/2		0/1	ix:resp
 Precognition Field	ba9459db912443dc	4	1/1		1/1	
 Prized Statue	3fc6347c4a4dd774	4	2/2		0/1	ix:resp

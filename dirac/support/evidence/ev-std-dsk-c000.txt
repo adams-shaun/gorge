@@ -41,6 +41,7 @@ Fear of Lost Teeth
 Fear of Missing Out
 Fear of Surveillance
 Final Vengeance
+Flesh Burrower
 Forest
 Found Footage
 Frantic Strength
@@ -82,8 +83,10 @@ Neglected Manor
 Norin, Swift Survivalist
 Overlord of the Balemurk
 Overlord of the Boilerbilges
+Overlord of the Floodpits
 Paranormal Analyst
 Patched Plaything
+Patchwork Beastie
 Peculiar Lighthouse
 Peer Past the Veil
 Piggy Bank
@@ -92,6 +95,7 @@ Plains
 Popular Egotist
 Pyroclasm
 Rampaging Soulrager
+Raucous Carnival
 Razorkin Hordecaller
 Razorkin Needlehead
 Razortrap Gorge
@@ -99,6 +103,7 @@ Restricted Office
 Ripchain Razorkin
 Rite of the Moth
 Roaring Furnace
+Rootwise Survivor
 Savior of the Small
 Saw
 Scorching Dragonfire
@@ -106,8 +111,10 @@ Seized from Slumber
 Sheltered by Ghosts
 Shrewd Storyteller
 Shroudstomper
+Silent Hallcreeper
 Smoky Lounge
 Splitskin Doll
+Stay Hidden, Stay Silent
 Strangled Cemetery
 Surgical Suite
 Swamp
@@ -120,6 +127,7 @@ Tunnel Surveyor
 Turn Inside Out
 Unable to Scream
 Undead Sprinter
+Underwater Tunnel
 Unnerving Grasp
 Unsettling Twins
 Untimely Malfunction
@@ -128,8 +136,10 @@ Valgavoth's Lair
 Vanish from Sight
 Vengeful Possession
 Veteran Survivor
+Vicious Clown
 Vile Mutilator
 Waltz of Rage
 Wary Watchdog
+Wickerfolk Thresher
 Wildfire Wickerfolk
 Withering Torment
