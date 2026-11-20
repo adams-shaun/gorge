@@ -32,10 +32,11 @@ SLOW_TEST = "TestMBCDewdropReprosLockstep"
 MANIFEST = "TestReproManifest/"
 
 
-def sel(sha, named=RECORDINGS, tests=REPRO_TESTS, slow=(SLOW_REC, SLOW_TEST)):
-    """A reprosel like cmd_select builds: the manifest's recordings, the oracle's other replay tests,
-    the slow list and the merge base."""
-    return {"named": set(named), "tests": set(tests), "slow": set(slow), "sha": sha}
+def sel(sha, named=RECORDINGS, tests=REPRO_TESTS, slow=(SLOW_REC, SLOW_TEST), pools=None, globs=None):
+    """A reprosel like cmd_select builds: the manifest's recordings, each pool's recordings, the pool
+    glob tests, the oracle's other replay tests, the slow list and the merge base."""
+    return {"named": set(named), "pools": pools or {}, "globs": globs or {}, "tests": set(tests),
+            "slow": set(slow), "sha": sha}
 
 
 def planned(changes, repro_names=None, reprosel=None, narrow=None):
@@ -44,15 +45,16 @@ def planned(changes, repro_names=None, reprosel=None, narrow=None):
 
 
 def oracle(res):
-    """The oracle's plain selection entry (its rx and kind), not the manifest's own -run."""
-    got = [(k, rx) for k, p, rx in res if p == "./dirac/oracle" and MANIFEST not in rx]
+    """The oracle's plain selection entry (its rx and kind), not the replay slice's own -run."""
+    got = [(k, rx) for k, p, rx in res if p == "./dirac/oracle" and "/" not in rx]
     assert len(got) == 1, got
     return got[0]
 
 
 def manifest_rx(res):
-    """The -run over the manifest test that replays the slice (None when there is none)."""
-    got = [rx for k, p, rx in res if p == "./dirac/oracle" and MANIFEST in rx]
+    """The -run over the replay slice's subtests (the manifest's and the pool globs'; None when there
+    is none). Its top-level part matches those tests alone."""
+    got = [rx for k, p, rx in res if p == "./dirac/oracle" and "/" in rx]
     assert len(got) <= 1, got
     return got[0] if got else None
 
@@ -61,7 +63,7 @@ def manifest_names(res):
     mrx = manifest_rx(res)
     if mrx is None:
         return set()
-    return set(re.search(r"%s\((.*)\)$" % MANIFEST, mrx).group(1).split("|"))
+    return set(mrx.split("/", 1)[1].strip("()").split("|"))
 
 
 def sha_in_lane(lane):
@@ -137,6 +139,37 @@ def test_the_replay_arm_keeps_the_refusal_check_and_the_pool_globs_are_sliced():
     assert not re.search(mrx, "TestStdFdnReprosLockstep")
 
 
+def test_a_pool_recording_replays_as_its_glob_tests_subtest():
+    lane0 = zlib.crc32("fdn_in_lane".encode()) % 4
+    out = next(n for n in ("fdn_second", "fdn_third", "fdn_fourth")
+               if zlib.crc32(n.encode()) % 4 != lane0)
+    pools = {"std-fdn": {"fdn_in_lane", out, "fdn_over_the_wall"}}
+    globs = {"TestStdFdnReprosLockstep": ["std-fdn"],
+             "TestStdPoolReprosLockstepFull": ["std-tla", "std-lci"]}  # an alias, over the wall
+    slow = {"fdn_over_the_wall", SLOW_REC, SLOW_TEST}
+    sha = sha_in_lane(lane0)
+    res = planned(SRC, reprosel=sel(sha=sha, pools=pools, globs=globs, slow=slow))
+    mrx = manifest_rx(res)
+    top, sub = mrx.split("/")
+    assert "TestStdFdnReprosLockstep" in top  # the manifest joins only when it has a slice too
+    assert "TestStdPoolReprosLockstepFull" not in top  # over the 10 s wall: the batch replays it
+    names = set(sub.strip("()").split("|"))
+    assert names == {"fdn_in_lane"} | {n for n in RECORDINGS
+                                       if n not in slow and zlib.crc32(n.encode()) % 4 == lane0}
+    # the pool globs left the test-level slice: replaying one whole is the old 300 s stream
+    kind, rx = oracle(res)
+    assert not re.search(rx, "TestStdFdnReprosLockstep")
+    # a changed recording replays whatever the lane says
+    changes = dict(SRC, **{"dirac/oracle/testdata/repro/%s.repro.json" % out: None})
+    res = planned(changes, reprosel=sel(sha=sha, pools=pools, globs=globs, slow=slow))
+    assert out in manifest_names(res)
+    # a pool glob whose lane is empty joins nothing
+    res = planned(SRC, reprosel=sel(sha=sha, pools={"std-lci": {"lci_out"}}, globs={"TestStdLciReprosLockstep": ["std-lci"]},
+                                     slow=slow))
+    top, _ = manifest_rx(res).split("/")
+    assert "TestStdLciReprosLockstep" not in top
+
+
 def test_without_slice_input_the_replay_arm_still_covers_every_recording():
     # reprosel None: the batch's shape (ci.yml replays REPLAYS whole; a seat whose scan falls back
     # keeps full coverage rather than silently losing it)
@@ -148,11 +181,12 @@ def test_without_slice_input_the_replay_arm_still_covers_every_recording():
 
 
 def test_a_changed_recording_alone_replays_itself_and_the_slice_not_the_manifest():
-    res = planned({"dirac/oracle/testdata/repro/amber_tomb.repro.json": None},
-                  repro_names={"m/dirac/oracle": {MANIFEST + "amber_tomb"}},
-                  reprosel=sel(sha=sha_in_lane((zlib.crc32("amber_tomb".encode()) + 1) % 4)))
+    rec = RECORDINGS[0]
+    res = planned({"dirac/oracle/testdata/repro/%s.repro.json" % rec: None},
+                  repro_names={"m/dirac/oracle": {MANIFEST + rec}},
+                  reprosel=sel(sha=sha_in_lane((zlib.crc32(rec.encode()) + 1) % 4)))
     kind, rx = oracle(res)
-    assert "amber_tomb" in manifest_names(res)
+    assert rec in manifest_names(res)
     assert not re.search(rx, "TestReproManifest")  # the manifest does not fold into the shared -run
     # a recording change replays the other replay tests' slice too (as the blanket did)
     assert any(re.search(rx, t) for t in REPRO_TESTS if t != SLOW_TEST)
