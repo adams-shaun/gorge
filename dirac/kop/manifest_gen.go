@@ -1879,28 +1879,33 @@ const KwStartingHandFive KwID = 124
 // PredNamedCard: the card-name property NamedCard (gorge namePredicate NamedCard, CR 201.4): the candidate's name card is the reading source's chosen card name. The chosen name lives in the source permanent's chosen byte (the as-enters choice and a mid-resolution NameCard ask store it there, kernel repl_namecard.go), in a resolution's own answer for a source still on the stack (gorge Object.ChosenName), and in a host-bound emblem's frozen capture once a `DB$ Cleanup | ClearNamedCard$ True` wiped the source (gorge state.ContinuousEffect.ChosenName, Cheering Fanatic's ReduceCost ValidCard$ Card.NamedCard). A face-down candidate has no name (CR 708.2) and matches nothing. A reader with no chosen name to read fails closed, as gorge's empty ChosenName matches nothing. FilterFlags2 is full, so the word takes the one Pred slot (kernel filter_negations.go). 235: the free explicit ordinal below the 236+ family (PredRenowned took 236).
 const PredNamedCard Pred = 35
 
+// IsGoaded (dirac/manifest/Pred/PredGoaded)
+//
+// PredGoaded: the battlefield permanent is goaded by any player (gorge IsGoaded, engine/effects/filter.go matchPositive). PredN 1 is the positive word, 0 the ! negation; off the battlefield nothing is goaded.
+const PredGoaded Pred = 36
+
 // Pred (dirac/manifest/Pred/PredProg)
 //
 // PredProg: the filter's predicate is a program of literals (PredN: kop.FilterProgID, an index into Table.FilterProgs). The matcher applies the struct's own fields first (types, colours, controller, zone, flags, the Or chain), which are the program's first conjuncts, then evaluates each kop.FLit in order and stops at the first that fails; a literal's Neg inverts its word. Each word is a kop.FilterWord with one kernel handler (dirac/filter_<name>.go). A word reading a field its matcher does not have fails closed, as gorge's unbound context does. kgen lowers it for a clause whose comparisons the filter struct cannot hold (dirac/kgen/filter_spill.go); the words so far are the struct's own Pred codes re-expressed (power, toughness, mana value, counters, keyword, subtype).
-const PredProg Pred = 36
+const PredProg Pred = 37
 
 // pred IsRingbearer (dirac/manifest/Pred/PredRingBearer)
-const PredRingBearer Pred = 37
+const PredRingBearer Pred = 38
 
 // Pred (dirac/manifest/Pred/PredSameNameSelf)
 //
 // PredSameNameSelf: the candidate's current name equals the reading source's current name (gorge sharesNameWith Self, filter_attachment.go; Marvin, Murderous Mimic's GainsAbilitiesOf$ Creature.YouCtrl+!sharesNameWith Self). The source is the static's own source slot, or the resolving entry's object; the name identity is sharesNameRem's (a battlefield permanent reads its layer-3 name, a face-down object has no name, CR 708.2). PredN 1 is the ordinary ! negation.
-const PredSameNameSelf Pred = 38
+const PredSameNameSelf Pred = 39
 
 // Pred (dirac/manifest/Pred/PredSharesCrCmdr)
 //
 // PredSharesCrCmdr: the object shares a creature type with a commander of the evaluating controller (gorge sharesCreatureTypeWith Commander, effects sharesTypeReferentsCommander: the resolving source's controller's commanders, Path of Ancestry's SpellCast ValidCard$ Creature.sharesCreatureTypeWith Commander). Each side reads its current creature types where it now is (a commander in the command zone its printed ones); an object with every creature type shares with any commander that has a creature type, and a commander with every type with any object that has one (CR 702.73a). A controller with no commander matches nothing.
-const PredSharesCrCmdr Pred = 39
+const PredSharesCrCmdr Pred = 40
 
 // Pred (dirac/manifest/Pred/PredStatBox)
 //
 // PredStatBox: the object's power and toughness each lie in a constant inclusive range (PredN: kop.PTBoxPack bounds, PTBoxOpen for no bound). kgen folds two constant power/toughness compares of one clause into it (gorge powerEQ1+toughnessEQ1, powerGE4+powerLE6: each conjunct reads the same current power and toughness, the layered values on the battlefield and the printed or CDA ones elsewhere, a face-down object 2/2).
-const PredStatBox Pred = 40
+const PredStatBox Pred = 41
 
 // repl BeginPhase (dirac/manifest/ReplKind/ReplBeginPhase)
 const ReplBeginPhase ReplKind = 42
