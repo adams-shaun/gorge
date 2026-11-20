@@ -732,6 +732,13 @@ func (s *State) destroy(k *prep, sl Slot) {
 // applying the survival's effect; the one home of destroy, destroyNoRegen and
 // the simultaneous multi-target destroy (zone_leavetogether.go).
 func (s *State) destroySpared(k *prep, sl Slot, noRegen bool) bool {
+	return s.destroySparedIn(k, sl, noRegen, slotMask{})
+}
+
+// destroySparedIn is destroySpared for a batch of permanents leaving together:
+// batch holds every victim's slot, so an umbra Aura that is itself leaving is
+// not moved a second time by its bearer's save (zone_leavetogether.go).
+func (s *State) destroySparedIn(k *prep, sl Slot, noRegen bool, batch slotMask) bool {
 	if s.kw(k, sl)&kop.KwIndestructible != 0 {
 		return true
 	}
@@ -747,7 +754,28 @@ func (s *State) destroySpared(k *prep, sl Slot, noRegen bool) bool {
 	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(k, sl) {
 		return true
 	}
-	return s.umbraSpare(k, sl) // CR 702.89a, after the shield counter (kw_umbraarmor.go)
+	return s.umbraSpareIn(k, sl, batch) // CR 702.89a, after the shield counter (kw_umbraarmor.go)
+}
+
+// destroySparedNoUmbra reports whether a replacement before umbra armor would
+// spare sl's destruction (indestructible, a destroy line, regeneration or a
+// shield counter), without applying it. A simultaneous destroy uses it to
+// tell the victims that are actually leaving from the ones a non-umbra
+// replacement spares: only the leavers form the umbra batch, so a spared
+// Aura is still moved by its bearer's save (CR 702.89a; gorge's
+// replaceUmbraArmor consults neither indestructible nor a shield for the
+// Aura).
+func (s *State) destroySparedNoUmbra(k *prep, sl Slot, noRegen bool) bool {
+	if s.kw(k, sl)&kop.KwIndestructible != 0 {
+		return true
+	}
+	if s.destroyLineMatch(k, sl, !noRegen) != drNone {
+		return true
+	}
+	if !noRegen && s.canRegen(sl) {
+		return true
+	}
+	return k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldN(sl) > 0
 }
 
 // moveRef moves the object a Ref names to zone z (its owner's).

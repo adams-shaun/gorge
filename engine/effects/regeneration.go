@@ -21,7 +21,15 @@ import (
 // replacement, not a new replaceable one — no Indestructible or shield
 // consultation for the Aura.
 func ReplaceUmbraArmor(h Host, id state.ObjID) bool {
-	aura := h.UmbraArmorAura(id)
+	return replaceUmbraArmor(h, id, h.UmbraArmorAura(id))
+}
+
+// replaceUmbraArmor is ReplaceUmbraArmor with the Aura chosen by the caller.
+// A simultaneous destroy batch reads the Aura before its first move, so the
+// bearer is saved even when the Aura is itself a victim; the zone check below
+// keeps that Aura from being moved twice (CR 702.89a: the same as destroying it
+// once).
+func replaceUmbraArmor(h Host, id, aura state.ObjID) bool {
 	if aura == 0 {
 		return false
 	}
@@ -38,10 +46,35 @@ func ReplaceUmbraArmor(h Host, id state.ObjID) bool {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "Deathtouched", Amount: -n})
 	}
 	// (b) destroy this Aura instead (CR 702.90). A plain MoveZone with the
-	// same "destroyed" text every destruction path emits.
-	h.Emit(events.Event{Kind: events.MoveZone, Obj: aura,
-		From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
+	// same "destroyed" text every destruction path emits. An Aura that an
+	// earlier batch member already moved is not moved again.
+	if a := h.Game().Obj(aura); a != nil && a.Zone == state.ZBattlefield {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: aura,
+			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
+	}
 	return true
+}
+
+// umbraBatchAuras reads every victim's umbra Aura before a simultaneous
+// destroy batch's first move. A destroy batch destroys the Aura and the
+// creature it enchants at the same time; CR 702.89a still saves the creature,
+// and the Aura is destroyed once rather than twice. Without the pre-read, the
+// answer would depend on whether the Aura came first in the victim order (the
+// Relic Crush repro).
+func umbraBatchAuras(h Host, victims []state.ObjID) map[state.ObjID]state.ObjID {
+	if len(victims) < 2 {
+		return nil
+	}
+	var out map[state.ObjID]state.ObjID
+	for _, id := range victims {
+		if aura := h.UmbraArmorAura(id); aura != 0 {
+			if out == nil {
+				out = make(map[state.ObjID]state.ObjID, len(victims))
+			}
+			out[id] = aura
+		}
+	}
+	return out
 }
 
 // ReplaceShieldCounter applies CR 122.1c's destruction half: "If this
