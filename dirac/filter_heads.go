@@ -108,7 +108,7 @@ func (s *State) defendingSeatF2(k *prep) uint8 {
 		return s.g.atkDef - 1
 	}
 	if e := s.curEntry(); e != nil && e.kind == seTrigger && e.defSeat != 0 {
-		return e.defSeat - 1
+		return defSeatSeat(e.defSeat)
 	}
 	s.capFull(StallDefenderPW)
 	return noSeat
