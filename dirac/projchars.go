@@ -75,6 +75,12 @@ func (s *State) ProjectChars(p *Projection) {
 				// go with the Creature type (CR 702.26b, 702.103b, 205.1a)
 				c.Subs, c.AllSub = s.bestowSubs(k, sl, c.Subs, c.AllSub)
 			}
+			if k.gen != nil && k.gen.anyReconfigure {
+				// the Reconfigure switch is derived live state too: while
+				// attached, the creature subtypes go with the Creature type
+				// (CR 702.26b, 702.151b, 205.1a)
+				c.Subs, c.AllSub = s.reconfigureSubs(k, sl, c.Subs, c.AllSub)
+			}
 			continue
 		}
 		c.Types = s.typesAt(k, sl) &^ kop.TToken
