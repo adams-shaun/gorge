@@ -12,6 +12,7 @@ Balthor the Stout
 Barkhide Mauler
 Battlewing Mystic
 Bedevil
+Benevolent Bodyguard
 Biogenic Ooze
 Blade of Selves
 Blessing of Belzenlok
@@ -26,10 +27,15 @@ Branching Bolt
 Brazen Borrower
 Bright Reprisal
 Brute Force
+Cephalid Sage
+Chained Brute
 Choose Your Weapon
+Circle of Protection: Artifacts
 Claws of Valakut
 Convolute
 Cunning Survivor
+Cursebreak
+Darkmoss Bridge
 Dawn Charm
 Daxos, Blessed by the Sun
 Death Pits of Rath
@@ -38,12 +44,14 @@ Deekah, Fractal Theorist
 Defabricate
 Divine Light
 Drake Familiar
+Dyfed, the Guiding Hand
 Elder Druid
 Elder Gargaroth
 Elite Vanguard
 Esper Battlemage
 Esper Panorama
 Faerie Impostor
+Flatline
 Forest
 Foundry Assembler
 Frantic Confrontation
@@ -52,24 +60,32 @@ Gerrard's Battle Cry
 Ghost-Lit Warder
 Ghostly Changeling
 Giant Ankheg
+Gilanra, Caller of Wirewood
 Gingerbehemoth
 Glint-Nest Crane
+Goatnapper
 Goblin Lore
 Graaz, Unstoppable Juggernaut
 Gravel Slinger
 Grayscaled Gharial
+Ground Assault
 Gruul Cluestone
 Guardian of Solitude
 Gulf Squid
 Hag of Noxious Nightmares
+Harmonic Sliver
 Herald of War
 Hideous Visage
+Hoofprints of the Stag
 Hookblade
 Hoverguard Observer
+Hypnotic Grifter
 Impaler Shrike
 In Oketra's Name
+Infantry Veteran
 Inferno
 Inspiring Bard
+Iridescent Blademaster
 Iron-Craw Crusher
 Island
 Jeskai Barricade
@@ -77,9 +93,14 @@ Jet Medallion
 Kaito's Pursuit
 Karlach, Fury of Avernus
 Keeper of the Accord
+Killmonger, Ruthless Usurper
 Lady Spider, Maybelle Reilly
 Leonin Armorguard
+Leyline of the Meek
+Living Lightning
 Lush Growth
+Magus of the Bazaar
+Manticore of the Gauntlet
 Marshal's Anthem
 Mindlash Sliver
 Mishra's Groundbreaker
@@ -92,7 +113,11 @@ Myr Galvanizer
 Necrogenesis
 Nezumi Cutthroat
 Night Market Aeronaut
+Nine-Tail White Fox
 No-Dachi
+Noble Benefactor
+Oath of Ajani
+Olog-hai Crusher
 Opal Acrolith
 Order of Leitbur
 Ori, Plate Stacker
@@ -102,7 +127,9 @@ Pain Seer
 Pest Rescuer
 Phalanx Leader
 Plains
+Planar Birth
 Prey's Vengeance
+Primeval Titan
 Prohibit
 Raugrin Crystal
 Reach of Branches
@@ -110,49 +137,70 @@ Rebuke
 Reject Imperfection
 Repulsor Rays
 Research Thief
+Reservoir Walker
 Sacred Rites
 Samite Healer
 Saprazzan Raider
 Scouting Hawk
 Sea Monster
+Seasoned Hallowblade
 Secretkeeper
 Seething Song
 Selhoff Entomber
+Shaleskin Bruiser
 Shivan Emissary
+Silhana Starfletcher
 Skyshroud Forest
 Sleeper Dart
+Spellkeeper Weird
 Spikeshot Goblin
 Spiketail Drake
 Spirit of Malevolence
 Spitting Hydra
+Stave Off
+Stensia Uprising
 Stone Haven Pilgrim
 Storm Caller
 Stratadon
 Striped Bears
+Sumala Woodshaper
 Swamp
 Swarmyard Massacre
+Synapse Sliver
 Syphon Mind
 Tablet of Epityr
+Tectonic Fiend
+Tel-Jilad Outrider
 Tezzeret the Schemer
+Thassa's Oracle
+The Biblioplex
 The Blue Spirit
+The Falcon, Sam Wilson
+Thriving Grubs
 Tidal Kraken
 Tiller of Flesh
 Tree Monkey
 Tribal Flames
+Turtleshell Changeling
 Twenty-Toed Toad
 Uktabi Drake
 Uncovered Clues
 Undercity Troll
 Unifying Theory
 Utter End
+Viashino Weaponsmith
+Vibranium Strike Gauntlets
 Victory's Herald
 Viridian Revel
 Vitalizing Cascade
 Void Squall
 Vraska's Fall
 Wash Out
+Weakstone's Subjugation
 Witch's Vengeance
 Worldly Counsel
 Wrap in Flames
+Wreck and Rebuild
 Wrecking Ball
+Writhing Chrysalis
 Yarok's Fenlurker

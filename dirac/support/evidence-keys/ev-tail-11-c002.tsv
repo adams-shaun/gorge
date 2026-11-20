@@ -1,6 +1,9 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Vivi Ornitier	3dc73a1194209da6	4	2/2		1/1	
+Agoraphobia	c0362c6547a16c47	24	1/1		2/2	
 Ajani, Strength of the Pride	50bc14bde358cff5	8	3/3		0/1	ix:resp
+Akroma's Will	713144bd09f9b15b	6	0/0		1/2	ix:resp
+Alabaster Mage	6fd91fe59992f78f	6	1/1		1/1	
 Algae Gharial	68801551f9998dee	38	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Angelic Voices	fb3e7f2bfd83da63	7	0/0		0/0	
 Aphemia, the Cacophony	edc27a919b0045e6	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -8,49 +11,71 @@ Artful Dodge	4c1e1f0c23f0f5b7	15	0/0		4/4
 Astral Steel	af9164a93018d1b8	4	1/1		2/2	
 Barbarian Lunatic	9f7f196b1a1ffa49	5	1/1		0/1	ix:resp
 Barrenton Cragtreads	36d1e660aadcbf0e	3	0/0		0/0	
+Battlewise Hoplite	7867f8adc679000b	4	1/1		0/1	ix:resp
 Brainbite	78d8a33d163a387e	51	0/0		2/2	
 Brute Strength	c455dca363e0e75b	3	0/0		1/2	ix:resp
 Bucky Barnes, Eager Ally	9e1d34915afe4c5d	6	1/1		0/1	ix:resp
 Cephalopod Sentry	fd13e8745731d60e	7	0/0		0/0	
+City of Traitors	845dc40426bdb1f2	8	2/2		0/1	ix:resp
+Clearwater Pathway	307ba677ef0dd0f9	4	2/2		0/1	ix:resp
+Craven Hulk	bc76b8e3dd0c4bce	3	0/0		0/0	
 Dawnbringer Cleric	0f74553e60b7c966	37	1/1		0/1	ix:resp
 Desmond Miles	d24c39a274f30a83	54	1/1		1/1	
 Destined	1d1df12525d93af1	121	0/0		4/5	f1/s
 Diabolic Revelation	d66e9519c6a97117	33	0/0		2/4	f0/s/x0,ix:resp
 Dream's Grip	52d8fbc7663286ea	68	0/0		2/2	
 Elspeth, Sun's Champion	c5ed6390580a4e32	3	3/3		0/1	ix:resp
+Ensouled Scimitar	c58b56193d701f7a	10	2/2		1/1	
 Eternity Snare	9029fd32c931d2d5	5	1/1		1/2	ix:resp
 Faerie Noble	ead6e65b1717d1f0	29	1/1		0/1	ix:resp
 Fall of the Gavel	f24978b46c7bbb7c	5	0/0		1/2	ix:resp
 Firebolt	b754bcc4c4da15ed	3	0/0		3/4	ix:resp
 Forced Fruition	a67bc10b08abf995	41	1/1		1/1	
 Funeral Charm	d239ea89d511a834	8	0/0		2/2	
+Galerider Sliver	17edfcbdcca71e97	4	0/0		0/0	
+Gerrard's Wisdom	3c09744cdf2a7404	4	0/0		1/2	ix:resp
+Goblin War Cry	09ebbf0494eb067d	4	0/0		1/2	ix:resp
 Graveborn Muse	f3557497b28398a8	60	1/1		1/1	
+Hematite Golem	58773cbed433a084	4	1/1		0/1	ix:resp
 Hithlain Knots	5387bcee19c82d7c	11	0/0		2/2	
 Icequake	fadca8eda4fdaa5e	78	0/0		2/2	
 Juvenile Mist Dragon	7678ff02d6f30180	47	1/1		1/1	
+Kami of Twisted Reflection	8175d6ffe0d979c4	4	1/1		0/1	ix:resp
 Kindly Stranger	24fef7ca99dda269	9	2/2		1/3	f1/t0/opt:n,f1/t0/opt:y
+Larder Zombie	8a3969635f4309a5	6	1/1		0/1	ix:resp
 Lay Down Arms	f4ff2495d9884f16	7	0/0		1/2	ix:resp
 Lead Astray	62a67c3a6dd42570	65	0/0		2/2	
+Leaden Myr	07f1dcc33bc590e0	8	1/1		0/1	ix:resp
 Leyline Invocation	c4cba705f1adfa77	25	0/0		1/2	ix:resp
 Llanowar Loamspeaker	2b271d96f6673ffe	46	2/2		1/1	
 Loam Lion	85abd74de3a4c7bf	3	0/0		0/0	
 Lose Hope	0a4ebe6021c58ed9	4	0/0		2/2	
 Lost in a Labyrinth	c9d817362bea21a4	5	0/0		1/2	ix:resp
 Mana Geyser	4ea3ebca92ee52b9	31	0/0		2/2	
+Mortal Obstinacy	24197ab88db074d5	4	1/1		1/2	ix:resp
 Naya Hushblade	5773908686401f61	47	0/0		0/0	
+Naya Panorama	7cec6f40cee88349	6	2/2		0/1	ix:resp
 Numbing Jellyfish	f94d50fec607acc8	12	1/1		0/1	ix:resp
 Path of Bravery	d6ac35b95ca7d491	4	1/1		0/1	ix:resp
+Pendelhaven	512cbaf6a7f9b953	4	2/2		1/1	
 Phyrexian Warhorse	95170a3f75e81bf4	10	2/2		3/3	
 Pirate's Pillage	fda4cd4e63018038	5	0/0		2/2	
 Pointed Discussion	832131e891af5abc	105	0/0		2/2	
 Pool Resources	af483d8bf9bdf8f6	81	0/0		4/4	
+Raptor Hatchling	3dbef58e195d520a	4	1/1		1/1	
+Sanguine Statuette	c133162c8f67a9f7	8	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Scrapyard Recombiner	387362351b9cfabd	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Seachrome Coast	746528c371042b69	4	1/1		0/1	ix:resp
 Secrets of the Key	1d73415232269eff	196	0/0		4/4	
 Send to Sleep	eeca82749f930a30	19	0/0		2/2	
+Sentinels of Glen Elendra	fe2d9874ab30d22d	4	0/0		0/0	
 Shacklegeist	c88cdec3eabfb513	54	1/1		1/1	
 Shire Terrace	3992121dcb4a00ff	10	2/2		0/1	ix:resp
+Silver Seraph	9f6ae210f213af99	4	0/0		0/0	
 Sledding Otter-Penguin	72a194049987334d	12	1/1		0/1	ix:resp
 Sparkshaper Visionary	86202c3f79b97e89	6	1/1		0/1	ix:resp
 Spike-Tailed Ceratops	aea865a3702a3114	38	0/0		0/0	
+Spinneret Sliver	b69c4fd75f1645b8	6	0/0		0/0	
 Stampede Driver	22f5cfb18ed05955	43	1/1		1/1	
 Stand	2fc03c1dc321f09f	11	0/0		2/3	f1/s
 Stormrider Spirit	b6cd2a0612abfa7d	5	0/0		0/0	
@@ -59,10 +84,15 @@ Sundering Growth	03a439f2ffe9f431	63	0/0		2/2
 Surrakar Spellblade	b659d7ed12871b04	39	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Surtr, Fiery Jötun	84c5e0d1d42ce120	4	1/1		0/1	ix:resp
 Sweep Away	aca928a9cc6e3c7b	4	0/0		2/2	
+The Everforger	31feb7628d98a000	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Tormentor Exarch	6dd18ad2850ea976	3	1/1		0/1	ix:resp
 Tortoise Formation	c2ab94e3df442af5	9	0/0		2/2	
+Traverse Eternity	f281caf44afefd0f	4	0/0		1/2	ix:resp
+Ugin's Conjurant	034b4f6e6199c1b0	4	0/0		0/0	
 Vampire Opportunist	16487fa35b3b7571	4	1/1		1/1	
 Voice of Law	ebfeda5076aa83c3	11	0/0		0/0	
+Wash Out	fc7c623cf5d961d9	4	0/0		2/2	
 Welding Jar	76e697325838b1d8	4	1/1		0/1	ix:resp
 Wirewood Channeler	de85bc9406a9cfd7	49	1/1		1/1	
+Yotian Soldier	62217f3af78ebea0	6	0/0		0/0	
 Zulaport Cutthroat	0ff81874c3e406d4	91	1/1		1/1	
