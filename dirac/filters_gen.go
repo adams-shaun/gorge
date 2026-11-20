@@ -880,7 +880,10 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	case kop.PredSameNameRem, kop.PredSameNameSelf:
 		return s.predSameNameCard(fl, c, o, fd, ctx)
 	case kop.PredProg:
-		fc := fctx{k: k, o: o, sl: NoSlot, c: c, owner: owner, ctrl: ctrl, src: NoSlot, srcObj: NoObj, fd: fd, ctx: ctx}
+		fc := fctx{k: k, o: o, sl: NoSlot, c: c, owner: owner, ctrl: ctrl, src: NoSlot, srcObj: NoObj, fd: fd}
+		if ctx != nil {
+			fc.ctx, fc.hasCtx = *ctx, true
+		}
 		if o != NoObj {
 			fc.zone = s.objs[o].zone
 		}

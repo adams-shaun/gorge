@@ -12,7 +12,7 @@ func (s *State) fwKeyword(c *fctx, l *kop.FLit) bool {
 		return false
 	}
 	switch {
-	case c.cur != nil:
+	case c.walk:
 		return false
 	case c.perm():
 		return s.kwGen(c.k, c.sl)&(1<<uint(l.Arg)) != 0

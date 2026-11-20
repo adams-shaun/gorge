@@ -8,7 +8,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //kmanifest:fword FwToughnessCmp
 func (s *State) fwToughnessCmp(c *fctx, l *kop.FLit) bool {
 	switch {
-	case c.cur != nil:
+	case c.walk:
 		return false
 	case c.perm():
 		_, t := s.ptGen(c.k, c.sl)

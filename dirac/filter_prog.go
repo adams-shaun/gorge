@@ -25,9 +25,16 @@ type fctx struct {
 	src    Slot  // the reading source's slot, NoSlot when it has none
 	srcObj Obj
 	layer  uint8
-	fd     bool    // the candidate is face down (CR 708.2)
-	cur    *dchars // set in a layer-walk view: a word may not re-enter the walk
-	ctx    *evalCtx
+	fd     bool // the candidate is face down (CR 708.2)
+	// walk marks a layer-walk view, where a word may not re-enter the walk
+	// and reads cur. cur and ctx are copies, never pointers into the
+	// caller's locals: escape analysis does not tell fctx's fields apart,
+	// so a pointer here would move every caller's local to the heap
+	// (the k that evalV leaks taints the whole struct).
+	walk   bool
+	cur    dchars
+	hasCtx bool // ctx is the matcher's evaluation context; unset reads ctxCur
+	ctx    evalCtx
 }
 
 // perm reports whether the candidate is a battlefield permanent at slot sl.
@@ -35,7 +42,7 @@ func (c *fctx) perm() bool { return c.zone == kop.ZoneBattlefield && c.sl != NoS
 
 // card reports whether the candidate is a card read off the battlefield: its
 // printed characteristics, or the stack's.
-func (c *fctx) card() bool { return c.sl == NoSlot && c.cur == nil && c.c != NoCard }
+func (c *fctx) card() bool { return c.sl == NoSlot && !c.walk && c.c != NoCard }
 
 // filterProg evaluates program id's literals in order against c and stops at
 // the first that fails (a literal's Neg inverts its word).
@@ -97,8 +104,8 @@ func (s *State) cmpV(c *fctx, l *kop.FLit, have int) bool {
 	if l.V.K == kop.VConst {
 		return cmp(l.Op, have, int(l.V.N))
 	}
-	if c.ctx != nil {
-		return cmp(l.Op, have, s.evalV(c.k, l.V, *c.ctx))
+	if c.hasCtx {
+		return cmp(l.Op, have, s.evalV(c.k, l.V, c.ctx))
 	}
 	return cmp(l.Op, have, s.evalV(c.k, l.V, s.ctxCur()))
 }

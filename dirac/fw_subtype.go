@@ -14,8 +14,8 @@ func (s *State) fwSubtype(c *fctx, l *kop.FLit) bool {
 	}
 	i := uint8(l.Arg)
 	switch {
-	case c.cur != nil:
-		return c.perm() && hasSubCur(c.k, c.cur, i)
+	case c.walk:
+		return c.perm() && hasSubCur(c.k, &c.cur, i)
 	case c.perm():
 		return s.permHasSub(c.k, c.sl, i, c.layer)
 	case c.card():

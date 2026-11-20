@@ -645,7 +645,7 @@ func (s *State) matchCurOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Sl
 	}
 	if fl.Pred == kop.PredProg {
 		c := s.permFctx(k, sl, ctrl, src, layerKw)
-		c.cur = cur
+		c.cur, c.walk = *cur, true
 		return s.filterProg(fl.PredN, &c) // filter_prog.go: a word may not re-enter the walk
 	}
 	if k.w8 && fl.Pred == kop.PredWord7 && fl.PredN&0xff >= kop.W7FaceUp {

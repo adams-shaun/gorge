@@ -10,12 +10,17 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //kmanifest:fword FwCMCCmp
 func (s *State) fwCMCCmp(c *fctx, l *kop.FLit) bool {
 	switch {
-	case c.cur != nil:
+	case c.walk:
 		return false
 	case c.perm():
 		return s.cmpV(c, l, s.cmcPerm(c.k, c.sl))
 	case c.card():
-		return s.cmpV(c, l, s.cardMVIn(c.k, c.c, c.o, c.fd, c.ctx))
+		var cx *evalCtx // a copy, so the filter's own context stays out of reach
+		if c.hasCtx {
+			v := c.ctx
+			cx = &v
+		}
+		return s.cmpV(c, l, s.cardMVIn(c.k, c.c, c.o, c.fd, cx))
 	}
 	return false
 }

@@ -11,7 +11,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //kmanifest:fword FwPowerCmp
 func (s *State) fwPowerCmp(c *fctx, l *kop.FLit) bool {
 	switch {
-	case c.cur != nil:
+	case c.walk:
 		return false
 	case c.perm():
 		pw, _ := s.ptGen(c.k, c.sl)
