@@ -128,6 +128,7 @@ Famished Ghoul
 Fauna Shaman
 Femeref Scouts
 Festival of the Guildpact
+Final Fortune
 Fists of Flame
 Flame Rift
 Fleeting Memories
@@ -277,6 +278,7 @@ Phyrexian Hulk
 Phyrexian Vivisector
 Pious Interdiction
 Plains
+Powder Ganger
 Pre-War Formalwear
 Prismatic Ward
 Profane Tutor

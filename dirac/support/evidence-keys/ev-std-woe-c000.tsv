@@ -6,6 +6,7 @@ Archive Dragon	6acb7ecc42033075	8	2/2		1/1
 Archon of the Wild Rose	68dd3eb349ffe873	9	0/0		0/0	
 Archon's Glory	dc870171d4074049	10	0/0		3/4	cast/alt:bargained
 Armory Mice	eb5bda2a4650ebbf	7	0/0		0/0	
+Ash, Party Crasher	1b3c3cd8ce1d1e97	12	1/1		1/1	
 Ashiok's Reaper	40c7b4f91136c332	6	1/1		1/1	
 Asinine Antics	0488b40813339c79	9	0/0		2/2	
 Barrow Naughty	513071d504d9cd3a	4	1/1		0/1	ix:resp
@@ -71,6 +72,7 @@ Food Fight	9655253452f66b4a	4	0/0		0/0
 Forest	6d0466c30f825dba	98	1/1		0/1	ix:resp
 Frantic Firebolt	1009472aeb84980a	5	0/0		1/2	ix:resp
 Freeze in Place	1ecd11c9f588859f	4	0/0		2/2	
+Frolicking Familiar	f13cfebc0480d8a3	17	1/1		1/2	ix:resp
 Frostbridge Guard	6ab5421739722ec4	3	1/1		0/1	ix:resp
 Gadwick's First Duel	8ca01cf8e565e7a7	15	0/0		0/0	
 Gallant Pie-Wielder	24858e4d7cb51e54	6	0/0		0/0	
@@ -87,6 +89,7 @@ Gruff Triplets	48aa62fc50ba12f8	5	2/2		1/1
 Gumdrop Poisoner	4c2f16764921a3f2	6	1/1		1/2	ix:resp
 Hamlet Glutton	a236f639521507a4	4	1/1		1/3	cast/alt:bargained,ix:resp
 Harried Spearguard	c93d0fb38dda3ff3	4	1/1		0/1	ix:resp
+Heartflame Duelist	1327959a2933ffda	6	0/0		1/2	ix:resp
 Hearth Elemental	f9a4842dcc8fe2b8	20	0/0		1/2	ix:resp
 Hollow Scavenger	bb2fcb950bb25b77	37	1/1		2/2	
 Hopeful Vigil	63550b0902fcc49d	5	3/3		0/1	ix:resp
@@ -96,13 +99,16 @@ Howling Galefang	9b95aa94eeb775f6	9	0/0		0/0
 Hylda's Crown of Winter	249a08b2277d3eaa	9	2/2		0/1	ix:resp
 Ice Out	5d27dbbf7d7560db	4	0/0		2/4	cast/alt:bargained,ix:resp
 Icewrought Sentry	a235da35601c8100	5	2/2		0/1	ix:resp
+Imodane's Recruiter	3b71dde4b8355c24	6	1/1		2/2	
 Imodane, the Pyrohammer	f8d533623b96ca15	7	1/1		0/1	ix:resp
 Ingenious Prodigy	19b6b6fc2fd32be3	3	1/1		1/1	
 Into the Fae Court	e91abf75d17d9a80	6	0/0		2/2	
 Intrepid Trufflesnout	f5c6a169fc8377c3	28	1/1		2/2	
 Island	763c67ef7a27eaf5	75	1/1		0/1	ix:resp
 Johann's Stopgap	e0239b53aec78848	7	0/0		2/4	cast/alt:bargained,ix:resp
+Johann, Apprentice Sorcerer	dc4b4c2e87c5449f	7	0/0		0/0	
 Kellan's Lightblades	d35d634481f34a7d	9	0/0		2/4	cast/alt:bargained,ix:resp
+Kellan, the Fae-Blooded	e6bb311f16e70f74	3	0/0		2/2	
 Kindled Heroism	68983b09d12b4ee7	6	0/0		1/2	ix:resp
 Knight of Doves	a2daed8668538aa4	8	1/1		1/1	
 Korvold and the Noble Thief	2e13d92122823670	6	0/0		0/0	
@@ -166,6 +172,7 @@ Rowdy Research	df434d349d78afb0	3	0/0		2/2
 Royal Treatment	4e41f1d455a08754	12	0/0		2/2	
 Ruby, Daring Tracker	3f1ed233939164f8	22	2/2		1/1	
 Savior of the Sleeping	87be6e662529ebf0	6	1/1		0/1	ix:resp
+Scalding Viper	9d9cb4ef476db33e	14	1/1		2/2	
 Scarecrow Guide	e920c0087fa2fce7	10	1/1		0/1	ix:resp
 Scream Puff	ff4d1b79402f478e	3	1/1		0/1	ix:resp
 Sentinel of Lost Lore	dffff6f20e9c3977	5	1/1		0/1	ix:resp
@@ -219,6 +226,7 @@ Toadstool Admirer	b4023c0edbe93c19	7	2/2		0/1	ix:resp
 Torch the Tower	9e5dffa5ff04971c	4	0/0		2/4	cast/alt:bargained,ix:resp
 Totentanz, Swarm Piper	3e23256c763a1f56	4	2/2		1/1	
 Tough Cookie	fe9488c5b2700096	4	3/3		1/1	
+Troublemaker Ouphe	df866e74f158bd70	874	1/1		3/3	
 Troyan, Gutsy Explorer	6a85d1b9c10f32cb	19	2/2		1/1	
 Tuinvale Guide	e75d81ebb4b7f4fc	10	0/0		0/0	
 Twisted Fealty	3bc8ee94f3242b7e	4	0/0		1/2	ix:resp
