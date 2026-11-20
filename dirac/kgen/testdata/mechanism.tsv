@@ -1,15 +1,15 @@
 # TestMechanismCensusOnlyFalls: ALL carrier rows per mechanism family (family<TAB>carrier_rows)
-M0	909
-M1	256
-M2	3031
-M3	2960
+M0	914
+M1	254
+M2	3032
+M3	2914
 M4	1308
-M5	2601
-M6	2584
-M7	828
-M8	1794
+M5	2591
+M6	2589
+M7	807
+M8	1787
 M9	884
 M10	192
-M11	699
-M12	828
-M13	2809
+M11	667
+M12	833
+M13	2797
