@@ -873,7 +873,7 @@ func (s *State) answerReturnAuraChoice(k *prep, r *resCtx, a Action) bool {
 	r.ask = raNone
 	s.g.pre.val = objWord(a.Mode())
 	if s.g.pre.kind == akType {
-		s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
+		s.g.pre.val = objWord(s.typeVocabCode(k, int(a.Target())<<8|int(a.Mode())))
 	}
 	s.g.pre.state = 2
 	s.returnAura(k, o, host)
@@ -1408,7 +1408,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		s.g.pre.val = objWord(a.Mode())
 		if s.g.pre.kind == akType {
-			s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
+			s.g.pre.val = objWord(s.typeVocabCode(k, int(a.Target())<<8|int(a.Mode())))
 		}
 		if s.g.pre.state == preHideLand {
 			s.hideLandAnswer(k) // kw_hideaway.go
@@ -1445,7 +1445,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.g.pre.val = cloneAnswer(a) // a copy token's clone election (ctr_entryperkind.go)
 		}
 		if s.g.pre.kind == akType {
-			s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
+			s.g.pre.val = objWord(s.typeVocabCode(k, int(a.Target())<<8|int(a.Mode())))
 		}
 		s.g.pre.state = 2
 		t := r.lastTok

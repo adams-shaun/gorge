@@ -1073,6 +1073,14 @@ type stateCore struct {
 	Skipped [MaxSeats]uint32
 	nlC     [4]Obj   // Braided Net locks 5..8 (genState.nlA; fills the padding before g; act_lockpermanent.go)
 	g       genState // the generated-table extension (gen.go)
+	// outCode maps a per-game outside-type code (its index) to the TypeVocab
+	// index of the type that owns it, +1 (0 free). act_choosetype.go
+	// typeVocabCode allocates one on the first choice of that type, so two
+	// sources that chose the same outside type compare equal and two
+	// different types differ even when the vocabulary has more outside
+	// types than free codes. [256]uint16 is a multiple of 64 bytes, so
+	// perms keeps its cache-line phase.
+	outCode [256]uint16
 
 	// Decisions counts the decisions answered (SeqNo).
 	Decisions uint32
