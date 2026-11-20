@@ -12,15 +12,31 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // The kernel records the grant (ExtGrantExile) as a (card, version, host)
 // triple in genState.qgO / qgV / qgH, three bytes of each of qgN slots (24
 // bytes of State); a record is live while the card is still in exile at the
-// recorded version (a zone change bumps it, CR 400.7). The ability is the host
-// card's latent ability whose ActZone is Exile (the host stays an object after
-// it leaves the battlefield, so the body outlives it as gorge's does), offered
-// as AkActivate{source: the exiled card, target: the host, mode: 0x80|ability}
+// recorded version (a zone change bumps it, CR 400.7). The ability is the
+// resolving ability's card's latent ability whose ActZone is Exile, recorded
+// in coldExileGrantCard at grant time: the host may be a copy that has since
+// left the battlefield (its printed card no longer shows the body), and gorge
+// registered the body on the exiled card itself. The grant is offered as
+// AkActivate{source: the exiled card, target: the host, mode: 0x80|ability}
 // like any other granted ability, on the owner's own turn (graveActCond reads
 // the PlayerTurn$ gate) with a hand card to exile as its cost.
 
 // qgN is the exile grants live at once.
 const qgN = 8
+
+// coldExileGrantCard is each live grant's ability body: the card of the
+// resolving ability that made the grant (kop ExtGrantExile's C indexes its
+// latent activated ability). It is not the host object's printed card when the
+// host is a copy: a Dominion Saboteur that entered as Q, Stacking the Deck
+// grants Q's body, and once it leaves the battlefield its printed card no
+// longer has that ability. Cold because only a table with ExtGrantExile needs
+// it.
+var coldExileGrantCard = newCold[CardID]("exileGrantCard", func(g *genPrep) int {
+	if g.anyExileGrant {
+		return qgN
+	}
+	return 0
+})
 
 // DebugQStackNoGrant switches the grant off (the Q, Stacking the Deck mutation
 // test: the lockstep must then diverge, gorge offering the ability).
@@ -62,6 +78,9 @@ func (s *State) grantExile(k *prep, in *kop.Instr) {
 	if host == NoObj {
 		return
 	}
+	// the resolving ability's card, not the host object's printed card (a copy
+	// host grants the body it copied, CR 707.2)
+	body := s.res.e.card
 	for i := 0; i < int(s.g.nrem); i++ {
 		o := s.g.rem[i]
 		if s.objs[o].zone != kop.ZoneExile {
@@ -85,7 +104,38 @@ func (s *State) grantExile(k *prep, in *kop.Instr) {
 			return
 		}
 		s.g.qgO[free], s.g.qgV[free], s.g.qgH[free] = o+1, s.objs[o].ver, host+1
+		if cc := coldExileGrantCard.of(s); free < len(cc) {
+			cc[free] = body
+		}
 	}
+}
+
+// exileGrantCard is record j's ability body, 0 when none was recorded.
+func (s *State) exileGrantCard(j int) CardID {
+	cc := coldExileGrantCard.of(s)
+	if j < len(cc) {
+		return cc[j]
+	}
+	return 0
+}
+
+// exileGrantCardFor is the body recorded for the grant whose host is host, for
+// activateGen's granted-ability path. 0 when no live record names it (a
+// non-exile granted ability).
+func (s *State) exileGrantCardFor(host Obj) CardID {
+	for j := 0; j < qgN; j++ {
+		if s.g.qgO[j] != 0 && s.g.qgH[j] == host+1 && s.exileGrantLive(j, s.g.qgO[j]-1) {
+			return s.exileGrantCard(j)
+		}
+	}
+	return 0
+}
+
+// exileGrantHasAb reports whether card c's ability ab is the exile-latent kind
+// the grant records (AbActivated with ActivationZone$ Exile).
+func exileGrantHasAb(k *prep, c CardID, ab uint8) bool {
+	abs := k.t.Cards[c].Abilities
+	return int(ab) < len(abs) && abs[ab].Kind == kop.AbActivated && abs[ab].ActZone == kop.ZoneExile && abs[ab].AFlags&kop.AfLatent != 0
 }
 
 // exileGrantAb is the index of the host card's exile-granted ability (its one
@@ -114,12 +164,15 @@ func (s *State) priorityExileGrant(k *prep, d *Decision, p uint8) {
 				continue
 			}
 			host := s.g.qgH[j] - 1
-			// a host on the battlefield is read as it is now (a Dominion
-			// Saboteur that entered as Q, Stacking the Deck grants Q's body,
-			// CR 707.2); one that left keeps its printed card, as activateGen
-			hc := s.objs[host].card
-			if s.objs[host].zone == kop.ZoneBattlefield {
-				hc = s.cardAt(s.objs[host].slot)
+			// the body recorded at grant time (a Dominion Saboteur that
+			// entered as Q, Stacking the Deck grants Q's body, CR 707.2), which
+			// outlives the host leaving the battlefield
+			hc := s.exileGrantCard(j)
+			if hc == 0 {
+				hc = s.objs[host].card
+				if s.objs[host].zone == kop.ZoneBattlefield {
+					hc = s.cardAt(s.objs[host].slot)
+				}
 			}
 			ai := exileGrantAb(k, hc)
 			if ai < 0 {

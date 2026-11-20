@@ -612,9 +612,17 @@ func (s *State) activateGen(k *prep, a Action) bool {
 		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: hc, ab: a.Mode() &^ gainedMode, ctrl: s.prio, trigObj: NoObj}}
 	} else if a.Mode()&0x80 != 0 {
 		host := Obj(a.Target())
+		ab := a.Mode() &^ 0x80
 		hc := s.objs[host].card
-		if s.objs[host].zone == kop.ZoneBattlefield {
-			hc = s.grantCardAt(k, s.objs[host].slot, a.Mode()&^0x80)
+		if body := s.exileGrantCardFor(host); body != 0 && exileGrantHasAb(k, body, ab) {
+			// An exile grant records the body it granted at resolution. Read it
+			// on either side of the battlefield: the host may be a copy whose
+			// printed card has no such ability, or a card that has left the
+			// battlefield since the grant (gorge's Animate keeps the body on
+			// the exiled card itself).
+			hc = body
+		} else if s.objs[host].zone == kop.ZoneBattlefield {
+			hc = s.grantCardAt(k, s.objs[host].slot, ab)
 		} else {
 			// An off-battlefield grantor (an emblem's creator: the grant is
 			// offered against the effect's Source wherever it now is,
@@ -627,7 +635,6 @@ func (s *State) activateGen(k *prep, a Action) bool {
 			// current card first, then the layout's face cards in index
 			// order -- the first whose ability ab is an activated ability is
 			// the grant's card. A one-face grantor keeps its card, as before.
-			ab := a.Mode() &^ 0x80
 			for _, fc := range k.t.Cards[hc].Faces {
 				if fc != hc && len(k.t.Cards[fc].Abilities) > int(ab) && k.t.Cards[fc].Abilities[ab].Kind == kop.AbActivated {
 					hc = fc
@@ -635,7 +642,7 @@ func (s *State) activateGen(k *prep, a Action) bool {
 				}
 			}
 		}
-		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: hc, ab: a.Mode() &^ 0x80, ctrl: s.prio, trigObj: host}}
+		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: hc, ab: ab, ctrl: s.prio, trigObj: host}}
 	} else if ob.zone != kop.ZoneBattlefield {
 		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: ob.card, ab: a.Mode(), ctrl: s.prio, trigObj: NoObj}}
 	} else {
