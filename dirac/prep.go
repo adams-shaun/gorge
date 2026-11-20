@@ -167,6 +167,10 @@ type prep struct {
 	// Effect-delivered "you may cast ... as though they had flash"): the
 	// other guard castFlash adds
 	anyEmbFlash bool
+	// anyEmbForget: some emblem carries a ForgetOnCast$ filter for a stack
+	// keyword grant (kop.Emblem.Forget): the completed cast ends the emblem
+	// (cast_selfflash.go embFlashForget, after the cascade triggers)
+	anyEmbForget bool
 	// anyRedNC: some value reads ExRedNCDmg: replDamage tallies
 	// the noncombat damage red sources deal, beginTurn clears the tally
 	anyRedNC bool

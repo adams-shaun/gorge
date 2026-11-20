@@ -1567,6 +1567,10 @@ var wordPredicateWordCodes = state.NewStrCodes(
 	state.StrEntry[wordPredicateWordCode]{Key: "wasCastFromYourHandByYou", Val: wordPredicateWordCastProvenance},
 	state.StrEntry[wordPredicateWordCode]{Key: "wasCastByYou", Val: wordPredicateWordCastProvenance},
 	state.StrEntry[wordPredicateWordCode]{Key: "wasCastFromYourHand", Val: wordPredicateWordCastProvenance},
+	// wasCastFromHand (no "Your") is Forge's bare any-caster hand spelling
+	// (Wildsear, Scouring Maw; Yidris, Maelstrom Wielder; Zhulodok, Void
+	// Gorger): the same latest-PutOnStack hand read as wasCastFromYourHand.
+	state.StrEntry[wordPredicateWordCode]{Key: "wasCastFromHand", Val: wordPredicateWordCastProvenance},
 	state.StrEntry[wordPredicateWordCode]{Key: "wasCastFromExile", Val: wordPredicateWordCastProvenance},
 	state.StrEntry[wordPredicateWordCode]{Key: "wasCastFromYourGraveyard", Val: wordPredicateWordCastProvenance},
 	state.StrEntry[wordPredicateWordCode]{Key: "wasCastFromYourGraveyardByYou", Val: wordPredicateWordCastProvenance},

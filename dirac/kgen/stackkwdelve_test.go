@@ -62,17 +62,17 @@ func TestStackkwDelveLowering(t *testing.T) {
 			t.Errorf("%s: refusals %v, want one containing %q", c.name, lc.Refusals, c.want)
 		}
 	}
-	// a Condition$ gate refuses
+	// a Condition$ / CheckSVar$ gate rides the grant: the static lowers with
+	// the gate carried (Static.Cond2), read live by stackKwN
 	src := "Name:Delve Probe\nManaCost:2 B\nTypes:Creature Human\nPT:2/2\nS:Mode$ Continuous | Affected$ Card.YouCtrl+wasCast | AffectedZone$ Stack | AddKeyword$ Delve | EffectZone$ Battlefield | CheckSVar$ X | SVarCompare$ GE1\nSVar:X:Count$YourLifeTotal\n"
 	card, _ := cards.ParseBytes("delve_probe.txt", []byte(src))
 	card.Link()
 	p := &pool{names: []string{"Delve Probe"}, byName: map[string]*cards.Card{"Delve Probe": card}, nDecks: map[string]int{}, reg: &cards.Registry{}}
 	lw := lowerPool(p)
-	found := false
-	for _, r := range lw.cards[0].Refusals {
-		found = found || strings.Contains(r.Reason, "gate")
+	if len(lw.cards[0].Refusals) != 0 {
+		t.Fatalf("gated grant: refusals %v, want none", lw.cards[0].Refusals)
 	}
-	if !found {
-		t.Errorf("gated grant: refusals %v, want the gate refusal", lw.cards[0].Refusals)
+	if len(lw.cards[0].Statics) != 1 || lw.cards[0].Statics[0].Cond.Kind == cNone {
+		t.Fatalf("gated grant: statics %+v, want one StackKw Delve carrying the gate", lw.cards[0].Statics)
 	}
 }

@@ -1960,9 +1960,6 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	if e.ctrl == 0 && !e.faceDown() {
 		s.castFromStack(k, e)
 	}
-	if k.anyEmbFlash {
-		s.embFlashForget(k, e)
-	}
 	if k.gen != nil {
 		s.castTrigGraves(k, e)
 		s.eachCommandTrigger(k, kop.TrigSpellCast, func(l trigListener, a *kop.Ability) {
@@ -1982,6 +1979,15 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	}
 	if k.gen != nil && k.gen.anyCascade && !DebugIgnoreCascade {
 		s.queueCascade(k, e)
+	}
+	// the Effect grants' cast-driven lifetime (ForgetOnCast$) ends at this
+	// completed-cast moment, after the cascade triggers: gorge cast_commit.go
+	// calls queueCascadeTriggers and only then effectCastSweep, so the cast
+	// the grant is for still sees it (Dark Apostle's granted cascade fires
+	// this very cast). A stack-grant emblem carries its own Forget filter
+	// (kop.Emblem.Forget); a CastWithFlash emblem keeps its Static.Filter2.
+	if k.anyEmbFlash || k.anyEmbForget {
+		s.embFlashForget(k, e)
 	}
 }
 

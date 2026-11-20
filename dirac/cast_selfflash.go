@@ -81,11 +81,30 @@ func (s *State) embFlash(k *prep, p uint8, c CardID) bool {
 	return false
 }
 
+// prepEmblemCasts opens the cast-time emblem gates: anyEmbFlash (an
+// Effect-delivered StatCastWithFlash static, embFlash) and anyEmbForget (an
+// Effect-issued stack keyword grant whose ForgetOnCast$ ends the emblem on
+// the matching cast, kop.Emblem.Forget). Both readers are in embFlashForget.
+func prepEmblemCasts(t *kop.Table, p *prep) {
+	for i := range t.Emblems {
+		if t.Emblems[i].Forget != 0 {
+			p.anyEmbForget = true
+		}
+		for j := range t.Emblems[i].Abilities {
+			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash {
+				p.anyEmbFlash = true
+			}
+		}
+	}
+}
+
 // embFlashForget ends the emblem of any player whose CastWithFlash static names the
 // spell just cast in its Filter2 (the Effect's ForgetOnCast$: Quicken's "the
-// next sorcery spell you cast this turn"): gorge effectCastSweep drops the
-// whole effect at the cast's completion, whether or not the cast used the
-// grant. The filter is read with the emblem's player as "you".
+// next sorcery spell you cast this turn"), and any emblem whose own Forget
+// filter names it (an Effect-issued stack keyword grant: "the next spell you
+// cast this turn has cascade", kop.Emblem.Forget): gorge effectCastSweep
+// drops the whole effect at the cast's completion, whether or not the cast
+// used the grant. The filter is read with the emblem's player as "you".
 //
 //go:noinline
 func (s *State) embFlashForget(k *prep, e *stackEntry) {
@@ -96,6 +115,10 @@ func (s *State) embFlashForget(k *prep, e *stackEntry) {
 		var drop uint8
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			em := &k.t.Emblems[s.embIdx(pp, i)-1]
+			if em.Forget != 0 && s.matchCardGen(k, em.Forget, e.card, e.ctrl, pp, e.obj) {
+				drop |= 1 << uint(i)
+				continue
+			}
 			for j := range em.Abilities {
 				a := &em.Abilities[j]
 				if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash && a.Static.Filter2 != 0 &&
