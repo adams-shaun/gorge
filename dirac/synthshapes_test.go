@@ -8,6 +8,13 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// synthSet is the synthetic pool name as a Set (skipping with no corpus), for the
+// tests that build their own matchups; this file may read raw tables, they may not.
+func synthSet(t *testing.T, name string) cardset.Set {
+	t.Helper()
+	return cardsettest.Synth(t, name)
+}
+
 // synthScen is a scenario over a matchup of a synthetic pool whose two decks
 // are names, one of each.
 func synthScen(t *testing.T, pool string, names ...string) (*scen, map[string]CardID) {

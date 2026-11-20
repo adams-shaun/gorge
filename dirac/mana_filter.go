@@ -1322,6 +1322,10 @@ func (fs *filtSearch) phasedFallback() bool {
 //
 //go:noinline
 func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
+	memo := s.filtMemoLookup(k, a, p, apply)
+	if memo.hit && !DebugFiltMemoCheck {
+		return false // this game already failed this play's search in this transition (mana_filtmemo.go)
+	}
 	var fs filtSearch
 	fs.a, fs.p, fs.gaps, fs.own, fs.sp0 = a, p, s.scriptFilt(k, p), NoSlot, s.sp
 	fs.need = s.playNeed(k, a) // the play's announced colours, whichever search prices it
@@ -1367,8 +1371,13 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			// name: declare it, not "no payment" (tapXScript's stall; a found
 			// path is not this, its stall is fs.spill's below)
 			s.capFull(fs.stall)
+		} else {
+			s.filtMemoNote(&memo)
 		}
 		return false
+	}
+	if memo.hit {
+		panic("dirac: filtScript memo: a remembered failure found a script")
 	}
 	if fs.spill != 0 {
 		s.capFull(fs.spill) // (the fork the step ran on latched it; the real state must)
@@ -1424,10 +1433,15 @@ func (s *State) filtPay(k *prep, p uint8, cost *kop.ManaCost, takeDeferred bool)
 	fs.fees = MaxPerm
 	fs.pay = cost
 	fs.census = takeDeferred
-	fs.paySeen = make([]filtKey, paySearchNodes)
 	fs.useful, fs.usefulOK = *cost, true
 	t := s.fork()
 	defer s.unfork()
+	s.pool.payCalls++
+	var own bool
+	fs.paySeen, own = s.pool.takePaySeen()
+	if own {
+		defer func() { s.pool.payBusy = false }()
+	}
 	was := s.pool.census
 	s.pool.census = takeDeferred
 	s.pool.inFilt++
