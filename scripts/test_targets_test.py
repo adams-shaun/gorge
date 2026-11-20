@@ -975,3 +975,14 @@ def test_table_data_change_runs_the_table_readers_whole():
         assert got.get("./dirac/oracle/cmd/kfuzz") == "whole", (path, got)
         res, _ = tt.plan({path: None}, dm, dp, lambda p: [], None, (), {"fast": [], "sha": "0"})
         assert {p: k for k, p, _ in res}.get("./dirac/oracle/cmd/kfuzz") == "whole", path  # not narrowed to census
+
+
+def test_smart_census_runs_the_oracle_in_chunks():
+    # 11-20: ./dirac/oracle's ~120 census tests (the cmd5 ratchet alone 174-195 s loaded) summed past its 5m cap in
+    # one call, and test-smart printed BUDGET on every diff that selected them. They run in fixed chunks, each its
+    # own call, and the oracle leaves the package groups.
+    sh = (HERE / "test-targets.sh").read_text()
+    assert "cpk=$(printf '%s\\n' $cpk | grep -vx './dirac/oracle' || true)" in sh
+    assert 'go test -list "$C" ./dirac/oracle' in sh
+    assert 'ochunks=("^TestCmd5SliceCleanOnlyGrows\\$")' in sh
+    assert "awk -v k=$k 'NR % 4 == k'" in sh
