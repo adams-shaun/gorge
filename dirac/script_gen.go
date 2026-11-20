@@ -895,6 +895,49 @@ func (s *State) capGrantOvercounts(k *prep, d *Decision, p uint8) {
 	s.grantCap(k, d, p, &capSpent)
 }
 
+// untappedTapGapLive reports whether one of p's untapped, unsick sources fires
+// a Taps watcher gorge's planner defers when it is tapped for mana -- another
+// object's (tapsDeferred) or its own, which only a granted mana ability can
+// reach (Mechan Navigator's "whenever this creature becomes tapped, draw a
+// card, then discard a card" beside Mm'menon's granted mana, selfTapsDefer).
+// The planner's own verdict never pays through such a source
+// (paymentPlanSourceInterference: insufficient); only its prefix search does,
+// and a draw there moves the library top a may-play cast is cast from (CR 400.7).
+func (s *State) untappedTapGapLive(k *prep, p uint8) bool {
+	if k.gen == nil || !(k.gen.anyTapsDefer || k.gen.anySelfTaps) {
+		return false
+	}
+	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
+		sl := m.first()
+		if s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl) {
+			continue
+		}
+		if k.gen.anyTapsDefer && s.tapsDeferred(k, p, sl) || k.gen.anySelfTaps && s.selfTapsDefer(k, sl) {
+			return true
+		}
+	}
+	return false
+}
+
+// mayPlayJoinCensusPays reports whether a non-free may-play cast's composed
+// cost is payable from the join census grantCap's walk reads -- the census
+// that mirrors gorge's planner census, granted mana abilities included.
+// gorge's may-play arm prices the composed cost from that census
+// (potentialModeCastPlan -> planComposedCost over pay.PlanPaymentCostWithout),
+// not from the plain cast's ungranted one, so the ungranted prune and its
+// prefix search do not price it.
+func (s *State) mayPlayJoinCensusPays(k *prep, p uint8, a Action, cost *kop.ManaCost) bool {
+	if a.Mode()&castMayPlay == 0 || a.Mode()&castFree != 0 {
+		return false
+	}
+	if s.untappedTapGapLive(k, p) {
+		return false // gorge's prefix search prices it, not the census (untappedTapGapLive)
+	}
+	var mav avail
+	s.availFor(k, p, &mav)
+	return mav.affords(cost, pipMaskOf(cost), 0)
+}
+
 // filterScriptKeeps: the activation a is one the filter script prices (gorge's
 // one prefix search over the filters and the grants, actScriptPays). The
 // grant cap must not drop it: White Lotus Hideout's {1},{T} ability funds
@@ -1028,6 +1071,14 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		}
 		cost, ex, need, ok := s.grantPlayCost(k, p, a, true)
 		if !ok {
+			continue
+		}
+		if s.mayPlayJoinCensusPays(k, p, a, &cost) {
+			// the may-play arm's cost is the join census's (the helper
+			// above), not the plain cast's ungranted read below: keep the
+			// offer without the prefix search (Elven Chorus's "{T}: Add one
+			// mana of any color" creatures beside a top-of-library Grazing
+			// Whiptail; CR 601.2g, 118.9)
 			continue
 		}
 		if s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) {
