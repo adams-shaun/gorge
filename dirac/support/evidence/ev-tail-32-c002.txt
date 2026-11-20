@@ -11,6 +11,7 @@ Akoum Warrior
 Alabaster Wall
 Alchor's Tomb
 Amulet of Kroog
+Ancient Silver Dragon
 Annoyed Altisaur
 Apprentice Sorcerer
 Arcbound Hybrid
@@ -254,6 +255,7 @@ Plains
 Plateau
 Prakhata Pillar-Bug
 Precognition Field
+Prized Statue
 Provoke
 Psychic Spear
 Purifying Dragon
@@ -339,6 +341,7 @@ Thorn Lieutenant
 Thraben Gargoyle
 Thran Lens
 Thriving Ibex
+Thunder Wall
 Tidal Force
 Tolarian Sentinel
 Tomb Fortress
