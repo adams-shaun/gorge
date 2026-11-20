@@ -191,12 +191,12 @@ func (s *State) prolifOrderObservable(k *prep, sl Slot) bool {
 	n := 0
 	var held ctrHeld
 	for _, c := range held[:s.perms[sl].heldKinds(s, &held)] {
-		if n0, _, _ := s.ctrAddedListenerBy(k, kop.CounterKind(c), putter); kop.IsCounterKind(int(c)) && n0 > 0 {
+		if n0, _, _ := s.ctrAddedListenerBy(k, kop.CounterKind(c), putter, sl); kop.IsCounterKind(int(c)) && n0 > 0 {
 			heard[n] = kop.CounterKind(c)
 			n++
 		}
 	}
-	return n > 1 && s.ctrOrderObservableBy(k, heard[:n], putter)
+	return n > 1 && s.ctrOrderObservableBy(k, heard[:n], putter, sl)
 }
 
 // fireProliferate fires "whenever <Whose> proliferates" (TrigProliferate:

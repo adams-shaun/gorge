@@ -83,7 +83,7 @@ func (s *State) putCounterSnapshot(k *prep, sl Slot, p1 int, ck [ctrSlots]uint16
 			return
 		}
 		kinds++
-		if s.ctrAddedHeard(k, c) {
+		if s.ctrAddedHeard(k, c, sl) {
 			heard++
 			heardKinds[nh] = c
 			nh++
@@ -99,7 +99,7 @@ func (s *State) putCounterSnapshot(k *prep, sl Slot, p1 int, ck [ctrSlots]uint16
 	if kinds == 0 {
 		return
 	}
-	if heard > 1 && s.ctrOrderObservable(k, heardKinds[:nh]) {
+	if heard > 1 && s.ctrOrderObservable(k, heardKinds[:nh], sl) {
 		s.capFull(StallCtrOrder)
 		return
 	}
@@ -121,28 +121,49 @@ func (s *State) putCounterSnapshot(k *prep, sl Slot, p1 int, ck [ctrSlots]uint16
 }
 
 // ctrAddedHeard reports whether a counter-added trigger on the battlefield
-// (or an emblem) could fire for a put of counter kind c: the order of the
-// puts is observable (the stack order of their triggers) only between kinds
-// that are heard (CR 603.3b). The check is a superset of the real match: the
-// trigger's recipient filter is not read.
-func (s *State) ctrAddedHeard(k *prep, c kop.CounterKind) bool {
-	n, _, _ := s.ctrAddedListener(k, c)
+// (or an emblem) could fire for a put of counter kind c on the permanent at
+// at: the order of the puts is observable (the stack order of their triggers)
+// only between kinds that are heard (CR 603.3b). A trigger's recipient filter
+// and self flag are read when at is known and the filter cannot change under
+// the counters; an unknown recipient (NoSlot) is a superset, as before.
+func (s *State) ctrAddedHeard(k *prep, c kop.CounterKind, at Slot) bool {
+	n, _, _ := s.ctrAddedListener(k, c, at)
 	return n > 0
 }
 
 // ctrAddedListener counts the listeners a put of counter kind c has, and
 // returns the only one when it has exactly one.
-func (s *State) ctrAddedListener(k *prep, c kop.CounterKind) (int, trigListener, *kop.Ability) {
-	return s.ctrAddedListenerBy(k, c, noPutter)
+func (s *State) ctrAddedListener(k *prep, c kop.CounterKind, at Slot) (int, trigListener, *kop.Ability) {
+	return s.ctrAddedListenerBy(k, c, noPutter, at)
 }
 
 // noPutter: the put's player is unknown, so no listener is ruled out by it.
 const noPutter = MaxSeats
 
-// ctrAddedListenerBy is ctrAddedListener for a put by player putter: a
-// listener whose ValidSource$ (Whose) excludes the putter does not hear it
-// (a "whenever you put" line on the other seat's permanent; CR 603.2).
-func (s *State) ctrAddedListenerBy(k *prep, c kop.CounterKind, putter uint8) (int, trigListener, *kop.Ability) {
+// ctrRecipientFilterStable reports whether a counter-added trigger's
+// event-object filter can be read once for the whole put: control, owner,
+// type, subtype and colour selectors do not change as counters land, while a
+// P/T, keyword, counter or state predicate can (a +1/+1 counter raises power,
+// a keyword counter adds a keyword), so those keep the old superset.
+func ctrRecipientFilterStable(k *prep, f kop.FilterID) bool {
+	for n := 0; f != 0 && int(f) < len(k.t.Filters) && n < 64; n++ {
+		fl := &k.t.Filters[f]
+		if fl.Pred != 0 || fl.PredN != 0 || fl.Flags != 0 || fl.Flags2 != 0 ||
+			fl.CtrlTgt != 0 || fl.Special != 0 || fl.PickDistinctPower || fl.PickSumMax != (kop.ValueRef{}) {
+			return false
+		}
+		f = fl.Or
+	}
+	return true
+}
+
+// ctrAddedListenerBy is ctrAddedListener for a put by player putter on the
+// permanent at at (NoSlot: recipient unknown). A listener whose ValidSource$
+// (Whose) excludes the putter does not hear it (a "whenever you put" line on
+// the other seat's permanent; CR 603.2), and one whose event-object filter
+// (or TfSelf) excludes at does not hear it either (Generous Patron's "on a
+// creature you don't control").
+func (s *State) ctrAddedListenerBy(k *prep, c kop.CounterKind, putter uint8, at Slot) (int, trigListener, *kop.Ability) {
 	const ev = kop.TrigCounterAddedOnce
 	if !s.subs[ev].any() && (k.gen == nil || (k.gen.embObjEv|k.gen.grantTrigEv)&(1<<ev) == 0) {
 		return 0, trigListener{}, nil
@@ -156,8 +177,23 @@ func (s *State) ctrAddedListenerBy(k *prep, c kop.CounterKind, putter uint8) (in
 	heard := func(a *kop.Ability) bool {
 		return a.Trig.N == kop.TrigNAnyCounter || kop.CounterKind(a.Trig.N) == c
 	}
+	atOK := func(l trigListener, a *kop.Ability) bool {
+		if at == NoSlot {
+			return true
+		}
+		if a.Trig.Flags&kop.TfSelf != 0 {
+			return l.sl == at
+		}
+		if a.Trig.Filter == 0 {
+			return true
+		}
+		if !ctrRecipientFilterStable(k, a.Trig.Filter) {
+			return true // a predicate the counters can change: keep the superset
+		}
+		return s.matchPerm(k, a.Trig.Filter, at, l.ctrl, l.sl)
+	}
 	take := func(l trigListener, a *kop.Ability) {
-		if !heard(a) || (putter != noPutter && !whoseOK(a.Trig.Whose, l.ctrl, putter)) {
+		if !heard(a) || !atOK(l, a) || (putter != noPutter && !whoseOK(a.Trig.Whose, l.ctrl, putter)) {
 			return
 		}
 		n++
@@ -188,16 +224,17 @@ func (s *State) ctrAddedListenerBy(k *prep, c kop.CounterKind, putter uint8) (in
 // put fires that one trigger, the rest hit its once-per-turn limit, and the
 // same ability fires whichever kind came first (CR 603.3b). A kind heard by
 // no listener is skipped: its position reaches no trigger.
-func (s *State) ctrOrderObservable(k *prep, kinds []kop.CounterKind) bool {
-	return s.ctrOrderObservableBy(k, kinds, noPutter)
+func (s *State) ctrOrderObservable(k *prep, kinds []kop.CounterKind, at Slot) bool {
+	return s.ctrOrderObservableBy(k, kinds, noPutter, at)
 }
 
-// ctrOrderObservableBy is ctrOrderObservable for puts by player putter.
-func (s *State) ctrOrderObservableBy(k *prep, kinds []kop.CounterKind, putter uint8) bool {
+// ctrOrderObservableBy is ctrOrderObservable for puts by player putter on the
+// permanent at at (NoSlot: recipient unknown).
+func (s *State) ctrOrderObservableBy(k *prep, kinds []kop.CounterKind, putter uint8, at Slot) bool {
 	var sole trigListener
 	have := false
 	for _, c := range kinds {
-		n, l, a := s.ctrAddedListenerBy(k, c, putter)
+		n, l, a := s.ctrAddedListenerBy(k, c, putter, at)
 		if n == 0 {
 			continue
 		}

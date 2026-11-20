@@ -18,7 +18,7 @@ func TestPutCountersFromOnceListenerOrder(t *testing.T) {
 	watcher := &sc.k.t.Cards[c.watcher].Abilities[0]
 	watcher.Trig.Flags |= kop.TfOncePerTurn
 	sc.perm(c.watcher, 0)
-	if !sc.s.ctrAddedHeard(sc.k, kop.CtrP1P1) || !sc.s.ctrAddedHeard(sc.k, kop.CtrFlying) {
+	if !sc.s.ctrAddedHeard(sc.k, kop.CtrP1P1, NoSlot) || !sc.s.ctrAddedHeard(sc.k, kop.CtrFlying, NoSlot) {
 		t.Fatal("the listener must hear both kinds")
 	}
 	if watcher.Trig.N != kop.TrigNAnyCounter || watcher.Trig.Flags&kop.TfOncePerTurn == 0 || watcher.Gate.Ctr != 0 {
