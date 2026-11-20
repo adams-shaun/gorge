@@ -60,6 +60,15 @@ type Player struct {
 	// cleared at TurnChange with the other watchers, so a log-only replay
 	// rebuilds it exactly; clone copies it with the Player struct.
 	WasDealtDamageThisTurn bool
+	// SearchedLibraryThisTurn is set when this seat completed a library
+	// search (CR 701.23) since the last TurnChange -- Count$SearchedLibrary,
+	// Archive Trap's "an opponent searched their library this turn". The
+	// searcher is the seat itself for a search of its own library and the
+	// searching seat for a search of another's (events.SearchedLibrary's
+	// Amount). Folded only by events.Apply and cleared at TurnChange with the
+	// other watchers, so a log-only replay rebuilds it exactly; clone copies
+	// it with the Player struct.
+	SearchedLibraryThisTurn bool
 	// AttackedPlayersThisTurn and AttackedPlaneswalkersThisTurn are the
 	// seat's attack watchers: bit d is set when a creature this seat
 	// controlled was declared attacking player d itself, or a planeswalker
