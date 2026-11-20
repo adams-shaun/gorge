@@ -182,6 +182,9 @@ func (p *prep) initStall(nseat uint8) uint8 {
 	if p.gainsOfPair {
 		return StallGainsOf // static_gainsofpair.go gainsOfPairOn
 	}
+	if p.landGrantPair && !DebugLandGrantNoPairGuard {
+		return StallLandGrant // static_landgrantpair.go landGrantPairOn
+	}
 	return StallNone
 }
 
@@ -290,6 +293,8 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 		text, a, b = tokListAdderPair() // repl_toklistadd.go
 	case StallGainsOf:
 		text, a, b = gainsOfStallPair(t) // static_gainsofpair.go
+	case StallLandGrant:
+		text, a, b = landGrantPairText(t, pp, g) // static_landgrantpair.go
 	case StallDiamondMix:
 		text = "a Lion's Eye Diamond beside another mana census-gap kind (a filter, a restricted or any-colour restricted source, a counter-cost or tap-another source, a deferred source, a granted mana ability, an each-colour source): gorge's one prefix search activates both and the kernel models the Diamond alone"
 		a = abilityOn(kop.DiscardHandManaAb)
