@@ -1274,6 +1274,11 @@ type filtSearch struct {
 	// fee (paid from the floating pool, CR 601.2b), and without the plain
 	// run's fee-stall prune (feeStall is set on the plain run only).
 	phased bool
+	// feeOrder: gorge's fee-order fallback (scriptSearch.feeOrder, the phased
+	// run of a plain cast beside a multi-mana fee-carrying gap): the covered
+	// funding sources first, then the gaps that carry a fee, then the fee-free
+	// ones. It rides on phased (the fee-stall prune is off).
+	feeOrder bool
 }
 
 // deferGapLeft: the search still holds an untapped filter gap whose tap
@@ -1368,6 +1373,41 @@ func (s *State) storeGapLive(k *prep, p uint8) bool {
 	return false
 }
 
+// feeGapSlot: the filter at sl carries a fee and makes several mana at once
+// (Baxter Building's {4},{T}: four mana in any combination), gorge's
+// scriptSearch.feeGaps entry: a gap whose ability makes two or more units for
+// a mana cost.
+func (s *State) feeGapSlot(k *prep, sl Slot) bool {
+	a := s.filtAb(k, sl)
+	return comboFiltAb(a) && a.Cost.Mana.MV() > 0
+}
+
+// feeOrderFallback: the plain run found no script and gorge's phased run takes
+// the fee order (potentialPrefixScript: a plain cast of the printed cost whose
+// census gaps hold a fee-carrying multi-mana one, and which no other phased
+// scope claims -- an own cost that sacrifices or returns a permanent, a
+// hybrid-fee gap). The fallback returns whatever the fee-order run finds, with
+// its own node budget. Boards with another kind of gap, and a dynamic filter
+// whose unit count is a state read, keep the plain run's answer.
+func (fs *filtSearch) feeOrderFallback(k *prep, t *State, a Action) bool {
+	if fs.pay != nil || fs.other.any() || a.Kind() != AkCast || a.Mode() != 0 || t.filtHybIn(k, fs.gaps) {
+		return false
+	}
+	c := t.objs[Obj(a.Source())].card
+	if spellAddCost(k, c).Flags&(kop.CostSac|kop.CostSacSelf|kop.CostReturn|kop.CostReturnSelf) != 0 {
+		return false
+	}
+	fee := false
+	for g := fs.gaps; g.any(); g = g.rest() {
+		sl := g.first()
+		if t.filtAb(k, sl).AFlags&kop.AfManaDynamic != 0 {
+			return false
+		}
+		fee = fee || t.feeGapSlot(k, sl)
+	}
+	return fee
+}
+
 // phasedFallback: the plain run found no script after spending its whole node
 // budget on a board whose gaps are filters alone, one of them a repeatable
 // fee-only one -- the case gorge's phased run takes outside its own scope
@@ -1439,7 +1479,22 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	s.pool.inFilt++ // (fork made the pool)
 	found := fs.visit(k, t, 0, false)
 	nodes := fs.nodes
-	if !found && fs.phasedFallback() {
+	if !found && fs.feeOrderFallback(k, t, a) {
+		// gorge's plain run spent its node budget and its phased run walks
+		// the fee order: the funding floats first, then the multi-mana fee
+		// gap (Baxter Building's {4},{T}) converts it (potentialPrefixScript)
+		ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
+			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true, feeOrder: true}
+		if found = ph.visit(k, t, 0, false); found {
+			fs = ph
+			nodes = ph.nodes
+		} else {
+			nodes = max(nodes, ph.nodes)
+			if fs.stall == 0 {
+				fs.stall = ph.stall
+			}
+		}
+	} else if !found && fs.phasedFallback() {
 		// gorge's plain run spent its node budget on a repeatable fee-only
 		// filter's branches: its phased run walks the funding line the plain
 		// order walked past (potentialPrefixScript)
@@ -2177,6 +2232,12 @@ func (fs *filtSearch) passCount() int {
 // skipped: the funding passes are once the funding is spent (gorge's phase
 // loop breaks there, so the phased run's last gap pass goes with it).
 func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOnly, skip bool) {
+	if fs.feeOrder {
+		// the fee order: the covered funding (while it lasts, then the pass is
+		// skipped and the gap passes still run), the fee-carrying gaps, the
+		// fee-free ones (gorge's phaseAt on a feeOrder run)
+		return pass != 0, false, pass == 0 && funded >= fs.fees
+	}
 	gap = pass == 0 || fs.phased && pass == 2
 	freeOnly = fs.phased && pass == 0
 	if gap {
@@ -2257,6 +2318,9 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			if fs.skipSlot(k, t, sl, gap, freeOnly) {
 				continue
+			}
+			if gap && fs.feeOrder && t.feeGapSlot(k, sl) != (pass == 1) {
+				continue // the fee order walks the fee-carrying gaps in its second pass, the rest in its third
 			}
 			if gap && fs.other.has(sl) {
 				if fs.otherGap(k, t, sl, funded) {
