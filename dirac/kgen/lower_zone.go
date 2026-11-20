@@ -3202,8 +3202,11 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		return nil, "", false, err
 	}
 	if t, ok := ps.get("Types"); ok {
-		for _, w := range strings.Split(t, ",") {
-			w = strings.TrimSpace(w)
+		// gorge animateGrant types (combatfx.go): commas separate like
+		// whitespace, so "Types$ Human Cleric" is Human and Cleric, two
+		// types, never one subtype word with a space
+		words := strings.Fields(strings.ReplaceAll(t, ",", " "))
+		for _, w := range words {
 			if b, ok := typeAddBit(w); ok {
 				o.AddTypes |= b
 				continue
@@ -3224,7 +3227,7 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			o.HasSetTypes = true
 			o.SetTypes, o.AddTypes = o.AddTypes&^tSupertype, o.AddTypes&tSupertype
 			o.HasSetSubtypes = true
-			if err := o.keepSubtypes(strings.Split(t, ",")); err != nil {
+			if err := o.keepSubtypes(words); err != nil {
 				return nil, "", false, err
 			}
 		} else {
