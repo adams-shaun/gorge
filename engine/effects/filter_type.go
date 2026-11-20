@@ -194,7 +194,12 @@ func hasTypePrinted(o *state.Object, t string, id cards.TypeWordID) (typeDecisio
 		if strings.EqualFold(t, "Aura") {
 			return typeYes, f
 		}
-		if strings.EqualFold(t, "Creature") {
+		// The lost Creature card type takes its subtypes with it (CR 205.1a,
+		// the same rule bestowedTypeSwitch's layer walk applies): the printed
+		// "Creature Merfolk Wizard" line leaves nothing behind the Aura word
+		// can carry, so a bestowed Triton Wavebreaker is no Wizard either --
+		// a Count$Valid Wizard (Ixidor's Will's SVar) must not count it.
+		if strings.EqualFold(t, "Creature") || CreatureTypeWords(t) {
 			return typeNo, f
 		}
 	}
