@@ -56,15 +56,63 @@ func (s *State) offerSurgeHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 		return // no other spell cast this turn (CR 702.117a)
 	}
 	sc := s.adjustCost(k, p, c, o, k.t.Cards[c].SurgeCost) // the modifiers apply to an alternative cost too (CR 601.2f)
-	var fav avail
-	cav := s.castGrantAvail(k, p, o, av, &fav)
-	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &sc, cav) || k.sacMana && !s.kickWitness(k, p, c, o, &sc) {
+	if s.cfg&cfgGorgeAutopay != 0 && s.cfg&cfgGorgeLowering == 0 && s.g.availX == 0 {
+		// under gorge's autopay surface the surged cast is in gorge's list
+		// when the floating pool alone pays the surge cost (gorge's own offer
+		// prices it with offerCastable over the pool, legal_walk_hand.go) or
+		// its payment planner prices it (potential_plan.go plans a mode cast
+		// the plain planner does not witness; its tier-1 census is the
+		// printed sources and the pool -- witnessKeepsTargets's availPlain
+		// read -- pair 286's plain land taps against pair 221's
+		// sacrifice-only Eldrazi Spawn beside a granted tap-any)
+		if !s.surgePoolPays(k, p, c, o, &sc) && !s.surgePlannerPrices(k, p, c, o, &sc) {
+			return
+		}
+	} else {
+		var fav avail
+		cav := s.castGrantAvail(k, p, o, av, &fav)
+		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &sc, cav) {
+			return
+		}
+	}
+	if k.sacMana && !s.kickWitness(k, p, c, o, &sc) {
 		return
 	}
 	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) || s.castHeldOut(o) {
 		return
 	}
 	d.add(MakeAction(AkCast, TCode(o), castSurgeTgt, 0))
+}
+
+// surgePoolPays reports whether p's floating pool alone pays the adjusted
+// surge cost sc (gorge's own surged offer prices it with offerCastable over
+// the pool, legal_walk_hand.go; the pool's restricted units a spell its
+// restriction admits see it too, gorge's AvailableFor).
+func (s *State) surgePoolPays(k *prep, p uint8, c CardID, o Obj, sc *kop.ManaCost) bool {
+	a := s.poolAvailPlus(p, nil)
+	if s.rbAny(p) {
+		s.restrAvail(k, SeatIx(p), c, s.restrOriginOfObj(o), &a)
+	}
+	return a.affords(sc, pipMaskOf(sc), 0)
+}
+
+// surgePlannerPrices reports whether gorge's payment planner prices the
+// surged cast of o: its census -- the printed taps and the pool, a granted
+// ability and a sacrifice-only one excluded (potential_plan.go plans a mode
+// cast the plain planner does not witness from the mana its sources tap;
+// the plain planner's castGrantAvail census, which does count them, is
+// gorge's ordinary cast's) -- pays the adjusted surge cost sc.
+func (s *State) surgePlannerPrices(k *prep, p uint8, c CardID, o Obj, sc *kop.ManaCost) bool {
+	f := s.fork()
+	defer s.unfork()
+	f.g.noGrant = true
+	f.g.availX = availPlain
+	save := k.sacOnlyMana
+	k.sacOnlyMana = false
+	defer func() { k.sacOnlyMana = save }()
+	var t1 avail
+	f.availFor(k, p, &t1)
+	return t1.affords(sc, pipMaskOf(sc), 0)
 }
 
 // surgeCostOf is the surged cast's printed alternative cost.
