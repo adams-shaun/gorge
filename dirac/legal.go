@@ -2682,6 +2682,30 @@ func (c *potCensus) anyAddAb(sl Slot, ab *kop.Ability, mask, n, drop uint8, add,
 // the pool alone, so it counts once as gorge's census does. drop is the colours
 // a lethal-guard refusal prices at nothing (cenPainDrop's).
 func (c *potCensus) addOrMerge(sl Slot, ab *kop.Ability, drop uint8, add, fold func(Slot, uint8, uint8)) {
+	if ab.ManaEach {
+		// An all-at-once production makes manaN mana of EACH colour in its
+		// mask (addFiltUnits' split), so the census records one unit per
+		// colour. One union unit would price the tap at ONE mana of one of
+		// its colours, the choose-one semantics a Combo dual carries, and
+		// strand an X-bound announcement the source funds (Golgari Signet's
+		// {1},{T}: Add {B}{G} under Repeal's cmcEQX target). The tap note
+		// stays empty: one unit cannot widen to a per-colour vector, so a
+		// further tap ability records its own unit (potentialTapUnit's
+		// all-at-once branch).
+		if c.on {
+			if t := c.tap[sl]; t.mask != 0 {
+				unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
+				c.tap[sl] = potUnit{}
+			}
+			for mk, n := range filtEachVec(ab) {
+				if n != 0 {
+					c.recDrop(sl, uint8(1<<uint(mk)), n, drop)
+				}
+			}
+		}
+		fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
+		return
+	}
 	if c.mergeTap(sl, ab, drop) {
 		fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
 		return
