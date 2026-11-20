@@ -31,6 +31,10 @@
 //     facts only, never script text.
 //   - census: the census row the entry was seeded from (informational).
 //   - state: the State category and bytes ("code 0", "slotbit 16", ...).
+//   - contexts: a FilterWord's matcher kinds, comma-separated, from perm
+//     (the permanent matcher), card (a card off the battlefield), spell (a
+//     spell on the stack) and cur (the layer-walk matcher). kgen refuses a
+//     word in a matcher not listed. Only a FilterWord has one, and it has one.
 //   - status (required): reserved, active, "blocked <why>" or
 //     "deferred <why>". The only line an activating change edits.
 //   - ticket: the activating ticket.
@@ -84,6 +88,11 @@
 // m(k *prep, a Action), run by askOptionsGen and applyAskGen from the ends of
 // the hand chains (askOptionsCold1, applyAskCold1). A code whose hand switch
 // already has a case is refused, since the hand arm would run first.
+//
+// A filter word (family FilterWord, a literal of a kop.PredProg filter
+// program) has one handler, "//kmanifest:fword FwFoo" on func (s *State)
+// m(c *fctx, l *kop.FLit) bool in its own file dirac/filter_<name>.go; gen writes
+// fwRun, the switch filterProg runs each literal through, and fwHandled.
 //
 // # Late binding
 //

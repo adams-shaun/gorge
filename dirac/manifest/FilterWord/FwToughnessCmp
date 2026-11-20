@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwToughnessCmp
+value: next
+contexts: perm,card,spell
+status: active
+doc: FwToughnessCmp: the object's current toughness compares to V by Op, as FwPowerCmp reads power (PredToughnessLE).
