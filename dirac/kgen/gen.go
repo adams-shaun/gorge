@@ -748,6 +748,8 @@ func costString(c lCost) string {
 	}
 	if c.DrawN > 0 {
 		p = append(p, fmt.Sprintf("Draw%d", c.DrawN))
+	} else if c.DrawBy != nil {
+		p = append(p, fmt.Sprintf("Draw%s", c.DrawBy))
 	}
 	if len(p) == 0 {
 		return "-"
