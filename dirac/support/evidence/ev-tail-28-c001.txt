@@ -202,6 +202,7 @@ Illuminate History
 Illumination
 Infernal Tribute
 Inferno Titan
+Inherited Envelope
 Initiate's Companion
 Inspired Sprite
 Invasion of Xerex
@@ -354,6 +355,7 @@ Sleeping Potion
 Slinking Serpent
 Slippery Scoundrel
 Slith Firewalker
+Sneak Attack
 Soldevi Golem
 Sorin's Guide
 Spectacle Mage

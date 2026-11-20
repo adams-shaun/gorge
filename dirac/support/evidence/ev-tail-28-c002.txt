@@ -319,6 +319,7 @@ Sleeping Potion
 Slinking Serpent
 Slippery Scoundrel
 Slith Firewalker
+Sneak Attack
 Spectacle Mage
 Spectral Grasp
 Spell Rupture

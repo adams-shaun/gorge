@@ -2,6 +2,7 @@ A-Riveteers Initiate
 Accursed Centaur
 Act on Impulse
 Ancient Runes
+Angelic Overseer
 Arc Lightning
 Arena Trickster
 Armor of Shadows
@@ -9,11 +10,13 @@ Arno Dorian
 Ashcoat Bear
 Auriok Sunchaser
 Auspicious Ancestor
+Ayula, Queen Among Bears
 Barrel Down Sokenzan
 Birchlore Rangers
 Birthing Pod
 Bloodscale Prowler
 Blue Scarab
+Boros Mastiff
 Boulder Salvo
 Brimstone Dragon
 Brindle Shoat
@@ -51,6 +54,7 @@ Dragon Hatchling
 Dramatist's Puppet
 Drider
 Eel-Hounds
+Elven Bow
 Empty the Warrens
 Empyrial Armor
 Enigma Eidolon
@@ -72,12 +76,15 @@ Goblin Firebug
 Graceful Cat
 Grappling Sundew
 Grave Betrayal
+Great Wall
 Greenseeker
+Grim Draugr
 Grizzly Ghoul
 Hammer Mage
 Harmless Offering
 Harrow
 Henge of Ramos
+Hero of Precinct One
 Hesitation
 Island
 Jewel-Eyed Cobra
@@ -88,6 +95,7 @@ Kithkin Mourncaller
 Knight of Dawn's Light
 Laccolith Grunt
 Lava Axe
+Leela, Sevateem Warrior
 Leisure Bicycle
 Lightning Prowess
 Living Lands
@@ -102,6 +110,7 @@ Moat Piranhas
 Molten Frame
 Molting Harpy
 Monster Manual
+Moss Kami
 Mountain
 Necra Sanctuary
 Necroblossom Snarl
@@ -112,6 +121,7 @@ Nighthawk Scavenger
 Nightmarish End
 No Escape
 Nullmage Advocate
+Open the Vaults
 Orochi Soul-Reaver
 Orzhov Racketeers
 Paradise Mantle
@@ -127,6 +137,8 @@ Possessed Aven
 Psionic Blast
 Pyretic Charge
 Quest for Ancient Secrets
+Quickening Licid
+Rally the Ranks
 Reality Ripple
 Reckless Air Strike
 Reptilian Recruiter
@@ -136,6 +148,7 @@ Rootwater Diver
 Rundvelt Hordemaster
 Sacred Cat
 Saiba Trespassers
+Satyr Firedancer
 Savage Swipe
 Scarwood Treefolk
 Sensei's Divining Top
@@ -152,6 +165,9 @@ Skyway Sniper
 Slate Street Ruffian
 Slate of Ancestry
 Slip Through Space
+Snow-Covered Forest
+Snow-Covered Island
+Snow-Covered Swamp
 Sokenzan, Crucible of Defiance
 Spark Elemental
 Sparkspitter
@@ -163,6 +179,7 @@ Sporeback Troll
 Stony Strength
 Storm of Memories
 Sunscape Master
+Sunset Revelry
 Sunspire Griffin
 Swamp
 Swift Maneuver
@@ -179,6 +196,7 @@ Unholy Strength
 Urabrask's Anointer
 Urza's Filter
 Vapor Snag
+Verduran Emissary
 Vivien's Arkbow
 Warkite Marauder
 Wasp, Shrinking Savior
