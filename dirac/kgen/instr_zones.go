@@ -97,6 +97,16 @@ func (ic *instrCtx) opToLibrary() error {
 	if _, rem := fl["Remember"]; rem && in.C == 0 && in.Obj.Kind == rSelf && fl["from"] == "Battlefield" {
 		ki.C = kop.LibTopRememberBF // dirac/zone_tolibrarybfremember.go
 	}
+	if _, rem := fl["Remember"]; rem && fl["from"] == "Graveyard" {
+		// RememberChanged$ on an Origin$ Graveyard move (a target, or the
+		// trigger object itself): the card that reached the library joins
+		// the remembered set the following read sees.
+		if in.C == 0 {
+			ki.C = kop.LibTopRememberGrave // dirac/zone_tolibraryremember.go
+		} else if in.C == 1 {
+			ki.C = kop.LibBottomRememberGrave // dirac/zone_tolibraryremember.go
+		}
+	}
 	if _, ok := fl["TopShuffle"]; ok {
 		ki.C = kop.LibTopShuffle
 		if (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
