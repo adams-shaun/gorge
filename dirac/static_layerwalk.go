@@ -639,6 +639,11 @@ func (s *State) matchCurOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Sl
 	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE, kop.PredToughnessGE, kop.PredToughnessLEV, kop.PredPowerLTToughness, kop.PredHasKeyword, kop.PredPowerGTBase, kop.PredStatBox:
 		return false // refused by kgen on a walk filter (no re-entry)
 	}
+	if fl.Pred == kop.PredProg {
+		c := s.permFctx(k, sl, ctrl, src, layerKw)
+		c.cur = cur
+		return s.filterProg(fl.PredN, &c) // filter_prog.go: a word may not re-enter the walk
+	}
 	if k.w8 && fl.Pred == kop.PredWord7 && fl.PredN&0xff >= kop.W7FaceUp {
 		return s.wordPerm2(k, fl, sl, ctrl, src) // the static's controller and source
 	}

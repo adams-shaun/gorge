@@ -853,3 +853,36 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 	}
 	return false
 }
+
+// fwRun runs a filter program literal's word, whose handler is marked //kmanifest:fword in its
+// feature file (filterProg's dispatch).
+func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
+	switch l.W {
+	case kop.FwAttacking:
+		return s.fwAttacking(c, l) // fw_attacking.go
+	case kop.FwCMCCmp:
+		return s.fwCMCCmp(c, l) // fw_cmccmp.go
+	case kop.FwCountersCmp:
+		return s.fwCountersCmp(c, l) // fw_counterscmp.go
+	case kop.FwKeyword:
+		return s.fwKeyword(c, l) // fw_keyword.go
+	case kop.FwPowerCmp:
+		return s.fwPowerCmp(c, l) // fw_powercmp.go
+	case kop.FwSubtype:
+		return s.fwSubtype(c, l) // fw_subtype.go
+	case kop.FwTapped:
+		return s.fwTapped(c, l) // fw_tapped.go
+	case kop.FwToughnessCmp:
+		return s.fwToughnessCmp(c, l) // fw_toughnesscmp.go
+	}
+	panic("kernel: filter word not implemented")
+}
+
+// fwHandled reports whether word w has a handler.
+func fwHandled(w kop.FilterWord) bool {
+	switch w {
+	case kop.FwAttacking, kop.FwCMCCmp, kop.FwCountersCmp, kop.FwKeyword, kop.FwPowerCmp, kop.FwSubtype, kop.FwTapped, kop.FwToughnessCmp:
+		return true
+	}
+	return false
+}

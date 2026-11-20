@@ -79,6 +79,9 @@ type Entry struct {
 	Forge    []string
 	Census   string
 	State    string
+	// Contexts are the matcher kinds a FilterWord supports (a FilterWord
+	// entry only): kgen refuses the word in a matcher not listed.
+	Contexts []string
 	Status   Status
 	Ticket   string
 	Doc      string
@@ -100,7 +103,7 @@ func (e *Entry) RefusalClass() string {
 }
 
 // fieldKeys are the keys an entry may hold.
-var fieldKeys = []string{"family", "name", "value", "approval", "forge", "census", "state", "status", "ticket", "doc"}
+var fieldKeys = []string{"family", "name", "value", "approval", "forge", "census", "state", "contexts", "status", "ticket", "doc"}
 
 // ParseEntry reads one entry file; path is its slash path from the module
 // root. It checks the syntax only (Validate checks the rest).
@@ -162,6 +165,10 @@ func ParseEntry(path string, b []byte) (*Entry, error) {
 			e.Census = val
 		case "state":
 			e.State = val
+		case "contexts":
+			for _, c := range strings.Split(val, ",") {
+				e.Contexts = append(e.Contexts, strings.TrimSpace(c))
+			}
 		case "status":
 			s, err := ParseStatus(val)
 			if err != nil {
@@ -227,11 +234,42 @@ func (e *Entry) checkSelf() error {
 			return fail("%v", err)
 		}
 	}
+	if len(e.Contexts) > 0 && f.Name != "FilterWord" {
+		return fail("a contexts line is a FilterWord's: %s is a %s", e.Name, f.Name)
+	}
+	return nil
+}
+
+// FilterContexts are the matcher kinds a FilterWord's contexts line may name:
+// the permanent matcher, the card matcher off the battlefield, the card
+// matcher on the stack and the layer-walk matcher (dirac/kop/filterprog.go).
+var FilterContexts = []string{"perm", "card", "spell", "cur"}
+
+// checkFilterWord is the FilterWord family's own entry rule: a contexts line
+// naming each matcher kind once, from FilterContexts.
+func checkFilterWord(e *Entry) error {
+	if len(e.Contexts) == 0 {
+		return fmt.Errorf("a FilterWord needs a contexts line (%s)", strings.Join(FilterContexts, ","))
+	}
+	seen := map[string]bool{}
+	for _, c := range e.Contexts {
+		ok := false
+		for _, w := range FilterContexts {
+			ok = ok || c == w
+		}
+		if !ok {
+			return fmt.Errorf("context %q is not one of %s", c, strings.Join(FilterContexts, ","))
+		}
+		if seen[c] {
+			return fmt.Errorf("context %s given twice", c)
+		}
+		seen[c] = true
+	}
 	return nil
 }
 
 // Format is e as an entry file, its lines in the canonical order (family,
-// name, value, approval, forge, census, state, status, ticket, doc), empty
+// name, value, approval, forge, census, state, contexts, status, ticket, doc), empty
 // ones left out: what a tool writing a new entry (seed, adopt) writes.
 func (e *Entry) Format() []byte {
 	v := "next"
@@ -242,6 +280,7 @@ func (e *Entry) Format() []byte {
 	for _, f := range []struct{ k, v string }{
 		{"family", e.Family}, {"name", e.Name}, {"value", v}, {"approval", e.Approval},
 		{"forge", strings.Join(e.Forge, " | ")}, {"census", e.Census}, {"state", e.State},
+		{"contexts", strings.Join(e.Contexts, ",")},
 		{"status", e.Status.String()}, {"ticket", e.Ticket}, {"doc", e.Doc},
 	} {
 		if f.v != "" {

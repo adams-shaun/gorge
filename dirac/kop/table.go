@@ -901,6 +901,9 @@ type Table struct {
 	Conds     []Cond     // CondIDs index this; Conds[0] is "always"
 	Overrides []Override // OpOverride / StatOverride index this
 	Emblems   []Emblem   // OpCreateEmblem indexes this
+	// FilterProgs are the programs a PredProg filter's PredN indexes
+	// (FilterProgID, filterprog.go); FilterProgs[0] is unused.
+	FilterProgs []FilterProg
 	// TypeVocab maps each entry of gorge's creature-type vocabulary (the
 	// option list of OpChooseType, in vocabulary order) to the matchup's
 	// subtype index, 255 when no object in the matchup can have it.

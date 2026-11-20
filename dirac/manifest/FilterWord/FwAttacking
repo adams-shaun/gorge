@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwAttacking
+value: next
+contexts: perm,cur
+status: active
+doc: FwAttacking: the battlefield permanent is attacking (FAttacking). An object off the battlefield fails closed.
