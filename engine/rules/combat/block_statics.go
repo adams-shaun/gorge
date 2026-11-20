@@ -33,16 +33,33 @@ func blockTappedAllowed(b Board, blocker state.ObjID) bool {
 	return false
 }
 
-// blockLiftedByStatic reports whether an active static of the given mode
-// (CanBlockIfShadow, CanBlockIfReach) lets blocker block attacker past the
-// evasion rule the mode names: "can block creatures with shadow as though they
-// didn't have shadow", "can block Dragons as though it had reach". ValidBlocker$
-// and ValidAttacker$ resolve against the pair with the static's host as the
-// spec source, so Creature.EnchantedBy reaches the Aura's creature only; an
-// absent filter matches any creature; a gated static whose condition does not
-// hold lifts nothing.
-func blockLiftedByStatic(b Board, mode string, blocker, attacker state.ObjID) bool {
-	for _, sv := range b.Statics(mode) {
+// shadowBlockLifted reports whether an active CanBlockIfShadow static (Aether
+// Web, Heartwood Dryad, Wall of Diffusion) lets blocker block the shadow
+// attacker as though the shadow rule were absent (CR 702.28b).
+// ValidBlocker$ and ValidAttacker$ resolve against the pair with the static's
+// host as the spec source, so Creature.EnchantedBy reaches the Aura's creature
+// only; an absent filter matches any creature; a gated static whose condition
+// does not hold lifts nothing.
+func shadowBlockLifted(b Board, blocker, attacker state.ObjID) bool {
+	for _, sv := range b.Statics("CanBlockIfShadow") {
+		if !b.StaticGateHolds(sv) {
+			continue
+		}
+		if vb := sv.ParamStr(cards.PKValidBlocker); vb != "" && !b.MatchesStaticSpec(vb, blocker, sv) {
+			continue
+		}
+		if va := sv.ParamStr(cards.PKValidAttacker); va != "" && !b.MatchesStaticSpec(va, attacker, sv) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// reachBlockLifted is shadowBlockLifted's CanBlockIfReach sibling (Dragon
+// Hunter: "can block Dragons as though it had reach", CR 702.9b).
+func reachBlockLifted(b Board, blocker, attacker state.ObjID) bool {
+	for _, sv := range b.Statics("CanBlockIfReach") {
 		if !b.StaticGateHolds(sv) {
 			continue
 		}

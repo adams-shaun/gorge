@@ -58,7 +58,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.26m | follows | `engine/rules/turn.go#Engine.beginTurn` | - |  |
 | 702.26p | follows | `engine/rules/turn.go#Engine.finishUntapStep` | `TestCR702PhasedOutPermanentPhasesInAtUntap` | redundant by construction |
 | 702.27a | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` `engine/rules/stack.go#spellRestZone` | `TestBuybackConstantMistsReturnsToHand` `TestBuybackSearingTouchFizzleGoesToGraveyard` | its own cast mode; combining with alternative costs not verified |
-| 702.28a-c | follows | `engine/rules/combat/block.go#CanBlock` | - | (helper) |
+| 702.28a-c | follows | `engine/rules/combat/block.go#CanBlock` `engine/rules/combat/block_statics.go#shadowBlockLifted` | `TestAetherWebBlocksShadowCreature` | CanBlockIfShadow statics (Aether Web, Heartwood Dryad, Wall of Diffusion) lift the shadow rule for their blocker (helper) |
 | 702.29a | follows | `engine/cards/kw_cycling.go#kwCycling` `engine/cards/kw_cycling.go#cyclingAbilitySA` | - |  |
 | 702.29b | follows | `engine/cards/kw_cycling.go#cyclingAbilitySA` | - | by construction |
 | 702.29c | follows | `engine/rules/trigger_zone_gate.go#Engine.zoneGate` | `TestCycledTriggerFiresOnTheCycleCostDiscard` |  |

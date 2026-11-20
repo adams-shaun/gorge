@@ -66,7 +66,7 @@ func CanBlock(b Board, blocker, attacker state.ObjID) bool {
 	// artifact or black creature to block it.
 	// A CanBlockIfShadow static (Aether Web, Heartwood Dryad) lets its blocker
 	// block a shadow attacker as though the shadow rule were absent.
-	if b.HasKW(attacker, KWShadow) != b.HasKW(blocker, KWShadow) && !blockLiftedByStatic(b, "CanBlockIfShadow", blocker, attacker) {
+	if b.HasKW(attacker, KWShadow) != b.HasKW(blocker, KWShadow) && !shadowBlockLifted(b, blocker, attacker) {
 		return false
 	}
 	if b.HasKW(attacker, KWFear) && !isArtifactCreature(b, blocker, bo) && !strings.ContainsRune(b.ObjectColors(bo), 'B') {
@@ -102,7 +102,7 @@ func CanBlock(b Board, blocker, attacker state.ObjID) bool {
 	// A CanBlockIfReach static (Dragon Hunter) lets its blocker block the
 	// flyers it names as though it had reach.
 	if b.HasKW(attacker, KWFlying) && !b.HasKW(blocker, KWFlying) && !b.HasKW(blocker, KWReach) &&
-		!blockLiftedByStatic(b, "CanBlockIfReach", blocker, attacker) {
+		!reachBlockLifted(b, blocker, attacker) {
 		return false
 	}
 	// CR 702.14: a creature with landwalk can't be blocked as long as the

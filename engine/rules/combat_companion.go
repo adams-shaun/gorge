@@ -41,13 +41,13 @@ func publishCompanions(b combat.Board, opts []decision.Option, attack bool) {
 
 // validateCompanionDeclaration enforces the companion restrictions on ONE whole
 // declaration: no declared creature may break its own rule against the set.
-func (e *Engine) validateCompanionDeclaration(chosen []decision.Option, attack bool) error {
+func validateCompanionDeclaration(b combat.Board, chosen []decision.Option, attack bool) error {
 	ids := make([]state.ObjID, 0, len(chosen))
 	for _, o := range chosen {
 		ids = append(ids, o.Obj)
 	}
 	for _, id := range ids {
-		if combat.CompanionViolated(asBoard(e), id, attack, ids) {
+		if combat.CompanionViolated(b, id, attack, ids) {
 			if attack {
 				return fmt.Errorf("attacker %d can't attack with this declaration (its attack restriction is not met)", id)
 			}

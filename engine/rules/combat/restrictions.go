@@ -516,12 +516,32 @@ func MinMaxBlockerBounds(b Board, attacker state.ObjID) (min, max int, minOK, ma
 // keywordParam is the first parameter of a keyword line ("Head:<param>:text"),
 // empty when the line carries none.
 func keywordParam(k string) string {
-	_, rest, ok := strings.Cut(k, ":")
-	if !ok {
+	start := -1
+	for i := 0; i < len(k); i++ {
+		if k[i] != ':' {
+			continue
+		}
+		if start < 0 {
+			start = i + 1
+			continue
+		}
+		return trimASCIISpace(k[start:i])
+	}
+	if start < 0 {
 		return ""
 	}
-	param, _, _ := strings.Cut(rest, ":")
-	return strings.TrimSpace(param)
+	return trimASCIISpace(k[start:])
+}
+
+// trimASCIISpace trims leading and trailing ASCII blanks.
+func trimASCIISpace(s string) string {
+	for len(s) > 0 && (s[0] == ' ' || s[0] == '\t') {
+		s = s[1:]
+	}
+	for len(s) > 0 && (s[len(s)-1] == ' ' || s[len(s)-1] == '\t') {
+		s = s[:len(s)-1]
+	}
+	return s
 }
 
 // literalBlockCount parses a Min$/Max$ bound: a non-negative integer, the

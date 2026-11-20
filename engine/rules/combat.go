@@ -748,7 +748,7 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 	if err := e.validateAloneDeclaration(chosen, true); err != nil {
 		return err
 	}
-	if err := e.validateCompanionDeclaration(chosen, true); err != nil {
+	if err := validateCompanionDeclaration(asBoard(e), chosen, true); err != nil {
 		return err
 	}
 	return e.validateAttackDeclarationChosen(d, in, chosen)
@@ -1048,7 +1048,7 @@ func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) erro
 	if err := e.validateAloneDeclaration(chosen, false); err != nil {
 		return err
 	}
-	if err := e.validateCompanionDeclaration(chosen, false); err != nil {
+	if err := validateCompanionDeclaration(asBoard(e), chosen, false); err != nil {
 		return err
 	}
 	// CR 509.1b: a BlockRestrict ceiling on the defender's blocker count.

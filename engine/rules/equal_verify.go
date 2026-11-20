@@ -269,7 +269,6 @@ func optionEqual(a, b *decision.Option) bool {
 		a.Required == b.Required &&
 		a.BlockMust == b.BlockMust &&
 		a.AloneRestricted == b.AloneRestricted &&
-		a.AloneOnly == b.AloneOnly && a.CompanionNeed == b.CompanionNeed && sliceEq(a.CompanionFrom, b.CompanionFrom) &&
 		a.BlockMustAll == b.BlockMustAll &&
 		attackerDutyFlagsEqual(a, b) &&
 		a.MinBlockers == b.MinBlockers &&
@@ -317,7 +316,9 @@ func optionsEqual(a, b []decision.Option) bool {
 	return true
 }
 
-// attackerDutyFlagsEqual compares the three attack-duty marks on an option.
+// attackerDutyFlagsEqual compares the three attack-duty marks on an option and
+// its whole-declaration companion facts (AloneOnly, CompanionNeed/From).
 func attackerDutyFlagsEqual(a, b *decision.Option) bool {
-	return a.AttackMust == b.AttackMust && a.AttackMustTwo == b.AttackMustTwo && a.AttackOne == b.AttackOne
+	return a.AttackMust == b.AttackMust && a.AttackMustTwo == b.AttackMustTwo && a.AttackOne == b.AttackOne &&
+		a.AloneOnly == b.AloneOnly && a.CompanionNeed == b.CompanionNeed && sliceEq(a.CompanionFrom, b.CompanionFrom)
 }
