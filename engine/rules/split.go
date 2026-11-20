@@ -20,12 +20,29 @@ func (e *Engine) splitCastTargetsAvailable(p state.PlayerID, id state.ObjID, f *
 	if ab := f.SpellAbility(); ab != nil {
 		xPending = xPending || costAnnouncesX(e.abilityCompiledCost(ab).Cost)
 	}
-	return e.targetsAvailable(p, id, id, f.SpellAbility(), xPending)
+	// The half is probed AS the half it casts (CR 709.3b, 601.2c): a target's
+	// protection from a colour reads the spell's own colours (sourceHasQuality
+	// reads a hand split card as the half it would cast), and the alternate
+	// half's colours are not the front face the card shows in hand (Serve is
+	// blue under a "protection from white" creature; Protect is not).
+	return e.offerAsFace(id, f, func() bool {
+		return e.targetsAvailable(p, id, id, f.SpellAbility(), xPending)
+	})
 }
 
-// splitFrontHalfRead reports whether o, a split card at its front face off
-// the stack, is read as its front half alone when probed as a spell (CR
-// 709.3a): always, except while the fused cast is priced (fused).
+// fusedCastTargetsAvailable is the target census of a fused cast over both
+// halves: one spell (CR 709.4d) with both halves' colours, so each half is
+// probed through the fused read (pricingFusedRead), not as the half cast
+// alone (a creature with protection from either colour is no target for
+// either half). probe is splitCastTargetsAvailable for one half.
+func fusedCastTargetsAvailable(flag *bool, probe func(*cards.Face) bool, front, alt *cards.Face) bool {
+	return pricingFusedRead(flag, func() bool { return probe(front) && probe(alt) })
+}
+
+// splitFrontHalfRead reports whether o, a split card off the stack, is read
+// as the one half it is at (its current face) when probed as a spell (CR
+// 709.3a): always, except while the fused cast is priced (fused), which reads
+// both halves whichever face is probed.
 func splitFrontHalfRead(o *state.Object, fused bool) bool {
 	_, combined := o.SplitHalves()
 	return combined && !fused
