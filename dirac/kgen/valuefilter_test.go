@@ -21,8 +21,8 @@ func TestValueHeadForms(t *testing.T) { checkForms(t, kvhForms) }
 var kfpForms = []formCase{
 	{card: "Shoot the Sheriff", form: "Creature.!Outlaw is PredOutlaw negated (gorge outlawMatches)", lir: "cmp(20 0 1  )"},
 	{card: "Guardian of the Guildpact", form: "K:Protection:Card.MonoColor is a MonoColor quality (gorge sourceHasQuality)", lir: "protfrom={types=0x0 cmp(21 0 0  )}"},
-	{card: "Preacher of the Schism", form: "Attacked$ Player.withMostLife: the opponent's life at least yours, fire-time only", lir: "cond=Value(op1,LifeOf(EachOpp),LifeOf(You))"},
-	{card: "Preacher of the Schism", form: "CheckDefinedPlayer$ You.withMostLife: your life at least the opponent's", lir: "cond=Value(op1,LifeOf(You),LifeOf(EachOpp))"},
+	{card: "Preacher of the Schism", form: "Attacked$ Player.withMostLife: the defended player's life at least yours and every living opponent's, fire-time only", lir: "cond=And(Value(op1,LifeOf(Defending),LifeOf(You)),Value(op1,LifeOf(Defending),OppExtreme))"},
+	{card: "Preacher of the Schism", form: "CheckDefinedPlayer$ You.withMostLife: your life at least every living opponent's", lir: "cond=Value(op1,LifeOf(You),OppExtreme)"},
 	{card: "Ruin-Lurker Bat", form: "ValidPlayer$ You.descended: a nontoken permanent card you own entered a graveyard this turn", lir: "ThisTurnEntered({types=0x9f owner=1 NonToken})"},
 	{card: "Cut Down", form: "totalPT_LE5 is PredTotalPT (gorge cr-totalpt-filter, 9942071c4)", lir: "cmp(23 2 5  )"},
 }

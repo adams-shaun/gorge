@@ -358,11 +358,12 @@ func ddoObjectReferent(tr *lTrigger) bool {
 }
 
 // ddoAttackingPlayer reports whether tr is a per-referent combat-damage
-// line whose ValidTarget$ is exactly You: with two players the only
-// creature dealing combat damage to the listener's controller is an
-// attacker that player's opponent controls, so the kernel's single
-// opponent is gorge's TriggeredAttackingPlayer (twoSeat-at-caller:
-// lower_effect.go's TriggeredAttackingPlayer marks the card).
+// line whose ValidTarget$ is exactly You: the damage source's controller is
+// gorge's TriggeredAttackingPlayer. The kernel's per-referent DamageDone
+// queue carries the source as the trigger object and the damaged seat as its
+// trigger player (dirac dmgSeat), so the lowering reads the trigger object's
+// controller (rTriggeredTgtCtrl, seat-exact), not the one opponent and not
+// rTriggeredPlayer (which is the damaged seat there).
 func ddoAttackingPlayer(tr *lTrigger) bool {
 	return tr != nil && tr.Event == "DamageDone" && tr.PerRef && tr.Combat == 1 &&
 		tr.F2 != nil && tr.F2.Players == plYou && len(tr.F2.Clauses) == 0
