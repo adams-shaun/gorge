@@ -1062,6 +1062,7 @@ func (cb *cardBuilder) record() error {
 		}
 	}
 	d.Infect, d.Toxic = c.Infect, uint8(c.Toxic)
+	d.Devoid = c.Devoid
 	d.Cascade = uint8(c.Cascade)
 	d.AllCreatureTypes = c.Changeling
 	d.Evasion = c.Evasion

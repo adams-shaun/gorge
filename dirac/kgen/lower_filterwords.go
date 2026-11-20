@@ -112,6 +112,8 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7WithFlashback), true
 	case "withInfect":
 		return int(kop.W7WithInfect), true
+	case "withDevoid":
+		return int(kop.W7WithDevoid), true // the same read for Devoid (a spell restriction's Spell.withDevoid)
 	case "withSkulk":
 		return int(kop.W7WithSkulk), true // lower_filterwords.go: the same read for Skulk
 	case "Snow":

@@ -347,6 +347,9 @@ type CardDef struct {
 	// Infect is printed infect (CR 702.90): its damage is dealt to a player
 	// as poison counters and to a creature as -1/-1 counters.
 	Infect bool
+	// Devoid is printed devoid (CR 702.114a): the card's colour is none in
+	// every zone; the withDevoid filter word reads it (kop.W7WithDevoid).
+	Devoid bool
 	// Toxic is the printed toxic N, its instances summed (CR 702.164): a
 	// player it deals combat damage to also gets N poison counters.
 	Toxic uint8
