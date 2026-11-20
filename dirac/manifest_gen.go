@@ -13,43 +13,46 @@ const raAddOrRemoveCounter uint8 = 147
 // ask (dirac/manifest/ask/raChooseSource)
 const raChooseSource uint8 = 148
 
+// ask (dirac/manifest/ask/raCombatant)
+const raCombatant uint8 = 149
+
 // ask (dirac/manifest/ask/raDefeatCast)
 //
 // the transformed free cast ask of a resolving Siege defeat trigger (CR 310.12b, ChDefeatCast; face_battle.go resolveSiegeDefeat)
-const raDefeatCast uint8 = 149
+const raDefeatCast uint8 = 150
 
 // ask (dirac/manifest/ask/raDredgeRes)
-const raDredgeRes uint8 = 150
+const raDredgeRes uint8 = 151
 
 // ask (dirac/manifest/ask/raDungeon)
 //
 // the dungeon choice of a plain Venture (CR 701.49a; act_venture.go dungeonChoose): the venturer's pick among the dungeon cards of the table but Undercity, in key order, gorge's "dungeon" KChoose.
-const raDungeon uint8 = 151
+const raDungeon uint8 = 152
 
 // ask (dirac/manifest/ask/raGenClash)
-const raGenClash uint8 = 152
+const raGenClash uint8 = 153
 
 // ask (dirac/manifest/ask/raGenMyriad)
-const raGenMyriad uint8 = 153
+const raGenMyriad uint8 = 154
 
 // ask (dirac/manifest/ask/raGenPileOpp)
-const raGenPileOpp uint8 = 154
+const raGenPileOpp uint8 = 155
 
 // ask (dirac/manifest/ask/raGenRepeatOptional)
-const raGenRepeatOptional uint8 = 155
+const raGenRepeatOptional uint8 = 156
 
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 156
+const raPodClashOpp uint8 = 157
 
 // ask (dirac/manifest/ask/raRingBearer)
 //
 // the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.
-const raRingBearer uint8 = 157
+const raRingBearer uint8 = 158
 
 // ask (dirac/manifest/ask/raRingLoot)
 //
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
-const raRingLoot uint8 = 158
+const raRingLoot uint8 = 159
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -758,6 +761,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 	switch kop.ExtOp(in.A.N) {
 	case kop.ExtAddOrRemoveCounter:
 		return s.addOrRemoveCounter(k, in) // ctr_addorremove.go
+	case kop.ExtChangeCombatants:
+		return s.changeCombatantsExt(k, in) // act_changecombatants.go
 	case kop.ExtChooseSource:
 		return s.chooseSourceExt(k, in) // act_choosesource.go
 	case kop.ExtClash:
@@ -812,6 +817,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raChooseSource:
 		s.chooseSourceOptions(k, d) // act_choosesource.go
 		return true
+	case raCombatant:
+		s.changeCombatantOptions(k, d) // act_changecombatants.go
+		return true
 	case raDefeatCast:
 		s.defeatCastOptions(k, d) // face_battle.go
 		return true
@@ -848,6 +856,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raChooseSource:
 		s.chooseSourceAnswer(k, a) // act_choosesource.go
+		return true
+	case raCombatant:
+		s.changeCombatantAnswer(k, a) // act_changecombatants.go
 		return true
 	case raDefeatCast:
 		s.defeatCastApply(k, a) // face_battle.go
