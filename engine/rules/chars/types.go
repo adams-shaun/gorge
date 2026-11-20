@@ -589,15 +589,14 @@ func switchClearsAllCreatureTypes(o *state.Object, bestowed bool) bool {
 
 // reconfigureTypeSwitch applies CR 702.150c's switch to a DERIVED type
 // list: a Reconfigure card attached to a creature is not a creature -- the
-// printed "Artifact Creature Equipment <subtype>" list loses only its
-// Creature half and keeps Equipment/Artifact and the subtypes. Unlike the
-// bestow switch, the reconfigure card stays an artifact, so CR 205.1a keeps
-// the subtypes a remaining card type carries; the creature subtypes are inert
-// on a non-creature in every filter this engine evaluates, so stripping them
-// would widen the diff into every subtype-affected static without changing an
-// answer. An unattached reconfigure card (or anything
-// not printed with the keyword) keeps the list unchanged, returning the
-// SAME slice so the common game stays byte-identical and allocation-free.
+// printed "Artifact Creature Equipment <subtype>" list loses its Creature
+// half and keeps Equipment/Artifact. Creature SUBTYPES go with the lost
+// Creature card type (CR 205.1a: a subtype correlated with a removed card
+// type stays only while another card type the object has carries it too), so
+// an attached Razorfield Ripper is an Artifact Equipment with no Rhino
+// subtype. An unattached reconfigure card (or anything not printed with the
+// keyword) keeps the list unchanged, returning the SAME slice so the common
+// game stays byte-identical and allocation-free.
 // A face-down battlefield permanent keeps its CR 708.5 set: its printed
 // face (and with it the Reconfigure keyword the switch keys on) does not
 // exist while face down, so the switch must not strip Creature from a
@@ -606,7 +605,7 @@ func reconfigureTypeSwitch(o *state.Object, types []string) []string {
 	if !o.ReconfiguredAttached() || (o.FaceDown && o.Zone == state.ZBattlefield) {
 		return types
 	}
-	return withoutCreature(types, false)
+	return withoutCreature(types, true)
 }
 
 // withoutCreature drops Creature from a derived type list and, with

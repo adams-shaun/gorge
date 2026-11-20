@@ -201,10 +201,12 @@ func hasTypePrinted(o *state.Object, t string, id cards.TypeWordID) (typeDecisio
 	// CR 702.150c: a Reconfigure card attached to a creature is not a
 	// creature, in the same every-filter-read sense (the target ask's
 	// ValidTgts$ Creature, a Count$Valid Creature census, the combat
-	// eligibility scans). Equipment and Artifact stay true -- they are the
-	// printed face's own types and the attached form keeps them.
+	// eligibility scans). Creature subtypes go with the lost Creature card
+	// type (CR 205.1a), as the layer walk's chars/types.go
+	// reconfigureTypeSwitch strips them. Equipment and Artifact stay true --
+	// they are the printed face's own types and the attached form keeps them.
 	if o.ReconfiguredAttached() && !(o.FaceDown && o.Zone == state.ZBattlefield) {
-		if strings.EqualFold(t, "Creature") {
+		if strings.EqualFold(t, "Creature") || changelingType(t) {
 			return typeNo, f
 		}
 	}
