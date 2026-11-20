@@ -94,6 +94,8 @@ func TestEffectRememberObjectsSelectors(t *testing.T) {
 	t.Run("RememberedLKI", func(t *testing.T) {
 		// Reflector Mage's DBEffect: RememberObjects$ RememberedLKI &
 		// RememberedOwner (the player selector must not become an object).
+		// Upstream spells it Targeted & TargetedOwner; cards' upstream
+		// canonicalisation maps that back to this form (TestCanonicalizeUpstream).
 		_, sa := corpusSA(t, "Reflector Mage", "DBEffect")
 		if sa.Params["RememberObjects"] != "RememberedLKI & RememberedOwner" {
 			t.Fatalf("corpus selector changed: %q", sa.Params["RememberObjects"])

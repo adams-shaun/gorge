@@ -709,6 +709,7 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 				o = &oc
 			}
 			o = targetedPermanentLKI(c, present, o)
+			o = targetedControllerLKI(c, o)
 		}
 		if defined == "TriggeredTargetLKICopy" && c.TriggerTargetLKIValid && o.Zone != state.ZBattlefield {
 			// CR 608.2h: the damaged target has left the battlefield since
@@ -1176,6 +1177,27 @@ func targetedPermanentLKI(c *Ctx, present string, o *state.Object) *state.Object
 			oc.Controller = p
 		}
 	}
+	return &oc
+}
+
+// targetedControllerLKI is the controller half of the CR 608.2h look-back for
+// a `ConditionDefined$ Targeted` gate: a target the resolution itself moved off
+// the battlefield (events.Apply reset its live controller to the owner) is
+// read under the controller it had when the walk began. Unyielding Gatekeeper's
+// `ConditionPresent$ Card.YouCtrl` asks whether the exiling player controlled
+// the exiled card. Only a card that left the battlefield this turn and has a
+// start-of-walk capture is rewritten; everything else is returned unchanged.
+func targetedControllerLKI(c *Ctx, o *state.Object) *state.Object {
+	if c == nil || o == nil || o.Zone == state.ZBattlefield || !o.EnteredThisTurn ||
+		o.EnteredFrom != state.ZBattlefield {
+		return o
+	}
+	p, ok := c.Snap.TargetController[o.ID]
+	if !ok || p == o.Controller {
+		return o
+	}
+	oc := *o
+	oc.Controller = p
 	return &oc
 }
 

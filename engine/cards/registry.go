@@ -107,6 +107,14 @@ func NormalizeName(s string) string {
 	}
 	var b strings.Builder
 	prevSpace := true
+	// An Alchemy rebalanced card ("A-Symmetry Sage") keeps its prefix hyphen:
+	// dropped like the others it would fold onto the card whose name it begins
+	// ("Asymmetry Sage") and shadow it.
+	// (A key keeps it too, so folding a folded key changes nothing.)
+	if len(s) > 2 && (s[:2] == "A-" || s[:2] == "a-") && unicode.IsLetter(rune(s[2])) {
+		b.WriteString("a-")
+		s, prevSpace = s[2:], false
+	}
 	for _, r := range strings.ToLower(s) {
 		switch {
 		case unicode.IsLetter(r) || unicode.IsDigit(r):

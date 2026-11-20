@@ -11,7 +11,7 @@ package effects
 // The real corpus carriers pin the exact spellings. Volatile Chimera is the
 // reported card:
 //
-//	SVar:DBPump:DB$ Pump | NoteCards$ Remembered | NoteCardsFor$ VolatileChimera
+//	SVar:DBNote:DB$ Bookkeeping | NoteCards$ Remembered | NoteCardsFor$ VolatileChimera
 //	A:AB$ ChooseCard | Choices$ Card.YouOwn+NotedForVolatileChimera | ...
 //
 // so the activated ability's random pick draws from exactly the cards the
@@ -38,11 +38,11 @@ func exileCardAt(t *testing.T, h *fakeHost, card *cards.Card, owner state.Player
 	return src.ID
 }
 
-// TestCardNotedForSelectsTheNotedCard drives Volatile Chimera's real DBPump
+// TestCardNotedForSelectsTheNotedCard drives Volatile Chimera's real DBNote
 // body over a resolution Remembered set and asserts the activated ability's
 // ChooseCard pool spec selects precisely the noted card.
 func TestCardNotedForSelectsTheNotedCard(t *testing.T) {
-	card, note := corpusSA(t, "Volatile Chimera", "DBPump")
+	card, note := corpusSA(t, "Volatile Chimera", "DBNote")
 	if got := note.Params["NoteCards"]; got != "Remembered" {
 		t.Fatalf("Volatile Chimera NoteCards$ = %q, want Remembered", got)
 	}
@@ -202,7 +202,7 @@ func TestCardNotationTriggeredSourceNotesTheTriggerCard(t *testing.T) {
 // and Arcane Savant's Valid$ Play population must each admit the noted card
 // and reject the contrasting unnoted object.
 func TestCardNotationIsReadByCorpusChooseCardAndPlayConsumers(t *testing.T) {
-	chimera, pump := corpusSA(t, "Volatile Chimera", "DBPump")
+	chimera, pump := corpusSA(t, "Volatile Chimera", "DBNote")
 	var choose *cards.SA
 	for _, face := range chimera.Faces {
 		for _, ability := range face.Abilities {
@@ -247,7 +247,7 @@ func TestCardNotationIsReadByCorpusChooseCardAndPlayConsumers(t *testing.T) {
 	playSource := noteCardAt(t, h, savant)
 	playNoted := exileCardAt(t, h, mkCard(t, "Name:Noted Instant\nTypes:Instant\nOracle:x\n"), 0)
 	playOther := exileCardAt(t, h, mkCard(t, "Name:Other Instant\nTypes:Instant\nOracle:x\n"), 0)
-	_, playPump := corpusSA(t, "Arcane Savant", "DBPump")
+	_, playPump := corpusSA(t, "Arcane Savant", "DBNote")
 	if playNoted == playOther || h.g.Obj(playNoted).Zone != state.ZExile || h.g.Obj(playOther).Zone != state.ZExile {
 		t.Fatalf("Play fixture invalid: noted=%d other=%d zones=%v/%v", playNoted, playOther, h.g.Obj(playNoted).Zone, h.g.Obj(playOther).Zone)
 	}

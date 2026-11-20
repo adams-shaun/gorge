@@ -18,7 +18,33 @@ var upstreamMarkers = [...][]byte{
 	[]byte("TriggeredPlayer"), []byte("TriggeredAttackingPlayer"),
 	[]byte("TriggeredDefendingPlayer"), []byte("TriggeredDefender"),
 	[]byte("hasMoreLifeThanYou"), []byte("controlsCreature.attacking Player.EnchantedBy"),
+	exiledOwnerPlayer, targetedAndOwner, nonTargetedCopy,
 }
+
+// exiledOwnerPlayer is upstream's player selector for "the exiled card's
+// owner" of a leaves-the-battlefield body (Unidentified Hovership): the
+// players owning a card exiled with this source. The engines read the older
+// form, the exile remembering what it moved and the body naming the
+// remembered card's owner, then clearing the set; exiledOwnerRewrite maps
+// it back.
+var exiledOwnerPlayer = []byte("DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1")
+
+// targetedAndOwner is upstream's spelling of an Effect that remembers the
+// card its parent link just moved and that card's owner (Reflector Mage: "its
+// owner can't cast spells with the same name"). The engines read the older
+// form, the moving link remembering the card as it was (RememberLKI$) and the
+// Effect naming the LKI card and its owner, then clearing the set;
+// targetedOwnerRewrite maps it back. A bare Targeted member would drop a
+// target the very chain moved (a new object, CR 400.7), which is right for an
+// Effect about the object and wrong for one about the name it had.
+var targetedAndOwner = []byte("RememberObjects$ Targeted & TargetedOwner")
+
+// nonTargetedCopy is upstream's spelling of Fractured Identity's copy leg: the
+// copy of the card the parent link exiled, for every player but its controller,
+// naming the spell's target. The engines read the older form (the exile
+// remembering what it moved, Defined$ Remembered, NonRememberedController);
+// nonTargetedCopyRewrite maps it back.
+var nonTargetedCopy = []byte("Controller$ NonTargetedController")
 
 // attackConditionRewrites are context-free: Forge's Condition$ shorthands that
 // upstream spelled out as a check on the triggered players.
@@ -67,6 +93,15 @@ func canonicalizeUpstream(src []byte) []byte {
 		return src
 	}
 	text := string(src)
+	if bytes.Contains(src, exiledOwnerPlayer) {
+		text = exiledOwnerRewrite(text)
+	}
+	if bytes.Contains(src, targetedAndOwner) {
+		text = targetedOwnerRewrite(text)
+	}
+	if bytes.Contains(src, nonTargetedCopy) {
+		text = nonTargetedCopyRewrite(text)
+	}
 	// A life-total check on the triggered player: CheckSVar$ X | SVarCompare$ LE5
 	// with X = TriggeredPlayer$LifeTotal is LifeTotal$ ActivePlayer | LifeAmount$ LE5.
 	for _, m := range lifeTotalSVarRE.FindAllStringSubmatch(text, -1) {
@@ -166,4 +201,133 @@ func isTriggerLine(l string) bool {
 		return strings.HasPrefix(m[2], "Mode$ ")
 	}
 	return false
+}
+
+// exiledOwnerRewrite maps the exiledOwnerPlayer selector back to the
+// remembered-owner form: every ChangeZone into exile that remembers nothing
+// remembers what it moved, the selector names the remembered card's owner,
+// and a Cleanup clears the set after the body. A card whose exile already
+// remembers (or that exiles in more than one place) is returned as is.
+func exiledOwnerRewrite(text string) string {
+	lines := strings.Split(text, "\n")
+	exile := -1
+	for i, l := range lines {
+		if !strings.Contains(l, "DB$ ChangeZone") || !strings.Contains(l, "Destination$ Exile") {
+			continue
+		}
+		if exile >= 0 || strings.Contains(l, "Remember") {
+			return text
+		}
+		exile = i
+	}
+	if exile < 0 {
+		return text
+	}
+	lines[exile] = strings.TrimRight(lines[exile], " \r") + " | RememberChanged$ True"
+	const cleanup = "DBCanonExiledOwnerCleanup"
+	out := strings.Join(lines, "\n")
+	out = strings.Replace(out, string(exiledOwnerPlayer), "DefinedPlayer$ RememberedOwner | SubAbility$ "+cleanup, 1)
+	return strings.TrimRight(out, "\n") + "\nSVar:" + cleanup + ":DB$ Cleanup | ClearRemembered$ True\n"
+}
+
+// targetedOwnerRewrite maps targetedAndOwner back to RememberedLKI &
+// RememberedOwner: the link whose SubAbility$ names the Effect and which
+// moves a target (a ChangeZone with ValidTgts$) gains RememberLKI$ True, and
+// the Effect clears the remembered set after itself. A script where the
+// Effect's parent is not exactly one such link, or where the Effect already
+// has a SubAbility$, is returned as is.
+func targetedOwnerRewrite(text string) string {
+	lines := strings.Split(text, "\n")
+	effect := -1
+	for i, l := range lines {
+		if !strings.Contains(l, string(targetedAndOwner)) {
+			continue
+		}
+		if effect >= 0 || !strings.Contains(l, "DB$ Effect") || strings.Contains(l, "SubAbility$") {
+			return text
+		}
+		effect = i
+	}
+	if effect < 0 {
+		return text
+	}
+	m := svarLineRE.FindStringSubmatch(lines[effect])
+	if m == nil {
+		return text
+	}
+	parent := movingParent(lines, m[1])
+	if parent < 0 {
+		return text
+	}
+	const cleanup = "DBCanonTargetedOwnerCleanup"
+	lines[parent] = strings.TrimRight(lines[parent], " \r") + " | RememberLKI$ True"
+	lines[effect] = strings.Replace(strings.TrimRight(lines[effect], " \r"), string(targetedAndOwner),
+		"RememberObjects$ RememberedLKI & RememberedOwner", 1) + " | SubAbility$ " + cleanup
+	out := strings.TrimRight(strings.Join(lines, "\n"), "\n")
+	return out + "\nSVar:" + cleanup + ":DB$ Cleanup | ClearRemembered$ True\n"
+}
+
+// subAbilityNames reports whether line's SubAbility$ parameter is exactly name.
+func subAbilityNames(line, name string) bool {
+	for _, part := range strings.Split(line, "|") {
+		part = strings.TrimSpace(part)
+		if v, ok := strings.CutPrefix(part, "SubAbility$ "); ok && v == name {
+			return true
+		}
+	}
+	return false
+}
+
+// movingParent returns the index of the one line whose SubAbility$ is name and
+// that moves a target (a ChangeZone with ValidTgts$) without remembering
+// anything, or -1 when there is not exactly one such line.
+func movingParent(lines []string, name string) int {
+	parent := -1
+	for i, l := range lines {
+		if !subAbilityNames(l, name) {
+			continue
+		}
+		if parent >= 0 || !strings.Contains(l, "ChangeZone") || !strings.Contains(l, "ValidTgts$") || strings.Contains(l, "Remember") {
+			return -1
+		}
+		parent = i
+	}
+	return parent
+}
+
+// nonTargetedCopyRewrite maps nonTargetedCopy back: the moving parent gains
+// RememberLKI$ True, the copy leg reads Defined$ Remembered with
+// NonRememberedController and clears the remembered set after itself. A copy
+// leg that is not exactly Defined$ Targeted, or that already has a
+// SubAbility$, is returned as is.
+func nonTargetedCopyRewrite(text string) string {
+	lines := strings.Split(text, "\n")
+	copyLine := -1
+	for i, l := range lines {
+		if !strings.Contains(l, string(nonTargetedCopy)) {
+			continue
+		}
+		if copyLine >= 0 || !strings.Contains(l, "DB$ CopyPermanent") || !strings.Contains(l, "Defined$ Targeted |") ||
+			strings.Contains(l, "SubAbility$") {
+			return text
+		}
+		copyLine = i
+	}
+	if copyLine < 0 {
+		return text
+	}
+	m := svarLineRE.FindStringSubmatch(lines[copyLine])
+	if m == nil {
+		return text
+	}
+	parent := movingParent(lines, m[1])
+	if parent < 0 {
+		return text
+	}
+	const cleanup = "DBCanonNonTargetedCopyCleanup"
+	lines[parent] = strings.TrimRight(lines[parent], " \r") + " | RememberLKI$ True"
+	l := strings.Replace(strings.TrimRight(lines[copyLine], " \r"), "Defined$ Targeted |", "Defined$ Remembered |", 1)
+	lines[copyLine] = strings.Replace(l, string(nonTargetedCopy), "Controller$ NonRememberedController", 1) + " | SubAbility$ " + cleanup
+	out := strings.TrimRight(strings.Join(lines, "\n"), "\n")
+	return out + "\nSVar:" + cleanup + ":DB$ Cleanup | ClearRemembered$ True\n"
 }

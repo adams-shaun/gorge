@@ -30,6 +30,7 @@ import "embed"
 //go:embed ateot_values.go
 //go:embed cache_canon.go
 //go:embed cache_codec.go
+//go:embed canon_upstream.go
 //go:embed compiled_catalog.go
 //go:embed compiled_codes.go
 //go:embed alone_keyword.go

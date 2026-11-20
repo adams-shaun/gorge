@@ -8,12 +8,12 @@ import (
 )
 
 // TestPumpSubLinkRemembersItsOwnThisTargetedCard pins Graceful Takedown's
-// sub-link Pump (DBPumpBis: its own ValidTgts$ plus RememberObjects$
+// sub-link Pump (DBTargetBis, a TargetOnly that parses to Pump: its own ValidTgts$ plus RememberObjects$
 // ThisTargetedCard). On a sub link Ctx.Targets is the chain ROOT's list and
 // the sub's own answer arrives in Ctx.PickedTargets (CR 115.1, 608.2b), so the
 // remember must read the latter, not re-remember the root's pick.
 func TestPumpSubLinkRemembersItsOwnThisTargetedCard(t *testing.T) {
-	_, sa := corpusSA(t, "Graceful Takedown", "DBPumpBis")
+	_, sa := corpusSA(t, "Graceful Takedown", "DBTargetBis")
 	if sa.Params["RememberObjects"] != "ThisTargetedCard" || sa.Params["ValidTgts"] == "" {
 		t.Fatalf("corpus shape changed: %v", sa.Params)
 	}

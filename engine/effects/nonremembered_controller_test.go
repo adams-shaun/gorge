@@ -15,27 +15,41 @@ func TestFracturedIdentityGivesEveryOtherPlayerACopy(t *testing.T) {
 	if !ok {
 		t.Fatal("Fractured Identity missing from corpus")
 	}
-	if len(card.Faces) == 0 {
-		t.Fatal("Fractured Identity has no face")
+	if len(card.Faces) == 0 || len(card.Faces[0].Abilities) == 0 {
+		t.Fatal("Fractured Identity has no spell ability")
 	}
+	// Upstream spells the copy leg over the spell's own target
+	// (Defined$ Targeted | Controller$ NonTargetedController); cards maps it
+	// back to the exile remembering what it moved and the per-player
+	// NonRememberedController copy (TestCanonicalizeUpstream), which is the
+	// form dirac lowers.
+	root := card.Faces[0].Abilities[0]
 	sa := cards.ResolveSVar(card.Faces[0].SVars, "DBClone")
-	if sa == nil || sa.API != "CopyPermanent" || sa.Params["Controller"] != "NonRememberedController" {
-		t.Fatalf("Fractured Identity DBClone = %#v, want CopyPermanent Controller$ NonRememberedController", sa)
+	if root.API != "ChangeZone" || root.Params["RememberLKI"] != "True" || sa == nil || sa.API != "CopyPermanent" ||
+		sa.Params["Defined"] != "Remembered" || sa.Params["Controller"] != "NonRememberedController" {
+		t.Fatalf("Fractured Identity DBClone = %#v (root %#v), want the remembered-LKI NonRememberedController copy", sa, root)
 	}
 
 	h := newHost(t, 4)
 	h.g.Tokens = reg.Tokens
 	source := h.g.AddObject(card, 0)
 	source.Zone = state.ZStack
-	excluded := h.g.AddObject(mkCard(t, "Name:Remembered permanent\nTypes:Creature\nPT:3/3\nOracle:x\n"), 2)
-	excluded.Zone = state.ZExile
-	c := &Ctx{Source: source.ID, Controller: 0, Remembered: []state.Target{{Obj: excluded.ID}}}
-	effCopyPermanent(h, c, sa)
+	// Owned by seat 1, controlled by seat 2: the exile resets the live
+	// controller to the owner, so "its controller" is the last-known one.
+	target := h.g.AddObject(mkCard(t, "Name:Targeted permanent\nTypes:Creature\nPT:3/3\nOracle:x\n"), 1)
+	target.Zone = state.ZBattlefield
+	target.Controller = 2
+	h.g.SetZone(state.ZBattlefield, 2, []state.ObjID{target.ID})
+	c := &Ctx{Source: source.ID, Controller: 0, Targets: []state.Target{{Obj: target.ID}}}
+	Resolve(h, c, root)
+	if z := h.g.Obj(target.ID).Zone; z != state.ZExile {
+		t.Fatalf("target zone = %v, want exile", z)
+	}
 
 	counts := make([]int, len(h.g.Players))
 	for i := range h.g.Objs {
 		o := &h.g.Objs[i]
-		if o.IsToken && o.Face() != nil && o.Face().Name == "Remembered permanent" {
+		if o.IsToken && o.Face() != nil && o.Face().Name == "Targeted permanent" {
 			counts[o.Controller]++
 		}
 	}
@@ -43,9 +57,57 @@ func TestFracturedIdentityGivesEveryOtherPlayerACopy(t *testing.T) {
 		t.Fatalf("Fractured Identity copy owners = %v, want [1 1 0 1]; events=%+v", counts, h.log)
 	}
 	for _, ev := range h.log {
-		if ev.Kind == events.Note {
+		// The chain's own Cleanup link notes that it clears the remembered
+		// set; any other note is an unsupported selector.
+		if ev.Kind == events.Note && ev.Text != "clears remembered/imprinted objects" {
 			t.Fatalf("unexpected unsupported-selector note: %q", ev.Text)
 		}
+	}
+}
+
+// TestCopyPermanentNonTargetedControllerRaw: the raw upstream selector, read
+// without the canonicalisation (a bare line has no parent to rewrite), gives
+// every player but the exiled target's last-known controller a copy.
+func TestCopyPermanentNonTargetedControllerRaw(t *testing.T) {
+	h := newHost(t, 4)
+	target := h.g.AddObject(mkCard(t, "Name:Probe permanent\nTypes:Creature\nPT:3/3\nOracle:x\n"), 1)
+	target.Zone = state.ZExile
+	src := h.g.AddObject(mkCard(t, "Name:Probe source\nTypes:Sorcery\nOracle:x\n"), 0)
+	src.Zone = state.ZStack
+	c := &Ctx{Source: src.ID, Controller: 0, Targets: []state.Target{{Obj: target.ID}},
+		Snap: LKISnapshots{TargetController: map[state.ObjID]state.PlayerID{target.ID: 2}}}
+	effCopyPermanent(h, c, sa(t, "DB$ CopyPermanent | Defined$ Targeted | Controller$ NonTargetedController"))
+	counts := make([]int, len(h.g.Players))
+	for i := range h.g.Objs {
+		o := &h.g.Objs[i]
+		if o.IsToken && o.Face() != nil && o.Face().Name == "Probe permanent" {
+			counts[o.Controller]++
+		}
+	}
+	if counts[0] != 1 || counts[1] != 1 || counts[2] != 0 || counts[3] != 1 {
+		t.Fatalf("copy owners = %v, want [1 1 0 1]; events=%+v", counts, h.log)
+	}
+}
+
+// TestNonTargetedControllerDefinedPlayers: the complement families over the
+// resolving ability's targets, read as the controller each had as it left.
+func TestNonTargetedControllerDefinedPlayers(t *testing.T) {
+	h := newHost(t, 4)
+	anchor := h.g.AddObject(mkCard(t, "Name:Probe target\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
+	anchor.Zone = state.ZExile
+	c := &Ctx{Controller: 0, Targets: []state.Target{{Obj: anchor.ID}},
+		Snap: LKISnapshots{TargetController: map[state.ObjID]state.PlayerID{anchor.ID: 2}}}
+	got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "NonTargetedController"}})
+	if len(got) != 3 || got[0].Player != 0 || got[1].Player != 1 || got[2].Player != 3 {
+		t.Fatalf("NonTargetedController = %v, want players 0 1 3", got)
+	}
+	got = Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "OppNonTargetedController"}})
+	if len(got) != 2 || got[0].Player != 1 || got[1].Player != 3 {
+		t.Fatalf("OppNonTargetedController = %v, want players 1 3", got)
+	}
+	c.Targets = nil
+	if got = Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "NonTargetedController"}}); len(got) != 4 {
+		t.Fatalf("no targets: NonTargetedController = %v, want all 4", got)
 	}
 }
 

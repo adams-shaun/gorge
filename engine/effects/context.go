@@ -1076,18 +1076,12 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// With nothing remembered the suffix removes nobody, so every player
 		// (every opponent) qualifies; every remembered controller is removed,
 		// not just the first live one.
-		excluded := make(map[state.PlayerID]bool)
-		for _, t := range rememberedControllersLKI(h, c) {
-			excluded[t.Player] = true
-		}
-		var out []state.Target
-		for _, p := range g.AliveFrom(c.Controller) {
-			if excluded[p] || (spec == "OppNonRememberedController" && p == c.Controller) {
-				continue
-			}
-			out = append(out, state.Target{Player: p, IsPlayer: true})
-		}
-		return out, true
+		return playersExcept(g, c, rememberedControllersLKI(h, c), spec == "OppNonRememberedController"), true
+	case definedSpecNonTargetedController:
+		// the same complement over the resolving ability's object targets, each
+		// read as the controller it had as it left (targetsControllerLKI, CR
+		// 608.2h): Fractured Identity's "each player other than its controller"
+		return playersExcept(g, c, controllersOf(g, targetsControllerLKI(g, c, objectTargets(c.Targets))), spec == "OppNonTargetedController"), true
 	case definedSpecRememberedOwner:
 		return ownersOf(g, hostRemembered(h, c)), true
 	case definedSpecTargetedController:
@@ -3159,6 +3153,7 @@ const (
 	definedSpecPlayerChosen
 	definedSpecRememberedController
 	definedSpecNonRememberedController
+	definedSpecNonTargetedController
 	definedSpecRememberedOwner
 	definedSpecTargetedController
 	definedSpecTargetedPlayer
@@ -3266,6 +3261,8 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "RememberedController", Val: definedSpecRememberedController},
 	state.StrEntry[definedSpecCode]{Key: "NonRememberedController", Val: definedSpecNonRememberedController},
 	state.StrEntry[definedSpecCode]{Key: "OppNonRememberedController", Val: definedSpecNonRememberedController},
+	state.StrEntry[definedSpecCode]{Key: "NonTargetedController", Val: definedSpecNonTargetedController},
+	state.StrEntry[definedSpecCode]{Key: "OppNonTargetedController", Val: definedSpecNonTargetedController},
 	state.StrEntry[definedSpecCode]{Key: "RememberedOwner", Val: definedSpecRememberedOwner},
 	state.StrEntry[definedSpecCode]{Key: "TargetedController", Val: definedSpecTargetedController},
 	state.StrEntry[definedSpecCode]{Key: "TargetedPlayer", Val: definedSpecTargetedPlayer},
@@ -3427,4 +3424,22 @@ func triggeredCardQualified(h Host, c *Ctx, spec string) ([]state.Target, bool) 
 		}
 	}
 	return out, true
+}
+
+// playersExcept is every living player in turn order from the resolving
+// controller minus the excluded players; opp drops the resolving controller
+// too (the Opp-prefixed complements).
+func playersExcept(g *state.Game, c *Ctx, excluded []state.Target, opp bool) []state.Target {
+	drop := make(map[state.PlayerID]bool)
+	for _, t := range excluded {
+		drop[t.Player] = true
+	}
+	var out []state.Target
+	for _, p := range g.AliveFrom(c.Controller) {
+		if drop[p] || (opp && p == c.Controller) {
+			continue
+		}
+		out = append(out, state.Target{Player: p, IsPlayer: true})
+	}
+	return out
 }

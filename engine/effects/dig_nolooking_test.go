@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -42,10 +43,55 @@ func digestLookNote(log []events.Event, end int) (events.Event, bool) {
 	return events.Event{}, false
 }
 
+// digNamesLookedCards resolves root (a card's root Dig, its sub chain cut) over
+// a three-card library window and asserts the take ask names the looked cards
+// and the chooser's private look is recorded before it.
+func digNamesLookedCards(t *testing.T, source state.ObjID, h *digAskHost, root *cards.SA) {
+	t.Helper()
+	names := []string{"Window Alpha", "Window Beta", "Window Gamma"}
+	window := make([]state.ObjID, 0, len(names))
+	for _, n := range names {
+		window = append(window, h.g.AddObject(mkCard(t,
+			"Name:"+n+"\nTypes:Creature\nPT:1/1\nOracle:x\n"), 0).ID)
+	}
+	h.g.SetZone(state.ZLibrary, 0, window)
+	lib := h.g.Zone(state.ZLibrary, 0)
+	if len(lib) != len(window) || lib[0] != window[0] || lib[2] != window[2] {
+		t.Fatalf("precondition: window not on top of library: got %v want %v", lib, window)
+	}
+	Resolve(h, &Ctx{Source: source, Controller: 0}, root)
+	if h.asked == nil || h.asked.Kind != decision.KChoose {
+		t.Fatalf("decision = %+v, want the take ask over the three-card window", h.asked)
+	}
+	if len(h.asked.Options) != len(window) {
+		t.Fatalf("options = %+v, want all %d window cards offered", h.asked.Options, len(window))
+	}
+	for i, opt := range h.asked.Options {
+		if opt.Obj != window[i] {
+			t.Fatalf("option %d object = %d, want library order %d", i, opt.Obj, window[i])
+		}
+		if !strings.Contains(opt.Label, names[i]) || opt.Label == "a card" {
+			t.Fatalf("option %d label = %q, want the looked-at card %q", i, opt.Label, names[i])
+		}
+	}
+	if !strings.Contains(h.asked.Prompt, "Look at the top 3 card(s)") {
+		t.Fatalf("prompt = %q, want the look wording", h.asked.Prompt)
+	}
+	look, ok := digestLookNote(h.log, h.logAtAsk)
+	if !ok {
+		t.Fatalf("no Secret look Note precedes the take ask: log %+v", h.log)
+	}
+	if len(look.IDs) != len(window) || look.IDs[0] != window[0] || look.IDs[2] != window[2] {
+		t.Fatalf("look Note ids = %v, want exactly the window %v", look.IDs, window)
+	}
+}
+
 // TestDigNoLookingNamesTheLookedCards drives the real corpus carriers whose
-// Oracle text says "Look at the top ... cards": a bare NoLooking$ True must
-// still name the offered cards and record the chooser's private look before
-// the take ask.
+// Oracle text says "Look at the top ... cards": they must name the offered
+// cards and record the chooser's private look before the take ask. Upstream
+// dropped NoLooking$ True from the three scripts (a plain look is what they
+// now spell), so the real cards no longer carry the rider; the synthetic
+// subtest keeps the bare NoLooking$ True shape covered.
 func TestDigNoLookingNamesTheLookedCards(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	for _, cardName := range []string{"Telling Time", "Moment of Truth", "Expressive Iteration"} {
@@ -61,53 +107,27 @@ func TestDigNoLookingNamesTheLookedCards(t *testing.T) {
 				t.Fatalf("%s root ability is not SP$ Dig: %+v", cardName, face.Abilities)
 			}
 			root := *face.Abilities[0]
-			if root.Params["NoLooking"] != "True" {
-				t.Fatalf("precondition: %s root Dig carries NoLooking$ %q", cardName, root.Params["NoLooking"])
+			if root.Params["ExileFaceDown"] != "" || root.Params["RandomChange"] != "" {
+				t.Fatalf("precondition: %s root Dig is blind-shaped: %+v", cardName, root.Params)
 			}
 			// Drive only the main Dig: the card's SubAbility$ is another Dig
 			// with its own ask and its own window.
 			root.Sub = nil
 			h := &digAskHost{}
 			h.g = state.NewGame(names(2))
-			source := h.g.AddObject(card, 0).ID
-			names := []string{"Window Alpha", "Window Beta", "Window Gamma"}
-			window := make([]state.ObjID, 0, len(names))
-			for _, n := range names {
-				window = append(window, h.g.AddObject(mkCard(t,
-					"Name:"+n+"\nTypes:Creature\nPT:1/1\nOracle:x\n"), 0).ID)
-			}
-			h.g.SetZone(state.ZLibrary, 0, window)
-			lib := h.g.Zone(state.ZLibrary, 0)
-			if len(lib) != len(window) || lib[0] != window[0] || lib[2] != window[2] {
-				t.Fatalf("precondition: window not on top of library: got %v want %v", lib, window)
-			}
-			Resolve(h, &Ctx{Source: source, Controller: 0}, &root)
-			if h.asked == nil || h.asked.Kind != decision.KChoose {
-				t.Fatalf("decision = %+v, want the take ask over the three-card window", h.asked)
-			}
-			if len(h.asked.Options) != len(window) {
-				t.Fatalf("options = %+v, want all %d window cards offered", h.asked.Options, len(window))
-			}
-			for i, opt := range h.asked.Options {
-				if opt.Obj != window[i] {
-					t.Fatalf("option %d object = %d, want library order %d", i, opt.Obj, window[i])
-				}
-				if !strings.Contains(opt.Label, names[i]) || opt.Label == "a card" {
-					t.Fatalf("option %d label = %q, want the looked-at card %q", i, opt.Label, names[i])
-				}
-			}
-			if !strings.Contains(h.asked.Prompt, "Look at the top 3 card(s)") {
-				t.Fatalf("prompt = %q, want the look wording", h.asked.Prompt)
-			}
-			look, ok := digestLookNote(h.log, h.logAtAsk)
-			if !ok {
-				t.Fatalf("no Secret look Note precedes the take ask: log %+v", h.log)
-			}
-			if len(look.IDs) != len(window) || look.IDs[0] != window[0] || look.IDs[2] != window[2] {
-				t.Fatalf("look Note ids = %v, want exactly the window %v", look.IDs, window)
-			}
+			digNamesLookedCards(t, h.g.AddObject(card, 0).ID, h, &root)
 		})
 	}
+	t.Run("synthetic bare NoLooking", func(t *testing.T) {
+		t.Parallel()
+		root := sa(t, "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 1 | ChangeValid$ Card | NoLooking$ True | SkipReorder$ True")
+		if root.Params["NoLooking"] != "True" {
+			t.Fatalf("precondition: probe Dig carries NoLooking$ %q", root.Params["NoLooking"])
+		}
+		h := &digAskHost{}
+		h.g = state.NewGame(names(2))
+		digNamesLookedCards(t, 0, h, root)
+	})
 }
 
 // TestDigNoLookingBlindCarriersStayBlind pins the other half: the two blind

@@ -78,7 +78,7 @@ func dedupeTargets(ts []state.Target) []state.Target {
 // ExileCombat (the CopyTokenExileCombat bit: the copy is flagged IsMyriad and
 // registers its own end-of-combat exile trigger, CR 511.2), and
 // Controller$ You/Targeted*/Remembered*/TriggeredCardController/Opponent and
-// the per-player NonRememberedController families. Any other Controller$ or
+// the per-player Non(Remembered|Targeted)Controller families. Any other Controller$ or
 // AtEOT$ value is one loud Note per call.
 // copyAtEOTSide registers one mint's AtEOT$ rider: a grouped-sacrifice value
 // joins the resolution's grouped batch (one trigger over them all, even when
@@ -926,6 +926,18 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 // NonRememberedController family -- multiOwner with one entry per player.
 func copyPermanentController(h Host, c *Ctx, g *state.Game, cp CopyPermanentParams, targets []state.Target, emitNote func(events.Event)) (owner state.PlayerID, owners []state.PlayerID, multiOwner bool) {
 	owner = c.Controller
+	switch definedSpecCodes.Code(string(cp.Controller)) {
+	case definedSpecNonRememberedController, definedSpecNonTargetedController:
+		// the per-player complements: one copy for each player definedSpec
+		// names (the selector table owns these words)
+		ts, _ := definedSpec(h, c, cp.Controller)
+		for _, t := range ts {
+			if t.IsPlayer {
+				owners = append(owners, t.Player)
+			}
+		}
+		return owner, owners, true
+	}
 	switch copyPermanentControllerCodes.Code(string(cp.Controller)) {
 	case copyPermanentControllerYou:
 	case copyPermanentControllerTargeted:
@@ -945,14 +957,6 @@ func copyPermanentController(h Host, c *Ctx, g *state.Game, cp CopyPermanentPara
 			if p != c.Controller {
 				owner = p
 				break
-			}
-		}
-	case copyPermanentControllerNonRememberedController:
-		multiOwner = true
-		ts, _ := definedSpec(h, c, cp.Controller)
-		for _, t := range ts {
-			if t.IsPlayer {
-				owners = append(owners, t.Player)
 			}
 		}
 	default:
@@ -1039,7 +1043,6 @@ const (
 	copyPermanentControllerRemembered
 	copyPermanentControllerTriggeredCardController
 	copyPermanentControllerOpponent
-	copyPermanentControllerNonRememberedController
 )
 
 var copyPermanentControllerCodes = state.NewStrCodes(
@@ -1052,8 +1055,6 @@ var copyPermanentControllerCodes = state.NewStrCodes(
 	state.StrEntry[copyPermanentControllerCode]{Key: "RememberedController", Val: copyPermanentControllerRemembered},
 	state.StrEntry[copyPermanentControllerCode]{Key: "TriggeredCardController", Val: copyPermanentControllerTriggeredCardController},
 	state.StrEntry[copyPermanentControllerCode]{Key: "Opponent", Val: copyPermanentControllerOpponent},
-	state.StrEntry[copyPermanentControllerCode]{Key: "NonRememberedController", Val: copyPermanentControllerNonRememberedController},
-	state.StrEntry[copyPermanentControllerCode]{Key: "OppNonRememberedController", Val: copyPermanentControllerNonRememberedController},
 )
 
 type copyPermanentAtEOTTrigCode uint16
