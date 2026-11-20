@@ -2309,11 +2309,12 @@ type genState struct {
 	linkPad [linkPadN]uint8
 
 	// retHeld lists, in departure order, the sources that left in the open
-	// departure frame with links to return (holdReturns); bit i of retCtrl is
-	// retHeld[i]'s last controller. A ninth source stalls (StallLinks).
+	// departure frame with links to return (holdReturns); bits 2i..2i+1 of
+	// retCtrl are retHeld[i]'s last controller (two bits for four seats). A
+	// ninth source stalls (StallLinks).
 	retHeld  [8]Obj
 	nretHeld uint8
-	retCtrl  uint8
+	retCtrl  uint16
 	// retHold: the returns batch is parked on a host ask, so its frame's
 	// close waits for the answer (zone_untilleavesbatch.go); retOld and
 	// retStamp are the latch batchClose restores and the frame's opening

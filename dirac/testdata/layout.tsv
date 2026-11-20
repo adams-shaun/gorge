@@ -283,10 +283,10 @@ default	field	genState.linkHand	6502	2
 default	field	genState.linkPad	6504	28
 default	field	genState.retHeld	6532	16
 default	field	genState.nretHeld	6548	1
-default	field	genState.retCtrl	6549	1
-default	field	genState.retHold	6550	1
-default	field	genState.retOld	6551	1
-default	field	genState.retStamp	6552	2
+default	field	genState.retCtrl	6550	2
+default	field	genState.retHold	6552	1
+default	field	genState.retOld	6553	1
+default	field	genState.retStamp	6554	2
 default	field	genState.entExc	6556	4
 default	field	genState.enterCtr	6560	8
 default	field	genState.entrySelf	6568	1
