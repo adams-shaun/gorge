@@ -102,15 +102,9 @@ func (s *State) queueDemonstrate(k *prep, e *stackEntry) {
 		return
 	}
 	p := e.ctrl
-	n := s.g.hist[p][histCastN]
-	hidden := n > 0 && Obj(s.cold.castRing[int(p)*castRingN+int(n)-1].obj-1) == e.obj
-	if hidden {
-		s.g.hist[p][histCastN] = n - 1
-	}
+	saved := s.hideInflightCast(e)
 	g, _ := s.stackKwN(k, kop.StackKwDemonstrate, e.card, e.obj, p, s.castFromHandBy(e, p))
-	if hidden {
-		s.g.hist[p][histCastN] = n
-	}
+	s.restoreInflightCast(p, saved)
 	if g == 0 {
 		return
 	}
