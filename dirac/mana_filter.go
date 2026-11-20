@@ -1248,11 +1248,16 @@ func (s *State) filtFundable(k *prep, p uint8, f slotMask) bool {
 	return !(k.tapMana && (s.tapXTwoLive(k, p) || s.tapXSacAnyLive(k, p))) && !s.storeGapLive(k, p)
 }
 
-// storeGapLive reports whether p controls an activatable storage battery: a
-// store counter-cost gap holding counters to remove (scriptCtr).
+// storeGapLive reports whether p controls an activatable lone storage
+// battery: a store counter-cost gap holding counters to remove (scriptCtr)
+// whose card has no plain first mana ability (ctrSecond). A later battery
+// (Mage-Ring Network's {T}: Add {C} beside its counter-X ability) is priced by
+// that first unit, so it leaves the census relaxable and the filter's fee
+// fundable, as storeCensusGap reads the same ctrSecond test.
 func (s *State) storeGapLive(k *prep, p uint8) bool {
 	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
-		if kop.StoreManaAb(k.ctrAbOf(s.cardAt(b.first()))) {
+		c := s.cardAt(b.first())
+		if kop.StoreManaAb(k.ctrAbOf(c)) && !k.ctrSecond(c) {
 			return true
 		}
 	}
