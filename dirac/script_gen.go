@@ -1119,9 +1119,6 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			capSpent.add(a)
 			continue
 		}
-		if relaxCensus && s.grantCensusPays(k, p, a, &cost, ex) {
-			continue // gorge's ability arm prices the composed cost from its planner census, granted mana abilities included (potentialAbilityPlan -> planComposedCost), as the may-play arm above does: a granted ability beside none is priced by the census, no prefix search (potential_plan.go potentialPlayVerdict, Joraga Treespeaker's own level ability)
-		}
 		if !s.grantRelaxedAffords(k, p, a, &cost, ex, s.grantPayDesc(k, a), m) {
 			d.remove(a) // gorge's relaxed proof: insufficient, no prefix search (mana_grantrelaxed.go)
 			capSpent.add(a)

@@ -1868,9 +1868,14 @@ func (g *grantSrch) visit(t *State) bool {
 		// fee-carrying gaps' fees come from, then the gaps that carry a fee.
 		// A fee-carrying gap activated before the funding drains the pool the
 		// prefix still needs (CR 601.2b).
+		var tried [MaxPerm]Slot
+		ntried := 0
 		for i := 0; i < g.gapN; i++ {
 			if !g.gapFree(t, i) {
 				continue
+			}
+			if g.gapTwinSkip(t, i, &tried, &ntried) {
+				continue // an indistinguishable earlier free gap already walked this subtree (gorge's scriptTwin)
 			}
 			if found, stop := g.gapVisit(t, i, sacd, &sacStepped); found {
 				return true
@@ -1886,9 +1891,14 @@ func (g *grantSrch) visit(t *State) bool {
 		} else if stop {
 			return false
 		}
+		var tried2 [MaxPerm]Slot
+		ntried2 := 0
 		for i := 0; i < g.gapN; i++ {
 			if g.gapFree(t, i) {
 				continue
+			}
+			if g.gapTwinSkip(t, i, &tried2, &ntried2) {
+				continue // an indistinguishable earlier fee gap already walked this subtree (gorge's scriptTwin)
 			}
 			if found, stop := g.gapVisit(t, i, sacd, &sacStepped); found {
 				return true
@@ -1897,7 +1907,12 @@ func (g *grantSrch) visit(t *State) bool {
 			}
 		}
 	} else {
+		var tried3 [MaxPerm]Slot
+		ntried3 := 0
 		for i := 0; i < g.gapN; i++ {
+			if g.gapTwinSkip(t, i, &tried3, &ntried3) {
+				continue // an indistinguishable earlier gap already walked this subtree (gorge's scriptTwin)
+			}
 			if found, stop := g.gapVisit(t, i, sacd, &sacStepped); found {
 				return true
 			} else if stop {
@@ -1929,6 +1944,57 @@ func (g *grantSrch) visit(t *State) bool {
 		return ok
 	}
 	return false
+}
+
+// twinCutOn is gorge's twin-cut scope for the search's branches (scriptTwin,
+// run on the fee-only path and for the plays potentialTwinCut classifies as
+// printed or gained -- isAbilityPlay here): the funding pass applies it too
+// (fundingPass).
+func (g *grantSrch) twinCutOn() bool {
+	return g.feeOnly || g.d.hasPlay && isAbilityPlay(g.d.play)
+}
+
+// gapTwinSkip reports whether the search's twin cut skips gap candidate i at
+// this node: gorge's scriptTwin runs over the activation options too, an
+// indistinguishable earlier source's subtree covering sl's (the same mana for
+// the same cost, tail-08 pair 78: twelve lands granted "{T}: Add one mana of
+// any color" beside The World Tree's search -- the plain run's walk over the
+// twelve as distinct subtrees spent the budget on their permutations before
+// it reached the paying colour assignment, so the offer fell one activation
+// short of gorge's). Only an untapped, tap-branchable candidate is tried
+// (scriptTwin needs both sources untapped; a candidate with no tap to branch
+// is no option of gorge's menu, so it neither cuts nor cuts for another --
+// gapTapBranchable), and the cut reads only the cut's own scope (twinCutOn).
+func (g *grantSrch) gapTwinSkip(t *State, i int, tried *[MaxPerm]Slot, ntried *int) bool {
+	if !g.twinCutOn() {
+		return false
+	}
+	sl := g.cand[i]
+	if t.perms[sl].flags&pfTapped != 0 || !t.occ.has(sl) || !g.gapTapBranchable(t, i, sl) {
+		return false
+	}
+	if g.fundTwinTried(t, sl, tried[:*ntried]) {
+		return true
+	}
+	tried[*ntried] = sl
+	*ntried++
+	return false
+}
+
+// gapTapBranchable reports whether candidate i's branch at this node goes
+// through a tap: the granted tap or the printed one (grantTapOK reads both),
+// the tap- or sacrifice-another ability (scriptTapX) or the filter's
+// (filtPaid with a usable fee). The no-tap census gaps (a counter-cost Wall
+// of Roots, a storage battery, a deferred source) branch without a tap and
+// keep their whole subtrees.
+func (g *grantSrch) gapTapBranchable(t *State, i int, sl Slot) bool {
+	if t.grantTapOK(g.k, sl) {
+		return true
+	}
+	if (g.tapx[i] || g.sacx[i]) && t.scriptTapX(g.k, g.p).has(sl) {
+		return true
+	}
+	return g.filt[i] && t.filtPaid(g.k, g.p, sl) && t.filtUsable(g.k, sl)
 }
 
 // fundTwinTried reports whether an earlier funder of this pass is
