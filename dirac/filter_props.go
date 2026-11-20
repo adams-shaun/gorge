@@ -460,6 +460,8 @@ func (s *State) snowWordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
 		return s.hasProtColor(k, sl, kop.ColorMask(uint16(fl.PredV.N))) // filter_sharedkw.go
 	case kop.W7HasProtEachColor:
 		return s.hasProtEachColor(k, sl) // filter_sharedkw.go
+	case kop.W7HasIslandwalk:
+		return s.hasIslandwalk(k, sl) // kw_evasion.go
 	}
 	if n == kop.W7WithDevoid {
 		// gorge withDevoid on a battlefield object: the printed keyword, none

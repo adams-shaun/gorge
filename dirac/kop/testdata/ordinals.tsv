@@ -1736,6 +1736,11 @@ W7HasLandwalk	int16	42
 W7HasProtColor	int16	44
 W7HasProtEachColor	int16	45
 W7HasProtQuality	int16	43
+W7HasIslandwalk	int16	45
+W7HasLandwalk	int16	41
+W7HasProtColor	int16	43
+W7HasProtEachColor	int16	44
+W7HasProtQuality	int16	42
 W7Imprinted	int16	25
 W7InZone	int16	4
 W7IsCommander	int16	16
