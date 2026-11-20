@@ -139,6 +139,7 @@ Goblin Hero
 Goblin Tutor
 Goliath, Mass Manipulator
 Griffin Protector
+Grip of Desolation
 Grollub
 Hall of Oracles
 Hallowed Healer
@@ -177,6 +178,7 @@ Kukemssa Pirates
 Lace with Moonglove
 Leo's Guidance
 Lesser Gargadon
+Levitating Statue
 Leyline Dowser
 Light the Way
 Liliana's Defeat
@@ -184,6 +186,7 @@ Liliana's Devotee
 Lilting Refrain
 Loam Lion
 Loathsome Catoblepas
+Luminarch Ascension
 Luxury Suite
 Lys Alana Bowmaster
 Madame Hydra, Reanimated
@@ -234,6 +237,7 @@ Pestermite
 Phantasmal Sphere
 Pillar of Light
 Pious Evangel
+Pious Wayfarer
 Plains
 Plateau
 Pollenbright Wings

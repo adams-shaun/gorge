@@ -11,7 +11,9 @@ Ashling the Pilgrim	f4b22dd4dbc992b4	4	1/1		0/1	ix:resp
 Attrition	0ef985a4765623fd	5	1/1		1/1	
 Attune with Aether	47a101d74ddc953c	4	0/0		1/2	ix:resp
 Banish from Edoras	c770228c6f252608	4	0/0		1/2	ix:resp
+Blade Banish	23ccd296f8fdd0db	6	0/0		1/2	ix:resp
 Blade Splicer	4bf7b38627473819	4	1/1		0/1	ix:resp
+Blood Rites	52d32a5b24499be7	4	1/1		1/1	
 Bloodcrusher of Khorne	82f674575c36ed1f	7	0/0		0/0	
 Blunt the Assault	0a9df5063530adf1	10	0/0		1/2	ix:resp
 Boggart Arsonists	3efcd2e324918e16	6	1/1		1/1	
@@ -26,6 +28,7 @@ Channel the Suns	6e9449f2faaba16f	3	0/0		1/2	ix:resp
 Chaotic Goo	5543eafb58cebe80	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Charging Monstrosaur	9bfd313317e938bd	6	0/0		0/0	
 Chatter of the Squirrel	1b2ac842c78713d3	6	0/0		3/4	ix:resp
+Cloak of Feathers	13ff21a010b55211	4	0/0		1/2	ix:resp
 Cloud Elemental	dc4854121b224215	3	0/0		0/0	
 Cloudchaser Kestrel	1b4d06b603f67e1d	5	2/2		1/1	
 Colossus of Akros	f965b58ddd1e5fe2	4	1/1		0/1	ix:resp
@@ -50,6 +53,7 @@ Dryad Greenseeker	10da06049d9715a6	4	1/1		0/1	ix:resp
 Duskhunter Bat	4f0b1730f213e3a8	8	0/0		0/0	
 Dwarven Warriors	4f547993319d89ea	3	1/1		1/1	
 Eastfarthing Farmer	9239456232cabf37	6	1/1		0/1	ix:resp
+Eidolon of Countless Battles	bc5b37372736de1d	8	0/0		2/2	
 Elvish Eulogist	31a072bf359b170f	4	1/1		0/1	ix:resp
 Endurance Bobblehead	fc15a4d77c37e468	6	2/2		0/1	ix:resp
 Evaporate	3063c6f97bbe6f92	4	0/0		1/2	ix:resp
@@ -67,6 +71,7 @@ Foul Orchard	13a8a74907ad50fa	12	1/1		0/1	ix:resp
 Frogtosser Banneret	755c354027fd2824	10	0/0		0/0	
 Frontline Devastator	277bee8fe4fac8a5	4	2/2		1/1	
 Frostweb Spider	b2db8676c700f7e1	8	1/1		0/1	ix:resp
+Gaea's Embrace	ee212e4d653d8d21	4	1/1		2/2	
 Genasi Enforcers	7ae475822fe905c5	4	2/2		0/1	ix:resp
 Ghitu Journeymage	a97ad09b811fcb82	4	1/1		0/1	ix:resp
 Ghost-Spider, Gwen Stacy	3364cd27780b8394	3	1/1		1/1	
@@ -78,10 +83,12 @@ Grip of Desolation	a32d280394672b49	4	0/0		1/2	ix:resp
 Grollub	e3116e66fca8570d	4	1/1		0/1	ix:resp
 Hasran Ogress	8939eb42c6436bd1	4	1/1		0/1	ix:resp
 Heart Sliver	0dd78a85bc43e35d	6	0/0		0/0	
+Heliod's Pilgrim	05d3608d962c6c8e	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Heroic Charge	2d50c74879c0a100	8	0/0		3/4	ix:resp
 Hold the Line	52dba1ebbf5ed907	4	0/0		1/2	ix:resp
 Honor the Past	ae5a9461d21425d8	3	0/0		1/2	ix:resp
 Idle Thoughts	69de54507b1835c1	4	1/1		1/1	
+Inferno	afc7d8d6b7bad2a9	8	0/0		2/2	
 Into Thin Air	7b4a90205f1f1a80	4	0/0		1/2	ix:resp
 Invasion of Segovia	d28a230e9692bac2	4	2/2		1/1	
 Krosan Restorer	d92fd6b84181b468	6	2/2		0/1	ix:resp
@@ -104,11 +111,13 @@ Mindless Null	a765b6fba3bc77f0	4	0/0		0/0
 Mire Blight	98df71dfa6b06a3d	6	1/1		1/2	ix:resp
 Mistcutter Hydra	2de897cc411ea6cb	5	0/0		0/0	
 Misthios's Fury	155b18c98f9c4537	12	0/0		2/2	
+Mistmeadow Skulk	9b174e2944506280	4	0/0		0/0	
 Morbid Bloom	7b097cd23dea84d4	8	0/0		1/2	ix:resp
 Mortician Beetle	d7f2cc00ffcf62d4	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Mukotai Soulripper	67c0d8776cf746a4	8	2/2		1/1	
 Mystic Restraints	b496d88f717cd75b	12	1/1		2/2	
 Night Scythe	8eaa9c81ea0207bf	3	2/2		1/1	
+Nimbus of the Isles	c82b01f10e81e394	4	0/0		0/0	
 Oni Possession	e0f135010e3f4566	4	1/1		1/2	ix:resp
 Ovalchase Daredevil	da6eba29cc55f47c	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Overrule	338a725121618a58	4	0/0		2/4	f0/s/x0,ix:resp
@@ -125,8 +134,10 @@ Provoke	1927cf5f31f1c64e	3	0/0		2/2
 Pygmy Pyrosaur	03c0b2cbfb21db7e	4	1/1		0/1	ix:resp
 Quicksilver Dagger	7fc70a11bcf46bc9	4	0/0		2/2	
 Radiant Fountain	1e041f359ea30061	15	2/2		0/1	ix:resp
+Raging Spirit	f9ad9a26c24fae84	4	1/1		1/1	
 Rakka Mar	c7acdf82078f50bc	4	1/1		1/1	
 Rakshasa's Secret	c17edfcfb9c791fb	4	0/0		1/2	ix:resp
+Rampaging Monument	e375a9b9fca75169	6	1/1		0/1	ix:resp
 Ranger Class	47c93d9c14873a29	6	4/4		0/1	ix:resp
 Ravenous Harpy	0104258b9627be58	4	1/1		0/1	ix:resp
 Reckless Imp	3a4c602681840bb2	12	0/0		2/2	
