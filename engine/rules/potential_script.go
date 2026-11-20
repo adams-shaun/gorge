@@ -1025,9 +1025,14 @@ func scriptTwin(g *state.Game, d *decision.Decision, a, b state.ObjID) bool {
 	if oa.Counters != nil || ob.Counters != nil {
 		return false
 	}
-	for _, id := range g.Zone(state.ZBattlefield, oa.Controller) {
-		if o := g.Obj(id); o != nil && (o.AttachedTo == a || o.AttachedTo == b) {
-			return false
+	// Every seat's battlefield: the attachment may belong to the opponent
+	// (a Sea's Claim on the payer's land), and a twin pair one attachment
+	// touches is two subtrees.
+	for seat := range g.Players {
+		for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(seat)) {
+			if o := g.Obj(id); o != nil && (o.AttachedTo == a || o.AttachedTo == b) {
+				return false
+			}
 		}
 	}
 	return scriptOptionKey(d, a) == scriptOptionKey(d, b)
