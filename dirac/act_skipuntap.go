@@ -7,7 +7,7 @@ import (
 // pfSkipUntap is CR 611.2b's "doesn't untap during your next untap step"
 // one-shot (gorge Object.CantUntapNextStep): the untap step skips the
 // permanent and clears it (turn.go, act_energy.go untapStepGen); a new
-// permanent starts without it. Bit 15 of perm.flags (pfRegenX holds 13-14).
+// permanent starts without it. Bit 15 of perm.flags.
 const pfSkipUntap uint16 = 1 << 15
 
 // noUntapCreat shifts a seat's bit in gen.noUntapL from its lands to its
