@@ -52,6 +52,9 @@ func (s *State) discardOrdinary(k *prep, in *kop.Instr, p uint8) bool {
 	}
 	pl := &s.pl[p]
 	if n >= int(pl.handN) {
+		if k.gen != nil && k.gen.anyBatch {
+			defer s.batchClose(s.batchOpen()) // one discard action (gorge flushDiscards)
+		}
 		for pl.handN > 0 {
 			s.discardObj(k, pl.hand[0])
 		}

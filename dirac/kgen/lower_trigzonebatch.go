@@ -16,9 +16,11 @@ import (
 // (kernel trig_oneormore.go). Shapes: Destination$ Battlefield (any origin);
 // Origin$ Battlefield to Graveyard (creatures: the kernel's dies event);
 // Origin$ Battlefield to any zone, or to every zone but the graveyard
-// ("without dying", Dour Port-Mage). A body reading the batch (its moved
-// set, Remembered/TriggeredCards, or the moved count) refuses: the
-// kernel's queued instance carries only the first member.
+// ("without dying", Dour Port-Mage); Origin$ Any to Graveyard (the kernel's
+// TrigToGraveyard, fired by the placement for every origin, battlefield
+// included: Titania, Voice of Gaea; Turntimber Sower). A body reading the
+// batch (its moved set, Remembered/TriggeredCards, or the moved count)
+// refuses: the kernel's queued instance carries only the first member.
 func (lc *lowerCtx) changesZoneAll(tp *params, tr *lTrigger, t cards.Trigger) error {
 	v, ok := tp.get("ValidCards")
 	if !ok {
@@ -81,6 +83,14 @@ func (lc *lowerCtx) changesZoneAll(tp *params, tr *lTrigger, t cards.Trigger) er
 		// the Leaves line to exile plus the graveyard leave to exile, one
 		// batch line (kop.Tf2LeavesGrave, kernel trig_leavesgrave.go)
 		tr.Event, tr.N, tr.AlsoGrave = "Leaves", 1<<zoneBit(zExile), true
+	case len(dests) == 1 && dests[zGraveyard] && origin == zAny:
+		// "from anywhere" into a graveyard: the placement fires the kernel's
+		// TrigToGraveyard for every origin, the battlefield included (gorge
+		// matches the line after the move, as a destination watcher, never
+		// as a leave: CR 603.6c, 603.10). No split: one event carries the
+		// whole batch, so a batch mixing a death and a mill still queues
+		// once. N 0 = any origin (kernel fireToGrave).
+		tr.Event, tr.Origin, tr.Dest, tr.N = "ToGraveyard", zAny, zGraveyard, 0
 	default:
 		return refuse("ChangesZoneAll %s->%s", zoneLabel[origin], d)
 	}

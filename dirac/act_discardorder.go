@@ -7,6 +7,9 @@ package dirac
 // as an earlier competing pick (picks arriving one at a time, as a cleanup
 // discard's do). x is the parked moves' mark (parkCleanup, or 0).
 func (s *State) discardPicks(k *prep, picks []Obj, x uint8) {
+	if k.gen != nil && k.gen.anyBatch {
+		defer s.batchClose(s.batchOpen()) // one discard action (gorge flushDiscards)
+	}
 	first := 0
 	if !s.parkedDiscardWaiting() {
 		first = len(picks) // none competes: every pick moves now
