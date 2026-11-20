@@ -86,6 +86,7 @@ Malevolent Chandelier
 Manifest Dread
 Marina Vendrell's Grimoire
 Meat Locker
+Miasma Demon
 Midnight Mayhem
 Mirror Room
 Most Valuable Slayer
@@ -165,3 +166,4 @@ Wary Watchdog
 Wickerfolk Thresher
 Wildfire Wickerfolk
 Withering Torment
+Zimone, All-Questioning
