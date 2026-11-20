@@ -353,6 +353,22 @@ type Option struct {
 	// omitempty: an unrestricted option emits no field, so every ordinary
 	// option list serialises byte-identically.
 	AloneRestricted bool `json:"alone_restricted,omitempty"`
+	// AloneOnly marks a KAttackers option whose creature can ONLY be declared
+	// alone (CR 508.1c, "can only attack alone"): no other creature may be
+	// declared beside it. CompanionNeed/CompanionFrom are the converse
+	// restriction ("can't attack unless a creature with greater power also
+	// attacks", "... at least two other creatures attack", Okk, Orcish
+	// Conscripts, Scarred Puma; the block-side sentences ride KBlockers
+	// options): choosing this option is legal only together with at least
+	// CompanionNeed distinct OTHER creatures, each named by one of the
+	// options in CompanionFrom (option Indexes). All three derive from
+	// combat.CompanionViolated, and AloneLegal (the one home Decision.Validate,
+	// FitAlone and the block solver share) reads them, so a rules-ignorant
+	// client builds a legal declaration from the wire alone. omitempty: an
+	// unrestricted option emits none of them.
+	AloneOnly     bool  `json:"alone_only,omitempty"`
+	CompanionNeed int   `json:"companion_need,omitempty"`
+	CompanionFrom []int `json:"companion_from,omitempty"`
 	// Mode distinguishes a "cast" option's payment kind: "" the card's own
 	// cost, "kicked", "surged", "flashback", "miracle" -- what the engine
 	// reads in beginCast's switch. A client renders a kicked/surged/

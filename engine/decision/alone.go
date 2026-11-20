@@ -1,6 +1,9 @@
 package decision
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 // CR 506.5's attack-alone / block-alone restricted family, in the decision
 // layer. The RULE lives here once and three callers derive from it: the wire
@@ -18,32 +21,57 @@ func (d *Decision) aloneKind() bool {
 	return d.Kind == KAttackers || d.Kind == KBlockers
 }
 
-// AloneLegal reports whether the choices satisfy CR 506.5: an option marked
-// AloneRestricted (its creature can't attack alone / can't block alone) may be
-// chosen only together with at least one other option in the same answer.
-// Out-of-range indices are ignored (Validate rejects them separately).
+// AloneLegal reports whether the choices satisfy CR 506.5 and CR 508.1c: an
+// option marked AloneRestricted (its creature can't attack alone / can't block
+// alone) may be chosen only together with at least one other option in the
+// same answer, an AloneOnly option only when no other creature is declared,
+// and an option naming a CompanionNeed only beside that many distinct
+// creatures from its CompanionFrom set. Out-of-range indices are ignored
+// (Validate rejects them separately).
 func (d *Decision) AloneLegal(choices []int) bool {
+	return d.aloneViolator(choices) < 0
+}
+
+// aloneBound reports that the option's creature carries a declaration rule
+// AloneLegal checks: it can't be declared alone, can only be declared alone,
+// or needs companions.
+func (o *Option) aloneBound() bool {
+	return o.AloneRestricted || o.AloneOnly || o.CompanionNeed > 0
+}
+
+// aloneViolator is the position in choices of the first option whose
+// declaration rule the answer breaks, or -1 when none does (and on every
+// decision that is not a KAttackers/KBlockers set).
+func (d *Decision) aloneViolator(choices []int) int {
 	if !d.aloneKind() {
-		return true
+		return -1
 	}
-	for _, c := range choices {
+	for pos, c := range choices {
 		if c < 0 || c >= len(d.Options) {
 			continue
 		}
-		if !d.Options[c].AloneRestricted {
+		o := &d.Options[c]
+		if !o.aloneBound() {
 			continue
 		}
-		others := 0
+		others, partners := 0, 0
+		var seen []int
 		for _, c2 := range choices {
-			if c2 != c {
-				others++
+			if c2 == c || c2 < 0 || c2 >= len(d.Options) {
+				continue
+			}
+			others++
+			obj := d.Options[c2].Obj
+			if o.CompanionNeed > 0 && slices.Contains(o.CompanionFrom, c2) && obj != o.Obj && !slices.Contains(seen, int(obj)) {
+				seen = append(seen, int(obj))
+				partners++
 			}
 		}
-		if others == 0 {
-			return false
+		if (o.AloneRestricted && others == 0) || (o.AloneOnly && others > 0) || partners < o.CompanionNeed {
+			return pos
 		}
 	}
-	return true
+	return -1
 }
 
 // validateAlone is the wire half: Decision.Validate refuses an answer that
@@ -52,12 +80,14 @@ func (d *Decision) validateAlone(choices []int) error {
 	if d.AloneLegal(choices) {
 		return nil
 	}
-	for _, c := range choices {
-		if c >= 0 && c < len(d.Options) && d.Options[c].AloneRestricted {
-			return fmt.Errorf("creature %d can't %s alone", d.Options[c].Obj, d.aloneVerb())
-		}
+	o := &d.Options[choices[d.aloneViolator(choices)]]
+	if o.AloneRestricted {
+		return fmt.Errorf("creature %d can't %s alone", o.Obj, d.aloneVerb())
 	}
-	return nil
+	if o.AloneOnly {
+		return fmt.Errorf("creature %d can only %s alone", o.Obj, d.aloneVerb())
+	}
+	return fmt.Errorf("creature %d can't %s without %d other qualifying creature(s) also doing so", o.Obj, d.aloneVerb(), o.CompanionNeed)
 }
 
 // aloneVerb is the declaration verb the diagnostic names, from the decision
@@ -70,7 +100,9 @@ func (d *Decision) aloneVerb() string {
 }
 
 // alonePartner returns the cheapest option (ties: lowest index) naming another
-// creature that can be declared beside attacker option c, or -1.
+// creature that can be declared beside attacker option c, or -1. The pair must
+// satisfy AloneLegal, so an only-alone creature never has a partner and a
+// companion-bound one only the creatures it names.
 func (d *Decision) alonePartner(c int) int {
 	best := -1
 	if d.maxChoices() < 2 {
@@ -83,7 +115,7 @@ func (d *Decision) alonePartner(c int) int {
 		}
 		pair := []int{c, i}
 		if d.BudgetsFit(d.Options[c].Value+o.Value, d.Options[c].Value2+o.Value2) &&
-			d.ChargeOptionsFit(pair) && !d.groupCapExceeded(pair) {
+			d.ChargeOptionsFit(pair) && !d.groupCapExceeded(pair) && d.AloneLegal(pair) {
 			best = i
 		}
 	}
@@ -100,23 +132,19 @@ func (d *Decision) alonePartner(c int) int {
 // submit an answer Submit rejects (the deterministic-bot livelock the
 // "one legal-answer home" invariant exists to prevent).
 //
-// Only an alone-restricted creature is ever dropped: dropping an unrestricted
-// partner can never make a legal answer legal, and dropping the restricted one
-// is safe because the empty declaration is legal (KAttackers/KBlockers are Min
-// 0, and FitRequired has already partnered a creature the quota requires). The
-// answer handed back is therefore the empty set whenever the drop happens,
-// which is exactly the shape AloneLegal re-checks.
+// The companion restrictions (AloneOnly, CompanionNeed) repair the same way:
+// each option whose rule the answer breaks is dropped, one at a time, until
+// AloneLegal holds -- a dropped creature can only shrink the others' partner
+// sets, so the loop ends, and the empty declaration is always legal
+// (KAttackers/KBlockers are Min 0, and FitRequired has already partnered a
+// creature the quota requires). Only a restricted creature is ever dropped.
 func (d *Decision) FitAlone(choices []int) []int {
 	if d.AloneLegal(choices) {
 		return choices
 	}
-	out := make([]int, 0, len(choices))
-	for _, c := range choices {
-		restricted := c >= 0 && c < len(d.Options) && d.Options[c].AloneRestricted
-		if restricted && len(choices) == 1 {
-			continue
-		}
-		out = append(out, c)
+	out := slices.Clone(choices)
+	for pos := d.aloneViolator(out); pos >= 0; pos = d.aloneViolator(out) {
+		out = slices.Delete(out, pos, pos+1)
 	}
 	if out == nil {
 		out = []int{}

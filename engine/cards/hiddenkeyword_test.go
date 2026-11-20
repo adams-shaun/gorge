@@ -35,11 +35,12 @@ func TestCanonicalKeywordLineRewritesOnlyKnownSentences(t *testing.T) {
 		// CR 509.1c's two-blocker requirement (Gorm the Great) has its own
 		// head, never MustBlock's.
 		{"CARDNAME must be blocked by two or more creatures if able.", "MustBeBlockedByTwo"},
-		// An unknown sentence that merely looks similar must NOT be rewritten:
-		// "must be blocked by exactly one creature" is a different rule the
-		// build does not model under either head.
-		{"CARDNAME must be blocked by exactly one creature if able.",
-			"CARDNAME must be blocked by exactly one creature if able."},
+		// "Exactly one" (Nacatl War-Pride) is its own requirement with its
+		// own head, never MustBeBlockedByTwo's.
+		{"CARDNAME must be blocked by exactly one creature if able.", "MustBeBlockedByOne"},
+		// A sentence that merely looks similar must NOT be rewritten.
+		{"CARDNAME must be blocked by exactly two creatures if able.",
+			"CARDNAME must be blocked by exactly two creatures if able."},
 		// Ordinary keywords untouched.
 		{"Flying", "Flying"},
 		{"Equip:2", "Equip:2"},
