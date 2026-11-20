@@ -138,3 +138,46 @@ func TestFourSeatGrantSignetFeeOrderLockstep(t *testing.T) {
 		t.Errorf("%d decisions, the game must go past decision 1027", res.Decisions)
 	}
 }
+
+// Two more full 100-card four-seat edh pods from kfuzz -kernel edh -seats 4
+// -seed 2, each diverging on a card's Flags in the projection.
+//
+//   - filter_land_granted_island_four_seat_pod (decision 1770): Chulane cast
+//     under Stormtide Leviathan (all lands are Islands). Skycloud Expanse's
+//     only printed mana ability is the {1},{T} filter, a paid census gap, so
+//     its census unit is the intrinsic {U} CR 305.6 grants (flex 1) and
+//     gorge's planner taps it over Prairie Stream's {W}/{U} (flex 2). The
+//     kernel's granted-type view hid the {U} behind the filter's printed {W}{U}
+//     and left Skycloud no unit, so it tapped Prairie Stream (blgFilterFirst).
+//   - plain_census_sac_witness_four_seat_pod (decision 1586): Soul's Majesty
+//     paid by four Treasures and a Gold token beside Rishkar's granted {T}: Add
+//     {G}. Pain Distributor stacks five triggers, past the witness replay's
+//     wait budget, but the census pays outright, so gorge attaches its planned
+//     payment (no witness replay) and no prefix search taps Rishkar before the
+//     target ask. The kernel's grant search read the sacrifice witness as
+//     eating the cast and floated Rishkar's {G} (plainCensusPays).
+func TestFourSeatFilterLandGrantedIslandLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	res := fourSeatPodReproReplay(t, "filter_land_granted_island_four_seat_pod", synthReg(t))
+	if res.Div != nil {
+		t.Errorf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	if res.Decisions <= 1770 {
+		t.Errorf("%d decisions, the game must go past decision 1770", res.Decisions)
+	}
+}
+
+func TestFourSeatPlainCensusSacWitnessLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	res := fourSeatPodReproReplay(t, "plain_census_sac_witness_four_seat_pod", synthReg(t))
+	if res.Div != nil {
+		t.Errorf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	if res.Decisions <= 1586 {
+		t.Errorf("%d decisions, the game must go past decision 1586", res.Decisions)
+	}
+}

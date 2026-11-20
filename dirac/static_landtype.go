@@ -86,7 +86,7 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 			// own under the planner's shape tier, but the intrinsic abilities
 			// a granted basic land type gives it are: one view per granted
 			// colour, running no rider (blgRiderFirst, blgView).
-			if !blgRiderFirst(&t.Cards[i], &base) {
+			if !blgRiderFirst(&t.Cards[i], &base) && !blgFilterFirst(&t.Cards[i], &base) {
 				continue
 			}
 			g.blgIdx[i] = int16(len(g.blgPC) / 32)
@@ -194,6 +194,22 @@ func blgRiderFirst(c *kop.CardDef, pc *pcard) bool {
 	return ok
 }
 
+// blgFilterFirst reports whether card c's first mana ability is a filter
+// (mana_filterfirst.go: Skycloud Expanse's "{1}, {T}: Add {W}{U}", Prophetic
+// Prism). gorge's planner census prices none of it (a paid census gap), so
+// under a granted basic land type (Stormtide Leviathan: all lands are
+// Islands) the source's census unit is the intrinsic ability alone, CR 305.6,
+// the printed colours are no part of it and a printed {W}{U} must not hide a
+// granted {U} (blgView). Like blgRiderFirst, the view runs no own ability and
+// the filter stays the gap machinery's, read from the card (blgGapPC).
+func blgFilterFirst(c *kop.CardDef, pc *pcard) bool {
+	if pc.manaAb < 0 || int(pc.manaAb) >= len(c.Abilities) || firstManaAb(c) != int(pc.manaAb) {
+		return false
+	}
+	a := &c.Abilities[pc.manaAb]
+	return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 && kop.FilterManaAb(a)
+}
+
 // blgMask is the colours of the intrinsic abilities slot sl's granted
 // basic land types give it: a bit per basic type it has, when it is a land.
 //
@@ -270,7 +286,7 @@ func (s *State) blgGapPC(k *prep, sl Slot) *pcard {
 //go:noinline
 func (s *State) blgView(k *prep, sl Slot, c CardID, pc *pcard) *pcard {
 	m := s.blgMask(k, sl)
-	if pc.manaAb >= 0 && !s.riderDeferred(k, sl) {
+	if pc.manaAb >= 0 && !s.riderDeferred(k, sl) && !s.filtFirstOnly(k, sl) {
 		m &^= pc.manaCol // gorge ManaAbilitiesProduce: a printed colour is not appended again
 	}
 	if m == 0 {
