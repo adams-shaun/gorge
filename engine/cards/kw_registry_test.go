@@ -207,6 +207,10 @@ var expandedHeads = []string{
 	// Epic (CR 702.50a): the rest-of-game no-spells static and the upkeep
 	// copy trigger (engine/cards/kw_epic.go). Added after the split.
 	"Epic",
+	// Living metal (CR 702.161a): the layer-4 artifact-creature static gated
+	// to the controller's turn (engine/cards/kw_livingmetal.go). Added after
+	// the split.
+	"Living metal",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
