@@ -20,6 +20,29 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // exile GainsOf reads. A limited one (gainedManaLimited) stalls StallGainsOf
 // in the offer walk.
 
+// useGainedMana arms gainedIdxs for a table with a GainsAbilitiesOf$ static
+// and a foreign printed mana ability the planner models (gainedManaPlanned):
+// grantPC then holds a printed entry, and grantMay/grantsLive are true. It is
+// a genPrep.uses bit, never a new genPrep bool (genneed.go).
+var useGainedMana = newGenUse(tableHasGainedMana)
+
+// tableHasGainedMana reports whether some printed mana ability is a planner
+// unit for a GainsOf recipient (gainedManaPlanned), for a table with a
+// GainsAbilitiesOf$ static.
+func tableHasGainedMana(t *kop.Table) bool {
+	if !tableHasGainsOf(t) {
+		return false
+	}
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			if gainedManaPlanned(&t.Cards[i].Abilities[j]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // isGrantMana reports whether mana ability a is a grantPC entry: a latent one
 // (a static's AddAbility$ grant), or in a table with a GainsAbilitiesOf$
 // static a plain printed one (gainedManaPlanned).
@@ -29,15 +52,15 @@ func (g *genPrep) isGrantMana(a *kop.Ability) bool {
 
 // addGrantPC registers mana ability a of card c (index ab) as a grantPC entry
 // with view gp. A printed one (a GainsAbilitiesOf$ recipient's: prepareGen
-// registers it for a table with such a static) turns gainedMana and the
-// availFor dual census on.
+// registers it for a table with such a static) is what useGainedMana marks,
+// and turns the availFor dual census on.
 func (g *genPrep) addGrantPC(gp pcard, self bool, a *kop.Ability, c CardID, ab uint8) {
 	g.grantSelf = append(g.grantSelf, self)
 	g.grantPC = append(g.grantPC, gp)
 	g.grantRestr = append(g.grantRestr, a.ManaRestrict)
 	g.grantOf = append(g.grantOf, grantRef{c, ab})
 	if a.AFlags&kop.AfLatent == 0 {
-		g.gainedMana, g.anyContGrant = true, true
+		g.anyContGrant = true
 	}
 }
 

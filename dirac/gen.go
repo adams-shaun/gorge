@@ -44,9 +44,6 @@ type genPrep struct {
 	// grantRestr: parallel to grantPC, the grant's spend restriction (a
 	// cast-provenance word: Mm'menon's Spell.!wasCastFromYourHand; 0 none)
 	grantRestr []kop.FilterID
-	// gainedMana: some grantPC entry is a printed mana ability a GainsAbilitiesOf$
-	// recipient has (mana_gainedgrants.go); grantMay and grantsLive are then true
-	gainedMana bool
 	// mana abilities whose colour or amount is the permanent's own state
 	// (Heraldic Banner's chosen colour, Elvish Archdruid's count): per card
 	// the first of its precomputed planner views (gfManaVar marks one; the
