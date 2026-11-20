@@ -726,8 +726,9 @@ func SoleGapLifeManaAb(cd *CardDef, j int) bool {
 //     permanent shape of TapXManaAb, the sacrifice-another all-at-once shape
 //     of SacXEachManaAb, or a filter (FilterManaAb, a fee-only {cost} one
 //     included: FeeOnlyManaAb);
-//   - a granted (latent) one: a mana-free {T}, {T} + pay N life, or
-//     sacrifice this alone (genPrep.grantPC; dirac mana_grantcost.go);
+//   - a granted (latent) one: a mana-free {T}, {T} + pay N life,
+//     sacrifice this alone, or {T} + sacrifice this (genPrep.grantPC; dirac
+//     mana_grantcost.go);
 //   - any later own mana ability: a {T} (a fixed-colour set, a restricted,
 //     filter or each-colour gap), {T} + pay life (a pain alternative), or the
 //     TapXManaAb shape beside a plain fixed-colour {T} first one
@@ -742,8 +743,10 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	f := a.Cost.Flags
 	plain := a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 	if a.AFlags&AfLatent != 0 {
-		// {T}, {T} + pay N life (Forgotten Monument), or sacrifice this alone (Lotus Ring)
-		return plain && (f == CostTap || f == CostTap|CostPayLife && a.Cost.N >= 1 || f == CostSacSelf)
+		// {T}, {T} + pay N life (Forgotten Monument), sacrifice this alone
+		// (Lotus Ring), or {T} + sacrifice this (Lotus Ring's upstream script,
+		// Goldspan Dragon's granted Treasure ability)
+		return plain && (f == CostTap || f == CostTap|CostPayLife && a.Cost.N >= 1 || f == CostSacSelf || f == CostTap|CostSacSelf)
 	}
 	first := -1
 	for i := range cd.Abilities {

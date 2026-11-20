@@ -26,11 +26,26 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // 704.5n); grantApply replays it (grantSacApply), and the manual mana
 // window sacrifices it as it does a printed sacrifice-only source
 // (windowSacOnly).
+//
+// Lotus Ring's upstream script and Goldspan Dragon's granted Treasure
+// ability cost {T} AND the sacrifice ("{T}, Sacrifice this creature: Add
+// three mana of any one color"). That view carries manaSac beside manaTap
+// (gen.go): priced as the tap grant it is -- only an untapped, non-sick
+// bearer activates it (CR 302.6) -- and the search's step taps the source,
+// floats the mana and sacrifices it (tapSacBranch, grantTapSacApply), as
+// the manual mana window's tap of such a view does (mana_window.go, the
+// pc.manaSac arm).
 
-// prepGrantCost records granted mana ability a's life or sacrifice cost on
-// its view gp.
+// prepGrantCost records granted mana ability a's cost parts on its view gp:
+// the tap-only grant manaTap, the {T} + pay N life one (manaTap and the
+// pain), the sacrifice-only one grantSac, and the {T} + sacrifice this one
+// manaTap + manaSac (Lotus Ring's upstream script, Goldspan Dragon's
+// granted Treasure ability: priced as the tap grant it is, the step and the
+// window sacrifice the source, mana_grantcost.go).
 func prepGrantCost(gp *pcard, a *kop.Ability) {
 	plain := a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+	gp.manaTap = (a.Cost.Flags == kop.CostTap || a.Cost.Flags == kop.CostTap|kop.CostSacSelf) && plain
+	gp.manaSac = a.Cost.Flags == kop.CostTap|kop.CostSacSelf && plain
 	if a.Cost.Flags == kop.CostTap|kop.CostPayLife && a.Cost.N >= 1 && plain {
 		gp.manaTap, gp.painLife, gp.painN = true, true, a.Cost.N
 	}
@@ -89,8 +104,9 @@ func (s *State) grantTapOK(k *prep, sl Slot) bool {
 }
 
 // grantHasCost: granted view pc's step pays more than a tap (a life
-// payment, or the source's sacrifice).
-func grantHasCost(pc *pcard) bool { return grantCostLife(pc) > 0 || pc.grantSac }
+// payment, or the source's sacrifice -- alone, or after the tap of a
+// granted {T}, Sacrifice ability).
+func grantHasCost(pc *pcard) bool { return grantCostLife(pc) > 0 || pc.grantSac || pc.manaSac }
 
 // potentialGrantSac adds sl's live granted sacrifice-only abilities to gorge's
 // potential pool (availPotentialFor): its walk admits a sacrifice cost with no
@@ -261,6 +277,22 @@ func (g *grantSrch) printedSacVisit(t *State, i int, sl Slot) bool {
 	}
 	g.skipPool = false
 	return g.sacBranch(t, i, sl, -1, ppc, t.srcMaskAt(ppc, sl), true)
+}
+
+// grantStepBranch branches the cost step of granted ability gi at sl: a
+// sacrifice-only step sacrifices the source (sacBranch), a granted {T},
+// Sacrifice step taps it and sacrifices it (tapSacBranch), a life step pays
+// the life (costBranch), and a plain one taps (branch).
+func (g *grantSrch) grantStepBranch(t *State, i int, sl Slot, gi int16, pc *pcard, mask uint8, ask bool) bool {
+	switch {
+	case pc.grantSac:
+		return g.sacBranch(t, i, sl, gi, pc, mask, ask) // the step sacrifices the source
+	case pc.manaSac:
+		return g.tapSacBranch(t, i, sl, gi, pc, mask, ask) // the step taps the source and sacrifices it
+	case grantCostLife(pc) > 0:
+		return g.costBranch(t, i, sl, gi, pc, mask, ask) // the step pays its life
+	}
+	return g.branch(t, i, sl, gi, mask, pc.manaN, ask)
 }
 
 // sacBranch is costBranch for a sacrifice-only granted ability: each colour
@@ -501,6 +533,98 @@ func (s *State) grantCostPay(k *prep, p uint8, pc *pcard) {
 	if n := grantCostLife(pc); n > 0 {
 		s.loseLife(k, SeatIx(p), int(n))
 	}
+}
+
+// tapSacBranch is costBranch for a granted {T}, Sacrifice ability (Lotus
+// Ring's upstream script, Goldspan Dragon's granted Treasure ability): the
+// step taps the source, floats the mana and sacrifices it on a fork, and the
+// state-based check runs at once (the Equipment that granted it falls off,
+// CR 704.3, 704.5n), as grantTapSacApply replays it. The source must be
+// untapped and non-sick to reach it (canTapForManaPC, CR 302.6): priced as
+// the tap grant the view is, never a tapped bearer's step.
+func (g *grantSrch) tapSacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, mask uint8, ask bool) bool {
+	if mask == 0 {
+		mask = 1 << kop.C
+	}
+	skip := g.skipPool
+	g.skipPool = false
+	if ask && mask&(mask-1) != 0 && !g.node() {
+		return false
+	}
+	n := max(pc.manaN, 1)
+	pn := n
+	if skip {
+		pn = 0 // mana the play cannot spend prices nothing
+	}
+	var order [kop.NumManaKinds]uint8
+	no := t.stepColours(g.k, sl, gi, mask, &order)
+	needFirst(order[:no], g.need)
+	for _, c := range g.subsumeCols(t, order[:no], ask, t.stepNamed(g.k, sl, gi, mask)) {
+		u := t.fork()
+		u.perms[sl].flags |= pfTapped
+		u.pl[SeatIx(g.p)].pool[c] += pn
+		u.artTag(g.k, g.p, sl, int(c))
+		if g.k.gen.anyTapExtra && !skip {
+			xv := u.srcExtraPick(g.k, sl, pc, int(c))
+			u.addXv(SeatIx(g.p), &xv)
+		}
+		u.grantSacDo(g.k, sl)
+		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl, sac: true}
+		g.np++
+		var ok bool
+		switch {
+		case u.over:
+			g.stallOf(u) // (a core's stall ends the game at the capFull)
+			g.node()     // the game ended: gorge's node finds nothing
+		case u.npend != 0:
+			ok = g.settle(u)
+		default:
+			ok = g.visit(u)
+		}
+		t.unfork()
+		if ok {
+			return true
+		}
+		g.np--
+	}
+	return false
+}
+
+// grantSacStepApply replays prefix step st, a sacrifice step: a granted {T},
+// Sacrifice ability's tap, mana, sacrifice and state-based check
+// (grantTapSacApply), or a sacrifice-only one's mana, sacrifice and
+// state-based check (grantSacApply).
+func (s *State) grantSacStepApply(k *prep, p uint8, st *grantStep) {
+	GrantManaStats.Sac.Add(1) // the granted sacrifice step (mana_grantcost.go)
+	if st.gi >= 0 && s.grantView(k.gen, st.gi, st.sl).manaSac {
+		GrantManaStats.Taps.Add(1) // the granted {T} step's mana
+		s.grantTapSacApply(k, p, st)
+		return
+	}
+	s.grantSacApply(k, p, st)
+}
+
+// grantTapSacApply replays prefix step st, a granted {T}, Sacrifice ability,
+// on s: the tap, the mana, the sacrifice, the state-based check.
+func (s *State) grantTapSacApply(k *prep, p uint8, st *grantStep) {
+	sl := st.sl
+	pc := s.grantView(k.gen, st.gi, sl)
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	if ab := restrAbOfStep(k, st); ab != nil {
+		if !s.floatRestrAb(k, SeatIx(p), sl, ab, int(st.col), st.n) {
+			s.capFull(StallRestrSrc) // never a silent spill
+		}
+	} else {
+		s.pl[SeatIx(p)].pool[st.col] += st.n
+		s.artTag(k, p, sl, int(st.col)) // the search branch's tag: a snow source's unit is snow (mana_snow.go)
+	}
+	if k.gen.anyTapExtra {
+		xv := s.srcExtraPick(k, sl, pc, int(st.col))
+		s.addXv(SeatIx(p), &xv)
+	}
+	s.grantSacDo(k, sl)
 }
 
 // grantCostApply replays prefix step st, a granted ability with a life cost,

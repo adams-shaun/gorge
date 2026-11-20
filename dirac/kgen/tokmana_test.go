@@ -4,9 +4,10 @@ import "testing"
 
 // ktokmanaForms: the granted mana ability shapes (lower_grantedmana.go
 // grantedManaShape): a "{T}: Add <colours> x N" grant, plain or restricted
-// to spells (and abilities), a "{T}, Pay N life" grant, or a "Sacrifice
-// this" grant (Lotus Ring), lowers; every other shape is refused with its
-// reason.
+// to spells (and abilities), a "{T}, Pay N life" grant, a "Sacrifice
+// this" grant (Lotus Ring), or a "{T}, Sacrifice this" grant (Goldspan
+// Dragon's Treasure ability, Lotus Ring's upstream script), lowers; every
+// other shape is refused with its reason.
 var ktokmanaForms = []formCase{
 	{card: "Springleaf Parade", form: "Continuous AddAbility$ of a plain {T}: Add any colour grant to creature tokens", lir: "Mana Granted cost=T"},
 	{card: "Cryptolith Rite", form: "a plain any-colour grant to creatures you control", lir: "Mana Granted cost=T"},
@@ -16,7 +17,7 @@ var ktokmanaForms = []formCase{
 	{card: "Clement, the Worrywort", form: "a granted Combo restricted to creature spells", lir: "Mana Granted cost=T"},
 	{card: "Battery Bearer", form: "a granted ability restricted to artifact spells", lir: "Mana Granted cost=T"},
 	{card: "Ambulatory Reactor", form: "a granted ability restricted to artifact spells and abilities of artifact sources", lir: "Mana Granted cost=T"},
-	{card: "Goldspan Dragon", form: "a granted Treasure ability ({T}, Sacrifice)", refused: "granted mana ability whose cost is not {T}"},
+	{card: "Goldspan Dragon", form: "a granted Treasure ability ({T}, Sacrifice)", lir: "Mana Granted cost=T SacSelf"},
 	{card: "Lotus Ring", form: "a granted sacrifice-only ability", lir: "Mana Granted cost=SacSelf"},
 	{card: "Forgotten Monument", form: "a granted {T}, Pay 1 life ability", lir: "Mana Granted cost=T Life1"},
 	{card: "The Eternity Elevator", form: "a granted ability whose amount is a counter count", refused: "granted mana ability with a dynamic amount"},
