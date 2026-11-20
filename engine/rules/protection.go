@@ -379,10 +379,13 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	if o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield {
 		sc.LastKnownSource = source
 	}
-	// A split card in hand probed as the spell it would cast has only that
-	// half's characteristics (CR 709.3a/709.3b), not both halves' combined
-	// (CR 709.4); the fused offer (pricingFused) reads both (CR 702.102b).
-	asHalf := o.Zone != state.ZStack && (o.FaceIdx != 0 || splitFrontHalfRead(o, e.pricingFused))
+	// A split card off the stack probed as the spell it would cast has only
+	// the half it is probed at (CR 709.3a/709.3b: the front face, or the
+	// alternate one inside offerAsFace), not both halves' combined (CR 709.4);
+	// the fused offer (pricingFused) reads both for each probe (CR 702.102b).
+	// The gate holds for an ability source too, which is exact for the corpus:
+	// no non-Room split card has an activated, triggered or static ability.
+	asHalf := o.Zone != state.ZStack && splitFrontHalfRead(o, e.pricingFused)
 	sc.AsSpellHalf = asHalf
 	if basis && effects.MatchesObjectCtx(e.G, q, o, sc) || !basis && e.matchesSpec(q, source, sc) {
 		return true

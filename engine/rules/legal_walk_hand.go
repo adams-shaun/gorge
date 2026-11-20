@@ -274,7 +274,7 @@ func (w *legalWalk) handWalk() {
 		if ff, fa := fusedSplitFaces(o); ff != nil {
 			if !w.castRestrictedAsFace(p, id, fa) &&
 				e.fusedTimingOK(p, id, ff, fa, sorcery) &&
-				e.splitCastTargetsAvailable(p, id, ff) && e.splitCastTargetsAvailable(p, id, fa) {
+				fusedCastTargetsAvailable(&e.pricingFused, func(f *cards.Face) bool { return e.splitCastTargetsAvailable(p, id, f) }, ff, fa) {
 				if pricingFusedRead(&e.pricingFused, func() bool { return w.offerCastable(p, id, e.fuseCost(ff, fa), spellScope(""), false) }) {
 					*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 						Label: "Cast " + ff.Name + " // " + fa.Name + " (fused)", Obj: id, Mode: "fuse"})
