@@ -1294,18 +1294,16 @@ func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDefe
 		// generic fee may need a funder the cost does not owe, and the funder
 		// may list before the filter (Overflowing Basin beside Power Depot).
 		// The filter payment search prices a fresh board exactly: the failed
-		// walk's taps and floating mana must not skew the plan.
-		ft := s.fork()
-		ok = ft.filtPay(k, p, cost)
-		s.unfork()
-	}
-	if !ok {
-		// the walk's taps and sacrifices latched a rule-gap stall (its next
-		// stepGen ends the game). A caller that keeps searching may still price
-		// the play through a sibling route, so the probe declares nothing: the
-		// drop site declares the stall where every route failed (windowPays,
-		// payWardN, applyWardManaLife, the madness gates; tapXScript's shape).
-		stall = t.g.stalled
+		// walk's taps and floating mana must not skew the plan. It is the same
+		// census walk's source set, and its latched stall is returned to the
+		// caller, never declared by the probe.
+		ok, stall = s.filtPay(k, p, cost, takeDeferred)
+		if !ok {
+			walkStall := t.g.stalled
+			if walkStall != 0 {
+				stall = walkStall
+			}
+		}
 	}
 	return ok, stall
 }

@@ -1141,9 +1141,14 @@ type filtSearch struct {
 	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	nodes int
 	nseen int
-	seen  [paySearchNodes]filtKey
-	n     int
-	path  [maxFiltPath]filtStep
+	// seen is the play search's visited set, potentialScriptNodes long. A pay
+	// search (filtPay) browses the same nodes under its own, wider budget, so
+	// it keeps its table in paySeen and this one stays the size its search can
+	// fill (seenTable).
+	seen    [potentialScriptNodes]filtKey
+	paySeen []filtKey
+	n       int
+	path    [maxFiltPath]filtStep
 	// spill: a step of the path found floated restricted mana past what
 	// State.rb holds (a restriction past restrKinds), unrestricted: the
 	// script the search found is not one gorge's planner would price
@@ -1177,8 +1182,11 @@ type filtSearch struct {
 	// hands: the hand guides the path exiled so far (mana_handguide.go)
 	hands uint8
 	// pay: a payment search's cost (filtPay): the terminal is the pool
-	// paying it, not a play being offered.
-	pay *kop.ManaCost
+	// paying it, not a play being offered. A pay search of the unless / ward
+	// census (census) skips the hand guides unlessWindowUnits prices no unit
+	// and its gap set is filtered to the census units at the root.
+	pay    *kop.ManaCost
+	census bool
 }
 
 // deferGapLeft: the search still holds an untapped filter gap whose tap
@@ -1331,38 +1339,88 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 // (filtScript), with the terminal "the pool pays" instead of "the play is
 // offered". A filter's generic fee may need a funder the cost does not owe
 // (CR 605.3b), and the funder may list before the filter (Overflowing Basin's
-// {1}, {T}: Add {G}{U} beside Power Depot's {C}). Like gorge's reach walk, it
-// prices the offer; the window's own answer still decides the payment.
-func (s *State) filtPay(k *prep, p uint8, cost *kop.ManaCost) bool {
+// {1}, {T}: Add {G}{U} beside Power Depot's {C}).
+//
+// The probe is the unless / ward census's, not a cast payment's: it prices
+// only the sources gorge's unlessWindowUnits lists (censusPayGaps), skips the
+// hand guides the census leaves out, and runs with the pool's census flag set
+// so a Produced$ Chosen TapsForMana extra never joins a tap. takeDeferred is
+// the census's: an unless / ward window takes a planner-deferred source once
+// the rest cannot cover the cost. The second return is the first rule-gap
+// stall a line latched (StallNone none); the caller declares it at its drop
+// site, never the probe. s is not mutated.
+//
+// The live window's answer is not this plan: gorge's window taps in its
+// answer order and may fail short where the census proves pay (Lantern of
+// Revealing is asked its first colour, not the red pip still owed), after
+// which the trigger takes the unpaid branch. The kernel's payWindow mirrors
+// that answer, not the plan; executing the plan there would make dirac pay
+// where the leader sacrificed and diverge (TestMBCUnlessEachManaFeePayAnswer).
+func (s *State) filtPay(k *prep, p uint8, cost *kop.ManaCost, takeDeferred bool) (bool, uint8) {
 	if k.gen == nil || !k.gen.anyFiltFirst || cost == nil {
-		return false
+		return false, 0
 	}
 	var fs filtSearch
 	fs.a = MakeAction(AkPass, 0, 0, 0)
 	fs.p, fs.gaps, fs.own, fs.sp0 = p, s.scriptFilt(k, p), NoSlot, s.sp
-	fs.other = s.otherGaps(k, p, fs.a)
+	fs.other = s.censusPayGaps(k, p, s.otherGaps(k, p, fs.a), takeDeferred)
 	// A payment plan taps the cost's own sources beside the filters' fees, so
 	// the funding bound is every slot rather than the fees summed (filtFunding
 	// limits a play's prefix, whose ordinary sources the planner counts, not
 	// taps). The terminal stops the search once the pool pays.
 	fs.fees = MaxPerm
 	fs.pay = cost
+	fs.census = takeDeferred
+	fs.paySeen = make([]filtKey, paySearchNodes)
 	fs.useful, fs.usefulOK = *cost, true
 	t := s.fork()
 	defer s.unfork()
+	was := s.pool.census
+	s.pool.census = takeDeferred
 	s.pool.inFilt++
 	found := fs.visit(k, t, 0, false)
 	s.pool.inFilt--
+	s.pool.census = was
+	stall := fs.stall
+	if st := t.g.stalled; st != 0 && stall == 0 {
+		stall = st
+	}
 	if !found {
-		if fs.stall != 0 {
-			s.capFull(fs.stall)
-		}
-		return false
+		return false, stall
 	}
 	if fs.spill != 0 {
-		s.capFull(fs.spill)
+		stall = fs.spill
 	}
-	return true
+	return true, stall
+}
+
+// censusPayGaps is otherGaps as the unless / ward census prices it: the set
+// of gaps filtPay's prefix search may activate. The census walk lists no
+// tap-another source without a live window mode (windowPick's tapX arm), and
+// without takeDeferred no planner-deferred source either; a bounded rider
+// whose cost or production the census does not price (Gemstone Mine's any
+// colour) is no unit there (riderCensusFree), so it is no unit here.
+func (s *State) censusPayGaps(k *prep, p uint8, m slotMask, takeDeferred bool) slotMask {
+	if k.gen == nil {
+		return slotMask{}
+	}
+	if k.tapMana && s.g.winMode == winNone && !s.castTapX(k) {
+		// windowPick lists a tap-another source only with a live window mode
+		// or a cast's own tap-X build; otherwise it is no census unit.
+		m = m.andNot(s.scriptTapX(k, p))
+	}
+	if !takeDeferred {
+		// a plain window skips the planner-deferred sources, and takes the
+		// other gaps (a rider) as its walk does.
+		return m.andNot(s.scriptDeferred(k, p)).andNot(s.scriptTapsDefer(k, p))
+	}
+	for b := m; b.any(); b = b.rest() {
+		sl := b.first()
+		if a, ok := s.riderAbilityOf(k, sl); ok && !riderCensusFree(a) {
+			m = m.without(sl)
+		}
+	}
+	return m
 }
 
 // filtPlay plays a found path on s: each activation as the search made it,
@@ -1384,10 +1442,12 @@ func (s *State) filtPlay(k *prep, p uint8, path []filtStep) {
 	s.Decisions = n
 }
 
-// DebugFiltNodeBudget caps fs.tick's budget below potentialScriptNodes,
+// DebugFiltNodeBudget caps fs.tick's budget below the search's own,
 // mutation testing only: a test pinning the search's node accounting shrinks
-// the budget to the line it pins. Never above potentialScriptNodes (the seen
-// set is that long); 0 is the search's own budget.
+// the budget to the line it pins. Never above potentialScriptNodes for a play
+// search (its seen set is that long); 0 is the search's own budget. A pay
+// search's budget is paySearchNodes and its own table is that long, so the cap
+// works there too.
 var DebugFiltNodeBudget int
 
 // DebugFiltTryGapExempt limits try's priced-node exemption from the visited-set
@@ -1644,11 +1704,21 @@ func (fs *filtSearch) stateKey(k *prep, t *State) filtKey {
 	return t.scriptKey(k, fs.p, fs.other)
 }
 
+// seenTable is the visited set the active search fills: the play search's
+// inline table, or the pay search's wider one.
+func (fs *filtSearch) seenTable() []filtKey {
+	if fs.pay != nil {
+		return fs.paySeen
+	}
+	return fs.seen[:]
+}
+
 // seenKey reports whether node t's key is already in the visited set.
 func (fs *filtSearch) seenKey(k *prep, t *State) bool {
 	key := fs.stateKey(k, t)
+	tbl := fs.seenTable()
 	for i := 0; i < fs.nseen; i++ {
-		if fs.seen[i] == key {
+		if tbl[i] == key {
 			return true
 		}
 	}
@@ -1903,13 +1973,14 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		return true
 	}
 	key := fs.stateKey(k, t)
+	tbl := fs.seenTable()
 	for i := 0; i < fs.nseen; i++ {
-		if fs.seen[i] == key {
+		if tbl[i] == key {
 			return false
 		}
 	}
-	if fs.nseen < len(fs.seen) {
-		fs.seen[fs.nseen] = key
+	if fs.nseen < len(tbl) {
+		tbl[fs.nseen] = key
 		fs.nseen++
 	}
 	var order [MaxPerm]Slot
@@ -2015,7 +2086,10 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 		}
 	}
-	if funded < fs.fees && handManaOn(k) && fs.handFund(k, t, funded, gapUsed) {
+	// The unless / ward census prices no hand mana (unlessWindowUnits), so a
+	// census pay search never reaches a hand guide: gorge offers decline where
+	// only the guide could pay. A plain window's pay probe keeps the guide.
+	if (!fs.census || fs.pay == nil) && funded < fs.fees && handManaOn(k) && fs.handFund(k, t, funded, gapUsed) {
 		return true // a hand guide funds after the battlefield's sources (mana_handguide.go)
 	}
 	return fs.passTrigger(k, t, funded)
