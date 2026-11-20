@@ -58,3 +58,30 @@ func (s *State) grantRestrOwnFirst(k *prep, sl Slot, want uint8) (*kop.Ability, 
 	}
 	return ra, true
 }
+
+// restrDynBesideGrant is grantRestrOwnFirst for a dynamic amount whose
+// restriction the payment may not spend (Woodland Weavemaster's Elf-only mana
+// beside Citanul Hierophants' {T}: Add {G}, paying Paralyze's {4}): gorge's
+// "choose a mana ability" ask still lists the printed ability ahead of the
+// grant, and the window's answer takes it, so the evaluated amount floats
+// restricted and the grant is never tapped (CR 106.6). The ability and its
+// amount, nil with none.
+//
+//go:noinline
+func (s *State) restrDynBesideGrant(k *prep, sl Slot) (*kop.Ability, uint8) {
+	ra := s.ownRestrAb(k, sl)
+	if ra == nil || ra.AFlags&kop.AfManaDynamic == 0 || s.ownManaUsable(k, sl) || !s.restrUsable(k, sl) {
+		return nil, 0
+	}
+	if len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || s.windowGrantMask(k, sl) == 0 {
+		return nil, 0
+	}
+	if ra.Trig.Cond != 0 && !s.condEval(k, ra.Trig.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl}) {
+		return nil, 0 // a gated ability is absent (restrViewW)
+	}
+	n := s.dynManaN(k, ra, sl)
+	if n <= 0 {
+		return nil, 0
+	}
+	return ra, uint8(min(n, maxDynMana))
+}
