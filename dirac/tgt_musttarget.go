@@ -136,11 +136,12 @@ func (s *State) mustTargetSingle(k *prep, e *stackEntry, cands *[MaxOptions]TCod
 // mustTargetMulti narrows a multi-object target slot's next pick. It removes a
 // nonmatching candidate only when this pick is the slot's last (a valid
 // selection must include a match), and reports whether Done is still a legal
-// answer. A budgeted slot (a divided total or a mana-value cap) is left
-// unrestricted, as gorge leaves a multi-target ask whose Value already carries
-// a budget.
+// answer. A mana-value-capped slot is left unrestricted, as gorge leaves a
+// multi-target ask whose Value already carries a budget. A divided slot is not
+// budgeted: its total only caps the target count, and the division is a later
+// ask, so gorge's floor binds it (Storm the Seedcore beside a Standard Bearer).
 func (s *State) mustTargetMulti(k *prep, e *stackEntry, t *kop.TargetSpec, ti uint8, mt *multiTgt, cands *[MaxOptions]TCode, n int) (int, bool) {
-	if n == 0 || k.gen == nil || e.kind == seTrigger || t.Divide != 0 || t.MaxMV != 0 {
+	if n == 0 || k.gen == nil || e.kind == seTrigger || t.MaxMV != 0 {
 		return n, true
 	}
 	if s.mustTargetPicked(k, e, e.ctrl, ti) {
