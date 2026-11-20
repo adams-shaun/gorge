@@ -294,7 +294,8 @@ type perm struct {
 	// spare is the byte the 16-bit counter kinds (ck) left ahead of card,
 	// named so perm has no padding (ObjHash hashes every byte of it). Its
 	// bits in use are spareSwitchPT (kw_kwmark.go), spareCopyFaceDown
-	// (copy_facedown.go) and spareRegenX (repl_regenerate.go).
+	// (copy_facedown.go), spareRegenX (repl_regenerate.go) and spareSolved
+	// (kw_crewsaddle.go).
 	spare uint8
 	card  CardID       // the card's id (the copy-of id lives in ovr)
 	gty   kop.TypeMask // types derived by a generated table's overrides (ovGenTy)
