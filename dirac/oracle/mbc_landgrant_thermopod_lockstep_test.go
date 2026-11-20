@@ -38,4 +38,5 @@ func TestMBCDrMbcBaaaReprosLockstep(t *testing.T) {
 		t.Fatal("Thermopod has no dirac/support/refused entry: its Ashaya grant stalls landgrant")
 	}
 	replayCompetingExileInsteadReplacements(t)
+	replayWitnessSacExileOrder(t)
 }
