@@ -308,6 +308,15 @@ func (lc *lowerCtx) tapExtraAnyColour(t cards.Trigger) (handled bool, err error)
 		return false, nil
 	}
 	mp := effects.ManaOf(body)
+	if mp.CountsAny && lc.face != nil {
+		// A hybrid-cost source (Trace of Abundance, {R/W}{G}) diverges from
+		// gorge in dirac/oracle's tapsformana pool (seed 67, decision 506):
+		// the announced hybrid half must reach the extra's colour answer.
+		// Refused until that defect is fixed; not claimed as supported.
+		if mc, err := parsePrintedManaCost(lc.face.ManaCost); err == nil && len(mc.Hybrid) != 0 {
+			return true, refuse("TapsForMana extra of any colour on a hybrid-cost source: the announced hybrid half does not reach the extra's colour answer")
+		}
+	}
 	if !mp.CountsAny || mp.NeedsChosen || len(mp.Unread) != 0 {
 		return false, nil
 	}
