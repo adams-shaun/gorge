@@ -3,55 +3,37 @@ package dirac
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// TestCopiedQuirionElvesKeepsFixedMana: a permanent that becomes a copy of
-// Quirion Elves (or a token copy) never made the card's as-enters colour
-// choice, and the choice is no copiable value (CR 707.6), so its chosen
-// word is unset. The card prints two mana abilities -- "{T}: Add {G}" and
-// "{T}: Add one mana of the chosen color" -- and only the second one depends
-// on the choice: the fixed {G} production is still legal and must be priced.
-// manaPCGen once returned noManaPC for the whole source, hiding the fixed
-// {G} beside the chosen one (pcard.manaFixedChosen).
-func TestCopiedQuirionElvesKeepsFixedMana(t *testing.T) {
-	set := cardsettest.Synth(t, "dr-mbc-bbaa")
-	tbl, err := set.Pool()
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := func(name string) CardID {
-		for c := range tbl.Cards {
-			if tbl.Cards[c].Name == name {
-				return CardID(c)
-			}
-		}
-		t.Fatalf("%s not in the dr-mbc-bbaa table", name)
-		return 0
-	}
-	quirion, plains := id("Quirion Elves"), id("Plains")
-	sc := newScenTableLib(t, tbl, plains, Config{NoElide: true})
-	q := sc.perm(quirion, 0)
+// TestCopiedFixedBesideChosenKeepsFixedMana: a permanent that becomes a copy
+// of a source with two mana abilities -- "{T}: Add {G}" and "{T}: Add one
+// mana of the chosen color" (Quirion Elves' shape) -- never made the card's
+// as-enters colour choice, and the choice is no copiable value (CR 707.6),
+// so its chosen word is unset. Only the second ability depends on the
+// choice: the fixed {G} production is still legal and the actual-availability
+// census must count it. A gate on manaChosen alone hid the fixed {G} beside
+// the chosen one (pcard.manaFixedChosen).
+func TestCopiedFixedBesideChosenKeepsFixedMana(t *testing.T) {
+	const name = "Test Quirion Twin"
+	tbl, id := tapsDeferShapeTable(t, func(tbl *kop.Table, id map[string]CardID) {
+		id[name] = CardID(len(tbl.Cards))
+		tbl.Cards = append(tbl.Cards, kop.CardDef{Name: name, Types: kop.TLand,
+			Abilities: []kop.Ability{
+				{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostTap}, ManaColors: kop.ColG, ManaN: 1},
+				{Kind: kop.AbMana, AFlags: kop.AfManaChosen, Cost: kop.Cost{Flags: kop.CostTap}, ManaN: 1},
+			}})
+	})
+	sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
+	q := sc.perm(id[name], 0)
 	sl := sc.slot(q)
 	sc.s.perms[sl].chosen = 255 // a copy records no as-enters choice (CR 707.6)
 
-	// Precondition: the table lowered Quirion Elves' two-ability pair, a
-	// plain fixed {G} first and the chosen-colour twin second.
-	first, pair := -1, false
-	for j := range tbl.Cards[quirion].Abilities {
-		if tbl.Cards[quirion].Abilities[j].Kind != kop.AbMana {
-			continue
-		}
-		if first < 0 {
-			first = j
-		} else if kop.ChosenSecondManaAb(&tbl.Cards[quirion], first, j) {
-			pair = true
-			break
-		}
-	}
-	if !pair {
-		t.Fatalf("Quirion Elves is not the fixed {G} + chosen pair in the table")
+	// Precondition: the pair is a plain fixed {G} first and the chosen-colour
+	// twin second, the shape prepMultiMana reads.
+	cd := &tbl.Cards[id[name]]
+	if len(cd.Abilities) < 2 || !kop.ChosenSecondManaAb(cd, 0, 1) {
+		t.Fatalf("precondition: %+v is not the fixed {G} + chosen pair", cd.Abilities)
 	}
 
 	pc := sc.s.manaPCGen(sc.k, sl)
@@ -64,6 +46,11 @@ func TestCopiedQuirionElvesKeepsFixedMana(t *testing.T) {
 	}
 	if !sc.s.canTapForMana(sc.k, sl) {
 		t.Fatal("choiceless copy is not a usable mana source: the fixed {G} ability is still legal")
+	}
+	var av avail
+	sc.s.availFor(sc.k, 0, &av)
+	if av.total != 1 {
+		t.Fatalf("census counts %d units, want the fixed {G} beside the unchosen production", av.total)
 	}
 }
 
