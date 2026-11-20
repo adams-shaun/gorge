@@ -1,5 +1,6 @@
 A-Elderleaf Mentor
 Abstruse Interference
+Advocate of the Beast
 Aeolipile
 Aeronaut's Wings
 Aether Shockwave
@@ -14,14 +15,19 @@ Atarka Beastbreaker
 Attrition
 Attune with Aether
 Avenger of Zendikar
+Blade Splicer
 Blood Age General
+Blood Rites
 Bloodcrusher of Khorne
 Blunt the Assault
 Book of Rass
+Border Guard
 Bottle Golems
 Bull Hippo
 Capenna Express
+Cartouche of Zeal
 Cast Down
+Castaway's Despair
 Cateran Enforcer
 Celestial Purge
 Channel the Suns
@@ -31,17 +37,21 @@ Cloak of Feathers
 Clot Sliver
 Cloud Elemental
 Cloudchaser Kestrel
+Cognivore
 Cold Storage
 Colossus of Akros
 Conclave Mentor
+Consuming Sinkhole
 Court of Grace
 Curious Altisaur
 Cut
 Dark Betrayal
+Dark Ritual
 Death's Presence
 Death-Hood Cobra
 Definitely Not a Turtle
 Dementia Bat
+Demon of Loathing
 Demonic Tutor
 Demystify
 Dismiss
@@ -50,14 +60,18 @@ Draugr Thought-Thief
 Drown in Ichor
 Dryad Greenseeker
 Duskhunter Bat
+Dwarven Warriors
 Dwell on the Past
+Eastfarthing Farmer
 Eidolon of Countless Battles
 Elas il-Kor, Sadistic Pilgrim
+Electric Revelation
 Elvish Eulogist
 Endurance Bobblehead
 Enthusiastic Mechanaut
 Eternal Skylord
 Evangel of Synthesis
+Evaporate
 Explosive Impact
 Eye of Nowhere
 Facevaulter
@@ -66,6 +80,7 @@ Farm
 Feral Abomination
 Feral Ridgewolf
 Filigree Fracture
+Flamekin Harbinger
 Floating-Dream Zubera
 Flying Dolphin-Fish
 Flywheel Racer
@@ -74,18 +89,22 @@ Forget
 Fourth Bridge Prowler
 Frogtosser Banneret
 Frontline Devastator
+Frostweb Spider
 Gaea's Embrace
 Garrison Griffin
 Geier Reach Sanitarium
 Ghastly Demise
 Gisa's Bidding
 Glare of Subdual
+Go-Shintai of Shared Purpose
 Goblin Hero
 Goblin Tutor
 Goliath, Mass Manipulator
+Grip of Desolation
 Harmonic Sliver
 Hasran Ogress
 Haunted Cloak
+Heart Sliver
 Heliod's Pilgrim
 Heroic Charge
 Highway Robber
@@ -109,12 +128,16 @@ Kukemssa Pirates
 Lace with Moonglove
 Lancer Sliver
 Lavakin Brawler
+Levitating Statue
 Light the Way
 Liliana's Defeat
 Liliana's Devotee
 Loam Lion
 Loathsome Catoblepas
+Luminarch Ascension
 Lure
+Luxury Suite
+Lys Alana Bowmaster
 Magma Phoenix
 Magus of the Candelabra
 Manaweft Sliver
@@ -130,11 +153,13 @@ Mindless Null
 Mire Blight
 Mistcutter Hydra
 Misthios's Fury
+Mistmeadow Skulk
 Monstrous Hound
 Morbid Bloom
 Mortician Beetle
 Mountain
 Mukotai Soulripper
+Mystic Restraints
 Nephalia Smuggler
 Night Scythe
 Nyxborn Marauder
@@ -143,7 +168,9 @@ Oni Possession
 Pattern of Rebirth
 Peer Through Depths
 Penance Stare
+Pest Infestation
 Phantasmal Sphere
+Pious Wayfarer
 Plains
 Prakhata Pillar-Bug
 Precognition Field
@@ -153,6 +180,7 @@ Psychic Spear
 Radiant Fountain
 Raging Spirit
 Raiding Nightstalker
+Rakka Mar
 Rakshasa's Secret
 Ranger Class
 Ravenloft Adventurer
@@ -180,6 +208,7 @@ Shanna, Sisay's Legacy
 Shieldmate's Blessing
 Sizzle
 Skyclave Shade
+Skyshroud Troll
 Slaughter Cry
 Sokka, Swordmaster
 Sonic Screwdriver
@@ -187,6 +216,7 @@ Soul Bleed
 Squall Line
 Steady Progress
 Storm Crow
+Strandwalker
 Strike It Rich
 Sunblade Angel
 Sure-Footed Infiltrator
@@ -200,6 +230,7 @@ Traumatic Revelation
 Turnabout
 Umbral Juke
 Unholy Grotto
+Unwavering Initiate
 Urza's Cave
 Valakut Fireboar
 Valley Rannet
@@ -210,6 +241,7 @@ Viashivan Dragon
 Vindictive Flamestoker
 Viridian Zealot
 Vivid Revival
+Vivisection
 Voda Sea Scavenger
 Walking Archive
 Wander in Death
@@ -222,3 +254,4 @@ Windreader Sphinx
 Witch's Mist
 Witness of Tomorrows
 Wose Pathfinder
+Xanthic Statue

@@ -13,13 +13,17 @@ Cackling Slasher
 Cautious Survivor
 Clammy Prowler
 Clockwork Percussionist
+Commune with Evil
 Conductive Machete
 Cracked Skull
+Creeping Peeper
 Cursed Recording
 Cursed Windbreaker
 Cynical Loner
 Dazzling Theater
+Defiled Crypt
 Demonic Counsel
+Derelict Attic
 Disturbing Mirth
 Diversion Specialist
 Don't Make a Sound
@@ -40,6 +44,7 @@ Fear of Impostors
 Fear of Lost Teeth
 Fear of Missing Out
 Fear of Surveillance
+Fear of the Dark
 Final Vengeance
 Flesh Burrower
 Forest
@@ -57,6 +62,7 @@ Glimmerlight
 Grab the Prize
 Grand Entryway
 Hardened Escort
+Haunted Screen
 Horrid Vigor
 Impossible Inferno
 Innocuous Rat
@@ -66,6 +72,8 @@ Irreverent Gremlin
 Island
 Keys to the House
 Killer's Mask
+Kona, Rescue Beastie
+Lakeside Shack
 Let's Play a Game
 Leyline of the Void
 Lionheart Glimmer
@@ -84,6 +92,7 @@ Norin, Swift Survivalist
 Overlord of the Balemurk
 Overlord of the Boilerbilges
 Overlord of the Floodpits
+Overlord of the Hauntwoods
 Paranormal Analyst
 Patched Plaything
 Patchwork Beastie
@@ -108,12 +117,14 @@ Savior of the Small
 Saw
 Scorching Dragonfire
 Seized from Slumber
+Shardmage's Rescue
 Sheltered by Ghosts
 Shrewd Storyteller
 Shroudstomper
 Silent Hallcreeper
 Smoky Lounge
 Splitskin Doll
+Sporogenic Infection
 Stay Hidden, Stay Silent
 Strangled Cemetery
 Surgical Suite
@@ -127,6 +138,7 @@ Tunnel Surveyor
 Turn Inside Out
 Unable to Scream
 Undead Sprinter
+Under the Skin
 Underwater Tunnel
 Unnerving Grasp
 Unsettling Twins

@@ -175,6 +175,7 @@ Indatha Crystal
 Indulgent Aristocrat
 Infest
 Inspiration
+Intrepid Outlander
 Invasion of Ergamon
 Invasion of Innistrad
 Invasion of Tarkir
@@ -321,6 +322,7 @@ Silverchase Fox
 Skeleton Ship
 Skittering Invasion
 Slate of Ancestry
+Smokebraider
 Snooping Newsie
 Sokka's Charge
 Soltari Trooper
