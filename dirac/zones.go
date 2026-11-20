@@ -625,7 +625,6 @@ func (s *State) subscribe(sl Slot, pc *pcard, on bool) {
 		} else {
 			s.statM.clr(sl)
 		}
-		s.layerSrcInvalidate() // the layer walk's source list (static_layerwalk.go)
 	}
 	if pc.grantStat {
 		if on {

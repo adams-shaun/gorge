@@ -63,10 +63,11 @@ func layerSrcRandomDecks(set cardset.Set, n int, seed uint64) [][]cardset.Entry 
 	return out
 }
 
-// TestLayerSrcCollectionMatchesDirectPools runs the layer walk's cached
-// source list and the old statM scan over real std-trc and std-dft games at
-// the same states, and requires the collected effects to be identical
-// (dirac.LayerSrcCheck; the edh pods run the same check in dirac).
+// TestLayerSrcCollectionMatchesDirectPools runs the layer walk's table-
+// precomputed source records and the old per-ability statM scan over real
+// std-trc and std-dft games at the same states, and requires the collected
+// effects to be identical (dirac.LayerSrcCheck; the edh pods run the same
+// check in dirac).
 func TestLayerSrcCollectionMatchesDirectPools(t *testing.T) {
 	for _, pool := range []string{"std-trc", "std-dft"} {
 		t.Run(pool, func(t *testing.T) {

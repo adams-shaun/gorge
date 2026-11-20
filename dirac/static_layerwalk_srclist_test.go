@@ -5,13 +5,14 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// TestLayerSrcCollectionMatchesDirectEdh runs the layer walk's cached source
-// list and the old statM scan over the committed four-seat edh pods at the
-// same states, and requires the collected effects to be identical. The
-// std-trc and std-dft pools, which only the oracle may read, run the same
-// check (dirac/oracle/layersrc_pools_test.go).
+// TestLayerSrcCollectionMatchesDirectEdh runs the layer walk's table-
+// precomputed source records and the old per-ability statM scan over the
+// committed four-seat edh pods at the same states, and requires the collected
+// effects to be identical. The std-trc and std-dft pools, which only the
+// oracle may read, run the same check (dirac/oracle/layersrc_pools_test.go).
 func TestLayerSrcCollectionMatchesDirectEdh(t *testing.T) {
 	var st LayerSrcStats
 	for i, p := range edhPods(t, 4) {
@@ -29,26 +30,78 @@ func TestLayerSrcCollectionMatchesDirectEdh(t *testing.T) {
 	t.Logf("edh: %+v", st)
 }
 
-// layerSrcCompareCurrent is layerSrcCompare without rebuilding first: it
-// observes the list as it stands, so a dropped invalidation shows up as a
-// stale list.
-func layerSrcCompareCurrent(t *testing.T, s *State, k *prep) (sources, slots int) {
-	t.Helper()
-	slots, err := layerSrcCompareSlots(s, k, "cached list")
+// TestLayerSrcPrepMatchesLive recomputes every card's layer-source record
+// from its abilities and requires prepLayerSrc to have stored exactly that.
+// Dropping a flag, a rem/kept bit or an ability from the precomputation fails
+// here, before a pool game could happen not to touch the card.
+func TestLayerSrcPrepMatchesLive(t *testing.T) {
+	set := cardsettest.Set(t, "fdn")
+	tbl, err := set.Pool()
 	if err != nil {
-		t.Fatalf("%v; the list was not invalidated", err)
+		t.Fatal(err)
 	}
-	if l := coldLayerSrc.of(s); len(l) != 0 {
-		sources = int(l[0].n)
+	defer ReleaseTable(tbl)
+	k := prepare(tbl)
+	g := k.gen
+	if g == nil || g.fxNeed == 0 {
+		t.Fatal("precondition: the FDN table does not walk")
 	}
-	return sources, slots
+	for i := range tbl.Cards {
+		cid := CardID(i)
+		var fl uint8
+		if g.has(cid, gfOvrStat) {
+			fl |= lsrcOvr
+		}
+		if g.has(cid, gfSubGrant) {
+			fl |= lsrcSub
+		}
+		if fl != 0 && g.has(cid, gfGlobOvr) {
+			fl |= lsrcGlob
+		}
+		var abs, rem, kept uint64
+		cd := &tbl.Cards[i]
+		if len(cd.Abilities) > 64 {
+			fl |= lsrcMany
+		} else {
+			for j := range cd.Abilities {
+				a := &cd.Abilities[j]
+				if a.Kind != kop.AbStatic {
+					continue
+				}
+				switch a.Static.Kind {
+				case kop.StatOverride:
+					if a.Static.Override == 0 {
+						continue
+					}
+				case kop.StatContinuous:
+					if !a.Static.AddSub.Any() && !a.Static.AddChosen {
+						continue
+					}
+				default:
+					continue
+				}
+				bit := uint64(1) << uint(j)
+				abs |= bit
+				if isRemover(tbl, a) {
+					rem |= bit
+				}
+				if keptOnLoss(tbl, a) {
+					kept |= bit
+				}
+			}
+		}
+		want := layerSrcCard{abs: abs, rem: rem, kept: kept, flags: fl}
+		if got := k.srcs[i]; got != want {
+			t.Fatalf("%s: record %+v, want %+v", tbl.Cards[i].Name, got, want)
+		}
+	}
 }
 
-// TestLayerSrcInvalidationDropsRemovedSource removes a static source through
-// subscribe, the one place statM changes, and requires the next collection to
-// see the list without it. Dropping the invalidation in subscribe leaves the
-// stale Aura in the list and this test fails.
-func TestLayerSrcInvalidationDropsRemovedSource(t *testing.T) {
+// TestLayerSrcRemovalDropsSource removes a static source through subscribe,
+// the one place statM changes, and requires the walk on its host to stop
+// collecting its override. A source set cached before the removal would keep
+// it; the live statM scan cannot.
+func TestLayerSrcRemovalDropsSource(t *testing.T) {
 	set := cardsettest.Set(t, "fdn")
 	deck := []cardset.Entry{
 		{Name: "Witness Protection", Count: 1},
@@ -74,32 +127,26 @@ func TestLayerSrcInvalidationDropsRemovedSource(t *testing.T) {
 	sc.s.attachTo(sc.k, sc.slot(aura), sc.slot(host))
 	sc.s.refreshTy(sc.k)
 
-	src, slots, err := layerSrcCompare(sc.s, sc.k)
-	if err != nil {
-		t.Fatal(err)
+	hostSlot, auraSlot := sc.slot(host), sc.slot(aura)
+	var fx [maxLfx]lfx
+	if got := sc.s.lfxCollect(sc.k, hostSlot, &fx); got != 1 {
+		t.Fatalf("before removal: %d effects on the host, want the Aura's 1", got)
 	}
-	if src == 0 || slots == 0 {
-		t.Fatalf("setup has %d sources over %d slots; want the attached Aura in the list", src, slots)
-	}
-	auraSlot := sc.slot(aura)
 	if !sc.s.statM.has(auraSlot) {
 		t.Fatal("the Aura is not a static source before removal")
+	}
+	if src, slots, err := layerSrcCompare(sc.s, sc.k); err != nil || src == 0 || slots == 0 {
+		t.Fatalf("setup: %d sources over %d slots, err %v; want the attached Aura seen", src, slots, err)
 	}
 	pc := &sc.k.cards[sc.s.cardAt(auraSlot)]
 	sc.s.subscribe(auraSlot, pc, false)
 	if sc.s.statM.has(auraSlot) {
 		t.Fatal("subscribe did not clear statM")
 	}
-	if src, slots := layerSrcCompareCurrent(t, sc.s, sc.k); src != 0 || slots == 0 {
-		t.Fatalf("after removing the only static source: list has %d sources over %d slots, want 0", src, slots)
+	if got := sc.s.lfxCollect(sc.k, hostSlot, &fx); got != 0 {
+		t.Fatalf("after removal: %d effects on the host, want 0", got)
 	}
-	// a rebuild leaves no stale entry past n: State.SameGame compares the
-	// cold bytes, so equal games must hold equal lists.
-	l := sc.s.layerSrcBuild(sc.k)
-	if l == nil || l.n != 0 {
-		t.Fatalf("rebuilt list = %+v, want empty", l)
-	}
-	if l.srcs[0] != (layerSrc{}) {
-		t.Fatalf("the removed source's entry survived the rebuild: %+v", l.srcs[0])
+	if src, slots, err := layerSrcCompare(sc.s, sc.k); err != nil || src != 0 || slots == 0 {
+		t.Fatalf("after removing the only static source: %d sources over %d slots, err %v, want 0", src, slots, err)
 	}
 }

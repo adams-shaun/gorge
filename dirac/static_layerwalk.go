@@ -114,128 +114,83 @@ const (
 	lsrcMany // more than 64 abilities: scan them all, no mask
 )
 
-// layerSrc is one static source the layer walk may collect: a statM slot
-// whose card prints an override or subtype-granting static. The walk's
-// source set does not depend on the slot being derived (an Aura's host
-// check is per slot, below), so it is collected once.
-type layerSrc struct {
-	src   Slot
-	cid   CardID
-	abs   uint64 // the abilities the walk can collect, bit i = cd.Abilities[i]
-	rem   uint64 // of abs: isRemover, bit i
-	kept  uint64 // of abs: keptOnLoss, bit i
+// layerSrcCard is a card's precomputed contribution to the layer walk: the
+// abilities the walk can collect (bit i = cd.Abilities[i]), whether each of
+// those removes abilities or outlives a loss, and the card's source flags.
+// It is computed once per table (prepLayerSrc), not per State: the abilities
+// and the table's overrides are immutable, and the sources themselves stay
+// in statM, so a permanent entering, leaving, phasing, copying or
+// transforming is seen at once with no list to invalidate. A slot's walk
+// filters this per-card record against the slot's own host and filter match.
+type layerSrcCard struct {
+	abs   uint64
+	rem   uint64
+	kept  uint64
 	flags uint8
 }
 
-// layerSrcList is the walk's source list, in statM order, in the cold
-// buffer. valid is cleared whenever statM changes (zones.go subscribe: a
-// permanent entering, leaving, phasing, copying or transforming); lfxCollect
-// rebuilds it on first use after that. Flags, never the source's live
-// controller or attachments, are cached: those stay per-slot reads.
-type layerSrcList struct {
-	valid bool
-	n     uint8
-	srcs  [MaxPerm]layerSrc
+// layerSrcAbility reports whether the layer walk can collect static a: an
+// override static, or a subtype-granting Continuous static.
+func layerSrcAbility(a *kop.Ability) bool {
+	if a.Kind != kop.AbStatic {
+		return false
+	}
+	switch a.Static.Kind {
+	case kop.StatOverride:
+		return a.Static.Override != 0
+	case kop.StatContinuous:
+		return a.Static.AddSub.Any() || a.Static.AddChosen
+	}
+	return false
 }
 
-var coldLayerSrc = newCold[layerSrcList]("layerSrc", func(g *genPrep) int {
+// prepLayerSrc builds prep.srcs: one record per card, if the table walks at
+// all. Called from prepare after prepareGen (which runs prepLayerWalk and so
+// sets gfSubGrant and fxNeed).
+func prepLayerSrc(t *kop.Table, p *prep) {
+	g := p.gen
 	if g == nil || g.fxNeed == 0 {
-		return 0 // no walk: no list
+		return // no walk: no records
 	}
-	return 1
-})
-
-// layerSrcInvalidate drops the walk's source list (zones.go subscribe).
-func (s *State) layerSrcInvalidate() {
-	if l := coldLayerSrc.of(s); len(l) != 0 {
-		l[0].valid = false
-	}
-}
-
-// layerSrcBuild collects the walk's source list in statM order.
-func (s *State) layerSrcBuild(k *prep) *layerSrcList {
-	if k.gen == nil || k.gen.fxNeed == 0 {
-		return nil
-	}
-	l := coldLayerSrc.of(s)
-	if len(l) == 0 {
-		return nil
-	}
-	r := &l[0]
-	old := r.n
-	r.n = 0
-	for m := s.statM; m.any(); m = m.rest() {
-		src := m.first()
-		cid := s.cardAt(src)
+	srcs := make([]layerSrcCard, len(t.Cards))
+	for i := range t.Cards {
+		cid := CardID(i)
 		var fl uint8
-		if k.gen.has(cid, gfOvrStat) {
+		if g.has(cid, gfOvrStat) {
 			fl |= lsrcOvr
 		}
-		if k.gen.has(cid, gfSubGrant) {
+		if g.has(cid, gfSubGrant) {
 			fl |= lsrcSub // a walked slot takes every subtype grant (the fixed path's are not read)
 		}
 		if fl == 0 {
 			continue
 		}
-		if k.gen.has(cid, gfGlobOvr) {
+		if g.has(cid, gfGlobOvr) {
 			fl |= lsrcGlob
 		}
 		var abs, rem, kept uint64
-		cd := &k.t.Cards[cid]
+		cd := &t.Cards[i]
 		if len(cd.Abilities) > 64 {
 			fl |= lsrcMany
 		} else {
-			for i := range cd.Abilities {
-				a := &cd.Abilities[i]
-				if a.Kind != kop.AbStatic {
+			for j := range cd.Abilities {
+				a := &cd.Abilities[j]
+				if !layerSrcAbility(a) {
 					continue
 				}
-				switch a.Static.Kind {
-				case kop.StatOverride:
-					if a.Static.Override == 0 {
-						continue
-					}
-				case kop.StatContinuous:
-					if !a.Static.AddSub.Any() && !a.Static.AddChosen {
-						continue
-					}
-				default:
-					continue
-				}
-				bit := uint64(1) << uint(i)
+				bit := uint64(1) << uint(j)
 				abs |= bit
-				if isRemover(k.t, a) {
+				if isRemover(t, a) {
 					rem |= bit
 				}
-				if keptOnLoss(k.t, a) {
+				if keptOnLoss(t, a) {
 					kept |= bit
 				}
 			}
 		}
-		r.srcs[r.n] = layerSrc{src: src, cid: cid, abs: abs, rem: rem, kept: kept, flags: fl}
-		r.n++
+		srcs[i] = layerSrcCard{abs: abs, rem: rem, kept: kept, flags: fl}
 	}
-	if r.n < old {
-		clear(r.srcs[r.n:old]) // no stale tail: SameGame compares the cold bytes
-	}
-	r.valid = true
-	return r
-}
-
-// layerSrcs is the walk's source list, rebuilt if statM changed since it was
-// collected. nil when the table has no walk or no list region.
-func (s *State) layerSrcs(k *prep) *layerSrcList {
-	if k.gen == nil || k.gen.fxNeed == 0 {
-		return nil
-	}
-	l := coldLayerSrc.of(s)
-	if len(l) == 0 {
-		return nil
-	}
-	if !l[0].valid {
-		s.layerSrcBuild(k)
-	}
-	return &l[0]
+	p.srcs = srcs
 }
 
 // lfxCollectRecords collects sl's own override records, in application order.
@@ -364,15 +319,22 @@ func (s *State) lfxCollectStaticsDirect(k *prep, sl Slot, fx *[maxLfx]lfx, n int
 }
 
 // lfxCollectStatics collects the static effects on sl in the walk's order.
+// The sources come from the live statM; the table's per-card records supply
+// the ability masks so no ability is rescanned per slot.
 func (s *State) lfxCollectStatics(k *prep, sl Slot, fx *[maxLfx]lfx, n int) int {
-	if l := s.layerSrcs(k); l != nil {
-		for i := 0; i < int(l.n); i++ {
-			e := &l.srcs[i]
-			n = s.lfxCollectOne(k, sl, e.src, e.cid, e.abs, e.rem, e.kept, e.flags, fx, n)
-		}
-		return n
+	if k.srcs == nil {
+		return s.lfxCollectStaticsDirect(k, sl, fx, n)
 	}
-	return s.lfxCollectStaticsDirect(k, sl, fx, n)
+	for m := s.statM; m.any(); m = m.rest() {
+		src := m.first()
+		cid := s.cardAt(src)
+		e := &k.srcs[cid]
+		if e.flags == 0 {
+			continue
+		}
+		n = s.lfxCollectOne(k, sl, src, cid, e.abs, e.rem, e.kept, e.flags, fx, n)
+	}
+	return n
 }
 
 // lfxCollectEmblems adds the emblems' subtype grants (timestamp 0: oldest).

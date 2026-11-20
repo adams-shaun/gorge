@@ -108,8 +108,9 @@ type prep struct {
 	t             *kop.Table
 	nameRep       []CardID // printed-name representative per card (nameRepOf); nil when every printed name is unique
 	cards         []pcard
-	gen           *genPrep // generated-table extension (gen.go); nil for hand-written tables
-	gyCont        bool     // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
+	srcs          []layerSrcCard // per card, the layer walk's ability masks (prepLayerSrc; static_layerwalk.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	gen           *genPrep       // generated-table extension (gen.go); nil for hand-written tables
+	gyCont        bool           // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
 	cold          coldLayout
 	gainsOfAttach bool // a GainsAbilitiesOf$ static and an Equip ability: a non-attachment can gain Equip and attach itself (CR 704.5p sba arm; static_unattachcreature.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	anyNoDmg      bool // a card or emblem has a StatNoCombatDamage static (combat.go's combatAmount); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
@@ -497,6 +498,7 @@ func prepare(t *kop.Table) *prep {
 	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
 	p.embPrev = tableEmbHasStaticPrev(t)
 	p.gen = prepareGen(t, p)
+	prepLayerSrc(t, p) // static_layerwalk.go: the walk's per-card ability masks
 	p.gyCont = tableHasGyCont(t)
 	p.anyNoDmg = tableHasStatic(t, kop.StatNoCombatDamage)
 	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
