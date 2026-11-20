@@ -357,6 +357,19 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			mixWide && !hasOption(&noWide, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) {
 			continue
 		}
+		if s.cfg&cfgGorgeAutopay != 0 && a.Kind() == AkCast && a.Mode()&3 == 1 {
+			// A kicked or entwined cast is the potential arm's offer
+			// (offerKickedHand / offerKickedPotentialOnly), priced against
+			// gorge's PotentialMana bound (kickedPotentialPays). The script
+			// gaps are no pricing surface for it: gorge's potential walk
+			// lists no additional-cost mode the bound does not pay, so a
+			// mode-1 cast already in d is skipped above and one only the
+			// gaps walk finds is no gorge play (pair 67: Grab the Reins'
+			// entwined cast beside Krark-Clan Ironworks, whose bound counts
+			// the sacrifice ability once; the gaps walk's any-colour units
+			// priced it and the tap-another search paid it).
+			continue
+		}
 		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && hasOption(&real, a) {
 			continue // priced by the printed sources: gorge's planner finds it sufficient and runs no prefix search for it
 		}

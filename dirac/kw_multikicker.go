@@ -126,6 +126,7 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 	}
 	if aff && s.kickedChainFeasible(k, c, p) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) &&
 		!s.dhWithholdsCast(k, p, o, &kc) { // a hand cast the Diamonds alone fund: gorge's planner prices no plan (census_incomplete, mana_discardhand.go)
+		println("DBG ADD KICKED availX=", int(s.g.availX), "autopay=", s.cfg&cfgGorgeAutopay != 0, "turn=", int(s.turn), "prio=", int(s.prio))
 		d.add(MakeAction(AkCast, TCode(o), 0, 1))
 	}
 }
