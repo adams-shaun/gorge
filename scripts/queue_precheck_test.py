@@ -35,10 +35,20 @@ def test_queue_skips_what_mergify_does_not_queue():
 
 def test_plan_runs_census_of_touched_packages_and_kgen_for_dirac_or_engine():
     census = ["./dirac/kgen", "./dirac/manifest", "./engine/rules", "./dirac/oracle", "./internal/codeshape"]
-    pk, kgen = qp.plan(["dirac/manifest/mech.go", "dirac/oracle/x_test.go", "engine/rules/a.go"], census)
-    assert pk == ["./dirac/manifest"] and kgen  # the oracle and rules censuses are the batch's (minutes long)
-    pk, kgen = qp.plan(["server/gorged/main.go", "internal/codeshape/a.go"], census)
-    assert pk == ["./internal/codeshape"] and not kgen
+    pk, kgen, rp = qp.plan(["dirac/manifest/mech.go", "dirac/oracle/x_test.go", "engine/rules/a.go"], census)
+    assert pk == ["./dirac/manifest"] and kgen and rp  # the oracle and rules censuses are the batch's (minutes long)
+    pk, kgen, rp = qp.plan(["server/gorged/main.go", "internal/codeshape/a.go"], census)
+    assert pk == ["./internal/codeshape"] and not kgen and not rp
+
+
+def test_plan_replays_for_dirac_code_outside_kgen_or_a_recording():
+    # 11-20, the 7th red: dirac/mana*.go alone moved the stdmeta and MBC lockstep replays.
+    assert qp.plan(["dirac/mana_pool.go"], [])[2]
+    assert qp.plan(["dirac/oracle/testdata/repro/x.repro.json"], [])[2]
+    assert not qp.plan(["dirac/kgen/lower.go"], [])[2]  # kgen's own tests cover it
+    assert not qp.plan(["dirac/mana_test.go", "engine/rules/a.go"], [])[2]
+    assert __import__("re").match(qp.REPLAYS, "TestMBCStormTheSeedcoreReprosLockstep")
+    assert __import__("re").match(qp.REPLAYS, "TestStdMetaReprosLockstep")
 
 
 def test_attribute_blames_the_first_prefix_that_fails_and_drops_main_reds():

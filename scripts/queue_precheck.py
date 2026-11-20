@@ -43,6 +43,12 @@ CENSUS = ("Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrink
 # Packages whose census tests are minutes long; the batch runs them (the oracle's lockstep census, engine/rules' heads).
 CENSUS_SKIP_PKGS = ("./dirac/oracle", "./engine/rules")
 KGEN = "./dirac/kgen"
+# The repro replays a dirac change on its own breaks (11-20, the 7th red: dirac/mana*.go moved the stdmeta
+# tapx_spree_window and MBC Storm the Seedcore replays). PR fast skips the replays (CI_FAST_SKIP_ORACLE_REPLAY), so
+# they first ran in the batch. These ~100 s of them run when the queue touches dirac's Go code outside kgen or a
+# recording; the batch's dirac-repros job still runs every replay.
+ORACLE = "./dirac/oracle"
+REPLAYS = "^(TestStdMetaReprosLockstep|TestMBC[A-Za-z0-9]*Repros?[A-Za-z0-9]*)$"
 
 
 def priority(pr):
@@ -148,11 +154,13 @@ def touched(path, base):
 
 
 def plan(files, census_pkgs):
-    """The checks for a set of changed files: (vet, census packages, run kgen)."""
+    """The checks for a set of changed files: (census packages, run kgen, run the replays)."""
     dirs = {"./" + f.rsplit("/", 1)[0] for f in files if "/" in f}
     pk = sorted(p for p in census_pkgs if p in dirs and p not in CENSUS_SKIP_PKGS)
     kgen = any(f.startswith(("dirac/", "engine/", "tablesrc.go")) for f in files)
-    return pk, kgen
+    replays = any((f.startswith("dirac/") and f.endswith(".go") and not f.endswith("_test.go")
+                   and not f.startswith("dirac/kgen/")) or f.startswith("dirac/oracle/testdata/repro/") for f in files)
+    return pk, kgen, replays
 
 
 def census_packages(path):
@@ -161,7 +169,7 @@ def census_packages(path):
     return sorted({"./" + f.rsplit("/", 1)[0] for f in out if "/" in f})
 
 
-def run_checks(path, pk, kgen, only=None):
+def run_checks(path, pk, kgen, replays=False, only=None):
     """Runs the checks in the tree at path; returns the failed items, each a (kind, package, test) tuple.
     only restricts the run to those items (attribution)."""
     env = dict(os.environ, GOFLAGS="-trimpath")
@@ -184,6 +192,8 @@ def run_checks(path, pk, kgen, only=None):
             groups.append((pk, CENSUS))
         if kgen:
             groups.append(([KGEN], ""))
+        if replays:
+            groups.append(([ORACLE], REPLAYS))
     else:
         tests = {}
         for k, p, t in only:
@@ -246,9 +256,9 @@ def main():
     t = Tree(wt, base)
     merged = [p for p in order if t.merge(p) or print("#%d conflicts; left to Mergify" % p["number"])]
     files = touched(wt, base)
-    pk, kgen = plan(files, census_packages(wt))
-    print("checks: go vet ./...; census in %s; kgen=%s" % (" ".join(pk) or "-", kgen))
-    fails = run_checks(wt, pk, kgen)
+    pk, kgen, replays = plan(files, census_packages(wt))
+    print("checks: go vet ./...; census in %s; kgen=%s; replays=%s" % (" ".join(pk) or "-", kgen, replays))
+    fails = run_checks(wt, pk, kgen, replays)
     t.close()
     short = base[:10]
     if not fails:
@@ -260,7 +270,7 @@ def main():
     def on_main(items):
         tm = Tree(wt, base)
         try:
-            return run_checks(wt, pk, kgen, only=items)
+            return run_checks(wt, pk, kgen, replays, only=items)
         finally:
             tm.close()
 
@@ -269,7 +279,7 @@ def main():
         try:
             for p in merged[:k]:
                 tp.merge(p)
-            return run_checks(wt, pk, kgen, only=items)
+            return run_checks(wt, pk, kgen, replays, only=items)
         finally:
             tp.close()
 
