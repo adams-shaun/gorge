@@ -7,7 +7,6 @@ package kgen
 // and fails when a future Commander card does.
 const (
 	cmdShortcutNegatedWord = iota
-	cmdShortcutCommandBeacon
 	cmdShortcutCommanderMana
 	cmdShortcutCommandSweep
 	numCmdShortcuts
