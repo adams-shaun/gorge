@@ -1891,7 +1891,9 @@ func (lc *lowerCtx) playSAExpr(v string) (string, error) {
 		case "Instant", "Sorcery":
 			clause = parts[0]
 		default:
-			return "", refuse("ValidSA %q", v)
+			// the spell-ability filter guard (T12): a Play's ValidSA$ alt the
+			// head reader cannot name as a card filter yet (T13c's FwSA*)
+			return "", refuse("spell-ability filter ValidSA %q", v)
 		}
 		for _, p := range parts[1:] {
 			switch {
@@ -1902,14 +1904,14 @@ func (lc *lowerCtx) playSAExpr(v string) (string, error) {
 				clause = andClause(clause, p)
 			case strings.HasPrefix(p, "cmcLE"), strings.HasPrefix(p, "cmcLT"), strings.HasPrefix(p, "cmcEQ"):
 				if _, err := strconv.Atoi(p[5:]); err != nil {
-					return "", refuse("ValidSA %q", v)
+					return "", refuse("spell-ability filter ValidSA %q", v)
 				}
 				if spellHead && !strings.HasPrefix(p, "cmcLE") {
-					return "", refuse("ValidSA %q", v)
+					return "", refuse("spell-ability filter ValidSA %q", v)
 				}
 				clause = andClause(clause, p)
 			default:
-				return "", refuse("ValidSA %q", v)
+				return "", refuse("spell-ability filter ValidSA %q", v)
 			}
 		}
 		if clause != "" {

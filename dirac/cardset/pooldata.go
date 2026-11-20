@@ -56,6 +56,7 @@ type PoolData struct {
 	StaticSubs          [][]AbSubs
 	OverrideSubs        []OvSubs
 	Filters             []kop.Filter
+	FilterProgs         []kop.FilterProg // the programs of PredProg filters; [0] unused, nil when no filter is a program
 	Exprs               []kop.Expr
 	Conds               []kop.Cond
 	Overrides           []kop.Override
@@ -608,8 +609,8 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 		}
 		return m
 	}
-	t.Filters = make([]kop.Filter, len(dd.Filters))
-	copy(t.Filters, dd.Filters)
+	t.Filters = slices.Clone(dd.Filters)
+	t.FilterProgs = remapFilterProgs(dd.FilterProgs, subMap)
 	for k := range t.Filters {
 		f := &t.Filters[k]
 		if f.Sub > 0 {
@@ -774,4 +775,28 @@ func remapSubtypePreds(f *kop.Filter, subMap map[uint8]uint8) {
 			f.PredN = 0
 		}
 	}
+}
+
+// remapFilterProgs copies the pool's filter programs for a matchup's table,
+// renumbering each FwSubtype literal's pool subtype index as remapSubtypePreds
+// does PredSubtype's: a subtype no object of the matchup has maps past every
+// subtype, so the literal never holds.
+func remapFilterProgs(progs []kop.FilterProg, subMap map[uint8]uint8) []kop.FilterProg {
+	if progs == nil {
+		return nil
+	}
+	out := make([]kop.FilterProg, len(progs))
+	for i, p := range progs {
+		out[i].Lits = append([]kop.FLit(nil), p.Lits...)
+		for j := range out[i].Lits {
+			if l := &out[i].Lits[j]; l.W == kop.FwSubtype {
+				if m, ok := subMap[uint8(l.Arg)]; ok {
+					l.Arg = int16(m)
+				} else {
+					l.Arg = NoSubtype - 1
+				}
+			}
+		}
+	}
+	return out
 }

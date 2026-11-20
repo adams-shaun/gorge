@@ -107,6 +107,7 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 		}
 	}
 	d.Filters = nonNil(pt.filters)
+	d.FilterProgs = pt.progs
 	d.Exprs = nonNil(pt.exprs)
 	d.Conds = nonNil(pt.conds)
 	d.Overrides = nonNil(pt.overrides)

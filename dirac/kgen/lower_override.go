@@ -392,7 +392,7 @@ func walkFilterOK(f *lFilter) error {
 	}
 	for _, c := range f.Clauses {
 		switch c.CmpStat {
-		case cmpPower, cmpToughness, cmpPowerLTToughness, cmpPowerGTBase, cmpPTBox:
+		case cmpPower, cmpToughness, cmpPowerLTToughness, cmpPowerGTBase, cmpPTBox, cmpSpill:
 			return refuse("override static filter reads P/T")
 		}
 		if c.Flags&(fWithFlying|fWithoutFlying) != 0 {

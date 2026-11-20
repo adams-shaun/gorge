@@ -263,6 +263,10 @@ type lClause struct {
 	// CtrlTgt is the target slot (index+1) whose controller must control the
 	// candidate (kop.Filter.CtrlTgt; whoTgtOrCtrl), set by lowerCtx.filter.
 	CtrlTgt uint8
+	// Spill: the comparisons the kernel filter struct cannot hold beside each
+	// other, as filter-word literals (filter_spill.go); CmpStat is cmpSpill then.
+	Spill  [maxSpill]lSpillLit
+	NSpill uint8
 }
 
 // lFilter is a Forge Valid expression: any clause matching (OR), plus the
@@ -316,7 +320,7 @@ func anyCardClause(c lClause) bool {
 		c.CmpStat == 0 && c.CmpOp == 0 && c.CmpN == 0 && c.CmpX == "" && c.CmpV == nil &&
 		c.CmpCounter == "" && c.Colors == "" && c.NotColors == "" &&
 		!c.BasePermanent && !c.SpellBase && !c.Unblocked && !c.TheirHand &&
-		c.Special == 0 && c.CtrlTgt == 0
+		c.Special == 0 && c.CtrlTgt == 0 && c.NSpill == 0
 }
 
 // filterAnyCard reports whether f restricts nothing: one unrestricted clause,
@@ -388,6 +392,9 @@ func (c lClause) String() string {
 	}
 	if c.Special != 0 {
 		fmt.Fprintf(&b, " special=%#x", c.Special)
+	}
+	if c.NSpill != 0 {
+		fmt.Fprintf(&b, " prog%v", c.Spill[:c.NSpill])
 	}
 	return b.String()
 }
@@ -1271,7 +1278,7 @@ func (c *lClause) setCmp(stat, op uint8, n int, x, counter string) error {
 			c.CmpStat, c.CmpOp, c.CmpN = cmpPTBox, 0, box
 			return nil
 		}
-		return fmt.Errorf("two comparisons in one clause")
+		return c.spillCmp(stat, op, n, x, counter) // filter_spill.go
 	}
 	c.CmpStat, c.CmpOp, c.CmpN, c.CmpX, c.CmpCounter = stat, op, n, x, counter
 	return nil
