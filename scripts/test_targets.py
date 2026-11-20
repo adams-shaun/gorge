@@ -58,10 +58,9 @@ ALWAYS = ("./internal/archtest", "./internal/codeshape")
 REPRO_DIR = "dirac/oracle/testdata/repro/"
 # The one Go test that replays the recordings marked "named":true, a subtest each (repro_manifest_test.go).
 MANIFEST_TEST = "TestReproManifest"
-# The replay tests a precheck arm keeps whole whatever the slice: the per-pool lockstep replays (a pool's
-# recordings are replayed by one glob test, so they have no per-recording test to slice; they cost about
-# 100 s of batch cost together, ci-shard-seconds.txt, 11-14). The two sub-second table checks are added by
-# GUARDS below, not here.
+# The per-pool lockstep replays (a pool's recordings are replayed by one glob test, so the slice
+# selects the test, not the recording; at 11-14 they cost ~550 batch cost-s, ci-shard-seconds.txt —
+# keeping them whole was half the old oracle leg). Only in the full-coverage fallback string.
 REPRO_GLOBS = "^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
 # The refusal-staleness check, kept whole for every replay arm (it samples entries by name hash).
 REFUSED = "^TestRefusedEntriesStillDiverge$"
@@ -495,14 +494,15 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
     def replay_part(deps=False):
         """The replay part a precheck arm appends to the oracle's regex. Without slice inputs, full
         coverage as before (REPRO_TESTS in the recording arm, REPLAYS alone in the reverse-dependency
-        arm); with them, the pool globs, the refusal check and the 25% test slice. The manifest's
-        subtests never join this regex: a '/' in a -run filters the subtests of every other selected
-        test to the pattern after it, which would pass the subtest-bearing tests that stay — the guard
-        TestReproCompactRoundTrip, the census tests, TestRefusedEntriesStillDiverge — empty, so they
-        run on their own -run, appended to the result after the plain entries."""
+        arm); with them, the refusal check and the 25% test slice — the pool globs are sliced like
+        the rest (they are in reprosel's tests). The manifest's subtests never join this regex: a '/'
+        in a -run filters the subtests of every other selected test to the pattern after it, which
+        would pass the subtest-bearing tests that stay — the guard TestReproCompactRoundTrip, the
+        census tests, TestRefusedEntriesStillDiverge — empty, so they run on their own -run, appended
+        to the result after the plain entries."""
         if reprosel is None:
             return REPRO_TESTS if not deps else REPLAYS
-        parts = [REPRO_GLOBS, REFUSED]
+        parts = [REFUSED]
         if sel["tsl"]:
             parts.append("|".join(sorted(sel["tsl"])))
         return "|".join(parts)
@@ -764,7 +764,9 @@ def replay_sel(dirmap, sha):
     for f in sorted(os.listdir(REPRO_DIR)):
         if f.endswith(".repro.json") and '"named":true' in "".join(read_lines(REPRO_DIR + f)):
             named.add(f[:-len(".repro.json")])
-    whole = re.compile("^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|" + REPRO_GLOBS + "|" + REFUSED)
+    # the slice population: every Test*Repro* name but the manifest itself, the two sub-second table
+    # checks (GUARDS keep them whole) and the refusal check
+    whole = re.compile("^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|" + REFUSED)
     tests = set()
     for f in sorted(os.listdir(pkg)):
         if not f.endswith("_test.go"):

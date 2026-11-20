@@ -25,7 +25,8 @@ RECORDINGS = ["amber_tomb_keeps_its_target", "basalt_shield_cracks_at_blocks", "
               "gloom_and_doom_repros_reach", "hollow_bridge_untaps_a_wall"]
 REPRO_TESTS = ["TestMBCAmberTombReprosLockstep", "TestMBCBasaltShieldReprosLockstep", "TestMCCCinderVeilReprosReach",
                "TestMBCDewdropReprosLockstep", "TestMBCEmberWakeReprosReach", "TestMBCFrostGateReprosLockstep",
-               "TestMBCGloomDoomReprosLockstep", "TestMBCHollowBridgeReprosReach"]
+               "TestMBCGloomDoomReprosLockstep", "TestMBCHollowBridgeReprosReach",
+               "TestStdFdnReprosLockstep", "TestStdPoolReprosLockstepFull"]
 SLOW_REC = "dewdrop_duo_last"
 SLOW_TEST = "TestMBCDewdropReprosLockstep"
 MANIFEST = "TestReproManifest/"
@@ -120,12 +121,16 @@ def test_the_slow_list_is_excluded_unless_the_recording_changed():
     assert not re.search(rx, SLOW_TEST)
 
 
-def test_the_replay_arm_keeps_the_fixed_families_and_the_manifest_run_is_alone():
-    res = planned(SRC, reprosel=sel(sha=sha_in_lane(0)))
-    kind, rx = oracle(res)
-    for name in ("TestRefusedEntriesStillDiverge", "TestStdFdnReprosLockstep"):
-        assert re.search(rx, name), name
+def test_the_replay_arm_keeps_the_refusal_check_and_the_pool_globs_are_sliced():
+    lane = zlib.crc32("TestStdFdnReprosLockstep".encode()) % 4
+    kind, rx = oracle(planned(SRC, reprosel=sel(sha=sha_in_lane(lane))))
+    assert re.search(rx, "TestRefusedEntriesStillDiverge")
+    assert re.search(rx, "TestStdFdnReprosLockstep")  # the pool globs are in the slice population
     assert not re.search(rx, "TestShieldReplacementCollision")  # whole-game lockstep stays in the batch
+    # out of the lane the glob is left to the batch with the rest
+    kind, rx = oracle(planned(SRC, reprosel=sel(sha=sha_in_lane((lane + 1) % 4))))
+    assert not re.search(rx, "TestStdFdnReprosLockstep")
+    res = planned(SRC, reprosel=sel(sha=sha_in_lane(zlib.crc32(RECORDINGS[0].encode()) % 4)))
     mrx = manifest_rx(res)
     assert mrx.count("/") == 1 and mrx.startswith(MANIFEST)  # its -run matches the manifest test only
     assert not re.search(mrx, "TestRefusedEntriesStillDiverge")
