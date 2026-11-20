@@ -26,6 +26,37 @@ func (w *legalWalk) appendOmenAlt(o *state.Object, sorcery bool) {
 	w.appendAlternateSpellFace(o, sorcery, omenSpellFace(o), "omen_alt")
 }
 
+// appendFaceAlts appends the hand's alternate-face cast offers that stand above
+// the front-face gate: Adventure, Omen and More Than Meets the Eye. A free
+// function over the walk: a new legalWalk method would grow the Engine surface.
+func appendFaceAlts(w *legalWalk, o *state.Object, sorcery bool) {
+	w.appendAdventureAlt(o, sorcery)
+	w.appendOmenAlt(o, sorcery)
+	appendConvertedCast(w, o, sorcery)
+}
+
+// appendConvertedCast appends the hand's More Than Meets the Eye cast of o
+// (CR 702.162a): the card is cast CONVERTED, back face up, for the keyword's
+// cost rather than its mana cost. Like Disturb's graveyard cast beginCast
+// flips to the back face before the ordinary cast transaction, so timing,
+// prohibition and targets are judged on the BACK face (CR 712.11c; the front
+// face's keyword is also considered, CR 712.11d), and the back face's own SP
+// Cost$ extras are paid on top (CR 118.9d). It is its own alternative cost
+// (CR 702.162a): the option carries no AltCostIndex, so it never combines
+// with another one.
+func appendConvertedCast(w *legalWalk, o *state.Object, sorcery bool) {
+	e, p, id := w.e, w.p, o.ID
+	bf, mc, ok := mtmteCast(o)
+	if !ok || w.castRestrictedAsFace(p, id, bf) || e.castSuppressed(p, id) ||
+		!w.spellTimingOK(p, id, bf, sorcery) || !e.castTargetsAvailable(p, id, bf.SpellAbility()) {
+		return
+	}
+	if w.offerCastableAsFace(p, id, bf, pay.WithSpellAbilityExtras(bf, mc), spellScope("converted")) {
+		w.out = append(w.out, decision.Option{Index: len(w.out), Kind: "cast",
+			Label: "Cast " + bf.Name + " (converted)", Obj: id, Mode: "converted"})
+	}
+}
+
 // appendAlternateSpellFace is the ONE home of the hand's alternate-spell-face
 // offer, shared by the Adventure (CR 715.3a) and Omen (CR 720.3a) routes.
 func (w *legalWalk) appendAlternateSpellFace(o *state.Object, sorcery bool, af *cards.Face, mode string) {
@@ -179,8 +210,7 @@ func (w *legalWalk) handWalk() {
 		// casts (castRestrictedAsFace), not the creature front the card-level
 		// continue below reads -- a restriction matching only one face must
 		// decide only that face's offer.
-		w.appendAdventureAlt(o, sorcery)
-		w.appendOmenAlt(o, sorcery)
+		appendFaceAlts(w, o, sorcery)
 		// CR 309.4b: either door of a Room may be cast. Mode room_alt is
 		// consumed by beginCast, which records a FlipFace before the ordinary
 		// cast transaction; from then on every cost/target/resolution reader

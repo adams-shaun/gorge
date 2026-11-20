@@ -89,6 +89,7 @@ import "embed"
 //go:embed kw_ingest.go
 //go:embed kw_jobselect.go
 //go:embed kw_levelup.go
+//go:embed kw_livingmetal.go
 //go:embed kw_livingweapon.go
 //go:embed kw_melee.go
 //go:embed kw_modular.go

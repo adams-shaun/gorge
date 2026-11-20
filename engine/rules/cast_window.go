@@ -29,7 +29,8 @@ type proposalFlipper interface {
 }
 
 // flipTransformedCast flips a defeat_cast (CR 310.11, exiled battle) or
-// disturb (CR 702.146a-b, graveyard) cast proposal to its back face. It
+// disturb (CR 702.146a-b, graveyard) or converted (CR 702.162a, More Than Meets
+// the Eye) cast proposal to its back face. It
 // reports false when mode is one of those and o is not where that cast reads
 // it; any other mode is a no-op that reports true.
 func flipTransformedCast(e proposalFlipper, o *state.Object, mode string, faceBefore **uint8, preSuppress map[state.ObjID]bool, preAborts map[state.ObjID]int32) bool {
@@ -40,6 +41,10 @@ func flipTransformedCast(e proposalFlipper, o *state.Object, mode string, faceBe
 		}
 	case castModeDisturb:
 		if _, _, ok := disturbCast(o); !ok {
+			return false
+		}
+	case castModeConverted:
+		if _, _, ok := mtmteCast(o); !ok {
 			return false
 		}
 	default:
