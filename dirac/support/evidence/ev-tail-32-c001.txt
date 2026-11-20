@@ -207,6 +207,7 @@ Loathsome Catoblepas
 Luminarch Ascension
 Lure
 Luxury Suite
+Lydia Frye
 Lys Alana Bowmaster
 Madame Hydra, Reanimated
 Magma Phoenix
@@ -278,6 +279,7 @@ Raging Spirit
 Raiding Nightstalker
 Rakka Mar
 Rakshasa's Secret
+Rampaging Monument
 Ranger Class
 Ravenloft Adventurer
 Ravenous Harpy
@@ -347,6 +349,7 @@ Telim'Tor's Edict
 Territorial Aetherkite
 Tervigon
 Tevesh Szat, Doom of Fools
+Tezzeret's Touch
 The Prydwen, Steel Flagship
 Thorn Lieutenant
 Thraben Gargoyle

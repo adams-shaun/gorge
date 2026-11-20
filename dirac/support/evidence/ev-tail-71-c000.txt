@@ -112,6 +112,7 @@ Double Trouble
 Dragon-Cursed Halls
 Dragonscale General
 Drake Familiar
+Drana, Kalastria Bloodchief
 Duelist's Flame
 Dune Chanter
 Dying Wail
@@ -316,6 +317,7 @@ Quandrix Apprentice
 Quirion Beastcaller
 Radiant Epicure
 Rampaging Monument
+Ranger's Firebrand
 Raving Oni-Slave
 Reckless Reveler
 Recruit the Worthy
