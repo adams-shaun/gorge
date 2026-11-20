@@ -322,12 +322,10 @@ func (s *State) faceReachSet(k *prep, p uint8, r *kop.ManaCost, extra int, t ava
 		if s.rbAny(p) {
 			s.rbUnits(p, s.restrPoolAdmits(k, p)&^s.filtFeeRestrM(k, p, sl), &held) // restricted mana the payment may spend but the filter's own activation may not (CR 106.6)
 		}
+		held = dropHeld(&t, held)
 		nh := 0
-		for c, n := range held {
-			if n != 0 {
-				t.remove(1<<c, n)
-				nh += int(n)
-			}
+		for _, n := range held {
+			nh += int(n)
 		}
 		if t.total < fee {
 			return false
@@ -524,7 +522,7 @@ func (s *State) filtMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail, anyCol
 		av = &t
 	}
 	best := -1
-	w := filtWalk{s: s, k: k, filt: &filt, cost: cost, anyColor: anyColor}
+	w := filtWalk{s: s, k: k, p: p, filt: &filt, cost: cost, anyColor: anyColor}
 	// An announced tap-paid pick pays one pip or one generic of the folded
 	// cost, so the bound prices the pick-folded cost the ask prices (gorge
 	// xAsk, paymentManaX): without it the bound stops one X short of what
@@ -562,6 +560,44 @@ func (s *State) filtBoundExtra(k *prep, p uint8) int {
 	return n
 }
 
+// dropHeld removes held's units from t, capped by what each colour's group
+// still holds: an earlier fee in the same walk may already have spent part of
+// a batch. It returns what it actually removed, which the walk restores after
+// the fee (a full held mask would resurrect units a fee already spent).
+func dropHeld(t *avail, held [kop.NumManaKinds]uint8) [kop.NumManaKinds]uint8 {
+	var dropped [kop.NumManaKinds]uint8
+	for c, want := range held {
+		if want == 0 {
+			continue
+		}
+		mask := uint8(1) << c
+		for gi := 0; gi < t.n; gi++ {
+			if t.mask[gi] != mask {
+				continue
+			}
+			d := min(uint16(want), t.cnt[gi])
+			t.cnt[gi] -= d
+			t.total -= int(d)
+			dropped[c] = uint8(d)
+			break
+		}
+	}
+	return dropped
+}
+
+// filtFeeHeld is the restricted floating mana the payment may spend but
+// filter sl's fee may not (CR 106.6): the same batches faceReachSet holds out
+// of the fee, so the X bound prices a filter activation with the mana the real
+// payment can give it.
+func (s *State) filtFeeHeld(k *prep, p uint8, sl Slot) [kop.NumManaKinds]uint8 {
+	var held [kop.NumManaKinds]uint8
+	if !s.rbAny(p) {
+		return held
+	}
+	s.rbUnits(p, s.restrPoolAdmits(k, p)&^s.filtFeeRestrM(k, p, sl), &held)
+	return held
+}
+
 // filtWalk is one activation of a set of filters on the window's mana (CR
 // 605.3b): filtMaxX runs it per set and it prices each result. fold, when
 // the entry being built carries announced tap-paid picks, is the cost the
@@ -570,6 +606,7 @@ func (s *State) filtBoundExtra(k *prep, p uint8) int {
 type filtWalk struct {
 	s        *State
 	k        *prep
+	p        uint8
 	filt     *[maxFaceFilters]Slot
 	cost     *kop.ManaCost
 	anyColor bool
@@ -618,13 +655,22 @@ func (w *filtWalk) activate(t avail, st filtPos) int {
 			ownN = int(pc.manaN)
 		}
 		fee, units := s.filtFee(k, sl), s.filtUnits(k, sl)
+		// The fee is an activated ability's payment: restricted floating mana
+		// the cast may spend but this activation may not stays out of it
+		// (CR 106.6), exactly as faceReachSet holds it out of the face walk.
+		// base restores it on every arm that leaves this filter unactivated.
+		base := t
+		held := dropHeld(&t, s.filtFeeHeld(k, w.p, sl))
 		if st.pass == 0 && units < ownN+fee || t.total-ownN < fee {
+			t = base
 			continue
 		}
 		if col, ok := s.filtFeePip(k, sl); ok && !t.canMake(col) {
+			t = base
 			continue // no mana made so far can be the fee's {c}: another filter may make it first
 		}
 		if a, b, ok := s.filtHyb(k, sl); ok && !t.canMakeAny(uint8(1)<<uint(a)|uint8(1)<<uint(b)) {
+			t = base
 			continue // no mana made so far can be the fee's {a/b}: another filter may make one first
 		}
 		if pc != nil {
@@ -635,6 +681,7 @@ func (w *filtWalk) activate(t avail, st filtPos) int {
 				// on with the set's rest.
 				st.set &^= 1 << i
 				st.progress = true
+				t = base
 				continue
 			}
 		}
@@ -647,20 +694,20 @@ func (w *filtWalk) activate(t avail, st filtPos) int {
 		// is tried; a board with painful units held out of the groups keeps
 		// the total-only reading.
 		if col, ok := s.filtFeePip(k, sl); ok {
-			return w.spendPip(t, st, sl, fee, col) // the fee's {c} needs mana that can be c (CR 107.4)
+			return w.spendPip(t, st, sl, fee, col, held) // the fee's {c} needs mana that can be c (CR 107.4)
 		}
 		if a, b, ok := s.filtHyb(k, sl); ok {
 			// the fee's {a/b} needs mana that can be a or b (CR 107.4c): the
 			// hybrid fee is no generic part (gorge's castWindowPays funds it
 			// through the ordinary pip payment, mana_filterhybrid.go
 			// filtPayHyb), so spendPip's colour set is the two faces'
-			return w.spendPipMask(t, st, sl, fee, uint8(1)<<uint(a)|uint8(1)<<uint(b))
+			return w.spendPipMask(t, st, sl, fee, uint8(1)<<uint(a)|uint8(1)<<uint(b), held)
 		}
 		if fee == 0 || t.pain.on || t.nOne != 0 { // (a one-colour source's group and entry move together or not at all)
 			t.total -= fee
-			return w.activated(t, st, sl)
+			return w.activated(t, st, sl, held)
 		}
-		return w.spendFee(t, st, sl, fee, 0)
+		return w.spendFee(t, st, sl, fee, 0, held)
 	}
 	if st.set != 0 {
 		return -1
@@ -736,14 +783,14 @@ func (a *avail) canMakeAny(m uint8) bool {
 // (gorge's castWindowPays funds {U} with blue mana, not any mana), each such
 // group tried, then the rest of the fee (fee-1 generic) as spendFee does. It
 // returns -1 when no unit made so far can be col.
-func (w *filtWalk) spendPip(t avail, st filtPos, sl Slot, fee, col int) int {
-	return w.spendPipMask(t, st, sl, fee, uint8(1)<<uint(col))
+func (w *filtWalk) spendPip(t avail, st filtPos, sl Slot, fee, col int, held [kop.NumManaKinds]uint8) int {
+	return w.spendPipMask(t, st, sl, fee, uint8(1)<<uint(col), held)
 }
 
 // spendPipMask is spendPip over a colour mask: each of its colours may pay
 // the pip (a hybrid fee's two faces, CR 107.4c), so a group that can make any
 // of them may fund it.
-func (w *filtWalk) spendPipMask(t avail, st filtPos, sl Slot, fee int, pip uint8) int {
+func (w *filtWalk) spendPipMask(t avail, st filtPos, sl Slot, fee int, pip uint8, held [kop.NumManaKinds]uint8) int {
 	best := -1
 	for g := 0; g < t.n; g++ {
 		if t.cnt[g] == 0 || t.mask[g]&pip == 0 {
@@ -752,13 +799,13 @@ func (w *filtWalk) spendPipMask(t avail, st filtPos, sl Slot, fee int, pip uint8
 		u := t
 		if t.pain.on || t.nOne != 0 {
 			u.total -= fee // the total-only reading, as the generic fee takes (the group and entry move together)
-			return w.activated(u, st, sl)
+			return w.activated(u, st, sl, held)
 		}
 		u.removeWide(u.mask[g], 1)
 		if fee > 1 {
-			best = max(best, w.spendFee(u, st, sl, fee-1, 0))
+			best = max(best, w.spendFee(u, st, sl, fee-1, 0, held))
 		} else {
-			best = max(best, w.activated(u, st, sl))
+			best = max(best, w.activated(u, st, sl, held))
 		}
 	}
 	return best
@@ -766,9 +813,9 @@ func (w *filtWalk) spendPipMask(t avail, st filtPos, sl Slot, fee int, pip uint8
 
 // spendFee takes owed more units of the filter's fee out of t's groups, from
 // group index from on (a multiset of groups), then goes on with the walk.
-func (w *filtWalk) spendFee(t avail, st filtPos, sl Slot, owed, from int) int {
+func (w *filtWalk) spendFee(t avail, st filtPos, sl Slot, owed, from int, held [kop.NumManaKinds]uint8) int {
 	if owed == 0 {
-		return w.activated(t, st, sl)
+		return w.activated(t, st, sl, held)
 	}
 	best, found := -1, false
 	for g := from; g < t.n; g++ {
@@ -777,17 +824,22 @@ func (w *filtWalk) spendFee(t avail, st filtPos, sl Slot, owed, from int) int {
 		}
 		u := t
 		u.removeWide(u.mask[g], 1)
-		best, found = max(best, w.spendFee(u, st, sl, owed-1, g)), true
+		best, found = max(best, w.spendFee(u, st, sl, owed-1, g, held)), true
 	}
 	if !found {
 		t.total -= owed // no group can pay it: the total-only reading
-		return w.activated(t, st, sl)
+		return w.activated(t, st, sl, held)
 	}
 	return best
 }
 
 // activated adds the filter sl's own mana (its fee already paid) and goes on.
-func (w *filtWalk) activated(t avail, st filtPos, sl Slot) int {
+func (w *filtWalk) activated(t avail, st filtPos, sl Slot, held [kop.NumManaKinds]uint8) int {
+	for c, n := range held {
+		if n != 0 {
+			t.addUnits(uint8(1)<<c, n)
+		}
+	}
 	w.s.filtProduce(w.k, &t, sl)
 	return w.activate(t, st)
 }
