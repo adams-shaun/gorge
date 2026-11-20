@@ -710,10 +710,20 @@ func init() {
 	mechName[mechBtTurn] = "btTurn"
 }
 
+// mech (dirac/manifest/mech/mechEmbalmGrant)
+//
+// object mask: graveyard cards with a granted embalm at their mana cost (Cursecloth Wrappings; kw_embalmgrant.go)
+const mechEmbalmGrant mech = 56
+
+func init() {
+	mechWidth[mechEmbalmGrant] = wObj
+	mechName[mechEmbalmGrant] = "embalmGrant"
+}
+
 // mech (dirac/manifest/mech/mechEncSeat0)
 //
 // bit 0 of the seat an Encore token must attack this turn (CR 702.141a; gorge EncoreAttackDefender; kw_encore.go)
-const mechEncSeat0 mech = 56
+const mechEncSeat0 mech = 57
 
 func init() {
 	mechWidth[mechEncSeat0] = wSlot
@@ -723,7 +733,7 @@ func init() {
 // mech (dirac/manifest/mech/mechEncSeat1)
 //
 // bit 1 of the seat an Encore token must attack this turn (CR 702.141a; gorge EncoreAttackDefender; kw_encore.go)
-const mechEncSeat1 mech = 57
+const mechEncSeat1 mech = 58
 
 func init() {
 	mechWidth[mechEncSeat1] = wSlot
@@ -733,7 +743,7 @@ func init() {
 // mech (dirac/manifest/mech/mechSkulk)
 //
 // slots whose permanent has skulk until end of turn (ExtKwMark KwMarkSkulk; kw_kwmark.go)
-const mechSkulk mech = 58
+const mechSkulk mech = 59
 
 func init() {
 	mechWidth[mechSkulk] = wSlot
@@ -743,7 +753,7 @@ func init() {
 // mech (dirac/manifest/mech/mechSkulkPost)
 //
 // slots marked skulk while their permanent had lost all abilities (CR 613.7)
-const mechSkulkPost mech = 59
+const mechSkulkPost mech = 60
 
 func init() {
 	mechWidth[mechSkulkPost] = wSlot
@@ -751,7 +761,7 @@ func init() {
 }
 
 // numMech is one past the highest mech: the length of the arena's mech tables.
-const numMech mech = 60
+const numMech mech = 61
 
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).
@@ -801,6 +811,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 //go:noinline
 func (s *State) execOpGen(k *prep, in *kop.Instr) (ok, done bool) {
 	switch in.Op {
+	case kop.OpGrantEmbalmOwnCost:
+		return s.execGrantEmbalm(k, in) // kw_embalmgrant.go
 	}
 	return true, false
 }
