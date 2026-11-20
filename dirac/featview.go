@@ -786,8 +786,8 @@ func (s *State) FeatAltAddMana(p uint8, o Obj) (kop.ManaCost, bool) {
 func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 	cd := &k.t.Cards[c]
 	if cd.BeholdExile || cd.SpellWaterbend != 0 || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && cd.Cost.Hyb[0] != kop.HybTwobrid && !hyb && !cd.Cost.Phyrexian() ||
-		cd.HasMultikicker || !modal && (cd.HasAltAdd && cd.BeholdN == 0 || cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
-		return true // (a hybrid cost: the planner's "cost:hybrid"; a twobrid one is priced by resolving its pips (planTwobridCost), a Phyrexian one by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold"; Multikicker: payment_plan.go's "shape:optional_cost", so gorge lowers even the PLAIN cast and the kernel must too)
+		!modal && (cd.HasMultikicker || cd.HasAltAdd && cd.BeholdN == 0 || cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
+		return true // (a hybrid cost: the planner's "cost:hybrid"; a twobrid one is priced by resolving its pips (planTwobridCost), a Phyrexian one by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold"; Multikicker, Replicate and Squad: payment_plan.go's "shape:optional_cost", so gorge lowers even the PLAIN cast and the kernel must too; a target-paid cast (modal) is the one shape targetPaidShape admits, so Shattering Spree sacrificing its own Treasure target is planned)
 	}
 	if k.gen != nil && k.gen.anyEvTargets && spellEvidenceTargets(cd) {
 		return true // gorge's planner declines a CollectEvidence part ("cost:evidence", classify.go): offered by the pool only (cost_collectevidencex.go)
