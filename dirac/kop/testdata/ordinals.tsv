@@ -1015,6 +1015,7 @@ PlaceAsk	untyped int	2
 PlayerPredArtOrEnch	untyped int	4
 PlayerPredControlsCreature	untyped int	1
 PlayerPredCorrupted	untyped int	3
+PlayerPredHandEmpty	untyped int	6
 PlayerPredMaxSpeed	untyped int	2
 PlayerPredMostCreatures	untyped int	5
 PlayerPredNeg	untyped int	256
