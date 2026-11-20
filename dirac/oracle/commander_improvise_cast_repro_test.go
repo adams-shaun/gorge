@@ -64,9 +64,9 @@ func commanderImproviseReplay(t *testing.T, reg *cards.Registry, file string) Re
 	return Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
 }
 
-// TestFourSeatCommanderImproviseCastLockstep: both four-seat Deep Clue Sea pods
+// TestCommanderImproviseCastLockstep: both two-seat Deep Clue Sea Commander games
 // replay clean past the decision where the kernel left out Morska's cast.
-func TestFourSeatCommanderImproviseCastLockstep(t *testing.T) {
+func TestCommanderImproviseCastLockstep(t *testing.T) {
 	if isolate(t) {
 		return
 	}
