@@ -2183,7 +2183,7 @@ func (s *State) placeTriggers(k *prep, d *Decision) bool {
 		d.Kind, d.Player = DkTriggerOrder, p
 		for i := 0; i < int(s.npend); i++ {
 			if pt := &s.pend[i]; pt.ctrl == p && !s.ordered(uint8(i)) {
-				d.add(MakeAction(AkOrder, TCode(pt.obj), TCode(i), s.occurrence(i)))
+				d.add(MakeAction(AkOrder, TCode(pt.obj), TCode(i), s.orderOccurrence(i, p)))
 			}
 		}
 		return true
@@ -2195,6 +2195,21 @@ func (s *State) placeTriggers(k *prep, d *Decision) bool {
 		}
 	}
 	panic("kernel: pending trigger not found")
+}
+
+// orderOccurrence is pending trigger i's occurrence among the ordering
+// group ordered by player p: same source, same controller. gorge numbers a
+// repeated option within the one decision (its group, picked ones included),
+// so a trigger of the same source that another player controls (a creature
+// that left and re-entered under a new controller) does not count.
+func (s *State) orderOccurrence(i int, p uint8) uint8 {
+	n := uint8(0)
+	for j := 0; j < i; j++ {
+		if pt := &s.pend[j]; pt.obj == s.pend[i].obj && pt.ctrl == p {
+			n++
+		}
+	}
+	return n
 }
 
 func (s *State) ordered(i uint8) bool {
