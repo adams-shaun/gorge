@@ -1,0 +1,19 @@
+{
+  "card": "Namor the Sub-Mariner",
+  "class": "lockstep",
+  "why": "gorge prices a fee mana ability in the cast window's paid layer (CR 601.2g, 605.3a/b: Baxter Building's {4},{T}: Add four mana in any combination of colors funds the second {U} of Namor's {1}{U}{U}) and offers the cast; the kernel's census prices Baxter at its cheapest {T}: Add {C} (pcard has no fee field, comboAnyMana wants a bare tap), so it offers no cast and its payment walk could not pay one (std-msh pool pair 5, decision 299)",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "fee_any_mana_ability_funds_a_cast_the_kernel_census_misses"
+  },
+  "evidence": [
+    "ev-std-msh-c000",
+    "ev-std-msh",
+    "std-msh"
+  ]
+}
