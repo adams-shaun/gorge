@@ -1115,8 +1115,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.OptCost.Flags != 0 || c.OptBehold || c.OptWaterbend != 0 {
 			g.anyOptCost = true
 		}
-		if c.KickerCost.Flags != 0 {
-			g.anyKickCost = true
+		if hasKickPickCost(c) {
+			g.anyKickCost = true // a kicked cast's non-mana pick part (Kicker; Squad/Replicate's repeated pick)
 		}
 		if c.HasMultikicker {
 			g.anyMultikick = true

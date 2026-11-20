@@ -79,6 +79,18 @@ type CDAFace struct {
 	AllCreatureTypes bool
 }
 
+// Repeated additional-cost kinds (CR 702.43/702.157a/702.56a): the keyword
+// whose per-payment cost a CardDef's multikicker slot carries. Multikicker
+// is a pure mana payment; Squad and Replicate may also carry a non-mana pick
+// part (Repeated). The kind picks the cast stage the count is asked at:
+// Replicate before the tap costs, Multikicker after them, Squad after the
+// multikicker ask (gorge cast_begin.go's ask order; kernel kw_squadreplicate.go).
+const (
+	RepeatMultikicker uint8 = iota + 1
+	RepeatSquad
+	RepeatReplicate
+)
+
 // CardDef is one card's static record.
 type CardDef struct {
 	Name      string // reports only
@@ -184,6 +196,15 @@ type CardDef struct {
 	// (kernel cast.go's bsMulti). HasMultikicker distinguishes a zero cost.
 	Multikicker    ManaCost
 	HasMultikicker bool
+	// Repeated, RepeatedKind: K:Squad / K:Replicate (CR 702.157a/702.56a),
+	// the multikicker shape with an optional non-mana pick part (a discard,
+	// an exile, a tap or energy). Repeated is the full per-payment cost; its
+	// Mana is Multikicker, so the kicked cast's mana loop and the count
+	// storage are shared. RepeatedKind selects the ask stage
+	// (RepeatMultikicker/RepeatSquad/RepeatReplicate); a card with none is 0.
+	// A card never prints two of the three (kgen refuses it).
+	Repeated     Cost
+	RepeatedKind uint8
 	// BeholdN, BeholdF: part one of the either-or additional cost is
 	// "behold a <type>" (Behold<1/Type>, CR 701.4a): BeholdN (1) of the
 	// payer's permanents or hand cards matching BeholdF. Table data, not a
