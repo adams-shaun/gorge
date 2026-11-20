@@ -379,7 +379,9 @@ func run() int {
 	}
 	sliced := false // the pool is a committed slice
 	if *kernel == "fdn" && *synth == "" && *v2Mode == "" && !explicit["decks"] && !explicit["pool"] && !explicit["pairs-file"] && oracle.NeedDecks(*decksDir) != nil {
-		if *seed != oracle.SliceSeed || *split != "all" || *firstPair+*pairs > oracle.SlicePairs {
+		// a pod is drawn from pool.tsv alone (oracle.PodAt), at any seed; the
+		// slice's pairs.tsv holds two-seat pairs only
+		if *seats == 2 && (*seed != oracle.SliceSeed || *split != "all" || *firstPair+*pairs > oracle.SlicePairs) {
 			fmt.Fprintf(os.Stderr, "kfuzz: no %s pool on disk, and its committed slice holds only -split all -seed %d pairs 0 to %d: set GORGE_POOLS for others\n", *setName, oracle.SliceSeed, oracle.SlicePairs-1)
 			return 1
 		}
@@ -390,8 +392,11 @@ func run() int {
 		}
 		defer remove()
 		beforeExec = append(beforeExec, remove) // a continuation's exec skips the defer
-		*decksDir, *poolPath, *pairsFile = filepath.Join(dir, "decks"), filepath.Join(dir, "pool.tsv"), filepath.Join(dir, "pairs.tsv")
-		explicit["pairs"] = true
+		*decksDir, *poolPath = filepath.Join(dir, "decks"), filepath.Join(dir, "pool.tsv")
+		if *seats == 2 {
+			*pairsFile = filepath.Join(dir, "pairs.tsv")
+			explicit["pairs"] = true
+		}
 		sliced = true
 	}
 	if *lead != "gorge" && *lead != "kernel" {
