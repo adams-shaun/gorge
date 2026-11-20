@@ -57,16 +57,24 @@ func (s *State) offerSurgeHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 	}
 	sc := s.adjustCost(k, p, c, o, k.t.Cards[c].SurgeCost) // the modifiers apply to an alternative cost too (CR 601.2f)
 	if s.cfg&cfgGorgeAutopay != 0 && s.cfg&cfgGorgeLowering == 0 && s.g.availX == 0 {
-		// under gorge's autopay surface the surged cast is in gorge's list
+		// Under gorge's autopay surface the surged cast is in gorge's list
 		// when the floating pool alone pays the surge cost (gorge's own offer
 		// prices it with offerCastable over the pool, legal_walk_hand.go) or
 		// its payment planner prices it (potential_plan.go plans a mode cast
-		// the plain planner does not witness; its tier-1 census is the
-		// printed sources and the pool -- witnessKeepsTargets's availPlain
-		// read -- pair 286's plain land taps against pair 221's
-		// sacrifice-only Eldrazi Spawn beside a granted tap-any)
-		if !s.surgePoolPays(k, p, c, o, &sc) && !s.surgePlannerPrices(k, p, c, o, &sc) {
-			return
+		// the plain planner does not witness). The planner has two routes: its
+		// tier-1 census (the printed sources and the pool, no granted or
+		// sacrifice-only source) pays outright, or its prefix script activates
+		// a census gap first (potential_script.go). Either route's payment
+		// must leave the spell a legal target (potentialWitnessReaches,
+		// cast_tgtkeep.go): pair 35's sole Spawn is the spell's only target and
+		// the payment sacrifices it, while pair 61's second Spawn stands.
+		if !s.surgePoolPays(k, p, c, o, &sc) {
+			if !s.surgePlannerPrices(k, p, c, o, &sc) && !s.surgeScriptPays(k, p, c, o, av, &sc) {
+				return
+			}
+			if !s.surgeKeepsTarget(k, p, c, o, &sc) {
+				return
+			}
 		}
 	} else {
 		var fav avail
@@ -113,6 +121,36 @@ func (s *State) surgePlannerPrices(k *prep, p uint8, c CardID, o Obj, sc *kop.Ma
 	var t1 avail
 	f.availFor(k, p, &t1)
 	return t1.affords(sc, pipMaskOf(sc), 0)
+}
+
+// surgeScriptPays reports whether the prefix script's census pays the surged
+// cast: the full offer census (granted and sacrifice-only mana abilities
+// included) pays after activating the sources the planner's tier-1 census
+// leaves as gaps (potential_script.go potentialPrefixScript). It is only the
+// affordability half; the caller also asks surgeKeepsTarget.
+func (s *State) surgeScriptPays(k *prep, p uint8, c CardID, o Obj, av *avail, sc *kop.ManaCost) bool {
+	var fav avail
+	cav := s.castGrantAvail(k, p, o, av, &fav)
+	return s.castAffordsR(k, p, c, s.restrOriginOfObj(o), sc, cav)
+}
+
+// surgeKeepsTarget reports whether the surged cast keeps a legal target under
+// the payment's census: some target candidate the payment's sources can leave
+// standing (gorge's potentialWitnessReaches, cast_tgtkeep.go
+// specKeepsTarget). The spell probe makes targetCands read the cast's source
+// for protection (Mistmeadow Skulk's "protection from mana value 3 or
+// greater" excludes Grip of the Roil, whose mana value stays its printed 3
+// under the surge alternative cost, CR 202.3); without it a probe-less read
+// counts the Skulk as a target and keeps a payment that eats the only one.
+func (s *State) surgeKeepsTarget(k *prep, p uint8, c CardID, o Obj, sc *kop.ManaCost) bool {
+	sp := tspec(k, c, spellAb(k, c), 0)
+	if sp == nil {
+		return true
+	}
+	f := s.fork()
+	defer s.unfork()
+	f.g.probe = probe{kind: probeSpell, src: NoSlot, card: c, ctrl: p}
+	return f.specKeepsTarget(k, p, o, sp, sc)
 }
 
 // surgeCostOf is the surged cast's printed alternative cost.
