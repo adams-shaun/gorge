@@ -369,12 +369,6 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		c := s.cardAt(sl)
 		ans = c != kop.NoCard && k.t.Cards[c].Keywords&kop.KwFlashback != 0 && !s.faceDown(k, sl) &&
 			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
-	case kop.W7WithDevoid:
-		// gorge withDevoid on a battlefield object: the printed keyword,
-		// none while face down or after a lose-all-abilities effect
-		c := s.cardAt(sl)
-		ans = c != kop.NoCard && k.t.Cards[c].Devoid && !s.faceDown(k, sl) &&
-			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
 	case kop.W7WithInfect:
 		// gorge withInfect on a battlefield object: the printed keyword,
 		// none while face down or after a lose-all-abilities effect; or a
@@ -457,6 +451,13 @@ func (s *State) snowWordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
 	n := fl.PredN & 0xff
 	if n == kop.W7WithSkulk {
 		return s.hasSkulkPerm(k, sl)
+	}
+	if n == kop.W7WithDevoid {
+		// gorge withDevoid on a battlefield object: the printed keyword, none
+		// while face down or after a lose-all-abilities effect
+		c := s.cardAt(sl)
+		return c != kop.NoCard && k.t.Cards[c].Devoid && !s.faceDown(k, sl) &&
+			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
 	}
 	if n != kop.W7Snow && n != kop.W7NonSnow {
 		return false

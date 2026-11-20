@@ -33,3 +33,27 @@ func blankNeverClauses(f *lFilter, alts int, idx []int) bool {
 	}
 	return true
 }
+
+// spellSideCast reads the effects-side wasCast words of clause c on a spell on
+// the stack (cmpWasCast -> cmpWasCastSpell): the bare and negated word, and
+// wasCastFromYourGraveyard where lc.spellGraveOK allows it. The other
+// graveyard spelling, the zero-spend word and webSlinged refuse.
+func (lc *lowerCtx) spellSideCast(c *lClause, expr string) error {
+	if c.CmpN&wasCastSpentZero != 0 {
+		return refuse("filter %q: CastSa Spell.ManaSpent EQ0 on a spell", expr)
+	}
+	if c.CmpN&wasCastWebSling != 0 {
+		return refuse("filter %q: webSlinged on a spell", expr)
+	}
+	n := spellCast
+	switch {
+	case c.CmpN == wasCastYourGrave && lc.spellGraveOK:
+		n = spellYourGrave
+	case c.CmpN&^wasCastNot != wasCastAny:
+		return refuse("filter %q: wasCastFromGraveyard on a spell", expr)
+	case c.CmpN&wasCastNot != 0:
+		n = spellNot
+	}
+	c.CmpStat, c.CmpN = cmpWasCastSpell, n
+	return nil
+}

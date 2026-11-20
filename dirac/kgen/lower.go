@@ -3026,23 +3026,9 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			c.CmpV = &v
 		}
 		if c.CmpStat == cmpWasCast && lc.spellProvOK && !lc.wasCastOK {
-			// the same words read on a spell on the stack
-			if c.CmpN&wasCastSpentZero != 0 {
-				return nil, refuse("filter %q: CastSa Spell.ManaSpent EQ0 on a spell", expr)
+			if err := lc.spellSideCast(c, expr); err != nil { // the same words read on a spell on the stack
+				return nil, err
 			}
-			if c.CmpN&wasCastWebSling != 0 {
-				return nil, refuse("filter %q: webSlinged on a spell", expr)
-			}
-			n := spellCast
-			switch {
-			case c.CmpN == wasCastYourGrave && lc.spellGraveOK:
-				n = spellYourGrave // lower_restrictedmana_words.go
-			case c.CmpN&^wasCastNot != wasCastAny:
-				return nil, refuse("filter %q: wasCastFromGraveyard on a spell", expr)
-			case c.CmpN&wasCastNot != 0:
-				n = spellNot
-			}
-			c.CmpStat, c.CmpN = cmpWasCastSpell, n
 		}
 	}
 	for _, c := range f.Clauses {
