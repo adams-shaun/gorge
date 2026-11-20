@@ -53,6 +53,21 @@ func (s *State) storeCensusSource(k *prep, p uint8, cost *kop.ManaCost) (Slot, b
 		if a == nil || !kop.StoreManaAb(a) || k.ctrSecond(s.cardAt(sl)) {
 			continue
 		}
+		if s.perms[sl].ctrN(s, int(a.Cost.Ctr)) <= 0 {
+			// gorge's planner announces X against the counters the battery
+			// holds: an empty one funds nothing, so the turn-up is no play
+			// (its plan is "insufficient") and the oracle drops it
+			continue
+		}
+		if cost.Hyb[0] == 0 {
+			// the counters it holds, with the sources, pay the cost: gorge's
+			// witness is that plan, so a battery too short for the generic
+			// part it would fund is no potential play either
+			if s.storeTurnUpPlans(k, p, sl, a, cost) {
+				return sl, true
+			}
+			continue
+		}
 		rest := *cost
 		rest.Generic = 0
 		for i := range rest.Pips {
