@@ -127,9 +127,9 @@ const (
 	prePayETBGrave uint8 = 5 // declined, or no eligible land: the card goes to its owner's graveyard
 )
 
-// raGenPayETB is a parked battlefield move's pay-before-entering election
-// (the may-election first, then the land pick).
-const raGenPayETB = raGenManifestDread + 86
+// raGenPayETB (dirac/manifest/ask/raGenPayETB, manifest_gen.go) is a parked
+// battlefield move's pay-before-entering election (the may-election first,
+// then the land pick).
 
 // payETBEntry is the move phase's gate for a battlefield destination: it runs
 // the replacement of the card o about to move (the entry player ep would
@@ -229,6 +229,8 @@ func (s *State) payETBCleanup() {
 // payETBOptions builds the parked move's ask: the may-election (ChOptDiscMay,
 // yes then no, gorge's cardflow.go order) while it is pending, then the land
 // pick (ChDiscard, gorge's hand order, Done once the Min 1 pick is recorded).
+//
+//kmanifest:askopts raGenPayETB
 func (s *State) payETBOptions(k *prep, d *Decision) {
 	p := &s.g.pre
 	c := s.objs[p.obj].card
@@ -254,19 +256,18 @@ func (s *State) payETBOptions(k *prep, d *Decision) {
 
 // payETBAnswer applies the parked move's ask and re-runs the move phase with
 // the answer consumed (the paid gate enters the card, the decline gate
-// graveyards it); false: not this ask's answer.
-func (s *State) payETBAnswer(k *prep, a Action) bool {
+// graveyards it).
+//
+//kmanifest:askapply raGenPayETB
+func (s *State) payETBAnswer(k *prep, a Action) {
 	p := &s.g.pre
-	if s.res.ask != raGenPayETB || p.kind != akPayETB {
-		return false
-	}
 	c := s.objs[p.obj].card
 	switch p.state {
 	case prePayETBMay:
 		if a.Mode() == 0 {
 			p.state = prePayETBGrave
 			s.payETBResume(k)
-			return true
+			return
 		}
 		m, _ := s.payETBEligible(k, c, uint8(p.val), s.res.askP)
 		if m <= 1 { // gorge's strict-supersets rule: the single eligible card discards with no pick
@@ -283,14 +284,13 @@ func (s *State) payETBAnswer(k *prep, a Action) bool {
 			}
 			p.state = prePayETBEnter
 			s.payETBResume(k)
-			return true
+			return
 		}
 		p.state = prePayETBPick
 		s.res.peekI, s.res.peekN, s.res.left = 0, 0, 1 // Min 1, Max min(NumCards 1, eligible)
-		return true                                    // the pick ask is live
 	case prePayETBPick:
 		if a.Kind() != AkDone && s.optaskPick(k, a, s.discardObj) {
-			return true // re-pose: the Min 1 pick is not recorded yet
+			return // re-pose: the Min 1 pick is not recorded yet
 		}
 		r := &s.res
 		for j := 0; j < int(r.peekI); j++ {
@@ -302,9 +302,7 @@ func (s *State) payETBAnswer(k *prep, a Action) bool {
 		s.optaskFireDiscard(k) // the picks leave in pick order, CR 404.3
 		p.state = prePayETBEnter
 		s.payETBResume(k)
-		return true
 	}
-	return false
 }
 
 // payETBResume re-runs the parked move phase: the paid gate enters the card,

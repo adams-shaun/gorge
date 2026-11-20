@@ -716,8 +716,6 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}
-	case raGenPayETB:
-		s.payETBOptions(k, d) // repl_paybeforeetb.go
 	case raGenCmdZone:
 		s.cmdZoneOptions(d) // zone_cmdzone.go
 	case raRecruitDiscard:
@@ -1530,10 +1528,6 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		s.continueRes(k, 0)
-	case raGenPayETB:
-		if !s.payETBAnswer(k, a) { // repl_paybeforeetb.go
-			panic("kernel: bad resolution answer")
-		}
 	case raGenCmdZone:
 		s.cmdZoneAnswer(k, a) // zone_cmdzone.go
 	case raRecruitDiscard:
