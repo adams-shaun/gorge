@@ -320,12 +320,37 @@ func changeZoneSourceGone(h Host, c *Ctx, cz *ChangeZoneParams, o *state.Object)
 // Phyrexian Ingester's enters trigger resolving after Blur exiled and returned
 // it. The card the ability exiles is linked to the old object (CR 607.2a), so
 // the new permanent's imprint list stays empty.
+// DebugDelayedExileCreatorIdentity is a test-only hook
+// (dirac/oracle's TestDelayedExileCreatorBlinkedMutation): it restores the
+// unguarded SourceIsNewObject read so a delayed creator-sourced rider drops
+// its affected object when the creator was blinked, and the lockstep pair
+// must diverge again. Never set outside a test.
+var DebugDelayedExileCreatorIdentity = false
+
 func imprintSourceGone(h Host, c *Ctx) bool {
 	if c.ResolvingObj == 0 {
 		return false
 	}
 	ro := h.Game().Obj(c.ResolvingObj)
-	return ro != nil && ro.Source == c.Source && SourceIsNewObject(h.Game(), ro)
+	return ro != nil && ro.Source == c.Source && delayedSourceReturned(h.Game(), c)
+}
+
+// delayedSourceReturned is every reader's SourceIsNewObject gate (registry's
+// SourceReturned stamp, CostSpecContext's "another creature" flip,
+// imprintSourceGone): the resolving ability's source is a new object (CR
+// 400.7) — except when the ability is a delayed trigger whose registration
+// names an AFFECTED object (tc.DelayedSelf != 0). CR 603.7/603.7c: the
+// delayed trigger refers to the object it was created for, and that object
+// did not change zones — only the creating permanent did (Thassa blinked
+// Rionya before her token-copy exile rider resolved). The body's Defined$
+// Self still names the affected object, subject only to the
+// affected-object incarnation check (rules' resolveTop). DebugDelayedExileCreatorIdentity
+// reverts to the unguarded read (TestDelayedExileCreatorBlinkedMutation).
+func delayedSourceReturned(g *state.Game, c *Ctx) bool {
+	if c.DelayedSelf != 0 && !DebugDelayedExileCreatorIdentity {
+		return false
+	}
+	return SourceIsNewObject(g, g.Obj(c.ResolvingObj))
 }
 
 // SourceIsNewObject reports that ro, an ability on the stack, has a source on the
