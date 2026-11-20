@@ -86,9 +86,12 @@ func (s *State) ObjVer(o Obj) uint8 { return s.objs[o].ver }
 // much the attacker divides among them. SplitAt reads an option's split from these.
 func (s *State) FeatDivision(out *[MaxPerm]Obj) (n, damage int) {
 	if s.perms[s.divA].flags&pfBlocking != 0 {
-		a1, a2 := s.blockedPair(s.divA) // a blocker's division lists its attackers (combat_extrablock.go)
-		out[0], out[1] = s.perms[a1].obj, s.perms[a2].obj
-		return 2, int(s.divRem)
+		var l [MaxPerm]Slot
+		n = s.blockedLive(s.divA, &l) // a blocker's division lists its attackers (combat_extrablock.go)
+		for i := range n {
+			out[i] = s.perms[l[i]].obj
+		}
+		return n, int(s.divRem)
 	}
 	var bl [MaxPerm]Slot
 	n = s.liveBlockers(s.divA, &bl)

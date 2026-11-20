@@ -490,6 +490,9 @@ func (s *State) extraBlockInPlay(k *prep) bool {
 //
 //go:noinline
 func (s *State) blockerOptionsReq(k *prep, d *Decision, mb slotMask) bool {
+	if s.blockAnyInPlay(k) {
+		return s.blockAnyReqStall(d) // combat_blockany.go: the quota search holds a blocker to two pairs
+	}
 	var lure slotMask
 	if k.gen.anyLure {
 		lure = s.lureAttackers(k)
