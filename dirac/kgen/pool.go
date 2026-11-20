@@ -65,7 +65,7 @@ func loadCardList(path, cardsDir string) (*pool, error) {
 func loadCardNames(names []string, cardsDir string) (*pool, error) {
 	sort.Strings(names)
 	p := &pool{nDecks: map[string]int{}, byName: map[string]*cards.Card{}}
-	reg, err := cards.OpenCorpusSubset(cardsDir, names)
+	reg, err := cards.OpenCorpusSubsetVerifiedOnce(cardsDir, names)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func loadPool(decksDir, cardsDir string) (*pool, error) {
 		p.names = append(p.names, n)
 	}
 	sort.Strings(p.names)
-	reg, err := cards.OpenCorpusSubset(cardsDir, p.names)
+	reg, err := cards.OpenCorpusSubsetVerifiedOnce(cardsDir, p.names)
 	if err != nil {
 		return nil, err
 	}

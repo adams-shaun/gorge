@@ -41,7 +41,7 @@ type synthList struct {
 // and unique. A set list spells a Room or a split card "A // B", which is not what a
 // deck or a matchup calls it.
 func frontNames(names []string, cardsDir string) ([]string, error) {
-	reg, err := cards.OpenCorpusSubset(cardsDir, names)
+	reg, err := cards.OpenCorpusSubsetVerifiedOnce(cardsDir, names)
 	if err != nil {
 		return nil, err
 	}

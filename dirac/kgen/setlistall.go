@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 )
@@ -52,8 +53,36 @@ func corpusAllList(cardsDir string) (string, error) {
 	return path, nil
 }
 
-// corpusAllNames is the ALL list's bytes over the scripts under root.
+// allNamesMemo holds corpusAllNames per cleaned absolute root. The corpus does
+// not change during a process, and reading every script is the package's
+// dominant cost, so each root is read once. Failures are not cached.
+var (
+	allNamesMu   sync.Mutex
+	allNamesMemo = map[string][]byte{}
+)
+
+// corpusAllNames is the ALL list's bytes over the scripts under root, read once
+// per process for each root. The result is shared: callers must not modify it.
 func corpusAllNames(root string) ([]byte, error) {
+	key, err := filepath.Abs(root)
+	if err != nil {
+		return corpusAllNamesRead(root)
+	}
+	allNamesMu.Lock()
+	defer allNamesMu.Unlock()
+	if b, ok := allNamesMemo[key]; ok {
+		return b, nil
+	}
+	b, err := corpusAllNamesRead(root)
+	if err != nil {
+		return nil, err
+	}
+	allNamesMemo[key] = b
+	return b, nil
+}
+
+// corpusAllNamesRead walks and reads every script under root.
+func corpusAllNamesRead(root string) ([]byte, error) {
 	var names []string
 	err := cards.WalkScripts(root, func(p string) error {
 		b, err := os.ReadFile(p)

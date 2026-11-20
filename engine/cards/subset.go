@@ -566,11 +566,45 @@ func decodeCacheFile(path string) (*cacheFile, error) {
 // by recompiling), so the first subset open after a compile costs one full
 // raw decode.
 func OpenCorpusSubset(dir string, names []string) (*Registry, error) {
+	return openCorpusSubset(dir, names, false)
+}
+
+// segVerified records the corpus roots whose segment file this process has
+// already found fresh (or rebuilt).
+var (
+	segVerifiedMu sync.Mutex
+	segVerified   = map[string]bool{}
+)
+
+// OpenCorpusSubsetVerifiedOnce is OpenCorpusSubset for a corpus that does not
+// change while the process runs (a generator or census over a fetched corpus):
+// the segment freshness check, a census of every corpus directory and token
+// script, runs once per root per process instead of on every open. A root
+// that is edited mid-process must use OpenCorpusSubset.
+func OpenCorpusSubsetVerifiedOnce(dir string, names []string) (*Registry, error) {
+	return openCorpusSubset(dir, names, true)
+}
+
+func openCorpusSubset(dir string, names []string, once bool) (*Registry, error) {
 	cache := CachePath(dir)
 	seg := SegmentPath(cache)
-	if !segFresh(dir, cache, seg) {
-		if err := refreshSegments(dir, cache, seg); err != nil {
-			return nil, err
+	key, kerr := filepath.Abs(dir)
+	if kerr != nil {
+		once = false
+	}
+	segVerifiedMu.Lock()
+	trusted := once && segVerified[key]
+	segVerifiedMu.Unlock()
+	if !trusted {
+		if !segFresh(dir, cache, seg) {
+			if err := refreshSegments(dir, cache, seg); err != nil {
+				return nil, err
+			}
+		}
+		if once {
+			segVerifiedMu.Lock()
+			segVerified[key] = true
+			segVerifiedMu.Unlock()
 		}
 	}
 	sf, err := openSegFile(seg)
