@@ -47,42 +47,27 @@ func cantActByAll(s *State, k *prep, sl Slot, p uint8, mana, loyal bool) bool {
 	return hit
 }
 
-// cantActDeck is a deterministic std-big deck list for the gate test.
+// cantActDeck is a deterministic deck list for the gate test, drawn from the
+// cantact pool (every CantBeActivated carrier beside cards with activated
+// abilities), 23 spells and three basics.
 func cantActDeck(set cardset.Set, n int, seed uint64) [][]cardset.Entry {
 	r := rand.New(rand.NewPCG(seed, 99))
 	sup := set.Supported()
-	basics := [5]string{"Plains", "Island", "Swamp", "Mountain", "Forest"}
-	cols := [5]kop.ColorMask{kop.ColW, kop.ColU, kop.ColB, kop.ColR, kop.ColG}
 	var spells []int
 	for i := 0; i < set.NumCards() && i < len(sup); i++ {
 		if !sup[i] || set.Inert(i) {
 			continue
 		}
-		d := set.Def(i)
-		if d.Types&kop.TLand != 0 {
+		if set.Def(i).Types&kop.TLand != 0 {
 			continue
 		}
 		spells = append(spells, i)
 	}
 	var out [][]cardset.Entry
 	for len(out) < n {
-		a, b := r.IntN(5), r.IntN(5)
-		for b == a {
-			b = r.IntN(5)
-		}
-		m := cols[a] | cols[b]
-		var cand []int
-		for _, i := range spells {
-			if set.Def(i).Colors&^m == 0 {
-				cand = append(cand, i)
-			}
-		}
-		if len(cand) < 12 {
-			continue
-		}
 		cnt := map[string]int{}
 		for k := 0; k < 23; k++ {
-			cnt[set.Names()[cand[r.IntN(len(cand))]]]++
+			cnt[set.Names()[spells[r.IntN(len(spells))]]]++
 		}
 		var es []cardset.Entry
 		keys := make([]string, 0, len(cnt))
@@ -93,7 +78,7 @@ func cantActDeck(set cardset.Set, n int, seed uint64) [][]cardset.Entry {
 		for _, k := range keys {
 			es = append(es, cardset.Entry{Name: k, Count: cnt[k]})
 		}
-		es = append(es, cardset.Entry{Name: basics[a], Count: 9}, cardset.Entry{Name: basics[b], Count: 8})
+		es = append(es, cardset.Entry{Name: "Plains", Count: 6}, cardset.Entry{Name: "Island", Count: 6}, cardset.Entry{Name: "Forest", Count: 5})
 		out = append(out, es)
 	}
 	return out
@@ -156,7 +141,7 @@ func TestCantActGateEquivalence(t *testing.T) {
 	DebugCantActMana, DebugCantActCount = false, false
 	defer func() { DebugCantActMana, DebugCantActCount = oldMana, oldCount }()
 
-	set := cardsettest.Synth(t, "std-big")
+	set := cardsettest.Set(t, "cantact")
 	decks := cantActDeck(set, 64, 7)
 	const games = 8
 	var checks, hits int
@@ -191,13 +176,13 @@ func TestCantActGateEquivalence(t *testing.T) {
 }
 
 // TestCantActGatePositiveControl puts Grand Abolisher's lock on one seat and
-// Sandstorm Salvager's activated ability on the other, so both paths must
+// Prodigal Sorcerer's activated ability on the other, so both paths must
 // say the activation is forbidden; a gate that skips the lock's card shows here.
 func TestCantActGatePositiveControl(t *testing.T) {
-	set := cardsettest.Synth(t, "std-big")
+	set := cardsettest.Set(t, "cantact")
 	deck := []cardset.Entry{
 		{Name: "Grand Abolisher", Count: 1},
-		{Name: "Sandstorm Salvager", Count: 1},
+		{Name: "Prodigal Sorcerer", Count: 1},
 		{Name: "Plains", Count: 30},
 	}
 	tbl, da, _, err := set.Matchup(deck, deck)
@@ -212,7 +197,7 @@ func TestCantActGatePositiveControl(t *testing.T) {
 	sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
 	sc.s.active, sc.s.turn = 0, 1
 	sc.perm(id["Grand Abolisher"], 0)
-	ss := sc.perm(id["Sandstorm Salvager"], 1)
+	ss := sc.perm(id["Prodigal Sorcerer"], 1)
 	sl := sc.slot(ss)
 	k := sc.k
 	if !cantActByAll(sc.s, k, sl, 1, false, false) {
