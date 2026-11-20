@@ -8,15 +8,14 @@ import (
 // TestVoteChoicesLowers pins the Choices$ fixed-list Vote lowering. The four
 // non-triggered carriers (the sorceries) lower end to end; Capital Punishment
 // is the StoreVoteNum$ form (TestVoteStoreNumLowers). A fixed-list Vote on a
-// triggered ability without StoreVoteNum$ refuses by name: gorge's placement
-// ask poses a spurious mode choice for it (charm_params.go isModalSA), a gorge
-// defect this lowering must not copy. The remaining carriers still refuse at a
-// branch or build shape (design item 3: a branch that refuses keeps the card
+// triggered ability without StoreVoteNum$ refuses by name (no lockstep
+// evidence for the general triggered shape yet). The remaining carriers still
+// refuse at a branch or build shape (design item 3: a branch that refuses keeps the card
 // refused by that branch's reason, never by the vote's own Choices$
 // parameter). No card refuses the vote parameter itself. A Secretly$ vote
 // still refuses that parameter by name.
 func TestVoteChoicesLowers(t *testing.T) {
-	const triggered = "Vote on a triggered ability: gorge asks a spurious placement mode"
+	const triggered = "Vote on a triggered ability without StoreVoteNum$"
 	lowered := []string{"Bite of the Black Rose", "Capital Punishment", "Plea for Power", "Tyrant's Choice"}
 	refused := map[string]string{
 		"Coercive Portal":        triggered,
@@ -58,7 +57,7 @@ func TestVoteChoicesLowers(t *testing.T) {
 	// A lowered spell carries one Vote op with its branches following it.
 	// Tyrant's Choice has two choices and a tie branch: C = fixed-mode 2 |
 	// 2<<2 | 1<<5 = 42, then Branch C=0, C=1 and the tie at C=2. No placement
-	// Charm wraps it (the triggered shape is refused, not emulated).
+	// Charm wraps it (a Vote's Choices$ are ballot options, not modes).
 	lir, _ := lowerCarriers(t, []string{"Tyrant's Choice"})
 	sec := section(lir, "Tyrant's Choice")
 	if strings.Count(sec, "Vote C=42") != 1 {
