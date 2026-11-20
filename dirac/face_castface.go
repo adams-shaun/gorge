@@ -126,6 +126,27 @@ func facePlannerLimited(fm uint8) bool {
 	return false
 }
 
+// faceCastNeedsEmptyStack reports whether the face a face cast puts on the
+// stack follows sorcery timing. A face is cast on its own timing (CR 715.3a,
+// 709.3, 712.8), not the front card's, so a split half that is a sorcery is
+// offered only with the stack empty. The witness the lowerFaceCast search taps
+// at priority can trigger (Scald on an Island), and a sorcery-speed play must
+// resolve that trigger first (potential_script.go waitsForStack), as the
+// plain cast's castNeedsEmptyStack does.
+func (s *State) faceCastNeedsEmptyStack(k *prep, a Action) bool {
+	c := s.objs[Obj(a.Source())].card
+	if roomDef(k, c) {
+		return s.roomAltNeedsEmptyStack(k, a) // a Room's door names its face (face_rooms.go)
+	}
+	i := int(a.Target())
+	cd := &k.t.Cards[c]
+	if i >= len(cd.Faces) {
+		return false // a fused cast names both halves, not one face (FeatFuseFace, face_fuse.go)
+	}
+	f := cd.Faces[i]
+	return !k.cards[f].instant && !s.castFlash(k, s.prio, f)
+}
+
 // offerFaceCasts offers hand card o's other castable face: an Adventure
 // card's Adventure (gorge "adventure_alt", CR 715.3a; a land front's too,
 // from the hand walk's land branch), a split card's right half (gorge
