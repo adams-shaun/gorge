@@ -841,7 +841,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		mv := s.cardMVIn(k, c, o, fd, ctx)
 		switch fl.Pred {
 		case kop.PredCMCLE:
-			return mv <= n
+			return predCardCMCLE(mv, n) // kw_soulshift.go: the mutation's arm
 		case kop.PredCMCGE:
 			return mv >= n
 		case kop.PredCMCEQ:
