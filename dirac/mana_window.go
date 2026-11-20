@@ -1124,6 +1124,12 @@ func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 		// skips what manaAbilityYieldsNothing reports).
 		d := s.payDescNow(NoObj)
 		a := &k.t.Cards[c].Abilities[k.gen.restr(c)]
+		// A restricted ability is a gfRestr one only when restrTapMana read a
+		// nonzero ManaColors, so a "Chosen" production without a printed
+		// colour never reaches this arm; a Combo <C> Chosen one keeps its
+		// fixed colour and stays listed (a copy that chose nothing still
+		// makes that colour). The census read of the chosen-only shape is
+		// manaPCGen's, which fails it closed.
 		return s.restrSrcAdmits(k, p, sl, a, &d) && (a.AFlags&kop.AfManaDynamic == 0 || s.dynManaN(k, a, sl) > 0)
 	}
 	return true
