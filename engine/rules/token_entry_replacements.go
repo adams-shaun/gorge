@@ -40,8 +40,9 @@ import (
 // Of the Updated bodies only the entry-state ones -- Tap, Untap and
 // PutCounter, the whole corpus population of non-self Updated entry bodies
 // except two -- are run;
-// a Clone body (Essence of the Wild's EssenceClone, Displaced Dinosaurs) and
-// an Animate body need the pre-entry as-enters machinery a folded token no
+// a foreign-entry Clone body (Essence of the Wild's EssenceClone) is run too,
+// but any other Clone body (an election), Displaced Dinosaurs' Animate body and
+// the like need the pre-entry as-enters machinery a folded token no
 // longer has, and are left unapplied. The token's own Moved lines are not
 // read here: token scripts carry none, and its own entry counters ride the
 // entry-counter pass.
@@ -123,6 +124,12 @@ func (e *Engine) applyTokenEntryUpdates(id state.ObjID, absorbed []string) {
 func tokenEntryBody(result, destination string, with *cards.SA) bool {
 	if destination != "Battlefield" {
 		return false
+	}
+	// A foreign-entry as-enters copy (Essence of the Wild, Thunderbond
+	// Vanguard: a token is "a creature you control" entering): the token
+	// becomes a copy of the carrier before its entry triggers are matched.
+	if effects.CloneForeignEntryOffered(with) {
+		return true
 	}
 	if result != "Updated" {
 		if with.APIKind() != cards.APIChangeZone {
