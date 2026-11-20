@@ -1898,7 +1898,8 @@ func (e *Engine) abilityLabel(o *state.Object, t cards.Trigger) string {
 // machinery. The structural discriminator is the contract itself: every
 // Choices$ value must resolve, in the source face's own SVar table, to an
 // ability body. Measured at the corpus pin, every Charm (240), Vote (11),
-// GenericChoice (48) and VillainousChoice (5) trigger body resolves; every
+// GenericChoice (48) and VillainousChoice (5) trigger body resolves, so the
+// ballot and resolution-chooser shapes are excluded by API below; every
 // non-modal carrier (ChooseCard 93, ChoosePlayer 29, PutCounter 10,
 // CopyPermanent 11, Clone 4, Attach, Manifest, and the rest) names at least
 // one unresolvable spec, so the old unconditional ask recorded a bogus
@@ -1913,6 +1914,13 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	// ask so the victim, rather than the trigger controller, is the chooser
 	// and the victim can be captured in Ctx.Remembered first.
 	if sa.API == "VillainousChoice" {
+		return false
+	}
+	// Vote is not CR 603.3c modal placement either: its Choices$ names the
+	// ballot options (CR 701.38a), which effVote asks each voter at
+	// resolution. A placement ask would pose the ballot to the trigger
+	// controller as "modes" and record a ChosenModes effVote never reads.
+	if sa.API == "Vote" {
 		return false
 	}
 	// GenericChoice with a Defined$ other than the trigger controller is the
