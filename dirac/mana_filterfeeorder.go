@@ -29,15 +29,19 @@ func (s *State) filtFeeGaps(k *prep, f slotMask) slotMask {
 // feeOrderFallback reports whether gorge's fee-order run follows the plain run
 // fs, which found no script: a plain cast of the printed cost on a board of
 // filter gaps alone, one of them a fee gap, whose own cost sacrifices or
-// returns nothing and whose gaps hold no hybrid fee (those are the phased
-// order's own scope). The plain run's budget must have run out: a completed
-// search saw every state the reordered one reaches. It records the fee gaps
-// on fs.
+// returns nothing and whose gaps hold no hybrid fee on any mana ability of
+// their faces (gapFaceHybIn; those are the phased order's own scope, gorge
+// phasedScope). The plain run's budget must have run out: a completed search
+// saw every state the reordered one reaches. It records the fee gaps on fs —
+// only on success, so a declined fallback leaves the plain run's search as it
+// was (every read is gated on fs.feeOrder, but the field is the fallback's to
+// set).
 func (s *State) feeOrderFallback(k *prep, p uint8, a Action, fs *filtSearch) bool {
 	if fs.pay != nil || fs.other.any() || fs.nodes < potentialScriptNodes || a.Kind() != AkCast || a.Mode() != 0 {
 		return false
 	}
-	if fs.feeGaps = s.filtFeeGaps(k, fs.gaps); !fs.feeGaps.any() || s.filtHybIn(k, fs.gaps) {
+	feeGaps := s.filtFeeGaps(k, fs.gaps)
+	if !feeGaps.any() || s.gapFaceHybIn(k, fs.gaps) {
 		return false
 	}
 	o := Obj(a.Source())
@@ -45,5 +49,9 @@ func (s *State) feeOrderFallback(k *prep, p uint8, a Action, fs *filtSearch) boo
 		return false
 	}
 	ac := spellAddCost(k, s.objs[o].card)
-	return ac.Flags&(kop.CostSac|kop.CostSacSelf|kop.CostReturn|kop.CostReturnSelf) == 0
+	if ac.Flags&(kop.CostSac|kop.CostSacSelf|kop.CostReturn|kop.CostReturnSelf) != 0 {
+		return false
+	}
+	fs.feeGaps = feeGaps
+	return true
 }
