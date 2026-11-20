@@ -12,7 +12,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // tap and an untap are both left (CR 616.1f) and otherwise applies in scan
 // order. The kernel poses the same ask with the object still in its zone, on
 // the two routes that carry a land onto the battlefield in the lockstep
-// pools (a land play; a resolving program's hand or ChangeZone move), as
+// pools (a land play; a resolving program's hand or ChangeZone move; a
+// Hideaway's play of its hidden land, kw_hideaway.go), as
 // DkChoose + ChGenReplOrder over s.g.ro. A dig's or a search's found land (a
 // DigUntil, a Dig, a library search) is asked the same way with the card still
 // in its zone when exactly one tap and one untap compete (entryParkDig,
@@ -72,7 +73,7 @@ const raGenEntryOrder = raGenManifestDread + 73
 // enterGen to leave the competition parked, entLate marks it entered.
 const (
 	entLand   = 1 // playLandNow
-	entOp     = 2 // OpReturnEx (a ChangeZone to the battlefield)
+	entOp     = 2 // OpReturnEx (a ChangeZone to the battlefield), a hidden land's play
 	entSearch = 3 // a one-card hand move (OpChooseMove) to the battlefield
 	entMode   = 3
 	entDone   = 4
@@ -536,6 +537,10 @@ func (s *State) applyEntryLand(k *prep, a Action) {
 func (s *State) applyEntryResolve(k *prep, a Action) {
 	if s.entryCopyParked() {
 		s.entryCopyAnswer(k, a) // repl_entrycopy.go: a copy token's ask
+		return
+	}
+	if s.hideEntryParked(k) {
+		s.hideEntryPick(k, a) // kw_hideaway.go: a hidden land's ask
 		return
 	}
 	switch s.entryOrderPick(k, a) {
