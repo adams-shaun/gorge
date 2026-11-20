@@ -76,7 +76,7 @@ func memoDecks(set cardset.Set, n int, seed uint64) [][]cardset.Entry {
 func memoGames(t *testing.T, name string) []memoGame {
 	raw, err := cardset.SynthByName(name)
 	if err != nil {
-		if errors.Is(err, cardset.ErrNoTables) {
+		if errors.Is(err, cardset.ErrNoTables) || errors.Is(err, cardset.ErrNoCorpus) {
 			t.Skipf("%s: %v", name, err)
 		}
 		t.Fatalf("%s: %v", name, err)
