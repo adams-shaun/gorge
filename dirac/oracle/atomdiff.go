@@ -141,6 +141,8 @@ type atomSet struct {
 	exprs   []kop.Expr
 	fa      []FilterAtom
 	fid     [][len(atomZoneList)]kop.FilterID // per filter atom, per zone of its Ctx
+	skipF   []bool                            // per filter atom: it names a subtype this game\'s table lacks
+	skipC   []bool                            // per count atom, the same
 	ca      []CountAtom
 	cv      []kop.ValueRef
 	err     error
@@ -152,6 +154,7 @@ func compileAtoms(fa []FilterAtom, ca []CountAtom, tbl *kop.Table) *atomSet {
 	as := &atomSet{fa: fa, ca: ca}
 	comp := kgen.NewAtomCompilerOver(tbl)
 	as.fid = make([][len(atomZoneList)]kop.FilterID, len(fa))
+	as.skipF, as.skipC = make([]bool, len(fa)), make([]bool, len(ca))
 	for i, a := range fa {
 		spec := a.KernelSpec
 		if spec == "" {
@@ -166,6 +169,7 @@ func compileAtoms(fa []FilterAtom, ca []CountAtom, tbl *kop.Table) *atomSet {
 				as.err = errors.Join(as.err, fmt.Errorf("filter atom %s (%s) in zone %d: kgen refuses: %v", a.Name, spec, z.k, err))
 			}
 			as.fid[i][zi] = id
+			as.skipF[i] = as.skipF[i] || len(comp.Missing()) > 0
 		}
 	}
 	as.cv = make([]kop.ValueRef, len(ca))
@@ -179,6 +183,7 @@ func compileAtoms(fa []FilterAtom, ca []CountAtom, tbl *kop.Table) *atomSet {
 			as.err = errors.Join(as.err, fmt.Errorf("count atom %s (%s): kgen refuses: %v", a.Name, head, err))
 		}
 		as.cv[i] = v
+		as.skipC[i] = len(comp.Missing()) > 0
 	}
 	as.filters, as.exprs = comp.Tables()
 	return as
@@ -276,6 +281,9 @@ func (as *atomSet) check(ref *GorgeSide, r *realSide, st *AtomStats) *Divergence
 		return &Divergence{What: "atom", Field: name, Detail: fmt.Sprintf("seed %d decision %d obj %v (you %d, source %d): gorge %v kernel %v", st.Seed, st.Decisions, obj, ctx.you, ctx.gs, gv, kv)}
 	}
 	for i, a := range as.fa {
+		if as.skipF[i] {
+			continue
+		}
 		spec := a.GorgeSpec
 		for _, ob := range objs {
 			if a.Ctx&atomZoneList[ob.zi].bit == 0 {
@@ -298,6 +306,9 @@ func (as *atomSet) check(ref *GorgeSide, r *realSide, st *AtomStats) *Divergence
 		}
 	}
 	for i, a := range as.ca {
+		if as.skipC[i] {
+			continue
+		}
 		for _, c := range ctxs {
 			gv := int(effects.EvalCount(g, effects.NewCtxPtr(c.gs, c.you, effects.CtxInit{}), a.GorgeHead))
 			kv := r.s.ProbeValue(as.ps, as.cv[i], c.ks, uint8(c.you))

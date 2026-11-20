@@ -193,8 +193,20 @@ const atomUnprovenFile = "testdata/atomdiff-unproven.txt"
 
 // TestAtomCoverage lists the atoms the seeds leave unproven.
 func TestAtomCoverage(t *testing.T) {
+	// the three seed sets play side by side (a set an earlier test already
+	// played is reused), so the test stays inside one set's minute
+	seeds := map[string]func(*testing.T) *atomSeed{"slices": atomSlices, "synth": atomSynth, "pod": atomPod}
+	t.Run("seeds", func(t *testing.T) {
+		for _, name := range []string{"slices", "synth", "pod"} {
+			f := seeds[name]
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+				atomReport(t, f(t))
+			})
+		}
+	})
 	total := NewAtomStats()
-	for _, f := range []func(*testing.T) *atomSeed{atomSlices, atomSynth, atomPod} {
+	for _, f := range seeds {
 		total.Add(f(t).st)
 	}
 	fa, ca := RegisteredAtoms()

@@ -1,0 +1,7 @@
+count:Count$YourLifeTotal
+fw:Battle
+fw:Card
+fw:Card.EnchantedBy
+fw:Card.EquippedBy
+fw:Card.Historic
+fw:Card.monstrous

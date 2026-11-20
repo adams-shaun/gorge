@@ -1,6 +1,8 @@
 package kgen
 
 import (
+	"sort"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
@@ -49,6 +51,7 @@ func NewAtomCompilerOver(t *kop.Table) *AtomCompiler {
 // Filter lowers the Valid spec as a filter read over zone (kop.ZoneBattlefield
 // for a permanent; a card zone otherwise) and returns its chain's head.
 func (a *AtomCompiler) Filter(spec string, zone kop.Zone) (kop.FilterID, error) {
+	clear(a.cb.pt.missing)
 	f, err := a.lc.filter(spec)
 	if err != nil {
 		return 0, err
@@ -75,6 +78,7 @@ func (a *AtomCompiler) Filter(spec string, zone kop.Zone) (kop.FilterID, error) 
 // VConst reference, a per-object count as VCountFilter (N a filter of Tables),
 // any other computed one as a VExpr over Tables' exprs.
 func (a *AtomCompiler) Count(head string) (kop.ValueRef, error) {
+	clear(a.cb.pt.missing)
 	v, err := a.lc.svarValue(head, 0)
 	if err != nil {
 		return kop.ValueRef{}, err
@@ -86,4 +90,18 @@ func (a *AtomCompiler) Count(head string) (kop.ValueRef, error) {
 // compiler's own; a probe set copies nothing, so lower everything first).
 func (a *AtomCompiler) Tables() ([]kop.Filter, []kop.Expr) {
 	return a.cb.pt.filters, a.cb.pt.exprs
+}
+
+// Missing is the subtype names the last Filter or Count asked for that the
+// table has none of, sorted. A matchup's table keeps only the subtypes some
+// card or filter of its pool needs, so a lowering that names one (Outlaw's
+// five types over a matchup with no Warlock) reads an index no object holds:
+// the kernel cannot answer it over this table, and the caller should skip it.
+func (a *AtomCompiler) Missing() []string {
+	var out []string
+	for w := range a.cb.pt.missing {
+		out = append(out, w)
+	}
+	sort.Strings(out)
+	return out
 }
