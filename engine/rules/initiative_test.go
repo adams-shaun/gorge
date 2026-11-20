@@ -25,9 +25,7 @@ import (
 // missing. api:TakeInitiative itself must never appear here; an entry whose
 // card is now fully supported is stale and fails, and a carrier missing
 // something not listed is a new gap and fails.
-var initiativeExceptionTable = map[string][]string{
-	"Undercellar Sweep": {"count:PlayerCountDefinedTriggeredAttackedTargetAndYou$HasPropertyhasInitiative"},
-}
+var initiativeExceptionTable = map[string][]string{}
 
 // TestTakeInitiativePrimitiveRegisteredForEveryCorpusCarrier walks the corpus
 // for every card whose parsed primitives include api:TakeInitiative and
