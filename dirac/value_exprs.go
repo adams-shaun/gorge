@@ -24,21 +24,15 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExOppsAttacked:
 		return s.exOppsAttacked(x.N, ctx) // value_oppsattacked.go
 	case kop.ExTargetPlayers:
-		// TargetedPlayer$Amount of an opponents-only slot: whether the slot
-		// holds a player (gorge counts the resolution's player targets)
+		// TargetedPlayer$Amount: every player target the slot holds, the first
+		// and each extra object (gorge targetedPlayers; Hollow Marauder counts
+		// the opponents it targets, three at four seats).
 		e := ctx.e
 		i, ok := tgtSlot(x.Ref)
 		if e == nil || !ok {
 			return 0
 		}
-		t := e.tgt[i]
-		if e == &s.res.e {
-			t = s.tgtCode(i)
-		}
-		if isPlayerTarget(t) {
-			return 1
-		}
-		return 0
+		return s.tgtPlayerCount(k, e, uint8(i))
 	case kop.ExScriedThisTurn:
 		return int(s.pl[SeatIx(ctx.ctrl)].scry>>(4*(x.N&1))) & 15 // seat-ok: the scry nibble an operand selects
 	case kop.ExDilemmasFaced:
@@ -324,6 +318,34 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.exprKvf(k, x, ctx) // filter_valueheads.go
 	}
 	panic("kernel: expr kind not implemented")
+}
+
+// tgtPlayerCount counts the player targets of target slot i on entry e: the
+// first and every extra object of a multi-object slot, an illegal one no
+// longer counted (CR 608.2b; the resolving entry's bad mask and xtLegalRes).
+func (s *State) tgtPlayerCount(k *prep, e *stackEntry, i uint8) int {
+	t := e.tgt[i]
+	if e == &s.res.e {
+		t = s.tgtCode(int(i))
+	}
+	n := 0
+	if isPlayerTarget(t) {
+		n++
+	}
+	if e.xi == 0 {
+		return n
+	}
+	xt := s.xtOf(e)
+	for j := 0; j < int(xt.n); j++ {
+		if xt.slot[j] != i || !isPlayerTarget(xt.code[j]) {
+			continue
+		}
+		if e == &s.res.e && !s.xtLegalRes(k, e, j, i) {
+			continue
+		}
+		n++
+	}
+	return n
 }
 
 // oppsLostLife is ExOppsLostLife: the number of p's opponents who lost life

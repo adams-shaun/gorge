@@ -1,6 +1,10 @@
 package kgen
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // forEachOpp reads TargetsForEachPlayer$ True over an opponents-only target
 // filter (Celebrate the Mountain-king, Lich's Relic,
@@ -79,7 +83,7 @@ func (lc *lowerCtx) forEachOpp(ps *params, f *lFilter, t *lTarget) error {
 	}
 	mx, _ := ps.get("TargetMax")
 	mx = strings.TrimSpace(mx)
-	oneEach := lc.oppOneEach(ps) || lc.otherOneEach(ps, f, t.Zone)
+	oneEach := lc.oppOneEach(ps) || lc.otherOneEach(ps, f, t.Zone) || liveOppCount(t.Max)
 	if !oneEach && (!t.Max.isConst() || t.Max.N != 1) {
 		return refuse("TargetsForEachPlayer$ shape %q: TargetMax$ %q", v, mx)
 	}
@@ -95,9 +99,16 @@ func (lc *lowerCtx) forEachOpp(ps *params, f *lFilter, t *lTarget) error {
 	return nil
 }
 
-// oppOneEachMax bounds a OneEach slot: one target for each opponent, at most
-// the three opponents of a four-seat game (dirac MaxSeats-1 <= kop.MaxTargets).
+// oppOneEachMax bounds an opponents' OneEach slot: one target for each
+// opponent, at most the three opponents of a four-seat game (dirac
+// MaxSeats-1 <= kop.MaxTargets).
 const oppOneEachMax = 3
+
+// livingEachMax bounds a "for each player" or living-players slot: one target
+// for each player, at most the four players of a four-seat game (dirac
+// MaxSeats). The kernel's diffCtrlCap clamps it to the distinct controllers
+// among the candidates, so a game with fewer players asks for fewer.
+const livingEachMax = 4
 
 // oppOneEach reports TargetsForEachPlayer$ True | TargetMax$ OneEach over the
 // opponents' count (SVar OneEach PlayerCountOpponents$Amount).
@@ -116,10 +127,10 @@ func (lc *lowerCtx) oppOneEach(ps *params) bool {
 // (engine/effects/targets_ask.go: TgtForEachPlayer, Option.Group), so the
 // choice is a set of at most one permanent per controller. That is the
 // kernel's different-controllers slot (TgfDiffController: no two chosen
-// objects share a controller) whose bound is the living players' count, an
-// "up to" the distinct controllers can never exceed; livingBound (lower.go's
-// addTarget) reads that count as the two seats of the two-player kernel
-// (twoSeat-at-caller: livingBound marks the card).
+// objects share a controller) bounded at the living players a game seats
+// (livingEachMax); diffCtrlCap clamps the live ask to the distinct
+// controllers among the candidates, seat-exact (a two-player game asks at
+// most the two players' one each, as before).
 func (lc *lowerCtx) livingEach(ps *params, f *lFilter, t *lTarget) bool {
 	mn, _ := ps.get("TargetMin")
 	mx, _ := ps.get("TargetMax")
@@ -128,7 +139,35 @@ func (lc *lowerCtx) livingEach(ps *params, f *lFilter, t *lTarget) bool {
 		return false
 	}
 	t.DiffCtrl = true
+	t.Max = cst(livingEachMax)
 	return true
+}
+
+// diffCtrlBound bounds a TargetsWithDifferentControllers$ slot whose printed
+// maximum is the living players' count (TargetMax$ MaxTgt, SVar MaxTgt
+// PlayerCountPlayers$Amount: Cloud's Limit Break, Lagrella, the Magpie) at
+// the players a game seats. The kernel's diffCtrlCap clamps the live ask to
+// the distinct controllers among the candidates, so a two-player game asks at
+// most two, exactly the old constant, and a four-player game up to four;
+// seat-exact.
+func (lc *lowerCtx) diffCtrlBound(t *lTarget) {
+	if !t.DiffCtrl || !livingCount(t.Max) {
+		return
+	}
+	t.Max = cst(livingEachMax)
+}
+
+// liveOppCount reports a target bound that is the living opponents' count
+// (PlayerCountOpponents$Amount): the value the kernel evaluates as the slot
+// is announced (tgtBoundReads' vOppExtreme arm).
+func liveOppCount(v lValue) bool {
+	return v.Kind == vOppExtreme && v.N == kop.OppExtAmount && v.Mul == 0 && v.Div == 0 && v.Add == 0 && !v.Neg && len(v.Sub) == 0
+}
+
+// livingCount reports a target bound that is the living players' count
+// (PlayerCountPlayers$Amount, the opponents' count plus one).
+func livingCount(v lValue) bool {
+	return v.Kind == vOppExtreme && v.N == kop.OppExtAmount && v.Mul == 0 && v.Div == 0 && v.Add == 1 && !v.Neg && len(v.Sub) == 0
 }
 
 // oneEachPerms: the filter targets battlefield permanents only.

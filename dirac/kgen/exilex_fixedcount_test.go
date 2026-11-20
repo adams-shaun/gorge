@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -34,16 +35,17 @@ Oracle:{T}, Exile cards from your graveyard equal to the number of opponents you
 // TestExileXFixedCountLowersAsOneOpponent: an activated ability's
 // ExileFromGrave<X/Spec> whose SVar X is PlayerCountOpponents$Amount (Araumi
 // of the Dead Tide) is a fixed count in gorge (pay.FixLifeXCost drops the
-// announcement), so it lowers as CostExileGrave of one card on a two-seat
-// card, not the announced N 0 form. Any other non-xPaid SVar and the xPaid
-// announcement on an activated ability stay refused.
+// announcement), so it lowers as CostExileGrave with the live opponent count
+// (kop.ExileGraveLiveCount), not the announced N 0 form and not a two-seat
+// constant. Any other non-xPaid SVar and the xPaid announcement on an
+// activated ability stay refused.
 func TestExileXFixedCountLowersAsOneOpponent(t *testing.T) {
 	lc := exileXFixedLower(t, strings.Replace(exileXFixedCard, "%s", "PlayerCountOpponents$Amount", 1))
 	if len(lc.Refusals) != 0 {
 		t.Fatalf("refused: %v", lc.Refusals)
 	}
-	if !lc.TwoSeat {
-		t.Error("the opponents' count read as one must mark the card two-seat")
+	if lc.TwoSeat {
+		t.Errorf("the live opponents' count must not mark the card two-seat: %v", lc.TwoSeatWhy)
 	}
 	var c *lCost
 	for i := range lc.Abilities {
@@ -54,8 +56,8 @@ func TestExileXFixedCountLowersAsOneOpponent(t *testing.T) {
 	if c == nil {
 		t.Fatal("no activated ability lowered")
 	}
-	if c.ExileG == nil || c.ExileGN != 1 || c.ExileGX {
-		t.Errorf("cost = ExileG %v N %d X %v, want the fixed one-card exile", c.ExileG != nil, c.ExileGN, c.ExileGX)
+	if c.ExileG == nil || c.ExileGN != kop.ExileGraveLiveCount || c.ExileGX {
+		t.Errorf("cost = ExileG %v N %d X %v, want the live opponent-count exile", c.ExileG != nil, c.ExileGN, c.ExileGX)
 	}
 
 	for _, body := range []string{"Count$ValidGraveyard Card.YouOwn", "Count$xPaid", "PlayerCountPlayers$Amount"} {
