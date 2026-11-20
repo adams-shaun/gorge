@@ -459,6 +459,8 @@ type castPlanPipsWindow interface {
 	manaProductionAltered(id state.ObjID, ma *cards.SA) bool
 	convokeCommitted(pc *pendingCast, id state.ObjID) bool
 	castWindowProbeAbilities(p state.PlayerID, id state.ObjID) []*cards.SA
+	manaAbilityCC(p state.PlayerID, id state.ObjID, ma *cards.SA) *compiledCost
+	paidCostShape(p state.PlayerID, id state.ObjID, cost Cost, life int32) (int32, bool)
 	castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc pay.Descriptor) bool
 	castWindowAmount(p state.PlayerID, source state.ObjID, o *state.Object, ma *cards.SA) (int32, bool)
 	castWindowIdentityCounts(p state.PlayerID) (counts [6]int32)
@@ -475,7 +477,9 @@ type castPlanPipsWindow interface {
 //
 // The plan's activations tap their sources and float their mana, and the
 // window then offers every remaining source (castWindowUnits). The check
-// starts from the plan's production and omits the sources it already used,
+// starts from the plan's production and omits the sources it already used
+// (a source the activation sacrificed is gone; one that survives can still
+// take its no-tap self-sacrifice second activation, castWindowUsedExtras),
 // exactly as the lowering executes. An incomplete census cannot prove the
 // play unpayable, so it keeps the plan (fail open) -- unless even the ceiling
 // of what its unpriced sources could add falls short of the cost's floor at
@@ -488,20 +492,24 @@ func castPlanPipsOutcome(w castPlanPipsWindow, p state.PlayerID, cost Cost, pc *
 	}
 	units := w.castWindowUnits(pc)
 	complete := w.castWindowCensusComplete(pc, units)
-	var unpriced int32
-	var bounded bool
-	if !complete {
-		unpriced, bounded = castWindowUnpricedReach(w, pc, units)
-	}
 	used := make(map[state.ObjID]bool, len(out.Plan.Activations))
+	sacrificed := make(map[state.ObjID]bool, len(out.Plan.Activations))
 	var produced state.Mana
 	for _, a := range out.Plan.Activations {
 		used[a.Source] = true
+		if a.Consequence != nil && a.Consequence.Sacrifice {
+			sacrificed[a.Source] = true
+		}
 		for i := range produced {
 			produced[i] += int32(a.Produces[i])
 		}
 	}
-	kept := units[:0]
+	var unpriced int32
+	var bounded bool
+	if !complete {
+		unpriced, bounded = castWindowUnpricedReach(w, pc, units, used, sacrificed)
+	}
+	kept := make([]windowManaUnit, 0, len(units))
 	for _, u := range units {
 		if !used[u.ID] {
 			kept = append(kept, u)
@@ -512,7 +520,8 @@ func castPlanPipsOutcome(w castPlanPipsWindow, p state.PlayerID, cost Cost, pc *
 			if floor := castPipsManaFloor(&cost, life); floor >= 0 {
 				// Snow and typed are PROVENANCE, not additional mana: they
 				// partition the same floating pool Pool already carries.
-				have := int64(pool.Total()+produced.Total()) + int64(castWindowUnitsReach(kept)) + int64(unpriced)
+				have := int64(pool.Total()+produced.Total()) + int64(castWindowUnitsReach(kept)) +
+					int64(castWindowUsedExtras(units, used, sacrificed)) + int64(unpriced)
 				if have < floor {
 					return PaymentPlanOutcome{Reason: "insufficient", Detail: "phyrexian_window"}
 				}
@@ -530,6 +539,25 @@ func castPlanPipsOutcome(w castPlanPipsWindow, p state.PlayerID, cost Cost, pc *
 		return out
 	}
 	return PaymentPlanOutcome{Reason: "insufficient", Detail: "phyrexian_window"}
+}
+
+// castWindowUsedExtras is the ceiling's second-activation term for a source
+// the plan already activated: one the activation left on the battlefield can
+// still take the no-tap self-sacrifice activation the window records as an
+// Extra (CR 602.2b, 605.1a; castWindowUnitsReach counts a kept unit's Extras).
+// Omitting them under-counts a window the plan's own sources can still pay,
+// which withholds a payable cast; one the activation sacrificed is gone.
+func castWindowUsedExtras(units []windowManaUnit, used, sacrificed map[state.ObjID]bool) int32 {
+	total := int32(0)
+	for _, u := range units {
+		if !used[u.ID] || sacrificed[u.ID] {
+			continue
+		}
+		for _, a := range u.Extras {
+			total += max(0, a.Mana().Total())
+		}
+	}
+	return total
 }
 
 // castPipsManaFloor is the least mana a payment of cost can spend at life:

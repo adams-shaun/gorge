@@ -706,10 +706,13 @@ func castWindowProbeCeiling(w castPlanPipsWindow, p state.PlayerID, id state.Obj
 // false when the incompleteness is not confined to those sources (a hand or
 // graveyard source, tap interference, an altered production) or an unpriced
 // ability's amount cannot be resolved; the caller must then keep the
-// historical fail-open. Each unpriced source sums every probe ability, an
-// over-estimate (one permanent's tap uses one ability), which keeps the bound
-// an upper one.
-func castWindowUnpricedReach(w castPlanPipsWindow, pc *pendingCast, units []windowManaUnit) (reach int32, bounded bool) {
+// historical fail-open. A source the plan already activated is not priced
+// again -- its main production is already in the plan's sum -- so only its
+// surviving no-tap self-sacrifice second activation is added. Each unpriced
+// source sums every (surviving) probe ability, an over-estimate (one
+// permanent's tap uses one ability), which keeps the bound an upper one.
+func castWindowUnpricedReach(w castPlanPipsWindow, pc *pendingCast, units []windowManaUnit,
+	used, sacrificed map[state.ObjID]bool) (reach int32, bounded bool) {
 	p := pc.player
 	for _, z := range []state.Zone{state.ZHand, state.ZGraveyard} {
 		for _, id := range w.Game().Zone(z, p) {
@@ -747,6 +750,25 @@ func castWindowUnpricedReach(w castPlanPipsWindow, pc *pendingCast, units []wind
 		if len(probe) == 0 || !w.castWindowSourceExcluded(p, id, desc) {
 			continue
 		}
+		if used[id] {
+			if sacrificed[id] {
+				continue
+			}
+			for _, ma := range probe {
+				if !castWindowNoTapSelfSac(w, p, id, ma) {
+					continue
+				}
+				if w.manaProductionAltered(id, ma) {
+					return 0, false
+				}
+				n, ok := castWindowProbeCeiling(w, p, id, ma)
+				if !ok {
+					return 0, false
+				}
+				reach += n
+			}
+			continue
+		}
 		for _, ma := range probe {
 			if w.manaProductionAltered(id, ma) {
 				return 0, false
@@ -759,6 +781,26 @@ func castWindowUnpricedReach(w castPlanPipsWindow, pc *pendingCast, units []wind
 		}
 	}
 	return reach, true
+}
+
+// castWindowNoTapSelfSac reports whether probe ability ma of id is the
+// no-tap self-sacrifice shape castWindowProbeUnits records as an Extras
+// second activation: paidCostShape's deterministic self-sacrifice arm with no
+// tap in the cost (a tap+self-sacrifice is the one-shot activation itself,
+// and the fee shape is an ordinary alternative, never an Extra). The check is
+// shape-only, so it can admit a sacrifice a static blocks; that over-estimate
+// keeps the ceiling an upper bound.
+func castWindowNoTapSelfSac(w castPlanPipsWindow, p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
+	o := w.Game().Obj(id)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	cost := w.manaAbilityCC(p, id, ma).Cost
+	if cost.Tap || castWindowPayLifeCost(cost) {
+		return false
+	}
+	_, ok := w.paidCostShape(p, id, cost, w.Game().Players[p].Life)
+	return ok
 }
 
 // castWindowRestrictedAdmits reports whether a source priced by its plain mana
