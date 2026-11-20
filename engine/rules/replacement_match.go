@@ -994,7 +994,7 @@ func (e *Engine) replacementConditionHoldsWith(r cards.Repl, source state.ObjID,
 			return false
 		}
 	}
-	if spec, ok := r.Param(cards.PKCheckDefinedPlayer); ok && !e.checkDefinedPlayerHolds(spec, source, you) {
+	if spec, ok := r.Param(cards.PKCheckDefinedPlayer); ok && !e.checkDefinedPlayerHolds(spec, source, you, nil) {
 		// The trigger gate's one evaluator (Jared Carthalion's "while you're
 		// the monarch"); an unreadable predicate fails closed.
 		return false
