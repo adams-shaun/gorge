@@ -16,12 +16,14 @@ func (s *State) tapForTry(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 }
 
 // tapForSpellPlain taps the plain cast's sources for cost and reports true when
-// it reversed the cast instead. A card with "costs {1} more for each target
-// beyond the first" (Fireball) has the targets chosen after the X was announced
-// raise the price past what the sources make: CR 601.2c lets the player choose
-// any number of targets and 601.2h finds the cost unpayable afterwards, so the
-// cast is reversed (CR 733.1) where the plan would find none. Every other cast
-// keeps tapForRider and its panic, for a cost the offer priced.
+// it reversed the cast instead. The offer can price a cost the planner's census
+// does not witness: an X announced against the CR 601.2g window (availXWindow)
+// and a first-only filter's fee the window pays (filtMaxX, CR 605.3b), or a
+// per-target raise charged after the targets (CR 601.2c, 601.2h). Gorge leaves
+// an announced X to that window (pay.PlanCostDetail "cost:x"), so the planner
+// is asked first (an ordinary cost keeps its planner witness) and the window
+// pays only when it has none. A payment neither reaches is reversed (CR 733.1)
+// rather than panicking.
 func (s *State) tapForSpellPlain(k *prep, e *stackEntry, cost *kop.ManaCost, anyColor bool, saved *[len(build{}.picks)]uint8) bool {
 	// the planner arms tap for what the admitted restricted mana leaves
 	// (pay.PlanPool); the caller hands us the unshortened cost, because the
@@ -48,14 +50,10 @@ func (s *State) tapForSpellPlain(k *prep, e *stackEntry, cost *kop.ManaCost, any
 		}
 		return false
 	}
-	if s.raisePerTargetCharge(e.card, e.ctrl) == 0 {
-		s.tapForRider(k, e.ctrl, &short, int(e.x), e.obj, anyColor)
-		return false
-	}
 	if s.tapForTry(k, e.ctrl, &short, int(e.x), e.obj, anyColor) {
 		return false
 	}
-	// the planner has no witness for the taxed cost: the CR 601.2g window pays it when its sources do
+	// the planner has no witness for the cost: the CR 601.2g window pays it when its sources do
 	// (a filter funded by the floating mana, castWindowReachable), and only then is the cast reversed
 	c := xFolded(*cost, int(e.x))
 	if ok, _ := s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, s.bld().pipN == 0, false); ok || s.winPaused() {
