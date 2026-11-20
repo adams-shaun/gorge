@@ -314,24 +314,6 @@ func (s *State) blgStall(k *prep, sl Slot, c CardID) {
 	}
 }
 
-// blgGrantCovers reports whether the mana ability granted to slot sl (grant gi)
-// already makes every colour the granted basic land types give it: a plain
-// unrestricted "{T}: Add {G}" under Ashaya's Forest, whose intrinsic "{T}: Add
-// {G}" (CR 305.6) is the same production. gorge lists both abilities and the
-// window takes the first (CR 605.3b), so the one granted view prices the source
-// exactly; any other pairing (a different colour, several colours, two mana)
-// offers two productions and stays a StallLandGrant.
-//
-//go:noinline
-func (s *State) blgGrantCovers(k *prep, sl Slot, gi int16) bool {
-	g := k.gen
-	pc := &g.grantPC[gi]
-	m := s.blgMask(k, sl)
-	return !g.grantSelf[gi] && g.grantRestr[gi] == 0 && m != 0 && pc.manaCol&0x3f == m && bits.OnesCount8(uint8(m)) == 1 &&
-		pc.manaN == 1 && pc.manaTap && !pc.manaMulti && !pc.manaChosen && !pc.manaFixedChosen && !pc.manaDyn && !pc.manaOne &&
-		pc.painCol == 0 && !pc.ctrMana && !pc.manaSac && !pc.manaSacOnly
-}
-
 // hybStrand is tapForHyb's stranded window. On a table with a basic land type
 // grant, a granted source answers its printed ability first (gorge's announced
 // window lists its abilities in order and the oracle's payWindowAnswer takes

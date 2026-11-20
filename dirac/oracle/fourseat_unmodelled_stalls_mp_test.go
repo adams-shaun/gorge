@@ -51,19 +51,3 @@ func TestFourSeatRunAwayTogetherCommanderBounceSecondLockstep(t *testing.T) {
 	}
 	fourSeatNoStall(t, "run_away_together_commander_bounce_second_four_seat_pod", 956)
 }
-
-// Ashaya, Soul of the Wild makes nontoken creatures Forest lands, so each gains
-// the intrinsic "{T}: Add {G}" (CR 305.6). A creature also granted a plain
-// "{T}: Add {G}" (another static) has two abilities making the same mana; gorge
-// lists both and the window takes the first (CR 605.3b), so the one granted view
-// prices it exactly. The kernel stalled (StallLandGrant) on any granted ability
-// beside a granted type; blgGrantCovers lets this case through.
-
-// TestFourSeatAshayaCreatureGrantedGLockstep: no stall at the Forest creature
-// with a granted {G} ability.
-func TestFourSeatAshayaCreatureGrantedGLockstep(t *testing.T) {
-	if isolate(t) {
-		return
-	}
-	fourSeatNoStall(t, "ashaya_forest_creature_granted_g_four_seat_pod", 2932)
-}
