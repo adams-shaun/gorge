@@ -42,6 +42,7 @@ Fear of Lost Teeth	23aa4fe42424dbe7	4	1/1		0/1	ix:resp
 Fear of Missing Out	9ea2881f7b5096dc	4	2/2		0/1	ix:resp
 Fear of Surveillance	0e8019863212e809	8	1/1		0/1	ix:resp
 Final Vengeance	5a59d3f6fb567fe9	4	0/0		1/2	ix:resp
+Flesh Burrower	e419a60a4b413485	4	1/1		0/1	ix:resp
 Forest	6d0466c30f825dba	63	1/1		0/1	ix:resp
 Found Footage	0e1f873c65551f8f	5	1/1		0/1	ix:resp
 Frantic Strength	ee92078e7f258344	4	0/0		1/2	ix:resp
@@ -83,8 +84,10 @@ Neglected Manor	7683b951635e381e	3	1/1		0/1	ix:resp
 Norin, Swift Survivalist	a31917a3160b5c56	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Overlord of the Balemurk	8846f417c01f8d51	4	2/2		1/3	cast/alt:none,ix:resp
 Overlord of the Boilerbilges	8ef1c2a03d1c7503	5	2/2		2/3	ix:resp
+Overlord of the Floodpits	a875a526978b75c1	4	2/2		2/3	ix:resp
 Paranormal Analyst	529a60bc4917151f	5	1/1		0/1	ix:resp
 Patched Plaything	86609f02c8d3e66c	5	0/0		0/0	
+Patchwork Beastie	15ad1148de7b01a3	6	1/1		0/1	ix:resp
 Peculiar Lighthouse	8ef3cfa1a24408b3	4	1/1		0/1	ix:resp
 Peer Past the Veil	4dbd3d6503780b1c	4	0/0		1/2	ix:resp
 Piggy Bank	18db8ef80ae56f27	4	1/1		0/1	ix:resp
@@ -93,6 +96,7 @@ Plains	82d63a695487e567	44	1/1		0/1	ix:resp
 Popular Egotist	86462a29c5698d5b	3	2/2		1/1	
 Pyroclasm	2a83a3795de80e5f	4	0/0		1/2	ix:resp
 Rampaging Soulrager	017e76c0d50be8ac	4	0/0		0/0	
+Raucous Carnival	aca729fd959c4e61	4	1/1		0/1	ix:resp
 Razorkin Hordecaller	d61f74d592c99622	4	1/1		1/1	
 Razorkin Needlehead	4a508afe3e1a1104	6	1/1		0/1	ix:resp
 Razortrap Gorge	63886ad147e81fa6	13	1/1		0/1	ix:resp
@@ -100,6 +104,7 @@ Restricted Office	777532fb671de4e0	4	1/1		0/1	ix:resp
 Ripchain Razorkin	b6877ab3c7aa8b71	4	1/1		1/1	
 Rite of the Moth	ca656f9e41fe8d18	3	0/0		3/4	ix:resp
 Roaring Furnace	f82661e2c3d0e1d7	4	2/2		0/1	ix:resp
+Rootwise Survivor	bb116a7940349554	6	1/1		0/1	ix:resp
 Savior of the Small	4d786340739ab83d	4	1/1		0/1	ix:resp
 Saw	871edee900abd90e	5	2/2		0/1	ix:resp
 Scorching Dragonfire	adc834b32cb69f21	3	0/0		1/2	ix:resp
@@ -107,8 +112,10 @@ Seized from Slumber	154c9a0e3197acb4	3	0/0		1/2	ix:resp
 Sheltered by Ghosts	dd4ac65e51635908	4	1/1		1/2	ix:resp
 Shrewd Storyteller	a1f7418d52385b3f	4	1/1		0/1	ix:resp
 Shroudstomper	c5687fa4e9c9dc61	3	2/2		0/1	ix:resp
+Silent Hallcreeper	5d4598b0031afae9	3	1/1		0/1	ix:resp
 Smoky Lounge	7ecc574e897abdc8	4	2/2		0/1	ix:resp
 Splitskin Doll	9565d946514b0916	4	1/1		0/1	ix:resp
+Stay Hidden, Stay Silent	bb9f57d6e866a3ac	4	2/2		1/2	ix:resp
 Strangled Cemetery	022ac16aeae341c9	4	1/1		0/1	ix:resp
 Surgical Suite	c98270f9328cd591	4	2/2		0/1	ix:resp
 Swamp	342b413902f441c3	47	1/1		0/1	ix:resp
@@ -121,6 +128,7 @@ Tunnel Surveyor	813afd70141fc821	4	1/1		0/1	ix:resp
 Turn Inside Out	733324a44405ebe8	4	0/0		1/2	ix:resp
 Unable to Scream	dd571358e095685f	3	0/0		1/2	ix:resp
 Undead Sprinter	66c6ff777de6637f	5	0/0		0/0	
+Underwater Tunnel	7a38578782a69930	4	2/2		0/1	ix:resp
 Unnerving Grasp	330b4d11c652cc64	4	0/0		1/2	ix:resp
 Unsettling Twins	68e6f8f242edb1df	4	1/1		0/1	ix:resp
 Untimely Malfunction	9e98f272a3df51e0	4	0/0		1/2	ix:resp
@@ -129,8 +137,10 @@ Valgavoth's Lair	f599fdf015575949	4	1/1		0/1	ix:resp
 Vanish from Sight	7150390cced0b929	3	0/0		1/2	ix:resp
 Vengeful Possession	1cde54610e118afd	4	0/0		1/2	ix:resp
 Veteran Survivor	98914fac917ff874	4	1/1		0/1	ix:resp
+Vicious Clown	c4e1a5cdba956bd3	4	1/1		0/1	ix:resp
 Vile Mutilator	c30745bdcf422ae5	3	1/1		2/2	
 Waltz of Rage	15d31221e32b924c	4	0/0		1/2	ix:resp
 Wary Watchdog	030c0d8a0e3ef1aa	4	2/2		0/1	ix:resp
+Wickerfolk Thresher	67b32552af389965	4	1/1		0/1	ix:resp
 Wildfire Wickerfolk	252aefec031ce2ab	4	0/0		0/0	
 Withering Torment	259059f284ea5be2	6	0/0		1/2	ix:resp

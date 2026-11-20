@@ -580,7 +580,6 @@ Blight Keeper
 Blight Mound
 Blight Rot
 Blight Titan
-Blightbeetle
 Blightbelly Rat
 Blighted Blackthorn
 Blighted Woodland
@@ -829,7 +828,6 @@ Carrier Pigeons
 Carrion
 Carrion Call
 Carrion Cruiser
-Carrion Feeder
 Carrion Locust
 Carrion Thrash
 Carven Caryatid
@@ -1246,7 +1244,6 @@ Dawnhand Dissident
 Dawnhand Eulogist
 Dawnsire, Sunstar Dreadnought
 Dawnstrike Vanguard
-Dawntreader Elk
 Daxos the Returned
 Day of the Dragons
 Day's Undoing
@@ -1588,7 +1585,6 @@ Eject the Warp Core
 Ekundu Griffin
 El-Hajjâj
 Elaborate Firecannon
-Elda, Conjurer of Spectacle
 Elder Auntie
 Elder Spawn
 Elder of Laurels
@@ -1719,7 +1715,6 @@ Errand-Rider of Gondor
 Errant Doomsayers
 Ertai, Wizard Adept
 Ertai, the Corrupted
-Escape Tunnel
 Esgaroth Garrison
 Eshki Dragonclaw
 Esika's Chariot
@@ -1759,7 +1754,6 @@ Exhibition Magician
 Exhibition Tidecaller
 Exocomp
 Exosuit Savior
-Exotic Orchard
 Expedited Inheritance
 Expel the Interlopers
 Expendable Troops
@@ -1860,11 +1854,9 @@ Feed the Cauldron
 Feed the Cycle
 Feed the Flames
 Feed the Infection
-Feign Death
 Feisty Spikeling
 Feldon, Ronom Excavator
 Felhide Spiritbinder
-Fell
 Fell Horseman
 Felonious Rage
 Felothar the Steadfast
@@ -2428,7 +2420,6 @@ Hardened Tactician
 Hardlight Containment
 Hardy Veteran
 Harmonious Grovestrider
-Harmonize
 Harmonized Crescendo
 Harmonized Trio
 Harness Infinity
@@ -2518,7 +2509,6 @@ Hexhaven Invigorator
 Hexing Squelcher
 Hexmark Destroyer
 Hexplate Golem
-Hickory Woodlot
 Hide on the Ceiling
 High Market
 High Noon
@@ -2913,7 +2903,6 @@ Kavaron Turbodrone
 Kavaron, Memorial World
 Kavu Mauler
 Kavu Monarch
-Kaya's Ghostform
 Kaya, Spirits' Justice
 Kazandu Nectarpot
 Kazandu Stomper
@@ -3954,7 +3943,6 @@ Parting Gust
 Party Dude
 Passenger Ferry
 Patchwork Banner
-Patchwork Beastie
 Patchwork Gnomes
 Path to Exile
 Patient Instructor
@@ -4303,7 +4291,6 @@ Rat Out
 Ratcatcher Trainee
 Rathi Dragon
 Rattleback Apothecary
-Raucous Carnival
 Raucous Entertainer
 Raucous Theater
 Ravager's Mace
@@ -4538,7 +4525,6 @@ Rootrider Faun
 Rootwater Commando
 Rootwater Hunter
 Rootwater Mystic
-Rootwise Survivor
 Rope
 Rorix Bladewing
 Rot Farm Mortipede
@@ -4590,7 +4576,6 @@ Rydia, Summoner of Mist
 SP//dr, Piloted by Peni
 Saavik, Stoic Student
 Sab-Sunen, Luxa Embodied
-Saber Ants
 Saber-Tooth Moose-Lion
 Sabotage Strategist
 Sacred Foundry
@@ -4893,7 +4878,6 @@ Shriek of Dread
 Shriek, Treblemaker
 Shrine of Loyal Legions
 Shrine of Piercing Vision
-Shroofus Sproutsire
 Shrouded Serpent
 Shrouded Shepherd
 Shu Yun, the Silent Tempest
@@ -5299,7 +5283,6 @@ Stasis Cell
 Statecraft
 Static Snare
 Station Monitor
-Stay Hidden, Stay Silent
 Steadfast Guard
 Steal the Show
 Stealth Mission
@@ -6052,7 +6035,6 @@ Underground Mortuary
 Underground River
 Undergrowth Leopard
 Undergrowth Recon
-Underwater Tunnel
 Undulating Witness
 Uneasy Alliance
 Uneasy Partings
@@ -6190,7 +6172,6 @@ Vibrance
 Vibrant Cityscape
 Vibrant Outburst
 Vic Fontaine, One Night Only
-Vicious Clown
 Vicious Rivalry
 Victor Mancha, Runaway
 Victor Timely, Wily Tycoon
@@ -6217,7 +6198,6 @@ Virtue of Courage
 Virtue of Knowledge
 Virtue of Loyalty
 Virtue of Persistence
-Virtue's Ruin
 Virulent Silencer
 Viscerid Armor
 Vitalizing Cascade
@@ -6507,7 +6487,6 @@ You See a Guard Approach
 Your Fate Ends Here
 Youthful Knight
 Youthful Scholar
-Youthful Valkyrie
 Yuan-Ti Scaleshield
 Yuna, Hope of Spira
 Yuriko, Hope from the Shadows

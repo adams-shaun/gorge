@@ -23,9 +23,11 @@ Axgard Armory
 Banish from Edoras
 Barbed Batterfist
 Bazaar Trademage
+Blade Banish
 Blade Splicer
 Blasted Landscape
 Blood Age General
+Blood Rites
 Bloodcrusher of Khorne
 Bloodfire Colossus
 Blue Sun's Zenith
@@ -49,6 +51,7 @@ Channel the Suns
 Chaotic Goo
 Charging Monstrosaur
 Chatter of the Squirrel
+Cloak of Feathers
 Clot Sliver
 Cloud Elemental
 Cloudchaser Kestrel
@@ -82,6 +85,7 @@ Duskhunter Bat
 Dwarven Warriors
 Dwell on the Past
 Eastfarthing Farmer
+Eidolon of Countless Battles
 Elite Scaleguard
 Elspeth Tirel
 Elvish Eulogist
@@ -114,6 +118,7 @@ Fourth Bridge Prowler
 Frogtosser Banneret
 Frontline Devastator
 Frostweb Spider
+Gaea's Embrace
 Geier Reach Sanitarium
 Genasi Enforcers
 Ghastly Demise
@@ -136,6 +141,7 @@ Hallowed Healer
 Hasran Ogress
 Haunted Cloak
 Heart Sliver
+Heliod's Pilgrim
 Heroic Charge
 Hold the Line
 Hollowhenge Overlord
@@ -148,6 +154,7 @@ Hysterical Blindness
 Idle Thoughts
 Ifnir Deadlands
 Ignition Team
+Inferno
 Into Thin Air
 Into the Maw of Hell
 Invasion of Segovia
@@ -197,6 +204,7 @@ Mirrodin Avenged
 Mirror Image
 Mistcutter Hydra
 Misthios's Fury
+Mistmeadow Skulk
 Monstrous Hound
 Morbid Bloom
 Mortician Beetle
@@ -206,6 +214,7 @@ Multiversal Recruitment
 Mystic Restraints
 Nephalia Smuggler
 Night Scythe
+Nimbus of the Isles
 Nocturnal Raid
 Nymris, Oona's Trickster
 Nyxborn Marauder
@@ -234,9 +243,11 @@ Purifying Dragon
 Pygmy Pyrosaur
 Quicksilver Dagger
 Radiant Fountain
+Raging Spirit
 Raiding Nightstalker
 Rakka Mar
 Rakshasa's Secret
+Rampaging Monument
 Ranger Class
 Ravenous Harpy
 Raving Oni-Slave

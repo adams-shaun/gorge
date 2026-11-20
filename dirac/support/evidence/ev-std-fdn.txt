@@ -369,6 +369,7 @@ Reclamation Sage
 Redcap Gutter-Dweller
 Refute
 Regal Caracal
+Release the Dogs
 Resolute Reinforcements
 Revenge of the Rats
 Rise of the Dark Realms
@@ -467,6 +468,7 @@ Three Tree Mascot
 Thrill of Possibility
 Time Stop
 Tinybones, Bauble Burglar
+Tolarian Terror
 Tragic Banshee
 Tranquil Cove
 Treetop Snarespinner
@@ -508,6 +510,7 @@ Wilt-Leaf Liege
 Wind-Scarred Crag
 Wishclaw Talisman
 Witness Protection
+Youthful Valkyrie
 Zetalpa, Primal Dawn
 Zimone, Paradox Sculptor
 Zombify
