@@ -532,7 +532,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		if mc, ok := mayflashExtraCost(f); ok {
 			cost = cost.Plus(mc)
 		}
-	case castModeEmerged:
+	case castModeEmerged, castModeOffering:
 		// Emerge (CR 702.118a): the emerge cast pays the printed K:Emerge cost
 		// in place of the mana cost AND sacrifices a creature, whose mana
 		// value reduces the cost. The reduction is NOT applied here -- the
@@ -543,7 +543,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// gone falls back to the empty cost like the keyword family above, and
 		// without the Sac part the cast is an ordinary (over-charged) emerge;
 		// the offer gate only ever routes here with the keyword present.
-		if ec, ok := emergeBase(f); ok {
+		if ec, ok := sacReducedBase(f, cost, castModeCodes.Code(opt.Mode)); ok {
 			cost = ec
 		} else {
 			cost = Cost{}
@@ -1240,7 +1240,7 @@ func (e *Engine) continueCast() {
 	// Emerge's sacrifice (CR 702.118a) reduces the total cost (601.2f), so it
 	// is announced before the targets like the other reductions. Every other
 	// cost object is chosen at payment (costObjectAsks, CR 601.2h).
-	if pc := e.cast; pc != nil && pc.emerge && e.sacAsk() {
+	if pc := e.cast; pc != nil && reducesBySac(pc) && e.sacAsk() {
 		return
 	}
 	// Suspend does not put a spell on the stack: its alternate action pays
@@ -1384,6 +1384,7 @@ const (
 	castModeMorphed
 	castModeMayflash
 	castModeEmerged
+	castModeOffering
 	castModeLand
 	castModeOptionalcost
 	castModeCleaved
@@ -1432,6 +1433,7 @@ var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
 	state.StrEntry[castModeCode]{Key: "disguised", Val: castModeMorphed},
 	state.StrEntry[castModeCode]{Key: "mayflash", Val: castModeMayflash},
 	state.StrEntry[castModeCode]{Key: "emerged", Val: castModeEmerged},
+	state.StrEntry[castModeCode]{Key: "offering", Val: castModeOffering},
 	state.StrEntry[castModeCode]{Key: "land", Val: castModeLand},
 	// The optional additional-cost cast variant (engine/rules/legal_walk_hand.go's
 	// and legal_walk_alt.go's spellScope("optionalcost")). The mode's

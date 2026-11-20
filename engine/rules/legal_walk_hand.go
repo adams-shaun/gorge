@@ -341,6 +341,11 @@ func (w *legalWalk) handWalk() {
 				}
 			}
 		}
+		// Offering (CR 702.48a) is instant speed, so it sits ABOVE the
+		// sorcery-speed timing gate (like Sneak); see offering.go.
+		if ph.has(phOffering) {
+			offerOffering(w, p, id, f)
+		}
 		if !w.spellTimingOK(p, id, f, sorcery) {
 			// Quantum Reduction's permission is offered only with Teamwork.
 			teamworkFlashOffer(w, id, f)
@@ -685,22 +690,10 @@ func (w *legalWalk) handWalk() {
 		if ph.has(phMorph | phMegamorph | phDisguise) {
 			w.appendFaceDownCast(p, id, f, sorcery)
 		}
-		// Emerge (CR 702.118a): "cast this spell by sacrificing a creature and
-		// paying the emerge cost reduced by that creature's mana value". It is
-		// a casting option, but NOT a plain substitution -- the cast sacrifices
-		// a creature AND the cost is reduced by its mana value -- so it does
-		// not ride the keyword family above. emergeOfferCost composes the
-		// printed K:Emerge cost with the mandatory Sac<1/Creature> part,
-		// priced separately for each sacrifice candidate. sacAsk permits only
-		// candidates whose own reduced cost remains payable. Unsupported printed
-		// cost shapes are withheld; the plain cast remains unaffected.
+		// Emerge (CR 702.118a): a casting option that is not a plain
+		// substitution; see emerge.go's offerEmerge.
 		if ph.has(phEmerge) {
-			if _, ok := e.emergeOfferCost(p, id, f, func(c Cost) bool {
-				return w.offerCastable(p, id, c, spellScope("emerged"), false)
-			}); ok && targetsAvailable() {
-				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-					Label: "Cast " + f.Name + " (emerged)", Obj: id, Mode: "emerged"})
-			}
+			offerEmerge(w, p, id, f, targetsAvailable)
 		}
 		// Bestow (CR 702.114a): the bestowed cast is its own "cast" option
 		// paying the bestow cost in place of the mana cost, and the spell is

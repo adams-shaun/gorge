@@ -1050,7 +1050,7 @@ func (e *Engine) sacAsk() bool {
 					break
 				}
 			}
-			if !already && (!pc.emerge || pc.SacPart != 0 || e.emergeSacPayable(pc, oid)) {
+			if !already && (!reducesBySac(pc) || pc.SacPart != 0 || e.emergeSacPayable(pc, oid)) {
 				candidates = append(candidates, oid)
 			}
 		}
@@ -1175,6 +1175,7 @@ func (e *Engine) sacAsk() bool {
 	// payment read it. Idempotent through pc.emergeDone, so the re-entries a
 	// suspended mana window makes cannot subtract twice.
 	e.applyEmergeReduction(pc)
+	applyOfferingReduction(e.G, pc)
 	return false
 }
 
