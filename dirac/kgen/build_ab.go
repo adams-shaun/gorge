@@ -2290,8 +2290,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		// Ground Seal's class (lower_canttarget.go): every card in every
 		// graveyard untargetable (kw_canttgtgrave.go). No operands.
 		st.Kind = kop.StatCantTgtGrave
-	case "CantTarget":
-		st.Kind = kop.StatCantTarget // lower_canttarget.go
+	case "CantTarget", "MustTarget":
+		st.Kind = targetStaticKind(s.Kind) // lower_canttarget.go, static_musttarget.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}

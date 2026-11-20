@@ -126,6 +126,8 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 			n = s.uniqueChainViable(k, ti, &buf, n) // tgt_uniquechain.go
 		}
 	}
+	mustDone := true
+	n, mustDone = s.mustTargetMulti(k, e, t, ti, mt, &buf, n)
 	if n == 0 && mt.picked < mt.max && mt.picked >= mt.min && mt.picked > 0 {
 		// below the maximum with nothing left to target: gorge still asks,
 		// done only (with nothing to target at all a zero-minimum slot asks
@@ -158,7 +160,7 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 	for i := 0; i < n; i++ {
 		d.add(MakeAction(AkTarget, 0, buf[i], 0))
 	}
-	doneOK := mt.picked >= mt.min
+	doneOK := mustTargetDone(mt.picked, mt.min, mustDone)
 	if doneOK && mt.picked == 0 && mt.min == 0 && e.kind == seSpell && e.flags&(sfMayPlay|sfFlashback) == 0 {
 		doneOK = s.emptyTargetSetPayable(k)
 	}
