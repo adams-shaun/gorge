@@ -63,7 +63,10 @@ func (s *State) impStoreHas(src, o Obj, origin kop.Zone) bool {
 		e = &s.res.e
 	}
 	r := s.cold.objSets
-	for i := 0; i < s.osLen(); i++ {
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
 		rec := &r[i]
 		if rec.src != src || !rec.inKinds(osMImp) || !s.osLiveFor(rec, e) {
 			continue
@@ -221,7 +224,10 @@ func (s *State) impSeedOnResolve(k *prep, e *stackEntry) {
 // battlefield entry.
 func (s *State) impSeed(e *stackEntry) {
 	r := s.cold.objSets
-	for i := 0; i < s.osLen(); i++ {
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
 		rec := &r[i]
 		if rec.src != e.obj || !rec.inKinds(osMImp) || !s.osLiveFor(rec, e) {
 			continue

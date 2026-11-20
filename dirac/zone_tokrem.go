@@ -26,7 +26,10 @@ func (s *State) srcRemObj(src Obj) Obj {
 		return NoObj
 	}
 	r := s.cold.objSets
-	for i := 0; i < s.osLen(); i++ {
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
 		rec := &r[i]
 		if rec.src == src && rec.inKinds(osMRem) && s.osLiveNow(rec) {
 			if DebugSrcMemStats != nil {

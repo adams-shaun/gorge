@@ -68,7 +68,10 @@ func (s *State) faceDownExile(o, src Obj, looker uint8) {
 // faceDownExiled: o is in exile face down.
 func (s *State) faceDownExiled(o Obj) bool {
 	r := s.cold.objSets
-	for i := 0; i < s.osLen(); i++ {
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
 		if rec := &r[i]; rec.o == o && rec.kind&exwFace != 0 {
 			return true
 		}
@@ -80,7 +83,10 @@ func (s *State) faceDownExiled(o Obj) bool {
 // (gorge MayLookPlayer), or 255 when o is not exiled face down.
 func (s *State) FaceDownLooker(o Obj) uint8 {
 	r := s.cold.objSets
-	for i := 0; i < s.osLen(); i++ {
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
 		if rec := &r[i]; rec.o == o && rec.kind&exwFace != 0 {
 			return rec.kind >> 7 & 1
 		}

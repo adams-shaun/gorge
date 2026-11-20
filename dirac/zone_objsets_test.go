@@ -52,8 +52,12 @@ func TestObjSetsOrderAndGC(t *testing.T) {
 	}
 
 	// the flags cleared, the record is unreadable and the GC takes it
-	for i := 0; i < s.osLen(); i++ {
-		if rec := &s.cold.objSets[i]; rec.osKind() == osExw {
+	for i := range s.cold.objSets {
+		rec := &s.cold.objSets[i]
+		if rec.kind == 0 {
+			break
+		}
+		if rec.osKind() == osExw {
 			rec.kind = osExw
 		}
 	}

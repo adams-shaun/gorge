@@ -336,7 +336,10 @@ func (s *State) exwSourceLeft(o Obj) {
 	}
 	ver := s.objs[o].ver
 	r := s.cold.objSets
-	for i := 0; i < s.osLen(); i++ {
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
 		rec := &r[i]
 		if rec.src == o && rec.kind&exwRev != 0 && rec.sver == ver-1 {
 			rec.sver = ver

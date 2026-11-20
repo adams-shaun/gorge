@@ -117,7 +117,10 @@ func (s *State) exwOpAt(k *prep) *kop.Instr {
 //go:noinline
 func (s *State) exwExile(k *prep, o Obj) {
 	r := s.cold.objSets
-	for i := 0; i < s.osLen(); i++ {
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
 		if rec := &r[i]; rec.o == o && rec.kind&exwRev != 0 {
 			rec.kind &^= exwRev
 			if DebugExwStats != nil {
@@ -197,7 +200,10 @@ func (st *ExwStats) noteRec(card int) {
 //go:noinline
 func (s *State) exwLeaveExile(o Obj) {
 	r := s.cold.objSets
-	for i := 0; i < s.osLen(); i++ {
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
 		if rec := &r[i]; rec.o == o && rec.kind&(exwRev|exwFwd|exwFace) != 0 {
 			if rec.kind&exwRev != 0 && DebugExwStats != nil {
 				DebugExwStats.RevCleared++
@@ -217,7 +223,10 @@ func (s *State) exwEnter(o Obj, from kop.Zone) {
 		return
 	}
 	r := s.cold.objSets
-	for i := 0; i < s.osLen(); i++ {
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
 		rec := &r[i]
 		if rec.src == o && rec.kind&exwFwd != 0 {
 			rec.kind &^= exwFwd
@@ -239,7 +248,10 @@ func (s *State) exwHas(o, src Obj, trig bool, fire uint8) bool {
 	}
 	ver := s.objs[src].ver
 	r := s.cold.objSets
-	for i := 0; i < s.osLen(); i++ {
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
 		rec := &r[i]
 		if rec.o != o || rec.src != src {
 			continue

@@ -106,7 +106,10 @@ func (s *State) heldReferenced(o Obj) bool {
 		}
 	}
 	r := s.cold.objSets
-	for i := 0; i < s.osLen() && i < len(r); i++ {
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
 		if rec := &r[i]; rec.osKind() == osExw && (rec.o == o || rec.src == o) {
 			return true
 		}

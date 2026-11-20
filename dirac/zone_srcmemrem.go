@@ -48,7 +48,10 @@ func (s *State) srcMemSeed(k *prep, e *stackEntry) {
 		return
 	}
 	r := s.cold.objSets
-	for i := 0; i < s.osLen(); i++ {
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
 		rec := &r[i]
 		if rec.src != e.obj || !rec.inKinds(osMRem) || !s.osLiveFor(rec, e) || s.inSet(&s.g.rem, s.g.nrem, rec.o) {
 			continue
@@ -68,7 +71,10 @@ func (s *State) srcMemSeed(k *prep, e *stackEntry) {
 // srcMemStoreHas reports whether src's live records hold o.
 func (s *State) srcMemStoreHas(src, o Obj) bool {
 	r := s.cold.objSets
-	for i := 0; i < s.osLen(); i++ {
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
 		rec := &r[i]
 		if rec.src == src && rec.o == o && rec.inKinds(osMRem) && s.osLiveNow(rec) {
 			return true
