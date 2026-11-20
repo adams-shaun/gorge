@@ -1202,7 +1202,7 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	if knownSub(p) {
 		return c.addSubtype(p)
 	}
-	return fmt.Errorf("unknown property %q", p)
+	return c.wordOrUnknown(p) // filter_words_combat.go
 }
 
 // sharesNameWithProp lowers the sharesNameWith property family and reports
