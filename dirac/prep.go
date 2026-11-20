@@ -28,6 +28,11 @@ type pcard struct {
 	manaTap         bool // the mana ability costs only {T}
 	manaSac         bool // the mana ability costs {T} and sacrificing the source (Treasure)
 	manaSacOnly     bool // the mana ability costs only sacrificing the source (Eldrazi Spawn)
+	// manaIntrinsic: the view is a granted basic land type's intrinsic
+	// "{T}: Add [c]" ability, not the card's own (static_landtype.go
+	// blgView). A source whose own ability is a planner-deferred rider keeps
+	// the intrinsic unit and the tap runs no rider.
+	manaIntrinsic bool
 	// castSrc: tapping this source for a cast is recorded (noteTapSrc):
 	// csTreasure, the card's printed subtypes include Treasure (CastSpecTreasure;
 	// set only when the cast ring is on); csObserved, the card carries a
