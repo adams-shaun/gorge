@@ -550,8 +550,8 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if in.Obj == kop.RefSelf && s.res.e.kind == seAbility && ob.ver != s.res.e.srcVer {
 			break // the activated ability's source returned and left again: a new object (CR 400.7; Postmortem Professor)
 		}
-		if kop.Zone(in.C) == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ob.owner()) {
-			return false // the clone election is asked with the card still in its zone (copy_cloneenter.go)
+		if kop.Zone(in.C) == kop.ZoneBattlefield && s.plainReturnParks(k, o, ob.owner()) {
+			return false // the clone election or the CR 616.1 entry-order ask, the card still in its zone (copy_cloneenter.go, repl_entryorder.go)
 		}
 		s.execReturnSimple(k, in, o)
 	case kop.OpRepeat:
