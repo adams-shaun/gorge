@@ -419,6 +419,21 @@ func typeVocabSub(k *prep, v int) uint8 {
 	return uint8(base + rank%(int(subOutside)-base))
 }
 
+// creatureSubtypeGone reports whether subtype i went with the Creature card
+// type a rule-based switch removed: impending dormancy (CR 702.176a) or an
+// attached Reconfigure permanent (CR 702.151b), whose creature subtypes go
+// with the lost card type (CR 205.1a). Outside (chosen) creature types go
+// too; a non-creature subtype such as Equipment never does.
+func (s *State) creatureSubtypeGone(k *prep, sl Slot, i uint8) bool {
+	if k.gen == nil || !outsideSub(k, i) && !k.gen.creatSub.Has(int(i)) {
+		return false
+	}
+	if k.gen.anyImpending && s.impendDormant(k, sl) {
+		return true
+	}
+	return k.gen.anyReconfigure && !s.faceDown(k, sl) && s.reconfigureAttached(k, sl)
+}
+
 // hasSubGen reports whether sl has matchup subtype i (subOutside: a
 // creature type outside the matchup's subtypes).
 func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
@@ -428,7 +443,7 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 	if k.gen != nil && k.gen.anyBestow && !DebugBestowKeepsSubtypes && (i == subOutside || k.gen.creatSub.Has(int(i))) && s.bestowAttached(k, sl) {
 		return false // CR 205.1a: gone with the Creature type (kw_bestow.go)
 	}
-	if k.gen != nil && k.gen.anyImpending && (outsideSub(k, i) || k.gen.creatSub.Has(int(i))) && s.impendDormant(k, sl) {
+	if s.creatureSubtypeGone(k, sl, i) {
 		return false // CR 205.1a: gone with the creature type
 	}
 	if k.gen != nil && k.gen.fxNeed != 0 && s.walkSlot(k, sl) {
@@ -603,6 +618,9 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 	}
 	if k.gen.anyBestow {
 		subs, all = s.bestowSubs(k, sl, subs, all)
+	}
+	if k.gen.anyReconfigure {
+		subs, all = s.reconfigureSubs(k, sl, subs, all)
 	}
 	return subs, all
 }
