@@ -355,9 +355,15 @@ func (s *State) faceReachSet(k *prep, p uint8, r *kop.ManaCost, extra int, t ava
 	}
 	if k.restrSrc {
 		// the restricted units are the payment's, so the walk's fees left
-		// them out (restrActFiltAvail); they pay the face it ends on (CR 106.6)
-		if d := s.payDescNow(NoObj); d.class != pdAct && s.restrFaceAffordsD(k, p, d, r, &t, extra) {
-			return true
+		// them out (restrActFiltAvail); they pay the face it ends on (CR
+		// 106.6). restrSrcAvail directly: the reserved census unit makes t's
+		// total understate what the widened sources still make, which
+		// restrSrcNone's shortcut would read as no help.
+		if d := s.payDescNow(NoObj); d.class != pdAct {
+			u, multi, nm := s.restrSrcAvail(k, p, d, &t, NoSlot)
+			if u.affordsMulti(r, extra, multi[:nm]) {
+				return true
+			}
 		}
 	}
 	return false

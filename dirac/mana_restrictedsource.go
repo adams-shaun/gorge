@@ -1023,13 +1023,7 @@ func (s *State) castAffordsR(k *prep, p uint8, c CardID, og restrOrigin, cost *k
 //
 //go:noinline
 func (s *State) restrFaceAffords(k *prep, p uint8, r *kop.ManaCost, av *avail, extra int) bool {
-	return s.restrFaceAffordsD(k, p, s.payDescNow(NoObj), r, av, extra)
-}
-
-// restrFaceAffordsD is restrFaceAffords for the described payment: the filter
-// walk's final face read uses it after the walk's fees, which the restricted
-// units could not pay (CR 106.6), so they still price the face.
-func (s *State) restrFaceAffordsD(k *prep, p uint8, d payDesc, r *kop.ManaCost, av *avail, extra int) bool {
+	d := s.payDescNow(NoObj)
 	skip := NoSlot
 	if d.class == pdAct {
 		skip = d.src
