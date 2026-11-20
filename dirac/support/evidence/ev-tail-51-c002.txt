@@ -94,6 +94,7 @@ Dross Hopper
 Dross Ripper
 Drowsing Tyrannodon
 Dungeon Shade
+Dwarven Mine
 Early Frost
 Echoes of the Kin Tree
 Eddytrail Hawk
@@ -170,6 +171,7 @@ Hill Giant
 Horncaller's Chant
 Hound Tamer
 Hulking Ogre
+Hunding Gjornersen
 Ichor Explosion
 Ideas Unbound
 Impetuous Protege
@@ -287,6 +289,7 @@ Ranger-Captain of Eos
 Ravages of War
 Raven Wings
 Ravenous Sailback
+Rayne, Academy Chancellor
 Regent's Authority
 Reject
 Rejuvenating Springs
@@ -425,6 +428,7 @@ Warbeast of Gorgoroth
 Warbriar Blessing
 Wayward Soul
 Weldfast Engineer
+Wickerbough Elder
 Wight
 Wild Growth
 Wolfrider's Saddle

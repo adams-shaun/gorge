@@ -3,9 +3,11 @@ Act on Impulse
 Angel of Vitality
 Beanstalk Giant
 Blessed Hippogriff
+Bloodthrone Vampire
 Brood Monitor
 Caltrops
 Clinquant Skymage
+Cloud Elemental
 Collected Company
 Concentrate
 Counterspell
@@ -19,9 +21,11 @@ Diregraf Horde
 Dwarven Miner
 Elite Scaleguard
 Executioner's Capsule
+Ezuri, Claw of Progress
 Falter
 Fatal Push
 Fellwar Stone
+Flame Javelin
 Flesh-Eater Imp
 Fog
 Fog Bank
@@ -38,6 +42,7 @@ Go for the Throat
 Goblin Bombardment
 Goblin Recruiter
 Grab the Reins
+Halimar Wavewatch
 Hollow Marauder
 Hopeless Nightmare
 Illusory Ambusher
@@ -76,12 +81,14 @@ Renewed Faith
 Rescind
 Reya Dawnbringer
 Seal of Fire
+Shimmerscale Drake
 Soul Warden
 Spellstutter Sprite
 Spiteful Prankster
 Standstill
 Strangleroot Geist
 Sudden Spinnerets
+Summon Undead
 Swamp
 Symbiosis
 The Rack

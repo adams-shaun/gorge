@@ -84,6 +84,7 @@ Copperline Gorge
 Courageous Outrider
 Court of Bounty
 Cradle Guard
+Crimson Acolyte
 Crossover Collaboration
 Crosswinds
 Crovax, Ascendant Hero
@@ -185,6 +186,7 @@ Grand Arbiter Augustin IV
 Grateful Apparition
 Green Scarab
 Grendel, Spawn of Knull
+Grolnok, the Omnivore
 Grounded
 Guided Strike
 Hag of Dark Duress
@@ -398,6 +400,7 @@ Soltari Monk
 Song of Freyalise
 Soul Bleed
 Sparkshaper Visionary
+Spectra Ward
 Sphinx Mindbreaker
 Spinning Wheel Kick
 Spirit Link

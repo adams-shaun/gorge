@@ -142,6 +142,7 @@ Farbog Boneflinger
 Fathom Fleet Captain
 Favor of the Woods
 Feebleness
+Feline Sovereign
 Ferocious Charge
 Ferocity of the Wilds
 Festival Crasher
@@ -429,6 +430,7 @@ Terashi's Grasp
 Termagant Swarm
 Thalakos Seer
 Thassa's Emissary
+The Gitrog Monster
 The Marvelous Scientist
 The Shire
 Thermal Glider
