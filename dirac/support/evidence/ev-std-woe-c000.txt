@@ -5,6 +5,7 @@ Archive Dragon
 Archon of the Wild Rose
 Archon's Glory
 Armory Mice
+Ash, Party Crasher
 Ashiok's Reaper
 Asinine Antics
 Barrow Naughty
@@ -70,6 +71,7 @@ Food Fight
 Forest
 Frantic Firebolt
 Freeze in Place
+Frolicking Familiar
 Frostbridge Guard
 Gadwick's First Duel
 Gallant Pie-Wielder
@@ -86,6 +88,7 @@ Gruff Triplets
 Gumdrop Poisoner
 Hamlet Glutton
 Harried Spearguard
+Heartflame Duelist
 Hearth Elemental
 Hollow Scavenger
 Hopeful Vigil
@@ -95,13 +98,16 @@ Howling Galefang
 Hylda's Crown of Winter
 Ice Out
 Icewrought Sentry
+Imodane's Recruiter
 Imodane, the Pyrohammer
 Ingenious Prodigy
 Into the Fae Court
 Intrepid Trufflesnout
 Island
 Johann's Stopgap
+Johann, Apprentice Sorcerer
 Kellan's Lightblades
+Kellan, the Fae-Blooded
 Kindled Heroism
 Knight of Doves
 Korvold and the Noble Thief
@@ -165,6 +171,7 @@ Rowdy Research
 Royal Treatment
 Ruby, Daring Tracker
 Savior of the Sleeping
+Scalding Viper
 Scarecrow Guide
 Scream Puff
 Sentinel of Lost Lore
@@ -218,6 +225,7 @@ Toadstool Admirer
 Torch the Tower
 Totentanz, Swarm Piper
 Tough Cookie
+Troublemaker Ouphe
 Troyan, Gutsy Explorer
 Tuinvale Guide
 Twisted Fealty

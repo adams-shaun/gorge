@@ -14,6 +14,7 @@ Ashen Powder
 Auriok Glaivemaster
 Aven Sunstriker
 Baloth Woodcrasher
+Battered Golem
 Belligerent Whiptail
 Bladeback Sliver
 Blazing Hope
@@ -22,15 +23,18 @@ Bloodchief's Thirst
 Bloodmark Mentor
 Blunt the Assault
 Bog Initiate
+Boneshard Slasher
 Boomerang
 Borborygmos Enraged
 Botanical Plaza
 Branching Evolution
 Brazen Wolves
 Brinebarrow Intruder
+Broken Concentration
 By Invitation Only
 Byway Courier
 Cabal Archon
+Cabal Pit
 Canopy Spider
 Careful Study
 Cathartic Adept
@@ -59,9 +63,11 @@ Elspeth's Nightmare
 Elvish Farmer
 Elvish Lyrist
 Elvish Visionary
+Emmessi Tome
 Empyrial Armor
 Evolution Charm
 Explosive Impact
+Extra Arms
 False Prophet
 Fang Dragon
 Fervent Strike
@@ -74,6 +80,7 @@ Fully Grown
 Furious Reprisal
 Furnace Hellkite
 Fyndhorn Bow
+Galvanic Discharge
 Gimli, Counter of Kills
 Glaive of the Guildpact
 Goliath Paladin
@@ -81,12 +88,15 @@ Graf Reaver
 Grasp of Fate
 Grasping Scoundrel
 Grim Physician
+Grim Reaper's Scythe
 Gruul Nodorog
 Gush
 Gut Shot
 Guul Draz Assassin
 Haunted Fengraf
+Headless Rider
 Heartfire
+Hired Blade
 Hive Stirrings
 Hookhand Mariner
 Howling Giant
@@ -113,24 +123,33 @@ Kolaghan Warmonger
 Krenko, Tin Street Kingpin
 Lead by Example
 Library
+Lithomantic Barrage
 Loki's Scepter
 Lord of the Undead
 Lotus-Eye Mystics
 Make Mischief
 Manor Gate
+Mantle of Leadership
 Marble Gargoyle
 Mardu Warshrieker
+Merfolk Traders
 Mesa Cavalier
 Metallic Mimic
+Mind Drain
+Mindblaze
 Monastery Swiftspear
 Morningtide
 Mother of Runes
 Mountain
+Mox Sapphire
 Murasa Rootgrazer
 Natural Affinity
 Neurok Replica
+Noble Hierarch
 Noose Constrictor
 Nurturing Licid
+Obelisk of Undoing
+Ogre's Cleaver
 Ondu Champion
 Outpost Siege
 Paradigm Shift
@@ -140,38 +159,55 @@ Plaguemaw Beast
 Plains
 Plunder
 Polluted Mire
+Power Word Kill
 Prava of the Steel Legion
 Prophetic Ravings
 Proud Mentor
+Prowler's Helm
 Prowling Pangolin
 Pygmy Pyrosaur
 Pyre Charger
+Rainbow Efreet
 Ranger-Captain of Eos
+Raph's Bravado
+Ravager's Mace
 Reaping the Rewards
 Reckless Barbarian
 Regent's Authority
 Renegade Map
+Renewing Dawn
 Revenge of Ravens
 Reverent Hoplite
+Revoke Existence
+Rhythmic Water Vortex
+Righteous War
 Riverglide Pathway
 Robe of Mirrors
+Roc of Kher Ridges
 Roving Harper
+Runaway Trash-Bot
 Runed Servitor
 Rushwood Elemental
 Sabertooth Alley Cat
 Sagu Archer
 Sandstone Bridge
+Scrapwork Rager
+Scrapyard Steelbreaker
 Scrollshift
 Seller of Songbirds
+Serra Zealot
 Seshiro the Anointed
 Shadowbeast Sighting
 Sheltering Word
 Shivan Harvest
+Shrapnel Slinger
+Shu Defender
 Shuko
 Sigarda, Champion of Light
 Skirk Outrider
 Skull Catapult
 Skyhunter Strike Force
+Skywarp Skaab
 Skywing Aven
 Slash the Ranks
 Slashing Tiger
@@ -183,37 +219,50 @@ Spitting Slug
 Squadron Hawk
 Steamclaw
 Stonefury
+Stonework Puma
+Strength of Unity
 Summoner's Sending
 Sunhome, Fortress of the Legion
 Sunscape Apprentice
+Sunset Pyramid
 Swamp
 Swell of Growth
+Syndicate Trafficker
 Syphon Mind
 Talas Lookout
 Teachings of the Kirin
 Thalia's Lieutenant
 The Rack
+Thopter Squadron
 Thor, Asgard's Avenger
+Tolarian Academy
 Touch of Brilliance
 Towering-Wave Mystic
 Traitor's Clutch
 Tranquil Thicket
 Traveling Minister
 Tremble
+Uchuulon
 Undead Warchief
 Unfriendly Fire
+Vampire's Kiss
 Vessel of Ephemera
 Veteran Warleader
 Veteran of the Depths
 Village Bell-Ringer
 Vivid Flying Fish
+Volcanic Rush
+Volcanic Spite
 Voldaren Epicure
 Wake Thrasher
 Wall of Ice
 Wandering Goblins
+Wanted Scoundrels
 Warlock Class
 Wary Okapi
+Wayward Guide-Beast
 Wicker Witch
+Wild Guess
 Wolfrider's Saddle
 Yavimaya Hollow
 Zhur-Taa Ancient
