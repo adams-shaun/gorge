@@ -30,20 +30,41 @@ func readCardList(path string) ([]string, error) {
 	return parseCardList(b), nil
 }
 
-// parseCardList is readCardList over a list's bytes.
-func parseCardList(b []byte) []string {
+// cardRow is one row of a card list: the card's name and, when the line carries
+// one, the text after the first tab — an evidence row's seats column (Name\t<seats>,
+// what scripts/dirac-first-refusals.py evidence --pools pod-* lands the card's clean
+// pod games in).
+type cardRow struct {
+	name string
+	col  string
+}
+
+// parseCardRows reads a list's rows as cardRows.
+func parseCardRows(b []byte) []cardRow {
 	seen := map[string]bool{}
-	var names []string
+	var rows []cardRow
 	for _, line := range strings.Split(string(b), "\n") {
-		if i := strings.IndexByte(line, '#'); i >= 0 {
-			line = line[:i]
+		name, col, _ := strings.Cut(line, "\t")
+		if i := strings.IndexByte(name, '#'); i >= 0 {
+			name = name[:i]
 		}
-		name := strings.TrimSpace(line)
+		name = strings.TrimSpace(name)
 		if name == "" || seen[name] {
 			continue
 		}
 		seen[name] = true
-		names = append(names, name)
+		rows = append(rows, cardRow{name: name, col: col})
+	}
+	return rows
+}
+
+// parseCardList is readCardList over a list's bytes. A row's trailing
+// tab-separated columns are not part of the name; readers that split by tab
+// ignore them.
+func parseCardList(b []byte) []string {
+	var names []string
+	for _, r := range parseCardRows(b) {
+		names = append(names, r.name)
 	}
 	return names
 }
