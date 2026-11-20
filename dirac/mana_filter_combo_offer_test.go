@@ -18,7 +18,7 @@ func TestBaxterComboFilterFundsWhiteCastBesideDualLands(t *testing.T) {
 		{Name: "Pym Technologies", Count: 1}, {Name: "Forest", Count: 3},
 		{Name: "The Sentry, Golden Guardian", Count: 1}, {Name: "Crowd of True Believers", Count: 1},
 	}
-	tbl, da, _, err := cardsettest.Synth(t, "std-msh").Matchup(deck, deck)
+	tbl, da, _, err := cardsettest.Set(t, "combooffer").Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
