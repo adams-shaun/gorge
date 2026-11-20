@@ -96,6 +96,7 @@ Darksteel Splicer
 Death Stroke
 Death-Hood Cobra
 Deathcap Cultivator
+Deathknell Kami
 Debt to the Kami
 Deekah, Fractal Theorist
 Deepglow Skate
@@ -133,6 +134,7 @@ Duty-Bound Dead
 Dwarven Reinforcements
 Dwarven Song
 Earsplitting Rats
+Eccentric Apprentice
 Elena, Turk Recruit
 Elite Guardmage
 Elite Skirmisher

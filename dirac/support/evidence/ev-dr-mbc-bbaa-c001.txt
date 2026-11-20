@@ -1,40 +1,69 @@
 Abolish
 About Face
+Against All Odds
 Ancient Hydra
 Banishing Slash
 Barrowgoyf
+Bellowing Aegisaur
+Bewilder
 Bhaal's Invoker
 Bitter Reunion
 Blasting Station
 Boggart Harbinger
+Carrion Imp
+Challenger Troll
 Claustrophobia
+Cloud Djinn
 Cloud Spirit
+Condemn
 Control of the Court
+Corpse Harvester
+Crashing Drawbridge
+Cytoplast Root-Kin
 Deceiver Exarch
 Dreadhound
 Dynacharge
+Eldrazi Skyspawner
+Emrakul's Messenger
 Engineered Explosives
+Evangel of Heliod
+Expunge
 Exsanguinate
+Faerie Mechanist
+Falkenrath Noble
 Forest
 Giant Spider
+Gloom Sower
 Goblinslide
 Goldlust Triad
 Goldmeadow Harrier
+Guardian of Faith
 Healer's Hawk
 Inferno Jet
 Intangible Virtue
 Island
+Kami of False Hope
+Kelpie Guide
 Kenrith's Transformation
+Killer Whale
 Kor Cartographer
+Kor Firewalker
+Leap
+Linvala, the Preserver
 Lore Weaver
 Madcap Skills
 Merciless Executioner
+Merfolk Seastalkers
 Molten Birth
 Mountain
+Muddle the Mixture
+Nature's Way
 Neheb, the Eternal
 Nevermaker
 Nyxborn Hydra
 Plains
+Portent
+Prosperous Pirates
 Pyrohemia
 Quest for Pure Flame
 Quest for the Gravelord
@@ -42,17 +71,29 @@ Reality Shift
 Relic Crush
 Renegade Warlord
 Reverent Mantra
+Scholar of the Ages
+Sea Gate Oracle
+Sejiri Merfolk
 Send in the Pest
 Sheoldred, Whispering One
+Shimmering Glasskite
+Sign in Blood
+Skeletal Wurm
 Sparkmage Apprentice
+Spectral Sailor
 Spitting Earth
 Stand Together
 Stromgald Crusader
 Swamp
+Sword Coast Serpent
+The Everforger
+Turnabout
 Twinferno
+Ultimate Price
 Vigean Graftmage
 Volcanic Dragon
 Wall of Corpses
 Wall of Roots
+War Priest of Thune
 Woodland Changeling
 Young Red Dragon

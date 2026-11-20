@@ -3,6 +3,7 @@ Accursed Centaur
 Act on Impulse
 Ancient Runes
 Arc Lightning
+Arena Trickster
 Armor of Shadows
 Arno Dorian
 Barrel Down Sokenzan
@@ -36,6 +37,7 @@ Drider
 Empty the Warrens
 Enigma Eidolon
 Excogitator Sphinx
+Famished Foragers
 Fast Forward
 Feast of Dreams
 Festering Wound
@@ -47,23 +49,30 @@ Gerrard's Irregulars
 Gloom Pangolin
 Goblin Firebug
 Grave Betrayal
+Hammer Mage
 Harmless Offering
 Henge of Ramos
 Hesitation
 Island
 Kain, Traitorous Dragoon
+Kami of Fire's Roar
 Karakas
+Laccolith Grunt
 Lava Axe
 Leisure Bicycle
 Lightning Prowess
+Magma Rift
 Markov Enforcer
 Mercadian Bazaar
 Merrow Bonegnawer
 Mizzium Skin
 Moat Piranhas
+Molten Frame
 Molting Harpy
 Mountain
+Necra Sanctuary
 Necroblossom Snarl
+Necrogen Spellbomb
 Necrosquito
 Nested Shambler
 Nighthawk Scavenger
@@ -93,6 +102,7 @@ Rundvelt Hordemaster
 Sensei's Divining Top
 Sentinel
 Shambling Goblin
+Shrieking Affliction
 Silent Specter
 Sivriss, Nightmare Speaker
 Skulltap
