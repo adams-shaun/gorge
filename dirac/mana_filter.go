@@ -1338,8 +1338,11 @@ func (fs *filtSearch) phasedFallback() bool {
 // spend the whole node budget (Baxter Building's {T}: Add {C} before its
 // {4}, {T}: four mana in any combination, CR 605.3a). feeGaps is the run's
 // second-pass set; a gap of another kind keeps the existing searches.
+// gorge gates it on o.AltCostIndex == 0: dirac marks an alternative-cost cast
+// with a target code and mode 0 (cast_altfree.go), so target 0 is the plain
+// printed cost the fallback may walk.
 func (s *State) feeOrderFallback(k *prep, a Action, p uint8, gaps slotMask) (slotMask, bool) {
-	if a.Kind() != AkCast || a.Mode() != 0 || !gaps.any() {
+	if a.Kind() != AkCast || a.Mode() != 0 || a.Target() != 0 || !gaps.any() {
 		return slotMask{}, false
 	}
 	// phasedScope: a play whose own cost sacrifices or returns a permanent,
