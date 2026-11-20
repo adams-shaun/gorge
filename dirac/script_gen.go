@@ -938,30 +938,6 @@ func (s *State) mayPlayJoinCensusPays(k *prep, p uint8, a Action, cost *kop.Mana
 	return mav.affords(cost, pipMaskOf(cost), 0)
 }
 
-// grantCensusPays reports whether a plain activation's composed cost is
-// payable from the join census grantCap's walk reads, the activation's own
-// source excluded (its {T} is the activation's tap, CR 605.1a): gorge's
-// ability arm prices the composed cost from that census, gorge's planner
-// census granted mana abilities included (potentialAbilityPlan ->
-// planComposedCost over pay.PlanPaymentCostWithout), so the ungranted prune
-// and its prefix search do not price it -- a granted ability beside none is
-// priced by the census, and a play the census prices takes no prefix search
-// (potential_plan.go potentialPlayVerdict; Joraga Treespeaker's own level
-// ability). The World Tree's {W}{W}{U}{U}{B}{B}{R}{R}{G}{G} beside twelve
-// lands its 6-land static granted "{T}: Add one mana of any color" (tail-08
-// pair 78, decision 912).
-func (s *State) grantCensusPays(k *prep, p uint8, a Action, cost *kop.ManaCost, ex Slot) bool {
-	if a.Kind() != AkActivate || cost.X != 0 || cost.Hyb[0] != 0 || cost.Snow != 0 || cost.Tb != 0 {
-		return false // only a plain pip cost is priced by the census alone
-	}
-	if s.untappedTapGapLive(k, p) {
-		return false // gorge's prefix search prices it, not the census (untappedTapGapLive)
-	}
-	var mav avail
-	s.availForExcluding(k, p, &mav, slotBit(ex))
-	return mav.affords(cost, pipMaskOf(cost), 0)
-}
-
 func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 	if !s.grantGapLive(k, p) {
 		return
