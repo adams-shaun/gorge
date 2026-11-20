@@ -1,0 +1,11 @@
+# a spell-restricted source cannot pay a filter's activation fee (CR 106.6),
+# and an untapped one still pays the spell's pip after the pool funds the fee
+# (dirac/mana_filterfee_spellrestr_test.go)
+# Rumble Arena's {1},{T}: any colour is the filter; Giada, Font of Hope's {W}
+# is restricted to Angel spells; Mossfire Valley is a fee filter whose
+# production cannot pay a {W} pip; Serra Angel is the Angel spell being built.
+Rumble Arena
+Giada, Font of Hope
+Mossfire Valley
+Serra Angel
+Forest
