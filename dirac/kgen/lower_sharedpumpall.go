@@ -8,14 +8,6 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// Internal filter words of the SharedKeywordsZone$ PumpAll lowering. They are
-// not Forge spellings: the lowering builds the clause directly, and the words
-// exist so the same presence read can be written in a filter string.
-const (
-	sharedLandwalkWord = "hasKeywordLandwalk:"
-	sharedProtWord     = "hasKeywordProtection:"
-)
-
 // sharedPumpAll lowers a keyword-only PumpAll with SharedKeywordsZone$
 // Battlefield ("creatures you control gain flying until end of turn if a
 // creature you control has flying", Odric, Lunarch Marshal; Concerted Effort).

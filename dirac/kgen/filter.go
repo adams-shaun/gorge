@@ -247,8 +247,7 @@ type lClause struct {
 	CmpX           string   // the SVar naming the bound (cmcLEX)
 	CmpV           *lValue  // CmpX lowered
 	CmpCounter     string   // counter kind for cmpCounters
-	CmpSpec        string   // the keyword spec text of cmpHasLandwalk / cmpHasProtQuality, compiled to CmpFilter by lowerCtx.filter
-	CmpFilter      *lFilter // the compiled land/quality filter these two stats read
+	CmpFilter      *lFilter // the compiled land/quality filter cmpHasLandwalk / cmpHasProtQuality read
 	Colors         string   // must have this colour (one of WUBRG; "" = none)
 	NotColors      string   // must have none of these colours
 	BasePermanent  bool     // the base head word was Permanent (ThisTurnEntered's card form marks it)
@@ -819,8 +818,12 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		}
 		return c.setCmp(cmpTotalPT, op, n, "", "")
 	}
-	if ok, err := c.simpleFlagProp(p); ok {
-		return err
+	if p == "unblocked" {
+		c.Unblocked = true
+		return nil
+	}
+	if p == "hasXCost" {
+		return c.setCmp(cmpHasX, 0, 0, "", "")
 	}
 	switch p {
 	case "MultiColor":
@@ -1132,9 +1135,6 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	}
 	if ok, err := c.sharesNameWithProp(p); ok {
 		return err
-	}
-	if ok, err := c.sharedKeywordProp(p); ok {
-		return err // build_sharedkw.go
 	}
 	if n, ok := filterWordPred(p); ok {
 		return c.setCmp(cmpWord7, 0, n, "", "") // lower_filterwords.go
