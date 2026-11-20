@@ -36,6 +36,8 @@ var readDefinedPlayerSpecs = map[string]bool{
 	"Player.withMostTypeWizardOnly":             true, // Thoughtbound Primoc
 	"Player.IsRemembered+counters_EQ0_Contract": true, // Miss Highwater's effect
 	"You.damageDoneSingleSource GE5":            true, // Dragon Cultist
+
+	"Player.OpponentOf TriggeredAttackingPlayer+!Defending": true, // Suppressor Skyguard (2026-11-20 spelling; TestSuppressorSkyguardOpponentGate)
 }
 
 // knownUnsupportedDefinedPlayer is the ratchet: spellings no home reads yet.

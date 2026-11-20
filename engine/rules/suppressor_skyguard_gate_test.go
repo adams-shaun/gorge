@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -56,5 +57,27 @@ func TestSuppressorSkyguardOpponentGate(t *testing.T) {
 	// 2 seats: the attacker's only opponent is the attacked seat -> fails.
 	if got := skyguardPushes(t, 2, [2]int{1, 1}); got != 0 {
 		t.Errorf("2 seats: Skyguard pushed %d triggers, want 0", got)
+	}
+}
+
+// TestSuppressorSkyguardGateNeedsTheAttackRoles: with no trigger context (a
+// replacement's gate, or a hand-built caller) the attacking-player role is
+// unbound, so the spelling holds for nobody even though every seat but one is
+// an "opponent" -- it never widens to "any other seat".
+func TestSuppressorSkyguardGateNeedsTheAttackRoles(t *testing.T) {
+	e := threeSeatEngine(t)
+	src := onBoardCard(t, e, 1, card(t, skyguardSrc))
+	const spec = "Player.OpponentOf TriggeredAttackingPlayer+!Defending"
+	if e.checkDefinedPlayerHolds(spec, src, 1) {
+		t.Fatal("no attack roles bound: the gate must fail closed")
+	}
+	atk := state.Target{Player: 0, IsPlayer: true}
+	tc := &effects.TriggerContext{AttackingPlayer: atk}
+	if e.checkDefinedPlayerHoldsCtx(spec, src, 1, tc) {
+		t.Fatal("attacking player bound but no defending player: `!Defending` must not invert the absence into a match")
+	}
+	tc.DefendingPlayer = state.Target{Player: 1, IsPlayer: true}
+	if !e.checkDefinedPlayerHoldsCtx(spec, src, 1, tc) {
+		t.Fatal("seat 0 attacks seat 1 on a three-seat table: seat 2 is an unattacked opponent, the gate must hold")
 	}
 }
