@@ -114,6 +114,7 @@ Electrosiphon
 Elegant Edgecrafters
 Elemental Augury
 Elephant Resurgence
+Elfhame Sanctuary
 Ellivere of the Wild Court
 Elvish Promenade
 Emeria, the Sky Ruin
@@ -373,6 +374,7 @@ Timber Gorge
 Titanium Man
 Tolarian Academy
 Tolarian Entrancer
+Took Reaper
 Tortured Existence
 Transguild Courier
 Traveling Philosopher

@@ -288,6 +288,7 @@ Raving Oni-Slave
 Razorjaw Oni
 Reckless Imp
 Recross the Paths
+Redwood Treefolk
 Relic of Progenitus
 Renounce
 Rescue Retriever
@@ -361,6 +362,7 @@ Tomb Fortress
 Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
+Triumphant Adventurer
 Tromell, Seymour's Butler
 True Conviction
 Turnabout

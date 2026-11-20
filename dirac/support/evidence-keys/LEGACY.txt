@@ -55,7 +55,6 @@ Acolyte of the Inferno
 Action News Crew
 Active Volcano
 Adagia, Windswept Bastion
-Adaptive Shimmerer
 Adarkar Sentinel
 Additive Evolution
 Adeliz, the Cinder Wind
@@ -95,7 +94,6 @@ Agony Warp
 Agrus Kos, Spirit of Justice
 Ainok Wayfarer
 Air Response Unit
-Airdrop Aeronauts
 Airlift Chaplain
 Airship Crash
 Airtight Alibi
@@ -244,7 +242,6 @@ Argivian Phalanx
 Argoth, Sanctum of Nature
 Argothian Enchantress
 Argothian Sprite
-Arid Archway
 Ark of Hunger
 Arm-Mounted Anchor
 Armaggon, Future Shark
@@ -313,7 +310,6 @@ Auratog
 Aurelia's Vindicator
 Aurelia, the Law Above
 Auroral Procession
-Auspicious Ancestor
 Austere Command
 Autarch Mammoth
 Autochthon Wurm
@@ -402,13 +398,11 @@ Battlefield Forge
 Battleflight Eagle
 Baxter Stockman
 Baylen, the Haymaker
-Bazaar Krovod
 Bazaar Trademage
 Be'lakor, the Dark Master
 Beacon Hawk
 Beamsaw Prospector
 Bear's Companion
-Bearded Axe
 Bearer of Glory
 Beast in Show
 Beast, Erudite Aerialist
@@ -624,14 +618,12 @@ Brimstone Mage
 Brimstone Roundup
 Brimstone Trebuchet
 Brimstone Volley
-Brine Giant
 Brine Shaman
 Brinebarrow Intruder
 Bring Low
 Bring to Light
 Bringer of the Green Dawn
 Bristlepack Sentry
-Bristling Backwoods
 Bristly Bill, Spine Sower
 Broadcast Rambler
 Broadcast Takeover
@@ -662,7 +654,6 @@ Burnout Bashtronaut
 Burrog Banemaker
 Burrog Barrage
 Burrowguard Mentor
-Burst of Strength
 Bushy Bodyguard
 Butcher of the Horde
 Buzz Bots
@@ -689,7 +680,6 @@ Camaraderie
 Camera Launcher
 Campus Composer
 Campus Crier
-Candlelight Vigil
 Candlestick
 Canoptek Scarab Swarm
 Canopy Vista
@@ -735,7 +725,6 @@ Casey Jones, Jury-Rig Justiciar
 Casey Jones, Vigilante
 Cast Away Doubt
 Castle Locthwain
-Castle Raptors
 Catapult Fodder
 Cateran Enforcer
 Cateran Slaver
@@ -905,7 +894,6 @@ Concealed Courtyard
 Concealed Weapon
 Conciliator's Duelist
 Conduct Electricity
-Conduit Pylons
 Confusticate and Bebother
 Constrictor Sage
 Consumed by Greed
@@ -1135,7 +1123,6 @@ Demolisher Spawn
 Demon Bolt
 Demon's Due
 Demonic Collusion
-Demonic Rising
 Demonic Taskmaster
 Den Protector
 Dense Canopy
@@ -1155,7 +1142,6 @@ Desolation Prowler
 Desolation of Smaug
 Despark
 Desperate Bloodseeker
-Desperate Farmer
 Desperate Futurescribe
 Desperate Plea
 Destructive Flow
@@ -1354,7 +1340,6 @@ Early Winter
 Earth King's Lieutenant
 Earth Kingdom Soldier
 Earth Rumble Wrestlers
-Earth Surge
 Earthquake Dragon
 Earthrumbler
 Earthshaker Giant
@@ -1554,7 +1539,6 @@ Fabled Passage
 Fabricate
 Face of Fear
 Facet Reader
-Fade from History
 Fade from Memory
 Fae Flight
 Faeburrow Elder
@@ -1566,7 +1550,6 @@ Faith of the Devoted
 Faithful Mending
 Faithless Salvaging
 Falkenrath Forebear
-Fall to Earth
 Faller's Faithful
 Fallow Earth
 False Memories
@@ -1627,7 +1610,6 @@ Ferocity of the Hunt
 Fervent Charge
 Festerhide Boar
 Festering Goblin
-Festering Gulch
 Festerleech
 Fetid Pools
 Fevered Suspicion
@@ -1672,7 +1654,6 @@ Flamecache Gecko
 Flamehold Grappler
 Flamekin Gildweaver
 Flamekin Herald
-Flaming Fist Officer
 Flaring Cinder
 Flash Thompson, Spider-Fan
 Flashback
@@ -2019,7 +2000,6 @@ Greenbelt Guardian
 Greenbelt Radical
 Greenhouse Propagator
 Grenzo, Havoc Raiser
-Greven, Predator Captain
 Grief Tyrant
 Griffnaut Tracker
 Grilka, Widowed Warrior
@@ -2248,7 +2228,6 @@ Howling Mine
 Howlpack Piper
 Hraesvelgr of the First Brood
 Huatli's Spurring
-Huatli, Radiant Champion
 Hugs, Grisly Guardian
 Hulk, Gamma Goliath
 Hulkbuster Armor
@@ -2286,7 +2265,6 @@ Ice Over
 Icecave Crasher
 Iceridge Serpent
 Icetill Explorer
-Ich-Tekik, Salvage Splicer
 Ichor Drinker
 Ichor Rats
 Ichorplate Golem
@@ -2530,7 +2508,6 @@ Kaya, Spirits' Justice
 Kazandu Nectarpot
 Kazandu Stomper
 Kederekt Creeper
-Kederekt Parasite
 Keen Buccaneer
 Keen-Eyed Archers
 Keen-Eyed Curator
@@ -3412,7 +3389,6 @@ Outpace Oblivion
 Outrageous Robbery
 Ovalchase Dragster
 Overcharged Amalgam
-Overflowing Insight
 Overgrown Estate
 Overgrown Farmland
 Overtaker
@@ -3464,7 +3440,6 @@ Peacewalker Colossus
 Pearl of Wisdom
 Pearl-Ear, Imperial Advisor
 Pedal to the Metal
-Peema Trailblazer
 Peerless Recycling
 Peerless Ropemaster
 Peggy Carter, Secret Agent
@@ -3529,16 +3504,13 @@ Piper of the Swarm
 Pippin's Bravery
 Piru, the Volatile
 Pit Scorpion
-Pitchstone Wall
 Pitfall Trap
 Pitiless Carnage
-Pitiless Horde
 Pitiless Vizier
 Pizza Face, Gastromancer
 Plague Beetle
 Plague Spores
 Plague Stinger
-Plague Wight
 Plaguebearer
 Plan for All Outcomes
 Plan the Heist
@@ -3845,7 +3817,6 @@ Rescue Leopard
 Rescue Skiff
 Rescue, Pepper Potts
 Resilient Roadrunner
-Resistance Squad
 Resolute Blademaster
 Resounding Scream
 Resounding Thunder
@@ -4146,7 +4117,6 @@ Sea of Clouds
 Seal of Cleansing
 Seal of Primordium
 Seam Rip
-Search Warrant
 Searing Wind
 Seascape Aerialist
 Seashell Cameo
@@ -4168,7 +4138,6 @@ Seedship Impact
 Seething Landscape
 Seismic Elemental
 Seismic Monstrosaur
-Seismic Spike
 Seismic Strike
 Seize Opportunity
 Seize the Secrets
@@ -4275,7 +4244,6 @@ Shriek, Treblemaker
 Shrine of Loyal Legions
 Shrine of Piercing Vision
 Shrouded Serpent
-Shunt
 Shuttle Ace
 Shuttle Crew
 Shuttlecraft Galileo
@@ -4339,7 +4307,6 @@ Sita Varma, Masked Racer
 Sizzling Changeling
 Skalla Wolf
 Skarrg Goliath
-Skarrgan Pit-Skulk
 Skateboard
 Skilled Animator
 Skilled Battlecarver
@@ -4362,7 +4329,6 @@ Skycoach Waypoint
 Skycrash
 Skyfire Kirin
 Skygames
-Skyhunter Cub
 Skyknight Vanguard
 Skylasher
 Skymarch Bloodletter
@@ -4447,7 +4413,6 @@ Soilshaper
 Sokka and Suki
 Sokka, Tenacious Tactician
 Solarium Sentry
-Solid Ground
 Solitary Cell
 Solitary Defiance
 Solve for Disappointment
@@ -4560,7 +4525,6 @@ Spirebluff Canal
 Spirit Away
 Spirit Mascot
 Spiritcall Enthusiast
-Spitebellows
 Spiteflame Witch
 Spitting Spider
 Splash Lasher
@@ -4599,7 +4563,6 @@ Stalking Drone
 Stall Out
 Stall for Time
 Stalwart Shield-Bearers
-Stampeding Elk Herd
 Stampeding Scurryfoot
 Stand United
 Stand Up for Yourself
@@ -4727,7 +4690,6 @@ Sulu, Space Swashbuckler
 Summer Bloom
 Summit Intimidator
 Summon the School
-Summon: Ixion
 Summoned Dromedary
 Sun Sentinel
 Sun Titan
@@ -4800,7 +4762,6 @@ Sydri, Galvanic Genius
 Sylvan Bounty
 Sylvan Caryatid
 Sylvan Yeti
-Sylvok Lifestaff
 Symbiote Spider-Man
 Synchronized Charge
 Synthesizer Labship
@@ -4891,9 +4852,7 @@ Tend the Pests
 Tender Wildguide
 Tenderize
 Tendrils of Corruption
-Tendrils of Despair
 Teneb, the Harvester
-Tenth District Guard
 Tenth District Hero
 Tenth District Legionnaire
 Tenured Concocter
@@ -5584,7 +5543,6 @@ Wingblade Disciple
 Winged Shepherd
 Wingnut, Bat on the Belfry
 Wingspan Stride
-Winter Soldier, Bucky Barnes
 Winter, Misanthropic Guide
 Winter, Team Player
 Winter, Tormented Loner
@@ -5649,7 +5607,6 @@ Yargle, Goliath of Otaria
 Yasova Dragonclaw
 Yathan Roadwatcher
 Yathan Tombguard
-Yavimaya Ancients
 Yavimaya Iconoclast
 Yavimaya Kavu
 Yavimaya Wurm

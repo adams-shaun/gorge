@@ -42,6 +42,8 @@ Blighted Shaman
 Blood Reckoning
 Blood on the Snow
 Boartusk Liege
+Bombadil's Song
+Brain Pry
 Brokers Hideout
 Cabal Therapist
 Captain America's Motorcycle
@@ -134,6 +136,7 @@ Gitaxian Anatomist
 Gnawing Zombie
 Go Forth
 Goblin Rally
+Gosta Dirk
 Grapple with the Past
 Grave Peril
 Grenzo's Ruffians
@@ -300,6 +303,7 @@ Terra Eternal
 Thaumaturge's Familiar
 Think Tank
 Thirst
+Thousand-legged Kami
 Tishana's Wayfinder
 Tolsimir Wolfblood
 Tormod's Cryptkeeper
