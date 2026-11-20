@@ -1128,7 +1128,9 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 			s.etbOrderOptions(k, d)
 			return true
 		}
-		if s.g.pre.land {
+		if s.g.pre.ley {
+			d.Player = s.g.leyP // the opening round's seat still holds the offer
+		} else if s.g.pre.land {
 			d.Player = s.preLandSeat() // the land's player still holds priority (a Play's picked land: its caster)
 		} else {
 			d.Player = s.stack[s.sp-1].ctrl
@@ -1245,11 +1247,15 @@ func (s *State) applyGen(k *prep, a Action) {
 			}
 		}
 		s.g.pre.state = 2
-		s.ctl = ctlPriority
-		if s.g.pre.land {
-			s.playLandNow(k, s.g.pre.obj, s.preLandSeat()) // the land enters with the choice made
+		if s.g.pre.ley {
+			s.leyPreEnter(k) // the opening hand's Leyline enters with the choice made
 		} else {
-			s.resolveTop(k) // the permanent enters with the choice made
+			s.ctl = ctlPriority
+			if s.g.pre.land {
+				s.playLandNow(k, s.g.pre.obj, s.preLandSeat()) // the land enters with the choice made
+			} else {
+				s.resolveTop(k) // the permanent enters with the choice made
+			}
 		}
 		// a second pre-ask posed by the resolution (the entry order) stays
 		// posed; otherwise the answered choice is done. The CR 616.1
@@ -1268,6 +1274,14 @@ func (s *State) applyGen(k *prep, a Action) {
 		}
 		if a.Mode() == 1 {
 			o := Obj(a.Source())
+			// CR 614.12: the as-enters choice is part of entering, made while
+			// the card is still in its origin zone. gorge asks it at the
+			// entry boundary, so park the pre-ask with the card still in the
+			// opening hand and let the answer enter it (leyPreEnter).
+			if kind := s.enterChoiceKind(k, s.objs[o].card); kind != 0 && !DebugLeylineMoveBeforeAsk {
+				s.g.pre = preAsk{obj: o, kind: kind, state: 1, ley: true}
+				return
+			}
 			from := s.detach(o)
 			s.leyGemEnter(k, o, s.enter(k, o, s.g.leyP, false, from))
 		} else {
@@ -1354,6 +1368,23 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		}
 	}
 }
+
+// leyPreEnter finishes a Leyline whose as-enters choice was asked while it
+// was still in the opening hand: the answer is in s.g.pre.val, and the enters
+// program consumes it as a played land's does. The opening round then asks
+// the next Leyline or begins the turn (the generator is still in its ask
+// phase with leyOn set).
+func (s *State) leyPreEnter(k *prep) {
+	o := s.g.pre.obj
+	from := s.detach(o)
+	s.leyGemEnter(k, o, s.enter(k, o, s.g.leyP, false, from))
+	s.g.ctlRet, s.ctl = ctlStepBegin, ctlGenAsk
+}
+
+// DebugLeylineMoveBeforeAsk (TestLeylineOpeningChoiceBeforeMoveMutation):
+// moves an opening-hand Leyline onto the battlefield before its as-enters
+// choice, the timing this change fixes.
+var DebugLeylineMoveBeforeAsk bool
 
 // leylineStart begins the opening-hand Leyline asks (gorge's
 // MayEffectFromOpeningHand) before the first turn; false when there is

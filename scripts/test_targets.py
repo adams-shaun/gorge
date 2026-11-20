@@ -37,6 +37,10 @@ ENV_SKIP = re.compile(
     r"|\b(no|missing)\b[^:]{0,20}\b(dirac|fdn|blb|set|card)\s+tables?\b|\bno\s+tables?\b", re.I)
 NO_TESTS = "[no tests to run]"
 MAX_DETAIL = 40
+# The per-test wall budget (docs/site/contributing/testing.md): one minute at 4 cores. A test the diff adds or
+# changes that runs longer makes the verdict BUDGET; one it leaves alone is only reported (docs/agents/known-slow.md).
+TEST_BUDGET_S = 60.0
+MAX_SLOW_LINES = 10
 
 # Packages that stay out of the reverse-dependency closure: each is over the one-minute budget and runs
 # post-merge or sharded (testing-study section 2).
@@ -50,6 +54,8 @@ ALWAYS = ("./internal/archtest", "./internal/codeshape")
 # by the recording's basename in the package's _test.go files) plus the fallback families below: the table
 # tests that glob the directory and the per-pool lockstep replays (about a minute, not the whole package).
 REPRO_DIR = "dirac/oracle/testdata/repro/"
+# The one Go test that replays the recordings marked "named":true, a subtest each (repro_manifest_test.go).
+MANIFEST_TEST = "TestReproManifest"
 REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
 # Every committed recording's replay (the Std pool families and the ~540 per-card `TestMBC*Repros*Lockstep`) and
 # the refusal-staleness check: about 2.5 min at 4 cores on ./dirac/oracle (11-18, against >15 min for every
@@ -104,6 +110,17 @@ KERNEL_PAIR = ("TestKernelWorldsInFuzzGame5Shard0", "TestKernelWorldsInFuzzGame5
 PINS_TESTS = "^TestPinManifest$|^TestPinManifestCoversOldPins$"
 ARCH32 = "TestEngineCompilesFor32Bit"
 FAST_TIER = "dirac/oracle/testdata/fasttier.txt"
+# One -timeout per package, used by test-one, test-targeted, test-smart and the dirac gate's step 8.
+# -timeout is part of go's test-cache key: a package run at 5m in one mode and 10m in another runs twice.
+# ./dirac/oracle stays 5m: the protected dirac gate (read from BASE; its step 0 refuses an edit to it) runs the
+# same fast tier and repro families at 5m, so that is the one value both callers can use.
+PACKAGE_TIMEOUTS = {"./dirac/oracle": "5m"}
+DEFAULT_TIMEOUT = "5m"
+
+
+def timeout_for(pkg):
+    """The -timeout every mode uses for pkg, so its test-cache entry is the same one."""
+    return PACKAGE_TIMEOUTS.get(pkg, DEFAULT_TIMEOUT)
 
 
 def needs_386(changes):
@@ -142,15 +159,28 @@ class Result:
         self.detail = []
 
 
-def classify(lines, rc=0, named=()):
+def is_changed(changed, pkg, test):
+    """Whether (pkg import path, top-level test) is a test the diff adds or changes; changed is {(dir, test)}
+    as changed_tests returns it, with the repo root keyed by its module import path (diff_changed_tests does
+    that: `go test -json` reports the import path, never "."). A package matches its directory by import-path
+    suffix (the module's own prefix is not needed, and a directory is never a bare suffix of another: the
+    match is on a '/')."""
+    return any(t == test and (pkg == d or (d != "." and pkg.endswith("/" + d))) for d, t in changed or ())
+
+
+def classify(lines, rc=0, named=(), changed=None, fallback=""):
     """Classify the lines of a `go test -json` run. rc is go's exit status. named are the packages run
-    with a -run filter that must match something. Returns a Result."""
+    with a -run filter that must match something. changed is {(dir, test)} the diff adds or changes: one of
+    them over TEST_BUDGET_S makes the verdict BUDGET, naming it (below the 4-core budget, fallback is the CPU
+    cap, it is only reported: the box was short of cores, not the test slow). Returns a Result."""
     res = Result()
+    res.slow = []  # report lines for tests over the wall budget
+    elapsed = {}  # (package, top-level test) -> longest Elapsed seen
     out = {}  # (package, test) -> output lines
     failed = []  # (package, test) in order
     pkg_fail = []
     raw = []
-    budget = env = empty = False
+    budget = over_budget = env = empty = False
     named = set(named)
     for ln in lines:
         ln = ln.rstrip("\n")
@@ -192,8 +222,24 @@ def classify(lines, rc=0, named=()):
                 res.ran += 1
             if act == "fail":
                 failed.append((pkg, test))
+            if act in ("pass", "fail") and "/" not in test and isinstance(ev.get("Elapsed"), (int, float)):
+                elapsed[(pkg, test)] = max(elapsed.get((pkg, test), 0.0), float(ev["Elapsed"]))
         elif act in ("fail", "build-fail") and not test:
             pkg_fail.append(pkg)
+    over = sorted(((p, t, el) for (p, t), el in elapsed.items() if el > TEST_BUDGET_S), key=lambda x: (-x[2], x[0], x[1]))
+    for pkg, test, el in over:
+        if is_changed(changed, pkg, test):
+            if fallback:
+                res.slow.append("changed test over the %.0fs budget, not enforced at the fallback cap (CPUQuota %s): %s %s %.1fs"
+                                % (TEST_BUDGET_S, fallback, pkg, test, el))
+            else:
+                over_budget = True
+                res.slow.append("BUDGET: changed test over the %.0fs budget: %s %s %.1fs; split it into chunk tests, "
+                                "shard it or tag it nightly" % (TEST_BUDGET_S, pkg, test, el))
+        else:
+            res.slow.append("slow test over the %.0fs budget (not changed by this diff, so not a failure; "
+                            "docs/agents/known-slow.md): %s %s %.1fs" % (TEST_BUDGET_S, pkg, test, el))
+    res.slow.sort(key=lambda l: not l.startswith("BUDGET"))  # the enforced ones first
     for pkg, test in failed:
         res.detail.append("--- FAIL: %s %s" % (pkg, test))
         res.detail.extend(l for l in out.get((pkg, test), []) if l.strip())
@@ -209,8 +255,11 @@ def classify(lines, rc=0, named=()):
     if budget:
         res.status = "BUDGET"
     elif failed or pkg_fail or rc != 0:
-        # A real failure wins over an environment skip: the code, not the box, decided the run.
+        # A real failure wins over an environment skip and over a changed slow test: the code, not the box or
+        # the wall clock, decided the run. A timeout or kill above still wins over both.
         res.status = "FAIL"
+    elif over_budget:
+        res.status = "BUDGET"
     elif env:
         res.status = "ENV"
     elif empty or res.ran == 0:
@@ -220,11 +269,11 @@ def classify(lines, rc=0, named=()):
     return res
 
 
-def finish(mode, jsonfile, rc, sha, pkgs, seconds, named, out=sys.stdout, fallback=""):
+def finish(mode, jsonfile, rc, sha, pkgs, seconds, named, out=sys.stdout, fallback="", changed=None):
     """fallback is the CPU cap of a run that fell back from the gate box to below the budget's 4 cores ("" when
     not): a timeout there says the machine was short of cores, not that the change is slow, so it is BUSY."""
     with open(jsonfile, errors="replace") as f:
-        res = classify(f, rc, named)
+        res = classify(f, rc, named, changed, fallback)
     if res.status == "BUDGET" and fallback:
         res.status = "BUSY"
         res.reasons.insert(0, "timed out at the fallback cap (CPUQuota %s; the gate box could not take the run): the "
@@ -236,6 +285,10 @@ def finish(mode, jsonfile, rc, sha, pkgs, seconds, named, out=sys.stdout, fallba
         print("... %d more lines in %s" % (len(res.detail) - MAX_DETAIL, jsonfile), file=out)
     for r in res.reasons[:5]:
         print("  note: " + r, file=out)
+    for r in res.slow[:MAX_SLOW_LINES]:
+        print("  note: " + r, file=out)
+    if len(res.slow) > MAX_SLOW_LINES:
+        print("  note: ... %d more tests over the budget in %s" % (len(res.slow) - MAX_SLOW_LINES, jsonfile), file=out)
     print("  tests ran=%d skipped=%d packages=%d cached=%d" % (res.ran, res.skipped, res.pkgs, res.cached), file=out)
     if res.cached:
         # The verdict line alone made a one-second PASS look like nothing ran, and agents re-ran it (test-cache-audit 11-14).
@@ -298,6 +351,20 @@ def named_tests(lines, ranges, new=False):
     return sorted(set(names)), whole
 
 
+def changed_tests(changes, added, lines_of):
+    """{(directory, TestName)} the diff adds or changes: the Test functions of each changed _test.go file that
+    a changed line lies in (every Test of a file the diff adds). A changed helper, import or fixture names no
+    test here: it does not change a test's own body. changes and added are as plan takes them."""
+    out = set()
+    for path, ranges in changes.items():
+        if not path.endswith("_test.go"):
+            continue
+        d = path.rsplit("/", 1)[0] if "/" in path else "."
+        names, _ = named_tests(lines_of(path), ranges, path in added)
+        out.update((d, t) for t in names)
+    return out
+
+
 def pkg_of(path, dirmap):
     """The package import path a changed file belongs to, or None. testdata maps to its package."""
     d = path.rsplit("/", 1)[0] if "/" in path else "."
@@ -312,7 +379,11 @@ def repro_named(changes, dirmap, lines_of, cwd=None):
     A re-recorded custom-pool recording usually leaves its reader's _test.go unchanged, so the recording's
     basename is the only link: one `git grep -l -F` per changed recording finds the test files that name it,
     and every test function of those files runs. Recordings no test file names (standard-pool replays) get
-    nothing here; the REPRO_TESTS families cover them."""
+    nothing here; the REPRO_TESTS families cover them.
+
+    A recording marked `"named":true` is replayed by TestReproManifest as the subtest of its own name, so it
+    maps to `TestReproManifest/<name>` (plan folds that to the parent test: a `/` in -run filters the
+    subtests of every other selected test too, which would turn the other tests into empty passes)."""
     out, files = {}, {}
     for path in sorted(changes):
         if not path.startswith(REPRO_DIR) or not path.endswith(".repro.json"):
@@ -321,6 +392,8 @@ def repro_named(changes, dirmap, lines_of, cwd=None):
         p = dirmap.get(path.split("/testdata/")[0])
         if p is None:
             continue
+        if '"named":true' in "".join(lines_of(path)):
+            out.setdefault(p, set()).add(MANIFEST_TEST + "/" + base)
         if base not in files:
             # git grep exits 1 on no match, which is an answer, not an error
             files[base] = sh("git", "grep", "-l", "-F", base, "--", path.split("/testdata/")[0] + "/*_test.go",
@@ -350,7 +423,8 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
     src, touched, named, forced_whole, repro = set(), set(), {}, set(), set()
     for p, names in (repro_names or {}).items():
         if names:
-            named.setdefault(p, set()).update(names)
+            # a subtest path (TestReproManifest/<name>) runs as its parent: see repro_named
+            named.setdefault(p, set()).update(n.split("/", 1)[0] for n in names)
     for path, ranges in sorted(changes.items()):
         if path.endswith(".md"):
             continue
@@ -510,6 +584,20 @@ def census_pkgs(changes, dirmap, deps, candidates):
     return sorted(keep)
 
 
+def diff_changed_tests(base):
+    """changed_tests for the working tree against base; empty when the diff cannot be read (a base that does
+    not resolve): the budget is then only reported, never enforced. A root-package test is keyed by the
+    module import path `go test -json` reports for it (the dir is "." in the diff)."""
+    try:
+        changed = changed_tests(diff_changes(base), added_files(base), read_lines)
+        if any(d == "." for d, _ in changed):
+            root = sh("go", "list", "-m").strip()
+            changed = {(root if d == "." else d, t) for d, t in changed}
+        return changed
+    except SystemExit:
+        return set()
+
+
 def cmd_census(a):
     dirmap, deps = go_graph()
     cands = [ln.strip() for ln in sys.stdin if ln.strip()]
@@ -619,12 +707,15 @@ def main(argv=None):
     f.add_argument("--pkgs", default="")
     f.add_argument("--seconds", type=float, default=0)
     f.add_argument("--named", default="")
+    f.add_argument("--base", default="", help="the diff's base: a test it adds or changes over the 60 s budget is BUDGET")
     f.add_argument("--fallback", default="", help="the CPU cap of a fallback run below 4 cores: a timeout is BUSY")
     s = sub.add_parser("select")
     s.add_argument("--base", default="origin/main")
     s.add_argument("--narrow", action="store_true", help="test-smart's narrow precheck selection")
     c = sub.add_parser("census")
     c.add_argument("--base", default="origin/main")
+    t = sub.add_parser("timeout")
+    t.add_argument("--pkg", required=True)
     a = ap.parse_args(argv)
     pk = [p for p in a.pkgs.split(",") if p] if hasattr(a, "pkgs") else []
     if a.cmd == "verdict":
@@ -633,9 +724,13 @@ def main(argv=None):
         print(verdict_line(a.mode, a.status, a.sha, pk, a.seconds))
         return EXIT[a.status]
     if a.cmd == "finish":
-        return finish(a.mode, a.json, a.rc, a.sha, pk, a.seconds, [p for p in a.named.split(",") if p], fallback=a.fallback)
+        return finish(a.mode, a.json, a.rc, a.sha, pk, a.seconds, [p for p in a.named.split(",") if p], fallback=a.fallback,
+                      changed=diff_changed_tests(a.base) if a.base else None)
     if a.cmd == "census":
         return cmd_census(a)
+    if a.cmd == "timeout":
+        print(timeout_for(a.pkg))
+        return 0
     return cmd_select(a)
 
 

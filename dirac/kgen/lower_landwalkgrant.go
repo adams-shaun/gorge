@@ -12,11 +12,13 @@ import "strings"
 // kernel reads kop.Static.Landwalk the way it reads a printed
 // CardDef.Landwalk (the spec's parameter up to a second colon).
 //
-// A global grant ("Other Goblins have mountainwalk") and an Equipment's
-// (Trailblazer's Boots: "Equipped creature has nonbasic landwalk") lower; the
-// equipped creature is the static's filter, so the kernel reads the grant the
-// way it reads a global one. An Aura's grant (Affected$ ...EnchantedBy) has no
-// lockstep repro, so it stays refused.
+// A global grant ("Other Goblins have mountainwalk"), an Equipment's
+// (Trailblazer's Boots: "Equipped creature has nonbasic landwalk") and an
+// Aura's (Burrowing: "Enchanted creature has mountainwalk") lower; the
+// equipped or enchanted creature is the static's filter (Affected$
+// ...EquippedBy / ...EnchantedBy), so the kernel reads the grant the way it
+// reads a global one. A creature's own grant that names an Equipment form
+// (the Equipped filter on a non-artifact) stays refused.
 func (lc *lowerCtx) splitLandwalkGrant(kw, affected string) (string, *lFilter, error) {
 	var rest []string
 	var out *lFilter
@@ -27,7 +29,7 @@ func (lc *lowerCtx) splitLandwalkGrant(kw, affected string) (string, *lFilter, e
 			rest = append(rest, k)
 			continue
 		}
-		if strings.Contains(affected, "Enchanted") || strings.Contains(affected, "Equipped") && lc.out.Types&tArtifact == 0 {
+		if strings.Contains(affected, "Equipped") && lc.out.Types&tArtifact == 0 {
 			return "", nil, refuse("keyword %q: a granted landwalk from an attached host", k)
 		}
 		f, err := lc.landwalkFilter(k, param)

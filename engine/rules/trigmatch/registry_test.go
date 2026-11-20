@@ -356,6 +356,11 @@ var addedAfterTheSplit = []string{
 	// edh-trigE: Adapt (Biomancer's Familiar) matches the AlterAttribute
 	// "Adapted" marker a resolving Adapt$ put emits; the mode name is new.
 	"Adapt",
+	// CR 702.122e: BecomesCrewed matches the events.AbilityResolved marker
+	// when the resolving ability is the crew ability (the
+	// events.AbilityResolvedCrew bit). The marker Kind existed, but no
+	// pre-split mode dispatched the new name and no crew ability set the bit.
+	"BecomesCrewed",
 }
 
 func allRegisteredModeNames() []string {

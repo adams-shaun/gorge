@@ -2631,7 +2631,7 @@ const (
 	StallLifeRepl  = 25 // a life-gain doubler and a life-gain plus-N in one table: gorge's CR 616.1 order ask (they do not commute; act_discover.go)
 	StallProlif    = 26 // a proliferate gorge orders differently: more than 16 picks, or a recipient with two counter kinds in a table with a counter-added trigger (act_proliferate.go)
 	StallTapPick   = 27 // a tap-any-number cost (CostTapPower, Crew / Saddle) picked past build.picks' 24 (12 before kcaps2x; kw_crewsaddle.go)
-	StallRegen     = 28 // a ninth regeneration shield on one permanent: pfRegenX plus the arena's mechRegen bit hold eight (4 before kcaps2x; repl_regenerate.go; kverify-c4)
+	StallRegen     = 28 // a ninth regeneration shield on one permanent: perm.spare's two bits plus the arena's mechRegen bit hold eight (4 before kcaps2x; repl_regenerate.go; kverify-c4)
 	StallLook      = 29 // a dig window wider than genState.look's 24 (12 before kcaps2x; Ulamog's "exile the top twenty"; Hatchery Spider's undergrowth; selfcast): the window used to truncate silently
 	StallCtrOrder  = 30 // an OpPutCountersFrom of two or more counter kinds in a table with a counter-added trigger: gorge fires per kind in the source's insertion order, the kernel walks kinds ascending (ctr_clear.go; eachfromsource)
 	StallGrants    = 31 // more than maxGrants granted mana abilities on one permanent (mana_grantedoffers.go grantIdxs), or more emblem grants to one permanent than globalGrantsGen's emblem pass holds (act_empower.go)
@@ -3264,6 +3264,10 @@ type preAsk struct {
 	// clone election (copy_templatechoice.go); ask2 is its kind, val2 the answer
 	ask2 uint8
 	val2 uint8
+	// ley: a Leyline begun from the opening hand (CR 103.6a) with an as-enters
+	// choice, asked while it is still in the hand (CR 614.12); the answered
+	// choice enters it from the opening round, as a played land's does.
+	ley bool
 }
 
 // preEnterAsk poses e's as-enters choice before the permanent spell

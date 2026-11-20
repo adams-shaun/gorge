@@ -293,6 +293,11 @@ var triggerModeEventRows = [...]struct {
 	// the fail-open path and gated by the full matchers (trigmatch).
 	{cards.TriggerCountered, 0},
 	{cards.TriggerAbilityResolves, 0},
+	// BecomesCrewed reads the same events.AbilityResolved marker (ordinal past
+	// the 64-bit mask's reach, so it is admitted through the fail-open path)
+	// and is gated by trigmatch.BecomesCrewedMatches' crew bit. Naming it here
+	// keeps a BecomesCrewed-only face's mask narrow for every other kind.
+	{cards.TriggerBecomesCrewed, 0},
 	{cards.TriggerCycled, 1 << events.MoveZone},
 	{cards.TriggerExplores, 1 << events.Explore},
 	// The marker Kind's ordinal is past the 64-bit mask's reach, the

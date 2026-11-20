@@ -54,7 +54,7 @@ func (e *Engine) manaAbilityYieldsNothing(p state.PlayerID, id state.ObjID, f *c
 		return false
 	}
 	if mp.Each.Present {
-		return e.manaEachCount(p, id, ma, nil, pay.GainedManaRef{}) <= 0
+		return e.manaEachCount(p, id, ma, nil, nil, pay.GainedManaRef{}) <= 0
 	}
 	if mp.AmountTrim == "" || mp.AmountIsLit {
 		return false

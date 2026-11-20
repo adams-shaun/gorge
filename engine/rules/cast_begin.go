@@ -225,9 +225,9 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		if sc, ok := surgeCost(f); ok {
 			cost = sc
 		}
-	case castModeDisturb:
-		// CR 702.146a: the FRONT face's disturb cost replaces the mana cost.
-		if dc, ok := disturbCost(o.Card.Faces[0]); ok {
+	case castModeDisturb, castModeConverted:
+		// CR 702.146a / 702.162a: the FRONT face's disturb or MTMtE cost replaces the mana cost.
+		if dc, ok := flippedCastCost(castModeCodes.Code(string(opt.Mode)), o.Card.Faces[0]); ok {
 			cost = dc
 		}
 	case castModeEntwined:
@@ -588,7 +588,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// spell's own additional cost (Eviscerator's Insight's sacrifice,
 		// Electric Revelation's discard) is still paid. The offer gate
 		// (legal.go's flashback walk) folds the same extras.
-		opt.Mode == "flashback" || opt.Mode == "escape" || opt.Mode == beamMeUpMode || opt.Mode == "disturb" ||
+		opt.Mode == "flashback" || opt.Mode == "escape" || opt.Mode == beamMeUpMode || flippedFaceMode(opt.Mode) ||
 		// CR 702.138a, 118.9d: escape is an alternative cost, so the spell's
 		// own additional cost (Village Rites' sacrifice, Thrill of
 		// Possibility's discard) is still paid on top of the escape cost.
@@ -1390,6 +1390,7 @@ const (
 	castModePrototype
 	castModeBeamMeUp
 	castModeDisturb
+	castModeConverted
 )
 
 var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
@@ -1409,6 +1410,7 @@ var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
 	state.StrEntry[castModeCode]{Key: "suspend_cast", Val: castModeSuspendCast},
 	state.StrEntry[castModeCode]{Key: "defeat_cast", Val: castModeDefeatCast},
 	state.StrEntry[castModeCode]{Key: "disturb", Val: castModeDisturb},
+	state.StrEntry[castModeCode]{Key: "converted", Val: castModeConverted},
 	state.StrEntry[castModeCode]{Key: "plot", Val: castModePlot},
 	state.StrEntry[castModeCode]{Key: "plot_cast", Val: castModePlotCast},
 	state.StrEntry[castModeCode]{Key: "prepared_copy", Val: castModePreparedCopy},
