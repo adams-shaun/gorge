@@ -452,40 +452,19 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: speedTrigger})
 		return
 	}
-	if pt.RadiationDrain {
+	// The four source-less DelayedPush abilities (RadiationDrain, the two
+	// Monarch abilities of CR 725.2, and CR 726.2's initiative venture) share
+	// one emit: each mints a real stack ability from a synthetic body
+	// (engine/events/apply.go's DelayedPush case -- no card SVar, no direct
+	// state mutation), so the ability can be responded to by the ordinary
+	// priority round. They were walked as four arms until the granted
+	// spell-keyword push outgrew pushTrigger's codeshape ceilings; the
+	// payload helper carries each Counter/Amount exactly as its arm did.
+	if counter, amount, ok := pt.delayedPushPayload(); ok {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
 		}
-		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__radiation_drain"})
-		return
-	}
-	if pt.MonarchDraw {
-		// Use DelayedPush's event-sourced stack-object creation. Apply has a
-		// dedicated synthetic body for this engine-owned trigger, so no card
-		// SVar or direct state mutation is needed.
-		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
-			return
-		}
-		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__monarch_draw"})
-		return
-	}
-	if pt.MonarchSteal {
-		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
-			return
-		}
-		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__monarch_steal", Amount: int32(pt.MonarchTo)})
-		return
-	}
-	if pt.InitiativeVenture {
-		// CR 726.2's source-less "that player ventures into Undercity". Like
-		// MonarchDraw it mints a real stack ability from a synthetic body
-		// (engine/events/apply.go's DelayedPush case), so the venture can be responded
-		// to by the ordinary priority round.
-		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
-			return
-		}
-		e.emit(events.Event{Kind: events.DelayedPush,
-			Player: pt.Controller, Counter: "__initiative_venture"})
+		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: counter, Amount: amount})
 		return
 	}
 	// Evoke and Madness are mandatory keyword-triggered abilities minted as
@@ -677,9 +656,24 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.pushGrantedStorm(pt)
 		return
 	}
-	if pt.Demonstrate {
+	// A granted Ripple (CR 702.60a -- Thrumming Stone's "Spells you cast
+	// have ripple 4") shares the Demonstrate shape: the cast spell rides
+	// IDs as Remembered and the Counter payload "__kwRippleGranted:<line>"
+	// carries the whole derived keyword line, whose count the fold in
+	// engine/events parses into the printed expansion's DB$ Ripple body.
+	// The trigger line also rides recordTriggerLine so the resolving
+	// object's OptionalDecider$ may is readable -- a granted keyword has
+	// no face trigger index to recover it from (the printed path gets the
+	// same ask by pointer identity). The "Granted" suffix and the trailing
+	// colon keep the payload from aliasing the "__kwRipple:4" SVar a
+	// printed K:Ripple:4 line mints.
+	if pt.Demonstrate || pt.Ripple != "" {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
+		}
+		counter, text := "__kwDemonstrate:", "demonstrate ability"
+		if pt.Ripple != "" {
+			counter, text = "__kwRippleGranted:"+pt.Ripple, "ripple ability"
 		}
 		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
 		for _, tgt := range pt.Ctx.Remembered {
@@ -691,13 +685,16 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		}
 		stackLen := len(e.G.Stack)
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
-			Obj: pt.Source, Counter: "__kwDemonstrate:", IDs: ids, Text: "demonstrate ability"})
+			Obj: pt.Source, Counter: counter, IDs: ids, Text: text})
 		if len(e.G.Stack) > stackLen {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if e.triggerContexts == nil {
 				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			if pt.Ripple != "" {
+				e.recordTriggerLine(id, pt)
+			}
 		}
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
@@ -2286,3 +2283,24 @@ var targetChooserFromSpecCodes = state.NewStrCodes(
 	state.StrEntry[targetChooserFromSpecCode]{Key: "TriggeredAttackingPlayer", Val: targetChooserFromSpecTriggeredAttackingPlayer},
 	state.StrEntry[targetChooserFromSpecCode]{Key: "TriggeredCardController", Val: targetChooserFromSpecTriggeredCardController},
 )
+
+// delayedPushPayload names the synthetic DelayedPush body of the four
+// source-less engine-owned abilities (the RadiationDrain drain, the two
+// Monarch abilities of CR 725.2 and CR 726.2's initiative venture), with the
+// Amount each former arm carried: the monarch designation for the steal, 0
+// for the rest. ok is false for every other pending trigger.
+func (pt pendingTrigger) delayedPushPayload() (counter string, amount int32, ok bool) {
+	switch {
+	case pt.RadiationDrain:
+		return "__radiation_drain", 0, true
+	case pt.MonarchDraw:
+		// Use DelayedPush's event-sourced stack-object creation. Apply has a
+		// dedicated synthetic body for this engine-owned trigger.
+		return "__monarch_draw", 0, true
+	case pt.MonarchSteal:
+		return "__monarch_steal", int32(pt.MonarchTo), true
+	case pt.InitiativeVenture:
+		return "__initiative_venture", 0, true
+	}
+	return "", 0, false
+}
