@@ -509,6 +509,8 @@ func hasPropertyStateBacked(h Host, g *state.Game, c *Ctx, group []state.PlayerI
 		qualifies = func(p state.PlayerID) bool { return playerIsCorrupted(g, p) }
 	case base == "HasPropertyisMonarch":
 		qualifies = func(p state.PlayerID) bool { return g.IsMonarch(p) }
+	case base == "HasPropertyhasInitiative":
+		qualifies = func(p state.PlayerID) bool { return g.IsInitiative(p) }
 	case base == "HasPropertywasDealtDamageThisTurn":
 		qualifies = func(p state.PlayerID) bool { return h.DamageTakenThisTurn(p) > 0 }
 	case base == "HasPropertywasDealtNonCombatDamageThisTurn":

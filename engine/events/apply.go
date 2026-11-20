@@ -272,8 +272,17 @@ func applyKind(g *state.Game, e *Event) {
 	case CastBattlefield:
 		foldCastBattlefield(g, e)
 	case SearchedLibrary:
-		// Pure marker for one completed library search; all resulting card
-		// moves and the shuffle have their own events.
+		// One completed library search; all resulting card moves and the
+		// shuffle have their own events. The only state it folds is the
+		// searching seat's per-turn watcher (Amount 0: the library's own
+		// player searched it; else the searcher is seat Amount-1).
+		searcher := e.Player
+		if e.Amount > 0 {
+			searcher = state.PlayerID(e.Amount - 1)
+		}
+		if validPlayer(g, searcher) {
+			g.Players[searcher].SearchedLibraryThisTurn = true
+		}
 	case KeywordAbilityPush:
 		foldKeywordAbilityPush(g, e)
 	case Discover, Seek, Surveil, Scry, Proliferate, ElementalBend:
