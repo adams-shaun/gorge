@@ -338,7 +338,6 @@ var knownUnknownFilterPredicates = []string{
 	"turnedFaceUpThisTurn",
 	"wasCastFromCommand",
 	"wasCastFromGraveyardByYou",
-	"wasCastFromHand",
 	"wasDealtCombatDamageThisTurnBySource",
 	"wasDealtCombatDamageThisTurnBySourceTimes EQ1",
 	"wasDealtDamageThisTurnBySource",

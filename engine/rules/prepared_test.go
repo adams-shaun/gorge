@@ -46,7 +46,7 @@ func TestPrepareCensusCountsPreparedAttributeCarriers(t *testing.T) {
 	// The pinned corpus (FORGE_REF) is the authority; a mismatch means the
 	// corpus moved and the figure needs re-measuring, not that
 	// the mechanic is wrong.
-	const want = 74 // 56 at FORGE_REF 95f04e8; 74 at fb4d809
+	const want = 76 // 56 at FORGE_REF 95f04e8; 74 at fb4d809; 76 at ff076d4
 	if len(carriers) != want {
 		t.Errorf("prepared census: %d corpus files carry `Attributes$ Prepared`, want %d (FORGE_REF moved?): %v",
 			len(carriers), want, carriers)

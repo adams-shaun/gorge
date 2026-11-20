@@ -37,7 +37,7 @@ var randomTargetCarriers = map[string]string{
 	"Orcish Catapult/A0":               "PutCounter",
 	"Power Pack/TrigExile":             "ChangeZone",
 	"Power Struggle/DBExchangeControl": "ExchangeControl",
-	"Power Struggle/TrigPump":          "Pump",
+	"Power Struggle/TrigTarget":        "Pump",
 	"Scab-Clan Giant/TrigFight":        "Fight",
 	"Witch Hunt/TrigGainControl":       "GainControl",
 }

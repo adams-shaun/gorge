@@ -19,7 +19,7 @@ import (
 // here by name instead of silently resolving as a default.
 //
 // The carrier counts are pinned so a corpus pin bump that adds carriers is
-// noticed and re-censused: 35 Empower carriers, 4 scry/surveil-this-turn
+// noticed and re-censused: 36 Empower carriers, 4 scry/surveil-this-turn
 // readers, 9 DisableTriggers lines over 8 cards (measured at the corpus pin,
 // `grep -rlE '(DB|SP|AB)\$ Empower' .cards/cardsfolder`).
 func TestEmpowerClassParamCensus(t *testing.T) {
@@ -83,8 +83,8 @@ func TestEmpowerClassParamCensus(t *testing.T) {
 	if len(bad) > 0 {
 		t.Errorf("class carriers with an unread parameter:\n  %s", strings.Join(bad, "\n  "))
 	}
-	if len(empower) != 35 || len(scry) != 4 || len(disable) != 8 {
-		t.Errorf("carrier counts moved (re-census the new shapes): Empower %d (want 35), scry/surveil readers %d (want 4) %v, DisableTriggers %d (want 8) %v",
+	if len(empower) != 36 || len(scry) != 4 || len(disable) != 8 {
+		t.Errorf("carrier counts moved (re-census the new shapes): Empower %d (want 36), scry/surveil readers %d (want 4) %v, DisableTriggers %d (want 8) %v",
 			len(empower), len(scry), scry, len(disable), disable)
 	}
 	t.Logf("census: %d Empower carriers, %d scry/surveil-this-turn readers, %d DisableTriggers cards; 0 unread class params", len(empower), len(scry), len(disable))

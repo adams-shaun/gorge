@@ -167,7 +167,7 @@ consuls_shieldguard.txt|T|TrigPump|PayEnergy<1>|window-settled
 cool_but_rude.txt|T|TrigDraw|Discard<1/Card>|window-settled
 copy_catchers.txt|T|TrigCopy|1 U|window-settled
 cornered_crook.txt|T|TrigImmediateTrig|Sac<1/Artifact>|window-settled
-corpseberry_cultivator.txt|T|TrigPump|Forage|window-settled
+corpseberry_cultivator.txt|T|TrigStep|Forage|window-settled
 corpses_of_the_lost.txt|T|TrigReturn|PayLife<1>|window-settled
 councils_deliberation.txt|T|DBDraw|ExileFromGrave<1/CARDNAME>|window-settled
 cradle_of_vitality.txt|T|TrigPutCounter|1 W|window-settled
@@ -509,6 +509,7 @@ mirari.txt|T|TrigCopy|3|window-settled
 mirrorworks.txt|T|TrigCopy|2|window-settled
 mishras_self_replicator.txt|T|TrigCopy|1|window-settled
 mizzix_replica_rider.txt|T|TrigCopy|1 UR|window-settled
+mohiam_imperial_truthsayer.txt|T|TrigImmediateTrig|2|window-settled
 moku_meandering_drummer.txt|T|TrigPump|1|window-settled
 monstrosity_of_the_lake.txt|T|TrigTapAll|5|window-settled
 moon_circuit_hacker.txt|T|TrigDraw|Draw<1/You>|window-settled
@@ -561,6 +562,7 @@ oros_the_avenger.txt|T|TrigDamageAll|2 W|window-settled
 overclocked_electromancer.txt|T|TrigPutCounter|PayEnergy<3>|window-settled
 overseer_of_vault_76.txt|T|TrigImmediateTrig|RemoveAnyCounter<3/QUEST/Permanent/permanents>|decline-only
 pack_guardian.txt|T|TrigToken|Discard<1/Land>|window-settled
+padishah_emperor_shaddam_iv.txt|T|TrigToken|PayLife<1>|window-settled
 panic_spellbomb.txt|T|TrigDraw|R|window-settled
 papercraft_decoy.txt|T|TrigDraw1|2|window-settled
 paramecia_coloniex.txt|T|TrigImmediateTrig|ExileAnyGrave<1/Card.TriggeredNewCard>|window-settled
@@ -581,6 +583,7 @@ proft_consulting_detective.txt|T|TrigPutCounter|2|window-settled
 projektor_inspector.txt|T|TrigDraw|Draw<1/You>|window-settled
 promise_of_aclazotz_foul_rebirth.txt|T|TrigPopulate|Sac<1/Creature.nonDemon/non-Demon creature>|window-settled
 promise_of_bunrei.txt|T|TrigSac|Mandatory Sac<1/CARDNAME>|window-settled
+prophet_of_the_planeswalker.txt|T|TrigAnimate|Behold<1/Planeswalker>|decline-only
 provisions_merchant.txt|T|TrigPumpAll|Sac<1/Food>|window-settled
 punishing_fire.txt|T|TrigChange|R|window-settled
 purestrain_genestealer.txt|T|TrigRamp|SubCounter<1/P1P1>|decline-only
@@ -1044,8 +1047,8 @@ func TestTriggerBodyCostCorpusRatchet(t *testing.T) {
 	if len(added) != 0 || len(removed) != 0 {
 		t.Fatalf("trigger Cost$ inventory drift; unexpected card | record | root SVar | raw cost: %v; missing: %v", added, removed)
 	}
-	if len(got) != 862 {
-		t.Fatalf("unique trigger Cost$ carriers=%d, want 862", len(got))
+	if len(got) != 865 {
+		t.Fatalf("unique trigger Cost$ carriers=%d, want 865", len(got))
 	}
 	families := map[string]int{}
 	routes := map[string]int{}
@@ -1065,7 +1068,7 @@ func TestTriggerBodyCostCorpusRatchet(t *testing.T) {
 			families[fam]++
 		}
 	}
-	wantFamilies := map[string]int{"Mana": 387, "Sac": 166, "Discard": 98, "Draw": 38, "PayEnergy": 37, "PayLife": 36, "ExileFromGrave": 23, "tapXType": 17, "ExileAnyGrave": 16, "SubCounter": 15, "ExiledMoveToGrave": 9, "Blight": 7, "Return": 6, "CollectEvidence": 6, "Forage": 5, "RemoveAnyCounter": 4, "Exile": 2, "ExileFromHand": 3, "PutCardToLibFromGrave": 2, "Behold": 1, "ExileCtrlOrGrave": 1, "Mill": 1}
+	wantFamilies := map[string]int{"Mana": 388, "Sac": 166, "Discard": 98, "Draw": 38, "PayEnergy": 37, "PayLife": 37, "ExileFromGrave": 23, "tapXType": 17, "ExileAnyGrave": 16, "SubCounter": 15, "ExiledMoveToGrave": 9, "Blight": 7, "Return": 6, "CollectEvidence": 6, "Forage": 5, "RemoveAnyCounter": 4, "Exile": 2, "ExileFromHand": 3, "PutCardToLibFromGrave": 2, "Behold": 2, "ExileCtrlOrGrave": 1, "Mill": 1}
 	var familyDrift []string
 	for family, want := range wantFamilies {
 		if got := families[family]; got != want {
@@ -1081,7 +1084,7 @@ func TestTriggerBodyCostCorpusRatchet(t *testing.T) {
 	if len(familyDrift) > 0 {
 		t.Fatalf("Cost$ family occurrence drift: %s", strings.Join(familyDrift, ", "))
 	}
-	wantRoutes := map[string]int{"window-settled": 828, "decline-only": 34}
+	wantRoutes := map[string]int{"window-settled": 830, "decline-only": 35}
 	for route, want := range wantRoutes {
 		if got := routes[route]; got != want {
 			routeDrift = append(routeDrift, fmt.Sprintf("%s=%d (want %d)", route, got, want))
@@ -1096,7 +1099,7 @@ func TestTriggerBodyCostCorpusRatchet(t *testing.T) {
 	if len(routeDrift) != 0 {
 		t.Fatalf("trigger Cost$ route classification drift: %s", strings.Join(routeDrift, ", "))
 	}
-	if len(got) != 862 {
+	if len(got) != 865 {
 		t.Fatalf("Cost$ carrier aggregate changed during family census: %d", len(got))
 	}
 }

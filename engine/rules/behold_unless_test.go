@@ -53,6 +53,7 @@ var beholdUnlessCarriers = []string{
 	"Mudbutton Cursetosser",
 	"Osseous Exhale",
 	"Piercing Exhale",
+	"Prophet of the Planeswalker",
 	"Sarkhan, Dragon Ascendant",
 	"Silvergill Mentor",
 	"Soulbright Seeker",
@@ -152,8 +153,8 @@ func TestBeholdUnlessCensus(t *testing.T) {
 			}
 		}
 	}
-	if beholdFiles != 20 {
-		t.Errorf("corpus Behold< carriers = %d, want 20", beholdFiles)
+	if beholdFiles != 21 {
+		t.Errorf("corpus Behold< carriers = %d, want 21", beholdFiles)
 	}
 	if unlessFiles != 2 {
 		t.Errorf("corpus UnlessCost$ Behold carriers = %d, want 2 (Elven Passage, Theorist's Sanctum)", unlessFiles)

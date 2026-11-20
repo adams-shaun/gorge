@@ -23,4 +23,3 @@ Defined$ ValidCommand Effect.namedRaging River Left+IsImprinted	1
 Defined$ ValidCommand Effect.namedRaging River Right	1
 Defined$ ValidCommand Effect.namedRaging River Right+IsImprinted	1
 Defined$ You & TriggeredSpellAbility>ManaSpender.Other	1
-DefinedPlayer$ RememberController	1
