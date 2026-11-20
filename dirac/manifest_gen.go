@@ -727,8 +727,28 @@ func init() {
 	mechName[mechEncSeat1] = "encSeat1"
 }
 
+// mech (dirac/manifest/mech/mechRegenHi)
+//
+// bit sl: slot sl's regeneration shields count +2 (repl_regenerate.go; with mechRegenLo and mechRegen, the count beyond the first)
+const mechRegenHi mech = 58
+
+func init() {
+	mechWidth[mechRegenHi] = wSlot
+	mechName[mechRegenHi] = "regenHi"
+}
+
+// mech (dirac/manifest/mech/mechRegenLo)
+//
+// bit sl: slot sl's regeneration shields count +1 (repl_regenerate.go; with mechRegenHi and mechRegen, the count beyond the first)
+const mechRegenLo mech = 59
+
+func init() {
+	mechWidth[mechRegenLo] = wSlot
+	mechName[mechRegenLo] = "regenLo"
+}
+
 // numMech is one past the highest mech: the length of the arena's mech tables.
-const numMech mech = 58
+const numMech mech = 60
 
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).

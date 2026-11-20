@@ -1,0 +1,6 @@
+family: mech
+name: mechRegenLo
+value: next
+state: slotbit 16/16
+status: active
+doc: bit sl: slot sl's regeneration shields count +1 (repl_regenerate.go; with mechRegenHi and mechRegen, the count beyond the first)

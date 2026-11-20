@@ -7,8 +7,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // offers (CR 701.40b-d, 701.58b-d). Cold: reached from execOblige and the
 // priority walk only when the table has one of the ops (genPrep.anyFaceDown).
 
-// Provenance marks. perm.flags has no free bit (13-14 are pfRegenX, cleared
-// every cleanup; 15 is pfSkipUntap), and object.of's eight bits are taken
+// Provenance marks. perm.flags has no free bit (13 is pfBatchGone, 14 pfLastBear
+// and 15 pfSkipUntap), and object.of's eight bits are taken
 // (ofHeld is bit 7, not free). A face-down permanent's perm.gty holds only
 // its derived face-down types (TCreature) plus gtyFaceDown, so the two
 // highest type bits double as provenance there: bit 13 (TToken) means

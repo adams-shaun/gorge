@@ -140,7 +140,7 @@ func replRegenerateScen(t *testing.T, names ...string) (*scen, map[string]CardID
 	return &scen{s: s, k: s.k()}, id
 }
 
-// TestRegenNinthShieldStalls: pfRegenX plus genState.regenHi hold eight
+// TestRegenNinthShieldStalls: mechRegenLo, mechRegenHi and mechRegen hold eight
 // regeneration shields (four before kcaps2x; Fog of Gnats' fifth was the
 // kverify-c4 hit); a ninth stalls loud instead of being dropped (gorge
 // stacks every Shield marker). Spending counts back down across the

@@ -141,7 +141,7 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 				case kop.OpMonstrosity:
 					u[mechMonstrous] = true
 				case kop.OpRegenerate:
-					u[mechRegen] = true
+					u[mechRegen], u[mechRegenLo], u[mechRegenHi] = true, true, true // the shields' three bits (repl_regenerate.go)
 				case kop.OpDealDamageEx:
 					if in.C&kop.DmgExileIfDiesThisTurn != 0 {
 						u[mechExileEx] = true
