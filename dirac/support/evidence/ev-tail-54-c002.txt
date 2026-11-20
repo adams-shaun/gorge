@@ -1,8 +1,14 @@
 Adaptive Shimmerer
 Airdrop Aeronauts
+Airlift Chaplain
 Alley Grifters
+Alliance of Arms
 Alluring Scent
+Almighty Brushwagg
 Ancient Tomb
+Angelfire Crusader
+Angelic Accord
+Angelic Chorus
 Arashin Cleric
 Artificer's Dragon
 Astrid Peth
@@ -20,6 +26,7 @@ Betrayal of Flesh
 Biting-Palm Ninja
 Black Market Connections
 Blaring Recruiter
+Blight
 Blight Mamba
 Blighted Woodland
 Blinding Radiance
@@ -37,6 +44,7 @@ Chimeric Egg
 Chronic Flooding
 Clarion Cathars
 Cloud Crusader
+Copper Longlegs
 Copper-Leaf Angel
 Copy Artifact
 Crippling Blight
@@ -51,10 +59,13 @@ Deathgreeter
 Deep Reconnaissance
 Demon's Due
 Demystify
+Desert Twister
 Destructive Tampering
+Dinosaur Stampede
 Disorient
 Dispense Justice
 Divination
+Djeru, With Eyes Open
 Downhill Charge
 Dreamcaller Siren
 Drooling Ogre
@@ -65,6 +76,8 @@ Eldrazi Displacer
 Elspeth's Devotee
 Elvish Champion
 Ember-Eye Wolf
+Enatu Golem
+Escaped Null
 Esior, Wardwing Familiar
 Esper Panorama
 Essence Capture
@@ -77,6 +90,7 @@ Farideh's Fireball
 Festercreep
 Fiery Temper
 Fire Nation Ambushers
+First Sliver's Chosen
 Flame Sweep
 Flame-Blessed Bolt
 Flaming Fist Officer
@@ -122,6 +136,8 @@ Honor Troll
 Hulk, Bruce Banner
 Hungry Spriggan
 Hunt the Weak
+Hyalopterous Lemure
+Hystrodon
 Icatian Javelineers
 Ich-Tekik, Salvage Splicer
 Immersturm Raider
@@ -130,9 +146,11 @@ Imps' Taunt
 Incubation
 Infested Fleshcutter
 Infested Thrinax
+Inkfathom Infiltrator
 Inquisitive Puppet
 Insight Engine
 Invasion of Kaldheim
+Invigorating Surge
 Iridescent Blademaster
 Iron Man, Tony Stark
 Ironroot Treefolk
@@ -146,15 +164,19 @@ Kaervek the Merciless
 Karametra's Blessing
 Keldon Overseer
 Keymaster Rogue
+Kheru Dreadmaw
 King Macar, the Gold-Cursed
 Kitchen Imp
+Kithkin Shielddare
 Knight of the Stampede
 Kobold Taskmaster
 Launch Party
 Lava Dart
+Leveler
 Lhurgoyf
 Lich Lord of Unx
 Life Insurance
+Life's Legacy
 Lightning Rift
 Lightning Serpent
 Liliana's Specter
@@ -191,6 +213,7 @@ Okina, Temple to the Grandfathers
 Old Gnawbone
 Old Man Willow
 Olivia Voldaren
+One Ring to Rule Them All
 Orim's Prayer
 Ostiary Thrull
 Overflowing Insight
@@ -201,6 +224,7 @@ Patch Up
 Peak Eruption
 Peema Trailblazer
 Peregrine Mask
+Phantom Tiger
 Pharika's Disciple
 Phyrexia's Core
 Phyrexian Digester
@@ -222,6 +246,7 @@ Radioactive Man
 Rain of Blades
 Rain of Embers
 Ramosian Rally
+Rampaging Brontodon
 Ranger's Guile
 Raze to the Ground
 Recruitment Drive
@@ -237,6 +262,7 @@ Run Out of Town
 Sacred Prey
 Sandbar Merfolk
 Sandsower
+Saproling Symbiosis
 Sarulf's Packmate
 Scalding Tarn
 Scarwood Bandits
@@ -248,23 +274,27 @@ Sejiri Merfolk
 Sengir Connoisseur
 Sensor Splicer
 Shadow of Mortality
+Shielded Aether Thief
 Shinka Gatekeeper
 Shipwreck Singer
 Shivan Fire
 Shivan Phoenix
 Shock Troops
 Shower of Sparks
+Shrieking Specter
 Shu Elite Infantry
 Shunt
 Silent Artisan
 Silver Shroud Costume
 Skarrgan Pit-Skulk
+Skeletal Vampire
 Skophos Warleader
 Sky Skiff
 Skyshroud Forest
 Skyshroud Sentinel
 Slimefoot, the Stowaway
 Slinking Serpent
+Smelt-Ward Minotaur
 Sokka, Wolf Cove's Protector
 Solid Ground
 Soltari Visionary
@@ -278,6 +308,7 @@ Staff of Nin
 Stalwart Aven
 Steadfast Guard
 Stensia Innkeeper
+Still Life
 Stonecloaker
 Stonehands
 Storm Fleet Negotiator
@@ -293,6 +324,7 @@ Switcheroo
 Sylvok Lifestaff
 Tail Swipe
 Take Down
+Tangletrap
 Tazeem Raptor
 Tempest Caller
 Temple Bell
@@ -314,6 +346,7 @@ Trusty Machete
 Tundra
 Twinferno
 Unchecked Growth
+Unwilling Recruit
 Valakut Predator
 Vampire Champion
 Visions of Beyond

@@ -53,6 +53,7 @@ Dormant Gomazoa	37be306c76a9cd6f	20	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Dromoka Monument	702dc0ee148527ac	28	2/2		1/1	
 Dromoka's Gift	8c2dc4a667312adb	16	0/0		2/2	
 Duel for Dominance	2ab5a2f364f04d50	8	0/0		2/2	
+Dutiful Thrull	81cfd81344d38c26	16	1/1		1/1	
 Eater of Hope	ac55308fbb8101ef	19	2/2		1/1	
 Eidolon of Philosophy	bd39cbc251c40950	14	1/1		1/1	
 Electropotence	1aa6dca41964a179	15	1/1		1/1	
@@ -65,6 +66,7 @@ Fallen Cleric	f4889d70ce4110ec	25	0/0		1/2	cast/alt:morphed
 Fang Dragon	30841ccb749345aa	30	0/0		2/2	
 Fangren Hunter	21710fb0311867c8	8	0/0		0/0	
 Fell Shepherd	00ec305fa3b5a689	12	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Fiery Inscription	feef581c4566e8c1	14	2/2		0/1	ix:resp
 Fireslinger	451a84720f814440	27	1/1		1/1	
 Forest	6d0466c30f825dba	767	1/1		0/1	ix:resp
 Forging the Anchor	dd20041b42def37d	10	0/0		1/2	ix:resp
@@ -146,6 +148,7 @@ Quest for the Nihil Stone	348b9ec2a8f8205b	15	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f
 Rampaging Hippo	3df23cad4cbbbfa9	3	1/1		0/1	ix:resp
 Reckless Amplimancer	9f96c432207ec290	22	1/1		1/1	
 Rejuvenating Springs	e87c6b33f070e7c6	215	1/1		0/1	ix:resp
+Repulse	b1749aeba325b678	6	0/0		1/2	ix:resp
 Resistance Squad	b6bc6447164305f3	11	1/1		0/1	ix:resp
 Return Upon the Tide	f7da656927b0a654	12	0/0		2/4	cast/alt:foretold,ix:resp
 Revered Unicorn	46a0ab1c3aa84866	13	2/2		1/1	
@@ -184,12 +187,14 @@ Stromkirk Mentor	770ab05d68cddc2a	20	1/1		1/1
 Summoner's Bane	57d06dd2b9a8b9cd	5	0/0		1/2	ix:resp
 Svyelun of Sea and Sky	49a0f955b66dca88	17	1/1		1/1	
 Swamp	342b413902f441c3	684	1/1		0/1	ix:resp
+Sweltering Suns	3b4d96e066405dab	4	1/1		1/2	ix:resp
 Tajuru Beastmaster	1db702248ed14d90	10	1/1		1/1	
 Talas Scout	0eb815a2504a1236	29	0/0		0/0	
 Tendrils of Despair	0124e9ea77981b07	16	0/0		2/2	
 The Spear of Leonidas	1ee54f1f8911aca1	31	2/2		1/1	
 Thorin, King of Durin's Folk	a41b6a4c547ff238	6	1/1		0/1	ix:resp
 Thornhide Wolves	750ca4a78299b5af	17	0/0		0/0	
+Thrummingbird	cd539b4d167d12fb	17	1/1		1/1	
 Thrun, Breaker of Silence	8c70eb24be3db10b	11	0/0		0/0	
 Thundering Rebuke	0c0c8485e73a3acc	16	0/0		2/2	
 Treacherous Vampire	1f01a9bd5e8e7998	12	2/2		0/1	ix:resp

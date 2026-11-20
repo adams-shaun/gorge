@@ -49,6 +49,7 @@ Bramblesnap
 Break of Day
 Briarhorn
 Bright Reprisal
+Brimstone Trebuchet
 Brine Seer
 Bronze Cudgels
 Bronze Sword
@@ -137,6 +138,7 @@ Frost Marsh
 Funeral Pyre
 Funeral Rites
 Gaea's Avenger
+Galadriel of Lothlórien
 Garenbrig Carver
 Gate Hound
 Gate of the Black Dragon

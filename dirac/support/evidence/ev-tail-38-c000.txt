@@ -16,6 +16,7 @@ Aphetto Grifter
 Apprentice Sorcerer
 Armed Response
 Armix, Filigree Thrasher
+Ashad, the Lone Cyberman
 Aspect of Wolf
 Augur il-Vec
 Auriok Bladewarden
@@ -80,6 +81,7 @@ Deface
 Demonlord Belzenlok
 Disciples of Gix
 Distorted Curiosity
+Doctor Doom, King of Latveria
 Doomskar Oracle
 Doomwake Giant
 Dovin's Dismissal
@@ -152,6 +154,7 @@ Hibernation Sliver
 Hissing Quagmire
 Hook Swords
 Horizon Seed
+Hostage Taker
 Hussar Patrol
 Ignite the Future
 Impulse
