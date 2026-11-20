@@ -955,6 +955,15 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 	}
 }
 
+// phasedScriptNodes is the phased run's payer-state bound: the phased order
+// also branches each free source's colour asks and each fee-carrying gap's
+// fee, so the 17-step script the plain order never reaches is the 187th
+// distinct payer state. Like potentialScriptNodes it is a stated limit, not a
+// proof; the ask branches between states are not charged, matching gorge's
+// clone count (scriptSearch.try clones per answer, scriptSearch.visit charges
+// the clone).
+const phasedScriptNodes = potentialScriptNodes + potentialScriptNodes/4
+
 // grantSrch is one prefix search (gorge scriptSearch under gapsOnly): the
 // granted sources of p in battlefield order, the play's mana cost, the
 // node budget and the visited payer states, and the found prefix.
@@ -1070,6 +1079,19 @@ type grantSrch struct {
 	// asks keep only the colours costCol still lacks (mana_grantsubsume.go)
 	limited, subsume bool
 	costCol          [kop.NumManaKinds]uint8
+	// phased: this run walks gorge's phased order (potential_script.go
+	// scriptSearch.phased): the gaps whose mana ability costs no mana, then
+	// the covered funding sources, then the fee-carrying gaps. phasedScope
+	// gates it to a play whose own cost sacrifices or returns a permanent
+	// (or one whose gaps include a hybrid-fee mana ability).
+	phased bool
+	// feeOnly: the gaps include a repeatable fee-only filter (gorge's
+	// scriptSearch.feeOnly). A plain run that exhausted its budget on one is
+	// the case gorge's phased fallback takes outside phasedScope.
+	feeOnly bool
+	// visitNode marks the node charge of a visit entry: the phased run's
+	// budget counts payer states there, not the ask branches between them.
+	visitNode bool
 }
 
 // grantKey identifies a payer state (gorge scriptStateKey: the pool and
@@ -1155,6 +1177,7 @@ func (g *grantSrch) candidates(s *State) {
 	if k := g.k; k.gen.anyFilt {
 		fm = s.scriptFilt(k, g.p)
 	}
+	g.feeOnly = s.filtRepeatIn(g.k, fm)
 	tm := s.grantTapXGaps(g.k, g.p)
 	dm := s.scriptDeferred(g.k, g.p)
 	em := s.scriptGaps(g.k, g.p) // (mana_granteach.go)
@@ -1346,7 +1369,20 @@ func (s *State) bfObjKey(p uint8) uint64 {
 
 // node charges one search node; false when the budget is spent.
 func (g *grantSrch) node() bool {
-	if g.nodes >= potentialScriptNodes {
+	if g.phased && !g.visitNode {
+		// gorge's phased run spends its budget on cloned payer states: its
+		// scriptSearch.try takes one clone per answer and scriptSearch.visit
+		// charges the node at the clone. The kernel also charges each ask
+		// branch separately (the choose-a-mana-ability and colour asks), so a
+		// phased run that charged both would spend gorge's 160 clones on half
+		// the states. The phased order charges payer states alone.
+		return true
+	}
+	limit := potentialScriptNodes
+	if g.phased {
+		limit = phasedScriptNodes
+	}
+	if g.nodes >= limit {
 		g.limited = true
 		return false
 	}
@@ -1422,13 +1458,274 @@ func (s *State) grantFirstGaps(k *prep, p uint8) bool {
 		s.sacXBesideGrant(k, p) // gorge's one search taps the granted lands after the sacrifice too (mana_grantsacx.go, mana_grantlive.go)
 }
 
+// phasedScope reports whether gorge's phased order may price this search's
+// play (scriptSearch.phasedScope): a cast whose own cost sacrifices or
+// returns a permanent (CR 601.2b: the activation comes before the sacrifice,
+// so the funding must float first), or one whose gaps include a hybrid-fee
+// mana ability (paid only from mana already floating, CR 601.2g). For any
+// other play the plain order is the one the search mirrors.
+func (g *grantSrch) phasedScope(s *State) bool {
+	if !g.d.hasPlay || !isCastKind(g.d.play.Kind()) {
+		return false
+	}
+	cd := &g.k.t.Cards[s.castFaceCard(g.k, g.d.play)]
+	const sacOrReturn = kop.CostSac | kop.CostSacSelf | kop.CostReturn | kop.CostReturnSelf
+	if cd.SpellCost.Flags&sacOrReturn != 0 || cd.AltAddCost.Flags&sacOrReturn != 0 {
+		return true
+	}
+	for ai := range cd.Abilities {
+		// An instant's or sorcery's additional cost rides on its Spell ability
+		// (kgen build: cb.spellCost), not CardDef.SpellCost.
+		if a := &cd.Abilities[ai]; a.Kind == kop.AbSpell && a.Cost.Flags&sacOrReturn != 0 {
+			return true
+		}
+	}
+	for i := 0; i < g.gapN; i++ {
+		if g.filt[i] {
+			if _, _, ok := s.filtHyb(g.k, g.cand[i]); ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// gapFree reports whether candidate i has a mana ability that costs no mana:
+// gorge's scriptSearch.payable "free" arm decides the phased order's first
+// pass. The source, not the chosen option, is the phase: a source with a free
+// grant beside a fee-carrying filter is free.
+func (g *grantSrch) gapFree(t *State, i int) bool {
+	sl := g.cand[i]
+	if t.grantTapOK(g.k, sl) || t.grantSacOK(g.k, sl) {
+		return true
+	}
+	return g.k.sacOnlyMana && t.canSacOnlyNow(g.k, sl, t.manaPCGen(g.k, sl))
+}
+
+// gapVisit is visit's per-gap body: candidate i's branches, found when one
+// found the play, stop when the node budget is spent. The caller walks the
+// candidates in the plain order or the phased one (visit).
+func (g *grantSrch) gapVisit(t *State, i int, sacd bool, sacStepped *slotMask) (found, stop bool) {
+	sl := g.cand[i]
+	if g.ng[i] == 0 && g.filt[i] && g.k.gen.anyFiltFirst && t.filtFirstOnly(g.k, sl) {
+		// a filter that is its source's only mana ability: no printed
+		// ability to ask beside, one colour ask once its fee is in the pool
+		if t.filtUsable(g.k, sl) && t.filtPaid(g.k, g.p, sl) && g.filtBranch(t, i, sl) {
+			return true, false
+		}
+		return false, false
+	}
+	if found, is := g.gapBranch(t, i, sl); is {
+		if found {
+			return true, false
+		}
+		return false, false
+	}
+	tx := (g.tapx[i] || g.sacx[i]) && t.scriptTapX(g.k, g.p).has(sl) // (a holder's printed tap- or sacrifice-another ability)
+	if sacd && (!t.occ.has(sl) || t.perms[sl].obj != g.cobj[i]) {
+		return false, false // sacrificed by an earlier step (mana_grantcost.go)
+	}
+	grants := t.grantTapOK(g.k, sl)
+	fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
+	if !grants && !tx {
+		if g.tappedHolderStep(t, i, sl, sacStepped) { // no {T} in its cost: tapped or sick alike (mana_grantcost.go)
+			return true, false
+		}
+		if !(fok && t.filtUsable(g.k, sl)) {
+			return false, false // (a summoning-sick Changeling's filter stays: only its granted {T} ability is out, CR 302.6)
+		}
+	}
+	// several abilities (its own beside a grant, two grants): the
+	// "choose a mana ability" ask, one node, the printed ability's
+	// answers first (gorge flattens a Combo's colours into that ask;
+	// an Any ability still asks its colour)
+	alts := g.printedAlts(t, i, sl, grants, fok, tx)
+	if alts > 1 && !g.node() {
+		return false, true
+	}
+	if tx && g.printedXFirst(t, i, sl) { // the printed tap- or sacrifice-another ability first
+		return true, false
+	}
+	if !grants {
+		if fok && g.filtBranch(t, i, sl) {
+			return true, false
+		}
+		return false, false
+	}
+	return g.gapAbilities(t, i, sl, grants, fok, tx, alts)
+}
+
+// gapAbilities is gapVisit's "choose a mana ability" walk: the source's own
+// and granted abilities in gorge's answer order, found when one found the
+// play, stop when the node budget is spent.
+func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool, alts int) (found, stop bool) {
+	// gorge's "choose a mana ability" ask lists the answers of the source's
+	// abilities flattened (a Combo's colours each, an Any ability one
+	// option that asks its colour after) and tries first the ones that name
+	// a colour the play needs (scriptOrderAnswers): a granted {U} before
+	// the printed any-colour ability's answers when the play needs {U}
+	lo, hi := uint8(0), uint8(0)
+	if alts > 1 && !tx && !fok && g.needPass(t, i, sl) {
+		lo, hi = 1, 2
+	}
+	for g.sel = lo; g.sel <= hi; g.sel++ {
+		blgExtra, blgN := uint8(0), uint8(0)
+		if ppc := t.manaPCGen(g.k, sl); g.dual[i] && !t.ownRestrPrinted(g.k, sl) && grantPainShape(g.k, ppc) {
+			if g.painBranch(t, i, sl, ppc, alts == 1) { // its painful ability's colours too (mana_grantpain.go)
+				return true, false
+			}
+		} else if g.dual[i] {
+			mask, n := uint8(0), uint8(0)
+			if ra := t.ownRestrAb(g.k, sl); ra != nil && !t.ownManaUsable(g.k, sl) {
+				mask, n = uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra) // the restricted printed ability
+				// gorge's search taps it first whether or not the play may spend
+				// it; mana the play cannot spend prices nothing
+				g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
+			} else {
+				ppc := t.manaPCGen(g.k, sl)
+				mask, n = t.srcMaskAt(ppc, sl), ppc.manaN
+				if base := &g.k.cards[t.cardAt(sl)]; g.k.gen.blgOn && ppc != base && base.manaAb >= 0 && !base.manaChosen && mask&^srcMask(base) != 0 {
+					// a granted basic land type's intrinsic abilities (CR 305.7)
+					// follow the printed ones in gorge's ask (its printed
+					// restricted and filter abilities too): White Lotus
+					// Hideout's {C} first, an Island's {U} before the grants
+					blgExtra, blgN = mask&^srcMask(base), n
+					mask, n = srcMask(base), base.manaN
+				}
+			}
+			if ppc := t.manaPCGen(g.k, sl); g.k.sacOnlyMana && ppc.manaSacOnly {
+				// a printed sacrifice-only ability (an Eldrazi Spawn's) beside a
+				// tap grant: the step sacrifices the source (CR 605.1a)
+				if g.sacBranch(t, i, sl, -1, ppc, mask, alts == 1) {
+					return true, false
+				}
+			} else if g.branch(t, i, sl, -1, mask, n, alts == 1) {
+				return true, false
+			}
+		}
+		if g.dual[i] && t.ownManaUsable(g.k, sl) {
+			// a restricted printed ability beside the usable one (White Lotus
+			// Hideout's Lesson-only any colour): gorge's search taps it too, after
+			// the usable one, whether or not the play may spend it
+			if ra := t.ownRestrAb(g.k, sl); ra != nil {
+				g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
+				if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra), ra.ManaColors&kop.ColAny == kop.ColAny) {
+					return true, false
+				}
+			} else if wn := t.gatedPairWide(g.k, sl); wn > 0 && g.sel != 1 && grants {
+				// Whisperer of the Wilds' ferocious {T}: Add {G}{G} beside its
+				// {G} and the grant: the ask's second option, one colour and
+				// no colour ask (mana_gatedpairgrant.go)
+				if g.branchSel(t, i, sl, -1, t.gatedPairMask(g.k, sl), wn, false, 0) {
+					return true, false
+				}
+			} else if t.wideSecond(g.k, sl) && g.sel != 1 && g.wide2Branch(t, i, sl) {
+				// the wide second ability beside the usable one (Hermitic
+				// Herbalist's Lesson-only two mana): its option follows the
+				// printed pair's first ability in gorge's ask, the grant's
+				// colours after (CR 106.6, 601.2g)
+				return true, false
+			}
+		}
+		if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
+			return true, false
+		}
+		if blgExtra != 0 && g.branch(t, i, sl, -1, blgExtra, blgN, false) {
+			return true, false
+		}
+		for j := 0; j < int(g.ng[i]); j++ {
+			gi := g.gi[i][j]
+			pc := t.grantView(g.k.gen, gi, sl)
+			mask := t.srcMaskAt(pc, sl)
+			if !t.grantCostPayable(g.p, pc) {
+				continue // its life cannot be paid (CR 119.4)
+			}
+			// gorge's search taps a granted census gap whether or not the play may
+			// spend it (the mana floats, the tap fires its triggers); mana the
+			// play's origin or class cannot spend prices nothing
+			g.skipPool = !g.grantAdmits(t, sl, gi)
+			ask := alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)
+			if pc.grantSac {
+				if g.sacBranch(t, i, sl, gi, pc, mask, ask) { // the step sacrifices the source (mana_grantcost.go)
+					return true, false
+				}
+				continue
+			}
+			if grantCostLife(pc) > 0 {
+				if g.costBranch(t, i, sl, gi, pc, mask, ask) { // the step pays its life (mana_grantcost.go)
+					return true, false
+				}
+				continue
+			}
+			if g.branch(t, i, sl, gi, mask, pc.manaN, ask) {
+				return true, false
+			}
+		}
+	}
+	g.sel = 0
+	return false, false
+}
+
+// fundingPass is visit's funding loop: a paid gap's fee is funded by other
+// sources (gorge scriptSearch's funding loop: the gaps first, then non-gaps
+// while funding lasts).
+func (g *grantSrch) fundingPass(t *State) (found, stop bool) {
+	var tried [MaxPerm]Slot
+	ntried := 0
+	twinCut := g.d.hasPlay && isAbilityPlay(g.d.play)
+	for i := g.gapN; i < g.n && g.funded < g.funding; i++ {
+		sl := g.cand[i]
+		if t.perms[sl].flags&pfTapped != 0 {
+			continue
+		}
+		pc := t.manaPCGen(g.k, sl)
+		if pc.manaAb < 0 || !t.canTapForManaPC(g.k, sl, pc) {
+			continue
+		}
+		mask, n := t.srcMaskAt(pc, sl), pc.manaN
+		if mask == 0 {
+			continue
+		}
+		if twinCut && g.fundTwinTried(t, sl, tried[:ntried]) {
+			continue // an indistinguishable earlier funder already walked this subtree (gorge's scriptTwin)
+		}
+		tried[ntried] = sl
+		ntried++
+		g.funded++
+		// The filter's own card taps here through its plain ability, whose
+		// one-bit mask poses no ask of its own; charge the zero-filter ask
+		// now, as the filter search does before its one answer
+		// (mana_filtzerofund.go).
+		if zeroFiltTap(g.k, t, g.p, sl) {
+			if !g.node() {
+				g.funded--
+				return false, true
+			}
+		}
+		var ok bool
+		if painFunds(g.k, pc) {
+			ok = g.fundPainBranch(t, i, sl, pc) // a painland asks its painful colours too (mana_filtpain.go)
+		} else {
+			ok = g.branch(t, i, sl, -1, mask, n, mask&(mask-1) != 0)
+		}
+		g.funded--
+		if ok {
+			return true, false
+		}
+	}
+	return false, false
+}
+
 // visit is one payer priority of the search on working copy t: the play
 // is found when the pool and the printed sources pay it (gorge
 // offered / priced); else each untapped candidate is activated in turn,
 // its answers branched on in gorge's order, each payer state once.
 func (g *grantSrch) visit(t *State) bool {
 	g.stallOf(t) // (the stall the step into this node latched on its fork; the node's own probes are the root's too)
-	if !g.node() {
+	g.visitNode = true
+	ok := g.node()
+	g.visitNode = false
+	if !ok {
 		return false
 	}
 	if g.playSourceGone(t) {
@@ -1486,204 +1783,56 @@ func (g *grantSrch) visit(t *State) bool {
 	}
 	g.remember(key)
 	sacd, sacStepped := g.sacrificed(), slotMask{}
-	for i := 0; i < g.gapN; i++ {
-		sl := g.cand[i]
-		if g.ng[i] == 0 && g.filt[i] && g.k.gen.anyFiltFirst && t.filtFirstOnly(g.k, sl) {
-			// a filter that is its source's only mana ability: no printed
-			// ability to ask beside, one colour ask once its fee is in the pool
-			if t.filtUsable(g.k, sl) && t.filtPaid(g.k, g.p, sl) && g.filtBranch(t, i, sl) {
+	if g.phased {
+		// gorge's phased order (potential_script.go scriptSearch.activations):
+		// the gaps whose mana ability costs no mana first (their mana is the
+		// play's for one step), then the covered funding sources the
+		// fee-carrying gaps' fees come from, then the gaps that carry a fee.
+		// A fee-carrying gap activated before the funding drains the pool the
+		// prefix still needs (CR 601.2b).
+		for i := 0; i < g.gapN; i++ {
+			if !g.gapFree(t, i) {
+				continue
+			}
+			if found, stop := g.gapVisit(t, i, sacd, &sacStepped); found {
 				return true
-			}
-			continue
-		}
-		if found, is := g.gapBranch(t, i, sl); is {
-			if found {
-				return true
-			}
-			continue
-		}
-		tx := (g.tapx[i] || g.sacx[i]) && t.scriptTapX(g.k, g.p).has(sl) // (a holder's printed tap- or sacrifice-another ability)
-		if sacd && (!t.occ.has(sl) || t.perms[sl].obj != g.cobj[i]) {
-			continue // sacrificed by an earlier step (mana_grantcost.go)
-		}
-		grants := t.grantTapOK(g.k, sl)
-		fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
-		if !grants && !tx {
-			if g.tappedHolderStep(t, i, sl, &sacStepped) { // no {T} in its cost: tapped or sick alike (mana_grantcost.go)
-				return true
-			}
-			if !(fok && t.filtUsable(g.k, sl)) {
-				continue // (a summoning-sick Changeling's filter stays: only its granted {T} ability is out, CR 302.6)
-			}
-		}
-		// several abilities (its own beside a grant, two grants): the
-		// "choose a mana ability" ask, one node, the printed ability's
-		// answers first (gorge flattens a Combo's colours into that ask;
-		// an Any ability still asks its colour)
-		alts := g.printedAlts(t, i, sl, grants, fok, tx)
-		if alts > 1 && !g.node() {
-			return false
-		}
-		if tx && g.printedXFirst(t, i, sl) { // the printed tap- or sacrifice-another ability first
-			return true
-		}
-		if !grants {
-			if fok && g.filtBranch(t, i, sl) {
-				return true
-			}
-			continue
-		}
-		// gorge's "choose a mana ability" ask lists the answers of the source's
-		// abilities flattened (a Combo's colours each, an Any ability one
-		// option that asks its colour after) and tries first the ones that name
-		// a colour the play needs (scriptOrderAnswers): a granted {U} before
-		// the printed any-colour ability's answers when the play needs {U}
-		lo, hi := uint8(0), uint8(0)
-		if alts > 1 && !tx && !fok && g.needPass(t, i, sl) {
-			lo, hi = 1, 2
-		}
-		for g.sel = lo; g.sel <= hi; g.sel++ {
-			blgExtra, blgN := uint8(0), uint8(0)
-			if ppc := t.manaPCGen(g.k, sl); g.dual[i] && !t.ownRestrPrinted(g.k, sl) && grantPainShape(g.k, ppc) {
-				if g.painBranch(t, i, sl, ppc, alts == 1) { // its painful ability's colours too (mana_grantpain.go)
-					return true
-				}
-			} else if g.dual[i] {
-				mask, n := uint8(0), uint8(0)
-				if ra := t.ownRestrAb(g.k, sl); ra != nil && !t.ownManaUsable(g.k, sl) {
-					mask, n = uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra) // the restricted printed ability
-					// gorge's search taps it first whether or not the play may spend
-					// it; mana the play cannot spend prices nothing
-					g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
-				} else {
-					ppc := t.manaPCGen(g.k, sl)
-					mask, n = t.srcMaskAt(ppc, sl), ppc.manaN
-					if base := &g.k.cards[t.cardAt(sl)]; g.k.gen.blgOn && ppc != base && base.manaAb >= 0 && !base.manaChosen && mask&^srcMask(base) != 0 {
-						// a granted basic land type's intrinsic abilities (CR 305.7)
-						// follow the printed ones in gorge's ask (its printed
-						// restricted and filter abilities too): White Lotus
-						// Hideout's {C} first, an Island's {U} before the grants
-						blgExtra, blgN = mask&^srcMask(base), n
-						mask, n = srcMask(base), base.manaN
-					}
-				}
-				if ppc := t.manaPCGen(g.k, sl); g.k.sacOnlyMana && ppc.manaSacOnly {
-					// a printed sacrifice-only ability (an Eldrazi Spawn's) beside a
-					// tap grant: the step sacrifices the source (CR 605.1a)
-					if g.sacBranch(t, i, sl, -1, ppc, mask, alts == 1) {
-						return true
-					}
-				} else if g.branch(t, i, sl, -1, mask, n, alts == 1) {
-					return true
-				}
-			}
-			if g.dual[i] && t.ownManaUsable(g.k, sl) {
-				// a restricted printed ability beside the usable one (White Lotus
-				// Hideout's Lesson-only any colour): gorge's search taps it too, after
-				// the usable one, whether or not the play may spend it
-				if ra := t.ownRestrAb(g.k, sl); ra != nil {
-					g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
-					if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra), ra.ManaColors&kop.ColAny == kop.ColAny) {
-						return true
-					}
-				} else if wn := t.gatedPairWide(g.k, sl); wn > 0 && g.sel != 1 && grants {
-					// Whisperer of the Wilds' ferocious {T}: Add {G}{G} beside its
-					// {G} and the grant: the ask's second option, one colour and
-					// no colour ask (mana_gatedpairgrant.go)
-					if g.branchSel(t, i, sl, -1, t.gatedPairMask(g.k, sl), wn, false, 0) {
-						return true
-					}
-				} else if t.wideSecond(g.k, sl) && g.sel != 1 && g.wide2Branch(t, i, sl) {
-					// the wide second ability beside the usable one (Hermitic
-					// Herbalist's Lesson-only two mana): its option follows the
-					// printed pair's first ability in gorge's ask, the grant's
-					// colours after (CR 106.6, 601.2g)
-					return true
-				}
-			}
-			if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
-				return true
-			}
-			if blgExtra != 0 && g.branch(t, i, sl, -1, blgExtra, blgN, false) {
-				return true
-			}
-			for j := 0; j < int(g.ng[i]); j++ {
-				gi := g.gi[i][j]
-				pc := t.grantView(g.k.gen, gi, sl)
-				mask := t.srcMaskAt(pc, sl)
-				if !t.grantCostPayable(g.p, pc) {
-					continue // its life cannot be paid (CR 119.4)
-				}
-				// gorge's search taps a granted census gap whether or not the play may
-				// spend it (the mana floats, the tap fires its triggers); mana the
-				// play's origin or class cannot spend prices nothing
-				g.skipPool = !g.grantAdmits(t, sl, gi)
-				ask := alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)
-				if pc.grantSac {
-					if g.sacBranch(t, i, sl, gi, pc, mask, ask) { // the step sacrifices the source (mana_grantcost.go)
-						return true
-					}
-					continue
-				}
-				if grantCostLife(pc) > 0 {
-					if g.costBranch(t, i, sl, gi, pc, mask, ask) { // the step pays its life (mana_grantcost.go)
-						return true
-					}
-					continue
-				}
-				if g.branch(t, i, sl, gi, mask, pc.manaN, ask) {
-					return true
-				}
-			}
-		}
-		g.sel = 0
-	}
-	if g.printedSacPass(t, sacd, sacStepped) { // a tapped holder's printed sacrifice (mana_grantcost.go)
-		return true
-	}
-	// A paid gap's fee is funded by other sources (gorge scriptSearch's
-	// funding loop: the gaps first, then non-gaps while funding lasts).
-	var tried [MaxPerm]Slot
-	ntried := 0
-	twinCut := g.d.hasPlay && isAbilityPlay(g.d.play)
-	for i := g.gapN; i < g.n && g.funded < g.funding; i++ {
-		sl := g.cand[i]
-		if t.perms[sl].flags&pfTapped != 0 {
-			continue
-		}
-		pc := t.manaPCGen(g.k, sl)
-		if pc.manaAb < 0 || !t.canTapForManaPC(g.k, sl, pc) {
-			continue
-		}
-		mask, n := t.srcMaskAt(pc, sl), pc.manaN
-		if mask == 0 {
-			continue
-		}
-		if twinCut && g.fundTwinTried(t, sl, tried[:ntried]) {
-			continue // an indistinguishable earlier funder already walked this subtree (gorge's scriptTwin)
-		}
-		tried[ntried] = sl
-		ntried++
-		g.funded++
-		// The filter's own card taps here through its plain ability, whose
-		// one-bit mask poses no ask of its own; charge the zero-filter ask
-		// now, as the filter search does before its one answer
-		// (mana_filtzerofund.go).
-		if zeroFiltTap(g.k, t, g.p, sl) {
-			if !g.node() {
-				g.funded--
+			} else if stop {
 				return false
 			}
 		}
-		var ok bool
-		if painFunds(g.k, pc) {
-			ok = g.fundPainBranch(t, i, sl, pc) // a painland asks its painful colours too (mana_filtpain.go)
-		} else {
-			ok = g.branch(t, i, sl, -1, mask, n, mask&(mask-1) != 0)
-		}
-		g.funded--
-		if ok {
+		if g.printedSacPass(t, sacd, sacStepped) { // a tapped holder's printed sacrifice (mana_grantcost.go)
 			return true
+		}
+		if found, stop := g.fundingPass(t); found {
+			return true
+		} else if stop {
+			return false
+		}
+		for i := 0; i < g.gapN; i++ {
+			if g.gapFree(t, i) {
+				continue
+			}
+			if found, stop := g.gapVisit(t, i, sacd, &sacStepped); found {
+				return true
+			} else if stop {
+				return false
+			}
+		}
+	} else {
+		for i := 0; i < g.gapN; i++ {
+			if found, stop := g.gapVisit(t, i, sacd, &sacStepped); found {
+				return true
+			} else if stop {
+				return false
+			}
+		}
+		if g.printedSacPass(t, sacd, sacStepped) { // a tapped holder's printed sacrifice (mana_grantcost.go)
+			return true
+		}
+		if found, stop := g.fundingPass(t); found {
+			return true
+		} else if stop {
+			return false
 		}
 	}
 	if t.sp > g.sp0 && g.np < len(g.path) {
@@ -2208,7 +2357,21 @@ func (s *State) grantPayDescOf(k *prep, a Action) payDesc {
 // (playNeed's hint, CR 601.2b), which steers it to a plan gorge's larger
 // budget reaches (Eviscerator's Insight's {4}{B} flashback).
 func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, need [kop.NumManaKinds]bool, g *grantSrch) bool {
-	if s.grantSearchRun(k, p, cost, ex, d, need, g, nil) || s.grantSubsume(k, p, cost, ex, d, need, g) {
+	if s.grantSearchRun(k, p, cost, ex, d, need, g, nil, false) {
+		return true
+	}
+	// gorge's fallback runs: the phased order for a play whose own cost
+	// sacrifices or returns a permanent or whose gaps include a hybrid fee
+	// (phasedScope), or for a plain run the budget cut short on a repeatable
+	// fee-only filter (potentialPrefixScript's plainLimited).
+	if g.phasedScope(s) || g.limited && g.feeOnly {
+		limited, funding, stall := g.limited, g.funding, g.stall
+		if s.grantSearchRun(k, p, cost, ex, d, need, g, nil, true) {
+			return true
+		}
+		g.limited, g.funding, g.stall = limited, funding, stall
+	}
+	if s.grantSubsume(k, p, cost, ex, d, need, g) {
 		return true
 	}
 	if !d.hasPlay {
@@ -2218,14 +2381,14 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 	if hint == need {
 		return false
 	}
-	return s.grantSearchRun(k, p, cost, ex, d, hint, g, nil) || s.grantSubsume(k, p, cost, ex, d, hint, g)
+	return s.grantSearchRun(k, p, cost, ex, d, hint, g, nil, false) || s.grantSubsume(k, p, cost, ex, d, hint, g)
 }
 
 // grantSearchRun is one run of grantSearch: the plain one (sub nil) or the
 // subsume one, whose colour asks keep only the colours *sub still lacks.
 //
 //go:noinline
-func (s *State) grantSearchRun(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, need [kop.NumManaKinds]bool, g *grantSrch, sub *[kop.NumManaKinds]uint8) bool {
+func (s *State) grantSearchRun(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, need [kop.NumManaKinds]bool, g *grantSrch, sub *[kop.NumManaKinds]uint8, phased bool) bool {
 	*g = grantSrch{k: k, p: p, cost: *cost, ex: ex, d: d, sp0: s.sp, tapsLive: k.gen.manaTaps, need: need}
 	if d.hasPlay {
 		g.use, g.useOK = s.filtUsefulCost(k, d.play)
@@ -2247,6 +2410,18 @@ func (s *State) grantSearchRun(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d 
 		}
 	}
 	g.candidates(s)
+	g.phased = sub == nil && phased
+	if sub == nil && g.phasedScope(s) {
+		// The graveyard-cast pip hint (playNeed's exception) is the r1
+		// workaround for the missing phased run: gorge reads no moded cast's
+		// pips (scriptPlayBaseCost), so its colour asks keep engine order and
+		// its script floats the play's {B} through a fee-carrying filter rather
+		// than the grant the hint would tap first. The phased fallback below is
+		// the mirror; the play's own sacrifice is what puts it in scope.
+		if _, _, ok := s.playBaseCost(g.k, g.d.play); !ok {
+			g.need = [kop.NumManaKinds]bool{}
+		}
+	}
 	if g.n == 0 {
 		// no candidate to tap: the offered check still stands (the pool alone
 		// pays a Power-up play's reduced charge, offerPays)
@@ -2258,7 +2433,8 @@ func (s *State) grantSearchRun(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d 
 	}
 	t := s.fork()
 	defer s.unfork()
-	return g.visit(t)
+	ok := g.visit(t)
+	return ok
 }
 
 // stallOf records the stall a node's fork latched (capFull) while the line ran
