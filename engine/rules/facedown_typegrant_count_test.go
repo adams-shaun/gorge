@@ -34,8 +34,8 @@ const typeGrantFixture = "Name:Type Grant\nTypes:Enchantment\n" +
 // entry the face-down creature falls back to its CR 708.5 set and is
 // miscounted as one enchantment short.
 const typeCountFixture = "Name:Type Count\nTypes:Enchantment\n" +
-	"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddPower$ X | AddToughness$ X\n" +
-	"SVar:X:Count$Valid Enchantment.YouCtrl\nOracle:x\n"
+	"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddPower$ N | AddToughness$ N\n" +
+	"SVar:N:Count$Valid Enchantment.YouCtrl\nOracle:x\n"
 
 func TestFaceDownTypeGrantMatchingPrintedFaceIsCounted(t *testing.T) {
 	t.Parallel()
