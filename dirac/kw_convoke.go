@@ -590,6 +590,11 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 	return true
 }
 
+// DebugConvokeAbortCensus restores targetWindowShort's behaviour before the
+// committed picks were re-hidden before its pool-pips-first path (mutation
+// testing only: the lockstep must catch it).
+var DebugConvokeAbortCensus bool
+
 // convokeTargetAbort reports whether the pending convoke cast (or a Play's paid
 // copy cast, copyCastPaid) can no longer
 // be completed: the cost less the announced picks is unpayable from the pool
@@ -662,7 +667,16 @@ func (s *State) targetWindowShort(k *prep, e *stackEntry, cost *kop.ManaCost, hi
 	anyColor := s.bld().bfl&bflAnyColor != 0
 	ok, _ := s.windowTapRider(k, e.ctrl, cost, false, anyColor)
 	if !ok {
+		// CopyFrom restores s.occ too, so the committed picks come back: the
+		// probe re-hides them, or the pool-pips-first path taps a committed
+		// convoke creature a second time and reads a cast payable that
+		// gorge's castWindowReachable (whose units skip convokeCommitted)
+		// cannot reach (CR 601.2h). DebugConvokeAbortCensus keeps the old
+		// behaviour for the mutation test.
 		s.CopyFrom(saved)
+		if !DebugConvokeAbortCensus {
+			s.occ = s.occ.andNot(hide)
+		}
 		ok = s.windowPoolPipsFirst(k, e.ctrl, cost, anyColor) // the walk's order is one path; gorge's probe proves any
 	}
 	s.CopyFrom(saved)
