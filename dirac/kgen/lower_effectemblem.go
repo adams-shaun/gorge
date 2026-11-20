@@ -117,20 +117,39 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 		}
 		sts = append(sts, st)
 	}
+	var forget *lFilter
 	if fc, ok := ps.get("ForgetOnCast"); ok {
 		// gorge effectCastSweep: the first completed cast the spec names ends
-		// the effect. Only the spell-flash grant reads it (Quicken's "the next
-		// sorcery spell you cast this turn"): the kernel's emblem carries it as
-		// the CastWithFlash static's Filter2 (embFlashForget).
+		// the effect. A spell-flash grant reads it as the CastWithFlash
+		// static's Filter2 (Quicken's "the next sorcery spell you cast this
+		// turn"; kernel embFlashForget). A stack keyword grant (Cascade,
+		// Improvise, Convoke, Affinity) is read live at cast time, so the
+		// emblem itself carries the filter and ends on the matching cast
+		// (kop.Emblem.Forget; kernel embForgetOnCast).
 		if fc != "False" {
-			if len(sts) != 1 || sts[0].Kind != "CastWithFlash" {
-				return refuse("Effect ForgetOnCast$ beside a static other than one CastWithFlash")
+			if len(sts) != 1 {
+				return refuse("Effect ForgetOnCast$ beside %d statics", len(sts))
 			}
 			f, err := lc.filter(fc)
 			if err != nil {
 				return err
 			}
-			sts[0].F2 = f
+			switch sts[0].Kind {
+			case "CastWithFlash":
+				sts[0].F2 = f
+			case "StackKw":
+				forget = f
+			case "ReduceCost":
+				// only an Affinity keyword grant (it carries the keyword): a plain
+				// Mode$ ReduceCost beside ForgetOnCast$ (Invasion of the Giants) is
+				// gorge's effectCastSweep over a cost reduction, which stays refused
+				if len(sts[0].Kw) == 0 {
+					return refuse("Effect ForgetOnCast$ beside a %s static", sts[0].Kind)
+				}
+				forget = f
+			default:
+				return refuse("Effect ForgetOnCast$ beside a %s static", sts[0].Kind)
+			}
 		}
 		ps.consume("ForgetOnCast")
 	}
@@ -151,7 +170,7 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 		// view-only look, so the Effect resolves without creating anything.
 		return nil
 	}
-	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Statics: sts, UntilEOT: eot, UntilNextTurn: next, WhileHost: host})
+	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Statics: sts, UntilEOT: eot, UntilNextTurn: next, WhileHost: host, Forget: forget})
 	lc.emit(lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}, C: len(lc.out.Emblems) - 1, A: chosen})
 	return nil
 }
@@ -376,9 +395,21 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		}
 	} else if s.Mode == "Continuous" {
 		switch st.Kind {
-		case "CantBlock", "ExtraLandPlay", "NoMaxHandSize", "Continuous", "Override":
+		case "CantBlock", "ExtraLandPlay", "NoMaxHandSize", "Continuous", "Override",
+			// an Effect-issued stack keyword grant: "the next spell you cast
+			// this turn has cascade / improvise / convoke / affinity"
+			"StackKw", "ReduceCost":
 		default:
 			return lStatic{}, refuse("Effect static Continuous lowered to %s", st.Kind)
+		}
+	}
+	if st.Kind == "StackKw" || st.Kind == "ReduceCost" {
+		// an EffectZone$ Stack self grant is a printed-static shape: the
+		// kernel reads it off the spell's own card abilities, never an emblem
+		for _, fl := range st.Flags {
+			if fl == "SelfStack" {
+				return lStatic{}, refuse("Effect static stack grant with EffectZone Stack")
+			}
 		}
 	}
 	if host {
