@@ -126,6 +126,11 @@ type Divergence struct {
 	// Canon.String prints it ("" when none was): Implicates' last resort. A
 	// pass has no source, so it reaches back past the passes to the play.
 	LastSourced string `json:"last_sourced,omitempty"`
+	// Enablers are the sources ("#<n>") of gorge's first payment plan for each
+	// option only gorge offers (options divergences): the permanents whose
+	// mana abilities make the cast payable, which the kernel may not model.
+	// Implicates names them after the differing options' cards.
+	Enablers []string `json:"enablers,omitempty"`
 }
 
 func (d *Divergence) String() string {
@@ -156,6 +161,12 @@ func (d *Divergence) Implicates(m *Matchup) []string {
 			}
 		}
 		if len(out) > 0 {
+			for _, e := range d.Enablers {
+				if n := firstObjectCard(m, e); n != "" && !seen[n] {
+					seen[n] = true
+					out = append(out, n)
+				}
+			}
 			return out
 		}
 	}
@@ -174,6 +185,22 @@ func (d *Divergence) Implicates(m *Matchup) []string {
 		return []string{n}
 	}
 	return nil
+}
+
+// optionsEnablers is the payment sources of the options only gorge offers at
+// d, when ref is gorge; nil otherwise.
+func optionsEnablers(ref Side, d *Divergence) []string {
+	g, ok := ref.(*GorgeSide)
+	if !ok {
+		return nil
+	}
+	var refOnly []string
+	for _, o := range d.RefOptions {
+		if !slices.Contains(d.KerOptions, o) {
+			refOnly = append(refOnly, o)
+		}
+	}
+	return g.enablers(refOnly)
 }
 
 // RecentSources is the cards of the game's latest sourced actions, newest first and
@@ -427,6 +454,7 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 			}
 			res.Div = &Divergence{At: res.Decisions, What: "options", Field: "options",
 				Detail: fmt.Sprintf("%v decision for p%d", dr.Kind, dr.Player), RefOptions: actionStrings(ro), KerOptions: actionStrings(ko)}
+			res.Div.Enablers = optionsEnablers(ref, res.Div)
 			return res
 		}
 		if dr.Kind != DNone && rc.Check != nil {
