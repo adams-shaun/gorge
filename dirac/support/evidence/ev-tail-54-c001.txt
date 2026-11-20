@@ -4,6 +4,7 @@ Alliance of Arms
 Alluring Scent
 Almighty Brushwagg
 Angelfire Crusader
+Angelic Accord
 Angelic Chorus
 Arashin Cleric
 Ascend from Avernus
@@ -69,6 +70,7 @@ Divination
 Djeru, With Eyes Open
 Downhill Charge
 Dragon's Claw
+Drooling Ogre
 Earth Surge
 Echoes of the Kin Tree
 Eldrazi Displacer
@@ -150,9 +152,11 @@ Jor Kadeen, First Goldwarden
 Judge's Familiar
 Jwar Isle Avenger
 Kabira Vindicator
+Kaervek the Merciless
 Karametra's Blessing
 Keldon Overseer
 Keymaster Rogue
+Kheru Dreadmaw
 King Macar, the Gold-Cursed
 Kitchen Imp
 Knight of the Stampede
@@ -198,6 +202,7 @@ Ojutai Monument
 Okina, Temple to the Grandfathers
 Old Gnawbone
 Olivia Voldaren
+One Ring to Rule Them All
 Orim's Prayer
 Ostiary Thrull
 Ovalchase Dragster
@@ -241,6 +246,7 @@ Reya Dawnbringer
 Riptide Biologist
 Roc Charger
 Root Spider
+Roots
 Rosnakht, Heir of Rohgahh
 Run Out of Town
 Sacred Prey

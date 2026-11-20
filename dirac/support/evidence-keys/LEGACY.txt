@@ -721,7 +721,6 @@ Chain Devil
 Chain Reaction
 Chameleon Blur
 Champion of Dusan
-Champion of the Perished
 Champions of the Perfect
 Champions of the Shoal
 Chancellor Gorkon
@@ -882,7 +881,6 @@ Costume Closet
 Count on Luck
 Countermand
 Countersculpt
-Countervailing Winds
 Country Roads
 Countryside Crusher
 Courageous Outrider
@@ -1048,7 +1046,6 @@ Decode Transmissions
 Decorated Champion
 Decorum Dissertation
 Decree of Annihilation
-Decree of Justice
 Dedicated Commons
 Deep Space Scan
 Deep-Slumber Titan
@@ -1086,7 +1083,6 @@ Deploy to the Front
 Depressurize
 Descendant of Storms
 Desculpting Blast
-Desert Cerodon
 Desert of the Glorified
 Desert's Due
 Deserted Beach
@@ -5055,7 +5051,6 @@ Valley Rotcaller
 Valor's Flagship
 Vampire Bats
 Vampire Champion
-Vampire Scrivener
 Vampire of the Dire Moon
 Vanguard of Brimaz
 Vanishing Verse

@@ -43,6 +43,7 @@ Council of Advisors
 Countless Gears Renegade
 Crab Umbra
 Crackdown
+Crackling Spellslinger
 Crypt Ripper
 Curse of Obsession
 Dakmor Plague
@@ -115,6 +116,7 @@ In Bolas's Clutches
 Indrik Umbra
 Ingenuity Engine
 Insatiable Souleater
+Interceptor, Shadow's Hound
 Invisible Force Field
 Iroas's Champion
 Iron Lance
@@ -124,6 +126,7 @@ Isperia the Inscrutable
 Javelin of Lightning
 Jeweled Torque
 Jump
+Kami of the Waning Moon
 Kithkin Zealot
 Knight of Dusk's Shadow
 Knight of the Tusk
@@ -222,6 +225,7 @@ Throne of Geth
 Titania's Boon
 Topplegeist
 Traitorous Blood
+Travel Through Caradhras
 Treasure Hunt
 Triangle of War
 Triskelion

@@ -332,6 +332,7 @@ Rustmouth Ogre
 Sage's Row Savant
 Sakura-Tribe Springcaller
 Samurai of the Pale Curtain
+Sanctum of Calm Waters
 Sandbar Merfolk
 Savage Order
 Scepter of Empires
@@ -439,6 +440,7 @@ Wake Thrasher
 Wakening Sun's Avatar
 Wall of Stone
 Wand of Vertebrae
+Wand of the Worldsoul
 Wardscale Crocodile
 Warmind Infantry
 Waterspout Djinn

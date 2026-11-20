@@ -201,6 +201,7 @@ Kardur, Doomscourge
 Kargan Dragonlord
 Karona, False God
 Killian, Ink Duelist
+Kindred Summons
 Knight of Infamy
 Knowledge and Power
 Kolaghan Forerunners
@@ -289,6 +290,7 @@ Primaris Chaplain
 Primordial Ooze
 Prophetic Flamespeaker
 Protector of the Crown
+Pyromatics
 Qasali Pridemage
 Quintorius, History Chaser
 Rakdos Cluestone
