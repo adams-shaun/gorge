@@ -1016,6 +1016,7 @@ func cloneFieldsEngineParked(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		}
 		p0.sacs = append([]state.ObjID(nil), e.manaColorActivation.sacs...)
 		p0.sacLKI = append([]state.SacrificedInfo(nil), e.manaColorActivation.sacLKI...)
+		p0.exiles = append([]state.ObjID(nil), e.manaColorActivation.exiles...)
 		c.manaColorActivation = &p0
 	}
 	if e.manaUnlessActivation != nil {
@@ -1023,6 +1024,7 @@ func cloneFieldsEngineParked(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		p0.triggers = clonePendingTriggers(e.manaUnlessActivation.triggers)
 		p0.sacs = append([]state.ObjID(nil), e.manaUnlessActivation.sacs...)
 		p0.sacLKI = append([]state.SacrificedInfo(nil), e.manaUnlessActivation.sacLKI...)
+		p0.exiles = append([]state.ObjID(nil), e.manaUnlessActivation.exiles...)
 		p0.payers = append([]state.PlayerID(nil), e.manaUnlessActivation.payers...)
 		c.manaUnlessActivation = &p0
 	}
@@ -1031,6 +1033,7 @@ func cloneFieldsEngineParked(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		p0.triggers = clonePendingTriggers(e.manaAfterCost.triggers)
 		p0.sacs = append([]state.ObjID(nil), e.manaAfterCost.sacs...)
 		p0.sacLKI = append([]state.SacrificedInfo(nil), e.manaAfterCost.sacLKI...)
+		p0.exiles = append([]state.ObjID(nil), e.manaAfterCost.exiles...)
 		p0.untaps = append([]state.ObjID(nil), e.manaAfterCost.untaps...)
 		c.manaAfterCost = &p0
 	}
