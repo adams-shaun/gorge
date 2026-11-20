@@ -10,10 +10,10 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The .OtherShape gates this brief widens. Each behaviour test names the
-// card family's implemented shape; the census at the bottom is the class
-// record of which corpus cards are playable and which stay gated (named, with
-// the new-mechanism reason the brief requires).
+// The .OtherShape gates these tests widen. Each behaviour test names the
+// card family's implemented shape; the census is the class record of which
+// corpus cards are playable and which stay gated, each with the mechanism it
+// would need.
 
 const (
 	secondAuraSrc  = "Name:Test Second Aura\nManaCost:1 U\nTypes:Enchantment Aura\nK:Enchant:Land\nOracle:x\n"
@@ -31,7 +31,7 @@ func craftOption(t *testing.T, e *Engine, id state.ObjID) (decision.Option, bool
 	t.Helper()
 	ppPriority(t, e)
 	for _, o := range e.Pending().Options {
-		if o.Obj == id && o.Kind == "ability" && strings.Contains(o.Label, "Craft") {
+		if o.Obj == id && (o.Kind == "ability" || o.Kind == "activate") && strings.Contains(o.Label, "Craft") {
 			return o, true
 		}
 	}
@@ -55,7 +55,7 @@ func TestOreRichStalactiteCraftShape(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		bolts = append(bolts, moveSeededCard(t, e, 0, seat0[i+1], state.ZGraveyard))
 	}
-	addMana(t, e, 0, "GGGGGGGGG") // {3}{R}{R} + X=4
+	addMana(t, e, 0, "CCCCCCCCRR") // {3}{R}{R} + X=4: seven generic (the floor) and the two red pips
 	o, ok := craftOption(t, e, id)
 	if !ok {
 		t.Fatalf("craft activation not offered; options %+v", e.Pending().Options)
@@ -65,20 +65,35 @@ func TestOreRichStalactiteCraftShape(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The craft ask: announce X (the floor is 4) and pick the four materials.
-	// Every choose the flow poses picks the first offered option until the
-	// cast drains; the assertion below pins what that settled craft did.
-	for i := 0; i < 24; i++ {
+	// Every choose the flow poses takes its minimum count; a priority hand-off
+	// is passed so the resolving craft ability runs -- until the card is back
+	// on the battlefield transformed.
+	for i := 0; i < 60; i++ {
+		if o := e.G.Obj(id); o != nil && o.Zone == state.ZBattlefield && o.FaceIdx == 1 {
+			break
+		}
 		d = e.Pending()
 		if d == nil {
 			break
 		}
 		if d.Kind == decision.KPriority {
-			break
+			passPriorityOnce(t, e)
+			continue
 		}
 		if len(d.Options) == 0 {
 			t.Fatalf("craft flow stuck at %+v with no options", d)
 		}
-		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		// A multi-pick ask (the four material exiles) takes its minimum
+		// count; single-pick asks take option 0.
+		n := d.Min
+		if n < 1 || n > len(d.Options) {
+			n = 1
+		}
+		choices := make([]int, 0, n)
+		for i := 0; i < n; i++ {
+			choices = append(choices, d.Options[i].Index)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
 			t.Fatalf("craft flow ask %+v: %v", d, err)
 		}
 	}
@@ -199,7 +214,7 @@ func TestAntiMagicAuraCantBeEnchantedByOthers(t *testing.T) {
 
 // TestGuardianBeastCantEnchantUntappedArtifacts: Guardian Beast's untapped
 // IsPresent$ shape -- while it is untapped a noncreature artifact you control
-// cannot be enchanted, and a tapped Guardian Beast leaves it open. An Aura
+// cannot be enchanted, a tapped Guardian Beast leaves it open, and an Aura
 // already attached is NOT swept (the printed "This effect doesn't remove
 // Auras already attached").
 func TestGuardianBeastCantEnchantUntappedArtifacts(t *testing.T) {
@@ -213,18 +228,23 @@ func TestGuardianBeastCantEnchantUntappedArtifacts(t *testing.T) {
 	if e.G.Obj(id).Tapped {
 		t.Fatal("guardian beast seeded tapped")
 	}
-	id2 := moveSeededCard(t, e, 0, aura, state.ZHand)
+	// While tapped the artifact is enchantable: attach the first Aura.
+	e.emit(events.Event{Kind: events.Tap, Obj: id})
+	attached := castAuraOnto(t, e, aura, bauble, "UU")
+	// Untap: the static is live again, but the attached Aura stays put.
+	e.emit(events.Event{Kind: events.Untap, Obj: id})
+	if got := e.G.Obj(attached).AttachedTo; got != bauble {
+		t.Fatalf("already-attached Aura %d was swept on untap: attachedTo=%d", attached, got)
+	}
+	id3 := moveSeededCard(t, e, 0, aura2, state.ZHand)
 	addMana(t, e, 0, "UU")
 	ppPriority(t, e)
-	if idx := castOptionIndex(e, id2); idx >= 0 {
+	if idx := castOptionIndex(e, id3); idx >= 0 {
 		t.Fatal("artifact Aura cast offered while Guardian Beast is untapped: no legal target exists")
 	}
-	// Tap the beast: the artifact is enchantable again. The already-attached
-	// arm is covered by the SBA not changing: no sweep exists to test, so the
-	// attached-once Aura (none here) is asserted by the detach SBA staying
-	// untouched -- this test only pins the attach-side gate.
+	// Tap the beast again: the artifact is enchantable and a second Aura may
+	// join the first.
 	e.emit(events.Event{Kind: events.Tap, Obj: id})
-	id3 := moveSeededCard(t, e, 0, aura2, state.ZHand)
 	addMana(t, e, 0, "UU")
 	auraCastAvoiding(t, e, id3, 0, bauble)
 	replayCheck(t, e, cfg)

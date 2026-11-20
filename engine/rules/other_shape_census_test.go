@@ -28,6 +28,7 @@ func TestEveryOtherShapeCardIsPlayable(t *testing.T) {
 	gated := map[string]string{
 		"Eye of Ojer Taq": "api:Craft.OtherShape",            // withSharedCardType: a set relation the per-object material matcher cannot read
 		"Raging River":    "api:TwoPiles.OtherShape",         // LeftRightPile$: left/right blocking labels, a new mechanism
+		"Guardian Beast":  "stat:CantGainControl",            // its CantAttach Aura half is implemented (other_shape_gates_test.go); the control-change static is a different family
 		"Imperiosaur":     "stat:ManaRestriction.OtherShape", // spend-only-from-basic-lands: per-source pool provenance state.Player does not track
 		"Myr Superion":    "stat:ManaRestriction.OtherShape", // spend-only-from-creatures: the same provenance gap
 		"Deification":     "repl:RemoveCounter.OtherShape",   // damage arm rewrites removal ("all but one") inside the damage path
