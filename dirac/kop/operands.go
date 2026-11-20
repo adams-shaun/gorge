@@ -44,9 +44,18 @@ const (
 // BecomeCopyCtr is OpBecomeCopy's B.N bit (a different op from ExtCloneCopy,
 // so its flag space is its own): the copied template's counters join the
 // entering copy's counters as it enters (gorge's RememberCloneOrigin$ True +
-// PutCounter EachFromSource$ Remembered rider, CR 707.9b/614.12). No other
-// B.N bit is used by OpBecomeCopy.
+// PutCounter EachFromSource$ Remembered rider, CR 707.9b/614.12).
 const BecomeCopyCtr = 1 << 0
+
+// BecomeCopyEmbalm is OpBecomeCopy's other B.N bit: Embalm$ True (Vizier of
+// Many Faces' "except if CARDNAME was embalmed, the token has no mana cost,
+// it's white, and it's a Zombie in addition to its other types", CR 707.9b).
+// The op's own exception override (C>>1) applies only when the entering
+// object is a token whose copiable values already carry the no-mana-cost
+// copy exception (the embalm mint's mark, read before the template's
+// exceptions join); a hard-cast carrier enters as a plain copy. Gorge:
+// effects/clone.go cloneEmbalmGate, cloneEmbalmProvenance.
+const BecomeCopyEmbalm = 1 << 1
 
 // MayGuardCloneCopy: the OpMayAsk guard of an Optional$ Clone: the next op is
 // an ExtCloneCopy that has a live template and at least one becomer (gorge
