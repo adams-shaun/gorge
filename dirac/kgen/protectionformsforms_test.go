@@ -18,8 +18,9 @@ import "testing"
 //     lists it on the creature.
 //   - "Protection:<spec>:<desc>" lowers through lc.filter into the grant's
 //     quality filter (kop.Override.ProtFrom for an override grant, the
-//     existing kop.Static.ProtFrom for a static); an exception field still
-//     refuses, and so does any spec the filter cannot lower.
+//     existing kop.Static.ProtFrom for a static); a Ward Aura's exception
+//     field rides kop.Static.ProtExc, any other exception form refuses, and so
+//     does any spec the filter cannot lower.
 //   - On a host that is neither artifact nor enchantment, the colour
 //     spellings keep pumpKeywords' printed route: the black and red ones
 //     lower to the KwProtBlack / KwProtRed bits (Mystic Familiar), the rest
