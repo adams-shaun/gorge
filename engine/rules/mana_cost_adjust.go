@@ -98,7 +98,17 @@ func (s costStaticViews) anyManaReaching() bool {
 // board-statics build, memoised there: pricedManaCC asks once per mana
 // ability per walk, and the scan walks every collected raise/reduce/set
 // static. Outside a walk (no fused build to key) it scans as before.
+//
+// A face or cast probe (faceprobe.go, castprobe.go) flips or moves an object
+// with no event, so neither memo key sees the probed board: the fused build
+// stands down inside one (walkKeyNow), and this per-state memo is not keyed
+// on the probed face at all, so it must stand down too -- a scan it stored at
+// the live face would be served (or a probed-face scan stored) for the rest
+// of the probe and outlive it.
 func (e *Engine) anyManaReachingCostStatic() bool {
+	if e.offerProbeDepth > 0 {
+		return e.scanCostStatics().anyManaReaching()
+	}
 	if c, ok := e.boardStaticsRef(); ok {
 		if c.manaReachingVer == c.ver {
 			return c.manaReaching
