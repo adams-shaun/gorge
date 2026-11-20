@@ -9,15 +9,16 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // prepareGen registers each foreign card's plain printed mana ability as a
 // genPrep.grantPC entry (gainedManaPlanned), and grantIdxs lists it, behind the
 // statics' own grants, for each recipient of a battlefield GainsOf static
-// whose filter matches a foreign permanent now (gainedIdxs). The offer walk
+// whose filter matches a foreign permanent now, and of a GainsAbilitiesOfZones$
+// Graveyard/Exile static whose filter matches a card in that zone (gainedIdxs,
+// the zone arms of static_gainsof.go's gainedFrom). The offer walk
 // (static_gainsof.go) never offers one, a mana ability being no priority
 // option; gorge lists it in its payment census (grantedAbilitiesLimited).
 //
 // A restricted ability (Overgrown Zealot's face-up one, Creeping Peeper's) is
 // a grant with a spend restriction (genPrep.grantRestr), as a static grant's.
 // Not modelled, so a census gap: a dynamic, chosen-colour, reflected,
-// each-colour, deferred or any-combination ability, and one a graveyard or
-// exile GainsOf reads. A limited one (gainedManaLimited) stalls StallGainsOf
+// each-colour, deferred or any-combination ability. A limited one (gainedManaLimited) stalls StallGainsOf
 // in the offer walk.
 
 // useGainedMana arms gainedIdxs for a table with a GainsAbilitiesOf$ static
@@ -82,9 +83,11 @@ func gainedManaLimited(a *kop.Ability) bool {
 }
 
 // gainedIdxs appends to out (n entries) the genPrep.grantPC indices of the
-// mana abilities sl gains from a battlefield GainsOf static, in the statics'
-// walk order and each foreign permanent's battlefield order, and returns the
-// new count. A recipient that lost all abilities gains nothing.
+// mana abilities sl gains from a GainsOf static, in the statics' walk order
+// and, for a battlefield static, each foreign permanent's battlefield order;
+// for a GainsAbilitiesOfZones$ Graveyard/Exile static each seat's zone in
+// seat order, each card in stored order (gainedZoneIdxs). Returns the new
+// count. A recipient that lost all abilities gains nothing.
 //
 //go:noinline
 func (s *State) gainedIdxs(k *prep, sl Slot, out *[maxGrants]int16, n int) int {
@@ -103,12 +106,15 @@ func (s *State) gainedIdxs(k *prep, sl Slot, out *[maxGrants]int16, n int) int {
 		cd := &k.t.Cards[s.cardAt(src)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.GainsOf == 0 ||
-				a.Static.Zone == kop.ZoneGraveyard || a.Static.Zone == kop.ZoneExile {
+			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.GainsOf == 0 {
 				continue
 			}
 			st := statSrc{a: a, sl: src, ctrl: s.perms[src].ctrl, obj: s.perms[src].obj}
 			if !s.statCond(k, st) || !s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
+				continue
+			}
+			if a.Static.Zone == kop.ZoneGraveyard || a.Static.Zone == kop.ZoneExile {
+				n = s.gainedZoneIdxs(k, st, g, out, n)
 				continue
 			}
 			if nf < 0 {
@@ -131,6 +137,51 @@ func (s *State) gainedIdxs(k *prep, sl Slot, out *[maxGrants]int16, n int) int {
 					out[n] = int16(gi)
 					n++
 				}
+			}
+		}
+	}
+	return n
+}
+
+// gainedZoneIdxs is gainedIdxs's arm for a GainsAbilitiesOfZones$
+// Graveyard/Exile static (the zone arms of static_gainsof.go's gainedFrom):
+// every seat's zone in seat order, each card in stored order, one grant
+// unit per matching card the way the battlefield arm matches each foreign
+// permanent. ExiledWithSource matches through the static's source (the
+// exiled-with list, exwFlag), exactly as the offer walk's exile arm reads
+// it.
+//
+//go:noinline
+func (s *State) gainedZoneIdxs(k *prep, st statSrc, g *genPrep, out *[maxGrants]int16, n int) int {
+	ctx := evalCtx{src: st.obj, srcSl: st.sl, ctrl: st.ctrl}
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
+		pl := &s.pl[p]
+		zn := int(pl.graveN)
+		if st.a.Static.Zone == kop.ZoneExile {
+			zn = int(pl.exileN)
+		}
+		for i := 0; i < zn; i++ {
+			o := pl.grave[i]
+			if st.a.Static.Zone == kop.ZoneExile {
+				o = pl.exile[i]
+			}
+			card := s.objs[o].card
+			if !s.matchCardGenAt(k, st.a.Static.GainsOf, card, p, st.ctrl, o, &ctx) {
+				continue
+			}
+			for gi, r := range g.grantOf {
+				if r.card != card || k.t.Cards[card].Abilities[r.ab].AFlags&kop.AfLatent != 0 {
+					continue
+				}
+				if n == maxGrants {
+					s.stall(StallGrants) // capacity: loud, never a dropped grant
+					return n
+				}
+				out[n] = int16(gi)
+				n++
 			}
 		}
 	}
