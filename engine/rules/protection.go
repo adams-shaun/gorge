@@ -370,6 +370,15 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	// Creature.God, Card.MultiColor, and so on). Reuse the filter grammar so
 	// every supported type/colour predicate has identical meaning here.
 	sc := e.specCtx(0, e.controllerOf(source))
+	// CR 113.7a: an ability's source that has left the battlefield is read as
+	// it last existed. A token copy that ceased is parked in ZCeased with its
+	// copied face; without this the copyCeased gate rejects every spec
+	// against it, so a creature source stops carrying "Creature" and a
+	// protection-from-creatures target is wrongly offered (Unquestioned
+	// Authority on a creature, a copy of Brinelin's trigger).
+	if o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield {
+		sc.LastKnownSource = source
+	}
 	if basis && effects.MatchesObjectCtx(e.G, q, o, sc) || !basis && e.matchesSpec(q, source, sc) {
 		return true
 	}
