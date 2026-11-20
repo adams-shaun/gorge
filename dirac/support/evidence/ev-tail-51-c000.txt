@@ -36,6 +36,7 @@ Battlefly Swarm
 Battlewise Valor
 Benthic Giant
 Black Dragon
+Black Ward
 Bladewing, Deathless Tyrant
 Blessed Defiance
 Blinding Souleater
@@ -168,6 +169,7 @@ Generous Pup
 Ghastbark Twins
 Ghen, Arcanum Weaver
 Giant Ox
+Gibbering Kami
 Gideon's Battle Cry
 Gift of Growth
 Gilded Assault Cart
@@ -349,6 +351,7 @@ Plains
 Plunder
 Possessed Skaab
 Pouncing Cheetah
+Powder Keg
 Prava of the Steel Legion
 Presence of the Wise
 Pridemalkin
@@ -448,6 +451,7 @@ Sorcerer of the Fang
 Soul Barrier
 Soul-Strike Technique
 Soulquake
+Spare from Evil
 Spark Reaper
 Sparkhunter Masticore
 Specter's Wail
@@ -512,6 +516,7 @@ Tormented Hero
 Touch of Brilliance
 Tourach's Canticle
 Tovolar's Huntmaster
+Treasonous Ogre
 Treetop Warden
 Tresserhorn Sinks
 Tuktuk Rubblefort

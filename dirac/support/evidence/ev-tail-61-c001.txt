@@ -123,6 +123,7 @@ Font of Progress
 Force of Vigor
 Forest
 Fortress Cyclops
+Fowl Strike
 Freyalise, Llanowar's Fury
 Frontier Mastodon
 Furious Assault
@@ -193,6 +194,7 @@ Krosan Archer
 Kura, the Boundless Sky
 Leech Gauntlet
 Legacy Weapon
+Leshrac's Rite
 Liliana's Scorn
 Lingering Phantom
 Llawan, Cephalid Empress
@@ -271,6 +273,7 @@ Quench
 Rage Forger
 Ravenous Lindwurm
 Razor Swine
+Reaper King
 Reckless Pangolin
 Reforge the Soul
 Relic Barrier
