@@ -422,8 +422,11 @@ func typeVocabSub(k *prep, v int) uint8 {
 // hasSubGen reports whether sl has matchup subtype i (subOutside: a
 // creature type outside the matchup's subtypes).
 func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
-	if k.gen != nil && k.gen.anyBestow && int(i) == int(k.gen.auraSub) && s.bestowAttached(k, sl) {
+	if k.gen != nil && k.gen.anyBestow && !DebugBestowKeepsSubtypes && int(i) == int(k.gen.auraSub) && s.bestowAttached(k, sl) {
 		return true // CR 702.103b: an attached bestow card is an Aura (the subtype too; kw_bestow.go)
+	}
+	if k.gen != nil && k.gen.anyBestow && !DebugBestowKeepsSubtypes && (i == subOutside || k.gen.creatSub.Has(int(i))) && s.bestowAttached(k, sl) {
+		return false // CR 205.1a: gone with the Creature type (kw_bestow.go)
 	}
 	if k.gen != nil && k.gen.anyImpending && (outsideSub(k, i) || k.gen.creatSub.Has(int(i))) && s.impendDormant(k, sl) {
 		return false // CR 205.1a: gone with the creature type
@@ -598,8 +601,8 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 		subs = subs.AndNot(k.gen.creatSub)
 		all = false
 	}
-	if k.gen.anyBestow && k.gen.auraSub >= 0 && s.bestowAttached(k, sl) {
-		subs = subs.With(int(k.gen.auraSub)) // CR 702.103b: the Aura subtype with the Aura type (kw_bestow.go)
+	if k.gen.anyBestow {
+		subs, all = s.bestowSubs(k, sl, subs, all)
 	}
 	return subs, all
 }

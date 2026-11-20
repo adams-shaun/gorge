@@ -121,8 +121,9 @@ func typesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 		}
 	}
 	allCreatureTypes = effects.IntrinsicAllCreatureTypes(o)
+	bestowed := bestowSwitchActive(o)
 	if !anyLType {
-		return impendingTypeSwitch(o, reconfigureTypeSwitch(o, bestowedTypeSwitch(o, base))), !o.ImpendingDormant() && allCreatureTypes, false, nil, false, false
+		return impendingTypeSwitch(o, reconfigureTypeSwitch(o, bestowedTypeSwitch(o, base))), allCreatureTypesAfterSwitch(o, bestowed, allCreatureTypes), false, nil, false, false
 	}
 	// A copy exception "...except it has changeling" is a copiable
 	// characteristic-defining ability (CR 707.9b): it applies before every
@@ -319,9 +320,10 @@ func typesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 		// The copy of an empty list was nil; keep that exact value.
 		ty = nil
 	}
-	if o.ImpendingDormant() {
-		// The impending switch removes every creature subtype along with
-		// Creature, so it also invalidates the semantic all-types marker.
+	if switchClearsAllCreatureTypes(o, bestowed) {
+		// The impending and bestow switches remove every creature subtype
+		// along with Creature, so they also invalidate the semantic
+		// all-types marker (CR 205.1a).
 		allCreatureTypes = false
 	}
 	return impendingTypeSwitch(o, reconfigureTypeSwitch(o, bestowedTypeSwitch(o, ty))), allCreatureTypes, landSet, pre, preAll, found
@@ -553,32 +555,47 @@ func appendAllCreatureTypes(types []string) []string {
 // half and gains Aura -- and an object that is neither keeps the list
 // unchanged, returning the SAME slice so the common game stays byte-identical
 // and allocation-free. Derived live state, never a stored marker, so every
-// replay derives the switch identically. Creature SUBTYPES deliberately stay:
-// the subtype words are inert on an Aura in every filter this engine
-// evaluates (no Aura filter reads "Archon"), and stripping them would widen
-// the diff into every subtype-affected static.
+// replay derives the switch identically. Creature SUBTYPES go with the lost
+// Creature card type (CR 205.1a: a subtype correlated with a removed card type
+// stays only while another card type the object has carries it too), so a
+// bestowed Nyxborn Hydra is an Enchantment Aura with no Hydra subtype.
 func bestowedTypeSwitch(o *state.Object, types []string) []string {
-	if !o.BestowedAttached() && !o.BestowedAuraSpell() {
+	if !bestowSwitchActive(o) {
 		return types
 	}
-	out := make([]string, 0, len(types)+1)
-	for _, t := range types {
-		if t == "Creature" {
-			continue
-		}
-		out = append(out, t)
-	}
-	return append(out, "Aura")
+	return append(withoutCreature(types, true), "Aura")
+}
+
+// bestowSwitchActive reports whether CR 702.103b's bestow type switch applies
+// to o: a bestowed Aura spell on the stack, or a bestowed permanent attached to
+// a creature.
+func bestowSwitchActive(o *state.Object) bool {
+	return o.BestowedAttached() || o.BestowedAuraSpell()
+}
+
+// allCreatureTypesAfterSwitch folds the switches that remove the Creature card
+// type (and with it every creature subtype) out of the semantic all-types
+// marker. They are rule-based switches, outside the layer walk, so the marker
+// they invalidate is cleared after the walk too.
+func allCreatureTypesAfterSwitch(o *state.Object, bestowed, all bool) bool {
+	return !o.ImpendingDormant() && !bestowed && all
+}
+
+// switchClearsAllCreatureTypes reports whether a rule-based type switch on o
+// removes the Creature type, and so invalidates the all-creature-types marker.
+func switchClearsAllCreatureTypes(o *state.Object, bestowed bool) bool {
+	return o.ImpendingDormant() || bestowed
 }
 
 // reconfigureTypeSwitch applies CR 702.150c's switch to a DERIVED type
 // list: a Reconfigure card attached to a creature is not a creature -- the
 // printed "Artifact Creature Equipment <subtype>" list loses only its
-// Creature half and keeps Equipment/Artifact and the subtypes (the same
-// deliberate keep-subtypes narrowing bestowedTypeSwitch practises: the
-// subtype words are inert on a non-creature in every filter this engine
-// evaluates, and stripping them would widen the diff into every
-// subtype-affected static). An unattached reconfigure card (or anything
+// Creature half and keeps Equipment/Artifact and the subtypes. Unlike the
+// bestow switch, the reconfigure card stays an artifact, so CR 205.1a keeps
+// the subtypes a remaining card type carries; the creature subtypes are inert
+// on a non-creature in every filter this engine evaluates, so stripping them
+// would widen the diff into every subtype-affected static without changing an
+// answer. An unattached reconfigure card (or anything
 // not printed with the keyword) keeps the list unchanged, returning the
 // SAME slice so the common game stays byte-identical and allocation-free.
 // A face-down battlefield permanent keeps its CR 708.5 set: its printed
@@ -594,7 +611,7 @@ func reconfigureTypeSwitch(o *state.Object, types []string) []string {
 
 // withoutCreature drops Creature from a derived type list and, with
 // subtypes, every creature subtype too; other card types, their subtypes and
-// the supertypes remain. The shared strip behind the reconfigure and
+// the supertypes remain. The shared strip behind the bestow, reconfigure and
 // impending switches.
 func withoutCreature(types []string, subtypes bool) []string {
 	out := make([]string, 0, len(types))

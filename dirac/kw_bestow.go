@@ -253,6 +253,33 @@ func (s *State) bestowTy(k *prep, sl Slot, t kop.TypeMask) kop.TypeMask {
 	return t
 }
 
+// bestowSubs is bestowTy over a derived subtype mask: an attached bestow
+// permanent is an Aura, so it gains the Aura subtype and loses the creature
+// subtypes that went with the Creature card type the switch took away (CR
+// 205.1a, 702.103b). A card that is not attached, or has ceased to be
+// bestowed, keeps its mask and marker unchanged. The phasing projection
+// (oracle/projchars.go) calls it too: the switch is derived live state, not a
+// continuous effect, so it stands while the permanent is phased out.
+func (s *State) bestowSubs(k *prep, sl Slot, subs kop.SubMask, all bool) (kop.SubMask, bool) {
+	if !s.bestowAttached(k, sl) {
+		return subs, all
+	}
+	if !DebugBestowKeepsSubtypes {
+		subs = subs.AndNot(k.gen.creatSub)
+		all = false
+		if k.gen.auraSub >= 0 {
+			subs = subs.With(int(k.gen.auraSub))
+		}
+	}
+	return subs, all
+}
+
+// DebugBestowKeepsSubtypes restores the pre-switch subtype handling: a
+// bestowed permanent keeps the subtype set it had before the bestow switch,
+// with neither the Aura subtype added nor the creature subtypes removed
+// (TestBestowedAuraSubtypesMutation).
+var DebugBestowKeepsSubtypes bool
+
 // bestowSlots is the battlefield's attached bestow permanents (refreshTy
 // keeps their ovGenTy types).
 //
