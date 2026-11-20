@@ -47,8 +47,16 @@ def test_plan_replays_for_dirac_code_outside_kgen_or_a_recording():
     assert qp.plan(["dirac/oracle/testdata/repro/x.repro.json"], [])[2]
     assert not qp.plan(["dirac/kgen/lower.go"], [])[2]  # kgen's own tests cover it
     assert not qp.plan(["dirac/mana_test.go", "engine/rules/a.go"], [])[2]
-    assert __import__("re").match(qp.REPLAYS, "TestMBCStormTheSeedcoreReprosLockstep")
-    assert __import__("re").match(qp.REPLAYS, "TestStdMetaReprosLockstep")
+
+
+def test_replays_are_the_dirac_repros_jobs_set():
+    # 11-20 #2849: TestStdDsk/TestStdPool ReprosLockstep and TestReproManifest were outside a hand-written subset.
+    rx = qp.replays_rx((HERE.parent / qp.CI_YML).read_text())
+    import re
+    for name in ("TestStdDskReprosLockstep", "TestStdPoolReprosLockstep", "TestReproManifest",
+                 "TestStdMetaReprosLockstep", "TestMBCStormTheSeedcoreReprosLockstep", "TestRefusedEntriesStillDiverge"):
+        assert re.search(rx, name), (rx, name)
+    assert qp.replays_rx("jobs:\n  dirac-repros:\n    steps:\n      - run: go test -list 'Repro|^X$' ./dirac/oracle | grep\n  other:\n") == "Repro|^X$"
 
 
 def test_attribute_blames_the_first_prefix_that_fails_and_drops_main_reds():
