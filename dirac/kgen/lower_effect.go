@@ -2421,9 +2421,8 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		// grant lands and nothing is offered), so ExtGrantEncore encodes the
 		// grant alone. Any other keyword on a graveyard card stays refused
 		// below.
-		if kw, ok := ps.get("KW"); ok && strings.TrimSpace(kw) == "Encore:CardManaCost" {
-			lc.emit(lInstr{Op: "GrantEncore", Obj: obj})
-			return nil
+		if done, err := lc.pumpGraveyardKwGrant(ps, obj); done {
+			return err // the Encore grant above; Cursecloth Wrappings' embalm (lower_embalmgrant.go)
 		}
 	}
 	kw, hasKW := ps.get("KW")

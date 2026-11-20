@@ -23,6 +23,7 @@ func init() {
 	instrOp("GrantExile", (*instrCtx).opGrantExile)
 	instrOp("GrantPanharm", (*instrCtx).opGrantPanharm)
 	instrOp("GrantEncore", (*instrCtx).opGrantEncore)
+	instrOp("GrantEmbalmOwnCost", (*instrCtx).opGrantEmbalmOwnCost)
 }
 
 func (ic *instrCtx) opPumpUntilEOT() error {
@@ -193,5 +194,13 @@ func (ic *instrCtx) opGrantEncore() error {
 	// activation of a granted encore, so the grant is the whole effect
 	// (kw_encoregrant.go)
 	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtGrantEncore))
+	return nil
+}
+
+func (ic *instrCtx) opGrantEmbalmOwnCost() error {
+	ki := &ic.ki
+	// (Cursecloth Wrappings) OpGrantEmbalmOwnCost on the target; C is the
+	// index of the card's latent embalm body (dirac kw_embalmgrant.go)
+	ki.Op, ki.C = kop.OpGrantEmbalmOwnCost, int16(ic.in.C)
 	return nil
 }
