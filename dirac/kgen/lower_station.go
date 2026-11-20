@@ -1,7 +1,5 @@
 package kgen
 
-import "strconv"
-
 // kcounters: Station (CR 702.184a). gorge (pin ec2218895) keeps K:Station
 // rules-side (rules/station.go): a priority special option "station" (as a
 // sorcery, while another untapped creature you control exists), then one
@@ -17,13 +15,11 @@ import "strconv"
 // counters on the source. The tapped creature rides the stack entry's
 // trigger object (refPT reads it off the battlefield as gorge does).
 
-// lowerStation appends the Station ability for K:Station:<N>. The
-// threshold abilities (STATION N+) are the face's own statics and
-// triggers (counters_GE<N>_CHARGE), lowered with the rest of the face.
-func (lc *lowerCtx) lowerStation(param string) error {
-	if n, err := strconv.Atoi(param); err != nil || n < 1 {
-		return refuse("station %q", param)
-	}
+// lowerStation appends the Station ability for K:Station (upstream once
+// printed K:Station:<N>; neither engine reads N). The threshold abilities
+// (STATION N+) are the face's own statics and triggers
+// (counters_GE<N>_CHARGE), lowered with the rest of the face.
+func (lc *lowerCtx) lowerStation() error {
 	if lc.out.Types&tPermanent == 0 {
 		return refuse("station on a nonpermanent")
 	}
