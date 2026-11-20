@@ -13,17 +13,19 @@ import (
 // have an Adventure" (Forge's Count$ValidGraveyard Instant.YouOwn,
 // Sorcery.YouOwn,Card.AdventureCard+YouOwn), and the card has an ALTERNATE
 // Adventure face. hearthLikeNoAdv drops the Adventure face and the
-// Adventure-card count term -- the Tolarian Terror shape that already works.
+// Adventure-card count term -- the Tolarian Terror shape that already works
+// (count terms reordered from Bedlam Reveler's, so the fixture line is not
+// verbatim Forge).
 const hearthLike = "Name:Test Elemental\nManaCost:5 R\nTypes:Creature Elemental\nPT:4/5\nAlternateMode:Adventure\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ X | EffectZone$ All | Description$ costs less\n" +
-	"SVar:X:Count$ValidGraveyard Instant.YouOwn,Sorcery.YouOwn,Card.AdventureCard+YouOwn\nOracle:x\n" +
+	"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ GYCount | EffectZone$ All | Description$ costs less\n" +
+	"SVar:GYCount:Count$ValidGraveyard Sorcery.YouOwn,Instant.YouOwn,Card.AdventureCard+YouOwn\nOracle:x\n" +
 	"\nALTERNATE\n\n" +
 	"Name:Stoke Test\nManaCost:1 R\nTypes:Sorcery Adventure\n" +
 	"A:SP$ Draw | NumCards$ 2\nOracle:y\n"
 
 const hearthLikeNoAdv = "Name:Test Elemental\nManaCost:5 R\nTypes:Creature Elemental\nPT:4/5\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ X | EffectZone$ All | Description$ costs less\n" +
-	"SVar:X:Count$ValidGraveyard Instant.YouOwn,Sorcery.YouOwn\nOracle:x\nOracle:y\n"
+	"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ GYCount | EffectZone$ All | Description$ costs less\n" +
+	"SVar:GYCount:Count$ValidGraveyard Sorcery.YouOwn,Instant.YouOwn\nOracle:x\nOracle:y\n"
 
 const advFiller = "Name:Filler Sorcery\nManaCost:R\nTypes:Sorcery\nA:SP$ Draw | NumCards$ 1\nOracle:x\n"
 
