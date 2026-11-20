@@ -1628,6 +1628,9 @@ func (g *grantSrch) visit(t *State) bool {
 	}
 	// A paid gap's fee is funded by other sources (gorge scriptSearch's
 	// funding loop: the gaps first, then non-gaps while funding lasts).
+	var tried [MaxPerm]Slot
+	ntried := 0
+	twinCut := g.d.hasPlay && isAbilityPlay(g.d.play)
 	for i := g.gapN; i < g.n && g.funded < g.funding; i++ {
 		sl := g.cand[i]
 		if t.perms[sl].flags&pfTapped != 0 {
@@ -1641,6 +1644,11 @@ func (g *grantSrch) visit(t *State) bool {
 		if mask == 0 {
 			continue
 		}
+		if twinCut && g.fundTwinTried(t, sl, tried[:ntried]) {
+			continue // an indistinguishable earlier funder already walked this subtree (gorge's scriptTwin)
+		}
+		tried[ntried] = sl
+		ntried++
 		g.funded++
 		// The filter's own card taps here through its plain ability, whose
 		// one-bit mask poses no ask of its own; charge the zero-filter ask
@@ -1677,6 +1685,19 @@ func (g *grantSrch) visit(t *State) bool {
 			g.np--
 		}
 		return ok
+	}
+	return false
+}
+
+// fundTwinTried reports whether an earlier funder of this pass is
+// indistinguishable from sl (twinSlotOf): the branch through sl reaches no
+// payer state the earlier one's does not (gorge's scriptTwin, which an
+// activated play's prefix search runs over its funding sources too).
+func (g *grantSrch) fundTwinTried(t *State, sl Slot, tried []Slot) bool {
+	for _, a := range tried {
+		if twinSlotOf(t, a, sl) {
+			return true
+		}
 	}
 	return false
 }
