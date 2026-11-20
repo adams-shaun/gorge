@@ -55,8 +55,8 @@ func TestPumpEndCombatDropsAtLeave(t *testing.T) {
 		sc, bear, idx := endCombatScen(t, true)
 		sl := sc.slot(bear)
 		sc.s.applyOverrideFl(sc.k, sl, idx, 0, 0)
-		if sc.k.gen == nil || !sc.k.gen.anyEndCombatOv {
-			t.Fatal("precondition: the table scan did not set anyEndCombatOv")
+		if sc.k.gen == nil || !sc.k.gen.uses.has(useEndCombatOv) {
+			t.Fatal("precondition: the table scan did not set useEndCombatOv")
 		}
 		if sc.ovCount(sl) != 1 {
 			t.Fatalf("precondition: %d records after the pump, want 1", sc.ovCount(sl))

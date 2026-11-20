@@ -793,7 +793,7 @@ func (s *State) cleanupGen(k *prep) {
 			}
 		}
 		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.kind == fxOverride && r.r.eot() })
-		if k.gen.anyEndCombatOv {
+		if k.gen.uses.has(useEndCombatOv) {
 			ended = ended.or(s.dropEndCombatOv(k)) // a combat that never ended (static_endcombat.go)
 		}
 		if k.gen.anyNTOv {

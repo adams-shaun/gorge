@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // Pump Duration$ UntilEndOfCombat as an override record whose static row is
 // marked kop.Override.EndCombat. The record is applied with no duration bits
 // (kop.DurPermanent), so the end-of-turn sweep leaves it alone; the sweeps
@@ -12,6 +14,18 @@ package dirac
 //   - dropEndCombatOv, at cleanup (turn_gen.go cleanupGen): when combat was
 //     skipped the step never ran, and gorge's EndOfTurnCleanup
 //     untilEndOfCombat backstop ends the record with the turn.
+
+// useEndCombatOv is the table gate: some override row ends with the combat. It
+// is a genPrep.uses bit, not a new genPrep field (layout_pins_test.go,
+// TestNoNewFixedStateFields).
+var useEndCombatOv = newGenUse(func(t *kop.Table) bool {
+	for i := range t.Overrides {
+		if t.Overrides[i].EndCombat {
+			return true
+		}
+	}
+	return false
+})
 
 // DebugNoPumpEndCombat (the mutation): an EndCombat record is not dropped on
 // the way out of the end-of-combat step (the cleanup backstop still runs).

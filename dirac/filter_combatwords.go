@@ -54,7 +54,6 @@ func prepMcombat(t *kop.Table, g *genPrep) {
 		g.anyWhileHost = g.anyWhileHost || t.Overrides[i].WhileHost
 		g.anyWhileTapped = g.anyWhileTapped || t.Overrides[i].WhileTapped
 		g.anyOvCantAtk = g.anyOvCantAtk || t.Overrides[i].CantAttack
-		g.anyEndCombatOv = g.anyEndCombatOv || t.Overrides[i].EndCombat
 	}
 	for i := range t.Emblems {
 		e := &t.Emblems[i]

@@ -403,7 +403,6 @@ type genPrep struct {
 	anyEmbCtrl      bool           // some emblem ends when its host's controller changes (kop.Emblem.AsLongAsControl; static_emblemdurations.go)
 	anyWhileTapped  bool           // some override also ends at its host's untap (kop.Override.WhileTapped; static_animatewhiletapped.go)
 	anyOvCantAtk    bool           // some override says its permanent can't attack (kop.Override.CantAttack; filter_combatwords.go)
-	anyEndCombatOv  bool           // some override ends with the combat (kop.Override.EndCombat; static_endcombat.go)
 	anyCantAtk      bool           // some card or emblem has a StatCantAttack static (combat_cantattack.go)
 	anyCantAtkScope bool           // some StatCantAttack static carries a Target$ scope bit (combat_cantattack.go)
 	anySrcMark      bool           // some filter reads F2DamagedBy or F2CrewedSrc: the source-mark records are kept (filter_combatwords.go)

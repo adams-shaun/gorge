@@ -338,7 +338,7 @@ func (s *State) advance(k *prep) {
 		if k.gen != nil && k.gen.anyRepl&rbPrevCol != 0 {
 			s.prevEndCombat() // repl_prevx.go: the Duration$ UntilEndOfCombat scoped records end here
 		}
-		if k.gen != nil && k.gen.anyEndCombatOv {
+		if k.gen != nil && k.gen.uses.has(useEndCombatOv) {
 			s.endCombatOv(k) // static_endcombat.go: and the Pump override records
 		}
 	case kop.StepCleanup:
