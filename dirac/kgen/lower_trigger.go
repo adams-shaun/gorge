@@ -695,7 +695,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			} else if v == "Spell.MayPlaySource" && t.Mode == "SpellCast" {
 				tr.MayPlaySrc = true
 			} else if v != "Spell.ManaFromCard.StrictlySelf" || t.Mode != "SpellCast" {
-				return refuse("ValidSA %q", v)
+				return refuse("spell-ability filter ValidSA %q", v) // the T12 spell-ability filter guard (T13c's words)
 			} else {
 				tr.ManaFromSelf = true
 			}
@@ -1278,7 +1278,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.AbClass = kop.TrigAbCastLoyaltyOpp
 		default:
-			return refuse("AbilityCast ValidSA$ %q", vs)
+			return refuse("AbilityCast spell-ability filter ValidSA$ %q", vs) // the T12 spell-ability filter guard (T13c's words)
 		}
 		if hasTV && tr.AbClass != kop.TrigAbCastAny {
 			return refuse("AbilityCast TargetsValid$ beside ValidSA$ %q", tp.str("ValidSA"))

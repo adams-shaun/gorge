@@ -30,9 +30,10 @@ func TestPlayValidSAProbeIsNotAFilterHead(t *testing.T) {
 	if strings.Contains(all, spellHead) || strings.Contains(all, `filter "Spell"`) {
 		t.Errorf("ValidSA$ Spell reported as a filter-head blocker:\n%s", all)
 	}
-	// a ValidSA$ play itself would refuse still shows as a blocker
+	// a ValidSA$ play itself would refuse still shows as a blocker (the
+	// spell-ability filter guard's message, T12)
 	bad := abReasons(abLower(t, src("Bogus"), true))
-	if !strings.Contains(bad, `ValidSA "Bogus"`) {
+	if !strings.Contains(bad, `spell-ability filter ValidSA "Bogus"`) {
 		t.Errorf("an unreadable ValidSA$ lost its blocker:\n%s", bad)
 	}
 }

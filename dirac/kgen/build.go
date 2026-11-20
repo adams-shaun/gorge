@@ -19,6 +19,8 @@ import (
 type poolTables struct {
 	filters   []kop.Filter
 	filterKey map[string]kop.FilterID
+	progs     []kop.FilterProg // filter programs (filter_spill.go); nil until one is interned, [0] unused
+	progKey   map[string]kop.FilterProgID
 	exprs     []kop.Expr
 	exprKey   map[string]int16
 	conds     []kop.Cond
@@ -143,6 +145,7 @@ type cardBuilder struct {
 	inDamageMap bool
 	spellCost   kop.Cost // an instant's/sorcery's additional cost (its AbSpell's Cost) // inside a damage map (DealDamage nodes until ResolveDamageMap)
 	ctrGate     bool     // building the operand of a >= 1 condition: vCtrAdded may lower (value_countersadded.go)
+	inStatic    bool     // building a static ability: its filters are read in the layer walk too (filter_spill.go fwAllowed)
 	markPerm    bool     // ThisTurnEntered's dest=Battlefield card form: mark Permanent-base clauses
 	keepOwner   bool     // a filter over this turn's departures: "you own" stays Owner, apart from "you control"
 	selfCast    bool     // building a SpellCast self trigger's stack filter: sneaked is readable
@@ -1559,6 +1562,7 @@ func ringBearerPred(kf *kop.Filter, c lClause) {
 
 func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	var kf kop.Filter
+	c = c.withSubtype2Spilled() // the second subtype and a comparison both want the Pred slot (filter_spill.go)
 	kf.Zone = zone
 	kf.Special = c.Special
 	if zone == kop.ZoneBattlefield {
@@ -1831,6 +1835,10 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, fmt.Errorf("toughness compare against a value")
 		}
 		kf.PredN = int16(n)
+	case cmpSpill:
+		if err := cb.spillPred(&kf, &c, zone); err != nil {
+			return kf, err
+		}
 	case cmpHasX:
 		kf.Pred = kop.PredHasXCost
 	case cmpPowerLTToughness:
@@ -2025,32 +2033,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, fmt.Errorf("mana value compare %d", c.CmpOp)
 		}
 	case cmpCounters:
-		k, err := counterKind(c.CmpCounter)
-		if err != nil {
+		if err := counterPred(&kf, c); err != nil {
 			return kf, err
-		}
-		switch {
-		case c.CmpOp == opGE:
-			if c.CmpN > 127 {
-				// the threshold is the int16 high byte: above 127 it would
-				// wrap negative and the predicate would match everything
-				return kf, fmt.Errorf("counter compare %d on %s", c.CmpOp, c.CmpCounter)
-			}
-			kf.Pred = kop.PredCountersGE
-			kf.PredN = int16(c.CmpN<<8 | int(k))
-		case c.CmpOp == opLT && c.CmpN >= 1 || c.CmpOp == opLE || c.CmpOp == opEQ && c.CmpN == 0:
-			// fewer than n: LE n is LT n+1, EQ0 is LT 1
-			n := c.CmpN
-			if c.CmpOp != opLT {
-				n++
-			}
-			if k == kop.CtrStash || n > 127 {
-				return kf, fmt.Errorf("counter compare %d on %s", c.CmpOp, c.CmpCounter)
-			}
-			kf.Pred = kop.PredCountersLT
-			kf.PredN = int16(n<<8 | int(k))
-		default:
-			return kf, fmt.Errorf("counter compare %d", c.CmpOp)
 		}
 	}
 	if err := cb.clauseSubtype2(c, &kf); err != nil {
@@ -2076,6 +2060,39 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 	}
 	return kf, nil
+}
+
+// counterPred lowers a clause's counter compare to PredCountersGE / PredCountersLT
+// (the threshold rides PredN's high byte, the kind its low byte).
+func counterPred(kf *kop.Filter, c lClause) error {
+	k, err := counterKind(c.CmpCounter)
+	if err != nil {
+		return err
+	}
+	switch {
+	case c.CmpOp == opGE:
+		if c.CmpN > 127 {
+			// the threshold is the int16 high byte: above 127 it would
+			// wrap negative and the predicate would match everything
+			return fmt.Errorf("counter compare %d on %s", c.CmpOp, c.CmpCounter)
+		}
+		kf.Pred = kop.PredCountersGE
+		kf.PredN = int16(c.CmpN<<8 | int(k))
+	case c.CmpOp == opLT && c.CmpN >= 1 || c.CmpOp == opLE || c.CmpOp == opEQ && c.CmpN == 0:
+		// fewer than n: LE n is LT n+1, EQ0 is LT 1
+		n := c.CmpN
+		if c.CmpOp != opLT {
+			n++
+		}
+		if k == kop.CtrStash || n > 127 {
+			return fmt.Errorf("counter compare %d on %s", c.CmpOp, c.CmpCounter)
+		}
+		kf.Pred = kop.PredCountersLT
+		kf.PredN = int16(n<<8 | int(k))
+	default:
+		return fmt.Errorf("counter compare %d", c.CmpOp)
+	}
+	return nil
 }
 
 func bitIndex(b uint64) int {
