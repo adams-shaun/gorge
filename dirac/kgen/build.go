@@ -1146,7 +1146,7 @@ func millRevealCostBytes(out *kop.Cost, c lCost, set func(kop.CostFlags, int)) {
 func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	var out kop.Cost
 	var err error
-	if c.DrawN > 0 {
+	if hasDrawCost(c) {
 		return out, fmt.Errorf("draw cost outside a trigger's own cost window") // kop.PayDraw only
 	}
 	if c.BeholdN != 0 {
@@ -1384,11 +1384,23 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 			return out, err
 		}
 	}
-	if counted > 1 && !discardBesideSac(&c, &out, counted) {
+	if counted > 1 && !countedPartsOK(&c, &out, counted) {
 		return out, fmt.Errorf("cost with two counted parts")
 	}
 	return out, nil
 }
+
+// countedPartsOK reports the two counted cost parts that may share Cost.N: a
+// discard beside a sacrifice of the same count (discardBesideSac) or beside
+// the source's own graveyard exile (discardBesideSelfExile). Any other pair
+// stays refused.
+func countedPartsOK(c *lCost, out *kop.Cost, counted int) bool {
+	return discardBesideSac(c, out, counted) || counted == 2 && discardBesideSelfExile(*c)
+}
+
+// hasDrawCost reports a Draw<N/Who> or Draw<X/Who> part. Only a trigger's own
+// or an unless cost pays it (kop.PayDraw); a table cost refuses it.
+func hasDrawCost(c lCost) bool { return c.DrawN > 0 || c.DrawBy != nil }
 
 // discardXCostPart adds the Discard<X/Spec> part (CostDiscard with N 0, the
 // announced X) to a cost being built. It is a helper so cardBuilder.cost does
