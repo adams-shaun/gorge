@@ -566,15 +566,18 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			}
 			v = lValue{Kind: vTargetPlayers, Ref: ref}
 		case "LifeLostThisTurn":
-			// Thought-Stalker Warlock: lowered only for an opponents-only
-			// player slot, where two-player it is the controller's
-			// opponent's figure.
+			// Thought-Stalker Warlock, Astarion: the targeted player's own
+			// life-lost tally (CR 119.3, 119.4), lowered only for an
+			// opponents-only player slot. A player target is its own
+			// controller, so the target-controller ref names that player at
+			// any seat count; with one opponent it is the same seat as the
+			// old opponent sum.
 			if f := lc.ab.Targets[t].F; f == nil || f.Players != plOpp || len(f.Clauses) != 0 {
 				err = fmt.Errorf("TargetedPlayer$%s of a slot that is not opponents-only", rest)
 				break
 			}
-			lc.twoSeat("the targeted player's life lost read as the opponent's")
-			v = lValue{Kind: vOppLifeLostThisTurn}
+			// seat-exact: the ref names the target player, not a seat count
+			v = lValue{Kind: vLifeLostThisTurn, Ref: lRef{Kind: rTargetController, N: t}}
 		default:
 			err = fmt.Errorf("TargetedPlayer$%s", rest)
 		}
