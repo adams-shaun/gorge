@@ -902,13 +902,29 @@ func deferReplay(t *State, k *prep, p uint8, a Action, order []Slot, used []int8
 // the chain's longest line (a line whose payer dies ends sooner), so a trigger
 // that does not damage the payer is not undercharged. The bool reports whether
 // nodes plus the charge stays inside gorge's potentialScriptNodes.
-func (s *State) deferChainCharge(k *prep, t *State, nodes int, order []Slot, used []int8, replay, post, resolvePlay bool) (int, bool) {
+func (s *State) deferChainCharge(k *prep, t *State, nodes int, order []Slot, used []int8, replay, post, resolvePlay, twinCut bool) (int, bool) {
 	if !replay || !post || !resolvePlay || t.npend == 0 {
 		return 0, true
 	}
 	sub := 0
+	var counted [MaxPerm]int8 // the unused gaps already charged, for gorge's twin cut
+	nc := 0
 	for i := 0; i < len(order); i++ {
 		if !deferInUsed(used, i) {
+			if twinCut {
+				twin := false
+				for _, j := range counted[:nc] {
+					if twinSlotOf(s, order[j], order[i]) {
+						twin = true
+						break
+					}
+				}
+				if twin {
+					continue // the twin cut skips it beside an earlier twin (scriptTwin)
+				}
+				counted[nc] = int8(i)
+				nc++
+			}
 			n := int(s.deferGapAnswers(k, order[i]))
 			sub += n + deferAskNodes(n)
 		}
@@ -942,6 +958,7 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 	}
 	noGrant := a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
 	resolvePlay := s.playNeedsEmptyStack(k, a)
+	twinCut := cp == nil && isAbilityPlay(a) // gorge's potentialTwinCut on the prefix search
 	nodes, stall := 0, uint8(0)
 	var cut [MaxPerm]bool // gap i: every answer so far ended the line at another player's ask
 	removed := make([]bool, len(order))
@@ -966,7 +983,7 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 			if stall == 0 {
 				stall = t.g.stalled
 			}
-			charge, fits := s.deferChainCharge(k, t, nodes, order, used, replay, post, resolvePlay)
+			charge, fits := s.deferChainCharge(k, t, nodes, order, used, replay, post, resolvePlay, twinCut)
 			if !fits {
 				// Gorge's visit charges every clone until its budget saturates,
 				// then refuses every later node, so a genuinely too-long pass
@@ -1044,9 +1061,27 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 		if post {
 			return false // the pass is the node's last line: nothing deeper under it
 		}
+		var triedAt [MaxPerm]int8 // the gaps this node already walked, for gorge's twin cut
+		ntried := 0
 		for i := 0; i < len(order); i++ {
 			if cut[i] || removed[i] || deferInUsed(used, i) {
 				continue
+			}
+			if twinCut {
+				// gorge's scriptTwin (potential_script.go activations): an
+				// indistinguishable earlier gap already walked this subtree
+				twin := false
+				for _, j := range triedAt[:ntried] {
+					if twinSlotOf(s, order[j], order[i]) {
+						twin = true
+						break
+					}
+				}
+				if twin {
+					continue
+				}
+				triedAt[ntried] = int8(i)
+				ntried++
 			}
 			n := int(s.deferGapAnswers(k, order[i]))
 			if add := deferAskNodes(n); add != 0 {
