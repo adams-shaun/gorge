@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -120,7 +121,7 @@ func TestExpandedKeywordsEternalizeRidersLockstep(t *testing.T) {
 		if res.Div != nil {
 			kw4Fail(t, seed, res)
 		}
-		if res.StallUnmodelled {
+		if res.StallUnmodelled || strings.HasPrefix(res.Stall, KernelStallPrefix) {
 			t.Fatalf("seed %d: kernel stopped: %s", seed, res.Stall)
 		}
 		sum.mainDraws += c.mainDraws
