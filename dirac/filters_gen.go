@@ -454,7 +454,9 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	ok := false
 	for x := costXMin(&a.Cost); !ok && x < 255; x++ { // from the floor (cost_sacx.go)
 		cx := cost.AtX(x)
-		if !pot.affords(&cx, pipMaskOf(&cx), 0) {
+		// a repeatable paid gap makes the pool's colours no proof (gapSubsets.repeats):
+		// the pool's total mana, which a conversion never raises, still bounds the cost
+		if short := !pot.affords(&cx, pipMaskOf(&cx), 0); short && !(gs.repeats && int(pot.total) >= cx.MV()) {
 			break
 		}
 		// The count proof is a total-mana one (gorge costOutrunsSupply's
