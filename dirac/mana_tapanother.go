@@ -186,6 +186,27 @@ func (s *State) tapXSacAnyLive(k *prep, p uint8) bool {
 	return false
 }
 
+// sacRepeatLive: a live kop.SacAnyManaAb source (Jungle Patrol's "Sacrifice a
+// token named Wood: Add {R}") whose sacrifice part is not the source, so gorge's
+// paymentPlanRelaxedAlternatives once is false on a closed bound too: the census
+// is unrelaxable and runs no bounded proof, so gorge searches every
+// census-incomplete insufficient play, as beside a live Baylen
+// (tail-14-c000 pair 1: two Wood sacrifices and the untapped land's {B} pay
+// Bone Sabres' Equip {3}). A {T} sacrifice-another one (Bolg's Company) is not
+// this shape: its {T} makes once true, the relaxed proof holds, and the
+// closed-bound candidates stay the gaps walk's.
+func (s *State) sacRepeatLive(k *prep, p uint8) bool {
+	if !k.tapMana {
+		return false
+	}
+	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+		if kop.SacAnyManaAb(k.tapXAbOf(s.cardAt(b.first()))) {
+			return true
+		}
+	}
+	return false
+}
+
 // availSacAny adds each live sacrifice-any source's fixed production once to
 // av, the potential census for payment d: gorge's PotentialMana bound admits
 // the ability a single time. When the census already counted it -- the printed
