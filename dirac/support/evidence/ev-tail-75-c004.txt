@@ -56,6 +56,7 @@ Chainweb Aracnir
 Change the Equation
 Chaos Lord
 Chaotic Backlash
+Chord of Calling
 Cinder Shade
 Clear a Path
 Continue?
@@ -212,6 +213,7 @@ Reclaim the Wastes
 Reduce in Stature
 Return from Extinction
 Return of the Nightstalkers
+Reverberate
 Rimewood Falls
 Rishadan Cutpurse
 Rockshard Elemental
@@ -259,6 +261,7 @@ Swamp
 Swarm Surge
 Swarm of Rats
 Sword of the Animist
+Sygg, River Guide
 Tamiyo's Immobilizer
 Tamiyo's Safekeeping
 Tectonic Edge

@@ -29,6 +29,7 @@ Avenger of Zendikar
 Axgard Armory
 Banish from Edoras
 Barbed Batterfist
+Barrier Breach
 Bazaar Trademage
 Blade Banish
 Blade Splicer
@@ -78,7 +79,9 @@ Dakmor Plague
 Damning Verdict
 Dark Betrayal
 Dark Ritual
+Darksteel Angel
 Darksteel Brute
+Death's Presence
 Death-Hood Cobra
 Definitely Not a Turtle
 Dementia Bat

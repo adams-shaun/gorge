@@ -6,6 +6,7 @@ Aether Shockwave	75b10252b6ac44d2	4	0/0		1/2	ix:resp
 Akki Rockspeaker	1c877c1f66b78259	4	1/1		1/1	
 Akoum Boulderfoot	6620cb34c344358a	4	1/1		0/1	ix:resp
 Ancient Silver Dragon	df645b3c75227396	4	1/1		0/1	ix:resp
+Arcbound Hybrid	3677aaa97f6a4c8c	5	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Arena Athlete	5a45afd37bf395da	8	1/1		0/1	ix:resp
 Ashling the Pilgrim	f4b22dd4dbc992b4	8	1/1		0/1	ix:resp
 Asylum Visitor	bf728c4d43839c64	4	1/1		0/1	ix:resp
@@ -33,6 +34,7 @@ Cho-Arrim Bruiser	8da9466c6dc4cc46	3	1/1		0/1	ix:resp
 Cloak of Feathers	13ff21a010b55211	4	0/0		1/2	ix:resp
 Cloud Elemental	dc4854121b224215	4	0/0		0/0	
 Cloudchaser Kestrel	1b4d06b603f67e1d	8	2/2		1/1	
+Cognivore	067dffb8c72cd043	3	0/0		0/0	
 Colossus of Akros	f965b58ddd1e5fe2	3	1/1		1/1	
 Combust	201f5d6ee6aec5b7	3	0/0		1/2	ix:resp
 Conclave Mentor	1734751da5fc61e0	10	1/1		0/1	ix:resp
@@ -41,6 +43,7 @@ Copper Host Crusher	5f977d1c52fe5ad0	5	0/0		0/0
 Court Homunculus	0ce5e66f433ca485	4	0/0		0/0	
 Curious Altisaur	4fd65777f2356619	5	1/1		0/1	ix:resp
 Cut	7b1b4871806241d5	6	0/0		4/7	f1/s,f1/s/x+,f1/s/x0
+Damning Verdict	1dccb20420d30c22	5	0/0		1/2	ix:resp
 Darksteel Angel	390c64cd170b7e78	6	0/0		0/0	
 Death's Presence	fb2c2b24647bb67f	3	1/1		0/1	ix:resp
 Death-Hood Cobra	d778d66aca808390	8	2/2		1/1	
@@ -69,6 +72,7 @@ Flying Dolphin-Fish	71421889e414afcb	3	0/0		0/0
 Flywheel Racer	d35861af7b172ee9	5	2/2		1/1	
 Foul Orchard	13a8a74907ad50fa	15	1/1		0/1	ix:resp
 Frogtosser Banneret	755c354027fd2824	4	0/0		0/0	
+Frostweb Spider	b2db8676c700f7e1	3	1/1		0/1	ix:resp
 Gaea's Embrace	ee212e4d653d8d21	4	1/1		2/2	
 Garrison Griffin	4c8c27bbdfe89372	3	1/1		1/1	
 Genasi Enforcers	7ae475822fe905c5	4	2/2		1/1	
@@ -145,6 +149,7 @@ Rhox Meditant	82f31e157ebac6ad	4	1/1		0/1	ix:resp
 Rofellos, Llanowar Emissary	24abf4b73e08de73	4	1/1		0/1	ix:resp
 Root Greevil	def19c81f79ab70e	6	1/1		0/1	ix:resp
 Rotting Mastodon	dbcc44e934c30e54	10	0/0		0/0	
+Sarcomancy	456e196305565d59	4	2/2		1/1	
 Scragnoth	c16a2b2dcc6bc954	6	0/0		0/0	
 Sewerdreg	dab87112e73f01b2	3	1/1		0/1	ix:resp
 Shanna, Sisay's Legacy	7f2b94337e08e70d	4	0/0		0/0	
@@ -165,12 +170,14 @@ Thran Lens	7eae2099f3b2d778	10	0/0		0/0
 Thunder Wall	b79042ece3c9e901	4	1/1		1/1	
 Titanic Brawl	0c104d2b6ec7008a	4	0/0		1/2	ix:resp
 Toph, Earthbending Master	2ad409b3c7cd55a4	4	2/2		1/1	
+True Conviction	ba3973b3d50957e5	6	0/0		0/0	
 Turnabout	39f0619628aba853	3	0/0		2/2	
 Urborg, Tomb of Yawgmoth	b8a5b0958546ca96	11	0/0		0/0	
 Urza's Cave	5eaf7852b36bc0df	17	2/2		0/1	ix:resp
 Valakut Fireboar	53ea89743e709d1d	4	1/1		0/1	ix:resp
 Value Town	6f4e7c3e048046a1	17	1/1		0/2	f1/s,ix:resp
 Vaporkin	e366e826894f1096	3	0/0		0/0	
+Veilborn Ghoul	5cdc9680114ac77a	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Vindictive Flamestoker	38f5dcccbad881ad	4	2/2		0/1	ix:resp
 Viridian Zealot	e050a00bd5975a6f	4	1/1		0/1	ix:resp
 Vivid Revival	0d44b681287d8277	4	0/0		1/2	ix:resp
