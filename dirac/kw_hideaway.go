@@ -271,14 +271,36 @@ func (s *State) hidePlay(k *prep, in *kop.Instr) bool {
 	return false
 }
 
+// hideLandNow is the pick answer's land branch (interp_ask.go): the as-
+// enters choice and the CR 616.1 entry-order ask (repl_entryorder.go) are
+// posed before the move when gorge poses one there, and the land is played
+// now, not queued. The pick offer resumes when nothing was asked.
+func (s *State) hideLandNow(k *prep, o Obj) {
+	if s.hideLandPark(k, o) || s.hideLand(k, o) {
+		return // its as-enters choice or entry-order ask, the card still in exile
+	}
+	if s.g.nfree == 0 {
+		s.castFreeClosed(k)
+	}
+}
+
 // hideLand plays the answered land (gorge beginPlay: the active player with
-// a land play left; otherwise one Note and nothing).
+// a land play left; otherwise one Note and nothing). It parks the land's CR
+// 616.1 entry-order ask (repl_entryorder.go) with the card still in exile
+// when a tap and an untap compete over its entry: true then, the answer
+// resumes the play (hideEntryAnswer). The land play is counted only on the
+// run that makes the move (gorge counts it after the order ask, at the move,
+// where playLandNow's route counts before it).
 //
 //go:noinline
-func (s *State) hideLand(k *prep, o Obj) {
+func (s *State) hideLand(k *prep, o Obj) bool {
 	p := s.res.e.ctrl
 	if p != s.active || s.pl[p].landsPlayed >= s.landLimit(k, p) || s.objs[o].zone != kop.ZoneExile {
-		return
+		return false
+	}
+	if s.entryOrderPark(k, o, p, entOp) {
+		s.res.ask, s.res.askP = raGenEntryOrder, s.g.ro.p
+		return true
 	}
 	from := s.detach(o)
 	if k.gen.anyMayLimit {
@@ -296,6 +318,7 @@ func (s *State) hideLand(k *prep, o Obj) {
 	if deferCount {
 		s.shockLandCount(o, p)
 	}
+	return false
 }
 
 // Debug switches for the cage mutation tests.
@@ -338,9 +361,62 @@ func (s *State) hideLandAnswer(k *prep) {
 	o := s.g.pre.obj
 	s.g.pre.state = 2
 	s.res.ask = raGenCastFree
-	s.hideLand(k, o)
+	if s.hideLand(k, o) {
+		return // the answered choice stays for the enter; the entry-order ask resumes the play (hideEntryAnswer)
+	}
+	s.hideLandTail(k)
+}
+
+// hideLandTail clears the answered as-enters choice and resumes the pick
+// offer (every hideLand path ends here).
+func (s *State) hideLandTail(k *prep) {
 	s.g.pre = preAsk{}
 	if s.g.nfree == 0 {
 		s.castFreeClosed(k)
 	}
+}
+
+// hideEntryAnswer answers a parked hidden land's entry-order ask
+// (repl_entryorder.go): the play runs again, the enter consumes the order's
+// result; a tap and an untap still left (CR 616.1f) re-ask before the pick
+// offer goes on.
+//
+//go:noinline
+func (s *State) hideEntryAnswer(k *prep) {
+	s.res.ask = raGenCastFree
+	s.hideLand(k, s.g.ro.entObj()) // the play is counted here, at the move, as gorge does after the ask
+	if s.g.ro.n > 0 && s.g.ro.pcol&entLate != 0 {
+		s.res.ask, s.res.askP = raGenEntryOrder, s.g.ro.p // CR 616.1f: the rest is asked once the entry is done
+		return
+	}
+	s.hideLandTail(k)
+	s.entryOrderClear()
+}
+
+// hideEntryPick takes an answer to the hidden land's order ask.
+func (s *State) hideEntryPick(k *prep, a Action) {
+	switch s.entryOrderPick(k, a) {
+	case entAsk:
+		return
+	case entFin:
+		// the late tail's last answer: the order is applied (the pick
+		// cleared ro), the pick offer goes on
+		s.res.ask = raGenCastFree
+		s.hideLandTail(k)
+	case entGo:
+		s.hideEntryAnswer(k)
+	}
+}
+
+// hideEntryParked reports the parked entry-order ask is a hidden land's
+// (kw_hideaway.go): the resolution sits at the ExtHideaway play op, while
+// the OpReturnEx routes the card moves park on rerun (entryRerunOp) and a
+// parked copy token's ask was taken by entryCopyParked.
+func (s *State) hideEntryParked(k *prep) bool {
+	ro := &s.g.ro
+	if !ro.entHdr() || ro.pcol&entMode != entOp {
+		return false
+	}
+	in := &s.prog(k)[s.res.pc]
+	return in.Op == kop.OpExt && in.Ext() == kop.ExtHideaway && in.C == 1
 }
