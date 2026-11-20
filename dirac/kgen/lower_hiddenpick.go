@@ -52,18 +52,18 @@ func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string,
 	} else if !plainCount {
 		return refuse("public pick ChangeNum$ %v", n)
 	}
-	if _, ok := ps.get("ExileFaceDown"); ok {
-		// the intermediate face-down exile is unobservable when the chained
-		// Cloak moves every remembered card to the battlefield face down
-		if origin != zBattlefield || dest != zExile || !ps.is("ExileFaceDown", "True") || !ps.is("RememberChanged", "True") || ps.is("WithMayLook", "True") {
-			return refuse("public pick ExileFaceDown$ shape")
-		}
-		ps.consume("ExileFaceDown")
+	if err := pickExileFaceDown(ps, origin, dest); err != nil {
+		return err
 	}
 	if f.Players != 0 || len(f.Clauses) == 0 {
 		return refuse("public pick filter %s", f)
 	}
 	cs := []string{"from=" + zoneLabel[origin]}
+	ul, err := pickUntilLeaves(ps, origin, dest) // Duration$ UntilHostLeavesPlay (kop.SrBattleLink)
+	if err != nil {
+		return err
+	}
+	cs = append(cs, ul...)
 	for _, fl := range flags {
 		switch fl {
 		case "Mandatory", "Remember":
@@ -140,6 +140,36 @@ func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string,
 	lc.pickEachLoop(each)
 	lc.emit(lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: strings.Join(cs, "|")})
 	return nil
+}
+
+// pickExileFaceDown reads ExileFaceDown$ on a public pick: the intermediate
+// face-down exile is unobservable when the chained Cloak moves every
+// remembered card to the battlefield face down.
+func pickExileFaceDown(ps *params, origin, dest int) error {
+	if _, ok := ps.get("ExileFaceDown"); !ok {
+		return nil
+	}
+	if origin != zBattlefield || dest != zExile || !ps.is("ExileFaceDown", "True") || !ps.is("RememberChanged", "True") || ps.is("WithMayLook", "True") {
+		return refuse("public pick ExileFaceDown$ shape")
+	}
+	ps.consume("ExileFaceDown")
+	return nil
+}
+
+// pickUntilLeaves reads Duration$ UntilHostLeavesPlay on a battlefield exile
+// pick (Glorious Protector, Abdel Adrian, Yannik): the picked set returns to
+// the battlefield when the source leaves (CS UntilLeaves, which instr_search.go
+// lowers to kop.SrBattleLink, one link per picked card). Any other duration, or
+// another zone pair, refuses with the known-origin move's reason.
+func pickUntilLeaves(ps *params, origin, dest int) ([]string, error) {
+	dur, ok := ps.get("Duration")
+	if !ok {
+		return nil, nil
+	}
+	if strings.TrimSpace(dur) != "UntilHostLeavesPlay" || origin != zBattlefield || dest != zExile {
+		return nil, refuse("ChangeZone Duration %q", dur)
+	}
+	return []string{"UntilLeaves"}, nil
 }
 
 // pickFetchPlayer resolves a hidden pick's DefinedPlayer$ spelling: the
