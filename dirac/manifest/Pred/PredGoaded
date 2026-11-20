@@ -1,0 +1,6 @@
+family: Pred
+name: PredGoaded
+value: next
+forge: IsGoaded
+status: active
+doc: PredGoaded: the battlefield permanent is goaded by any player (gorge IsGoaded, engine/effects/filter.go matchPositive). PredN 1 is the positive word, 0 the ! negation; off the battlefield nothing is goaded.
