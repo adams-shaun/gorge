@@ -1065,6 +1065,12 @@ type stateCore struct {
 	pm   [MaxSeats][kop.NumManaKinds]uint8
 	pmOn uint8
 
+	// the last clean board scan of sba (static_sbaskip.go): the touch count it
+	// ran at, valid when sbaOK; the rest of its key is g.sbaFP. They fill the
+	// padding before chg (State's size is unchanged)
+	sbaOK uint8 // 0 none; sbaKeyTouch: the touch count is the key; sbaKeyPrint: the fingerprint too
+	sbaT  uint32
+
 	// change marks since SetEpoch (marks.go): one bit per object
 	chg    [ObjWords]uint64
 	epoch  uint32
