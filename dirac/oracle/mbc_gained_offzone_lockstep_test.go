@@ -11,7 +11,7 @@ import "testing"
 // functions nowhere and neither engine offers it; the kernel's gains-of walk
 // once stalled StallGainsOf on it instead of skipping it. The recording ends
 // in that stall; the replay continues past its 1005 scripted decisions on
-// FirstPolicy and must reach the game's next ask without one. The brief's
+// FirstPolicy and must reach the game's next ask without one. The
 // TestMBCNecroticOozeReprosLockstep name is taken by the pair's earlier
 // defect (the offer window, mbc_gained_ability_window_lockstep_test.go), so
 // this one names the cause.

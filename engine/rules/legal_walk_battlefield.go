@@ -640,7 +640,7 @@ func (w *legalWalk) battlefieldWalk() {
 					}
 					// Activator$ applies to a granted/gained ability exactly as to a
 					// printed one (the source is the recipient permanent).
-					if !e.grantedActivatorWindowOK(p, id, ab) { // window riders travel with a gained ability (CR 113.3)
+					if !grantedWindowOK(e, p, id, ab) { // window riders travel with a gained ability (CR 113.3)
 						continue
 					}
 					// CR 606.3 for a GAINED or GRANTED loyalty ability: the same
