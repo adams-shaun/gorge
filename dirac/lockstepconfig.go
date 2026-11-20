@@ -78,6 +78,16 @@ func (s *State) windowRestrDynMask(k *prep, p uint8, sl Slot) uint8 {
 // restricted beside the pool, in the colour cost still owes, else the lowest.
 func (s *State) windowRestrDyn(k *prep, p uint8, cost *kop.ManaCost, sl Slot) bool {
 	mask := s.windowRestrDynMask(k, p, sl)
+	var ab *kop.Ability
+	var n uint8
+	if mask != 0 {
+		d := s.payDescNow(NoObj)
+		var v *pcard
+		v, _, ab = s.restrView(k, p, sl, &k.cards[s.cardAt(sl)], &d)
+		n = v.manaN
+	} else if ab, n = s.restrDynBesideGrant(k, sl); ab != nil {
+		mask = uint8(ab.ManaColors) & 0x1f // the payment may not spend it, but gorge's ask lists it first (mana_grantrestrictedown.go)
+	}
 	if mask == 0 {
 		return false
 	}
@@ -88,9 +98,6 @@ func (s *State) windowRestrDyn(k *prep, p uint8, cost *kop.ManaCost, sl Slot) bo
 			break
 		}
 	}
-	d := s.payDescNow(NoObj)
-	v, _, ab := s.restrView(k, p, sl, &k.cards[s.cardAt(sl)], &d)
-	n := v.manaN
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.markTapped(k, sl)
