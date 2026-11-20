@@ -50,6 +50,8 @@ func (s *State) oppExtreme(k *prep, x *kop.Expr, ctx evalCtx) int {
 			at := ctx
 			at.ctrl = p
 			v = s.countPerm(k, x.F, at)
+		case kop.OppExtSpellsCast:
+			v = int(s.g.hist[p][histSpells])
 		}
 		if what == kop.OppExtAmount {
 			if !DebugOppCountOne || best == 0 {
@@ -73,7 +75,9 @@ var DebugOppCountOne bool
 // against Sub[0], the bound read once from the controller's side (gorge
 // hasPropertyStateBacked: hasPropertyCount over the group, each member's
 // zone length against the one threshold). A two-player game reads the one
-// opponent; a pod reads each of them (CR 102.2).
+// opponent; a pod reads each of them (CR 102.2). The spell figure reads the
+// caster's own turn tally (histSpells), so a group count reaches when any
+// one opponent has cast that many, not the table total.
 func (s *State) groupCountCmp(k *prep, x *kop.Expr, ctx evalCtx, what int, skip uint8) int {
 	th := s.evalV(k, x.Sub[0], ctx)
 	n := 0
@@ -82,8 +86,11 @@ func (s *State) groupCountCmp(k *prep, x *kop.Expr, ctx evalCtx, what int, skip 
 			continue
 		}
 		v := int(s.pl[p].handN)
-		if what == kop.OppExtGraveAll {
+		switch what {
+		case kop.OppExtGraveAll:
 			v = int(s.pl[p].graveN)
+		case kop.OppExtSpellsCast:
+			v = int(s.g.hist[p][histSpells])
 		}
 		var hit bool
 		switch x.Op {

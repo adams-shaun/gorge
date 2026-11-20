@@ -79,17 +79,15 @@ func (lc *lowerCtx) hasCardsValue(group, rest string) (v lValue, ok bool, err er
 	return lValue{Kind: vOppExtreme, N: n, Op: op, Sub: []lValue{bound}}, true, nil
 }
 
-// zeroOne reports whether v is provably 0 or 1: the opponents-who-lost-life
-// count in a two-player game (twoSeat-at-caller: lower_keywordaction.go marks
-// that arm), or a vCompare whose arms are the constants 0
-// and 1, with no Mul/Div/Add/Neg applied on top.
+// zeroOne reports whether v is provably 0 or 1: a vCompare whose arms are
+// the constants 0 and 1, with no Mul/Div/Add/Neg applied on top. The
+// opponents-who-lost-life count is seat-exact (ExOppsLostLife), so a pod can
+// read 2 or 3 and no longer qualifies.
 func zeroOne(v lValue) bool {
 	if v.Mul != 0 || v.Div != 0 || v.Add != 0 || v.Neg {
 		return false
 	}
 	switch v.Kind {
-	case vOppsLostLife:
-		return true
 	case vCompare:
 		if len(v.Sub) != 2 || v.Sub[1].Kind != vBranches || len(v.Sub[1].Sub) != 2 {
 			return false

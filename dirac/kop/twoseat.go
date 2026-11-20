@@ -6,12 +6,14 @@ package kop
 // controller at any seat count. Nor is RetUnderOpponent: the return enters
 // under the resolution's chosen opponent (dirac retUnderOppSeat), and kgen
 // marks the one-opponent ChoosePlayer that lowers it otherwise two-seat.
+// ExtExileLandChoose is seat-exact: it runs inside an OpRepeatEachPlayer over
+// the living opponents and reads the loop's own player (act_exilelandchoose).
 func TwoSeatInstr(in *Instr) bool {
 	switch in.Op {
 	case OpMayPlay:
 		return in.B.N&MayPlayOpponent != 0 // the exiler: the controller's opponent
 	}
-	return in.Ext() == ExtExileLandChoose // the one other player's lands
+	return false
 }
 
 // CardTwoSeat reports whether c plays only in a two-seat game: kgen marked

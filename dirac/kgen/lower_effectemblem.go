@@ -247,27 +247,29 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 	var keys map[string]bool
 	checkKeys := true
 	libTop, libPayLife := false, false // the library-top look-and-play grant (lower_effectlibtop.go)
+	mustAttackOther := false
 	switch s.Mode {
 	case "CantBlockBy":
 		keys = map[string]bool{"Mode": true, "ValidAttacker": true, "ValidBlocker": true, "Description": true, "Secondary": true}
 	case "MustAttack":
 		keys = map[string]bool{"Mode": true, "ValidCreature": true, "MustAttack": true, "Description": true, "Secondary": true}
 		if v := s.Params["MustAttack"]; v != "" && v != "Player.Other" {
-			// the kernel's requirement has one opponent; only the
-			// two-player "other than you" spelling is exact
 			return lStatic{}, refuse("Effect static MustAttack$ %q", v)
 		}
 		if s.Params["MustAttack"] != "" {
-			// a requirement naming the defender: at three or more seats
-			// "a player other than you" is a choice the kernel does not ask
-			lc.twoSeat("MustAttack$ Player.Other read as the one opponent")
+			// MustAttack$ Player.Other is seat-exact: the requirement stays
+			// and the static carries kop.StatMustAttack's B mark, so the kernel
+			// withholds the static's controller as a defender while another
+			// living player is a legal one (combat.go attackOffersN). At two
+			// seats that is the one opponent, as before.
+			mustAttackOther = true
 		}
 		// a bare MustAttack (Bident of Thassa) is "attacks if able" with any
-		// defender (CR 508.1d): at more than two seats the kernel asks each
-		// such attacker's defender as gorge does (mustAttackAsked)
-		// staticBody has no field for the player reference; the check
-		// above makes the two-player reading exact, so drop the key
-		// before lowering.
+		// defender (CR 508.1d), seat-exact: at more than two seats the kernel
+		// asks each such attacker's defender as gorge does (mustAttackAsked).
+		// staticBody has no field for the player reference; the flag above
+		// carries the defender restriction, so drop the key before
+		// lowering.
 		cp := make(map[string]string, len(s.Params))
 		for k, v := range s.Params {
 			cp[k] = v
@@ -353,6 +355,9 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		return lStatic{}, refuse("Effect static %s lowers to %d statics", s.Mode, len(sts))
 	}
 	st := sts[0]
+	if mustAttackOther {
+		st.Flags = append(st.Flags, "MustAttackOther")
+	}
 	if libTop {
 		if st.Kind != "MayPlayFrom" {
 			return lStatic{}, refuse("Effect static library-top play lowered to %s", st.Kind)

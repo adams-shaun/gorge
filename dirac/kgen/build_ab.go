@@ -2498,8 +2498,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 	case "MustAttack":
-		st.Kind = kop.StatMustAttack
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+		if err := mustAttackStatic(s, st, filter); err != nil {
 			return ka, nil, err
 		}
 	case "Goad":
@@ -3278,6 +3277,26 @@ func btSrcN(t *lTrigger, kt *kop.Trigger) error {
 			return fmt.Errorf("source controller on a non-watcher BecomesTarget")
 		}
 		kt.N = kop.TrigNSrcCtrl
+	}
+	return nil
+}
+
+// mustAttackStatic lowers a MustAttack static: its creature filter, and the
+// "other than you" flag (MustAttack$ Player.Other, lower_effectemblem.go) to
+// kop.StatMustAttack's B: the requirement withholds the static controller as
+// a defender while another living player is a legal one
+// (dirac/combat.go mustAttackOther).
+func mustAttackStatic(s lStatic, st *kop.Static, filter func(*lFilter, kop.Zone) (kop.FilterID, error)) error {
+	var err error
+	st.Kind = kop.StatMustAttack
+	if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+		return err
+	}
+	for _, fl := range s.Flags {
+		if fl != "MustAttackOther" {
+			return fmt.Errorf("MustAttack flag %q", fl)
+		}
+		st.B = 1
 	}
 	return nil
 }

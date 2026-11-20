@@ -788,22 +788,23 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// gorge damageBatchKey's DamageAll latch keys on the trigger line
 		// alone (trigger_match.go all: true), so the line fires once per
 		// damage batch in which a matching source dealt damage to a matching
-		// target. With two players ValidTarget$ Opponent or You names exactly
-		// one possible referent, so the per-referent latch of DamageDoneOnce
-		// picks the same batches and the kernel's existing per-referent queue
-		// is exact. Any other target (an object filter can match several
-		// referents, which the line key collapses) stays refused.
-		// ExcessDamageAll is not this mode.
+		// target, no matter how many opponents the batch hit. The kernel
+		// reads that as a batch-level DamageDone (Tf2Batch without
+		// Tf2PerReferent): dmgBatchOnce/dmgBatchSeen latch the line for the
+		// whole sweep. Any other target (an object filter can match several
+		// referents) stays refused. ExcessDamageAll is not this mode.
 		switch vt := tp.str("ValidTarget"); vt {
-		case "Opponent":
-			lc.twoSeat("DamageAll over the opponents read as one referent")
-		case "You":
+		case "Opponent", "You":
 		default:
 			return refuse("DamageAll ValidTarget %q", vt)
 		}
 		if err := lc.damageDoneOnce(tp, tr, t); err != nil {
 			return err
 		}
+		// gorge's DamageAll latch is the batch-level "one or more" mode
+		// (trigger_match.go damageBatchKey): one trigger per damage batch,
+		// not one per damaged referent. Keep Tf2Batch, drop Tf2PerReferent.
+		tr.PerRef = false
 	case "DamageDone", "DamageDealtOnce":
 		if tr.SrcInPlay, err = srcInPlay(tp.str("ValidSource")); err != nil {
 			return err

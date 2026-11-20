@@ -259,7 +259,8 @@ type Cond struct {
 // the figure: OppExtAmount the opponents themselves (one each), OppExtLife a
 // life total, OppExtHand the cards in hand, OppExtGrave the cards in the
 // graveyard, OppExtValid the battlefield permanents matching F read from
-// that opponent's side ("YouCtrl" is the opponent's). OppExtLowest in N
+// that opponent's side ("YouCtrl" is the opponent's), OppExtSpellsCast the
+// spells that opponent has cast this turn. OppExtLowest in N
 // takes the lowest, else the highest. OppExtNonTrigPl in N swaps the group
 // for every living player but the current trigger entry's trigger player,
 // the controller included (gorge nonTriggeredTargetGroup,
@@ -269,20 +270,23 @@ const ExOppExtreme ExprKind = 220
 
 // ExOppExtreme's N.
 const (
-	OppExtAmount = 1
-	OppExtLife   = 2
-	OppExtHand   = 3
-	OppExtGrave  = 4
-	OppExtValid  = 5
-	OppExtLowest = 0x100
+	OppExtAmount     = 1
+	OppExtLife       = 2
+	OppExtHand       = 3
+	OppExtGrave      = 4
+	OppExtValid      = 5
+	OppExtSpellsCast = 7
+	OppExtLowest     = 0x100
 	// OppExtNonTrigPl: the group is the living players but the trigger
 	// player (Battle Angels of Tyr's "more than each other player")
 	OppExtNonTrigPl = 0x200
 	// OppExtCountCmp: count the group's members whose figure (OppExtHand,
-	// or OppExtGraveAll) compares Op against Sub[0], read once from the
-	// controller's side (gorge hasPropertyStateBacked's HasCardsIn heads,
-	// effects/count_player.go: PlayerCountOpponents$HasPropertyHasCardsInHand
-	// _Card_GTY, Wojek Investigator)
+	// OppExtGraveAll or OppExtSpellsCast) compares Op against Sub[0], read
+	// once from the controller's side (gorge hasPropertyStateBacked's
+	// HasCardsIn heads, effects/count_player.go:
+	// PlayerCountOpponents$HasPropertyHasCardsInHand_Card_GTY, Wojek
+	// Investigator; PlayerCountOpponents$ConditionGE<n> SpellsCastThisTurn,
+	// Mindbreak Trap)
 	OppExtCountCmp = 0x400
 	// OppExtAllPl: the group is every living player, the controller
 	// included (gorge PlayerCount$, PlayerCountPlayers$)
