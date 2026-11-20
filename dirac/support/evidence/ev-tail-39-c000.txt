@@ -188,6 +188,7 @@ Glorious Charge
 Glyph Keeper
 Goblin Flectomancer
 Goblin War Buggy
+Gorilla Tactics
 Gretchen Titchwillow
 Grim Discovery
 Grisly Salvage
@@ -380,6 +381,7 @@ Skystrike Officer
 Slaughterhouse Bouncer
 Slaying Fire
 Sleeper's Guile
+Sloppity Bilepiper
 Smokespew Invoker
 Smoldering Tar
 Snapping Drake
@@ -418,6 +420,7 @@ Tar Snare
 Teeterpeak Ambusher
 Tempered Sliver
 The Balrog, Flame of Udûn
+The Black Breath
 The Fabulous Frog-Man
 The Falcon, Airship Restored
 Thelonite Hermit

@@ -40,6 +40,7 @@ Candlelight Vigil
 Castle Raptors
 Celebrity Fencer
 Chakram Slinger
+Changing Loyalty
 Chasm Drake
 Chastise
 Chemister's Insight
@@ -122,6 +123,7 @@ Kithkin Mourncaller
 Knight of Dawn's Light
 Laccolith Grunt
 Lava Axe
+Leap of Flame
 Leela, Sevateem Warrior
 Legion Leadership
 Leisure Bicycle

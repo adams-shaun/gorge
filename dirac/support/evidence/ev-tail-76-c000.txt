@@ -115,6 +115,7 @@ Hobgoblin Dragoon
 Hookblade Veteran
 Icatian Lieutenant
 Icewind Stalwart
+Impromptu Raid
 Incendiary Oracle
 Infiltrator's Magemark
 Island
@@ -191,6 +192,7 @@ Sadistic Glee
 Sage Owl
 Saiba Syphoner
 Salvager of Ruin
+Salvation Colossus
 Savage Gorilla
 Scapegoat
 Scattered Thoughts

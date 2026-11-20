@@ -370,6 +370,7 @@ Summoner's Pact
 Sunbond
 Sundering Vitae
 Sundial of the Infinite
+Super Combo
 Surge of Thoughtweft
 Svogthos, the Restless Tomb
 Swamp
@@ -418,6 +419,7 @@ Utopia Vow
 Utrom Monitor
 Vampire of the Dire Moon
 Vampiric Link
+Vanguard Suppressor
 Vedalken Aethermage
 Vengeful Reaper
 Vengeful Rebel
