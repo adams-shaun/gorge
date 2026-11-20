@@ -16,6 +16,16 @@ func srcMask(pc *pcard) uint8 {
 	return m & 0x3f
 }
 
+// chosenNoColour reports whether the planner view pc is a chosen-colour
+// production with no colour chosen and the chosen word its only production:
+// it makes no mana until a colour is chosen (CR 707.6; a permanent that
+// became a copy never made the as-enters choice). A fixed production beside
+// the chosen one (Quirion Elves' {T}: Add {G}) keeps manaFixedChosen and
+// still prices.
+func (s *State) chosenNoColour(pc *pcard, sl Slot) bool {
+	return pc.manaChosen && !pc.manaFixedChosen && s.perms[sl].chosen > 4
+}
+
 // srcMaskAt is the production mask of the source at slot sl with mana
 // facts pc: its chosen colour for a chosen-colour source (none while it
 // has chosen nothing), else pc's.
@@ -471,6 +481,16 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 			pc = s.manaPCGen(k, sl)
 		} else {
 			pc = &k.cards[s.cardAt(sl)]
+		}
+		if s.chosenNoColour(pc, sl) {
+			// no colour chosen and the chosen production is the source's only
+			// one: it makes no mana now (CR 707.6 -- a permanent that became a
+			// copy never made the as-enters choice), so the census must not
+			// count a mask-0 unit as generic. The planner view stays live for
+			// the payment bound's open fold (availPotentialFor); this is the
+			// actual-availability read. A fixed production beside the chosen
+			// one (Quirion Elves' {T}: Add {G}) is still counted.
+			continue
 		}
 		if pc.manaDyn && pc.manaSac && !a.dynSac {
 			continue // a dynamic {T}, sacrifice source prices only an activated-ability offer (avail.dynSac)
