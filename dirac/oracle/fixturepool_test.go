@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"math/rand/v2"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -151,10 +152,14 @@ func (r fixtureRun) requireDivergence(t *testing.T, what string) {
 
 // mutateCard rewrites one card's lowered programs in a matchup table, on
 // copies so the set's own table (shared by later tests in the process) is not
-// touched. fn edits each instruction of every ability of the named card.
-func mutateCard(t *testing.T, tbl *kop.Table, name string, fn func(a *kop.Ability, in *kop.Instr)) {
+// touched. fn edits each instruction of every ability of the named card. It
+// returns how many rewrites fn made: instructions it changed plus abilities
+// whose non-program fields it changed, so a mutation test can fail when its
+// predicate no longer matches anything instead of running as a control.
+func mutateCard(t *testing.T, tbl *kop.Table, name string, fn func(a *kop.Ability, in *kop.Instr)) int {
 	t.Helper()
 	found := false
+	rewrites := 0
 	for i := range tbl.Cards {
 		cd := &tbl.Cards[i]
 		if cd.Name != name {
@@ -165,12 +170,24 @@ func mutateCard(t *testing.T, tbl *kop.Table, name string, fn func(a *kop.Abilit
 		for j := range cd.Abilities {
 			a := &cd.Abilities[j]
 			a.Prog = append([]kop.Instr(nil), a.Prog...)
+			before := *a
+			before.Prog = nil
 			for x := range a.Prog {
+				old := a.Prog[x]
 				fn(a, &a.Prog[x])
+				if a.Prog[x] != old {
+					rewrites++
+				}
+			}
+			after := *a
+			after.Prog = nil
+			if !reflect.DeepEqual(before, after) {
+				rewrites++
 			}
 		}
 	}
 	if !found {
 		t.Fatalf("%s is not in the table", name)
 	}
+	return rewrites
 }
