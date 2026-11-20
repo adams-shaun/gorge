@@ -35,7 +35,7 @@ func TestBattlefieldPickUntilLeavesLowers(t *testing.T) {
 	}
 
 	// the kernel instruction: the link bit rides B, bit 0 (the hand link) stays clear
-	all, bs, _, err := buildPool(lowerNamedPool(t, []string{"Glorious Protector"}))
+	all, bs, pt, err := buildPool(lowerNamedPool(t, []string{"Glorious Protector"}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,6 +55,9 @@ func TestBattlefieldPickUntilLeavesLowers(t *testing.T) {
 				found++
 				if in.B.N&kop.SrBattleLink == 0 || in.B.N&1 != 0 {
 					t.Errorf("battlefield pick B %#x: want SrBattleLink only", in.B.N)
+				}
+				if z := pt.filters[in.F].Zone; z != kop.ZoneNone {
+					t.Errorf("battlefield pick filter zone %d: battleLinkPick keys on the zoneless battlefield filter, so a zoned filter silently drops the return link", z)
 				}
 			}
 		}

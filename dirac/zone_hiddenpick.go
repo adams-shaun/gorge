@@ -91,12 +91,15 @@ func battleLinkPick(t *kop.Table, in *kop.Instr) bool {
 // when the pick is until-leaves (SrBattleLink, Duration$ UntilHostLeavesPlay;
 // gorge recordExileReturnFor emits the link for a non-token card that is in
 // exile): the card returns to the battlefield under its owner's control when
-// the source leaves (returnLinked), the picked set in one entering batch.
+// the source leaves (returnLinked), the picked set in one entering batch. A
+// token is never linked: it ceases instead of returning (CR 111.7), and in a
+// generated-table game it still sits in exile at this point, so the zone test
+// alone would link it.
 //
 //go:noinline
 func (s *State) pickLink(k *prep, o Obj) {
 	pr := s.prog(k)
-	if !s.res.active || int(s.res.pc) >= len(pr) {
+	if !s.res.active || int(s.res.pc) >= len(pr) || s.objs[o].of&ofToken != 0 {
 		return
 	}
 	if in := &pr[s.res.pc]; !battleLinkPick(k.t, in) || s.objs[o].zone != kop.ZoneExile {

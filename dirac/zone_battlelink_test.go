@@ -192,3 +192,71 @@ func TestGraveyardPickCounterKindIsNotABattleLink(t *testing.T) {
 		t.Fatalf("%d links from a graveyard pick", s.g.nlinks)
 	}
 }
+
+// TestBattlefieldPickUntilLeavesSkipsTokens: a picked token is exiled but not
+// linked (gorge recordExileReturnFor skips o.IsToken: the token ceases and
+// never returns). In a generated-table game the token sits in exile until the
+// next state-based check, so the zone test alone would link it and the return
+// trip would put the ceased token back on the battlefield when the source
+// leaves.
+func TestBattlefieldPickUntilLeavesSkipsTokens(t *testing.T) {
+	sc, src, mine, _ := battleLinkScen(t, true)
+	s := sc.s
+	tok := s.newToken(v.GrizzlyBears, 0)
+	s.enter(sc.k, tok, 0, false, kop.ZoneNone)
+	s.npend = 0
+	if s.objs[tok].of&ofToken == 0 || !sc.onBF(tok) {
+		t.Fatalf("precondition: object %d of %#x is not a battlefield token", tok, s.objs[tok].of)
+	}
+	s.runProg(sc.k)
+	answerPick(t, s, tok)
+	answerPick(t, s, mine)
+	if s.Stalled() {
+		t.Fatalf("the pick stalled: %s", StallName(s.StallReason()))
+	}
+	if s.objs[tok].zone != kop.ZoneExile {
+		t.Fatalf("the token is in zone %v, want exile before the state-based check", s.objs[tok].zone)
+	}
+	if s.g.nlinks != 1 || s.g.links[0].obj != mine {
+		t.Fatalf("links %v (n=%d), want only the non-token card %d", s.g.links[:s.g.nlinks], s.g.nlinks, mine)
+	}
+
+	var m slotMask
+	m.set(sc.slot(src))
+	s.leaveAll(sc.k, m, kop.ZoneGraveyard)
+	if s.Stalled() {
+		t.Fatalf("the return stalled: %s", StallName(s.StallReason()))
+	}
+	if sc.onBF(tok) {
+		t.Fatalf("the ceased token %d returned to the battlefield", tok)
+	}
+	if !sc.onBF(mine) {
+		t.Fatalf("the linked card is in zone %v, want back on the battlefield", s.objs[mine].zone)
+	}
+}
+
+// TestBattlefieldPickUntilLeavesLinkTableFullStalls: an any-number pick can
+// exile more permanents than the link table holds (Glorious Protector and
+// Abdel Adrian pick any number), and gorge links every non-token card. A full
+// table is a declared capacity limit, so it stalls visibly (StallLinks) rather
+// than silently dropping the link and orphaning the card in exile.
+func TestBattlefieldPickUntilLeavesLinkTableFullStalls(t *testing.T) {
+	sc, _, mine, theirs := battleLinkScen(t, true)
+	s := sc.s
+	s.g.nlinks = uint8(len(s.g.links))
+	s.runProg(sc.k)
+	answerPick(t, s, theirs)
+	answerPick(t, s, mine)
+	if !s.Stalled() {
+		t.Fatal("the full link table did not stall")
+	}
+	if got := s.StallReason(); got != StallLinks {
+		t.Fatalf("stall %s, want %s", StallName(got), StallName(StallLinks))
+	}
+	if s.g.nlinks != uint8(len(s.g.links)) {
+		t.Fatalf("nlinks %d after a full-table pick, want the table still full (no drop counted as a link)", s.g.nlinks)
+	}
+	if s.objs[theirs].zone != kop.ZoneExile {
+		t.Fatalf("the picked card is in zone %v, want exile", s.objs[theirs].zone)
+	}
+}
