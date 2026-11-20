@@ -1470,7 +1470,7 @@ func (g *grantSrch) visit(t *State) bool {
 		return true
 	}
 	g.remember(key)
-	sacd := g.sacrificed()
+	sacd, sacStepped := g.sacrificed(), slotMask{}
 	for i := 0; i < g.gapN; i++ {
 		sl := g.cand[i]
 		if g.ng[i] == 0 && g.filt[i] && g.k.gen.anyFiltFirst && t.filtFirstOnly(g.k, sl) {
@@ -1494,7 +1494,7 @@ func (g *grantSrch) visit(t *State) bool {
 		grants := t.grantTapOK(g.k, sl)
 		fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
 		if !grants && !tx {
-			if g.ng[i] > 0 && g.sacOnlyVisit(t, i, sl) { // no {T} in its cost: tapped or sick alike (mana_grantcost.go)
+			if g.tappedHolderStep(t, i, sl, &sacStepped) { // no {T} in its cost: tapped or sick alike (mana_grantcost.go)
 				return true
 			}
 			if !(fok && t.filtUsable(g.k, sl)) {
@@ -1623,7 +1623,7 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		g.sel = 0
 	}
-	if g.printedSacPass(t, sacd) { // a tapped holder's printed sacrifice (mana_grantcost.go)
+	if g.printedSacPass(t, sacd, sacStepped) { // a tapped holder's printed sacrifice (mana_grantcost.go)
 		return true
 	}
 	// A paid gap's fee is funded by other sources (gorge scriptSearch's
