@@ -907,23 +907,11 @@ func (s *State) deferChainCharge(k *prep, t *State, nodes int, order []Slot, use
 		return 0, true
 	}
 	sub := 0
-	var counted [MaxPerm]int8 // the unused gaps already charged, for gorge's twin cut
-	nc := 0
+	var tw twinWalk // the unused gaps already charged, for gorge's twin cut
 	for i := 0; i < len(order); i++ {
 		if !deferInUsed(used, i) {
-			if twinCut {
-				twin := false
-				for _, j := range counted[:nc] {
-					if twinSlotOf(s, order[j], order[i]) {
-						twin = true
-						break
-					}
-				}
-				if twin {
-					continue // the twin cut skips it beside an earlier twin (scriptTwin)
-				}
-				counted[nc] = int8(i)
-				nc++
+			if twinCut && tw.skip(s, order, i) {
+				continue // the twin cut skips it beside an earlier twin (scriptTwin)
 			}
 			n := int(s.deferGapAnswers(k, order[i]))
 			sub += n + deferAskNodes(n)
@@ -1061,27 +1049,13 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 		if post {
 			return false // the pass is the node's last line: nothing deeper under it
 		}
-		var triedAt [MaxPerm]int8 // the gaps this node already walked, for gorge's twin cut
-		ntried := 0
+		var tw twinWalk // the gaps this node already walked, for gorge's twin cut
 		for i := 0; i < len(order); i++ {
 			if cut[i] || removed[i] || deferInUsed(used, i) {
 				continue
 			}
-			if twinCut {
-				// gorge's scriptTwin (potential_script.go activations): an
-				// indistinguishable earlier gap already walked this subtree
-				twin := false
-				for _, j := range triedAt[:ntried] {
-					if twinSlotOf(s, order[j], order[i]) {
-						twin = true
-						break
-					}
-				}
-				if twin {
-					continue
-				}
-				triedAt[ntried] = int8(i)
-				ntried++
+			if twinCut && tw.skip(s, order, i) {
+				continue // gorge's scriptTwin (potential_script.go activations): an indistinguishable earlier gap already walked this subtree
 			}
 			n := int(s.deferGapAnswers(k, order[i]))
 			if add := deferAskNodes(n); add != 0 {
@@ -1236,4 +1210,24 @@ func (s *State) hasManaAbility(k *prep, sl Slot) bool {
 		}
 	}
 	return s.manaGranted(k, sl)
+}
+
+// twinWalk records the gaps of order a walk has taken, so skip reports a gap
+// indistinguishable (twinSlotOf) from an earlier one: gorge's scriptTwin cut.
+type twinWalk struct {
+	at [MaxPerm]int8
+	n  int
+}
+
+// skip reports whether gap i of order twins one already walked; if not it
+// records gap i as walked.
+func (w *twinWalk) skip(s *State, order []Slot, i int) bool {
+	for _, j := range w.at[:w.n] {
+		if twinSlotOf(s, order[j], order[i]) {
+			return true
+		}
+	}
+	w.at[w.n] = int8(i)
+	w.n++
+	return false
 }
