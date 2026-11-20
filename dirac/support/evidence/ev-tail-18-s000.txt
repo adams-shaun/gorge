@@ -5,6 +5,7 @@ Angler Drake
 April O'Neil, Human Element
 Arcbound Javelineer
 Ardent Soldier
+Arrow Storm
 Asha's Favor
 Audacity
 Avatar of Might
@@ -13,7 +14,9 @@ Awaken the Bear
 Azorius Signet
 Baird, Steward of Argive
 Balduvian Barbarians
+Bane's Invoker
 Baneslayer Angel
+Basilica Stalker
 Beastmaster Ascension
 Beregond of the Guard
 Bladebrand
@@ -21,8 +24,11 @@ Bloodfire Dwarf
 Bloodrage Brawler
 Blossoming Calm
 Blue Elemental Blast
+Blur
 Boing!
 Bold Defense
+Bolrac-Clan Basher
+Bonethorn Valesk
 Boom
 Boompile
 Boros Elite
@@ -31,6 +37,7 @@ Branching Bolt
 Branchloft Pathway
 Breath of Darigaaz
 Brinelin, the Moon Kraken
+Bubble Smuggler
 Burning Sun's Avatar
 Cacophony Unleashed
 Capital Guard
@@ -50,6 +57,7 @@ Crossover Collaboration
 Crosswinds
 Cut of the Profits
 Dagger Caster
+Darksteel Mutation
 Dauntless Onslaught
 Deranged Hermit
 Deserter's Quarters
@@ -168,6 +176,7 @@ Rite of the Raging Storm
 Roiling Regrowth
 Rusted Sentinel
 Ruthless Sniper
+Sabertooth Wyvern
 Sage-Eye Avengers
 Saheeli Rai
 Savage Offensive

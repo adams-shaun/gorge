@@ -1,4 +1,5 @@
 A-Deal Gone Bad
+A-Precipitous Drop
 Abandon the Post
 Abrupt Decay
 Accelerated Mutation
@@ -80,6 +81,7 @@ Forfend
 Fork in the Road
 Fury Sliver
 Ghost Ship
+Giant Spider
 Glorious Dragon-Kin
 Goblin Guide
 Goblin Turncoat
@@ -90,6 +92,7 @@ Grim Servant
 Guardian of the Great Conduit
 Guul Draz Overseer
 Hagra Constrictor
+Hailstorm Valkyrie
 Hamletback Goliath
 Harsh Judgment
 Heavy Mattock
@@ -198,6 +201,7 @@ Snapping Gnarlid
 Snow-Covered Forest
 Snow-Covered Island
 Snow-Covered Mountain
+Snow-Covered Plains
 Snow-Covered Swamp
 Soldevi Heretic
 Solemn Offering
@@ -210,6 +214,7 @@ Stolen Goods
 Stone Idol Generator
 Stromgald Cabal
 Stronghold Biologist
+Structural Collapse
 Sustenance
 Swamp
 Synod Sanctum

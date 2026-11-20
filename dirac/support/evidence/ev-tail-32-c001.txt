@@ -3,8 +3,10 @@ Abstruse Interference
 Advocate of the Beast
 Aeolipile
 Aeronaut's Wings
+Aether Shockwave
 Ageless Guardian
 Akki Rockspeaker
+Akoum Boulderfoot
 Akoum Warrior
 Alabaster Wall
 Alchor's Tomb
@@ -19,9 +21,13 @@ Ashling the Pilgrim
 Asylum Visitor
 Atarka Beastbreaker
 Attrition
+Attune with Aether
+Avenger of Zendikar
 Axgard Armory
+Banish from Edoras
 Barbed Batterfist
 Bazaar Trademage
+Blade Banish
 Blade Splicer
 Blasted Landscape
 Blood Age General
@@ -34,6 +40,7 @@ Boggart Arsonists
 Book of Rass
 Border Guard
 Boreal Elemental
+Bottle Golems
 Brand
 Brawl-Bash Ogre
 Brood Birthing
@@ -45,6 +52,7 @@ Cateran Enforcer
 Cavalry Pegasus
 Celestial Purge
 Channel the Suns
+Chaotic Goo
 Charging Monstrosaur
 Chatter of the Squirrel
 Cho-Arrim Bruiser
@@ -60,6 +68,7 @@ Copper Host Crusher
 Copper Myr
 Court Homunculus
 Court of Grace
+Curious Altisaur
 Cut
 Dakmor Plague
 Dark Betrayal
@@ -73,9 +82,12 @@ Demystify
 Dormant Sliver
 Drana, Liberator of Malakir
 Draugr Thought-Thief
+Drown in Ichor
 Dryad Greenseeker
+Duskhunter Bat
 Dwarven Warriors
 Dwell on the Past
+Eastfarthing Farmer
 Eidolon of Countless Battles
 Elas il-Kor, Sadistic Pilgrim
 Elite Scaleguard
@@ -107,6 +119,7 @@ Flywheel Racer
 Footfall Crater
 Forest
 Forget
+Foul Orchard
 Fourth Bridge Prowler
 Frogtosser Banneret
 Frontline Devastator
@@ -115,6 +128,7 @@ Garrison Griffin
 Geier Reach Sanitarium
 Genasi Enforcers
 Ghastly Demise
+Ghost-Spider, Gwen Stacy
 Ghostly Visit
 Gisa's Bidding
 Glare of Subdual
@@ -135,6 +149,7 @@ Haunted Cloak
 Heart Sliver
 Heliod's Pilgrim
 Heroic Charge
+Hold the Line
 Hollowhenge Overlord
 Honor the Past
 Howlpack Resurgence
@@ -153,6 +168,7 @@ Irini Sengir
 Island
 Ivory Crane Netsuke
 Kami of the Hunt
+Knight of Old Benalia
 Koilos Roc
 Krenko's Enforcer
 Krosan Restorer
@@ -168,6 +184,7 @@ Liliana's Devotee
 Lilting Refrain
 Loam Lion
 Loathsome Catoblepas
+Luxury Suite
 Lys Alana Bowmaster
 Madame Hydra, Reanimated
 Magma Phoenix
@@ -186,10 +203,12 @@ Mesa Lynx
 Metallic Mastery
 Mind Drain
 Mindless Null
+Mire Blight
 Mirrodin Avenged
 Mirror Image
 Mistcutter Hydra
 Misthios's Fury
+Mistmeadow Skulk
 Monstrous Hound
 Morbid Bloom
 Mountain
@@ -198,6 +217,7 @@ Multiversal Recruitment
 Mystic Restraints
 Nephalia Smuggler
 Night Scythe
+Nimbus of the Isles
 Nocturnal Raid
 Nyxborn Marauder
 Oashra Cultivator
@@ -208,27 +228,33 @@ Oni Possession
 Ovalchase Daredevil
 Overrule
 Pattern of Rebirth
+Peer Through Depths
 Penance Stare
 Pestermite
 Phantasmal Sphere
 Pillar of Light
 Pious Evangel
 Plains
+Plateau
 Pollenbright Wings
+Precognition Field
 Prized Statue
 Provoke
 Psychic Spear
 Purifying Dragon
 Pygmy Pyrosaur
 Quicksilver Dagger
+Radiant Fountain
 Raging Spirit
 Raiding Nightstalker
 Rakka Mar
+Rakshasa's Secret
 Ranger Class
 Ravenous Harpy
 Raving Oni-Slave
 Razorjaw Oni
 Reckless Imp
+Recross the Paths
 Relic of Progenitus
 Renounce
 Rescue Retriever
@@ -239,6 +265,7 @@ Righteousness
 Riot Gear
 Rofellos, Llanowar Emissary
 Root Greevil
+Rotting Mastodon
 Ruin Ghost
 Rust Monster
 Salt Marsh
@@ -251,6 +278,7 @@ Sewerdreg
 Shackles
 Shanna, Sisay's Legacy
 Shared Discovery
+Shieldmate's Blessing
 Sizzle
 Skirk Shaman
 Skyclave Cleric
@@ -266,6 +294,7 @@ Spellseeker
 Spitting Spider
 Spontaneous Flight
 Sporocyst
+Squall Line
 Stampeding Horncrest
 Star of Extinction
 Steady Progress
@@ -287,6 +316,7 @@ Thorn Lieutenant
 Thraben Gargoyle
 Thran Lens
 Thriving Ibex
+Thunder Wall
 Tidal Force
 Titanic Brawl
 Tolarian Sentinel
@@ -295,6 +325,7 @@ Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
 Tromell, Seymour's Butler
+Turnabout
 Turntimber Ranger
 Tyranid Invasion
 Tyrranax Atrocity
@@ -303,17 +334,22 @@ Umbral Juke
 Unnatural Speed
 Untamed Wilds
 Unwavering Initiate
+Urborg, Tomb of Yawgmoth
+Urza's Cave
 Valakut Fireboar
 Valkyrior Skyrider
+Value Town
 Vaporkin
 Venomous Vines
 Vexing Sphinx
 Viashivan Dragon
 Vindictive Flamestoker
+Viridian Zealot
 Vivid Revival
 Voda Sea Scavenger
 Vraska's Contempt
 Wake of Destruction
+Walking Archive
 Wander in Death
 Warleader's Helix
 Wild Crocodile
@@ -324,4 +360,5 @@ Witch's Mist
 Witness of Tomorrows
 Woodland Bellower
 Wose Pathfinder
+Xanthic Statue
 Zuko's Offense

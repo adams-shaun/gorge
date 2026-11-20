@@ -275,6 +275,7 @@ Novellamental
 Oathsworn Vampire
 Omarthis, Ghostfire Initiate
 Opal Champion
+Ophidian
 Oran-Rief Ooze
 Orazca Frillback
 Oreskos Swiftclaw
@@ -337,6 +338,7 @@ Ruby Medallion
 Rukh Egg
 Rundvelt Hordemaster
 Runeclaw Bear
+Runes of the Deus
 Ruthless Disposal
 Sabertooth Nishoba
 Sacred Cat
