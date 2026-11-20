@@ -56,7 +56,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		case kop.LibThird:
 			s.toLibraryThird(k, in) // act_lockpermanent.go
 		case kop.LibBottomRememberGrave:
-			s.toLibraryRemember(k, in) // zone_tolibraryremember.go
+			s.toLibraryRemember(k, in, true) // zone_tolibraryremember.go
+		case kop.LibTopRememberGrave:
+			s.toLibraryRemember(k, in, false)
 		case kop.LibTopGrave, kop.LibBottomGrave:
 			s.toLibraryGrave(k, in) // zone_tolibrarygrave.go
 		case kop.LibBottomRememberBF:
