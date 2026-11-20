@@ -11,8 +11,11 @@ import (
 // staticEffectsWalk's graveyard walk). The card's own face is not a
 // battlefield static, so pc.hasStat stays false for it (prep.go) and it never
 // joins statM; the source is the graveyard object, controlled by its owner,
-// with no permanent slot (sl == NoSlot, emb == 0). Its grant timestamp is 0
-// (grantTs), older than any loss of abilities.
+// with no permanent slot (sl == NoSlot, emb == 0). Its grant timestamp is the
+// layer stamp its card carried off the battlefield (grantTs;
+// static_gystamp.go), as gorge's LayerTimestamp: a loss of abilities that began
+// before the card entered the battlefield is older than the grant, one that
+// began after is newer.
 
 // gyContOf reports whether a is a graveyard-functioning Continuous static.
 func gyContOf(a *kop.Ability) bool {
@@ -77,6 +80,8 @@ func (s *State) eachGyStatic(k *prep, cls uint16, f func(st statSrc) bool) bool 
 func (s *State) gyStaticKey(k *prep, h uint64) uint64 {
 	s.eachGyStatic(k, 0, func(st statSrc) bool {
 		h = hmix(h, uint64(st.obj)<<8|uint64(st.ctrl))
+		// the stamp decides which loss of abilities the grant outlasts
+		h = hmix(h, uint64(s.gyStampOf(st.obj)))
 		if st.a.Static.Cond2 != 0 { // FeatStaticKey's condition truth, for a static eachStatic does not yield
 			c := uint64(1)
 			if s.statCond(k, st) {
