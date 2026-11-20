@@ -359,6 +359,29 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 			}
 			continue
 		}
+		if rem, is := strings.CutPrefix(qualifier, "HasCardsIn"); is {
+			// Forge's Player.HasCardsIn<zone>_<objspec>[_<cmp><n>] property
+			// (PlayerProperty's HasCardsInHand family generalized to a full
+			// object filter: Unidentified Hovership's leave trigger,
+			// `DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1`
+			// -- "the player whose exile holds a card exiled with this
+			// source"). The zone word and the comparator token ride the ONE
+			// shared parsers the UnlessDefender$ HasCardsIn property uses
+			// (restrictions.go's unlessDefenderZone / unlessDefenderCompare),
+			// so a player filter and an attack restriction cannot disagree
+			// about what "HasCardsInExile_..._GE1" spells. The zone's cards
+			// are matched through the SAME nested object-filter binding
+			// playerControlsMatches evaluates its battlefield spec with, so
+			// ExiledWithSource resolves the shared exiledBySource link reader
+			// (the forward ExiledCards list plus the reverse ExiledWith
+			// scalar) and an unmodelled predicate fails closed inside the
+			// matcher. A seat whose named zone holds no matching card never
+			// qualifies.
+			if playerHasCardsInZoneMatches(g, p, you, pc, rem) {
+				return true
+			}
+			continue
+		}
 		switch a.qualCode {
 		case playerSpecQualifierOpponentOfRemembered:
 			// This supported referent is bound by a resolving ChoosePlayer's
@@ -758,6 +781,52 @@ func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, 
 	sc.Layers = pc.Layers
 	n := int32(0)
 	for _, id := range g.Zone(state.ZBattlefield, p) {
+		if MatchesObjectCtx(g, spec, g.Obj(id), sc) {
+			n++
+		}
+	}
+	if !counted {
+		return n > 0
+	}
+	return playerCompare(n, op, want)
+}
+
+// playerHasCardsInZoneMatches evaluates Forge's
+// Player.HasCardsIn<zone>_<objspec>[_<cmp><n>] qualifier in the shared player
+// filter (see the arm in matchesPlayerSingleSpec): the seat qualifies when
+// its named zone holds the compared number of cards matching <objspec> as a
+// full object filter. The zone word and the trailing count comparison ride
+// the shared parsers restrictions.go's UnlessDefender$ HasCardsIn property
+// uses, and the object filter is evaluated with the same SpecContext binding
+// playerControlsMatches carries, so the two families read the same words the
+// same way and the ExiledWithSource predicate resolves the one shared
+// exiledBySource link reader. An unreadable zone word, an empty object spec
+// or a bad comparator fails that seat closed (never qualifies), like every
+// unmodelled qualifier.
+func playerHasCardsInZoneMatches(g *state.Game, p, you state.PlayerID, pc PlayerSpecCtx, rem string) bool {
+	zoneWord, spec, ok := strings.Cut(rem, "_")
+	if !ok || strings.TrimSpace(spec) == "" {
+		return false
+	}
+	z, ok := unlessDefenderZone(zoneWord)
+	if !ok {
+		return false
+	}
+	if int(p) >= len(g.Players) {
+		return false
+	}
+	spec, op, want, counted := splitCountCompare(spec)
+	if strings.TrimSpace(spec) == "" {
+		return false
+	}
+	sc := NewSpecContext(you, pc.Source)
+	sc.DelayedRemembered = pc.DelayedRemembered
+	if pc.RememberedBound {
+		sc.Remembered = pc.Remembered
+	}
+	sc.Layers = pc.Layers
+	n := int32(0)
+	for _, id := range g.Zone(z, p) {
 		if MatchesObjectCtx(g, spec, g.Obj(id), sc) {
 			n++
 		}
