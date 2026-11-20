@@ -33,7 +33,7 @@ func TestRiderGrantIntrinsicActivation(t *testing.T) {
 	}
 	life := sc.s.pl[0].life
 	var spill [kop.NumManaKinds]uint8
-	sc.s.tapGapChoice(sc.k, 0, sl, slotMask{}, slotMask{}, slotMask{}.with(sl), 0, &spill) // the first answer: {W}
+	sc.s.tapGapChoice(sc.k, 0, 0, sl, slotMask{}, slotMask{}, slotMask{}.with(sl), 0, &spill) // the first answer: {W}
 	if got := sc.s.perms[sl].ctrN(sc.s, kind); got != 1 {
 		t.Fatalf("nest counters %d, want 1: the rider resolves with the activation's mana (CR 605.3b)", got)
 	}
