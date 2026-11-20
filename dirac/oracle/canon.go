@@ -218,6 +218,13 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 		if isCounterKindAsk(d.ResumeKind) {
 			return g.counterKindAction(d, o)
 		}
+		if o.Kind == "ring_bearer" {
+			// CR 701.54a: effRingTemptsYou's bearer pick is an ordinary
+			// object pick, the kernel's ChGenRingBearer lowering. The kind
+			// stays out of ChooseKinds (its position is the choose ordinal,
+			// so adding it would renumber the later kinds).
+			return Pack(ActChoose+chooseOther, ref(o.Obj), RefNone, 0), true
+		}
 		code, known := chooseCode(chooseKindAlias(d, o))
 		if !known {
 			// An option kind the table lacks: still canonical as
