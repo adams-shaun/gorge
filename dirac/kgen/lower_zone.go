@@ -4369,18 +4369,12 @@ func restrictAbZones(act []string, f *lFilter) (zones []kop.Zone, ok bool) {
 func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana) error {
 	amt := m.Amount
 	if rv, ok := ps.get("RestrictValid"); ok {
-		if ab.Cost.PayLife > 0 {
-			// gorge plans a restricted {T}, PayLife source as a
-			// TierLastResort unit whose life is a consequence (Memory of
-			// Toshiro); the kernel prices no restricted last-resort unit
-			return refuse("mana restriction on a PayLife source: gorge plans it last-resort")
-		}
-		if !ab.Loyalty && !plainTapCost(ab.Cost) && !noCost(ab.Cost) {
-			// the kernel's window prices a restricted mana ability only when
-			// its cost is a plain {T}; gorge's cast-window probe also prices
-			// one that sacrifices, pays mana or taps another permanent
-			// (Jeweled Lotus' sacrifice), so the census would run short
-			return refuse("mana restriction on a source whose cost goes beyond {T}")
+		if !ab.Loyalty && !plainTapCost(ab.Cost) && !noCost(ab.Cost) && (!restrictedLifeUnit(ab.Cost, m) || lc.restrictedLifeBackFace()) {
+			// gorge's cast-window probe prices a restricted source whose
+			// cost goes beyond {T}; the kernel's restricted gap does not yet
+			// prove identical for one (see lower_restrictedmana.go), so the
+			// refusal names the cost part instead of the old two classes
+			return refuse("mana restriction on a source whose cost goes beyond {T}: %s", restrictedManaCostPart(ab.Cost))
 		}
 		if err := lc.manaRestrict(rv, m); err != nil {
 			return err

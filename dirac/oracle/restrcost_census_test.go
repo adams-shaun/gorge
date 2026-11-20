@@ -14,7 +14,9 @@ import (
 // ("mana restriction on a PayLife source", and the other costs fall to the same
 // refusals), which keeps std-msh's Ronin, Shadow Stalker and std-sos's Great Hall of
 // the Biblioplex out of every table; no pool deals one. A pool that gains such a
-// card must price it in windowPricesRestr before it joins the list.
+// card must price it in windowPricesRestr before it joins the list. A restricted
+// {T}, Pay N life one of a fixed colour (kop.RestrictedLifeShape) is priced there and
+// planned as a last-resort unit (mana_restrictedcost.go).
 func TestNoSupportedRestrictedManaAbilityBeyondPlainTap(t *testing.T) {
 	t.Parallel()
 	for _, name := range cardsettest.SynthNames(t) {
@@ -31,7 +33,7 @@ func TestNoSupportedRestrictedManaAbilityBeyondPlainTap(t *testing.T) {
 			}
 			for j := range c.Abilities {
 				a := &c.Abilities[j]
-				if a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && a.Cost.Flags != kop.CostTap {
+				if a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && a.Cost.Flags != kop.CostTap && !kop.RestrictedLifeShape(a) {
 					t.Errorf("%s: %s ability %d is a restricted mana ability with a cost beyond {T}: price it in windowPricesRestr", name, c.Name, j)
 				}
 			}
