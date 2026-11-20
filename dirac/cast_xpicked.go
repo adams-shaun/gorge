@@ -10,7 +10,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // cannot take their units out, the planner prices none for a gap source — and
 // gorge's castWindowUnits drops the committed source outright
 // (convokeCommitted).
+//
+// Only a live build holds picks: the scratch keeps an aborted cast's picks
+// (CR 733.1) after reverseCast, and a priority decision's census must not read
+// them as committed.
 func (s *State) pickCommittedSrc(k *prep, sl Slot) bool {
+	if !s.buildLive() {
+		return false
+	}
 	b := s.bld()
 	for i := 0; i < int(b.pickN); i++ {
 		if b.pickKs[i] != pkWaterbend && !isConvokePick(b.pickKs[i]) {
