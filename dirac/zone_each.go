@@ -25,7 +25,7 @@ func eachOp(k *prep, in *kop.Instr) bool {
 //go:noinline
 func (s *State) eachGroup(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj) int {
 	for i := 0; f != 0; i++ {
-		if s.matchCardOneAt(k, &k.t.Filters[f], c, owner, ctrl, o, nil) {
+		if s.matchCardOneAt(k, &k.t.Filters[f], c, owner, ctrl, o, nil, false) {
 			return i
 		}
 		f = k.t.Filters[f].Or
