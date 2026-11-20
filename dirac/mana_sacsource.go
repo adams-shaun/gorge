@@ -582,6 +582,19 @@ func (s *State) countPreCastResolve(k *prep, e *stackEntry) {
 func (s *State) runPreCast(k *prep, prog []kop.Instr) bool {
 	for int(s.res.pc) < len(prog) {
 		if !s.exec(k, &prog[s.res.pc]) {
+			// A pre-cast trigger's own cost (IfPaid) the payer cannot fund
+			// is a decline-only ask. Gorge's lowering answers it and resolves
+			// the trigger before the cast -- the two Eldrazi Spawn sacrifices'
+			// Sigil of the New Dawn triggers under a payment witness. Leaving
+			// it pending made the post-cast drain ask a CR 603.3b order gorge
+			// never asks. An ask with a real answer still suspends.
+			if s.res.ask == raGenPay && s.g.pickF&(pfNoPay|pfIfPaid) == (pfNoPay|pfIfPaid) {
+				s.res.ask = raNone
+				s.payHyb = 0
+				s.res.pc += uint8(s.g.pickF&0x7ff) + 1
+				s.loopBack(k)
+				continue
+			}
 			return false
 		}
 		if s.over {
