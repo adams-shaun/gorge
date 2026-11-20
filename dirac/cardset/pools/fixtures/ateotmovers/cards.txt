@@ -16,3 +16,16 @@ Apprentice Necromancer
 Kami of Industry
 Chimeric Coils
 Dawn of the Dead
+# T14c: Animate AtEOT$ on Defined$ Remembered after a one-card pick
+# (dirac/kgen/lower_ateot.go oneObjectSubject's ChooseMove/Dig arm; the
+# oracle's constructed lockstep, dirac/oracle/ateotmovers_chosen_test.go).
+# Meek Attack is not listed: its ChangeType$ totalPT_LE5 predicate on a hand
+# card is a pre-existing kernel filter gap (build.go cmpTotalPT refuses off the
+# battlefield), so the widened lowering still refuses it on that gap.
+Arms Race
+Impromptu Raid
+Incandescent Soulstoke
+Killer Instinct
+Sneak Attack
+Akoum Hellhound
+Forest
