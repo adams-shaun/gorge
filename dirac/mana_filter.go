@@ -1201,6 +1201,13 @@ type filtSearch struct {
 	// identical basics (tail-26 pair 26). An ordinary cast and every 0x80
 	// grant keep their older walk.
 	feeOnly bool
+	// fundCap: a fallback search's cap on the covered funding taps (0: the
+	// census's fees). The plain search's node walk explores funding
+	// permutations depth first; a fixed-cost activation whose payment needs
+	// only a few sources can exhaust the budget in deeper branches before it
+	// reaches one, so filtScript reruns the search capped at the play's
+	// mana value and then one step at a time (filtScriptRes's staged fallback).
+	fundCap int
 	// hands: the hand guides the path exiled so far (mana_handguide.go)
 	hands uint8
 	// pay: a payment search's cost (filtPay): the terminal is the pool
@@ -1337,6 +1344,15 @@ func (s *State) filtFunders(k *prep, p uint8, gap slotMask) int {
 // filtScript reports whether gorge's prefix search finds a script for play
 // a of p; with apply it plays the script on s (the play's prefix).
 //
+// On the autopay surface, when the search spends its whole 160-node budget on
+// an activation, a staged fallback reruns it with a funding cap at the play's
+// mana value and
+// then one step at a time: a fixed cost needs at most its mana value's taps
+// from the covered sources plus the filters' fees, and the capped walk reaches
+// that funding line before the uncapped depth-first walk's dead permutations
+// spend the budget (gorge's planner still offers the play on a search_limit
+// plan, legal_walk_autopay.go autoPayPlan).
+//
 //go:noinline
 func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	memo := s.filtMemoLookup(k, a, p, apply)
@@ -1370,6 +1386,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	s.pool.inFilt++ // (fork made the pool)
 	found := fs.visit(k, t, 0, false)
+	nodes := fs.nodes
 	if !found && fs.phasedFallback() {
 		// gorge's plain run spent its node budget on a repeatable fee-only
 		// filter's branches: its phased run walks the funding line the plain
@@ -1378,8 +1395,28 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true}
 		if found = ph.visit(k, t, 0, false); found {
 			fs = ph
-		} else if fs.stall == 0 {
-			fs.stall = ph.stall
+			nodes = ph.nodes
+		} else {
+			nodes = max(nodes, ph.nodes)
+			if fs.stall == 0 {
+				fs.stall = ph.stall
+			}
+		}
+	}
+	if !found && s.cfg&cfgGorgeAutopay != 0 && nodes >= potentialScriptNodes && a.Kind() == AkActivate && fs.usefulOK && fs.useful.MV() > 0 {
+		fees := 0
+		for m := fs.gaps; m.any(); m = m.rest() {
+			fees += s.filtFee(k, m.first())
+		}
+		base := fs.useful.MV()
+		for cap := base; cap <= base+fees; cap++ {
+			fb := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
+				usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, fundCap: cap}
+			if fb.visit(k, t, 0, false) {
+				fs = fb
+				found = true
+				break
+			}
 		}
 	}
 	s.pool.inFilt--
@@ -2093,7 +2130,11 @@ func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOn
 	if gap {
 		return gap, freeOnly, *feeGapsOut
 	}
-	if funded >= fs.fees {
+	fees := fs.fees
+	if fs.fundCap > 0 && fs.fundCap < fees {
+		fees = fs.fundCap
+	}
+	if funded >= fees {
 		*feeGapsOut = fs.phased
 		return gap, freeOnly, true
 	}
