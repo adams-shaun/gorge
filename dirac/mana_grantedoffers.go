@@ -1142,6 +1142,14 @@ func (g *grantSrch) exHolds(s *State) bool {
 // colour it makes, its fee paid from the pool).
 const stepFilt int16 = -2
 
+// filtFirstFreeFee reports a first-and-only filter whose gorger census
+// relaxation is a free coloured unit: its fee is no funding step (the
+// planner's relaxation needs none, so census.fees does not count it), though
+// the search still pays the fee from the pool when it activates the source.
+func (s *State) filtFirstFreeFee(k *prep, sl Slot) bool {
+	return k.gen.anyFiltFirst && s.filtFirstOnly(k, sl)
+}
+
 // candidates lists p's permanents with a granted mana ability (granted only, or
 // beside their own) in battlefield order. On a board where a grant is in force the
 // filters join them: gorge's census misses a filter's paid ability as it does a
@@ -1188,7 +1196,7 @@ func (g *grantSrch) candidates(s *State) {
 		if plain && !s.gapSpendable(g.k, sl, &g.d) {
 			// gorge's prefix search drops a gap whose mana the play
 			// cannot spend (scriptSpendableGaps); its fee still counts
-			if fm.has(sl) {
+			if fm.has(sl) && !s.filtFirstFreeFee(g.k, sl) {
 				g.funding += s.filtFee(g.k, sl)
 			}
 			dropped = dropped.with(sl) // (nor a funding source: it makes no mana the play spends)
@@ -1199,7 +1207,7 @@ func (g *grantSrch) candidates(s *State) {
 			g.idle = g.idle.with(sl)
 		}
 		g.gap[g.n] = true
-		if fm.has(sl) {
+		if fm.has(sl) && !s.filtFirstFreeFee(g.k, sl) {
 			g.funding += s.filtFee(g.k, sl)
 		}
 		g.n++

@@ -113,6 +113,9 @@ func (s *State) filtFunding(k *prep, p uint8, f slotMask) int {
 		return 0
 	}
 	for ; f.any(); f = f.rest() {
+		if s.filtFirstFreeFee(k, f.first()) {
+			continue // a first-and-only filter's relaxation is a free unit: its fee is no funding step (census.fees)
+		}
 		n += s.filtFee(k, f.first())
 	}
 	return n
