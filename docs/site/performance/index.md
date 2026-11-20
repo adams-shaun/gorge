@@ -2,10 +2,14 @@
 
 Part of [Engines](../engines/index.md).
 
-How fast gorge and dirac play Magic, and how they compare with XMage, Forge and mtg-kernel on one machine, the same
-decks and one CPU core each. This page is for anyone choosing an engine to host games or generate self-play data.
-[How it is measured](methodology.md) has the method and the commands, [gorge's speed](engine.md) has its benchmark rows
-and profile, and [Bot speed](bots.md) has the cost per decision and per simulation.
+How fast gorge and dirac play Magic, and how they compare with XMage, Forge and mtg-kernel on one machine, the same decks and one CPU
+core each. [How it is measured](methodology.md) has the method and commands, [gorge's speed](engine.md) its benchmark rows and profile,
+and [Bot speed](bots.md) the cost per decision and per simulation.
+
+**Where the numbers come from.** Every figure on these pages is drawn by `scripts/docs_perf_figs.py` from
+[`data/perf.json`](https://github.com/adams-shaun/gorge/blob/main/docs/site/performance/data/perf.json), which transcribes the tables
+(`scripts/docs_perf_figs_test.py` checks the committed SVGs match it). Each table names its commit and date; the commands are in
+[Measuring again](methodology.md#measuring-again). These are measurements at those commits, not live numbers.
 
 !!! abstract "The short version: one core, FDN limited decks"
     Measured 2026-11-05 at `b1630d6b89bb` for gorge, 2026-11-05 at `0ec285f67` for dirac, and 2026-10-20 for XMage, Forge and mtg-kernel, which weren't re-run.
@@ -24,10 +28,10 @@ and profile, and [Bot speed](bots.md) has the cost per decision and per simulati
 
 ## The numbers
 
-Each row is the median of six runs: FDN pairs A and B, three reps each. The spread is the slowest and fastest run, except on the
-four gorge rows (below), where it is the 2026-11-02 spread scaled by the same factor. The four gorge rows are the 2026-11-02
-`b78e4c8b1` medians scaled by this head's interleaved paired cand/base ratios, so they carry the code's share and not the loaded
-box's absolute speed. Turns count both players' turns. Compare µs per decision only within one engine, because each engine splits a game into decisions differently.
+Each row is the median of six runs (`scripts/xengine-bench.sh`: FDN pairs A and B, three reps each); the spread is the slowest and
+fastest run. The four gorge `random`/`bot` rows are the `b78e4c8b1` baseline ([gorge's speed](engine.md#current-numbers)) scaled by this head's interleaved
+paired cand/base ratios (`make enginebench-pair`), so they carry the code's share, not the loaded box's absolute speed. Turns count both
+players' turns. Compare µs per decision only within one engine, because each engine splits a game into decisions differently.
 
 <figure markdown="span">
 --8<-- "performance/figs/us-per-turn.svg"
@@ -101,10 +105,15 @@ code layout. Instructions per operation is the steadier number, and
     | Transition, FDN whole-pool table | 4,764 | 77,332 | 0 |
     | `CopyFrom`, mid-game FDN position | 76.3 | 215 | 0 |
 
+    Source: `BenchmarkTransitionFDN`, `BenchmarkTransitionBLB`, `BenchmarkTransitionFDNPool` and `BenchmarkCloneFDN` in `dirac/`,
+    run as in [methodology](methodology.md#dirac); in [`data/perf.json`](https://github.com/adams-shaun/gorge/blob/main/docs/site/performance/data/perf.json) under `dirac_ops`.
+
     | gorge row, 2026-11-05 | µs per op, no GC | µs per op, with GC | bytes per op | mallocs per op |
     |---|--:|--:|--:|--:|
     | `clone`: `Engine.Clone` of a mid-game position | 12.9 | 27.2 | 195 KB | 50 |
     | `step`: clone, then submit one candidate | 43.5 | 71.2 | 369 KB | 140 |
+
+    Source: `cmd/enginebench -row clone` and `-row step`, pair A roots from turns 5-8 (`perf.json` `gorge_ops`).
 
 
 ## A second workload: decks mtg-kernel plays
@@ -140,11 +149,10 @@ one. Its memory isn't comparable, since it compiles its few hundred cards into t
 
 ## What the comparison doesn't show
 
-- **Card coverage differs.** XMage and Forge implement every card. gorge plays most of Forge's corpus ([Card support](../support/sets.md)). dirac
-  plays two to four seats and its [supported cards](../architecture/dirac/index.md#what-it-supports). mtg-kernel plays a few hundred cards. A faster engine that plays fewer cards isn't doing the
-  same job.
-- **Dates differ.** The XMage, Forge and mtg-kernel rows are from 2026-10-20 and came from their own measured commits.
-  Both gorge and dirac have changed since then, so read those ratios as orders of magnitude, which is what they're large enough to support.
+- **Card coverage differs.** gorge's is on [Card support](../support/sets.md) (generated), dirac's on its [supported cards](../architecture/dirac/index.md#what-it-supports),
+  and mtg-kernel plays a few hundred cards. A faster engine that plays fewer cards isn't doing the same job.
+- **Dates differ.** The XMage, Forge and mtg-kernel rows are from 2026-10-20 (commits in Provenance). gorge and dirac have changed
+  since, so read those ratios as orders of magnitude.
 - **Load differs.** The box is shared. gorge's rows ran at a 1-minute load average of 10-40 and dirac's game rows at 4-6, while XMage and
   Forge ran at 4-15. Cache and memory contention move these numbers, and a paired A/B separates the code's share from the load's
   ([gorge's speed](engine.md#comparing-two-revisions)).
@@ -158,7 +166,7 @@ one. Its memory isn't comparable, since it compiles its few hundred cards into t
 
     | | |
     |---|---|
-    | gorge | `b1630d6b89bb` (2026-11-05), go1.26.3, `cmd/enginebench` |
+    | gorge | `b1630d6b89bb` (2026-11-05), go1.26.3, `cmd/enginebench`; the four `random`/`bot` rows of the first table are the `b78e4c8b1` baseline scaled to `0ec285f67`, as above |
     | dirac | `0ec285f67` (2026-11-05) for the game rows, 2026-11-11 for the transition rows, `dirac/cmd/dplay` and `go test -bench`, with `-trimpath` |
     | XMage | `magefree/mage` `6b602a1c85` (1.4.61), Temurin JDK 17.0.20.1, driver `XEngineBench` (gorge-compliance), 2026-10-20 |
     | Forge | gorge's Forge fork at `da1c712c31`, JDK 17.0.20.1, driver `forge.oracle.GameReplay`, 2026-10-20 |
