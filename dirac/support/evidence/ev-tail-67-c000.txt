@@ -44,6 +44,7 @@ Beast Attack
 Biting Rain
 Blade Splicer
 Blastfire Bolt
+Blessed Reincarnation
 Blight Sickle
 Blisterspit Gremlin
 Blossom Dryad
