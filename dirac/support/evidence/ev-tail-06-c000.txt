@@ -244,6 +244,7 @@ Lost Soul
 Loxodon Warhammer
 Luminesce
 Luminous Angel
+MacCready, Lamplight Mayor
 Magnetic Mine
 Magus of the Bridge
 Malcator, Purity Overseer
@@ -354,6 +355,7 @@ Sarkhan's Triumph
 Scale the Heights
 Scaled Behemoth
 Scurrilous Sentry
+Scuttling Death
 Second Thoughts
 Selhoff Entomber
 Sentinel's Mark

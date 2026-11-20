@@ -116,6 +116,7 @@ Fireblade Charger
 Fissure
 Flare of Denial
 Flatman
+Flowstone Charger
 Forest
 Foxfire Oak
 Genestealer Locus
@@ -125,6 +126,7 @@ Gild
 Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
+Goblin Deathraiders
 Great Defender
 Greater Harvester
 Griffin Aerie
@@ -295,6 +297,7 @@ Tectonic Edge
 Tempestra, Dame of Games
 Territorial Boar
 Thirst for Discovery
+Thistledown Duo
 Thopter Assembly
 Thopter Mechanic
 Thoughtweft Gambit

@@ -107,6 +107,7 @@ Iron Man, Futurist Paragon
 Island
 Jackhammer
 Jungle Troll
+Key to the City
 Khalni Garden
 Knotvine Paladin
 Korlessa, Scale Singer
@@ -183,6 +184,7 @@ Sandblast
 Satyr Piper
 Scryb Ranger
 Seasoned Pyromancer
+Segovian Sword
 Seismic Elemental
 Sejiri Steppe
 Selesnya Cluestone
@@ -213,6 +215,7 @@ Spectral Cloak
 Sphere Grid
 Spike Breeder
 Spirit of the Hearth
+Springjaw Trap
 Staggershock
 Steadfast Armasaur
 Stitched Assistant
@@ -251,6 +254,7 @@ Untamed Kavu
 Vengeant Earth
 Vile Deacon
 Vincent, Vengeful Atoner
+Vito, Thorn of the Dusk Rose
 Vivid Crag
 Volley of Boulders
 Voyage's End
