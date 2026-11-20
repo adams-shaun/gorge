@@ -142,6 +142,7 @@ Incisor Steed
 Inspire Awe
 Island
 Jalum Tome
+Jolrael, Voice of Zhalfir
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
 Khenra Eternal
@@ -152,6 +153,7 @@ Launch
 Leapfrog
 Leyline of Punishment
 Lightwielder Paladin
+Lonis, Genetics Expert
 Lost in the Mist
 Lost in the Spirit World
 Magma Vein
@@ -218,6 +220,7 @@ Rimewood Falls
 Rishadan Cutpurse
 Rockshard Elemental
 Rooftop Nuisance
+Rout
 Rune-Cervin Rider
 Sacred Prey
 Sage Aven
@@ -236,6 +239,7 @@ Shimmer of Possibility
 Show of Valor
 Shrine Keeper
 Sigil of Valor
+Silent Extraction
 Simian Brawler
 Singing Tree
 Sinkhole

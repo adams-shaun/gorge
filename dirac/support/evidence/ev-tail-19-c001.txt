@@ -72,6 +72,7 @@ Defensive Maneuvers
 Defiant Strike
 Demon's Jester
 Diabolic Edict
+Dihada, Binder of Wills
 Disciple of Grace
 Dragonwing Glider
 Drain the Well
@@ -172,6 +173,7 @@ Kraken Hatchling
 Kraum, Ludevic's Opus
 Krenko's Command
 Krovikan Fetish
+Lae'zel's Acrobatics
 Last Kiss
 Lava Zombie
 Lead by Example

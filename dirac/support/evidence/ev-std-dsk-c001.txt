@@ -16,6 +16,7 @@ Cracked Skull
 Creeping Peeper
 Cursed Recording
 Cursed Windbreaker
+Defiant Survivor
 Dissection Tools
 Diversion Specialist
 Enduring Courage
@@ -25,6 +26,7 @@ Enter the Enigma
 Ethereal Armor
 Exorcise
 Fear of Being Hunted
+Fear of Burning Alive
 Fear of Immobility
 Fear of Impostors
 Fear of Lost Teeth
@@ -43,20 +45,24 @@ Glimmerlight
 Grasping Longneck
 Hardened Escort
 Horrid Vigor
+Innocuous Rat
 Insidious Fungus
 Irreverent Gremlin
 Island
+Leyline of the Void
 Lionheart Glimmer
 Living Phone
 Malevolent Chandelier
 Most Valuable Slayer
 Mountain
+Neglected Manor
 Norin, Swift Survivalist
 Overlord of the Boilerbilges
 Overlord of the Floodpits
 Overlord of the Mistmoors
 Paranormal Analyst
 Patched Plaything
+Patchwork Beastie
 Peer Past the Veil
 Piggy Bank
 Piranha Fly
@@ -67,6 +73,7 @@ Ragged Playmate
 Rampaging Soulrager
 Razorkin Hordecaller
 Reluctant Role Model
+Resurrected Cultist
 Rip, Spawn Hunter
 Ripchain Razorkin
 Savior of the Small
@@ -78,9 +85,11 @@ Shrewd Storyteller
 Silent Hallcreeper
 Spineseeker Centipede
 Split Up
+Sporogenic Infection
 Swamp
 Tunnel Surveyor
 Turn Inside Out
+Twist Reality
 Twitching Doll
 Tyvar, the Pummeler
 Under the Skin
@@ -89,6 +98,8 @@ Unwanted Remake
 Vanish from Sight
 Vengeful Possession
 Veteran Survivor
+Violent Urge
 Wary Watchdog
 Wickerfolk Thresher
 Withering Torment
+Zimone, All-Questioning

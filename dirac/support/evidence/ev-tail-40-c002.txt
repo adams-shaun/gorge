@@ -188,6 +188,7 @@ Invasive Species
 Ironroot Treefolk
 Island
 Isolate
+Jace, Ingenious Mind-Mage
 Jaheira's Respite
 Jokulmorder
 Kabira Outrider
@@ -277,6 +278,7 @@ Prophetic Flamespeaker
 Protector of the Crown
 Rage Forger
 Rakka Mar
+Ranger's Hawk
 Ravenous Baboons
 Ravenous Bloodseeker
 Razorfin Hunter
