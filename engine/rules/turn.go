@@ -40,6 +40,8 @@ func (e *Engine) beginTurn(active state.PlayerID, skipUntap ...bool) {
 	step := state.StepUntap
 	if len(skipUntap) > 0 && skipUntap[0] {
 		step = state.StepUpkeep
+	} else if skipUntapStep(e.G, e.emit, active) {
+		step = state.StepUpkeep // DB$ SkipPhase Step$ Untap (CR 614.10a)
 	}
 	prior := e.pending
 	e.setStep(step)
@@ -1322,12 +1324,16 @@ func (e *Engine) advanceStep() {
 		expireCombatControl(e.G, e.emit)
 	}
 	next := e.G.Step + 1
-	if s, ok := e.extraPhaseBoundary(e.G.Step); ok {
+	s, spliced := e.extraPhaseBoundary(e.G.Step)
+	if spliced {
 		next = s
 	} else {
 		next = skipFirstDrawStep(e.G, next)
 	}
 	next = skipCombatPhase(e.G, next)
+	if !spliced {
+		next = skipPendingStep(e.G, e.emit, next) // the one-shot DB$ SkipPhase grants
+	}
 	e.setStep(next)
 	if e.pending != nil {
 		return
