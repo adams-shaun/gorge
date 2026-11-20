@@ -73,9 +73,14 @@ var DebugWindowColourPlanner bool
 // planWindowCol is the colour a plan unit at sl makes when the payment is one
 // gorge takes through its manual mana window (an activation whose sacrifice
 // part follows the mana): a printed source that asks a choice of colours (a
-// Combo) answers the first option of its ask order, owed colours first. The
-// ask order is the one windowCol reads (colourAskOrder: the ability's printed
-// token order, else W U B R G).
+// Combo) answers an owed colour first in its ask order, else the window's
+// fallback for the source (windowFallbackCol, a granted basic land type's
+// colour first, mana_window.go). The ask's first token only orders the owed
+// colours: with nothing owed, payexec.WindowAnswer takes the lowest W U B R G
+// C symbol the ask lists, which for a granted-type source is the granted
+// type's own colour (windowColOwed's blgFirst answer). The ask order is the
+// one windowCol reads (colourAskOrder: the ability's printed token order,
+// else the colours of the mask in W U B R G C order).
 //
 // Only a source that itself gains a basic land type takes this answer. The
 // grant adds an intrinsic ability the window lists beside the source's own,
@@ -108,9 +113,16 @@ func (s *State) planWindowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot) (in
 	var ord [kop.NumManaKinds]uint8
 	n, printed := colourAskOrder(ab, m, &ord)
 	if !printed || n == 0 {
-		// no recorded token order: W U B R G, the field's zero (manaColourOrder)
-		ord[0] = uint8(bits.TrailingZeros8(m))
-		n = 1
+		// no recorded token order: the colours of m in W U B R G C order
+		// (colourAskOrder's common case), so an owed pip above the lowest is
+		// still named before the fallback
+		n = 0
+		for c := 0; c < 5; c++ {
+			if m&(1<<uint(c)) != 0 {
+				ord[n] = uint8(c)
+				n++
+			}
+		}
 	}
 	var owed kop.ManaCost
 	s.windowOwedCost(k, p, cost, &owed)
@@ -124,5 +136,12 @@ func (s *State) planWindowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot) (in
 			return 0, false // an owed colour the ask order does not name: the planner keeps coverage
 		}
 	}
-	return int(ord[0]), true
+	// nothing owed: the window's answer for this source (windowColOwed's
+	// fallback, mana_window.go): the lowest colour of the printed mask, a
+	// granted basic land type's colour first — not the ask's first token
+	col := windowFallbackCol(pc, m)
+	if pc.blgFirst != 0 {
+		col = int(pc.blgFirst - 1)
+	}
+	return col, true
 }
