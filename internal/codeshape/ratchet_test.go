@@ -24,7 +24,7 @@ const (
 	// engine/effects/ spanning more than 300 lines.
 	maxFuncLinesOver300 = 49
 	// engineMethodCount is the number of non-test methods on rules.Engine.
-	engineMethodCount = 2423
+	engineMethodCount = 2422
 	// hostMethodCount is the number of methods in the effects.Host interface
 	// (its whole method set, roles included).
 	hostMethodCount = 97
@@ -166,7 +166,7 @@ const (
 	// string literal plus strings.EqualFold calls with a literal argument: the
 	// if-chain spelling of the `case "X":` dispatch stringCaseLiterals froze
 	// at zero.
-	stringLiteralCompares = 2756
+	stringLiteralCompares = 2753
 	// rawBoolParamParses is the strings.EqualFold calls whose argument holds a
 	// Param/ParamStr call: a flag parameter re-parsed at each use.
 	rawBoolParamParses = 266
@@ -180,7 +180,7 @@ const (
 	// (distinct tables naming the key - 1): a word named in a second table is the
 	// vocabulary splitting again.
 	strCodesTables = 374
-	strCodesKeyDup = 1487
+	strCodesKeyDup = 1486
 )
 
 func measureRepo(t *testing.T) Metrics {
