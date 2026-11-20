@@ -117,12 +117,26 @@ func (s *State) filtFunding(k *prep, p uint8, f slotMask) int {
 	}
 	relaxable := s.filtRelaxable(k, f)
 	for ; f.any(); f = f.rest() {
-		if !relaxable && s.filtFirstFreeFee(k, f.first()) {
+		if !relaxable && s.filtFeeUncounted(k, f.first()) {
 			continue // an unrelaxable census clears paid: a first-and-only filter's fee is no funding step (census.fees)
 		}
 		n += s.filtFee(k, f.first())
 	}
 	return n
+}
+
+// filtFeeUncounted reports a filter gap whose fee gorge's unrelaxable census
+// does not count: any gap with a sound relaxed alternative (neither a hybrid
+// fee nor a repeatable one) is no `fund` entry, and the unrelaxable census
+// cleared the `paid` list that would have carried its fee, whether the
+// filter is a card's first-and-only ability or a second one beside a free
+// {T} ability (Prismatic Lens beside Sunken Ruins' hybrid fee: gorge's
+// census funds 1, the Ruins' own fee).
+func (s *State) filtFeeUncounted(k *prep, sl Slot) bool {
+	if _, _, hyb := s.filtHyb(k, sl); hyb {
+		return false
+	}
+	return !s.filtRepeat(k, sl)
 }
 
 // scriptAnyWalk: the prefix search's candidates are the any-mana walk, not the
