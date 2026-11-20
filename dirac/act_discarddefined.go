@@ -17,6 +17,35 @@ func (s *State) discardDefinedAll(k *prep, p uint8, f kop.FilterID) {
 	if DebugNoDefinedDiscard {
 		return
 	}
+	s.discardHandMatching(k, p, f)
+}
+
+// discardWholeHand discards every card in p's hand (a token copy waits in the
+// hand for the state-based actions) without an ask: one discard action, hence
+// one zone batch (gorge flushDiscards). It lives here, not in exec, so the
+// interpreter keeps no defer.
+func (s *State) discardWholeHand(k *prep, p uint8) {
+	if k.gen != nil && k.gen.anyBatch {
+		defer s.batchClose(s.batchOpen()) // one discard action (gorge flushDiscards)
+	}
+	pl := &s.pl[p]
+	for i := uint8(0); i < pl.handN; {
+		if s.objs[pl.hand[i]].of&ofCopy != 0 || s.park(k, pl.hand[i], parkDiscard, 0) {
+			i++
+			continue
+		}
+		s.discardObj(k, pl.hand[i])
+	}
+}
+
+// discardHandMatching discards p's hand cards matching f, without an ask. The
+// whole op is one discard action, hence one zone batch (gorge flushDiscards),
+// so a ChangesZoneAll "from anywhere" line queues once for the hand, not per
+// card.
+func (s *State) discardHandMatching(k *prep, p uint8, f kop.FilterID) {
+	if k.gen != nil && k.gen.anyBatch {
+		defer s.batchClose(s.batchOpen()) // one discard action (gorge flushDiscards)
+	}
 	pl := &s.pl[p]
 	for i := 0; i < int(pl.handN); {
 		o := pl.hand[i]

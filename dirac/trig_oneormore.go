@@ -45,6 +45,19 @@ func (s *State) batchClose(old uint8) {
 	s.g.batchLatch = s.g.batchLatch&(batchGrave|batchHeld) | old&(batchOpenMask|batchSac)
 }
 
+// changeZoneAllBatch reports whether one ChangeZoneAll sweep opens a zone
+// batch: a graveyard sweep (a "leaves your graveyard" line), a sweep into a
+// graveyard (the ChangesZoneAll "from anywhere" line), or a graveyard-to-exile
+// move. Gorge brackets every sweep in its zone batch (CR 603.2c).
+func (s *State) changeZoneAllBatch(k *prep, in *kop.Instr, fl kop.Filter) bool {
+	if k.gen == nil || !k.gen.anyBatch {
+		return false
+	}
+	z := kop.Zone(in.C & 7)
+	return fl.Zone == kop.ZoneGraveyard || z == kop.ZoneGraveyard ||
+		in.Op == kop.OpChangeZoneAllEx && in.C>>3&kop.MvGraveExile != 0
+}
+
 // batchTrigOK is the batch gate of a Tf2Batch (+ TfNotToGrave) line: a
 // "leave without dying" line is not checked for a leave to a graveyard,
 // and a batch line already queued in the open batch is not queued again.
@@ -111,9 +124,11 @@ func (s *State) leaveAllBatched(k *prep, order []Slot, z kop.Zone) {
 		s.fireLeave(k, sl, zs[i])
 	}
 	s.batchClose(old)
+	old = s.batchOpen()
 	for i, sl := range order {
 		s.removePerm(k, sl, zs[i], false)
 	}
+	s.batchClose(old)
 }
 
 // replPlus applies the ReplDamagePlus replacements to damage n a source

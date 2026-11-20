@@ -852,12 +852,7 @@ func (s *State) sba(k *prep) bool {
 			s.fireLeave(k, order[i], zs[i])
 		}
 		cb.batchEnd(s)
-		for i := 0; i < n; i++ {
-			s.removePerm(k, order[i], zs[i], false)
-			if i+1 == nd {
-				cb.holdEnd(s, k)
-			}
-		}
+		s.placeCasualties(k, order[:n], zs[:n], nd, &cb)
 		if anni.any() {
 			s.annihilateAll(anni.and(s.occ))
 		}
