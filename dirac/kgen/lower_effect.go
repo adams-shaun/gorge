@@ -2279,6 +2279,20 @@ func (lc *lowerCtx) protKwInto(o *lOverride, kw string) error {
 	return nil
 }
 
+// pumpKwGrant lowers a battlefield object's keyword-only Pump Duration$
+// whose grant is a layer-6 override record: Permanent (gorge AddContinuous) or
+// UntilYourNextUpkeep (the resolving controller's next upkeep, CR 611.2b).
+// Any other duration refuses, as the Duration arm in pumpBody always has.
+func (lc *lowerCtx) pumpKwGrant(d, kw string, obj lRef) error {
+	switch d {
+	case "Permanent":
+		return lc.pumpPermanentKwGrant(kw, obj)
+	case "UntilYourNextUpkeep":
+		return lc.pumpUpkeepKwGrant(kw, obj)
+	}
+	return refuse("Pump Duration %q", d)
+}
+
 // pumpPermanentKwGrant lowers a battlefield object's Pump Duration$
 // Permanent keyword grant: the protection terms and the rest of the keyword
 // list ride one layer-6 override record (the Duration arm in pumpBody).
@@ -2288,6 +2302,27 @@ func (lc *lowerCtx) pumpPermanentKwGrant(kw string, obj lRef) error {
 		return err
 	}
 	lc.emitOverride(obj, o, "Permanent")
+	return nil
+}
+
+// pumpUpkeepKwGrant lowers a battlefield object's Pump Duration$
+// UntilYourNextUpkeep keyword grant: one keyword-only override record whose
+// waiting controller is the applied record's p (kop.Override.UntilUpkeep;
+// dirac/static_untilnextupkeep.go). The grant lasts through the controller's
+// untap step and ends as their upkeep begins (gorge dropUntilYourNextUpkeep).
+func (lc *lowerCtx) pumpUpkeepKwGrant(kw string, obj lRef) error {
+	o := &lOverride{UntilUpkeep: true}
+	rest, landwalk, err := lc.splitLandwalkPump(kw) // lower_landwalkgrant.go
+	if err != nil {
+		return err
+	}
+	o.Landwalk = landwalk
+	if rest != "" {
+		if err := lc.protKwInto(o, rest); err != nil {
+			return err
+		}
+	}
+	lc.emitOverride(obj, o, "UntilYourNextUpkeep")
 	return nil
 }
 
@@ -2361,9 +2396,10 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 	}
 	if d, ok := ps.get("Duration"); ok {
 		// Duration$ keyword grants only: a layer-6 permanent grant (gorge
-		// AddContinuous Permanent) or one lasting until the controller's
-		// next turn (the UntilTurn boundary, CR 611.2b), both the kernel's
-		// override record; a P/T change or any other duration refuses
+		// AddContinuous Permanent), one lasting until the controller's next
+		// turn (the UntilTurn boundary), or one until their next upkeep (both
+		// CR 611.2b), all the kernel's override record; a P/T change or any
+		// other duration refuses
 		_, na := ps.m["NumAtt"]
 		_, nd := ps.m["NumDef"]
 		kw, hasKW := ps.get("KW")
@@ -2373,10 +2409,10 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		if d == "UntilYourNextTurn" && lc.pumpObjectRef(obj) && zone == zBattlefield {
 			return lc.pumpNextTurnObject(ps, obj, na, nd, kw, hasKW)
 		}
-		if d != "Permanent" || na || nd || !hasKW || zone != zBattlefield {
+		if na || nd || !hasKW || zone != zBattlefield {
 			return refuse("Pump Duration %q", d)
 		}
-		return lc.pumpPermanentKwGrant(kw, obj)
+		return lc.pumpKwGrant(d, kw, obj)
 	}
 	att, def := lValue{}, lValue{}
 	if a, ok := ps.get("NumAtt"); ok {

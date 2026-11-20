@@ -176,6 +176,11 @@ type Override struct {
 	// chars.derive applies it as a final filter after every layer-6 grant,
 	// so the kernel's layer-6 walk drops these bits from its result.
 	CantHaveKw KwMask
+	// UntilUpkeep: the record lasts until the resolving controller's next
+	// upkeep begins (Duration$ UntilYourNextUpkeep, CR 611.2b; Erhnam Djinn).
+	// The applied record keeps that controller in its P/T fields, which a
+	// keyword-only grant does not use (dirac/static_untilnextupkeep.go).
+	UntilUpkeep bool
 	// WhileHost: the record lasts only while the effect's source (its
 	// host) stays on the battlefield (Duration$ UntilHostLeavesPlay or
 	// AsLongAsInPlay; the applied record keeps the host's Obj and ver in its

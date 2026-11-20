@@ -182,6 +182,7 @@ func (s *State) beginStep(k *prep) {
 		}
 		s.step = kop.StepUpkeep
 	case kop.StepUpkeep:
+		s.upkeepStep(k) // Duration$ UntilYourNextUpkeep ends as the upkeep begins
 		if k.gen != nil && k.gen.anySuspend {
 			s.suspendTick(k) // CR 702.62a: gorge ticks as the step is entered (kw_suspend.go)
 		}

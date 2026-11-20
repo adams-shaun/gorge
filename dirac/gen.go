@@ -75,6 +75,7 @@ type genPrep struct {
 	anyPlProtAll    bool  // some emblem static is a StatPlayerProtAll player protection grant (static_plprot.go)
 	anyEmbPlHex     bool  // some emblem static is a StatPlayerHexproof player hexproof grant (static_emblemphex.go)
 	anyNTOv         bool  // an OpOverride / OpOverrideAll lasts until its controller's next turn
+	anyUpkeepOv     bool  // an OpOverride / OpOverrideAll lasts until its controller's next upkeep
 	legendGrant     bool  // some Override adds or sets the Legendary supertype (legendRule reads derived types)
 	anyMayPlay      bool
 	anyMayRaise     bool     // some may-play static owes a non-mana RaiseCost$ (cost_mayplayraise.go)
