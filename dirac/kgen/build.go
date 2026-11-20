@@ -2660,6 +2660,9 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		if ko.ProtFrom, err = cb.filter(o.ProtFrom, kop.ZoneBattlefield); err != nil {
 			return 0, err
 		}
+		// the quality filter's subtypes (Spare from Evil's non-Human) must survive
+		// the matchup remap like Landwalk's do
+		cb.out.ovVals = append(cb.out.ovVals, kop.ValueRef{K: kop.VCountFilter, N: int16(ko.ProtFrom)})
 	}
 	ko.AddColors = colorMask(o.AddColors)
 	if ko.AddKw, err = kwMask(o.AddKw); err != nil {
