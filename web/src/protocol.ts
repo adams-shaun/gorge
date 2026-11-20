@@ -475,6 +475,13 @@ export interface CardView {
   goaded_by?: string;
   blocked_by?: number[];
   blocked?: boolean;
+  /**
+   * Blocking is true for a battlefield creature declared as a blocker this
+   * combat, after its attacker has left combat too (CR 506.4): BlockedBy
+   * lists a block only on the attacker, so a blocker of an attacker that is
+   * gone is shown only here.
+   */
+  blocking?: boolean;
   tapped: boolean;
   power: number;
   toughness: number;
@@ -1763,6 +1770,16 @@ export interface View {
   priority: number;
   over: boolean;
   draw: boolean;
+  /**
+   * DamageStep names the priority round of the combat damage step the game is
+   * in: "first-strike" for the round after the first-strike pass, "regular"
+   * for the round after the regular pass; omitted elsewhere, and when the
+   * projector's Chars is not a DamageStepReader. FirstStrikeStep says whether
+   * this combat runs a first-strike pass, at the combat damage step only.
+   * Public for every seat, like the step they refine.
+   */
+  damage_step?: string;
+  first_strike_step?: boolean;
   /**
    * Winner is nil unless Over && !Draw: PlayerID's zero value is seat 0, a
    * real seat, so a bare PlayerID field could never distinguish "seat 0

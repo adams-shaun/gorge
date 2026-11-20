@@ -189,9 +189,14 @@ type CardView struct {
 	GoadedBy  []state.PlayerID `json:"goaded_by,omitempty"`
 	BlockedBy []state.ObjID    `json:"blocked_by,omitempty"`
 	Blocked   bool             `json:"blocked,omitempty"`
-	Tapped    bool             `json:"tapped"`
-	Power     int32            `json:"power"`
-	Toughness int32            `json:"toughness"`
+	// Blocking is true for a battlefield creature declared as a blocker this
+	// combat, after its attacker has left combat too (CR 506.4): BlockedBy
+	// lists a block only on the attacker, so a blocker of an attacker that is
+	// gone is shown only here.
+	Blocking  bool  `json:"blocking,omitempty"`
+	Tapped    bool  `json:"tapped"`
+	Power     int32 `json:"power"`
+	Toughness int32 `json:"toughness"`
 	// PrintedPT is the face's PRINTED power/toughness as text ("1/1", "*/*"),
 	// the value the physical card or token is printed with. Power/Toughness
 	// above are the CURRENT layer-7 values a counter or an anthem moves; a
@@ -616,6 +621,7 @@ func (p *projector) faceDownCard(cv *CardView, o *state.Object) {
 		cv.AttackingPermanent = o.AttackingBattle != 0
 	}
 	cv.Blocked, cv.BlockedBy = blockers(blk, o)
+	cv.Blocking = o.IsBlocking
 	// CR 708.2a: it is a creature, unless a type-changing effect says otherwise
 	// (Yedora's returned Forest land), which shows like any other derived type.
 	cv.Types = "Creature"
@@ -898,6 +904,7 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 		cv.AttackingPermanent = o.AttackingBattle != 0
 	}
 	cv.Blocked, cv.BlockedBy = blockers(blk, o)
+	cv.Blocking = o.IsBlocking
 	if p.noDerived {
 		// no keywords, zero P/T
 	} else if p.vchars != nil {

@@ -26,6 +26,20 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// DamageStepReader is the optional capability a Chars may add: which priority
+// round of the combat damage step the game is in. *rules.Engine implements it
+// from its combat damage continuation state; a Chars that does not leaves
+// View.DamageStep and View.FirstStrikeStep empty.
+type DamageStepReader interface {
+	// CombatDamageStep is "first-strike" in the priority round after the
+	// first-strike pass, "regular" in the one after the regular pass, and ""
+	// while a pass is dealing or asking for a damage division.
+	CombatDamageStep() string
+	// FirstStrikePass reports whether the combat damage step runs a first-strike
+	// pass.
+	FirstStrikePass() bool
+}
+
 // Chars is what the view asks the engine for: derived characteristics and
 // the triggers that have matched but are not yet on the stack. *rules.Engine
 // satisfies it (view_test.go pins that with a compile-time assertion);
@@ -116,6 +130,14 @@ type View struct {
 	Priority state.PlayerID `json:"priority"`
 	Over     bool           `json:"over"`
 	Draw     bool           `json:"draw"`
+	// DamageStep names the priority round of the combat damage step the game is
+	// in: "first-strike" for the round after the first-strike pass, "regular"
+	// for the round after the regular pass; omitted elsewhere, and when the
+	// projector's Chars is not a DamageStepReader. FirstStrikeStep says whether
+	// this combat runs a first-strike pass, at the combat damage step only.
+	// Public for every seat, like the step they refine.
+	DamageStep      string `json:"damage_step,omitempty"`
+	FirstStrikeStep bool   `json:"first_strike_step,omitempty"`
 	// Winner is nil unless Over && !Draw: PlayerID's zero value is seat 0, a
 	// real seat, so a bare PlayerID field could never distinguish "seat 0
 	// won" from "the game is still going" or "it was a draw". A JSON null is
@@ -626,6 +648,11 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 	v.Round = roundOf(g)
 	v.Step = g.Step.String()
 	v.Phase = PhaseOf(g.Step)
+	if g.Step == state.StepCombatDamage {
+		if r, ok := ch.(DamageStepReader); ok {
+			v.DamageStep, v.FirstStrikeStep = r.CombatDamageStep(), r.FirstStrikePass()
+		}
+	}
 	v.Active = g.Active
 	v.Priority = g.Priority
 	// The London mulligan round happens before the first TurnChange. Its
