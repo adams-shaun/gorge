@@ -416,10 +416,32 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	// verdict when they are recorded (one mana per tap, CR 118.3c;
 	// potUnitsAvail): an incomplete record has no bounded view and keeps the
 	// over-bound answer.
+	mainGapN, mainGapGain := d.gapN, d.gapGain // the pot walk's paid gaps: the productions its over-bound kept
 	exactKnown := potUnitsAvail(&ex, &pu, int(s.pl[SeatIx(p)].life))
 	var gs gapSubsets
+	countKnown := false
+	var countEx avail
 	if !exactKnown {
 		s.xBoundGapSubsets(k, p, d, &gs) // the paid gaps' fees, as gorge's relaxed proof charges them (mana_xboundgap.go)
+		// A repeatable paid gap's subsets are never priced (xBoundGapSubsets's
+		// gapRepeats arm), so the over-bound stands. When every gap it kept
+		// nets no mana, the covered census alone is the honest supply (gorge
+		// xBoundTargetPayable's count proof, altcast.go's provenUnpayable tail;
+		// CR 106.1, 605.3b, 601.2h): an announcement the covered units cannot
+		// fund has no real payment, whatever the gap's own production adds.
+		// An open production the bounded census cannot price (a granted
+		// any-colour unit, a lethal-pain fold) leaves no count proof.
+		if gs.n == 0 && mainGapN != 0 && mainGapN <= paidGapMax && !mainGapGain {
+			var pu2 [maxPotUnits]potUnit
+			var supAv avail
+			d2 := d
+			d2.gapTrack, d2.gapSkip, d2.gapN, d2.gapRepeats, d2.gapNever, d2.gapGain = false, 0, 0, false, 0, false
+			d2.gapSkipPaid = true
+			// a bounded walk (fixed any-colour taps are units) that lists
+			// gorge's planner census: every free production, no paid gap
+			open := s.availPotentialFor(k, p, &supAv, &d2, true, &pu2)
+			countKnown = xBoundCountCensus(open, &countEx, &pu2, int(s.pl[SeatIx(p)].life))
+		}
 	}
 	ok := false
 	for x := costXMin(&a.Cost); !ok && x < 255; x++ { // from the floor (cost_sacx.go)
@@ -427,7 +449,12 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		if !pot.affords(&cx, pipMaskOf(&cx), 0) {
 			break
 		}
-		if exactKnown && !ex.affords(&cx, pipMaskOf(&cx), 0) || gs.n != 0 && !gs.affords(&cx) {
+		// The count proof is a total-mana one (gorge costOutrunsSupply's
+		// supply < CMC): a covered census that cannot reach the announcement's
+		// total mana proves it unpayable, while a colour-infeasible covered
+		// census does not (a repeatable converter may change colours at a
+		// mana loss, and the count arm has no proof against it).
+		if exactKnown && !ex.affords(&cx, pipMaskOf(&cx), 0) || gs.n != 0 && !gs.affords(&cx) || countKnown && xBoundCountProof(&countEx, &cx) {
 			break
 		}
 		s.g.probe.x = uint8(x + 1)

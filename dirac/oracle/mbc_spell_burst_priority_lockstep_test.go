@@ -23,4 +23,12 @@ func TestMBCSpellBurstReprosLockstep(t *testing.T) {
 	// refuses the plain cast and gorge offers it; the kernel priced that
 	// ability as a once-only paid gap and left the plain cast out.
 	stdReproNamed(t, "xbound_target_repeatable_fee_source_nonrelaxable")
+	// Decision 760 of tail-26-c000 (seed 434573, pair 11; CR 601.2b-c, 601.2h,
+	// CR 106.1): Flowstone Crusher (mana value 4) is the only target and
+	// four mana pay no {4}{U}; the same repeatable Candleguide activation
+	// sits untapped on the caster's own board, so gorge's census is again
+	// non-relaxable and the count proof xBoundTargetPayable now runs: the
+	// announcement the pool plus every census unit's largest production
+	// cannot fund is refused, as the kernel's exact per-tap sweep always did.
+	stdReproNamed(t, "xbound_fee_gap")
 }
